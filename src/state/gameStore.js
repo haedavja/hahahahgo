@@ -306,7 +306,7 @@ export const useGameStore = create((set, get) => ({
       const amount = Number(delta) || 0;
       if (!amount) return state;
       const current = state.resources.aether ?? 0;
-      const nextValue = Math.max(0, current + amount);
+      const nextValue = Math.max(0, Math.min(830, current + amount)); // 최대 4칸 (831pt부터 5칸)
       if (nextValue === current) return state;
       return {
         ...state,

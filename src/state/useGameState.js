@@ -123,20 +123,12 @@ const generateMap = () => {
   };
 };
 
-export const createInitialState = () => {
-  // 강제 초기화: 이전 상태 무시
-  console.log('!!!!! CREATING INITIAL STATE - AETHER IS 0 !!!!!');
-  alert('초기 상태 생성: aether는 0입니다!');
-  const initialState = {
-    map: generateMap(),
-    mapRisk: Math.floor(Math.random() * 61) + 20,
-    resources: { gold: 40, intel: 2, loot: 1, material: 1, aether: 0 },
-    activeEvent: null,
-    activeDungeon: null,
-    activeBattle: null,
-    lastBattleResult: null,
-  };
-  console.log('Initial resources:', initialState.resources);
-  alert(`초기 에테르 값: ${initialState.resources.aether}`);
-  return initialState;
-};
+export const createInitialState = () => ({
+  map: generateMap(),
+  mapRisk: Math.floor(Math.random() * 61) + 20,
+  resources: { gold: 40, intel: 2, loot: 1, material: 1, aether: 0 },
+  activeEvent: null,
+  activeDungeon: null,
+  activeBattle: null,
+  lastBattleResult: null,
+});
