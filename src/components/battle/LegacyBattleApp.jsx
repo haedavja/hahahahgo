@@ -9,7 +9,7 @@ import {
   ENEMY_CARDS as BASE_ENEMY_CARDS,
   ENEMIES,
 } from "./battleData";
-import { calculateEtherSlots } from "../../lib/etherUtils";
+import { calculateEtherSlots, getCurrentSlotPts, getSlotProgress, getNextSlotCost } from "../../lib/etherUtils";
 
 const SPEED_TICKS = Array.from(
   { length: Math.floor(MAX_SPEED / 5) + 1 },
@@ -431,7 +431,13 @@ function EtherBar({ pts, slots, previewGain=0, color="cyan", label }){
   const derivedSlots = Number.isFinite(slots) ? slots : etherSlots(safePts);
   const safeSlots = Number.isFinite(derivedSlots) ? derivedSlots : 0;
   const safePreview = Number.isFinite(previewGain) ? previewGain : 0;
-  const ratio = Math.max(0, Math.min(1, safeSlots / 10));
+
+  // 현재 슬롯 내의 pt (각 슬롯 도달시마다 0으로 리셋)
+  const currentPts = getCurrentSlotPts(safePts);
+  // 다음 슬롯까지의 진행률 (0-1)
+  const slotProgress = getSlotProgress(safePts);
+  // 시각적 바 높이 = 진행률
+  const ratio = Math.max(0, Math.min(1, slotProgress));
   const tier = `x${safeSlots}`;
 
   const borderColor = color === 'fuchsia' ? '#d946ef' : '#53d7ff';
@@ -466,7 +472,7 @@ function EtherBar({ pts, slots, previewGain=0, color="cyan", label }){
         }} />
       </div>
       <div style={{ textAlign: 'center', color: textColor, fontSize: '13px', marginTop: '8px' }}>
-        <div>{safePts} pt</div>
+        <div>{currentPts} pt</div>
         <div>{tier}</div>
         {safePreview > 0 && (
           <div style={{ color: '#6ee7b7', fontSize: '11px', marginTop: '4px' }}>
