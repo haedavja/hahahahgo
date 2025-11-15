@@ -176,13 +176,13 @@ function applyPokerBonus(cards, combo){
 }
 
 const ETHER_GAIN_MAP = {
-  '페어': 10,
-  '투페어': 10,
-  '트리플': 20,
-  '플러쉬': 30,
-  '풀하우스': 40,
-  '포카드': 50,
-  '파이브카드': 60,
+  '페어': 0,
+  '투페어': 0,
+  '트리플': 0,
+  '플러쉬': 0,
+  '풀하우스': 0,
+  '포카드': 0,
+  '파이브카드': 0,
 };
 // 에테르 계산 함수들을 battleData.js에서 import하여 사용
 // etherPtsToSlots, etherSlotsToMinPts, etherProgressInSlot
