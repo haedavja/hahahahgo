@@ -148,8 +148,23 @@ function detectPokerCombo(cards){
   const allDefense = cards.every(c=>c.type==='defense');
   const isFlush = (allAttack || allDefense) && cards.length>=4;
 
-  // 디버깅: 조합 감지 로그
-  console.log('[detectPokerCombo]', {
+  let result = null;
+  if(have(5)) result = { name:'파이브카드', bonusKeys: keysByCount(5) };
+  else if(have(4)) result = { name:'포카드',   bonusKeys: keysByCount(4) };
+  else if(have(3) && have(2)){
+    const b = new Set([...keysByCount(3), ...keysByCount(2)]);
+    result = { name:'풀하우스', bonusKeys: b };
+  }
+  else if(isFlush) result = { name:'플러쉬', bonusKeys: null };
+  else {
+    const pairKeys = keysByCount(2);
+    if(pairKeys.size >= 2) result = { name:'투페어',  bonusKeys: pairKeys };
+    else if(have(3)) result = { name:'트리플',  bonusKeys: keysByCount(3) };
+    else if(have(2)) result = { name:'페어',    bonusKeys: pairKeys };
+  }
+
+  // 디버깅: 조합 감지 로그 (반환값 포함)
+  console.log('[detectPokerCombo] 결과:', {
     cardCount: cards.length,
     cards: cards.map(c => ({ name: c.name, type: c.type, cost: c.actionCost })),
     freq: Object.fromEntries(freq),
@@ -157,21 +172,11 @@ function detectPokerCombo(cards){
     allAttack,
     allDefense,
     isFlush,
-    pairCount: keysByCount(2).size
+    pairCount: keysByCount(2).size,
+    '>>> 반환된 조합': result?.name || 'null'
   });
 
-  if(have(5)) return { name:'파이브카드', bonusKeys: keysByCount(5) };
-  if(have(4)) return { name:'포카드',   bonusKeys: keysByCount(4) };
-  if(have(3) && have(2)){
-    const b = new Set([...keysByCount(3), ...keysByCount(2)]);
-    return { name:'풀하우스', bonusKeys: b };
-  }
-  if(isFlush) return { name:'플러쉬', bonusKeys: null };
-  const pairKeys = keysByCount(2);
-  if(pairKeys.size >= 2) return { name:'투페어',  bonusKeys: pairKeys };
-  if(have(3)) return { name:'트리플',  bonusKeys: keysByCount(3) };
-  if(have(2)) return { name:'페어',    bonusKeys: pairKeys };
-  return null;
+  return result;
 }
 
 function applyPokerBonus(cards, combo){
