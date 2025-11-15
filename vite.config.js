@@ -5,4 +5,8 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   base: './', // 로컬 실행을 위한 상대 경로 설정
+  server: {
+    host: true, // 네트워크의 모든 디바이스에서 접근 가능
+    port: 5173,
+  },
 })

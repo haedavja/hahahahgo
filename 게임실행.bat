@@ -27,7 +27,15 @@ if not exist "node_modules\" (
 echo [2/2] 게임 서버 시작 중...
 echo.
 echo 브라우저가 자동으로 열립니다...
-echo 게임 URL: http://localhost:5173
+echo.
+echo ┌─────────────────────────────────────┐
+echo │ 게임 접속 주소:                     │
+echo │                                     │
+echo │ 컴퓨터:   http://localhost:5173     │
+echo │                                     │
+echo │ 아이패드/폰: 서버 시작 후 표시됨    │
+echo │ (같은 WiFi에 연결 필요)             │
+echo └─────────────────────────────────────┘
 echo.
 echo 게임을 종료하려면 이 창을 닫으세요.
 echo ====================================
