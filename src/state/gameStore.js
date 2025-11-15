@@ -274,9 +274,9 @@ export const useGameStore = create((set, get) => ({
     set((state) => {
       const active = state.activeEvent;
       if (!active || active.resolved) return state;
-      if ((state.resources.aether ?? 0) < cost) return state;
+      if ((state.resources.etherPts ?? 0) < cost) return state;
 
-      const afterCost = payCost({ aether: cost }, state.resources);
+      const afterCost = payCost({ etherPts: cost }, state.resources);
       const result = grantRewards({ intel: Math.max(1, Math.ceil(cost / 2)) }, afterCost);
 
       return {
@@ -289,7 +289,7 @@ export const useGameStore = create((set, get) => ({
             choice: `湲곕룄 x${cost}`,
             success: true,
             text: "占쏙옙占쌓몌옙占쏙옙 占쏙옙占쏙옙占싹울옙 占쏙옙占쏙옙占쏙옙 占쏙옙화占실억옙占쏙옙占싹댐옙.",
-            cost: { aether: cost },
+            cost: { etherPts: cost },
             rewards: result.applied,
             penalty: {},
             probability: 1,
@@ -301,18 +301,18 @@ export const useGameStore = create((set, get) => ({
   closeEvent: () =>
     set((state) => (state.activeEvent ? { ...state, activeEvent: null } : state)),
 
-  applyAetherDelta: (delta = 0) =>
+  applyEtherDelta: (delta = 0) =>
     set((state) => {
       const amount = Number(delta) || 0;
       if (!amount) return state;
-      const current = state.resources.aether ?? 0;
+      const current = state.resources.etherPts ?? 0;
       const nextValue = Math.max(0, current + amount);
       if (nextValue === current) return state;
       return {
         ...state,
         resources: {
           ...state.resources,
-          aether: nextValue,
+          etherPts: nextValue,
         },
       };
     }),

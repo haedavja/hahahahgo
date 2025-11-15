@@ -23,31 +23,31 @@ const buildBattlePayload = (battle, etherPts) => {
 export function LegacyBattleScreen() {
   const activeBattle = useGameStore((state) => state.activeBattle);
   const resolveBattle = useGameStore((state) => state.resolveBattle);
-  const applyAetherDelta = useGameStore((state) => state.applyAetherDelta);
+  const applyEtherDelta = useGameStore((state) => state.applyEtherDelta);
   const lastBattleResult = useGameStore((state) => state.lastBattleResult);
-  const playerAether = useGameStore((state) => state.resources.aether ?? 0);
-  const payload = useMemo(() => buildBattlePayload(activeBattle, playerAether), [activeBattle, playerAether]);
+  const playerEther = useGameStore((state) => state.resources.etherPts ?? 0);
+  const payload = useMemo(() => buildBattlePayload(activeBattle, playerEther), [activeBattle, playerEther]);
   const frameKey = activeBattle ? `${activeBattle.nodeId}-${activeBattle.kind}` : "idle";
 
   const handleBattleResult = useCallback(
-    ({ result, playerEther, deltaAether }) => {
+    ({ result, playerEther, deltaEther }) => {
       const finalResult = result === "victory" ? "victory" : "defeat";
       const isFirstBattle = !lastBattleResult;
 
-      if (typeof deltaAether === "number" && deltaAether !== 0) {
+      if (typeof deltaEther === "number" && deltaEther !== 0) {
         // 첫 전투 후 비정상적인 +5 보정
-        const correctedDelta = isFirstBattle ? deltaAether - 5 : deltaAether;
-        applyAetherDelta(correctedDelta);
+        const correctedDelta = isFirstBattle ? deltaEther - 5 : deltaEther;
+        applyEtherDelta(correctedDelta);
       } else if (typeof playerEther === "number") {
-        const current = useGameStore.getState().resources.aether ?? 0;
+        const current = useGameStore.getState().resources.etherPts ?? 0;
         let diff = playerEther - current;
         // 첫 전투 후 비정상적인 +5 보정
         if (isFirstBattle) diff -= 5;
-        if (diff) applyAetherDelta(diff);
+        if (diff) applyEtherDelta(diff);
       }
       resolveBattle({ result: finalResult, etherPts: playerEther });
     },
-    [applyAetherDelta, resolveBattle, lastBattleResult],
+    [applyEtherDelta, resolveBattle, lastBattleResult],
   );
 
   if (!activeBattle) return null;
@@ -57,7 +57,7 @@ export function LegacyBattleScreen() {
       <LegacyBattleApp
         initialPlayer={payload?.player}
         initialEnemy={payload?.enemy}
-        playerEther={playerAether}
+        playerEther={playerEther}
         onBattleResult={handleBattleResult}
       />
     </div>

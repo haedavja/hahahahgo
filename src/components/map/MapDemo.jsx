@@ -33,7 +33,7 @@ const RESOURCE_LABELS = {
   intel: "정보",
   loot: "전리품",
   material: "원자재",
-  aether: "에테르",
+  etherPts: "에테르",
 };
 
 const describeAmount = (value) => {
@@ -101,7 +101,7 @@ const friendlyPercent = (chance) => {
   return `${Math.round(chance * 100)}%`;
 };
 
-const PATCH_VERSION_TAG = "11-15-12:24"; // 다음 패치마다 여기를 최신 시간(월-일-시:분)으로 갱신하세요.
+const PATCH_VERSION_TAG = "11-15-12:34"; // 다음 패치마다 여기를 최신 시간(월-일-시:분)으로 갱신하세요.
 
 export function MapDemo() {
   const map = useGameStore((state) => state.map);
@@ -122,7 +122,7 @@ export function MapDemo() {
   const nodes = map?.nodes ?? [];
   const mapViewRef = useRef(null);
   const riskDisplay = Number.isFinite(mapRisk) ? mapRisk.toFixed(1) : "-";
-  const aetherValue = resources.aether ?? 0;
+  const aetherValue = resources.etherPts ?? 0;
   const aetherRatio = Math.max(0, Math.min(1, aetherValue / 10));
   const aetherTier = aetherValue >= 5 ? "x5" : aetherValue >= 3 ? "x3" : aetherValue > 0 ? "x1" : "x0";
 
@@ -169,8 +169,8 @@ export function MapDemo() {
   }, [map?.currentNodeId, nodes]);
 
   const availablePrayers = useMemo(
-    () => PRAYER_COSTS.filter((cost) => (resources.aether ?? 0) >= cost),
-    [resources.aether],
+    () => PRAYER_COSTS.filter((cost) => (resources.etherPts ?? 0) >= cost),
+    [resources.etherPts],
   );
 
   const handleNodeClick = (node) => {
@@ -256,7 +256,7 @@ export function MapDemo() {
 
       <div className="resource-hud">
         {Object.entries(resources)
-          .filter(([key]) => key !== "aether")
+          .filter(([key]) => key !== "etherPts")
           .map(([key, value]) => (
             <span key={key} className="resource-tag">
               {RESOURCE_LABELS[key] ?? key}: {value}
