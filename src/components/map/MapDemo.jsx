@@ -1,6 +1,6 @@
 ﻿import { useEffect, useMemo, useRef } from "react";
 import { useGameStore } from "../../state/gameStore";
-import { calculateEtherSlots, getCurrentSlotPts, getSlotProgress } from "../../lib/etherUtils";
+import { calculateEtherSlots, getCurrentSlotPts, getSlotProgress, getNextSlotCost } from "../../lib/etherUtils";
 
 const NODE_WIDTH = 96;
 const NODE_HEIGHT = 100;
@@ -102,12 +102,11 @@ const friendlyPercent = (chance) => {
   return `${Math.round(chance * 100)}%`;
 };
 
-const PATCH_VERSION_TAG = "11-15-23:35"; // 다음 패치마다 여기를 최신 시간(월-일-시:분, KST)으로 갱신하세요.
+const PATCH_VERSION_TAG = "11-15-23:40"; // 다음 패치마다 여기를 최신 시간(월-일-시:분, KST)으로 갱신하세요.
 
-/* v11-15-23:35 갱신 내역
- * - 맵 에테르 바 시각적 진행률 수정: 다음 슬롯까지의 진행도를 바 높이로 표시
- * - 맵 에테르 pt 표시 수정: 각 슬롯 도달시마다 0pt로 리셋되는 현재 슬롯 pt 표시
- * - 전투 및 맵 에테르 표시 시스템 통일
+/* v11-15-23:40 갱신 내역
+ * - 에테르 pt 표시 형식 개선: "현재pt/필요pt" 형식으로 변경 (예: 30/100)
+ * - 전투 및 맵 모두에서 다음 슬롯까지 필요한 pt 수를 직관적으로 확인 가능
  */
 
 export function MapDemo() {
@@ -132,6 +131,7 @@ export function MapDemo() {
   const aetherValue = resources.etherPts ?? 0;
   const aetherSlots = calculateEtherSlots(aetherValue); // 인플레이션 적용
   const aetherCurrentPts = getCurrentSlotPts(aetherValue); // 현재 슬롯 내의 pt (슬롯마다 0으로 리셋)
+  const aetherNextSlotCost = getNextSlotCost(aetherValue); // 다음 슬롯을 채우는데 필요한 총 pt
   const aetherProgress = getSlotProgress(aetherValue); // 다음 슬롯까지의 진행률 (0-1)
   const aetherRatio = Math.max(0, Math.min(1, aetherProgress)); // 시각적 바 높이
   const aetherTier = `x${aetherSlots}`;
@@ -189,9 +189,8 @@ export function MapDemo() {
   };
 
   const asideItems = [
-    "맵 에테르 바 시각적 진행률 수정: 다음 슬롯까지의 진행도를 바 높이로 표시",
-    "맵 에테르 pt 표시 수정: 각 슬롯 도달시마다 0pt로 리셋되는 현재 슬롯 pt 표시",
-    "전투 및 맵 에테르 표시 시스템 통일",
+    "에테르 pt 표시 형식 개선: '현재pt/필요pt' 형식으로 변경 (예: 30/100)",
+    "전투 및 맵 모두에서 다음 슬롯까지 필요한 pt 수를 직관적으로 확인 가능",
   ];
 
   return (
@@ -277,7 +276,7 @@ export function MapDemo() {
           <div className="aether-fill" style={{ height: `${aetherRatio * 100}%` }} />
         </div>
         <div className="aether-remaining">
-          <div>{aetherCurrentPts} pt</div>
+          <div>{aetherCurrentPts}/{aetherNextSlotCost}</div>
           <div>{aetherTier}</div>
         </div>
       </div>

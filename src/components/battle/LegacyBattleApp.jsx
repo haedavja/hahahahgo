@@ -434,6 +434,8 @@ function EtherBar({ pts, slots, previewGain=0, color="cyan", label }){
 
   // 현재 슬롯 내의 pt (각 슬롯 도달시마다 0으로 리셋)
   const currentPts = getCurrentSlotPts(safePts);
+  // 다음 슬롯을 채우는데 필요한 총 pt
+  const nextSlotCost = getNextSlotCost(safePts);
   // 다음 슬롯까지의 진행률 (0-1)
   const slotProgress = getSlotProgress(safePts);
   // 시각적 바 높이 = 진행률
@@ -472,7 +474,7 @@ function EtherBar({ pts, slots, previewGain=0, color="cyan", label }){
         }} />
       </div>
       <div style={{ textAlign: 'center', color: textColor, fontSize: '13px', marginTop: '8px' }}>
-        <div>{currentPts} pt</div>
+        <div>{currentPts}/{nextSlotCost}</div>
         <div>{tier}</div>
         {safePreview > 0 && (
           <div style={{ color: '#6ee7b7', fontSize: '11px', marginTop: '4px' }}>
