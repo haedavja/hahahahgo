@@ -992,10 +992,10 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
             <div className="entity-panel enemy-panel">
               <div className="entity-body">
                 <div style={{display: 'flex', alignItems: 'flex-start', gap: '16px', marginBottom: '12px'}}>
+                  <EtherBar pts={enemyEtherValue} slots={enemyEtherSlots} previewGain={enemyComboPreviewGain} label="ETHER" color="fuchsia" />
                   <div style={{flex: 1, textAlign: 'right'}}>
                     <div className="entity-name text-right">{enemy.name}</div>
                   </div>
-                  <EtherBar pts={enemyEtherValue} slots={enemyEtherSlots} previewGain={enemyComboPreviewGain} label="ETHER" color="fuchsia" />
                 </div>
                 <div className="hp-bar-enhanced mb-3" style={{width: '300px'}}>
                   <div className="hp-fill" style={{width: `${(enemy.hp/enemy.maxHp)*100}%`}}></div>
@@ -1082,7 +1082,14 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
 
             {/* 조합 표시 - 중앙 */}
             {currentCombo && (
-              <div className="combo-display">{currentCombo.name}</div>
+              <div className="combo-display">
+                {currentCombo.name}
+                {pendingComboEther > 0 && (
+                  <span style={{fontSize: '0.85em', marginLeft: '8px', color: '#6ee7b7'}}>
+                    +{pendingComboEther} pt
+                  </span>
+                )}
+              </div>
             )}
 
             <div className="flex gap-2">
@@ -1152,7 +1159,14 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
 
             <div className="hand-combo">
               {phase==='select' && currentCombo && (
-                <div className="combo-display">{currentCombo.name}</div>
+                <div className="combo-display">
+                  {currentCombo.name}
+                  {pendingComboEther > 0 && (
+                    <span style={{fontSize: '0.85em', marginLeft: '8px', color: '#6ee7b7'}}>
+                      +{pendingComboEther} pt
+                    </span>
+                  )}
+                </div>
               )}
             </div>
 
