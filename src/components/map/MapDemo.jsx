@@ -101,9 +101,10 @@ const friendlyPercent = (chance) => {
   return `${Math.round(chance * 100)}%`;
 };
 
-const PATCH_VERSION_TAG = "11-15-22:46"; // 다음 패치마다 여기를 최신 시간(월-일-시:분, KST)으로 갱신하세요.
+const PATCH_VERSION_TAG = "11-15-23:01"; // 다음 패치마다 여기를 최신 시간(월-일-시:분, KST)으로 갱신하세요.
 
-/* v11-15-22:46 갱신 내역
+/* v11-15-23:01 갱신 내역
+ * - 게임 하단 패널: 우선순위 목록 → 갱신 내역으로 변경
  * - 조합 에테르 획득량 표시: 조합 이름 옆에 "+X pt" 실시간 표시
  * - 적 에테르 바 위치 수정: 오른쪽 → 왼쪽으로 이동
  */
@@ -185,11 +186,9 @@ export function MapDemo() {
   };
 
   const asideItems = [
-    "카드 속도·행동력 규칙과 전투 로그 싱크",
-    "정예·야영 최소 비율 유지",
-    "카드 보상·메타 데이터 공유",
-    "카드/자원 보상 1차 밸런스",
-    "UI/로그 직렬화·설명력 강화",
+    "게임 하단 패널: 우선순위 목록 → 갱신 내역으로 변경",
+    "조합 에테르 획득량 표시: 조합 이름 옆에 '+X pt' 실시간 표시",
+    "적 에테르 바 위치 수정: 오른쪽 → 왼쪽으로 이동",
   ];
 
   return (
@@ -252,7 +251,7 @@ export function MapDemo() {
           <strong className="version-badge" style={{ fontSize: "1.55rem" }}>{PATCH_VERSION_TAG}</strong>
           <button type="button">문서 링크</button>
         </div>
-        <p className="legacy-pane-desc">Implementation_Plan.md 기반으로 정리한 우선 순위입니다.</p>
+        <p className="legacy-pane-desc">v{PATCH_VERSION_TAG} 갱신 내역</p>
         <ol>
           {asideItems.map((item) => (
             <li key={item}>{item}</li>
