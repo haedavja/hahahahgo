@@ -865,6 +865,13 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
   const remainingEnergy = Math.max(0, playerEnergyBudget - totalEnergy);
   const comboPreviewGain = (phase==='select' || phase==='respond') ? pendingComboEther : 0;
 
+  // 적 조합 에테르 미리보기 계산
+  const enemyCombo = useMemo(() => detectPokerCombo(enemyPlan.actions || []), [enemyPlan.actions]);
+  const enemyComboPreviewGain = useMemo(() => {
+    if (!enemyCombo || (phase !== 'respond' && phase !== 'resolve')) return 0;
+    return ETHER_GAIN_MAP[enemyCombo.name] || 0;
+  }, [enemyCombo, phase]);
+
   return (
     <div className="legacy-battle-root w-full max-w-[1400px] min-h-screen ml-auto pb-64">
       {/* 상단 메인 영역 */}
@@ -947,11 +954,15 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
         <div className="battle-shell">
           <div className="battle-main">
             <div className="entity-panel player-panel">
-              <EtherBar pts={playerEtherValue} slots={playerEtherSlots} previewGain={comboPreviewGain} label="에테르" />
               <div className="entity-body">
                 <div className="character-display">🧙‍♂️</div>
                 <div>
-                  <div className="entity-name">플레이어</div>
+                  <div style={{display: 'flex', alignItems: 'flex-start', gap: '16px', marginBottom: '12px'}}>
+                    <div style={{flex: 1}}>
+                      <div className="entity-name">플레이어</div>
+                    </div>
+                    <EtherBar pts={playerEtherValue} slots={playerEtherSlots} previewGain={comboPreviewGain} label="ETHER" />
+                  </div>
                   <div className="hp-bar-enhanced mb-3" style={{width: '300px'}}>
                     <div className="hp-fill" style={{width: `${(player.hp/player.maxHp)*100}%`}}></div>
                   </div>
@@ -979,9 +990,13 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
               </div>
             </div>
             <div className="entity-panel enemy-panel">
-              <EtherBar pts={enemyEtherValue} slots={enemyEtherSlots} label="에테르" color="fuchsia" />
               <div className="entity-body">
-                <div className="entity-name text-right">{enemy.name}</div>
+                <div style={{display: 'flex', alignItems: 'flex-start', gap: '16px', marginBottom: '12px', flexDirection: 'row-reverse'}}>
+                  <div style={{flex: 1, textAlign: 'right'}}>
+                    <div className="entity-name text-right">{enemy.name}</div>
+                  </div>
+                  <EtherBar pts={enemyEtherValue} slots={enemyEtherSlots} previewGain={enemyComboPreviewGain} label="ETHER" color="fuchsia" />
+                </div>
                 <div className="hp-bar-enhanced mb-3" style={{width: '300px'}}>
                   <div className="hp-fill" style={{width: `${(enemy.hp/enemy.maxHp)*100}%`}}></div>
                 </div>
