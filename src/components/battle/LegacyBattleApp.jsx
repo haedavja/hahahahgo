@@ -504,6 +504,12 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
     if(!resultType || resultSentRef.current) return;
     const finalEther = player.etherPts;
     const delta = finalEther - (initialEtherRef.current ?? 0);
+    console.log('[Battle] Ether Result:', {
+      initial: initialEtherRef.current,
+      final: finalEther,
+      delta,
+      slots: etherPtsToSlots(finalEther)
+    });
     onBattleResult?.({
       result: resultType,
       playerEther: finalEther,
