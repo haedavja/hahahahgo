@@ -251,7 +251,7 @@ export function MapDemo() {
           textShadow: '2px 2px 4px rgba(0,0,0,0.5)'
         }}>
           <div>VERSION</div>
-          <div style={{ fontSize: '1.2em', color: '#ffd700' }}>11-15-08:45</div>
+          <div style={{ fontSize: '1.2em', color: '#ffd700' }}>11-15-08:55</div>
         </div>
       </aside>
 

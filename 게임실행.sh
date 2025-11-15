@@ -9,7 +9,7 @@ cd "$(dirname "$0")"
 
 # 의존성 체크 및 자동 설치
 if [ ! -d "node_modules" ]; then
-    echo "[0/3] 처음 실행입니다. 의존성을 설치합니다..."
+    echo "[1/2] 처음 실행입니다. 의존성을 설치합니다..."
     echo "      잠시만 기다려주세요 (1~2분 소요)"
     echo ""
     npm install
@@ -24,32 +24,25 @@ if [ ! -d "node_modules" ]; then
     echo ""
 fi
 
-echo "[1/3] 게임 빌드 중..."
-npm run build
-if [ $? -ne 0 ]; then
-    echo ""
-    echo "빌드 실패!"
-    read -p "아무 키나 눌러 종료..."
-    exit 1
-fi
-
+echo "[2/2] 게임 서버 시작 중..."
 echo ""
-echo "[2/3] 서버 시작 중..."
-echo "[3/3] 브라우저가 자동으로 열립니다..."
-echo ""
-echo "게임 URL: http://localhost:3000"
+echo "브라우저가 자동으로 열립니다..."
+echo "게임 URL: http://localhost:5173"
 echo ""
 echo "게임을 종료하려면 Ctrl+C를 누르세요."
 echo "===================================="
 echo ""
 
+# 2초 대기 후 브라우저 열기
+sleep 2
+
 # 운영체제에 따라 브라우저 열기
 if [[ "$OSTYPE" == "darwin"* ]]; then
     # Mac
-    open http://localhost:3000
+    open http://localhost:5173
 elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
     # Linux
-    xdg-open http://localhost:3000 2>/dev/null || echo "브라우저를 수동으로 열어주세요: http://localhost:3000"
+    xdg-open http://localhost:5173 2>/dev/null || echo "브라우저를 수동으로 열어주세요: http://localhost:5173"
 fi
 
-npx serve -s dist -l 3000
+npm run dev
