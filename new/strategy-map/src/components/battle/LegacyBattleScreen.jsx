@@ -21,7 +21,8 @@ const buildBattlePayload = (battle) => {
 export function LegacyBattleScreen() {
   const activeBattle = useGameStore((state) => state.activeBattle);
   const resolveBattle = useGameStore((state) => state.resolveBattle);
-  const resources = useGameStore((state) => state.resources);
+  const applyAetherDelta = useGameStore((state) => state.applyAetherDelta);
+  const playerAether = useGameStore((state) => state.resources.aether ?? 0);
   const iframeRef = useRef(null);
   const payload = useMemo(() => {
     if (!activeBattle) return null;
@@ -32,14 +33,14 @@ export function LegacyBattleScreen() {
         hp: initialPlayer?.hp ?? 30,
         maxHp: initialPlayer?.hp ?? 30,
         energy: 6,
-        etherPts: resources.aether ?? 0,
+        etherPts: playerAether,
       },
       enemy: {
         name: activeBattle.label ?? "Enemy",
         hp: initialEnemy?.hp ?? 30,
       },
     };
-  }, [activeBattle, resources.aether]);
+  }, [activeBattle, playerAether]);
   const frameKey = activeBattle ? `${activeBattle.nodeId}-${activeBattle.kind}` : "idle";
 
   const postInit = () => {
@@ -60,14 +61,29 @@ export function LegacyBattleScreen() {
         postInit();
       }
       if (data.type === "battleResult") {
-        console.log("[LegacyBattleScreen] Battle result:", data.result, "etherPts:", data.etherPts);
+        console.log(
+          "[LegacyBattleScreen] Battle result:",
+          data.result,
+          "etherPts:",
+          data.etherPts,
+          "deltaAether:",
+          data.deltaAether,
+        );
         const result = data.result === "victory" ? "victory" : "defeat";
+        const delta = typeof data.deltaAether === "number" ? data.deltaAether : 0;
+        if (delta) {
+          applyAetherDelta(delta);
+        } else if (typeof data.etherPts === "number") {
+          const current = useGameStore.getState().resources.aether ?? 0;
+          const fallbackDelta = Math.max(0, data.etherPts) - current;
+          if (fallbackDelta) applyAetherDelta(fallbackDelta);
+        }
         resolveBattle({ result, etherPts: data.etherPts });
       }
     };
     window.addEventListener("message", handler);
     return () => window.removeEventListener("message", handler);
-  }, [resolveBattle, payload]);
+  }, [resolveBattle, payload, applyAetherDelta]);
 
   useEffect(() => {
     if (!payload) return;

@@ -316,6 +316,22 @@ export const useGameStore = create((set, get) => ({
   closeEvent: () =>
     set((state) => (state.activeEvent ? { ...state, activeEvent: null } : state)),
 
+  applyAetherDelta: (delta = 0) =>
+    set((state) => {
+      const amount = Number(delta) || 0;
+      if (!amount) return state;
+      const current = state.resources.aether ?? 0;
+      const nextValue = Math.max(0, current + amount);
+      if (nextValue === current) return state;
+      return {
+        ...state,
+        resources: {
+          ...state.resources,
+          aether: nextValue,
+        },
+      };
+    }),
+
   resolveBattle: (outcome = {}) =>
     set((state) => {
       if (!state.activeBattle) return state;

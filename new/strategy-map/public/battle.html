@@ -613,14 +613,15 @@
           });
         }
 
+        const COMBO_ETHER_GAIN = 10;
         const ETHER_GAIN_MAP = {
-          '페어': 10,
-          '투페어': 10,
-          '트리플': 20,
-          '플러쉬': 30,
-          '풀하우스': 40,
-          '포카드': 50,
-          '파이브카드': 60,
+          'Five of a Kind': COMBO_ETHER_GAIN,
+          'Four of a Kind': COMBO_ETHER_GAIN,
+          'Full House': COMBO_ETHER_GAIN,
+          'Flush': COMBO_ETHER_GAIN,
+          'Two Pair': COMBO_ETHER_GAIN,
+          'Three of a Kind': COMBO_ETHER_GAIN,
+          'Pair': COMBO_ETHER_GAIN,
         };
         function etherSlots(pts){ return Math.floor((pts||0) / ETHER_THRESHOLD); }
         function addEther(pts, add){ return (pts||0) + (add||0); }
@@ -897,6 +898,11 @@
           const [willOverdrive, setWillOverdrive] = useState(false);
           const [usedCardIndices, setUsedCardIndices] = useState([]);
           const logEndRef = useRef(null);
+          const initialEtherRef = useRef(0);
+          const [playerEtherDelta, setPlayerEtherDelta] = useState(0);
+          const syncEtherDelta = (value = 0) => {
+            setPlayerEtherDelta((value ?? 0) - initialEtherRef.current);
+          };
 
           useEffect(()=>{
             logEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -919,11 +925,12 @@ useEffect(()=>{
               console.log('[Battle] Received message:', data);
 
               if (data.type === 'battleInit' && data.payload) {
-                console.log('[Battle] Initializing with aether:', data.payload.player?.etherPts);
-                if (data.payload.player?.etherPts !== undefined) {
-                  setPlayer(p => ({ ...p, etherPts: Math.max(0, data.payload.player.etherPts) }));
-                  addLog(`✴️ 에테르 ${data.payload.player.etherPts}pt로 전투 시작`);
-                }
+                const startEther = Math.max(0, data.payload.player?.etherPts ?? 0);
+                console.log('[Battle] Initializing with aether:', startEther);
+                initialEtherRef.current = startEther;
+                setPlayerEtherDelta(0);
+                setPlayer(p => ({ ...p, etherPts: startEther }));
+                addLog(`✴️ 에테르 ${startEther}pt로 전투 시작`);
                 window.parent.postMessage({ type: 'battleReady' }, '*');
               }
             };
@@ -1058,7 +1065,13 @@ useEffect(()=>{
             const eComboNow = detectPokerCombo(enemyPlan.actions);
             if(pComboNow && ETHER_GAIN_MAP[pComboNow.name]){
               const gain = ETHER_GAIN_MAP[pComboNow.name];
-              setPlayer(p=>({ ...p, etherPts: addEther(p.etherPts, gain) }));
+              let updatedEtherPlayer = null;
+              setPlayer(p=>{
+                const nextEther = Math.max(0, addEther(p.etherPts, gain));
+                updatedEtherPlayer = nextEther;
+                return { ...p, etherPts: nextEther };
+              });
+              if(updatedEtherPlayer!==null) syncEtherDelta(updatedEtherPlayer);
               addLog(`✴️ 에테르 +${gain} (플레이어 족보: ${pComboNow.name})`);
             }
             if(eComboNow && ETHER_GAIN_MAP[eComboNow.name]){
@@ -1069,7 +1082,13 @@ useEffect(()=>{
 
             const enemyWillOD = shouldEnemyOverdrive(enemyPlan.mode, enemyPlan.actions, enemy.etherPts) && etherSlots(enemy.etherPts)>0;
             if((phase==='respond' || phase==='select') && willOverdrive && etherSlots(player.etherPts)>0){
-              setPlayer(p=>({ ...p, etherPts: p.etherPts - ETHER_THRESHOLD, etherOverdriveActive:true }));
+              let updatedEtherAfterOD = null;
+              setPlayer(p=>{
+                const nextEther = Math.max(0, p.etherPts - ETHER_THRESHOLD);
+                updatedEtherAfterOD = nextEther;
+                return { ...p, etherPts: nextEther, etherOverdriveActive:true };
+              });
+              if(updatedEtherAfterOD!==null) syncEtherDelta(updatedEtherAfterOD);
               addLog('✴️ 에테르 폭주 발동! (이 턴 전체 유지)');
             }
             if((phase==='respond' || phase==='select') && enemyWillOD){
@@ -1164,6 +1183,8 @@ useEffect(()=>{
                 }
                 const gameState = JSON.parse(stateMatch[1]);
                 setPlayer(gameState.player);
+                initialEtherRef.current = Math.max(0, gameState.player?.etherPts ?? 0);
+                setPlayerEtherDelta(0);
                 setEnemyIndex(gameState.enemyIndex);
                 setEnemy(gameState.enemy);
                 setPhase(gameState.phase);
@@ -1180,6 +1201,18 @@ useEffect(()=>{
               }
             };
             reader.readAsText(file);
+          };
+
+
+          const postBattleResult = (result='victory')=>{
+            const payload = {
+              type:'battleResult',
+              result,
+              etherPts: player.etherPts,
+              deltaAether: playerEtherDelta,
+            };
+            console.log('[Battle] Sending result payload:', payload);
+            window.parent?.postMessage(payload, '*');
           };
 
           const runAll = ()=>{
@@ -1535,7 +1568,7 @@ useEffect(()=>{
                     {/* 조합 표시 - 중앙 */}
                     {currentCombo && (
                       <div className="combo-display">
-                        ⭐ {currentCombo.name} ⭐
+                        ⭐ {currentCombo.name} ⭐ (+{COMBO_ETHER_GAIN} 에테르) (+{COMBO_ETHER_GAIN} 에테르)
                       </div>
                     )}
 
@@ -1634,10 +1667,7 @@ useEffect(()=>{
                         </>
                       )}
                       {enemy && enemy.hp <= 0 && (
-  <button onClick={()=>{
-    console.log('[Battle] Return to map button clicked, sending victory');
-    window.parent.postMessage({ type: 'battleResult', result: 'victory' }, '*');
-  }} className="btn-enhanced btn-primary flex items-center gap-2">
+  <button onClick={()=>postBattleResult('victory')} className="btn-enhanced btn-primary flex items-center gap-2">
     🏆 맵으로 돌아가기
   </button>
 )}
