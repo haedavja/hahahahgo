@@ -24,6 +24,7 @@ export function LegacyBattleScreen() {
   const activeBattle = useGameStore((state) => state.activeBattle);
   const resolveBattle = useGameStore((state) => state.resolveBattle);
   const applyAetherDelta = useGameStore((state) => state.applyAetherDelta);
+  const lastBattleResult = useGameStore((state) => state.lastBattleResult);
   const playerAether = useGameStore((state) => state.resources.aether ?? 0);
   const payload = useMemo(() => buildBattlePayload(activeBattle, playerAether), [activeBattle, playerAether]);
   const frameKey = activeBattle ? `${activeBattle.nodeId}-${activeBattle.kind}` : "idle";
@@ -31,16 +32,22 @@ export function LegacyBattleScreen() {
   const handleBattleResult = useCallback(
     ({ result, playerEther, deltaAether }) => {
       const finalResult = result === "victory" ? "victory" : "defeat";
+      const isFirstBattle = !lastBattleResult;
+
       if (typeof deltaAether === "number" && deltaAether !== 0) {
-        applyAetherDelta(deltaAether);
+        // 첫 전투 후 비정상적인 +5 보정
+        const correctedDelta = isFirstBattle ? deltaAether - 5 : deltaAether;
+        applyAetherDelta(correctedDelta);
       } else if (typeof playerEther === "number") {
         const current = useGameStore.getState().resources.aether ?? 0;
-        const diff = playerEther - current;
+        let diff = playerEther - current;
+        // 첫 전투 후 비정상적인 +5 보정
+        if (isFirstBattle) diff -= 5;
         if (diff) applyAetherDelta(diff);
       }
       resolveBattle({ result: finalResult, etherPts: playerEther });
     },
-    [applyAetherDelta, resolveBattle],
+    [applyAetherDelta, resolveBattle, lastBattleResult],
   );
 
   if (!activeBattle) return null;
