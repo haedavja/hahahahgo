@@ -1,5 +1,438 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>턴제 카드 전투 게임</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&display=swap');
 
-        const { useState, useEffect, useMemo, useRef, useCallback } = React;
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: #0a0a0a;
+        }
+
+        /* 카드 스타일 개선 */
+        .card-enhanced {
+            background: linear-gradient(145deg, #2a2a2a 0%, #1a1a1a 100%);
+            border: 3px solid #444;
+            border-radius: 12px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card-enhanced::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(145deg, transparent 0%, rgba(255,255,255,0.05) 100%);
+            pointer-events: none;
+        }
+
+        .card-enhanced:hover:not(.disabled) {
+            transform: translateY(-5px) scale(1.02);
+            border-color: #fbbf24;
+            box-shadow: 0 10px 30px rgba(251, 191, 36, 0.3);
+        }
+
+        .card-enhanced.selected {
+            border-color: #3b82f6;
+            background: linear-gradient(145deg, #1e3a8a 0%, #1e40af 100%);
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
+        }
+
+        .card-enhanced.disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        /* 공격 카드 */
+        .attack-card {
+            border-color: #ef4444 !important;
+            background: linear-gradient(145deg, #7f1d1d 0%, #991b1b 100%) !important;
+        }
+
+        .attack-card:hover:not(.disabled) {
+            border-color: #f87171 !important;
+            box-shadow: 0 10px 30px rgba(239, 68, 68, 0.4) !important;
+        }
+
+        /* 방어 카드 */
+        .defense-card {
+            border-color: #3b82f6 !important;
+            background: linear-gradient(145deg, #1e3a8a 0%, #1e40af 100%) !important;
+        }
+
+        .defense-card:hover:not(.disabled) {
+            border-color: #60a5fa !important;
+            box-shadow: 0 10px 30px rgba(59, 130, 246, 0.4) !important;
+        }
+
+        /* 버튼 스타일 */
+        .btn-enhanced {
+            background: linear-gradient(145deg, #1e40af, #1e3a8a);
+            border: 2px solid #3b82f6;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 700;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+
+        .btn-enhanced:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.5);
+        }
+
+        .btn-enhanced:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .btn-primary {
+            background: linear-gradient(145deg, #f59e0b, #d97706);
+            border-color: #fbbf24;
+        }
+
+        .btn-success {
+            background: linear-gradient(145deg, #059669, #047857);
+            border-color: #10b981;
+        }
+
+        /* 코스트 배지 */
+        .cost-badge {
+            background: radial-gradient(circle, #fbbf24, #f59e0b);
+            border: 2px solid #fff;
+            border-radius: 50%;
+            width: 28px;
+            height: 28px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 900;
+            font-size: 14px;
+            color: #000;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+        }
+
+        /* HP 바 개선 */
+        .hp-bar-enhanced {
+            position: relative;
+            height: 20px;
+            background: linear-gradient(to right, #450a0a, #7f1d1d);
+            border-radius: 10px;
+            overflow: hidden;
+            border: 2px solid #450a0a;
+        }
+
+        .hp-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #dc2626 0%, #ef4444 50%, #f87171 100%);
+            transition: width 0.5s ease;
+            position: relative;
+        }
+
+        .hp-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 50%;
+            background: linear-gradient(to bottom, rgba(255,255,255,0.3), transparent);
+        }
+
+        /* 콤보 배지 */
+        .combo-badge {
+            background: linear-gradient(135deg, #fbbf24, #f59e0b);
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-weight: 900;
+            font-size: 11px;
+            color: #000;
+            box-shadow: 0 2px 8px rgba(251, 191, 36, 0.5);
+            display: inline-block;
+        }
+
+        /* 패널 */
+        .panel-enhanced {
+            background: linear-gradient(145deg, #1e293b, #0f172a);
+            border: 2px solid #334155;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        /* 게임 카드 - 이미지 스타일 */
+        .game-card-large {
+            position: relative;
+            width: 140px;
+            height: 200px;
+            border-radius: 16px;
+            border: 4px solid;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .game-card-large.attack {
+            border-color: #ff6b6b;
+            background: linear-gradient(180deg, #8B0000 0%, #4a0000 100%);
+        }
+
+        .game-card-large.defense {
+            border-color: #4dabf7;
+            background: linear-gradient(180deg, #1e40af 0%, #0c1e4a 100%);
+        }
+
+        .game-card-large:hover:not(.disabled) {
+            transform: translateY(-10px) scale(1.05);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.8);
+            z-index: 10;
+        }
+
+        .game-card-large.selected {
+            transform: translateY(-20px);
+            box-shadow: 0 20px 50px rgba(251, 191, 36, 0.8);
+            border-color: #fbbf24;
+        }
+
+        .game-card-large.disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .card-header {
+            padding: 8px;
+            text-align: center;
+            position: relative;
+        }
+
+        .card-cost-corner {
+            position: absolute;
+            top: -4px;
+            left: -4px;
+            width: 40px;
+            height: 40px;
+            background: radial-gradient(circle, #fbbf24, #f59e0b);
+            border-radius: 50%;
+            border: 3px solid #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 900;
+            font-size: 20px;
+            color: #000;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.8);
+            z-index: 2;
+        }
+
+        .card-icon-area {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 12px;
+        }
+
+        .card-footer {
+            background: rgba(0,0,0,0.5);
+            padding: 8px;
+            text-align: center;
+            border-top: 2px solid rgba(255,255,255,0.1);
+        }
+
+        /* 에너지 구슬 - 큰 버전 */
+        .energy-orb-large {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, #fef08a, #fbbf24, #f59e0b, #d97706);
+            box-shadow: 0 0 30px rgba(251, 191, 36, 0.8), inset 0 0 20px rgba(255, 255, 255, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 900;
+            font-size: 32px;
+            color: #000;
+            text-shadow: 0 2px 4px rgba(255,255,255,0.5);
+            border: 4px solid rgba(255,255,255,0.3);
+        }
+
+        /* 배틀 영역 */
+        .battle-arena {
+            position: relative;
+            min-height: 500px;
+            background: linear-gradient(180deg, rgba(15, 23, 42, 0.8) 0%, rgba(30, 41, 59, 0.8) 100%);
+            border-radius: 20px;
+            border: 3px solid #475569;
+            padding: 32px 48px !important;
+        }
+
+        /* 손패 영역 */
+        .hand-area {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.95) 20%, rgba(0,0,0,0.98) 100%);
+            padding: 20px;
+            border-top: 3px solid #475569;
+            z-index: 100;
+        }
+
+        .hand-cards {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            max-width: 1400px;
+            margin: 0 auto;
+            flex-wrap: wrap;
+        }
+
+        /* 캐릭터 영역 */
+        .character-display {
+            font-size: 80px;
+            filter: drop-shadow(0 10px 20px rgba(0,0,0,0.8));
+        }
+
+        /* 에테르 바 세로형 */
+        .ether-bar-vertical {
+            width: 50px;
+            height: 300px;
+            background: linear-gradient(to top, #0c4a6e, #075985);
+            border-radius: 25px;
+            border: 3px solid;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+        }
+
+        .ether-bar-vertical.player {
+            border-color: #22d3ee;
+        }
+
+        .ether-bar-vertical.enemy {
+            border-color: #e879f9;
+        }
+
+        .ether-fill-vertical {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            transition: height 0.5s ease;
+        }
+
+        .ether-fill-vertical.player {
+            background: linear-gradient(to top, #06b6d4, #22d3ee, #67e8f9);
+            box-shadow: 0 0 20px rgba(34, 211, 238, 0.6);
+        }
+
+        .ether-fill-vertical.enemy {
+            background: linear-gradient(to top, #c026d3, #e879f9, #f0abfc);
+            box-shadow: 0 0 20px rgba(232, 121, 249, 0.6);
+        }
+
+        /* 선택 번호 배지 - 카드 중심 */
+        .selection-number {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 52px;
+            height: 52px;
+            background: linear-gradient(135deg, #10b981, #059669);
+            border: 3px solid #fff;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 900;
+            font-size: 28px;
+            color: #fff;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.8);
+            z-index: 3;
+        }
+
+        /* 조합 표시 - 손패 중앙 */
+        .combo-display {
+            background: linear-gradient(135deg, #fbbf24, #f59e0b);
+            padding: 12px 20px;
+            border-radius: 12px;
+            font-weight: 900;
+            font-size: 20px;
+            color: #000;
+            box-shadow: 0 4px 16px rgba(251, 191, 36, 0.8);
+            border: 3px solid #fff;
+            animation: pulse-glow 2s infinite;
+            margin-top: -8px;
+        }
+
+        @keyframes pulse-glow {
+            0%, 100% { box-shadow: 0 4px 16px rgba(251, 191, 36, 0.8); }
+            50% { box-shadow: 0 8px 32px rgba(251, 191, 36, 1); }
+        }
+
+        /* 제출된 카드 영역 */
+        .submitted-cards-area {
+            background: linear-gradient(180deg, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.98) 100%);
+            border-top: 3px solid #fbbf24;
+            padding: 20px;
+        }
+
+        /* 카드 이동 버튼 */
+        .card-move-btn {
+            background: rgba(59, 130, 246, 0.8);
+            border: 2px solid #3b82f6;
+            color: white;
+            padding: 8px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .card-move-btn:hover:not(:disabled) {
+            background: rgba(59, 130, 246, 1);
+            transform: scale(1.1);
+        }
+
+        .card-move-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        /* 카드 사용 이펙트 */
+        @keyframes card-use-effect {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.3) rotate(5deg); opacity: 0.8; }
+            100% { transform: scale(0.5) translateY(-50px); opacity: 0; }
+        }
+
+        .card-used {
+            animation: card-use-effect 0.8s ease-out forwards;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useMemo, useRef } = React;
 
         // Lucide icons as simple SVG components
         const Sword = ({ size = 24, className = "" }) => (
@@ -119,6 +552,8 @@
 
         const ENEMIES = [
           { name: "Goblin", hp: 20, deck: ["e1", "e3", "e4"] },
+          { name: "Orc",    hp: 30, deck: ["e2", "e4", "e5"] },
+          { name: "Dragon", hp: 50, deck: ["e2", "e2", "e5", "e6", "e4"] },
         ];
 
         // =====================
@@ -458,118 +893,14 @@
 
           const [queue, setQueue] = useState([]);
           const [qIndex, setQIndex] = useState(0);
-          const addLog = useCallback((m) => {
-            setLog(p => [...p, m].slice(-200));
-          }, []);
+          const addLog = (m) => setLog(p => [...p, m].slice(-200));
           const [willOverdrive, setWillOverdrive] = useState(false);
           const [usedCardIndices, setUsedCardIndices] = useState([]);
           const logEndRef = useRef(null);
-          const initialEtherRef = useRef(0);
-          const resultSentRef = useRef(false);
-          const sendHostMessage = useCallback((message)=>{
-            if(typeof window === 'undefined') return false;
-            try {
-              if(window.parent && window.parent !== window && typeof window.parent.postMessage === 'function'){
-                window.parent.postMessage(message, "*");
-                return true;
-              }
-            } catch(err){
-              console.warn('postMessage failed', err);
-            }
-            return false;
-          }, []);
-          const notifyBattleResult = useCallback((resultType)=>{
-            if(!resultType || resultSentRef.current) return false;
-            const delta = player.etherPts - initialEtherRef.current;
-            const success = sendHostMessage({
-              type:'battleResult',
-              result: resultType,
-              etherPts: player.etherPts,
-              deltaAether: delta
-            });
-            if(success){
-              resultSentRef.current = true;
-            }
-            return success;
-          }, [player.etherPts, sendHostMessage]);
-          const handleExitToMap = ()=>{
-            const outcome = postCombatOptions?.type || (enemy && enemy.hp<=0 ? 'victory' : (player && player.hp<=0 ? 'defeat' : null));
-            if(!outcome) return;
-            const sent = notifyBattleResult(outcome);
-            if(!sent && typeof window !== 'undefined' && window.top === window){
-              window.location.href = '/';
-            }
-          };
 
           useEffect(()=>{
             logEndRef.current?.scrollIntoView({ behavior: 'smooth' });
           }, [log]);
-
-          useEffect(()=>{
-            const handler = (event)=>{
-              const data = event.data;
-              if(!data || typeof data !== 'object') return;
-              if(data.type === 'battleInit'){
-                const payload = data.payload || {};
-                if(payload.player){
-                  setPlayer(prev=>{
-                    const incoming = payload.player;
-                    const nextHp = incoming.hp ?? prev.hp;
-                    const nextMaxHp = incoming.maxHp ?? incoming.hp ?? prev.maxHp;
-                    const nextEnergy = incoming.energy ?? prev.energy;
-                    const nextEther = typeof incoming.etherPts === 'number' ? incoming.etherPts : prev.etherPts;
-                    initialEtherRef.current = nextEther;
-                    resultSentRef.current = false;
-                    return {
-                      ...prev,
-                      hp: nextHp,
-                      maxHp: nextMaxHp,
-                      energy: nextEnergy,
-                      maxEnergy: nextEnergy,
-                      etherPts: nextEther
-                    };
-                  });
-                }
-                if(payload.enemy){
-                  setEnemy(prev=>{
-                    const incoming = payload.enemy;
-                    const baseDeck = incoming.deck || prev?.deck || ENEMIES[enemyIndex]?.deck || [];
-                    const hp = incoming.hp ?? incoming.maxHp ?? prev?.maxHp ?? 30;
-                    return {
-                      ...(prev||{}),
-                      deck: baseDeck,
-                      name: incoming.name ?? prev?.name ?? '적',
-                      hp,
-                      maxHp: incoming.maxHp ?? hp,
-                      vulnMult:1,
-                      vulnTurns:0,
-                      block:0,
-                      counter:0,
-                      etherPts:0,
-                      etherOverdriveActive:false
-                    };
-                  });
-                }
-                setSelected([]);
-                setQueue([]);
-                setQIndex(0);
-                setFixedOrder(null);
-                setPostCombatOptions(null);
-                setEnemyPlan({ actions:[], mode:null });
-                setPhase('select');
-                addLog('🌐 외부 전투 데이터 수신 완료');
-              }
-            };
-            window.addEventListener('message', handler);
-            sendHostMessage({ type:'battleReady' });
-            return ()=> window.removeEventListener('message', handler);
-          }, [addLog, sendHostMessage, enemyIndex]);
-
-          useEffect(()=>{
-            if(postCombatOptions?.type){
-              notifyBattleResult(postCombatOptions.type);
-            }
-          }, [postCombatOptions, notifyBattleResult]);
 
           useEffect(()=>{
             if(!enemy){
@@ -869,6 +1200,17 @@
             setQIndex(queue.length);
           };
 
+          const nextEnemy = ()=>{
+            const next = enemyIndex + 1;
+            if(next < ENEMIES.length){
+              const heal = Math.floor(player.maxHp*0.3);
+              setPlayer(p=>({ ...p, hp: Math.min(p.maxHp, p.hp+heal), energy: BASE_PLAYER_ENERGY, block:0, counter:0, vulnMult:1, vulnTurns:0, etherOverdriveActive:false }));
+              const e = ENEMIES[next];
+              setEnemy({ ...e, hp:e.hp, maxHp:e.hp, vulnMult:1, vulnTurns:0, block:0, counter:0, etherPts:0, etherOverdriveActive:false });
+              setEnemyIndex(next); setSelected([]); setHand(CARDS.slice(0,8)); setEnemyPlan({ actions:[], mode: null }); setFixedOrder(null); setQueue([]); setQIndex(0); setCanRedraw(true); setPostCombatOptions(null); addLog(`➡️ 다음 몬스터 등장: ${e.name} (손패 리셋)`); setPhase('select');
+            } else { addLog('🏆 모든 적 처치 - 게임 끝'); }
+          };
+
           const removeSelectedAt = (i)=> setSelected(selected.filter((_,idx)=>idx!==i));
 
           const playerTimeline = useMemo(()=>{
@@ -1005,7 +1347,14 @@
                 <div className="battle-arena p-8 mb-6">
                       <div className="flex justify-between items-center">
                         {/* Player Ether Bar */}
-                        <EtherBar pts={player.etherPts} label="에테르" />
+                        <div className="flex flex-col items-center">
+                          <div className="text-cyan-400 font-black text-sm mb-2">에테르</div>
+                          <div className="ether-bar-vertical player">
+                            <div className="ether-fill-vertical player" style={{height: `${Math.min((player.etherPts / 800) * 100, 100)}%`}}></div>
+                          </div>
+                          <div className="text-cyan-400 font-bold text-xs mt-2">{player.etherPts}pt</div>
+                          <div className="text-cyan-300 text-xs">×{etherSlots(player.etherPts)}</div>
+                        </div>
 
                         {/* Player Side */}
                         <div className="flex items-center gap-6">
@@ -1087,7 +1436,14 @@
                         </div>
 
                         {/* Enemy Ether Bar */}
-                        <EtherBar pts={enemy.etherPts} label="에테르" color="fuchsia" />
+                        <div className="flex flex-col items-center">
+                          <div className="text-fuchsia-400 font-black text-sm mb-2">에테르</div>
+                          <div className="ether-bar-vertical enemy">
+                            <div className="ether-fill-vertical enemy" style={{height: `${Math.min((enemy.etherPts / 800) * 100, 100)}%`}}></div>
+                          </div>
+                          <div className="text-fuchsia-400 font-bold text-xs mt-2">{enemy.etherPts}pt</div>
+                          <div className="text-fuchsia-300 text-xs">×{etherSlots(enemy.etherPts)}</div>
+                        </div>
                       </div>
                 </div>
               </div>
@@ -1109,14 +1465,14 @@
                           ⏭️ 턴 종료
                         </button>
                       )}
+                      {enemy && enemy.hp <= 0 && (
+                        <button onClick={nextEnemy} disabled={enemyIndex >= ENEMIES.length - 1} className="btn-enhanced flex items-center gap-2">
+                          ➡️ 다음 적
+                        </button>
+                      )}
                       {player && player.hp <= 0 && (
                         <button onClick={()=>window.location.reload()} className="btn-enhanced flex items-center gap-2">
                           🔄 재시작
-                        </button>
-                      )}
-                      {postCombatOptions && (
-                        <button onClick={handleExitToMap} className="btn-enhanced btn-primary flex items-center gap-2">
-                          🗺️ 맵으로 돌아가기
                         </button>
                       )}
                     </div>
@@ -1170,6 +1526,11 @@
                       <button onClick={beginResolveFromRespond} className="btn-enhanced btn-success flex items-center gap-2">
                         <Play size={20}/> 진행 시작
                       </button>
+                      {enemy && enemy.hp <= 0 && (
+                        <button onClick={nextEnemy} disabled={enemyIndex >= ENEMIES.length - 1} className="btn-enhanced flex items-center gap-2">
+                          ➡️ 다음 적
+                        </button>
+                      )}
                     </div>
                   </div>
 
@@ -1255,6 +1616,11 @@
                           </button>
                         </>
                       )}
+                      {enemy && enemy.hp <= 0 && (
+                        <button onClick={nextEnemy} disabled={enemyIndex >= ENEMIES.length - 1} className="btn-enhanced flex items-center gap-2">
+                          ➡️ 다음 적
+                        </button>
+                      )}
                       {player && player.hp <= 0 && (
                         <button onClick={()=>window.location.reload()} className="btn-enhanced flex items-center gap-2">
                           🔄 재시작
@@ -1301,4 +1667,6 @@
         }
 
         ReactDOM.render(<Game />, document.getElementById('root'));
-    
+    </script>
+</body>
+</html>

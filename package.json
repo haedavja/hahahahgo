@@ -7,8 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview",
-    "sync:battle": "node scripts/sync-battle.js"
+    "preview": "vite preview"
   },
   "dependencies": {
     "phaser": "^3.90.0",
