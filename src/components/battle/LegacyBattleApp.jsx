@@ -1041,27 +1041,33 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
             </div>
             <div className="entity-panel enemy-panel">
               <div className="entity-body">
-                <div style={{display: 'flex', alignItems: 'flex-start', gap: '16px', marginBottom: '12px', justifyContent: 'flex-end'}}>
-                  <EtherBar
-                    key={`enemy-ether-${enemyEtherValue}`}
-                    pts={enemyEtherValue}
-                    slots={enemyEtherSlots}
-                    previewGain={enemyComboPreviewGain}
-                    label="ETHER"
-                    color="fuchsia"
-                  />
-                  <div className="entity-name text-right">{enemy.name}</div>
+                <div>
+                  <div style={{display: 'flex', alignItems: 'flex-start', gap: '16px', marginBottom: '12px', justifyContent: 'flex-end'}}>
+                    <EtherBar
+                      key={`enemy-ether-${enemyEtherValue}`}
+                      pts={enemyEtherValue}
+                      slots={enemyEtherSlots}
+                      previewGain={enemyComboPreviewGain}
+                      label="ETHER"
+                      color="fuchsia"
+                    />
+                    <div style={{flex: 1, textAlign: 'right'}}>
+                      <div className="entity-name text-right">{enemy.name}</div>
+                    </div>
+                  </div>
+                  <div className="hp-bar-enhanced mb-3" style={{width: '300px'}}>
+                    <div className="hp-fill" style={{width: `${(enemy.hp/enemy.maxHp)*100}%`}}></div>
+                  </div>
+                  <div className="text-white font-black text-xl mb-2 text-right">❤️ {enemy.hp}/{enemy.maxHp}</div>
+                  <div className="entity-tags justify-end">
+                    {enemy.block>0 && <span className="badge">🛡️ {enemy.block}</span>}
+                    {enemy.vulnMult>1 && <span className="badge">취약 ×{enemy.vulnMult.toFixed(1)}</span>}
+                    {enemy.etherOverdriveActive && <span className="badge badge-secondary">⚡폭주</span>}
+                  </div>
+                  <div className="text-slate-400 text-sm mt-2 text-right">적 {enemyIndex+1}/{ENEMIES.length}</div>
                 </div>
-                <div className="hp-bar-enhanced mb-3" style={{width: '300px'}}>
-                  <div className="hp-fill" style={{width: `${(enemy.hp/enemy.maxHp)*100}%`}}></div>
-                </div>
-                <div className="text-white font-black text-xl mb-2 text-right">❤️ {enemy.hp}/{enemy.maxHp}</div>
-                <div className="entity-tags justify-end">
-                  {enemy.block>0 && <span className="badge">🛡️ {enemy.block}</span>}
-                  {enemy.vulnMult>1 && <span className="badge">취약 ×{enemy.vulnMult.toFixed(1)}</span>}
-                  {enemy.etherOverdriveActive && <span className="badge badge-secondary">⚡폭주</span>}
-                </div>
-                <div className="text-slate-400 text-sm mt-2 text-right">적 {enemyIndex+1}/{ENEMIES.length}</div>
+                <div className="character-display">👹</div>
+                <div className="vertical-label">몬스터</div>
               </div>
             </div>
           </div>

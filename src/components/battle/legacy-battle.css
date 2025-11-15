@@ -588,6 +588,19 @@ body {
   color: #7dd3fc;
 }
 
+.vertical-label {
+  font-size: 48px;
+  font-weight: 900;
+  color: #7dd3fc;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.character-display {
+  font-size: 64px;
+  line-height: 1;
+}
+
 .entity-tags {
   display: flex;
   gap: 6px;
