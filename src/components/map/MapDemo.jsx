@@ -1,5 +1,6 @@
 ﻿import { useEffect, useMemo, useRef } from "react";
 import { useGameStore } from "../../state/gameStore";
+import { etherPtsToSlots, etherProgressInSlot } from "../battle/battleData";
 
 const NODE_WIDTH = 96;
 const NODE_HEIGHT = 100;
@@ -121,8 +122,13 @@ export function MapDemo() {
   const mapViewRef = useRef(null);
   const riskDisplay = Number.isFinite(mapRisk) ? mapRisk.toFixed(1) : "-";
   const aetherValue = resources.aether ?? 0;
-  const aetherRatio = Math.max(0, Math.min(1, aetherValue / 10));
-  const aetherTier = aetherValue >= 5 ? "x5" : aetherValue >= 3 ? "x3" : aetherValue > 0 ? "x1" : "x0";
+
+  // 에테르 인플레이션 계산
+  const aetherSlots = etherPtsToSlots(aetherValue);
+  const aetherProgress = etherProgressInSlot(aetherValue);
+  const MAX_AETHER_SLOTS = 10;
+  const aetherRatio = Math.min((aetherSlots + aetherProgress) / MAX_AETHER_SLOTS, 1);
+  const aetherTier = `x${aetherSlots}`;
 
   const mapHeight = useMemo(() => {
     if (!nodes.length) return 800;

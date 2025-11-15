@@ -5,6 +5,9 @@ import {
   BASE_PLAYER_ENERGY,
   MAX_SUBMIT_CARDS,
   ETHER_THRESHOLD,
+  etherPtsToSlots,
+  etherSlotsToMinPts,
+  etherProgressInSlot,
   CARDS as BASE_PLAYER_CARDS,
   ENEMY_CARDS as BASE_ENEMY_CARDS,
   ENEMIES,
@@ -181,7 +184,8 @@ const ETHER_GAIN_MAP = {
   '포카드': 50,
   '파이브카드': 60,
 };
-function etherSlots(pts){ return Math.floor((pts||0) / ETHER_THRESHOLD); }
+// 에테르 계산 함수들을 battleData.js에서 import하여 사용
+// etherPtsToSlots, etherSlotsToMinPts, etherProgressInSlot
 function addEther(pts, add){ return (pts||0) + (add||0); }
 
 // =====================
@@ -354,7 +358,7 @@ function generateEnemyActions(enemy, mode, enemyEtherSlots=0){
 }
 
 function shouldEnemyOverdrive(mode, actions, etherPts){
-  const slots = etherSlots(etherPts);
+  const slots = etherPtsToSlots(etherPts);
   if(slots<=0) return false;
   if(!mode) return false;
   if(mode.key==='aggro') return true;
@@ -427,10 +431,20 @@ function ExpectedDamagePreview({player, enemy, fixedOrder, willOverdrive, enemyM
 
 function EtherBar({ pts, slots, color="cyan", label }){
   const safePts = Number.isFinite(pts) ? pts : 0;
-  const derivedSlots = Number.isFinite(slots) ? slots : etherSlots(safePts);
+  const derivedSlots = Number.isFinite(slots) ? slots : etherPtsToSlots(safePts);
   const safeSlots = Number.isFinite(derivedSlots) ? derivedSlots : 0;
-  const VISIBLE_SLOTS = 8;
-  const percent = Math.min((safePts / (ETHER_THRESHOLD * VISIBLE_SLOTS)) * 100, 100);
+  const VISIBLE_SLOTS = 10; // 에테르는 최대 10칸
+
+  // 현재 칸에서의 진행도 계산 (인플레이션 고려)
+  const progress = etherProgressInSlot(safePts);
+  const minPtsForCurrentSlot = etherSlotsToMinPts(safeSlots);
+  const minPtsForNextSlot = etherSlotsToMinPts(safeSlots + 1);
+
+  // 바 전체에서의 비율 (현재 채워진 칸 + 다음 칸 진행도)
+  const filledRatio = safeSlots / VISIBLE_SLOTS;
+  const progressRatio = progress / VISIBLE_SLOTS;
+  const percent = Math.min((filledRatio + progressRatio) * 100, 100);
+
   const palette = color === 'fuchsia' ? {
     base:'bg-fuchsia-500', dim:'bg-fuchsia-900/40', ring:'ring-fuchsia-300', text:'text-fuchsia-300'
   } : {
@@ -446,7 +460,7 @@ function EtherBar({ pts, slots, color="cyan", label }){
         ))}
         <div className={`${palette.base} absolute left-0 right-0`} style={{ bottom:0, height:`${percent}%` }} />
       </div>
-      <div className={`text-xs mt-1 ${palette.text}`}>누적 {safePts}pt (슬롯 x{safeSlots})</div>
+      <div className={`text-xs mt-1 ${palette.text}`}>{safePts}pt (x{safeSlots})</div>
     </div>
   );
 }
@@ -825,13 +839,13 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
   const handDisabled = (c)=> (
     selected.length >= MAX_SUBMIT_CARDS ||
     totalSpeed + c.speedCost > MAX_SPEED ||
-    totalEnergy + c.actionCost > (BASE_PLAYER_ENERGY + etherSlots(player.etherPts))
+    totalEnergy + c.actionCost > (BASE_PLAYER_ENERGY + etherPtsToSlots(player.etherPts))
   );
   const playerEtherValue = player?.etherPts ?? 0;
-  const playerEtherSlots = etherSlots(playerEtherValue);
+  const playerEtherSlots = etherPtsToSlots(playerEtherValue);
   const enemyEtherValue = enemy?.etherPts ?? 0;
-  const enemyEtherSlots = etherSlots(enemyEtherValue);
-  const playerEnergyBudget = BASE_PLAYER_ENERGY + etherSlots(player.etherPts);
+  const enemyEtherSlots = etherPtsToSlots(enemyEtherValue);
+  const playerEnergyBudget = BASE_PLAYER_ENERGY + etherPtsToSlots(player.etherPts);
   const remainingEnergy = Math.max(0, playerEnergyBudget - totalEnergy);
 
   return (
@@ -931,7 +945,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                     {player.etherOverdriveActive && <span className="badge badge-primary">⚡폭주</span>}
                   </div>
                   <button onClick={()=> (phase==='select' || phase==='respond') && setWillOverdrive(v=>!v)}
-                          disabled={!(phase==='select'||phase==='respond') || etherSlots(player.etherPts)<=0}
+                          disabled={!(phase==='select'||phase==='respond') || etherPtsToSlots(player.etherPts)<=0}
                           className={`mt-3 btn-enhanced ${willOverdrive? 'btn-primary':''} text-sm`}>
                     ⚡ 에테르 폭주 {willOverdrive?'ON':'OFF'}
                   </button>

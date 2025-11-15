@@ -3,6 +3,53 @@ export const BASE_PLAYER_ENERGY = 6;
 export const MAX_SUBMIT_CARDS = 5;
 export const ETHER_THRESHOLD = 100;
 
+// 에테르 인플레이션 계산
+// 1칸: 100pt, 2칸: 250pt (100+150), 3칸: 475pt (250+225), ...
+// 각 칸마다 이전 칸 필요량의 1.5배 추가
+export function etherPtsToSlots(pts) {
+  if (pts <= 0) return 0;
+
+  let accumulated = 0;
+  let slotCost = ETHER_THRESHOLD; // 첫 칸은 100pt
+  let slots = 0;
+
+  while (accumulated + slotCost <= pts) {
+    accumulated += slotCost;
+    slots++;
+    slotCost = Math.floor(slotCost * 1.5); // 다음 칸은 50% 증가
+  }
+
+  return slots;
+}
+
+// 칸 수를 pt로 변환 (해당 칸을 채우는데 필요한 총 pt)
+export function etherSlotsToMinPts(slots) {
+  if (slots <= 0) return 0;
+
+  let total = 0;
+  let slotCost = ETHER_THRESHOLD;
+
+  for (let i = 0; i < slots; i++) {
+    total += slotCost;
+    slotCost = Math.floor(slotCost * 1.5);
+  }
+
+  return total;
+}
+
+// 현재 pt가 다음 칸을 채우는데 얼마나 진행되었는지 (0~1)
+export function etherProgressInSlot(pts) {
+  const currentSlots = etherPtsToSlots(pts);
+  const minPtsForCurrentSlot = etherSlotsToMinPts(currentSlots);
+  const minPtsForNextSlot = etherSlotsToMinPts(currentSlots + 1);
+  const costForNextSlot = minPtsForNextSlot - minPtsForCurrentSlot;
+
+  if (costForNextSlot === 0) return 0;
+
+  const progress = (pts - minPtsForCurrentSlot) / costForNextSlot;
+  return Math.max(0, Math.min(1, progress));
+}
+
 export const CARDS = [
   { id: "quick",   name: "Quick Slash",    type: "attack",  damage: 3,              speedCost: 3,  actionCost: 1, iconKey: "sword" },
   { id: "slash",   name: "Slash",          type: "attack",  damage: 5,              speedCost: 5,  actionCost: 2, iconKey: "sword" },
