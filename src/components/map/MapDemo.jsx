@@ -117,6 +117,14 @@ export function MapDemo() {
   const skipDungeon = useGameStore((state) => state.skipDungeon);
   const revealDungeonInfo = useGameStore((state) => state.revealDungeonInfo);
   const clearBattleResult = useGameStore((state) => state.clearBattleResult);
+  const resetRun = useGameStore((state) => state.resetRun);
+
+  const handleReset = () => {
+    if (window.confirm('게임을 완전히 초기화하시겠습니까?\n모든 진행 상황이 사라집니다.')) {
+      resetRun();
+      window.location.reload();
+    }
+  };
 
   const nodes = map?.nodes ?? [];
   const mapViewRef = useRef(null);
@@ -245,13 +253,54 @@ export function MapDemo() {
           alignItems: 'center',
           justifyContent: 'center',
           height: '100%',
-          fontSize: '3em',
-          fontWeight: 'bold',
-          color: '#fff',
-          textShadow: '2px 2px 4px rgba(0,0,0,0.5)'
+          gap: '20px'
         }}>
-          <div>VERSION</div>
-          <div style={{ fontSize: '1.2em', color: '#ffd700' }}>11-15-09:13</div>
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            fontSize: '3em',
+            fontWeight: 'bold',
+            color: '#fff',
+            textShadow: '2px 2px 4px rgba(0,0,0,0.5)'
+          }}>
+            <div>VERSION</div>
+            <div style={{ fontSize: '1.2em', color: '#ffd700' }}>11-15-09:26</div>
+          </div>
+          <button
+            onClick={handleReset}
+            style={{
+              padding: '12px 24px',
+              fontSize: '1.2em',
+              fontWeight: 'bold',
+              backgroundColor: '#ff4444',
+              color: '#fff',
+              border: '2px solid #fff',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              textShadow: '1px 1px 2px rgba(0,0,0,0.5)',
+              boxShadow: '0 4px 8px rgba(0,0,0,0.3)',
+              transition: 'all 0.2s'
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.backgroundColor = '#ff6666';
+              e.target.style.transform = 'scale(1.05)';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.backgroundColor = '#ff4444';
+              e.target.style.transform = 'scale(1)';
+            }}
+          >
+            🔄 게임 초기화
+          </button>
+          <div style={{
+            fontSize: '0.9em',
+            color: '#aaa',
+            textAlign: 'center',
+            maxWidth: '200px'
+          }}>
+            문제 발생 시 클릭하여<br/>게임 상태를 초기화하세요
+          </div>
         </div>
       </aside>
 
