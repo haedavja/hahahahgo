@@ -101,7 +101,7 @@ const friendlyPercent = (chance) => {
   return `${Math.round(chance * 100)}%`;
 };
 
-const PATCH_VERSION_TAG = "11-15-12:34"; // 다음 패치마다 여기를 최신 시간(월-일-시:분)으로 갱신하세요.
+const PATCH_VERSION_TAG = "11-15-12:37"; // 다음 패치마다 여기를 최신 시간(월-일-시:분)으로 갱신하세요.
 
 export function MapDemo() {
   const map = useGameStore((state) => state.map);
@@ -123,8 +123,9 @@ export function MapDemo() {
   const mapViewRef = useRef(null);
   const riskDisplay = Number.isFinite(mapRisk) ? mapRisk.toFixed(1) : "-";
   const aetherValue = resources.etherPts ?? 0;
-  const aetherRatio = Math.max(0, Math.min(1, aetherValue / 10));
-  const aetherTier = aetherValue >= 5 ? "x5" : aetherValue >= 3 ? "x3" : aetherValue > 0 ? "x1" : "x0";
+  const aetherSlots = Math.floor(aetherValue / 100); // 100pt = 1슬롯
+  const aetherRatio = Math.max(0, Math.min(1, aetherSlots / 10));
+  const aetherTier = `x${aetherSlots}`;
 
   const mapHeight = useMemo(() => {
     if (!nodes.length) return 800;
