@@ -130,6 +130,16 @@ export function MapDemo() {
   const aetherRatio = Math.min((aetherSlots + aetherProgress) / MAX_AETHER_SLOTS, 1);
   const aetherTier = `x${aetherSlots}`;
 
+  // 디버그: 에테르 값 확인
+  useEffect(() => {
+    console.log('[MapDemo] Aether Debug:', {
+      aetherValue,
+      aetherSlots,
+      aetherTier,
+      resources
+    });
+  }, [aetherValue, aetherSlots, aetherTier, resources]);
+
   const mapHeight = useMemo(() => {
     if (!nodes.length) return 800;
     const maxY = Math.max(...nodes.map((node) => node.y), 0);
