@@ -125,10 +125,8 @@ const generateMap = () => {
 
 export const createInitialState = () => {
   // 강제 초기화: 이전 상태 무시
-  if (typeof window !== 'undefined') {
-    console.log('[GameState] Creating fresh initial state - aether: 0');
-  }
-  return {
+  console.log('!!!!! CREATING INITIAL STATE - AETHER IS 0 !!!!!');
+  const initialState = {
     map: generateMap(),
     mapRisk: Math.floor(Math.random() * 61) + 20,
     resources: { gold: 40, intel: 2, loot: 1, material: 1, aether: 0 },
@@ -137,4 +135,6 @@ export const createInitialState = () => {
     activeBattle: null,
     lastBattleResult: null,
   };
+  console.log('Initial resources:', initialState.resources);
+  return initialState;
 };
