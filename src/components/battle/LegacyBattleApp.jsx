@@ -398,11 +398,11 @@ function simulatePreview({player, enemy, fixedOrder, willOverdrive, enemyMode, e
   return { pDealt, pTaken, finalPHp: st.player.hp, finalEHp: st.enemy.hp, lines };
 }
 
-function ExpectedDamagePreview({player, enemy, fixedOrder, willOverdrive, enemyMode, enemyActions}){
+function ExpectedDamagePreview({player, enemy, fixedOrder, willOverdrive, enemyMode, enemyActions, phase}){
   const res = useMemo(()=> simulatePreview({player, enemy, fixedOrder, willOverdrive, enemyMode, enemyActions}), [player, enemy, fixedOrder, willOverdrive, enemyMode, enemyActions]);
   const summaryItems = [
     { icon:"🗡️", label:"플레이어 예상 가한 피해", value: res.pDealt, accent:"text-emerald-300" },
-    { icon:"💥", label:"플레이어 예상 받은 피해", value: res.pTaken, accent:"text-rose-300" },
+    { icon:"💥", label:"플레이어 피격 피해", value: phase === 'select' ? '?' : res.pTaken, accent:"text-rose-300" },
   ];
   const hpLines = [
     `플레이어 HP ${player.hp} → ${res.finalPHp}`,
@@ -426,7 +426,7 @@ function ExpectedDamagePreview({player, enemy, fixedOrder, willOverdrive, enemyM
         {hpLines.map((line)=>(
           <div key={line}>{line}</div>
         ))}
-        {willOverdrive && <span className="expect-tag">에테르 폭주 미리보기</span>}
+        {willOverdrive && <span className="expect-tag">기도 미리보기</span>}
       </div>
 
       {!!res.lines?.length && (
@@ -991,6 +991,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
               willOverdrive={willOverdrive}
               enemyMode={enemyPlan.mode}
               enemyActions={enemyPlan.actions}
+              phase={phase}
             />
           </div>
         )}
@@ -999,24 +1000,12 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
           <div className="battle-main">
             <div className="entity-panel player-panel">
               <div className="entity-body">
-                <div className="character-display">🧙‍♂️</div>
                 <div>
-                  <div style={{display: 'flex', alignItems: 'flex-start', gap: '16px', marginBottom: '12px'}}>
-                    <EtherBar
-                      key={`player-ether-${playerEtherValue}`}
-                      pts={playerEtherValue}
-                      slots={playerEtherSlots}
-                      previewGain={comboPreviewGain}
-                      label="ETHER"
-                    />
-                    <div style={{flex: 1}}>
-                      <div className="entity-name">플레이어</div>
-                    </div>
-                  </div>
-                  <div className="hp-bar-enhanced mb-3" style={{width: '300px'}}>
+                  <div className="entity-name" style={{marginBottom: '8px'}}>플레이어</div>
+                  <div className="hp-bar-enhanced mb-2" style={{width: '200px'}}>
                     <div className="hp-fill" style={{width: `${(player.hp/player.maxHp)*100}%`}}></div>
                   </div>
-                  <div className="text-white font-black text-xl mb-2">❤️ {player.hp}/{player.maxHp}</div>
+                  <div className="text-white font-black text-lg mb-1">❤️ {player.hp}/{player.maxHp}</div>
                   <div className="entity-tags">
                     {player.block>0 && <span className="badge">🛡️ {player.block}</span>}
                     {player.vulnMult>1 && <span className="badge">취약 ×{player.vulnMult.toFixed(1)}</span>}
@@ -1024,10 +1013,18 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                   </div>
                   <button onClick={()=> (phase==='select' || phase==='respond') && setWillOverdrive(v=>!v)}
                           disabled={!(phase==='select'||phase==='respond') || etherSlots(player.etherPts)<=0}
-                          className={`mt-3 btn-enhanced ${willOverdrive? 'btn-primary':''} text-sm`}>
-                    ⚡ 에테르 폭주 {willOverdrive?'ON':'OFF'}
+                          className={`mt-2 btn-enhanced ${willOverdrive? 'btn-primary':''} text-sm`}>
+                    🙏 기도 {willOverdrive?'ON':'OFF'}
                   </button>
                 </div>
+                <EtherBar
+                  key={`player-ether-${playerEtherValue}`}
+                  pts={playerEtherValue}
+                  slots={playerEtherSlots}
+                  previewGain={comboPreviewGain}
+                  label="ETHER"
+                />
+                <div className="character-display">🧙‍♂️</div>
               </div>
             </div>
             <div className="vs-panel">
@@ -1042,32 +1039,27 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
             <div className="entity-panel enemy-panel">
               <div className="entity-body">
                 <div>
-                  <div style={{display: 'flex', alignItems: 'flex-start', gap: '16px', marginBottom: '12px', justifyContent: 'flex-end'}}>
-                    <EtherBar
-                      key={`enemy-ether-${enemyEtherValue}`}
-                      pts={enemyEtherValue}
-                      slots={enemyEtherSlots}
-                      previewGain={enemyComboPreviewGain}
-                      label="ETHER"
-                      color="fuchsia"
-                    />
-                    <div style={{flex: 1, textAlign: 'right'}}>
-                      <div className="entity-name text-right">{enemy.name}</div>
-                    </div>
-                  </div>
-                  <div className="hp-bar-enhanced mb-3" style={{width: '300px'}}>
+                  <div className="entity-name text-right" style={{marginBottom: '8px'}}>{enemy.name}</div>
+                  <div className="hp-bar-enhanced mb-2" style={{width: '200px'}}>
                     <div className="hp-fill" style={{width: `${(enemy.hp/enemy.maxHp)*100}%`}}></div>
                   </div>
-                  <div className="text-white font-black text-xl mb-2 text-right">❤️ {enemy.hp}/{enemy.maxHp}</div>
+                  <div className="text-white font-black text-lg mb-1 text-right">❤️ {enemy.hp}/{enemy.maxHp}</div>
                   <div className="entity-tags justify-end">
                     {enemy.block>0 && <span className="badge">🛡️ {enemy.block}</span>}
                     {enemy.vulnMult>1 && <span className="badge">취약 ×{enemy.vulnMult.toFixed(1)}</span>}
                     {enemy.etherOverdriveActive && <span className="badge badge-secondary">⚡폭주</span>}
                   </div>
-                  <div className="text-slate-400 text-sm mt-2 text-right">적 {enemyIndex+1}/{ENEMIES.length}</div>
+                  <div className="text-slate-400 text-sm mt-1 text-right">적 {enemyIndex+1}/{ENEMIES.length}</div>
                 </div>
                 <div className="character-display">👹</div>
-                <div className="vertical-label">몬스터</div>
+                <EtherBar
+                  key={`enemy-ether-${enemyEtherValue}`}
+                  pts={enemyEtherValue}
+                  slots={enemyEtherSlots}
+                  previewGain={enemyComboPreviewGain}
+                  label="ETHER"
+                  color="fuchsia"
+                />
               </div>
             </div>
           </div>
