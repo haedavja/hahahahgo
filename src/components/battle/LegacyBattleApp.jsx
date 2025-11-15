@@ -148,6 +148,18 @@ function detectPokerCombo(cards){
   const allDefense = cards.every(c=>c.type==='defense');
   const isFlush = (allAttack || allDefense) && cards.length>=4;
 
+  // 디버깅: 조합 감지 로그
+  console.log('[detectPokerCombo]', {
+    cardCount: cards.length,
+    cards: cards.map(c => ({ name: c.name, type: c.type, cost: c.actionCost })),
+    freq: Object.fromEntries(freq),
+    counts,
+    allAttack,
+    allDefense,
+    isFlush,
+    pairCount: keysByCount(2).size
+  });
+
   if(have(5)) return { name:'파이브카드', bonusKeys: keysByCount(5) };
   if(have(4)) return { name:'포카드',   bonusKeys: keysByCount(4) };
   if(have(3) && have(2)){
