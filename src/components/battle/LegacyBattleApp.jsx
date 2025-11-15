@@ -668,7 +668,14 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
 
   const totalEnergy = useMemo(()=>selected.reduce((s,c)=>s+c.actionCost,0),[selected]);
   const totalSpeed  = useMemo(()=>selected.reduce((s,c)=>s+c.speedCost ,0),[selected]);
-  const currentCombo = useMemo(()=>detectPokerCombo(selected),[selected]);
+  const currentCombo = useMemo(()=>{
+    const combo = detectPokerCombo(selected);
+    console.log('[currentCombo 업데이트]', {
+      selectedCount: selected.length,
+      comboName: combo?.name || 'null'
+    });
+    return combo;
+  },[selected]);
   const pendingComboEther = useMemo(()=>{
     if(!currentCombo) return 0;
     return ETHER_GAIN_MAP[currentCombo.name] || 0;
