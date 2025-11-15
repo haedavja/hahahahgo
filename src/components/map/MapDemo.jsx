@@ -194,7 +194,7 @@ export function MapDemo() {
   return (
     <div className="app-shell">
       <header>
-        <h1>로그라이크 경로 지도</h1>
+        <h1>로그라이크 경로 지도 <span style={{ fontSize: '0.5em', opacity: 0.6 }}>v11-15-08:26</span></h1>
         <small>속도 시스템 기준 · React + Vite 시연</small>
       </header>
 
