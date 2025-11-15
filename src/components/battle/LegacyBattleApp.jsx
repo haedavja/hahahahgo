@@ -9,6 +9,7 @@ import {
   ENEMY_CARDS as BASE_ENEMY_CARDS,
   ENEMIES,
 } from "./battleData";
+import { calculateEtherSlots } from "../../lib/etherUtils";
 
 const SPEED_TICKS = Array.from(
   { length: Math.floor(MAX_SPEED / 5) + 1 },
@@ -181,7 +182,7 @@ const ETHER_GAIN_MAP = {
   '포카드': 50,
   '파이브카드': 60,
 };
-function etherSlots(pts){ return Math.floor((pts||0) / ETHER_THRESHOLD); }
+const etherSlots = (pts) => calculateEtherSlots(pts || 0); // 인플레이션 적용
 function addEther(pts, add){ return (pts||0) + (add||0); }
 
 // =====================
@@ -992,10 +993,10 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
             <div className="entity-panel enemy-panel">
               <div className="entity-body">
                 <div style={{display: 'flex', alignItems: 'flex-start', gap: '16px', marginBottom: '12px'}}>
-                  <EtherBar pts={enemyEtherValue} slots={enemyEtherSlots} previewGain={enemyComboPreviewGain} label="ETHER" color="fuchsia" />
                   <div style={{flex: 1, textAlign: 'right'}}>
                     <div className="entity-name text-right">{enemy.name}</div>
                   </div>
+                  <EtherBar pts={enemyEtherValue} slots={enemyEtherSlots} previewGain={enemyComboPreviewGain} label="ETHER" color="fuchsia" />
                 </div>
                 <div className="hp-bar-enhanced mb-3" style={{width: '300px'}}>
                   <div className="hp-fill" style={{width: `${(enemy.hp/enemy.maxHp)*100}%`}}></div>

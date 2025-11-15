@@ -1,5 +1,6 @@
 ﻿import { useEffect, useMemo, useRef } from "react";
 import { useGameStore } from "../../state/gameStore";
+import { calculateEtherSlots } from "../../lib/etherUtils";
 
 const NODE_WIDTH = 96;
 const NODE_HEIGHT = 100;
@@ -101,12 +102,12 @@ const friendlyPercent = (chance) => {
   return `${Math.round(chance * 100)}%`;
 };
 
-const PATCH_VERSION_TAG = "11-15-23:01"; // 다음 패치마다 여기를 최신 시간(월-일-시:분, KST)으로 갱신하세요.
+const PATCH_VERSION_TAG = "11-15-23:15"; // 다음 패치마다 여기를 최신 시간(월-일-시:분, KST)으로 갱신하세요.
 
-/* v11-15-23:01 갱신 내역
- * - 게임 하단 패널: 우선순위 목록 → 갱신 내역으로 변경
- * - 조합 에테르 획득량 표시: 조합 이름 옆에 "+X pt" 실시간 표시
- * - 적 에테르 바 위치 수정: 오른쪽 → 왼쪽으로 이동
+/* v11-15-23:15 갱신 내역
+ * - 에테르 인플레이션 시스템 구현: 칸당 50% 증가 (1칸=100pt, 2칸=250pt, 3칸=475pt...)
+ * - 적 에테르 바 위치: 왼쪽 → 오른쪽으로 이동
+ * - 게임 하단 패널: "갱신 내역" 텍스트 제거
  */
 
 export function MapDemo() {
@@ -129,7 +130,7 @@ export function MapDemo() {
   const mapViewRef = useRef(null);
   const riskDisplay = Number.isFinite(mapRisk) ? mapRisk.toFixed(1) : "-";
   const aetherValue = resources.etherPts ?? 0;
-  const aetherSlots = Math.floor(aetherValue / 100); // 100pt = 1슬롯
+  const aetherSlots = calculateEtherSlots(aetherValue); // 인플레이션 적용
   const aetherRatio = Math.max(0, Math.min(1, aetherSlots / 10));
   const aetherTier = `x${aetherSlots}`;
 
@@ -186,9 +187,9 @@ export function MapDemo() {
   };
 
   const asideItems = [
-    "게임 하단 패널: 우선순위 목록 → 갱신 내역으로 변경",
-    "조합 에테르 획득량 표시: 조합 이름 옆에 '+X pt' 실시간 표시",
-    "적 에테르 바 위치 수정: 오른쪽 → 왼쪽으로 이동",
+    "에테르 인플레이션 시스템 구현: 칸당 50% 증가 (1칸=100pt, 2칸=250pt, 3칸=475pt...)",
+    "적 에테르 바 위치: 왼쪽 → 오른쪽으로 이동",
+    "게임 하단 패널: '갱신 내역' 텍스트 제거",
   ];
 
   return (
@@ -251,7 +252,6 @@ export function MapDemo() {
           <strong className="version-badge" style={{ fontSize: "1.55rem" }}>{PATCH_VERSION_TAG}</strong>
           <button type="button">문서 링크</button>
         </div>
-        <p className="legacy-pane-desc">v{PATCH_VERSION_TAG} 갱신 내역</p>
         <ol>
           {asideItems.map((item) => (
             <li key={item}>{item}</li>
