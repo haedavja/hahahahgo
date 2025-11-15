@@ -168,6 +168,7 @@ const travelToNode = (state, nodeId) => {
 
 export const useGameStore = create((set, get) => ({
   ...createInitialState(),
+  battleCount: 0,
 
   resetRun: () => set(() => createInitialState()),
 
@@ -306,7 +307,10 @@ export const useGameStore = create((set, get) => ({
       const amount = Number(delta) || 0;
       if (!amount) return state;
       const current = state.resources.aether ?? 0;
-      const nextValue = Math.max(0, Math.min(830, current + amount)); // 최대 4칸 (831pt부터 5칸)
+      const battleCount = state.battleCount ?? 0;
+      // 첫 전투 이후에는 최대 830pt (x4)로 제한
+      const maxAether = battleCount >= 1 ? 830 : 99999;
+      const nextValue = Math.max(0, Math.min(maxAether, current + amount));
       if (nextValue === current) return state;
       return {
         ...state,
@@ -326,6 +330,7 @@ export const useGameStore = create((set, get) => ({
     const rewards = resultLabel === "victory" ? grantRewards(rewardsDef, state.resources) : { next: state.resources, applied: {} };
     return {
       ...state,
+      battleCount: (state.battleCount ?? 0) + 1,
       resources: rewards.next,
       activeBattle: null,
       lastBattleResult: {
