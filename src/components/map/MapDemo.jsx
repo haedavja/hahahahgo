@@ -274,7 +274,7 @@ export function MapDemo() {
           <div className="aether-fill" style={{ height: `${aetherRatio * 100}%` }} />
         </div>
         <div className="aether-remaining">
-          <div>{aetherValue} pt</div>
+          <div>{aetherValue}pt</div>
           <div>{aetherTier}</div>
         </div>
       </div>
