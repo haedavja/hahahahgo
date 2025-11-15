@@ -132,12 +132,12 @@ export function MapDemo() {
 
   // 디버그: 에테르 값 확인
   useEffect(() => {
-    console.log('[MapDemo] Aether Debug:', {
-      aetherValue,
-      aetherSlots,
-      aetherTier,
-      resources
-    });
+    console.log('=== AETHER DEBUG START ===');
+    console.log('Raw aether value:', aetherValue);
+    console.log('Calculated slots:', aetherSlots);
+    console.log('Display tier:', aetherTier);
+    console.log('Full resources:', resources);
+    console.log('=== AETHER DEBUG END ===');
   }, [aetherValue, aetherSlots, aetherTier, resources]);
 
   const mapHeight = useMemo(() => {
