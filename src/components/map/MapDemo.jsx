@@ -101,6 +101,8 @@ const friendlyPercent = (chance) => {
   return `${Math.round(chance * 100)}%`;
 };
 
+const PATCH_VERSION_TAG = "11-15-07:12"; // 다음 패치마다 여기를 최신 시간(월-일-시:분)으로 갱신하세요.
+
 export function MapDemo() {
   const map = useGameStore((state) => state.map);
   const resources = useGameStore((state) => state.resources);
@@ -241,7 +243,7 @@ export function MapDemo() {
 
       <aside className="legacy-pane">
         <div className="legacy-pane-header">
-          <strong>점검 중인 작업 흐름</strong>
+          <strong className="version-badge" style={{ fontSize: "1.55rem" }}>{PATCH_VERSION_TAG}</strong>
           <button type="button">문서 링크</button>
         </div>
         <p className="legacy-pane-desc">Implementation_Plan.md 기반으로 정리한 우선 순위입니다.</p>
