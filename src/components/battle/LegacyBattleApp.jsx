@@ -1042,7 +1042,6 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
             <div className="entity-panel enemy-panel">
               <div className="entity-body">
                 <div style={{display: 'flex', alignItems: 'flex-start', gap: '16px', marginBottom: '12px', justifyContent: 'flex-end'}}>
-                  <div className="entity-name text-right">{enemy.name}</div>
                   <EtherBar
                     key={`enemy-ether-${enemyEtherValue}`}
                     pts={enemyEtherValue}
@@ -1051,6 +1050,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                     label="ETHER"
                     color="fuchsia"
                   />
+                  <div className="entity-name text-right">{enemy.name}</div>
                 </div>
                 <div className="hp-bar-enhanced mb-3" style={{width: '300px'}}>
                   <div className="hp-fill" style={{width: `${(enemy.hp/enemy.maxHp)*100}%`}}></div>
