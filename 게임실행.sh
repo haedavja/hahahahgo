@@ -7,11 +7,28 @@ echo ""
 
 cd "$(dirname "$0")"
 
+# 의존성 체크 및 자동 설치
+if [ ! -d "node_modules" ]; then
+    echo "[0/3] 처음 실행입니다. 의존성을 설치합니다..."
+    echo "      잠시만 기다려주세요 (1~2분 소요)"
+    echo ""
+    npm install
+    if [ $? -ne 0 ]; then
+        echo ""
+        echo "설치 실패! Node.js가 설치되어 있는지 확인하세요."
+        read -p "아무 키나 눌러 종료..."
+        exit 1
+    fi
+    echo ""
+    echo "설치 완료!"
+    echo ""
+fi
+
 echo "[1/3] 게임 빌드 중..."
 npm run build
 if [ $? -ne 0 ]; then
     echo ""
-    echo "빌드 실패! npm install을 먼저 실행하세요."
+    echo "빌드 실패!"
     read -p "아무 키나 눌러 종료..."
     exit 1
 fi
