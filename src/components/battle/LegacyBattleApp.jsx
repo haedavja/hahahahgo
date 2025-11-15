@@ -958,10 +958,10 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                 <div className="character-display">🧙‍♂️</div>
                 <div>
                   <div style={{display: 'flex', alignItems: 'flex-start', gap: '16px', marginBottom: '12px'}}>
+                    <EtherBar pts={playerEtherValue} slots={playerEtherSlots} previewGain={comboPreviewGain} label="ETHER" />
                     <div style={{flex: 1}}>
                       <div className="entity-name">플레이어</div>
                     </div>
-                    <EtherBar pts={playerEtherValue} slots={playerEtherSlots} previewGain={comboPreviewGain} label="ETHER" />
                   </div>
                   <div className="hp-bar-enhanced mb-3" style={{width: '300px'}}>
                     <div className="hp-fill" style={{width: `${(player.hp/player.maxHp)*100}%`}}></div>
@@ -991,7 +991,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
             </div>
             <div className="entity-panel enemy-panel">
               <div className="entity-body">
-                <div style={{display: 'flex', alignItems: 'flex-start', gap: '16px', marginBottom: '12px', flexDirection: 'row-reverse'}}>
+                <div style={{display: 'flex', alignItems: 'flex-start', gap: '16px', marginBottom: '12px'}}>
                   <div style={{flex: 1, textAlign: 'right'}}>
                     <div className="entity-name text-right">{enemy.name}</div>
                   </div>

@@ -101,7 +101,20 @@ const friendlyPercent = (chance) => {
   return `${Math.round(chance * 100)}%`;
 };
 
-const PATCH_VERSION_TAG = "11-15-13:25"; // 다음 패치마다 여기를 최신 시간(월-일-시:분)으로 갱신하세요.
+const PATCH_VERSION_TAG = "11-15-13:30"; // 다음 패치마다 여기를 최신 시간(월-일-시:분)으로 갱신하세요.
+
+/* 최근 갱신 내역 (11-15)
+ * - 에테르 시스템 수정: aether → etherPts 변수명 변경, 100pt = 1슬롯 계산 수정
+ * - 전투 UI 개선: 에테르 바 위치 재배치 (플레이어 왼쪽, 적 오른쪽), 조합 획득 미리보기
+ * - 전투 에테르: 실시간 pt/슬롯 표시, 콤보 보상 예정치 표시
+ *
+ * 우선순위 (Implementation_Plan 기반):
+ * 1. 카드 속도·행동력 규칙과 전투 로그 싱크
+ * 2. 정예·야영 최소 비율 유지
+ * 3. 카드 보상·메타 데이터 공유
+ * 4. 카드/자원 보상 1차 밸런스
+ * 5. UI/로그 직렬화·설명력 강화
+ */
 
 export function MapDemo() {
   const map = useGameStore((state) => state.map);
