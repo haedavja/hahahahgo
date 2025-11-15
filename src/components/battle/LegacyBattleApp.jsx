@@ -425,10 +425,11 @@ function ExpectedDamagePreview({player, enemy, fixedOrder, willOverdrive, enemyM
   );
 }
 
-function EtherBar({ pts, slots, color="cyan", label }){
+function EtherBar({ pts, slots, previewGain=0, color="cyan", label }){
   const safePts = Number.isFinite(pts) ? pts : 0;
   const derivedSlots = Number.isFinite(slots) ? slots : etherSlots(safePts);
   const safeSlots = Number.isFinite(derivedSlots) ? derivedSlots : 0;
+  const safePreview = Number.isFinite(previewGain) ? previewGain : 0;
   const VISIBLE_SLOTS = 8;
   const percent = Math.min((safePts / (ETHER_THRESHOLD * VISIBLE_SLOTS)) * 100, 100);
   const palette = color === 'fuchsia' ? {
@@ -446,7 +447,12 @@ function EtherBar({ pts, slots, color="cyan", label }){
         ))}
         <div className={`${palette.base} absolute left-0 right-0`} style={{ bottom:0, height:`${percent}%` }} />
       </div>
-      <div className={`text-xs mt-1 ${palette.text}`}>누적 {safePts}pt (슬롯 x{safeSlots})</div>
+      <div className={`text-xs mt-1 ${palette.text}`}>
+        누적 {safePts}pt (슬롯 x{safeSlots})
+        {safePreview > 0 && (
+          <span className="block text-emerald-300 mt-1">콤보 보상 +{safePreview}pt 예정</span>
+        )}
+      </div>
     </div>
   );
 }
@@ -606,6 +612,10 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
   const totalEnergy = useMemo(()=>selected.reduce((s,c)=>s+c.actionCost,0),[selected]);
   const totalSpeed  = useMemo(()=>selected.reduce((s,c)=>s+c.speedCost ,0),[selected]);
   const currentCombo = useMemo(()=>detectPokerCombo(selected),[selected]);
+  const pendingComboEther = useMemo(()=>{
+    if(!currentCombo) return 0;
+    return ETHER_GAIN_MAP[currentCombo.name] || 0;
+  }, [currentCombo]);
 
   const toggle = (card)=>{
     if(phase!=='select' && phase!=='respond') return;
@@ -833,6 +843,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
   const enemyEtherSlots = etherSlots(enemyEtherValue);
   const playerEnergyBudget = BASE_PLAYER_ENERGY + etherSlots(player.etherPts);
   const remainingEnergy = Math.max(0, playerEnergyBudget - totalEnergy);
+  const comboPreviewGain = (phase==='select' || phase==='respond') ? pendingComboEther : 0;
 
   return (
     <div className="legacy-battle-root w-full max-w-[1400px] min-h-screen ml-auto pb-64">
@@ -916,7 +927,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
         <div className="battle-shell">
           <div className="battle-main">
             <div className="entity-panel player-panel">
-              <EtherBar pts={playerEtherValue} slots={playerEtherSlots} label="에테르" />
+              <EtherBar pts={playerEtherValue} slots={playerEtherSlots} previewGain={comboPreviewGain} label="에테르" />
               <div className="entity-body">
                 <div className="character-display">🧙‍♂️</div>
                 <div>
