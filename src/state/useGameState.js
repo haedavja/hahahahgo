@@ -123,12 +123,18 @@ const generateMap = () => {
   };
 };
 
-export const createInitialState = () => ({
-  map: generateMap(),
-  mapRisk: Math.floor(Math.random() * 61) + 20,
-  resources: { gold: 40, intel: 2, loot: 1, material: 1, aether: 0 },
-  activeEvent: null,
-  activeDungeon: null,
-  activeBattle: null,
-  lastBattleResult: null,
-});
+export const createInitialState = () => {
+  // 강제 초기화: 이전 상태 무시
+  if (typeof window !== 'undefined') {
+    console.log('[GameState] Creating fresh initial state - aether: 0');
+  }
+  return {
+    map: generateMap(),
+    mapRisk: Math.floor(Math.random() * 61) + 20,
+    resources: { gold: 40, intel: 2, loot: 1, material: 1, aether: 0 },
+    activeEvent: null,
+    activeDungeon: null,
+    activeBattle: null,
+    lastBattleResult: null,
+  };
+};
