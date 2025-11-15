@@ -442,6 +442,17 @@ function EtherBar({ pts, slots, previewGain=0, color="cyan", label }){
   const ratio = Math.max(0, Math.min(1, slotProgress));
   const tier = `x${safeSlots}`;
 
+  // 디버깅: 값 확인
+  console.log('[EtherBar]', {
+    pts,
+    safePts,
+    currentPts,
+    nextSlotCost,
+    ratio,
+    tier,
+    safeSlots
+  });
+
   const borderColor = color === 'fuchsia' ? '#d946ef' : '#53d7ff';
   const fillGradient = color === 'fuchsia'
     ? 'linear-gradient(180deg, #f0abfc 0%, #a855f7 100%)'
@@ -474,7 +485,7 @@ function EtherBar({ pts, slots, previewGain=0, color="cyan", label }){
         }} />
       </div>
       <div style={{ textAlign: 'center', color: textColor, fontSize: '13px', marginTop: '8px' }}>
-        <div>{currentPts}/{nextSlotCost}</div>
+        <div key={`pts-${safePts}`}>{currentPts}/{nextSlotCost}</div>
         <div>{tier}</div>
         {safePreview > 0 && (
           <div style={{ color: '#6ee7b7', fontSize: '11px', marginTop: '4px' }}>
@@ -967,7 +978,13 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                 <div className="character-display">🧙‍♂️</div>
                 <div>
                   <div style={{display: 'flex', alignItems: 'flex-start', gap: '16px', marginBottom: '12px'}}>
-                    <EtherBar pts={playerEtherValue} slots={playerEtherSlots} previewGain={comboPreviewGain} label="ETHER" />
+                    <EtherBar
+                      key={`player-ether-${playerEtherValue}`}
+                      pts={playerEtherValue}
+                      slots={playerEtherSlots}
+                      previewGain={comboPreviewGain}
+                      label="ETHER"
+                    />
                     <div style={{flex: 1}}>
                       <div className="entity-name">플레이어</div>
                     </div>
@@ -1004,7 +1021,14 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                   <div style={{flex: 1, textAlign: 'right'}}>
                     <div className="entity-name text-right">{enemy.name}</div>
                   </div>
-                  <EtherBar pts={enemyEtherValue} slots={enemyEtherSlots} previewGain={enemyComboPreviewGain} label="ETHER" color="fuchsia" />
+                  <EtherBar
+                    key={`enemy-ether-${enemyEtherValue}`}
+                    pts={enemyEtherValue}
+                    slots={enemyEtherSlots}
+                    previewGain={enemyComboPreviewGain}
+                    label="ETHER"
+                    color="fuchsia"
+                  />
                 </div>
                 <div className="hp-bar-enhanced mb-3" style={{width: '300px'}}>
                   <div className="hp-fill" style={{width: `${(enemy.hp/enemy.maxHp)*100}%`}}></div>
