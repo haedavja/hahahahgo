@@ -101,7 +101,7 @@ const friendlyPercent = (chance) => {
   return `${Math.round(chance * 100)}%`;
 };
 
-const PATCH_VERSION_TAG = "11-15-12:37"; // 다음 패치마다 여기를 최신 시간(월-일-시:분)으로 갱신하세요.
+const PATCH_VERSION_TAG = "11-15-12:59"; // 다음 패치마다 여기를 최신 시간(월-일-시:분)으로 갱신하세요.
 
 export function MapDemo() {
   const map = useGameStore((state) => state.map);

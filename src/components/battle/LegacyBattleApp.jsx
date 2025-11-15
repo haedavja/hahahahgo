@@ -430,27 +430,47 @@ function EtherBar({ pts, slots, previewGain=0, color="cyan", label }){
   const derivedSlots = Number.isFinite(slots) ? slots : etherSlots(safePts);
   const safeSlots = Number.isFinite(derivedSlots) ? derivedSlots : 0;
   const safePreview = Number.isFinite(previewGain) ? previewGain : 0;
-  const VISIBLE_SLOTS = 8;
-  const percent = Math.min((safePts / (ETHER_THRESHOLD * VISIBLE_SLOTS)) * 100, 100);
-  const palette = color === 'fuchsia' ? {
-    base:'bg-fuchsia-500', dim:'bg-fuchsia-900/40', ring:'ring-fuchsia-300', text:'text-fuchsia-300'
-  } : {
-    base:'bg-cyan-500', dim:'bg-cyan-900/40', ring:'ring-cyan-300', text:'text-cyan-300'
-  };
+  const ratio = Math.max(0, Math.min(1, safeSlots / 10));
+  const tier = `x${safeSlots}`;
+
+  const borderColor = color === 'fuchsia' ? '#d946ef' : '#53d7ff';
+  const fillGradient = color === 'fuchsia'
+    ? 'linear-gradient(180deg, #f0abfc 0%, #a855f7 100%)'
+    : 'linear-gradient(180deg, #6affff 0%, #0f7ebd 100%)';
+  const textColor = color === 'fuchsia' ? '#f0abfc' : '#8fd3ff';
 
   return (
-    <div className="ether-bar flex flex-col items-center w-12">
-      <div className={`text-xs ${palette.text} font-bold mb-1 text-center uppercase tracking-[0.2em]`}>{label}</div>
-      <div className={`bar-shell relative h-64 w-6 rounded ring-2 ${palette.ring} overflow-hidden bg-slate-900`}>
-        {Array.from({length:VISIBLE_SLOTS}).map((_,i)=> (
-          <div key={i} className="absolute left-0 right-0 border-t border-slate-700/60" style={{bottom:`${(i/ VISIBLE_SLOTS)*100}%`}} />
-        ))}
-        <div className={`${palette.base} absolute left-0 right-0`} style={{ bottom:0, height:`${percent}%` }} />
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '72px', padding: '12px 10px 16px' }}>
+      <div style={{ fontSize: '11px', fontWeight: 'bold', marginBottom: '8px', textAlign: 'center', color: '#5fe0ff', letterSpacing: '0.12em' }}>
+        {label}
       </div>
-      <div className={`text-xs mt-1 ${palette.text}`}>
-        누적 {safePts}pt (슬롯 x{safeSlots})
+      <div style={{
+        position: 'relative',
+        width: '46px',
+        height: '220px',
+        margin: '0 auto',
+        borderRadius: '30px',
+        border: `2px solid ${borderColor}`,
+        background: 'rgba(9, 17, 27, 0.95)',
+        overflow: 'hidden'
+      }}>
+        <div style={{
+          position: 'absolute',
+          left: '3px',
+          right: '3px',
+          bottom: '3px',
+          height: `${ratio * 100}%`,
+          borderRadius: '24px',
+          background: fillGradient
+        }} />
+      </div>
+      <div style={{ textAlign: 'center', color: textColor, fontSize: '13px', marginTop: '8px' }}>
+        <div>{safePts} pt</div>
+        <div>{tier}</div>
         {safePreview > 0 && (
-          <span className="block text-emerald-300 mt-1">콤보 보상 +{safePreview}pt 예정</span>
+          <div style={{ color: '#6ee7b7', fontSize: '11px', marginTop: '4px' }}>
+            +{safePreview}pt 예정
+          </div>
         )}
       </div>
     </div>
