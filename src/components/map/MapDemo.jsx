@@ -183,18 +183,10 @@ export function MapDemo() {
     selectNode(node.id);
   };
 
-  const asideItems = [
-    "카드 속도·행동력 규칙과 전투 로그 싱크",
-    "정예·야영 최소 비율 유지",
-    "카드 보상·메타 데이터 공유",
-    "카드/자원 보상 1차 밸런스",
-    "UI/로그 직렬화·설명력 강화",
-  ];
-
   return (
     <div className="app-shell">
       <header>
-        <h1>로그라이크 경로 지도 <span style={{ fontSize: '0.5em', opacity: 0.6 }}>v11-15-08:26</span></h1>
+        <h1>로그라이크 경로 지도</h1>
         <small>속도 시스템 기준 · React + Vite 시연</small>
       </header>
 
@@ -247,16 +239,20 @@ export function MapDemo() {
       </div>
 
       <aside className="legacy-pane">
-        <div className="legacy-pane-header">
-          <strong>점검 중인 작업 흐름</strong>
-          <button type="button">문서 링크</button>
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          height: '100%',
+          fontSize: '3em',
+          fontWeight: 'bold',
+          color: '#fff',
+          textShadow: '2px 2px 4px rgba(0,0,0,0.5)'
+        }}>
+          <div>VERSION</div>
+          <div style={{ fontSize: '1.2em', color: '#ffd700' }}>11-15-08:29</div>
         </div>
-        <p className="legacy-pane-desc">Implementation_Plan.md 기반으로 정리한 우선 순위입니다.</p>
-        <ol>
-          {asideItems.map((item) => (
-            <li key={item}>{item}</li>
-          ))}
-        </ol>
       </aside>
 
       <div className="resource-hud">
