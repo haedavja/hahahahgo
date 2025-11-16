@@ -25,14 +25,26 @@ export function CharacterSheet({ onClose }) {
   const updateCharacterBuild = useGameStore((state) => state.updateCharacterBuild);
 
   const [specialMode, setSpecialMode] = useState("main");
-  // cardId로 선택 상태 관리
-  const [mainSpecials, setMainSpecials] = useState(characterBuild.mainSpecials || []);
-  const [subSpecials, setSubSpecials] = useState(characterBuild.subSpecials || []);
+  // cardId로 선택 상태 관리 - 초기화는 한 번만
+  const [mainSpecials, setMainSpecials] = useState([]);
+  const [subSpecials, setSubSpecials] = useState([]);
+  const [initialized, setInitialized] = useState(false);
+
+  // 컴포넌트 마운트 시 한 번만 스토어에서 로드
+  useEffect(() => {
+    if (!initialized && characterBuild) {
+      setMainSpecials(characterBuild.mainSpecials || []);
+      setSubSpecials(characterBuild.subSpecials || []);
+      setInitialized(true);
+    }
+  }, [initialized, characterBuild]);
 
   // 선택 사항이 변경될 때마다 게임 스토어에 저장
   useEffect(() => {
-    updateCharacterBuild(mainSpecials, subSpecials);
-  }, [mainSpecials, subSpecials, updateCharacterBuild]);
+    if (initialized) {
+      updateCharacterBuild(mainSpecials, subSpecials);
+    }
+  }, [mainSpecials, subSpecials, initialized, updateCharacterBuild]);
 
   const getCardStyle = (cardId) => {
     const isMain = mainSpecials.includes(cardId);
@@ -222,21 +234,50 @@ export function CharacterSheet({ onClose }) {
               rowGap: "8px",
             }}
           >
-            {availableCards.map((card) => (
-              <div key={card.id} style={getCardStyle(card.id)} onClick={() => handleCardClick(card.id)}>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
-                  <span style={{ color: "#fff" }}>
-                    <span style={{ opacity: 0.7, fontSize: "12px" }}>슬롯 {card.slot}</span>{" "}
-                    <b>{card.name}</b>
-                    <span style={{ opacity: 0.7, fontSize: "12px" }}> · {card.type}</span>
-                  </span>
-                  <span style={{ fontSize: "12px", opacity: 0.8, color: "#9fb6ff" }}>
-                    속도 {card.speed} / AP {card.ap}
-                  </span>
+            {availableCards.map((card) => {
+              const isMain = mainSpecials.includes(card.id);
+              const isSub = subSpecials.includes(card.id);
+
+              return (
+                <div key={card.id} style={getCardStyle(card.id)} onClick={() => handleCardClick(card.id)}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
+                    <span style={{ color: "#fff", display: "flex", alignItems: "center", gap: "6px" }}>
+                      <span style={{ opacity: 0.7, fontSize: "12px" }}>슬롯 {card.slot}</span>{" "}
+                      <b>{card.name}</b>
+                      <span style={{ opacity: 0.7, fontSize: "12px" }}> · {card.type}</span>
+                      {isMain && (
+                        <span style={{
+                          fontSize: "11px",
+                          padding: "2px 6px",
+                          borderRadius: "4px",
+                          background: "linear-gradient(135deg, #f5d76e, #c9a64a)",
+                          color: "#000",
+                          fontWeight: 700,
+                        }}>
+                          주특기
+                        </span>
+                      )}
+                      {isSub && (
+                        <span style={{
+                          fontSize: "11px",
+                          padding: "2px 6px",
+                          borderRadius: "4px",
+                          background: "linear-gradient(135deg, #7dd3fc, #2b6fbf)",
+                          color: "#000",
+                          fontWeight: 700,
+                        }}>
+                          보조
+                        </span>
+                      )}
+                    </span>
+                    <span style={{ fontSize: "12px", opacity: 0.8, color: "#9fb6ff" }}>
+                      속도 {card.speed} / AP {card.ap}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: "13px", opacity: 0.9, color: "#9fb6ff" }}>{card.desc}</div>
                 </div>
-                <div style={{ fontSize: "13px", opacity: 0.9, color: "#9fb6ff" }}>{card.desc}</div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </div>
