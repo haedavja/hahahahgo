@@ -407,6 +407,14 @@ function ExpectedDamagePreview({player, enemy, fixedOrder, willOverdrive, enemyM
 
   const phaseLabel = phase === 'select' ? '선택 단계' : phase === 'respond' ? '대응 단계' : '진행 단계';
 
+  // 전투 로그 자동 스크롤
+  const logContainerRef = useRef(null);
+  useEffect(() => {
+    if (logContainerRef.current && phase === 'resolve' && log && log.length > 0) {
+      logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight;
+    }
+  }, [log, phase]);
+
   return (
     <div className="expect-board expect-board-vertical">
       {/* 타이틀 및 단계 라벨 */}
@@ -468,7 +476,7 @@ function ExpectedDamagePreview({player, enemy, fixedOrder, willOverdrive, enemyM
           <div style={{fontSize: '15px', fontWeight: 'bold', color: '#f8fafc', marginBottom: '12px'}}>
             🎮 전투 로그
           </div>
-          <div style={{maxHeight: '300px', overflowY: 'auto'}}>
+          <div ref={logContainerRef} style={{maxHeight: '300px', overflowY: 'auto'}}>
             {log.filter(line => {
               // 불필요한 로그 제거
               if (line.includes('게임 시작') || line.includes('적 성향 힌트')) return false;
@@ -997,15 +1005,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
         {/* Timeline */}
         <div style={{marginBottom: '24px'}}>
           <div className="panel-enhanced timeline-panel">
-            <div className="timeline-header">
-              <div className="text-white font-bold flex items-center gap-2">
-                <Clock size={20} className="text-cyan-400"/>
-                타임라인 (누적 속도) — {phase==='select'? '선택' : (phase==='respond'? '대응/예측' : (phase==='resolve' ? '진행' : '결과'))}
-              </div>
-              <span className="text-xs text-slate-400 ml-2">(동률 시 플레이어 우선)</span>
-            </div>
-
-            <div className="timeline-body">
+            <div className="timeline-body" style={{marginTop: '0'}}>
               <div className="timeline-axis">
                 {SPEED_TICKS.map((tick)=>(
                   <span key={tick}>{tick}</span>
@@ -1255,7 +1255,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
           )}
 
           {phase==='respond' && fixedOrder && (
-            <div className="hand-cards">
+            <div className="hand-cards" style={{justifyContent: 'center'}}>
               {fixedOrder.filter(a=>a.actor==='player').map((action,idx,arr)=>{
                 const c = action.card;
                 const Icon = c.icon;
@@ -1309,7 +1309,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
           )}
 
           {phase==='resolve' && queue && queue.length > 0 && (
-            <div className="hand-cards">
+            <div className="hand-cards" style={{justifyContent: 'center'}}>
               {queue.filter(a => a.actor === 'player').map((a,i)=>{
                 const Icon = a.card.icon;
                 const globalIndex = queue.findIndex(q => q === a);

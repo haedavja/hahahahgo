@@ -532,7 +532,7 @@ body {
   background: rgba(4, 6, 22, 0.3);
   backdrop-filter: blur(4px);
   border-radius: 16px 16px 0 0;
-  padding: 6px 12px 6px 12px;
+  padding: 4px 12px 4px 12px;
   border: none;
   box-shadow: none;
   z-index: 100;
@@ -541,7 +541,7 @@ body {
 .hand-area-header {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 6px;
+  gap: 4px;
   align-items: flex-end;
   margin-bottom: 2px;
 }
