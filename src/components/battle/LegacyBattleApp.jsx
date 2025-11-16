@@ -417,12 +417,9 @@ function ExpectedDamagePreview({player, enemy, fixedOrder, willOverdrive, enemyM
 
   return (
     <div className="expect-board expect-board-vertical">
-      {/* 타이틀 및 단계 라벨 */}
+      {/* 타이틀 */}
       <div style={{marginBottom: '16px', paddingBottom: '12px', borderBottom: '2px solid rgba(148, 163, 184, 0.3)'}}>
-        <div style={{fontSize: '24px', fontWeight: 'bold', color: '#f8fafc', marginBottom: '8px'}}>
-          {phaseLabel}
-        </div>
-        <div style={{fontSize: '13px', color: '#94a3b8'}}>
+        <div style={{fontSize: '18px', fontWeight: 'bold', color: '#f8fafc'}}>
           예상 피해량
         </div>
       </div>
@@ -1051,6 +1048,13 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* 전투 단계 표시 */}
+        <div style={{textAlign: 'center', marginBottom: '20px'}}>
+          <div style={{fontSize: '28px', fontWeight: 'bold', color: '#f8fafc', textShadow: '0 2px 8px rgba(0,0,0,0.5)'}}>
+            {phase === 'select' ? '선택 단계' : phase === 'respond' ? '대응 단계' : '진행 단계'}
           </div>
         </div>
 
