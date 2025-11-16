@@ -401,8 +401,8 @@ function simulatePreview({player, enemy, fixedOrder, willOverdrive, enemyMode, e
 function ExpectedDamagePreview({player, enemy, fixedOrder, willOverdrive, enemyMode, enemyActions, phase, log}){
   const res = useMemo(()=> simulatePreview({player, enemy, fixedOrder, willOverdrive, enemyMode, enemyActions}), [player, enemy, fixedOrder, willOverdrive, enemyMode, enemyActions]);
   const summaryItems = [
-    { icon:"🗡️", label:"플레이어 예상 가한 피해", value: res.pDealt, accent:"text-emerald-300" },
-    { icon:"💥", label:"플레이어 피격 피해", value: phase === 'select' ? '?' : res.pTaken, accent:"text-rose-300" },
+    { icon:"🗡️", label:"예상 타격 피해", value: res.pDealt, accent:"text-emerald-300" },
+    { icon:"💥", label:"예상 피격 피해", value: phase === 'select' ? '?' : res.pTaken, accent:"text-rose-300" },
   ];
 
   const phaseLabel = phase === 'select' ? '선택 단계' : phase === 'respond' ? '대응 단계' : '진행 단계';
@@ -450,9 +450,9 @@ function ExpectedDamagePreview({player, enemy, fixedOrder, willOverdrive, enemyM
         {willOverdrive && <span className="expect-tag" style={{marginTop: '8px', display: 'inline-block'}}>기도 미리보기</span>}
       </div>
 
-      {/* 진행 단계가 아닐 때만 예상 피해량 로그 표시 */}
+      {/* 진행 단계가 아닐 때만 예상 피해량 로그 표시 (HP 정보 밑에 한 칸 띄워서) */}
       {phase !== 'resolve' && !!res.lines?.length && (
-        <div className="expect-log-vertical">
+        <div style={{marginTop: '20px', paddingTop: '16px', borderTop: '1px solid rgba(148, 163, 184, 0.15)'}}>
           {res.lines.map((line,idx)=>{
             const isMonsterAction = line.includes('몬스터 ->') || line.includes('몬스터→');
             const isPlayerAction = line.includes('플레이어 ->') || line.includes('플레이어→');
@@ -812,7 +812,6 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
 
     const q = sortCombinedOrderStablePF(enhancedSelected, actions);
     setFixedOrder(q);
-    addLog(`🤖 적 카드 공개 (대응 단계)`);
     setPhase('respond');
   };
 
@@ -833,6 +832,17 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
       return;
     }
 
+    const newQ = fixedOrder.map(x=>({ actor:x.actor, card:x.card, sp:x.sp }));
+    if(newQ.length===0){
+      addLog('⚠️ 큐 생성 실패: 실행할 항목이 없습니다');
+      return;
+    }
+    setQueue(newQ);
+    setQIndex(0);
+    setPhase('resolve');
+    addLog('▶ 진행 시작');
+
+    // 진행 단계 시작 시 에테르 획득
     const pComboNow = detectPokerCombo(selected);
     const eComboNow = detectPokerCombo(enemyPlan.actions);
     if(pComboNow && ETHER_GAIN_MAP[pComboNow.name]){
@@ -855,14 +865,6 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
       setEnemy(e=>({ ...e, etherPts: e.etherPts - ETHER_THRESHOLD, etherOverdriveActive:true }));
       addLog('☄️ 적 에테르 폭주 발동!');
     }
-
-    const newQ = fixedOrder.map(x=>({ actor:x.actor, card:x.card, sp:x.sp }));
-    if(newQ.length===0){
-      addLog('⚠️ 큐 생성 실패: 실행할 항목이 없습니다');
-      return;
-    }
-    setQueue(newQ);
-    setQIndex(0); setPhase('resolve'); addLog('▶ 진행 시작');
   };
 
   const stepOnce = ()=>{
