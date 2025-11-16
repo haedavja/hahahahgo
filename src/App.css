@@ -122,8 +122,8 @@ body {
 }
 .resource-hud {
   position: fixed;
-  left: 140px;
-  bottom: 32px;
+  right: 32px;
+  top: 32px;
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
@@ -146,8 +146,9 @@ body {
 }
 .aether-column {
   position: fixed;
-  left: 32px;
-  top: 140px;
+  left: 50%;
+  bottom: 80px;
+  transform: translateX(-50%);
   width: 72px;
   padding: 12px 10px 16px;
   border-radius: 36px;
