@@ -448,8 +448,8 @@ body {
 
 .game-card-large .card-cost-corner {
   position: absolute;
-  top: 16px;
-  left: 16px;
+  top: 8px;
+  left: 8px;
   background: rgba(251, 191, 36, 0.9);
   color: #000;
   width: 42px;
@@ -846,7 +846,7 @@ body {
 .battle-fullscreen {
   width: 100vw;
   min-height: 100vh;
-  padding: 8px 28px;
+  padding: 4px 28px;
   background: radial-gradient(circle at top, #1e1b4b, #020617 60%);
   display: flex;
   justify-content: flex-start;

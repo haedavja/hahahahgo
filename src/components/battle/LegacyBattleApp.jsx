@@ -448,13 +448,13 @@ function ExpectedDamagePreview({player, enemy, fixedOrder, willOverdrive, enemyM
       {phase !== 'resolve' && !!res.lines?.length && (
         <div style={{marginTop: '20px', paddingTop: '16px', borderTop: '1px solid rgba(148, 163, 184, 0.15)'}}>
           {res.lines.map((line,idx)=>{
-            // 행동 주체 확인: "플레이어 ->" 또는 "플레이어 •"로 시작하면 플레이어 행동
+            // 몬스터로 시작하는 텍스트 감지
+            const startsWithMonster = line.trim().startsWith('몬스터');
             const isPlayerAction = line.includes('플레이어 ->') || line.includes('플레이어→') || line.includes('플레이어 •');
-            const isMonsterAction = line.includes('몬스터 ->') || line.includes('몬스터→') || line.includes('몬스터 •');
             return (
               <div key={idx} style={{
                 fontSize: '13px',
-                color: isPlayerAction ? '#60a5fa' : isMonsterAction ? '#fca5a5' : '#cbd5e1',
+                color: startsWithMonster ? '#fca5a5' : isPlayerAction ? '#60a5fa' : '#cbd5e1',
                 marginBottom: '6px'
               }}>
                 <span style={{color: '#94a3b8', marginRight: '4px'}}>{idx + 1}.</span>
@@ -477,13 +477,13 @@ function ExpectedDamagePreview({player, enemy, fixedOrder, willOverdrive, enemyM
               if (line.includes('게임 시작') || line.includes('적 성향 힌트')) return false;
               return true;
             }).map((line, i) => {
-              // 행동 주체 확인: "플레이어 ->" 또는 "플레이어 •"로 시작하면 플레이어 행동
+              // 몬스터로 시작하는 텍스트 감지
+              const startsWithMonster = line.trim().startsWith('몬스터') || (line.includes('👾') && line.substring(line.indexOf('👾') + 2).trim().startsWith('몬스터'));
               const isPlayerAction = line.includes('플레이어 ->') || line.includes('플레이어→') || line.includes('플레이어 •');
-              const isMonsterAction = line.includes('몬스터 ->') || line.includes('몬스터→') || line.includes('몬스터 •');
               return (
                 <div key={i} style={{
                   fontSize: '13px',
-                  color: isPlayerAction ? '#60a5fa' : isMonsterAction ? '#ef4444' : '#cbd5e1',
+                  color: startsWithMonster ? '#fca5a5' : isPlayerAction ? '#60a5fa' : '#cbd5e1',
                   marginBottom: '6px',
                   lineHeight: '1.5'
                 }}>
@@ -561,7 +561,7 @@ function EtherBar({ pts, slots, previewGain=0, color="cyan", label }){
         <div>{tier}</div>
         {safePreview > 0 && (
           <div style={{ color: '#6ee7b7', fontSize: '16px', marginTop: '4px' }}>
-            +{safePreview}pt 예정
+            +{safePreview}pt
           </div>
         )}
       </div>
