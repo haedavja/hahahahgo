@@ -8,12 +8,21 @@
 - 현재: `const PATCH_VERSION_TAG = "11-16-18:30";`
 - **모든 변경사항마다 KST 시간으로 자동 갱신** (형식: "MM-DD-HH:MM")
 
-### 2. Git 자동화
-- 브랜치: `claude/setup-sub-agent-01PPb7qJVyj8GMpb6ikpkoSq`
-- 작업 완료 시 자동 커밋 & 푸시
+### 2. Git 자동화 (매우 중요!)
+- **현재 브랜치**: `claude/setup-sub-agent-01PPb7qJVyj8GMpb6ikpkoSq`
+- **브랜치 이름 규칙**: 반드시 `claude/` + 현재 세션 ID로 끝나야 함
+- **⚠️ 과거 오류**: 다른 세션 ID 브랜치(`claude/game-development-collab-016AHeBc1gjCpKT5y2DspZE7`)로 푸시 시도 → 403 에러 발생
+- **해결 방법**: 항상 현재 세션 ID와 일치하는 브랜치 사용 확인
+
+작업 완료 시 자동 커밋 & 푸시:
 ```bash
 git add -A && git commit -m "feat: 설명" && git push -u origin claude/setup-sub-agent-01PPb7qJVyj8GMpb6ikpkoSq
 ```
+
+**403 에러 발생 시**:
+1. 브랜치 이름 확인: `git branch`
+2. 세션 ID가 `01PPb7qJVyj8GMpb6ikpkoSq`인지 확인
+3. 다르면 올바른 브랜치로 체크아웃 또는 생성
 
 ### 3. 작업 방식
 - 사용자가 지시한 정확한 수치(px, %, rem 등) 준수
