@@ -102,7 +102,7 @@ const friendlyPercent = (chance) => {
   return `${Math.round(chance * 100)}%`;
 };
 
-const PATCH_VERSION_TAG = "11-16-18:25"; // 다음 패치마다 여기를 최신 시간(월-일-시:분, KST)으로 갱신하세요.
+const PATCH_VERSION_TAG = "11-16-18:30"; // 다음 패치마다 여기를 최신 시간(월-일-시:분, KST)으로 갱신하세요.
 
 /* v11-16-14:45 갱신 내역
  * - 카드 스탯 폰트 크기 일원화 및 확대:
@@ -215,7 +215,7 @@ export function MapDemo() {
 
       <div className="main-layout">
         <div className="map-container">
-          <div className="map-view" ref={mapViewRef} style={{marginLeft: '500px'}}>
+          <div className="map-view" ref={mapViewRef} style={{marginLeft: '400px'}}>
             <section className="map" style={{ minHeight: mapHeight, width: MAP_WIDTH, margin: "0 auto", padding: "40px 0 60px" }}>
               <svg className="edge-layer" width={MAP_WIDTH} height={MAP_LAYERS * V_SPACING + 200}>
                 {edges.map(({ from, to }) => (

@@ -60,7 +60,7 @@ body {
 }
 .map-view {
   width: 100%;
-  height: calc(100vh - 100px);
+  height: calc(100vh - 40px);
   min-height: 1400px;
   overflow: auto;
   padding: 24px;
