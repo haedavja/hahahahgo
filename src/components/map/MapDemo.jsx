@@ -1,7 +1,6 @@
-﻿import { useEffect, useMemo, useRef, useState } from "react";
+﻿import { useEffect, useMemo, useRef } from "react";
 import { useGameStore } from "../../state/gameStore";
 import { calculateEtherSlots, getCurrentSlotPts, getSlotProgress, getNextSlotCost } from "../../lib/etherUtils";
-import { CharacterSheet } from "../character/CharacterSheet";
 import { DungeonExploration } from "../dungeon/DungeonExploration";
 import { LegacyBattleScreen } from "../battle/LegacyBattleScreen";
 
@@ -105,7 +104,7 @@ const friendlyPercent = (chance) => {
   return `${Math.round(chance * 100)}%`;
 };
 
-const PATCH_VERSION_TAG = "11-16-22:47"; // 다음 패치마다 여기를 최신 시간(월-일-시:분, KST)으로 갱신하세요.
+const PATCH_VERSION_TAG = "11-16-22:52"; // 다음 패치마다 여기를 최신 시간(월-일-시:분, KST)으로 갱신하세요.
 
 /* v11-16-14:45 갱신 내역
  * - 카드 스탯 폰트 크기 일원화 및 확대:
@@ -132,8 +131,6 @@ export function MapDemo() {
   const skipDungeon = useGameStore((state) => state.skipDungeon);
   const confirmDungeon = useGameStore((state) => state.confirmDungeon);
   const bypassDungeon = useGameStore((state) => state.bypassDungeon);
-
-  const [showCharacterSheet, setShowCharacterSheet] = useState(false);
 
   const nodes = map?.nodes ?? [];
   const mapViewRef = useRef(null);
@@ -167,6 +164,10 @@ export function MapDemo() {
     [nodes],
   );
 
+  const activeDungeonNode = useMemo(() => {
+    if (!activeDungeon) return null;
+    return nodes.find((node) => node.id === activeDungeon.nodeId) ?? null;
+  }, [activeDungeon, nodes]);
 
   useEffect(() => {
     if (!mapViewRef.current || !map?.currentNodeId) return;
@@ -182,40 +183,7 @@ export function MapDemo() {
       top: Math.max(0, centerY - container.clientHeight / 2),
       behavior: "smooth",
     });
-  }, [map?.currentNodeId]);
-
-  // 초기 로드 시 스타트 노드로 스크롤 (한 번만 실행)
-  useEffect(() => {
-    if (!mapViewRef.current || nodes.length === 0) return;
-    const startNode = nodes.find((node) => node.isStart);
-    if (!startNode) return;
-    const container = mapViewRef.current;
-    setTimeout(() => {
-      const target = container.querySelector(`[data-node-id="${startNode.id}"]`);
-      if (!target) return;
-      const containerRect = container.getBoundingClientRect();
-      const targetRect = target.getBoundingClientRect();
-      const centerX = targetRect.left - containerRect.left + container.scrollLeft + targetRect.width / 2;
-      const centerY = targetRect.top - containerRect.top + container.scrollTop + targetRect.height / 2;
-      container.scrollTo({
-        left: Math.max(0, centerX - container.clientWidth / 2),
-        top: Math.max(0, centerY - container.clientHeight / 2),
-        behavior: "auto",
-      });
-    }, 100);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // C 키로 캐릭터 창 열기
-  useEffect(() => {
-    const handleKeyPress = (e) => {
-      if (e.key === "c" || e.key === "C") {
-        setShowCharacterSheet((prev) => !prev);
-      }
-    };
-    window.addEventListener("keydown", handleKeyPress);
-    return () => window.removeEventListener("keydown", handleKeyPress);
-  }, []);
+  }, [map?.currentNodeId, nodes]);
 
   const availablePrayers = useMemo(
     () => PRAYER_COSTS.filter((cost) => (resources.etherPts ?? 0) >= cost),
@@ -442,8 +410,6 @@ export function MapDemo() {
       )}
 
       {activeDungeon && activeDungeon.confirmed && <DungeonExploration />}
-
-      {showCharacterSheet && <CharacterSheet onClose={() => setShowCharacterSheet(false)} />}
 
       {lastBattleResult && (
         <div className="battle-modal-overlay">
