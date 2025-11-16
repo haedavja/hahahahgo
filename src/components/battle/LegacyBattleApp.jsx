@@ -699,17 +699,6 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
     }
   },[]);
 
-  // 전투 화면 마우스 스크롤 비활성화
-  useEffect(() => {
-    const preventScroll = (e) => {
-      e.preventDefault();
-    };
-    window.addEventListener('wheel', preventScroll, { passive: false });
-    return () => {
-      window.removeEventListener('wheel', preventScroll);
-    };
-  }, []);
-
   useEffect(()=>{
     if(!enemy || phase!=='select') return;
     setFixedOrder(null);

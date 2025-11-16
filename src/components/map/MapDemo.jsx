@@ -102,13 +102,12 @@ const friendlyPercent = (chance) => {
   return `${Math.round(chance * 100)}%`;
 };
 
-const PATCH_VERSION_TAG = "11-16-14:15"; // 다음 패치마다 여기를 최신 시간(월-일-시:분, KST)으로 갱신하세요.
+const PATCH_VERSION_TAG = "11-16-14:20"; // 다음 패치마다 여기를 최신 시간(월-일-시:분, KST)으로 갱신하세요.
 
-/* v11-16-14:15 갱신 내역
- * - 에너지 구체 크기 2배 증가: 50px → 100px (폰트 18px → 36px)
- * - 전투 화면 마우스 스크롤 비활성화: wheel 이벤트 차단으로 스크롤 방지
- * - 에너지 구체 테두리 강화: 2px → 3px
- * - 에너지 구체 그림자 효과 증가
+/* v11-16-14:20 갱신 내역
+ * - 전투 화면 스크롤 방지: body overflow hidden, 화면 높이를 100vh로 고정
+ * - 전투 화면이 뷰포트를 가득 채워 스크롤 불필요하도록 개선
+ * - wheel 이벤트 차단 코드 제거 (CSS로 대체)
  */
 
 export function MapDemo() {
