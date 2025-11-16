@@ -470,11 +470,11 @@ function EtherBar({ pts, slots, previewGain=0, color="cyan", label }){
     safeSlots
   });
 
-  const borderColor = color === 'fuchsia' ? '#d946ef' : '#53d7ff';
-  const fillGradient = color === 'fuchsia'
-    ? 'linear-gradient(180deg, #f0abfc 0%, #a855f7 100%)'
+  const borderColor = color === 'red' ? '#ef4444' : '#53d7ff';
+  const fillGradient = color === 'red'
+    ? 'linear-gradient(180deg, #fca5a5 0%, #dc2626 100%)'
     : 'linear-gradient(180deg, #6affff 0%, #0f7ebd 100%)';
-  const textColor = color === 'fuchsia' ? '#f0abfc' : '#8fd3ff';
+  const textColor = color === 'red' ? '#fca5a5' : '#8fd3ff';
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '72px', padding: '12px 10px 16px' }}>
@@ -940,7 +940,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
             <div className="timeline-lanes">
               <div className="timeline-lane player-lane">
                 {Array.from({length: MAX_SPEED + 1}).map((_,i)=>(
-                  <div key={i} className="timeline-gridline" style={{left:`${(i/MAX_SPEED)*100}%`}} />
+                  <div key={i} className="timeline-gridline" style={{top:`${(i/MAX_SPEED)*100}%`}} />
                 ))}
                 {playerTimeline.map((a,idx)=>{
                   const Icon = a.card.icon || Sword;
@@ -950,7 +950,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                   return (
                     <div key={idx}
                          className="timeline-marker marker-player"
-                         style={{left:`${(a.sp/MAX_SPEED)*100}%`, top:`${6+offset}px`}}>
+                         style={{top:`${(a.sp/MAX_SPEED)*100}%`, left:`${6+offset}px`}}>
                       <Icon size={14} className="text-white"/>
                       <span className="text-white text-xs font-bold">{num>0?num:''}</span>
                     </div>
@@ -960,7 +960,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
 
               <div className="timeline-lane enemy-lane">
                 {Array.from({length: MAX_SPEED + 1}).map((_,i)=>(
-                  <div key={i} className="timeline-gridline" style={{left:`${(i/MAX_SPEED)*100}%`}} />
+                  <div key={i} className="timeline-gridline" style={{top:`${(i/MAX_SPEED)*100}%`}} />
                 ))}
                 {enemyTimeline.map((a,idx)=>{
                   const Icon = a.card.icon || Shield;
@@ -970,7 +970,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                   return (
                     <div key={idx}
                          className="timeline-marker marker-enemy"
-                         style={{left:`${(a.sp/MAX_SPEED)*100}%`, top:`${6+offset}px`}}>
+                         style={{top:`${(a.sp/MAX_SPEED)*100}%`, left:`${6+offset}px`}}>
                       <Icon size={14} className="text-white"/>
                       <span className="text-white text-xs font-bold">{num>0?num:''}</span>
                     </div>
@@ -1058,7 +1058,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                   slots={enemyEtherSlots}
                   previewGain={enemyComboPreviewGain}
                   label="ETHER"
-                  color="fuchsia"
+                  color="red"
                 />
               </div>
             </div>

@@ -196,30 +196,33 @@ body {
 
 .timeline-body {
   display: flex;
+  flex-direction: column;
   margin-top: 20px;
-  gap: 24px;
+  gap: 12px;
 }
 
 .timeline-axis {
-  width: 48px;
+  height: 32px;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
   font-size: 0.75rem;
   color: rgba(226, 232, 240, 0.5);
+  padding: 0 8px;
 }
 
 .timeline-lanes {
   flex: 1;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   gap: 12px;
+  min-height: 120px;
 }
 
 .timeline-lane {
   position: relative;
-  height: 80px;
+  flex: 1;
   background: rgba(2, 6, 23, 0.8);
   border-radius: 18px;
   border: 1px solid rgba(148, 163, 184, 0.2);
@@ -243,9 +246,9 @@ body {
 
 .timeline-gridline {
   position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 1px;
+  left: 0;
+  right: 0;
+  height: 1px;
   background: rgba(148, 163, 184, 0.15);
 }
 
@@ -257,7 +260,7 @@ body {
   padding: 6px 10px;
   border-radius: 999px;
   border: 1px solid rgba(255, 255, 255, 0.2);
-  transform: translate(-50%, 0);
+  transform: translate(0, -50%);
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.45);
 }
 
@@ -456,12 +459,20 @@ body {
 }
 
 .hand-area {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
   width: 100%;
-  background: rgba(4, 6, 22, 0.92);
-  border-radius: 28px;
+  max-width: 1400px;
+  margin: 0 auto;
+  background: rgba(4, 6, 22, 0.95);
+  border-radius: 28px 28px 0 0;
   padding: 28px 32px;
   border: 1px solid rgba(255, 255, 255, 0.04);
-  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.6);
+  border-bottom: none;
+  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.8);
+  z-index: 100;
 }
 
 .hand-area-header {
