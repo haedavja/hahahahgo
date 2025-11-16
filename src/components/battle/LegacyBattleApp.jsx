@@ -762,7 +762,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
         return { actions:[], mode };
       }
     });
-  }, [phase, enemy, enemyPlan.mode, hasCharacterBuild, characterBuild]);
+  }, [phase, enemy, enemyPlan.mode]);
 
   useEffect(()=>{
     if(phase==='resolve' && (!queue || queue.length===0) && fixedOrder && fixedOrder.length>0){
