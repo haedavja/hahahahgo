@@ -1269,11 +1269,11 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                       </div>
                       <div className="card-footer">
                         <div className="flex items-center justify-center gap-2 text-white font-bold" style={{fontSize: '1.688rem'}}>
-                          {c.damage && <span className="text-red-300">⚔️{c.damage}{c.hits?`×${c.hits}`:''}</span>}
-                          {c.block && <span className="text-blue-300">🛡️{c.block}</span>}
-                          {c.counter!==undefined && <span className="text-purple-300">⚡{c.counter}</span>}
+                          {c.damage != null && c.damage > 0 && <span style={{color: '#fca5a5'}}>⚔️{c.damage}{c.hits?`×${c.hits}`:''}</span>}
+                          {c.block != null && c.block > 0 && <span style={{color: '#93c5fd'}}>🛡️{c.block}</span>}
+                          {c.counter !== undefined && <span style={{color: '#d8b4fe'}}>⚡{c.counter}</span>}
                         </div>
-                        <div className="text-cyan-300 mt-1" style={{fontSize: '1.688rem'}}>⏱️{c.speedCost}</div>
+                        <div style={{color: '#67e8f9', fontSize: '1.688rem', marginTop: '0.25rem'}}>⏱️{c.speedCost}</div>
                       </div>
                     </div>
                     <div style={{display: 'flex', gap: '8px'}}>
@@ -1325,11 +1325,11 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                     </div>
                     <div className="card-footer">
                       <div className="flex items-center justify-center gap-2 text-white font-bold" style={{fontSize: '1.688rem'}}>
-                        {a.card.damage && <span className="text-red-300">⚔️{a.card.damage}{a.card.hits?`×${a.card.hits}`:''}</span>}
-                        {a.card.block && <span className="text-blue-300">🛡️{a.card.block}</span>}
-                        {a.card.counter!==undefined && <span className="text-purple-300">⚡{a.card.counter}</span>}
+                        {a.card.damage != null && a.card.damage > 0 && <span style={{color: '#fca5a5'}}>⚔️{a.card.damage}{a.card.hits?`×${a.card.hits}`:''}</span>}
+                        {a.card.block != null && a.card.block > 0 && <span style={{color: '#93c5fd'}}>🛡️{a.card.block}</span>}
+                        {a.card.counter !== undefined && <span style={{color: '#d8b4fe'}}>⚡{a.card.counter}</span>}
                       </div>
-                      <div className="text-cyan-300 mt-1" style={{fontSize: '1.688rem'}}>⏱️{a.card.speedCost}</div>
+                      <div style={{color: '#67e8f9', fontSize: '1.688rem', marginTop: '0.25rem'}}>⏱️{a.card.speedCost}</div>
                     </div>
                   </div>
                 );

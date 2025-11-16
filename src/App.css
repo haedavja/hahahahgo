@@ -60,8 +60,8 @@ body {
 }
 .map-view {
   width: 100%;
-  height: calc(100vh - 200px);
-  min-height: 700px;
+  height: calc(100vh - 100px);
+  min-height: 1400px;
   overflow: auto;
   padding: 24px;
   border-radius: 32px;

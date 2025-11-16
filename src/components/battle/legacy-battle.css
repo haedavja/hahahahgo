@@ -599,7 +599,7 @@ body {
   display: flex;
   gap: 16px;
   margin: 0px;
-  min-height: 32px;
+  min-height: 8px;
 }
 
 .hand-flag {
