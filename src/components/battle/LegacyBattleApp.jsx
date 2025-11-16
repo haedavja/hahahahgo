@@ -1139,23 +1139,18 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
       {/* 하단 고정 손패 영역 */}
       {(phase==='select' || phase==='respond' || phase==='resolve' || (enemy && enemy.hp <= 0) || (player && player.hp <= 0)) && (
         <div className="hand-area">
-          <div className="hand-area-header">
-            <div className="hand-heading">
-              <div className="hand-title">손패</div>
-              <div className="hand-energy">
-                <div className="energy-orb-large">
-                  {remainingEnergy}
-                </div>
-                <div className="hand-meta">
-                  <div className="hand-meta-line">남은 에너지</div>
-                  <div className="hand-meta-line">
-                    속도 {totalSpeed}/{MAX_SPEED} · 선택 {selected.length}/{MAX_SUBMIT_CARDS}
-                  </div>
+          <div className="hand-area-header" style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px'}}>
+            <div style={{display: 'flex', alignItems: 'center', gap: '20px'}}>
+              <div style={{fontSize: '1.5rem', fontWeight: '900', color: '#f8fafc'}}>손패</div>
+              <div style={{display: 'flex', flexDirection: 'column', gap: '2px'}}>
+                <div style={{fontSize: '1.1rem', fontWeight: '700', color: '#cbd5e1'}}>남은 에너지: {remainingEnergy}</div>
+                <div style={{fontSize: '1rem', fontWeight: '600', color: '#94a3b8'}}>
+                  속도 {totalSpeed}/{MAX_SPEED} · 선택 {selected.length}/{MAX_SUBMIT_CARDS}
                 </div>
               </div>
             </div>
 
-            <div className="hand-combo">
+            <div style={{flex: 1, display: 'flex', justifyContent: 'center'}}>
               {(phase==='select' || phase==='respond') && currentCombo && (
                 <div className="combo-display">
                   {currentCombo.name}
@@ -1171,7 +1166,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
               )}
             </div>
 
-            <div className="hand-actions">
+            <div style={{display: 'flex', gap: '12px', flexWrap: 'wrap', justifyContent: 'flex-end'}}>
               {phase==='select' && (
                 <>
                   <button onClick={redrawHand} disabled={!canRedraw} className="btn-enhanced flex items-center gap-2">
