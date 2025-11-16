@@ -442,14 +442,16 @@ function ExpectedDamagePreview({player, enemy, fixedOrder, willOverdrive, enemyM
         {willOverdrive && <span className="expect-tag" style={{marginTop: '8px', display: 'inline-block'}}>기도 미리보기</span>}
       </div>
 
-      {!!res.lines?.length && (
+      {/* 진행 단계가 아닐 때만 예상 피해량 로그 표시 */}
+      {phase !== 'resolve' && !!res.lines?.length && (
         <div className="expect-log-vertical">
           {res.lines.map((line,idx)=>{
             const isMonsterAction = line.includes('몬스터 ->') || line.includes('몬스터→');
+            const isPlayerAction = line.includes('플레이어 ->') || line.includes('플레이어→');
             return (
               <div key={idx} style={{
                 fontSize: '13px',
-                color: isMonsterAction ? '#fca5a5' : '#cbd5e1',
+                color: isMonsterAction ? '#fca5a5' : isPlayerAction ? '#60a5fa' : '#cbd5e1',
                 marginBottom: '6px'
               }}>
                 <span style={{color: '#94a3b8', marginRight: '4px'}}>{idx + 1}.</span>
@@ -467,16 +469,24 @@ function ExpectedDamagePreview({player, enemy, fixedOrder, willOverdrive, enemyM
             🎮 전투 로그
           </div>
           <div style={{maxHeight: '300px', overflowY: 'auto'}}>
-            {log.map((line, i) => (
-              <div key={i} style={{
-                fontSize: '13px',
-                color: '#cbd5e1',
-                marginBottom: '6px',
-                lineHeight: '1.5'
-              }}>
-                {line}
-              </div>
-            ))}
+            {log.filter(line => {
+              // 불필요한 로그 제거
+              if (line.includes('게임 시작') || line.includes('적 성향 힌트')) return false;
+              return true;
+            }).map((line, i) => {
+              const isMonsterAction = line.includes('몬스터') || line.includes('적');
+              const isPlayerAction = line.includes('플레이어');
+              return (
+                <div key={i} style={{
+                  fontSize: '13px',
+                  color: isMonsterAction ? '#fca5a5' : isPlayerAction ? '#60a5fa' : '#cbd5e1',
+                  marginBottom: '6px',
+                  lineHeight: '1.5'
+                }}>
+                  {line}
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
@@ -957,6 +967,14 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
     return ETHER_GAIN_MAP[enemyCombo.name] || 0;
   }, [enemyCombo, phase]);
 
+  // 적 성향 힌트 추출
+  const enemyHint = useMemo(() => {
+    const hintLog = log.find(line => line.includes('적 성향 힌트'));
+    if (!hintLog) return null;
+    const match = hintLog.match(/적 성향 힌트[:\s]*(.+)/);
+    return match ? match[1].trim() : null;
+  }, [log]);
+
   return (
     <div className="legacy-battle-root w-full min-h-screen pb-64">
       {/* 예상 피해량 - 오른쪽 고정 패널 */}
@@ -1078,6 +1096,17 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
             <div className="entity-panel enemy-panel">
               <div className="entity-body">
                 <div>
+                  {enemyHint && (
+                    <div style={{
+                      fontSize: '12px',
+                      color: '#94a3b8',
+                      marginBottom: '4px',
+                      textAlign: 'right',
+                      fontStyle: 'italic'
+                    }}>
+                      💡 {enemyHint}
+                    </div>
+                  )}
                   <div className="entity-name text-right" style={{marginBottom: '8px'}}>{enemy.name}</div>
                   <div className="hp-bar-enhanced mb-2" style={{width: '200px'}}>
                     <div className="hp-fill" style={{width: `${(enemy.hp/enemy.maxHp)*100}%`}}></div>
