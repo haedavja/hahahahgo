@@ -102,14 +102,13 @@ const friendlyPercent = (chance) => {
   return `${Math.round(chance * 100)}%`;
 };
 
-const PATCH_VERSION_TAG = "11-16-11:07"; // 다음 패치마다 여기를 최신 시간(월-일-시:분, KST)으로 갱신하세요.
+const PATCH_VERSION_TAG = "11-16-11:12"; // 다음 패치마다 여기를 최신 시간(월-일-시:분, KST)으로 갱신하세요.
 
-/* v11-16-11:07 갱신 내역
- * - 손패 인터페이스 높이 추가 축소
- * - padding: 12px 16px → 6px 12px (50% 축소)
- * - 제목 크기: 1.5rem → 1rem (33% 축소)
- * - 콤보 높이: 40px → 28px (30% 축소)
- * - 전체 높이 약 13% 감소
+/* v11-16-11:12 갱신 내역
+ * - 손패 배경 추가: rgba(4, 6, 22, 0.3) + blur(4px) (구분된 공간)
+ * - 텍스트 확대: 제목 1.25rem, 메타 0.85rem (가독성 향상)
+ * - 레이아웃 조정: 손패/에너지 오른쪽 정렬, 카드에 바짝 붙임
+ * - 카드 footer 개선: 배경 진하게, flex-shrink: 0 (정보 가시성)
  */
 
 export function MapDemo() {

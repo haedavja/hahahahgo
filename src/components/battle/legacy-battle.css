@@ -481,11 +481,12 @@ body {
 }
 
 .game-card-large .card-footer {
-  padding: 14px;
+  padding: 10px 14px;
   text-align: center;
-  background: rgba(0, 0, 0, 0.25);
+  background: rgba(0, 0, 0, 0.4);
   border-top: 1px solid rgba(255, 255, 255, 0.08);
   position: relative;
+  flex-shrink: 0;
 }
 
 .game-card-large .card-footer .cost-indicator {
@@ -528,10 +529,10 @@ body {
   left: 0;
   right: 340px;
   width: auto;
-  background: transparent;
-  backdrop-filter: none;
+  background: rgba(4, 6, 22, 0.3);
+  backdrop-filter: blur(4px);
   border-radius: 16px 16px 0 0;
-  padding: 6px 12px;
+  padding: 6px 12px 6px 12px;
   border: none;
   box-shadow: none;
   z-index: 100;
@@ -541,18 +542,19 @@ body {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 6px;
-  align-items: center;
-  margin-bottom: 4px;
+  align-items: flex-end;
+  margin-bottom: 2px;
 }
 
 .hand-heading {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
+  justify-content: flex-end;
 }
 
 .hand-title {
-  font-size: 1rem;
+  font-size: 1.25rem;
   font-weight: 900;
   color: #f8fafc;
 }
@@ -564,16 +566,16 @@ body {
 }
 
 .hand-meta {
-  color: rgba(226, 232, 240, 0.8);
-  font-size: 0.75rem;
-  line-height: 1.2;
+  color: rgba(226, 232, 240, 0.9);
+  font-size: 0.85rem;
+  line-height: 1.3;
 }
 
 .hand-meta-line:first-child {
   font-weight: 700;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  font-size: 0.7rem;
+  font-size: 0.8rem;
   color: #cbd5f5;
 }
 
