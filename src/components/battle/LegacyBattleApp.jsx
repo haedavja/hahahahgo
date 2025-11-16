@@ -410,16 +410,29 @@ function ExpectedDamagePreview({player, enemy, fixedOrder, willOverdrive, enemyM
   ];
   return (
     <div className="expect-board">
-      <div className="expect-summary">
-        {summaryItems.map((item)=>(
-          <div key={item.label} className="expect-item">
-            <span className="expect-icon">{item.icon}</span>
-            <div>
-              <div className="expect-label">{item.label}</div>
-              <div className={`expect-value ${item.accent}`}>{item.value}</div>
+      <div style={{display: 'flex', gap: '24px', alignItems: 'flex-start'}}>
+        <div className="expect-summary">
+          {summaryItems.map((item)=>(
+            <div key={item.label} className="expect-item">
+              <span className="expect-icon">{item.icon}</span>
+              <div>
+                <div className="expect-label">{item.label}</div>
+                <div className={`expect-value ${item.accent}`}>{item.value}</div>
+              </div>
             </div>
+          ))}
+        </div>
+
+        {!!res.lines?.length && (
+          <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '8px', flex: 1}}>
+            {res.lines.map((line,idx)=>(
+              <div key={idx} style={{fontSize: '13px', color: '#cbd5e1'}}>
+                <span style={{color: '#94a3b8', marginRight: '4px'}}>{idx + 1}.</span>
+                {line}
+              </div>
+            ))}
           </div>
-        ))}
+        )}
       </div>
 
       <div className="expect-hp">
@@ -428,17 +441,6 @@ function ExpectedDamagePreview({player, enemy, fixedOrder, willOverdrive, enemyM
         ))}
         {willOverdrive && <span className="expect-tag">기도 미리보기</span>}
       </div>
-
-      {!!res.lines?.length && (
-        <div className="expect-log">
-          {res.lines.slice(0,3).map((line,idx)=>(
-            <div key={idx} className="expect-log-line">
-              <span className="expect-log-bullet">•</span>
-              {line}
-            </div>
-          ))}
-        </div>
-      )}
     </div>
   );
 }
@@ -1217,7 +1219,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                           const enemyActions = fixedOrder.filter(a=>a.actor==='enemy');
                           setFixedOrder(sortCombinedOrderStablePF(newPlayerActions.map(a=>a.card), enemyActions.map(a=>a.card)));
                         }} className="btn-enhanced text-xs" style={{padding: '2px 6px'}}>
-                          ↑
+                          ←
                         </button>
                       )}
                       {idx < arr.length - 1 && (
@@ -1228,7 +1230,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                           const enemyActions = fixedOrder.filter(a=>a.actor==='enemy');
                           setFixedOrder(sortCombinedOrderStablePF(newPlayerActions.map(a=>a.card), enemyActions.map(a=>a.card)));
                         }} className="btn-enhanced text-xs" style={{padding: '2px 6px'}}>
-                          ↓
+                          →
                         </button>
                       )}
                     </div>
