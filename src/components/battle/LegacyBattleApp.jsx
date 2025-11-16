@@ -1140,12 +1140,12 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
       {/* 하단 고정 손패 영역 */}
       {(phase==='select' || phase==='respond' || phase==='resolve' || (enemy && enemy.hp <= 0) || (player && player.hp <= 0)) && (
         <div className="hand-area">
-          <div className="hand-area-header" style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginBottom: '4px'}}>
-            <div style={{display: 'flex', alignItems: 'center', gap: '14px'}}>
-              <div style={{fontSize: '1.3rem', fontWeight: '900', color: '#f8fafc'}}>손패</div>
-              <div style={{display: 'flex', flexDirection: 'column', gap: '1px'}}>
-                <div style={{fontSize: '0.95rem', fontWeight: '700', color: '#cbd5e1'}}>남은 에너지: {remainingEnergy}</div>
-                <div style={{fontSize: '0.85rem', fontWeight: '600', color: '#94a3b8'}}>
+          <div className="hand-area-header" style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px'}}>
+            <div style={{display: 'flex', alignItems: 'center', gap: '20px'}}>
+              <div style={{fontSize: '1.5rem', fontWeight: '900', color: '#f8fafc'}}>손패</div>
+              <div style={{display: 'flex', flexDirection: 'column', gap: '2px'}}>
+                <div style={{fontSize: '1.1rem', fontWeight: '700', color: '#cbd5e1'}}>남은 에너지: {remainingEnergy}</div>
+                <div style={{fontSize: '1rem', fontWeight: '600', color: '#94a3b8'}}>
                   속도 {totalSpeed}/{MAX_SPEED} · 선택 {selected.length}/{MAX_SUBMIT_CARDS}
                 </div>
               </div>
@@ -1167,7 +1167,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
               )}
             </div>
 
-            <div style={{display: 'flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'flex-end'}}>
+            <div style={{display: 'flex', gap: '12px', flexWrap: 'wrap', justifyContent: 'flex-end'}}>
               {phase==='select' && (
                 <>
                   <button onClick={redrawHand} disabled={!canRedraw} className="btn-enhanced flex items-center gap-2">
