@@ -4,6 +4,14 @@ import { calculateEtherSlots, getCurrentSlotPts, getSlotProgress, getNextSlotCos
 import { CharacterSheet } from "../character/CharacterSheet";
 import "./dungeon.css";
 
+const RESOURCE_LABELS = {
+  gold: "금",
+  intel: "정보",
+  loot: "전리품",
+  material: "원자재",
+  etherPts: "에테르",
+};
+
 // 던전 세그먼트 타입
 const SEGMENT_TYPES = {
   CORRIDOR: "corridor",
@@ -230,6 +238,8 @@ export function DungeonExploration() {
   const clearBattleResult = useGameStore((state) => state.clearBattleResult);
   const resources = useGameStore((state) => state.resources);
   const etherPts = resources.etherPts || 0;
+  const playerHp = useGameStore((state) => state.playerHp);
+  const maxHp = useGameStore((state) => state.maxHp);
 
   const [dungeon, setDungeon] = useState(() => generateDungeon());
   const [currentSegmentIndex, setCurrentSegmentIndex] = useState(0);
@@ -527,10 +537,42 @@ export function DungeonExploration() {
         <EtherBar pts={etherPts} color="cyan" label="ETHER" />
       </div>
 
+      {/* 오른쪽 자원 표시 */}
+      <div style={{
+        position: "absolute",
+        top: "220px",
+        right: "30px",
+        zIndex: 1001,
+        background: "rgba(8, 11, 19, 0.95)",
+        borderRadius: "12px",
+        padding: "12px 16px",
+        border: "1px solid rgba(118, 134, 185, 0.4)",
+        minWidth: "120px",
+      }}>
+        {Object.entries(resources)
+          .filter(([key]) => key !== "etherPts")
+          .map(([key, value]) => (
+            <div key={key} style={{
+              fontSize: "14px",
+              color: "#9fb6ff",
+              marginBottom: "6px",
+              display: "flex",
+              justifyContent: "space-between",
+              gap: "12px",
+            }}>
+              <span style={{ opacity: 0.8 }}>{RESOURCE_LABELS[key] ?? key}</span>
+              <span style={{ fontWeight: "600", color: "#fff" }}>{value}</span>
+            </div>
+          ))}
+      </div>
+
       {/* 상단 정보 */}
       <div style={{ position: "absolute", top: "30px", left: "50%", transform: "translateX(-50%)", zIndex: 1001 }}>
         <div className="dungeon-info" style={{ textAlign: "center" }}>
-          <div style={{ fontSize: "18px", fontWeight: "bold", color: "#fff" }}>
+          <div style={{ fontSize: "18px", fontWeight: "bold", color: "#fff", marginBottom: "6px" }}>
+            HP: {playerHp} / {maxHp}
+          </div>
+          <div style={{ fontSize: "16px", fontWeight: "600", color: "#9fb6ff" }}>
             구역 {currentSegmentIndex + 1} / {dungeon.length}
           </div>
           <div style={{ fontSize: "12px", opacity: 0.7, marginTop: "4px" }}>A/D: 좌우 이동 | W: 상호작용</div>

@@ -10,7 +10,7 @@ export const CARDS = [
   { id: "double",  name: "Double Slash",   type: "attack",  damage: 17, hits: 2,     speedCost: 7,  actionCost: 2, iconKey: "sword" },
   { id: "precise", name: "Precise Strike", type: "attack",  damage: 32,              speedCost: 6,  actionCost: 2, iconKey: "sword" },
   { id: "rush",    name: "Rush Attack",    type: "attack",  damage: 14,              speedCost: 4,  actionCost: 1, iconKey: "flame" },
-  { id: "parry",   name: "Parry",          type: "defense", block: 12,               speedCost: 2,  actionCost: 1, iconKey: "shield", counter: 0 },
+  { id: "parry",   name: "Parry",          type: "defense", block: 12,               speedCost: 2,  actionCost: 1, iconKey: "shield" },
   { id: "guard",   name: "Guard",          type: "defense", block: 16,               speedCost: 6,  actionCost: 1, iconKey: "shield" },
   { id: "wall",    name: "Iron Wall",      type: "defense", block: 38,               speedCost: 9,  actionCost: 2, iconKey: "shield" },
   { id: "counter", name: "Counter Stance", type: "defense", block: 14, counter: 3,   speedCost: 4,  actionCost: 1, iconKey: "shield" },

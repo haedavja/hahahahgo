@@ -2,13 +2,6 @@ import { useState, useEffect } from "react";
 import { useGameStore } from "../../state/gameStore";
 import { CARDS } from "../battle/battleData";
 
-const baseStats = {
-  hp: { current: 30, max: 30 },
-  energy: { current: 6, max: 6 },
-  speed: 30,
-  power: 0,
-};
-
 // 전투에서 사용되는 카드 8종 (CARDS.slice(0, 8))
 const availableCards = CARDS.slice(0, 8).map((card, index) => ({
   id: card.id,
@@ -23,6 +16,15 @@ const availableCards = CARDS.slice(0, 8).map((card, index) => ({
 export function CharacterSheet({ onClose }) {
   const characterBuild = useGameStore((state) => state.characterBuild);
   const updateCharacterBuild = useGameStore((state) => state.updateCharacterBuild);
+  const playerHp = useGameStore((state) => state.playerHp);
+  const maxHp = useGameStore((state) => state.maxHp);
+
+  // 현재 스탯
+  const currentHp = playerHp;
+  const currentEnergy = 6;
+  const maxEnergy = 6;
+  const speed = 30;
+  const power = 0;
 
   const [specialMode, setSpecialMode] = useState("main");
   // cardId로 선택 상태 관리 - 초기화는 한 번만
@@ -178,22 +180,22 @@ export function CharacterSheet({ onClose }) {
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px", fontSize: "14px" }}>
             <span style={{ opacity: 0.8 }}>체력</span>
             <span style={{ fontWeight: 600, color: "#fff" }}>
-              {baseStats.hp.current} / {baseStats.hp.max}
+              {currentHp} / {maxHp}
             </span>
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px", fontSize: "14px" }}>
             <span style={{ opacity: 0.8 }}>에너지</span>
             <span style={{ fontWeight: 600, color: "#67e8f9" }}>
-              {baseStats.energy.current} / {baseStats.energy.max}
+              {currentEnergy} / {maxEnergy}
             </span>
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px", fontSize: "14px" }}>
             <span style={{ opacity: 0.8 }}>속도</span>
-            <span style={{ fontWeight: 600, color: "#7dd3fc" }}>{baseStats.speed}</span>
+            <span style={{ fontWeight: 600, color: "#7dd3fc" }}>{speed}</span>
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", fontSize: "14px" }}>
             <span style={{ opacity: 0.8 }}>힘</span>
-            <span style={{ fontWeight: 600, color: "#fca5a5" }}>{baseStats.power}</span>
+            <span style={{ fontWeight: 600, color: "#fca5a5" }}>{power}</span>
           </div>
         </div>
 

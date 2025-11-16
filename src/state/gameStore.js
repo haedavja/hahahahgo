@@ -106,8 +106,13 @@ const createEventPayload = (node, mapRisk) => {
 
 const resolveEnemyDeck = (kind) => ENEMY_DECKS[kind] ?? ENEMY_DECKS.default ?? [];
 
-const computeBattlePlan = (kind, playerCards, enemyCards) => {
+const computeBattlePlan = (kind, playerCards, enemyCards, currentPlayerHp = null) => {
   const timeline = buildSpeedTimeline(playerCards, enemyCards, 30);
+  const baseStats = BATTLE_STATS[kind] ?? BATTLE_STATS.default;
+  const battleStats = currentPlayerHp !== null
+    ? { ...baseStats, player: { ...baseStats.player, hp: currentPlayerHp } }
+    : baseStats;
+
   return {
     preview: {
       playerHand: playerCards,
@@ -115,7 +120,7 @@ const computeBattlePlan = (kind, playerCards, enemyCards) => {
       timeline,
       tuLimit: 30,
     },
-    simulation: simulateBattle(timeline, BATTLE_STATS[kind] ?? BATTLE_STATS.default),
+    simulation: simulateBattle(timeline, battleStats),
   };
 };
 
@@ -129,7 +134,7 @@ const drawCharacterBuildHand = (mainSpecials, subSpecials) => {
   return drawHand(cardIds, cardIds.length);
 };
 
-const createBattlePayload = (node, characterBuild) => {
+const createBattlePayload = (node, characterBuild, playerHp = null) => {
   if (!node || !BATTLE_TYPES.has(node.type) || node.isStart) return null;
 
   // 캐릭터 빌드가 있으면 그걸 사용, 없으면 기존 방식
@@ -148,7 +153,7 @@ const createBattlePayload = (node, characterBuild) => {
     : drawHand(playerDrawPile, 3);
 
   const enemyHand = drawHand(enemyDrawPile, 3);
-  const { preview, simulation } = computeBattlePlan(node.type, playerHand, enemyHand);
+  const { preview, simulation } = computeBattlePlan(node.type, playerHand, enemyHand, playerHp);
 
   return {
     nodeId: node.id,
@@ -190,7 +195,7 @@ const travelToNode = (state, nodeId) => {
   return {
     map: { ...state.map, nodes, currentNodeId: target.id },
     event: createEventPayload(target, state.mapRisk),
-    battle: createBattlePayload(target, state.characterBuild),
+    battle: createBattlePayload(target, state.characterBuild, state.playerHp),
   };
 };
 
@@ -477,11 +482,11 @@ export const useGameStore = create((set, get) => ({
       // battleConfig.simulation이 있으면 사용, 없으면 기본 생성
       let simulation = battleConfig.simulation;
       if (!simulation || !simulation.initialState) {
-        const { simulation: defaultSim } = computeBattlePlan("battle", playerHand, enemyHand);
+        const { simulation: defaultSim } = computeBattlePlan("battle", playerHand, enemyHand, state.playerHp);
         simulation = defaultSim;
       }
 
-      const { preview } = computeBattlePlan("battle", playerHand, enemyHand);
+      const { preview } = computeBattlePlan("battle", playerHand, enemyHand, state.playerHp);
 
       return {
         ...state,
@@ -516,9 +521,14 @@ export const useGameStore = create((set, get) => ({
       const autoResult = pickOutcome(state.activeBattle.simulation, "victory");
     const resultLabel = outcome.result ?? autoResult;
     const rewards = resultLabel === "victory" ? grantRewards(rewardsDef, state.resources) : { next: state.resources, applied: {} };
+
+    // Update player HP from battle result
+    const finalPlayerHp = state.activeBattle.simulation?.finalState?.player?.hp ?? state.playerHp;
+
     return {
       ...state,
       resources: rewards.next,
+      playerHp: Math.max(0, finalPlayerHp),
       activeBattle: null,
       lastBattleResult: {
         nodeId: state.activeBattle.nodeId,
@@ -623,7 +633,7 @@ export const useGameStore = create((set, get) => ({
       }
       const newEnemyHand = drawFromPile(nextEnemyDraw);
 
-      const { preview, simulation } = computeBattlePlan(battle.kind, selectedCards, enemyCards);
+      const { preview, simulation } = computeBattlePlan(battle.kind, selectedCards, enemyCards, state.playerHp);
       return {
         ...state,
         activeBattle: {
