@@ -102,15 +102,15 @@ const friendlyPercent = (chance) => {
   return `${Math.round(chance * 100)}%`;
 };
 
-const PATCH_VERSION_TAG = "11-16-14:35"; // 다음 패치마다 여기를 최신 시간(월-일-시:분, KST)으로 갱신하세요.
+const PATCH_VERSION_TAG = "11-16-14:40"; // 다음 패치마다 여기를 최신 시간(월-일-시:분, KST)으로 갱신하세요.
 
-/* v11-16-14:35 갱신 내역
- * - 전투 로그 색상 로직 수정: 행동 주체 기반으로 정확한 색상 표시
- *   - "플레이어 ->" 또는 "플레이어 •": 파란색 (플레이어 행동)
- *   - "몬스터 ->" 또는 "몬스터 •": 붉은색 (몬스터 행동)
- * - 손패 인터페이스 간격 추가 축소: gap 8px → 4px, marginBottom 2px → 0px
- * - hand-flags margin 완전 제거: 2px 0 2px → 0px
- * - 속도/선택 텍스트 크기 증가: 1rem → 1.25rem, 폰트 굵기 600 → 700
+/* v11-16-14:40 갱신 내역
+ * - 손패 인터페이스 레이아웃 재구성:
+ *   - 왼쪽: 에너지 구체만 배치
+ *   - 중앙: 조합 디스플레이 + 그 밑에 속도/선택 텍스트 및 리드로우 버튼
+ *   - 오른쪽: 제출/진행 버튼만 배치
+ * - 손패 인터페이스 배경 완전 투명화: background transparent, backdrop-filter none
+ * - 리드로우 버튼을 속도/선택 텍스트 옆으로 이동
  */
 
 export function MapDemo() {

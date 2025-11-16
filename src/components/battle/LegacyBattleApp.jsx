@@ -1142,16 +1142,13 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
       {(phase==='select' || phase==='respond' || phase==='resolve' || (enemy && enemy.hp <= 0) || (player && player.hp <= 0)) && (
         <div className="hand-area">
           <div className="hand-area-header" style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px', marginBottom: '0px'}}>
-            <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
+            <div style={{display: 'flex', alignItems: 'center'}}>
               <div className="energy-orb-compact">
                 {remainingEnergy}
               </div>
-              <div style={{fontSize: '1.25rem', fontWeight: '700', color: '#94a3b8'}}>
-                속도 {totalSpeed}/{MAX_SPEED} · 선택 {selected.length}/{MAX_SUBMIT_CARDS}
-              </div>
             </div>
 
-            <div style={{flex: 1, display: 'flex', justifyContent: 'center'}}>
+            <div style={{flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px'}}>
               {(phase==='select' || phase==='respond') && currentCombo && (
                 <div className="combo-display">
                   {currentCombo.name}
@@ -1165,18 +1162,23 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
               {phase==='resolve' && (
                 <div className="text-white font-black text-xl">⚔️ 전투 진행 중... ({qIndex}/{queue?.length || 0})</div>
               )}
+              <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
+                <div style={{fontSize: '1.25rem', fontWeight: '700', color: '#94a3b8'}}>
+                  속도 {totalSpeed}/{MAX_SPEED} · 선택 {selected.length}/{MAX_SUBMIT_CARDS}
+                </div>
+                {phase==='select' && (
+                  <button onClick={redrawHand} disabled={!canRedraw} className="btn-enhanced flex items-center gap-2">
+                    <RefreshCw size={18}/> 리드로우
+                  </button>
+                )}
+              </div>
             </div>
 
             <div style={{display: 'flex', gap: '12px', flexWrap: 'wrap', justifyContent: 'flex-end'}}>
               {phase==='select' && (
-                <>
-                  <button onClick={redrawHand} disabled={!canRedraw} className="btn-enhanced flex items-center gap-2">
-                    <RefreshCw size={18}/> 리드로우
-                  </button>
-                  <button onClick={startResolve} disabled={selected.length===0} className="btn-enhanced btn-primary flex items-center gap-2">
-                    <Play size={20}/> 제출
-                  </button>
-                </>
+                <button onClick={startResolve} disabled={selected.length===0} className="btn-enhanced btn-primary flex items-center gap-2">
+                  <Play size={20}/> 제출
+                </button>
               )}
               {phase==='respond' && (
                 <button onClick={beginResolveFromRespond} className="btn-enhanced btn-success flex items-center gap-2">

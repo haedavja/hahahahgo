@@ -531,8 +531,8 @@ body {
   left: 0;
   right: 340px;
   width: auto;
-  background: rgba(4, 6, 22, 0.3);
-  backdrop-filter: blur(4px);
+  background: transparent;
+  backdrop-filter: none;
   border-radius: 16px 16px 0 0;
   padding: 0px 12px 0px 12px;
   border: none;
