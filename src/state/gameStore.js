@@ -441,6 +441,19 @@ export const useGameStore = create((set, get) => ({
       };
     }),
 
+  addResources: (resourceDeltas = {}) =>
+    set((state) => {
+      const newResources = { ...state.resources };
+      Object.entries(resourceDeltas).forEach(([key, amount]) => {
+        const numAmount = Number(amount) || 0;
+        newResources[key] = Math.max(0, (newResources[key] ?? 0) + numAmount);
+      });
+      return {
+        ...state,
+        resources: newResources,
+      };
+    }),
+
   startBattle: (battleConfig = {}) =>
     set((state) => {
       // 던전에서 간단한 전투를 시작하는 함수

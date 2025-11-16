@@ -251,6 +251,9 @@ body {
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
   border: 1px solid rgba(195, 115, 255, 0.35);
 }
+.event-modal {
+  width: min(880px, 100%);
+}
 .battle-modal.result {
   border-color: rgba(110, 241, 158, 0.4);
 }

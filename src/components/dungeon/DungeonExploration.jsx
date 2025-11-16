@@ -224,7 +224,11 @@ export function DungeonExploration() {
   const completeDungeon = useGameStore((state) => state.completeDungeon);
   const startBattle = useGameStore((state) => state.startBattle);
   const applyEtherDelta = useGameStore((state) => state.applyEtherDelta);
-  const etherPts = useGameStore((state) => state.resources.etherPts || 0);
+  const addResources = useGameStore((state) => state.addResources);
+  const lastBattleResult = useGameStore((state) => state.lastBattleResult);
+  const clearBattleResult = useGameStore((state) => state.clearBattleResult);
+  const resources = useGameStore((state) => state.resources);
+  const etherPts = resources.etherPts || 0;
 
   const [dungeon, setDungeon] = useState(() => generateDungeon());
   const [currentSegmentIndex, setCurrentSegmentIndex] = useState(0);
@@ -232,6 +236,7 @@ export function DungeonExploration() {
   const [keys, setKeys] = useState({});
   const [cameraX, setCameraX] = useState(0);
   const [message, setMessage] = useState(null);
+  const [dungeonBattleReward, setDungeonBattleReward] = useState(null);
 
   const canvasRef = useRef(null);
   const animationRef = useRef(null);
@@ -310,6 +315,21 @@ export function DungeonExploration() {
     const clampedCameraX = Math.max(0, Math.min(maxCameraX, targetCameraX));
     setCameraX(clampedCameraX);
   }, [player.x, currentSegment]);
+
+  // 던전 내부 전투 결과 처리
+  useEffect(() => {
+    if (!lastBattleResult || !lastBattleResult.nodeId.startsWith('dungeon-')) return;
+
+    // 전투 승리 시 보상 계산
+    if (lastBattleResult.result === "victory") {
+      const gold = 5 + Math.floor(Math.random() * 6); // 5-10 골드
+      const loot = Math.random() < 0.5 ? 1 : 0; // 50% 확률로 전리품 1개
+      setDungeonBattleReward({ gold, loot });
+    } else {
+      // 패배 시에도 창 표시 (보상 없음)
+      setDungeonBattleReward({ gold: 0, loot: 0 });
+    }
+  }, [lastBattleResult]);
 
   // 상호작용 처리
   const handleInteraction = () => {
@@ -395,6 +415,19 @@ export function DungeonExploration() {
         }, 1500);
         break;
     }
+  };
+
+  // 던전 전투 보상 확인
+  const handleDungeonBattleRewardConfirm = () => {
+    // 승리 시 보상 적용
+    if (dungeonBattleReward && lastBattleResult?.result === "victory") {
+      const rewards = {};
+      if (dungeonBattleReward.gold > 0) rewards.gold = dungeonBattleReward.gold;
+      if (dungeonBattleReward.loot > 0) rewards.loot = dungeonBattleReward.loot;
+      addResources(rewards);
+    }
+    setDungeonBattleReward(null);
+    clearBattleResult();
   };
 
   // 렌더링
@@ -534,6 +567,90 @@ export function DungeonExploration() {
       >
         던전 탈출
       </button>
+
+      {/* 던전 전투 보상 모달 */}
+      {dungeonBattleReward && lastBattleResult && (
+        <div style={{
+          position: "fixed",
+          inset: 0,
+          background: "rgba(1, 3, 8, 0.85)",
+          backdropFilter: "blur(6px)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          zIndex: 1000,
+        }}>
+          <div style={{
+            width: "min(500px, 90%)",
+            background: "rgba(8, 11, 19, 0.98)",
+            borderRadius: "18px",
+            padding: "30px",
+            border: lastBattleResult.result === "victory"
+              ? "2px solid rgba(110, 241, 158, 0.5)"
+              : "2px solid rgba(239, 68, 68, 0.5)",
+            boxShadow: "0 20px 50px rgba(0, 0, 0, 0.7)",
+          }}>
+            <h3 style={{
+              fontSize: "24px",
+              fontWeight: "bold",
+              color: lastBattleResult.result === "victory" ? "#6ef19e" : "#ef4444",
+              marginBottom: "20px",
+              textAlign: "center",
+            }}>
+              {lastBattleResult.result === "victory" ? "⚔️ 전투 승리!" : "💀 전투 패배"}
+            </h3>
+
+            {lastBattleResult.result === "victory" ? (
+              <div style={{ marginBottom: "20px", textAlign: "center" }}>
+                <p style={{ fontSize: "18px", color: "#d1d5db", marginBottom: "16px" }}>
+                  몬스터를 처치하고 보상을 획득했습니다!
+                </p>
+                <div style={{
+                  display: "flex",
+                  justifyContent: "center",
+                  gap: "24px",
+                  fontSize: "20px",
+                  fontWeight: "bold",
+                }}>
+                  {dungeonBattleReward.gold > 0 && (
+                    <span style={{ color: "#fbbf24" }}>💰 금 +{dungeonBattleReward.gold}</span>
+                  )}
+                  {dungeonBattleReward.loot > 0 && (
+                    <span style={{ color: "#a78bfa" }}>📦 전리품 +{dungeonBattleReward.loot}</span>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <p style={{ fontSize: "18px", color: "#d1d5db", marginBottom: "20px", textAlign: "center" }}>
+                몬스터에게 패배했습니다...
+              </p>
+            )}
+
+            <button
+              type="button"
+              onClick={handleDungeonBattleRewardConfirm}
+              style={{
+                width: "100%",
+                padding: "14px",
+                fontSize: "16px",
+                fontWeight: "600",
+                borderRadius: "10px",
+                border: "none",
+                background: lastBattleResult.result === "victory"
+                  ? "linear-gradient(135deg, #10b981 0%, #059669 100%)"
+                  : "linear-gradient(135deg, #6b7280 0%, #4b5563 100%)",
+                color: "#fff",
+                cursor: "pointer",
+                transition: "transform 0.1s",
+              }}
+              onMouseDown={(e) => e.currentTarget.style.transform = "scale(0.98)"}
+              onMouseUp={(e) => e.currentTarget.style.transform = "scale(1)"}
+            >
+              확인
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
