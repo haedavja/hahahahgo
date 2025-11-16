@@ -55,14 +55,25 @@ const generateObjects = (segmentType, segmentIndex, totalSegments) => {
       }
     }
 
-    // 출구 문 (오른쪽 끝)
-    objects.push({
-      id: `door-${segmentIndex}`,
-      type: OBJECT_TYPES.DOOR,
-      x: 2900,
-      y: 500,
-      interacted: false,
-    });
+    // 출구 문 (마지막 세그먼트가 아닌 경우만 DOOR, 마지막은 EXIT)
+    if (segmentIndex < totalSegments - 1) {
+      objects.push({
+        id: `door-${segmentIndex}`,
+        type: OBJECT_TYPES.DOOR,
+        x: 2900,
+        y: 500,
+        interacted: false,
+      });
+    } else {
+      // 마지막 복도: 최종 출구
+      objects.push({
+        id: `exit-${segmentIndex}`,
+        type: "exit",
+        x: 2900,
+        y: 500,
+        interacted: false,
+      });
+    }
   } else {
     // 방: 2-3개 오브젝트
     const numObjects = 2 + Math.floor(Math.random() * 2);

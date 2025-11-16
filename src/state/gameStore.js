@@ -414,6 +414,61 @@ export const useGameStore = create((set, get) => ({
       };
     }),
 
+  startBattle: (battleConfig = {}) =>
+    set((state) => {
+      // 던전에서 간단한 전투를 시작하는 함수
+      const characterBuild = state.characterBuild;
+      const hasCharacterBuild = characterBuild && (characterBuild.mainSpecials.length > 0 || characterBuild.subSpecials.length > 0);
+
+      const playerLibrary = hasCharacterBuild
+        ? [...characterBuild.mainSpecials, ...characterBuild.subSpecials]
+        : [...BATTLE_CARDS];
+
+      const enemyLibrary = [...resolveEnemyDeck("battle")];
+      const playerDrawPile = hasCharacterBuild ? [] : [...playerLibrary];
+      const enemyDrawPile = [...enemyLibrary];
+
+      const playerHand = hasCharacterBuild
+        ? drawCharacterBuildHand(characterBuild.mainSpecials, characterBuild.subSpecials)
+        : drawHand(playerDrawPile, 3);
+
+      const enemyHand = drawHand(enemyDrawPile, 3);
+
+      // battleConfig.simulation이 있으면 사용, 없으면 기본 생성
+      let simulation = battleConfig.simulation;
+      if (!simulation || !simulation.initialState) {
+        const { simulation: defaultSim } = computeBattlePlan("battle", playerHand, enemyHand);
+        simulation = defaultSim;
+      }
+
+      const { preview } = computeBattlePlan("battle", playerHand, enemyHand);
+
+      return {
+        ...state,
+        activeBattle: {
+          nodeId: battleConfig.nodeId || "dungeon-combat",
+          kind: battleConfig.kind || "combat",
+          label: battleConfig.label || "던전 몬스터",
+          rewards: battleConfig.rewards || { gold: { min: 5, max: 10 }, loot: 1 },
+          difficulty: 3,
+          playerLibrary,
+          playerDrawPile,
+          playerDiscardPile: [],
+          enemyLibrary,
+          enemyDrawPile,
+          enemyDiscardPile: [],
+          playerHand,
+          enemyHand,
+          selectedCardIds: [],
+          maxSelection: MAX_PLAYER_SELECTION,
+          preview,
+          simulation,
+          hasCharacterBuild,
+          characterBuild: hasCharacterBuild ? characterBuild : null,
+        },
+      };
+    }),
+
   resolveBattle: (outcome = {}) =>
     set((state) => {
       if (!state.activeBattle) return state;
