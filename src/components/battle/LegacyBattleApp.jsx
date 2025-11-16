@@ -398,15 +398,27 @@ function simulatePreview({player, enemy, fixedOrder, willOverdrive, enemyMode, e
   return { pDealt, pTaken, finalPHp: st.player.hp, finalEHp: st.enemy.hp, lines };
 }
 
-function ExpectedDamagePreview({player, enemy, fixedOrder, willOverdrive, enemyMode, enemyActions, phase}){
+function ExpectedDamagePreview({player, enemy, fixedOrder, willOverdrive, enemyMode, enemyActions, phase, log}){
   const res = useMemo(()=> simulatePreview({player, enemy, fixedOrder, willOverdrive, enemyMode, enemyActions}), [player, enemy, fixedOrder, willOverdrive, enemyMode, enemyActions]);
   const summaryItems = [
     { icon:"🗡️", label:"플레이어 예상 가한 피해", value: res.pDealt, accent:"text-emerald-300" },
     { icon:"💥", label:"플레이어 피격 피해", value: phase === 'select' ? '?' : res.pTaken, accent:"text-rose-300" },
   ];
 
+  const phaseLabel = phase === 'select' ? '선택 단계' : phase === 'respond' ? '대응 단계' : '진행 단계';
+
   return (
     <div className="expect-board expect-board-vertical">
+      {/* 타이틀 및 단계 라벨 */}
+      <div style={{marginBottom: '16px', paddingBottom: '12px', borderBottom: '2px solid rgba(148, 163, 184, 0.3)'}}>
+        <div style={{fontSize: '18px', fontWeight: 'bold', color: '#f8fafc', marginBottom: '4px'}}>
+          예상 피해량
+        </div>
+        <div style={{fontSize: '13px', color: '#94a3b8'}}>
+          {phaseLabel}
+        </div>
+      </div>
+
       <div className="expect-summary-vertical">
         {summaryItems.map((item)=>(
           <div key={item.label} className="expect-item-vertical">
@@ -445,6 +457,27 @@ function ExpectedDamagePreview({player, enemy, fixedOrder, willOverdrive, enemyM
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* 진행 단계 전투 로그 */}
+      {phase === 'resolve' && log && log.length > 0 && (
+        <div style={{marginTop: '20px', paddingTop: '16px', borderTop: '2px solid rgba(148, 163, 184, 0.3)'}}>
+          <div style={{fontSize: '15px', fontWeight: 'bold', color: '#f8fafc', marginBottom: '12px'}}>
+            🎮 전투 로그
+          </div>
+          <div style={{maxHeight: '300px', overflowY: 'auto'}}>
+            {log.map((line, i) => (
+              <div key={i} style={{
+                fontSize: '13px',
+                color: '#cbd5e1',
+                marginBottom: '6px',
+                lineHeight: '1.5'
+              }}>
+                {line}
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>
@@ -927,19 +960,18 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
   return (
     <div className="legacy-battle-root w-full min-h-screen pb-64">
       {/* 예상 피해량 - 오른쪽 고정 패널 */}
-      {(phase==='respond' || phase==='select') && (
-        <div className="expect-sidebar-fixed">
-          <ExpectedDamagePreview
-            player={player}
-            enemy={enemy}
-            fixedOrder={fixedOrder||playerTimeline}
-            willOverdrive={willOverdrive}
-            enemyMode={enemyPlan.mode}
-            enemyActions={enemyPlan.actions}
-            phase={phase}
-          />
-        </div>
-      )}
+      <div className="expect-sidebar-fixed">
+        <ExpectedDamagePreview
+          player={player}
+          enemy={enemy}
+          fixedOrder={fixedOrder||playerTimeline}
+          willOverdrive={willOverdrive}
+          enemyMode={enemyPlan.mode}
+          enemyActions={enemyPlan.actions}
+          phase={phase}
+          log={log}
+        />
+      </div>
 
       {/* 상단 메인 영역 */}
       <div className="w-full px-4" style={{marginRight: (phase==='respond' || phase==='select') ? '340px' : '0'}}>
@@ -1041,9 +1073,6 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
               <div className="vs-icon">⚔️</div>
               <div className="vs-status">
                 {phase==='respond' ? "대응 단계" : phase==='resolve' ? `진행 중 (${qIndex}/${queue?.length || 0})` : "선택 단계"}
-              </div>
-              <div className="vs-log">
-                {log.slice(-6).map((l,i)=>(<div key={i}>{l}</div>))}
               </div>
             </div>
             <div className="entity-panel enemy-panel">
