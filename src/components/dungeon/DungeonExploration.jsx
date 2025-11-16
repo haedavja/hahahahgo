@@ -262,6 +262,8 @@ export function DungeonExploration() {
 
   // 플레이어 이동
   useEffect(() => {
+    if (!currentSegment) return;
+
     const gameLoop = () => {
       setPlayer((prev) => {
         let newX = prev.x;
@@ -290,14 +292,18 @@ export function DungeonExploration() {
 
   // 카메라 팔로우
   useEffect(() => {
+    if (!currentSegment) return;
+
     const targetCameraX = player.x - VIEWPORT_WIDTH / 2;
     const maxCameraX = currentSegment.width - VIEWPORT_WIDTH;
     const clampedCameraX = Math.max(0, Math.min(maxCameraX, targetCameraX));
     setCameraX(clampedCameraX);
-  }, [player.x, currentSegment.width]);
+  }, [player.x, currentSegment]);
 
   // 상호작용 처리
   const handleInteraction = () => {
+    if (!currentSegment) return;
+
     const nearbyObject = currentSegment.objects.find((obj) => {
       const distance = Math.abs(obj.x - player.x);
       return distance < 80 && !obj.interacted;
@@ -383,7 +389,7 @@ export function DungeonExploration() {
   // 렌더링
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas || !currentSegment) return;
 
     const ctx = canvas.getContext("2d");
     ctx.clearRect(0, 0, VIEWPORT_WIDTH, VIEWPORT_HEIGHT);
@@ -455,6 +461,14 @@ export function DungeonExploration() {
     ctx.fillText("@", playerScreenX - 8, PLAYER_Y + 7);
 
   }, [player, cameraX, currentSegment, PLAYER_Y, PLAYER_SIZE, VIEWPORT_WIDTH]);
+
+  if (!currentSegment) {
+    return (
+      <div className="dungeon-fullscreen">
+        <div className="dungeon-message">던전 준비 중...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="dungeon-fullscreen">

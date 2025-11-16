@@ -130,6 +130,8 @@ export function MapDemo() {
   const invokePrayer = useGameStore((state) => state.invokePrayer);
   const clearBattleResult = useGameStore((state) => state.clearBattleResult);
   const skipDungeon = useGameStore((state) => state.skipDungeon);
+  const confirmDungeon = useGameStore((state) => state.confirmDungeon);
+  const bypassDungeon = useGameStore((state) => state.bypassDungeon);
 
   const [showCharacterSheet, setShowCharacterSheet] = useState(false);
 
@@ -390,7 +392,56 @@ export function MapDemo() {
 
       {activeBattle && <LegacyBattleScreen />}
 
-      {activeDungeon && <DungeonExploration />}
+      {activeDungeon && !activeDungeon.confirmed && (
+        <div className="event-modal-overlay">
+          <div className="event-modal">
+            <header>
+              <h3>⚠️ 던전 진입</h3>
+            </header>
+            <p style={{ marginBottom: "20px", lineHeight: "1.6" }}>
+              위험한 던전이 앞에 있습니다. 던전 내부는 위험하지만 보상도 있습니다.
+              <br />
+              진입하시겠습니까?
+            </p>
+            <div style={{ display: "flex", gap: "12px", justifyContent: "center" }}>
+              <button
+                type="button"
+                onClick={confirmDungeon}
+                style={{
+                  padding: "12px 24px",
+                  fontSize: "16px",
+                  fontWeight: "600",
+                  borderRadius: "8px",
+                  border: "2px solid #3498db",
+                  background: "rgba(52, 152, 219, 0.2)",
+                  color: "#3498db",
+                  cursor: "pointer",
+                }}
+              >
+                진입한다
+              </button>
+              <button
+                type="button"
+                onClick={bypassDungeon}
+                style={{
+                  padding: "12px 24px",
+                  fontSize: "16px",
+                  fontWeight: "600",
+                  borderRadius: "8px",
+                  border: "2px solid #95a5a6",
+                  background: "rgba(149, 165, 166, 0.2)",
+                  color: "#95a5a6",
+                  cursor: "pointer",
+                }}
+              >
+                지나친다
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {activeDungeon && activeDungeon.confirmed && <DungeonExploration />}
 
       {showCharacterSheet && <CharacterSheet onClose={() => setShowCharacterSheet(false)} />}
 
