@@ -102,7 +102,7 @@ const friendlyPercent = (chance) => {
   return `${Math.round(chance * 100)}%`;
 };
 
-const PATCH_VERSION_TAG = "11-16-18:30"; // 다음 패치마다 여기를 최신 시간(월-일-시:분, KST)으로 갱신하세요.
+const PATCH_VERSION_TAG = "11-16-19:00"; // 다음 패치마다 여기를 최신 시간(월-일-시:분, KST)으로 갱신하세요.
 
 /* v11-16-14:45 갱신 내역
  * - 카드 스탯 폰트 크기 일원화 및 확대:
@@ -181,6 +181,27 @@ export function MapDemo() {
       behavior: "smooth",
     });
   }, [map?.currentNodeId, nodes]);
+
+  // 초기 로드 시 스타트 노드로 스크롤
+  useEffect(() => {
+    if (!mapViewRef.current || nodes.length === 0) return;
+    const startNode = nodes.find((node) => node.isStart);
+    if (!startNode) return;
+    const container = mapViewRef.current;
+    setTimeout(() => {
+      const target = container.querySelector(`[data-node-id="${startNode.id}"]`);
+      if (!target) return;
+      const containerRect = container.getBoundingClientRect();
+      const targetRect = target.getBoundingClientRect();
+      const centerX = targetRect.left - containerRect.left + container.scrollLeft + targetRect.width / 2;
+      const centerY = targetRect.top - containerRect.top + container.scrollTop + targetRect.height / 2;
+      container.scrollTo({
+        left: Math.max(0, centerX - container.clientWidth / 2),
+        top: Math.max(0, centerY - container.clientHeight / 2),
+        behavior: "auto",
+      });
+    }, 100);
+  }, [nodes]);
 
   const availablePrayers = useMemo(
     () => PRAYER_COSTS.filter((cost) => (resources.etherPts ?? 0) >= cost),
@@ -288,12 +309,7 @@ export function MapDemo() {
 
       <div className="risk-indicator">위험도 {riskDisplay}%</div>
 
-      {/* 맵 단계 표시 창 */}
-      <div className="map-phase-display">
-        <div style={{fontSize: '24px', fontWeight: 'bold', color: '#f8fafc', textShadow: '0 2px 8px rgba(0,0,0,0.5)'}}>
-          맵 탐색 단계
-        </div>
-      </div>
+      <div className="map-version-tag">{PATCH_VERSION_TAG}</div>
 
       {activeEvent && (
         <div className="event-modal-overlay">

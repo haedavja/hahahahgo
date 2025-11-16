@@ -648,7 +648,6 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
     setPhase('select');
     setHand(CARDS.slice(0,8));
     setCanRedraw(true);
-    addLog('🌐 전투 데이터 초기화');
   }, [safeInitialPlayer, playerEther, addLog]);
 
   useEffect(()=>{
