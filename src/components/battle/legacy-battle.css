@@ -846,7 +846,7 @@ body {
 .battle-fullscreen {
   width: 100vw;
   min-height: 100vh;
-  padding: 4px 28px;
+  padding: 0 28px;
   background: radial-gradient(circle at top, #1e1b4b, #020617 60%);
   display: flex;
   justify-content: flex-start;
