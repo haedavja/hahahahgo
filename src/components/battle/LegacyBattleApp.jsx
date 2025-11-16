@@ -917,9 +917,9 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
   }, [enemyCombo, phase]);
 
   return (
-    <div className="legacy-battle-root w-full max-w-[1400px] min-h-screen mx-auto pb-64">
+    <div className="legacy-battle-root w-full min-h-screen pb-64">
       {/* 상단 메인 영역 */}
-      <div className="max-w-[1600px] mx-auto p-4">
+      <div className="w-full px-4">
 
         {/* Timeline + 예상 피해량 좌우 배치 */}
         <div style={{display: 'flex', gap: '24px', alignItems: 'flex-start', marginBottom: '24px'}}>
