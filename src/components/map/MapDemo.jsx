@@ -102,12 +102,12 @@ const friendlyPercent = (chance) => {
   return `${Math.round(chance * 100)}%`;
 };
 
-const PATCH_VERSION_TAG = "11-16-09:47"; // 다음 패치마다 여기를 최신 시간(월-일-시:분, KST)으로 갱신하세요.
+const PATCH_VERSION_TAG = "11-16-09:52"; // 다음 패치마다 여기를 최신 시간(월-일-시:분, KST)으로 갱신하세요.
 
-/* v11-16-09:47 갱신 내역
- * - 전투 화면 최대 너비 제한 제거 (max-w-[1400px] 삭제)
- * - 전체 화면에 꽉 차게 확장
- * - 다른 컴포넌트 크기는 유지
+/* v11-16-09:52 갱신 내역
+ * - 예상 피해량 창을 오른쪽 고정 패널로 변경 (position: fixed)
+ * - 화면 하단까지 세로 길이 최대로 확장 (top: 0, bottom: 0)
+ * - 별도 패널처럼 독립적으로 배치, 스크롤 가능
  */
 
 export function MapDemo() {

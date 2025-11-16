@@ -918,14 +918,27 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
 
   return (
     <div className="legacy-battle-root w-full min-h-screen pb-64">
+      {/* 예상 피해량 - 오른쪽 고정 패널 */}
+      {(phase==='respond' || phase==='select') && (
+        <div className="expect-sidebar-fixed">
+          <ExpectedDamagePreview
+            player={player}
+            enemy={enemy}
+            fixedOrder={fixedOrder||playerTimeline}
+            willOverdrive={willOverdrive}
+            enemyMode={enemyPlan.mode}
+            enemyActions={enemyPlan.actions}
+            phase={phase}
+          />
+        </div>
+      )}
+
       {/* 상단 메인 영역 */}
-      <div className="w-full px-4">
+      <div className="w-full px-4" style={{marginRight: (phase==='respond' || phase==='select') ? '340px' : '0'}}>
 
-        {/* Timeline + 예상 피해량 좌우 배치 */}
-        <div style={{display: 'flex', gap: '24px', alignItems: 'flex-start', marginBottom: '24px'}}>
-
-          {/* Timeline */}
-          <div className="panel-enhanced timeline-panel" style={{flex: 1}}>
+        {/* Timeline */}
+        <div style={{marginBottom: '24px'}}>
+          <div className="panel-enhanced timeline-panel">
             <div className="timeline-header">
               <div className="text-white font-bold flex items-center gap-2">
                 <Clock size={20} className="text-cyan-400"/>
@@ -983,21 +996,6 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
               </div>
             </div>
           </div>
-
-          {/* 예상 피해량 - 오른쪽 세로 배치 */}
-          {(phase==='respond' || phase==='select') && (
-            <div style={{width: '300px', flexShrink: 0}}>
-              <ExpectedDamagePreview
-                player={player}
-                enemy={enemy}
-                fixedOrder={fixedOrder||playerTimeline}
-                willOverdrive={willOverdrive}
-                enemyMode={enemyPlan.mode}
-                enemyActions={enemyPlan.actions}
-                phase={phase}
-              />
-            </div>
-          )}
         </div>
 
         <div className="battle-shell">

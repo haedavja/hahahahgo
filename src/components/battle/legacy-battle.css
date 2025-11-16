@@ -275,6 +275,33 @@ body {
   margin: 24px 0 32px;
 }
 
+.expect-sidebar-fixed {
+  position: fixed;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 320px;
+  overflow-y: auto;
+  z-index: 50;
+  padding: 20px 16px;
+  background: rgba(7, 11, 30, 0.95);
+  border-left: 1px solid rgba(148, 163, 184, 0.3);
+  box-shadow: -10px 0 40px rgba(0, 0, 0, 0.5);
+}
+
+.expect-sidebar-fixed::-webkit-scrollbar {
+  width: 8px;
+}
+
+.expect-sidebar-fixed::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.3);
+  border-radius: 999px;
+}
+
+.expect-sidebar-fixed::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.4);
+}
+
 .expect-board {
   background: rgba(7, 11, 30, 0.9);
   border-radius: 18px;
@@ -286,8 +313,11 @@ body {
 }
 
 .expect-board-vertical {
-  padding: 16px 20px;
+  padding: 0;
   font-size: 0.9rem;
+  background: transparent;
+  border: none;
+  box-shadow: none;
 }
 
 .expect-summary {
@@ -345,8 +375,6 @@ body {
   border-bottom: 1px solid rgba(148, 163, 184, 0.15);
   padding-bottom: 12px;
   margin-bottom: 12px;
-  max-height: 300px;
-  overflow-y: auto;
 }
 
 .expect-hp {
