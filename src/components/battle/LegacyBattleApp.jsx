@@ -1140,8 +1140,8 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
       {/* 하단 고정 손패 영역 */}
       {(phase==='select' || phase==='respond' || phase==='resolve' || (enemy && enemy.hp <= 0) || (player && player.hp <= 0)) && (
         <div className="hand-area">
-          <div className="hand-area-header" style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px'}}>
-            <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
+          <div className="hand-area-header" style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginBottom: '2px'}}>
+            <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
               <div className="energy-orb-compact">
                 {remainingEnergy}
               </div>

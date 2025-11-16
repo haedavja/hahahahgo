@@ -102,13 +102,13 @@ const friendlyPercent = (chance) => {
   return `${Math.round(chance * 100)}%`;
 };
 
-const PATCH_VERSION_TAG = "11-16-14:25"; // 다음 패치마다 여기를 최신 시간(월-일-시:분, KST)으로 갱신하세요.
+const PATCH_VERSION_TAG = "11-16-14:30"; // 다음 패치마다 여기를 최신 시간(월-일-시:분, KST)으로 갱신하세요.
 
-/* v11-16-14:25 갱신 내역
- * - 전투 로그 색상 수정: 플레이어 행동 우선 체크로 모든 플레이어 행동 파란색 표시
- * - 화면 여백 제거: padding 48px → 20px, gap 24px → 8px로 축소
- * - 손패 인터페이스 높이 축소: padding 2px → 0px, header gap 4px → 2px
- * - 타임라인/캐릭터 패널 간격 최소화로 화면 활용도 향상
+/* v11-16-14:30 갱신 내역
+ * - 손패 인터페이스 간격 최소화: 텍스트와 카드 사이 간격 대폭 축소
+ * - hand-area-header gap: 16px → 8px, marginBottom 2px 추가
+ * - hand-flags margin: 16px 0 8px → 2px 0 2px (88% 감소)
+ * - 텍스트(에너지 구체, 속도, 선택)가 카드 바로 위에 배치
  */
 
 export function MapDemo() {
