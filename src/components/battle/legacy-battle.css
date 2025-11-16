@@ -465,9 +465,9 @@ body {
 }
 
 .game-card-large .card-header {
-  text-align: center;
+  text-align: left;
   color: white;
-  margin-top: 8px;
+  margin-top: 4px;
   font-size: 1rem;
   font-weight: 800;
   padding: 0 12px;

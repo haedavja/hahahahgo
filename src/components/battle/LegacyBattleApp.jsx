@@ -401,8 +401,8 @@ function simulatePreview({player, enemy, fixedOrder, willOverdrive, enemyMode, e
 function ExpectedDamagePreview({player, enemy, fixedOrder, willOverdrive, enemyMode, enemyActions, phase, log}){
   const res = useMemo(()=> simulatePreview({player, enemy, fixedOrder, willOverdrive, enemyMode, enemyActions}), [player, enemy, fixedOrder, willOverdrive, enemyMode, enemyActions]);
   const summaryItems = [
-    { icon:"🗡️", label:"예상 타격 피해", value: res.pDealt, accent:"text-emerald-300" },
-    { icon:"💥", label:"예상 피격 피해", value: phase === 'select' ? '?' : res.pTaken, accent:"text-rose-300" },
+    { icon:"🗡️", label:"예상 타격 피해", value: res.pDealt, accent:"text-emerald-300", hpInfo: `몬스터 HP ${enemy.hp} → ${res.finalEHp}`, hpColor: "#fca5a5" },
+    { icon:"💥", label:"예상 피격 피해", value: phase === 'select' ? '?' : res.pTaken, accent:"text-rose-300", hpInfo: `플레이어 HP ${player.hp} → ${res.finalPHp}`, hpColor: "#e2e8f0" },
   ];
 
   const phaseLabel = phase === 'select' ? '선택 단계' : phase === 'respond' ? '대응 단계' : '진행 단계';
@@ -434,6 +434,11 @@ function ExpectedDamagePreview({player, enemy, fixedOrder, willOverdrive, enemyM
             <div>
               <div className="expect-label">{item.label}</div>
               <div className={`expect-value ${item.accent}`}>{item.value}</div>
+              {item.hpInfo && (
+                <div style={{fontSize: '13px', fontWeight: 'bold', color: item.hpColor, marginTop: '4px'}}>
+                  {item.hpInfo}
+                </div>
+              )}
             </div>
           </div>
         ))}
@@ -489,7 +494,7 @@ function ExpectedDamagePreview({player, enemy, fixedOrder, willOverdrive, enemyM
               return (
                 <div key={i} style={{
                   fontSize: '13px',
-                  color: isPlayerAction ? '#60a5fa' : isMonsterAction ? '#fca5a5' : '#cbd5e1',
+                  color: isPlayerAction ? '#60a5fa' : isMonsterAction ? '#ef4444' : '#cbd5e1',
                   marginBottom: '6px',
                   lineHeight: '1.5'
                 }}>
@@ -562,11 +567,11 @@ function EtherBar({ pts, slots, previewGain=0, color="cyan", label }){
           background: fillGradient
         }} />
       </div>
-      <div style={{ textAlign: 'center', color: textColor, fontSize: '13px', marginTop: '8px' }}>
+      <div style={{ textAlign: 'center', color: textColor, fontSize: '20px', marginTop: '8px' }}>
         <div key={`pts-${safePts}`}>{currentPts}/{nextSlotCost}</div>
         <div>{tier}</div>
         {safePreview > 0 && (
-          <div style={{ color: '#6ee7b7', fontSize: '11px', marginTop: '4px' }}>
+          <div style={{ color: '#6ee7b7', fontSize: '16px', marginTop: '4px' }}>
             +{safePreview}pt 예정
           </div>
         )}
@@ -1149,7 +1154,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
             </div>
 
             <div style={{flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px'}}>
-              {(phase==='select' || phase==='respond') && currentCombo && (
+              {currentCombo && (
                 <div className="combo-display">
                   {currentCombo.name}
                   {pendingComboEther > 0 && (
@@ -1169,6 +1174,11 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                 {phase==='select' && (
                   <button onClick={redrawHand} disabled={!canRedraw} className="btn-enhanced flex items-center gap-2">
                     <RefreshCw size={18}/> 리드로우
+                  </button>
+                )}
+                {phase==='resolve' && qIndex >= queue.length && (
+                  <button onClick={()=>finishTurn('수동 턴 종료')} className="btn-enhanced flex items-center gap-2">
+                    ⏭️ 턴 종료
                   </button>
                 )}
               </div>
@@ -1193,11 +1203,6 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                   <button onClick={runAll} disabled={qIndex>=queue.length} className="btn-enhanced btn-primary">
                     전부 실행
                   </button>
-                  {qIndex >= queue.length && (
-                    <button onClick={()=>finishTurn('수동 턴 종료')} className="btn-enhanced flex items-center gap-2">
-                      ⏭️ 턴 종료
-                    </button>
-                  )}
                   {postCombatOptions && (
                     <button onClick={handleExitToMap} className="btn-enhanced btn-primary flex items-center gap-2">
                       🗺️ 맵으로 돌아가기
@@ -1241,12 +1246,15 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                       <Icon size={60} className="text-white opacity-80"/>
                     </div>
                     <div className="card-footer">
-                      <div className="flex items-center justify-center gap-2 text-white text-lg font-bold">
+                      <div className="flex items-center justify-center gap-2 text-white font-bold" style={{fontSize: '1.688rem'}}>
                         {c.damage != null && c.damage > 0 && <span style={{color: '#fca5a5'}}>⚔️{c.damage}{c.hits?`×${c.hits}`:''}</span>}
                         {c.block != null && c.block > 0 && <span style={{color: '#93c5fd'}}>🛡️{c.block}</span>}
                         {c.counter !== undefined && <span style={{color: '#d8b4fe'}}>⚡{c.counter}</span>}
                       </div>
-                      <div style={{color: '#67e8f9', fontSize: '1.125rem', marginTop: '0.25rem'}}>⏱️{c.speedCost}</div>
+                      <div style={{display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginTop: '0.25rem'}}>
+                        <div style={{color: '#fbbf24', fontSize: '1.688rem'}}>💪{c.actionCost}</div>
+                        <div style={{color: '#67e8f9', fontSize: '1.688rem'}}>⏱️{c.speedCost}</div>
+                      </div>
                     </div>
                   </button>
                 );
@@ -1270,12 +1278,15 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                         <Icon size={60} className="text-white opacity-80"/>
                       </div>
                       <div className="card-footer">
-                        <div className="flex items-center justify-center gap-2 text-white text-lg font-bold">
+                        <div className="flex items-center justify-center gap-2 text-white font-bold" style={{fontSize: '1.688rem'}}>
                           {c.damage && <span className="text-red-300">⚔️{c.damage}{c.hits?`×${c.hits}`:''}</span>}
                           {c.block && <span className="text-blue-300">🛡️{c.block}</span>}
                           {c.counter!==undefined && <span className="text-purple-300">⚡{c.counter}</span>}
                         </div>
-                        <div className="text-cyan-300 text-lg mt-1">⏱️{c.speedCost}</div>
+                        <div style={{display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginTop: '0.25rem'}}>
+                          <div style={{color: '#fbbf24', fontSize: '1.688rem'}}>💪{c.actionCost}</div>
+                          <div className="text-cyan-300" style={{fontSize: '1.688rem'}}>⏱️{c.speedCost}</div>
+                        </div>
                       </div>
                     </div>
                     <div style={{display: 'flex', gap: '8px'}}>
@@ -1326,12 +1337,15 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                       <Icon size={60} className="text-white opacity-80"/>
                     </div>
                     <div className="card-footer">
-                      <div className="flex items-center justify-center gap-2 text-white text-sm font-bold">
+                      <div className="flex items-center justify-center gap-2 text-white font-bold" style={{fontSize: '1.688rem'}}>
                         {a.card.damage && <span className="text-red-300">⚔️{a.card.damage}{a.card.hits?`×${a.card.hits}`:''}</span>}
                         {a.card.block && <span className="text-blue-300">🛡️{a.card.block}</span>}
                         {a.card.counter!==undefined && <span className="text-purple-300">⚡{a.card.counter}</span>}
                       </div>
-                      <div className="text-cyan-300 text-xs mt-1">⏱️{a.card.speedCost}</div>
+                      <div style={{display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginTop: '0.25rem'}}>
+                        <div style={{color: '#fbbf24', fontSize: '1.688rem'}}>💪{a.card.actionCost}</div>
+                        <div className="text-cyan-300" style={{fontSize: '1.688rem'}}>⏱️{a.card.speedCost}</div>
+                      </div>
                     </div>
                   </div>
                 );
