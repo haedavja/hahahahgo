@@ -444,18 +444,7 @@ function ExpectedDamagePreview({player, enemy, fixedOrder, willOverdrive, enemyM
         ))}
       </div>
 
-      {/* HP 정보 - Summary 하단 */}
-      <div style={{marginTop: '16px', paddingTop: '16px', borderTop: '1px solid rgba(148, 163, 184, 0.15)'}}>
-        <div style={{fontSize: '16px', fontWeight: 'bold', color: '#e2e8f0', marginBottom: '8px'}}>
-          플레이어 HP {player.hp} → {res.finalPHp}
-        </div>
-        <div style={{fontSize: '16px', fontWeight: 'bold', color: '#fca5a5'}}>
-          몬스터 HP {enemy.hp} → {res.finalEHp}
-        </div>
-        {willOverdrive && <span className="expect-tag" style={{marginTop: '8px', display: 'inline-block'}}>기도 미리보기</span>}
-      </div>
-
-      {/* 진행 단계가 아닐 때만 예상 피해량 로그 표시 (HP 정보 밑에 한 칸 띄워서) */}
+      {/* 진행 단계가 아닐 때만 예상 피해량 로그 표시 */}
       {phase !== 'resolve' && !!res.lines?.length && (
         <div style={{marginTop: '20px', paddingTop: '16px', borderTop: '1px solid rgba(148, 163, 184, 0.15)'}}>
           {res.lines.map((line,idx)=>{
@@ -1251,10 +1240,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                         {c.block != null && c.block > 0 && <span style={{color: '#93c5fd'}}>🛡️{c.block}</span>}
                         {c.counter !== undefined && <span style={{color: '#d8b4fe'}}>⚡{c.counter}</span>}
                       </div>
-                      <div style={{display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginTop: '0.25rem'}}>
-                        <div style={{color: '#fbbf24', fontSize: '1.688rem'}}>💪{c.actionCost}</div>
-                        <div style={{color: '#67e8f9', fontSize: '1.688rem'}}>⏱️{c.speedCost}</div>
-                      </div>
+                      <div style={{color: '#67e8f9', fontSize: '1.688rem', marginTop: '0.25rem'}}>⏱️{c.speedCost}</div>
                     </div>
                   </button>
                 );
@@ -1283,10 +1269,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                           {c.block && <span className="text-blue-300">🛡️{c.block}</span>}
                           {c.counter!==undefined && <span className="text-purple-300">⚡{c.counter}</span>}
                         </div>
-                        <div style={{display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginTop: '0.25rem'}}>
-                          <div style={{color: '#fbbf24', fontSize: '1.688rem'}}>💪{c.actionCost}</div>
-                          <div className="text-cyan-300" style={{fontSize: '1.688rem'}}>⏱️{c.speedCost}</div>
-                        </div>
+                        <div className="text-cyan-300 mt-1" style={{fontSize: '1.688rem'}}>⏱️{c.speedCost}</div>
                       </div>
                     </div>
                     <div style={{display: 'flex', gap: '8px'}}>
@@ -1342,10 +1325,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                         {a.card.block && <span className="text-blue-300">🛡️{a.card.block}</span>}
                         {a.card.counter!==undefined && <span className="text-purple-300">⚡{a.card.counter}</span>}
                       </div>
-                      <div style={{display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginTop: '0.25rem'}}>
-                        <div style={{color: '#fbbf24', fontSize: '1.688rem'}}>💪{a.card.actionCost}</div>
-                        <div className="text-cyan-300" style={{fontSize: '1.688rem'}}>⏱️{a.card.speedCost}</div>
-                      </div>
+                      <div className="text-cyan-300 mt-1" style={{fontSize: '1.688rem'}}>⏱️{a.card.speedCost}</div>
                     </div>
                   </div>
                 );
