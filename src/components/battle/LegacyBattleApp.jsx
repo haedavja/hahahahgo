@@ -1141,13 +1141,12 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
       {(phase==='select' || phase==='respond' || phase==='resolve' || (enemy && enemy.hp <= 0) || (player && player.hp <= 0)) && (
         <div className="hand-area">
           <div className="hand-area-header" style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px'}}>
-            <div style={{display: 'flex', alignItems: 'center', gap: '20px'}}>
-              <div style={{fontSize: '1.5rem', fontWeight: '900', color: '#f8fafc'}}>손패</div>
-              <div style={{display: 'flex', flexDirection: 'column', gap: '2px'}}>
-                <div style={{fontSize: '1.1rem', fontWeight: '700', color: '#cbd5e1'}}>남은 에너지: {remainingEnergy}</div>
-                <div style={{fontSize: '1rem', fontWeight: '600', color: '#94a3b8'}}>
-                  속도 {totalSpeed}/{MAX_SPEED} · 선택 {selected.length}/{MAX_SUBMIT_CARDS}
-                </div>
+            <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
+              <div className="energy-orb-compact">
+                {remainingEnergy}
+              </div>
+              <div style={{fontSize: '1rem', fontWeight: '600', color: '#94a3b8'}}>
+                속도 {totalSpeed}/{MAX_SPEED} · 선택 {selected.length}/{MAX_SUBMIT_CARDS}
               </div>
             </div>
 
