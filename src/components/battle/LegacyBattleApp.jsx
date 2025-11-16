@@ -1051,6 +1051,13 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
           </div>
         </div>
 
+        {/* 전투 단계 표시 */}
+        <div style={{textAlign: 'center', marginBottom: '20px'}}>
+          <div style={{fontSize: '28px', fontWeight: 'bold', color: '#f8fafc', textShadow: '0 2px 8px rgba(0,0,0,0.5)'}}>
+            {phase === 'select' ? '선택 단계' : phase === 'respond' ? '대응 단계' : '진행 단계'}
+          </div>
+        </div>
+
         <div className="battle-shell">
           <div className="battle-main">
             <div className="entity-panel player-panel">

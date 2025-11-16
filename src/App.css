@@ -146,7 +146,7 @@ body {
 }
 .aether-column {
   position: fixed;
-  left: 32px;
+  left: 212px;
   top: 50%;
   transform: translateY(-50%);
   width: 72px;
