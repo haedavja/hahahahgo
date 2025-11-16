@@ -940,7 +940,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
             <div className="timeline-lanes">
               <div className="timeline-lane player-lane">
                 {Array.from({length: MAX_SPEED + 1}).map((_,i)=>(
-                  <div key={i} className="timeline-gridline" style={{top:`${(i/MAX_SPEED)*100}%`}} />
+                  <div key={i} className="timeline-gridline" style={{left:`${(i/MAX_SPEED)*100}%`}} />
                 ))}
                 {playerTimeline.map((a,idx)=>{
                   const Icon = a.card.icon || Sword;
@@ -950,7 +950,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                   return (
                     <div key={idx}
                          className="timeline-marker marker-player"
-                         style={{top:`${(a.sp/MAX_SPEED)*100}%`, left:`${6+offset}px`}}>
+                         style={{left:`${(a.sp/MAX_SPEED)*100}%`, top:`${6+offset}px`}}>
                       <Icon size={14} className="text-white"/>
                       <span className="text-white text-xs font-bold">{num>0?num:''}</span>
                     </div>
@@ -960,7 +960,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
 
               <div className="timeline-lane enemy-lane">
                 {Array.from({length: MAX_SPEED + 1}).map((_,i)=>(
-                  <div key={i} className="timeline-gridline" style={{top:`${(i/MAX_SPEED)*100}%`}} />
+                  <div key={i} className="timeline-gridline" style={{left:`${(i/MAX_SPEED)*100}%`}} />
                 ))}
                 {enemyTimeline.map((a,idx)=>{
                   const Icon = a.card.icon || Shield;
@@ -970,7 +970,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                   return (
                     <div key={idx}
                          className="timeline-marker marker-enemy"
-                         style={{top:`${(a.sp/MAX_SPEED)*100}%`, left:`${6+offset}px`}}>
+                         style={{left:`${(a.sp/MAX_SPEED)*100}%`, top:`${6+offset}px`}}>
                       <Icon size={14} className="text-white"/>
                       <span className="text-white text-xs font-bold">{num>0?num:''}</span>
                     </div>
@@ -1192,7 +1192,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
       )}
 
       {/* 하단 고정 손패 영역 */}
-      {(phase==='select' || (enemy && enemy.hp <= 0) || (player && player.hp <= 0)) && (
+      {(phase==='select' || phase==='respond' || (enemy && enemy.hp <= 0) || (player && player.hp <= 0)) && (
         <div className="hand-area">
           <div className="hand-area-header">
             <div className="hand-heading">
@@ -1278,6 +1278,58 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                       <div className="text-cyan-300 text-xs mt-1">⏱️{c.speedCost}</div>
                     </div>
                   </button>
+                );
+              })}
+            </div>
+          )}
+
+          {phase==='respond' && fixedOrder && (
+            <div className="hand-cards">
+              {fixedOrder.filter(a=>a.actor==='player').map((action,idx,arr)=>{
+                const c = action.card;
+                const Icon = c.icon;
+                return (
+                  <div key={idx} className={`game-card-large ${c.type==='attack' ? 'attack' : 'defense'}`} style={{position: 'relative'}}>
+                    <div className="card-cost-corner">{c.actionCost}</div>
+                    <div className="card-header">
+                      <div className="text-white font-black text-sm">{c.name}</div>
+                    </div>
+                    <div className="card-icon-area">
+                      <Icon size={60} className="text-white opacity-80"/>
+                    </div>
+                    <div className="card-footer">
+                      <div className="flex items-center justify-center gap-2 text-white text-sm font-bold">
+                        {c.damage && <span className="text-red-300">⚔️{c.damage}{c.hits?`×${c.hits}`:''}</span>}
+                        {c.block && <span className="text-blue-300">🛡️{c.block}</span>}
+                        {c.counter!==undefined && <span className="text-purple-300">⚡{c.counter}</span>}
+                      </div>
+                      <div className="text-cyan-300 text-xs mt-1">⏱️{c.speedCost}</div>
+                    </div>
+                    <div style={{position: 'absolute', bottom: '4px', right: '4px', display: 'flex', gap: '4px'}}>
+                      {idx > 0 && (
+                        <button onClick={()=>{
+                          const playerActions = fixedOrder.filter(a=>a.actor==='player');
+                          const newPlayerActions = [...playerActions];
+                          [newPlayerActions[idx-1], newPlayerActions[idx]] = [newPlayerActions[idx], newPlayerActions[idx-1]];
+                          const enemyActions = fixedOrder.filter(a=>a.actor==='enemy');
+                          setFixedOrder(sortCombinedOrderStablePF(newPlayerActions.map(a=>a.card), enemyActions.map(a=>a.card)));
+                        }} className="btn-enhanced text-xs" style={{padding: '2px 6px'}}>
+                          ↑
+                        </button>
+                      )}
+                      {idx < arr.length - 1 && (
+                        <button onClick={()=>{
+                          const playerActions = fixedOrder.filter(a=>a.actor==='player');
+                          const newPlayerActions = [...playerActions];
+                          [newPlayerActions[idx], newPlayerActions[idx+1]] = [newPlayerActions[idx+1], newPlayerActions[idx]];
+                          const enemyActions = fixedOrder.filter(a=>a.actor==='enemy');
+                          setFixedOrder(sortCombinedOrderStablePF(newPlayerActions.map(a=>a.card), enemyActions.map(a=>a.card)));
+                        }} className="btn-enhanced text-xs" style={{padding: '2px 6px'}}>
+                          ↓
+                        </button>
+                      )}
+                    </div>
+                  </div>
                 );
               })}
             </div>
