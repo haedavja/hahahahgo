@@ -598,7 +598,7 @@ body {
 .hand-flags {
   display: flex;
   gap: 16px;
-  margin: 2px 0 2px;
+  margin: 0px;
   min-height: 32px;
 }
 

@@ -454,9 +454,9 @@ function ExpectedDamagePreview({player, enemy, fixedOrder, willOverdrive, enemyM
       {phase !== 'resolve' && !!res.lines?.length && (
         <div style={{marginTop: '20px', paddingTop: '16px', borderTop: '1px solid rgba(148, 163, 184, 0.15)'}}>
           {res.lines.map((line,idx)=>{
-            // 플레이어의 모든 행동(공격, 방어)은 파란색, 몬스터의 모든 행동은 옅은 붉은색
-            const isPlayerAction = line.startsWith('플레이어');
-            const isMonsterAction = line.startsWith('몬스터');
+            // 행동 주체 확인: "플레이어 ->" 또는 "플레이어 •"로 시작하면 플레이어 행동
+            const isPlayerAction = line.includes('플레이어 ->') || line.includes('플레이어→') || line.includes('플레이어 •');
+            const isMonsterAction = line.includes('몬스터 ->') || line.includes('몬스터→') || line.includes('몬스터 •');
             return (
               <div key={idx} style={{
                 fontSize: '13px',
@@ -483,8 +483,9 @@ function ExpectedDamagePreview({player, enemy, fixedOrder, willOverdrive, enemyM
               if (line.includes('게임 시작') || line.includes('적 성향 힌트')) return false;
               return true;
             }).map((line, i) => {
-              const isPlayerAction = line.includes('플레이어');
-              const isMonsterAction = line.includes('몬스터') || line.includes('적');
+              // 행동 주체 확인: "플레이어 ->" 또는 "플레이어 •"로 시작하면 플레이어 행동
+              const isPlayerAction = line.includes('플레이어 ->') || line.includes('플레이어→') || line.includes('플레이어 •');
+              const isMonsterAction = line.includes('몬스터 ->') || line.includes('몬스터→') || line.includes('몬스터 •');
               return (
                 <div key={i} style={{
                   fontSize: '13px',
@@ -1140,12 +1141,12 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
       {/* 하단 고정 손패 영역 */}
       {(phase==='select' || phase==='respond' || phase==='resolve' || (enemy && enemy.hp <= 0) || (player && player.hp <= 0)) && (
         <div className="hand-area">
-          <div className="hand-area-header" style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginBottom: '2px'}}>
+          <div className="hand-area-header" style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px', marginBottom: '0px'}}>
             <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
               <div className="energy-orb-compact">
                 {remainingEnergy}
               </div>
-              <div style={{fontSize: '1rem', fontWeight: '600', color: '#94a3b8'}}>
+              <div style={{fontSize: '1.25rem', fontWeight: '700', color: '#94a3b8'}}>
                 속도 {totalSpeed}/{MAX_SPEED} · 선택 {selected.length}/{MAX_SUBMIT_CARDS}
               </div>
             </div>
