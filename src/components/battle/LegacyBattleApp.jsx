@@ -568,9 +568,30 @@ function EtherBar({ pts, slots, previewGain=0, color="cyan", label }){
 }
 
 // =====================
+// 캐릭터 빌드 기반 손패 생성
+// =====================
+function drawCharacterBuildHand(characterBuild) {
+  if (!characterBuild) return CARDS.slice(0, 8);
+
+  const { mainSpecials = [], subSpecials = [] } = characterBuild;
+
+  // 주특기 카드는 100% 등장
+  const mainCards = mainSpecials
+    .map(cardId => CARDS.find(card => card.id === cardId))
+    .filter(Boolean);
+
+  // 보조특기 카드는 각각 50% 확률로 등장
+  const subCards = subSpecials
+    .map(cardId => CARDS.find(card => card.id === cardId))
+    .filter(card => card && Math.random() < 0.5);
+
+  return [...mainCards, ...subCards];
+}
+
+// =====================
 // Game Component
 // =====================
-function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
+function Game({ initialPlayer, initialEnemy, playerEther=0, characterBuild, hasCharacterBuild, onBattleResult }){
   const safeInitialPlayer = initialPlayer || {};
   const safeInitialEnemy = initialEnemy || {};
   const baseEnergy = safeInitialPlayer.energy ?? BASE_PLAYER_ENERGY;
@@ -648,9 +669,13 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
     setPostCombatOptions(null);
     setEnemyPlan({ actions:[], mode:null });
     setPhase('select');
-    setHand(CARDS.slice(0,8));
+    // 캐릭터 빌드가 있으면 사용, 없으면 기본 8장
+    const initialHand = hasCharacterBuild && characterBuild
+      ? drawCharacterBuildHand(characterBuild)
+      : CARDS.slice(0, 8);
+    setHand(initialHand);
     setCanRedraw(true);
-  }, [safeInitialPlayer, playerEther, addLog]);
+  }, [safeInitialPlayer, playerEther, addLog, hasCharacterBuild, characterBuild]);
 
   useEffect(()=>{
     if(!safeInitialEnemy) return;
@@ -696,10 +721,15 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
     if(!enemy){
       const e = ENEMIES[enemyIndex];
       setEnemy({ ...e, hp:e.hp, maxHp:e.hp, vulnMult:1, vulnTurns:0, block:0, counter:0, etherPts:0, etherOverdriveActive:false });
-      setHand(CARDS.slice(0,8));
+      // 캐릭터 빌드가 있으면 사용, 없으면 기본 8장
+      const initialHand = hasCharacterBuild && characterBuild
+        ? drawCharacterBuildHand(characterBuild)
+        : CARDS.slice(0, 8);
+      setHand(initialHand);
       setSelected([]);
       setCanRedraw(true);
-      addLog('🎴 시작 손패 8장');
+      const handCount = initialHand.length;
+      addLog(`🎴 시작 손패 ${handCount}장${hasCharacterBuild ? ' (캐릭터 빌드)' : ''}`);
     }
   },[]);
 
@@ -711,6 +741,13 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
     setWillOverdrive(false);
     setPlayer(p=>({ ...p, energy: BASE_PLAYER_ENERGY + etherSlots(p.etherPts), etherOverdriveActive:false }));
 
+    // 매 턴 시작 시 새로운 손패 생성 (캐릭터 빌드 적용)
+    const newHand = hasCharacterBuild && characterBuild
+      ? drawCharacterBuildHand(characterBuild)
+      : CARDS.slice(0, 8);
+    setHand(newHand);
+    setSelected([]);
+
     setEnemyPlan(prev=>{
       if(prev.mode){
         return { ...prev, actions:[] };
@@ -720,7 +757,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
         return { actions:[], mode };
       }
     });
-  }, [phase, enemy, enemyPlan.mode]);
+  }, [phase, enemy, enemyPlan.mode, hasCharacterBuild, characterBuild]);
 
   useEffect(()=>{
     if(phase==='resolve' && (!queue || queue.length===0) && fixedOrder && fixedOrder.length>0){
@@ -804,7 +841,14 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
 
   const redrawHand = ()=>{
     if(!canRedraw) return addLog('🔒 이미 이번 턴 리드로우 사용됨');
-    setHand(CARDS.slice(0,8)); setSelected([]); setCanRedraw(false); addLog('🔄 손패 리드로우 사용');
+    // 캐릭터 빌드가 있으면 사용, 없으면 기본 8장
+    const newHand = hasCharacterBuild && characterBuild
+      ? drawCharacterBuildHand(characterBuild)
+      : CARDS.slice(0, 8);
+    setHand(newHand);
+    setSelected([]);
+    setCanRedraw(false);
+    addLog('🔄 손패 리드로우 사용');
   };
 
   const startResolve = ()=>{
@@ -1356,11 +1400,13 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
   );
 }
 
-export const LegacyBattleApp = ({ initialPlayer, initialEnemy, playerEther, onBattleResult = () => {} }) => (
+export const LegacyBattleApp = ({ initialPlayer, initialEnemy, playerEther, characterBuild, hasCharacterBuild, onBattleResult = () => {} }) => (
   <Game
     initialPlayer={initialPlayer}
     initialEnemy={initialEnemy}
     playerEther={playerEther}
+    characterBuild={characterBuild}
+    hasCharacterBuild={hasCharacterBuild}
     onBattleResult={onBattleResult}
   />
 );
