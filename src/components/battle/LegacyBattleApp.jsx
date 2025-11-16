@@ -1000,6 +1000,13 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
           <div className="battle-main">
             <div className="entity-panel player-panel">
               <div className="entity-body">
+                <EtherBar
+                  key={`player-ether-${playerEtherValue}`}
+                  pts={playerEtherValue}
+                  slots={playerEtherSlots}
+                  previewGain={comboPreviewGain}
+                  label="ETHER"
+                />
                 <div>
                   <div className="entity-name" style={{marginBottom: '8px'}}>플레이어</div>
                   <div className="hp-bar-enhanced mb-2" style={{width: '200px'}}>
@@ -1017,13 +1024,6 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                     🙏 기도 {willOverdrive?'ON':'OFF'}
                   </button>
                 </div>
-                <EtherBar
-                  key={`player-ether-${playerEtherValue}`}
-                  pts={playerEtherValue}
-                  slots={playerEtherSlots}
-                  previewGain={comboPreviewGain}
-                  label="ETHER"
-                />
                 <div className="character-display">🧙‍♂️</div>
               </div>
             </div>
@@ -1066,133 +1066,8 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
         </div>
       </div>
 
-      {/* 진행 단계 - 제출된 카드 표시 */}
-      {phase==='resolve' && queue.length > 0 && (
-        <div className="submitted-cards-area">
-          <div className="flex items-center justify-between mb-4 max-w-[1600px] mx-auto px-4">
-            <div className="text-white font-black text-2xl">⚔️ 전투 진행 중... ({qIndex}/{queue.length})</div>
-            <div className="flex gap-2">
-              <button onClick={stepOnce} disabled={qIndex>=queue.length} className="btn-enhanced flex items-center gap-2">
-                <StepForward size={18}/> 한 단계
-              </button>
-              <button onClick={runAll} disabled={qIndex>=queue.length} className="btn-enhanced btn-primary">
-                전부 실행
-              </button>
-              {qIndex >= queue.length && (
-                <button onClick={()=>finishTurn('수동 턴 종료')} className="btn-enhanced flex items-center gap-2">
-                  ⏭️ 턴 종료
-                </button>
-              )}
-              {player && player.hp <= 0 && (
-                <button onClick={()=>window.location.reload()} className="btn-enhanced flex items-center gap-2">
-                  🔄 재시작
-                </button>
-              )}
-              {postCombatOptions && (
-                <button onClick={handleExitToMap} className="btn-enhanced btn-primary flex items-center gap-2">
-                  🗺️ 맵으로 돌아가기
-                </button>
-              )}
-            </div>
-          </div>
-
-          <div className="hand-cards">
-            {queue.filter(a => a.actor === 'player').map((a,i)=>{
-              const Icon = a.card.icon;
-              const globalIndex = queue.findIndex(q => q === a);
-              const isUsed = usedCardIndices.includes(globalIndex);
-              const isPast = globalIndex < qIndex;
-              return (
-                <div key={`resolve-${globalIndex}`}
-                     className={`game-card-large ${a.card.type==='attack' ? 'attack' : 'defense'} ${isUsed ? 'card-used' : ''} ${isPast ? 'opacity-30' : ''}`}>
-                  <div className="card-cost-corner">{a.card.actionCost}</div>
-                  <div className="card-header">
-                    <div className="text-white font-black text-sm">{a.card.name}</div>
-                  </div>
-                  <div className="card-icon-area">
-                    <Icon size={60} className="text-white opacity-80"/>
-                  </div>
-                  <div className="card-footer">
-                    <div className="flex items-center justify-center gap-2 text-white text-sm font-bold">
-                      {a.card.damage && <span className="text-red-300">⚔️{a.card.damage}{a.card.hits?`×${a.card.hits}`:''}</span>}
-                      {a.card.block && <span className="text-blue-300">🛡️{a.card.block}</span>}
-                      {a.card.counter!==undefined && <span className="text-purple-300">⚡{a.card.counter}</span>}
-                    </div>
-                    <div className="text-cyan-300 text-xs mt-1">⏱️{a.card.speedCost}</div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* 대응 단계 - 제출된 카드 표시 */}
-      {phase==='respond' && selected.length > 0 && (
-        <div className="submitted-cards-area">
-          <div className="flex items-center justify-between mb-4 max-w-[1600px] mx-auto px-4">
-            <div className="text-white font-black text-2xl">📋 제출된 카드</div>
-
-            {/* 조합 표시 - 중앙 */}
-            {currentCombo && (
-              <div className="combo-display">
-                {currentCombo.name}
-                {pendingComboEther > 0 && (
-                  <span style={{fontSize: '0.85em', marginLeft: '8px', color: '#6ee7b7'}}>
-                    +{pendingComboEther} pt
-                  </span>
-                )}
-              </div>
-            )}
-
-            <div className="flex gap-2">
-              <button onClick={beginResolveFromRespond} className="btn-enhanced btn-success flex items-center gap-2">
-                <Play size={20}/> 진행 시작
-              </button>
-            </div>
-          </div>
-
-          <div className="hand-cards">
-            {selected.map((c,i)=>{
-              const Icon=c.icon;
-              return (
-                <div key={`${c.__uid}-${i}`} className="relative">
-                  <div className={`game-card-large ${c.type==='attack' ? 'attack' : 'defense'}`}>
-                    <div className="card-cost-corner">{c.actionCost}</div>
-                    <div className="selection-number">{i + 1}</div>
-                    <div className="card-header">
-                      <div className="text-white font-black text-sm">{c.name}</div>
-                    </div>
-                    <div className="card-icon-area">
-                      <Icon size={60} className="text-white opacity-80"/>
-                    </div>
-                    <div className="card-footer">
-                      <div className="flex items-center justify-center gap-2 text-white text-sm font-bold">
-                        {c.damage && <span className="text-red-300">⚔️{c.damage}{c.hits?`×${c.hits}`:''}</span>}
-                        {c.block && <span className="text-blue-300">🛡️{c.block}</span>}
-                        {c.counter!==undefined && <span className="text-purple-300">⚡{c.counter}</span>}
-                      </div>
-                      <div className="text-cyan-300 text-xs mt-1">⏱️{c.speedCost}</div>
-                      <span className="cost-indicator">{c.actionCost} AP</span>
-                    </div>
-                  </div>
-                  <div className="flex gap-2 justify-center mt-2">
-                    <button onClick={()=>moveUp(i)} disabled={i===0} className="card-move-btn">
-                      ←
-                    </button>
-                    <button onClick={()=>moveDown(i)} disabled={i===selected.length-1} className="card-move-btn">
-                      →
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
       {/* 하단 고정 손패 영역 */}
-      {(phase==='select' || phase==='respond' || (enemy && enemy.hp <= 0) || (player && player.hp <= 0)) && (
+      {(phase==='select' || phase==='respond' || phase==='resolve' || (enemy && enemy.hp <= 0) || (player && player.hp <= 0)) && (
         <div className="hand-area">
           <div className="hand-area-header">
             <div className="hand-heading">
@@ -1211,7 +1086,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
             </div>
 
             <div className="hand-combo">
-              {phase==='select' && currentCombo && (
+              {(phase==='select' || phase==='respond') && currentCombo && (
                 <div className="combo-display">
                   {currentCombo.name}
                   {pendingComboEther > 0 && (
@@ -1220,6 +1095,9 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                     </span>
                   )}
                 </div>
+              )}
+              {phase==='resolve' && (
+                <div className="text-white font-black text-xl">⚔️ 전투 진행 중... ({qIndex}/{queue?.length || 0})</div>
               )}
             </div>
 
@@ -1232,6 +1110,31 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                   <button onClick={startResolve} disabled={selected.length===0} className="btn-enhanced btn-primary flex items-center gap-2">
                     <Play size={20}/> 제출
                   </button>
+                </>
+              )}
+              {phase==='respond' && (
+                <button onClick={beginResolveFromRespond} className="btn-enhanced btn-success flex items-center gap-2">
+                  <Play size={20}/> 진행 시작
+                </button>
+              )}
+              {phase==='resolve' && (
+                <>
+                  <button onClick={stepOnce} disabled={qIndex>=queue.length} className="btn-enhanced flex items-center gap-2">
+                    <StepForward size={18}/> 한 단계
+                  </button>
+                  <button onClick={runAll} disabled={qIndex>=queue.length} className="btn-enhanced btn-primary">
+                    전부 실행
+                  </button>
+                  {qIndex >= queue.length && (
+                    <button onClick={()=>finishTurn('수동 턴 종료')} className="btn-enhanced flex items-center gap-2">
+                      ⏭️ 턴 종료
+                    </button>
+                  )}
+                  {postCombatOptions && (
+                    <button onClick={handleExitToMap} className="btn-enhanced btn-primary flex items-center gap-2">
+                      🗺️ 맵으로 돌아가기
+                    </button>
+                  )}
                 </>
               )}
               {player && player.hp <= 0 && (
@@ -1328,6 +1231,37 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                           ↓
                         </button>
                       )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {phase==='resolve' && queue && queue.length > 0 && (
+            <div className="hand-cards">
+              {queue.filter(a => a.actor === 'player').map((a,i)=>{
+                const Icon = a.card.icon;
+                const globalIndex = queue.findIndex(q => q === a);
+                const isUsed = usedCardIndices.includes(globalIndex);
+                const isPast = globalIndex < qIndex;
+                return (
+                  <div key={`resolve-${globalIndex}`}
+                       className={`game-card-large ${a.card.type==='attack' ? 'attack' : 'defense'} ${isUsed ? 'card-used' : ''} ${isPast ? 'opacity-30' : ''}`}>
+                    <div className="card-cost-corner">{a.card.actionCost}</div>
+                    <div className="card-header">
+                      <div className="text-white font-black text-sm">{a.card.name}</div>
+                    </div>
+                    <div className="card-icon-area">
+                      <Icon size={60} className="text-white opacity-80"/>
+                    </div>
+                    <div className="card-footer">
+                      <div className="flex items-center justify-center gap-2 text-white text-sm font-bold">
+                        {a.card.damage && <span className="text-red-300">⚔️{a.card.damage}{a.card.hits?`×${a.card.hits}`:''}</span>}
+                        {a.card.block && <span className="text-blue-300">🛡️{a.card.block}</span>}
+                        {a.card.counter!==undefined && <span className="text-purple-300">⚡{a.card.counter}</span>}
+                      </div>
+                      <div className="text-cyan-300 text-xs mt-1">⏱️{a.card.speedCost}</div>
                     </div>
                   </div>
                 );
