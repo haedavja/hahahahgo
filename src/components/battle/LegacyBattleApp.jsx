@@ -919,7 +919,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
   }, [enemyCombo, phase]);
 
   return (
-    <div className="legacy-battle-root w-full max-w-[1400px] min-h-screen ml-auto pb-64">
+    <div className="legacy-battle-root w-full max-w-[1400px] min-h-screen mx-auto pb-64">
       {/* 상단 메인 영역 */}
       <div className="max-w-[1600px] mx-auto p-4">
 
@@ -1194,23 +1194,25 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                 const c = action.card;
                 const Icon = c.icon;
                 return (
-                  <div key={idx} className={`game-card-large ${c.type==='attack' ? 'attack' : 'defense'}`} style={{position: 'relative'}}>
-                    <div className="card-cost-corner">{c.actionCost}</div>
-                    <div className="card-header">
-                      <div className="text-white font-black text-sm">{c.name}</div>
-                    </div>
-                    <div className="card-icon-area">
-                      <Icon size={60} className="text-white opacity-80"/>
-                    </div>
-                    <div className="card-footer">
-                      <div className="flex items-center justify-center gap-2 text-white text-sm font-bold">
-                        {c.damage && <span className="text-red-300">⚔️{c.damage}{c.hits?`×${c.hits}`:''}</span>}
-                        {c.block && <span className="text-blue-300">🛡️{c.block}</span>}
-                        {c.counter!==undefined && <span className="text-purple-300">⚡{c.counter}</span>}
+                  <div key={idx} style={{display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'center'}}>
+                    <div className={`game-card-large ${c.type==='attack' ? 'attack' : 'defense'}`}>
+                      <div className="card-cost-corner">{c.actionCost}</div>
+                      <div className="card-header">
+                        <div className="text-white font-black text-sm">{c.name}</div>
                       </div>
-                      <div className="text-cyan-300 text-xs mt-1">⏱️{c.speedCost}</div>
+                      <div className="card-icon-area">
+                        <Icon size={60} className="text-white opacity-80"/>
+                      </div>
+                      <div className="card-footer">
+                        <div className="flex items-center justify-center gap-2 text-white text-sm font-bold">
+                          {c.damage && <span className="text-red-300">⚔️{c.damage}{c.hits?`×${c.hits}`:''}</span>}
+                          {c.block && <span className="text-blue-300">🛡️{c.block}</span>}
+                          {c.counter!==undefined && <span className="text-purple-300">⚡{c.counter}</span>}
+                        </div>
+                        <div className="text-cyan-300 text-xs mt-1">⏱️{c.speedCost}</div>
+                      </div>
                     </div>
-                    <div style={{position: 'absolute', bottom: '4px', right: '4px', display: 'flex', gap: '4px'}}>
+                    <div style={{display: 'flex', gap: '8px'}}>
                       {idx > 0 && (
                         <button onClick={()=>{
                           const playerActions = fixedOrder.filter(a=>a.actor==='player');
@@ -1218,7 +1220,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                           [newPlayerActions[idx-1], newPlayerActions[idx]] = [newPlayerActions[idx], newPlayerActions[idx-1]];
                           const enemyActions = fixedOrder.filter(a=>a.actor==='enemy');
                           setFixedOrder(sortCombinedOrderStablePF(newPlayerActions.map(a=>a.card), enemyActions.map(a=>a.card)));
-                        }} className="btn-enhanced text-xs" style={{padding: '2px 6px'}}>
+                        }} className="btn-enhanced text-xs" style={{padding: '4px 12px'}}>
                           ←
                         </button>
                       )}
@@ -1229,7 +1231,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                           [newPlayerActions[idx], newPlayerActions[idx+1]] = [newPlayerActions[idx+1], newPlayerActions[idx]];
                           const enemyActions = fixedOrder.filter(a=>a.actor==='enemy');
                           setFixedOrder(sortCombinedOrderStablePF(newPlayerActions.map(a=>a.card), enemyActions.map(a=>a.card)));
-                        }} className="btn-enhanced text-xs" style={{padding: '2px 6px'}}>
+                        }} className="btn-enhanced text-xs" style={{padding: '4px 12px'}}>
                           →
                         </button>
                       )}
