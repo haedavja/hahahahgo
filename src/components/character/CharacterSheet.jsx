@@ -9,67 +9,40 @@ const baseStats = {
   power: 0,
 };
 
-// PLAYER_STARTER_DECK 전체 사용 (중복 포함)
-const availableCards = PLAYER_STARTER_DECK.map((cardId, index) => {
-  const card = CARD_LIBRARY[cardId];
-  return {
-    id: cardId,
-    uniqueId: `${cardId}_${index}`, // 중복 카드 구분용 고유 ID
-    slot: index + 1,
-    name: card.name,
-    type: card.type,
-    speed: card.speedCost,
-    ap: card.actionCost,
-    desc: card.description,
-  };
-});
+// PLAYER_STARTER_DECK에서 고유한 카드만 추출하고 CARD_LIBRARY에 구현된 카드만 사용
+const uniqueCardIds = [...new Set(PLAYER_STARTER_DECK)];
+const availableCards = uniqueCardIds
+  .filter((cardId) => CARD_LIBRARY[cardId]) // CARD_LIBRARY에 존재하는 카드만
+  .map((cardId, index) => {
+    const card = CARD_LIBRARY[cardId];
+    return {
+      id: cardId,
+      slot: index + 1,
+      name: card.name,
+      type: card.type,
+      speed: card.speedCost,
+      ap: card.actionCost,
+      desc: card.description,
+    };
+  });
 
 export function CharacterSheet({ onClose }) {
   const characterBuild = useGameStore((state) => state.characterBuild);
   const updateCharacterBuild = useGameStore((state) => state.updateCharacterBuild);
 
   const [specialMode, setSpecialMode] = useState("main");
-  // uniqueId로 선택 상태 관리
-  const [mainSpecials, setMainSpecials] = useState([]);
-  const [subSpecials, setSubSpecials] = useState([]);
+  // cardId로 선택 상태 관리
+  const [mainSpecials, setMainSpecials] = useState(characterBuild.mainSpecials || []);
+  const [subSpecials, setSubSpecials] = useState(characterBuild.subSpecials || []);
 
-  // 초기 로드 시 저장된 cardId를 uniqueId로 변환
+  // 선택 사항이 변경될 때마다 게임 스토어에 저장
   useEffect(() => {
-    if (characterBuild.mainSpecials.length > 0 || characterBuild.subSpecials.length > 0) {
-      const mainUniqueIds = characterBuild.mainSpecials.map((cardId) => {
-        const card = availableCards.find((c) => c.id === cardId && !mainSpecials.includes(c.uniqueId));
-        return card?.uniqueId;
-      }).filter(Boolean);
-
-      const subUniqueIds = characterBuild.subSpecials.map((cardId) => {
-        const card = availableCards.find((c) => c.id === cardId && !subSpecials.includes(c.uniqueId));
-        return card?.uniqueId;
-      }).filter(Boolean);
-
-      setMainSpecials(mainUniqueIds);
-      setSubSpecials(subUniqueIds);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // 선택 사항이 변경될 때마다 uniqueId -> cardId 변환 후 게임 스토어에 저장
-  useEffect(() => {
-    const mainCardIds = mainSpecials.map((uniqueId) => {
-      const card = availableCards.find((c) => c.uniqueId === uniqueId);
-      return card?.id;
-    }).filter(Boolean);
-
-    const subCardIds = subSpecials.map((uniqueId) => {
-      const card = availableCards.find((c) => c.uniqueId === uniqueId);
-      return card?.id;
-    }).filter(Boolean);
-
-    updateCharacterBuild(mainCardIds, subCardIds);
+    updateCharacterBuild(mainSpecials, subSpecials);
   }, [mainSpecials, subSpecials, updateCharacterBuild]);
 
-  const getCardStyle = (uniqueId) => {
-    const isMain = mainSpecials.includes(uniqueId);
-    const isSub = subSpecials.includes(uniqueId);
+  const getCardStyle = (cardId) => {
+    const isMain = mainSpecials.includes(cardId);
+    const isSub = subSpecials.includes(cardId);
 
     let borderColor = "rgba(118, 134, 185, 0.4)";
     let boxShadow = "none";
@@ -97,24 +70,24 @@ export function CharacterSheet({ onClose }) {
     };
   };
 
-  const handleCardClick = (uniqueId) => {
+  const handleCardClick = (cardId) => {
     if (specialMode === "main") {
       setMainSpecials((prev) => {
-        if (prev.includes(uniqueId)) {
-          return prev.filter((id) => id !== uniqueId);
+        if (prev.includes(cardId)) {
+          return prev.filter((id) => id !== cardId);
         }
         if (prev.length >= 3) return prev;
-        setSubSpecials((prevSub) => prevSub.filter((id) => id !== uniqueId));
-        return [...prev, uniqueId];
+        setSubSpecials((prevSub) => prevSub.filter((id) => id !== cardId));
+        return [...prev, cardId];
       });
     } else {
       setSubSpecials((prev) => {
-        if (prev.includes(uniqueId)) {
-          return prev.filter((id) => id !== uniqueId);
+        if (prev.includes(cardId)) {
+          return prev.filter((id) => id !== cardId);
         }
         if (prev.length >= 5) return prev;
-        setMainSpecials((prevMain) => prevMain.filter((id) => id !== uniqueId));
-        return [...prev, uniqueId];
+        setMainSpecials((prevMain) => prevMain.filter((id) => id !== cardId));
+        return [...prev, cardId];
       });
     }
   };
@@ -256,7 +229,7 @@ export function CharacterSheet({ onClose }) {
             }}
           >
             {availableCards.map((card) => (
-              <div key={card.uniqueId} style={getCardStyle(card.uniqueId)} onClick={() => handleCardClick(card.uniqueId)}>
+              <div key={card.id} style={getCardStyle(card.id)} onClick={() => handleCardClick(card.id)}>
                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
                   <span style={{ color: "#fff" }}>
                     <span style={{ opacity: 0.7, fontSize: "12px" }}>슬롯 {card.slot}</span>{" "}
