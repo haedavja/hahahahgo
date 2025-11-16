@@ -10,6 +10,7 @@ import {
   ENEMIES,
 } from "./battleData";
 import { calculateEtherSlots, getCurrentSlotPts, getSlotProgress, getNextSlotCost } from "../../lib/etherUtils";
+import { CharacterSheet } from "../character/CharacterSheet";
 
 const SPEED_TICKS = Array.from(
   { length: Math.floor(MAX_SPEED / 5) + 1 },
@@ -598,6 +599,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
   }, []);
   const [willOverdrive, setWillOverdrive] = useState(false);
   const [usedCardIndices, setUsedCardIndices] = useState([]);
+  const [showCharacterSheet, setShowCharacterSheet] = useState(false);
   const logEndRef = useRef(null);
   const initialEtherRef = useRef(typeof safeInitialPlayer.etherPts === 'number' ? safeInitialPlayer.etherPts : (playerEther ?? 0));
   const resultSentRef = useRef(false);
@@ -678,6 +680,17 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
       notifyBattleResult(postCombatOptions.type);
     }
   }, [postCombatOptions, notifyBattleResult]);
+
+  // C 키로 캐릭터 창 열기
+  useEffect(() => {
+    const handleKeyPress = (e) => {
+      if (e.key === "c" || e.key === "C") {
+        setShowCharacterSheet((prev) => !prev);
+      }
+    };
+    window.addEventListener("keydown", handleKeyPress);
+    return () => window.removeEventListener("keydown", handleKeyPress);
+  }, []);
 
   useEffect(()=>{
     if(!enemy){
@@ -1337,6 +1350,8 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
           )}
         </div>
       )}
+
+      {showCharacterSheet && <CharacterSheet onClose={() => setShowCharacterSheet(false)} />}
     </div>
   );
 }

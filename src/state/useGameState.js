@@ -131,4 +131,8 @@ export const createInitialState = () => ({
   activeDungeon: null,
   activeBattle: null,
   lastBattleResult: null,
+  characterBuild: {
+    mainSpecials: [],
+    subSpecials: [],
+  },
 });

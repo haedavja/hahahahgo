@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useGameStore } from "../../state/gameStore";
+import { PLAYER_STARTER_DECK, CARD_LIBRARY } from "../../data/cards";
 
 const baseStats = {
   hp: { current: 30, max: 30 },
@@ -7,23 +9,37 @@ const baseStats = {
   power: 0,
 };
 
-const initialDeck = [
-  { slot: 1, name: "빠른 베기", type: "공격", speed: 3, ap: 1, desc: "빠른 근접 공격, 선제용" },
-  { slot: 2, name: "방어 자세", type: "방어", speed: 6, ap: 1, desc: "기본 방어자세, 방어력 확보" },
-  { slot: 3, name: "패리", type: "반격", speed: 2, ap: 1, desc: "공격을 흘려 반격" },
-  { slot: 4, name: "집중 치유", type: "회복", speed: 10, ap: 2, desc: "집중 치유, 체력 회복" },
-  { slot: 5, name: "페인트 공격", type: "공격", speed: 4, ap: 1, desc: "하이리스크 하이리턴 공격" },
-  { slot: 6, name: "아드레날린", type: "버프", speed: 4, ap: 2, desc: "속도/행동력 버프" },
-];
+// PLAYER_STARTER_DECK에서 고유한 카드 ID만 추출
+const uniqueCardIds = [...new Set(PLAYER_STARTER_DECK)];
+const availableCards = uniqueCardIds.map((cardId, index) => {
+  const card = CARD_LIBRARY[cardId];
+  return {
+    id: cardId,
+    slot: index + 1,
+    name: card.name,
+    type: card.type,
+    speed: card.speedCost,
+    ap: card.actionCost,
+    desc: card.description,
+  };
+});
 
 export function CharacterSheet({ onClose }) {
-  const [specialMode, setSpecialMode] = useState("main");
-  const [mainSpecials, setMainSpecials] = useState([]);
-  const [subSpecials, setSubSpecials] = useState([]);
+  const characterBuild = useGameStore((state) => state.characterBuild);
+  const updateCharacterBuild = useGameStore((state) => state.updateCharacterBuild);
 
-  const getCardStyle = (slot) => {
-    const isMain = mainSpecials.includes(slot);
-    const isSub = subSpecials.includes(slot);
+  const [specialMode, setSpecialMode] = useState("main");
+  const [mainSpecials, setMainSpecials] = useState(characterBuild.mainSpecials || []);
+  const [subSpecials, setSubSpecials] = useState(characterBuild.subSpecials || []);
+
+  // 선택 사항이 변경될 때마다 게임 스토어에 저장
+  useEffect(() => {
+    updateCharacterBuild(mainSpecials, subSpecials);
+  }, [mainSpecials, subSpecials, updateCharacterBuild]);
+
+  const getCardStyle = (cardId) => {
+    const isMain = mainSpecials.includes(cardId);
+    const isSub = subSpecials.includes(cardId);
 
     let borderColor = "rgba(118, 134, 185, 0.4)";
     let boxShadow = "none";
@@ -51,24 +67,24 @@ export function CharacterSheet({ onClose }) {
     };
   };
 
-  const handleCardClick = (slot) => {
+  const handleCardClick = (cardId) => {
     if (specialMode === "main") {
       setMainSpecials((prev) => {
-        if (prev.includes(slot)) {
-          return prev.filter((s) => s !== slot);
+        if (prev.includes(cardId)) {
+          return prev.filter((id) => id !== cardId);
         }
         if (prev.length >= 3) return prev;
-        setSubSpecials((prevSub) => prevSub.filter((s) => s !== slot));
-        return [...prev, slot];
+        setSubSpecials((prevSub) => prevSub.filter((id) => id !== cardId));
+        return [...prev, cardId];
       });
     } else {
       setSubSpecials((prev) => {
-        if (prev.includes(slot)) {
-          return prev.filter((s) => s !== slot);
+        if (prev.includes(cardId)) {
+          return prev.filter((id) => id !== cardId);
         }
         if (prev.length >= 5) return prev;
-        setMainSpecials((prevMain) => prevMain.filter((s) => s !== slot));
-        return [...prev, slot];
+        setMainSpecials((prevMain) => prevMain.filter((id) => id !== cardId));
+        return [...prev, cardId];
       });
     }
   };
@@ -202,8 +218,8 @@ export function CharacterSheet({ onClose }) {
               rowGap: "8px",
             }}
           >
-            {initialDeck.map((card) => (
-              <div key={card.slot} style={getCardStyle(card.slot)} onClick={() => handleCardClick(card.slot)}>
+            {availableCards.map((card) => (
+              <div key={card.id} style={getCardStyle(card.id)} onClick={() => handleCardClick(card.id)}>
                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
                   <span style={{ color: "#fff" }}>
                     <span style={{ opacity: 0.7, fontSize: "12px" }}>슬롯 {card.slot}</span>{" "}

@@ -115,15 +115,37 @@ const computeBattlePlan = (kind, playerCards, enemyCards) => {
   };
 };
 
-const createBattlePayload = (node) => {
+const drawCharacterBuildHand = (mainSpecials, subSpecials) => {
+  // 주특기 카드는 100% 등장
+  const mainCards = mainSpecials.map((cardId) => cardId);
+  // 보조특기 카드는 각각 50% 확률로 등장
+  const subCards = subSpecials.filter(() => Math.random() < 0.5);
+  // 합쳐서 손패 생성
+  const cardIds = [...mainCards, ...subCards];
+  return drawHand(cardIds, cardIds.length);
+};
+
+const createBattlePayload = (node, characterBuild) => {
   if (!node || !BATTLE_TYPES.has(node.type) || node.isStart) return null;
-  const playerLibrary = [...PLAYER_STARTER_DECK];
+
+  // 캐릭터 빌드가 있으면 그걸 사용, 없으면 기존 방식
+  const hasCharacterBuild = characterBuild && (characterBuild.mainSpecials.length > 0 || characterBuild.subSpecials.length > 0);
+
+  const playerLibrary = hasCharacterBuild
+    ? [...characterBuild.mainSpecials, ...characterBuild.subSpecials]
+    : [...PLAYER_STARTER_DECK];
+
   const enemyLibrary = [...resolveEnemyDeck(node.type)];
-  const playerDrawPile = [...playerLibrary];
+  const playerDrawPile = hasCharacterBuild ? [] : [...playerLibrary]; // 캐릭터 빌드 사용 시 드로우 파일 사용 안 함
   const enemyDrawPile = [...enemyLibrary];
-  const playerHand = drawHand(playerDrawPile, 3);
+
+  const playerHand = hasCharacterBuild
+    ? drawCharacterBuildHand(characterBuild.mainSpecials, characterBuild.subSpecials)
+    : drawHand(playerDrawPile, 3);
+
   const enemyHand = drawHand(enemyDrawPile, 3);
   const { preview, simulation } = computeBattlePlan(node.type, playerHand, enemyHand);
+
   return {
     nodeId: node.id,
     kind: node.type,
@@ -142,6 +164,8 @@ const createBattlePayload = (node) => {
     maxSelection: MAX_PLAYER_SELECTION,
     preview,
     simulation,
+    hasCharacterBuild, // 캐릭터 빌드 사용 여부 저장
+    characterBuild: hasCharacterBuild ? characterBuild : null,
   };
 };
 
@@ -162,7 +186,7 @@ const travelToNode = (state, nodeId) => {
   return {
     map: { ...state.map, nodes, currentNodeId: target.id },
     event: createEventPayload(target, state.mapRisk),
-    battle: createBattlePayload(target),
+    battle: createBattlePayload(target, state.characterBuild),
   };
 };
 
@@ -401,13 +425,27 @@ export const useGameStore = create((set, get) => ({
       const playerDiscard = [...battle.playerDiscardPile, ...selectedCards];
       const enemyDiscard = [...battle.enemyDiscardPile, ...enemyCards];
 
-      let nextPlayerDraw = battle.playerDrawPile.filter(
-        (card) => !selectedCards.some((chosen) => chosen.instanceId === card.instanceId),
-      );
-      if (nextPlayerDraw.length < 3) {
-        nextPlayerDraw = recyclePile(nextPlayerDraw, playerDiscard);
+      // 캐릭터 빌드 사용 여부에 따라 다른 방식으로 손패 생성
+      let newPlayerHand;
+      let nextPlayerDraw;
+
+      if (battle.hasCharacterBuild && battle.characterBuild) {
+        // 캐릭터 빌드: 주특기 100% + 보조특기 50% 확률
+        newPlayerHand = drawCharacterBuildHand(
+          battle.characterBuild.mainSpecials,
+          battle.characterBuild.subSpecials
+        );
+        nextPlayerDraw = [];
+      } else {
+        // 기존 방식: 드로우 파일에서 카드 뽑기
+        nextPlayerDraw = battle.playerDrawPile.filter(
+          (card) => !selectedCards.some((chosen) => chosen.instanceId === card.instanceId),
+        );
+        if (nextPlayerDraw.length < 3) {
+          nextPlayerDraw = recyclePile(nextPlayerDraw, playerDiscard);
+        }
+        newPlayerHand = remainingPlayerHand.length ? remainingPlayerHand : drawFromPile(nextPlayerDraw);
       }
-      const newPlayerHand = remainingPlayerHand.length ? remainingPlayerHand : drawFromPile(nextPlayerDraw);
 
       let nextEnemyDraw = battle.enemyDrawPile.filter(
         (card) => !enemyCards.some((chosen) => chosen.instanceId === card.instanceId),
@@ -434,6 +472,15 @@ export const useGameStore = create((set, get) => ({
         },
       };
     }),
+
+  updateCharacterBuild: (mainSpecials, subSpecials) =>
+    set((state) => ({
+      ...state,
+      characterBuild: {
+        mainSpecials: mainSpecials ?? state.characterBuild.mainSpecials,
+        subSpecials: subSpecials ?? state.characterBuild.subSpecials,
+      },
+    })),
 }));
 
 export const selectors = {
@@ -445,6 +492,7 @@ export const selectors = {
   activeDungeon: (state) => state.activeDungeon,
   activeBattle: (state) => state.activeBattle,
   lastBattleResult: (state) => state.lastBattleResult,
+  characterBuild: (state) => state.characterBuild,
 };
 
 
