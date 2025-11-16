@@ -102,13 +102,13 @@ const friendlyPercent = (chance) => {
   return `${Math.round(chance * 100)}%`;
 };
 
-const PATCH_VERSION_TAG = "11-16-10:51"; // 다음 패치마다 여기를 최신 시간(월-일-시:분, KST)으로 갱신하세요.
+const PATCH_VERSION_TAG = "11-16-10:57"; // 다음 패치마다 여기를 최신 시간(월-일-시:분, KST)으로 갱신하세요.
 
-/* v11-16-10:51 갱신 내역
- * - HP 글자 크기 통일: 몬스터 HP 14px → 16px (플레이어와 동일)
- * - 손패 인터페이스 대폭 축소: padding, 제목 크기, 간격 등 모두 축소
- * - 손패 투명도 증가: 0.75 → 0.5 (더 투명하게)
- * - 손패 위치 조정: right: 340px (예상 피해량 창과 안 겹치게)
+/* v11-16-10:57 갱신 내역
+ * - 손패 완전 투명화: background transparent, 테두리/그림자 제거
+ * - 카드 헤더 위치 조정: margin-top 72px → 8px (위로 이동)
+ * - 카드 아이콘 영역 개선: flex: 1, 공간 균등 배분
+ * - 카드 공격력/방어력 정보가 잘 보이도록 레이아웃 개선
  */
 
 export function MapDemo() {
