@@ -1163,7 +1163,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                 <div className="text-white font-black text-xl">⚔️ 전투 진행 중... ({qIndex}/{queue?.length || 0})</div>
               )}
               <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
-                <div style={{fontSize: '1.25rem', fontWeight: '700', color: '#94a3b8'}}>
+                <div style={{fontSize: '1.25rem', fontWeight: '700', color: '#7dd3fc'}}>
                   속도 {totalSpeed}/{MAX_SPEED} · 선택 {selected.length}/{MAX_SUBMIT_CARDS}
                 </div>
                 {phase==='select' && (
@@ -1177,7 +1177,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
             <div style={{display: 'flex', gap: '12px', flexWrap: 'wrap', justifyContent: 'flex-end'}}>
               {phase==='select' && (
                 <button onClick={startResolve} disabled={selected.length===0} className="btn-enhanced btn-primary flex items-center gap-2">
-                  <Play size={20}/> 제출
+                  <Play size={18}/> 제출
                 </button>
               )}
               {phase==='respond' && (
@@ -1241,12 +1241,12 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                       <Icon size={60} className="text-white opacity-80"/>
                     </div>
                     <div className="card-footer">
-                      <div className="flex items-center justify-center gap-2 text-white text-sm font-bold">
+                      <div className="flex items-center justify-center gap-2 text-white text-lg font-bold">
                         {c.damage != null && c.damage > 0 && <span style={{color: '#fca5a5'}}>⚔️{c.damage}{c.hits?`×${c.hits}`:''}</span>}
                         {c.block != null && c.block > 0 && <span style={{color: '#93c5fd'}}>🛡️{c.block}</span>}
                         {c.counter !== undefined && <span style={{color: '#d8b4fe'}}>⚡{c.counter}</span>}
                       </div>
-                      <div style={{color: '#67e8f9', fontSize: '0.75rem', marginTop: '0.25rem'}}>⏱️{c.speedCost}</div>
+                      <div style={{color: '#67e8f9', fontSize: '1.125rem', marginTop: '0.25rem'}}>⏱️{c.speedCost}</div>
                     </div>
                   </button>
                 );
@@ -1270,12 +1270,12 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                         <Icon size={60} className="text-white opacity-80"/>
                       </div>
                       <div className="card-footer">
-                        <div className="flex items-center justify-center gap-2 text-white text-sm font-bold">
+                        <div className="flex items-center justify-center gap-2 text-white text-lg font-bold">
                           {c.damage && <span className="text-red-300">⚔️{c.damage}{c.hits?`×${c.hits}`:''}</span>}
                           {c.block && <span className="text-blue-300">🛡️{c.block}</span>}
                           {c.counter!==undefined && <span className="text-purple-300">⚡{c.counter}</span>}
                         </div>
-                        <div className="text-cyan-300 text-xs mt-1">⏱️{c.speedCost}</div>
+                        <div className="text-cyan-300 text-lg mt-1">⏱️{c.speedCost}</div>
                       </div>
                     </div>
                     <div style={{display: 'flex', gap: '8px'}}>
