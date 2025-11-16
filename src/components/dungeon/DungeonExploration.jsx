@@ -36,7 +36,7 @@ const generateObjects = (segmentType, segmentIndex, totalSegments) => {
           y: 500,
           interacted: false,
         });
-      } else if (type < 0.7) {
+      } else if (type < 0.85) {
         objects.push({
           id: `obj-${segmentIndex}-${i}`,
           type: OBJECT_TYPES.CURIO,
