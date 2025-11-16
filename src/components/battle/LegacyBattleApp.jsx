@@ -11,6 +11,7 @@ import {
 } from "./battleData";
 import { calculateEtherSlots, getCurrentSlotPts, getSlotProgress, getNextSlotCost } from "../../lib/etherUtils";
 import { CharacterSheet } from "../character/CharacterSheet";
+import { useGameStore } from "../../state/gameStore";
 
 const SPEED_TICKS = Array.from(
   { length: Math.floor(MAX_SPEED / 5) + 1 },
@@ -591,7 +592,11 @@ function drawCharacterBuildHand(characterBuild) {
 // =====================
 // Game Component
 // =====================
-function Game({ initialPlayer, initialEnemy, playerEther=0, characterBuild, hasCharacterBuild, onBattleResult }){
+function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
+  // 실시간으로 캐릭터 빌드 가져오기
+  const characterBuild = useGameStore((state) => state.characterBuild);
+  const hasCharacterBuild = characterBuild && (characterBuild.mainSpecials?.length > 0 || characterBuild.subSpecials?.length > 0);
+
   const safeInitialPlayer = initialPlayer || {};
   const safeInitialEnemy = initialEnemy || {};
   const baseEnergy = safeInitialPlayer.energy ?? BASE_PLAYER_ENERGY;
@@ -1400,13 +1405,11 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, characterBuild, hasC
   );
 }
 
-export const LegacyBattleApp = ({ initialPlayer, initialEnemy, playerEther, characterBuild, hasCharacterBuild, onBattleResult = () => {} }) => (
+export const LegacyBattleApp = ({ initialPlayer, initialEnemy, playerEther, onBattleResult = () => {} }) => (
   <Game
     initialPlayer={initialPlayer}
     initialEnemy={initialEnemy}
     playerEther={playerEther}
-    characterBuild={characterBuild}
-    hasCharacterBuild={hasCharacterBuild}
     onBattleResult={onBattleResult}
   />
 );

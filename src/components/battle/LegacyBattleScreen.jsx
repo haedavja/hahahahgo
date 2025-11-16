@@ -17,8 +17,6 @@ const buildBattlePayload = (battle, etherPts) => {
       name: battle.label ?? "Enemy",
       hp: initialEnemy?.hp ?? 30,
     },
-    characterBuild: battle.characterBuild,
-    hasCharacterBuild: battle.hasCharacterBuild,
   };
 };
 
@@ -60,8 +58,6 @@ export function LegacyBattleScreen() {
         initialPlayer={payload?.player}
         initialEnemy={payload?.enemy}
         playerEther={playerEther}
-        characterBuild={payload?.characterBuild}
-        hasCharacterBuild={payload?.hasCharacterBuild}
         onBattleResult={handleBattleResult}
       />
     </div>
