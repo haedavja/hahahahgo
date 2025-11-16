@@ -102,12 +102,12 @@ const friendlyPercent = (chance) => {
   return `${Math.round(chance * 100)}%`;
 };
 
-const PATCH_VERSION_TAG = "11-16-09:52"; // 다음 패치마다 여기를 최신 시간(월-일-시:분, KST)으로 갱신하세요.
+const PATCH_VERSION_TAG = "11-16-09:59"; // 다음 패치마다 여기를 최신 시간(월-일-시:분, KST)으로 갱신하세요.
 
-/* v11-16-09:52 갱신 내역
- * - 예상 피해량 창을 오른쪽 고정 패널로 변경 (position: fixed)
- * - 화면 하단까지 세로 길이 최대로 확장 (top: 0, bottom: 0)
- * - 별도 패널처럼 독립적으로 배치, 스크롤 가능
+/* v11-16-09:59 갱신 내역
+ * - 플레이어 HP를 상단으로 이동, 굵은 글씨로 강조
+ * - 몬스터 HP를 하단으로 이동, 옅은 붉은색으로 표시
+ * - 몬스터가 플레이어에게 가하는 로그는 옅은 붉은색으로 표시
  */
 
 export function MapDemo() {

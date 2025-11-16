@@ -404,12 +404,17 @@ function ExpectedDamagePreview({player, enemy, fixedOrder, willOverdrive, enemyM
     { icon:"🗡️", label:"플레이어 예상 가한 피해", value: res.pDealt, accent:"text-emerald-300" },
     { icon:"💥", label:"플레이어 피격 피해", value: phase === 'select' ? '?' : res.pTaken, accent:"text-rose-300" },
   ];
-  const hpLines = [
-    `플레이어 HP ${player.hp} → ${res.finalPHp}`,
-    `몬스터 HP ${enemy.hp} → ${res.finalEHp}`,
-  ];
+
   return (
     <div className="expect-board expect-board-vertical">
+      {/* 플레이어 HP - 상단, 굵게 */}
+      <div style={{marginBottom: '16px', paddingBottom: '16px', borderBottom: '1px solid rgba(148, 163, 184, 0.15)'}}>
+        <div style={{fontSize: '16px', fontWeight: 'bold', color: '#e2e8f0'}}>
+          플레이어 HP {player.hp} → {res.finalPHp}
+        </div>
+        {willOverdrive && <span className="expect-tag" style={{marginTop: '8px', display: 'inline-block'}}>기도 미리보기</span>}
+      </div>
+
       <div className="expect-summary-vertical">
         {summaryItems.map((item)=>(
           <div key={item.label} className="expect-item-vertical">
@@ -424,20 +429,27 @@ function ExpectedDamagePreview({player, enemy, fixedOrder, willOverdrive, enemyM
 
       {!!res.lines?.length && (
         <div className="expect-log-vertical">
-          {res.lines.map((line,idx)=>(
-            <div key={idx} style={{fontSize: '13px', color: '#cbd5e1', marginBottom: '6px'}}>
-              <span style={{color: '#94a3b8', marginRight: '4px'}}>{idx + 1}.</span>
-              {line}
-            </div>
-          ))}
+          {res.lines.map((line,idx)=>{
+            const isMonsterAttack = line.includes('몬스터') && (line.includes('플레이어') || line.includes('데미지') || line.includes('반격') || line.includes('관통'));
+            return (
+              <div key={idx} style={{
+                fontSize: '13px',
+                color: isMonsterAttack ? '#fca5a5' : '#cbd5e1',
+                marginBottom: '6px'
+              }}>
+                <span style={{color: '#94a3b8', marginRight: '4px'}}>{idx + 1}.</span>
+                {line}
+              </div>
+            );
+          })}
         </div>
       )}
 
-      <div className="expect-hp-vertical">
-        {hpLines.map((line)=>(
-          <div key={line}>{line}</div>
-        ))}
-        {willOverdrive && <span className="expect-tag">기도 미리보기</span>}
+      {/* 몬스터 HP - 하단, 옅은 붉은색 */}
+      <div style={{marginTop: '12px', paddingTop: '12px', borderTop: '1px solid rgba(148, 163, 184, 0.15)'}}>
+        <div style={{fontSize: '14px', color: '#fca5a5'}}>
+          몬스터 HP {enemy.hp} → {res.finalEHp}
+        </div>
       </div>
     </div>
   );
