@@ -38,10 +38,14 @@ body {
   color: #9da9d6;
 }
 .legend {
+  position: fixed;
+  right: 40px;
+  top: 140px;
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: 10px;
   font-size: 13px;
+  z-index: 60;
 }
 .legend span {
   padding: 6px 10px;
@@ -60,7 +64,7 @@ body {
 }
 .map-view {
   width: 100%;
-  height: calc(100vh - 20px);
+  height: 100vh;
   min-height: 1400px;
   overflow: auto;
   padding: 24px;
@@ -146,7 +150,7 @@ body {
 }
 .aether-column {
   position: fixed;
-  left: 292px;
+  left: 372px;
   top: 50%;
   transform: translateY(-50%);
   width: 72px;
