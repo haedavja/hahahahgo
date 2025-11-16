@@ -409,33 +409,31 @@ function ExpectedDamagePreview({player, enemy, fixedOrder, willOverdrive, enemyM
     `몬스터 HP ${enemy.hp} → ${res.finalEHp}`,
   ];
   return (
-    <div className="expect-board">
-      <div style={{display: 'flex', gap: '24px', alignItems: 'flex-start'}}>
-        <div className="expect-summary">
-          {summaryItems.map((item)=>(
-            <div key={item.label} className="expect-item">
-              <span className="expect-icon">{item.icon}</span>
-              <div>
-                <div className="expect-label">{item.label}</div>
-                <div className={`expect-value ${item.accent}`}>{item.value}</div>
-              </div>
+    <div className="expect-board expect-board-vertical">
+      <div className="expect-summary-vertical">
+        {summaryItems.map((item)=>(
+          <div key={item.label} className="expect-item-vertical">
+            <span className="expect-icon">{item.icon}</span>
+            <div>
+              <div className="expect-label">{item.label}</div>
+              <div className={`expect-value ${item.accent}`}>{item.value}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {!!res.lines?.length && (
+        <div className="expect-log-vertical">
+          {res.lines.map((line,idx)=>(
+            <div key={idx} style={{fontSize: '13px', color: '#cbd5e1', marginBottom: '6px'}}>
+              <span style={{color: '#94a3b8', marginRight: '4px'}}>{idx + 1}.</span>
+              {line}
             </div>
           ))}
         </div>
+      )}
 
-        {!!res.lines?.length && (
-          <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '8px', flex: 1}}>
-            {res.lines.map((line,idx)=>(
-              <div key={idx} style={{fontSize: '13px', color: '#cbd5e1'}}>
-                <span style={{color: '#94a3b8', marginRight: '4px'}}>{idx + 1}.</span>
-                {line}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      <div className="expect-hp">
+      <div className="expect-hp-vertical">
         {hpLines.map((line)=>(
           <div key={line}>{line}</div>
         ))}
@@ -923,80 +921,84 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
       {/* 상단 메인 영역 */}
       <div className="max-w-[1600px] mx-auto p-4">
 
-        {/* Timeline */}
-        <div className="panel-enhanced timeline-panel mb-6">
-          <div className="timeline-header">
-            <div className="text-white font-bold flex items-center gap-2">
-              <Clock size={20} className="text-cyan-400"/>
-              타임라인 (누적 속도) — {phase==='select'? '선택' : (phase==='respond'? '대응/예측' : (phase==='resolve' ? '진행' : '결과'))}
+        {/* Timeline + 예상 피해량 좌우 배치 */}
+        <div style={{display: 'flex', gap: '24px', alignItems: 'flex-start', marginBottom: '24px'}}>
+
+          {/* Timeline */}
+          <div className="panel-enhanced timeline-panel" style={{flex: 1}}>
+            <div className="timeline-header">
+              <div className="text-white font-bold flex items-center gap-2">
+                <Clock size={20} className="text-cyan-400"/>
+                타임라인 (누적 속도) — {phase==='select'? '선택' : (phase==='respond'? '대응/예측' : (phase==='resolve' ? '진행' : '결과'))}
+              </div>
+              <span className="text-xs text-slate-400 ml-2">(동률 시 플레이어 우선)</span>
             </div>
-            <span className="text-xs text-slate-400 ml-2">(동률 시 플레이어 우선)</span>
+
+            <div className="timeline-body">
+              <div className="timeline-axis">
+                {SPEED_TICKS.map((tick)=>(
+                  <span key={tick}>{tick}</span>
+                ))}
+              </div>
+              <div className="timeline-lanes">
+                <div className="timeline-lane player-lane">
+                  {Array.from({length: MAX_SPEED + 1}).map((_,i)=>(
+                    <div key={i} className="timeline-gridline" style={{left:`${(i/MAX_SPEED)*100}%`}} />
+                  ))}
+                  {playerTimeline.map((a,idx)=>{
+                    const Icon = a.card.icon || Sword;
+                    const sameCount = playerTimeline.filter((q,i)=>i<idx && q.sp===a.sp).length;
+                    const offset = sameCount*28;
+                    const num = a.card.type==='attack' ? (a.card.damage*(a.card.hits||1)) : (a.card.block || 0);
+                    return (
+                      <div key={idx}
+                           className="timeline-marker marker-player"
+                           style={{left:`${(a.sp/MAX_SPEED)*100}%`, top:`${6+offset}px`}}>
+                        <Icon size={14} className="text-white"/>
+                        <span className="text-white text-xs font-bold">{num>0?num:''}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="timeline-lane enemy-lane">
+                  {Array.from({length: MAX_SPEED + 1}).map((_,i)=>(
+                    <div key={i} className="timeline-gridline" style={{left:`${(i/MAX_SPEED)*100}%`}} />
+                  ))}
+                  {enemyTimeline.map((a,idx)=>{
+                    const Icon = a.card.icon || Shield;
+                    const sameCount = enemyTimeline.filter((q,i)=>i<idx && q.sp===a.sp).length;
+                    const offset = sameCount*28;
+                    const num = a.card.type==='attack' ? (a.card.damage*(a.card.hits||1)) : (a.card.block || 0);
+                    return (
+                      <div key={idx}
+                           className="timeline-marker marker-enemy"
+                           style={{left:`${(a.sp/MAX_SPEED)*100}%`, top:`${6+offset}px`}}>
+                        <Icon size={14} className="text-white"/>
+                        <span className="text-white text-xs font-bold">{num>0?num:''}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
           </div>
 
-          <div className="timeline-body">
-            <div className="timeline-axis">
-              {SPEED_TICKS.map((tick)=>(
-                <span key={tick}>{tick}</span>
-              ))}
+          {/* 예상 피해량 - 오른쪽 세로 배치 */}
+          {(phase==='respond' || phase==='select') && (
+            <div style={{width: '300px', flexShrink: 0}}>
+              <ExpectedDamagePreview
+                player={player}
+                enemy={enemy}
+                fixedOrder={fixedOrder||playerTimeline}
+                willOverdrive={willOverdrive}
+                enemyMode={enemyPlan.mode}
+                enemyActions={enemyPlan.actions}
+                phase={phase}
+              />
             </div>
-            <div className="timeline-lanes">
-              <div className="timeline-lane player-lane">
-                {Array.from({length: MAX_SPEED + 1}).map((_,i)=>(
-                  <div key={i} className="timeline-gridline" style={{left:`${(i/MAX_SPEED)*100}%`}} />
-                ))}
-                {playerTimeline.map((a,idx)=>{
-                  const Icon = a.card.icon || Sword;
-                  const sameCount = playerTimeline.filter((q,i)=>i<idx && q.sp===a.sp).length;
-                  const offset = sameCount*28;
-                  const num = a.card.type==='attack' ? (a.card.damage*(a.card.hits||1)) : (a.card.block || 0);
-                  return (
-                    <div key={idx}
-                         className="timeline-marker marker-player"
-                         style={{left:`${(a.sp/MAX_SPEED)*100}%`, top:`${6+offset}px`}}>
-                      <Icon size={14} className="text-white"/>
-                      <span className="text-white text-xs font-bold">{num>0?num:''}</span>
-                    </div>
-                  );
-                })}
-              </div>
-
-              <div className="timeline-lane enemy-lane">
-                {Array.from({length: MAX_SPEED + 1}).map((_,i)=>(
-                  <div key={i} className="timeline-gridline" style={{left:`${(i/MAX_SPEED)*100}%`}} />
-                ))}
-                {enemyTimeline.map((a,idx)=>{
-                  const Icon = a.card.icon || Shield;
-                  const sameCount = enemyTimeline.filter((q,i)=>i<idx && q.sp===a.sp).length;
-                  const offset = sameCount*28;
-                  const num = a.card.type==='attack' ? (a.card.damage*(a.card.hits||1)) : (a.card.block || 0);
-                  return (
-                    <div key={idx}
-                         className="timeline-marker marker-enemy"
-                         style={{left:`${(a.sp/MAX_SPEED)*100}%`, top:`${6+offset}px`}}>
-                      <Icon size={14} className="text-white"/>
-                      <span className="text-white text-xs font-bold">{num>0?num:''}</span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
+          )}
         </div>
-
-        {/* 예상 피해량 - 타임라인 중앙 하단 */}
-        {(phase==='respond' || phase==='select') && (
-          <div className="preview-wrapper">
-            <ExpectedDamagePreview
-              player={player}
-              enemy={enemy}
-              fixedOrder={fixedOrder||playerTimeline}
-              willOverdrive={willOverdrive}
-              enemyMode={enemyPlan.mode}
-              enemyActions={enemyPlan.actions}
-              phase={phase}
-            />
-          </div>
-        )}
 
         <div className="battle-shell">
           <div className="battle-main">
