@@ -1,9 +1,13 @@
 ﻿import { create } from "zustand";
 import { eventLibrary } from "../data/events";
 import { createInitialState } from "./useGameState";
-import { PLAYER_STARTER_DECK, ENEMY_DECKS } from "../data/cards";
+import { ENEMY_DECKS } from "../data/cards";
+import { CARDS } from "../components/battle/battleData";
 import { drawHand, buildSpeedTimeline } from "../lib/speedQueue";
 import { simulateBattle, pickOutcome } from "../lib/battleResolver";
+
+// 전투에서 사용되는 카드 8종의 ID 배열
+const BATTLE_CARDS = CARDS.slice(0, 8).map(card => card.id);
 
 const EVENT_KEYS = Object.keys(eventLibrary);
 const BATTLE_TYPES = new Set(["battle", "elite", "boss", "dungeon"]);
@@ -133,7 +137,7 @@ const createBattlePayload = (node, characterBuild) => {
 
   const playerLibrary = hasCharacterBuild
     ? [...characterBuild.mainSpecials, ...characterBuild.subSpecials]
-    : [...PLAYER_STARTER_DECK];
+    : [...BATTLE_CARDS];
 
   const enemyLibrary = [...resolveEnemyDeck(node.type)];
   const playerDrawPile = hasCharacterBuild ? [] : [...playerLibrary]; // 캐릭터 빌드 사용 시 드로우 파일 사용 안 함

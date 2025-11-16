@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useGameStore } from "../../state/gameStore";
-import { PLAYER_STARTER_DECK, CARD_LIBRARY } from "../../data/cards";
+import { CARDS } from "../battle/battleData";
 
 const baseStats = {
   hp: { current: 30, max: 30 },
@@ -9,22 +9,16 @@ const baseStats = {
   power: 0,
 };
 
-// PLAYER_STARTER_DECK에서 고유한 카드만 추출하고 CARD_LIBRARY에 구현된 카드만 사용
-const uniqueCardIds = [...new Set(PLAYER_STARTER_DECK)];
-const availableCards = uniqueCardIds
-  .filter((cardId) => CARD_LIBRARY[cardId]) // CARD_LIBRARY에 존재하는 카드만
-  .map((cardId, index) => {
-    const card = CARD_LIBRARY[cardId];
-    return {
-      id: cardId,
-      slot: index + 1,
-      name: card.name,
-      type: card.type,
-      speed: card.speedCost,
-      ap: card.actionCost,
-      desc: card.description,
-    };
-  });
+// 전투에서 사용되는 카드 8종 (CARDS.slice(0, 8))
+const availableCards = CARDS.slice(0, 8).map((card, index) => ({
+  id: card.id,
+  slot: index + 1,
+  name: card.name,
+  type: card.type,
+  speed: card.speedCost,
+  ap: card.actionCost,
+  desc: `${card.damage ? `공격력 ${card.damage}${card.hits ? ` x${card.hits}` : ''}` : ''}${card.block ? `방어력 ${card.block}` : ''}${card.counter !== undefined ? ` 반격 ${card.counter}` : ''}`,
+}));
 
 export function CharacterSheet({ onClose }) {
   const characterBuild = useGameStore((state) => state.characterBuild);
