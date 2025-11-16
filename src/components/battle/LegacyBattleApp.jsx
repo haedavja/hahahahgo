@@ -424,7 +424,7 @@ function ExpectedDamagePreview({player, enemy, fixedOrder, willOverdrive, enemyM
         <div style={{fontSize: '16px', fontWeight: 'bold', color: '#e2e8f0', marginBottom: '8px'}}>
           플레이어 HP {player.hp} → {res.finalPHp}
         </div>
-        <div style={{fontSize: '14px', color: '#fca5a5'}}>
+        <div style={{fontSize: '16px', fontWeight: 'bold', color: '#fca5a5'}}>
           몬스터 HP {enemy.hp} → {res.finalEHp}
         </div>
         {willOverdrive && <span className="expect-tag" style={{marginTop: '8px', display: 'inline-block'}}>기도 미리보기</span>}

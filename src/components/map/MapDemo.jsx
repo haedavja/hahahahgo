@@ -102,12 +102,13 @@ const friendlyPercent = (chance) => {
   return `${Math.round(chance * 100)}%`;
 };
 
-const PATCH_VERSION_TAG = "11-16-10:46"; // 다음 패치마다 여기를 최신 시간(월-일-시:분, KST)으로 갱신하세요.
+const PATCH_VERSION_TAG = "11-16-10:51"; // 다음 패치마다 여기를 최신 시간(월-일-시:분, KST)으로 갱신하세요.
 
-/* v11-16-10:46 갱신 내역
- * - 레이아웃 순서 변경: Summary → HP (플레이어, 몬스터) → Logs
- * - HP 정보 통합: 플레이어 HP와 몬스터 HP를 Summary 하단에 함께 배치
- * - 로그 색상 단순화: 몬스터 행동은 모두 붉은색, 플레이어 행동은 흰색
+/* v11-16-10:51 갱신 내역
+ * - HP 글자 크기 통일: 몬스터 HP 14px → 16px (플레이어와 동일)
+ * - 손패 인터페이스 대폭 축소: padding, 제목 크기, 간격 등 모두 축소
+ * - 손패 투명도 증가: 0.75 → 0.5 (더 투명하게)
+ * - 손패 위치 조정: right: 340px (예상 피해량 창과 안 겹치게)
  */
 
 export function MapDemo() {
