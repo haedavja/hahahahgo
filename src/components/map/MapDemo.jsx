@@ -102,13 +102,14 @@ const friendlyPercent = (chance) => {
   return `${Math.round(chance * 100)}%`;
 };
 
-const PATCH_VERSION_TAG = "11-16-10:57"; // 다음 패치마다 여기를 최신 시간(월-일-시:분, KST)으로 갱신하세요.
+const PATCH_VERSION_TAG = "11-16-11:07"; // 다음 패치마다 여기를 최신 시간(월-일-시:분, KST)으로 갱신하세요.
 
-/* v11-16-10:57 갱신 내역
- * - 손패 완전 투명화: background transparent, 테두리/그림자 제거
- * - 카드 헤더 위치 조정: margin-top 72px → 8px (위로 이동)
- * - 카드 아이콘 영역 개선: flex: 1, 공간 균등 배분
- * - 카드 공격력/방어력 정보가 잘 보이도록 레이아웃 개선
+/* v11-16-11:07 갱신 내역
+ * - 손패 인터페이스 높이 추가 축소
+ * - padding: 12px 16px → 6px 12px (50% 축소)
+ * - 제목 크기: 1.5rem → 1rem (33% 축소)
+ * - 콤보 높이: 40px → 28px (30% 축소)
+ * - 전체 높이 약 13% 감소
  */
 
 export function MapDemo() {
