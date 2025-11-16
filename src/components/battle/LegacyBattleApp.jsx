@@ -419,10 +419,7 @@ function ExpectedDamagePreview({player, enemy, fixedOrder, willOverdrive, enemyM
     <div className="expect-board expect-board-vertical">
       {/* 타이틀 */}
       <div style={{marginBottom: '16px', paddingBottom: '12px', borderBottom: '2px solid rgba(148, 163, 184, 0.3)'}}>
-        <div style={{fontSize: '24px', fontWeight: 'bold', color: '#f8fafc', marginBottom: '4px'}}>
-          {phaseLabel}
-        </div>
-        <div style={{fontSize: '14px', color: '#94a3b8'}}>
+        <div style={{fontSize: '18px', fontWeight: 'bold', color: '#f8fafc'}}>
           예상 피해량
         </div>
       </div>
