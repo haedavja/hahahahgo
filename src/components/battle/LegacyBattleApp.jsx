@@ -1244,11 +1244,11 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                     </div>
                     <div className="card-footer">
                       <div className="flex items-center justify-center gap-2 text-white text-sm font-bold">
-                        {c.damage && <span className="text-red-300">⚔️{c.damage}{c.hits?`×${c.hits}`:''}</span>}
-                        {c.block && <span className="text-blue-300">🛡️{c.block}</span>}
-                        {c.counter!==undefined && <span className="text-purple-300">⚡{c.counter}</span>}
+                        {c.damage != null && c.damage > 0 && <span style={{color: '#fca5a5'}}>⚔️{c.damage}{c.hits?`×${c.hits}`:''}</span>}
+                        {c.block != null && c.block > 0 && <span style={{color: '#93c5fd'}}>🛡️{c.block}</span>}
+                        {c.counter !== undefined && <span style={{color: '#d8b4fe'}}>⚡{c.counter}</span>}
                       </div>
-                      <div className="text-cyan-300 text-xs mt-1">⏱️{c.speedCost}</div>
+                      <div style={{color: '#67e8f9', fontSize: '0.75rem', marginTop: '0.25rem'}}>⏱️{c.speedCost}</div>
                     </div>
                   </button>
                 );
