@@ -244,6 +244,36 @@ export const useGameStore = create((set, get) => ({
   skipDungeon: () =>
     set((state) => (state.activeDungeon ? { ...state, activeDungeon: null } : state)),
 
+  completeDungeon: () =>
+    set((state) => {
+      if (!state.activeDungeon) return state;
+      const nodeId = state.activeDungeon.nodeId;
+      const nodes = cloneNodes(state.map.nodes);
+      const dungeonNode = nodes.find((n) => n.id === nodeId);
+
+      if (!dungeonNode) return { ...state, activeDungeon: null };
+
+      // 던전 노드 클리어
+      dungeonNode.cleared = true;
+
+      // 다른 노드들 선택 불가로 설정
+      nodes.forEach((node) => {
+        if (!node.cleared) node.selectable = false;
+      });
+
+      // 연결된 다음 노드들 선택 가능하게
+      dungeonNode.connections.forEach((id) => {
+        const nextNode = nodes.find((n) => n.id === id);
+        if (nextNode && !nextNode.cleared) nextNode.selectable = true;
+      });
+
+      return {
+        ...state,
+        map: { ...state.map, nodes, currentNodeId: dungeonNode.id },
+        activeDungeon: null,
+      };
+    }),
+
   revealDungeonInfo: () =>
     set((state) => {
       if (!state.activeDungeon || state.activeDungeon.revealed) return state;

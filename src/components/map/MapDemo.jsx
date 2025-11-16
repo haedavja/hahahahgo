@@ -3,6 +3,7 @@ import { useGameStore } from "../../state/gameStore";
 import { calculateEtherSlots, getCurrentSlotPts, getSlotProgress, getNextSlotCost } from "../../lib/etherUtils";
 import { CharacterSheet } from "../character/CharacterSheet";
 import { DungeonExploration } from "../dungeon/DungeonExploration";
+import { LegacyBattleScreen } from "../battle/LegacyBattleScreen";
 
 const NODE_WIDTH = 96;
 const NODE_HEIGHT = 100;
@@ -120,6 +121,7 @@ export function MapDemo() {
   const resources = useGameStore((state) => state.resources);
   const mapRisk = useGameStore((state) => state.mapRisk);
   const activeEvent = useGameStore((state) => state.activeEvent);
+  const activeBattle = useGameStore((state) => state.activeBattle);
   const activeDungeon = useGameStore((state) => state.activeDungeon);
   const lastBattleResult = useGameStore((state) => state.lastBattleResult);
   const selectNode = useGameStore((state) => state.selectNode);
@@ -385,6 +387,8 @@ export function MapDemo() {
           </div>
         </div>
       )}
+
+      {activeBattle && <LegacyBattleScreen />}
 
       {activeDungeon && <DungeonExploration />}
 

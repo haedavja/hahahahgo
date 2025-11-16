@@ -210,11 +210,12 @@ function EtherBar({ pts, color = "cyan", label }) {
 
 export function DungeonExploration() {
   const skipDungeon = useGameStore((state) => state.skipDungeon);
+  const completeDungeon = useGameStore((state) => state.completeDungeon);
   const startBattle = useGameStore((state) => state.startBattle);
   const applyEtherDelta = useGameStore((state) => state.applyEtherDelta);
   const etherPts = useGameStore((state) => state.resources.etherPts || 0);
 
-  const [dungeon] = useState(() => generateDungeon());
+  const [dungeon, setDungeon] = useState(() => generateDungeon());
   const [currentSegmentIndex, setCurrentSegmentIndex] = useState(0);
   const [player, setPlayer] = useState({ x: 100 });
   const [keys, setKeys] = useState({});
@@ -304,14 +305,17 @@ export function DungeonExploration() {
 
     if (!nearbyObject) return;
 
-    // 오브젝트 상호작용 처리
-    const updatedSegment = {
-      ...currentSegment,
-      objects: currentSegment.objects.map((obj) =>
-        obj.id === nearbyObject.id ? { ...obj, interacted: true } : obj
-      ),
-    };
-    dungeon[currentSegmentIndex] = updatedSegment;
+    // 오브젝트 상호작용 처리 (불변성 유지)
+    setDungeon((prevDungeon) => {
+      const newDungeon = [...prevDungeon];
+      newDungeon[currentSegmentIndex] = {
+        ...newDungeon[currentSegmentIndex],
+        objects: newDungeon[currentSegmentIndex].objects.map((obj) =>
+          obj.id === nearbyObject.id ? { ...obj, interacted: true } : obj
+        ),
+      };
+      return newDungeon;
+    });
 
     switch (nearbyObject.type) {
       case OBJECT_TYPES.CHEST:
@@ -370,7 +374,7 @@ export function DungeonExploration() {
         setMessage("던전 탈출 성공!");
         setTimeout(() => {
           applyEtherDelta(5); // 완료 보너스 (+5)
-          skipDungeon(); // 맵으로 복귀
+          completeDungeon(); // 던전 클리어 + 다음 노드 활성화
         }, 1500);
         break;
     }
