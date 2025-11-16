@@ -1,6 +1,7 @@
 ﻿import { useEffect, useMemo, useRef } from "react";
 import { useGameStore } from "../../state/gameStore";
 import { calculateEtherSlots, getCurrentSlotPts, getSlotProgress, getNextSlotCost } from "../../lib/etherUtils";
+import { DungeonExploration } from "../dungeon/DungeonExploration";
 
 const NODE_WIDTH = 96;
 const NODE_HEIGHT = 100;
@@ -102,7 +103,7 @@ const friendlyPercent = (chance) => {
   return `${Math.round(chance * 100)}%`;
 };
 
-const PATCH_VERSION_TAG = "11-16-19:35"; // 다음 패치마다 여기를 최신 시간(월-일-시:분, KST)으로 갱신하세요.
+const PATCH_VERSION_TAG = "11-16-20:00"; // 다음 패치마다 여기를 최신 시간(월-일-시:분, KST)으로 갱신하세요.
 
 /* v11-16-14:45 갱신 내역
  * - 카드 스탯 폰트 크기 일원화 및 확대:
@@ -124,9 +125,6 @@ export function MapDemo() {
   const chooseEvent = useGameStore((state) => state.chooseEvent);
   const closeEvent = useGameStore((state) => state.closeEvent);
   const invokePrayer = useGameStore((state) => state.invokePrayer);
-  const enterDungeon = useGameStore((state) => state.enterDungeon);
-  const skipDungeon = useGameStore((state) => state.skipDungeon);
-  const revealDungeonInfo = useGameStore((state) => state.revealDungeonInfo);
   const clearBattleResult = useGameStore((state) => state.clearBattleResult);
 
   const nodes = map?.nodes ?? [];
@@ -161,10 +159,6 @@ export function MapDemo() {
     [nodes],
   );
 
-  const activeDungeonNode = useMemo(() => {
-    if (!activeDungeon) return null;
-    return nodes.find((node) => node.id === activeDungeon.nodeId) ?? null;
-  }, [activeDungeon, nodes]);
 
   useEffect(() => {
     if (!mapViewRef.current || !map?.currentNodeId) return;
@@ -376,41 +370,7 @@ export function MapDemo() {
         </div>
       )}
 
-      {activeDungeon && (
-        <div className="dungeon-modal-overlay">
-          <div className="dungeon-modal">
-            <h3>던전 경고</h3>
-            <p className="dungeon-warning">이곳에서는 짙은 죽음의 냄새가 납니다. 던전은 입장은 자유롭지만 나가는 것은 어렵습니다.</p>
-            <p className="dungeon-warning">던전에서 원정이 실패로 끝날 수 있음을 명심하세요.</p>
-
-            <div className="dungeon-info">
-              <strong>규모 · 유형</strong>
-              {activeDungeon.revealed ? (
-                <>
-                  <p>규모: {activeDungeonNode?.dungeonData?.size ?? "미확인"}</p>
-                  <p>유형: {activeDungeonNode?.dungeonData?.type ?? "미확인"}</p>
-                </>
-              ) : (
-                <>
-                  <p>정보를 지불하면 구조를 파악할 수 있습니다.</p>
-                  <button type="button" onClick={revealDungeonInfo} disabled={(resources.intel ?? 0) < 2}>
-                    정보 해금 (정보 2)
-                  </button>
-                </>
-              )}
-            </div>
-
-            <div className="dungeon-actions">
-              <button type="button" className="skip" onClick={skipDungeon}>
-                그냥 지나친다
-              </button>
-              <button type="button" className="enter" onClick={enterDungeon}>
-                입장한다
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {activeDungeon && <DungeonExploration />}
 
       {lastBattleResult && (
         <div className="battle-modal-overlay">
