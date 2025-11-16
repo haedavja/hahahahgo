@@ -104,7 +104,7 @@ const friendlyPercent = (chance) => {
   return `${Math.round(chance * 100)}%`;
 };
 
-const PATCH_VERSION_TAG = "11-16-23:16"; // 다음 패치마다 여기를 최신 시간(월-일-시:분, KST)으로 갱신하세요.
+const PATCH_VERSION_TAG = "11-16-23:20"; // 다음 패치마다 여기를 최신 시간(월-일-시:분, KST)으로 갱신하세요.
 
 /* v11-16-14:45 갱신 내역
  * - 카드 스탯 폰트 크기 일원화 및 확대:
@@ -195,12 +195,6 @@ export function MapDemo() {
     selectNode(node.id);
   };
 
-  const asideItems = [
-    "조합 감지 결과 로그에 '>>> 반환된 조합' 필드 추가",
-    "선택 단계 vs 대응 단계 조합 차이 디버깅",
-    "브라우저 캐시 문제 해결을 위한 버전 강제 업데이트",
-  ];
-
   return (
     <div className="app-shell">
       <header>
@@ -255,18 +249,6 @@ export function MapDemo() {
           </div>
         </div>
       </div>
-
-      <aside className="legacy-pane">
-        <div className="legacy-pane-header">
-          <strong className="version-badge" style={{ fontSize: "1.55rem" }}>{PATCH_VERSION_TAG}</strong>
-          <button type="button">문서 링크</button>
-        </div>
-        <ol>
-          {asideItems.map((item) => (
-            <li key={item}>{item}</li>
-          ))}
-        </ol>
-      </aside>
 
       <div className="resource-hud">
         {Object.entries(resources)
