@@ -24,11 +24,11 @@ const BATTLE_LABEL = {
   dungeon: "?섏쟾",
 };
 const BATTLE_STATS = {
-  battle: { player: { hp: 60, block: 0 }, enemy: { hp: 40, block: 0 } },
-  elite: { player: { hp: 65, block: 0 }, enemy: { hp: 55, block: 0 } },
-  boss: { player: { hp: 70, block: 0 }, enemy: { hp: 80, block: 0 } },
-  dungeon: { player: { hp: 60, block: 0 }, enemy: { hp: 60, block: 0 } },
-  default: { player: { hp: 60, block: 0 }, enemy: { hp: 40, block: 0 } },
+  battle: { player: { hp: 100, block: 0 }, enemy: { hp: 40, block: 0 } },
+  elite: { player: { hp: 100, block: 0 }, enemy: { hp: 55, block: 0 } },
+  boss: { player: { hp: 100, block: 0 }, enemy: { hp: 80, block: 0 } },
+  dungeon: { player: { hp: 100, block: 0 }, enemy: { hp: 60, block: 0 } },
+  default: { player: { hp: 100, block: 0 }, enemy: { hp: 40, block: 0 } },
 };
 const MAX_PLAYER_SELECTION = 3;
 

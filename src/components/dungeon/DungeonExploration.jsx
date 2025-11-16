@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useGameStore } from "../../state/gameStore";
 import { calculateEtherSlots, getCurrentSlotPts, getSlotProgress, getNextSlotCost } from "../../lib/etherUtils";
+import { CharacterSheet } from "../character/CharacterSheet";
 import "./dungeon.css";
 
 // 던전 세그먼트 타입
@@ -237,6 +238,7 @@ export function DungeonExploration() {
   const [cameraX, setCameraX] = useState(0);
   const [message, setMessage] = useState(null);
   const [dungeonBattleReward, setDungeonBattleReward] = useState(null);
+  const [showCharacterSheet, setShowCharacterSheet] = useState(false);
 
   const canvasRef = useRef(null);
   const animationRef = useRef(null);
@@ -258,6 +260,10 @@ export function DungeonExploration() {
       if (e.key === "w" || e.key === "W") {
         e.preventDefault();
         handleInteraction();
+      }
+      if (e.key === "c" || e.key === "C") {
+        e.preventDefault();
+        setShowCharacterSheet((prev) => !prev);
       }
     };
 
@@ -651,6 +657,8 @@ export function DungeonExploration() {
           </div>
         </div>
       )}
+
+      {showCharacterSheet && <CharacterSheet onClose={() => setShowCharacterSheet(false)} />}
     </div>
   );
 }

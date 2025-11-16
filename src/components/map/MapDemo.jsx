@@ -1,6 +1,7 @@
-﻿import { useEffect, useMemo, useRef } from "react";
+﻿import { useEffect, useMemo, useRef, useState } from "react";
 import { useGameStore } from "../../state/gameStore";
 import { calculateEtherSlots, getCurrentSlotPts, getSlotProgress, getNextSlotCost } from "../../lib/etherUtils";
+import { CharacterSheet } from "../character/CharacterSheet";
 import { DungeonExploration } from "../dungeon/DungeonExploration";
 import { LegacyBattleScreen } from "../battle/LegacyBattleScreen";
 
@@ -104,7 +105,7 @@ const friendlyPercent = (chance) => {
   return `${Math.round(chance * 100)}%`;
 };
 
-const PATCH_VERSION_TAG = "11-16-23:39"; // 다음 패치마다 여기를 최신 시간(월-일-시:분, KST)으로 갱신하세요.
+const PATCH_VERSION_TAG = "11-17-08:31"; // 다음 패치마다 여기를 최신 시간(월-일-시:분, KST)으로 갱신하세요.
 
 /* v11-16-14:45 갱신 내역
  * - 카드 스탯 폰트 크기 일원화 및 확대:
@@ -131,6 +132,8 @@ export function MapDemo() {
   const skipDungeon = useGameStore((state) => state.skipDungeon);
   const confirmDungeon = useGameStore((state) => state.confirmDungeon);
   const bypassDungeon = useGameStore((state) => state.bypassDungeon);
+
+  const [showCharacterSheet, setShowCharacterSheet] = useState(false);
 
   const nodes = map?.nodes ?? [];
   const mapViewRef = useRef(null);
@@ -184,6 +187,17 @@ export function MapDemo() {
       behavior: "smooth",
     });
   }, [map?.currentNodeId]);
+
+  // C 키로 캐릭터 창 열기
+  useEffect(() => {
+    const handleKeyPress = (e) => {
+      if (e.key === "c" || e.key === "C") {
+        setShowCharacterSheet((prev) => !prev);
+      }
+    };
+    window.addEventListener("keydown", handleKeyPress);
+    return () => window.removeEventListener("keydown", handleKeyPress);
+  }, []);
 
   const availablePrayers = useMemo(
     () => PRAYER_COSTS.filter((cost) => (resources.etherPts ?? 0) >= cost),
@@ -418,6 +432,8 @@ export function MapDemo() {
           </div>
         </div>
       )}
+
+      {showCharacterSheet && <CharacterSheet onClose={() => setShowCharacterSheet(false)} />}
     </div>
   );
 }
