@@ -102,13 +102,13 @@ const friendlyPercent = (chance) => {
   return `${Math.round(chance * 100)}%`;
 };
 
-const PATCH_VERSION_TAG = "11-16-14:10"; // 다음 패치마다 여기를 최신 시간(월-일-시:분, KST)으로 갱신하세요.
+const PATCH_VERSION_TAG = "11-16-14:15"; // 다음 패치마다 여기를 최신 시간(월-일-시:분, KST)으로 갱신하세요.
 
-/* v11-16-14:10 갱신 내역
- * - 손패 텍스트 제거: "손패" 라벨 삭제
- * - 컴팩트 에너지 구체 추가: 노란색 에너지 구체(50px)로 남은 에너지 표시
- * - 손패 인터페이스 높이 추가 축소: padding 추가 33% 감소 (3px -> 2px)
- * - hand-area 및 hand-cards padding 모두 2px로 축소
+/* v11-16-14:15 갱신 내역
+ * - 에너지 구체 크기 2배 증가: 50px → 100px (폰트 18px → 36px)
+ * - 전투 화면 마우스 스크롤 비활성화: wheel 이벤트 차단으로 스크롤 방지
+ * - 에너지 구체 테두리 강화: 2px → 3px
+ * - 에너지 구체 그림자 효과 증가
  */
 
 export function MapDemo() {

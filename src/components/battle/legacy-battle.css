@@ -802,18 +802,18 @@ body {
 }
 
 .energy-orb-compact {
-  width: 50px;
-  height: 50px;
+  width: 100px;
+  height: 100px;
   border-radius: 999px;
   background: radial-gradient(circle at 30% 30%, #ffe066, #f59e0b);
-  border: 2px solid rgba(255, 255, 255, 0.8);
+  border: 3px solid rgba(255, 255, 255, 0.8);
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 900;
-  font-size: 18px;
+  font-size: 36px;
   color: #09090c;
-  box-shadow: 0 6px 20px rgba(249, 115, 22, 0.4);
+  box-shadow: 0 8px 30px rgba(249, 115, 22, 0.5);
   flex-shrink: 0;
 }
 
