@@ -16,11 +16,11 @@ body {
 }
 #root {
   min-height: 100vh;
-  padding: 32px;
+  padding: 0px 32px 32px 32px;
 }
 .app-shell {
   max-width: 1080px;
-  margin: 0 auto;
+  margin: -48px auto 0 auto;
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -39,8 +39,8 @@ body {
 }
 .legend {
   position: fixed;
-  right: 40px;
-  top: 140px;
+  right: 140px;
+  top: 190px;
   display: flex;
   flex-direction: column;
   gap: 10px;
