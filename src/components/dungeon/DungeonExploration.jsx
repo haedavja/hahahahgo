@@ -225,7 +225,7 @@ export function DungeonExploration() {
   const animationRef = useRef(null);
 
   const currentSegment = dungeon[currentSegmentIndex];
-  const VIEWPORT_WIDTH = 1200;
+  const VIEWPORT_WIDTH = 1600;
   const VIEWPORT_HEIGHT = 600;
   const PLAYER_SPEED = 250;
   const PLAYER_SIZE = 40;
@@ -238,7 +238,7 @@ export function DungeonExploration() {
         e.preventDefault();
         setKeys((prev) => ({ ...prev, [e.key.toLowerCase()]: true }));
       }
-      if (e.key === "e" || e.key === "E") {
+      if (e.key === "w" || e.key === "W") {
         e.preventDefault();
         handleInteraction();
       }
@@ -315,22 +315,22 @@ export function DungeonExploration() {
 
     switch (nearbyObject.type) {
       case OBJECT_TYPES.CHEST:
-        const chestEther = -(1 + Math.floor(Math.random() * 3)); // -1 ~ -3
+        const chestEther = 1 + Math.floor(Math.random() * 3); // +1 ~ +3 (긍정적)
         applyEtherDelta(chestEther);
-        setMessage(`보물상자를 열었다! 에테르 ${-chestEther} 감소`);
+        setMessage(`보물상자를 열었다! 에테르 +${chestEther} 증가`);
         setTimeout(() => setMessage(null), 2000);
         break;
 
       case OBJECT_TYPES.CURIO:
         const isPositive = Math.random() < 0.5;
         const curioEther = isPositive
-          ? -(1 + Math.floor(Math.random() * 4)) // -1 ~ -4 (긍정)
-          : (2 + Math.floor(Math.random() * 4)); // +2 ~ +5 (부정)
+          ? (1 + Math.floor(Math.random() * 4)) // +1 ~ +4 (긍정)
+          : -(2 + Math.floor(Math.random() * 4)); // -2 ~ -5 (부정)
         applyEtherDelta(curioEther);
         setMessage(
           isPositive
-            ? `축복받은 아티팩트! 에테르 ${-curioEther} 감소`
-            : `저주받은 물건... 에테르 +${curioEther} 증가`
+            ? `축복받은 아티팩트! 에테르 +${curioEther} 증가`
+            : `저주받은 물건... 에테르 ${curioEther} 감소`
         );
         setTimeout(() => setMessage(null), 2000);
         break;
@@ -367,10 +367,10 @@ export function DungeonExploration() {
         break;
 
       case "exit":
-        setMessage("던전을 탈출했다!");
+        setMessage("던전 탈출 성공!");
         setTimeout(() => {
-          applyEtherDelta(-5); // 완료 보너스
-          skipDungeon();
+          applyEtherDelta(5); // 완료 보너스 (+5)
+          skipDungeon(); // 맵으로 복귀
         }, 1500);
         break;
     }
@@ -454,8 +454,8 @@ export function DungeonExploration() {
 
   return (
     <div className="dungeon-fullscreen">
-      {/* 왼쪽 에테르 바 - 더 아래로 */}
-      <div style={{ position: "absolute", top: "120px", left: "30px", zIndex: 1001 }}>
+      {/* 왼쪽 에테르 바 - 100px 더 아래로 */}
+      <div style={{ position: "absolute", top: "220px", left: "30px", zIndex: 1001 }}>
         <EtherBar pts={etherPts} color="cyan" label="ETHER" />
       </div>
 
@@ -465,7 +465,7 @@ export function DungeonExploration() {
           <div style={{ fontSize: "18px", fontWeight: "bold", color: "#fff" }}>
             구역 {currentSegmentIndex + 1} / {dungeon.length}
           </div>
-          <div style={{ fontSize: "12px", opacity: 0.7, marginTop: "4px" }}>A/D: 좌우 이동 | E: 상호작용</div>
+          <div style={{ fontSize: "12px", opacity: 0.7, marginTop: "4px" }}>A/D: 좌우 이동 | W: 상호작용</div>
         </div>
       </div>
 
