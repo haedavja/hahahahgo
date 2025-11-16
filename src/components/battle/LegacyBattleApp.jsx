@@ -454,12 +454,13 @@ function ExpectedDamagePreview({player, enemy, fixedOrder, willOverdrive, enemyM
       {phase !== 'resolve' && !!res.lines?.length && (
         <div style={{marginTop: '20px', paddingTop: '16px', borderTop: '1px solid rgba(148, 163, 184, 0.15)'}}>
           {res.lines.map((line,idx)=>{
-            const isMonsterAction = line.includes('몬스터 ->') || line.includes('몬스터→');
-            const isPlayerAction = line.includes('플레이어 ->') || line.includes('플레이어→');
+            // 플레이어의 모든 행동(공격, 방어)은 파란색, 몬스터의 모든 행동은 옅은 붉은색
+            const isPlayerAction = line.startsWith('플레이어');
+            const isMonsterAction = line.startsWith('몬스터');
             return (
               <div key={idx} style={{
                 fontSize: '13px',
-                color: isMonsterAction ? '#fca5a5' : isPlayerAction ? '#60a5fa' : '#cbd5e1',
+                color: isPlayerAction ? '#60a5fa' : isMonsterAction ? '#fca5a5' : '#cbd5e1',
                 marginBottom: '6px'
               }}>
                 <span style={{color: '#94a3b8', marginRight: '4px'}}>{idx + 1}.</span>
@@ -1139,12 +1140,12 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
       {/* 하단 고정 손패 영역 */}
       {(phase==='select' || phase==='respond' || phase==='resolve' || (enemy && enemy.hp <= 0) || (player && player.hp <= 0)) && (
         <div className="hand-area">
-          <div className="hand-area-header" style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px'}}>
-            <div style={{display: 'flex', alignItems: 'center', gap: '20px'}}>
-              <div style={{fontSize: '1.5rem', fontWeight: '900', color: '#f8fafc'}}>손패</div>
-              <div style={{display: 'flex', flexDirection: 'column', gap: '2px'}}>
-                <div style={{fontSize: '1.1rem', fontWeight: '700', color: '#cbd5e1'}}>남은 에너지: {remainingEnergy}</div>
-                <div style={{fontSize: '1rem', fontWeight: '600', color: '#94a3b8'}}>
+          <div className="hand-area-header" style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginBottom: '4px'}}>
+            <div style={{display: 'flex', alignItems: 'center', gap: '14px'}}>
+              <div style={{fontSize: '1.3rem', fontWeight: '900', color: '#f8fafc'}}>손패</div>
+              <div style={{display: 'flex', flexDirection: 'column', gap: '1px'}}>
+                <div style={{fontSize: '0.95rem', fontWeight: '700', color: '#cbd5e1'}}>남은 에너지: {remainingEnergy}</div>
+                <div style={{fontSize: '0.85rem', fontWeight: '600', color: '#94a3b8'}}>
                   속도 {totalSpeed}/{MAX_SPEED} · 선택 {selected.length}/{MAX_SUBMIT_CARDS}
                 </div>
               </div>
@@ -1166,7 +1167,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
               )}
             </div>
 
-            <div style={{display: 'flex', gap: '12px', flexWrap: 'wrap', justifyContent: 'flex-end'}}>
+            <div style={{display: 'flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'flex-end'}}>
               {phase==='select' && (
                 <>
                   <button onClick={redrawHand} disabled={!canRedraw} className="btn-enhanced flex items-center gap-2">
