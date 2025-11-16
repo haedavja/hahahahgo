@@ -593,10 +593,6 @@ function drawCharacterBuildHand(characterBuild) {
 // Game Component
 // =====================
 function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
-  // 실시간으로 캐릭터 빌드 가져오기
-  const characterBuild = useGameStore((state) => state.characterBuild);
-  const hasCharacterBuild = characterBuild && (characterBuild.mainSpecials?.length > 0 || characterBuild.subSpecials?.length > 0);
-
   const safeInitialPlayer = initialPlayer || {};
   const safeInitialEnemy = initialEnemy || {};
   const baseEnergy = safeInitialPlayer.energy ?? BASE_PLAYER_ENERGY;
@@ -675,12 +671,14 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
     setEnemyPlan({ actions:[], mode:null });
     setPhase('select');
     // 캐릭터 빌드가 있으면 사용, 없으면 기본 8장
-    const initialHand = hasCharacterBuild && characterBuild
-      ? drawCharacterBuildHand(characterBuild)
+    const currentBuild = useGameStore.getState().characterBuild;
+    const hasCharacterBuild = currentBuild && (currentBuild.mainSpecials?.length > 0 || currentBuild.subSpecials?.length > 0);
+    const initialHand = hasCharacterBuild
+      ? drawCharacterBuildHand(currentBuild)
       : CARDS.slice(0, 8);
     setHand(initialHand);
     setCanRedraw(true);
-  }, [safeInitialPlayer, playerEther, addLog, hasCharacterBuild, characterBuild]);
+  }, [safeInitialPlayer, playerEther, addLog]);
 
   useEffect(()=>{
     if(!safeInitialEnemy) return;
@@ -727,8 +725,10 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
       const e = ENEMIES[enemyIndex];
       setEnemy({ ...e, hp:e.hp, maxHp:e.hp, vulnMult:1, vulnTurns:0, block:0, counter:0, etherPts:0, etherOverdriveActive:false });
       // 캐릭터 빌드가 있으면 사용, 없으면 기본 8장
-      const initialHand = hasCharacterBuild && characterBuild
-        ? drawCharacterBuildHand(characterBuild)
+      const currentBuild = useGameStore.getState().characterBuild;
+      const hasCharacterBuild = currentBuild && (currentBuild.mainSpecials?.length > 0 || currentBuild.subSpecials?.length > 0);
+      const initialHand = hasCharacterBuild
+        ? drawCharacterBuildHand(currentBuild)
         : CARDS.slice(0, 8);
       setHand(initialHand);
       setSelected([]);
@@ -747,8 +747,10 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
     setPlayer(p=>({ ...p, energy: BASE_PLAYER_ENERGY + etherSlots(p.etherPts), etherOverdriveActive:false }));
 
     // 매 턴 시작 시 새로운 손패 생성 (캐릭터 빌드 적용)
-    const newHand = hasCharacterBuild && characterBuild
-      ? drawCharacterBuildHand(characterBuild)
+    const currentBuild = useGameStore.getState().characterBuild;
+    const hasCharacterBuild = currentBuild && (currentBuild.mainSpecials?.length > 0 || currentBuild.subSpecials?.length > 0);
+    const newHand = hasCharacterBuild
+      ? drawCharacterBuildHand(currentBuild)
       : CARDS.slice(0, 8);
     setHand(newHand);
     setSelected([]);
@@ -847,8 +849,10 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
   const redrawHand = ()=>{
     if(!canRedraw) return addLog('🔒 이미 이번 턴 리드로우 사용됨');
     // 캐릭터 빌드가 있으면 사용, 없으면 기본 8장
-    const newHand = hasCharacterBuild && characterBuild
-      ? drawCharacterBuildHand(characterBuild)
+    const currentBuild = useGameStore.getState().characterBuild;
+    const hasCharacterBuild = currentBuild && (currentBuild.mainSpecials?.length > 0 || currentBuild.subSpecials?.length > 0);
+    const newHand = hasCharacterBuild
+      ? drawCharacterBuildHand(currentBuild)
       : CARDS.slice(0, 8);
     setHand(newHand);
     setSelected([]);
