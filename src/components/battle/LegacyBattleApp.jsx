@@ -483,12 +483,12 @@ function ExpectedDamagePreview({player, enemy, fixedOrder, willOverdrive, enemyM
               if (line.includes('게임 시작') || line.includes('적 성향 힌트')) return false;
               return true;
             }).map((line, i) => {
-              const isMonsterAction = line.includes('몬스터') || line.includes('적');
               const isPlayerAction = line.includes('플레이어');
+              const isMonsterAction = line.includes('몬스터') || line.includes('적');
               return (
                 <div key={i} style={{
                   fontSize: '13px',
-                  color: isMonsterAction ? '#fca5a5' : isPlayerAction ? '#60a5fa' : '#cbd5e1',
+                  color: isPlayerAction ? '#60a5fa' : isMonsterAction ? '#fca5a5' : '#cbd5e1',
                   marginBottom: '6px',
                   lineHeight: '1.5'
                 }}>

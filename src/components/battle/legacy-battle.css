@@ -7,7 +7,7 @@ body {
 
 .legacy-battle-root {
   background: radial-gradient(circle at 30% 20%, #10194f, #050313 70%);
-  padding: 48px 32px 120px;
+  padding: 20px 32px 120px;
   border-radius: 32px;
   box-shadow: 0 20px 80px rgba(0, 0, 0, 0.65);
   height: 100vh;
@@ -15,7 +15,7 @@ body {
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 8px;
 }
 
 @media (max-width: 1024px) {
@@ -508,7 +508,7 @@ body {
 .hand-cards {
   display: flex;
   gap: 12px;
-  padding: 2px 0;
+  padding: 0px;
   overflow-x: auto;
 }
 
@@ -534,7 +534,7 @@ body {
   background: rgba(4, 6, 22, 0.3);
   backdrop-filter: blur(4px);
   border-radius: 16px 16px 0 0;
-  padding: 2px 12px 2px 12px;
+  padding: 0px 12px 0px 12px;
   border: none;
   box-shadow: none;
   z-index: 100;
@@ -543,7 +543,7 @@ body {
 .hand-area-header {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 4px;
+  gap: 2px;
   align-items: flex-end;
   margin-bottom: 0px;
 }

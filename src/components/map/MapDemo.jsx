@@ -102,12 +102,13 @@ const friendlyPercent = (chance) => {
   return `${Math.round(chance * 100)}%`;
 };
 
-const PATCH_VERSION_TAG = "11-16-14:20"; // 다음 패치마다 여기를 최신 시간(월-일-시:분, KST)으로 갱신하세요.
+const PATCH_VERSION_TAG = "11-16-14:25"; // 다음 패치마다 여기를 최신 시간(월-일-시:분, KST)으로 갱신하세요.
 
-/* v11-16-14:20 갱신 내역
- * - 전투 화면 스크롤 방지: body overflow hidden, 화면 높이를 100vh로 고정
- * - 전투 화면이 뷰포트를 가득 채워 스크롤 불필요하도록 개선
- * - wheel 이벤트 차단 코드 제거 (CSS로 대체)
+/* v11-16-14:25 갱신 내역
+ * - 전투 로그 색상 수정: 플레이어 행동 우선 체크로 모든 플레이어 행동 파란색 표시
+ * - 화면 여백 제거: padding 48px → 20px, gap 24px → 8px로 축소
+ * - 손패 인터페이스 높이 축소: padding 2px → 0px, header gap 4px → 2px
+ * - 타임라인/캐릭터 패널 간격 최소화로 화면 활용도 향상
  */
 
 export function MapDemo() {
