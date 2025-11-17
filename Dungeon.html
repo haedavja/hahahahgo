@@ -171,12 +171,44 @@
             } else if (obj.type === "curio") {
               sprite = this.add.circle(obj.x, floorY - 30, 20, 0x5577aa);
             } else if (obj.type === "event") {
-              sprite = this.add
-                .text(obj.x, floorY - 80, "!", {
-                  fontSize: "40px",
-                  fill: "#ffdd33",
-                })
-                .setOrigin(0.5);
+              // 다중 색상 stroke 효과를 위해 여러 겹의 텍스트 생성
+              const container = this.add.container(obj.x, floorY - 80);
+
+              // 레이어 1: 가장 바깥 stroke (검정색, 두께 8)
+              const layer1 = this.add.text(0, 0, "!", {
+                fontSize: "40px",
+                fill: "#ffdd33",
+                stroke: "#000000",
+                strokeThickness: 8
+              }).setOrigin(0.5);
+
+              // 레이어 2: 중간 stroke (빨간색, 두께 6)
+              const layer2 = this.add.text(0, 0, "!", {
+                fontSize: "40px",
+                fill: "#ffdd33",
+                stroke: "#ff3333",
+                strokeThickness: 6
+              }).setOrigin(0.5);
+
+              // 레이어 3: 안쪽 stroke (주황색, 두께 4)
+              const layer3 = this.add.text(0, 0, "!", {
+                fontSize: "40px",
+                fill: "#ffdd33",
+                stroke: "#ff8833",
+                strokeThickness: 4
+              }).setOrigin(0.5);
+
+              // 레이어 4: 가장 안쪽 stroke (노란색, 두께 2)
+              const layer4 = this.add.text(0, 0, "!", {
+                fontSize: "40px",
+                fill: "#ffdd33",
+                stroke: "#ffcc33",
+                strokeThickness: 2
+              }).setOrigin(0.5);
+
+              // 모든 레이어를 컨테이너에 추가
+              container.add([layer1, layer2, layer3, layer4]);
+              sprite = container;
             }
             this.objectSprites[obj.id] = sprite;
           });
