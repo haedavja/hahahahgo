@@ -449,15 +449,15 @@ body {
 /* 행동력 배지 - 카드 왼쪽 상단 밖으로 완전히 */
 .card-cost-badge-floating {
   position: absolute;
-  top: -11px;
-  left: -11px;
+  top: -10px;
+  left: -6px;
   background: rgba(251, 191, 36, 0.95);
   color: #000;
-  width: 36px;
-  height: 36px;
+  width: 25px;
+  height: 25px;
   border-radius: 50%;
   font-weight: 900;
-  font-size: 20px;
+  font-size: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -549,7 +549,7 @@ body {
   position: fixed;
   bottom: 0;
   left: 0;
-  right: 0;
+  right: 280px;
   width: auto;
   background: transparent;
   backdrop-filter: none;
@@ -853,27 +853,8 @@ body {
   position: fixed;
   bottom: 220px;
   left: 50%;
-  transform: translateX(-50%);
+  transform: translateX(calc(-50% - 140px));
   z-index: 200;
-}
-
-/* 진행 단계 버튼 고정 (하단에서 40px 위로, 우측 사이드바 고려) */
-.resolve-buttons-fixed {
-  position: fixed;
-  bottom: 120px;
-  right: 280px;
-  left: 0;
-  display: flex;
-  gap: 12px;
-  justify-content: center;
-  align-items: center;
-  flex-wrap: wrap;
-  z-index: 200;
-  pointer-events: none;
-}
-
-.resolve-buttons-fixed > * {
-  pointer-events: auto;
 }
 
 .submitted-cards-area {
