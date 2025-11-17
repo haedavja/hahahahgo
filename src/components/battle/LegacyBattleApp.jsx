@@ -498,7 +498,7 @@ function ExpectedDamagePreview({player, enemy, fixedOrder, willOverdrive, enemyM
       {phase === 'resolve' && (
         <div style={{
           position: 'absolute',
-          bottom: '-120px',
+          bottom: '-190px',
           left: '0',
           right: '0',
           display: 'flex',
@@ -658,6 +658,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
     setLog(p => [...p, m].slice(-200));
   }, []);
   const [willOverdrive, setWillOverdrive] = useState(false);
+  const [isSimplified, setIsSimplified] = useState(false);
   const [usedCardIndices, setUsedCardIndices] = useState([]);
   const [showCharacterSheet, setShowCharacterSheet] = useState(false);
   const logEndRef = useRef(null);
@@ -753,10 +754,13 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
       if (e.key === "c" || e.key === "C") {
         setShowCharacterSheet((prev) => !prev);
       }
+      if ((e.key === "q" || e.key === "Q") && phase === 'select') {
+        setIsSimplified((prev) => !prev);
+      }
     };
     window.addEventListener("keydown", handleKeyPress);
     return () => window.removeEventListener("keydown", handleKeyPress);
-  }, []);
+  }, [phase]);
 
   useEffect(()=>{
     if(!enemy){
@@ -1297,9 +1301,12 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
 
       {/* 제출 버튼 독립 (하단 150px 이동) */}
       {phase==='select' && (
-        <div className="submit-button-fixed">
+        <div className="submit-button-fixed" style={{display: 'flex', flexDirection: 'column', gap: '8px'}}>
           <button onClick={startResolve} disabled={selected.length===0} className="btn-enhanced btn-primary flex items-center gap-2">
             <Play size={18}/> 제출
+          </button>
+          <button onClick={() => setIsSimplified(prev => !prev)} className={`btn-enhanced ${isSimplified ? 'btn-primary' : ''} flex items-center gap-2`}>
+            {isSimplified ? '📋' : '📄'} 간소화 {isSimplified ? 'ON' : 'OFF'}
           </button>
         </div>
       )}
@@ -1362,15 +1369,24 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                           ⏱️{c.speedCost}
                         </div>
                       </div>
-                      <div className="card-header">
-                        <div className="text-white font-black text-sm">{c.name}</div>
-                      </div>
-                      <div className="card-icon-area">
-                        <Icon size={60} className="text-white opacity-80"/>
-                      </div>
-                      <div className="card-footer">
-                        {c.description || ''}
-                      </div>
+                      {!isSimplified && (
+                        <>
+                          <div className="card-header">
+                            <div className="text-white font-black text-sm">{c.name}</div>
+                          </div>
+                          <div className="card-icon-area">
+                            <Icon size={60} className="text-white opacity-80"/>
+                          </div>
+                          <div className="card-footer">
+                            {c.description || ''}
+                          </div>
+                        </>
+                      )}
+                      {isSimplified && (
+                        <div className="card-icon-area" style={{marginTop: '60px'}}>
+                          <Icon size={60} className="text-white opacity-80"/>
+                        </div>
+                      )}
                     </div>
                   </div>
                 );
