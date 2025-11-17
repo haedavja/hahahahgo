@@ -176,10 +176,10 @@ const OBJECT_HANDLERS = {
     obj.used = true;
     const enemyHp = 25 + Math.floor(Math.random() * 10);
 
-    // 전투 전 상태 저장
+    // 전투 전 상태 저장 (오브젝트의 정확한 위치 저장)
     context.preBattleState.current = {
       segmentIndex: context.segmentIndex,
-      playerX: context.playerX,
+      playerX: obj.x, // 플레이어의 현재 위치가 아닌 오브젝트 위치로 복귀
     };
 
     context.startBattle({
@@ -195,13 +195,24 @@ const OBJECT_HANDLERS = {
 };
 
 // ========== 에테르 바 컴포넌트 ==========
-function EtherBar({ pts, color = "cyan", label }) {
+function EtherBar({ pts, maxPts, color = "cyan", label }) {
   const safePts = Number.isFinite(pts) ? pts : 0;
-  const slots = calculateEtherSlots(safePts);
-  const current = getCurrentSlotPts(safePts);
-  const nextCost = getNextSlotCost(safePts);
-  const progress = getSlotProgress(safePts);
-  const ratio = Math.max(0, Math.min(1, progress));
+
+  // maxPts가 제공되면 단순 비율 사용 (HP 바용)
+  let slots, current, nextCost, ratio;
+  if (maxPts !== undefined) {
+    ratio = Math.max(0, Math.min(1, safePts / maxPts));
+    current = safePts;
+    nextCost = maxPts;
+    slots = null;
+  } else {
+    // 에테르 바 로직
+    slots = calculateEtherSlots(safePts);
+    current = getCurrentSlotPts(safePts);
+    nextCost = getNextSlotCost(safePts);
+    const progress = getSlotProgress(safePts);
+    ratio = Math.max(0, Math.min(1, progress));
+  }
 
   const borderColor = color === "red" ? "#ef4444" : "#53d7ff";
   const fillGradient = color === "red"
@@ -250,9 +261,9 @@ function EtherBar({ pts, color = "cyan", label }) {
           background: fillGradient,
         }} />
       </div>
-      <div style={{ textAlign: "center", color: textColor, fontSize: "20px", marginTop: "8px" }}>
+      <div style={{ textAlign: "center", color: textColor, fontSize: "13px", marginTop: "8px" }}>
         <div>{current}/{nextCost}</div>
-        <div>x{slots}</div>
+        {slots !== null && <div>x{slots}</div>}
       </div>
     </div>
   );
@@ -539,9 +550,26 @@ export function DungeonExploration() {
         <div style={{ fontSize: "12px", marginTop: "4px" }}>
           W: 상호작용 | A/D: 이동 | C: 캐릭터
         </div>
-        <div style={{ fontSize: "12px", color: "#fca5a5", marginTop: "4px" }}>
-          HP: {playerHp}/{maxHp}
-        </div>
+      </div>
+
+      {/* 에테르 바 - 왼쪽 */}
+      <div style={{
+        position: "absolute",
+        left: "20px",
+        top: "50%",
+        transform: "translateY(-50%)",
+      }}>
+        <EtherBar pts={resources.etherPts || 0} color="cyan" label="AETHER" />
+      </div>
+
+      {/* HP 바 - 오른쪽 */}
+      <div style={{
+        position: "absolute",
+        right: "20px",
+        top: "50%",
+        transform: "translateY(-50%)",
+      }}>
+        <EtherBar pts={playerHp} maxPts={maxHp} color="red" label="HP" />
       </div>
 
       {/* 메시지 */}
@@ -563,26 +591,30 @@ export function DungeonExploration() {
         </div>
       )}
 
-      {/* 자원 */}
+      {/* 자원 - 중앙 상단 가로 배치 */}
       <div style={{
         position: "absolute",
         top: "20px",
-        right: "20px",
+        left: "50%",
+        transform: "translateX(-50%)",
         display: "flex",
-        gap: "12px",
+        gap: "16px",
+        background: "rgba(0,0,0,0.8)",
+        padding: "10px 20px",
+        borderRadius: "999px",
+        border: "1px solid rgba(84, 126, 194, 0.5)",
       }}>
-        <EtherBar pts={resources.etherPts || 0} color="cyan" label="에테르" />
-        <div style={{
-          background: "rgba(0,0,0,0.8)",
-          padding: "12px",
-          borderRadius: "8px",
-          color: "#fff",
-          fontSize: "13px",
-        }}>
-          <div>금: {resources.gold}</div>
-          <div>정보: {resources.intel}</div>
-          <div>전리품: {resources.loot}</div>
-          <div>원자재: {resources.material}</div>
+        <div style={{ color: "#ffd700", fontSize: "14px", fontWeight: "600" }}>
+          금: {resources.gold}
+        </div>
+        <div style={{ color: "#9da9d6", fontSize: "14px", fontWeight: "600" }}>
+          정보: {resources.intel}
+        </div>
+        <div style={{ color: "#ff6b6b", fontSize: "14px", fontWeight: "600" }}>
+          전리품: {resources.loot}
+        </div>
+        <div style={{ color: "#a0e9ff", fontSize: "14px", fontWeight: "600" }}>
+          원자재: {resources.material}
         </div>
       </div>
 
