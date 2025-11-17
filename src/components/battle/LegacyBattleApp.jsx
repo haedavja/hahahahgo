@@ -1347,7 +1347,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                 const costColor = isMainSpecial ? '#fcd34d' : isSubSpecial ? '#60a5fa' : '#fff';
                 return (
                   <div key={idx} style={{display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'center'}}>
-                    <div className={`game-card-large ${c.type==='attack' ? 'attack' : 'defense'}`}>
+                    <div className={`game-card-large respond-card ${c.type==='attack' ? 'attack' : 'defense'}`}>
                       <div className="card-cost-corner" style={{color: costColor, WebkitTextStroke: '2px #000'}}>{c.actionCost}</div>
                       <div className="card-stats-sidebar">
                         {c.damage != null && c.damage > 0 && (

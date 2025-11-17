@@ -879,7 +879,7 @@ body {
 
 /* 카드 기본 크기 (압축 상태) */
 .game-card-large {
-  width: 140px !important; /* 120px → 140px */
+  width: 154px !important; /* 120px → 140px → 154px (10% 증가) */
   height: 200px !important; /* 180px → 200px */
   margin-left: -30px; /* 카드 겹침 (-40px → -30px, 간격 넓힘) */
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
@@ -959,8 +959,8 @@ body {
 /* 왼쪽 상단 스탯 영역 (행동력 밑) */
 .card-stats-sidebar {
   position: absolute;
-  top: 45px; /* 행동력 코스트 밑 */
-  left: 4px;
+  top: 30px; /* 행동력 코스트 밑 (45px → 30px, 15px 위로) */
+  left: -6px; /* 4px → -6px (10px 좌측으로) */
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -1027,4 +1027,9 @@ body {
 
 .game-card-large:hover:not(.disabled) .card-stat-item {
   font-size: 1.3rem !important; /* 호버 시 스탯도 약간 크게 */
+}
+
+/* 대응 단계 카드의 이름 위치 조정 */
+.game-card-large.respond-card .card-header {
+  margin-top: 0px !important; /* -15px → 0px (15px 낮춤) */
 }
