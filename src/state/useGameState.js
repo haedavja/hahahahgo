@@ -113,8 +113,8 @@ const generateMap = () => {
   const flatNodes = layers.flat();
   assignNodeTypes(flatNodes);
   flatNodes.forEach((node) => {
-    node.cleared = node.layer === 0;
-    node.selectable = node.layer === 1 || node.isStart;
+    node.cleared = node.layer === 0 || node.isStart;
+    node.selectable = node.layer === 1 || (node.layer === 0 && node.isStart);
   });
 
   return {
