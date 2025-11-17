@@ -952,21 +952,55 @@ body {
   padding: 6px 0 !important; /* 4px → 6px */
 }
 
+/* 왼쪽 상단 스탯 영역 (행동력 밑) */
+.card-stats-sidebar {
+  position: absolute;
+  top: 45px; /* 행동력 코스트 밑 */
+  left: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  z-index: 10;
+}
+
+.card-stat-item {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+}
+
+.card-stat-item.attack {
+  color: #fca5a5;
+}
+
+.card-stat-item.defense {
+  color: #93c5fd;
+}
+
+.card-stat-item.counter {
+  color: #d8b4fe;
+}
+
+.card-stat-item.speed {
+  color: #67e8f9;
+}
+
+/* 카드 하단을 설명 영역으로 변경 */
 .game-card-large .card-footer {
-  padding: 8px 12px !important; /* 6px 10px → 8px 12px */
+  padding: 10px 12px !important;
+  text-align: left !important; /* center → left */
+  background: rgba(0, 0, 0, 0.7) !important; /* 0.4 → 0.7 */
+  border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
+  flex-shrink: 0 !important;
+  min-height: 60px !important; /* 설명 텍스트를 위한 최소 높이 */
   display: flex !important;
-  flex-direction: column !important; /* 세로 정렬 */
   align-items: center !important;
-  gap: 4px !important;
-}
-
-.game-card-large .card-footer > div:first-child {
-  font-size: 1.4rem !important; /* 1.688rem → 1.4rem (공격력/방어력 크기 줄임) */
-}
-
-.game-card-large .card-footer > div:last-child {
-  font-size: 1.4rem !important; /* 1.688rem → 1.4rem (속도 크기 줄임) */
-  margin-top: 0 !important;
+  font-size: 0.75rem !important;
+  line-height: 1.4 !important;
+  color: #cbd5e1 !important;
 }
 
 /* 호버 시 카드 내용 크기 조정 */
@@ -980,5 +1014,10 @@ body {
 }
 
 .game-card-large:hover:not(.disabled) .card-footer {
-  padding: 12px 16px !important; /* 10px 14px → 12px 16px */
+  padding: 12px 14px !important;
+  font-size: 0.85rem !important; /* 호버 시 설명 텍스트 약간 크게 */
+}
+
+.game-card-large:hover:not(.disabled) .card-stat-item {
+  font-size: 1.3rem !important; /* 호버 시 스탯도 약간 크게 */
 }

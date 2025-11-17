@@ -1301,6 +1301,26 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                           className={`game-card-large ${c.type==='attack' ? 'attack' : 'defense'} ${sel ? 'selected' : ''} ${disabled ? 'disabled' : ''}`}>
                     <div className="card-cost-corner" style={{color: costColor, WebkitTextStroke: '2px #000'}}>{c.actionCost}</div>
                     {sel && <div className="selection-number">{selIndex + 1}</div>}
+                    <div className="card-stats-sidebar">
+                      {c.damage != null && c.damage > 0 && (
+                        <div className="card-stat-item attack">
+                          ⚔️{c.damage}{c.hits?`×${c.hits}`:''}
+                        </div>
+                      )}
+                      {c.block != null && c.block > 0 && (
+                        <div className="card-stat-item defense">
+                          🛡️{c.block}
+                        </div>
+                      )}
+                      {c.counter !== undefined && (
+                        <div className="card-stat-item counter">
+                          ⚡{c.counter}
+                        </div>
+                      )}
+                      <div className="card-stat-item speed">
+                        ⏱️{c.speedCost}
+                      </div>
+                    </div>
                     <div className="card-header">
                       <div className="text-white font-black text-sm">{c.name}</div>
                     </div>
@@ -1308,18 +1328,8 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                       <Icon size={60} className="text-white opacity-80"/>
                     </div>
                     <div className="card-footer">
-                      <div className="flex items-center justify-center gap-2 text-white font-bold" style={{fontSize: '1.688rem'}}>
-                        {c.damage != null && c.damage > 0 && <span style={{color: '#fca5a5'}}>⚔️{c.damage}{c.hits?`×${c.hits}`:''}</span>}
-                        {c.block != null && c.block > 0 && <span style={{color: '#93c5fd'}}>🛡️{c.block}</span>}
-                        {c.counter !== undefined && <span style={{color: '#d8b4fe'}}>⚡{c.counter}</span>}
-                      </div>
-                      <div style={{color: '#67e8f9', fontSize: '1.688rem', marginTop: '0.25rem'}}>⏱️{c.speedCost}</div>
+                      {c.description || ''}
                     </div>
-                    {c.description && (
-                      <div className="card-description">
-                        {c.description}
-                      </div>
-                    )}
                   </button>
                 );
               })}
@@ -1339,6 +1349,26 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                   <div key={idx} style={{display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'center'}}>
                     <div className={`game-card-large ${c.type==='attack' ? 'attack' : 'defense'}`}>
                       <div className="card-cost-corner" style={{color: costColor, WebkitTextStroke: '2px #000'}}>{c.actionCost}</div>
+                      <div className="card-stats-sidebar">
+                        {c.damage != null && c.damage > 0 && (
+                          <div className="card-stat-item attack">
+                            ⚔️{c.damage}{c.hits?`×${c.hits}`:''}
+                          </div>
+                        )}
+                        {c.block != null && c.block > 0 && (
+                          <div className="card-stat-item defense">
+                            🛡️{c.block}
+                          </div>
+                        )}
+                        {c.counter !== undefined && (
+                          <div className="card-stat-item counter">
+                            ⚡{c.counter}
+                          </div>
+                        )}
+                        <div className="card-stat-item speed">
+                          ⏱️{c.speedCost}
+                        </div>
+                      </div>
                       <div className="card-header">
                         <div className="text-white font-black text-sm">{c.name}</div>
                       </div>
@@ -1346,18 +1376,8 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                         <Icon size={60} className="text-white opacity-80"/>
                       </div>
                       <div className="card-footer">
-                        <div className="flex items-center justify-center gap-2 text-white font-bold" style={{fontSize: '1.688rem'}}>
-                          {c.damage != null && c.damage > 0 && <span style={{color: '#fca5a5'}}>⚔️{c.damage}{c.hits?`×${c.hits}`:''}</span>}
-                          {c.block != null && c.block > 0 && <span style={{color: '#93c5fd'}}>🛡️{c.block}</span>}
-                          {c.counter !== undefined && <span style={{color: '#d8b4fe'}}>⚡{c.counter}</span>}
-                        </div>
-                        <div style={{color: '#67e8f9', fontSize: '1.688rem', marginTop: '0.25rem'}}>⏱️{c.speedCost}</div>
+                        {c.description || ''}
                       </div>
-                      {c.description && (
-                        <div className="card-description">
-                          {c.description}
-                        </div>
-                      )}
                     </div>
                     <div style={{display: 'flex', gap: '8px'}}>
                       {idx > 0 && (
@@ -1404,6 +1424,26 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                   <div key={`resolve-${globalIndex}`}
                        className={`game-card-large ${a.card.type==='attack' ? 'attack' : 'defense'} ${isUsed ? 'card-used' : ''} ${isPast ? 'opacity-30' : ''}`}>
                     <div className="card-cost-corner" style={{color: costColor, WebkitTextStroke: '2px #000'}}>{a.card.actionCost}</div>
+                    <div className="card-stats-sidebar">
+                      {a.card.damage != null && a.card.damage > 0 && (
+                        <div className="card-stat-item attack">
+                          ⚔️{a.card.damage}{a.card.hits?`×${a.card.hits}`:''}
+                        </div>
+                      )}
+                      {a.card.block != null && a.card.block > 0 && (
+                        <div className="card-stat-item defense">
+                          🛡️{a.card.block}
+                        </div>
+                      )}
+                      {a.card.counter !== undefined && (
+                        <div className="card-stat-item counter">
+                          ⚡{a.card.counter}
+                        </div>
+                      )}
+                      <div className="card-stat-item speed">
+                        ⏱️{a.card.speedCost}
+                      </div>
+                    </div>
                     <div className="card-header">
                       <div className="text-white font-black text-sm">{a.card.name}</div>
                     </div>
@@ -1411,12 +1451,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                       <Icon size={60} className="text-white opacity-80"/>
                     </div>
                     <div className="card-footer">
-                      <div className="flex items-center justify-center gap-2 text-white font-bold" style={{fontSize: '1.688rem'}}>
-                        {a.card.damage != null && a.card.damage > 0 && <span style={{color: '#fca5a5'}}>⚔️{a.card.damage}{a.card.hits?`×${a.card.hits}`:''}</span>}
-                        {a.card.block != null && a.card.block > 0 && <span style={{color: '#93c5fd'}}>🛡️{a.card.block}</span>}
-                        {a.card.counter !== undefined && <span style={{color: '#d8b4fe'}}>⚡{a.card.counter}</span>}
-                      </div>
-                      <div style={{color: '#67e8f9', fontSize: '1.688rem', marginTop: '0.25rem'}}>⏱️{a.card.speedCost}</div>
+                      {a.card.description || ''}
                     </div>
                   </div>
                 );
