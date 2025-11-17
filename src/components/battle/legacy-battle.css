@@ -449,7 +449,7 @@ body {
 /* 행동력 배지 - 카드 왼쪽 상단 밖으로 완전히 */
 .card-cost-badge-floating {
   position: absolute;
-  top: -7px;
+  top: -6px;
   left: -4px;
   background: rgba(251, 191, 36, 0.95);
   color: #000;
@@ -848,10 +848,10 @@ body {
   z-index: 200;
 }
 
-/* 제출 버튼 고정 (하단 220px - 상단으로 70px 이동) */
+/* 제출 버튼 고정 (하단 210px) */
 .submit-button-fixed {
   position: fixed;
-  bottom: 220px;
+  bottom: 210px;
   left: 50%;
   transform: translateX(calc(-50% - 140px));
   z-index: 200;
