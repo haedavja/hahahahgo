@@ -292,6 +292,7 @@ export function DungeonExploration() {
   const setDungeonData = useGameStore((s) => s.setDungeonData);
   const setDungeonPosition = useGameStore((s) => s.setDungeonPosition);
   const setDungeonInitialResources = useGameStore((s) => s.setDungeonInitialResources);
+  const setDungeonDeltas = useGameStore((s) => s.setDungeonDeltas);
   const skipDungeon = useGameStore((s) => s.skipDungeon);
   const completeDungeon = useGameStore((s) => s.completeDungeon);
   const startBattle = useGameStore((s) => s.startBattle);
@@ -319,6 +320,13 @@ export function DungeonExploration() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeDungeon, setDungeonInitialResources]);
 
+  // 던전 델타 초기화 (한 번만)
+  useEffect(() => {
+    if (activeDungeon && !activeDungeon.dungeonDeltas) {
+      setDungeonDeltas({ gold: 0, intel: 0, loot: 0, material: 0 });
+    }
+  }, [activeDungeon, setDungeonDeltas]);
+
   // 던전 데이터는 activeDungeon에서 가져옴
   const dungeon = activeDungeon?.dungeonData || [];
   // activeDungeon에서 위치 정보 가져오기 (재마운트 시에도 유지)
@@ -331,8 +339,8 @@ export function DungeonExploration() {
   const [showCharacter, setShowCharacter] = useState(false);
   const [dungeonSummary, setDungeonSummary] = useState(null); // 던전 탈출 요약
 
-  // 던전 중 획득한 자원 델타 (x값) - 던전 종료 시에만 실제 resources에 반영
-  const [dungeonDeltas, setDungeonDeltas] = useState({ gold: 0, intel: 0, loot: 0, material: 0 });
+  // 던전 중 획득한 자원 델타 (x값) - activeDungeon에서 가져옴 (재마운트 시에도 유지)
+  const dungeonDeltas = activeDungeon?.dungeonDeltas || { gold: 0, intel: 0, loot: 0, material: 0 };
 
   // 초기 자원은 activeDungeon에서 가져옴 (재마운트 시에도 유지) - z값
   const initialResources = activeDungeon?.initialResources || resources;
@@ -564,11 +572,12 @@ export function DungeonExploration() {
   const closeRewardModal = () => {
     // 던전 중에는 실제 resources를 변경하지 않고 dungeonDeltas만 업데이트
     if (rewardModal.gold > 0 || rewardModal.loot > 0) {
-      setDungeonDeltas((prev) => ({
-        ...prev,
-        gold: prev.gold + rewardModal.gold,
-        loot: prev.loot + rewardModal.loot,
-      }));
+      const newDeltas = {
+        ...dungeonDeltas,
+        gold: dungeonDeltas.gold + rewardModal.gold,
+        loot: dungeonDeltas.loot + rewardModal.loot,
+      };
+      setDungeonDeltas(newDeltas);
     }
 
     // 전투 전 상태 복원

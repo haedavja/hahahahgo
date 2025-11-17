@@ -398,6 +398,15 @@ export const useGameStore = create((set, get) => ({
       };
     }),
 
+  setDungeonDeltas: (dungeonDeltas) =>
+    set((state) => {
+      if (!state.activeDungeon) return state;
+      return {
+        ...state,
+        activeDungeon: { ...state.activeDungeon, dungeonDeltas },
+      };
+    }),
+
   chooseEvent: (choiceId) =>
     set((state) => {
       const active = state.activeEvent;
