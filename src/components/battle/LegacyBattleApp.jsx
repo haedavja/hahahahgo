@@ -470,7 +470,7 @@ function ExpectedDamagePreview({player, enemy, fixedOrder, willOverdrive, enemyM
           <div style={{fontSize: '15px', fontWeight: 'bold', color: '#f8fafc', marginBottom: '12px'}}>
             🎮 전투 로그
           </div>
-          <div ref={logContainerRef} style={{maxHeight: '150px', overflowY: 'auto'}}>
+          <div ref={logContainerRef} style={{maxHeight: '300px', overflowY: 'auto'}}>
             {log.filter(line => {
               // 불필요한 로그 제거
               if (line.includes('게임 시작') || line.includes('적 성향 힌트')) return false;
@@ -1189,8 +1189,8 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                   <div className="character-display" style={{fontSize: '64px'}}>🧙‍♂️</div>
                   <div>
                     <div style={{color: '#f87171', fontSize: '1.25rem', fontWeight: 'bold'}}>
-                      {player.block > 0 && <span style={{color: '#60a5fa', marginRight: '8px'}}>🛡️{player.block}</span>}
                       ❤️ {player.hp}/{player.maxHp}
+                      {player.block > 0 && <span style={{color: '#60a5fa', marginLeft: '8px'}}>🛡️{player.block}</span>}
                     </div>
                     <div className="hp-bar-enhanced mb-1" style={{width: '200px', height: '12px', position: 'relative', overflow: 'hidden'}}>
                       <div className="hp-fill" style={{width: `${(player.hp/player.maxHp)*100}%`}}></div>
@@ -1306,7 +1306,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
             <Play size={18}/> 제출
           </button>
           <button onClick={() => setIsSimplified(prev => !prev)} className={`btn-enhanced ${isSimplified ? 'btn-primary' : ''} flex items-center gap-2`}>
-            {isSimplified ? '📋' : '📄'} 간소화 {isSimplified ? 'ON' : 'OFF'}
+            {isSimplified ? '📋' : '📄'} 간소화 (Q)
           </button>
         </div>
       )}
@@ -1369,22 +1369,15 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                           ⏱️{c.speedCost}
                         </div>
                       </div>
+                      <div className="card-header">
+                        <div className="text-white font-black text-sm">{c.name}</div>
+                      </div>
+                      <div className="card-icon-area">
+                        <Icon size={60} className="text-white opacity-80"/>
+                      </div>
                       {!isSimplified && (
-                        <>
-                          <div className="card-header">
-                            <div className="text-white font-black text-sm">{c.name}</div>
-                          </div>
-                          <div className="card-icon-area">
-                            <Icon size={60} className="text-white opacity-80"/>
-                          </div>
-                          <div className="card-footer">
-                            {c.description || ''}
-                          </div>
-                        </>
-                      )}
-                      {isSimplified && (
-                        <div className="card-icon-area" style={{marginTop: '60px'}}>
-                          <Icon size={60} className="text-white opacity-80"/>
+                        <div className="card-footer">
+                          {c.description || ''}
                         </div>
                       )}
                     </div>

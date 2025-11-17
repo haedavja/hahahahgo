@@ -436,6 +436,11 @@ body {
   box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
 }
 
+.game-card-large:hover:not(.disabled) {
+  transform: scale(1.15);
+  z-index: 200;
+}
+
 .game-card-large.attack {
   border-color: rgba(248, 113, 113, 0.6);
   background: radial-gradient(circle at 30% 20%, rgba(248, 113, 113, 0.25), transparent 70%), linear-gradient(180deg, #5c0b0b 0%, #190202 100%);
