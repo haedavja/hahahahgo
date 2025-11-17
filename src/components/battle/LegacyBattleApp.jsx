@@ -502,10 +502,10 @@ function ExpectedDamagePreview({player, enemy, fixedOrder, willOverdrive, enemyM
           left: '0',
           right: '0',
           display: 'flex',
-          gap: '12px',
+          flexDirection: 'column',
+          gap: '8px',
           justifyContent: 'center',
           alignItems: 'center',
-          flexWrap: 'wrap',
           padding: '16px',
           background: 'rgba(7, 11, 30, 0.98)',
           borderTop: '2px solid rgba(148, 163, 184, 0.3)'
@@ -1167,8 +1167,9 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
           <div style={{display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '12px', minWidth: '360px', position: 'relative'}}>
             {/* 플레이어 콤보 - 절대 위치로 오른쪽 배치 */}
             {currentCombo && (
-              <div className="combo-display" style={{position: 'absolute', top: '0', left: '180px'}}>
-                {currentCombo.name} {pendingComboEther > 0 && `+${pendingComboEther} pt`}
+              <div className="combo-display" style={{position: 'absolute', top: '0', left: '180px', textAlign: 'center'}}>
+                <div>{currentCombo.name}</div>
+                {pendingComboEther > 0 && <div style={{color: '#fbbf24', fontWeight: 'bold'}}>+{pendingComboEther} PT</div>}
               </div>
             )}
             <div style={{display: 'flex', alignItems: 'center', gap: '16px'}}>
@@ -1183,12 +1184,25 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                 <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
                   <div className="character-display" style={{fontSize: '64px'}}>🧙‍♂️</div>
                   <div>
-                    <div style={{color: '#f87171', fontSize: '1.25rem', fontWeight: 'bold'}}>❤️ {player.hp}/{player.maxHp}</div>
-                    <div className="hp-bar-enhanced mb-1" style={{width: '200px', height: '12px'}}>
+                    <div style={{color: '#f87171', fontSize: '1.25rem', fontWeight: 'bold'}}>
+                      {player.block > 0 && <span style={{color: '#60a5fa', marginRight: '8px'}}>🛡️{player.block}</span>}
+                      ❤️ {player.hp}/{player.maxHp}
+                    </div>
+                    <div className="hp-bar-enhanced mb-1" style={{width: '200px', height: '12px', position: 'relative', overflow: 'hidden'}}>
                       <div className="hp-fill" style={{width: `${(player.hp/player.maxHp)*100}%`}}></div>
+                      {player.block > 0 && (
+                        <div style={{
+                          position: 'absolute',
+                          left: 0,
+                          top: 0,
+                          height: '100%',
+                          width: `${Math.min((player.block / player.maxHp) * 100, 100)}%`,
+                          background: 'linear-gradient(90deg, rgba(96, 165, 250, 0.6), rgba(96, 165, 250, 0.3))',
+                          borderRight: '2px solid #60a5fa'
+                        }}></div>
+                      )}
                     </div>
                     <div style={{fontSize: '1rem', fontWeight: '600', color: '#7dd3fc', marginTop: '4px'}}>플레이어</div>
-                    {player.block>0 && <div style={{fontSize: '0.875rem', color: '#93c5fd'}}>🛡️ {player.block}</div>}
                   </div>
                 </div>
                 <button onClick={()=> (phase==='select' || phase==='respond') && setWillOverdrive(v=>!v)}
@@ -1220,25 +1234,43 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
           <div style={{display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '12px', minWidth: '360px', position: 'relative'}}>
             {/* 몬스터 콤보 - 절대 위치로 왼쪽 배치 */}
             {enemyCombo && (
-              <div className="combo-display" style={{position: 'absolute', top: '0', right: '180px'}}>
-                {enemyCombo.name} {enemyComboPreviewGain > 0 && `+${enemyComboPreviewGain} pt`}
+              <div className="combo-display" style={{position: 'absolute', top: '0', right: '180px', textAlign: 'center'}}>
+                <div>{enemyCombo.name}</div>
+                {enemyComboPreviewGain > 0 && <div style={{color: '#fbbf24', fontWeight: 'bold'}}>+{enemyComboPreviewGain} PT</div>}
               </div>
             )}
             <div style={{display: 'flex', alignItems: 'center', gap: '16px'}}>
               <div style={{textAlign: 'right'}}>
-                <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
-                  <div>
-                    <div style={{color: '#f87171', fontSize: '1.25rem', fontWeight: 'bold', textAlign: 'right'}}>❤️ {enemy.hp}/{enemy.maxHp}</div>
-                    <div className="hp-bar-enhanced mb-1" style={{width: '200px', height: '12px'}}>
-                      <div className="hp-fill" style={{width: `${(enemy.hp/enemy.maxHp)*100}%`}}></div>
+                <div style={{display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px'}}>
+                  {enemyHint && (
+                    <div style={{fontSize: '1rem', color: '#94a3b8', marginBottom: '4px'}}>💡 {enemyHint}</div>
+                  )}
+                  <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
+                    <div>
+                      <div style={{color: '#f87171', fontSize: '1.25rem', fontWeight: 'bold', textAlign: 'right'}}>
+                        {enemy.block > 0 && <span style={{color: '#60a5fa', marginRight: '8px'}}>🛡️{enemy.block}</span>}
+                        ❤️ {enemy.hp}/{enemy.maxHp}
+                      </div>
+                      <div className="hp-bar-enhanced mb-1" style={{width: '200px', height: '12px', position: 'relative', overflow: 'hidden'}}>
+                        <div className="hp-fill" style={{width: `${(enemy.hp/enemy.maxHp)*100}%`}}></div>
+                        {enemy.block > 0 && (
+                          <div style={{
+                            position: 'absolute',
+                            left: 0,
+                            top: 0,
+                            height: '100%',
+                            width: `${Math.min((enemy.block / enemy.maxHp) * 100, 100)}%`,
+                            background: 'linear-gradient(90deg, rgba(96, 165, 250, 0.6), rgba(96, 165, 250, 0.3))',
+                            borderRight: '2px solid #60a5fa'
+                          }}></div>
+                        )}
+                      </div>
+                      <div style={{fontSize: '1rem', fontWeight: '600', color: '#fca5a5', marginTop: '4px', textAlign: 'right'}}>
+                        {enemy.name}
+                      </div>
                     </div>
-                    <div style={{fontSize: '1rem', fontWeight: '600', color: '#fca5a5', marginTop: '4px', textAlign: 'right'}}>
-                      {enemy.name}
-                      {enemyHint && <span style={{fontSize: '1rem', color: '#94a3b8', marginLeft: '8px'}}>💡 {enemyHint}</span>}
-                    </div>
-                    {enemy.block>0 && <div style={{fontSize: '0.875rem', color: '#93c5fd', textAlign: 'right'}}>🛡️ {enemy.block}</div>}
+                    <div className="character-display" style={{fontSize: '64px'}}>👹</div>
                   </div>
-                  <div className="character-display" style={{fontSize: '64px'}}>👹</div>
                 </div>
               </div>
               <EtherBar
