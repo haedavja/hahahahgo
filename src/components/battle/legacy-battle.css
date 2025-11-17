@@ -452,11 +452,11 @@ body {
   left: -10px; /* -4px → -10px (카드 바깥으로 더 벗어남) */
   background: rgba(251, 191, 36, 0.9);
   color: #000;
-  width: 42px;
-  height: 42px;
-  border-radius: 16px;
+  width: 36px; /* 42px → 36px (축소) */
+  height: 36px; /* 42px → 36px (축소) */
+  border-radius: 14px; /* 16px → 14px */
   font-weight: 900;
-  font-size: 24px;
+  font-size: 20px; /* 24px → 20px */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -889,7 +889,7 @@ body {
 .game-card-large {
   width: 154px !important; /* 120px → 140px → 154px (10% 증가) */
   height: 200px !important; /* 180px → 200px */
-  margin-left: -50px; /* 카드 겹침 (-30px → -50px, 슬레이 더 스파이어처럼 더 겹치게) */
+  margin-left: -70px; /* 카드 겹침 (-50px → -70px, 슬레이 더 스파이어처럼 더욱 겹치게) */
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
   transform-origin: bottom center;
   transform: translateY(0px) !important; /* 50px → 0px (기본 위치로 복귀) */
@@ -906,8 +906,8 @@ body {
 .game-card-large:hover:not(.disabled) {
   transform: translateY(-60px) scale(1.35) !important; /* 확대 축소 (1.5 → 1.35, -80px → -60px) */
   z-index: 100 !important;
-  margin-left: -50px; /* 겹침 정도 유지 */
-  margin-right: 50px; /* 호버 시 오른쪽 공간 확보 (30px → 50px) */
+  margin-left: -70px; /* 겹침 정도 유지 */
+  margin-right: 70px; /* 호버 시 오른쪽 공간 확보 */
 }
 
 /* 선택된 카드 */

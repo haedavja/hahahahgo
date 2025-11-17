@@ -1425,37 +1425,38 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                 const isSubSpecial = currentBuild?.subSpecials?.includes(a.card.id);
                 const costColor = isMainSpecial ? '#fcd34d' : isSubSpecial ? '#60a5fa' : '#fff';
                 return (
-                  <div key={`resolve-${globalIndex}`}
-                       className={`game-card-large ${a.card.type==='attack' ? 'attack' : 'defense'} ${isUsed ? 'card-used' : ''} ${isPast ? 'opacity-30' : ''}`}>
-                    <div className="card-cost-corner" style={{color: costColor, WebkitTextStroke: '2px #000'}}>{a.card.actionCost}</div>
-                    <div className="card-stats-sidebar">
-                      {a.card.damage != null && a.card.damage > 0 && (
-                        <div className="card-stat-item attack">
-                          ⚔️{a.card.damage}{a.card.hits?`×${a.card.hits}`:''}
+                  <div key={`resolve-${globalIndex}`} style={{display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'center'}}>
+                    <div className={`game-card-large ${a.card.type==='attack' ? 'attack' : 'defense'} ${isUsed ? 'card-used' : ''} ${isPast ? 'opacity-30' : ''}`}>
+                      <div className="card-cost-corner" style={{color: costColor, WebkitTextStroke: '2px #000'}}>{a.card.actionCost}</div>
+                      <div className="card-stats-sidebar">
+                        {a.card.damage != null && a.card.damage > 0 && (
+                          <div className="card-stat-item attack">
+                            ⚔️{a.card.damage}{a.card.hits?`×${a.card.hits}`:''}
+                          </div>
+                        )}
+                        {a.card.block != null && a.card.block > 0 && (
+                          <div className="card-stat-item defense">
+                            🛡️{a.card.block}
+                          </div>
+                        )}
+                        {a.card.counter !== undefined && (
+                          <div className="card-stat-item counter">
+                            ⚡{a.card.counter}
+                          </div>
+                        )}
+                        <div className="card-stat-item speed">
+                          ⏱️{a.card.speedCost}
                         </div>
-                      )}
-                      {a.card.block != null && a.card.block > 0 && (
-                        <div className="card-stat-item defense">
-                          🛡️{a.card.block}
-                        </div>
-                      )}
-                      {a.card.counter !== undefined && (
-                        <div className="card-stat-item counter">
-                          ⚡{a.card.counter}
-                        </div>
-                      )}
-                      <div className="card-stat-item speed">
-                        ⏱️{a.card.speedCost}
                       </div>
-                    </div>
-                    <div className="card-header">
-                      <div className="text-white font-black text-sm">{a.card.name}</div>
-                    </div>
-                    <div className="card-icon-area">
-                      <Icon size={60} className="text-white opacity-80"/>
-                    </div>
-                    <div className="card-footer">
-                      {a.card.description || ''}
+                      <div className="card-header">
+                        <div className="text-white font-black text-sm">{a.card.name}</div>
+                      </div>
+                      <div className="card-icon-area">
+                        <Icon size={60} className="text-white opacity-80"/>
+                      </div>
+                      <div className="card-footer">
+                        {a.card.description || ''}
+                      </div>
                     </div>
                   </div>
                 );
