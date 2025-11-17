@@ -418,7 +418,7 @@ function ExpectedDamagePreview({player, enemy, fixedOrder, willOverdrive, enemyM
   }, [log, phase]);
 
   return (
-    <div className="expect-board expect-board-vertical">
+    <div className="expect-board expect-board-vertical" style={{position: 'relative'}}>
       {/* 타이틀 */}
       <div style={{marginBottom: '16px', paddingBottom: '12px', borderBottom: '2px solid rgba(148, 163, 184, 0.3)'}}>
         <div style={{fontSize: '18px', fontWeight: 'bold', color: '#f8fafc'}}>
@@ -494,9 +494,22 @@ function ExpectedDamagePreview({player, enemy, fixedOrder, willOverdrive, enemyM
         </div>
       )}
 
-      {/* 진행 단계 제어 버튼 (전투 로그와 독립, 하단 고정) */}
+      {/* 진행 단계 제어 버튼 (전투 로그 아래, 절대 위치로 고정) */}
       {phase === 'resolve' && (
-        <div className="resolve-buttons-fixed">
+        <div style={{
+          position: 'absolute',
+          bottom: '40px',
+          left: '0',
+          right: '0',
+          display: 'flex',
+          gap: '12px',
+          justifyContent: 'center',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          padding: '16px',
+          background: 'rgba(7, 11, 30, 0.98)',
+          borderTop: '2px solid rgba(148, 163, 184, 0.3)'
+        }}>
           <div style={{fontSize: '18px', fontWeight: 'bold', color: '#f8fafc'}}>
             ⚔️ 전투 진행 중... ({qIndex}/{queue?.length || 0})
           </div>
@@ -1207,7 +1220,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
           <div style={{display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '12px', minWidth: '360px', position: 'relative'}}>
             {/* 몬스터 콤보 - 절대 위치로 왼쪽 배치 */}
             {enemyCombo && (
-              <div className="combo-display" style={{position: 'absolute', top: '0', right: '180px', backgroundColor: 'rgba(239, 68, 68, 0.2)', borderColor: '#ef4444'}}>
+              <div className="combo-display" style={{position: 'absolute', top: '0', right: '180px'}}>
                 ⭐ {enemyCombo.name} {enemyComboPreviewGain > 0 && `+${enemyComboPreviewGain} pt`}
               </div>
             )}
@@ -1233,7 +1246,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                 key={`enemy-ether-${enemyEtherValue}`}
                 pts={enemyEtherValue}
                 slots={enemyEtherSlots}
-                previewGain={enemyComboPreviewGain}
+                previewGain={phase === 'resolve' ? 0 : enemyComboPreviewGain}
                 label="ETHER"
                 color="red"
               />
