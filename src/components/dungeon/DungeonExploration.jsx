@@ -202,6 +202,7 @@ const OBJECT_HANDLERS = {
       kind: "combat",
       label: "던전 몬스터",
       enemyHp,
+      rewards: {}, // 던전에서는 수동으로 보상 처리하므로 자동 보상 비활성화
     });
   },
 
@@ -487,10 +488,9 @@ export function DungeonExploration() {
 
     // 에테르 텍스트
     ctx.fillStyle = "#53d7ff";
-    ctx.font = "10px Arial";
+    ctx.font = "bold 14px Arial";
     ctx.textAlign = "center";
-    ctx.fillText(`${etherPts} pt`, playerScreenX - 20, etherY - 5);
-    ctx.fillText(`${etherSlots} z`, playerScreenX + 20, etherY - 5);
+    ctx.fillText(`x${etherSlots}`, playerScreenX, etherY - 8);
 
     // HP 바 (하단)
     const hpRatio = playerHp / maxHp;
@@ -727,8 +727,12 @@ export function DungeonExploration() {
             <h3 style={{ margin: "0 0 16px", fontSize: "24px" }}>
               {rewardModal.victory ? "승리!" : "패배"}
             </h3>
-            {rewardModal.gold > 0 && <div style={{ fontSize: "18px" }}>금 +{rewardModal.gold}</div>}
-            {rewardModal.loot > 0 && <div style={{ fontSize: "18px" }}>전리품 +{rewardModal.loot}</div>}
+            {rewardModal.victory && (
+              <div style={{ fontSize: "18px", marginBottom: "8px" }}>
+                {rewardModal.gold > 0 && <div style={{ color: "#ffd700", marginBottom: "4px" }}>금 +{rewardModal.gold}</div>}
+                {rewardModal.loot > 0 && <div style={{ color: "#ff6b6b" }}>전리품 +{rewardModal.loot}</div>}
+              </div>
+            )}
             {!rewardModal.victory && <div style={{ fontSize: "14px", color: "#ff6b6b" }}>보상 없음</div>}
             <button
               onClick={closeRewardModal}
