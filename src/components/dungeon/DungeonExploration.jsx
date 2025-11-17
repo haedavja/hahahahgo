@@ -419,7 +419,10 @@ export function DungeonExploration() {
     } else {
       setRewardModal({ gold: 0, loot: 0, victory: false });
     }
-  }, [lastBattleResult]);
+
+    // 즉시 clear하여 중복 처리 방지 (재마운트 시 useEffect 재실행 방지)
+    clearBattleResult();
+  }, [lastBattleResult, clearBattleResult]);
 
   // ========== 렌더링 ==========
   useEffect(() => {
@@ -480,7 +483,7 @@ export function DungeonExploration() {
     const etherH = 8;
     const etherY = playerY - 20;
 
-    ctx.fillStyle = "#1a1a2a";
+    ctx.fillStyle = "#333";
     ctx.fillRect(playerScreenX - etherW / 2, etherY, etherW, etherH);
 
     ctx.fillStyle = "#53d7ff";
@@ -667,6 +670,29 @@ export function DungeonExploration() {
           )}
         </div>
       </div>
+
+      {/* 이벤트 메시지 - 화면 중앙 */}
+      {message && (
+        <div style={{
+          position: "absolute",
+          top: "50%",
+          left: "50%",
+          transform: "translate(-50%, -50%)",
+          color: "#fff",
+          fontSize: "18px",
+          fontWeight: "600",
+          background: "rgba(0,0,0,0.85)",
+          padding: "20px 40px",
+          borderRadius: "12px",
+          border: "2px solid rgba(84, 126, 194, 0.6)",
+          boxShadow: "0 8px 32px rgba(0,0,0,0.6)",
+          textAlign: "center",
+          maxWidth: "600px",
+          zIndex: 150,
+        }}>
+          {message}
+        </div>
+      )}
 
       {/* UI - 정보 */}
       <div style={{
