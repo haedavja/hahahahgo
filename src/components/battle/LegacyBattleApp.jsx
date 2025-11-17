@@ -1260,7 +1260,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
 
       {/* 하단 고정 손패 영역 */}
       {(phase==='select' || phase==='respond' || phase==='resolve' || (enemy && enemy.hp <= 0) || (player && player.hp <= 0)) && (
-        <div className="hand-area">
+        <div className="hand-area" style={{right: (phase==='respond' || phase==='select') ? '340px' : '0'}}>
           <div className="hand-area-header" style={{display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '12px', marginBottom: '0px', flexWrap: 'wrap'}}>
             {phase==='select' && (
               <button onClick={startResolve} disabled={selected.length===0} className="btn-enhanced btn-primary flex items-center gap-2">
@@ -1301,8 +1301,8 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                 const costColor = isMainSpecial ? '#fcd34d' : isSubSpecial ? '#60a5fa' : '#fff';
                 return (
                   <div key={c.id+idx} onClick={()=>!disabled && toggle(c)} style={{display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center', cursor: disabled ? 'not-allowed' : 'pointer', position: 'relative'}}>
-                    <div className="card-cost-badge-floating" style={{color: costColor, WebkitTextStroke: '1px #000'}}>{c.actionCost}</div>
-                    <div className={`game-card-large ${c.type==='attack' ? 'attack' : 'defense'} ${sel ? 'selected' : ''} ${disabled ? 'disabled' : ''}`}>
+                    <div className={`game-card-large select-phase-card ${c.type==='attack' ? 'attack' : 'defense'} ${sel ? 'selected' : ''} ${disabled ? 'disabled' : ''}`}>
+                      <div className="card-cost-corner" style={{color: costColor, WebkitTextStroke: '2px #000'}}>{c.actionCost}</div>
                       {sel && <div className="selection-number">{selIndex + 1}</div>}
                       <div className="card-stats-sidebar">
                         {c.damage != null && c.damage > 0 && (
@@ -1351,8 +1351,8 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                 const costColor = isMainSpecial ? '#fcd34d' : isSubSpecial ? '#60a5fa' : '#fff';
                 return (
                   <div key={idx} style={{display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center', position: 'relative'}}>
-                    <div className="card-cost-badge-floating" style={{color: costColor, WebkitTextStroke: '1px #000'}}>{c.actionCost}</div>
-                    <div className={`game-card-large ${c.type==='attack' ? 'attack' : 'defense'}`}>
+                    <div className={`game-card-large respond-phase-card ${c.type==='attack' ? 'attack' : 'defense'}`}>
+                      <div className="card-cost-corner" style={{color: costColor, WebkitTextStroke: '2px #000'}}>{c.actionCost}</div>
                       <div className="card-stats-sidebar">
                         {c.damage != null && c.damage > 0 && (
                           <div className="card-stat-item attack">
@@ -1426,8 +1426,8 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                 const costColor = isMainSpecial ? '#fcd34d' : isSubSpecial ? '#60a5fa' : '#fff';
                 return (
                   <div key={`resolve-${globalIndex}`} style={{display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center', position: 'relative'}}>
-                    <div className="card-cost-badge-floating" style={{color: costColor, WebkitTextStroke: '1px #000'}}>{a.card.actionCost}</div>
-                    <div className={`game-card-large ${a.card.type==='attack' ? 'attack' : 'defense'} ${isUsed ? 'card-used' : ''} ${isPast ? 'opacity-30' : ''}`}>
+                    <div className={`game-card-large resolve-phase-card ${a.card.type==='attack' ? 'attack' : 'defense'} ${isUsed ? 'card-used' : ''} ${isPast ? 'opacity-30' : ''}`}>
+                      <div className="card-cost-corner" style={{color: costColor, WebkitTextStroke: '2px #000'}}>{a.card.actionCost}</div>
                       <div className="card-stats-sidebar">
                         {a.card.damage != null && a.card.damage > 0 && (
                           <div className="card-stat-item attack">

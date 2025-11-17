@@ -904,14 +904,28 @@ body {
 
 /* 카드 기본 크기 (압축 상태) */
 .game-card-large {
-  width: 154px !important; /* 120px → 140px → 154px (10% 증가) */
-  height: 200px !important; /* 180px → 200px */
-  margin-left: -90px; /* 카드 겹침 (-70px → -90px, 슬레이 더 스파이어처럼 중심으로 크게 겹치게) */
+  width: 154px !important;
+  height: 200px !important;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
   transform-origin: bottom center;
-  transform: translateY(0px) !important; /* 50px → 0px (기본 위치로 복귀) */
+  transform: translateY(0px) !important;
   z-index: 1;
   position: relative;
+}
+
+/* 선택 단계 카드 - 살짝 겹침 */
+.game-card-large.select-phase-card {
+  margin-left: -40px;
+}
+
+/* 대응 단계 카드 - 겹침 없음 */
+.game-card-large.respond-phase-card {
+  margin-left: 0px;
+}
+
+/* 진행 단계 카드 - 겹침 없음 */
+.game-card-large.resolve-phase-card {
+  margin-left: 0px;
 }
 
 /* 첫 번째 카드는 margin-left 없음 */
@@ -921,10 +935,9 @@ body {
 
 /* 호버 효과 - 슬레이 더 스파이어 스타일 */
 .game-card-large:hover:not(.disabled) {
-  transform: translateY(-60px) scale(1.35) !important; /* 확대 축소 (1.5 → 1.35, -80px → -60px) */
+  transform: translateY(-60px) scale(1.35) !important;
   z-index: 100 !important;
-  margin-left: -90px; /* 겹침 정도 유지 */
-  margin-right: 90px; /* 호버 시 오른쪽 공간 확보 */
+  margin-right: 40px; /* 호버 시 오른쪽 공간 확보 */
 }
 
 /* 선택된 카드 */
