@@ -915,12 +915,12 @@ body {
 
 /* 선택 단계 카드 - 살짝 겹침 */
 .game-card-large.select-phase-card {
-  margin-left: -40px;
+  margin-left: -70px;
 }
 
 /* 대응 단계 카드 - 겹침 없음 */
 .game-card-large.respond-phase-card {
-  margin-left: 0px;
+  margin-left: 10px;
 }
 
 /* 진행 단계 카드 - 겹침 없음 */

@@ -1085,37 +1085,6 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
       {/* 상단 메인 영역 */}
       <div className="w-full px-4" style={{marginRight: (phase==='respond' || phase==='select') ? '340px' : '0'}}>
 
-        {/* 최상단: 전투 단계 표시 및 중앙 정보 */}
-        <div style={{textAlign: 'center', marginBottom: '20px'}}>
-          <div style={{fontSize: '28px', fontWeight: 'bold', color: '#f8fafc', textShadow: '0 2px 8px rgba(0,0,0,0.5)'}}>
-            {phase === 'select' ? '선택 단계' : phase === 'respond' ? '대응 단계' : '진행 단계'}
-          </div>
-
-          {/* 중앙 정보 영역 */}
-          <div style={{marginTop: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px'}}>
-            {currentCombo && (
-              <div className="combo-display">
-                {currentCombo.name}
-                {pendingComboEther > 0 && (
-                  <span style={{fontSize: '0.85em', marginLeft: '8px', color: '#6ee7b7'}}>
-                    +{pendingComboEther} pt
-                  </span>
-                )}
-              </div>
-            )}
-            <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
-              <div style={{fontSize: '1.25rem', fontWeight: '700', color: '#7dd3fc'}}>
-                속도 {totalSpeed}/{MAX_SPEED} · 선택 {selected.length}/{MAX_SUBMIT_CARDS}
-              </div>
-              {phase==='select' && (
-                <button onClick={redrawHand} disabled={!canRedraw} className="btn-enhanced flex items-center gap-2">
-                  <RefreshCw size={18}/> 리드로우
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-
         {/* Timeline */}
         <div style={{marginBottom: '24px'}}>
           <div className="panel-enhanced timeline-panel">
@@ -1170,6 +1139,37 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
           </div>
         </div>
 
+        {/* 전투 단계 표시 및 중앙 정보 (타임라인 하단으로 이동) */}
+        <div style={{textAlign: 'center', marginBottom: '20px'}}>
+          <div style={{fontSize: '28px', fontWeight: 'bold', color: '#f8fafc', textShadow: '0 2px 8px rgba(0,0,0,0.5)'}}>
+            {phase === 'select' ? '선택 단계' : phase === 'respond' ? '대응 단계' : '진행 단계'}
+          </div>
+
+          {/* 중앙 정보 영역 */}
+          <div style={{marginTop: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px'}}>
+            {currentCombo && (
+              <div className="combo-display">
+                {currentCombo.name}
+                {pendingComboEther > 0 && (
+                  <span style={{fontSize: '0.85em', marginLeft: '8px', color: '#6ee7b7'}}>
+                    +{pendingComboEther} pt
+                  </span>
+                )}
+              </div>
+            )}
+            <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
+              <div style={{fontSize: '1.25rem', fontWeight: '700', color: '#7dd3fc'}}>
+                속도 {totalSpeed}/{MAX_SPEED} · 선택 {selected.length}/{MAX_SUBMIT_CARDS}
+              </div>
+              {phase==='select' && (
+                <button onClick={redrawHand} disabled={!canRedraw} className="btn-enhanced flex items-center gap-2">
+                  <RefreshCw size={18}/> 리드로우
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+
         {/* 플레이어/적 정보 패널 (전투 단계 표시 위에 배치) */}
         <div className="battle-shell">
           <div className="battle-main">
@@ -1200,12 +1200,6 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                   </button>
                 </div>
                 <div className="character-display">🧙‍♂️</div>
-              </div>
-            </div>
-            <div className="vs-panel">
-              <div className="vs-icon">⚔️</div>
-              <div className="vs-status">
-                {phase==='respond' ? "대응 단계" : phase==='resolve' ? `진행 중 (${qIndex}/${queue?.length || 0})` : "선택 단계"}
               </div>
             </div>
             <div className="entity-panel enemy-panel">
@@ -1260,7 +1254,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
 
       {/* 하단 고정 손패 영역 */}
       {(phase==='select' || phase==='respond' || phase==='resolve' || (enemy && enemy.hp <= 0) || (player && player.hp <= 0)) && (
-        <div className="hand-area" style={{right: (phase==='respond' || phase==='select') ? '340px' : '0'}}>
+        <div className="hand-area">
           <div className="hand-area-header" style={{display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '12px', marginBottom: '0px', flexWrap: 'wrap'}}>
             {phase==='select' && (
               <button onClick={startResolve} disabled={selected.length===0} className="btn-enhanced btn-primary flex items-center gap-2">
@@ -1301,8 +1295,8 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                 const costColor = isMainSpecial ? '#fcd34d' : isSubSpecial ? '#60a5fa' : '#fff';
                 return (
                   <div key={c.id+idx} onClick={()=>!disabled && toggle(c)} style={{display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center', cursor: disabled ? 'not-allowed' : 'pointer', position: 'relative'}}>
+                    <div className="card-cost-badge-floating" style={{color: costColor, WebkitTextStroke: '1px #000'}}>{c.actionCost}</div>
                     <div className={`game-card-large select-phase-card ${c.type==='attack' ? 'attack' : 'defense'} ${sel ? 'selected' : ''} ${disabled ? 'disabled' : ''}`}>
-                      <div className="card-cost-corner" style={{color: costColor, WebkitTextStroke: '2px #000'}}>{c.actionCost}</div>
                       {sel && <div className="selection-number">{selIndex + 1}</div>}
                       <div className="card-stats-sidebar">
                         {c.damage != null && c.damage > 0 && (
@@ -1351,8 +1345,8 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                 const costColor = isMainSpecial ? '#fcd34d' : isSubSpecial ? '#60a5fa' : '#fff';
                 return (
                   <div key={idx} style={{display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center', position: 'relative'}}>
+                    <div className="card-cost-badge-floating" style={{color: costColor, WebkitTextStroke: '1px #000'}}>{c.actionCost}</div>
                     <div className={`game-card-large respond-phase-card ${c.type==='attack' ? 'attack' : 'defense'}`}>
-                      <div className="card-cost-corner" style={{color: costColor, WebkitTextStroke: '2px #000'}}>{c.actionCost}</div>
                       <div className="card-stats-sidebar">
                         {c.damage != null && c.damage > 0 && (
                           <div className="card-stat-item attack">
@@ -1426,8 +1420,8 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                 const costColor = isMainSpecial ? '#fcd34d' : isSubSpecial ? '#60a5fa' : '#fff';
                 return (
                   <div key={`resolve-${globalIndex}`} style={{display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center', position: 'relative'}}>
+                    <div className="card-cost-badge-floating" style={{color: costColor, WebkitTextStroke: '1px #000'}}>{a.card.actionCost}</div>
                     <div className={`game-card-large resolve-phase-card ${a.card.type==='attack' ? 'attack' : 'defense'} ${isUsed ? 'card-used' : ''} ${isPast ? 'opacity-30' : ''}`}>
-                      <div className="card-cost-corner" style={{color: costColor, WebkitTextStroke: '2px #000'}}>{a.card.actionCost}</div>
                       <div className="card-stats-sidebar">
                         {a.card.damage != null && a.card.damage > 0 && (
                           <div className="card-stat-item attack">
