@@ -1155,7 +1155,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
             {/* 플레이어 콤보 - 상단으로 이동 */}
             {currentCombo && (
               <div className="combo-display" style={{alignSelf: 'flex-start', marginBottom: '8px'}}>
-                ⭐ 플러쉬 +30 PT
+                ⭐ {currentCombo.name} {pendingComboEther > 0 && `+${pendingComboEther} pt`}
               </div>
             )}
             <div style={{display: 'flex', alignItems: 'center', gap: '16px'}}>
@@ -1208,7 +1208,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
             {/* 몬스터 콤보 - 상단으로 이동 */}
             {enemyCombo && (
               <div className="combo-display" style={{alignSelf: 'flex-end', backgroundColor: 'rgba(239, 68, 68, 0.2)', borderColor: '#ef4444', marginBottom: '8px'}}>
-                ⭐ 플러쉬 +30 PT
+                ⭐ {enemyCombo.name} {enemyComboPreviewGain > 0 && `+${enemyComboPreviewGain} pt`}
               </div>
             )}
             <div style={{display: 'flex', alignItems: 'center', gap: '16px'}}>
