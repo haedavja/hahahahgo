@@ -572,7 +572,7 @@ function EtherBar({ pts, slots, previewGain=0, color="cyan", label }){
 // 캐릭터 빌드 기반 손패 생성
 // =====================
 function drawCharacterBuildHand(characterBuild) {
-  if (!characterBuild) return CARDS.slice(0, 8);
+  if (!characterBuild) return CARDS.slice(0, 10); // 8장 → 10장
 
   const { mainSpecials = [], subSpecials = [] } = characterBuild;
 
@@ -675,7 +675,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
     const hasCharacterBuild = currentBuild && (currentBuild.mainSpecials?.length > 0 || currentBuild.subSpecials?.length > 0);
     const initialHand = hasCharacterBuild
       ? drawCharacterBuildHand(currentBuild)
-      : CARDS.slice(0, 8);
+      : CARDS.slice(0, 10); // 8장 → 10장
     setHand(initialHand);
     setCanRedraw(true);
   }, [safeInitialPlayer, playerEther, addLog]);
@@ -729,7 +729,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
       const hasCharacterBuild = currentBuild && (currentBuild.mainSpecials?.length > 0 || currentBuild.subSpecials?.length > 0);
       const initialHand = hasCharacterBuild
         ? drawCharacterBuildHand(currentBuild)
-        : CARDS.slice(0, 8);
+        : CARDS.slice(0, 10); // 8장 → 10장
       setHand(initialHand);
       setSelected([]);
       setCanRedraw(true);
@@ -751,7 +751,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
     const hasCharacterBuild = currentBuild && (currentBuild.mainSpecials?.length > 0 || currentBuild.subSpecials?.length > 0);
     const newHand = hasCharacterBuild
       ? drawCharacterBuildHand(currentBuild)
-      : CARDS.slice(0, 8);
+      : CARDS.slice(0, 10); // 8장 → 10장
     setHand(newHand);
     setSelected([]);
 
@@ -853,7 +853,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
     const hasCharacterBuild = currentBuild && (currentBuild.mainSpecials?.length > 0 || currentBuild.subSpecials?.length > 0);
     const newHand = hasCharacterBuild
       ? drawCharacterBuildHand(currentBuild)
-      : CARDS.slice(0, 8);
+      : CARDS.slice(0, 10); // 8장 → 10장
     setHand(newHand);
     setSelected([]);
     setCanRedraw(false);
@@ -1315,6 +1315,11 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                       </div>
                       <div style={{color: '#67e8f9', fontSize: '1.688rem', marginTop: '0.25rem'}}>⏱️{c.speedCost}</div>
                     </div>
+                    {c.description && (
+                      <div className="card-description">
+                        {c.description}
+                      </div>
+                    )}
                   </button>
                 );
               })}

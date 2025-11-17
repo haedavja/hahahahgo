@@ -860,3 +860,112 @@ body {
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
   border-radius: 24px;
 }
+
+/* ============================================
+   슬레이 더 스파이어 스타일 카드 시스템
+   ============================================ */
+
+/* 손패 컨테이너 - 카드 겹침 레이아웃 */
+.hand-cards {
+  display: flex;
+  gap: 0px !important; /* 겹침을 위해 gap 제거 */
+  padding: 0px 40px; /* 양쪽에 패딩 추가 */
+  overflow-x: visible !important;
+  justify-content: center;
+  align-items: flex-end;
+  min-height: 280px; /* 확대 시 공간 확보 */
+  position: relative;
+}
+
+/* 카드 기본 크기 (압축 상태) */
+.game-card-large {
+  width: 120px !important; /* 160px → 120px */
+  height: 180px !important; /* 220px → 180px */
+  margin-left: -40px; /* 카드 겹침 */
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  transform-origin: bottom center;
+  z-index: 1;
+  position: relative;
+}
+
+/* 첫 번째 카드는 margin-left 없음 */
+.hand-cards .game-card-large:first-child {
+  margin-left: 0;
+}
+
+/* 호버 효과 - 슬레이 더 스파이어 스타일 */
+.game-card-large:hover:not(.disabled) {
+  transform: translateY(-60px) scale(1.35) !important;
+  z-index: 100 !important;
+  margin-left: -40px;
+  margin-right: 20px; /* 호버 시 오른쪽 공간 확보 */
+}
+
+/* 선택된 카드 */
+.game-card-large.selected {
+  transform: translateY(-20px) scale(1.05);
+  z-index: 50;
+}
+
+.game-card-large.selected:hover:not(.disabled) {
+  transform: translateY(-60px) scale(1.35) !important;
+  z-index: 100 !important;
+}
+
+/* 카드 설명 영역 */
+.card-description {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(0, 0, 0, 0.95);
+  color: #cbd5e1;
+  font-size: 11px;
+  line-height: 1.4;
+  padding: 8px 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  opacity: 0;
+  transform: translateY(100%);
+  transition: all 0.3s ease;
+  pointer-events: none;
+  max-height: 0;
+  overflow: hidden;
+}
+
+/* 호버 시 설명 표시 */
+.game-card-large:hover:not(.disabled) .card-description {
+  opacity: 1;
+  transform: translateY(0);
+  max-height: 80px;
+  pointer-events: auto;
+}
+
+/* 카드 이름 및 아이콘 영역 조정 */
+.game-card-large .card-header {
+  font-size: 0.85rem !important;
+  padding: 0 8px !important;
+  margin-top: 2px !important;
+}
+
+.game-card-large .card-icon-area {
+  min-height: 50px !important;
+  padding: 4px 0 !important;
+}
+
+.game-card-large .card-footer {
+  padding: 6px 10px !important;
+}
+
+/* 호버 시 카드 내용 크기 조정 */
+.game-card-large:hover:not(.disabled) .card-header {
+  font-size: 1rem !important;
+}
+
+.game-card-large:hover:not(.disabled) .card-icon-area svg {
+  width: 70px !important;
+  height: 70px !important;
+}
+
+.game-card-large:hover:not(.disabled) .card-footer {
+  padding: 10px 14px !important;
+}
