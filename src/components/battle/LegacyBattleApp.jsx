@@ -400,7 +400,7 @@ function simulatePreview({player, enemy, fixedOrder, willOverdrive, enemyMode, e
   return { pDealt, pTaken, finalPHp: st.player.hp, finalEHp: st.enemy.hp, lines };
 }
 
-function ExpectedDamagePreview({player, enemy, fixedOrder, willOverdrive, enemyMode, enemyActions, phase, log}){
+function ExpectedDamagePreview({player, enemy, fixedOrder, willOverdrive, enemyMode, enemyActions, phase, log, qIndex, queue, stepOnce, runAll, finishTurn, postCombatOptions, handleExitToMap}){
   const res = useMemo(()=> simulatePreview({player, enemy, fixedOrder, willOverdrive, enemyMode, enemyActions}), [player, enemy, fixedOrder, willOverdrive, enemyMode, enemyActions]);
   const summaryItems = [
     { icon:"🗡️", label:"예상 타격 피해", value: res.pDealt, accent:"text-emerald-300", hpInfo: `몬스터 HP ${enemy.hp} → ${res.finalEHp}`, hpColor: "#fca5a5" },
@@ -1079,6 +1079,13 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
           enemyActions={enemyPlan.actions}
           phase={phase}
           log={log}
+          qIndex={qIndex}
+          queue={queue}
+          stepOnce={stepOnce}
+          runAll={runAll}
+          finishTurn={finishTurn}
+          postCombatOptions={postCombatOptions}
+          handleExitToMap={handleExitToMap}
         />
       </div>
 
@@ -1295,8 +1302,8 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                 const costColor = isMainSpecial ? '#fcd34d' : isSubSpecial ? '#60a5fa' : '#fff';
                 return (
                   <div key={c.id+idx} onClick={()=>!disabled && toggle(c)} style={{display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center', cursor: disabled ? 'not-allowed' : 'pointer', position: 'relative'}}>
-                    <div className="card-cost-badge-floating" style={{color: costColor, WebkitTextStroke: '1px #000'}}>{c.actionCost}</div>
                     <div className={`game-card-large select-phase-card ${c.type==='attack' ? 'attack' : 'defense'} ${sel ? 'selected' : ''} ${disabled ? 'disabled' : ''}`}>
+                      <div className="card-cost-badge-floating" style={{color: costColor, WebkitTextStroke: '1px #000'}}>{c.actionCost}</div>
                       {sel && <div className="selection-number">{selIndex + 1}</div>}
                       <div className="card-stats-sidebar">
                         {c.damage != null && c.damage > 0 && (
@@ -1345,8 +1352,8 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                 const costColor = isMainSpecial ? '#fcd34d' : isSubSpecial ? '#60a5fa' : '#fff';
                 return (
                   <div key={idx} style={{display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center', position: 'relative'}}>
-                    <div className="card-cost-badge-floating" style={{color: costColor, WebkitTextStroke: '1px #000'}}>{c.actionCost}</div>
                     <div className={`game-card-large respond-phase-card ${c.type==='attack' ? 'attack' : 'defense'}`}>
+                      <div className="card-cost-badge-floating" style={{color: costColor, WebkitTextStroke: '1px #000'}}>{c.actionCost}</div>
                       <div className="card-stats-sidebar">
                         {c.damage != null && c.damage > 0 && (
                           <div className="card-stat-item attack">
@@ -1420,8 +1427,8 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                 const costColor = isMainSpecial ? '#fcd34d' : isSubSpecial ? '#60a5fa' : '#fff';
                 return (
                   <div key={`resolve-${globalIndex}`} style={{display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center', position: 'relative'}}>
-                    <div className="card-cost-badge-floating" style={{color: costColor, WebkitTextStroke: '1px #000'}}>{a.card.actionCost}</div>
                     <div className={`game-card-large resolve-phase-card ${a.card.type==='attack' ? 'attack' : 'defense'} ${isUsed ? 'card-used' : ''} ${isPast ? 'opacity-30' : ''}`}>
+                      <div className="card-cost-badge-floating" style={{color: costColor, WebkitTextStroke: '1px #000'}}>{a.card.actionCost}</div>
                       <div className="card-stats-sidebar">
                         {a.card.damage != null && a.card.damage > 0 && (
                           <div className="card-stat-item attack">
