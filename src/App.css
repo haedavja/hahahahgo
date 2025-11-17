@@ -195,7 +195,7 @@ body {
 }
 .hp-column {
   position: fixed;
-  right: 452px;
+  right: 402px;
   top: 50%;
   transform: translateY(-50%);
   width: 72px;
@@ -249,6 +249,19 @@ body {
   color: #ffe6ef;
   font-size: 13px;
   letter-spacing: 0.04em;
+  z-index: 60;
+}
+.resources-display {
+  position: fixed;
+  right: 395px;
+  top: 80px;
+  padding: 10px 18px;
+  border-radius: 12px;
+  border: 1px solid rgba(84, 126, 194, 0.4);
+  background: rgba(12, 18, 32, 0.85);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
   z-index: 60;
 }
 .map-version-tag {

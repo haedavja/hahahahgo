@@ -105,7 +105,7 @@ const friendlyPercent = (chance) => {
   return `${Math.round(chance * 100)}%`;
 };
 
-const PATCH_VERSION_TAG = "11-17-14:15"; // 다음 패치마다 여기를 최신 시간(월-일-시:분, KST)으로 갱신하세요.
+const PATCH_VERSION_TAG = "11-17-14:30"; // 다음 패치마다 여기를 최신 시간(월-일-시:분, KST)으로 갱신하세요.
 
 /* v11-16-14:45 갱신 내역
  * - 카드 스탯 폰트 크기 일원화 및 확대:
@@ -316,6 +316,13 @@ export function MapDemo() {
       </div>
 
       <div className="risk-indicator">위험도 {riskDisplay}%</div>
+
+      <div className="resources-display">
+        <div style={{ color: "#ffd700", fontSize: "13px" }}>금: {resources.gold}</div>
+        <div style={{ color: "#9da9d6", fontSize: "13px" }}>정보: {resources.intel}</div>
+        <div style={{ color: "#ff6b6b", fontSize: "13px" }}>전리품: {resources.loot}</div>
+        <div style={{ color: "#a0e9ff", fontSize: "13px" }}>원자재: {resources.material}</div>
+      </div>
 
       <div className="map-version-tag">{PATCH_VERSION_TAG}</div>
 
