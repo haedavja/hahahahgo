@@ -1295,11 +1295,11 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                 const currentBuild = useGameStore.getState().characterBuild;
                 const isMainSpecial = currentBuild?.mainSpecials?.includes(c.id);
                 const isSubSpecial = currentBuild?.subSpecials?.includes(c.id);
-                const costColor = isMainSpecial ? '#3b82f6' : isSubSpecial ? '#7dd3fc' : '#fff';
+                const costColor = isMainSpecial ? '#fcd34d' : isSubSpecial ? '#60a5fa' : '#fff';
                 return (
                   <button key={c.id+idx} onClick={()=>toggle(c)} disabled={disabled}
                           className={`game-card-large ${c.type==='attack' ? 'attack' : 'defense'} ${sel ? 'selected' : ''} ${disabled ? 'disabled' : ''}`}>
-                    <div className="card-cost-corner" style={{color: costColor}}>{c.actionCost}</div>
+                    <div className="card-cost-corner" style={{color: costColor, WebkitTextStroke: '2px #000'}}>{c.actionCost}</div>
                     {sel && <div className="selection-number">{selIndex + 1}</div>}
                     <div className="card-header">
                       <div className="text-white font-black text-sm">{c.name}</div>
@@ -1329,11 +1329,11 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                 const currentBuild = useGameStore.getState().characterBuild;
                 const isMainSpecial = currentBuild?.mainSpecials?.includes(c.id);
                 const isSubSpecial = currentBuild?.subSpecials?.includes(c.id);
-                const costColor = isMainSpecial ? '#3b82f6' : isSubSpecial ? '#7dd3fc' : '#fff';
+                const costColor = isMainSpecial ? '#fcd34d' : isSubSpecial ? '#60a5fa' : '#fff';
                 return (
                   <div key={idx} style={{display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'center'}}>
                     <div className={`game-card-large ${c.type==='attack' ? 'attack' : 'defense'}`}>
-                      <div className="card-cost-corner" style={{color: costColor}}>{c.actionCost}</div>
+                      <div className="card-cost-corner" style={{color: costColor, WebkitTextStroke: '2px #000'}}>{c.actionCost}</div>
                       <div className="card-header">
                         <div className="text-white font-black text-sm">{c.name}</div>
                       </div>
@@ -1389,11 +1389,11 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                 const currentBuild = useGameStore.getState().characterBuild;
                 const isMainSpecial = currentBuild?.mainSpecials?.includes(a.card.id);
                 const isSubSpecial = currentBuild?.subSpecials?.includes(a.card.id);
-                const costColor = isMainSpecial ? '#3b82f6' : isSubSpecial ? '#7dd3fc' : '#fff';
+                const costColor = isMainSpecial ? '#fcd34d' : isSubSpecial ? '#60a5fa' : '#fff';
                 return (
                   <div key={`resolve-${globalIndex}`}
                        className={`game-card-large ${a.card.type==='attack' ? 'attack' : 'defense'} ${isUsed ? 'card-used' : ''} ${isPast ? 'opacity-30' : ''}`}>
-                    <div className="card-cost-corner" style={{color: costColor}}>{a.card.actionCost}</div>
+                    <div className="card-cost-corner" style={{color: costColor, WebkitTextStroke: '2px #000'}}>{a.card.actionCost}</div>
                     <div className="card-header">
                       <div className="text-white font-black text-sm">{a.card.name}</div>
                     </div>
