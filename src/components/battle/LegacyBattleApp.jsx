@@ -498,7 +498,7 @@ function ExpectedDamagePreview({player, enemy, fixedOrder, willOverdrive, enemyM
       {phase === 'resolve' && (
         <div style={{
           position: 'absolute',
-          bottom: '40px',
+          bottom: '-120px',
           left: '0',
           right: '0',
           display: 'flex',
@@ -1168,7 +1168,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
             {/* 플레이어 콤보 - 절대 위치로 오른쪽 배치 */}
             {currentCombo && (
               <div className="combo-display" style={{position: 'absolute', top: '0', left: '180px'}}>
-                ⭐ {currentCombo.name} {pendingComboEther > 0 && `+${pendingComboEther} pt`}
+                {currentCombo.name} {pendingComboEther > 0 && `+${pendingComboEther} pt`}
               </div>
             )}
             <div style={{display: 'flex', alignItems: 'center', gap: '16px'}}>
@@ -1180,7 +1180,6 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                 label="ETHER"
               />
               <div>
-                <div style={{fontSize: '1rem', fontWeight: '600', color: '#7dd3fc', marginBottom: '8px'}}>플레이어</div>
                 <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
                   <div className="character-display" style={{fontSize: '64px'}}>🧙‍♂️</div>
                   <div>
@@ -1188,6 +1187,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                     <div className="hp-bar-enhanced mb-1" style={{width: '200px', height: '12px'}}>
                       <div className="hp-fill" style={{width: `${(player.hp/player.maxHp)*100}%`}}></div>
                     </div>
+                    <div style={{fontSize: '1rem', fontWeight: '600', color: '#7dd3fc', marginTop: '4px'}}>플레이어</div>
                     {player.block>0 && <div style={{fontSize: '0.875rem', color: '#93c5fd'}}>🛡️ {player.block}</div>}
                   </div>
                 </div>
@@ -1221,23 +1221,22 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
             {/* 몬스터 콤보 - 절대 위치로 왼쪽 배치 */}
             {enemyCombo && (
               <div className="combo-display" style={{position: 'absolute', top: '0', right: '180px'}}>
-                ⭐ {enemyCombo.name} {enemyComboPreviewGain > 0 && `+${enemyComboPreviewGain} pt`}
+                {enemyCombo.name} {enemyComboPreviewGain > 0 && `+${enemyComboPreviewGain} pt`}
               </div>
             )}
             <div style={{display: 'flex', alignItems: 'center', gap: '16px'}}>
               <div style={{textAlign: 'right'}}>
-                <div style={{fontSize: '1rem', fontWeight: '600', color: '#fca5a5', marginBottom: '8px'}}>
-                  {enemy.name}
-                  {enemyHint && <span style={{fontSize: '0.75rem', color: '#94a3b8', marginLeft: '8px'}}>💡 {enemyHint}</span>}
-                </div>
                 <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
                   <div>
                     <div style={{color: '#f87171', fontSize: '1.25rem', fontWeight: 'bold', textAlign: 'right'}}>❤️ {enemy.hp}/{enemy.maxHp}</div>
                     <div className="hp-bar-enhanced mb-1" style={{width: '200px', height: '12px'}}>
                       <div className="hp-fill" style={{width: `${(enemy.hp/enemy.maxHp)*100}%`}}></div>
                     </div>
+                    <div style={{fontSize: '1rem', fontWeight: '600', color: '#fca5a5', marginTop: '4px', textAlign: 'right'}}>
+                      {enemy.name}
+                      {enemyHint && <span style={{fontSize: '1rem', color: '#94a3b8', marginLeft: '8px'}}>💡 {enemyHint}</span>}
+                    </div>
                     {enemy.block>0 && <div style={{fontSize: '0.875rem', color: '#93c5fd', textAlign: 'right'}}>🛡️ {enemy.block}</div>}
-                    <div style={{fontSize: '0.75rem', color: '#94a3b8', marginTop: '4px'}}>적 {enemyIndex+1}/{ENEMIES.length}</div>
                   </div>
                   <div className="character-display" style={{fontSize: '64px'}}>👹</div>
                 </div>
