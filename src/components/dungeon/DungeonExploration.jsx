@@ -37,7 +37,7 @@ const generateObjects = (segmentType, segmentIndex, totalSegments) => {
       const type = Math.random();
       const xPos = 500 + Math.random() * 2000; // 복도 전체에 분산
 
-      if (type < 0.4) {
+      if (type < 0.3) {
         objects.push({
           id: `obj-${segmentIndex}-${i}`,
           type: OBJECT_TYPES.CHEST,
@@ -45,7 +45,7 @@ const generateObjects = (segmentType, segmentIndex, totalSegments) => {
           y: 500,
           interacted: false,
         });
-      } else if (type < 0.85) {
+      } else if (type < 0.55) {
         objects.push({
           id: `obj-${segmentIndex}-${i}`,
           type: OBJECT_TYPES.CURIO,
@@ -88,19 +88,28 @@ const generateObjects = (segmentType, segmentIndex, totalSegments) => {
     const numObjects = 2 + Math.floor(Math.random() * 2);
     for (let i = 0; i < numObjects; i++) {
       const type = Math.random();
-      if (type < 0.5) {
+      const xPos = 300 + Math.random() * 600;
+      if (type < 0.35) {
         objects.push({
           id: `obj-${segmentIndex}-${i}`,
           type: OBJECT_TYPES.CHEST,
-          x: 300 + Math.random() * 600,
+          x: xPos,
+          y: 500,
+          interacted: false,
+        });
+      } else if (type < 0.7) {
+        objects.push({
+          id: `obj-${segmentIndex}-${i}`,
+          type: OBJECT_TYPES.CURIO,
+          x: xPos,
           y: 500,
           interacted: false,
         });
       } else {
         objects.push({
           id: `obj-${segmentIndex}-${i}`,
-          type: OBJECT_TYPES.CURIO,
-          x: 300 + Math.random() * 600,
+          type: OBJECT_TYPES.COMBAT,
+          x: xPos,
           y: 500,
           interacted: false,
         });
@@ -147,6 +156,31 @@ const generateDungeon = () => {
       height: 600,
       objects: generateObjects(type, i, numSegments),
     });
+  }
+
+  // 최소 전투 2번 보장
+  let combatCount = 0;
+  segments.forEach(seg => {
+    combatCount += seg.objects.filter(obj => obj.type === OBJECT_TYPES.COMBAT).length;
+  });
+
+  while (combatCount < 2) {
+    // 랜덤 세그먼트 선택
+    const segIndex = Math.floor(Math.random() * segments.length);
+    const segment = segments[segIndex];
+
+    // 전투가 아닌 오브젝트 중 하나를 전투로 변환
+    const nonCombatObjs = segment.objects.filter(obj =>
+      obj.type !== OBJECT_TYPES.COMBAT &&
+      obj.type !== OBJECT_TYPES.DOOR &&
+      obj.type !== "exit"
+    );
+
+    if (nonCombatObjs.length > 0) {
+      const objToChange = nonCombatObjs[Math.floor(Math.random() * nonCombatObjs.length)];
+      objToChange.type = OBJECT_TYPES.COMBAT;
+      combatCount++;
+    }
   }
 
   return segments;
