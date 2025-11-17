@@ -105,7 +105,7 @@ const friendlyPercent = (chance) => {
   return `${Math.round(chance * 100)}%`;
 };
 
-const PATCH_VERSION_TAG = "11-17-11:07"; // 다음 패치마다 여기를 최신 시간(월-일-시:분, KST)으로 갱신하세요.
+const PATCH_VERSION_TAG = "11-17-11:25"; // 다음 패치마다 여기를 최신 시간(월-일-시:분, KST)으로 갱신하세요.
 
 /* v11-16-14:45 갱신 내역
  * - 카드 스탯 폰트 크기 일원화 및 확대:
@@ -136,10 +136,10 @@ export function MapDemo() {
   const maxHp = useGameStore((state) => state.maxHp);
 
   const [showCharacterSheet, setShowCharacterSheet] = useState(false);
+  const [isDungeonExploring, setIsDungeonExploring] = useState(false);
 
   const nodes = map?.nodes ?? [];
   const mapViewRef = useRef(null);
-  const dungeonMountedRef = useRef(false);
   const riskDisplay = Number.isFinite(mapRisk) ? mapRisk.toFixed(1) : "-";
   const aetherValue = resources.etherPts ?? 0;
   const aetherSlots = calculateEtherSlots(aetherValue); // 인플레이션 적용
@@ -204,13 +204,18 @@ export function MapDemo() {
     return () => window.removeEventListener("keydown", handleKeyPress);
   }, []);
 
-  // 던전 마운트 추적
+  // 던전 탐험 상태 관리
   useEffect(() => {
     if (activeDungeon?.confirmed) {
-      dungeonMountedRef.current = true;
-    } else if (!activeDungeon && !activeBattle) {
-      // 전투 중이 아닐 때만 던전 마운트 해제
-      dungeonMountedRef.current = false;
+      // 던전 진입 확정 시 탐험 시작
+      setIsDungeonExploring(true);
+    } else if (!activeDungeon) {
+      // activeDungeon이 사라졌을 때
+      if (!activeBattle) {
+        // 전투 중이 아니면 즉시 탐험 종료 (탈출/완료)
+        setIsDungeonExploring(false);
+      }
+      // 전투 중이면 그대로 유지 (던전 내 전투)
     }
   }, [activeDungeon, activeBattle]);
 
@@ -257,7 +262,7 @@ export function MapDemo() {
                   className={[
                     "node",
                     node.type,
-                    node.selectable && !node.cleared ? "selectable" : "",
+                    node.selectable ? "selectable" : "",
                     node.cleared ? "cleared" : "",
                     node.isStart ? "start" : "",
                   ]
@@ -430,7 +435,7 @@ export function MapDemo() {
         </div>
       )}
 
-      {dungeonMountedRef.current && (
+      {isDungeonExploring && (
         <div style={{ display: activeBattle ? 'none' : 'block' }}>
           <DungeonExploration />
         </div>
