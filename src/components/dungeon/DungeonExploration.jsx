@@ -274,6 +274,7 @@ export function DungeonExploration() {
   // Store hooks
   const activeDungeon = useGameStore((s) => s.activeDungeon);
   const setDungeonData = useGameStore((s) => s.setDungeonData);
+  const setDungeonPosition = useGameStore((s) => s.setDungeonPosition);
   const skipDungeon = useGameStore((s) => s.skipDungeon);
   const completeDungeon = useGameStore((s) => s.completeDungeon);
   const startBattle = useGameStore((s) => s.startBattle);
@@ -295,13 +296,16 @@ export function DungeonExploration() {
 
   // 던전 데이터는 activeDungeon에서 가져옴
   const dungeon = activeDungeon?.dungeonData || [];
-  const [segmentIndex, setSegmentIndex] = useState(0);
-  const [playerX, setPlayerX] = useState(100);
+  // activeDungeon에서 위치 정보 가져오기 (재마운트 시에도 유지)
+  const [segmentIndex, setSegmentIndex] = useState(activeDungeon?.segmentIndex || 0);
+  const [playerX, setPlayerX] = useState(activeDungeon?.playerX || 100);
   const [cameraX, setCameraX] = useState(0);
   const [keys, setKeys] = useState({});
   const [message, setMessage] = useState("");
   const [rewardModal, setRewardModal] = useState(null);
   const [showCharacter, setShowCharacter] = useState(false);
+  const [initialResources] = useState(() => ({ ...resources })); // 던전 진입 시 초기 자원
+  const [dungeonSummary, setDungeonSummary] = useState(null); // 던전 탈출 요약
 
   const canvasRef = useRef(null);
   const animationRef = useRef(null);
@@ -309,6 +313,11 @@ export function DungeonExploration() {
 
   const segment = dungeon[segmentIndex];
   const playerY = CONFIG.FLOOR_Y - CONFIG.PLAYER.height;
+
+  // 위치 정보를 activeDungeon에 저장 (재마운트 시 복원용)
+  useEffect(() => {
+    setDungeonPosition(segmentIndex, playerX);
+  }, [segmentIndex, playerX, setDungeonPosition]);
 
   // ========== 키 입력 ==========
   useEffect(() => {
@@ -514,6 +523,22 @@ export function DungeonExploration() {
     clearBattleResult();
   };
 
+  // ========== 던전 탈출 ==========
+  const handleSkipDungeon = () => {
+    const summary = {
+      gold: resources.gold - initialResources.gold,
+      intel: resources.intel - initialResources.intel,
+      loot: resources.loot - initialResources.loot,
+      material: resources.material - initialResources.material,
+    };
+    setDungeonSummary(summary);
+  };
+
+  const closeDungeonSummary = () => {
+    setDungeonSummary(null);
+    skipDungeon();
+  };
+
   return (
     <div style={{
       position: "fixed",
@@ -594,7 +619,7 @@ export function DungeonExploration() {
       {/* 자원 - 중앙 상단 가로 배치 */}
       <div style={{
         position: "absolute",
-        top: "20px",
+        top: "220px",
         left: "50%",
         transform: "translateX(-50%)",
         display: "flex",
@@ -606,21 +631,41 @@ export function DungeonExploration() {
       }}>
         <div style={{ color: "#ffd700", fontSize: "14px", fontWeight: "600" }}>
           금: {resources.gold}
+          {resources.gold !== initialResources.gold && (
+            <span style={{ color: "#90EE90", marginLeft: "4px" }}>
+              ({resources.gold > initialResources.gold ? "+" : ""}{resources.gold - initialResources.gold})
+            </span>
+          )}
         </div>
         <div style={{ color: "#9da9d6", fontSize: "14px", fontWeight: "600" }}>
           정보: {resources.intel}
+          {resources.intel !== initialResources.intel && (
+            <span style={{ color: "#90EE90", marginLeft: "4px" }}>
+              ({resources.intel > initialResources.intel ? "+" : ""}{resources.intel - initialResources.intel})
+            </span>
+          )}
         </div>
         <div style={{ color: "#ff6b6b", fontSize: "14px", fontWeight: "600" }}>
           전리품: {resources.loot}
+          {resources.loot !== initialResources.loot && (
+            <span style={{ color: "#90EE90", marginLeft: "4px" }}>
+              ({resources.loot > initialResources.loot ? "+" : ""}{resources.loot - initialResources.loot})
+            </span>
+          )}
         </div>
         <div style={{ color: "#a0e9ff", fontSize: "14px", fontWeight: "600" }}>
           원자재: {resources.material}
+          {resources.material !== initialResources.material && (
+            <span style={{ color: "#90EE90", marginLeft: "4px" }}>
+              ({resources.material > initialResources.material ? "+" : ""}{resources.material - initialResources.material})
+            </span>
+          )}
         </div>
       </div>
 
       {/* 탈출 버튼 */}
       <button
-        onClick={skipDungeon}
+        onClick={handleSkipDungeon}
         style={{
           position: "absolute",
           bottom: "20px",
@@ -669,6 +714,75 @@ export function DungeonExploration() {
                 marginTop: "20px",
                 padding: "10px 24px",
                 background: "#3498db",
+                color: "#fff",
+                border: "none",
+                borderRadius: "8px",
+                cursor: "pointer",
+                fontSize: "16px",
+                fontWeight: "600",
+              }}
+            >
+              확인
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* 던전 탈출 요약 모달 */}
+      {dungeonSummary && (
+        <div style={{
+          position: "fixed",
+          inset: 0,
+          background: "rgba(0,0,0,0.8)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          zIndex: 200,
+        }}>
+          <div style={{
+            background: "#1e1e2e",
+            padding: "32px",
+            borderRadius: "16px",
+            border: "2px solid #444",
+            textAlign: "center",
+            color: "#fff",
+            minWidth: "300px",
+          }}>
+            <h3 style={{ margin: "0 0 24px", fontSize: "24px", color: "#3498db" }}>
+              던전 탐험 완료
+            </h3>
+            <div style={{ fontSize: "16px", lineHeight: "1.8", textAlign: "left", marginBottom: "20px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
+                <span style={{ color: "#ffd700" }}>금:</span>
+                <span style={{ color: dungeonSummary.gold >= 0 ? "#90EE90" : "#ff6b6b", fontWeight: "600" }}>
+                  {dungeonSummary.gold >= 0 ? "+" : ""}{dungeonSummary.gold}
+                </span>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
+                <span style={{ color: "#9da9d6" }}>정보:</span>
+                <span style={{ color: dungeonSummary.intel >= 0 ? "#90EE90" : "#ff6b6b", fontWeight: "600" }}>
+                  {dungeonSummary.intel >= 0 ? "+" : ""}{dungeonSummary.intel}
+                </span>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
+                <span style={{ color: "#ff6b6b" }}>전리품:</span>
+                <span style={{ color: dungeonSummary.loot >= 0 ? "#90EE90" : "#ff6b6b", fontWeight: "600" }}>
+                  {dungeonSummary.loot >= 0 ? "+" : ""}{dungeonSummary.loot}
+                </span>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <span style={{ color: "#a0e9ff" }}>원자재:</span>
+                <span style={{ color: dungeonSummary.material >= 0 ? "#90EE90" : "#ff6b6b", fontWeight: "600" }}>
+                  {dungeonSummary.material >= 0 ? "+" : ""}{dungeonSummary.material}
+                </span>
+              </div>
+            </div>
+            <button
+              onClick={closeDungeonSummary}
+              style={{
+                marginTop: "20px",
+                padding: "10px 24px",
+                background: "#27ae60",
                 color: "#fff",
                 border: "none",
                 borderRadius: "8px",
