@@ -315,7 +315,8 @@ export function DungeonExploration() {
     if (activeDungeon && !activeDungeon.initialResources) {
       setDungeonInitialResources({ ...resources });
     }
-  }, [activeDungeon, resources, setDungeonInitialResources]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeDungeon, setDungeonInitialResources]);
 
   // 던전 데이터는 activeDungeon에서 가져옴
   const dungeon = activeDungeon?.dungeonData || [];
@@ -484,6 +485,13 @@ export function DungeonExploration() {
     ctx.fillStyle = "#53d7ff";
     ctx.fillRect(playerScreenX - etherW / 2, etherY, etherW * etherProgress, etherH);
 
+    // 에테르 텍스트
+    ctx.fillStyle = "#53d7ff";
+    ctx.font = "10px Arial";
+    ctx.textAlign = "center";
+    ctx.fillText(`${etherPts} pt`, playerScreenX - 20, etherY - 5);
+    ctx.fillText(`${etherSlots} z`, playerScreenX + 20, etherY - 5);
+
     // HP 바 (하단)
     const hpRatio = playerHp / maxHp;
     const hpW = 60;
@@ -619,7 +627,7 @@ export function DungeonExploration() {
       {/* 자원 - 중앙 상단 가로 배치 */}
       <div style={{
         position: "absolute",
-        top: "120px",
+        top: "200px",
         left: "50%",
         transform: "translateX(-50%)",
         display: "flex",
@@ -662,7 +670,7 @@ export function DungeonExploration() {
       {/* UI - 정보 */}
       <div style={{
         position: "absolute",
-        top: "170px",
+        top: "260px",
         left: "50%",
         transform: "translateX(-50%)",
         color: "#fff",
