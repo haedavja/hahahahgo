@@ -819,6 +819,14 @@ body {
   flex-shrink: 0;
 }
 
+/* 독립 활동력 표시 (좌측 하단 고정) */
+.energy-display-fixed {
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+  z-index: 200;
+}
+
 .submitted-cards-area {
   margin-top: 24px;
   background: rgba(4, 6, 22, 0.92);
@@ -1027,9 +1035,4 @@ body {
 
 .game-card-large:hover:not(.disabled) .card-stat-item {
   font-size: 1.3rem !important; /* 호버 시 스탯도 약간 크게 */
-}
-
-/* 대응 단계 카드의 이름 위치 조정 */
-.game-card-large.respond-card .card-header {
-  margin-top: 0px !important; /* -15px → 0px (15px 낮춤) */
 }

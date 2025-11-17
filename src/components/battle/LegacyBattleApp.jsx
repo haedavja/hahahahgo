@@ -1121,6 +1121,38 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
           <div style={{fontSize: '28px', fontWeight: 'bold', color: '#f8fafc', textShadow: '0 2px 8px rgba(0,0,0,0.5)'}}>
             {phase === 'select' ? '선택 단계' : phase === 'respond' ? '대응 단계' : '진행 단계'}
           </div>
+
+          {/* 중앙 정보 영역 (타임라인 하단) */}
+          <div style={{marginTop: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px'}}>
+            {currentCombo && (
+              <div className="combo-display">
+                {currentCombo.name}
+                {pendingComboEther > 0 && (
+                  <span style={{fontSize: '0.85em', marginLeft: '8px', color: '#6ee7b7'}}>
+                    +{pendingComboEther} pt
+                  </span>
+                )}
+              </div>
+            )}
+            {phase==='resolve' && (
+              <div className="text-white font-black text-xl">⚔️ 전투 진행 중... ({qIndex}/{queue?.length || 0})</div>
+            )}
+            <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
+              <div style={{fontSize: '1.25rem', fontWeight: '700', color: '#7dd3fc'}}>
+                속도 {totalSpeed}/{MAX_SPEED} · 선택 {selected.length}/{MAX_SUBMIT_CARDS}
+              </div>
+              {phase==='select' && (
+                <button onClick={redrawHand} disabled={!canRedraw} className="btn-enhanced flex items-center gap-2">
+                  <RefreshCw size={18}/> 리드로우
+                </button>
+              )}
+              {phase==='resolve' && qIndex >= queue.length && (
+                <button onClick={()=>finishTurn('수동 턴 종료')} className="btn-enhanced flex items-center gap-2">
+                  ⏭️ 턴 종료
+                </button>
+              )}
+            </div>
+          </div>
         </div>
 
         <div className="battle-shell">
@@ -1201,79 +1233,49 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
         </div>
       </div>
 
+      {/* 독립 활동력 표시 (좌측 하단 고정) */}
+      {(phase==='select' || phase==='respond' || phase==='resolve' || (enemy && enemy.hp <= 0) || (player && player.hp <= 0)) && (
+        <div className="energy-display-fixed">
+          <div className="energy-orb-compact">
+            {remainingEnergy}
+          </div>
+        </div>
+      )}
+
       {/* 하단 고정 손패 영역 */}
       {(phase==='select' || phase==='respond' || phase==='resolve' || (enemy && enemy.hp <= 0) || (player && player.hp <= 0)) && (
         <div className="hand-area">
-          <div className="hand-area-header" style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px', marginBottom: '0px'}}>
-            <div style={{display: 'flex', alignItems: 'center'}}>
-              <div className="energy-orb-compact">
-                {remainingEnergy}
-              </div>
-            </div>
-
-            <div style={{flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px'}}>
-              {currentCombo && (
-                <div className="combo-display">
-                  {currentCombo.name}
-                  {pendingComboEther > 0 && (
-                    <span style={{fontSize: '0.85em', marginLeft: '8px', color: '#6ee7b7'}}>
-                      +{pendingComboEther} pt
-                    </span>
-                  )}
-                </div>
-              )}
-              {phase==='resolve' && (
-                <div className="text-white font-black text-xl">⚔️ 전투 진행 중... ({qIndex}/{queue?.length || 0})</div>
-              )}
-              <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
-                <div style={{fontSize: '1.25rem', fontWeight: '700', color: '#7dd3fc'}}>
-                  속도 {totalSpeed}/{MAX_SPEED} · 선택 {selected.length}/{MAX_SUBMIT_CARDS}
-                </div>
-                {phase==='select' && (
-                  <button onClick={redrawHand} disabled={!canRedraw} className="btn-enhanced flex items-center gap-2">
-                    <RefreshCw size={18}/> 리드로우
+          <div className="hand-area-header" style={{display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '12px', marginBottom: '0px', flexWrap: 'wrap'}}>
+            {phase==='select' && (
+              <button onClick={startResolve} disabled={selected.length===0} className="btn-enhanced btn-primary flex items-center gap-2">
+                <Play size={18}/> 제출
+              </button>
+            )}
+            {phase==='respond' && (
+              <button onClick={beginResolveFromRespond} className="btn-enhanced btn-success flex items-center gap-2">
+                <Play size={20}/> 진행 시작
+              </button>
+            )}
+            {phase==='resolve' && (
+              <>
+                <button onClick={stepOnce} disabled={qIndex>=queue.length} className="btn-enhanced flex items-center gap-2">
+                  <StepForward size={18}/> 한 단계
+                </button>
+                <button onClick={runAll} disabled={qIndex>=queue.length} className="btn-enhanced btn-primary">
+                  전부 실행
+                </button>
+                {postCombatOptions && (
+                  <button onClick={handleExitToMap} className="btn-enhanced btn-primary flex items-center gap-2">
+                    🗺️ 맵으로 돌아가기
                   </button>
                 )}
-                {phase==='resolve' && qIndex >= queue.length && (
-                  <button onClick={()=>finishTurn('수동 턴 종료')} className="btn-enhanced flex items-center gap-2">
-                    ⏭️ 턴 종료
-                  </button>
-                )}
-              </div>
-            </div>
-
-            <div style={{display: 'flex', gap: '12px', flexWrap: 'wrap', justifyContent: 'flex-end'}}>
-              {phase==='select' && (
-                <button onClick={startResolve} disabled={selected.length===0} className="btn-enhanced btn-primary flex items-center gap-2">
-                  <Play size={18}/> 제출
-                </button>
-              )}
-              {phase==='respond' && (
-                <button onClick={beginResolveFromRespond} className="btn-enhanced btn-success flex items-center gap-2">
-                  <Play size={20}/> 진행 시작
-                </button>
-              )}
-              {phase==='resolve' && (
-                <>
-                  <button onClick={stepOnce} disabled={qIndex>=queue.length} className="btn-enhanced flex items-center gap-2">
-                    <StepForward size={18}/> 한 단계
-                  </button>
-                  <button onClick={runAll} disabled={qIndex>=queue.length} className="btn-enhanced btn-primary">
-                    전부 실행
-                  </button>
-                  {postCombatOptions && (
-                    <button onClick={handleExitToMap} className="btn-enhanced btn-primary flex items-center gap-2">
-                      🗺️ 맵으로 돌아가기
-                    </button>
-                  )}
-                </>
-              )}
-              {player && player.hp <= 0 && (
-                <button onClick={()=>window.location.reload()} className="btn-enhanced flex items-center gap-2">
-                  🔄 재시작
-                </button>
-              )}
-            </div>
+              </>
+            )}
+            {player && player.hp <= 0 && (
+              <button onClick={()=>window.location.reload()} className="btn-enhanced flex items-center gap-2">
+                🔄 재시작
+              </button>
+            )}
           </div>
 
           <div className="hand-flags">
@@ -1297,40 +1299,41 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                 const isSubSpecial = currentBuild?.subSpecials?.includes(c.id);
                 const costColor = isMainSpecial ? '#fcd34d' : isSubSpecial ? '#60a5fa' : '#fff';
                 return (
-                  <button key={c.id+idx} onClick={()=>toggle(c)} disabled={disabled}
-                          className={`game-card-large ${c.type==='attack' ? 'attack' : 'defense'} ${sel ? 'selected' : ''} ${disabled ? 'disabled' : ''}`}>
-                    <div className="card-cost-corner" style={{color: costColor, WebkitTextStroke: '2px #000'}}>{c.actionCost}</div>
-                    {sel && <div className="selection-number">{selIndex + 1}</div>}
-                    <div className="card-stats-sidebar">
-                      {c.damage != null && c.damage > 0 && (
-                        <div className="card-stat-item attack">
-                          ⚔️{c.damage}{c.hits?`×${c.hits}`:''}
+                  <div key={c.id+idx} onClick={()=>!disabled && toggle(c)} style={{display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'center', cursor: disabled ? 'not-allowed' : 'pointer'}}>
+                    <div className={`game-card-large ${c.type==='attack' ? 'attack' : 'defense'} ${sel ? 'selected' : ''} ${disabled ? 'disabled' : ''}`}>
+                      <div className="card-cost-corner" style={{color: costColor, WebkitTextStroke: '2px #000'}}>{c.actionCost}</div>
+                      {sel && <div className="selection-number">{selIndex + 1}</div>}
+                      <div className="card-stats-sidebar">
+                        {c.damage != null && c.damage > 0 && (
+                          <div className="card-stat-item attack">
+                            ⚔️{c.damage}{c.hits?`×${c.hits}`:''}
+                          </div>
+                        )}
+                        {c.block != null && c.block > 0 && (
+                          <div className="card-stat-item defense">
+                            🛡️{c.block}
+                          </div>
+                        )}
+                        {c.counter !== undefined && (
+                          <div className="card-stat-item counter">
+                            ⚡{c.counter}
+                          </div>
+                        )}
+                        <div className="card-stat-item speed">
+                          ⏱️{c.speedCost}
                         </div>
-                      )}
-                      {c.block != null && c.block > 0 && (
-                        <div className="card-stat-item defense">
-                          🛡️{c.block}
-                        </div>
-                      )}
-                      {c.counter !== undefined && (
-                        <div className="card-stat-item counter">
-                          ⚡{c.counter}
-                        </div>
-                      )}
-                      <div className="card-stat-item speed">
-                        ⏱️{c.speedCost}
+                      </div>
+                      <div className="card-header">
+                        <div className="text-white font-black text-sm">{c.name}</div>
+                      </div>
+                      <div className="card-icon-area">
+                        <Icon size={60} className="text-white opacity-80"/>
+                      </div>
+                      <div className="card-footer">
+                        {c.description || ''}
                       </div>
                     </div>
-                    <div className="card-header">
-                      <div className="text-white font-black text-sm">{c.name}</div>
-                    </div>
-                    <div className="card-icon-area">
-                      <Icon size={60} className="text-white opacity-80"/>
-                    </div>
-                    <div className="card-footer">
-                      {c.description || ''}
-                    </div>
-                  </button>
+                  </div>
                 );
               })}
             </div>
@@ -1347,7 +1350,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                 const costColor = isMainSpecial ? '#fcd34d' : isSubSpecial ? '#60a5fa' : '#fff';
                 return (
                   <div key={idx} style={{display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'center'}}>
-                    <div className={`game-card-large respond-card ${c.type==='attack' ? 'attack' : 'defense'}`}>
+                    <div className={`game-card-large ${c.type==='attack' ? 'attack' : 'defense'}`}>
                       <div className="card-cost-corner" style={{color: costColor, WebkitTextStroke: '2px #000'}}>{c.actionCost}</div>
                       <div className="card-stats-sidebar">
                         {c.damage != null && c.damage > 0 && (
