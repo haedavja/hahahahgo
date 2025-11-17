@@ -105,7 +105,7 @@ const friendlyPercent = (chance) => {
   return `${Math.round(chance * 100)}%`;
 };
 
-const PATCH_VERSION_TAG = "11-17-10:56"; // 다음 패치마다 여기를 최신 시간(월-일-시:분, KST)으로 갱신하세요.
+const PATCH_VERSION_TAG = "11-17-11:07"; // 다음 패치마다 여기를 최신 시간(월-일-시:분, KST)으로 갱신하세요.
 
 /* v11-16-14:45 갱신 내역
  * - 카드 스탯 폰트 크기 일원화 및 확대:
@@ -149,7 +149,7 @@ export function MapDemo() {
   const aetherRatio = Math.max(0, Math.min(1, aetherProgress)); // 시각적 바 높이
   const aetherTier = `x${aetherSlots}`;
   const hpRatio = Math.max(0, Math.min(1, playerHp / maxHp)); // HP 비율
-  const hpColor = hpRatio > 0.5 ? "#22c55e" : hpRatio > 0.25 ? "#f59e0b" : "#ef4444";
+  const hpColor = hpRatio > 0.5 ? "#86efac" : hpRatio > 0.25 ? "#fde047" : "#fca5a5";
 
   const mapHeight = useMemo(() => {
     if (!nodes.length) return 800;
@@ -208,10 +208,11 @@ export function MapDemo() {
   useEffect(() => {
     if (activeDungeon?.confirmed) {
       dungeonMountedRef.current = true;
-    } else if (!activeDungeon) {
+    } else if (!activeDungeon && !activeBattle) {
+      // 전투 중이 아닐 때만 던전 마운트 해제
       dungeonMountedRef.current = false;
     }
-  }, [activeDungeon]);
+  }, [activeDungeon, activeBattle]);
 
   const availablePrayers = useMemo(
     () => PRAYER_COSTS.filter((cost) => (resources.etherPts ?? 0) >= cost),

@@ -112,9 +112,20 @@ const generateMap = () => {
 
   const flatNodes = layers.flat();
   assignNodeTypes(flatNodes);
+
+  // 시작 노드(layer 0)는 cleared, layer 1은 selectable
+  const startNode = flatNodes.find((node) => node.layer === 0);
   flatNodes.forEach((node) => {
-    node.cleared = node.isStart;
-    node.selectable = node.layer === 1 || node.isStart;
+    if (node === startNode) {
+      node.cleared = true;
+      node.selectable = true;
+    } else if (node.layer === 1) {
+      node.cleared = false;
+      node.selectable = true;
+    } else {
+      node.cleared = false;
+      node.selectable = false;
+    }
   });
 
   return {
