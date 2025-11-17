@@ -1151,10 +1151,10 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
         {/* 플레이어/적 정보 + 중앙 정보 통합 레이아웃 */}
         <div style={{display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '50px', gap: '120px'}}>
           {/* 왼쪽: 플레이어 */}
-          <div style={{display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '12px', minWidth: '360px'}}>
-            {/* 플레이어 콤보 - 상단으로 이동 */}
+          <div style={{display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '12px', minWidth: '360px', position: 'relative'}}>
+            {/* 플레이어 콤보 - 절대 위치로 오른쪽 배치 */}
             {currentCombo && (
-              <div className="combo-display" style={{alignSelf: 'flex-start', marginBottom: '8px'}}>
+              <div className="combo-display" style={{position: 'absolute', top: '0', left: '180px'}}>
                 ⭐ {currentCombo.name} {pendingComboEther > 0 && `+${pendingComboEther} pt`}
               </div>
             )}
@@ -1204,10 +1204,10 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
           </div>
 
           {/* 오른쪽: 적 */}
-          <div style={{display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '12px', minWidth: '360px'}}>
-            {/* 몬스터 콤보 - 상단으로 이동 */}
+          <div style={{display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '12px', minWidth: '360px', position: 'relative'}}>
+            {/* 몬스터 콤보 - 절대 위치로 왼쪽 배치 */}
             {enemyCombo && (
-              <div className="combo-display" style={{alignSelf: 'flex-end', backgroundColor: 'rgba(239, 68, 68, 0.2)', borderColor: '#ef4444', marginBottom: '8px'}}>
+              <div className="combo-display" style={{position: 'absolute', top: '0', right: '180px', backgroundColor: 'rgba(239, 68, 68, 0.2)', borderColor: '#ef4444'}}>
                 ⭐ {enemyCombo.name} {enemyComboPreviewGain > 0 && `+${enemyComboPreviewGain} pt`}
               </div>
             )}
