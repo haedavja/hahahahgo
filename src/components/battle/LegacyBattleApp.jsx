@@ -1092,7 +1092,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
       </div>
 
       {/* 상단 메인 영역 */}
-      <div className="w-full px-4" style={{marginRight: '280px', marginLeft: '50px'}}>
+      <div className="w-full px-4" style={{marginLeft: '150px'}}>
 
         {/* Timeline */}
         <div style={{marginBottom: '24px'}}>

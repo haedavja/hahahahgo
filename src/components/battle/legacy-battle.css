@@ -449,7 +449,7 @@ body {
 /* 행동력 배지 - 카드 왼쪽 상단 밖으로 완전히 */
 .card-cost-badge-floating {
   position: absolute;
-  top: -4px;
+  top: -3px;
   left: -4px;
   background: rgba(251, 191, 36, 0.95);
   color: #000;
@@ -860,7 +860,7 @@ body {
 /* 진행 단계 버튼 고정 (우측 하단) */
 .resolve-buttons-fixed {
   position: fixed;
-  bottom: 20px;
+  bottom: 40px;
   right: 0;
   width: 280px;
   display: flex;
