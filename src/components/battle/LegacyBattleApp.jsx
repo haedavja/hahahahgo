@@ -1085,6 +1085,37 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
       {/* 상단 메인 영역 */}
       <div className="w-full px-4" style={{marginRight: (phase==='respond' || phase==='select') ? '340px' : '0'}}>
 
+        {/* 최상단: 전투 단계 표시 및 중앙 정보 */}
+        <div style={{textAlign: 'center', marginBottom: '20px'}}>
+          <div style={{fontSize: '28px', fontWeight: 'bold', color: '#f8fafc', textShadow: '0 2px 8px rgba(0,0,0,0.5)'}}>
+            {phase === 'select' ? '선택 단계' : phase === 'respond' ? '대응 단계' : '진행 단계'}
+          </div>
+
+          {/* 중앙 정보 영역 */}
+          <div style={{marginTop: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px'}}>
+            {currentCombo && (
+              <div className="combo-display">
+                {currentCombo.name}
+                {pendingComboEther > 0 && (
+                  <span style={{fontSize: '0.85em', marginLeft: '8px', color: '#6ee7b7'}}>
+                    +{pendingComboEther} pt
+                  </span>
+                )}
+              </div>
+            )}
+            <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
+              <div style={{fontSize: '1.25rem', fontWeight: '700', color: '#7dd3fc'}}>
+                속도 {totalSpeed}/{MAX_SPEED} · 선택 {selected.length}/{MAX_SUBMIT_CARDS}
+              </div>
+              {phase==='select' && (
+                <button onClick={redrawHand} disabled={!canRedraw} className="btn-enhanced flex items-center gap-2">
+                  <RefreshCw size={18}/> 리드로우
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+
         {/* Timeline */}
         <div style={{marginBottom: '24px'}}>
           <div className="panel-enhanced timeline-panel">
@@ -1216,37 +1247,6 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
             </div>
           </div>
         </div>
-
-        {/* 전투 단계 표시 (플레이어/적 패널 아래에 배치) */}
-        <div style={{textAlign: 'center', marginTop: '20px', marginBottom: '20px'}}>
-          <div style={{fontSize: '28px', fontWeight: 'bold', color: '#f8fafc', textShadow: '0 2px 8px rgba(0,0,0,0.5)'}}>
-            {phase === 'select' ? '선택 단계' : phase === 'respond' ? '대응 단계' : '진행 단계'}
-          </div>
-
-          {/* 중앙 정보 영역 */}
-          <div style={{marginTop: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px'}}>
-            {currentCombo && (
-              <div className="combo-display">
-                {currentCombo.name}
-                {pendingComboEther > 0 && (
-                  <span style={{fontSize: '0.85em', marginLeft: '8px', color: '#6ee7b7'}}>
-                    +{pendingComboEther} pt
-                  </span>
-                )}
-              </div>
-            )}
-            <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
-              <div style={{fontSize: '1.25rem', fontWeight: '700', color: '#7dd3fc'}}>
-                속도 {totalSpeed}/{MAX_SPEED} · 선택 {selected.length}/{MAX_SUBMIT_CARDS}
-              </div>
-              {phase==='select' && (
-                <button onClick={redrawHand} disabled={!canRedraw} className="btn-enhanced flex items-center gap-2">
-                  <RefreshCw size={18}/> 리드로우
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
       </div>
 
       {/* 독립 활동력 표시 (좌측 하단 고정) */}
@@ -1300,9 +1300,9 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                 const isSubSpecial = currentBuild?.subSpecials?.includes(c.id);
                 const costColor = isMainSpecial ? '#fcd34d' : isSubSpecial ? '#60a5fa' : '#fff';
                 return (
-                  <div key={c.id+idx} onClick={()=>!disabled && toggle(c)} style={{display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'center', cursor: disabled ? 'not-allowed' : 'pointer'}}>
+                  <div key={c.id+idx} onClick={()=>!disabled && toggle(c)} style={{display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center', cursor: disabled ? 'not-allowed' : 'pointer', position: 'relative'}}>
+                    <div className="card-cost-badge-floating" style={{color: costColor, WebkitTextStroke: '1px #000'}}>{c.actionCost}</div>
                     <div className={`game-card-large ${c.type==='attack' ? 'attack' : 'defense'} ${sel ? 'selected' : ''} ${disabled ? 'disabled' : ''}`}>
-                      <div className="card-cost-corner" style={{color: costColor, WebkitTextStroke: '2px #000'}}>{c.actionCost}</div>
                       {sel && <div className="selection-number">{selIndex + 1}</div>}
                       <div className="card-stats-sidebar">
                         {c.damage != null && c.damage > 0 && (
@@ -1350,9 +1350,9 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                 const isSubSpecial = currentBuild?.subSpecials?.includes(c.id);
                 const costColor = isMainSpecial ? '#fcd34d' : isSubSpecial ? '#60a5fa' : '#fff';
                 return (
-                  <div key={idx} style={{display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'center'}}>
+                  <div key={idx} style={{display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center', position: 'relative'}}>
+                    <div className="card-cost-badge-floating" style={{color: costColor, WebkitTextStroke: '1px #000'}}>{c.actionCost}</div>
                     <div className={`game-card-large ${c.type==='attack' ? 'attack' : 'defense'}`}>
-                      <div className="card-cost-corner" style={{color: costColor, WebkitTextStroke: '2px #000'}}>{c.actionCost}</div>
                       <div className="card-stats-sidebar">
                         {c.damage != null && c.damage > 0 && (
                           <div className="card-stat-item attack">
@@ -1425,9 +1425,9 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                 const isSubSpecial = currentBuild?.subSpecials?.includes(a.card.id);
                 const costColor = isMainSpecial ? '#fcd34d' : isSubSpecial ? '#60a5fa' : '#fff';
                 return (
-                  <div key={`resolve-${globalIndex}`} style={{display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'center'}}>
+                  <div key={`resolve-${globalIndex}`} style={{display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center', position: 'relative'}}>
+                    <div className="card-cost-badge-floating" style={{color: costColor, WebkitTextStroke: '1px #000'}}>{a.card.actionCost}</div>
                     <div className={`game-card-large ${a.card.type==='attack' ? 'attack' : 'defense'} ${isUsed ? 'card-used' : ''} ${isPast ? 'opacity-30' : ''}`}>
-                      <div className="card-cost-corner" style={{color: costColor, WebkitTextStroke: '2px #000'}}>{a.card.actionCost}</div>
                       <div className="card-stats-sidebar">
                         {a.card.damage != null && a.card.damage > 0 && (
                           <div className="card-stat-item attack">

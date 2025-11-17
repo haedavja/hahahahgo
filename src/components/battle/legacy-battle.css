@@ -446,17 +446,34 @@ body {
   background: radial-gradient(circle at 30% 20%, rgba(59, 130, 246, 0.25), transparent 70%), linear-gradient(180deg, #0c1e4a 0%, #050b1f 100%);
 }
 
+/* 행동력 배지 - 카드 상단에 부유 */
+.card-cost-badge-floating {
+  background: rgba(251, 191, 36, 0.95);
+  color: #000;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  font-weight: 900;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
+  z-index: 10;
+}
+
 .game-card-large .card-cost-corner {
   position: absolute;
-  top: -10px; /* -4px → -10px (카드 바깥으로 더 벗어남) */
-  left: -10px; /* -4px → -10px (카드 바깥으로 더 벗어남) */
+  top: -10px;
+  left: -10px;
   background: rgba(251, 191, 36, 0.9);
   color: #000;
-  width: 36px; /* 42px → 36px (축소) */
-  height: 36px; /* 42px → 36px (축소) */
-  border-radius: 14px; /* 16px → 14px */
+  width: 36px;
+  height: 36px;
+  border-radius: 14px;
   font-weight: 900;
-  font-size: 20px; /* 24px → 20px */
+  font-size: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -889,7 +906,7 @@ body {
 .game-card-large {
   width: 154px !important; /* 120px → 140px → 154px (10% 증가) */
   height: 200px !important; /* 180px → 200px */
-  margin-left: -70px; /* 카드 겹침 (-50px → -70px, 슬레이 더 스파이어처럼 더욱 겹치게) */
+  margin-left: -90px; /* 카드 겹침 (-70px → -90px, 슬레이 더 스파이어처럼 중심으로 크게 겹치게) */
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
   transform-origin: bottom center;
   transform: translateY(0px) !important; /* 50px → 0px (기본 위치로 복귀) */
@@ -906,8 +923,8 @@ body {
 .game-card-large:hover:not(.disabled) {
   transform: translateY(-60px) scale(1.35) !important; /* 확대 축소 (1.5 → 1.35, -80px → -60px) */
   z-index: 100 !important;
-  margin-left: -70px; /* 겹침 정도 유지 */
-  margin-right: 70px; /* 호버 시 오른쪽 공간 확보 */
+  margin-left: -90px; /* 겹침 정도 유지 */
+  margin-right: 90px; /* 호버 시 오른쪽 공간 확보 */
 }
 
 /* 선택된 카드 */
