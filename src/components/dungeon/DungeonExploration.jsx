@@ -176,6 +176,12 @@ const OBJECT_HANDLERS = {
     obj.used = true;
     const enemyHp = 25 + Math.floor(Math.random() * 10);
 
+    // 전투 전 상태 저장
+    context.preBattleState.current = {
+      segmentIndex: context.segmentIndex,
+      playerX: context.playerX,
+    };
+
     context.startBattle({
       nodeId: `dungeon-${context.segmentIndex}`,
       kind: "combat",
@@ -278,6 +284,7 @@ export function DungeonExploration() {
 
   const canvasRef = useRef(null);
   const animationRef = useRef(null);
+  const preBattleState = useRef(null); // 전투 전 상태 저장
 
   const segment = dungeon[segmentIndex];
   const playerY = CONFIG.FLOOR_Y - CONFIG.PLAYER.height;
@@ -447,6 +454,10 @@ export function DungeonExploration() {
             setMessage,
             startBattle,
             segmentIndex,
+            preBattleState,
+            playerX,
+            setPlayerX,
+            setSegmentIndex,
           });
         }
         return;
@@ -470,6 +481,14 @@ export function DungeonExploration() {
     if (rewardModal.gold > 0 || rewardModal.loot > 0) {
       addResources({ gold: rewardModal.gold, loot: rewardModal.loot });
     }
+
+    // 전투 전 상태 복원
+    if (preBattleState.current) {
+      setSegmentIndex(preBattleState.current.segmentIndex);
+      setPlayerX(preBattleState.current.playerX);
+      preBattleState.current = null;
+    }
+
     setRewardModal(null);
     clearBattleResult();
   };

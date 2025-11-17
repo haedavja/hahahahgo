@@ -3,7 +3,7 @@ const MAP_LAYERS = 11;
 const MAP_MIN_NODES = 2;
 const MAP_MAX_NODES = 4;
 const MAP_WIDTH = 960;
-const V_SPACING = 360;
+const V_SPACING = 220;
 const LAYER_TOP_OFFSET = 60;
 
 const columnToX = (column) => (MAP_WIDTH / (MAP_COLUMNS + 1)) * (column + 1);
