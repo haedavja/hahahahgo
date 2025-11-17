@@ -479,14 +479,20 @@ export const useGameStore = create((set, get) => ({
 
       const enemyHand = drawHand(enemyDrawPile, 3);
 
-      // battleConfig.simulation이 있으면 사용, 없으면 기본 생성
-      let simulation = battleConfig.simulation;
-      if (!simulation || !simulation.initialState) {
-        const { simulation: defaultSim } = computeBattlePlan("battle", playerHand, enemyHand, state.playerHp);
-        simulation = defaultSim;
-      }
+      // 전투 시뮬레이션 생성 (현재 playerHp 사용)
+      const battleStats = {
+        player: { hp: state.playerHp, block: 0 },
+        enemy: { hp: battleConfig.enemyHp || 30, block: 0 }
+      };
 
-      const { preview } = computeBattlePlan("battle", playerHand, enemyHand, state.playerHp);
+      const timeline = buildSpeedTimeline(playerHand, enemyHand, 30);
+      const simulation = simulateBattle(timeline, battleStats);
+      const preview = {
+        playerHand,
+        enemyHand,
+        timeline,
+        tuLimit: 30,
+      };
 
       return {
         ...state,

@@ -131,7 +131,7 @@ export function CharacterSheet({ onClose }) {
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
-          width: "640px",
+          width: "960px",
           maxHeight: "85vh",
           background: "rgba(8, 11, 19, 0.98)",
           borderRadius: "16px",

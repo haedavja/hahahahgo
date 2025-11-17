@@ -400,11 +400,7 @@ export function DungeonExploration() {
             nodeId: `dungeon-${currentSegmentIndex}`,
             kind: "combat",
             label: "던전 몬스터",
-            simulation: {
-              initialState: {
-                enemy: { hp: 25 + Math.floor(Math.random() * 10) },
-              },
-            },
+            enemyHp: 25 + Math.floor(Math.random() * 10),
           });
         }, 500);
         break;
@@ -520,7 +516,28 @@ export function DungeonExploration() {
     ctx.font = "20px Arial";
     ctx.fillText("@", playerScreenX - 8, PLAYER_Y + 7);
 
-  }, [player, cameraX, currentSegment, PLAYER_Y, PLAYER_SIZE, VIEWPORT_WIDTH]);
+    // 플레이어 체력바 그리기
+    const hpBarWidth = 60;
+    const hpBarHeight = 8;
+    const hpBarY = PLAYER_Y + PLAYER_SIZE / 2 + 8;
+    const hpRatio = Math.max(0, Math.min(1, playerHp / maxHp));
+
+    // 배경 바 (회색)
+    ctx.fillStyle = "rgba(50, 50, 50, 0.8)";
+    ctx.fillRect(playerScreenX - hpBarWidth / 2, hpBarY, hpBarWidth, hpBarHeight);
+
+    // 현재 HP 바 (빨간색)
+    ctx.fillStyle = hpRatio > 0.5 ? "#22c55e" : hpRatio > 0.25 ? "#f59e0b" : "#ef4444";
+    ctx.fillRect(playerScreenX - hpBarWidth / 2, hpBarY, hpBarWidth * hpRatio, hpBarHeight);
+
+    // HP 텍스트
+    ctx.fillStyle = "#fff";
+    ctx.font = "12px Arial";
+    ctx.textAlign = "center";
+    ctx.fillText(`${playerHp}/${maxHp}`, playerScreenX, hpBarY + hpBarHeight + 12);
+    ctx.textAlign = "left"; // 리셋
+
+  }, [player, cameraX, currentSegment, PLAYER_Y, PLAYER_SIZE, VIEWPORT_WIDTH, playerHp, maxHp]);
 
   if (!currentSegment) {
     return (
@@ -569,10 +586,7 @@ export function DungeonExploration() {
       {/* 상단 정보 */}
       <div style={{ position: "absolute", top: "30px", left: "50%", transform: "translateX(-50%)", zIndex: 1001 }}>
         <div className="dungeon-info" style={{ textAlign: "center" }}>
-          <div style={{ fontSize: "18px", fontWeight: "bold", color: "#fff", marginBottom: "6px" }}>
-            HP: {playerHp} / {maxHp}
-          </div>
-          <div style={{ fontSize: "16px", fontWeight: "600", color: "#9fb6ff" }}>
+          <div style={{ fontSize: "18px", fontWeight: "bold", color: "#fff" }}>
             구역 {currentSegmentIndex + 1} / {dungeon.length}
           </div>
           <div style={{ fontSize: "12px", opacity: 0.7, marginTop: "4px" }}>A/D: 좌우 이동 | W: 상호작용</div>
