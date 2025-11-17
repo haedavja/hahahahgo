@@ -105,7 +105,7 @@ const friendlyPercent = (chance) => {
   return `${Math.round(chance * 100)}%`;
 };
 
-const PATCH_VERSION_TAG = "11-17-10:48"; // 다음 패치마다 여기를 최신 시간(월-일-시:분, KST)으로 갱신하세요.
+const PATCH_VERSION_TAG = "11-17-10:56"; // 다음 패치마다 여기를 최신 시간(월-일-시:분, KST)으로 갱신하세요.
 
 /* v11-16-14:45 갱신 내역
  * - 카드 스탯 폰트 크기 일원화 및 확대:
@@ -139,6 +139,7 @@ export function MapDemo() {
 
   const nodes = map?.nodes ?? [];
   const mapViewRef = useRef(null);
+  const dungeonMountedRef = useRef(false);
   const riskDisplay = Number.isFinite(mapRisk) ? mapRisk.toFixed(1) : "-";
   const aetherValue = resources.etherPts ?? 0;
   const aetherSlots = calculateEtherSlots(aetherValue); // 인플레이션 적용
@@ -147,6 +148,8 @@ export function MapDemo() {
   const aetherProgress = getSlotProgress(aetherValue); // 다음 슬롯까지의 진행률 (0-1)
   const aetherRatio = Math.max(0, Math.min(1, aetherProgress)); // 시각적 바 높이
   const aetherTier = `x${aetherSlots}`;
+  const hpRatio = Math.max(0, Math.min(1, playerHp / maxHp)); // HP 비율
+  const hpColor = hpRatio > 0.5 ? "#22c55e" : hpRatio > 0.25 ? "#f59e0b" : "#ef4444";
 
   const mapHeight = useMemo(() => {
     if (!nodes.length) return 800;
@@ -200,6 +203,15 @@ export function MapDemo() {
     window.addEventListener("keydown", handleKeyPress);
     return () => window.removeEventListener("keydown", handleKeyPress);
   }, []);
+
+  // 던전 마운트 추적
+  useEffect(() => {
+    if (activeDungeon?.confirmed) {
+      dungeonMountedRef.current = true;
+    } else if (!activeDungeon) {
+      dungeonMountedRef.current = false;
+    }
+  }, [activeDungeon]);
 
   const availablePrayers = useMemo(
     () => PRAYER_COSTS.filter((cost) => (resources.etherPts ?? 0) >= cost),
@@ -267,9 +279,6 @@ export function MapDemo() {
       </div>
 
       <div className="resource-hud">
-        <span className="resource-tag" style={{ color: "#fca5a5", fontWeight: "700" }}>
-          HP: {playerHp} / {maxHp}
-        </span>
         {Object.entries(resources)
           .filter(([key]) => key !== "etherPts")
           .map(([key, value]) => (
@@ -287,6 +296,16 @@ export function MapDemo() {
         <div className="aether-remaining">
           <div>{aetherCurrentPts}/{aetherNextSlotCost}</div>
           <div>{aetherTier}</div>
+        </div>
+      </div>
+
+      <div className="hp-column">
+        <div className="hp-title">HP</div>
+        <div className="hp-bar">
+          <div className="hp-fill" style={{ height: `${hpRatio * 100}%`, backgroundColor: hpColor }} />
+        </div>
+        <div className="hp-remaining">
+          <div>{playerHp}/{maxHp}</div>
         </div>
       </div>
 
@@ -410,7 +429,7 @@ export function MapDemo() {
         </div>
       )}
 
-      {activeDungeon && activeDungeon.confirmed && (
+      {dungeonMountedRef.current && (
         <div style={{ display: activeBattle ? 'none' : 'block' }}>
           <DungeonExploration />
         </div>
