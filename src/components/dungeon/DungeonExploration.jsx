@@ -470,7 +470,21 @@ export function DungeonExploration() {
       CONFIG.PLAYER.height
     );
 
-    // HP 바
+    // 에테르 바 (상단)
+    const etherPts = resources.etherPts || 0;
+    const etherSlots = calculateEtherSlots(etherPts);
+    const etherProgress = getSlotProgress(etherPts);
+    const etherW = 60;
+    const etherH = 8;
+    const etherY = playerY - 20;
+
+    ctx.fillStyle = "#1a1a2a";
+    ctx.fillRect(playerScreenX - etherW / 2, etherY, etherW, etherH);
+
+    ctx.fillStyle = "#53d7ff";
+    ctx.fillRect(playerScreenX - etherW / 2, etherY, etherW * etherProgress, etherH);
+
+    // HP 바 (하단)
     const hpRatio = playerHp / maxHp;
     const hpW = 60;
     const hpH = 8;
@@ -486,7 +500,7 @@ export function DungeonExploration() {
     ctx.font = "12px Arial";
     ctx.textAlign = "center";
     ctx.fillText(`${playerHp}/${maxHp}`, playerScreenX, hpY + hpH + 14);
-  }, [segment, playerX, cameraX, playerHp, maxHp, playerY]);
+  }, [segment, playerX, cameraX, playerHp, maxHp, playerY, resources.etherPts]);
 
   // ========== 상호작용 ==========
   const handleInteraction = () => {
@@ -605,7 +619,7 @@ export function DungeonExploration() {
       {/* 자원 - 중앙 상단 가로 배치 */}
       <div style={{
         position: "absolute",
-        top: "20px",
+        top: "120px",
         left: "50%",
         transform: "translateX(-50%)",
         display: "flex",
@@ -648,7 +662,7 @@ export function DungeonExploration() {
       {/* UI - 정보 */}
       <div style={{
         position: "absolute",
-        top: "70px",
+        top: "170px",
         left: "50%",
         transform: "translateX(-50%)",
         color: "#fff",

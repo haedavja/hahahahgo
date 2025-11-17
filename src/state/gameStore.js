@@ -521,9 +521,9 @@ export const useGameStore = create((set, get) => ({
 
       const enemyHand = drawHand(enemyDrawPile, 3);
 
-      // 전투 시뮬레이션 생성 (현재 playerHp 사용)
+      // 전투 시뮬레이션 생성 (현재 playerHp, maxHp 사용)
       const battleStats = {
-        player: { hp: state.playerHp, block: 0 },
+        player: { hp: state.playerHp, maxHp: state.maxHp, block: 0 },
         enemy: { hp: battleConfig.enemyHp || 30, block: 0 }
       };
 

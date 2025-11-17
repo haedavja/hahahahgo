@@ -9,7 +9,7 @@ const buildBattlePayload = (battle, etherPts) => {
   return {
     player: {
       hp: initialPlayer?.hp ?? 30,
-      maxHp: initialPlayer?.hp ?? 30,
+      maxHp: initialPlayer?.maxHp ?? 30,
       energy: 6,
       etherPts,
     },
