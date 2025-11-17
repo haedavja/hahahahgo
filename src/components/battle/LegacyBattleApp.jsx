@@ -1092,7 +1092,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
       </div>
 
       {/* 상단 메인 영역 */}
-      <div className="w-full px-4" style={{marginRight: '280px', marginLeft: '350px'}}>
+      <div className="w-full px-4" style={{marginRight: '280px', marginLeft: '150px'}}>
 
         {/* Timeline - 1줄 길게 (화면 가득) */}
         <div style={{marginBottom: '32px'}}>
@@ -1149,9 +1149,15 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
         </div>
 
         {/* 플레이어/적 정보 + 중앙 정보 통합 레이아웃 */}
-        <div style={{display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '50px', gap: '80px'}}>
+        <div style={{display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '50px', gap: '120px'}}>
           {/* 왼쪽: 플레이어 */}
-          <div style={{display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '16px', minWidth: '320px'}}>
+          <div style={{display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '12px', minWidth: '360px'}}>
+            {/* 플레이어 콤보 - 상단으로 이동 */}
+            {currentCombo && (
+              <div className="combo-display" style={{alignSelf: 'flex-start', marginBottom: '8px'}}>
+                ⭐ 플러쉬 +30 PT
+              </div>
+            )}
             <div style={{display: 'flex', alignItems: 'center', gap: '16px'}}>
               <EtherBar
                 key={`player-ether-${playerEtherValue}`}
@@ -1166,7 +1172,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                   <div className="character-display" style={{fontSize: '64px'}}>🧙‍♂️</div>
                   <div>
                     <div style={{color: '#f87171', fontSize: '1.25rem', fontWeight: 'bold'}}>❤️ {player.hp}/{player.maxHp}</div>
-                    <div className="hp-bar-enhanced mb-1" style={{width: '180px', height: '12px'}}>
+                    <div className="hp-bar-enhanced mb-1" style={{width: '200px', height: '12px'}}>
                       <div className="hp-fill" style={{width: `${(player.hp/player.maxHp)*100}%`}}></div>
                     </div>
                     {player.block>0 && <div style={{fontSize: '0.875rem', color: '#93c5fd'}}>🛡️ {player.block}</div>}
@@ -1180,17 +1186,6 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                 </button>
               </div>
             </div>
-            {/* 플레이어 콤보 */}
-            {currentCombo && (
-              <div className="combo-display" style={{alignSelf: 'flex-start'}}>
-                ⭐ {currentCombo.name}
-                {pendingComboEther > 0 && (
-                  <span style={{fontSize: '0.85em', marginLeft: '8px', color: '#6ee7b7'}}>
-                    +{pendingComboEther} pt
-                  </span>
-                )}
-              </div>
-            )}
           </div>
 
           {/* 중앙: 단계 정보 */}
@@ -1209,7 +1204,13 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
           </div>
 
           {/* 오른쪽: 적 */}
-          <div style={{display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '16px', minWidth: '320px'}}>
+          <div style={{display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '12px', minWidth: '360px'}}>
+            {/* 몬스터 콤보 - 상단으로 이동 */}
+            {enemyCombo && (
+              <div className="combo-display" style={{alignSelf: 'flex-end', backgroundColor: 'rgba(239, 68, 68, 0.2)', borderColor: '#ef4444', marginBottom: '8px'}}>
+                ⭐ 플러쉬 +30 PT
+              </div>
+            )}
             <div style={{display: 'flex', alignItems: 'center', gap: '16px'}}>
               <div style={{textAlign: 'right'}}>
                 <div style={{fontSize: '1rem', fontWeight: '600', color: '#fca5a5', marginBottom: '8px'}}>
@@ -1219,7 +1220,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                 <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
                   <div>
                     <div style={{color: '#f87171', fontSize: '1.25rem', fontWeight: 'bold', textAlign: 'right'}}>❤️ {enemy.hp}/{enemy.maxHp}</div>
-                    <div className="hp-bar-enhanced mb-1" style={{width: '180px', height: '12px'}}>
+                    <div className="hp-bar-enhanced mb-1" style={{width: '200px', height: '12px'}}>
                       <div className="hp-fill" style={{width: `${(enemy.hp/enemy.maxHp)*100}%`}}></div>
                     </div>
                     {enemy.block>0 && <div style={{fontSize: '0.875rem', color: '#93c5fd', textAlign: 'right'}}>🛡️ {enemy.block}</div>}
@@ -1237,17 +1238,6 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                 color="red"
               />
             </div>
-            {/* 몬스터 콤보 */}
-            {enemyCombo && (
-              <div className="combo-display" style={{alignSelf: 'flex-end', backgroundColor: 'rgba(239, 68, 68, 0.2)', borderColor: '#ef4444'}}>
-                ⭐ {enemyCombo.name}
-                {enemyComboPreviewGain > 0 && (
-                  <span style={{fontSize: '0.85em', marginLeft: '8px', color: '#fca5a5'}}>
-                    +{enemyComboPreviewGain} pt
-                  </span>
-                )}
-              </div>
-            )}
           </div>
         </div>
       </div>
