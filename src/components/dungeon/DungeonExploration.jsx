@@ -612,7 +612,7 @@ export function DungeonExploration() {
       {/* 에테르 바 - 왼쪽 */}
       <div style={{
         position: "absolute",
-        left: "70px",
+        left: "170px",
         top: "50%",
         transform: "translateY(-50%)",
       }}>
@@ -622,7 +622,7 @@ export function DungeonExploration() {
       {/* HP 바 - 오른쪽 */}
       <div style={{
         position: "absolute",
-        right: "70px",
+        right: "170px",
         top: "50%",
         transform: "translateY(-50%)",
       }}>
