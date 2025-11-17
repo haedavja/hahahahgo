@@ -884,6 +884,7 @@ body {
   margin-left: -30px; /* 카드 겹침 (-40px → -30px, 간격 넓힘) */
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
   transform-origin: bottom center;
+  transform: translateY(50px) !important; /* 기본적으로 아래로 내림 (텍스트 반만 보이게) */
   z-index: 1;
   position: relative;
 }
@@ -903,7 +904,7 @@ body {
 
 /* 선택된 카드 */
 .game-card-large.selected {
-  transform: translateY(-25px) scale(1.08); /* -20px → -25px, 1.05 → 1.08 */
+  transform: translateY(-25px) scale(1.08) !important; /* 선택 시 올라옴 */
   z-index: 50;
 }
 
@@ -944,7 +945,7 @@ body {
 .game-card-large .card-header {
   font-size: 0.9rem !important; /* 0.85rem → 0.9rem */
   padding: 0 10px !important; /* 8px → 10px */
-  margin-top: 8px !important; /* 4px → 8px (더 위로 올림) */
+  margin-top: 15px !important; /* 4px → 8px → 15px (최대한 위로 올림) */
 }
 
 .game-card-large .card-icon-area {
@@ -973,7 +974,7 @@ body {
 }
 
 .card-stat-item.attack {
-  color: #fca5a5;
+  color: #93c5fd; /* 빨강 → 파랑 */
 }
 
 .card-stat-item.defense {
