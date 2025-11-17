@@ -229,6 +229,21 @@ export const useGameStore = create((set, get) => ({
   confirmDungeon: () =>
     set((state) => {
       if (!state.activeDungeon) return state;
+
+      // 던전 데이터가 없으면 생성 (한 번만)
+      if (!state.activeDungeon.dungeonData) {
+        // 던전 생성 로직을 여기서 import해야 하는데, 순환 참조 방지를 위해
+        // 간단히 dungeonData를 빈 배열로 초기화하고 DungeonExploration에서 생성
+        return {
+          ...state,
+          activeDungeon: {
+            ...state.activeDungeon,
+            confirmed: true,
+            dungeonData: null // DungeonExploration이 생성하도록 null로 설정
+          },
+        };
+      }
+
       return {
         ...state,
         activeDungeon: { ...state.activeDungeon, confirmed: true },
@@ -353,6 +368,15 @@ export const useGameStore = create((set, get) => ({
         ...state,
         resources: payCost({ intel: 2 }, state.resources),
         activeDungeon: { ...state.activeDungeon, revealed: true },
+      };
+    }),
+
+  setDungeonData: (dungeonData) =>
+    set((state) => {
+      if (!state.activeDungeon) return state;
+      return {
+        ...state,
+        activeDungeon: { ...state.activeDungeon, dungeonData },
       };
     }),
 

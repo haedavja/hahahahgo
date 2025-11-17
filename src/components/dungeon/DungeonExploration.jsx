@@ -261,19 +261,29 @@ function EtherBar({ pts, color = "cyan", label }) {
 // ========== 메인 컴포넌트 ==========
 export function DungeonExploration() {
   // Store hooks
+  const activeDungeon = useGameStore((s) => s.activeDungeon);
+  const setDungeonData = useGameStore((s) => s.setDungeonData);
   const skipDungeon = useGameStore((s) => s.skipDungeon);
   const completeDungeon = useGameStore((s) => s.completeDungeon);
   const startBattle = useGameStore((s) => s.startBattle);
   const applyEtherDelta = useGameStore((s) => s.applyEtherDelta);
   const addResources = useGameStore((s) => s.addResources);
-  const lastBattleResult = useGameStore((s) => s.lastBattleResult);
+  const lastBattleResult = useGameStore ((s) => s.lastBattleResult);
   const clearBattleResult = useGameStore((s) => s.clearBattleResult);
   const resources = useGameStore((s) => s.resources);
   const playerHp = useGameStore((s) => s.playerHp);
   const maxHp = useGameStore((s) => s.maxHp);
 
-  // Local state - 던전은 한 번만 생성
-  const [dungeon] = useState(() => generateDungeon());
+  // 던전 데이터 생성 (한 번만)
+  useEffect(() => {
+    if (activeDungeon && !activeDungeon.dungeonData) {
+      const newDungeon = generateDungeon();
+      setDungeonData(newDungeon);
+    }
+  }, [activeDungeon, setDungeonData]);
+
+  // 던전 데이터는 activeDungeon에서 가져옴
+  const dungeon = activeDungeon?.dungeonData || [];
   const [segmentIndex, setSegmentIndex] = useState(0);
   const [playerX, setPlayerX] = useState(100);
   const [cameraX, setCameraX] = useState(0);
