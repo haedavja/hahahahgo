@@ -8,8 +8,8 @@ const buildBattlePayload = (battle, etherPts) => {
   const initialEnemy = battle.simulation?.initialState?.enemy;
   return {
     player: {
-      hp: initialPlayer?.hp ?? 30,
-      maxHp: initialPlayer?.maxHp ?? 30,
+      hp: initialPlayer?.hp ?? 100,
+      maxHp: initialPlayer?.maxHp ?? 100,
       energy: 6,
       etherPts,
     },
