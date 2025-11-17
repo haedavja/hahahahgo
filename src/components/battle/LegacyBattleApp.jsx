@@ -494,9 +494,9 @@ function ExpectedDamagePreview({player, enemy, fixedOrder, willOverdrive, enemyM
         </div>
       )}
 
-      {/* 진행 단계 제어 버튼 (전투 로그와 독립, 하단으로 100px 이동) */}
+      {/* 진행 단계 제어 버튼 (고정 위치, 텍스트에 밀려나지 않음) */}
       {phase === 'resolve' && (
-        <div style={{marginTop: '116px', display: 'flex', gap: '12px', justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap'}}>
+        <div className="resolve-buttons-fixed">
           <div style={{fontSize: '18px', fontWeight: 'bold', color: '#f8fafc'}}>
             ⚔️ 전투 진행 중... ({qIndex}/{queue?.length || 0})
           </div>
