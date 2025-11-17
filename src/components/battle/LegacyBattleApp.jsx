@@ -1353,6 +1353,11 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                         </div>
                         <div style={{color: '#67e8f9', fontSize: '1.688rem', marginTop: '0.25rem'}}>⏱️{c.speedCost}</div>
                       </div>
+                      {c.description && (
+                        <div className="card-description">
+                          {c.description}
+                        </div>
+                      )}
                     </div>
                     <div style={{display: 'flex', gap: '8px'}}>
                       {idx > 0 && (

@@ -944,7 +944,7 @@ body {
 .game-card-large .card-header {
   font-size: 0.9rem !important; /* 0.85rem → 0.9rem */
   padding: 0 10px !important; /* 8px → 10px */
-  margin-top: 4px !important; /* 2px → 4px */
+  margin-top: 8px !important; /* 4px → 8px (더 위로 올림) */
 }
 
 .game-card-large .card-icon-area {
@@ -954,6 +954,19 @@ body {
 
 .game-card-large .card-footer {
   padding: 8px 12px !important; /* 6px 10px → 8px 12px */
+  display: flex !important;
+  flex-direction: column !important; /* 세로 정렬 */
+  align-items: center !important;
+  gap: 4px !important;
+}
+
+.game-card-large .card-footer > div:first-child {
+  font-size: 1.4rem !important; /* 1.688rem → 1.4rem (공격력/방어력 크기 줄임) */
+}
+
+.game-card-large .card-footer > div:last-child {
+  font-size: 1.4rem !important; /* 1.688rem → 1.4rem (속도 크기 줄임) */
+  margin-top: 0 !important;
 }
 
 /* 호버 시 카드 내용 크기 조정 */
