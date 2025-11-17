@@ -380,6 +380,15 @@ export const useGameStore = create((set, get) => ({
       };
     }),
 
+  setDungeonPosition: (segmentIndex, playerX) =>
+    set((state) => {
+      if (!state.activeDungeon) return state;
+      return {
+        ...state,
+        activeDungeon: { ...state.activeDungeon, segmentIndex, playerX },
+      };
+    }),
+
   chooseEvent: (choiceId) =>
     set((state) => {
       const active = state.activeEvent;
