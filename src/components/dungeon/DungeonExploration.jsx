@@ -331,7 +331,10 @@ export function DungeonExploration() {
   const [showCharacter, setShowCharacter] = useState(false);
   const [dungeonSummary, setDungeonSummary] = useState(null); // 던전 탈출 요약
 
-  // 초기 자원은 activeDungeon에서 가져옴 (재마운트 시에도 유지)
+  // 던전 중 획득한 자원 델타 (x값) - 던전 종료 시에만 실제 resources에 반영
+  const [dungeonDeltas, setDungeonDeltas] = useState({ gold: 0, intel: 0, loot: 0, material: 0 });
+
+  // 초기 자원은 activeDungeon에서 가져옴 (재마운트 시에도 유지) - z값
   const initialResources = activeDungeon?.initialResources || resources;
 
   const canvasRef = useRef(null);
@@ -559,8 +562,13 @@ export function DungeonExploration() {
 
   // ========== 보상 확인 ==========
   const closeRewardModal = () => {
+    // 던전 중에는 실제 resources를 변경하지 않고 dungeonDeltas만 업데이트
     if (rewardModal.gold > 0 || rewardModal.loot > 0) {
-      addResources({ gold: rewardModal.gold, loot: rewardModal.loot });
+      setDungeonDeltas((prev) => ({
+        ...prev,
+        gold: prev.gold + rewardModal.gold,
+        loot: prev.loot + rewardModal.loot,
+      }));
     }
 
     // 전투 전 상태 복원
@@ -571,27 +579,28 @@ export function DungeonExploration() {
     }
 
     setRewardModal(null);
-    clearBattleResult();
   };
 
   // ========== 던전 탈출 ==========
   const handleSkipDungeon = () => {
+    // dungeonDeltas를 사용 (x값)
     const summary = {
-      gold: resources.gold - initialResources.gold,
-      intel: resources.intel - initialResources.intel,
-      loot: resources.loot - initialResources.loot,
-      material: resources.material - initialResources.material,
+      gold: dungeonDeltas.gold,
+      intel: dungeonDeltas.intel,
+      loot: dungeonDeltas.loot,
+      material: dungeonDeltas.material,
       isComplete: false, // 탈출 버튼으로 나가는 경우
     };
     setDungeonSummary(summary);
   };
 
   const handleCompleteDungeon = () => {
+    // dungeonDeltas를 사용 (x값)
     const summary = {
-      gold: resources.gold - initialResources.gold,
-      intel: resources.intel - initialResources.intel,
-      loot: resources.loot - initialResources.loot,
-      material: resources.material - initialResources.material,
+      gold: dungeonDeltas.gold,
+      intel: dungeonDeltas.intel,
+      loot: dungeonDeltas.loot,
+      material: dungeonDeltas.material,
       isComplete: true, // 출구로 완료하는 경우
     };
     setDungeonSummary(summary);
@@ -599,6 +608,10 @@ export function DungeonExploration() {
 
   const closeDungeonSummary = () => {
     const isComplete = dungeonSummary?.isComplete;
+
+    // 던전 종료 시 z값 + x값을 실제 resources에 반영
+    addResources(dungeonDeltas);
+
     setDungeonSummary(null);
     if (isComplete) {
       completeDungeon();
@@ -642,30 +655,30 @@ export function DungeonExploration() {
         border: "1px solid rgba(84, 126, 194, 0.5)",
       }}>
         <div style={{ color: "#ffd700", fontSize: "14px", fontWeight: "600" }}>
-          금: {resources.gold}{resources.gold !== initialResources.gold && (
-            <span style={{ color: resources.gold > initialResources.gold ? "#90EE90" : "#ff6b6b", marginLeft: "4px" }}>
-              ({resources.gold > initialResources.gold ? "+" : ""}{resources.gold - initialResources.gold})
+          금: {initialResources.gold}{dungeonDeltas.gold !== 0 && (
+            <span style={{ color: dungeonDeltas.gold > 0 ? "#90EE90" : "#ff6b6b", marginLeft: "4px" }}>
+              ({dungeonDeltas.gold > 0 ? "+" : ""}{dungeonDeltas.gold})
             </span>
           )}
         </div>
         <div style={{ color: "#9da9d6", fontSize: "14px", fontWeight: "600" }}>
-          정보: {resources.intel}{resources.intel !== initialResources.intel && (
-            <span style={{ color: resources.intel > initialResources.intel ? "#90EE90" : "#ff6b6b", marginLeft: "4px" }}>
-              ({resources.intel > initialResources.intel ? "+" : ""}{resources.intel - initialResources.intel})
+          정보: {initialResources.intel}{dungeonDeltas.intel !== 0 && (
+            <span style={{ color: dungeonDeltas.intel > 0 ? "#90EE90" : "#ff6b6b", marginLeft: "4px" }}>
+              ({dungeonDeltas.intel > 0 ? "+" : ""}{dungeonDeltas.intel})
             </span>
           )}
         </div>
         <div style={{ color: "#ff6b6b", fontSize: "14px", fontWeight: "600" }}>
-          전리품: {resources.loot}{resources.loot !== initialResources.loot && (
-            <span style={{ color: resources.loot > initialResources.loot ? "#90EE90" : "#ff6b6b", marginLeft: "4px" }}>
-              ({resources.loot > initialResources.loot ? "+" : ""}{resources.loot - initialResources.loot})
+          전리품: {initialResources.loot}{dungeonDeltas.loot !== 0 && (
+            <span style={{ color: dungeonDeltas.loot > 0 ? "#90EE90" : "#ff6b6b", marginLeft: "4px" }}>
+              ({dungeonDeltas.loot > 0 ? "+" : ""}{dungeonDeltas.loot})
             </span>
           )}
         </div>
         <div style={{ color: "#a0e9ff", fontSize: "14px", fontWeight: "600" }}>
-          원자재: {resources.material}{resources.material !== initialResources.material && (
-            <span style={{ color: resources.material > initialResources.material ? "#90EE90" : "#ff6b6b", marginLeft: "4px" }}>
-              ({resources.material > initialResources.material ? "+" : ""}{resources.material - initialResources.material})
+          원자재: {initialResources.material}{dungeonDeltas.material !== 0 && (
+            <span style={{ color: dungeonDeltas.material > 0 ? "#90EE90" : "#ff6b6b", marginLeft: "4px" }}>
+              ({dungeonDeltas.material > 0 ? "+" : ""}{dungeonDeltas.material})
             </span>
           )}
         </div>

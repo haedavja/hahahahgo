@@ -195,7 +195,7 @@ body {
 }
 .hp-column {
   position: fixed;
-  right: 352px;
+  right: 272px;
   top: 50%;
   transform: translateY(-50%);
   width: 72px;
