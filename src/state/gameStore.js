@@ -389,6 +389,15 @@ export const useGameStore = create((set, get) => ({
       };
     }),
 
+  setDungeonInitialResources: (initialResources) =>
+    set((state) => {
+      if (!state.activeDungeon) return state;
+      return {
+        ...state,
+        activeDungeon: { ...state.activeDungeon, initialResources },
+      };
+    }),
+
   chooseEvent: (choiceId) =>
     set((state) => {
       const active = state.activeEvent;

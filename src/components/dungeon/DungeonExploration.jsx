@@ -290,6 +290,7 @@ export function DungeonExploration() {
   const activeDungeon = useGameStore((s) => s.activeDungeon);
   const setDungeonData = useGameStore((s) => s.setDungeonData);
   const setDungeonPosition = useGameStore((s) => s.setDungeonPosition);
+  const setDungeonInitialResources = useGameStore((s) => s.setDungeonInitialResources);
   const skipDungeon = useGameStore((s) => s.skipDungeon);
   const completeDungeon = useGameStore((s) => s.completeDungeon);
   const startBattle = useGameStore((s) => s.startBattle);
@@ -309,6 +310,13 @@ export function DungeonExploration() {
     }
   }, [activeDungeon, setDungeonData]);
 
+  // 초기 자원 저장 (한 번만)
+  useEffect(() => {
+    if (activeDungeon && !activeDungeon.initialResources) {
+      setDungeonInitialResources({ ...resources });
+    }
+  }, [activeDungeon, resources, setDungeonInitialResources]);
+
   // 던전 데이터는 activeDungeon에서 가져옴
   const dungeon = activeDungeon?.dungeonData || [];
   // activeDungeon에서 위치 정보 가져오기 (재마운트 시에도 유지)
@@ -319,8 +327,10 @@ export function DungeonExploration() {
   const [message, setMessage] = useState("");
   const [rewardModal, setRewardModal] = useState(null);
   const [showCharacter, setShowCharacter] = useState(false);
-  const [initialResources] = useState(() => ({ ...resources })); // 던전 진입 시 초기 자원
   const [dungeonSummary, setDungeonSummary] = useState(null); // 던전 탈출 요약
+
+  // 초기 자원은 activeDungeon에서 가져옴 (재마운트 시에도 유지)
+  const initialResources = activeDungeon?.initialResources || resources;
 
   const canvasRef = useRef(null);
   const animationRef = useRef(null);
@@ -592,68 +602,10 @@ export function DungeonExploration() {
         }}
       />
 
-      {/* UI - 정보 */}
-      <div style={{
-        position: "absolute",
-        top: "20px",
-        left: "20px",
-        color: "#fff",
-        fontSize: "16px",
-        background: "rgba(0,0,0,0.7)",
-        padding: "12px",
-        borderRadius: "8px",
-      }}>
-        <div>던전 {segmentIndex + 1}/{dungeon.length}</div>
-        <div style={{ fontSize: "12px", marginTop: "4px" }}>
-          W: 상호작용 | A/D: 이동 | C: 캐릭터
-        </div>
-      </div>
-
-      {/* 에테르 바 - 왼쪽 */}
-      <div style={{
-        position: "absolute",
-        left: "170px",
-        top: "50%",
-        transform: "translateY(-50%)",
-      }}>
-        <EtherBar pts={resources.etherPts || 0} color="cyan" label="AETHER" />
-      </div>
-
-      {/* HP 바 - 오른쪽 */}
-      <div style={{
-        position: "absolute",
-        right: "170px",
-        top: "50%",
-        transform: "translateY(-50%)",
-      }}>
-        <EtherBar pts={playerHp} maxPts={maxHp} color="red" label="HP" />
-      </div>
-
-      {/* 메시지 */}
-      {message && (
-        <div style={{
-          position: "absolute",
-          top: "50%",
-          left: "50%",
-          transform: "translate(-50%, -50%)",
-          background: "rgba(0,0,0,0.9)",
-          color: "#fff",
-          padding: "16px 32px",
-          borderRadius: "12px",
-          fontSize: "16px",
-          maxWidth: "600px",
-          textAlign: "center",
-          border: "2px solid rgba(255,255,255,0.3)",
-          zIndex: 150,
-        }}>
-          {message}
-        </div>
-      )}
-
       {/* 자원 - 중앙 상단 가로 배치 */}
       <div style={{
         position: "absolute",
-        top: "220px",
+        top: "20px",
         left: "50%",
         transform: "translateX(-50%)",
         display: "flex",
@@ -690,6 +642,24 @@ export function DungeonExploration() {
               ({resources.material > initialResources.material ? "+" : ""}{resources.material - initialResources.material})
             </span>
           )}
+        </div>
+      </div>
+
+      {/* UI - 정보 */}
+      <div style={{
+        position: "absolute",
+        top: "70px",
+        left: "50%",
+        transform: "translateX(-50%)",
+        color: "#fff",
+        fontSize: "16px",
+        background: "rgba(0,0,0,0.7)",
+        padding: "12px",
+        borderRadius: "8px",
+      }}>
+        <div>던전 {segmentIndex + 1}/{dungeon.length}</div>
+        <div style={{ fontSize: "12px", marginTop: "4px" }}>
+          W: 상호작용 | A/D: 이동 | C: 캐릭터
         </div>
       </div>
 
