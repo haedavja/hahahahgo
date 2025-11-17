@@ -1139,37 +1139,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
           </div>
         </div>
 
-        {/* 전투 단계 표시 */}
-        <div style={{textAlign: 'center', marginBottom: '20px'}}>
-          <div style={{fontSize: '28px', fontWeight: 'bold', color: '#f8fafc', textShadow: '0 2px 8px rgba(0,0,0,0.5)'}}>
-            {phase === 'select' ? '선택 단계' : phase === 'respond' ? '대응 단계' : '진행 단계'}
-          </div>
-
-          {/* 중앙 정보 영역 (타임라인 하단) */}
-          <div style={{marginTop: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px'}}>
-            {currentCombo && (
-              <div className="combo-display">
-                {currentCombo.name}
-                {pendingComboEther > 0 && (
-                  <span style={{fontSize: '0.85em', marginLeft: '8px', color: '#6ee7b7'}}>
-                    +{pendingComboEther} pt
-                  </span>
-                )}
-              </div>
-            )}
-            <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
-              <div style={{fontSize: '1.25rem', fontWeight: '700', color: '#7dd3fc'}}>
-                속도 {totalSpeed}/{MAX_SPEED} · 선택 {selected.length}/{MAX_SUBMIT_CARDS}
-              </div>
-              {phase==='select' && (
-                <button onClick={redrawHand} disabled={!canRedraw} className="btn-enhanced flex items-center gap-2">
-                  <RefreshCw size={18}/> 리드로우
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-
+        {/* 플레이어/적 정보 패널 (전투 단계 표시 위에 배치) */}
         <div className="battle-shell">
           <div className="battle-main">
             <div className="entity-panel player-panel">
@@ -1243,6 +1213,37 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                   color="red"
                 />
               </div>
+            </div>
+          </div>
+        </div>
+
+        {/* 전투 단계 표시 (플레이어/적 패널 아래에 배치) */}
+        <div style={{textAlign: 'center', marginTop: '20px', marginBottom: '20px'}}>
+          <div style={{fontSize: '28px', fontWeight: 'bold', color: '#f8fafc', textShadow: '0 2px 8px rgba(0,0,0,0.5)'}}>
+            {phase === 'select' ? '선택 단계' : phase === 'respond' ? '대응 단계' : '진행 단계'}
+          </div>
+
+          {/* 중앙 정보 영역 */}
+          <div style={{marginTop: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px'}}>
+            {currentCombo && (
+              <div className="combo-display">
+                {currentCombo.name}
+                {pendingComboEther > 0 && (
+                  <span style={{fontSize: '0.85em', marginLeft: '8px', color: '#6ee7b7'}}>
+                    +{pendingComboEther} pt
+                  </span>
+                )}
+              </div>
+            )}
+            <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
+              <div style={{fontSize: '1.25rem', fontWeight: '700', color: '#7dd3fc'}}>
+                속도 {totalSpeed}/{MAX_SPEED} · 선택 {selected.length}/{MAX_SUBMIT_CARDS}
+              </div>
+              {phase==='select' && (
+                <button onClick={redrawHand} disabled={!canRedraw} className="btn-enhanced flex items-center gap-2">
+                  <RefreshCw size={18}/> 리드로우
+                </button>
+              )}
             </div>
           </div>
         </div>
