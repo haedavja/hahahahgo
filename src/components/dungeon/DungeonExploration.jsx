@@ -488,9 +488,10 @@ export function DungeonExploration() {
 
     // 에테르 텍스트
     ctx.fillStyle = "#53d7ff";
-    ctx.font = "bold 14px Arial";
+    ctx.font = "bold 12px Arial";
     ctx.textAlign = "center";
-    ctx.fillText(`x${etherSlots}`, playerScreenX, etherY - 8);
+    ctx.fillText(`${etherPts} pt`, playerScreenX - 20, etherY - 5);
+    ctx.fillText(`x ${etherSlots}`, playerScreenX + 20, etherY - 5);
 
     // HP 바 (하단)
     const hpRatio = playerHp / maxHp;
