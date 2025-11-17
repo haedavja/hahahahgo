@@ -491,29 +491,31 @@ function ExpectedDamagePreview({player, enemy, fixedOrder, willOverdrive, enemyM
               );
             })}
           </div>
+        </div>
+      )}
 
-          {/* 진행 단계 제어 버튼 (전투 로그 하단) */}
-          <div style={{marginTop: '16px', display: 'flex', gap: '12px', justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap'}}>
-            <div style={{fontSize: '18px', fontWeight: 'bold', color: '#f8fafc'}}>
-              ⚔️ 전투 진행 중... ({qIndex}/{queue?.length || 0})
-            </div>
-            <button onClick={stepOnce} disabled={qIndex>=queue.length} className="btn-enhanced flex items-center gap-2">
-              <StepForward size={18}/> 한 단계
-            </button>
-            <button onClick={runAll} disabled={qIndex>=queue.length} className="btn-enhanced btn-primary">
-              전부 실행
-            </button>
-            {qIndex >= queue.length && (
-              <button onClick={()=>finishTurn('수동 턴 종료')} className="btn-enhanced flex items-center gap-2">
-                ⏭️ 턴 종료
-              </button>
-            )}
-            {postCombatOptions && (
-              <button onClick={handleExitToMap} className="btn-enhanced btn-primary flex items-center gap-2">
-                🗺️ 맵으로 돌아가기
-              </button>
-            )}
+      {/* 진행 단계 제어 버튼 (전투 로그와 독립, 최하단 고정) */}
+      {phase === 'resolve' && (
+        <div style={{marginTop: '16px', display: 'flex', gap: '12px', justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap'}}>
+          <div style={{fontSize: '18px', fontWeight: 'bold', color: '#f8fafc'}}>
+            ⚔️ 전투 진행 중... ({qIndex}/{queue?.length || 0})
           </div>
+          <button onClick={stepOnce} disabled={qIndex>=queue.length} className="btn-enhanced flex items-center gap-2">
+            <StepForward size={18}/> 한 단계
+          </button>
+          <button onClick={runAll} disabled={qIndex>=queue.length} className="btn-enhanced btn-primary">
+            전부 실행
+          </button>
+          {qIndex >= queue.length && (
+            <button onClick={()=>finishTurn('수동 턴 종료')} className="btn-enhanced flex items-center gap-2">
+              ⏭️ 턴 종료
+            </button>
+          )}
+          {postCombatOptions && (
+            <button onClick={handleExitToMap} className="btn-enhanced btn-primary flex items-center gap-2">
+              🗺️ 맵으로 돌아가기
+            </button>
+          )}
         </div>
       )}
     </div>
@@ -1259,26 +1261,32 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
         </div>
       )}
 
+      {/* 제출 버튼 독립 (하단 150px 이동) */}
+      {phase==='select' && (
+        <div className="submit-button-fixed">
+          <button onClick={startResolve} disabled={selected.length===0} className="btn-enhanced btn-primary flex items-center gap-2">
+            <Play size={18}/> 제출
+          </button>
+        </div>
+      )}
+      {phase==='respond' && (
+        <div className="submit-button-fixed">
+          <button onClick={beginResolveFromRespond} className="btn-enhanced btn-success flex items-center gap-2">
+            <Play size={20}/> 진행 시작
+          </button>
+        </div>
+      )}
+      {player && player.hp <= 0 && (
+        <div className="submit-button-fixed">
+          <button onClick={()=>window.location.reload()} className="btn-enhanced flex items-center gap-2">
+            🔄 재시작
+          </button>
+        </div>
+      )}
+
       {/* 하단 고정 손패 영역 */}
       {(phase==='select' || phase==='respond' || phase==='resolve' || (enemy && enemy.hp <= 0) || (player && player.hp <= 0)) && (
         <div className="hand-area">
-          <div className="hand-area-header" style={{display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '12px', marginBottom: '0px', flexWrap: 'wrap'}}>
-            {phase==='select' && (
-              <button onClick={startResolve} disabled={selected.length===0} className="btn-enhanced btn-primary flex items-center gap-2">
-                <Play size={18}/> 제출
-              </button>
-            )}
-            {phase==='respond' && (
-              <button onClick={beginResolveFromRespond} className="btn-enhanced btn-success flex items-center gap-2">
-                <Play size={20}/> 진행 시작
-              </button>
-            )}
-            {player && player.hp <= 0 && (
-              <button onClick={()=>window.location.reload()} className="btn-enhanced flex items-center gap-2">
-                🔄 재시작
-              </button>
-            )}
-          </div>
 
           <div className="hand-flags">
             {enemy && enemy.hp <= 0 && (
