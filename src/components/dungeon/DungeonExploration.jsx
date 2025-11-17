@@ -95,12 +95,27 @@ function generateDungeon() {
 function createObjects(isRoom, segmentIndex) {
   const objects = [];
   const count = 2 + Math.floor(Math.random() * 2); // 2-3개
+  const MIN_DISTANCE = 150; // 오브젝트 간 최소 거리
 
   for (let i = 0; i < count; i++) {
     const rand = Math.random();
-    const xPos = isRoom
-      ? 300 + Math.random() * 600
-      : 500 + Math.random() * 2000;
+    let xPos;
+    let attempts = 0;
+    const MAX_ATTEMPTS = 50;
+
+    // 겹치지 않는 위치 찾기
+    do {
+      xPos = isRoom
+        ? 300 + Math.random() * 600
+        : 500 + Math.random() * 2000;
+
+      attempts++;
+      if (attempts >= MAX_ATTEMPTS) break; // 무한 루프 방지
+
+      // 기존 오브젝트와의 거리 체크
+      const tooClose = objects.some(obj => Math.abs(obj.x - xPos) < MIN_DISTANCE);
+      if (!tooClose) break;
+    } while (true);
 
     // 확률 기반 타입 선택
     let type = null;
@@ -497,7 +512,7 @@ export function DungeonExploration() {
     // 출구 체크
     if (Math.abs(playerX - segment.exitX) < 80) {
       if (segment.isLast) {
-        completeDungeon();
+        handleCompleteDungeon();
       } else {
         setSegmentIndex((i) => i + 1);
         setPlayerX(100);
@@ -530,13 +545,30 @@ export function DungeonExploration() {
       intel: resources.intel - initialResources.intel,
       loot: resources.loot - initialResources.loot,
       material: resources.material - initialResources.material,
+      isComplete: false, // 탈출 버튼으로 나가는 경우
+    };
+    setDungeonSummary(summary);
+  };
+
+  const handleCompleteDungeon = () => {
+    const summary = {
+      gold: resources.gold - initialResources.gold,
+      intel: resources.intel - initialResources.intel,
+      loot: resources.loot - initialResources.loot,
+      material: resources.material - initialResources.material,
+      isComplete: true, // 출구로 완료하는 경우
     };
     setDungeonSummary(summary);
   };
 
   const closeDungeonSummary = () => {
+    const isComplete = dungeonSummary?.isComplete;
     setDungeonSummary(null);
-    skipDungeon();
+    if (isComplete) {
+      completeDungeon();
+    } else {
+      skipDungeon();
+    }
   };
 
   return (
@@ -580,7 +612,7 @@ export function DungeonExploration() {
       {/* 에테르 바 - 왼쪽 */}
       <div style={{
         position: "absolute",
-        left: "20px",
+        left: "70px",
         top: "50%",
         transform: "translateY(-50%)",
       }}>
@@ -590,7 +622,7 @@ export function DungeonExploration() {
       {/* HP 바 - 오른쪽 */}
       <div style={{
         position: "absolute",
-        right: "20px",
+        right: "70px",
         top: "50%",
         transform: "translateY(-50%)",
       }}>
@@ -601,16 +633,18 @@ export function DungeonExploration() {
       {message && (
         <div style={{
           position: "absolute",
-          bottom: "20px",
+          top: "50%",
           left: "50%",
-          transform: "translateX(-50%)",
+          transform: "translate(-50%, -50%)",
           background: "rgba(0,0,0,0.9)",
           color: "#fff",
-          padding: "12px 24px",
-          borderRadius: "8px",
-          fontSize: "14px",
+          padding: "16px 32px",
+          borderRadius: "12px",
+          fontSize: "16px",
           maxWidth: "600px",
           textAlign: "center",
+          border: "2px solid rgba(255,255,255,0.3)",
+          zIndex: 150,
         }}>
           {message}
         </div>
@@ -630,33 +664,29 @@ export function DungeonExploration() {
         border: "1px solid rgba(84, 126, 194, 0.5)",
       }}>
         <div style={{ color: "#ffd700", fontSize: "14px", fontWeight: "600" }}>
-          금: {resources.gold}
-          {resources.gold !== initialResources.gold && (
-            <span style={{ color: "#90EE90", marginLeft: "4px" }}>
+          금: {resources.gold}{resources.gold !== initialResources.gold && (
+            <span style={{ color: resources.gold > initialResources.gold ? "#90EE90" : "#ff6b6b", marginLeft: "4px" }}>
               ({resources.gold > initialResources.gold ? "+" : ""}{resources.gold - initialResources.gold})
             </span>
           )}
         </div>
         <div style={{ color: "#9da9d6", fontSize: "14px", fontWeight: "600" }}>
-          정보: {resources.intel}
-          {resources.intel !== initialResources.intel && (
-            <span style={{ color: "#90EE90", marginLeft: "4px" }}>
+          정보: {resources.intel}{resources.intel !== initialResources.intel && (
+            <span style={{ color: resources.intel > initialResources.intel ? "#90EE90" : "#ff6b6b", marginLeft: "4px" }}>
               ({resources.intel > initialResources.intel ? "+" : ""}{resources.intel - initialResources.intel})
             </span>
           )}
         </div>
         <div style={{ color: "#ff6b6b", fontSize: "14px", fontWeight: "600" }}>
-          전리품: {resources.loot}
-          {resources.loot !== initialResources.loot && (
-            <span style={{ color: "#90EE90", marginLeft: "4px" }}>
+          전리품: {resources.loot}{resources.loot !== initialResources.loot && (
+            <span style={{ color: resources.loot > initialResources.loot ? "#90EE90" : "#ff6b6b", marginLeft: "4px" }}>
               ({resources.loot > initialResources.loot ? "+" : ""}{resources.loot - initialResources.loot})
             </span>
           )}
         </div>
         <div style={{ color: "#a0e9ff", fontSize: "14px", fontWeight: "600" }}>
-          원자재: {resources.material}
-          {resources.material !== initialResources.material && (
-            <span style={{ color: "#90EE90", marginLeft: "4px" }}>
+          원자재: {resources.material}{resources.material !== initialResources.material && (
+            <span style={{ color: resources.material > initialResources.material ? "#90EE90" : "#ff6b6b", marginLeft: "4px" }}>
               ({resources.material > initialResources.material ? "+" : ""}{resources.material - initialResources.material})
             </span>
           )}
