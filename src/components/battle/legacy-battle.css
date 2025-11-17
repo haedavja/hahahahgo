@@ -449,7 +449,7 @@ body {
 /* 행동력 배지 - 카드 왼쪽 상단 밖으로 완전히 */
 .card-cost-badge-floating {
   position: absolute;
-  top: -8px;
+  top: -7px;
   left: -4px;
   background: rgba(251, 191, 36, 0.95);
   color: #000;

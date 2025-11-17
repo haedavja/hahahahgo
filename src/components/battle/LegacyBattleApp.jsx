@@ -493,7 +493,7 @@ function ExpectedDamagePreview({player, enemy, fixedOrder, willOverdrive, enemyM
           </div>
 
           {/* 진행 단계 제어 버튼 (전투 로그 하단) */}
-          <div style={{marginTop: '216px', display: 'flex', gap: '12px', justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap'}}>
+          <div style={{marginTop: '276px', display: 'flex', gap: '12px', justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap'}}>
             <div style={{fontSize: '18px', fontWeight: 'bold', color: '#f8fafc'}}>
               ⚔️ 전투 진행 중... ({qIndex}/{queue?.length || 0})
             </div>
@@ -1090,7 +1090,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
       </div>
 
       {/* 상단 메인 영역 */}
-      <div className="w-full px-4" style={{marginRight: '250px', marginLeft: '50px'}}>
+      <div className="w-full px-4" style={{marginRight: '0px', marginLeft: '50px'}}>
 
         {/* Timeline */}
         <div style={{marginBottom: '24px'}}>
