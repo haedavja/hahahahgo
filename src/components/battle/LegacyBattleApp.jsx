@@ -1094,30 +1094,29 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
       {/* 상단 메인 영역 */}
       <div className="w-full px-4" style={{marginRight: '280px', marginLeft: '350px'}}>
 
-        {/* Timeline - 2줄 레이아웃 (0-15, 15-30) */}
-        <div style={{marginBottom: '24px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px'}}>
-          {/* 첫 번째 줄: 0-15 */}
+        {/* Timeline - 1줄 길게 (화면 가득) */}
+        <div style={{marginBottom: '32px'}}>
           <div className="panel-enhanced timeline-panel">
             <div className="timeline-body" style={{marginTop: '0'}}>
               <div className="timeline-axis">
-                {[0, 5, 10, 15].map((tick)=>(
+                {[0, 5, 10, 15, 20, 25, 30].map((tick)=>(
                   <span key={tick}>{tick}</span>
                 ))}
               </div>
               <div className="timeline-lanes">
                 <div className="timeline-lane player-lane">
-                  {Array.from({length: 16}).map((_,i)=>(
-                    <div key={i} className="timeline-gridline" style={{left:`${(i/15)*100}%`}} />
+                  {Array.from({length: MAX_SPEED + 1}).map((_,i)=>(
+                    <div key={i} className="timeline-gridline" style={{left:`${(i/MAX_SPEED)*100}%`}} />
                   ))}
-                  {playerTimeline.filter(a => a.sp <= 15).map((a,idx)=>{
+                  {playerTimeline.map((a,idx)=>{
                     const Icon = a.card.icon || Sword;
-                    const sameCount = playerTimeline.filter((q,i)=>i<playerTimeline.indexOf(a) && q.sp===a.sp).length;
+                    const sameCount = playerTimeline.filter((q,i)=>i<idx && q.sp===a.sp).length;
                     const offset = sameCount*28;
                     const num = a.card.type==='attack' ? (a.card.damage*(a.card.hits||1)) : (a.card.block || 0);
                     return (
                       <div key={idx}
                            className="timeline-marker marker-player"
-                           style={{left:`${(a.sp/15)*100}%`, top:`${6+offset}px`}}>
+                           style={{left:`${(a.sp/MAX_SPEED)*100}%`, top:`${6+offset}px`}}>
                         <Icon size={14} className="text-white"/>
                         <span className="text-white text-xs font-bold">{num>0?num:''}</span>
                       </div>
@@ -1126,70 +1125,18 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                 </div>
 
                 <div className="timeline-lane enemy-lane">
-                  {Array.from({length: 16}).map((_,i)=>(
-                    <div key={i} className="timeline-gridline" style={{left:`${(i/15)*100}%`}} />
+                  {Array.from({length: MAX_SPEED + 1}).map((_,i)=>(
+                    <div key={i} className="timeline-gridline" style={{left:`${(i/MAX_SPEED)*100}%`}} />
                   ))}
-                  {enemyTimeline.filter(a => a.sp <= 15).map((a,idx)=>{
+                  {enemyTimeline.map((a,idx)=>{
                     const Icon = a.card.icon || Shield;
-                    const sameCount = enemyTimeline.filter((q,i)=>i<enemyTimeline.indexOf(a) && q.sp===a.sp).length;
+                    const sameCount = enemyTimeline.filter((q,i)=>i<idx && q.sp===a.sp).length;
                     const offset = sameCount*28;
                     const num = a.card.type==='attack' ? (a.card.damage*(a.card.hits||1)) : (a.card.block || 0);
                     return (
                       <div key={idx}
                            className="timeline-marker marker-enemy"
-                           style={{left:`${(a.sp/15)*100}%`, top:`${6+offset}px`}}>
-                        <Icon size={14} className="text-white"/>
-                        <span className="text-white text-xs font-bold">{num>0?num:''}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* 두 번째 줄: 15-30 */}
-          <div className="panel-enhanced timeline-panel">
-            <div className="timeline-body" style={{marginTop: '0'}}>
-              <div className="timeline-axis">
-                {[15, 20, 25, 30].map((tick)=>(
-                  <span key={tick}>{tick}</span>
-                ))}
-              </div>
-              <div className="timeline-lanes">
-                <div className="timeline-lane player-lane">
-                  {Array.from({length: 16}).map((_,i)=>(
-                    <div key={i} className="timeline-gridline" style={{left:`${(i/15)*100}%`}} />
-                  ))}
-                  {playerTimeline.filter(a => a.sp > 15).map((a,idx)=>{
-                    const Icon = a.card.icon || Sword;
-                    const sameCount = playerTimeline.filter((q,i)=>i<playerTimeline.indexOf(a) && q.sp===a.sp).length;
-                    const offset = sameCount*28;
-                    const num = a.card.type==='attack' ? (a.card.damage*(a.card.hits||1)) : (a.card.block || 0);
-                    return (
-                      <div key={idx}
-                           className="timeline-marker marker-player"
-                           style={{left:`${((a.sp-15)/15)*100}%`, top:`${6+offset}px`}}>
-                        <Icon size={14} className="text-white"/>
-                        <span className="text-white text-xs font-bold">{num>0?num:''}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                <div className="timeline-lane enemy-lane">
-                  {Array.from({length: 16}).map((_,i)=>(
-                    <div key={i} className="timeline-gridline" style={{left:`${(i/15)*100}%`}} />
-                  ))}
-                  {enemyTimeline.filter(a => a.sp > 15).map((a,idx)=>{
-                    const Icon = a.card.icon || Shield;
-                    const sameCount = enemyTimeline.filter((q,i)=>i<enemyTimeline.indexOf(a) && q.sp===a.sp).length;
-                    const offset = sameCount*28;
-                    const num = a.card.type==='attack' ? (a.card.damage*(a.card.hits||1)) : (a.card.block || 0);
-                    return (
-                      <div key={idx}
-                           className="timeline-marker marker-enemy"
-                           style={{left:`${((a.sp-15)/15)*100}%`, top:`${6+offset}px`}}>
+                           style={{left:`${(a.sp/MAX_SPEED)*100}%`, top:`${6+offset}px`}}>
                         <Icon size={14} className="text-white"/>
                         <span className="text-white text-xs font-bold">{num>0?num:''}</span>
                       </div>
@@ -1202,48 +1149,41 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
         </div>
 
         {/* 플레이어/적 정보 + 중앙 정보 통합 레이아웃 */}
-        <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '40px', gap: '40px'}}>
+        <div style={{display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '50px', gap: '80px'}}>
           {/* 왼쪽: 플레이어 */}
-          <div style={{display: 'flex', alignItems: 'center', gap: '16px'}}>
-            <EtherBar
-              key={`player-ether-${playerEtherValue}`}
-              pts={playerEtherValue}
-              slots={playerEtherSlots}
-              previewGain={comboPreviewGain}
-              label="ETHER"
-            />
-            <div>
-              <div style={{fontSize: '1rem', fontWeight: '600', color: '#7dd3fc', marginBottom: '8px'}}>플레이어</div>
-              <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
-                <div className="character-display" style={{fontSize: '48px'}}>🧙‍♂️</div>
-                <div>
-                  <div style={{color: '#f87171', fontSize: '1.25rem', fontWeight: 'bold'}}>❤️ {player.hp}/{player.maxHp}</div>
-                  <div className="hp-bar-enhanced mb-1" style={{width: '180px', height: '12px'}}>
-                    <div className="hp-fill" style={{width: `${(player.hp/player.maxHp)*100}%`}}></div>
+          <div style={{display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '16px', minWidth: '320px'}}>
+            <div style={{display: 'flex', alignItems: 'center', gap: '16px'}}>
+              <EtherBar
+                key={`player-ether-${playerEtherValue}`}
+                pts={playerEtherValue}
+                slots={playerEtherSlots}
+                previewGain={comboPreviewGain}
+                label="ETHER"
+              />
+              <div>
+                <div style={{fontSize: '1rem', fontWeight: '600', color: '#7dd3fc', marginBottom: '8px'}}>플레이어</div>
+                <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
+                  <div className="character-display" style={{fontSize: '64px'}}>🧙‍♂️</div>
+                  <div>
+                    <div style={{color: '#f87171', fontSize: '1.25rem', fontWeight: 'bold'}}>❤️ {player.hp}/{player.maxHp}</div>
+                    <div className="hp-bar-enhanced mb-1" style={{width: '180px', height: '12px'}}>
+                      <div className="hp-fill" style={{width: `${(player.hp/player.maxHp)*100}%`}}></div>
+                    </div>
+                    {player.block>0 && <div style={{fontSize: '0.875rem', color: '#93c5fd'}}>🛡️ {player.block}</div>}
                   </div>
-                  {player.block>0 && <div style={{fontSize: '0.875rem', color: '#93c5fd'}}>🛡️ {player.block}</div>}
                 </div>
+                <button onClick={()=> (phase==='select' || phase==='respond') && setWillOverdrive(v=>!v)}
+                        disabled={!(phase==='select'||phase==='respond') || etherSlots(player.etherPts)<=0}
+                        className={`mt-2 btn-enhanced ${willOverdrive? 'btn-primary':''} text-sm`}
+                        style={{fontSize: '0.875rem', padding: '4px 12px'}}>
+                  🙏 기도 {willOverdrive?'ON':'OFF'}
+                </button>
               </div>
-              <button onClick={()=> (phase==='select' || phase==='respond') && setWillOverdrive(v=>!v)}
-                      disabled={!(phase==='select'||phase==='respond') || etherSlots(player.etherPts)<=0}
-                      className={`mt-2 btn-enhanced ${willOverdrive? 'btn-primary':''} text-sm`}
-                      style={{fontSize: '0.875rem', padding: '4px 12px'}}>
-                🙏 기도 {willOverdrive?'ON':'OFF'}
-              </button>
             </div>
-          </div>
-
-          {/* 중앙: 단계 정보 */}
-          <div style={{textAlign: 'center', flex: '1'}}>
-            <div style={{fontSize: '32px', fontWeight: 'bold', color: '#f8fafc', textShadow: '0 2px 8px rgba(0,0,0,0.5)', marginBottom: '12px'}}>
-              {phase === 'select' ? '선택 단계' : phase === 'respond' ? '대응 단계' : '진행 단계'}
-            </div>
-            <div style={{fontSize: '1.125rem', fontWeight: '700', color: '#7dd3fc', marginBottom: '8px'}}>
-              속도 {totalSpeed}/{MAX_SPEED} · 선택 {selected.length}/{MAX_SUBMIT_CARDS}
-            </div>
+            {/* 플레이어 콤보 */}
             {currentCombo && (
-              <div className="combo-display" style={{marginBottom: '8px'}}>
-                {currentCombo.name}
+              <div className="combo-display" style={{alignSelf: 'flex-start'}}>
+                ⭐ {currentCombo.name}
                 {pendingComboEther > 0 && (
                   <span style={{fontSize: '0.85em', marginLeft: '8px', color: '#6ee7b7'}}>
                     +{pendingComboEther} pt
@@ -1251,40 +1191,63 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                 )}
               </div>
             )}
+          </div>
+
+          {/* 중앙: 단계 정보 */}
+          <div style={{textAlign: 'center', flex: '1', paddingTop: '20px'}}>
+            <div style={{fontSize: '36px', fontWeight: 'bold', color: '#f8fafc', textShadow: '0 2px 8px rgba(0,0,0,0.5)', marginBottom: '16px'}}>
+              {phase === 'select' ? '선택 단계' : phase === 'respond' ? '대응 단계' : '진행 단계'}
+            </div>
+            <div style={{fontSize: '1.25rem', fontWeight: '700', color: '#7dd3fc', marginBottom: '12px'}}>
+              속도 {totalSpeed}/{MAX_SPEED} · 선택 {selected.length}/{MAX_SUBMIT_CARDS}
+            </div>
             {phase==='select' && (
-              <button onClick={redrawHand} disabled={!canRedraw} className="btn-enhanced flex items-center gap-2" style={{margin: '0 auto'}}>
+              <button onClick={redrawHand} disabled={!canRedraw} className="btn-enhanced flex items-center gap-2" style={{margin: '0 auto', fontSize: '1rem', padding: '8px 16px'}}>
                 <RefreshCw size={18}/> 리드로우
               </button>
             )}
           </div>
 
           {/* 오른쪽: 적 */}
-          <div style={{display: 'flex', alignItems: 'center', gap: '16px'}}>
-            <div style={{textAlign: 'right'}}>
-              <div style={{fontSize: '1rem', fontWeight: '600', color: '#fca5a5', marginBottom: '8px'}}>
-                {enemy.name}
-                {enemyHint && <span style={{fontSize: '0.75rem', color: '#94a3b8', marginLeft: '8px'}}>💡 {enemyHint}</span>}
-              </div>
-              <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
-                <div>
-                  <div style={{color: '#f87171', fontSize: '1.25rem', fontWeight: 'bold', textAlign: 'right'}}>❤️ {enemy.hp}/{enemy.maxHp}</div>
-                  <div className="hp-bar-enhanced mb-1" style={{width: '180px', height: '12px'}}>
-                    <div className="hp-fill" style={{width: `${(enemy.hp/enemy.maxHp)*100}%`}}></div>
-                  </div>
-                  {enemy.block>0 && <div style={{fontSize: '0.875rem', color: '#93c5fd', textAlign: 'right'}}>🛡️ {enemy.block}</div>}
-                  <div style={{fontSize: '0.75rem', color: '#94a3b8', marginTop: '4px'}}>적 {enemyIndex+1}/{ENEMIES.length}</div>
+          <div style={{display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '16px', minWidth: '320px'}}>
+            <div style={{display: 'flex', alignItems: 'center', gap: '16px'}}>
+              <div style={{textAlign: 'right'}}>
+                <div style={{fontSize: '1rem', fontWeight: '600', color: '#fca5a5', marginBottom: '8px'}}>
+                  {enemy.name}
+                  {enemyHint && <span style={{fontSize: '0.75rem', color: '#94a3b8', marginLeft: '8px'}}>💡 {enemyHint}</span>}
                 </div>
-                <div className="character-display" style={{fontSize: '48px'}}>👹</div>
+                <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
+                  <div>
+                    <div style={{color: '#f87171', fontSize: '1.25rem', fontWeight: 'bold', textAlign: 'right'}}>❤️ {enemy.hp}/{enemy.maxHp}</div>
+                    <div className="hp-bar-enhanced mb-1" style={{width: '180px', height: '12px'}}>
+                      <div className="hp-fill" style={{width: `${(enemy.hp/enemy.maxHp)*100}%`}}></div>
+                    </div>
+                    {enemy.block>0 && <div style={{fontSize: '0.875rem', color: '#93c5fd', textAlign: 'right'}}>🛡️ {enemy.block}</div>}
+                    <div style={{fontSize: '0.75rem', color: '#94a3b8', marginTop: '4px'}}>적 {enemyIndex+1}/{ENEMIES.length}</div>
+                  </div>
+                  <div className="character-display" style={{fontSize: '64px'}}>👹</div>
+                </div>
               </div>
+              <EtherBar
+                key={`enemy-ether-${enemyEtherValue}`}
+                pts={enemyEtherValue}
+                slots={enemyEtherSlots}
+                previewGain={enemyComboPreviewGain}
+                label="ETHER"
+                color="red"
+              />
             </div>
-            <EtherBar
-              key={`enemy-ether-${enemyEtherValue}`}
-              pts={enemyEtherValue}
-              slots={enemyEtherSlots}
-              previewGain={enemyComboPreviewGain}
-              label="ETHER"
-              color="red"
-            />
+            {/* 몬스터 콤보 */}
+            {enemyCombo && (
+              <div className="combo-display" style={{alignSelf: 'flex-end', backgroundColor: 'rgba(239, 68, 68, 0.2)', borderColor: '#ef4444'}}>
+                ⭐ {enemyCombo.name}
+                {enemyComboPreviewGain > 0 && (
+                  <span style={{fontSize: '0.85em', marginLeft: '8px', color: '#fca5a5'}}>
+                    +{enemyComboPreviewGain} pt
+                  </span>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>
