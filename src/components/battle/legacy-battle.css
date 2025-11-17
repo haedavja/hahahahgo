@@ -853,7 +853,7 @@ body {
   position: fixed;
   bottom: 210px;
   left: 50%;
-  transform: translateX(calc(-50% - 140px));
+  transform: translateX(calc(-50% + 60px));
   z-index: 200;
 }
 

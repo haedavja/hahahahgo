@@ -470,7 +470,7 @@ function ExpectedDamagePreview({player, enemy, fixedOrder, willOverdrive, enemyM
           <div style={{fontSize: '15px', fontWeight: 'bold', color: '#f8fafc', marginBottom: '12px'}}>
             🎮 전투 로그
           </div>
-          <div ref={logContainerRef} style={{maxHeight: '300px', overflowY: 'auto'}}>
+          <div ref={logContainerRef} style={{maxHeight: '150px', overflowY: 'auto'}}>
             {log.filter(line => {
               // 불필요한 로그 제거
               if (line.includes('게임 시작') || line.includes('적 성향 힌트')) return false;
@@ -1092,7 +1092,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
       </div>
 
       {/* 상단 메인 영역 */}
-      <div className="w-full px-4" style={{marginLeft: '150px'}}>
+      <div className="w-full px-4" style={{marginRight: '280px', marginLeft: '350px'}}>
 
         {/* Timeline */}
         <div style={{marginBottom: '24px'}}>
@@ -1324,11 +1324,6 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                             🛡️{c.block}
                           </div>
                         )}
-                        {c.counter !== undefined && (
-                          <div className="card-stat-item counter">
-                            ⚡{c.counter}
-                          </div>
-                        )}
                         <div className="card-stat-item speed">
                           ⏱️{c.speedCost}
                         </div>
@@ -1371,11 +1366,6 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                         {c.block != null && c.block > 0 && (
                           <div className="card-stat-item defense">
                             🛡️{c.block}
-                          </div>
-                        )}
-                        {c.counter !== undefined && (
-                          <div className="card-stat-item counter">
-                            ⚡{c.counter}
                           </div>
                         )}
                         <div className="card-stat-item speed">
