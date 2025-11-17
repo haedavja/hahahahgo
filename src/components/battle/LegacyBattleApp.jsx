@@ -491,6 +491,29 @@ function ExpectedDamagePreview({player, enemy, fixedOrder, willOverdrive, enemyM
               );
             })}
           </div>
+
+          {/* 진행 단계 제어 버튼 (전투 로그 하단) */}
+          <div style={{marginTop: '16px', display: 'flex', gap: '12px', justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap'}}>
+            <div style={{fontSize: '18px', fontWeight: 'bold', color: '#f8fafc'}}>
+              ⚔️ 전투 진행 중... ({qIndex}/{queue?.length || 0})
+            </div>
+            <button onClick={stepOnce} disabled={qIndex>=queue.length} className="btn-enhanced flex items-center gap-2">
+              <StepForward size={18}/> 한 단계
+            </button>
+            <button onClick={runAll} disabled={qIndex>=queue.length} className="btn-enhanced btn-primary">
+              전부 실행
+            </button>
+            {qIndex >= queue.length && (
+              <button onClick={()=>finishTurn('수동 턴 종료')} className="btn-enhanced flex items-center gap-2">
+                ⏭️ 턴 종료
+              </button>
+            )}
+            {postCombatOptions && (
+              <button onClick={handleExitToMap} className="btn-enhanced btn-primary flex items-center gap-2">
+                🗺️ 맵으로 돌아가기
+              </button>
+            )}
+          </div>
         </div>
       )}
     </div>
@@ -1134,9 +1157,6 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                 )}
               </div>
             )}
-            {phase==='resolve' && (
-              <div className="text-white font-black text-xl">⚔️ 전투 진행 중... ({qIndex}/{queue?.length || 0})</div>
-            )}
             <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
               <div style={{fontSize: '1.25rem', fontWeight: '700', color: '#7dd3fc'}}>
                 속도 {totalSpeed}/{MAX_SPEED} · 선택 {selected.length}/{MAX_SUBMIT_CARDS}
@@ -1144,11 +1164,6 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
               {phase==='select' && (
                 <button onClick={redrawHand} disabled={!canRedraw} className="btn-enhanced flex items-center gap-2">
                   <RefreshCw size={18}/> 리드로우
-                </button>
-              )}
-              {phase==='resolve' && qIndex >= queue.length && (
-                <button onClick={()=>finishTurn('수동 턴 종료')} className="btn-enhanced flex items-center gap-2">
-                  ⏭️ 턴 종료
                 </button>
               )}
             </div>
@@ -1255,21 +1270,6 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
               <button onClick={beginResolveFromRespond} className="btn-enhanced btn-success flex items-center gap-2">
                 <Play size={20}/> 진행 시작
               </button>
-            )}
-            {phase==='resolve' && (
-              <>
-                <button onClick={stepOnce} disabled={qIndex>=queue.length} className="btn-enhanced flex items-center gap-2">
-                  <StepForward size={18}/> 한 단계
-                </button>
-                <button onClick={runAll} disabled={qIndex>=queue.length} className="btn-enhanced btn-primary">
-                  전부 실행
-                </button>
-                {postCombatOptions && (
-                  <button onClick={handleExitToMap} className="btn-enhanced btn-primary flex items-center gap-2">
-                    🗺️ 맵으로 돌아가기
-                  </button>
-                )}
-              </>
             )}
             {player && player.hp <= 0 && (
               <button onClick={()=>window.location.reload()} className="btn-enhanced flex items-center gap-2">

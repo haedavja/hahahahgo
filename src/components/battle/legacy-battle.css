@@ -822,7 +822,7 @@ body {
 /* 독립 활동력 표시 (좌측 하단 고정) */
 .energy-display-fixed {
   position: fixed;
-  bottom: 20px;
+  bottom: 140px; /* 20px → 140px (더 높은 위치) */
   left: 20px;
   z-index: 200;
 }
@@ -892,7 +892,7 @@ body {
   margin-left: -30px; /* 카드 겹침 (-40px → -30px, 간격 넓힘) */
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
   transform-origin: bottom center;
-  transform: translateY(50px) !important; /* 기본적으로 아래로 내림 (텍스트 반만 보이게) */
+  transform: translateY(0px) !important; /* 50px → 0px (기본 위치로 복귀) */
   z-index: 1;
   position: relative;
 }
@@ -904,20 +904,20 @@ body {
 
 /* 호버 효과 - 슬레이 더 스파이어 스타일 */
 .game-card-large:hover:not(.disabled) {
-  transform: translateY(-80px) scale(1.5) !important; /* scale 1.35 → 1.5, translateY -60px → -80px */
+  transform: translateY(-60px) scale(1.35) !important; /* 확대 축소 (1.5 → 1.35, -80px → -60px) */
   z-index: 100 !important;
   margin-left: -30px;
-  margin-right: 30px; /* 호버 시 오른쪽 공간 확보 (20px → 30px) */
+  margin-right: 30px; /* 호버 시 오른쪽 공간 확보 */
 }
 
 /* 선택된 카드 */
 .game-card-large.selected {
-  transform: translateY(-25px) scale(1.08) !important; /* 선택 시 올라옴 */
+  transform: translateY(-20px) scale(1.05) !important; /* 선택 시 올라옴 (-25px → -20px, 1.08 → 1.05) */
   z-index: 50;
 }
 
 .game-card-large.selected:hover:not(.disabled) {
-  transform: translateY(-80px) scale(1.5) !important;
+  transform: translateY(-60px) scale(1.35) !important;
   z-index: 100 !important;
 }
 
