@@ -1233,11 +1233,13 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
             {/* 플레이어 콤보 - 절대 위치로 오른쪽 배치 */}
             {currentCombo && (
               <div className="combo-display" style={{position: 'absolute', top: '0', left: '180px', textAlign: 'center'}}>
-                <div>{currentCombo.name}</div>
+                <div style={{fontSize: '1.5rem', fontWeight: 'bold', color: '#fbbf24', marginBottom: '4px'}}>
+                  {currentCombo.name}
+                </div>
                 {pendingComboEther.gain > 0 && (
-                  <div style={{color: '#fbbf24', fontWeight: 'bold'}}>
-                    +{pendingComboEther.gain} PT{pendingComboEther.multiplier < 1 && (
-                      <span style={{color: '#ef4444', marginLeft: '4px', fontSize: '0.8em'}}>
+                  <div style={{fontSize: '1.2rem', color: '#fbbf24', fontWeight: 'bold'}}>
+                    +{pendingComboEther.gain} PT {pendingComboEther.multiplier < 1 && (
+                      <span style={{color: '#ef4444', fontSize: '0.8em'}}>
                         (×{pendingComboEther.multiplier.toFixed(2)})
                       </span>
                     )}
@@ -1310,8 +1312,18 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
             {/* 몬스터 콤보 - 절대 위치로 왼쪽 배치 */}
             {enemyCombo && (
               <div className="combo-display" style={{position: 'absolute', top: '0', right: '180px', textAlign: 'center'}}>
-                <div>{enemyCombo.name}</div>
-                {enemyComboPreviewGain > 0 && <div style={{color: '#fbbf24', fontWeight: 'bold'}}>+{enemyComboPreviewGain} PT</div>}
+                <div style={{fontSize: '1.5rem', fontWeight: 'bold', color: '#fbbf24', marginBottom: '4px'}}>
+                  {enemyCombo.name}
+                </div>
+                {enemyComboPreviewGain > 0 && (
+                  <div style={{fontSize: '1.2rem', color: '#fbbf24', fontWeight: 'bold'}}>
+                    +{enemyComboPreviewGain} PT {enemyComboPreviewGain < ETHER_GAIN_MAP[enemyCombo.name] && (
+                      <span style={{color: '#ef4444', fontSize: '0.8em'}}>
+                        (×{(enemyComboPreviewGain / ETHER_GAIN_MAP[enemyCombo.name]).toFixed(2)})
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
             )}
             <div style={{display: 'flex', alignItems: 'center', gap: '16px'}}>
