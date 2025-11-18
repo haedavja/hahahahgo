@@ -849,9 +849,9 @@ body {
 /* 독립 활동력 표시 (좌측 하단 고정) */
 .energy-display-fixed {
   position: fixed;
-  bottom: 230px;
+  bottom: 30px; /* 230px → 30px (가장 밑으로 이동) */
   left: 120px; /* 20px → 120px (오른쪽으로 100px 이동) */
-  z-index: 200;
+  z-index: 50; /* 200 → 50 (카드보다 낮게) */
 }
 
 /* 제출 버튼 고정 (우측으로 이동) */

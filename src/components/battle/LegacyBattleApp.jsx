@@ -762,7 +762,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
     }
   }, [postCombatOptions, notifyBattleResult]);
 
-  // C 키로 캐릭터 창 열기, Q 키로 간소화, E 키로 제출, R 키로 리드로우, A 키로 한 단계, D 키로 전부 실행
+  // C 키로 캐릭터 창 열기, Q 키로 간소화, E 키로 제출, R 키로 리드로우, 스페이스바로 기원, A 키로 한 단계, D 키로 전부 실행
   useEffect(() => {
     const handleKeyPress = (e) => {
       if (e.key === "c" || e.key === "C") {
@@ -781,6 +781,13 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
         const redrawBtn = document.querySelector('button:has(.lucide-refresh-cw)');
         if (redrawBtn && !redrawBtn.disabled) redrawBtn.click();
       }
+      if (e.key === " " && (phase === 'select' || phase === 'respond')) {
+        // 스페이스바로 기원 토글
+        e.preventDefault(); // 스페이스바 기본 동작 방지 (스크롤)
+        if (etherSlots(player.etherPts) > 0) {
+          setWillOverdrive(v => !v);
+        }
+      }
       if ((e.key === "a" || e.key === "A") && phase === 'resolve') {
         // 한 단계 버튼 클릭
         const buttons = document.querySelectorAll('.expect-sidebar-fixed button');
@@ -797,7 +804,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
     window.addEventListener("keydown", handleKeyPress);
     return () => window.removeEventListener("keydown", handleKeyPress);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phase, selected, canRedraw]); // canRedraw 추가
+  }, [phase, selected, canRedraw, player.etherPts]); // player.etherPts 추가
 
   useEffect(()=>{
     if(!enemy){
@@ -986,10 +993,12 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
     if(pComboNow && ETHER_GAIN_MAP[pComboNow.name]){
       setCurrentTurnCombo(pComboNow.name); // 이번 턴 조합 저장
       const baseGain = ETHER_GAIN_MAP[pComboNow.name];
+      // 먼저 결과 계산 (현재 상태 기준)
+      const result = applyEtherDeflation(baseGain, pComboNow.name, player.comboUsageCount || {});
+      const multiplierText = result.multiplier < 1 ? ` <span style="color: #ef4444;">(×${result.multiplier.toFixed(2)})</span>` : '';
+      addLog(`✴️ 에테르 +${result.gain} PT ${multiplierText}(플레이어 족보: ${pComboNow.name})`);
       setPlayer(p => {
         const result = applyEtherDeflation(baseGain, pComboNow.name, p.comboUsageCount || {});
-        const multiplierText = result.multiplier < 1 ? ` <span style="color: #ef4444;">×${result.multiplier.toFixed(2)}</span>` : '';
-        addLog(`✴️ 에테르 +${result.gain} pt${multiplierText} (플레이어 족보: ${pComboNow.name})`);
         return { ...p, etherPts: addEther(p.etherPts, result.gain) };
       });
     }
@@ -1283,17 +1292,17 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
               속도 {totalSpeed}/{MAX_SPEED} · 선택 {selected.length}/{MAX_SUBMIT_CARDS}
             </div>
             {phase==='select' && (
-              <>
-                <button onClick={redrawHand} disabled={!canRedraw} className="btn-enhanced flex items-center gap-2" style={{margin: '0 auto', fontSize: '1rem', padding: '8px 16px'}}>
+              <div style={{display: 'flex', gap: '12px', justifyContent: 'center', alignItems: 'center'}}>
+                <button onClick={redrawHand} disabled={!canRedraw} className="btn-enhanced flex items-center gap-2" style={{fontSize: '1rem', padding: '8px 16px'}}>
                   <RefreshCw size={18}/> 리드로우 (R)
                 </button>
                 <button onClick={()=> (phase==='select' || phase==='respond') && setWillOverdrive(v=>!v)}
                         disabled={!(phase==='select'||phase==='respond') || etherSlots(player.etherPts)<=0}
                         className={`btn-enhanced ${willOverdrive? 'btn-primary':''} flex items-center gap-2`}
-                        style={{margin: '8px auto 0', fontSize: '1rem', padding: '8px 16px'}}>
-                  🙏 기원
+                        style={{fontSize: '1rem', padding: '8px 16px'}}>
+                  🙏 기원 (Space)
                 </button>
-              </>
+              </div>
             )}
           </div>
 
