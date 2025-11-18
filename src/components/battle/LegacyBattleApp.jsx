@@ -1232,7 +1232,16 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
     setQIndex(prev=>prev+1);
 
     if(P.hp<=0){ setPostCombatOptions({ type:'defeat' }); setPhase('post'); return; }
-    if(E.hp<=0){ setPostCombatOptions({ type:'victory' }); setPhase('post'); return; }
+    if(E.hp<=0){
+      // 몬스터 죽음 애니메이션 및 사운드
+      setEnemyHit(true);
+      playSound(200, 500); // 낮은 주파수로 죽음 사운드
+      setTimeout(() => {
+        setPostCombatOptions({ type:'victory' });
+        setPhase('post');
+      }, 1000);
+      return;
+    }
   };
 
   const finishTurn = (reason)=>{
@@ -1278,7 +1287,13 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
         setEnemy(prev=>({  ...prev, hp:E.hp, def:E.def, block:E.block, counter:E.counter, vulnMult:E.vulnMult||1 }));
         setActionEvents(prev=>({ ...prev, ...newEvents }));
         setQIndex(i+1);
-        setPostCombatOptions({ type:'victory' }); setPhase('post');
+        // 몬스터 죽음 애니메이션 및 사운드
+        setEnemyHit(true);
+        playSound(200, 500);
+        setTimeout(() => {
+          setPostCombatOptions({ type:'victory' });
+          setPhase('post');
+        }, 1000);
         return;
       }
     }
@@ -1495,14 +1510,14 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                 <button onClick={redrawHand} disabled={!canRedraw} className="btn-enhanced flex items-center gap-2" style={{fontSize: '1rem', padding: '8px 20px', minWidth: '200px'}}>
                   <RefreshCw size={18}/> 리드로우 (R)
                 </button>
+                <button onClick={() => { startResolve(); playSound(900, 120); }} disabled={selected.length===0} className="btn-enhanced btn-primary flex items-center gap-2" style={{fontSize: '1.25rem', padding: '9.6px 24px', fontWeight: '700', minWidth: '200px'}}>
+                  <Play size={22}/> 제출 <span style={{fontSize: '1.4rem', fontWeight: '900'}}>(E)</span>
+                </button>
                 <button onClick={()=> setWillOverdrive(v=>!v)}
                         disabled={etherSlots(player.etherPts)<=0}
                         className={`btn-enhanced ${willOverdrive? 'btn-primary':''} flex items-center gap-2`}
                         style={{fontSize: '1rem', padding: '8px 20px', minWidth: '200px'}}>
                   ✨ 기원 {willOverdrive?'ON':'OFF'} (Space)
-                </button>
-                <button onClick={() => { startResolve(); playSound(900, 120); }} disabled={selected.length===0} className="btn-enhanced btn-primary flex items-center gap-2" style={{fontSize: '1.25rem', padding: '9.6px 24px', fontWeight: '700', minWidth: '200px'}}>
-                  <Play size={22}/> 제출 <span style={{fontSize: '1.4rem', fontWeight: '900'}}>(E)</span>
                 </button>
               </div>
             )}
@@ -1520,13 +1535,13 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
             {/* 몬스터 콤보 - 절대 위치로 왼쪽 배치 */}
             {enemyCombo && (
               <div className="combo-display" style={{position: 'absolute', top: '0', right: '180px', textAlign: 'center'}}>
-                <div style={{fontSize: '1.5rem', fontWeight: 'bold', color: '#fbbf24', marginBottom: '4px'}}>
+                <div style={{fontSize: '1.92rem', fontWeight: 'bold', color: '#fbbf24', marginBottom: '2px'}}>
                   {enemyCombo.name}
                 </div>
                 {enemyComboPreviewGain > 0 && (
-                  <div style={{fontSize: '1.2rem', color: '#fbbf24', fontWeight: 'bold'}}>
+                  <div style={{fontSize: '1.92rem', color: '#fbbf24', fontWeight: 'bold'}}>
                     +{enemyComboPreviewGain} PT {enemyComboPreviewGain < ETHER_GAIN_MAP[enemyCombo.name] && (
-                      <span style={{color: '#ef4444', fontSize: '0.8em'}}>
+                      <span style={{color: '#ef4444', fontSize: '0.624em', marginLeft: '-0.05em'}}>
                         (×{(enemyComboPreviewGain / ETHER_GAIN_MAP[enemyCombo.name]).toFixed(2)})
                       </span>
                     )}
