@@ -995,7 +995,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
       const baseGain = ETHER_GAIN_MAP[pComboNow.name];
       // 먼저 결과 계산 (현재 상태 기준)
       const result = applyEtherDeflation(baseGain, pComboNow.name, player.comboUsageCount || {});
-      const multiplierText = result.multiplier < 1 ? ` <span style="color: #ef4444;">(×${result.multiplier.toFixed(2)})</span>` : '';
+      const multiplierText = result.multiplier < 1 ? ` <span style="color: #ef4444; font-size: 0.8em;">(×${result.multiplier.toFixed(2)})</span>` : '';
       addLog(`✴️ 에테르 +${result.gain} PT ${multiplierText}(플레이어 족보: ${pComboNow.name})`);
       setPlayer(p => {
         const result = applyEtherDeflation(baseGain, pComboNow.name, p.comboUsageCount || {});
@@ -1236,9 +1236,8 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                 <div>{currentCombo.name}</div>
                 {pendingComboEther.gain > 0 && (
                   <div style={{color: '#fbbf24', fontWeight: 'bold'}}>
-                    +{pendingComboEther.gain} PT
-                    {pendingComboEther.multiplier < 1 && (
-                      <span style={{color: '#ef4444', marginLeft: '4px', fontSize: '0.9em'}}>
+                    +{pendingComboEther.gain} PT{pendingComboEther.multiplier < 1 && (
+                      <span style={{color: '#ef4444', marginLeft: '4px', fontSize: '0.8em'}}>
                         (×{pendingComboEther.multiplier.toFixed(2)})
                       </span>
                     )}
@@ -1292,14 +1291,14 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
               속도 {totalSpeed}/{MAX_SPEED} · 선택 {selected.length}/{MAX_SUBMIT_CARDS}
             </div>
             {phase==='select' && (
-              <div style={{display: 'flex', gap: '12px', justifyContent: 'center', alignItems: 'center'}}>
-                <button onClick={redrawHand} disabled={!canRedraw} className="btn-enhanced flex items-center gap-2" style={{fontSize: '1rem', padding: '8px 16px'}}>
+              <div style={{display: 'flex', flexDirection: 'column', gap: '8px', justifyContent: 'center', alignItems: 'center'}}>
+                <button onClick={redrawHand} disabled={!canRedraw} className="btn-enhanced flex items-center gap-2" style={{fontSize: '1rem', padding: '8px 20px', minWidth: '160px'}}>
                   <RefreshCw size={18}/> 리드로우 (R)
                 </button>
                 <button onClick={()=> (phase==='select' || phase==='respond') && setWillOverdrive(v=>!v)}
                         disabled={!(phase==='select'||phase==='respond') || etherSlots(player.etherPts)<=0}
                         className={`btn-enhanced ${willOverdrive? 'btn-primary':''} flex items-center gap-2`}
-                        style={{fontSize: '1rem', padding: '8px 16px'}}>
+                        style={{fontSize: '1rem', padding: '8px 20px', minWidth: '160px'}}>
                   🙏 기원 (Space)
                 </button>
               </div>
