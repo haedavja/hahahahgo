@@ -1266,7 +1266,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
           <div style={{display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '12px', minWidth: '360px', position: 'relative', justifyContent: 'center'}}>
             {/* 플레이어 콤보 - 절대 위치로 오른쪽 배치 */}
             {currentCombo && (
-              <div className="combo-display" style={{position: 'absolute', top: '0', left: '180px', textAlign: 'center'}}>
+              <div className="combo-display" style={{position: 'absolute', top: '-5px', left: '180px', textAlign: 'center'}}>
                 <div style={{fontSize: '1.92rem', fontWeight: 'bold', color: '#fbbf24', marginBottom: '2px'}}>
                   {currentCombo.name}
                 </div>
