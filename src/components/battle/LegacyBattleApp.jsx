@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import "./legacy-battle.css";
+import { playHitSound, playBlockSound, playCardSubmitSound } from "../../lib/soundUtils";
 import {
   MAX_SPEED,
   BASE_PLAYER_ENERGY,
@@ -676,6 +677,10 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
   const [hiddenCards, setHiddenCards] = useState([]); // 완전히 숨겨진 카드 인덱스
   const [currentTurnCombo, setCurrentTurnCombo] = useState(null); // 이번 턴에 사용한 조합 추적
   const [showCharacterSheet, setShowCharacterSheet] = useState(false);
+  const [playerHit, setPlayerHit] = useState(false); // 플레이어 피격 애니메이션
+  const [enemyHit, setEnemyHit] = useState(false); // 적 피격 애니메이션
+  const [playerBlockAnim, setPlayerBlockAnim] = useState(false); // 플레이어 방어 애니메이션
+  const [enemyBlockAnim, setEnemyBlockAnim] = useState(false); // 적 방어 애니메이션
   const logEndRef = useRef(null);
   const initialEtherRef = useRef(typeof safeInitialPlayer.etherPts === 'number' ? safeInitialPlayer.etherPts : (playerEther ?? 0));
   const resultSentRef = useRef(false);
@@ -974,6 +979,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
 
     const q = sortCombinedOrderStablePF(enhancedSelected, actions);
     setFixedOrder(q);
+    playCardSubmitSound(); // 카드 제출 사운드 재생
     setPhase('respond');
   };
 
@@ -1067,7 +1073,51 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
     setPlayer(prev=>({ ...prev, hp:P.hp, def:P.def, block:P.block, counter:P.counter, vulnMult:P.vulnMult||1 }));
     setEnemy(prev=>({  ...prev, hp:E.hp, def:E.def, block:E.block, counter:E.counter, vulnMult:E.vulnMult||1 }));
     setActionEvents(prev=>({ ...prev, [qIndex]: events }));
-    events.forEach(ev=> addLog(ev.msg));
+
+    // 이벤트 처리: 애니메이션 및 사운드
+    events.forEach(ev=> {
+      addLog(ev.msg);
+
+      // 피격 효과 (hit, pierce 타입)
+      if((ev.type === 'hit' || ev.type === 'pierce') && ev.dmg > 0) {
+        playHitSound();
+        if(ev.actor === 'player') {
+          // 플레이어가 공격 -> 적 피격
+          setEnemyHit(true);
+          setTimeout(() => setEnemyHit(false), 300);
+        } else {
+          // 적이 공격 -> 플레이어 피격
+          setPlayerHit(true);
+          setTimeout(() => setPlayerHit(false), 300);
+        }
+      }
+
+      // 방어 효과 (defense 타입)
+      if(ev.type === 'defense') {
+        playBlockSound();
+        if(ev.actor === 'player') {
+          setPlayerBlockAnim(true);
+          setTimeout(() => setPlayerBlockAnim(false), 400);
+        } else {
+          setEnemyBlockAnim(true);
+          setTimeout(() => setEnemyBlockAnim(false), 400);
+        }
+      }
+
+      // 반격 피해
+      if(ev.actor === 'counter') {
+        playHitSound();
+        // counter는 반대 방향으로 피해가 가므로 타겟을 반대로
+        if(a.actor === 'player') {
+          setPlayerHit(true);
+          setTimeout(() => setPlayerHit(false), 300);
+        } else {
+          setEnemyHit(true);
+          setTimeout(() => setEnemyHit(false), 300);
+        }
+      }
+    });
+
     setQIndex(prev=>prev+1);
 
     if(P.hp<=0){ setPostCombatOptions({ type:'defeat' }); setPhase('post'); return; }
@@ -1293,9 +1343,9 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                 <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
                   <div className="character-display" style={{fontSize: '64px'}}>🧙‍♂️</div>
                   <div>
-                    <div style={{color: '#f87171', fontSize: '1.25rem', fontWeight: 'bold'}}>
+                    <div className={playerHit ? 'hit-animation' : ''} style={{color: '#f87171', fontSize: '1.25rem', fontWeight: 'bold'}}>
                       ❤️ {player.hp}/{player.maxHp}
-                      {player.block > 0 && <span style={{color: '#60a5fa', marginLeft: '8px'}}>🛡️{player.block}</span>}
+                      {player.block > 0 && <span className={playerBlockAnim ? 'block-animation' : ''} style={{color: '#60a5fa', marginLeft: '8px'}}>🛡️{player.block}</span>}
                     </div>
                     <div className="hp-bar-enhanced mb-1" style={{width: '200px', height: '12px', position: 'relative', overflow: 'hidden'}}>
                       <div className="hp-fill" style={{width: `${(player.hp/player.maxHp)*100}%`}}></div>
@@ -1368,8 +1418,8 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                   )}
                   <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
                     <div>
-                      <div style={{color: '#f87171', fontSize: '1.25rem', fontWeight: 'bold', textAlign: 'right'}}>
-                        {enemy.block > 0 && <span style={{color: '#60a5fa', marginRight: '8px'}}>🛡️{enemy.block}</span>}
+                      <div className={enemyHit ? 'hit-animation' : ''} style={{color: '#f87171', fontSize: '1.25rem', fontWeight: 'bold', textAlign: 'right'}}>
+                        {enemy.block > 0 && <span className={enemyBlockAnim ? 'block-animation' : ''} style={{color: '#60a5fa', marginRight: '8px'}}>🛡️{enemy.block}</span>}
                         ❤️ {enemy.hp}/{enemy.maxHp}
                       </div>
                       <div className="hp-bar-enhanced mb-1" style={{width: '200px', height: '12px', position: 'relative', overflow: 'hidden'}}>
