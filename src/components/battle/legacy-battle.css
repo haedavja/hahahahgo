@@ -454,7 +454,7 @@ body {
 /* 행동력 배지 - 카드 왼쪽 상단 밖으로 완전히 */
 .card-cost-badge-floating {
   position: absolute;
-  top: -3px;
+  top: -2px;
   left: -4px;
   background: rgba(251, 191, 36, 0.95);
   color: #000;
@@ -645,7 +645,7 @@ body {
 .combo-display {
   font-weight: 900;
   color: #fcd34d;
-  font-size: 3.58rem;
+  font-size: 4.65rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }

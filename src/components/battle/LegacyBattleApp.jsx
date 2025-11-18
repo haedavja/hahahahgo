@@ -526,7 +526,7 @@ function ExpectedDamagePreview({player, enemy, fixedOrder, willOverdrive, enemyM
             ⚔️ 전투 진행 중... ({qIndex}/{queue?.length || 0})
           </div>
           <button onClick={stepOnce} disabled={qIndex>=queue.length} className="btn-enhanced flex items-center gap-2">
-            <StepForward size={18}/> 한 단계 (A)
+            <StepForward size={18}/> 한 단계 (E)
           </button>
           <button onClick={runAll} disabled={qIndex>=queue.length} className="btn-enhanced btn-primary">
             전부 실행 (D)
@@ -761,7 +761,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
     }
   }, [postCombatOptions, notifyBattleResult]);
 
-  // C 키로 캐릭터 창 열기, Q 키로 간소화, E 키로 제출, R 키로 리드로우, 스페이스바로 기원, A 키로 한 단계, D 키로 전부 실행, F 키로 턴 종료
+  // C 키로 캐릭터 창 열기, Q 키로 간소화, E 키로 제출/한 단계, R 키로 리드로우, 스페이스바로 기원, D 키로 전부 실행, F 키로 턴 종료
   useEffect(() => {
     const handleKeyPress = (e) => {
       if (e.key === "c" || e.key === "C") {
@@ -787,8 +787,8 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
           setWillOverdrive(v => !v);
         }
       }
-      if ((e.key === "a" || e.key === "A") && phase === 'resolve') {
-        // 한 단계 버튼 클릭
+      if ((e.key === "e" || e.key === "E") && phase === 'resolve') {
+        // 한 단계 버튼 클릭 (진행 단계에서는 E키가 한 단계)
         const buttons = document.querySelectorAll('.expect-sidebar-fixed button');
         const stepButton = Array.from(buttons).find(btn => btn.textContent.includes('한 단계'));
         if (stepButton && !stepButton.disabled) stepButton.click();
