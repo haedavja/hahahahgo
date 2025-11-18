@@ -533,7 +533,7 @@ function ExpectedDamagePreview({player, enemy, fixedOrder, willOverdrive, enemyM
           </button>
           {qIndex >= queue.length && (
             <button onClick={()=>finishTurn('수동 턴 종료')} className="btn-enhanced flex items-center gap-2">
-              ⏭️ 턴 종료 (F)
+              ⏭️ 턴 종료 (E)
             </button>
           )}
           {postCombatOptions && (
@@ -761,7 +761,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
     }
   }, [postCombatOptions, notifyBattleResult]);
 
-  // C 키로 캐릭터 창 열기, Q 키로 간소화, E 키로 제출/한 단계, R 키로 리드로우, 스페이스바로 기원, D 키로 전부 실행, F 키로 턴 종료
+  // C 키로 캐릭터 창 열기, Q 키로 간소화, E 키로 제출/한 단계/턴 종료, R 키로 리드로우, 스페이스바로 기원, D 키로 전부 실행
   useEffect(() => {
     const handleKeyPress = (e) => {
       if (e.key === "c" || e.key === "C") {
@@ -788,22 +788,23 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
         }
       }
       if ((e.key === "e" || e.key === "E") && phase === 'resolve') {
-        // 한 단계 버튼 클릭 (진행 단계에서는 E키가 한 단계)
+        // E키로 한 단계 또는 턴 종료 (진행 단계)
         const buttons = document.querySelectorAll('.expect-sidebar-fixed button');
         const stepButton = Array.from(buttons).find(btn => btn.textContent.includes('한 단계'));
-        if (stepButton && !stepButton.disabled) stepButton.click();
+        const finishButton = Array.from(buttons).find(btn => btn.textContent.includes('턴 종료'));
+
+        // 한 단계 버튼이 활성화되어 있으면 한 단계, 아니면 턴 종료
+        if (stepButton && !stepButton.disabled) {
+          stepButton.click();
+        } else if (finishButton && !finishButton.disabled) {
+          finishButton.click();
+        }
       }
       if ((e.key === "d" || e.key === "D") && phase === 'resolve') {
         // 전부 실행 버튼 클릭
         const buttons = document.querySelectorAll('.expect-sidebar-fixed button');
         const runAllButton = Array.from(buttons).find(btn => btn.textContent.includes('전부 실행'));
         if (runAllButton && !runAllButton.disabled) runAllButton.click();
-      }
-      if ((e.key === "f" || e.key === "F") && phase === 'resolve') {
-        // F키로 턴 종료 버튼 클릭
-        const buttons = document.querySelectorAll('.expect-sidebar-fixed button');
-        const finishButton = Array.from(buttons).find(btn => btn.textContent.includes('턴 종료'));
-        if (finishButton && !finishButton.disabled) finishButton.click();
       }
     };
     window.addEventListener("keydown", handleKeyPress);
@@ -1390,8 +1391,8 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
       {/* 제출 버튼 독립 (하단 150px 이동) */}
       {phase==='select' && (
         <div className="submit-button-fixed" style={{display: 'flex', flexDirection: 'column', gap: '8px'}}>
-          <button onClick={startResolve} disabled={selected.length===0} className="btn-enhanced btn-primary flex items-center gap-2">
-            <Play size={18}/> 제출 (E)
+          <button onClick={startResolve} disabled={selected.length===0} className="btn-enhanced btn-primary flex items-center gap-2" style={{fontSize: '1.25rem', padding: '12px 24px', fontWeight: '700'}}>
+            <Play size={22}/> 제출 <span style={{fontSize: '1.4rem', fontWeight: '900'}}>(E)</span>
           </button>
           <button onClick={() => setIsSimplified(prev => !prev)} className={`btn-enhanced ${isSimplified ? 'btn-primary' : ''} flex items-center gap-2`}>
             {isSimplified ? '📋' : '📄'} 간소화 (Q)
@@ -1400,8 +1401,8 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
       )}
       {phase==='respond' && (
         <div className="submit-button-fixed">
-          <button onClick={beginResolveFromRespond} className="btn-enhanced btn-success flex items-center gap-2">
-            <Play size={20}/> 진행 시작
+          <button onClick={beginResolveFromRespond} className="btn-enhanced btn-success flex items-center gap-2" style={{fontSize: '1.25rem', padding: '12px 24px', fontWeight: '700'}}>
+            <Play size={22}/> 진행 시작 <span style={{fontSize: '1.4rem', fontWeight: '900'}}>(E)</span>
           </button>
         </div>
       )}
