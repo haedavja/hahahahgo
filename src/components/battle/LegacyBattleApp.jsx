@@ -204,6 +204,15 @@ const ETHER_GAIN_MAP = {
 const etherSlots = (pts) => calculateEtherSlots(pts || 0); // 인플레이션 적용
 function addEther(pts, add){ return (pts||0) + (add||0); }
 
+// 에테르 Deflation: 같은 조합을 반복할수록 획득량 감소
+// 1번: 100%, 2번: 50%, 3번: 25%, ... 0에 수렴
+// deflationMultiplier: 추후 카드/아이템으로 조정 가능 (기본값 0.5)
+function applyEtherDeflation(baseGain, comboName, comboUsageCount, deflationMultiplier = 0.5) {
+  const usageCount = comboUsageCount[comboName] || 0;
+  const multiplier = Math.pow(deflationMultiplier, usageCount);
+  return Math.floor(baseGain * multiplier);
+}
+
 // =====================
 // Combat Logic
 // =====================
@@ -514,10 +523,10 @@ function ExpectedDamagePreview({player, enemy, fixedOrder, willOverdrive, enemyM
             ⚔️ 전투 진행 중... ({qIndex}/{queue?.length || 0})
           </div>
           <button onClick={stepOnce} disabled={qIndex>=queue.length} className="btn-enhanced flex items-center gap-2">
-            <StepForward size={18}/> 한 단계
+            <StepForward size={18}/> 한 단계 (A)
           </button>
           <button onClick={runAll} disabled={qIndex>=queue.length} className="btn-enhanced btn-primary">
-            전부 실행
+            전부 실행 (D)
           </button>
           {qIndex >= queue.length && (
             <button onClick={()=>finishTurn('수동 턴 종료')} className="btn-enhanced flex items-center gap-2">
@@ -635,7 +644,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
   const safeInitialEnemy = initialEnemy || {};
   const baseEnergy = safeInitialPlayer.energy ?? BASE_PLAYER_ENERGY;
   const startingEther = typeof safeInitialPlayer.etherPts === 'number' ? safeInitialPlayer.etherPts : playerEther;
-  const [player, setPlayer] = useState({ hp:safeInitialPlayer.hp ?? 30, maxHp:safeInitialPlayer.maxHp ?? safeInitialPlayer.hp ?? 30, energy:baseEnergy, maxEnergy:baseEnergy, vulnMult:1, vulnTurns:0, block:0, counter:0, etherPts:startingEther ?? 0, etherOverdriveActive:false });
+  const [player, setPlayer] = useState({ hp:safeInitialPlayer.hp ?? 30, maxHp:safeInitialPlayer.maxHp ?? safeInitialPlayer.hp ?? 30, energy:baseEnergy, maxEnergy:baseEnergy, vulnMult:1, vulnTurns:0, block:0, counter:0, etherPts:startingEther ?? 0, etherOverdriveActive:false, comboUsageCount: {} });
   const [enemyIndex, setEnemyIndex] = useState(0);
   const [enemy, setEnemy] = useState(()=> safeInitialEnemy?.name ? ({ ...safeInitialEnemy, hp: safeInitialEnemy.hp ?? safeInitialEnemy.maxHp ?? 30, maxHp: safeInitialEnemy.maxHp ?? safeInitialEnemy.hp ?? 30, vulnMult:1, vulnTurns:0, block:0, counter:0, etherPts:0, etherOverdriveActive:false }) : null);
 
@@ -748,7 +757,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
     }
   }, [postCombatOptions, notifyBattleResult]);
 
-  // C 키로 캐릭터 창 열기, Q 키로 간소화, E 키로 제출
+  // C 키로 캐릭터 창 열기, Q 키로 간소화, E 키로 제출, A 키로 한 단계, D 키로 전부 실행
   useEffect(() => {
     const handleKeyPress = (e) => {
       if (e.key === "c" || e.key === "C") {
@@ -761,6 +770,18 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
         // startResolve는 아래에서 선언되므로 직접 호출하지 않고 조건만 체크
         const submitBtn = document.querySelector('.submit-button-fixed button');
         if (submitBtn && !submitBtn.disabled) submitBtn.click();
+      }
+      if ((e.key === "a" || e.key === "A") && phase === 'resolve') {
+        // 한 단계 버튼 클릭
+        const buttons = document.querySelectorAll('.expect-sidebar-fixed button');
+        const stepButton = Array.from(buttons).find(btn => btn.textContent.includes('한 단계'));
+        if (stepButton && !stepButton.disabled) stepButton.click();
+      }
+      if ((e.key === "d" || e.key === "D") && phase === 'resolve') {
+        // 전부 실행 버튼 클릭
+        const buttons = document.querySelectorAll('.expect-sidebar-fixed button');
+        const runAllButton = Array.from(buttons).find(btn => btn.textContent.includes('전부 실행'));
+        if (runAllButton && !runAllButton.disabled) runAllButton.click();
       }
     };
     window.addEventListener("keydown", handleKeyPress);
@@ -834,8 +855,9 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
   },[selected]);
   const pendingComboEther = useMemo(()=>{
     if(!currentCombo) return 0;
-    return ETHER_GAIN_MAP[currentCombo.name] || 0;
-  }, [currentCombo]);
+    const baseGain = ETHER_GAIN_MAP[currentCombo.name] || 0;
+    return applyEtherDeflation(baseGain, currentCombo.name, player.comboUsageCount || {});
+  }, [currentCombo, player.comboUsageCount]);
 
   const toggle = (card)=>{
     if(phase!=='select' && phase!=='respond') return;
@@ -948,13 +970,18 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
     setPhase('resolve');
     addLog('▶ 진행 시작');
 
-    // 진행 단계 시작 시 에테르 획득
+    // 진행 단계 시작 시 에테르 획득 (Deflation 적용)
     const pComboNow = detectPokerCombo(selected);
     const eComboNow = detectPokerCombo(enemyPlan.actions);
     if(pComboNow && ETHER_GAIN_MAP[pComboNow.name]){
-      const gain = ETHER_GAIN_MAP[pComboNow.name];
-      setPlayer(p=>({ ...p, etherPts: addEther(p.etherPts, gain) }));
-      addLog(`✴️ 에테르 +${gain} (플레이어 족보: ${pComboNow.name})`);
+      const baseGain = ETHER_GAIN_MAP[pComboNow.name];
+      setPlayer(p => {
+        const actualGain = applyEtherDeflation(baseGain, pComboNow.name, p.comboUsageCount || {});
+        const newUsageCount = { ...(p.comboUsageCount || {}), [pComboNow.name]: (p.comboUsageCount?.[pComboNow.name] || 0) + 1 };
+        const deflationInfo = actualGain < baseGain ? ` (Deflation: ${baseGain} → ${actualGain})` : '';
+        addLog(`✴️ 에테르 +${actualGain} (플레이어 족보: ${pComboNow.name})${deflationInfo}`);
+        return { ...p, etherPts: addEther(p.etherPts, actualGain), comboUsageCount: newUsageCount };
+      });
     }
     if(eComboNow && ETHER_GAIN_MAP[eComboNow.name]){
       const gainE = ETHER_GAIN_MAP[eComboNow.name];
@@ -1232,9 +1259,6 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                 <button onClick={redrawHand} disabled={!canRedraw} className="btn-enhanced flex items-center gap-2" style={{margin: '0 auto', fontSize: '1rem', padding: '8px 16px'}}>
                   <RefreshCw size={18}/> 리드로우
                 </button>
-                <button onClick={() => setIsSimplified(prev => !prev)} className={`btn-enhanced ${isSimplified ? 'btn-primary' : ''} flex items-center gap-2`} style={{margin: '8px auto 0', fontSize: '1rem', padding: '8px 16px'}}>
-                  {isSimplified ? '📋' : '📄'} 간소화 (Q)
-                </button>
                 <button onClick={()=> (phase==='select' || phase==='respond') && setWillOverdrive(v=>!v)}
                         disabled={!(phase==='select'||phase==='respond') || etherSlots(player.etherPts)<=0}
                         className={`btn-enhanced ${willOverdrive? 'btn-primary':''} text-sm`}
@@ -1312,9 +1336,12 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
 
       {/* 제출 버튼 독립 (하단 150px 이동) */}
       {phase==='select' && (
-        <div className="submit-button-fixed">
+        <div className="submit-button-fixed" style={{display: 'flex', flexDirection: 'column', gap: '8px'}}>
           <button onClick={startResolve} disabled={selected.length===0} className="btn-enhanced btn-primary flex items-center gap-2">
             <Play size={18}/> 제출 (E)
+          </button>
+          <button onClick={() => setIsSimplified(prev => !prev)} className={`btn-enhanced ${isSimplified ? 'btn-primary' : ''} flex items-center gap-2`}>
+            {isSimplified ? '📋' : '📄'} 간소화 (Q)
           </button>
         </div>
       )}
