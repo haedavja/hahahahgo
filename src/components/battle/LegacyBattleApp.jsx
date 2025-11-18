@@ -409,13 +409,13 @@ function ExpectedDamagePreview({player, enemy, fixedOrder, willOverdrive, enemyM
 
   const phaseLabel = phase === 'select' ? '선택 단계' : phase === 'respond' ? '대응 단계' : '진행 단계';
 
-  // 전투 로그 자동 스크롤 (비활성화 - 고정 크기 유지)
+  // 전투 로그 자동 스크롤
   const logContainerRef = useRef(null);
-  // useEffect(() => {
-  //   if (logContainerRef.current && phase === 'resolve' && log && log.length > 0) {
-  //     logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight;
-  //   }
-  // }, [log, phase]);
+  useEffect(() => {
+    if (logContainerRef.current && phase === 'resolve' && log && log.length > 0) {
+      logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight;
+    }
+  }, [log, phase]);
 
   return (
     <div className="expect-board expect-board-vertical" style={{position: 'relative'}}>
@@ -1168,7 +1168,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
         {/* 플레이어/적 정보 + 중앙 정보 통합 레이아웃 */}
         <div style={{display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '50px', gap: '120px'}}>
           {/* 왼쪽: 플레이어 */}
-          <div style={{display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '12px', minWidth: '360px', position: 'relative'}}>
+          <div style={{display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '12px', minWidth: '360px', position: 'relative', justifyContent: 'center'}}>
             {/* 플레이어 콤보 - 절대 위치로 오른쪽 배치 */}
             {currentCombo && (
               <div className="combo-display" style={{position: 'absolute', top: '0', left: '180px', textAlign: 'center'}}>
@@ -1235,7 +1235,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
           </div>
 
           {/* 오른쪽: 적 */}
-          <div style={{display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '12px', minWidth: '360px', position: 'relative'}}>
+          <div style={{display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '12px', minWidth: '360px', position: 'relative', justifyContent: 'center'}}>
             {/* 몬스터 콤보 - 절대 위치로 왼쪽 배치 */}
             {enemyCombo && (
               <div className="combo-display" style={{position: 'absolute', top: '0', right: '180px', textAlign: 'center'}}>
