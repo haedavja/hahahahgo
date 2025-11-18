@@ -672,6 +672,8 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
   const [willOverdrive, setWillOverdrive] = useState(false);
   const [isSimplified, setIsSimplified] = useState(false);
   const [usedCardIndices, setUsedCardIndices] = useState([]);
+  const [disappearingCards, setDisappearingCards] = useState([]); // 사라지는 중인 카드 인덱스
+  const [hiddenCards, setHiddenCards] = useState([]); // 완전히 숨겨진 카드 인덱스
   const [currentTurnCombo, setCurrentTurnCombo] = useState(null); // 이번 턴에 사용한 조합 추적
   const [showCharacterSheet, setShowCharacterSheet] = useState(false);
   const logEndRef = useRef(null);
@@ -760,6 +762,15 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
       notifyBattleResult(postCombatOptions.type);
     }
   }, [postCombatOptions, notifyBattleResult]);
+
+  // 페이즈 변경 시 카드 애니메이션 상태 초기화
+  useEffect(() => {
+    if (phase !== 'resolve') {
+      setDisappearingCards([]);
+      setHiddenCards([]);
+      setUsedCardIndices([]);
+    }
+  }, [phase]);
 
   // C 키로 캐릭터 창 열기, Q 키로 간소화, E 키로 제출/한 단계/턴 종료, R 키로 리드로우, 스페이스바로 기원, D 키로 전부 실행
   useEffect(() => {
@@ -1034,7 +1045,14 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
       setUsedCardIndices(prev => [...prev, qIndex]);
       setTimeout(() => {
         setUsedCardIndices(prev => prev.filter(i => i !== qIndex));
-      }, 800);
+        // 카드가 사용된 후 사라지는 애니메이션 시작
+        setDisappearingCards(prev => [...prev, qIndex]);
+        setTimeout(() => {
+          // 애니메이션 후 완전히 숨김
+          setHiddenCards(prev => [...prev, qIndex]);
+          setDisappearingCards(prev => prev.filter(i => i !== qIndex));
+        }, 600); // 애니메이션 지속 시간
+      }, 300); // 사용 효과 후 바로 사라지기 시작
     }
 
     const P = { ...player, def: player.def||false, block: player.block||0, counter: player.counter||0, vulnMult: player.vulnMult||1 };
@@ -1245,7 +1263,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                 {pendingComboEther.gain > 0 && (
                   <div style={{fontSize: '1.2rem', color: '#fbbf24', fontWeight: 'bold'}}>
                     +{pendingComboEther.gain} PT {pendingComboEther.multiplier < 1 && (
-                      <span style={{color: '#ef4444', fontSize: '0.8em'}}>
+                      <span style={{color: '#ef4444', fontSize: '1.04em'}}>
                         (×{pendingComboEther.multiplier.toFixed(2)})
                       </span>
                     )}
@@ -1548,14 +1566,19 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                 const Icon = a.card.icon;
                 const globalIndex = queue.findIndex(q => q === a);
                 const isUsed = usedCardIndices.includes(globalIndex);
-                const isPast = globalIndex < qIndex;
+                const isDisappearing = disappearingCards.includes(globalIndex);
+                const isHidden = hiddenCards.includes(globalIndex);
                 const currentBuild = useGameStore.getState().characterBuild;
                 const isMainSpecial = currentBuild?.mainSpecials?.includes(a.card.id);
                 const isSubSpecial = currentBuild?.subSpecials?.includes(a.card.id);
                 const costColor = isMainSpecial ? '#fcd34d' : isSubSpecial ? '#60a5fa' : '#fff';
+
+                // 완전히 숨겨진 카드는 렌더링하지 않음
+                if (isHidden) return null;
+
                 return (
                   <div key={`resolve-${globalIndex}`} style={{display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center', position: 'relative'}}>
-                    <div className={`game-card-large resolve-phase-card ${a.card.type==='attack' ? 'attack' : 'defense'} ${isUsed ? 'card-used' : ''} ${isPast ? 'opacity-30' : ''}`}>
+                    <div className={`game-card-large resolve-phase-card ${a.card.type==='attack' ? 'attack' : 'defense'} ${isUsed ? 'card-used' : ''} ${isDisappearing ? 'card-disappearing' : ''}`}>
                       <div className="card-cost-badge-floating" style={{color: costColor, WebkitTextStroke: '1px #000'}}>{a.card.actionCost}</div>
                       <div className="card-stats-sidebar">
                         {a.card.damage != null && a.card.damage > 0 && (

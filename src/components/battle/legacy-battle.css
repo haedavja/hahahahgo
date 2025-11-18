@@ -1122,3 +1122,38 @@ body {
   visibility: visible;
   font-size: 1.1rem !important; /* 간소화 상태에서도 hover 시 큰 글씨 */
 }
+
+/* 진행 단계에서 사용된 카드 애니메이션 */
+@keyframes cardDisappear {
+  0% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(0.95) translateY(-10px);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.8) translateY(-20px);
+  }
+}
+
+.card-disappearing {
+  animation: cardDisappear 0.6s ease-out forwards;
+  pointer-events: none;
+}
+
+.card-used {
+  animation: pulse 0.3s ease-in-out;
+  box-shadow: 0 0 20px rgba(251, 191, 36, 0.8);
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
