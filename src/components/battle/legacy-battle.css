@@ -975,7 +975,7 @@ body {
 /* 호버 효과 - 슬레이 더 스파이어 스타일 */
 .game-card-large:hover:not(.disabled) {
   transform: translateY(-100px) !important;
-  z-index: 300 !important;
+  z-index: 9999 !important;
   margin-right: 40px; /* 호버 시 오른쪽 공간 확보 */
   width: 208px !important; /* 154px * 1.35 */
   height: 270px !important; /* 200px * 1.35 */
@@ -989,7 +989,7 @@ body {
 
 .game-card-large.selected:hover:not(.disabled) {
   transform: translateY(-100px) !important;
-  z-index: 300 !important;
+  z-index: 9999 !important;
   width: 208px !important; /* 154px * 1.35 */
   height: 270px !important; /* 200px * 1.35 */
 }

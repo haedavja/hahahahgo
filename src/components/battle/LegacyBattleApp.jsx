@@ -470,7 +470,7 @@ function ExpectedDamagePreview({player, enemy, fixedOrder, willOverdrive, enemyM
           <div style={{fontSize: '15px', fontWeight: 'bold', color: '#f8fafc', marginBottom: '12px'}}>
             🎮 전투 로그
           </div>
-          <div ref={logContainerRef} style={{maxHeight: '300px', overflowY: 'auto'}}>
+          <div ref={logContainerRef} style={{height: '450px', minHeight: '450px', maxHeight: '450px', overflowY: 'auto'}}>
             {log.filter(line => {
               // 불필요한 로그 제거
               if (line.includes('게임 시작') || line.includes('적 성향 힌트')) return false;
@@ -1209,12 +1209,6 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                     <div style={{fontSize: '1rem', fontWeight: '600', color: '#7dd3fc', marginTop: '4px'}}>플레이어</div>
                   </div>
                 </div>
-                <button onClick={()=> (phase==='select' || phase==='respond') && setWillOverdrive(v=>!v)}
-                        disabled={!(phase==='select'||phase==='respond') || etherSlots(player.etherPts)<=0}
-                        className={`mt-2 btn-enhanced ${willOverdrive? 'btn-primary':''} text-sm`}
-                        style={{fontSize: '0.875rem', padding: '4px 12px'}}>
-                  🙏 기도 {willOverdrive?'ON':'OFF'}
-                </button>
               </div>
             </div>
           </div>
@@ -1228,9 +1222,17 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
               속도 {totalSpeed}/{MAX_SPEED} · 선택 {selected.length}/{MAX_SUBMIT_CARDS}
             </div>
             {phase==='select' && (
-              <button onClick={redrawHand} disabled={!canRedraw} className="btn-enhanced flex items-center gap-2" style={{margin: '0 auto', fontSize: '1rem', padding: '8px 16px'}}>
-                <RefreshCw size={18}/> 리드로우
-              </button>
+              <>
+                <button onClick={redrawHand} disabled={!canRedraw} className="btn-enhanced flex items-center gap-2" style={{margin: '0 auto', fontSize: '1rem', padding: '8px 16px'}}>
+                  <RefreshCw size={18}/> 리드로우
+                </button>
+                <button onClick={()=> (phase==='select' || phase==='respond') && setWillOverdrive(v=>!v)}
+                        disabled={!(phase==='select'||phase==='respond') || etherSlots(player.etherPts)<=0}
+                        className={`btn-enhanced ${willOverdrive? 'btn-primary':''} text-sm`}
+                        style={{margin: '8px auto 0', fontSize: '1rem', padding: '8px 16px'}}>
+                  🙏 기원
+                </button>
+              </>
             )}
           </div>
 
