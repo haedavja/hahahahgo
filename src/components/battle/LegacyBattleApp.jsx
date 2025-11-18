@@ -470,7 +470,7 @@ function ExpectedDamagePreview({player, enemy, fixedOrder, willOverdrive, enemyM
           <div style={{fontSize: '15px', fontWeight: 'bold', color: '#f8fafc', marginBottom: '12px'}}>
             🎮 전투 로그
           </div>
-          <div ref={logContainerRef} style={{height: '450px', minHeight: '450px', maxHeight: '450px', overflowY: 'auto'}}>
+          <div ref={logContainerRef} style={{height: '360px', minHeight: '360px', maxHeight: '360px', overflowY: 'auto'}}>
             {log.filter(line => {
               // 불필요한 로그 제거
               if (line.includes('게임 시작') || line.includes('적 성향 힌트')) return false;
