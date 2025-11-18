@@ -770,7 +770,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
       if ((e.key === "q" || e.key === "Q") && phase === 'select') {
         setIsSimplified((prev) => !prev);
       }
-      if ((e.key === "e" || e.key === "E") && phase === 'select' && selected.length > 0) {
+      if ((e.key === "e" || e.key === "E") && (phase === 'select' || phase === 'respond') && selected.length > 0) {
         // startResolve는 아래에서 선언되므로 직접 호출하지 않고 조건만 체크
         const submitBtn = document.querySelector('.submit-button-fixed button');
         if (submitBtn && !submitBtn.disabled) submitBtn.click();
