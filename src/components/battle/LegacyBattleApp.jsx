@@ -409,13 +409,13 @@ function ExpectedDamagePreview({player, enemy, fixedOrder, willOverdrive, enemyM
 
   const phaseLabel = phase === 'select' ? '선택 단계' : phase === 'respond' ? '대응 단계' : '진행 단계';
 
-  // 전투 로그 자동 스크롤
+  // 전투 로그 자동 스크롤 (비활성화 - 고정 크기 유지)
   const logContainerRef = useRef(null);
-  useEffect(() => {
-    if (logContainerRef.current && phase === 'resolve' && log && log.length > 0) {
-      logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight;
-    }
-  }, [log, phase]);
+  // useEffect(() => {
+  //   if (logContainerRef.current && phase === 'resolve' && log && log.length > 0) {
+  //     logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight;
+  //   }
+  // }, [log, phase]);
 
   return (
     <div className="expect-board expect-board-vertical" style={{position: 'relative'}}>
@@ -1375,11 +1375,9 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                       <div className="card-icon-area">
                         <Icon size={60} className="text-white opacity-80"/>
                       </div>
-                      {!isSimplified && (
-                        <div className="card-footer">
-                          {c.description || ''}
-                        </div>
-                      )}
+                      <div className="card-footer" style={{visibility: isSimplified ? 'hidden' : 'visible'}}>
+                        {c.description || ''}
+                      </div>
                     </div>
                   </div>
                 );
