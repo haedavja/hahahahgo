@@ -813,24 +813,16 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
       }
       if ((e.key === "e" || e.key === "E") && phase === 'select' && selected.length > 0) {
         e.preventDefault();
-        // 제출 버튼 찾기 - "제출" 텍스트를 포함한 버튼
-        const buttons = document.querySelectorAll('.submit-button-fixed button');
-        const submitBtn = Array.from(buttons).find(btn => btn.textContent.includes('제출'));
-        if (submitBtn && !submitBtn.disabled) submitBtn.click();
+        startResolve();
+        playSound(900, 120);
       }
       if ((e.key === "e" || e.key === "E") && phase === 'respond') {
         e.preventDefault();
-        // 진행 시작 버튼 찾기
-        const buttons = document.querySelectorAll('.submit-button-fixed button');
-        const startBtn = Array.from(buttons).find(btn => btn.textContent.includes('진행 시작'));
-        if (startBtn && !startBtn.disabled) startBtn.click();
+        beginResolveFromRespond();
       }
-      if ((e.key === "r" || e.key === "R") && phase === 'select') {
+      if ((e.key === "r" || e.key === "R") && phase === 'select' && canRedraw) {
         e.preventDefault();
-        // 리드로우 버튼 찾기 - "리드로우" 텍스트를 포함한 버튼
-        const buttons = document.querySelectorAll('.submit-button-fixed button');
-        const redrawBtn = Array.from(buttons).find(btn => btn.textContent.includes('리드로우'));
-        if (redrawBtn && !redrawBtn.disabled) redrawBtn.click();
+        redrawHand();
       }
       if (e.key === " " && (phase === 'select' || phase === 'respond')) {
         // 스페이스바로 기원 토글
@@ -1262,6 +1254,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
 
   const runAll = ()=>{
     if(qIndex>=queue.length) return;
+    playSound(1000, 150); // 전부실행 효과음
     let P = { ...player, def: player.def||false, block: player.block||0, counter: player.counter||0, vulnMult: player.vulnMult||1 };
     let E = { ...enemy,  def: enemy.def||false,  block: enemy.block||0,  counter: enemy.counter||0,  vulnMult: enemy.vulnMult||1 };
     const tempState = { player:P, enemy:E, log:[] };
@@ -1498,24 +1491,24 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
 
             {/* 버튼들 - 속도/선택 텍스트 하단 */}
             {phase === 'select' && (
-              <div style={{display: 'flex', gap: '8px', justifyContent: 'center', marginTop: '16px'}}>
-                <button onClick={redrawHand} disabled={!canRedraw} className="btn-enhanced flex items-center gap-2" style={{fontSize: '1rem', padding: '8px 20px'}}>
+              <div style={{display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'center', marginTop: '16px'}}>
+                <button onClick={redrawHand} disabled={!canRedraw} className="btn-enhanced flex items-center gap-2" style={{fontSize: '1rem', padding: '8px 20px', minWidth: '200px'}}>
                   <RefreshCw size={18}/> 리드로우 (R)
                 </button>
                 <button onClick={()=> setWillOverdrive(v=>!v)}
                         disabled={etherSlots(player.etherPts)<=0}
                         className={`btn-enhanced ${willOverdrive? 'btn-primary':''} flex items-center gap-2`}
-                        style={{fontSize: '1rem', padding: '8px 20px'}}>
+                        style={{fontSize: '1rem', padding: '8px 20px', minWidth: '200px'}}>
                   ✨ 기원 {willOverdrive?'ON':'OFF'} (Space)
                 </button>
-                <button onClick={() => { startResolve(); playSound(900, 120); }} disabled={selected.length===0} className="btn-enhanced btn-primary flex items-center gap-2" style={{fontSize: '1.25rem', padding: '9.6px 24px', fontWeight: '700'}}>
+                <button onClick={() => { startResolve(); playSound(900, 120); }} disabled={selected.length===0} className="btn-enhanced btn-primary flex items-center gap-2" style={{fontSize: '1.25rem', padding: '9.6px 24px', fontWeight: '700', minWidth: '200px'}}>
                   <Play size={22}/> 제출 <span style={{fontSize: '1.4rem', fontWeight: '900'}}>(E)</span>
                 </button>
               </div>
             )}
             {phase === 'respond' && (
               <div style={{display: 'flex', justifyContent: 'center', marginTop: '16px'}}>
-                <button onClick={beginResolveFromRespond} className="btn-enhanced btn-success flex items-center gap-2" style={{fontSize: '1.25rem', padding: '9.6px 24px', fontWeight: '700'}}>
+                <button onClick={beginResolveFromRespond} className="btn-enhanced btn-success flex items-center gap-2" style={{fontSize: '1.25rem', padding: '9.6px 24px', fontWeight: '700', minWidth: '200px'}}>
                   <Play size={22}/> 진행 시작 <span style={{fontSize: '1.4rem', fontWeight: '900'}}>(E)</span>
                 </button>
               </div>
