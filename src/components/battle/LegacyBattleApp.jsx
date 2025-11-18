@@ -758,12 +758,15 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
         setIsSimplified((prev) => !prev);
       }
       if ((e.key === "e" || e.key === "E") && phase === 'select' && selected.length > 0) {
-        startResolve();
+        // startResolve는 아래에서 선언되므로 직접 호출하지 않고 조건만 체크
+        const submitBtn = document.querySelector('.submit-button-fixed button');
+        if (submitBtn && !submitBtn.disabled) submitBtn.click();
       }
     };
     window.addEventListener("keydown", handleKeyPress);
     return () => window.removeEventListener("keydown", handleKeyPress);
-  }, [phase, selected, startResolve]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, selected]); // startResolve 제거
 
   useEffect(()=>{
     if(!enemy){

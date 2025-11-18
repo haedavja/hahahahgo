@@ -562,8 +562,9 @@ body {
   padding: 0px 12px 0px 12px;
   border: none;
   box-shadow: none;
-  z-index: 100; /* 1000 → 100으로 되돌림 (버튼 클릭 가능하도록) */
+  z-index: 90; /* 손패 영역을 더 낮게 설정 */
   overflow: visible; /* 행동력 숫자가 짤리지 않도록 */
+  pointer-events: none; /* 손패 영역 자체는 클릭 불가 */
 }
 
 .hand-area-header {
@@ -934,6 +935,7 @@ body {
   align-items: flex-end;
   min-height: 340px; /* 확대 시 공간 확보 (280px → 340px) */
   position: relative;
+  pointer-events: auto; /* 카드 컨테이너는 클릭 가능 */
 }
 
 /* 카드 wrapper div도 overflow visible */
