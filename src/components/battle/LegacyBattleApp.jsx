@@ -657,7 +657,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
   const [hand, setHand] = useState([]);
   const [selected, setSelected] = useState([]);
   const [canRedraw, setCanRedraw] = useState(true);
-  const [sortType, setSortType] = useState('none'); // none, energy, speed, type
+  const [sortType, setSortType] = useState('speed'); // speed, energy, value, type
 
   const [enemyPlan, setEnemyPlan] = useState({ actions:[], mode:null });
   const [fixedOrder, setFixedOrder] = useState(null);
@@ -982,29 +982,37 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
   };
 
   const cycleSortType = () => {
-    const sortCycle = ['none', 'energy', 'speed', 'type'];
+    const sortCycle = ['speed', 'energy', 'value', 'type'];
     const currentIndex = sortCycle.indexOf(sortType);
     const nextIndex = (currentIndex + 1) % sortCycle.length;
     const nextSort = sortCycle[nextIndex];
     setSortType(nextSort);
 
     const sortLabels = {
-      none: '정렬 해제',
+      speed: '시간 기준 정렬',
       energy: '행동력 기준 정렬',
-      speed: '속도 기준 정렬',
+      value: '밸류 기준 정렬',
       type: '종류별 정렬'
     };
     addLog(`🔀 ${sortLabels[nextSort]}`);
   };
 
   const getSortedHand = () => {
-    if (sortType === 'none') return hand;
-
     const sorted = [...hand];
-    if (sortType === 'energy') {
-      sorted.sort((a, b) => a.actionCost - b.actionCost);
-    } else if (sortType === 'speed') {
-      sorted.sort((a, b) => a.speedCost - b.speedCost);
+
+    if (sortType === 'speed') {
+      // 시간(속도) 내림차순 - 큰 것부터
+      sorted.sort((a, b) => b.speedCost - a.speedCost);
+    } else if (sortType === 'energy') {
+      // 행동력 내림차순 - 큰 것부터
+      sorted.sort((a, b) => b.actionCost - a.actionCost);
+    } else if (sortType === 'value') {
+      // 밸류(공격력+방어력) 내림차순 - 큰 것부터
+      sorted.sort((a, b) => {
+        const aValue = ((a.damage || 0) * (a.hits || 1)) + (a.block || 0);
+        const bValue = ((b.damage || 0) * (b.hits || 1)) + (b.block || 0);
+        return bValue - aValue;
+      });
     } else if (sortType === 'type') {
       // 공격 -> 방어 -> 기타 순서로 정렬
       const typeOrder = { 'attack': 0, 'defense': 1 };
@@ -1014,6 +1022,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
         return aOrder - bOrder;
       });
     }
+
     return sorted;
   };
 
@@ -1425,19 +1434,6 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
             <div style={{fontSize: '1.25rem', fontWeight: '700', color: '#7dd3fc', marginBottom: '12px'}}>
               속도 {totalSpeed}/{MAX_SPEED} · 선택 {selected.length}/{MAX_SUBMIT_CARDS}
             </div>
-            {phase==='select' && (
-              <div style={{display: 'flex', flexDirection: 'column', gap: '8px', justifyContent: 'center', alignItems: 'center'}}>
-                <button onClick={redrawHand} disabled={!canRedraw} className="btn-enhanced flex items-center gap-2" style={{fontSize: '1rem', padding: '8px 20px', minWidth: '160px'}}>
-                  <RefreshCw size={18}/> 리드로우 (R)
-                </button>
-                <button onClick={()=> (phase==='select' || phase==='respond') && setWillOverdrive(v=>!v)}
-                        disabled={!(phase==='select'||phase==='respond') || etherSlots(player.etherPts)<=0}
-                        className={`btn-enhanced ${willOverdrive? 'btn-primary':''} flex items-center gap-2`}
-                        style={{fontSize: '1rem', padding: '8px 20px', minWidth: '160px'}}>
-                  🙏 기원 (Space)
-                </button>
-              </div>
-            )}
           </div>
 
           {/* 오른쪽: 적 */}
@@ -1518,14 +1514,23 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
       {/* 제출 버튼 독립 (하단 150px 이동) */}
       {phase==='select' && (
         <div className="submit-button-fixed" style={{display: 'flex', flexDirection: 'column', gap: '8px'}}>
+          <button onClick={redrawHand} disabled={!canRedraw} className="btn-enhanced flex items-center gap-2" style={{fontSize: '1rem', padding: '8px 20px'}}>
+            <RefreshCw size={18}/> 리드로우 (R)
+          </button>
           <button onClick={startResolve} disabled={selected.length===0} className="btn-enhanced btn-primary flex items-center gap-2" style={{fontSize: '1.25rem', padding: '9.6px 24px', fontWeight: '700'}}>
             <Play size={22}/> 제출 <span style={{fontSize: '1.4rem', fontWeight: '900'}}>(E)</span>
+          </button>
+          <button onClick={()=> setWillOverdrive(v=>!v)}
+                  disabled={etherSlots(player.etherPts)<=0}
+                  className={`btn-enhanced ${willOverdrive? 'btn-primary':''} flex items-center gap-2`}
+                  style={{fontSize: '1rem', padding: '8px 20px'}}>
+            ✨ 기원 {willOverdrive?'ON':'OFF'} (Space)
           </button>
           <button onClick={() => setIsSimplified(prev => !prev)} className={`btn-enhanced ${isSimplified ? 'btn-primary' : ''} flex items-center gap-2`}>
             {isSimplified ? '📋' : '📄'} 간소화 (Q)
           </button>
           <button onClick={cycleSortType} className="btn-enhanced flex items-center gap-2" style={{fontSize: '0.9rem'}}>
-            🔀 정렬 ({sortType === 'none' ? '없음' : sortType === 'energy' ? '행동력' : sortType === 'speed' ? '속도' : '종류'}) (F)
+            🔀 정렬 ({sortType === 'speed' ? '시간' : sortType === 'energy' ? '행동력' : sortType === 'value' ? '밸류' : '종류'}) (F)
           </button>
         </div>
       )}
