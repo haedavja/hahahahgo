@@ -783,7 +783,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
     }
   }, [phase]);
 
-  // C 키로 캐릭터 창 열기, Q 키로 간소화, E 키로 제출/한 단계/턴 종료, R 키로 리드로우, 스페이스바로 기원, D 키로 전부 실행
+  // C 키로 캐릭터 창 열기, Q 키로 간소화, E 키로 제출/한 단계/턴 종료, R 키로 리드로우, 스페이스바로 기원, D 키로 전부 실행, F 키로 정렬
   useEffect(() => {
     const handleKeyPress = (e) => {
       if (e.key === "c" || e.key === "C") {
@@ -792,16 +792,21 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
         setShowCharacterSheet((prev) => !prev);
       }
       if ((e.key === "q" || e.key === "Q") && phase === 'select') {
+        e.preventDefault();
         setIsSimplified((prev) => !prev);
       }
       if ((e.key === "e" || e.key === "E") && (phase === 'select' || phase === 'respond') && selected.length > 0) {
-        // startResolve는 아래에서 선언되므로 직접 호출하지 않고 조건만 체크
-        const submitBtn = document.querySelector('.submit-button-fixed button');
+        e.preventDefault();
+        // 제출 버튼 찾기 - "제출" 텍스트를 포함한 버튼
+        const buttons = document.querySelectorAll('.submit-button-fixed button');
+        const submitBtn = Array.from(buttons).find(btn => btn.textContent.includes('제출'));
         if (submitBtn && !submitBtn.disabled) submitBtn.click();
       }
       if ((e.key === "r" || e.key === "R") && phase === 'select') {
-        // 리드로우 버튼 클릭
-        const redrawBtn = document.querySelector('button:has(.lucide-refresh-cw)');
+        e.preventDefault();
+        // 리드로우 버튼 찾기 - "리드로우" 텍스트를 포함한 버튼
+        const buttons = document.querySelectorAll('.submit-button-fixed button');
+        const redrawBtn = Array.from(buttons).find(btn => btn.textContent.includes('리드로우'));
         if (redrawBtn && !redrawBtn.disabled) redrawBtn.click();
       }
       if (e.key === " " && (phase === 'select' || phase === 'respond')) {
@@ -812,6 +817,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
         }
       }
       if ((e.key === "e" || e.key === "E") && phase === 'resolve') {
+        e.preventDefault();
         // E키로 한 단계 또는 턴 종료 (진행 단계)
         const buttons = document.querySelectorAll('.expect-sidebar-fixed button');
         const stepButton = Array.from(buttons).find(btn => btn.textContent.includes('한 단계'));
@@ -825,12 +831,14 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
         }
       }
       if ((e.key === "d" || e.key === "D") && phase === 'resolve') {
+        e.preventDefault();
         // 전부 실행 버튼 클릭
         const buttons = document.querySelectorAll('.expect-sidebar-fixed button');
         const runAllButton = Array.from(buttons).find(btn => btn.textContent.includes('전부 실행'));
         if (runAllButton && !runAllButton.disabled) runAllButton.click();
       }
       if ((e.key === "f" || e.key === "F") && phase === 'select') {
+        e.preventDefault();
         // F키로 카드 정렬
         cycleSortType();
       }
@@ -838,7 +846,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
     window.addEventListener("keydown", handleKeyPress);
     return () => window.removeEventListener("keydown", handleKeyPress);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phase, selected, canRedraw, player.etherPts]); // player.etherPts 추가
+  }, [phase, selected, canRedraw, player.etherPts, sortType]); // sortType 추가
 
   useEffect(()=>{
     if(!enemy){
@@ -967,6 +975,31 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
     }
   };
 
+  // 효과음 재생 함수
+  const playSound = (frequency = 800, duration = 100) => {
+    try {
+      // eslint-disable-next-line no-undef
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      const audioContext = new AudioContextClass();
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+
+      oscillator.frequency.value = frequency;
+      oscillator.type = 'sine';
+
+      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration / 1000);
+
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + duration / 1000);
+    } catch (e) {
+      // 효과음 재생 실패 시 무시
+    }
+  };
+
   const redrawHand = ()=>{
     if(!canRedraw) return addLog('🔒 이미 이번 턴 리드로우 사용됨');
     // 캐릭터 빌드가 있으면 사용, 없으면 기본 8장
@@ -979,6 +1012,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
     setSelected([]);
     setCanRedraw(false);
     addLog('🔄 손패 리드로우 사용');
+    playSound(700, 90); // 리드로우 효과음
   };
 
   const cycleSortType = () => {
@@ -995,6 +1029,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
       type: '종류별 정렬'
     };
     addLog(`🔀 ${sortLabels[nextSort]}`);
+    playSound(600, 80); // 정렬 효과음
   };
 
   const getSortedHand = () => {
@@ -1517,16 +1552,16 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
           <button onClick={redrawHand} disabled={!canRedraw} className="btn-enhanced flex items-center gap-2" style={{fontSize: '1rem', padding: '8px 20px'}}>
             <RefreshCw size={18}/> 리드로우 (R)
           </button>
-          <button onClick={startResolve} disabled={selected.length===0} className="btn-enhanced btn-primary flex items-center gap-2" style={{fontSize: '1.25rem', padding: '9.6px 24px', fontWeight: '700'}}>
-            <Play size={22}/> 제출 <span style={{fontSize: '1.4rem', fontWeight: '900'}}>(E)</span>
-          </button>
           <button onClick={()=> setWillOverdrive(v=>!v)}
                   disabled={etherSlots(player.etherPts)<=0}
                   className={`btn-enhanced ${willOverdrive? 'btn-primary':''} flex items-center gap-2`}
                   style={{fontSize: '1rem', padding: '8px 20px'}}>
             ✨ 기원 {willOverdrive?'ON':'OFF'} (Space)
           </button>
-          <button onClick={() => setIsSimplified(prev => !prev)} className={`btn-enhanced ${isSimplified ? 'btn-primary' : ''} flex items-center gap-2`}>
+          <button onClick={() => { startResolve(); playSound(900, 120); }} disabled={selected.length===0} className="btn-enhanced btn-primary flex items-center gap-2" style={{fontSize: '1.25rem', padding: '9.6px 24px', fontWeight: '700'}}>
+            <Play size={22}/> 제출 <span style={{fontSize: '1.4rem', fontWeight: '900'}}>(E)</span>
+          </button>
+          <button onClick={() => { setIsSimplified(prev => !prev); playSound(500, 60); }} className={`btn-enhanced ${isSimplified ? 'btn-primary' : ''} flex items-center gap-2`}>
             {isSimplified ? '📋' : '📄'} 간소화 (Q)
           </button>
           <button onClick={cycleSortType} className="btn-enhanced flex items-center gap-2" style={{fontSize: '0.9rem'}}>
