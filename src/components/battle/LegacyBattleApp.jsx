@@ -657,7 +657,13 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
   const [hand, setHand] = useState([]);
   const [selected, setSelected] = useState([]);
   const [canRedraw, setCanRedraw] = useState(true);
-  const [sortType, setSortType] = useState('speed'); // speed, energy, value, type
+  const [sortType, setSortType] = useState(() => {
+    try {
+      return localStorage.getItem('battleSortType') || 'speed';
+    } catch {
+      return 'speed';
+    }
+  }); // speed, energy, value, type
 
   const [enemyPlan, setEnemyPlan] = useState({ actions:[], mode:null });
   const [fixedOrder, setFixedOrder] = useState(null);
@@ -672,7 +678,13 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
     setLog(p => [...p, m].slice(-200));
   }, []);
   const [willOverdrive, setWillOverdrive] = useState(false);
-  const [isSimplified, setIsSimplified] = useState(false);
+  const [isSimplified, setIsSimplified] = useState(() => {
+    try {
+      return localStorage.getItem('battleIsSimplified') === 'true';
+    } catch {
+      return false;
+    }
+  });
   const [usedCardIndices, setUsedCardIndices] = useState([]);
   const [disappearingCards, setDisappearingCards] = useState([]); // 사라지는 중인 카드 인덱스
   const [hiddenCards, setHiddenCards] = useState([]); // 완전히 숨겨진 카드 인덱스
@@ -793,14 +805,25 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
       }
       if ((e.key === "q" || e.key === "Q") && phase === 'select') {
         e.preventDefault();
-        setIsSimplified((prev) => !prev);
+        setIsSimplified((prev) => {
+          const newVal = !prev;
+          try { localStorage.setItem('battleIsSimplified', newVal.toString()); } catch {}
+          return newVal;
+        });
       }
-      if ((e.key === "e" || e.key === "E") && (phase === 'select' || phase === 'respond') && selected.length > 0) {
+      if ((e.key === "e" || e.key === "E") && phase === 'select' && selected.length > 0) {
         e.preventDefault();
         // 제출 버튼 찾기 - "제출" 텍스트를 포함한 버튼
         const buttons = document.querySelectorAll('.submit-button-fixed button');
         const submitBtn = Array.from(buttons).find(btn => btn.textContent.includes('제출'));
         if (submitBtn && !submitBtn.disabled) submitBtn.click();
+      }
+      if ((e.key === "e" || e.key === "E") && phase === 'respond') {
+        e.preventDefault();
+        // 진행 시작 버튼 찾기
+        const buttons = document.querySelectorAll('.submit-button-fixed button');
+        const startBtn = Array.from(buttons).find(btn => btn.textContent.includes('진행 시작'));
+        if (startBtn && !startBtn.disabled) startBtn.click();
       }
       if ((e.key === "r" || e.key === "R") && phase === 'select') {
         e.preventDefault();
@@ -1021,6 +1044,9 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
     const nextIndex = (currentIndex + 1) % sortCycle.length;
     const nextSort = sortCycle[nextIndex];
     setSortType(nextSort);
+    try {
+      localStorage.setItem('battleSortType', nextSort);
+    } catch {}
 
     const sortLabels = {
       speed: '시간 기준 정렬',
@@ -1469,6 +1495,31 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
             <div style={{fontSize: '1.25rem', fontWeight: '700', color: '#7dd3fc', marginBottom: '12px'}}>
               속도 {totalSpeed}/{MAX_SPEED} · 선택 {selected.length}/{MAX_SUBMIT_CARDS}
             </div>
+
+            {/* 버튼들 - 속도/선택 텍스트 하단 */}
+            {phase === 'select' && (
+              <div style={{display: 'flex', gap: '8px', justifyContent: 'center', marginTop: '16px'}}>
+                <button onClick={redrawHand} disabled={!canRedraw} className="btn-enhanced flex items-center gap-2" style={{fontSize: '1rem', padding: '8px 20px'}}>
+                  <RefreshCw size={18}/> 리드로우 (R)
+                </button>
+                <button onClick={()=> setWillOverdrive(v=>!v)}
+                        disabled={etherSlots(player.etherPts)<=0}
+                        className={`btn-enhanced ${willOverdrive? 'btn-primary':''} flex items-center gap-2`}
+                        style={{fontSize: '1rem', padding: '8px 20px'}}>
+                  ✨ 기원 {willOverdrive?'ON':'OFF'} (Space)
+                </button>
+                <button onClick={() => { startResolve(); playSound(900, 120); }} disabled={selected.length===0} className="btn-enhanced btn-primary flex items-center gap-2" style={{fontSize: '1.25rem', padding: '9.6px 24px', fontWeight: '700'}}>
+                  <Play size={22}/> 제출 <span style={{fontSize: '1.4rem', fontWeight: '900'}}>(E)</span>
+                </button>
+              </div>
+            )}
+            {phase === 'respond' && (
+              <div style={{display: 'flex', justifyContent: 'center', marginTop: '16px'}}>
+                <button onClick={beginResolveFromRespond} className="btn-enhanced btn-success flex items-center gap-2" style={{fontSize: '1.25rem', padding: '9.6px 24px', fontWeight: '700'}}>
+                  <Play size={22}/> 진행 시작 <span style={{fontSize: '1.4rem', fontWeight: '900'}}>(E)</span>
+                </button>
+              </div>
+            )}
           </div>
 
           {/* 오른쪽: 적 */}
@@ -1546,33 +1597,21 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
         </div>
       )}
 
-      {/* 제출 버튼 독립 (하단 150px 이동) */}
+      {/* 간소화/정렬 버튼 (우측 하단 고정) */}
       {phase==='select' && (
         <div className="submit-button-fixed" style={{display: 'flex', flexDirection: 'column', gap: '8px'}}>
-          <button onClick={redrawHand} disabled={!canRedraw} className="btn-enhanced flex items-center gap-2" style={{fontSize: '1rem', padding: '8px 20px'}}>
-            <RefreshCw size={18}/> 리드로우 (R)
-          </button>
-          <button onClick={()=> setWillOverdrive(v=>!v)}
-                  disabled={etherSlots(player.etherPts)<=0}
-                  className={`btn-enhanced ${willOverdrive? 'btn-primary':''} flex items-center gap-2`}
-                  style={{fontSize: '1rem', padding: '8px 20px'}}>
-            ✨ 기원 {willOverdrive?'ON':'OFF'} (Space)
-          </button>
-          <button onClick={() => { startResolve(); playSound(900, 120); }} disabled={selected.length===0} className="btn-enhanced btn-primary flex items-center gap-2" style={{fontSize: '1.25rem', padding: '9.6px 24px', fontWeight: '700'}}>
-            <Play size={22}/> 제출 <span style={{fontSize: '1.4rem', fontWeight: '900'}}>(E)</span>
-          </button>
-          <button onClick={() => { setIsSimplified(prev => !prev); playSound(500, 60); }} className={`btn-enhanced ${isSimplified ? 'btn-primary' : ''} flex items-center gap-2`}>
+          <button onClick={() => {
+            setIsSimplified(prev => {
+              const newVal = !prev;
+              try { localStorage.setItem('battleIsSimplified', newVal.toString()); } catch {}
+              return newVal;
+            });
+            playSound(500, 60);
+          }} className={`btn-enhanced ${isSimplified ? 'btn-primary' : ''} flex items-center gap-2`}>
             {isSimplified ? '📋' : '📄'} 간소화 (Q)
           </button>
           <button onClick={cycleSortType} className="btn-enhanced flex items-center gap-2" style={{fontSize: '0.9rem'}}>
             🔀 정렬 ({sortType === 'speed' ? '시간' : sortType === 'energy' ? '행동력' : sortType === 'value' ? '밸류' : '종류'}) (F)
-          </button>
-        </div>
-      )}
-      {phase==='respond' && (
-        <div className="submit-button-fixed">
-          <button onClick={beginResolveFromRespond} className="btn-enhanced btn-success flex items-center gap-2" style={{fontSize: '1.25rem', padding: '9.6px 24px', fontWeight: '700'}}>
-            <Play size={22}/> 진행 시작 <span style={{fontSize: '1.4rem', fontWeight: '900'}}>(E)</span>
           </button>
         </div>
       )}
@@ -1608,6 +1647,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                 const isMainSpecial = currentBuild?.mainSpecials?.includes(c.id);
                 const isSubSpecial = currentBuild?.subSpecials?.includes(c.id);
                 const costColor = isMainSpecial ? '#fcd34d' : isSubSpecial ? '#60a5fa' : '#fff';
+                const nameColor = isMainSpecial ? '#fcd34d' : isSubSpecial ? '#7dd3fc' : '#fff';
                 return (
                   <div key={c.id+idx} onClick={()=>!disabled && toggle(c)} style={{display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center', cursor: disabled ? 'not-allowed' : 'pointer', position: 'relative'}}>
                     <div className={`game-card-large select-phase-card ${c.type==='attack' ? 'attack' : 'defense'} ${sel ? 'selected' : ''} ${disabled ? 'disabled' : ''}`}>
@@ -1629,7 +1669,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                         </div>
                       </div>
                       <div className="card-header">
-                        <div className="text-white font-black text-sm">{c.name}</div>
+                        <div className="font-black text-sm" style={{color: nameColor}}>{c.name}</div>
                       </div>
                       <div className="card-icon-area">
                         <Icon size={60} className="text-white opacity-80"/>
@@ -1658,6 +1698,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                 const isMainSpecial = currentBuild?.mainSpecials?.includes(c.id);
                 const isSubSpecial = currentBuild?.subSpecials?.includes(c.id);
                 const costColor = isMainSpecial ? '#fcd34d' : isSubSpecial ? '#60a5fa' : '#fff';
+                const nameColor = isMainSpecial ? '#fcd34d' : isSubSpecial ? '#7dd3fc' : '#fff';
                 return (
                   <div key={idx} style={{display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center', position: 'relative'}}>
                     <div className={`game-card-large respond-phase-card ${c.type==='attack' ? 'attack' : 'defense'}`}>
@@ -1678,7 +1719,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                         </div>
                       </div>
                       <div className="card-header">
-                        <div className="text-white font-black text-sm">{c.name}</div>
+                        <div className="font-black text-sm" style={{color: nameColor}}>{c.name}</div>
                       </div>
                       <div className="card-icon-area">
                         <Icon size={60} className="text-white opacity-80"/>
