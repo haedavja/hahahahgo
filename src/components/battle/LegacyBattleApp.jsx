@@ -210,7 +210,11 @@ function addEther(pts, add){ return (pts||0) + (add||0); }
 function applyEtherDeflation(baseGain, comboName, comboUsageCount, deflationMultiplier = 0.5) {
   const usageCount = comboUsageCount[comboName] || 0;
   const multiplier = Math.pow(deflationMultiplier, usageCount);
-  return Math.floor(baseGain * multiplier);
+  return {
+    gain: Math.floor(baseGain * multiplier),
+    multiplier: multiplier,
+    usageCount: usageCount
+  };
 }
 
 // =====================
@@ -669,6 +673,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
   const [willOverdrive, setWillOverdrive] = useState(false);
   const [isSimplified, setIsSimplified] = useState(false);
   const [usedCardIndices, setUsedCardIndices] = useState([]);
+  const [currentTurnCombo, setCurrentTurnCombo] = useState(null); // 이번 턴에 사용한 조합 추적
   const [showCharacterSheet, setShowCharacterSheet] = useState(false);
   const logEndRef = useRef(null);
   const initialEtherRef = useRef(typeof safeInitialPlayer.etherPts === 'number' ? safeInitialPlayer.etherPts : (playerEther ?? 0));
@@ -757,7 +762,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
     }
   }, [postCombatOptions, notifyBattleResult]);
 
-  // C 키로 캐릭터 창 열기, Q 키로 간소화, E 키로 제출, A 키로 한 단계, D 키로 전부 실행
+  // C 키로 캐릭터 창 열기, Q 키로 간소화, E 키로 제출, R 키로 리드로우, A 키로 한 단계, D 키로 전부 실행
   useEffect(() => {
     const handleKeyPress = (e) => {
       if (e.key === "c" || e.key === "C") {
@@ -770,6 +775,11 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
         // startResolve는 아래에서 선언되므로 직접 호출하지 않고 조건만 체크
         const submitBtn = document.querySelector('.submit-button-fixed button');
         if (submitBtn && !submitBtn.disabled) submitBtn.click();
+      }
+      if ((e.key === "r" || e.key === "R") && phase === 'select') {
+        // 리드로우 버튼 클릭
+        const redrawBtn = document.querySelector('button:has(.lucide-refresh-cw)');
+        if (redrawBtn && !redrawBtn.disabled) redrawBtn.click();
       }
       if ((e.key === "a" || e.key === "A") && phase === 'resolve') {
         // 한 단계 버튼 클릭
@@ -787,7 +797,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
     window.addEventListener("keydown", handleKeyPress);
     return () => window.removeEventListener("keydown", handleKeyPress);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phase, selected]); // startResolve 제거
+  }, [phase, selected, canRedraw]); // canRedraw 추가
 
   useEffect(()=>{
     if(!enemy){
@@ -854,7 +864,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
     return combo;
   },[selected]);
   const pendingComboEther = useMemo(()=>{
-    if(!currentCombo) return 0;
+    if(!currentCombo) return { gain: 0, multiplier: 1, usageCount: 0 };
     const baseGain = ETHER_GAIN_MAP[currentCombo.name] || 0;
     return applyEtherDeflation(baseGain, currentCombo.name, player.comboUsageCount || {});
   }, [currentCombo, player.comboUsageCount]);
@@ -974,13 +984,13 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
     const pComboNow = detectPokerCombo(selected);
     const eComboNow = detectPokerCombo(enemyPlan.actions);
     if(pComboNow && ETHER_GAIN_MAP[pComboNow.name]){
+      setCurrentTurnCombo(pComboNow.name); // 이번 턴 조합 저장
       const baseGain = ETHER_GAIN_MAP[pComboNow.name];
       setPlayer(p => {
-        const actualGain = applyEtherDeflation(baseGain, pComboNow.name, p.comboUsageCount || {});
-        const newUsageCount = { ...(p.comboUsageCount || {}), [pComboNow.name]: (p.comboUsageCount?.[pComboNow.name] || 0) + 1 };
-        const deflationInfo = actualGain < baseGain ? ` (Deflation: ${baseGain} → ${actualGain})` : '';
-        addLog(`✴️ 에테르 +${actualGain} (플레이어 족보: ${pComboNow.name})${deflationInfo}`);
-        return { ...p, etherPts: addEther(p.etherPts, actualGain), comboUsageCount: newUsageCount };
+        const result = applyEtherDeflation(baseGain, pComboNow.name, p.comboUsageCount || {});
+        const multiplierText = result.multiplier < 1 ? ` <span style="color: #ef4444;">×${result.multiplier.toFixed(2)}</span>` : '';
+        addLog(`✴️ 에테르 +${result.gain} pt${multiplierText} (플레이어 족보: ${pComboNow.name})`);
+        return { ...p, etherPts: addEther(p.etherPts, result.gain) };
       });
     }
     if(eComboNow && ETHER_GAIN_MAP[eComboNow.name]){
@@ -1029,7 +1039,16 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
 
   const finishTurn = (reason)=>{
     addLog(`턴 종료: ${reason||''}`);
-    setPlayer(p=>({ ...p, block:0, def:false, counter:0, vulnMult:1, vulnTurns:0, etherOverdriveActive:false }));
+    // 턴 종료 시 조합 카운트 증가 (Deflation)
+    if(currentTurnCombo){
+      setPlayer(p => {
+        const newUsageCount = { ...(p.comboUsageCount || {}), [currentTurnCombo]: (p.comboUsageCount?.[currentTurnCombo] || 0) + 1 };
+        return { ...p, block:0, def:false, counter:0, vulnMult:1, vulnTurns:0, etherOverdriveActive:false, comboUsageCount: newUsageCount };
+      });
+      setCurrentTurnCombo(null);
+    } else {
+      setPlayer(p=>({ ...p, block:0, def:false, counter:0, vulnMult:1, vulnTurns:0, etherOverdriveActive:false }));
+    }
     setEnemy(e=>({ ...e, block:0, def:false, counter:0, vulnMult:1, vulnTurns:0, etherOverdriveActive:false }));
     setSelected([]); setQueue([]); setQIndex(0); setFixedOrder(null); setUsedCardIndices([]);
     setPhase('select');
@@ -1101,7 +1120,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
   const enemyEtherSlots = etherSlots(enemyEtherValue);
   const playerEnergyBudget = BASE_PLAYER_ENERGY + etherSlots(player.etherPts);
   const remainingEnergy = Math.max(0, playerEnergyBudget - totalEnergy);
-  const comboPreviewGain = (phase==='select' || phase==='respond') ? pendingComboEther : 0;
+  const comboPreviewGain = (phase==='select' || phase==='respond') ? pendingComboEther.gain : 0;
 
   // 적 조합 에테르 미리보기 계산
   const enemyCombo = useMemo(() => detectPokerCombo(enemyPlan.actions || []), [enemyPlan.actions]);
@@ -1206,7 +1225,16 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
             {currentCombo && (
               <div className="combo-display" style={{position: 'absolute', top: '0', left: '180px', textAlign: 'center'}}>
                 <div>{currentCombo.name}</div>
-                {pendingComboEther > 0 && <div style={{color: '#fbbf24', fontWeight: 'bold'}}>+{pendingComboEther} PT</div>}
+                {pendingComboEther.gain > 0 && (
+                  <div style={{color: '#fbbf24', fontWeight: 'bold'}}>
+                    +{pendingComboEther.gain} PT
+                    {pendingComboEther.multiplier < 1 && (
+                      <span style={{color: '#ef4444', marginLeft: '4px', fontSize: '0.9em'}}>
+                        (×{pendingComboEther.multiplier.toFixed(2)})
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
             )}
             <div style={{display: 'flex', alignItems: 'center', gap: '16px'}}>
@@ -1257,11 +1285,11 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
             {phase==='select' && (
               <>
                 <button onClick={redrawHand} disabled={!canRedraw} className="btn-enhanced flex items-center gap-2" style={{margin: '0 auto', fontSize: '1rem', padding: '8px 16px'}}>
-                  <RefreshCw size={18}/> 리드로우
+                  <RefreshCw size={18}/> 리드로우 (R)
                 </button>
                 <button onClick={()=> (phase==='select' || phase==='respond') && setWillOverdrive(v=>!v)}
                         disabled={!(phase==='select'||phase==='respond') || etherSlots(player.etherPts)<=0}
-                        className={`btn-enhanced ${willOverdrive? 'btn-primary':''} text-sm`}
+                        className={`btn-enhanced ${willOverdrive? 'btn-primary':''} flex items-center gap-2`}
                         style={{margin: '8px auto 0', fontSize: '1rem', padding: '8px 16px'}}>
                   🙏 기원
                 </button>
