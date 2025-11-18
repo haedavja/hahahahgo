@@ -1040,11 +1040,15 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
     if(qIndex>=queue.length) return;
     const a = queue[qIndex];
 
-    // 카드 사용 이펙트 추가
+    // 타임라인 애니메이션을 위해 모든 액션에 적용
+    setUsedCardIndices(prev => [...prev, qIndex]);
+    setTimeout(() => {
+      setUsedCardIndices(prev => prev.filter(i => i !== qIndex));
+    }, 600); // 타임라인 애니메이션 지속 시간
+
+    // 카드 소멸 이펙트는 플레이어만 적용
     if(a.actor === 'player') {
-      setUsedCardIndices(prev => [...prev, qIndex]);
       setTimeout(() => {
-        setUsedCardIndices(prev => prev.filter(i => i !== qIndex));
         // 카드가 사용된 후 사라지는 애니메이션 시작
         setDisappearingCards(prev => [...prev, qIndex]);
         setTimeout(() => {
@@ -1267,9 +1271,8 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                   {currentCombo.name}
                 </div>
                 {pendingComboEther.gain > 0 && (
-                  <div style={{fontSize: '1.92rem', color: '#fbbf24', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px'}}>
-                    <span>+{pendingComboEther.gain} PT</span>
-                    {pendingComboEther.multiplier < 1 && (
+                  <div style={{fontSize: '1.92rem', color: '#fbbf24', fontWeight: 'bold'}}>
+                    +{pendingComboEther.gain} PT {pendingComboEther.multiplier < 1 && (
                       <span style={{color: '#ef4444', fontSize: '0.624em'}}>
                         (×{pendingComboEther.multiplier.toFixed(2)})
                       </span>

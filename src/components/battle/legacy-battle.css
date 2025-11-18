@@ -278,34 +278,40 @@ body {
   animation: timelinePulsePlayer 0.6s ease-in-out;
   box-shadow: 0 0 30px rgba(251, 191, 36, 1), 0 8px 20px rgba(0, 0, 0, 0.45);
   transform: translate(-50%, 0) scale(1.2);
+  border: 2px solid rgba(251, 191, 36, 0.8);
 }
 
 @keyframes timelinePulsePlayer {
   0%, 100% {
     transform: translate(-50%, 0) scale(1.2);
     box-shadow: 0 0 30px rgba(251, 191, 36, 1), 0 8px 20px rgba(0, 0, 0, 0.45);
+    border: 2px solid rgba(251, 191, 36, 0.8);
   }
   50% {
     transform: translate(-50%, 0) scale(1.35);
     box-shadow: 0 0 40px rgba(251, 191, 36, 1), 0 10px 25px rgba(0, 0, 0, 0.5);
+    border: 2px solid rgba(251, 191, 36, 1);
   }
 }
 
 /* 타임라인 활성 애니메이션 - 적 */
 .timeline-active.marker-enemy {
   animation: timelinePulseEnemy 0.6s ease-in-out;
-  box-shadow: 0 0 30px rgba(239, 68, 68, 1), 0 8px 20px rgba(0, 0, 0, 0.45);
+  box-shadow: 0 0 35px rgba(168, 85, 247, 1), 0 8px 20px rgba(0, 0, 0, 0.45);
   transform: translate(-50%, 0) scale(1.2);
+  border: 2px solid rgba(168, 85, 247, 0.8);
 }
 
 @keyframes timelinePulseEnemy {
   0%, 100% {
     transform: translate(-50%, 0) scale(1.2);
-    box-shadow: 0 0 30px rgba(239, 68, 68, 1), 0 8px 20px rgba(0, 0, 0, 0.45);
+    box-shadow: 0 0 35px rgba(168, 85, 247, 1), 0 8px 20px rgba(0, 0, 0, 0.45);
+    border: 2px solid rgba(168, 85, 247, 0.8);
   }
   50% {
     transform: translate(-50%, 0) scale(1.35);
-    box-shadow: 0 0 40px rgba(239, 68, 68, 1), 0 10px 25px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 0 45px rgba(168, 85, 247, 1), 0 10px 25px rgba(0, 0, 0, 0.5);
+    border: 2px solid rgba(168, 85, 247, 1);
   }
 }
 
