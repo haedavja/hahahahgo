@@ -645,7 +645,7 @@ body {
 .combo-display {
   font-weight: 900;
   color: #fcd34d;
-  font-size: 2.25rem;
+  font-size: 2.75rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -1110,4 +1110,13 @@ body {
 
 .game-card-large:hover:not(.disabled) .card-stat-item {
   font-size: 1.3rem !important; /* 호버 시 스탯도 약간 크게 */
+}
+
+/* 간소화 상태에서 카드 텍스트 숨기기, hover 시 보이기 */
+.card-footer.simplified-footer {
+  visibility: hidden;
+}
+
+.game-card-large:hover .card-footer.simplified-footer {
+  visibility: visible;
 }

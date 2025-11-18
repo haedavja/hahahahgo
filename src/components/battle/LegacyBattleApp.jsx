@@ -498,8 +498,7 @@ function ExpectedDamagePreview({player, enemy, fixedOrder, willOverdrive, enemyM
                   color: startsWithMonster ? '#fca5a5' : isPlayerAction ? '#60a5fa' : '#cbd5e1',
                   marginBottom: '6px',
                   lineHeight: '1.5'
-                }}>
-                  {line}
+                }} dangerouslySetInnerHTML={{ __html: line }}>
                 </div>
               );
             })}
@@ -534,7 +533,7 @@ function ExpectedDamagePreview({player, enemy, fixedOrder, willOverdrive, enemyM
           </button>
           {qIndex >= queue.length && (
             <button onClick={()=>finishTurn('수동 턴 종료')} className="btn-enhanced flex items-center gap-2">
-              ⏭️ 턴 종료
+              ⏭️ 턴 종료 (F)
             </button>
           )}
           {postCombatOptions && (
@@ -762,7 +761,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
     }
   }, [postCombatOptions, notifyBattleResult]);
 
-  // C 키로 캐릭터 창 열기, Q 키로 간소화, E 키로 제출, R 키로 리드로우, 스페이스바로 기원, A 키로 한 단계, D 키로 전부 실행
+  // C 키로 캐릭터 창 열기, Q 키로 간소화, E 키로 제출, R 키로 리드로우, 스페이스바로 기원, A 키로 한 단계, D 키로 전부 실행, F 키로 턴 종료
   useEffect(() => {
     const handleKeyPress = (e) => {
       if (e.key === "c" || e.key === "C") {
@@ -799,6 +798,12 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
         const buttons = document.querySelectorAll('.expect-sidebar-fixed button');
         const runAllButton = Array.from(buttons).find(btn => btn.textContent.includes('전부 실행'));
         if (runAllButton && !runAllButton.disabled) runAllButton.click();
+      }
+      if ((e.key === "f" || e.key === "F") && phase === 'resolve') {
+        // F키로 턴 종료 버튼 클릭
+        const buttons = document.querySelectorAll('.expect-sidebar-fixed button');
+        const finishButton = Array.from(buttons).find(btn => btn.textContent.includes('턴 종료'));
+        if (finishButton && !finishButton.disabled) finishButton.click();
       }
     };
     window.addEventListener("keydown", handleKeyPress);
@@ -1458,7 +1463,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                       <div className="card-icon-area">
                         <Icon size={60} className="text-white opacity-80"/>
                       </div>
-                      <div className="card-footer" style={{visibility: isSimplified ? 'hidden' : 'visible'}}>
+                      <div className={`card-footer ${isSimplified ? 'simplified-footer' : ''}`}>
                         {c.description || ''}
                       </div>
                     </div>
