@@ -1391,7 +1391,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
       {/* 제출 버튼 독립 (하단 150px 이동) */}
       {phase==='select' && (
         <div className="submit-button-fixed" style={{display: 'flex', flexDirection: 'column', gap: '8px'}}>
-          <button onClick={startResolve} disabled={selected.length===0} className="btn-enhanced btn-primary flex items-center gap-2" style={{fontSize: '1.25rem', padding: '12px 24px', fontWeight: '700'}}>
+          <button onClick={startResolve} disabled={selected.length===0} className="btn-enhanced btn-primary flex items-center gap-2" style={{fontSize: '1.25rem', padding: '9.6px 24px', fontWeight: '700'}}>
             <Play size={22}/> 제출 <span style={{fontSize: '1.4rem', fontWeight: '900'}}>(E)</span>
           </button>
           <button onClick={() => setIsSimplified(prev => !prev)} className={`btn-enhanced ${isSimplified ? 'btn-primary' : ''} flex items-center gap-2`}>
@@ -1401,7 +1401,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
       )}
       {phase==='respond' && (
         <div className="submit-button-fixed">
-          <button onClick={beginResolveFromRespond} className="btn-enhanced btn-success flex items-center gap-2" style={{fontSize: '1.25rem', padding: '12px 24px', fontWeight: '700'}}>
+          <button onClick={beginResolveFromRespond} className="btn-enhanced btn-success flex items-center gap-2" style={{fontSize: '1.25rem', padding: '9.6px 24px', fontWeight: '700'}}>
             <Play size={22}/> 진행 시작 <span style={{fontSize: '1.4rem', fontWeight: '900'}}>(E)</span>
           </button>
         </div>
