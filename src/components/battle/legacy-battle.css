@@ -548,6 +548,7 @@ body {
   justify-content: center;
   padding: 8px 0;
   min-height: 60px;
+  position: relative;
 }
 
 .game-card-large .card-footer {
@@ -1239,4 +1240,19 @@ body {
 
 .block-animation {
   animation: blockGain 0.4s ease-in-out;
+}
+
+/* 행동력 부족 카드 X 표시 */
+.card-disabled-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+  z-index: 10;
 }

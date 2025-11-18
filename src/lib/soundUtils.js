@@ -91,3 +91,31 @@ export function playCardSubmitSound() {
     console.warn('Failed to play card submit sound:', error);
   }
 }
+
+/**
+ * 진행 버튼 사운드 재생 (상승하는 주파수, 확정적인 톤)
+ */
+export function playProceedSound() {
+  try {
+    const ctx = getAudioContext();
+    const oscillator = ctx.createOscillator();
+    const gainNode = ctx.createGain();
+
+    oscillator.connect(gainNode);
+    gainNode.connect(ctx.destination);
+
+    // 상승하는 주파수 (400Hz → 600Hz) - 진행 확정 소리
+    oscillator.frequency.setValueAtTime(400, ctx.currentTime);
+    oscillator.frequency.exponentialRampToValueAtTime(600, ctx.currentTime + 0.15);
+    oscillator.type = 'square';
+
+    // 볼륨 엔벨로프
+    gainNode.gain.setValueAtTime(0.2, ctx.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
+
+    oscillator.start(ctx.currentTime);
+    oscillator.stop(ctx.currentTime + 0.2);
+  } catch (error) {
+    console.warn('Failed to play proceed sound:', error);
+  }
+}

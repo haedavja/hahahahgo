@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import "./legacy-battle.css";
-import { playHitSound, playBlockSound, playCardSubmitSound } from "../../lib/soundUtils";
+import { playHitSound, playBlockSound, playCardSubmitSound, playProceedSound } from "../../lib/soundUtils";
 import {
   MAX_SPEED,
   BASE_PLAYER_ENERGY,
@@ -657,6 +657,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
   const [hand, setHand] = useState([]);
   const [selected, setSelected] = useState([]);
   const [canRedraw, setCanRedraw] = useState(true);
+  const [sortType, setSortType] = useState('none'); // none, energy, speed, type
 
   const [enemyPlan, setEnemyPlan] = useState({ actions:[], mode:null });
   const [fixedOrder, setFixedOrder] = useState(null);
@@ -695,6 +696,11 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
     });
     resultSentRef.current = true;
   }, [player.etherPts, onBattleResult]);
+
+  const closeCharacterSheet = useCallback(() => {
+    setShowCharacterSheet(false);
+  }, []);
+
   const handleExitToMap = ()=>{
     const outcome = postCombatOptions?.type || (enemy && enemy.hp<=0 ? 'victory' : (player && player.hp<=0 ? 'defeat' : null));
     if(!outcome) return;
@@ -781,6 +787,8 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
   useEffect(() => {
     const handleKeyPress = (e) => {
       if (e.key === "c" || e.key === "C") {
+        e.preventDefault();
+        e.stopPropagation();
         setShowCharacterSheet((prev) => !prev);
       }
       if ((e.key === "q" || e.key === "Q") && phase === 'select') {
@@ -821,6 +829,10 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
         const buttons = document.querySelectorAll('.expect-sidebar-fixed button');
         const runAllButton = Array.from(buttons).find(btn => btn.textContent.includes('전부 실행'));
         if (runAllButton && !runAllButton.disabled) runAllButton.click();
+      }
+      if ((e.key === "f" || e.key === "F") && phase === 'select') {
+        // F키로 카드 정렬
+        cycleSortType();
       }
     };
     window.addEventListener("keydown", handleKeyPress);
@@ -969,6 +981,42 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
     addLog('🔄 손패 리드로우 사용');
   };
 
+  const cycleSortType = () => {
+    const sortCycle = ['none', 'energy', 'speed', 'type'];
+    const currentIndex = sortCycle.indexOf(sortType);
+    const nextIndex = (currentIndex + 1) % sortCycle.length;
+    const nextSort = sortCycle[nextIndex];
+    setSortType(nextSort);
+
+    const sortLabels = {
+      none: '정렬 해제',
+      energy: '행동력 기준 정렬',
+      speed: '속도 기준 정렬',
+      type: '종류별 정렬'
+    };
+    addLog(`🔀 ${sortLabels[nextSort]}`);
+  };
+
+  const getSortedHand = () => {
+    if (sortType === 'none') return hand;
+
+    const sorted = [...hand];
+    if (sortType === 'energy') {
+      sorted.sort((a, b) => a.actionCost - b.actionCost);
+    } else if (sortType === 'speed') {
+      sorted.sort((a, b) => a.speedCost - b.speedCost);
+    } else if (sortType === 'type') {
+      // 공격 -> 방어 -> 기타 순서로 정렬
+      const typeOrder = { 'attack': 0, 'defense': 1 };
+      sorted.sort((a, b) => {
+        const aOrder = typeOrder[a.type] ?? 2;
+        const bOrder = typeOrder[b.type] ?? 2;
+        return aOrder - bOrder;
+      });
+    }
+    return sorted;
+  };
+
   const startResolve = ()=>{
     if(phase!=='select') return;
     const actions = generateEnemyActions(enemy, enemyPlan.mode, etherSlots(enemy.etherPts));
@@ -1005,6 +1053,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
       addLog('⚠️ 큐 생성 실패: 실행할 항목이 없습니다');
       return;
     }
+    playProceedSound(); // 진행 버튼 사운드 재생
     setQueue(newQ);
     setQIndex(0);
     setPhase('resolve');
@@ -1475,6 +1524,9 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
           <button onClick={() => setIsSimplified(prev => !prev)} className={`btn-enhanced ${isSimplified ? 'btn-primary' : ''} flex items-center gap-2`}>
             {isSimplified ? '📋' : '📄'} 간소화 (Q)
           </button>
+          <button onClick={cycleSortType} className="btn-enhanced flex items-center gap-2" style={{fontSize: '0.9rem'}}>
+            🔀 정렬 ({sortType === 'none' ? '없음' : sortType === 'energy' ? '행동력' : sortType === 'speed' ? '속도' : '종류'}) (F)
+          </button>
         </div>
       )}
       {phase==='respond' && (
@@ -1507,7 +1559,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
 
           {phase==='select' && (
             <div className="hand-cards">
-              {hand.map((c,idx)=>{
+              {getSortedHand().map((c,idx)=>{
                 const Icon=c.icon;
                 const selIndex = selected.findIndex(s=>s.id===c.id);
                 const sel = selIndex !== -1;
@@ -1541,6 +1593,11 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                       </div>
                       <div className="card-icon-area">
                         <Icon size={60} className="text-white opacity-80"/>
+                        {disabled && (
+                          <div className="card-disabled-overlay">
+                            <X size={80} className="text-red-500" strokeWidth={4} />
+                          </div>
+                        )}
                       </div>
                       <div className={`card-footer ${isSimplified ? 'simplified-footer' : ''}`}>
                         {c.description || ''}
@@ -1678,7 +1735,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
         </div>
       )}
 
-      {showCharacterSheet && <CharacterSheet onClose={() => setShowCharacterSheet(false)} />}
+      {showCharacterSheet && <CharacterSheet onClose={closeCharacterSheet} />}
     </div>
   );
 }
