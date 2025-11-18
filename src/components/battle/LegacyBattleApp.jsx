@@ -1215,9 +1215,12 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                     const sameCount = playerTimeline.filter((q,i)=>i<idx && q.sp===a.sp).length;
                     const offset = sameCount*28;
                     const num = a.card.type==='attack' ? (a.card.damage*(a.card.hits||1)) : (a.card.block || 0);
+                    // 타임라인에서 현재 진행 중인 액션인지 확인
+                    const globalIndex = phase === 'resolve' && queue ? queue.findIndex(q => q === a) : -1;
+                    const isActive = usedCardIndices.includes(globalIndex);
                     return (
                       <div key={idx}
-                           className="timeline-marker marker-player"
+                           className={`timeline-marker marker-player ${isActive ? 'timeline-active' : ''}`}
                            style={{left:`${(a.sp/MAX_SPEED)*100}%`, top:`${6+offset}px`}}>
                         <Icon size={14} className="text-white"/>
                         <span className="text-white text-xs font-bold">{num>0?num:''}</span>
@@ -1235,9 +1238,12 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                     const sameCount = enemyTimeline.filter((q,i)=>i<idx && q.sp===a.sp).length;
                     const offset = sameCount*28;
                     const num = a.card.type==='attack' ? (a.card.damage*(a.card.hits||1)) : (a.card.block || 0);
+                    // 타임라인에서 현재 진행 중인 액션인지 확인
+                    const globalIndex = phase === 'resolve' && queue ? queue.findIndex(q => q === a) : -1;
+                    const isActive = usedCardIndices.includes(globalIndex);
                     return (
                       <div key={idx}
-                           className="timeline-marker marker-enemy"
+                           className={`timeline-marker marker-enemy ${isActive ? 'timeline-active' : ''}`}
                            style={{left:`${(a.sp/MAX_SPEED)*100}%`, top:`${6+offset}px`}}>
                         <Icon size={14} className="text-white"/>
                         <span className="text-white text-xs font-bold">{num>0?num:''}</span>
@@ -1261,7 +1267,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                   {currentCombo.name}
                 </div>
                 {pendingComboEther.gain > 0 && (
-                  <div style={{fontSize: '1.2rem', color: '#fbbf24', fontWeight: 'bold'}}>
+                  <div style={{fontSize: '2.4rem', color: '#fbbf24', fontWeight: 'bold'}}>
                     +{pendingComboEther.gain} PT {pendingComboEther.multiplier < 1 && (
                       <span style={{color: '#ef4444', fontSize: '1.04em'}}>
                         (×{pendingComboEther.multiplier.toFixed(2)})
