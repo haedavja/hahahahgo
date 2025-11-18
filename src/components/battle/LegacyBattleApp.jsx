@@ -1271,7 +1271,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                   {currentCombo.name}
                 </div>
                 {pendingComboEther.gain > 0 && (
-                  <div style={{fontSize: '1.92rem', color: '#fbbf24', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '2.2px'}}>
+                  <div style={{fontSize: '1.92rem', color: '#fbbf24', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '2.5px'}}>
                     <span>+{pendingComboEther.gain} PT</span>
                     {pendingComboEther.multiplier < 1 && (
                       <span style={{color: '#ef4444', fontSize: '0.624em'}}>
