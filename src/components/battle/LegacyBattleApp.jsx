@@ -748,7 +748,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
     }
   }, [postCombatOptions, notifyBattleResult]);
 
-  // C 키로 캐릭터 창 열기
+  // C 키로 캐릭터 창 열기, Q 키로 간소화, E 키로 제출
   useEffect(() => {
     const handleKeyPress = (e) => {
       if (e.key === "c" || e.key === "C") {
@@ -757,10 +757,13 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
       if ((e.key === "q" || e.key === "Q") && phase === 'select') {
         setIsSimplified((prev) => !prev);
       }
+      if ((e.key === "e" || e.key === "E") && phase === 'select' && selected.length > 0) {
+        startResolve();
+      }
     };
     window.addEventListener("keydown", handleKeyPress);
     return () => window.removeEventListener("keydown", handleKeyPress);
-  }, [phase]);
+  }, [phase, selected, startResolve]);
 
   useEffect(()=>{
     if(!enemy){
@@ -1226,6 +1229,9 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                 <button onClick={redrawHand} disabled={!canRedraw} className="btn-enhanced flex items-center gap-2" style={{margin: '0 auto', fontSize: '1rem', padding: '8px 16px'}}>
                   <RefreshCw size={18}/> 리드로우
                 </button>
+                <button onClick={() => setIsSimplified(prev => !prev)} className={`btn-enhanced ${isSimplified ? 'btn-primary' : ''} flex items-center gap-2`} style={{margin: '8px auto 0', fontSize: '1rem', padding: '8px 16px'}}>
+                  {isSimplified ? '📋' : '📄'} 간소화 (Q)
+                </button>
                 <button onClick={()=> (phase==='select' || phase==='respond') && setWillOverdrive(v=>!v)}
                         disabled={!(phase==='select'||phase==='respond') || etherSlots(player.etherPts)<=0}
                         className={`btn-enhanced ${willOverdrive? 'btn-primary':''} text-sm`}
@@ -1303,12 +1309,9 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
 
       {/* 제출 버튼 독립 (하단 150px 이동) */}
       {phase==='select' && (
-        <div className="submit-button-fixed" style={{display: 'flex', flexDirection: 'column', gap: '8px'}}>
+        <div className="submit-button-fixed">
           <button onClick={startResolve} disabled={selected.length===0} className="btn-enhanced btn-primary flex items-center gap-2">
-            <Play size={18}/> 제출
-          </button>
-          <button onClick={() => setIsSimplified(prev => !prev)} className={`btn-enhanced ${isSimplified ? 'btn-primary' : ''} flex items-center gap-2`}>
-            {isSimplified ? '📋' : '📄'} 간소화 (Q)
+            <Play size={18}/> 제출 (E)
           </button>
         </div>
       )}

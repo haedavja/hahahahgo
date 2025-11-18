@@ -562,7 +562,7 @@ body {
   padding: 0px 12px 0px 12px;
   border: none;
   box-shadow: none;
-  z-index: 1000;
+  z-index: 100; /* 1000 → 100으로 되돌림 (버튼 클릭 가능하도록) */
   overflow: visible; /* 행동력 숫자가 짤리지 않도록 */
 }
 
@@ -858,7 +858,7 @@ body {
   position: fixed;
   bottom: 210px;
   right: 320px; /* 중앙에서 우측으로 변경 */
-  z-index: 200;
+  z-index: 1001; /* 손패 영역(z-index: 1000)보다 상단 */
 }
 
 /* 진행 단계 버튼 고정 (우측 하단) */
