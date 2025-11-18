@@ -1267,13 +1267,14 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
             {/* 플레이어 콤보 - 절대 위치로 오른쪽 배치 */}
             {currentCombo && (
               <div className="combo-display" style={{position: 'absolute', top: '0', left: '180px', textAlign: 'center'}}>
-                <div style={{fontSize: '1.5rem', fontWeight: 'bold', color: '#fbbf24', marginBottom: '2px'}}>
+                <div style={{fontSize: '1.92rem', fontWeight: 'bold', color: '#fbbf24', marginBottom: '2px'}}>
                   {currentCombo.name}
                 </div>
                 {pendingComboEther.gain > 0 && (
-                  <div style={{fontSize: '1.92rem', color: '#fbbf24', fontWeight: 'bold'}}>
-                    +{pendingComboEther.gain} PT {pendingComboEther.multiplier < 1 && (
-                      <span style={{color: '#ef4444', fontSize: '0.624em', marginLeft: '-0.05em'}}>
+                  <div style={{fontSize: '1.92rem', color: '#fbbf24', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '2px'}}>
+                    <span>+{pendingComboEther.gain} PT</span>
+                    {pendingComboEther.multiplier < 1 && (
+                      <span style={{color: '#ef4444', fontSize: '0.624em'}}>
                         (×{pendingComboEther.multiplier.toFixed(2)})
                       </span>
                     )}
