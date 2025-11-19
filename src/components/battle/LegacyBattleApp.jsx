@@ -538,9 +538,21 @@ function ExpectedDamagePreview({player, enemy, fixedOrder, willOverdrive, enemyM
             </button>
           )}
           {postCombatOptions && (
-            <button onClick={handleExitToMap} className="btn-enhanced btn-primary flex items-center gap-2">
-              🗺️ 맵으로 돌아가기
-            </button>
+            <>
+              <div style={{
+                fontSize: '48px',
+                fontWeight: 'bold',
+                color: postCombatOptions.type === 'victory' ? '#22c55e' : '#ef4444',
+                textShadow: '0 4px 12px rgba(0,0,0,0.8)',
+                marginTop: '16px',
+                marginBottom: '16px'
+              }}>
+                {postCombatOptions.type === 'victory' ? '🎉 승리!' : '💀 패배...'}
+              </div>
+              <button onClick={handleExitToMap} className="btn-enhanced btn-primary flex items-center gap-2">
+                🗺️ 맵으로 돌아가기
+              </button>
+            </>
           )}
         </div>
       )}
@@ -939,12 +951,16 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
     if(phase==='respond'){
       setSelected(prev=>{
         let next;
-        if(exists){ next = prev.filter(s=>!(s.__uid===card.__uid) && !(s.id===card.id && !('__uid' in s))); }
+        if(exists){
+          next = prev.filter(s=>!(s.__uid===card.__uid) && !(s.id===card.id && !('__uid' in s)));
+          playSound(400, 80); // 해지 사운드 (낮은 음)
+        }
         else {
           if(prev.length >= MAX_SUBMIT_CARDS){ addLog('⚠️ 최대 5장의 카드만 제출할 수 있습니다'); return prev; }
           if(totalSpeed + card.speedCost > MAX_SPEED){ addLog('⚠️ 속도 초과'); return prev; }
           if(totalEnergy + card.actionCost > (BASE_PLAYER_ENERGY + etherSlots(player.etherPts))){ addLog('⚠️ 행동력 부족'); return prev; }
           next = [...prev, { ...card, __uid: Math.random().toString(36).slice(2)}];
+          playSound(800, 80); // 선택 사운드 (높은 음)
         }
         const combo = detectPokerCombo(next);
         const enhanced = applyPokerBonus(next, combo);
@@ -953,11 +969,16 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
       });
       return;
     }
-    if(exists){ setSelected(selected.filter(s=>s.id!==card.id)); return; }
+    if(exists){
+      setSelected(selected.filter(s=>s.id!==card.id));
+      playSound(400, 80); // 해지 사운드 (낮은 음)
+      return;
+    }
     if(selected.length >= MAX_SUBMIT_CARDS) return addLog('⚠️ 최대 5장의 카드만 제출할 수 있습니다');
     if(totalSpeed + card.speedCost > MAX_SPEED) return addLog('⚠️ 속도 초과');
     if(totalEnergy + card.actionCost > (BASE_PLAYER_ENERGY + etherSlots(player.etherPts))) return addLog('⚠️ 행동력 부족');
     setSelected([...selected, { ...card, __uid: Math.random().toString(36).slice(2)}]);
+    playSound(800, 80); // 선택 사운드 (높은 음)
   };
 
   const moveUp = (i)=>{
