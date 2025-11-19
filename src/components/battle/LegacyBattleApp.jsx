@@ -22,85 +22,85 @@ const SPEED_TICKS = Array.from(
 
 // Lucide icons as simple SVG components
 const Sword = ({ size = 24, className = "" }) => (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-        <path d="M14.5 17.5 3 6V3h3l11.5 11.5M13 19l6-6M16 16l4 4M19 21l2-2"/>
-    </svg>
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M14.5 17.5 3 6V3h3l11.5 11.5M13 19l6-6M16 16l4 4M19 21l2-2" />
+  </svg>
 );
 
 const Shield = ({ size = 24, className = "" }) => (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-    </svg>
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+  </svg>
 );
 
 const Heart = ({ size = 24, className = "" }) => (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-    </svg>
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+  </svg>
 );
 
 const Zap = ({ size = 24, className = "" }) => (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
-    </svg>
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+  </svg>
 );
 
 const Flame = ({ size = 24, className = "" }) => (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-        <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>
-    </svg>
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z" />
+  </svg>
 );
 
 const Clock = ({ size = 24, className = "" }) => (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-        <circle cx="12" cy="12" r="10"/>
-        <polyline points="12 6 12 12 16 14"/>
-    </svg>
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <circle cx="12" cy="12" r="10" />
+    <polyline points="12 6 12 12 16 14" />
+  </svg>
 );
 
 const Skull = ({ size = 24, className = "" }) => (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-        <circle cx="9" cy="12" r="1"/><circle cx="15" cy="12" r="1"/>
-        <path d="M8 20v2h8v-2M12.5 17l-.5-1-.5 1h1z"/>
-        <path d="M16 18a8 8 0 1 0-8 0v2h8v-2z"/>
-    </svg>
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <circle cx="9" cy="12" r="1" /><circle cx="15" cy="12" r="1" />
+    <path d="M8 20v2h8v-2M12.5 17l-.5-1-.5 1h1z" />
+    <path d="M16 18a8 8 0 1 0-8 0v2h8v-2z" />
+  </svg>
 );
 
 const X = ({ size = 24, className = "" }) => (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-    </svg>
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+  </svg>
 );
 
 const ChevronUp = ({ size = 24, className = "" }) => (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-        <polyline points="18 15 12 9 6 15"/>
-    </svg>
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <polyline points="18 15 12 9 6 15" />
+  </svg>
 );
 
 const ChevronDown = ({ size = 24, className = "" }) => (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-        <polyline points="6 9 12 15 18 9"/>
-    </svg>
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <polyline points="6 9 12 15 18 9" />
+  </svg>
 );
 
 const Play = ({ size = 24, className = "" }) => (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-        <polygon points="5 3 19 12 5 21 5 3"/>
-    </svg>
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <polygon points="5 3 19 12 5 21 5 3" />
+  </svg>
 );
 
 const StepForward = ({ size = 24, className = "" }) => (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-        <polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/>
-    </svg>
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <polygon points="5 4 15 12 5 20 5 4" /><line x1="19" y1="5" x2="19" y2="19" />
+  </svg>
 );
 
 const RefreshCw = ({ size = 24, className = "" }) => (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-        <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
-        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
-    </svg>
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <polyline points="23 4 23 10 17 10" /><polyline points="1 20 1 14 7 14" />
+    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+  </svg>
 );
 
 const ICON_MAP = {
@@ -193,8 +193,8 @@ function applyTraitModifiers(card, context = {}) {
 
 function sortCombinedOrderStablePF(playerCards, enemyCards) {
   const q = []; let ps = 0, es = 0;
-  (playerCards||[]).forEach((c, idx) => { ps += c.speedCost; q.push({ actor: 'player', card: c, sp: ps, idx }); });
-  (enemyCards||[]).forEach((c, idx) => { es += c.speedCost; q.push({ actor: 'enemy',  card: c, sp: es, idx }); });
+  (playerCards || []).forEach((c, idx) => { ps += c.speedCost; q.push({ actor: 'player', card: c, sp: ps, idx }); });
+  (enemyCards || []).forEach((c, idx) => { es += c.speedCost; q.push({ actor: 'enemy', card: c, sp: es, idx }); });
   q.sort((a, b) => {
     if (a.sp !== b.sp) return a.sp - b.sp;
     if (a.actor !== b.actor) return a.actor === 'player' ? -1 : 1;
@@ -206,31 +206,31 @@ function sortCombinedOrderStablePF(playerCards, enemyCards) {
 // =====================
 // Poker combo helpers
 // =====================
-function detectPokerCombo(cards){
-  if(!cards || cards.length < 2) return null;
+function detectPokerCombo(cards) {
+  if (!cards || cards.length < 2) return null;
   const freq = new Map();
-  for(const c of cards){ freq.set(c.actionCost, (freq.get(c.actionCost)||0)+1); }
+  for (const c of cards) { freq.set(c.actionCost, (freq.get(c.actionCost) || 0) + 1); }
   const counts = Array.from(freq.values());
-  const have = (n)=>counts.includes(n);
-  const keysByCount = (n)=> new Set(Array.from(freq.entries()).filter(([k,v])=>v===n).map(([k])=>Number(k)));
+  const have = (n) => counts.includes(n);
+  const keysByCount = (n) => new Set(Array.from(freq.entries()).filter(([k, v]) => v === n).map(([k]) => Number(k)));
 
-  const allAttack = cards.every(c=>c.type==='attack');
-  const allDefense = cards.every(c=>c.type==='defense');
-  const isFlush = (allAttack || allDefense) && cards.length>=4;
+  const allAttack = cards.every(c => c.type === 'attack');
+  const allDefense = cards.every(c => c.type === 'defense');
+  const isFlush = (allAttack || allDefense) && cards.length >= 4;
 
   let result = null;
-  if(have(5)) result = { name:'파이브카드', bonusKeys: keysByCount(5) };
-  else if(have(4)) result = { name:'포카드',   bonusKeys: keysByCount(4) };
-  else if(have(3) && have(2)){
+  if (have(5)) result = { name: '파이브카드', bonusKeys: keysByCount(5) };
+  else if (have(4)) result = { name: '포카드', bonusKeys: keysByCount(4) };
+  else if (have(3) && have(2)) {
     const b = new Set([...keysByCount(3), ...keysByCount(2)]);
-    result = { name:'풀하우스', bonusKeys: b };
+    result = { name: '풀하우스', bonusKeys: b };
   }
-  else if(isFlush) result = { name:'플러쉬', bonusKeys: null };
+  else if (isFlush) result = { name: '플러쉬', bonusKeys: null };
   else {
     const pairKeys = keysByCount(2);
-    if(pairKeys.size >= 2) result = { name:'투페어',  bonusKeys: pairKeys };
-    else if(have(3)) result = { name:'트리플',  bonusKeys: keysByCount(3) };
-    else if(have(2)) result = { name:'페어',    bonusKeys: pairKeys };
+    if (pairKeys.size >= 2) result = { name: '투페어', bonusKeys: pairKeys };
+    else if (have(3)) result = { name: '트리플', bonusKeys: keysByCount(3) };
+    else if (have(2)) result = { name: '페어', bonusKeys: pairKeys };
   }
 
   // 디버깅: 조합 감지 로그 (반환값 포함)
@@ -249,12 +249,12 @@ function detectPokerCombo(cards){
   return result;
 }
 
-function applyPokerBonus(cards, combo){
-  if(!combo) return cards;
-  return cards.map(c=>{
-    if(combo.bonusKeys && combo.bonusKeys.has(c.actionCost)){
-      if(c.type==='attack') return { ...c, damage:(c.damage||0)+1, _combo: combo.name };
-      if(c.type==='defense') return { ...c, block:(c.block||0)+1, _combo: combo.name };
+function applyPokerBonus(cards, combo) {
+  if (!combo) return cards;
+  return cards.map(c => {
+    if (combo.bonusKeys && combo.bonusKeys.has(c.actionCost)) {
+      if (c.type === 'attack') return { ...c, damage: (c.damage || 0) + 1, _combo: combo.name };
+      if (c.type === 'defense') return { ...c, block: (c.block || 0) + 1, _combo: combo.name };
     }
     return c;
   });
@@ -270,7 +270,7 @@ const ETHER_GAIN_MAP = {
   '파이브카드': 60,
 };
 const etherSlots = (pts) => calculateEtherSlots(pts || 0); // 인플레이션 적용
-function addEther(pts, add){ return (pts||0) + (add||0); }
+function addEther(pts, add) { return (pts || 0) + (add || 0); }
 
 // 에테르 Deflation: 같은 조합을 반복할수록 획득량 감소
 // 1번: 100%, 2번: 50%, 3번: 25%, ... 0에 수렴
@@ -288,80 +288,81 @@ function applyEtherDeflation(baseGain, comboName, comboUsageCount, deflationMult
 // =====================
 // Combat Logic
 // =====================
-function applyAction(state, actor, card){
-  const A = actor==='player' ? state.player : state.enemy;
-  const B = actor==='player' ? state.enemy  : state.player;
+function applyAction(state, actor, card) {
+  const A = actor === 'player' ? state.player : state.enemy;
+  const B = actor === 'player' ? state.enemy : state.player;
   const events = [];
 
-  if(card.type==='defense'){
+  if (card.type === 'defense') {
     const prev = A.block || 0;
     const added = card.block || 0;
     const after = prev + added;
     A.def = true; A.block = after;
-    if(card.counter!==undefined){ A.counter = card.counter || 0; }
-    const who = actor==='player' ? '플레이어' : '몬스터';
-    const msg = prev===0 ? `${who} • 🛡️ +${added} = ${after}` : `${who} • 🛡️ ${prev} + ${added} = ${after}`;
-    events.push({ actor, card:card.name, type:'defense', msg });
-    state.log.push(`${actor==='player'?'🔵':'👾'} ${card.name} → ${msg}`);
-    return { dealt:0, taken:0, events };
+    if (card.counter !== undefined) { A.counter = card.counter || 0; }
+    const who = actor === 'player' ? '플레이어' : '몬스터';
+    const msg = prev === 0 ? `${who} • 🛡️ +${added} = ${after}` : `${who} • 🛡️ ${prev} + ${added} = ${after}`;
+    events.push({ actor, card: card.name, type: 'defense', msg });
+    state.log.push(`${actor === 'player' ? '🔵' : '👾'} ${card.name} → ${msg}`);
+    return { dealt: 0, taken: 0, events };
   }
 
-  if(card.type==='attack'){
+  if (card.type === 'attack') {
     let totalDealt = 0, totalTaken = 0;
     const hits = card.hits || 1;
 
-    for(let i=0;i<hits;i++){
+    for (let i = 0; i < hits; i++) {
       const base = card.damage;
+      const strengthBonus = A.strength || 0; // Strength 보너스
       const boost = (A.etherOverdriveActive) ? 2 : 1;
-      let dmg = base * boost;
+      let dmg = (base + strengthBonus) * boost; // base에 strength 추가 후 boost 적용
 
       // 분쇄 (crush) 특성: 방어력에 2배 피해
       const crushMultiplier = hasTrait(card, 'crush') ? 2 : 1;
 
-      if(B.def && (B.block||0) > 0){
+      if (B.def && (B.block || 0) > 0) {
         const beforeBlock = B.block;
         const effectiveDmg = dmg * crushMultiplier; // 분쇄 적용
-        if(effectiveDmg < beforeBlock){
+        if (effectiveDmg < beforeBlock) {
           const remaining = beforeBlock - effectiveDmg;
           B.block = remaining; dmg = 0;
           A.vulnMult = 1 + (remaining * 0.5); A.vulnTurns = 1;
           const crushText = crushMultiplier > 1 ? ' [분쇄×2]' : '';
-          const formula = `(방어력 ${beforeBlock} - 공격력 ${base}${boost>1?'×2':''}${crushText} = ${remaining})`;
-          const msg = `${actor==='player' ? '플레이어 -> 몬스터' : '몬스터 -> 플레이어'} • 차단 성공 ${formula} + 취약 ×${A.vulnMult.toFixed(1)}`;
-          events.push({ actor, card:card.name, type:'blocked', msg });
-          state.log.push(`${actor==='player'?'🔵':'👾'} ${card.name} → ${msg}`);
+          const formula = `(방어력 ${beforeBlock} - 공격력 ${base}${boost > 1 ? '×2' : ''}${crushText} = ${remaining})`;
+          const msg = `${actor === 'player' ? '플레이어 -> 몬스터' : '몬스터 -> 플레이어'} • 차단 성공 ${formula} + 취약 ×${A.vulnMult.toFixed(1)}`;
+          events.push({ actor, card: card.name, type: 'blocked', msg });
+          state.log.push(`${actor === 'player' ? '🔵' : '👾'} ${card.name} → ${msg}`);
         } else {
           const blocked = beforeBlock;
           const remained = Math.max(0, effectiveDmg - blocked);
           const crushText = crushMultiplier > 1 ? ' [분쇄×2]' : '';
-          const formula = `(방어력 ${blocked} - 공격력 ${base}${boost>1?'×2':''}${crushText} = 0)`;
+          const formula = `(방어력 ${blocked} - 공격력 ${base}${boost > 1 ? '×2' : ''}${crushText} = 0)`;
           B.block = 0;
-          const vulnMul = (B.vulnMult && B.vulnMult>1) ? B.vulnMult : 1;
+          const vulnMul = (B.vulnMult && B.vulnMult > 1) ? B.vulnMult : 1;
           const finalDmg = Math.floor(remained * vulnMul);
           const beforeHP = B.hp; B.hp = Math.max(0, B.hp - finalDmg);
-          const msg = `${actor==='player' ? '플레이어 -> 몬스터' : '몬스터 -> 플레이어'} • 차단 ${blocked} ${formula}, 관통 ${finalDmg} (체력 ${beforeHP} -> ${B.hp})`;
-          events.push({ actor, card:card.name, type:'pierce', dmg:finalDmg, beforeHP, afterHP:B.hp, msg });
-          state.log.push(`${actor==='player'?'🔵':'👾'} ${card.name} → ${msg}`);
-          if(B.counter && finalDmg>0){
+          const msg = `${actor === 'player' ? '플레이어 -> 몬스터' : '몬스터 -> 플레이어'} • 차단 ${blocked} ${formula}, 관통 ${finalDmg} (체력 ${beforeHP} -> ${B.hp})`;
+          events.push({ actor, card: card.name, type: 'pierce', dmg: finalDmg, beforeHP, afterHP: B.hp, msg });
+          state.log.push(`${actor === 'player' ? '🔵' : '👾'} ${card.name} → ${msg}`);
+          if (B.counter && finalDmg > 0) {
             const beforeAHP = A.hp; A.hp = Math.max(0, A.hp - B.counter); totalTaken += B.counter;
-            const cmsg = `${actor==='player' ? '몬스터 -> 플레이어' : '플레이어 -> 몬스터'} • 반격 ${B.counter} (체력 ${beforeAHP} -> ${A.hp})`;
-            events.push({ actor:'counter', value:B.counter, msg:cmsg });
-            state.log.push(`${actor==='player'?'🔵':'👾'} ${cmsg}`);
+            const cmsg = `${actor === 'player' ? '몬스터 -> 플레이어' : '플레이어 -> 몬스터'} • 반격 ${B.counter} (체력 ${beforeAHP} -> ${A.hp})`;
+            events.push({ actor: 'counter', value: B.counter, msg: cmsg });
+            state.log.push(`${actor === 'player' ? '🔵' : '👾'} ${cmsg}`);
           }
           totalDealt += finalDmg;
         }
       } else {
-        const vulnMul = (B.vulnMult && B.vulnMult>1) ? B.vulnMult : 1;
+        const vulnMul = (B.vulnMult && B.vulnMult > 1) ? B.vulnMult : 1;
         const finalDmg = Math.floor(dmg * vulnMul);
         const beforeHP = B.hp; B.hp = Math.max(0, B.hp - finalDmg);
-        const msg = `${actor==='player' ? '플레이어 -> 몬스터' : '몬스터 -> 플레이어'} • 데미지 ${finalDmg}${boost>1?' (에테르 폭주×2)':''} (체력 ${beforeHP} -> ${B.hp})`;
-        events.push({ actor, card:card.name, type:'hit', dmg:finalDmg, beforeHP, afterHP:B.hp, msg });
-        state.log.push(`${actor==='player'?'🔵':'👾'} ${card.name} → ${msg}`);
-        if(B.counter && finalDmg>0){
+        const msg = `${actor === 'player' ? '플레이어 -> 몬스터' : '몬스터 -> 플레이어'} • 데미지 ${finalDmg}${boost > 1 ? ' (에테르 폭주×2)' : ''} (체력 ${beforeHP} -> ${B.hp})`;
+        events.push({ actor, card: card.name, type: 'hit', dmg: finalDmg, beforeHP, afterHP: B.hp, msg });
+        state.log.push(`${actor === 'player' ? '🔵' : '👾'} ${card.name} → ${msg}`);
+        if (B.counter && finalDmg > 0) {
           const beforeAHP = A.hp; A.hp = Math.max(0, A.hp - B.counter); totalTaken += B.counter;
-          const cmsg = `${actor==='player'?'몬스터→플레이어':'플레이어→몬스터'} • 반격 ${B.counter} (체력 ${beforeAHP} -> ${A.hp})`;
-          events.push({ actor:'counter', value:B.counter, msg:cmsg });
-          state.log.push(`${actor==='player'?'🔵':'👾'} ${cmsg}`);
+          const cmsg = `${actor === 'player' ? '몬스터→플레이어' : '플레이어→몬스터'} • 반격 ${B.counter} (체력 ${beforeAHP} -> ${A.hp})`;
+          events.push({ actor: 'counter', value: B.counter, msg: cmsg });
+          state.log.push(`${actor === 'player' ? '🔵' : '👾'} ${cmsg}`);
         }
         totalDealt += finalDmg;
       }
@@ -369,129 +370,129 @@ function applyAction(state, actor, card){
     return { dealt: totalDealt, taken: totalTaken, events };
   }
 
-  return { dealt:0, taken:0, events };
+  return { dealt: 0, taken: 0, events };
 }
 
 // AI: 성향 결정 & 행동 생성
-function decideEnemyMode(){
+function decideEnemyMode() {
   return choice([
-    {name:'공격적', key:'aggro',    prefer:'attack'},
-    {name:'수비적', key:'turtle',   prefer:'defense'},
-    {name:'균형적', key:'balanced', prefer:'mixed'}
+    { name: '공격적', key: 'aggro', prefer: 'attack' },
+    { name: '수비적', key: 'turtle', prefer: 'defense' },
+    { name: '균형적', key: 'balanced', prefer: 'mixed' }
   ]);
 }
 
-function combosUpTo3(arr){
-  const out=[]; const n=arr.length;
-  for(let i=0;i<n;i++){
+function combosUpTo3(arr) {
+  const out = []; const n = arr.length;
+  for (let i = 0; i < n; i++) {
     out.push([arr[i]]);
-    for(let j=i+1;j<n;j++){
-      out.push([arr[i],arr[j]]);
-      for(let k=j+1;k<n;k++) out.push([arr[i],arr[j],arr[k]]);
+    for (let j = i + 1; j < n; j++) {
+      out.push([arr[i], arr[j]]);
+      for (let k = j + 1; k < n; k++) out.push([arr[i], arr[j], arr[k]]);
     }
   }
   return out;
 }
 
-function generateEnemyActions(enemy, mode, enemyEtherSlots=0){
-  if(!enemy) return [];
-  const energyBudget = BASE_PLAYER_ENERGY + (enemyEtherSlots||0);
-  const deck = (enemy.deck||[])
-    .map(id=>ENEMY_CARDS.find(c=>c.id===id))
+function generateEnemyActions(enemy, mode, enemyEtherSlots = 0) {
+  if (!enemy) return [];
+  const energyBudget = BASE_PLAYER_ENERGY + (enemyEtherSlots || 0);
+  const deck = (enemy.deck || [])
+    .map(id => ENEMY_CARDS.find(c => c.id === id))
     .filter(Boolean);
-  if(deck.length===0) return [];
+  if (deck.length === 0) return [];
 
-  const half = Math.ceil(energyBudget/2);
-  const candidates = combosUpTo3(deck).filter(cards=>{
-    const sp = cards.reduce((s,c)=>s+c.speedCost,0);
-    const en = cards.reduce((s,c)=>s+c.actionCost,0);
-    return sp<=MAX_SPEED && en<=energyBudget;
+  const half = Math.ceil(energyBudget / 2);
+  const candidates = combosUpTo3(deck).filter(cards => {
+    const sp = cards.reduce((s, c) => s + c.speedCost, 0);
+    const en = cards.reduce((s, c) => s + c.actionCost, 0);
+    return sp <= MAX_SPEED && en <= energyBudget;
   });
 
-  function stat(list){
-    const atk = list.filter(c=>c.type==='attack').reduce((a,c)=>a+c.actionCost,0);
-    const def = list.filter(c=>c.type==='defense').reduce((a,c)=>a+c.actionCost,0);
-    const dmg = list.filter(c=>c.type==='attack').reduce((a,c)=>a + (c.damage||0)*(c.hits||1),0);
-    const blk = list.filter(c=>c.type==='defense').reduce((a,c)=>a + (c.block||0),0);
-    const sp  = list.reduce((a,c)=>a+c.speedCost,0);
-    const en  = list.reduce((a,c)=>a+c.actionCost,0);
-    return {atk,def,dmg,blk,sp,en};
+  function stat(list) {
+    const atk = list.filter(c => c.type === 'attack').reduce((a, c) => a + c.actionCost, 0);
+    const def = list.filter(c => c.type === 'defense').reduce((a, c) => a + c.actionCost, 0);
+    const dmg = list.filter(c => c.type === 'attack').reduce((a, c) => a + (c.damage || 0) * (c.hits || 1), 0);
+    const blk = list.filter(c => c.type === 'defense').reduce((a, c) => a + (c.block || 0), 0);
+    const sp = list.reduce((a, c) => a + c.speedCost, 0);
+    const en = list.reduce((a, c) => a + c.actionCost, 0);
+    return { atk, def, dmg, blk, sp, en };
   }
 
-  function satisfies(m,list){
+  function satisfies(m, list) {
     const s = stat(list);
-    if(m?.key==='aggro') return s.atk >= half;
-    if(m?.key==='turtle') return s.def >= half;
-    if(m?.key==='balanced') return s.atk === s.def;
+    if (m?.key === 'aggro') return s.atk >= half;
+    if (m?.key === 'turtle') return s.def >= half;
+    if (m?.key === 'balanced') return s.atk === s.def;
     return true;
   }
 
-  function score(m,list){
+  function score(m, list) {
     const s = stat(list);
-    let base=0;
-    if(m?.key==='aggro') base = s.atk*100 + s.dmg*10 - s.sp;
-    else if(m?.key==='turtle') base = s.def*100 + s.blk*10 - s.sp;
-    else base = (s.dmg+s.blk)*10 - s.sp;
+    let base = 0;
+    if (m?.key === 'aggro') base = s.atk * 100 + s.dmg * 10 - s.sp;
+    else if (m?.key === 'turtle') base = s.def * 100 + s.blk * 10 - s.sp;
+    else base = (s.dmg + s.blk) * 10 - s.sp;
     return base;
   }
 
-  const satisfied = candidates.filter(c=>satisfies(mode,c));
-  if(satisfied.length>0){
-    satisfied.sort((a,b)=>{
-      if(a.length!==b.length) return a.length - b.length;
-      const sa=score(mode,a), sb=score(mode,b);
-      if(sa!==sb) return sb-sa;
-      const saStat=stat(a), sbStat=stat(b);
-      if(saStat.sp!==sbStat.sp) return saStat.sp - sbStat.sp;
-      if(saStat.en!==sbStat.en) return saStat.en - sbStat.en;
-      const aKey=a.map(c=>c.id).join(','), bKey=b.map(c=>c.id).join(',');
-      return aKey<bKey? -1 : aKey>bKey? 1 : 0;
+  const satisfied = candidates.filter(c => satisfies(mode, c));
+  if (satisfied.length > 0) {
+    satisfied.sort((a, b) => {
+      if (a.length !== b.length) return a.length - b.length;
+      const sa = score(mode, a), sb = score(mode, b);
+      if (sa !== sb) return sb - sa;
+      const saStat = stat(a), sbStat = stat(b);
+      if (saStat.sp !== sbStat.sp) return saStat.sp - sbStat.sp;
+      if (saStat.en !== sbStat.en) return saStat.en - sbStat.en;
+      const aKey = a.map(c => c.id).join(','), bKey = b.map(c => c.id).join(',');
+      return aKey < bKey ? -1 : aKey > bKey ? 1 : 0;
     });
     return satisfied[0];
   }
 
-  if(candidates.length>0){
-    candidates.sort((a,b)=> score(mode,b)-score(mode,a));
+  if (candidates.length > 0) {
+    candidates.sort((a, b) => score(mode, b) - score(mode, a));
     return candidates[0];
   }
   const single = deck
-    .filter(c=>c.speedCost<=MAX_SPEED && c.actionCost<=energyBudget)
-    .sort((a,b)=> a.speedCost-b.speedCost || a.actionCost-b.actionCost)[0];
+    .filter(c => c.speedCost <= MAX_SPEED && c.actionCost <= energyBudget)
+    .sort((a, b) => a.speedCost - b.speedCost || a.actionCost - b.actionCost)[0];
   return single ? [single] : [];
 }
 
-function shouldEnemyOverdrive(mode, actions, etherPts){
+function shouldEnemyOverdrive(mode, actions, etherPts) {
   const slots = etherSlots(etherPts);
-  if(slots<=0) return false;
-  if(!mode) return false;
-  if(mode.key==='aggro') return true;
-  if(mode.key==='balanced') return (actions||[]).some(c=>c.type==='attack');
+  if (slots <= 0) return false;
+  if (!mode) return false;
+  if (mode.key === 'aggro') return true;
+  if (mode.key === 'balanced') return (actions || []).some(c => c.type === 'attack');
   return false;
 }
 
-function simulatePreview({player, enemy, fixedOrder, willOverdrive, enemyMode, enemyActions}){
-  if(!fixedOrder || fixedOrder.length===0){
-    return { pDealt:0, pTaken:0, finalPHp:player.hp, finalEHp:enemy.hp, lines:[] };
+function simulatePreview({ player, enemy, fixedOrder, willOverdrive, enemyMode, enemyActions }) {
+  if (!fixedOrder || fixedOrder.length === 0) {
+    return { pDealt: 0, pTaken: 0, finalPHp: player.hp, finalEHp: enemy.hp, lines: [] };
   }
   const enemyWillOD = shouldEnemyOverdrive(enemyMode, enemyActions, enemy.etherPts);
-  const P = { ...player, def:false, block:0, counter:0, etherOverdriveActive: !!willOverdrive };
-  const E = { ...enemy,  def:false, block:0, counter:0, etherOverdriveActive: enemyWillOD };
-  const st = { player:P, enemy:E, log:[] };
-  let pDealt=0, pTaken=0; const lines=[];
-  for(const step of fixedOrder){
-    const {events, dealt} = applyAction(st, step.actor, step.card);
-    if(step.actor==='player') pDealt += dealt; else pTaken += dealt;
-    events.forEach(ev=> lines.push(ev.msg));
-    if(st.player.hp<=0 || st.enemy.hp<=0) break;
+  const P = { ...player, def: false, block: 0, counter: 0, etherOverdriveActive: !!willOverdrive };
+  const E = { ...enemy, def: false, block: 0, counter: 0, etherOverdriveActive: enemyWillOD };
+  const st = { player: P, enemy: E, log: [] };
+  let pDealt = 0, pTaken = 0; const lines = [];
+  for (const step of fixedOrder) {
+    const { events, dealt } = applyAction(st, step.actor, step.card);
+    if (step.actor === 'player') pDealt += dealt; else pTaken += dealt;
+    events.forEach(ev => lines.push(ev.msg));
+    if (st.player.hp <= 0 || st.enemy.hp <= 0) break;
   }
   return { pDealt, pTaken, finalPHp: st.player.hp, finalEHp: st.enemy.hp, lines };
 }
 
-function ExpectedDamagePreview({player, enemy, fixedOrder, willOverdrive, enemyMode, enemyActions, phase, log, qIndex, queue, stepOnce, runAll, finishTurn, postCombatOptions, handleExitToMap}){
-  const res = useMemo(()=> simulatePreview({player, enemy, fixedOrder, willOverdrive, enemyMode, enemyActions}), [player, enemy, fixedOrder, willOverdrive, enemyMode, enemyActions]);
+function ExpectedDamagePreview({ player, enemy, fixedOrder, willOverdrive, enemyMode, enemyActions, phase, log, qIndex, queue, stepOnce, runAll, finishTurn, postCombatOptions, handleExitToMap }) {
+  const res = useMemo(() => simulatePreview({ player, enemy, fixedOrder, willOverdrive, enemyMode, enemyActions }), [player, enemy, fixedOrder, willOverdrive, enemyMode, enemyActions]);
   const summaryItems = [
-    { icon:"🗡️", label:"예상 타격 피해", value: res.pDealt, accent:"text-emerald-300", hpInfo: `몬스터 HP ${enemy.hp} → ${res.finalEHp}`, hpColor: "#fca5a5" },
-    { icon:"💥", label:"예상 피격 피해", value: phase === 'select' ? '?' : res.pTaken, accent:"text-rose-300", hpInfo: `플레이어 HP ${player.hp} → ${res.finalPHp}`, hpColor: "#e2e8f0" },
+    { icon: "🗡️", label: "예상 타격 피해", value: res.pDealt, accent: "text-emerald-300", hpInfo: `몬스터 HP ${enemy.hp} → ${res.finalEHp}`, hpColor: "#fca5a5" },
+    { icon: "💥", label: "예상 피격 피해", value: phase === 'select' ? '?' : res.pTaken, accent: "text-rose-300", hpInfo: `플레이어 HP ${player.hp} → ${res.finalPHp}`, hpColor: "#e2e8f0" },
   ];
 
   const phaseLabel = phase === 'select' ? '선택 단계' : phase === 'respond' ? '대응 단계' : '진행 단계';
@@ -505,23 +506,23 @@ function ExpectedDamagePreview({player, enemy, fixedOrder, willOverdrive, enemyM
   }, [log, phase]);
 
   return (
-    <div className="expect-board expect-board-vertical" style={{position: 'relative'}}>
+    <div className="expect-board expect-board-vertical" style={{ position: 'relative' }}>
       {/* 타이틀 */}
-      <div style={{marginBottom: '16px', paddingBottom: '12px', borderBottom: '2px solid rgba(148, 163, 184, 0.3)'}}>
-        <div style={{fontSize: '18px', fontWeight: 'bold', color: '#f8fafc'}}>
+      <div style={{ marginBottom: '16px', paddingBottom: '12px', borderBottom: '2px solid rgba(148, 163, 184, 0.3)' }}>
+        <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#f8fafc' }}>
           예상 피해량
         </div>
       </div>
 
       <div className="expect-summary-vertical">
-        {summaryItems.map((item)=>(
+        {summaryItems.map((item) => (
           <div key={item.label} className="expect-item-vertical">
             <span className="expect-icon">{item.icon}</span>
             <div>
               <div className="expect-label">{item.label}</div>
               <div className={`expect-value ${item.accent}`}>{item.value}</div>
               {item.hpInfo && (
-                <div style={{fontSize: '13px', fontWeight: 'bold', color: item.hpColor, marginTop: '4px'}}>
+                <div style={{ fontSize: '13px', fontWeight: 'bold', color: item.hpColor, marginTop: '4px' }}>
                   {item.hpInfo}
                 </div>
               )}
@@ -532,8 +533,8 @@ function ExpectedDamagePreview({player, enemy, fixedOrder, willOverdrive, enemyM
 
       {/* 진행 단계가 아닐 때만 예상 피해량 로그 표시 */}
       {phase !== 'resolve' && !!res.lines?.length && (
-        <div style={{marginTop: '20px', paddingTop: '16px', borderTop: '1px solid rgba(148, 163, 184, 0.15)'}}>
-          {res.lines.map((line,idx)=>{
+        <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px solid rgba(148, 163, 184, 0.15)' }}>
+          {res.lines.map((line, idx) => {
             // 몬스터로 시작하는 텍스트 감지
             const startsWithMonster = line.trim().startsWith('몬스터');
             const isPlayerAction = line.includes('플레이어 ->') || line.includes('플레이어→') || line.includes('플레이어 •');
@@ -543,7 +544,7 @@ function ExpectedDamagePreview({player, enemy, fixedOrder, willOverdrive, enemyM
                 color: startsWithMonster ? '#fca5a5' : isPlayerAction ? '#60a5fa' : '#cbd5e1',
                 marginBottom: '6px'
               }}>
-                <span style={{color: '#94a3b8', marginRight: '4px'}}>{idx + 1}.</span>
+                <span style={{ color: '#94a3b8', marginRight: '4px' }}>{idx + 1}.</span>
                 {line}
               </div>
             );
@@ -553,11 +554,11 @@ function ExpectedDamagePreview({player, enemy, fixedOrder, willOverdrive, enemyM
 
       {/* 진행 단계 전투 로그 */}
       {phase === 'resolve' && log && log.length > 0 && (
-        <div style={{marginTop: '20px', paddingTop: '16px', borderTop: '2px solid rgba(148, 163, 184, 0.3)'}}>
-          <div style={{fontSize: '15px', fontWeight: 'bold', color: '#f8fafc', marginBottom: '12px'}}>
+        <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '2px solid rgba(148, 163, 184, 0.3)' }}>
+          <div style={{ fontSize: '15px', fontWeight: 'bold', color: '#f8fafc', marginBottom: '12px' }}>
             🎮 전투 로그
           </div>
-          <div ref={logContainerRef} style={{height: '360px', minHeight: '360px', maxHeight: '360px', overflowY: 'auto'}}>
+          <div ref={logContainerRef} style={{ height: '360px', minHeight: '360px', maxHeight: '360px', overflowY: 'auto' }}>
             {log.filter(line => {
               // 불필요한 로그 제거
               if (line.includes('게임 시작') || line.includes('적 성향 힌트')) return false;
@@ -596,17 +597,17 @@ function ExpectedDamagePreview({player, enemy, fixedOrder, willOverdrive, enemyM
           background: 'rgba(7, 11, 30, 0.98)',
           borderTop: '2px solid rgba(148, 163, 184, 0.3)'
         }}>
-          <div style={{fontSize: '18px', fontWeight: 'bold', color: '#f8fafc'}}>
+          <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#f8fafc' }}>
             ⚔️ 전투 진행 중... ({qIndex}/{queue?.length || 0})
           </div>
-          <button onClick={stepOnce} disabled={qIndex>=queue.length} className="btn-enhanced flex items-center gap-2">
-            <StepForward size={18}/> 한 단계 (E)
+          <button onClick={stepOnce} disabled={qIndex >= queue.length} className="btn-enhanced flex items-center gap-2">
+            <StepForward size={18} /> 한 단계 (E)
           </button>
-          <button onClick={runAll} disabled={qIndex>=queue.length} className="btn-enhanced btn-primary">
+          <button onClick={runAll} disabled={qIndex >= queue.length} className="btn-enhanced btn-primary">
             전부 실행 (D)
           </button>
           {qIndex >= queue.length && (
-            <button onClick={()=>finishTurn('수동 턴 종료')} className="btn-enhanced flex items-center gap-2">
+            <button onClick={() => finishTurn('수동 턴 종료')} className="btn-enhanced flex items-center gap-2">
               ⏭️ 턴 종료 (E)
             </button>
           )}
@@ -633,7 +634,7 @@ function ExpectedDamagePreview({player, enemy, fixedOrder, willOverdrive, enemyM
   );
 }
 
-function EtherBar({ pts, slots, previewGain=0, color="cyan", label }){
+function EtherBar({ pts, slots, previewGain = 0, color = "cyan", label }) {
   const safePts = Number.isFinite(pts) ? pts : 0;
   const derivedSlots = Number.isFinite(slots) ? slots : etherSlots(safePts);
   const safeSlots = Number.isFinite(derivedSlots) ? derivedSlots : 0;
@@ -788,14 +789,14 @@ function drawCharacterBuildHand(characterBuild, nextTurnEffects = {}, previousHa
 // =====================
 // Game Component
 // =====================
-function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
+function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) {
   const safeInitialPlayer = initialPlayer || {};
   const safeInitialEnemy = initialEnemy || {};
   const baseEnergy = safeInitialPlayer.energy ?? BASE_PLAYER_ENERGY;
   const startingEther = typeof safeInitialPlayer.etherPts === 'number' ? safeInitialPlayer.etherPts : playerEther;
-  const [player, setPlayer] = useState({ hp:safeInitialPlayer.hp ?? 30, maxHp:safeInitialPlayer.maxHp ?? safeInitialPlayer.hp ?? 30, energy:baseEnergy, maxEnergy:baseEnergy, vulnMult:1, vulnTurns:0, block:0, counter:0, etherPts:startingEther ?? 0, etherOverdriveActive:false, comboUsageCount: {} });
+  const [player, setPlayer] = useState({ hp: safeInitialPlayer.hp ?? 30, maxHp: safeInitialPlayer.maxHp ?? safeInitialPlayer.hp ?? 30, energy: baseEnergy, maxEnergy: baseEnergy, vulnMult: 1, vulnTurns: 0, block: 0, counter: 0, etherPts: startingEther ?? 0, etherOverdriveActive: false, comboUsageCount: {} });
   const [enemyIndex, setEnemyIndex] = useState(0);
-  const [enemy, setEnemy] = useState(()=> safeInitialEnemy?.name ? ({ ...safeInitialEnemy, hp: safeInitialEnemy.hp ?? safeInitialEnemy.maxHp ?? 30, maxHp: safeInitialEnemy.maxHp ?? safeInitialEnemy.hp ?? 30, vulnMult:1, vulnTurns:0, block:0, counter:0, etherPts:0, etherOverdriveActive:false }) : null);
+  const [enemy, setEnemy] = useState(() => safeInitialEnemy?.name ? ({ ...safeInitialEnemy, hp: safeInitialEnemy.hp ?? safeInitialEnemy.maxHp ?? 30, maxHp: safeInitialEnemy.maxHp ?? safeInitialEnemy.hp ?? 30, vulnMult: 1, vulnTurns: 0, block: 0, counter: 0, etherPts: 0, etherOverdriveActive: false }) : null);
 
   const [phase, setPhase] = useState('select');
 
@@ -810,7 +811,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
     }
   }); // speed, energy, value, type
 
-  const [enemyPlan, setEnemyPlan] = useState({ actions:[], mode:null });
+  const [enemyPlan, setEnemyPlan] = useState({ actions: [], mode: null });
   const [fixedOrder, setFixedOrder] = useState(null);
 
   const [postCombatOptions, setPostCombatOptions] = useState(null);
@@ -853,8 +854,8 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
   const logEndRef = useRef(null);
   const initialEtherRef = useRef(typeof safeInitialPlayer.etherPts === 'number' ? safeInitialPlayer.etherPts : (playerEther ?? 0));
   const resultSentRef = useRef(false);
-  const notifyBattleResult = useCallback((resultType)=>{
-    if(!resultType || resultSentRef.current) return;
+  const notifyBattleResult = useCallback((resultType) => {
+    if (!resultType || resultSentRef.current) return;
     const finalEther = player.etherPts;
     const delta = finalEther - (initialEtherRef.current ?? 0);
     onBattleResult?.({
@@ -869,39 +870,40 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
     setShowCharacterSheet(false);
   }, []);
 
-  const handleExitToMap = ()=>{
-    const outcome = postCombatOptions?.type || (enemy && enemy.hp<=0 ? 'victory' : (player && player.hp<=0 ? 'defeat' : null));
-    if(!outcome) return;
+  const handleExitToMap = () => {
+    const outcome = postCombatOptions?.type || (enemy && enemy.hp <= 0 ? 'victory' : (player && player.hp <= 0 ? 'defeat' : null));
+    if (!outcome) return;
     const sent = notifyBattleResult(outcome);
-    if(!sent && typeof window !== 'undefined' && window.top === window){
+    if (!sent && typeof window !== 'undefined' && window.top === window) {
       window.location.href = '/';
     }
   };
 
-  useEffect(()=>{
+  useEffect(() => {
     logEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [log]);
 
-  useEffect(()=>{
+  useEffect(() => {
     const nextEther = typeof safeInitialPlayer?.etherPts === 'number'
       ? safeInitialPlayer.etherPts
       : (playerEther ?? player.etherPts);
     initialEtherRef.current = nextEther;
     resultSentRef.current = false;
-    setPlayer(prev=>({
+    setPlayer(prev => ({
       ...prev,
       hp: safeInitialPlayer?.hp ?? prev.hp,
       maxHp: safeInitialPlayer?.maxHp ?? prev.maxHp,
       energy: safeInitialPlayer?.energy ?? prev.energy,
       maxEnergy: safeInitialPlayer?.energy ?? prev.maxEnergy,
-      etherPts: nextEther
+      etherPts: nextEther,
+      strength: 0  // Strength 초기화
     }));
     setSelected([]);
     setQueue([]);
     setQIndex(0);
     setFixedOrder(null);
     setPostCombatOptions(null);
-    setEnemyPlan({ actions:[], mode:null });
+    setEnemyPlan({ actions: [], mode: null });
     setPhase('select');
     // 캐릭터 빌드가 있으면 사용, 없으면 기본 8장
     const currentBuild = useGameStore.getState().characterBuild;
@@ -913,21 +915,21 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
     setCanRedraw(true);
   }, [safeInitialPlayer, playerEther, addLog]);
 
-  useEffect(()=>{
-    if(!safeInitialEnemy) return;
+  useEffect(() => {
+    if (!safeInitialEnemy) return;
     const hp = safeInitialEnemy.hp ?? safeInitialEnemy.maxHp ?? enemy?.maxHp ?? 30;
-    setEnemy(prev=>({
-      ...(prev||{}),
+    setEnemy(prev => ({
+      ...(prev || {}),
       deck: safeInitialEnemy.deck || prev?.deck || ENEMIES[enemyIndex]?.deck || [],
       name: safeInitialEnemy.name ?? prev?.name ?? '적',
       hp,
       maxHp: safeInitialEnemy.maxHp ?? hp,
-      vulnMult:1,
-      vulnTurns:0,
-      block:0,
-      counter:0,
-      etherPts:0,
-      etherOverdriveActive:false
+      vulnMult: 1,
+      vulnTurns: 0,
+      block: 0,
+      counter: 0,
+      etherPts: 0,
+      etherOverdriveActive: false
     }));
     setSelected([]);
     setQueue([]);
@@ -936,8 +938,8 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
     setPhase('select');
   }, [safeInitialEnemy, enemyIndex]);
 
-  useEffect(()=>{
-    if(postCombatOptions?.type){
+  useEffect(() => {
+    if (postCombatOptions?.type) {
       notifyBattleResult(postCombatOptions.type);
     }
   }, [postCombatOptions, notifyBattleResult]);
@@ -963,7 +965,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
         e.preventDefault();
         setIsSimplified((prev) => {
           const newVal = !prev;
-          try { localStorage.setItem('battleIsSimplified', newVal.toString()); } catch {}
+          try { localStorage.setItem('battleIsSimplified', newVal.toString()); } catch { }
           return newVal;
         });
       }
@@ -1019,10 +1021,10 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase, selected, canRedraw, player.etherPts, sortType]); // sortType 추가
 
-  useEffect(()=>{
-    if(!enemy){
+  useEffect(() => {
+    if (!enemy) {
       const e = ENEMIES[enemyIndex];
-      setEnemy({ ...e, hp:e.hp, maxHp:e.hp, vulnMult:1, vulnTurns:0, block:0, counter:0, etherPts:0, etherOverdriveActive:false });
+      setEnemy({ ...e, hp: e.hp, maxHp: e.hp, vulnMult: 1, vulnTurns: 0, block: 0, counter: 0, etherPts: 0, etherOverdriveActive: false });
       // 캐릭터 빌드가 있으면 사용, 없으면 기본 8장
       const currentBuild = useGameStore.getState().characterBuild;
       const hasCharacterBuild = currentBuild && (currentBuild.mainSpecials?.length > 0 || currentBuild.subSpecials?.length > 0);
@@ -1035,10 +1037,10 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
       const handCount = initialHand.length;
       addLog(`🎴 시작 손패 ${handCount}장${hasCharacterBuild ? ' (캐릭터 빌드)' : ''}`);
     }
-  },[]);
+  }, []);
 
-  useEffect(()=>{
-    if(!enemy || phase!=='select') return;
+  useEffect(() => {
+    if (!enemy || phase !== 'select') return;
     setFixedOrder(null);
     setActionEvents({});
     setCanRedraw(true);
@@ -1050,7 +1052,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
     const energyPenalty = nextTurnEffects.energyPenalty || 0;
     const finalEnergy = Math.max(0, baseEnergy + energyBonus - energyPenalty);
 
-    setPlayer(p=>({ ...p, energy: finalEnergy, etherOverdriveActive:false }));
+    setPlayer(p => ({ ...p, energy: finalEnergy, etherOverdriveActive: false }));
 
     // 매 턴 시작 시 새로운 손패 생성 (캐릭터 빌드 및 특성 효과 적용)
     const currentBuild = useGameStore.getState().characterBuild;
@@ -1063,104 +1065,104 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
     });
     setSelected([]);
 
-    setEnemyPlan(prev=>{
-      if(prev.mode){
-        return { ...prev, actions:[] };
+    setEnemyPlan(prev => {
+      if (prev.mode) {
+        return { ...prev, actions: [] };
       } else {
         const mode = decideEnemyMode();
         addLog(`🤖 적 성향 힌트: ${mode.name}`);
-        return { actions:[], mode };
+        return { actions: [], mode };
       }
     });
   }, [phase, enemy, enemyPlan.mode, nextTurnEffects, player.etherPts]);
 
-  useEffect(()=>{
-    if(phase==='resolve' && (!queue || queue.length===0) && fixedOrder && fixedOrder.length>0){
-      const rebuilt = fixedOrder.map(x=>({ actor:x.actor, card:x.card, sp:x.sp }));
+  useEffect(() => {
+    if (phase === 'resolve' && (!queue || queue.length === 0) && fixedOrder && fixedOrder.length > 0) {
+      const rebuilt = fixedOrder.map(x => ({ actor: x.actor, card: x.card, sp: x.sp }));
       setQueue(rebuilt); setQIndex(0);
       addLog('🧯 자동 복구: 실행 큐를 다시 생성했습니다');
     }
   }, [phase, queue, fixedOrder]);
 
-  const totalEnergy = useMemo(()=>selected.reduce((s,c)=>s+c.actionCost,0),[selected]);
-  const totalSpeed  = useMemo(()=>selected.reduce((s,c)=>s+c.speedCost ,0),[selected]);
-  const currentCombo = useMemo(()=>{
+  const totalEnergy = useMemo(() => selected.reduce((s, c) => s + c.actionCost, 0), [selected]);
+  const totalSpeed = useMemo(() => selected.reduce((s, c) => s + c.speedCost, 0), [selected]);
+  const currentCombo = useMemo(() => {
     const combo = detectPokerCombo(selected);
     console.log('[currentCombo 업데이트]', {
       selectedCount: selected.length,
       comboName: combo?.name || 'null'
     });
     return combo;
-  },[selected]);
-  const pendingComboEther = useMemo(()=>{
-    if(!currentCombo) return { gain: 0, multiplier: 1, usageCount: 0 };
+  }, [selected]);
+  const pendingComboEther = useMemo(() => {
+    if (!currentCombo) return { gain: 0, multiplier: 1, usageCount: 0 };
     const baseGain = ETHER_GAIN_MAP[currentCombo.name] || 0;
     return applyEtherDeflation(baseGain, currentCombo.name, player.comboUsageCount || {});
   }, [currentCombo, player.comboUsageCount]);
 
-  const toggle = (card)=>{
-    if(phase!=='select' && phase!=='respond') return;
-    const exists = selected.some(s=>s.id===card.id);
-    if(phase==='respond'){
-      setSelected(prev=>{
+  const toggle = (card) => {
+    if (phase !== 'select' && phase !== 'respond') return;
+    const exists = selected.some(s => s.id === card.id);
+    if (phase === 'respond') {
+      setSelected(prev => {
         let next;
-        if(exists){
-          next = prev.filter(s=>!(s.__uid===card.__uid) && !(s.id===card.id && !('__uid' in s)));
+        if (exists) {
+          next = prev.filter(s => !(s.__uid === card.__uid) && !(s.id === card.id && !('__uid' in s)));
           playSound(400, 80); // 해지 사운드 (낮은 음)
         }
         else {
-          if(prev.length >= MAX_SUBMIT_CARDS){ addLog('⚠️ 최대 5장의 카드만 제출할 수 있습니다'); return prev; }
-          if(totalSpeed + card.speedCost > MAX_SPEED){ addLog('⚠️ 속도 초과'); return prev; }
-          if(totalEnergy + card.actionCost > (BASE_PLAYER_ENERGY + etherSlots(player.etherPts))){ addLog('⚠️ 행동력 부족'); return prev; }
-          next = [...prev, { ...card, __uid: Math.random().toString(36).slice(2)}];
+          if (prev.length >= MAX_SUBMIT_CARDS) { addLog('⚠️ 최대 5장의 카드만 제출할 수 있습니다'); return prev; }
+          if (totalSpeed + card.speedCost > MAX_SPEED) { addLog('⚠️ 속도 초과'); return prev; }
+          if (totalEnergy + card.actionCost > (BASE_PLAYER_ENERGY + etherSlots(player.etherPts))) { addLog('⚠️ 행동력 부족'); return prev; }
+          next = [...prev, { ...card, __uid: Math.random().toString(36).slice(2) }];
           playSound(800, 80); // 선택 사운드 (높은 음)
         }
         const combo = detectPokerCombo(next);
         const enhanced = applyPokerBonus(next, combo);
-        setFixedOrder(sortCombinedOrderStablePF(enhanced, enemyPlan.actions||[]));
+        setFixedOrder(sortCombinedOrderStablePF(enhanced, enemyPlan.actions || []));
         return next;
       });
       return;
     }
-    if(exists){
-      setSelected(selected.filter(s=>s.id!==card.id));
+    if (exists) {
+      setSelected(selected.filter(s => s.id !== card.id));
       playSound(400, 80); // 해지 사운드 (낮은 음)
       return;
     }
-    if(selected.length >= MAX_SUBMIT_CARDS) return addLog('⚠️ 최대 5장의 카드만 제출할 수 있습니다');
-    if(totalSpeed + card.speedCost > MAX_SPEED) return addLog('⚠️ 속도 초과');
-    if(totalEnergy + card.actionCost > (BASE_PLAYER_ENERGY + etherSlots(player.etherPts))) return addLog('⚠️ 행동력 부족');
-    setSelected([...selected, { ...card, __uid: Math.random().toString(36).slice(2)}]);
+    if (selected.length >= MAX_SUBMIT_CARDS) return addLog('⚠️ 최대 5장의 카드만 제출할 수 있습니다');
+    if (totalSpeed + card.speedCost > MAX_SPEED) return addLog('⚠️ 속도 초과');
+    if (totalEnergy + card.actionCost > (BASE_PLAYER_ENERGY + etherSlots(player.etherPts))) return addLog('⚠️ 행동력 부족');
+    setSelected([...selected, { ...card, __uid: Math.random().toString(36).slice(2) }]);
     playSound(800, 80); // 선택 사운드 (높은 음)
   };
 
-  const moveUp = (i)=>{
-    if(i===0) return;
-    if(phase==='respond'){
-      setSelected(prev=>{
-        const n=[...prev]; [n[i-1],n[i]]=[n[i],n[i-1]];
+  const moveUp = (i) => {
+    if (i === 0) return;
+    if (phase === 'respond') {
+      setSelected(prev => {
+        const n = [...prev];[n[i - 1], n[i]] = [n[i], n[i - 1]];
         const combo = detectPokerCombo(n);
         const enhanced = applyPokerBonus(n, combo);
-        setFixedOrder(sortCombinedOrderStablePF(enhanced, enemyPlan.actions||[]));
+        setFixedOrder(sortCombinedOrderStablePF(enhanced, enemyPlan.actions || []));
         return n;
       });
     } else {
-      const n=[...selected]; [n[i-1],n[i]]=[n[i],n[i-1]]; setSelected(n);
+      const n = [...selected];[n[i - 1], n[i]] = [n[i], n[i - 1]]; setSelected(n);
     }
   };
 
-  const moveDown = (i)=>{
-    if(i===selected.length-1) return;
-    if(phase==='respond'){
-      setSelected(prev=>{
-        const n=[...prev]; [n[i],n[i+1]]=[n[i+1],n[i]];
+  const moveDown = (i) => {
+    if (i === selected.length - 1) return;
+    if (phase === 'respond') {
+      setSelected(prev => {
+        const n = [...prev];[n[i], n[i + 1]] = [n[i + 1], n[i]];
         const combo = detectPokerCombo(n);
         const enhanced = applyPokerBonus(n, combo);
-        setFixedOrder(sortCombinedOrderStablePF(enhanced, enemyPlan.actions||[]));
+        setFixedOrder(sortCombinedOrderStablePF(enhanced, enemyPlan.actions || []));
         return n;
       });
     } else {
-      const n=[...selected]; [n[i],n[i+1]]=[n[i+1],n[i]]; setSelected(n);
+      const n = [...selected];[n[i], n[i + 1]] = [n[i + 1], n[i]]; setSelected(n);
     }
   };
 
@@ -1189,8 +1191,8 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
     }
   };
 
-  const redrawHand = ()=>{
-    if(!canRedraw) return addLog('🔒 이미 이번 턴 리드로우 사용됨');
+  const redrawHand = () => {
+    if (!canRedraw) return addLog('🔒 이미 이번 턴 리드로우 사용됨');
     // 캐릭터 빌드가 있으면 사용, 없으면 기본 8장
     const currentBuild = useGameStore.getState().characterBuild;
     const hasCharacterBuild = currentBuild && (currentBuild.mainSpecials?.length > 0 || currentBuild.subSpecials?.length > 0);
@@ -1212,7 +1214,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
     setSortType(nextSort);
     try {
       localStorage.setItem('battleSortType', nextSort);
-    } catch {}
+    } catch { }
 
     const sortLabels = {
       speed: '시간 기준 정렬',
@@ -1253,10 +1255,10 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
     return sorted;
   };
 
-  const startResolve = ()=>{
-    if(phase!=='select') return;
+  const startResolve = () => {
+    if (phase !== 'select') return;
     const actions = generateEnemyActions(enemy, enemyPlan.mode, etherSlots(enemy.etherPts));
-    setEnemyPlan(prev=>({ ...prev, actions }));
+    setEnemyPlan(prev => ({ ...prev, actions }));
 
     const pCombo = detectPokerCombo(selected);
 
@@ -1276,8 +1278,8 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
     setPhase('respond');
   };
 
-  useEffect(()=>{
-    if(phase==='respond' && enemyPlan.actions && enemyPlan.actions.length>0){
+  useEffect(() => {
+    if (phase === 'respond' && enemyPlan.actions && enemyPlan.actions.length > 0) {
       const combo = detectPokerCombo(selected);
 
       // 특성 효과 적용
@@ -1294,16 +1296,16 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
     }
   }, [selected, phase, enemyPlan.actions, cardUsageCount]);
 
-  const beginResolveFromRespond = ()=>{
-    if(!fixedOrder) return addLog('오류: 고정된 순서가 없습니다');
+  const beginResolveFromRespond = () => {
+    if (!fixedOrder) return addLog('오류: 고정된 순서가 없습니다');
 
-    if(fixedOrder.length===0){
+    if (fixedOrder.length === 0) {
       addLog('⚠️ 실행할 행동이 없습니다. 최소 1장 이상을 유지하거나 적이 행동 가능한 상태여야 합니다.');
       return;
     }
 
-    const newQ = fixedOrder.map(x=>({ actor:x.actor, card:x.card, sp:x.sp }));
-    if(newQ.length===0){
+    const newQ = fixedOrder.map(x => ({ actor: x.actor, card: x.card, sp: x.sp }));
+    if (newQ.length === 0) {
       addLog('⚠️ 큐 생성 실패: 실행할 항목이 없습니다');
       return;
     }
@@ -1316,7 +1318,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
     // 진행 단계 시작 시 에테르 획득 (Deflation 적용)
     const pComboNow = detectPokerCombo(selected);
     const eComboNow = detectPokerCombo(enemyPlan.actions);
-    if(pComboNow && ETHER_GAIN_MAP[pComboNow.name]){
+    if (pComboNow && ETHER_GAIN_MAP[pComboNow.name]) {
       setCurrentTurnCombo(pComboNow.name); // 이번 턴 조합 저장
       const baseGain = ETHER_GAIN_MAP[pComboNow.name];
       // 먼저 결과 계산 (현재 상태 기준)
@@ -1328,25 +1330,25 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
         return { ...p, etherPts: addEther(p.etherPts, result.gain) };
       });
     }
-    if(eComboNow && ETHER_GAIN_MAP[eComboNow.name]){
+    if (eComboNow && ETHER_GAIN_MAP[eComboNow.name]) {
       const gainE = ETHER_GAIN_MAP[eComboNow.name];
-      setEnemy(e=>({ ...e, etherPts: addEther(e.etherPts, gainE) }));
+      setEnemy(e => ({ ...e, etherPts: addEther(e.etherPts, gainE) }));
       addLog(`☄️ 적 에테르 +${gainE} (적 족보: ${eComboNow.name})`);
     }
 
-    const enemyWillOD = shouldEnemyOverdrive(enemyPlan.mode, enemyPlan.actions, enemy.etherPts) && etherSlots(enemy.etherPts)>0;
-    if((phase==='respond' || phase==='select') && willOverdrive && etherSlots(player.etherPts)>0){
-      setPlayer(p=>({ ...p, etherPts: p.etherPts - ETHER_THRESHOLD, etherOverdriveActive:true }));
+    const enemyWillOD = shouldEnemyOverdrive(enemyPlan.mode, enemyPlan.actions, enemy.etherPts) && etherSlots(enemy.etherPts) > 0;
+    if ((phase === 'respond' || phase === 'select') && willOverdrive && etherSlots(player.etherPts) > 0) {
+      setPlayer(p => ({ ...p, etherPts: p.etherPts - ETHER_THRESHOLD, etherOverdriveActive: true }));
       addLog('✴️ 에테르 폭주 발동! (이 턴 전체 유지)');
     }
-    if((phase==='respond' || phase==='select') && enemyWillOD){
-      setEnemy(e=>({ ...e, etherPts: e.etherPts - ETHER_THRESHOLD, etherOverdriveActive:true }));
+    if ((phase === 'respond' || phase === 'select') && enemyWillOD) {
+      setEnemy(e => ({ ...e, etherPts: e.etherPts - ETHER_THRESHOLD, etherOverdriveActive: true }));
       addLog('☄️ 적 에테르 폭주 발동!');
     }
   };
 
-  const stepOnce = ()=>{
-    if(qIndex>=queue.length) return;
+  const stepOnce = () => {
+    if (qIndex >= queue.length) return;
     const a = queue[qIndex];
 
     // 타임라인 애니메이션을 위해 모든 액션에 적용
@@ -1356,7 +1358,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
     }, 600); // 타임라인 애니메이션 지속 시간
 
     // 카드 소멸 이펙트는 플레이어만 적용
-    if(a.actor === 'player') {
+    if (a.actor === 'player') {
       setTimeout(() => {
         // 카드가 사용된 후 사라지는 애니메이션 시작
         setDisappearingCards(prev => [...prev, qIndex]);
@@ -1368,10 +1370,10 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
       }, 300); // 사용 효과 후 바로 사라지기 시작
     }
 
-    const P = { ...player, def: player.def||false, block: player.block||0, counter: player.counter||0, vulnMult: player.vulnMult||1 };
-    const E = { ...enemy,  def: enemy.def||false,  block: enemy.block||0,  counter: enemy.counter||0,  vulnMult: enemy.vulnMult||1 };
-    const tempState = { player:P, enemy:E, log:[] };
-    const {events} = applyAction(tempState, a.actor, a.card);
+    const P = { ...player, def: player.def || false, block: player.block || 0, counter: player.counter || 0, vulnMult: player.vulnMult || 1 };
+    const E = { ...enemy, def: enemy.def || false, block: enemy.block || 0, counter: enemy.counter || 0, vulnMult: enemy.vulnMult || 1 };
+    const tempState = { player: P, enemy: E, log: [] };
+    const { events } = applyAction(tempState, a.actor, a.card);
 
     // 플레이어 카드 사용 시 카드 사용 횟수 증가 (mastery, boredom 특성용)
     if (a.actor === 'player' && a.card.id) {
@@ -1386,24 +1388,25 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
         addLog(`⚠️ "양날의 검" - 플레이어가 1 피해를 입었습니다.`);
       }
 
-      // 단련 (training): 사용 후 힘 +1 (추후 힘 시스템 구현 시 활성화)
+      // 단련 (training): 사용 후 힘 +1
       if (hasTrait(a.card, 'training')) {
-        addLog(`💪 "단련" - 힘이 1 증가했습니다.`);
+        P.strength = (P.strength || 0) + 1;
+        addLog(`💪 "단련" - 힘이 1 증가했습니다. (현재: ${P.strength})`);
       }
     }
 
-    setPlayer(prev=>({ ...prev, hp:P.hp, def:P.def, block:P.block, counter:P.counter, vulnMult:P.vulnMult||1 }));
-    setEnemy(prev=>({  ...prev, hp:E.hp, def:E.def, block:E.block, counter:E.counter, vulnMult:E.vulnMult||1 }));
-    setActionEvents(prev=>({ ...prev, [qIndex]: events }));
+    setPlayer(prev => ({ ...prev, hp: P.hp, def: P.def, block: P.block, counter: P.counter, vulnMult: P.vulnMult || 1, strength: P.strength || 0 }));
+    setEnemy(prev => ({ ...prev, hp: E.hp, def: E.def, block: E.block, counter: E.counter, vulnMult: E.vulnMult || 1 }));
+    setActionEvents(prev => ({ ...prev, [qIndex]: events }));
 
     // 이벤트 처리: 애니메이션 및 사운드
-    events.forEach(ev=> {
+    events.forEach(ev => {
       addLog(ev.msg);
 
       // 피격 효과 (hit, pierce 타입)
-      if((ev.type === 'hit' || ev.type === 'pierce') && ev.dmg > 0) {
+      if ((ev.type === 'hit' || ev.type === 'pierce') && ev.dmg > 0) {
         playHitSound();
-        if(ev.actor === 'player') {
+        if (ev.actor === 'player') {
           // 플레이어가 공격 -> 적 피격
           setEnemyHit(true);
           setTimeout(() => setEnemyHit(false), 300);
@@ -1415,9 +1418,9 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
       }
 
       // 방어 효과 (defense 타입)
-      if(ev.type === 'defense') {
+      if (ev.type === 'defense') {
         playBlockSound();
-        if(ev.actor === 'player') {
+        if (ev.actor === 'player') {
           setPlayerBlockAnim(true);
           setTimeout(() => setPlayerBlockAnim(false), 400);
         } else {
@@ -1427,10 +1430,10 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
       }
 
       // 반격 피해
-      if(ev.actor === 'counter') {
+      if (ev.actor === 'counter') {
         playHitSound();
         // counter는 반대 방향으로 피해가 가므로 타겟을 반대로
-        if(a.actor === 'player') {
+        if (a.actor === 'player') {
           setPlayerHit(true);
           setTimeout(() => setPlayerHit(false), 300);
         } else {
@@ -1440,23 +1443,23 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
       }
     });
 
-    setQIndex(prev=>prev+1);
+    setQIndex(prev => prev + 1);
 
-    if(P.hp<=0){ setPostCombatOptions({ type:'defeat' }); setPhase('post'); return; }
-    if(E.hp<=0){
+    if (P.hp <= 0) { setPostCombatOptions({ type: 'defeat' }); setPhase('post'); return; }
+    if (E.hp <= 0) {
       // 몬스터 죽음 애니메이션 및 사운드
       setEnemyHit(true);
       playSound(200, 500); // 낮은 주파수로 죽음 사운드
       setTimeout(() => {
-        setPostCombatOptions({ type:'victory' });
+        setPostCombatOptions({ type: 'victory' });
         setPhase('post');
       }, 1000);
       return;
     }
   };
 
-  const finishTurn = (reason)=>{
-    addLog(`턴 종료: ${reason||''}`);
+  const finishTurn = (reason) => {
+    addLog(`턴 종료: ${reason || ''}`);
 
     // 다음 턴 효과 처리 (특성 기반)
     const newNextTurnEffects = {
@@ -1510,84 +1513,84 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
     setNextTurnEffects(newNextTurnEffects);
 
     // 턴 종료 시 조합 카운트 증가 (Deflation)
-    if(currentTurnCombo){
+    if (currentTurnCombo) {
       setPlayer(p => {
         const newUsageCount = { ...(p.comboUsageCount || {}), [currentTurnCombo]: (p.comboUsageCount?.[currentTurnCombo] || 0) + 1 };
-        return { ...p, block:0, def:false, counter:0, vulnMult:1, vulnTurns:0, etherOverdriveActive:false, comboUsageCount: newUsageCount };
+        return { ...p, block: 0, def: false, counter: 0, vulnMult: 1, vulnTurns: 0, etherOverdriveActive: false, comboUsageCount: newUsageCount };
       });
       setCurrentTurnCombo(null);
     } else {
-      setPlayer(p=>({ ...p, block:0, def:false, counter:0, vulnMult:1, vulnTurns:0, etherOverdriveActive:false }));
+      setPlayer(p => ({ ...p, block: 0, def: false, counter: 0, vulnMult: 1, vulnTurns: 0, etherOverdriveActive: false }));
     }
-    setEnemy(e=>({ ...e, block:0, def:false, counter:0, vulnMult:1, vulnTurns:0, etherOverdriveActive:false }));
+    setEnemy(e => ({ ...e, block: 0, def: false, counter: 0, vulnMult: 1, vulnTurns: 0, etherOverdriveActive: false }));
     setSelected([]); setQueue([]); setQIndex(0); setFixedOrder(null); setUsedCardIndices([]);
     setDisappearingCards([]); setHiddenCards([]);
     setPhase('select');
   };
 
-  const runAll = ()=>{
-    if(qIndex>=queue.length) return;
+  const runAll = () => {
+    if (qIndex >= queue.length) return;
     playSound(1000, 150); // 전부실행 효과음
-    let P = { ...player, def: player.def||false, block: player.block||0, counter: player.counter||0, vulnMult: player.vulnMult||1 };
-    let E = { ...enemy,  def: enemy.def||false,  block: enemy.block||0,  counter: enemy.counter||0,  vulnMult: enemy.vulnMult||1 };
-    const tempState = { player:P, enemy:E, log:[] };
+    let P = { ...player, def: player.def || false, block: player.block || 0, counter: player.counter || 0, vulnMult: player.vulnMult || 1 };
+    let E = { ...enemy, def: enemy.def || false, block: enemy.block || 0, counter: enemy.counter || 0, vulnMult: enemy.vulnMult || 1 };
+    const tempState = { player: P, enemy: E, log: [] };
     const newEvents = {};
 
-    for(let i=qIndex;i<queue.length;i++){
+    for (let i = qIndex; i < queue.length; i++) {
       const a = queue[i];
-      const {events} = applyAction(tempState, a.actor, a.card);
+      const { events } = applyAction(tempState, a.actor, a.card);
       newEvents[i] = events;
-      events.forEach(ev=> addLog(ev.msg));
-      if(P.hp<=0){
-        setPlayer(prev=>({ ...prev, hp:P.hp, def:P.def, block:P.block, counter:P.counter, vulnMult:P.vulnMult||1 }));
-        setEnemy(prev=>({  ...prev, hp:E.hp, def:E.def, block:E.block, counter:E.counter, vulnMult:E.vulnMult||1 }));
-        setActionEvents(prev=>({ ...prev, ...newEvents }));
-        setQIndex(i+1);
-        setPostCombatOptions({ type:'defeat' }); setPhase('post');
+      events.forEach(ev => addLog(ev.msg));
+      if (P.hp <= 0) {
+        setPlayer(prev => ({ ...prev, hp: P.hp, def: P.def, block: P.block, counter: P.counter, vulnMult: P.vulnMult || 1 }));
+        setEnemy(prev => ({ ...prev, hp: E.hp, def: E.def, block: E.block, counter: E.counter, vulnMult: E.vulnMult || 1 }));
+        setActionEvents(prev => ({ ...prev, ...newEvents }));
+        setQIndex(i + 1);
+        setPostCombatOptions({ type: 'defeat' }); setPhase('post');
         return;
       }
-      if(E.hp<=0){
-        setPlayer(prev=>({ ...prev, hp:P.hp, def:P.def, block:P.block, counter:P.counter, vulnMult:P.vulnMult||1 }));
-        setEnemy(prev=>({  ...prev, hp:E.hp, def:E.def, block:E.block, counter:E.counter, vulnMult:E.vulnMult||1 }));
-        setActionEvents(prev=>({ ...prev, ...newEvents }));
-        setQIndex(i+1);
+      if (E.hp <= 0) {
+        setPlayer(prev => ({ ...prev, hp: P.hp, def: P.def, block: P.block, counter: P.counter, vulnMult: P.vulnMult || 1 }));
+        setEnemy(prev => ({ ...prev, hp: E.hp, def: E.def, block: E.block, counter: E.counter, vulnMult: E.vulnMult || 1 }));
+        setActionEvents(prev => ({ ...prev, ...newEvents }));
+        setQIndex(i + 1);
         // 몬스터 죽음 애니메이션 및 사운드
         setEnemyHit(true);
         playSound(200, 500);
         setTimeout(() => {
-          setPostCombatOptions({ type:'victory' });
+          setPostCombatOptions({ type: 'victory' });
           setPhase('post');
         }, 1000);
         return;
       }
     }
-    setPlayer(prev=>({ ...prev, hp:P.hp, def:P.def, block:P.block, counter:P.counter, vulnMult:P.vulnMult||1 }));
-    setEnemy(prev=>({  ...prev, hp:E.hp, def:E.def, block:E.block, counter:E.counter, vulnMult:E.vulnMult||1 }));
-    setActionEvents(prev=>({ ...prev, ...newEvents }));
+    setPlayer(prev => ({ ...prev, hp: P.hp, def: P.def, block: P.block, counter: P.counter, vulnMult: P.vulnMult || 1 }));
+    setEnemy(prev => ({ ...prev, hp: E.hp, def: E.def, block: E.block, counter: E.counter, vulnMult: E.vulnMult || 1 }));
+    setActionEvents(prev => ({ ...prev, ...newEvents }));
     setQIndex(queue.length);
   };
 
-  const removeSelectedAt = (i)=> setSelected(selected.filter((_,idx)=>idx!==i));
+  const removeSelectedAt = (i) => setSelected(selected.filter((_, idx) => idx !== i));
 
-  const playerTimeline = useMemo(()=>{
-    if(phase==='select'){
-      let ps=0; return selected.map((c,idx)=>{ ps+=c.speedCost; return { actor:'player', card:c, sp:ps, idx }; });
+  const playerTimeline = useMemo(() => {
+    if (phase === 'select') {
+      let ps = 0; return selected.map((c, idx) => { ps += c.speedCost; return { actor: 'player', card: c, sp: ps, idx }; });
     }
-    if(phase==='respond' && fixedOrder) return fixedOrder.filter(x=>x.actor==='player');
-    if(phase==='resolve') return queue.filter(x=>x.actor==='player');
+    if (phase === 'respond' && fixedOrder) return fixedOrder.filter(x => x.actor === 'player');
+    if (phase === 'resolve') return queue.filter(x => x.actor === 'player');
     return [];
   }, [phase, selected, fixedOrder, queue]);
 
-  const enemyTimeline = useMemo(()=>{
-    if(phase==='select') return [];
-    if(phase==='respond' && fixedOrder) return fixedOrder.filter(x=>x.actor==='enemy');
-    if(phase==='resolve') return queue.filter(x=>x.actor==='enemy');
+  const enemyTimeline = useMemo(() => {
+    if (phase === 'select') return [];
+    if (phase === 'respond' && fixedOrder) return fixedOrder.filter(x => x.actor === 'enemy');
+    if (phase === 'resolve') return queue.filter(x => x.actor === 'enemy');
     return [];
   }, [phase, fixedOrder, queue]);
 
-  if(!enemy) return <div className="text-white p-4">로딩…</div>;
+  if (!enemy) return <div className="text-white p-4">로딩…</div>;
 
-  const handDisabled = (c)=> (
+  const handDisabled = (c) => (
     selected.length >= MAX_SUBMIT_CARDS ||
     totalSpeed + c.speedCost > MAX_SPEED ||
     totalEnergy + c.actionCost > (BASE_PLAYER_ENERGY + etherSlots(player.etherPts))
@@ -1598,7 +1601,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
   const enemyEtherSlots = etherSlots(enemyEtherValue);
   const playerEnergyBudget = BASE_PLAYER_ENERGY + etherSlots(player.etherPts);
   const remainingEnergy = Math.max(0, playerEnergyBudget - totalEnergy);
-  const comboPreviewGain = (phase==='select' || phase==='respond') ? pendingComboEther.gain : 0;
+  const comboPreviewGain = (phase === 'select' || phase === 'respond') ? pendingComboEther.gain : 0;
 
   // 적 조합 에테르 미리보기 계산
   const enemyCombo = useMemo(() => detectPokerCombo(enemyPlan.actions || []), [enemyPlan.actions]);
@@ -1622,7 +1625,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
         <ExpectedDamagePreview
           player={player}
           enemy={enemy}
-          fixedOrder={fixedOrder||playerTimeline}
+          fixedOrder={fixedOrder || playerTimeline}
           willOverdrive={willOverdrive}
           enemyMode={enemyPlan.mode}
           enemyActions={enemyPlan.actions}
@@ -1639,59 +1642,59 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
       </div>
 
       {/* 상단 메인 영역 */}
-      <div className="w-full px-4" style={{marginRight: '280px', marginLeft: '150px'}}>
+      <div className="w-full px-4" style={{ marginRight: '280px', marginLeft: '150px' }}>
 
         {/* Timeline - 1줄 길게 (화면 가득) */}
-        <div style={{marginBottom: '32px'}}>
+        <div style={{ marginBottom: '32px' }}>
           <div className="panel-enhanced timeline-panel">
-            <div className="timeline-body" style={{marginTop: '0'}}>
+            <div className="timeline-body" style={{ marginTop: '0' }}>
               <div className="timeline-axis">
-                {[0, 5, 10, 15, 20, 25, 30].map((tick)=>(
+                {[0, 5, 10, 15, 20, 25, 30].map((tick) => (
                   <span key={tick}>{tick}</span>
                 ))}
               </div>
               <div className="timeline-lanes">
                 <div className="timeline-lane player-lane">
-                  {Array.from({length: MAX_SPEED + 1}).map((_,i)=>(
-                    <div key={i} className="timeline-gridline" style={{left:`${(i/MAX_SPEED)*100}%`}} />
+                  {Array.from({ length: MAX_SPEED + 1 }).map((_, i) => (
+                    <div key={i} className="timeline-gridline" style={{ left: `${(i / MAX_SPEED) * 100}%` }} />
                   ))}
-                  {playerTimeline.map((a,idx)=>{
+                  {playerTimeline.map((a, idx) => {
                     const Icon = a.card.icon || Sword;
-                    const sameCount = playerTimeline.filter((q,i)=>i<idx && q.sp===a.sp).length;
-                    const offset = sameCount*28;
-                    const num = a.card.type==='attack' ? (a.card.damage*(a.card.hits||1)) : (a.card.block || 0);
+                    const sameCount = playerTimeline.filter((q, i) => i < idx && q.sp === a.sp).length;
+                    const offset = sameCount * 28;
+                    const num = a.card.type === 'attack' ? (a.card.damage * (a.card.hits || 1)) : (a.card.block || 0);
                     // 타임라인에서 현재 진행 중인 액션인지 확인
                     const globalIndex = phase === 'resolve' && queue ? queue.findIndex(q => q === a) : -1;
                     const isActive = usedCardIndices.includes(globalIndex);
                     return (
                       <div key={idx}
-                           className={`timeline-marker marker-player ${isActive ? 'timeline-active' : ''}`}
-                           style={{left:`${(a.sp/MAX_SPEED)*100}%`, top:`${6+offset}px`}}>
-                        <Icon size={14} className="text-white"/>
-                        <span className="text-white text-xs font-bold">{num>0?num:''}</span>
+                        className={`timeline-marker marker-player ${isActive ? 'timeline-active' : ''}`}
+                        style={{ left: `${(a.sp / MAX_SPEED) * 100}%`, top: `${6 + offset}px` }}>
+                        <Icon size={14} className="text-white" />
+                        <span className="text-white text-xs font-bold">{num > 0 ? num : ''}</span>
                       </div>
                     );
                   })}
                 </div>
 
                 <div className="timeline-lane enemy-lane">
-                  {Array.from({length: MAX_SPEED + 1}).map((_,i)=>(
-                    <div key={i} className="timeline-gridline" style={{left:`${(i/MAX_SPEED)*100}%`}} />
+                  {Array.from({ length: MAX_SPEED + 1 }).map((_, i) => (
+                    <div key={i} className="timeline-gridline" style={{ left: `${(i / MAX_SPEED) * 100}%` }} />
                   ))}
-                  {enemyTimeline.map((a,idx)=>{
+                  {enemyTimeline.map((a, idx) => {
                     const Icon = a.card.icon || Shield;
-                    const sameCount = enemyTimeline.filter((q,i)=>i<idx && q.sp===a.sp).length;
-                    const offset = sameCount*28;
-                    const num = a.card.type==='attack' ? (a.card.damage*(a.card.hits||1)) : (a.card.block || 0);
+                    const sameCount = enemyTimeline.filter((q, i) => i < idx && q.sp === a.sp).length;
+                    const offset = sameCount * 28;
+                    const num = a.card.type === 'attack' ? (a.card.damage * (a.card.hits || 1)) : (a.card.block || 0);
                     // 타임라인에서 현재 진행 중인 액션인지 확인
                     const globalIndex = phase === 'resolve' && queue ? queue.findIndex(q => q === a) : -1;
                     const isActive = usedCardIndices.includes(globalIndex);
                     return (
                       <div key={idx}
-                           className={`timeline-marker marker-enemy ${isActive ? 'timeline-active' : ''}`}
-                           style={{left:`${(a.sp/MAX_SPEED)*100}%`, top:`${6+offset}px`}}>
-                        <Icon size={14} className="text-white"/>
-                        <span className="text-white text-xs font-bold">{num>0?num:''}</span>
+                        className={`timeline-marker marker-enemy ${isActive ? 'timeline-active' : ''}`}
+                        style={{ left: `${(a.sp / MAX_SPEED) * 100}%`, top: `${6 + offset}px` }}>
+                        <Icon size={14} className="text-white" />
+                        <span className="text-white text-xs font-bold">{num > 0 ? num : ''}</span>
                       </div>
                     );
                   })}
@@ -1702,19 +1705,19 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
         </div>
 
         {/* 플레이어/적 정보 + 중앙 정보 통합 레이아웃 */}
-        <div style={{display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '50px', gap: '120px'}}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '50px', gap: '120px' }}>
           {/* 왼쪽: 플레이어 */}
-          <div style={{display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '12px', minWidth: '360px', position: 'relative', justifyContent: 'center'}}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '12px', minWidth: '360px', position: 'relative', justifyContent: 'center' }}>
             {/* 플레이어 콤보 - 절대 위치로 오른쪽 배치 */}
             {currentCombo && (
-              <div className="combo-display" style={{position: 'absolute', top: '-5px', left: '180px', textAlign: 'center'}}>
-                <div style={{fontSize: '1.92rem', fontWeight: 'bold', color: '#fbbf24', marginBottom: '2px'}}>
+              <div className="combo-display" style={{ position: 'absolute', top: '-5px', left: '180px', textAlign: 'center' }}>
+                <div style={{ fontSize: '1.92rem', fontWeight: 'bold', color: '#fbbf24', marginBottom: '2px' }}>
                   {currentCombo.name}
                 </div>
                 {pendingComboEther.gain > 0 && (
-                  <div style={{fontSize: '1.92rem', color: '#fbbf24', fontWeight: 'bold'}}>
+                  <div style={{ fontSize: '1.92rem', color: '#fbbf24', fontWeight: 'bold' }}>
                     +{pendingComboEther.gain} PT {pendingComboEther.multiplier < 1 && (
-                      <span style={{color: '#ef4444', fontSize: '0.624em', marginLeft: '-0.05em'}}>
+                      <span style={{ color: '#ef4444', fontSize: '0.624em', marginLeft: '-0.05em' }}>
                         (×{pendingComboEther.multiplier.toFixed(2)})
                       </span>
                     )}
@@ -1722,7 +1725,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                 )}
               </div>
             )}
-            <div style={{display: 'flex', alignItems: 'center', gap: '16px'}}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
               <EtherBar
                 key={`player-ether-${playerEtherValue}`}
                 pts={playerEtherValue}
@@ -1731,15 +1734,15 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                 label="ETHER"
               />
               <div>
-                <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
-                  <div className="character-display" style={{fontSize: '64px'}}>🧙‍♂️</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div className="character-display" style={{ fontSize: '64px' }}>🧙‍♂️</div>
                   <div>
-                    <div className={playerHit ? 'hit-animation' : ''} style={{color: '#f87171', fontSize: '1.25rem', fontWeight: 'bold'}}>
+                    <div className={playerHit ? 'hit-animation' : ''} style={{ color: '#f87171', fontSize: '1.25rem', fontWeight: 'bold' }}>
                       ❤️ {player.hp}/{player.maxHp}
-                      {player.block > 0 && <span className={playerBlockAnim ? 'block-animation' : ''} style={{color: '#60a5fa', marginLeft: '8px'}}>🛡️{player.block}</span>}
+                      {player.block > 0 && <span className={playerBlockAnim ? 'block-animation' : ''} style={{ color: '#60a5fa', marginLeft: '8px' }}>🛡️{player.block}</span>}
                     </div>
-                    <div className="hp-bar-enhanced mb-1" style={{width: '200px', height: '12px', position: 'relative', overflow: 'hidden'}}>
-                      <div className="hp-fill" style={{width: `${(player.hp/player.maxHp)*100}%`}}></div>
+                    <div className="hp-bar-enhanced mb-1" style={{ width: '200px', height: '12px', position: 'relative', overflow: 'hidden' }}>
+                      <div className="hp-fill" style={{ width: `${(player.hp / player.maxHp) * 100}%` }}></div>
                       {player.block > 0 && (
                         <div style={{
                           position: 'absolute',
@@ -1752,7 +1755,12 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                         }}></div>
                       )}
                     </div>
-                    <div style={{fontSize: '1rem', fontWeight: '600', color: '#7dd3fc', marginTop: '4px'}}>플레이어</div>
+                    <div style={{ fontSize: '1rem', fontWeight: '600', color: '#7dd3fc', marginTop: '4px' }}>플레이어</div>
+                    {player.strength > 0 && (
+                      <div style={{ fontSize: '0.9rem', fontWeight: '700', color: '#fbbf24', marginTop: '2px' }}>
+                        💪 힘: {player.strength}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -1760,52 +1768,52 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
           </div>
 
           {/* 중앙: 단계 정보 */}
-          <div style={{textAlign: 'center', flex: '1', paddingTop: '20px'}}>
-            <div style={{fontSize: '36px', fontWeight: 'bold', color: '#f8fafc', textShadow: '0 2px 8px rgba(0,0,0,0.5)', marginBottom: '16px'}}>
+          <div style={{ textAlign: 'center', flex: '1', paddingTop: '20px' }}>
+            <div style={{ fontSize: '36px', fontWeight: 'bold', color: '#f8fafc', textShadow: '0 2px 8px rgba(0,0,0,0.5)', marginBottom: '16px' }}>
               {phase === 'select' ? '선택 단계' : phase === 'respond' ? '대응 단계' : '진행 단계'}
             </div>
-            <div style={{fontSize: '1.25rem', fontWeight: '700', color: '#7dd3fc', marginBottom: '12px'}}>
+            <div style={{ fontSize: '1.25rem', fontWeight: '700', color: '#7dd3fc', marginBottom: '12px' }}>
               속도 {totalSpeed}/{MAX_SPEED} · 선택 {selected.length}/{MAX_SUBMIT_CARDS}
             </div>
 
             {/* 버튼들 - 속도/선택 텍스트 하단 */}
             {phase === 'select' && (
-              <div style={{display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'center', marginTop: '16px'}}>
-                <button onClick={redrawHand} disabled={!canRedraw} className="btn-enhanced flex items-center gap-2" style={{fontSize: '1rem', padding: '8px 20px', minWidth: '200px'}}>
-                  <RefreshCw size={18}/> 리드로우 (R)
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'center', marginTop: '16px' }}>
+                <button onClick={redrawHand} disabled={!canRedraw} className="btn-enhanced flex items-center gap-2" style={{ fontSize: '1rem', padding: '8px 20px', minWidth: '200px' }}>
+                  <RefreshCw size={18} /> 리드로우 (R)
                 </button>
-                <button onClick={() => { startResolve(); playSound(900, 120); }} disabled={selected.length===0} className="btn-enhanced btn-primary flex items-center gap-2" style={{fontSize: '1.25rem', padding: '9.6px 24px', fontWeight: '700', minWidth: '200px'}}>
-                  <Play size={22}/> 제출 <span style={{fontSize: '1.4rem', fontWeight: '900'}}>(E)</span>
+                <button onClick={() => { startResolve(); playSound(900, 120); }} disabled={selected.length === 0} className="btn-enhanced btn-primary flex items-center gap-2" style={{ fontSize: '1.25rem', padding: '9.6px 24px', fontWeight: '700', minWidth: '200px' }}>
+                  <Play size={22} /> 제출 <span style={{ fontSize: '1.4rem', fontWeight: '900' }}>(E)</span>
                 </button>
-                <button onClick={()=> setWillOverdrive(v=>!v)}
-                        disabled={etherSlots(player.etherPts)<=0}
-                        className={`btn-enhanced ${willOverdrive? 'btn-primary':''} flex items-center gap-2`}
-                        style={{fontSize: '1rem', padding: '8px 20px', minWidth: '200px'}}>
-                  ✨ 기원 {willOverdrive?'ON':'OFF'} (Space)
+                <button onClick={() => setWillOverdrive(v => !v)}
+                  disabled={etherSlots(player.etherPts) <= 0}
+                  className={`btn-enhanced ${willOverdrive ? 'btn-primary' : ''} flex items-center gap-2`}
+                  style={{ fontSize: '1rem', padding: '8px 20px', minWidth: '200px' }}>
+                  ✨ 기원 {willOverdrive ? 'ON' : 'OFF'} (Space)
                 </button>
               </div>
             )}
             {phase === 'respond' && (
-              <div style={{display: 'flex', justifyContent: 'center', marginTop: '16px'}}>
-                <button onClick={beginResolveFromRespond} className="btn-enhanced btn-success flex items-center gap-2" style={{fontSize: '1.25rem', padding: '9.6px 24px', fontWeight: '700', minWidth: '200px'}}>
-                  <Play size={22}/> 진행 시작 <span style={{fontSize: '1.4rem', fontWeight: '900'}}>(E)</span>
+              <div style={{ display: 'flex', justifyContent: 'center', marginTop: '16px' }}>
+                <button onClick={beginResolveFromRespond} className="btn-enhanced btn-success flex items-center gap-2" style={{ fontSize: '1.25rem', padding: '9.6px 24px', fontWeight: '700', minWidth: '200px' }}>
+                  <Play size={22} /> 진행 시작 <span style={{ fontSize: '1.4rem', fontWeight: '900' }}>(E)</span>
                 </button>
               </div>
             )}
           </div>
 
           {/* 오른쪽: 적 */}
-          <div style={{display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '12px', minWidth: '360px', position: 'relative', justifyContent: 'center'}}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '12px', minWidth: '360px', position: 'relative', justifyContent: 'center' }}>
             {/* 몬스터 콤보 - 절대 위치로 왼쪽 배치 */}
             {enemyCombo && (
-              <div className="combo-display" style={{position: 'absolute', top: '0', right: '180px', textAlign: 'center'}}>
-                <div style={{fontSize: '1.92rem', fontWeight: 'bold', color: '#fbbf24', marginBottom: '2px'}}>
+              <div className="combo-display" style={{ position: 'absolute', top: '0', right: '180px', textAlign: 'center' }}>
+                <div style={{ fontSize: '1.92rem', fontWeight: 'bold', color: '#fbbf24', marginBottom: '2px' }}>
                   {enemyCombo.name}
                 </div>
                 {enemyComboPreviewGain > 0 && (
-                  <div style={{fontSize: '1.92rem', color: '#fbbf24', fontWeight: 'bold'}}>
+                  <div style={{ fontSize: '1.92rem', color: '#fbbf24', fontWeight: 'bold' }}>
                     +{enemyComboPreviewGain} PT {enemyComboPreviewGain < ETHER_GAIN_MAP[enemyCombo.name] && (
-                      <span style={{color: '#ef4444', fontSize: '0.624em', marginLeft: '-0.05em'}}>
+                      <span style={{ color: '#ef4444', fontSize: '0.624em', marginLeft: '-0.05em' }}>
                         (×{(enemyComboPreviewGain / ETHER_GAIN_MAP[enemyCombo.name]).toFixed(2)})
                       </span>
                     )}
@@ -1813,20 +1821,20 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                 )}
               </div>
             )}
-            <div style={{display: 'flex', alignItems: 'center', gap: '16px'}}>
-              <div style={{textAlign: 'right'}}>
-                <div style={{display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px'}}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
                   {enemyHint && (
-                    <div style={{fontSize: '1rem', color: '#94a3b8', marginBottom: '4px'}}>💡 {enemyHint}</div>
+                    <div style={{ fontSize: '1rem', color: '#94a3b8', marginBottom: '4px' }}>💡 {enemyHint}</div>
                   )}
-                  <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                     <div>
-                      <div className={enemyHit ? 'hit-animation' : ''} style={{color: '#f87171', fontSize: '1.25rem', fontWeight: 'bold', textAlign: 'right'}}>
-                        {enemy.block > 0 && <span className={enemyBlockAnim ? 'block-animation' : ''} style={{color: '#60a5fa', marginRight: '8px'}}>🛡️{enemy.block}</span>}
+                      <div className={enemyHit ? 'hit-animation' : ''} style={{ color: '#f87171', fontSize: '1.25rem', fontWeight: 'bold', textAlign: 'right' }}>
+                        {enemy.block > 0 && <span className={enemyBlockAnim ? 'block-animation' : ''} style={{ color: '#60a5fa', marginRight: '8px' }}>🛡️{enemy.block}</span>}
                         ❤️ {enemy.hp}/{enemy.maxHp}
                       </div>
-                      <div className="hp-bar-enhanced mb-1" style={{width: '200px', height: '12px', position: 'relative', overflow: 'hidden'}}>
-                        <div className="hp-fill" style={{width: `${(enemy.hp/enemy.maxHp)*100}%`}}></div>
+                      <div className="hp-bar-enhanced mb-1" style={{ width: '200px', height: '12px', position: 'relative', overflow: 'hidden' }}>
+                        <div className="hp-fill" style={{ width: `${(enemy.hp / enemy.maxHp) * 100}%` }}></div>
                         {enemy.block > 0 && (
                           <div style={{
                             position: 'absolute',
@@ -1839,11 +1847,11 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                           }}></div>
                         )}
                       </div>
-                      <div style={{fontSize: '1rem', fontWeight: '600', color: '#fca5a5', marginTop: '4px', textAlign: 'right'}}>
+                      <div style={{ fontSize: '1rem', fontWeight: '600', color: '#fca5a5', marginTop: '4px', textAlign: 'right' }}>
                         {enemy.name}
                       </div>
                     </div>
-                    <div className="character-display" style={{fontSize: '64px'}}>👹</div>
+                    <div className="character-display" style={{ fontSize: '64px' }}>👹</div>
                   </div>
                 </div>
               </div>
@@ -1861,7 +1869,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
       </div>
 
       {/* 독립 활동력 표시 (좌측 하단 고정) */}
-      {(phase==='select' || phase==='respond' || phase==='resolve' || (enemy && enemy.hp <= 0) || (player && player.hp <= 0)) && (
+      {(phase === 'select' || phase === 'respond' || phase === 'resolve' || (enemy && enemy.hp <= 0) || (player && player.hp <= 0)) && (
         <div className="energy-display-fixed">
           <div className="energy-orb-compact">
             {remainingEnergy}
@@ -1870,33 +1878,33 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
       )}
 
       {/* 간소화/정렬 버튼 (우측 하단 고정) */}
-      {phase==='select' && (
-        <div className="submit-button-fixed" style={{display: 'flex', flexDirection: 'column', gap: '8px'}}>
+      {phase === 'select' && (
+        <div className="submit-button-fixed" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           <button onClick={() => {
             setIsSimplified(prev => {
               const newVal = !prev;
-              try { localStorage.setItem('battleIsSimplified', newVal.toString()); } catch {}
+              try { localStorage.setItem('battleIsSimplified', newVal.toString()); } catch { }
               return newVal;
             });
             playSound(500, 60);
           }} className={`btn-enhanced ${isSimplified ? 'btn-primary' : ''} flex items-center gap-2`}>
             {isSimplified ? '📋' : '📄'} 간소화 (Q)
           </button>
-          <button onClick={cycleSortType} className="btn-enhanced flex items-center gap-2" style={{fontSize: '0.9rem'}}>
+          <button onClick={cycleSortType} className="btn-enhanced flex items-center gap-2" style={{ fontSize: '0.9rem' }}>
             🔀 정렬 ({sortType === 'speed' ? '시간' : sortType === 'energy' ? '행동력' : sortType === 'value' ? '밸류' : '종류'}) (F)
           </button>
         </div>
       )}
       {player && player.hp <= 0 && (
         <div className="submit-button-fixed">
-          <button onClick={()=>window.location.reload()} className="btn-enhanced flex items-center gap-2">
+          <button onClick={() => window.location.reload()} className="btn-enhanced flex items-center gap-2">
             🔄 재시작
           </button>
         </div>
       )}
 
       {/* 하단 고정 손패 영역 */}
-      {(phase==='select' || phase==='respond' || phase==='resolve' || (enemy && enemy.hp <= 0) || (player && player.hp <= 0)) && (
+      {(phase === 'select' || phase === 'respond' || phase === 'resolve' || (enemy && enemy.hp <= 0) || (player && player.hp <= 0)) && (
         <div className="hand-area">
 
           <div className="hand-flags">
@@ -1908,11 +1916,11 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
             )}
           </div>
 
-          {phase==='select' && (
+          {phase === 'select' && (
             <div className="hand-cards">
-              {getSortedHand().map((c,idx)=>{
-                const Icon=c.icon;
-                const selIndex = selected.findIndex(s=>s.id===c.id);
+              {getSortedHand().map((c, idx) => {
+                const Icon = c.icon;
+                const selIndex = selected.findIndex(s => s.id === c.id);
                 const sel = selIndex !== -1;
                 const disabled = handDisabled(c) && !sel;
                 const currentBuild = useGameStore.getState().characterBuild;
@@ -1922,17 +1930,17 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                 const nameColor = isMainSpecial ? '#fcd34d' : isSubSpecial ? '#7dd3fc' : '#fff';
                 return (
                   <div
-                    key={c.id+idx}
-                    onClick={()=>!disabled && toggle(c)}
-                    style={{display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center', cursor: disabled ? 'not-allowed' : 'pointer', position: 'relative'}}
+                    key={c.id + idx}
+                    onClick={() => !disabled && toggle(c)}
+                    style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center', cursor: disabled ? 'not-allowed' : 'pointer', position: 'relative' }}
                   >
-                    <div className={`game-card-large select-phase-card ${c.type==='attack' ? 'attack' : 'defense'} ${sel ? 'selected' : ''} ${disabled ? 'disabled' : ''}`}>
-                      <div className="card-cost-badge-floating" style={{color: costColor, WebkitTextStroke: '1px #000'}}>{c.actionCost}</div>
+                    <div className={`game-card-large select-phase-card ${c.type === 'attack' ? 'attack' : 'defense'} ${sel ? 'selected' : ''} ${disabled ? 'disabled' : ''}`}>
+                      <div className="card-cost-badge-floating" style={{ color: costColor, WebkitTextStroke: '1px #000' }}>{c.actionCost}</div>
                       {sel && <div className="selection-number">{selIndex + 1}</div>}
                       <div className="card-stats-sidebar">
                         {c.damage != null && c.damage > 0 && (
                           <div className="card-stat-item attack">
-                            ⚔️{c.damage}{c.hits?`×${c.hits}`:''}
+                            ⚔️{c.damage}{c.hits ? `×${c.hits}` : ''}
                           </div>
                         )}
                         {c.block != null && c.block > 0 && (
@@ -1945,10 +1953,10 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                         </div>
                       </div>
                       <div className="card-header">
-                        <div className="font-black text-sm" style={{color: nameColor}}>{c.name}</div>
+                        <div className="font-black text-sm" style={{ color: nameColor }}>{c.name}</div>
                       </div>
                       <div className="card-icon-area">
-                        <Icon size={60} className="text-white opacity-80"/>
+                        <Icon size={60} className="text-white opacity-80" />
                         {disabled && (
                           <div className="card-disabled-overlay">
                             <X size={80} className="text-red-500" strokeWidth={4} />
@@ -1966,7 +1974,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                         onMouseLeave={() => setHoveredCard(null)}
                       >
                         {c.traits && c.traits.length > 0 && (
-                          <span style={{color: '#fbbf24', fontWeight: 600}}>
+                          <span style={{ color: '#fbbf24', fontWeight: 600 }}>
                             {c.traits.map(traitId => {
                               const trait = TRAITS[traitId];
                               return trait ? trait.name : '';
@@ -1982,9 +1990,9 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
             </div>
           )}
 
-          {phase==='respond' && fixedOrder && (
-            <div className="hand-cards" style={{justifyContent: 'center'}}>
-              {fixedOrder.filter(a=>a.actor==='player').map((action,idx,arr)=>{
+          {phase === 'respond' && fixedOrder && (
+            <div className="hand-cards" style={{ justifyContent: 'center' }}>
+              {fixedOrder.filter(a => a.actor === 'player').map((action, idx, arr) => {
                 const c = action.card;
                 const Icon = c.icon;
                 const currentBuild = useGameStore.getState().characterBuild;
@@ -1993,13 +2001,13 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                 const costColor = isMainSpecial ? '#fcd34d' : isSubSpecial ? '#60a5fa' : '#fff';
                 const nameColor = isMainSpecial ? '#fcd34d' : isSubSpecial ? '#7dd3fc' : '#fff';
                 return (
-                  <div key={idx} style={{display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center', position: 'relative'}}>
-                    <div className={`game-card-large respond-phase-card ${c.type==='attack' ? 'attack' : 'defense'}`}>
-                      <div className="card-cost-badge-floating" style={{color: costColor, WebkitTextStroke: '1px #000'}}>{c.actionCost}</div>
+                  <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center', position: 'relative' }}>
+                    <div className={`game-card-large respond-phase-card ${c.type === 'attack' ? 'attack' : 'defense'}`}>
+                      <div className="card-cost-badge-floating" style={{ color: costColor, WebkitTextStroke: '1px #000' }}>{c.actionCost}</div>
                       <div className="card-stats-sidebar">
                         {c.damage != null && c.damage > 0 && (
                           <div className="card-stat-item attack">
-                            ⚔️{c.damage}{c.hits?`×${c.hits}`:''}
+                            ⚔️{c.damage}{c.hits ? `×${c.hits}` : ''}
                           </div>
                         )}
                         {c.block != null && c.block > 0 && (
@@ -2012,35 +2020,35 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                         </div>
                       </div>
                       <div className="card-header">
-                        <div className="font-black text-sm" style={{color: nameColor}}>{c.name}</div>
+                        <div className="font-black text-sm" style={{ color: nameColor }}>{c.name}</div>
                       </div>
                       <div className="card-icon-area">
-                        <Icon size={60} className="text-white opacity-80"/>
+                        <Icon size={60} className="text-white opacity-80" />
                       </div>
                       <div className="card-footer">
                         {c.description || ''}
                       </div>
                     </div>
-                    <div style={{display: 'flex', gap: '8px'}}>
+                    <div style={{ display: 'flex', gap: '8px' }}>
                       {idx > 0 && (
-                        <button onClick={()=>{
-                          const playerActions = fixedOrder.filter(a=>a.actor==='player');
+                        <button onClick={() => {
+                          const playerActions = fixedOrder.filter(a => a.actor === 'player');
                           const newPlayerActions = [...playerActions];
-                          [newPlayerActions[idx-1], newPlayerActions[idx]] = [newPlayerActions[idx], newPlayerActions[idx-1]];
-                          const enemyActions = fixedOrder.filter(a=>a.actor==='enemy');
-                          setFixedOrder(sortCombinedOrderStablePF(newPlayerActions.map(a=>a.card), enemyActions.map(a=>a.card)));
-                        }} className="btn-enhanced text-xs" style={{padding: '4px 12px'}}>
+                          [newPlayerActions[idx - 1], newPlayerActions[idx]] = [newPlayerActions[idx], newPlayerActions[idx - 1]];
+                          const enemyActions = fixedOrder.filter(a => a.actor === 'enemy');
+                          setFixedOrder(sortCombinedOrderStablePF(newPlayerActions.map(a => a.card), enemyActions.map(a => a.card)));
+                        }} className="btn-enhanced text-xs" style={{ padding: '4px 12px' }}>
                           ←
                         </button>
                       )}
                       {idx < arr.length - 1 && (
-                        <button onClick={()=>{
-                          const playerActions = fixedOrder.filter(a=>a.actor==='player');
+                        <button onClick={() => {
+                          const playerActions = fixedOrder.filter(a => a.actor === 'player');
                           const newPlayerActions = [...playerActions];
-                          [newPlayerActions[idx], newPlayerActions[idx+1]] = [newPlayerActions[idx+1], newPlayerActions[idx]];
-                          const enemyActions = fixedOrder.filter(a=>a.actor==='enemy');
-                          setFixedOrder(sortCombinedOrderStablePF(newPlayerActions.map(a=>a.card), enemyActions.map(a=>a.card)));
-                        }} className="btn-enhanced text-xs" style={{padding: '4px 12px'}}>
+                          [newPlayerActions[idx], newPlayerActions[idx + 1]] = [newPlayerActions[idx + 1], newPlayerActions[idx]];
+                          const enemyActions = fixedOrder.filter(a => a.actor === 'enemy');
+                          setFixedOrder(sortCombinedOrderStablePF(newPlayerActions.map(a => a.card), enemyActions.map(a => a.card)));
+                        }} className="btn-enhanced text-xs" style={{ padding: '4px 12px' }}>
                           →
                         </button>
                       )}
@@ -2051,9 +2059,9 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
             </div>
           )}
 
-          {phase==='resolve' && queue && queue.length > 0 && (
-            <div className="hand-cards" style={{justifyContent: 'center'}}>
-              {queue.filter(a => a.actor === 'player').map((a,i)=>{
+          {phase === 'resolve' && queue && queue.length > 0 && (
+            <div className="hand-cards" style={{ justifyContent: 'center' }}>
+              {queue.filter(a => a.actor === 'player').map((a, i) => {
                 const Icon = a.card.icon;
                 const globalIndex = queue.findIndex(q => q === a);
                 const isUsed = usedCardIndices.includes(globalIndex);
@@ -2068,13 +2076,13 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                 if (isHidden) return null;
 
                 return (
-                  <div key={`resolve-${globalIndex}`} style={{display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center', position: 'relative'}}>
-                    <div className={`game-card-large resolve-phase-card ${a.card.type==='attack' ? 'attack' : 'defense'} ${isUsed ? 'card-used' : ''} ${isDisappearing ? 'card-disappearing' : ''}`}>
-                      <div className="card-cost-badge-floating" style={{color: costColor, WebkitTextStroke: '1px #000'}}>{a.card.actionCost}</div>
+                  <div key={`resolve-${globalIndex}`} style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center', position: 'relative' }}>
+                    <div className={`game-card-large resolve-phase-card ${a.card.type === 'attack' ? 'attack' : 'defense'} ${isUsed ? 'card-used' : ''} ${isDisappearing ? 'card-disappearing' : ''}`}>
+                      <div className="card-cost-badge-floating" style={{ color: costColor, WebkitTextStroke: '1px #000' }}>{a.card.actionCost}</div>
                       <div className="card-stats-sidebar">
                         {a.card.damage != null && a.card.damage > 0 && (
                           <div className="card-stat-item attack">
-                            ⚔️{a.card.damage}{a.card.hits?`×${a.card.hits}`:''}
+                            ⚔️{a.card.damage}{a.card.hits ? `×${a.card.hits}` : ''}
                           </div>
                         )}
                         {a.card.block != null && a.card.block > 0 && (
@@ -2095,11 +2103,11 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                         <div className="text-white font-black text-sm">{a.card.name}</div>
                       </div>
                       <div className="card-icon-area">
-                        <Icon size={60} className="text-white opacity-80"/>
+                        <Icon size={60} className="text-white opacity-80" />
                       </div>
                       <div className="card-footer">
                         {a.card.traits && a.card.traits.length > 0 && (
-                          <span style={{color: '#fbbf24', fontWeight: 600}}>
+                          <span style={{ color: '#fbbf24', fontWeight: 600 }}>
                             {a.card.traits.map(traitId => {
                               const trait = TRAITS[traitId];
                               return trait ? trait.name : '';
@@ -2176,7 +2184,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
   );
 }
 
-export const LegacyBattleApp = ({ initialPlayer, initialEnemy, playerEther, onBattleResult = () => {} }) => (
+export const LegacyBattleApp = ({ initialPlayer, initialEnemy, playerEther, onBattleResult = () => { } }) => (
   <Game
     initialPlayer={initialPlayer}
     initialEnemy={initialEnemy}

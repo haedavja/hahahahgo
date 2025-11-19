@@ -70,16 +70,16 @@ export const TRAITS = {
 
 export const CARDS = [
   // === 기존 카드 (영어 이름) ===
-  { id: "quick",   name: "Quick Slash",    type: "attack",  damage: 13,              speedCost: 3,  actionCost: 1, iconKey: "sword",  description: "빠르게 적을 베어낸다. 낮은 속도 코스트로 신속한 공격이 가능하다.", traits: [] },
-  { id: "slash",   name: "Slash",          type: "attack",  damage: 30,              speedCost: 5,  actionCost: 2, iconKey: "sword",  description: "강력한 베기 공격. 균형 잡힌 데미지와 속도를 제공한다.", traits: [] },
-  { id: "heavy",   name: "Heavy Strike",   type: "attack",  damage: 40,              speedCost: 10, actionCost: 2, iconKey: "flame",  description: "묵직한 일격. 높은 데미지를 주지만 속도가 느리다.", traits: [] },
-  { id: "double",  name: "Double Slash",   type: "attack",  damage: 17, hits: 2,     speedCost: 7,  actionCost: 2, iconKey: "sword",  description: "두 번 연속 베기. 방어를 뚫기에 유리하다.", traits: [] },
-  { id: "precise", name: "Precise Strike", type: "attack",  damage: 32,              speedCost: 6,  actionCost: 2, iconKey: "sword",  description: "정확한 타격. 안정적인 데미지를 보장한다.", traits: [] },
-  { id: "rush",    name: "Rush Attack",    type: "attack",  damage: 14,              speedCost: 4,  actionCost: 1, iconKey: "flame",  description: "돌진 공격. 빠른 속도로 적을 압박한다.", traits: [] },
-  { id: "parry",   name: "Parry",          type: "defense", block: 12,               speedCost: 2,  actionCost: 1, iconKey: "shield", description: "빠른 패링. 적의 공격을 재빠르게 막아낸다.", traits: [] },
-  { id: "guard",   name: "Guard",          type: "defense", block: 16,               speedCost: 6,  actionCost: 1, iconKey: "shield", description: "견고한 방어 자세. 적당한 방어력을 제공한다.", traits: [] },
-  { id: "wall",    name: "Iron Wall",      type: "defense", block: 38,               speedCost: 9,  actionCost: 2, iconKey: "shield", description: "철벽 방어. 강력한 방어막을 형성하지만 느리다.", traits: [] },
-  { id: "counter", name: "Counter Stance", type: "defense", block: 14, counter: 3,   speedCost: 4,  actionCost: 1, iconKey: "shield", description: "반격 자세. 방어하면서 공격받을 시 반격한다.", traits: [] },
+  { id: "quick", name: "Quick Slash", type: "attack", damage: 13, speedCost: 3, actionCost: 1, iconKey: "sword", description: "빠르게 적을 베어낸다. 낮은 속도 코스트로 신속한 공격이 가능하다.", traits: [] },
+  { id: "slash", name: "Slash", type: "attack", damage: 30, speedCost: 5, actionCost: 2, iconKey: "sword", description: "강력한 베기 공격. 균형 잡힌 데미지와 속도를 제공한다.", traits: [] },
+  { id: "heavy", name: "Heavy Strike", type: "attack", damage: 40, speedCost: 10, actionCost: 2, iconKey: "flame", description: "묵직한 일격. 높은 데미지를 주지만 속도가 느리다.", traits: [] },
+  { id: "double", name: "Double Slash", type: "attack", damage: 17, hits: 2, speedCost: 7, actionCost: 2, iconKey: "sword", description: "두 번 연속 베기. 방어를 뚫기에 유리하다.", traits: [] },
+  { id: "precise", name: "Precise Strike", type: "attack", damage: 32, speedCost: 6, actionCost: 2, iconKey: "sword", description: "정확한 타격. 안정적인 데미지를 보장한다.", traits: [] },
+  { id: "rush", name: "Rush Attack", type: "attack", damage: 14, speedCost: 4, actionCost: 1, iconKey: "flame", description: "돌진 공격. 빠른 속도로 적을 압박한다.", traits: [] },
+  { id: "parry", name: "Parry", type: "defense", block: 12, speedCost: 2, actionCost: 1, iconKey: "shield", description: "빠른 패링. 적의 공격을 재빠르게 막아낸다.", traits: [] },
+  { id: "guard", name: "Guard", type: "defense", block: 16, speedCost: 6, actionCost: 1, iconKey: "shield", description: "견고한 방어 자세. 적당한 방어력을 제공한다.", traits: [] },
+  { id: "wall", name: "Iron Wall", type: "defense", block: 38, speedCost: 9, actionCost: 2, iconKey: "shield", description: "철벽 방어. 강력한 방어막을 형성하지만 느리다.", traits: [] },
+  { id: "counter", name: "Counter Stance", type: "defense", block: 14, counter: 3, speedCost: 4, actionCost: 1, iconKey: "shield", description: "반격 자세. 방어하면서 공격받을 시 반격한다.", traits: [] },
 
   // === 행동력 1 (일반) 5개 ===
   { id: "stab", name: "찌르기", type: "attack", damage: 13, speedCost: 3, actionCost: 1, iconKey: "sword", description: "검으로 신속하고 강하게 찌릅니다.", traits: [] },
@@ -106,7 +106,7 @@ export const CARDS = [
   { id: "cleave", name: "가르기", type: "attack", damage: 23, speedCost: 5, actionCost: 3, iconKey: "sword", description: "그저 잘라내버리는 겁니다.", traits: ["destroyer"] },
   { id: "heavy_blow", name: "강타", type: "attack", damage: 17, speedCost: 7, actionCost: 3, iconKey: "flame", description: "틀림없이 정신을 못차릴겁니다.", traits: ["stun", "exhaust"] },
   { id: "kick", name: "걷어차기", type: "attack", damage: 18, speedCost: 8, actionCost: 3, iconKey: "flame", description: "나가 떨어지게 만듭니다.", traits: ["knockback"] },
-  { id: "prepare_hit", name: "후려치기", type: "attack", damage: 18, speedCost: 8, actionCost: 3, iconKey: "sword", description: "때론 다음 턴을 위해 준비할 필요가 있습니다.", traits: ["training", "warmup", "outcast"] },
+  { id: "prepare_hit", name: "후려치기", type: "attack", damage: 18, speedCost: 8, actionCost: 4, iconKey: "sword", description: "때론 다음 턴을 위해 준비할 필요가 있습니다.", traits: ["training", "warmup", "outcast"] },
   { id: "persistent", name: "집요한 타격", type: "attack", damage: 22, speedCost: 12, actionCost: 3, iconKey: "flame", description: "상대방의 방어력을 꾸준히 압도할 수 있는 카드.", traits: ["attendance", "crush"] },
 
   // === 행동력 6 (전설) 3개 ===
@@ -116,10 +116,10 @@ export const CARDS = [
 ];
 
 export const ENEMY_CARDS = [
-  { id: "e1", name: "Attack",  type: "attack",  damage: 13, speedCost: 3, actionCost: 1, iconKey: "sword" },
-  { id: "e2", name: "Heavy",   type: "attack",  damage: 36, speedCost: 8, actionCost: 2, iconKey: "flame" },
-  { id: "e3", name: "Guard",   type: "defense", block: 12, speedCost: 2, actionCost: 1, iconKey: "shield" },
-  { id: "e4", name: "Strike",  type: "attack",  damage: 15, speedCost: 5, actionCost: 1, iconKey: "sword" },
+  { id: "e1", name: "Attack", type: "attack", damage: 13, speedCost: 3, actionCost: 1, iconKey: "sword" },
+  { id: "e2", name: "Heavy", type: "attack", damage: 36, speedCost: 8, actionCost: 2, iconKey: "flame" },
+  { id: "e3", name: "Guard", type: "defense", block: 12, speedCost: 2, actionCost: 1, iconKey: "shield" },
+  { id: "e4", name: "Strike", type: "attack", damage: 15, speedCost: 5, actionCost: 1, iconKey: "sword" },
   { id: "e5", name: "Defense", type: "defense", block: 16, speedCost: 6, actionCost: 1, iconKey: "shield" },
   { id: "e6", name: "Barrier", type: "defense", block: 38, speedCost: 9, actionCost: 2, iconKey: "shield" },
 ];

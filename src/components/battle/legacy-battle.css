@@ -466,7 +466,7 @@ body {
 
 .game-card-large {
   position: relative;
-  width: 160px;
+  width: 192px; /* 160px에서 20% 증가 */
   height: 220px;
   border-radius: 18px;
   border: 3px solid transparent;
@@ -1131,10 +1131,56 @@ body {
   flex-shrink: 0 !important;
   min-height: 60px !important; /* 설명 텍스트를 위한 최소 높이 */
   display: flex !important;
-  align-items: center !important;
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  gap: 6px;
+  width: 100%;
   font-size: 0.75rem !important;
   line-height: 1.4 !important;
   color: #cbd5e1 !important;
+}
+
+.card-traits-row {
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+  margin-bottom: 2px;
+  writing-mode: horizontal-tb;
+}
+
+.card-trait-badge {
+  color: #fbbf24;
+  font-weight: 600;
+  font-size: 11px;
+  padding: 2px 4px;
+  border-radius: 3px;
+  background: rgba(55, 65, 81, 0.35);
+  border: 1px solid rgba(148, 163, 184, 0.4);
+  white-space: nowrap;
+  writing-mode: horizontal-tb;
+}
+
+.card-trait-positive {
+  color: #22c55e;
+  background: rgba(34, 197, 94, 0.15);
+  border-color: rgba(34, 197, 94, 0.4);
+}
+
+.card-trait-negative {
+  color: #f87171;
+  background: rgba(248, 113, 113, 0.15);
+  border-color: rgba(248, 113, 113, 0.4);
+}
+
+.card-description {
+  width: 100%;
+  writing-mode: horizontal-tb;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: #f1f5f9;
+  display: block;
 }
 
 /* 호버 시 카드 내용 크기 조정 */
@@ -1156,14 +1202,17 @@ body {
   font-size: 1.3rem !important; /* 호버 시 스탯도 약간 크게 */
 }
 
-/* 간소화 상태에서 카드 텍스트 숨기기, hover 시 보이기 */
-.card-footer.simplified-footer {
-  visibility: hidden;
+/* 간소화 상태에서 카드 설명만 숨기기, hover 시 보이기 (특성은 항상 표시) */
+.card-footer.simplified-footer .card-description {
+  display: none;
 }
 
 .game-card-large:hover .card-footer.simplified-footer {
-  visibility: visible;
   font-size: 1.1rem !important; /* 간소화 상태에서도 hover 시 큰 글씨 */
+}
+
+.game-card-large:hover .card-footer.simplified-footer .card-description {
+  display: block;
 }
 
 /* 진행 단계에서 사용된 카드 애니메이션 */
