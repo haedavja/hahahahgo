@@ -125,6 +125,72 @@ const ENEMY_CARDS = BASE_ENEMY_CARDS.map(card => ({
 // =====================
 const choice = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
+// =====================
+// 특성 효과 헬퍼 함수
+// =====================
+function hasTrait(card, traitId) {
+  return card.traits && card.traits.includes(traitId);
+}
+
+function applyTraitModifiers(card, context = {}) {
+  let modifiedCard = { ...card };
+
+  // 강골 (strongbone): 피해량/방어력 25% 증가
+  if (hasTrait(card, 'strongbone')) {
+    if (modifiedCard.damage) modifiedCard.damage = Math.ceil(modifiedCard.damage * 1.25);
+    if (modifiedCard.block) modifiedCard.block = Math.ceil(modifiedCard.block * 1.25);
+  }
+
+  // 약골 (weakbone): 피해량/방어력 20% 감소
+  if (hasTrait(card, 'weakbone')) {
+    if (modifiedCard.damage) modifiedCard.damage = Math.ceil(modifiedCard.damage * 0.8);
+    if (modifiedCard.block) modifiedCard.block = Math.ceil(modifiedCard.block * 0.8);
+  }
+
+  // 파괴자 (destroyer): 공격력 50% 증가
+  if (hasTrait(card, 'destroyer') && modifiedCard.damage) {
+    modifiedCard.damage = Math.ceil(modifiedCard.damage * 1.5);
+  }
+
+  // 도살 (slaughter): 기본피해량 75% 증가
+  if (hasTrait(card, 'slaughter') && modifiedCard.damage) {
+    modifiedCard.damage = Math.ceil(modifiedCard.damage * 1.75);
+  }
+
+  // 정점 (pinnacle): 피해량 2.5배
+  if (hasTrait(card, 'pinnacle') && modifiedCard.damage) {
+    modifiedCard.damage = Math.ceil(modifiedCard.damage * 2.5);
+  }
+
+  // 협동 (cooperation): 조합 대상이 되면 50% 추가 보너스
+  if (hasTrait(card, 'cooperation') && context.isInCombo) {
+    if (modifiedCard.damage) modifiedCard.damage = Math.ceil(modifiedCard.damage * 1.5);
+    if (modifiedCard.block) modifiedCard.block = Math.ceil(modifiedCard.block * 1.5);
+  }
+
+  // 신속함 (swift): 속도 코스트 감소 (약 15% 성능 기준)
+  if (hasTrait(card, 'swift')) {
+    modifiedCard.speedCost = Math.max(1, Math.ceil(modifiedCard.speedCost * 0.75));
+  }
+
+  // 굼뜸 (slow): 속도 코스트 증가
+  if (hasTrait(card, 'slow')) {
+    modifiedCard.speedCost = Math.ceil(modifiedCard.speedCost * 1.33);
+  }
+
+  // 숙련 (mastery): 사용할수록 시간 감소 (context.usageCount 필요)
+  if (hasTrait(card, 'mastery') && context.usageCount) {
+    modifiedCard.speedCost = Math.max(1, modifiedCard.speedCost - (context.usageCount * 2));
+  }
+
+  // 싫증 (boredom): 사용할수록 시간 증가
+  if (hasTrait(card, 'boredom') && context.usageCount) {
+    modifiedCard.speedCost = modifiedCard.speedCost + (context.usageCount * 2);
+  }
+
+  return modifiedCard;
+}
+
 function sortCombinedOrderStablePF(playerCards, enemyCards) {
   const q = []; let ps = 0, es = 0;
   (playerCards||[]).forEach((c, idx) => { ps += c.speedCost; q.push({ actor: 'player', card: c, sp: ps, idx }); });
@@ -249,20 +315,26 @@ function applyAction(state, actor, card){
       const boost = (A.etherOverdriveActive) ? 2 : 1;
       let dmg = base * boost;
 
+      // 분쇄 (crush) 특성: 방어력에 2배 피해
+      const crushMultiplier = hasTrait(card, 'crush') ? 2 : 1;
+
       if(B.def && (B.block||0) > 0){
         const beforeBlock = B.block;
-        if(dmg < beforeBlock){
-          const remaining = beforeBlock - dmg;
+        const effectiveDmg = dmg * crushMultiplier; // 분쇄 적용
+        if(effectiveDmg < beforeBlock){
+          const remaining = beforeBlock - effectiveDmg;
           B.block = remaining; dmg = 0;
           A.vulnMult = 1 + (remaining * 0.5); A.vulnTurns = 1;
-          const formula = `(방어력 ${beforeBlock} - 공격력 ${base}${boost>1?'×2':''} = ${remaining})`;
+          const crushText = crushMultiplier > 1 ? ' [분쇄×2]' : '';
+          const formula = `(방어력 ${beforeBlock} - 공격력 ${base}${boost>1?'×2':''}${crushText} = ${remaining})`;
           const msg = `${actor==='player' ? '플레이어 -> 몬스터' : '몬스터 -> 플레이어'} • 차단 성공 ${formula} + 취약 ×${A.vulnMult.toFixed(1)}`;
           events.push({ actor, card:card.name, type:'blocked', msg });
           state.log.push(`${actor==='player'?'🔵':'👾'} ${card.name} → ${msg}`);
         } else {
           const blocked = beforeBlock;
-          const remained = Math.max(0, dmg - blocked);
-          const formula = `(방어력 ${blocked} - 공격력 ${base}${boost>1?'×2':''} = 0)`;
+          const remained = Math.max(0, effectiveDmg - blocked);
+          const crushText = crushMultiplier > 1 ? ' [분쇄×2]' : '';
+          const formula = `(방어력 ${blocked} - 공격력 ${base}${boost>1?'×2':''}${crushText} = 0)`;
           B.block = 0;
           const vulnMul = (B.vulnMult && B.vulnMult>1) ? B.vulnMult : 1;
           const finalDmg = Math.floor(remained * vulnMul);
@@ -635,22 +707,82 @@ function EtherBar({ pts, slots, previewGain=0, color="cyan", label }){
 // =====================
 // 캐릭터 빌드 기반 손패 생성
 // =====================
-function drawCharacterBuildHand(characterBuild) {
+function drawCharacterBuildHand(characterBuild, nextTurnEffects = {}, previousHand = []) {
   if (!characterBuild) return CARDS.slice(0, 10); // 8장 → 10장
 
   const { mainSpecials = [], subSpecials = [] } = characterBuild;
+  const { guaranteedCards = [], mainSpecialOnly = false, subSpecialBoost = 0 } = nextTurnEffects;
 
-  // 주특기 카드는 100% 등장
-  const mainCards = mainSpecials
+  // 파탄 (ruin) 특성: 주특기만 등장
+  if (mainSpecialOnly) {
+    const mainCards = mainSpecials
+      .map(cardId => CARDS.find(card => card.id === cardId))
+      .filter(Boolean);
+    return mainCards;
+  }
+
+  // 확정 등장 카드 (반복, 보험)
+  const guaranteed = guaranteedCards
     .map(cardId => CARDS.find(card => card.id === cardId))
     .filter(Boolean);
 
-  // 보조특기 카드는 각각 50% 확률로 등장
+  // 주특기 카드는 100% 등장 (탈주 제외)
+  const mainCards = mainSpecials
+    .map(cardId => CARDS.find(card => card.id === cardId))
+    .filter(card => {
+      if (!card) return false;
+      // 탈주 (escape): 이전에 사용했으면 등장하지 않음
+      if (hasTrait(card, 'escape') && previousHand.some(c => c.id === card.id)) {
+        return false;
+      }
+      // 개근 (attendance): 등장확률 25% 증가 (주특기 125%)
+      if (hasTrait(card, 'attendance')) {
+        return Math.random() < 1.25; // 확정 + 25% 추가 보너스
+      }
+      // 도피꾼 (deserter): 등장확률 25% 감소 (주특기 75%)
+      if (hasTrait(card, 'deserter')) {
+        return Math.random() < 0.75;
+      }
+      return true;
+    });
+
+  // 보조특기 카드는 각각 50% 확률로 등장 (장군 특성으로 증가 가능)
+  const baseSubProb = 0.5 + subSpecialBoost;
   const subCards = subSpecials
     .map(cardId => CARDS.find(card => card.id === cardId))
-    .filter(card => card && Math.random() < 0.5);
+    .filter(card => {
+      if (!card) return false;
+      // 탈주 (escape): 이전에 사용했으면 등장하지 않음
+      if (hasTrait(card, 'escape') && previousHand.some(c => c.id === card.id)) {
+        return false;
+      }
+      // 조연 (supporting): 보조특기일때만 등장
+      // (이미 보조특기로 설정되어 있으므로 등장 가능)
 
-  return [...mainCards, ...subCards];
+      let prob = baseSubProb;
+      // 개근 (attendance): 등장확률 25% 증가
+      if (hasTrait(card, 'attendance')) {
+        prob += 0.25;
+      }
+      // 도피꾼 (deserter): 등장확률 25% 감소
+      if (hasTrait(card, 'deserter')) {
+        prob -= 0.25;
+      }
+      return Math.random() < prob;
+    });
+
+  // 중복 제거 후 반환
+  const allCards = [...guaranteed, ...mainCards, ...subCards];
+  const uniqueCards = [];
+  const seenIds = new Set();
+  for (const card of allCards) {
+    if (!seenIds.has(card.id)) {
+      seenIds.add(card.id);
+      uniqueCards.push(card);
+    }
+  }
+
+  return uniqueCards;
 }
 
 // =====================
@@ -703,10 +835,21 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
   const [hiddenCards, setHiddenCards] = useState([]); // 완전히 숨겨진 카드 인덱스
   const [currentTurnCombo, setCurrentTurnCombo] = useState(null); // 이번 턴에 사용한 조합 추적
   const [showCharacterSheet, setShowCharacterSheet] = useState(false);
+  const [cardUsageCount, setCardUsageCount] = useState({}); // 카드별 사용 횟수 추적 (mastery, boredom용)
+  const [vanishedCards, setVanishedCards] = useState([]); // 소멸 특성으로 제거된 카드
+  const [nextTurnEffects, setNextTurnEffects] = useState({
+    guaranteedCards: [], // 반복, 보험 특성으로 다음턴 확정 등장
+    bonusEnergy: 0, // 몸풀기 특성
+    energyPenalty: 0, // 탈진 특성
+    etherBlocked: false, // 망각 특성
+    mainSpecialOnly: false, // 파탄 특성
+    subSpecialBoost: 0, // 장군 특성
+  });
   const [playerHit, setPlayerHit] = useState(false); // 플레이어 피격 애니메이션
   const [enemyHit, setEnemyHit] = useState(false); // 적 피격 애니메이션
   const [playerBlockAnim, setPlayerBlockAnim] = useState(false); // 플레이어 방어 애니메이션
   const [enemyBlockAnim, setEnemyBlockAnim] = useState(false); // 적 방어 애니메이션
+  const [hoveredCard, setHoveredCard] = useState(null); // 호버된 카드 정보 {card, position}
   const logEndRef = useRef(null);
   const initialEtherRef = useRef(typeof safeInitialPlayer.etherPts === 'number' ? safeInitialPlayer.etherPts : (playerEther ?? 0));
   const resultSentRef = useRef(false);
@@ -884,7 +1027,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
       const currentBuild = useGameStore.getState().characterBuild;
       const hasCharacterBuild = currentBuild && (currentBuild.mainSpecials?.length > 0 || currentBuild.subSpecials?.length > 0);
       const initialHand = hasCharacterBuild
-        ? drawCharacterBuildHand(currentBuild)
+        ? drawCharacterBuildHand(currentBuild, nextTurnEffects, [])
         : CARDS.slice(0, 10); // 8장 → 10장
       setHand(initialHand);
       setSelected([]);
@@ -900,13 +1043,20 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
     setActionEvents({});
     setCanRedraw(true);
     setWillOverdrive(false);
-    setPlayer(p=>({ ...p, energy: BASE_PLAYER_ENERGY + etherSlots(p.etherPts), etherOverdriveActive:false }));
 
-    // 매 턴 시작 시 새로운 손패 생성 (캐릭터 빌드 적용)
+    // 특성 효과로 인한 에너지 보너스/페널티 적용
+    const baseEnergy = BASE_PLAYER_ENERGY + etherSlots(player.etherPts);
+    const energyBonus = nextTurnEffects.bonusEnergy || 0;
+    const energyPenalty = nextTurnEffects.energyPenalty || 0;
+    const finalEnergy = Math.max(0, baseEnergy + energyBonus - energyPenalty);
+
+    setPlayer(p=>({ ...p, energy: finalEnergy, etherOverdriveActive:false }));
+
+    // 매 턴 시작 시 새로운 손패 생성 (캐릭터 빌드 및 특성 효과 적용)
     const currentBuild = useGameStore.getState().characterBuild;
     const hasCharacterBuild = currentBuild && (currentBuild.mainSpecials?.length > 0 || currentBuild.subSpecials?.length > 0);
     const newHand = hasCharacterBuild
-      ? drawCharacterBuildHand(currentBuild)
+      ? drawCharacterBuildHand(currentBuild, nextTurnEffects, hand)
       : CARDS.slice(0, 10); // 8장 → 10장
     setHand(newHand);
     setSelected([]);
@@ -1043,7 +1193,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
     const currentBuild = useGameStore.getState().characterBuild;
     const hasCharacterBuild = currentBuild && (currentBuild.mainSpecials?.length > 0 || currentBuild.subSpecials?.length > 0);
     const newHand = hasCharacterBuild
-      ? drawCharacterBuildHand(currentBuild)
+      ? drawCharacterBuildHand(currentBuild, nextTurnEffects, hand)
       : CARDS.slice(0, 10); // 8장 → 10장
     setHand(newHand);
     setSelected([]);
@@ -1107,7 +1257,16 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
     setEnemyPlan(prev=>({ ...prev, actions }));
 
     const pCombo = detectPokerCombo(selected);
-    const enhancedSelected = applyPokerBonus(selected, pCombo);
+
+    // 특성 효과 적용 (카드 사용 횟수 고려)
+    const traitEnhancedSelected = selected.map(card =>
+      applyTraitModifiers(card, {
+        usageCount: cardUsageCount[card.id] || 0,
+        isInCombo: pCombo !== null,
+      })
+    );
+
+    const enhancedSelected = applyPokerBonus(traitEnhancedSelected, pCombo);
 
     const q = sortCombinedOrderStablePF(enhancedSelected, actions);
     setFixedOrder(q);
@@ -1118,11 +1277,20 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
   useEffect(()=>{
     if(phase==='respond' && enemyPlan.actions && enemyPlan.actions.length>0){
       const combo = detectPokerCombo(selected);
-      const enhancedSelected = applyPokerBonus(selected, combo);
+
+      // 특성 효과 적용
+      const traitEnhancedSelected = selected.map(card =>
+        applyTraitModifiers(card, {
+          usageCount: cardUsageCount[card.id] || 0,
+          isInCombo: combo !== null,
+        })
+      );
+
+      const enhancedSelected = applyPokerBonus(traitEnhancedSelected, combo);
       const q = sortCombinedOrderStablePF(enhancedSelected, enemyPlan.actions);
       setFixedOrder(q);
     }
-  }, [selected, phase, enemyPlan.actions]);
+  }, [selected, phase, enemyPlan.actions, cardUsageCount]);
 
   const beginResolveFromRespond = ()=>{
     if(!fixedOrder) return addLog('오류: 고정된 순서가 없습니다');
@@ -1203,6 +1371,25 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
     const tempState = { player:P, enemy:E, log:[] };
     const {events} = applyAction(tempState, a.actor, a.card);
 
+    // 플레이어 카드 사용 시 카드 사용 횟수 증가 (mastery, boredom 특성용)
+    if (a.actor === 'player' && a.card.id) {
+      setCardUsageCount(prev => ({
+        ...prev,
+        [a.card.id]: (prev[a.card.id] || 0) + 1
+      }));
+
+      // 양날의 검 (double_edge): 사용시 1 피해
+      if (hasTrait(a.card, 'double_edge')) {
+        P.hp = Math.max(0, P.hp - 1);
+        addLog(`⚠️ "양날의 검" - 플레이어가 1 피해를 입었습니다.`);
+      }
+
+      // 단련 (training): 사용 후 힘 +1 (추후 힘 시스템 구현 시 활성화)
+      if (hasTrait(a.card, 'training')) {
+        addLog(`💪 "단련" - 힘이 1 증가했습니다.`);
+      }
+    }
+
     setPlayer(prev=>({ ...prev, hp:P.hp, def:P.def, block:P.block, counter:P.counter, vulnMult:P.vulnMult||1 }));
     setEnemy(prev=>({  ...prev, hp:E.hp, def:E.def, block:E.block, counter:E.counter, vulnMult:E.vulnMult||1 }));
     setActionEvents(prev=>({ ...prev, [qIndex]: events }));
@@ -1268,6 +1455,58 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
 
   const finishTurn = (reason)=>{
     addLog(`턴 종료: ${reason||''}`);
+
+    // 다음 턴 효과 처리 (특성 기반)
+    const newNextTurnEffects = {
+      guaranteedCards: [],
+      bonusEnergy: 0,
+      energyPenalty: 0,
+      etherBlocked: false,
+      mainSpecialOnly: false,
+      subSpecialBoost: 0,
+    };
+
+    // 선택된 카드들의 특성 확인
+    selected.forEach(card => {
+      // 반복 (repeat): 다음턴에도 손패에 확정적으로 등장
+      if (hasTrait(card, 'repeat')) {
+        newNextTurnEffects.guaranteedCards.push(card.id);
+        addLog(`🔄 "반복" - ${card.name}이(가) 다음턴에도 등장합니다.`);
+      }
+
+      // 몸풀기 (warmup): 다음턴 행동력 +2
+      if (hasTrait(card, 'warmup')) {
+        newNextTurnEffects.bonusEnergy += 2;
+        addLog(`⚡ "몸풀기" - 다음턴 행동력 +2`);
+      }
+
+      // 탈진 (exhaust): 다음턴 행동력 -2
+      if (hasTrait(card, 'exhaust')) {
+        newNextTurnEffects.energyPenalty += 2;
+        addLog(`😰 "탈진" - 다음턴 행동력 -2`);
+      }
+
+      // 망각 (oblivion): 이후 에테르 획득 불가
+      if (hasTrait(card, 'oblivion')) {
+        newNextTurnEffects.etherBlocked = true;
+        addLog(`🚫 "망각" - 이후 에테르 획득이 불가능해집니다!`);
+      }
+
+      // 파탄 (ruin): 다음턴 주특기만 등장
+      if (hasTrait(card, 'ruin')) {
+        newNextTurnEffects.mainSpecialOnly = true;
+        addLog(`⚠️ "파탄" - 다음턴은 주특기 카드만 뽑힙니다.`);
+      }
+
+      // 장군 (general): 다음턴 보조특기 등장률 25% 증가
+      if (hasTrait(card, 'general')) {
+        newNextTurnEffects.subSpecialBoost += 0.25;
+        addLog(`👑 "장군" - 다음턴 보조특기 등장률 증가!`);
+      }
+    });
+
+    setNextTurnEffects(newNextTurnEffects);
+
     // 턴 종료 시 조합 카운트 증가 (Deflation)
     if(currentTurnCombo){
       setPlayer(p => {
@@ -1280,6 +1519,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
     }
     setEnemy(e=>({ ...e, block:0, def:false, counter:0, vulnMult:1, vulnTurns:0, etherOverdriveActive:false }));
     setSelected([]); setQueue([]); setQIndex(0); setFixedOrder(null); setUsedCardIndices([]);
+    setDisappearingCards([]); setHiddenCards([]);
     setPhase('select');
   };
 
@@ -1679,7 +1919,18 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                 const costColor = isMainSpecial ? '#fcd34d' : isSubSpecial ? '#60a5fa' : '#fff';
                 const nameColor = isMainSpecial ? '#fcd34d' : isSubSpecial ? '#7dd3fc' : '#fff';
                 return (
-                  <div key={c.id+idx} onClick={()=>!disabled && toggle(c)} style={{display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center', cursor: disabled ? 'not-allowed' : 'pointer', position: 'relative'}}>
+                  <div
+                    key={c.id+idx}
+                    onClick={()=>!disabled && toggle(c)}
+                    onMouseEnter={(e) => {
+                      if (c.traits && c.traits.length > 0) {
+                        const rect = e.currentTarget.getBoundingClientRect();
+                        setHoveredCard({ card: c, x: rect.left + rect.width / 2, y: rect.top });
+                      }
+                    }}
+                    onMouseLeave={() => setHoveredCard(null)}
+                    style={{display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center', cursor: disabled ? 'not-allowed' : 'pointer', position: 'relative'}}
+                  >
                     <div className={`game-card-large select-phase-card ${c.type==='attack' ? 'attack' : 'defense'} ${sel ? 'selected' : ''} ${disabled ? 'disabled' : ''}`}>
                       <div className="card-cost-badge-floating" style={{color: costColor, WebkitTextStroke: '1px #000'}}>{c.actionCost}</div>
                       {sel && <div className="selection-number">{selIndex + 1}</div>}
@@ -1723,6 +1974,14 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                         )}
                       </div>
                       <div className={`card-footer ${isSimplified ? 'simplified-footer' : ''}`}>
+                        {c.traits && c.traits.length > 0 && (
+                          <span style={{color: '#fbbf24', fontWeight: 600}}>
+                            {c.traits.map(traitId => {
+                              const trait = TRAITS[traitId];
+                              return trait ? `"${trait.name}"` : '';
+                            }).filter(Boolean).join(', ')}{' '}
+                          </span>
+                        )}
                         {c.description || ''}
                       </div>
                     </div>
@@ -1886,6 +2145,60 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
       )}
 
       {showCharacterSheet && <CharacterSheet onClose={closeCharacterSheet} />}
+
+      {/* 특성 툴팁 */}
+      {hoveredCard && hoveredCard.card.traits && hoveredCard.card.traits.length > 0 && (
+        <div
+          style={{
+            position: 'fixed',
+            left: `${hoveredCard.x}px`,
+            top: `${hoveredCard.y - 10}px`,
+            transform: 'translate(-50%, -100%)',
+            background: 'rgba(8, 11, 19, 0.98)',
+            border: '2px solid #fbbf24',
+            borderRadius: '12px',
+            padding: '12px 16px',
+            boxShadow: '0 8px 24px rgba(0, 0, 0, 0.9)',
+            zIndex: 10000,
+            pointerEvents: 'none',
+            minWidth: '280px',
+            maxWidth: '400px',
+          }}
+        >
+          <div style={{ fontSize: '14px', fontWeight: 700, color: '#fbbf24', marginBottom: '8px' }}>
+            특성 정보
+          </div>
+          {hoveredCard.card.traits.map(traitId => {
+            const trait = TRAITS[traitId];
+            if (!trait) return null;
+            const isPositive = trait.type === 'positive';
+            return (
+              <div key={traitId} style={{ marginBottom: '8px' }}>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  marginBottom: '2px'
+                }}>
+                  <span style={{
+                    fontSize: '13px',
+                    fontWeight: 700,
+                    color: isPositive ? '#22c55e' : '#ef4444'
+                  }}>
+                    {trait.name}
+                  </span>
+                  <span style={{ fontSize: '11px', color: '#fbbf24' }}>
+                    {"★".repeat(trait.weight)}
+                  </span>
+                </div>
+                <div style={{ fontSize: '12px', color: '#9fb6ff', lineHeight: 1.4 }}>
+                  {trait.description}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
