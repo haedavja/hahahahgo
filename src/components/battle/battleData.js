@@ -92,7 +92,7 @@ export const CARDS = [
   { id: "jab", name: "잽", type: "attack", damage: 11, speedCost: 1, actionCost: 1, iconKey: "sword", description: "장갑을 낀 주먹으로 빠르게 후려갈깁니다. 아플겁니다.", traits: [] },
   { id: "risky_attack", name: "도박적 공세", type: "attack", damage: 20, speedCost: 7, actionCost: 1, iconKey: "flame", description: "치명적이지만 다시는 하고 싶지 않은 짓입니다.", traits: ["escape"] },
   { id: "drunken_fist", name: "취권", type: "attack", damage: 28, speedCost: 13, actionCost: 1, iconKey: "flame", description: "싸움은 잘하는데 언제 등장할지는..", traits: ["supporting"] },
-  { id: "beat_down", name: "줘패고 줘패기", type: "attack", damage: 39, hits: 13, speedCost: 16, actionCost: 1, iconKey: "flame", description: "상대방이 죽을때까지 때려보는 것입니다. (3피해 13회)", traits: ["exhaust"] },
+  { id: "beat_down", name: "줘패고 줘패기", type: "attack", damage: 3, hits: 13, speedCost: 16, actionCost: 1, iconKey: "flame", description: "상대방이 죽을때까지 때려보는 것입니다. (3피해 13회)", traits: ["exhaust"] },
   { id: "rocket_punch", name: "로켓펀치", type: "attack", damage: 51, speedCost: 24, actionCost: 1, iconKey: "flame", description: "건틀릿을 로켓처럼 날려보냅니다. 그런데 회수는 어떻…", traits: ["vanish"] },
 
   // === 행동력 2 (일반) 5개 ===

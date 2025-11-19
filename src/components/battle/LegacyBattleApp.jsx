@@ -1055,10 +1055,12 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
     // 매 턴 시작 시 새로운 손패 생성 (캐릭터 빌드 및 특성 효과 적용)
     const currentBuild = useGameStore.getState().characterBuild;
     const hasCharacterBuild = currentBuild && (currentBuild.mainSpecials?.length > 0 || currentBuild.subSpecials?.length > 0);
-    const newHand = hasCharacterBuild
-      ? drawCharacterBuildHand(currentBuild, nextTurnEffects, hand)
-      : CARDS.slice(0, 10); // 8장 → 10장
-    setHand(newHand);
+    setHand(prevHand => {
+      const newHand = hasCharacterBuild
+        ? drawCharacterBuildHand(currentBuild, nextTurnEffects, prevHand)
+        : CARDS.slice(0, 10); // 8장 → 10장
+      return newHand;
+    });
     setSelected([]);
 
     setEnemyPlan(prev=>{
@@ -1070,7 +1072,7 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
         return { actions:[], mode };
       }
     });
-  }, [phase, enemy, enemyPlan.mode]);
+  }, [phase, enemy, enemyPlan.mode, nextTurnEffects, player.etherPts]);
 
   useEffect(()=>{
     if(phase==='resolve' && (!queue || queue.length===0) && fixedOrder && fixedOrder.length>0){
@@ -1922,13 +1924,6 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                   <div
                     key={c.id+idx}
                     onClick={()=>!disabled && toggle(c)}
-                    onMouseEnter={(e) => {
-                      if (c.traits && c.traits.length > 0) {
-                        const rect = e.currentTarget.getBoundingClientRect();
-                        setHoveredCard({ card: c, x: rect.left + rect.width / 2, y: rect.top });
-                      }
-                    }}
-                    onMouseLeave={() => setHoveredCard(null)}
                     style={{display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center', cursor: disabled ? 'not-allowed' : 'pointer', position: 'relative'}}
                   >
                     <div className={`game-card-large select-phase-card ${c.type==='attack' ? 'attack' : 'defense'} ${sel ? 'selected' : ''} ${disabled ? 'disabled' : ''}`}>
@@ -1948,19 +1943,6 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                         <div className="card-stat-item speed">
                           ⏱️{c.speedCost}
                         </div>
-                        {c.traits && c.traits.length > 0 && (
-                          <div style={{fontSize: '10px', marginTop: '4px', display: 'flex', flexDirection: 'column', gap: '2px'}}>
-                            {c.traits.map(traitId => {
-                              const trait = TRAITS[traitId];
-                              if (!trait) return null;
-                              return (
-                                <div key={traitId} style={{color: trait.type === 'positive' ? '#22c55e' : '#ef4444', fontWeight: 600}}>
-                                  {trait.name}
-                                </div>
-                              );
-                            })}
-                          </div>
-                        )}
                       </div>
                       <div className="card-header">
                         <div className="font-black text-sm" style={{color: nameColor}}>{c.name}</div>
@@ -1973,13 +1955,22 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                           </div>
                         )}
                       </div>
-                      <div className={`card-footer ${isSimplified ? 'simplified-footer' : ''}`}>
+                      <div
+                        className={`card-footer ${isSimplified ? 'simplified-footer' : ''}`}
+                        onMouseEnter={(e) => {
+                          if (c.traits && c.traits.length > 0) {
+                            const rect = e.currentTarget.getBoundingClientRect();
+                            setHoveredCard({ card: c, x: rect.left + rect.width / 2, y: rect.top });
+                          }
+                        }}
+                        onMouseLeave={() => setHoveredCard(null)}
+                      >
                         {c.traits && c.traits.length > 0 && (
                           <span style={{color: '#fbbf24', fontWeight: 600}}>
                             {c.traits.map(traitId => {
                               const trait = TRAITS[traitId];
-                              return trait ? `"${trait.name}"` : '';
-                            }).filter(Boolean).join(', ')}{' '}
+                              return trait ? trait.name : '';
+                            }).filter(Boolean).join(' ')}{' '}
                           </span>
                         )}
                         {c.description || ''}
@@ -2019,19 +2010,6 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                         <div className="card-stat-item speed">
                           ⏱️{c.speedCost}
                         </div>
-                        {c.traits && c.traits.length > 0 && (
-                          <div style={{fontSize: '10px', marginTop: '4px', display: 'flex', flexDirection: 'column', gap: '2px'}}>
-                            {c.traits.map(traitId => {
-                              const trait = TRAITS[traitId];
-                              if (!trait) return null;
-                              return (
-                                <div key={traitId} style={{color: trait.type === 'positive' ? '#22c55e' : '#ef4444', fontWeight: 600}}>
-                                  {trait.name}
-                                </div>
-                              );
-                            })}
-                          </div>
-                        )}
                       </div>
                       <div className="card-header">
                         <div className="font-black text-sm" style={{color: nameColor}}>{c.name}</div>
@@ -2112,19 +2090,6 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                         <div className="card-stat-item speed">
                           ⏱️{a.card.speedCost}
                         </div>
-                        {a.card.traits && a.card.traits.length > 0 && (
-                          <div style={{fontSize: '10px', marginTop: '4px', display: 'flex', flexDirection: 'column', gap: '2px'}}>
-                            {a.card.traits.map(traitId => {
-                              const trait = TRAITS[traitId];
-                              if (!trait) return null;
-                              return (
-                                <div key={traitId} style={{color: trait.type === 'positive' ? '#22c55e' : '#ef4444', fontWeight: 600}}>
-                                  {trait.name}
-                                </div>
-                              );
-                            })}
-                          </div>
-                        )}
                       </div>
                       <div className="card-header">
                         <div className="text-white font-black text-sm">{a.card.name}</div>
@@ -2133,6 +2098,14 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                         <Icon size={60} className="text-white opacity-80"/>
                       </div>
                       <div className="card-footer">
+                        {a.card.traits && a.card.traits.length > 0 && (
+                          <span style={{color: '#fbbf24', fontWeight: 600}}>
+                            {a.card.traits.map(traitId => {
+                              const trait = TRAITS[traitId];
+                              return trait ? trait.name : '';
+                            }).filter(Boolean).join(' ')}{' '}
+                          </span>
+                        )}
                         {a.card.description || ''}
                       </div>
                     </div>
