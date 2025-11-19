@@ -9,6 +9,7 @@ import {
   CARDS as BASE_PLAYER_CARDS,
   ENEMY_CARDS as BASE_ENEMY_CARDS,
   ENEMIES,
+  TRAITS,
 } from "./battleData";
 import { calculateEtherSlots, getCurrentSlotPts, getSlotProgress, getNextSlotCost } from "../../lib/etherUtils";
 import { CharacterSheet } from "../character/CharacterSheet";
@@ -1696,6 +1697,19 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                         <div className="card-stat-item speed">
                           ⏱️{c.speedCost}
                         </div>
+                        {c.traits && c.traits.length > 0 && (
+                          <div style={{fontSize: '10px', marginTop: '4px', display: 'flex', flexDirection: 'column', gap: '2px'}}>
+                            {c.traits.map(traitId => {
+                              const trait = TRAITS[traitId];
+                              if (!trait) return null;
+                              return (
+                                <div key={traitId} style={{color: trait.type === 'positive' ? '#22c55e' : '#ef4444', fontWeight: 600}}>
+                                  {trait.name}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
                       </div>
                       <div className="card-header">
                         <div className="font-black text-sm" style={{color: nameColor}}>{c.name}</div>
@@ -1746,6 +1760,19 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                         <div className="card-stat-item speed">
                           ⏱️{c.speedCost}
                         </div>
+                        {c.traits && c.traits.length > 0 && (
+                          <div style={{fontSize: '10px', marginTop: '4px', display: 'flex', flexDirection: 'column', gap: '2px'}}>
+                            {c.traits.map(traitId => {
+                              const trait = TRAITS[traitId];
+                              if (!trait) return null;
+                              return (
+                                <div key={traitId} style={{color: trait.type === 'positive' ? '#22c55e' : '#ef4444', fontWeight: 600}}>
+                                  {trait.name}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
                       </div>
                       <div className="card-header">
                         <div className="font-black text-sm" style={{color: nameColor}}>{c.name}</div>
@@ -1826,6 +1853,19 @@ function Game({ initialPlayer, initialEnemy, playerEther=0, onBattleResult }){
                         <div className="card-stat-item speed">
                           ⏱️{a.card.speedCost}
                         </div>
+                        {a.card.traits && a.card.traits.length > 0 && (
+                          <div style={{fontSize: '10px', marginTop: '4px', display: 'flex', flexDirection: 'column', gap: '2px'}}>
+                            {a.card.traits.map(traitId => {
+                              const trait = TRAITS[traitId];
+                              if (!trait) return null;
+                              return (
+                                <div key={traitId} style={{color: trait.type === 'positive' ? '#22c55e' : '#ef4444', fontWeight: 600}}>
+                                  {trait.name}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
                       </div>
                       <div className="card-header">
                         <div className="text-white font-black text-sm">{a.card.name}</div>

@@ -245,10 +245,8 @@ export function CharacterSheet({ onClose }) {
               return (
                 <div key={card.id} style={getCardStyle(card.id)} onClick={() => handleCardClick(card.id)}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
-                    <span style={{ color: "#fff", display: "flex", alignItems: "center", gap: "6px" }}>
-                      <span style={{ opacity: 0.7, fontSize: "12px" }}>슬롯 {card.slot}</span>{" "}
-                      <b>{card.name}</b>
-                      <span style={{ opacity: 0.7, fontSize: "12px" }}> · {card.type}</span>
+                    <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                      <b style={{ color: card.type === "attack" ? "#ef4444" : "#60a5fa" }}>{card.name}</b>
                       {isMain && (
                         <span style={{
                           fontSize: "11px",
@@ -274,11 +272,12 @@ export function CharacterSheet({ onClose }) {
                         </span>
                       )}
                     </span>
-                    <span style={{ fontSize: "12px", opacity: 0.8, color: "#9fb6ff" }}>
-                      속도 {card.speed} / AP {card.ap}
+                    <span style={{ fontSize: "12px", opacity: 0.8, color: "#9fb6ff", display: "flex", gap: "8px" }}>
+                      <span>AP {card.ap}</span>
+                      <span>속도 {card.speed}</span>
+                      <span>{card.desc}</span>
                     </span>
                   </div>
-                  <div style={{ fontSize: "13px", opacity: 0.9, color: "#9fb6ff", marginBottom: "4px" }}>{card.desc}</div>
                   {card.description && (
                     <div style={{ fontSize: "12px", opacity: 0.75, color: "#9fb6ff", marginBottom: "4px", fontStyle: "italic" }}>
                       {card.description}
