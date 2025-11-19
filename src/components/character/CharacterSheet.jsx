@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import { useGameStore } from "../../state/gameStore";
-import { CARDS } from "../battle/battleData";
+import { CARDS, TRAITS } from "../battle/battleData";
 
-// 전투에서 사용되는 카드 8종 (CARDS.slice(0, 8))
-const availableCards = CARDS.slice(0, 8).map((card, index) => ({
+// 모든 카드를 사용 가능하도록 변경
+const availableCards = CARDS.map((card, index) => ({
   id: card.id,
   slot: index + 1,
   name: card.name,
@@ -11,6 +11,8 @@ const availableCards = CARDS.slice(0, 8).map((card, index) => ({
   speed: card.speedCost,
   ap: card.actionCost,
   desc: `${card.damage ? `공격력 ${card.damage}${card.hits ? ` x${card.hits}` : ''}` : ''}${card.block ? `방어력 ${card.block}` : ''}${card.counter !== undefined ? ` 반격 ${card.counter}` : ''}`,
+  traits: card.traits || [],
+  description: card.description,
 }));
 
 export function CharacterSheet({ onClose }) {
@@ -276,7 +278,38 @@ export function CharacterSheet({ onClose }) {
                       속도 {card.speed} / AP {card.ap}
                     </span>
                   </div>
-                  <div style={{ fontSize: "13px", opacity: 0.9, color: "#9fb6ff" }}>{card.desc}</div>
+                  <div style={{ fontSize: "13px", opacity: 0.9, color: "#9fb6ff", marginBottom: "4px" }}>{card.desc}</div>
+                  {card.description && (
+                    <div style={{ fontSize: "12px", opacity: 0.75, color: "#9fb6ff", marginBottom: "4px", fontStyle: "italic" }}>
+                      {card.description}
+                    </div>
+                  )}
+                  {card.traits && card.traits.length > 0 && (
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "4px", marginTop: "6px" }}>
+                      {card.traits.map((traitId) => {
+                        const trait = TRAITS[traitId];
+                        if (!trait) return null;
+                        const isPositive = trait.type === "positive";
+                        return (
+                          <span
+                            key={traitId}
+                            style={{
+                              fontSize: "11px",
+                              padding: "2px 6px",
+                              borderRadius: "4px",
+                              background: isPositive ? "rgba(34, 197, 94, 0.2)" : "rgba(239, 68, 68, 0.2)",
+                              border: `1px solid ${isPositive ? "#22c55e" : "#ef4444"}`,
+                              color: isPositive ? "#22c55e" : "#ef4444",
+                              fontWeight: 600,
+                            }}
+                            title={trait.description}
+                          >
+                            {trait.name} {"★".repeat(trait.weight)}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               );
             })}
