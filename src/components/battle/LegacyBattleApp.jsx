@@ -1797,9 +1797,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
                 <div style={{ fontSize: '1.92rem', fontWeight: 'bold', color: '#fbbf24', marginBottom: '2px' }}>
                   {currentCombo.name}
                 </div>
-                <div style={{ fontSize: '1.32rem', color: '#fbbf24', fontWeight: 'bold' }}>
-                  +{comboPreviewInfo.baseGain} PT
-                </div>
                 <div style={{ fontSize: '1.32rem', color: '#fbbf24', fontWeight: 'bold', minWidth: '200px', display: 'inline-flex', justifyContent: 'center' }}>
                   × {comboPreviewInfo.comboMult.toFixed(2)}
                   {comboPreviewInfo.deflationPct > 0 && (
@@ -1807,6 +1804,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
                       -{comboPreviewInfo.deflationPct}%
                     </span>
                   )}
+                </div>
+                <div style={{ fontSize: '1.32rem', color: '#fbbf24', fontWeight: 'bold' }}>
+                  +{comboPreviewInfo.baseGain} PT
                 </div>
               </div>
             )}
