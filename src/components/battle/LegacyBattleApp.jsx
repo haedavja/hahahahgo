@@ -1994,15 +1994,18 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
                     onMouseEnter={(e) => {
                       if (c.traits && c.traits.length > 0) {
                         const rect = e.currentTarget.querySelector('.game-card-large').getBoundingClientRect();
-                        setHoveredCard({ card: c, x: rect.right + 16, y: rect.top });
+                        const targetX = rect.right + 16;
+                        const targetY = rect.top;
+                        setHoveredCard({ card: c, x: targetX, y: targetY });
                         setTooltipVisible(false);
                         if (tooltipTimerRef.current) clearTimeout(tooltipTimerRef.current);
                         tooltipTimerRef.current = setTimeout(() => {
+                          // 약간의 추가 딜레이로 위치 안정 후 보여줌
                           requestAnimationFrame(() => {
-                            requestAnimationFrame(() => setTooltipVisible(true)); // 위치 안정 뒤 부드럽게 표시
+                            requestAnimationFrame(() => setTooltipVisible(true));
                           });
                           setShowTooltip(true);
-                        }, 200);
+                        }, 300);
                       }
                     }}
                     onMouseLeave={() => {
