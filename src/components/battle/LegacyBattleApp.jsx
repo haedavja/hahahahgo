@@ -260,15 +260,6 @@ function applyPokerBonus(cards, combo) {
   });
 }
 
-const ETHER_GAIN_MAP = {
-  '페어': 10,
-  '투페어': 10,
-  '트리플': 20,
-  '플러쉬': 30,
-  '풀하우스': 40,
-  '포카드': 50,
-  '파이브카드': 60,
-};
 const etherSlots = (pts) => calculateEtherSlots(pts || 0); // 인플레이션 적용
 function addEther(pts, add) { return (pts || 0) + (add || 0); }
 
@@ -282,6 +273,33 @@ function applyEtherDeflation(baseGain, comboName, comboUsageCount, deflationMult
     gain: Math.floor(baseGain * multiplier),
     multiplier: multiplier,
     usageCount: usageCount
+  };
+}
+
+const COMBO_MULTIPLIERS = {
+  '페어': 2,
+  '투페어': 2.5,
+  '트리플': 3,
+  '플러시': 3.25,
+  '풀하우스': 3.5,
+  '포카드': 4,
+  '파이브카드': 5,
+};
+const BASE_ETHER_PER_CARD = 10;
+function calculateComboEtherGain({ cardCount = 0, comboName = null, comboUsageCount = {}, extraMultiplier = 1 }) {
+  const baseGain = Math.round(cardCount * BASE_ETHER_PER_CARD);
+  const comboMult = comboName ? (COMBO_MULTIPLIERS[comboName] || 1) : 1;
+  const multiplied = Math.round(baseGain * comboMult * extraMultiplier);
+  const deflated = comboName
+    ? applyEtherDeflation(multiplied, comboName, comboUsageCount)
+    : { gain: multiplied, multiplier: 1 };
+  const deflationPct = deflated.multiplier < 1 ? Math.round((1 - deflated.multiplier) * 100) : 0;
+  return {
+    gain: deflated.gain,
+    baseGain,
+    comboMult: comboMult * extraMultiplier,
+    deflationPct,
+    deflationMult: deflated.multiplier,
   };
 }
 
@@ -606,11 +624,9 @@ function ExpectedDamagePreview({ player, enemy, fixedOrder, willOverdrive, enemy
           <button onClick={runAll} disabled={qIndex >= queue.length} className="btn-enhanced btn-primary">
             전부 실행 (D)
           </button>
-          {qIndex >= queue.length && (
-            <button onClick={() => finishTurn('수동 턴 종료')} className="btn-enhanced flex items-center gap-2">
-              ⏭️ 턴 종료 (E)
-            </button>
-          )}
+          <button onClick={() => finishTurn('수동 턴 종료')} className="btn-enhanced flex items-center gap-2">
+            ⏭️ 턴 종료 (E)
+          </button>
           {postCombatOptions && (
             <>
               <div style={{
@@ -1098,11 +1114,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
     });
     return combo;
   }, [selected]);
-  const pendingComboEther = useMemo(() => {
-    if (!currentCombo) return { gain: 0, multiplier: 1, usageCount: 0 };
-    const baseGain = ETHER_GAIN_MAP[currentCombo.name] || 0;
-    return applyEtherDeflation(baseGain, currentCombo.name, player.comboUsageCount || {});
-  }, [currentCombo, player.comboUsageCount]);
+  const pendingComboEther = useMemo(() => ({ gain: 0, multiplier: 1, usageCount: 0 }), []);
 
   const toggle = (card) => {
     if (phase !== 'select' && phase !== 'respond') return;
@@ -1500,24 +1512,26 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
     const pComboEnd = detectPokerCombo(selected);
     const eComboEnd = detectPokerCombo(enemyPlan.actions);
 
-    const basePlayerGain = (selected?.length || 0) * 10;
-    const playerMultiplier = pComboEnd ? (COMBO_MULTIPLIERS[pComboEnd.name] || 1) : 1;
-    const playerRawGain = Math.round(basePlayerGain * playerMultiplier);
-    const deflated = pComboEnd
-      ? applyEtherDeflation(playerRawGain, pComboEnd.name, player.comboUsageCount || {})
-      : { gain: playerRawGain, multiplier: 1 };
-    if (deflated.gain > 0) {
-      const multText = playerMultiplier !== 1 ? ` × ${playerMultiplier.toFixed(2)}` : '';
-      const defText = pComboEnd && deflated.multiplier < 1 ? ` (×${deflated.multiplier.toFixed(2)})` : '';
-      addLog(`✴️ 에테르 +${deflated.gain} PT${multText}${defText}${pComboEnd ? ` (플레이어 족보: ${pComboEnd.name})` : ''}`);
+    const playerGainInfo = calculateComboEtherGain({
+      cardCount: selected?.length || 0,
+      comboName: pComboEnd?.name || null,
+      comboUsageCount: player.comboUsageCount || {},
+    });
+    if (playerGainInfo.gain > 0) {
+      const multText = playerGainInfo.comboMult !== 1 ? ` × ${playerGainInfo.comboMult.toFixed(2)}` : '';
+      const defText = playerGainInfo.deflationPct > 0 ? ` (-${playerGainInfo.deflationPct}%)` : '';
+      addLog(`✴️ 에테르 +${playerGainInfo.gain} PT${multText}${defText}${pComboEnd ? ` (플레이어 족보: ${pComboEnd.name})` : ''}`);
     }
 
-    const enemyBaseGain = (enemyPlan.actions?.length || 0) * 10;
-    const enemyMultiplier = eComboEnd ? (COMBO_MULTIPLIERS[eComboEnd.name] || 1) : 1;
-    const enemyGain = Math.round(enemyBaseGain * enemyMultiplier);
-    if (enemyGain > 0) {
-      const multText = enemyMultiplier !== 1 ? ` × ${enemyMultiplier.toFixed(2)}` : '';
-      addLog(`☄️ 적 에테르 +${enemyGain} PT${multText}${eComboEnd ? ` (적 족보: ${eComboEnd.name})` : ''}`);
+    const enemyGainInfo = calculateComboEtherGain({
+      cardCount: enemyPlan.actions?.length || 0,
+      comboName: eComboEnd?.name || null,
+      comboUsageCount: enemy.comboUsageCount || {},
+    });
+    if (enemyGainInfo.gain > 0) {
+      const multText = enemyGainInfo.comboMult !== 1 ? ` × ${enemyGainInfo.comboMult.toFixed(2)}` : '';
+      const defText = enemyGainInfo.deflationPct > 0 ? ` (-${enemyGainInfo.deflationPct}%)` : '';
+      addLog(`☄️ 적 에테르 +${enemyGainInfo.gain} PT${multText}${defText}${eComboEnd ? ` (적 족보: ${eComboEnd.name})` : ''}`);
     }
 
     setPlayer(p => {
@@ -1527,7 +1541,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
       }
       return {
         ...p,
-        etherPts: addEther(p.etherPts, deflated.gain || 0),
+        etherPts: addEther(p.etherPts, playerGainInfo.gain || 0),
         block: 0,
         def: false,
         counter: 0,
@@ -1537,7 +1551,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
         comboUsageCount: newUsageCount
       };
     });
-    setEnemy(e => ({ ...e, etherPts: addEther(e.etherPts, enemyGain || 0), block: 0, def: false, counter: 0, vulnMult: 1, vulnTurns: 0, etherOverdriveActive: false }));
+    setEnemy(e => ({ ...e, etherPts: addEther(e.etherPts, enemyGainInfo.gain || 0), block: 0, def: false, counter: 0, vulnMult: 1, vulnTurns: 0, etherOverdriveActive: false }));
     setSelected([]); setQueue([]); setQIndex(0); setFixedOrder(null); setUsedCardIndices([]);
     setDisappearingCards([]); setHiddenCards([]);
     setPhase('select');
@@ -1867,22 +1881,16 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
           {/* 오른쪽: 적 */}
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '12px', minWidth: '360px', position: 'relative', justifyContent: 'center' }}>
             {/* 몬스터 콤보 - 절대 위치로 왼쪽 배치 */}
-            {enemyCombo && (
-              <div className="combo-display" style={{ position: 'absolute', top: '0', right: '180px', textAlign: 'center' }}>
-                <div style={{ fontSize: '1.92rem', fontWeight: 'bold', color: '#fbbf24', marginBottom: '2px' }}>
-                  {enemyCombo.name}
-                </div>
-                {enemyComboPreviewGain > 0 && (
-                  <div style={{ fontSize: '1.92rem', color: '#fbbf24', fontWeight: 'bold' }}>
-                    +{enemyComboPreviewGain} PT {enemyComboPreviewGain < ETHER_GAIN_MAP[enemyCombo.name] && (
-                      <span style={{ color: '#ef4444', fontSize: '0.624em', marginLeft: '-0.05em' }}>
-                        (×{(enemyComboPreviewGain / ETHER_GAIN_MAP[enemyCombo.name]).toFixed(2)})
-                      </span>
-                    )}
+                {enemyCombo && (
+                  <div className="combo-display" style={{ position: 'absolute', top: '0', right: '180px', textAlign: 'center' }}>
+                    <div style={{ fontSize: '1.92rem', fontWeight: 'bold', color: '#fbbf24', marginBottom: '2px' }}>
+                      {enemyCombo.name}
+                    </div>
+                    <div style={{ fontSize: '1.32rem', color: '#fbbf24', fontWeight: 'bold' }}>
+                      ×{(COMBO_MULTIPLIERS[enemyCombo.name] || 1).toFixed(2)}
+                    </div>
                   </div>
                 )}
-              </div>
-            )}
             <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
               <div style={{ textAlign: 'right' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
