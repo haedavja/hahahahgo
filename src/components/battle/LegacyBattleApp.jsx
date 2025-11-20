@@ -1793,17 +1793,26 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '12px', minWidth: '360px', position: 'relative', justifyContent: 'center' }}>
             {/* 플레이어 콤보 - 절대 위치로 오른쪽 배치 */}
             {currentCombo && comboPreviewInfo && (
-              <div className="combo-display" style={{ position: 'absolute', top: '-5px', left: '180px', textAlign: 'center' }}>
+              <div className="combo-display" style={{ position: 'absolute', top: '-5px', left: '90px', textAlign: 'center' }}>
                 <div style={{ fontSize: '1.92rem', fontWeight: 'bold', color: '#fbbf24', marginBottom: '2px' }}>
                   {currentCombo.name}
                 </div>
                 <div style={{ fontSize: '1.5rem', color: '#fbbf24', fontWeight: 'bold', letterSpacing: '0.2em', marginBottom: '2px' }}>
                   + {comboPreviewInfo.baseGain.toString().split('').join(' ')} P T
                 </div>
-                <div style={{ fontSize: '1.32rem', color: '#fbbf24', fontWeight: 'bold', letterSpacing: '0.15em', minWidth: '200px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px' }}>
+                <div style={{ fontSize: '1.32rem', color: '#fbbf24', fontWeight: 'bold', letterSpacing: '0.15em', minWidth: '400px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '12px' }}>
                   <span>× {comboPreviewInfo.comboMult.toFixed(2).split('').join(' ')}</span>
                   {comboPreviewInfo.deflationPct > 0 && (
-                    <span style={{ color: '#ef4444', fontSize: '0.8em', letterSpacing: '0.1em' }}>
+                    <span style={{
+                      color: '#fca5a5',
+                      background: 'rgba(239, 68, 68, 0.15)',
+                      fontSize: '0.85em',
+                      letterSpacing: '0.12em',
+                      padding: '4px 18px',
+                      borderRadius: '6px',
+                      border: '1.5px solid rgba(239, 68, 68, 0.4)',
+                      fontWeight: 'bold'
+                    }}>
                       - {comboPreviewInfo.deflationPct} %
                     </span>
                   )}
