@@ -849,6 +849,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
   const [previewDamage, setPreviewDamage] = useState({ value: 0, lethal: false, overkill: false });
   const lethalSoundRef = useRef(false);
   const overkillSoundRef = useRef(false);
+  const hoveredCardRef = useRef(null);
   const [showTooltip, setShowTooltip] = useState(false); // 툴팁 표시 여부 (딜레이 후)
   const tooltipTimerRef = useRef(null);
   const logEndRef = useRef(null);
@@ -869,6 +870,10 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
   const closeCharacterSheet = useCallback(() => {
     setShowCharacterSheet(false);
   }, []);
+
+  useEffect(() => {
+    hoveredCardRef.current = hoveredCard;
+  }, [hoveredCard]);
 
   const handleExitToMap = () => {
     const outcome = postCombatOptions?.type || (enemy && enemy.hp <= 0 ? 'victory' : (player && player.hp <= 0 ? 'defeat' : null));
@@ -2000,9 +2005,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
                         setTooltipVisible(false);
                         if (tooltipTimerRef.current) clearTimeout(tooltipTimerRef.current);
                         tooltipTimerRef.current = setTimeout(() => {
-                          // 여전히 같은 카드를 호버 중인 경우에만 표시
-                          const stillSame = hoveredCard?.card?.id === c.id || (hoveredCard?.card === c);
-                          if (!stillSame) return;
+                          if (hoveredCardRef.current?.card?.id !== c.id) return;
                           requestAnimationFrame(() => {
                             requestAnimationFrame(() => setTooltipVisible(true));
                           });
