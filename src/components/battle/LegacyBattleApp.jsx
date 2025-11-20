@@ -1114,7 +1114,14 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
     });
     return combo;
   }, [selected]);
-  const pendingComboEther = useMemo(() => ({ gain: 0, multiplier: 1, usageCount: 0 }), []);
+  const comboPreviewInfo = useMemo(() => {
+    if (!currentCombo) return null;
+    return calculateComboEtherGain({
+      cardCount: selected?.length || 0,
+      comboName: currentCombo.name,
+      comboUsageCount: player.comboUsageCount || {},
+    });
+  }, [currentCombo, selected?.length, player.comboUsageCount]);
 
   const toggle = (card) => {
     if (phase !== 'select' && phase !== 'respond') return;
@@ -1785,20 +1792,20 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
           {/* 왼쪽: 플레이어 */}
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '12px', minWidth: '360px', position: 'relative', justifyContent: 'center' }}>
             {/* 플레이어 콤보 - 절대 위치로 오른쪽 배치 */}
-            {currentCombo && (
+            {currentCombo && comboPreviewInfo && (
               <div className="combo-display" style={{ position: 'absolute', top: '-5px', left: '180px', textAlign: 'center' }}>
                 <div style={{ fontSize: '1.92rem', fontWeight: 'bold', color: '#fbbf24', marginBottom: '2px' }}>
                   {currentCombo.name}
                 </div>
-                {pendingComboEther.gain > 0 && (
-                  <div style={{ fontSize: '1.92rem', color: '#fbbf24', fontWeight: 'bold' }}>
-                    +{pendingComboEther.gain} PT {pendingComboEther.multiplier < 1 && (
-                      <span style={{ color: '#ef4444', fontSize: '0.624em', marginLeft: '-0.05em' }}>
-                        (×{pendingComboEther.multiplier.toFixed(2)})
-                      </span>
-                    )}
-                  </div>
-                )}
+                <div style={{ fontSize: '1.32rem', color: '#fbbf24', fontWeight: 'bold' }}>
+                  ×{comboPreviewInfo.comboMult.toFixed(2)}
+                  {comboPreviewInfo.deflationPct > 0 && (
+                    <span style={{ color: '#ef4444', fontSize: '0.72em', marginLeft: '4px' }}>(-{comboPreviewInfo.deflationPct}%)</span>
+                  )}
+                </div>
+                <div style={{ fontSize: '1.32rem', color: '#fbbf24', fontWeight: 'bold' }}>
+                  +{comboPreviewInfo.gain} PT
+                </div>
               </div>
             )}
             <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
