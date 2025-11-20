@@ -2005,11 +2005,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
                         }, 200);
                       }
                     }}
-                    onMouseMove={(e) => {
-                      if (!hoveredCard || hoveredCard.card !== c) return;
-                      const rect = e.currentTarget.querySelector('.game-card-large').getBoundingClientRect();
-                      setHoveredCard({ card: c, x: rect.right + 16, y: rect.top });
-                    }}
                     onMouseLeave={() => {
                       setHoveredCard(null);
                       setTooltipVisible(false);
