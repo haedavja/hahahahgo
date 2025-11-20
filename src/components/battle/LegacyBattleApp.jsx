@@ -1998,14 +1998,17 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
                     onClick={() => !disabled && toggle(c)}
                     onMouseEnter={(e) => {
                       if (c.traits && c.traits.length > 0) {
-                        const rect = e.currentTarget.querySelector('.game-card-large').getBoundingClientRect();
-                        const targetX = rect.right + 16;
-                        const targetY = rect.top;
-                        setHoveredCard({ card: c, x: targetX, y: targetY });
+                        const cardEl = e.currentTarget.querySelector('.game-card-large');
+                        const updatePos = () => {
+                          const rect = cardEl.getBoundingClientRect();
+                          setHoveredCard({ card: c, x: rect.right + 16, y: rect.top });
+                        };
+                        updatePos();
                         setTooltipVisible(false);
                         if (tooltipTimerRef.current) clearTimeout(tooltipTimerRef.current);
                         tooltipTimerRef.current = setTimeout(() => {
                           if (hoveredCardRef.current?.card?.id !== c.id) return;
+                          updatePos(); // 위치 재측정 후 표시
                           requestAnimationFrame(() => {
                             requestAnimationFrame(() => setTooltipVisible(true));
                           });
