@@ -1574,7 +1574,15 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
 
   const playerTimeline = useMemo(() => {
     if (phase === 'select') {
-      let ps = 0; return selected.map((c, idx) => { ps += c.speedCost; return { actor: 'player', card: c, sp: ps, idx }; });
+      let ps = 0;
+      return selected.map((c, idx) => {
+        const enhancedCard = applyTraitModifiers(c, {
+          usageCount: 0,
+          isInCombo: false,
+        });
+        ps += enhancedCard.speedCost;
+        return { actor: 'player', card: enhancedCard, sp: ps, idx };
+      });
     }
     if (phase === 'respond' && fixedOrder) return fixedOrder.filter(x => x.actor === 'player');
     if (phase === 'resolve') return queue.filter(x => x.actor === 'player');
@@ -1970,6 +1978,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
             <div className="hand-cards">
               {getSortedHand().map((c, idx) => {
                 const Icon = c.icon;
+                const enhancedCard = applyTraitModifiers(c, { usageCount: 0, isInCombo: false });
                 const selIndex = selected.findIndex(s => s.id === c.id);
                 const sel = selIndex !== -1;
                 const disabled = handDisabled(c) && !sel;
@@ -2010,21 +2019,21 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
                     style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center', cursor: disabled ? 'not-allowed' : 'pointer', position: 'relative', marginLeft: idx === 0 ? '0' : '-20px' }}
                   >
                     <div className={`game-card-large select-phase-card ${c.type === 'attack' ? 'attack' : 'defense'} ${sel ? 'selected' : ''} ${disabled ? 'disabled' : ''}`}>
-                      <div className="card-cost-badge-floating" style={{ color: costColor, WebkitTextStroke: '1px #000' }}>{c.actionCost}</div>
+                      <div className="card-cost-badge-floating" style={{ color: costColor, WebkitTextStroke: '1px #000' }}>{enhancedCard.actionCost || c.actionCost}</div>
                       {sel && <div className="selection-number">{selIndex + 1}</div>}
                       <div className="card-stats-sidebar">
-                        {c.damage != null && c.damage > 0 && (
+                        {enhancedCard.damage != null && enhancedCard.damage > 0 && (
                           <div className="card-stat-item attack">
-                            ⚔️{c.damage}{c.hits ? `×${c.hits}` : ''}
+                            ⚔️{enhancedCard.damage}{enhancedCard.hits ? `×${enhancedCard.hits}` : ''}
                           </div>
                         )}
-                        {c.block != null && c.block > 0 && (
+                        {enhancedCard.block != null && enhancedCard.block > 0 && (
                           <div className="card-stat-item defense">
-                            🛡️{c.block}
+                            🛡️{enhancedCard.block}
                           </div>
                         )}
                         <div className="card-stat-item speed">
-                          ⏱️{c.speedCost}
+                          ⏱️{enhancedCard.speedCost}
                         </div>
                       </div>
                       <div className="card-header">
@@ -2259,6 +2268,24 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
           <div style={{ fontSize: '21px', fontWeight: 700, color: '#fbbf24', marginBottom: '12px' }}>
             특성 정보
           </div>
+          {(() => {
+            const baseCard = CARDS.find(c => c.id === hoveredCard.card.id);
+            const enhancedCard = applyTraitModifiers(baseCard || hoveredCard.card, { usageCount: 0, isInCombo: false });
+            const parts = [];
+            if (baseCard?.damage && enhancedCard.damage && enhancedCard.damage !== baseCard.damage) {
+              const mult = (enhancedCard.damage / baseCard.damage).toFixed(2);
+              parts.push(`공격력: ${enhancedCard.damage} = ${baseCard.damage} × ${mult}`);
+            }
+            if (baseCard?.block && enhancedCard.block && enhancedCard.block !== baseCard.block) {
+              const mult = (enhancedCard.block / baseCard.block).toFixed(2);
+              parts.push(`방어력: ${enhancedCard.block} = ${baseCard.block} × ${mult}`);
+            }
+            return parts.length > 0 ? (
+              <div style={{ marginBottom: '10px', padding: '8px', background: 'rgba(251, 191, 36, 0.12)', borderRadius: '8px', border: '1px solid rgba(251, 191, 36, 0.4)', color: '#fde68a', fontSize: '14px', fontWeight: 700 }}>
+                {parts.map((p, idx) => <div key={idx}>{p}</div>)}
+              </div>
+            ) : null;
+          })()}
           {hoveredCard.card.traits.map(traitId => {
             const trait = TRAITS[traitId];
             if (!trait) return null;
