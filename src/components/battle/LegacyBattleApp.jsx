@@ -483,7 +483,7 @@ function simulatePreview({ player, enemy, fixedOrder, willOverdrive, enemyMode, 
     const { events, dealt } = applyAction(st, step.actor, step.card);
     if (step.actor === 'player') pDealt += dealt; else pTaken += dealt;
     events.forEach(ev => lines.push(ev.msg));
-    if (st.player.hp <= 0 || st.enemy.hp <= 0) break;
+    if (st.player.hp <= 0) break;
   }
   return { pDealt, pTaken, finalPHp: st.player.hp, finalEHp: st.enemy.hp, lines };
 }
@@ -824,13 +824,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
     setLog(p => [...p, m].slice(-200));
   }, []);
   const [willOverdrive, setWillOverdrive] = useState(false);
-  const [isSimplified, setIsSimplified] = useState(() => {
-    try {
-      return localStorage.getItem('battleIsSimplified') === 'true';
-    } catch {
-      return false;
-    }
-  });
+  const [isSimplified, setIsSimplified] = useState(false);
   const [usedCardIndices, setUsedCardIndices] = useState([]);
   const [disappearingCards, setDisappearingCards] = useState([]); // 사라지는 중인 카드 인덱스
   const [hiddenCards, setHiddenCards] = useState([]); // 완전히 숨겨진 카드 인덱스
@@ -851,6 +845,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
   const [playerBlockAnim, setPlayerBlockAnim] = useState(false); // 플레이어 방어 애니메이션
   const [enemyBlockAnim, setEnemyBlockAnim] = useState(false); // 적 방어 애니메이션
   const [hoveredCard, setHoveredCard] = useState(null); // 호버된 카드 정보 {card, position}
+  const [showTooltip, setShowTooltip] = useState(false); // 툴팁 표시 여부 (딜레이 후)
+  const tooltipTimerRef = useRef(null);
   const logEndRef = useRef(null);
   const initialEtherRef = useRef(typeof safeInitialPlayer.etherPts === 'number' ? safeInitialPlayer.etherPts : (playerEther ?? 0));
   const resultSentRef = useRef(false);
@@ -1932,7 +1928,22 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
                   <div
                     key={c.id + idx}
                     onClick={() => !disabled && toggle(c)}
-                    style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center', cursor: disabled ? 'not-allowed' : 'pointer', position: 'relative' }}
+                    onMouseEnter={(e) => {
+                      if (c.traits && c.traits.length > 0) {
+                        const rect = e.currentTarget.querySelector('.game-card-large').getBoundingClientRect();
+                        setHoveredCard({ card: c, x: rect.right, y: rect.top });
+                        if (tooltipTimerRef.current) clearTimeout(tooltipTimerRef.current);
+                        tooltipTimerRef.current = setTimeout(() => {
+                          setShowTooltip(true);
+                        }, 500);
+                      }
+                    }}
+                    onMouseLeave={() => {
+                      setHoveredCard(null);
+                      setShowTooltip(false);
+                      if (tooltipTimerRef.current) clearTimeout(tooltipTimerRef.current);
+                    }}
+                    style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center', cursor: disabled ? 'not-allowed' : 'pointer', position: 'relative', marginLeft: idx === 0 ? '0' : '-20px' }}
                   >
                     <div className={`game-card-large select-phase-card ${c.type === 'attack' ? 'attack' : 'defense'} ${sel ? 'selected' : ''} ${disabled ? 'disabled' : ''}`}>
                       <div className="card-cost-badge-floating" style={{ color: costColor, WebkitTextStroke: '1px #000' }}>{c.actionCost}</div>
@@ -1963,25 +1974,28 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
                           </div>
                         )}
                       </div>
-                      <div
-                        className={`card-footer ${isSimplified ? 'simplified-footer' : ''}`}
-                        onMouseEnter={(e) => {
-                          if (c.traits && c.traits.length > 0) {
-                            const rect = e.currentTarget.getBoundingClientRect();
-                            setHoveredCard({ card: c, x: rect.left + rect.width / 2, y: rect.top });
-                          }
-                        }}
-                        onMouseLeave={() => setHoveredCard(null)}
-                      >
+                      <div className={`card-footer ${isSimplified ? 'simplified-footer' : ''}`}>
                         {c.traits && c.traits.length > 0 && (
-                          <span style={{ color: '#fbbf24', fontWeight: 600 }}>
-                            {c.traits.map(traitId => {
+                          <span style={{ fontWeight: 600, display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                            {c.traits.map((traitId) => {
                               const trait = TRAITS[traitId];
-                              return trait ? trait.name : '';
-                            }).filter(Boolean).join(' ')}{' '}
+                              if (!trait) return null;
+                              const isPositive = trait.type === 'positive';
+                              return (
+                                <span key={traitId} style={{
+                                  color: isPositive ? '#22c55e' : '#ef4444',
+                                  background: isPositive ? 'rgba(34, 197, 94, 0.2)' : 'rgba(239, 68, 68, 0.2)',
+                                  padding: '2px 6px',
+                                  borderRadius: '4px',
+                                  border: `1px solid ${isPositive ? '#22c55e' : '#ef4444'}`
+                                }}>
+                                  {trait.name}
+                                </span>
+                              );
+                            })}
                           </span>
                         )}
-                        {c.description || ''}
+                        <span className="card-description">{c.description || ''}</span>
                       </div>
                     </div>
                   </div>
@@ -2001,7 +2015,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
                 const costColor = isMainSpecial ? '#fcd34d' : isSubSpecial ? '#60a5fa' : '#fff';
                 const nameColor = isMainSpecial ? '#fcd34d' : isSubSpecial ? '#7dd3fc' : '#fff';
                 return (
-                  <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center', position: 'relative' }}>
+                  <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center', position: 'relative', marginLeft: idx === 0 ? '0' : '-20px' }}>
                     <div className={`game-card-large respond-phase-card ${c.type === 'attack' ? 'attack' : 'defense'}`}>
                       <div className="card-cost-badge-floating" style={{ color: costColor, WebkitTextStroke: '1px #000' }}>{c.actionCost}</div>
                       <div className="card-stats-sidebar">
@@ -2025,8 +2039,28 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
                       <div className="card-icon-area">
                         <Icon size={60} className="text-white opacity-80" />
                       </div>
-                      <div className="card-footer">
-                        {c.description || ''}
+                      <div className={`card-footer ${isSimplified ? 'simplified-footer' : ''}`}>
+                        {c.traits && c.traits.length > 0 && (
+                          <span style={{ fontWeight: 600, display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                            {c.traits.map((traitId) => {
+                              const trait = TRAITS[traitId];
+                              if (!trait) return null;
+                              const isPositive = trait.type === 'positive';
+                              return (
+                                <span key={traitId} style={{
+                                  color: isPositive ? '#22c55e' : '#ef4444',
+                                  background: isPositive ? 'rgba(34, 197, 94, 0.2)' : 'rgba(239, 68, 68, 0.2)',
+                                  padding: '2px 6px',
+                                  borderRadius: '4px',
+                                  border: `1px solid ${isPositive ? '#22c55e' : '#ef4444'}`
+                                }}>
+                                  {trait.name}
+                                </span>
+                              );
+                            })}
+                          </span>
+                        )}
+                        <span className="card-description">{c.description || ''}</span>
                       </div>
                     </div>
                     <div style={{ display: 'flex', gap: '8px' }}>
@@ -2076,7 +2110,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
                 if (isHidden) return null;
 
                 return (
-                  <div key={`resolve-${globalIndex}`} style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center', position: 'relative' }}>
+                  <div key={`resolve-${globalIndex}`} style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center', position: 'relative', marginLeft: i === 0 ? '0' : '-20px' }}>
                     <div className={`game-card-large resolve-phase-card ${a.card.type === 'attack' ? 'attack' : 'defense'} ${isUsed ? 'card-used' : ''} ${isDisappearing ? 'card-disappearing' : ''}`}>
                       <div className="card-cost-badge-floating" style={{ color: costColor, WebkitTextStroke: '1px #000' }}>{a.card.actionCost}</div>
                       <div className="card-stats-sidebar">
@@ -2105,16 +2139,28 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
                       <div className="card-icon-area">
                         <Icon size={60} className="text-white opacity-80" />
                       </div>
-                      <div className="card-footer">
+                      <div className={`card-footer ${isSimplified ? 'simplified-footer' : ''}`}>
                         {a.card.traits && a.card.traits.length > 0 && (
-                          <span style={{ color: '#fbbf24', fontWeight: 600 }}>
-                            {a.card.traits.map(traitId => {
+                          <span style={{ fontWeight: 600, display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                            {a.card.traits.map((traitId) => {
                               const trait = TRAITS[traitId];
-                              return trait ? trait.name : '';
-                            }).filter(Boolean).join(' ')}{' '}
+                              if (!trait) return null;
+                              const isPositive = trait.type === 'positive';
+                              return (
+                                <span key={traitId} style={{
+                                  color: isPositive ? '#22c55e' : '#ef4444',
+                                  background: isPositive ? 'rgba(34, 197, 94, 0.2)' : 'rgba(239, 68, 68, 0.2)',
+                                  padding: '2px 6px',
+                                  borderRadius: '4px',
+                                  border: `1px solid ${isPositive ? '#22c55e' : '#ef4444'}`
+                                }}>
+                                  {trait.name}
+                                </span>
+                              );
+                            })}
                           </span>
                         )}
-                        {a.card.description || ''}
+                        <span className="card-description">{a.card.description || ''}</span>
                       </div>
                     </div>
                   </div>
@@ -2128,25 +2174,24 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
       {showCharacterSheet && <CharacterSheet onClose={closeCharacterSheet} />}
 
       {/* 특성 툴팁 */}
-      {hoveredCard && hoveredCard.card.traits && hoveredCard.card.traits.length > 0 && (
+      {showTooltip && hoveredCard && hoveredCard.card.traits && hoveredCard.card.traits.length > 0 && (
         <div
           style={{
             position: 'fixed',
-            left: `${hoveredCard.x}px`,
-            top: `${hoveredCard.y - 10}px`,
-            transform: 'translate(-50%, -100%)',
-            background: 'rgba(8, 11, 19, 0.98)',
+            left: `${hoveredCard.x + 10}px`,
+            top: `${hoveredCard.y}px`,
+            background: 'rgba(0, 0, 0, 0.95)',
             border: '2px solid #fbbf24',
             borderRadius: '12px',
-            padding: '12px 16px',
+            padding: '18px 24px',
             boxShadow: '0 8px 24px rgba(0, 0, 0, 0.9)',
             zIndex: 10000,
             pointerEvents: 'none',
-            minWidth: '280px',
-            maxWidth: '400px',
+            minWidth: '320px',
+            maxWidth: '450px',
           }}
         >
-          <div style={{ fontSize: '14px', fontWeight: 700, color: '#fbbf24', marginBottom: '8px' }}>
+          <div style={{ fontSize: '21px', fontWeight: 700, color: '#fbbf24', marginBottom: '12px' }}>
             특성 정보
           </div>
           {hoveredCard.card.traits.map(traitId => {
@@ -2154,25 +2199,25 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
             if (!trait) return null;
             const isPositive = trait.type === 'positive';
             return (
-              <div key={traitId} style={{ marginBottom: '8px' }}>
+              <div key={traitId} style={{ marginBottom: '12px' }}>
                 <div style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '6px',
-                  marginBottom: '2px'
+                  gap: '8px',
+                  marginBottom: '4px'
                 }}>
                   <span style={{
-                    fontSize: '13px',
+                    fontSize: '19px',
                     fontWeight: 700,
                     color: isPositive ? '#22c55e' : '#ef4444'
                   }}>
                     {trait.name}
                   </span>
-                  <span style={{ fontSize: '11px', color: '#fbbf24' }}>
+                  <span style={{ fontSize: '16px', color: '#fbbf24' }}>
                     {"★".repeat(trait.weight)}
                   </span>
                 </div>
-                <div style={{ fontSize: '12px', color: '#9fb6ff', lineHeight: 1.4 }}>
+                <div style={{ fontSize: '18px', color: '#9fb6ff', lineHeight: 1.5 }}>
                   {trait.description}
                 </div>
               </div>

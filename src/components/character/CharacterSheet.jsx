@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useGameStore } from "../../state/gameStore";
 import { CARDS, TRAITS } from "../battle/battleData";
 
@@ -33,6 +33,14 @@ export function CharacterSheet({ onClose }) {
   const [mainSpecials, setMainSpecials] = useState([]);
   const [subSpecials, setSubSpecials] = useState([]);
   const [initialized, setInitialized] = useState(false);
+
+  // 툴팁 상태
+  const [hoveredTrait, setHoveredTrait] = useState(null);
+  const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
+  const tooltipRef = useRef(null);
+  const [hoveredCard, setHoveredCard] = useState(null);
+  const [showCardTooltip, setShowCardTooltip] = useState(false);
+  const cardTooltipTimerRef = useRef(null);
 
   // 컴포넌트 마운트 시 한 번만 스토어에서 로드
   useEffect(() => {
@@ -100,6 +108,20 @@ export function CharacterSheet({ onClose }) {
         return [...prev, cardId];
       });
     }
+  };
+
+  // 툴팁 핸들러
+  const handleTraitMouseEnter = (e, trait) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const tooltipX = rect.right + 10; // 카드 오른쪽에 배치
+    const tooltipY = rect.top;
+
+    setHoveredTrait(trait);
+    setTooltipPosition({ x: tooltipX, y: tooltipY });
+  };
+
+  const handleTraitMouseLeave = () => {
+    setHoveredTrait(null);
   };
 
   const getModeButtonStyle = (mode) => ({
@@ -243,7 +265,27 @@ export function CharacterSheet({ onClose }) {
               const isSub = subSpecials.includes(card.id);
 
               return (
-                <div key={card.id} style={getCardStyle(card.id)} onClick={() => handleCardClick(card.id)}>
+                <div
+                  key={card.id}
+                  style={{...getCardStyle(card.id), position: "relative"}}
+                  onClick={() => handleCardClick(card.id)}
+                  onMouseEnter={(e) => {
+                    if (card.traits && card.traits.length > 0) {
+                      const rect = e.currentTarget.getBoundingClientRect();
+                      const fullCard = CARDS.find(c => c.id === card.id);
+                      setHoveredCard({ card: fullCard, x: rect.right, y: rect.top });
+                      if (cardTooltipTimerRef.current) clearTimeout(cardTooltipTimerRef.current);
+                      cardTooltipTimerRef.current = setTimeout(() => {
+                        setShowCardTooltip(true);
+                      }, 500);
+                    }
+                  }}
+                  onMouseLeave={() => {
+                    setHoveredCard(null);
+                    setShowCardTooltip(false);
+                    if (cardTooltipTimerRef.current) clearTimeout(cardTooltipTimerRef.current);
+                  }}
+                >
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
                     <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                       <b style={{ color: card.type === "attack" ? "#ef4444" : "#60a5fa" }}>{card.name}</b>
@@ -300,8 +342,10 @@ export function CharacterSheet({ onClose }) {
                               border: `1px solid ${isPositive ? "#22c55e" : "#ef4444"}`,
                               color: isPositive ? "#22c55e" : "#ef4444",
                               fontWeight: 600,
+                              cursor: "help",
                             }}
-                            title={trait.description}
+                            onMouseEnter={(e) => handleTraitMouseEnter(e, trait)}
+                            onMouseLeave={handleTraitMouseLeave}
                           >
                             {trait.name} {"★".repeat(trait.weight)}
                           </span>
@@ -315,6 +359,90 @@ export function CharacterSheet({ onClose }) {
           </div>
         </div>
       </div>
+
+      {/* 커스텀 툴팁 */}
+      {hoveredTrait && (
+        <div
+          ref={tooltipRef}
+          style={{
+            position: "fixed",
+            left: `${tooltipPosition.x}px`,
+            top: `${tooltipPosition.y}px`,
+            background: "rgba(0, 0, 0, 0.95)",
+            border: `2px solid ${hoveredTrait.type === "positive" ? "#22c55e" : "#ef4444"}`,
+            borderRadius: "8px",
+            padding: "12px 16px",
+            color: "#fff",
+            fontSize: "16px",
+            fontWeight: 500,
+            maxWidth: "300px",
+            zIndex: 10000,
+            pointerEvents: "none",
+            boxShadow: "0 4px 16px rgba(0, 0, 0, 0.5)",
+            lineHeight: "1.5",
+          }}
+        >
+          <div style={{ marginBottom: "6px", fontWeight: 700, color: hoveredTrait.type === "positive" ? "#22c55e" : "#ef4444" }}>
+            {hoveredTrait.name} {"★".repeat(hoveredTrait.weight)}
+          </div>
+          <div style={{ fontSize: "14px", opacity: 0.9 }}>
+            {hoveredTrait.description}
+          </div>
+        </div>
+      )}
+
+      {/* 카드 특성 툴팁 */}
+      {showCardTooltip && hoveredCard && hoveredCard.card.traits && hoveredCard.card.traits.length > 0 && (
+        <div
+          style={{
+            position: 'fixed',
+            left: `${hoveredCard.x + 10}px`,
+            top: `${hoveredCard.y}px`,
+            background: 'rgba(0, 0, 0, 0.95)',
+            border: '2px solid #fbbf24',
+            borderRadius: '12px',
+            padding: '20px',
+            color: '#fff',
+            maxWidth: '400px',
+            zIndex: 10000,
+            pointerEvents: 'none',
+            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.8)',
+          }}
+        >
+          <div style={{ fontSize: '21px', fontWeight: 700, color: '#fbbf24', marginBottom: '12px' }}>
+            특성 정보
+          </div>
+          {hoveredCard.card.traits.map(traitId => {
+            const trait = TRAITS[traitId];
+            if (!trait) return null;
+            const isPositive = trait.type === 'positive';
+            return (
+              <div key={traitId} style={{ marginBottom: '12px' }}>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  marginBottom: '4px'
+                }}>
+                  <span style={{
+                    fontSize: '19px',
+                    fontWeight: 700,
+                    color: isPositive ? '#22c55e' : '#ef4444'
+                  }}>
+                    {trait.name}
+                  </span>
+                  <span style={{ fontSize: '16px', color: '#fbbf24' }}>
+                    {"★".repeat(trait.weight)}
+                  </span>
+                </div>
+                <div style={{ fontSize: '18px', color: '#9fb6ff', lineHeight: 1.5 }}>
+                  {trait.description}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

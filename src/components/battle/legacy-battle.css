@@ -998,19 +998,17 @@ body {
   position: relative;
 }
 
-/* 선택 단계 카드 - 겹침 */
+/* 모든 단계 카드 - 일정한 간격으로 겹침 */
 .game-card-large.select-phase-card {
-  margin-left: -40px;
+  margin-left: -20px;
 }
 
-/* 대응 단계 카드 - 겹침 없음 */
 .game-card-large.respond-phase-card {
-  margin-left: 10px;
+  margin-left: -20px;
 }
 
-/* 진행 단계 카드 - 겹침 없음 */
 .game-card-large.resolve-phase-card {
-  margin-left: 0px;
+  margin-left: -20px;
 }
 
 /* 첫 번째 카드 wrapper의 카드는 margin-left 없음 */
@@ -1041,32 +1039,7 @@ body {
 }
 
 /* 카드 설명 영역 */
-.card-description {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background: rgba(0, 0, 0, 0.95);
-  color: #cbd5e1;
-  font-size: 12px; /* 11px → 12px */
-  line-height: 1.5; /* 1.4 → 1.5 */
-  padding: 10px 12px; /* 8px 10px → 10px 12px */
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  opacity: 0;
-  transform: translateY(100%);
-  transition: all 0.3s ease;
-  pointer-events: none;
-  max-height: 0;
-  overflow: hidden;
-}
-
-/* 호버 시 설명 표시 */
-.game-card-large:hover:not(.disabled) .card-description {
-  opacity: 1;
-  transform: translateY(0);
-  max-height: 100px; /* 80px → 100px */
-  pointer-events: auto;
-}
+/* 이전 card-description 스타일 제거 - 1175번 줄 스타일 사용 */
 
 /* 카드 이름 및 아이콘 영역 조정 */
 .game-card-large .card-header {
