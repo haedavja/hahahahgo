@@ -845,6 +845,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
   const [playerBlockAnim, setPlayerBlockAnim] = useState(false); // 플레이어 방어 애니메이션
   const [enemyBlockAnim, setEnemyBlockAnim] = useState(false); // 적 방어 애니메이션
   const [hoveredCard, setHoveredCard] = useState(null); // 호버된 카드 정보 {card, position}
+  const [tooltipVisible, setTooltipVisible] = useState(false); // 툴팁 표시 여부(애니메이션용)
   const [showTooltip, setShowTooltip] = useState(false); // 툴팁 표시 여부 (딜레이 후)
   const tooltipTimerRef = useRef(null);
   const logEndRef = useRef(null);
@@ -1931,15 +1932,25 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
                     onMouseEnter={(e) => {
                       if (c.traits && c.traits.length > 0) {
                         const rect = e.currentTarget.querySelector('.game-card-large').getBoundingClientRect();
-                        setHoveredCard({ card: c, x: rect.right, y: rect.top });
+                        setHoveredCard({ card: c, x: rect.right + 16, y: rect.top });
+                        setTooltipVisible(false);
                         if (tooltipTimerRef.current) clearTimeout(tooltipTimerRef.current);
                         tooltipTimerRef.current = setTimeout(() => {
+                          requestAnimationFrame(() => {
+                            requestAnimationFrame(() => setTooltipVisible(true)); // 위치 안정 뒤 부드럽게 표시
+                          });
                           setShowTooltip(true);
                         }, 500);
                       }
                     }}
+                    onMouseMove={(e) => {
+                      if (!hoveredCard || hoveredCard.card !== c) return;
+                      const rect = e.currentTarget.querySelector('.game-card-large').getBoundingClientRect();
+                      setHoveredCard({ card: c, x: rect.right + 16, y: rect.top });
+                    }}
                     onMouseLeave={() => {
                       setHoveredCard(null);
+                      setTooltipVisible(false);
                       setShowTooltip(false);
                       if (tooltipTimerRef.current) clearTimeout(tooltipTimerRef.current);
                     }}
@@ -2174,11 +2185,12 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
       {showCharacterSheet && <CharacterSheet onClose={closeCharacterSheet} />}
 
       {/* 특성 툴팁 */}
-      {showTooltip && hoveredCard && hoveredCard.card.traits && hoveredCard.card.traits.length > 0 && (
+      {showTooltip && tooltipVisible && hoveredCard && hoveredCard.card.traits && hoveredCard.card.traits.length > 0 && (
         <div
+          className={`trait-tooltip ${tooltipVisible ? 'tooltip-visible' : ''}`}
           style={{
             position: 'fixed',
-            left: `${hoveredCard.x + 10}px`,
+            left: `${hoveredCard.x}px`,
             top: `${hoveredCard.y}px`,
             background: 'rgba(0, 0, 0, 0.95)',
             border: '2px solid #fbbf24',

@@ -1278,3 +1278,15 @@ body {
   pointer-events: none;
   z-index: 10;
 }
+
+/* 특성 툴팁 애니메이션 */
+.trait-tooltip {
+  opacity: 0;
+  transform: translateY(-4px);
+  transition: opacity 140ms ease-out, transform 140ms ease-out;
+}
+
+.trait-tooltip.tooltip-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
