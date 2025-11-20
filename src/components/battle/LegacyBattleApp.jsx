@@ -1797,16 +1797,16 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
                 <div style={{ fontSize: '1.92rem', fontWeight: 'bold', color: '#fbbf24', marginBottom: '2px' }}>
                   {currentCombo.name}
                 </div>
-                <div style={{ fontSize: '1.32rem', color: '#fbbf24', fontWeight: 'bold', minWidth: '200px', display: 'inline-flex', justifyContent: 'center' }}>
-                  × {comboPreviewInfo.comboMult.toFixed(2)}
+                <div style={{ fontSize: '1.5rem', color: '#fbbf24', fontWeight: 'bold', letterSpacing: '0.2em', marginBottom: '2px' }}>
+                  + {comboPreviewInfo.baseGain.toString().split('').join(' ')} P T
+                </div>
+                <div style={{ fontSize: '1.32rem', color: '#fbbf24', fontWeight: 'bold', letterSpacing: '0.15em', minWidth: '200px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px' }}>
+                  <span>× {comboPreviewInfo.comboMult.toFixed(2).split('').join(' ')}</span>
                   {comboPreviewInfo.deflationPct > 0 && (
-                    <span style={{ color: '#ef4444', fontSize: '0.72em', marginLeft: '6px' }}>
-                      -{comboPreviewInfo.deflationPct}%
+                    <span style={{ color: '#ef4444', fontSize: '0.8em', letterSpacing: '0.1em' }}>
+                      - {comboPreviewInfo.deflationPct} %
                     </span>
                   )}
-                </div>
-                <div style={{ fontSize: '1.32rem', color: '#fbbf24', fontWeight: 'bold' }}>
-                  +{comboPreviewInfo.baseGain} PT
                 </div>
               </div>
             )}
