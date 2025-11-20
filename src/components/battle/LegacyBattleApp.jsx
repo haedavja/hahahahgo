@@ -1262,10 +1262,10 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
 
     const pCombo = detectPokerCombo(selected);
 
-    // 특성 효과 적용 (카드 사용 횟수 고려)
+    // 특성 효과 적용 (사용 횟수는 선택 단계 기준으로 고정)
     const traitEnhancedSelected = selected.map(card =>
       applyTraitModifiers(card, {
-        usageCount: cardUsageCount[card.id] || 0,
+        usageCount: 0,
         isInCombo: pCombo !== null,
       })
     );
@@ -1285,7 +1285,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
       // 특성 효과 적용
       const traitEnhancedSelected = selected.map(card =>
         applyTraitModifiers(card, {
-          usageCount: cardUsageCount[card.id] || 0,
+          usageCount: 0,
           isInCombo: combo !== null,
         })
       );
@@ -1294,7 +1294,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
       const q = sortCombinedOrderStablePF(enhancedSelected, enemyPlan.actions);
       setFixedOrder(q);
     }
-  }, [selected, phase, enemyPlan.actions, cardUsageCount]);
+  }, [selected, phase, enemyPlan.actions]);
 
   const beginResolveFromRespond = () => {
     if (!fixedOrder) return addLog('오류: 고정된 순서가 없습니다');
