@@ -846,6 +846,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
   const [enemyBlockAnim, setEnemyBlockAnim] = useState(false); // 적 방어 애니메이션
   const [hoveredCard, setHoveredCard] = useState(null); // 호버된 카드 정보 {card, position}
   const [tooltipVisible, setTooltipVisible] = useState(false); // 툴팁 표시 여부(애니메이션용)
+  const [previewDamage, setPreviewDamage] = useState({ value: 0, lethal: false, overkill: false });
+  const lethalSoundRef = useRef(false);
+  const overkillSoundRef = useRef(false);
   const [showTooltip, setShowTooltip] = useState(false); // 툴팁 표시 여부 (딜레이 후)
   const tooltipTimerRef = useRef(null);
   const logEndRef = useRef(null);
@@ -1615,6 +1618,46 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
     return match ? match[1].trim() : null;
   }, [log]);
 
+  // 예상 피해량 계산 및 사운드
+  useEffect(() => {
+    if (!(phase === 'select' || phase === 'respond') || !enemy) {
+      setPreviewDamage({ value: 0, lethal: false, overkill: false });
+      lethalSoundRef.current = false;
+      overkillSoundRef.current = false;
+      return;
+    }
+    const order = (fixedOrder && fixedOrder.length > 0) ? fixedOrder : playerTimeline;
+    if (!order || order.length === 0) {
+      setPreviewDamage({ value: 0, lethal: false, overkill: false });
+      lethalSoundRef.current = false;
+      overkillSoundRef.current = false;
+      return;
+    }
+    const sim = simulatePreview({
+      player,
+      enemy,
+      fixedOrder: order,
+      willOverdrive,
+      enemyMode: enemyPlan.mode,
+      enemyActions: enemyPlan.actions,
+    }) || { pDealt: 0 };
+    const value = sim.pDealt || 0;
+    const lethal = value > enemy.hp;
+    const overkill = value > enemy.maxHp;
+    setPreviewDamage({ value, lethal, overkill });
+    if (overkill && !overkillSoundRef.current) {
+      playSound(1600, 260);
+      overkillSoundRef.current = true;
+      lethalSoundRef.current = true;
+    } else if (lethal && !lethalSoundRef.current) {
+      playSound(1200, 200);
+      lethalSoundRef.current = true;
+    } else if (!lethal) {
+      lethalSoundRef.current = false;
+      overkillSoundRef.current = false;
+    }
+  }, [phase, player, enemy, fixedOrder, playerTimeline, willOverdrive, enemyPlan.mode, enemyPlan.actions]);
+
   return (
     <div className="legacy-battle-root w-full min-h-screen pb-64">
       {/* 예상 피해량 - 오른쪽 고정 패널 */}
@@ -1826,6 +1869,16 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
                   )}
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                     <div>
+                      {(phase === 'select' || phase === 'respond') && previewDamage.value > 0 && (
+                        <div className={`predicted-damage-inline ${previewDamage.lethal ? 'lethal' : ''} ${previewDamage.overkill ? 'overkill' : ''}`}>
+                          <span className="predicted-damage-inline-value">🗡️ -{previewDamage.value}</span>
+                          {previewDamage.lethal && (
+                            <span className={`predicted-damage-inline-icon ${previewDamage.overkill ? 'overkill-icon' : ''}`} aria-hidden="true">
+                              {previewDamage.overkill ? '☠️' : '💀'}
+                            </span>
+                          )}
+                        </div>
+                      )}
                       <div className={enemyHit ? 'hit-animation' : ''} style={{ color: '#f87171', fontSize: '1.25rem', fontWeight: 'bold', textAlign: 'right' }}>
                         {enemy.block > 0 && <span className={enemyBlockAnim ? 'block-animation' : ''} style={{ color: '#60a5fa', marginRight: '8px' }}>🛡️{enemy.block}</span>}
                         ❤️ {enemy.hp}/{enemy.maxHp}
@@ -1940,7 +1993,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
                             requestAnimationFrame(() => setTooltipVisible(true)); // 위치 안정 뒤 부드럽게 표시
                           });
                           setShowTooltip(true);
-                        }, 500);
+                        }, 200);
                       }
                     }}
                     onMouseMove={(e) => {

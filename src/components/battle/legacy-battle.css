@@ -1290,3 +1290,36 @@ body {
   opacity: 1;
   transform: translateY(0);
 }
+.predicted-damage-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #fbbf24;
+  margin-bottom: 6px;
+}
+
+.predicted-damage-inline.lethal {
+  color: #22c55e;
+}
+
+.predicted-damage-inline.overkill {
+  color: #fde047;
+  text-shadow: 0 0 8px rgba(251, 191, 36, 0.6);
+}
+
+.predicted-damage-inline-value {
+  min-width: 90px;
+  text-align: right;
+}
+
+.predicted-damage-inline-icon {
+  font-size: 1.4rem;
+  animation: skullPulse 1.2s ease-in-out infinite;
+}
+
+.predicted-damage-inline-icon.overkill-icon {
+  font-size: 1.7rem;
+  filter: drop-shadow(0 0 8px rgba(251, 191, 36, 0.8));
+}
