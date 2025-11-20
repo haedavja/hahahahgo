@@ -1500,36 +1500,44 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
     const pComboEnd = detectPokerCombo(selected);
     const eComboEnd = detectPokerCombo(enemyPlan.actions);
 
-    const playerComboUsageUpdated = { ...(player.comboUsageCount || {}) };
-    let playerGain = 0;
-    if (pComboEnd && ETHER_GAIN_MAP[pComboEnd.name]) {
-      const baseGain = ETHER_GAIN_MAP[pComboEnd.name];
-      const result = applyEtherDeflation(baseGain, pComboEnd.name, player.comboUsageCount || {});
-      playerGain = result.gain;
-      const multiplierText = result.multiplier < 1 ? ` (×${result.multiplier.toFixed(2)})` : '';
-      if (playerGain > 0) addLog(`✴️ 에테르 +${playerGain} PT${multiplierText} (플레이어 족보: ${pComboEnd.name})`);
-      playerComboUsageUpdated[pComboEnd.name] = (playerComboUsageUpdated[pComboEnd.name] || 0) + 1;
+    const basePlayerGain = (selected?.length || 0) * 10;
+    const playerMultiplier = pComboEnd ? (COMBO_MULTIPLIERS[pComboEnd.name] || 1) : 1;
+    const playerRawGain = Math.round(basePlayerGain * playerMultiplier);
+    const deflated = pComboEnd
+      ? applyEtherDeflation(playerRawGain, pComboEnd.name, player.comboUsageCount || {})
+      : { gain: playerRawGain, multiplier: 1 };
+    if (deflated.gain > 0) {
+      const multText = playerMultiplier !== 1 ? ` × ${playerMultiplier.toFixed(2)}` : '';
+      const defText = pComboEnd && deflated.multiplier < 1 ? ` (×${deflated.multiplier.toFixed(2)})` : '';
+      addLog(`✴️ 에테르 +${deflated.gain} PT${multText}${defText}${pComboEnd ? ` (플레이어 족보: ${pComboEnd.name})` : ''}`);
     }
 
-    if (eComboEnd && ETHER_GAIN_MAP[eComboEnd.name]) {
-      const gainE = ETHER_GAIN_MAP[eComboEnd.name];
-      setEnemy(e => ({ ...e, etherPts: addEther(e.etherPts, gainE), block: 0, def: false, counter: 0, vulnMult: 1, vulnTurns: 0, etherOverdriveActive: false }));
-      addLog(`☄️ 적 에테르 +${gainE} (적 족보: ${eComboEnd.name})`);
-    } else {
-      setEnemy(e => ({ ...e, block: 0, def: false, counter: 0, vulnMult: 1, vulnTurns: 0, etherOverdriveActive: false }));
+    const enemyBaseGain = (enemyPlan.actions?.length || 0) * 10;
+    const enemyMultiplier = eComboEnd ? (COMBO_MULTIPLIERS[eComboEnd.name] || 1) : 1;
+    const enemyGain = Math.round(enemyBaseGain * enemyMultiplier);
+    if (enemyGain > 0) {
+      const multText = enemyMultiplier !== 1 ? ` × ${enemyMultiplier.toFixed(2)}` : '';
+      addLog(`☄️ 적 에테르 +${enemyGain} PT${multText}${eComboEnd ? ` (적 족보: ${eComboEnd.name})` : ''}`);
     }
 
-    setPlayer(p => ({ 
-      ...p, 
-      etherPts: addEther(p.etherPts, playerGain),
-      block: 0, 
-      def: false, 
-      counter: 0, 
-      vulnMult: 1, 
-      vulnTurns: 0, 
-      etherOverdriveActive: false, 
-      comboUsageCount: playerComboUsageUpdated 
-    }));
+    setPlayer(p => {
+      const newUsageCount = { ...(p.comboUsageCount || {}) };
+      if (pComboEnd?.name) {
+        newUsageCount[pComboEnd.name] = (newUsageCount[pComboEnd.name] || 0) + 1;
+      }
+      return {
+        ...p,
+        etherPts: addEther(p.etherPts, deflated.gain || 0),
+        block: 0,
+        def: false,
+        counter: 0,
+        vulnMult: 1,
+        vulnTurns: 0,
+        etherOverdriveActive: false,
+        comboUsageCount: newUsageCount
+      };
+    });
+    setEnemy(e => ({ ...e, etherPts: addEther(e.etherPts, enemyGain || 0), block: 0, def: false, counter: 0, vulnMult: 1, vulnTurns: 0, etherOverdriveActive: false }));
     setSelected([]); setQueue([]); setQIndex(0); setFixedOrder(null); setUsedCardIndices([]);
     setDisappearingCards([]); setHiddenCards([]);
     setPhase('select');
@@ -1616,13 +1624,12 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
   const enemyEtherSlots = etherSlots(enemyEtherValue);
   const playerEnergyBudget = BASE_PLAYER_ENERGY + etherSlots(player.etherPts);
   const remainingEnergy = Math.max(0, playerEnergyBudget - totalEnergy);
-  const comboPreviewGain = (phase === 'select' || phase === 'respond') ? pendingComboEther.gain : 0;
+  const comboPreviewGain = 0;
 
   // 적 조합 에테르 미리보기 계산
   const enemyCombo = useMemo(() => detectPokerCombo(enemyPlan.actions || []), [enemyPlan.actions]);
   const enemyComboPreviewGain = useMemo(() => {
-    if (!enemyCombo || (phase !== 'respond' && phase !== 'resolve')) return 0;
-    return ETHER_GAIN_MAP[enemyCombo.name] || 0;
+    return 0;
   }, [enemyCombo, phase]);
 
   // 적 성향 힌트 추출
