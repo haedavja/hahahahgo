@@ -828,7 +828,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
   const [usedCardIndices, setUsedCardIndices] = useState([]);
   const [disappearingCards, setDisappearingCards] = useState([]); // 사라지는 중인 카드 인덱스
   const [hiddenCards, setHiddenCards] = useState([]); // 완전히 숨겨진 카드 인덱스
-  const [currentTurnCombo, setCurrentTurnCombo] = useState(null); // 이번 턴에 사용한 조합 추적
   const [showCharacterSheet, setShowCharacterSheet] = useState(false);
   const [cardUsageCount, setCardUsageCount] = useState({}); // 카드별 사용 횟수 추적 (mastery, boredom용)
   const [vanishedCards, setVanishedCards] = useState([]); // 소멸 특성으로 제거된 카드
@@ -1320,27 +1319,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
     setPhase('resolve');
     addLog('▶ 진행 시작');
 
-    // 진행 단계 시작 시 에테르 획득 (Deflation 적용)
-    const pComboNow = detectPokerCombo(selected);
-    const eComboNow = detectPokerCombo(enemyPlan.actions);
-    if (pComboNow && ETHER_GAIN_MAP[pComboNow.name]) {
-      setCurrentTurnCombo(pComboNow.name); // 이번 턴 조합 저장
-      const baseGain = ETHER_GAIN_MAP[pComboNow.name];
-      // 먼저 결과 계산 (현재 상태 기준)
-      const result = applyEtherDeflation(baseGain, pComboNow.name, player.comboUsageCount || {});
-      const multiplierText = result.multiplier < 1 ? ` <span style="color: #ef4444; font-size: 0.8em;">(×${result.multiplier.toFixed(2)})</span>` : '';
-      addLog(`✴️ 에테르 +${result.gain} PT ${multiplierText}(플레이어 족보: ${pComboNow.name})`);
-      setPlayer(p => {
-        const result = applyEtherDeflation(baseGain, pComboNow.name, p.comboUsageCount || {});
-        return { ...p, etherPts: addEther(p.etherPts, result.gain) };
-      });
-    }
-    if (eComboNow && ETHER_GAIN_MAP[eComboNow.name]) {
-      const gainE = ETHER_GAIN_MAP[eComboNow.name];
-      setEnemy(e => ({ ...e, etherPts: addEther(e.etherPts, gainE) }));
-      addLog(`☄️ 적 에테르 +${gainE} (적 족보: ${eComboNow.name})`);
-    }
-
     const enemyWillOD = shouldEnemyOverdrive(enemyPlan.mode, enemyPlan.actions, enemy.etherPts) && etherSlots(enemy.etherPts) > 0;
     if ((phase === 'respond' || phase === 'select') && willOverdrive && etherSlots(player.etherPts) > 0) {
       setPlayer(p => ({ ...p, etherPts: p.etherPts - ETHER_THRESHOLD, etherOverdriveActive: true }));
@@ -1518,16 +1496,40 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
     setNextTurnEffects(newNextTurnEffects);
 
     // 턴 종료 시 조합 카운트 증가 (Deflation)
-    if (currentTurnCombo) {
-      setPlayer(p => {
-        const newUsageCount = { ...(p.comboUsageCount || {}), [currentTurnCombo]: (p.comboUsageCount?.[currentTurnCombo] || 0) + 1 };
-        return { ...p, block: 0, def: false, counter: 0, vulnMult: 1, vulnTurns: 0, etherOverdriveActive: false, comboUsageCount: newUsageCount };
-      });
-      setCurrentTurnCombo(null);
-    } else {
-      setPlayer(p => ({ ...p, block: 0, def: false, counter: 0, vulnMult: 1, vulnTurns: 0, etherOverdriveActive: false }));
+    // 턴 종료 시 조합 에테르 지급 (Deflation 적용)
+    const pComboEnd = detectPokerCombo(selected);
+    const eComboEnd = detectPokerCombo(enemyPlan.actions);
+
+    const playerComboUsageUpdated = { ...(player.comboUsageCount || {}) };
+    let playerGain = 0;
+    if (pComboEnd && ETHER_GAIN_MAP[pComboEnd.name]) {
+      const baseGain = ETHER_GAIN_MAP[pComboEnd.name];
+      const result = applyEtherDeflation(baseGain, pComboEnd.name, player.comboUsageCount || {});
+      playerGain = result.gain;
+      const multiplierText = result.multiplier < 1 ? ` (×${result.multiplier.toFixed(2)})` : '';
+      if (playerGain > 0) addLog(`✴️ 에테르 +${playerGain} PT${multiplierText} (플레이어 족보: ${pComboEnd.name})`);
+      playerComboUsageUpdated[pComboEnd.name] = (playerComboUsageUpdated[pComboEnd.name] || 0) + 1;
     }
-    setEnemy(e => ({ ...e, block: 0, def: false, counter: 0, vulnMult: 1, vulnTurns: 0, etherOverdriveActive: false }));
+
+    if (eComboEnd && ETHER_GAIN_MAP[eComboEnd.name]) {
+      const gainE = ETHER_GAIN_MAP[eComboEnd.name];
+      setEnemy(e => ({ ...e, etherPts: addEther(e.etherPts, gainE), block: 0, def: false, counter: 0, vulnMult: 1, vulnTurns: 0, etherOverdriveActive: false }));
+      addLog(`☄️ 적 에테르 +${gainE} (적 족보: ${eComboEnd.name})`);
+    } else {
+      setEnemy(e => ({ ...e, block: 0, def: false, counter: 0, vulnMult: 1, vulnTurns: 0, etherOverdriveActive: false }));
+    }
+
+    setPlayer(p => ({ 
+      ...p, 
+      etherPts: addEther(p.etherPts, playerGain),
+      block: 0, 
+      def: false, 
+      counter: 0, 
+      vulnMult: 1, 
+      vulnTurns: 0, 
+      etherOverdriveActive: false, 
+      comboUsageCount: playerComboUsageUpdated 
+    }));
     setSelected([]); setQueue([]); setQIndex(0); setFixedOrder(null); setUsedCardIndices([]);
     setDisappearingCards([]); setHiddenCards([]);
     setPhase('select');
