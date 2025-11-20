@@ -2000,7 +2000,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
                         setTooltipVisible(false);
                         if (tooltipTimerRef.current) clearTimeout(tooltipTimerRef.current);
                         tooltipTimerRef.current = setTimeout(() => {
-                          // 약간의 추가 딜레이로 위치 안정 후 보여줌
+                          // 여전히 같은 카드를 호버 중인 경우에만 표시
+                          const stillSame = hoveredCard?.card?.id === c.id || (hoveredCard?.card === c);
+                          if (!stillSame) return;
                           requestAnimationFrame(() => {
                             requestAnimationFrame(() => setTooltipVisible(true));
                           });
