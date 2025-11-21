@@ -1569,12 +1569,22 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
     if (newQIndex >= queue.length && turnEtherAccumulated > 0) {
       const pCombo = detectPokerCombo(selected);
       const playerComboMult = pCombo ? (COMBO_MULTIPLIERS[pCombo.name] || 1) : 1;
-      const playerFinalEther = Math.round(turnEtherAccumulated * playerComboMult);
+      const playerBeforeDeflation = Math.round(turnEtherAccumulated * playerComboMult);
+
+      // 디플레이션 적용
+      const playerDeflation = pCombo?.name
+        ? applyEtherDeflation(playerBeforeDeflation, pCombo.name, player.comboUsageCount || {})
+        : { gain: playerBeforeDeflation, multiplier: 1, usageCount: 0 };
+
+      const playerFinalEther = playerDeflation.gain;
 
       console.log('[stepOnce 애니메이션]', {
         turnEtherAccumulated,
         comboName: pCombo?.name,
         playerComboMult,
+        playerBeforeDeflation,
+        deflationMult: playerDeflation.multiplier,
+        usageCount: playerDeflation.usageCount,
         playerFinalEther,
         selectedCards: selected.length
       });
@@ -1658,22 +1668,44 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
     const playerComboMult = pComboEnd ? (COMBO_MULTIPLIERS[pComboEnd.name] || 1) : 1;
     const enemyComboMult = eComboEnd ? (COMBO_MULTIPLIERS[eComboEnd.name] || 1) : 1;
 
-    const playerFinalEther = Math.round(turnEtherAccumulated * playerComboMult);
-    const enemyFinalEther = Math.round(enemyTurnEtherAccumulated * enemyComboMult);
+    // 조합 배율 적용
+    const playerBeforeDeflation = Math.round(turnEtherAccumulated * playerComboMult);
+    const enemyBeforeDeflation = Math.round(enemyTurnEtherAccumulated * enemyComboMult);
+
+    // 디플레이션 적용
+    const playerDeflation = pComboEnd?.name
+      ? applyEtherDeflation(playerBeforeDeflation, pComboEnd.name, player.comboUsageCount || {})
+      : { gain: playerBeforeDeflation, multiplier: 1, usageCount: 0 };
+
+    const enemyDeflation = eComboEnd?.name
+      ? applyEtherDeflation(enemyBeforeDeflation, eComboEnd.name, enemy.comboUsageCount || {})
+      : { gain: enemyBeforeDeflation, multiplier: 1, usageCount: 0 };
+
+    const playerFinalEther = playerDeflation.gain;
+    const enemyFinalEther = enemyDeflation.gain;
 
     console.log('[finishTurn 계산]', {
       turnEtherAccumulated,
       comboName: pComboEnd?.name,
       playerComboMult,
+      playerBeforeDeflation,
+      deflationMult: playerDeflation.multiplier,
+      usageCount: playerDeflation.usageCount,
       playerFinalEther,
       selectedCards: selected.length
     });
 
     if (playerFinalEther > 0) {
-      addLog(`✴️ 에테르 획득: ${turnEtherAccumulated} × ${playerComboMult.toFixed(2)} = ${playerFinalEther} PT`);
+      const deflationText = playerDeflation.usageCount > 0
+        ? ` (디플레이션: ${Math.round(playerDeflation.multiplier * 100)}%)`
+        : '';
+      addLog(`✴️ 에테르 획득: ${turnEtherAccumulated} × ${playerComboMult.toFixed(2)} = ${playerBeforeDeflation} → ${playerFinalEther} PT${deflationText}`);
     }
     if (enemyFinalEther > 0) {
-      addLog(`☄️ 적 에테르 획득: ${enemyTurnEtherAccumulated} × ${enemyComboMult.toFixed(2)} = ${enemyFinalEther} PT`);
+      const deflationText = enemyDeflation.usageCount > 0
+        ? ` (디플레이션: ${Math.round(enemyDeflation.multiplier * 100)}%)`
+        : '';
+      addLog(`☄️ 적 에테르 획득: ${enemyTurnEtherAccumulated} × ${enemyComboMult.toFixed(2)} = ${enemyBeforeDeflation} → ${enemyFinalEther} PT${deflationText}`);
     }
 
     setPlayer(p => {
@@ -1782,12 +1814,22 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
     if (turnEtherAccumulated > 0) {
       const pCombo = detectPokerCombo(selected);
       const playerComboMult = pCombo ? (COMBO_MULTIPLIERS[pCombo.name] || 1) : 1;
-      const playerFinalEther = Math.round(turnEtherAccumulated * playerComboMult);
+      const playerBeforeDeflation = Math.round(turnEtherAccumulated * playerComboMult);
+
+      // 디플레이션 적용
+      const playerDeflation = pCombo?.name
+        ? applyEtherDeflation(playerBeforeDeflation, pCombo.name, player.comboUsageCount || {})
+        : { gain: playerBeforeDeflation, multiplier: 1, usageCount: 0 };
+
+      const playerFinalEther = playerDeflation.gain;
 
       console.log('[runAll 애니메이션]', {
         turnEtherAccumulated,
         comboName: pCombo?.name,
         playerComboMult,
+        playerBeforeDeflation,
+        deflationMult: playerDeflation.multiplier,
+        usageCount: playerDeflation.usageCount,
         playerFinalEther,
         selectedCards: selected.length
       });
