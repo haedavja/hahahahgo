@@ -275,11 +275,12 @@ function detectPokerCombo(cards) {
 }
 
 function applyPokerBonus(cards, combo) {
+  // 조합 보너스 기능 삭제됨 - 이제 조합은 에테르 배율만 제공
   if (!combo) return cards;
   return cards.map(c => {
+    // _combo 태그만 추가 (공격력/방어력 보너스는 제거)
     if (combo.bonusKeys && combo.bonusKeys.has(c.actionCost)) {
-      if (c.type === 'attack') return { ...c, damage: (c.damage || 0) + 1, _combo: combo.name };
-      if (c.type === 'defense') return { ...c, block: (c.block || 0) + 1, _combo: combo.name };
+      return { ...c, _combo: combo.name };
     }
     return c;
   });
