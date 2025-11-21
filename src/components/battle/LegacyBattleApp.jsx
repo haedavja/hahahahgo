@@ -1183,8 +1183,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
       comboName: combo?.name || 'null'
     });
 
-    // 디플레이션 정보 계산 (선택/대응 단계에서)
-    if (combo?.name && (phase === 'select' || phase === 'respond')) {
+    // 디플레이션 정보 계산 (선택/대응/진행 단계에서)
+    if (combo?.name && (phase === 'select' || phase === 'respond' || phase === 'resolve')) {
       const usageCount = (player.comboUsageCount || {})[combo.name] || 0;
       const deflationMult = Math.pow(0.5, usageCount);
       setCurrentDeflation(usageCount > 0 ? { multiplier: deflationMult, usageCount } : null);
@@ -1611,8 +1611,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
             selectedCards: selected.length
           });
 
-          // 디플레이션 정보 저장
-          setCurrentDeflation(playerDeflation.usageCount > 0 ? playerDeflation : null);
+          // 디플레이션 정보는 currentCombo useMemo에서 이미 설정됨
 
           // 1단계: 합계 강조
           setEtherCalcPhase('sum');
