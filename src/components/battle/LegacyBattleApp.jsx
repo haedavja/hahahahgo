@@ -961,7 +961,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
     const initialHand = applyStrengthToHand(rawHand, playerStrength);
     setHand(initialHand);
     setCanRedraw(true);
-  }, [safeInitialPlayer, playerEther, addLog]);
+  }, [safeInitialPlayer, playerEther, addLog, playerStrength]);
 
   useEffect(() => {
     if (!safeInitialEnemy) return;
