@@ -2072,7 +2072,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
                 return (
                   <div
                     key={c.id + idx}
-                    onClick={() => !disabled && toggle(c)}
+                    onClick={() => !disabled && toggle(enhancedCard)}
                     onMouseEnter={(e) => {
                       if (c.traits && c.traits.length > 0) {
                         const cardEl = e.currentTarget.querySelector('.game-card-large');
