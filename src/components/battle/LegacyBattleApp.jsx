@@ -1183,8 +1183,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
       comboName: combo?.name || 'null'
     });
 
-    // 디플레이션 정보 계산
-    if (combo?.name && phase === 'select') {
+    // 디플레이션 정보 계산 (선택/대응 단계에서)
+    if (combo?.name && (phase === 'select' || phase === 'respond')) {
       const usageCount = (player.comboUsageCount || {})[combo.name] || 0;
       const deflationMult = Math.pow(0.5, usageCount);
       setCurrentDeflation(usageCount > 0 ? { multiplier: deflationMult, usageCount } : null);
@@ -2102,7 +2102,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
                   gap: '12px'
                 }}>
                   <span>{currentCombo.name}</span>
-                  {currentDeflation && phase === 'resolve' && (
+                  {currentDeflation && (
                     <div style={{
                       fontSize: etherCalcPhase === 'deflation' ? '1.1rem' : '0.9rem',
                       fontWeight: 'bold',
