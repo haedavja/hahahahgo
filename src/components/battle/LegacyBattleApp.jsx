@@ -888,6 +888,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
   const [etherPulse, setEtherPulse] = useState(false); // PT 증가 애니메이션
   const [etherFinalValue, setEtherFinalValue] = useState(null); // 최종 에테르값 표시
   const [etherCalcPhase, setEtherCalcPhase] = useState(null); // 에테르 계산 애니메이션 단계: 'sum', 'multiply', 'result'
+  const [currentDeflation, setCurrentDeflation] = useState(null); // 현재 디플레이션 정보 { multiplier, usageCount }
   const [nextTurnEffects, setNextTurnEffects] = useState({
     guaranteedCards: [], // 반복, 보험 특성으로 다음턴 확정 등장
     bonusEnergy: 0, // 몸풀기 특성
@@ -1181,8 +1182,16 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
       selectedCount: selected.length,
       comboName: combo?.name || 'null'
     });
+
+    // 디플레이션 정보 계산
+    if (combo?.name && phase === 'select') {
+      const usageCount = (player.comboUsageCount || {})[combo.name] || 0;
+      const deflationMult = Math.pow(0.5, usageCount);
+      setCurrentDeflation(usageCount > 0 ? { multiplier: deflationMult, usageCount } : null);
+    }
+
     return combo;
-  }, [selected]);
+  }, [selected, player.comboUsageCount, phase]);
   const comboPreviewInfo = useMemo(() => {
     if (!currentCombo) return null;
     return calculateComboEtherGain({
@@ -1755,6 +1764,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
     setEnemyTurnEtherAccumulated(0);
     setEtherCalcPhase(null);
     setEtherFinalValue(null);
+    setCurrentDeflation(null);
 
     setSelected([]); setQueue([]); setQIndex(0); setFixedOrder(null); setUsedCardIndices([]);
     setDisappearingCards([]); setHiddenCards([]);
@@ -2083,6 +2093,21 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
                   textShadow: etherCalcPhase === 'multiply' ? '0 0 20px #fbbf24' : 'none'
                 }}>
                   <span>× {(COMBO_MULTIPLIERS[currentCombo.name] || 1).toFixed(2).split('').join(' ')}</span>
+                  {currentDeflation && (
+                    <div style={{
+                      fontSize: '0.9rem',
+                      fontWeight: 'bold',
+                      color: '#fca5a5',
+                      background: 'linear-gradient(135deg, rgba(252, 165, 165, 0.25), rgba(252, 165, 165, 0.1))',
+                      border: '1.5px solid rgba(252, 165, 165, 0.5)',
+                      borderRadius: '6px',
+                      padding: '3px 10px',
+                      letterSpacing: '0.05em',
+                      boxShadow: '0 0 10px rgba(252, 165, 165, 0.3), inset 0 0 5px rgba(252, 165, 165, 0.15)'
+                    }}>
+                      -{Math.round((1 - currentDeflation.multiplier) * 100)}% ({currentDeflation.usageCount}회)
+                    </div>
+                  )}
                 </div>
               </div>
             )}
