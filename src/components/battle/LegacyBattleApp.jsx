@@ -925,6 +925,32 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
     hoveredCardRef.current = hoveredCard;
   }, [hoveredCard]);
 
+  const showCardTraitTooltip = useCallback((card, cardElement) => {
+    if (!card?.traits || card.traits.length === 0 || !cardElement) return;
+    const updatePos = () => {
+      const rect = cardElement.getBoundingClientRect();
+      setHoveredCard({ card, x: rect.right + 16, y: rect.top });
+    };
+    updatePos();
+    setTooltipVisible(false);
+    if (tooltipTimerRef.current) clearTimeout(tooltipTimerRef.current);
+    tooltipTimerRef.current = setTimeout(() => {
+      if (hoveredCardRef.current?.card?.id !== card.id) return;
+      updatePos(); // 위치 재측정 후 표시
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => setTooltipVisible(true));
+      });
+      setShowTooltip(true);
+    }, 300);
+  }, []);
+
+  const hideCardTraitTooltip = useCallback(() => {
+    setHoveredCard(null);
+    setTooltipVisible(false);
+    setShowTooltip(false);
+    if (tooltipTimerRef.current) clearTimeout(tooltipTimerRef.current);
+  }, []);
+
   const handleExitToMap = () => {
     const outcome = postCombatOptions?.type || (enemy && enemy.hp <= 0 ? 'victory' : (player && player.hp <= 0 ? 'defeat' : null));
     if (!outcome) return;
@@ -2108,31 +2134,10 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
                     key={c.id + idx}
                     onClick={() => !disabled && toggle(enhancedCard)}
                     onMouseEnter={(e) => {
-                      if (c.traits && c.traits.length > 0) {
-                        const cardEl = e.currentTarget.querySelector('.game-card-large');
-                        const updatePos = () => {
-                          const rect = cardEl.getBoundingClientRect();
-                          setHoveredCard({ card: c, x: rect.right + 16, y: rect.top });
-                        };
-                        updatePos();
-                        setTooltipVisible(false);
-                        if (tooltipTimerRef.current) clearTimeout(tooltipTimerRef.current);
-                        tooltipTimerRef.current = setTimeout(() => {
-                          if (hoveredCardRef.current?.card?.id !== c.id) return;
-                          updatePos(); // 위치 재측정 후 표시
-                          requestAnimationFrame(() => {
-                            requestAnimationFrame(() => setTooltipVisible(true));
-                          });
-                          setShowTooltip(true);
-                        }, 300);
-                      }
+                      const cardEl = e.currentTarget.querySelector('.game-card-large');
+                      showCardTraitTooltip(c, cardEl);
                     }}
-                    onMouseLeave={() => {
-                      setHoveredCard(null);
-                      setTooltipVisible(false);
-                      setShowTooltip(false);
-                      if (tooltipTimerRef.current) clearTimeout(tooltipTimerRef.current);
-                    }}
+                    onMouseLeave={hideCardTraitTooltip}
                     style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center', cursor: disabled ? 'not-allowed' : 'pointer', position: 'relative', marginLeft: idx === 0 ? '0' : '-20px' }}
                   >
                     <div
@@ -2212,7 +2217,15 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
                 const costColor = isMainSpecial ? '#fcd34d' : isSubSpecial ? '#60a5fa' : '#fff';
                 const nameColor = isMainSpecial ? '#fcd34d' : isSubSpecial ? '#7dd3fc' : '#fff';
                 return (
-                  <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center', position: 'relative', marginLeft: idx === 0 ? '0' : '-20px' }}>
+                  <div
+                    key={idx}
+                    onMouseEnter={(e) => {
+                      const cardEl = e.currentTarget.querySelector('.game-card-large');
+                      showCardTraitTooltip(c, cardEl);
+                    }}
+                    onMouseLeave={hideCardTraitTooltip}
+                    style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center', position: 'relative', marginLeft: idx === 0 ? '0' : '-20px' }}
+                  >
                     <div className={`game-card-large respond-phase-card ${c.type === 'attack' ? 'attack' : 'defense'}`}>
                       <div className="card-cost-badge-floating" style={{ color: costColor, WebkitTextStroke: '1px #000' }}>{c.actionCost}</div>
                       <div className="card-stats-sidebar">
@@ -2307,7 +2320,15 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
                 if (isHidden) return null;
 
                 return (
-                  <div key={`resolve-${globalIndex}`} style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center', position: 'relative', marginLeft: i === 0 ? '0' : '-20px' }}>
+                  <div
+                    key={`resolve-${globalIndex}`}
+                    onMouseEnter={(e) => {
+                      const cardEl = e.currentTarget.querySelector('.game-card-large');
+                      showCardTraitTooltip(a.card, cardEl);
+                    }}
+                    onMouseLeave={hideCardTraitTooltip}
+                    style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center', position: 'relative', marginLeft: i === 0 ? '0' : '-20px' }}
+                  >
                     <div className={`game-card-large resolve-phase-card ${a.card.type === 'attack' ? 'attack' : 'defense'} ${isUsed ? 'card-used' : ''} ${isDisappearing ? 'card-disappearing' : ''}`}>
                       <div className="card-cost-badge-floating" style={{ color: costColor, WebkitTextStroke: '1px #000' }}>{a.card.actionCost}</div>
                       <div className="card-stats-sidebar">
