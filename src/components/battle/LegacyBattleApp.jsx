@@ -2089,12 +2089,13 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '12px', minWidth: '360px', position: 'relative', justifyContent: 'center' }}>
             {/* 플레이어 콤보 - 절대 위치로 오른쪽 배치 */}
             {currentCombo && (phase === 'select' || phase === 'respond' || phase === 'resolve') && (
-              <div className="combo-display" style={{ position: 'absolute', top: '-5px', left: '90px', textAlign: 'center' }}>
+              <div className="combo-display" style={{ position: 'absolute', top: '-5px', left: '90px', textAlign: 'center', minHeight: '140px' }}>
                 <div style={{
                   fontSize: '1.92rem',
                   fontWeight: 'bold',
                   color: '#fbbf24',
                   marginBottom: '2px',
+                  height: '2.5rem',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -2120,26 +2121,27 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
                     </div>
                   )}
                 </div>
-                {phase === 'resolve' && (
-                  <div style={{
-                    fontSize: etherPulse ? '1.8rem' : (etherCalcPhase === 'sum' ? '2rem' : '1.5rem'),
-                    color: '#fbbf24',
-                    fontWeight: 'bold',
-                    letterSpacing: '0.2em',
-                    marginBottom: '2px',
-                    transition: 'font-size 0.3s ease, transform 0.3s ease',
-                    transform: etherPulse ? 'scale(1.2)' : (etherCalcPhase === 'sum' ? 'scale(1.3)' : 'scale(1)'),
-                    textShadow: etherCalcPhase === 'sum' ? '0 0 20px #fbbf24' : 'none'
-                  }}>
-                    + {turnEtherAccumulated.toString().split('').join(' ')} P T
-                  </div>
-                )}
+                <div style={{
+                  fontSize: etherPulse ? '1.8rem' : (etherCalcPhase === 'sum' ? '2rem' : '1.5rem'),
+                  color: '#fbbf24',
+                  fontWeight: 'bold',
+                  letterSpacing: '0.2em',
+                  marginBottom: '2px',
+                  transition: 'font-size 0.3s ease, transform 0.3s ease',
+                  transform: etherPulse ? 'scale(1.2)' : (etherCalcPhase === 'sum' ? 'scale(1.3)' : 'scale(1)'),
+                  textShadow: etherCalcPhase === 'sum' ? '0 0 20px #fbbf24' : 'none',
+                  visibility: phase === 'resolve' ? 'visible' : 'hidden',
+                  height: '1.8rem'
+                }}>
+                  + {turnEtherAccumulated.toString().split('').join(' ')} P T
+                </div>
                 <div style={{
                   fontSize: etherCalcPhase === 'multiply' ? '1.6rem' : '1.32rem',
                   color: '#fbbf24',
                   fontWeight: 'bold',
                   letterSpacing: '0.15em',
                   minWidth: '400px',
+                  height: '2rem',
                   display: 'flex',
                   justifyContent: 'center',
                   alignItems: 'center',
