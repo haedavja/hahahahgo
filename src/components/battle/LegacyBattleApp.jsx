@@ -883,6 +883,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
   const [showCharacterSheet, setShowCharacterSheet] = useState(false);
   const [cardUsageCount, setCardUsageCount] = useState({}); // 카드별 사용 횟수 추적 (mastery, boredom용)
   const [vanishedCards, setVanishedCards] = useState([]); // 소멸 특성으로 제거된 카드
+  const [turnEtherAccumulated, setTurnEtherAccumulated] = useState(0); // 이번 턴 누적 에테르 (실제 적용 전)
+  const [enemyTurnEtherAccumulated, setEnemyTurnEtherAccumulated] = useState(0); // 적 이번 턴 누적 에테르
   const [nextTurnEffects, setNextTurnEffects] = useState({
     guaranteedCards: [], // 반복, 보험 특성으로 다음턴 확정 등장
     bonusEnergy: 0, // 몸풀기 특성
@@ -1487,19 +1489,15 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
       }
     }
 
-    // 카드 사용 시 에테르 획득 (진행 단계에서만)
+    // 카드 사용 시 에테르 누적 (실제 적용은 턴 종료 시)
     if (a.actor === 'player') {
-      const etherGain = BASE_ETHER_PER_CARD;
-      P.etherPts = (P.etherPts || 0) + etherGain;
-      addLog(`✴️ 에테르 +${etherGain} PT`);
+      setTurnEtherAccumulated(prev => prev + BASE_ETHER_PER_CARD);
     } else if (a.actor === 'enemy') {
-      const etherGain = BASE_ETHER_PER_CARD;
-      E.etherPts = (E.etherPts || 0) + etherGain;
-      addLog(`☄️ 적 에테르 +${etherGain} PT`);
+      setEnemyTurnEtherAccumulated(prev => prev + BASE_ETHER_PER_CARD);
     }
 
-    setPlayer(prev => ({ ...prev, hp: P.hp, def: P.def, block: P.block, counter: P.counter, vulnMult: P.vulnMult || 1, strength: P.strength || 0, etherPts: P.etherPts }));
-    setEnemy(prev => ({ ...prev, hp: E.hp, def: E.def, block: E.block, counter: E.counter, vulnMult: E.vulnMult || 1, etherPts: E.etherPts }));
+    setPlayer(prev => ({ ...prev, hp: P.hp, def: P.def, block: P.block, counter: P.counter, vulnMult: P.vulnMult || 1, strength: P.strength || 0 }));
+    setEnemy(prev => ({ ...prev, hp: E.hp, def: E.def, block: E.block, counter: E.counter, vulnMult: E.vulnMult || 1 }));
     setActionEvents(prev => ({ ...prev, [qIndex]: actionEvents }));
 
     // 이벤트 처리: 애니메이션 및 사운드
@@ -1619,6 +1617,20 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
     const pComboEnd = detectPokerCombo(selected);
     const eComboEnd = detectPokerCombo(enemyPlan.actions);
 
+    // 에테르 최종 계산
+    const playerComboMult = pComboEnd ? (COMBO_MULTIPLIERS[pComboEnd.name] || 1) : 1;
+    const enemyComboMult = eComboEnd ? (COMBO_MULTIPLIERS[eComboEnd.name] || 1) : 1;
+
+    const playerFinalEther = Math.round(turnEtherAccumulated * playerComboMult);
+    const enemyFinalEther = Math.round(enemyTurnEtherAccumulated * enemyComboMult);
+
+    if (playerFinalEther > 0) {
+      addLog(`✴️ 에테르 획득: ${turnEtherAccumulated} × ${playerComboMult.toFixed(2)} = ${playerFinalEther} PT`);
+    }
+    if (enemyFinalEther > 0) {
+      addLog(`☄️ 적 에테르 획득: ${enemyTurnEtherAccumulated} × ${enemyComboMult.toFixed(2)} = ${enemyFinalEther} PT`);
+    }
+
     setPlayer(p => {
       const newUsageCount = { ...(p.comboUsageCount || {}) };
       if (pComboEnd?.name) {
@@ -1638,7 +1650,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
         vulnMult: 1,
         vulnTurns: 0,
         etherOverdriveActive: false,
-        comboUsageCount: newUsageCount
+        comboUsageCount: newUsageCount,
+        etherPts: (p.etherPts || 0) + playerFinalEther
       };
     });
     setEnemy(e => {
@@ -1654,9 +1667,15 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
         vulnMult: 1,
         vulnTurns: 0,
         etherOverdriveActive: false,
-        comboUsageCount: newEnemyUsageCount
+        comboUsageCount: newEnemyUsageCount,
+        etherPts: (e.etherPts || 0) + enemyFinalEther
       };
     });
+
+    // 에테르 누적 카운터 리셋
+    setTurnEtherAccumulated(0);
+    setEnemyTurnEtherAccumulated(0);
+
     setSelected([]); setQueue([]); setQIndex(0); setFixedOrder(null); setUsedCardIndices([]);
     setDisappearingCards([]); setHiddenCards([]);
     setPhase('select');
@@ -1676,28 +1695,24 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
       newEvents[i] = events;
       events.forEach(ev => addLog(ev.msg));
 
-      // 카드 사용 시 에테르 획득
+      // 카드 사용 시 에테르 누적 (실제 적용은 턴 종료 시)
       if (a.actor === 'player') {
-        const etherGain = BASE_ETHER_PER_CARD;
-        P.etherPts += etherGain;
-        addLog(`✴️ 에테르 +${etherGain} PT`);
+        setTurnEtherAccumulated(prev => prev + BASE_ETHER_PER_CARD);
       } else if (a.actor === 'enemy') {
-        const etherGain = BASE_ETHER_PER_CARD;
-        E.etherPts += etherGain;
-        addLog(`☄️ 적 에테르 +${etherGain} PT`);
+        setEnemyTurnEtherAccumulated(prev => prev + BASE_ETHER_PER_CARD);
       }
 
       if (P.hp <= 0) {
-        setPlayer(prev => ({ ...prev, hp: P.hp, def: P.def, block: P.block, counter: P.counter, vulnMult: P.vulnMult || 1, etherPts: P.etherPts }));
-        setEnemy(prev => ({ ...prev, hp: E.hp, def: E.def, block: E.block, counter: E.counter, vulnMult: E.vulnMult || 1, etherPts: E.etherPts }));
+        setPlayer(prev => ({ ...prev, hp: P.hp, def: P.def, block: P.block, counter: P.counter, vulnMult: P.vulnMult || 1 }));
+        setEnemy(prev => ({ ...prev, hp: E.hp, def: E.def, block: E.block, counter: E.counter, vulnMult: E.vulnMult || 1 }));
         setActionEvents(prev => ({ ...prev, ...newEvents }));
         setQIndex(i + 1);
         setPostCombatOptions({ type: 'defeat' }); setPhase('post');
         return;
       }
       if (E.hp <= 0) {
-        setPlayer(prev => ({ ...prev, hp: P.hp, def: P.def, block: P.block, counter: P.counter, vulnMult: P.vulnMult || 1, etherPts: P.etherPts }));
-        setEnemy(prev => ({ ...prev, hp: E.hp, def: E.def, block: E.block, counter: E.counter, vulnMult: E.vulnMult || 1, etherPts: E.etherPts }));
+        setPlayer(prev => ({ ...prev, hp: P.hp, def: P.def, block: P.block, counter: P.counter, vulnMult: P.vulnMult || 1 }));
+        setEnemy(prev => ({ ...prev, hp: E.hp, def: E.def, block: E.block, counter: E.counter, vulnMult: E.vulnMult || 1 }));
         setActionEvents(prev => ({ ...prev, ...newEvents }));
         setQIndex(i + 1);
         // 몬스터 죽음 애니메이션 및 사운드
@@ -1710,8 +1725,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
         return;
       }
     }
-    setPlayer(prev => ({ ...prev, hp: P.hp, def: P.def, block: P.block, counter: P.counter, vulnMult: P.vulnMult || 1, etherPts: P.etherPts }));
-    setEnemy(prev => ({ ...prev, hp: E.hp, def: E.def, block: E.block, counter: E.counter, vulnMult: E.vulnMult || 1, etherPts: E.etherPts }));
+    setPlayer(prev => ({ ...prev, hp: P.hp, def: P.def, block: P.block, counter: P.counter, vulnMult: P.vulnMult || 1 }));
+    setEnemy(prev => ({ ...prev, hp: E.hp, def: E.def, block: E.block, counter: E.counter, vulnMult: E.vulnMult || 1 }));
     setActionEvents(prev => ({ ...prev, ...newEvents }));
     setQIndex(queue.length);
   };
@@ -1919,27 +1934,13 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
                 <div style={{ fontSize: '1.92rem', fontWeight: 'bold', color: '#fbbf24', marginBottom: '2px' }}>
                   {currentCombo.name}
                 </div>
-                {phase === 'resolve' && comboPreviewInfo && (
+                {phase === 'resolve' && (
                   <div style={{ fontSize: '1.5rem', color: '#fbbf24', fontWeight: 'bold', letterSpacing: '0.2em', marginBottom: '2px' }}>
-                    + {comboPreviewInfo.baseGain.toString().split('').join(' ')} P T
+                    + {turnEtherAccumulated.toString().split('').join(' ')} P T
                   </div>
                 )}
                 <div style={{ fontSize: '1.32rem', color: '#fbbf24', fontWeight: 'bold', letterSpacing: '0.15em', minWidth: '400px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '12px' }}>
                   <span>× {(COMBO_MULTIPLIERS[currentCombo.name] || 1).toFixed(2).split('').join(' ')}</span>
-                  {phase === 'resolve' && comboPreviewInfo && comboPreviewInfo.deflationPct > 0 && (
-                    <span style={{
-                      color: '#fca5a5',
-                      background: 'rgba(239, 68, 68, 0.15)',
-                      fontSize: '0.85em',
-                      letterSpacing: '0.12em',
-                      padding: '4px 18px',
-                      borderRadius: '6px',
-                      border: '1.5px solid rgba(239, 68, 68, 0.4)',
-                      fontWeight: 'bold'
-                    }}>
-                      - {comboPreviewInfo.deflationPct} %
-                    </span>
-                  )}
                 </div>
               </div>
             )}
