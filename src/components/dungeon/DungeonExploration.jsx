@@ -887,7 +887,7 @@ export function DungeonExploration() {
           onClick={() => setShowCharacter(false)}
         >
           <div onClick={(e) => e.stopPropagation()}>
-            <CharacterSheet />
+            <CharacterSheet onClose={() => setShowCharacter(false)} />
           </div>
         </div>
       )}

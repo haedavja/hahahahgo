@@ -1576,6 +1576,12 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
       if (pComboEnd?.name) {
         newUsageCount[pComboEnd.name] = (newUsageCount[pComboEnd.name] || 0) + 1;
       }
+      // 플레이어가 사용한 각 카드의 사용 횟수 증가 (숙련 특성용)
+      queue.forEach(action => {
+        if (action.actor === 'player' && action.card?.id) {
+          newUsageCount[action.card.id] = (newUsageCount[action.card.id] || 0) + 1;
+        }
+      });
       return {
         ...p,
         etherPts: addEther(p.etherPts, playerGainInfo.gain || 0),
@@ -2053,7 +2059,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
             <div className="hand-cards">
               {getSortedHand().map((c, idx) => {
                 const Icon = c.icon;
-                const enhancedCard = applyTraitModifiers(c, { usageCount: 0, isInCombo: false });
+                const usageCount = player.comboUsageCount?.[c.id] || 0;
+                const enhancedCard = applyTraitModifiers(c, { usageCount, isInCombo: false });
                 const selIndex = selected.findIndex(s => s.id === c.id);
                 const sel = selIndex !== -1;
                 const disabled = handDisabled(c) && !sel;
