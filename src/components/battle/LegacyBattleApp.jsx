@@ -2116,9 +2116,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
                   textShadow: etherCalcPhase === 'multiply' ? '0 0 20px #fbbf24' : 'none'
                 }}>
                   <span>× {(COMBO_MULTIPLIERS[currentCombo.name] || 1).toFixed(2).split('').join(' ')}</span>
-                  {currentDeflation && etherCalcPhase === 'deflation' && (
+                  {currentDeflation && (
                     <div style={{
-                      fontSize: '1.1rem',
+                      fontSize: etherCalcPhase === 'deflation' ? '1.1rem' : '0.9rem',
                       fontWeight: 'bold',
                       color: '#fca5a5',
                       background: 'linear-gradient(135deg, rgba(252, 165, 165, 0.25), rgba(252, 165, 165, 0.1))',
@@ -2127,9 +2127,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
                       padding: '4px 12px',
                       letterSpacing: '0.05em',
                       boxShadow: '0 0 10px rgba(252, 165, 165, 0.3), inset 0 0 5px rgba(252, 165, 165, 0.15)',
-                      transition: 'transform 0.3s ease',
-                      transform: 'scale(1.2)',
-                      textShadow: '0 0 15px rgba(252, 165, 165, 0.6)'
+                      transition: 'font-size 0.3s ease, transform 0.3s ease',
+                      transform: etherCalcPhase === 'deflation' ? 'scale(1.2)' : 'scale(1)',
+                      textShadow: etherCalcPhase === 'deflation' ? '0 0 15px rgba(252, 165, 165, 0.6)' : 'none'
                     }}>
                       -{Math.round((1 - currentDeflation.multiplier) * 100)}% ({currentDeflation.usageCount}회)
                     </div>
