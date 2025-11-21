@@ -1411,6 +1411,12 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
       addLog('⚠️ 큐 생성 실패: 실행할 항목이 없습니다');
       return;
     }
+
+    // 이전 턴의 에테르 애니메이션 상태 초기화
+    setEtherCalcPhase(null);
+    setEtherFinalValue(null);
+    setCurrentDeflation(null);
+
     playProceedSound(); // 진행 버튼 사운드 재생
     setQueue(newQ);
     setQIndex(0);
@@ -1771,12 +1777,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
       };
     });
 
-    // 에테르 누적 카운터 및 애니메이션 상태 리셋
+    // 에테르 누적 카운터 리셋 (애니메이션 상태는 다음 턴 시작 시 리셋됨)
     setTurnEtherAccumulated(0);
     setEnemyTurnEtherAccumulated(0);
-    setEtherCalcPhase(null);
-    setEtherFinalValue(null);
-    setCurrentDeflation(null);
 
     setSelected([]); setQueue([]); setQIndex(0); setFixedOrder(null); setUsedCardIndices([]);
     setDisappearingCards([]); setHiddenCards([]);
