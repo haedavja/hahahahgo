@@ -885,6 +885,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
   const [vanishedCards, setVanishedCards] = useState([]); // 소멸 특성으로 제거된 카드
   const [turnEtherAccumulated, setTurnEtherAccumulated] = useState(0); // 이번 턴 누적 에테르 (실제 적용 전)
   const [enemyTurnEtherAccumulated, setEnemyTurnEtherAccumulated] = useState(0); // 적 이번 턴 누적 에테르
+  const [etherPulse, setEtherPulse] = useState(false); // PT 증가 애니메이션
+  const [etherFinalValue, setEtherFinalValue] = useState(null); // 최종 에테르값 표시
+  const [etherCalcPhase, setEtherCalcPhase] = useState(null); // 에테르 계산 애니메이션 단계: 'sum', 'multiply', 'result'
   const [nextTurnEffects, setNextTurnEffects] = useState({
     guaranteedCards: [], // 반복, 보험 특성으로 다음턴 확정 등장
     bonusEnergy: 0, // 몸풀기 특성
@@ -1492,6 +1495,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
     // 카드 사용 시 에테르 누적 (실제 적용은 턴 종료 시)
     if (a.actor === 'player') {
       setTurnEtherAccumulated(prev => prev + BASE_ETHER_PER_CARD);
+      // PT 증가 애니메이션
+      setEtherPulse(true);
+      setTimeout(() => setEtherPulse(false), 300);
     } else if (a.actor === 'enemy') {
       setEnemyTurnEtherAccumulated(prev => prev + BASE_ETHER_PER_CARD);
     }
@@ -1624,36 +1630,85 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
     const playerFinalEther = Math.round(turnEtherAccumulated * playerComboMult);
     const enemyFinalEther = Math.round(enemyTurnEtherAccumulated * enemyComboMult);
 
+    // 순차 애니메이션 시작
     if (playerFinalEther > 0) {
-      addLog(`✴️ 에테르 획득: ${turnEtherAccumulated} × ${playerComboMult.toFixed(2)} = ${playerFinalEther} PT`);
+      // 1단계: 합계 강조
+      setEtherCalcPhase('sum');
+      setTimeout(() => {
+        // 2단계: 곱셈 강조
+        setEtherCalcPhase('multiply');
+        setTimeout(() => {
+          // 3단계: 최종값 표시
+          setEtherCalcPhase('result');
+          setEtherFinalValue(playerFinalEther);
+
+          // 로그 추가
+          addLog(`✴️ 에테르 획득: ${turnEtherAccumulated} × ${playerComboMult.toFixed(2)} = ${playerFinalEther} PT`);
+
+          setTimeout(() => {
+            // 애니메이션 종료 후 실제 에테르 적용
+            setPlayer(p => {
+              const newUsageCount = { ...(p.comboUsageCount || {}) };
+              if (pComboEnd?.name) {
+                newUsageCount[pComboEnd.name] = (newUsageCount[pComboEnd.name] || 0) + 1;
+              }
+              // 플레이어가 사용한 각 카드의 사용 횟수 증가 (숙련 특성용)
+              queue.forEach(action => {
+                if (action.actor === 'player' && action.card?.id) {
+                  newUsageCount[action.card.id] = (newUsageCount[action.card.id] || 0) + 1;
+                }
+              });
+              return {
+                ...p,
+                block: 0,
+                def: false,
+                counter: 0,
+                vulnMult: 1,
+                vulnTurns: 0,
+                etherOverdriveActive: false,
+                comboUsageCount: newUsageCount,
+                etherPts: (p.etherPts || 0) + playerFinalEther
+              };
+            });
+
+            // 애니메이션 상태 리셋
+            setEtherCalcPhase(null);
+            setEtherFinalValue(null);
+            setTurnEtherAccumulated(0);
+          }, 800); // 최종값 표시 시간
+        }, 600); // 곱셈 강조 시간
+      }, 400); // 합계 강조 시간
+    } else {
+      // 에테르 획득이 없으면 바로 처리
+      setPlayer(p => {
+        const newUsageCount = { ...(p.comboUsageCount || {}) };
+        if (pComboEnd?.name) {
+          newUsageCount[pComboEnd.name] = (newUsageCount[pComboEnd.name] || 0) + 1;
+        }
+        queue.forEach(action => {
+          if (action.actor === 'player' && action.card?.id) {
+            newUsageCount[action.card.id] = (newUsageCount[action.card.id] || 0) + 1;
+          }
+        });
+        return {
+          ...p,
+          block: 0,
+          def: false,
+          counter: 0,
+          vulnMult: 1,
+          vulnTurns: 0,
+          etherOverdriveActive: false,
+          comboUsageCount: newUsageCount,
+          etherPts: (p.etherPts || 0) + playerFinalEther
+        };
+      });
+      setTurnEtherAccumulated(0);
     }
+
     if (enemyFinalEther > 0) {
       addLog(`☄️ 적 에테르 획득: ${enemyTurnEtherAccumulated} × ${enemyComboMult.toFixed(2)} = ${enemyFinalEther} PT`);
     }
 
-    setPlayer(p => {
-      const newUsageCount = { ...(p.comboUsageCount || {}) };
-      if (pComboEnd?.name) {
-        newUsageCount[pComboEnd.name] = (newUsageCount[pComboEnd.name] || 0) + 1;
-      }
-      // 플레이어가 사용한 각 카드의 사용 횟수 증가 (숙련 특성용)
-      queue.forEach(action => {
-        if (action.actor === 'player' && action.card?.id) {
-          newUsageCount[action.card.id] = (newUsageCount[action.card.id] || 0) + 1;
-        }
-      });
-      return {
-        ...p,
-        block: 0,
-        def: false,
-        counter: 0,
-        vulnMult: 1,
-        vulnTurns: 0,
-        etherOverdriveActive: false,
-        comboUsageCount: newUsageCount,
-        etherPts: (p.etherPts || 0) + playerFinalEther
-      };
-    });
     setEnemy(e => {
       const newEnemyUsageCount = { ...(e.comboUsageCount || {}) };
       if (eComboEnd?.name) {
@@ -1672,8 +1727,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
       };
     });
 
-    // 에테르 누적 카운터 리셋
-    setTurnEtherAccumulated(0);
+    // 적 에테르 누적 카운터 리셋
     setEnemyTurnEtherAccumulated(0);
 
     setSelected([]); setQueue([]); setQIndex(0); setFixedOrder(null); setUsedCardIndices([]);
@@ -1935,23 +1989,64 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
                   {currentCombo.name}
                 </div>
                 {phase === 'resolve' && (
-                  <div style={{ fontSize: '1.5rem', color: '#fbbf24', fontWeight: 'bold', letterSpacing: '0.2em', marginBottom: '2px' }}>
+                  <div style={{
+                    fontSize: etherPulse ? '1.8rem' : (etherCalcPhase === 'sum' ? '2rem' : '1.5rem'),
+                    color: '#fbbf24',
+                    fontWeight: 'bold',
+                    letterSpacing: '0.2em',
+                    marginBottom: '2px',
+                    transition: 'font-size 0.3s ease, transform 0.3s ease',
+                    transform: etherPulse ? 'scale(1.2)' : (etherCalcPhase === 'sum' ? 'scale(1.3)' : 'scale(1)'),
+                    textShadow: etherCalcPhase === 'sum' ? '0 0 20px #fbbf24' : 'none'
+                  }}>
                     + {turnEtherAccumulated.toString().split('').join(' ')} P T
                   </div>
                 )}
-                <div style={{ fontSize: '1.32rem', color: '#fbbf24', fontWeight: 'bold', letterSpacing: '0.15em', minWidth: '400px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '12px' }}>
+                <div style={{
+                  fontSize: etherCalcPhase === 'multiply' ? '1.6rem' : '1.32rem',
+                  color: '#fbbf24',
+                  fontWeight: 'bold',
+                  letterSpacing: '0.15em',
+                  minWidth: '400px',
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  gap: '12px',
+                  transition: 'font-size 0.3s ease, transform 0.3s ease',
+                  transform: etherCalcPhase === 'multiply' ? 'scale(1.3)' : 'scale(1)',
+                  textShadow: etherCalcPhase === 'multiply' ? '0 0 20px #fbbf24' : 'none'
+                }}>
                   <span>× {(COMBO_MULTIPLIERS[currentCombo.name] || 1).toFixed(2).split('').join(' ')}</span>
                 </div>
               </div>
             )}
             <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-              <EtherBar
-                key={`player-ether-${playerEtherValue}`}
-                pts={playerEtherValue}
-                slots={playerEtherSlots}
-                previewGain={0}
-                label="ETHER"
-              />
+              <div style={{ position: 'relative' }}>
+                <EtherBar
+                  key={`player-ether-${playerEtherValue}`}
+                  pts={playerEtherValue}
+                  slots={playerEtherSlots}
+                  previewGain={0}
+                  label="ETHER"
+                />
+                {/* 최종값 표시 - 에테르바 하단 */}
+                {etherFinalValue !== null && etherCalcPhase === 'result' && (
+                  <div style={{
+                    position: 'absolute',
+                    bottom: '-35px',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    fontSize: '1.8rem',
+                    fontWeight: 'bold',
+                    color: '#fbbf24',
+                    textShadow: '0 0 25px #fbbf24, 0 0 35px #fbbf24',
+                    animation: 'pulse 0.5s ease-in-out',
+                    letterSpacing: '0.15em'
+                  }}>
+                    {etherFinalValue.toString().split('').join(' ')} P T
+                  </div>
+                )}
+              </div>
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                   <div className="character-display" style={{ fontSize: '64px' }}>🧙‍♂️</div>
