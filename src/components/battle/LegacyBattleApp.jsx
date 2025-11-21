@@ -1616,7 +1616,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
           setTimeout(() => {
             // 4단계: 최종값 표시 + 묵직한 사운드
             setEtherCalcPhase('result');
-            setEtherFinalValue(playerFinalEther);
+            // 최종값은 finishTurn에서 설정됨 (애니메이션 시점의 값은 부정확)
             playSound(400, 200); // 묵직한 사운드
           }, playerDeflation.usageCount > 0 ? 400 : 0);
         }, 600);
@@ -1719,6 +1719,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
         ? ` (디플레이션 -${Math.round((1 - playerDeflation.multiplier) * 100)}%, ${playerDeflation.usageCount}회 사용)`
         : '';
       addLog(`✴️ 에테르 획득: ${turnEtherAccumulated} × ${playerComboMult.toFixed(2)} = ${playerBeforeDeflation} → ${playerFinalEther} PT${deflationText}`);
+      // 최종값을 UI에 표시
+      setEtherFinalValue(playerFinalEther);
     }
     if (enemyFinalEther > 0) {
       const deflationText = enemyDeflation.usageCount > 0
@@ -1869,7 +1871,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
           setTimeout(() => {
             // 4단계: 최종값 표시 + 묵직한 사운드
             setEtherCalcPhase('result');
-            setEtherFinalValue(playerFinalEther);
+            // 최종값은 finishTurn에서 설정됨 (애니메이션 시점의 값은 부정확)
             playSound(400, 200); // 묵직한 사운드
           }, playerDeflation.usageCount > 0 ? 400 : 0);
         }, 600);
