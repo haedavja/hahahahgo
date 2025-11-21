@@ -1775,7 +1775,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
                     const Icon = a.card.icon || Sword;
                     const sameCount = playerTimeline.filter((q, i) => i < idx && q.sp === a.sp).length;
                     const offset = sameCount * 28;
-                    const num = a.card.type === 'attack' ? (a.card.damage * (a.card.hits || 1)) : (a.card.block || 0);
+                    const baseNum = a.card.type === 'attack' ? (a.card.damage * (a.card.hits || 1)) : (a.card.block || 0);
+                    const num = baseNum + (a.card.type === 'attack' || a.card.type === 'defense' ? playerStrength : 0);
                     // 타임라인에서 현재 진행 중인 액션인지 확인
                     const globalIndex = phase === 'resolve' && queue ? queue.findIndex(q => q === a) : -1;
                     const isActive = usedCardIndices.includes(globalIndex);
@@ -2095,12 +2096,12 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
                       <div className="card-stats-sidebar">
                         {enhancedCard.damage != null && enhancedCard.damage > 0 && (
                           <div className="card-stat-item attack">
-                            ⚔️{enhancedCard.damage}{enhancedCard.hits ? `×${enhancedCard.hits}` : ''}
+                            ⚔️{enhancedCard.damage + playerStrength}{enhancedCard.hits ? `×${enhancedCard.hits}` : ''}
                           </div>
                         )}
                         {enhancedCard.block != null && enhancedCard.block > 0 && (
                           <div className="card-stat-item defense">
-                            🛡️{enhancedCard.block}
+                            🛡️{enhancedCard.block + playerStrength}
                           </div>
                         )}
                         <div className="card-stat-item speed">
@@ -2165,12 +2166,12 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
                       <div className="card-stats-sidebar">
                         {c.damage != null && c.damage > 0 && (
                           <div className="card-stat-item attack">
-                            ⚔️{c.damage}{c.hits ? `×${c.hits}` : ''}
+                            ⚔️{c.damage + playerStrength}{c.hits ? `×${c.hits}` : ''}
                           </div>
                         )}
                         {c.block != null && c.block > 0 && (
                           <div className="card-stat-item defense">
-                            🛡️{c.block}
+                            🛡️{c.block + playerStrength}
                           </div>
                         )}
                         <div className="card-stat-item speed">
@@ -2260,12 +2261,12 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
                       <div className="card-stats-sidebar">
                         {a.card.damage != null && a.card.damage > 0 && (
                           <div className="card-stat-item attack">
-                            ⚔️{a.card.damage}{a.card.hits ? `×${a.card.hits}` : ''}
+                            ⚔️{a.card.damage + playerStrength}{a.card.hits ? `×${a.card.hits}` : ''}
                           </div>
                         )}
                         {a.card.block != null && a.card.block > 0 && (
                           <div className="card-stat-item defense">
-                            🛡️{a.card.block}
+                            🛡️{a.card.block + playerStrength}
                           </div>
                         )}
                         {a.card.counter !== undefined && (
