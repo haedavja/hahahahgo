@@ -868,7 +868,14 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
     setLog(p => [...p, m].slice(-200));
   }, []);
   const [willOverdrive, setWillOverdrive] = useState(false);
-  const [isSimplified, setIsSimplified] = useState(false);
+  const [isSimplified, setIsSimplified] = useState(() => {
+    try {
+      const saved = localStorage.getItem('battleIsSimplified');
+      return saved === 'true';
+    } catch {
+      return false;
+    }
+  });
   const [usedCardIndices, setUsedCardIndices] = useState([]);
   const [disappearingCards, setDisappearingCards] = useState([]); // 사라지는 중인 카드 인덱스
   const [hiddenCards, setHiddenCards] = useState([]); // 완전히 숨겨진 카드 인덱스
