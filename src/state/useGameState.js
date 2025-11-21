@@ -140,6 +140,7 @@ export const createInitialState = () => ({
   resources: { gold: 40, intel: 2, loot: 1, material: 1, etherPts: 0 },
   playerHp: 100,
   maxHp: 100,
+  playerStrength: 0,
   activeEvent: null,
   activeDungeon: null,
   activeBattle: null,

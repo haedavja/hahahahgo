@@ -191,6 +191,25 @@ function applyTraitModifiers(card, context = {}) {
   return modifiedCard;
 }
 
+// 힘 스탯을 카드에 적용하는 함수
+function applyStrengthToCard(card, strength = 0, isPlayerCard = true) {
+  if (!isPlayerCard || strength === 0) return card;
+
+  const modifiedCard = { ...card };
+
+  // 공격 카드: 힘 1당 공격력 +1
+  if (modifiedCard.damage && modifiedCard.type === 'attack') {
+    modifiedCard.damage = modifiedCard.damage + strength;
+  }
+
+  // 방어 카드: 힘 1당 방어력 +1
+  if (modifiedCard.block && modifiedCard.type === 'defense') {
+    modifiedCard.block = modifiedCard.block + strength;
+  }
+
+  return modifiedCard;
+}
+
 function sortCombinedOrderStablePF(playerCards, enemyCards) {
   const q = []; let ps = 0, es = 0;
   (playerCards || []).forEach((c, idx) => { ps += c.speedCost; q.push({ actor: 'player', card: c, sp: ps, idx }); });
@@ -313,7 +332,8 @@ function applyAction(state, actor, card) {
 
   if (card.type === 'defense') {
     const prev = A.block || 0;
-    const added = card.block || 0;
+    const strengthBonus = A.strength || 0;
+    const added = (card.block || 0) + strengthBonus;
     const after = prev + added;
     A.def = true; A.block = after;
     if (card.counter !== undefined) { A.counter = card.counter || 0; }
@@ -806,13 +826,14 @@ function drawCharacterBuildHand(characterBuild, nextTurnEffects = {}, previousHa
 // Game Component
 // =====================
 function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) {
+  const playerStrength = useGameStore((state) => state.playerStrength || 0);
   const safeInitialPlayer = initialPlayer || {};
   const safeInitialEnemy = initialEnemy || {};
   const baseEnergy = safeInitialPlayer.energy ?? BASE_PLAYER_ENERGY;
   const startingEther = typeof safeInitialPlayer.etherPts === 'number' ? safeInitialPlayer.etherPts : playerEther;
-  const [player, setPlayer] = useState({ hp: safeInitialPlayer.hp ?? 30, maxHp: safeInitialPlayer.maxHp ?? safeInitialPlayer.hp ?? 30, energy: baseEnergy, maxEnergy: baseEnergy, vulnMult: 1, vulnTurns: 0, block: 0, counter: 0, etherPts: startingEther ?? 0, etherOverdriveActive: false, comboUsageCount: {} });
+  const [player, setPlayer] = useState({ hp: safeInitialPlayer.hp ?? 30, maxHp: safeInitialPlayer.maxHp ?? safeInitialPlayer.hp ?? 30, energy: baseEnergy, maxEnergy: baseEnergy, vulnMult: 1, vulnTurns: 0, block: 0, counter: 0, etherPts: startingEther ?? 0, etherOverdriveActive: false, comboUsageCount: {}, strength: playerStrength });
   const [enemyIndex, setEnemyIndex] = useState(0);
-  const [enemy, setEnemy] = useState(() => safeInitialEnemy?.name ? ({ ...safeInitialEnemy, hp: safeInitialEnemy.hp ?? safeInitialEnemy.maxHp ?? 30, maxHp: safeInitialEnemy.maxHp ?? safeInitialEnemy.hp ?? 30, vulnMult: 1, vulnTurns: 0, block: 0, counter: 0, etherPts: 0, etherOverdriveActive: false }) : null);
+  const [enemy, setEnemy] = useState(() => safeInitialEnemy?.name ? ({ ...safeInitialEnemy, hp: safeInitialEnemy.hp ?? safeInitialEnemy.maxHp ?? 30, maxHp: safeInitialEnemy.maxHp ?? safeInitialEnemy.hp ?? 30, vulnMult: 1, vulnTurns: 0, block: 0, counter: 0, etherPts: 0, etherOverdriveActive: false, strength: 0 }) : null);
 
   const [phase, setPhase] = useState('select');
 
@@ -2018,7 +2039,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
             <div className="hand-cards">
               {getSortedHand().map((c, idx) => {
                 const Icon = c.icon;
-                const enhancedCard = applyTraitModifiers(c, { usageCount: 0, isInCombo: false });
+                const traitEnhanced = applyTraitModifiers(c, { usageCount: 0, isInCombo: false });
+                const enhancedCard = applyStrengthToCard(traitEnhanced, playerStrength, true);
                 const selIndex = selected.findIndex(s => s.id === c.id);
                 const sel = selIndex !== -1;
                 const disabled = handDisabled(c) && !sel;
@@ -2122,6 +2144,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
             <div className="hand-cards" style={{ justifyContent: 'center' }}>
               {fixedOrder.filter(a => a.actor === 'player').map((action, idx, arr) => {
                 const c = action.card;
+                const enhancedCard = applyStrengthToCard(c, playerStrength, true);
                 const Icon = c.icon;
                 const currentBuild = useGameStore.getState().characterBuild;
                 const isMainSpecial = currentBuild?.mainSpecials?.includes(c.id);
@@ -2133,14 +2156,14 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
                     <div className={`game-card-large respond-phase-card ${c.type === 'attack' ? 'attack' : 'defense'}`}>
                       <div className="card-cost-badge-floating" style={{ color: costColor, WebkitTextStroke: '1px #000' }}>{c.actionCost}</div>
                       <div className="card-stats-sidebar">
-                        {c.damage != null && c.damage > 0 && (
+                        {enhancedCard.damage != null && enhancedCard.damage > 0 && (
                           <div className="card-stat-item attack">
-                            ⚔️{c.damage}{c.hits ? `×${c.hits}` : ''}
+                            ⚔️{enhancedCard.damage}{enhancedCard.hits ? `×${enhancedCard.hits}` : ''}
                           </div>
                         )}
-                        {c.block != null && c.block > 0 && (
+                        {enhancedCard.block != null && enhancedCard.block > 0 && (
                           <div className="card-stat-item defense">
-                            🛡️{c.block}
+                            🛡️{enhancedCard.block}
                           </div>
                         )}
                         <div className="card-stat-item speed">
@@ -2210,6 +2233,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
           {phase === 'resolve' && queue && queue.length > 0 && (
             <div className="hand-cards" style={{ justifyContent: 'center' }}>
               {queue.filter(a => a.actor === 'player').map((a, i) => {
+                const enhancedCard = applyStrengthToCard(a.card, playerStrength, true);
                 const Icon = a.card.icon;
                 const globalIndex = queue.findIndex(q => q === a);
                 const isUsed = usedCardIndices.includes(globalIndex);
@@ -2228,14 +2252,14 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
                     <div className={`game-card-large resolve-phase-card ${a.card.type === 'attack' ? 'attack' : 'defense'} ${isUsed ? 'card-used' : ''} ${isDisappearing ? 'card-disappearing' : ''}`}>
                       <div className="card-cost-badge-floating" style={{ color: costColor, WebkitTextStroke: '1px #000' }}>{a.card.actionCost}</div>
                       <div className="card-stats-sidebar">
-                        {a.card.damage != null && a.card.damage > 0 && (
+                        {enhancedCard.damage != null && enhancedCard.damage > 0 && (
                           <div className="card-stat-item attack">
-                            ⚔️{a.card.damage}{a.card.hits ? `×${a.card.hits}` : ''}
+                            ⚔️{enhancedCard.damage}{enhancedCard.hits ? `×${enhancedCard.hits}` : ''}
                           </div>
                         )}
-                        {a.card.block != null && a.card.block > 0 && (
+                        {enhancedCard.block != null && enhancedCard.block > 0 && (
                           <div className="card-stat-item defense">
-                            🛡️{a.card.block}
+                            🛡️{enhancedCard.block}
                           </div>
                         )}
                         {a.card.counter !== undefined && (

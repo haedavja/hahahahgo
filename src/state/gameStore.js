@@ -723,6 +723,12 @@ export const useGameStore = create((set, get) => ({
         subSpecials: subSpecials ?? state.characterBuild.subSpecials,
       },
     })),
+
+  updatePlayerStrength: (strength) =>
+    set((state) => ({
+      ...state,
+      playerStrength: strength,
+    })),
 }));
 
 export const selectors = {

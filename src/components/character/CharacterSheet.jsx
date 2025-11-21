@@ -20,13 +20,14 @@ export function CharacterSheet({ onClose }) {
   const updateCharacterBuild = useGameStore((state) => state.updateCharacterBuild);
   const playerHp = useGameStore((state) => state.playerHp);
   const maxHp = useGameStore((state) => state.maxHp);
+  const playerStrength = useGameStore((state) => state.playerStrength);
 
   // 현재 스탯
   const currentHp = playerHp;
   const currentEnergy = 6;
   const maxEnergy = 6;
   const speed = 30;
-  const power = 0;
+  const power = playerStrength || 0;
 
   const [specialMode, setSpecialMode] = useState("main");
   // cardId로 선택 상태 관리 - 초기화는 한 번만
