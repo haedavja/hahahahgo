@@ -2089,7 +2089,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
           {/* 왼쪽: 플레이어 */}
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '12px', minWidth: '360px', position: 'relative', justifyContent: 'center' }}>
             {/* 플레이어 콤보 - 절대 위치로 오른쪽 배치 */}
-            {currentCombo && (
+            {currentCombo && (phase === 'select' || phase === 'respond' || phase === 'resolve') && (
               <div className="combo-display" style={{ position: 'absolute', top: '-5px', left: '90px', textAlign: 'center' }}>
                 <div style={{
                   fontSize: '1.92rem',
@@ -2102,7 +2102,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
                   gap: '12px'
                 }}>
                   <span>{currentCombo.name}</span>
-                  {currentDeflation && (
+                  {currentDeflation && phase === 'resolve' && (
                     <div style={{
                       fontSize: etherCalcPhase === 'deflation' ? '1.1rem' : '0.9rem',
                       fontWeight: 'bold',
@@ -2184,11 +2184,11 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
                           }}></div>
                         )}
                       </div>
-                      {/* 최종 합계값 텍스트창 - 체력바 하단 */}
-                      {etherFinalValue !== null && (
+                      {/* 최종 합계값 텍스트창 - 체력바 하단 (진행 단계에서만 표시) */}
+                      {phase === 'resolve' && etherFinalValue !== null && (
                         <div style={{
                           position: 'absolute',
-                          top: '40px',
+                          top: '60px',
                           left: '50%',
                           transform: 'translateX(-50%)',
                           fontSize: '1.5rem',
