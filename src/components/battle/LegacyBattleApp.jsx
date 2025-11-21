@@ -19,6 +19,7 @@ const SPEED_TICKS = Array.from(
   { length: Math.floor(MAX_SPEED / 5) + 1 },
   (_, idx) => idx * 5,
 );
+const STUN_RANGE = 5; // 기절 효과 범위(타임라인 기준)
 
 // Lucide icons as simple SVG components
 const Sword = ({ size = 24, className = "" }) => (
@@ -1440,6 +1441,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
     const E = { ...enemy, def: enemy.def || false, block: enemy.block || 0, counter: enemy.counter || 0, vulnMult: enemy.vulnMult || 1 };
     const tempState = { player: P, enemy: E, log: [] };
     const { events } = applyAction(tempState, a.actor, a.card);
+    let actionEvents = events;
 
     // 플레이어 카드 사용 시 카드 사용 횟수 증가 (mastery, boredom 특성용)
     if (a.actor === 'player' && a.card.id) {
@@ -1461,12 +1463,36 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
       }
     }
 
+    if (hasTrait(a.card, 'stun')) {
+      const centerSp = a.sp ?? 0;
+      const stunnedActions = [];
+      setQueue(prevQueue => {
+        const targets = prevQueue
+          .map((item, idx) => ({ item, idx }))
+          .filter(({ item, idx }) => {
+            if (idx <= qIndex || !item) return false;
+            const isOpponent = item.actor !== a.actor;
+            const withinRange = typeof item.sp === 'number' && item.sp >= centerSp && item.sp <= centerSp + STUN_RANGE;
+            return isOpponent && withinRange;
+          });
+        if (targets.length === 0) return prevQueue;
+        stunnedActions.push(...targets);
+        return prevQueue.filter((_, idx) => !targets.some(t => t.idx === idx));
+      });
+      if (stunnedActions.length > 0) {
+        const stunnedNames = stunnedActions.map(t => t.item?.card?.name || '카드').join(', ');
+        const msg = `😵 "${a.card.name}"의 기절! 상대 카드 ${stunnedActions.length}장 파괴 (범위: ${centerSp}~${centerSp + STUN_RANGE}${stunnedNames ? `, 대상: ${stunnedNames}` : ''})`;
+        addLog(msg);
+        actionEvents = [...actionEvents, { actor: a.actor, card: a.card.name, type: 'stun', msg }];
+      }
+    }
+
     setPlayer(prev => ({ ...prev, hp: P.hp, def: P.def, block: P.block, counter: P.counter, vulnMult: P.vulnMult || 1, strength: P.strength || 0 }));
     setEnemy(prev => ({ ...prev, hp: E.hp, def: E.def, block: E.block, counter: E.counter, vulnMult: E.vulnMult || 1 }));
-    setActionEvents(prev => ({ ...prev, [qIndex]: events }));
+    setActionEvents(prev => ({ ...prev, [qIndex]: actionEvents }));
 
     // 이벤트 처리: 애니메이션 및 사운드
-    events.forEach(ev => {
+    actionEvents.forEach(ev => {
       addLog(ev.msg);
 
       // 피격 효과 (hit, pierce 타입)
