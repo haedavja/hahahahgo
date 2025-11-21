@@ -210,6 +210,12 @@ function applyStrengthToCard(card, strength = 0, isPlayerCard = true) {
   return modifiedCard;
 }
 
+// 손패 전체에 힘 스탯 적용
+function applyStrengthToHand(hand, strength = 0) {
+  if (strength === 0) return hand;
+  return hand.map(card => applyStrengthToCard(card, strength, true));
+}
+
 function sortCombinedOrderStablePF(playerCards, enemyCards) {
   const q = []; let ps = 0, es = 0;
   (playerCards || []).forEach((c, idx) => { ps += c.speedCost; q.push({ actor: 'player', card: c, sp: ps, idx }); });
@@ -949,9 +955,10 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
     // 캐릭터 빌드가 있으면 사용, 없으면 기본 8장
     const currentBuild = useGameStore.getState().characterBuild;
     const hasCharacterBuild = currentBuild && (currentBuild.mainSpecials?.length > 0 || currentBuild.subSpecials?.length > 0);
-    const initialHand = hasCharacterBuild
+    const rawHand = hasCharacterBuild
       ? drawCharacterBuildHand(currentBuild)
       : CARDS.slice(0, 10); // 8장 → 10장
+    const initialHand = applyStrengthToHand(rawHand, playerStrength);
     setHand(initialHand);
     setCanRedraw(true);
   }, [safeInitialPlayer, playerEther, addLog]);
@@ -1069,9 +1076,10 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
       // 캐릭터 빌드가 있으면 사용, 없으면 기본 8장
       const currentBuild = useGameStore.getState().characterBuild;
       const hasCharacterBuild = currentBuild && (currentBuild.mainSpecials?.length > 0 || currentBuild.subSpecials?.length > 0);
-      const initialHand = hasCharacterBuild
+      const rawHand = hasCharacterBuild
         ? drawCharacterBuildHand(currentBuild, nextTurnEffects, [])
         : CARDS.slice(0, 10); // 8장 → 10장
+      const initialHand = applyStrengthToHand(rawHand, playerStrength);
       setHand(initialHand);
       setSelected([]);
       setCanRedraw(true);
@@ -1099,10 +1107,10 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
     const currentBuild = useGameStore.getState().characterBuild;
     const hasCharacterBuild = currentBuild && (currentBuild.mainSpecials?.length > 0 || currentBuild.subSpecials?.length > 0);
     setHand(prevHand => {
-      const newHand = hasCharacterBuild
+      const rawHand = hasCharacterBuild
         ? drawCharacterBuildHand(currentBuild, nextTurnEffects, prevHand)
         : CARDS.slice(0, 10); // 8장 → 10장
-      return newHand;
+      return applyStrengthToHand(rawHand, playerStrength);
     });
     setSelected([]);
 
@@ -1240,9 +1248,10 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
     // 캐릭터 빌드가 있으면 사용, 없으면 기본 8장
     const currentBuild = useGameStore.getState().characterBuild;
     const hasCharacterBuild = currentBuild && (currentBuild.mainSpecials?.length > 0 || currentBuild.subSpecials?.length > 0);
-    const newHand = hasCharacterBuild
+    const rawHand = hasCharacterBuild
       ? drawCharacterBuildHand(currentBuild, nextTurnEffects, hand)
       : CARDS.slice(0, 10); // 8장 → 10장
+    const newHand = applyStrengthToHand(rawHand, playerStrength);
     setHand(newHand);
     setSelected([]);
     setCanRedraw(false);
@@ -1766,8 +1775,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
                     const Icon = a.card.icon || Sword;
                     const sameCount = playerTimeline.filter((q, i) => i < idx && q.sp === a.sp).length;
                     const offset = sameCount * 28;
-                    const enhancedCard = applyStrengthToCard(a.card, playerStrength, true);
-                    const num = a.card.type === 'attack' ? (enhancedCard.damage * (enhancedCard.hits || 1)) : (enhancedCard.block || 0);
+                    const num = a.card.type === 'attack' ? (a.card.damage * (a.card.hits || 1)) : (a.card.block || 0);
                     // 타임라인에서 현재 진행 중인 액션인지 확인
                     const globalIndex = phase === 'resolve' && queue ? queue.findIndex(q => q === a) : -1;
                     const isActive = usedCardIndices.includes(globalIndex);
@@ -2040,8 +2048,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
             <div className="hand-cards">
               {getSortedHand().map((c, idx) => {
                 const Icon = c.icon;
-                const traitEnhanced = applyTraitModifiers(c, { usageCount: 0, isInCombo: false });
-                const enhancedCard = applyStrengthToCard(traitEnhanced, playerStrength, true);
+                const enhancedCard = applyTraitModifiers(c, { usageCount: 0, isInCombo: false });
                 const selIndex = selected.findIndex(s => s.id === c.id);
                 const sel = selIndex !== -1;
                 const disabled = handDisabled(c) && !sel;
@@ -2145,7 +2152,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
             <div className="hand-cards" style={{ justifyContent: 'center' }}>
               {fixedOrder.filter(a => a.actor === 'player').map((action, idx, arr) => {
                 const c = action.card;
-                const enhancedCard = applyStrengthToCard(c, playerStrength, true);
                 const Icon = c.icon;
                 const currentBuild = useGameStore.getState().characterBuild;
                 const isMainSpecial = currentBuild?.mainSpecials?.includes(c.id);
@@ -2157,14 +2163,14 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
                     <div className={`game-card-large respond-phase-card ${c.type === 'attack' ? 'attack' : 'defense'}`}>
                       <div className="card-cost-badge-floating" style={{ color: costColor, WebkitTextStroke: '1px #000' }}>{c.actionCost}</div>
                       <div className="card-stats-sidebar">
-                        {enhancedCard.damage != null && enhancedCard.damage > 0 && (
+                        {c.damage != null && c.damage > 0 && (
                           <div className="card-stat-item attack">
-                            ⚔️{enhancedCard.damage}{enhancedCard.hits ? `×${enhancedCard.hits}` : ''}
+                            ⚔️{c.damage}{c.hits ? `×${c.hits}` : ''}
                           </div>
                         )}
-                        {enhancedCard.block != null && enhancedCard.block > 0 && (
+                        {c.block != null && c.block > 0 && (
                           <div className="card-stat-item defense">
-                            🛡️{enhancedCard.block}
+                            🛡️{c.block}
                           </div>
                         )}
                         <div className="card-stat-item speed">
@@ -2234,7 +2240,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
           {phase === 'resolve' && queue && queue.length > 0 && (
             <div className="hand-cards" style={{ justifyContent: 'center' }}>
               {queue.filter(a => a.actor === 'player').map((a, i) => {
-                const enhancedCard = applyStrengthToCard(a.card, playerStrength, true);
                 const Icon = a.card.icon;
                 const globalIndex = queue.findIndex(q => q === a);
                 const isUsed = usedCardIndices.includes(globalIndex);
@@ -2253,14 +2258,14 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
                     <div className={`game-card-large resolve-phase-card ${a.card.type === 'attack' ? 'attack' : 'defense'} ${isUsed ? 'card-used' : ''} ${isDisappearing ? 'card-disappearing' : ''}`}>
                       <div className="card-cost-badge-floating" style={{ color: costColor, WebkitTextStroke: '1px #000' }}>{a.card.actionCost}</div>
                       <div className="card-stats-sidebar">
-                        {enhancedCard.damage != null && enhancedCard.damage > 0 && (
+                        {a.card.damage != null && a.card.damage > 0 && (
                           <div className="card-stat-item attack">
-                            ⚔️{enhancedCard.damage}{enhancedCard.hits ? `×${enhancedCard.hits}` : ''}
+                            ⚔️{a.card.damage}{a.card.hits ? `×${a.card.hits}` : ''}
                           </div>
                         )}
-                        {enhancedCard.block != null && enhancedCard.block > 0 && (
+                        {a.card.block != null && a.card.block > 0 && (
                           <div className="card-stat-item defense">
-                            🛡️{enhancedCard.block}
+                            🛡️{a.card.block}
                           </div>
                         )}
                         {a.card.counter !== undefined && (
