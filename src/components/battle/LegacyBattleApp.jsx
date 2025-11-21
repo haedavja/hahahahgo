@@ -1504,7 +1504,10 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
 
     // 카드 사용 시 에테르 누적 (실제 적용은 턴 종료 시)
     if (a.actor === 'player') {
-      setTurnEtherAccumulated(prev => prev + BASE_ETHER_PER_CARD);
+      setTurnEtherAccumulated(prev => {
+        console.log(`[에테르 누적] ${prev} + ${BASE_ETHER_PER_CARD} = ${prev + BASE_ETHER_PER_CARD} (카드: ${a.card.name})`);
+        return prev + BASE_ETHER_PER_CARD;
+      });
       // PT 증가 애니메이션
       setEtherPulse(true);
       setTimeout(() => setEtherPulse(false), 300);
