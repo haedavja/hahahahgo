@@ -307,7 +307,7 @@ const COMBO_MULTIPLIERS = {
   '페어': 2,
   '투페어': 2.5,
   '트리플': 3,
-  '플러시': 3.25,
+  '플러쉬': 3.25,
   '풀하우스': 3.5,
   '포카드': 4,
   '파이브카드': 5,
@@ -1571,6 +1571,14 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
       const playerComboMult = pCombo ? (COMBO_MULTIPLIERS[pCombo.name] || 1) : 1;
       const playerFinalEther = Math.round(turnEtherAccumulated * playerComboMult);
 
+      console.log('[stepOnce 애니메이션]', {
+        turnEtherAccumulated,
+        comboName: pCombo?.name,
+        playerComboMult,
+        playerFinalEther,
+        selectedCards: selected.length
+      });
+
       // 1단계: 합계 강조
       setEtherCalcPhase('sum');
       setTimeout(() => {
@@ -1652,6 +1660,14 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
 
     const playerFinalEther = Math.round(turnEtherAccumulated * playerComboMult);
     const enemyFinalEther = Math.round(enemyTurnEtherAccumulated * enemyComboMult);
+
+    console.log('[finishTurn 계산]', {
+      turnEtherAccumulated,
+      comboName: pComboEnd?.name,
+      playerComboMult,
+      playerFinalEther,
+      selectedCards: selected.length
+    });
 
     if (playerFinalEther > 0) {
       addLog(`✴️ 에테르 획득: ${turnEtherAccumulated} × ${playerComboMult.toFixed(2)} = ${playerFinalEther} PT`);
@@ -1767,6 +1783,14 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
       const pCombo = detectPokerCombo(selected);
       const playerComboMult = pCombo ? (COMBO_MULTIPLIERS[pCombo.name] || 1) : 1;
       const playerFinalEther = Math.round(turnEtherAccumulated * playerComboMult);
+
+      console.log('[runAll 애니메이션]', {
+        turnEtherAccumulated,
+        comboName: pCombo?.name,
+        playerComboMult,
+        playerFinalEther,
+        selectedCards: selected.length
+      });
 
       // 1단계: 합계 강조
       setEtherCalcPhase('sum');
@@ -2055,15 +2079,19 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
                       {etherFinalValue !== null && (
                         <div style={{
                           position: 'absolute',
-                          top: '30px',
+                          top: '40px',
                           left: '50%',
                           transform: 'translateX(-50%)',
                           fontSize: '1.5rem',
                           fontWeight: 'bold',
                           color: '#fbbf24',
-                          textShadow: '0 0 20px #fbbf24',
                           letterSpacing: '0.15em',
-                          whiteSpace: 'nowrap'
+                          whiteSpace: 'nowrap',
+                          background: 'linear-gradient(135deg, rgba(251, 191, 36, 0.3), rgba(251, 191, 36, 0.1))',
+                          border: '2px solid #fbbf24',
+                          borderRadius: '8px',
+                          padding: '6px 16px',
+                          boxShadow: '0 0 20px rgba(251, 191, 36, 0.5), inset 0 0 10px rgba(251, 191, 36, 0.2)'
                         }}>
                           {etherFinalValue.toString().split('').join(' ')} P T
                         </div>
