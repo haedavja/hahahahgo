@@ -887,8 +887,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
   const [enemyTurnEtherAccumulated, setEnemyTurnEtherAccumulated] = useState(0); // 적 이번 턴 누적 에테르
   const [etherPulse, setEtherPulse] = useState(false); // PT 증가 애니메이션
   const [etherFinalValue, setEtherFinalValue] = useState(null); // 최종 에테르값 표시
-  const [etherCalcPhase, setEtherCalcPhase] = useState(null); // 에테르 계산 애니메이션 단계: 'sum', 'multiply', 'result'
+  const [etherCalcPhase, setEtherCalcPhase] = useState(null); // 에테르 계산 애니메이션 단계: 'sum', 'multiply', 'deflation', 'result'
   const [currentDeflation, setCurrentDeflation] = useState(null); // 현재 디플레이션 정보 { multiplier, usageCount }
+  const [calculatedEtherGain, setCalculatedEtherGain] = useState(null); // 애니메이션에서 계산된 최종 에테르 획득량
   const [nextTurnEffects, setNextTurnEffects] = useState({
     guaranteedCards: [], // 반복, 보험 특성으로 다음턴 확정 등장
     bonusEnergy: 0, // 몸풀기 특성
@@ -1587,6 +1588,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
 
       const playerFinalEther = playerDeflation.gain;
 
+      // 계산된 최종 에테르값 저장
+      setCalculatedEtherGain(playerFinalEther);
+
       console.log('[stepOnce 애니메이션]', {
         turnEtherAccumulated,
         comboName: pCombo?.name,
@@ -1605,11 +1609,17 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
         setEtherCalcPhase('multiply');
         playSound(800, 100); // 명쾌한 사운드
         setTimeout(() => {
-          // 3단계: 최종값 표시 + 묵직한 사운드
-          setEtherCalcPhase('result');
-          setEtherFinalValue(playerFinalEther);
-          playSound(400, 200); // 묵직한 사운드
-          // 최종값은 사라지지 않음 (turnEtherAccumulated 리셋 시 자연스럽게 사라짐)
+          // 3단계: 디플레이션 배지 애니메이션 + 저음 사운드
+          if (playerDeflation.usageCount > 0) {
+            setEtherCalcPhase('deflation');
+            playSound(200, 150); // 저음 사운드
+          }
+          setTimeout(() => {
+            // 4단계: 최종값 표시 + 묵직한 사운드
+            setEtherCalcPhase('result');
+            setEtherFinalValue(playerFinalEther);
+            playSound(400, 200); // 묵직한 사운드
+          }, playerDeflation.usageCount > 0 ? 400 : 0);
         }, 600);
       }, 400);
     }
@@ -1690,7 +1700,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
       ? applyEtherDeflation(enemyBeforeDeflation, eComboEnd.name, enemy.comboUsageCount || {})
       : { gain: enemyBeforeDeflation, multiplier: 1, usageCount: 0 };
 
-    const playerFinalEther = playerDeflation.gain;
+    // 애니메이션에서 계산된 값이 있으면 그것을 사용, 없으면 새로 계산
+    const playerFinalEther = calculatedEtherGain !== null ? calculatedEtherGain : playerDeflation.gain;
     const enemyFinalEther = enemyDeflation.gain;
 
     console.log('[finishTurn 계산]', {
@@ -1701,6 +1712,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
       deflationMult: playerDeflation.multiplier,
       usageCount: playerDeflation.usageCount,
       playerFinalEther,
+      calculatedEtherGain,
+      usingCalculated: calculatedEtherGain !== null,
       selectedCards: selected.length
     });
 
@@ -1765,6 +1778,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
     setEtherCalcPhase(null);
     setEtherFinalValue(null);
     setCurrentDeflation(null);
+    setCalculatedEtherGain(null);
 
     setSelected([]); setQueue([]); setQIndex(0); setFixedOrder(null); setUsedCardIndices([]);
     setDisappearingCards([]); setHiddenCards([]);
@@ -1833,6 +1847,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
 
       const playerFinalEther = playerDeflation.gain;
 
+      // 계산된 최종 에테르값 저장
+      setCalculatedEtherGain(playerFinalEther);
+
       console.log('[runAll 애니메이션]', {
         turnEtherAccumulated,
         comboName: pCombo?.name,
@@ -1851,11 +1868,17 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
         setEtherCalcPhase('multiply');
         playSound(800, 100); // 명쾌한 사운드
         setTimeout(() => {
-          // 3단계: 최종값 표시 + 묵직한 사운드
-          setEtherCalcPhase('result');
-          setEtherFinalValue(playerFinalEther);
-          playSound(400, 200); // 묵직한 사운드
-          // 최종값은 사라지지 않음
+          // 3단계: 디플레이션 배지 애니메이션 + 저음 사운드
+          if (playerDeflation.usageCount > 0) {
+            setEtherCalcPhase('deflation');
+            playSound(200, 150); // 저음 사운드
+          }
+          setTimeout(() => {
+            // 4단계: 최종값 표시 + 묵직한 사운드
+            setEtherCalcPhase('result');
+            setEtherFinalValue(playerFinalEther);
+            playSound(400, 200); // 묵직한 사운드
+          }, playerDeflation.usageCount > 0 ? 400 : 0);
         }, 600);
       }, 400);
     }
@@ -2093,17 +2116,20 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
                   textShadow: etherCalcPhase === 'multiply' ? '0 0 20px #fbbf24' : 'none'
                 }}>
                   <span>× {(COMBO_MULTIPLIERS[currentCombo.name] || 1).toFixed(2).split('').join(' ')}</span>
-                  {currentDeflation && (
+                  {currentDeflation && etherCalcPhase === 'deflation' && (
                     <div style={{
-                      fontSize: '0.9rem',
+                      fontSize: '1.1rem',
                       fontWeight: 'bold',
                       color: '#fca5a5',
                       background: 'linear-gradient(135deg, rgba(252, 165, 165, 0.25), rgba(252, 165, 165, 0.1))',
                       border: '1.5px solid rgba(252, 165, 165, 0.5)',
                       borderRadius: '6px',
-                      padding: '3px 10px',
+                      padding: '4px 12px',
                       letterSpacing: '0.05em',
-                      boxShadow: '0 0 10px rgba(252, 165, 165, 0.3), inset 0 0 5px rgba(252, 165, 165, 0.15)'
+                      boxShadow: '0 0 10px rgba(252, 165, 165, 0.3), inset 0 0 5px rgba(252, 165, 165, 0.15)',
+                      transition: 'transform 0.3s ease',
+                      transform: 'scale(1.2)',
+                      textShadow: '0 0 15px rgba(252, 165, 165, 0.6)'
                     }}>
                       -{Math.round((1 - currentDeflation.multiplier) * 100)}% ({currentDeflation.usageCount}회)
                     </div>
