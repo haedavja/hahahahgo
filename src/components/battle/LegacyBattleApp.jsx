@@ -1719,7 +1719,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
 
     if (playerFinalEther > 0) {
       const deflationText = playerDeflation.usageCount > 0
-        ? ` (디플레이션: ${Math.round(playerDeflation.multiplier * 100)}%)`
+        ? ` (디플레이션 -${Math.round((1 - playerDeflation.multiplier) * 100)}%, ${playerDeflation.usageCount}회 사용)`
         : '';
       addLog(`✴️ 에테르 획득: ${turnEtherAccumulated} × ${playerComboMult.toFixed(2)} = ${playerBeforeDeflation} → ${playerFinalEther} PT${deflationText}`);
     }
