@@ -889,7 +889,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
   const [etherFinalValue, setEtherFinalValue] = useState(null); // 최종 에테르값 표시
   const [etherCalcPhase, setEtherCalcPhase] = useState(null); // 에테르 계산 애니메이션 단계: 'sum', 'multiply', 'deflation', 'result'
   const [currentDeflation, setCurrentDeflation] = useState(null); // 현재 디플레이션 정보 { multiplier, usageCount }
-  const [calculatedEtherGain, setCalculatedEtherGain] = useState(null); // 애니메이션에서 계산된 최종 에테르 획득량
   const [nextTurnEffects, setNextTurnEffects] = useState({
     guaranteedCards: [], // 반복, 보험 특성으로 다음턴 확정 등장
     bonusEnergy: 0, // 몸풀기 특성
@@ -1591,9 +1590,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
 
       const playerFinalEther = playerDeflation.gain;
 
-      // 계산된 최종 에테르값 저장
-      setCalculatedEtherGain(playerFinalEther);
-
       console.log('[stepOnce 애니메이션]', {
         turnEtherAccumulated,
         comboName: pCombo?.name,
@@ -1703,8 +1699,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
       ? applyEtherDeflation(enemyBeforeDeflation, eComboEnd.name, enemy.comboUsageCount || {})
       : { gain: enemyBeforeDeflation, multiplier: 1, usageCount: 0 };
 
-    // 애니메이션에서 계산된 값이 있으면 그것을 사용, 없으면 새로 계산
-    const playerFinalEther = calculatedEtherGain !== null ? calculatedEtherGain : playerDeflation.gain;
+    // finishTurn에서 항상 새로 계산 (애니메이션 시점의 값은 상태 업데이트 타이밍 문제로 부정확할 수 있음)
+    const playerFinalEther = playerDeflation.gain;
     const enemyFinalEther = enemyDeflation.gain;
 
     console.log('[finishTurn 계산]', {
@@ -1715,8 +1711,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
       deflationMult: playerDeflation.multiplier,
       usageCount: playerDeflation.usageCount,
       playerFinalEther,
-      calculatedEtherGain,
-      usingCalculated: calculatedEtherGain !== null,
       selectedCards: selected.length
     });
 
@@ -1781,7 +1775,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
     setEtherCalcPhase(null);
     setEtherFinalValue(null);
     setCurrentDeflation(null);
-    setCalculatedEtherGain(null);
 
     setSelected([]); setQueue([]); setQIndex(0); setFixedOrder(null); setUsedCardIndices([]);
     setDisappearingCards([]); setHiddenCards([]);
@@ -1849,9 +1842,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
         : { gain: playerBeforeDeflation, multiplier: 1, usageCount: 0 };
 
       const playerFinalEther = playerDeflation.gain;
-
-      // 계산된 최종 에테르값 저장
-      setCalculatedEtherGain(playerFinalEther);
 
       console.log('[runAll 애니메이션]', {
         turnEtherAccumulated,
