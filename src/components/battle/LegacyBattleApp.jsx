@@ -2099,11 +2099,13 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: '12px'
+                  position: 'relative'
                 }}>
                   <span>{currentCombo.name}</span>
                   {currentDeflation && (
                     <div style={{
+                      position: 'absolute',
+                      left: 'calc(50% + 80px)',
                       fontSize: etherCalcPhase === 'deflation' ? '1.1rem' : '0.9rem',
                       fontWeight: 'bold',
                       color: '#fca5a5',
@@ -2142,6 +2144,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
                   letterSpacing: '0.15em',
                   minWidth: '400px',
                   height: '2rem',
+                  marginTop: '8px',
                   display: 'flex',
                   justifyContent: 'center',
                   alignItems: 'center',
