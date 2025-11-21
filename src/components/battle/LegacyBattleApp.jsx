@@ -1179,15 +1179,13 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
     return combo;
   }, [selected]);
   const comboPreviewInfo = useMemo(() => {
-    // 선택/대응 단계에서는 에테르 미리보기 비활성화, 진행 단계에서만 표시
-    if (phase !== 'resolve') return null;
     if (!currentCombo) return null;
     return calculateComboEtherGain({
       cardCount: selected?.length || 0,
       comboName: currentCombo.name,
       comboUsageCount: player.comboUsageCount || {},
     });
-  }, [phase, currentCombo, selected?.length, player.comboUsageCount]);
+  }, [currentCombo, selected?.length, player.comboUsageCount]);
 
   const toggle = (card) => {
     if (phase !== 'select' && phase !== 'respond') return;
@@ -1916,17 +1914,19 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
           {/* 왼쪽: 플레이어 */}
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '12px', minWidth: '360px', position: 'relative', justifyContent: 'center' }}>
             {/* 플레이어 콤보 - 절대 위치로 오른쪽 배치 */}
-            {currentCombo && comboPreviewInfo && (
+            {currentCombo && (
               <div className="combo-display" style={{ position: 'absolute', top: '-5px', left: '90px', textAlign: 'center' }}>
                 <div style={{ fontSize: '1.92rem', fontWeight: 'bold', color: '#fbbf24', marginBottom: '2px' }}>
                   {currentCombo.name}
                 </div>
-                <div style={{ fontSize: '1.5rem', color: '#fbbf24', fontWeight: 'bold', letterSpacing: '0.2em', marginBottom: '2px' }}>
-                  + {comboPreviewInfo.baseGain.toString().split('').join(' ')} P T
-                </div>
+                {phase === 'resolve' && comboPreviewInfo && (
+                  <div style={{ fontSize: '1.5rem', color: '#fbbf24', fontWeight: 'bold', letterSpacing: '0.2em', marginBottom: '2px' }}>
+                    + {comboPreviewInfo.baseGain.toString().split('').join(' ')} P T
+                  </div>
+                )}
                 <div style={{ fontSize: '1.32rem', color: '#fbbf24', fontWeight: 'bold', letterSpacing: '0.15em', minWidth: '400px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '12px' }}>
-                  <span>× {comboPreviewInfo.comboMult.toFixed(2).split('').join(' ')}</span>
-                  {comboPreviewInfo.deflationPct > 0 && (
+                  <span>× {(COMBO_MULTIPLIERS[currentCombo.name] || 1).toFixed(2).split('').join(' ')}</span>
+                  {phase === 'resolve' && comboPreviewInfo && comboPreviewInfo.deflationPct > 0 && (
                     <span style={{
                       color: '#fca5a5',
                       background: 'rgba(239, 68, 68, 0.15)',
