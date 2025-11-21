@@ -2055,20 +2055,35 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
             )}
           </div>
 
-          {phase === 'select' && (
+          {phase === 'select' && (() => {
+            // 현재 선택된 카드들의 조합 감지
+            const currentCombo = detectPokerCombo(selected);
+            const comboCardCosts = new Set();
+            if (currentCombo?.bonusKeys) {
+              currentCombo.bonusKeys.forEach(cost => comboCardCosts.add(cost));
+            }
+            // 플러쉬는 모든 카드가 조합 대상
+            const isFlush = currentCombo?.name === '플러쉬';
+
+            return (
             <div className="hand-cards">
               {getSortedHand().map((c, idx) => {
                 const Icon = c.icon;
                 const usageCount = player.comboUsageCount?.[c.id] || 0;
-                const enhancedCard = applyTraitModifiers(c, { usageCount, isInCombo: false });
                 const selIndex = selected.findIndex(s => s.id === c.id);
                 const sel = selIndex !== -1;
+                // 카드가 조합에 포함되는지 확인
+                const isInCombo = sel && (isFlush || comboCardCosts.has(c.actionCost));
+                const enhancedCard = applyTraitModifiers(c, { usageCount, isInCombo });
                 const disabled = handDisabled(c) && !sel;
                 const currentBuild = useGameStore.getState().characterBuild;
                 const isMainSpecial = currentBuild?.mainSpecials?.includes(c.id);
                 const isSubSpecial = currentBuild?.subSpecials?.includes(c.id);
                 const costColor = isMainSpecial ? '#fcd34d' : isSubSpecial ? '#60a5fa' : '#fff';
                 const nameColor = isMainSpecial ? '#fcd34d' : isSubSpecial ? '#7dd3fc' : '#fff';
+                // 협동 특성이 있고 조합에 포함된 경우
+                const hasCooperation = hasTrait(c, 'cooperation');
+                const cooperationActive = hasCooperation && isInCombo;
                 return (
                   <div
                     key={c.id + idx}
@@ -2101,7 +2116,13 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
                     }}
                     style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center', cursor: disabled ? 'not-allowed' : 'pointer', position: 'relative', marginLeft: idx === 0 ? '0' : '-20px' }}
                   >
-                    <div className={`game-card-large select-phase-card ${c.type === 'attack' ? 'attack' : 'defense'} ${sel ? 'selected' : ''} ${disabled ? 'disabled' : ''}`}>
+                    <div
+                      className={`game-card-large select-phase-card ${c.type === 'attack' ? 'attack' : 'defense'} ${sel ? 'selected' : ''} ${disabled ? 'disabled' : ''}`}
+                      style={cooperationActive ? {
+                        boxShadow: '0 0 20px 4px rgba(34, 197, 94, 0.8), 0 0 40px 8px rgba(34, 197, 94, 0.4)',
+                        border: '3px solid #22c55e'
+                      } : {}}
+                    >
                       <div className="card-cost-badge-floating" style={{ color: costColor, WebkitTextStroke: '1px #000' }}>{enhancedCard.actionCost || c.actionCost}</div>
                       {sel && <div className="selection-number">{selIndex + 1}</div>}
                       <div className="card-stats-sidebar">
@@ -2158,7 +2179,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
                 );
               })}
             </div>
-          )}
+            );
+          })()}
 
           {phase === 'respond' && fixedOrder && (
             <div className="hand-cards" style={{ justifyContent: 'center' }}>
