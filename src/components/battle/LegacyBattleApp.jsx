@@ -1574,17 +1574,15 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
       // 1단계: 합계 강조
       setEtherCalcPhase('sum');
       setTimeout(() => {
-        // 2단계: 곱셈 강조
+        // 2단계: 곱셈 강조 + 명쾌한 사운드
         setEtherCalcPhase('multiply');
+        playSound(800, 100); // 명쾌한 사운드
         setTimeout(() => {
-          // 3단계: 최종값 표시
+          // 3단계: 최종값 표시 + 묵직한 사운드
           setEtherCalcPhase('result');
           setEtherFinalValue(playerFinalEther);
-          setTimeout(() => {
-            // 애니메이션 종료
-            setEtherCalcPhase(null);
-            setEtherFinalValue(null);
-          }, 800);
+          playSound(400, 200); // 묵직한 사운드
+          // 최종값은 사라지지 않음 (turnEtherAccumulated 리셋 시 자연스럽게 사라짐)
         }, 600);
       }, 400);
     }
@@ -1704,9 +1702,11 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
       };
     });
 
-    // 에테르 누적 카운터 리셋
+    // 에테르 누적 카운터 및 애니메이션 상태 리셋
     setTurnEtherAccumulated(0);
     setEnemyTurnEtherAccumulated(0);
+    setEtherCalcPhase(null);
+    setEtherFinalValue(null);
 
     setSelected([]); setQueue([]); setQIndex(0); setFixedOrder(null); setUsedCardIndices([]);
     setDisappearingCards([]); setHiddenCards([]);
@@ -1771,17 +1771,15 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
       // 1단계: 합계 강조
       setEtherCalcPhase('sum');
       setTimeout(() => {
-        // 2단계: 곱셈 강조
+        // 2단계: 곱셈 강조 + 명쾌한 사운드
         setEtherCalcPhase('multiply');
+        playSound(800, 100); // 명쾌한 사운드
         setTimeout(() => {
-          // 3단계: 최종값 표시
+          // 3단계: 최종값 표시 + 묵직한 사운드
           setEtherCalcPhase('result');
           setEtherFinalValue(playerFinalEther);
-          setTimeout(() => {
-            // 애니메이션 종료
-            setEtherCalcPhase(null);
-            setEtherFinalValue(null);
-          }, 800);
+          playSound(400, 200); // 묵직한 사운드
+          // 최종값은 사라지지 않음
         }, 600);
       }, 400);
     }
@@ -2054,10 +2052,10 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
                         )}
                       </div>
                       {/* 최종 합계값 텍스트창 - 체력바 하단 */}
-                      {etherFinalValue !== null && etherCalcPhase === 'result' && (
+                      {etherFinalValue !== null && (
                         <div style={{
                           position: 'absolute',
-                          top: '18px',
+                          top: '30px',
                           left: '50%',
                           transform: 'translateX(-50%)',
                           fontSize: '1.5rem',
