@@ -1647,11 +1647,22 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
 
   const playerTimeline = useMemo(() => {
     if (phase === 'select') {
+      // 현재 선택된 카드들의 조합 감지
+      const currentCombo = detectPokerCombo(selected);
+      const comboCardCosts = new Set();
+      if (currentCombo?.bonusKeys) {
+        currentCombo.bonusKeys.forEach(cost => comboCardCosts.add(cost));
+      }
+      const isFlush = currentCombo?.name === '플러쉬';
+
       let ps = 0;
       return selected.map((c, idx) => {
+        // 카드가 조합에 포함되는지 확인
+        const isInCombo = isFlush || comboCardCosts.has(c.actionCost);
+        const usageCount = player.comboUsageCount?.[c.id] || 0;
         const enhancedCard = applyTraitModifiers(c, {
-          usageCount: 0,
-          isInCombo: false,
+          usageCount,
+          isInCombo,
         });
         ps += enhancedCard.speedCost;
         return { actor: 'player', card: enhancedCard, sp: ps, idx };
@@ -1660,7 +1671,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
     if (phase === 'respond' && fixedOrder) return fixedOrder.filter(x => x.actor === 'player');
     if (phase === 'resolve') return queue.filter(x => x.actor === 'player');
     return [];
-  }, [phase, selected, fixedOrder, queue]);
+  }, [phase, selected, fixedOrder, queue, player.comboUsageCount]);
 
   const enemyTimeline = useMemo(() => {
     if (phase === 'select') return [];
