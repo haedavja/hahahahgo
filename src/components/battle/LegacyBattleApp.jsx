@@ -1179,13 +1179,15 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
     return combo;
   }, [selected]);
   const comboPreviewInfo = useMemo(() => {
+    // 선택/대응 단계에서는 에테르 미리보기 비활성화, 진행 단계에서만 표시
+    if (phase !== 'resolve') return null;
     if (!currentCombo) return null;
     return calculateComboEtherGain({
       cardCount: selected?.length || 0,
       comboName: currentCombo.name,
       comboUsageCount: player.comboUsageCount || {},
     });
-  }, [currentCombo, selected?.length, player.comboUsageCount]);
+  }, [phase, currentCombo, selected?.length, player.comboUsageCount]);
 
   const toggle = (card) => {
     if (phase !== 'select' && phase !== 'respond') return;
