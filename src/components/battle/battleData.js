@@ -11,7 +11,7 @@ export const TRAITS = {
   focus: { id: "focus", name: "집중", type: "positive", weight: 1, description: "다음턴 시작때 이번턴 에테르 획득량의 절반 획득" },
   strongbone: { id: "strongbone", name: "강골", type: "positive", weight: 1, description: "피해량/방어력 25% 증가" },
   crush: { id: "crush", name: "분쇄", type: "positive", weight: 1, description: "상대방 방어력에 2배 피해" },
-  cooperation: { id: "cooperation", name: "협동", type: "positive", weight: 1, description: "" }, // 동적 생성
+  cooperation: { id: "cooperation", name: "협동", type: "positive", weight: 1, description: "조합에 포함되면 공격력을 50% 추가 획득합니다." },
   mastery: { id: "mastery", name: "숙련", type: "positive", weight: 1, description: "카드 쓸수록 시간 -2, 최소값 1" },
   burn: { id: "burn", name: "화상", type: "positive", weight: 1, description: "매 턴 고정피해" },
   poison: { id: "poison", name: "독", type: "positive", weight: 1, description: "대상 카드 시간 +1" },
