@@ -513,8 +513,8 @@ function simulatePreview({ player, enemy, fixedOrder, willOverdrive, enemyMode, 
     return { pDealt: 0, pTaken: 0, finalPHp: player.hp, finalEHp: enemy.hp, lines: [] };
   }
   const enemyWillOD = shouldEnemyOverdrive(enemyMode, enemyActions, enemy.etherPts);
-  const P = { ...player, def: false, block: 0, counter: 0, etherOverdriveActive: !!willOverdrive };
-  const E = { ...enemy, def: false, block: 0, counter: 0, etherOverdriveActive: enemyWillOD };
+  const P = { ...player, def: false, block: 0, counter: 0, etherOverdriveActive: !!willOverdrive, strength: player.strength || 0 };
+  const E = { ...enemy, def: false, block: 0, counter: 0, etherOverdriveActive: enemyWillOD, strength: enemy.strength || 0 };
   const st = { player: P, enemy: E, log: [] };
   let pDealt = 0, pTaken = 0; const lines = [];
   for (const step of fixedOrder) {
@@ -1766,7 +1766,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
                     const Icon = a.card.icon || Sword;
                     const sameCount = playerTimeline.filter((q, i) => i < idx && q.sp === a.sp).length;
                     const offset = sameCount * 28;
-                    const num = a.card.type === 'attack' ? (a.card.damage * (a.card.hits || 1)) : (a.card.block || 0);
+                    const enhancedCard = applyStrengthToCard(a.card, playerStrength, true);
+                    const num = a.card.type === 'attack' ? (enhancedCard.damage * (enhancedCard.hits || 1)) : (enhancedCard.block || 0);
                     // 타임라인에서 현재 진행 중인 액션인지 확인
                     const globalIndex = phase === 'resolve' && queue ? queue.findIndex(q => q === a) : -1;
                     const isActive = usedCardIndices.includes(globalIndex);
