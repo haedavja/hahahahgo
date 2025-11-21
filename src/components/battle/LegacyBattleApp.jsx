@@ -162,11 +162,8 @@ function applyTraitModifiers(card, context = {}) {
     modifiedCard.damage = Math.ceil(modifiedCard.damage * 2.5);
   }
 
-  // 협동 (cooperation): 조합 대상이 되면 50% 추가 보너스
-  if (hasTrait(card, 'cooperation') && context.isInCombo) {
-    if (modifiedCard.damage) modifiedCard.damage = Math.ceil(modifiedCard.damage * 1.5);
-    if (modifiedCard.block) modifiedCard.block = Math.ceil(modifiedCard.block * 1.5);
-  }
+  // 협동 (cooperation): 조합 대상이 되면 표시만 (실제 효과는 없음, 시각적 피드백용)
+  // 효과 삭제됨 - 조합 보너스로 대체
 
   // 신속함 (swift): 속도 코스트 감소 (약 15% 성능 기준)
   if (hasTrait(card, 'swift')) {
@@ -2395,6 +2392,15 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
             const trait = TRAITS[traitId];
             if (!trait) return null;
             const isPositive = trait.type === 'positive';
+            // 협동 특성은 카드 타입에 따라 설명 동적 생성
+            let description = trait.description;
+            if (traitId === 'cooperation') {
+              if (hoveredCard.card.type === 'attack') {
+                description = '조합에 포함되면 피해를 50% 추가로 입힙니다.';
+              } else if (hoveredCard.card.type === 'defense') {
+                description = '조합에 포함되면 방어력을 50% 추가로 획득합니다.';
+              }
+            }
             return (
               <div key={traitId} style={{ marginBottom: '12px' }}>
                 <div style={{
@@ -2415,7 +2421,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
                   </span>
                 </div>
                 <div style={{ fontSize: '18px', color: '#9fb6ff', lineHeight: 1.5 }}>
-                  {trait.description}
+                  {description}
                 </div>
               </div>
             );

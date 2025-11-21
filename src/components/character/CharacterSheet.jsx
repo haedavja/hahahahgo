@@ -417,6 +417,15 @@ export function CharacterSheet({ onClose }) {
             const trait = TRAITS[traitId];
             if (!trait) return null;
             const isPositive = trait.type === 'positive';
+            // 협동 특성은 카드 타입에 따라 설명 동적 생성
+            let description = trait.description;
+            if (traitId === 'cooperation') {
+              if (hoveredCard.card.type === 'attack') {
+                description = '조합에 포함되면 피해를 50% 추가로 입힙니다.';
+              } else if (hoveredCard.card.type === 'defense') {
+                description = '조합에 포함되면 방어력을 50% 추가로 획득합니다.';
+              }
+            }
             return (
               <div key={traitId} style={{ marginBottom: '12px' }}>
                 <div style={{
@@ -437,7 +446,7 @@ export function CharacterSheet({ onClose }) {
                   </span>
                 </div>
                 <div style={{ fontSize: '18px', color: '#9fb6ff', lineHeight: 1.5 }}>
-                  {trait.description}
+                  {description}
                 </div>
               </div>
             );
