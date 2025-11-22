@@ -627,13 +627,10 @@ function ExpectedDamagePreview({ player, enemy, fixedOrder, willOverdrive, enemy
         </div>
       )}
 
-      {/* 진행 단계 제어 버튼 (전투 로그 아래, 절대 위치로 고정) */}
+      {/* 진행 단계 제어 버튼 (전투 로그 아래) */}
       {phase === 'resolve' && (
         <div style={{
-          position: 'absolute',
-          bottom: '-190px',
-          left: '0',
-          right: '0',
+          marginTop: '20px',
           display: 'flex',
           flexDirection: 'column',
           gap: '8px',
@@ -642,7 +639,8 @@ function ExpectedDamagePreview({ player, enemy, fixedOrder, willOverdrive, enemy
           padding: '16px',
           paddingBottom: '80px',
           background: 'rgba(7, 11, 30, 0.98)',
-          borderTop: '2px solid rgba(148, 163, 184, 0.3)'
+          borderTop: '2px solid rgba(148, 163, 184, 0.3)',
+          position: 'relative'
         }}>
           <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#f8fafc' }}>
             ⚔️ 전투 진행 중... ({qIndex}/{queue?.length || 0})
