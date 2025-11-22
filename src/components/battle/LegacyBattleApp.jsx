@@ -1576,11 +1576,11 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
       // 몬스터 죽음 애니메이션 및 사운드
       setEnemyHit(true);
       playSound(200, 500); // 낮은 주파수로 죽음 사운드
-      setTimeout(() => {
-        setPostCombatOptions({ type: 'victory' });
-        setPhase('post');
-      }, 1000);
-      return;
+      addLog('💀 적 처치! 남은 타임라인 진행 후 승리');
+
+      // 큐에서 적의 남은 행동들을 모두 제거
+      setQueue(prev => prev.filter((action, idx) => idx < newQIndex || action.actor !== 'enemy'));
+      // 계속 진행 (턴 종료 시 승리 처리)
     }
 
     // 타임라인의 모든 카드 진행이 끝났을 때 에테르 계산 애니메이션 시작
@@ -1791,6 +1791,23 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
 
     setSelected([]); setQueue([]); setQIndex(0); setFixedOrder(null); setUsedCardIndices([]);
     setDisappearingCards([]); setHiddenCards([]);
+
+    // 턴 종료 시 승리/패배 체크
+    if (enemy.hp <= 0) {
+      setTimeout(() => {
+        setPostCombatOptions({ type: 'victory' });
+        setPhase('post');
+      }, 500);
+      return;
+    }
+    if (player.hp <= 0) {
+      setTimeout(() => {
+        setPostCombatOptions({ type: 'defeat' });
+        setPhase('post');
+      }, 500);
+      return;
+    }
+
     setPhase('select');
   };
 
@@ -1801,9 +1818,16 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
     let E = { ...enemy, def: enemy.def || false, block: enemy.block || 0, counter: enemy.counter || 0, vulnMult: enemy.vulnMult || 1, etherPts: enemy.etherPts || 0 };
     const tempState = { player: P, enemy: E, log: [] };
     const newEvents = {};
+    let enemyDefeated = false;
 
     for (let i = qIndex; i < queue.length; i++) {
       const a = queue[i];
+
+      // 적이 이미 죽었으면 적의 행동은 건너뛰기
+      if (enemyDefeated && a.actor === 'enemy') {
+        continue;
+      }
+
       const { events } = applyAction(tempState, a.actor, a.card);
       newEvents[i] = events;
       events.forEach(ev => addLog(ev.msg));
@@ -1823,19 +1847,13 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
         setPostCombatOptions({ type: 'defeat' }); setPhase('post');
         return;
       }
-      if (E.hp <= 0) {
-        setPlayer(prev => ({ ...prev, hp: P.hp, def: P.def, block: P.block, counter: P.counter, vulnMult: P.vulnMult || 1 }));
-        setEnemy(prev => ({ ...prev, hp: E.hp, def: E.def, block: E.block, counter: E.counter, vulnMult: E.vulnMult || 1 }));
-        setActionEvents(prev => ({ ...prev, ...newEvents }));
-        setQIndex(i + 1);
+      if (E.hp <= 0 && !enemyDefeated) {
         // 몬스터 죽음 애니메이션 및 사운드
         setEnemyHit(true);
         playSound(200, 500);
-        setTimeout(() => {
-          setPostCombatOptions({ type: 'victory' });
-          setPhase('post');
-        }, 1000);
-        return;
+        addLog('💀 적 처치! 남은 적 행동 건너뛰기');
+        enemyDefeated = true;
+        // 계속 진행 (플레이어의 남은 행동 처리)
       }
     }
     setPlayer(prev => ({ ...prev, hp: P.hp, def: P.def, block: P.block, counter: P.counter, vulnMult: P.vulnMult || 1 }));
