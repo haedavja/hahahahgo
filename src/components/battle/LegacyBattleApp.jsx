@@ -534,7 +534,7 @@ function simulatePreview({ player, enemy, fixedOrder, willOverdrive, enemyMode, 
   return { pDealt, pTaken, finalPHp: st.player.hp, finalEHp: st.enemy.hp, lines };
 }
 
-function ExpectedDamagePreview({ player, enemy, fixedOrder, willOverdrive, enemyMode, enemyActions, phase, log, qIndex, queue, stepOnce, runAll, finishTurn, postCombatOptions, handleExitToMap }) {
+function ExpectedDamagePreview({ player, enemy, fixedOrder, willOverdrive, enemyMode, enemyActions, phase, log, qIndex, queue, stepOnce, runAll, finishTurn, postCombatOptions, handleExitToMap, autoProgress, setAutoProgress }) {
   const res = useMemo(() => simulatePreview({ player, enemy, fixedOrder, willOverdrive, enemyMode, enemyActions }), [player, enemy, fixedOrder, willOverdrive, enemyMode, enemyActions]);
   const summaryItems = [
     { icon: "🗡️", label: "예상 타격 피해", value: res.pDealt, accent: "text-emerald-300", hpInfo: `몬스터 HP ${enemy.hp} → ${res.finalEHp}`, hpColor: "#fca5a5" },
@@ -2054,6 +2054,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
           finishTurn={finishTurn}
           postCombatOptions={postCombatOptions}
           handleExitToMap={handleExitToMap}
+          autoProgress={autoProgress}
+          setAutoProgress={setAutoProgress}
         />
       </div>
 
