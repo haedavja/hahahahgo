@@ -178,7 +178,10 @@ export function CharacterSheet({ onClose }) {
           </div>
           <button
             type="button"
-            onClick={onClose}
+            onClick={(e) => {
+              e.stopPropagation();
+              onClose();
+            }}
             style={{
               padding: "6px 12px",
               fontSize: "13px",

@@ -640,21 +640,36 @@ function ExpectedDamagePreview({ player, enemy, fixedOrder, willOverdrive, enemy
           justifyContent: 'center',
           alignItems: 'center',
           padding: '16px',
+          paddingBottom: '80px',
           background: 'rgba(7, 11, 30, 0.98)',
           borderTop: '2px solid rgba(148, 163, 184, 0.3)'
         }}>
           <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#f8fafc' }}>
             ⚔️ 전투 진행 중... ({qIndex}/{queue?.length || 0})
           </div>
-          <button onClick={stepOnce} disabled={qIndex >= queue.length} className="btn-enhanced flex items-center gap-2">
+          <button onClick={stepOnce} disabled={qIndex >= queue.length || autoProgress} className="btn-enhanced flex items-center gap-2">
             <StepForward size={18} /> 한 단계 (E)
           </button>
-          <button onClick={runAll} disabled={qIndex >= queue.length} className="btn-enhanced btn-primary">
+          <button onClick={runAll} disabled={qIndex >= queue.length || autoProgress} className="btn-enhanced btn-primary">
             전부 실행 (D)
           </button>
-          <button onClick={() => finishTurn('수동 턴 종료')} className="btn-enhanced flex items-center gap-2">
-            ⏭️ 턴 종료 (E)
+          <button
+            onClick={() => setAutoProgress(!autoProgress)}
+            className={`btn-enhanced flex items-center gap-2 ${autoProgress ? 'btn-primary' : ''}`}
+            disabled={qIndex >= queue.length}
+          >
+            {autoProgress ? '⏸️ 자동진행 중지' : '▶️ 자동진행'}
           </button>
+          <div style={{
+            position: 'absolute',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            bottom: '16px'
+          }}>
+            <button onClick={() => finishTurn('수동 턴 종료')} className="btn-enhanced flex items-center gap-2" style={{ fontSize: '16px', padding: '12px 24px' }}>
+              ⏭️ 턴 종료 (E)
+            </button>
+          </div>
           {postCombatOptions && (
             <>
               <div style={{
@@ -901,6 +916,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
   const [enemyHit, setEnemyHit] = useState(false); // 적 피격 애니메이션
   const [playerBlockAnim, setPlayerBlockAnim] = useState(false); // 플레이어 방어 애니메이션
   const [enemyBlockAnim, setEnemyBlockAnim] = useState(false); // 적 방어 애니메이션
+  const [autoProgress, setAutoProgress] = useState(false); // 자동진행 모드
   const [hoveredCard, setHoveredCard] = useState(null); // 호버된 카드 정보 {card, position}
   const [tooltipVisible, setTooltipVisible] = useState(false); // 툴팁 표시 여부(애니메이션용)
   const [previewDamage, setPreviewDamage] = useState({ value: 0, lethal: false, overkill: false });
@@ -1639,6 +1655,16 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
       }, 50); // React 상태 업데이트 완료 대기
     }
   };
+
+  // 자동진행 기능
+  useEffect(() => {
+    if (autoProgress && phase === 'resolve' && qIndex < queue.length) {
+      const timer = setTimeout(() => {
+        stepOnce();
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [autoProgress, phase, qIndex, queue.length]);
 
   const finishTurn = (reason) => {
     addLog(`턴 종료: ${reason || ''}`);
