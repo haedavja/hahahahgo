@@ -656,18 +656,8 @@ function ExpectedDamagePreview({ player, enemy, fixedOrder, willOverdrive, enemy
             className={`btn-enhanced flex items-center gap-2 ${autoProgress ? 'btn-primary' : ''}`}
             disabled={qIndex >= queue.length}
           >
-            {autoProgress ? '⏸️ 자동진행 중지' : '▶️ 자동진행'}
+            {autoProgress ? '⏸️ 자동진행 중지 (F)' : '▶️ 자동진행 (F)'}
           </button>
-          <div style={{
-            position: 'absolute',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            bottom: '16px'
-          }}>
-            <button onClick={() => finishTurn('수동 턴 종료')} className="btn-enhanced flex items-center gap-2" style={{ fontSize: '16px', padding: '12px 24px' }}>
-              ⏭️ 턴 종료 (E)
-            </button>
-          </div>
           {postCombatOptions && (
             <>
               <div style={{
@@ -1118,11 +1108,16 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
         // F키로 카드 정렬
         cycleSortType();
       }
+      if ((e.key === "f" || e.key === "F") && phase === 'resolve') {
+        e.preventDefault();
+        // F키로 자동진행 토글
+        setAutoProgress(prev => !prev);
+      }
     };
     window.addEventListener("keydown", handleKeyPress);
     return () => window.removeEventListener("keydown", handleKeyPress);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phase, selected, canRedraw, player.etherPts, sortType]); // sortType 추가
+  }, [phase, selected, canRedraw, player.etherPts, sortType, autoProgress]);
 
   useEffect(() => {
     if (!enemy) {
@@ -2296,6 +2291,13 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
               <div style={{ display: 'flex', justifyContent: 'center', marginTop: '16px' }}>
                 <button onClick={beginResolveFromRespond} className="btn-enhanced btn-success flex items-center gap-2" style={{ fontSize: '1.25rem', padding: '9.6px 24px', fontWeight: '700', minWidth: '200px' }}>
                   <Play size={22} /> 진행 시작 <span style={{ fontSize: '1.4rem', fontWeight: '900' }}>(E)</span>
+                </button>
+              </div>
+            )}
+            {phase === 'resolve' && (
+              <div style={{ display: 'flex', justifyContent: 'center', marginTop: '16px' }}>
+                <button onClick={() => finishTurn('수동 턴 종료')} className="btn-enhanced btn-primary flex items-center gap-2" style={{ fontSize: '1.25rem', padding: '12px 24px', fontWeight: '700', minWidth: '200px' }}>
+                  ⏭️ 턴 종료 <span style={{ fontSize: '1.4rem', fontWeight: '900' }}>(E)</span>
                 </button>
               </div>
             )}
