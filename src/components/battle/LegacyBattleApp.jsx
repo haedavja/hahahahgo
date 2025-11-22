@@ -14,6 +14,7 @@ import {
 import { calculateEtherSlots, getCurrentSlotPts, getSlotProgress, getNextSlotCost } from "../../lib/etherUtils";
 import { CharacterSheet } from "../character/CharacterSheet";
 import { useGameStore } from "../../state/gameStore";
+import { RELICS, RELIC_EFFECT, RELIC_RARITY, applyRelicEffects, applyRelicComboMultiplier, RELIC_RARITY_COLORS } from "../../lib/relics";
 
 const SPEED_TICKS = Array.from(
   { length: Math.floor(MAX_SPEED / 5) + 1 },
@@ -827,6 +828,7 @@ function drawCharacterBuildHand(characterBuild, nextTurnEffects = {}, previousHa
 // =====================
 function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) {
   const playerStrength = useGameStore((state) => state.playerStrength || 0);
+  const relics = useGameStore((state) => state.relics || []);
   const safeInitialPlayer = initialPlayer || {};
   const safeInitialEnemy = initialEnemy || {};
   const baseEnergy = safeInitialPlayer.energy ?? BASE_PLAYER_ENERGY;
@@ -896,6 +898,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
   const [autoProgress, setAutoProgress] = useState(false); // 자동진행 모드
   const [resolveStartPlayer, setResolveStartPlayer] = useState(null); // 진행 단계 시작 시 플레이어 상태
   const [resolveStartEnemy, setResolveStartEnemy] = useState(null); // 진행 단계 시작 시 적 상태
+  const [hoveredRelic, setHoveredRelic] = useState(null); // 호버된 유물 ID
+  const [relicActivated, setRelicActivated] = useState(null); // 발동된 유물 ID (애니메이션용)
+  const [resolvedPlayerCards, setResolvedPlayerCards] = useState(0); // 진행 단계에서 진행된 플레이어 카드 수
   const [hoveredCard, setHoveredCard] = useState(null); // 호버된 카드 정보 {card, position}
   const [tooltipVisible, setTooltipVisible] = useState(false); // 툴팁 표시 여부(애니메이션용)
   const [previewDamage, setPreviewDamage] = useState({ value: 0, lethal: false, overkill: false });
@@ -1092,7 +1097,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
     window.addEventListener("keydown", handleKeyPress);
     return () => window.removeEventListener("keydown", handleKeyPress);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phase, selected, canRedraw, player.etherPts, sortType, autoProgress]);
+  }, [phase, selected, canRedraw, player.etherPts, sortType, autoProgress, qIndex, queue.length, etherFinalValue]);
 
   useEffect(() => {
     if (!enemy) {
@@ -1176,6 +1181,16 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
 
     return combo;
   }, [selected, player.comboUsageCount, phase]);
+
+  // 유물 효과를 포함한 최종 콤보 배율 (진행 단계에서만 진행된 카드 수 기반으로 계산)
+  const finalComboMultiplier = useMemo(() => {
+    const baseMultiplier = currentCombo ? (COMBO_MULTIPLIERS[currentCombo.name] || 1) : 1;
+    // 진행 단계에서는 진행된 카드 수 기반, 그 외에는 유물 효과 없음
+    if (phase === 'resolve') {
+      return applyRelicComboMultiplier(relics, baseMultiplier, resolvedPlayerCards);
+    }
+    return baseMultiplier;
+  }, [currentCombo, relics, resolvedPlayerCards, phase]);
   const comboPreviewInfo = useMemo(() => {
     if (!currentCombo) return null;
     return calculateComboEtherGain({
@@ -1411,6 +1426,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
     setResolveStartPlayer({ ...player });
     setResolveStartEnemy({ ...enemy });
 
+    // 진행된 플레이어 카드 수 초기화
+    setResolvedPlayerCards(0);
+
     const enemyWillOD = shouldEnemyOverdrive(enemyPlan.mode, enemyPlan.actions, enemy.etherPts) && etherSlots(enemy.etherPts) > 0;
     if ((phase === 'respond' || phase === 'select') && willOverdrive && etherSlots(player.etherPts) > 0) {
       setPlayer(p => ({ ...p, etherPts: p.etherPts - ETHER_THRESHOLD, etherOverdriveActive: true }));
@@ -1504,6 +1522,25 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
       // PT 증가 애니메이션
       setEtherPulse(true);
       setTimeout(() => setEtherPulse(false), 300);
+
+      // 플레이어 카드 진행 시 유물 발동
+      setResolvedPlayerCards(prev => {
+        const newCount = prev + 1;
+
+        // 유물이 있으면 발동 애니메이션 및 사운드
+        if (relics.length > 0) {
+          relics.forEach(relicId => {
+            const relic = RELICS[relicId];
+            if (relic?.effects.some(e => e.type === RELIC_EFFECT.COMBO_MULTIPLIER_PER_CARD)) {
+              setRelicActivated(relicId);
+              playSound(800, 200); // 유물 발동 사운드
+              setTimeout(() => setRelicActivated(null), 500);
+            }
+          });
+        }
+
+        return newCount;
+      });
     } else if (a.actor === 'enemy') {
       setEnemyTurnEtherAccumulated(prev => prev + BASE_ETHER_PER_CARD);
     }
@@ -1578,7 +1615,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
         // 최신 상태를 다시 가져옴
         setTurnEtherAccumulated(current => {
           const pCombo = detectPokerCombo(selected);
-          const playerComboMult = pCombo ? (COMBO_MULTIPLIERS[pCombo.name] || 1) : 1;
+          const basePlayerComboMult = pCombo ? (COMBO_MULTIPLIERS[pCombo.name] || 1) : 1;
+          const playerComboMult = applyRelicComboMultiplier(relics, basePlayerComboMult, selected.length);
           const playerBeforeDeflation = Math.round(current * playerComboMult);
 
           // 디플레이션 적용
@@ -1591,7 +1629,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
           console.log('[stepOnce 애니메이션]', {
             turnEtherAccumulated: current,
             comboName: pCombo?.name,
+            basePlayerComboMult,
             playerComboMult,
+            relicBonus: playerComboMult - basePlayerComboMult,
             playerBeforeDeflation,
             deflationMult: playerDeflation.multiplier,
             usageCount: playerDeflation.usageCount,
@@ -1697,7 +1737,10 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
     const eComboEnd = detectPokerCombo(enemyPlan.actions);
 
     // 에테르 최종 계산 및 적용 (애니메이션은 stepOnce에서 처리됨)
-    const playerComboMult = pComboEnd ? (COMBO_MULTIPLIERS[pComboEnd.name] || 1) : 1;
+    const basePlayerComboMult = pComboEnd ? (COMBO_MULTIPLIERS[pComboEnd.name] || 1) : 1;
+    const playerComboMult = applyRelicComboMultiplier(relics, basePlayerComboMult, selected.length);
+    const relicMultBonus = playerComboMult - basePlayerComboMult;
+
     const enemyComboMult = eComboEnd ? (COMBO_MULTIPLIERS[eComboEnd.name] || 1) : 1;
 
     // 조합 배율 적용
@@ -1720,6 +1763,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
     console.log('[finishTurn 계산]', {
       turnEtherAccumulated,
       comboName: pComboEnd?.name,
+      basePlayerComboMult,
+      relicMultBonus,
       playerComboMult,
       playerBeforeDeflation,
       deflationMult: playerDeflation.multiplier,
@@ -1732,7 +1777,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
       const deflationText = playerDeflation.usageCount > 0
         ? ` (디플레이션 -${Math.round((1 - playerDeflation.multiplier) * 100)}%, ${playerDeflation.usageCount}회 사용)`
         : '';
-      addLog(`✴️ 에테르 획득: ${turnEtherAccumulated} × ${playerComboMult.toFixed(2)} = ${playerBeforeDeflation} → ${playerFinalEther} PT${deflationText}`);
+      const relicText = relicMultBonus > 0 ? ` (유물 배율 +${relicMultBonus.toFixed(2)})` : '';
+      addLog(`✴️ 에테르 획득: ${turnEtherAccumulated} × ${playerComboMult.toFixed(2)}${relicText} = ${playerBeforeDeflation} → ${playerFinalEther} PT${deflationText}`);
     }
     if (enemyFinalEther > 0) {
       const deflationText = enemyDeflation.usageCount > 0
@@ -2038,6 +2084,89 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
       {/* 상단 메인 영역 */}
       <div className="w-full px-4" style={{ marginRight: '280px', marginLeft: '150px' }}>
 
+        {/* 유물 표시 */}
+        {relics && relics.length > 0 && (
+          <div style={{
+            display: 'flex',
+            gap: '12px',
+            marginBottom: '16px',
+            justifyContent: 'center',
+            alignItems: 'center',
+            position: 'relative'
+          }}>
+            {relics.map((relicId, index) => {
+              const relic = RELICS[relicId];
+              if (!relic) return null;
+
+              const isActivated = relicActivated === relicId;
+              const rarityText = {
+                [RELIC_RARITY.COMMON]: '일반',
+                [RELIC_RARITY.RARE]: '희귀',
+                [RELIC_RARITY.LEGENDARY]: '전설'
+              }[relic.rarity] || '알 수 없음';
+
+              return (
+                <div key={index} style={{ position: 'relative' }}>
+                  <div
+                    onMouseEnter={() => setHoveredRelic(relicId)}
+                    onMouseLeave={() => setHoveredRelic(null)}
+                    style={{
+                      fontSize: '2rem',
+                      padding: '8px 16px',
+                      background: `linear-gradient(135deg, ${RELIC_RARITY_COLORS[relic.rarity]}33, ${RELIC_RARITY_COLORS[relic.rarity]}11)`,
+                      border: `2px solid ${RELIC_RARITY_COLORS[relic.rarity]}`,
+                      borderRadius: '12px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                      boxShadow: `0 0 15px ${RELIC_RARITY_COLORS[relic.rarity]}44`,
+                      transform: hoveredRelic === relicId ? 'scale(1.1)' : (isActivated ? 'scale(1.15)' : 'scale(1)'),
+                      animation: isActivated ? 'relicActivate 0.5s ease' : 'none'
+                    }}>
+                    <span>{relic.emoji}</span>
+                    <span style={{
+                      fontSize: '0.9rem',
+                      color: RELIC_RARITY_COLORS[relic.rarity],
+                      fontWeight: 'bold'
+                    }}>{relic.name}</span>
+                  </div>
+
+                  {/* 툴팁 */}
+                  {hoveredRelic === relicId && (
+                    <div style={{
+                      position: 'absolute',
+                      top: '100%',
+                      left: '50%',
+                      transform: 'translateX(-50%)',
+                      marginTop: '8px',
+                      background: 'rgba(15, 23, 42, 0.98)',
+                      border: `2px solid ${RELIC_RARITY_COLORS[relic.rarity]}`,
+                      borderRadius: '8px',
+                      padding: '12px 16px',
+                      minWidth: '250px',
+                      boxShadow: `0 4px 20px ${RELIC_RARITY_COLORS[relic.rarity]}66`,
+                      zIndex: 1000,
+                      pointerEvents: 'none'
+                    }}>
+                      <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: RELIC_RARITY_COLORS[relic.rarity], marginBottom: '4px' }}>
+                        {relic.emoji} {relic.name}
+                      </div>
+                      <div style={{ fontSize: '0.85rem', color: RELIC_RARITY_COLORS[relic.rarity], opacity: 0.8, marginBottom: '8px' }}>
+                        {rarityText}
+                      </div>
+                      <div style={{ fontSize: '0.95rem', color: '#e2e8f0', lineHeight: '1.5' }}>
+                        {relic.description}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+
         {/* Timeline - 1줄 길게 (화면 가득) */}
         <div style={{ marginBottom: '32px' }}>
           <div className="panel-enhanced timeline-panel">
@@ -2173,7 +2302,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
                   transform: etherCalcPhase === 'multiply' ? 'scale(1.3)' : 'scale(1)',
                   textShadow: etherCalcPhase === 'multiply' ? '0 0 20px #fbbf24' : 'none'
                 }}>
-                  <span>× {(COMBO_MULTIPLIERS[currentCombo.name] || 1).toFixed(2).split('').join(' ')}</span>
+                  <span>× {finalComboMultiplier.toFixed(2).split('').join(' ')}</span>
                 </div>
               </div>
             )}

@@ -1323,3 +1323,19 @@ body {
   font-size: 1.7rem;
   filter: drop-shadow(0 0 8px rgba(251, 191, 36, 0.8));
 }
+
+/* 유물 발동 애니메이션 */
+@keyframes relicActivate {
+  0%, 100% {
+    transform: scale(1);
+    filter: brightness(1);
+  }
+  10%, 30%, 50%, 70%, 90% {
+    transform: scale(1.15) rotate(-2deg);
+    filter: brightness(1.5) drop-shadow(0 0 20px currentColor);
+  }
+  20%, 40%, 60%, 80% {
+    transform: scale(1.15) rotate(2deg);
+    filter: brightness(1.5) drop-shadow(0 0 20px currentColor);
+  }
+}

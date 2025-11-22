@@ -141,6 +141,7 @@ export const createInitialState = () => ({
   playerHp: 100,
   maxHp: 100,
   playerStrength: 0,
+  relics: ['etherCrystal'], // 테스트용 초기 유물
   activeEvent: null,
   activeDungeon: null,
   activeBattle: null,
