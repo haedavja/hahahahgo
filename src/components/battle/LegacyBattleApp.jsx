@@ -534,11 +534,16 @@ function simulatePreview({ player, enemy, fixedOrder, willOverdrive, enemyMode, 
   return { pDealt, pTaken, finalPHp: st.player.hp, finalEHp: st.enemy.hp, lines };
 }
 
-function ExpectedDamagePreview({ player, enemy, fixedOrder, willOverdrive, enemyMode, enemyActions, phase, log, qIndex, queue, stepOnce, runAll, finishTurn, postCombatOptions, handleExitToMap, autoProgress, setAutoProgress }) {
-  const res = useMemo(() => simulatePreview({ player, enemy, fixedOrder, willOverdrive, enemyMode, enemyActions }), [player, enemy, fixedOrder, willOverdrive, enemyMode, enemyActions]);
+function ExpectedDamagePreview({ player, enemy, fixedOrder, willOverdrive, enemyMode, enemyActions, phase, log, qIndex, queue, stepOnce, runAll, finishTurn, postCombatOptions, handleExitToMap, autoProgress, setAutoProgress, resolveStartPlayer, resolveStartEnemy }) {
+  // 진행 단계에서는 시작 시점의 상태로 시뮬레이션, 그 외는 현재 상태 사용
+  const simPlayer = phase === 'resolve' && resolveStartPlayer ? resolveStartPlayer : player;
+  const simEnemy = phase === 'resolve' && resolveStartEnemy ? resolveStartEnemy : enemy;
+
+  const res = useMemo(() => simulatePreview({ player: simPlayer, enemy: simEnemy, fixedOrder, willOverdrive, enemyMode, enemyActions }), [simPlayer, simEnemy, fixedOrder, willOverdrive, enemyMode, enemyActions]);
+
   const summaryItems = [
-    { icon: "🗡️", label: "예상 타격 피해", value: res.pDealt, accent: "text-emerald-300", hpInfo: `몬스터 HP ${enemy.hp} → ${res.finalEHp}`, hpColor: "#fca5a5" },
-    { icon: "💥", label: "예상 피격 피해", value: phase === 'select' ? '?' : res.pTaken, accent: "text-rose-300", hpInfo: `플레이어 HP ${player.hp} → ${res.finalPHp}`, hpColor: "#e2e8f0" },
+    { icon: "🗡️", label: "예상 타격 피해", value: res.pDealt, accent: "text-emerald-300", hpInfo: `몬스터 HP ${simEnemy.hp} → ${res.finalEHp}`, hpColor: "#fca5a5" },
+    { icon: "💥", label: "예상 피격 피해", value: phase === 'select' ? '?' : res.pTaken, accent: "text-rose-300", hpInfo: `플레이어 HP ${simPlayer.hp} → ${res.finalPHp}`, hpColor: "#e2e8f0" },
   ];
 
   const phaseLabel = phase === 'select' ? '선택 단계' : phase === 'respond' ? '대응 단계' : '진행 단계';
@@ -642,22 +647,6 @@ function ExpectedDamagePreview({ player, enemy, fixedOrder, willOverdrive, enemy
           borderTop: '2px solid rgba(148, 163, 184, 0.3)',
           position: 'relative'
         }}>
-          <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#f8fafc' }}>
-            ⚔️ 전투 진행 중... ({qIndex}/{queue?.length || 0})
-          </div>
-          <button onClick={stepOnce} disabled={qIndex >= queue.length || autoProgress} className="btn-enhanced flex items-center gap-2">
-            <StepForward size={18} /> 한 단계 (E)
-          </button>
-          <button onClick={runAll} disabled={qIndex >= queue.length || autoProgress} className="btn-enhanced btn-primary">
-            전부 실행 (D)
-          </button>
-          <button
-            onClick={() => setAutoProgress(!autoProgress)}
-            className={`btn-enhanced flex items-center gap-2 ${autoProgress ? 'btn-primary' : ''}`}
-            disabled={qIndex >= queue.length}
-          >
-            {autoProgress ? '⏸️ 자동진행 중지 (F)' : '▶️ 자동진행 (F)'}
-          </button>
           {postCombatOptions && (
             <>
               <div style={{
@@ -905,6 +894,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
   const [playerBlockAnim, setPlayerBlockAnim] = useState(false); // 플레이어 방어 애니메이션
   const [enemyBlockAnim, setEnemyBlockAnim] = useState(false); // 적 방어 애니메이션
   const [autoProgress, setAutoProgress] = useState(false); // 자동진행 모드
+  const [resolveStartPlayer, setResolveStartPlayer] = useState(null); // 진행 단계 시작 시 플레이어 상태
+  const [resolveStartEnemy, setResolveStartEnemy] = useState(null); // 진행 단계 시작 시 적 상태
   const [hoveredCard, setHoveredCard] = useState(null); // 호버된 카드 정보 {card, position}
   const [tooltipVisible, setTooltipVisible] = useState(false); // 툴팁 표시 여부(애니메이션용)
   const [previewDamage, setPreviewDamage] = useState({ value: 0, lethal: false, overkill: false });
@@ -1046,7 +1037,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
     }
   }, [phase]);
 
-  // C 키로 캐릭터 창 열기, Q 키로 간소화, E 키로 제출/한 단계/턴 종료, R 키로 리드로우, 스페이스바로 기원, D 키로 전부 실행, F 키로 정렬
+  // C 키로 캐릭터 창 열기, Q 키로 간소화, E 키로 제출/진행/턴 종료, R 키로 리드로우, 스페이스바로 기원, F 키로 정렬
   useEffect(() => {
     const handleKeyPress = (e) => {
       if (e.key === "c" || e.key === "C") {
@@ -1084,34 +1075,18 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
       }
       if ((e.key === "e" || e.key === "E") && phase === 'resolve') {
         e.preventDefault();
-        // E키로 한 단계 또는 턴 종료 (진행 단계)
-        const buttons = document.querySelectorAll('.expect-sidebar-fixed button');
-        const stepButton = Array.from(buttons).find(btn => btn.textContent.includes('한 단계'));
-        const finishButton = Array.from(buttons).find(btn => btn.textContent.includes('턴 종료'));
-
-        // 한 단계 버튼이 활성화되어 있으면 한 단계, 아니면 턴 종료
-        if (stepButton && !stepButton.disabled) {
-          stepButton.click();
-        } else if (finishButton && !finishButton.disabled) {
-          finishButton.click();
+        if (qIndex < queue.length) {
+          // 타임라인 진행 중이면 진행 토글
+          setAutoProgress(prev => !prev);
+        } else if (etherFinalValue !== null) {
+          // 타임라인 끝나고 최종값 표시되면 턴 종료
+          finishTurn('키보드 단축키 (E)');
         }
-      }
-      if ((e.key === "d" || e.key === "D") && phase === 'resolve') {
-        e.preventDefault();
-        // 전부 실행 버튼 클릭
-        const buttons = document.querySelectorAll('.expect-sidebar-fixed button');
-        const runAllButton = Array.from(buttons).find(btn => btn.textContent.includes('전부 실행'));
-        if (runAllButton && !runAllButton.disabled) runAllButton.click();
       }
       if ((e.key === "f" || e.key === "F") && phase === 'select') {
         e.preventDefault();
         // F키로 카드 정렬
         cycleSortType();
-      }
-      if ((e.key === "f" || e.key === "F") && phase === 'resolve') {
-        e.preventDefault();
-        // F키로 자동진행 토글
-        setAutoProgress(prev => !prev);
       }
     };
     window.addEventListener("keydown", handleKeyPress);
@@ -1431,6 +1406,10 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
     setQIndex(0);
     setPhase('resolve');
     addLog('▶ 진행 시작');
+
+    // 진행 단계 시작 시 플레이어와 적 상태 저장
+    setResolveStartPlayer({ ...player });
+    setResolveStartEnemy({ ...enemy });
 
     const enemyWillOD = shouldEnemyOverdrive(enemyPlan.mode, enemyPlan.actions, enemy.etherPts) && etherSlots(enemy.etherPts) > 0;
     if ((phase === 'respond' || phase === 'select') && willOverdrive && etherSlots(player.etherPts) > 0) {
@@ -2051,6 +2030,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
           handleExitToMap={handleExitToMap}
           autoProgress={autoProgress}
           setAutoProgress={setAutoProgress}
+          resolveStartPlayer={resolveStartPlayer}
+          resolveStartEnemy={resolveStartEnemy}
         />
       </div>
 
@@ -2294,7 +2275,22 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
                 </button>
               </div>
             )}
-            {phase === 'resolve' && (
+            {phase === 'resolve' && qIndex < queue.length && (
+              <div style={{ display: 'flex', justifyContent: 'center', marginTop: '16px' }}>
+                <button
+                  onClick={() => setAutoProgress(!autoProgress)}
+                  className={`btn-enhanced flex items-center gap-2 ${autoProgress ? 'btn-primary' : ''}`}
+                  style={{ fontSize: '1.25rem', padding: '12px 24px', fontWeight: '700', minWidth: '200px' }}
+                >
+                  {autoProgress ? (
+                    <>⏸️ 진행 중지 <span style={{ fontSize: '1.4rem', fontWeight: '900' }}>(E)</span></>
+                  ) : (
+                    <>▶️ 진행 <span style={{ fontSize: '1.4rem', fontWeight: '900' }}>(E)</span></>
+                  )}
+                </button>
+              </div>
+            )}
+            {phase === 'resolve' && qIndex >= queue.length && etherFinalValue !== null && (
               <div style={{ display: 'flex', justifyContent: 'center', marginTop: '16px' }}>
                 <button onClick={() => finishTurn('수동 턴 종료')} className="btn-enhanced btn-primary flex items-center gap-2" style={{ fontSize: '1.25rem', padding: '12px 24px', fontWeight: '700', minWidth: '200px' }}>
                   ⏭️ 턴 종료 <span style={{ fontSize: '1.4rem', fontWeight: '900' }}>(E)</span>
