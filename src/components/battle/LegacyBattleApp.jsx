@@ -874,6 +874,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
   const [disappearingCards, setDisappearingCards] = useState([]); // 사라지는 중인 카드 인덱스
   const [hiddenCards, setHiddenCards] = useState([]); // 완전히 숨겨진 카드 인덱스
   const [timelineProgress, setTimelineProgress] = useState(0); // 타임라인 진행 위치 (0~100%)
+  const [timelineIndicatorVisible, setTimelineIndicatorVisible] = useState(true); // 시곗바늘 표시 여부
   const [showCharacterSheet, setShowCharacterSheet] = useState(false);
   const [cardUsageCount, setCardUsageCount] = useState({}); // 카드별 사용 횟수 추적 (mastery, boredom용)
   const [vanishedCards, setVanishedCards] = useState([]); // 소멸 특성으로 제거된 카드
@@ -1431,6 +1432,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
 
     // 타임라인 progress 초기화
     setTimelineProgress(0);
+    setTimelineIndicatorVisible(true);
 
     const enemyWillOD = shouldEnemyOverdrive(enemyPlan.mode, enemyPlan.actions, enemy.etherPts) && etherSlots(enemy.etherPts) > 0;
     if ((phase === 'respond' || phase === 'select') && willOverdrive && etherSlots(player.etherPts) > 0) {
@@ -1463,9 +1465,13 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
         setTimelineProgress(nextProgressPercent);
       }, 100);
     } else {
-      // 마지막 카드면 100%로
+      // 마지막 카드면 100%로 이동 후 페이드아웃
       setTimeout(() => {
         setTimelineProgress(100);
+        // 100%에 도달한 후 페이드아웃
+        setTimeout(() => {
+          setTimelineIndicatorVisible(false);
+        }, 900); // transition 완료 후
       }, 100);
     }
 
@@ -2209,7 +2215,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
                   className="timeline-progress-indicator"
                   style={{
                     left: `${timelineProgress}%`,
-                    transition: 'left 0.9s linear'
+                    opacity: timelineIndicatorVisible ? 1 : 0,
+                    transition: 'left 0.9s linear, opacity 0.5s ease-out'
                   }}
                 />
               )}
