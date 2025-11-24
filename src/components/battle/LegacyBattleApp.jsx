@@ -873,6 +873,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
   const [usedCardIndices, setUsedCardIndices] = useState([]);
   const [disappearingCards, setDisappearingCards] = useState([]); // 사라지는 중인 카드 인덱스
   const [hiddenCards, setHiddenCards] = useState([]); // 완전히 숨겨진 카드 인덱스
+  const [timelineProgress, setTimelineProgress] = useState(0); // 타임라인 진행 위치 (0~100%)
   const [showCharacterSheet, setShowCharacterSheet] = useState(false);
   const [cardUsageCount, setCardUsageCount] = useState({}); // 카드별 사용 횟수 추적 (mastery, boredom용)
   const [vanishedCards, setVanishedCards] = useState([]); // 소멸 특성으로 제거된 카드
@@ -1428,6 +1429,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
     // 진행된 플레이어 카드 수 초기화
     setResolvedPlayerCards(0);
 
+    // 타임라인 progress 초기화
+    setTimelineProgress(0);
+
     const enemyWillOD = shouldEnemyOverdrive(enemyPlan.mode, enemyPlan.actions, enemy.etherPts) && etherSlots(enemy.etherPts) > 0;
     if ((phase === 'respond' || phase === 'select') && willOverdrive && etherSlots(player.etherPts) > 0) {
       setPlayer(p => ({ ...p, etherPts: p.etherPts - ETHER_THRESHOLD, etherOverdriveActive: true }));
@@ -1442,6 +1446,11 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
   const stepOnce = () => {
     if (qIndex >= queue.length) return;
     const a = queue[qIndex];
+
+    // 타임라인 progress 업데이트 (현재 카드의 위치를 actor의 maxSpeed 기준 비율로)
+    const currentMaxSpeed = a.actor === 'player' ? player.maxSpeed : enemy.maxSpeed;
+    const progressPercent = (a.sp / currentMaxSpeed) * 100;
+    setTimelineProgress(progressPercent);
 
     // 타임라인 애니메이션을 위해 모든 액션에 적용
     setUsedCardIndices(prev => [...prev, qIndex]);
@@ -2175,6 +2184,16 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
                   <span key={tick}>{tick}</span>
                 ))}
               </div>
+              {/* 타임라인 progress indicator (시곗바늘) */}
+              {phase === 'resolve' && (
+                <div
+                  className="timeline-progress-indicator"
+                  style={{
+                    left: `${timelineProgress}%`,
+                    transition: 'left 0.8s ease-in-out'
+                  }}
+                />
+              )}
               <div className="timeline-lanes">
                 <div className="timeline-lane player-lane">
                   {Array.from({ length: Math.max(player.maxSpeed, enemy.maxSpeed) + 1 }).map((_, i) => (

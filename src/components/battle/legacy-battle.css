@@ -1339,3 +1339,48 @@ body {
     filter: brightness(1.5) drop-shadow(0 0 20px currentColor);
   }
 }
+
+/* 타임라인 progress indicator (시곗바늘) */
+.timeline-progress-indicator {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: linear-gradient(to bottom,
+    rgba(251, 191, 36, 0.9) 0%,
+    rgba(251, 191, 36, 0.7) 50%,
+    rgba(251, 191, 36, 0.9) 100%
+  );
+  box-shadow: 0 0 10px rgba(251, 191, 36, 0.8),
+              0 0 20px rgba(251, 191, 36, 0.4);
+  z-index: 10;
+  pointer-events: none;
+}
+
+.timeline-progress-indicator::before {
+  content: '';
+  position: absolute;
+  top: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 8px solid #fbbf24;
+  filter: drop-shadow(0 0 4px rgba(251, 191, 36, 0.8));
+}
+
+.timeline-progress-indicator::after {
+  content: '';
+  position: absolute;
+  bottom: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-bottom: 8px solid #fbbf24;
+  filter: drop-shadow(0 0 4px rgba(251, 191, 36, 0.8));
+}
