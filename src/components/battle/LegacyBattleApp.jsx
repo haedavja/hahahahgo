@@ -1450,6 +1450,25 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
     // 타임라인 progress 업데이트 (현재 카드의 위치를 actor의 maxSpeed 기준 비율로)
     const currentMaxSpeed = a.actor === 'player' ? player.maxSpeed : enemy.maxSpeed;
     const progressPercent = (a.sp / currentMaxSpeed) * 100;
+
+    // 이전 위치에서 현재 위치까지 일정 속도로 이동
+    // 다음 카드까지의 시간을 계산 (자동진행이면 1초, 수동이면 즉시)
+    if (qIndex < queue.length - 1) {
+      const nextAction = queue[qIndex + 1];
+      const nextMaxSpeed = nextAction.actor === 'player' ? player.maxSpeed : enemy.maxSpeed;
+      const nextProgressPercent = (nextAction.sp / nextMaxSpeed) * 100;
+
+      // 다음 카드 위치까지 부드럽게 이동 (자동진행 시 0.8초)
+      setTimeout(() => {
+        setTimelineProgress(nextProgressPercent);
+      }, 100);
+    } else {
+      // 마지막 카드면 100%로
+      setTimeout(() => {
+        setTimelineProgress(100);
+      }, 100);
+    }
+
     setTimelineProgress(progressPercent);
 
     // 타임라인 애니메이션을 위해 모든 액션에 적용
@@ -2190,7 +2209,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
                   className="timeline-progress-indicator"
                   style={{
                     left: `${timelineProgress}%`,
-                    transition: 'left 0.8s ease-in-out'
+                    transition: 'left 0.9s linear'
                   }}
                 />
               )}
