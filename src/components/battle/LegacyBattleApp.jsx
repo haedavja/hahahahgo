@@ -1453,29 +1453,25 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
     const currentMaxSpeed = a.actor === 'player' ? player.maxSpeed : enemy.maxSpeed;
     const progressPercent = (a.sp / currentMaxSpeed) * 100;
 
-    // 이전 위치에서 현재 위치까지 일정 속도로 이동
-    // 다음 카드까지의 시간을 계산 (자동진행이면 1초, 수동이면 즉시)
+    // 먼저 현재 카드 위치로 이동
+    setTimelineProgress(progressPercent);
+
+    // 다음 카드가 있으면 그 위치까지 부드럽게 이동, 없으면 페이드아웃
     if (qIndex < queue.length - 1) {
       const nextAction = queue[qIndex + 1];
       const nextMaxSpeed = nextAction.actor === 'player' ? player.maxSpeed : enemy.maxSpeed;
       const nextProgressPercent = (nextAction.sp / nextMaxSpeed) * 100;
 
-      // 다음 카드 위치까지 부드럽게 이동 (자동진행 시 0.8초)
+      // 다음 카드 위치까지 부드럽게 이동
       setTimeout(() => {
         setTimelineProgress(nextProgressPercent);
       }, 100);
     } else {
-      // 마지막 카드면 100%로 이동 후 페이드아웃
+      // 마지막 카드면 현재 위치에서 빠르게 페이드아웃
       setTimeout(() => {
-        setTimelineProgress(100);
-        // 100%에 도달한 후 페이드아웃
-        setTimeout(() => {
-          setTimelineIndicatorVisible(false);
-        }, 900); // transition 완료 후
-      }, 100);
+        setTimelineIndicatorVisible(false);
+      }, 300); // 카드 실행 후 바로 페이드아웃
     }
-
-    setTimelineProgress(progressPercent);
 
     // 타임라인 애니메이션을 위해 모든 액션에 적용
     setUsedCardIndices(prev => [...prev, qIndex]);
