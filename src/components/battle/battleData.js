@@ -1,7 +1,18 @@
-export const MAX_SPEED = 30;
+export const MAX_SPEED = 30; // 기본 최대 속도 (레거시 호환용)
+export const DEFAULT_PLAYER_MAX_SPEED = 30; // 플레이어 기본 최대 속도
+export const DEFAULT_ENEMY_MAX_SPEED = 30; // 적 기본 최대 속도
 export const BASE_PLAYER_ENERGY = 6;
 export const MAX_SUBMIT_CARDS = 5;
 export const ETHER_THRESHOLD = 100;
+
+// 타임라인 틱 생성 함수 (동적)
+export function generateSpeedTicks(maxSpeed) {
+  const tickInterval = 5;
+  return Array.from(
+    { length: Math.floor(maxSpeed / tickInterval) + 1 },
+    (_, idx) => idx * tickInterval
+  );
+}
 
 // 특성(Trait) 정의
 export const TRAITS = {

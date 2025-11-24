@@ -3,6 +3,9 @@ import "./legacy-battle.css";
 import { playHitSound, playBlockSound, playCardSubmitSound, playProceedSound } from "../../lib/soundUtils";
 import {
   MAX_SPEED,
+  DEFAULT_PLAYER_MAX_SPEED,
+  DEFAULT_ENEMY_MAX_SPEED,
+  generateSpeedTicks,
   BASE_PLAYER_ENERGY,
   MAX_SUBMIT_CARDS,
   ETHER_THRESHOLD,
@@ -16,10 +19,6 @@ import { CharacterSheet } from "../character/CharacterSheet";
 import { useGameStore } from "../../state/gameStore";
 import { RELICS, RELIC_EFFECT, RELIC_RARITY, applyRelicEffects, applyRelicComboMultiplier, RELIC_RARITY_COLORS } from "../../lib/relics";
 
-const SPEED_TICKS = Array.from(
-  { length: Math.floor(MAX_SPEED / 5) + 1 },
-  (_, idx) => idx * 5,
-);
 const STUN_RANGE = 5; // 기절 효과 범위(타임라인 기준)
 
 // Lucide icons as simple SVG components
@@ -833,9 +832,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
   const safeInitialEnemy = initialEnemy || {};
   const baseEnergy = safeInitialPlayer.energy ?? BASE_PLAYER_ENERGY;
   const startingEther = typeof safeInitialPlayer.etherPts === 'number' ? safeInitialPlayer.etherPts : playerEther;
-  const [player, setPlayer] = useState({ hp: safeInitialPlayer.hp ?? 30, maxHp: safeInitialPlayer.maxHp ?? safeInitialPlayer.hp ?? 30, energy: baseEnergy, maxEnergy: baseEnergy, vulnMult: 1, vulnTurns: 0, block: 0, counter: 0, etherPts: startingEther ?? 0, etherOverdriveActive: false, comboUsageCount: {}, strength: playerStrength });
+  const [player, setPlayer] = useState({ hp: safeInitialPlayer.hp ?? 30, maxHp: safeInitialPlayer.maxHp ?? safeInitialPlayer.hp ?? 30, energy: baseEnergy, maxEnergy: baseEnergy, vulnMult: 1, vulnTurns: 0, block: 0, counter: 0, etherPts: startingEther ?? 0, etherOverdriveActive: false, comboUsageCount: {}, strength: playerStrength, maxSpeed: safeInitialPlayer.maxSpeed ?? DEFAULT_PLAYER_MAX_SPEED });
   const [enemyIndex, setEnemyIndex] = useState(0);
-  const [enemy, setEnemy] = useState(() => safeInitialEnemy?.name ? ({ ...safeInitialEnemy, hp: safeInitialEnemy.hp ?? safeInitialEnemy.maxHp ?? 30, maxHp: safeInitialEnemy.maxHp ?? safeInitialEnemy.hp ?? 30, vulnMult: 1, vulnTurns: 0, block: 0, counter: 0, etherPts: 0, etherOverdriveActive: false, strength: 0 }) : null);
+  const [enemy, setEnemy] = useState(() => safeInitialEnemy?.name ? ({ ...safeInitialEnemy, hp: safeInitialEnemy.hp ?? safeInitialEnemy.maxHp ?? 30, maxHp: safeInitialEnemy.maxHp ?? safeInitialEnemy.hp ?? 30, vulnMult: 1, vulnTurns: 0, block: 0, counter: 0, etherPts: 0, etherOverdriveActive: false, strength: 0, maxSpeed: safeInitialEnemy.maxSpeed ?? DEFAULT_ENEMY_MAX_SPEED }) : null);
 
   const [phase, setPhase] = useState('select');
 
@@ -1102,7 +1101,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
   useEffect(() => {
     if (!enemy) {
       const e = ENEMIES[enemyIndex];
-      setEnemy({ ...e, hp: e.hp, maxHp: e.hp, vulnMult: 1, vulnTurns: 0, block: 0, counter: 0, etherPts: 0, etherOverdriveActive: false });
+      setEnemy({ ...e, hp: e.hp, maxHp: e.hp, vulnMult: 1, vulnTurns: 0, block: 0, counter: 0, etherPts: 0, etherOverdriveActive: false, maxSpeed: e.maxSpeed ?? DEFAULT_ENEMY_MAX_SPEED });
       // 캐릭터 빌드가 있으면 사용, 없으면 기본 8장
       const currentBuild = useGameStore.getState().characterBuild;
       const hasCharacterBuild = currentBuild && (currentBuild.mainSpecials?.length > 0 || currentBuild.subSpecials?.length > 0);
@@ -1212,7 +1211,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
         }
         else {
           if (prev.length >= MAX_SUBMIT_CARDS) { addLog('⚠️ 최대 5장의 카드만 제출할 수 있습니다'); return prev; }
-          if (totalSpeed + card.speedCost > MAX_SPEED) { addLog('⚠️ 속도 초과'); return prev; }
+          if (totalSpeed + card.speedCost > player.maxSpeed) { addLog('⚠️ 속도 초과'); return prev; }
           if (totalEnergy + card.actionCost > (BASE_PLAYER_ENERGY + etherSlots(player.etherPts))) { addLog('⚠️ 행동력 부족'); return prev; }
           next = [...prev, { ...card, __uid: Math.random().toString(36).slice(2) }];
           playSound(800, 80); // 선택 사운드 (높은 음)
@@ -1230,7 +1229,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
       return;
     }
     if (selected.length >= MAX_SUBMIT_CARDS) return addLog('⚠️ 최대 5장의 카드만 제출할 수 있습니다');
-    if (totalSpeed + card.speedCost > MAX_SPEED) return addLog('⚠️ 속도 초과');
+    if (totalSpeed + card.speedCost > player.maxSpeed) return addLog('⚠️ 속도 초과');
     if (totalEnergy + card.actionCost > (BASE_PLAYER_ENERGY + etherSlots(player.etherPts))) return addLog('⚠️ 행동력 부족');
     setSelected([...selected, { ...card, __uid: Math.random().toString(36).slice(2) }]);
     playSound(800, 80); // 선택 사운드 (높은 음)
@@ -1993,7 +1992,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
 
   const handDisabled = (c) => (
     selected.length >= MAX_SUBMIT_CARDS ||
-    totalSpeed + c.speedCost > MAX_SPEED ||
+    totalSpeed + c.speedCost > player.maxSpeed ||
     totalEnergy + c.actionCost > (BASE_PLAYER_ENERGY + etherSlots(player.etherPts))
   );
   const playerEtherValue = player?.etherPts ?? 0;
@@ -2172,14 +2171,14 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
           <div className="panel-enhanced timeline-panel">
             <div className="timeline-body" style={{ marginTop: '0' }}>
               <div className="timeline-axis">
-                {[0, 5, 10, 15, 20, 25, 30].map((tick) => (
+                {generateSpeedTicks(Math.max(player.maxSpeed, enemy.maxSpeed)).map((tick) => (
                   <span key={tick}>{tick}</span>
                 ))}
               </div>
               <div className="timeline-lanes">
                 <div className="timeline-lane player-lane">
-                  {Array.from({ length: MAX_SPEED + 1 }).map((_, i) => (
-                    <div key={i} className="timeline-gridline" style={{ left: `${(i / MAX_SPEED) * 100}%` }} />
+                  {Array.from({ length: Math.max(player.maxSpeed, enemy.maxSpeed) + 1 }).map((_, i) => (
+                    <div key={i} className="timeline-gridline" style={{ left: `${(i / Math.max(player.maxSpeed, enemy.maxSpeed)) * 100}%` }} />
                   ))}
                   {playerTimeline.map((a, idx) => {
                     const Icon = a.card.icon || Sword;
@@ -2194,10 +2193,12 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
                     // 타임라인에서 현재 진행 중인 액션인지 확인
                     const globalIndex = phase === 'resolve' && queue ? queue.findIndex(q => q === a) : -1;
                     const isActive = usedCardIndices.includes(globalIndex);
+                    // 정규화: player의 속도를 비율로 변환하여 표시
+                    const normalizedPosition = (a.sp / player.maxSpeed) * 100;
                     return (
                       <div key={idx}
                         className={`timeline-marker marker-player ${isActive ? 'timeline-active' : ''}`}
-                        style={{ left: `${(a.sp / MAX_SPEED) * 100}%`, top: `${6 + offset}px` }}>
+                        style={{ left: `${normalizedPosition}%`, top: `${6 + offset}px` }}>
                         <Icon size={14} className="text-white" />
                         <span className="text-white text-xs font-bold">{num > 0 ? num : ''}</span>
                       </div>
@@ -2206,8 +2207,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
                 </div>
 
                 <div className="timeline-lane enemy-lane">
-                  {Array.from({ length: MAX_SPEED + 1 }).map((_, i) => (
-                    <div key={i} className="timeline-gridline" style={{ left: `${(i / MAX_SPEED) * 100}%` }} />
+                  {Array.from({ length: Math.max(player.maxSpeed, enemy.maxSpeed) + 1 }).map((_, i) => (
+                    <div key={i} className="timeline-gridline" style={{ left: `${(i / Math.max(player.maxSpeed, enemy.maxSpeed)) * 100}%` }} />
                   ))}
                   {enemyTimeline.map((a, idx) => {
                     const Icon = a.card.icon || Shield;
@@ -2217,10 +2218,12 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
                     // 타임라인에서 현재 진행 중인 액션인지 확인
                     const globalIndex = phase === 'resolve' && queue ? queue.findIndex(q => q === a) : -1;
                     const isActive = usedCardIndices.includes(globalIndex);
+                    // 정규화: enemy의 속도를 비율로 변환하여 표시
+                    const normalizedPosition = (a.sp / enemy.maxSpeed) * 100;
                     return (
                       <div key={idx}
                         className={`timeline-marker marker-enemy ${isActive ? 'timeline-active' : ''}`}
-                        style={{ left: `${(a.sp / MAX_SPEED) * 100}%`, top: `${6 + offset}px` }}>
+                        style={{ left: `${normalizedPosition}%`, top: `${6 + offset}px` }}>
                         <Icon size={14} className="text-white" />
                         <span className="text-white text-xs font-bold">{num > 0 ? num : ''}</span>
                       </div>
