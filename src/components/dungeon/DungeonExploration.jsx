@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useGameStore } from "../../state/gameStore";
 import { calculateEtherSlots, getCurrentSlotPts, getSlotProgress, getNextSlotCost } from "../../lib/etherUtils";
 import { CharacterSheet } from "../character/CharacterSheet";
+import { EtherBar } from "../battle/LegacyBattleApp";
 import "./dungeon.css";
 
 // ========== 설정 ==========
@@ -210,81 +211,6 @@ const OBJECT_HANDLERS = {
   // event: (obj, context) => { ... },
 };
 
-// ========== 에테르 바 컴포넌트 ==========
-function EtherBar({ pts, maxPts, color = "cyan", label }) {
-  const safePts = Number.isFinite(pts) ? pts : 0;
-
-  // maxPts가 제공되면 단순 비율 사용 (HP 바용)
-  let slots, current, nextCost, ratio;
-  if (maxPts !== undefined) {
-    ratio = Math.max(0, Math.min(1, safePts / maxPts));
-    current = safePts;
-    nextCost = maxPts;
-    slots = null;
-  } else {
-    // 에테르 바 로직
-    slots = calculateEtherSlots(safePts);
-    current = getCurrentSlotPts(safePts);
-    nextCost = getNextSlotCost(safePts);
-    const progress = getSlotProgress(safePts);
-    ratio = Math.max(0, Math.min(1, progress));
-  }
-
-  const borderColor = color === "red" ? "#ef4444" : "#53d7ff";
-  const fillGradient = color === "red"
-    ? "linear-gradient(180deg, #fca5a5 0%, #dc2626 100%)"
-    : "linear-gradient(180deg, #6affff 0%, #0f7ebd 100%)";
-  const textColor = color === "red" ? "#fca5a5" : "#8fd3ff";
-
-  return (
-    <div style={{
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "center",
-      width: "72px",
-      padding: "12px 10px 16px",
-      borderRadius: "16px",
-      border: `2px solid ${borderColor}`,
-      background: "rgba(7, 10, 20, 0.95)",
-      boxShadow: "0 8px 24px rgba(0,0,0,0.4)",
-    }}>
-      {label && (
-        <div style={{
-          fontSize: "11px",
-          color: textColor,
-          marginBottom: "8px",
-          fontWeight: "600",
-        }}>
-          {label}
-        </div>
-      )}
-      <div style={{
-        position: "relative",
-        width: "52px",
-        height: "160px",
-        borderRadius: "26px",
-        border: `2px solid ${borderColor}`,
-        background: "rgba(0, 0, 0, 0.6)",
-        overflow: "hidden",
-      }}>
-        <div style={{
-          position: "absolute",
-          left: "3px",
-          right: "3px",
-          bottom: "3px",
-          height: `${ratio * 100}%`,
-          borderRadius: "24px",
-          background: fillGradient,
-        }} />
-      </div>
-      <div style={{ textAlign: "center", color: textColor, fontSize: "13px", marginTop: "8px" }}>
-        <div>{current}/{nextCost}</div>
-        {slots !== null && <div>x{slots}</div>}
-      </div>
-    </div>
-  );
-}
-
 // ========== 메인 컴포넌트 ==========
 export function DungeonExploration() {
   // Store hooks
@@ -490,6 +416,8 @@ export function DungeonExploration() {
     const etherPts = resources.etherPts || 0;
     const etherSlots = calculateEtherSlots(etherPts);
     const etherProgress = getSlotProgress(etherPts);
+    const etherCurrentPts = getCurrentSlotPts(etherPts);
+    const etherNextSlotCost = getNextSlotCost(etherPts);
     const etherW = 60;
     const etherH = 8;
     const etherY = playerY - 20;
@@ -500,12 +428,12 @@ export function DungeonExploration() {
     ctx.fillStyle = "#53d7ff";
     ctx.fillRect(playerScreenX - etherW / 2, etherY, etherW * etherProgress, etherH);
 
-    // 에테르 텍스트
+    // 에테르 텍스트 (전투/맵과 동일하게 표시)
     ctx.fillStyle = "#53d7ff";
     ctx.font = "bold 12px Arial";
     ctx.textAlign = "center";
-    ctx.fillText(`${etherPts} pt`, playerScreenX - 20, etherY - 5);
-    ctx.fillText(`x ${etherSlots}`, playerScreenX + 20, etherY - 5);
+    ctx.fillText(`${etherCurrentPts}/${etherNextSlotCost}`, playerScreenX - 20, etherY - 5);
+    ctx.fillText(`x${etherSlots}`, playerScreenX + 20, etherY - 5);
 
     // HP 바 (하단)
     const hpRatio = playerHp / maxHp;

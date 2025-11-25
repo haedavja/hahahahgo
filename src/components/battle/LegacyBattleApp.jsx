@@ -1499,6 +1499,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
       setEnemy(e => ({ ...e, etherPts: e.etherPts - ETHER_THRESHOLD, etherOverdriveActive: true }));
       addLog('☄️ 적 에테르 폭주 발동!');
     }
+
+    // 진행 버튼 누르면 자동 진행 활성화
+    setAutoProgress(true);
   };
 
   const stepOnce = () => {
@@ -1690,11 +1693,52 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
       // 몬스터 죽음 애니메이션 및 사운드
       setEnemyHit(true);
       playSound(200, 500); // 낮은 주파수로 죽음 사운드
-      addLog('💀 적 처치! 남은 타임라인 진행 후 승리');
+      addLog('💀 적 처치! 전투 종료');
 
-      // 큐에서 적의 남은 행동들을 모두 제거
-      setQueue(prev => prev.filter((action, idx) => idx < newQIndex || action.actor !== 'enemy'));
-      // 계속 진행 (턴 종료 시 승리 처리)
+      // 타임라인 즉시 숨김
+      setTimelineIndicatorVisible(false);
+
+      // 큐를 현재 인덱스로 종료 (남은 행동 모두 제거)
+      setQueue(prev => prev.slice(0, newQIndex));
+
+      // 즉시 에테르 계산 시작
+      if (turnEtherAccumulated > 0) {
+        setTimeout(() => {
+          setTurnEtherAccumulated(current => {
+            const pCombo = detectPokerCombo(selected);
+            const basePlayerComboMult = pCombo ? (COMBO_MULTIPLIERS[pCombo.name] || 1) : 1;
+            const playerComboMult = applyRelicComboMultiplier(relics, basePlayerComboMult, selected.length);
+            const playerBeforeDeflation = Math.round(current * playerComboMult);
+
+            const playerDeflation = pCombo?.name
+              ? applyEtherDeflation(playerBeforeDeflation, pCombo.name, player.comboUsageCount || {})
+              : { gain: playerBeforeDeflation, multiplier: 1, usageCount: 0 };
+
+            const playerFinalEther = playerDeflation.gain;
+
+            setCurrentDeflation(pCombo?.name ? {
+              comboName: pCombo.name,
+              usageCount: playerDeflation.usageCount,
+              multiplier: playerDeflation.multiplier
+            } : null);
+
+            setEtherCalcPhase('accumulating');
+            setTimeout(() => {
+              setEtherCalcPhase('applying');
+              setTimeout(() => {
+                setEtherFinalValue(playerFinalEther);
+                setEtherCalcPhase('complete');
+              }, 800);
+            }, 1000);
+
+            return current;
+          });
+        }, 300);
+      } else {
+        // 에테르가 없으면 바로 종료 버튼 표시
+        setEtherFinalValue(0);
+      }
+      return;
     }
 
     // 타임라인의 모든 카드 진행이 끝났을 때 에테르 계산 애니메이션 시작
@@ -2546,9 +2590,15 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
             )}
             {phase === 'resolve' && qIndex >= queue.length && etherFinalValue !== null && (
               <div style={{ display: 'flex', justifyContent: 'center', marginTop: '16px' }}>
-                <button onClick={() => finishTurn('수동 턴 종료')} className="btn-enhanced btn-primary flex items-center gap-2" style={{ fontSize: '1.25rem', padding: '12px 24px', fontWeight: '700', minWidth: '200px' }}>
-                  ⏭️ 턴 종료 <span style={{ fontSize: '1.4rem', fontWeight: '900' }}>(E)</span>
-                </button>
+                {enemy.hp <= 0 ? (
+                  <button onClick={handleExitToMap} className="btn-enhanced btn-success flex items-center gap-2" style={{ fontSize: '1.25rem', padding: '12px 24px', fontWeight: '700', minWidth: '200px' }}>
+                    🎉 전투 종료 <span style={{ fontSize: '1.4rem', fontWeight: '900' }}>(E)</span>
+                  </button>
+                ) : (
+                  <button onClick={() => finishTurn('수동 턴 종료')} className="btn-enhanced btn-primary flex items-center gap-2" style={{ fontSize: '1.25rem', padding: '12px 24px', fontWeight: '700', minWidth: '200px' }}>
+                    ⏭️ 턴 종료 <span style={{ fontSize: '1.4rem', fontWeight: '900' }}>(E)</span>
+                  </button>
+                )}
               </div>
             )}
           </div>
