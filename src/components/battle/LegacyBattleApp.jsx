@@ -698,10 +698,21 @@ function EtherBar({ pts, slots, previewGain = 0, color = "cyan", label }) {
   });
 
   const borderColor = color === 'red' ? '#ef4444' : '#53d7ff';
-  const fillGradient = color === 'red'
-    ? 'linear-gradient(180deg, #fca5a5 0%, #dc2626 100%)'
-    : 'linear-gradient(180deg, #6affff 0%, #0f7ebd 100%)';
   const textColor = color === 'red' ? '#fca5a5' : '#8fd3ff';
+
+  // 슬롯별 색상 (누적되어 보이도록 레이어링)
+  const slotColors = [
+    'linear-gradient(180deg, #6affff 0%, #0f7ebd 100%)', // x1 - 시안
+    'linear-gradient(180deg, #c084fc 0%, #7c3aed 100%)', // x2 - 보라
+    'linear-gradient(180deg, #fb923c 0%, #ea580c 100%)', // x3 - 주황
+    'linear-gradient(180deg, #f87171 0%, #dc2626 100%)', // x4 - 빨강
+    'linear-gradient(180deg, #fbbf24 0%, #d97706 100%)', // x5 - 황금
+    'linear-gradient(180deg, #34d399 0%, #059669 100%)', // x6 - 초록
+    'linear-gradient(180deg, #60a5fa 0%, #2563eb 100%)', // x7 - 파랑
+    'linear-gradient(180deg, #e879f9 0%, #c026d3 100%)', // x8 - 마젠타
+    'linear-gradient(180deg, #fcd34d 0%, #f59e0b 100%)', // x9 - 밝은 황금
+    'linear-gradient(180deg, #ffffff 0%, #d1d5db 100%)'  // x10 - 흰색
+  ];
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '72px', padding: '12px 10px 16px' }}>
@@ -718,15 +729,34 @@ function EtherBar({ pts, slots, previewGain = 0, color = "cyan", label }) {
         background: 'rgba(9, 17, 27, 0.95)',
         overflow: 'hidden'
       }}>
-        <div style={{
-          position: 'absolute',
-          left: '3px',
-          right: '3px',
-          bottom: '3px',
-          height: `${ratio * 100}%`,
-          borderRadius: '24px',
-          background: fillGradient
-        }} />
+        {/* 완성된 슬롯들 (레이어로 쌓임) */}
+        {Array.from({ length: safeSlots }).map((_, slotIndex) => (
+          <div
+            key={`slot-${slotIndex}`}
+            style={{
+              position: 'absolute',
+              left: '3px',
+              right: '3px',
+              bottom: '3px',
+              height: `${((slotIndex + 1) / 10) * 100}%`,
+              borderRadius: '24px',
+              background: slotColors[slotIndex] || slotColors[0]
+            }}
+          />
+        ))}
+        {/* 현재 진행 중인 슬롯 */}
+        {safeSlots < 10 && (
+          <div style={{
+            position: 'absolute',
+            left: '3px',
+            right: '3px',
+            bottom: '3px',
+            height: `${((safeSlots + ratio) / 10) * 100}%`,
+            borderRadius: '24px',
+            background: slotColors[safeSlots] || slotColors[0],
+            opacity: 0.8
+          }} />
+        )}
       </div>
       <div style={{ textAlign: 'center', color: textColor, fontSize: '20px', marginTop: '8px' }}>
         <div key={`pts-${safePts}`}>{currentPts}/{nextSlotCost}</div>
@@ -1135,7 +1165,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
     const energyPenalty = nextTurnEffects.energyPenalty || 0;
     const finalEnergy = Math.max(0, baseEnergy + energyBonus - energyPenalty);
 
-    setPlayer(p => ({ ...p, energy: finalEnergy, etherOverdriveActive: false }));
+    setPlayer(p => ({ ...p, energy: finalEnergy, etherOverdriveActive: false, etherOverflow: 0 }));
 
     // 매 턴 시작 시 새로운 손패 생성 (캐릭터 빌드 및 특성 효과 적용)
     const currentBuild = useGameStore.getState().characterBuild;
