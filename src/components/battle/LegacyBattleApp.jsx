@@ -1519,7 +1519,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
       ? applyEtherDeflation(playerBeforeDeflation, pCombo.name, player.comboUsageCount || {})
       : { gain: playerBeforeDeflation, multiplier: 1, usageCount: 0 };
 
-    // actualGainedEther가 전달되면 그 값을 사용 (finishTurn에서 계산된 실제 획득값)
+    // actualGainedEther가 전달되면 그 값을 사용, 아니면 디플레이션까지만 적용한 값 사용
+    // 범람 계산은 최종값 표시에 포함하지 않음 (로그에만 표시)
     const playerFinalEther = actualGainedEther !== null ? actualGainedEther : playerDeflation.gain;
 
     console.log('[에테르 계산 애니메이션]', {
@@ -1557,7 +1558,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
         setTimeout(() => {
           // 4단계: 최종값 표시 + 묵직한 사운드
           setEtherCalcPhase('result');
-          // setEtherFinalValue는 finishTurn에서 정확한 값으로 설정되므로 여기서는 설정하지 않음
+          // 디플레이션까지만 적용된 값 표시 (범람 제외)
+          setEtherFinalValue(playerFinalEther);
           playSound(400, 200);
         }, playerDeflation.usageCount > 0 ? 400 : 0);
       }, 600);
@@ -1914,9 +1916,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
       const relicText = relicMultBonus > 0 ? ` (유물 배율 +${relicMultBonus.toFixed(2)})` : '';
       const overflowText = playerOverflow > 0 ? ` [범람: ${playerOverflow} PT]` : '';
       addLog(`✴️ 에테르 획득: ${turnEtherAccumulated} × ${playerComboMult.toFixed(2)}${relicText} = ${playerBeforeDeflation} → ${playerFinalEther} PT${deflationText} (적용: ${playerAppliedEther} PT${overflowText})`);
-
-      // 최종값 UI에 실제 적용되는 에테르 표시
-      setEtherFinalValue(playerAppliedEther);
     }
     if (enemyFinalEther > 0) {
       const deflationText = enemyDeflation.usageCount > 0
