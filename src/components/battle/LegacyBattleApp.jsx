@@ -1506,12 +1506,12 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
   };
 
   // 에테르 계산 애니메이션 시작 (몬스터 사망 시 / 정상 종료 시 공통)
-  const startEtherCalculationAnimation = (totalEtherPts, actualResolvedCards = null, actualGainedEther = null) => {
+  // skipFinalValueSet: true이면 setEtherFinalValue를 호출하지 않음 (finishTurn에서 이미 설정한 경우)
+  const startEtherCalculationAnimation = (totalEtherPts, actualResolvedCards = null, actualGainedEther = null, skipFinalValueSet = false) => {
     const pCombo = detectPokerCombo(selected);
     const basePlayerComboMult = pCombo ? (COMBO_MULTIPLIERS[pCombo.name] || 1) : 1;
-    // actualResolvedCards가 전달되면 사용, 아니면 resolvedPlayerCards 사용
-    const cardCountForMultiplier = actualResolvedCards !== null ? actualResolvedCards : resolvedPlayerCards;
-    const playerComboMult = applyRelicComboMultiplier(relics, basePlayerComboMult, cardCountForMultiplier);
+    // finishTurn과 동일하게 selected.length 사용 (전체 선택된 카드 수)
+    const playerComboMult = applyRelicComboMultiplier(relics, basePlayerComboMult, selected.length);
     const playerBeforeDeflation = Math.round(totalEtherPts * playerComboMult);
 
     // 디플레이션 적용
@@ -1558,8 +1558,10 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
         setTimeout(() => {
           // 4단계: 최종값 표시 + 묵직한 사운드
           setEtherCalcPhase('result');
-          // 디플레이션까지만 적용된 값 표시 (범람 제외)
-          setEtherFinalValue(playerFinalEther);
+          // skipFinalValueSet이 false일 때만 설정 (finishTurn에서 설정하지 않은 경우)
+          if (!skipFinalValueSet) {
+            setEtherFinalValue(playerFinalEther);
+          }
           playSound(400, 200);
         }, playerDeflation.usageCount > 0 ? 400 : 0);
       }, 600);
@@ -1916,6 +1918,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
       const relicText = relicMultBonus > 0 ? ` (유물 배율 +${relicMultBonus.toFixed(2)})` : '';
       const overflowText = playerOverflow > 0 ? ` [범람: ${playerOverflow} PT]` : '';
       addLog(`✴️ 에테르 획득: ${turnEtherAccumulated} × ${playerComboMult.toFixed(2)}${relicText} = ${playerBeforeDeflation} → ${playerFinalEther} PT${deflationText} (적용: ${playerAppliedEther} PT${overflowText})`);
+
+      // 최종값 UI에 로그와 동일한 값 표시
+      setEtherFinalValue(playerFinalEther);
     }
     if (enemyFinalEther > 0) {
       const deflationText = enemyDeflation.usageCount > 0
