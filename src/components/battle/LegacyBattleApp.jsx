@@ -1039,6 +1039,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
     if (phase !== 'resolve') {
       setDisappearingCards([]);
       setHiddenCards([]);
+    }
+    // resolve 단계 진입 시 usedCardIndices 초기화
+    if (phase === 'resolve') {
       setUsedCardIndices([]);
     }
   }, [phase]);
@@ -1449,35 +1452,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
     if (qIndex >= queue.length) return;
     const a = queue[qIndex];
 
-    // 타임라인 progress 업데이트 (현재 카드의 위치를 actor의 maxSpeed 기준 비율로)
-    const currentMaxSpeed = a.actor === 'player' ? player.maxSpeed : enemy.maxSpeed;
-    const progressPercent = (a.sp / currentMaxSpeed) * 100;
-
-    // 먼저 현재 카드 위치로 이동
-    setTimelineProgress(progressPercent);
-
-    // 다음 카드가 있으면 그 위치까지 부드럽게 이동, 없으면 페이드아웃
-    if (qIndex < queue.length - 1) {
-      const nextAction = queue[qIndex + 1];
-      const nextMaxSpeed = nextAction.actor === 'player' ? player.maxSpeed : enemy.maxSpeed;
-      const nextProgressPercent = (nextAction.sp / nextMaxSpeed) * 100;
-
-      // 다음 카드 위치까지 부드럽게 이동
-      setTimeout(() => {
-        setTimelineProgress(nextProgressPercent);
-      }, 100);
-    } else {
-      // 마지막 카드면 현재 위치에서 빠르게 페이드아웃
-      setTimeout(() => {
-        setTimelineIndicatorVisible(false);
-      }, 300); // 카드 실행 후 바로 페이드아웃
-    }
-
-    // 타임라인 애니메이션을 위해 모든 액션에 적용
+    // 사용된 카드 인덱스 추가 (제거하지 않고 계속 유지)
     setUsedCardIndices(prev => [...prev, qIndex]);
-    setTimeout(() => {
-      setUsedCardIndices(prev => prev.filter(i => i !== qIndex));
-    }, 600); // 타임라인 애니메이션 지속 시간
 
     // 카드 소멸 이펙트는 플레이어만 적용
     if (a.actor === 'player') {
@@ -2234,11 +2210,12 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
                     // 타임라인에서 현재 진행 중인 액션인지 확인
                     const globalIndex = phase === 'resolve' && queue ? queue.findIndex(q => q === a) : -1;
                     const isActive = usedCardIndices.includes(globalIndex);
+                    const isUsed = usedCardIndices.includes(globalIndex) && globalIndex < qIndex;
                     // 정규화: player의 속도를 비율로 변환하여 표시
                     const normalizedPosition = (a.sp / player.maxSpeed) * 100;
                     return (
                       <div key={idx}
-                        className={`timeline-marker marker-player ${isActive ? 'timeline-active' : ''}`}
+                        className={`timeline-marker marker-player ${isActive && globalIndex === qIndex ? 'timeline-active' : ''} ${isUsed ? 'timeline-used' : ''}`}
                         style={{ left: `${normalizedPosition}%`, top: `${6 + offset}px` }}>
                         <Icon size={14} className="text-white" />
                         <span className="text-white text-xs font-bold">{num > 0 ? num : ''}</span>
@@ -2259,11 +2236,12 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
                     // 타임라인에서 현재 진행 중인 액션인지 확인
                     const globalIndex = phase === 'resolve' && queue ? queue.findIndex(q => q === a) : -1;
                     const isActive = usedCardIndices.includes(globalIndex);
+                    const isUsed = usedCardIndices.includes(globalIndex) && globalIndex < qIndex;
                     // 정규화: enemy의 속도를 비율로 변환하여 표시
                     const normalizedPosition = (a.sp / enemy.maxSpeed) * 100;
                     return (
                       <div key={idx}
-                        className={`timeline-marker marker-enemy ${isActive ? 'timeline-active' : ''}`}
+                        className={`timeline-marker marker-enemy ${isActive && globalIndex === qIndex ? 'timeline-active' : ''} ${isUsed ? 'timeline-used' : ''}`}
                         style={{ left: `${normalizedPosition}%`, top: `${6 + offset}px` }}>
                         <Icon size={14} className="text-white" />
                         <span className="text-white text-xs font-bold">{num > 0 ? num : ''}</span>

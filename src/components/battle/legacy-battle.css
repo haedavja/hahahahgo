@@ -273,6 +273,12 @@ body {
   background: linear-gradient(135deg, rgba(249, 115, 22, 0.9), rgba(217, 70, 15, 0.9));
 }
 
+/* 타임라인에서 사용된 카드 - 어둡게 표시 */
+.timeline-marker.timeline-used {
+  opacity: 0.35;
+  filter: brightness(0.5);
+}
+
 /* 타임라인 활성 애니메이션 - 플레이어 */
 .timeline-active.marker-player {
   animation: timelinePulsePlayer 0.6s ease-in-out;
