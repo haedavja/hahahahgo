@@ -670,18 +670,22 @@ function ExpectedDamagePreview({ player, enemy, fixedOrder, willOverdrive, enemy
   );
 }
 
-function EtherBar({ pts, slots, previewGain = 0, color = "cyan", label }) {
+function EtherBar({ pts, slots, previewGain = 0, color = "cyan", label, animationPts = null }) {
   const safePts = Number.isFinite(pts) ? pts : 0;
   const derivedSlots = Number.isFinite(slots) ? slots : etherSlots(safePts);
   const safeSlots = Number.isFinite(derivedSlots) ? derivedSlots : 0;
   const safePreview = Number.isFinite(previewGain) ? previewGain : 0;
 
+  // 애니메이션 중이면 animationPts 사용 (전체 획득량 시각화)
+  const displayPts = animationPts !== null ? animationPts : safePts;
+  const displaySlots = animationPts !== null ? etherSlots(animationPts) : safeSlots;
+
   // 현재 슬롯 내의 pt (각 슬롯 도달시마다 0으로 리셋)
-  const currentPts = getCurrentSlotPts(safePts);
+  const currentPts = getCurrentSlotPts(displayPts);
   // 다음 슬롯을 채우는데 필요한 총 pt
-  const nextSlotCost = getNextSlotCost(safePts);
+  const nextSlotCost = getNextSlotCost(displayPts);
   // 다음 슬롯까지의 진행률 (0-1)
-  const slotProgress = getSlotProgress(safePts);
+  const slotProgress = getSlotProgress(displayPts);
   // 시각적 바 높이 = 진행률
   const ratio = Math.max(0, Math.min(1, slotProgress));
   const tier = `x${safeSlots}`;
@@ -730,7 +734,7 @@ function EtherBar({ pts, slots, previewGain = 0, color = "cyan", label }) {
         overflow: 'hidden'
       }}>
         {/* 완성된 슬롯들 (레이어로 쌓임) */}
-        {Array.from({ length: safeSlots }).map((_, slotIndex) => (
+        {Array.from({ length: displaySlots }).map((_, slotIndex) => (
           <div
             key={`slot-${slotIndex}`}
             style={{
@@ -740,21 +744,23 @@ function EtherBar({ pts, slots, previewGain = 0, color = "cyan", label }) {
               bottom: '3px',
               height: `${((slotIndex + 1) / 10) * 100}%`,
               borderRadius: '24px',
-              background: slotColors[slotIndex] || slotColors[0]
+              background: slotColors[slotIndex] || slotColors[0],
+              transition: 'height 0.6s ease-out' // 애니메이션 추가
             }}
           />
         ))}
         {/* 현재 진행 중인 슬롯 */}
-        {safeSlots < 10 && (
+        {displaySlots < 10 && (
           <div style={{
             position: 'absolute',
             left: '3px',
             right: '3px',
             bottom: '3px',
-            height: `${((safeSlots + ratio) / 10) * 100}%`,
+            height: `${((displaySlots + ratio) / 10) * 100}%`,
             borderRadius: '24px',
-            background: slotColors[safeSlots] || slotColors[0],
-            opacity: 0.8
+            background: slotColors[displaySlots] || slotColors[0],
+            opacity: 0.8,
+            transition: 'height 0.6s ease-out' // 애니메이션 추가
           }} />
         )}
       </div>
@@ -907,6 +913,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
   const [timelineIndicatorVisible, setTimelineIndicatorVisible] = useState(true); // 시곗바늘 표시 여부
   const [showCharacterSheet, setShowCharacterSheet] = useState(false);
   const [cardUsageCount, setCardUsageCount] = useState({}); // 카드별 사용 횟수 추적 (mastery, boredom용)
+  const [etherAnimationPts, setEtherAnimationPts] = useState(null); // 에테르 애니메이션 전용 (전체 획득량 표시)
   const [vanishedCards, setVanishedCards] = useState([]); // 소멸 특성으로 제거된 카드
   const [turnEtherAccumulated, setTurnEtherAccumulated] = useState(0); // 이번 턴 누적 에테르 (실제 적용 전)
   const [enemyTurnEtherAccumulated, setEnemyTurnEtherAccumulated] = useState(0); // 적 이번 턴 누적 에테르
@@ -1851,6 +1858,12 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
       const relicText = relicMultBonus > 0 ? ` (유물 배율 +${relicMultBonus.toFixed(2)})` : '';
       const overflowText = playerOverflow > 0 ? ` [범람: ${playerOverflow} PT]` : '';
       addLog(`✴️ 에테르 획득: ${turnEtherAccumulated} × ${playerComboMult.toFixed(2)}${relicText} = ${playerBeforeDeflation} → ${playerFinalEther} PT${deflationText} (적용: ${playerAppliedEther} PT${overflowText})`);
+
+      // 애니메이션을 위해 전체 획득량을 임시로 표시
+      setEtherAnimationPts(player.etherPts + playerFinalEther);
+      setTimeout(() => {
+        setEtherAnimationPts(null);
+      }, 2000); // 2초 후 애니메이션 종료
     }
     if (enemyFinalEther > 0) {
       const deflationText = enemyDeflation.usageCount > 0
@@ -2403,6 +2416,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
                 slots={playerEtherSlots}
                 previewGain={0}
                 label="ETHER"
+                animationPts={etherAnimationPts}
               />
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>

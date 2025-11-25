@@ -288,15 +288,25 @@ body {
 }
 
 @keyframes timelinePulsePlayer {
-  0%, 100% {
+  0% {
     transform: translate(-50%, 0) scale(1.2);
     box-shadow: 0 0 30px rgba(251, 191, 36, 1), 0 8px 20px rgba(0, 0, 0, 0.45);
     border: 2px solid rgba(251, 191, 36, 0.8);
   }
-  50% {
-    transform: translate(-50%, 0) scale(1.35);
+  10%, 30%, 50% {
+    transform: translate(-54%, 0) scale(1.25) rotate(-5deg);
     box-shadow: 0 0 40px rgba(251, 191, 36, 1), 0 10px 25px rgba(0, 0, 0, 0.5);
     border: 2px solid rgba(251, 191, 36, 1);
+  }
+  20%, 40% {
+    transform: translate(-46%, 0) scale(1.25) rotate(5deg);
+    box-shadow: 0 0 40px rgba(251, 191, 36, 1), 0 10px 25px rgba(0, 0, 0, 0.5);
+    border: 2px solid rgba(251, 191, 36, 1);
+  }
+  60%, 100% {
+    transform: translate(-50%, 0) scale(1.2);
+    box-shadow: 0 0 30px rgba(251, 191, 36, 1), 0 8px 20px rgba(0, 0, 0, 0.45);
+    border: 2px solid rgba(251, 191, 36, 0.8);
   }
 }
 
@@ -309,15 +319,25 @@ body {
 }
 
 @keyframes timelinePulseEnemy {
-  0%, 100% {
+  0% {
     transform: translate(-50%, 0) scale(1.2);
     box-shadow: 0 0 35px rgba(168, 85, 247, 1), 0 8px 20px rgba(0, 0, 0, 0.45);
     border: 2px solid rgba(168, 85, 247, 0.8);
   }
-  50% {
-    transform: translate(-50%, 0) scale(1.35);
+  10%, 30%, 50% {
+    transform: translate(-54%, 0) scale(1.25) rotate(-5deg);
     box-shadow: 0 0 45px rgba(168, 85, 247, 1), 0 10px 25px rgba(0, 0, 0, 0.5);
     border: 2px solid rgba(168, 85, 247, 1);
+  }
+  20%, 40% {
+    transform: translate(-46%, 0) scale(1.25) rotate(5deg);
+    box-shadow: 0 0 45px rgba(168, 85, 247, 1), 0 10px 25px rgba(0, 0, 0, 0.5);
+    border: 2px solid rgba(168, 85, 247, 1);
+  }
+  60%, 100% {
+    transform: translate(-50%, 0) scale(1.2);
+    box-shadow: 0 0 35px rgba(168, 85, 247, 1), 0 8px 20px rgba(0, 0, 0, 0.45);
+    border: 2px solid rgba(168, 85, 247, 0.8);
   }
 }
 
