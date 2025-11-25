@@ -670,22 +670,18 @@ function ExpectedDamagePreview({ player, enemy, fixedOrder, willOverdrive, enemy
   );
 }
 
-function EtherBar({ pts, slots, previewGain = 0, color = "cyan", label, animationPts = null }) {
+function EtherBar({ pts, slots, previewGain = 0, color = "cyan", label }) {
   const safePts = Number.isFinite(pts) ? pts : 0;
   const derivedSlots = Number.isFinite(slots) ? slots : etherSlots(safePts);
   const safeSlots = Number.isFinite(derivedSlots) ? derivedSlots : 0;
   const safePreview = Number.isFinite(previewGain) ? previewGain : 0;
 
-  // 애니메이션 중이면 animationPts 사용 (전체 획득량 시각화)
-  const displayPts = animationPts !== null ? animationPts : safePts;
-  const displaySlots = animationPts !== null ? etherSlots(animationPts) : safeSlots;
-
   // 현재 슬롯 내의 pt (각 슬롯 도달시마다 0으로 리셋)
-  const currentPts = getCurrentSlotPts(displayPts);
+  const currentPts = getCurrentSlotPts(safePts);
   // 다음 슬롯을 채우는데 필요한 총 pt
-  const nextSlotCost = getNextSlotCost(displayPts);
+  const nextSlotCost = getNextSlotCost(safePts);
   // 다음 슬롯까지의 진행률 (0-1)
-  const slotProgress = getSlotProgress(displayPts);
+  const slotProgress = getSlotProgress(safePts);
   // 시각적 바 높이 = 진행률
   const ratio = Math.max(0, Math.min(1, slotProgress));
   const tier = `x${safeSlots}`;
@@ -734,7 +730,7 @@ function EtherBar({ pts, slots, previewGain = 0, color = "cyan", label, animatio
         overflow: 'hidden'
       }}>
         {/* 완성된 슬롯들 (레이어로 쌓임) */}
-        {Array.from({ length: displaySlots }).map((_, slotIndex) => (
+        {Array.from({ length: safeSlots }).map((_, slotIndex) => (
           <div
             key={`slot-${slotIndex}`}
             style={{
@@ -745,22 +741,21 @@ function EtherBar({ pts, slots, previewGain = 0, color = "cyan", label, animatio
               height: `${((slotIndex + 1) / 10) * 100}%`,
               borderRadius: '24px',
               background: slotColors[slotIndex] || slotColors[0],
-              transition: 'height 0.6s ease-out' // 애니메이션 추가
+              transition: 'height 0.8s ease-out' // 애니메이션 추가
             }}
           />
         ))}
         {/* 현재 진행 중인 슬롯 */}
-        {displaySlots < 10 && (
+        {safeSlots < 10 && (
           <div style={{
             position: 'absolute',
             left: '3px',
             right: '3px',
             bottom: '3px',
-            height: `${((displaySlots + ratio) / 10) * 100}%`,
+            height: `${((safeSlots + ratio) / 10) * 100}%`,
             borderRadius: '24px',
-            background: slotColors[displaySlots] || slotColors[0],
-            opacity: 0.8,
-            transition: 'height 0.6s ease-out' // 애니메이션 추가
+            background: slotColors[safeSlots] || slotColors[0],
+            transition: 'height 0.8s ease-out' // 애니메이션 추가
           }} />
         )}
       </div>
@@ -914,6 +909,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
   const [showCharacterSheet, setShowCharacterSheet] = useState(false);
   const [cardUsageCount, setCardUsageCount] = useState({}); // 카드별 사용 횟수 추적 (mastery, boredom용)
   const [etherAnimationPts, setEtherAnimationPts] = useState(null); // 에테르 애니메이션 전용 (전체 획득량 표시)
+  const [executingCardIndex, setExecutingCardIndex] = useState(null); // 현재 실행 중인 카드 인덱스 (애니메이션용)
   const [vanishedCards, setVanishedCards] = useState([]); // 소멸 특성으로 제거된 카드
   const [turnEtherAccumulated, setTurnEtherAccumulated] = useState(0); // 이번 턴 누적 에테르 (실제 적용 전)
   const [enemyTurnEtherAccumulated, setEnemyTurnEtherAccumulated] = useState(0); // 적 이번 턴 누적 에테르
@@ -1496,10 +1492,18 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
     // 먼저 시곗바늘을 현재 카드 위치로 이동
     setTimelineProgress(progressPercent);
 
-    // 시곗바늘 이동 완료 후 카드 발동 및 실행 (0.9초 transition 후)
+    // 시곗바늘 이동 완료 후 카드 발동 및 실행 (0.5초 transition 후)
     setTimeout(() => {
+      // 실행 중인 카드 표시 (흔들림 애니메이션)
+      setExecutingCardIndex(qIndex);
+
       // 사용된 카드 인덱스 추가 (제거하지 않고 계속 유지)
       setUsedCardIndices(prev => [...prev, qIndex]);
+
+      // 흔들림 애니메이션 종료 후 실행 표시 제거
+      setTimeout(() => {
+        setExecutingCardIndex(null);
+      }, 600); // CSS 애니메이션 시간과 일치
 
       // 마지막 카드면 페이드아웃
       if (qIndex >= queue.length - 1) {
@@ -1858,12 +1862,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
       const relicText = relicMultBonus > 0 ? ` (유물 배율 +${relicMultBonus.toFixed(2)})` : '';
       const overflowText = playerOverflow > 0 ? ` [범람: ${playerOverflow} PT]` : '';
       addLog(`✴️ 에테르 획득: ${turnEtherAccumulated} × ${playerComboMult.toFixed(2)}${relicText} = ${playerBeforeDeflation} → ${playerFinalEther} PT${deflationText} (적용: ${playerAppliedEther} PT${overflowText})`);
-
-      // 애니메이션을 위해 전체 획득량을 임시로 표시
-      setEtherAnimationPts(player.etherPts + playerFinalEther);
-      setTimeout(() => {
-        setEtherAnimationPts(null);
-      }, 2000); // 2초 후 애니메이션 종료
     }
     if (enemyFinalEther > 0) {
       const deflationText = enemyDeflation.usageCount > 0
@@ -2290,13 +2288,13 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
                       : 0;
                     // 타임라인에서 현재 진행 중인 액션인지 확인
                     const globalIndex = phase === 'resolve' && queue ? queue.findIndex(q => q === a) : -1;
-                    const isActive = usedCardIndices.includes(globalIndex);
+                    const isExecuting = executingCardIndex === globalIndex;
                     const isUsed = usedCardIndices.includes(globalIndex) && globalIndex < qIndex;
                     // 정규화: player의 속도를 비율로 변환하여 표시
                     const normalizedPosition = (a.sp / player.maxSpeed) * 100;
                     return (
                       <div key={idx}
-                        className={`timeline-marker marker-player ${isActive && globalIndex === qIndex ? 'timeline-active' : ''} ${isUsed ? 'timeline-used' : ''}`}
+                        className={`timeline-marker marker-player ${isExecuting ? 'timeline-active' : ''} ${isUsed ? 'timeline-used' : ''}`}
                         style={{ left: `${normalizedPosition}%`, top: `${6 + offset}px` }}>
                         <Icon size={14} className="text-white" />
                         <span className="text-white text-xs font-bold">{num > 0 ? num : ''}</span>
@@ -2316,13 +2314,13 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
                     const num = a.card.type === 'attack' ? (a.card.damage * (a.card.hits || 1)) : (a.card.block || 0);
                     // 타임라인에서 현재 진행 중인 액션인지 확인
                     const globalIndex = phase === 'resolve' && queue ? queue.findIndex(q => q === a) : -1;
-                    const isActive = usedCardIndices.includes(globalIndex);
+                    const isExecuting = executingCardIndex === globalIndex;
                     const isUsed = usedCardIndices.includes(globalIndex) && globalIndex < qIndex;
                     // 정규화: enemy의 속도를 비율로 변환하여 표시
                     const normalizedPosition = (a.sp / enemy.maxSpeed) * 100;
                     return (
                       <div key={idx}
-                        className={`timeline-marker marker-enemy ${isActive && globalIndex === qIndex ? 'timeline-active' : ''} ${isUsed ? 'timeline-used' : ''}`}
+                        className={`timeline-marker marker-enemy ${isExecuting ? 'timeline-active' : ''} ${isUsed ? 'timeline-used' : ''}`}
                         style={{ left: `${normalizedPosition}%`, top: `${6 + offset}px` }}>
                         <Icon size={14} className="text-white" />
                         <span className="text-white text-xs font-bold">{num > 0 ? num : ''}</span>
@@ -2416,7 +2414,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
                 slots={playerEtherSlots}
                 previewGain={0}
                 label="ETHER"
-                animationPts={etherAnimationPts}
               />
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
