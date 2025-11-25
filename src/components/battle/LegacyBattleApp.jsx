@@ -1485,7 +1485,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
       }
 
       executeCardAction();
-    }, 900); // CSS transition 시간과 일치 (0.9s)
+    }, 500); // CSS transition 시간과 일치 (0.5s)
   };
 
   const executeCardAction = () => {
@@ -2212,7 +2212,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
                   style={{
                     left: `${timelineProgress}%`,
                     opacity: timelineIndicatorVisible ? 1 : 0,
-                    transition: 'left 0.9s linear, opacity 0.5s ease-out'
+                    transition: 'left 0.5s linear, opacity 0.3s ease-out'
                   }}
                 />
               )}
