@@ -1510,8 +1510,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
   const startEtherCalculationAnimation = (totalEtherPts, actualResolvedCards = null, actualGainedEther = null, skipFinalValueSet = false) => {
     const pCombo = detectPokerCombo(selected);
     const basePlayerComboMult = pCombo ? (COMBO_MULTIPLIERS[pCombo.name] || 1) : 1;
-    // finishTurn과 동일하게 selected.length 사용 (전체 선택된 카드 수)
-    const playerComboMult = applyRelicComboMultiplier(relics, basePlayerComboMult, selected.length);
+    // 몬스터가 죽었을 때는 actualResolvedCards(실제 실행된 카드 수), 아니면 selected.length(전체 선택된 카드 수)
+    const cardCountForMultiplier = actualResolvedCards !== null ? actualResolvedCards : selected.length;
+    const playerComboMult = applyRelicComboMultiplier(relics, basePlayerComboMult, cardCountForMultiplier);
     const playerBeforeDeflation = Math.round(totalEtherPts * playerComboMult);
 
     // 디플레이션 적용
@@ -1532,10 +1533,13 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
       playerBeforeDeflation,
       deflationMult: playerDeflation.multiplier,
       usageCount: playerDeflation.usageCount,
-      playerFinalEther,
+      playerFinalEther: playerFinalEther,
       selectedCards: selected.length,
+      actualResolvedCards: actualResolvedCards,
+      cardCountForMultiplier: cardCountForMultiplier,
       actualGainedEther,
-      comboUsageCount: player.comboUsageCount
+      comboUsageCount: player.comboUsageCount,
+      comboUsageForThisCombo: player.comboUsageCount?.[pCombo?.name] || 0
     });
 
     // 디플레이션 정보 설정
@@ -1560,8 +1564,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
         setTimeout(() => {
           // 4단계: 최종값 표시 + 묵직한 사운드
           setEtherCalcPhase('result');
-          // setEtherFinalValue는 finishTurn에서 설정되므로 여기서는 설정하지 않음
-          // (애니메이션이 finishTurn보다 늦게 실행되어 덮어쓰는 문제 방지)
+          // 버튼 표시를 위해 값 설정 (finishTurn에서 정확한 값으로 다시 설정됨)
+          setEtherFinalValue(playerFinalEther);
           playSound(400, 200);
         }, playerDeflation.usageCount > 0 ? 400 : 0);
       }, 600);
@@ -1775,23 +1779,15 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
       // 큐 인덱스를 끝으로 이동하여 더 이상 진행되지 않도록 함
       setQIndex(queue.length);
 
-      // 에테르 계산 애니메이션 시작 (중단 시점까지만 계산, 남은 카드 에테르 제외)
-      if (turnEtherAccumulated > 0) {
-        // 현재까지 누적된 에테르만 사용 (생략된 카드의 에테르는 포함하지 않음)
-        // 실제 실행된 카드 수를 전달하여 정확한 배율 계산
-        setTimeout(() => startEtherCalculationAnimation(turnEtherAccumulated, actualResolvedCards), 50);
-      } else {
-        // 에테르가 없어도 버튼 표시를 위해 0으로 설정
+      // 에테르 계산 애니메이션은 useEffect에서 실행됨 (상태 업데이트 타이밍 보장)
+      // 에테르가 없으면 버튼 표시를 위해 0으로 설정
+      if (turnEtherAccumulated === 0) {
         setEtherFinalValue(0);
       }
       return;
     }
 
-    // 타임라인의 모든 카드 진행이 끝났을 때 에테르 계산 애니메이션 시작
-    if (newQIndex >= queue.length && turnEtherAccumulated > 0) {
-      // 공통 함수 호출
-      setTimeout(() => startEtherCalculationAnimation(turnEtherAccumulated), 50);
-    }
+    // 타임라인의 모든 카드 진행이 끝났을 때 에테르 계산 애니메이션은 useEffect에서 실행됨 (상태 업데이트 타이밍 보장)
   };
 
   // 자동진행 기능
@@ -1803,6 +1799,16 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
       return () => clearTimeout(timer);
     }
   }, [autoProgress, phase, qIndex, queue.length]);
+
+  // 타임라인 완료 후 에테르 계산 애니메이션 실행
+  // useEffect를 사용하여 turnEtherAccumulated 상태가 최신 값일 때 실행
+  useEffect(() => {
+    if (phase === 'resolve' && qIndex >= queue.length && queue.length > 0 && turnEtherAccumulated > 0 && etherCalcPhase === null) {
+      // 모든 카드가 실행되고 에테르가 누적된 상태에서, 애니메이션이 아직 시작되지 않았을 때만 실행
+      // resolvedPlayerCards를 전달하여 몬스터 사망 시에도 정확한 카드 수 사용
+      setTimeout(() => startEtherCalculationAnimation(turnEtherAccumulated, resolvedPlayerCards), 50);
+    }
+  }, [phase, qIndex, queue.length, turnEtherAccumulated, etherCalcPhase, resolvedPlayerCards]);
 
   const finishTurn = (reason) => {
     addLog(`턴 종료: ${reason || ''}`);
@@ -1864,7 +1870,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
 
     // 에테르 최종 계산 및 적용 (애니메이션은 stepOnce에서 처리됨)
     const basePlayerComboMult = pComboEnd ? (COMBO_MULTIPLIERS[pComboEnd.name] || 1) : 1;
-    const playerComboMult = applyRelicComboMultiplier(relics, basePlayerComboMult, selected.length);
+    // 몬스터 사망 시 실제 실행된 카드 수(resolvedPlayerCards) 사용, 정상 종료 시에는 selected.length와 동일
+    const playerComboMult = applyRelicComboMultiplier(relics, basePlayerComboMult, resolvedPlayerCards);
     const relicMultBonus = playerComboMult - basePlayerComboMult;
 
     const enemyComboMult = eComboEnd ? (COMBO_MULTIPLIERS[eComboEnd.name] || 1) : 1;
@@ -1895,8 +1902,12 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
       playerBeforeDeflation,
       deflationMult: playerDeflation.multiplier,
       usageCount: playerDeflation.usageCount,
-      playerFinalEther,
-      selectedCards: selected.length
+      playerFinalEther: playerFinalEther,
+      selectedCards: selected.length,
+      resolvedPlayerCards: resolvedPlayerCards,
+      cardCountForMultiplier: resolvedPlayerCards,
+      comboUsageCount: player.comboUsageCount,
+      comboUsageForThisCombo: player.comboUsageCount?.[pComboEnd?.name] || 0
     });
 
     // 에테르 범람 계산: 현재 슬롯 내에서 100pt를 초과하는 부분은 범람
