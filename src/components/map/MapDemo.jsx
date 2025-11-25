@@ -5,6 +5,7 @@ import { CharacterSheet } from "../character/CharacterSheet";
 import { DungeonExploration } from "../dungeon/DungeonExploration";
 import { LegacyBattleScreen } from "../battle/LegacyBattleScreen";
 import { EtherBar } from "../battle/LegacyBattleApp";
+import { DevTools } from "../dev/DevTools";
 
 const NODE_WIDTH = 96;
 const NODE_HEIGHT = 100;
@@ -118,6 +119,10 @@ const PATCH_VERSION_TAG = "11-25-19:33"; // 다음 패치마다 여기를 최신
  */
 
 export function MapDemo() {
+  const [showCharacterSheet, setShowCharacterSheet] = useState(false);
+  const [isDungeonExploring, setIsDungeonExploring] = useState(false);
+  const [devToolsOpen, setDevToolsOpen] = useState(false);
+
   const map = useGameStore((state) => state.map);
   const resources = useGameStore((state) => state.resources);
   const mapRisk = useGameStore((state) => state.mapRisk);
@@ -136,8 +141,17 @@ export function MapDemo() {
   const playerHp = useGameStore((state) => state.playerHp);
   const maxHp = useGameStore((state) => state.maxHp);
 
-  const [showCharacterSheet, setShowCharacterSheet] = useState(false);
-  const [isDungeonExploring, setIsDungeonExploring] = useState(false);
+  // Alt+D 핫키로 DevTools 토글
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.altKey && (e.key === 'd' || e.key === 'D')) {
+        e.preventDefault();
+        setDevToolsOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   const nodes = map?.nodes ?? [];
   const mapViewRef = useRef(null);
@@ -459,6 +473,9 @@ export function MapDemo() {
       )}
 
       {showCharacterSheet && <CharacterSheet onClose={() => setShowCharacterSheet(false)} />}
+
+      {/* 개발자 도구 오버레이 */}
+      <DevTools isOpen={devToolsOpen} onClose={() => setDevToolsOpen(false)} />
     </div>
   );
 }

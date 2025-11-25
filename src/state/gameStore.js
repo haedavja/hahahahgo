@@ -729,6 +729,82 @@ export const useGameStore = create((set, get) => ({
       ...state,
       playerStrength: strength,
     })),
+
+  // ==================== 개발자 도구 전용 액션 ====================
+
+  // 자원 직접 설정
+  setResources: (newResources) =>
+    set((state) => ({
+      ...state,
+      resources: { ...state.resources, ...newResources },
+    })),
+
+  // 맵 위험도 직접 설정
+  setMapRisk: (value) =>
+    set((state) => ({
+      ...state,
+      mapRisk: Math.max(20, Math.min(80, value)),
+    })),
+
+  // 모든 노드 해금 (cleared=true, selectable=true)
+  devClearAllNodes: () =>
+    set((state) => {
+      const updatedNodes = cloneNodes(state.map.nodes).map((node) => ({
+        ...node,
+        cleared: true,
+        selectable: true,
+      }));
+      return {
+        ...state,
+        map: {
+          ...state.map,
+          nodes: updatedNodes,
+        },
+      };
+    }),
+
+  // 강제 승리 (전투 중일 때만)
+  devForceWin: () =>
+    set((state) => {
+      if (!state.activeBattle) return state;
+      const rewardsDef = state.activeBattle.rewards ?? {};
+      const rewards = grantRewards(rewardsDef, state.resources);
+      return {
+        ...state,
+        resources: rewards.next,
+        activeBattle: null,
+        lastBattleResult: {
+          nodeId: state.activeBattle.nodeId,
+          kind: state.activeBattle.kind,
+          label: state.activeBattle.label,
+          result: "victory",
+          log: ["[DEV] 강제 승리"],
+          finalState: null,
+          initialState: null,
+          rewards: rewards.applied,
+        },
+      };
+    }),
+
+  // 강제 패배 (전투 중일 때만)
+  devForceLose: () =>
+    set((state) => {
+      if (!state.activeBattle) return state;
+      return {
+        ...state,
+        activeBattle: null,
+        lastBattleResult: {
+          nodeId: state.activeBattle.nodeId,
+          kind: state.activeBattle.kind,
+          label: state.activeBattle.label,
+          result: "defeat",
+          log: ["[DEV] 강제 패배"],
+          finalState: null,
+          initialState: null,
+          rewards: {},
+        },
+      };
+    }),
 }));
 
 export const selectors = {
