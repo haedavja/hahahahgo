@@ -1533,7 +1533,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
       deflationMult: playerDeflation.multiplier,
       usageCount: playerDeflation.usageCount,
       playerFinalEther,
-      selectedCards: selected.length
+      selectedCards: selected.length,
+      actualGainedEther,
+      comboUsageCount: player.comboUsageCount
     });
 
     // 디플레이션 정보 설정
@@ -1558,10 +1560,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
         setTimeout(() => {
           // 4단계: 최종값 표시 + 묵직한 사운드
           setEtherCalcPhase('result');
-          // skipFinalValueSet이 false일 때만 설정 (finishTurn에서 설정하지 않은 경우)
-          if (!skipFinalValueSet) {
-            setEtherFinalValue(playerFinalEther);
-          }
+          // setEtherFinalValue는 finishTurn에서 설정되므로 여기서는 설정하지 않음
+          // (애니메이션이 finishTurn보다 늦게 실행되어 덮어쓰는 문제 방지)
           playSound(400, 200);
         }, playerDeflation.usageCount > 0 ? 400 : 0);
       }, 600);
