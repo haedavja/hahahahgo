@@ -1697,17 +1697,25 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
       // 타임라인 즉시 숨김
       setTimelineIndicatorVisible(false);
 
+      // 큐에서 남은 플레이어 행동 개수 계산 (생략된 카드들의 에테르)
+      const remainingPlayerActions = queue.slice(newQIndex).filter(action => action.actor === 'player').length;
+      const skippedPlayerEther = remainingPlayerActions * BASE_ETHER_PER_CARD;
+
       // 큐를 현재 인덱스로 종료 (남은 행동 모두 제거)
       setQueue(prev => prev.slice(0, newQIndex));
 
       // 에테르 계산 애니메이션 시작 (일반 타임라인 종료와 동일)
-      if (turnEtherAccumulated > 0) {
+      // 생략된 플레이어 카드들의 에테르도 포함
+      const totalEtherForCalculation = turnEtherAccumulated + skippedPlayerEther;
+      if (totalEtherForCalculation > 0) {
         setTimeout(() => {
           setTurnEtherAccumulated(current => {
+            // 생략된 에테르를 포함한 총량
+            const totalAccumulated = current + skippedPlayerEther;
             const pCombo = detectPokerCombo(selected);
             const basePlayerComboMult = pCombo ? (COMBO_MULTIPLIERS[pCombo.name] || 1) : 1;
             const playerComboMult = applyRelicComboMultiplier(relics, basePlayerComboMult, selected.length);
-            const playerBeforeDeflation = Math.round(current * playerComboMult);
+            const playerBeforeDeflation = Math.round(totalAccumulated * playerComboMult);
 
             const playerDeflation = pCombo?.name
               ? applyEtherDeflation(playerBeforeDeflation, pCombo.name, player.comboUsageCount || {})
