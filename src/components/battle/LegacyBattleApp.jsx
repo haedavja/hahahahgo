@@ -832,7 +832,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
   const safeInitialEnemy = initialEnemy || {};
   const baseEnergy = safeInitialPlayer.energy ?? BASE_PLAYER_ENERGY;
   const startingEther = typeof safeInitialPlayer.etherPts === 'number' ? safeInitialPlayer.etherPts : playerEther;
-  const [player, setPlayer] = useState({ hp: safeInitialPlayer.hp ?? 30, maxHp: safeInitialPlayer.maxHp ?? safeInitialPlayer.hp ?? 30, energy: baseEnergy, maxEnergy: baseEnergy, vulnMult: 1, vulnTurns: 0, block: 0, counter: 0, etherPts: startingEther ?? 0, etherOverdriveActive: false, comboUsageCount: {}, strength: playerStrength, maxSpeed: safeInitialPlayer.maxSpeed ?? DEFAULT_PLAYER_MAX_SPEED });
+  const [player, setPlayer] = useState({ hp: safeInitialPlayer.hp ?? 30, maxHp: safeInitialPlayer.maxHp ?? safeInitialPlayer.hp ?? 30, energy: baseEnergy, maxEnergy: baseEnergy, vulnMult: 1, vulnTurns: 0, block: 0, counter: 0, etherPts: startingEther ?? 0, etherOverflow: 0, etherOverdriveActive: false, comboUsageCount: {}, strength: playerStrength, maxSpeed: safeInitialPlayer.maxSpeed ?? DEFAULT_PLAYER_MAX_SPEED });
   const [enemyIndex, setEnemyIndex] = useState(0);
   const [enemy, setEnemy] = useState(() => safeInitialEnemy?.name ? ({ ...safeInitialEnemy, hp: safeInitialEnemy.hp ?? safeInitialEnemy.maxHp ?? 30, maxHp: safeInitialEnemy.maxHp ?? safeInitialEnemy.hp ?? 30, vulnMult: 1, vulnTurns: 0, block: 0, counter: 0, etherPts: 0, etherOverdriveActive: false, strength: 0, maxSpeed: safeInitialEnemy.maxSpeed ?? DEFAULT_ENEMY_MAX_SPEED }) : null);
 
@@ -1802,12 +1802,25 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
       selectedCards: selected.length
     });
 
+    // 에테르 범람 계산: 현재 슬롯 내에서 100pt를 초과하는 부분은 범람
+    let playerAppliedEther = 0;
+    let playerOverflow = 0;
+
     if (playerFinalEther > 0) {
+      const currentSlotPts = getCurrentSlotPts(player.etherPts);
+      const nextSlotCost = getNextSlotCost(player.etherPts);
+      const remainingToNextSlot = nextSlotCost - currentSlotPts;
+
+      // 다음 슬롯까지 채울 수 있는 만큼만 적용
+      playerAppliedEther = Math.min(playerFinalEther, remainingToNextSlot);
+      playerOverflow = playerFinalEther - playerAppliedEther;
+
       const deflationText = playerDeflation.usageCount > 0
         ? ` (디플레이션 -${Math.round((1 - playerDeflation.multiplier) * 100)}%, ${playerDeflation.usageCount}회 사용)`
         : '';
       const relicText = relicMultBonus > 0 ? ` (유물 배율 +${relicMultBonus.toFixed(2)})` : '';
-      addLog(`✴️ 에테르 획득: ${turnEtherAccumulated} × ${playerComboMult.toFixed(2)}${relicText} = ${playerBeforeDeflation} → ${playerFinalEther} PT${deflationText}`);
+      const overflowText = playerOverflow > 0 ? ` [범람: ${playerOverflow} PT]` : '';
+      addLog(`✴️ 에테르 획득: ${turnEtherAccumulated} × ${playerComboMult.toFixed(2)}${relicText} = ${playerBeforeDeflation} → ${playerFinalEther} PT${deflationText} (적용: ${playerAppliedEther} PT${overflowText})`);
     }
     if (enemyFinalEther > 0) {
       const deflationText = enemyDeflation.usageCount > 0
@@ -1836,7 +1849,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
         vulnTurns: 0,
         etherOverdriveActive: false,
         comboUsageCount: newUsageCount,
-        etherPts: (p.etherPts || 0) + playerFinalEther
+        etherPts: (p.etherPts || 0) + playerAppliedEther,
+        etherOverflow: (p.etherOverflow || 0) + playerOverflow
       };
     });
 
@@ -2409,6 +2423,11 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
                     {player.strength > 0 && (
                       <div style={{ fontSize: '0.9rem', fontWeight: '700', color: '#fbbf24', marginTop: '2px' }}>
                         💪 힘: {player.strength}
+                      </div>
+                    )}
+                    {player.etherOverflow > 0 && (
+                      <div style={{ fontSize: '0.85rem', fontWeight: '700', color: '#a78bfa', marginTop: '2px' }}>
+                        🌊 범람: {player.etherOverflow} PT
                       </div>
                     )}
                   </div>
