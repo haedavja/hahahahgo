@@ -700,19 +700,34 @@ function EtherBar({ pts, slots, previewGain = 0, color = "cyan", label }) {
   const borderColor = color === 'red' ? '#ef4444' : '#53d7ff';
   const textColor = color === 'red' ? '#fca5a5' : '#8fd3ff';
 
-  // 슬롯별 색상 (누적되어 보이도록 레이어링)
-  const slotColors = [
-    'linear-gradient(180deg, #6affff 0%, #0f7ebd 100%)', // x1 - 시안
-    'linear-gradient(180deg, #c084fc 0%, #7c3aed 100%)', // x2 - 보라
-    'linear-gradient(180deg, #fb923c 0%, #ea580c 100%)', // x3 - 주황
-    'linear-gradient(180deg, #f87171 0%, #dc2626 100%)', // x4 - 빨강
-    'linear-gradient(180deg, #fbbf24 0%, #d97706 100%)', // x5 - 황금
-    'linear-gradient(180deg, #34d399 0%, #059669 100%)', // x6 - 초록
-    'linear-gradient(180deg, #60a5fa 0%, #2563eb 100%)', // x7 - 파랑
-    'linear-gradient(180deg, #e879f9 0%, #c026d3 100%)', // x8 - 마젠타
-    'linear-gradient(180deg, #fcd34d 0%, #f59e0b 100%)', // x9 - 밝은 황금
-    'linear-gradient(180deg, #ffffff 0%, #d1d5db 100%)'  // x10 - 흰색
+  // 슬롯별 색상 (플레이어: 보색 관계로 시인성 극대화)
+  const playerSlotColors = [
+    'linear-gradient(180deg, #67e8f9 0%, #06b6d4 100%)', // x1 - 밝은 시안 (cyan)
+    'linear-gradient(180deg, #fb923c 0%, #ea580c 100%)', // x2 - 주황 (시안의 보색)
+    'linear-gradient(180deg, #a855f7 0%, #7e22ce 100%)', // x3 - 보라 (주황과 대비)
+    'linear-gradient(180deg, #bef264 0%, #84cc16 100%)', // x4 - 라임 (보라의 보색)
+    'linear-gradient(180deg, #f472b6 0%, #db2777 100%)', // x5 - 마젠타 (라임과 대비)
+    'linear-gradient(180deg, #fde047 0%, #facc15 100%)', // x6 - 밝은 노랑 (마젠타와 대비)
+    'linear-gradient(180deg, #60a5fa 0%, #2563eb 100%)', // x7 - 파랑 (노랑의 보색)
+    'linear-gradient(180deg, #fbbf24 0%, #f59e0b 100%)', // x8 - 골드 (파랑과 대비)
+    'linear-gradient(180deg, #34d399 0%, #059669 100%)', // x9 - 민트 (골드와 대비)
+    'linear-gradient(180deg, #e0e7ff 0%, #c7d2fe 100%)'  // x10 - 연보라 (민트와 대비)
   ];
+
+  const enemySlotColors = [
+    'linear-gradient(180deg, #7f1d1d 0%, #450a0a 100%)', // x1 - 다크 레드
+    'linear-gradient(180deg, #b91c1c 0%, #7f1d1d 100%)', // x2 - 레드
+    'linear-gradient(180deg, #dc2626 0%, #991b1b 100%)', // x3 - 밝은 레드
+    'linear-gradient(180deg, #ea580c 0%, #c2410c 100%)', // x4 - 오렌지 레드
+    'linear-gradient(180deg, #c2410c 0%, #9a3412 100%)', // x5 - 다크 오렌지
+    'linear-gradient(180deg, #92400e 0%, #78350f 100%)', // x6 - 번트 오렌지
+    'linear-gradient(180deg, #991b1b 0%, #7f1d1d 100%)', // x7 - 크림슨
+    'linear-gradient(180deg, #ef4444 0%, #b91c1c 100%)', // x8 - 파이어 레드
+    'linear-gradient(180deg, #f87171 0%, #dc2626 100%)', // x9 - 스칼렛
+    'linear-gradient(180deg, #450a0a 0%, #1c0a0a 100%)'  // x10 - 블랙 레드
+  ];
+
+  const slotColors = color === 'red' ? enemySlotColors : playerSlotColors;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '72px', padding: '12px 10px 16px' }}>
@@ -729,35 +744,30 @@ function EtherBar({ pts, slots, previewGain = 0, color = "cyan", label }) {
         background: 'rgba(9, 17, 27, 0.95)',
         overflow: 'hidden'
       }}>
-        {/* 완성된 슬롯들 (레이어로 쌓임) */}
-        {Array.from({ length: safeSlots }).map((_, slotIndex) => (
-          <div
-            key={`slot-${slotIndex}`}
-            style={{
-              position: 'absolute',
-              left: '3px',
-              right: '3px',
-              bottom: '3px',
-              height: `${((slotIndex + 1) / 10) * 100}%`,
-              borderRadius: '24px',
-              background: slotColors[slotIndex] || slotColors[0],
-              transition: 'height 0.8s ease-out' // 애니메이션 추가
-            }}
-          />
-        ))}
-        {/* 현재 진행 중인 슬롯 */}
-        {safeSlots < 10 && (
+        {/* 이전에 완성된 슬롯 (가장 최근 완성된 슬롯의 색, 바 전체 100%) */}
+        {safeSlots > 0 && (
           <div style={{
             position: 'absolute',
             left: '3px',
             right: '3px',
             bottom: '3px',
-            height: `${((safeSlots + ratio) / 10) * 100}%`,
+            height: '100%',
             borderRadius: '24px',
-            background: slotColors[safeSlots] || slotColors[0],
-            transition: 'height 0.8s ease-out' // 애니메이션 추가
+            background: slotColors[safeSlots - 1],
+            transition: 'height 0.8s ease-out'
           }} />
         )}
+        {/* 현재 진행 중인 슬롯 (현재 슬롯의 진행률만큼 바 전체를 덮어씌움) */}
+        <div style={{
+          position: 'absolute',
+          left: '3px',
+          right: '3px',
+          bottom: '3px',
+          height: `${ratio * 100}%`,
+          borderRadius: '24px',
+          background: safeSlots < 10 ? slotColors[safeSlots] : slotColors[9],
+          transition: 'height 0.8s ease-out'
+        }} />
       </div>
       <div style={{ textAlign: 'center', color: textColor, fontSize: '20px', marginTop: '8px' }}>
         <div key={`pts-${safePts}`}>{currentPts}/{nextSlotCost}</div>
@@ -1497,13 +1507,12 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
       // 실행 중인 카드 표시 (흔들림 애니메이션)
       setExecutingCardIndex(qIndex);
 
-      // 사용된 카드 인덱스 추가 (제거하지 않고 계속 유지)
-      setUsedCardIndices(prev => [...prev, qIndex]);
-
-      // 흔들림 애니메이션 종료 후 실행 표시 제거
+      // 흔들림 애니메이션 종료 후 빛 바래짐 처리
       setTimeout(() => {
         setExecutingCardIndex(null);
-      }, 600); // CSS 애니메이션 시간과 일치
+        // 흔들림이 끝난 후 사용된 카드로 표시 (빛 바래짐)
+        setUsedCardIndices(prev => [...prev, qIndex]);
+      }, 350); // CSS 애니메이션 시간과 일치
 
       // 마지막 카드면 페이드아웃
       if (qIndex >= queue.length - 1) {
