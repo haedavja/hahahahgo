@@ -4,6 +4,7 @@ import { calculateEtherSlots, getCurrentSlotPts, getSlotProgress, getNextSlotCos
 import { CharacterSheet } from "../character/CharacterSheet";
 import { DungeonExploration } from "../dungeon/DungeonExploration";
 import { LegacyBattleScreen } from "../battle/LegacyBattleScreen";
+import { EtherBar } from "../battle/LegacyBattleApp";
 
 const NODE_WIDTH = 96;
 const NODE_HEIGHT = 100;
@@ -285,14 +286,7 @@ export function MapDemo() {
       </div>
 
       <div className="aether-column">
-        <div className="aether-title">AETHER</div>
-        <div className="aether-bar">
-          <div className="aether-fill" style={{ height: `${aetherRatio * 100}%` }} />
-        </div>
-        <div className="aether-remaining">
-          <div>{aetherCurrentPts}/{aetherNextSlotCost}</div>
-          <div>{aetherTier}</div>
-        </div>
+        <EtherBar pts={aetherValue} label="AETHER" />
       </div>
 
       <div className="hp-column">

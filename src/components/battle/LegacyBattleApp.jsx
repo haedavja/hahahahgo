@@ -670,7 +670,7 @@ function ExpectedDamagePreview({ player, enemy, fixedOrder, willOverdrive, enemy
   );
 }
 
-function EtherBar({ pts, slots, previewGain = 0, color = "cyan", label }) {
+export function EtherBar({ pts, slots, previewGain = 0, color = "cyan", label }) {
   const safePts = Number.isFinite(pts) ? pts : 0;
   const derivedSlots = Number.isFinite(slots) ? slots : etherSlots(safePts);
   const safeSlots = Number.isFinite(derivedSlots) ? derivedSlots : 0;
@@ -730,8 +730,18 @@ function EtherBar({ pts, slots, previewGain = 0, color = "cyan", label }) {
   const slotColors = color === 'red' ? enemySlotColors : playerSlotColors;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '72px', padding: '12px 10px 16px' }}>
-      <div style={{ fontSize: '11px', fontWeight: 'bold', marginBottom: '8px', textAlign: 'center', color: '#5fe0ff', letterSpacing: '0.12em' }}>
+    <div style={{
+      width: '72px',
+      padding: '12px 10px 16px',
+      borderRadius: '36px',
+      background: 'linear-gradient(180deg, rgba(8, 12, 20, 0.95), rgba(10, 15, 25, 0.75))',
+      border: '1px solid rgba(96, 210, 255, 0.35)',
+      boxShadow: '0 20px 40px rgba(0, 0, 0, 0.45)',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '12px'
+    }}>
+      <div style={{ fontSize: '11px', fontWeight: 'bold', textAlign: 'center', color: '#5fe0ff', letterSpacing: '0.12em' }}>
         {label}
       </div>
       <div style={{
@@ -769,7 +779,7 @@ function EtherBar({ pts, slots, previewGain = 0, color = "cyan", label }) {
           transition: 'height 0.8s ease-out'
         }} />
       </div>
-      <div style={{ textAlign: 'center', color: textColor, fontSize: '20px', marginTop: '8px' }}>
+      <div style={{ textAlign: 'center', color: textColor, fontSize: '20px' }}>
         <div key={`pts-${safePts}`}>{currentPts}/{nextSlotCost}</div>
         <div>{tier}</div>
         {safePreview > 0 && (

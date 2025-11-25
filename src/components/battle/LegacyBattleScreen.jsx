@@ -32,22 +32,17 @@ export function LegacyBattleScreen() {
   const handleBattleResult = useCallback(
     ({ result, playerEther, deltaEther }) => {
       const finalResult = result === "victory" ? "victory" : "defeat";
-      const isFirstBattle = !lastBattleResult;
 
       if (typeof deltaEther === "number" && deltaEther !== 0) {
-        // 첫 전투 후 비정상적인 +5 보정
-        const correctedDelta = isFirstBattle ? deltaEther - 5 : deltaEther;
-        applyEtherDelta(correctedDelta);
+        applyEtherDelta(deltaEther);
       } else if (typeof playerEther === "number") {
         const current = useGameStore.getState().resources.etherPts ?? 0;
-        let diff = playerEther - current;
-        // 첫 전투 후 비정상적인 +5 보정
-        if (isFirstBattle) diff -= 5;
+        const diff = playerEther - current;
         if (diff) applyEtherDelta(diff);
       }
       resolveBattle({ result: finalResult, etherPts: playerEther });
     },
-    [applyEtherDelta, resolveBattle, lastBattleResult],
+    [applyEtherDelta, resolveBattle],
   );
 
   if (!activeBattle) return null;
