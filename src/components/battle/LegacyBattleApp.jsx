@@ -1452,21 +1452,45 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
     if (qIndex >= queue.length) return;
     const a = queue[qIndex];
 
-    // 사용된 카드 인덱스 추가 (제거하지 않고 계속 유지)
-    setUsedCardIndices(prev => [...prev, qIndex]);
+    // 타임라인 progress 업데이트 (현재 카드의 위치를 actor의 maxSpeed 기준 비율로)
+    const currentMaxSpeed = a.actor === 'player' ? player.maxSpeed : enemy.maxSpeed;
+    const progressPercent = (a.sp / currentMaxSpeed) * 100;
 
-    // 카드 소멸 이펙트는 플레이어만 적용
-    if (a.actor === 'player') {
-      setTimeout(() => {
-        // 카드가 사용된 후 사라지는 애니메이션 시작
-        setDisappearingCards(prev => [...prev, qIndex]);
+    // 먼저 시곗바늘을 현재 카드 위치로 이동
+    setTimelineProgress(progressPercent);
+
+    // 시곗바늘 이동 완료 후 카드 발동 및 실행 (0.9초 transition 후)
+    setTimeout(() => {
+      // 사용된 카드 인덱스 추가 (제거하지 않고 계속 유지)
+      setUsedCardIndices(prev => [...prev, qIndex]);
+
+      // 마지막 카드면 페이드아웃
+      if (qIndex >= queue.length - 1) {
         setTimeout(() => {
-          // 애니메이션 후 완전히 숨김
-          setHiddenCards(prev => [...prev, qIndex]);
-          setDisappearingCards(prev => prev.filter(i => i !== qIndex));
-        }, 600); // 애니메이션 지속 시간
-      }, 300); // 사용 효과 후 바로 사라지기 시작
-    }
+          setTimelineIndicatorVisible(false);
+        }, 300);
+      }
+
+      // 카드 소멸 이펙트는 플레이어만 적용
+      if (a.actor === 'player') {
+        setTimeout(() => {
+          // 카드가 사용된 후 사라지는 애니메이션 시작
+          setDisappearingCards(prev => [...prev, qIndex]);
+          setTimeout(() => {
+            // 애니메이션 후 완전히 숨김
+            setHiddenCards(prev => [...prev, qIndex]);
+            setDisappearingCards(prev => prev.filter(i => i !== qIndex));
+          }, 600); // 애니메이션 지속 시간
+        }, 300); // 사용 효과 후 바로 사라지기 시작
+      }
+
+      executeCardAction();
+    }, 900); // CSS transition 시간과 일치 (0.9s)
+  };
+
+  const executeCardAction = () => {
+    if (qIndex >= queue.length) return;
+    const a = queue[qIndex];
 
     const P = { ...player, def: player.def || false, block: player.block || 0, counter: player.counter || 0, vulnMult: player.vulnMult || 1 };
     const E = { ...enemy, def: enemy.def || false, block: enemy.block || 0, counter: enemy.counter || 0, vulnMult: enemy.vulnMult || 1 };
