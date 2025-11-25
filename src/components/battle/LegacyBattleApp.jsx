@@ -924,6 +924,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
   const [usedCardIndices, setUsedCardIndices] = useState([]);
   const [disappearingCards, setDisappearingCards] = useState([]); // 사라지는 중인 카드 인덱스
   const [hiddenCards, setHiddenCards] = useState([]); // 완전히 숨겨진 카드 인덱스
+  const [disabledCardIndices, setDisabledCardIndices] = useState([]); // 비활성화된 카드 인덱스 (몬스터 사망 시 남은 카드)
   const [timelineProgress, setTimelineProgress] = useState(0); // 타임라인 진행 위치 (0~100%)
   const [timelineIndicatorVisible, setTimelineIndicatorVisible] = useState(true); // 시곗바늘 표시 여부
   const [showCharacterSheet, setShowCharacterSheet] = useState(false);
@@ -1183,7 +1184,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
     setWillOverdrive(false);
 
     // 특성 효과로 인한 에너지 보너스/페널티 적용
-    const baseEnergy = BASE_PLAYER_ENERGY + etherSlots(player.etherPts);
+    const baseEnergy = BASE_PLAYER_ENERGY;
     const energyBonus = nextTurnEffects.bonusEnergy || 0;
     const energyPenalty = nextTurnEffects.energyPenalty || 0;
     const finalEnergy = Math.max(0, baseEnergy + energyBonus - energyPenalty);
@@ -1270,7 +1271,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
         else {
           if (prev.length >= MAX_SUBMIT_CARDS) { addLog('⚠️ 최대 5장의 카드만 제출할 수 있습니다'); return prev; }
           if (totalSpeed + card.speedCost > player.maxSpeed) { addLog('⚠️ 속도 초과'); return prev; }
-          if (totalEnergy + card.actionCost > (BASE_PLAYER_ENERGY + etherSlots(player.etherPts))) { addLog('⚠️ 행동력 부족'); return prev; }
+          if (totalEnergy + card.actionCost > BASE_PLAYER_ENERGY) { addLog('⚠️ 행동력 부족'); return prev; }
           next = [...prev, { ...card, __uid: Math.random().toString(36).slice(2) }];
           playSound(800, 80); // 선택 사운드 (높은 음)
         }
@@ -1288,7 +1289,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
     }
     if (selected.length >= MAX_SUBMIT_CARDS) return addLog('⚠️ 최대 5장의 카드만 제출할 수 있습니다');
     if (totalSpeed + card.speedCost > player.maxSpeed) return addLog('⚠️ 속도 초과');
-    if (totalEnergy + card.actionCost > (BASE_PLAYER_ENERGY + etherSlots(player.etherPts))) return addLog('⚠️ 행동력 부족');
+    if (totalEnergy + card.actionCost > BASE_PLAYER_ENERGY) return addLog('⚠️ 행동력 부족');
     setSelected([...selected, { ...card, __uid: Math.random().toString(36).slice(2) }]);
     playSound(800, 80); // 선택 사운드 (높은 음)
   };
@@ -1504,6 +1505,65 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
     setAutoProgress(true);
   };
 
+  // 에테르 계산 애니메이션 시작 (몬스터 사망 시 / 정상 종료 시 공통)
+  const startEtherCalculationAnimation = (totalEtherPts, actualResolvedCards = null, actualGainedEther = null) => {
+    const pCombo = detectPokerCombo(selected);
+    const basePlayerComboMult = pCombo ? (COMBO_MULTIPLIERS[pCombo.name] || 1) : 1;
+    // actualResolvedCards가 전달되면 사용, 아니면 resolvedPlayerCards 사용
+    const cardCountForMultiplier = actualResolvedCards !== null ? actualResolvedCards : resolvedPlayerCards;
+    const playerComboMult = applyRelicComboMultiplier(relics, basePlayerComboMult, cardCountForMultiplier);
+    const playerBeforeDeflation = Math.round(totalEtherPts * playerComboMult);
+
+    // 디플레이션 적용
+    const playerDeflation = pCombo?.name
+      ? applyEtherDeflation(playerBeforeDeflation, pCombo.name, player.comboUsageCount || {})
+      : { gain: playerBeforeDeflation, multiplier: 1, usageCount: 0 };
+
+    // actualGainedEther가 전달되면 그 값을 사용 (finishTurn에서 계산된 실제 획득값)
+    const playerFinalEther = actualGainedEther !== null ? actualGainedEther : playerDeflation.gain;
+
+    console.log('[에테르 계산 애니메이션]', {
+      turnEtherAccumulated: totalEtherPts,
+      comboName: pCombo?.name,
+      basePlayerComboMult,
+      playerComboMult,
+      relicBonus: playerComboMult - basePlayerComboMult,
+      playerBeforeDeflation,
+      deflationMult: playerDeflation.multiplier,
+      usageCount: playerDeflation.usageCount,
+      playerFinalEther,
+      selectedCards: selected.length
+    });
+
+    // 디플레이션 정보 설정
+    setCurrentDeflation(pCombo?.name ? {
+      comboName: pCombo.name,
+      usageCount: playerDeflation.usageCount,
+      multiplier: playerDeflation.multiplier
+    } : null);
+
+    // 1단계: 합계 강조
+    setEtherCalcPhase('sum');
+    setTimeout(() => {
+      // 2단계: 곱셈 강조 + 명쾌한 사운드
+      setEtherCalcPhase('multiply');
+      playSound(800, 100);
+      setTimeout(() => {
+        // 3단계: 디플레이션 배지 애니메이션 + 저음 사운드
+        if (playerDeflation.usageCount > 0) {
+          setEtherCalcPhase('deflation');
+          playSound(200, 150);
+        }
+        setTimeout(() => {
+          // 4단계: 최종값 표시 + 묵직한 사운드
+          setEtherCalcPhase('result');
+          // setEtherFinalValue는 finishTurn에서 정확한 값으로 설정되므로 여기서는 설정하지 않음
+          playSound(400, 200);
+        }, playerDeflation.usageCount > 0 ? 400 : 0);
+      }, 600);
+    }, 400);
+  };
+
   const stepOnce = () => {
     if (qIndex >= queue.length) return;
     const a = queue[qIndex];
@@ -1694,65 +1754,28 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
       setEnemyHit(true);
       playSound(200, 500); // 낮은 주파수로 죽음 사운드
 
-      // 타임라인 즉시 숨김
+      // 타임라인 즉시 숨김 및 자동진행 중단
       setTimelineIndicatorVisible(false);
+      setAutoProgress(false);
 
-      // 큐에서 남은 플레이어 행동 개수 계산 (생략된 카드들의 에테르)
-      const remainingPlayerActions = queue.slice(newQIndex).filter(action => action.actor === 'player').length;
-      const skippedPlayerEther = remainingPlayerActions * BASE_ETHER_PER_CARD;
+      // 남은 카드들을 비활성화 상태로 표시 (큐는 유지)
+      const disabledIndices = queue.slice(newQIndex).map((_, idx) => newQIndex + idx);
+      setDisabledCardIndices(disabledIndices);
 
-      // 큐를 현재 인덱스로 종료 (남은 행동 모두 제거)
-      setQueue(prev => prev.slice(0, newQIndex));
+      // 실제로 실행 완료된 플레이어 카드 수 계산 (배율 계산에 사용)
+      // newQIndex는 다음에 실행될 카드의 인덱스이므로, newQIndex 이전까지만 카운트
+      // 단, 현재 실행 중인 카드(qIndex)는 아직 완료되지 않았으므로 제외
+      // resolvedPlayerCards 상태와 동일한 값을 사용하는 것이 정확함
+      const actualResolvedCards = resolvedPlayerCards;
 
-      // 에테르 계산 애니메이션 시작 (일반 타임라인 종료와 동일)
-      // 생략된 플레이어 카드들의 에테르도 포함
-      const totalEtherForCalculation = turnEtherAccumulated + skippedPlayerEther;
-      if (totalEtherForCalculation > 0) {
-        // UI 표시를 위해 즉시 총량으로 업데이트
-        setTurnEtherAccumulated(prev => prev + skippedPlayerEther);
+      // 큐 인덱스를 끝으로 이동하여 더 이상 진행되지 않도록 함
+      setQIndex(queue.length);
 
-        setTimeout(() => {
-          setTurnEtherAccumulated(current => {
-            // 이미 총량이 업데이트 되어있음
-            const totalAccumulated = current;
-            const pCombo = detectPokerCombo(selected);
-            const basePlayerComboMult = pCombo ? (COMBO_MULTIPLIERS[pCombo.name] || 1) : 1;
-            const playerComboMult = applyRelicComboMultiplier(relics, basePlayerComboMult, selected.length);
-            const playerBeforeDeflation = Math.round(totalAccumulated * playerComboMult);
-
-            const playerDeflation = pCombo?.name
-              ? applyEtherDeflation(playerBeforeDeflation, pCombo.name, player.comboUsageCount || {})
-              : { gain: playerBeforeDeflation, multiplier: 1, usageCount: 0 };
-
-            const playerFinalEther = playerDeflation.gain;
-
-            setCurrentDeflation(pCombo?.name ? {
-              comboName: pCombo.name,
-              usageCount: playerDeflation.usageCount,
-              multiplier: playerDeflation.multiplier
-            } : null);
-
-            setEtherCalcPhase('accumulating');
-            playSound(600, 100);
-            setTimeout(() => {
-              setEtherCalcPhase('applying');
-              playSound(500, 120);
-              setTimeout(() => {
-                if (playerDeflation.usageCount > 0) {
-                  setEtherCalcPhase('deflation');
-                  playSound(200, 150);
-                }
-                setTimeout(() => {
-                  setEtherCalcPhase('result');
-                  setEtherFinalValue(playerFinalEther);
-                  playSound(400, 200);
-                }, playerDeflation.usageCount > 0 ? 400 : 0);
-              }, 600);
-            }, 400);
-
-            return current;
-          });
-        }, 50);
+      // 에테르 계산 애니메이션 시작 (중단 시점까지만 계산, 남은 카드 에테르 제외)
+      if (turnEtherAccumulated > 0) {
+        // 현재까지 누적된 에테르만 사용 (생략된 카드의 에테르는 포함하지 않음)
+        // 실제 실행된 카드 수를 전달하여 정확한 배율 계산
+        setTimeout(() => startEtherCalculationAnimation(turnEtherAccumulated, actualResolvedCards), 50);
       } else {
         // 에테르가 없어도 버튼 표시를 위해 0으로 설정
         setEtherFinalValue(0);
@@ -1762,61 +1785,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
 
     // 타임라인의 모든 카드 진행이 끝났을 때 에테르 계산 애니메이션 시작
     if (newQIndex >= queue.length && turnEtherAccumulated > 0) {
-      // 상태 업데이트가 완료될 시간을 주기 위해 약간 지연
-      setTimeout(() => {
-        // 최신 상태를 다시 가져옴
-        setTurnEtherAccumulated(current => {
-          const pCombo = detectPokerCombo(selected);
-          const basePlayerComboMult = pCombo ? (COMBO_MULTIPLIERS[pCombo.name] || 1) : 1;
-          const playerComboMult = applyRelicComboMultiplier(relics, basePlayerComboMult, selected.length);
-          const playerBeforeDeflation = Math.round(current * playerComboMult);
-
-          // 디플레이션 적용
-          const playerDeflation = pCombo?.name
-            ? applyEtherDeflation(playerBeforeDeflation, pCombo.name, player.comboUsageCount || {})
-            : { gain: playerBeforeDeflation, multiplier: 1, usageCount: 0 };
-
-          const playerFinalEther = playerDeflation.gain;
-
-          console.log('[stepOnce 애니메이션]', {
-            turnEtherAccumulated: current,
-            comboName: pCombo?.name,
-            basePlayerComboMult,
-            playerComboMult,
-            relicBonus: playerComboMult - basePlayerComboMult,
-            playerBeforeDeflation,
-            deflationMult: playerDeflation.multiplier,
-            usageCount: playerDeflation.usageCount,
-            playerFinalEther,
-            selectedCards: selected.length
-          });
-
-          // 디플레이션 정보는 currentCombo useMemo에서 이미 설정됨
-
-          // 1단계: 합계 강조
-          setEtherCalcPhase('sum');
-          setTimeout(() => {
-            // 2단계: 곱셈 강조 + 명쾌한 사운드
-            setEtherCalcPhase('multiply');
-            playSound(800, 100); // 명쾌한 사운드
-            setTimeout(() => {
-              // 3단계: 디플레이션 배지 애니메이션 + 저음 사운드
-              if (playerDeflation.usageCount > 0) {
-                setEtherCalcPhase('deflation');
-                playSound(200, 150); // 저음 사운드
-              }
-              setTimeout(() => {
-                // 4단계: 최종값 표시 + 묵직한 사운드
-                setEtherCalcPhase('result');
-                setEtherFinalValue(playerFinalEther);
-                playSound(400, 200); // 묵직한 사운드
-              }, playerDeflation.usageCount > 0 ? 400 : 0);
-            }, 600);
-          }, 400);
-
-          return current; // 상태는 변경하지 않음
-        });
-      }, 50); // React 상태 업데이트 완료 대기
+      // 공통 함수 호출
+      setTimeout(() => startEtherCalculationAnimation(turnEtherAccumulated), 50);
     }
   };
 
@@ -1944,6 +1914,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
       const relicText = relicMultBonus > 0 ? ` (유물 배율 +${relicMultBonus.toFixed(2)})` : '';
       const overflowText = playerOverflow > 0 ? ` [범람: ${playerOverflow} PT]` : '';
       addLog(`✴️ 에테르 획득: ${turnEtherAccumulated} × ${playerComboMult.toFixed(2)}${relicText} = ${playerBeforeDeflation} → ${playerFinalEther} PT${deflationText} (적용: ${playerAppliedEther} PT${overflowText})`);
+
+      // 최종값 UI에 실제 적용되는 에테르 표시
+      setEtherFinalValue(playerAppliedEther);
     }
     if (enemyFinalEther > 0) {
       const deflationText = enemyDeflation.usageCount > 0
@@ -2160,13 +2133,13 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
   const handDisabled = (c) => (
     selected.length >= MAX_SUBMIT_CARDS ||
     totalSpeed + c.speedCost > player.maxSpeed ||
-    totalEnergy + c.actionCost > (BASE_PLAYER_ENERGY + etherSlots(player.etherPts))
+    totalEnergy + c.actionCost > BASE_PLAYER_ENERGY
   );
   const playerEtherValue = player?.etherPts ?? 0;
   const playerEtherSlots = etherSlots(playerEtherValue);
   const enemyEtherValue = enemy?.etherPts ?? 0;
   const enemyEtherSlots = etherSlots(enemyEtherValue);
-  const playerEnergyBudget = BASE_PLAYER_ENERGY + etherSlots(player.etherPts);
+  const playerEnergyBudget = BASE_PLAYER_ENERGY;
   const remainingEnergy = Math.max(0, playerEnergyBudget - totalEnergy);
 
   // 적 조합 감지 (표시용)
@@ -2948,6 +2921,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
                 const isUsed = usedCardIndices.includes(globalIndex);
                 const isDisappearing = disappearingCards.includes(globalIndex);
                 const isHidden = hiddenCards.includes(globalIndex);
+                const isDisabled = disabledCardIndices.includes(globalIndex); // 비활성화된 카드 (몬스터 사망 시)
                 const currentBuild = useGameStore.getState().characterBuild;
                 const isMainSpecial = currentBuild?.mainSpecials?.includes(a.card.id);
                 const isSubSpecial = currentBuild?.subSpecials?.includes(a.card.id);
@@ -2964,7 +2938,16 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
                       showCardTraitTooltip(a.card, cardEl);
                     }}
                     onMouseLeave={hideCardTraitTooltip}
-                    style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center', position: 'relative', marginLeft: i === 0 ? '0' : '-20px' }}
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '4px',
+                      alignItems: 'center',
+                      position: 'relative',
+                      marginLeft: i === 0 ? '0' : '-20px',
+                      opacity: isDisabled ? 0.4 : 1, // 비활성화된 카드는 투명하게
+                      filter: isDisabled ? 'grayscale(0.8) brightness(0.6)' : 'none' // 빛바란 효과
+                    }}
                   >
                     <div className={`game-card-large resolve-phase-card ${a.card.type === 'attack' ? 'attack' : 'defense'} ${isUsed ? 'card-used' : ''} ${isDisappearing ? 'card-disappearing' : ''}`}>
                       <div className="card-cost-badge-floating" style={{ color: costColor, WebkitTextStroke: '1px #000' }}>{a.card.actionCost}</div>
