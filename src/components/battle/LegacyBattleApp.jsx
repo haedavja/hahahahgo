@@ -1693,7 +1693,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
       // 몬스터 죽음 애니메이션 및 사운드
       setEnemyHit(true);
       playSound(200, 500); // 낮은 주파수로 죽음 사운드
-      addLog('💀 적 처치! 전투 종료');
 
       // 타임라인 즉시 숨김
       setTimelineIndicatorVisible(false);
@@ -1701,10 +1700,53 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
       // 큐를 현재 인덱스로 종료 (남은 행동 모두 제거)
       setQueue(prev => prev.slice(0, newQIndex));
 
-      // qIndex를 큐 끝으로 설정하여 타임라인 종료 로직이 실행되도록 함
-      // (일반 타임라인 종료와 동일한 에테르 계산 애니메이션이 실행됨)
-      // 다음 setQIndex 호출은 이미 newQIndex로 설정되므로,
-      // newQIndex >= queue.length 조건이 참이 되어 에테르 계산이 실행됨
+      // 에테르 계산 애니메이션 시작 (일반 타임라인 종료와 동일)
+      if (turnEtherAccumulated > 0) {
+        setTimeout(() => {
+          setTurnEtherAccumulated(current => {
+            const pCombo = detectPokerCombo(selected);
+            const basePlayerComboMult = pCombo ? (COMBO_MULTIPLIERS[pCombo.name] || 1) : 1;
+            const playerComboMult = applyRelicComboMultiplier(relics, basePlayerComboMult, selected.length);
+            const playerBeforeDeflation = Math.round(current * playerComboMult);
+
+            const playerDeflation = pCombo?.name
+              ? applyEtherDeflation(playerBeforeDeflation, pCombo.name, player.comboUsageCount || {})
+              : { gain: playerBeforeDeflation, multiplier: 1, usageCount: 0 };
+
+            const playerFinalEther = playerDeflation.gain;
+
+            setCurrentDeflation(pCombo?.name ? {
+              comboName: pCombo.name,
+              usageCount: playerDeflation.usageCount,
+              multiplier: playerDeflation.multiplier
+            } : null);
+
+            setEtherCalcPhase('accumulating');
+            playSound(600, 100);
+            setTimeout(() => {
+              setEtherCalcPhase('applying');
+              playSound(500, 120);
+              setTimeout(() => {
+                if (playerDeflation.usageCount > 0) {
+                  setEtherCalcPhase('deflation');
+                  playSound(200, 150);
+                }
+                setTimeout(() => {
+                  setEtherCalcPhase('result');
+                  setEtherFinalValue(playerFinalEther);
+                  playSound(400, 200);
+                }, playerDeflation.usageCount > 0 ? 400 : 0);
+              }, 600);
+            }, 400);
+
+            return current;
+          });
+        }, 50);
+      } else {
+        // 에테르가 없어도 버튼 표시를 위해 0으로 설정
+        setEtherFinalValue(0);
+      }
+      return;
     }
 
     // 타임라인의 모든 카드 진행이 끝났을 때 에테르 계산 애니메이션 시작
@@ -2679,9 +2721,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
         <div className="hand-area">
 
           <div className="hand-flags">
-            {enemy && enemy.hp <= 0 && (
-              <div className="hand-flag victory">🏆 적 처치!</div>
-            )}
             {player && player.hp <= 0 && (
               <div className="hand-flag defeat">💀 패배...</div>
             )}
