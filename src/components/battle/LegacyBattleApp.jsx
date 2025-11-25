@@ -1701,44 +1701,10 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
       // 큐를 현재 인덱스로 종료 (남은 행동 모두 제거)
       setQueue(prev => prev.slice(0, newQIndex));
 
-      // 즉시 에테르 계산 시작
-      if (turnEtherAccumulated > 0) {
-        setTimeout(() => {
-          setTurnEtherAccumulated(current => {
-            const pCombo = detectPokerCombo(selected);
-            const basePlayerComboMult = pCombo ? (COMBO_MULTIPLIERS[pCombo.name] || 1) : 1;
-            const playerComboMult = applyRelicComboMultiplier(relics, basePlayerComboMult, selected.length);
-            const playerBeforeDeflation = Math.round(current * playerComboMult);
-
-            const playerDeflation = pCombo?.name
-              ? applyEtherDeflation(playerBeforeDeflation, pCombo.name, player.comboUsageCount || {})
-              : { gain: playerBeforeDeflation, multiplier: 1, usageCount: 0 };
-
-            const playerFinalEther = playerDeflation.gain;
-
-            setCurrentDeflation(pCombo?.name ? {
-              comboName: pCombo.name,
-              usageCount: playerDeflation.usageCount,
-              multiplier: playerDeflation.multiplier
-            } : null);
-
-            setEtherCalcPhase('accumulating');
-            setTimeout(() => {
-              setEtherCalcPhase('applying');
-              setTimeout(() => {
-                setEtherFinalValue(playerFinalEther);
-                setEtherCalcPhase('complete');
-              }, 800);
-            }, 1000);
-
-            return current;
-          });
-        }, 300);
-      } else {
-        // 에테르가 없으면 바로 종료 버튼 표시
-        setEtherFinalValue(0);
-      }
-      return;
+      // qIndex를 큐 끝으로 설정하여 타임라인 종료 로직이 실행되도록 함
+      // (일반 타임라인 종료와 동일한 에테르 계산 애니메이션이 실행됨)
+      // 다음 setQIndex 호출은 이미 newQIndex로 설정되므로,
+      // newQIndex >= queue.length 조건이 참이 되어 에테르 계산이 실행됨
     }
 
     // 타임라인의 모든 카드 진행이 끝났을 때 에테르 계산 애니메이션 시작
@@ -2591,7 +2557,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
             {phase === 'resolve' && qIndex >= queue.length && etherFinalValue !== null && (
               <div style={{ display: 'flex', justifyContent: 'center', marginTop: '16px' }}>
                 {enemy.hp <= 0 ? (
-                  <button onClick={handleExitToMap} className="btn-enhanced btn-success flex items-center gap-2" style={{ fontSize: '1.25rem', padding: '12px 24px', fontWeight: '700', minWidth: '200px' }}>
+                  <button onClick={() => finishTurn('전투 승리')} className="btn-enhanced btn-success flex items-center gap-2" style={{ fontSize: '1.25rem', padding: '12px 24px', fontWeight: '700', minWidth: '200px' }}>
                     🎉 전투 종료 <span style={{ fontSize: '1.4rem', fontWeight: '900' }}>(E)</span>
                   </button>
                 ) : (
