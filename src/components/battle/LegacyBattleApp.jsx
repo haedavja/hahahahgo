@@ -1708,10 +1708,13 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
       // 생략된 플레이어 카드들의 에테르도 포함
       const totalEtherForCalculation = turnEtherAccumulated + skippedPlayerEther;
       if (totalEtherForCalculation > 0) {
+        // UI 표시를 위해 즉시 총량으로 업데이트
+        setTurnEtherAccumulated(prev => prev + skippedPlayerEther);
+
         setTimeout(() => {
           setTurnEtherAccumulated(current => {
-            // 생략된 에테르를 포함한 총량
-            const totalAccumulated = current + skippedPlayerEther;
+            // 이미 총량이 업데이트 되어있음
+            const totalAccumulated = current;
             const pCombo = detectPokerCombo(selected);
             const basePlayerComboMult = pCombo ? (COMBO_MULTIPLIERS[pCombo.name] || 1) : 1;
             const playerComboMult = applyRelicComboMultiplier(relics, basePlayerComboMult, selected.length);
