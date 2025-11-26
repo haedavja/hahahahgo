@@ -2237,6 +2237,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
   const enemyEtherValue = enemy?.etherPts ?? 0;
   const enemyEtherSlots = etherSlots(enemyEtherValue);
   const playerEnergyBudget = player.maxEnergy || BASE_PLAYER_ENERGY;
+  const remainingEnergy = Math.max(0, playerEnergyBudget - totalEnergy);
 
   // 적 조합 감지 (표시용)
   const enemyCombo = useMemo(() => detectPokerCombo(enemyPlan.actions || []), [enemyPlan.actions]);
