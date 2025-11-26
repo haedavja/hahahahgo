@@ -672,8 +672,6 @@ export function DungeonExploration() {
           </div>
         </div>
       )}
-        </div>
-      )}
 
       {/* 자원 - 중앙 상단 가로 배치 */}
       <div style={{
