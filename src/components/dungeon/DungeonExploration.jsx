@@ -3,7 +3,16 @@ import { useGameStore } from "../../state/gameStore";
 import { calculateEtherSlots, getCurrentSlotPts, getSlotProgress, getNextSlotCost } from "../../lib/etherUtils";
 import { CharacterSheet } from "../character/CharacterSheet";
 import { EtherBar } from "../battle/LegacyBattleApp";
+import { RELICS, RELIC_RARITIES } from "../../data/relics";
 import "./dungeon.css";
+
+// 유물 희귀도별 색상
+const RELIC_RARITY_COLORS = {
+  [RELIC_RARITIES.COMMON]: '#94a3b8',
+  [RELIC_RARITIES.RARE]: '#60a5fa',
+  [RELIC_RARITIES.SPECIAL]: '#a78bfa',
+  [RELIC_RARITIES.LEGENDARY]: '#fbbf24',
+};
 
 // ========== 설정 ==========
 const CONFIG = {
@@ -226,6 +235,7 @@ export function DungeonExploration() {
   const addResources = useGameStore((s) => s.addResources);
   const lastBattleResult = useGameStore ((s) => s.lastBattleResult);
   const clearBattleResult = useGameStore((s) => s.clearBattleResult);
+  const relics = useGameStore((s) => s.relics);
   const resources = useGameStore((s) => s.resources);
   const playerHp = useGameStore((s) => s.playerHp);
   const maxHp = useGameStore((s) => s.maxHp);
@@ -264,6 +274,7 @@ export function DungeonExploration() {
   const [rewardModal, setRewardModal] = useState(null);
   const [showCharacter, setShowCharacter] = useState(false);
   const [dungeonSummary, setDungeonSummary] = useState(null); // 던전 탈출 요약
+  const [hoveredRelic, setHoveredRelic] = useState(null);
 
   // 던전 중 획득한 자원 델타 (x값) - activeDungeon에서 가져옴 (재마운트 시에도 유지)
   const dungeonDeltas = activeDungeon?.dungeonDeltas || { gold: 0, intel: 0, loot: 0, material: 0 };
@@ -577,6 +588,85 @@ export function DungeonExploration() {
           borderRadius: "8px",
         }}
       />
+
+      {/* 유물 표시 */}
+      {relics && relics.length > 0 && (
+        <div style={{
+          position: "absolute",
+          top: "20px",
+          left: "50%",
+          transform: "translateX(-50%)",
+          display: 'flex',
+          gap: '12px',
+          alignItems: 'center',
+          zIndex: 100,
+        }}>
+          {relics.map((relicId, index) => {
+            const relic = RELICS[relicId];
+            if (!relic) return null;
+
+            const rarityText = {
+              [RELIC_RARITIES.COMMON]: '일반',
+              [RELIC_RARITIES.RARE]: '희귀',
+              [RELIC_RARITIES.SPECIAL]: '특별',
+              [RELIC_RARITIES.LEGENDARY]: '전설'
+            }[relic.rarity] || '알 수 없음';
+
+            return (
+              <div key={index} style={{ position: 'relative' }}>
+                <div
+                  onMouseEnter={() => setHoveredRelic(relicId)}
+                  onMouseLeave={() => setHoveredRelic(null)}
+                  style={{
+                    fontSize: '2rem',
+                    padding: '8px',
+                    background: `linear-gradient(135deg, ${RELIC_RARITY_COLORS[relic.rarity]}33, ${RELIC_RARITY_COLORS[relic.rarity]}11)`,
+                    border: `2px solid ${RELIC_RARITY_COLORS[relic.rarity]}`,
+                    borderRadius: '12px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    boxShadow: `0 0 15px ${RELIC_RARITY_COLORS[relic.rarity]}44`,
+                    transform: hoveredRelic === relicId ? 'scale(1.1)' : 'scale(1)',
+                  }}>
+                  <span>{relic.emoji}</span>
+                </div>
+
+                {/* 툴팁 */}
+                {hoveredRelic === relicId && (
+                  <div style={{
+                    position: 'absolute',
+                    top: '100%',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    marginTop: '8px',
+                    background: 'rgba(15, 23, 42, 0.98)',
+                    border: `2px solid ${RELIC_RARITY_COLORS[relic.rarity]}`,
+                    borderRadius: '8px',
+                    padding: '12px 16px',
+                    minWidth: '250px',
+                    boxShadow: `0 4px 20px ${RELIC_RARITY_COLORS[relic.rarity]}66`,
+                    zIndex: 1000,
+                    pointerEvents: 'none'
+                  }}>
+                    <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: RELIC_RARITY_COLORS[relic.rarity], marginBottom: '4px' }}>
+                      {relic.emoji} {relic.name}
+                    </div>
+                    <div style={{ fontSize: '0.85rem', color: RELIC_RARITY_COLORS[relic.rarity], opacity: 0.8, marginBottom: '8px' }}>
+                      {rarityText}
+                    </div>
+                    <div style={{ fontSize: '0.95rem', color: '#e2e8f0', lineHeight: '1.5' }}>
+                      {relic.description}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* 자원 - 중앙 상단 가로 배치 */}
       <div style={{

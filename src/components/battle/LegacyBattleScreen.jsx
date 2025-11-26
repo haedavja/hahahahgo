@@ -1,16 +1,34 @@
-import { useMemo, useCallback } from "react";
+import { useMemo, useCallback, useState, useEffect } from "react";
 import { useGameStore } from "../../state/gameStore";
 import { LegacyBattleApp } from "./LegacyBattleApp";
+import { DevTools } from "../dev/DevTools";
+import { calculatePassiveEffects, applyCombatStartEffects } from "../../lib/relicEffects";
 
-const buildBattlePayload = (battle, etherPts) => {
+const buildBattlePayload = (battle, etherPts, relics, maxHp) => {
   if (!battle) return null;
   const initialPlayer = battle.simulation?.initialState?.player;
   const initialEnemy = battle.simulation?.initialState?.enemy;
+
+  // 유물 패시브 효과 계산
+  const passiveEffects = calculatePassiveEffects(relics);
+  const baseEnergy = 6;
+  const maxEnergy = baseEnergy + passiveEffects.maxEnergy;
+
+  // 전투 시작 효과 계산
+  const combatStartEffects = applyCombatStartEffects(relics, {});
+
+  // 전투 시작 시 체력/방어력 보너스 적용
+  const startingHp = Math.min(
+    maxHp,
+    (initialPlayer?.hp ?? maxHp) + combatStartEffects.heal
+  );
+
   return {
     player: {
-      hp: initialPlayer?.hp ?? 100,
-      maxHp: initialPlayer?.maxHp ?? 100,
-      energy: 6,
+      hp: startingHp,
+      maxHp: maxHp, // gameStore의 maxHp 사용 (유물 효과가 이미 적용됨)
+      energy: maxEnergy + combatStartEffects.energy, // 시작 에너지 = maxEnergy + 전투 시작 보너스
+      block: combatStartEffects.block, // 시작 방어력
       etherPts,
     },
     enemy: {
@@ -26,8 +44,24 @@ export function LegacyBattleScreen() {
   const applyEtherDelta = useGameStore((state) => state.applyEtherDelta);
   const lastBattleResult = useGameStore((state) => state.lastBattleResult);
   const playerEther = useGameStore((state) => state.resources.etherPts ?? 0);
-  const payload = useMemo(() => buildBattlePayload(activeBattle, playerEther), [activeBattle, playerEther]);
+  const relics = useGameStore((state) => state.relics);
+  const maxHp = useGameStore((state) => state.maxHp);
+  const payload = useMemo(() => buildBattlePayload(activeBattle, playerEther, relics, maxHp), [activeBattle, playerEther, relics, maxHp]);
   const frameKey = activeBattle ? `${activeBattle.nodeId}-${activeBattle.kind}` : "idle";
+
+  const [devToolsOpen, setDevToolsOpen] = useState(false);
+
+  // Alt+D 단축키
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.altKey && (e.key === 'd' || e.key === 'D')) {
+        e.preventDefault();
+        setDevToolsOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   const handleBattleResult = useCallback(
     ({ result, playerEther, deltaEther }) => {
@@ -55,6 +89,8 @@ export function LegacyBattleScreen() {
         playerEther={playerEther}
         onBattleResult={handleBattleResult}
       />
+
+      <DevTools isOpen={devToolsOpen} onClose={() => setDevToolsOpen(false)} />
     </div>
   );
 }

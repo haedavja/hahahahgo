@@ -17,7 +17,27 @@ import {
 import { calculateEtherSlots, getCurrentSlotPts, getSlotProgress, getNextSlotCost } from "../../lib/etherUtils";
 import { CharacterSheet } from "../character/CharacterSheet";
 import { useGameStore } from "../../state/gameStore";
-import { RELICS, RELIC_EFFECT, RELIC_RARITY, applyRelicEffects, applyRelicComboMultiplier, RELIC_RARITY_COLORS } from "../../lib/relics";
+import { RELICS, RELIC_RARITIES } from "../../data/relics";
+import { RELIC_EFFECT, applyRelicEffects, applyRelicComboMultiplier } from "../../lib/relics";
+import { applyAgility } from "../../lib/agilityUtils";
+
+// 유물 희귀도별 색상
+const RELIC_RARITY_COLORS = {
+  [RELIC_RARITIES.COMMON]: '#94a3b8',
+  [RELIC_RARITIES.RARE]: '#60a5fa',
+  [RELIC_RARITIES.SPECIAL]: '#a78bfa',
+  [RELIC_RARITIES.LEGENDARY]: '#fbbf24',
+};
+import {
+  calculatePassiveEffects,
+  applyCombatStartEffects,
+  applyCombatEndEffects,
+  applyTurnStartEffects,
+  applyTurnEndEffects,
+  applyCardPlayedEffects,
+  applyDamageTakenEffects,
+  calculateEtherGain as calculateRelicEtherGain
+} from "../../lib/relicEffects";
 
 const STUN_RANGE = 5; // 기절 효과 범위(타임라인 기준)
 
@@ -198,14 +218,14 @@ function applyStrengthToCard(card, strength = 0, isPlayerCard = true) {
 
   const modifiedCard = { ...card };
 
-  // 공격 카드: 힘 1당 공격력 +1
+  // 공격 카드: 힘 1당 공격력 +1 (음수 허용, 최소 0)
   if (modifiedCard.damage && modifiedCard.type === 'attack') {
-    modifiedCard.damage = modifiedCard.damage + strength;
+    modifiedCard.damage = Math.max(0, modifiedCard.damage + strength);
   }
 
-  // 방어 카드: 힘 1당 방어력 +1
+  // 방어 카드: 힘 1당 방어력 +1 (음수 허용, 최소 0)
   if (modifiedCard.block && modifiedCard.type === 'defense') {
-    modifiedCard.block = modifiedCard.block + strength;
+    modifiedCard.block = Math.max(0, modifiedCard.block + strength);
   }
 
   return modifiedCard;
@@ -217,10 +237,18 @@ function applyStrengthToHand(hand, strength = 0) {
   return hand.map(card => applyStrengthToCard(card, strength, true));
 }
 
-function sortCombinedOrderStablePF(playerCards, enemyCards) {
+function sortCombinedOrderStablePF(playerCards, enemyCards, playerAgility = 0, enemyAgility = 0) {
   const q = []; let ps = 0, es = 0;
-  (playerCards || []).forEach((c, idx) => { ps += c.speedCost; q.push({ actor: 'player', card: c, sp: ps, idx }); });
-  (enemyCards || []).forEach((c, idx) => { es += c.speedCost; q.push({ actor: 'enemy', card: c, sp: es, idx }); });
+  (playerCards || []).forEach((c, idx) => {
+    const finalSpeed = applyAgility(c.speedCost, playerAgility);
+    ps += finalSpeed;
+    q.push({ actor: 'player', card: c, sp: ps, idx, originalSpeed: c.speedCost, finalSpeed });
+  });
+  (enemyCards || []).forEach((c, idx) => {
+    const finalSpeed = applyAgility(c.speedCost, enemyAgility);
+    es += finalSpeed;
+    q.push({ actor: 'enemy', card: c, sp: es, idx, originalSpeed: c.speedCost, finalSpeed });
+  });
   q.sort((a, b) => {
     if (a.sp !== b.sp) return a.sp - b.sp;
     if (a.actor !== b.actor) return a.actor === 'player' ? -1 : 1;
@@ -878,12 +906,14 @@ function drawCharacterBuildHand(characterBuild, nextTurnEffects = {}, previousHa
 // =====================
 function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) {
   const playerStrength = useGameStore((state) => state.playerStrength || 0);
+  const playerAgility = useGameStore((state) => state.playerAgility || 0);
   const relics = useGameStore((state) => state.relics || []);
   const safeInitialPlayer = initialPlayer || {};
   const safeInitialEnemy = initialEnemy || {};
   const baseEnergy = safeInitialPlayer.energy ?? BASE_PLAYER_ENERGY;
   const startingEther = typeof safeInitialPlayer.etherPts === 'number' ? safeInitialPlayer.etherPts : playerEther;
-  const [player, setPlayer] = useState({ hp: safeInitialPlayer.hp ?? 30, maxHp: safeInitialPlayer.maxHp ?? safeInitialPlayer.hp ?? 30, energy: baseEnergy, maxEnergy: baseEnergy, vulnMult: 1, vulnTurns: 0, block: 0, counter: 0, etherPts: startingEther ?? 0, etherOverflow: 0, etherOverdriveActive: false, comboUsageCount: {}, strength: playerStrength, maxSpeed: safeInitialPlayer.maxSpeed ?? DEFAULT_PLAYER_MAX_SPEED });
+  const startingBlock = safeInitialPlayer.block ?? 0; // 유물 효과로 인한 시작 방어력
+  const [player, setPlayer] = useState({ hp: safeInitialPlayer.hp ?? 30, maxHp: safeInitialPlayer.maxHp ?? safeInitialPlayer.hp ?? 30, energy: baseEnergy, maxEnergy: baseEnergy, vulnMult: 1, vulnTurns: 0, block: startingBlock, counter: 0, etherPts: startingEther ?? 0, etherOverflow: 0, etherOverdriveActive: false, comboUsageCount: {}, strength: playerStrength, maxSpeed: safeInitialPlayer.maxSpeed ?? DEFAULT_PLAYER_MAX_SPEED });
   const [enemyIndex, setEnemyIndex] = useState(0);
   const [enemy, setEnemy] = useState(() => safeInitialEnemy?.name ? ({ ...safeInitialEnemy, hp: safeInitialEnemy.hp ?? safeInitialEnemy.maxHp ?? 30, maxHp: safeInitialEnemy.maxHp ?? safeInitialEnemy.hp ?? 30, vulnMult: 1, vulnTurns: 0, block: 0, counter: 0, etherPts: 0, etherOverdriveActive: false, strength: 0, maxSpeed: safeInitialEnemy.maxSpeed ?? DEFAULT_ENEMY_MAX_SPEED }) : null);
 
@@ -1183,13 +1213,32 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
     setCanRedraw(true);
     setWillOverdrive(false);
 
+    // 유물 턴 시작 효과 적용 (피피한 갑옷 등)
+    const turnStartRelicEffects = applyTurnStartEffects(relics, nextTurnEffects);
+
     // 특성 효과로 인한 에너지 보너스/페널티 적용
     const baseEnergy = BASE_PLAYER_ENERGY;
-    const energyBonus = nextTurnEffects.bonusEnergy || 0;
+    const energyBonus = (nextTurnEffects.bonusEnergy || 0) + turnStartRelicEffects.energy;
     const energyPenalty = nextTurnEffects.energyPenalty || 0;
     const finalEnergy = Math.max(0, baseEnergy + energyBonus - energyPenalty);
 
-    setPlayer(p => ({ ...p, energy: finalEnergy, etherOverdriveActive: false, etherOverflow: 0 }));
+    // 방어력과 체력 회복 적용
+    setPlayer(p => {
+      const newHp = Math.min(p.maxHp, p.hp + turnStartRelicEffects.heal);
+      const newBlock = (p.block || 0) + turnStartRelicEffects.block;
+      return { ...p, hp: newHp, block: newBlock, energy: finalEnergy, etherOverdriveActive: false, etherOverflow: 0 };
+    });
+
+    // 로그 추가
+    if (turnStartRelicEffects.block > 0) {
+      addLog(`🛡️ 유물 효과: 방어력 +${turnStartRelicEffects.block}`);
+    }
+    if (turnStartRelicEffects.heal > 0) {
+      addLog(`💚 유물 효과: 체력 +${turnStartRelicEffects.heal}`);
+    }
+    if (turnStartRelicEffects.energy > 0) {
+      addLog(`⚡ 유물 효과: 행동력 +${turnStartRelicEffects.energy}`);
+    }
 
     // 매 턴 시작 시 새로운 손패 생성 (캐릭터 빌드 및 특성 효과 적용)
     const currentBuild = useGameStore.getState().characterBuild;
@@ -1240,15 +1289,19 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
     return combo;
   }, [selected, player.comboUsageCount, phase]);
 
-  // 유물 효과를 포함한 최종 콤보 배율 (진행 단계에서만 진행된 카드 수 기반으로 계산)
+  // 유물 효과를 포함한 최종 콤보 배율
   const finalComboMultiplier = useMemo(() => {
     const baseMultiplier = currentCombo ? (COMBO_MULTIPLIERS[currentCombo.name] || 1) : 1;
-    // 진행 단계에서는 진행된 카드 수 기반, 그 외에는 유물 효과 없음
+    // 진행 단계에서는 진행된 카드 수 기반으로 유물 효과 적용
     if (phase === 'resolve') {
       return applyRelicComboMultiplier(relics, baseMultiplier, resolvedPlayerCards);
     }
+    // 선택/응답 단계에서는 선택된 카드 수 기반으로 유물 효과 적용 (미리보기)
+    if (phase === 'select' || phase === 'respond') {
+      return applyRelicComboMultiplier(relics, baseMultiplier, selected.length);
+    }
     return baseMultiplier;
-  }, [currentCombo, relics, resolvedPlayerCards, phase]);
+  }, [currentCombo, relics, resolvedPlayerCards, selected.length, phase]);
   const comboPreviewInfo = useMemo(() => {
     if (!currentCombo) return null;
     return calculateComboEtherGain({
@@ -1277,7 +1330,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
         }
         const combo = detectPokerCombo(next);
         const enhanced = applyPokerBonus(next, combo);
-        setFixedOrder(sortCombinedOrderStablePF(enhanced, enemyPlan.actions || []));
+        setFixedOrder(sortCombinedOrderStablePF(enhanced, enemyPlan.actions || [], playerAgility, 0));
         return next;
       });
       return;
@@ -1301,7 +1354,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
         const n = [...prev];[n[i - 1], n[i]] = [n[i], n[i - 1]];
         const combo = detectPokerCombo(n);
         const enhanced = applyPokerBonus(n, combo);
-        setFixedOrder(sortCombinedOrderStablePF(enhanced, enemyPlan.actions || []));
+        setFixedOrder(sortCombinedOrderStablePF(enhanced, enemyPlan.actions || [], playerAgility, 0));
         return n;
       });
     } else {
@@ -1316,7 +1369,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
         const n = [...prev];[n[i], n[i + 1]] = [n[i + 1], n[i]];
         const combo = detectPokerCombo(n);
         const enhanced = applyPokerBonus(n, combo);
-        setFixedOrder(sortCombinedOrderStablePF(enhanced, enemyPlan.actions || []));
+        setFixedOrder(sortCombinedOrderStablePF(enhanced, enemyPlan.actions || [], playerAgility, 0));
         return n;
       });
     } else {
@@ -1431,7 +1484,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
 
     const enhancedSelected = applyPokerBonus(traitEnhancedSelected, pCombo);
 
-    const q = sortCombinedOrderStablePF(enhancedSelected, actions);
+    const q = sortCombinedOrderStablePF(enhancedSelected, actions, playerAgility, 0);
     setFixedOrder(q);
     playCardSubmitSound(); // 카드 제출 사운드 재생
     setPhase('respond');
@@ -1450,7 +1503,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
       );
 
       const enhancedSelected = applyPokerBonus(traitEnhancedSelected, combo);
-      const q = sortCombinedOrderStablePF(enhancedSelected, enemyPlan.actions);
+      const q = sortCombinedOrderStablePF(enhancedSelected, enemyPlan.actions, playerAgility, 0);
       setFixedOrder(q);
     }
   }, [selected, phase, enemyPlan.actions]);
@@ -1513,7 +1566,10 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
     // 몬스터가 죽었을 때는 actualResolvedCards(실제 실행된 카드 수), 아니면 selected.length(전체 선택된 카드 수)
     const cardCountForMultiplier = actualResolvedCards !== null ? actualResolvedCards : selected.length;
     const playerComboMult = applyRelicComboMultiplier(relics, basePlayerComboMult, cardCountForMultiplier);
-    const playerBeforeDeflation = Math.round(totalEtherPts * playerComboMult);
+    let playerBeforeDeflation = Math.round(totalEtherPts * playerComboMult);
+
+    // 유물 효과 적용 (참고서, 악마의 주사위, 희귀한 조약돌)
+    playerBeforeDeflation = calculateRelicEtherGain(playerBeforeDeflation, cardCountForMultiplier, relics);
 
     // 디플레이션 적용
     const playerDeflation = pCombo?.name
@@ -1691,7 +1747,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
         if (relics.length > 0) {
           relics.forEach(relicId => {
             const relic = RELICS[relicId];
-            if (relic?.effects.some(e => e.type === RELIC_EFFECT.COMBO_MULTIPLIER_PER_CARD)) {
+            // effects가 객체인 경우 처리 (/src/data/relics.js 사용)
+            if (relic?.effects?.type === 'PASSIVE' && relic?.effects?.comboMultiplierPerCard) {
               setRelicActivated(relicId);
               playSound(800, 200); // 유물 발동 사운드
               setTimeout(() => setRelicActivated(null), 500);
@@ -1862,7 +1919,27 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
       }
     });
 
+    // 유물 턴 종료 효과 적용 (계약서, 은화 등)
+    const turnEndRelicEffects = applyTurnEndEffects(relics, {
+      cardsPlayedThisTurn: selected.length,
+      player,
+      enemy,
+    });
+
+    // 턴 종료 유물 효과를 다음 턴 효과에 추가
+    if (turnEndRelicEffects.energyNextTurn > 0) {
+      newNextTurnEffects.bonusEnergy += turnEndRelicEffects.energyNextTurn;
+      addLog(`📜 유물 효과: 다음턴 행동력 +${turnEndRelicEffects.energyNextTurn}`);
+    }
+
     setNextTurnEffects(newNextTurnEffects);
+
+    // 힘 증가 즉시 적용 (은화 등) - 상태 업데이트 후에 적용
+    if (turnEndRelicEffects.strength !== 0) {
+      const newStrength = playerStrength + turnEndRelicEffects.strength;
+      addLog(`💪 유물 효과: 힘 ${turnEndRelicEffects.strength > 0 ? '+' : ''}${turnEndRelicEffects.strength} (총 ${newStrength})`);
+      setPlayerStrength(newStrength);
+    }
 
     // 턴 종료 시 조합 카운트 증가 (Deflation)
     const pComboEnd = detectPokerCombo(selected);
@@ -1877,7 +1954,10 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
     const enemyComboMult = eComboEnd ? (COMBO_MULTIPLIERS[eComboEnd.name] || 1) : 1;
 
     // 조합 배율 적용
-    const playerBeforeDeflation = Math.round(turnEtherAccumulated * playerComboMult);
+    let playerBeforeDeflation = Math.round(turnEtherAccumulated * playerComboMult);
+    // 유물 효과 적용 (참고서, 악마의 주사위, 희귀한 조약돌)
+    playerBeforeDeflation = calculateRelicEtherGain(playerBeforeDeflation, resolvedPlayerCards, relics);
+
     const enemyBeforeDeflation = Math.round(enemyTurnEtherAccumulated * enemyComboMult);
 
     // 디플레이션 적용
@@ -2242,82 +2322,86 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
         {relics && relics.length > 0 && (
           <div style={{
             display: 'flex',
-            gap: '12px',
             marginBottom: '16px',
             justifyContent: 'center',
             alignItems: 'center',
             position: 'relative'
           }}>
-            {relics.map((relicId, index) => {
-              const relic = RELICS[relicId];
-              if (!relic) return null;
+            <div style={{
+              display: 'flex',
+              gap: '6px',
+              padding: '8px 12px',
+              background: 'rgba(15, 23, 42, 0.9)',
+              border: '2px solid rgba(148, 163, 184, 0.5)',
+              borderRadius: '12px',
+              boxShadow: '0 0 15px rgba(148, 163, 184, 0.3)',
+            }}>
+              {relics.map((relicId, index) => {
+                const relic = RELICS[relicId];
+                if (!relic) return null;
 
-              const isActivated = relicActivated === relicId;
-              const rarityText = {
-                [RELIC_RARITY.COMMON]: '일반',
-                [RELIC_RARITY.RARE]: '희귀',
-                [RELIC_RARITY.LEGENDARY]: '전설'
-              }[relic.rarity] || '알 수 없음';
+                const isActivated = relicActivated === relicId;
+                const isHovered = hoveredRelic === relicId;
+                const rarityText = {
+                  [RELIC_RARITIES.COMMON]: '일반',
+                  [RELIC_RARITIES.RARE]: '희귀',
+                  [RELIC_RARITIES.SPECIAL]: '특별',
+                  [RELIC_RARITIES.LEGENDARY]: '전설'
+                }[relic.rarity] || '알 수 없음';
 
-              return (
-                <div key={index} style={{ position: 'relative' }}>
-                  <div
-                    onMouseEnter={() => setHoveredRelic(relicId)}
-                    onMouseLeave={() => setHoveredRelic(null)}
-                    style={{
-                      fontSize: '2rem',
-                      padding: '8px 16px',
-                      background: `linear-gradient(135deg, ${RELIC_RARITY_COLORS[relic.rarity]}33, ${RELIC_RARITY_COLORS[relic.rarity]}11)`,
-                      border: `2px solid ${RELIC_RARITY_COLORS[relic.rarity]}`,
-                      borderRadius: '12px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s ease',
-                      boxShadow: `0 0 15px ${RELIC_RARITY_COLORS[relic.rarity]}44`,
-                      transform: hoveredRelic === relicId ? 'scale(1.1)' : (isActivated ? 'scale(1.15)' : 'scale(1)'),
-                      animation: isActivated ? 'relicActivate 0.5s ease' : 'none'
-                    }}>
-                    <span>{relic.emoji}</span>
-                    <span style={{
-                      fontSize: '0.9rem',
-                      color: RELIC_RARITY_COLORS[relic.rarity],
-                      fontWeight: 'bold'
-                    }}>{relic.name}</span>
-                  </div>
-
-                  {/* 툴팁 */}
-                  {hoveredRelic === relicId && (
-                    <div style={{
-                      position: 'absolute',
-                      top: '100%',
-                      left: '50%',
-                      transform: 'translateX(-50%)',
-                      marginTop: '8px',
-                      background: 'rgba(15, 23, 42, 0.98)',
-                      border: `2px solid ${RELIC_RARITY_COLORS[relic.rarity]}`,
-                      borderRadius: '8px',
-                      padding: '12px 16px',
-                      minWidth: '250px',
-                      boxShadow: `0 4px 20px ${RELIC_RARITY_COLORS[relic.rarity]}66`,
-                      zIndex: 1000,
-                      pointerEvents: 'none'
-                    }}>
-                      <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: RELIC_RARITY_COLORS[relic.rarity], marginBottom: '4px' }}>
-                        {relic.emoji} {relic.name}
-                      </div>
-                      <div style={{ fontSize: '0.85rem', color: RELIC_RARITY_COLORS[relic.rarity], opacity: 0.8, marginBottom: '8px' }}>
-                        {rarityText}
-                      </div>
-                      <div style={{ fontSize: '0.95rem', color: '#e2e8f0', lineHeight: '1.5' }}>
-                        {relic.description}
-                      </div>
+                return (
+                  <div key={index} style={{ position: 'relative' }}>
+                    <div
+                      onMouseEnter={() => setHoveredRelic(relicId)}
+                      onMouseLeave={() => setHoveredRelic(null)}
+                      style={{
+                        fontSize: '2rem',
+                        padding: '4px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                        filter: isActivated ? 'brightness(1.5) drop-shadow(0 0 8px rgba(251, 191, 36, 0.8))' : 'brightness(1)',
+                        transform: isHovered ? 'scale(1.15)' : (isActivated ? 'scale(1.2)' : 'scale(1)'),
+                        animation: isActivated ? 'relicActivate 0.5s ease' : 'none'
+                      }}>
+                      <span>{relic.emoji}</span>
                     </div>
-                  )}
-                </div>
-              );
-            })}
+
+                    {/* 개별 툴팁 */}
+                    {isHovered && (
+                      <div style={{
+                        position: 'absolute',
+                        top: '100%',
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                        marginTop: '8px',
+                        background: 'rgba(15, 23, 42, 0.98)',
+                        border: `2px solid ${RELIC_RARITY_COLORS[relic.rarity]}`,
+                        borderRadius: '8px',
+                        padding: '12px 16px',
+                        minWidth: '220px',
+                        boxShadow: `0 4px 20px ${RELIC_RARITY_COLORS[relic.rarity]}66`,
+                        zIndex: 1000,
+                        pointerEvents: 'none'
+                      }}>
+                        <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: RELIC_RARITY_COLORS[relic.rarity], marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <span style={{ fontSize: '1.3rem' }}>{relic.emoji}</span>
+                          {relic.name}
+                        </div>
+                        <div style={{ fontSize: '0.8rem', color: RELIC_RARITY_COLORS[relic.rarity], opacity: 0.8, marginBottom: '8px' }}>
+                          {rarityText}
+                        </div>
+                        <div style={{ fontSize: '0.9rem', color: '#e2e8f0', lineHeight: '1.5' }}>
+                          {relic.description}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </div>
         )}
 
@@ -2531,9 +2615,14 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
                       )}
                     </div>
                     <div style={{ fontSize: '1rem', fontWeight: '600', color: '#7dd3fc', marginTop: '4px' }}>플레이어</div>
-                    {player.strength > 0 && (
-                      <div style={{ fontSize: '0.9rem', fontWeight: '700', color: '#fbbf24', marginTop: '2px' }}>
+                    {player.strength !== 0 && (
+                      <div style={{ fontSize: '0.9rem', fontWeight: '700', color: player.strength > 0 ? '#fbbf24' : '#ef4444', marginTop: '2px' }}>
                         💪 힘: {player.strength}
+                      </div>
+                    )}
+                    {playerAgility !== 0 && (
+                      <div style={{ fontSize: '0.9rem', fontWeight: '700', color: playerAgility > 0 ? '#34d399' : '#ef4444', marginTop: '2px' }}>
+                        ⚡ 민첩: {playerAgility}
                       </div>
                     )}
                     {player.etherOverflow > 0 && (
@@ -2684,7 +2773,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
       {(phase === 'select' || phase === 'respond' || phase === 'resolve' || (enemy && enemy.hp <= 0) || (player && player.hp <= 0)) && (
         <div className="energy-display-fixed">
           <div className="energy-orb-compact">
-            {remainingEnergy}
+            {remainingEnergy} / {player.maxEnergy}
           </div>
         </div>
       )}
@@ -2905,7 +2994,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
                           const newPlayerActions = [...playerActions];
                           [newPlayerActions[idx - 1], newPlayerActions[idx]] = [newPlayerActions[idx], newPlayerActions[idx - 1]];
                           const enemyActions = fixedOrder.filter(a => a.actor === 'enemy');
-                          setFixedOrder(sortCombinedOrderStablePF(newPlayerActions.map(a => a.card), enemyActions.map(a => a.card)));
+                          setFixedOrder(sortCombinedOrderStablePF(newPlayerActions.map(a => a.card), enemyActions.map(a => a.card), playerAgility, 0));
                         }} className="btn-enhanced text-xs" style={{ padding: '4px 12px' }}>
                           ←
                         </button>
@@ -2916,7 +3005,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
                           const newPlayerActions = [...playerActions];
                           [newPlayerActions[idx], newPlayerActions[idx + 1]] = [newPlayerActions[idx + 1], newPlayerActions[idx]];
                           const enemyActions = fixedOrder.filter(a => a.actor === 'enemy');
-                          setFixedOrder(sortCombinedOrderStablePF(newPlayerActions.map(a => a.card), enemyActions.map(a => a.card)));
+                          setFixedOrder(sortCombinedOrderStablePF(newPlayerActions.map(a => a.card), enemyActions.map(a => a.card), playerAgility, 0));
                         }} className="btn-enhanced text-xs" style={{ padding: '4px 12px' }}>
                           →
                         </button>

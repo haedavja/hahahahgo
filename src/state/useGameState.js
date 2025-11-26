@@ -134,20 +134,27 @@ const generateMap = () => {
   };
 };
 
-export const createInitialState = () => ({
-  map: generateMap(),
-  mapRisk: Math.floor(Math.random() * 61) + 20,
-  resources: { gold: 40, intel: 2, loot: 1, material: 1, etherPts: 0 },
-  playerHp: 100,
-  maxHp: 100,
-  playerStrength: 0,
-  relics: ['etherCrystal'], // 테스트용 초기 유물
-  activeEvent: null,
-  activeDungeon: null,
-  activeBattle: null,
-  lastBattleResult: null,
-  characterBuild: {
-    mainSpecials: [],
-    subSpecials: [],
-  },
-});
+export const createInitialState = () => {
+  const initialRelics = []; // 초기 유물 없음
+
+  // 유물 패시브 효과를 계산하기 위한 import (동적 import 대신 초기값 사용)
+  // calculatePassiveEffects는 gameStore에서 사용되므로 여기서는 기본값만 설정
+  return {
+    map: generateMap(),
+    mapRisk: Math.floor(Math.random() * 61) + 20,
+    resources: { gold: 40, intel: 2, loot: 1, material: 1, etherPts: 0 },
+    playerHp: 100,
+    maxHp: 100, // 유물 효과는 gameStore의 addRelic/setRelics에서 적용됨
+    playerStrength: 0,
+    playerAgility: 0, // 민첩성 (카드 속도 감소)
+    relics: initialRelics,
+    activeEvent: null,
+    activeDungeon: null,
+    activeBattle: null,
+    lastBattleResult: null,
+    characterBuild: {
+      mainSpecials: [],
+      subSpecials: [],
+    },
+  };
+};

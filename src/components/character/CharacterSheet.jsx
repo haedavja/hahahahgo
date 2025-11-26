@@ -1,6 +1,7 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useGameStore } from "../../state/gameStore";
 import { CARDS, TRAITS } from "../battle/battleData";
+import { calculatePassiveEffects } from "../../lib/relicEffects";
 
 // 모든 카드를 사용 가능하도록 변경
 const availableCards = CARDS.map((card, index) => ({
@@ -21,13 +22,26 @@ export function CharacterSheet({ onClose }) {
   const playerHp = useGameStore((state) => state.playerHp);
   const maxHp = useGameStore((state) => state.maxHp);
   const playerStrength = useGameStore((state) => state.playerStrength);
+  const playerAgility = useGameStore((state) => state.playerAgility);
+  const relics = useGameStore((state) => state.relics);
+
+  // 유물 패시브 효과 계산
+  const passiveEffects = useMemo(() => {
+    return calculatePassiveEffects(relics || []);
+  }, [relics]);
 
   // 현재 스탯
   const currentHp = playerHp;
-  const currentEnergy = 6;
-  const maxEnergy = 6;
+  const baseEnergy = 6;
+  const currentEnergy = baseEnergy;
+  const maxEnergy = baseEnergy + passiveEffects.maxEnergy;
   const speed = 30;
   const power = playerStrength || 0;
+  const agility = playerAgility || 0;
+
+  // 슬롯 제한 (유물 효과 반영)
+  const maxMainSlots = 3 + passiveEffects.mainSpecialSlots;
+  const maxSubSlots = 5 + passiveEffects.subSpecialSlots;
 
   const [specialMode, setSpecialMode] = useState("main");
   // cardId로 선택 상태 관리 - 초기화는 한 번만
@@ -95,7 +109,7 @@ export function CharacterSheet({ onClose }) {
         if (prev.includes(cardId)) {
           return prev.filter((id) => id !== cardId);
         }
-        if (prev.length >= 3) return prev;
+        if (prev.length >= maxMainSlots) return prev;
         setSubSpecials((prevSub) => prevSub.filter((id) => id !== cardId));
         return [...prev, cardId];
       });
@@ -104,7 +118,7 @@ export function CharacterSheet({ onClose }) {
         if (prev.includes(cardId)) {
           return prev.filter((id) => id !== cardId);
         }
-        if (prev.length >= 5) return prev;
+        if (prev.length >= maxSubSlots) return prev;
         setMainSpecials((prevMain) => prevMain.filter((id) => id !== cardId));
         return [...prev, cardId];
       });
@@ -221,9 +235,13 @@ export function CharacterSheet({ onClose }) {
             <span style={{ opacity: 0.8 }}>속도</span>
             <span style={{ fontWeight: 600, color: "#7dd3fc" }}>{speed}</span>
           </div>
-          <div style={{ display: "flex", justifyContent: "space-between", fontSize: "14px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px", fontSize: "14px" }}>
             <span style={{ opacity: 0.8 }}>힘</span>
-            <span style={{ fontWeight: 600, color: "#fca5a5" }}>{power}</span>
+            <span style={{ fontWeight: 600, color: power >= 0 ? "#fbbf24" : "#ef4444" }}>{power}</span>
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: "14px" }}>
+            <span style={{ opacity: 0.8 }}>민첩</span>
+            <span style={{ fontWeight: 600, color: agility >= 0 ? "#34d399" : "#ef4444" }}>{agility}</span>
           </div>
         </div>
 
@@ -237,8 +255,8 @@ export function CharacterSheet({ onClose }) {
             </button>
           </div>
           <div style={{ fontSize: "13px", opacity: 0.9, textAlign: "right", minWidth: "140px", color: "#9fb6ff" }}>
-            <div>주특기: {mainSpecials.length} / 3</div>
-            <div>보조특기: {subSpecials.length} / 5</div>
+            <div>주특기: {mainSpecials.length} / {maxMainSlots}</div>
+            <div>보조특기: {subSpecials.length} / {maxSubSlots}</div>
           </div>
         </div>
 

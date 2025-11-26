@@ -5,6 +5,7 @@ import { ENEMY_DECKS } from "../data/cards";
 import { CARDS } from "../components/battle/battleData";
 import { drawHand, buildSpeedTimeline } from "../lib/speedQueue";
 import { simulateBattle, pickOutcome } from "../lib/battleResolver";
+import { calculatePassiveEffects, applyCombatEndEffects, applyNodeMoveEther } from "../lib/relicEffects";
 
 // 전투에서 사용되는 카드 8종의 ID 배열
 const BATTLE_CARDS = CARDS.slice(0, 8).map(card => card.id);
@@ -89,6 +90,17 @@ const applyPenalty = (penalty = {}, resources = {}) => {
 };
 
 const computeFriendlyChance = (mapRisk) => Math.max(0.2, Math.min(0.85, 1 - mapRisk / 120));
+
+// 초기 상태에 유물 패시브 효과를 적용하는 헬퍼
+const applyInitialRelicEffects = (state) => {
+  const passiveEffects = calculatePassiveEffects(state.relics);
+  return {
+    ...state,
+    maxHp: 100 + passiveEffects.maxHp,
+    playerStrength: passiveEffects.strength,
+    playerAgility: passiveEffects.agility,
+  };
+};
 
 const createEventPayload = (node, mapRisk) => {
   if (!node || node.type !== "event" || node.isStart) return null;
@@ -207,9 +219,9 @@ const travelToNode = (state, nodeId) => {
 };
 
 export const useGameStore = create((set, get) => ({
-  ...createInitialState(),
+  ...applyInitialRelicEffects(createInitialState()),
 
-  resetRun: () => set(() => createInitialState()),
+  resetRun: () => set(() => applyInitialRelicEffects(createInitialState())),
 
   selectNode: (nodeId) =>
     set((state) => {
@@ -224,12 +236,27 @@ export const useGameStore = create((set, get) => ({
       }
       const result = travelToNode(state, nodeId);
       if (!result) return state;
+
+      // 맵 이동 시 유물 효과 적용 (적색의 지남철)
+      let updatedResources = state.resources;
+      try {
+        const currentEther = state.resources.etherPts ?? 0;
+        const etherGain = applyNodeMoveEther(state.relics || [], currentEther);
+        if (etherGain > 0) {
+          const newEtherPts = currentEther + etherGain;
+          updatedResources = { ...state.resources, etherPts: newEtherPts };
+        }
+      } catch (error) {
+        console.error('Error applying node move ether:', error);
+      }
+
       return {
         ...state,
         map: result.map,
         activeEvent: result.event,
         activeBattle: result.battle ?? null,
         activeDungeon: null,
+        resources: updatedResources,
       };
     }),
 
@@ -587,12 +614,28 @@ export const useGameStore = create((set, get) => ({
     const rewards = resultLabel === "victory" ? grantRewards(rewardsDef, state.resources) : { next: state.resources, applied: {} };
 
     // Update player HP from battle result
-    const finalPlayerHp = state.activeBattle.simulation?.finalState?.player?.hp ?? state.playerHp;
+    let finalPlayerHp = state.activeBattle.simulation?.finalState?.player?.hp ?? state.playerHp;
+    let newMaxHp = state.maxHp;
+
+    // Apply combat end effects from relics
+    try {
+      const combatEndEffects = applyCombatEndEffects(state.relics || [], {
+        playerHp: finalPlayerHp,
+        maxHp: state.maxHp,
+      });
+
+      // Apply healing and maxHp increase from relics
+      finalPlayerHp = Math.min(state.maxHp, finalPlayerHp + combatEndEffects.heal);
+      newMaxHp = state.maxHp + combatEndEffects.maxHp;
+    } catch (error) {
+      console.error('Error applying combat end effects:', error);
+    }
 
     return {
       ...state,
       resources: rewards.next,
       playerHp: Math.max(0, finalPlayerHp),
+      maxHp: newMaxHp,
       activeBattle: null,
       lastBattleResult: {
         nodeId: state.activeBattle.nodeId,
@@ -730,6 +773,12 @@ export const useGameStore = create((set, get) => ({
       playerStrength: strength,
     })),
 
+  updatePlayerAgility: (agility) =>
+    set((state) => ({
+      ...state,
+      playerAgility: agility, // 음수 허용 (음수면 속도 증가)
+    })),
+
   // ==================== 개발자 도구 전용 액션 ====================
 
   // 자원 직접 설정
@@ -803,6 +852,62 @@ export const useGameStore = create((set, get) => ({
           initialState: null,
           rewards: {},
         },
+      };
+    }),
+
+  // ==================== 유물 관리 ====================
+
+  // 유물 추가
+  addRelic: (relicId) =>
+    set((state) => {
+      if (state.relics.includes(relicId)) return state;
+      const oldRelics = state.relics;
+      const newRelics = [...state.relics, relicId];
+      const oldPassiveEffects = calculatePassiveEffects(oldRelics);
+      const newPassiveEffects = calculatePassiveEffects(newRelics);
+
+      // maxHp 증가량 계산
+      const maxHpIncrease = newPassiveEffects.maxHp - oldPassiveEffects.maxHp;
+      const newMaxHp = 100 + newPassiveEffects.maxHp;
+      // maxHp가 증가한 만큼 현재 체력도 회복
+      const newPlayerHp = state.playerHp + maxHpIncrease;
+
+      return {
+        ...state,
+        relics: newRelics,
+        maxHp: newMaxHp,
+        playerHp: Math.min(newMaxHp, newPlayerHp), // 최대 체력을 초과하지 않도록
+        playerStrength: newPassiveEffects.strength,
+        playerAgility: newPassiveEffects.agility,
+      };
+    }),
+
+  // 유물 제거
+  removeRelic: (relicId) =>
+    set((state) => {
+      const newRelics = state.relics.filter((id) => id !== relicId);
+      const passiveEffects = calculatePassiveEffects(newRelics);
+
+      return {
+        ...state,
+        relics: newRelics,
+        maxHp: 100 + passiveEffects.maxHp,
+        playerStrength: passiveEffects.strength,
+        playerAgility: passiveEffects.agility,
+      };
+    }),
+
+  // 유물 직접 설정 (개발자 도구용)
+  setRelics: (relicIds) =>
+    set((state) => {
+      const passiveEffects = calculatePassiveEffects(relicIds);
+
+      return {
+        ...state,
+        relics: relicIds,
+        maxHp: 100 + passiveEffects.maxHp,
+        playerStrength: passiveEffects.strength,
+        playerAgility: passiveEffects.agility,
       };
     }),
 }));
