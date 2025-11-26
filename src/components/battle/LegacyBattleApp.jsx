@@ -1221,6 +1221,14 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
     const passiveRelicEffects = calculatePassiveEffects(relics);
     const baseEnergy = BASE_PLAYER_ENERGY + passiveRelicEffects.maxEnergy;
     const energyBonus = (nextTurnEffects.bonusEnergy || 0) + turnStartRelicEffects.energy;
+    console.log("[턴 시작 에너지 계산]", {
+      baseEnergy,
+      "nextTurnEffects.bonusEnergy": nextTurnEffects.bonusEnergy,
+      "turnStartRelicEffects.energy": turnStartRelicEffects.energy,
+      energyBonus,
+      energyPenalty,
+      finalEnergy
+    });
     const energyPenalty = nextTurnEffects.energyPenalty || 0;
     const finalEnergy = Math.max(0, baseEnergy + energyBonus - energyPenalty);
 
@@ -1935,6 +1943,11 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
     if (turnEndRelicEffects.energyNextTurn > 0) {
       newNextTurnEffects.bonusEnergy += turnEndRelicEffects.energyNextTurn;
       addLog(`📜 유물 효과: 다음턴 행동력 +${turnEndRelicEffects.energyNextTurn}`);
+      console.log("[턴 종료 계약서 효과]", {
+        "selected.length": selected.length,
+        "turnEndRelicEffects.energyNextTurn": turnEndRelicEffects.energyNextTurn,
+        "newNextTurnEffects.bonusEnergy": newNextTurnEffects.bonusEnergy
+      });
     }
 
     setNextTurnEffects(newNextTurnEffects);
