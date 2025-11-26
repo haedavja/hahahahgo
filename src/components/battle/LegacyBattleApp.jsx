@@ -1217,7 +1217,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
     const turnStartRelicEffects = applyTurnStartEffects(relics, nextTurnEffects);
 
     // 특성 효과로 인한 에너지 보너스/페널티 적용
-    const baseEnergy = BASE_PLAYER_ENERGY;
+    const passiveRelicEffects = calculatePassiveEffects(relics);
+    const baseEnergy = BASE_PLAYER_ENERGY + passiveRelicEffects.maxEnergy;
     const energyBonus = (nextTurnEffects.bonusEnergy || 0) + turnStartRelicEffects.energy;
     const energyPenalty = nextTurnEffects.energyPenalty || 0;
     const finalEnergy = Math.max(0, baseEnergy + energyBonus - energyPenalty);
@@ -1226,7 +1227,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
     setPlayer(p => {
       const newHp = Math.min(p.maxHp, p.hp + turnStartRelicEffects.heal);
       const newBlock = (p.block || 0) + turnStartRelicEffects.block;
-      return { ...p, hp: newHp, block: newBlock, energy: finalEnergy, etherOverdriveActive: false, etherOverflow: 0 };
+      return { ...p, hp: newHp, block: newBlock, energy: finalEnergy, maxEnergy: baseEnergy, etherOverdriveActive: false, etherOverflow: 0 };
     });
 
     // 로그 추가

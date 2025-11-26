@@ -23,23 +23,8 @@ export const RELIC_EFFECT = {
   EVENT_CHOICE_UNLOCK: 'eventChoiceUnlock',     // 이벤트 선택지 해금
 };
 
-// 유물 데이터
-export const RELICS = {
-  etherCrystal: {
-    id: 'etherCrystal',
-    name: '에테르 결정',
-    emoji: '💎',
-    rarity: RELIC_RARITY.COMMON,
-    type: RELIC_TYPE.COMBAT,
-    description: '플레이어가 낸 카드 1장당 콤보 배율 +2.00',
-    effects: [
-      {
-        type: RELIC_EFFECT.COMBO_MULTIPLIER_PER_CARD,
-        value: 2.0, // 카드 1장당 +2.00 배율
-      }
-    ]
-  },
-};
+// src/data/relics.js에서 RELICS 가져오기
+import { getRelicById } from '../data/relics';
 
 // 유물 효과 계산 함수
 export function applyRelicEffects(relics, effectType, baseValue) {
@@ -50,10 +35,13 @@ export function applyRelicEffects(relics, effectType, baseValue) {
   let flatBonus = 0;
 
   relics.forEach(relicId => {
-    const relic = RELICS[relicId];
+    const relic = getRelicById(relicId);
     if (!relic) return;
 
-    relic.effects.forEach(effect => {
+    const effects = relic.effects;
+    if (!effects || !effects.effects) return;
+
+    effects.effects.forEach(effect => {
       if (effect.type === effectType) {
         if (effectType === RELIC_EFFECT.ETHER_GAIN_BONUS) {
           bonusMultiplier += effect.value;
@@ -76,14 +64,14 @@ export function applyRelicComboMultiplier(relics, baseMultiplier, cardCount) {
   let bonusMultiplier = 0;
 
   relics.forEach(relicId => {
-    const relic = RELICS[relicId];
+    const relic = getRelicById(relicId);
     if (!relic) return;
 
-    relic.effects.forEach(effect => {
-      if (effect.type === RELIC_EFFECT.COMBO_MULTIPLIER_PER_CARD) {
-        bonusMultiplier += effect.value * cardCount;
-      }
-    });
+    const effects = relic.effects;
+    // src/data/relics.js 형식: effects.comboMultiplierPerCard
+    if (effects.type === 'PASSIVE' && effects.comboMultiplierPerCard) {
+      bonusMultiplier += effects.comboMultiplierPerCard * cardCount;
+    }
   });
 
   return baseMultiplier + bonusMultiplier;
