@@ -1221,6 +1221,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
     const passiveRelicEffects = calculatePassiveEffects(relics);
     const baseEnergy = BASE_PLAYER_ENERGY + passiveRelicEffects.maxEnergy;
     const energyBonus = (nextTurnEffects.bonusEnergy || 0) + turnStartRelicEffects.energy;
+    const energyPenalty = nextTurnEffects.energyPenalty || 0;
+    const finalEnergy = Math.max(0, baseEnergy + energyBonus - energyPenalty);
+
     console.log("[턴 시작 에너지 계산]", {
       baseEnergy,
       "nextTurnEffects.bonusEnergy": nextTurnEffects.bonusEnergy,
@@ -1229,8 +1232,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
       energyPenalty,
       finalEnergy
     });
-    const energyPenalty = nextTurnEffects.energyPenalty || 0;
-    const finalEnergy = Math.max(0, baseEnergy + energyBonus - energyPenalty);
 
     // 방어력과 체력 회복 적용
     setPlayer(p => {
