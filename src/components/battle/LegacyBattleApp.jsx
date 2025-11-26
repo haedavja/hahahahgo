@@ -910,7 +910,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
   const relics = useGameStore((state) => state.relics || []);
   const safeInitialPlayer = initialPlayer || {};
   const safeInitialEnemy = initialEnemy || {};
-  const baseEnergy = safeInitialPlayer.energy ?? BASE_PLAYER_ENERGY;
+  const passiveRelicStats = calculatePassiveEffects(relics);
+  const baseEnergy = (safeInitialPlayer.energy ?? BASE_PLAYER_ENERGY) + passiveRelicStats.maxEnergy;
   const startingEther = typeof safeInitialPlayer.etherPts === 'number' ? safeInitialPlayer.etherPts : playerEther;
   const startingBlock = safeInitialPlayer.block ?? 0; // 유물 효과로 인한 시작 방어력
   const [player, setPlayer] = useState({ hp: safeInitialPlayer.hp ?? 30, maxHp: safeInitialPlayer.maxHp ?? safeInitialPlayer.hp ?? 30, energy: baseEnergy, maxEnergy: baseEnergy, vulnMult: 1, vulnTurns: 0, block: startingBlock, counter: 0, etherPts: startingEther ?? 0, etherOverflow: 0, etherOverdriveActive: false, comboUsageCount: {}, strength: playerStrength, maxSpeed: safeInitialPlayer.maxSpeed ?? DEFAULT_PLAYER_MAX_SPEED });
@@ -1325,7 +1326,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
         else {
           if (prev.length >= MAX_SUBMIT_CARDS) { addLog('⚠️ 최대 5장의 카드만 제출할 수 있습니다'); return prev; }
           if (totalSpeed + card.speedCost > player.maxSpeed) { addLog('⚠️ 속도 초과'); return prev; }
-          if (totalEnergy + card.actionCost > BASE_PLAYER_ENERGY) { addLog('⚠️ 행동력 부족'); return prev; }
+          if (totalEnergy + card.actionCost > player.maxEnergy) { addLog('⚠️ 행동력 부족'); return prev; }
           next = [...prev, { ...card, __uid: Math.random().toString(36).slice(2) }];
           playSound(800, 80); // 선택 사운드 (높은 음)
         }
@@ -1343,7 +1344,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
     }
     if (selected.length >= MAX_SUBMIT_CARDS) return addLog('⚠️ 최대 5장의 카드만 제출할 수 있습니다');
     if (totalSpeed + card.speedCost > player.maxSpeed) return addLog('⚠️ 속도 초과');
-    if (totalEnergy + card.actionCost > BASE_PLAYER_ENERGY) return addLog('⚠️ 행동력 부족');
+    if (totalEnergy + card.actionCost > player.maxEnergy) return addLog('⚠️ 행동력 부족');
     setSelected([...selected, { ...card, __uid: Math.random().toString(36).slice(2) }]);
     playSound(800, 80); // 선택 사운드 (높은 음)
   };
@@ -2229,14 +2230,13 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
   const handDisabled = (c) => (
     selected.length >= MAX_SUBMIT_CARDS ||
     totalSpeed + c.speedCost > player.maxSpeed ||
-    totalEnergy + c.actionCost > BASE_PLAYER_ENERGY
+    totalEnergy + c.actionCost > player.maxEnergy
   );
   const playerEtherValue = player?.etherPts ?? 0;
   const playerEtherSlots = etherSlots(playerEtherValue);
   const enemyEtherValue = enemy?.etherPts ?? 0;
   const enemyEtherSlots = etherSlots(enemyEtherValue);
-  const playerEnergyBudget = BASE_PLAYER_ENERGY;
-  const remainingEnergy = Math.max(0, playerEnergyBudget - totalEnergy);
+  const playerEnergyBudget = player.maxEnergy || BASE_PLAYER_ENERGY;
 
   // 적 조합 감지 (표시용)
   const enemyCombo = useMemo(() => detectPokerCombo(enemyPlan.actions || []), [enemyPlan.actions]);
