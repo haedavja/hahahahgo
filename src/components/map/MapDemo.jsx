@@ -116,7 +116,7 @@ const friendlyPercent = (chance) => {
   return `${Math.round(chance * 100)}%`;
 };
 
-const PATCH_VERSION_TAG = "11-27-02:44"; // 다음 패치마다 여기를 최신 시간(월-일-시-분, KST)으로 갱신하세요.
+const PATCH_VERSION_TAG = "11-27-02:51"; // 다음 패치마다 여기를 최신 시간(월-일-시-분, KST)으로 갱신하세요.
 
 /* v11-25-19:33 갱신 내역
  * - 카드 스탯 폰트 크기 일원화 및 확대:
@@ -269,75 +269,82 @@ export function MapDemo() {
           top: "20px",
           left: "50%",
           transform: "translateX(-50%)",
-          display: 'flex',
-          gap: '12px',
-          alignItems: 'center',
           zIndex: 100,
         }}>
-          {relics.map((relicId, index) => {
-            const relic = RELICS[relicId];
-            if (!relic) return null;
+          <div style={{
+            display: 'flex',
+            gap: '6px',
+            padding: '8px 12px',
+            background: 'rgba(15, 23, 42, 0.9)',
+            border: '2px solid rgba(148, 163, 184, 0.5)',
+            borderRadius: '12px',
+            boxShadow: '0 0 15px rgba(148, 163, 184, 0.3)',
+          }}>
+            {relics.map((relicId, index) => {
+              const relic = RELICS[relicId];
+              if (!relic) return null;
 
-            const rarityText = {
-              [RELIC_RARITIES.COMMON]: '일반',
-              [RELIC_RARITIES.RARE]: '희귀',
-              [RELIC_RARITIES.SPECIAL]: '특별',
-              [RELIC_RARITIES.LEGENDARY]: '전설'
-            }[relic.rarity] || '알 수 없음';
+              const isHovered = hoveredRelic === relicId;
+              const rarityText = {
+                [RELIC_RARITIES.COMMON]: '일반',
+                [RELIC_RARITIES.RARE]: '희귀',
+                [RELIC_RARITIES.SPECIAL]: '특별',
+                [RELIC_RARITIES.LEGENDARY]: '전설'
+              }[relic.rarity] || '알 수 없음';
 
-            return (
-              <div key={index} style={{ position: 'relative' }}>
-                <div
-                  onMouseEnter={() => setHoveredRelic(relicId)}
-                  onMouseLeave={() => setHoveredRelic(null)}
-                  style={{
-                    fontSize: '2rem',
-                    padding: '8px',
-                    background: `linear-gradient(135deg, ${RELIC_RARITY_COLORS[relic.rarity]}33, ${RELIC_RARITY_COLORS[relic.rarity]}11)`,
-                    border: `2px solid ${RELIC_RARITY_COLORS[relic.rarity]}`,
-                    borderRadius: '12px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease',
-                    boxShadow: `0 0 15px ${RELIC_RARITY_COLORS[relic.rarity]}44`,
-                    transform: hoveredRelic === relicId ? 'scale(1.1)' : 'scale(1)',
-                  }}>
-                  <span>{relic.emoji}</span>
-                </div>
-
-                {/* 툴팁 */}
-                {hoveredRelic === relicId && (
-                  <div style={{
-                    position: 'absolute',
-                    top: '100%',
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    marginTop: '8px',
-                    background: 'rgba(15, 23, 42, 0.98)',
-                    border: `2px solid ${RELIC_RARITY_COLORS[relic.rarity]}`,
-                    borderRadius: '8px',
-                    padding: '12px 16px',
-                    minWidth: '250px',
-                    boxShadow: `0 4px 20px ${RELIC_RARITY_COLORS[relic.rarity]}66`,
-                    zIndex: 1000,
-                    pointerEvents: 'none'
-                  }}>
-                    <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: RELIC_RARITY_COLORS[relic.rarity], marginBottom: '4px' }}>
-                      {relic.emoji} {relic.name}
-                    </div>
-                    <div style={{ fontSize: '0.85rem', color: RELIC_RARITY_COLORS[relic.rarity], opacity: 0.8, marginBottom: '8px' }}>
-                      {rarityText}
-                    </div>
-                    <div style={{ fontSize: '0.95rem', color: '#e2e8f0', lineHeight: '1.5' }}>
-                      {relic.description}
-                    </div>
+              return (
+                <div key={index} style={{ position: 'relative' }}>
+                  <div
+                    onMouseEnter={() => setHoveredRelic(relicId)}
+                    onMouseLeave={() => setHoveredRelic(null)}
+                    style={{
+                      fontSize: '2rem',
+                      padding: '4px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                      transform: isHovered ? 'scale(1.15)' : 'scale(1)',
+                    }}>
+                    <span>{relic.emoji}</span>
                   </div>
-                )}
-              </div>
-            );
-          })}
+
+                  {/* 개별 툴팁 */}
+                  {isHovered && (
+                    <div style={{
+                      position: 'absolute',
+                      top: '100%',
+                      left: '50%',
+                      transform: 'translateX(-50%)',
+                      marginTop: '8px',
+                      background: 'rgba(15, 23, 42, 0.98)',
+                      border: `2px solid ${RELIC_RARITY_COLORS[relic.rarity]}`,
+                      borderRadius: '8px',
+                      padding: '12px 16px',
+                      minWidth: '220px',
+                      boxShadow: `0 4px 20px ${RELIC_RARITY_COLORS[relic.rarity]}66`,
+                      zIndex: 1000,
+                      pointerEvents: 'none'
+                    }}>
+                      <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: RELIC_RARITY_COLORS[relic.rarity], marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span style={{ fontSize: '1.3rem' }}>{relic.emoji}</span>
+                        {relic.name}
+                      </div>
+                      <div style={{ fontSize: '0.8rem', color: RELIC_RARITY_COLORS[relic.rarity], opacity: 0.8, marginBottom: '8px' }}>
+                        {rarityText}
+                      </div>
+                      <div style={{ fontSize: '0.9rem', color: '#e2e8f0', lineHeight: '1.5' }}>
+                        {relic.description}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
         </div>
       )}
 
