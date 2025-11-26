@@ -1241,6 +1241,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
     if (turnStartRelicEffects.energy > 0) {
       addLog(`⚡ 유물 효과: 행동력 +${turnStartRelicEffects.energy}`);
     }
+    if (energyBonus > 0) {
+      addLog(`⚡ 다음턴 보너스 행동력: +${energyBonus}`);
+    }
 
     // 매 턴 시작 시 새로운 손패 생성 (캐릭터 빌드 및 특성 효과 적용)
     const currentBuild = useGameStore.getState().characterBuild;
