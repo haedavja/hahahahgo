@@ -1014,6 +1014,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
   const devilDiceTriggeredRef = useRef(false); // 턴 내 악마의 주사위 발동 여부
   const initialEtherRef = useRef(typeof safeInitialPlayer.etherPts === 'number' ? safeInitialPlayer.etherPts : (playerEther ?? 0));
   const resultSentRef = useRef(false);
+  const turnStartProcessedRef = useRef(false); // 턴 시작 효과 중복 실행 방지
   const notifyBattleResult = useCallback((resultType) => {
     if (!resultType || resultSentRef.current) return;
     const finalEther = player.etherPts;
@@ -1224,7 +1225,20 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
   }, []);
 
   useEffect(() => {
-    if (!enemy || phase !== 'select') return;
+    if (!enemy || phase !== 'select') {
+      // phase가 select가 아니면 플래그 리셋
+      if (phase !== 'select') {
+        turnStartProcessedRef.current = false;
+      }
+      return;
+    }
+
+    // 턴 시작 효과가 이미 처리되었으면 중복 실행 방지
+    if (turnStartProcessedRef.current) {
+      return;
+    }
+    turnStartProcessedRef.current = true;
+
     setFixedOrder(null);
     setActionEvents({});
     setCanRedraw(true);
@@ -1232,6 +1246,12 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
 
     // 유물 턴 시작 효과 적용 (피피한 갑옷 등)
     const turnStartRelicEffects = applyTurnStartEffects(relics, nextTurnEffects);
+
+    console.log("[턴 시작 유물 효과]", {
+      block: turnStartRelicEffects.block,
+      heal: turnStartRelicEffects.heal,
+      energy: turnStartRelicEffects.energy
+    });
 
     // 턴 시작 유물 발동 애니메이션
     relics.forEach(relicId => {
@@ -1263,7 +1283,17 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
     setPlayer(p => {
       const newHp = Math.min(p.maxHp, p.hp + turnStartRelicEffects.heal);
       const newBlock = (p.block || 0) + turnStartRelicEffects.block;
-      return { ...p, hp: newHp, block: newBlock, energy: finalEnergy, maxEnergy: baseEnergy, etherOverdriveActive: false, etherOverflow: 0 };
+      const newDef = turnStartRelicEffects.block > 0; // 방어력이 있으면 def 플래그 활성화
+      return {
+        ...p,
+        hp: newHp,
+        block: newBlock,
+        def: newDef,
+        energy: finalEnergy,
+        maxEnergy: baseEnergy,
+        etherOverdriveActive: false,
+        etherOverflow: 0
+      };
     });
 
     // 로그 추가
@@ -1300,7 +1330,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
         return { actions: [], mode };
       }
     });
-  }, [phase, enemy, enemyPlan.mode, nextTurnEffects, player.etherPts]);
+  }, [phase, enemy, enemyPlan.mode, nextTurnEffects]);
 
   useEffect(() => {
     if (phase === 'resolve' && (!queue || queue.length === 0) && fixedOrder && fixedOrder.length > 0) {
