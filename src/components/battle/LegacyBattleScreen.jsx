@@ -58,8 +58,13 @@ export function LegacyBattleScreen() {
   const playerEther = useGameStore((state) => state.resources.etherPts ?? 0);
   const relics = useGameStore((state) => state.relics);
   const maxHp = useGameStore((state) => state.maxHp);
-  const payload = useMemo(() => buildBattlePayload(activeBattle, playerEther, relics, maxHp), [activeBattle, playerEther, relics, maxHp]);
+  const payload = useMemo(() => {
+    const result = buildBattlePayload(activeBattle, playerEther, relics, maxHp);
+    console.log('[LegacyBattleScreen] payload 생성:', result);
+    return result;
+  }, [activeBattle, playerEther, relics, maxHp]);
   const frameKey = activeBattle ? `${activeBattle.nodeId}-${activeBattle.kind}` : "idle";
+  console.log('[LegacyBattleScreen] 전달할 payload:', payload);
 
   const [devToolsOpen, setDevToolsOpen] = useState(false);
 
