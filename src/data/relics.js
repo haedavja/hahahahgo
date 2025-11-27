@@ -342,6 +342,33 @@ export const RELICS = {
     },
   },
 
+  // ==================== 개발자 전용 ====================
+  infiniteShield: {
+    id: 'infiniteShield',
+    name: '무한방패',
+    emoji: '🛡️',
+    rarity: RELIC_RARITIES.SPECIAL,
+    tags: [RELIC_TAGS.DEFENSE],
+    description: '턴 시작 시 방어력 1000을 얻습니다. (개발용)',
+    effects: {
+      type: 'ON_TURN_START',
+      block: 1000,
+    },
+  },
+
+  perpetualEngine: {
+    id: 'perpetualEngine',
+    name: '영구동력',
+    emoji: '♾️',
+    rarity: RELIC_RARITIES.SPECIAL,
+    tags: [RELIC_TAGS.ENERGY],
+    description: '최대 행동력이 30 증가합니다. (개발용)',
+    effects: {
+      type: 'PASSIVE',
+      maxEnergy: 30,
+    },
+  },
+
   // ==================== 전설 등급 ====================
   // 추가예정
 };
