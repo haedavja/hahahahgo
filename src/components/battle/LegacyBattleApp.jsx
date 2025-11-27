@@ -41,6 +41,79 @@ import {
 
 const STUN_RANGE = 5; // 기절 효과 범위(타임라인 기준)
 
+/**
+ * 유효 통찰 계산: 플레이어 통찰 - 적의 장막
+ */
+const calculateEffectiveInsight = (playerInsight, enemyShroud) => {
+  return Math.max(0, (playerInsight || 0) - (enemyShroud || 0));
+};
+
+/**
+ * 통찰 레벨별 적 정보 공개
+ * @param {number} effectiveInsight - 유효 통찰 (player.insight - enemy.shroud)
+ * @param {Array} enemyActions - 적의 행동 계획
+ * @returns {object} 공개할 정보 레벨
+ */
+const getInsightRevealLevel = (effectiveInsight, enemyActions) => {
+  if (!enemyActions || enemyActions.length === 0) {
+    return { level: 0, visible: false };
+  }
+
+  if (effectiveInsight === 0) {
+    // 레벨 0: 정보 없음
+    return { level: 0, visible: false };
+  }
+
+  if (effectiveInsight === 1) {
+    // 레벨 1: 카드 개수와 대략적 순서
+    return {
+      level: 1,
+      visible: true,
+      cardCount: enemyActions.length,
+      showRoughOrder: true,
+      actions: enemyActions.map((action, idx) => ({
+        index: idx,
+        isFirst: idx === 0,
+        isLast: idx === enemyActions.length - 1,
+      })),
+    };
+  }
+
+  if (effectiveInsight === 2) {
+    // 레벨 2: 정확한 카드 이름과 속도
+    return {
+      level: 2,
+      visible: true,
+      cardCount: enemyActions.length,
+      showCards: true,
+      showSpeed: true,
+      actions: enemyActions.map((action, idx) => ({
+        index: idx,
+        card: action.card,
+        speed: action.speed,
+      })),
+    };
+  }
+
+  // 레벨 3+: 모든 정보 (특수 패턴, 면역 등)
+  return {
+    level: 3,
+    visible: true,
+    cardCount: enemyActions.length,
+    showCards: true,
+    showSpeed: true,
+    showEffects: true,
+    fullDetails: true,
+    actions: enemyActions.map((action, idx) => ({
+      index: idx,
+      card: action.card,
+      speed: action.speed,
+      effects: action.card?.effects,
+      traits: action.card?.traits,
+    })),
+  };
+};
+
 // Lucide icons as simple SVG components
 const Sword = ({ size = 24, className = "" }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
@@ -1037,6 +1110,17 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
   const initialEtherRef = useRef(typeof safeInitialPlayer.etherPts === 'number' ? safeInitialPlayer.etherPts : (playerEther ?? 0));
   const resultSentRef = useRef(false);
   const turnStartProcessedRef = useRef(false); // 턴 시작 효과 중복 실행 방지
+
+  // 통찰 시스템: 유효 통찰 및 공개 정보 계산
+  const effectiveInsight = useMemo(() => {
+    return calculateEffectiveInsight(player.insight, enemy?.shroud);
+  }, [player.insight, enemy?.shroud]);
+
+  const insightReveal = useMemo(() => {
+    if (phase !== 'select') return { level: 0, visible: false };
+    return getInsightRevealLevel(effectiveInsight, enemyPlan.actions);
+  }, [effectiveInsight, enemyPlan.actions, phase]);
+
   const notifyBattleResult = useCallback((resultType) => {
     if (!resultType || resultSentRef.current) return;
     const finalEther = player.etherPts;
@@ -2999,6 +3083,105 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
                 color="red"
               />
             </div>
+
+            {/* 통찰 시스템: 적 정보 공개 */}
+            {insightReveal.visible && phase === 'select' && (
+              <div style={{
+                marginTop: '16px',
+                padding: '12px 16px',
+                background: 'linear-gradient(135deg, rgba(167, 139, 250, 0.15), rgba(167, 139, 250, 0.05))',
+                border: '2px solid rgba(167, 139, 250, 0.4)',
+                borderRadius: '12px',
+                boxShadow: '0 0 16px rgba(167, 139, 250, 0.2)',
+                minWidth: '320px',
+              }}>
+                <div style={{
+                  fontSize: '0.875rem',
+                  fontWeight: '700',
+                  color: '#a78bfa',
+                  marginBottom: '8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  justifyContent: 'flex-end',
+                }}>
+                  <span>👁️ 통찰 Lv.{insightReveal.level}</span>
+                  {effectiveInsight !== player.insight && (
+                    <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                      (장막 -{enemy?.shroud || 0})
+                    </span>
+                  )}
+                </div>
+
+                {insightReveal.level === 1 && (
+                  <div style={{
+                    fontSize: '0.875rem',
+                    color: '#cbd5e1',
+                    textAlign: 'right',
+                  }}>
+                    적의 행동 {insightReveal.cardCount}개
+                    <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '4px' }}>
+                      (순서: {insightReveal.actions.map((a, i) =>
+                        a.isFirst ? '첫번째' : a.isLast ? '마지막' : `${i+1}번째`
+                      ).join(', ')})
+                    </div>
+                  </div>
+                )}
+
+                {insightReveal.level === 2 && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', alignItems: 'flex-end' }}>
+                    {insightReveal.actions.map((action, idx) => (
+                      <div key={idx} style={{
+                        fontSize: '0.875rem',
+                        color: '#e2e8f0',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        padding: '4px 8px',
+                        background: 'rgba(30, 41, 59, 0.5)',
+                        borderRadius: '6px',
+                      }}>
+                        <span style={{ color: '#94a3b8', fontSize: '0.75rem' }}>#{idx + 1}</span>
+                        <span style={{ fontWeight: '600' }}>{action.card?.name || '???'}</span>
+                        <span style={{ color: '#fbbf24', fontSize: '0.75rem' }}>⏱️ {action.speed}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {insightReveal.level >= 3 && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', alignItems: 'flex-end' }}>
+                    {insightReveal.actions.map((action, idx) => (
+                      <div key={idx} style={{
+                        fontSize: '0.875rem',
+                        color: '#e2e8f0',
+                        padding: '6px 10px',
+                        background: 'rgba(30, 41, 59, 0.6)',
+                        borderRadius: '8px',
+                        border: '1px solid rgba(167, 139, 250, 0.3)',
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                          <span style={{ color: '#94a3b8', fontSize: '0.75rem' }}>#{idx + 1}</span>
+                          <span style={{ fontWeight: '700', color: '#fbbf24' }}>{action.card?.name || '???'}</span>
+                          <span style={{ color: '#fbbf24', fontSize: '0.75rem' }}>⏱️ {action.speed}</span>
+                        </div>
+                        {action.card?.effects && (
+                          <div style={{ fontSize: '0.75rem', color: '#94a3b8', textAlign: 'right' }}>
+                            {action.card.effects.damage && `피해 ${action.card.effects.damage}`}
+                            {action.card.effects.block && ` / 방어 ${action.card.effects.block}`}
+                          </div>
+                        )}
+                        {action.traits && action.traits.length > 0 && (
+                          <div style={{ fontSize: '0.7rem', color: '#a78bfa', marginTop: '2px', textAlign: 'right' }}>
+                            특성: {action.traits.join(', ')}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>
