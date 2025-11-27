@@ -1011,6 +1011,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
   const [showTooltip, setShowTooltip] = useState(false); // 툴팁 표시 여부 (딜레이 후)
   const tooltipTimerRef = useRef(null);
   const logEndRef = useRef(null);
+  const devilDiceTriggeredRef = useRef(false); // 턴 내 악마의 주사위 발동 여부
   const initialEtherRef = useRef(typeof safeInitialPlayer.etherPts === 'number' ? safeInitialPlayer.etherPts : (playerEther ?? 0));
   const resultSentRef = useRef(false);
   const notifyBattleResult = useCallback((resultType) => {
@@ -1578,6 +1579,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
 
     // 진행된 플레이어 카드 수 초기화
     setResolvedPlayerCards(0);
+    devilDiceTriggeredRef.current = false;
 
     // 타임라인 progress 초기화
     setTimelineProgress(0);
@@ -1794,6 +1796,12 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
             if (relic?.effects?.type === 'PASSIVE' && relic?.effects?.comboMultiplierPerCard) {
               setRelicActivated(relicId);
               playSound(800, 200); // 유물 발동 사운드
+              setTimeout(() => setRelicActivated(null), 500);
+            } else if (relic?.effects?.type === 'PASSIVE' && relic?.effects?.etherFiveCardBonus && newCount >= 5 && !devilDiceTriggeredRef.current) {
+              // 악마의 주사위: 카드 5장 시점에서 즉시 발동 표시/사운드
+              devilDiceTriggeredRef.current = true;
+              setRelicActivated(relicId);
+              playSound(900, 250);
               setTimeout(() => setRelicActivated(null), 500);
             }
           });
