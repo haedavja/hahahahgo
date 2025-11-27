@@ -121,7 +121,7 @@ Enemy 데이터에 shroud 필드 (기본값 0)
 - 파일: `src/components/map/MapDemo.jsx`
 - 변수: `PATCH_VERSION_TAG`
 - 형식: "월-일-시:분" (KST)
-- 현재: "11-27-22:30"
+- 현재: "11-27-22:45"
 
 ---
 
