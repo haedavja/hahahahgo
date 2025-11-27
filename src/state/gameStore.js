@@ -614,8 +614,9 @@ export const useGameStore = create((set, get) => ({
     const rewards = resultLabel === "victory" ? grantRewards(rewardsDef, state.resources) : { next: state.resources, applied: {} };
 
     // Update player HP from battle result
-    let finalPlayerHp = state.activeBattle.simulation?.finalState?.player?.hp ?? state.playerHp;
-    let newMaxHp = state.maxHp;
+    // 실제 전투 결과가 전달되면 그 값을 사용, 없으면 시뮬레이션 결과 사용
+    let finalPlayerHp = outcome.playerHp ?? state.activeBattle.simulation?.finalState?.player?.hp ?? state.playerHp;
+    let newMaxHp = outcome.playerMaxHp ?? state.maxHp;
 
     // Apply combat end effects from relics
     try {

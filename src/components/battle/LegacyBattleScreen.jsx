@@ -64,7 +64,7 @@ export function LegacyBattleScreen() {
   }, []);
 
   const handleBattleResult = useCallback(
-    ({ result, playerEther, deltaEther }) => {
+    ({ result, playerEther, deltaEther, playerHp, playerMaxHp }) => {
       const finalResult = result === "victory" ? "victory" : "defeat";
 
       if (typeof deltaEther === "number" && deltaEther !== 0) {
@@ -74,7 +74,12 @@ export function LegacyBattleScreen() {
         const diff = playerEther - current;
         if (diff) applyEtherDelta(diff);
       }
-      resolveBattle({ result: finalResult, etherPts: playerEther });
+      resolveBattle({
+        result: finalResult,
+        etherPts: playerEther,
+        playerHp: playerHp, // 실제 전투 결과 체력 전달
+        playerMaxHp: playerMaxHp
+      });
     },
     [applyEtherDelta, resolveBattle],
   );

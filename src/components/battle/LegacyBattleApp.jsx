@@ -1022,10 +1022,12 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
     onBattleResult?.({
       result: resultType,
       playerEther: finalEther,
-      deltaAether: delta
+      deltaAether: delta,
+      playerHp: player.hp, // 실제 전투 종료 시점의 체력 전달
+      playerMaxHp: player.maxHp
     });
     resultSentRef.current = true;
-  }, [player.etherPts, onBattleResult]);
+  }, [player.etherPts, player.hp, player.maxHp, onBattleResult]);
 
   const closeCharacterSheet = useCallback(() => {
     setShowCharacterSheet(false);
