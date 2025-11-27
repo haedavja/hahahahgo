@@ -929,7 +929,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
   const baseEnergy = (safeInitialPlayer.energy ?? BASE_PLAYER_ENERGY) + passiveRelicStats.maxEnergy;
   const startingEther = typeof safeInitialPlayer.etherPts === 'number' ? safeInitialPlayer.etherPts : playerEther;
   const startingBlock = safeInitialPlayer.block ?? 0; // 유물 효과로 인한 시작 방어력
-  const [player, setPlayer] = useState({ hp: safeInitialPlayer.hp ?? 30, maxHp: safeInitialPlayer.maxHp ?? safeInitialPlayer.hp ?? 30, energy: baseEnergy, maxEnergy: baseEnergy, vulnMult: 1, vulnTurns: 0, block: startingBlock, counter: 0, etherPts: startingEther ?? 0, etherOverflow: 0, etherOverdriveActive: false, comboUsageCount: {}, strength: playerStrength, maxSpeed: safeInitialPlayer.maxSpeed ?? DEFAULT_PLAYER_MAX_SPEED });
+  const startingStrength = safeInitialPlayer.strength ?? playerStrength ?? 0; // 전투 시작 힘 (유물 효과 포함)
+  const [player, setPlayer] = useState({ hp: safeInitialPlayer.hp ?? 30, maxHp: safeInitialPlayer.maxHp ?? safeInitialPlayer.hp ?? 30, energy: baseEnergy, maxEnergy: baseEnergy, vulnMult: 1, vulnTurns: 0, block: startingBlock, counter: 0, etherPts: startingEther ?? 0, etherOverflow: 0, etherOverdriveActive: false, comboUsageCount: {}, strength: startingStrength, maxSpeed: safeInitialPlayer.maxSpeed ?? DEFAULT_PLAYER_MAX_SPEED });
   const [enemyIndex, setEnemyIndex] = useState(0);
   const [enemy, setEnemy] = useState(() => safeInitialEnemy?.name ? ({ ...safeInitialEnemy, hp: safeInitialEnemy.hp ?? safeInitialEnemy.maxHp ?? 30, maxHp: safeInitialEnemy.maxHp ?? safeInitialEnemy.hp ?? 30, vulnMult: 1, vulnTurns: 0, block: 0, counter: 0, etherPts: 0, etherOverdriveActive: false, strength: 0, maxSpeed: safeInitialEnemy.maxSpeed ?? DEFAULT_ENEMY_MAX_SPEED }) : null);
 
@@ -1104,10 +1105,10 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
     const rawHand = hasCharacterBuild
       ? drawCharacterBuildHand(currentBuild)
       : CARDS.slice(0, 10); // 8장 → 10장
-    const initialHand = applyStrengthToHand(rawHand, playerStrength);
+    const initialHand = applyStrengthToHand(rawHand, startingStrength);
     setHand(initialHand);
     setCanRedraw(true);
-  }, [safeInitialPlayer, playerEther, addLog, playerStrength]);
+  }, [safeInitialPlayer, playerEther, addLog, startingStrength]);
 
   useEffect(() => {
     if (!safeInitialEnemy) return;
@@ -1244,7 +1245,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
       const rawHand = hasCharacterBuild
         ? drawCharacterBuildHand(currentBuild, nextTurnEffects, [])
         : CARDS.slice(0, 10); // 8장 → 10장
-      const initialHand = applyStrengthToHand(rawHand, playerStrength);
+      const initialHand = applyStrengthToHand(rawHand, startingStrength);
       setHand(initialHand);
       setSelected([]);
       setCanRedraw(true);
@@ -1346,7 +1347,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
       const rawHand = hasCharacterBuild
         ? drawCharacterBuildHand(currentBuild, nextTurnEffects, prevHand)
         : CARDS.slice(0, 10); // 8장 → 10장
-      return applyStrengthToHand(rawHand, playerStrength);
+      return applyStrengthToHand(rawHand, player.strength || 0);
     });
     setSelected([]);
 
@@ -1511,7 +1512,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
     const rawHand = hasCharacterBuild
       ? drawCharacterBuildHand(currentBuild, nextTurnEffects, hand)
       : CARDS.slice(0, 10); // 8장 → 10장
-    const newHand = applyStrengthToHand(rawHand, playerStrength);
+    const newHand = applyStrengthToHand(rawHand, player.strength || 0);
     setHand(newHand);
     setSelected([]);
     setCanRedraw(false);
