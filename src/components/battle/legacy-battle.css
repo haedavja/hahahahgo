@@ -1073,6 +1073,45 @@ body {
   transition: box-shadow 0.3s ease, transform 0.3s ease;
 }
 
+/* 통찰 툴팁 */
+.insight-tooltip {
+  position: absolute;
+  left: 0;
+  top: 120%;
+  min-width: 260px;
+  max-width: 340px;
+  padding: 12px 14px;
+  background: rgba(8, 7, 20, 0.96);
+  border: 1px solid rgba(167, 139, 250, 0.5);
+  border-radius: 10px;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.5);
+  color: #e9d5ff;
+  z-index: 200;
+}
+
+.insight-tooltip::after {
+  content: "";
+  position: absolute;
+  top: -6px;
+  left: 14px;
+  border-width: 6px;
+  border-style: solid;
+  border-color: transparent transparent rgba(167, 139, 250, 0.5) transparent;
+  filter: drop-shadow(0 -2px 2px rgba(0,0,0,0.3));
+}
+
+.insight-tooltip-title {
+  font-weight: 800;
+  font-size: 0.95rem;
+  margin-bottom: 4px;
+}
+
+.insight-tooltip-desc {
+  font-size: 0.82rem;
+  color: #c7b8ff;
+  line-height: 1.35;
+}
+
 .submitted-cards-area {
   margin-top: 24px;
   background: rgba(4, 6, 22, 0.92);

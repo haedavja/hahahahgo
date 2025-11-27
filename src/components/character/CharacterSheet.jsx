@@ -23,6 +23,7 @@ export function CharacterSheet({ onClose }) {
   const maxHp = useGameStore((state) => state.maxHp);
   const playerStrength = useGameStore((state) => state.playerStrength);
   const playerAgility = useGameStore((state) => state.playerAgility);
+  const playerInsight = useGameStore((state) => state.playerInsight || 0);
   const relics = useGameStore((state) => state.relics);
 
   // 유물 패시브 효과 계산
@@ -242,6 +243,10 @@ export function CharacterSheet({ onClose }) {
           <div style={{ display: "flex", justifyContent: "space-between", fontSize: "14px" }}>
             <span style={{ opacity: 0.8 }}>민첩</span>
             <span style={{ fontWeight: 600, color: agility >= 0 ? "#34d399" : "#ef4444" }}>{agility}</span>
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: "14px" }}>
+            <span style={{ opacity: 0.8 }}>통찰</span>
+            <span style={{ fontWeight: 700, color: "#a78bfa" }}>{playerInsight}</span>
           </div>
         </div>
 
