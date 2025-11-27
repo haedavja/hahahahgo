@@ -227,7 +227,33 @@ body {
   background: rgba(2, 6, 23, 0.8);
   border-radius: 18px;
   border: 1px solid rgba(148, 163, 184, 0.2);
-  overflow: hidden;
+  overflow: visible; /* 통찰 3단계 툴팁이 잘리지 않도록 표시 */
+}
+
+.insight-lv3-glow {
+  box-shadow:
+    0 0 14px rgba(167, 139, 250, 0.75),
+    0 0 28px rgba(167, 139, 250, 0.35),
+    0 0 36px rgba(255, 255, 255, 0.25);
+  border: 2px solid rgba(167, 139, 250, 0.85);
+  filter: drop-shadow(0 0 6px rgba(167, 139, 250, 0.6));
+  cursor: pointer;
+}
+
+.insight-eye-badge {
+  position: absolute;
+  top: 3px; /* 아주 아주 살짝 위로 */
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 10px; /* 아이콘을 더 키움 */
+  background: rgba(217, 70, 15, 0); /* 완전 투명 */
+  border: 1px solid rgba(255, 255, 255, 0);
+  border-radius: 6px;
+  padding: 1px 3px;
+  color: #fff;
+  box-shadow: none;
+  pointer-events: none;
+  white-space: nowrap;
 }
 
 .timeline-lane::after {
@@ -254,15 +280,19 @@ body {
 }
 
 .timeline-marker {
-  position: absolute;
-  display: flex;
-  align-items: center;
-  gap: 6px;
+  position: absolute; /* left/top 배치를 위한 절대 위치 */
   padding: 6px 10px;
   border-radius: 999px;
   border: 1px solid rgba(255, 255, 255, 0.2);
   transform: translate(-50%, 0);
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.45);
+}
+
+.marker-content {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .marker-player {
@@ -1069,8 +1099,9 @@ body {
 
 .timeline-marker.beam-hit {
   box-shadow: 0 0 18px rgba(167, 139, 250, 0.7), 0 0 36px rgba(255, 255, 255, 0.35);
-  transform: translateY(-2px);
-  transition: box-shadow 0.3s ease, transform 0.3s ease;
+  /* 위치 변화가 느껴지지 않도록 변형 제거 */
+  transform: none;
+  transition: box-shadow 0.3s ease;
 }
 
 /* 통찰 툴팁 */

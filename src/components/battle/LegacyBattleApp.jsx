@@ -1137,6 +1137,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const insightAnimTimerRef = useRef(null);
   const prevRevealLevelRef = useRef(0);
   const [showInsightTooltip, setShowInsightTooltip] = useState(false);
+  const [hoveredEnemyAction, setHoveredEnemyAction] = useState(null);
   const hoveredCardRef = useRef(null);
   const [showTooltip, setShowTooltip] = useState(false); // 툴팁 표시 여부 (딜레이 후)
   const tooltipTimerRef = useRef(null);
@@ -2625,8 +2626,10 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       const actions = enemyPlan.actions || [];
       if (!actions.length) return [];
       if (!insightReveal || !insightReveal.visible || (insightReveal.level || 0) === 0) return [];
+      const level = insightReveal.level || 0;
+      const limited = level === 1 ? actions.slice(0, 2) : actions;
       let sp = 0;
-      return actions.map((card, idx) => {
+      return limited.map((card, idx) => {
         sp += card.speedCost || 0;
         return { actor: 'enemy', card, sp, idx };
       });
@@ -2934,15 +2937,74 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                     const isUsed = usedCardIndices.includes(globalIndex) && globalIndex < qIndex;
                     // 정규화: enemy의 속도를 비율로 변환하여 표시
                     const normalizedPosition = (a.sp / enemy.maxSpeed) * 100;
+                    const canShowTooltip = (insightReveal?.level || 0) >= 3 && phase === 'select';
+                    const markerCls = [
+                      'timeline-marker',
+                      'marker-enemy',
+                      isExecuting ? 'timeline-active' : '',
+                      isUsed ? 'timeline-used' : '',
+                      canShowTooltip ? 'insight-lv3-glow' : ''
+                    ].join(' ');
                     return (
                       <div key={idx}
-                        className={`timeline-marker marker-enemy ${isExecuting ? 'timeline-active' : ''} ${isUsed ? 'timeline-used' : ''} ${insightAnimLevel >= 3 ? 'beam-hit' : ''}`}
-                        style={{ left: `${normalizedPosition}%`, top: `${6 + offset}px` }}>
-                        <Icon size={14} className="text-white" />
-                        <span className="text-white text-xs font-bold">{num > 0 ? num : ''}</span>
+                        className={markerCls}
+                        style={{ left: `${normalizedPosition}%`, top: `${6 + offset}px` }}
+                        onMouseEnter={(e) => {
+                          if (!canShowTooltip) return;
+                          setHoveredEnemyAction({
+                            action: a.card,
+                            idx,
+                            left: normalizedPosition,
+                            top: 6 + offset,
+                            x: e.clientX,
+                            y: e.clientY,
+                          });
+                        }}
+                        onMouseLeave={() => setHoveredEnemyAction(null)}
+                      >
+                        <div className="marker-content">
+                          <Icon size={14} className="text-white" />
+                          {canShowTooltip && <span className="insight-eye-badge">👁️</span>}
+                          <span className="text-white text-xs font-bold">{num > 0 ? num : ''}</span>
+                        </div>
                       </div>
                     );
                   })}
+                  {hoveredEnemyAction && (insightReveal?.level || 0) >= 3 && (
+                    <div
+                      className="insight-tooltip"
+                      style={{
+                        position: 'absolute',
+                        left: `${Math.min(98, Math.max(2, hoveredEnemyAction.left))}%`,
+                        top: `${hoveredEnemyAction.top + 36}px`,
+                        transform: 'translateX(-50%)',
+                        pointerEvents: 'none',
+                        zIndex: 1200,
+                      }}
+                    >
+                      <div className="insight-tooltip-title">
+                        #{hoveredEnemyAction.idx + 1} {hoveredEnemyAction.action?.name || '???'}
+                      </div>
+                      <div className="insight-tooltip-desc" style={{ marginBottom: '4px' }}>
+                        ⏱️ {hoveredEnemyAction.action?.speedCost ?? hoveredEnemyAction.action?.speed ?? '-'}
+                      </div>
+                      {(hoveredEnemyAction.action?.damage || hoveredEnemyAction.action?.block) && (
+                        <div className="insight-tooltip-desc" style={{ marginBottom: '4px' }}>
+                          {hoveredEnemyAction.action.damage ? `⚔️ ${hoveredEnemyAction.action.damage}${hoveredEnemyAction.action.hits ? ` x${hoveredEnemyAction.action.hits}` : ''}` : ''}
+                          {hoveredEnemyAction.action.damage && hoveredEnemyAction.action.block ? ' / ' : ''}
+                          {hoveredEnemyAction.action.block ? `🛡️ ${hoveredEnemyAction.action.block}` : ''}
+                        </div>
+                      )}
+                      {hoveredEnemyAction.action?.traits && hoveredEnemyAction.action.traits.length > 0 && (
+                        <div className="insight-tooltip-desc" style={{ color: '#a78bfa' }}>
+                          특성: {hoveredEnemyAction.action.traits.join(', ')}
+                        </div>
+                      )}
+                      {!hoveredEnemyAction.action?.damage && !hoveredEnemyAction.action?.block && !hoveredEnemyAction.action?.traits?.length && (
+                        <div className="insight-tooltip-desc">상세 정보가 없습니다.</div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
