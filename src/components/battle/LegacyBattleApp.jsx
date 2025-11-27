@@ -1196,7 +1196,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
       maxEnergy: safeInitialPlayer?.energy ?? prev.maxEnergy,
       etherPts: nextEther,
       // Strength를 0으로 리셋하지 않고 초기 계산값/이전 값 보존
-      strength: safeInitialPlayer?.strength ?? prev.strength ?? startingStrength ?? 0
+      strength: safeInitialPlayer?.strength ?? prev.strength ?? startingStrength ?? 0,
+      insight: safeInitialPlayer?.insight ?? prev.insight ?? startingInsight ?? 0
     }));
     setSelected([]);
     setQueue([]);
@@ -1204,6 +1205,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
     setFixedOrder(null);
     setPostCombatOptions(null);
     setEnemyPlan({ actions: [], mode: null });
+    // 새로운 전투/턴 초기화 시 턴 시작 플래그도 리셋
+    turnStartProcessedRef.current = false;
     setPhase('select');
     // 캐릭터 빌드가 있으면 사용, 없으면 기본 8장
     const currentBuild = useGameStore.getState().characterBuild;
@@ -1236,6 +1239,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
     setQueue([]);
     setQIndex(0);
     setFixedOrder(null);
+    // 새로운 적으로 전환 시 턴 시작 처리 플래그 리셋
+    turnStartProcessedRef.current = false;
     setPhase('select');
   }, [safeInitialEnemy, enemyIndex]);
 
@@ -1458,14 +1463,15 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
     });
     setSelected([]);
 
+    // 적 성향/행동을 턴 시작에 즉시 결정해 통찰 UI가 바로 표시되도록 함
     setEnemyPlan(prev => {
-      if (prev.mode) {
-        return { ...prev, actions: [] };
-      } else {
-        const mode = decideEnemyMode();
+      const mode = prev.mode || decideEnemyMode();
+      if (!prev.mode) {
         addLog(`🤖 적 성향 힌트: ${mode.name}`);
-        return { actions: [], mode };
       }
+      const slots = etherSlots(enemy?.etherPts || 0);
+      const actions = generateEnemyActions(enemy, mode, slots);
+      return { mode, actions };
     });
   }, [phase, enemy, enemyPlan.mode, nextTurnEffects]);
 
@@ -1476,6 +1482,16 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
       addLog('🧯 자동 복구: 실행 큐를 다시 생성했습니다');
     }
   }, [phase, queue, fixedOrder]);
+
+  // 선택 단계 진입 시 적 행동을 미리 계산해 통찰 UI가 바로 보이도록 함
+  useEffect(() => {
+    if (phase !== 'select') return;
+    if (!enemyPlan?.mode) return;
+    if (enemyPlan.actions && enemyPlan.actions.length > 0) return;
+    const slots = etherSlots(enemy?.etherPts || 0);
+    const actions = generateEnemyActions(enemy, enemyPlan.mode, slots);
+    setEnemyPlan(prev => ({ ...prev, actions }));
+  }, [phase, enemyPlan?.mode, enemyPlan?.actions?.length, enemy]);
 
   const totalEnergy = useMemo(() => selected.reduce((s, c) => s + c.actionCost, 0), [selected]);
   const totalSpeed = useMemo(() => selected.reduce((s, c) => s + c.speedCost, 0), [selected]);
@@ -1678,7 +1694,10 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
 
   const startResolve = () => {
     if (phase !== 'select') return;
-    const actions = generateEnemyActions(enemy, enemyPlan.mode, etherSlots(enemy.etherPts));
+    const actions =
+      enemyPlan.actions && enemyPlan.actions.length > 0
+        ? enemyPlan.actions
+        : generateEnemyActions(enemy, enemyPlan.mode, etherSlots(enemy.etherPts));
     setEnemyPlan(prev => ({ ...prev, actions }));
 
     const pCombo = detectPokerCombo(selected);
@@ -2494,11 +2513,20 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
   }, [phase, selected, fixedOrder, queue, player.comboUsageCount]);
 
   const enemyTimeline = useMemo(() => {
-    if (phase === 'select') return [];
+    if (phase === 'select') {
+      // 선택 단계에서도 적이 고른 카드가 있다면 타임라인에 표시
+      const actions = enemyPlan.actions || [];
+      if (!actions.length) return [];
+      let sp = 0;
+      return actions.map((card, idx) => {
+        sp += card.speedCost || 0;
+        return { actor: 'enemy', card, sp, idx };
+      });
+    }
     if (phase === 'respond' && fixedOrder) return fixedOrder.filter(x => x.actor === 'enemy');
     if (phase === 'resolve') return queue.filter(x => x.actor === 'enemy');
     return [];
-  }, [phase, fixedOrder, queue]);
+  }, [phase, fixedOrder, queue, enemyPlan.actions]);
 
   if (!enemy) return <div className="text-white p-4">로딩…</div>;
 
