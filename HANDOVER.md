@@ -374,3 +374,8 @@ setPlayer(p => ({
 ì‘ì„±ì¼: 2025-11-27 05:15 (KST)
 ì‘ì„±ì: Claude Code (Anthropic)
 ì¸ìˆ˜ì¸ê³„ ëŒ€ìƒ: GPT Codex
+## Ãß°¡ ¸Ş¸ğ: ÅëÂû(Insight) ½ºÅÈ µµÀÔ ÁØºñ
+- ÅëÂû ½ºÅÈÀº ¾ÆÁ÷ ¹Ì±¸ÇöÀÌ¸ç ±âº»°ª 0À¸·Î ½ÃÀÛÇÏµµ·Ï »óÅÂ ÇÊµå(playerInsight) Ãß°¡ ÇÊ¿ä.
+- ÀüÅõ ÆäÀÌ·Îµå/ÃÊ±â »óÅÂ¿¡ ÅëÂû Æ÷ÇÔ: LegacyBattleScreen ¡æ buildBattlePayload ¡æ LegacyBattleApp initialPlayerState/ÃÊ±â setPlayer¿¡¼­ ÅëÂû º¸Á¸.
+- DevTools¿¡ ÅëÂû ÀÔ·Â/¼³Á¤ UI Ãß°¡ ÇÊ¿ä(Strength/Agility¿Í µ¿ÀÏÇÑ ¼ıÀÚ ÀÔ·Â).
+- Àå¸·(¸ó½ºÅÍ°¡ ÅëÂûÀ» Â÷°¨ÇÏ´Â °³³ä)Àº ¾ÆÁ÷ ¹ÌÀû¿ë. ÃßÈÄ ¸ó½ºÅÍ µ¥ÀÌÅÍ¿¡ Àå¸· ÇÊµå¸¦ µÎ°í ÅëÂû °è»ê ½Ã Â÷°¨ ·ÎÁ÷ Ãß°¡ ¿¹Á¤.
