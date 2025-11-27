@@ -2825,11 +2825,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
                       )}
                     </div>
                     <div style={{ fontSize: '1rem', fontWeight: '600', color: '#7dd3fc', marginTop: '4px' }}>플레이어</div>
-                    {player.strength !== 0 && (
-                      <div style={{ fontSize: '0.9rem', fontWeight: '700', color: player.strength > 0 ? '#fbbf24' : '#ef4444', marginTop: '2px' }}>
-                        💪 힘: {player.strength}
-                      </div>
-                    )}
+                    <div style={{ fontSize: '0.9rem', fontWeight: '700', color: (player.strength || 0) > 0 ? '#fbbf24' : '#64748b', marginTop: '2px' }}>
+                      💪 힘: {player.strength || 0}
+                    </div>
                     {playerAgility !== 0 && (
                       <div style={{ fontSize: '0.9rem', fontWeight: '700', color: playerAgility > 0 ? '#34d399' : '#ef4444', marginTop: '2px' }}>
                         ⚡ 민첩: {playerAgility}
