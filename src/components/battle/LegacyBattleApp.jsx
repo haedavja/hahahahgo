@@ -1179,12 +1179,13 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
   // 통찰 레벨별 타임라인 연출 트리거 (선택 단계에서만)
   useEffect(() => {
-    if (phase !== 'select') {
+    if (phase !== 'select' && phase !== 'respond' && phase !== 'resolve') {
       setInsightAnimLevel(0);
       setHoveredEnemyAction(null);
       return;
     }
-    const lvl = insightReveal?.level || 0;
+    // select 단계는 insightReveal.level, respond 단계는 effectiveInsight 기준
+    const lvl = phase === 'select' ? (insightReveal?.level || 0) : (effectiveInsight || 0);
     const prev = prevRevealLevelRef.current || 0;
     if (lvl === prev) return;
     prevRevealLevelRef.current = lvl;
@@ -2938,7 +2939,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                     const isUsed = usedCardIndices.includes(globalIndex) && globalIndex < qIndex;
                     // 정규화: enemy의 속도를 비율로 변환하여 표시
                     const normalizedPosition = (a.sp / enemy.maxSpeed) * 100;
-                    const canShowTooltip = (insightReveal?.level || 0) >= 3 && phase === 'select';
+                    const levelForTooltip = phase === 'select' ? (insightReveal?.level || 0) : (effectiveInsight || 0);
+                    const canShowTooltip = levelForTooltip >= 3;
                     const markerCls = [
                       'timeline-marker',
                       'marker-enemy',
@@ -3735,18 +3737,18 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         </div>
       )}
       {/* 전역 통찰 툴팁 (뷰포트 기준) */}
-      {hoveredEnemyAction && (insightReveal?.level || 0) >= 3 && phase === 'select' && (
-        <div
-          className="insight-tooltip"
-          style={{
-            position: 'fixed',
-            left: `${hoveredEnemyAction.pageX}px`,
-            top: `${hoveredEnemyAction.pageY + 16}px`,
-            transform: 'translate(-50%, 0)',
-            pointerEvents: 'none',
-            zIndex: 3000,
-          }}
-        >
+                  {hoveredEnemyAction && (phase === 'select' || phase === 'respond' || phase === 'resolve') && ((phase === 'select' ? (insightReveal?.level || 0) : (effectiveInsight || 0)) >= 3) && (
+                    <div
+                      className="insight-tooltip"
+                      style={{
+                        position: 'fixed',
+                        left: `${hoveredEnemyAction.pageX}px`,
+                top: `${hoveredEnemyAction.pageY + 24}px`,
+                transform: 'translate(-50%, 0)',
+                pointerEvents: 'none',
+                zIndex: 3000,
+              }}
+            >
           <div className="insight-tooltip-title">
             #{hoveredEnemyAction.idx + 1} {hoveredEnemyAction.action?.name || '???'}
           </div>

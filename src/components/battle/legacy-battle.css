@@ -1113,9 +1113,9 @@ body {
   position: absolute;
   left: 0;
   top: 120%;
-  min-width: 260px;
-  max-width: 340px;
-  padding: 12px 14px;
+  min-width: 390px;
+  max-width: 510px;
+  padding: 18px 21px;
   background: rgba(8, 7, 20, 0.96);
   border: 1px solid rgba(167, 139, 250, 0.5);
   border-radius: 10px;
@@ -1137,12 +1137,12 @@ body {
 
 .insight-tooltip-title {
   font-weight: 800;
-  font-size: 0.95rem;
-  margin-bottom: 4px;
+  font-size: 1.425rem;
+  margin-bottom: 6px;
 }
 
 .insight-tooltip-desc {
-  font-size: 0.82rem;
+  font-size: 1.23rem;
   color: #c7b8ff;
   line-height: 1.35;
 }
