@@ -624,9 +624,12 @@ export const useGameStore = create((set, get) => ({
         maxHp: state.maxHp,
       });
 
-      // Apply healing and maxHp increase from relics
-      finalPlayerHp = Math.min(state.maxHp, finalPlayerHp + combatEndEffects.heal);
-      newMaxHp = state.maxHp + combatEndEffects.maxHp;
+      const healed = combatEndEffects.heal || 0;
+      const maxHpGain = combatEndEffects.maxHp || 0;
+
+      // 체력이 꽉 찬 상태에서 최대체력이 오르면 현재 체력도 같이 올려줘서 체력 손실로 보이지 않도록 처리
+      newMaxHp = state.maxHp + maxHpGain;
+      finalPlayerHp = Math.min(newMaxHp, finalPlayerHp + healed + maxHpGain);
     } catch (error) {
       console.error('Error applying combat end effects:', error);
     }
@@ -923,5 +926,4 @@ export const selectors = {
   lastBattleResult: (state) => state.lastBattleResult,
   characterBuild: (state) => state.characterBuild,
 };
-
 
