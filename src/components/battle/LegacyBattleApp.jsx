@@ -2930,9 +2930,11 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
                       )}
                     </div>
                     <div style={{ fontSize: '1rem', fontWeight: '600', color: '#7dd3fc', marginTop: '4px' }}>플레이어</div>
-                    <div style={{ fontSize: '0.9rem', fontWeight: '700', color: (player.strength || 0) > 0 ? '#fbbf24' : '#64748b', marginTop: '2px' }}>
-                      💪 힘: {player.strength || 0}
-                    </div>
+                    {(player.strength || 0) > 0 && (
+                      <div style={{ fontSize: '0.9rem', fontWeight: '700', color: '#fbbf24', marginTop: '2px' }}>
+                        💪 힘: {player.strength || 0}
+                      </div>
+                    )}
                     {playerAgility !== 0 && (
                       <div style={{ fontSize: '0.9rem', fontWeight: '700', color: playerAgility > 0 ? '#34d399' : '#ef4444', marginTop: '2px' }}>
                         ⚡ 민첩: {playerAgility}
@@ -3165,15 +3167,16 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
                           <span style={{ fontWeight: '700', color: '#fbbf24' }}>{action.card?.name || '???'}</span>
                           <span style={{ color: '#fbbf24', fontSize: '0.75rem' }}>⏱️ {action.speed}</span>
                         </div>
-                        {action.card?.effects && (
+                        {action.card && (action.card.damage || action.card.block) && (
                           <div style={{ fontSize: '0.75rem', color: '#94a3b8', textAlign: 'right' }}>
-                            {action.card.effects.damage && `피해 ${action.card.effects.damage}`}
-                            {action.card.effects.block && ` / 방어 ${action.card.effects.block}`}
+                            {action.card.damage && `⚔️ 피해 ${action.card.damage}`}
+                            {action.card.damage && action.card.block && ' / '}
+                            {action.card.block && `🛡️ 방어 ${action.card.block}`}
                           </div>
                         )}
-                        {action.traits && action.traits.length > 0 && (
+                        {action.card?.traits && action.card.traits.length > 0 && (
                           <div style={{ fontSize: '0.7rem', color: '#a78bfa', marginTop: '2px', textAlign: 'right' }}>
-                            특성: {action.traits.join(', ')}
+                            특성: {action.card.traits.join(', ')}
                           </div>
                         )}
                       </div>
