@@ -2,8 +2,8 @@
 // 에테르.md 기반: 칸당 50% 증가, 각 칸 도달 시 0pt로 리셋
 
 const BASE_COST = 100; // 1칸 기본 비용
-const INFLATION_RATE = 1.5; // 50% 증가
-const MAX_SLOTS = 10; // 최대 칸 수
+const INFLATION_RATE = 1.1; // 10% 증가
+export const MAX_SLOTS = 10; // 시각적 슬롯(색상) 순환 기준
 
 /**
  * 슬롯 수를 채우는데 필요한 총 pt 계산
@@ -16,7 +16,7 @@ export function slotsToPts(slots) {
   let totalPts = 0;
   let slotCost = BASE_COST;
 
-  for (let i = 0; i < Math.min(slots, MAX_SLOTS); i++) {
+  for (let i = 0; i < slots; i++) {
     totalPts += slotCost;
     slotCost = Math.floor(slotCost * INFLATION_RATE);
   }
@@ -45,18 +45,10 @@ export function calculateEtherSlots(pts) {
   let slotCost = BASE_COST;
   let slots = 0;
 
-  while (totalPts + slotCost <= pts && slots < MAX_SLOTS) {
+  while (totalPts + slotCost <= pts) {
     totalPts += slotCost;
     slots++;
     slotCost = Math.floor(slotCost * INFLATION_RATE);
-  }
-
-  // x10 도달 시 0칸으로 리셋
-  if (slots >= MAX_SLOTS) {
-    const maxPts = slotsToPts(MAX_SLOTS);
-    if (pts >= maxPts) {
-      return 0; // 리셋 후 0칸
-    }
   }
 
   return slots;
@@ -72,13 +64,6 @@ export function getCurrentSlotPts(totalPts) {
 
   const currentSlots = calculateEtherSlots(totalPts);
   const completedPts = slotsToPts(currentSlots);
-
-  // x10 도달 시 리셋 처리
-  if (currentSlots === 0 && totalPts >= slotsToPts(MAX_SLOTS)) {
-    const maxPts = slotsToPts(MAX_SLOTS);
-    return totalPts - maxPts; // 10칸 초과분
-  }
-
   return totalPts - completedPts;
 }
 
@@ -89,12 +74,6 @@ export function getCurrentSlotPts(totalPts) {
  */
 export function getNextSlotCost(totalPts) {
   const currentSlots = calculateEtherSlots(totalPts);
-
-  // x10 도달 시 다시 x1 비용
-  if (currentSlots === 0 && totalPts >= slotsToPts(MAX_SLOTS)) {
-    return BASE_COST;
-  }
-
   return getSlotCost(currentSlots);
 }
 

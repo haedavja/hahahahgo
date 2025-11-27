@@ -14,7 +14,7 @@ import {
   ENEMIES,
   TRAITS,
 } from "./battleData";
-import { calculateEtherSlots, getCurrentSlotPts, getSlotProgress, getNextSlotCost } from "../../lib/etherUtils";
+import { calculateEtherSlots, getCurrentSlotPts, getSlotProgress, getNextSlotCost, MAX_SLOTS } from "../../lib/etherUtils";
 import { CharacterSheet } from "../character/CharacterSheet";
 import { useGameStore } from "../../state/gameStore";
 import { RELICS, RELIC_RARITIES } from "../../data/relics";
@@ -820,8 +820,9 @@ export function EtherBar({ pts, slots, previewGain = 0, color = "cyan", label })
   const nextSlotCost = getNextSlotCost(safePts);
   // 다음 슬롯까지의 진행률 (0-1)
   const slotProgress = getSlotProgress(safePts);
-  // 시각적 바 높이 = 진행률
-  const ratio = Math.max(0, Math.min(1, slotProgress));
+  // 시각적 바는 10칸 단위로 색상/진행률 순환
+  const visualSlots = safeSlots % MAX_SLOTS;
+  const ratio = Math.max(0, Math.min(1, (visualSlots + slotProgress) / MAX_SLOTS));
   const tier = `x${safeSlots}`;
 
   // 디버깅: 값 확인
@@ -901,7 +902,7 @@ export function EtherBar({ pts, slots, previewGain = 0, color = "cyan", label })
             bottom: '3px',
             height: '100%',
             borderRadius: '24px',
-            background: slotColors[safeSlots - 1],
+            background: slotColors[((safeSlots - 1) % slotColors.length + slotColors.length) % slotColors.length],
             transition: 'height 0.8s ease-out'
           }} />
         )}
@@ -913,16 +914,16 @@ export function EtherBar({ pts, slots, previewGain = 0, color = "cyan", label })
           bottom: '3px',
           height: `${ratio * 100}%`,
           borderRadius: '24px',
-          background: safeSlots < 10 ? slotColors[safeSlots] : slotColors[9],
+          background: slotColors[(safeSlots % slotColors.length + slotColors.length) % slotColors.length],
           transition: 'height 0.8s ease-out'
         }} />
       </div>
       <div style={{ textAlign: 'center', color: textColor, fontSize: '20px' }}>
-        <div key={`pts-${safePts}`}>{currentPts}/{nextSlotCost}</div>
+        <div key={`pts-${safePts}`}>{currentPts.toLocaleString()}/{nextSlotCost.toLocaleString()}</div>
         <div>{tier}</div>
         {safePreview > 0 && (
           <div style={{ color: '#6ee7b7', fontSize: '16px', marginTop: '4px' }}>
-            +{safePreview}pt
+            +{safePreview.toLocaleString()}pt
           </div>
         )}
       </div>
