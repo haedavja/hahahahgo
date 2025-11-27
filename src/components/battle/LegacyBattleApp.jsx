@@ -814,15 +814,23 @@ export function EtherBar({ pts, slots, previewGain = 0, color = "cyan", label })
   const safeSlots = Number.isFinite(derivedSlots) ? derivedSlots : 0;
   const safePreview = Number.isFinite(previewGain) ? previewGain : 0;
 
+  // 숫자 축약 포맷터 (K/M/B) + 전체 문자열
+  const formatCompact = (num) => {
+    const abs = Math.abs(num);
+    if (abs >= 1e9) return `${(num / 1e9).toFixed(2)}B`;
+    if (abs >= 1e6) return `${(num / 1e6).toFixed(2)}M`;
+    if (abs >= 1e3) return `${(num / 1e3).toFixed(2)}K`;
+    return num.toLocaleString();
+  };
+
   // 현재 슬롯 내의 pt (각 슬롯 도달시마다 0으로 리셋)
   const currentPts = getCurrentSlotPts(safePts);
   // 다음 슬롯을 채우는데 필요한 총 pt
   const nextSlotCost = getNextSlotCost(safePts);
   // 다음 슬롯까지의 진행률 (0-1)
   const slotProgress = getSlotProgress(safePts);
-  // 시각적 바는 10칸 단위로 색상/진행률 순환
-  const visualSlots = safeSlots % MAX_SLOTS;
-  const ratio = Math.max(0, Math.min(1, (visualSlots + slotProgress) / MAX_SLOTS));
+  // 진행률은 현재 슬롯 내 비율만 사용 (색상은 회전)
+  const ratio = Math.max(0, Math.min(1, slotProgress));
   const tier = `x${safeSlots}`;
 
   // 디버깅: 값 확인
@@ -838,6 +846,13 @@ export function EtherBar({ pts, slots, previewGain = 0, color = "cyan", label })
 
   const borderColor = color === 'red' ? '#ef4444' : '#53d7ff';
   const textColor = color === 'red' ? '#fca5a5' : '#8fd3ff';
+
+  // 표시용 압축 문자열과 툴팁용 전체 문자열
+  const compactCurrent = formatCompact(currentPts);
+  const compactNext = formatCompact(nextSlotCost);
+  const fullTitle = `${currentPts.toLocaleString()} / ${nextSlotCost.toLocaleString()}`;
+  const [showPtsTooltip, setShowPtsTooltip] = useState(false);
+  const [showBarTooltip, setShowBarTooltip] = useState(false);
 
   // 슬롯별 색상 (플레이어: 보색 관계로 시인성 극대화)
   const playerSlotColors = [
@@ -878,7 +893,8 @@ export function EtherBar({ pts, slots, previewGain = 0, color = "cyan", label })
       boxShadow: '0 20px 40px rgba(0, 0, 0, 0.45)',
       display: 'flex',
       flexDirection: 'column',
-      gap: '12px'
+      gap: '12px',
+      position: 'relative'
     }}>
       <div style={{ fontSize: '11px', fontWeight: 'bold', textAlign: 'center', color: '#5fe0ff', letterSpacing: '0.12em' }}>
         {label}
@@ -891,22 +907,11 @@ export function EtherBar({ pts, slots, previewGain = 0, color = "cyan", label })
         borderRadius: '30px',
         border: `2px solid ${borderColor}`,
         background: 'rgba(9, 17, 27, 0.95)',
-        overflow: 'hidden'
-      }}>
-        {/* 이전에 완성된 슬롯 (가장 최근 완성된 슬롯의 색, 바 전체 100%) */}
-        {safeSlots > 0 && (
-          <div style={{
-            position: 'absolute',
-            left: '3px',
-            right: '3px',
-            bottom: '3px',
-            height: '100%',
-            borderRadius: '24px',
-            background: slotColors[((safeSlots - 1) % slotColors.length + slotColors.length) % slotColors.length],
-            transition: 'height 0.8s ease-out'
-          }} />
-        )}
-        {/* 현재 진행 중인 슬롯 (현재 슬롯의 진행률만큼 바 전체를 덮어씌움) */}
+        overflow: 'hidden',
+      }}
+        onMouseEnter={() => setShowBarTooltip(true)}
+        onMouseLeave={() => setShowBarTooltip(false)}
+      >
         <div style={{
           position: 'absolute',
           left: '3px',
@@ -918,12 +923,35 @@ export function EtherBar({ pts, slots, previewGain = 0, color = "cyan", label })
           transition: 'height 0.8s ease-out'
         }} />
       </div>
-      <div style={{ textAlign: 'center', color: textColor, fontSize: '20px' }}>
-        <div key={`pts-${safePts}`}>{currentPts.toLocaleString()}/{nextSlotCost.toLocaleString()}</div>
-        <div>{tier}</div>
+      {showBarTooltip && (
+        <div className="insight-tooltip" style={{ position: 'absolute', left: '50%', top: '0', transform: 'translate(-50%, -110%)', whiteSpace: 'nowrap', zIndex: 1200 }}>
+          <div className="insight-tooltip-title">진행률</div>
+          <div className="insight-tooltip-desc">{Math.round(slotProgress * 100)}%</div>
+        </div>
+      )}
+      <div
+        style={{ textAlign: 'center', color: textColor, fontSize: '20px', position: 'relative' }}
+        onMouseEnter={() => setShowPtsTooltip(true)}
+        onMouseLeave={() => setShowPtsTooltip(false)}
+      >
+        <div key={`pts-${safePts}`} style={{ fontFamily: 'monospace', lineHeight: 1.1, display: 'inline-flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+          <div>{compactCurrent}</div>
+          <div style={{ height: '1px', width: '100%', background: 'rgba(255,255,255,0.4)' }} />
+          <div>{compactNext}</div>
+        </div>
+        <div style={{ marginTop: '6px' }}>{tier}</div>
         {safePreview > 0 && (
           <div style={{ color: '#6ee7b7', fontSize: '16px', marginTop: '4px' }}>
             +{safePreview.toLocaleString()}pt
+          </div>
+        )}
+        {showPtsTooltip && (
+          <div className="insight-tooltip" style={{ position: 'absolute', left: '50%', top: '-12px', transform: 'translate(-50%, -100%)', whiteSpace: 'nowrap', zIndex: 1200 }}>
+            <div className="insight-tooltip-title">에테르</div>
+            <div className="insight-tooltip-desc">{fullTitle}</div>
+            {safePreview > 0 && (
+              <div className="insight-tooltip-desc">+{safePreview.toLocaleString()} pt</div>
+            )}
           </div>
         )}
       </div>
@@ -3252,7 +3280,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
           {/* 오른쪽: 적 */}
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '12px', minWidth: '360px', position: 'relative', justifyContent: 'center' }}>
             {/* 몬스터 콤보 - 절대 위치로 왼쪽 배치 */}
-                {enemyCombo && (
+                {enemyCombo && !((phase === 'select') && ((insightReveal?.level || 0) === 0)) && (
                   <div className="combo-display" style={{ position: 'absolute', top: '0', right: '180px', textAlign: 'center' }}>
                     <div style={{ fontSize: '1.92rem', fontWeight: 'bold', color: '#fbbf24', marginBottom: '2px' }}>
                       {enemyCombo.name}
