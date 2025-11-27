@@ -930,7 +930,26 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
   const startingEther = typeof safeInitialPlayer.etherPts === 'number' ? safeInitialPlayer.etherPts : playerEther;
   const startingBlock = safeInitialPlayer.block ?? 0; // 유물 효과로 인한 시작 방어력
   const startingStrength = safeInitialPlayer.strength ?? playerStrength ?? 0; // 전투 시작 힘 (유물 효과 포함)
-  const [player, setPlayer] = useState({ hp: safeInitialPlayer.hp ?? 30, maxHp: safeInitialPlayer.maxHp ?? safeInitialPlayer.hp ?? 30, energy: baseEnergy, maxEnergy: baseEnergy, vulnMult: 1, vulnTurns: 0, block: startingBlock, counter: 0, etherPts: startingEther ?? 0, etherOverflow: 0, etherOverdriveActive: false, comboUsageCount: {}, strength: startingStrength, maxSpeed: safeInitialPlayer.maxSpeed ?? DEFAULT_PLAYER_MAX_SPEED });
+
+  const initialPlayerState = {
+    hp: safeInitialPlayer.hp ?? 30,
+    maxHp: safeInitialPlayer.maxHp ?? safeInitialPlayer.hp ?? 30,
+    energy: baseEnergy,
+    maxEnergy: baseEnergy,
+    vulnMult: 1,
+    vulnTurns: 0,
+    block: startingBlock,
+    def: false,
+    counter: 0,
+    etherPts: startingEther ?? 0,
+    etherOverflow: 0,
+    etherOverdriveActive: false,
+    comboUsageCount: {},
+    strength: startingStrength,
+    maxSpeed: safeInitialPlayer.maxSpeed ?? DEFAULT_PLAYER_MAX_SPEED
+  };
+
+  const [player, setPlayer] = useState(initialPlayerState);
   const [enemyIndex, setEnemyIndex] = useState(0);
   const [enemy, setEnemy] = useState(() => safeInitialEnemy?.name ? ({ ...safeInitialEnemy, hp: safeInitialEnemy.hp ?? safeInitialEnemy.maxHp ?? 30, maxHp: safeInitialEnemy.maxHp ?? safeInitialEnemy.hp ?? 30, vulnMult: 1, vulnTurns: 0, block: 0, counter: 0, etherPts: 0, etherOverdriveActive: false, strength: 0, maxSpeed: safeInitialEnemy.maxSpeed ?? DEFAULT_ENEMY_MAX_SPEED }) : null);
 
@@ -1322,7 +1341,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
         energy: finalEnergy,
         maxEnergy: baseEnergy,
         etherOverdriveActive: false,
-        etherOverflow: 0
+        etherOverflow: 0,
+        strength: p.strength || 0 // 힘 유지
       };
     });
 
@@ -2543,7 +2563,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
                 const isPersistent = relic.effects?.type === 'PASSIVE'
                   && relicId !== 'etherGem'
                   && relicId !== 'devilDice'
-                  || relic.effects?.type === 'ON_TURN_START'; // 피피한 갑옷
+                  || relic.effects?.type === 'ON_TURN_START' // 피피한 갑옷
+                  || relicId === 'bloodShackles'; // 피의 족쇄 - 전투 중 지속 강조
                 const isHighlighted = isPersistent || isActivated;
                 const rarityText = {
                   [RELIC_RARITIES.COMMON]: '일반',
