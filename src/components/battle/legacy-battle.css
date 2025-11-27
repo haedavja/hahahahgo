@@ -1357,12 +1357,12 @@ body {
     filter: brightness(1);
   }
   10%, 30%, 50%, 70%, 90% {
-    transform: scale(1.15) rotate(-2deg);
-    filter: brightness(1.5) drop-shadow(0 0 20px currentColor);
+    transform: scale(1.08) rotate(-2deg);
+    filter: brightness(1.2) drop-shadow(0 0 10px currentColor);
   }
   20%, 40%, 60%, 80% {
-    transform: scale(1.15) rotate(2deg);
-    filter: brightness(1.5) drop-shadow(0 0 20px currentColor);
+    transform: scale(1.08) rotate(2deg);
+    filter: brightness(1.2) drop-shadow(0 0 10px currentColor);
   }
 }
 

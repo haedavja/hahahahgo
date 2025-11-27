@@ -2487,12 +2487,12 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
                         justifyContent: 'center',
                         cursor: 'pointer',
                         transition: 'all 0.2s ease',
-                        filter: isHighlighted ? 'brightness(1.5) drop-shadow(0 0 8px rgba(251, 191, 36, 0.8))' : 'brightness(1)',
-                        transform: isHovered ? 'scale(1.15)' : (isActivated ? 'scale(1.2)' : 'scale(1)'),
-                        animation: isActivated ? 'relicActivate 0.5s ease' : 'none',
-                        background: isHighlighted ? 'rgba(251, 191, 36, 0.3)' : 'transparent',
+                        filter: isHighlighted ? 'brightness(1.15) drop-shadow(0 0 4px rgba(251, 191, 36, 0.35))' : 'brightness(1)',
+                        transform: isHovered ? 'scale(1.12)' : (isActivated ? 'scale(1.16)' : 'scale(1)'),
+                        animation: isActivated ? 'relicActivate 0.4s ease' : 'none',
+                        background: isHighlighted ? 'rgba(251, 191, 36, 0.12)' : 'transparent',
                         borderRadius: '8px',
-                        border: isHighlighted ? '2px solid rgba(251, 191, 36, 0.8)' : '2px solid transparent',
+                        border: isHighlighted ? '1px solid rgba(251, 191, 36, 0.5)' : '1px solid transparent',
                         boxShadow: isHighlighted ? '0 0 15px rgba(251, 191, 36, 0.5)' : 'none'
                       }}>
                       <span>{relic.emoji}</span>
