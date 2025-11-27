@@ -930,6 +930,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
   const startingEther = typeof safeInitialPlayer.etherPts === 'number' ? safeInitialPlayer.etherPts : playerEther;
   const startingBlock = safeInitialPlayer.block ?? 0; // 유물 효과로 인한 시작 방어력
   const startingStrength = safeInitialPlayer.strength ?? playerStrength ?? 0; // 전투 시작 힘 (유물 효과 포함)
+  const startingInsight = safeInitialPlayer.insight ?? 0; // 통찰
 
   const initialPlayerState = {
     hp: safeInitialPlayer.hp ?? 30,
@@ -946,12 +947,13 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
     etherOverdriveActive: false,
     comboUsageCount: {},
     strength: startingStrength,
+    insight: startingInsight,
     maxSpeed: safeInitialPlayer.maxSpeed ?? DEFAULT_PLAYER_MAX_SPEED
   };
 
   const [player, setPlayer] = useState(initialPlayerState);
   const [enemyIndex, setEnemyIndex] = useState(0);
-  const [enemy, setEnemy] = useState(() => safeInitialEnemy?.name ? ({ ...safeInitialEnemy, hp: safeInitialEnemy.hp ?? safeInitialEnemy.maxHp ?? 30, maxHp: safeInitialEnemy.maxHp ?? safeInitialEnemy.hp ?? 30, vulnMult: 1, vulnTurns: 0, block: 0, counter: 0, etherPts: 0, etherOverdriveActive: false, strength: 0, maxSpeed: safeInitialEnemy.maxSpeed ?? DEFAULT_ENEMY_MAX_SPEED }) : null);
+  const [enemy, setEnemy] = useState(() => safeInitialEnemy?.name ? ({ ...safeInitialEnemy, hp: safeInitialEnemy.hp ?? safeInitialEnemy.maxHp ?? 30, maxHp: safeInitialEnemy.maxHp ?? safeInitialEnemy.hp ?? 30, vulnMult: 1, vulnTurns: 0, block: 0, counter: 0, etherPts: 0, etherOverdriveActive: false, strength: 0, shroud: safeInitialEnemy.shroud ?? 0, maxSpeed: safeInitialEnemy.maxSpeed ?? DEFAULT_ENEMY_MAX_SPEED }) : null);
 
   const [phase, setPhase] = useState('select');
 
@@ -2850,6 +2852,11 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
                     {playerAgility !== 0 && (
                       <div style={{ fontSize: '0.9rem', fontWeight: '700', color: playerAgility > 0 ? '#34d399' : '#ef4444', marginTop: '2px' }}>
                         ⚡ 민첩: {playerAgility}
+                      </div>
+                    )}
+                    {(player.insight || 0) > 0 && (
+                      <div style={{ fontSize: '0.9rem', fontWeight: '700', color: '#a78bfa', marginTop: '2px' }}>
+                        👁️ 통찰: {player.insight || 0}
                       </div>
                     )}
                     {player.etherOverflow > 0 && (

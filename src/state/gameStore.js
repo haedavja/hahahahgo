@@ -783,6 +783,12 @@ export const useGameStore = create((set, get) => ({
       playerAgility: agility, // 음수 허용 (음수면 속도 증가)
     })),
 
+  updatePlayerInsight: (insight) =>
+    set((state) => ({
+      ...state,
+      playerInsight: insight, // 통찰 (이벤트 선택지, 적 타임라인 정보)
+    })),
+
   // ==================== 개발자 도구 전용 액션 ====================
 
   // 자원 직접 설정

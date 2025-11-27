@@ -4,7 +4,7 @@ import { LegacyBattleApp } from "./LegacyBattleApp";
 import { DevTools } from "../dev/DevTools";
 import { calculatePassiveEffects, applyCombatStartEffects } from "../../lib/relicEffects";
 
-const buildBattlePayload = (battle, etherPts, relics, maxHp) => {
+const buildBattlePayload = (battle, etherPts, relics, maxHp, playerInsight) => {
   if (!battle) return null;
   const initialPlayer = battle.simulation?.initialState?.player;
   const initialEnemy = battle.simulation?.initialState?.enemy;
@@ -37,6 +37,7 @@ const buildBattlePayload = (battle, etherPts, relics, maxHp) => {
       energy: maxEnergy + combatStartEffects.energy, // 시작 에너지 = maxEnergy + 전투 시작 보너스
       block: combatStartEffects.block, // 시작 방어력
       strength: startingStrength, // 시작 힘
+      insight: playerInsight ?? 0, // 통찰
       etherPts,
     },
     enemy: {
@@ -54,9 +55,10 @@ export function LegacyBattleScreen() {
   const playerEther = useGameStore((state) => state.resources.etherPts ?? 0);
   const relics = useGameStore((state) => state.relics);
   const maxHp = useGameStore((state) => state.maxHp);
+  const playerInsight = useGameStore((state) => state.playerInsight ?? 0);
   const payload = useMemo(() => {
-    return buildBattlePayload(activeBattle, playerEther, relics, maxHp);
-  }, [activeBattle, playerEther, relics, maxHp]);
+    return buildBattlePayload(activeBattle, playerEther, relics, maxHp, playerInsight);
+  }, [activeBattle, playerEther, relics, maxHp, playerInsight]);
   const frameKey = activeBattle ? `${activeBattle.nodeId}-${activeBattle.kind}` : "idle";
 
   const [devToolsOpen, setDevToolsOpen] = useState(false);

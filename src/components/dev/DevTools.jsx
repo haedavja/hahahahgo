@@ -16,6 +16,7 @@ export function DevTools({ isOpen, onClose }) {
     activeBattle,
     playerStrength,
     playerAgility,
+    playerInsight,
     relics,
     setResources,
     setMapRisk,
@@ -25,6 +26,7 @@ export function DevTools({ isOpen, onClose }) {
     devForceLose,
     updatePlayerStrength,
     updatePlayerAgility,
+    updatePlayerInsight,
     addRelic,
     removeRelic,
     setRelics,
@@ -137,10 +139,12 @@ export function DevTools({ isOpen, onClose }) {
             activeBattle={activeBattle}
             playerStrength={playerStrength}
             playerAgility={playerAgility}
+            playerInsight={playerInsight}
             devForceWin={devForceWin}
             devForceLose={devForceLose}
             updatePlayerStrength={updatePlayerStrength}
             updatePlayerAgility={updatePlayerAgility}
+            updatePlayerInsight={updatePlayerInsight}
           />
         )}
         {activeTab === 'relics' && (
@@ -390,9 +394,10 @@ function MapTab({ map, mapRisk, setMapRisk, selectNode, devClearAllNodes }) {
 }
 
 // 전투 관리 탭
-function BattleTab({ activeBattle, playerStrength, playerAgility, devForceWin, devForceLose, updatePlayerStrength, updatePlayerAgility }) {
+function BattleTab({ activeBattle, playerStrength, playerAgility, playerInsight, devForceWin, devForceLose, updatePlayerStrength, updatePlayerAgility, updatePlayerInsight }) {
   const [strengthInput, setStrengthInput] = React.useState(playerStrength || 0);
   const [agilityInput, setAgilityInput] = React.useState(playerAgility || 0);
+  const [insightInput, setInsightInput] = React.useState(playerInsight || 0);
 
   React.useEffect(() => {
     setStrengthInput(playerStrength || 0);
@@ -401,6 +406,10 @@ function BattleTab({ activeBattle, playerStrength, playerAgility, devForceWin, d
   React.useEffect(() => {
     setAgilityInput(playerAgility || 0);
   }, [playerAgility]);
+
+  React.useEffect(() => {
+    setInsightInput(playerInsight || 0);
+  }, [playerInsight]);
 
   return (
     <div>
@@ -459,7 +468,7 @@ function BattleTab({ activeBattle, playerStrength, playerAgility, devForceWin, d
         </div>
 
         {/* 민첩 */}
-        <div>
+        <div style={{ marginBottom: '16px' }}>
           <label style={{
             display: 'block',
             marginBottom: '8px',
@@ -505,6 +514,54 @@ function BattleTab({ activeBattle, playerStrength, playerAgility, devForceWin, d
             {agilityInput >= 0
               ? `카드 속도 코스트 -${agilityInput} (최소 1)`
               : `카드 속도 코스트 +${Math.abs(agilityInput)}`}
+          </div>
+        </div>
+
+        {/* 통찰 */}
+        <div>
+          <label style={{
+            display: 'block',
+            marginBottom: '8px',
+            fontSize: '0.875rem',
+            color: '#cbd5e1',
+          }}>
+            👁️ 통찰: <span style={{ color: '#a78bfa', fontWeight: 'bold' }}>{insightInput}</span>
+          </label>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <input
+              type="number"
+              min="0"
+              max="99"
+              value={insightInput}
+              onChange={(e) => setInsightInput(Math.max(0, Math.min(99, parseInt(e.target.value) || 0)))}
+              style={{
+                flex: 1,
+                padding: '8px',
+                background: '#1e293b',
+                border: '1px solid #334155',
+                borderRadius: '6px',
+                color: '#cbd5e1',
+                fontSize: '0.875rem',
+              }}
+            />
+            <button
+              onClick={() => updatePlayerInsight(insightInput)}
+              style={{
+                padding: '8px 16px',
+                background: '#3b82f6',
+                border: 'none',
+                borderRadius: '6px',
+                color: '#fff',
+                fontSize: '0.875rem',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+              }}
+            >
+              설정
+            </button>
+          </div>
+          <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '4px' }}>
+            이벤트 추가 선택지, 적 타임라인 정보 제공
           </div>
         </div>
       </div>

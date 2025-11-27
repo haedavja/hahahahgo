@@ -147,6 +147,7 @@ export const createInitialState = () => {
     maxHp: 100, // 유물 효과는 gameStore의 addRelic/setRelics에서 적용됨
     playerStrength: 0,
     playerAgility: 0, // 민첩성 (카드 속도 감소)
+    playerInsight: 0, // 통찰 (이벤트 선택지, 적 타임라인 정보)
     relics: initialRelics,
     activeEvent: null,
     activeDungeon: null,
