@@ -1109,7 +1109,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
       energy: safeInitialPlayer?.energy ?? prev.energy,
       maxEnergy: safeInitialPlayer?.energy ?? prev.maxEnergy,
       etherPts: nextEther,
-      strength: 0  // Strength 초기화
+      // Strength를 0으로 리셋하지 않고 초기 계산값/이전 값 보존
+      strength: safeInitialPlayer?.strength ?? prev.strength ?? startingStrength ?? 0
     }));
     setSelected([]);
     setQueue([]);
