@@ -16,9 +16,6 @@ const buildBattlePayload = (battle, etherPts, relics, maxHp) => {
 
   // 전투 시작 효과 계산
   const combatStartEffects = applyCombatStartEffects(relics, {});
-  console.log('[LegacyBattleScreen] 유물:', relics);
-  console.log('[LegacyBattleScreen] combatStartEffects:', combatStartEffects);
-  console.log('[LegacyBattleScreen] passiveEffects.strength:', passiveEffects.strength);
 
   // 전투 시작 시 체력/방어력 보너스 적용
   // 피의 족쇄 등의 피해를 적용하고 회복 효과를 더함
@@ -32,7 +29,6 @@ const buildBattlePayload = (battle, etherPts, relics, maxHp) => {
 
   // 피의 족쇄 등의 힘 보너스 계산
   const startingStrength = (passiveEffects.strength || 0) + (combatStartEffects.strength || 0);
-  console.log('[LegacyBattleScreen] startingStrength:', startingStrength, '= passiveEffects.strength', passiveEffects.strength, '+ combatStartEffects.strength', combatStartEffects.strength);
 
   return {
     player: {
@@ -59,12 +55,9 @@ export function LegacyBattleScreen() {
   const relics = useGameStore((state) => state.relics);
   const maxHp = useGameStore((state) => state.maxHp);
   const payload = useMemo(() => {
-    const result = buildBattlePayload(activeBattle, playerEther, relics, maxHp);
-    console.log('[LegacyBattleScreen] payload 생성:', result);
-    return result;
+    return buildBattlePayload(activeBattle, playerEther, relics, maxHp);
   }, [activeBattle, playerEther, relics, maxHp]);
   const frameKey = activeBattle ? `${activeBattle.nodeId}-${activeBattle.kind}` : "idle";
-  console.log('[LegacyBattleScreen] 전달할 payload:', payload);
 
   const [devToolsOpen, setDevToolsOpen] = useState(false);
 

@@ -930,11 +930,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
   const startingEther = typeof safeInitialPlayer.etherPts === 'number' ? safeInitialPlayer.etherPts : playerEther;
   const startingBlock = safeInitialPlayer.block ?? 0; // 유물 효과로 인한 시작 방어력
   const startingStrength = safeInitialPlayer.strength ?? playerStrength ?? 0; // 전투 시작 힘 (유물 효과 포함)
-  console.log('[Game 초기화] safeInitialPlayer:', safeInitialPlayer);
-  console.log('[Game 초기화] playerStrength:', playerStrength);
-  console.log('[Game 초기화] startingStrength:', startingStrength);
   const [player, setPlayer] = useState({ hp: safeInitialPlayer.hp ?? 30, maxHp: safeInitialPlayer.maxHp ?? safeInitialPlayer.hp ?? 30, energy: baseEnergy, maxEnergy: baseEnergy, vulnMult: 1, vulnTurns: 0, block: startingBlock, counter: 0, etherPts: startingEther ?? 0, etherOverflow: 0, etherOverdriveActive: false, comboUsageCount: {}, strength: startingStrength, maxSpeed: safeInitialPlayer.maxSpeed ?? DEFAULT_PLAYER_MAX_SPEED });
-  console.log('[Game 초기화] player 초기 상태:', player);
   const [enemyIndex, setEnemyIndex] = useState(0);
   const [enemy, setEnemy] = useState(() => safeInitialEnemy?.name ? ({ ...safeInitialEnemy, hp: safeInitialEnemy.hp ?? safeInitialEnemy.maxHp ?? 30, maxHp: safeInitialEnemy.maxHp ?? safeInitialEnemy.hp ?? 30, vulnMult: 1, vulnTurns: 0, block: 0, counter: 0, etherPts: 0, etherOverdriveActive: false, strength: 0, maxSpeed: safeInitialEnemy.maxSpeed ?? DEFAULT_ENEMY_MAX_SPEED }) : null);
 
@@ -1219,13 +1215,10 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
 
       // 전투 시작 유물 효과 로그 및 애니메이션
       const combatStartEffects = applyCombatStartEffects(relics, {});
-      console.log('[전투 시작] 유물:', relics);
-      console.log('[전투 시작] combatStartEffects:', combatStartEffects);
 
       // 전투 시작 유물 애니메이션
       relics.forEach(relicId => {
         const relic = RELICS[relicId];
-        console.log('[전투 시작] 유물 체크:', relicId, relic?.name, relic?.effects?.type);
         if (relic?.effects?.type === 'ON_COMBAT_START') {
           setRelicActivated(relicId);
           playSound(800, 200);
@@ -1789,7 +1782,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
     if (qIndex >= queue.length) return;
     const a = queue[qIndex];
 
-    const P = { ...player, def: player.def || false, block: player.block || 0, counter: player.counter || 0, vulnMult: player.vulnMult || 1 };
+    const P = { ...player, def: player.def || false, block: player.block || 0, counter: player.counter || 0, vulnMult: player.vulnMult || 1, strength: player.strength || 0 };
     const E = { ...enemy, def: enemy.def || false, block: enemy.block || 0, counter: enemy.counter || 0, vulnMult: enemy.vulnMult || 1 };
     const tempState = { player: P, enemy: E, log: [] };
     const { events } = applyAction(tempState, a.actor, a.card);

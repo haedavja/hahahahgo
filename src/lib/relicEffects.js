@@ -59,16 +59,11 @@ export function applyCombatStartEffects(relicIds = [], state = {}) {
     strength: 0,
   };
 
-  console.log('[applyCombatStartEffects] 입력 relicIds:', relicIds);
-
   relicIds.forEach(relicId => {
     const relic = getRelicById(relicId);
-    console.log('[applyCombatStartEffects] relicId:', relicId, 'relic:', relic);
     if (!relic || relic.effects.type !== 'ON_COMBAT_START') return;
 
     const effects = relic.effects;
-    console.log('[applyCombatStartEffects] ON_COMBAT_START 발견:', relicId, effects);
-
     if (effects.block) changes.block += effects.block;
     if (effects.heal) changes.heal += effects.heal;
     if (effects.energy) changes.energy += effects.energy;
@@ -76,7 +71,6 @@ export function applyCombatStartEffects(relicIds = [], state = {}) {
     if (effects.strength) changes.strength += effects.strength;
   });
 
-  console.log('[applyCombatStartEffects] 최종 changes:', changes);
   return changes;
 }
 
