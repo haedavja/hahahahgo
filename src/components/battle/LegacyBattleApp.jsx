@@ -261,7 +261,16 @@ function sortCombinedOrderStablePF(playerCards, enemyCards, playerAgility = 0, e
 // Poker combo helpers
 // =====================
 function detectPokerCombo(cards) {
-  if (!cards || cards.length < 2) return null;
+  if (!cards || cards.length === 0) return null;
+
+  // 카드 1장: 하이카드
+  if (cards.length === 1) {
+    return {
+      name: '하이카드',
+      bonusKeys: new Set([cards[0].actionCost])
+    };
+  }
+
   const freq = new Map();
   for (const c of cards) { freq.set(c.actionCost, (freq.get(c.actionCost) || 0) + 1); }
   const counts = Array.from(freq.values());
@@ -285,6 +294,11 @@ function detectPokerCombo(cards) {
     if (pairKeys.size >= 2) result = { name: '투페어', bonusKeys: pairKeys };
     else if (have(3)) result = { name: '트리플', bonusKeys: keysByCount(3) };
     else if (have(2)) result = { name: '페어', bonusKeys: pairKeys };
+    else {
+      // 조합 없음: 하이카드
+      const allKeys = new Set(cards.map(c => c.actionCost));
+      result = { name: '하이카드', bonusKeys: allKeys };
+    }
   }
 
   // 디버깅: 조합 감지 로그 (반환값 포함)
@@ -332,6 +346,7 @@ function applyEtherDeflation(baseGain, comboName, comboUsageCount, deflationMult
 }
 
 const COMBO_MULTIPLIERS = {
+  '하이카드': 1,
   '페어': 2,
   '투페어': 2.5,
   '트리플': 3,
@@ -2027,12 +2042,17 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
       playerAppliedEther = Math.min(playerFinalEther, remainingToNextSlot);
       playerOverflow = playerFinalEther - playerAppliedEther;
 
+      // 실제 적용된 총 배율 계산 (조합 배율 + 참고서 + 악마의 주사위)
+      const actualTotalMultiplier = turnEtherAccumulated > 0
+        ? (playerBeforeDeflation / turnEtherAccumulated)
+        : 1;
+
       const deflationText = playerDeflation.usageCount > 0
         ? ` (디플레이션 -${Math.round((1 - playerDeflation.multiplier) * 100)}%, ${playerDeflation.usageCount}회 사용)`
         : '';
       const relicText = relicMultBonus > 0 ? ` (유물 배율 +${relicMultBonus.toFixed(2)})` : '';
       const overflowText = playerOverflow > 0 ? ` [범람: ${playerOverflow} PT]` : '';
-      addLog(`✴️ 에테르 획득: ${turnEtherAccumulated} × ${playerComboMult.toFixed(2)}${relicText} = ${playerBeforeDeflation} → ${playerFinalEther} PT${deflationText} (적용: ${playerAppliedEther} PT${overflowText})`);
+      addLog(`✴️ 에테르 획득: ${turnEtherAccumulated} × ${actualTotalMultiplier.toFixed(2)}${relicText} = ${playerBeforeDeflation} → ${playerFinalEther} PT${deflationText} (적용: ${playerAppliedEther} PT${overflowText})`);
 
       // 최종값 UI에 로그와 동일한 값 표시
       setEtherFinalValue(playerFinalEther);
