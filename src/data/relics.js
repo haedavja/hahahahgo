@@ -154,6 +154,20 @@ export const RELICS = {
     },
   },
 
+  bloodShackles: {
+    id: 'bloodShackles',
+    name: '피의 족쇄',
+    emoji: '⛓️',
+    rarity: RELIC_RARITIES.COMMON,
+    tags: [RELIC_TAGS.STRENGTH, RELIC_TAGS.HP],
+    description: '매 전투마다 체력을 5 잃는 대신 힘 2 획득',
+    effects: {
+      type: 'ON_COMBAT_START',
+      damage: 5,
+      strength: 2,
+    },
+  },
+
   // ==================== 희귀 등급 ====================
   goldenHerb: {
     id: 'goldenHerb',

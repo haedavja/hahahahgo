@@ -18,10 +18,17 @@ const buildBattlePayload = (battle, etherPts, relics, maxHp) => {
   const combatStartEffects = applyCombatStartEffects(relics, {});
 
   // 전투 시작 시 체력/방어력 보너스 적용
-  const startingHp = Math.min(
-    maxHp,
-    (initialPlayer?.hp ?? maxHp) + combatStartEffects.heal
+  // 피의 족쇄 등의 피해를 적용하고 회복 효과를 더함
+  const startingHp = Math.max(
+    1, // 최소 체력 1
+    Math.min(
+      maxHp,
+      (initialPlayer?.hp ?? maxHp) - combatStartEffects.damage + combatStartEffects.heal
+    )
   );
+
+  // 피의 족쇄 등의 힘 보너스 계산
+  const startingStrength = (passiveEffects.strength || 0) + (combatStartEffects.strength || 0);
 
   return {
     player: {
@@ -29,6 +36,7 @@ const buildBattlePayload = (battle, etherPts, relics, maxHp) => {
       maxHp: maxHp, // gameStore의 maxHp 사용 (유물 효과가 이미 적용됨)
       energy: maxEnergy + combatStartEffects.energy, // 시작 에너지 = maxEnergy + 전투 시작 보너스
       block: combatStartEffects.block, // 시작 방어력
+      strength: startingStrength, // 시작 힘
       etherPts,
     },
     enemy: {

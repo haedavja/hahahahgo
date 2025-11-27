@@ -55,6 +55,8 @@ export function applyCombatStartEffects(relicIds = [], state = {}) {
     block: 0,
     heal: 0,
     energy: 0,
+    damage: 0,
+    strength: 0,
   };
 
   relicIds.forEach(relicId => {
@@ -66,6 +68,8 @@ export function applyCombatStartEffects(relicIds = [], state = {}) {
     if (effects.block) changes.block += effects.block;
     if (effects.heal) changes.heal += effects.heal;
     if (effects.energy) changes.energy += effects.energy;
+    if (effects.damage) changes.damage += effects.damage;
+    if (effects.strength) changes.strength += effects.strength;
   });
 
   return changes;

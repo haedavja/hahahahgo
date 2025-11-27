@@ -1211,6 +1211,33 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
     if (!enemy) {
       const e = ENEMIES[enemyIndex];
       setEnemy({ ...e, hp: e.hp, maxHp: e.hp, vulnMult: 1, vulnTurns: 0, block: 0, counter: 0, etherPts: 0, etherOverdriveActive: false, maxSpeed: e.maxSpeed ?? DEFAULT_ENEMY_MAX_SPEED });
+
+      // 전투 시작 유물 효과 로그 및 애니메이션
+      const combatStartEffects = applyCombatStartEffects(relics, {});
+
+      // 전투 시작 유물 애니메이션
+      relics.forEach(relicId => {
+        const relic = RELICS[relicId];
+        if (relic?.effects?.type === 'ON_COMBAT_START') {
+          setRelicActivated(relicId);
+          playSound(800, 200);
+          setTimeout(() => setRelicActivated(null), 500);
+        }
+      });
+
+      if (combatStartEffects.damage > 0) {
+        addLog(`⛓️ 유물 효과: 체력 -${combatStartEffects.damage} (피의 족쇄)`);
+      }
+      if (combatStartEffects.strength > 0) {
+        addLog(`💪 유물 효과: 힘 +${combatStartEffects.strength}`);
+      }
+      if (combatStartEffects.block > 0) {
+        addLog(`🛡️ 유물 효과: 방어력 +${combatStartEffects.block}`);
+      }
+      if (combatStartEffects.heal > 0) {
+        addLog(`💚 유물 효과: 체력 +${combatStartEffects.heal}`);
+      }
+
       // 캐릭터 빌드가 있으면 사용, 없으면 기본 8장
       const currentBuild = useGameStore.getState().characterBuild;
       const hasCharacterBuild = currentBuild && (currentBuild.mainSpecials?.length > 0 || currentBuild.subSpecials?.length > 0);
