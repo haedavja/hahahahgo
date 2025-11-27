@@ -2009,12 +2009,13 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
 
     // 에테르 최종 계산 및 적용 (애니메이션은 stepOnce에서 처리됨)
     const basePlayerComboMult = pComboEnd ? (COMBO_MULTIPLIERS[pComboEnd.name] || 1) : 1;
-    // 몬스터 사망 시 실제 실행된 카드 수(resolvedPlayerCards) 사용, 정상 종료 시에는 selected.length와 동일
-    const playerComboMult = applyRelicComboMultiplier(relics, basePlayerComboMult, resolvedPlayerCards);
+    // 유물 계산용 카드 수: 실제 진행된 카드 수를 우선, 없으면 선택 카드 수/타임라인 길이로 보정
+    const cardsPlayedForRelic = Math.max(resolvedPlayerCards, selected.length, playerTimeline.length);
+    const playerComboMult = applyRelicComboMultiplier(relics, basePlayerComboMult, cardsPlayedForRelic);
     const relicMultBonus = playerComboMult - basePlayerComboMult;
 
     // 에테르 관련 유물 발동 애니메이션 (참고서, 악마의 주사위, 에테르 결정)
-    if (relicMultBonus > 0 || resolvedPlayerCards === 5) {
+    if (relicMultBonus > 0 || cardsPlayedForRelic >= 5) {
       relics.forEach(relicId => {
         const relic = RELICS[relicId];
         if (relic?.effects?.type === 'PASSIVE') {
@@ -2023,12 +2024,12 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
             setRelicActivated(relicId);
             playSound(800, 200);
             setTimeout(() => setRelicActivated(null), 500);
-          } else if (relic.effects.etherCardMultiplier && resolvedPlayerCards > 0) {
+          } else if (relic.effects.etherCardMultiplier && cardsPlayedForRelic > 0) {
             // 참고서
             setRelicActivated(relicId);
             playSound(800, 200);
             setTimeout(() => setRelicActivated(null), 500);
-          } else if (relic.effects.etherFiveCardBonus && resolvedPlayerCards === 5) {
+          } else if (relic.effects.etherFiveCardBonus && cardsPlayedForRelic >= 5) {
             // 악마의 주사위
             setRelicActivated(relicId);
             playSound(900, 250);
@@ -2043,7 +2044,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
     // 조합 배율 적용
     let playerBeforeDeflation = Math.round(turnEtherAccumulated * playerComboMult);
     // 유물 효과 적용 (참고서, 악마의 주사위, 희귀한 조약돌)
-    playerBeforeDeflation = calculateRelicEtherGain(playerBeforeDeflation, resolvedPlayerCards, relics);
+    playerBeforeDeflation = calculateRelicEtherGain(playerBeforeDeflation, cardsPlayedForRelic, relics);
 
     const enemyBeforeDeflation = Math.round(enemyTurnEtherAccumulated * enemyComboMult);
 
