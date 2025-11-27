@@ -2009,8 +2009,16 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
 
     // 에테르 최종 계산 및 적용 (애니메이션은 stepOnce에서 처리됨)
     const basePlayerComboMult = pComboEnd ? (COMBO_MULTIPLIERS[pComboEnd.name] || 1) : 1;
-    // 유물 계산용 카드 수: 실제 진행된 카드 수를 우선, 없으면 선택 카드 수/타임라인 길이로 보정
-    const cardsPlayedForRelic = Math.max(resolvedPlayerCards, selected.length, playerTimeline.length);
+    const passiveRelicEffects = calculatePassiveEffects(relics);
+    const etherPerCardApplied = Math.max(1, Math.floor(BASE_ETHER_PER_CARD * passiveRelicEffects.etherMultiplier));
+    const estimatedCardsFromEther = etherPerCardApplied > 0 ? Math.round(turnEtherAccumulated / etherPerCardApplied) : 0;
+    // 유물 계산용 카드 수: 실제 진행된 카드 수 우선, 그 외 선택/타임라인/에테르 누적 추정치로 보정
+    const cardsPlayedForRelic = Math.max(
+      resolvedPlayerCards,
+      selected.length,
+      playerTimeline.length,
+      estimatedCardsFromEther
+    );
     const playerComboMult = applyRelicComboMultiplier(relics, basePlayerComboMult, cardsPlayedForRelic);
     const relicMultBonus = playerComboMult - basePlayerComboMult;
 
@@ -2063,6 +2071,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
 
     console.log('[finishTurn 계산]', {
       turnEtherAccumulated,
+      etherPerCardApplied,
+      estimatedCardsFromEther,
+      cardsPlayedForRelic,
       comboName: pComboEnd?.name,
       basePlayerComboMult,
       relicMultBonus,
@@ -2073,7 +2084,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
       playerFinalEther: playerFinalEther,
       selectedCards: selected.length,
       resolvedPlayerCards: resolvedPlayerCards,
-      cardCountForMultiplier: resolvedPlayerCards,
+      cardCountForMultiplier: cardsPlayedForRelic,
       comboUsageCount: player.comboUsageCount,
       comboUsageForThisCombo: player.comboUsageCount?.[pComboEnd?.name] || 0
     });
