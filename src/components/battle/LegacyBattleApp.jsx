@@ -1745,9 +1745,13 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
 
     // 카드 사용 시 에테르 누적 (실제 적용은 턴 종료 시)
     if (a.actor === 'player') {
+      // 희귀한 조약돌 효과: 카드당 획득 에테르 2배
+      const passiveRelicEffects = calculatePassiveEffects(relics);
+      const etherPerCard = Math.floor(BASE_ETHER_PER_CARD * passiveRelicEffects.etherMultiplier);
+
       setTurnEtherAccumulated(prev => {
-        console.log(`[에테르 누적] ${prev} + ${BASE_ETHER_PER_CARD} = ${prev + BASE_ETHER_PER_CARD} (카드: ${a.card.name})`);
-        return prev + BASE_ETHER_PER_CARD;
+        console.log(`[에테르 누적] ${prev} + ${etherPerCard} = ${prev + etherPerCard} (카드: ${a.card.name})`);
+        return prev + etherPerCard;
       });
       // PT 증가 애니메이션
       setEtherPulse(true);
@@ -1955,9 +1959,10 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
 
     // 힘 증가 즉시 적용 (은화 등) - 상태 업데이트 후에 적용
     if (turnEndRelicEffects.strength !== 0) {
-      const newStrength = playerStrength + turnEndRelicEffects.strength;
+      const currentStrength = player.strength || 0;
+      const newStrength = currentStrength + turnEndRelicEffects.strength;
       addLog(`💪 유물 효과: 힘 ${turnEndRelicEffects.strength > 0 ? '+' : ''}${turnEndRelicEffects.strength} (총 ${newStrength})`);
-      setPlayerStrength(newStrength);
+      setPlayer(p => ({ ...p, strength: newStrength }));
     }
 
     // 턴 종료 시 조합 카운트 증가 (Deflation)
@@ -2255,6 +2260,32 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
   const enemyEtherSlots = etherSlots(enemyEtherValue);
   const playerEnergyBudget = player.energy || BASE_PLAYER_ENERGY;
   const remainingEnergy = Math.max(0, playerEnergyBudget - totalEnergy);
+
+  // 에테르 획득량 미리보기 계산
+  const previewEtherGain = useMemo(() => {
+    if (playerTimeline.length === 0) return 0;
+
+    // 희귀한 조약돌 효과 적용된 카드당 에테르
+    const passiveRelicEffects = calculatePassiveEffects(relics);
+    const etherPerCard = Math.floor(BASE_ETHER_PER_CARD * passiveRelicEffects.etherMultiplier);
+    const totalEtherPts = playerTimeline.length * etherPerCard;
+
+    // 조합 배율 계산 (selected 기준으로 조합 감지)
+    const pCombo = detectPokerCombo(selected);
+    const basePlayerComboMult = pCombo ? (COMBO_MULTIPLIERS[pCombo.name] || 1) : 1;
+    const playerComboMult = applyRelicComboMultiplier(relics, basePlayerComboMult, playerTimeline.length);
+    let playerBeforeDeflation = Math.round(totalEtherPts * playerComboMult);
+
+    // 유물 효과 적용 (참고서, 악마의 주사위 - 희귀한 조약돌은 이미 적용됨)
+    playerBeforeDeflation = calculateRelicEtherGain(playerBeforeDeflation, playerTimeline.length, relics);
+
+    // 디플레이션 적용
+    const playerDeflation = pCombo?.name
+      ? applyEtherDeflation(playerBeforeDeflation, pCombo.name, player.comboUsageCount || {})
+      : { gain: playerBeforeDeflation, multiplier: 1, usageCount: 0 };
+
+    return playerDeflation.gain;
+  }, [playerTimeline, selected, relics, player.comboUsageCount]);
 
   // 적 조합 감지 (표시용)
   const enemyCombo = useMemo(() => detectPokerCombo(enemyPlan.actions || []), [enemyPlan.actions]);
@@ -2585,7 +2616,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
                 key={`player-ether-${playerEtherValue}`}
                 pts={playerEtherValue}
                 slots={playerEtherSlots}
-                previewGain={0}
+                previewGain={previewEtherGain}
                 label="ETHER"
               />
               <div>

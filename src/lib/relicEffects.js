@@ -234,8 +234,8 @@ export function calculateEtherGain(baseEther, cardsPlayed, relicIds = []) {
 
   let finalEther = baseEther;
 
-  // 희귀한 조약돌: 기본 에테르량 2배
-  finalEther *= passiveEffects.etherMultiplier;
+  // 희귀한 조약돌: 카드당 적용되므로 여기서는 제외
+  // (stepOnce에서 이미 적용됨)
 
   // 참고서: 카드 수에 비례해 1.x배
   if (passiveEffects.etherCardMultiplier && cardsPlayed > 0) {
