@@ -114,6 +114,28 @@ const getInsightRevealLevel = (effectiveInsight, enemyActions) => {
   };
 };
 
+// 통찰 레벨에 따른 짧은 효과음
+const playInsightSound = (level = 1) => {
+  try {
+    // eslint-disable-next-line no-undef
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    const audioContext = new AudioContextClass();
+    const osc = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+    osc.connect(gain);
+    gain.connect(audioContext.destination);
+    const base = level === 3 ? 880 : level === 2 ? 720 : 560;
+    osc.frequency.value = base;
+    osc.type = 'triangle';
+    gain.gain.setValueAtTime(0.16, audioContext.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.45);
+    osc.start(audioContext.currentTime);
+    osc.stop(audioContext.currentTime + 0.5);
+  } catch {
+    // 사운드 실패 시 무시
+  }
+};
+
 // Lucide icons as simple SVG components
 const Sword = ({ size = 24, className = "" }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
@@ -992,7 +1014,7 @@ function drawCharacterBuildHand(characterBuild, nextTurnEffects = {}, previousHa
 // =====================
 // Game Component
 // =====================
-function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) {
+function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, liveInsight }) {
   const playerStrength = useGameStore((state) => state.playerStrength || 0);
   const playerAgility = useGameStore((state) => state.playerAgility || 0);
   const relics = useGameStore((state) => state.relics || []);
@@ -1102,6 +1124,18 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
   const [previewDamage, setPreviewDamage] = useState({ value: 0, lethal: false, overkill: false });
   const lethalSoundRef = useRef(false);
   const overkillSoundRef = useRef(false);
+  const prevInsightRef = useRef(safeInitialPlayer.insight || 0);
+  const insightBadgeTimerRef = useRef(null);
+  const [insightBadge, setInsightBadge] = useState({
+    level: safeInitialPlayer.insight || 0,
+    dir: 'up',
+    show: false,
+    key: 0,
+  });
+  const [insightAnimLevel, setInsightAnimLevel] = useState(0);
+  const [insightAnimPulseKey, setInsightAnimPulseKey] = useState(0);
+  const insightAnimTimerRef = useRef(null);
+  const prevRevealLevelRef = useRef(0);
   const hoveredCardRef = useRef(null);
   const [showTooltip, setShowTooltip] = useState(false); // 툴팁 표시 여부 (딜레이 후)
   const tooltipTimerRef = useRef(null);
@@ -1120,6 +1154,47 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
     if (phase !== 'select') return { level: 0, visible: false };
     return getInsightRevealLevel(effectiveInsight, enemyPlan.actions);
   }, [effectiveInsight, enemyPlan.actions, phase]);
+
+  // 통찰 수치 변화 시 배지/연출 트리거
+  useEffect(() => {
+    const prev = prevInsightRef.current || 0;
+    const curr = player.insight || 0;
+    if (curr === prev) return;
+    const dir = curr > prev ? 'up' : 'down';
+    prevInsightRef.current = curr;
+    if (insightBadgeTimerRef.current) clearTimeout(insightBadgeTimerRef.current);
+    setInsightBadge({
+      level: curr,
+      dir,
+      show: true,
+      key: Date.now(),
+    });
+    playInsightSound(curr > 0 ? Math.min(curr, 3) : 1);
+    insightBadgeTimerRef.current = setTimeout(() => {
+      setInsightBadge((b) => ({ ...b, show: false }));
+    }, 1400);
+  }, [player.insight]);
+
+  // 통찰 레벨별 타임라인 연출 트리거 (선택 단계에서만)
+  useEffect(() => {
+    if (phase !== 'select') {
+      setInsightAnimLevel(0);
+      return;
+    }
+    const lvl = insightReveal?.level || 0;
+    const prev = prevRevealLevelRef.current || 0;
+    if (lvl === prev) return;
+    prevRevealLevelRef.current = lvl;
+    if (insightAnimTimerRef.current) clearTimeout(insightAnimTimerRef.current);
+    if (lvl > 0) {
+      setInsightAnimLevel(lvl);
+      setInsightAnimPulseKey((k) => k + 1);
+      playInsightSound(Math.min(lvl, 3));
+      insightAnimTimerRef.current = setTimeout(() => setInsightAnimLevel(0), 1200);
+    } else {
+      setInsightAnimLevel(0);
+    }
+  }, [insightReveal?.level, phase]);
 
   const notifyBattleResult = useCallback((resultType) => {
     if (!resultType || resultSentRef.current) return;
@@ -1207,6 +1282,27 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
     setEnemyPlan({ actions: [], mode: null });
     // 새로운 전투/턴 초기화 시 턴 시작 플래그도 리셋
     turnStartProcessedRef.current = false;
+    // 통찰/연출 관련 초기화
+    prevInsightRef.current = 0;
+    prevRevealLevelRef.current = 0;
+    setInsightAnimLevel(0);
+    setInsightAnimPulseKey((k) => k + 1);
+    if ((safeInitialPlayer?.insight || 0) > 0) {
+      // 전투 시작 시에도 통찰 연출 1회 재생
+      setTimeout(() => {
+        setInsightBadge({
+          level: safeInitialPlayer?.insight || 0,
+          dir: 'up',
+          show: true,
+          key: Date.now(),
+        });
+        playInsightSound(Math.min(safeInitialPlayer?.insight || 0, 3));
+        setInsightAnimLevel(Math.min(3, safeInitialPlayer?.insight || 0));
+        setInsightAnimPulseKey((k) => k + 1);
+        setTimeout(() => setInsightAnimLevel(0), 1000);
+        setTimeout(() => setInsightBadge((b) => ({ ...b, show: false })), 1200);
+      }, 50);
+    }
     setPhase('select');
     // 캐릭터 빌드가 있으면 사용, 없으면 기본 8장
     const currentBuild = useGameStore.getState().characterBuild;
@@ -1241,8 +1337,18 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
     setFixedOrder(null);
     // 새로운 적으로 전환 시 턴 시작 처리 플래그 리셋
     turnStartProcessedRef.current = false;
+    prevRevealLevelRef.current = 0;
     setPhase('select');
   }, [safeInitialEnemy, enemyIndex]);
+
+  // 전투 중 통찰 값 실시간 반영 (payload 재생성 없이)
+  useEffect(() => {
+    if (typeof liveInsight !== 'number') return;
+    setPlayer((p) => {
+      if (p.insight === liveInsight) return p;
+      return { ...p, insight: liveInsight };
+    });
+  }, [liveInsight]);
 
   useEffect(() => {
     if (postCombatOptions?.type) {
@@ -2769,6 +2875,17 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
                 />
               )}
               <div className="timeline-lanes">
+                {insightAnimLevel === 1 && (
+                  <div className="insight-overlay insight-glitch" aria-hidden="true" />
+                )}
+                {insightAnimLevel === 2 && (
+                  <div className="insight-overlay insight-scan" aria-hidden="true">
+                    <div className="insight-scan-beam" />
+                  </div>
+                )}
+                {insightAnimLevel === 3 && (
+                  <div className="insight-overlay insight-beam" aria-hidden="true" key={insightAnimPulseKey} />
+                )}
                 <div className="timeline-lane player-lane">
                   {Array.from({ length: Math.max(player.maxSpeed, enemy.maxSpeed) + 1 }).map((_, i) => (
                     <div key={i} className="timeline-gridline" style={{ left: `${(i / Math.max(player.maxSpeed, enemy.maxSpeed)) * 100}%` }} />
@@ -2817,7 +2934,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
                     const normalizedPosition = (a.sp / enemy.maxSpeed) * 100;
                     return (
                       <div key={idx}
-                        className={`timeline-marker marker-enemy ${isExecuting ? 'timeline-active' : ''} ${isUsed ? 'timeline-used' : ''}`}
+                        className={`timeline-marker marker-enemy ${isExecuting ? 'timeline-active' : ''} ${isUsed ? 'timeline-used' : ''} ${insightAnimLevel >= 3 ? 'beam-hit' : ''}`}
                         style={{ left: `${normalizedPosition}%`, top: `${6 + offset}px` }}>
                         <Icon size={14} className="text-white" />
                         <span className="text-white text-xs font-bold">{num > 0 ? num : ''}</span>
@@ -2973,6 +3090,10 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
                         👁️ 통찰: {player.insight || 0}
                       </div>
                     )}
+                    <div className={`insight-badge ${insightBadge.show ? 'show' : ''} ${insightBadge.dir === 'down' ? 'down' : 'up'}`} key={insightBadge.key} aria-live="polite">
+                      <span className="insight-badge-icon">👁️</span>
+                      <span className="insight-badge-text">통찰 Lv.{insightBadge.level}</span>
+                    </div>
                     {player.etherOverflow > 0 && (
                       <div style={{ fontSize: '0.85rem', fontWeight: '700', color: '#a78bfa', marginTop: '2px' }}>
                         🌊 범람: {player.etherOverflow} PT
@@ -3638,11 +3759,12 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
   );
 }
 
-export const LegacyBattleApp = ({ initialPlayer, initialEnemy, playerEther, onBattleResult = () => { } }) => (
+export const LegacyBattleApp = ({ initialPlayer, initialEnemy, playerEther, liveInsight, onBattleResult = () => { } }) => (
   <Game
     initialPlayer={initialPlayer}
     initialEnemy={initialEnemy}
     playerEther={playerEther}
+    liveInsight={liveInsight}
     onBattleResult={onBattleResult}
   />
 );

@@ -56,9 +56,18 @@ export function LegacyBattleScreen() {
   const relics = useGameStore((state) => state.relics);
   const maxHp = useGameStore((state) => state.maxHp);
   const playerInsight = useGameStore((state) => state.playerInsight ?? 0);
+
+  // 전투 시작 시의 통찰 값을 고정해 payload를 재생성하지 않도록 저장
+  const [battleInsight, setBattleInsight] = useState(playerInsight || 0);
+  useEffect(() => {
+    if (activeBattle) {
+      setBattleInsight(playerInsight || 0);
+    }
+  }, [activeBattle]);
+
   const payload = useMemo(() => {
-    return buildBattlePayload(activeBattle, playerEther, relics, maxHp, playerInsight);
-  }, [activeBattle, playerEther, relics, maxHp, playerInsight]);
+    return buildBattlePayload(activeBattle, playerEther, relics, maxHp, battleInsight);
+  }, [activeBattle, playerEther, relics, maxHp, battleInsight]);
   const frameKey = activeBattle ? `${activeBattle.nodeId}-${activeBattle.kind}` : "idle";
 
   const [devToolsOpen, setDevToolsOpen] = useState(false);
@@ -104,6 +113,7 @@ export function LegacyBattleScreen() {
         initialPlayer={payload?.player}
         initialEnemy={payload?.enemy}
         playerEther={playerEther}
+        liveInsight={playerInsight}
         onBattleResult={handleBattleResult}
       />
 
