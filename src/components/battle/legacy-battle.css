@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&display=swap");
+﻿@import url("https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&display=swap");
 
 body {
   font-family: "Noto Sans KR", -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", sans-serif;
@@ -273,13 +273,13 @@ body {
   background: linear-gradient(135deg, rgba(249, 115, 22, 0.9), rgba(217, 70, 15, 0.9));
 }
 
-/* ?�?�라?�에???�용??카드 - ?�둡�??�시 */
+/* ??꾨씪?몄뿉???ъ슜??移대뱶 - ?대몼寃??쒖떆 */
 .timeline-marker.timeline-used {
   opacity: 0.35;
   filter: brightness(0.5);
 }
 
-/* ?�?�라???�성 ?�니메이??- ?�레?�어 */
+/* ??꾨씪???쒖꽦 ?좊땲硫붿씠??- ?뚮젅?댁뼱 */
 .timeline-active.marker-player {
   animation: timelinePulsePlayer 0.35s ease-in-out;
   box-shadow: 0 0 30px rgba(251, 191, 36, 1), 0 8px 20px rgba(0, 0, 0, 0.45);
@@ -310,7 +310,7 @@ body {
   }
 }
 
-/* ?�?�라???�성 ?�니메이??- ??*/
+/* ??꾨씪???쒖꽦 ?좊땲硫붿씠??- ??*/
 .timeline-active.marker-enemy {
   animation: timelinePulseEnemy 0.35s ease-in-out;
   box-shadow: 0 0 35px rgba(168, 85, 247, 1), 0 8px 20px rgba(0, 0, 0, 0.45);
@@ -492,7 +492,7 @@ body {
 
 .game-card-large {
   position: relative;
-  width: 192px; /* 160px?�서 20% 증�? */
+  width: 192px; /* 160px?먯꽌 20% 利앷? */
   height: 220px;
   border-radius: 18px;
   border: 3px solid transparent;
@@ -519,7 +519,7 @@ body {
   background: radial-gradient(circle at 30% 20%, rgba(59, 130, 246, 0.25), transparent 70%), linear-gradient(180deg, #0c1e4a 0%, #050b1f 100%);
 }
 
-/* ?�동??배�? - 카드 ?�쪽 ?�단 밖으�??�전??*/
+/* ?됰룞??諛곗? - 移대뱶 ?쇱そ ?곷떒 諛뽰쑝濡??꾩쟾??*/
 .card-cost-badge-floating {
   position: absolute;
   top: -2px;
@@ -537,7 +537,7 @@ body {
   padding-top: 2px;
   border: 2px solid rgba(255, 255, 255, 0.3);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
-  z-index: 150; /* ?�패 ?�터?�이??z-index: 100)보다 ?�단 */
+  z-index: 150; /* ?먰뙣 ?명꽣?섏씠??z-index: 100)蹂대떎 ?곷떒 */
 }
 
 .game-card-large .card-cost-corner {
@@ -632,9 +632,9 @@ body {
   padding: 0px 12px 0px 12px;
   border: none;
   box-shadow: none;
-  z-index: 90; /* ?�패 ?�역??????�� ?�정 */
-  overflow: visible; /* ?�동???�자가 짤리지 ?�도�?*/
-  pointer-events: none; /* ?�패 ?�역 ?�체???�릭 불�? */
+  z-index: 90; /* ?먰뙣 ?곸뿭??????쾶 ?ㅼ젙 */
+  overflow: visible; /* ?됰룞???レ옄媛 吏ㅻ━吏 ?딅룄濡?*/
+  pointer-events: none; /* ?먰뙣 ?곸뿭 ?먯껜???대┃ 遺덇? */
 }
 
 .hand-area-header {
@@ -916,23 +916,23 @@ body {
   flex-shrink: 0;
 }
 
-/* ?�립 ?�동???�시 (좌측 ?�단 고정) */
+/* ?낅┰ ?쒕룞???쒖떆 (醫뚯륫 ?섎떒 怨좎젙) */
 .energy-display-fixed {
   position: fixed;
-  bottom: 32px; /* ?�래 ?�치�?복구 */
-  left: 32px; /* 20px ??120px (?�른쪽으�?100px ?�동) */
-  z-index: 50; /* 50 ?��? (카드보다 ??��) */
+  bottom: 230px; /* ?먮옒 ?꾩튂濡?蹂듦뎄 */
+  left: 120px; /* 20px ??120px (?ㅻⅨ履쎌쑝濡?100px ?대룞) */
+  z-index: 50; /* 50 ?좎? (移대뱶蹂대떎 ??쾶) */
 }
 
-/* ?�출 버튼 고정 (?�측?�로 ?�동) */
+/* ?쒖텧 踰꾪듉 怨좎젙 (?곗륫?쇰줈 ?대룞) */
 .submit-button-fixed {
   position: fixed;
   bottom: 210px;
-  right: 320px; /* 중앙?�서 ?�측?�로 변�?*/
-  z-index: 1001; /* ?�패 ?�역(z-index: 1000)보다 ?�단 */
+  right: 320px; /* 以묒븰?먯꽌 ?곗륫?쇰줈 蹂寃?*/
+  z-index: 1001; /* ?먰뙣 ?곸뿭(z-index: 1000)蹂대떎 ?곷떒 */
 }
 
-/* 진행 ?�계 버튼 고정 (?�측 ?�단) */
+/* 吏꾪뻾 ?④퀎 踰꾪듉 怨좎젙 (?곗륫 ?섎떒) */
 .resolve-buttons-fixed {
   position: fixed;
   bottom: 40px;
@@ -992,28 +992,28 @@ body {
 }
 
 /* ============================================
-   ?�레?????�파?�어 ?��???카드 ?�스??
+   ?щ젅?????ㅽ뙆?댁뼱 ?ㅽ???移대뱶 ?쒖뒪??
    ============================================ */
 
-/* ?�패 컨테?�너 - 카드 겹침 ?�이?�웃 */
+/* ?먰뙣 而⑦뀒?대꼫 - 移대뱶 寃뱀묠 ?덉씠?꾩썐 */
 .hand-cards {
   display: flex;
-  gap: 0px !important; /* 겹침???�해 gap ?�거 */
-  padding: 0px 40px; /* ?�쪽???�딩 추�? */
-  overflow: visible !important; /* ?�동???�자가 짤리지 ?�도�?*/
+  gap: 0px !important; /* 寃뱀묠???꾪빐 gap ?쒓굅 */
+  padding: 0px 40px; /* ?묒そ???⑤뵫 異붽? */
+  overflow: visible !important; /* ?됰룞???レ옄媛 吏ㅻ━吏 ?딅룄濡?*/
   justify-content: center;
   align-items: flex-end;
-  min-height: 340px; /* ?��? ??공간 ?�보 (280px ??340px) */
+  min-height: 340px; /* ?뺣? ??怨듦컙 ?뺣낫 (280px ??340px) */
   position: relative;
-  pointer-events: auto; /* 카드 컨테?�너???�릭 가??*/
+  pointer-events: auto; /* 移대뱶 而⑦뀒?대꼫???대┃ 媛??*/
 }
 
-/* 카드 wrapper div??overflow visible */
+/* 移대뱶 wrapper div??overflow visible */
 .hand-cards > div {
   overflow: visible;
 }
 
-/* 카드 기본 ?�기 (?�축 ?�태) */
+/* 移대뱶 湲곕낯 ?ш린 (?뺤텞 ?곹깭) */
 .game-card-large {
   width: 154px !important;
   height: 200px !important;
@@ -1024,7 +1024,7 @@ body {
   position: relative;
 }
 
-/* 모든 ?�계 카드 - ?�정??간격?�로 겹침 */
+/* 紐⑤뱺 ?④퀎 移대뱶 - ?쇱젙??媛꾧꺽?쇰줈 寃뱀묠 */
 .game-card-large.select-phase-card {
   margin-left: -20px;
 }
@@ -1037,23 +1037,23 @@ body {
   margin-left: -20px;
 }
 
-/* �?번째 카드 wrapper??카드??margin-left ?�음 */
+/* 泥?踰덉㎏ 移대뱶 wrapper??移대뱶??margin-left ?놁쓬 */
 .hand-cards > div:first-child .game-card-large {
   margin-left: 0 !important;
 }
 
-/* ?�버 ?�과 - ?�레?????�파?�어 ?��???*/
+/* ?몃쾭 ?④낵 - ?щ젅?????ㅽ뙆?댁뼱 ?ㅽ???*/
 .game-card-large:hover:not(.disabled) {
   transform: translateY(-100px) !important;
   z-index: 9999 !important;
-  margin-right: 40px; /* ?�버 ???�른�?공간 ?�보 */
+  margin-right: 40px; /* ?몃쾭 ???ㅻⅨ履?怨듦컙 ?뺣낫 */
   width: 208px !important; /* 154px * 1.35 */
   height: 270px !important; /* 200px * 1.35 */
 }
 
-/* ?�택??카드 */
+/* ?좏깮??移대뱶 */
 .game-card-large.selected {
-  transform: translateY(-20px) scale(1.05) !important; /* ?�택 ???�라??(-25px ??-20px, 1.08 ??1.05) */
+  transform: translateY(-20px) scale(1.05) !important; /* ?좏깮 ???щ씪??(-25px ??-20px, 1.08 ??1.05) */
   z-index: 50;
 }
 
@@ -1064,29 +1064,29 @@ body {
   height: 270px !important; /* 200px * 1.35 */
 }
 
-/* 카드 ?�명 ?�역 */
-/* ?�전 card-description ?��????�거 - 1175�?�??��????�용 */
+/* 移대뱶 ?ㅻ챸 ?곸뿭 */
+/* ?댁쟾 card-description ?ㅽ????쒓굅 - 1175踰?以??ㅽ????ъ슜 */
 
-/* 카드 ?�름 �??�이�??�역 조정 */
+/* 移대뱶 ?대쫫 諛??꾩씠肄??곸뿭 議곗젙 */
 .game-card-large .card-header {
   font-size: 0.9rem !important; /* 0.85rem ??0.9rem */
   padding: 0 10px !important; /* 8px ??10px */
-  margin-top: 5px !important; /* -15px ??5px (20px ?�래�??�림) */
+  margin-top: 5px !important; /* -15px ??5px (20px ?꾨옒濡??대┝) */
   position: relative !important;
   z-index: 5 !important;
 }
 
 .game-card-large .card-icon-area {
   min-height: 60px !important; /* 50px ??60px */
-  padding: 6px 20px 6px 0 !important; /* 4px ??6px, ?�측?�로 ?�동 */
-  justify-content: flex-end !important; /* 중앙 ???�측 ?�렬 */
+  padding: 6px 20px 6px 0 !important; /* 4px ??6px, ?곗륫?쇰줈 ?대룞 */
+  justify-content: flex-end !important; /* 以묒븰 ???곗륫 ?뺣젹 */
 }
 
-/* ?�쪽 ?�단 ?�탯 ?�역 (?�동??�? */
+/* ?쇱そ ?곷떒 ?ㅽ꺈 ?곸뿭 (?됰룞??諛? */
 .card-stats-sidebar {
   position: absolute;
-  top: 30px; /* ?�동??코스??�?(45px ??30px, 15px ?�로) */
-  left: -6px; /* 4px ??-6px (10px 좌측?�로) */
+  top: 30px; /* ?됰룞??肄붿뒪??諛?(45px ??30px, 15px ?꾨줈) */
+  left: -6px; /* 4px ??-6px (10px 醫뚯륫?쇰줈) */
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -1100,13 +1100,13 @@ body {
   font-size: 1.1rem;
   font-weight: 700;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
-  background: rgba(0, 0, 0, 0.75) !important; /* 배경??추�? (가?�성 ?�보) */
+  background: rgba(0, 0, 0, 0.75) !important; /* 諛곌꼍??異붽? (媛?쒖꽦 ?뺣낫) */
   padding: 2px 6px !important;
   border-radius: 6px !important;
 }
 
 .card-stat-item.attack {
-  color: #93c5fd; /* 빨강 ???�랑 */
+  color: #93c5fd; /* 鍮④컯 ???뚮옉 */
 }
 
 .card-stat-item.defense {
@@ -1121,14 +1121,14 @@ body {
   color: #67e8f9;
 }
 
-/* 카드 ?�단???�명 ?�역?�로 변�?*/
+/* 移대뱶 ?섎떒???ㅻ챸 ?곸뿭?쇰줈 蹂寃?*/
 .game-card-large .card-footer {
   padding: 10px 12px !important;
   text-align: left !important; /* center ??left */
   background: rgba(0, 0, 0, 0.7) !important; /* 0.4 ??0.7 */
   border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
   flex-shrink: 0 !important;
-  min-height: 60px !important; /* ?�명 ?�스?��? ?�한 최소 ?�이 */
+  min-height: 60px !important; /* ?ㅻ챸 ?띿뒪?몃? ?꾪븳 理쒖냼 ?믪씠 */
   display: flex !important;
   flex-direction: column !important;
   align-items: flex-start !important;
@@ -1182,7 +1182,7 @@ body {
   display: block;
 }
 
-/* ?�버 ??카드 ?�용 ?�기 조정 */
+/* ?몃쾭 ??移대뱶 ?댁슜 ?ш린 議곗젙 */
 .game-card-large:hover:not(.disabled) .card-header {
   font-size: 1.1rem !important; /* 1rem ??1.1rem */
 }
@@ -1194,27 +1194,27 @@ body {
 
 .game-card-large:hover:not(.disabled) .card-footer {
   padding: 12px 14px !important;
-  font-size: 1.1rem !important; /* ?�버 ???�명 ?�스???�게 */
+  font-size: 1.1rem !important; /* ?몃쾭 ???ㅻ챸 ?띿뒪???ш쾶 */
 }
 
 .game-card-large:hover:not(.disabled) .card-stat-item {
-  font-size: 1.3rem !important; /* ?�버 ???�탯???�간 ?�게 */
+  font-size: 1.3rem !important; /* ?몃쾭 ???ㅽ꺈???쎄컙 ?ш쾶 */
 }
 
-/* 간소???�태?�서 카드 ?�명�??�기�? hover ??보이�?(?�성?� ??�� ?�시) */
+/* 媛꾩냼???곹깭?먯꽌 移대뱶 ?ㅻ챸留??④린湲? hover ??蹂댁씠湲?(?뱀꽦? ??긽 ?쒖떆) */
 .card-footer.simplified-footer .card-description {
   display: none;
 }
 
 .game-card-large:hover .card-footer.simplified-footer {
-  font-size: 1.1rem !important; /* 간소???�태?�서??hover ????글??*/
+  font-size: 1.1rem !important; /* 媛꾩냼???곹깭?먯꽌??hover ????湲??*/
 }
 
 .game-card-large:hover .card-footer.simplified-footer .card-description {
   display: block;
 }
 
-/* 진행 ?�계?�서 ?�용??카드 ?�니메이??*/
+/* 吏꾪뻾 ?④퀎?먯꽌 ?ъ슜??移대뱶 ?좊땲硫붿씠??*/
 @keyframes cardDisappear {
   0% {
     opacity: 1;
@@ -1249,7 +1249,7 @@ body {
   }
 }
 
-/* ?�격 ?�니메이??- ?�들�?�?깜빡??*/
+/* ?쇨꺽 ?좊땲硫붿씠??- ?붾뱾由?諛?源쒕묀??*/
 @keyframes hitShake {
   0%, 100% {
     transform: translateX(0);
@@ -1270,7 +1270,7 @@ body {
   box-shadow: 0 0 20px rgba(239, 68, 68, 0.8);
 }
 
-/* 방어???�득 ?�니메이??- ?��? �?�??�과 */
+/* 諛⑹뼱???띾뱷 ?좊땲硫붿씠??- ?뺣? 諛?鍮??④낵 */
 @keyframes blockGain {
   0% {
     transform: scale(1);
@@ -1290,7 +1290,7 @@ body {
   animation: blockGain 0.4s ease-in-out;
 }
 
-/* ?�동??부�?카드 X ?�시 */
+/* ?됰룞??遺議?移대뱶 X ?쒖떆 */
 .card-disabled-overlay {
   position: absolute;
   top: 0;
@@ -1305,7 +1305,7 @@ body {
   z-index: 10;
 }
 
-/* ?�성 ?�팁 ?�니메이??*/
+/* ?뱀꽦 ?댄똻 ?좊땲硫붿씠??*/
 .trait-tooltip {
   opacity: 0;
   transform: translateY(-4px);
@@ -1350,7 +1350,7 @@ body {
   filter: drop-shadow(0 0 8px rgba(251, 191, 36, 0.8));
 }
 
-/* ?�물 발동 ?�니메이??*/
+/* ?좊Ъ 諛쒕룞 ?좊땲硫붿씠??*/
 @keyframes relicActivate {
   0%, 100% {
     transform: scale(1);
@@ -1366,7 +1366,7 @@ body {
   }
 }
 
-/* ?�?�라??progress indicator (?�곗바늘) */
+/* ??꾨씪??progress indicator (?쒓퀣諛붾뒛) */
 .timeline-progress-indicator {
   position: absolute;
   top: 0;
@@ -1410,3 +1410,4 @@ body {
   border-bottom: 8px solid #fbbf24;
   filter: drop-shadow(0 0 4px rgba(251, 191, 36, 0.8));
 }
+

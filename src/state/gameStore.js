@@ -627,7 +627,7 @@ export const useGameStore = create((set, get) => ({
       const healed = combatEndEffects.heal || 0;
       const maxHpGain = combatEndEffects.maxHp || 0;
 
-      // 체력이 꽉 찬 상태에서 최대체력이 오르면 현재 체력도 같이 올려줘서 체력 손실로 보이지 않도록 처리
+      // 최대 체력 증가를 먼저 반영하고, 현재 체력이 깎이지 않도록 회복도 함께 적용
       newMaxHp = state.maxHp + maxHpGain;
       finalPlayerHp = Math.min(newMaxHp, finalPlayerHp + healed + maxHpGain);
     } catch (error) {
@@ -926,4 +926,3 @@ export const selectors = {
   lastBattleResult: (state) => state.lastBattleResult,
   characterBuild: (state) => state.characterBuild,
 };
-
