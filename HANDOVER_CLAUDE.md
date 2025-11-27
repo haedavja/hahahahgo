@@ -1,7 +1,7 @@
-## 상태 요약 (2025-11-27 22:45 KST)
+## 상태 요약 (2025-11-27 22:55 KST)
 
 ### 최근 작업 (이번 세션)
-**통찰(Insight) 시스템 완전 구현** (커밋 06fa869, 2fba0b8, 8cc25be)
+**통찰(Insight) 시스템 완전 구현 + UI 개선** (커밋 06fa869, 2fba0b8, 8cc25be, f76ed6e)
 
 #### 구현 내역
 1. **기본 구조 추가** ✅
@@ -22,7 +22,7 @@
    - `shroud` 필드 추가 (기본값 0)
    - 개념만 구조화, 아직 값 할당 안 함
 
-5. **통찰 레벨별 타임라인 정보 공개** ✅ **NEW!**
+5. **통찰 레벨별 타임라인 정보 공개** ✅
    - `calculateEffectiveInsight()`: 유효 통찰 = player.insight - enemy.shroud
    - `getInsightRevealLevel()`: 레벨별 공개 정보 결정
    - select 단계에서 적 정보 아래에 통찰 UI 자동 렌더링
@@ -32,6 +32,11 @@
    - **Lv.1** (통찰 = 1): 카드 개수 + 대략적 순서 ("첫번째", "마지막" 등)
    - **Lv.2** (통찰 = 2): 정확한 카드명 + 속도 값
    - **Lv.3** (통찰 ≥ 3): 전체 정보 (카드 효과, 특성 포함)
+
+6. **UI 개선** ✅ **NEW!**
+   - 힘(Strength) 0일 때 아이콘 숨김 처리 (민첩과 동일)
+   - 통찰 Lv.3에서 적 카드 효과 올바르게 표시 (card.damage/block 직접 참조)
+   - 캐릭터 창 통찰 표시 확인 (이미 구현됨)
 
 #### 다음 단계 (미구현 기능)
 - **이벤트 시스템 연동**: 통찰 값에 따른 추가 선택지 제공
@@ -155,7 +160,7 @@ Enemy 데이터에 shroud 필드 (기본값 0)
 - [x] 무한방패 턴 시작 중복 실행 없음
 - [x] 전투 후 HP 정상 반영
 - [x] 피의 족쇄 정상 작동 (체력 -5, 힘 +2)
-- [ ] 힘 UI 표시 정상화 (알려진 이슈)
+- [x] 힘 UI 표시 정상화 (0일 때 숨김 처리 완료)
 
 ---
 
@@ -181,11 +186,12 @@ Enemy 데이터에 shroud 필드 (기본값 0)
    - Line 1023: initialPlayerState.insight 추가
    - Line 1029: enemy 상태에 shroud 필드 추가
    - Line 1114-1122: effectiveInsight, insightReveal useMemo 계산
-   - Line 2930-2931: 플레이어 통찰 UI 표시
-   - Line 3087-3184: select 단계 적 정보 영역에 통찰 레벨별 UI 렌더링
+   - Line 2933-2937: 플레이어 힘 UI 조건부 표시 (0일 때 숨김)
+   - Line 2941-2945: 플레이어 통찰 UI 표시
+   - Line 3087-3185: select 단계 적 정보 영역에 통찰 레벨별 UI 렌더링
      - Lv.1: 카드 개수 + 순서
      - Lv.2: 카드명 + 속도
-     - Lv.3: 카드 효과 + 특성
+     - Lv.3: 카드 효과 + 특성 (card.damage/block 직접 참조)
 
 5. `src/components/dev/DevTools.jsx`
    - Line 19, 29: playerInsight, updatePlayerInsight 추가
@@ -194,7 +200,7 @@ Enemy 데이터에 shroud 필드 (기본값 0)
    - Line 520-566: 통찰 입력 컨트롤 UI
 
 6. `src/components/map/MapDemo.jsx`
-   - Line 119: PATCH_VERSION_TAG = "11-27-22:30"
+   - Line 119: PATCH_VERSION_TAG = "11-27-22:55"
 
 ---
 
