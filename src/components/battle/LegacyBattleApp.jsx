@@ -1232,6 +1232,16 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
     // 유물 턴 시작 효과 적용 (피피한 갑옷 등)
     const turnStartRelicEffects = applyTurnStartEffects(relics, nextTurnEffects);
 
+    // 턴 시작 유물 발동 애니메이션
+    relics.forEach(relicId => {
+      const relic = RELICS[relicId];
+      if (relic?.effects?.type === 'ON_TURN_START') {
+        setRelicActivated(relicId);
+        playSound(800, 200);
+        setTimeout(() => setRelicActivated(null), 500);
+      }
+    });
+
     // 특성 효과로 인한 에너지 보너스/페널티 적용
     const passiveRelicEffects = calculatePassiveEffects(relics);
     const baseEnergy = BASE_PLAYER_ENERGY + passiveRelicEffects.maxEnergy;
@@ -1959,6 +1969,19 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
       enemy,
     });
 
+    // 턴 종료 유물 발동 애니메이션
+    relics.forEach(relicId => {
+      const relic = RELICS[relicId];
+      if (relic?.effects?.type === 'ON_TURN_END') {
+        const condition = relic.effects.condition;
+        if (!condition || condition({ cardsPlayedThisTurn: selected.length, player, enemy })) {
+          setRelicActivated(relicId);
+          playSound(800, 200);
+          setTimeout(() => setRelicActivated(null), 500);
+        }
+      }
+    });
+
     // 턴 종료 유물 효과를 다음 턴 효과에 추가
     if (turnEndRelicEffects.energyNextTurn > 0) {
       newNextTurnEffects.bonusEnergy += turnEndRelicEffects.energyNextTurn;
@@ -1989,6 +2012,31 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
     // 몬스터 사망 시 실제 실행된 카드 수(resolvedPlayerCards) 사용, 정상 종료 시에는 selected.length와 동일
     const playerComboMult = applyRelicComboMultiplier(relics, basePlayerComboMult, resolvedPlayerCards);
     const relicMultBonus = playerComboMult - basePlayerComboMult;
+
+    // 에테르 관련 유물 발동 애니메이션 (참고서, 악마의 주사위, 에테르 결정)
+    if (relicMultBonus > 0 || resolvedPlayerCards === 5) {
+      relics.forEach(relicId => {
+        const relic = RELICS[relicId];
+        if (relic?.effects?.type === 'PASSIVE') {
+          if (relic.effects.comboMultiplierPerCard && relicMultBonus > 0) {
+            // 에테르 결정
+            setRelicActivated(relicId);
+            playSound(800, 200);
+            setTimeout(() => setRelicActivated(null), 500);
+          } else if (relic.effects.etherCardMultiplier && resolvedPlayerCards > 0) {
+            // 참고서
+            setRelicActivated(relicId);
+            playSound(800, 200);
+            setTimeout(() => setRelicActivated(null), 500);
+          } else if (relic.effects.etherFiveCardBonus && resolvedPlayerCards === 5) {
+            // 악마의 주사위
+            setRelicActivated(relicId);
+            playSound(900, 250);
+            setTimeout(() => setRelicActivated(null), 500);
+          }
+        }
+      });
+    }
 
     const enemyComboMult = eComboEnd ? (COMBO_MULTIPLIERS[eComboEnd.name] || 1) : 1;
 
@@ -2434,7 +2482,11 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
                         transition: 'all 0.2s ease',
                         filter: isActivated ? 'brightness(1.5) drop-shadow(0 0 8px rgba(251, 191, 36, 0.8))' : 'brightness(1)',
                         transform: isHovered ? 'scale(1.15)' : (isActivated ? 'scale(1.2)' : 'scale(1)'),
-                        animation: isActivated ? 'relicActivate 0.5s ease' : 'none'
+                        animation: isActivated ? 'relicActivate 0.5s ease' : 'none',
+                        background: isActivated ? 'rgba(251, 191, 36, 0.3)' : 'transparent',
+                        borderRadius: '8px',
+                        border: isActivated ? '2px solid rgba(251, 191, 36, 0.8)' : '2px solid transparent',
+                        boxShadow: isActivated ? '0 0 15px rgba(251, 191, 36, 0.5)' : 'none'
                       }}>
                       <span>{relic.emoji}</span>
                     </div>
