@@ -1333,12 +1333,13 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
   const finalComboMultiplier = useMemo(() => {
     const baseMultiplier = currentCombo ? (COMBO_MULTIPLIERS[currentCombo.name] || 1) : 1;
     const passiveEffects = calculatePassiveEffects(relics);
-    const cardsCount = phase === 'resolve' ? resolvedPlayerCards : selected.length;
+    const isResolve = phase === 'resolve';
+    const cardsCount = isResolve ? resolvedPlayerCards : selected.length;
 
     // 에테르 결정(콤보 per card) 적용
     let mult = applyRelicComboMultiplier(relics, baseMultiplier, cardsCount);
-    // 악마의 주사위: 카드 5장 이상이면 5배수 적용
-    if (passiveEffects.etherFiveCardBonus > 0 && cardsCount >= 5) {
+    // 악마의 주사위: 실제 진행 단계에서만 5배수 적용
+    if (isResolve && passiveEffects.etherFiveCardBonus > 0 && cardsCount >= 5) {
       mult *= passiveEffects.etherFiveCardBonus;
     }
     return mult;
@@ -2045,11 +2046,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
             // 참고서
             setRelicActivated(relicId);
             playSound(800, 200);
-            setTimeout(() => setRelicActivated(null), 500);
-          } else if (relic.effects.etherFiveCardBonus && cardsPlayedForRelic >= 5) {
-            // 악마의 주사위
-            setRelicActivated(relicId);
-            playSound(900, 250);
             setTimeout(() => setRelicActivated(null), 500);
           }
         }
