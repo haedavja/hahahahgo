@@ -2460,6 +2460,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
 
                 const isActivated = relicActivated === relicId;
                 const isHovered = hoveredRelic === relicId;
+                // PASSIVE 유물은 항상 활성 상태 (노란색 강조)
+                const isPersistent = relic.effects?.type === 'PASSIVE';
+                const isHighlighted = isPersistent || isActivated;
                 const rarityText = {
                   [RELIC_RARITIES.COMMON]: '일반',
                   [RELIC_RARITIES.RARE]: '희귀',
@@ -2480,13 +2483,13 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
                         justifyContent: 'center',
                         cursor: 'pointer',
                         transition: 'all 0.2s ease',
-                        filter: isActivated ? 'brightness(1.5) drop-shadow(0 0 8px rgba(251, 191, 36, 0.8))' : 'brightness(1)',
+                        filter: isHighlighted ? 'brightness(1.5) drop-shadow(0 0 8px rgba(251, 191, 36, 0.8))' : 'brightness(1)',
                         transform: isHovered ? 'scale(1.15)' : (isActivated ? 'scale(1.2)' : 'scale(1)'),
                         animation: isActivated ? 'relicActivate 0.5s ease' : 'none',
-                        background: isActivated ? 'rgba(251, 191, 36, 0.3)' : 'transparent',
+                        background: isHighlighted ? 'rgba(251, 191, 36, 0.3)' : 'transparent',
                         borderRadius: '8px',
-                        border: isActivated ? '2px solid rgba(251, 191, 36, 0.8)' : '2px solid transparent',
-                        boxShadow: isActivated ? '0 0 15px rgba(251, 191, 36, 0.5)' : 'none'
+                        border: isHighlighted ? '2px solid rgba(251, 191, 36, 0.8)' : '2px solid transparent',
+                        boxShadow: isHighlighted ? '0 0 15px rgba(251, 191, 36, 0.5)' : 'none'
                       }}>
                       <span>{relic.emoji}</span>
                     </div>
@@ -2631,7 +2634,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
                   {currentDeflation && (
                     <div style={{
                       position: 'absolute',
-                      left: 'calc(50% + 80px)',
+                      left: 'calc(50% + 120px)',
                       fontSize: etherCalcPhase === 'deflation' ? '1.1rem' : '0.9rem',
                       fontWeight: 'bold',
                       color: '#fca5a5',
