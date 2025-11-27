@@ -1215,10 +1215,13 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
 
       // 전투 시작 유물 효과 로그 및 애니메이션
       const combatStartEffects = applyCombatStartEffects(relics, {});
+      console.log('[전투 시작] 유물:', relics);
+      console.log('[전투 시작] combatStartEffects:', combatStartEffects);
 
       // 전투 시작 유물 애니메이션
       relics.forEach(relicId => {
         const relic = RELICS[relicId];
+        console.log('[전투 시작] 유물 체크:', relicId, relic?.name, relic?.effects?.type);
         if (relic?.effects?.type === 'ON_COMBAT_START') {
           setRelicActivated(relicId);
           playSound(800, 200);

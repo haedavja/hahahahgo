@@ -16,6 +16,9 @@ const buildBattlePayload = (battle, etherPts, relics, maxHp) => {
 
   // 전투 시작 효과 계산
   const combatStartEffects = applyCombatStartEffects(relics, {});
+  console.log('[LegacyBattleScreen] 유물:', relics);
+  console.log('[LegacyBattleScreen] combatStartEffects:', combatStartEffects);
+  console.log('[LegacyBattleScreen] passiveEffects.strength:', passiveEffects.strength);
 
   // 전투 시작 시 체력/방어력 보너스 적용
   // 피의 족쇄 등의 피해를 적용하고 회복 효과를 더함
@@ -29,6 +32,7 @@ const buildBattlePayload = (battle, etherPts, relics, maxHp) => {
 
   // 피의 족쇄 등의 힘 보너스 계산
   const startingStrength = (passiveEffects.strength || 0) + (combatStartEffects.strength || 0);
+  console.log('[LegacyBattleScreen] startingStrength:', startingStrength, '= passiveEffects.strength', passiveEffects.strength, '+ combatStartEffects.strength', combatStartEffects.strength);
 
   return {
     player: {
