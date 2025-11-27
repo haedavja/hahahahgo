@@ -2460,8 +2460,12 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
 
                 const isActivated = relicActivated === relicId;
                 const isHovered = hoveredRelic === relicId;
-                // PASSIVE 유물은 항상 활성 상태 (노란색 강조)
-                const isPersistent = relic.effects?.type === 'PASSIVE';
+                // 지속 효과 유물은 항상 활성 상태 (노란색 강조)
+                // 에테르 결정, 악마의 주사위는 조건부 발동이므로 제외
+                const isPersistent = relic.effects?.type === 'PASSIVE'
+                  && relicId !== 'etherGem'
+                  && relicId !== 'devilDice'
+                  || relic.effects?.type === 'ON_TURN_START'; // 피피한 갑옷
                 const isHighlighted = isPersistent || isActivated;
                 const rarityText = {
                   [RELIC_RARITIES.COMMON]: '일반',
