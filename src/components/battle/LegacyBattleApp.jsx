@@ -1181,6 +1181,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   useEffect(() => {
     if (phase !== 'select') {
       setInsightAnimLevel(0);
+      setHoveredEnemyAction(null);
       return;
     }
     const lvl = insightReveal?.level || 0;
@@ -2956,8 +2957,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                             idx,
                             left: normalizedPosition,
                             top: 6 + offset,
-                            x: e.clientX,
-                            y: e.clientY,
+                            pageX: e.clientX,
+                            pageY: e.clientY,
                           });
                         }}
                         onMouseLeave={() => setHoveredEnemyAction(null)}
@@ -2970,41 +2971,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                       </div>
                     );
                   })}
-                  {hoveredEnemyAction && (insightReveal?.level || 0) >= 3 && (
-                    <div
-                      className="insight-tooltip"
-                      style={{
-                        position: 'absolute',
-                        left: `${Math.min(98, Math.max(2, hoveredEnemyAction.left))}%`,
-                        top: `${hoveredEnemyAction.top + 36}px`,
-                        transform: 'translateX(-50%)',
-                        pointerEvents: 'none',
-                        zIndex: 1200,
-                      }}
-                    >
-                      <div className="insight-tooltip-title">
-                        #{hoveredEnemyAction.idx + 1} {hoveredEnemyAction.action?.name || '???'}
-                      </div>
-                      <div className="insight-tooltip-desc" style={{ marginBottom: '4px' }}>
-                        ⏱️ {hoveredEnemyAction.action?.speedCost ?? hoveredEnemyAction.action?.speed ?? '-'}
-                      </div>
-                      {(hoveredEnemyAction.action?.damage || hoveredEnemyAction.action?.block) && (
-                        <div className="insight-tooltip-desc" style={{ marginBottom: '4px' }}>
-                          {hoveredEnemyAction.action.damage ? `⚔️ ${hoveredEnemyAction.action.damage}${hoveredEnemyAction.action.hits ? ` x${hoveredEnemyAction.action.hits}` : ''}` : ''}
-                          {hoveredEnemyAction.action.damage && hoveredEnemyAction.action.block ? ' / ' : ''}
-                          {hoveredEnemyAction.action.block ? `🛡️ ${hoveredEnemyAction.action.block}` : ''}
-                        </div>
-                      )}
-                      {hoveredEnemyAction.action?.traits && hoveredEnemyAction.action.traits.length > 0 && (
-                        <div className="insight-tooltip-desc" style={{ color: '#a78bfa' }}>
-                          특성: {hoveredEnemyAction.action.traits.join(', ')}
-                        </div>
-                      )}
-                      {!hoveredEnemyAction.action?.damage && !hoveredEnemyAction.action?.block && !hoveredEnemyAction.action?.traits?.length && (
-                        <div className="insight-tooltip-desc">상세 정보가 없습니다.</div>
-                      )}
-                    </div>
-                  )}
                 </div>
               </div>
             </div>
@@ -3766,6 +3732,42 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
               </div>
             );
           })}
+        </div>
+      )}
+      {/* 전역 통찰 툴팁 (뷰포트 기준) */}
+      {hoveredEnemyAction && (insightReveal?.level || 0) >= 3 && phase === 'select' && (
+        <div
+          className="insight-tooltip"
+          style={{
+            position: 'fixed',
+            left: `${hoveredEnemyAction.pageX}px`,
+            top: `${hoveredEnemyAction.pageY + 16}px`,
+            transform: 'translate(-50%, 0)',
+            pointerEvents: 'none',
+            zIndex: 3000,
+          }}
+        >
+          <div className="insight-tooltip-title">
+            #{hoveredEnemyAction.idx + 1} {hoveredEnemyAction.action?.name || '???'}
+          </div>
+          <div className="insight-tooltip-desc" style={{ marginBottom: '4px' }}>
+            ⏱️ {hoveredEnemyAction.action?.speedCost ?? hoveredEnemyAction.action?.speed ?? '-'}
+          </div>
+          {(hoveredEnemyAction.action?.damage || hoveredEnemyAction.action?.block) && (
+            <div className="insight-tooltip-desc" style={{ marginBottom: '4px' }}>
+              {hoveredEnemyAction.action.damage ? `⚔️ ${hoveredEnemyAction.action.damage}${hoveredEnemyAction.action.hits ? ` x${hoveredEnemyAction.action.hits}` : ''}` : ''}
+              {hoveredEnemyAction.action.damage && hoveredEnemyAction.action.block ? ' / ' : ''}
+              {hoveredEnemyAction.action.block ? `🛡️ ${hoveredEnemyAction.action.block}` : ''}
+            </div>
+          )}
+          {hoveredEnemyAction.action?.traits && hoveredEnemyAction.action.traits.length > 0 && (
+            <div className="insight-tooltip-desc" style={{ color: '#a78bfa' }}>
+              특성: {hoveredEnemyAction.action.traits.join(', ')}
+            </div>
+          )}
+          {!hoveredEnemyAction.action?.damage && !hoveredEnemyAction.action?.block && !hoveredEnemyAction.action?.traits?.length && (
+            <div className="insight-tooltip-desc">상세 정보가 없습니다.</div>
+          )}
         </div>
       )}
     </div>

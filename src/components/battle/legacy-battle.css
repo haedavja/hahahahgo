@@ -228,6 +228,7 @@ body {
   border-radius: 18px;
   border: 1px solid rgba(148, 163, 184, 0.2);
   overflow: visible; /* 통찰 3단계 툴팁이 잘리지 않도록 표시 */
+  z-index: 1;
 }
 
 .insight-lv3-glow {
@@ -261,6 +262,7 @@ body {
   position: absolute;
   inset: 0;
   background: linear-gradient(90deg, rgba(255,255,255,0.03), transparent 40%, rgba(255,255,255,0.03));
+  pointer-events: none; /* 호버 차단 방지 */
 }
 
 .player-lane {
@@ -281,6 +283,8 @@ body {
 
 .timeline-marker {
   position: absolute; /* left/top 배치를 위한 절대 위치 */
+  z-index: 5;
+  pointer-events: auto;
   padding: 6px 10px;
   border-radius: 999px;
   border: 1px solid rgba(255, 255, 255, 0.2);
@@ -1117,7 +1121,7 @@ body {
   border-radius: 10px;
   box-shadow: 0 10px 24px rgba(0, 0, 0, 0.5);
   color: #e9d5ff;
-  z-index: 200;
+  z-index: 2000;
 }
 
 .insight-tooltip::after {
