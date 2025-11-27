@@ -1332,15 +1332,16 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
   // 유물 효과를 포함한 최종 콤보 배율
   const finalComboMultiplier = useMemo(() => {
     const baseMultiplier = currentCombo ? (COMBO_MULTIPLIERS[currentCombo.name] || 1) : 1;
-    // 진행 단계에서는 진행된 카드 수 기반으로 유물 효과 적용
-    if (phase === 'resolve') {
-      return applyRelicComboMultiplier(relics, baseMultiplier, resolvedPlayerCards);
+    const passiveEffects = calculatePassiveEffects(relics);
+    const cardsCount = phase === 'resolve' ? resolvedPlayerCards : selected.length;
+
+    // 에테르 결정(콤보 per card) 적용
+    let mult = applyRelicComboMultiplier(relics, baseMultiplier, cardsCount);
+    // 악마의 주사위: 카드 5장 이상이면 5배수 적용
+    if (passiveEffects.etherFiveCardBonus > 0 && cardsCount >= 5) {
+      mult *= passiveEffects.etherFiveCardBonus;
     }
-    // 선택/응답 단계에서는 선택된 카드 수 기반으로 유물 효과 적용 (미리보기)
-    if (phase === 'select' || phase === 'respond') {
-      return applyRelicComboMultiplier(relics, baseMultiplier, selected.length);
-    }
-    return baseMultiplier;
+    return mult;
   }, [currentCombo, relics, resolvedPlayerCards, selected.length, phase]);
   const comboPreviewInfo = useMemo(() => {
     if (!currentCombo) return null;
