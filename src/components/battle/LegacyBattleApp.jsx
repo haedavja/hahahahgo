@@ -2118,6 +2118,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult }) 
       const deflationText = playerDeflation.usageCount > 0
         ? ` (디플레이션 -${Math.round((1 - playerDeflation.multiplier) * 100)}%, ${playerDeflation.usageCount}회 사용)`
         : '';
+      // 악마의 주사위(5장)는 calculateRelicEtherGain에서 반영된 값을 포함하고 있음
       const relicText = relicMultBonus > 0 ? ` (유물 배율 +${relicMultBonus.toFixed(2)})` : '';
       const overflowText = playerOverflow > 0 ? ` [범람: ${playerOverflow} PT]` : '';
       addLog(`✴️ 에테르 획득: ${turnEtherAccumulated} × ${actualTotalMultiplier.toFixed(2)}${relicText} = ${playerBeforeDeflation} → ${playerFinalEther} PT${deflationText} (적용: ${playerAppliedEther} PT${overflowText})`);

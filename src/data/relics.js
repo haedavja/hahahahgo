@@ -320,7 +320,7 @@ export const RELICS = {
     emoji: '🎲',
     rarity: RELIC_RARITIES.SPECIAL,
     tags: [RELIC_TAGS.ETHER],
-    description: '5장의 카드를 내면 5배승률을 곱합니다.',
+    description: '5장의 카드를 내면 에테르 계산에 5배수를 곱합니다.',
     effects: {
       type: 'PASSIVE',
       etherFiveCardBonus: 5, // 5장 내면 5배
