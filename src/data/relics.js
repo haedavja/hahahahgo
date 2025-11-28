@@ -55,7 +55,7 @@ export const RELICS = {
     emoji: '💎',
     rarity: RELIC_RARITIES.COMMON,
     tags: [RELIC_TAGS.ETHER],
-    description: '플레이어가 낸 카드 1장당 콤보 배율 +2.00',
+    description: '카드 1장이 발동할 때마다 곱배수에 2배수를 더합니다.',
     effects: {
       type: 'PASSIVE',
       comboMultiplierPerCard: 2.0,
@@ -334,7 +334,7 @@ export const RELICS = {
     emoji: '🎲',
     rarity: RELIC_RARITIES.SPECIAL,
     tags: [RELIC_TAGS.ETHER],
-    description: '5장의 카드를 내면 에테르 계산에 5배수를 곱합니다.',
+    description: '5번째 카드가 발동된 다음 곱배수에 5배수를 곱합니다.',
     effects: {
       type: 'PASSIVE',
       etherFiveCardBonus: 5, // 5장 내면 5배
