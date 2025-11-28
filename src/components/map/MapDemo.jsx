@@ -136,6 +136,7 @@ export function MapDemo() {
 
   const map = useGameStore((state) => state.map);
   const resources = useGameStore((state) => state.resources || {});
+  const prevEtherRef = useRef(resources.etherPts ?? 0);
   const mapRisk = useGameStore((state) => state.mapRisk);
   const activeEvent = useGameStore((state) => state.activeEvent);
   const activeBattle = useGameStore((state) => state.activeBattle);
@@ -207,6 +208,19 @@ export function MapDemo() {
   const aetherTier = `x${aetherSlots}`;
   const hpRatio = Math.max(0, Math.min(1, playerHp / maxHp)); // HP 비율
   const hpColor = hpRatio > 0.5 ? "#86efac" : hpRatio > 0.25 ? "#fde047" : "#fca5a5";
+
+  // 황금 나침반 발동 표시: 에테르가 증가했고 유물이 있을 때 배지/사운드
+  useEffect(() => {
+    const prev = prevEtherRef.current ?? 0;
+    const curr = resources.etherPts ?? 0;
+    const delta = curr - prev;
+    prevEtherRef.current = curr;
+    if (delta > 0 && relics?.includes('redCompass')) {
+      setRelicActivated('redCompass');
+      const t = setTimeout(() => setRelicActivated(null), 700);
+      return () => clearTimeout(t);
+    }
+  }, [resources.etherPts, relics]);
 
   const mapHeight = useMemo(() => {
     if (!nodes.length) return 800;
