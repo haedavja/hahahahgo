@@ -1054,9 +1054,39 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const playerStrength = useGameStore((state) => state.playerStrength || 0);
   const playerAgility = useGameStore((state) => state.playerAgility || 0);
   const relics = useGameStore((state) => state.relics || []);
+  const [orderedRelics, setOrderedRelics] = useState(() => {
+    try {
+      const saved = localStorage.getItem('relicOrder');
+      if (saved) {
+        const ids = JSON.parse(saved);
+        if (Array.isArray(ids) && ids.length) return ids;
+      }
+    } catch {}
+    return relics;
+  });
+  useEffect(() => {
+    // 새 유물 추가/제거 시 기존 순서를 유지하면서 병합
+    setOrderedRelics(prev => {
+      const prevSet = new Set(prev);
+      const next = [];
+      relics.forEach(id => {
+        if (prevSet.has(id)) next.push(id);
+      });
+      relics.forEach(id => {
+        if (!prevSet.has(id)) next.push(id);
+      });
+      return next;
+    });
+  }, [relics]);
+  useEffect(() => {
+    try {
+      localStorage.setItem('relicOrder', JSON.stringify(orderedRelics));
+    } catch {}
+  }, [orderedRelics]);
+  const orderedRelicList = orderedRelics && orderedRelics.length ? orderedRelics : relics;
   const safeInitialPlayer = initialPlayer || {};
   const safeInitialEnemy = initialEnemy || {};
-  const passiveRelicStats = calculatePassiveEffects(relics);
+  const passiveRelicStats = calculatePassiveEffects(orderedRelicList);
   const baseEnergy = (safeInitialPlayer.energy ?? BASE_PLAYER_ENERGY) + passiveRelicStats.maxEnergy;
   const startingEther = typeof safeInitialPlayer.etherPts === 'number' ? safeInitialPlayer.etherPts : playerEther;
   const startingBlock = safeInitialPlayer.block ?? 0; // 유물 효과로 인한 시작 방어력
@@ -1164,7 +1194,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const [resolveStartEnemy, setResolveStartEnemy] = useState(null); // 진행 단계 시작 시 적 상태
   const [hoveredRelic, setHoveredRelic] = useState(null); // 호버된 유물 ID
   const [relicActivated, setRelicActivated] = useState(null); // 발동된 유물 ID (애니메이션용, 단일 표시용)
-  const [activeRelics, setActiveRelics] = useState(new Set()); // 동시 강조용
+  const [activeRelicSet, setActiveRelicSet] = useState(new Set()); // 동시 강조용
   const [resolvedPlayerCards, setResolvedPlayerCards] = useState(0); // 진행 단계에서 진행된 플레이어 카드 수
   const [hoveredCard, setHoveredCard] = useState(null); // 호버된 카드 정보 {card, position}
   const [tooltipVisible, setTooltipVisible] = useState(false); // 툴팁 표시 여부(애니메이션용)
@@ -1193,8 +1223,29 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const initialEtherRef = useRef(typeof safeInitialPlayer.etherPts === 'number' ? safeInitialPlayer.etherPts : (playerEther ?? 0));
   const resultSentRef = useRef(false);
   const turnStartProcessedRef = useRef(false); // 턴 시작 효과 중복 실행 방지
+  const dragRelicIndexRef = useRef(null); // 유물 드래그 인덱스
+  useEffect(() => {
+    // 선택/대응 단계에서는 변경 허용, 진행/포스트에서는 고정
+    if (phase === 'select' || phase === 'respond') {
+      setOrderedRelics(relics);
+    }
+  }, [phase]); // relics 동기화는 상단 useEffect에서 처리
+  const computeComboMultiplier = useCallback((baseMult, cardsCount, includeFiveCard = true) => {
+    let mult = baseMult;
+    const passive = calculatePassiveEffects(orderedRelicList);
+    orderedRelicList.forEach(rid => {
+      const relic = RELICS[rid];
+      if (!relic?.effects) return;
+      if (relic.effects.comboMultiplierPerCard || relic.effects.etherCardMultiplier || relic.effects.etherMultiplier) {
+        mult = applyRelicComboMultiplier([rid], mult, cardsCount);
+      } else if (includeFiveCard && relic.effects.etherFiveCardBonus && passive.etherFiveCardBonus > 0 && cardsCount >= 5) {
+        mult *= passive.etherFiveCardBonus;
+      }
+    });
+    return mult;
+  }, [orderedRelicList]);
   const flashRelic = (relicId, tone = 800, duration = 500) => {
-    setActiveRelics(prev => {
+    setActiveRelicSet(prev => {
       const next = new Set(prev);
       next.add(relicId);
       return next;
@@ -1202,13 +1253,38 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     setRelicActivated(relicId);
     playSound(tone, duration * 0.6);
     setTimeout(() => {
-      setActiveRelics(prev => {
+      setActiveRelicSet(prev => {
         const next = new Set(prev);
         next.delete(relicId);
         return next;
       });
       setRelicActivated(prev => (prev === relicId ? null : prev));
     }, duration);
+  };
+  const handleRelicDragStart = (idx, relicId) => (e) => {
+    dragRelicIndexRef.current = idx;
+    setRelicActivated(relicId); // 배지 표시
+    e.dataTransfer.effectAllowed = 'move';
+    try {
+      const img = new Image();
+      img.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9YQn1fEAAAAASUVORK5CYII=';
+      e.dataTransfer.setDragImage(img, 0, 0);
+    } catch {}
+  };
+  const handleRelicDragOver = (e) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  };
+  const handleRelicDrop = (idx) => (e) => {
+    e.preventDefault();
+    const from = dragRelicIndexRef.current;
+    dragRelicIndexRef.current = null;
+    setRelicActivated(null);
+    if (from === null || from === idx) return;
+    const arr = Array.from(orderedRelicList);
+    const [item] = arr.splice(from, 1);
+    arr.splice(idx, 0, item);
+    setOrderedRelics(arr);
   };
 
   // 통찰 시스템: 유효 통찰 및 공개 정보 계산
@@ -1503,10 +1579,10 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       setEnemy({ ...e, hp: e.hp, maxHp: e.hp, vulnMult: 1, vulnTurns: 0, block: 0, counter: 0, etherPts: 0, etherOverdriveActive: false, maxSpeed: e.maxSpeed ?? DEFAULT_ENEMY_MAX_SPEED });
 
       // 전투 시작 유물 효과 로그 및 애니메이션
-      const combatStartEffects = applyCombatStartEffects(relics, {});
+      const combatStartEffects = applyCombatStartEffects(orderedRelicList, {});
 
       // 전투 시작 유물 애니메이션
-      relics.forEach(relicId => {
+      orderedRelicList.forEach(relicId => {
         const relic = RELICS[relicId];
         if (relic?.effects?.type === 'ON_COMBAT_START') {
           setRelicActivated(relicId);
@@ -1564,7 +1640,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     setWillOverdrive(false);
 
     // 유물 턴 시작 효과 적용 (피피한 갑옷 등)
-    const turnStartRelicEffects = applyTurnStartEffects(relics, nextTurnEffects);
+    const turnStartRelicEffects = applyTurnStartEffects(orderedRelicList, nextTurnEffects);
 
     console.log("[턴 시작 유물 효과]", {
       block: turnStartRelicEffects.block,
@@ -1573,7 +1649,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     });
 
     // 턴 시작 유물 발동 애니메이션
-    relics.forEach(relicId => {
+    orderedRelicList.forEach(relicId => {
       const relic = RELICS[relicId];
       if (relic?.effects?.type === 'ON_TURN_START') {
         setRelicActivated(relicId);
@@ -1583,7 +1659,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     });
 
     // 특성 효과로 인한 에너지 보너스/페널티 적용
-    const passiveRelicEffects = calculatePassiveEffects(relics);
+    const passiveRelicEffects = calculatePassiveEffects(orderedRelicList);
     const baseEnergy = BASE_PLAYER_ENERGY + passiveRelicEffects.maxEnergy;
     const energyBonus = (nextTurnEffects.bonusEnergy || 0) + turnStartRelicEffects.energy;
     const energyPenalty = nextTurnEffects.energyPenalty || 0;
@@ -1693,18 +1769,16 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   // 유물 효과를 포함한 최종 콤보 배율
   const finalComboMultiplier = useMemo(() => {
     const baseMultiplier = currentCombo ? (COMBO_MULTIPLIERS[currentCombo.name] || 1) : 1;
-    const passiveEffects = calculatePassiveEffects(relics);
+    const passiveEffects = calculatePassiveEffects(orderedRelicList);
     const isResolve = phase === 'resolve';
     const cardsCount = isResolve ? resolvedPlayerCards : selected.length;
 
-    // 에테르 결정(콤보 per card) 적용
-    let mult = applyRelicComboMultiplier(relics, baseMultiplier, cardsCount);
-    // 악마의 주사위: 실제 진행 단계에서만 5배수 적용
-    if (isResolve && passiveEffects.etherFiveCardBonus > 0 && cardsCount >= 5) {
-      mult *= passiveEffects.etherFiveCardBonus;
-    }
-    return mult;
-  }, [currentCombo, relics, resolvedPlayerCards, selected.length, phase]);
+    // 선택 단계에서는 유물 배율 제외 (순수 조합 배율만 미리보기)
+    if (!isResolve) return baseMultiplier;
+
+    // 진행 단계: 유물 배율을 정렬 순서대로 순차 적용
+    return computeComboMultiplier(baseMultiplier, cardsCount, true);
+  }, [currentCombo, orderedRelicList, resolvedPlayerCards, selected.length, phase]);
   const comboPreviewInfo = useMemo(() => {
     if (!currentCombo) return null;
     return calculateComboEtherGain({
@@ -1982,11 +2056,11 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     const basePlayerComboMult = pCombo ? (COMBO_MULTIPLIERS[pCombo.name] || 1) : 1;
     // 몬스터가 죽었을 때는 actualResolvedCards(실제 실행된 카드 수), 아니면 selected.length(전체 선택된 카드 수)
     const cardCountForMultiplier = actualResolvedCards !== null ? actualResolvedCards : selected.length;
-    const playerComboMult = applyRelicComboMultiplier(relics, basePlayerComboMult, cardCountForMultiplier);
+    const playerComboMult = computeComboMultiplier(basePlayerComboMult, cardCountForMultiplier, true);
     let playerBeforeDeflation = Math.round(totalEtherPts * playerComboMult);
 
     // 유물 효과 적용 (참고서, 악마의 주사위, 희귀한 조약돌)
-    playerBeforeDeflation = calculateRelicEtherGain(playerBeforeDeflation, cardCountForMultiplier, relics);
+    playerBeforeDeflation = calculateRelicEtherGain(playerBeforeDeflation, cardCountForMultiplier, orderedRelicList);
 
     // 디플레이션 적용
     const playerDeflation = pCombo?.name
@@ -2185,7 +2259,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     // 카드 사용 시 에테르 누적 (실제 적용은 턴 종료 시)
     if (a.actor === 'player') {
       // 희귀한 조약돌 효과: 카드당 획득 에테르 2배
-      const passiveRelicEffects = calculatePassiveEffects(relics);
+      const passiveRelicEffects = calculatePassiveEffects(orderedRelicList);
       const etherPerCard = Math.floor(BASE_ETHER_PER_CARD * passiveRelicEffects.etherMultiplier);
 
       setTurnEtherAccumulated(prev => {
@@ -2443,7 +2517,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
     // 에테르 최종 계산 및 적용 (애니메이션은 stepOnce에서 처리됨)
     const basePlayerComboMult = pComboEnd ? (COMBO_MULTIPLIERS[pComboEnd.name] || 1) : 1;
-    const passiveRelicEffects = calculatePassiveEffects(relics);
+    const passiveRelicEffects = calculatePassiveEffects(orderedRelicList);
     const etherPerCardApplied = Math.max(1, Math.floor(BASE_ETHER_PER_CARD * passiveRelicEffects.etherMultiplier));
     const estimatedCardsFromEther = etherPerCardApplied > 0 ? Math.round(turnEtherAccumulated / etherPerCardApplied) : 0;
     // 유물 계산용 카드 수: 실제 진행된 카드 수 우선, 그 외 선택/타임라인/에테르 누적 추정치로 보정
@@ -2453,7 +2527,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       playerTimeline.length,
       estimatedCardsFromEther
     );
-    const playerComboMult = applyRelicComboMultiplier(relics, basePlayerComboMult, cardsPlayedForRelic);
+    const playerComboMult = computeComboMultiplier(basePlayerComboMult, cardsPlayedForRelic, true);
     const relicMultBonus = playerComboMult - basePlayerComboMult;
 
     // 턴 종료 시점에는 에테르 결정/조약돌 발동 애니메이션을 중복 노출하지 않음 (카드 실행 시에만)
@@ -2463,7 +2537,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     // 조합 배율 적용
     let playerBeforeDeflation = Math.round(turnEtherAccumulated * playerComboMult);
     // 유물 효과 적용 (참고서, 악마의 주사위, 희귀한 조약돌)
-    playerBeforeDeflation = calculateRelicEtherGain(playerBeforeDeflation, cardsPlayedForRelic, relics);
+    playerBeforeDeflation = calculateRelicEtherGain(playerBeforeDeflation, cardsPlayedForRelic, orderedRelicList);
 
     const enemyBeforeDeflation = Math.round(enemyTurnEtherAccumulated * enemyComboMult);
 
@@ -2856,18 +2930,19 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     if (playerTimeline.length === 0) return 0;
 
     // 희귀한 조약돌 효과 적용된 카드당 에테르
-    const passiveRelicEffects = calculatePassiveEffects(relics);
+    const passiveRelicEffects = calculatePassiveEffects(orderedRelicList);
     const etherPerCard = Math.floor(BASE_ETHER_PER_CARD * passiveRelicEffects.etherMultiplier);
     const totalEtherPts = playerTimeline.length * etherPerCard;
 
     // 조합 배율 계산 (selected 기준으로 조합 감지)
     const pCombo = detectPokerCombo(selected);
     const basePlayerComboMult = pCombo ? (COMBO_MULTIPLIERS[pCombo.name] || 1) : 1;
-    const playerComboMult = applyRelicComboMultiplier(relics, basePlayerComboMult, playerTimeline.length);
+    // 미리보기에서는 유물 배율 제외 (순수 조합 배율만)
+    const playerComboMult = basePlayerComboMult;
     let playerBeforeDeflation = Math.round(totalEtherPts * playerComboMult);
 
     // 유물 효과 적용 (참고서, 악마의 주사위 - 희귀한 조약돌은 이미 적용됨)
-    playerBeforeDeflation = calculateRelicEtherGain(playerBeforeDeflation, playerTimeline.length, relics);
+    playerBeforeDeflation = calculateRelicEtherGain(playerBeforeDeflation, playerTimeline.length, orderedRelicList);
 
     // 디플레이션 적용
     const playerDeflation = pCombo?.name
@@ -2960,13 +3035,14 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       <div className="w-full px-4" style={{ marginRight: '280px', marginLeft: '150px' }}>
 
         {/* 유물 표시 */}
-        {relics && relics.length > 0 && (
+        {orderedRelicList && orderedRelicList.length > 0 && (
           <div style={{
             display: 'flex',
             marginBottom: '16px',
             justifyContent: 'center',
             alignItems: 'center',
-            position: 'relative'
+            position: 'relative',
+            pointerEvents: 'none'
           }}>
             <div style={{
               display: 'flex',
@@ -2976,12 +3052,13 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
               border: '2px solid rgba(148, 163, 184, 0.5)',
               borderRadius: '12px',
               boxShadow: '0 0 15px rgba(148, 163, 184, 0.3)',
+              pointerEvents: 'auto'
             }}>
-              {relics.map((relicId, index) => {
+              {orderedRelicList.map((relicId, index) => {
                 const relic = RELICS[relicId];
                 if (!relic) return null;
 
-                const isActivated = relicActivated === relicId || activeRelics.has(relicId);
+                const isActivated = relicActivated === relicId || activeRelicSet.has(relicId);
                 const isHovered = hoveredRelic === relicId;
                 // 지속 강조 제외 대상: 에테르 결정/악마의 주사위/희귀한 조약돌(etherCardMultiplier)
                 const isPersistent = (relic.effects?.type === 'PASSIVE'
@@ -3001,7 +3078,15 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                 }[relic.rarity] || '알 수 없음';
 
                 return (
-                  <div key={index} style={{ position: 'relative' }}>
+                  <div
+                    key={index}
+                    style={{ position: 'relative' }}
+                    draggable
+                    onDragStart={handleRelicDragStart(index, relicId)}
+                    onDragOver={handleRelicDragOver}
+                    onDrop={handleRelicDrop(index)}
+                    onMouseDown={() => setRelicActivated(prev => prev === relicId ? null : relicId)} // 클릭 시 토글
+                  >
                     <div
                       onMouseEnter={() => setHoveredRelic(relicId)}
                       onMouseLeave={() => setHoveredRelic(null)}
