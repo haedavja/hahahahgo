@@ -2997,7 +2997,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const previewEtherGain = useMemo(() => {
     if (playerTimeline.length === 0) return 0;
 
-    // ?ш???議곗빟???④낵 ?곸슜??移대뱶???먰뀒瑜?    const passiveRelicEffects = calculatePassiveEffects(orderedRelicList);
+    // 패시브 릴릭으로 카드당 기본 획득량 보정
+    const passiveRelicEffects = calculatePassiveEffects(orderedRelicList);
     const etherPerCard = Math.floor(BASE_ETHER_PER_CARD * passiveRelicEffects.etherMultiplier);
     const totalEtherPts = playerTimeline.length * etherPerCard;
 
