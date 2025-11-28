@@ -227,3 +227,27 @@ Enemy 데이터에 shroud 필드 (기본값 0)
 **최근 커밋:**
 - `f76ed6e`: 통찰 UI 개선 (힘 0 숨김, Lv.3 카드 정보 수정)
 - `03b8ee7`: 문서 업데이트 및 패치 버전 갱신
+- `9f82e79`: GPT 인수인계 문서 최종 정리
+
+---
+
+## GPT 세션 작업 인계 (2025-11-27 이후)
+
+### GPT가 추가한 작업
+1. **적 에테르 시스템 구현** (진행 중)
+   - `LegacyBattleScreen.jsx`:
+     - `enemyEtherCapacity` 필드 추가 (기본값 300)
+     - `buildBattlePayload`에 `enemy.etherPts`, `enemy.etherCapacity` 전달
+   - `liveInsight` prop 추가 (전투 중 통찰 실시간 반영용)
+   - 전투 시작 시 통찰 값 고정 로직 추가 (`battleInsight` state)
+
+2. **미완성 작업** ⚠️
+   - 적 에테르 텍스트 패널을 플레이어와 동일한 절대 배치로 이동 중
+   - 적 HP 블록 안의 +PT/=PT 블록 제거 완료
+   - 에테르바 옆 패널 배치/중복 정리 미완
+   - 몬스터 배율(×) 표시 위치 재조정 필요
+   - `LegacyBattleApp.jsx` 변경사항 미커밋 상태
+
+### 주의사항
+- `LegacyBattleApp.jsx`에 미커밋 작업이 있으니 GPT 작업 내용 확인 후 통합 필요
+- 적 에테르 UI 작업이 완료되면 커밋 및 문서 업데이트 필요
