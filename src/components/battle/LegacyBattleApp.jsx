@@ -1228,15 +1228,25 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const computeComboMultiplier = useCallback((baseMult, cardsCount, includeFiveCard = true) => {
     let mult = baseMult;
     const passive = calculatePassiveEffects(orderedRelicList);
+    let hasDevilDice = false;
+
     orderedRelicList.forEach(rid => {
       const relic = RELICS[rid];
       if (!relic?.effects) return;
+      if (relic.effects.etherFiveCardBonus) {
+        hasDevilDice = true;
+        return; // 주사위는 마지막에 한 번만 곱하기 위해 건너뜀
+      }
       if (relic.effects.comboMultiplierPerCard || relic.effects.etherCardMultiplier || relic.effects.etherMultiplier) {
         mult = applyRelicComboMultiplier([rid], mult, cardsCount);
-      } else if (includeFiveCard && relic.effects.etherFiveCardBonus && passive.etherFiveCardBonus > 0 && cardsCount >= 5) {
-        mult *= passive.etherFiveCardBonus;
       }
     });
+
+    // 다섯 번째 카드 처리 시점 이후 한 번만 주사위 배수를 적용
+    if (includeFiveCard && hasDevilDice && passive.etherFiveCardBonus > 0 && cardsCount >= 5) {
+      mult *= passive.etherFiveCardBonus;
+    }
+
     return mult;
   }, [orderedRelicList]);
   const flashRelic = (relicId, tone = 800, duration = 500) => {
