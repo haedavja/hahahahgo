@@ -265,7 +265,8 @@ export function applyNodeMoveEther(relicIds = [], currentEther = 0) {
 
     if (effects.etherPercent) {
       // 현재 에테르의 일정 비율(기본 2%) 획득, 최소 1pt 보장
-      const percent = effects.etherPercent / 100;
+      // 혹시 잘못된 값으로 설정돼도 2%를 상한으로 제한
+      const percent = Math.min(0.02, (effects.etherPercent ?? 0) / 100);
       const gain = Math.max(1, Math.floor(currentEther * percent));
       etherGain += gain;
     }
