@@ -264,7 +264,9 @@ export function applyNodeMoveEther(relicIds = [], currentEther = 0) {
     const effects = relic.effects;
 
     if (effects.etherPercent) {
-      etherGain += Math.floor(currentEther * (effects.etherPercent / 100));
+      // 최소 1pt는 지급해 체감되도록 보정
+      const gain = Math.max(1, Math.floor(currentEther * (effects.etherPercent / 100)));
+      etherGain += gain;
     }
   });
 
