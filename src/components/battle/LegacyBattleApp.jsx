@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import "./legacy-battle.css";
 import { playHitSound, playBlockSound, playCardSubmitSound, playProceedSound } from "../../lib/soundUtils";
 import {
@@ -21,7 +21,7 @@ import { RELICS, RELIC_RARITIES } from "../../data/relics";
 import { RELIC_EFFECT, applyRelicEffects, applyRelicComboMultiplier } from "../../lib/relics";
 import { applyAgility } from "../../lib/agilityUtils";
 
-// ?좊Ъ ?ш??꾨퀎 ?됱긽
+// 유물 희귀도별 색상
 const RELIC_RARITY_COLORS = {
   [RELIC_RARITIES.COMMON]: '#94a3b8',
   [RELIC_RARITIES.RARE]: '#60a5fa',
@@ -39,20 +39,20 @@ import {
   calculateEtherGain as calculateRelicEtherGain
 } from "../../lib/relicEffects";
 
-const STUN_RANGE = 5; // 湲곗젅 ?④낵 踰붿쐞(??꾨씪??湲곗?)
+const STUN_RANGE = 5; // 기절 효과 범위(타임라인 기준)
 
 /**
- * ?좏슚 ?듭같 怨꾩궛: ?뚮젅?댁뼱 ?듭같 - ?곸쓽 ?λ쭑
+ * 유효 통찰 계산: 플레이어 통찰 - 적의 장막
  */
 const calculateEffectiveInsight = (playerInsight, enemyShroud) => {
   return Math.max(0, (playerInsight || 0) - (enemyShroud || 0));
 };
 
 /**
- * ?듭같 ?덈꺼蹂????뺣낫 怨듦컻
- * @param {number} effectiveInsight - ?좏슚 ?듭같 (player.insight - enemy.shroud)
- * @param {Array} enemyActions - ?곸쓽 ?됰룞 怨꾪쉷
- * @returns {object} 怨듦컻???뺣낫 ?덈꺼
+ * 통찰 레벨별 적 정보 공개
+ * @param {number} effectiveInsight - 유효 통찰 (player.insight - enemy.shroud)
+ * @param {Array} enemyActions - 적의 행동 계획
+ * @returns {object} 공개할 정보 레벨
  */
 const getInsightRevealLevel = (effectiveInsight, enemyActions) => {
   if (!enemyActions || enemyActions.length === 0) {
@@ -60,12 +60,12 @@ const getInsightRevealLevel = (effectiveInsight, enemyActions) => {
   }
 
   if (effectiveInsight === 0) {
-    // ?덈꺼 0: ?뺣낫 ?놁쓬
+    // 레벨 0: 정보 없음
     return { level: 0, visible: false };
   }
 
   if (effectiveInsight === 1) {
-    // ?덈꺼 1: 移대뱶 媛쒖닔? ??듭쟻 ?쒖꽌
+    // 레벨 1: 카드 개수와 대략적 순서
     return {
       level: 1,
       visible: true,
@@ -80,7 +80,7 @@ const getInsightRevealLevel = (effectiveInsight, enemyActions) => {
   }
 
   if (effectiveInsight === 2) {
-    // ?덈꺼 2: ?뺥솗??移대뱶 ?대쫫怨??띾룄
+    // 레벨 2: 정확한 카드 이름과 속도
     return {
       level: 2,
       visible: true,
@@ -95,7 +95,7 @@ const getInsightRevealLevel = (effectiveInsight, enemyActions) => {
     };
   }
 
-  // ?덈꺼 3+: 紐⑤뱺 ?뺣낫 (?뱀닔 ?⑦꽩, 硫댁뿭 ??
+  // 레벨 3+: 모든 정보 (특수 패턴, 면역 등)
   return {
     level: 3,
     visible: true,
@@ -114,7 +114,7 @@ const getInsightRevealLevel = (effectiveInsight, enemyActions) => {
   };
 };
 
-// ?듭같 ?덈꺼???곕Ⅸ 吏㏃? ?④낵??
+// 통찰 레벨에 따른 짧은 효과음
 const playInsightSound = (level = 1) => {
   try {
     // eslint-disable-next-line no-undef
@@ -132,7 +132,7 @@ const playInsightSound = (level = 1) => {
     osc.start(audioContext.currentTime);
     osc.stop(audioContext.currentTime + 0.5);
   } catch {
-    // ?ъ슫???ㅽ뙣 ??臾댁떆
+    // 사운드 실패 시 무시
   }
 };
 
@@ -242,7 +242,7 @@ const ENEMY_CARDS = BASE_ENEMY_CARDS.map(card => ({
 const choice = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
 // =====================
-// ?뱀꽦 ?④낵 ?ы띁 ?⑥닔
+// 특성 효과 헬퍼 함수
 // =====================
 function hasTrait(card, traitId) {
   return card.traits && card.traits.includes(traitId);
@@ -251,55 +251,55 @@ function hasTrait(card, traitId) {
 function applyTraitModifiers(card, context = {}) {
   let modifiedCard = { ...card };
 
-  // 媛뺢낏 (strongbone): ?쇳빐??諛⑹뼱??25% 利앷?
+  // 강골 (strongbone): 피해량/방어력 25% 증가
   if (hasTrait(card, 'strongbone')) {
     if (modifiedCard.damage) modifiedCard.damage = Math.ceil(modifiedCard.damage * 1.25);
     if (modifiedCard.block) modifiedCard.block = Math.ceil(modifiedCard.block * 1.25);
   }
 
-  // ?쎄낏 (weakbone): ?쇳빐??諛⑹뼱??20% 媛먯냼
+  // 약골 (weakbone): 피해량/방어력 20% 감소
   if (hasTrait(card, 'weakbone')) {
     if (modifiedCard.damage) modifiedCard.damage = Math.ceil(modifiedCard.damage * 0.8);
     if (modifiedCard.block) modifiedCard.block = Math.ceil(modifiedCard.block * 0.8);
   }
 
-  // ?뚭눼??(destroyer): 怨듦꺽??50% 利앷?
+  // 파괴자 (destroyer): 공격력 50% 증가
   if (hasTrait(card, 'destroyer') && modifiedCard.damage) {
     modifiedCard.damage = Math.ceil(modifiedCard.damage * 1.5);
   }
 
-  // ?꾩궡 (slaughter): 湲곕낯?쇳빐??75% 利앷?
+  // 도살 (slaughter): 기본피해량 75% 증가
   if (hasTrait(card, 'slaughter') && modifiedCard.damage) {
     modifiedCard.damage = Math.ceil(modifiedCard.damage * 1.75);
   }
 
-  // ?뺤젏 (pinnacle): ?쇳빐??2.5諛?
+  // 정점 (pinnacle): 피해량 2.5배
   if (hasTrait(card, 'pinnacle') && modifiedCard.damage) {
     modifiedCard.damage = Math.ceil(modifiedCard.damage * 2.5);
   }
 
-  // ?묐룞 (cooperation): 議고빀 ??곸씠 ?섎㈃ 50% 異붽? 蹂대꼫??
+  // 협동 (cooperation): 조합 대상이 되면 50% 추가 보너스
   if (hasTrait(card, 'cooperation') && context.isInCombo) {
     if (modifiedCard.damage) modifiedCard.damage = Math.ceil(modifiedCard.damage * 1.5);
     if (modifiedCard.block) modifiedCard.block = Math.ceil(modifiedCard.block * 1.5);
   }
 
-  // ?좎냽??(swift): ?띾룄 肄붿뒪??媛먯냼 (??15% ?깅뒫 湲곗?)
+  // 신속함 (swift): 속도 코스트 감소 (약 15% 성능 기준)
   if (hasTrait(card, 'swift')) {
     modifiedCard.speedCost = Math.max(1, Math.ceil(modifiedCard.speedCost * 0.75));
   }
 
-  // 援쇰쑙 (slow): ?띾룄 肄붿뒪??利앷?
+  // 굼뜸 (slow): 속도 코스트 증가
   if (hasTrait(card, 'slow')) {
     modifiedCard.speedCost = Math.ceil(modifiedCard.speedCost * 1.33);
   }
 
-  // ?숇젴 (mastery): ?ъ슜?좎닔濡??쒓컙 媛먯냼 (context.usageCount ?꾩슂)
+  // 숙련 (mastery): 사용할수록 시간 감소 (context.usageCount 필요)
   if (hasTrait(card, 'mastery') && context.usageCount) {
     modifiedCard.speedCost = Math.max(1, modifiedCard.speedCost - (context.usageCount * 2));
   }
 
-  // ?レ쬆 (boredom): ?ъ슜?좎닔濡??쒓컙 利앷?
+  // 싫증 (boredom): 사용할수록 시간 증가
   if (hasTrait(card, 'boredom') && context.usageCount) {
     modifiedCard.speedCost = modifiedCard.speedCost + (context.usageCount * 2);
   }
@@ -307,18 +307,18 @@ function applyTraitModifiers(card, context = {}) {
   return modifiedCard;
 }
 
-// ???ㅽ꺈??移대뱶???곸슜?섎뒗 ?⑥닔
+// 힘 스탯을 카드에 적용하는 함수
 function applyStrengthToCard(card, strength = 0, isPlayerCard = true) {
   if (!isPlayerCard || strength === 0) return card;
 
   const modifiedCard = { ...card };
 
-  // 怨듦꺽 移대뱶: ??1??怨듦꺽??+1 (?뚯닔 ?덉슜, 理쒖냼 0)
+  // 공격 카드: 힘 1당 공격력 +1 (음수 허용, 최소 0)
   if (modifiedCard.damage && modifiedCard.type === 'attack') {
     modifiedCard.damage = Math.max(0, modifiedCard.damage + strength);
   }
 
-  // 諛⑹뼱 移대뱶: ??1??諛⑹뼱??+1 (?뚯닔 ?덉슜, 理쒖냼 0)
+  // 방어 카드: 힘 1당 방어력 +1 (음수 허용, 최소 0)
   if (modifiedCard.block && modifiedCard.type === 'defense') {
     modifiedCard.block = Math.max(0, modifiedCard.block + strength);
   }
@@ -326,7 +326,7 @@ function applyStrengthToCard(card, strength = 0, isPlayerCard = true) {
   return modifiedCard;
 }
 
-// ?먰뙣 ?꾩껜?????ㅽ꺈 ?곸슜
+// 손패 전체에 힘 스탯 적용
 function applyStrengthToHand(hand, strength = 0) {
   if (strength === 0) return hand;
   return hand.map(card => applyStrengthToCard(card, strength, true));
@@ -358,10 +358,10 @@ function sortCombinedOrderStablePF(playerCards, enemyCards, playerAgility = 0, e
 function detectPokerCombo(cards) {
   if (!cards || cards.length === 0) return null;
 
-  // 移대뱶 1?? ?섏씠移대뱶
+  // 카드 1장: 하이카드
   if (cards.length === 1) {
     return {
-      name: '?섏씠移대뱶',
+      name: '하이카드',
       bonusKeys: new Set([cards[0].actionCost])
     };
   }
@@ -377,26 +377,27 @@ function detectPokerCombo(cards) {
   const isFlush = (allAttack || allDefense) && cards.length >= 4;
 
   let result = null;
-  if (have(5)) result = { name: '스트레이트 플러시', bonusKeys: keysByCount(5) };
+  if (have(5)) result = { name: '파이브카드', bonusKeys: keysByCount(5) };
   else if (have(4)) result = { name: '포카드', bonusKeys: keysByCount(4) };
   else if (have(3) && have(2)) {
     const b = new Set([...keysByCount(3), ...keysByCount(2)]);
     result = { name: '풀하우스', bonusKeys: b };
   }
-  else if (isFlush) result = { name: '플러시', bonusKeys: null };
+  else if (isFlush) result = { name: '플러쉬', bonusKeys: null };
   else {
     const pairKeys = keysByCount(2);
     if (pairKeys.size >= 2) result = { name: '투페어', bonusKeys: pairKeys };
     else if (have(3)) result = { name: '트리플', bonusKeys: keysByCount(3) };
-    else if (have(2)) result = { name: '원페어', bonusKeys: pairKeys };
+    else if (have(2)) result = { name: '페어', bonusKeys: pairKeys };
     else {
       // 조합 없음: 하이카드
       const allKeys = new Set(cards.map(c => c.actionCost));
       result = { name: '하이카드', bonusKeys: allKeys };
     }
   }
-  // ?붾쾭源? 議고빀 媛먯? 濡쒓렇 (諛섑솚媛??ы븿)
-  console.log('[detectPokerCombo] 寃곌낵:', {
+
+  // 디버깅: 조합 감지 로그 (반환값 포함)
+  console.log('[detectPokerCombo] 결과:', {
     cardCount: cards.length,
     cards: cards.map(c => ({ name: c.name, type: c.type, cost: c.actionCost })),
     freq: Object.fromEntries(freq),
@@ -405,17 +406,17 @@ function detectPokerCombo(cards) {
     allDefense,
     isFlush,
     pairCount: keysByCount(2).size,
-    '>>> 諛섑솚??議고빀': result?.name || 'null'
+    '>>> 반환된 조합': result?.name || 'null'
   });
 
   return result;
 }
 
 function applyPokerBonus(cards, combo) {
-  // 議고빀 蹂대꼫??湲곕뒫 ??젣??- ?댁젣 議고빀? ?먰뀒瑜?諛곗쑉留??쒓났
+  // 조합 보너스 기능 삭제됨 - 이제 조합은 에테르 배율만 제공
   if (!combo) return cards;
   return cards.map(c => {
-    // _combo ?쒓렇留?異붽? (怨듦꺽??諛⑹뼱??蹂대꼫?ㅻ뒗 ?쒓굅)
+    // _combo 태그만 추가 (공격력/방어력 보너스는 제거)
     if (combo.bonusKeys && combo.bonusKeys.has(c.actionCost)) {
       return { ...c, _combo: combo.name };
     }
@@ -423,12 +424,12 @@ function applyPokerBonus(cards, combo) {
   });
 }
 
-const etherSlots = (pts) => calculateEtherSlots(pts || 0); // ?명뵆?덉씠???곸슜
+const etherSlots = (pts) => calculateEtherSlots(pts || 0); // 인플레이션 적용
 function addEther(pts, add) { return (pts || 0) + (add || 0); }
 
-// ?먰뀒瑜?Deflation: 媛숈? 議고빀??諛섎났?좎닔濡??띾뱷??媛먯냼
-// 1踰? 100%, 2踰? 50%, 3踰? 25%, ... 0???섎졃
-// deflationMultiplier: 異뷀썑 移대뱶/?꾩씠?쒖쑝濡?議곗젙 媛??(湲곕낯媛?0.5)
+// 에테르 Deflation: 같은 조합을 반복할수록 획득량 감소
+// 1번: 100%, 2번: 50%, 3번: 25%, ... 0에 수렴
+// deflationMultiplier: 추후 카드/아이템으로 조정 가능 (기본값 0.5)
 function applyEtherDeflation(baseGain, comboName, comboUsageCount, deflationMultiplier = 0.5) {
   const usageCount = comboUsageCount[comboName] || 0;
   const multiplier = Math.pow(deflationMultiplier, usageCount);
@@ -441,13 +442,13 @@ function applyEtherDeflation(baseGain, comboName, comboUsageCount, deflationMult
 
 const COMBO_MULTIPLIERS = {
   '하이카드': 1,
-  '원페어': 2,
+  '페어': 2,
   '투페어': 2.5,
   '트리플': 3,
-  '플러시': 3.25,
+  '플러쉬': 3.25,
   '풀하우스': 3.5,
   '포카드': 4,
-  '스트레이트 플러시': 5,
+  '파이브카드': 5,
 };
 const BASE_ETHER_PER_CARD = 10;
 function calculateComboEtherGain({ cardCount = 0, comboName = null, comboUsageCount = {}, extraMultiplier = 1 }) {
@@ -483,9 +484,9 @@ function applyAction(state, actor, card) {
     A.def = true; A.block = after;
     if (card.counter !== undefined) { A.counter = card.counter || 0; }
     const who = actor === 'player' ? '플레이어' : '몬스터';
-    const msg = prev === 0 ? `${who} 방어 +${added} = ${after}` : `${who} 방어 ${prev} + ${added} = ${after}`;
+    const msg = prev === 0 ? `${who} • 🛡️ +${added} = ${after}` : `${who} • 🛡️ ${prev} + ${added} = ${after}`;
     events.push({ actor, card: card.name, type: 'defense', msg });
-    state.log.push(`${actor === 'player' ? '플레이어' : '몬스터'} ${card.name} - ${msg}`);
+    state.log.push(`${actor === 'player' ? '🔵' : '👾'} ${card.name} → ${msg}`);
     return { dealt: 0, taken: 0, events };
   }
 
@@ -495,42 +496,42 @@ function applyAction(state, actor, card) {
 
     for (let i = 0; i < hits; i++) {
       const base = card.damage;
-      const strengthBonus = A.strength || 0; // Strength 蹂대꼫??
+      const strengthBonus = A.strength || 0; // Strength 보너스
       const boost = (A.etherOverdriveActive) ? 2 : 1;
-      let dmg = (base + strengthBonus) * boost; // base??strength 異붽? ??boost ?곸슜
+      let dmg = (base + strengthBonus) * boost; // base에 strength 추가 후 boost 적용
 
-      // 遺꾩뇙 (crush) ?뱀꽦: 諛⑹뼱?μ뿉 2諛??쇳빐
+      // 분쇄 (crush) 특성: 방어력에 2배 피해
       const crushMultiplier = hasTrait(card, 'crush') ? 2 : 1;
 
       if (B.def && (B.block || 0) > 0) {
         const beforeBlock = B.block;
-        const effectiveDmg = dmg * crushMultiplier; // 遺꾩뇙 ?곸슜
+        const effectiveDmg = dmg * crushMultiplier; // 분쇄 적용
         if (effectiveDmg < beforeBlock) {
           const remaining = beforeBlock - effectiveDmg;
           B.block = remaining; dmg = 0;
           A.vulnMult = 1 + (remaining * 0.5); A.vulnTurns = 1;
-          const crushText = crushMultiplier > 1 ? ' [遺꾩뇙횞2]' : '';
-          const formula = `(諛⑹뼱??${beforeBlock} - 怨듦꺽??${base}${boost > 1 ? '횞2' : ''}${crushText} = ${remaining})`;
-          const msg = `${actor === 'player' ? '플레이어 -> 몬스터' : '몬스터 -> 플레이어'} 방어 성공 ${formula} + 취약 x${A.vulnMult.toFixed(1)}`;
+          const crushText = crushMultiplier > 1 ? ' [분쇄×2]' : '';
+          const formula = `(방어력 ${beforeBlock} - 공격력 ${base}${boost > 1 ? '×2' : ''}${crushText} = ${remaining})`;
+          const msg = `${actor === 'player' ? '플레이어 -> 몬스터' : '몬스터 -> 플레이어'} • 차단 성공 ${formula} + 취약 ×${A.vulnMult.toFixed(1)}`;
           events.push({ actor, card: card.name, type: 'blocked', msg });
-          state.log.push(`${actor === 'player' ? '플레이어' : '몬스터'} ${card.name} - ${msg}`);
+          state.log.push(`${actor === 'player' ? '🔵' : '👾'} ${card.name} → ${msg}`);
         } else {
           const blocked = beforeBlock;
           const remained = Math.max(0, effectiveDmg - blocked);
-          const crushText = crushMultiplier > 1 ? ' [遺꾩뇙횞2]' : '';
-          const formula = `(諛⑹뼱??${blocked} - 怨듦꺽??${base}${boost > 1 ? '횞2' : ''}${crushText} = 0)`;
+          const crushText = crushMultiplier > 1 ? ' [분쇄×2]' : '';
+          const formula = `(방어력 ${blocked} - 공격력 ${base}${boost > 1 ? '×2' : ''}${crushText} = 0)`;
           B.block = 0;
           const vulnMul = (B.vulnMult && B.vulnMult > 1) ? B.vulnMult : 1;
           const finalDmg = Math.floor(remained * vulnMul);
           const beforeHP = B.hp; B.hp = Math.max(0, B.hp - finalDmg);
-          const msg = `${actor === 'player' ? '플레이어 -> 몬스터' : '몬스터 -> 플레이어'} 방어 관통 ${blocked} ${formula}, 피해 ${finalDmg} (체력 ${beforeHP} -> ${B.hp})`;
+          const msg = `${actor === 'player' ? '플레이어 -> 몬스터' : '몬스터 -> 플레이어'} • 차단 ${blocked} ${formula}, 관통 ${finalDmg} (체력 ${beforeHP} -> ${B.hp})`;
           events.push({ actor, card: card.name, type: 'pierce', dmg: finalDmg, beforeHP, afterHP: B.hp, msg });
-          state.log.push(`${actor === 'player' ? '플레이어' : '몬스터'} ${card.name} - ${msg}`);
+          state.log.push(`${actor === 'player' ? '🔵' : '👾'} ${card.name} → ${msg}`);
           if (B.counter && finalDmg > 0) {
             const beforeAHP = A.hp; A.hp = Math.max(0, A.hp - B.counter); totalTaken += B.counter;
-            const cmsg = `${actor === 'player' ? '몬스터 -> 플레이어' : '플레이어 -> 몬스터'} 반격 ${B.counter} (체력 ${beforeAHP} -> ${A.hp})`;
+            const cmsg = `${actor === 'player' ? '몬스터 -> 플레이어' : '플레이어 -> 몬스터'} • 반격 ${B.counter} (체력 ${beforeAHP} -> ${A.hp})`;
             events.push({ actor: 'counter', value: B.counter, msg: cmsg });
-            state.log.push(`${actor === 'player' ? '플레이어' : '몬스터'} ${cmsg}`);
+            state.log.push(`${actor === 'player' ? '🔵' : '👾'} ${cmsg}`);
           }
           totalDealt += finalDmg;
         }
@@ -538,14 +539,14 @@ function applyAction(state, actor, card) {
         const vulnMul = (B.vulnMult && B.vulnMult > 1) ? B.vulnMult : 1;
         const finalDmg = Math.floor(dmg * vulnMul);
         const beforeHP = B.hp; B.hp = Math.max(0, B.hp - finalDmg);
-        const msg = `${actor === 'player' ? '플레이어 -> 몬스터' : '몬스터 -> 플레이어'} 피해 ${finalDmg}${boost > 1 ? ' (에테르 오버드라이브 x2)' : ''} (체력 ${beforeHP} -> ${B.hp})`;
+        const msg = `${actor === 'player' ? '플레이어 -> 몬스터' : '몬스터 -> 플레이어'} • 데미지 ${finalDmg}${boost > 1 ? ' (에테르 폭주×2)' : ''} (체력 ${beforeHP} -> ${B.hp})`;
         events.push({ actor, card: card.name, type: 'hit', dmg: finalDmg, beforeHP, afterHP: B.hp, msg });
-        state.log.push(`${actor === 'player' ? '플레이어' : '몬스터'} ${card.name} - ${msg}`);
+        state.log.push(`${actor === 'player' ? '🔵' : '👾'} ${card.name} → ${msg}`);
         if (B.counter && finalDmg > 0) {
           const beforeAHP = A.hp; A.hp = Math.max(0, A.hp - B.counter); totalTaken += B.counter;
-          const cmsg = `${actor === 'player' ? '몬스터 -> 플레이어' : '플레이어 -> 몬스터'} 반격 ${B.counter} (체력 ${beforeAHP} -> ${A.hp})`;
+          const cmsg = `${actor === 'player' ? '몬스터→플레이어' : '플레이어→몬스터'} • 반격 ${B.counter} (체력 ${beforeAHP} -> ${A.hp})`;
           events.push({ actor: 'counter', value: B.counter, msg: cmsg });
-          state.log.push(`${actor === 'player' ? '플레이어' : '몬스터'} ${cmsg}`);
+          state.log.push(`${actor === 'player' ? '🔵' : '👾'} ${cmsg}`);
         }
         totalDealt += finalDmg;
       }
@@ -556,7 +557,7 @@ function applyAction(state, actor, card) {
   return { dealt: 0, taken: 0, events };
 }
 
-// AI: ?깊뼢 寃곗젙 & ?됰룞 ?앹꽦
+// AI: 성향 결정 & 행동 생성
 function decideEnemyMode() {
   return choice([
     { name: '공격적', key: 'aggro', prefer: 'attack' },
@@ -648,7 +649,7 @@ function shouldEnemyOverdriveWithTurn(mode, actions, etherPts, turnNumber = 1) {
   const slots = etherSlots(etherPts);
   if (slots <= 0) return false;
   if (turnNumber <= 1) return false;
-  // 紐ъ뒪????＜???⑦꽩 ?뺤젙 ?꾧퉴吏 湲덉?
+  // 몬스터 폭주는 패턴 확정 전까지 금지
   return false;
   if (!mode) return false;
   if (mode.key === 'aggro') return true;
@@ -679,20 +680,20 @@ function simulatePreview({ player, enemy, fixedOrder, willOverdrive, enemyMode, 
 }
 
 function ExpectedDamagePreview({ player, enemy, fixedOrder, willOverdrive, enemyMode, enemyActions, phase, log, qIndex, queue, stepOnce, runAll, finishTurn, postCombatOptions, handleExitToMap, autoProgress, setAutoProgress, resolveStartPlayer, resolveStartEnemy, turnNumber = 1 }) {
-  // 吏꾪뻾 ?④퀎?먯꽌???쒖옉 ?쒖젏???곹깭濡??쒕??덉씠?? 洹??몃뒗 ?꾩옱 ?곹깭 ?ъ슜
+  // 진행 단계에서는 시작 시점의 상태로 시뮬레이션, 그 외는 현재 상태 사용
   const simPlayer = phase === 'resolve' && resolveStartPlayer ? resolveStartPlayer : player;
   const simEnemy = phase === 'resolve' && resolveStartEnemy ? resolveStartEnemy : enemy;
 
   const res = useMemo(() => simulatePreview({ player: simPlayer, enemy: simEnemy, fixedOrder, willOverdrive, enemyMode, enemyActions, turnNumber }), [simPlayer, simEnemy, fixedOrder, willOverdrive, enemyMode, enemyActions, turnNumber]);
 
   const summaryItems = [
-    { icon: '⚔️', label: '예상 타격 피해', value: res.pDealt, accent: 'text-emerald-300', hpInfo: `몬스터 HP ${simEnemy.hp} → ${res.finalEHp}`, hpColor: '#fca5a5' },
-    { icon: '🛡️', label: '예상 피격 피해', value: phase === 'select' ? '?' : res.pTaken, accent: 'text-rose-300', hpInfo: `플레이어 HP ${simPlayer.hp} → ${res.finalPHp}`, hpColor: '#e2e8f0' },
+    { icon: "🗡️", label: "예상 타격 피해", value: res.pDealt, accent: "text-emerald-300", hpInfo: `몬스터 HP ${simEnemy.hp} → ${res.finalEHp}`, hpColor: "#fca5a5" },
+    { icon: "💥", label: "예상 피격 피해", value: phase === 'select' ? '?' : res.pTaken, accent: "text-rose-300", hpInfo: `플레이어 HP ${simPlayer.hp} → ${res.finalPHp}`, hpColor: "#e2e8f0" },
   ];
 
   const phaseLabel = phase === 'select' ? '선택 단계' : phase === 'respond' ? '대응 단계' : '진행 단계';
 
-  // ?꾪닾 濡쒓렇 ?먮룞 ?ㅽ겕濡?
+  // 전투 로그 자동 스크롤
   const logContainerRef = useRef(null);
   useEffect(() => {
     if (logContainerRef.current && phase === 'resolve' && log && log.length > 0) {
@@ -702,10 +703,10 @@ function ExpectedDamagePreview({ player, enemy, fixedOrder, willOverdrive, enemy
 
   return (
     <div className="expect-board expect-board-vertical" style={{ position: 'relative' }}>
-      {/* ??댄? */}
+      {/* 타이틀 */}
       <div style={{ marginBottom: '16px', paddingBottom: '12px', borderBottom: '2px solid rgba(148, 163, 184, 0.3)' }}>
         <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#f8fafc' }}>
-          ?덉긽 ?쇳빐??
+          예상 피해량
         </div>
       </div>
 
@@ -726,12 +727,13 @@ function ExpectedDamagePreview({ player, enemy, fixedOrder, willOverdrive, enemy
         ))}
       </div>
 
-      {/* 진행 단계가 아닐 때 미리보기 로그 표시 */}
+      {/* 진행 단계가 아닐 때만 예상 피해량 로그 표시 */}
       {phase !== 'resolve' && !!res.lines?.length && (
         <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px solid rgba(148, 163, 184, 0.15)' }}>
           {res.lines.map((line, idx) => {
+            // 몬스터로 시작하는 텍스트 감지
             const startsWithMonster = line.trim().startsWith('몬스터');
-            const isPlayerAction = line.includes('플레이어 ->') || line.includes('플레이어');
+            const isPlayerAction = line.includes('플레이어 ->') || line.includes('플레이어→') || line.includes('플레이어 •');
             return (
               <div key={idx} style={{
                 fontSize: '13px',
@@ -746,20 +748,21 @@ function ExpectedDamagePreview({ player, enemy, fixedOrder, willOverdrive, enemy
         </div>
       )}
 
-      {/* 진행 단계 실제 로그 */}
+      {/* 진행 단계 전투 로그 */}
       {phase === 'resolve' && log && log.length > 0 && (
         <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '2px solid rgba(148, 163, 184, 0.3)' }}>
           <div style={{ fontSize: '15px', fontWeight: 'bold', color: '#f8fafc', marginBottom: '12px' }}>
-            실제 진행 로그
+            🎮 전투 로그
           </div>
           <div ref={logContainerRef} style={{ height: '360px', minHeight: '360px', maxHeight: '360px', overflowY: 'auto' }}>
             {log.filter(line => {
               // 불필요한 로그 제거
-              if (line.includes('게임 시작') || line.includes('턴 준비')) return false;
+              if (line.includes('게임 시작') || line.includes('적 성향 힌트')) return false;
               return true;
             }).map((line, i) => {
-              const startsWithMonster = line.trim().startsWith('몬스터');
-              const isPlayerAction = line.includes('플레이어 ->') || line.includes('플레이어');
+              // 몬스터로 시작하는 텍스트 감지
+              const startsWithMonster = line.trim().startsWith('몬스터') || (line.includes('👾') && line.substring(line.indexOf('👾') + 2).trim().startsWith('몬스터'));
+              const isPlayerAction = line.includes('플레이어 ->') || line.includes('플레이어→') || line.includes('플레이어 •');
               return (
                 <div key={i} style={{
                   fontSize: '13px',
@@ -774,7 +777,7 @@ function ExpectedDamagePreview({ player, enemy, fixedOrder, willOverdrive, enemy
         </div>
       )}
 
-      {/* 吏꾪뻾 ?④퀎 ?쒖뼱 踰꾪듉 (?꾪닾 濡쒓렇 ?꾨옒) */}
+      {/* 진행 단계 제어 버튼 (전투 로그 아래) */}
       {phase === 'resolve' && (
         <div style={{
           marginTop: '20px',
@@ -799,10 +802,10 @@ function ExpectedDamagePreview({ player, enemy, fixedOrder, willOverdrive, enemy
                 marginTop: '16px',
                 marginBottom: '16px'
               }}>
-                {postCombatOptions.type === 'victory' ? '?럦 ?밸━!' : '?? ?⑤같...'}
+                {postCombatOptions.type === 'victory' ? '🎉 승리!' : '💀 패배...'}
               </div>
               <button onClick={handleExitToMap} className="btn-enhanced btn-primary flex items-center gap-2">
-                ?뿺截?留듭쑝濡??뚯븘媛湲?
+                🗺️ 맵으로 돌아가기
               </button>
             </>
           )}
@@ -818,7 +821,7 @@ export function EtherBar({ pts, slots, previewGain = 0, color = "cyan", label, p
   const safeSlots = Number.isFinite(derivedSlots) ? derivedSlots : 0;
   const safePreview = Number.isFinite(previewGain) ? previewGain : 0;
 
-  // ?レ옄 異뺤빟 ?щ㎎??(K/M/B) + ?꾩껜 臾몄옄??
+  // 숫자 축약 포맷터 (K/M/B) + 전체 문자열
   const formatCompact = (num) => {
     const abs = Math.abs(num);
     if (abs >= 1e9) return `${(num / 1e9).toFixed(2)}B`;
@@ -827,17 +830,17 @@ export function EtherBar({ pts, slots, previewGain = 0, color = "cyan", label, p
     return num.toLocaleString();
   };
 
-  // ?꾩옱 ?щ’ ?댁쓽 pt (媛??щ’ ?꾨떖?쒕쭏??0?쇰줈 由ъ뀑)
+  // 현재 슬롯 내의 pt (각 슬롯 도달시마다 0으로 리셋)
   const currentPts = getCurrentSlotPts(safePts);
-  // ?ㅼ쓬 ?щ’??梨꾩슦?붾뜲 ?꾩슂??珥?pt
+  // 다음 슬롯을 채우는데 필요한 총 pt
   const nextSlotCost = getNextSlotCost(safePts);
-  // ?ㅼ쓬 ?щ’源뚯???吏꾪뻾瑜?(0-1)
+  // 다음 슬롯까지의 진행률 (0-1)
   const slotProgress = getSlotProgress(safePts);
-  // 吏꾪뻾瑜좎? ?꾩옱 ?щ’ ??鍮꾩쑉留??ъ슜 (?됱긽? ?뚯쟾)
+  // 진행률은 현재 슬롯 내 비율만 사용 (색상은 회전)
   const ratio = Math.max(0, Math.min(1, slotProgress));
   const tier = `x${safeSlots}`;
 
-  // ?붾쾭源? 媛??뺤씤
+  // 디버깅: 값 확인
   console.log('[EtherBar]', {
     pts,
     safePts,
@@ -851,38 +854,38 @@ export function EtherBar({ pts, slots, previewGain = 0, color = "cyan", label, p
   const borderColor = color === 'red' ? '#ef4444' : '#53d7ff';
   const textColor = color === 'red' ? '#fca5a5' : '#8fd3ff';
 
-  // ?쒖떆???뺤텞 臾몄옄?닿낵 ?댄똻???꾩껜 臾몄옄??
+  // 표시용 압축 문자열과 툴팁용 전체 문자열
   const compactCurrent = formatCompact(currentPts);
   const compactNext = formatCompact(nextSlotCost);
   const fullTitle = `${currentPts.toLocaleString()} / ${nextSlotCost.toLocaleString()}`;
   const [showPtsTooltip, setShowPtsTooltip] = useState(false);
   const [showBarTooltip, setShowBarTooltip] = useState(false);
 
-  // ?щ’蹂??됱긽 (?뚮젅?댁뼱: 蹂댁깋 愿怨꾨줈 ?쒖씤??洹밸???
+  // 슬롯별 색상 (플레이어: 보색 관계로 시인성 극대화)
   const playerSlotColors = [
-    'linear-gradient(180deg, #67e8f9 0%, #06b6d4 100%)', // x1 - 諛앹? ?쒖븞 (cyan)
-    'linear-gradient(180deg, #fb923c 0%, #ea580c 100%)', // x2 - 二쇳솴 (?쒖븞??蹂댁깋)
-    'linear-gradient(180deg, #a855f7 0%, #7e22ce 100%)', // x3 - 蹂대씪 (二쇳솴怨??鍮?
-    'linear-gradient(180deg, #bef264 0%, #84cc16 100%)', // x4 - ?쇱엫 (蹂대씪??蹂댁깋)
-    'linear-gradient(180deg, #f472b6 0%, #db2777 100%)', // x5 - 留덉젨? (?쇱엫怨??鍮?
-    'linear-gradient(180deg, #fde047 0%, #facc15 100%)', // x6 - 諛앹? ?몃옉 (留덉젨?? ?鍮?
-    'linear-gradient(180deg, #60a5fa 0%, #2563eb 100%)', // x7 - ?뚮옉 (?몃옉??蹂댁깋)
-    'linear-gradient(180deg, #fbbf24 0%, #f59e0b 100%)', // x8 - 怨⑤뱶 (?뚮옉怨??鍮?
-    'linear-gradient(180deg, #34d399 0%, #059669 100%)', // x9 - 誘쇳듃 (怨⑤뱶? ?鍮?
-    'linear-gradient(180deg, #e0e7ff 0%, #c7d2fe 100%)'  // x10 - ?곕낫??(誘쇳듃? ?鍮?
+    'linear-gradient(180deg, #67e8f9 0%, #06b6d4 100%)', // x1 - 밝은 시안 (cyan)
+    'linear-gradient(180deg, #fb923c 0%, #ea580c 100%)', // x2 - 주황 (시안의 보색)
+    'linear-gradient(180deg, #a855f7 0%, #7e22ce 100%)', // x3 - 보라 (주황과 대비)
+    'linear-gradient(180deg, #bef264 0%, #84cc16 100%)', // x4 - 라임 (보라의 보색)
+    'linear-gradient(180deg, #f472b6 0%, #db2777 100%)', // x5 - 마젠타 (라임과 대비)
+    'linear-gradient(180deg, #fde047 0%, #facc15 100%)', // x6 - 밝은 노랑 (마젠타와 대비)
+    'linear-gradient(180deg, #60a5fa 0%, #2563eb 100%)', // x7 - 파랑 (노랑의 보색)
+    'linear-gradient(180deg, #fbbf24 0%, #f59e0b 100%)', // x8 - 골드 (파랑과 대비)
+    'linear-gradient(180deg, #34d399 0%, #059669 100%)', // x9 - 민트 (골드와 대비)
+    'linear-gradient(180deg, #e0e7ff 0%, #c7d2fe 100%)'  // x10 - 연보라 (민트와 대비)
   ];
 
   const enemySlotColors = [
-    'linear-gradient(180deg, #7f1d1d 0%, #450a0a 100%)', // x1 - ?ㅽ겕 ?덈뱶
-    'linear-gradient(180deg, #b91c1c 0%, #7f1d1d 100%)', // x2 - ?덈뱶
-    'linear-gradient(180deg, #dc2626 0%, #991b1b 100%)', // x3 - 諛앹? ?덈뱶
-    'linear-gradient(180deg, #ea580c 0%, #c2410c 100%)', // x4 - ?ㅻ젋吏 ?덈뱶
-    'linear-gradient(180deg, #c2410c 0%, #9a3412 100%)', // x5 - ?ㅽ겕 ?ㅻ젋吏
-    'linear-gradient(180deg, #92400e 0%, #78350f 100%)', // x6 - 踰덊듃 ?ㅻ젋吏
-    'linear-gradient(180deg, #991b1b 0%, #7f1d1d 100%)', // x7 - ?щ┝??
-    'linear-gradient(180deg, #ef4444 0%, #b91c1c 100%)', // x8 - ?뚯씠???덈뱶
-    'linear-gradient(180deg, #f87171 0%, #dc2626 100%)', // x9 - ?ㅼ뭡??
-    'linear-gradient(180deg, #450a0a 0%, #1c0a0a 100%)'  // x10 - 釉붾옓 ?덈뱶
+    'linear-gradient(180deg, #7f1d1d 0%, #450a0a 100%)', // x1 - 다크 레드
+    'linear-gradient(180deg, #b91c1c 0%, #7f1d1d 100%)', // x2 - 레드
+    'linear-gradient(180deg, #dc2626 0%, #991b1b 100%)', // x3 - 밝은 레드
+    'linear-gradient(180deg, #ea580c 0%, #c2410c 100%)', // x4 - 오렌지 레드
+    'linear-gradient(180deg, #c2410c 0%, #9a3412 100%)', // x5 - 다크 오렌지
+    'linear-gradient(180deg, #92400e 0%, #78350f 100%)', // x6 - 번트 오렌지
+    'linear-gradient(180deg, #991b1b 0%, #7f1d1d 100%)', // x7 - 크림슨
+    'linear-gradient(180deg, #ef4444 0%, #b91c1c 100%)', // x8 - 파이어 레드
+    'linear-gradient(180deg, #f87171 0%, #dc2626 100%)', // x9 - 스칼렛
+    'linear-gradient(180deg, #450a0a 0%, #1c0a0a 100%)'  // x10 - 블랙 레드
   ];
 
   const slotColors = color === 'red' ? enemySlotColors : playerSlotColors;
@@ -964,15 +967,15 @@ export function EtherBar({ pts, slots, previewGain = 0, color = "cyan", label, p
 }
 
 // =====================
-// 罹먮┃??鍮뚮뱶 湲곕컲 ?먰뙣 ?앹꽦
+// 캐릭터 빌드 기반 손패 생성
 // =====================
 function drawCharacterBuildHand(characterBuild, nextTurnEffects = {}, previousHand = []) {
-  if (!characterBuild) return CARDS.slice(0, 10); // 8????10??
+  if (!characterBuild) return CARDS.slice(0, 10); // 8장 → 10장
 
   const { mainSpecials = [], subSpecials = [] } = characterBuild;
   const { guaranteedCards = [], mainSpecialOnly = false, subSpecialBoost = 0 } = nextTurnEffects;
 
-  // ?뚰깂 (ruin) ?뱀꽦: 二쇳듅湲곕쭔 ?깆옣
+  // 파탄 (ruin) 특성: 주특기만 등장
   if (mainSpecialOnly) {
     const mainCards = mainSpecials
       .map(cardId => CARDS.find(card => card.id === cardId))
@@ -980,57 +983,57 @@ function drawCharacterBuildHand(characterBuild, nextTurnEffects = {}, previousHa
     return mainCards;
   }
 
-  // ?뺤젙 ?깆옣 移대뱶 (諛섎났, 蹂댄뿕)
+  // 확정 등장 카드 (반복, 보험)
   const guaranteed = guaranteedCards
     .map(cardId => CARDS.find(card => card.id === cardId))
     .filter(Boolean);
 
-  // 二쇳듅湲?移대뱶??100% ?깆옣 (?덉＜ ?쒖쇅)
+  // 주특기 카드는 100% 등장 (탈주 제외)
   const mainCards = mainSpecials
     .map(cardId => CARDS.find(card => card.id === cardId))
     .filter(card => {
       if (!card) return false;
-      // ?덉＜ (escape): ?댁쟾???ъ슜?덉쑝硫??깆옣?섏? ?딆쓬
+      // 탈주 (escape): 이전에 사용했으면 등장하지 않음
       if (hasTrait(card, 'escape') && previousHand.some(c => c.id === card.id)) {
         return false;
       }
-      // 媛쒓렐 (attendance): ?깆옣?뺣쪧 25% 利앷? (二쇳듅湲?125%)
+      // 개근 (attendance): 등장확률 25% 증가 (주특기 125%)
       if (hasTrait(card, 'attendance')) {
-        return Math.random() < 1.25; // ?뺤젙 + 25% 異붽? 蹂대꼫??
+        return Math.random() < 1.25; // 확정 + 25% 추가 보너스
       }
-      // ?꾪뵾袁?(deserter): ?깆옣?뺣쪧 25% 媛먯냼 (二쇳듅湲?75%)
+      // 도피꾼 (deserter): 등장확률 25% 감소 (주특기 75%)
       if (hasTrait(card, 'deserter')) {
         return Math.random() < 0.75;
       }
       return true;
     });
 
-  // 蹂댁“?밴린 移대뱶??媛곴컖 50% ?뺣쪧濡??깆옣 (?κ뎔 ?뱀꽦?쇰줈 利앷? 媛??
+  // 보조특기 카드는 각각 50% 확률로 등장 (장군 특성으로 증가 가능)
   const baseSubProb = 0.5 + subSpecialBoost;
   const subCards = subSpecials
     .map(cardId => CARDS.find(card => card.id === cardId))
     .filter(card => {
       if (!card) return false;
-      // ?덉＜ (escape): ?댁쟾???ъ슜?덉쑝硫??깆옣?섏? ?딆쓬
+      // 탈주 (escape): 이전에 사용했으면 등장하지 않음
       if (hasTrait(card, 'escape') && previousHand.some(c => c.id === card.id)) {
         return false;
       }
-      // 議곗뿰 (supporting): 蹂댁“?밴린?쇰븣留??깆옣
-      // (?대? 蹂댁“?밴린濡??ㅼ젙?섏뼱 ?덉쑝誘濡??깆옣 媛??
+      // 조연 (supporting): 보조특기일때만 등장
+      // (이미 보조특기로 설정되어 있으므로 등장 가능)
 
       let prob = baseSubProb;
-      // 媛쒓렐 (attendance): ?깆옣?뺣쪧 25% 利앷?
+      // 개근 (attendance): 등장확률 25% 증가
       if (hasTrait(card, 'attendance')) {
         prob += 0.25;
       }
-      // ?꾪뵾袁?(deserter): ?깆옣?뺣쪧 25% 媛먯냼
+      // 도피꾼 (deserter): 등장확률 25% 감소
       if (hasTrait(card, 'deserter')) {
         prob -= 0.25;
       }
       return Math.random() < prob;
     });
 
-  // 以묐났 ?쒓굅 ??諛섑솚
+  // 중복 제거 후 반환
   const allCards = [...guaranteed, ...mainCards, ...subCards];
   const uniqueCards = [];
   const seenIds = new Set();
@@ -1062,7 +1065,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     return relics;
   });
   useEffect(() => {
-    // ???좊Ъ 異붽?/?쒓굅 ??湲곗〈 ?쒖꽌瑜??좎??섎㈃??蹂묓빀
+    // 새 유물 추가/제거 시 기존 순서를 유지하면서 병합
     setOrderedRelics(prev => {
       const prevSet = new Set(prev);
       const next = [];
@@ -1086,9 +1089,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const passiveRelicStats = calculatePassiveEffects(orderedRelicList);
   const baseEnergy = (safeInitialPlayer.energy ?? BASE_PLAYER_ENERGY) + passiveRelicStats.maxEnergy;
   const startingEther = typeof safeInitialPlayer.etherPts === 'number' ? safeInitialPlayer.etherPts : playerEther;
-  const startingBlock = safeInitialPlayer.block ?? 0; // ?좊Ъ ?④낵濡??명븳 ?쒖옉 諛⑹뼱??
-  const startingStrength = safeInitialPlayer.strength ?? playerStrength ?? 0; // ?꾪닾 ?쒖옉 ??(?좊Ъ ?④낵 ?ы븿)
-  const startingInsight = safeInitialPlayer.insight ?? 0; // ?듭같
+  const startingBlock = safeInitialPlayer.block ?? 0; // 유물 효과로 인한 시작 방어력
+  const startingStrength = safeInitialPlayer.strength ?? playerStrength ?? 0; // 전투 시작 힘 (유물 효과 포함)
+  const startingInsight = safeInitialPlayer.insight ?? 0; // 통찰
 
   const initialPlayerState = {
     hp: safeInitialPlayer.hp ?? 30,
@@ -1130,7 +1133,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const [fixedOrder, setFixedOrder] = useState(null);
 
   const [postCombatOptions, setPostCombatOptions] = useState(null);
-  const [log, setLog] = useState(["寃뚯엫 ?쒖옉!"]);
+  const [log, setLog] = useState(["게임 시작!"]);
   const [actionEvents, setActionEvents] = useState({});
 
   const [queue, setQueue] = useState([]);
@@ -1148,55 +1151,53 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     }
   });
   const [usedCardIndices, setUsedCardIndices] = useState([]);
-  const [disappearingCards, setDisappearingCards] = useState([]); // ?щ씪吏??以묒씤 移대뱶 ?몃뜳??
-  const [hiddenCards, setHiddenCards] = useState([]); // ?꾩쟾???④꺼吏?移대뱶 ?몃뜳??
-  const [disabledCardIndices, setDisabledCardIndices] = useState([]); // 鍮꾪솢?깊솕??移대뱶 ?몃뜳??(紐ъ뒪???щ쭩 ???⑥? 移대뱶)
-  const [timelineProgress, setTimelineProgress] = useState(0); // ??꾨씪??吏꾪뻾 ?꾩튂 (0~100%)
-  const [timelineIndicatorVisible, setTimelineIndicatorVisible] = useState(true); // ?쒓퀣諛붾뒛 ?쒖떆 ?щ?
+  const [disappearingCards, setDisappearingCards] = useState([]); // 사라지는 중인 카드 인덱스
+  const [hiddenCards, setHiddenCards] = useState([]); // 완전히 숨겨진 카드 인덱스
+  const [disabledCardIndices, setDisabledCardIndices] = useState([]); // 비활성화된 카드 인덱스 (몬스터 사망 시 남은 카드)
+  const [timelineProgress, setTimelineProgress] = useState(0); // 타임라인 진행 위치 (0~100%)
+  const [timelineIndicatorVisible, setTimelineIndicatorVisible] = useState(true); // 시곗바늘 표시 여부
   const [showCharacterSheet, setShowCharacterSheet] = useState(false);
-  const [cardUsageCount, setCardUsageCount] = useState({}); // 移대뱶蹂??ъ슜 ?잛닔 異붿쟻 (mastery, boredom??
-  const [etherAnimationPts, setEtherAnimationPts] = useState(null); // ?먰뀒瑜??좊땲硫붿씠???꾩슜 (?꾩껜 ?띾뱷???쒖떆)
-  const [executingCardIndex, setExecutingCardIndex] = useState(null); // ?꾩옱 ?ㅽ뻾 以묒씤 移대뱶 ?몃뜳??(?좊땲硫붿씠?섏슜)
-  const [turnNumber, setTurnNumber] = useState(1); // ??踰덊샇 (1遺???쒖옉)
-  const [netEtherDelta, setNetEtherDelta] = useState(null); // 理쒖쥌 ?곸슜???먰뀒瑜??대룞???뚮젅?댁뼱 湲곗?)
-  const [vanishedCards, setVanishedCards] = useState([]); // ?뚮㈇ ?뱀꽦?쇰줈 ?쒓굅??移대뱶
-  const [turnEtherAccumulated, setTurnEtherAccumulated] = useState(0); // 이번 턴 누적 에테르(플레이어)
-  const [enemyTurnEtherAccumulated, setEnemyTurnEtherAccumulated] = useState(0); // 이번 턴 누적 에테르(몬스터)
-  const [etherPulse, setEtherPulse] = useState(false); // PT 하이라이트 애니메이션
-  const [etherFinalValue, setEtherFinalValue] = useState(null); // 최종 에테르 값 표시
-  const [playerOverdriveFlash, setPlayerOverdriveFlash] = useState(false); // ?뚮젅?댁뼱 湲곗썝 ?곗텧
-  const [enemyOverdriveFlash, setEnemyOverdriveFlash] = useState(false); // ??湲곗썝 ?곗텧
-  const [enemyEtherFinalValue, setEnemyEtherFinalValue] = useState(null); // ??理쒖쥌 ?먰뀒瑜닿컪 ?쒖떆
-  const [enemyEtherCalcPhase, setEnemyEtherCalcPhase] = useState(null); // ???먰뀒瑜?怨꾩궛 ?④퀎
-  const [enemyCurrentDeflation, setEnemyCurrentDeflation] = useState(null); // ???뷀뵆?덉씠???뺣낫
-  const [soulShatter, setSoulShatter] = useState(false); // ?먰뀒瑜??밸━ ?곗텧
-  const [etherCalcPhase, setEtherCalcPhase] = useState(null); // ?먰뀒瑜?怨꾩궛 ?좊땲硫붿씠???④퀎: 'sum', 'multiply', 'deflation', 'result'
-  const [currentDeflation, setCurrentDeflation] = useState(null); // ?꾩옱 ?뷀뵆?덉씠???뺣낫 { multiplier, usageCount }
-  const [playerTransferPulse, setPlayerTransferPulse] = useState(false); // ?먰뀒瑜??대룞 ?곗텧 (?뚮젅?댁뼱)
-  const [enemyTransferPulse, setEnemyTransferPulse] = useState(false); // ?먰뀒瑜??대룞 ?곗텧 (??
+  const [cardUsageCount, setCardUsageCount] = useState({}); // 카드별 사용 횟수 추적 (mastery, boredom용)
+  const [etherAnimationPts, setEtherAnimationPts] = useState(null); // 에테르 애니메이션 전용 (전체 획득량 표시)
+  const [executingCardIndex, setExecutingCardIndex] = useState(null); // 현재 실행 중인 카드 인덱스 (애니메이션용)
+  const [turnNumber, setTurnNumber] = useState(1); // 턴 번호 (1부터 시작)
+  const [netEtherDelta, setNetEtherDelta] = useState(null); // 최종 적용된 에테르 이동량(플레이어 기준)
+  const [vanishedCards, setVanishedCards] = useState([]); // 소멸 특성으로 제거된 카드
+  const [turnEtherAccumulated, setTurnEtherAccumulated] = useState(0); // 이번 턴 누적 에테르 (실제 적용 전)
+  const [enemyTurnEtherAccumulated, setEnemyTurnEtherAccumulated] = useState(0); // 적 이번 턴 누적 에테르
+  const [etherPulse, setEtherPulse] = useState(false); // PT 증가 애니메이션
+  const [etherFinalValue, setEtherFinalValue] = useState(null); // 최종 에테르값 표시
+  const [playerOverdriveFlash, setPlayerOverdriveFlash] = useState(false); // 플레이어 기원 연출
+  const [enemyOverdriveFlash, setEnemyOverdriveFlash] = useState(false); // 적 기원 연출
+  const [enemyEtherFinalValue, setEnemyEtherFinalValue] = useState(null); // 적 최종 에테르값 표시
+  const [enemyEtherCalcPhase, setEnemyEtherCalcPhase] = useState(null); // 적 에테르 계산 단계
+  const [enemyCurrentDeflation, setEnemyCurrentDeflation] = useState(null); // 적 디플레이션 정보
+  const [soulShatter, setSoulShatter] = useState(false); // 에테르 승리 연출
+  const [etherCalcPhase, setEtherCalcPhase] = useState(null); // 에테르 계산 애니메이션 단계: 'sum', 'multiply', 'deflation', 'result'
+  const [currentDeflation, setCurrentDeflation] = useState(null); // 현재 디플레이션 정보 { multiplier, usageCount }
+  const [playerTransferPulse, setPlayerTransferPulse] = useState(false); // 에테르 이동 연출 (플레이어)
+  const [enemyTransferPulse, setEnemyTransferPulse] = useState(false); // 에테르 이동 연출 (적)
   const [nextTurnEffects, setNextTurnEffects] = useState({
-    guaranteedCards: [], // 諛섎났, 蹂댄뿕 ?뱀꽦?쇰줈 ?ㅼ쓬???뺤젙 ?깆옣
-    bonusEnergy: 0, // 紐명?湲??뱀꽦
-    energyPenalty: 0, // ?덉쭊 ?뱀꽦
-    etherBlocked: false, // 留앷컖 ?뱀꽦
-    mainSpecialOnly: false, // ?뚰깂 ?뱀꽦
-    subSpecialBoost: 0, // ?κ뎔 ?뱀꽦
+    guaranteedCards: [], // 반복, 보험 특성으로 다음턴 확정 등장
+    bonusEnergy: 0, // 몸풀기 특성
+    energyPenalty: 0, // 탈진 특성
+    etherBlocked: false, // 망각 특성
+    mainSpecialOnly: false, // 파탄 특성
+    subSpecialBoost: 0, // 장군 특성
   });
-  const [playerHit, setPlayerHit] = useState(false); // ?뚮젅?댁뼱 ?쇨꺽 ?좊땲硫붿씠??
-  const [enemyHit, setEnemyHit] = useState(false); // ???쇨꺽 ?좊땲硫붿씠??
-  const [playerBlockAnim, setPlayerBlockAnim] = useState(false); // ?뚮젅?댁뼱 諛⑹뼱 ?좊땲硫붿씠??
-  const [enemyBlockAnim, setEnemyBlockAnim] = useState(false); // ??諛⑹뼱 ?좊땲硫붿씠??
-  const [autoProgress, setAutoProgress] = useState(false); // ?먮룞吏꾪뻾 紐⑤뱶
-  const [resolveStartPlayer, setResolveStartPlayer] = useState(null); // 吏꾪뻾 ?④퀎 ?쒖옉 ???뚮젅?댁뼱 ?곹깭
-  const [resolveStartEnemy, setResolveStartEnemy] = useState(null); // 吏꾪뻾 ?④퀎 ?쒖옉 ?????곹깭
-  const [hoveredRelic, setHoveredRelic] = useState(null); // ?몃쾭???좊Ъ ID
-  const [relicActivated, setRelicActivated] = useState(null); // 諛쒕룞???좊Ъ ID (?좊땲硫붿씠?섏슜, ?⑥씪 ?쒖떆??
-  const [activeRelicSet, setActiveRelicSet] = useState(new Set()); // 활성화된 유물 모음
-  const [multiplierPulse, setMultiplierPulse] = useState(false); // 배율 펄스
-  const [displayComboMultiplier, setDisplayComboMultiplier] = useState(1); // UI 표시용 배율
-  const [resolvedPlayerCards, setResolvedPlayerCards] = useState(0); // 진행 단계에서 처리된 플레이어 카드 수
-  const [hoveredCard, setHoveredCard] = useState(null); // 호버 카드 정보 {card, position}
-  const [tooltipVisible, setTooltipVisible] = useState(false); // ?댄똻 ?쒖떆 ?щ?(?좊땲硫붿씠?섏슜)
+  const [playerHit, setPlayerHit] = useState(false); // 플레이어 피격 애니메이션
+  const [enemyHit, setEnemyHit] = useState(false); // 적 피격 애니메이션
+  const [playerBlockAnim, setPlayerBlockAnim] = useState(false); // 플레이어 방어 애니메이션
+  const [enemyBlockAnim, setEnemyBlockAnim] = useState(false); // 적 방어 애니메이션
+  const [autoProgress, setAutoProgress] = useState(false); // 자동진행 모드
+  const [resolveStartPlayer, setResolveStartPlayer] = useState(null); // 진행 단계 시작 시 플레이어 상태
+  const [resolveStartEnemy, setResolveStartEnemy] = useState(null); // 진행 단계 시작 시 적 상태
+  const [hoveredRelic, setHoveredRelic] = useState(null); // 호버된 유물 ID
+  const [relicActivated, setRelicActivated] = useState(null); // 발동된 유물 ID (애니메이션용, 단일 표시용)
+  const [activeRelicSet, setActiveRelicSet] = useState(new Set()); // 동시 강조용
+  const [resolvedPlayerCards, setResolvedPlayerCards] = useState(0); // 진행 단계에서 진행된 플레이어 카드 수
+  const [hoveredCard, setHoveredCard] = useState(null); // 호버된 카드 정보 {card, position}
+  const [tooltipVisible, setTooltipVisible] = useState(false); // 툴팁 표시 여부(애니메이션용)
   const [previewDamage, setPreviewDamage] = useState({ value: 0, lethal: false, overkill: false });
   const lethalSoundRef = useRef(false);
   const overkillSoundRef = useRef(false);
@@ -1215,25 +1216,24 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const [showInsightTooltip, setShowInsightTooltip] = useState(false);
   const [hoveredEnemyAction, setHoveredEnemyAction] = useState(null);
   const hoveredCardRef = useRef(null);
-  const [showTooltip, setShowTooltip] = useState(false); // ?댄똻 ?쒖떆 ?щ? (?쒕젅????
+  const [showTooltip, setShowTooltip] = useState(false); // 툴팁 표시 여부 (딜레이 후)
   const tooltipTimerRef = useRef(null);
   const logEndRef = useRef(null);
-  const devilDiceTriggeredRef = useRef(false); // ?????낅쭏??二쇱궗??諛쒕룞 ?щ?
+  const devilDiceTriggeredRef = useRef(false); // 턴 내 악마의 주사위 발동 여부
   const initialEtherRef = useRef(typeof safeInitialPlayer.etherPts === 'number' ? safeInitialPlayer.etherPts : (playerEther ?? 0));
   const resultSentRef = useRef(false);
-  const turnStartProcessedRef = useRef(false); // ???쒖옉 ?④낵 以묐났 ?ㅽ뻾 諛⑹?
-  const dragRelicIndexRef = useRef(null); // 유물 드래그 원본 인덱스
-
+  const turnStartProcessedRef = useRef(false); // 턴 시작 효과 중복 실행 방지
+  const dragRelicIndexRef = useRef(null); // 유물 드래그 인덱스
   useEffect(() => {
-    // 선택/대응 단계에서만 외부 변경 적용, 진행/맵에서는 고정
+    // 선택/대응 단계에서는 변경 허용, 진행/포스트에서는 고정
     if (phase === 'select' || phase === 'respond') {
       setOrderedRelics(relics);
     }
-  }, [phase]);
+  }, [phase]); // relics 동기화는 상단 useEffect에서 처리
   const computeComboMultiplier = useCallback((baseMult, cardsCount, includeFiveCard = true) => {
     let mult = baseMult;
     const passive = calculatePassiveEffects(orderedRelicList);
-    orderedRelicList.forEach((rid) => {
+    orderedRelicList.forEach(rid => {
       const relic = RELICS[rid];
       if (!relic?.effects) return;
       if (relic.effects.comboMultiplierPerCard || relic.effects.etherCardMultiplier || relic.effects.etherMultiplier) {
@@ -1244,10 +1244,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     });
     return mult;
   }, [orderedRelicList]);
-  const calcEtherGainNoDevil = useCallback((base, cards) => {
-    const filtered = orderedRelicList.filter(id => id !== 'devilDice');
-    return calculateRelicEtherGain(base, cards, filtered);
-  }, [orderedRelicList]);
   const flashRelic = (relicId, tone = 800, duration = 500) => {
     setActiveRelicSet(prev => {
       const next = new Set(prev);
@@ -1255,11 +1251,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       return next;
     });
     setRelicActivated(relicId);
-    const relic = RELICS[relicId];
-    if (relic?.effects && (relic.effects.comboMultiplierPerCard || relic.effects.etherCardMultiplier || relic.effects.etherMultiplier || relic.effects.etherFiveCardBonus)) {
-      setMultiplierPulse(true);
-      setTimeout(() => setMultiplierPulse(false), Math.min(400, duration));
-    }
     playSound(tone, duration * 0.6);
     setTimeout(() => {
       setActiveRelicSet(prev => {
@@ -1270,34 +1261,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       setRelicActivated(prev => (prev === relicId ? null : prev));
     }, duration);
   };
-  useEffect(() => {
-    if (phase !== 'resolve') return;
-    const cardsCount = resolvedPlayerCards;
-    const timers = [];
-    let delay = 0;
-    orderedRelicList.forEach(rid => {
-      const relic = RELICS[rid];
-      if (!relic?.effects) return;
-      const isMultiplier = relic.effects.comboMultiplierPerCard || relic.effects.etherCardMultiplier || relic.effects.etherMultiplier;
-      const isDevil = relic.effects.etherFiveCardBonus && cardsCount >= 5;
-      if (isMultiplier || isDevil) {
-        const t1 = setTimeout(() => {
-          setMultiplierPulse(true);
-          const t2 = setTimeout(() => setMultiplierPulse(false), 220);
-          timers.push(t2);
-        }, delay);
-        timers.push(t1);
-        delay += 200;
-      }
-    });
-    return () => {
-      timers.forEach(clearTimeout);
-      setMultiplierPulse(false);
-    };
-  }, [phase, resolvedPlayerCards, orderedRelicList]);
   const handleRelicDragStart = (idx, relicId) => (e) => {
     dragRelicIndexRef.current = idx;
-    setRelicActivated(relicId); // 諛곗? ?쒖떆
+    setRelicActivated(relicId); // 배지 표시
     e.dataTransfer.effectAllowed = 'move';
     try {
       const img = new Image();
@@ -1321,7 +1287,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     setOrderedRelics(arr);
   };
 
-  // ?듭같 ?쒖뒪?? ?좏슚 ?듭같 諛?怨듦컻 ?뺣낫 怨꾩궛
+  // 통찰 시스템: 유효 통찰 및 공개 정보 계산
   const effectiveInsight = useMemo(() => {
     return calculateEffectiveInsight(player.insight, enemy?.shroud);
   }, [player.insight, enemy?.shroud]);
@@ -1331,7 +1297,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     return getInsightRevealLevel(effectiveInsight, enemyPlan.actions);
   }, [effectiveInsight, enemyPlan.actions, phase]);
 
-  // ?듭같 ?섏튂 蹂????諛곗?/?곗텧 ?몃━嫄?
+  // 통찰 수치 변화 시 배지/연출 트리거
   useEffect(() => {
     const prev = prevInsightRef.current || 0;
     const curr = player.insight || 0;
@@ -1351,14 +1317,14 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     }, 1400);
   }, [player.insight]);
 
-  // ?듭같 ?덈꺼蹂???꾨씪???곗텧 ?몃━嫄?(?좏깮 ?④퀎?먯꽌留?
+  // 통찰 레벨별 타임라인 연출 트리거 (선택 단계에서만)
   useEffect(() => {
     if (phase !== 'select' && phase !== 'respond' && phase !== 'resolve') {
       setInsightAnimLevel(0);
       setHoveredEnemyAction(null);
       return;
     }
-    // select ?④퀎??insightReveal.level, respond ?④퀎??effectiveInsight 湲곗?
+    // select 단계는 insightReveal.level, respond 단계는 effectiveInsight 기준
     const lvl = phase === 'select' ? (insightReveal?.level || 0) : (effectiveInsight || 0);
     const prev = prevRevealLevelRef.current || 0;
     if (lvl === prev) return;
@@ -1382,7 +1348,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       result: resultType,
       playerEther: finalEther,
       deltaAether: delta,
-      playerHp: player.hp, // ?ㅼ젣 ?꾪닾 醫낅즺 ?쒖젏??泥대젰 ?꾨떖
+      playerHp: player.hp, // 실제 전투 종료 시점의 체력 전달
       playerMaxHp: player.maxHp
     });
     resultSentRef.current = true;
@@ -1407,7 +1373,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     if (tooltipTimerRef.current) clearTimeout(tooltipTimerRef.current);
     tooltipTimerRef.current = setTimeout(() => {
       if (hoveredCardRef.current?.card?.id !== card.id) return;
-      updatePos(); // ?꾩튂 ?ъ륫?????쒖떆
+      updatePos(); // 위치 재측정 후 표시
       requestAnimationFrame(() => {
         requestAnimationFrame(() => setTooltipVisible(true));
       });
@@ -1448,7 +1414,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       energy: safeInitialPlayer?.energy ?? prev.energy,
       maxEnergy: safeInitialPlayer?.energy ?? prev.maxEnergy,
       etherPts: nextEther,
-      // Strength瑜?0?쇰줈 由ъ뀑?섏? ?딄퀬 珥덇린 怨꾩궛媛??댁쟾 媛?蹂댁〈
+      // Strength를 0으로 리셋하지 않고 초기 계산값/이전 값 보존
       strength: safeInitialPlayer?.strength ?? prev.strength ?? startingStrength ?? 0,
       insight: safeInitialPlayer?.insight ?? prev.insight ?? startingInsight ?? 0
     }));
@@ -1458,9 +1424,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     setFixedOrder(null);
     setPostCombatOptions(null);
     setEnemyPlan({ actions: [], mode: null });
-    // ?덈줈???꾪닾/??珥덇린???????쒖옉 ?뚮옒洹몃룄 由ъ뀑
+    // 새로운 전투/턴 초기화 시 턴 시작 플래그도 리셋
     turnStartProcessedRef.current = false;
-    // ?듭같/?곗텧 愿??珥덇린??
+    // 통찰/연출 관련 초기화
     prevInsightRef.current = 0;
     prevRevealLevelRef.current = 0;
     setInsightAnimLevel(0);
@@ -1469,7 +1435,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     setEnemyEtherCalcPhase(null);
     setEnemyCurrentDeflation(null);
     if ((safeInitialPlayer?.insight || 0) > 0) {
-      // ?꾪닾 ?쒖옉 ?쒖뿉???듭같 ?곗텧 1???ъ깮
+      // 전투 시작 시에도 통찰 연출 1회 재생
       setTimeout(() => {
         setInsightBadge({
           level: safeInitialPlayer?.insight || 0,
@@ -1485,12 +1451,12 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       }, 50);
     }
     setPhase('select');
-    // 罹먮┃??鍮뚮뱶媛 ?덉쑝硫??ъ슜, ?놁쑝硫?湲곕낯 8??
+    // 캐릭터 빌드가 있으면 사용, 없으면 기본 8장
     const currentBuild = useGameStore.getState().characterBuild;
     const hasCharacterBuild = currentBuild && (currentBuild.mainSpecials?.length > 0 || currentBuild.subSpecials?.length > 0);
     const rawHand = hasCharacterBuild
       ? drawCharacterBuildHand(currentBuild)
-      : CARDS.slice(0, 10); // 8????10??
+      : CARDS.slice(0, 10); // 8장 → 10장
     const initialHand = applyStrengthToHand(rawHand, startingStrength);
     setHand(initialHand);
     setCanRedraw(true);
@@ -1502,7 +1468,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     setEnemy(prev => ({
       ...(prev || {}),
       deck: safeInitialEnemy.deck || prev?.deck || ENEMIES[enemyIndex]?.deck || [],
-      name: safeInitialEnemy.name ?? prev?.name ?? '???',
+      name: safeInitialEnemy.name ?? prev?.name ?? '적',
       hp,
       maxHp: safeInitialEnemy.maxHp ?? hp,
       vulnMult: 1,
@@ -1517,13 +1483,13 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     setQueue([]);
     setQIndex(0);
     setFixedOrder(null);
-    // ?덈줈???곸쑝濡??꾪솚 ?????쒖옉 泥섎━ ?뚮옒洹?由ъ뀑
+    // 새로운 적으로 전환 시 턴 시작 처리 플래그 리셋
     turnStartProcessedRef.current = false;
     prevRevealLevelRef.current = 0;
     setPhase('select');
   }, [safeInitialEnemy, enemyIndex]);
 
-  // ?꾪닾 以??듭같 媛??ㅼ떆媛?諛섏쁺 (payload ?ъ깮???놁씠)
+  // 전투 중 통찰 값 실시간 반영 (payload 재생성 없이)
   useEffect(() => {
     if (typeof liveInsight !== 'number') return;
     setPlayer((p) => {
@@ -1538,19 +1504,19 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     }
   }, [postCombatOptions, notifyBattleResult]);
 
-  // ?섏씠利?蹂寃???移대뱶 ?좊땲硫붿씠???곹깭 珥덇린??
+  // 페이즈 변경 시 카드 애니메이션 상태 초기화
   useEffect(() => {
     if (phase !== 'resolve') {
       setDisappearingCards([]);
       setHiddenCards([]);
     }
-    // resolve ?④퀎 吏꾩엯 ??usedCardIndices 珥덇린??
+    // resolve 단계 진입 시 usedCardIndices 초기화
     if (phase === 'resolve') {
       setUsedCardIndices([]);
     }
   }, [phase]);
 
-  // C ?ㅻ줈 罹먮┃??李??닿린, Q ?ㅻ줈 媛꾩냼?? E ?ㅻ줈 ?쒖텧/吏꾪뻾/??醫낅즺, R ?ㅻ줈 由щ뱶濡쒖슦, ?ㅽ럹?댁뒪諛붾줈 湲곗썝, F ?ㅻ줈 ?뺣젹
+  // C 키로 캐릭터 창 열기, Q 키로 간소화, E 키로 제출/진행/턴 종료, R 키로 리드로우, 스페이스바로 기원, F 키로 정렬
   useEffect(() => {
     const handleKeyPress = (e) => {
       if (e.key === "c" || e.key === "C") {
@@ -1580,8 +1546,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         redrawHand();
       }
       if (e.key === " " && (phase === 'select' || phase === 'respond')) {
-        // ?ㅽ럹?댁뒪諛붾줈 湲곗썝 ?좉?
-        e.preventDefault(); // ?ㅽ럹?댁뒪諛?湲곕낯 ?숈옉 諛⑹? (?ㅽ겕濡?
+        // 스페이스바로 기원 토글
+        e.preventDefault(); // 스페이스바 기본 동작 방지 (스크롤)
         if (etherSlots(player.etherPts) > 0) {
           setWillOverdrive(v => !v);
         }
@@ -1589,16 +1555,16 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       if ((e.key === "e" || e.key === "E") && phase === 'resolve') {
         e.preventDefault();
         if (qIndex < queue.length) {
-          // ??꾨씪??吏꾪뻾 以묒씠硫?吏꾪뻾 ?좉?
+          // 타임라인 진행 중이면 진행 토글
           setAutoProgress(prev => !prev);
         } else if (etherFinalValue !== null) {
-          // ??꾨씪???앸굹怨?理쒖쥌媛??쒖떆?섎㈃ ??醫낅즺
-          finishTurn('?ㅻ낫???⑥텞??(E)');
+          // 타임라인 끝나고 최종값 표시되면 턴 종료
+          finishTurn('키보드 단축키 (E)');
         }
       }
       if ((e.key === "f" || e.key === "F") && phase === 'select') {
         e.preventDefault();
-        // F?ㅻ줈 移대뱶 ?뺣젹
+        // F키로 카드 정렬
         cycleSortType();
       }
     };
@@ -1612,10 +1578,10 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       const e = ENEMIES[enemyIndex];
       setEnemy({ ...e, hp: e.hp, maxHp: e.hp, vulnMult: 1, vulnTurns: 0, block: 0, counter: 0, etherPts: 0, etherOverdriveActive: false, maxSpeed: e.maxSpeed ?? DEFAULT_ENEMY_MAX_SPEED });
 
-      // ?꾪닾 ?쒖옉 ?좊Ъ ?④낵 濡쒓렇 諛??좊땲硫붿씠??
+      // 전투 시작 유물 효과 로그 및 애니메이션
       const combatStartEffects = applyCombatStartEffects(orderedRelicList, {});
 
-      // ?꾪닾 ?쒖옉 ?좊Ъ ?좊땲硫붿씠??
+      // 전투 시작 유물 애니메이션
       orderedRelicList.forEach(relicId => {
         const relic = RELICS[relicId];
         if (relic?.effects?.type === 'ON_COMBAT_START') {
@@ -1626,43 +1592,43 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       });
 
       if (combatStartEffects.damage > 0) {
-        addLog(`?볩툘 ?좊Ъ ?④낵: 泥대젰 -${combatStartEffects.damage} (?쇱쓽 議깆뇙)`);
+        addLog(`⛓️ 유물 효과: 체력 -${combatStartEffects.damage} (피의 족쇄)`);
       }
       if (combatStartEffects.strength > 0) {
-        addLog(`?뮞 ?좊Ъ ?④낵: ??+${combatStartEffects.strength}`);
+        addLog(`💪 유물 효과: 힘 +${combatStartEffects.strength}`);
       }
       if (combatStartEffects.block > 0) {
-        addLog(`?썳截??좊Ъ ?④낵: 諛⑹뼱??+${combatStartEffects.block}`);
+        addLog(`🛡️ 유물 효과: 방어력 +${combatStartEffects.block}`);
       }
       if (combatStartEffects.heal > 0) {
-        addLog(`?뮍 ?좊Ъ ?④낵: 泥대젰 +${combatStartEffects.heal}`);
+        addLog(`💚 유물 효과: 체력 +${combatStartEffects.heal}`);
       }
 
-      // 罹먮┃??鍮뚮뱶媛 ?덉쑝硫??ъ슜, ?놁쑝硫?湲곕낯 8??
+      // 캐릭터 빌드가 있으면 사용, 없으면 기본 8장
       const currentBuild = useGameStore.getState().characterBuild;
       const hasCharacterBuild = currentBuild && (currentBuild.mainSpecials?.length > 0 || currentBuild.subSpecials?.length > 0);
       const rawHand = hasCharacterBuild
         ? drawCharacterBuildHand(currentBuild, nextTurnEffects, [])
-        : CARDS.slice(0, 10); // 8????10??
+        : CARDS.slice(0, 10); // 8장 → 10장
       const initialHand = applyStrengthToHand(rawHand, startingStrength);
       setHand(initialHand);
       setSelected([]);
       setCanRedraw(true);
       const handCount = initialHand.length;
-      addLog(`?렣 ?쒖옉 ?먰뙣 ${handCount}??{hasCharacterBuild ? ' (罹먮┃??鍮뚮뱶)' : ''}`);
+      addLog(`🎴 시작 손패 ${handCount}장${hasCharacterBuild ? ' (캐릭터 빌드)' : ''}`);
     }
   }, []);
 
   useEffect(() => {
     if (!enemy || phase !== 'select') {
-      // phase媛 select媛 ?꾨땲硫??뚮옒洹?由ъ뀑
+      // phase가 select가 아니면 플래그 리셋
       if (phase !== 'select') {
         turnStartProcessedRef.current = false;
       }
       return;
     }
 
-    // ???쒖옉 ?④낵媛 ?대? 泥섎━?섏뿀?쇰㈃ 以묐났 ?ㅽ뻾 諛⑹?
+    // 턴 시작 효과가 이미 처리되었으면 중복 실행 방지
     if (turnStartProcessedRef.current) {
       return;
     }
@@ -1673,16 +1639,16 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     setCanRedraw(true);
     setWillOverdrive(false);
 
-    // ?좊Ъ ???쒖옉 ?④낵 ?곸슜 (?쇳뵾??媛묒샆 ??
+    // 유물 턴 시작 효과 적용 (피피한 갑옷 등)
     const turnStartRelicEffects = applyTurnStartEffects(orderedRelicList, nextTurnEffects);
 
-    console.log("[???쒖옉 ?좊Ъ ?④낵]", {
+    console.log("[턴 시작 유물 효과]", {
       block: turnStartRelicEffects.block,
       heal: turnStartRelicEffects.heal,
       energy: turnStartRelicEffects.energy
     });
 
-    // ???쒖옉 ?좊Ъ 諛쒕룞 ?좊땲硫붿씠??
+    // 턴 시작 유물 발동 애니메이션
     orderedRelicList.forEach(relicId => {
       const relic = RELICS[relicId];
       if (relic?.effects?.type === 'ON_TURN_START') {
@@ -1692,14 +1658,14 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       }
     });
 
-    // ?뱀꽦 ?④낵濡??명븳 ?먮꼫吏 蹂대꼫???섎꼸???곸슜
+    // 특성 효과로 인한 에너지 보너스/페널티 적용
     const passiveRelicEffects = calculatePassiveEffects(orderedRelicList);
     const baseEnergy = BASE_PLAYER_ENERGY + passiveRelicEffects.maxEnergy;
     const energyBonus = (nextTurnEffects.bonusEnergy || 0) + turnStartRelicEffects.energy;
     const energyPenalty = nextTurnEffects.energyPenalty || 0;
     const finalEnergy = Math.max(0, baseEnergy + energyBonus - energyPenalty);
 
-    console.log("[???쒖옉 ?먮꼫吏 怨꾩궛]", {
+    console.log("[턴 시작 에너지 계산]", {
       baseEnergy,
       "nextTurnEffects.bonusEnergy": nextTurnEffects.bonusEnergy,
       "turnStartRelicEffects.energy": turnStartRelicEffects.energy,
@@ -1708,11 +1674,11 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       finalEnergy
     });
 
-    // 諛⑹뼱?κ낵 泥대젰 ?뚮났 ?곸슜
+    // 방어력과 체력 회복 적용
     setPlayer(p => {
       const newHp = Math.min(p.maxHp, p.hp + turnStartRelicEffects.heal);
       const newBlock = (p.block || 0) + turnStartRelicEffects.block;
-      const newDef = turnStartRelicEffects.block > 0; // 諛⑹뼱?μ씠 ?덉쑝硫?def ?뚮옒洹??쒖꽦??
+      const newDef = turnStartRelicEffects.block > 0; // 방어력이 있으면 def 플래그 활성화
       return {
         ...p,
         hp: newHp,
@@ -1722,40 +1688,40 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         maxEnergy: baseEnergy,
         etherOverdriveActive: false,
         etherOverflow: 0,
-        strength: p.strength || 0 // ???좎?
+        strength: p.strength || 0 // 힘 유지
       };
     });
 
-    // 濡쒓렇 異붽?
+    // 로그 추가
     if (turnStartRelicEffects.block > 0) {
-      addLog(`?썳截??좊Ъ ?④낵: 諛⑹뼱??+${turnStartRelicEffects.block}`);
+      addLog(`🛡️ 유물 효과: 방어력 +${turnStartRelicEffects.block}`);
     }
     if (turnStartRelicEffects.heal > 0) {
-      addLog(`?뮍 ?좊Ъ ?④낵: 泥대젰 +${turnStartRelicEffects.heal}`);
+      addLog(`💚 유물 효과: 체력 +${turnStartRelicEffects.heal}`);
     }
     if (turnStartRelicEffects.energy > 0) {
-      addLog(`???좊Ъ ?④낵: ?됰룞??+${turnStartRelicEffects.energy}`);
+      addLog(`⚡ 유물 효과: 행동력 +${turnStartRelicEffects.energy}`);
     }
     if (energyBonus > 0) {
-      addLog(`???ㅼ쓬??蹂대꼫???됰룞?? +${energyBonus}`);
+      addLog(`⚡ 다음턴 보너스 행동력: +${energyBonus}`);
     }
 
-    // 留????쒖옉 ???덈줈???먰뙣 ?앹꽦 (罹먮┃??鍮뚮뱶 諛??뱀꽦 ?④낵 ?곸슜)
+    // 매 턴 시작 시 새로운 손패 생성 (캐릭터 빌드 및 특성 효과 적용)
     const currentBuild = useGameStore.getState().characterBuild;
     const hasCharacterBuild = currentBuild && (currentBuild.mainSpecials?.length > 0 || currentBuild.subSpecials?.length > 0);
     setHand(prevHand => {
       const rawHand = hasCharacterBuild
         ? drawCharacterBuildHand(currentBuild, nextTurnEffects, prevHand)
-        : CARDS.slice(0, 10); // 8????10??
+        : CARDS.slice(0, 10); // 8장 → 10장
       return applyStrengthToHand(rawHand, player.strength || 0);
     });
     setSelected([]);
 
-    // 적 모드/행동을 턴 시작 시 결정하고 로그에 남긴다.
+    // 적 성향/행동을 턴 시작에 즉시 결정해 통찰 UI가 바로 표시되도록 함
     setEnemyPlan(prev => {
       const mode = prev.mode || decideEnemyMode();
       if (!prev.mode) {
-        addLog(`적 모드 힌트: ${mode.name}`);
+        addLog(`🤖 적 성향 힌트: ${mode.name}`);
       }
       const slots = etherSlots(enemy?.etherPts || 0);
       const actions = generateEnemyActions(enemy, mode, slots);
@@ -1767,11 +1733,11 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     if (phase === 'resolve' && (!queue || queue.length === 0) && fixedOrder && fixedOrder.length > 0) {
       const rebuilt = fixedOrder.map(x => ({ actor: x.actor, card: x.card, sp: x.sp }));
       setQueue(rebuilt); setQIndex(0);
-      addLog('?㎝ ?먮룞 蹂듦뎄: ?ㅽ뻾 ?먮? ?ㅼ떆 ?앹꽦?덉뒿?덈떎');
+      addLog('🧯 자동 복구: 실행 큐를 다시 생성했습니다');
     }
   }, [phase, queue, fixedOrder]);
 
-  // ?좏깮 ?④퀎 吏꾩엯 ?????됰룞??誘몃━ 怨꾩궛???듭같 UI媛 諛붾줈 蹂댁씠?꾨줉 ??
+  // 선택 단계 진입 시 적 행동을 미리 계산해 통찰 UI가 바로 보이도록 함
   useEffect(() => {
     if (phase !== 'select') return;
     if (!enemyPlan?.mode) return;
@@ -1785,12 +1751,12 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const totalSpeed = useMemo(() => selected.reduce((s, c) => s + c.speedCost, 0), [selected]);
   const currentCombo = useMemo(() => {
     const combo = detectPokerCombo(selected);
-    console.log('[currentCombo ?낅뜲?댄듃]', {
+    console.log('[currentCombo 업데이트]', {
       selectedCount: selected.length,
       comboName: combo?.name || 'null'
     });
 
-    // ?뷀뵆?덉씠???뺣낫 怨꾩궛 (?좏깮/???吏꾪뻾 ?④퀎?먯꽌)
+    // 디플레이션 정보 계산 (선택/대응/진행 단계에서)
     if (combo?.name && (phase === 'select' || phase === 'respond' || phase === 'resolve')) {
       const usageCount = (player.comboUsageCount || {})[combo.name] || 0;
       const deflationMult = Math.pow(0.5, usageCount);
@@ -1800,60 +1766,19 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     return combo;
   }, [selected, player.comboUsageCount, phase]);
 
-  // ?좊Ъ ?④낵瑜??ы븿??理쒖쥌 肄ㅻ낫 諛곗쑉
+  // 유물 효과를 포함한 최종 콤보 배율
   const finalComboMultiplier = useMemo(() => {
     const baseMultiplier = currentCombo ? (COMBO_MULTIPLIERS[currentCombo.name] || 1) : 1;
+    const passiveEffects = calculatePassiveEffects(orderedRelicList);
     const isResolve = phase === 'resolve';
     const cardsCount = isResolve ? resolvedPlayerCards : selected.length;
 
-    // ?좏깮 ?④퀎?먯꽌???좊Ъ 諛곗쑉 ?쒖쇅 (?쒖닔 議고빀 諛곗쑉留?誘몃━蹂닿린)
+    // 선택 단계에서는 유물 배율 제외 (순수 조합 배율만 미리보기)
     if (!isResolve) return baseMultiplier;
 
-    // 吏꾪뻾 ?④퀎: ?좊Ъ 諛곗쑉???뺣젹 ?쒖꽌?濡??쒖감 ?곸슜
+    // 진행 단계: 유물 배율을 정렬 순서대로 순차 적용
     return computeComboMultiplier(baseMultiplier, cardsCount, true);
-  }, [currentCombo, orderedRelicList, resolvedPlayerCards, selected.length, phase, computeComboMultiplier]);
-  // 諛곗쑉 ?쒖떆?? currentCombo ?좎뼵 ?댄썑??怨꾩궛 (TDZ 諛⑹?)
-  useEffect(() => {
-    if (!currentCombo) {
-      setDisplayComboMultiplier(1);
-      return;
-    }
-    const baseMultiplier = (COMBO_MULTIPLIERS[currentCombo.name] || 1);
-    if (phase !== 'resolve') {
-      setDisplayComboMultiplier(baseMultiplier);
-      return;
-    }
-    let mult = baseMultiplier;
-    setDisplayComboMultiplier(mult);
-    const passive = calculatePassiveEffects(orderedRelicList);
-    const timers = [];
-    let delay = 0;
-    orderedRelicList.forEach((rid) => {
-      const relic = RELICS[rid];
-      if (!relic?.effects) return;
-      const isCombo = relic.effects.comboMultiplierPerCard || relic.effects.etherCardMultiplier || relic.effects.etherMultiplier;
-      const isDevil = relic.effects.etherFiveCardBonus && passive.etherFiveCardBonus > 0 && resolvedPlayerCards >= 5;
-      if (isCombo || isDevil) {
-        delay += 200;
-        const t = setTimeout(() => {
-          if (isCombo) {
-            mult = applyRelicComboMultiplier([rid], mult, resolvedPlayerCards);
-          } else if (isDevil) {
-            mult *= passive.etherFiveCardBonus;
-          }
-          setDisplayComboMultiplier(mult);
-          setMultiplierPulse(true);
-          const t2 = setTimeout(() => setMultiplierPulse(false), 180);
-          timers.push(t2);
-        }, delay);
-        timers.push(t);
-      }
-    });
-    return () => {
-      timers.forEach(clearTimeout);
-      setMultiplierPulse(false);
-    };
-  }, [currentCombo, orderedRelicList, resolvedPlayerCards, phase]);
+  }, [currentCombo, orderedRelicList, resolvedPlayerCards, selected.length, phase]);
   const comboPreviewInfo = useMemo(() => {
     if (!currentCombo) return null;
     return calculateComboEtherGain({
@@ -1871,14 +1796,14 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         let next;
         if (exists) {
           next = prev.filter(s => !(s.__uid === card.__uid) && !(s.id === card.id && !('__uid' in s)));
-          playSound(400, 80); // ?댁? ?ъ슫??(??? ??
+          playSound(400, 80); // 해지 사운드 (낮은 음)
         }
         else {
-          if (prev.length >= MAX_SUBMIT_CARDS) { addLog('선택 불가: 최대 5장의 카드만 제출할 수 있습니다'); return prev; }
-          if (totalSpeed + card.speedCost > player.maxSpeed) { addLog('선택 불가: 속도 한도 초과'); return prev; }
-          if (totalEnergy + card.actionCost > player.maxEnergy) { addLog('선택 불가: 행동력 한도 초과'); return prev; }
+          if (prev.length >= MAX_SUBMIT_CARDS) { addLog('⚠️ 최대 5장의 카드만 제출할 수 있습니다'); return prev; }
+          if (totalSpeed + card.speedCost > player.maxSpeed) { addLog('⚠️ 속도 초과'); return prev; }
+          if (totalEnergy + card.actionCost > player.maxEnergy) { addLog('⚠️ 행동력 부족'); return prev; }
           next = [...prev, { ...card, __uid: Math.random().toString(36).slice(2) }];
-          playSound(800, 80); // ?좏깮 ?ъ슫??(?믪? ??
+          playSound(800, 80); // 선택 사운드 (높은 음)
         }
         const combo = detectPokerCombo(next);
         const enhanced = applyPokerBonus(next, combo);
@@ -1889,14 +1814,14 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     }
     if (exists) {
       setSelected(selected.filter(s => s.id !== card.id));
-      playSound(400, 80); // ?댁? ?ъ슫??(??? ??
+      playSound(400, 80); // 해지 사운드 (낮은 음)
       return;
     }
-    if (selected.length >= MAX_SUBMIT_CARDS) return addLog('선택 불가: 최대 5장의 카드만 제출할 수 있습니다');
-    if (totalSpeed + card.speedCost > player.maxSpeed) return addLog('선택 불가: 속도 한도 초과');
-    if (totalEnergy + card.actionCost > player.maxEnergy) return addLog('선택 불가: 행동력 한도 초과');
+    if (selected.length >= MAX_SUBMIT_CARDS) return addLog('⚠️ 최대 5장의 카드만 제출할 수 있습니다');
+    if (totalSpeed + card.speedCost > player.maxSpeed) return addLog('⚠️ 속도 초과');
+    if (totalEnergy + card.actionCost > player.maxEnergy) return addLog('⚠️ 행동력 부족');
     setSelected([...selected, { ...card, __uid: Math.random().toString(36).slice(2) }]);
-    playSound(800, 80); // ?좏깮 ?ъ슫??(?믪? ??
+    playSound(800, 80); // 선택 사운드 (높은 음)
   };
 
   const moveUp = (i) => {
@@ -1929,7 +1854,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     }
   };
 
-  // ?④낵???ъ깮 ?⑥닔
+  // 효과음 재생 함수
   const playSound = (frequency = 800, duration = 100) => {
     try {
       // eslint-disable-next-line no-undef
@@ -1950,24 +1875,24 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       oscillator.start(audioContext.currentTime);
       oscillator.stop(audioContext.currentTime + duration / 1000);
     } catch (e) {
-      // ?④낵???ъ깮 ?ㅽ뙣 ??臾댁떆
+      // 효과음 재생 실패 시 무시
     }
   };
 
   const redrawHand = () => {
-    if (!canRedraw) return addLog('이미 리롤을 사용했습니다');
-    // 罹먮┃??鍮뚮뱶媛 ?덉쑝硫??ъ슜, ?놁쑝硫?湲곕낯 8??
+    if (!canRedraw) return addLog('🔒 이미 이번 턴 리드로우 사용됨');
+    // 캐릭터 빌드가 있으면 사용, 없으면 기본 8장
     const currentBuild = useGameStore.getState().characterBuild;
     const hasCharacterBuild = currentBuild && (currentBuild.mainSpecials?.length > 0 || currentBuild.subSpecials?.length > 0);
     const rawHand = hasCharacterBuild
       ? drawCharacterBuildHand(currentBuild, nextTurnEffects, hand)
-      : CARDS.slice(0, 10); // 8????10??
+      : CARDS.slice(0, 10); // 8장 → 10장
     const newHand = applyStrengthToHand(rawHand, player.strength || 0);
     setHand(newHand);
     setSelected([]);
     setCanRedraw(false);
-    addLog('핸드를 다시 뽑았습니다');
-    playSound(700, 90); // 由щ뱶濡쒖슦 ?④낵??
+    addLog('🔄 손패 리드로우 사용');
+    playSound(700, 90); // 리드로우 효과음
   };
 
   const cycleSortType = () => {
@@ -1981,33 +1906,33 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     } catch { }
 
     const sortLabels = {
-      speed: '?쒓컙 湲곗? ?뺣젹',
-      energy: '?됰룞??湲곗? ?뺣젹',
-      value: '諛몃쪟 湲곗? ?뺣젹',
-      type: '醫낅쪟蹂??뺣젹'
+      speed: '시간 기준 정렬',
+      energy: '행동력 기준 정렬',
+      value: '밸류 기준 정렬',
+      type: '종류별 정렬'
     };
-    addLog(`?? ${sortLabels[nextSort]}`);
-    playSound(600, 80); // ?뺣젹 ?④낵??
+    addLog(`🔀 ${sortLabels[nextSort]}`);
+    playSound(600, 80); // 정렬 효과음
   };
 
   const getSortedHand = () => {
     const sorted = [...hand];
 
     if (sortType === 'speed') {
-      // ?쒓컙(?띾룄) ?대┝李⑥닚 - ??寃껊???
+      // 시간(속도) 내림차순 - 큰 것부터
       sorted.sort((a, b) => b.speedCost - a.speedCost);
     } else if (sortType === 'energy') {
-      // ?됰룞???대┝李⑥닚 - ??寃껊???
+      // 행동력 내림차순 - 큰 것부터
       sorted.sort((a, b) => b.actionCost - a.actionCost);
     } else if (sortType === 'value') {
-      // 諛몃쪟(怨듦꺽??諛⑹뼱?? ?대┝李⑥닚 - ??寃껊???
+      // 밸류(공격력+방어력) 내림차순 - 큰 것부터
       sorted.sort((a, b) => {
         const aValue = ((a.damage || 0) * (a.hits || 1)) + (a.block || 0);
         const bValue = ((b.damage || 0) * (b.hits || 1)) + (b.block || 0);
         return bValue - aValue;
       });
     } else if (sortType === 'type') {
-      // 怨듦꺽 -> 諛⑹뼱 -> 湲고? ?쒖꽌濡??뺣젹
+      // 공격 -> 방어 -> 기타 순서로 정렬
       const typeOrder = { 'attack': 0, 'defense': 1 };
       sorted.sort((a, b) => {
         const aOrder = typeOrder[a.type] ?? 2;
@@ -2029,7 +1954,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
     const pCombo = detectPokerCombo(selected);
 
-    // ?뱀꽦 ?④낵 ?곸슜 (?ъ슜 ?잛닔???좏깮 ?④퀎 湲곗??쇰줈 怨좎젙)
+    // 특성 효과 적용 (사용 횟수는 선택 단계 기준으로 고정)
     const traitEnhancedSelected = selected.map(card =>
       applyTraitModifiers(card, {
         usageCount: 0,
@@ -2041,7 +1966,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
     const q = sortCombinedOrderStablePF(enhancedSelected, actions, playerAgility, 0);
     setFixedOrder(q);
-    playCardSubmitSound(); // 移대뱶 ?쒖텧 ?ъ슫???ъ깮
+    playCardSubmitSound(); // 카드 제출 사운드 재생
     setPhase('respond');
   };
 
@@ -2049,7 +1974,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     if (phase === 'respond' && enemyPlan.actions && enemyPlan.actions.length > 0) {
       const combo = detectPokerCombo(selected);
 
-      // ?뱀꽦 ?④낵 ?곸슜
+      // 특성 효과 적용
       const traitEnhancedSelected = selected.map(card =>
         applyTraitModifiers(card, {
           usageCount: 0,
@@ -2064,20 +1989,20 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   }, [selected, phase, enemyPlan.actions]);
 
   const beginResolveFromRespond = () => {
-    if (!fixedOrder) return addLog('?ㅻ쪟: 怨좎젙???쒖꽌媛 ?놁뒿?덈떎');
+    if (!fixedOrder) return addLog('오류: 고정된 순서가 없습니다');
 
     if (fixedOrder.length === 0) {
-      addLog('?좑툘 ?ㅽ뻾???됰룞???놁뒿?덈떎. 理쒖냼 1???댁긽???좎??섍굅???곸씠 ?됰룞 媛?ν븳 ?곹깭?ъ빞 ?⑸땲??');
+      addLog('⚠️ 실행할 행동이 없습니다. 최소 1장 이상을 유지하거나 적이 행동 가능한 상태여야 합니다.');
       return;
     }
 
     const newQ = fixedOrder.map(x => ({ actor: x.actor, card: x.card, sp: x.sp }));
     if (newQ.length === 0) {
-      addLog('?좑툘 ???앹꽦 ?ㅽ뙣: ?ㅽ뻾????ぉ???놁뒿?덈떎');
+      addLog('⚠️ 큐 생성 실패: 실행할 항목이 없습니다');
       return;
     }
 
-    // ?댁쟾 ?댁쓽 ?먰뀒瑜??좊땲硫붿씠???곹깭 珥덇린??
+    // 이전 턴의 에테르 애니메이션 상태 초기화
     setEtherCalcPhase(null);
     setEtherFinalValue(null);
     setEnemyEtherFinalValue(null);
@@ -2085,21 +2010,21 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     setEnemyEtherCalcPhase(null);
     setEnemyCurrentDeflation(null);
 
-    playProceedSound(); // 吏꾪뻾 踰꾪듉 ?ъ슫???ъ깮
+    playProceedSound(); // 진행 버튼 사운드 재생
     setQueue(newQ);
     setQIndex(0);
     setPhase('resolve');
-    addLog('??吏꾪뻾 ?쒖옉');
+    addLog('▶ 진행 시작');
 
-    // 吏꾪뻾 ?④퀎 ?쒖옉 ???뚮젅?댁뼱? ???곹깭 ???
+    // 진행 단계 시작 시 플레이어와 적 상태 저장
     setResolveStartPlayer({ ...player });
     setResolveStartEnemy({ ...enemy });
 
-    // 吏꾪뻾???뚮젅?댁뼱 移대뱶 ??珥덇린??
+    // 진행된 플레이어 카드 수 초기화
     setResolvedPlayerCards(0);
     devilDiceTriggeredRef.current = false;
 
-    // ??꾨씪??progress 珥덇린??
+    // 타임라인 progress 초기화
     setTimelineProgress(0);
     setTimelineIndicatorVisible(true);
     setNetEtherDelta(null);
@@ -2110,43 +2035,43 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       setPlayerOverdriveFlash(true);
       playSound(1400, 220);
       setTimeout(() => setPlayerOverdriveFlash(false), 650);
-      addLog('?댐툘 ?먰뀒瑜???＜ 諛쒕룞! (?????꾩껜 ?좎?)');
+      addLog('✴️ 에테르 폭주 발동! (이 턴 전체 유지)');
     }
     if ((phase === 'respond' || phase === 'select') && enemyWillOD) {
       setEnemy(e => ({ ...e, etherPts: e.etherPts - ETHER_THRESHOLD, etherOverdriveActive: true }));
       setEnemyOverdriveFlash(true);
       playSound(900, 220);
       setTimeout(() => setEnemyOverdriveFlash(false), 650);
-      addLog('?꾬툘 ???먰뀒瑜???＜ 諛쒕룞!');
+      addLog('☄️ 적 에테르 폭주 발동!');
     }
 
-    // 吏꾪뻾 踰꾪듉 ?꾨Ⅴ硫??먮룞 吏꾪뻾 ?쒖꽦??
+    // 진행 버튼 누르면 자동 진행 활성화
     setAutoProgress(true);
   };
 
-  // ?먰뀒瑜?怨꾩궛 ?좊땲硫붿씠???쒖옉 (紐ъ뒪???щ쭩 ??/ ?뺤긽 醫낅즺 ??怨듯넻)
-  // skipFinalValueSet: true?대㈃ setEtherFinalValue瑜??몄텧?섏? ?딆쓬 (finishTurn?먯꽌 ?대? ?ㅼ젙??寃쎌슦)
+  // 에테르 계산 애니메이션 시작 (몬스터 사망 시 / 정상 종료 시 공통)
+  // skipFinalValueSet: true이면 setEtherFinalValue를 호출하지 않음 (finishTurn에서 이미 설정한 경우)
   const startEtherCalculationAnimation = (totalEtherPts, actualResolvedCards = null, actualGainedEther = null, skipFinalValueSet = false) => {
     const pCombo = detectPokerCombo(selected);
     const basePlayerComboMult = pCombo ? (COMBO_MULTIPLIERS[pCombo.name] || 1) : 1;
-    // 紐ъ뒪?곌? 二쎌뿀???뚮뒗 actualResolvedCards(?ㅼ젣 ?ㅽ뻾??移대뱶 ??, ?꾨땲硫?selected.length(?꾩껜 ?좏깮??移대뱶 ??
+    // 몬스터가 죽었을 때는 actualResolvedCards(실제 실행된 카드 수), 아니면 selected.length(전체 선택된 카드 수)
     const cardCountForMultiplier = actualResolvedCards !== null ? actualResolvedCards : selected.length;
     const playerComboMult = computeComboMultiplier(basePlayerComboMult, cardCountForMultiplier, true);
     let playerBeforeDeflation = Math.round(totalEtherPts * playerComboMult);
 
-    // ?좊Ъ ?④낵 ?곸슜 (李멸퀬?? ?낅쭏??二쇱궗?? ?ш???議곗빟??
-    playerBeforeDeflation = calcEtherGainNoDevil(playerBeforeDeflation, cardCountForMultiplier);
+    // 유물 효과 적용 (참고서, 악마의 주사위, 희귀한 조약돌)
+    playerBeforeDeflation = calculateRelicEtherGain(playerBeforeDeflation, cardCountForMultiplier, orderedRelicList);
 
-    // ?뷀뵆?덉씠???곸슜
+    // 디플레이션 적용
     const playerDeflation = pCombo?.name
       ? applyEtherDeflation(playerBeforeDeflation, pCombo.name, player.comboUsageCount || {})
       : { gain: playerBeforeDeflation, multiplier: 1, usageCount: 0 };
 
-    // actualGainedEther媛 ?꾨떖?섎㈃ 洹?媛믪쓣 ?ъ슜, ?꾨땲硫??뷀뵆?덉씠?섍퉴吏留??곸슜??媛??ъ슜
-    // 踰붾엺 怨꾩궛? 理쒖쥌媛??쒖떆???ы븿?섏? ?딆쓬 (濡쒓렇?먮쭔 ?쒖떆)
+    // actualGainedEther가 전달되면 그 값을 사용, 아니면 디플레이션까지만 적용한 값 사용
+    // 범람 계산은 최종값 표시에 포함하지 않음 (로그에만 표시)
     const playerFinalEther = actualGainedEther !== null ? actualGainedEther : playerDeflation.gain;
 
-    console.log('[?먰뀒瑜?怨꾩궛 ?좊땲硫붿씠??', {
+    console.log('[에테르 계산 애니메이션]', {
       turnEtherAccumulated: totalEtherPts,
       comboName: pCombo?.name,
       basePlayerComboMult,
@@ -2164,34 +2089,34 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       comboUsageForThisCombo: player.comboUsageCount?.[pCombo?.name] || 0
     });
 
-    // ?뷀뵆?덉씠???뺣낫 ?ㅼ젙
+    // 디플레이션 정보 설정
     setCurrentDeflation(pCombo?.name ? {
       comboName: pCombo.name,
       usageCount: playerDeflation.usageCount,
       multiplier: playerDeflation.multiplier
     } : null);
 
-    // === ???먰뀒瑜?怨꾩궛 (?뚮젅?댁뼱? ?숈씪??濡쒖쭅) ===
+    // === 적 에테르 계산 (플레이어와 동일한 로직) ===
     const eCombo = detectPokerCombo(enemyPlan.actions || []);
     const baseEnemyComboMult = eCombo ? (COMBO_MULTIPLIERS[eCombo.name] || 1) : 1;
     const enemyCardCount = enemyPlan.actions?.length || 0;
     let enemyBeforeDeflation = Math.round(enemyTurnEtherAccumulated * baseEnemyComboMult);
 
-    // ???뷀뵆?덉씠???곸슜
+    // 적 디플레이션 적용
     const enemyDeflation = eCombo?.name
       ? applyEtherDeflation(enemyBeforeDeflation, eCombo.name, enemy.comboUsageCount || {})
       : { gain: enemyBeforeDeflation, multiplier: 1, usageCount: 0 };
 
     const enemyFinalEther = enemyDeflation.gain;
 
-    // ???뷀뵆?덉씠???뺣낫 ?ㅼ젙
+    // 적 디플레이션 정보 설정
     setEnemyCurrentDeflation(eCombo?.name ? {
       comboName: eCombo.name,
       usageCount: enemyDeflation.usageCount,
       multiplier: enemyDeflation.multiplier
     } : null);
 
-    console.log('[???먰뀒瑜?怨꾩궛 ?좊땲硫붿씠??', {
+    console.log('[적 에테르 계산 애니메이션]', {
       enemyTurnEtherAccumulated,
       comboName: eCombo?.name,
       baseEnemyComboMult,
@@ -2202,26 +2127,26 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       enemyCardCount
     });
 
-    // 1?④퀎: ?⑷퀎 媛뺤“ (?뚮젅?댁뼱 + ???숈떆)
+    // 1단계: 합계 강조 (플레이어 + 적 동시)
     setEtherCalcPhase('sum');
     setEnemyEtherCalcPhase('sum');
     setTimeout(() => {
-      // 2?④퀎: 怨깆뀍 媛뺤“ + 紐낆풄???ъ슫??
+      // 2단계: 곱셈 강조 + 명쾌한 사운드
       setEtherCalcPhase('multiply');
       setEnemyEtherCalcPhase('multiply');
       playSound(800, 100);
       setTimeout(() => {
-        // 3?④퀎: ?뷀뵆?덉씠??諛곗? ?좊땲硫붿씠??+ ????ъ슫??
+        // 3단계: 디플레이션 배지 애니메이션 + 저음 사운드
         if (playerDeflation.usageCount > 0 || enemyDeflation.usageCount > 0) {
           if (playerDeflation.usageCount > 0) setEtherCalcPhase('deflation');
           if (enemyDeflation.usageCount > 0) setEnemyEtherCalcPhase('deflation');
           playSound(200, 150);
         }
         setTimeout(() => {
-          // 4?④퀎: 理쒖쥌媛??쒖떆 + 臾듭쭅???ъ슫??
+          // 4단계: 최종값 표시 + 묵직한 사운드
           setEtherCalcPhase('result');
           setEnemyEtherCalcPhase('result');
-          // 踰꾪듉 ?쒖떆瑜??꾪빐 媛??ㅼ젙 (finishTurn?먯꽌 ?뺥솗??媛믪쑝濡??ㅼ떆 ?ㅼ젙??
+          // 버튼 표시를 위해 값 설정 (finishTurn에서 정확한 값으로 다시 설정됨)
           setEtherFinalValue(playerFinalEther);
           setEnemyEtherFinalValue(enemyFinalEther);
           playSound(400, 200);
@@ -2234,47 +2159,47 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     if (qIndex >= queue.length) return;
     const a = queue[qIndex];
 
-    // ??꾨씪??progress ?낅뜲?댄듃 (?꾩옱 移대뱶???꾩튂瑜?actor??maxSpeed 湲곗? 鍮꾩쑉濡?
+    // 타임라인 progress 업데이트 (현재 카드의 위치를 actor의 maxSpeed 기준 비율로)
     const currentMaxSpeed = a.actor === 'player' ? player.maxSpeed : enemy.maxSpeed;
     const progressPercent = (a.sp / currentMaxSpeed) * 100;
 
-    // 癒쇱? ?쒓퀣諛붾뒛???꾩옱 移대뱶 ?꾩튂濡??대룞
+    // 먼저 시곗바늘을 현재 카드 위치로 이동
     setTimelineProgress(progressPercent);
 
-    // ?쒓퀣諛붾뒛 ?대룞 ?꾨즺 ??移대뱶 諛쒕룞 諛??ㅽ뻾 (0.5珥?transition ??
+    // 시곗바늘 이동 완료 후 카드 발동 및 실행 (0.5초 transition 후)
     setTimeout(() => {
-      // ?ㅽ뻾 以묒씤 移대뱶 ?쒖떆 (?붾뱾由??좊땲硫붿씠??
+      // 실행 중인 카드 표시 (흔들림 애니메이션)
       setExecutingCardIndex(qIndex);
 
-      // ?붾뱾由??좊땲硫붿씠??醫낅즺 ??鍮?諛붾옒吏?泥섎━
+      // 흔들림 애니메이션 종료 후 빛 바래짐 처리
       setTimeout(() => {
         setExecutingCardIndex(null);
-        // ?붾뱾由쇱씠 ?앸궃 ???ъ슜??移대뱶濡??쒖떆 (鍮?諛붾옒吏?
+        // 흔들림이 끝난 후 사용된 카드로 표시 (빛 바래짐)
         setUsedCardIndices(prev => [...prev, qIndex]);
-      }, 350); // CSS ?좊땲硫붿씠???쒓컙怨??쇱튂
+      }, 350); // CSS 애니메이션 시간과 일치
 
-      // 留덉?留?移대뱶硫??섏씠?쒖븘??
+      // 마지막 카드면 페이드아웃
       if (qIndex >= queue.length - 1) {
         setTimeout(() => {
           setTimelineIndicatorVisible(false);
         }, 300);
       }
 
-      // 移대뱶 ?뚮㈇ ?댄럺?몃뒗 ?뚮젅?댁뼱留??곸슜
+      // 카드 소멸 이펙트는 플레이어만 적용
       if (a.actor === 'player') {
         setTimeout(() => {
-          // 移대뱶媛 ?ъ슜?????щ씪吏???좊땲硫붿씠???쒖옉
+          // 카드가 사용된 후 사라지는 애니메이션 시작
           setDisappearingCards(prev => [...prev, qIndex]);
           setTimeout(() => {
-            // ?좊땲硫붿씠?????꾩쟾???④?
+            // 애니메이션 후 완전히 숨김
             setHiddenCards(prev => [...prev, qIndex]);
             setDisappearingCards(prev => prev.filter(i => i !== qIndex));
-          }, 600); // ?좊땲硫붿씠??吏???쒓컙
-        }, 300); // ?ъ슜 ?④낵 ??諛붾줈 ?щ씪吏湲??쒖옉
+          }, 600); // 애니메이션 지속 시간
+        }, 300); // 사용 효과 후 바로 사라지기 시작
       }
 
       executeCardAction();
-    }, 500); // CSS transition ?쒓컙怨??쇱튂 (0.5s)
+    }, 500); // CSS transition 시간과 일치 (0.5s)
   };
 
   const executeCardAction = () => {
@@ -2287,23 +2212,23 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     const { events } = applyAction(tempState, a.actor, a.card);
     let actionEvents = events;
 
-    // ?뚮젅?댁뼱 移대뱶 ?ъ슜 ??移대뱶 ?ъ슜 ?잛닔 利앷? (mastery, boredom ?뱀꽦??
+    // 플레이어 카드 사용 시 카드 사용 횟수 증가 (mastery, boredom 특성용)
     if (a.actor === 'player' && a.card.id) {
       setCardUsageCount(prev => ({
         ...prev,
         [a.card.id]: (prev[a.card.id] || 0) + 1
       }));
 
-      // ?묐궇??寃 (double_edge): ?ъ슜??1 ?쇳빐
+      // 양날의 검 (double_edge): 사용시 1 피해
       if (hasTrait(a.card, 'double_edge')) {
         P.hp = Math.max(0, P.hp - 1);
-        addLog(`?좑툘 "?묐궇??寃" - ?뚮젅?댁뼱媛 1 ?쇳빐瑜??낆뿀?듬땲??`);
+        addLog(`⚠️ "양날의 검" - 플레이어가 1 피해를 입었습니다.`);
       }
 
-      // ?⑤젴 (training): ?ъ슜 ????+1
+      // 단련 (training): 사용 후 힘 +1
       if (hasTrait(a.card, 'training')) {
         P.strength = (P.strength || 0) + 1;
-        addLog(`?뮞 "?⑤젴" - ?섏씠 1 利앷??덉뒿?덈떎. (?꾩옱: ${P.strength})`);
+        addLog(`💪 "단련" - 힘이 1 증가했습니다. (현재: ${P.strength})`);
       }
     }
 
@@ -2324,44 +2249,45 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         return prevQueue.filter((_, idx) => !targets.some(t => t.idx === idx));
       });
       if (stunnedActions.length > 0) {
-        const stunnedNames = stunnedActions.map(t => t.item?.card?.name || '移대뱶').join(', ');
-        const msg = `?샃 "${a.card.name}"??湲곗젅! ?곷? 移대뱶 ${stunnedActions.length}???뚭눼 (踰붿쐞: ${centerSp}~${centerSp + STUN_RANGE}${stunnedNames ? `, ??? ${stunnedNames}` : ''})`;
+        const stunnedNames = stunnedActions.map(t => t.item?.card?.name || '카드').join(', ');
+        const msg = `😵 "${a.card.name}"의 기절! 상대 카드 ${stunnedActions.length}장 파괴 (범위: ${centerSp}~${centerSp + STUN_RANGE}${stunnedNames ? `, 대상: ${stunnedNames}` : ''})`;
         addLog(msg);
         actionEvents = [...actionEvents, { actor: a.actor, card: a.card.name, type: 'stun', msg }];
       }
     }
 
-    // 移대뱶 ?ъ슜 ???먰뀒瑜??꾩쟻 (?ㅼ젣 ?곸슜? ??醫낅즺 ??
+    // 카드 사용 시 에테르 누적 (실제 적용은 턴 종료 시)
     if (a.actor === 'player') {
-      // ?ш???議곗빟???④낵: 移대뱶???띾뱷 ?먰뀒瑜?2諛?
+      // 희귀한 조약돌 효과: 카드당 획득 에테르 2배
       const passiveRelicEffects = calculatePassiveEffects(orderedRelicList);
       const etherPerCard = Math.floor(BASE_ETHER_PER_CARD * passiveRelicEffects.etherMultiplier);
 
       setTurnEtherAccumulated(prev => {
-        console.log(`[?먰뀒瑜??꾩쟻] ${prev} + ${etherPerCard} = ${prev + etherPerCard} (移대뱶: ${a.card.name})`);
+        console.log(`[에테르 누적] ${prev} + ${etherPerCard} = ${prev + etherPerCard} (카드: ${a.card.name})`);
         return prev + etherPerCard;
       });
-      // PT 利앷? ?좊땲硫붿씠??
+      // PT 증가 애니메이션
       setEtherPulse(true);
       setTimeout(() => setEtherPulse(false), 300);
 
-      // ?뚮젅?댁뼱 移대뱶 吏꾪뻾 ???좊Ъ 諛쒕룞
+      // 플레이어 카드 진행 시 유물 발동
       setResolvedPlayerCards(prev => {
         const newCount = prev + 1;
 
-        // ?좊Ъ???덉쑝硫?諛쒕룞 ?좊땲硫붿씠??諛??ъ슫??(醫뚢넂???쒖감 ?ъ깮)
+        // 유물이 있으면 발동 애니메이션 및 사운드 (좌→우 순차 재생)
         if (relics.length > 0) {
           const triggered = [];
           relics.forEach(relicId => {
             const relic = RELICS[relicId];
-            // effects媛 媛앹껜??寃쎌슦 泥섎━ (/src/data/relics.js ?ъ슜)
+            // effects가 객체인 경우 처리 (/src/data/relics.js 사용)
             if (relic?.effects?.type === 'PASSIVE' && relic?.effects?.comboMultiplierPerCard) {
-              // ?먰뀒瑜?寃곗젙: 移대뱶留덈떎 利됱떆 諛쒕룞 ?쒖떆/?ъ슫??              triggered.push({ id: relicId, tone: 800, duration: 500 });
+              // 에테르 결정: 카드마다 즉시 발동 표시/사운드
+              triggered.push({ id: relicId, tone: 800, duration: 500 });
             } else if (relic?.effects?.type === 'PASSIVE' && (relic?.effects?.etherCardMultiplier || relicId === 'rareStone' || relic?.effects?.etherMultiplier)) {
-              // ?ш???議곗빟??李멸퀬??怨꾩뿴: 移대뱶留덈떎 利됱떆 諛쒕룞 (?곸떆 諛곗? ?놁쓬)
+              // 희귀한 조약돌/참고서 계열: 카드마다 즉시 발동 (상시 배지 없음)
               triggered.push({ id: relicId, tone: 820, duration: 400 });
             } else if (relic?.effects?.type === 'PASSIVE' && relic?.effects?.etherFiveCardBonus && newCount >= 5 && !devilDiceTriggeredRef.current) {
-              // ?낅쭏??二쇱궗?? ?ㅼ꽢踰덉㎏ 移대뱶 泥섎━ 吏곹썑 諛쒕룞
+              // 악마의 주사위: 다섯번째 카드 처리 직후 발동
               devilDiceTriggeredRef.current = true;
               triggered.push({ id: relicId, tone: 980, duration: 800 });
             }
@@ -2391,25 +2317,25 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     setEnemy(prev => ({ ...prev, hp: E.hp, def: E.def, block: E.block, counter: E.counter, vulnMult: E.vulnMult || 1 }));
     setActionEvents(prev => ({ ...prev, [qIndex]: actionEvents }));
 
-    // ?대깽??泥섎━: ?좊땲硫붿씠??諛??ъ슫??
+    // 이벤트 처리: 애니메이션 및 사운드
     actionEvents.forEach(ev => {
       addLog(ev.msg);
 
-      // ?쇨꺽 ?④낵 (hit, pierce ???
+      // 피격 효과 (hit, pierce 타입)
       if ((ev.type === 'hit' || ev.type === 'pierce') && ev.dmg > 0) {
         playHitSound();
         if (ev.actor === 'player') {
-          // ?뚮젅?댁뼱媛 怨듦꺽 -> ???쇨꺽
+          // 플레이어가 공격 -> 적 피격
           setEnemyHit(true);
           setTimeout(() => setEnemyHit(false), 300);
         } else {
-          // ?곸씠 怨듦꺽 -> ?뚮젅?댁뼱 ?쇨꺽
+          // 적이 공격 -> 플레이어 피격
           setPlayerHit(true);
           setTimeout(() => setPlayerHit(false), 300);
         }
       }
 
-      // 諛⑹뼱 ?④낵 (defense ???
+      // 방어 효과 (defense 타입)
       if (ev.type === 'defense') {
         playBlockSound();
         if (ev.actor === 'player') {
@@ -2421,10 +2347,10 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         }
       }
 
-      // 諛섍꺽 ?쇳빐
+      // 반격 피해
       if (ev.actor === 'counter') {
         playHitSound();
-        // counter??諛섎? 諛⑺뼢?쇰줈 ?쇳빐媛 媛誘濡??寃잛쓣 諛섎?濡?
+        // counter는 반대 방향으로 피해가 가므로 타겟을 반대로
         if (a.actor === 'player') {
           setPlayerHit(true);
           setTimeout(() => setPlayerHit(false), 300);
@@ -2440,39 +2366,39 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
     if (P.hp <= 0) { setPostCombatOptions({ type: 'defeat' }); setPhase('post'); return; }
     if (E.hp <= 0) {
-      // 紐ъ뒪??二쎌쓬 ?좊땲硫붿씠??諛??ъ슫??
+      // 몬스터 죽음 애니메이션 및 사운드
       setEnemyHit(true);
-      playSound(200, 500); // ??? 二쇳뙆?섎줈 二쎌쓬 ?ъ슫??
+      playSound(200, 500); // 낮은 주파수로 죽음 사운드
 
-      // ??꾨씪??利됱떆 ?④? 諛??먮룞吏꾪뻾 以묐떒
+      // 타임라인 즉시 숨김 및 자동진행 중단
       setTimelineIndicatorVisible(false);
       setAutoProgress(false);
 
-      // ?⑥? 移대뱶?ㅼ쓣 鍮꾪솢?깊솕 ?곹깭濡??쒖떆 (?먮뒗 ?좎?)
+      // 남은 카드들을 비활성화 상태로 표시 (큐는 유지)
       const disabledIndices = queue.slice(newQIndex).map((_, idx) => newQIndex + idx);
       setDisabledCardIndices(disabledIndices);
 
-      // ?ㅼ젣濡??ㅽ뻾 ?꾨즺???뚮젅?댁뼱 移대뱶 ??怨꾩궛 (諛곗쑉 怨꾩궛???ъ슜)
-      // newQIndex???ㅼ쓬???ㅽ뻾??移대뱶???몃뜳?ㅼ씠誘濡? newQIndex ?댁쟾源뚯?留?移댁슫??
-      // ?? ?꾩옱 ?ㅽ뻾 以묒씤 移대뱶(qIndex)???꾩쭅 ?꾨즺?섏? ?딆븯?쇰?濡??쒖쇅
-      // resolvedPlayerCards ?곹깭? ?숈씪??媛믪쓣 ?ъ슜?섎뒗 寃껋씠 ?뺥솗??
+      // 실제로 실행 완료된 플레이어 카드 수 계산 (배율 계산에 사용)
+      // newQIndex는 다음에 실행될 카드의 인덱스이므로, newQIndex 이전까지만 카운트
+      // 단, 현재 실행 중인 카드(qIndex)는 아직 완료되지 않았으므로 제외
+      // resolvedPlayerCards 상태와 동일한 값을 사용하는 것이 정확함
       const actualResolvedCards = resolvedPlayerCards;
 
-      // ???몃뜳?ㅻ? ?앹쑝濡??대룞?섏뿬 ???댁긽 吏꾪뻾?섏? ?딅룄濡???
+      // 큐 인덱스를 끝으로 이동하여 더 이상 진행되지 않도록 함
       setQIndex(queue.length);
 
-      // ?먰뀒瑜?怨꾩궛 ?좊땲硫붿씠?섏? useEffect?먯꽌 ?ㅽ뻾??(?곹깭 ?낅뜲?댄듃 ??대컢 蹂댁옣)
-      // ?먰뀒瑜닿? ?놁쑝硫?踰꾪듉 ?쒖떆瑜??꾪빐 0?쇰줈 ?ㅼ젙
+      // 에테르 계산 애니메이션은 useEffect에서 실행됨 (상태 업데이트 타이밍 보장)
+      // 에테르가 없으면 버튼 표시를 위해 0으로 설정
       if (turnEtherAccumulated === 0) {
         setEtherFinalValue(0);
       }
       return;
     }
 
-    // ??꾨씪?몄쓽 紐⑤뱺 移대뱶 吏꾪뻾???앸궗?????먰뀒瑜?怨꾩궛 ?좊땲硫붿씠?섏? useEffect?먯꽌 ?ㅽ뻾??(?곹깭 ?낅뜲?댄듃 ??대컢 蹂댁옣)
+    // 타임라인의 모든 카드 진행이 끝났을 때 에테르 계산 애니메이션은 useEffect에서 실행됨 (상태 업데이트 타이밍 보장)
   };
 
-  // ?먮룞吏꾪뻾 湲곕뒫
+  // 자동진행 기능
   useEffect(() => {
     if (autoProgress && phase === 'resolve' && qIndex < queue.length) {
       const timer = setTimeout(() => {
@@ -2482,20 +2408,20 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     }
   }, [autoProgress, phase, qIndex, queue.length]);
 
-  // ??꾨씪???꾨즺 ???먰뀒瑜?怨꾩궛 ?좊땲硫붿씠???ㅽ뻾
-  // useEffect瑜??ъ슜?섏뿬 turnEtherAccumulated ?곹깭媛 理쒖떊 媛믪씪 ???ㅽ뻾
+  // 타임라인 완료 후 에테르 계산 애니메이션 실행
+  // useEffect를 사용하여 turnEtherAccumulated 상태가 최신 값일 때 실행
   useEffect(() => {
     if (phase === 'resolve' && qIndex >= queue.length && queue.length > 0 && turnEtherAccumulated > 0 && etherCalcPhase === null) {
-      // 紐⑤뱺 移대뱶媛 ?ㅽ뻾?섍퀬 ?먰뀒瑜닿? ?꾩쟻???곹깭?먯꽌, ?좊땲硫붿씠?섏씠 ?꾩쭅 ?쒖옉?섏? ?딆븯???뚮쭔 ?ㅽ뻾
-      // resolvedPlayerCards瑜??꾨떖?섏뿬 紐ъ뒪???щ쭩 ?쒖뿉???뺥솗??移대뱶 ???ъ슜
+      // 모든 카드가 실행되고 에테르가 누적된 상태에서, 애니메이션이 아직 시작되지 않았을 때만 실행
+      // resolvedPlayerCards를 전달하여 몬스터 사망 시에도 정확한 카드 수 사용
       setTimeout(() => startEtherCalculationAnimation(turnEtherAccumulated, resolvedPlayerCards), 50);
     }
   }, [phase, qIndex, queue.length, turnEtherAccumulated, etherCalcPhase, resolvedPlayerCards]);
 
   const finishTurn = (reason) => {
-    addLog(`??醫낅즺: ${reason || ''}`);
+    addLog(`턴 종료: ${reason || ''}`);
 
-    // ?ㅼ쓬 ???④낵 泥섎━ (?뱀꽦 湲곕컲)
+    // 다음 턴 효과 처리 (특성 기반)
     const newNextTurnEffects = {
       guaranteedCards: [],
       bonusEnergy: 0,
@@ -2505,53 +2431,53 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       subSpecialBoost: 0,
     };
 
-    // ?좏깮??移대뱶?ㅼ쓽 ?뱀꽦 ?뺤씤
+    // 선택된 카드들의 특성 확인
     selected.forEach(card => {
-      // 諛섎났 (repeat): ?ㅼ쓬?댁뿉???먰뙣???뺤젙?곸쑝濡??깆옣
+      // 반복 (repeat): 다음턴에도 손패에 확정적으로 등장
       if (hasTrait(card, 'repeat')) {
         newNextTurnEffects.guaranteedCards.push(card.id);
-        addLog(`?봽 "諛섎났" - ${card.name}??媛) ?ㅼ쓬?댁뿉???깆옣?⑸땲??`);
+        addLog(`🔄 "반복" - ${card.name}이(가) 다음턴에도 등장합니다.`);
       }
 
-      // 紐명?湲?(warmup): ?ㅼ쓬???됰룞??+2
+      // 몸풀기 (warmup): 다음턴 행동력 +2
       if (hasTrait(card, 'warmup')) {
         newNextTurnEffects.bonusEnergy += 2;
-        addLog(`??"紐명?湲? - ?ㅼ쓬???됰룞??+2`);
+        addLog(`⚡ "몸풀기" - 다음턴 행동력 +2`);
       }
 
-      // ?덉쭊 (exhaust): ?ㅼ쓬???됰룞??-2
+      // 탈진 (exhaust): 다음턴 행동력 -2
       if (hasTrait(card, 'exhaust')) {
         newNextTurnEffects.energyPenalty += 2;
-        addLog(`?삹 "?덉쭊" - ?ㅼ쓬???됰룞??-2`);
+        addLog(`😰 "탈진" - 다음턴 행동력 -2`);
       }
 
-      // 留앷컖 (oblivion): ?댄썑 ?먰뀒瑜??띾뱷 遺덇?
+      // 망각 (oblivion): 이후 에테르 획득 불가
       if (hasTrait(card, 'oblivion')) {
         newNextTurnEffects.etherBlocked = true;
-        addLog(`?슟 "留앷컖" - ?댄썑 ?먰뀒瑜??띾뱷??遺덇??ν빐吏묐땲??`);
+        addLog(`🚫 "망각" - 이후 에테르 획득이 불가능해집니다!`);
       }
 
-      // ?뚰깂 (ruin): ?ㅼ쓬??二쇳듅湲곕쭔 ?깆옣
+      // 파탄 (ruin): 다음턴 주특기만 등장
       if (hasTrait(card, 'ruin')) {
         newNextTurnEffects.mainSpecialOnly = true;
-        addLog(`?좑툘 "?뚰깂" - ?ㅼ쓬?댁? 二쇳듅湲?移대뱶留?戮묓옓?덈떎.`);
+        addLog(`⚠️ "파탄" - 다음턴은 주특기 카드만 뽑힙니다.`);
       }
 
-      // ?κ뎔 (general): ?ㅼ쓬??蹂댁“?밴린 ?깆옣瑜?25% 利앷?
+      // 장군 (general): 다음턴 보조특기 등장률 25% 증가
       if (hasTrait(card, 'general')) {
         newNextTurnEffects.subSpecialBoost += 0.25;
-        addLog(`?몣 "?κ뎔" - ?ㅼ쓬??蹂댁“?밴린 ?깆옣瑜?利앷?!`);
+        addLog(`👑 "장군" - 다음턴 보조특기 등장률 증가!`);
       }
     });
 
-    // ?좊Ъ ??醫낅즺 ?④낵 ?곸슜 (怨꾩빟?? ?????
+    // 유물 턴 종료 효과 적용 (계약서, 은화 등)
     const turnEndRelicEffects = applyTurnEndEffects(relics, {
       cardsPlayedThisTurn: selected.length,
       player,
       enemy,
     });
 
-    // ??醫낅즺 ?좊Ъ 諛쒕룞 ?좊땲硫붿씠??
+    // 턴 종료 유물 발동 애니메이션
     relics.forEach(relicId => {
       const relic = RELICS[relicId];
       if (relic?.effects?.type === 'ON_TURN_END') {
@@ -2564,11 +2490,11 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       }
     });
 
-    // ??醫낅즺 ?좊Ъ ?④낵瑜??ㅼ쓬 ???④낵??異붽?
+    // 턴 종료 유물 효과를 다음 턴 효과에 추가
     if (turnEndRelicEffects.energyNextTurn > 0) {
       newNextTurnEffects.bonusEnergy += turnEndRelicEffects.energyNextTurn;
-      addLog(`?뱶 ?좊Ъ ?④낵: ?ㅼ쓬???됰룞??+${turnEndRelicEffects.energyNextTurn}`);
-      console.log("[??醫낅즺 怨꾩빟???④낵]", {
+      addLog(`📜 유물 효과: 다음턴 행동력 +${turnEndRelicEffects.energyNextTurn}`);
+      console.log("[턴 종료 계약서 효과]", {
         "selected.length": selected.length,
         "turnEndRelicEffects.energyNextTurn": turnEndRelicEffects.energyNextTurn,
         "newNextTurnEffects.bonusEnergy": newNextTurnEffects.bonusEnergy
@@ -2577,24 +2503,24 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
     setNextTurnEffects(newNextTurnEffects);
 
-    // ??利앷? 利됱떆 ?곸슜 (????? - ?곹깭 ?낅뜲?댄듃 ?꾩뿉 ?곸슜
+    // 힘 증가 즉시 적용 (은화 등) - 상태 업데이트 후에 적용
     if (turnEndRelicEffects.strength !== 0) {
       const currentStrength = player.strength || 0;
       const newStrength = currentStrength + turnEndRelicEffects.strength;
-      addLog(`?뮞 ?좊Ъ ?④낵: ??${turnEndRelicEffects.strength > 0 ? '+' : ''}${turnEndRelicEffects.strength} (珥?${newStrength})`);
+      addLog(`💪 유물 효과: 힘 ${turnEndRelicEffects.strength > 0 ? '+' : ''}${turnEndRelicEffects.strength} (총 ${newStrength})`);
       setPlayer(p => ({ ...p, strength: newStrength }));
     }
 
-    // ??醫낅즺 ??議고빀 移댁슫??利앷? (Deflation)
+    // 턴 종료 시 조합 카운트 증가 (Deflation)
     const pComboEnd = detectPokerCombo(selected);
     const eComboEnd = detectPokerCombo(enemyPlan.actions);
 
-    // ?먰뀒瑜?理쒖쥌 怨꾩궛 諛??곸슜 (?좊땲硫붿씠?섏? stepOnce?먯꽌 泥섎━??
+    // 에테르 최종 계산 및 적용 (애니메이션은 stepOnce에서 처리됨)
     const basePlayerComboMult = pComboEnd ? (COMBO_MULTIPLIERS[pComboEnd.name] || 1) : 1;
     const passiveRelicEffects = calculatePassiveEffects(orderedRelicList);
     const etherPerCardApplied = Math.max(1, Math.floor(BASE_ETHER_PER_CARD * passiveRelicEffects.etherMultiplier));
     const estimatedCardsFromEther = etherPerCardApplied > 0 ? Math.round(turnEtherAccumulated / etherPerCardApplied) : 0;
-    // ?좊Ъ 怨꾩궛??移대뱶 ?? ?ㅼ젣 吏꾪뻾??移대뱶 ???곗꽑, 洹????좏깮/??꾨씪???먰뀒瑜??꾩쟻 異붿젙移섎줈 蹂댁젙
+    // 유물 계산용 카드 수: 실제 진행된 카드 수 우선, 그 외 선택/타임라인/에테르 누적 추정치로 보정
     const cardsPlayedForRelic = Math.max(
       resolvedPlayerCards,
       selected.length,
@@ -2604,18 +2530,18 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     const playerComboMult = computeComboMultiplier(basePlayerComboMult, cardsPlayedForRelic, true);
     const relicMultBonus = playerComboMult - basePlayerComboMult;
 
-    // ??醫낅즺 ?쒖젏?먮뒗 ?먰뀒瑜?寃곗젙/議곗빟??諛쒕룞 ?좊땲硫붿씠?섏쓣 以묐났 ?몄텧?섏? ?딆쓬 (移대뱶 ?ㅽ뻾 ?쒖뿉留?
+    // 턴 종료 시점에는 에테르 결정/조약돌 발동 애니메이션을 중복 노출하지 않음 (카드 실행 시에만)
 
     const enemyComboMult = eComboEnd ? (COMBO_MULTIPLIERS[eComboEnd.name] || 1) : 1;
 
-    // 議고빀 諛곗쑉 ?곸슜
+    // 조합 배율 적용
     let playerBeforeDeflation = Math.round(turnEtherAccumulated * playerComboMult);
-    // ?좊Ъ ?④낵 ?곸슜 (李멸퀬?? ?낅쭏??二쇱궗?? ?ш???議곗빟??
-    playerBeforeDeflation = calcEtherGainNoDevil(playerBeforeDeflation, cardsPlayedForRelic);
+    // 유물 효과 적용 (참고서, 악마의 주사위, 희귀한 조약돌)
+    playerBeforeDeflation = calculateRelicEtherGain(playerBeforeDeflation, cardsPlayedForRelic, orderedRelicList);
 
     const enemyBeforeDeflation = Math.round(enemyTurnEtherAccumulated * enemyComboMult);
 
-    // ?뷀뵆?덉씠???곸슜
+    // 디플레이션 적용
     const playerDeflation = pComboEnd?.name
       ? applyEtherDeflation(playerBeforeDeflation, pComboEnd.name, player.comboUsageCount || {})
       : { gain: playerBeforeDeflation, multiplier: 1, usageCount: 0 };
@@ -2624,11 +2550,11 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       ? applyEtherDeflation(enemyBeforeDeflation, eComboEnd.name, enemy.comboUsageCount || {})
       : { gain: enemyBeforeDeflation, multiplier: 1, usageCount: 0 };
 
-    // finishTurn?먯꽌 ??긽 ?덈줈 怨꾩궛 (?좊땲硫붿씠???쒖젏??媛믪? ?곹깭 ?낅뜲?댄듃 ??대컢 臾몄젣濡?遺?뺥솗?????덉쓬)
+    // finishTurn에서 항상 새로 계산 (애니메이션 시점의 값은 상태 업데이트 타이밍 문제로 부정확할 수 있음)
     const playerFinalEther = playerDeflation.gain;
     const enemyFinalEther = enemyDeflation.gain;
 
-    console.log('[finishTurn 怨꾩궛]', {
+    console.log('[finishTurn 계산]', {
       turnEtherAccumulated,
       etherPerCardApplied,
       estimatedCardsFromEther,
@@ -2648,7 +2574,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       comboUsageForThisCombo: player.comboUsageCount?.[pComboEnd?.name] || 0
     });
 
-    // ?먰뀒瑜?踰붾엺 怨꾩궛: ?꾩옱 ?щ’ ?댁뿉??珥덇낵遺꾩? 踰붾엺
+    // 에테르 범람 계산: 현재 슬롯 내에서 초과분은 범람
     let playerAppliedEther = 0;
     let playerOverflow = 0;
 
@@ -2656,21 +2582,21 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       playerAppliedEther = playerFinalEther;
       playerOverflow = 0;
 
-      // ?ㅼ젣 ?곸슜??珥?諛곗쑉 怨꾩궛 (議고빀 諛곗쑉 + 李멸퀬??+ ?낅쭏??二쇱궗??
+      // 실제 적용된 총 배율 계산 (조합 배율 + 참고서 + 악마의 주사위)
       const actualTotalMultiplier = turnEtherAccumulated > 0
         ? (playerBeforeDeflation / turnEtherAccumulated)
         : 1;
 
       const deflationText = playerDeflation.usageCount > 0
-        ? ` (?뷀뵆?덉씠??-${Math.round((1 - playerDeflation.multiplier) * 100)}%, ${playerDeflation.usageCount}???ъ슜)`
+        ? ` (디플레이션 -${Math.round((1 - playerDeflation.multiplier) * 100)}%, ${playerDeflation.usageCount}회 사용)`
         : '';
-      const relicText = relicMultBonus > 0 ? ` (?좊Ъ 諛곗쑉 +${relicMultBonus.toFixed(2)})` : '';
-      addLog(`?댐툘 ?먰뀒瑜??띾뱷: ${turnEtherAccumulated} 횞 ${actualTotalMultiplier.toFixed(2)}${relicText} = ${playerBeforeDeflation} ??${playerFinalEther} PT${deflationText} (?곸슜: ${playerAppliedEther} PT)`);
+      const relicText = relicMultBonus > 0 ? ` (유물 배율 +${relicMultBonus.toFixed(2)})` : '';
+      addLog(`✴️ 에테르 획득: ${turnEtherAccumulated} × ${actualTotalMultiplier.toFixed(2)}${relicText} = ${playerBeforeDeflation} → ${playerFinalEther} PT${deflationText} (적용: ${playerAppliedEther} PT)`);
 
-      // 理쒖쥌媛?UI??濡쒓렇? ?숈씪??媛??쒖떆
+      // 최종값 UI에 로그와 동일한 값 표시
       setEtherFinalValue(playerFinalEther);
     }
-    // ?곷룄 ?숈씪?섍쾶 ?곸슜/踰붾엺 怨꾩궛 (?щ’ ?⑥?移??쒗븳 ?쒓굅)
+    // 적도 동일하게 적용/범람 계산 (슬롯 남은칸 제한 제거)
     let enemyAppliedEther = 0;
     let enemyOverflow = 0;
     if (enemyFinalEther > 0) {
@@ -2678,9 +2604,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       enemyOverflow = 0;
 
       const deflationText = enemyDeflation.usageCount > 0
-        ? ` (?뷀뵆?덉씠?? ${Math.round(enemyDeflation.multiplier * 100)}%)`
+        ? ` (디플레이션: ${Math.round(enemyDeflation.multiplier * 100)}%)`
         : '';
-      addLog(`?꾬툘 ???먰뀒瑜??띾뱷: ${enemyTurnEtherAccumulated} 횞 ${enemyComboMult.toFixed(2)} = ${enemyBeforeDeflation} ??${enemyFinalEther} PT${deflationText} (?곸슜: ${enemyAppliedEther} PT)`);
+      addLog(`☄️ 적 에테르 획득: ${enemyTurnEtherAccumulated} × ${enemyComboMult.toFixed(2)} = ${enemyBeforeDeflation} → ${enemyFinalEther} PT${deflationText} (적용: ${enemyAppliedEther} PT)`);
       setEnemyEtherCalcPhase('sum');
       setTimeout(() => setEnemyEtherCalcPhase('multiply'), 50);
       setTimeout(() => {
@@ -2692,7 +2618,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
     setEnemyEtherFinalValue(enemyFinalEther);
 
-    // ?먰뀒瑜??뚯????대룞: ?곸슜移?湲곗? (?뚮젅?댁뼱???껋쓣 ???덉쓬)
+    // 에테르 소지량 이동: 적용치 기준 (플레이어도 잃을 수 있음)
     const netTransfer = playerAppliedEther - enemyAppliedEther;
     const curPlayerPts = player.etherPts || 0;
     const curEnemyPts = enemy.etherPts || 0;
@@ -2711,15 +2637,15 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       nextEnemyPts += move;
     }
 
-    // 紐ъ뒪?곌? 泥섏튂??寃쎌슦: ?⑥? ?먰뀒瑜??꾨? ?뚮젅?댁뼱?먭쾶 ?댁쟾
+    // 몬스터가 처치된 경우: 남은 에테르 전부 플레이어에게 이전
     if (enemy.hp <= 0 && nextEnemyPts > 0) {
       movedPts += nextEnemyPts;
       nextPlayerPts += nextEnemyPts;
-      addLog(`?뮔 ???붿뿬 ?먰뀒瑜??뚯닔: +${nextEnemyPts} PT`);
+      addLog(`💠 적 잔여 에테르 회수: +${nextEnemyPts} PT`);
       nextEnemyPts = 0;
     }
 
-    // ?ㅼ젣 ?대룞???묒쓣 ?명?濡?湲곕줉 (0?댁뼱???쒖떆 ?쇱튂??
+    // 실제 이동된 양을 델타로 기록 (0이어도 표시 일치용)
     setNetEtherDelta(movedPts);
 
     if (movedPts !== 0) {
@@ -2730,7 +2656,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         setPlayerTransferPulse(false);
         setEnemyTransferPulse(false);
       }, 450);
-      addLog(`?봺 ?먰뀒瑜??대룞: ?뚮젅?댁뼱 ${movedPts > 0 ? '+' : ''}${movedPts} PT`);
+      addLog(`🔁 에테르 이동: 플레이어 ${movedPts > 0 ? '+' : ''}${movedPts} PT`);
     }
 
     setPlayer(p => {
@@ -2738,7 +2664,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       if (pComboEnd?.name) {
         newUsageCount[pComboEnd.name] = (newUsageCount[pComboEnd.name] || 0) + 1;
       }
-      // ?뚮젅?댁뼱媛 ?ъ슜??媛?移대뱶???ъ슜 ?잛닔 利앷? (?숇젴 ?뱀꽦??
+      // 플레이어가 사용한 각 카드의 사용 횟수 증가 (숙련 특성용)
       queue.forEach(action => {
         if (action.actor === 'player' && action.card?.id) {
           newUsageCount[action.card.id] = (newUsageCount[action.card.id] || 0) + 1;
@@ -2779,14 +2705,14 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       };
     });
 
-    // ?먰뀒瑜??꾩쟻 移댁슫??由ъ뀑 (?좊땲硫붿씠???곹깭???ㅼ쓬 ???쒖옉 ??由ъ뀑??
+    // 에테르 누적 카운터 리셋 (애니메이션 상태는 다음 턴 시작 시 리셋됨)
     setTurnEtherAccumulated(0);
     setEnemyTurnEtherAccumulated(0);
 
     setSelected([]); setQueue([]); setQIndex(0); setFixedOrder(null); setUsedCardIndices([]);
     setDisappearingCards([]); setHiddenCards([]);
 
-    // ??醫낅즺 ???밸━/?⑤같 泥댄겕
+    // 턴 종료 시 승리/패배 체크
     const etherVictoryNow = nextEnemyPtsSnapshot !== null && nextEnemyPtsSnapshot <= 0;
     const etherVictoryImmediate = nextEnemyPts <= 0;
     if (enemy.hp <= 0 || etherVictoryNow || etherVictoryImmediate) {
@@ -2816,7 +2742,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
   const runAll = () => {
     if (qIndex >= queue.length) return;
-    playSound(1000, 150); // ?꾨??ㅽ뻾 ?④낵??
+    playSound(1000, 150); // 전부실행 효과음
     let P = { ...player, def: player.def || false, block: player.block || 0, counter: player.counter || 0, vulnMult: player.vulnMult || 1, etherPts: player.etherPts || 0 };
     let E = { ...enemy, def: enemy.def || false, block: enemy.block || 0, counter: enemy.counter || 0, vulnMult: enemy.vulnMult || 1, etherPts: enemy.etherPts || 0 };
     const tempState = { player: P, enemy: E, log: [] };
@@ -2826,7 +2752,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     for (let i = qIndex; i < queue.length; i++) {
       const a = queue[i];
 
-      // ?곸씠 ?대? 二쎌뿀?쇰㈃ ?곸쓽 ?됰룞? 嫄대꼫?곌린
+      // 적이 이미 죽었으면 적의 행동은 건너뛰기
       if (enemyDefeated && a.actor === 'enemy') {
         continue;
       }
@@ -2835,7 +2761,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       newEvents[i] = events;
       events.forEach(ev => addLog(ev.msg));
 
-      // 移대뱶 ?ъ슜 ???먰뀒瑜??꾩쟻 (?ㅼ젣 ?곸슜? ??醫낅즺 ??
+      // 카드 사용 시 에테르 누적 (실제 적용은 턴 종료 시)
       if (a.actor === 'player') {
         setTurnEtherAccumulated(prev => prev + BASE_ETHER_PER_CARD);
       } else if (a.actor === 'enemy') {
@@ -2851,12 +2777,12 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         return;
       }
       if (E.hp <= 0 && !enemyDefeated) {
-        // 紐ъ뒪??二쎌쓬 ?좊땲硫붿씠??諛??ъ슫??
+        // 몬스터 죽음 애니메이션 및 사운드
         setEnemyHit(true);
         playSound(200, 500);
-        addLog('?? ??泥섏튂! ?⑥? ???됰룞 嫄대꼫?곌린');
+        addLog('💀 적 처치! 남은 적 행동 건너뛰기');
         enemyDefeated = true;
-        // 怨꾩냽 吏꾪뻾 (?뚮젅?댁뼱???⑥? ?됰룞 泥섎━)
+        // 계속 진행 (플레이어의 남은 행동 처리)
       }
     }
     setPlayer(prev => ({ ...prev, hp: P.hp, def: P.def, block: P.block, counter: P.counter, vulnMult: P.vulnMult || 1 }));
@@ -2864,20 +2790,20 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     setActionEvents(prev => ({ ...prev, ...newEvents }));
     setQIndex(queue.length);
 
-    // ??꾨씪???꾨즺 ???먰뀒瑜?怨꾩궛 ?좊땲硫붿씠???쒖옉
+    // 타임라인 완료 후 에테르 계산 애니메이션 시작
     if (turnEtherAccumulated > 0) {
       const pCombo = detectPokerCombo(selected);
       const playerComboMult = pCombo ? (COMBO_MULTIPLIERS[pCombo.name] || 1) : 1;
       const playerBeforeDeflation = Math.round(turnEtherAccumulated * playerComboMult);
 
-      // ?뷀뵆?덉씠???곸슜
+      // 디플레이션 적용
       const playerDeflation = pCombo?.name
         ? applyEtherDeflation(playerBeforeDeflation, pCombo.name, player.comboUsageCount || {})
         : { gain: playerBeforeDeflation, multiplier: 1, usageCount: 0 };
 
       const playerFinalEther = playerDeflation.gain;
 
-      console.log('[runAll ?좊땲硫붿씠??', {
+      console.log('[runAll 애니메이션]', {
         turnEtherAccumulated,
         comboName: pCombo?.name,
         playerComboMult,
@@ -2888,18 +2814,24 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         selectedCards: selected.length
       });
 
-      // 1?④퀎: ?⑷퀎 媛뺤“
+      // 1단계: 합계 강조
       setEtherCalcPhase('sum');
       setTimeout(() => {
-        // 2?④퀎: 怨깆뀍 媛뺤“ + 紐낆풄???ъ슫??        setEtherCalcPhase('multiply');
-        playSound(800, 100); // 紐낆풄???ъ슫??        setTimeout(() => {
-          // 3?④퀎: ?뷀뵆?덉씠??諛곗? ?좊땲硫붿씠??+ ????ъ슫??          if (playerDeflation.usageCount > 0) {
+        // 2단계: 곱셈 강조 + 명쾌한 사운드
+        setEtherCalcPhase('multiply');
+        playSound(800, 100); // 명쾌한 사운드
+        setTimeout(() => {
+          // 3단계: 디플레이션 배지 애니메이션 + 저음 사운드
+          if (playerDeflation.usageCount > 0) {
             setEtherCalcPhase('deflation');
-            playSound(200, 150); // ????ъ슫??          }
+            playSound(200, 150); // 저음 사운드
+          }
           setTimeout(() => {
-            // 4?④퀎: 理쒖쥌媛??쒖떆 + 臾듭쭅???ъ슫??            setEtherCalcPhase('result');
-            // 理쒖쥌媛믪? finishTurn?먯꽌 ?ㅼ젙??(?좊땲硫붿씠???쒖젏??媛믪? 遺?뺥솗)
-            playSound(400, 200); // 臾듭쭅???ъ슫??          }, playerDeflation.usageCount > 0 ? 400 : 0);
+            // 4단계: 최종값 표시 + 묵직한 사운드
+            setEtherCalcPhase('result');
+            // 최종값은 finishTurn에서 설정됨 (애니메이션 시점의 값은 부정확)
+            playSound(400, 200); // 묵직한 사운드
+          }, playerDeflation.usageCount > 0 ? 400 : 0);
         }, 600);
       }, 400);
     }
@@ -2909,17 +2841,17 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
   const playerTimeline = useMemo(() => {
     if (phase === 'select') {
-      // ?꾩옱 ?좏깮??移대뱶?ㅼ쓽 議고빀 媛먯?
+      // 현재 선택된 카드들의 조합 감지
       const currentCombo = detectPokerCombo(selected);
       const comboCardCosts = new Set();
       if (currentCombo?.bonusKeys) {
         currentCombo.bonusKeys.forEach(cost => comboCardCosts.add(cost));
       }
-      const isFlush = currentCombo?.name === '플러시';
+      const isFlush = currentCombo?.name === '플러쉬';
 
       let ps = 0;
       return selected.map((c, idx) => {
-        // 移대뱶媛 議고빀???ы븿?섎뒗吏 ?뺤씤
+        // 카드가 조합에 포함되는지 확인
         const isInCombo = isFlush || comboCardCosts.has(c.actionCost);
         const usageCount = player.comboUsageCount?.[c.id] || 0;
         const enhancedCard = applyTraitModifiers(c, {
@@ -2936,7 +2868,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   }, [phase, selected, fixedOrder, queue, player.comboUsageCount]);
 
   const enemyTimeline = useMemo(() => {
-    // ?좏깮 ?④퀎?먯꽌???듭같???놁쑝硫?????꾨씪?몄쓣 ?④릿??
+    // 선택 단계에서는 통찰이 없으면 적 타임라인을 숨긴다
     if (phase === 'select') {
       const actions = enemyPlan.actions || [];
       if (!actions.length) return [];
@@ -2954,7 +2886,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     return [];
   }, [phase, fixedOrder, queue, enemyPlan.actions, insightReveal]);
 
-  if (!enemy) return <div className="text-white p-4">로딩 중...</div>;
+  if (!enemy) return <div className="text-white p-4">로딩…</div>;
 
   const handDisabled = (c) => (
     selected.length >= MAX_SUBMIT_CARDS ||
@@ -2982,7 +2914,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     (phase === 'respond' && insightVisible && insightLevelSelect >= 1) ||
     phase === 'resolve';
   const enemyOverdriveVisible = canRevealOverdrive && (enemyWillOverdrivePlan || enemy?.etherOverdriveActive);
-  const enemyOverdriveLabel = enemy?.etherOverdriveActive ? '湲곗썝 諛쒕룞' : '湲곗썝 ?덉젙';
+  const enemyOverdriveLabel = enemy?.etherOverdriveActive ? '기원 발동' : '기원 예정';
   const rawNetDelta = (phase === 'resolve' && etherFinalValue !== null && enemyEtherFinalValue !== null)
     ? (etherFinalValue - enemyEtherFinalValue)
     : null;
@@ -2993,26 +2925,26 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const enemyCapacity = enemy?.etherCapacity ?? Math.max(enemyEtherValue, 1);
   const enemySoulScale = Math.max(0.4, Math.min(1.3, enemyCapacity > 0 ? enemyEtherValue / enemyCapacity : 1));
 
-  // ?먰뀒瑜??띾뱷??誘몃━蹂닿린 怨꾩궛
+  // 에테르 획득량 미리보기 계산
   const previewEtherGain = useMemo(() => {
     if (playerTimeline.length === 0) return 0;
 
-    // 패시브 릴릭으로 카드당 기본 획득량 보정
+    // 희귀한 조약돌 효과 적용된 카드당 에테르
     const passiveRelicEffects = calculatePassiveEffects(orderedRelicList);
     const etherPerCard = Math.floor(BASE_ETHER_PER_CARD * passiveRelicEffects.etherMultiplier);
     const totalEtherPts = playerTimeline.length * etherPerCard;
 
-    // 議고빀 諛곗쑉 怨꾩궛 (selected 湲곗??쇰줈 議고빀 媛먯?)
+    // 조합 배율 계산 (selected 기준으로 조합 감지)
     const pCombo = detectPokerCombo(selected);
     const basePlayerComboMult = pCombo ? (COMBO_MULTIPLIERS[pCombo.name] || 1) : 1;
-    // 誘몃━蹂닿린?먯꽌???좊Ъ 諛곗쑉 ?쒖쇅 (?쒖닔 議고빀 諛곗쑉留?
+    // 미리보기에서는 유물 배율 제외 (순수 조합 배율만)
     const playerComboMult = basePlayerComboMult;
     let playerBeforeDeflation = Math.round(totalEtherPts * playerComboMult);
 
-    // ?좊Ъ ?④낵 ?곸슜 (李멸퀬?? ?낅쭏??二쇱궗??- ?ш???議곗빟?뚯? ?대? ?곸슜??
-    playerBeforeDeflation = calcEtherGainNoDevil(playerBeforeDeflation, playerTimeline.length);
+    // 유물 효과 적용 (참고서, 악마의 주사위 - 희귀한 조약돌은 이미 적용됨)
+    playerBeforeDeflation = calculateRelicEtherGain(playerBeforeDeflation, playerTimeline.length, orderedRelicList);
 
-    // ?뷀뵆?덉씠???곸슜
+    // 디플레이션 적용
     const playerDeflation = pCombo?.name
       ? applyEtherDeflation(playerBeforeDeflation, pCombo.name, player.comboUsageCount || {})
       : { gain: playerBeforeDeflation, multiplier: 1, usageCount: 0 };
@@ -3020,18 +2952,18 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     return playerDeflation.gain;
   }, [playerTimeline, selected, relics, player.comboUsageCount]);
 
-  // ??議고빀 媛먯? (?쒖떆??
+  // 적 조합 감지 (표시용)
   const enemyCombo = useMemo(() => detectPokerCombo(enemyPlan.actions || []), [enemyPlan.actions]);
 
-  // 적 모드 힌트 추출
+  // 적 성향 힌트 추출
   const enemyHint = useMemo(() => {
-    const hintLog = log.find(line => line.includes('적 모드 힌트'));
+    const hintLog = log.find(line => line.includes('적 성향 힌트'));
     if (!hintLog) return null;
-    const match = hintLog.match(/적 모드 힌트[:\s]*(.+)/);
+    const match = hintLog.match(/적 성향 힌트[:\s]*(.+)/);
     return match ? match[1].trim() : null;
   }, [log]);
 
-  // ?덉긽 ?쇳빐??怨꾩궛 諛??ъ슫??
+  // 예상 피해량 계산 및 사운드
   useEffect(() => {
     if (!(phase === 'select' || phase === 'respond') || !enemy) {
       setPreviewDamage({ value: 0, lethal: false, overkill: false });
@@ -3073,7 +3005,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
   return (
     <div className="legacy-battle-root w-full min-h-screen pb-64">
-      {/* ?덉긽 ?쇳빐??- ?ㅻⅨ履?怨좎젙 ?⑤꼸 */}
+      {/* 예상 피해량 - 오른쪽 고정 패널 */}
       <div className="expect-sidebar-fixed">
         <ExpectedDamagePreview
           player={player}
@@ -3099,10 +3031,10 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         />
       </div>
 
-      {/* ?곷떒 硫붿씤 ?곸뿭 */}
+      {/* 상단 메인 영역 */}
       <div className="w-full px-4" style={{ marginRight: '280px', marginLeft: '150px' }}>
 
-        {/* ?좊Ъ ?쒖떆 */}
+        {/* 유물 표시 */}
         {orderedRelicList && orderedRelicList.length > 0 && (
           <div style={{
             display: 'flex',
@@ -3128,22 +3060,22 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
                 const isActivated = relicActivated === relicId || activeRelicSet.has(relicId);
                 const isHovered = hoveredRelic === relicId;
-                // 吏??媛뺤“ ?쒖쇅 ??? ?먰뀒瑜?寃곗젙/?낅쭏??二쇱궗???ш???議곗빟??etherCardMultiplier)
+                // 지속 강조 제외 대상: 에테르 결정/악마의 주사위/희귀한 조약돌(etherCardMultiplier)
                 const isPersistent = (relic.effects?.type === 'PASSIVE'
                   && relicId !== 'etherGem'
                   && relicId !== 'devilDice'
-                  && relicId !== 'rareStone' // ?ш???議곗빟?뚯? ?곸떆 媛뺤“ ?쒖쇅
+                  && relicId !== 'rareStone' // 희귀한 조약돌은 상시 강조 제외
                   && !relic.effects?.etherCardMultiplier
                   && !relic.effects?.etherMultiplier)
-                  || relic.effects?.type === 'ON_TURN_START' // ?쇳뵾??媛묒샆
-                  || relicId === 'bloodShackles'; // ?쇱쓽 議깆뇙 - ?꾪닾 以?吏??媛뺤“
+                  || relic.effects?.type === 'ON_TURN_START' // 피피한 갑옷
+                  || relicId === 'bloodShackles'; // 피의 족쇄 - 전투 중 지속 강조
                 const isHighlighted = isPersistent || isActivated;
                 const rarityText = {
-                  [RELIC_RARITIES.COMMON]: '?쇰컲',
-                  [RELIC_RARITIES.RARE]: '?ш?',
-                  [RELIC_RARITIES.SPECIAL]: '?밸퀎',
-                  [RELIC_RARITIES.LEGENDARY]: '?꾩꽕'
-                }[relic.rarity] || '?????놁쓬';
+                  [RELIC_RARITIES.COMMON]: '일반',
+                  [RELIC_RARITIES.RARE]: '희귀',
+                  [RELIC_RARITIES.SPECIAL]: '특별',
+                  [RELIC_RARITIES.LEGENDARY]: '전설'
+                }[relic.rarity] || '알 수 없음';
 
                 return (
                   <div
@@ -3153,7 +3085,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                     onDragStart={handleRelicDragStart(index, relicId)}
                     onDragOver={handleRelicDragOver}
                     onDrop={handleRelicDrop(index)}
-                    onMouseDown={() => setRelicActivated(prev => prev === relicId ? null : relicId)} // ?대┃ ???좉?
+                    onMouseDown={() => setRelicActivated(prev => prev === relicId ? null : relicId)} // 클릭 시 토글
                   >
                     <div
                       onMouseEnter={() => setHoveredRelic(relicId)}
@@ -3177,7 +3109,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                       <span>{relic.emoji}</span>
                     </div>
 
-                    {/* 媛쒕퀎 ?댄똻 */}
+                    {/* 개별 툴팁 */}
                     {isHovered && (
                       <div style={{
                         position: 'absolute',
@@ -3213,7 +3145,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
           </div>
         )}
 
-        {/* Timeline - 1以?湲멸쾶 (?붾㈃ 媛?? */}
+        {/* Timeline - 1줄 길게 (화면 가득) */}
         <div style={{ marginBottom: '32px' }}>
           <div className="panel-enhanced timeline-panel">
             <div className="timeline-body" style={{ marginTop: '0' }}>
@@ -3222,7 +3154,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                   <span key={tick}>{tick}</span>
                 ))}
               </div>
-              {/* ??꾨씪??progress indicator (?쒓퀣諛붾뒛) */}
+              {/* 타임라인 progress indicator (시곗바늘) */}
               {phase === 'resolve' && (
                 <div
                   className="timeline-progress-indicator"
@@ -3262,7 +3194,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                     gap: '8px',
                     alignItems: 'center'
                   }}>
-                    <span role="img" aria-label="overdrive">⚡</span> {enemyOverdriveLabel}
+                    <span role="img" aria-label="overdrive">✨</span> {enemyOverdriveLabel}
                   </div>
                 )}
                 <div className="timeline-lane player-lane">
@@ -3279,11 +3211,11 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                       : a.card.type === 'defense'
                       ? (a.card.block || 0) + strengthBonus
                       : 0;
-                    // ??꾨씪?몄뿉???꾩옱 吏꾪뻾 以묒씤 ?≪뀡?몄? ?뺤씤
+                    // 타임라인에서 현재 진행 중인 액션인지 확인
                     const globalIndex = phase === 'resolve' && queue ? queue.findIndex(q => q === a) : -1;
                     const isExecuting = executingCardIndex === globalIndex;
                     const isUsed = usedCardIndices.includes(globalIndex) && globalIndex < qIndex;
-                    // ?뺢퇋?? player???띾룄瑜?鍮꾩쑉濡?蹂?섑븯???쒖떆
+                    // 정규화: player의 속도를 비율로 변환하여 표시
                     const normalizedPosition = (a.sp / player.maxSpeed) * 100;
                     return (
                       <div key={idx}
@@ -3305,11 +3237,11 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                     const sameCount = enemyTimeline.filter((q, i) => i < idx && q.sp === a.sp).length;
                     const offset = sameCount * 28;
                     const num = a.card.type === 'attack' ? (a.card.damage * (a.card.hits || 1)) : (a.card.block || 0);
-                    // ??꾨씪?몄뿉???꾩옱 吏꾪뻾 以묒씤 ?≪뀡?몄? ?뺤씤
+                    // 타임라인에서 현재 진행 중인 액션인지 확인
                     const globalIndex = phase === 'resolve' && queue ? queue.findIndex(q => q === a) : -1;
                     const isExecuting = executingCardIndex === globalIndex;
                     const isUsed = usedCardIndices.includes(globalIndex) && globalIndex < qIndex;
-                    // ?뺢퇋?? enemy???띾룄瑜?鍮꾩쑉濡?蹂?섑븯???쒖떆
+                    // 정규화: enemy의 속도를 비율로 변환하여 표시
                     const normalizedPosition = (a.sp / enemy.maxSpeed) * 100;
                     const levelForTooltip = phase === 'select' ? (insightReveal?.level || 0) : (effectiveInsight || 0);
                     const canShowTooltip = levelForTooltip >= 3;
@@ -3339,7 +3271,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                       >
                         <div className="marker-content">
                           <Icon size={14} className="text-white" />
-                          {canShowTooltip && <span className="insight-eye-badge">👁</span>}
+                          {canShowTooltip && <span className="insight-eye-badge">👁️</span>}
                           <span className="text-white text-xs font-bold">{num > 0 ? num : ''}</span>
                         </div>
                       </div>
@@ -3351,7 +3283,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
           </div>
         </div>
 
-        {/* ?뚮젅?댁뼱/???뺣낫 + 以묒븰 ?뺣낫 ?듯빀 ?덉씠?꾩썐 */}
+        {/* 플레이어/적 정보 + 중앙 정보 통합 레이아웃 */}
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '50px', gap: '120px', position: 'relative' }}>
           {phase === 'resolve' && etherFinalValue !== null && enemyEtherFinalValue !== null && (
             <div style={{
@@ -3398,7 +3330,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                 minWidth: '130px',
                 textAlign: 'center'
               }}>
-                ? {netFinalEther.toLocaleString()} P T
+                Δ {netFinalEther.toLocaleString()} P T
               </div>
               <div style={{ width: '96px', height: '2px', background: 'linear-gradient(90deg, rgba(125,211,252,0.8), rgba(125,211,252,0.0))', boxShadow: '0 0 10px rgba(125,211,252,0.35)' }} />
               <div style={{
@@ -3419,9 +3351,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
               </div>
             </div>
           )}
-          {/* ?쇱そ: ?뚮젅?댁뼱 */}
+          {/* 왼쪽: 플레이어 */}
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '12px', minWidth: '360px', position: 'relative', justifyContent: 'center' }}>
-            {/* ?뚮젅?댁뼱 肄ㅻ낫 - ?덈? ?꾩튂濡??ㅻⅨ履?諛곗튂 */}
+            {/* 플레이어 콤보 - 절대 위치로 오른쪽 배치 */}
             {currentCombo && (phase === 'select' || phase === 'respond' || phase === 'resolve') && (
               <div className="combo-display" style={{ position: 'absolute', top: '-5px', left: '90px', textAlign: 'center', minHeight: '140px' }}>
                 <div style={{
@@ -3464,7 +3396,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                   letterSpacing: '0.2em',
                   marginBottom: '2px',
                   transition: 'font-size 0.3s ease, transform 0.3s ease',
-                  transform: (etherPulse || multiplierPulse) ? 'scale(1.2)' : (etherCalcPhase === 'sum' ? 'scale(1.3)' : 'scale(1)'),
+                  transform: etherPulse ? 'scale(1.2)' : (etherCalcPhase === 'sum' ? 'scale(1.3)' : 'scale(1)'),
                   textShadow: etherCalcPhase === 'sum' ? '0 0 20px #fbbf24' : 'none',
                   visibility: phase === 'resolve' ? 'visible' : 'hidden',
                   height: '1.8rem'
@@ -3484,10 +3416,10 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                   alignItems: 'center',
                   gap: '12px',
                   transition: 'font-size 0.3s ease, transform 0.3s ease',
-                  transform: (etherCalcPhase === 'multiply' || multiplierPulse) ? 'scale(1.2)' : (etherCalcPhase === 'multiply' ? 'scale(1.3)' : 'scale(1)'),
+                  transform: etherCalcPhase === 'multiply' ? 'scale(1.3)' : 'scale(1)',
                   textShadow: etherCalcPhase === 'multiply' ? '0 0 20px #fbbf24' : 'none'
                 }}>
-                  <span>횞 {displayComboMultiplier.toFixed(2).split('').join(' ')}</span>
+                  <span>× {finalComboMultiplier.toFixed(2).split('').join(' ')}</span>
                 </div>
               </div>
             )}
@@ -3502,11 +3434,11 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
               />
               <div style={{ position: 'relative' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <div className={`character-display ${playerOverdriveFlash ? 'overdrive-burst' : ''}`} style={{ fontSize: '64px' }}>🧙</div>
+                    <div className={`character-display ${playerOverdriveFlash ? 'overdrive-burst' : ''}`} style={{ fontSize: '64px' }}>🧙‍♂️</div>
                   <div>
                     <div className={playerHit ? 'hit-animation' : ''} style={{ color: '#f87171', fontSize: '1.25rem', fontWeight: 'bold' }}>
-                      체력 {player.hp}/{player.maxHp}
-                      {player.block > 0 && <span className={playerBlockAnim ? 'block-animation' : ''} style={{ color: '#60a5fa', marginLeft: '8px' }}>🛡️ {player.block}</span>}
+                      ❤️ {player.hp}/{player.maxHp}
+                      {player.block > 0 && <span className={playerBlockAnim ? 'block-animation' : ''} style={{ color: '#60a5fa', marginLeft: '8px' }}>🛡️{player.block}</span>}
                     </div>
                     <div style={{ position: 'relative' }}>
                       <div className="hp-bar-enhanced mb-1" style={{ width: '200px', height: '12px', position: 'relative', overflow: 'hidden' }}>
@@ -3527,12 +3459,12 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                     <div style={{ fontSize: '1rem', fontWeight: '600', color: '#7dd3fc', marginTop: '4px' }}>플레이어</div>
                     {(player.strength || 0) > 0 && (
                       <div style={{ fontSize: '0.9rem', fontWeight: '700', color: '#fbbf24', marginTop: '2px' }}>
-                        힘 + {player.strength || 0}
+                        💪 힘: {player.strength || 0}
                       </div>
                     )}
                     {playerAgility !== 0 && (
                       <div style={{ fontSize: '0.9rem', fontWeight: '700', color: playerAgility > 0 ? '#34d399' : '#ef4444', marginTop: '2px' }}>
-                        민첩: {playerAgility}
+                        ⚡ 민첩: {playerAgility}
                       </div>
                     )}
                     {(player.insight || 0) > 0 && (
@@ -3541,7 +3473,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                         onMouseEnter={() => setShowInsightTooltip(true)}
                         onMouseLeave={() => setShowInsightTooltip(false)}
                       >
-                        통찰 레벨: {player.insight || 0}
+                        👁️ 통찰: {player.insight || 0}
                         {showInsightTooltip && (
                           <div className="insight-tooltip">
                             <div className="insight-tooltip-title">통찰 Lv.{insightReveal?.level || 0}</div>
@@ -3552,9 +3484,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                               <>
                                 {insightReveal.level === 1 && (
                                   <div className="insight-tooltip-desc">
-                                    예정 행동 {insightReveal.cardCount}장<br />
+                                    적 행동 {insightReveal.cardCount}개<br />
                                     순서: {insightReveal.actions.map((a, i) =>
-                                      a.isFirst ? '첫 번째' : a.isLast ? '마지막' : `${i + 1}번째`
+                                      a.isFirst ? '첫번째' : a.isLast ? '마지막' : `${i + 1}번째`
                                     ).join(', ')}
                                   </div>
                                 )}
@@ -3562,7 +3494,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                                   <div className="insight-tooltip-desc">
                                     {insightReveal.actions.map((a, i) => (
                                       <div key={i}>
-                                        #{i + 1} {a.card?.name || '알 수 없음'} · 속도 {a.speed}
+                                        #{i + 1} {a.card?.name || '???'} · ⏱️ {a.speed}
                                       </div>
                                     ))}
                                   </div>
@@ -3571,12 +3503,12 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                                   <div className="insight-tooltip-desc">
                                     {insightReveal.actions.map((a, i) => (
                                       <div key={i} style={{ marginBottom: '4px' }}>
-                                        <div>#{i + 1} {a.card?.name || '???'} 쨌 ?깍툘 {a.speed}</div>
+                                        <div>#{i + 1} {a.card?.name || '???'} · ⏱️ {a.speed}</div>
                                         {(a.card?.damage || a.card?.block) && (
                                           <div style={{ fontSize: '0.78rem', color: '#cbd5e1' }}>
-                                            {a.card.damage ? `?뷂툘 ${a.card.damage}${a.card.hits ? ` x${a.card.hits}` : ''}` : ''}
+                                            {a.card.damage ? `⚔️ ${a.card.damage}${a.card.hits ? ` x${a.card.hits}` : ''}` : ''}
                                             {a.card.damage && a.card.block ? ' / ' : ''}
-                                            {a.card.block ? `?썳截?${a.card.block}` : ''}
+                                            {a.card.block ? `🛡️ ${a.card.block}` : ''}
                                           </div>
                                         )}
                                       </div>
@@ -3586,7 +3518,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                               </>
                             )}
                             {(!insightReveal?.visible || phase !== 'select') && (
-                              <div className="insight-tooltip-desc">?좏깮 ?④퀎?먯꽌 ????꾨씪???뺣낫瑜??뺤씤?????덉뒿?덈떎.</div>
+                              <div className="insight-tooltip-desc">선택 단계에서 적 타임라인 정보를 확인할 수 있습니다.</div>
                             )}
                           </div>
                         )}
@@ -3594,7 +3526,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                     )}
                     {player.etherOverflow > 0 && (
                       <div style={{ fontSize: '0.85rem', fontWeight: '700', color: '#a78bfa', marginTop: '2px' }}>
-                        ?뙄 踰붾엺: {player.etherOverflow} PT
+                        🌊 범람: {player.etherOverflow} PT
                       </div>
                     )}
                   </div>
@@ -3603,36 +3535,36 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
             </div>
           </div>
 
-          {/* 以묒븰: ?④퀎 ?뺣낫 */}
+          {/* 중앙: 단계 정보 */}
           <div style={{ textAlign: 'center', flex: '1', paddingTop: '20px' }}>
             <div style={{ fontSize: '36px', fontWeight: 'bold', color: '#f8fafc', textShadow: '0 2px 8px rgba(0,0,0,0.5)', marginBottom: '16px' }}>
-              {phase === 'select' ? '?좏깮 ?④퀎' : phase === 'respond' ? '????④퀎' : '吏꾪뻾 ?④퀎'}
+              {phase === 'select' ? '선택 단계' : phase === 'respond' ? '대응 단계' : '진행 단계'}
             </div>
             <div style={{ fontSize: '1.25rem', fontWeight: '700', color: '#7dd3fc', marginBottom: '12px' }}>
-              ?띾룄 {totalSpeed}/{MAX_SPEED} 쨌 ?좏깮 {selected.length}/{MAX_SUBMIT_CARDS}
+              속도 {totalSpeed}/{MAX_SPEED} · 선택 {selected.length}/{MAX_SUBMIT_CARDS}
             </div>
 
-            {/* 踰꾪듉??- ?띾룄/?좏깮 ?띿뒪???섎떒 */}
+            {/* 버튼들 - 속도/선택 텍스트 하단 */}
             {phase === 'select' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'center', marginTop: '16px' }}>
                 <button onClick={redrawHand} disabled={!canRedraw} className="btn-enhanced flex items-center gap-2" style={{ fontSize: '1rem', padding: '8px 20px', minWidth: '200px' }}>
-                  <RefreshCw size={18} /> 由щ뱶濡쒖슦 (R)
+                  <RefreshCw size={18} /> 리드로우 (R)
                 </button>
                 <button onClick={() => { startResolve(); playSound(900, 120); }} disabled={selected.length === 0} className="btn-enhanced btn-primary flex items-center gap-2" style={{ fontSize: '1.25rem', padding: '9.6px 24px', fontWeight: '700', minWidth: '200px' }}>
-                  <Play size={22} /> ?쒖텧 <span style={{ fontSize: '1.4rem', fontWeight: '900' }}>(E)</span>
+                  <Play size={22} /> 제출 <span style={{ fontSize: '1.4rem', fontWeight: '900' }}>(E)</span>
                 </button>
                 <button onClick={() => setWillOverdrive(v => !v)}
                   disabled={etherSlots(player.etherPts) <= 0}
                   className={`btn-enhanced ${willOverdrive ? 'btn-primary' : ''} flex items-center gap-2`}
                   style={{ fontSize: '1rem', padding: '8px 20px', minWidth: '200px' }}>
-                  ??湲곗썝 {willOverdrive ? 'ON' : 'OFF'} (Space)
+                  ✨ 기원 {willOverdrive ? 'ON' : 'OFF'} (Space)
                 </button>
               </div>
             )}
             {phase === 'respond' && (
               <div style={{ display: 'flex', justifyContent: 'center', marginTop: '16px' }}>
                 <button onClick={beginResolveFromRespond} className="btn-enhanced btn-success flex items-center gap-2" style={{ fontSize: '1.25rem', padding: '9.6px 24px', fontWeight: '700', minWidth: '200px' }}>
-                  <Play size={22} /> 吏꾪뻾 ?쒖옉 <span style={{ fontSize: '1.4rem', fontWeight: '900' }}>(E)</span>
+                  <Play size={22} /> 진행 시작 <span style={{ fontSize: '1.4rem', fontWeight: '900' }}>(E)</span>
                 </button>
               </div>
             )}
@@ -3644,9 +3576,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                   style={{ fontSize: '1.25rem', padding: '12px 24px', fontWeight: '700', minWidth: '200px' }}
                 >
                   {autoProgress ? (
-                    <>?몌툘 吏꾪뻾 以묒? <span style={{ fontSize: '1.4rem', fontWeight: '900' }}>(E)</span></>
+                    <>⏸️ 진행 중지 <span style={{ fontSize: '1.4rem', fontWeight: '900' }}>(E)</span></>
                   ) : (
-                    <>?띰툘 吏꾪뻾 <span style={{ fontSize: '1.4rem', fontWeight: '900' }}>(E)</span></>
+                    <>▶️ 진행 <span style={{ fontSize: '1.4rem', fontWeight: '900' }}>(E)</span></>
                   )}
                 </button>
               </div>
@@ -3654,26 +3586,26 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
             {phase === 'resolve' && qIndex >= queue.length && etherFinalValue !== null && (
               <div style={{ display: 'flex', justifyContent: 'center', marginTop: '16px' }}>
                 {enemy.hp <= 0 ? (
-                  <button onClick={() => finishTurn('?꾪닾 ?밸━')} className="btn-enhanced btn-success flex items-center gap-2" style={{ fontSize: '1.25rem', padding: '12px 24px', fontWeight: '700', minWidth: '200px' }}>
-                    ?럦 ?꾪닾 醫낅즺 <span style={{ fontSize: '1.4rem', fontWeight: '900' }}>(E)</span>
+                  <button onClick={() => finishTurn('전투 승리')} className="btn-enhanced btn-success flex items-center gap-2" style={{ fontSize: '1.25rem', padding: '12px 24px', fontWeight: '700', minWidth: '200px' }}>
+                    🎉 전투 종료 <span style={{ fontSize: '1.4rem', fontWeight: '900' }}>(E)</span>
                   </button>
                 ) : (
-                  <button onClick={() => finishTurn('?섎룞 ??醫낅즺')} className="btn-enhanced btn-primary flex items-center gap-2" style={{ fontSize: '1.25rem', padding: '12px 24px', fontWeight: '700', minWidth: '200px' }}>
-                    ??툘 ??醫낅즺 <span style={{ fontSize: '1.4rem', fontWeight: '900' }}>(E)</span>
+                  <button onClick={() => finishTurn('수동 턴 종료')} className="btn-enhanced btn-primary flex items-center gap-2" style={{ fontSize: '1.25rem', padding: '12px 24px', fontWeight: '700', minWidth: '200px' }}>
+                    ⏭️ 턴 종료 <span style={{ fontSize: '1.4rem', fontWeight: '900' }}>(E)</span>
                   </button>
                 )}
               </div>
             )}
           </div>
 
-          {/* ?ㅻⅨ履? ??*/}
+          {/* 오른쪽: 적 */}
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '12px', minWidth: '360px', position: 'relative', justifyContent: 'center', paddingTop: '120px' }}>
             {soulShatter && (
               <div className="soul-shatter-banner">
-                <div className="soul-shatter-text">?곹샎?뚭눼!</div>
+                <div className="soul-shatter-text">영혼파괴!</div>
               </div>
             )}
-            {/* 紐ъ뒪??肄ㅻ낫 + ?먰뀒瑜?怨꾩궛 - ?덈? ?꾩튂濡??쇱そ 諛곗튂 */}
+            {/* 몬스터 콤보 + 에테르 계산 - 절대 위치로 왼쪽 배치 */}
                 {enemyCombo && !((phase === 'select') && ((insightReveal?.level || 0) === 0)) && (phase === 'select' || phase === 'respond' || phase === 'resolve') && (
                   <div className="combo-display" style={{ position: 'absolute', top: '-5px', right: '90px', textAlign: 'center', minHeight: '140px' }}>
                     <div style={{
@@ -3739,7 +3671,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                       transform: enemyEtherCalcPhase === 'multiply' ? 'scale(1.3)' : 'scale(1)',
                       textShadow: enemyEtherCalcPhase === 'multiply' ? '0 0 20px #fbbf24' : 'none'
                     }}>
-                      <span>횞 {((enemyCombo && COMBO_MULTIPLIERS[enemyCombo.name]) || 1).toFixed(2).split('').join(' ')}</span>
+                      <span>× {((enemyCombo && COMBO_MULTIPLIERS[enemyCombo.name]) || 1).toFixed(2).split('').join(' ')}</span>
                     </div>
                   </div>
                 )}
@@ -3747,23 +3679,23 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
               <div style={{ textAlign: 'right', position: 'relative', paddingRight: '8px' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
                   {enemyHint && (
-                    <div style={{ fontSize: '1rem', color: '#94a3b8', marginBottom: '4px' }}>힌트 {enemyHint}</div>
+                    <div style={{ fontSize: '1rem', color: '#94a3b8', marginBottom: '4px' }}>💡 {enemyHint}</div>
                   )}
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                     <div style={{ position: 'relative' }}>
                       {(phase === 'select' || phase === 'respond') && previewDamage.value > 0 && (
                         <div className={`predicted-damage-inline ${previewDamage.lethal ? 'lethal' : ''} ${previewDamage.overkill ? 'overkill' : ''}`}>
-                          <span className="predicted-damage-inline-value">피해 -{previewDamage.value}</span>
+                          <span className="predicted-damage-inline-value">🗡️ -{previewDamage.value}</span>
                           {previewDamage.lethal && (
                             <span className={`predicted-damage-inline-icon ${previewDamage.overkill ? 'overkill-icon' : ''}`} aria-hidden="true">
-                              {previewDamage.overkill ? '과잉' : '!'}
+                              {previewDamage.overkill ? '☠️' : '💀'}
                             </span>
                           )}
                         </div>
                       )}
                       <div className={enemyHit ? 'hit-animation' : ''} style={{ color: '#f87171', fontSize: '1.25rem', fontWeight: 'bold', textAlign: 'right', transition: 'opacity 0.4s ease, transform 0.4s ease', opacity: soulShatter ? 0 : 1, transform: soulShatter ? 'scale(0.9)' : 'scale(1)' }}>
-                        {enemy.block > 0 && <span className={enemyBlockAnim ? 'block-animation' : ''} style={{ color: '#60a5fa', marginRight: '8px' }}>🛡️ {enemy.block}</span>}
-                        체력 {enemy.hp}/{enemy.maxHp}
+                        {enemy.block > 0 && <span className={enemyBlockAnim ? 'block-animation' : ''} style={{ color: '#60a5fa', marginRight: '8px' }}>🛡️{enemy.block}</span>}
+                        ❤️ {enemy.hp}/{enemy.maxHp}
                       </div>
                       <div className="hp-bar-enhanced mb-1" style={{ width: '200px', height: '12px', position: 'relative', overflow: 'hidden' }}>
                         <div className="hp-fill" style={{ width: `${(enemy.hp / enemy.maxHp) * 100}%` }}></div>
@@ -3783,7 +3715,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                         {enemy.name}
                       </div>
                     </div>
-                    <div className={`character-display ${soulShatter ? 'soul-shatter-target' : ''} ${enemyOverdriveFlash ? 'overdrive-burst' : ''}`} style={{ fontSize: '64px' }}>👾</div>
+                    <div className={`character-display ${soulShatter ? 'soul-shatter-target' : ''} ${enemyOverdriveFlash ? 'overdrive-burst' : ''}`} style={{ fontSize: '64px' }}>👹</div>
                   </div>
                 </div>
               </div>
@@ -3803,7 +3735,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         </div>
       </div>
 
-      {/* ?낅┰ ?쒕룞???쒖떆 (醫뚯륫 ?섎떒 怨좎젙) */}
+      {/* 독립 활동력 표시 (좌측 하단 고정) */}
       {(phase === 'select' || phase === 'respond' || phase === 'resolve' || (enemy && enemy.hp <= 0) || (player && player.hp <= 0)) && (
         <div className="energy-display-fixed">
           <div className="energy-orb-compact">
@@ -3812,7 +3744,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         </div>
       )}
 
-      {/* 媛꾩냼???뺣젹 踰꾪듉 (?곗륫 ?섎떒 怨좎젙) */}
+      {/* 간소화/정렬 버튼 (우측 하단 고정) */}
       {phase === 'select' && (
         <div className="submit-button-fixed" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           <button onClick={() => {
@@ -3823,40 +3755,40 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
             });
             playSound(500, 60);
           }} className={`btn-enhanced ${isSimplified ? 'btn-primary' : ''} flex items-center gap-2`}>
-            {isSimplified ? '✔️' : '✖️'} 간소화 보기 (Q)
+            {isSimplified ? '📋' : '📄'} 간소화 (Q)
           </button>
           <button onClick={cycleSortType} className="btn-enhanced flex items-center gap-2" style={{ fontSize: '0.9rem' }}>
-            손패 정렬 ({sortType === 'speed' ? '속도' : sortType === 'energy' ? '행동력' : sortType === 'value' ? '가치' : '희귀도'}) (F)
+            🔀 정렬 ({sortType === 'speed' ? '시간' : sortType === 'energy' ? '행동력' : sortType === 'value' ? '밸류' : '종류'}) (F)
           </button>
         </div>
       )}
       {player && player.hp <= 0 && (
         <div className="submit-button-fixed">
           <button onClick={() => window.location.reload()} className="btn-enhanced flex items-center gap-2">
-            게임 재시작
+            🔄 재시작
           </button>
         </div>
       )}
 
-      {/* ?섎떒 怨좎젙 ?먰뙣 ?곸뿭 */}
+      {/* 하단 고정 손패 영역 */}
       {(phase === 'select' || phase === 'respond' || phase === 'resolve' || (enemy && enemy.hp <= 0) || (player && player.hp <= 0)) && (
         <div className="hand-area">
 
           <div className="hand-flags">
             {player && player.hp <= 0 && (
-              <div className="hand-flag defeat">?? ?⑤같...</div>
+              <div className="hand-flag defeat">💀 패배...</div>
             )}
           </div>
 
           {phase === 'select' && (() => {
-            // ?꾩옱 ?좏깮??移대뱶?ㅼ쓽 議고빀 媛먯?
+            // 현재 선택된 카드들의 조합 감지
             const currentCombo = detectPokerCombo(selected);
             const comboCardCosts = new Set();
             if (currentCombo?.bonusKeys) {
               currentCombo.bonusKeys.forEach(cost => comboCardCosts.add(cost));
             }
-            // ?뚮윭?щ뒗 紐⑤뱺 移대뱶媛 議고빀 ???
-            const isFlush = currentCombo?.name === '플러시';
+            // 플러쉬는 모든 카드가 조합 대상
+            const isFlush = currentCombo?.name === '플러쉬';
 
             return (
             <div className="hand-cards">
@@ -3865,7 +3797,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                 const usageCount = player.comboUsageCount?.[c.id] || 0;
                 const selIndex = selected.findIndex(s => s.id === c.id);
                 const sel = selIndex !== -1;
-                // 移대뱶媛 議고빀???ы븿?섎뒗吏 ?뺤씤
+                // 카드가 조합에 포함되는지 확인
                 const isInCombo = sel && (isFlush || comboCardCosts.has(c.actionCost));
                 const enhancedCard = applyTraitModifiers(c, { usageCount, isInCombo });
                 const disabled = handDisabled(c) && !sel;
@@ -3874,7 +3806,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                 const isSubSpecial = currentBuild?.subSpecials?.includes(c.id);
                 const costColor = isMainSpecial ? '#fcd34d' : isSubSpecial ? '#60a5fa' : '#fff';
                 const nameColor = isMainSpecial ? '#fcd34d' : isSubSpecial ? '#7dd3fc' : '#fff';
-                // ?묐룞 ?뱀꽦???덇퀬 議고빀???ы븿??寃쎌슦
+                // 협동 특성이 있고 조합에 포함된 경우
                 const hasCooperation = hasTrait(c, 'cooperation');
                 const cooperationActive = hasCooperation && isInCombo;
                 return (
@@ -3900,16 +3832,16 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                       <div className="card-stats-sidebar">
                         {enhancedCard.damage != null && enhancedCard.damage > 0 && (
                           <div className="card-stat-item attack">
-                            공격 {enhancedCard.damage + (player.strength || 0)}{enhancedCard.hits ? `x${enhancedCard.hits}` : ''}
+                            ⚔️{enhancedCard.damage + (player.strength || 0)}{enhancedCard.hits ? `×${enhancedCard.hits}` : ''}
                           </div>
                         )}
                         {enhancedCard.block != null && enhancedCard.block > 0 && (
                           <div className="card-stat-item defense">
-                            방어 {enhancedCard.block + (player.strength || 0)}
+                            🛡️{enhancedCard.block + (player.strength || 0)}
                           </div>
                         )}
                         <div className="card-stat-item speed">
-                          속도 {enhancedCard.speedCost}
+                          ⏱️{enhancedCard.speedCost}
                         </div>
                       </div>
                       <div className="card-header">
@@ -3979,16 +3911,16 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                       <div className="card-stats-sidebar">
                         {c.damage != null && c.damage > 0 && (
                           <div className="card-stat-item attack">
-                            공격 {c.damage + (player.strength || 0)}{c.hits ? `x${c.hits}` : ''}
+                            ⚔️{c.damage + (player.strength || 0)}{c.hits ? `×${c.hits}` : ''}
                           </div>
                         )}
                         {c.block != null && c.block > 0 && (
                           <div className="card-stat-item defense">
-                            방어 {c.block + (player.strength || 0)}
+                            🛡️{c.block + (player.strength || 0)}
                           </div>
                         )}
                         <div className="card-stat-item speed">
-                          속도 {c.speedCost}
+                          ⏱️{c.speedCost}
                         </div>
                       </div>
                       <div className="card-header">
@@ -4030,7 +3962,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                           const enemyActions = fixedOrder.filter(a => a.actor === 'enemy');
                           setFixedOrder(sortCombinedOrderStablePF(newPlayerActions.map(a => a.card), enemyActions.map(a => a.card), playerAgility, 0));
                         }} className="btn-enhanced text-xs" style={{ padding: '4px 12px' }}>
-                          ??
+                          ←
                         </button>
                       )}
                       {idx < arr.length - 1 && (
@@ -4041,7 +3973,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                           const enemyActions = fixedOrder.filter(a => a.actor === 'enemy');
                           setFixedOrder(sortCombinedOrderStablePF(newPlayerActions.map(a => a.card), enemyActions.map(a => a.card), playerAgility, 0));
                         }} className="btn-enhanced text-xs" style={{ padding: '4px 12px' }}>
-                          ??
+                          →
                         </button>
                       )}
                     </div>
@@ -4059,13 +3991,13 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                 const isUsed = usedCardIndices.includes(globalIndex);
                 const isDisappearing = disappearingCards.includes(globalIndex);
                 const isHidden = hiddenCards.includes(globalIndex);
-                const isDisabled = disabledCardIndices.includes(globalIndex); // 鍮꾪솢?깊솕??移대뱶 (紐ъ뒪???щ쭩 ??
+                const isDisabled = disabledCardIndices.includes(globalIndex); // 비활성화된 카드 (몬스터 사망 시)
                 const currentBuild = useGameStore.getState().characterBuild;
                 const isMainSpecial = currentBuild?.mainSpecials?.includes(a.card.id);
                 const isSubSpecial = currentBuild?.subSpecials?.includes(a.card.id);
                 const costColor = isMainSpecial ? '#fcd34d' : isSubSpecial ? '#60a5fa' : '#fff';
 
-                // ?꾩쟾???④꺼吏?移대뱶???뚮뜑留곹븯吏 ?딆쓬
+                // 완전히 숨겨진 카드는 렌더링하지 않음
                 if (isHidden) return null;
 
                 return (
@@ -4083,8 +4015,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                       alignItems: 'center',
                       position: 'relative',
                       marginLeft: i === 0 ? '0' : '-20px',
-                      opacity: isDisabled ? 0.4 : 1, // 鍮꾪솢?깊솕??移대뱶???щ챸?섍쾶
-                      filter: isDisabled ? 'grayscale(0.8) brightness(0.6)' : 'none' // 鍮쏅컮? ?④낵
+                      opacity: isDisabled ? 0.4 : 1, // 비활성화된 카드는 투명하게
+                      filter: isDisabled ? 'grayscale(0.8) brightness(0.6)' : 'none' // 빛바란 효과
                     }}
                   >
                     <div className={`game-card-large resolve-phase-card ${a.card.type === 'attack' ? 'attack' : 'defense'} ${isUsed ? 'card-used' : ''} ${isDisappearing ? 'card-disappearing' : ''}`}>
@@ -4092,21 +4024,21 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                       <div className="card-stats-sidebar">
                         {a.card.damage != null && a.card.damage > 0 && (
                           <div className="card-stat-item attack">
-                            공격 {a.card.damage + (player.strength || 0)}{a.card.hits ? `x${a.card.hits}` : ''}
+                            ⚔️{a.card.damage + (player.strength || 0)}{a.card.hits ? `×${a.card.hits}` : ''}
                           </div>
                         )}
                         {a.card.block != null && a.card.block > 0 && (
                           <div className="card-stat-item defense">
-                            방어 {a.card.block + (player.strength || 0)}
+                            🛡️{a.card.block + (player.strength || 0)}
                           </div>
                         )}
                         {a.card.counter !== undefined && (
                           <div className="card-stat-item counter">
-                            반격 {a.card.counter}
+                            ⚡{a.card.counter}
                           </div>
                         )}
                         <div className="card-stat-item speed">
-                          속도 {a.card.speedCost}
+                          ⏱️{a.card.speedCost}
                         </div>
                       </div>
                       <div className="card-header">
@@ -4149,7 +4081,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
       {showCharacterSheet && <CharacterSheet onClose={closeCharacterSheet} />}
 
-      {/* ?뱀꽦 ?댄똻 */}
+      {/* 특성 툴팁 */}
       {showTooltip && tooltipVisible && hoveredCard && hoveredCard.card.traits && hoveredCard.card.traits.length > 0 && (
         <div
           className={`trait-tooltip ${tooltipVisible ? 'tooltip-visible' : ''}`}
@@ -4169,7 +4101,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
           }}
         >
           <div style={{ fontSize: '21px', fontWeight: 700, color: '#fbbf24', marginBottom: '12px' }}>
-            ?뱀꽦 ?뺣낫
+            특성 정보
           </div>
           {(() => {
             const baseCard = CARDS.find(c => c.id === hoveredCard.card.id);
@@ -4177,11 +4109,11 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
             const parts = [];
             if (baseCard?.damage && enhancedCard.damage && enhancedCard.damage !== baseCard.damage) {
               const mult = (enhancedCard.damage / baseCard.damage).toFixed(2);
-              parts.push(`怨듦꺽?? ${enhancedCard.damage} = ${baseCard.damage} 횞 ${mult}`);
+              parts.push(`공격력: ${enhancedCard.damage} = ${baseCard.damage} × ${mult}`);
             }
             if (baseCard?.block && enhancedCard.block && enhancedCard.block !== baseCard.block) {
               const mult = (enhancedCard.block / baseCard.block).toFixed(2);
-              parts.push(`諛⑹뼱?? ${enhancedCard.block} = ${baseCard.block} 횞 ${mult}`);
+              parts.push(`방어력: ${enhancedCard.block} = ${baseCard.block} × ${mult}`);
             }
             return parts.length > 0 ? (
               <div style={{ marginBottom: '10px', padding: '8px', background: 'rgba(251, 191, 36, 0.12)', borderRadius: '8px', border: '1px solid rgba(251, 191, 36, 0.4)', color: '#fde68a', fontSize: '14px', fontWeight: 700 }}>
@@ -4220,30 +4152,30 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
           })}
         </div>
       )}
-      {/* 적 통찰 툴팁 (레벨 3 이상) */}
-      {hoveredEnemyAction && (phase === 'select' || phase === 'respond' || phase === 'resolve') && ((phase === 'select' ? (insightReveal?.level || 0) : (effectiveInsight || 0)) >= 3) && (
-        <div
-          className="insight-tooltip"
-          style={{
-            position: 'fixed',
-            left: `${hoveredEnemyAction.pageX}px`,
-            top: `${hoveredEnemyAction.pageY + 24}px`,
-            transform: 'translate(-50%, 0)',
-            pointerEvents: 'none',
-            zIndex: 3000,
-          }}
-        >
+      {/* 전역 통찰 툴팁 (뷰포트 기준) */}
+                  {hoveredEnemyAction && (phase === 'select' || phase === 'respond' || phase === 'resolve') && ((phase === 'select' ? (insightReveal?.level || 0) : (effectiveInsight || 0)) >= 3) && (
+                    <div
+                      className="insight-tooltip"
+                      style={{
+                        position: 'fixed',
+                        left: `${hoveredEnemyAction.pageX}px`,
+                top: `${hoveredEnemyAction.pageY + 24}px`,
+                transform: 'translate(-50%, 0)',
+                pointerEvents: 'none',
+                zIndex: 3000,
+              }}
+            >
           <div className="insight-tooltip-title">
-            #{hoveredEnemyAction.idx + 1} {hoveredEnemyAction.action?.name || '알 수 없음'}
+            #{hoveredEnemyAction.idx + 1} {hoveredEnemyAction.action?.name || '???'}
           </div>
           <div className="insight-tooltip-desc" style={{ marginBottom: '4px' }}>
-            속도 {hoveredEnemyAction.action?.speedCost ?? hoveredEnemyAction.action?.speed ?? '-'}
+            ⏱️ {hoveredEnemyAction.action?.speedCost ?? hoveredEnemyAction.action?.speed ?? '-'}
           </div>
           {(hoveredEnemyAction.action?.damage || hoveredEnemyAction.action?.block) && (
             <div className="insight-tooltip-desc" style={{ marginBottom: '4px' }}>
-              {hoveredEnemyAction.action.damage ? `피해 ${hoveredEnemyAction.action.damage}${hoveredEnemyAction.action.hits ? ` x${hoveredEnemyAction.action.hits}` : ''}` : ''}
+              {hoveredEnemyAction.action.damage ? `⚔️ ${hoveredEnemyAction.action.damage}${hoveredEnemyAction.action.hits ? ` x${hoveredEnemyAction.action.hits}` : ''}` : ''}
               {hoveredEnemyAction.action.damage && hoveredEnemyAction.action.block ? ' / ' : ''}
-              {hoveredEnemyAction.action.block ? `방어 ${hoveredEnemyAction.action.block}` : ''}
+              {hoveredEnemyAction.action.block ? `🛡️ ${hoveredEnemyAction.action.block}` : ''}
             </div>
           )}
           {hoveredEnemyAction.action?.traits && hoveredEnemyAction.action.traits.length > 0 && (
@@ -4271,4 +4203,3 @@ export const LegacyBattleApp = ({ initialPlayer, initialEnemy, playerEther, live
 );
 
 export default LegacyBattleApp;
-
