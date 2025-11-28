@@ -1195,6 +1195,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const [hoveredRelic, setHoveredRelic] = useState(null); // 호버된 유물 ID
   const [relicActivated, setRelicActivated] = useState(null); // 발동된 유물 ID (애니메이션용, 단일 표시용)
   const [activeRelicSet, setActiveRelicSet] = useState(new Set()); // 동시 강조용
+  const [multiplierPulse, setMultiplierPulse] = useState(false); // 배율 텍스트 강조
+  const [displayComboMultiplier, setDisplayComboMultiplier] = useState(1); // 애니메이션용 배율 표시
   const [resolvedPlayerCards, setResolvedPlayerCards] = useState(0); // 진행 단계에서 진행된 플레이어 카드 수
   const [hoveredCard, setHoveredCard] = useState(null); // 호버된 카드 정보 {card, position}
   const [tooltipVisible, setTooltipVisible] = useState(false); // 툴팁 표시 여부(애니메이션용)
@@ -1233,7 +1235,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const computeComboMultiplier = useCallback((baseMult, cardsCount, includeFiveCard = true) => {
     let mult = baseMult;
     const passive = calculatePassiveEffects(orderedRelicList);
-    orderedRelicList.forEach(rid => {
+    orderedRelicList.forEach((rid) => {
       const relic = RELICS[rid];
       if (!relic?.effects) return;
       if (relic.effects.comboMultiplierPerCard || relic.effects.etherCardMultiplier || relic.effects.etherMultiplier) {
@@ -1244,6 +1246,51 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     });
     return mult;
   }, [orderedRelicList]);
+  const calcEtherGainNoDevil = useCallback((base, cards) => {
+    const filtered = orderedRelicList.filter(id => id !== 'devilDice');
+    return calculateRelicEtherGain(base, cards, filtered);
+  }, [orderedRelicList]);
+  useEffect(() => {
+    if (!currentCombo) {
+      setDisplayComboMultiplier(1);
+      return;
+    }
+    const baseMultiplier = (COMBO_MULTIPLIERS[currentCombo.name] || 1);
+    if (phase !== 'resolve') {
+      setDisplayComboMultiplier(baseMultiplier);
+      return;
+    }
+    let mult = baseMultiplier;
+    setDisplayComboMultiplier(mult);
+    const passive = calculatePassiveEffects(orderedRelicList);
+    const timers = [];
+    let delay = 0;
+    orderedRelicList.forEach((rid) => {
+      const relic = RELICS[rid];
+      if (!relic?.effects) return;
+      const isCombo = relic.effects.comboMultiplierPerCard || relic.effects.etherCardMultiplier || relic.effects.etherMultiplier;
+      const isDevil = relic.effects.etherFiveCardBonus && passive.etherFiveCardBonus > 0 && resolvedPlayerCards >= 5;
+      if (isCombo || isDevil) {
+        delay += 200;
+        const t = setTimeout(() => {
+          if (isCombo) {
+            mult = applyRelicComboMultiplier([rid], mult, resolvedPlayerCards);
+          } else if (isDevil) {
+            mult *= passive.etherFiveCardBonus;
+          }
+          setDisplayComboMultiplier(mult);
+          setMultiplierPulse(true);
+          const t2 = setTimeout(() => setMultiplierPulse(false), 180);
+          timers.push(t2);
+        }, delay);
+        timers.push(t);
+      }
+    });
+    return () => {
+      timers.forEach(clearTimeout);
+      setMultiplierPulse(false);
+    };
+  }, [currentCombo, orderedRelicList, resolvedPlayerCards, phase]);
   const flashRelic = (relicId, tone = 800, duration = 500) => {
     setActiveRelicSet(prev => {
       const next = new Set(prev);
@@ -1251,6 +1298,11 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       return next;
     });
     setRelicActivated(relicId);
+    const relic = RELICS[relicId];
+    if (relic?.effects && (relic.effects.comboMultiplierPerCard || relic.effects.etherCardMultiplier || relic.effects.etherMultiplier || relic.effects.etherFiveCardBonus)) {
+      setMultiplierPulse(true);
+      setTimeout(() => setMultiplierPulse(false), Math.min(400, duration));
+    }
     playSound(tone, duration * 0.6);
     setTimeout(() => {
       setActiveRelicSet(prev => {
@@ -1261,6 +1313,31 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       setRelicActivated(prev => (prev === relicId ? null : prev));
     }, duration);
   };
+  useEffect(() => {
+    if (phase !== 'resolve') return;
+    const cardsCount = resolvedPlayerCards;
+    const timers = [];
+    let delay = 0;
+    orderedRelicList.forEach(rid => {
+      const relic = RELICS[rid];
+      if (!relic?.effects) return;
+      const isMultiplier = relic.effects.comboMultiplierPerCard || relic.effects.etherCardMultiplier || relic.effects.etherMultiplier;
+      const isDevil = relic.effects.etherFiveCardBonus && cardsCount >= 5;
+      if (isMultiplier || isDevil) {
+        const t1 = setTimeout(() => {
+          setMultiplierPulse(true);
+          const t2 = setTimeout(() => setMultiplierPulse(false), 220);
+          timers.push(t2);
+        }, delay);
+        timers.push(t1);
+        delay += 200;
+      }
+    });
+    return () => {
+      timers.forEach(clearTimeout);
+      setMultiplierPulse(false);
+    };
+  }, [phase, resolvedPlayerCards, orderedRelicList]);
   const handleRelicDragStart = (idx, relicId) => (e) => {
     dragRelicIndexRef.current = idx;
     setRelicActivated(relicId); // 배지 표시
@@ -1769,7 +1846,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   // 유물 효과를 포함한 최종 콤보 배율
   const finalComboMultiplier = useMemo(() => {
     const baseMultiplier = currentCombo ? (COMBO_MULTIPLIERS[currentCombo.name] || 1) : 1;
-    const passiveEffects = calculatePassiveEffects(orderedRelicList);
     const isResolve = phase === 'resolve';
     const cardsCount = isResolve ? resolvedPlayerCards : selected.length;
 
@@ -1778,7 +1854,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
     // 진행 단계: 유물 배율을 정렬 순서대로 순차 적용
     return computeComboMultiplier(baseMultiplier, cardsCount, true);
-  }, [currentCombo, orderedRelicList, resolvedPlayerCards, selected.length, phase]);
+  }, [currentCombo, orderedRelicList, resolvedPlayerCards, selected.length, phase, computeComboMultiplier]);
   const comboPreviewInfo = useMemo(() => {
     if (!currentCombo) return null;
     return calculateComboEtherGain({
@@ -2060,7 +2136,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     let playerBeforeDeflation = Math.round(totalEtherPts * playerComboMult);
 
     // 유물 효과 적용 (참고서, 악마의 주사위, 희귀한 조약돌)
-    playerBeforeDeflation = calculateRelicEtherGain(playerBeforeDeflation, cardCountForMultiplier, orderedRelicList);
+    playerBeforeDeflation = calcEtherGainNoDevil(playerBeforeDeflation, cardCountForMultiplier);
 
     // 디플레이션 적용
     const playerDeflation = pCombo?.name
@@ -2537,7 +2613,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     // 조합 배율 적용
     let playerBeforeDeflation = Math.round(turnEtherAccumulated * playerComboMult);
     // 유물 효과 적용 (참고서, 악마의 주사위, 희귀한 조약돌)
-    playerBeforeDeflation = calculateRelicEtherGain(playerBeforeDeflation, cardsPlayedForRelic, orderedRelicList);
+    playerBeforeDeflation = calcEtherGainNoDevil(playerBeforeDeflation, cardsPlayedForRelic);
 
     const enemyBeforeDeflation = Math.round(enemyTurnEtherAccumulated * enemyComboMult);
 
@@ -2942,7 +3018,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     let playerBeforeDeflation = Math.round(totalEtherPts * playerComboMult);
 
     // 유물 효과 적용 (참고서, 악마의 주사위 - 희귀한 조약돌은 이미 적용됨)
-    playerBeforeDeflation = calculateRelicEtherGain(playerBeforeDeflation, playerTimeline.length, orderedRelicList);
+    playerBeforeDeflation = calcEtherGainNoDevil(playerBeforeDeflation, playerTimeline.length);
 
     // 디플레이션 적용
     const playerDeflation = pCombo?.name
@@ -3396,7 +3472,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                   letterSpacing: '0.2em',
                   marginBottom: '2px',
                   transition: 'font-size 0.3s ease, transform 0.3s ease',
-                  transform: etherPulse ? 'scale(1.2)' : (etherCalcPhase === 'sum' ? 'scale(1.3)' : 'scale(1)'),
+                  transform: (etherPulse || multiplierPulse) ? 'scale(1.2)' : (etherCalcPhase === 'sum' ? 'scale(1.3)' : 'scale(1)'),
                   textShadow: etherCalcPhase === 'sum' ? '0 0 20px #fbbf24' : 'none',
                   visibility: phase === 'resolve' ? 'visible' : 'hidden',
                   height: '1.8rem'
@@ -3416,10 +3492,10 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                   alignItems: 'center',
                   gap: '12px',
                   transition: 'font-size 0.3s ease, transform 0.3s ease',
-                  transform: etherCalcPhase === 'multiply' ? 'scale(1.3)' : 'scale(1)',
+                  transform: (etherCalcPhase === 'multiply' || multiplierPulse) ? 'scale(1.2)' : (etherCalcPhase === 'multiply' ? 'scale(1.3)' : 'scale(1)'),
                   textShadow: etherCalcPhase === 'multiply' ? '0 0 20px #fbbf24' : 'none'
                 }}>
-                  <span>× {finalComboMultiplier.toFixed(2).split('').join(' ')}</span>
+                  <span>× {displayComboMultiplier.toFixed(2).split('').join(' ')}</span>
                 </div>
               </div>
             )}

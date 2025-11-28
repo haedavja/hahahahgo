@@ -141,6 +141,37 @@ export function MapDemo() {
   const activeDungeon = useGameStore((state) => state.activeDungeon);
   const lastBattleResult = useGameStore((state) => state.lastBattleResult);
   const relics = useGameStore((state) => state.relics);
+  const [orderedRelics, setOrderedRelics] = useState(() => {
+    try {
+      const saved = localStorage.getItem("relicOrder");
+      if (saved) {
+        const ids = JSON.parse(saved);
+        if (Array.isArray(ids) && ids.length) return ids;
+      }
+    } catch {}
+    return relics || [];
+  });
+  const dragRelicIndexRef = useRef(null);
+  const [relicActivated, setRelicActivated] = useState(null);
+  useEffect(() => {
+    // 새 유물 추가/제거 시 순서를 유지하면서 병합
+    setOrderedRelics((prev) => {
+      const prevSet = new Set(prev);
+      const next = [];
+      (relics || []).forEach((id) => {
+        if (prevSet.has(id)) next.push(id);
+      });
+      (relics || []).forEach((id) => {
+        if (!prevSet.has(id)) next.push(id);
+      });
+      return next;
+    });
+  }, [relics]);
+  useEffect(() => {
+    try {
+      localStorage.setItem("relicOrder", JSON.stringify(orderedRelics));
+    } catch {}
+  }, [orderedRelics]);
   const selectNode = useGameStore((state) => state.selectNode);
   const chooseEvent = useGameStore((state) => state.chooseEvent);
   const closeEvent = useGameStore((state) => state.closeEvent);
@@ -263,13 +294,14 @@ export function MapDemo() {
       </header>
 
       {/* 유물 표시 */}
-      {relics && relics.length > 0 && (
+      {orderedRelics && orderedRelics.length > 0 && (
         <div style={{
           position: "absolute",
           top: "20px",
           left: "50%",
           transform: "translateX(-50%)",
           zIndex: 100,
+          pointerEvents: 'none',
         }}>
           <div style={{
             display: 'flex',
@@ -279,12 +311,14 @@ export function MapDemo() {
             border: '2px solid rgba(148, 163, 184, 0.5)',
             borderRadius: '12px',
             boxShadow: '0 0 15px rgba(148, 163, 184, 0.3)',
+            pointerEvents: 'auto',
           }}>
-            {relics.map((relicId, index) => {
+            {orderedRelics.map((relicId, index) => {
               const relic = RELICS[relicId];
               if (!relic) return null;
 
-              const isHovered = hoveredRelic === relicId;
+                const isHovered = hoveredRelic === relicId;
+                const isActivated = relicActivated === relicId;
               const rarityText = {
                 [RELIC_RARITIES.COMMON]: '일반',
                 [RELIC_RARITIES.RARE]: '희귀',
@@ -293,7 +327,39 @@ export function MapDemo() {
               }[relic.rarity] || '알 수 없음';
 
               return (
-                <div key={index} style={{ position: 'relative' }}>
+                <div
+                  key={index}
+                  style={{ position: 'relative' }}
+                  draggable
+                  onDragStart={(e) => {
+                    dragRelicIndexRef.current = index;
+                    setRelicActivated(relicId);
+                    e.dataTransfer.effectAllowed = 'move';
+                    try {
+                      const img = new Image();
+                      img.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9YQn1fEAAAAASUVORK5CYII=';
+                      e.dataTransfer.setDragImage(img, 0, 0);
+                    } catch {}
+                  }}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'move';
+                  }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    const from = dragRelicIndexRef.current;
+                    dragRelicIndexRef.current = null;
+                    setRelicActivated(null);
+                    if (from === null || from === index) return;
+                    const next = Array.from(orderedRelics);
+                    const [item] = next.splice(from, 1);
+                    next.splice(index, 0, item);
+                    setOrderedRelics(next);
+                  }}
+                  onMouseDown={() => {
+                    setRelicActivated(prev => prev === relicId ? null : relicId);
+                  }}
+                >
                   <div
                     onMouseEnter={() => setHoveredRelic(relicId)}
                     onMouseLeave={() => setHoveredRelic(null)}
@@ -305,7 +371,11 @@ export function MapDemo() {
                       justifyContent: 'center',
                       cursor: 'pointer',
                       transition: 'all 0.2s ease',
-                      transform: isHovered ? 'scale(1.15)' : 'scale(1)',
+                      transform: isActivated ? 'scale(1.2)' : (isHovered ? 'scale(1.15)' : 'scale(1)'),
+                      filter: isActivated ? 'drop-shadow(0 0 10px rgba(251, 191, 36, 0.75))' : 'drop-shadow(0 0 4px rgba(255,255,255,0.15))',
+                      background: isActivated ? 'rgba(251, 191, 36, 0.2)' : (isHovered ? 'rgba(148, 163, 184, 0.15)' : 'transparent'),
+                      border: isActivated ? '1px solid rgba(251, 191, 36, 0.6)' : '1px solid transparent',
+                      borderRadius: '8px',
                     }}>
                     <span>{relic.emoji}</span>
                   </div>
@@ -574,4 +644,3 @@ export function MapDemo() {
     </div>
   );
 }
-
