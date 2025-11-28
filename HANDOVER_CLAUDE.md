@@ -233,21 +233,25 @@ Enemy 데이터에 shroud 필드 (기본값 0)
 
 ## GPT 세션 작업 인계 (2025-11-27 이후)
 
-### GPT가 추가한 작업
-1. **적 에테르 시스템 구현** (진행 중)
+### GPT가 추가한 작업 (Claude가 완료)
+1. **적 에테르 시스템 구현** ✅ **완료**
    - `LegacyBattleScreen.jsx`:
      - `enemyEtherCapacity` 필드 추가 (기본값 300)
      - `buildBattlePayload`에 `enemy.etherPts`, `enemy.etherCapacity` 전달
-   - `liveInsight` prop 추가 (전투 중 통찰 실시간 반영용)
-   - 전투 시작 시 통찰 값 고정 로직 추가 (`battleInsight` state)
+     - `liveInsight` prop 추가 (전투 중 통찰 실시간 반영용)
+     - 전투 시작 시 통찰 값 고정 로직 추가 (`battleInsight` state)
 
-2. **미완성 작업** ⚠️
-   - 적 에테르 텍스트 패널을 플레이어와 동일한 절대 배치로 이동 중
-   - 적 HP 블록 안의 +PT/=PT 블록 제거 완료
-   - 에테르바 옆 패널 배치/중복 정리 미완
-   - 몬스터 배율(×) 표시 위치 재조정 필요
-   - `LegacyBattleApp.jsx` 변경사항 미커밋 상태
+   - `LegacyBattleApp.jsx`:
+     - 적 에테르 애니메이션 상태 추가 (`enemyEtherCalcPhase`, `enemyCurrentDeflation`)
+     - 적 에테르 텍스트 패널 플레이어와 대칭 배치 완료
+     - 콤보 디스플레이에 에테르 계산 정보 통합 (디플레이션, 합계, 배율, 최종값)
+     - 중복 패널 제거 및 대칭 구조 완성
 
-### 주의사항
-- `LegacyBattleApp.jsx`에 미커밋 작업이 있으니 GPT 작업 내용 확인 후 통합 필요
-- 적 에테르 UI 작업이 완료되면 커밋 및 문서 업데이트 필요
+2. **완료된 작업** ✅
+   - 적 에테르 텍스트를 에테르바 위쪽으로 이동 (플레이어와 대칭)
+   - 에테르바 옆 중복 패널 제거
+   - 몬스터 배율(×) 콤보 디스플레이에 통합
+   - 완벽한 좌우 대칭 UI 구조 달성
+
+### 커밋 내역
+- `756d56a`: 적 에테르 UI 플레이어와 대칭 배치 완료 (2025-11-28)
