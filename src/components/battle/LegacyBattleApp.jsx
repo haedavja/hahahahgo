@@ -1077,7 +1077,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
   const [player, setPlayer] = useState(initialPlayerState);
   const [enemyIndex, setEnemyIndex] = useState(0);
-  const [enemy, setEnemy] = useState(() => safeInitialEnemy?.name ? ({ ...safeInitialEnemy, hp: safeInitialEnemy.hp ?? safeInitialEnemy.maxHp ?? 30, maxHp: safeInitialEnemy.maxHp ?? safeInitialEnemy.hp ?? 30, vulnMult: 1, vulnTurns: 0, block: 0, counter: 0, etherPts: 0, etherOverdriveActive: false, strength: 0, shroud: safeInitialEnemy.shroud ?? 0, maxSpeed: safeInitialEnemy.maxSpeed ?? DEFAULT_ENEMY_MAX_SPEED }) : null);
+  const [enemy, setEnemy] = useState(() => safeInitialEnemy?.name ? ({ ...safeInitialEnemy, hp: safeInitialEnemy.hp ?? safeInitialEnemy.maxHp ?? 30, maxHp: safeInitialEnemy.maxHp ?? safeInitialEnemy.hp ?? 30, vulnMult: 1, vulnTurns: 0, block: 0, counter: 0, etherPts: safeInitialEnemy.etherPts ?? safeInitialEnemy.etherCapacity ?? 300, etherCapacity: safeInitialEnemy.etherCapacity ?? 300, etherOverdriveActive: false, strength: 0, shroud: safeInitialEnemy.shroud ?? 0, maxSpeed: safeInitialEnemy.maxSpeed ?? DEFAULT_ENEMY_MAX_SPEED }) : null);
 
   const [phase, setPhase] = useState('select');
 
@@ -1128,6 +1128,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const [enemyTurnEtherAccumulated, setEnemyTurnEtherAccumulated] = useState(0); // 적 이번 턴 누적 에테르
   const [etherPulse, setEtherPulse] = useState(false); // PT 증가 애니메이션
   const [etherFinalValue, setEtherFinalValue] = useState(null); // 최종 에테르값 표시
+  const [enemyEtherFinalValue, setEnemyEtherFinalValue] = useState(null); // 적 최종 에테르값 표시
   const [etherCalcPhase, setEtherCalcPhase] = useState(null); // 에테르 계산 애니메이션 단계: 'sum', 'multiply', 'deflation', 'result'
   const [currentDeflation, setCurrentDeflation] = useState(null); // 현재 디플레이션 정보 { multiplier, usageCount }
   const [nextTurnEffects, setNextTurnEffects] = useState({
@@ -1320,6 +1321,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     prevRevealLevelRef.current = 0;
     setInsightAnimLevel(0);
     setInsightAnimPulseKey((k) => k + 1);
+    setEnemyEtherFinalValue(null);
     if ((safeInitialPlayer?.insight || 0) > 0) {
       // 전투 시작 시에도 통찰 연출 1회 재생
       setTimeout(() => {
@@ -1361,7 +1363,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       vulnTurns: 0,
       block: 0,
       counter: 0,
-      etherPts: 0,
+      etherPts: safeInitialEnemy.etherPts ?? safeInitialEnemy.etherCapacity ?? 300,
+      etherCapacity: safeInitialEnemy.etherCapacity ?? 300,
       etherOverdriveActive: false
     }));
     setSelected([]);
@@ -1892,6 +1895,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     // 이전 턴의 에테르 애니메이션 상태 초기화
     setEtherCalcPhase(null);
     setEtherFinalValue(null);
+    setEnemyEtherFinalValue(null);
     setCurrentDeflation(null);
 
     playProceedSound(); // 진행 버튼 사운드 재생
@@ -2419,7 +2423,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       comboUsageForThisCombo: player.comboUsageCount?.[pComboEnd?.name] || 0
     });
 
-    // 에테르 범람 계산: 현재 슬롯 내에서 100pt를 초과하는 부분은 범람
+    // 에테르 범람 계산: 현재 슬롯 내에서 초과분은 범람
     let playerAppliedEther = 0;
     let playerOverflow = 0;
 
@@ -2448,12 +2452,28 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       // 최종값 UI에 로그와 동일한 값 표시
       setEtherFinalValue(playerFinalEther);
     }
+    // 적도 동일하게 적용/범람 계산
+    let enemyAppliedEther = 0;
+    let enemyOverflow = 0;
     if (enemyFinalEther > 0) {
+      const currentSlotPtsE = getCurrentSlotPts(enemy.etherPts);
+      const nextSlotCostE = getNextSlotCost(enemy.etherPts);
+      const remainingToNextSlotE = nextSlotCostE - currentSlotPtsE;
+
+      enemyAppliedEther = Math.min(enemyFinalEther, remainingToNextSlotE);
+      enemyOverflow = enemyFinalEther - enemyAppliedEther;
+
       const deflationText = enemyDeflation.usageCount > 0
         ? ` (디플레이션: ${Math.round(enemyDeflation.multiplier * 100)}%)`
         : '';
-      addLog(`☄️ 적 에테르 획득: ${enemyTurnEtherAccumulated} × ${enemyComboMult.toFixed(2)} = ${enemyBeforeDeflation} → ${enemyFinalEther} PT${deflationText}`);
+      const overflowTextE = enemyOverflow > 0 ? ` [범람: ${enemyOverflow} PT]` : '';
+      addLog(`☄️ 적 에테르 획득: ${enemyTurnEtherAccumulated} × ${enemyComboMult.toFixed(2)} = ${enemyBeforeDeflation} → ${enemyFinalEther} PT${deflationText} (적용: ${enemyAppliedEther} PT${overflowTextE})`);
     }
+
+    setEnemyEtherFinalValue(enemyFinalEther);
+
+    // 에테르 소지량 이동: 적용치 기준 (플레이어도 잃을 수 있음)
+    const netTransfer = playerAppliedEther - enemyAppliedEther;
 
     setPlayer(p => {
       const newUsageCount = { ...(p.comboUsageCount || {}) };
@@ -2475,7 +2495,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         vulnTurns: 0,
         etherOverdriveActive: false,
         comboUsageCount: newUsageCount,
-        etherPts: (p.etherPts || 0) + playerAppliedEther,
+        etherPts: Math.max(0, (p.etherPts || 0) + netTransfer),
         etherOverflow: (p.etherOverflow || 0) + playerOverflow
       };
     });
@@ -2494,7 +2514,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         vulnTurns: 0,
         etherOverdriveActive: false,
         comboUsageCount: newEnemyUsageCount,
-        etherPts: (e.etherPts || 0) + enemyFinalEther
+        etherPts: Math.max(0, (e.etherPts || 0) - netTransfer)
       };
     });
 
@@ -3329,6 +3349,14 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                       <div style={{ fontSize: '1rem', fontWeight: '600', color: '#fca5a5', marginTop: '4px', textAlign: 'right' }}>
                         {enemy.name}
                       </div>
+                      {(phase === 'respond' || phase === 'resolve') && (
+                        <div style={{ textAlign: 'right', marginTop: '6px', color: '#fca5a5', fontWeight: 700, lineHeight: 1.2 }}>
+                          <div>+ {enemyTurnEtherAccumulated} PT</div>
+                          {enemyEtherFinalValue !== null && (
+                            <div style={{ color: '#fcd34d', fontSize: '0.95rem' }}>= {enemyEtherFinalValue} PT</div>
+                          )}
+                        </div>
+                      )}
                     </div>
                     <div className="character-display" style={{ fontSize: '64px' }}>👹</div>
                   </div>
