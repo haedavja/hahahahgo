@@ -3,6 +3,7 @@
  */
 
 import { getRelicById } from '../data/relics';
+import { getNextSlotCost } from './etherUtils';
 
 /**
  * PASSIVE 효과를 계산하여 스탯 변화를 반환
@@ -264,10 +265,10 @@ export function applyNodeMoveEther(relicIds = [], currentEther = 0) {
     const effects = relic.effects;
 
     if (effects.etherPercent) {
-      // 현재 에테르의 일정 비율(기본 2%) 획득, 최소 1pt 보장
-      // 혹시 잘못된 값으로 설정돼도 2%를 상한으로 제한
+      // 다음 슬롯 필요치의 일정 비율(기본 2%)을 지급, 최소 1pt 보장
+      const nextSlotCost = getNextSlotCost(currentEther) || currentEther || 0;
       const percent = Math.min(0.02, (effects.etherPercent ?? 0) / 100);
-      const gain = Math.max(1, Math.floor(currentEther * percent));
+      const gain = Math.max(1, Math.floor(nextSlotCost * percent));
       etherGain += gain;
     }
   });
