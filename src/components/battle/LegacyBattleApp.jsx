@@ -3357,7 +3357,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                       transition: 'font-size 0.3s ease, transform 0.3s ease',
                       transform: enemyEtherCalcPhase === 'sum' ? 'scale(1.3)' : 'scale(1)',
                       textShadow: enemyEtherCalcPhase === 'sum' ? '0 0 20px #fbbf24' : 'none',
-                      visibility: (phase === 'respond' || phase === 'resolve') ? 'visible' : 'hidden',
+                      visibility: phase === 'resolve' ? 'visible' : 'hidden',
                       height: '1.8rem'
                     }}>
                       + {enemyTurnEtherAccumulated.toString().split('').join(' ')} P T
