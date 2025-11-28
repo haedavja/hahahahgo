@@ -3416,29 +3416,29 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                     }}>
                       <span>× {((enemyCombo && COMBO_MULTIPLIERS[enemyCombo.name]) || 1).toFixed(2).split('').join(' ')}</span>
                     </div>
-                    {phase === 'resolve' && enemyEtherFinalValue !== null && (
-                      <div style={{
-                        position: 'absolute',
-                        top: '60px',
-                        right: '50%',
-                        transform: 'translateX(50%)',
-                        fontSize: enemyEtherCalcPhase === 'result' ? '1.8rem' : '1.5rem',
-                        fontWeight: 'bold',
-                        color: '#fbbf24',
-                        letterSpacing: '0.15em',
-                        whiteSpace: 'nowrap',
-                        background: 'linear-gradient(135deg, rgba(251, 191, 36, 0.2), rgba(251, 191, 36, 0.08))',
-                        padding: '6px 20px',
-                        borderRadius: '12px',
-                        border: '2px solid #fbbf24',
-                        boxShadow: enemyEtherCalcPhase === 'result' ? '0 0 30px rgba(251, 191, 36, 0.6)' : '0 0 20px rgba(251, 191, 36, 0.4)',
-                        transition: 'all 0.3s ease'
-                      }}>
-                        = {enemyEtherFinalValue.toString().split('').join(' ')} P T
-                      </div>
-                    )}
                   </div>
                 )}
+            {/* 적 최종 합계값 텍스트창 - 플레이어와 대칭 (진행 단계에서만 표시) */}
+            {phase === 'resolve' && enemyEtherFinalValue !== null && (
+              <div style={{
+                position: 'absolute',
+                top: '60px',
+                right: '50%',
+                transform: 'translateX(50%)',
+                fontSize: '1.5rem',
+                fontWeight: 'bold',
+                color: '#fbbf24',
+                letterSpacing: '0.15em',
+                whiteSpace: 'nowrap',
+                background: 'linear-gradient(135deg, rgba(251, 191, 36, 0.3), rgba(251, 191, 36, 0.1))',
+                border: '2px solid #fbbf24',
+                borderRadius: '8px',
+                padding: '6px 16px',
+                boxShadow: '0 0 20px rgba(251, 191, 36, 0.5), inset 0 0 10px rgba(251, 191, 36, 0.2)'
+              }}>
+                {enemyEtherFinalValue.toString().split('').join(' ')} P T
+              </div>
+            )}
             <div style={{ display: 'flex', alignItems: 'center', gap: '16px', position: 'relative' }}>
               <div style={{ textAlign: 'right' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
