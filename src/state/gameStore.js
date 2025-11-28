@@ -245,6 +245,8 @@ export const useGameStore = create((set, get) => ({
         if (etherGain > 0) {
           const newEtherPts = currentEther + etherGain;
           updatedResources = { ...state.resources, etherPts: newEtherPts };
+          // 이동 시 발동 로그/피드백
+          console.log(`🧭 황금 나침반 발동: +${etherGain}pt (총 ${newEtherPts}pt)`);
         }
       } catch (error) {
         console.error('Error applying node move ether:', error);
