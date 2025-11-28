@@ -1225,12 +1225,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const resultSentRef = useRef(false);
   const turnStartProcessedRef = useRef(false); // 턴 시작 효과 중복 실행 방지
   const dragRelicIndexRef = useRef(null); // 유물 드래그 인덱스
-  useEffect(() => {
-    // 선택/대응 단계에서는 변경 허용, 진행/포스트에서는 고정
-    if (phase === 'select' || phase === 'respond') {
-      setOrderedRelics(relics);
-    }
-  }, [phase]); // relics 동기화는 상단 useEffect에서 처리
   const computeComboMultiplier = useCallback((baseMult, cardsCount, includeFiveCard = true) => {
     let mult = baseMult;
     const passive = calculatePassiveEffects(orderedRelicList);
