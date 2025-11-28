@@ -884,11 +884,11 @@ export function EtherBar({ pts, slots, previewGain = 0, color = "cyan", label })
   const slotColors = color === 'red' ? enemySlotColors : playerSlotColors;
 
   return (
-    <div style={{
-      width: '72px',
-      padding: '12px 10px 16px',
-      borderRadius: '36px',
-      background: 'linear-gradient(180deg, rgba(8, 12, 20, 0.95), rgba(10, 15, 25, 0.75))',
+      <div style={{
+        width: '72px',
+        padding: '12px 10px 16px',
+        borderRadius: '36px',
+        background: 'linear-gradient(180deg, rgba(8, 12, 20, 0.95), rgba(10, 15, 25, 0.75))',
       border: '1px solid rgba(96, 210, 255, 0.35)',
       boxShadow: '0 20px 40px rgba(0, 0, 0, 0.45)',
       display: 'flex',
@@ -908,7 +908,7 @@ export function EtherBar({ pts, slots, previewGain = 0, color = "cyan", label })
         border: `2px solid ${borderColor}`,
         background: 'rgba(9, 17, 27, 0.95)',
         overflow: 'hidden',
-      }}
+        }}
         onMouseEnter={() => setShowBarTooltip(true)}
         onMouseLeave={() => setShowBarTooltip(false)}
       >
@@ -1129,6 +1129,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const [etherPulse, setEtherPulse] = useState(false); // PT 증가 애니메이션
   const [etherFinalValue, setEtherFinalValue] = useState(null); // 최종 에테르값 표시
   const [enemyEtherFinalValue, setEnemyEtherFinalValue] = useState(null); // 적 최종 에테르값 표시
+  const [enemyEtherCalcPhase, setEnemyEtherCalcPhase] = useState(null); // 적 에테르 계산 단계
+  const [enemyCurrentDeflation, setEnemyCurrentDeflation] = useState(null); // 적 디플레이션 정보
   const [etherCalcPhase, setEtherCalcPhase] = useState(null); // 에테르 계산 애니메이션 단계: 'sum', 'multiply', 'deflation', 'result'
   const [currentDeflation, setCurrentDeflation] = useState(null); // 현재 디플레이션 정보 { multiplier, usageCount }
   const [nextTurnEffects, setNextTurnEffects] = useState({
@@ -1322,6 +1324,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     setInsightAnimLevel(0);
     setInsightAnimPulseKey((k) => k + 1);
     setEnemyEtherFinalValue(null);
+    setEnemyEtherCalcPhase(null);
+    setEnemyCurrentDeflation(null);
     if ((safeInitialPlayer?.insight || 0) > 0) {
       // 전투 시작 시에도 통찰 연출 1회 재생
       setTimeout(() => {
@@ -1897,6 +1901,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     setEtherFinalValue(null);
     setEnemyEtherFinalValue(null);
     setCurrentDeflation(null);
+    setEnemyEtherCalcPhase(null);
+    setEnemyCurrentDeflation(null);
 
     playProceedSound(); // 진행 버튼 사운드 재생
     setQueue(newQ);
@@ -2468,6 +2474,13 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         : '';
       const overflowTextE = enemyOverflow > 0 ? ` [범람: ${enemyOverflow} PT]` : '';
       addLog(`☄️ 적 에테르 획득: ${enemyTurnEtherAccumulated} × ${enemyComboMult.toFixed(2)} = ${enemyBeforeDeflation} → ${enemyFinalEther} PT${deflationText} (적용: ${enemyAppliedEther} PT${overflowTextE})`);
+      setEnemyEtherCalcPhase('sum');
+      setTimeout(() => setEnemyEtherCalcPhase('multiply'), 50);
+      setTimeout(() => {
+        setEnemyEtherCalcPhase('deflation');
+        setEnemyCurrentDeflation(enemyDeflation.usageCount > 0 ? { multiplier: enemyDeflation.multiplier, usageCount: enemyDeflation.usageCount } : null);
+      }, 150);
+      setTimeout(() => setEnemyEtherCalcPhase('result'), 300);
     }
 
     setEnemyEtherFinalValue(enemyFinalEther);
@@ -2502,11 +2515,11 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
     setEnemy(e => {
       const newEnemyUsageCount = { ...(e.comboUsageCount || {}) };
-      if (eComboEnd?.name) {
-        newEnemyUsageCount[eComboEnd.name] = (newEnemyUsageCount[eComboEnd.name] || 0) + 1;
-      }
-      return {
-        ...e,
+    if (eComboEnd?.name) {
+      newEnemyUsageCount[eComboEnd.name] = (newEnemyUsageCount[eComboEnd.name] || 0) + 1;
+    }
+    return {
+      ...e,
         block: 0,
         def: false,
         counter: 0,
@@ -3102,7 +3115,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                 </div>
               </div>
             )}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', position: 'relative' }}>
               <EtherBar
                 key={`player-ether-${playerEtherValue}`}
                 pts={playerEtherValue}
@@ -3110,7 +3123,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                 previewGain={previewEtherGain}
                 label="ETHER"
               />
-              <div>
+              <div style={{ position: 'relative' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                   <div className="character-display" style={{ fontSize: '64px' }}>🧙‍♂️</div>
                   <div>
@@ -3299,18 +3312,97 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
           {/* 오른쪽: 적 */}
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '12px', minWidth: '360px', position: 'relative', justifyContent: 'center' }}>
-            {/* 몬스터 콤보 - 절대 위치로 왼쪽 배치 */}
-                {enemyCombo && !((phase === 'select') && ((insightReveal?.level || 0) === 0)) && (
-                  <div className="combo-display" style={{ position: 'absolute', top: '0', right: '180px', textAlign: 'center' }}>
-                    <div style={{ fontSize: '1.92rem', fontWeight: 'bold', color: '#fbbf24', marginBottom: '2px' }}>
-                      {enemyCombo.name}
+            {/* 몬스터 콤보 + 에테르 계산 - 절대 위치로 왼쪽 배치 */}
+                {enemyCombo && !((phase === 'select') && ((insightReveal?.level || 0) === 0)) && (phase === 'select' || phase === 'respond' || phase === 'resolve') && (
+                  <div className="combo-display" style={{ position: 'absolute', top: '-5px', right: '90px', textAlign: 'center', minHeight: '140px' }}>
+                    <div style={{
+                      fontSize: '1.92rem',
+                      fontWeight: 'bold',
+                      color: '#fbbf24',
+                      marginBottom: '2px',
+                      height: '2.5rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      position: 'relative'
+                    }}>
+                      <span>{enemyCombo.name}</span>
+                      {enemyCurrentDeflation && (
+                        <div style={{
+                          position: 'absolute',
+                          right: 'calc(50% + 120px)',
+                          fontSize: enemyEtherCalcPhase === 'deflation' ? '1.1rem' : '0.9rem',
+                          fontWeight: 'bold',
+                          color: '#fca5a5',
+                          background: 'linear-gradient(135deg, rgba(252, 165, 165, 0.25), rgba(252, 165, 165, 0.1))',
+                          border: '1.5px solid rgba(252, 165, 165, 0.5)',
+                          borderRadius: '6px',
+                          padding: '4px 10px',
+                          letterSpacing: '0.05em',
+                          boxShadow: '0 0 10px rgba(252, 165, 165, 0.3), inset 0 0 5px rgba(252, 165, 165, 0.15)',
+                          transition: 'font-size 0.3s ease, transform 0.3s ease',
+                          transform: enemyEtherCalcPhase === 'deflation' ? 'scale(1.2)' : 'scale(1)',
+                          textShadow: enemyEtherCalcPhase === 'deflation' ? '0 0 15px rgba(252, 165, 165, 0.6)' : 'none'
+                        }}>
+                          -{Math.round((1 - enemyCurrentDeflation.multiplier) * 100)}%
+                        </div>
+                      )}
                     </div>
-                    <div style={{ fontSize: '1.32rem', color: '#fbbf24', fontWeight: 'bold' }}>
-                      ×{(COMBO_MULTIPLIERS[enemyCombo.name] || 1).toFixed(2)}
+                    <div style={{
+                      fontSize: enemyEtherCalcPhase === 'sum' ? '2rem' : '1.5rem',
+                      color: '#fbbf24',
+                      fontWeight: 'bold',
+                      letterSpacing: '0.2em',
+                      marginBottom: '2px',
+                      transition: 'font-size 0.3s ease, transform 0.3s ease',
+                      transform: enemyEtherCalcPhase === 'sum' ? 'scale(1.3)' : 'scale(1)',
+                      textShadow: enemyEtherCalcPhase === 'sum' ? '0 0 20px #fbbf24' : 'none',
+                      visibility: (phase === 'respond' || phase === 'resolve') ? 'visible' : 'hidden',
+                      height: '1.8rem'
+                    }}>
+                      + {enemyTurnEtherAccumulated.toString().split('').join(' ')} P T
                     </div>
+                    <div style={{
+                      fontSize: enemyEtherCalcPhase === 'multiply' ? '1.6rem' : '1.32rem',
+                      color: '#fbbf24',
+                      fontWeight: 'bold',
+                      letterSpacing: '0.15em',
+                      minWidth: '400px',
+                      height: '2rem',
+                      marginTop: '8px',
+                      display: 'flex',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      gap: '12px',
+                      transition: 'font-size 0.3s ease, transform 0.3s ease',
+                      transform: enemyEtherCalcPhase === 'multiply' ? 'scale(1.3)' : 'scale(1)',
+                      textShadow: enemyEtherCalcPhase === 'multiply' ? '0 0 20px #fbbf24' : 'none'
+                    }}>
+                      <span>× {((enemyCombo && COMBO_MULTIPLIERS[enemyCombo.name]) || 1).toFixed(2).split('').join(' ')}</span>
+                    </div>
+                    {(phase === 'respond' || phase === 'resolve') && enemyEtherFinalValue !== null && (
+                      <div style={{
+                        position: 'absolute',
+                        top: '60px',
+                        right: '50%',
+                        transform: 'translateX(50%)',
+                        fontSize: '1.5rem',
+                        fontWeight: 'bold',
+                        color: '#fbbf24',
+                        letterSpacing: '0.15em',
+                        whiteSpace: 'nowrap',
+                        background: 'linear-gradient(135deg, rgba(251, 191, 36, 0.2), rgba(251, 191, 36, 0.08))',
+                        padding: '6px 20px',
+                        borderRadius: '12px',
+                        border: '2px solid #fbbf24',
+                        boxShadow: '0 0 20px rgba(251, 191, 36, 0.4)'
+                      }}>
+                        = {enemyEtherFinalValue.toString().split('').join(' ')} P T
+                      </div>
+                    )}
                   </div>
                 )}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', position: 'relative' }}>
               <div style={{ textAlign: 'right' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
                   {enemyHint && (
@@ -3346,17 +3438,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                           }}></div>
                         )}
                       </div>
-                      <div style={{ fontSize: '1rem', fontWeight: '600', color: '#fca5a5', marginTop: '4px', textAlign: 'right' }}>
+                      <div style={{ fontSize: '1rem', fontWeight: '600', color: '#fca5a5', marginTop: '4px' }}>
                         {enemy.name}
                       </div>
-                      {(phase === 'respond' || phase === 'resolve') && (
-                        <div style={{ textAlign: 'right', marginTop: '6px', color: '#fca5a5', fontWeight: 700, lineHeight: 1.2 }}>
-                          <div>+ {enemyTurnEtherAccumulated} PT</div>
-                          {enemyEtherFinalValue !== null && (
-                            <div style={{ color: '#fcd34d', fontSize: '0.95rem' }}>= {enemyEtherFinalValue} PT</div>
-                          )}
-                        </div>
-                      )}
                     </div>
                     <div className="character-display" style={{ fontSize: '64px' }}>👹</div>
                   </div>
@@ -3366,7 +3450,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                 key={`enemy-ether-${enemyEtherValue}`}
                 pts={enemyEtherValue}
                 slots={enemyEtherSlots}
-                previewGain={0}
+                previewGain={enemyTurnEtherAccumulated}
                 label="ETHER"
                 color="red"
               />
