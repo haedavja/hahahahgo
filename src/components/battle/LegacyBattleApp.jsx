@@ -1131,6 +1131,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const [etherAnimationPts, setEtherAnimationPts] = useState(null); // 에테르 애니메이션 전용 (전체 획득량 표시)
   const [executingCardIndex, setExecutingCardIndex] = useState(null); // 현재 실행 중인 카드 인덱스 (애니메이션용)
   const [turnNumber, setTurnNumber] = useState(1); // 턴 번호 (1부터 시작)
+  const [netEtherDelta, setNetEtherDelta] = useState(null); // 최종 적용된 에테르 이동량(플레이어 기준)
   const [vanishedCards, setVanishedCards] = useState([]); // 소멸 특성으로 제거된 카드
   const [turnEtherAccumulated, setTurnEtherAccumulated] = useState(0); // 이번 턴 누적 에테르 (실제 적용 전)
   const [enemyTurnEtherAccumulated, setEnemyTurnEtherAccumulated] = useState(0); // 적 이번 턴 누적 에테르
@@ -1934,6 +1935,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     // 타임라인 progress 초기화
     setTimelineProgress(0);
     setTimelineIndicatorVisible(true);
+    setNetEtherDelta(null);
 
     const enemyWillOD = shouldEnemyOverdriveWithTurn(enemyPlan.mode, enemyPlan.actions, enemy.etherPts, turnNumber) && etherSlots(enemy.etherPts) > 0;
     if ((phase === 'respond' || phase === 'select') && willOverdrive && etherSlots(player.etherPts) > 0) {
@@ -2546,24 +2548,37 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     const curEnemyPts = enemy.etherPts || 0;
     let nextPlayerPts = curPlayerPts;
     let nextEnemyPts = curEnemyPts;
+    let movedPts = 0;
     if (netTransfer > 0) {
       const move = Math.min(netTransfer, curEnemyPts);
+      movedPts += move;
       nextPlayerPts += move;
       nextEnemyPts = Math.max(0, curEnemyPts - move);
     } else if (netTransfer < 0) {
       const move = Math.min(-netTransfer, curPlayerPts);
+      movedPts -= move;
       nextPlayerPts = Math.max(0, curPlayerPts - move);
       nextEnemyPts += move;
     }
-    if (netTransfer !== 0) {
+
+    // 몬스터가 처치된 경우: 남은 에테르 전부 플레이어에게 이전
+    if (enemy.hp <= 0 && nextEnemyPts > 0) {
+      movedPts += nextEnemyPts;
+      nextPlayerPts += nextEnemyPts;
+      addLog(`💠 적 잔여 에테르 회수: +${nextEnemyPts} PT`);
+      nextEnemyPts = 0;
+    }
+
+    if (movedPts !== 0) {
+      setNetEtherDelta(movedPts);
       setPlayerTransferPulse(true);
       setEnemyTransferPulse(true);
-      playSound(netTransfer > 0 ? 900 : 600, 180);
+      playSound(movedPts > 0 ? 900 : 600, 180);
       setTimeout(() => {
         setPlayerTransferPulse(false);
         setEnemyTransferPulse(false);
       }, 450);
-      addLog(`🔁 에테르 이동: 플레이어 ${netTransfer > 0 ? '+' : ''}${netTransfer} PT`);
+      addLog(`🔁 에테르 이동: 플레이어 ${movedPts > 0 ? '+' : ''}${movedPts} PT`);
     }
 
     setPlayer(p => {
@@ -2625,6 +2640,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       if (etherVictory) {
         setSoulShatter(true);
       }
+      setNetEtherDelta(null);
       setTimeout(() => {
         setPostCombatOptions({ type: 'victory' });
         setPhase('post');
@@ -2632,6 +2648,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       return;
     }
     if (player.hp <= 0) {
+      setNetEtherDelta(null);
       setTimeout(() => {
         setPostCombatOptions({ type: 'defeat' });
         setPhase('post');
@@ -2640,6 +2657,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     }
 
     setTurnNumber(t => t + 1);
+    setNetEtherDelta(null);
     setPhase('select');
   };
 
@@ -2818,9 +2836,11 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     phase === 'resolve';
   const enemyOverdriveVisible = canRevealOverdrive && (enemyWillOverdrivePlan || enemy?.etherOverdriveActive);
   const enemyOverdriveLabel = enemy?.etherOverdriveActive ? '기원 발동' : '기원 예정';
-  const netFinalEther = (phase === 'resolve' && etherFinalValue !== null && enemyEtherFinalValue !== null)
-    ? (etherFinalValue - enemyEtherFinalValue)
-    : null;
+  const netFinalEther = netEtherDelta !== null
+    ? netEtherDelta
+    : ((phase === 'resolve' && etherFinalValue !== null && enemyEtherFinalValue !== null)
+      ? (etherFinalValue - enemyEtherFinalValue)
+      : null);
 
   // 에테르 획득량 미리보기 계산
   const previewEtherGain = useMemo(() => {
