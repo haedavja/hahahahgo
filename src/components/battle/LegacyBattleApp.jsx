@@ -1163,7 +1163,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const [resolveStartPlayer, setResolveStartPlayer] = useState(null); // 진행 단계 시작 시 플레이어 상태
   const [resolveStartEnemy, setResolveStartEnemy] = useState(null); // 진행 단계 시작 시 적 상태
   const [hoveredRelic, setHoveredRelic] = useState(null); // 호버된 유물 ID
-  const [relicActivated, setRelicActivated] = useState(null); // 발동된 유물 ID (애니메이션용)
+  const [relicActivated, setRelicActivated] = useState(null); // 발동된 유물 ID (애니메이션용, 단일 표시용)
+  const [activeRelics, setActiveRelics] = useState(new Set()); // 동시 강조용
   const [resolvedPlayerCards, setResolvedPlayerCards] = useState(0); // 진행 단계에서 진행된 플레이어 카드 수
   const [hoveredCard, setHoveredCard] = useState(null); // 호버된 카드 정보 {card, position}
   const [tooltipVisible, setTooltipVisible] = useState(false); // 툴팁 표시 여부(애니메이션용)
@@ -1192,6 +1193,23 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const initialEtherRef = useRef(typeof safeInitialPlayer.etherPts === 'number' ? safeInitialPlayer.etherPts : (playerEther ?? 0));
   const resultSentRef = useRef(false);
   const turnStartProcessedRef = useRef(false); // 턴 시작 효과 중복 실행 방지
+  const flashRelic = (relicId, tone = 800, duration = 500) => {
+    setActiveRelics(prev => {
+      const next = new Set(prev);
+      next.add(relicId);
+      return next;
+    });
+    setRelicActivated(relicId);
+    playSound(tone, duration * 0.6);
+    setTimeout(() => {
+      setActiveRelics(prev => {
+        const next = new Set(prev);
+        next.delete(relicId);
+        return next;
+      });
+      setRelicActivated(prev => (prev === relicId ? null : prev));
+    }, duration);
+  };
 
   // 통찰 시스템: 유효 통찰 및 공개 정보 계산
   const effectiveInsight = useMemo(() => {
@@ -2182,23 +2200,37 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       setResolvedPlayerCards(prev => {
         const newCount = prev + 1;
 
-        // 유물이 있으면 발동 애니메이션 및 사운드
+        // 유물이 있으면 발동 애니메이션 및 사운드 (좌→우 순차 재생)
         if (relics.length > 0) {
+          const triggered = [];
           relics.forEach(relicId => {
             const relic = RELICS[relicId];
             // effects가 객체인 경우 처리 (/src/data/relics.js 사용)
             if (relic?.effects?.type === 'PASSIVE' && relic?.effects?.comboMultiplierPerCard) {
-              setRelicActivated(relicId);
-              playSound(800, 200); // 유물 발동 사운드
-              setTimeout(() => setRelicActivated(null), 500);
+              // 에테르 결정: 카드마다 즉시 발동 표시/사운드
+              triggered.push({ id: relicId, tone: 800, duration: 500 });
+            } else if (relic?.effects?.type === 'PASSIVE' && (relic?.effects?.etherCardMultiplier || relicId === 'rareStone' || relic?.effects?.etherMultiplier)) {
+              // 희귀한 조약돌/참고서 계열: 카드마다 즉시 발동 (상시 배지 없음)
+              triggered.push({ id: relicId, tone: 820, duration: 400 });
             } else if (relic?.effects?.type === 'PASSIVE' && relic?.effects?.etherFiveCardBonus && newCount >= 5 && !devilDiceTriggeredRef.current) {
-              // 악마의 주사위: 카드 5장 시점에서 즉시 발동 표시/사운드
+              // 악마의 주사위: 다섯번째 카드 처리 직후 발동
               devilDiceTriggeredRef.current = true;
-              setRelicActivated(relicId);
-              playSound(900, 250);
-              setTimeout(() => setRelicActivated(null), 500);
+              triggered.push({ id: relicId, tone: 980, duration: 800 });
             }
           });
+
+          if (triggered.length > 0) {
+            const playSeq = (idx = 0) => {
+              if (idx >= triggered.length) {
+                setRelicActivated(null);
+                return;
+              }
+              const item = triggered[idx];
+              flashRelic(item.id, item.tone, item.duration);
+              setTimeout(() => playSeq(idx + 1), Math.max(150, item.duration * 0.6));
+            };
+            playSeq(0);
+          }
         }
 
         return newCount;
@@ -2424,25 +2456,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     const playerComboMult = applyRelicComboMultiplier(relics, basePlayerComboMult, cardsPlayedForRelic);
     const relicMultBonus = playerComboMult - basePlayerComboMult;
 
-    // 에테르 관련 유물 발동 애니메이션 (참고서, 악마의 주사위, 에테르 결정)
-    if (relicMultBonus > 0 || cardsPlayedForRelic >= 5) {
-      relics.forEach(relicId => {
-        const relic = RELICS[relicId];
-        if (relic?.effects?.type === 'PASSIVE') {
-          if (relic.effects.comboMultiplierPerCard && relicMultBonus > 0) {
-            // 에테르 결정
-            setRelicActivated(relicId);
-            playSound(800, 200);
-            setTimeout(() => setRelicActivated(null), 500);
-          } else if (relic.effects.etherCardMultiplier && cardsPlayedForRelic > 0) {
-            // 참고서
-            setRelicActivated(relicId);
-            playSound(800, 200);
-            setTimeout(() => setRelicActivated(null), 500);
-          }
-        }
-      });
-    }
+    // 턴 종료 시점에는 에테르 결정/조약돌 발동 애니메이션을 중복 노출하지 않음 (카드 실행 시에만)
 
     const enemyComboMult = eComboEnd ? (COMBO_MULTIPLIERS[eComboEnd.name] || 1) : 1;
 
@@ -2491,13 +2505,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     let playerOverflow = 0;
 
     if (playerFinalEther > 0) {
-      const currentSlotPts = getCurrentSlotPts(player.etherPts);
-      const nextSlotCost = getNextSlotCost(player.etherPts);
-      const remainingToNextSlot = nextSlotCost - currentSlotPts;
-
-      // 다음 슬롯까지 채울 수 있는 만큼만 적용
-      playerAppliedEther = Math.min(playerFinalEther, remainingToNextSlot);
-      playerOverflow = playerFinalEther - playerAppliedEther;
+      playerAppliedEther = playerFinalEther;
+      playerOverflow = 0;
 
       // 실제 적용된 총 배율 계산 (조합 배율 + 참고서 + 악마의 주사위)
       const actualTotalMultiplier = turnEtherAccumulated > 0
@@ -2507,30 +2516,23 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       const deflationText = playerDeflation.usageCount > 0
         ? ` (디플레이션 -${Math.round((1 - playerDeflation.multiplier) * 100)}%, ${playerDeflation.usageCount}회 사용)`
         : '';
-      // 악마의 주사위(5장)는 calculateRelicEtherGain에서 반영된 값을 포함하고 있음
       const relicText = relicMultBonus > 0 ? ` (유물 배율 +${relicMultBonus.toFixed(2)})` : '';
-      const overflowText = playerOverflow > 0 ? ` [범람: ${playerOverflow} PT]` : '';
-      addLog(`✴️ 에테르 획득: ${turnEtherAccumulated} × ${actualTotalMultiplier.toFixed(2)}${relicText} = ${playerBeforeDeflation} → ${playerFinalEther} PT${deflationText} (적용: ${playerAppliedEther} PT${overflowText})`);
+      addLog(`✴️ 에테르 획득: ${turnEtherAccumulated} × ${actualTotalMultiplier.toFixed(2)}${relicText} = ${playerBeforeDeflation} → ${playerFinalEther} PT${deflationText} (적용: ${playerAppliedEther} PT)`);
 
       // 최종값 UI에 로그와 동일한 값 표시
       setEtherFinalValue(playerFinalEther);
     }
-    // 적도 동일하게 적용/범람 계산
+    // 적도 동일하게 적용/범람 계산 (슬롯 남은칸 제한 제거)
     let enemyAppliedEther = 0;
     let enemyOverflow = 0;
     if (enemyFinalEther > 0) {
-      const currentSlotPtsE = getCurrentSlotPts(enemy.etherPts);
-      const nextSlotCostE = getNextSlotCost(enemy.etherPts);
-      const remainingToNextSlotE = nextSlotCostE - currentSlotPtsE;
-
-      enemyAppliedEther = Math.min(enemyFinalEther, remainingToNextSlotE);
-      enemyOverflow = enemyFinalEther - enemyAppliedEther;
+      enemyAppliedEther = enemyFinalEther;
+      enemyOverflow = 0;
 
       const deflationText = enemyDeflation.usageCount > 0
         ? ` (디플레이션: ${Math.round(enemyDeflation.multiplier * 100)}%)`
         : '';
-      const overflowTextE = enemyOverflow > 0 ? ` [범람: ${enemyOverflow} PT]` : '';
-      addLog(`☄️ 적 에테르 획득: ${enemyTurnEtherAccumulated} × ${enemyComboMult.toFixed(2)} = ${enemyBeforeDeflation} → ${enemyFinalEther} PT${deflationText} (적용: ${enemyAppliedEther} PT${overflowTextE})`);
+      addLog(`☄️ 적 에테르 획득: ${enemyTurnEtherAccumulated} × ${enemyComboMult.toFixed(2)} = ${enemyBeforeDeflation} → ${enemyFinalEther} PT${deflationText} (적용: ${enemyAppliedEther} PT)`);
       setEnemyEtherCalcPhase('sum');
       setTimeout(() => setEnemyEtherCalcPhase('multiply'), 50);
       setTimeout(() => {
@@ -2569,8 +2571,10 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       nextEnemyPts = 0;
     }
 
+    // 실제 이동된 양을 델타로 기록 (0이어도 표시 일치용)
+    setNetEtherDelta(movedPts);
+
     if (movedPts !== 0) {
-      setNetEtherDelta(movedPts);
       setPlayerTransferPulse(true);
       setEnemyTransferPulse(true);
       playSound(movedPts > 0 ? 900 : 600, 180);
@@ -2635,16 +2639,17 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     setDisappearingCards([]); setHiddenCards([]);
 
     // 턴 종료 시 승리/패배 체크
-    if (enemy.hp <= 0 || (nextEnemyPtsSnapshot !== null && nextEnemyPtsSnapshot <= 0)) {
-      const etherVictory = nextEnemyPtsSnapshot !== null && nextEnemyPtsSnapshot <= 0;
-      if (etherVictory) {
+    const etherVictoryNow = nextEnemyPtsSnapshot !== null && nextEnemyPtsSnapshot <= 0;
+    const etherVictoryImmediate = nextEnemyPts <= 0;
+    if (enemy.hp <= 0 || etherVictoryNow || etherVictoryImmediate) {
+      if (etherVictoryNow || etherVictoryImmediate) {
         setSoulShatter(true);
       }
       setNetEtherDelta(null);
       setTimeout(() => {
         setPostCombatOptions({ type: 'victory' });
         setPhase('post');
-      }, etherVictory ? 1200 : 500);
+      }, (etherVictoryNow || etherVictoryImmediate) ? 1200 : 500);
       return;
     }
     if (player.hp <= 0) {
@@ -2836,11 +2841,15 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     phase === 'resolve';
   const enemyOverdriveVisible = canRevealOverdrive && (enemyWillOverdrivePlan || enemy?.etherOverdriveActive);
   const enemyOverdriveLabel = enemy?.etherOverdriveActive ? '기원 발동' : '기원 예정';
+  const rawNetDelta = (phase === 'resolve' && etherFinalValue !== null && enemyEtherFinalValue !== null)
+    ? (etherFinalValue - enemyEtherFinalValue)
+    : null;
+
   const netFinalEther = netEtherDelta !== null
     ? netEtherDelta
-    : ((phase === 'resolve' && etherFinalValue !== null && enemyEtherFinalValue !== null)
-      ? (etherFinalValue - enemyEtherFinalValue)
-      : null);
+    : rawNetDelta;
+  const enemyCapacity = enemy?.etherCapacity ?? Math.max(enemyEtherValue, 1);
+  const enemySoulScale = Math.max(0.4, Math.min(1.3, enemyCapacity > 0 ? enemyEtherValue / enemyCapacity : 1));
 
   // 에테르 획득량 미리보기 계산
   const previewEtherGain = useMemo(() => {
@@ -2972,13 +2981,15 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                 const relic = RELICS[relicId];
                 if (!relic) return null;
 
-                const isActivated = relicActivated === relicId;
+                const isActivated = relicActivated === relicId || activeRelics.has(relicId);
                 const isHovered = hoveredRelic === relicId;
-                // 지속 효과 유물은 항상 활성 상태 (노란색 강조)
-                // 에테르 결정, 악마의 주사위는 조건부 발동이므로 제외
-                const isPersistent = relic.effects?.type === 'PASSIVE'
+                // 지속 강조 제외 대상: 에테르 결정/악마의 주사위/희귀한 조약돌(etherCardMultiplier)
+                const isPersistent = (relic.effects?.type === 'PASSIVE'
                   && relicId !== 'etherGem'
                   && relicId !== 'devilDice'
+                  && relicId !== 'rareStone' // 희귀한 조약돌은 상시 강조 제외
+                  && !relic.effects?.etherCardMultiplier
+                  && !relic.effects?.etherMultiplier)
                   || relic.effects?.type === 'ON_TURN_START' // 피피한 갑옷
                   || relicId === 'bloodShackles'; // 피의 족쇄 - 전투 중 지속 강조
                 const isHighlighted = isPersistent || isActivated;
@@ -3627,8 +3638,11 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                 className={`soul-orb ${enemyTransferPulse ? 'pulse' : ''} ${soulShatter ? 'shatter' : ''}`}
                 title={`${(enemyEtherValue || 0).toLocaleString()} / ${((enemy?.etherCapacity ?? enemyEtherValue) || 0).toLocaleString()}`}
               >
-                <div className="soul-orb-value">{formatCompactValue(enemyEtherValue)}</div>
-                <div className="soul-orb-label">SOUL</div>
+                <div className={`soul-orb-shell ${enemyTransferPulse ? 'pulse' : ''} ${soulShatter ? 'shatter' : ''}`} style={{ transform: `scale(${enemySoulScale})` }} />
+                <div className="soul-orb-content">
+                  <div className="soul-orb-value">{formatCompactValue(enemyEtherValue)}</div>
+                  <div className="soul-orb-label">SOUL</div>
+                </div>
               </div>
             </div>
 

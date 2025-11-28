@@ -1613,10 +1613,26 @@ body {
 .soul-orb {
   width: 120px;
   height: 120px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: filter 0.3s ease, opacity 0.4s ease;
+}
+
+.soul-orb-shell {
+  position: absolute;
+  inset: 0;
   border-radius: 999px;
   background: radial-gradient(circle at 30% 30%, #fca5a5, #b91c1c);
   border: 3px solid rgba(248, 113, 113, 0.6);
   box-shadow: 0 8px 28px rgba(185, 28, 28, 0.5), inset 0 0 20px rgba(248, 113, 113, 0.35);
+  transition: transform 0.25s ease, filter 0.3s ease, opacity 0.4s ease;
+  transform-origin: center;
+}
+
+.soul-orb-content {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1625,7 +1641,7 @@ body {
   color: #fff1f2;
   font-weight: 800;
   text-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
-  transition: transform 0.3s ease, filter 0.3s ease, opacity 0.4s ease;
+  pointer-events: none;
 }
 
 .soul-orb .soul-orb-value {
@@ -1639,11 +1655,11 @@ body {
   color: #fecdd3;
 }
 
-.soul-orb.pulse {
+.soul-orb.pulse .soul-orb-shell {
   animation: soulPulse 0.6s ease;
 }
 
-.soul-orb.shatter {
+.soul-orb.shatter .soul-orb-shell {
   animation: soulShatter 0.8s ease forwards;
 }
 
