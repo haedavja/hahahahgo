@@ -1983,25 +1983,61 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       multiplier: playerDeflation.multiplier
     } : null);
 
-    // 1단계: 합계 강조
+    // === 적 에테르 계산 (플레이어와 동일한 로직) ===
+    const eCombo = detectPokerCombo(enemyPlan.actions || []);
+    const baseEnemyComboMult = eCombo ? (COMBO_MULTIPLIERS[eCombo.name] || 1) : 1;
+    const enemyCardCount = enemyPlan.actions?.length || 0;
+    let enemyBeforeDeflation = Math.round(enemyTurnEtherAccumulated * baseEnemyComboMult);
+
+    // 적 디플레이션 적용
+    const enemyDeflation = eCombo?.name
+      ? applyEtherDeflation(enemyBeforeDeflation, eCombo.name, enemy.comboUsageCount || {})
+      : { gain: enemyBeforeDeflation, multiplier: 1, usageCount: 0 };
+
+    const enemyFinalEther = enemyDeflation.gain;
+
+    // 적 디플레이션 정보 설정
+    setEnemyCurrentDeflation(eCombo?.name ? {
+      comboName: eCombo.name,
+      usageCount: enemyDeflation.usageCount,
+      multiplier: enemyDeflation.multiplier
+    } : null);
+
+    console.log('[적 에테르 계산 애니메이션]', {
+      enemyTurnEtherAccumulated,
+      comboName: eCombo?.name,
+      baseEnemyComboMult,
+      enemyBeforeDeflation,
+      deflationMult: enemyDeflation.multiplier,
+      usageCount: enemyDeflation.usageCount,
+      enemyFinalEther,
+      enemyCardCount
+    });
+
+    // 1단계: 합계 강조 (플레이어 + 적 동시)
     setEtherCalcPhase('sum');
+    setEnemyEtherCalcPhase('sum');
     setTimeout(() => {
       // 2단계: 곱셈 강조 + 명쾌한 사운드
       setEtherCalcPhase('multiply');
+      setEnemyEtherCalcPhase('multiply');
       playSound(800, 100);
       setTimeout(() => {
         // 3단계: 디플레이션 배지 애니메이션 + 저음 사운드
-        if (playerDeflation.usageCount > 0) {
-          setEtherCalcPhase('deflation');
+        if (playerDeflation.usageCount > 0 || enemyDeflation.usageCount > 0) {
+          if (playerDeflation.usageCount > 0) setEtherCalcPhase('deflation');
+          if (enemyDeflation.usageCount > 0) setEnemyEtherCalcPhase('deflation');
           playSound(200, 150);
         }
         setTimeout(() => {
           // 4단계: 최종값 표시 + 묵직한 사운드
           setEtherCalcPhase('result');
+          setEnemyEtherCalcPhase('result');
           // 버튼 표시를 위해 값 설정 (finishTurn에서 정확한 값으로 다시 설정됨)
           setEtherFinalValue(playerFinalEther);
+          setEnemyEtherFinalValue(enemyFinalEther);
           playSound(400, 200);
-        }, playerDeflation.usageCount > 0 ? 400 : 0);
+        }, (playerDeflation.usageCount > 0 || enemyDeflation.usageCount > 0) ? 400 : 0);
       }, 600);
     }, 400);
   };
