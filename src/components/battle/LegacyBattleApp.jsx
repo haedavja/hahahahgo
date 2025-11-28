@@ -3189,45 +3189,71 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
         {/* 플레이어/적 정보 + 중앙 정보 통합 레이아웃 */}
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '50px', gap: '120px', position: 'relative' }}>
-          {netFinalEther !== null && (
-            <>
+          {phase === 'resolve' && etherFinalValue !== null && enemyEtherFinalValue !== null && (
+            <div style={{
+              position: 'absolute',
+              top: '280px',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '32px',
+              padding: '12px 36px',
+              background: 'rgba(8, 15, 30, 0.35)',
+              borderRadius: '18px',
+              border: '1.5px solid rgba(148, 163, 184, 0.35)',
+              boxShadow: '0 10px 28px rgba(0,0,0,0.35), inset 0 0 12px rgba(94, 234, 212, 0.1)'
+            }}>
               <div style={{
-                position: 'absolute',
-                top: '252px',
-                left: '18%',
-                width: '28%',
-                height: '2px',
-                background: 'linear-gradient(90deg, rgba(125,211,252,0.0), rgba(125,211,252,0.7))',
-                boxShadow: '0 0 12px rgba(125,211,252,0.35)',
-              }} />
+                padding: '10px 20px',
+                borderRadius: '12px',
+                background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.18), rgba(56, 189, 248, 0.14))',
+                border: '2px solid rgba(125, 211, 252, 0.9)',
+                color: '#e0f2fe',
+                fontWeight: '900',
+                letterSpacing: '0.14em',
+                fontSize: '1.25rem',
+                minWidth: '190px',
+                textAlign: 'center',
+                whiteSpace: 'nowrap',
+                boxShadow: '0 0 16px rgba(125, 211, 252, 0.35)'
+              }}>
+                {etherFinalValue.toLocaleString()} P T
+              </div>
+              <div style={{ width: '96px', height: '2px', background: 'linear-gradient(90deg, rgba(125,211,252,0.0), rgba(125,211,252,0.8))', boxShadow: '0 0 10px rgba(125,211,252,0.35)' }} />
               <div style={{
-                position: 'absolute',
-                top: '252px',
-                right: '18%',
-                width: '28%',
-                height: '2px',
-                background: 'linear-gradient(90deg, rgba(125,211,252,0.7), rgba(125,211,252,0.0))',
-                boxShadow: '0 0 12px rgba(125,211,252,0.35)',
-              }} />
-              <div style={{
-                position: 'absolute',
-                top: '252px',
-                left: '49%',
-                transform: 'translateX(-50%)',
-                padding: '10px 22px',
+                padding: '12px 22px',
                 borderRadius: '12px',
                 background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.25), rgba(16, 185, 129, 0.25))',
                 border: '2px solid rgba(125, 211, 252, 0.7)',
                 color: '#e0f2fe',
                 fontWeight: '900',
-                fontSize: '1.2rem',
+                fontSize: '1.3rem',
                 letterSpacing: '0.14em',
-                boxShadow: '0 8px 20px rgba(59, 130, 246, 0.25), inset 0 0 10px rgba(16, 185, 129, 0.2)',
-                whiteSpace: 'nowrap'
+                whiteSpace: 'nowrap',
+                minWidth: '130px',
+                textAlign: 'center'
               }}>
                 Δ {netFinalEther.toLocaleString()} P T
               </div>
-            </>
+              <div style={{ width: '96px', height: '2px', background: 'linear-gradient(90deg, rgba(125,211,252,0.8), rgba(125,211,252,0.0))', boxShadow: '0 0 10px rgba(125,211,252,0.35)' }} />
+              <div style={{
+                padding: '10px 20px',
+                borderRadius: '12px',
+                background: 'linear-gradient(135deg, rgba(248, 113, 113, 0.22), rgba(244, 63, 94, 0.14))',
+                border: '2px solid rgba(248, 113, 113, 0.9)',
+                color: '#ffe4e6',
+                fontWeight: '900',
+                letterSpacing: '0.14em',
+                fontSize: '1.25rem',
+                minWidth: '190px',
+                textAlign: 'center',
+                whiteSpace: 'nowrap',
+                boxShadow: '0 0 16px rgba(248, 113, 113, 0.35)'
+              }}>
+                {enemyEtherFinalValue.toLocaleString()} P T
+              </div>
+            </div>
           )}
           {/* 왼쪽: 플레이어 */}
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '12px', minWidth: '360px', position: 'relative', justifyContent: 'center' }}>
@@ -3333,27 +3359,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                           }}></div>
                         )}
                       </div>
-                      {/* 최종 합계값 텍스트창 - 체력바 하단 (진행 단계에서만 표시) */}
-                      {phase === 'resolve' && etherFinalValue !== null && (
-                        <div style={{
-                          position: 'absolute',
-                          top: '54px',
-                          left: '50%',
-                          transform: 'translateX(-50%)',
-                          fontSize: '1.5rem',
-                          fontWeight: 'bold',
-                          color: '#fbbf24',
-                          letterSpacing: '0.15em',
-                          whiteSpace: 'nowrap',
-                          background: 'linear-gradient(135deg, rgba(251, 191, 36, 0.3), rgba(251, 191, 36, 0.1))',
-                          border: '2px solid #fbbf24',
-                          borderRadius: '8px',
-                          padding: '6px 16px',
-                          boxShadow: '0 0 20px rgba(251, 191, 36, 0.5), inset 0 0 10px rgba(251, 191, 36, 0.2)'
-                        }}>
-                          {etherFinalValue.toString().split('').join(' ')} P T
-                        </div>
-                      )}
                     </div>
                     <div style={{ fontSize: '1rem', fontWeight: '600', color: '#7dd3fc', marginTop: '4px' }}>플레이어</div>
                     {(player.strength || 0) > 0 && (
@@ -3610,27 +3615,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                           }}></div>
                         )}
                       </div>
-                      {/* 적 최종 합계값 텍스트창 - 체력바 하단 (진행 단계에서만 표시) */}
-                      {phase === 'resolve' && enemyEtherFinalValue !== null && (
-                        <div style={{
-                          position: 'absolute',
-                          top: '94px',
-                          left: '50%',
-                          transform: 'translateX(-50%)',
-                          fontSize: '1.5rem',
-                          fontWeight: 'bold',
-                          color: '#fbbf24',
-                          letterSpacing: '0.15em',
-                          whiteSpace: 'nowrap',
-                          background: 'linear-gradient(135deg, rgba(251, 191, 36, 0.3), rgba(251, 191, 36, 0.1))',
-                          border: '2px solid #fbbf24',
-                          borderRadius: '8px',
-                          padding: '6px 16px',
-                          boxShadow: '0 0 20px rgba(251, 191, 36, 0.5), inset 0 0 10px rgba(251, 191, 36, 0.2)'
-                        }}>
-                          {enemyEtherFinalValue.toString().split('').join(' ')} P T
-                        </div>
-                      )}
                       <div style={{ fontSize: '1rem', fontWeight: '600', color: '#fca5a5', marginTop: '4px' }}>
                         {enemy.name}
                       </div>
