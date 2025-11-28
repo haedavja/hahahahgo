@@ -7,6 +7,7 @@ import { LegacyBattleScreen } from "../battle/LegacyBattleScreen";
 import { EtherBar } from "../battle/LegacyBattleApp";
 import { DevTools } from "../dev/DevTools";
 import { RELICS, RELIC_RARITIES } from "../../data/relics";
+import { applyNodeMoveEther } from "../../lib/relicEffects";
 
 // 유물 희귀도별 색상
 const RELIC_RARITY_COLORS = {
@@ -134,7 +135,7 @@ export function MapDemo() {
   const [hoveredRelic, setHoveredRelic] = useState(null);
 
   const map = useGameStore((state) => state.map);
-  const resources = useGameStore((state) => state.resources);
+  const resources = useGameStore((state) => state.resources || {});
   const mapRisk = useGameStore((state) => state.mapRisk);
   const activeEvent = useGameStore((state) => state.activeEvent);
   const activeBattle = useGameStore((state) => state.activeBattle);

@@ -237,7 +237,7 @@ export const useGameStore = create((set, get) => ({
       const result = travelToNode(state, nodeId);
       if (!result) return state;
 
-      // 맵 이동 시 유물 효과 적용 (적색의 지남철)
+      // 맵 이동 시 유물 효과 적용 (황금 나침반)
       let updatedResources = state.resources;
       try {
         const currentEther = state.resources.etherPts ?? 0;

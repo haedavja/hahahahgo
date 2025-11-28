@@ -263,7 +263,7 @@ export const RELICS = {
 
   redCompass: {
     id: 'redCompass',
-    name: '적색의 지남철',
+    name: '황금 나침반',
     emoji: '🧭',
     rarity: RELIC_RARITIES.RARE,
     tags: [RELIC_TAGS.ETHER],
