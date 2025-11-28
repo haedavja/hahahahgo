@@ -1189,9 +1189,11 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const [resolveStartEnemy, setResolveStartEnemy] = useState(null); // 吏꾪뻾 ?④퀎 ?쒖옉 ?????곹깭
   const [hoveredRelic, setHoveredRelic] = useState(null); // ?몃쾭???좊Ъ ID
   const [relicActivated, setRelicActivated] = useState(null); // 諛쒕룞???좊Ъ ID (?좊땲硫붿씠?섏슜, ?⑥씪 ?쒖떆??
-  const [activeRelicSet, setActiveRelicSet] = useState(new Set()); // ?숈떆 媛뺤“??  const [multiplierPulse, setMultiplierPulse] = useState(false); // 諛곗쑉 ?띿뒪??媛뺤“
-  const [displayComboMultiplier, setDisplayComboMultiplier] = useState(1); // ?좊땲硫붿씠?섏슜 諛곗쑉 ?쒖떆
-  const [resolvedPlayerCards, setResolvedPlayerCards] = useState(0); // 吏꾪뻾 ?④퀎?먯꽌 吏꾪뻾???뚮젅?댁뼱 移대뱶 ??  const [hoveredCard, setHoveredCard] = useState(null); // ?몃쾭??移대뱶 ?뺣낫 {card, position}
+  const [activeRelicSet, setActiveRelicSet] = useState(new Set()); // 활성화된 유물 모음
+  const [multiplierPulse, setMultiplierPulse] = useState(false); // 배율 펄스
+  const [displayComboMultiplier, setDisplayComboMultiplier] = useState(1); // UI 표시용 배율
+  const [resolvedPlayerCards, setResolvedPlayerCards] = useState(0); // 진행 단계에서 처리된 플레이어 카드 수
+  const [hoveredCard, setHoveredCard] = useState(null); // 호버 카드 정보 {card, position}
   const [tooltipVisible, setTooltipVisible] = useState(false); // ?댄똻 ?쒖떆 ?щ?(?좊땲硫붿씠?섏슜)
   const [previewDamage, setPreviewDamage] = useState({ value: 0, lethal: false, overkill: false });
   const lethalSoundRef = useRef(false);
