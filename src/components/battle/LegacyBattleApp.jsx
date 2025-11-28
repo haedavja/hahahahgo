@@ -3422,7 +3422,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
             {phase === 'resolve' && enemyEtherFinalValue !== null && (
               <div style={{
                 position: 'absolute',
-                top: '60px',
+                top: '90px',
                 right: '50%',
                 transform: 'translateX(50%)',
                 fontSize: '1.5rem',
