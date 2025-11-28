@@ -1160,8 +1160,10 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const [turnNumber, setTurnNumber] = useState(1); // ??踰덊샇 (1遺???쒖옉)
   const [netEtherDelta, setNetEtherDelta] = useState(null); // 理쒖쥌 ?곸슜???먰뀒瑜??대룞???뚮젅?댁뼱 湲곗?)
   const [vanishedCards, setVanishedCards] = useState([]); // ?뚮㈇ ?뱀꽦?쇰줈 ?쒓굅??移대뱶
-  const [turnEtherAccumulated, setTurnEtherAccumulated] = useState(0); // ?대쾲 ???꾩쟻 ?먰뀒瑜?(?ㅼ젣 ?곸슜 ??
-  const [enemyTurnEtherAccumulated, setEnemyTurnEtherAccumulated] = useState(0); // ???대쾲 ???꾩쟻 ?먰뀒瑜?  const [etherPulse, setEtherPulse] = useState(false); // PT 利앷? ?좊땲硫붿씠??  const [etherFinalValue, setEtherFinalValue] = useState(null); // 理쒖쥌 ?먰뀒瑜닿컪 ?쒖떆
+  const [turnEtherAccumulated, setTurnEtherAccumulated] = useState(0); // 이번 턴 누적 에테르(플레이어)
+  const [enemyTurnEtherAccumulated, setEnemyTurnEtherAccumulated] = useState(0); // 이번 턴 누적 에테르(몬스터)
+  const [etherPulse, setEtherPulse] = useState(false); // PT 하이라이트 애니메이션
+  const [etherFinalValue, setEtherFinalValue] = useState(null); // 최종 에테르 값 표시
   const [playerOverdriveFlash, setPlayerOverdriveFlash] = useState(false); // ?뚮젅?댁뼱 湲곗썝 ?곗텧
   const [enemyOverdriveFlash, setEnemyOverdriveFlash] = useState(false); // ??湲곗썝 ?곗텧
   const [enemyEtherFinalValue, setEnemyEtherFinalValue] = useState(null); // ??理쒖쥌 ?먰뀒瑜닿컪 ?쒖떆
