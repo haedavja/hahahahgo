@@ -1195,6 +1195,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const [hoveredRelic, setHoveredRelic] = useState(null); // 호버된 유물 ID
   const [relicActivated, setRelicActivated] = useState(null); // 발동된 유물 ID (애니메이션용, 단일 표시용)
   const [activeRelicSet, setActiveRelicSet] = useState(new Set()); // 동시 강조용
+  const [multiplierPulse, setMultiplierPulse] = useState(false); // 배율 강조 애니메이션
   const [resolvedPlayerCards, setResolvedPlayerCards] = useState(0); // 진행 단계에서 진행된 플레이어 카드 수
   const [hoveredCard, setHoveredCard] = useState(null); // 호버된 카드 정보 {card, position}
   const [tooltipVisible, setTooltipVisible] = useState(false); // 툴팁 표시 여부(애니메이션용)
@@ -1251,6 +1252,11 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       return next;
     });
     setRelicActivated(relicId);
+    const relic = RELICS[relicId];
+    if (relic?.effects && (relic.effects.comboMultiplierPerCard || relic.effects.etherCardMultiplier || relic.effects.etherMultiplier || relic.effects.etherFiveCardBonus)) {
+      setMultiplierPulse(true);
+      setTimeout(() => setMultiplierPulse(false), Math.min(400, duration));
+    }
     playSound(tone, duration * 0.6);
     setTimeout(() => {
       setActiveRelicSet(prev => {
@@ -1779,6 +1785,12 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     // 진행 단계: 유물 배율을 정렬 순서대로 순차 적용
     return computeComboMultiplier(baseMultiplier, cardsCount, true);
   }, [currentCombo, orderedRelicList, resolvedPlayerCards, selected.length, phase]);
+  useEffect(() => {
+    if (phase !== 'resolve') return;
+    setMultiplierPulse(true);
+    const t = setTimeout(() => setMultiplierPulse(false), 250);
+    return () => clearTimeout(t);
+  }, [finalComboMultiplier, phase]);
   const comboPreviewInfo = useMemo(() => {
     if (!currentCombo) return null;
     return calculateComboEtherGain({
@@ -3411,16 +3423,16 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                   minWidth: '400px',
                   height: '2rem',
                   marginTop: '8px',
-                  display: 'flex',
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  gap: '12px',
-                  transition: 'font-size 0.3s ease, transform 0.3s ease',
-                  transform: etherCalcPhase === 'multiply' ? 'scale(1.3)' : 'scale(1)',
-                  textShadow: etherCalcPhase === 'multiply' ? '0 0 20px #fbbf24' : 'none'
-                }}>
-                  <span>× {finalComboMultiplier.toFixed(2).split('').join(' ')}</span>
-                </div>
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                gap: '12px',
+                transition: 'font-size 0.3s ease, transform 0.3s ease',
+                transform: (etherCalcPhase === 'multiply' || multiplierPulse) ? 'scale(1.3)' : 'scale(1)',
+                textShadow: (etherCalcPhase === 'multiply' || multiplierPulse) ? '0 0 20px #fbbf24' : 'none'
+              }}>
+                <span>× {finalComboMultiplier.toFixed(2).split('').join(' ')}</span>
+              </div>
               </div>
             )}
             <div style={{ display: 'flex', alignItems: 'center', gap: '16px', position: 'relative' }}>

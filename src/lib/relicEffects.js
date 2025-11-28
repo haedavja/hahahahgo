@@ -245,11 +245,6 @@ export function calculateEtherGain(baseEther, cardsPlayed, relicIds = []) {
     finalEther *= (1 + cardsPlayed * 0.1);
   }
 
-  // 악마의 주사위: 5장 내면 5배
-  if (passiveEffects.etherFiveCardBonus > 0 && cardsPlayed === 5) {
-    finalEther *= passiveEffects.etherFiveCardBonus;
-  }
-
   return Math.floor(finalEther);
 }
 
