@@ -645,20 +645,27 @@ function generateEnemyActions(enemy, mode, enemyEtherSlots = 0) {
   return single ? [single] : [];
 }
 
-function shouldEnemyOverdrive(mode, actions, etherPts) {
+function shouldEnemyOverdriveWithTurn(mode, actions, etherPts, turnNumber = 1) {
   const slots = etherSlots(etherPts);
   if (slots <= 0) return false;
+  if (turnNumber <= 1) return false;
+  // 몬스터 폭주는 패턴 확정 전까지 금지
+  return false;
   if (!mode) return false;
   if (mode.key === 'aggro') return true;
   if (mode.key === 'balanced') return (actions || []).some(c => c.type === 'attack');
   return false;
 }
 
-function simulatePreview({ player, enemy, fixedOrder, willOverdrive, enemyMode, enemyActions }) {
+function shouldEnemyOverdrive(mode, actions, etherPts, turnNumber = 1) {
+  return shouldEnemyOverdriveWithTurn(mode, actions, etherPts, turnNumber);
+}
+
+function simulatePreview({ player, enemy, fixedOrder, willOverdrive, enemyMode, enemyActions, turnNumber = 1 }) {
   if (!fixedOrder || fixedOrder.length === 0) {
     return { pDealt: 0, pTaken: 0, finalPHp: player.hp, finalEHp: enemy.hp, lines: [] };
   }
-  const enemyWillOD = shouldEnemyOverdrive(enemyMode, enemyActions, enemy.etherPts);
+  const enemyWillOD = shouldEnemyOverdriveWithTurn(enemyMode, enemyActions, enemy.etherPts, turnNumber);
   const P = { ...player, def: false, block: 0, counter: 0, etherOverdriveActive: !!willOverdrive, strength: player.strength || 0 };
   const E = { ...enemy, def: false, block: 0, counter: 0, etherOverdriveActive: enemyWillOD, strength: enemy.strength || 0 };
   const st = { player: P, enemy: E, log: [] };
@@ -672,12 +679,12 @@ function simulatePreview({ player, enemy, fixedOrder, willOverdrive, enemyMode, 
   return { pDealt, pTaken, finalPHp: st.player.hp, finalEHp: st.enemy.hp, lines };
 }
 
-function ExpectedDamagePreview({ player, enemy, fixedOrder, willOverdrive, enemyMode, enemyActions, phase, log, qIndex, queue, stepOnce, runAll, finishTurn, postCombatOptions, handleExitToMap, autoProgress, setAutoProgress, resolveStartPlayer, resolveStartEnemy }) {
+function ExpectedDamagePreview({ player, enemy, fixedOrder, willOverdrive, enemyMode, enemyActions, phase, log, qIndex, queue, stepOnce, runAll, finishTurn, postCombatOptions, handleExitToMap, autoProgress, setAutoProgress, resolveStartPlayer, resolveStartEnemy, turnNumber = 1 }) {
   // 진행 단계에서는 시작 시점의 상태로 시뮬레이션, 그 외는 현재 상태 사용
   const simPlayer = phase === 'resolve' && resolveStartPlayer ? resolveStartPlayer : player;
   const simEnemy = phase === 'resolve' && resolveStartEnemy ? resolveStartEnemy : enemy;
 
-  const res = useMemo(() => simulatePreview({ player: simPlayer, enemy: simEnemy, fixedOrder, willOverdrive, enemyMode, enemyActions }), [simPlayer, simEnemy, fixedOrder, willOverdrive, enemyMode, enemyActions]);
+  const res = useMemo(() => simulatePreview({ player: simPlayer, enemy: simEnemy, fixedOrder, willOverdrive, enemyMode, enemyActions, turnNumber }), [simPlayer, simEnemy, fixedOrder, willOverdrive, enemyMode, enemyActions, turnNumber]);
 
   const summaryItems = [
     { icon: "🗡️", label: "예상 타격 피해", value: res.pDealt, accent: "text-emerald-300", hpInfo: `몬스터 HP ${simEnemy.hp} → ${res.finalEHp}`, hpColor: "#fca5a5" },
@@ -808,7 +815,7 @@ function ExpectedDamagePreview({ player, enemy, fixedOrder, willOverdrive, enemy
   );
 }
 
-export function EtherBar({ pts, slots, previewGain = 0, color = "cyan", label }) {
+export function EtherBar({ pts, slots, previewGain = 0, color = "cyan", label, pulse = false }) {
   const safePts = Number.isFinite(pts) ? pts : 0;
   const derivedSlots = Number.isFinite(slots) ? slots : etherSlots(safePts);
   const safeSlots = Number.isFinite(derivedSlots) ? derivedSlots : 0;
@@ -886,16 +893,16 @@ export function EtherBar({ pts, slots, previewGain = 0, color = "cyan", label })
   return (
       <div style={{
         width: '72px',
-        padding: '12px 10px 16px',
-        borderRadius: '36px',
-        background: 'linear-gradient(180deg, rgba(8, 12, 20, 0.95), rgba(10, 15, 25, 0.75))',
-      border: '1px solid rgba(96, 210, 255, 0.35)',
-      boxShadow: '0 20px 40px rgba(0, 0, 0, 0.45)',
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '12px',
-      position: 'relative'
-    }}>
+    padding: '12px 10px 16px',
+    borderRadius: '36px',
+    background: 'linear-gradient(180deg, rgba(8, 12, 20, 0.95), rgba(10, 15, 25, 0.75))',
+    border: '1px solid rgba(96, 210, 255, 0.35)',
+    boxShadow: `${pulse ? '0 0 18px rgba(251,191,36,0.55), ' : ''}0 20px 40px rgba(0, 0, 0, 0.45)`,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '12px',
+    position: 'relative'
+  }}>
       <div style={{ fontSize: '11px', fontWeight: 'bold', textAlign: 'center', color: '#5fe0ff', letterSpacing: '0.12em' }}>
         {label}
       </div>
@@ -1123,16 +1130,22 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const [cardUsageCount, setCardUsageCount] = useState({}); // 카드별 사용 횟수 추적 (mastery, boredom용)
   const [etherAnimationPts, setEtherAnimationPts] = useState(null); // 에테르 애니메이션 전용 (전체 획득량 표시)
   const [executingCardIndex, setExecutingCardIndex] = useState(null); // 현재 실행 중인 카드 인덱스 (애니메이션용)
+  const [turnNumber, setTurnNumber] = useState(1); // 턴 번호 (1부터 시작)
   const [vanishedCards, setVanishedCards] = useState([]); // 소멸 특성으로 제거된 카드
   const [turnEtherAccumulated, setTurnEtherAccumulated] = useState(0); // 이번 턴 누적 에테르 (실제 적용 전)
   const [enemyTurnEtherAccumulated, setEnemyTurnEtherAccumulated] = useState(0); // 적 이번 턴 누적 에테르
   const [etherPulse, setEtherPulse] = useState(false); // PT 증가 애니메이션
   const [etherFinalValue, setEtherFinalValue] = useState(null); // 최종 에테르값 표시
+  const [playerOverdriveFlash, setPlayerOverdriveFlash] = useState(false); // 플레이어 기원 연출
+  const [enemyOverdriveFlash, setEnemyOverdriveFlash] = useState(false); // 적 기원 연출
   const [enemyEtherFinalValue, setEnemyEtherFinalValue] = useState(null); // 적 최종 에테르값 표시
   const [enemyEtherCalcPhase, setEnemyEtherCalcPhase] = useState(null); // 적 에테르 계산 단계
   const [enemyCurrentDeflation, setEnemyCurrentDeflation] = useState(null); // 적 디플레이션 정보
+  const [soulShatter, setSoulShatter] = useState(false); // 에테르 승리 연출
   const [etherCalcPhase, setEtherCalcPhase] = useState(null); // 에테르 계산 애니메이션 단계: 'sum', 'multiply', 'deflation', 'result'
   const [currentDeflation, setCurrentDeflation] = useState(null); // 현재 디플레이션 정보 { multiplier, usageCount }
+  const [playerTransferPulse, setPlayerTransferPulse] = useState(false); // 에테르 이동 연출 (플레이어)
+  const [enemyTransferPulse, setEnemyTransferPulse] = useState(false); // 에테르 이동 연출 (적)
   const [nextTurnEffects, setNextTurnEffects] = useState({
     guaranteedCards: [], // 반복, 보험 특성으로 다음턴 확정 등장
     bonusEnergy: 0, // 몸풀기 특성
@@ -1922,13 +1935,19 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     setTimelineProgress(0);
     setTimelineIndicatorVisible(true);
 
-    const enemyWillOD = shouldEnemyOverdrive(enemyPlan.mode, enemyPlan.actions, enemy.etherPts) && etherSlots(enemy.etherPts) > 0;
+    const enemyWillOD = shouldEnemyOverdriveWithTurn(enemyPlan.mode, enemyPlan.actions, enemy.etherPts, turnNumber) && etherSlots(enemy.etherPts) > 0;
     if ((phase === 'respond' || phase === 'select') && willOverdrive && etherSlots(player.etherPts) > 0) {
       setPlayer(p => ({ ...p, etherPts: p.etherPts - ETHER_THRESHOLD, etherOverdriveActive: true }));
+      setPlayerOverdriveFlash(true);
+      playSound(1400, 220);
+      setTimeout(() => setPlayerOverdriveFlash(false), 650);
       addLog('✴️ 에테르 폭주 발동! (이 턴 전체 유지)');
     }
     if ((phase === 'respond' || phase === 'select') && enemyWillOD) {
       setEnemy(e => ({ ...e, etherPts: e.etherPts - ETHER_THRESHOLD, etherOverdriveActive: true }));
+      setEnemyOverdriveFlash(true);
+      playSound(900, 220);
+      setTimeout(() => setEnemyOverdriveFlash(false), 650);
       addLog('☄️ 적 에테르 폭주 발동!');
     }
 
@@ -2523,6 +2542,29 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
     // 에테르 소지량 이동: 적용치 기준 (플레이어도 잃을 수 있음)
     const netTransfer = playerAppliedEther - enemyAppliedEther;
+    const curPlayerPts = player.etherPts || 0;
+    const curEnemyPts = enemy.etherPts || 0;
+    let nextPlayerPts = curPlayerPts;
+    let nextEnemyPts = curEnemyPts;
+    if (netTransfer > 0) {
+      const move = Math.min(netTransfer, curEnemyPts);
+      nextPlayerPts += move;
+      nextEnemyPts = Math.max(0, curEnemyPts - move);
+    } else if (netTransfer < 0) {
+      const move = Math.min(-netTransfer, curPlayerPts);
+      nextPlayerPts = Math.max(0, curPlayerPts - move);
+      nextEnemyPts += move;
+    }
+    if (netTransfer !== 0) {
+      setPlayerTransferPulse(true);
+      setEnemyTransferPulse(true);
+      playSound(netTransfer > 0 ? 900 : 600, 180);
+      setTimeout(() => {
+        setPlayerTransferPulse(false);
+        setEnemyTransferPulse(false);
+      }, 450);
+      addLog(`🔁 에테르 이동: 플레이어 ${netTransfer > 0 ? '+' : ''}${netTransfer} PT`);
+    }
 
     setPlayer(p => {
       const newUsageCount = { ...(p.comboUsageCount || {}) };
@@ -2544,18 +2586,21 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         vulnTurns: 0,
         etherOverdriveActive: false,
         comboUsageCount: newUsageCount,
-        etherPts: Math.max(0, (p.etherPts || 0) + netTransfer),
+        etherPts: Math.max(0, nextPlayerPts),
         etherOverflow: (p.etherOverflow || 0) + playerOverflow
       };
     });
 
+    let nextEnemyPtsSnapshot = null;
     setEnemy(e => {
       const newEnemyUsageCount = { ...(e.comboUsageCount || {}) };
-    if (eComboEnd?.name) {
-      newEnemyUsageCount[eComboEnd.name] = (newEnemyUsageCount[eComboEnd.name] || 0) + 1;
-    }
-    return {
-      ...e,
+      if (eComboEnd?.name) {
+        newEnemyUsageCount[eComboEnd.name] = (newEnemyUsageCount[eComboEnd.name] || 0) + 1;
+      }
+      const nextPts = Math.max(0, nextEnemyPts);
+      nextEnemyPtsSnapshot = nextPts;
+      return {
+        ...e,
         block: 0,
         def: false,
         counter: 0,
@@ -2563,7 +2608,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         vulnTurns: 0,
         etherOverdriveActive: false,
         comboUsageCount: newEnemyUsageCount,
-        etherPts: Math.max(0, (e.etherPts || 0) - netTransfer)
+        etherPts: nextPts
       };
     });
 
@@ -2575,11 +2620,15 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     setDisappearingCards([]); setHiddenCards([]);
 
     // 턴 종료 시 승리/패배 체크
-    if (enemy.hp <= 0) {
+    if (enemy.hp <= 0 || (nextEnemyPtsSnapshot !== null && nextEnemyPtsSnapshot <= 0)) {
+      const etherVictory = nextEnemyPtsSnapshot !== null && nextEnemyPtsSnapshot <= 0;
+      if (etherVictory) {
+        setSoulShatter(true);
+      }
       setTimeout(() => {
         setPostCombatOptions({ type: 'victory' });
         setPhase('post');
-      }, 500);
+      }, etherVictory ? 1200 : 500);
       return;
     }
     if (player.hp <= 0) {
@@ -2590,6 +2639,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       return;
     }
 
+    setTurnNumber(t => t + 1);
     setPhase('select');
   };
 
@@ -2749,9 +2799,28 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const playerEtherValue = player?.etherPts ?? 0;
   const playerEtherSlots = etherSlots(playerEtherValue);
   const enemyEtherValue = enemy?.etherPts ?? 0;
-  const enemyEtherSlots = etherSlots(enemyEtherValue);
+  const formatCompactValue = (num) => {
+    if (!Number.isFinite(num)) return '0';
+    const abs = Math.abs(num);
+    if (abs >= 1e9) return `${(num / 1e9).toFixed(2)}B`;
+    if (abs >= 1e6) return `${(num / 1e6).toFixed(2)}M`;
+    if (abs >= 1e3) return `${(num / 1e3).toFixed(2)}K`;
+    return num.toLocaleString();
+  };
   const playerEnergyBudget = player.energy || BASE_PLAYER_ENERGY;
   const remainingEnergy = Math.max(0, playerEnergyBudget - totalEnergy);
+  const insightLevelSelect = insightReveal?.level || 0;
+  const insightVisible = insightReveal?.visible;
+  const enemyWillOverdrivePlan = shouldEnemyOverdriveWithTurn(enemyPlan.mode, enemyPlan.actions, enemy.etherPts, turnNumber);
+  const canRevealOverdrive =
+    (phase === 'select' && insightVisible && insightLevelSelect >= 2) ||
+    (phase === 'respond' && insightVisible && insightLevelSelect >= 1) ||
+    phase === 'resolve';
+  const enemyOverdriveVisible = canRevealOverdrive && (enemyWillOverdrivePlan || enemy?.etherOverdriveActive);
+  const enemyOverdriveLabel = enemy?.etherOverdriveActive ? '기원 발동' : '기원 예정';
+  const netFinalEther = (phase === 'resolve' && etherFinalValue !== null && enemyEtherFinalValue !== null)
+    ? (etherFinalValue - enemyEtherFinalValue)
+    : null;
 
   // 에테르 획득량 미리보기 계산
   const previewEtherGain = useMemo(() => {
@@ -2854,6 +2923,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
           setAutoProgress={setAutoProgress}
           resolveStartPlayer={resolveStartPlayer}
           resolveStartEnemy={resolveStartEnemy}
+          turnNumber={turnNumber}
         />
       </div>
 
@@ -2979,7 +3049,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                   }}
                 />
               )}
-              <div className="timeline-lanes">
+              <div className="timeline-lanes" style={{ position: 'relative' }}>
                 {insightAnimLevel === 1 && (
                   <div className="insight-overlay insight-glitch" aria-hidden="true" />
                 )}
@@ -2990,6 +3060,26 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                 )}
                 {insightAnimLevel === 3 && (
                   <div className="insight-overlay insight-beam" aria-hidden="true" key={insightAnimPulseKey} />
+                )}
+                {enemyOverdriveVisible && (
+                  <div style={{
+                    position: 'absolute',
+                    right: '12px',
+                    top: '-18px',
+                    padding: '6px 12px',
+                    borderRadius: '10px',
+                    background: 'linear-gradient(135deg, rgba(244, 114, 182, 0.15), rgba(99, 102, 241, 0.2))',
+                    border: '1.5px solid rgba(147, 197, 253, 0.6)',
+                    color: '#c4d4ff',
+                    fontWeight: '800',
+                    letterSpacing: '0.08em',
+                    boxShadow: '0 6px 16px rgba(79, 70, 229, 0.35)',
+                    display: 'flex',
+                    gap: '8px',
+                    alignItems: 'center'
+                  }}>
+                    <span role="img" aria-label="overdrive">✨</span> {enemyOverdriveLabel}
+                  </div>
                 )}
                 <div className="timeline-lane player-lane">
                   {Array.from({ length: Math.max(player.maxSpeed, enemy.maxSpeed) + 1 }).map((_, i) => (
@@ -3078,7 +3168,47 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         </div>
 
         {/* 플레이어/적 정보 + 중앙 정보 통합 레이아웃 */}
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '50px', gap: '120px' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '50px', gap: '120px', position: 'relative' }}>
+          {netFinalEther !== null && (
+            <>
+              <div style={{
+                position: 'absolute',
+                top: '252px',
+                left: '18%',
+                width: '28%',
+                height: '2px',
+                background: 'linear-gradient(90deg, rgba(125,211,252,0.0), rgba(125,211,252,0.7))',
+                boxShadow: '0 0 12px rgba(125,211,252,0.35)',
+              }} />
+              <div style={{
+                position: 'absolute',
+                top: '252px',
+                right: '18%',
+                width: '28%',
+                height: '2px',
+                background: 'linear-gradient(90deg, rgba(125,211,252,0.7), rgba(125,211,252,0.0))',
+                boxShadow: '0 0 12px rgba(125,211,252,0.35)',
+              }} />
+              <div style={{
+                position: 'absolute',
+                top: '252px',
+                left: '49%',
+                transform: 'translateX(-50%)',
+                padding: '10px 22px',
+                borderRadius: '12px',
+                background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.25), rgba(16, 185, 129, 0.25))',
+                border: '2px solid rgba(125, 211, 252, 0.7)',
+                color: '#e0f2fe',
+                fontWeight: '900',
+                fontSize: '1.2rem',
+                letterSpacing: '0.14em',
+                boxShadow: '0 8px 20px rgba(59, 130, 246, 0.25), inset 0 0 10px rgba(16, 185, 129, 0.2)',
+                whiteSpace: 'nowrap'
+              }}>
+                Δ {netFinalEther.toLocaleString()} P T
+              </div>
+            </>
+          )}
           {/* 왼쪽: 플레이어 */}
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '12px', minWidth: '360px', position: 'relative', justifyContent: 'center' }}>
             {/* 플레이어 콤보 - 절대 위치로 오른쪽 배치 */}
@@ -3158,10 +3288,11 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                 slots={playerEtherSlots}
                 previewGain={previewEtherGain}
                 label="ETHER"
+                pulse={playerTransferPulse}
               />
               <div style={{ position: 'relative' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <div className="character-display" style={{ fontSize: '64px' }}>🧙‍♂️</div>
+                    <div className={`character-display ${playerOverdriveFlash ? 'overdrive-burst' : ''}`} style={{ fontSize: '64px' }}>🧙‍♂️</div>
                   <div>
                     <div className={playerHit ? 'hit-animation' : ''} style={{ color: '#f87171', fontSize: '1.25rem', fontWeight: 'bold' }}>
                       ❤️ {player.hp}/{player.maxHp}
@@ -3186,7 +3317,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                       {phase === 'resolve' && etherFinalValue !== null && (
                         <div style={{
                           position: 'absolute',
-                          top: '60px',
+                          top: '54px',
                           left: '50%',
                           transform: 'translateX(-50%)',
                           fontSize: '1.5rem',
@@ -3347,7 +3478,12 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
           </div>
 
           {/* 오른쪽: 적 */}
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '12px', minWidth: '360px', position: 'relative', justifyContent: 'center' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '12px', minWidth: '360px', position: 'relative', justifyContent: 'center', paddingTop: '120px' }}>
+            {soulShatter && (
+              <div className="soul-shatter-banner">
+                <div className="soul-shatter-text">영혼파괴!</div>
+              </div>
+            )}
             {/* 몬스터 콤보 + 에테르 계산 - 절대 위치로 왼쪽 배치 */}
                 {enemyCombo && !((phase === 'select') && ((insightReveal?.level || 0) === 0)) && (phase === 'select' || phase === 'respond' || phase === 'resolve') && (
                   <div className="combo-display" style={{ position: 'absolute', top: '-5px', right: '90px', textAlign: 'center', minHeight: '140px' }}>
@@ -3419,7 +3555,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                   </div>
                 )}
             <div style={{ display: 'flex', alignItems: 'center', gap: '16px', position: 'relative' }}>
-              <div style={{ textAlign: 'right' }}>
+              <div style={{ textAlign: 'right', position: 'relative', paddingRight: '8px' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
                   {enemyHint && (
                     <div style={{ fontSize: '1rem', color: '#94a3b8', marginBottom: '4px' }}>💡 {enemyHint}</div>
@@ -3436,7 +3572,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                           )}
                         </div>
                       )}
-                      <div className={enemyHit ? 'hit-animation' : ''} style={{ color: '#f87171', fontSize: '1.25rem', fontWeight: 'bold', textAlign: 'right' }}>
+                      <div className={enemyHit ? 'hit-animation' : ''} style={{ color: '#f87171', fontSize: '1.25rem', fontWeight: 'bold', textAlign: 'right', transition: 'opacity 0.4s ease, transform 0.4s ease', opacity: soulShatter ? 0 : 1, transform: soulShatter ? 'scale(0.9)' : 'scale(1)' }}>
                         {enemy.block > 0 && <span className={enemyBlockAnim ? 'block-animation' : ''} style={{ color: '#60a5fa', marginRight: '8px' }}>🛡️{enemy.block}</span>}
                         ❤️ {enemy.hp}/{enemy.maxHp}
                       </div>
@@ -3454,11 +3590,11 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                           }}></div>
                         )}
                       </div>
-                      {/* 적 최종 합계값 텍스트창 - HP바 하단 (진행 단계에서만 표시) */}
+                      {/* 적 최종 합계값 텍스트창 - 체력바 하단 (진행 단계에서만 표시) */}
                       {phase === 'resolve' && enemyEtherFinalValue !== null && (
                         <div style={{
                           position: 'absolute',
-                          top: '75px',
+                          top: '94px',
                           left: '50%',
                           transform: 'translateX(-50%)',
                           fontSize: '1.5rem',
@@ -3479,18 +3615,17 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                         {enemy.name}
                       </div>
                     </div>
-                    <div className="character-display" style={{ fontSize: '64px' }}>👹</div>
+                    <div className={`character-display ${soulShatter ? 'soul-shatter-target' : ''} ${enemyOverdriveFlash ? 'overdrive-burst' : ''}`} style={{ fontSize: '64px' }}>👹</div>
                   </div>
                 </div>
               </div>
-              <EtherBar
-                key={`enemy-ether-${enemyEtherValue}`}
-                pts={enemyEtherValue}
-                slots={enemyEtherSlots}
-                previewGain={enemyTurnEtherAccumulated}
-                label="ETHER"
-                color="red"
-              />
+              <div
+                className={`soul-orb ${enemyTransferPulse ? 'pulse' : ''} ${soulShatter ? 'shatter' : ''}`}
+                title={`${(enemyEtherValue || 0).toLocaleString()} / ${((enemy?.etherCapacity ?? enemyEtherValue) || 0).toLocaleString()}`}
+              >
+                <div className="soul-orb-value">{formatCompactValue(enemyEtherValue)}</div>
+                <div className="soul-orb-label">SOUL</div>
+              </div>
             </div>
 
           </div>
