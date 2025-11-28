@@ -1054,30 +1054,31 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const playerStrength = useGameStore((state) => state.playerStrength || 0);
   const playerAgility = useGameStore((state) => state.playerAgility || 0);
   const relics = useGameStore((state) => state.relics || []);
+  const mergeRelicOrder = useCallback((relicList = [], saved = []) => {
+    const savedSet = new Set(saved);
+    const merged = [];
+    // 1) 저장된 순서 중 현재 보유 중인 것만 유지
+    saved.forEach(id => { if (relicList.includes(id)) merged.push(id); });
+    // 2) 새로 생긴 유물은 현재 보유 순서대로 뒤에 추가
+    relicList.forEach(id => { if (!savedSet.has(id)) merged.push(id); });
+    return merged;
+  }, []);
   const [orderedRelics, setOrderedRelics] = useState(() => {
     try {
       const saved = localStorage.getItem('relicOrder');
       if (saved) {
         const ids = JSON.parse(saved);
-        if (Array.isArray(ids) && ids.length) return ids;
+        if (Array.isArray(ids) && ids.length) return mergeRelicOrder(relics, ids);
       }
     } catch {}
-    return relics;
+    return relics || [];
   });
   useEffect(() => {
     // 새 유물 추가/제거 시 기존 순서를 유지하면서 병합
     setOrderedRelics(prev => {
-      const prevSet = new Set(prev);
-      const next = [];
-      relics.forEach(id => {
-        if (prevSet.has(id)) next.push(id);
-      });
-      relics.forEach(id => {
-        if (!prevSet.has(id)) next.push(id);
-      });
-      return next;
+      return mergeRelicOrder(relics, prev);
     });
-  }, [relics]);
+  }, [relics, mergeRelicOrder]);
   useEffect(() => {
     try {
       localStorage.setItem('relicOrder', JSON.stringify(orderedRelics));

@@ -141,12 +141,19 @@ export function MapDemo() {
   const activeDungeon = useGameStore((state) => state.activeDungeon);
   const lastBattleResult = useGameStore((state) => state.lastBattleResult);
   const relics = useGameStore((state) => state.relics);
+  const mergeRelicOrder = useCallback((relicList = [], saved = []) => {
+    const savedSet = new Set(saved);
+    const merged = [];
+    saved.forEach(id => { if (relicList?.includes(id)) merged.push(id); });
+    (relicList || []).forEach(id => { if (!savedSet.has(id)) merged.push(id); });
+    return merged;
+  }, []);
   const [orderedRelics, setOrderedRelics] = useState(() => {
     try {
       const saved = localStorage.getItem("relicOrder");
       if (saved) {
         const ids = JSON.parse(saved);
-        if (Array.isArray(ids) && ids.length) return ids;
+        if (Array.isArray(ids) && ids.length) return mergeRelicOrder(relics || [], ids);
       }
     } catch {}
     return relics || [];
@@ -156,17 +163,9 @@ export function MapDemo() {
   useEffect(() => {
     // 새 유물 추가/제거 시 순서를 유지하면서 병합
     setOrderedRelics((prev) => {
-      const prevSet = new Set(prev);
-      const next = [];
-      (relics || []).forEach((id) => {
-        if (prevSet.has(id)) next.push(id);
-      });
-      (relics || []).forEach((id) => {
-        if (!prevSet.has(id)) next.push(id);
-      });
-      return next;
+      return mergeRelicOrder(relics || [], prev);
     });
-  }, [relics]);
+  }, [relics, mergeRelicOrder]);
   useEffect(() => {
     try {
       localStorage.setItem("relicOrder", JSON.stringify(orderedRelics));
