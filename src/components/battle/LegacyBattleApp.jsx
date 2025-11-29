@@ -2132,11 +2132,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     const basePlayerComboMult = pCombo ? (COMBO_MULTIPLIERS[pCombo.name] || 1) : 1;
     // 몬스터가 죽었을 때는 actualResolvedCards(실제 실행된 카드 수), 아니면 selected.length(전체 선택된 카드 수)
     const cardCountForMultiplier = actualResolvedCards !== null ? actualResolvedCards : selected.length;
-    const playerComboMult = computeComboMultiplier(basePlayerComboMult, cardCountForMultiplier, true);
+    const playerComboMult = finalComboMultiplier || basePlayerComboMult;
     let playerBeforeDeflation = Math.round(totalEtherPts * playerComboMult);
 
-    // 유물 효과 적용 (참고서, 악마의 주사위, 희귀한 조약돌)
-    playerBeforeDeflation = calculateRelicEtherGain(playerBeforeDeflation, cardCountForMultiplier, orderedRelicList);
 
     // 디플레이션 적용
     const playerDeflation = pCombo?.name
@@ -2602,17 +2600,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
     // 에테르 최종 계산 및 적용 (애니메이션은 stepOnce에서 처리됨)
     const basePlayerComboMult = pComboEnd ? (COMBO_MULTIPLIERS[pComboEnd.name] || 1) : 1;
-    const passiveRelicEffects = calculatePassiveEffects(orderedRelicList);
-    const etherPerCardApplied = Math.max(1, Math.floor(BASE_ETHER_PER_CARD * passiveRelicEffects.etherMultiplier));
-    const estimatedCardsFromEther = etherPerCardApplied > 0 ? Math.round(turnEtherAccumulated / etherPerCardApplied) : 0;
-    // 유물 계산용 카드 수: 실제 진행된 카드 수 우선, 그 외 선택/타임라인/에테르 누적 추정치로 보정
-    const cardsPlayedForRelic = Math.max(
-      resolvedPlayerCards,
-      selected.length,
-      playerTimeline.length,
-      estimatedCardsFromEther
-    );
-  const { multiplier: playerComboMult, steps: comboSteps } = explainComboMultiplier(basePlayerComboMult, cardsPlayedForRelic, true, true);
+    const playerComboMult = finalComboMultiplier || basePlayerComboMult;
     const relicMultBonus = playerComboMult - basePlayerComboMult;
 
     // 턴 종료 시점에는 에테르 결정/조약돌 발동 애니메이션을 중복 노출하지 않음 (카드 실행 시에만)
@@ -2639,9 +2627,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
     console.log('[finishTurn 계산]', {
       turnEtherAccumulated,
-      etherPerCardApplied,
-      estimatedCardsFromEther,
-      cardsPlayedForRelic,
       comboName: pComboEnd?.name,
       basePlayerComboMult,
       relicMultBonus,
@@ -2652,7 +2637,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       playerFinalEther: playerFinalEther,
       selectedCards: selected.length,
       resolvedPlayerCards: resolvedPlayerCards,
-      cardCountForMultiplier: cardsPlayedForRelic,
       comboUsageCount: player.comboUsageCount,
       comboUsageForThisCombo: player.comboUsageCount?.[pComboEnd?.name] || 0
     });
