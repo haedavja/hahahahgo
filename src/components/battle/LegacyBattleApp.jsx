@@ -2621,13 +2621,13 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
     // 조합 배율 적용
     let playerBeforeDeflation = Math.round(turnEtherAccumulated * playerComboMult);
-    // 유물 효과 적용 (참고서, 악마의 주사위, 희귀한 조약돌)
+    // 유물 효과 적용 (배율 유물은 이미 반영되었으므로 제외)
     const relicsForCalc = orderedRelicList.filter(id => {
       const r = RELICS[id];
       if (!r?.effects) return true;
-      // 참고서/주사위는 배율 계산에서 이미 반영하므로 중복 제외
-      if (r.effects.etherCardMultiplier) return false;
-      if (r.effects.etherFiveCardBonus) return false;
+      if (r.effects.comboMultiplierPerCard) return false; // 에테르 결정류
+      if (r.effects.etherCardMultiplier) return false;   // 참고서
+      if (r.effects.etherFiveCardBonus) return false;    // 악마의 주사위
       return true;
     });
     playerBeforeDeflation = calculateRelicEtherGain(playerBeforeDeflation, cardsPlayedForRelic, relicsForCalc);
