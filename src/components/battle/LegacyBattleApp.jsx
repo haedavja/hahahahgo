@@ -1172,6 +1172,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const [currentDeflation, setCurrentDeflation] = useState(null); // 현재 디플레이션 정보 { multiplier, usageCount }
   const [playerTransferPulse, setPlayerTransferPulse] = useState(false); // 에테르 이동 연출 (플레이어)
   const [enemyTransferPulse, setEnemyTransferPulse] = useState(false); // 에테르 이동 연출 (적)
+  const [multiplierSnapshot, setMultiplierSnapshot] = useState(null); // 배율 경로 스냅샷
 
   // 새 유물 추가/제거 시 기존 순서를 유지하면서 병합
   // 진행 단계에서는 동기화/변경을 막아 일관성 유지
@@ -1228,10 +1229,11 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const resultSentRef = useRef(false);
   const turnStartProcessedRef = useRef(false); // 턴 시작 효과 중복 실행 방지
   const dragRelicIndexRef = useRef(null); // 유물 드래그 인덱스
-  const computeComboMultiplier = useCallback((baseMult, cardsCount, includeFiveCard = true, includeRefBook = true) => {
+  const computeComboMultiplier = useCallback((baseMult, cardsCount, includeFiveCard = true, includeRefBook = true, relicOrderOverride = null) => {
     let mult = baseMult;
-    const passive = calculatePassiveEffects(orderedRelicList);
-    orderedRelicList.forEach(rid => {
+    const order = relicOrderOverride || orderedRelicList;
+    const passive = calculatePassiveEffects(order);
+    order.forEach(rid => {
       const relic = RELICS[rid];
       if (!relic?.effects) return;
 
@@ -1257,11 +1259,12 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   }, [orderedRelicList]);
 
   // 배율 계산 과정을 설명용으로 반환
-  const explainComboMultiplier = useCallback((baseMult, cardsCount, includeFiveCard = true, includeRefBook = true) => {
+  const explainComboMultiplier = useCallback((baseMult, cardsCount, includeFiveCard = true, includeRefBook = true, relicOrderOverride = null) => {
     let mult = baseMult;
+    const order = relicOrderOverride || orderedRelicList;
     const steps = [`기본: ${mult.toFixed(2)}`];
-    const passive = calculatePassiveEffects(orderedRelicList);
-    orderedRelicList.forEach(rid => {
+    const passive = calculatePassiveEffects(order);
+    order.forEach(rid => {
       const relic = RELICS[rid];
       if (!relic?.effects) return;
       if (includeFiveCard && relic.effects.etherFiveCardBonus && passive.etherFiveCardBonus > 0 && cardsCount >= 5) {
@@ -3008,13 +3011,19 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   // 배율 계산 단계 로그 (전투 로그 하단 표시용)
   const comboStepsLog = useMemo(() => {
     if (!currentCombo) return [];
+    // 스냅샷이 있으면 스냅샷 기준으로 표시
+    if (multiplierSnapshot) {
+      const { baseMultiplier, cardsCount, allowRefBook, relicOrder } = multiplierSnapshot;
+      const { steps } = explainComboMultiplier(baseMultiplier, cardsCount, true, allowRefBook, relicOrder);
+      return steps || [];
+    }
     const baseMultiplier = currentCombo ? (COMBO_MULTIPLIERS[currentCombo.name] || 1) : 1;
     const isResolve = phase === 'resolve';
     const cardsCount = isResolve ? resolvedPlayerCards : selected.length;
     const allowRefBook = isResolve ? (qIndex >= queue.length) : false;
     const { steps } = explainComboMultiplier(baseMultiplier, cardsCount, true, allowRefBook);
     return steps || [];
-  }, [currentCombo, resolvedPlayerCards, selected.length, phase, qIndex, queue.length, explainComboMultiplier]);
+  }, [currentCombo, resolvedPlayerCards, selected.length, phase, qIndex, queue.length, explainComboMultiplier, multiplierSnapshot]);
 
   // 에테르 획득량 미리보기 계산
   const previewEtherGain = useMemo(() => {
