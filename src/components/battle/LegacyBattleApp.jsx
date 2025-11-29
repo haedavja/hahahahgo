@@ -1269,27 +1269,36 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     const order = relicOrderOverride || orderedRelicList;
     const steps = [`기본: ${mult.toFixed(2)}`];
     const passive = calculatePassiveEffects(order);
+    // 1) 카드당 배율 우선
     order.forEach(rid => {
       const relic = RELICS[rid];
       if (!relic?.effects) return;
-      if (includeFiveCard && relic.effects.etherFiveCardBonus && passive.etherFiveCardBonus > 0 && cardsCount >= 5) {
-        const prev = mult;
-        mult *= passive.etherFiveCardBonus;
-        steps.push(`악마의 주사위: ${prev.toFixed(2)} → ${mult.toFixed(2)}`);
-        return;
-      }
-      if (includeRefBook && relic.effects.etherCardMultiplier && cardsCount > 0) {
-        const prev = mult;
-        mult *= (1 + cardsCount * 0.1);
-        steps.push(`참고서: ${prev.toFixed(2)} → ${mult.toFixed(2)} (카드 ${cardsCount}장)`);
-        return;
-      }
       if (relic.effects.comboMultiplierPerCard || relic.effects.etherMultiplier) {
         const prev = mult;
         mult = applyRelicComboMultiplier([rid], mult, cardsCount);
         steps.push(`${relic.name}: ${prev.toFixed(2)} → ${mult.toFixed(2)}`);
       }
     });
+    // 2) 참고서
+    if (includeRefBook && passive.etherCardMultiplier && cardsCount > 0) {
+      order.forEach(rid => {
+        const relic = RELICS[rid];
+        if (!relic?.effects?.etherCardMultiplier) return;
+        const prev = mult;
+        mult *= (1 + cardsCount * 0.1);
+        steps.push(`참고서: ${prev.toFixed(2)} → ${mult.toFixed(2)} (카드 ${cardsCount}장)`);
+      });
+    }
+    // 3) 악마의 주사위
+    if (includeFiveCard && passive.etherFiveCardBonus > 0 && cardsCount >= 5) {
+      order.forEach(rid => {
+        const relic = RELICS[rid];
+        if (!relic?.effects?.etherFiveCardBonus) return;
+        const prev = mult;
+        mult *= passive.etherFiveCardBonus;
+        steps.push(`악마의 주사위: ${prev.toFixed(2)} → ${mult.toFixed(2)}`);
+      });
+    }
     return { multiplier: mult, steps };
   }, [orderedRelicList]);
   const flashRelic = (relicId, tone = 800, duration = 500) => {
