@@ -2310,11 +2310,11 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         const newCount = prev + 1;
 
         // 유물이 있으면 발동 애니메이션 및 사운드 (좌→우 순차 재생)
-        if (relics.length > 0) {
-          const triggered = [];
-          relics.forEach(relicId => {
-            const relic = RELICS[relicId];
-            // effects가 객체인 경우 처리 (/src/data/relics.js 사용)
+      if (relics.length > 0) {
+        const triggered = [];
+        relics.forEach(relicId => {
+          const relic = RELICS[relicId];
+          // effects가 객체인 경우 처리 (/src/data/relics.js 사용)
             if (relic?.effects?.type === 'PASSIVE' && relic?.effects?.comboMultiplierPerCard) {
               // 에테르 결정: 카드마다 즉시 발동 표시/사운드
               triggered.push({ id: relicId, tone: 800, duration: 500 });
@@ -2330,28 +2330,29 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
           });
 
           if (triggered.length > 0) {
-          const playSeq = (idx = 0) => {
-            if (idx >= triggered.length) {
+            const playSeq = (idx = 0) => {
+              if (idx >= triggered.length) {
               setRelicActivated(null);
               return;
             }
-            const item = triggered[idx];
-            flashRelic(item.id, item.tone, item.duration);
-            setTimeout(() => playSeq(idx + 1), Math.max(150, item.duration * 0.6));
-          };
-          playSeq(0);
+              const item = triggered[idx];
+              flashRelic(item.id, item.tone, item.duration);
+              setTimeout(() => playSeq(idx + 1), Math.max(200, item.duration * 0.6));
+            };
+            playSeq(0);
+          }
         }
-      }
 
         // 참고서: 마지막 플레이어 카드 처리 시 한 번만 발동
-        const isLastPlayerCard = playerTimeline?.length > 0 && newCount === playerTimeline.length;
-        if (isLastPlayerCard && relics.includes('referenceBook') && !referenceBookTriggeredRef.current) {
-          referenceBookTriggeredRef.current = true;
-          flashRelic('referenceBook', 820, 500);
-        }
+      const isLastPlayerCard = playerTimeline?.length > 0 && newCount === playerTimeline.length;
+      if (isLastPlayerCard && relics.includes('referenceBook') && !referenceBookTriggeredRef.current) {
+        referenceBookTriggeredRef.current = true;
+        // 마지막 카드 발동 이후 0.2초 대기 후 참고서 발동
+        setTimeout(() => flashRelic('referenceBook', 820, 500), 200);
+      }
 
-        return newCount;
-      });
+      return newCount;
+    });
     } else if (a.actor === 'enemy') {
       setEnemyTurnEtherAccumulated(prev => prev + BASE_ETHER_PER_CARD);
     }
