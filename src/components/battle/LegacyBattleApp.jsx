@@ -1226,7 +1226,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const resultSentRef = useRef(false);
   const turnStartProcessedRef = useRef(false); // 턴 시작 효과 중복 실행 방지
   const dragRelicIndexRef = useRef(null); // 유물 드래그 인덱스
-  const computeComboMultiplier = useCallback((baseMult, cardsCount, includeFiveCard = true) => {
+  const computeComboMultiplier = useCallback((baseMult, cardsCount, includeFiveCard = true, includeRefBook = true) => {
     let mult = baseMult;
     const passive = calculatePassiveEffects(orderedRelicList);
     let hasDevilDice = false;
@@ -1244,7 +1244,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     });
 
     // 참고서: 카드 수에 비례해 1.x배 (카드당 +10%)
-    if (passive.etherCardMultiplier && cardsCount > 0) {
+    if (includeRefBook && passive.etherCardMultiplier && cardsCount > 0) {
       mult *= (1 + cardsCount * 0.1);
     }
 
@@ -1788,13 +1788,14 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     const passiveEffects = calculatePassiveEffects(orderedRelicList);
     const isResolve = phase === 'resolve';
     const cardsCount = isResolve ? resolvedPlayerCards : selected.length;
+    const allowRefBook = isResolve ? (qIndex >= queue.length) : false;
 
     // 선택 단계에서는 유물 배율 제외 (순수 조합 배율만 미리보기)
     if (!isResolve) return baseMultiplier;
 
     // 진행 단계: 유물 배율을 정렬 순서대로 순차 적용
-    return computeComboMultiplier(baseMultiplier, cardsCount, true);
-  }, [currentCombo, orderedRelicList, resolvedPlayerCards, selected.length, phase]);
+    return computeComboMultiplier(baseMultiplier, cardsCount, true, allowRefBook);
+  }, [currentCombo, orderedRelicList, resolvedPlayerCards, selected.length, phase, qIndex, queue.length]);
   useEffect(() => {
     if (phase !== 'resolve') return;
     setMultiplierPulse(true);
