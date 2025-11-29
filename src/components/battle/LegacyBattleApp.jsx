@@ -2619,18 +2619,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
     const enemyComboMult = eComboEnd ? (COMBO_MULTIPLIERS[eComboEnd.name] || 1) : 1;
 
-    // 조합 배율 적용
+    // 조합 배율 적용 (유물 배율 이미 반영됨)
     let playerBeforeDeflation = Math.round(turnEtherAccumulated * playerComboMult);
-    // 유물 효과 적용 (배율 유물은 이미 반영되었으므로 제외)
-    const relicsForCalc = orderedRelicList.filter(id => {
-      const r = RELICS[id];
-      if (!r?.effects) return true;
-      if (r.effects.comboMultiplierPerCard) return false; // 에테르 결정류
-      if (r.effects.etherCardMultiplier) return false;   // 참고서
-      if (r.effects.etherFiveCardBonus) return false;    // 악마의 주사위
-      return true;
-    });
-    playerBeforeDeflation = calculateRelicEtherGain(playerBeforeDeflation, cardsPlayedForRelic, relicsForCalc);
 
     const enemyBeforeDeflation = Math.round(enemyTurnEtherAccumulated * enemyComboMult);
 
