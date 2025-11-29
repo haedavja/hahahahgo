@@ -1254,6 +1254,35 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
     return mult;
   }, [orderedRelicList]);
+
+  // 배율 계산 과정을 설명용으로 반환
+  const explainComboMultiplier = useCallback((baseMult, cardsCount, includeFiveCard = true, includeRefBook = true) => {
+    let mult = baseMult;
+    const steps = [`기본: ${mult.toFixed(2)}`];
+    const passive = calculatePassiveEffects(orderedRelicList);
+    orderedRelicList.forEach(rid => {
+      const relic = RELICS[rid];
+      if (!relic?.effects) return;
+      if (includeFiveCard && relic.effects.etherFiveCardBonus && passive.etherFiveCardBonus > 0 && cardsCount >= 5) {
+        const prev = mult;
+        mult *= passive.etherFiveCardBonus;
+        steps.push(`악마의 주사위: ${prev.toFixed(2)} → ${mult.toFixed(2)}`);
+        return;
+      }
+      if (includeRefBook && relic.effects.etherCardMultiplier && cardsCount > 0) {
+        const prev = mult;
+        mult *= (1 + cardsCount * 0.1);
+        steps.push(`참고서: ${prev.toFixed(2)} → ${mult.toFixed(2)} (카드 ${cardsCount}장)`);
+        return;
+      }
+      if (relic.effects.comboMultiplierPerCard || relic.effects.etherMultiplier) {
+        const prev = mult;
+        mult = applyRelicComboMultiplier([rid], mult, cardsCount);
+        steps.push(`${relic.name}: ${prev.toFixed(2)} → ${mult.toFixed(2)}`);
+      }
+    });
+    return { multiplier: mult, steps };
+  }, [orderedRelicList]);
   const flashRelic = (relicId, tone = 800, duration = 500) => {
     setActiveRelicSet(prev => {
       const next = new Set(prev);
@@ -1805,7 +1834,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
     // 진행 단계: 유물 배율을 정렬 순서대로 순차 적용
     return computeComboMultiplier(baseMultiplier, cardsCount, true, allowRefBook);
-  }, [currentCombo, orderedRelicList, resolvedPlayerCards, selected.length, phase, qIndex, queue.length]);
+  }, [currentCombo, orderedRelicList, resolvedPlayerCards, selected.length, phase, qIndex, queue.length, computeComboMultiplier]);
   useEffect(() => {
     if (phase !== 'resolve') return;
     setMultiplierPulse(true);
@@ -2569,7 +2598,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       playerTimeline.length,
       estimatedCardsFromEther
     );
-    const playerComboMult = computeComboMultiplier(basePlayerComboMult, cardsPlayedForRelic, true);
+    const { multiplier: playerComboMult, steps: comboSteps } = explainComboMultiplier(basePlayerComboMult, cardsPlayedForRelic, true, true);
     const relicMultBonus = playerComboMult - basePlayerComboMult;
 
     // 턴 종료 시점에는 에테르 결정/조약돌 발동 애니메이션을 중복 노출하지 않음 (카드 실행 시에만)
@@ -2642,6 +2671,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         : '';
       const relicText = relicMultBonus > 0 ? ` (유물 배율 +${relicMultBonus.toFixed(2)})` : '';
       addLog(`✴️ 에테르 획득: ${turnEtherAccumulated} × ${actualTotalMultiplier.toFixed(2)}${relicText} = ${playerBeforeDeflation} → ${playerFinalEther} PT${deflationText} (적용: ${playerAppliedEther} PT)`);
+      if (comboSteps?.length) {
+        addLog(`🧮 배율 경로: ${comboSteps.join(' -> ')}`);
+      }
 
       // 최종값 UI에 로그와 동일한 값 표시
       setEtherFinalValue(playerFinalEther);
