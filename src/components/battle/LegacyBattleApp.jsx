@@ -1222,6 +1222,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const tooltipTimerRef = useRef(null);
   const logEndRef = useRef(null);
   const devilDiceTriggeredRef = useRef(false); // 턴 내 악마의 주사위 발동 여부
+  const referenceBookTriggeredRef = useRef(false); // 턴 내 참고서 발동 여부
   const initialEtherRef = useRef(typeof safeInitialPlayer.etherPts === 'number' ? safeInitialPlayer.etherPts : (playerEther ?? 0));
   const resultSentRef = useRef(false);
   const turnStartProcessedRef = useRef(false); // 턴 시작 효과 중복 실행 방지
@@ -1634,6 +1635,17 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       addLog(`🎴 시작 손패 ${handCount}장${hasCharacterBuild ? ' (캐릭터 빌드)' : ''}`);
     }
   }, []);
+
+  // 단계 변경 시 트리거 리셋
+  useEffect(() => {
+    if (phase === 'select' || phase === 'respond') {
+      devilDiceTriggeredRef.current = false;
+      referenceBookTriggeredRef.current = false;
+    }
+    if (phase === 'resolve') {
+      referenceBookTriggeredRef.current = false;
+    }
+  }, [phase]);
 
   useEffect(() => {
     if (!enemy || phase !== 'select') {
@@ -2318,17 +2330,24 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
           });
 
           if (triggered.length > 0) {
-            const playSeq = (idx = 0) => {
-              if (idx >= triggered.length) {
-                setRelicActivated(null);
-                return;
-              }
-              const item = triggered[idx];
-              flashRelic(item.id, item.tone, item.duration);
-              setTimeout(() => playSeq(idx + 1), Math.max(150, item.duration * 0.6));
-            };
-            playSeq(0);
-          }
+          const playSeq = (idx = 0) => {
+            if (idx >= triggered.length) {
+              setRelicActivated(null);
+              return;
+            }
+            const item = triggered[idx];
+            flashRelic(item.id, item.tone, item.duration);
+            setTimeout(() => playSeq(idx + 1), Math.max(150, item.duration * 0.6));
+          };
+          playSeq(0);
+        }
+      }
+
+        // 참고서: 마지막 플레이어 카드 처리 시 한 번만 발동
+        const isLastPlayerCard = playerTimeline?.length > 0 && newCount === playerTimeline.length;
+        if (isLastPlayerCard && relics.includes('referenceBook') && !referenceBookTriggeredRef.current) {
+          referenceBookTriggeredRef.current = true;
+          flashRelic('referenceBook', 820, 500);
         }
 
         return newCount;
