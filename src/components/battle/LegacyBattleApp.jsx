@@ -1243,6 +1243,11 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       }
     });
 
+    // 참고서: 카드 수에 비례해 1.x배 (카드당 +10%)
+    if (passive.etherCardMultiplier && cardsCount > 0) {
+      mult *= (1 + cardsCount * 0.1);
+    }
+
     // 다섯 번째 카드 처리 시점 이후 한 번만 주사위 배수를 적용
     if (includeFiveCard && hasDevilDice && passive.etherFiveCardBonus > 0 && cardsCount >= 5) {
       mult *= passive.etherFiveCardBonus;
