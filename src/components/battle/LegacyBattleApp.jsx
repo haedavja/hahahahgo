@@ -1075,10 +1075,10 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   });
   useEffect(() => {
     // 새 유물 추가/제거 시 기존 순서를 유지하면서 병합
-    setOrderedRelics(prev => {
-      return mergeRelicOrder(relics, prev);
-    });
-  }, [relics, mergeRelicOrder]);
+    // 진행 단계에서는 동기화/변경을 막아 일관성 유지
+    if (phase === 'resolve') return;
+    setOrderedRelics(prev => mergeRelicOrder(relics, prev));
+  }, [relics, mergeRelicOrder, phase]);
   useEffect(() => {
     try {
       localStorage.setItem('relicOrder', JSON.stringify(orderedRelics));
