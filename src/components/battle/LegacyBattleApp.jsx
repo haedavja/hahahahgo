@@ -3017,19 +3017,13 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   // 배율 계산 단계 로그 (전투 로그 하단 표시용)
   const comboStepsLog = useMemo(() => {
     if (!currentCombo) return [];
-    // 스냅샷이 있으면 스냅샷 기준으로 표시
     if (multiplierSnapshot) {
       const { baseMultiplier, cardsCount, allowRefBook, relicOrder } = multiplierSnapshot;
       const { steps } = explainComboMultiplier(baseMultiplier, cardsCount, true, allowRefBook, relicOrder);
       return steps || [];
     }
-    const baseMultiplier = currentCombo ? (COMBO_MULTIPLIERS[currentCombo.name] || 1) : 1;
-    const isResolve = phase === 'resolve';
-    const cardsCount = isResolve ? resolvedPlayerCards : selected.length;
-    const allowRefBook = isResolve ? (qIndex >= queue.length) : false;
-    const { steps } = explainComboMultiplier(baseMultiplier, cardsCount, true, allowRefBook);
-    return steps || [];
-  }, [currentCombo, resolvedPlayerCards, selected.length, phase, qIndex, queue.length, explainComboMultiplier, multiplierSnapshot]);
+    return [];
+  }, [currentCombo, explainComboMultiplier, multiplierSnapshot]);
 
   // 에테르 획득량 미리보기 계산
   const previewEtherGain = useMemo(() => {
