@@ -1230,29 +1230,27 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const computeComboMultiplier = useCallback((baseMult, cardsCount, includeFiveCard = true, includeRefBook = true) => {
     let mult = baseMult;
     const passive = calculatePassiveEffects(orderedRelicList);
-    let hasDevilDice = false;
-
     orderedRelicList.forEach(rid => {
       const relic = RELICS[rid];
       if (!relic?.effects) return;
-      if (relic.effects.etherFiveCardBonus) {
-        hasDevilDice = true;
-        return; // 주사위는 마지막에 한 번만 곱하기 위해 건너뜀
+
+      // 악마의 주사위: 순서 기반, 조건 충족 시 곱하기
+      if (includeFiveCard && relic.effects.etherFiveCardBonus && passive.etherFiveCardBonus > 0 && cardsCount >= 5) {
+        mult *= passive.etherFiveCardBonus;
+        return;
       }
-      if (relic.effects.comboMultiplierPerCard || relic.effects.etherCardMultiplier || relic.effects.etherMultiplier) {
+
+      // 참고서: 순서 기반, 카드 수에 비례 1.x배
+      if (includeRefBook && relic.effects.etherCardMultiplier && cardsCount > 0) {
+        mult *= (1 + cardsCount * 0.1);
+        return;
+      }
+
+      // 에테르 결정/기타 배율 유물
+      if (relic.effects.comboMultiplierPerCard || relic.effects.etherMultiplier) {
         mult = applyRelicComboMultiplier([rid], mult, cardsCount);
       }
     });
-
-    // 참고서: 카드 수에 비례해 1.x배 (카드당 +10%)
-    if (includeRefBook && passive.etherCardMultiplier && cardsCount > 0) {
-      mult *= (1 + cardsCount * 0.1);
-    }
-
-    // 다섯 번째 카드 처리 시점 이후 한 번만 주사위 배수를 적용
-    if (includeFiveCard && hasDevilDice && passive.etherFiveCardBonus > 0 && cardsCount >= 5) {
-      mult *= passive.etherFiveCardBonus;
-    }
 
     return mult;
   }, [orderedRelicList]);
@@ -2312,21 +2310,21 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         // 유물이 있으면 발동 애니메이션 및 사운드 (좌→우 순차 재생)
       if (relics.length > 0) {
         const triggered = [];
-        relics.forEach(relicId => {
-          const relic = RELICS[relicId];
-          // effects가 객체인 경우 처리 (/src/data/relics.js 사용)
-            if (relic?.effects?.type === 'PASSIVE' && relic?.effects?.comboMultiplierPerCard) {
-              // 에테르 결정: 카드마다 즉시 발동 표시/사운드
-              triggered.push({ id: relicId, tone: 800, duration: 500 });
-            } else if (relic?.effects?.type === 'PASSIVE' && (relic?.effects?.etherCardMultiplier || relicId === 'rareStone' || relic?.effects?.etherMultiplier)) {
-              if (relicId === 'referenceBook') return; // 참고서는 카드마다 발동하지 않음
-              // 희귀한 조약돌 등: 카드마다 즉시 발동 (상시 배지 없음)
-              triggered.push({ id: relicId, tone: 820, duration: 400 });
-            } else if (relic?.effects?.type === 'PASSIVE' && relic?.effects?.etherFiveCardBonus && newCount >= 5 && !devilDiceTriggeredRef.current) {
-              // 악마의 주사위: 다섯번째 카드 처리 직후 발동
-              devilDiceTriggeredRef.current = true;
-              triggered.push({ id: relicId, tone: 980, duration: 800 });
-            }
+          orderedRelicList.forEach(relicId => {
+            const relic = RELICS[relicId];
+      // effects가 객체인 경우 처리 (/src/data/relics.js 사용)
+      if (relic?.effects?.type === 'PASSIVE' && relic?.effects?.comboMultiplierPerCard) {
+        // 에테르 결정: 카드마다 즉시 발동 표시/사운드
+        triggered.push({ id: relicId, tone: 800, duration: 500 });
+      } else if (relic?.effects?.type === 'PASSIVE' && (relic?.effects?.etherCardMultiplier || relicId === 'rareStone' || relic?.effects?.etherMultiplier)) {
+        if (relicId === 'referenceBook') return; // 참고서는 카드마다 발동하지 않음
+        // 희귀한 조약돌 등: 카드마다 즉시 발동 (상시 배지 없음)
+        triggered.push({ id: relicId, tone: 820, duration: 400 });
+      } else if (relic?.effects?.type === 'PASSIVE' && relic?.effects?.etherFiveCardBonus && newCount >= 5 && !devilDiceTriggeredRef.current) {
+        // 악마의 주사위: 다섯번째 카드 처리 직후 발동
+        devilDiceTriggeredRef.current = true;
+        triggered.push({ id: relicId, tone: 980, duration: 800 });
+      }
           });
 
           if (triggered.length > 0) {
@@ -2344,15 +2342,15 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         }
 
         // 참고서: 마지막 플레이어 카드 처리 시 한 번만 발동
-      const isLastPlayerCard = playerTimeline?.length > 0 && newCount === playerTimeline.length;
-      if (isLastPlayerCard && relics.includes('referenceBook') && !referenceBookTriggeredRef.current) {
-        referenceBookTriggeredRef.current = true;
-        // 마지막 카드 발동 이후 0.2초 대기 후 참고서 발동
-        setTimeout(() => flashRelic('referenceBook', 820, 500), 200);
-      }
+        const isLastPlayerCard = playerTimeline?.length > 0 && newCount === playerTimeline.length;
+        if (isLastPlayerCard && relics.includes('referenceBook') && !referenceBookTriggeredRef.current) {
+          referenceBookTriggeredRef.current = true;
+          // 마지막 카드 발동 이후 0.2초 대기 후 참고서 발동
+          setTimeout(() => flashRelic('referenceBook', 820, 500), 200);
+        }
 
-      return newCount;
-    });
+        return newCount;
+      });
     } else if (a.actor === 'enemy') {
       setEnemyTurnEtherAccumulated(prev => prev + BASE_ETHER_PER_CARD);
     }
@@ -2581,7 +2579,15 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     // 조합 배율 적용
     let playerBeforeDeflation = Math.round(turnEtherAccumulated * playerComboMult);
     // 유물 효과 적용 (참고서, 악마의 주사위, 희귀한 조약돌)
-    playerBeforeDeflation = calculateRelicEtherGain(playerBeforeDeflation, cardsPlayedForRelic, orderedRelicList);
+    const relicsForCalc = orderedRelicList.filter(id => {
+      const r = RELICS[id];
+      if (!r?.effects) return true;
+      // 참고서/주사위는 배율 계산에서 이미 반영하므로 중복 제외
+      if (r.effects.etherCardMultiplier) return false;
+      if (r.effects.etherFiveCardBonus) return false;
+      return true;
+    });
+    playerBeforeDeflation = calculateRelicEtherGain(playerBeforeDeflation, cardsPlayedForRelic, relicsForCalc);
 
     const enemyBeforeDeflation = Math.round(enemyTurnEtherAccumulated * enemyComboMult);
 
@@ -2978,15 +2984,11 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     const etherPerCard = Math.floor(BASE_ETHER_PER_CARD * passiveRelicEffects.etherMultiplier);
     const totalEtherPts = playerTimeline.length * etherPerCard;
 
-    // 조합 배율 계산 (selected 기준으로 조합 감지)
+    // 조합 배율 계산 (selected 기준으로 조합 감지) - 미리보기는 순수 콤보만
     const pCombo = detectPokerCombo(selected);
     const basePlayerComboMult = pCombo ? (COMBO_MULTIPLIERS[pCombo.name] || 1) : 1;
-    // 미리보기에서는 유물 배율 제외 (순수 조합 배율만)
     const playerComboMult = basePlayerComboMult;
     let playerBeforeDeflation = Math.round(totalEtherPts * playerComboMult);
-
-    // 유물 효과 적용 (참고서, 악마의 주사위 - 희귀한 조약돌은 이미 적용됨)
-    playerBeforeDeflation = calculateRelicEtherGain(playerBeforeDeflation, playerTimeline.length, orderedRelicList);
 
     // 디플레이션 적용
     const playerDeflation = pCombo?.name
