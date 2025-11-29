@@ -2671,9 +2671,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         : '';
       const relicText = relicMultBonus > 0 ? ` (유물 배율 +${relicMultBonus.toFixed(2)})` : '';
       addLog(`✴️ 에테르 획득: ${turnEtherAccumulated} × ${actualTotalMultiplier.toFixed(2)}${relicText} = ${playerBeforeDeflation} → ${playerFinalEther} PT${deflationText} (적용: ${playerAppliedEther} PT)`);
-      if (comboSteps?.length) {
-        addLog(`🧮 배율 경로: ${comboSteps.join(' -> ')}`);
-      }
 
       // 최종값 UI에 로그와 동일한 값 표시
       setEtherFinalValue(playerFinalEther);
@@ -3007,6 +3004,17 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const enemyCapacity = enemy?.etherCapacity ?? Math.max(enemyEtherValue, 1);
   const enemySoulScale = Math.max(0.4, Math.min(1.3, enemyCapacity > 0 ? enemyEtherValue / enemyCapacity : 1));
 
+  // 배율 계산 단계 로그 (전투 로그 하단 표시용)
+  const comboStepsLog = useMemo(() => {
+    if (!currentCombo) return [];
+    const baseMultiplier = currentCombo ? (COMBO_MULTIPLIERS[currentCombo.name] || 1) : 1;
+    const isResolve = phase === 'resolve';
+    const cardsCount = isResolve ? resolvedPlayerCards : selected.length;
+    const allowRefBook = isResolve ? (qIndex >= queue.length) : false;
+    const { steps } = explainComboMultiplier(baseMultiplier, cardsCount, true, allowRefBook);
+    return steps || [];
+  }, [currentCombo, resolvedPlayerCards, selected.length, phase, qIndex, queue.length, explainComboMultiplier]);
+
   // 에테르 획득량 미리보기 계산
   const previewEtherGain = useMemo(() => {
     if (playerTimeline.length === 0) return 0;
@@ -3107,6 +3115,15 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
           resolveStartEnemy={resolveStartEnemy}
           turnNumber={turnNumber}
         />
+        {/* 배율 경로: 단계와 무관하게 항상 표시 */}
+        {comboStepsLog.length > 0 && (
+          <div style={{ marginTop: '16px', padding: '12px', borderTop: '1px solid rgba(148, 163, 184, 0.2)', color: '#e2e8f0', fontSize: '13px', lineHeight: 1.6 }}>
+            <div style={{ fontWeight: 800, marginBottom: '6px', color: '#fbbf24' }}>🧮 배율 경로</div>
+            {comboStepsLog.map((step, idx) => (
+              <div key={idx} style={{ color: '#cbd5e1' }}>{idx + 1}. {step}</div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* 상단 메인 영역 */}
