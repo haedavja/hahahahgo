@@ -2490,7 +2490,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     if (phase === 'resolve' && qIndex >= queue.length && queue.length > 0 && turnEtherAccumulated > 0 && etherCalcPhase === null) {
       // 모든 카드가 실행되고 에테르가 누적된 상태에서, 애니메이션이 아직 시작되지 않았을 때만 실행
       // resolvedPlayerCards를 전달하여 몬스터 사망 시에도 정확한 카드 수 사용
-      setTimeout(() => startEtherCalculationAnimation(turnEtherAccumulated, resolvedPlayerCards), 50);
+      setTimeout(() => startEtherCalculationAnimation(turnEtherAccumulated, resolvedPlayerCards), 300);
     }
   }, [phase, qIndex, queue.length, turnEtherAccumulated, etherCalcPhase, resolvedPlayerCards]);
 
@@ -3009,11 +3009,16 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const enemyCapacity = enemy?.etherCapacity ?? Math.max(enemyEtherValue, 1);
   const enemySoulScale = Math.max(0.4, Math.min(1.3, enemyCapacity > 0 ? enemyEtherValue / enemyCapacity : 1));
 
-  // 배율 계산 단계 로그 (전투 로그 하단 표시용)
+  // 배율 경로 로그 (실시간 계산과 동일한 입력 사용)
   const comboStepsLog = useMemo(() => {
     if (!currentCombo) return [];
-    return [];
-  }, [currentCombo]);
+    const baseMultiplier = currentCombo ? (COMBO_MULTIPLIERS[currentCombo.name] || 1) : 1;
+    const isResolve = phase === 'resolve';
+    const cardsCount = isResolve ? resolvedPlayerCards : selected.length;
+    const allowRefBook = isResolve ? (qIndex >= queue.length) : false;
+    const { steps } = explainComboMultiplier(baseMultiplier, cardsCount, true, allowRefBook, orderedRelicList);
+    return steps || [];
+  }, [currentCombo, resolvedPlayerCards, selected.length, phase, qIndex, queue.length, explainComboMultiplier, orderedRelicList]);
 
   // 에테르 획득량 미리보기 계산
   const previewEtherGain = useMemo(() => {
