@@ -1172,7 +1172,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const [currentDeflation, setCurrentDeflation] = useState(null); // 현재 디플레이션 정보 { multiplier, usageCount }
   const [playerTransferPulse, setPlayerTransferPulse] = useState(false); // 에테르 이동 연출 (플레이어)
   const [enemyTransferPulse, setEnemyTransferPulse] = useState(false); // 에테르 이동 연출 (적)
-  const [multiplierSnapshot, setMultiplierSnapshot] = useState(null); // 배율 경로 스냅샷
 
   // 새 유물 추가/제거 시 기존 순서를 유지하면서 병합
   // 진행 단계에서는 동기화/변경을 막아 일관성 유지
@@ -1831,37 +1830,16 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     return combo;
   }, [selected, player.comboUsageCount, phase]);
 
-  // 유물 효과를 포함한 최종 콤보 배율
+  // 유물 효과를 포함한 최종 콤보 배율 (실시간 값 기반)
   const finalComboMultiplier = useMemo(() => {
     const baseMultiplier = currentCombo ? (COMBO_MULTIPLIERS[currentCombo.name] || 1) : 1;
-    const passiveEffects = calculatePassiveEffects(orderedRelicList);
     const isResolve = phase === 'resolve';
     const cardsCount = isResolve ? resolvedPlayerCards : selected.length;
     const allowRefBook = isResolve ? (qIndex >= queue.length) : false;
 
-    // 선택 단계에서는 유물 배율 제외 (순수 조합 배율만 미리보기)
     if (!isResolve) return baseMultiplier;
-
-    // 진행 단계: 유물 배율을 정렬 순서대로 순차 적용
     return computeComboMultiplier(baseMultiplier, cardsCount, true, allowRefBook);
-  }, [currentCombo, orderedRelicList, resolvedPlayerCards, selected.length, phase, qIndex, queue.length, computeComboMultiplier]);
-
-  // 진행 단계 진입 시 배율 계산 스냅샷 고정 (배율 텍스트/로그 일치용)
-  useEffect(() => {
-    if (phase === 'resolve') {
-      const baseMultiplier = currentCombo ? (COMBO_MULTIPLIERS[currentCombo.name] || 1) : 1;
-      const playerCardsInQueue = queue?.filter?.(x => x.actor === 'player').length || 0;
-      const cardsCount = playerCardsInQueue > 0 ? playerCardsInQueue : resolvedPlayerCards || selected.length;
-      setMultiplierSnapshot({
-        baseMultiplier,
-        cardsCount,
-        allowRefBook: true,
-        relicOrder: orderedRelicList.slice(),
-      });
-    } else {
-      setMultiplierSnapshot(null);
-    }
-  }, [phase, currentCombo, queue, resolvedPlayerCards, selected.length, orderedRelicList]);
+  }, [currentCombo, resolvedPlayerCards, selected.length, phase, qIndex, queue.length, computeComboMultiplier]);
   useEffect(() => {
     if (phase !== 'resolve') return;
     setMultiplierPulse(true);
@@ -3034,13 +3012,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   // 배율 계산 단계 로그 (전투 로그 하단 표시용)
   const comboStepsLog = useMemo(() => {
     if (!currentCombo) return [];
-    if (multiplierSnapshot) {
-      const { baseMultiplier, cardsCount, allowRefBook, relicOrder } = multiplierSnapshot;
-      const { steps } = explainComboMultiplier(baseMultiplier, cardsCount, true, allowRefBook, relicOrder);
-      return steps || [];
-    }
     return [];
-  }, [currentCombo, explainComboMultiplier, multiplierSnapshot]);
+  }, [currentCombo]);
 
   // 에테르 획득량 미리보기 계산
   const previewEtherGain = useMemo(() => {
