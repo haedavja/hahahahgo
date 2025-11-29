@@ -1074,12 +1074,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     return relics || [];
   });
   useEffect(() => {
-    // 새 유물 추가/제거 시 기존 순서를 유지하면서 병합
-    // 진행 단계에서는 동기화/변경을 막아 일관성 유지
-    if (phase === 'resolve') return;
-    setOrderedRelics(prev => mergeRelicOrder(relics, prev));
-  }, [relics, mergeRelicOrder, phase]);
-  useEffect(() => {
     try {
       localStorage.setItem('relicOrder', JSON.stringify(orderedRelics));
     } catch {}
@@ -1178,6 +1172,13 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const [currentDeflation, setCurrentDeflation] = useState(null); // 현재 디플레이션 정보 { multiplier, usageCount }
   const [playerTransferPulse, setPlayerTransferPulse] = useState(false); // 에테르 이동 연출 (플레이어)
   const [enemyTransferPulse, setEnemyTransferPulse] = useState(false); // 에테르 이동 연출 (적)
+
+  // 새 유물 추가/제거 시 기존 순서를 유지하면서 병합
+  // 진행 단계에서는 동기화/변경을 막아 일관성 유지
+  useEffect(() => {
+    if (phase === 'resolve') return;
+    setOrderedRelics(prev => mergeRelicOrder(relics, prev));
+  }, [relics, mergeRelicOrder, phase]);
   const [nextTurnEffects, setNextTurnEffects] = useState({
     guaranteedCards: [], // 반복, 보험 특성으로 다음턴 확정 등장
     bonusEnergy: 0, // 몸풀기 특성
