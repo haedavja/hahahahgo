@@ -1180,7 +1180,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     if (phase === 'resolve') return;
     setOrderedRelics(prev => mergeRelicOrder(relics, prev));
   }, [relics, mergeRelicOrder, phase]);
-
   const [nextTurnEffects, setNextTurnEffects] = useState({
     guaranteedCards: [], // 반복, 보험 특성으로 다음턴 확정 등장
     bonusEnergy: 0, // 몸풀기 특성
@@ -1234,33 +1233,27 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     let mult = baseMult;
     const order = relicOrderOverride || orderedRelicList;
     const passive = calculatePassiveEffects(order);
-
-    // 1) 카드당 적용되는 배율(에테르 결정 등) 우선, 위치 순서대로
     order.forEach(rid => {
       const relic = RELICS[rid];
       if (!relic?.effects) return;
+
+      // 악마의 주사위: 순서 기반, 조건 충족 시 곱하기
+      if (includeFiveCard && relic.effects.etherFiveCardBonus && passive.etherFiveCardBonus > 0 && cardsCount >= 5) {
+        mult *= passive.etherFiveCardBonus;
+        return;
+      }
+
+      // 참고서: 순서 기반, 카드 수에 비례 1.x배
+      if (includeRefBook && relic.effects.etherCardMultiplier && cardsCount > 0) {
+        mult *= (1 + cardsCount * 0.1);
+        return;
+      }
+
+      // 에테르 결정/기타 배율 유물
       if (relic.effects.comboMultiplierPerCard || relic.effects.etherMultiplier) {
         mult = applyRelicComboMultiplier([rid], mult, cardsCount);
       }
     });
-
-    // 2) 참고서: 조건 충족 시 위치 순서로 단 한 번
-    if (includeRefBook && passive.etherCardMultiplier && cardsCount > 0) {
-      order.forEach(rid => {
-        const relic = RELICS[rid];
-        if (!relic?.effects?.etherCardMultiplier) return;
-        mult *= (1 + cardsCount * 0.1);
-      });
-    }
-
-    // 3) 악마의 주사위: 조건 충족 시 위치 순서로 곱 (항상 마지막 우선)
-    if (includeFiveCard && passive.etherFiveCardBonus > 0 && cardsCount >= 5) {
-      order.forEach(rid => {
-        const relic = RELICS[rid];
-        if (!relic?.effects?.etherFiveCardBonus) return;
-        mult *= passive.etherFiveCardBonus;
-      });
-    }
 
     return mult;
   }, [orderedRelicList]);
@@ -1834,42 +1827,18 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
   // 유물 효과를 포함한 최종 콤보 배율
   const finalComboMultiplier = useMemo(() => {
-    const snapshot = multiplierSnapshot;
-    if (snapshot) {
-      return computeComboMultiplier(
-        snapshot.baseMultiplier,
-        snapshot.cardsCount,
-        true,
-        snapshot.allowRefBook,
-        snapshot.relicOrder
-      );
-    }
     const baseMultiplier = currentCombo ? (COMBO_MULTIPLIERS[currentCombo.name] || 1) : 1;
+    const passiveEffects = calculatePassiveEffects(orderedRelicList);
     const isResolve = phase === 'resolve';
     const cardsCount = isResolve ? resolvedPlayerCards : selected.length;
     const allowRefBook = isResolve ? (qIndex >= queue.length) : false;
 
+    // 선택 단계에서는 유물 배율 제외 (순수 조합 배율만 미리보기)
     if (!isResolve) return baseMultiplier;
-    return computeComboMultiplier(baseMultiplier, cardsCount, true, allowRefBook);
-  }, [currentCombo, orderedRelicList, resolvedPlayerCards, selected.length, phase, qIndex, queue.length, computeComboMultiplier, multiplierSnapshot]);
 
-  // 진행 단계 시작 시 배율 계산용 스냅샷 고정
-  useEffect(() => {
-    if (phase === 'resolve') {
-      const baseMultiplier = currentCombo ? (COMBO_MULTIPLIERS[currentCombo.name] || 1) : 1;
-      const playerCardsInQueue = queue?.filter?.(x => x.actor === 'player').length || 0;
-      const cardsCount = playerCardsInQueue > 0 ? playerCardsInQueue : resolvedPlayerCards || selected.length;
-      const allowRefBook = true; // 진행 단계에서는 참고서 포함
-      setMultiplierSnapshot({
-        baseMultiplier,
-        cardsCount,
-        allowRefBook,
-        relicOrder: orderedRelicList.slice(),
-      });
-    } else {
-      setMultiplierSnapshot(null);
-    }
-  }, [phase, currentCombo, queue, resolvedPlayerCards, selected.length, orderedRelicList]);
+    // 진행 단계: 유물 배율을 정렬 순서대로 순차 적용
+    return computeComboMultiplier(baseMultiplier, cardsCount, true, allowRefBook);
+  }, [currentCombo, orderedRelicList, resolvedPlayerCards, selected.length, phase, qIndex, queue.length, computeComboMultiplier]);
   useEffect(() => {
     if (phase !== 'resolve') return;
     setMultiplierPulse(true);
@@ -2633,7 +2602,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       playerTimeline.length,
       estimatedCardsFromEther
     );
-  const { multiplier: playerComboMult, steps: comboSteps } = explainComboMultiplier(basePlayerComboMult, cardsPlayedForRelic, true, true);
+    const { multiplier: playerComboMult, steps: comboSteps } = explainComboMultiplier(basePlayerComboMult, cardsPlayedForRelic, true, true);
     const relicMultBonus = playerComboMult - basePlayerComboMult;
 
     // 턴 종료 시점에는 에테르 결정/조약돌 발동 애니메이션을 중복 노출하지 않음 (카드 실행 시에만)
