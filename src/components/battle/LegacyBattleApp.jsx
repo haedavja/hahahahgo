@@ -2301,7 +2301,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
               // 에테르 결정: 카드마다 즉시 발동 표시/사운드
               triggered.push({ id: relicId, tone: 800, duration: 500 });
             } else if (relic?.effects?.type === 'PASSIVE' && (relic?.effects?.etherCardMultiplier || relicId === 'rareStone' || relic?.effects?.etherMultiplier)) {
-              // 희귀한 조약돌/참고서 계열: 카드마다 즉시 발동 (상시 배지 없음)
+              if (relicId === 'referenceBook') return; // 참고서는 카드마다 발동하지 않음
+              // 희귀한 조약돌 등: 카드마다 즉시 발동 (상시 배지 없음)
               triggered.push({ id: relicId, tone: 820, duration: 400 });
             } else if (relic?.effects?.type === 'PASSIVE' && relic?.effects?.etherFiveCardBonus && newCount >= 5 && !devilDiceTriggeredRef.current) {
               // 악마의 주사위: 다섯번째 카드 처리 직후 발동
@@ -2548,6 +2549,10 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     const relicMultBonus = playerComboMult - basePlayerComboMult;
 
     // 턴 종료 시점에는 에테르 결정/조약돌 발동 애니메이션을 중복 노출하지 않음 (카드 실행 시에만)
+    // 참고서(etherCardMultiplier)는 턴 끝에 한 번만 표시
+    if (relics.includes('referenceBook') && cardsPlayedForRelic > 0) {
+      flashRelic('referenceBook', 820, 500);
+    }
 
     const enemyComboMult = eComboEnd ? (COMBO_MULTIPLIERS[eComboEnd.name] || 1) : 1;
 
