@@ -280,7 +280,7 @@ export const RELICS = {
     emoji: '📚',
     rarity: RELIC_RARITIES.RARE,
     tags: [RELIC_TAGS.ETHER],
-    description: '낸 카드 수에 비례해 1.x배만큼 마지막 카드 발동 때 곱배수에 곱합니다.',
+    description: '낸 카드 수에 비례해 1.x배만큼 마지막 카드 발동된 다음 곱배수에 곱합니다.',
     effects: {
       type: 'PASSIVE',
       etherCardMultiplier: true, // 카드 수에 따라 배율 증가 (예: 3장 = 1.3배)
