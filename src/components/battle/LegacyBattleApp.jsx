@@ -1181,23 +1181,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     setOrderedRelics(prev => mergeRelicOrder(relics, prev));
   }, [relics, mergeRelicOrder, phase]);
 
-  // 진행 단계 시작 시 배율 계산용 스냅샷 고정
-  useEffect(() => {
-    if (phase === 'resolve') {
-      const baseMultiplier = currentCombo ? (COMBO_MULTIPLIERS[currentCombo.name] || 1) : 1;
-      const playerCardsInQueue = queue?.filter?.(x => x.actor === 'player').length || 0;
-      const cardsCount = playerCardsInQueue > 0 ? playerCardsInQueue : resolvedPlayerCards || selected.length;
-      const allowRefBook = true; // 진행 단계에서는 참고서 포함
-      setMultiplierSnapshot({
-        baseMultiplier,
-        cardsCount,
-        allowRefBook,
-        relicOrder: orderedRelicList.slice(),
-      });
-    } else {
-      setMultiplierSnapshot(null);
-    }
-  }, [phase, currentCombo, queue, resolvedPlayerCards, selected.length, orderedRelicList]);
   const [nextTurnEffects, setNextTurnEffects] = useState({
     guaranteedCards: [], // 반복, 보험 특성으로 다음턴 확정 등장
     bonusEnergy: 0, // 몸풀기 특성
@@ -1869,6 +1852,24 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     if (!isResolve) return baseMultiplier;
     return computeComboMultiplier(baseMultiplier, cardsCount, true, allowRefBook);
   }, [currentCombo, orderedRelicList, resolvedPlayerCards, selected.length, phase, qIndex, queue.length, computeComboMultiplier, multiplierSnapshot]);
+
+  // 진행 단계 시작 시 배율 계산용 스냅샷 고정
+  useEffect(() => {
+    if (phase === 'resolve') {
+      const baseMultiplier = currentCombo ? (COMBO_MULTIPLIERS[currentCombo.name] || 1) : 1;
+      const playerCardsInQueue = queue?.filter?.(x => x.actor === 'player').length || 0;
+      const cardsCount = playerCardsInQueue > 0 ? playerCardsInQueue : resolvedPlayerCards || selected.length;
+      const allowRefBook = true; // 진행 단계에서는 참고서 포함
+      setMultiplierSnapshot({
+        baseMultiplier,
+        cardsCount,
+        allowRefBook,
+        relicOrder: orderedRelicList.slice(),
+      });
+    } else {
+      setMultiplierSnapshot(null);
+    }
+  }, [phase, currentCombo, queue, resolvedPlayerCards, selected.length, orderedRelicList]);
   useEffect(() => {
     if (phase !== 'resolve') return;
     setMultiplierPulse(true);
