@@ -1233,27 +1233,33 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     let mult = baseMult;
     const order = relicOrderOverride || orderedRelicList;
     const passive = calculatePassiveEffects(order);
+
+    // 1) 카드당 적용되는 배율(에테르 결정 등) 우선, 위치 순서대로
     order.forEach(rid => {
       const relic = RELICS[rid];
       if (!relic?.effects) return;
-
-      // 악마의 주사위: 순서 기반, 조건 충족 시 곱하기
-      if (includeFiveCard && relic.effects.etherFiveCardBonus && passive.etherFiveCardBonus > 0 && cardsCount >= 5) {
-        mult *= passive.etherFiveCardBonus;
-        return;
-      }
-
-      // 참고서: 순서 기반, 카드 수에 비례 1.x배
-      if (includeRefBook && relic.effects.etherCardMultiplier && cardsCount > 0) {
-        mult *= (1 + cardsCount * 0.1);
-        return;
-      }
-
-      // 에테르 결정/기타 배율 유물
       if (relic.effects.comboMultiplierPerCard || relic.effects.etherMultiplier) {
         mult = applyRelicComboMultiplier([rid], mult, cardsCount);
       }
     });
+
+    // 2) 참고서: 조건 충족 시 위치 순서로 단 한 번
+    if (includeRefBook && passive.etherCardMultiplier && cardsCount > 0) {
+      order.forEach(rid => {
+        const relic = RELICS[rid];
+        if (!relic?.effects?.etherCardMultiplier) return;
+        mult *= (1 + cardsCount * 0.1);
+      });
+    }
+
+    // 3) 악마의 주사위: 조건 충족 시 위치 순서로 곱 (항상 마지막 우선)
+    if (includeFiveCard && passive.etherFiveCardBonus > 0 && cardsCount >= 5) {
+      order.forEach(rid => {
+        const relic = RELICS[rid];
+        if (!relic?.effects?.etherFiveCardBonus) return;
+        mult *= passive.etherFiveCardBonus;
+      });
+    }
 
     return mult;
   }, [orderedRelicList]);
@@ -2602,7 +2608,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       playerTimeline.length,
       estimatedCardsFromEther
     );
-    const { multiplier: playerComboMult, steps: comboSteps } = explainComboMultiplier(basePlayerComboMult, cardsPlayedForRelic, true, true);
+  const { multiplier: playerComboMult, steps: comboSteps } = explainComboMultiplier(basePlayerComboMult, cardsPlayedForRelic, true, true);
     const relicMultBonus = playerComboMult - basePlayerComboMult;
 
     // 턴 종료 시점에는 에테르 결정/조약돌 발동 애니메이션을 중복 노출하지 않음 (카드 실행 시에만)
