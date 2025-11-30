@@ -304,6 +304,11 @@ function applyTraitModifiers(card, context = {}) {
     modifiedCard.speedCost = modifiedCard.speedCost + (context.usageCount * 2);
   }
 
+  // 소외 (outcast): 행동력 1 감소 (최소 0)
+  if (hasTrait(card, 'outcast')) {
+    modifiedCard.actionCost = Math.max(0, modifiedCard.actionCost - 1);
+  }
+
   return modifiedCard;
 }
 
@@ -358,23 +363,29 @@ function sortCombinedOrderStablePF(playerCards, enemyCards, playerAgility = 0, e
 function detectPokerCombo(cards) {
   if (!cards || cards.length === 0) return null;
 
+  // 소외 (outcast) 특성 카드는 조합 계산에서 제외
+  const validCards = cards.filter(c => !hasTrait(c, 'outcast'));
+
+  // 유효 카드가 없으면 조합 없음 (하이카드도 아님)
+  if (validCards.length === 0) return null;
+
   // 카드 1장: 하이카드
-  if (cards.length === 1) {
+  if (validCards.length === 1) {
     return {
       name: '하이카드',
-      bonusKeys: new Set([cards[0].actionCost])
+      bonusKeys: new Set([validCards[0].actionCost])
     };
   }
 
   const freq = new Map();
-  for (const c of cards) { freq.set(c.actionCost, (freq.get(c.actionCost) || 0) + 1); }
+  for (const c of validCards) { freq.set(c.actionCost, (freq.get(c.actionCost) || 0) + 1); }
   const counts = Array.from(freq.values());
   const have = (n) => counts.includes(n);
   const keysByCount = (n) => new Set(Array.from(freq.entries()).filter(([k, v]) => v === n).map(([k]) => Number(k)));
 
-  const allAttack = cards.every(c => c.type === 'attack');
-  const allDefense = cards.every(c => c.type === 'defense');
-  const isFlush = (allAttack || allDefense) && cards.length >= 4;
+  const allAttack = validCards.every(c => c.type === 'attack');
+  const allDefense = validCards.every(c => c.type === 'defense');
+  const isFlush = (allAttack || allDefense) && validCards.length >= 4;
 
   let result = null;
   if (have(5)) result = { name: '파이브카드', bonusKeys: keysByCount(5) };
@@ -391,15 +402,16 @@ function detectPokerCombo(cards) {
     else if (have(2)) result = { name: '페어', bonusKeys: pairKeys };
     else {
       // 조합 없음: 하이카드
-      const allKeys = new Set(cards.map(c => c.actionCost));
+      const allKeys = new Set(validCards.map(c => c.actionCost));
       result = { name: '하이카드', bonusKeys: allKeys };
     }
   }
 
   // 디버깅: 조합 감지 로그 (반환값 포함)
   console.log('[detectPokerCombo] 결과:', {
-    cardCount: cards.length,
-    cards: cards.map(c => ({ name: c.name, type: c.type, cost: c.actionCost })),
+    originalCount: cards.length,
+    validCount: validCards.length,
+    cards: validCards.map(c => ({ name: c.name, type: c.type, cost: c.actionCost })),
     freq: Object.fromEntries(freq),
     counts,
     allAttack,
@@ -451,8 +463,23 @@ const COMBO_MULTIPLIERS = {
   '파이브카드': 5,
 };
 const BASE_ETHER_PER_CARD = 10;
-function calculateComboEtherGain({ cardCount = 0, comboName = null, comboUsageCount = {}, extraMultiplier = 1 }) {
-  const baseGain = Math.round(cardCount * BASE_ETHER_PER_CARD);
+const CARD_ETHER_BY_RARITY = {
+  common: 10,
+  rare: 25,
+  special: 100,
+  legendary: 500
+};
+const getCardRarity = (card) => card?.rarity || 'common';
+const getCardEtherGain = (card) => CARD_ETHER_BY_RARITY[getCardRarity(card)] || CARD_ETHER_BY_RARITY.common;
+const calcCardsEther = (cards = [], multiplier = 1) =>
+  (cards || []).reduce((sum, entry) => {
+    const cardObj = entry.card || entry;
+    return sum + Math.floor(getCardEtherGain(cardObj) * multiplier);
+  }, 0);
+function calculateComboEtherGain({ cards = [], cardCount = 0, comboName = null, comboUsageCount = {}, extraMultiplier = 1 }) {
+  const baseGain = cards.length > 0
+    ? calcCardsEther(cards)
+    : Math.round(cardCount * BASE_ETHER_PER_CARD);
   const comboMult = comboName ? (COMBO_MULTIPLIERS[comboName] || 1) : 1;
   const multiplied = Math.round(baseGain * comboMult * extraMultiplier);
   const deflated = comboName
@@ -891,18 +918,18 @@ export function EtherBar({ pts, slots, previewGain = 0, color = "cyan", label, p
   const slotColors = color === 'red' ? enemySlotColors : playerSlotColors;
 
   return (
-      <div style={{
-        width: '72px',
-    padding: '12px 10px 16px',
-    borderRadius: '36px',
-    background: 'linear-gradient(180deg, rgba(8, 12, 20, 0.95), rgba(10, 15, 25, 0.75))',
-    border: '1px solid rgba(96, 210, 255, 0.35)',
-    boxShadow: `${pulse ? '0 0 18px rgba(251,191,36,0.55), ' : ''}0 20px 40px rgba(0, 0, 0, 0.45)`,
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '12px',
-    position: 'relative'
-  }}>
+    <div style={{
+      width: '72px',
+      padding: '12px 10px 16px',
+      borderRadius: '36px',
+      background: 'linear-gradient(180deg, rgba(8, 12, 20, 0.95), rgba(10, 15, 25, 0.75))',
+      border: '1px solid rgba(96, 210, 255, 0.35)',
+      boxShadow: `${pulse ? '0 0 18px rgba(251,191,36,0.55), ' : ''}0 20px 40px rgba(0, 0, 0, 0.45)`,
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '12px',
+      position: 'relative'
+    }}>
       <div style={{ fontSize: '11px', fontWeight: 'bold', textAlign: 'center', color: '#5fe0ff', letterSpacing: '0.12em' }}>
         {label}
       </div>
@@ -915,7 +942,7 @@ export function EtherBar({ pts, slots, previewGain = 0, color = "cyan", label, p
         border: `2px solid ${borderColor}`,
         background: 'rgba(9, 17, 27, 0.95)',
         overflow: 'hidden',
-        }}
+      }}
         onMouseEnter={() => setShowBarTooltip(true)}
         onMouseLeave={() => setShowBarTooltip(false)}
       >
@@ -969,11 +996,13 @@ export function EtherBar({ pts, slots, previewGain = 0, color = "cyan", label, p
 // =====================
 // 캐릭터 빌드 기반 손패 생성
 // =====================
-function drawCharacterBuildHand(characterBuild, nextTurnEffects = {}, previousHand = []) {
+function drawCharacterBuildHand(characterBuild, nextTurnEffects = {}, previousHand = [], cardDrawBonus = 0, escapeBan = new Set()) {
   if (!characterBuild) return CARDS.slice(0, 10); // 8장 → 10장
 
   const { mainSpecials = [], subSpecials = [] } = characterBuild;
   const { guaranteedCards = [], mainSpecialOnly = false, subSpecialBoost = 0 } = nextTurnEffects;
+  const applyBonus = (prob) => Math.min(1, Math.max(0, prob + (cardDrawBonus || 0)));
+  const banSet = escapeBan instanceof Set ? escapeBan : new Set();
 
   // 파탄 (ruin) 특성: 주특기만 등장
   if (mainSpecialOnly) {
@@ -986,26 +1015,29 @@ function drawCharacterBuildHand(characterBuild, nextTurnEffects = {}, previousHa
   // 확정 등장 카드 (반복, 보험)
   const guaranteed = guaranteedCards
     .map(cardId => CARDS.find(card => card.id === cardId))
-    .filter(Boolean);
+    .filter(card => card && !(hasTrait(card, 'escape') && banSet.has(card.id)));
 
   // 주특기 카드는 100% 등장 (탈주 제외)
   const mainCards = mainSpecials
     .map(cardId => CARDS.find(card => card.id === cardId))
     .filter(card => {
       if (!card) return false;
+      // 조연(supporting): 보조특기 전용이므로 주특기에서는 등장하지 않음
+      if (hasTrait(card, 'supporting')) return false;
       // 탈주 (escape): 이전에 사용했으면 등장하지 않음
-      if (hasTrait(card, 'escape') && previousHand.some(c => c.id === card.id)) {
+      if (hasTrait(card, 'escape') && banSet.has(card.id)) {
         return false;
       }
       // 개근 (attendance): 등장확률 25% 증가 (주특기 125%)
+      let prob = 1;
       if (hasTrait(card, 'attendance')) {
-        return Math.random() < 1.25; // 확정 + 25% 추가 보너스
+        prob = 1.25; // 확정 + 25% 추가 보너스
       }
       // 도피꾼 (deserter): 등장확률 25% 감소 (주특기 75%)
-      if (hasTrait(card, 'deserter')) {
-        return Math.random() < 0.75;
+      else if (hasTrait(card, 'deserter')) {
+        prob = 0.75;
       }
-      return true;
+      return Math.random() < applyBonus(prob);
     });
 
   // 보조특기 카드는 각각 50% 확률로 등장 (장군 특성으로 증가 가능)
@@ -1015,7 +1047,7 @@ function drawCharacterBuildHand(characterBuild, nextTurnEffects = {}, previousHa
     .filter(card => {
       if (!card) return false;
       // 탈주 (escape): 이전에 사용했으면 등장하지 않음
-      if (hasTrait(card, 'escape') && previousHand.some(c => c.id === card.id)) {
+      if (hasTrait(card, 'escape') && banSet.has(card.id)) {
         return false;
       }
       // 조연 (supporting): 보조특기일때만 등장
@@ -1030,11 +1062,12 @@ function drawCharacterBuildHand(characterBuild, nextTurnEffects = {}, previousHa
       if (hasTrait(card, 'deserter')) {
         prob -= 0.25;
       }
-      return Math.random() < prob;
+      return Math.random() < applyBonus(prob);
     });
 
   // 중복 제거 후 반환
-  const allCards = [...guaranteed, ...mainCards, ...subCards];
+  const allCards = [...guaranteed, ...mainCards, ...subCards]
+    .filter(card => !(hasTrait(card, 'escape') && banSet.has(card.id)));
   const uniqueCards = [];
   const seenIds = new Set();
   for (const card of allCards) {
@@ -1070,19 +1103,21 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         const ids = JSON.parse(saved);
         if (Array.isArray(ids) && ids.length) return mergeRelicOrder(relics, ids);
       }
-    } catch {}
+    } catch { }
     return relics || [];
   });
   useEffect(() => {
     try {
       localStorage.setItem('relicOrder', JSON.stringify(orderedRelics));
-    } catch {}
+    } catch { }
   }, [orderedRelics]);
   const orderedRelicList = orderedRelics && orderedRelics.length ? orderedRelics : relics;
   const safeInitialPlayer = initialPlayer || {};
   const safeInitialEnemy = initialEnemy || {};
   const passiveRelicStats = calculatePassiveEffects(orderedRelicList);
   const baseEnergy = (safeInitialPlayer.energy ?? BASE_PLAYER_ENERGY) + passiveRelicStats.maxEnergy;
+  const effectiveAgility = (playerAgility || 0) + (passiveRelicStats.agility || 0);
+  const effectiveCardDrawBonus = passiveRelicStats.cardDrawBonus || 0;
   const startingEther = typeof safeInitialPlayer.etherPts === 'number' ? safeInitialPlayer.etherPts : playerEther;
   const startingBlock = safeInitialPlayer.block ?? 0; // 유물 효과로 인한 시작 방어력
   const startingStrength = safeInitialPlayer.strength ?? playerStrength ?? 0; // 전투 시작 힘 (유물 효과 포함)
@@ -1136,6 +1171,14 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const addLog = useCallback((m) => {
     setLog(p => [...p, m].slice(-200));
   }, []);
+  const formatSpeedText = useCallback((baseSpeed) => {
+    const finalSpeed = applyAgility(baseSpeed, effectiveAgility);
+    const diff = finalSpeed - baseSpeed;
+    if (diff === 0) return `${finalSpeed}`;
+    const sign = diff < 0 ? '-' : '+';
+    const abs = Math.abs(diff);
+    return `${finalSpeed} (${baseSpeed} ${sign} ${abs})`;
+  }, [effectiveAgility]);
   const [willOverdrive, setWillOverdrive] = useState(false);
   const [isSimplified, setIsSimplified] = useState(() => {
     try {
@@ -1218,6 +1261,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const prevRevealLevelRef = useRef(0);
   const [showInsightTooltip, setShowInsightTooltip] = useState(false);
   const [hoveredEnemyAction, setHoveredEnemyAction] = useState(null);
+  // 탈주 카드는 사용된 다음 턴에만 등장 금지
+  const escapeBanRef = useRef(new Set());
+  const escapeUsedThisTurnRef = useRef(new Set());
   const hoveredCardRef = useRef(null);
   const [showTooltip, setShowTooltip] = useState(false); // 툴팁 표시 여부 (딜레이 후)
   const tooltipTimerRef = useRef(null);
@@ -1331,7 +1377,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       const img = new Image();
       img.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9YQn1fEAAAAASUVORK5CYII=';
       e.dataTransfer.setDragImage(img, 0, 0);
-    } catch {}
+    } catch { }
   };
   const handleRelicDragOver = (e) => {
     e.preventDefault();
@@ -1517,12 +1563,12 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     const currentBuild = useGameStore.getState().characterBuild;
     const hasCharacterBuild = currentBuild && (currentBuild.mainSpecials?.length > 0 || currentBuild.subSpecials?.length > 0);
     const rawHand = hasCharacterBuild
-      ? drawCharacterBuildHand(currentBuild)
+      ? drawCharacterBuildHand(currentBuild, {}, [], effectiveCardDrawBonus, escapeBanRef.current)
       : CARDS.slice(0, 10); // 8장 → 10장
     const initialHand = applyStrengthToHand(rawHand, startingStrength);
     setHand(initialHand);
     setCanRedraw(true);
-  }, [safeInitialPlayer, playerEther, addLog, startingStrength]);
+  }, [safeInitialPlayer, playerEther, addLog, startingStrength, effectiveCardDrawBonus]);
 
   useEffect(() => {
     if (!safeInitialEnemy) return;
@@ -1670,7 +1716,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       const currentBuild = useGameStore.getState().characterBuild;
       const hasCharacterBuild = currentBuild && (currentBuild.mainSpecials?.length > 0 || currentBuild.subSpecials?.length > 0);
       const rawHand = hasCharacterBuild
-        ? drawCharacterBuildHand(currentBuild, nextTurnEffects, [])
+        ? drawCharacterBuildHand(currentBuild, nextTurnEffects, [], effectiveCardDrawBonus)
         : CARDS.slice(0, 10); // 8장 → 10장
       const initialHand = applyStrengthToHand(rawHand, startingStrength);
       setHand(initialHand);
@@ -1784,7 +1830,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     const hasCharacterBuild = currentBuild && (currentBuild.mainSpecials?.length > 0 || currentBuild.subSpecials?.length > 0);
     setHand(prevHand => {
       const rawHand = hasCharacterBuild
-        ? drawCharacterBuildHand(currentBuild, nextTurnEffects, prevHand)
+        ? drawCharacterBuildHand(currentBuild, nextTurnEffects, prevHand, effectiveCardDrawBonus, escapeBanRef.current)
         : CARDS.slice(0, 10); // 8장 → 10장
       return applyStrengthToHand(rawHand, player.strength || 0);
     });
@@ -1821,7 +1867,10 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   }, [phase, enemyPlan?.mode, enemyPlan?.actions?.length, enemy]);
 
   const totalEnergy = useMemo(() => selected.reduce((s, c) => s + c.actionCost, 0), [selected]);
-  const totalSpeed = useMemo(() => selected.reduce((s, c) => s + c.speedCost, 0), [selected]);
+  const totalSpeed = useMemo(
+    () => selected.reduce((s, c) => s + applyAgility(c.speedCost, effectiveAgility), 0),
+    [selected, effectiveAgility]
+  );
   const currentCombo = useMemo(() => {
     const combo = detectPokerCombo(selected);
     console.log('[currentCombo 업데이트]', {
@@ -1858,6 +1907,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const comboPreviewInfo = useMemo(() => {
     if (!currentCombo) return null;
     return calculateComboEtherGain({
+      cards: selected || [],
       cardCount: selected?.length || 0,
       comboName: currentCombo.name,
       comboUsageCount: player.comboUsageCount || {},
@@ -1870,31 +1920,67 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     if (phase === 'respond') {
       setSelected(prev => {
         let next;
+        const cardSpeed = applyAgility(card.speedCost, effectiveAgility);
         if (exists) {
           next = prev.filter(s => !(s.__uid === card.__uid) && !(s.id === card.id && !('__uid' in s)));
           playSound(400, 80); // 해지 사운드 (낮은 음)
         }
         else {
           if (prev.length >= MAX_SUBMIT_CARDS) { addLog('⚠️ 최대 5장의 카드만 제출할 수 있습니다'); return prev; }
-          if (totalSpeed + card.speedCost > player.maxSpeed) { addLog('⚠️ 속도 초과'); return prev; }
+          if (totalSpeed + cardSpeed > player.maxSpeed) { addLog('⚠️ 속도 초과'); return prev; }
           if (totalEnergy + card.actionCost > player.maxEnergy) { addLog('⚠️ 행동력 부족'); return prev; }
           next = [...prev, { ...card, __uid: Math.random().toString(36).slice(2) }];
           playSound(800, 80); // 선택 사운드 (높은 음)
         }
         const combo = detectPokerCombo(next);
         const enhanced = applyPokerBonus(next, combo);
-        setFixedOrder(sortCombinedOrderStablePF(enhanced, enemyPlan.actions || [], playerAgility, 0));
+
+        // 수동 순서 유지: 정렬하지 않고 순서대로 fixedOrder 생성
+        const playerCards = enhanced.map((card, idx) => ({
+          actor: 'player',
+          card,
+          originalIndex: idx
+        }));
+
+        const enemyCards = (enemyPlan.actions || []).map((action, idx) => ({
+          actor: 'enemy',
+          card: action,
+          originalIndex: idx
+        }));
+
+        // 플레이어 카드를 먼저, 그 다음 적 카드 (수동 순서)
+        const manualOrder = [...playerCards, ...enemyCards];
+
+        // sp 값 재계산 (누적)
+        let ps = 0;
+        let es = 0;
+        const withSp = manualOrder.map(item => {
+          const isPlayer = item.actor === 'player';
+          const agility = isPlayer ? effectiveAgility : 0;
+          const finalSpeed = applyAgility(item.card.speedCost, agility);
+
+          if (isPlayer) {
+            ps += finalSpeed;
+            return { ...item, sp: ps, finalSpeed };
+          } else {
+            es += finalSpeed;
+            return { ...item, sp: es, finalSpeed };
+          }
+        });
+
+        setFixedOrder(withSp);
         return next;
       });
       return;
     }
+    const cardSpeed = applyAgility(card.speedCost, effectiveAgility);
     if (exists) {
       setSelected(selected.filter(s => s.id !== card.id));
       playSound(400, 80); // 해지 사운드 (낮은 음)
       return;
     }
     if (selected.length >= MAX_SUBMIT_CARDS) return addLog('⚠️ 최대 5장의 카드만 제출할 수 있습니다');
-    if (totalSpeed + card.speedCost > player.maxSpeed) return addLog('⚠️ 속도 초과');
+    if (totalSpeed + cardSpeed > player.maxSpeed) return addLog('⚠️ 속도 초과');
     if (totalEnergy + card.actionCost > player.maxEnergy) return addLog('⚠️ 행동력 부족');
     setSelected([...selected, { ...card, __uid: Math.random().toString(36).slice(2) }]);
     playSound(800, 80); // 선택 사운드 (높은 음)
@@ -1904,14 +1990,52 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     if (i === 0) return;
     if (phase === 'respond') {
       setSelected(prev => {
-        const n = [...prev];[n[i - 1], n[i]] = [n[i], n[i - 1]];
+        const n = [...prev];
+        [n[i - 1], n[i]] = [n[i], n[i - 1]];
+
         const combo = detectPokerCombo(n);
         const enhanced = applyPokerBonus(n, combo);
-        setFixedOrder(sortCombinedOrderStablePF(enhanced, enemyPlan.actions || [], playerAgility, 0));
+
+        // 수동 순서 유지: 정렬하지 않고 순서대로 fixedOrder 생성
+        const playerCards = enhanced.map((card, idx) => ({
+          actor: 'player',
+          card,
+          originalIndex: idx
+        }));
+
+        const enemyCards = (enemyPlan.actions || []).map((action, idx) => ({
+          actor: 'enemy',
+          card: action,
+          originalIndex: idx
+        }));
+
+        // 플레이어 카드를 먼저, 그 다음 적 카드 (수동 순서)
+        const manualOrder = [...playerCards, ...enemyCards];
+
+        // sp 값 재계산 (누적)
+        let ps = 0;
+        let es = 0;
+        const withSp = manualOrder.map(item => {
+          const isPlayer = item.actor === 'player';
+          const agility = isPlayer ? effectiveAgility : 0;
+          const finalSpeed = applyAgility(item.card.speedCost, agility);
+
+          if (isPlayer) {
+            ps += finalSpeed;
+            return { ...item, sp: ps, finalSpeed };
+          } else {
+            es += finalSpeed;
+            return { ...item, sp: es, finalSpeed };
+          }
+        });
+
+        setFixedOrder(withSp);
         return n;
       });
     } else {
-      const n = [...selected];[n[i - 1], n[i]] = [n[i], n[i - 1]]; setSelected(n);
+      const n = [...selected];
+      [n[i - 1], n[i]] = [n[i], n[i - 1]];
+      setSelected(n);
     }
   };
 
@@ -1919,14 +2043,52 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     if (i === selected.length - 1) return;
     if (phase === 'respond') {
       setSelected(prev => {
-        const n = [...prev];[n[i], n[i + 1]] = [n[i + 1], n[i]];
+        const n = [...prev];
+        [n[i], n[i + 1]] = [n[i + 1], n[i]];
+
         const combo = detectPokerCombo(n);
         const enhanced = applyPokerBonus(n, combo);
-        setFixedOrder(sortCombinedOrderStablePF(enhanced, enemyPlan.actions || [], playerAgility, 0));
+
+        // 수동 순서 유지: 정렬하지 않고 순서대로 fixedOrder 생성
+        const playerCards = enhanced.map((card, idx) => ({
+          actor: 'player',
+          card,
+          originalIndex: idx
+        }));
+
+        const enemyCards = (enemyPlan.actions || []).map((action, idx) => ({
+          actor: 'enemy',
+          card: action,
+          originalIndex: idx
+        }));
+
+        // 플레이어 카드를 먼저, 그 다음 적 카드 (수동 순서)
+        const manualOrder = [...playerCards, ...enemyCards];
+
+        // sp 값 재계산 (누적)
+        let ps = 0;
+        let es = 0;
+        const withSp = manualOrder.map(item => {
+          const isPlayer = item.actor === 'player';
+          const agility = isPlayer ? effectiveAgility : 0;
+          const finalSpeed = applyAgility(item.card.speedCost, agility);
+
+          if (isPlayer) {
+            ps += finalSpeed;
+            return { ...item, sp: ps, finalSpeed };
+          } else {
+            es += finalSpeed;
+            return { ...item, sp: es, finalSpeed };
+          }
+        });
+
+        setFixedOrder(withSp);
         return n;
       });
     } else {
-      const n = [...selected];[n[i], n[i + 1]] = [n[i + 1], n[i]]; setSelected(n);
+      const n = [...selected];
+      [n[i], n[i + 1]] = [n[i + 1], n[i]];
+      setSelected(n);
     }
   };
 
@@ -1961,7 +2123,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     const currentBuild = useGameStore.getState().characterBuild;
     const hasCharacterBuild = currentBuild && (currentBuild.mainSpecials?.length > 0 || currentBuild.subSpecials?.length > 0);
     const rawHand = hasCharacterBuild
-      ? drawCharacterBuildHand(currentBuild, nextTurnEffects, hand)
+      ? drawCharacterBuildHand(currentBuild, nextTurnEffects, hand, effectiveCardDrawBonus, escapeBanRef.current)
       : CARDS.slice(0, 10); // 8장 → 10장
     const newHand = applyStrengthToHand(rawHand, player.strength || 0);
     setHand(newHand);
@@ -2040,13 +2202,16 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
     const enhancedSelected = applyPokerBonus(traitEnhancedSelected, pCombo);
 
-    const q = sortCombinedOrderStablePF(enhancedSelected, actions, playerAgility, 0);
+    const q = sortCombinedOrderStablePF(enhancedSelected, actions, effectiveAgility, 0);
     setFixedOrder(q);
     playCardSubmitSound(); // 카드 제출 사운드 재생
     setPhase('respond');
   };
 
   useEffect(() => {
+    // respond 단계에서 자동 정렬 제거 (수동 조작 방해 방지)
+    // 필요한 경우 각 조작 함수(toggle, moveUp, moveDown)에서 setFixedOrder를 직접 호출하여 순서를 제어함
+    /*
     if (phase === 'respond' && enemyPlan.actions && enemyPlan.actions.length > 0) {
       const combo = detectPokerCombo(selected);
 
@@ -2059,9 +2224,10 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       );
 
       const enhancedSelected = applyPokerBonus(traitEnhancedSelected, combo);
-      const q = sortCombinedOrderStablePF(enhancedSelected, enemyPlan.actions, playerAgility, 0);
+      const q = sortCombinedOrderStablePF(enhancedSelected, enemyPlan.actions, effectiveAgility, 0);
       setFixedOrder(q);
     }
+    */
   }, [selected, phase, enemyPlan.actions]);
 
   const beginResolveFromRespond = () => {
@@ -2077,6 +2243,13 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       addLog('⚠️ 큐 생성 실패: 실행할 항목이 없습니다');
       return;
     }
+
+    // SP 값으로 정렬 (같은 SP면 배열 순서 유지 = 수동 순서 유지)
+    newQ.sort((a, b) => {
+      if (a.sp !== b.sp) return a.sp - b.sp;
+      // SP가 같으면 원래 배열 순서 유지 (stable sort)
+      return 0;
+    });
 
     // 이전 턴의 에테르 애니메이션 상태 초기화
     setEtherCalcPhase(null);
@@ -2261,6 +2434,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
       // 카드 소멸 이펙트는 플레이어만 적용
       if (a.actor === 'player') {
+        if (hasTrait(a.card, 'escape')) {
+          escapeUsedThisTurnRef.current = new Set([...escapeUsedThisTurnRef.current, a.card.id]);
+        }
         setTimeout(() => {
           // 카드가 사용된 후 사라지는 애니메이션 시작
           setDisappearingCards(prev => [...prev, qIndex]);
@@ -2304,6 +2480,12 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         P.strength = (P.strength || 0) + 1;
         addLog(`💪 "단련" - 힘이 1 증가했습니다. (현재: ${P.strength})`);
       }
+
+      // 몸풀기 (warmup): 다음 턴 행동력 +2
+      if (hasTrait(a.card, 'warmup')) {
+        setNextTurnEffects(prev => ({ ...prev, bonusEnergy: (prev.bonusEnergy || 0) + 2 }));
+        addLog(`🔥 "몸풀기" - 다음 턴 행동력 +2 예약`);
+      }
     }
 
     if (hasTrait(a.card, 'stun')) {
@@ -2333,8 +2515,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     // 카드 사용 시 에테르 누적 (실제 적용은 턴 종료 시)
     if (a.actor === 'player') {
       // 희귀한 조약돌 효과: 카드당 획득 에테르 2배
-      const passiveRelicEffects = calculatePassiveEffects(orderedRelicList);
-      const etherPerCard = Math.floor(BASE_ETHER_PER_CARD * passiveRelicEffects.etherMultiplier);
+          const passiveRelicEffects = calculatePassiveEffects(orderedRelicList);
+          const etherPerCard = Math.floor(getCardEtherGain(a.card) * passiveRelicEffects.etherMultiplier);
 
       setTurnEtherAccumulated(prev => {
         console.log(`[에테르 누적] ${prev} + ${etherPerCard} = ${prev + etherPerCard} (카드: ${a.card.name})`);
@@ -2379,9 +2561,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
           if (triggered.length > 0) {
             const playSeq = (idx = 0) => {
               if (idx >= triggered.length) {
-              setRelicActivated(null);
-              return;
-            }
+                setRelicActivated(null);
+                return;
+              }
               const item = triggered[idx];
               flashRelic(item.id, item.tone, item.duration);
               setTimeout(() => playSeq(idx + 1), Math.max(200, item.duration * 0.6));
@@ -2393,7 +2575,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         return newCount;
       });
     } else if (a.actor === 'enemy') {
-      setEnemyTurnEtherAccumulated(prev => prev + BASE_ETHER_PER_CARD);
+      setEnemyTurnEtherAccumulated(prev => prev + getCardEtherGain(a.card));
     }
 
     setPlayer(prev => ({ ...prev, hp: P.hp, def: P.def, block: P.block, counter: P.counter, vulnMult: P.vulnMult || 1, strength: P.strength || 0 }));
@@ -2503,6 +2685,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
   const finishTurn = (reason) => {
     addLog(`턴 종료: ${reason || ''}`);
+    // 이번 턴 사용한 탈주 카드를 다음 턴 한정으로 차단
+    escapeBanRef.current = new Set(escapeUsedThisTurnRef.current);
+    escapeUsedThisTurnRef.current = new Set();
 
     // 다음 턴 효과 처리 (특성 기반)
     const newNextTurnEffects = {
@@ -2810,6 +2995,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const runAll = () => {
     if (qIndex >= queue.length) return;
     playSound(1000, 150); // 전부실행 효과음
+    const passiveRelicEffects = calculatePassiveEffects(orderedRelicList);
     let P = { ...player, def: player.def || false, block: player.block || 0, counter: player.counter || 0, vulnMult: player.vulnMult || 1, etherPts: player.etherPts || 0 };
     let E = { ...enemy, def: enemy.def || false, block: enemy.block || 0, counter: enemy.counter || 0, vulnMult: enemy.vulnMult || 1, etherPts: enemy.etherPts || 0 };
     const tempState = { player: P, enemy: E, log: [] };
@@ -2830,9 +3016,10 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
       // 카드 사용 시 에테르 누적 (실제 적용은 턴 종료 시)
       if (a.actor === 'player') {
-        setTurnEtherAccumulated(prev => prev + BASE_ETHER_PER_CARD);
+        const gain = Math.floor(getCardEtherGain(a.card) * passiveRelicEffects.etherMultiplier);
+        setTurnEtherAccumulated(prev => prev + gain);
       } else if (a.actor === 'enemy') {
-        setEnemyTurnEtherAccumulated(prev => prev + BASE_ETHER_PER_CARD);
+        setEnemyTurnEtherAccumulated(prev => prev + getCardEtherGain(a.card));
       }
 
       if (P.hp <= 0) {
@@ -2925,14 +3112,15 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
           usageCount,
           isInCombo,
         });
-        ps += enhancedCard.speedCost;
-        return { actor: 'player', card: enhancedCard, sp: ps, idx };
+        const finalSpeed = applyAgility(enhancedCard.speedCost, effectiveAgility);
+        ps += finalSpeed;
+        return { actor: 'player', card: enhancedCard, sp: ps, idx, finalSpeed };
       });
     }
     if (phase === 'respond' && fixedOrder) return fixedOrder.filter(x => x.actor === 'player');
     if (phase === 'resolve') return queue.filter(x => x.actor === 'player');
     return [];
-  }, [phase, selected, fixedOrder, queue, player.comboUsageCount]);
+  }, [phase, selected, fixedOrder, queue, player.comboUsageCount, effectiveAgility]);
 
   const enemyTimeline = useMemo(() => {
     // 선택 단계에서는 통찰이 없으면 적 타임라인을 숨긴다
@@ -2957,7 +3145,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
   const handDisabled = (c) => (
     selected.length >= MAX_SUBMIT_CARDS ||
-    totalSpeed + c.speedCost > player.maxSpeed ||
+    totalSpeed + applyAgility(c.speedCost, effectiveAgility) > player.maxSpeed ||
     totalEnergy + c.actionCost > player.maxEnergy
   );
   const playerEtherValue = player?.etherPts ?? 0;
@@ -3009,8 +3197,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
     // 희귀한 조약돌 효과 적용된 카드당 에테르
     const passiveRelicEffects = calculatePassiveEffects(orderedRelicList);
-    const etherPerCard = Math.floor(BASE_ETHER_PER_CARD * passiveRelicEffects.etherMultiplier);
-    const totalEtherPts = playerTimeline.length * etherPerCard;
+    const totalEtherPts = calcCardsEther(playerTimeline, passiveRelicEffects.etherMultiplier);
 
     // 조합 배율 계산 (selected 기준으로 조합 감지) - 미리보기는 순수 콤보만
     const pCombo = detectPokerCombo(selected);
@@ -3292,8 +3479,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                     const num = a.card.type === 'attack'
                       ? (a.card.damage + strengthBonus) * (a.card.hits || 1)
                       : a.card.type === 'defense'
-                      ? (a.card.block || 0) + strengthBonus
-                      : 0;
+                        ? (a.card.block || 0) + strengthBonus
+                        : 0;
                     // 타임라인에서 현재 진행 중인 액션인지 확인
                     const globalIndex = phase === 'resolve' && queue ? queue.findIndex(q => q === a) : -1;
                     const isExecuting = executingCardIndex === globalIndex;
@@ -3494,16 +3681,16 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                   minWidth: '400px',
                   height: '2rem',
                   marginTop: '8px',
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                gap: '12px',
-                transition: 'font-size 0.3s ease, transform 0.3s ease',
-                transform: (etherCalcPhase === 'multiply' || multiplierPulse) ? 'scale(1.3)' : 'scale(1)',
-                textShadow: (etherCalcPhase === 'multiply' || multiplierPulse) ? '0 0 20px #fbbf24' : 'none'
-              }}>
-                <span>× {finalComboMultiplier.toFixed(2).split('').join(' ')}</span>
-              </div>
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  gap: '12px',
+                  transition: 'font-size 0.3s ease, transform 0.3s ease',
+                  transform: (etherCalcPhase === 'multiply' || multiplierPulse) ? 'scale(1.3)' : 'scale(1)',
+                  textShadow: (etherCalcPhase === 'multiply' || multiplierPulse) ? '0 0 20px #fbbf24' : 'none'
+                }}>
+                  <span>× {finalComboMultiplier.toFixed(2).split('').join(' ')}</span>
+                </div>
               </div>
             )}
             <div style={{ display: 'flex', alignItems: 'center', gap: '16px', position: 'relative' }}>
@@ -3517,7 +3704,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
               />
               <div style={{ position: 'relative' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <div className={`character-display ${playerOverdriveFlash ? 'overdrive-burst' : ''}`} style={{ fontSize: '64px' }}>🧙‍♂️</div>
+                  <div className={`character-display ${playerOverdriveFlash ? 'overdrive-burst' : ''}`} style={{ fontSize: '64px' }}>🧙‍♂️</div>
                   <div>
                     <div className={playerHit ? 'hit-animation' : ''} style={{ color: '#f87171', fontSize: '1.25rem', fontWeight: 'bold' }}>
                       ❤️ {player.hp}/{player.maxHp}
@@ -3545,9 +3732,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                         💪 힘: {player.strength || 0}
                       </div>
                     )}
-                    {playerAgility !== 0 && (
-                      <div style={{ fontSize: '0.9rem', fontWeight: '700', color: playerAgility > 0 ? '#34d399' : '#ef4444', marginTop: '2px' }}>
-                        ⚡ 민첩: {playerAgility}
+                    {effectiveAgility !== 0 && (
+                      <div style={{ fontSize: '0.9rem', fontWeight: '700', color: effectiveAgility > 0 ? '#34d399' : '#ef4444', marginTop: '2px' }}>
+                        ⚡ 민첩: {effectiveAgility}
                       </div>
                     )}
                     {(player.insight || 0) > 0 && (
@@ -3689,75 +3876,75 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
               </div>
             )}
             {/* 몬스터 콤보 + 에테르 계산 - 절대 위치로 왼쪽 배치 */}
-                {enemyCombo && !((phase === 'select') && ((insightReveal?.level || 0) === 0)) && (phase === 'select' || phase === 'respond' || phase === 'resolve') && (
-                  <div className="combo-display" style={{ position: 'absolute', top: '-5px', right: '90px', textAlign: 'center', minHeight: '140px' }}>
+            {enemyCombo && !((phase === 'select') && ((insightReveal?.level || 0) === 0)) && (phase === 'select' || phase === 'respond' || phase === 'resolve') && (
+              <div className="combo-display" style={{ position: 'absolute', top: '-5px', right: '90px', textAlign: 'center', minHeight: '140px' }}>
+                <div style={{
+                  fontSize: '1.92rem',
+                  fontWeight: 'bold',
+                  color: '#fbbf24',
+                  marginBottom: '2px',
+                  height: '2.5rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  position: 'relative'
+                }}>
+                  <span>{enemyCombo.name}</span>
+                  {enemyCurrentDeflation && (
                     <div style={{
-                      fontSize: '1.92rem',
+                      position: 'absolute',
+                      right: 'calc(50% + 120px)',
+                      fontSize: enemyEtherCalcPhase === 'deflation' ? '1.1rem' : '0.9rem',
                       fontWeight: 'bold',
-                      color: '#fbbf24',
-                      marginBottom: '2px',
-                      height: '2.5rem',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      position: 'relative'
-                    }}>
-                      <span>{enemyCombo.name}</span>
-                      {enemyCurrentDeflation && (
-                        <div style={{
-                          position: 'absolute',
-                          right: 'calc(50% + 120px)',
-                          fontSize: enemyEtherCalcPhase === 'deflation' ? '1.1rem' : '0.9rem',
-                          fontWeight: 'bold',
-                          color: '#fca5a5',
-                          background: 'linear-gradient(135deg, rgba(252, 165, 165, 0.25), rgba(252, 165, 165, 0.1))',
-                          border: '1.5px solid rgba(252, 165, 165, 0.5)',
-                          borderRadius: '6px',
-                          padding: '4px 10px',
-                          letterSpacing: '0.05em',
-                          boxShadow: '0 0 10px rgba(252, 165, 165, 0.3), inset 0 0 5px rgba(252, 165, 165, 0.15)',
-                          transition: 'font-size 0.3s ease, transform 0.3s ease',
-                          transform: enemyEtherCalcPhase === 'deflation' ? 'scale(1.2)' : 'scale(1)',
-                          textShadow: enemyEtherCalcPhase === 'deflation' ? '0 0 15px rgba(252, 165, 165, 0.6)' : 'none'
-                        }}>
-                          -{Math.round((1 - enemyCurrentDeflation.multiplier) * 100)}%
-                        </div>
-                      )}
-                    </div>
-                    <div style={{
-                      fontSize: enemyEtherCalcPhase === 'sum' ? '2rem' : '1.5rem',
-                      color: '#fbbf24',
-                      fontWeight: 'bold',
-                      letterSpacing: '0.2em',
-                      marginBottom: '2px',
+                      color: '#fca5a5',
+                      background: 'linear-gradient(135deg, rgba(252, 165, 165, 0.25), rgba(252, 165, 165, 0.1))',
+                      border: '1.5px solid rgba(252, 165, 165, 0.5)',
+                      borderRadius: '6px',
+                      padding: '4px 10px',
+                      letterSpacing: '0.05em',
+                      boxShadow: '0 0 10px rgba(252, 165, 165, 0.3), inset 0 0 5px rgba(252, 165, 165, 0.15)',
                       transition: 'font-size 0.3s ease, transform 0.3s ease',
-                      transform: enemyEtherCalcPhase === 'sum' ? 'scale(1.3)' : 'scale(1)',
-                      textShadow: enemyEtherCalcPhase === 'sum' ? '0 0 20px #fbbf24' : 'none',
-                      visibility: phase === 'resolve' ? 'visible' : 'hidden',
-                      height: '1.8rem'
+                      transform: enemyEtherCalcPhase === 'deflation' ? 'scale(1.2)' : 'scale(1)',
+                      textShadow: enemyEtherCalcPhase === 'deflation' ? '0 0 15px rgba(252, 165, 165, 0.6)' : 'none'
                     }}>
-                      + {enemyTurnEtherAccumulated.toString().split('').join(' ')} P T
+                      -{Math.round((1 - enemyCurrentDeflation.multiplier) * 100)}%
                     </div>
-                    <div style={{
-                      fontSize: enemyEtherCalcPhase === 'multiply' ? '1.6rem' : '1.32rem',
-                      color: '#fbbf24',
-                      fontWeight: 'bold',
-                      letterSpacing: '0.15em',
-                      minWidth: '400px',
-                      height: '2rem',
-                      marginTop: '8px',
-                      display: 'flex',
-                      justifyContent: 'center',
-                      alignItems: 'center',
-                      gap: '12px',
-                      transition: 'font-size 0.3s ease, transform 0.3s ease',
-                      transform: enemyEtherCalcPhase === 'multiply' ? 'scale(1.3)' : 'scale(1)',
-                      textShadow: enemyEtherCalcPhase === 'multiply' ? '0 0 20px #fbbf24' : 'none'
-                    }}>
-                      <span>× {((enemyCombo && COMBO_MULTIPLIERS[enemyCombo.name]) || 1).toFixed(2).split('').join(' ')}</span>
-                    </div>
-                  </div>
-                )}
+                  )}
+                </div>
+                <div style={{
+                  fontSize: enemyEtherCalcPhase === 'sum' ? '2rem' : '1.5rem',
+                  color: '#fbbf24',
+                  fontWeight: 'bold',
+                  letterSpacing: '0.2em',
+                  marginBottom: '2px',
+                  transition: 'font-size 0.3s ease, transform 0.3s ease',
+                  transform: enemyEtherCalcPhase === 'sum' ? 'scale(1.3)' : 'scale(1)',
+                  textShadow: enemyEtherCalcPhase === 'sum' ? '0 0 20px #fbbf24' : 'none',
+                  visibility: phase === 'resolve' ? 'visible' : 'hidden',
+                  height: '1.8rem'
+                }}>
+                  + {enemyTurnEtherAccumulated.toString().split('').join(' ')} P T
+                </div>
+                <div style={{
+                  fontSize: enemyEtherCalcPhase === 'multiply' ? '1.6rem' : '1.32rem',
+                  color: '#fbbf24',
+                  fontWeight: 'bold',
+                  letterSpacing: '0.15em',
+                  minWidth: '400px',
+                  height: '2rem',
+                  marginTop: '8px',
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  gap: '12px',
+                  transition: 'font-size 0.3s ease, transform 0.3s ease',
+                  transform: enemyEtherCalcPhase === 'multiply' ? 'scale(1.3)' : 'scale(1)',
+                  textShadow: enemyEtherCalcPhase === 'multiply' ? '0 0 20px #fbbf24' : 'none'
+                }}>
+                  <span>× {((enemyCombo && COMBO_MULTIPLIERS[enemyCombo.name]) || 1).toFixed(2).split('').join(' ')}</span>
+                </div>
+              </div>
+            )}
             <div style={{ display: 'flex', alignItems: 'center', gap: '16px', position: 'relative' }}>
               <div style={{ textAlign: 'right', position: 'relative', paddingRight: '8px' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
@@ -3874,98 +4061,98 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
             const isFlush = currentCombo?.name === '플러쉬';
 
             return (
-            <div className="hand-cards">
-              {getSortedHand().map((c, idx) => {
-                const Icon = c.icon;
-                const usageCount = player.comboUsageCount?.[c.id] || 0;
-                const selIndex = selected.findIndex(s => s.id === c.id);
-                const sel = selIndex !== -1;
-                // 카드가 조합에 포함되는지 확인
-                const isInCombo = sel && (isFlush || comboCardCosts.has(c.actionCost));
-                const enhancedCard = applyTraitModifiers(c, { usageCount, isInCombo });
-                const disabled = handDisabled(c) && !sel;
-                const currentBuild = useGameStore.getState().characterBuild;
-                const isMainSpecial = currentBuild?.mainSpecials?.includes(c.id);
-                const isSubSpecial = currentBuild?.subSpecials?.includes(c.id);
-                const costColor = isMainSpecial ? '#fcd34d' : isSubSpecial ? '#60a5fa' : '#fff';
-                const nameColor = isMainSpecial ? '#fcd34d' : isSubSpecial ? '#7dd3fc' : '#fff';
-                // 협동 특성이 있고 조합에 포함된 경우
-                const hasCooperation = hasTrait(c, 'cooperation');
-                const cooperationActive = hasCooperation && isInCombo;
-                return (
-                  <div
-                    key={c.id + idx}
-                    onClick={() => !disabled && toggle(enhancedCard)}
-                    onMouseEnter={(e) => {
-                      const cardEl = e.currentTarget.querySelector('.game-card-large');
-                      showCardTraitTooltip(c, cardEl);
-                    }}
-                    onMouseLeave={hideCardTraitTooltip}
-                    style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center', cursor: disabled ? 'not-allowed' : 'pointer', position: 'relative', marginLeft: idx === 0 ? '0' : '-20px' }}
-                  >
+              <div className="hand-cards">
+                {getSortedHand().map((c, idx) => {
+                  const Icon = c.icon;
+                  const usageCount = player.comboUsageCount?.[c.id] || 0;
+                  const selIndex = selected.findIndex(s => s.id === c.id);
+                  const sel = selIndex !== -1;
+                  // 카드가 조합에 포함되는지 확인
+                  const isInCombo = sel && (isFlush || comboCardCosts.has(c.actionCost));
+                  const enhancedCard = applyTraitModifiers(c, { usageCount, isInCombo });
+                  const disabled = handDisabled(c) && !sel;
+                  const currentBuild = useGameStore.getState().characterBuild;
+                  const isMainSpecial = currentBuild?.mainSpecials?.includes(c.id);
+                  const isSubSpecial = currentBuild?.subSpecials?.includes(c.id);
+                  const costColor = isMainSpecial ? '#fcd34d' : isSubSpecial ? '#60a5fa' : '#fff';
+                  const nameColor = isMainSpecial ? '#fcd34d' : isSubSpecial ? '#7dd3fc' : '#fff';
+                  // 협동 특성이 있고 조합에 포함된 경우
+                  const hasCooperation = hasTrait(c, 'cooperation');
+                  const cooperationActive = hasCooperation && isInCombo;
+                  return (
                     <div
-                      className={`game-card-large select-phase-card ${c.type === 'attack' ? 'attack' : 'defense'} ${sel ? 'selected' : ''} ${disabled ? 'disabled' : ''}`}
-                      style={cooperationActive ? {
-                        boxShadow: '0 0 20px 4px rgba(34, 197, 94, 0.8), 0 0 40px 8px rgba(34, 197, 94, 0.4)',
-                        border: '3px solid #22c55e'
-                      } : {}}
+                      key={c.id + idx}
+                      onClick={() => !disabled && toggle(enhancedCard)}
+                      onMouseEnter={(e) => {
+                        const cardEl = e.currentTarget.querySelector('.game-card-large');
+                        showCardTraitTooltip(c, cardEl);
+                      }}
+                      onMouseLeave={hideCardTraitTooltip}
+                      style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center', cursor: disabled ? 'not-allowed' : 'pointer', position: 'relative', marginLeft: idx === 0 ? '0' : '-20px' }}
                     >
-                      <div className="card-cost-badge-floating" style={{ color: costColor, WebkitTextStroke: '1px #000' }}>{enhancedCard.actionCost || c.actionCost}</div>
-                      {sel && <div className="selection-number">{selIndex + 1}</div>}
-                      <div className="card-stats-sidebar">
-                        {enhancedCard.damage != null && enhancedCard.damage > 0 && (
-                          <div className="card-stat-item attack">
-                            ⚔️{enhancedCard.damage + (player.strength || 0)}{enhancedCard.hits ? `×${enhancedCard.hits}` : ''}
+                      <div
+                        className={`game-card-large select-phase-card ${c.type === 'attack' ? 'attack' : 'defense'} ${sel ? 'selected' : ''} ${disabled ? 'disabled' : ''}`}
+                        style={cooperationActive ? {
+                          boxShadow: '0 0 20px 4px rgba(34, 197, 94, 0.8), 0 0 40px 8px rgba(34, 197, 94, 0.4)',
+                          border: '3px solid #22c55e'
+                        } : {}}
+                      >
+                        <div className="card-cost-badge-floating" style={{ color: costColor, WebkitTextStroke: '1px #000' }}>{enhancedCard.actionCost || c.actionCost}</div>
+                        {sel && <div className="selection-number">{selIndex + 1}</div>}
+                        <div className="card-stats-sidebar">
+                          {enhancedCard.damage != null && enhancedCard.damage > 0 && (
+                            <div className="card-stat-item attack">
+                              ⚔️{enhancedCard.damage + (player.strength || 0)}{enhancedCard.hits ? `×${enhancedCard.hits}` : ''}
+                            </div>
+                          )}
+                          {enhancedCard.block != null && enhancedCard.block > 0 && (
+                            <div className="card-stat-item defense">
+                              🛡️{enhancedCard.block + (player.strength || 0)}
+                            </div>
+                          )}
+                          <div className="card-stat-item speed">
+                            ⏱️{formatSpeedText(enhancedCard.speedCost)}
                           </div>
-                        )}
-                        {enhancedCard.block != null && enhancedCard.block > 0 && (
-                          <div className="card-stat-item defense">
-                            🛡️{enhancedCard.block + (player.strength || 0)}
-                          </div>
-                        )}
-                        <div className="card-stat-item speed">
-                          ⏱️{enhancedCard.speedCost}
+                        </div>
+                        <div className="card-header">
+                          <div className="font-black text-sm" style={{ color: nameColor }}>{c.name}</div>
+                        </div>
+                        <div className="card-icon-area">
+                          <Icon size={60} className="text-white opacity-80" />
+                          {disabled && (
+                            <div className="card-disabled-overlay">
+                              <X size={80} className="text-red-500" strokeWidth={4} />
+                            </div>
+                          )}
+                        </div>
+                        <div className={`card-footer ${isSimplified ? 'simplified-footer' : ''}`}>
+                          {c.traits && c.traits.length > 0 && (
+                            <span style={{ fontWeight: 600, display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                              {c.traits.map((traitId) => {
+                                const trait = TRAITS[traitId];
+                                if (!trait) return null;
+                                const isPositive = trait.type === 'positive';
+                                return (
+                                  <span key={traitId} style={{
+                                    color: isPositive ? '#22c55e' : '#ef4444',
+                                    background: isPositive ? 'rgba(34, 197, 94, 0.2)' : 'rgba(239, 68, 68, 0.2)',
+                                    padding: '2px 6px',
+                                    borderRadius: '4px',
+                                    border: `1px solid ${isPositive ? '#22c55e' : '#ef4444'}`
+                                  }}>
+                                    {trait.name}
+                                  </span>
+                                );
+                              })}
+                            </span>
+                          )}
+                          <span className="card-description">{c.description || ''}</span>
                         </div>
                       </div>
-                      <div className="card-header">
-                        <div className="font-black text-sm" style={{ color: nameColor }}>{c.name}</div>
-                      </div>
-                      <div className="card-icon-area">
-                        <Icon size={60} className="text-white opacity-80" />
-                        {disabled && (
-                          <div className="card-disabled-overlay">
-                            <X size={80} className="text-red-500" strokeWidth={4} />
-                          </div>
-                        )}
-                      </div>
-                      <div className={`card-footer ${isSimplified ? 'simplified-footer' : ''}`}>
-                        {c.traits && c.traits.length > 0 && (
-                          <span style={{ fontWeight: 600, display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-                            {c.traits.map((traitId) => {
-                              const trait = TRAITS[traitId];
-                              if (!trait) return null;
-                              const isPositive = trait.type === 'positive';
-                              return (
-                                <span key={traitId} style={{
-                                  color: isPositive ? '#22c55e' : '#ef4444',
-                                  background: isPositive ? 'rgba(34, 197, 94, 0.2)' : 'rgba(239, 68, 68, 0.2)',
-                                  padding: '2px 6px',
-                                  borderRadius: '4px',
-                                  border: `1px solid ${isPositive ? '#22c55e' : '#ef4444'}`
-                                }}>
-                                  {trait.name}
-                                </span>
-                              );
-                            })}
-                          </span>
-                        )}
-                        <span className="card-description">{c.description || ''}</span>
-                      </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
             );
           })()}
 
@@ -4003,7 +4190,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                           </div>
                         )}
                         <div className="card-stat-item speed">
-                          ⏱️{c.speedCost}
+                          ⏱️{formatSpeedText(c.speedCost)}
                         </div>
                       </div>
                       <div className="card-header">
@@ -4038,24 +4225,12 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                     </div>
                     <div style={{ display: 'flex', gap: '8px' }}>
                       {idx > 0 && (
-                        <button onClick={() => {
-                          const playerActions = fixedOrder.filter(a => a.actor === 'player');
-                          const newPlayerActions = [...playerActions];
-                          [newPlayerActions[idx - 1], newPlayerActions[idx]] = [newPlayerActions[idx], newPlayerActions[idx - 1]];
-                          const enemyActions = fixedOrder.filter(a => a.actor === 'enemy');
-                          setFixedOrder(sortCombinedOrderStablePF(newPlayerActions.map(a => a.card), enemyActions.map(a => a.card), playerAgility, 0));
-                        }} className="btn-enhanced text-xs" style={{ padding: '4px 12px' }}>
+                        <button onClick={() => moveUp(idx)} className="btn-enhanced text-xs" style={{ padding: '4px 12px' }}>
                           ←
                         </button>
                       )}
                       {idx < arr.length - 1 && (
-                        <button onClick={() => {
-                          const playerActions = fixedOrder.filter(a => a.actor === 'player');
-                          const newPlayerActions = [...playerActions];
-                          [newPlayerActions[idx], newPlayerActions[idx + 1]] = [newPlayerActions[idx + 1], newPlayerActions[idx]];
-                          const enemyActions = fixedOrder.filter(a => a.actor === 'enemy');
-                          setFixedOrder(sortCombinedOrderStablePF(newPlayerActions.map(a => a.card), enemyActions.map(a => a.card), playerAgility, 0));
-                        }} className="btn-enhanced text-xs" style={{ padding: '4px 12px' }}>
+                        <button onClick={() => moveDown(idx)} className="btn-enhanced text-xs" style={{ padding: '4px 12px' }}>
                           →
                         </button>
                       )}
@@ -4121,7 +4296,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                           </div>
                         )}
                         <div className="card-stat-item speed">
-                          ⏱️{a.card.speedCost}
+                          ⏱️{formatSpeedText(a.card.speedCost)}
                         </div>
                       </div>
                       <div className="card-header">
@@ -4236,18 +4411,18 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         </div>
       )}
       {/* 전역 통찰 툴팁 (뷰포트 기준) */}
-                  {hoveredEnemyAction && (phase === 'select' || phase === 'respond' || phase === 'resolve') && ((phase === 'select' ? (insightReveal?.level || 0) : (effectiveInsight || 0)) >= 3) && (
-                    <div
-                      className="insight-tooltip"
-                      style={{
-                        position: 'fixed',
-                        left: `${hoveredEnemyAction.pageX}px`,
-                top: `${hoveredEnemyAction.pageY + 24}px`,
-                transform: 'translate(-50%, 0)',
-                pointerEvents: 'none',
-                zIndex: 3000,
-              }}
-            >
+      {hoveredEnemyAction && (phase === 'select' || phase === 'respond' || phase === 'resolve') && ((phase === 'select' ? (insightReveal?.level || 0) : (effectiveInsight || 0)) >= 3) && (
+        <div
+          className="insight-tooltip"
+          style={{
+            position: 'fixed',
+            left: `${hoveredEnemyAction.pageX}px`,
+            top: `${hoveredEnemyAction.pageY + 24}px`,
+            transform: 'translate(-50%, 0)',
+            pointerEvents: 'none',
+            zIndex: 3000,
+          }}
+        >
           <div className="insight-tooltip-title">
             #{hoveredEnemyAction.idx + 1} {hoveredEnemyAction.action?.name || '???'}
           </div>

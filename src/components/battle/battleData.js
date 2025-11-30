@@ -121,9 +121,9 @@ export const CARDS = [
   { id: "persistent", name: "집요한 타격", type: "attack", damage: 22, speedCost: 12, actionCost: 3, iconKey: "flame", description: "상대방의 방어력을 꾸준히 압도할 수 있는 카드.", traits: ["attendance", "crush"] },
 
   // === 행동력 6 (전설) 3개 ===
-  { id: "die", name: "죽어라", type: "attack", damage: 29, speedCost: 7, actionCost: 6, iconKey: "flame", description: "살아남기 어려울겁니다.", traits: ["slaughter", "crush", "knockback"] },
-  { id: "absolute", name: "절대우위", type: "attack", damage: 26, speedCost: 16, actionCost: 6, iconKey: "flame", description: "뭘 하든 소용없습니다.", traits: ["blank_check", "stun"] },
-  { id: "apocalypse", name: "종말", type: "attack", damage: 79, speedCost: 25, actionCost: 6, iconKey: "flame", description: "다음은 없습니다.", traits: ["pinnacle"] },
+  { id: "die", name: "죽어라", type: "attack", damage: 29, speedCost: 7, actionCost: 6, iconKey: "flame", description: "살아남기 어려울겁니다.", traits: ["slaughter", "crush", "knockback"], rarity: "legendary" },
+  { id: "absolute", name: "절대우위", type: "attack", damage: 26, speedCost: 16, actionCost: 6, iconKey: "flame", description: "뭘 하든 소용없습니다.", traits: ["blank_check", "stun"], rarity: "legendary" },
+  { id: "apocalypse", name: "종말", type: "attack", damage: 79, speedCost: 25, actionCost: 6, iconKey: "flame", description: "다음은 없습니다.", traits: ["pinnacle"], rarity: "legendary" },
 ];
 
 export const ENEMY_CARDS = [
