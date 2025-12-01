@@ -9,6 +9,7 @@ const buildBattlePayload = (battle, etherPts, relics, maxHp, playerInsight, play
   const initialPlayer = battle.simulation?.initialState?.player;
   const initialEnemy = battle.simulation?.initialState?.enemy;
   const enemyEtherCapacity = battle.enemyEtherCapacity ?? 300; // 기본 몬스터 에테르 소지량
+  const enemyCount = battle.enemyCount ?? 1;
 
   // 유물 패시브 효과 계산
   const passiveEffects = calculatePassiveEffects(relics);
@@ -47,8 +48,8 @@ const buildBattlePayload = (battle, etherPts, relics, maxHp, playerInsight, play
       etherPts,
     },
     enemy: {
-      name: battle.label ?? "Enemy",
-      hp: initialEnemy?.hp ?? 30,
+      name: enemyCount > 1 ? `${battle.label ?? "Enemy"} x${enemyCount}` : (battle.label ?? "Enemy"),
+      hp: initialEnemy?.hp ? Math.round(initialEnemy.hp) : 30,
       etherPts: enemyEtherCapacity,
       etherCapacity: enemyEtherCapacity,
     },

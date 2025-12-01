@@ -118,7 +118,7 @@ const createEventPayload = (node, mapRisk) => {
 
 const resolveEnemyDeck = (kind) => ENEMY_DECKS[kind] ?? ENEMY_DECKS.default ?? [];
 
-const computeBattlePlan = (kind, playerCards, enemyCards, currentPlayerHp = null, currentMaxHp = null) => {
+const computeBattlePlan = (kind, playerCards, enemyCards, currentPlayerHp = null, currentMaxHp = null, enemyCount = 1) => {
   const timeline = buildSpeedTimeline(playerCards, enemyCards, 30);
   const baseStats = BATTLE_STATS[kind] ?? BATTLE_STATS.default;
   const battleStats = currentPlayerHp !== null
@@ -132,6 +132,18 @@ const computeBattlePlan = (kind, playerCards, enemyCards, currentPlayerHp = null
       }
     : baseStats;
 
+  const scaledEnemyHp = Math.max(1, Math.round((battleStats.enemy?.hp ?? 40) * enemyCount));
+  const scaledEnemy = {
+    ...battleStats.enemy,
+    hp: scaledEnemyHp,
+    maxHp: scaledEnemyHp,
+    enemyCount,
+  };
+  const finalStats = {
+    ...battleStats,
+    enemy: scaledEnemy,
+  };
+
   return {
     preview: {
       playerHand: playerCards,
@@ -139,7 +151,8 @@ const computeBattlePlan = (kind, playerCards, enemyCards, currentPlayerHp = null
       timeline,
       tuLimit: 30,
     },
-    simulation: simulateBattle(timeline, battleStats),
+    simulation: simulateBattle(timeline, finalStats),
+    enemyCount,
   };
 };
 
@@ -153,8 +166,17 @@ const drawCharacterBuildHand = (mainSpecials, subSpecials) => {
   return drawHand(cardIds, cardIds.length);
 };
 
+const ENEMY_COUNT_BY_TYPE = {
+  battle: 3,
+  elite: 4,
+  boss: 5,
+  dungeon: 3,
+  default: 1,
+};
+
 const createBattlePayload = (node, characterBuild, playerHp = null, maxHp = null) => {
   if (!node || !BATTLE_TYPES.has(node.type) || node.isStart) return null;
+  const enemyCount = Math.max(1, node.enemyCount ?? ENEMY_COUNT_BY_TYPE[node.type] ?? ENEMY_COUNT_BY_TYPE.default);
 
   // 캐릭터 빌드가 있으면 그걸 사용, 없으면 기존 방식
   const hasCharacterBuild = characterBuild && (characterBuild.mainSpecials.length > 0 || characterBuild.subSpecials.length > 0);
@@ -172,12 +194,13 @@ const createBattlePayload = (node, characterBuild, playerHp = null, maxHp = null
     : drawHand(playerDrawPile, 3);
 
   const enemyHand = drawHand(enemyDrawPile, 3);
-  const { preview, simulation } = computeBattlePlan(node.type, playerHand, enemyHand, playerHp, maxHp);
+  const { preview, simulation } = computeBattlePlan(node.type, playerHand, enemyHand, playerHp, maxHp, enemyCount);
 
   return {
     nodeId: node.id,
     kind: node.type,
     label: node.displayLabel ?? BATTLE_LABEL[node.type] ?? node.type.toUpperCase(),
+    enemyCount,
     rewards: BATTLE_REWARDS[node.type] ?? {},
     difficulty: node.type === "boss" ? 5 : node.type === "elite" ? 4 : node.type === "dungeon" ? 3 : 2,
     playerLibrary,
