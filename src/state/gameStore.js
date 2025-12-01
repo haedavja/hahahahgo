@@ -969,11 +969,41 @@ export const useGameStore = create((set, get) => ({
       const newTraits = [...(state.playerTraits || [])];
       if (applied.trait) newTraits.push(applied.trait);
 
+      // 자아 체크: 특정 개성 조합 총합 5개 이상이면 자아 1회 생성(소모 없음)
+      const traitCounts = newTraits.reduce((acc, t) => {
+        acc[t] = (acc[t] || 0) + 1;
+        return acc;
+      }, {});
+      const egoRules = [
+        { ego: '헌신', parts: ['열정적', '용맹함'] },
+        { ego: '지략', parts: ['냉철함', '용맹함'] },
+        { ego: '추격', parts: ['철저함', '용맹함'] },
+        { ego: '역동', parts: ['활력적', '용맹함'] },
+        { ego: '결의', parts: ['굳건함', '냉철함'] },
+        { ego: '추진', parts: ['굳건함', '활력적'] },
+        { ego: '신념', parts: ['굳건함', '열정적'] },
+        { ego: '완성', parts: ['굳건함', '철저함'] },
+        { ego: '분석', parts: ['냉철함', '열정적'] },
+        { ego: '실행', parts: ['냉철함', '철저함'] },
+        { ego: '정열', parts: ['활력적', '열정적'] },
+        { ego: '지배', parts: ['활력적', '철저함'] },
+      ];
+      const ownedEgos = new Set(state.playerEgos || []);
+      const newEgos = [...ownedEgos];
+      egoRules.forEach(({ ego, parts }) => {
+        if (ownedEgos.has(ego)) return;
+        const total = (traitCounts[parts[0]] || 0) + (traitCounts[parts[1]] || 0);
+        if (total >= 5) {
+          newEgos.push(ego);
+        }
+      });
+
       return {
         ...state,
         ...applied,
         resources: { ...state.resources, memory: memory - AWAKEN_COST },
         playerTraits: newTraits,
+        playerEgos: newEgos,
         activeRest: null,
       };
     }),
