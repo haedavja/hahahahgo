@@ -593,87 +593,53 @@ function decideEnemyMode() {
   ]);
 }
 
-function combosUpTo3(arr) {
-  const out = []; const n = arr.length;
-  for (let i = 0; i < n; i++) {
-    out.push([arr[i]]);
-    for (let j = i + 1; j < n; j++) {
-      out.push([arr[i], arr[j]]);
-      for (let k = j + 1; k < n; k++) out.push([arr[i], arr[j], arr[k]]);
+function combosUpToN(arr, maxCards = 3) {
+  const out = [];
+  const n = arr.length;
+
+  function generate(start, current) {
+    if (current.length > 0) {
+      out.push([...current]);
+    }
+    if (current.length >= maxCards) return;
+
+    for (let i = start; i < n; i++) {
+      current.push(arr[i]);
+      generate(i + 1, current);
+      current.pop();
     }
   }
+
+  generate(0, []);
   return out;
 }
 
-function generateEnemyActions(enemy, mode, enemyEtherSlots = 0) {
+function generateEnemyActions(enemy, mode, enemyEtherSlots = 0, maxCards = 3, minCards = 1) {
   if (!enemy) return [];
-  const energyBudget = BASE_PLAYER_ENERGY + (enemyEtherSlots || 0);
-  const deck = (enemy.deck || [])
+
+  // Energy boost: give enemies extra energy based on count
+  const extraEnergy = Math.max(0, minCards - 1) * 2;
+  const energyBudget = BASE_PLAYER_ENERGY + (enemyEtherSlots || 0) + extraEnergy;
+
+  // Speed limit relaxation: allow more speed for multiple enemies
+  const effectiveMaxSpeed = MAX_SPEED + Math.max(0, minCards - 1) * 10;
+
+  let deck = (enemy.deck || [])
     .map(id => ENEMY_CARDS.find(c => c.id === id))
     .filter(Boolean);
   if (deck.length === 0) return [];
 
-  const half = Math.ceil(energyBudget / 2);
-  const candidates = combosUpTo3(deck).filter(cards => {
-    const sp = cards.reduce((s, c) => s + c.speedCost, 0);
-    const en = cards.reduce((s, c) => s + c.actionCost, 0);
-    return sp <= MAX_SPEED && en <= energyBudget;
-  });
-
-  function stat(list) {
-    const atk = list.filter(c => c.type === 'attack').reduce((a, c) => a + c.actionCost, 0);
-    const def = list.filter(c => c.type === 'defense').reduce((a, c) => a + c.actionCost, 0);
-    const dmg = list.filter(c => c.type === 'attack').reduce((a, c) => a + (c.damage || 0) * (c.hits || 1), 0);
-    const blk = list.filter(c => c.type === 'defense').reduce((a, c) => a + (c.block || 0), 0);
-    const sp = list.reduce((a, c) => a + c.speedCost, 0);
-    const en = list.reduce((a, c) => a + c.actionCost, 0);
-    return { atk, def, dmg, blk, sp, en };
+  // Ensure deck has enough cards to meet minCards requirement
+  // If deck is too small, duplicate cards until we have at least minCards * 2 (to give some variety)
+  if (deck.length < minCards) {
+    const originalDeck = [...deck];
+    while (deck.length < minCards * 2) {
+      deck = [...deck, ...originalDeck];
+    }
   }
 
-  function satisfies(m, list) {
-    const s = stat(list);
-    if (m?.key === 'aggro') return s.atk >= half;
-    if (m?.key === 'turtle') return s.def >= half;
-    if (m?.key === 'balanced') return s.atk === s.def;
-    return true;
-  }
-
-  function score(m, list) {
-    const s = stat(list);
-    let base = 0;
-    if (m?.key === 'aggro') base = s.atk * 100 + s.dmg * 10 - s.sp;
-    else if (m?.key === 'turtle') base = s.def * 100 + s.blk * 10 - s.sp;
-    else base = (s.dmg + s.blk) * 10 - s.sp;
-    return base;
-  }
-
-  const satisfied = candidates.filter(c => satisfies(mode, c));
-  if (satisfied.length > 0) {
-    satisfied.sort((a, b) => {
-      if (a.length !== b.length) return a.length - b.length;
-      const sa = score(mode, a), sb = score(mode, b);
-      if (sa !== sb) return sb - sa;
-      const saStat = stat(a), sbStat = stat(b);
-      if (saStat.sp !== sbStat.sp) return saStat.sp - sbStat.sp;
-      if (saStat.en !== sbStat.en) return saStat.en - sbStat.en;
-      const aKey = a.map(c => c.id).join(','), bKey = b.map(c => c.id).join(',');
-      return aKey < bKey ? -1 : aKey > bKey ? 1 : 0;
-    });
-    return satisfied[0];
-  }
-
-  if (candidates.length > 0) {
-    candidates.sort((a, b) => score(mode, b) - score(mode, a));
-    return candidates[0];
-  }
-  const single = deck
-    .filter(c => c.speedCost <= MAX_SPEED && c.actionCost <= energyBudget)
-    .sort((a, b) => a.speedCost - b.speedCost || a.actionCost - b.actionCost)[0];
-  return single ? [single] : [];
-}
-
-function shouldEnemyOverdriveWithTurn(mode, actions, etherPts, turnNumber = 1) {
-  const slots = etherSlots(etherPts);
+  // Generate all valid combinations
+  const allCombos = combosUpToN(deck, maxCards);
   if (slots <= 0) return false;
   if (turnNumber <= 1) return false;
   // 몬스터 폭주는 패턴 확정 전까지 금지
@@ -1114,6 +1080,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const orderedRelicList = orderedRelics && orderedRelics.length ? orderedRelics : relics;
   const safeInitialPlayer = initialPlayer || {};
   const safeInitialEnemy = initialEnemy || {};
+  const enemyCount = safeInitialEnemy.enemyCount ?? 1; // Extract enemy count for multi-enemy battles
   const passiveRelicStats = calculatePassiveEffects(orderedRelicList);
   // 전투 시작 에너지는 payload에서 계산된 값을 신뢰하고, 없을 때만 기본값 사용
   const baseEnergy = safeInitialPlayer.energy ?? BASE_PLAYER_ENERGY;
@@ -1846,7 +1813,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         addLog(`🤖 적 성향 힌트: ${mode.name}`);
       }
       const slots = etherSlots(enemy?.etherPts || 0);
-      const actions = generateEnemyActions(enemy, mode, slots);
+      const actions = generateEnemyActions(enemy, mode, slots, enemyCount, enemyCount);
       return { mode, actions };
     });
   }, [phase, enemy, enemyPlan.mode, nextTurnEffects]);
@@ -1865,7 +1832,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     if (!enemyPlan?.mode) return;
     if (enemyPlan.actions && enemyPlan.actions.length > 0) return;
     const slots = etherSlots(enemy?.etherPts || 0);
-    const actions = generateEnemyActions(enemy, enemyPlan.mode, slots);
+    const actions = generateEnemyActions(enemy, enemyPlan.mode, slots, enemyCount, enemyCount);
     setEnemyPlan(prev => ({ ...prev, actions }));
   }, [phase, enemyPlan?.mode, enemyPlan?.actions?.length, enemy]);
 
@@ -2189,7 +2156,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     const actions =
       enemyPlan.actions && enemyPlan.actions.length > 0
         ? enemyPlan.actions
-        : generateEnemyActions(enemy, enemyPlan.mode, etherSlots(enemy.etherPts));
+        : generateEnemyActions(enemy, enemyPlan.mode, etherSlots(enemy.etherPts), enemyCount, enemyCount);
     setEnemyPlan(prev => ({ ...prev, actions }));
 
     const pCombo = detectPokerCombo(selected);

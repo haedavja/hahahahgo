@@ -52,6 +52,7 @@ const buildBattlePayload = (battle, etherPts, relics, maxHp, playerInsight, play
       hp: initialEnemy?.hp ? Math.round(initialEnemy.hp) : 30,
       etherPts: enemyEtherCapacity,
       etherCapacity: enemyEtherCapacity,
+      enemyCount: enemyCount,
     },
   };
 };
