@@ -197,6 +197,9 @@ const createBattlePayload = (node, characterBuild, playerHp = null, maxHp = null
   };
 };
 
+const MEMORY_GAIN_PER_NODE = 10;
+const AWAKEN_COST = 100;
+
 const travelToNode = (state, nodeId) => {
   const nodes = cloneNodes(state.map.nodes);
   const target = nodes.find((n) => n.id === nodeId);
@@ -215,6 +218,7 @@ const travelToNode = (state, nodeId) => {
     map: { ...state.map, nodes, currentNodeId: target.id },
     event: createEventPayload(target, state.mapRisk),
     battle: createBattlePayload(target, state.characterBuild, state.playerHp, state.maxHp),
+    target,
   };
 };
 
@@ -252,12 +256,17 @@ export const useGameStore = create((set, get) => ({
         console.error('Error applying node move ether:', error);
       }
 
+      // 맵 이동 시 기억 획득
+      const currentMemory = updatedResources.memory ?? 0;
+      updatedResources = { ...updatedResources, memory: currentMemory + MEMORY_GAIN_PER_NODE };
+
       return {
         ...state,
         map: result.map,
         activeEvent: result.event,
         activeBattle: result.battle ?? null,
         activeDungeon: null,
+        activeRest: result.target?.type === "rest" ? { nodeId: result.target.id } : null,
         resources: updatedResources,
       };
     }),
@@ -922,6 +931,56 @@ export const useGameStore = create((set, get) => ({
         playerAgility: passiveEffects.agility,
       };
     }),
+
+  // 휴식 닫기
+  closeRest: () =>
+    set((state) => ({
+      ...state,
+      activeRest: null,
+    })),
+
+  // 휴식에서 각성
+  awakenAtRest: (choiceId) =>
+    set((state) => {
+      if (!state.activeRest) return state;
+      const memory = state.resources.memory ?? 0;
+      if (memory < AWAKEN_COST) return state;
+
+      const choices = {
+        brave: (s) => ({ playerStrength: (s.playerStrength || 0) + 1 }),
+        sturdy: (s) => {
+          const newMax = (s.maxHp || 0) + 10;
+          const newHp = Math.min(newMax, (s.playerHp || 0) + 10);
+          return { maxHp: newMax, playerHp: newHp };
+        },
+        cold: (s) => ({ playerInsight: (s.playerInsight || 0) + 1 }),
+        thorough: (s) => ({ extraSubSpecialSlots: (s.extraSubSpecialSlots || 0) + 1 }),
+        passionate: (s) => ({ playerMaxSpeedBonus: (s.playerMaxSpeedBonus || 0) + 5 }),
+        lively: (s) => ({ playerEnergyBonus: (s.playerEnergyBonus || 0) + 1 }),
+        random: (s) => {
+          const keys = ['brave', 'sturdy', 'cold', 'thorough', 'passionate', 'lively'];
+          const pick = keys[Math.floor(Math.random() * keys.length)];
+          return choices[pick](s);
+        }
+      };
+
+      const applyFn = choiceId && choices[choiceId] ? choices[choiceId] : choices.random;
+      const applied = applyFn(state);
+
+      return {
+        ...state,
+        ...applied,
+        resources: { ...state.resources, memory: memory - AWAKEN_COST },
+        activeRest: null,
+      };
+    }),
+
+  // 개발용: 강제로 휴식 모달 열기
+  devOpenRest: () =>
+    set((state) => ({
+      ...state,
+      activeRest: { nodeId: "DEV-REST" },
+    })),
 }));
 
 export const selectors = {

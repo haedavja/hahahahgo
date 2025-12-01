@@ -143,6 +143,7 @@ export function MapDemo() {
   const activeDungeon = useGameStore((state) => state.activeDungeon);
   const lastBattleResult = useGameStore((state) => state.lastBattleResult);
   const relics = useGameStore((state) => state.relics);
+  const activeRest = useGameStore((state) => state.activeRest);
   const mergeRelicOrder = useCallback((relicList = [], saved = []) => {
     const savedSet = new Set(saved);
     const merged = [];
@@ -183,6 +184,8 @@ export function MapDemo() {
   const bypassDungeon = useGameStore((state) => state.bypassDungeon);
   const playerHp = useGameStore((state) => state.playerHp);
   const maxHp = useGameStore((state) => state.maxHp);
+  const awakenAtRest = useGameStore((state) => state.awakenAtRest);
+  const closeRest = useGameStore((state) => state.closeRest);
 
   // Alt+D 핫키로 DevTools 토글
   useEffect(() => {
@@ -199,6 +202,8 @@ export function MapDemo() {
   const nodes = map?.nodes ?? [];
   const mapViewRef = useRef(null);
   const riskDisplay = Number.isFinite(mapRisk) ? mapRisk.toFixed(1) : "-";
+  const memoryValue = resources.memory ?? 0;
+  const canAwaken = memoryValue >= 100;
   const aetherValue = resources.etherPts ?? 0;
   const aetherSlots = calculateEtherSlots(aetherValue); // 인플레이션 적용
   const aetherCurrentPts = getCurrentSlotPts(aetherValue); // 현재 슬롯 내의 pt (슬롯마다 0으로 리셋)
@@ -499,6 +504,9 @@ export function MapDemo() {
         <div style={{ color: "#9da9d6", fontSize: "13px" }}>정보: {resources.intel}</div>
         <div style={{ color: "#ff6b6b", fontSize: "13px" }}>전리품: {resources.loot}</div>
         <div style={{ color: "#a0e9ff", fontSize: "13px" }}>원자재: {resources.material}</div>
+        <div style={{ color: canAwaken ? "#fb7185" : "#cbd5e1", fontSize: "13px", fontWeight: 700 }}>
+          기억: {memoryValue}{canAwaken ? " · 각성 가능" : ""}
+        </div>
       </div>
 
       <div className="map-version-tag">{PATCH_VERSION_TAG}</div>
@@ -564,6 +572,50 @@ export function MapDemo() {
                 </button>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {activeRest && (
+        <div className="event-modal-overlay" onClick={closeRest}>
+          <div className="event-modal" onClick={(e) => e.stopPropagation()}>
+            <header>
+              <h3>휴식 · 각성</h3>
+              <small>기억 100을 소모해 개성을 각성합니다.</small>
+            </header>
+            <p>기억 보유량: {memoryValue} / 100</p>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "10px", marginTop: "12px" }}>
+              <div className="choice-card">
+                <strong>전사</strong>
+                <div style={{ display: "flex", gap: "8px", marginTop: "8px" }}>
+                  <button className="btn" disabled={!canAwaken} onClick={() => awakenAtRest("brave")}>용맹(+힘1)</button>
+                  <button className="btn" disabled={!canAwaken} onClick={() => awakenAtRest("sturdy")}>굳건(+체력10)</button>
+                </div>
+              </div>
+              <div className="choice-card">
+                <strong>현자</strong>
+                <div style={{ display: "flex", gap: "8px", marginTop: "8px" }}>
+                  <button className="btn" disabled={!canAwaken} onClick={() => awakenAtRest("cold")}>냉철(+통찰1)</button>
+                  <button className="btn" disabled={!canAwaken} onClick={() => awakenAtRest("thorough")}>철저(+보조슬롯1)</button>
+                </div>
+              </div>
+              <div className="choice-card">
+                <strong>영웅</strong>
+                <div style={{ display: "flex", gap: "8px", marginTop: "8px" }}>
+                  <button className="btn" disabled={!canAwaken} onClick={() => awakenAtRest("passionate")}>열정(+속도5)</button>
+                  <button className="btn" disabled={!canAwaken} onClick={() => awakenAtRest("lively")}>활력(+행동력1)</button>
+                </div>
+              </div>
+              <div className="choice-card">
+                <strong>신앙</strong>
+                <div style={{ marginTop: "8px" }}>
+                  <button className="btn" disabled={!canAwaken} onClick={() => awakenAtRest("random")}>랜덤 개성</button>
+                </div>
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: "10px", marginTop: "12px" }}>
+              <button className="btn" onClick={closeRest}>닫기</button>
+            </div>
           </div>
         </div>
       )}

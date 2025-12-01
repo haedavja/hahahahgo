@@ -189,10 +189,10 @@ function ResourcesTab({ resources, setResources }) {
   };
 
   const presets = {
-    '풍족': { gold: 999, intel: 10, loot: 10, material: 10, aether: 50 },
-    '초반': { gold: 50, intel: 2, loot: 1, material: 1, aether: 0 },
-    '중반': { gold: 200, intel: 5, loot: 5, material: 3, aether: 10 },
-    '후반': { gold: 500, intel: 8, loot: 8, material: 6, aether: 30 },
+    '풍족': { gold: 999, intel: 10, loot: 10, material: 10, aether: 50, memory: 200 },
+    '초반': { gold: 50, intel: 2, loot: 1, material: 1, aether: 0, memory: 0 },
+    '중반': { gold: 200, intel: 5, loot: 5, material: 3, aether: 10, memory: 50 },
+    '후반': { gold: 500, intel: 8, loot: 8, material: 6, aether: 30, memory: 120 },
   };
 
   return (

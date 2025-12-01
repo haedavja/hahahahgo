@@ -23,6 +23,9 @@ export function CharacterSheet({ onClose }) {
   const maxHp = useGameStore((state) => state.maxHp);
   const playerStrength = useGameStore((state) => state.playerStrength);
   const playerAgility = useGameStore((state) => state.playerAgility);
+  const playerEnergyBonus = useGameStore((state) => state.playerEnergyBonus || 0);
+  const playerMaxSpeedBonus = useGameStore((state) => state.playerMaxSpeedBonus || 0);
+  const extraSubSpecialSlots = useGameStore((state) => state.extraSubSpecialSlots || 0);
   const playerInsight = useGameStore((state) => state.playerInsight || 0);
   const relics = useGameStore((state) => state.relics);
 
@@ -33,16 +36,16 @@ export function CharacterSheet({ onClose }) {
 
   // 현재 스탯
   const currentHp = playerHp;
-  const baseEnergy = 6;
+  const baseEnergy = 6 + playerEnergyBonus;
   const currentEnergy = baseEnergy;
   const maxEnergy = baseEnergy + passiveEffects.maxEnergy;
-  const speed = 30;
+  const speed = 30 + playerMaxSpeedBonus;
   const power = playerStrength || 0;
   const agility = playerAgility || 0;
 
   // 슬롯 제한 (유물 효과 반영)
   const maxMainSlots = 3 + passiveEffects.mainSpecialSlots;
-  const maxSubSlots = 5 + passiveEffects.subSpecialSlots;
+  const maxSubSlots = 5 + passiveEffects.subSpecialSlots + extraSubSpecialSlots;
 
   const [specialMode, setSpecialMode] = useState("main");
   // cardId로 선택 상태 관리 - 초기화는 한 번만

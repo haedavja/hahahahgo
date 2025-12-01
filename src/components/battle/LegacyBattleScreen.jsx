@@ -4,7 +4,7 @@ import { LegacyBattleApp } from "./LegacyBattleApp";
 import { DevTools } from "../dev/DevTools";
 import { calculatePassiveEffects, applyCombatStartEffects } from "../../lib/relicEffects";
 
-const buildBattlePayload = (battle, etherPts, relics, maxHp, playerInsight) => {
+const buildBattlePayload = (battle, etherPts, relics, maxHp, playerInsight, playerEnergyBonus = 0, playerStrength = 0, playerMaxSpeedBonus = 0) => {
   if (!battle) return null;
   const initialPlayer = battle.simulation?.initialState?.player;
   const initialEnemy = battle.simulation?.initialState?.enemy;
@@ -12,8 +12,9 @@ const buildBattlePayload = (battle, etherPts, relics, maxHp, playerInsight) => {
 
   // 유물 패시브 효과 계산
   const passiveEffects = calculatePassiveEffects(relics);
-  const baseEnergy = 6;
-  const maxEnergy = baseEnergy + passiveEffects.maxEnergy;
+  // 행동력: 기본 6 + 활력 보너스 + 유물 패시브
+  const baseEnergy = 6 + (playerEnergyBonus || 0) + (passiveEffects.maxEnergy || 0);
+  const maxEnergy = baseEnergy;
 
   // 전투 시작 효과 계산
   const combatStartEffects = applyCombatStartEffects(relics, {});
@@ -29,16 +30,20 @@ const buildBattlePayload = (battle, etherPts, relics, maxHp, playerInsight) => {
   );
 
   // 피의 족쇄 등의 힘 보너스 계산
-  const startingStrength = (passiveEffects.strength || 0) + (combatStartEffects.strength || 0);
+  // 힘: 스토어 값 + 전투 시작 보너스 (패시브는 스토어에 반영된다고 가정)
+  const startingStrength = (playerStrength || 0) + (combatStartEffects.strength || 0);
+  const startingMaxSpeed = 30 + (playerMaxSpeedBonus || 0);
 
   return {
     player: {
       hp: startingHp,
       maxHp: maxHp, // gameStore의 maxHp 사용 (유물 효과가 이미 적용됨)
       energy: maxEnergy + combatStartEffects.energy, // 시작 에너지 = maxEnergy + 전투 시작 보너스
+      maxEnergy: maxEnergy + combatStartEffects.energy,
       block: combatStartEffects.block, // 시작 방어력
       strength: startingStrength, // 시작 힘
       insight: playerInsight ?? 0, // 통찰
+      maxSpeed: startingMaxSpeed,
       etherPts,
     },
     enemy: {
@@ -59,6 +64,9 @@ export function LegacyBattleScreen() {
   const relics = useGameStore((state) => state.relics);
   const maxHp = useGameStore((state) => state.maxHp);
   const playerInsight = useGameStore((state) => state.playerInsight ?? 0);
+  const playerEnergyBonus = useGameStore((state) => state.playerEnergyBonus ?? 0);
+  const playerStrength = useGameStore((state) => state.playerStrength ?? 0);
+  const playerMaxSpeedBonus = useGameStore((state) => state.playerMaxSpeedBonus ?? 0);
 
   // 전투 시작 시의 통찰 값을 고정해 payload를 재생성하지 않도록 저장
   const [battleInsight, setBattleInsight] = useState(playerInsight || 0);
@@ -69,8 +77,17 @@ export function LegacyBattleScreen() {
   }, [activeBattle]);
 
   const payload = useMemo(() => {
-    return buildBattlePayload(activeBattle, playerEther, relics, maxHp, battleInsight);
-  }, [activeBattle, playerEther, relics, maxHp, battleInsight]);
+    return buildBattlePayload(
+      activeBattle,
+      playerEther,
+      relics,
+      maxHp,
+      battleInsight,
+      playerEnergyBonus,
+      playerStrength,
+      playerMaxSpeedBonus
+    );
+  }, [activeBattle, playerEther, relics, maxHp, battleInsight, playerEnergyBonus, playerStrength, playerMaxSpeedBonus]);
   const frameKey = activeBattle ? `${activeBattle.nodeId}-${activeBattle.kind}` : "idle";
 
   const [devToolsOpen, setDevToolsOpen] = useState(false);

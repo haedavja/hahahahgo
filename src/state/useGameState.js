@@ -142,14 +142,18 @@ export const createInitialState = () => {
   return {
     map: generateMap(),
     mapRisk: Math.floor(Math.random() * 61) + 20,
-    resources: { gold: 40, intel: 2, loot: 1, material: 1, etherPts: 0 },
+    resources: { gold: 40, intel: 2, loot: 1, material: 1, etherPts: 0, memory: 0 },
     playerHp: 100,
     maxHp: 100, // 유물 효과는 gameStore의 addRelic/setRelics에서 적용됨
     playerStrength: 0,
     playerAgility: 0, // 민첩성 (카드 속도 감소)
+    playerEnergyBonus: 0, // 활력 각성 등으로 인한 행동력 보너스
+    playerMaxSpeedBonus: 0, // 열정 각성 등으로 인한 최대 속도 보너스
+    extraSubSpecialSlots: 0, // 철저 각성 등으로 인한 보조특기 슬롯 보너스
     playerInsight: 0, // 통찰 (이벤트 선택지, 적 타임라인 정보)
     relics: initialRelics,
     activeEvent: null,
+    activeRest: null,
     activeDungeon: null,
     activeBattle: null,
     lastBattleResult: null,
