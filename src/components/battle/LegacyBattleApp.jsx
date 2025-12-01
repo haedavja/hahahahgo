@@ -639,6 +639,8 @@ function generateEnemyActions(enemy, mode, enemyEtherSlots = 0, maxCards = 3, mi
   }
 
   // Generate all valid combinations
+  // Generate all valid combinations
+  const allCombos = combosUpToN(deck, maxCards);
   const candidates = allCombos.filter(cards => {
     const sp = cards.reduce((s, c) => s + c.speedCost, 0);
     const en = cards.reduce((s, c) => s + c.actionCost, 0);
