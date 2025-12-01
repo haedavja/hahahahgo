@@ -199,7 +199,8 @@ const createBattlePayload = (node, characterBuild, playerHp = null, maxHp = null
     : drawHand(playerDrawPile, 3);
 
   // 적 손패 크기를 개체 수에 비례해 확장 (기본 3장 * 개체 수, 드로우 가능한 한도 내)
-  const enemyHandSize = Math.min(enemyDrawPile.length, 3 * enemyCount);
+  // 적 손패를 개체 수에 비례해 확장 (최소 개체 수만큼은 항상 등장하도록 보장)
+  const enemyHandSize = Math.max(enemyCount, Math.min(enemyDrawPile.length, 3 * enemyCount));
   const enemyHand = drawHand(enemyDrawPile, enemyHandSize);
   const { preview, simulation } = computeBattlePlan(node.type, playerHand, enemyHand, playerHp, maxHp, enemyCount);
 
