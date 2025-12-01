@@ -1115,8 +1115,11 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const safeInitialPlayer = initialPlayer || {};
   const safeInitialEnemy = initialEnemy || {};
   const passiveRelicStats = calculatePassiveEffects(orderedRelicList);
-  const baseEnergy = (safeInitialPlayer.energy ?? BASE_PLAYER_ENERGY) + passiveRelicStats.maxEnergy;
-  const effectiveAgility = (playerAgility || 0) + (passiveRelicStats.agility || 0);
+  // 전투 시작 에너지는 payload에서 계산된 값을 신뢰하고, 없을 때만 기본값 사용
+  const baseEnergy = safeInitialPlayer.energy ?? BASE_PLAYER_ENERGY;
+  const baseMaxEnergy = safeInitialPlayer.maxEnergy ?? baseEnergy;
+  // 민첩도 payload에 값이 있으면 우선 사용하고, 없으면 스토어 값을 사용
+  const effectiveAgility = safeInitialPlayer.agility ?? playerAgility ?? 0;
   const effectiveCardDrawBonus = passiveRelicStats.cardDrawBonus || 0;
   const startingEther = typeof safeInitialPlayer.etherPts === 'number' ? safeInitialPlayer.etherPts : playerEther;
   const startingBlock = safeInitialPlayer.block ?? 0; // 유물 효과로 인한 시작 방어력
@@ -1127,7 +1130,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     hp: safeInitialPlayer.hp ?? 30,
     maxHp: safeInitialPlayer.maxHp ?? safeInitialPlayer.hp ?? 30,
     energy: baseEnergy,
-    maxEnergy: baseEnergy,
+    maxEnergy: baseMaxEnergy,
     vulnMult: 1,
     vulnTurns: 0,
     block: startingBlock,
@@ -1565,8 +1568,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     const rawHand = hasCharacterBuild
       ? drawCharacterBuildHand(currentBuild, {}, [], effectiveCardDrawBonus, escapeBanRef.current)
       : CARDS.slice(0, 10); // 8장 → 10장
-    const initialHand = applyStrengthToHand(rawHand, startingStrength);
-    setHand(initialHand);
+    setHand(rawHand);
     setCanRedraw(true);
   }, [safeInitialPlayer, playerEther, addLog, startingStrength, effectiveCardDrawBonus]);
 
@@ -1718,8 +1720,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       const rawHand = hasCharacterBuild
         ? drawCharacterBuildHand(currentBuild, nextTurnEffects, [], effectiveCardDrawBonus)
         : CARDS.slice(0, 10); // 8장 → 10장
-      const initialHand = applyStrengthToHand(rawHand, startingStrength);
-      setHand(initialHand);
+      setHand(rawHand);
       setSelected([]);
       setCanRedraw(true);
       const handCount = initialHand.length;
@@ -1832,7 +1833,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       const rawHand = hasCharacterBuild
         ? drawCharacterBuildHand(currentBuild, nextTurnEffects, prevHand, effectiveCardDrawBonus, escapeBanRef.current)
         : CARDS.slice(0, 10); // 8장 → 10장
-      return applyStrengthToHand(rawHand, player.strength || 0);
+      return rawHand;
     });
     setSelected([]);
 
@@ -2125,8 +2126,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     const rawHand = hasCharacterBuild
       ? drawCharacterBuildHand(currentBuild, nextTurnEffects, hand, effectiveCardDrawBonus, escapeBanRef.current)
       : CARDS.slice(0, 10); // 8장 → 10장
-    const newHand = applyStrengthToHand(rawHand, player.strength || 0);
-    setHand(newHand);
+    setHand(rawHand);
     setSelected([]);
     setCanRedraw(false);
     addLog('🔄 손패 리드로우 사용');
@@ -3467,87 +3467,92 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                     <span role="img" aria-label="overdrive">✨</span> {enemyOverdriveLabel}
                   </div>
                 )}
-                <div className="timeline-lane player-lane">
-                  {Array.from({ length: Math.max(player.maxSpeed, enemy.maxSpeed) + 1 }).map((_, i) => (
-                    <div key={i} className="timeline-gridline" style={{ left: `${(i / Math.max(player.maxSpeed, enemy.maxSpeed)) * 100}%` }} />
-                  ))}
-                  {playerTimeline.map((a, idx) => {
-                    const Icon = a.card.icon || Sword;
-                    const sameCount = playerTimeline.filter((q, i) => i < idx && q.sp === a.sp).length;
-                    const offset = sameCount * 28;
-                    const strengthBonus = player.strength || 0;
-                    const num = a.card.type === 'attack'
-                      ? (a.card.damage + strengthBonus) * (a.card.hits || 1)
-                      : a.card.type === 'defense'
-                        ? (a.card.block || 0) + strengthBonus
-                        : 0;
-                    // 타임라인에서 현재 진행 중인 액션인지 확인
-                    const globalIndex = phase === 'resolve' && queue ? queue.findIndex(q => q === a) : -1;
-                    const isExecuting = executingCardIndex === globalIndex;
-                    const isUsed = usedCardIndices.includes(globalIndex) && globalIndex < qIndex;
-                    // 정규화: player의 속도를 비율로 변환하여 표시
-                    const normalizedPosition = (a.sp / player.maxSpeed) * 100;
-                    return (
-                      <div key={idx}
-                        className={`timeline-marker marker-player ${isExecuting ? 'timeline-active' : ''} ${isUsed ? 'timeline-used' : ''}`}
-                        style={{ left: `${normalizedPosition}%`, top: `${6 + offset}px` }}>
-                        <Icon size={14} className="text-white" />
-                        <span className="text-white text-xs font-bold">{num > 0 ? num : ''}</span>
+                {(() => {
+                  const playerMax = player.maxSpeed || DEFAULT_PLAYER_MAX_SPEED;
+                  const enemyMax = enemy.maxSpeed || DEFAULT_ENEMY_MAX_SPEED;
+                  const commonMax = Math.max(playerMax, enemyMax);
+                  return (
+                    <>
+                      <div className="timeline-lane player-lane">
+                        {Array.from({ length: commonMax + 1 }).map((_, i) => (
+                          <div key={`p-grid-${i}`} className="timeline-gridline" style={{ left: `${(i / commonMax) * 100}%` }} />
+                        ))}
+                        {playerTimeline.map((a, idx) => {
+                          const Icon = a.card.icon || Sword;
+                          const sameCount = playerTimeline.filter((q, i) => i < idx && q.sp === a.sp).length;
+                          const offset = sameCount * 28;
+                          const strengthBonus = player.strength || 0;
+                          const num = a.card.type === 'attack'
+                            ? (a.card.damage + strengthBonus) * (a.card.hits || 1)
+                            : a.card.type === 'defense'
+                              ? (a.card.block || 0) + strengthBonus
+                              : 0;
+                          const globalIndex = phase === 'resolve' && queue ? queue.findIndex(q => q === a) : -1;
+                          const isExecuting = executingCardIndex === globalIndex;
+                          const isUsed = usedCardIndices.includes(globalIndex) && globalIndex < qIndex;
+                          const normalizedPosition = (a.sp / commonMax) * 100;
+                          return (
+                            <div key={idx}
+                              className={`timeline-marker marker-player ${isExecuting ? 'timeline-active' : ''} ${isUsed ? 'timeline-used' : ''}`}
+                              style={{ left: `${normalizedPosition}%`, top: `${6 + offset}px` }}>
+                              <Icon size={14} className="text-white" />
+                              <span className="text-white text-xs font-bold">{num > 0 ? num : ''}</span>
+                            </div>
+                          );
+                        })}
                       </div>
-                    );
-                  })}
-                </div>
 
-                <div className="timeline-lane enemy-lane">
-                  {Array.from({ length: Math.max(player.maxSpeed, enemy.maxSpeed) + 1 }).map((_, i) => (
-                    <div key={i} className="timeline-gridline" style={{ left: `${(i / Math.max(player.maxSpeed, enemy.maxSpeed)) * 100}%` }} />
-                  ))}
-                  {enemyTimeline.map((a, idx) => {
-                    const Icon = a.card.icon || Shield;
-                    const sameCount = enemyTimeline.filter((q, i) => i < idx && q.sp === a.sp).length;
-                    const offset = sameCount * 28;
-                    const num = a.card.type === 'attack' ? (a.card.damage * (a.card.hits || 1)) : (a.card.block || 0);
-                    // 타임라인에서 현재 진행 중인 액션인지 확인
-                    const globalIndex = phase === 'resolve' && queue ? queue.findIndex(q => q === a) : -1;
-                    const isExecuting = executingCardIndex === globalIndex;
-                    const isUsed = usedCardIndices.includes(globalIndex) && globalIndex < qIndex;
-                    // 정규화: enemy의 속도를 비율로 변환하여 표시
-                    const normalizedPosition = (a.sp / enemy.maxSpeed) * 100;
-                    const levelForTooltip = phase === 'select' ? (insightReveal?.level || 0) : (effectiveInsight || 0);
-                    const canShowTooltip = levelForTooltip >= 3;
-                    const markerCls = [
-                      'timeline-marker',
-                      'marker-enemy',
-                      isExecuting ? 'timeline-active' : '',
-                      isUsed ? 'timeline-used' : '',
-                      canShowTooltip ? 'insight-lv3-glow' : ''
-                    ].join(' ');
-                    return (
-                      <div key={idx}
-                        className={markerCls}
-                        style={{ left: `${normalizedPosition}%`, top: `${6 + offset}px` }}
-                        onMouseEnter={(e) => {
-                          if (!canShowTooltip) return;
-                          setHoveredEnemyAction({
-                            action: a.card,
-                            idx,
-                            left: normalizedPosition,
-                            top: 6 + offset,
-                            pageX: e.clientX,
-                            pageY: e.clientY,
-                          });
-                        }}
-                        onMouseLeave={() => setHoveredEnemyAction(null)}
-                      >
-                        <div className="marker-content">
-                          <Icon size={14} className="text-white" />
-                          {canShowTooltip && <span className="insight-eye-badge">👁️</span>}
-                          <span className="text-white text-xs font-bold">{num > 0 ? num : ''}</span>
-                        </div>
+                      <div className="timeline-lane enemy-lane">
+                        {Array.from({ length: commonMax + 1 }).map((_, i) => (
+                          <div key={`e-grid-${i}`} className="timeline-gridline" style={{ left: `${(i / commonMax) * 100}%` }} />
+                        ))}
+                        {enemyTimeline.map((a, idx) => {
+                          const Icon = a.card.icon || Shield;
+                          const sameCount = enemyTimeline.filter((q, i) => i < idx && q.sp === a.sp).length;
+                          const offset = sameCount * 28;
+                          const num = a.card.type === 'attack' ? (a.card.damage * (a.card.hits || 1)) : (a.card.block || 0);
+                          const globalIndex = phase === 'resolve' && queue ? queue.findIndex(q => q === a) : -1;
+                          const isExecuting = executingCardIndex === globalIndex;
+                          const isUsed = usedCardIndices.includes(globalIndex) && globalIndex < qIndex;
+                          const normalizedPosition = (a.sp / commonMax) * 100;
+                          const levelForTooltip = phase === 'select' ? (insightReveal?.level || 0) : (effectiveInsight || 0);
+                          const canShowTooltip = levelForTooltip >= 3;
+                          const markerCls = [
+                            'timeline-marker',
+                            'marker-enemy',
+                            isExecuting ? 'timeline-active' : '',
+                            isUsed ? 'timeline-used' : '',
+                            canShowTooltip ? 'insight-lv3-glow' : ''
+                          ].join(' ');
+                          return (
+                            <div key={idx}
+                              className={markerCls}
+                              style={{ left: `${normalizedPosition}%`, top: `${6 + offset}px` }}
+                              onMouseEnter={(e) => {
+                                if (!canShowTooltip) return;
+                                setHoveredEnemyAction({
+                                  action: a.card,
+                                  idx,
+                                  left: normalizedPosition,
+                                  top: 6 + offset,
+                                  pageX: e.clientX,
+                                  pageY: e.clientY,
+                                });
+                              }}
+                              onMouseLeave={() => setHoveredEnemyAction(null)}
+                            >
+                              <div className="marker-content">
+                                <Icon size={14} className="text-white" />
+                                {canShowTooltip && <span className="insight-eye-badge">👁️</span>}
+                                <span className="text-white text-xs font-bold">{num > 0 ? num : ''}</span>
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
-                    );
-                  })}
-                </div>
+                    </>
+                  );
+                })()}
               </div>
             </div>
           </div>

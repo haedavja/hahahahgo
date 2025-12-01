@@ -30,6 +30,9 @@ export function DevTools({ isOpen, onClose }) {
     addRelic,
     removeRelic,
     setRelics,
+    devOpenRest,
+    awakenAtRest,
+    closeRest,
   } = useGameStore();
 
   if (!isOpen) return null;
@@ -123,7 +126,13 @@ export function DevTools({ isOpen, onClose }) {
         color: '#e2e8f0',
       }}>
         {activeTab === 'resources' && (
-          <ResourcesTab resources={resources} setResources={setResources} />
+          <ResourcesTab
+            resources={resources}
+            setResources={setResources}
+            devOpenRest={devOpenRest}
+            awakenAtRest={awakenAtRest}
+            closeRest={closeRest}
+          />
         )}
         {activeTab === 'map' && (
           <MapTab
@@ -181,7 +190,7 @@ export function DevTools({ isOpen, onClose }) {
 }
 
 // 자원 관리 탭
-function ResourcesTab({ resources, setResources }) {
+function ResourcesTab({ resources, setResources, devOpenRest, awakenAtRest, closeRest }) {
   const [inputs, setInputs] = useState(resources);
 
   const applyResources = () => {
@@ -293,6 +302,21 @@ function ResourcesTab({ resources, setResources }) {
               {name}
             </button>
           ))}
+        </div>
+      </div>
+
+      {/* 각성 강제 (DEV) */}
+      <div style={{ marginTop: '20px' }}>
+        <h4 style={{ color: '#cbd5e1', fontSize: '0.875rem', marginBottom: '6px' }}>각성 강제(기억 100 필요):</h4>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+          <button className="btn" onClick={() => { devOpenRest(); awakenAtRest('brave'); }}>용맹(+힘)</button>
+          <button className="btn" onClick={() => { devOpenRest(); awakenAtRest('sturdy'); }}>굳건(+체력)</button>
+          <button className="btn" onClick={() => { devOpenRest(); awakenAtRest('cold'); }}>냉철(+통찰)</button>
+          <button className="btn" onClick={() => { devOpenRest(); awakenAtRest('thorough'); }}>철저(+보조슬롯)</button>
+          <button className="btn" onClick={() => { devOpenRest(); awakenAtRest('passionate'); }}>열정(+속도)</button>
+          <button className="btn" onClick={() => { devOpenRest(); awakenAtRest('lively'); }}>활력(+행동력)</button>
+          <button className="btn" onClick={() => { devOpenRest(); awakenAtRest('random'); }}>랜덤</button>
+          <button className="btn" onClick={closeRest}>휴식 창 닫기</button>
         </div>
       </div>
     </div>
