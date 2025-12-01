@@ -185,7 +185,12 @@ const createBattlePayload = (node, characterBuild, playerHp = null, maxHp = null
     ? [...characterBuild.mainSpecials, ...characterBuild.subSpecials]
     : [...BATTLE_CARDS];
 
-  const enemyLibrary = [...resolveEnemyDeck(node.type)];
+  // 적 덱을 개체 수만큼 복제해 다수 몬스터의 패턴을 더 많이 노출
+  const baseEnemyDeck = resolveEnemyDeck(node.type);
+  const enemyLibrary = [];
+  for (let i = 0; i < enemyCount; i += 1) {
+    enemyLibrary.push(...baseEnemyDeck);
+  }
   const playerDrawPile = hasCharacterBuild ? [] : [...playerLibrary]; // 캐릭터 빌드 사용 시 드로우 파일 사용 안 함
   const enemyDrawPile = [...enemyLibrary];
 
