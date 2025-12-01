@@ -3,6 +3,15 @@ import { useGameStore } from "../../state/gameStore";
 import { CARDS, TRAITS } from "../battle/battleData";
 import { calculatePassiveEffects } from "../../lib/relicEffects";
 
+const TRAIT_EFFECTS = {
+  용맹함: { label: "힘", value: 1 },
+  굳건함: { label: "최대 체력", value: 10 },
+  냉철함: { label: "통찰", value: 1 },
+  철저함: { label: "보조 슬롯", value: 1 },
+  열정적: { label: "최대 속도", value: 5 },
+  활력적: { label: "행동력", value: 1 },
+};
+
 // 모든 카드를 사용 가능하도록 변경
 const availableCards = CARDS.map((card, index) => ({
   id: card.id,
@@ -28,6 +37,7 @@ export function CharacterSheet({ onClose }) {
   const extraSubSpecialSlots = useGameStore((state) => state.extraSubSpecialSlots || 0);
   const playerInsight = useGameStore((state) => state.playerInsight || 0);
   const playerTraits = useGameStore((state) => state.playerTraits ?? []);
+  const playerEgos = useGameStore((state) => state.playerEgos ?? []);
   const relics = useGameStore((state) => state.relics);
 
   // 유물 패시브 효과 계산
@@ -47,6 +57,20 @@ export function CharacterSheet({ onClose }) {
   // 슬롯 제한 (유물 효과 반영)
   const maxMainSlots = 3 + passiveEffects.mainSpecialSlots;
   const maxSubSlots = 5 + passiveEffects.subSpecialSlots + extraSubSpecialSlots;
+
+  const traitCounts = useMemo(() => {
+    return (playerTraits || []).reduce((acc, t) => {
+      acc[t] = (acc[t] || 0) + 1;
+      return acc;
+    }, {});
+  }, [playerTraits]);
+
+  const formatTraitEffect = (traitId, count) => {
+    const effect = TRAIT_EFFECTS[traitId];
+    if (!effect) return count > 1 ? `${traitId} (x${count})` : traitId;
+    const total = effect.value * count;
+    return `${traitId} ${count > 1 ? `(x${count})` : ""} (${effect.label} +${total})`;
+  };
 
   const [specialMode, setSpecialMode] = useState("main");
   // cardId로 선택 상태 관리 - 초기화는 한 번만
@@ -267,24 +291,40 @@ export function CharacterSheet({ onClose }) {
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px", fontSize: "14px" }}>
             <span style={{ opacity: 0.8 }}>획득한 개성</span>
           </div>
-        {playerTraits && playerTraits.length > 0 ? (
-          <ul style={{ margin: 0, paddingLeft: "18px", lineHeight: 1.4, color: "#fbbf24" }}>
-            {Object.entries(
-              playerTraits.reduce((acc, t) => {
-                acc[t] = (acc[t] || 0) + 1;
-                return acc;
-              }, {})
-            ).map(([traitId, count]) => (
-              <li key={traitId}>
-                {traitId}
-                {count > 1 ? ` (x${count})` : ""}
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <div style={{ color: "#9ca3af", fontSize: "0.9rem" }}>아직 각성한 개성이 없습니다.</div>
-        )}
-      </div>
+          {playerTraits && playerTraits.length > 0 ? (
+            <ul style={{ margin: 0, paddingLeft: "18px", lineHeight: 1.4, color: "#fbbf24" }}>
+              {Object.entries(traitCounts).map(([traitId, count]) => (
+                <li key={traitId}>{formatTraitEffect(traitId, count)}</li>
+              ))}
+            </ul>
+          ) : (
+            <div style={{ color: "#9ca3af", fontSize: "0.9rem" }}>아직 각성한 개성이 없습니다.</div>
+          )}
+        </div>
+
+        {/* 자아 목록 */}
+        <div
+          style={{
+            borderRadius: "12px",
+            padding: "12px 16px",
+            marginBottom: "16px",
+            background: "rgba(5, 8, 13, 0.92)",
+            border: "1px solid rgba(118, 134, 185, 0.4)",
+          }}
+        >
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px", fontSize: "14px" }}>
+            <span style={{ opacity: 0.8 }}>자아</span>
+          </div>
+          {playerEgos && playerEgos.length > 0 ? (
+            <ul style={{ margin: 0, paddingLeft: "18px", lineHeight: 1.4, color: "#fde68a" }}>
+              {playerEgos.map((ego) => (
+                <li key={ego}>{ego}</li>
+              ))}
+            </ul>
+          ) : (
+            <div style={{ color: "#9ca3af", fontSize: "0.9rem" }}>아직 자아가 없습니다.</div>
+          )}
+        </div>
 
         <div style={{ display: "flex", alignItems: "center", marginBottom: "12px", gap: "16px" }}>
           <div style={{ display: "flex", flex: 1 }}>
