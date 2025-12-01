@@ -1780,7 +1780,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
     // 특성 효과로 인한 에너지 보너스/페널티 적용
     const passiveRelicEffects = calculatePassiveEffects(orderedRelicList);
-    const baseEnergy = BASE_PLAYER_ENERGY + passiveRelicEffects.maxEnergy;
+    // baseMaxEnergy는 초기 payload에서 계산된 값 (활력 각성 포함)
+    // safeInitialPlayer.maxEnergy = 6 + playerEnergyBonus + passiveEffects.maxEnergy
+    const baseEnergy = baseMaxEnergy;
     const energyBonus = (nextTurnEffects.bonusEnergy || 0) + turnStartRelicEffects.energy;
     const energyPenalty = nextTurnEffects.energyPenalty || 0;
     const finalEnergy = Math.max(0, baseEnergy + energyBonus - energyPenalty);
@@ -1805,7 +1807,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         block: newBlock,
         def: newDef,
         energy: finalEnergy,
-        maxEnergy: baseEnergy,
+        maxEnergy: baseMaxEnergy,
         etherOverdriveActive: false,
         etherOverflow: 0,
         strength: p.strength || 0 // 힘 유지
@@ -2515,8 +2517,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     // 카드 사용 시 에테르 누적 (실제 적용은 턴 종료 시)
     if (a.actor === 'player') {
       // 희귀한 조약돌 효과: 카드당 획득 에테르 2배
-          const passiveRelicEffects = calculatePassiveEffects(orderedRelicList);
-          const etherPerCard = Math.floor(getCardEtherGain(a.card) * passiveRelicEffects.etherMultiplier);
+      const passiveRelicEffects = calculatePassiveEffects(orderedRelicList);
+      const etherPerCard = Math.floor(getCardEtherGain(a.card) * passiveRelicEffects.etherMultiplier);
 
       setTurnEtherAccumulated(prev => {
         console.log(`[에테르 누적] ${prev} + ${etherPerCard} = ${prev + etherPerCard} (카드: ${a.card.name})`);
