@@ -117,7 +117,7 @@ const friendlyPercent = (chance) => {
   return `${Math.round(chance * 100)}%`;
 };
 
-const PATCH_VERSION_TAG = "12-01-12:06"; // 다음 패치마다 여기를 최신 시간(월-일-시-분, KST)으로 갱신하세요.
+const PATCH_VERSION_TAG = "12-02-03:09"; // 다음 패치마다 여기를 최신 시간(월-일-시-분, KST)으로 갱신하세요.
 
 /* v11-25-19:33 갱신 내역
  * - 카드 스탯 폰트 크기 일원화 및 확대:
@@ -158,7 +158,7 @@ export function MapDemo() {
         const ids = JSON.parse(saved);
         if (Array.isArray(ids) && ids.length) return mergeRelicOrder(relics || [], ids);
       }
-    } catch {}
+    } catch { }
     return relics || [];
   });
   const dragRelicIndexRef = useRef(null);
@@ -172,7 +172,7 @@ export function MapDemo() {
   useEffect(() => {
     try {
       localStorage.setItem("relicOrder", JSON.stringify(orderedRelics));
-    } catch {}
+    } catch { }
   }, [orderedRelics]);
   const selectNode = useGameStore((state) => state.selectNode);
   const chooseEvent = useGameStore((state) => state.chooseEvent);
@@ -336,8 +336,8 @@ export function MapDemo() {
               const relic = RELICS[relicId];
               if (!relic) return null;
 
-                const isHovered = hoveredRelic === relicId;
-                const isActivated = relicActivated === relicId;
+              const isHovered = hoveredRelic === relicId;
+              const isActivated = relicActivated === relicId;
               const rarityText = {
                 [RELIC_RARITIES.COMMON]: '일반',
                 [RELIC_RARITIES.RARE]: '희귀',
@@ -358,7 +358,7 @@ export function MapDemo() {
                       const img = new Image();
                       img.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9YQn1fEAAAAASUVORK5CYII=';
                       e.dataTransfer.setDragImage(img, 0, 0);
-                    } catch {}
+                    } catch { }
                   }}
                   onDragOver={(e) => {
                     e.preventDefault();
@@ -445,7 +445,7 @@ export function MapDemo() {
 
       <div className="main-layout">
         <div className="map-container">
-          <div className="map-view" ref={mapViewRef} style={{marginLeft: '400px'}}>
+          <div className="map-view" ref={mapViewRef} style={{ marginLeft: '400px' }}>
             <section className="map" style={{ minHeight: mapHeight, width: MAP_WIDTH, margin: "0 auto", padding: "40px 0 60px" }}>
               <svg className="edge-layer" width={MAP_WIDTH} height={MAP_LAYERS * V_SPACING + 200}>
                 {edges.map(({ from, to }) => (
@@ -693,9 +693,9 @@ export function MapDemo() {
                   {lastBattleResult.log.slice(0, 6).map((entry, index) => (
                     <li key={`log-${index}`}>{formatBattleLogEntry(entry)}</li>
                   ))}
-               </ul>
-             </div>
-           ) : null}
+                </ul>
+              </div>
+            ) : null}
             <button type="button" className="close-btn" onClick={clearBattleResult}>
               확인
             </button>
