@@ -947,16 +947,16 @@ export const useGameStore = create((set, get) => ({
       if (memory < AWAKEN_COST) return state;
 
       const choices = {
-        brave: (s) => ({ playerStrength: (s.playerStrength || 0) + 1 }),
+        brave: (s) => ({ playerStrength: (s.playerStrength || 0) + 1, trait: '용맹함' }),
         sturdy: (s) => {
           const newMax = (s.maxHp || 0) + 10;
           const newHp = Math.min(newMax, (s.playerHp || 0) + 10);
-          return { maxHp: newMax, playerHp: newHp };
+          return { maxHp: newMax, playerHp: newHp, trait: '굳건함' };
         },
-        cold: (s) => ({ playerInsight: (s.playerInsight || 0) + 1 }),
-        thorough: (s) => ({ extraSubSpecialSlots: (s.extraSubSpecialSlots || 0) + 1 }),
-        passionate: (s) => ({ playerMaxSpeedBonus: (s.playerMaxSpeedBonus || 0) + 5 }),
-        lively: (s) => ({ playerEnergyBonus: (s.playerEnergyBonus || 0) + 1 }),
+        cold: (s) => ({ playerInsight: (s.playerInsight || 0) + 1, trait: '냉철함' }),
+        thorough: (s) => ({ extraSubSpecialSlots: (s.extraSubSpecialSlots || 0) + 1, trait: '철저함' }),
+        passionate: (s) => ({ playerMaxSpeedBonus: (s.playerMaxSpeedBonus || 0) + 5, trait: '열정적' }),
+        lively: (s) => ({ playerEnergyBonus: (s.playerEnergyBonus || 0) + 1, trait: '활력적' }),
         random: (s) => {
           const keys = ['brave', 'sturdy', 'cold', 'thorough', 'passionate', 'lively'];
           const pick = keys[Math.floor(Math.random() * keys.length)];
@@ -966,11 +966,14 @@ export const useGameStore = create((set, get) => ({
 
       const applyFn = choiceId && choices[choiceId] ? choices[choiceId] : choices.random;
       const applied = applyFn(state);
+      const newTraits = [...(state.playerTraits || [])];
+      if (applied.trait) newTraits.push(applied.trait);
 
       return {
         ...state,
         ...applied,
         resources: { ...state.resources, memory: memory - AWAKEN_COST },
+        playerTraits: newTraits,
         activeRest: null,
       };
     }),

@@ -151,6 +151,7 @@ export const createInitialState = () => {
     playerMaxSpeedBonus: 0, // 열정 각성 등으로 인한 최대 속도 보너스
     extraSubSpecialSlots: 0, // 철저 각성 등으로 인한 보조특기 슬롯 보너스
     playerInsight: 0, // 통찰 (이벤트 선택지, 적 타임라인 정보)
+    playerTraits: [], // 획득한 개성 목록
     relics: initialRelics,
     activeEvent: null,
     activeRest: null,
