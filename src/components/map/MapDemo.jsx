@@ -8,6 +8,7 @@ import { EtherBar } from "../battle/LegacyBattleApp";
 import { DevTools } from "../dev/DevTools";
 import { RELICS, RELIC_RARITIES } from "../../data/relics";
 import { CARDS } from "../battle/battleData";
+import { CARD_ETHER_BY_RARITY } from "../battle/utils/etherCalculations";
 import { applyNodeMoveEther } from "../../lib/relicEffects";
 
 // 유물 희귀도별 색상
@@ -761,6 +762,7 @@ export function MapDemo() {
 
 function RestUpgradePanel({ cardUpgrades, onUpgrade }) {
   const [selectedCard, setSelectedCard] = useState(null);
+  const [showModal, setShowModal] = useState(false);
   const cards = CARDS || [];
   const rarityOrder = ['common', 'rare', 'special', 'legendary'];
   const rarityLabel = {
@@ -768,6 +770,12 @@ function RestUpgradePanel({ cardUpgrades, onUpgrade }) {
     rare: '희귀',
     special: '특별',
     legendary: '전설',
+  };
+  const rarityBadge = {
+    common: null,
+    rare: { color: '#60a5fa', label: '희귀' },
+    special: { color: '#34d399', label: '특별' },
+    legendary: { color: '#fbbf24', label: '전설' },
   };
 
   const getNextRarity = (card) => {
@@ -792,18 +800,9 @@ function RestUpgradePanel({ cardUpgrades, onUpgrade }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
       <div style={{ fontWeight: 700 }}>카드 강화</div>
-      <select
-        value={selectedCard || ''}
-        onChange={(e) => setSelectedCard(e.target.value)}
-        style={{ padding: "8px", borderRadius: "6px", border: "1px solid #334155" }}
-      >
-        <option value="">카드 선택</option>
-        {cards.map((c) => (
-          <option key={c.id} value={c.id}>
-            {c.name}
-          </option>
-        ))}
-      </select>
+      <button className="btn" onClick={() => setShowModal(true)}>
+        카드 선택
+      </button>
       {selected && (
         <div style={{ fontSize: "13px", color: "#9ca3af" }}>
           현재 등급: {rarityLabel[currentRarity]} {nextRarity ? `→ 다음: ${rarityLabel[nextRarity]}` : '(최고 등급)'}
@@ -816,6 +815,59 @@ function RestUpgradePanel({ cardUpgrades, onUpgrade }) {
       >
         강화하기
       </button>
+
+      {showModal && (
+        <div className="event-modal-overlay" onClick={() => setShowModal(false)}>
+          <div className="event-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: "640px" }}>
+            <header>
+              <h3>강화할 카드 선택</h3>
+            </header>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "10px", maxHeight: "400px", overflowY: "auto" }}>
+              {cards.map((card) => {
+                const current = cardUpgrades[card.id] || card.rarity || 'common';
+                const badge = rarityBadge[current];
+                return (
+                  <button
+                    key={card.id}
+                    className="choice-card"
+                    style={{
+                      textAlign: "left",
+                      borderColor: selectedCard === card.id ? "#fbbf24" : "rgba(148,163,184,0.4)",
+                      boxShadow: selectedCard === card.id ? "0 0 10px rgba(251,191,36,0.6)" : "none"
+                    }}
+                    onClick={() => setSelectedCard(card.id)}
+                  >
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <strong>{card.name}</strong>
+                      {badge && (
+                        <span style={{
+                          fontSize: "11px",
+                          padding: "2px 6px",
+                          borderRadius: "6px",
+                          background: badge.color,
+                          color: "#0f172a",
+                          fontWeight: 800
+                        }}>
+                          {badge.label}
+                        </span>
+                      )}
+                    </div>
+                    <div style={{ fontSize: "12px", color: "#9ca3af", marginTop: "4px" }}>
+                      {card.description || ''}
+                    </div>
+                    <div style={{ fontSize: "12px", color: "#9ca3af", marginTop: "6px" }}>
+                      행동력 {card.actionCost} · 속도 {card.speedCost} · 에테르 {CARD_ETHER_BY_RARITY[current]}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+            <div style={{ marginTop: "12px", display: "flex", justifyContent: "flex-end", gap: "8px" }}>
+              <button className="btn" onClick={() => setShowModal(false)}>닫기</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
