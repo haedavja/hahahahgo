@@ -2276,9 +2276,11 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     if (qIndex >= queue.length) return;
     const a = queue[qIndex];
 
-    // 타임라인 progress 업데이트 (현재 카드의 위치를 actor의 maxSpeed 기준 비율로)
-    const currentMaxSpeed = a.actor === 'player' ? player.maxSpeed : enemy.maxSpeed;
-    const progressPercent = (a.sp / currentMaxSpeed) * 100;
+    // 타임라인 progress 업데이트 (공통 최대 속도 기준 비율로)
+    const playerMaxSpeed = player?.maxSpeed || DEFAULT_PLAYER_MAX_SPEED;
+    const enemyMaxSpeed = enemy?.maxSpeed || DEFAULT_ENEMY_MAX_SPEED;
+    const commonMaxSpeed = Math.max(playerMaxSpeed, enemyMaxSpeed);
+    const progressPercent = (a.sp / commonMaxSpeed) * 100;
 
     // 먼저 시곗바늘을 현재 카드 위치로 이동
     setTimelineProgress(progressPercent);
@@ -3401,11 +3403,13 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                   const playerMax = player.maxSpeed || DEFAULT_PLAYER_MAX_SPEED;
                   const enemyMax = enemy.maxSpeed || DEFAULT_ENEMY_MAX_SPEED;
                   const commonMax = Math.max(playerMax, enemyMax);
+                  const playerRatio = playerMax / commonMax;
+                  const enemyRatio = enemyMax / commonMax;
                   return (
                     <>
-                      <div className="timeline-lane player-lane">
-                        {Array.from({ length: commonMax + 1 }).map((_, i) => (
-                          <div key={`p-grid-${i}`} className="timeline-gridline" style={{ left: `${(i / commonMax) * 100}%` }} />
+                      <div className="timeline-lane player-lane" style={{ width: `${playerRatio * 100}%` }}>
+                        {Array.from({ length: playerMax + 1 }).map((_, i) => (
+                          <div key={`p-grid-${i}`} className="timeline-gridline" style={{ left: `${(i / playerMax) * 100}%` }} />
                         ))}
                         {playerTimeline.map((a, idx) => {
                           const Icon = a.card.icon || Sword;
@@ -3420,7 +3424,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                           const globalIndex = phase === 'resolve' && queue ? queue.findIndex(q => q === a) : -1;
                           const isExecuting = executingCardIndex === globalIndex;
                           const isUsed = usedCardIndices.includes(globalIndex) && globalIndex < qIndex;
-                          const normalizedPosition = (a.sp / commonMax) * 100;
+                          const normalizedPosition = (a.sp / playerMax) * 100;
                           return (
                             <div key={idx}
                               className={`timeline-marker marker-player ${isExecuting ? 'timeline-active' : ''} ${isUsed ? 'timeline-used' : ''}`}
@@ -3432,9 +3436,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                         })}
                       </div>
 
-                      <div className="timeline-lane enemy-lane">
-                        {Array.from({ length: commonMax + 1 }).map((_, i) => (
-                          <div key={`e-grid-${i}`} className="timeline-gridline" style={{ left: `${(i / commonMax) * 100}%` }} />
+                      <div className="timeline-lane enemy-lane" style={{ width: `${enemyRatio * 100}%` }}>
+                        {Array.from({ length: enemyMax + 1 }).map((_, i) => (
+                          <div key={`e-grid-${i}`} className="timeline-gridline" style={{ left: `${(i / enemyMax) * 100}%` }} />
                         ))}
                         {enemyTimeline.map((a, idx) => {
                           const Icon = a.card.icon || Shield;
@@ -3444,7 +3448,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                           const globalIndex = phase === 'resolve' && queue ? queue.findIndex(q => q === a) : -1;
                           const isExecuting = executingCardIndex === globalIndex;
                           const isUsed = usedCardIndices.includes(globalIndex) && globalIndex < qIndex;
-                          const normalizedPosition = (a.sp / commonMax) * 100;
+                          const normalizedPosition = (a.sp / enemyMax) * 100;
                           const levelForTooltip = phase === 'select' ? (insightReveal?.level || 0) : (effectiveInsight || 0);
                           const canShowTooltip = levelForTooltip >= 3;
                           const markerCls = [
