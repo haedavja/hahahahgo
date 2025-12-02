@@ -983,6 +983,24 @@ export const useGameStore = create((set, get) => ({
       };
     }),
 
+  // 카드 희귀도 업그레이드 (순서: common -> rare -> special -> legendary)
+  upgradeCardRarity: (cardId) =>
+    set((state) => {
+      if (!cardId) return state;
+      const order = ['common', 'rare', 'special', 'legendary'];
+      const current = state.cardUpgrades?.[cardId] || 'common';
+      const nextIdx = Math.min(order.length - 1, order.indexOf(current) + 1);
+      const next = order[nextIdx];
+      if (next === current) return state; // 이미 최고 등급
+      return {
+        ...state,
+        cardUpgrades: {
+          ...(state.cardUpgrades || {}),
+          [cardId]: next,
+        },
+      };
+    }),
+
   // 휴식에서 각성
   awakenAtRest: (choiceId) =>
     set((state) => {

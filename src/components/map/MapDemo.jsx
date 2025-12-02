@@ -187,6 +187,8 @@ export function MapDemo() {
   const awakenAtRest = useGameStore((state) => state.awakenAtRest);
   const closeRest = useGameStore((state) => state.closeRest);
   const healAtRest = useGameStore((state) => state.healAtRest);
+  const upgradeCardRarity = useGameStore((state) => state.upgradeCardRarity);
+  const cardUpgrades = useGameStore((state) => state.cardUpgrades || {});
 
   // Alt+D 핫키로 DevTools 토글
   useEffect(() => {
@@ -654,14 +656,7 @@ export function MapDemo() {
                   >
                     체력 회복 (+30% 최대체력)
                   </button>
-                  <button
-                    className="btn"
-                    disabled
-                    title="추후 구현 예정"
-                    style={{ opacity: 0.6, cursor: 'not-allowed' }}
-                  >
-                    카드 강화 (준비 중)
-                  </button>
+                  <RestUpgradePanel cardUpgrades={cardUpgrades} onUpgrade={upgradeCardRarity} />
                 </div>
               </div>
             </div>
@@ -759,6 +754,67 @@ export function MapDemo() {
 
       {/* 개발자 도구 오버레이 */}
       <DevTools isOpen={devToolsOpen} onClose={() => setDevToolsOpen(false)} />
+    </div>
+  );
+}
+
+function RestUpgradePanel({ cardUpgrades, onUpgrade }) {
+  const [selectedCard, setSelectedCard] = useState(null);
+  const cards = CARDS || [];
+  const rarityOrder = ['common', 'rare', 'special', 'legendary'];
+  const rarityLabel = {
+    common: '일반',
+    rare: '희귀',
+    special: '특별',
+    legendary: '전설',
+  };
+
+  const getNextRarity = (card) => {
+    const current = cardUpgrades[card.id] || card.rarity || 'common';
+    const idx = rarityOrder.indexOf(current);
+    if (idx === -1 || idx >= rarityOrder.length - 1) return null;
+    return rarityOrder[idx + 1];
+  };
+
+  const handleUpgrade = () => {
+    const card = cards.find((c) => c.id === selectedCard);
+    if (!card) return;
+    const next = getNextRarity(card);
+    if (!next) return;
+    onUpgrade(card.id);
+  };
+
+  const selected = cards.find((c) => c.id === selectedCard);
+  const currentRarity = selected ? (cardUpgrades[selected.id] || selected.rarity || 'common') : null;
+  const nextRarity = selected ? getNextRarity(selected) : null;
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+      <div style={{ fontWeight: 700 }}>카드 강화</div>
+      <select
+        value={selectedCard || ''}
+        onChange={(e) => setSelectedCard(e.target.value)}
+        style={{ padding: "8px", borderRadius: "6px", border: "1px solid #334155" }}
+      >
+        <option value="">카드 선택</option>
+        {cards.map((c) => (
+          <option key={c.id} value={c.id}>
+            {c.name}
+          </option>
+        ))}
+      </select>
+      {selected && (
+        <div style={{ fontSize: "13px", color: "#9ca3af" }}>
+          현재 등급: {rarityLabel[currentRarity]} {nextRarity ? `→ 다음: ${rarityLabel[nextRarity]}` : '(최고 등급)'}
+        </div>
+      )}
+      <button
+        className="btn"
+        onClick={handleUpgrade}
+        disabled={!selected || !nextRarity}
+      >
+        강화하기
+      </button>
     </div>
   );
 }

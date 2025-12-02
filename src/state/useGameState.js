@@ -153,6 +153,7 @@ export const createInitialState = () => {
     playerInsight: 0, // 통찰 (이벤트 선택지, 적 타임라인 정보)
     playerTraits: [], // 획득한 개성 목록
     playerEgos: [], // 획득한 자아 목록
+    cardUpgrades: {}, // 카드 업그레이드(카드 ID -> 희귀도)
     relics: initialRelics,
     activeEvent: null,
     activeRest: null,

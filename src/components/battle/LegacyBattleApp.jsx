@@ -1015,6 +1015,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const [currentDeflation, setCurrentDeflation] = useState(null); // 현재 디플레이션 정보 { multiplier, usageCount }
   const [playerTransferPulse, setPlayerTransferPulse] = useState(false); // 에테르 이동 연출 (플레이어)
   const [enemyTransferPulse, setEnemyTransferPulse] = useState(false); // 에테르 이동 연출 (적)
+  const cardUpgrades = useGameStore((state) => state.cardUpgrades || {}); // 카드 업그레이드(희귀도)
 
   // 새 유물 추가/제거 시 기존 순서를 유지하면서 병합
   // 진행 단계에서는 동기화/변경을 막아 일관성 유지
@@ -2358,7 +2359,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     if (a.actor === 'player') {
       // 희귀한 조약돌 효과: 카드당 획득 에테르 2배
       const passiveRelicEffects = calculatePassiveEffects(orderedRelicList);
-      const etherPerCard = Math.floor(getCardEtherGain(a.card) * passiveRelicEffects.etherMultiplier);
+      const upgradedRarity = cardUpgrades[a.card.id];
+      const cardForEther = upgradedRarity ? { ...a.card, rarity: upgradedRarity } : a.card;
+      const etherPerCard = Math.floor(getCardEtherGain(cardForEther) * passiveRelicEffects.etherMultiplier);
 
       setTurnEtherAccumulated(prev => {
         console.log(`[에테르 누적] ${prev} + ${etherPerCard} = ${prev + etherPerCard} (카드: ${a.card.name})`);
