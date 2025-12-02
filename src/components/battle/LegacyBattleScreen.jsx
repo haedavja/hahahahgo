@@ -21,7 +21,15 @@ const buildBattlePayload = (battle, etherPts, relics, maxHp, playerInsight, play
   if (battle.enemies && Array.isArray(battle.enemies)) {
     const mixedEnemies = battle.enemies.map(id => ENEMIES.find(e => e.id === id)).filter(Boolean);
     if (mixedEnemies.length > 0) {
-      enemyName = mixedEnemies.map(e => e.name).join(" & ");
+      // 몬스터 타입별 개수 집계
+      const enemyCounts = {};
+      mixedEnemies.forEach(e => {
+        enemyCounts[e.name] = (enemyCounts[e.name] || 0) + 1;
+      });
+      // "Goblin×3 Slime×4" 형식으로 표기
+      enemyName = Object.entries(enemyCounts)
+        .map(([name, count]) => count > 1 ? `${name}×${count}` : name)
+        .join(' ');
       enemyHp = mixedEnemies.reduce((sum, e) => sum + e.hp, 0);
       enemyDeck = mixedEnemies.flatMap(e => e.deck);
       enemyCount = mixedEnemies.length;
