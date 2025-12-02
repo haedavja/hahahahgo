@@ -3491,7 +3491,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         <div style={{ height: '220px' }} />
 
         {/* 플레이어/적 정보 + 중앙 정보 통합 레이아웃 */}
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '50px', gap: '120px', position: 'relative', marginTop: '40px' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'flex-end', marginBottom: '50px', gap: '120px', position: 'relative', marginTop: '40px', paddingRight: '40px' }}>
           {phase === 'resolve' && etherFinalValue !== null && enemyEtherFinalValue !== null && (
             <div style={{
               position: 'absolute',
@@ -3735,7 +3735,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
           </div>
 
           {/* 중앙: 단계 정보 */}
-          <div style={{ textAlign: 'center', flex: '1', paddingTop: '20px' }}>
+          <div style={{ textAlign: 'center', flex: '0 0 auto', paddingTop: '20px', transform: 'translateX(0px)', marginRight: '0' }}>
             <div style={{ fontSize: '36px', fontWeight: 'bold', color: '#f8fafc', textShadow: '0 2px 8px rgba(0,0,0,0.5)', marginBottom: '16px' }}>
               {phase === 'select' ? '선택 단계' : phase === 'respond' ? '대응 단계' : '진행 단계'}
             </div>
