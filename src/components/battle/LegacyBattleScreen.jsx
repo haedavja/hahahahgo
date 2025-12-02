@@ -16,6 +16,8 @@ const buildBattlePayload = (battle, etherPts, relics, maxHp, playerInsight, play
   let enemyHp = initialEnemy?.hp ? Math.round(initialEnemy.hp) : 30;
   let enemyDeck = initialEnemy?.deck || [];
 
+  let enemyComposition = [];
+
   if (battle.enemies && Array.isArray(battle.enemies)) {
     const mixedEnemies = battle.enemies.map(id => ENEMIES.find(e => e.id === id)).filter(Boolean);
     if (mixedEnemies.length > 0) {
@@ -23,9 +25,16 @@ const buildBattlePayload = (battle, etherPts, relics, maxHp, playerInsight, play
       enemyHp = mixedEnemies.reduce((sum, e) => sum + e.hp, 0);
       enemyDeck = mixedEnemies.flatMap(e => e.deck);
       enemyCount = mixedEnemies.length;
+      enemyComposition = mixedEnemies.map(e => ({ name: e.name, emoji: e.emoji || "👾" }));
     }
-  } else if (enemyCount > 1) {
-    enemyName = `${enemyName} x${enemyCount}`;
+  } else {
+    const baseEmoji = "👾";
+    if (enemyCount > 1) {
+      enemyName = `${enemyName} x${enemyCount}`;
+      enemyComposition = Array(enemyCount).fill({ name: battle.label ?? "Enemy", emoji: baseEmoji });
+    } else {
+      enemyComposition = [{ name: enemyName, emoji: baseEmoji }];
+    }
   }
 
   // 유물 패시브 효과 계산
@@ -68,6 +77,7 @@ const buildBattlePayload = (battle, etherPts, relics, maxHp, playerInsight, play
       name: enemyName,
       hp: enemyHp,
       deck: enemyDeck,
+      composition: enemyComposition,
       etherPts: enemyEtherCapacity,
       etherCapacity: enemyEtherCapacity,
       enemyCount: enemyCount,

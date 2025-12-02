@@ -136,7 +136,7 @@ export const ENEMY_CARDS = [
 ];
 
 export const ENEMIES = [
-  { id: "goblin", name: "Goblin", hp: 20, deck: ["e1", "e3", "e4"] },
-  { id: "slime", name: "Slime", hp: 15, deck: ["e1", "e3"] },
-  { id: "orc", name: "Orc", hp: 40, deck: ["e2", "e6", "e4"] },
+  { id: "goblin", name: "Goblin", hp: 20, deck: ["e1", "e3", "e4"], emoji: "👺" },
+  { id: "slime", name: "Slime", hp: 15, deck: ["e1", "e3"], emoji: "💧" },
+  { id: "orc", name: "Orc", hp: 40, deck: ["e2", "e6", "e4"], emoji: "👹" },
 ];

@@ -4039,7 +4039,27 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                         {enemy.name}
                       </div>
                     </div>
-                    <div className={`character-display ${soulShatter ? 'soul-shatter-target' : ''} ${enemyOverdriveFlash ? 'overdrive-burst' : ''}`} style={{ fontSize: '64px' }}>👹</div>
+                    <div style={{ display: 'flex', alignItems: 'center' }}>
+                      {enemy.composition && enemy.composition.length > 0 ? (
+                        enemy.composition.map((member, idx) => (
+                          <div
+                            key={idx}
+                            className={`character-display ${soulShatter ? 'soul-shatter-target' : ''} ${enemyOverdriveFlash ? 'overdrive-burst' : ''}`}
+                            style={{
+                              fontSize: '64px',
+                              marginLeft: idx > 0 ? '-20px' : '0',
+                              zIndex: enemy.composition.length - idx,
+                              filter: idx > 0 ? 'brightness(0.9)' : 'none'
+                            }}
+                            title={member.name}
+                          >
+                            {member.emoji}
+                          </div>
+                        ))
+                      ) : (
+                        <div className={`character-display ${soulShatter ? 'soul-shatter-target' : ''} ${enemyOverdriveFlash ? 'overdrive-burst' : ''}`} style={{ fontSize: '64px' }}>👹</div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
