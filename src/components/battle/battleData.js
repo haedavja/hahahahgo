@@ -140,3 +140,48 @@ export const ENEMIES = [
   { id: "slime", name: "Slime", hp: 15, deck: ["e1", "e3"], emoji: "💧" },
   { id: "orc", name: "Orc", hp: 40, deck: ["e2", "e6", "e4"], emoji: "👹" },
 ];
+
+// 몬스터 그룹 (여러 적 동시 등장)
+export const ENEMY_GROUPS = [
+  {
+    id: "slime_pack",
+    name: "슬라임 무리",
+    enemies: [
+      { id: "slime", name: "Slime", hp: 15, deck: ["e1", "e3"], emoji: "💧" },
+      { id: "slime", name: "Slime", hp: 15, deck: ["e1", "e3"], emoji: "💧" },
+      { id: "slime", name: "Slime", hp: 15, deck: ["e1", "e3"], emoji: "💧" },
+      { id: "slime", name: "Slime", hp: 15, deck: ["e1", "e3"], emoji: "💧" }
+    ]
+  },
+  {
+    id: "goblin_slime_mix",
+    name: "고블린과 슬라임",
+    enemies: [
+      { id: "goblin", name: "Goblin", hp: 20, deck: ["e1", "e3", "e4"], emoji: "👺" },
+      { id: "slime", name: "Slime", hp: 15, deck: ["e1", "e3"], emoji: "💧" },
+      { id: "slime", name: "Slime", hp: 15, deck: ["e1", "e3"], emoji: "💧" },
+      { id: "slime", name: "Slime", hp: 15, deck: ["e1", "e3"], emoji: "💧" },
+      { id: "slime", name: "Slime", hp: 15, deck: ["e1", "e3"], emoji: "💧" }
+    ]
+  },
+  {
+    id: "goblin_trio",
+    name: "고블린 3인조",
+    enemies: [
+      { id: "goblin", name: "Goblin", hp: 20, deck: ["e1", "e3", "e4"], emoji: "👺" },
+      { id: "goblin", name: "Goblin", hp: 20, deck: ["e1", "e3", "e4"], emoji: "👺" },
+      { id: "goblin", name: "Goblin", hp: 20, deck: ["e1", "e3", "e4"], emoji: "👺" }
+    ]
+  }
+];
+
+// 몬스터 그룹 헬퍼 함수
+export function getEnemyGroup(groupId) {
+  const group = ENEMY_GROUPS.find(g => g.id === groupId);
+  if (!group) return null;
+  return {
+    name: group.name,
+    enemies: group.enemies.map(e => e.id),
+    enemyCount: group.enemies.length
+  };
+}
