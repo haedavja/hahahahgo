@@ -970,6 +970,19 @@ export const useGameStore = create((set, get) => ({
       activeRest: null,
     })),
 
+  // 휴식에서 체력 회복
+  healAtRest: (healAmount = 0) =>
+    set((state) => {
+      const maxHp = state.maxHp ?? 0;
+      const current = state.playerHp ?? 0;
+      const heal = Math.max(0, Math.min(maxHp - current, healAmount));
+      if (heal <= 0) return state;
+      return {
+        ...state,
+        playerHp: current + heal,
+      };
+    }),
+
   // 휴식에서 각성
   awakenAtRest: (choiceId) =>
     set((state) => {

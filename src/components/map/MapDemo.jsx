@@ -186,6 +186,7 @@ export function MapDemo() {
   const maxHp = useGameStore((state) => state.maxHp);
   const awakenAtRest = useGameStore((state) => state.awakenAtRest);
   const closeRest = useGameStore((state) => state.closeRest);
+  const healAtRest = useGameStore((state) => state.healAtRest);
 
   // Alt+D 핫키로 DevTools 토글
   useEffect(() => {
@@ -609,9 +610,9 @@ export function MapDemo() {
           <div className="event-modal" onClick={(e) => e.stopPropagation()}>
             <header>
               <h3>휴식 · 각성</h3>
-              <small>기억 100을 소모해 개성을 각성합니다.</small>
+              <small>기억 100 소모 시 각성, 체력 회복 또는 카드 강화 선택</small>
             </header>
-            <p>기억 보유량: {memoryValue} / 100</p>
+            <p>기억 보유량: {memoryValue} / 100 · 체력 {playerHp}/{maxHp}</p>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "10px", marginTop: "12px" }}>
               <div className="choice-card">
                 <strong>전사</strong>
@@ -638,6 +639,29 @@ export function MapDemo() {
                 <strong>신앙</strong>
                 <div style={{ marginTop: "8px" }}>
                   <button className="btn" disabled={!canAwaken} onClick={() => awakenAtRest("random")}>랜덤 개성</button>
+                </div>
+              </div>
+              <div className="choice-card">
+                <strong>휴식</strong>
+                <div style={{ marginTop: "8px", display: "flex", flexDirection: "column", gap: "8px" }}>
+                  <button
+                    className="btn"
+                    onClick={() => {
+                      const heal = Math.max(1, Math.round((maxHp || 0) * 0.3));
+                      healAtRest(heal);
+                      closeRest();
+                    }}
+                  >
+                    체력 회복 (+30% 최대체력)
+                  </button>
+                  <button
+                    className="btn"
+                    disabled
+                    title="추후 구현 예정"
+                    style={{ opacity: 0.6, cursor: 'not-allowed' }}
+                  >
+                    카드 강화 (준비 중)
+                  </button>
                 </div>
               </div>
             </div>

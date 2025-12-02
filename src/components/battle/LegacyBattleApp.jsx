@@ -1061,6 +1061,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const prevRevealLevelRef = useRef(0);
   const [showInsightTooltip, setShowInsightTooltip] = useState(false);
   const [hoveredEnemyAction, setHoveredEnemyAction] = useState(null);
+  const [respondSnapshot, setRespondSnapshot] = useState(null); // 대응 단계 진입 시 상태 스냅샷(되감기용)
+  const [rewindUsed, setRewindUsed] = useState(false); // 전투당 1회 되감기 사용 여부
   // 탈주 카드는 사용된 다음 턴에만 등장 금지
   const escapeBanRef = useRef(new Set());
   const escapeUsedThisTurnRef = useRef(new Set());
@@ -2003,6 +2005,13 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
     const q = sortCombinedOrderStablePF(enhancedSelected, actions, effectiveAgility, 0);
     setFixedOrder(q);
+    // 대응 단계 되감기용 스냅샷 저장 (전투당 1회)
+    if (!rewindUsed) {
+      setRespondSnapshot({
+        selectedSnapshot: selected,
+        enemyActions: actions,
+      });
+    }
     playCardSubmitSound(); // 카드 제출 사운드 재생
     setPhase('respond');
   };
@@ -2095,6 +2104,26 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
     // 진행 버튼 누르면 자동 진행 활성화
     setAutoProgress(true);
+  };
+
+  // 대응 → 선택 되감기 (전투당 1회)
+  const rewindToSelect = () => {
+    if (rewindUsed) {
+      addLog('⚠️ 되감기는 전투당 1회만 사용할 수 있습니다.');
+      return;
+    }
+    if (!respondSnapshot) {
+      addLog('⚠️ 되감기할 상태가 없습니다.');
+      return;
+    }
+    setRewindUsed(true);
+    setPhase('select');
+    setFixedOrder(null);
+    setQueue([]);
+    setQIndex(0);
+    setTimelineProgress(0);
+    setSelected(respondSnapshot.selectedSnapshot || []);
+    addLog('⏪ 되감기 사용: 대응 단계 → 선택 단계 (전투당 1회)');
   };
 
   // 에테르 계산 애니메이션 시작 (몬스터 사망 시 / 정상 종료 시 공통)
@@ -2284,6 +2313,20 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       if (hasTrait(a.card, 'warmup')) {
         setNextTurnEffects(prev => ({ ...prev, bonusEnergy: (prev.bonusEnergy || 0) + 2 }));
         addLog(`🔥 "몸풀기" - 다음 턴 행동력 +2 예약`);
+      }
+
+      // 유물: 카드 사용 시 효과 (불멸의 가면 등)
+      const cardRelicEffects = applyCardPlayedEffects(relics, a.card, { player: P, enemy: E });
+      if (cardRelicEffects.heal) {
+        const maxHpVal = P.maxHp ?? player.maxHp ?? safeInitialPlayer.maxHp ?? 100;
+        const healed = Math.min(maxHpVal, (P.hp || 0) + cardRelicEffects.heal);
+        const healDelta = healed - (P.hp || 0);
+        if (healDelta > 0) {
+          P.hp = healed;
+          addLog(`🎭 유물 효과: 체력 +${healDelta} (불멸의 가면 등)`);
+          setRelicActivated('immortalMask');
+          setTimeout(() => setRelicActivated(null), 500);
+        }
       }
     }
 
@@ -3646,9 +3689,19 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
             )}
             {phase === 'respond' && (
               <div style={{ display: 'flex', justifyContent: 'center', marginTop: '16px' }}>
-                <button onClick={beginResolveFromRespond} className="btn-enhanced btn-success flex items-center gap-2" style={{ fontSize: '1.25rem', padding: '9.6px 24px', fontWeight: '700', minWidth: '200px' }}>
-                  <Play size={22} /> 진행 시작 <span style={{ fontSize: '1.4rem', fontWeight: '900' }}>(E)</span>
-                </button>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <button onClick={beginResolveFromRespond} className="btn-enhanced btn-success flex items-center gap-2" style={{ fontSize: '1.25rem', padding: '9.6px 24px', fontWeight: '700', minWidth: '200px' }}>
+                    <Play size={22} /> 진행 시작 <span style={{ fontSize: '1.4rem', fontWeight: '900' }}>(E)</span>
+                  </button>
+                  <button
+                    onClick={rewindToSelect}
+                    className="btn-enhanced flex items-center gap-2"
+                    disabled={rewindUsed || !respondSnapshot}
+                    style={{ fontSize: '1rem', padding: '9.6px 18px', fontWeight: '700', minWidth: '160px', opacity: rewindUsed ? 0.5 : 1 }}
+                  >
+                    ⏪ 되감기 (1회)
+                  </button>
+                </div>
               </div>
             )}
             {phase === 'resolve' && qIndex < queue.length && (
