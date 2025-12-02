@@ -3677,12 +3677,12 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                     <div className={`character-display ${playerOverdriveFlash ? 'overdrive-burst' : ''}`} style={{ fontSize: '64px' }}>🧙‍♂️</div>
                     <div></div>
-                      <div style={{ position: 'relative' }}>
-                        <div className={playerHit ? 'hit-animation' : ''} style={{ color: '#f87171', fontSize: '1.25rem', fontWeight: 'bold', position: 'absolute', top: '-30px', left: '0' }}>
-                          ❤️ {player.hp}/{player.maxHp}
-                          {player.block > 0 && <span className={playerBlockAnim ? 'block-animation' : ''} style={{ color: '#60a5fa', marginLeft: '8px' }}>🛡️{player.block}</span>}
-                        </div>
-                        <div className="hp-bar-enhanced mb-1" style={{ width: '200px', height: '12px', position: 'relative', overflow: 'hidden' }}>
+                    <div style={{ position: 'relative' }}>
+                      <div className={playerHit ? 'hit-animation' : ''} style={{ color: '#f87171', fontSize: '1.25rem', fontWeight: 'bold', position: 'absolute', top: '-30px', left: '0' }}>
+                        ❤️ {player.hp}/{player.maxHp}
+                        {player.block > 0 && <span className={playerBlockAnim ? 'block-animation' : ''} style={{ color: '#60a5fa', marginLeft: '8px' }}>🛡️{player.block}</span>}
+                      </div>
+                      <div className="hp-bar-enhanced mb-1" style={{ width: '200px', height: '12px', position: 'relative', overflow: 'hidden' }}>
                         <div className="hp-fill" style={{ width: `${(player.hp / player.maxHp) * 100}%` }}></div>
                         {player.block > 0 && (
                           <div style={{
@@ -4033,7 +4033,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                 </div>
               </div>
             )}
-              <div style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginRight: '0', paddingRight: '0', gap: '40px' }}>
+            <div style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginRight: '0', paddingRight: '0', gap: '40px' }}>
               <div style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -4052,110 +4052,50 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                 <div style={{ textAlign: 'right', position: 'relative', paddingRight: '8px', pointerEvents: 'auto', display: 'flex', alignItems: 'center', gap: '14px' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <div style={{ position: 'relative', paddingTop: '30px' }}>
-                      {(phase === 'select' || phase === 'respond') && previewDamage.value > 0 && (
-                        <div className={`predicted-damage-inline ${previewDamage.lethal ? 'lethal' : ''} ${previewDamage.overkill ? 'overkill' : ''}`}>
-                          <span className="predicted-damage-inline-value">🗡️ -{previewDamage.value}</span>
-                          {previewDamage.lethal && (
-                            <span className={`predicted-damage-inline-icon ${previewDamage.overkill ? 'overkill-icon' : ''}`} aria-hidden="true">
+                      <div style={{ position: 'relative', paddingTop: '30px' }}>
+                        {(phase === 'select' || phase === 'respond') && previewDamage.value > 0 && (
+                          <div className={`predicted-damage-inline ${previewDamage.lethal ? 'lethal' : ''} ${previewDamage.overkill ? 'overkill' : ''}`}>
+                            <span className="predicted-damage-inline-value">🗡️ -{previewDamage.value}</span>
+                            {previewDamage.lethal && (
+                              <span className={`predicted-damage-inline-icon ${previewDamage.overkill ? 'overkill-icon' : ''}`} aria-hidden="true">
                                 {previewDamage.overkill ? '☠️' : '💀'}
                               </span>
                             )}
                           </div>
                         )}
-                      {(() => {
-                        const hideEnemyVitals = dulledLevel >= 3;
-                        const hpText = hideEnemyVitals ? '??' : `${enemy.hp}/${enemy.maxHp}`;
-                        const blockText = hideEnemyVitals ? '??' : (enemy.block > 0 ? `${enemy.block}` : null);
-                        return (
-                          <div className={enemyHit ? 'hit-animation' : ''} style={{ color: '#f87171', fontSize: '1.25rem', fontWeight: 'bold', textAlign: 'right', transition: 'opacity 0.4s ease, transform 0.4s ease', opacity: soulShatter ? 0 : 1, transform: soulShatter ? 'scale(0.9)' : 'scale(1)', position: 'absolute', top: '-28px', right: '-80px', width: '200px' }}>
-                            {blockText && <span className={enemyBlockAnim ? 'block-animation' : ''} style={{ color: '#60a5fa', marginRight: '8px' }}>🛡️{blockText}</span>}
-                            ❤️ {hpText}
-                          </div>
-                        );
-                      })()}
-                        </div>
-                        <div className="hp-bar-enhanced mb-1" style={{ width: '200px', height: '12px', position: 'relative', overflow: 'hidden' }}>
-                          <div className="hp-fill" style={{ width: `${dulledLevel >= 3 ? 0 : (enemy.hp / enemy.maxHp) * 100}%` }}></div>
-                          {enemy.block > 0 && dulledLevel < 3 && (
-                            <div style={{
-                              position: 'absolute',
-                              left: 0,
-                              top: 0,
-                              height: '100%',
-                              width: `${Math.min((enemy.block / enemy.maxHp) * 100, 100)}%`,
-                              background: 'linear-gradient(90deg, rgba(96, 165, 250, 0.6), rgba(96, 165, 250, 0.3))',
-                              borderRight: '2px solid #60a5fa'
-                            }}></div>
-                          )}
-                        </div>
-                      </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
-                        {enemy.composition && enemy.composition.length > 0 ? (
-                          enemy.composition.map((member, idx) => (
-                            <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '12px', flexDirection: idx === 0 ? 'row' : 'row-reverse' }}>
-                              {idx === 0 ? (
-                                <>
-                                  <span style={{
-                                    fontSize: '1rem',
-                                    color: '#e2e8f0',
-                                    fontWeight: '600',
-                                    textShadow: '0 2px 4px rgba(0,0,0,0.5)',
-                                    background: 'rgba(0,0,0,0.3)',
-                                    padding: '2px 8px',
-                                    borderRadius: '4px',
-                                    transform: 'translateX(70px)'
-                                  }}>
-                                    {member.name}
-                                  </span>
-                                  <div
-                                    className={`character-display ${soulShatter ? 'soul-shatter-target' : ''} ${enemyOverdriveFlash ? 'overdrive-burst' : ''}`}
-                                    style={{
-                                      fontSize: '56px',
-                                      filter: 'none',
-                                      transform: 'translateX(70px)'
-                                    }}
-                                  >
-                                    {member.emoji}
-                                  </div>
-                                </>
-                              ) : (
-                                <>
-                                  <div
-                                    className={`character-display ${soulShatter ? 'soul-shatter-target' : ''} ${enemyOverdriveFlash ? 'overdrive-burst' : ''}`}
-                                    style={{
-                                      fontSize: '56px',
-                                      filter: 'brightness(0.95)',
-                                      position: 'fixed',
-                                      top: '538px',
-                                      right: '140px'
-                                    }}
-                                  >
-                                    {member.emoji}
-                                  </div>
-                                  <span style={{
-                                    fontSize: '1rem',
-                                    color: '#e2e8f0',
-                                    fontWeight: '600',
-                                    textShadow: '0 2px 4px rgba(0,0,0,0.5)',
-                                    background: 'rgba(0,0,0,0.3)',
-                                    padding: '2px 8px',
-                                    borderRadius: '4px',
-                                    position: 'fixed',
-                                    top: '572px',
-                                    right: '125px'
-                                  }}>
-                                    {member.name}
-                                  </span>
-                                </>
-                              )}
+                        {(() => {
+                          const hideEnemyVitals = dulledLevel >= 3;
+                          const hpText = hideEnemyVitals ? '??' : `${enemy.hp}/${enemy.maxHp}`;
+                          const blockText = hideEnemyVitals ? '??' : (enemy.block > 0 ? `${enemy.block}` : null);
+                          return (
+                            <div className={enemyHit ? 'hit-animation' : ''} style={{ color: '#f87171', fontSize: '1.25rem', fontWeight: 'bold', textAlign: 'right', transition: 'opacity 0.4s ease, transform 0.4s ease', opacity: soulShatter ? 0 : 1, transform: soulShatter ? 'scale(0.9)' : 'scale(1)', position: 'absolute', top: '-28px', right: '-80px', width: '200px' }}>
+                              {blockText && <span className={enemyBlockAnim ? 'block-animation' : ''} style={{ color: '#60a5fa', marginRight: '8px' }}>🛡️{blockText}</span>}
+                              ❤️ {hpText}
                             </div>
-                          ))
-                        ) : (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                            <div className={`character-display ${soulShatter ? 'soul-shatter-target' : ''} ${enemyOverdriveFlash ? 'overdrive-burst' : ''}`} style={{ fontSize: '64px' }}>👹</div>
+                          );
+                        })()}
+                      </div>
+                      <div className="hp-bar-enhanced mb-1" style={{ width: '200px', height: '12px', position: 'relative', overflow: 'hidden' }}>
+                        <div className="hp-fill" style={{ width: `${dulledLevel >= 3 ? 0 : (enemy.hp / enemy.maxHp) * 100}%` }}></div>
+                        {enemy.block > 0 && dulledLevel < 3 && (
+                          <div style={{
+                            position: 'absolute',
+                            left: 0,
+                            top: 0,
+                            height: '100%',
+                            width: `${Math.min((enemy.block / enemy.maxHp) * 100, 100)}%`,
+                            background: 'linear-gradient(90deg, rgba(96, 165, 250, 0.6), rgba(96, 165, 250, 0.3))',
+                            borderRight: '2px solid #60a5fa'
+                          }}></div>
+                        )}
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px', marginTop: '12px' }}>
+                      {enemy.composition && enemy.composition.length > 0 ? (
+                        enemy.composition.map((member, idx) => (
+                          <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                             <span style={{
-                              fontSize: '1rem',
+                              fontSize: '0.95rem',
                               color: '#e2e8f0',
                               fontWeight: '600',
                               textShadow: '0 2px 4px rgba(0,0,0,0.5)',
@@ -4163,217 +4103,161 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                               padding: '2px 8px',
                               borderRadius: '4px'
                             }}>
-                              {enemy.name || '몬스터'}
+                              {member.name}
                             </span>
+                            <div
+                              className={`character-display ${soulShatter ? 'soul-shatter-target' : ''} ${enemyOverdriveFlash ? 'overdrive-burst' : ''}`}
+                              style={{
+                                fontSize: idx === 0 ? '64px' : '56px',
+                                filter: idx === 0 ? 'none' : 'brightness(0.95)'
+                              }}
+                            >
+                              {member.emoji}
+                            </div>
                           </div>
-                        )}
-                      </div>
+                        ))
+                      ) : (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                          <span style={{
+                            fontSize: '0.95rem',
+                            color: '#e2e8f0',
+                            fontWeight: '600',
+                            textShadow: '0 2px 4px rgba(0,0,0,0.5)',
+                            background: 'rgba(0,0,0,0.3)',
+                            padding: '2px 8px',
+                            borderRadius: '4px'
+                          }}>
+                            {enemy.name || '몬스터'}
+                          </span>
+                          <div className={`character-display ${soulShatter ? 'soul-shatter-target' : ''} ${enemyOverdriveFlash ? 'overdrive-burst' : ''}`} style={{ fontSize: '64px' }}>👹</div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
-                <div
-                  className={`soul-orb ${enemyTransferPulse ? 'pulse' : ''} ${soulShatter ? 'shatter' : ''}`}
-                  title={dulledLevel >= 3 ? '?? / ??' : `${(enemyEtherValue || 0).toLocaleString()} / ${((enemy?.etherCapacity ?? enemyEtherValue) || 0).toLocaleString()}`}
-                  style={{ position: 'fixed', top: '470px', right: '300px' }}>
-                  <div className={`soul-orb-shell ${enemyTransferPulse ? 'pulse' : ''} ${soulShatter ? 'shatter' : ''}`} style={{ transform: `scale(${enemySoulScale})` }} />
-                  <div className="soul-orb-content">
-                    <div className="soul-orb-value">{dulledLevel >= 3 ? '??' : formatCompactValue(enemyEtherValue)}</div>
-                    <div className="soul-orb-label">SOUL</div>
-                  </div>
+              </div>
+              <div
+                className={`soul-orb ${enemyTransferPulse ? 'pulse' : ''} ${soulShatter ? 'shatter' : ''}`}
+                title={dulledLevel >= 3 ? '?? / ??' : `${(enemyEtherValue || 0).toLocaleString()} / ${((enemy?.etherCapacity ?? enemyEtherValue) || 0).toLocaleString()}`}
+                style={{ position: 'fixed', top: '470px', right: '300px' }}>
+                <div className={`soul-orb-shell ${enemyTransferPulse ? 'pulse' : ''} ${soulShatter ? 'shatter' : ''}`} style={{ transform: `scale(${enemySoulScale})` }} />
+                <div className="soul-orb-content">
+                  <div className="soul-orb-value">{dulledLevel >= 3 ? '??' : formatCompactValue(enemyEtherValue)}</div>
+                  <div className="soul-orb-label">SOUL</div>
                 </div>
               </div>
             </div>
           </div>
         </div>
+      </div>
 
-        {/* 독립 활동력 표시 (좌측 하단 고정) */}
-        {(phase === 'select' || phase === 'respond' || phase === 'resolve' || (enemy && enemy.hp <= 0) || (player && player.hp <= 0)) && (
-          <div className="energy-display-fixed">
-            <div className="energy-orb-compact">
-              {remainingEnergy} / {player.maxEnergy}
-            </div>
+      {/* 독립 활동력 표시 (좌측 하단 고정) */}
+      {(phase === 'select' || phase === 'respond' || phase === 'resolve' || (enemy && enemy.hp <= 0) || (player && player.hp <= 0)) && (
+        <div className="energy-display-fixed">
+          <div className="energy-orb-compact">
+            {remainingEnergy} / {player.maxEnergy}
           </div>
-        )}
+        </div>
+      )}
 
-        {/* 간소화/정렬 버튼 (우측 하단 고정) */}
-        {phase === 'select' && (
-          <div className="submit-button-fixed" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <button onClick={() => {
-              setIsSimplified(prev => {
-                const newVal = !prev;
-                try { localStorage.setItem('battleIsSimplified', newVal.toString()); } catch { }
-                return newVal;
-              });
-              playSound(500, 60);
-            }} className={`btn-enhanced ${isSimplified ? 'btn-primary' : ''} flex items-center gap-2`}>
-              {isSimplified ? '📋' : '📄'} 간소화 (Q)
-            </button>
-            <button onClick={cycleSortType} className="btn-enhanced flex items-center gap-2" style={{ fontSize: '0.9rem' }}>
-              🔀 정렬 ({sortType === 'speed' ? '시간' : sortType === 'energy' ? '행동력' : sortType === 'value' ? '밸류' : '종류'}) (F)
-            </button>
+      {/* 간소화/정렬 버튼 (우측 하단 고정) */}
+      {phase === 'select' && (
+        <div className="submit-button-fixed" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <button onClick={() => {
+            setIsSimplified(prev => {
+              const newVal = !prev;
+              try { localStorage.setItem('battleIsSimplified', newVal.toString()); } catch { }
+              return newVal;
+            });
+            playSound(500, 60);
+          }} className={`btn-enhanced ${isSimplified ? 'btn-primary' : ''} flex items-center gap-2`}>
+            {isSimplified ? '📋' : '📄'} 간소화 (Q)
+          </button>
+          <button onClick={cycleSortType} className="btn-enhanced flex items-center gap-2" style={{ fontSize: '0.9rem' }}>
+            🔀 정렬 ({sortType === 'speed' ? '시간' : sortType === 'energy' ? '행동력' : sortType === 'value' ? '밸류' : '종류'}) (F)
+          </button>
+        </div>
+      )}
+      {player && player.hp <= 0 && (
+        <div className="submit-button-fixed">
+          <button onClick={() => window.location.reload()} className="btn-enhanced flex items-center gap-2">
+            🔄 재시작
+          </button>
+        </div>
+      )}
+
+      {/* 하단 고정 손패 영역 */}
+      {(phase === 'select' || phase === 'respond' || phase === 'resolve' || (enemy && enemy.hp <= 0) || (player && player.hp <= 0)) && (
+        <div className="hand-area">
+
+          <div className="hand-flags">
+            {player && player.hp <= 0 && (
+              <div className="hand-flag defeat">💀 패배...</div>
+            )}
           </div>
-        )}
-        {player && player.hp <= 0 && (
-          <div className="submit-button-fixed">
-            <button onClick={() => window.location.reload()} className="btn-enhanced flex items-center gap-2">
-              🔄 재시작
-            </button>
-          </div>
-        )}
 
-        {/* 하단 고정 손패 영역 */}
-        {(phase === 'select' || phase === 'respond' || phase === 'resolve' || (enemy && enemy.hp <= 0) || (player && player.hp <= 0)) && (
-          <div className="hand-area">
+          {phase === 'select' && (() => {
+            // 현재 선택된 카드들의 조합 감지
+            const currentCombo = detectPokerCombo(selected);
+            const comboCardCosts = new Set();
+            if (currentCombo?.bonusKeys) {
+              currentCombo.bonusKeys.forEach(cost => comboCardCosts.add(cost));
+            }
+            // 플러쉬는 모든 카드가 조합 대상
+            const isFlush = currentCombo?.name === '플러쉬';
 
-            <div className="hand-flags">
-              {player && player.hp <= 0 && (
-                <div className="hand-flag defeat">💀 패배...</div>
-              )}
-            </div>
-
-            {phase === 'select' && (() => {
-              // 현재 선택된 카드들의 조합 감지
-              const currentCombo = detectPokerCombo(selected);
-              const comboCardCosts = new Set();
-              if (currentCombo?.bonusKeys) {
-                currentCombo.bonusKeys.forEach(cost => comboCardCosts.add(cost));
-              }
-              // 플러쉬는 모든 카드가 조합 대상
-              const isFlush = currentCombo?.name === '플러쉬';
-
-              return (
-                <div className="hand-cards">
-                  {getSortedHand().map((c, idx) => {
-                    const Icon = c.icon;
-                    const usageCount = player.comboUsageCount?.[c.id] || 0;
-                    const selIndex = selected.findIndex(s => s.id === c.id);
-                    const sel = selIndex !== -1;
-                    // 카드가 조합에 포함되는지 확인
-                    const isInCombo = sel && (isFlush || comboCardCosts.has(c.actionCost));
-                    const enhancedCard = applyTraitModifiers(c, { usageCount, isInCombo });
-                    const disabled = handDisabled(c) && !sel;
-                    const currentBuild = useGameStore.getState().characterBuild;
-                    const isMainSpecial = currentBuild?.mainSpecials?.includes(c.id);
-                    const isSubSpecial = currentBuild?.subSpecials?.includes(c.id);
-                    const costColor = isMainSpecial ? '#fcd34d' : isSubSpecial ? '#60a5fa' : '#fff';
-                    const nameColor = isMainSpecial ? '#fcd34d' : isSubSpecial ? '#7dd3fc' : '#fff';
-                    // 협동 특성이 있고 조합에 포함된 경우
-                    const hasCooperation = hasTrait(c, 'cooperation');
-                    const cooperationActive = hasCooperation && isInCombo;
-                    return (
-                      <div
-                        key={c.id + idx}
-                        onClick={() => !disabled && toggle(enhancedCard)}
-                        onMouseEnter={(e) => {
-                          const cardEl = e.currentTarget.querySelector('.game-card-large');
-                          showCardTraitTooltip(c, cardEl);
-                        }}
-                        onMouseLeave={hideCardTraitTooltip}
-                        style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center', cursor: disabled ? 'not-allowed' : 'pointer', position: 'relative', marginLeft: idx === 0 ? '0' : '-20px' }}
-                      >
-                        <div
-                          className={`game-card-large select-phase-card ${c.type === 'attack' ? 'attack' : 'defense'} ${sel ? 'selected' : ''} ${disabled ? 'disabled' : ''}`}
-                          style={cooperationActive ? {
-                            boxShadow: '0 0 20px 4px rgba(34, 197, 94, 0.8), 0 0 40px 8px rgba(34, 197, 94, 0.4)',
-                            border: '3px solid #22c55e'
-                          } : {}}
-                        >
-                          <div className="card-cost-badge-floating" style={{ color: costColor, WebkitTextStroke: '1px #000' }}>{enhancedCard.actionCost || c.actionCost}</div>
-                          {sel && <div className="selection-number">{selIndex + 1}</div>}
-                          <div className="card-stats-sidebar">
-                            {enhancedCard.damage != null && enhancedCard.damage > 0 && (
-                              <div className="card-stat-item attack">
-                                ⚔️{enhancedCard.damage + (player.strength || 0)}{enhancedCard.hits ? `×${enhancedCard.hits}` : ''}
-                              </div>
-                            )}
-                            {enhancedCard.block != null && enhancedCard.block > 0 && (
-                              <div className="card-stat-item defense">
-                                🛡️{enhancedCard.block + (player.strength || 0)}
-                              </div>
-                            )}
-                            <div className="card-stat-item speed">
-                              ⏱️{formatSpeedText(enhancedCard.speedCost)}
-                            </div>
-                          </div>
-                          <div className="card-header" style={{ display: 'flex', justifyContent: 'center' }}>
-                            <div className="font-black text-sm" style={{ display: 'flex', alignItems: 'center' }}>
-                              {renderNameWithBadge(c, nameColor)}
-                            </div>
-                          </div>
-                          <div className="card-icon-area">
-                            <Icon size={60} className="text-white opacity-80" />
-                            {disabled && (
-                              <div className="card-disabled-overlay">
-                                <X size={80} className="text-red-500" strokeWidth={4} />
-                              </div>
-                            )}
-                          </div>
-                          <div className={`card-footer ${isSimplified ? 'simplified-footer' : ''}`}>
-                            {c.traits && c.traits.length > 0 && (
-                              <span style={{ fontWeight: 600, display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-                                {c.traits.map((traitId) => {
-                                  const trait = TRAITS[traitId];
-                                  if (!trait) return null;
-                                  const isPositive = trait.type === 'positive';
-                                  return (
-                                    <span key={traitId} style={{
-                                      color: isPositive ? '#22c55e' : '#ef4444',
-                                      background: isPositive ? 'rgba(34, 197, 94, 0.2)' : 'rgba(239, 68, 68, 0.2)',
-                                      padding: '2px 6px',
-                                      borderRadius: '4px',
-                                      border: `1px solid ${isPositive ? '#22c55e' : '#ef4444'}`
-                                    }}>
-                                      {trait.name}
-                                    </span>
-                                  );
-                                })}
-                              </span>
-                            )}
-                            <span className="card-description">{c.description || ''}</span>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              );
-            })()}
-
-            {phase === 'respond' && fixedOrder && (
-              <div className="hand-cards" style={{ justifyContent: 'center' }}>
-                {fixedOrder.filter(a => a.actor === 'player').map((action, idx, arr) => {
-                  const c = action.card;
+            return (
+              <div className="hand-cards">
+                {getSortedHand().map((c, idx) => {
                   const Icon = c.icon;
+                  const usageCount = player.comboUsageCount?.[c.id] || 0;
+                  const selIndex = selected.findIndex(s => s.id === c.id);
+                  const sel = selIndex !== -1;
+                  // 카드가 조합에 포함되는지 확인
+                  const isInCombo = sel && (isFlush || comboCardCosts.has(c.actionCost));
+                  const enhancedCard = applyTraitModifiers(c, { usageCount, isInCombo });
+                  const disabled = handDisabled(c) && !sel;
                   const currentBuild = useGameStore.getState().characterBuild;
                   const isMainSpecial = currentBuild?.mainSpecials?.includes(c.id);
                   const isSubSpecial = currentBuild?.subSpecials?.includes(c.id);
                   const costColor = isMainSpecial ? '#fcd34d' : isSubSpecial ? '#60a5fa' : '#fff';
                   const nameColor = isMainSpecial ? '#fcd34d' : isSubSpecial ? '#7dd3fc' : '#fff';
+                  // 협동 특성이 있고 조합에 포함된 경우
+                  const hasCooperation = hasTrait(c, 'cooperation');
+                  const cooperationActive = hasCooperation && isInCombo;
                   return (
                     <div
-                      key={idx}
+                      key={c.id + idx}
+                      onClick={() => !disabled && toggle(enhancedCard)}
                       onMouseEnter={(e) => {
                         const cardEl = e.currentTarget.querySelector('.game-card-large');
                         showCardTraitTooltip(c, cardEl);
                       }}
                       onMouseLeave={hideCardTraitTooltip}
-                      style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center', position: 'relative', marginLeft: idx === 0 ? '0' : '-20px' }}
+                      style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center', cursor: disabled ? 'not-allowed' : 'pointer', position: 'relative', marginLeft: idx === 0 ? '0' : '-20px' }}
                     >
-                      <div className={`game-card-large respond-phase-card ${c.type === 'attack' ? 'attack' : 'defense'}`}>
-                        <div className="card-cost-badge-floating" style={{ color: costColor, WebkitTextStroke: '1px #000' }}>{c.actionCost}</div>
+                      <div
+                        className={`game-card-large select-phase-card ${c.type === 'attack' ? 'attack' : 'defense'} ${sel ? 'selected' : ''} ${disabled ? 'disabled' : ''}`}
+                        style={cooperationActive ? {
+                          boxShadow: '0 0 20px 4px rgba(34, 197, 94, 0.8), 0 0 40px 8px rgba(34, 197, 94, 0.4)',
+                          border: '3px solid #22c55e'
+                        } : {}}
+                      >
+                        <div className="card-cost-badge-floating" style={{ color: costColor, WebkitTextStroke: '1px #000' }}>{enhancedCard.actionCost || c.actionCost}</div>
+                        {sel && <div className="selection-number">{selIndex + 1}</div>}
                         <div className="card-stats-sidebar">
-                          {c.damage != null && c.damage > 0 && (
+                          {enhancedCard.damage != null && enhancedCard.damage > 0 && (
                             <div className="card-stat-item attack">
-                              ⚔️{c.damage + (player.strength || 0)}{c.hits ? `×${c.hits}` : ''}
+                              ⚔️{enhancedCard.damage + (player.strength || 0)}{enhancedCard.hits ? `×${enhancedCard.hits}` : ''}
                             </div>
                           )}
-                          {c.block != null && c.block > 0 && (
+                          {enhancedCard.block != null && enhancedCard.block > 0 && (
                             <div className="card-stat-item defense">
-                              🛡️{c.block + (player.strength || 0)}
+                              🛡️{enhancedCard.block + (player.strength || 0)}
                             </div>
                           )}
                           <div className="card-stat-item speed">
-                            ⏱️{formatSpeedText(c.speedCost)}
+                            ⏱️{formatSpeedText(enhancedCard.speedCost)}
                           </div>
                         </div>
                         <div className="card-header" style={{ display: 'flex', justifyContent: 'center' }}>
@@ -4383,6 +4267,11 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                         </div>
                         <div className="card-icon-area">
                           <Icon size={60} className="text-white opacity-80" />
+                          {disabled && (
+                            <div className="card-disabled-overlay">
+                              <X size={80} className="text-red-500" strokeWidth={4} />
+                            </div>
+                          )}
                         </div>
                         <div className={`card-footer ${isSimplified ? 'simplified-footer' : ''}`}>
                           {c.traits && c.traits.length > 0 && (
@@ -4408,232 +4297,308 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                           <span className="card-description">{c.description || ''}</span>
                         </div>
                       </div>
-                      <div style={{ display: 'flex', gap: '8px' }}>
-                        {idx > 0 && (
-                          <button onClick={() => moveUp(idx)} className="btn-enhanced text-xs" style={{ padding: '4px 12px' }}>
-                            ←
-                          </button>
-                        )}
-                        {idx < arr.length - 1 && (
-                          <button onClick={() => moveDown(idx)} className="btn-enhanced text-xs" style={{ padding: '4px 12px' }}>
-                            →
-                          </button>
-                        )}
-                      </div>
                     </div>
                   );
                 })}
               </div>
-            )}
+            );
+          })()}
 
-            {phase === 'resolve' && queue && queue.length > 0 && (
-              <div className="hand-cards" style={{ justifyContent: 'center' }}>
-                {queue.filter(a => a.actor === 'player').map((a, i) => {
-                  const Icon = a.card.icon;
-                  const globalIndex = queue.findIndex(q => q === a);
-                  const isUsed = usedCardIndices.includes(globalIndex);
-                  const isDisappearing = disappearingCards.includes(globalIndex);
-                  const isHidden = hiddenCards.includes(globalIndex);
-                  const isDisabled = disabledCardIndices.includes(globalIndex); // 비활성화된 카드 (몬스터 사망 시)
-                  const currentBuild = useGameStore.getState().characterBuild;
-                  const isMainSpecial = currentBuild?.mainSpecials?.includes(a.card.id);
-                  const isSubSpecial = currentBuild?.subSpecials?.includes(a.card.id);
-                  const costColor = isMainSpecial ? '#fcd34d' : isSubSpecial ? '#60a5fa' : '#fff';
-
-                  // 완전히 숨겨진 카드는 렌더링하지 않음
-                  if (isHidden) return null;
-
-                  return (
-                    <div
-                      key={`resolve-${globalIndex}`}
-                      onMouseEnter={(e) => {
-                        const cardEl = e.currentTarget.querySelector('.game-card-large');
-                        showCardTraitTooltip(a.card, cardEl);
-                      }}
-                      onMouseLeave={hideCardTraitTooltip}
-                      style={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '4px',
-                        alignItems: 'center',
-                        position: 'relative',
-                        marginLeft: i === 0 ? '0' : '-20px',
-                        opacity: isDisabled ? 0.4 : 1, // 비활성화된 카드는 투명하게
-                        filter: isDisabled ? 'grayscale(0.8) brightness(0.6)' : 'none' // 빛바란 효과
-                      }}
-                    >
-                      <div className={`game-card-large resolve-phase-card ${a.card.type === 'attack' ? 'attack' : 'defense'} ${isUsed ? 'card-used' : ''} ${isDisappearing ? 'card-disappearing' : ''}`}>
-                        <div className="card-cost-badge-floating" style={{ color: costColor, WebkitTextStroke: '1px #000' }}>{a.card.actionCost}</div>
-                        <div className="card-stats-sidebar">
-                          {a.card.damage != null && a.card.damage > 0 && (
-                            <div className="card-stat-item attack">
-                              ⚔️{a.card.damage + (player.strength || 0)}{a.card.hits ? `×${a.card.hits}` : ''}
-                            </div>
-                          )}
-                          {a.card.block != null && a.card.block > 0 && (
-                            <div className="card-stat-item defense">
-                              🛡️{a.card.block + (player.strength || 0)}
-                            </div>
-                          )}
-                          {a.card.counter !== undefined && (
-                            <div className="card-stat-item counter">
-                              ⚡{a.card.counter}
-                            </div>
-                          )}
-                          <div className="card-stat-item speed">
-                            ⏱️{formatSpeedText(a.card.speedCost)}
+          {phase === 'respond' && fixedOrder && (
+            <div className="hand-cards" style={{ justifyContent: 'center' }}>
+              {fixedOrder.filter(a => a.actor === 'player').map((action, idx, arr) => {
+                const c = action.card;
+                const Icon = c.icon;
+                const currentBuild = useGameStore.getState().characterBuild;
+                const isMainSpecial = currentBuild?.mainSpecials?.includes(c.id);
+                const isSubSpecial = currentBuild?.subSpecials?.includes(c.id);
+                const costColor = isMainSpecial ? '#fcd34d' : isSubSpecial ? '#60a5fa' : '#fff';
+                const nameColor = isMainSpecial ? '#fcd34d' : isSubSpecial ? '#7dd3fc' : '#fff';
+                return (
+                  <div
+                    key={idx}
+                    onMouseEnter={(e) => {
+                      const cardEl = e.currentTarget.querySelector('.game-card-large');
+                      showCardTraitTooltip(c, cardEl);
+                    }}
+                    onMouseLeave={hideCardTraitTooltip}
+                    style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center', position: 'relative', marginLeft: idx === 0 ? '0' : '-20px' }}
+                  >
+                    <div className={`game-card-large respond-phase-card ${c.type === 'attack' ? 'attack' : 'defense'}`}>
+                      <div className="card-cost-badge-floating" style={{ color: costColor, WebkitTextStroke: '1px #000' }}>{c.actionCost}</div>
+                      <div className="card-stats-sidebar">
+                        {c.damage != null && c.damage > 0 && (
+                          <div className="card-stat-item attack">
+                            ⚔️{c.damage + (player.strength || 0)}{c.hits ? `×${c.hits}` : ''}
                           </div>
-                        </div>
-                        <div className="card-header" style={{ display: 'flex', justifyContent: 'center' }}>
-                          <div className="text-white font-black text-sm" style={{ display: 'flex', alignItems: 'center' }}>
-                            {renderNameWithBadge(a.card, '#fff')}
+                        )}
+                        {c.block != null && c.block > 0 && (
+                          <div className="card-stat-item defense">
+                            🛡️{c.block + (player.strength || 0)}
                           </div>
-                        </div>
-                        <div className="card-icon-area">
-                          <Icon size={60} className="text-white opacity-80" />
-                        </div>
-                        <div className={`card-footer ${isSimplified ? 'simplified-footer' : ''}`}>
-                          {a.card.traits && a.card.traits.length > 0 && (
-                            <span style={{ fontWeight: 600, display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-                              {a.card.traits.map((traitId) => {
-                                const trait = TRAITS[traitId];
-                                if (!trait) return null;
-                                const isPositive = trait.type === 'positive';
-                                return (
-                                  <span key={traitId} style={{
-                                    color: isPositive ? '#22c55e' : '#ef4444',
-                                    background: isPositive ? 'rgba(34, 197, 94, 0.2)' : 'rgba(239, 68, 68, 0.2)',
-                                    padding: '2px 6px',
-                                    borderRadius: '4px',
-                                    border: `1px solid ${isPositive ? '#22c55e' : '#ef4444'}`
-                                  }}>
-                                    {trait.name}
-                                  </span>
-                                );
-                              })}
-                            </span>
-                          )}
-                          <span className="card-description">{a.card.description || ''}</span>
+                        )}
+                        <div className="card-stat-item speed">
+                          ⏱️{formatSpeedText(c.speedCost)}
                         </div>
                       </div>
+                      <div className="card-header" style={{ display: 'flex', justifyContent: 'center' }}>
+                        <div className="font-black text-sm" style={{ display: 'flex', alignItems: 'center' }}>
+                          {renderNameWithBadge(c, nameColor)}
+                        </div>
+                      </div>
+                      <div className="card-icon-area">
+                        <Icon size={60} className="text-white opacity-80" />
+                      </div>
+                      <div className={`card-footer ${isSimplified ? 'simplified-footer' : ''}`}>
+                        {c.traits && c.traits.length > 0 && (
+                          <span style={{ fontWeight: 600, display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                            {c.traits.map((traitId) => {
+                              const trait = TRAITS[traitId];
+                              if (!trait) return null;
+                              const isPositive = trait.type === 'positive';
+                              return (
+                                <span key={traitId} style={{
+                                  color: isPositive ? '#22c55e' : '#ef4444',
+                                  background: isPositive ? 'rgba(34, 197, 94, 0.2)' : 'rgba(239, 68, 68, 0.2)',
+                                  padding: '2px 6px',
+                                  borderRadius: '4px',
+                                  border: `1px solid ${isPositive ? '#22c55e' : '#ef4444'}`
+                                }}>
+                                  {trait.name}
+                                </span>
+                              );
+                            })}
+                          </span>
+                        )}
+                        <span className="card-description">{c.description || ''}</span>
+                      </div>
                     </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        )}
-
-        {showCharacterSheet && <CharacterSheet onClose={closeCharacterSheet} />}
-
-        {/* 특성 툴팁 */}
-        {showTooltip && tooltipVisible && hoveredCard && hoveredCard.card.traits && hoveredCard.card.traits.length > 0 && (
-          <div
-            className={`trait-tooltip ${tooltipVisible ? 'tooltip-visible' : ''}`}
-            style={{
-              position: 'fixed',
-              left: `${hoveredCard.x}px`,
-              top: `${hoveredCard.y}px`,
-              background: 'rgba(0, 0, 0, 0.95)',
-              border: '2px solid #fbbf24',
-              borderRadius: '12px',
-              padding: '18px 24px',
-              boxShadow: '0 8px 24px rgba(0, 0, 0, 0.9)',
-              zIndex: 10000,
-              pointerEvents: 'none',
-              minWidth: '320px',
-              maxWidth: '450px',
-            }}
-          >
-            <div style={{ fontSize: '21px', fontWeight: 700, color: '#fbbf24', marginBottom: '12px' }}>
-              특성 정보
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      {idx > 0 && (
+                        <button onClick={() => moveUp(idx)} className="btn-enhanced text-xs" style={{ padding: '4px 12px' }}>
+                          ←
+                        </button>
+                      )}
+                      {idx < arr.length - 1 && (
+                        <button onClick={() => moveDown(idx)} className="btn-enhanced text-xs" style={{ padding: '4px 12px' }}>
+                          →
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-            {(() => {
-              const baseCard = CARDS.find(c => c.id === hoveredCard.card.id);
-              const enhancedCard = applyTraitModifiers(baseCard || hoveredCard.card, { usageCount: 0, isInCombo: false });
-              const parts = [];
-              if (baseCard?.damage && enhancedCard.damage && enhancedCard.damage !== baseCard.damage) {
-                const mult = (enhancedCard.damage / baseCard.damage).toFixed(2);
-                parts.push(`공격력: ${enhancedCard.damage} = ${baseCard.damage} × ${mult}`);
-              }
-              if (baseCard?.block && enhancedCard.block && enhancedCard.block !== baseCard.block) {
-                const mult = (enhancedCard.block / baseCard.block).toFixed(2);
-                parts.push(`방어력: ${enhancedCard.block} = ${baseCard.block} × ${mult}`);
-              }
-              return parts.length > 0 ? (
-                <div style={{ marginBottom: '10px', padding: '8px', background: 'rgba(251, 191, 36, 0.12)', borderRadius: '8px', border: '1px solid rgba(251, 191, 36, 0.4)', color: '#fde68a', fontSize: '14px', fontWeight: 700 }}>
-                  {parts.map((p, idx) => <div key={idx}>{p}</div>)}
-                </div>
-              ) : null;
-            })()}
-            {hoveredCard.card.traits.map(traitId => {
-              const trait = TRAITS[traitId];
-              if (!trait) return null;
-              const isPositive = trait.type === 'positive';
-              return (
-                <div key={traitId} style={{ marginBottom: '12px' }}>
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    marginBottom: '4px'
+          )}
+
+          {phase === 'resolve' && queue && queue.length > 0 && (
+            <div className="hand-cards" style={{ justifyContent: 'center' }}>
+              {queue.filter(a => a.actor === 'player').map((a, i) => {
+                const Icon = a.card.icon;
+                const globalIndex = queue.findIndex(q => q === a);
+                const isUsed = usedCardIndices.includes(globalIndex);
+                const isDisappearing = disappearingCards.includes(globalIndex);
+                const isHidden = hiddenCards.includes(globalIndex);
+                const isDisabled = disabledCardIndices.includes(globalIndex); // 비활성화된 카드 (몬스터 사망 시)
+                const currentBuild = useGameStore.getState().characterBuild;
+                const isMainSpecial = currentBuild?.mainSpecials?.includes(a.card.id);
+                const isSubSpecial = currentBuild?.subSpecials?.includes(a.card.id);
+                const costColor = isMainSpecial ? '#fcd34d' : isSubSpecial ? '#60a5fa' : '#fff';
+
+                // 완전히 숨겨진 카드는 렌더링하지 않음
+                if (isHidden) return null;
+
+                return (
+                  <div
+                    key={`resolve-${globalIndex}`}
+                    onMouseEnter={(e) => {
+                      const cardEl = e.currentTarget.querySelector('.game-card-large');
+                      showCardTraitTooltip(a.card, cardEl);
+                    }}
+                    onMouseLeave={hideCardTraitTooltip}
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '4px',
+                      alignItems: 'center',
+                      position: 'relative',
+                      marginLeft: i === 0 ? '0' : '-20px',
+                      opacity: isDisabled ? 0.4 : 1, // 비활성화된 카드는 투명하게
+                      filter: isDisabled ? 'grayscale(0.8) brightness(0.6)' : 'none' // 빛바란 효과
+                    }}
+                  >
+                    <div className={`game-card-large resolve-phase-card ${a.card.type === 'attack' ? 'attack' : 'defense'} ${isUsed ? 'card-used' : ''} ${isDisappearing ? 'card-disappearing' : ''}`}>
+                      <div className="card-cost-badge-floating" style={{ color: costColor, WebkitTextStroke: '1px #000' }}>{a.card.actionCost}</div>
+                      <div className="card-stats-sidebar">
+                        {a.card.damage != null && a.card.damage > 0 && (
+                          <div className="card-stat-item attack">
+                            ⚔️{a.card.damage + (player.strength || 0)}{a.card.hits ? `×${a.card.hits}` : ''}
+                          </div>
+                        )}
+                        {a.card.block != null && a.card.block > 0 && (
+                          <div className="card-stat-item defense">
+                            🛡️{a.card.block + (player.strength || 0)}
+                          </div>
+                        )}
+                        {a.card.counter !== undefined && (
+                          <div className="card-stat-item counter">
+                            ⚡{a.card.counter}
+                          </div>
+                        )}
+                        <div className="card-stat-item speed">
+                          ⏱️{formatSpeedText(a.card.speedCost)}
+                        </div>
+                      </div>
+                      <div className="card-header" style={{ display: 'flex', justifyContent: 'center' }}>
+                        <div className="text-white font-black text-sm" style={{ display: 'flex', alignItems: 'center' }}>
+                          {renderNameWithBadge(a.card, '#fff')}
+                        </div>
+                      </div>
+                      <div className="card-icon-area">
+                        <Icon size={60} className="text-white opacity-80" />
+                      </div>
+                      <div className={`card-footer ${isSimplified ? 'simplified-footer' : ''}`}>
+                        {a.card.traits && a.card.traits.length > 0 && (
+                          <span style={{ fontWeight: 600, display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                            {a.card.traits.map((traitId) => {
+                              const trait = TRAITS[traitId];
+                              if (!trait) return null;
+                              const isPositive = trait.type === 'positive';
+                              return (
+                                <span key={traitId} style={{
+                                  color: isPositive ? '#22c55e' : '#ef4444',
+                                  background: isPositive ? 'rgba(34, 197, 94, 0.2)' : 'rgba(239, 68, 68, 0.2)',
+                                  padding: '2px 6px',
+                                  borderRadius: '4px',
+                                  border: `1px solid ${isPositive ? '#22c55e' : '#ef4444'}`
+                                }}>
+                                  {trait.name}
+                                </span>
+                              );
+                            })}
+                          </span>
+                        )}
+                        <span className="card-description">{a.card.description || ''}</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {showCharacterSheet && <CharacterSheet onClose={closeCharacterSheet} />}
+
+      {/* 특성 툴팁 */}
+      {showTooltip && tooltipVisible && hoveredCard && hoveredCard.card.traits && hoveredCard.card.traits.length > 0 && (
+        <div
+          className={`trait-tooltip ${tooltipVisible ? 'tooltip-visible' : ''}`}
+          style={{
+            position: 'fixed',
+            left: `${hoveredCard.x}px`,
+            top: `${hoveredCard.y}px`,
+            background: 'rgba(0, 0, 0, 0.95)',
+            border: '2px solid #fbbf24',
+            borderRadius: '12px',
+            padding: '18px 24px',
+            boxShadow: '0 8px 24px rgba(0, 0, 0, 0.9)',
+            zIndex: 10000,
+            pointerEvents: 'none',
+            minWidth: '320px',
+            maxWidth: '450px',
+          }}
+        >
+          <div style={{ fontSize: '21px', fontWeight: 700, color: '#fbbf24', marginBottom: '12px' }}>
+            특성 정보
+          </div>
+          {(() => {
+            const baseCard = CARDS.find(c => c.id === hoveredCard.card.id);
+            const enhancedCard = applyTraitModifiers(baseCard || hoveredCard.card, { usageCount: 0, isInCombo: false });
+            const parts = [];
+            if (baseCard?.damage && enhancedCard.damage && enhancedCard.damage !== baseCard.damage) {
+              const mult = (enhancedCard.damage / baseCard.damage).toFixed(2);
+              parts.push(`공격력: ${enhancedCard.damage} = ${baseCard.damage} × ${mult}`);
+            }
+            if (baseCard?.block && enhancedCard.block && enhancedCard.block !== baseCard.block) {
+              const mult = (enhancedCard.block / baseCard.block).toFixed(2);
+              parts.push(`방어력: ${enhancedCard.block} = ${baseCard.block} × ${mult}`);
+            }
+            return parts.length > 0 ? (
+              <div style={{ marginBottom: '10px', padding: '8px', background: 'rgba(251, 191, 36, 0.12)', borderRadius: '8px', border: '1px solid rgba(251, 191, 36, 0.4)', color: '#fde68a', fontSize: '14px', fontWeight: 700 }}>
+                {parts.map((p, idx) => <div key={idx}>{p}</div>)}
+              </div>
+            ) : null;
+          })()}
+          {hoveredCard.card.traits.map(traitId => {
+            const trait = TRAITS[traitId];
+            if (!trait) return null;
+            const isPositive = trait.type === 'positive';
+            return (
+              <div key={traitId} style={{ marginBottom: '12px' }}>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  marginBottom: '4px'
+                }}>
+                  <span style={{
+                    fontSize: '19px',
+                    fontWeight: 700,
+                    color: isPositive ? '#22c55e' : '#ef4444'
                   }}>
-                    <span style={{
-                      fontSize: '19px',
-                      fontWeight: 700,
-                      color: isPositive ? '#22c55e' : '#ef4444'
-                    }}>
-                      {trait.name}
-                    </span>
-                    <span style={{ fontSize: '16px', color: '#fbbf24' }}>
-                      {"★".repeat(trait.weight)}
-                    </span>
-                  </div>
-                  <div style={{ fontSize: '18px', color: '#9fb6ff', lineHeight: 1.5 }}>
-                    {trait.description}
-                  </div>
+                    {trait.name}
+                  </span>
+                  <span style={{ fontSize: '16px', color: '#fbbf24' }}>
+                    {"★".repeat(trait.weight)}
+                  </span>
                 </div>
-              );
-            })}
+                <div style={{ fontSize: '18px', color: '#9fb6ff', lineHeight: 1.5 }}>
+                  {trait.description}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+      {/* 전역 통찰 툴팁 (뷰포트 기준) */}
+      {hoveredEnemyAction && (phase === 'select' || phase === 'respond' || phase === 'resolve') && ((phase === 'select' ? (insightReveal?.level || 0) : (effectiveInsight || 0)) >= 3) && (
+        <div
+          className="insight-tooltip"
+          style={{
+            position: 'fixed',
+            left: `${hoveredEnemyAction.pageX}px`,
+            top: `${hoveredEnemyAction.pageY + 24}px`,
+            transform: 'translate(-50%, 0)',
+            pointerEvents: 'none',
+            zIndex: 3000,
+          }}
+        >
+          <div className="insight-tooltip-title">
+            #{hoveredEnemyAction.idx + 1} {hoveredEnemyAction.action?.name || '???'}
           </div>
-        )}
-        {/* 전역 통찰 툴팁 (뷰포트 기준) */}
-        {hoveredEnemyAction && (phase === 'select' || phase === 'respond' || phase === 'resolve') && ((phase === 'select' ? (insightReveal?.level || 0) : (effectiveInsight || 0)) >= 3) && (
-          <div
-            className="insight-tooltip"
-            style={{
-              position: 'fixed',
-              left: `${hoveredEnemyAction.pageX}px`,
-              top: `${hoveredEnemyAction.pageY + 24}px`,
-              transform: 'translate(-50%, 0)',
-              pointerEvents: 'none',
-              zIndex: 3000,
-            }}
-          >
-            <div className="insight-tooltip-title">
-              #{hoveredEnemyAction.idx + 1} {hoveredEnemyAction.action?.name || '???'}
-            </div>
+          <div className="insight-tooltip-desc" style={{ marginBottom: '4px' }}>
+            ⏱️ {hoveredEnemyAction.action?.speedCost ?? hoveredEnemyAction.action?.speed ?? '-'}
+          </div>
+          {(hoveredEnemyAction.action?.damage || hoveredEnemyAction.action?.block) && (
             <div className="insight-tooltip-desc" style={{ marginBottom: '4px' }}>
-              ⏱️ {hoveredEnemyAction.action?.speedCost ?? hoveredEnemyAction.action?.speed ?? '-'}
+              {hoveredEnemyAction.action.damage ? `⚔️ ${hoveredEnemyAction.action.damage}${hoveredEnemyAction.action.hits ? ` x${hoveredEnemyAction.action.hits}` : ''}` : ''}
+              {hoveredEnemyAction.action.damage && hoveredEnemyAction.action.block ? ' / ' : ''}
+              {hoveredEnemyAction.action.block ? `🛡️ ${hoveredEnemyAction.action.block}` : ''}
             </div>
-            {(hoveredEnemyAction.action?.damage || hoveredEnemyAction.action?.block) && (
-              <div className="insight-tooltip-desc" style={{ marginBottom: '4px' }}>
-                {hoveredEnemyAction.action.damage ? `⚔️ ${hoveredEnemyAction.action.damage}${hoveredEnemyAction.action.hits ? ` x${hoveredEnemyAction.action.hits}` : ''}` : ''}
-                {hoveredEnemyAction.action.damage && hoveredEnemyAction.action.block ? ' / ' : ''}
-                {hoveredEnemyAction.action.block ? `🛡️ ${hoveredEnemyAction.action.block}` : ''}
-              </div>
-            )}
-            {hoveredEnemyAction.action?.traits && hoveredEnemyAction.action.traits.length > 0 && (
-              <div className="insight-tooltip-desc" style={{ color: '#a78bfa' }}>
-                특성: {hoveredEnemyAction.action.traits.join(', ')}
-              </div>
-            )}
-            {!hoveredEnemyAction.action?.damage && !hoveredEnemyAction.action?.block && !hoveredEnemyAction.action?.traits?.length && (
-              <div className="insight-tooltip-desc">상세 정보가 없습니다.</div>
-            )}
-          </div>
-        )}
-      </div>
+          )}
+          {hoveredEnemyAction.action?.traits && hoveredEnemyAction.action.traits.length > 0 && (
+            <div className="insight-tooltip-desc" style={{ color: '#a78bfa' }}>
+              특성: {hoveredEnemyAction.action.traits.join(', ')}
+            </div>
+          )}
+          {!hoveredEnemyAction.action?.damage && !hoveredEnemyAction.action?.block && !hoveredEnemyAction.action?.traits?.length && (
+            <div className="insight-tooltip-desc">상세 정보가 없습니다.</div>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
 
