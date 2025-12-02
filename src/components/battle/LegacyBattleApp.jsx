@@ -3204,17 +3204,49 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         )}
       </div>
 
-      {/* 상단 메인 영역 */}
-      <div className="w-full px-4" style={{ marginRight: '280px', marginLeft: '20px' }}>
+      {/* 타임라인 숫자 오버레이 (고정) */}
+      {(() => {
+        const commonMax = Math.max(player.maxSpeed || DEFAULT_PLAYER_MAX_SPEED, enemy.maxSpeed || DEFAULT_ENEMY_MAX_SPEED);
+        const ticks = generateSpeedTicks(commonMax);
+        return (
+          <div style={{ position: 'fixed', top: '155px', left: '240px', right: '360px', width: 'auto', maxWidth: '1400px', zIndex: 3600, pointerEvents: 'none' }}>
+            <div style={{ position: 'relative', height: '28px', color: '#ffb366', textShadow: '0 0 8px rgba(255, 179, 102, 0.9), 0 0 14px rgba(0, 0, 0, 0.8)', fontWeight: 800, fontSize: '15px' }}>
+              {ticks.map((tick) => {
+                const label = tick.toString().split('').join(' ');
+                const left = (tick / commonMax) * 100;
+                return (
+                  <span
+                    key={tick}
+                    style={{
+                      position: 'absolute',
+                      left: `${left}%`,
+                      transform: 'translate(-50%, 0)',
+                      whiteSpace: 'nowrap'
+                    }}
+                  >
+                    {label}
+                  </span>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })()}
 
-        {/* 유물 표시 */}
+      {/* 상단 메인 영역 */}
+      <div className="w-full px-0" style={{ marginRight: '280px', marginLeft: '-100px' }}>
+
+        {/* 유물 표시 (상단 고정) */}
         {orderedRelicList && orderedRelicList.length > 0 && (
           <div style={{
+            position: 'fixed',
+            top: '12px',
+            left: '50%',
+            transform: 'translateX(-50%)',
             display: 'flex',
-            marginBottom: '16px',
             justifyContent: 'center',
             alignItems: 'center',
-            position: 'relative',
+            zIndex: 4000,
             pointerEvents: 'none'
           }}>
             <div style={{
@@ -3319,14 +3351,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         )}
 
         {/* Timeline - 1줄 길게 (화면 가득) */}
-        <div style={{ marginBottom: '32px' }}>
-          <div className="panel-enhanced timeline-panel">
-            <div className="timeline-body" style={{ marginTop: '0' }}>
-              <div className="timeline-axis">
-                {generateSpeedTicks(Math.max(player.maxSpeed, enemy.maxSpeed)).map((tick) => (
-                  <span key={tick}>{tick}</span>
-                ))}
-              </div>
+        <div style={{ marginBottom: '32px', position: 'fixed', top: '70px', left: '240px', right: '360px', width: 'auto', maxWidth: '1400px', zIndex: 3500, background: 'transparent' }}>
+          <div className="panel-enhanced timeline-panel" style={{ minHeight: '130px', background: 'transparent', border: 'none', boxShadow: 'none', padding: '0', margin: '0' }}>
+            <div className="timeline-body" style={{ marginTop: '0', padding: '14px 0 0 0', background: 'transparent', borderRadius: '0', border: 'none', boxShadow: 'none', position: 'relative' }}>
               {/* 타임라인 progress indicator (시곗바늘) */}
               {phase === 'resolve' && (
                 <div
@@ -3460,13 +3487,15 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
             </div>
           </div>
         </div>
+        {/* 고정된 타임라인 공간 확보용 여백 */}
+        <div style={{ height: '220px' }} />
 
         {/* 플레이어/적 정보 + 중앙 정보 통합 레이아웃 */}
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '50px', gap: '120px', position: 'relative' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '50px', gap: '120px', position: 'relative', marginTop: '40px' }}>
           {phase === 'resolve' && etherFinalValue !== null && enemyEtherFinalValue !== null && (
             <div style={{
               position: 'absolute',
-              top: '280px',
+              top: '750px',
               left: 'calc(50% - 50px)',
               transform: 'translateX(-50%)',
               display: 'flex',
