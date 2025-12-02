@@ -3234,7 +3234,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       })()}
 
       {/* 상단 메인 영역 */}
-      <div className="w-full px-0" style={{ marginRight: '280px', marginLeft: '-100px' }}>
+      <>
 
         {/* 유물 표시 (상단 고정) */}
         {orderedRelicList && orderedRelicList.length > 0 && (
@@ -3560,87 +3560,104 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
           )}
           {/* 왼쪽: 플레이어 */}
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '12px', minWidth: '360px', position: 'relative', justifyContent: 'flex-end', paddingTop: '200px' }}>
-            {/* 플레이어 콤보 - 절대 위치로 오른쪽 배치 */}
+            {/* 플레이어 에테르 박스 */}
             {currentCombo && (phase === 'select' || phase === 'respond' || phase === 'resolve') && (
-              <div className="combo-display" style={{ position: 'absolute', top: '-5px', left: '90px', textAlign: 'center', minHeight: '140px' }}>
-                <div style={{
-                  fontSize: '1.92rem',
-                  fontWeight: 'bold',
-                  color: '#fbbf24',
-                  marginBottom: '2px',
-                  height: '2.5rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  position: 'relative'
-                }}>
-                  <span>{currentCombo.name}</span>
-                  {currentDeflation && (
-                    <div style={{
-                      position: 'absolute',
-                      left: 'calc(50% + 120px)',
-                      fontSize: etherCalcPhase === 'deflation' ? '1.1rem' : '0.9rem',
-                      fontWeight: 'bold',
-                      color: '#fca5a5',
-                      background: 'linear-gradient(135deg, rgba(252, 165, 165, 0.25), rgba(252, 165, 165, 0.1))',
-                      border: '1.5px solid rgba(252, 165, 165, 0.5)',
-                      borderRadius: '6px',
-                      padding: '4px 10px',
-                      letterSpacing: '0.05em',
-                      boxShadow: '0 0 10px rgba(252, 165, 165, 0.3), inset 0 0 5px rgba(252, 165, 165, 0.15)',
-                      transition: 'font-size 0.3s ease, transform 0.3s ease',
-                      transform: etherCalcPhase === 'deflation' ? 'scale(1.2)' : 'scale(1)',
-                      textShadow: etherCalcPhase === 'deflation' ? '0 0 15px rgba(252, 165, 165, 0.6)' : 'none'
-                    }}>
-                      -{Math.round((1 - currentDeflation.multiplier) * 100)}%
-                    </div>
-                  )}
-                </div>
-                <div style={{
-                  fontSize: etherPulse ? '1.8rem' : (etherCalcPhase === 'sum' ? '2rem' : '1.5rem'),
-                  color: '#fbbf24',
-                  fontWeight: 'bold',
-                  letterSpacing: '0.2em',
-                  marginBottom: '2px',
-                  transition: 'font-size 0.3s ease, transform 0.3s ease',
-                  transform: etherPulse ? 'scale(1.2)' : (etherCalcPhase === 'sum' ? 'scale(1.3)' : 'scale(1)'),
-                  textShadow: etherCalcPhase === 'sum' ? '0 0 20px #fbbf24' : 'none',
-                  visibility: phase === 'resolve' ? 'visible' : 'hidden',
-                  height: '1.8rem'
-                }}>
-                  + {turnEtherAccumulated.toString().split('').join(' ')} P T
-                </div>
-                <div style={{
-                  fontSize: etherCalcPhase === 'multiply' ? '1.6rem' : '1.32rem',
-                  color: '#fbbf24',
-                  fontWeight: 'bold',
-                  letterSpacing: '0.15em',
-                  minWidth: '400px',
-                  height: '2rem',
-                  marginTop: '8px',
-                  display: 'flex',
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  gap: '12px',
-                  transition: 'font-size 0.3s ease, transform 0.3s ease',
-                  transform: (etherCalcPhase === 'multiply' || multiplierPulse) ? 'scale(1.3)' : 'scale(1)',
-                  textShadow: (etherCalcPhase === 'multiply' || multiplierPulse) ? '0 0 20px #fbbf24' : 'none'
-                }}>
-                  <span>× {finalComboMultiplier.toFixed(2).split('').join(' ')}</span>
+              <div
+                className="player-ether-box"
+                style={{
+                  position: 'absolute',
+                  top: '70px',
+                  left: '40px',
+                  padding: '0',
+                  borderRadius: '12px',
+                  background: 'transparent',
+                  border: 'none',
+                  boxShadow: 'none',
+                  minHeight: '140px',
+                  pointerEvents: 'none'
+                }}
+              >
+                <div className="combo-display" style={{ textAlign: 'center' }}>
+                  <div style={{
+                    fontSize: '1.92rem',
+                    fontWeight: 'bold',
+                    color: '#fbbf24',
+                    marginBottom: '2px',
+                    height: '2.5rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    position: 'relative'
+                  }}>
+                    <span>{currentCombo.name}</span>
+                    {currentDeflation && (
+                      <div style={{
+                        position: 'absolute',
+                        left: 'calc(50% + 120px)',
+                        fontSize: etherCalcPhase === 'deflation' ? '1.1rem' : '0.9rem',
+                        fontWeight: 'bold',
+                        color: '#fca5a5',
+                        background: 'linear-gradient(135deg, rgba(252, 165, 165, 0.25), rgba(252, 165, 165, 0.1))',
+                        border: '1.5px solid rgba(252, 165, 165, 0.5)',
+                        borderRadius: '6px',
+                        padding: '4px 10px',
+                        letterSpacing: '0.05em',
+                        boxShadow: '0 0 10px rgba(252, 165, 165, 0.3), inset 0 0 5px rgba(252, 165, 165, 0.15)',
+                        transition: 'font-size 0.3s ease, transform 0.3s ease',
+                        transform: etherCalcPhase === 'deflation' ? 'scale(1.2)' : 'scale(1)',
+                        textShadow: etherCalcPhase === 'deflation' ? '0 0 15px rgba(252, 165, 165, 0.6)' : 'none'
+                      }}>
+                        -{Math.round((1 - currentDeflation.multiplier) * 100)}%
+                      </div>
+                    )}
+                  </div>
+                  <div style={{
+                    fontSize: etherPulse ? '1.8rem' : (etherCalcPhase === 'sum' ? '2rem' : '1.5rem'),
+                    color: '#fbbf24',
+                    fontWeight: 'bold',
+                    letterSpacing: '0.2em',
+                    marginBottom: '2px',
+                    transition: 'font-size 0.3s ease, transform 0.3s ease',
+                    transform: etherPulse ? 'scale(1.2)' : (etherCalcPhase === 'sum' ? 'scale(1.3)' : 'scale(1)'),
+                    textShadow: etherCalcPhase === 'sum' ? '0 0 20px #fbbf24' : 'none',
+                    visibility: phase === 'resolve' ? 'visible' : 'hidden',
+                    height: '1.8rem'
+                  }}>
+                    + {turnEtherAccumulated.toString().split('').join(' ')} P T
+                  </div>
+                  <div style={{
+                    fontSize: etherCalcPhase === 'multiply' ? '1.6rem' : '1.32rem',
+                    color: '#fbbf24',
+                    fontWeight: 'bold',
+                    letterSpacing: '0.15em',
+                    minWidth: '400px',
+                    height: '2rem',
+                    marginTop: '8px',
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    gap: '12px',
+                    transition: 'font-size 0.3s ease, transform 0.3s ease',
+                    transform: (etherCalcPhase === 'multiply' || multiplierPulse) ? 'scale(1.3)' : 'scale(1)',
+                    textShadow: (etherCalcPhase === 'multiply' || multiplierPulse) ? '0 0 20px #fbbf24' : 'none'
+                  }}>
+                    <span>× {finalComboMultiplier.toFixed(2).split('').join(' ')}</span>
+                  </div>
                 </div>
               </div>
             )}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', position: 'relative' }}>
-              <div style={{ position: 'relative' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <div className={`character-display ${playerOverdriveFlash ? 'overdrive-burst' : ''}`} style={{ fontSize: '64px' }}>🧙‍♂️</div>
-                  <div>
-                    <div className={playerHit ? 'hit-animation' : ''} style={{ color: '#f87171', fontSize: '1.25rem', fontWeight: 'bold' }}>
-                      ❤️ {player.hp}/{player.maxHp}
-                      {player.block > 0 && <span className={playerBlockAnim ? 'block-animation' : ''} style={{ color: '#60a5fa', marginLeft: '8px' }}>🛡️{player.block}</span>}
-                    </div>
-                    <div style={{ position: 'relative' }}>
-                      <div className="hp-bar-enhanced mb-1" style={{ width: '200px', height: '12px', position: 'relative', overflow: 'hidden' }}>
+            <div style={{ position: 'fixed', top: '500px', left: '150px', zIndex: 3000, pointerEvents: 'none' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px', position: 'relative' }}>
+                <div style={{ position: 'relative', pointerEvents: 'auto' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div className={`character-display ${playerOverdriveFlash ? 'overdrive-burst' : ''}`} style={{ fontSize: '64px' }}>🧙‍♂️</div>
+                    <div></div>
+                      <div style={{ position: 'relative' }}>
+                        <div className={playerHit ? 'hit-animation' : ''} style={{ color: '#f87171', fontSize: '1.25rem', fontWeight: 'bold', position: 'absolute', top: '-30px', left: '0' }}>
+                          ❤️ {player.hp}/{player.maxHp}
+                          {player.block > 0 && <span className={playerBlockAnim ? 'block-animation' : ''} style={{ color: '#60a5fa', marginLeft: '8px' }}>🛡️{player.block}</span>}
+                        </div>
+                        <div className="hp-bar-enhanced mb-1" style={{ width: '200px', height: '12px', position: 'relative', overflow: 'hidden' }}>
                         <div className="hp-fill" style={{ width: `${(player.hp / player.maxHp) * 100}%` }}></div>
                         {player.block > 0 && (
                           <div style={{
@@ -3655,7 +3672,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                         )}
                       </div>
                     </div>
-                    <div style={{ fontSize: '1rem', fontWeight: '600', color: '#7dd3fc', marginTop: '4px' }}>플레이어</div>
                     {(player.strength || 0) > 0 && (
                       <div style={{ fontSize: '0.9rem', fontWeight: '700', color: '#fbbf24', marginTop: '2px' }}>
                         💪 힘: {player.strength || 0}
@@ -3734,8 +3750,29 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
             </div>
           </div>
 
-          {/* 중앙: 단계 정보 */}
-          <div style={{ textAlign: 'center', flex: '0 0 auto', paddingTop: '20px', transform: 'translateX(0px)', marginRight: '0' }}>
+          {/* 중앙 UI 박스 */}
+          <div style={{
+            textAlign: 'center',
+            flex: '0 0 auto',
+            paddingTop: '20px',
+            transform: 'translateX(0px)',
+            marginRight: '0',
+            display: 'inline-flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '10px',
+            background: 'transparent',
+            border: 'none',
+            borderRadius: '16px',
+            padding: '20px 28px',
+            boxShadow: 'none',
+            position: 'fixed',
+            top: '270px',
+            left: '50%',
+            transform: 'translate(calc(-50% - 165px), 0)',
+            zIndex: 3600,
+            pointerEvents: 'auto'
+          }}>
             <div style={{ fontSize: '36px', fontWeight: 'bold', color: '#f8fafc', textShadow: '0 2px 8px rgba(0,0,0,0.5)', marginBottom: '16px' }}>
               {phase === 'select' ? '선택 단계' : phase === 'respond' ? '대응 단계' : '진행 단계'}
             </div>
@@ -3807,6 +3844,76 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
             )}
           </div>
 
+          {/* 최종값 텍스트를 중앙 UI 박스 하단으로 이동 */}
+          {phase === 'resolve' && etherFinalValue !== null && enemyEtherFinalValue !== null && (
+            <div style={{
+              position: 'fixed',
+              top: '620px',
+              left: '50%',
+              transform: 'translate(calc(-50% - 180px), 0)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '32px',
+              padding: '12px 36px',
+              background: 'rgba(8, 15, 30, 0.35)',
+              borderRadius: '18px',
+              border: '1.5px solid rgba(148, 163, 184, 0.35)',
+              boxShadow: '0 10px 28px rgba(0,0,0,0.35), inset 0 0 12px rgba(94, 234, 212, 0.1)',
+              pointerEvents: 'none',
+              zIndex: 3600
+            }}>
+              <div style={{
+                padding: '10px 20px',
+                borderRadius: '12px',
+                background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.18), rgba(56, 189, 248, 0.14))',
+                border: '2px solid rgba(125, 211, 252, 0.9)',
+                color: '#e0f2fe',
+                fontWeight: '900',
+                letterSpacing: '0.14em',
+                fontSize: '1.25rem',
+                minWidth: '190px',
+                textAlign: 'center',
+                whiteSpace: 'nowrap',
+                boxShadow: '0 0 16px rgba(125, 211, 252, 0.35)'
+              }}>
+                {etherFinalValue.toLocaleString()} P T
+              </div>
+              <div style={{ width: '96px', height: '2px', background: 'linear-gradient(90deg, rgba(125,211,252,0.0), rgba(125,211,252,0.8))', boxShadow: '0 0 10px rgba(125,211,252,0.35)' }} />
+              <div style={{
+                padding: '12px 22px',
+                borderRadius: '12px',
+                background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.25), rgba(16, 185, 129, 0.25))',
+                border: '2px solid rgba(125, 211, 252, 0.7)',
+                color: '#e0f2fe',
+                fontWeight: '900',
+                fontSize: '1.3rem',
+                letterSpacing: '0.14em',
+                whiteSpace: 'nowrap',
+                minWidth: '130px',
+                textAlign: 'center'
+              }}>
+                Δ {netFinalEther.toLocaleString()} P T
+              </div>
+              <div style={{ width: '96px', height: '2px', background: 'linear-gradient(90deg, rgba(125,211,252,0.8), rgba(125,211,252,0.0))', boxShadow: '0 0 10px rgba(125,211,252,0.35)' }} />
+              <div style={{
+                padding: '10px 20px',
+                borderRadius: '12px',
+                background: 'linear-gradient(135deg, rgba(248, 113, 113, 0.22), rgba(244, 63, 94, 0.14))',
+                border: '2px solid rgba(248, 113, 113, 0.9)',
+                color: '#ffe4e6',
+                fontWeight: '900',
+                letterSpacing: '0.14em',
+                fontSize: '1.25rem',
+                minWidth: '190px',
+                textAlign: 'center',
+                whiteSpace: 'nowrap',
+                boxShadow: '0 0 16px rgba(248, 113, 113, 0.35)'
+              }}>
+                {enemyEtherFinalValue.toLocaleString()} P T
+              </div>
+            </div>
+          )}
+
           {/* 오른쪽: 적 */}
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '12px', minWidth: '360px', position: 'relative', justifyContent: 'center', paddingTop: '120px' }}>
             {soulShatter && (
@@ -3816,145 +3923,176 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
             )}
             {/* 몬스터 콤보 + 에테르 계산 - 절대 위치로 왼쪽 배치 */}
             {enemyCombo && !((phase === 'select') && ((insightReveal?.level || 0) === 0)) && (phase === 'select' || phase === 'respond' || phase === 'resolve') && (
-              <div className="combo-display" style={{ position: 'absolute', top: '-5px', right: '90px', textAlign: 'center', minHeight: '140px' }}>
-                <div style={{
-                  fontSize: '1.92rem',
-                  fontWeight: 'bold',
-                  color: '#fbbf24',
-                  marginBottom: '2px',
-                  height: '2.5rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  position: 'relative'
-                }}>
-                  <span>{enemyCombo.name}</span>
-                  {enemyCurrentDeflation && (
-                    <div style={{
-                      position: 'absolute',
-                      right: 'calc(50% + 120px)',
-                      fontSize: enemyEtherCalcPhase === 'deflation' ? '1.1rem' : '0.9rem',
-                      fontWeight: 'bold',
-                      color: '#fca5a5',
-                      background: 'linear-gradient(135deg, rgba(252, 165, 165, 0.25), rgba(252, 165, 165, 0.1))',
-                      border: '1.5px solid rgba(252, 165, 165, 0.5)',
-                      borderRadius: '6px',
-                      padding: '4px 10px',
-                      letterSpacing: '0.05em',
-                      boxShadow: '0 0 10px rgba(252, 165, 165, 0.3), inset 0 0 5px rgba(252, 165, 165, 0.15)',
-                      transition: 'font-size 0.3s ease, transform 0.3s ease',
-                      transform: enemyEtherCalcPhase === 'deflation' ? 'scale(1.2)' : 'scale(1)',
-                      textShadow: enemyEtherCalcPhase === 'deflation' ? '0 0 15px rgba(252, 165, 165, 0.6)' : 'none'
-                    }}>
-                      -{Math.round((1 - enemyCurrentDeflation.multiplier) * 100)}%
-                    </div>
-                  )}
-                </div>
-                <div style={{
-                  fontSize: enemyEtherCalcPhase === 'sum' ? '2rem' : '1.5rem',
-                  color: '#fbbf24',
-                  fontWeight: 'bold',
-                  letterSpacing: '0.2em',
-                  marginBottom: '2px',
-                  transition: 'font-size 0.3s ease, transform 0.3s ease',
-                  transform: enemyEtherCalcPhase === 'sum' ? 'scale(1.3)' : 'scale(1)',
-                  textShadow: enemyEtherCalcPhase === 'sum' ? '0 0 20px #fbbf24' : 'none',
-                  visibility: phase === 'resolve' ? 'visible' : 'hidden',
-                  height: '1.8rem'
-                }}>
-                  + {enemyTurnEtherAccumulated.toString().split('').join(' ')} P T
-                </div>
-                <div style={{
-                  fontSize: enemyEtherCalcPhase === 'multiply' ? '1.6rem' : '1.32rem',
-                  color: '#fbbf24',
-                  fontWeight: 'bold',
-                  letterSpacing: '0.15em',
-                  minWidth: '400px',
-                  height: '2rem',
-                  marginTop: '8px',
-                  display: 'flex',
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  gap: '12px',
-                  transition: 'font-size 0.3s ease, transform 0.3s ease',
-                  transform: enemyEtherCalcPhase === 'multiply' ? 'scale(1.3)' : 'scale(1)',
-                  textShadow: enemyEtherCalcPhase === 'multiply' ? '0 0 20px #fbbf24' : 'none'
-                }}>
-                  <span>× {((enemyCombo && COMBO_MULTIPLIERS[enemyCombo.name]) || 1).toFixed(2).split('').join(' ')}</span>
+              <div
+                className="enemy-ether-box"
+                style={{
+                  position: 'fixed',
+                  top: '330px',
+                  right: '510px',
+                  padding: '0',
+                  borderRadius: '12px',
+                  background: 'transparent',
+                  border: 'none',
+                  boxShadow: 'none',
+                  minHeight: '140px',
+                  pointerEvents: 'none',
+                  textAlign: 'center'
+                }}
+              >
+                <div className="combo-display">
+                  <div style={{
+                    fontSize: '1.92rem',
+                    fontWeight: 'bold',
+                    color: '#fbbf24',
+                    marginBottom: '2px',
+                    height: '2.5rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    position: 'relative'
+                  }}>
+                    <span>{enemyCombo.name}</span>
+                    {enemyCurrentDeflation && (
+                      <div style={{
+                        position: 'absolute',
+                        right: 'calc(50% + 120px)',
+                        fontSize: enemyEtherCalcPhase === 'deflation' ? '1.1rem' : '0.9rem',
+                        fontWeight: 'bold',
+                        color: '#fca5a5',
+                        background: 'linear-gradient(135deg, rgba(252, 165, 165, 0.25), rgba(252, 165, 165, 0.1))',
+                        border: '1.5px solid rgba(252, 165, 165, 0.5)',
+                        borderRadius: '6px',
+                        padding: '4px 10px',
+                        letterSpacing: '0.05em',
+                        boxShadow: '0 0 10px rgba(252, 165, 165, 0.3), inset 0 0 5px rgba(252, 165, 165, 0.15)',
+                        transition: 'font-size 0.3s ease, transform 0.3s ease',
+                        transform: enemyEtherCalcPhase === 'deflation' ? 'scale(1.2)' : 'scale(1)',
+                        textShadow: enemyEtherCalcPhase === 'deflation' ? '0 0 15px rgba(252, 165, 165, 0.6)' : 'none'
+                      }}>
+                        -{Math.round((1 - enemyCurrentDeflation.multiplier) * 100)}%
+                      </div>
+                    )}
+                  </div>
+                  <div style={{
+                    fontSize: enemyEtherCalcPhase === 'sum' ? '2rem' : '1.5rem',
+                    color: '#fbbf24',
+                    fontWeight: 'bold',
+                    letterSpacing: '0.2em',
+                    marginBottom: '2px',
+                    transition: 'font-size 0.3s ease, transform 0.3s ease',
+                    transform: enemyEtherCalcPhase === 'sum' ? 'scale(1.3)' : 'scale(1)',
+                    textShadow: enemyEtherCalcPhase === 'sum' ? '0 0 20px #fbbf24' : 'none',
+                    visibility: phase === 'resolve' ? 'visible' : 'hidden',
+                    height: '1.8rem'
+                  }}>
+                    + {enemyTurnEtherAccumulated.toString().split('').join(' ')} P T
+                  </div>
+                  <div style={{
+                    fontSize: enemyEtherCalcPhase === 'multiply' ? '1.6rem' : '1.32rem',
+                    color: '#fbbf24',
+                    fontWeight: 'bold',
+                    letterSpacing: '0.15em',
+                    minWidth: '400px',
+                    height: '2rem',
+                    marginTop: '8px',
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    gap: '12px',
+                    transition: 'font-size 0.3s ease, transform 0.3s ease',
+                    transform: enemyEtherCalcPhase === 'multiply' ? 'scale(1.3)' : 'scale(1)',
+                    textShadow: enemyEtherCalcPhase === 'multiply' ? '0 0 20px #fbbf24' : 'none'
+                  }}>
+                    <span>× {((enemyCombo && COMBO_MULTIPLIERS[enemyCombo.name]) || 1).toFixed(2).split('').join(' ')}</span>
+                  </div>
                 </div>
               </div>
             )}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', position: 'relative' }}>
-              <div style={{ textAlign: 'right', position: 'relative', paddingRight: '8px' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
-                  {enemyHint && (
-                    <div style={{ fontSize: '1rem', color: '#94a3b8', marginBottom: '4px' }}>💡 {enemyHint}</div>
-                  )}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginRight: '0', paddingRight: '0', gap: '40px' }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '16px',
+                padding: '18px 22px',
+                borderRadius: '16px',
+                background: 'transparent',
+                border: 'none',
+                boxShadow: 'none',
+                position: 'fixed',
+                top: '420px',
+                right: '300px',
+                pointerEvents: 'none'
+              }}>
+                <div style={{ textAlign: 'right', position: 'relative', paddingRight: '8px', pointerEvents: 'auto' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
+                    {enemyHint && (
+                      <div style={{ fontSize: '1rem', color: '#94a3b8', marginBottom: '4px' }}>💡 {enemyHint}</div>
+                    )}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                     <div style={{ position: 'relative' }}>
                       {(phase === 'select' || phase === 'respond') && previewDamage.value > 0 && (
                         <div className={`predicted-damage-inline ${previewDamage.lethal ? 'lethal' : ''} ${previewDamage.overkill ? 'overkill' : ''}`}>
                           <span className="predicted-damage-inline-value">🗡️ -{previewDamage.value}</span>
                           {previewDamage.lethal && (
                             <span className={`predicted-damage-inline-icon ${previewDamage.overkill ? 'overkill-icon' : ''}`} aria-hidden="true">
-                              {previewDamage.overkill ? '☠️' : '💀'}
-                            </span>
+                                {previewDamage.overkill ? '☠️' : '💀'}
+                              </span>
+                            )}
+                          </div>
+                        )}
+                        <div className={enemyHit ? 'hit-animation' : ''} style={{ color: '#f87171', fontSize: '1.25rem', fontWeight: 'bold', textAlign: 'right', transition: 'opacity 0.4s ease, transform 0.4s ease', opacity: soulShatter ? 0 : 1, transform: soulShatter ? 'scale(0.9)' : 'scale(1)' }}>
+                          {enemy.block > 0 && <span className={enemyBlockAnim ? 'block-animation' : ''} style={{ color: '#60a5fa', marginRight: '8px' }}>🛡️{enemy.block}</span>}
+                          ❤️ {enemy.hp}/{enemy.maxHp}
+                        </div>
+                        <div className="hp-bar-enhanced mb-1" style={{ width: '200px', height: '12px', position: 'relative', overflow: 'hidden' }}>
+                          <div className="hp-fill" style={{ width: `${(enemy.hp / enemy.maxHp) * 100}%` }}></div>
+                          {enemy.block > 0 && (
+                            <div style={{
+                              position: 'absolute',
+                              left: 0,
+                              top: 0,
+                              height: '100%',
+                              width: `${Math.min((enemy.block / enemy.maxHp) * 100, 100)}%`,
+                              background: 'linear-gradient(90deg, rgba(96, 165, 250, 0.6), rgba(96, 165, 250, 0.3))',
+                              borderRight: '2px solid #60a5fa'
+                            }}></div>
                           )}
                         </div>
-                      )}
-                      <div className={enemyHit ? 'hit-animation' : ''} style={{ color: '#f87171', fontSize: '1.25rem', fontWeight: 'bold', textAlign: 'right', transition: 'opacity 0.4s ease, transform 0.4s ease', opacity: soulShatter ? 0 : 1, transform: soulShatter ? 'scale(0.9)' : 'scale(1)' }}>
-                        {enemy.block > 0 && <span className={enemyBlockAnim ? 'block-animation' : ''} style={{ color: '#60a5fa', marginRight: '8px' }}>🛡️{enemy.block}</span>}
-                        ❤️ {enemy.hp}/{enemy.maxHp}
                       </div>
-                      <div className="hp-bar-enhanced mb-1" style={{ width: '200px', height: '12px', position: 'relative', overflow: 'hidden' }}>
-                        <div className="hp-fill" style={{ width: `${(enemy.hp / enemy.maxHp) * 100}%` }}></div>
-                        {enemy.block > 0 && (
-                          <div style={{
-                            position: 'absolute',
-                            left: 0,
-                            top: 0,
-                            height: '100%',
-                            width: `${Math.min((enemy.block / enemy.maxHp) * 100, 100)}%`,
-                            background: 'linear-gradient(90deg, rgba(96, 165, 250, 0.6), rgba(96, 165, 250, 0.3))',
-                            borderRight: '2px solid #60a5fa'
-                          }}></div>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
+                        {enemy.composition && enemy.composition.length > 0 ? (
+                          enemy.composition.map((member, idx) => (
+                            <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <span style={{
+                                fontSize: '1rem',
+                                color: '#e2e8f0',
+                                fontWeight: '600',
+                                textShadow: '0 2px 4px rgba(0,0,0,0.5)',
+                                background: 'rgba(0,0,0,0.3)',
+                                padding: '2px 8px',
+                                borderRadius: '4px'
+                              }}>
+                                {member.name}
+                              </span>
+                              <div
+                                className={`character-display ${soulShatter ? 'soul-shatter-target' : ''} ${enemyOverdriveFlash ? 'overdrive-burst' : ''}`}
+                                style={{
+                                  fontSize: '56px',
+                                  filter: idx > 0 ? 'brightness(0.95)' : 'none'
+                                }}
+                              >
+                                {member.emoji}
+                              </div>
+                            </div>
+                          ))
+                        ) : (
+                          <div className={`character-display ${soulShatter ? 'soul-shatter-target' : ''} ${enemyOverdriveFlash ? 'overdrive-burst' : ''}`} style={{ fontSize: '64px' }}>👹</div>
                         )}
                       </div>
                     </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
-                      {enemy.composition && enemy.composition.length > 0 ? (
-                        enemy.composition.map((member, idx) => (
-                          <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <span style={{
-                              fontSize: '1rem',
-                              color: '#e2e8f0',
-                              fontWeight: '600',
-                              textShadow: '0 2px 4px rgba(0,0,0,0.5)',
-                              background: 'rgba(0,0,0,0.3)',
-                              padding: '2px 8px',
-                              borderRadius: '4px'
-                            }}>
-                              {member.name}
-                            </span>
-                            <div
-                              className={`character-display ${soulShatter ? 'soul-shatter-target' : ''} ${enemyOverdriveFlash ? 'overdrive-burst' : ''}`}
-                              style={{
-                                fontSize: '56px',
-                                filter: idx > 0 ? 'brightness(0.95)' : 'none'
-                              }}
-                            >
-                              {member.emoji}
-                            </div>
-                          </div>
-                        ))
-                      ) : (
-                        <div className={`character-display ${soulShatter ? 'soul-shatter-target' : ''} ${enemyOverdriveFlash ? 'overdrive-burst' : ''}`} style={{ fontSize: '64px' }}>👹</div>
-                      )}
-                    </div>
                   </div>
                 </div>
-              </div>
-              <div
+                <div
                 className={`soul-orb ${enemyTransferPulse ? 'pulse' : ''} ${soulShatter ? 'shatter' : ''}`}
                 title={`${(enemyEtherValue || 0).toLocaleString()} / ${((enemy?.etherCapacity ?? enemyEtherValue) || 0).toLocaleString()}`}
               >
@@ -3964,6 +4102,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                   <div className="soul-orb-label">SOUL</div>
                 </div>
               </div>
+            </div>
             </div>
           </div>
         </div>
@@ -4415,7 +4554,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
             )}
           </div>
         )}
-      </div>
+      </>
     </div>
   );
 }
