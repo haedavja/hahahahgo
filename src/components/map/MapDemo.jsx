@@ -7,6 +7,7 @@ import { LegacyBattleScreen } from "../battle/LegacyBattleScreen";
 import { EtherBar } from "../battle/LegacyBattleApp";
 import { DevTools } from "../dev/DevTools";
 import { RELICS, RELIC_RARITIES } from "../../data/relics";
+import { CARDS } from "../battle/battleData";
 import { applyNodeMoveEther } from "../../lib/relicEffects";
 
 // 유물 희귀도별 색상
