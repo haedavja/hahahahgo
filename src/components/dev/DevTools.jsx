@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useGameStore } from '../../state/gameStore';
 import { getAllRelics, RELIC_RARITIES } from '../../data/relics';
+import { CARDS } from '../battle/battleData';
 
 /**
  * 개발자 도구 오버레이
@@ -33,6 +34,8 @@ export function DevTools({ isOpen, onClose }) {
     devOpenRest,
     awakenAtRest,
     closeRest,
+    cardUpgrades,
+    upgradeCardRarity,
   } = useGameStore();
 
   if (!isOpen) return null;
@@ -92,15 +95,16 @@ export function DevTools({ isOpen, onClose }) {
         borderBottom: '1px solid #334155',
       }}>
         {[
-          { id: 'resources', label: '💰 자원', icon: '💰' },
-          { id: 'map', label: '🗺️ 맵', icon: '🗺️' },
-          { id: 'battle', label: '⚔️ 전투', icon: '⚔️' },
-          { id: 'relics', label: '💎 유물', icon: '💎' },
-          { id: 'event', label: '🎲 이벤트', icon: '🎲' },
-        ].map(tab => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
+      { id: 'resources', label: '💰 자원', icon: '💰' },
+      { id: 'map', label: '🗺️ 맵', icon: '🗺️' },
+      { id: 'battle', label: '⚔️ 전투', icon: '⚔️' },
+      { id: 'relics', label: '💎 유물', icon: '💎' },
+      { id: 'event', label: '🎲 이벤트', icon: '🎲' },
+      { id: 'cards', label: '🃏 카드', icon: '🃏' },
+    ].map(tab => (
+      <button
+        key={tab.id}
+        onClick={() => setActiveTab(tab.id)}
             style={{
               padding: '8px 16px',
               background: activeTab === tab.id ? '#3b82f6' : 'transparent',
@@ -132,6 +136,8 @@ export function DevTools({ isOpen, onClose }) {
             devOpenRest={devOpenRest}
             awakenAtRest={awakenAtRest}
             closeRest={closeRest}
+            cardUpgrades={cardUpgrades}
+            upgradeCardRarity={upgradeCardRarity}
           />
         )}
         {activeTab === 'map' && (
@@ -166,6 +172,12 @@ export function DevTools({ isOpen, onClose }) {
         )}
         {activeTab === 'event' && (
           <EventTab />
+        )}
+        {activeTab === 'cards' && (
+          <CardsTab
+            cardUpgrades={cardUpgrades}
+            upgradeCardRarity={upgradeCardRarity}
+          />
         )}
       </div>
 
@@ -860,6 +872,60 @@ function EventTab() {
         fontSize: '0.875rem',
       }}>
         이벤트 제어 기능은 추후 추가 예정
+      </div>
+    </div>
+  );
+}
+
+// 카드 관리 탭
+function CardsTab({ cardUpgrades, upgradeCardRarity }) {
+  const [selectedCardId, setSelectedCardId] = useState(CARDS[0]?.id || '');
+
+  return (
+    <div>
+      <h3 style={{ marginTop: 0, color: '#fbbf24', fontSize: '1.125rem' }}>카드 관리</h3>
+
+      <div style={{ marginBottom: '16px', color: '#94a3b8' }}>
+        카드 등급: common → rare → special → legendary 순으로 한 단계씩 상승합니다.
+      </div>
+
+      <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+        <select
+          value={selectedCardId}
+          onChange={(e) => setSelectedCardId(e.target.value)}
+          style={{
+            flex: 1,
+            minWidth: '240px',
+            padding: '10px 12px',
+            background: '#0f172a',
+            border: '1px solid #334155',
+            borderRadius: '6px',
+            color: '#e2e8f0',
+          }}
+        >
+          {CARDS.map((c) => {
+            const rarity = cardUpgrades?.[c.id] || c.rarity || 'common';
+            return (
+              <option key={c.id} value={c.id}>
+                {c.name} ({rarity})
+              </option>
+            );
+          })}
+        </select>
+        <button
+          onClick={() => upgradeCardRarity(selectedCardId)}
+          style={{
+            padding: '10px 14px',
+            background: '#10b981',
+            border: 'none',
+            borderRadius: '6px',
+            color: '#fff',
+            fontWeight: 'bold',
+            cursor: 'pointer',
+          }}
+        >
+          등급 올리기
+        </button>
       </div>
     </div>
   );
