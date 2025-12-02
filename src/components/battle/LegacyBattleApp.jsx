@@ -3630,7 +3630,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
             <div style={{
               position: 'absolute',
               top: '280px',
-              left: '50%',
+              left: 'calc(50% - 50px)',
               transform: 'translateX(-50%)',
               display: 'flex',
               alignItems: 'center',
