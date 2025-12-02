@@ -3,13 +3,30 @@ import { useGameStore } from "../../state/gameStore";
 import { LegacyBattleApp } from "./LegacyBattleApp";
 import { DevTools } from "../dev/DevTools";
 import { calculatePassiveEffects, applyCombatStartEffects } from "../../lib/relicEffects";
+import { ENEMIES } from "./battleData";
 
 const buildBattlePayload = (battle, etherPts, relics, maxHp, playerInsight, playerEnergyBonus = 0, playerStrength = 0, playerMaxSpeedBonus = 0) => {
   if (!battle) return null;
   const initialPlayer = battle.simulation?.initialState?.player;
   const initialEnemy = battle.simulation?.initialState?.enemy;
   const enemyEtherCapacity = battle.enemyEtherCapacity ?? 300; // 기본 몬스터 에테르 소지량
-  const enemyCount = battle.enemyCount ?? 1;
+
+  let enemyCount = battle.enemyCount ?? 1;
+  let enemyName = battle.label ?? "Enemy";
+  let enemyHp = initialEnemy?.hp ? Math.round(initialEnemy.hp) : 30;
+  let enemyDeck = initialEnemy?.deck || [];
+
+  if (battle.enemies && Array.isArray(battle.enemies)) {
+    const mixedEnemies = battle.enemies.map(id => ENEMIES.find(e => e.id === id)).filter(Boolean);
+    if (mixedEnemies.length > 0) {
+      enemyName = mixedEnemies.map(e => e.name).join(" & ");
+      enemyHp = mixedEnemies.reduce((sum, e) => sum + e.hp, 0);
+      enemyDeck = mixedEnemies.flatMap(e => e.deck);
+      enemyCount = mixedEnemies.length;
+    }
+  } else if (enemyCount > 1) {
+    enemyName = `${enemyName} x${enemyCount}`;
+  }
 
   // 유물 패시브 효과 계산
   const passiveEffects = calculatePassiveEffects(relics);
@@ -48,8 +65,9 @@ const buildBattlePayload = (battle, etherPts, relics, maxHp, playerInsight, play
       etherPts,
     },
     enemy: {
-      name: enemyCount > 1 ? `${battle.label ?? "Enemy"} x${enemyCount}` : (battle.label ?? "Enemy"),
-      hp: initialEnemy?.hp ? Math.round(initialEnemy.hp) : 30,
+      name: enemyName,
+      hp: enemyHp,
+      deck: enemyDeck,
       etherPts: enemyEtherCapacity,
       etherCapacity: enemyEtherCapacity,
       enemyCount: enemyCount,

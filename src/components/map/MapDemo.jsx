@@ -443,6 +443,34 @@ export function MapDemo() {
         ))}
       </div>
 
+      <div style={{ position: 'absolute', top: 120, left: 20, zIndex: 9999 }}>
+        <button
+          onClick={() => {
+            useGameStore.setState({
+              activeBattle: {
+                nodeId: "test-mixed",
+                kind: "battle",
+                label: "Mixed Mob",
+                enemies: ["goblin", "slime"],
+                enemyCount: 2,
+                simulation: { initialState: { enemy: { hp: 1 } } }
+              }
+            });
+          }}
+          style={{
+            padding: '8px 12px',
+            background: '#ef4444',
+            color: 'white',
+            borderRadius: '6px',
+            fontWeight: 'bold',
+            boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+            cursor: 'pointer'
+          }}
+        >
+          ⚔️ Test Mixed Battle
+        </button>
+      </div>
+
       <div className="main-layout">
         <div className="map-container">
           <div className="map-view" ref={mapViewRef} style={{ marginLeft: '400px' }}>
