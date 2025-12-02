@@ -4068,18 +4068,17 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                     </div>
                   </div>
                 </div>
-                <div
-                  className={`soul-orb ${enemyTransferPulse ? 'pulse' : ''} ${soulShatter ? 'shatter' : ''}`}
-                  title={`${(enemyEtherValue || 0).toLocaleString()} / ${((enemy?.etherCapacity ?? enemyEtherValue) || 0).toLocaleString()}`}
-                >
-                  <div className={`soul-orb-shell ${enemyTransferPulse ? 'pulse' : ''} ${soulShatter ? 'shatter' : ''}`} style={{ transform: `scale(${enemySoulScale})` }} />
-                  <div className="soul-orb-content">
-                    <div className="soul-orb-value">{formatCompactValue(enemyEtherValue)}</div>
-                    <div className="soul-orb-label">SOUL</div>
-                  </div>
+              </div>
+              <div
+                className={`soul-orb ${enemyTransferPulse ? 'pulse' : ''} ${soulShatter ? 'shatter' : ''}`}
+                title={`${(enemyEtherValue || 0).toLocaleString()} / ${((enemy?.etherCapacity ?? enemyEtherValue) || 0).toLocaleString()}`}
+              >
+                <div className={`soul-orb-shell ${enemyTransferPulse ? 'pulse' : ''} ${soulShatter ? 'shatter' : ''}`} style={{ transform: `scale(${enemySoulScale})` }} />
+                <div className="soul-orb-content">
+                  <div className="soul-orb-value">{formatCompactValue(enemyEtherValue)}</div>
+                  <div className="soul-orb-label">SOUL</div>
                 </div>
               </div>
-
             </div>
           </div>
         </div>
