@@ -22,6 +22,7 @@ import { RELIC_EFFECT, applyRelicEffects, applyRelicComboMultiplier } from "../.
 import { applyAgility } from "../../lib/agilityUtils";
 import { choice, hasTrait, applyTraitModifiers, applyStrengthToCard, applyStrengthToHand, getCardRarity } from "./utils/battleUtils";
 import { detectPokerCombo, applyPokerBonus } from "./utils/comboDetection";
+import { COMBO_MULTIPLIERS, BASE_ETHER_PER_CARD, CARD_ETHER_BY_RARITY, applyEtherDeflation, getCardEtherGain, calcCardsEther, calculateComboEtherGain } from "./utils/etherCalculations";
 
 // 유물 희귀도별 색상
 const RELIC_RARITY_COLORS = {
@@ -262,65 +263,10 @@ function sortCombinedOrderStablePF(playerCards, enemyCards, playerAgility = 0, e
 }
 
 // =====================
-// 에테르 계산 관련 상수 및 함수
+// 에테르 관련 유틸리티 (로컬 사용)
 // =====================
 const etherSlots = (pts) => calculateEtherSlots(pts || 0); // 인플레이션 적용
 function addEther(pts, add) { return (pts || 0) + (add || 0); }
-
-// 에테르 Deflation: 같은 조합을 반복할수록 획득량 감소
-// 1번: 100%, 2번: 50%, 3번: 25%, ... 0에 수렴
-// deflationMultiplier: 추후 카드/아이템으로 조정 가능 (기본값 0.5)
-function applyEtherDeflation(baseGain, comboName, comboUsageCount, deflationMultiplier = 0.5) {
-  const usageCount = comboUsageCount[comboName] || 0;
-  const multiplier = Math.pow(deflationMultiplier, usageCount);
-  return {
-    gain: Math.round(baseGain * multiplier),
-    multiplier: multiplier,
-    usageCount: usageCount
-  };
-}
-
-const COMBO_MULTIPLIERS = {
-  '하이카드': 1,
-  '페어': 2,
-  '투페어': 2.5,
-  '트리플': 3,
-  '플러쉬': 3.25,
-  '풀하우스': 3.5,
-  '포카드': 4,
-  '파이브카드': 5,
-};
-const BASE_ETHER_PER_CARD = 10;
-const CARD_ETHER_BY_RARITY = {
-  common: 10,
-  rare: 25,
-  special: 100,
-  legendary: 500
-};
-const getCardEtherGain = (card) => CARD_ETHER_BY_RARITY[getCardRarity(card)] || CARD_ETHER_BY_RARITY.common;
-const calcCardsEther = (cards = [], multiplier = 1) =>
-  (cards || []).reduce((sum, entry) => {
-    const cardObj = entry.card || entry;
-    return sum + Math.floor(getCardEtherGain(cardObj) * multiplier);
-  }, 0);
-function calculateComboEtherGain({ cards = [], cardCount = 0, comboName = null, comboUsageCount = {}, extraMultiplier = 1 }) {
-  const baseGain = cards.length > 0
-    ? calcCardsEther(cards)
-    : Math.round(cardCount * BASE_ETHER_PER_CARD);
-  const comboMult = comboName ? (COMBO_MULTIPLIERS[comboName] || 1) : 1;
-  const multiplied = Math.round(baseGain * comboMult * extraMultiplier);
-  const deflated = comboName
-    ? applyEtherDeflation(multiplied, comboName, comboUsageCount)
-    : { gain: multiplied, multiplier: 1 };
-  const deflationPct = deflated.multiplier < 1 ? Math.round((1 - deflated.multiplier) * 100) : 0;
-  return {
-    gain: deflated.gain,
-    baseGain,
-    comboMult: comboMult * extraMultiplier,
-    deflationPct,
-    deflationMult: deflated.multiplier,
-  };
-}
 
 // =====================
 // Combat Logic
