@@ -4126,7 +4126,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                                     style={{
                                       fontSize: '56px',
                                       filter: 'brightness(0.95)',
-                                      transform: 'translateX(350px)'
+                                      position: 'fixed',
+                                      top: '538px',
+                                      right: '140px'
                                     }}
                                   >
                                     {member.emoji}
@@ -4139,7 +4141,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                                     background: 'rgba(0,0,0,0.3)',
                                     padding: '2px 8px',
                                     borderRadius: '4px',
-                                    transform: 'translateX(350px)'
+                                    position: 'fixed',
+                                    top: '572px',
+                                    right: '125px'
                                   }}>
                                     {member.name}
                                   </span>
