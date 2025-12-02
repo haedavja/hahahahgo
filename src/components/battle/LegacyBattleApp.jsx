@@ -3315,6 +3315,23 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
   return (
     <div className="legacy-battle-root w-full min-h-screen pb-64">
+      {/* 에테르 게이지 - 왼쪽 고정 */}
+      <div style={{
+        position: 'fixed',
+        left: '20px',
+        top: '50%',
+        transform: 'translateY(-50%)',
+        zIndex: 100
+      }}>
+        <EtherBar
+          key={`player-ether-${playerEtherValue}`}
+          pts={playerEtherValue}
+          slots={playerEtherSlots}
+          previewGain={previewEtherGain}
+          label="ETHER"
+          pulse={playerTransferPulse}
+        />
+      </div>
       {/* 예상 피해량 - 오른쪽 고정 패널 */}
       <div className="expect-sidebar-fixed">
         <ExpectedDamagePreview
@@ -3351,7 +3368,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       </div>
 
       {/* 상단 메인 영역 */}
-      <div className="w-full px-4" style={{ marginRight: '280px', marginLeft: '150px' }}>
+      <div className="w-full px-4" style={{ marginRight: '280px', marginLeft: '20px' }}>
 
         {/* 유물 표시 */}
         {orderedRelicList && orderedRelicList.length > 0 && (
@@ -3748,14 +3765,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
               </div>
             )}
             <div style={{ display: 'flex', alignItems: 'center', gap: '16px', position: 'relative' }}>
-              <EtherBar
-                key={`player-ether-${playerEtherValue}`}
-                pts={playerEtherValue}
-                slots={playerEtherSlots}
-                previewGain={previewEtherGain}
-                label="ETHER"
-                pulse={playerTransferPulse}
-              />
               <div style={{ position: 'relative' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                   <div className={`character-display ${playerOverdriveFlash ? 'overdrive-burst' : ''}`} style={{ fontSize: '64px' }}>🧙‍♂️</div>
