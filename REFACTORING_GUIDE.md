@@ -18,7 +18,9 @@ LegacyBattleApp.jsx의 유지보수성 개선을 위한 리팩토링 작업 문�
 - **감소**: 250 줄 (약 5.5% 개선)
 
 ### 생성된 파일
-총 4개의 유틸리티 파일이 `src/components/battle/utils/` 디렉토리에 생성됨
+- **유틸리티 모듈**: 4개 (`utils/` 디렉토리)
+- **전투 로직 모듈**: 2개 (`logic/` 디렉토리)
+- **상태 관리**: 1개 (`reducer/` 디렉토리)
 
 ---
 
@@ -30,11 +32,16 @@ src/components/battle/
 ├── LegacyBattleScreen.jsx       (전투 화면 래퍼)
 ├── battleData.js                (카드/적 데이터)
 ├── legacy-battle.css            (스타일)
-└── utils/
-    ├── battleUtils.js           (116줄 - 기본 유틸리티)
-    ├── comboDetection.js        (98줄 - 포커 조합 감지)
-    ├── etherCalculations.js     (93줄 - 에테르 계산)
-    └── combatUtils.js           (52줄 - 전투 시퀀스)
+├── utils/                       ⭐ 유틸리티 함수
+│   ├── battleUtils.js           (116줄 - 기본 유틸리티)
+│   ├── comboDetection.js        (98줄 - 포커 조합 감지)
+│   ├── etherCalculations.js     (93줄 - 에테르 계산)
+│   └── combatUtils.js           (52줄 - 전투 시퀀스)
+├── logic/                       ⭐ NEW! 전투 로직
+│   ├── combatActions.js         (280줄 - 공격/방어 처리)
+│   └── statusEffects.js         (350줄 - 버프/디버프 관리)
+└── reducer/                     ⭐ NEW! 상태 관리
+    └── battleReducer.js         (600줄 - 통합 상태 관리)
 ```
 
 ---
@@ -346,12 +353,151 @@ d7294b4 [리팩토링 1/7] 기본 유틸리티 함수 분리
 
 ---
 
+## 📦 NEW! 전투 로직 모듈
+
+### 5. combatActions.js (280줄)
+**용도**: 전투 행동 처리 (공격/방어)
+
+#### 주요 함수
+```javascript
+// 방어 행동 적용
+export function applyDefense(actor, card, actorName)
+
+// 공격 행동 적용 (다중 타격 지원)
+export function applyAttack(attacker, defender, card, attackerName)
+
+// 통합 행동 처리
+export function applyAction(state, actor, card)
+```
+
+#### 특징
+- **순수 함수**: 부작용 없음, 테스트 용이
+- **다중 타격 지원**: hits 속성 처리
+- **분쇄(crush) 특성 지원**: 방어력에 2배 피해
+- **반격(counter) 자동 처리**
+- **상세한 전투 로그 생성**
+
+#### 사용 예시
+```javascript
+import { applyAction } from './logic/combatActions';
+
+const state = {
+  player: { hp: 100, strength: 2, block: 0 },
+  enemy: { hp: 50, block: 10 },
+  log: []
+};
+
+const card = { name: "강타", type: "attack", damage: 15 };
+
+const result = applyAction(state, 'player', card);
+// result = {
+//   dealt: 7,  // 실제 입힌 피해
+//   taken: 0,  // 받은 피해 (반격 시 발생)
+//   events: [...],  // 전투 이벤트
+//   updatedState: { player: {...}, enemy: {...}, log: [...] }
+// }
+```
+
+---
+
+### 6. statusEffects.js (350줄)
+**용도**: 버프/디버프 관리
+
+#### 버프 함수
+```javascript
+export function applyStrengthBuff(actor, amount, duration)      // 힘
+export function applyAgilityBuff(actor, amount, duration)       // 민첩
+export function applyInsightBuff(actor, amount, duration)       // 통찰
+export function applyRegenerationBuff(actor, amount, duration)  // 재생
+export function applyShroudBuff(actor, amount, duration)        // 장막
+```
+
+#### 디버프 함수
+```javascript
+export function applyVulnerableDebuff(actor, multiplier, duration)  // 취약
+export function applyWeaknessDebuff(actor, reduction, duration)     // 약화
+export function applyPoisonDebuff(actor, damagePerTurn, duration)   // 독
+export function applyStunDebuff(actor, duration)                    // 기절
+```
+
+#### 상태 관리 함수
+```javascript
+export function decreaseStatusDurations(actor)    // 턴 종료 시 지속시간 감소
+export function applyRegenerationEffect(actor, actorName)  // 재생 효과 발동
+export function applyPoisonEffect(actor, actorName)        // 독 효과 발동
+export function getActiveEffects(actor)                    // 활성 효과 목록 반환
+export function clearAllEffects(actor)                     // 모든 효과 제거
+```
+
+#### 확인 함수
+```javascript
+export function isStunned(actor)       // 기절 상태?
+export function isVulnerable(actor)    // 취약 상태?
+```
+
+#### 사용 예시
+```javascript
+import { applyStrengthBuff, applyPoisonDebuff, getActiveEffects } from './logic/statusEffects';
+
+// 힘 버프 적용 (3턴 동안 +5)
+let player = applyStrengthBuff(player, 5, 3);
+
+// 독 디버프 적용 (4턴 동안 턴당 2 피해)
+let enemy = applyPoisonDebuff(enemy, 2, 4);
+
+// 활성 효과 확인
+const effects = getActiveEffects(player);
+// effects = [
+//   { name: '힘', value: 5, duration: 3, type: 'buff' },
+//   ...
+// ]
+```
+
+---
+
+## 🎯 모듈화 효과
+
+### Before (리팩토링 전)
+```javascript
+// LegacyBattleApp.jsx 내부 (4,551줄)
+function applyAction(state, actor, card) {
+  // 85줄의 복잡한 로직...
+  if (card.type === 'defense') { /* ... */ }
+  if (card.type === 'attack') {
+    for (let i = 0; i < hits; i++) {
+      // 방어력 계산, 관통 계산, 반격 계산...
+    }
+  }
+}
+```
+
+### After (리팩토링 후)
+```javascript
+// combatActions.js (280줄, 독립 모듈)
+export function applyDefense(actor, card, actorName) { /* ... */ }
+export function applyAttack(attacker, defender, card, attackerName) { /* ... */ }
+
+// LegacyBattleApp.jsx에서 사용
+import { applyAction } from './logic/combatActions';
+const result = applyAction(state, actor, card);
+```
+
+**개선 효과**:
+- ✅ 전투 로직 테스트 가능
+- ✅ 다른 전투 시스템에서 재사용 가능
+- ✅ 버그 수정 범위가 명확
+- ✅ 새로운 공격 패턴 추가 용이
+
+---
+
 ## 📞 문의 사항
 
 리팩토링 관련 질문이나 버그 발견 시:
 1. 이 문서를 먼저 참고
-2. 각 유틸리티 파일의 JSDoc 주석 확인
+2. 각 모듈 파일의 JSDoc 주석 확인
 3. `LegacyBattleApp.jsx`에서 함수 사용 패턴 확인
+4. `ADVANCED_REFACTORING.md`에서 고급 리팩토링 계획 확인
 
 **문서 작성일**: 2025-12-02
-**문서 버전**: 1.0
+**최종 수정일**: 2025-12-02
+**문서 버전**: 2.0
