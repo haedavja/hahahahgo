@@ -255,6 +255,7 @@ const travelToNode = (state, nodeId) => {
 
 export const useGameStore = create((set, get) => ({
   ...applyInitialRelicEffects(createInitialState()),
+  devDulledLevel: null,
 
   resetRun: () => set(() => applyInitialRelicEffects(createInitialState())),
 
@@ -829,6 +830,15 @@ export const useGameStore = create((set, get) => ({
     set((state) => ({
       ...state,
       playerInsight: insight, // 통찰 (이벤트 선택지, 적 타임라인 정보)
+    })),
+
+  setDevDulledLevel: (level) =>
+    set((state) => ({
+      ...state,
+      devDulledLevel:
+        level === null || level === undefined
+          ? null
+          : Math.max(0, Math.min(3, Number(level) || 0)),
     })),
 
   // ==================== 개발자 도구 전용 액션 ====================

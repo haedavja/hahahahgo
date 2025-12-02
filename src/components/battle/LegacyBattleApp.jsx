@@ -714,18 +714,20 @@ export function EtherBar({ pts, slots, previewGain = 0, color = "cyan", label, p
   const slotColors = color === 'red' ? enemySlotColors : playerSlotColors;
 
   return (
-    <div style={{
-      width: '72px',
-      padding: '12px 10px 16px',
-      borderRadius: '36px',
-      background: 'linear-gradient(180deg, rgba(8, 12, 20, 0.95), rgba(10, 15, 25, 0.75))',
-      border: '1px solid rgba(96, 210, 255, 0.35)',
-      boxShadow: `${pulse ? '0 0 18px rgba(251,191,36,0.55), ' : ''}0 20px 40px rgba(0, 0, 0, 0.45)`,
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '12px',
-      position: 'relative'
-    }}>
+    <div
+      style={{
+        width: '72px',
+        padding: '12px 10px 16px',
+        borderRadius: '36px',
+        background: 'linear-gradient(180deg, rgba(8, 12, 20, 0.95), rgba(10, 15, 25, 0.75))',
+        border: '1px solid rgba(96, 210, 255, 0.35)',
+        boxShadow: `${pulse ? '0 0 18px rgba(251,191,36,0.55), ' : ''}0 20px 40px rgba(0, 0, 0, 0.45)`,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '12px',
+        position: 'relative'
+      }}
+    >
       <div style={{ fontSize: '11px', fontWeight: 'bold', textAlign: 'center', color: '#5fe0ff', letterSpacing: '0.12em' }}>
         {label}
       </div>
@@ -883,6 +885,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const playerStrength = useGameStore((state) => state.playerStrength || 0);
   const playerAgility = useGameStore((state) => state.playerAgility || 0);
   const relics = useGameStore((state) => state.relics || []);
+  const devDulledLevel = useGameStore((state) => state.devDulledLevel ?? null);
   const mergeRelicOrder = useCallback((relicList = [], saved = []) => {
     const savedSet = new Set(saved);
     const merged = [];
@@ -1243,6 +1246,17 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const effectiveInsight = useMemo(() => {
     return calculateEffectiveInsight(player.insight, enemy?.shroud);
   }, [player.insight, enemy?.shroud]);
+
+  // 우둔 레벨: 장막이 통찰보다 높을 때 (shroud - insight)
+  const dulledLevel = useMemo(() => {
+    const shroud = enemy?.shroud || 0;
+    const insight = player.insight || 0;
+    const base = Math.max(0, shroud - insight);
+    if (devDulledLevel !== null && devDulledLevel !== undefined) {
+      return Math.max(0, Math.min(3, devDulledLevel));
+    }
+    return base;
+  }, [player.insight, enemy?.shroud, devDulledLevel]);
 
   const insightReveal = useMemo(() => {
     if (phase !== 'select') return { level: 0, visible: false };
@@ -3236,7 +3250,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       })()}
 
       {/* 상단 메인 영역 */}
-      <>
+      <div>
 
         {/* 유물 표시 (상단 고정) */}
         {orderedRelicList && orderedRelicList.length > 0 && (
@@ -3405,6 +3419,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                   const commonMax = Math.max(playerMax, enemyMax);
                   const playerRatio = playerMax / commonMax;
                   const enemyRatio = enemyMax / commonMax;
+                  const hideEnemyTimeline =
+                    (dulledLevel >= 2 && phase === 'resolve') ||
+                    (dulledLevel >= 1 && phase === 'respond');
                   return (
                     <>
                       <div className="timeline-lane player-lane" style={{ width: `${playerRatio * 100}%` }}>
@@ -3437,52 +3454,56 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                       </div>
 
                       <div className="timeline-lane enemy-lane" style={{ width: `${enemyRatio * 100}%` }}>
-                        {Array.from({ length: enemyMax + 1 }).map((_, i) => (
-                          <div key={`e-grid-${i}`} className="timeline-gridline" style={{ left: `${(i / enemyMax) * 100}%` }} />
-                        ))}
-                        {enemyTimeline.map((a, idx) => {
-                          const Icon = a.card.icon || Shield;
-                          const sameCount = enemyTimeline.filter((q, i) => i < idx && q.sp === a.sp).length;
-                          const offset = sameCount * 28;
-                          const num = a.card.type === 'attack' ? (a.card.damage * (a.card.hits || 1)) : (a.card.block || 0);
-                          const globalIndex = phase === 'resolve' && queue ? queue.findIndex(q => q === a) : -1;
-                          const isExecuting = executingCardIndex === globalIndex;
-                          const isUsed = usedCardIndices.includes(globalIndex) && globalIndex < qIndex;
-                          const normalizedPosition = (a.sp / enemyMax) * 100;
-                          const levelForTooltip = phase === 'select' ? (insightReveal?.level || 0) : (effectiveInsight || 0);
-                          const canShowTooltip = levelForTooltip >= 3;
-                          const markerCls = [
-                            'timeline-marker',
-                            'marker-enemy',
-                            isExecuting ? 'timeline-active' : '',
-                            isUsed ? 'timeline-used' : '',
-                            canShowTooltip ? 'insight-lv3-glow' : ''
-                          ].join(' ');
-                          return (
-                            <div key={idx}
-                              className={markerCls}
-                              style={{ left: `${normalizedPosition}%`, top: `${6 + offset}px` }}
-                              onMouseEnter={(e) => {
-                                if (!canShowTooltip) return;
-                                setHoveredEnemyAction({
-                                  action: a.card,
-                                  idx,
-                                  left: normalizedPosition,
-                                  top: 6 + offset,
-                                  pageX: e.clientX,
-                                  pageY: e.clientY,
-                                });
-                              }}
-                              onMouseLeave={() => setHoveredEnemyAction(null)}
-                            >
-                              <div className="marker-content">
-                                <Icon size={14} className="text-white" />
-                                {canShowTooltip && <span className="insight-eye-badge">👁️</span>}
-                                <span className="text-white text-xs font-bold">{num > 0 ? num : ''}</span>
-                              </div>
-                            </div>
-                          );
-                        })}
+                        {!hideEnemyTimeline && (
+                          <>
+                            {Array.from({ length: enemyMax + 1 }).map((_, i) => (
+                              <div key={`e-grid-${i}`} className="timeline-gridline" style={{ left: `${(i / enemyMax) * 100}%` }} />
+                            ))}
+                            {enemyTimeline.map((a, idx) => {
+                              const Icon = a.card.icon || Shield;
+                              const sameCount = enemyTimeline.filter((q, i) => i < idx && q.sp === a.sp).length;
+                              const offset = sameCount * 28;
+                              const num = a.card.type === 'attack' ? (a.card.damage * (a.card.hits || 1)) : (a.card.block || 0);
+                              const globalIndex = phase === 'resolve' && queue ? queue.findIndex(q => q === a) : -1;
+                              const isExecuting = executingCardIndex === globalIndex;
+                              const isUsed = usedCardIndices.includes(globalIndex) && globalIndex < qIndex;
+                              const normalizedPosition = (a.sp / enemyMax) * 100;
+                              const levelForTooltip = phase === 'select' ? (insightReveal?.level || 0) : (effectiveInsight || 0);
+                              const canShowTooltip = levelForTooltip >= 3;
+                              const markerCls = [
+                                'timeline-marker',
+                                'marker-enemy',
+                                isExecuting ? 'timeline-active' : '',
+                                isUsed ? 'timeline-used' : '',
+                                canShowTooltip ? 'insight-lv3-glow' : ''
+                              ].join(' ');
+                              return (
+                                <div key={idx}
+                                  className={markerCls}
+                                  style={{ left: `${normalizedPosition}%`, top: `${6 + offset}px` }}
+                                  onMouseEnter={(e) => {
+                                    if (!canShowTooltip) return;
+                                    setHoveredEnemyAction({
+                                      action: a.card,
+                                      idx,
+                                      left: normalizedPosition,
+                                      top: 6 + offset,
+                                      pageX: e.clientX,
+                                      pageY: e.clientY,
+                                    });
+                                  }}
+                                  onMouseLeave={() => setHoveredEnemyAction(null)}
+                                >
+                                  <div className="marker-content">
+                                    <Icon size={14} className="text-white" />
+                                    {canShowTooltip && <span className="insight-eye-badge">👁️</span>}
+                                    <span className="text-white text-xs font-bold">{num > 0 ? num : ''}</span>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </>
+                        )}
                       </div>
                     </>
                   );
@@ -4012,28 +4033,26 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                 </div>
               </div>
             )}
-            <div style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginRight: '0', paddingRight: '0', gap: '40px' }}>
+              <div style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginRight: '0', paddingRight: '0', gap: '40px' }}>
               <div style={{
                 display: 'flex',
                 alignItems: 'center',
                 gap: '16px',
-                padding: '18px 22px',
-                borderRadius: '16px',
+                padding: '0',
+                margin: '0',
+                borderRadius: '0',
                 background: 'transparent',
                 border: 'none',
                 boxShadow: 'none',
                 position: 'fixed',
-                top: '420px',
-                right: '300px',
+                top: '500px',
+                right: '640px',
                 pointerEvents: 'none'
               }}>
-                <div style={{ textAlign: 'right', position: 'relative', paddingRight: '8px', pointerEvents: 'auto' }}>
+                <div style={{ textAlign: 'right', position: 'relative', paddingRight: '8px', pointerEvents: 'auto', display: 'flex', alignItems: 'center', gap: '14px' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
-                    {enemyHint && (
-                      <div style={{ fontSize: '1rem', color: '#94a3b8', marginBottom: '4px' }}>💡 {enemyHint}</div>
-                    )}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <div style={{ position: 'relative' }}>
+                    <div style={{ position: 'relative', paddingTop: '30px' }}>
                       {(phase === 'select' || phase === 'respond') && previewDamage.value > 0 && (
                         <div className={`predicted-damage-inline ${previewDamage.lethal ? 'lethal' : ''} ${previewDamage.overkill ? 'overkill' : ''}`}>
                           <span className="predicted-damage-inline-value">🗡️ -{previewDamage.value}</span>
@@ -4044,13 +4063,21 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                             )}
                           </div>
                         )}
-                        <div className={enemyHit ? 'hit-animation' : ''} style={{ color: '#f87171', fontSize: '1.25rem', fontWeight: 'bold', textAlign: 'right', transition: 'opacity 0.4s ease, transform 0.4s ease', opacity: soulShatter ? 0 : 1, transform: soulShatter ? 'scale(0.9)' : 'scale(1)' }}>
-                          {enemy.block > 0 && <span className={enemyBlockAnim ? 'block-animation' : ''} style={{ color: '#60a5fa', marginRight: '8px' }}>🛡️{enemy.block}</span>}
-                          ❤️ {enemy.hp}/{enemy.maxHp}
+                      {(() => {
+                        const hideEnemyVitals = dulledLevel >= 3;
+                        const hpText = hideEnemyVitals ? '??' : `${enemy.hp}/${enemy.maxHp}`;
+                        const blockText = hideEnemyVitals ? '??' : (enemy.block > 0 ? `${enemy.block}` : null);
+                        return (
+                          <div className={enemyHit ? 'hit-animation' : ''} style={{ color: '#f87171', fontSize: '1.25rem', fontWeight: 'bold', textAlign: 'right', transition: 'opacity 0.4s ease, transform 0.4s ease', opacity: soulShatter ? 0 : 1, transform: soulShatter ? 'scale(0.9)' : 'scale(1)', position: 'absolute', top: '-28px', right: '-80px', width: '200px' }}>
+                            {blockText && <span className={enemyBlockAnim ? 'block-animation' : ''} style={{ color: '#60a5fa', marginRight: '8px' }}>🛡️{blockText}</span>}
+                            ❤️ {hpText}
+                          </div>
+                        );
+                      })()}
                         </div>
                         <div className="hp-bar-enhanced mb-1" style={{ width: '200px', height: '12px', position: 'relative', overflow: 'hidden' }}>
-                          <div className="hp-fill" style={{ width: `${(enemy.hp / enemy.maxHp) * 100}%` }}></div>
-                          {enemy.block > 0 && (
+                          <div className="hp-fill" style={{ width: `${dulledLevel >= 3 ? 0 : (enemy.hp / enemy.maxHp) * 100}%` }}></div>
+                          {enemy.block > 0 && dulledLevel < 3 && (
                             <div style={{
                               position: 'absolute',
                               left: 0,
@@ -4066,47 +4093,91 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
                         {enemy.composition && enemy.composition.length > 0 ? (
                           enemy.composition.map((member, idx) => (
-                            <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                              <span style={{
-                                fontSize: '1rem',
-                                color: '#e2e8f0',
-                                fontWeight: '600',
-                                textShadow: '0 2px 4px rgba(0,0,0,0.5)',
-                                background: 'rgba(0,0,0,0.3)',
-                                padding: '2px 8px',
-                                borderRadius: '4px'
-                              }}>
-                                {member.name}
-                              </span>
-                              <div
-                                className={`character-display ${soulShatter ? 'soul-shatter-target' : ''} ${enemyOverdriveFlash ? 'overdrive-burst' : ''}`}
-                                style={{
-                                  fontSize: '56px',
-                                  filter: idx > 0 ? 'brightness(0.95)' : 'none'
-                                }}
-                              >
-                                {member.emoji}
-                              </div>
+                            <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '12px', flexDirection: idx === 0 ? 'row' : 'row-reverse' }}>
+                              {idx === 0 ? (
+                                <>
+                                  <span style={{
+                                    fontSize: '1rem',
+                                    color: '#e2e8f0',
+                                    fontWeight: '600',
+                                    textShadow: '0 2px 4px rgba(0,0,0,0.5)',
+                                    background: 'rgba(0,0,0,0.3)',
+                                    padding: '2px 8px',
+                                    borderRadius: '4px',
+                                    transform: 'translateX(70px)'
+                                  }}>
+                                    {member.name}
+                                  </span>
+                                  <div
+                                    className={`character-display ${soulShatter ? 'soul-shatter-target' : ''} ${enemyOverdriveFlash ? 'overdrive-burst' : ''}`}
+                                    style={{
+                                      fontSize: '56px',
+                                      filter: 'none',
+                                      transform: 'translateX(70px)'
+                                    }}
+                                  >
+                                    {member.emoji}
+                                  </div>
+                                </>
+                              ) : (
+                                <>
+                                  <div
+                                    className={`character-display ${soulShatter ? 'soul-shatter-target' : ''} ${enemyOverdriveFlash ? 'overdrive-burst' : ''}`}
+                                    style={{
+                                      fontSize: '56px',
+                                      filter: 'brightness(0.95)',
+                                      transform: 'translateX(350px)'
+                                    }}
+                                  >
+                                    {member.emoji}
+                                  </div>
+                                  <span style={{
+                                    fontSize: '1rem',
+                                    color: '#e2e8f0',
+                                    fontWeight: '600',
+                                    textShadow: '0 2px 4px rgba(0,0,0,0.5)',
+                                    background: 'rgba(0,0,0,0.3)',
+                                    padding: '2px 8px',
+                                    borderRadius: '4px',
+                                    transform: 'translateX(350px)'
+                                  }}>
+                                    {member.name}
+                                  </span>
+                                </>
+                              )}
                             </div>
                           ))
                         ) : (
-                          <div className={`character-display ${soulShatter ? 'soul-shatter-target' : ''} ${enemyOverdriveFlash ? 'overdrive-burst' : ''}`} style={{ fontSize: '64px' }}>👹</div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <div className={`character-display ${soulShatter ? 'soul-shatter-target' : ''} ${enemyOverdriveFlash ? 'overdrive-burst' : ''}`} style={{ fontSize: '64px' }}>👹</div>
+                            <span style={{
+                              fontSize: '1rem',
+                              color: '#e2e8f0',
+                              fontWeight: '600',
+                              textShadow: '0 2px 4px rgba(0,0,0,0.5)',
+                              background: 'rgba(0,0,0,0.3)',
+                              padding: '2px 8px',
+                              borderRadius: '4px'
+                            }}>
+                              {enemy.name || '몬스터'}
+                            </span>
+                          </div>
                         )}
                       </div>
                     </div>
                   </div>
                 </div>
                 <div
-                className={`soul-orb ${enemyTransferPulse ? 'pulse' : ''} ${soulShatter ? 'shatter' : ''}`}
-                title={`${(enemyEtherValue || 0).toLocaleString()} / ${((enemy?.etherCapacity ?? enemyEtherValue) || 0).toLocaleString()}`}
-              >
-                <div className={`soul-orb-shell ${enemyTransferPulse ? 'pulse' : ''} ${soulShatter ? 'shatter' : ''}`} style={{ transform: `scale(${enemySoulScale})` }} />
-                <div className="soul-orb-content">
-                  <div className="soul-orb-value">{formatCompactValue(enemyEtherValue)}</div>
-                  <div className="soul-orb-label">SOUL</div>
+                  className={`soul-orb ${enemyTransferPulse ? 'pulse' : ''} ${soulShatter ? 'shatter' : ''}`}
+                  title={dulledLevel >= 3 ? '?? / ??' : `${(enemyEtherValue || 0).toLocaleString()} / ${((enemy?.etherCapacity ?? enemyEtherValue) || 0).toLocaleString()}`}
+                  style={{ position: 'fixed', top: '470px', right: '300px' }}>
+                  <div className={`soul-orb-shell ${enemyTransferPulse ? 'pulse' : ''} ${soulShatter ? 'shatter' : ''}`} style={{ transform: `scale(${enemySoulScale})` }} />
+                  <div className="soul-orb-content">
+                    <div className="soul-orb-value">{dulledLevel >= 3 ? '??' : formatCompactValue(enemyEtherValue)}</div>
+                    <div className="soul-orb-label">SOUL</div>
+                  </div>
                 </div>
               </div>
-            </div>
             </div>
           </div>
         </div>
@@ -4558,8 +4629,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
             )}
           </div>
         )}
-      </>
-    </div>
+      </div>
   );
 }
 

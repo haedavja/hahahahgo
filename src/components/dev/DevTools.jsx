@@ -36,6 +36,8 @@ export function DevTools({ isOpen, onClose }) {
     closeRest,
     cardUpgrades,
     upgradeCardRarity,
+    devDulledLevel,
+    setDevDulledLevel,
   } = useGameStore();
 
   if (!isOpen) return null;
@@ -150,17 +152,19 @@ export function DevTools({ isOpen, onClose }) {
           />
         )}
         {activeTab === 'battle' && (
-          <BattleTab
-            activeBattle={activeBattle}
-            playerStrength={playerStrength}
-            playerAgility={playerAgility}
-            playerInsight={playerInsight}
-            devForceWin={devForceWin}
-            devForceLose={devForceLose}
-            updatePlayerStrength={updatePlayerStrength}
-            updatePlayerAgility={updatePlayerAgility}
-            updatePlayerInsight={updatePlayerInsight}
-          />
+        <BattleTab
+          activeBattle={activeBattle}
+          playerStrength={playerStrength}
+          playerAgility={playerAgility}
+          playerInsight={playerInsight}
+          devDulledLevel={devDulledLevel}
+          setDevDulledLevel={setDevDulledLevel}
+          devForceWin={devForceWin}
+          devForceLose={devForceLose}
+          updatePlayerStrength={updatePlayerStrength}
+          updatePlayerAgility={updatePlayerAgility}
+          updatePlayerInsight={updatePlayerInsight}
+        />
         )}
         {activeTab === 'relics' && (
           <RelicsTab
@@ -430,10 +434,23 @@ function MapTab({ map, mapRisk, setMapRisk, selectNode, devClearAllNodes }) {
 }
 
 // 전투 관리 탭
-function BattleTab({ activeBattle, playerStrength, playerAgility, playerInsight, devForceWin, devForceLose, updatePlayerStrength, updatePlayerAgility, updatePlayerInsight }) {
+function BattleTab({
+  activeBattle,
+  playerStrength,
+  playerAgility,
+  playerInsight,
+  devDulledLevel,
+  setDevDulledLevel,
+  devForceWin,
+  devForceLose,
+  updatePlayerStrength,
+  updatePlayerAgility,
+  updatePlayerInsight
+}) {
   const [strengthInput, setStrengthInput] = React.useState(playerStrength || 0);
   const [agilityInput, setAgilityInput] = React.useState(playerAgility || 0);
   const [insightInput, setInsightInput] = React.useState(playerInsight || 0);
+  const [dulledInput, setDulledInput] = React.useState(devDulledLevel ?? 0);
 
   React.useEffect(() => {
     setStrengthInput(playerStrength || 0);
@@ -598,6 +615,69 @@ function BattleTab({ activeBattle, playerStrength, playerAgility, playerInsight,
           </div>
           <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '4px' }}>
             이벤트 추가 선택지, 적 타임라인 정보 제공
+          </div>
+        </div>
+
+        {/* 우둔(장막) 디버프 강제 테스트 */}
+        <div>
+          <label style={{
+            display: 'block',
+            marginBottom: '8px',
+            fontSize: '0.875rem',
+            color: '#cbd5e1',
+          }}>
+            🌀 우둔 레벨 강제: <span style={{ color: '#f87171', fontWeight: 'bold' }}>{devDulledLevel ?? 0}</span>
+          </label>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <input
+              type="number"
+              min="0"
+              max="3"
+              value={dulledInput}
+              onChange={(e) => setDulledInput(Math.max(0, Math.min(3, parseInt(e.target.value) || 0)))}
+              style={{
+                flex: 1,
+                padding: '8px',
+                background: '#1e293b',
+                border: '1px solid #334155',
+                borderRadius: '6px',
+                color: '#cbd5e1',
+                fontSize: '0.875rem',
+              }}
+            />
+            <button
+              onClick={() => setDevDulledLevel(dulledInput)}
+              style={{
+                padding: '8px 16px',
+                background: '#ef4444',
+                border: 'none',
+                borderRadius: '6px',
+                color: '#fff',
+                fontSize: '0.875rem',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+              }}
+            >
+              적용
+            </button>
+            <button
+              onClick={() => { setDevDulledLevel(null); setDulledInput(0); }}
+              style={{
+                padding: '8px 16px',
+                background: '#334155',
+                border: 'none',
+                borderRadius: '6px',
+                color: '#e2e8f0',
+                fontSize: '0.875rem',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+              }}
+            >
+              해제
+            </button>
+          </div>
+          <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '4px' }}>
+            0: 정상, 1~3: 우둔 레벨 강제 (타임라인/체력/소울 정보 숨김 테스트)
           </div>
         </div>
       </div>
