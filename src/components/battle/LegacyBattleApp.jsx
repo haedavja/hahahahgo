@@ -23,6 +23,7 @@ import { applyAgility } from "../../lib/agilityUtils";
 import { choice, hasTrait, applyTraitModifiers, applyStrengthToCard, applyStrengthToHand, getCardRarity } from "./utils/battleUtils";
 import { detectPokerCombo, applyPokerBonus } from "./utils/comboDetection";
 import { COMBO_MULTIPLIERS, BASE_ETHER_PER_CARD, CARD_ETHER_BY_RARITY, applyEtherDeflation, getCardEtherGain, calcCardsEther, calculateComboEtherGain } from "./utils/etherCalculations";
+import { sortCombinedOrderStablePF, addEther } from "./utils/combatUtils";
 
 // 유물 희귀도별 색상
 const RELIC_RARITY_COLORS = {
@@ -240,33 +241,9 @@ const ENEMY_CARDS = BASE_ENEMY_CARDS.map(card => ({
 }));
 
 // =====================
-// 전투 시퀀스 유틸리티
-// =====================
-function sortCombinedOrderStablePF(playerCards, enemyCards, playerAgility = 0, enemyAgility = 0) {
-  const q = []; let ps = 0, es = 0;
-  (playerCards || []).forEach((c, idx) => {
-    const finalSpeed = applyAgility(c.speedCost, playerAgility);
-    ps += finalSpeed;
-    q.push({ actor: 'player', card: c, sp: ps, idx, originalSpeed: c.speedCost, finalSpeed });
-  });
-  (enemyCards || []).forEach((c, idx) => {
-    const finalSpeed = applyAgility(c.speedCost, enemyAgility);
-    es += finalSpeed;
-    q.push({ actor: 'enemy', card: c, sp: es, idx, originalSpeed: c.speedCost, finalSpeed });
-  });
-  q.sort((a, b) => {
-    if (a.sp !== b.sp) return a.sp - b.sp;
-    if (a.actor !== b.actor) return a.actor === 'player' ? -1 : 1;
-    return a.idx - b.idx;
-  });
-  return q;
-}
-
-// =====================
-// 에테르 관련 유틸리티 (로컬 사용)
+// 에테르 관련 유틸리티 (로컬 래퍼)
 // =====================
 const etherSlots = (pts) => calculateEtherSlots(pts || 0); // 인플레이션 적용
-function addEther(pts, add) { return (pts || 0) + (add || 0); }
 
 // =====================
 // Combat Logic
