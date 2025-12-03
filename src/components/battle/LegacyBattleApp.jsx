@@ -3051,8 +3051,30 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       const key = m?.name || '몬스터';
       counts[key] = (counts[key] || 0) + 1;
     });
+    const base = enemy?.name || '몬스터';
+    if (!counts[base]) counts[base] = enemy?.count || enemy?.quantity || 1;
     return counts;
-  }, [enemy.composition]);
+  }, [enemy?.composition, enemy?.name, enemy?.count, enemy?.quantity]);
+
+  const groupedEnemyMembers = useMemo(() => {
+    const list = enemy?.composition && enemy.composition.length > 0
+      ? enemy.composition
+      : [{ name: enemy?.name || '몬스터', emoji: enemy?.emoji || '👹', count: enemy?.count || enemy?.quantity || 1 }];
+
+    const map = new Map();
+    list.forEach((m) => {
+      const name = m?.name || '몬스터';
+      const emoji = m?.emoji || '👹';
+      const increment = m?.count || 1;
+      if (!map.has(name)) {
+        map.set(name, { name, emoji, count: increment });
+      } else {
+        const cur = map.get(name);
+        map.set(name, { ...cur, count: cur.count + increment });
+      }
+    });
+    return Array.from(map.values());
+  }, [enemy?.composition, enemy?.name, enemy?.emoji, enemy?.count, enemy?.quantity]);
 
   const handDisabled = (c) => (
     selected.length >= MAX_SUBMIT_CARDS ||
@@ -4100,13 +4122,11 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                       </div>
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px', marginTop: '-88px' }}>
-                      {enemy.composition && enemy.composition.length > 0 ? (
-                        enemy.composition.map((member, idx) => {
-                          const rawName = member.name || '몬스터';
-                          const count = enemyNameCounts[rawName] || 0;
-                          const displayName = count > 1 ? `${rawName} x${count}` : rawName;
-                          return (
-                          <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      {groupedEnemyMembers.map((member, idx) => {
+                        const rawName = member.name || '몬스터';
+                        const displayName = member.count > 1 ? `${rawName} x${member.count}` : rawName;
+                        return (
+                          <div key={`${rawName}-${idx}`} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                             <span style={{
                               fontSize: '0.95rem',
                               color: '#e2e8f0',
@@ -4127,33 +4147,11 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                                 transform: 'translateX(220px)'
                               }}
                             >
-                              {member.emoji}
+                              {member.emoji || '👹'}
                             </div>
                           </div>
-                          );
-                        })
-                      ) : (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                          <span style={{
-                            fontSize: '0.95rem',
-                              color: '#e2e8f0',
-                              fontWeight: '600',
-                              textShadow: '0 2px 4px rgba(0,0,0,0.5)',
-                              background: 'rgba(0,0,0,0.3)',
-                              padding: '2px 8px',
-                              borderRadius: '4px',
-                            transform: 'translateX(220px)'
-                          }}>
-                            {(() => {
-                              const baseName = enemy.name || '몬스터';
-                              const count = enemyNameCounts[baseName] || enemy?.count || enemy?.quantity || 1;
-                              const displayName = count > 1 ? `${baseName} x${count}` : baseName;
-                              return displayName;
-                            })()}
-                          </span>
-                          <div className={`character-display ${soulShatter ? 'soul-shatter-target' : ''} ${enemyOverdriveFlash ? 'overdrive-burst' : ''}`} style={{ fontSize: '64px', transform: 'translateX(220px)' }}>👹</div>
-                        </div>
-                      )}
+                        );
+                      })}
                     </div>
                   </div>
                 </div>
