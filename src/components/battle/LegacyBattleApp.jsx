@@ -2113,13 +2113,13 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
     const enhancedSelected = applyPokerBonus(traitEnhancedSelected, pCombo);
 
-    const q = sortCombinedOrderStablePF(enhancedSelected, actions, effectiveAgility, 0);
+    const q = sortCombinedOrderStablePF(enhancedSelected, enemyPlan.actions, effectiveAgility, 0);
     actions.setFixedOrder(q);
     // 대응 단계 되감기용 스냅샷 저장 (전투당 1회)
     if (!rewindUsed) {
       actions.setRespondSnapshot({
         selectedSnapshot: selected,
-        enemyActions: actions,
+        enemyActions: enemyPlan.actions,
       });
     }
     playCardSubmitSound(); // 카드 제출 사운드 재생
