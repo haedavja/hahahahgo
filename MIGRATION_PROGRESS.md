@@ -48,21 +48,24 @@
 - **스크립트**: `fix_remaining_setters.cjs`
 
 #### 2-4. 종합 Destructure 추가 (Phase 2 완료)
-- **추가된 destructure**: 38개 상태 변수
-  - UI 상태 (6): hoveredCard, tooltipVisible, previewDamage, showCharacterSheet, showInsightTooltip, hoveredEnemyAction
+- **추가된 destructure**: 66개 상태 변수 (총)
+  - Player/Enemy (4): player, enemy, enemyPlan, enemyIndex
+  - 카드 관리 (10): hand, selected, canRedraw, queue, qIndex, log, vanishedCards, usedCardIndices, disappearingCards, hiddenCards
+  - UI 상태 (11): isSimplified, hoveredCard, tooltipVisible, previewDamage, showCharacterSheet, showInsightTooltip, hoveredEnemyAction, showPtsTooltip, showBarTooltip, timelineProgress, timelineIndicatorVisible
   - 애니메이션 (11): playerHit, enemyHit, playerBlockAnim, enemyBlockAnim, willOverdrive, etherPulse, playerOverdriveFlash, enemyOverdriveFlash, soulShatter, playerTransferPulse, enemyTransferPulse
   - 유물 UI (3): activeRelicSet, relicActivated, multiplierPulse
   - 통찰 시스템 (3): insightBadge, insightAnimLevel, insightAnimPulseKey
   - 진행 상태 (7): resolveStartPlayer, resolveStartEnemy, respondSnapshot, rewindUsed, autoProgress, resolvedPlayerCards, executingCardIndex
-  - 에테르 애니메이션 (2): etherAnimationPts, netEtherDelta
+  - 에테르 시스템 (10): turnEtherAccumulated, enemyTurnEtherAccumulated, etherAnimationPts, netEtherDelta, etherFinalValue, enemyEtherFinalValue, etherCalcPhase, enemyEtherCalcPhase, currentDeflation, enemyCurrentDeflation
   - 카드 상태 (2): cardUsageCount, disabledCardIndices
-  - 기타 (4): turnNumber, postCombatOptions, nextTurnEffects, fixedOrder
-- **버그 수정**: 중복 `transform` 키 제거 (pre-existing bug)
+  - 기타 (5): turnNumber, postCombatOptions, nextTurnEffects, fixedOrder, sortType, actionEvents, hoveredRelic
+- **런타임 에러 수정**: 9회 반복 (player, enemyPlan, hoveredCard, enemyIndex, sortType, etherFinalValue, orderedRelics 중복, selected, setAutoProgress, isSimplified)
+- **버그 수정**: 중복 `transform` 키 제거 (pre-existing bug), orderedRelics 중복 선언 (useState와 destructure 충돌)
 - **빌드 테스트**: ✅ 60 modules transformed, 에러 없음
-- **런타임 테스트**: ✅ 통과 (모든 destructure 추가 후)
+- **런타임 테스트**: ✅ 통과 (모든 66개 destructure 추가 후)
 - **커밋**: `7163dcd`
 
-**Phase 2 총 변경**: 224개 자동 변경 + 38개 destructure + 수동 수정
+**Phase 2 총 변경**: 224개 자동 변경 + 66개 destructure + 수동 수정
 
 ---
 
@@ -212,6 +215,12 @@ const enemy = battle.enemy;
    - 2단계: 나머지 모든 setter (37개) - fix_remaining_setters.cjs
    - Negative lookbehind (`(?<!actions\.)`) 사용으로 중복 변경 방지
 
+10. **Destructure 누락은 점진적으로 발견됨**
+   - 빌드 통과 후에도 런타임에서 9회 연속 에러 발생
+   - 각 에러마다 1개씩 destructure 추가하는 방식은 비효율적
+   - 더 나은 방법: battleReducer.js의 initialState와 비교하여 한번에 추가
+   - 최종적으로 66개 상태 변수를 모두 destructure하여 해결
+
 ---
 
 ## 💡 전체 교훈
@@ -250,12 +259,13 @@ const enemy = battle.enemy;
 - **총 자동 변경**: 224개
   - 배열 상태 (2-1): 110개
   - 나머지 setter (2-3): 114개
-- **총 Destructure 추가**: 38개 상태 변수
-- **수동 수정**: ~20개
+- **총 Destructure 추가**: 66개 상태 변수
+- **수동 수정**: ~25개
   - Dependency 배열 업데이트
   - Functional update 제거
   - Props 전달
   - 중복 키 버그 수정
-- **런타임 에러 수정**: 3회 (player, enemyPlan, hoveredCard)
+  - 9회 런타임 에러 수정 (점진적 destructure 추가)
+- **런타임 에러 수정**: 9회 (player, enemyPlan, hoveredCard, enemyIndex, sortType, etherFinalValue, orderedRelics, selected, setAutoProgress, isSimplified)
 - **Git 커밋**: 3개 (a334452, 67fe1c3, 7163dcd)
 - **사용 스크립트**: 2개 (migrate_arrays.cjs, fix_remaining_setters.cjs)

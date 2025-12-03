@@ -1032,6 +1032,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const hiddenCards = battle.hiddenCards;
 
   // UI 상태
+  const isSimplified = battle.isSimplified;
   const hoveredCard = battle.hoveredCard;
   const tooltipVisible = battle.tooltipVisible;
   const previewDamage = battle.previewDamage;
