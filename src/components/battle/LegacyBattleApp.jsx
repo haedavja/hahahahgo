@@ -1830,59 +1830,57 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     if (battle.phase !== 'select' && battle.phase !== 'respond') return;
     const exists = selected.some(s => s.id === card.id);
     if (battle.phase === 'respond') {
-      actions.setSelected(prev => {
-        let next;
-        const cardSpeed = applyAgility(card.speedCost, effectiveAgility);
-        if (exists) {
-          next = prev.filter(s => !(s.__uid === card.__uid) && !(s.id === card.id && !('__uid' in s)));
-          playSound(400, 80); // 해지 사운드 (낮은 음)
+      let next;
+      const cardSpeed = applyAgility(card.speedCost, effectiveAgility);
+      if (exists) {
+        next = selected.filter(s => !(s.__uid === card.__uid) && !(s.id === card.id && !('__uid' in s)));
+        playSound(400, 80); // 해지 사운드 (낮은 음)
+      }
+      else {
+        if (selected.length >= MAX_SUBMIT_CARDS) { addLog('⚠️ 최대 5장의 카드만 제출할 수 있습니다'); return; }
+        if (totalSpeed + cardSpeed > player.maxSpeed) { addLog('⚠️ 속도 초과'); return; }
+        if (totalEnergy + card.actionCost > player.maxEnergy) { addLog('⚠️ 행동력 부족'); return; }
+        next = [...selected, { ...card, __uid: Math.random().toString(36).slice(2) }];
+        playSound(800, 80); // 선택 사운드 (높은 음)
+      }
+      const combo = detectPokerCombo(next);
+      const enhanced = applyPokerBonus(next, combo);
+
+      // 수동 순서 유지: 정렬하지 않고 순서대로 fixedOrder 생성
+      const playerCards = enhanced.map((card, idx) => ({
+        actor: 'player',
+        card,
+        originalIndex: idx
+      }));
+
+      const enemyCards = (enemyPlan.actions || []).map((action, idx) => ({
+        actor: 'enemy',
+        card: action,
+        originalIndex: idx
+      }));
+
+      // 플레이어 카드를 먼저, 그 다음 적 카드 (수동 순서)
+      const manualOrder = [...playerCards, ...enemyCards];
+
+      // sp 값 재계산 (누적)
+      let ps = 0;
+      let es = 0;
+      const withSp = manualOrder.map(item => {
+        const isPlayer = item.actor === 'player';
+        const agility = isPlayer ? effectiveAgility : 0;
+        const finalSpeed = applyAgility(item.card.speedCost, agility);
+
+        if (isPlayer) {
+          ps += finalSpeed;
+          return { ...item, sp: ps, finalSpeed };
+        } else {
+          es += finalSpeed;
+          return { ...item, sp: es, finalSpeed };
         }
-        else {
-          if (prev.length >= MAX_SUBMIT_CARDS) { addLog('⚠️ 최대 5장의 카드만 제출할 수 있습니다'); return prev; }
-          if (totalSpeed + cardSpeed > player.maxSpeed) { addLog('⚠️ 속도 초과'); return prev; }
-          if (totalEnergy + card.actionCost > player.maxEnergy) { addLog('⚠️ 행동력 부족'); return prev; }
-          next = [...prev, { ...card, __uid: Math.random().toString(36).slice(2) }];
-          playSound(800, 80); // 선택 사운드 (높은 음)
-        }
-        const combo = detectPokerCombo(next);
-        const enhanced = applyPokerBonus(next, combo);
-
-        // 수동 순서 유지: 정렬하지 않고 순서대로 fixedOrder 생성
-        const playerCards = enhanced.map((card, idx) => ({
-          actor: 'player',
-          card,
-          originalIndex: idx
-        }));
-
-        const enemyCards = (enemyPlan.actions || []).map((action, idx) => ({
-          actor: 'enemy',
-          card: action,
-          originalIndex: idx
-        }));
-
-        // 플레이어 카드를 먼저, 그 다음 적 카드 (수동 순서)
-        const manualOrder = [...playerCards, ...enemyCards];
-
-        // sp 값 재계산 (누적)
-        let ps = 0;
-        let es = 0;
-        const withSp = manualOrder.map(item => {
-          const isPlayer = item.actor === 'player';
-          const agility = isPlayer ? effectiveAgility : 0;
-          const finalSpeed = applyAgility(item.card.speedCost, agility);
-
-          if (isPlayer) {
-            ps += finalSpeed;
-            return { ...item, sp: ps, finalSpeed };
-          } else {
-            es += finalSpeed;
-            return { ...item, sp: es, finalSpeed };
-          }
-        });
-
-        actions.setFixedOrder(withSp);
-        return next;
       });
+
+      actions.setFixedOrder(withSp);
+      actions.setSelected(next);
       return;
     }
     const cardSpeed = applyAgility(card.speedCost, effectiveAgility);
@@ -1901,49 +1899,47 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const moveUp = (i) => {
     if (i === 0) return;
     if (battle.phase === 'respond') {
-      actions.setSelected(prev => {
-        const n = [...prev];
-        [n[i - 1], n[i]] = [n[i], n[i - 1]];
+      const n = [...selected];
+      [n[i - 1], n[i]] = [n[i], n[i - 1]];
 
-        const combo = detectPokerCombo(n);
-        const enhanced = applyPokerBonus(n, combo);
+      const combo = detectPokerCombo(n);
+      const enhanced = applyPokerBonus(n, combo);
 
-        // 수동 순서 유지: 정렬하지 않고 순서대로 fixedOrder 생성
-        const playerCards = enhanced.map((card, idx) => ({
-          actor: 'player',
-          card,
-          originalIndex: idx
-        }));
+      // 수동 순서 유지: 정렬하지 않고 순서대로 fixedOrder 생성
+      const playerCards = enhanced.map((card, idx) => ({
+        actor: 'player',
+        card,
+        originalIndex: idx
+      }));
 
-        const enemyCards = (enemyPlan.actions || []).map((action, idx) => ({
-          actor: 'enemy',
-          card: action,
-          originalIndex: idx
-        }));
+      const enemyCards = (enemyPlan.actions || []).map((action, idx) => ({
+        actor: 'enemy',
+        card: action,
+        originalIndex: idx
+      }));
 
-        // 플레이어 카드를 먼저, 그 다음 적 카드 (수동 순서)
-        const manualOrder = [...playerCards, ...enemyCards];
+      // 플레이어 카드를 먼저, 그 다음 적 카드 (수동 순서)
+      const manualOrder = [...playerCards, ...enemyCards];
 
-        // sp 값 재계산 (누적)
-        let ps = 0;
-        let es = 0;
-        const withSp = manualOrder.map(item => {
-          const isPlayer = item.actor === 'player';
-          const agility = isPlayer ? effectiveAgility : 0;
-          const finalSpeed = applyAgility(item.card.speedCost, agility);
+      // sp 값 재계산 (누적)
+      let ps = 0;
+      let es = 0;
+      const withSp = manualOrder.map(item => {
+        const isPlayer = item.actor === 'player';
+        const agility = isPlayer ? effectiveAgility : 0;
+        const finalSpeed = applyAgility(item.card.speedCost, agility);
 
-          if (isPlayer) {
-            ps += finalSpeed;
-            return { ...item, sp: ps, finalSpeed };
-          } else {
-            es += finalSpeed;
-            return { ...item, sp: es, finalSpeed };
-          }
-        });
-
-        actions.setFixedOrder(withSp);
-        return n;
+        if (isPlayer) {
+          ps += finalSpeed;
+          return { ...item, sp: ps, finalSpeed };
+        } else {
+          es += finalSpeed;
+          return { ...item, sp: es, finalSpeed };
+        }
       });
+
+      actions.setFixedOrder(withSp);
+      actions.setSelected(n);
     } else {
       const n = [...selected];
       [n[i - 1], n[i]] = [n[i], n[i - 1]];
@@ -1954,49 +1950,47 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const moveDown = (i) => {
     if (i === battle.selected.length - 1) return;
     if (battle.phase === 'respond') {
-      actions.setSelected(prev => {
-        const n = [...prev];
-        [n[i], n[i + 1]] = [n[i + 1], n[i]];
+      const n = [...selected];
+      [n[i], n[i + 1]] = [n[i + 1], n[i]];
 
-        const combo = detectPokerCombo(n);
-        const enhanced = applyPokerBonus(n, combo);
+      const combo = detectPokerCombo(n);
+      const enhanced = applyPokerBonus(n, combo);
 
-        // 수동 순서 유지: 정렬하지 않고 순서대로 fixedOrder 생성
-        const playerCards = enhanced.map((card, idx) => ({
-          actor: 'player',
-          card,
-          originalIndex: idx
-        }));
+      // 수동 순서 유지: 정렬하지 않고 순서대로 fixedOrder 생성
+      const playerCards = enhanced.map((card, idx) => ({
+        actor: 'player',
+        card,
+        originalIndex: idx
+      }));
 
-        const enemyCards = (enemyPlan.actions || []).map((action, idx) => ({
-          actor: 'enemy',
-          card: action,
-          originalIndex: idx
-        }));
+      const enemyCards = (enemyPlan.actions || []).map((action, idx) => ({
+        actor: 'enemy',
+        card: action,
+        originalIndex: idx
+      }));
 
-        // 플레이어 카드를 먼저, 그 다음 적 카드 (수동 순서)
-        const manualOrder = [...playerCards, ...enemyCards];
+      // 플레이어 카드를 먼저, 그 다음 적 카드 (수동 순서)
+      const manualOrder = [...playerCards, ...enemyCards];
 
-        // sp 값 재계산 (누적)
-        let ps = 0;
-        let es = 0;
-        const withSp = manualOrder.map(item => {
-          const isPlayer = item.actor === 'player';
-          const agility = isPlayer ? effectiveAgility : 0;
-          const finalSpeed = applyAgility(item.card.speedCost, agility);
+      // sp 값 재계산 (누적)
+      let ps = 0;
+      let es = 0;
+      const withSp = manualOrder.map(item => {
+        const isPlayer = item.actor === 'player';
+        const agility = isPlayer ? effectiveAgility : 0;
+        const finalSpeed = applyAgility(item.card.speedCost, agility);
 
-          if (isPlayer) {
-            ps += finalSpeed;
-            return { ...item, sp: ps, finalSpeed };
-          } else {
-            es += finalSpeed;
-            return { ...item, sp: es, finalSpeed };
-          }
-        });
-
-        actions.setFixedOrder(withSp);
-        return n;
+        if (isPlayer) {
+          ps += finalSpeed;
+          return { ...item, sp: ps, finalSpeed };
+        } else {
+          es += finalSpeed;
+          return { ...item, sp: es, finalSpeed };
+        }
       });
+
+      actions.setFixedOrder(withSp);
+      actions.setSelected(n);
     } else {
       const n = [...selected];
       [n[i], n[i + 1]] = [n[i + 1], n[i]];
@@ -2149,7 +2143,11 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   }, [battle.selected, battle.phase, enemyPlan.actions]);
 
   const beginResolveFromRespond = () => {
-    if (battle.phase !== 'respond') return;
+    console.log('[beginResolveFromRespond] Called, current phase:', battle.phase, 'fixedOrder:', fixedOrder?.length);
+    if (battle.phase !== 'respond') {
+      console.warn('[beginResolveFromRespond] Not in respond phase, current:', battle.phase);
+      return;
+    }
     if (!fixedOrder) return addLog('오류: 고정된 순서가 없습니다');
 
     if (fixedOrder.length === 0) {
