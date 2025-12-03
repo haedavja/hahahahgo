@@ -1018,6 +1018,60 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const enemy = battle.enemy;
   const enemyPlan = battle.enemyPlan;
 
+  // UI 상태
+  const hoveredCard = battle.hoveredCard;
+  const tooltipVisible = battle.tooltipVisible;
+  const previewDamage = battle.previewDamage;
+  const showCharacterSheet = battle.showCharacterSheet;
+  const showInsightTooltip = battle.showInsightTooltip;
+  const hoveredEnemyAction = battle.hoveredEnemyAction;
+
+  // 애니메이션 상태
+  const playerHit = battle.playerHit;
+  const enemyHit = battle.enemyHit;
+  const playerBlockAnim = battle.playerBlockAnim;
+  const enemyBlockAnim = battle.enemyBlockAnim;
+  const willOverdrive = battle.willOverdrive;
+  const etherPulse = battle.etherPulse;
+  const playerOverdriveFlash = battle.playerOverdriveFlash;
+  const enemyOverdriveFlash = battle.enemyOverdriveFlash;
+  const soulShatter = battle.soulShatter;
+  const playerTransferPulse = battle.playerTransferPulse;
+  const enemyTransferPulse = battle.enemyTransferPulse;
+
+  // 유물 UI
+  const activeRelicSet = battle.activeRelicSet;
+  const relicActivated = battle.relicActivated;
+  const multiplierPulse = battle.multiplierPulse;
+
+  // 통찰 시스템
+  const insightBadge = battle.insightBadge;
+  const insightAnimLevel = battle.insightAnimLevel;
+  const insightAnimPulseKey = battle.insightAnimPulseKey;
+
+  // 진행 상태
+  const resolveStartPlayer = battle.resolveStartPlayer;
+  const resolveStartEnemy = battle.resolveStartEnemy;
+  const respondSnapshot = battle.respondSnapshot;
+  const rewindUsed = battle.rewindUsed;
+  const autoProgress = battle.autoProgress;
+  const resolvedPlayerCards = battle.resolvedPlayerCards;
+  const executingCardIndex = battle.executingCardIndex;
+
+  // 에테르 애니메이션
+  const etherAnimationPts = battle.etherAnimationPts;
+  const netEtherDelta = battle.netEtherDelta;
+
+  // 카드 상태
+  const cardUsageCount = battle.cardUsageCount;
+  const disabledCardIndices = battle.disabledCardIndices;
+
+  // 기타
+  const turnNumber = battle.turnNumber;
+  const postCombatOptions = battle.postCombatOptions;
+  const nextTurnEffects = battle.nextTurnEffects;
+  const fixedOrder = battle.fixedOrder;
+
   // 새 유물 추가/제거 시 기존 순서를 유지하면서 병합
   // 진행 단계에서는 동기화/변경을 막아 일관성 유지
   useEffect(() => {
