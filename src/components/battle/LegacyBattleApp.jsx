@@ -3730,6 +3730,24 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                           }}></div>
                         )}
                       </div>
+                      {/* 체력바 바로 아래 상태 라인 */}
+                      <div style={{ display: 'flex', gap: '12px', marginTop: '6px', fontSize: '0.9rem', fontWeight: '700' }}>
+                        {(player.strength || 0) !== 0 && (
+                          <span style={{ color: '#fbbf24' }}>💪 힘 {player.strength || 0}</span>
+                        )}
+                        {effectiveAgility !== 0 && (
+                          <span style={{ color: effectiveAgility > 0 ? '#34d399' : '#ef4444' }}>⚡ 민첩 {effectiveAgility}</span>
+                        )}
+                        {(player.insight || 0) !== 0 && (
+                          <span style={{ color: '#a78bfa' }}>👁️ 통찰 {player.insight || 0}</span>
+                        )}
+                        {dulledLevel > 0 && (
+                          <span style={{ color: '#94a3b8' }}>🌫️ 우둔 {dulledLevel}</span>
+                        )}
+                        {player.etherOverflow > 0 && (
+                          <span style={{ color: '#a78bfa', fontSize: '0.85rem' }}>🌊 범람 {player.etherOverflow} PT</span>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
