@@ -1017,6 +1017,19 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const player = battle.player;
   const enemy = battle.enemy;
   const enemyPlan = battle.enemyPlan;
+  const enemyIndex = battle.enemyIndex;
+
+  // 카드 관리
+  const hand = battle.hand;
+  const selected = battle.selected;
+  const canRedraw = battle.canRedraw;
+  const queue = battle.queue;
+  const qIndex = battle.qIndex;
+  const log = battle.log;
+  const vanishedCards = battle.vanishedCards;
+  const usedCardIndices = battle.usedCardIndices;
+  const disappearingCards = battle.disappearingCards;
+  const hiddenCards = battle.hiddenCards;
 
   // UI 상태
   const hoveredCard = battle.hoveredCard;
@@ -1025,6 +1038,10 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const showCharacterSheet = battle.showCharacterSheet;
   const showInsightTooltip = battle.showInsightTooltip;
   const hoveredEnemyAction = battle.hoveredEnemyAction;
+  const showPtsTooltip = battle.showPtsTooltip;
+  const showBarTooltip = battle.showBarTooltip;
+  const timelineProgress = battle.timelineProgress;
+  const timelineIndicatorVisible = battle.timelineIndicatorVisible;
 
   // 애니메이션 상태
   const playerHit = battle.playerHit;
@@ -1058,9 +1075,17 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const resolvedPlayerCards = battle.resolvedPlayerCards;
   const executingCardIndex = battle.executingCardIndex;
 
-  // 에테르 애니메이션
+  // 에테르 시스템
+  const turnEtherAccumulated = battle.turnEtherAccumulated;
+  const enemyTurnEtherAccumulated = battle.enemyTurnEtherAccumulated;
   const etherAnimationPts = battle.etherAnimationPts;
   const netEtherDelta = battle.netEtherDelta;
+  const etherFinalValue = battle.etherFinalValue;
+  const enemyEtherFinalValue = battle.enemyEtherFinalValue;
+  const etherCalcPhase = battle.etherCalcPhase;
+  const enemyEtherCalcPhase = battle.enemyEtherCalcPhase;
+  const currentDeflation = battle.currentDeflation;
+  const enemyCurrentDeflation = battle.enemyCurrentDeflation;
 
   // 카드 상태
   const cardUsageCount = battle.cardUsageCount;
@@ -1071,6 +1096,10 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const postCombatOptions = battle.postCombatOptions;
   const nextTurnEffects = battle.nextTurnEffects;
   const fixedOrder = battle.fixedOrder;
+  const sortType = battle.sortType;
+  const actionEvents = battle.actionEvents;
+  // orderedRelics는 아직 useState로 관리 (localStorage 로직 때문에)
+  const hoveredRelic = battle.hoveredRelic;
 
   // 새 유물 추가/제거 시 기존 순서를 유지하면서 병합
   // 진행 단계에서는 동기화/변경을 막아 일관성 유지
@@ -2023,7 +2052,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     const currentIndex = sortCycle.indexOf(sortType);
     const nextIndex = (currentIndex + 1) % sortCycle.length;
     const nextSort = sortCycle[nextIndex];
-    setSortType(nextSort);
+    actions.setSortType(nextSort);
     try {
       localStorage.setItem('battleSortType', nextSort);
     } catch { }
@@ -3263,7 +3292,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
           postCombatOptions={postCombatOptions}
           handleExitToMap={handleExitToMap}
           autoProgress={autoProgress}
-          setAutoProgress={setAutoProgress}
+          setAutoProgress={actions.setAutoProgress}
           resolveStartPlayer={resolveStartPlayer}
           resolveStartEnemy={resolveStartEnemy}
           turnNumber={turnNumber}

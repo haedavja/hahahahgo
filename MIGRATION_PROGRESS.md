@@ -1,6 +1,6 @@
 # useState → useReducer 마이그레이션 진행 현황
 
-**최종 업데이트**: 2025-12-03 14:20
+**최종 업데이트**: 2025-12-03 15:30
 
 ---
 
@@ -19,7 +19,9 @@
 - **커밋**: `7905239`, `c69bf13`
 - **스크립트**: `migrate_phase.cjs`
 
-### Phase 2: 배열 상태 (100% ✅)
+### Phase 2: 배열 상태 + 모든 UI/애니메이션 상태 (100% ✅)
+
+#### 2-1. 배열 상태 마이그레이션
 - **자동 변경**: 110개
   - Setters: `setHand`, `setSelected`, `setQueue`, `setQIndex`, `setLog` 등 (40개)
   - State refs: `hand.length`, `selected.map`, `queue[i]` 등 (70개)
@@ -29,12 +31,38 @@
   - `queue[qIndex]` → `queue[battle.qIndex]` (3곳)
   - Functional update 제거: `actions.setHand(prev =>)` → 직접 참조
   - Props 전달: ExpectedDamagePreview에 `battle.qIndex`, `battle.queue`
-  - player/enemy destructure 추가
-- **버그 수정**: 중복 `transform` 키 제거 (pre-existing bug)
-- **빌드 테스트**: ✅ 60 modules transformed, 에러 없음
-- **런타임 테스트**: ✅ 통과 (player/enemy destructure 수정 후)
+  - player/enemy/enemyPlan destructure 추가
 - **커밋**: `a334452`
 - **스크립트**: `migrate_arrays.cjs`
+
+#### 2-2. 런타임 에러 수정
+- **Runtime Error 1**: `player is not defined` → player/enemy destructure 추가
+- **Runtime Error 2**: `enemyPlan is not defined` → enemyPlan destructure + 4개 setter 수정
+- **Runtime Error 3**: `hoveredCard is not defined` → 종합 destructure 필요
+
+#### 2-3. 나머지 모든 Setters 마이그레이션
+- **자동 변경**: 114개
+  - 37개 setter 함수: `setActiveRelicSet`, `setRelicActivated`, `setMultiplierPulse` 등
+  - UI 상태, 애니메이션, 에테르 시스템, 유물, 통찰 등 모든 setter
+- **커밋**: `67fe1c3`
+- **스크립트**: `fix_remaining_setters.cjs`
+
+#### 2-4. 종합 Destructure 추가 (Phase 2 완료)
+- **추가된 destructure**: 38개 상태 변수
+  - UI 상태 (6): hoveredCard, tooltipVisible, previewDamage, showCharacterSheet, showInsightTooltip, hoveredEnemyAction
+  - 애니메이션 (11): playerHit, enemyHit, playerBlockAnim, enemyBlockAnim, willOverdrive, etherPulse, playerOverdriveFlash, enemyOverdriveFlash, soulShatter, playerTransferPulse, enemyTransferPulse
+  - 유물 UI (3): activeRelicSet, relicActivated, multiplierPulse
+  - 통찰 시스템 (3): insightBadge, insightAnimLevel, insightAnimPulseKey
+  - 진행 상태 (7): resolveStartPlayer, resolveStartEnemy, respondSnapshot, rewindUsed, autoProgress, resolvedPlayerCards, executingCardIndex
+  - 에테르 애니메이션 (2): etherAnimationPts, netEtherDelta
+  - 카드 상태 (2): cardUsageCount, disabledCardIndices
+  - 기타 (4): turnNumber, postCombatOptions, nextTurnEffects, fixedOrder
+- **버그 수정**: 중복 `transform` 키 제거 (pre-existing bug)
+- **빌드 테스트**: ✅ 60 modules transformed, 에러 없음
+- **런타임 테스트**: ✅ 통과 (모든 destructure 추가 후)
+- **커밋**: `7163dcd`
+
+**Phase 2 총 변경**: 224개 자동 변경 + 38개 destructure + 수동 수정
 
 ---
 
@@ -44,10 +72,10 @@
 |------|------|--------|
 | 인프라 구축 | ✅ 완료 | 100% |
 | Phase 1: phase | ✅ 완료 | 100% |
-| Phase 2: 배열 상태 | ✅ 완료 | 100% |
+| Phase 2: 배열 + UI/애니메이션 | ✅ 완료 | 100% |
 | Phase 3: player/enemy | ⏳ 대기 | 0% |
 | 런타임 테스트 | ⏳ 대기 | 0% |
-| **전체** | **⚠️ 진행 중** | **약 70%** |
+| **전체** | **⚠️ 진행 중** | **약 75%** |
 
 ---
 
@@ -84,7 +112,9 @@ const enemy = battle.enemy;
 2. **c12b5a3**: 마이그레이션 가이드
 3. **7905239**: Phase 1 - phase 상태 ✅
 4. **c69bf13**: Phase 1 - 수동 수정 완료 ✅
-5. **a334452**: Phase 2 - 배열 상태 완료 ✅
+5. **a334452**: Phase 2-1 - 배열 상태 완료 ✅
+6. **67fe1c3**: Phase 2-3 - 나머지 setter 114개 완료 ✅
+7. **7163dcd**: Phase 2-4 - 종합 destructure 38개 추가, Phase 2 완료 ✅
 
 ---
 
@@ -172,6 +202,16 @@ const enemy = battle.enemy;
    - Phase 3 전까지는 임시로 destructure 사용
    - Phase 3에서 모든 참조를 `battle.player`로 변경 후 제거
 
+8. **런타임 에러는 점진적으로 발견됨**
+   - 빌드가 통과해도 런타임에서 undefined 에러 발생 가능
+   - 3번의 runtime error를 통해 필요한 destructure를 점진적으로 추가
+   - 최종적으로 38개 상태 변수를 한번에 destructure하여 해결
+
+9. **Setter 마이그레이션은 2단계로 진행**
+   - 1단계: 배열 관련 setter (10개) - migrate_arrays.cjs
+   - 2단계: 나머지 모든 setter (37개) - fix_remaining_setters.cjs
+   - Negative lookbehind (`(?<!actions\.)`) 사용으로 중복 변경 방지
+
 ---
 
 ## 💡 전체 교훈
@@ -201,4 +241,21 @@ const enemy = battle.enemy;
 
 **현재 상태**: Phase 2 완료 ✅
 **다음 작업**: Phase 3 - player, enemy 상태 마이그레이션 (가장 복잡)
-**전체 진행률**: ~70% 완료
+**전체 진행률**: ~75% 완료
+
+---
+
+## 📈 Phase 2 통계 요약
+
+- **총 자동 변경**: 224개
+  - 배열 상태 (2-1): 110개
+  - 나머지 setter (2-3): 114개
+- **총 Destructure 추가**: 38개 상태 변수
+- **수동 수정**: ~20개
+  - Dependency 배열 업데이트
+  - Functional update 제거
+  - Props 전달
+  - 중복 키 버그 수정
+- **런타임 에러 수정**: 3회 (player, enemyPlan, hoveredCard)
+- **Git 커밋**: 3개 (a334452, 67fe1c3, 7163dcd)
+- **사용 스크립트**: 2개 (migrate_arrays.cjs, fix_remaining_setters.cjs)
