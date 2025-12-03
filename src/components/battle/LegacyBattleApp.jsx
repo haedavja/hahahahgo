@@ -523,10 +523,10 @@ function ExpectedDamagePreview({ player, enemy, fixedOrder, willOverdrive, enemy
   // 전투 로그 자동 스크롤
   const logContainerRef = useRef(null);
   useEffect(() => {
-    if (logContainerRef.current && phase === 'resolve' && log && battle.log.length > 0) {
+    if (logContainerRef.current && phase === 'resolve' && log && log.length > 0) {
       logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight;
     }
-  }, [battle.log, phase, log]);
+  }, [log, phase]);
 
   return (
     <div className="expect-board expect-board-vertical" style={{ position: 'relative' }}>
@@ -576,7 +576,7 @@ function ExpectedDamagePreview({ player, enemy, fixedOrder, willOverdrive, enemy
       )}
 
       {/* 진행 단계 전투 로그 */}
-      {phase === 'resolve' && log && battle.log.length > 0 && (
+      {phase === 'resolve' && log && log.length > 0 && (
         <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '2px solid rgba(148, 163, 184, 0.3)' }}>
           <div style={{ fontSize: '15px', fontWeight: 'bold', color: '#f8fafc', marginBottom: '12px' }}>
             🎮 전투 로그
