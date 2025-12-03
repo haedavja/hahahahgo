@@ -377,7 +377,10 @@ function generateEnemyActions(enemy, mode, enemyEtherSlots = 0, maxCards = 3, mi
   let deck = (enemy.deck || [])
     .map(id => ENEMY_CARDS.find(c => c.id === id))
     .filter(Boolean);
-  if (deck.length === 0) return [];
+  if (deck.length === 0) {
+    // 덱 정보가 없을 때는 기본 적 카드 풀에서 임의 선택
+    deck = [...ENEMY_CARDS];
+  }
 
   // Ensure deck has enough cards to meet minCards requirement
   // If deck is too small, duplicate cards until we have at least minCards * 2 (to give some variety)
