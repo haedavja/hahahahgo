@@ -1435,17 +1435,17 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       : (playerEther ?? player.etherPts);
     initialEtherRef.current = nextEther;
     resultSentRef.current = false;
-    setPlayer(prev => ({
-      ...prev,
-      hp: safeInitialPlayer?.hp ?? prev.hp,
-      maxHp: safeInitialPlayer?.maxHp ?? prev.maxHp,
-      energy: safeInitialPlayer?.energy ?? prev.energy,
-      maxEnergy: safeInitialPlayer?.energy ?? prev.maxEnergy,
+    actions.setPlayer({
+      ...player,
+      hp: safeInitialPlayer?.hp ?? player.hp,
+      maxHp: safeInitialPlayer?.maxHp ?? player.maxHp,
+      energy: safeInitialPlayer?.energy ?? player.energy,
+      maxEnergy: safeInitialPlayer?.energy ?? player.maxEnergy,
       etherPts: nextEther,
       // Strength를 0으로 리셋하지 않고 초기 계산값/이전 값 보존
-      strength: safeInitialPlayer?.strength ?? prev.strength ?? startingStrength ?? 0,
-      insight: safeInitialPlayer?.insight ?? prev.insight ?? startingInsight ?? 0
-    }));
+      strength: safeInitialPlayer?.strength ?? player.strength ?? startingStrength ?? 0,
+      insight: safeInitialPlayer?.insight ?? player.insight ?? startingInsight ?? 0
+    });
     actions.setSelected([]);
     actions.setQueue([]);
     actions.setQIndex(0);
@@ -1492,10 +1492,10 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   useEffect(() => {
     if (!safeInitialEnemy) return;
     const hp = safeInitialEnemy.hp ?? safeInitialEnemy.maxHp ?? enemy?.maxHp ?? 30;
-    setEnemy(prev => ({
-      ...(prev || {}),
-      deck: safeInitialEnemy.deck || prev?.deck || ENEMIES[enemyIndex]?.deck || [],
-      name: safeInitialEnemy.name ?? prev?.name ?? '적',
+    actions.setEnemy({
+      ...(enemy || {}),
+      deck: safeInitialEnemy.deck || enemy?.deck || ENEMIES[enemyIndex]?.deck || [],
+      name: safeInitialEnemy.name ?? enemy?.name ?? '적',
       hp,
       maxHp: safeInitialEnemy.maxHp ?? hp,
       vulnMult: 1,
@@ -1505,7 +1505,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       etherPts: safeInitialEnemy.etherPts ?? safeInitialEnemy.etherCapacity ?? 300,
       etherCapacity: safeInitialEnemy.etherCapacity ?? 300,
       etherOverdriveActive: false
-    }));
+    });
     actions.setSelected([]);
     actions.setQueue([]);
     actions.setQIndex(0);
@@ -1519,11 +1519,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   // 전투 중 통찰 값 실시간 반영 (payload 재생성 없이)
   useEffect(() => {
     if (typeof liveInsight !== 'number') return;
-    setPlayer((p) => {
-      if (p.insight === liveInsight) return p;
-      return { ...p, insight: liveInsight };
-    });
-  }, [liveInsight]);
+    if (player.insight === liveInsight) return;
+    actions.setPlayer({ ...player, insight: liveInsight });
+  }, [liveInsight, player, actions]);
 
   useEffect(() => {
     if (postCombatOptions?.type) {
@@ -1603,7 +1601,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   useEffect(() => {
     if (!enemy) {
       const e = ENEMIES[enemyIndex];
-      setEnemy({ ...e, hp: e.hp, maxHp: e.hp, vulnMult: 1, vulnTurns: 0, block: 0, counter: 0, etherPts: 0, etherOverdriveActive: false, maxSpeed: e.maxSpeed ?? DEFAULT_ENEMY_MAX_SPEED });
+      actions.setEnemy({ ...e, hp: e.hp, maxHp: e.hp, vulnMult: 1, vulnTurns: 0, block: 0, counter: 0, etherPts: 0, etherOverdriveActive: false, maxSpeed: e.maxSpeed ?? DEFAULT_ENEMY_MAX_SPEED });
 
       // 전투 시작 유물 효과 로그 및 애니메이션
       const combatStartEffects = applyCombatStartEffects(orderedRelicList, {});
