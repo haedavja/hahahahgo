@@ -1712,21 +1712,19 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     });
 
     // 방어력과 체력 회복 적용
-    setPlayer(p => {
-      const newHp = Math.min(p.maxHp, p.hp + turnStartRelicEffects.heal);
-      const newBlock = (p.block || 0) + turnStartRelicEffects.block;
-      const newDef = turnStartRelicEffects.block > 0; // 방어력이 있으면 def 플래그 활성화
-      return {
-        ...p,
-        hp: newHp,
-        block: newBlock,
-        def: newDef,
-        energy: finalEnergy,
-        maxEnergy: baseMaxEnergy,
-        etherOverdriveActive: false,
-        etherOverflow: 0,
-        strength: p.strength || 0 // 힘 유지
-      };
+    const newHp = Math.min(player.maxHp, player.hp + turnStartRelicEffects.heal);
+    const newBlock = (player.block || 0) + turnStartRelicEffects.block;
+    const newDef = turnStartRelicEffects.block > 0; // 방어력이 있으면 def 플래그 활성화
+    actions.setPlayer({
+      ...player,
+      hp: newHp,
+      block: newBlock,
+      def: newDef,
+      energy: finalEnergy,
+      maxEnergy: baseMaxEnergy,
+      etherOverdriveActive: false,
+      etherOverflow: 0,
+      strength: player.strength || 0 // 힘 유지
     });
 
     // 로그 추가
@@ -2200,14 +2198,14 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
     const enemyWillOD = shouldEnemyOverdriveWithTurn(enemyPlan.mode, enemyPlan.actions, enemy.etherPts, turnNumber) && etherSlots(enemy.etherPts) > 0;
     if ((battle.phase === 'respond' || battle.phase === 'select') && willOverdrive && etherSlots(player.etherPts) > 0) {
-      setPlayer(p => ({ ...p, etherPts: p.etherPts - ETHER_THRESHOLD, etherOverdriveActive: true }));
+      actions.setPlayer({ ...player, etherPts: player.etherPts - ETHER_THRESHOLD, etherOverdriveActive: true });
       actions.setPlayerOverdriveFlash(true);
       playSound(1400, 220);
       setTimeout(() => actions.setPlayerOverdriveFlash(false), 650);
       addLog('✴️ 에테르 폭주 발동! (이 턴 전체 유지)');
     }
     if ((battle.phase === 'respond' || battle.phase === 'select') && enemyWillOD) {
-      setEnemy(e => ({ ...e, etherPts: e.etherPts - ETHER_THRESHOLD, etherOverdriveActive: true }));
+      actions.setEnemy({ ...enemy, etherPts: enemy.etherPts - ETHER_THRESHOLD, etherOverdriveActive: true });
       actions.setEnemyOverdriveFlash(true);
       playSound(900, 220);
       setTimeout(() => actions.setEnemyOverdriveFlash(false), 650);
@@ -2536,8 +2534,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       setEnemyTurnEtherAccumulated(prev => prev + getCardEtherGain(a.card));
     }
 
-    setPlayer(prev => ({ ...prev, hp: P.hp, def: P.def, block: P.block, counter: P.counter, vulnMult: P.vulnMult || 1, strength: P.strength || 0 }));
-    setEnemy(prev => ({ ...prev, hp: E.hp, def: E.def, block: E.block, counter: E.counter, vulnMult: E.vulnMult || 1 }));
+    actions.setPlayer({ ...player, hp: P.hp, def: P.def, block: P.block, counter: P.counter, vulnMult: P.vulnMult || 1, strength: P.strength || 0 });
+    actions.setEnemy({ ...enemy, hp: E.hp, def: E.def, block: E.block, counter: E.counter, vulnMult: E.vulnMult || 1 });
     setActionEvents(prev => ({ ...prev, [battle.qIndex]: actionEvents }));
 
     // 이벤트 처리: 애니메이션 및 사운드
@@ -2734,7 +2732,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       const currentStrength = player.strength || 0;
       const newStrength = currentStrength + turnEndRelicEffects.strength;
       addLog(`💪 유물 효과: 힘 ${turnEndRelicEffects.strength > 0 ? '+' : ''}${turnEndRelicEffects.strength} (총 ${newStrength})`);
-      setPlayer(p => ({ ...p, strength: newStrength }));
+      actions.setPlayer({ ...player, strength: newStrength });
     }
 
     // 턴 종료 시 조합 카운트 증가 (Deflation)
@@ -2869,50 +2867,45 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       addLog(`🔁 에테르 이동: 플레이어 ${movedPts > 0 ? '+' : ''}${movedPts} PT`);
     }
 
-    setPlayer(p => {
-      const newUsageCount = { ...(p.comboUsageCount || {}) };
-      if (pComboEnd?.name) {
-        newUsageCount[pComboEnd.name] = (newUsageCount[pComboEnd.name] || 0) + 1;
+    const newUsageCount = { ...(player.comboUsageCount || {}) };
+    if (pComboEnd?.name) {
+      newUsageCount[pComboEnd.name] = (newUsageCount[pComboEnd.name] || 0) + 1;
+    }
+    // 플레이어가 사용한 각 카드의 사용 횟수 증가 (숙련 특성용)
+    queue.forEach(action => {
+      if (action.actor === 'player' && action.card?.id) {
+        newUsageCount[action.card.id] = (newUsageCount[action.card.id] || 0) + 1;
       }
-      // 플레이어가 사용한 각 카드의 사용 횟수 증가 (숙련 특성용)
-      queue.forEach(action => {
-        if (action.actor === 'player' && action.card?.id) {
-          newUsageCount[action.card.id] = (newUsageCount[action.card.id] || 0) + 1;
-        }
-      });
-      return {
-        ...p,
-        block: 0,
-        def: false,
-        counter: 0,
-        vulnMult: 1,
-        vulnTurns: 0,
-        etherOverdriveActive: false,
-        comboUsageCount: newUsageCount,
-        etherPts: Math.max(0, nextPlayerPts),
-        etherOverflow: (p.etherOverflow || 0) + playerOverflow
-      };
+    });
+    actions.setPlayer({
+      ...player,
+      block: 0,
+      def: false,
+      counter: 0,
+      vulnMult: 1,
+      vulnTurns: 0,
+      etherOverdriveActive: false,
+      comboUsageCount: newUsageCount,
+      etherPts: Math.max(0, nextPlayerPts),
+      etherOverflow: (player.etherOverflow || 0) + playerOverflow
     });
 
-    let nextEnemyPtsSnapshot = null;
-    setEnemy(e => {
-      const newEnemyUsageCount = { ...(e.comboUsageCount || {}) };
-      if (eComboEnd?.name) {
-        newEnemyUsageCount[eComboEnd.name] = (newEnemyUsageCount[eComboEnd.name] || 0) + 1;
-      }
-      const nextPts = Math.max(0, nextEnemyPts);
-      nextEnemyPtsSnapshot = nextPts;
-      return {
-        ...e,
-        block: 0,
-        def: false,
-        counter: 0,
-        vulnMult: 1,
-        vulnTurns: 0,
-        etherOverdriveActive: false,
-        comboUsageCount: newEnemyUsageCount,
-        etherPts: nextPts
-      };
+    const newEnemyUsageCount = { ...(enemy.comboUsageCount || {}) };
+    if (eComboEnd?.name) {
+      newEnemyUsageCount[eComboEnd.name] = (newEnemyUsageCount[eComboEnd.name] || 0) + 1;
+    }
+    const nextPts = Math.max(0, nextEnemyPts);
+    const nextEnemyPtsSnapshot = nextPts;
+    actions.setEnemy({
+      ...enemy,
+      block: 0,
+      def: false,
+      counter: 0,
+      vulnMult: 1,
+      vulnTurns: 0,
+      etherOverdriveActive: false,
+      comboUsageCount: newEnemyUsageCount,
+      etherPts: nextPts
     });
 
     // 에테르 누적 카운터 리셋 (애니메이션 상태는 다음 턴 시작 시 리셋됨)
@@ -2981,8 +2974,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       }
 
       if (P.hp <= 0) {
-        setPlayer(prev => ({ ...prev, hp: P.hp, def: P.def, block: P.block, counter: P.counter, vulnMult: P.vulnMult || 1 }));
-        setEnemy(prev => ({ ...prev, hp: E.hp, def: E.def, block: E.block, counter: E.counter, vulnMult: E.vulnMult || 1 }));
+        actions.setPlayer({ ...player, hp: P.hp, def: P.def, block: P.block, counter: P.counter, vulnMult: P.vulnMult || 1 });
+        actions.setEnemy({ ...enemy, hp: E.hp, def: E.def, block: E.block, counter: E.counter, vulnMult: E.vulnMult || 1 });
         setActionEvents(prev => ({ ...prev, ...newEvents }));
         setQIndex(i + 1);
         actions.setPostCombatOptions({ type: 'defeat' }); actions.setPhase('post');
@@ -2997,8 +2990,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         // 계속 진행 (플레이어의 남은 행동 처리)
       }
     }
-    setPlayer(prev => ({ ...prev, hp: P.hp, def: P.def, block: P.block, counter: P.counter, vulnMult: P.vulnMult || 1 }));
-    setEnemy(prev => ({ ...prev, hp: E.hp, def: E.def, block: E.block, counter: E.counter, vulnMult: E.vulnMult || 1 }));
+    actions.setPlayer({ ...player, hp: P.hp, def: P.def, block: P.block, counter: P.counter, vulnMult: P.vulnMult || 1 });
+    actions.setEnemy({ ...enemy, hp: E.hp, def: E.def, block: E.block, counter: E.counter, vulnMult: E.vulnMult || 1 });
     setActionEvents(prev => ({ ...prev, ...newEvents }));
     setQIndex(battle.queue.length);
 
