@@ -1106,7 +1106,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   // 진행 단계에서는 동기화/변경을 막아 일관성 유지
   useEffect(() => {
     if (battle.phase === 'resolve') return;
-    setOrderedRelics(prev => mergeRelicOrder(relics, prev));
+    actions.setOrderedRelics(prev => mergeRelicOrder(relics, prev));
   }, [relics, mergeRelicOrder, battle.phase]);
 
   const addLog = useCallback((m) => {
@@ -1301,7 +1301,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     const arr = Array.from(orderedRelicList);
     const [item] = arr.splice(from, 1);
     arr.splice(idx, 0, item);
-    setOrderedRelics(arr);
+    actions.setOrderedRelics(arr);
   };
 
   // 통찰 시스템: 유효 통찰 및 공개 정보 계산
@@ -1459,9 +1459,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     prevRevealLevelRef.current = 0;
     actions.setInsightAnimLevel(0);
     actions.setInsightAnimPulseKey((k) => k + 1);
-    setEnemyEtherFinalValue(null);
-    setEnemyEtherCalcPhase(null);
-    setEnemyCurrentDeflation(null);
+    actions.setEnemyEtherFinalValue(null);
+    actions.setEnemyEtherCalcPhase(null);
+    actions.setEnemyCurrentDeflation(null);
     if ((safeInitialPlayer?.insight || 0) > 0) {
       // 전투 시작 시에도 통찰 연출 1회 재생
       setTimeout(() => {
@@ -1670,7 +1670,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     turnStartProcessedRef.current = true;
 
     actions.setFixedOrder(null);
-    setActionEvents({});
+    actions.setActionEvents({});
     actions.setCanRedraw(true);
     actions.setWillOverdrive(false);
 
@@ -1794,7 +1794,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     if (combo?.name && (battle.phase === 'select' || battle.phase === 'respond' || battle.phase === 'resolve')) {
       const usageCount = (player.comboUsageCount || {})[combo.name] || 0;
       const deflationMult = Math.pow(0.5, usageCount);
-      setCurrentDeflation(usageCount > 0 ? { multiplier: deflationMult, usageCount } : null);
+      actions.setCurrentDeflation(usageCount > 0 ? { multiplier: deflationMult, usageCount } : null);
     }
 
     return combo;
@@ -2170,12 +2170,12 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     });
 
     // 이전 턴의 에테르 애니메이션 상태 초기화
-    setEtherCalcPhase(null);
-    setEtherFinalValue(null);
-    setEnemyEtherFinalValue(null);
-    setCurrentDeflation(null);
-    setEnemyEtherCalcPhase(null);
-    setEnemyCurrentDeflation(null);
+    actions.setEtherCalcPhase(null);
+    actions.setEtherFinalValue(null);
+    actions.setEnemyEtherFinalValue(null);
+    actions.setCurrentDeflation(null);
+    actions.setEnemyEtherCalcPhase(null);
+    actions.setEnemyCurrentDeflation(null);
 
     playProceedSound(); // 진행 버튼 사운드 재생
     actions.setQueue(newQ);
@@ -2192,8 +2192,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     devilDiceTriggeredRef.current = false;
 
     // 타임라인 progress 초기화
-    setTimelineProgress(0);
-    setTimelineIndicatorVisible(true);
+    actions.setTimelineProgress(0);
+    actions.setTimelineIndicatorVisible(true);
     actions.setNetEtherDelta(null);
 
     const enemyWillOD = shouldEnemyOverdriveWithTurn(enemyPlan.mode, enemyPlan.actions, enemy.etherPts, turnNumber) && etherSlots(enemy.etherPts) > 0;
@@ -2231,7 +2231,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     actions.setFixedOrder(null);
     actions.setQueue([]);
     actions.setQIndex(0);
-    setTimelineProgress(0);
+    actions.setTimelineProgress(0);
     actions.setSelected(respondSnapshot.selectedSnapshot || []);
     addLog('⏪ 되감기 사용: 대응 단계 → 선택 단계 (전투당 1회)');
   };
@@ -2275,7 +2275,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     });
 
     // 디플레이션 정보 설정
-    setCurrentDeflation(pCombo?.name ? {
+    actions.setCurrentDeflation(pCombo?.name ? {
       comboName: pCombo.name,
       usageCount: playerDeflation.usageCount,
       multiplier: playerDeflation.multiplier
@@ -2295,7 +2295,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     const enemyFinalEther = enemyDeflation.gain;
 
     // 적 디플레이션 정보 설정
-    setEnemyCurrentDeflation(eCombo?.name ? {
+    actions.setEnemyCurrentDeflation(eCombo?.name ? {
       comboName: eCombo.name,
       usageCount: enemyDeflation.usageCount,
       multiplier: enemyDeflation.multiplier
@@ -2313,27 +2313,27 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     });
 
     // 1단계: 합계 강조 (플레이어 + 적 동시)
-    setEtherCalcPhase('sum');
-    setEnemyEtherCalcPhase('sum');
+    actions.setEtherCalcPhase('sum');
+    actions.setEnemyEtherCalcPhase('sum');
     setTimeout(() => {
       // 2단계: 곱셈 강조 + 명쾌한 사운드
-      setEtherCalcPhase('multiply');
-      setEnemyEtherCalcPhase('multiply');
+      actions.setEtherCalcPhase('multiply');
+      actions.setEnemyEtherCalcPhase('multiply');
       playSound(800, 100);
       setTimeout(() => {
         // 3단계: 디플레이션 배지 애니메이션 + 저음 사운드
         if (playerDeflation.usageCount > 0 || enemyDeflation.usageCount > 0) {
-          if (playerDeflation.usageCount > 0) setEtherCalcPhase('deflation');
-          if (enemyDeflation.usageCount > 0) setEnemyEtherCalcPhase('deflation');
+          if (playerDeflation.usageCount > 0) actions.setEtherCalcPhase('deflation');
+          if (enemyDeflation.usageCount > 0) actions.setEnemyEtherCalcPhase('deflation');
           playSound(200, 150);
         }
         setTimeout(() => {
           // 4단계: 최종값 표시 + 묵직한 사운드
-          setEtherCalcPhase('result');
-          setEnemyEtherCalcPhase('result');
+          actions.setEtherCalcPhase('result');
+          actions.setEnemyEtherCalcPhase('result');
           // 버튼 표시를 위해 값 설정 (finishTurn에서 정확한 값으로 다시 설정됨)
-          setEtherFinalValue(playerFinalEther);
-          setEnemyEtherFinalValue(enemyFinalEther);
+          actions.setEtherFinalValue(playerFinalEther);
+          actions.setEnemyEtherFinalValue(enemyFinalEther);
           playSound(400, 200);
         }, (playerDeflation.usageCount > 0 || enemyDeflation.usageCount > 0) ? 400 : 0);
       }, 600);
@@ -2351,7 +2351,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     const progressPercent = (a.sp / commonMaxSpeed) * 100;
 
     // 먼저 시곗바늘을 현재 카드 위치로 이동
-    setTimelineProgress(progressPercent);
+    actions.setTimelineProgress(progressPercent);
 
     // 시곗바늘 이동 완료 후 카드 발동 및 실행 (0.5초 transition 후)
     setTimeout(() => {
@@ -2368,7 +2368,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       // 마지막 카드면 페이드아웃
       if (battle.qIndex >= battle.queue.length - 1) {
         setTimeout(() => {
-          setTimelineIndicatorVisible(false);
+          actions.setTimelineIndicatorVisible(false);
         }, 300);
       }
 
@@ -2536,7 +2536,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
     actions.setPlayer({ ...player, hp: P.hp, def: P.def, block: P.block, counter: P.counter, vulnMult: P.vulnMult || 1, strength: P.strength || 0 });
     actions.setEnemy({ ...enemy, hp: E.hp, def: E.def, block: E.block, counter: E.counter, vulnMult: E.vulnMult || 1 });
-    setActionEvents(prev => ({ ...prev, [battle.qIndex]: actionEvents }));
+    actions.setActionEvents(prev => ({ ...prev, [battle.qIndex]: actionEvents }));
 
     // 이벤트 처리: 애니메이션 및 사운드
     actionEvents.forEach(ev => {
@@ -2592,7 +2592,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       playSound(200, 500); // 낮은 주파수로 죽음 사운드
 
       // 타임라인 즉시 숨김 및 자동진행 중단
-      setTimelineIndicatorVisible(false);
+      actions.setTimelineIndicatorVisible(false);
       actions.setAutoProgress(false);
 
       // 남은 카드들을 비활성화 상태로 표시 (큐는 유지)
@@ -2611,7 +2611,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       // 에테르 계산 애니메이션은 useEffect에서 실행됨 (상태 업데이트 타이밍 보장)
       // 에테르가 없으면 버튼 표시를 위해 0으로 설정
       if (turnEtherAccumulated === 0) {
-        setEtherFinalValue(0);
+        actions.setEtherFinalValue(0);
       }
       return;
     }
@@ -2802,7 +2802,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       addLog(`✴️ 에테르 획득: ${turnEtherAccumulated} × ${actualTotalMultiplier.toFixed(2)}${relicText} = ${playerBeforeDeflation} → ${playerFinalEther} PT${deflationText} (적용: ${playerAppliedEther} PT)`);
 
       // 최종값 UI에 로그와 동일한 값 표시
-      setEtherFinalValue(playerFinalEther);
+      actions.setEtherFinalValue(playerFinalEther);
     }
     // 적도 동일하게 적용/범람 계산 (슬롯 남은칸 제한 제거)
     let enemyAppliedEther = 0;
@@ -2815,16 +2815,16 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         ? ` (디플레이션: ${Math.round(enemyDeflation.multiplier * 100)}%)`
         : '';
       addLog(`☄️ 적 에테르 획득: ${enemyTurnEtherAccumulated} × ${enemyComboMult.toFixed(2)} = ${enemyBeforeDeflation} → ${enemyFinalEther} PT${deflationText} (적용: ${enemyAppliedEther} PT)`);
-      setEnemyEtherCalcPhase('sum');
-      setTimeout(() => setEnemyEtherCalcPhase('multiply'), 50);
+      actions.setEnemyEtherCalcPhase('sum');
+      setTimeout(() => actions.setEnemyEtherCalcPhase('multiply'), 50);
       setTimeout(() => {
-        setEnemyEtherCalcPhase('deflation');
-        setEnemyCurrentDeflation(enemyDeflation.usageCount > 0 ? { multiplier: enemyDeflation.multiplier, usageCount: enemyDeflation.usageCount } : null);
+        actions.setEnemyEtherCalcPhase('deflation');
+        actions.setEnemyCurrentDeflation(enemyDeflation.usageCount > 0 ? { multiplier: enemyDeflation.multiplier, usageCount: enemyDeflation.usageCount } : null);
       }, 150);
-      setTimeout(() => setEnemyEtherCalcPhase('result'), 300);
+      setTimeout(() => actions.setEnemyEtherCalcPhase('result'), 300);
     }
 
-    setEnemyEtherFinalValue(enemyFinalEther);
+    actions.setEnemyEtherFinalValue(enemyFinalEther);
 
     // 에테르 소지량 이동: 적용치 기준 (플레이어도 잃을 수 있음)
     const netTransfer = playerAppliedEther - enemyAppliedEther;
@@ -2976,7 +2976,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       if (P.hp <= 0) {
         actions.setPlayer({ ...player, hp: P.hp, def: P.def, block: P.block, counter: P.counter, vulnMult: P.vulnMult || 1 });
         actions.setEnemy({ ...enemy, hp: E.hp, def: E.def, block: E.block, counter: E.counter, vulnMult: E.vulnMult || 1 });
-        setActionEvents(prev => ({ ...prev, ...newEvents }));
+        actions.setActionEvents(prev => ({ ...prev, ...newEvents }));
         setQIndex(i + 1);
         actions.setPostCombatOptions({ type: 'defeat' }); actions.setPhase('post');
         return;
@@ -2992,7 +2992,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     }
     actions.setPlayer({ ...player, hp: P.hp, def: P.def, block: P.block, counter: P.counter, vulnMult: P.vulnMult || 1 });
     actions.setEnemy({ ...enemy, hp: E.hp, def: E.def, block: E.block, counter: E.counter, vulnMult: E.vulnMult || 1 });
-    setActionEvents(prev => ({ ...prev, ...newEvents }));
+    actions.setActionEvents(prev => ({ ...prev, ...newEvents }));
     setQIndex(battle.queue.length);
 
     // 타임라인 완료 후 에테르 계산 애니메이션 시작
@@ -3020,20 +3020,20 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       });
 
       // 1단계: 합계 강조
-      setEtherCalcPhase('sum');
+      actions.setEtherCalcPhase('sum');
       setTimeout(() => {
         // 2단계: 곱셈 강조 + 명쾌한 사운드
-        setEtherCalcPhase('multiply');
+        actions.setEtherCalcPhase('multiply');
         playSound(800, 100); // 명쾌한 사운드
         setTimeout(() => {
           // 3단계: 디플레이션 배지 애니메이션 + 저음 사운드
           if (playerDeflation.usageCount > 0) {
-            setEtherCalcPhase('deflation');
+            actions.setEtherCalcPhase('deflation');
             playSound(200, 150); // 저음 사운드
           }
           setTimeout(() => {
             // 4단계: 최종값 표시 + 묵직한 사운드
-            setEtherCalcPhase('result');
+            actions.setEtherCalcPhase('result');
             // 최종값은 finishTurn에서 설정됨 (애니메이션 시점의 값은 부정확)
             playSound(400, 200); // 묵직한 사운드
           }, playerDeflation.usageCount > 0 ? 400 : 0);
