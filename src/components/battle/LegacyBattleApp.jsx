@@ -3731,78 +3731,77 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                         )}
                       </div>
                     </div>
-                    {(player.strength || 0) > 0 && (
-                      <div style={{ fontSize: '0.9rem', fontWeight: '700', color: '#fbbf24', marginTop: '2px' }}>
-                        💪 힘: {player.strength || 0}
-                      </div>
-                    )}
-                    {effectiveAgility !== 0 && (
-                      <div style={{ fontSize: '0.9rem', fontWeight: '700', color: effectiveAgility > 0 ? '#34d399' : '#ef4444', marginTop: '2px' }}>
-                        ⚡ 민첩: {effectiveAgility}
-                      </div>
-                    )}
-                    {(player.insight || 0) > 0 && (
-                      <div
-                        style={{ fontSize: '0.9rem', fontWeight: '700', color: '#a78bfa', marginTop: '2px', position: 'relative' }}
-                        onMouseEnter={() => setShowInsightTooltip(true)}
-                        onMouseLeave={() => setShowInsightTooltip(false)}
-                      >
-                        👁️ 통찰: {player.insight || 0}
-                        {showInsightTooltip && (
-                          <div className="insight-tooltip">
-                            <div className="insight-tooltip-title">통찰 Lv.{insightReveal?.level || 0}</div>
-                            <div className="insight-tooltip-desc" style={{ marginBottom: '6px' }}>
-                              유효 통찰: {effectiveInsight} {enemy?.shroud ? `(장막 -${enemy.shroud})` : ''}
+                    <div style={{ display: 'flex', gap: '12px', marginTop: '2px', fontSize: '0.9rem', fontWeight: '700' }}>
+                      {(player.strength || 0) !== 0 && (
+                        <span style={{ color: '#fbbf24' }}>💪 힘 {player.strength || 0}</span>
+                      )}
+                      {effectiveAgility !== 0 && (
+                        <span style={{ color: effectiveAgility > 0 ? '#34d399' : '#ef4444' }}>⚡ 민첩 {effectiveAgility}</span>
+                      )}
+                      {(player.insight || 0) !== 0 && (
+                        <span
+                          style={{ color: '#a78bfa', position: 'relative' }}
+                          onMouseEnter={() => setShowInsightTooltip(true)}
+                          onMouseLeave={() => setShowInsightTooltip(false)}
+                        >
+                          👁️ 통찰 {player.insight || 0}
+                          {showInsightTooltip && (
+                            <div className="insight-tooltip">
+                              <div className="insight-tooltip-title">통찰 Lv.{insightReveal?.level || 0}</div>
+                              <div className="insight-tooltip-desc" style={{ marginBottom: '6px' }}>
+                                유효 통찰: {effectiveInsight} {enemy?.shroud ? `(장막 -${enemy.shroud})` : ''}
+                              </div>
+                              {phase === 'select' && insightReveal?.visible && (
+                                <>
+                                  {insightReveal.level === 1 && (
+                                    <div className="insight-tooltip-desc">
+                                      적 행동 {insightReveal.cardCount}개<br />
+                                      순서: {insightReveal.actions.map((a, i) =>
+                                        a.isFirst ? '첫번째' : a.isLast ? '마지막' : `${i + 1}번째`
+                                      ).join(', ')}
+                                    </div>
+                                  )}
+                                  {insightReveal.level === 2 && (
+                                    <div className="insight-tooltip-desc">
+                                      {insightReveal.actions.map((a, i) => (
+                                        <div key={i}>
+                                          #{i + 1} {a.card?.name || '???'} · ⏱️ {a.speed}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                  {insightReveal.level >= 3 && (
+                                    <div className="insight-tooltip-desc">
+                                      {insightReveal.actions.map((a, i) => (
+                                        <div key={i} style={{ marginBottom: '4px' }}>
+                                          <div>#{i + 1} {a.card?.name || '???'} · ⏱️ {a.speed}</div>
+                                          {(a.card?.damage || a.card?.block) && (
+                                            <div style={{ fontSize: '0.78rem', color: '#cbd5e1' }}>
+                                              {a.card.damage ? `⚔️ ${a.card.damage}${a.card.hits ? ` x${a.card.hits}` : ''}` : ''}
+                                              {a.card.damage && a.card.block ? ' / ' : ''}
+                                              {a.card.block ? `🛡️ ${a.card.block}` : ''}
+                                            </div>
+                                          )}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                </>
+                              )}
+                              {(!insightReveal?.visible || phase !== 'select') && (
+                                <div className="insight-tooltip-desc">선택 단계에서 적 타임라인 정보를 확인할 수 있습니다.</div>
+                              )}
                             </div>
-                            {phase === 'select' && insightReveal?.visible && (
-                              <>
-                                {insightReveal.level === 1 && (
-                                  <div className="insight-tooltip-desc">
-                                    적 행동 {insightReveal.cardCount}개<br />
-                                    순서: {insightReveal.actions.map((a, i) =>
-                                      a.isFirst ? '첫번째' : a.isLast ? '마지막' : `${i + 1}번째`
-                                    ).join(', ')}
-                                  </div>
-                                )}
-                                {insightReveal.level === 2 && (
-                                  <div className="insight-tooltip-desc">
-                                    {insightReveal.actions.map((a, i) => (
-                                      <div key={i}>
-                                        #{i + 1} {a.card?.name || '???'} · ⏱️ {a.speed}
-                                      </div>
-                                    ))}
-                                  </div>
-                                )}
-                                {insightReveal.level >= 3 && (
-                                  <div className="insight-tooltip-desc">
-                                    {insightReveal.actions.map((a, i) => (
-                                      <div key={i} style={{ marginBottom: '4px' }}>
-                                        <div>#{i + 1} {a.card?.name || '???'} · ⏱️ {a.speed}</div>
-                                        {(a.card?.damage || a.card?.block) && (
-                                          <div style={{ fontSize: '0.78rem', color: '#cbd5e1' }}>
-                                            {a.card.damage ? `⚔️ ${a.card.damage}${a.card.hits ? ` x${a.card.hits}` : ''}` : ''}
-                                            {a.card.damage && a.card.block ? ' / ' : ''}
-                                            {a.card.block ? `🛡️ ${a.card.block}` : ''}
-                                          </div>
-                                        )}
-                                      </div>
-                                    ))}
-                                  </div>
-                                )}
-                              </>
-                            )}
-                            {(!insightReveal?.visible || phase !== 'select') && (
-                              <div className="insight-tooltip-desc">선택 단계에서 적 타임라인 정보를 확인할 수 있습니다.</div>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                    {player.etherOverflow > 0 && (
-                      <div style={{ fontSize: '0.85rem', fontWeight: '700', color: '#a78bfa', marginTop: '2px' }}>
-                        🌊 범람: {player.etherOverflow} PT
-                      </div>
-                    )}
+                          )}
+                        </span>
+                      )}
+                      {dulledLevel > 0 && (
+                        <span style={{ color: '#94a3b8' }}>🌫️ 우둔 {dulledLevel}</span>
+                      )}
+                      {player.etherOverflow > 0 && (
+                        <span style={{ color: '#a78bfa', fontSize: '0.85rem' }}>🌊 범람 {player.etherOverflow} PT</span>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
