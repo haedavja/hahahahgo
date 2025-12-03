@@ -7,33 +7,32 @@ import { battleReducer, createInitialState, ACTIONS } from '../reducer/battleRed
  * 전투 상태 관리를 위한 커스텀 Hook
  * battleReducer를 래핑하여 사용하기 쉬운 API 제공
  *
- * @param {Object} config - 초기 설정
- * @param {Object} config.initialPlayerState - 플레이어 초기 상태
- * @param {Object} config.initialEnemyState - 적 초기 상태
- * @param {Array} config.initialPlayerRelics - 플레이어 유물 목록
- * @param {boolean} config.simplifiedMode - 간소화 모드 여부
- * @param {string} config.sortType - 카드 정렬 방식
- * @returns {Array} [state, actions] - 상태와 액션 객체
+ * @param {Object} initialStateOverrides - 초기 상태 오버라이드 (모든 필드 선택 가능)
+ * @returns {Object} { battle, actions } - 상태와 액션 객체
  */
-export function useBattleState({
-  initialPlayerState,
-  initialEnemyState,
-  initialPlayerRelics = [],
-  simplifiedMode = false,
-  sortType = 'cost'
-}) {
+export function useBattleState(initialStateOverrides = {}) {
   const initialState = useMemo(
-    () => createInitialState({
-      initialPlayerState,
-      initialEnemyState,
-      initialPlayerRelics,
-      simplifiedMode,
-      sortType
-    }),
-    [initialPlayerState, initialEnemyState, initialPlayerRelics, simplifiedMode, sortType]
+    () => {
+      // createInitialState에서 기본 상태를 생성하되, 오버라이드된 필드만 덮어쓰기
+      const baseState = createInitialState({
+        initialPlayerState: initialStateOverrides.player,
+        initialEnemyState: initialStateOverrides.enemy,
+        initialPlayerRelics: initialStateOverrides.orderedRelics || [],
+        simplifiedMode: initialStateOverrides.isSimplified || false,
+        sortType: initialStateOverrides.sortType || 'speed'
+      });
+
+      // 나머지 필드들 병합
+      return {
+        ...baseState,
+        ...initialStateOverrides
+      };
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    []
   );
 
-  const [state, dispatch] = useReducer(battleReducer, initialState);
+  const [battle, dispatch] = useReducer(battleReducer, initialState);
 
   // =====================
   // 액션 헬퍼 함수들
@@ -101,6 +100,54 @@ export function useBattleState({
     setMultiplierPulse: (pulse) => dispatch({ type: ACTIONS.SET_MULTIPLIER_PULSE, payload: pulse }),
     setSoulShatter: (shatter) => dispatch({ type: ACTIONS.SET_SOUL_SHATTER, payload: shatter }),
 
+    // === 자동진행 & 스냅샷 ===
+    setResolveStartPlayer: (player) => dispatch({ type: ACTIONS.SET_RESOLVE_START_PLAYER, payload: player }),
+    setResolveStartEnemy: (enemy) => dispatch({ type: ACTIONS.SET_RESOLVE_START_ENEMY, payload: enemy }),
+    setRespondSnapshot: (snapshot) => dispatch({ type: ACTIONS.SET_RESPOND_SNAPSHOT, payload: snapshot }),
+    setRewindUsed: (used) => dispatch({ type: ACTIONS.SET_REWIND_USED, payload: used }),
+
+    // === 유물 UI ===
+    setHoveredRelic: (relicId) => dispatch({ type: ACTIONS.SET_HOVERED_RELIC, payload: relicId }),
+    setRelicActivated: (relicId) => dispatch({ type: ACTIONS.SET_RELIC_ACTIVATED, payload: relicId }),
+    setActiveRelicSet: (relicSet) => dispatch({ type: ACTIONS.SET_ACTIVE_RELIC_SET, payload: relicSet }),
+
+    // === 전투 진행 ===
+    setResolvedPlayerCards: (count) => dispatch({ type: ACTIONS.SET_RESOLVED_PLAYER_CARDS, payload: count }),
+
+    // === 카드 툴팁 ===
+    setHoveredCard: (card) => dispatch({ type: ACTIONS.SET_HOVERED_CARD, payload: card }),
+    setTooltipVisible: (visible) => dispatch({ type: ACTIONS.SET_TOOLTIP_VISIBLE, payload: visible }),
+    setPreviewDamage: (damage) => dispatch({ type: ACTIONS.SET_PREVIEW_DAMAGE, payload: damage }),
+
+    // === 통찰 시스템 ===
+    setInsightBadge: (badge) => dispatch({ type: ACTIONS.SET_INSIGHT_BADGE, payload: badge }),
+    setInsightAnimLevel: (level) => dispatch({ type: ACTIONS.SET_INSIGHT_ANIM_LEVEL, payload: level }),
+    setInsightAnimPulseKey: (key) => dispatch({ type: ACTIONS.SET_INSIGHT_ANIM_PULSE_KEY, payload: key }),
+    setShowInsightTooltip: (show) => dispatch({ type: ACTIONS.SET_SHOW_INSIGHT_TOOLTIP, payload: show }),
+
+    // === 적 행동 툴팁 ===
+    setHoveredEnemyAction: (action) => dispatch({ type: ACTIONS.SET_HOVERED_ENEMY_ACTION, payload: action }),
+
+    // === 추가 상태들 ===
+    setUsedCardIndices: (indices) => dispatch({ type: ACTIONS.SET_USED_CARD_INDICES, payload: indices }),
+    setDisappearingCards: (cards) => dispatch({ type: ACTIONS.SET_DISAPPEARING_CARDS, payload: cards }),
+    setHiddenCards: (cards) => dispatch({ type: ACTIONS.SET_HIDDEN_CARDS, payload: cards }),
+    setDisabledCardIndices: (indices) => dispatch({ type: ACTIONS.SET_DISABLED_CARD_INDICES, payload: indices }),
+    setCardUsageCount: (count) => dispatch({ type: ACTIONS.SET_CARD_USAGE_COUNT, payload: count }),
+    setEtherAnimationPts: (pts) => dispatch({ type: ACTIONS.SET_ETHER_ANIMATION_PTS, payload: pts }),
+    setExecutingCardIndex: (index) => dispatch({ type: ACTIONS.SET_EXECUTING_CARD_INDEX, payload: index }),
+    setTurnNumber: (number) => dispatch({ type: ACTIONS.SET_TURN_NUMBER, payload: number }),
+    incrementTurn: () => dispatch({ type: ACTIONS.INCREMENT_TURN }),
+    setNetEtherDelta: (delta) => dispatch({ type: ACTIONS.SET_NET_ETHER_DELTA, payload: delta }),
+    setVanishedCards: (cards) => dispatch({ type: ACTIONS.SET_VANISHED_CARDS, payload: cards }),
+    setIsSimplified: (simplified) => dispatch({ type: ACTIONS.SET_IS_SIMPLIFIED, payload: simplified }),
+    setPostCombatOptions: (options) => dispatch({ type: ACTIONS.SET_POST_COMBAT_OPTIONS, payload: options }),
+    setNextTurnEffects: (effects) => dispatch({ type: ACTIONS.SET_NEXT_TURN_EFFECTS, payload: effects }),
+    updateNextTurnEffects: (updates) => dispatch({ type: ACTIONS.UPDATE_NEXT_TURN_EFFECTS, payload: updates }),
+    setOrderedRelics: (relics) => dispatch({ type: ACTIONS.SET_ORDERED_RELICS, payload: relics }),
+    incrementQIndex: () => dispatch({ type: ACTIONS.INCREMENT_Q_INDEX }),
+    updateLog: (log) => dispatch({ type: ACTIONS.SET_LOG, payload: log }),
+
     // === 복합 액션 ===
     resetTurn: () => dispatch({ type: ACTIONS.RESET_TURN }),
     resetEtherAnimation: () => dispatch({ type: ACTIONS.RESET_ETHER_ANIMATION }),
@@ -110,7 +157,7 @@ export function useBattleState({
     dispatch
   }), [dispatch]);
 
-  return [state, actions];
+  return { battle, actions };
 }
 
 /**

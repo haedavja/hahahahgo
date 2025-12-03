@@ -1,6 +1,7 @@
-import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback, useReducer } from "react";
 import "./legacy-battle.css";
 import { playHitSound, playBlockSound, playCardSubmitSound, playProceedSound } from "../../lib/soundUtils";
+import { useBattleState } from "./hooks/useBattleState";
 import {
   MAX_SPEED,
   DEFAULT_PLAYER_MAX_SPEED,
@@ -898,6 +899,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     relicList.forEach(id => { if (!savedSet.has(id)) merged.push(id); });
     return merged;
   }, []);
+
+  // Keep orderedRelics with useState for localStorage logic
   const [orderedRelics, setOrderedRelics] = useState(() => {
     try {
       const saved = localStorage.getItem('relicOrder');
@@ -914,6 +917,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     } catch { }
   }, [orderedRelics]);
   const orderedRelicList = orderedRelics && orderedRelics.length ? orderedRelics : relics;
+
   const safeInitialPlayer = initialPlayer || {};
   const safeInitialEnemy = initialEnemy || {};
   const enemyCount = safeInitialEnemy.enemyCount ?? 1; // Extract enemy count for multi-enemy battles
@@ -948,35 +952,77 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     maxSpeed: safeInitialPlayer.maxSpeed ?? DEFAULT_PLAYER_MAX_SPEED
   };
 
-  const [player, setPlayer] = useState(initialPlayerState);
-  const [enemyIndex, setEnemyIndex] = useState(0);
-  const [enemy, setEnemy] = useState(() => safeInitialEnemy?.name ? ({ ...safeInitialEnemy, hp: safeInitialEnemy.hp ?? safeInitialEnemy.maxHp ?? 30, maxHp: safeInitialEnemy.maxHp ?? safeInitialEnemy.hp ?? 30, vulnMult: 1, vulnTurns: 0, block: 0, counter: 0, etherPts: safeInitialEnemy.etherPts ?? safeInitialEnemy.etherCapacity ?? 300, etherCapacity: safeInitialEnemy.etherCapacity ?? 300, etherOverdriveActive: false, strength: 0, shroud: safeInitialEnemy.shroud ?? 0, maxSpeed: safeInitialEnemy.maxSpeed ?? DEFAULT_ENEMY_MAX_SPEED }) : null);
+  // Initialize battle state with useReducer
+  const { battle, actions } = useBattleState({
+    player: initialPlayerState,
+    enemyIndex: 0,
+    enemy: safeInitialEnemy?.name ? ({
+      ...safeInitialEnemy,
+      hp: safeInitialEnemy.hp ?? safeInitialEnemy.maxHp ?? 30,
+      maxHp: safeInitialEnemy.maxHp ?? safeInitialEnemy.hp ?? 30,
+      vulnMult: 1,
+      vulnTurns: 0,
+      block: 0,
+      counter: 0,
+      etherPts: safeInitialEnemy.etherPts ?? safeInitialEnemy.etherCapacity ?? 300,
+      etherCapacity: safeInitialEnemy.etherCapacity ?? 300,
+      etherOverdriveActive: false,
+      strength: 0,
+      shroud: safeInitialEnemy.shroud ?? 0,
+      maxSpeed: safeInitialEnemy.maxSpeed ?? DEFAULT_ENEMY_MAX_SPEED
+    }) : null,
+    phase: 'select',
+    hand: [],
+    selected: [],
+    canRedraw: true,
+    sortType: (() => {
+      try {
+        return localStorage.getItem('battleSortType') || 'speed';
+      } catch {
+        return 'speed';
+      }
+    })(),
+    isSimplified: (() => {
+      try {
+        const saved = localStorage.getItem('battleIsSimplified');
+        return saved === 'true';
+      } catch {
+        return false;
+      }
+    })(),
+    enemyPlan: { actions: [], mode: null },
+    fixedOrder: null,
+    postCombatOptions: null,
+    log: ["게임 시작!"],
+    actionEvents: {},
+    queue: [],
+    qIndex: 0,
+    nextTurnEffects: {
+      guaranteedCards: [],
+      bonusEnergy: 0,
+      energyPenalty: 0,
+      etherBlocked: false,
+      mainSpecialOnly: false,
+      subSpecialBoost: 0,
+    },
+    insightBadge: {
+      level: safeInitialPlayer.insight || 0,
+      dir: 'up',
+      show: false,
+      key: 0,
+    },
+  });
 
-  const [phase, setPhase] = useState('select');
+  // 새 유물 추가/제거 시 기존 순서를 유지하면서 병합
+  // 진행 단계에서는 동기화/변경을 막아 일관성 유지
+  useEffect(() => {
+    if (battle.phase === 'resolve') return;
+    setOrderedRelics(prev => mergeRelicOrder(relics, prev));
+  }, [relics, mergeRelicOrder, battle.phase]);
 
-  const [hand, setHand] = useState([]);
-  const [selected, setSelected] = useState([]);
-  const [canRedraw, setCanRedraw] = useState(true);
-  const [sortType, setSortType] = useState(() => {
-    try {
-      return localStorage.getItem('battleSortType') || 'speed';
-    } catch {
-      return 'speed';
-    }
-  }); // speed, energy, value, type
-
-  const [enemyPlan, setEnemyPlan] = useState({ actions: [], mode: null });
-  const [fixedOrder, setFixedOrder] = useState(null);
-
-  const [postCombatOptions, setPostCombatOptions] = useState(null);
-  const [log, setLog] = useState(["게임 시작!"]);
-  const [actionEvents, setActionEvents] = useState({});
-
-  const [queue, setQueue] = useState([]);
-  const [qIndex, setQIndex] = useState(0);
   const addLog = useCallback((m) => {
-    setLog(p => [...p, m].slice(-200));
-  }, []);
+    actions.updateLog([...battle.log, m].slice(-200));
+  }, [actions, battle.log]);
   const formatSpeedText = useCallback((baseSpeed) => {
     const finalSpeed = applyAgility(baseSpeed, effectiveAgility);
     const diff = finalSpeed - baseSpeed;
@@ -985,91 +1031,15 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     const abs = Math.abs(diff);
     return `${finalSpeed} (${baseSpeed} ${sign} ${abs})`;
   }, [effectiveAgility]);
-  const [willOverdrive, setWillOverdrive] = useState(false);
-  const [isSimplified, setIsSimplified] = useState(() => {
-    try {
-      const saved = localStorage.getItem('battleIsSimplified');
-      return saved === 'true';
-    } catch {
-      return false;
-    }
-  });
-  const [usedCardIndices, setUsedCardIndices] = useState([]);
-  const [disappearingCards, setDisappearingCards] = useState([]); // 사라지는 중인 카드 인덱스
-  const [hiddenCards, setHiddenCards] = useState([]); // 완전히 숨겨진 카드 인덱스
-  const [disabledCardIndices, setDisabledCardIndices] = useState([]); // 비활성화된 카드 인덱스 (몬스터 사망 시 남은 카드)
-  const [timelineProgress, setTimelineProgress] = useState(0); // 타임라인 진행 위치 (0~100%)
-  const [timelineIndicatorVisible, setTimelineIndicatorVisible] = useState(true); // 시곗바늘 표시 여부
-  const [showCharacterSheet, setShowCharacterSheet] = useState(false);
-  const [cardUsageCount, setCardUsageCount] = useState({}); // 카드별 사용 횟수 추적 (mastery, boredom용)
-  const [etherAnimationPts, setEtherAnimationPts] = useState(null); // 에테르 애니메이션 전용 (전체 획득량 표시)
-  const [executingCardIndex, setExecutingCardIndex] = useState(null); // 현재 실행 중인 카드 인덱스 (애니메이션용)
-  const [turnNumber, setTurnNumber] = useState(1); // 턴 번호 (1부터 시작)
-  const [netEtherDelta, setNetEtherDelta] = useState(null); // 최종 적용된 에테르 이동량(플레이어 기준)
-  const [vanishedCards, setVanishedCards] = useState([]); // 소멸 특성으로 제거된 카드
-  const [turnEtherAccumulated, setTurnEtherAccumulated] = useState(0); // 이번 턴 누적 에테르 (실제 적용 전)
-  const [enemyTurnEtherAccumulated, setEnemyTurnEtherAccumulated] = useState(0); // 적 이번 턴 누적 에테르
-  const [etherPulse, setEtherPulse] = useState(false); // PT 증가 애니메이션
-  const [etherFinalValue, setEtherFinalValue] = useState(null); // 최종 에테르값 표시
-  const [playerOverdriveFlash, setPlayerOverdriveFlash] = useState(false); // 플레이어 기원 연출
-  const [enemyOverdriveFlash, setEnemyOverdriveFlash] = useState(false); // 적 기원 연출
-  const [enemyEtherFinalValue, setEnemyEtherFinalValue] = useState(null); // 적 최종 에테르값 표시
-  const [enemyEtherCalcPhase, setEnemyEtherCalcPhase] = useState(null); // 적 에테르 계산 단계
-  const [enemyCurrentDeflation, setEnemyCurrentDeflation] = useState(null); // 적 디플레이션 정보
-  const [soulShatter, setSoulShatter] = useState(false); // 에테르 승리 연출
-  const [etherCalcPhase, setEtherCalcPhase] = useState(null); // 에테르 계산 애니메이션 단계: 'sum', 'multiply', 'deflation', 'result'
-  const [currentDeflation, setCurrentDeflation] = useState(null); // 현재 디플레이션 정보 { multiplier, usageCount }
-  const [playerTransferPulse, setPlayerTransferPulse] = useState(false); // 에테르 이동 연출 (플레이어)
-  const [enemyTransferPulse, setEnemyTransferPulse] = useState(false); // 에테르 이동 연출 (적)
   const cardUpgrades = useGameStore((state) => state.cardUpgrades || {}); // 카드 업그레이드(희귀도)
 
-  // 새 유물 추가/제거 시 기존 순서를 유지하면서 병합
-  // 진행 단계에서는 동기화/변경을 막아 일관성 유지
-  useEffect(() => {
-    if (phase === 'resolve') return;
-    setOrderedRelics(prev => mergeRelicOrder(relics, prev));
-  }, [relics, mergeRelicOrder, phase]);
-  const [nextTurnEffects, setNextTurnEffects] = useState({
-    guaranteedCards: [], // 반복, 보험 특성으로 다음턴 확정 등장
-    bonusEnergy: 0, // 몸풀기 특성
-    energyPenalty: 0, // 탈진 특성
-    etherBlocked: false, // 망각 특성
-    mainSpecialOnly: false, // 파탄 특성
-    subSpecialBoost: 0, // 장군 특성
-  });
-  const [playerHit, setPlayerHit] = useState(false); // 플레이어 피격 애니메이션
-  const [enemyHit, setEnemyHit] = useState(false); // 적 피격 애니메이션
-  const [playerBlockAnim, setPlayerBlockAnim] = useState(false); // 플레이어 방어 애니메이션
-  const [enemyBlockAnim, setEnemyBlockAnim] = useState(false); // 적 방어 애니메이션
-  const [autoProgress, setAutoProgress] = useState(false); // 자동진행 모드
-  const [resolveStartPlayer, setResolveStartPlayer] = useState(null); // 진행 단계 시작 시 플레이어 상태
-  const [resolveStartEnemy, setResolveStartEnemy] = useState(null); // 진행 단계 시작 시 적 상태
-  const [hoveredRelic, setHoveredRelic] = useState(null); // 호버된 유물 ID
-  const [relicActivated, setRelicActivated] = useState(null); // 발동된 유물 ID (애니메이션용, 단일 표시용)
-  const [activeRelicSet, setActiveRelicSet] = useState(new Set()); // 동시 강조용
-  const [multiplierPulse, setMultiplierPulse] = useState(false); // 배율 강조 애니메이션
-  const [resolvedPlayerCards, setResolvedPlayerCards] = useState(0); // 진행 단계에서 진행된 플레이어 카드 수
-  const [hoveredCard, setHoveredCard] = useState(null); // 호버된 카드 정보 {card, position}
-  const [tooltipVisible, setTooltipVisible] = useState(false); // 툴팁 표시 여부(애니메이션용)
-  const [previewDamage, setPreviewDamage] = useState({ value: 0, lethal: false, overkill: false });
+  // Keep refs as they are
   const lethalSoundRef = useRef(false);
   const overkillSoundRef = useRef(false);
   const prevInsightRef = useRef(safeInitialPlayer.insight || 0);
   const insightBadgeTimerRef = useRef(null);
-  const [insightBadge, setInsightBadge] = useState({
-    level: safeInitialPlayer.insight || 0,
-    dir: 'up',
-    show: false,
-    key: 0,
-  });
-  const [insightAnimLevel, setInsightAnimLevel] = useState(0);
-  const [insightAnimPulseKey, setInsightAnimPulseKey] = useState(0);
   const insightAnimTimerRef = useRef(null);
   const prevRevealLevelRef = useRef(0);
-  const [showInsightTooltip, setShowInsightTooltip] = useState(false);
-  const [hoveredEnemyAction, setHoveredEnemyAction] = useState(null);
-  const [respondSnapshot, setRespondSnapshot] = useState(null); // 대응 단계 진입 시 상태 스냅샷(되감기용)
-  const [rewindUsed, setRewindUsed] = useState(false); // 전투당 1회 되감기 사용 여부
   const rarityBadges = {
     rare: { color: '#60a5fa', label: '희귀' },
     special: { color: '#34d399', label: '특별' },

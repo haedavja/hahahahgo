@@ -98,6 +98,43 @@ export const createInitialState = ({
   // === 애니메이션 ===
   playerHit: false, // 플레이어 피격
   enemyHit: false, // 적 피격
+  playerBlockAnim: false, // 플레이어 방어 애니메이션
+  enemyBlockAnim: false, // 적 방어 애니메이션
+
+  // === 자동진행 & 스냅샷 ===
+  autoProgress: false, // 자동진행 모드
+  resolveStartPlayer: null, // 진행 단계 시작 시 플레이어 상태
+  resolveStartEnemy: null, // 진행 단계 시작 시 적 상태
+  respondSnapshot: null, // 대응 단계 진입 시 상태 스냅샷(되감기용)
+  rewindUsed: false, // 전투당 1회 되감기 사용 여부
+
+  // === 유물 UI ===
+  hoveredRelic: null, // 호버된 유물 ID
+  relicActivated: null, // 발동된 유물 ID (애니메이션용)
+  activeRelicSet: new Set(), // 동시 강조용
+  multiplierPulse: false, // 배율 강조 애니메이션
+
+  // === 전투 진행 ===
+  resolvedPlayerCards: 0, // 진행 단계에서 진행된 플레이어 카드 수
+
+  // === 카드 툴팁 ===
+  hoveredCard: null, // 호버된 카드 정보 {card, position}
+  tooltipVisible: false, // 툴팁 표시 여부
+  previewDamage: { value: 0, lethal: false, overkill: false }, // 데미지 미리보기
+
+  // === 통찰 시스템 ===
+  insightBadge: {
+    level: 0,
+    dir: 'up',
+    show: false,
+    key: 0,
+  },
+  insightAnimLevel: 0,
+  insightAnimPulseKey: 0,
+  showInsightTooltip: false,
+
+  // === 적 행동 툴팁 ===
+  hoveredEnemyAction: null,
 });
 
 // =====================
@@ -195,6 +232,38 @@ export const ACTIONS = {
   // === 애니메이션 ===
   SET_PLAYER_HIT: 'SET_PLAYER_HIT',
   SET_ENEMY_HIT: 'SET_ENEMY_HIT',
+  SET_PLAYER_BLOCK_ANIM: 'SET_PLAYER_BLOCK_ANIM',
+  SET_ENEMY_BLOCK_ANIM: 'SET_ENEMY_BLOCK_ANIM',
+
+  // === 자동진행 & 스냅샷 ===
+  SET_AUTO_PROGRESS: 'SET_AUTO_PROGRESS',
+  SET_RESOLVE_START_PLAYER: 'SET_RESOLVE_START_PLAYER',
+  SET_RESOLVE_START_ENEMY: 'SET_RESOLVE_START_ENEMY',
+  SET_RESPOND_SNAPSHOT: 'SET_RESPOND_SNAPSHOT',
+  SET_REWIND_USED: 'SET_REWIND_USED',
+
+  // === 유물 UI ===
+  SET_HOVERED_RELIC: 'SET_HOVERED_RELIC',
+  SET_RELIC_ACTIVATED: 'SET_RELIC_ACTIVATED',
+  SET_ACTIVE_RELIC_SET: 'SET_ACTIVE_RELIC_SET',
+  SET_MULTIPLIER_PULSE: 'SET_MULTIPLIER_PULSE',
+
+  // === 전투 진행 ===
+  SET_RESOLVED_PLAYER_CARDS: 'SET_RESOLVED_PLAYER_CARDS',
+
+  // === 카드 툴팁 ===
+  SET_HOVERED_CARD: 'SET_HOVERED_CARD',
+  SET_TOOLTIP_VISIBLE: 'SET_TOOLTIP_VISIBLE',
+  SET_PREVIEW_DAMAGE: 'SET_PREVIEW_DAMAGE',
+
+  // === 통찰 시스템 ===
+  SET_INSIGHT_BADGE: 'SET_INSIGHT_BADGE',
+  SET_INSIGHT_ANIM_LEVEL: 'SET_INSIGHT_ANIM_LEVEL',
+  SET_INSIGHT_ANIM_PULSE_KEY: 'SET_INSIGHT_ANIM_PULSE_KEY',
+  SET_SHOW_INSIGHT_TOOLTIP: 'SET_SHOW_INSIGHT_TOOLTIP',
+
+  // === 적 행동 툴팁 ===
+  SET_HOVERED_ENEMY_ACTION: 'SET_HOVERED_ENEMY_ACTION',
 
   // === 복합 액션 (여러 상태를 한번에 변경) ===
   RESET_TURN: 'RESET_TURN',
@@ -371,6 +440,58 @@ export function battleReducer(state, action) {
       return { ...state, playerHit: action.payload };
     case ACTIONS.SET_ENEMY_HIT:
       return { ...state, enemyHit: action.payload };
+    case ACTIONS.SET_PLAYER_BLOCK_ANIM:
+      return { ...state, playerBlockAnim: action.payload };
+    case ACTIONS.SET_ENEMY_BLOCK_ANIM:
+      return { ...state, enemyBlockAnim: action.payload };
+
+    // === 자동진행 & 스냅샷 ===
+    case ACTIONS.SET_AUTO_PROGRESS:
+      return { ...state, autoProgress: action.payload };
+    case ACTIONS.SET_RESOLVE_START_PLAYER:
+      return { ...state, resolveStartPlayer: action.payload };
+    case ACTIONS.SET_RESOLVE_START_ENEMY:
+      return { ...state, resolveStartEnemy: action.payload };
+    case ACTIONS.SET_RESPOND_SNAPSHOT:
+      return { ...state, respondSnapshot: action.payload };
+    case ACTIONS.SET_REWIND_USED:
+      return { ...state, rewindUsed: action.payload };
+
+    // === 유물 UI ===
+    case ACTIONS.SET_HOVERED_RELIC:
+      return { ...state, hoveredRelic: action.payload };
+    case ACTIONS.SET_RELIC_ACTIVATED:
+      return { ...state, relicActivated: action.payload };
+    case ACTIONS.SET_ACTIVE_RELIC_SET:
+      return { ...state, activeRelicSet: action.payload };
+    case ACTIONS.SET_MULTIPLIER_PULSE:
+      return { ...state, multiplierPulse: action.payload };
+
+    // === 전투 진행 ===
+    case ACTIONS.SET_RESOLVED_PLAYER_CARDS:
+      return { ...state, resolvedPlayerCards: action.payload };
+
+    // === 카드 툴팁 ===
+    case ACTIONS.SET_HOVERED_CARD:
+      return { ...state, hoveredCard: action.payload };
+    case ACTIONS.SET_TOOLTIP_VISIBLE:
+      return { ...state, tooltipVisible: action.payload };
+    case ACTIONS.SET_PREVIEW_DAMAGE:
+      return { ...state, previewDamage: action.payload };
+
+    // === 통찰 시스템 ===
+    case ACTIONS.SET_INSIGHT_BADGE:
+      return { ...state, insightBadge: action.payload };
+    case ACTIONS.SET_INSIGHT_ANIM_LEVEL:
+      return { ...state, insightAnimLevel: action.payload };
+    case ACTIONS.SET_INSIGHT_ANIM_PULSE_KEY:
+      return { ...state, insightAnimPulseKey: action.payload };
+    case ACTIONS.SET_SHOW_INSIGHT_TOOLTIP:
+      return { ...state, showInsightTooltip: action.payload };
+
+    // === 적 행동 툴팁 ===
+    case ACTIONS.SET_HOVERED_ENEMY_ACTION:
+      return { ...state, hoveredEnemyAction: action.payload };
 
     // === 복합 액션 ===
     case ACTIONS.RESET_TURN:
