@@ -2149,6 +2149,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   }, [battle.selected, battle.phase, enemyPlan.actions]);
 
   const beginResolveFromRespond = () => {
+    if (battle.phase !== 'respond') return;
     if (!fixedOrder) return addLog('오류: 고정된 순서가 없습니다');
 
     if (fixedOrder.length === 0) {
@@ -2177,6 +2178,23 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     actions.setEnemyEtherCalcPhase(null);
     actions.setEnemyCurrentDeflation(null);
 
+    // 에테르 폭주 체크 (phase 변경 전에 실행)
+    const enemyWillOD = shouldEnemyOverdriveWithTurn(enemyPlan.mode, enemyPlan.actions, enemy.etherPts, turnNumber) && etherSlots(enemy.etherPts) > 0;
+    if (willOverdrive && etherSlots(player.etherPts) > 0) {
+      actions.setPlayer({ ...player, etherPts: player.etherPts - ETHER_THRESHOLD, etherOverdriveActive: true });
+      actions.setPlayerOverdriveFlash(true);
+      playSound(1400, 220);
+      setTimeout(() => actions.setPlayerOverdriveFlash(false), 650);
+      addLog('✴️ 에테르 폭주 발동! (이 턴 전체 유지)');
+    }
+    if (enemyWillOD) {
+      actions.setEnemy({ ...enemy, etherPts: enemy.etherPts - ETHER_THRESHOLD, etherOverdriveActive: true });
+      actions.setEnemyOverdriveFlash(true);
+      playSound(900, 220);
+      setTimeout(() => actions.setEnemyOverdriveFlash(false), 650);
+      addLog('☄️ 적 에테르 폭주 발동!');
+    }
+
     playProceedSound(); // 진행 버튼 사운드 재생
     actions.setQueue(newQ);
     actions.setQIndex(0);
@@ -2195,22 +2213,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     actions.setTimelineProgress(0);
     actions.setTimelineIndicatorVisible(true);
     actions.setNetEtherDelta(null);
-
-    const enemyWillOD = shouldEnemyOverdriveWithTurn(enemyPlan.mode, enemyPlan.actions, enemy.etherPts, turnNumber) && etherSlots(enemy.etherPts) > 0;
-    if ((battle.phase === 'respond' || battle.phase === 'select') && willOverdrive && etherSlots(player.etherPts) > 0) {
-      actions.setPlayer({ ...player, etherPts: player.etherPts - ETHER_THRESHOLD, etherOverdriveActive: true });
-      actions.setPlayerOverdriveFlash(true);
-      playSound(1400, 220);
-      setTimeout(() => actions.setPlayerOverdriveFlash(false), 650);
-      addLog('✴️ 에테르 폭주 발동! (이 턴 전체 유지)');
-    }
-    if ((battle.phase === 'respond' || battle.phase === 'select') && enemyWillOD) {
-      actions.setEnemy({ ...enemy, etherPts: enemy.etherPts - ETHER_THRESHOLD, etherOverdriveActive: true });
-      actions.setEnemyOverdriveFlash(true);
-      playSound(900, 220);
-      setTimeout(() => actions.setEnemyOverdriveFlash(false), 650);
-      addLog('☄️ 적 에테르 폭주 발동!');
-    }
 
     // 진행 버튼 누르면 자동 진행 활성화
     actions.setAutoProgress(true);
