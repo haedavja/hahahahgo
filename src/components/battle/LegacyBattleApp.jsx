@@ -3045,6 +3045,15 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
   if (!enemy) return <div className="text-white p-4">로딩…</div>;
 
+  const enemyNameCounts = useMemo(() => {
+    const counts = {};
+    (enemy.composition || []).forEach((m) => {
+      const key = m?.name || '몬스터';
+      counts[key] = (counts[key] || 0) + 1;
+    });
+    return counts;
+  }, [enemy.composition]);
+
   const handDisabled = (c) => (
     selected.length >= MAX_SUBMIT_CARDS ||
     totalSpeed + applyAgility(c.speedCost, effectiveAgility) > player.maxSpeed ||
@@ -4092,7 +4101,11 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px', marginTop: '-88px' }}>
                       {enemy.composition && enemy.composition.length > 0 ? (
-                        enemy.composition.map((member, idx) => (
+                        enemy.composition.map((member, idx) => {
+                          const rawName = member.name || '몬스터';
+                          const count = enemyNameCounts[rawName] || 0;
+                          const displayName = count > 1 ? `${rawName} x${count}` : rawName;
+                          return (
                           <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                             <span style={{
                               fontSize: '0.95rem',
@@ -4104,7 +4117,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                               borderRadius: '4px',
                               transform: 'translateX(220px)'
                             }}>
-                              {member.name}
+                              {displayName}
                             </span>
                             <div
                               className={`character-display ${soulShatter ? 'soul-shatter-target' : ''} ${enemyOverdriveFlash ? 'overdrive-burst' : ''}`}
@@ -4117,7 +4130,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                               {member.emoji}
                             </div>
                           </div>
-                        ))
+                          );
+                        })
                       ) : (
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                           <span style={{
@@ -4130,7 +4144,12 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                               borderRadius: '4px',
                             transform: 'translateX(220px)'
                           }}>
-                            {enemy.name || '몬스터'}
+                            {(() => {
+                              const baseName = enemy.name || '몬스터';
+                              const count = enemyNameCounts[baseName] || enemy?.count || enemy?.quantity || 1;
+                              const displayName = count > 1 ? `${baseName} x${count}` : baseName;
+                              return displayName;
+                            })()}
                           </span>
                           <div className={`character-display ${soulShatter ? 'soul-shatter-target' : ''} ${enemyOverdriveFlash ? 'overdrive-burst' : ''}`} style={{ fontSize: '64px', transform: 'translateX(220px)' }}>👹</div>
                         </div>
