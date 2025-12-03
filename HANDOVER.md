@@ -59,6 +59,12 @@ pm run build로 기본 빌드 확인 후 실제 게임 플레이로 검증.
 - 주요 수정 파일: src/components/battle/LegacyBattleApp.jsx, LegacyBattleScreen.jsx, CharacterSheet.jsx, MapDemo.jsx, gameStore.js, useGameState.js
 - 워크트리: 수정 반영 중(충돌 없음). 활력/각성 관련 추가 작업 필요.
 
+## 2025-XX-XX 추가 메모 (상태 표시/몬스터 카드)
+- 플레이어 상태(힘/민첩/통찰/우둔/범람)를 체력바 바로 아래 한 줄로만 표시하도록 추가했음. HP 블록 옆에 중복 상태 라인 요구가 반복됐으니, 아래 라인만 남기는 형태 유지 필요.
+- 적 카드 미사용 이슈: 적 덱이 비거나 없을 때 기본 ENEMY_CARDS에서 카드 풀을 가져와 항상 행동이 생성되도록 `generateEnemyActions`에서 대체 처리.
+- 몬스터 다수일 때 이름/이모지 중복: 동일 이름을 묶어 `xN` 표기. 이름만 기준이라 이모지가 다르면 같은 이름으로 묶이는 점 유의.
+- 코드가 매우 커서 HP 바 주변(약 3700행대) 수정 시 `apply_patch`가 자주 실패. 필요 시 해당 구간만 부분 편집 권장.
+
 ## 다음 담당자용 체크리스트
 - 활력(행동력+1) 전투 반영 재확인:
   - payload에 energyBonus를 명시적으로 포함하거나, LegacyBattleApp에서 기본 6 + energyBonus + 패시브를 한 번 더 강제 적용하는 등 덮어쓰기 경로 제거.
