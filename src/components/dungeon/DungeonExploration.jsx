@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useReducer } from "react";
+import { useDungeonState } from "./hooks/useDungeonState";
 import { useGameStore } from "../../state/gameStore";
 import { calculateEtherSlots, getCurrentSlotPts, getSlotProgress, getNextSlotCost } from "../../lib/etherUtils";
 import { CharacterSheet } from "../character/CharacterSheet";
@@ -181,7 +182,7 @@ const OBJECT_HANDLERS = {
     obj.used = true;
     const ether = -(1 + Math.floor(Math.random() * 3));
     context.applyEtherDelta(ether);
-    context.setMessage(`보물 상자를 열었습니다. 에테르 ${ether}`);
+    context.actions.setMessage(`보물 상자를 열었습니다. 에테르 ${ether}`);
   },
 
   curio: (obj, context) => {
@@ -192,7 +193,7 @@ const OBJECT_HANDLERS = {
       : -(2 + Math.floor(Math.random() * 3));
 
     context.applyEtherDelta(ether);
-    context.setMessage(
+    context.actions.setMessage(
       `${isBad ? "불길한" : "유익한"} 기운이 느껴진다. 에테르 ${ether > 0 ? "+" : ""}${ether}`
     );
   },
@@ -264,17 +265,25 @@ export function DungeonExploration() {
   }, [activeDungeon, setDungeonDeltas]);
 
   // 던전 데이터는 activeDungeon에서 가져옴
-  const dungeon = activeDungeon?.dungeonData || [];
+  const dungeonData = activeDungeon?.dungeonData || [];
   // activeDungeon에서 위치 정보 가져오기 (재마운트 시에도 유지)
-  const [segmentIndex, setSegmentIndex] = useState(activeDungeon?.segmentIndex || 0);
-  const [playerX, setPlayerX] = useState(activeDungeon?.playerX || 100);
-  const [cameraX, setCameraX] = useState(0);
-  const [keys, setKeys] = useState({});
-  const [message, setMessage] = useState("");
-  const [rewardModal, setRewardModal] = useState(null);
-  const [showCharacter, setShowCharacter] = useState(false);
-  const [dungeonSummary, setDungeonSummary] = useState(null); // 던전 탈출 요약
-  const [hoveredRelic, setHoveredRelic] = useState(null);
+  // Dungeon 상태 (useReducer 기반)
+  const { dungeon, actions } = useDungeonState({
+    segmentIndex: activeDungeon?.segmentIndex || 0,
+    playerX: activeDungeon?.playerX || 100,
+  });
+
+  // Destructure dungeon state
+  const segmentIndex = dungeon.segmentIndex;
+  const playerX = dungeon.playerX;
+  const cameraX = dungeon.cameraX;
+  const keys = dungeon.keys;
+  const message = dungeon.message;
+  const rewardModal = dungeon.rewardModal;
+  const showCharacter = dungeon.showCharacter;
+  const dungeonSummary = dungeon.dungeonSummary;
+  const hoveredRelic = dungeon.hoveredRelic;
+
 
   // 던전 중 획득한 자원 델타 (x값) - activeDungeon에서 가져옴 (재마운트 시에도 유지)
   const dungeonDeltas = activeDungeon?.dungeonDeltas || { gold: 0, intel: 0, loot: 0, material: 0 };
@@ -286,7 +295,7 @@ export function DungeonExploration() {
   const animationRef = useRef(null);
   const preBattleState = useRef(null); // 전투 전 상태 저장
 
-  const segment = dungeon[segmentIndex];
+  const segment = dungeonData[segmentIndex];
   const playerY = CONFIG.FLOOR_Y - CONFIG.PLAYER.height;
 
   // 위치 정보를 activeDungeon에 저장 (재마운트 시 복원용)
@@ -299,7 +308,7 @@ export function DungeonExploration() {
     const handleKeyDown = (e) => {
       if (["a", "d", "A", "D"].includes(e.key)) {
         e.preventDefault();
-        setKeys((prev) => ({ ...prev, [e.key.toLowerCase()]: true }));
+        actions.setKeys((prev) => ({ ...prev, [e.key.toLowerCase()]: true }));
       }
       if (e.key === "w" || e.key === "W") {
         e.preventDefault();
@@ -307,13 +316,13 @@ export function DungeonExploration() {
       }
       if (e.key === "c" || e.key === "C") {
         e.preventDefault();
-        setShowCharacter((prev) => !prev);
+        actions.setShowCharacter((prev) => !prev);
       }
     };
 
     const handleKeyUp = (e) => {
       if (["a", "d", "A", "D"].includes(e.key)) {
-        setKeys((prev) => ({ ...prev, [e.key.toLowerCase()]: false }));
+        actions.setKeys((prev) => ({ ...prev, [e.key.toLowerCase()]: false }));
       }
     };
 
@@ -332,10 +341,10 @@ export function DungeonExploration() {
 
     const moveLoop = () => {
       if (keys.a) {
-        setPlayerX((x) => Math.max(50, x - CONFIG.PLAYER.speed));
+        actions.setPlayerX((x) => Math.max(50, x - CONFIG.PLAYER.speed));
       }
       if (keys.d) {
-        setPlayerX((x) => Math.min(segment.width - 50, x + CONFIG.PLAYER.speed));
+        actions.setPlayerX((x) => Math.min(segment.width - 50, x + CONFIG.PLAYER.speed));
       }
       animationRef.current = requestAnimationFrame(moveLoop);
     };
@@ -353,7 +362,7 @@ export function DungeonExploration() {
     if (!segment) return;
     const target = playerX - CONFIG.VIEWPORT.width / 2;
     const maxCamera = segment.width - CONFIG.VIEWPORT.width;
-    setCameraX(Math.max(0, Math.min(maxCamera, target)));
+    actions.setCameraX(Math.max(0, Math.min(maxCamera, target)));
   }, [playerX, segment]);
 
   // ========== 전투 결과 처리 ==========
@@ -363,9 +372,9 @@ export function DungeonExploration() {
     if (lastBattleResult.result === "victory") {
       const gold = 5 + Math.floor(Math.random() * 6);
       const loot = Math.random() < 0.5 ? 1 : 0;
-      setRewardModal({ gold, loot, victory: true });
+      actions.setRewardModal({ gold, loot, victory: true });
     } else {
-      setRewardModal({ gold: 0, loot: 0, victory: false });
+      actions.setRewardModal({ gold: 0, loot: 0, victory: false });
     }
 
     // 즉시 clear하여 중복 처리 방지 (재마운트 시 useEffect 재실행 방지)
@@ -474,7 +483,7 @@ export function DungeonExploration() {
         const objType = OBJECT_TYPES[obj.typeId.toUpperCase()];
 
         if (obj.used && !objType.canReuse) {
-          setMessage("이미 사용했습니다.");
+          actions.setMessage("이미 사용했습니다.");
           return;
         }
 
@@ -500,9 +509,9 @@ export function DungeonExploration() {
       if (segment.isLast) {
         handleCompleteDungeon();
       } else {
-        setSegmentIndex((i) => i + 1);
-        setPlayerX(100);
-        setMessage("");
+        actions.setSegmentIndex((i) => i + 1);
+        actions.setPlayerX(100);
+        actions.setMessage("");
       }
     }
   };
@@ -521,12 +530,12 @@ export function DungeonExploration() {
 
     // 전투 전 상태 복원
     if (preBattleState.current) {
-      setSegmentIndex(preBattleState.current.segmentIndex);
-      setPlayerX(preBattleState.current.playerX);
+      actions.setSegmentIndex(preBattleState.current.segmentIndex);
+      actions.setPlayerX(preBattleState.current.playerX);
       preBattleState.current = null;
     }
 
-    setRewardModal(null);
+    actions.setRewardModal(null);
   };
 
   // ========== 던전 탈출 ==========
@@ -539,7 +548,7 @@ export function DungeonExploration() {
       material: dungeonDeltas.material,
       isComplete: false, // 탈출 버튼으로 나가는 경우
     };
-    setDungeonSummary(summary);
+    actions.setDungeonSummary(summary);
   };
 
   const handleCompleteDungeon = () => {
@@ -551,7 +560,7 @@ export function DungeonExploration() {
       material: dungeonDeltas.material,
       isComplete: true, // 출구로 완료하는 경우
     };
-    setDungeonSummary(summary);
+    actions.setDungeonSummary(summary);
   };
 
   const closeDungeonSummary = () => {
@@ -560,7 +569,7 @@ export function DungeonExploration() {
     // 던전 종료 시 z값 + x값을 실제 resources에 반영
     addResources(dungeonDeltas);
 
-    setDungeonSummary(null);
+    actions.setDungeonSummary(null);
     if (isComplete) {
       completeDungeon();
     } else {
@@ -622,8 +631,8 @@ export function DungeonExploration() {
               return (
                 <div key={index} style={{ position: 'relative' }}>
                   <div
-                    onMouseEnter={() => setHoveredRelic(relicId)}
-                    onMouseLeave={() => setHoveredRelic(null)}
+                    onMouseEnter={() => actions.setHoveredRelic(relicId)}
+                    onMouseLeave={() => actions.setHoveredRelic(null)}
                     style={{
                       fontSize: '2rem',
                       padding: '4px',
@@ -751,7 +760,7 @@ export function DungeonExploration() {
         padding: "12px",
         borderRadius: "8px",
       }}>
-        <div>던전 {segmentIndex + 1}/{dungeon.length}</div>
+        <div>던전 {segmentIndex + 1}/{dungeonData.length}</div>
         <div style={{ fontSize: "12px", marginTop: "4px" }}>
           W: 상호작용 | A/D: 이동 | C: 캐릭터
         </div>
@@ -907,10 +916,10 @@ export function DungeonExploration() {
             justifyContent: "center",
             zIndex: 200,
           }}
-          onClick={() => setShowCharacter(false)}
+          onClick={() => actions.setShowCharacter(false)}
         >
           <div onClick={(e) => e.stopPropagation()}>
-            <CharacterSheet onClose={() => setShowCharacter(false)} />
+            <CharacterSheet onClose={() => actions.setShowCharacter(false)} />
           </div>
         </div>
       )}
