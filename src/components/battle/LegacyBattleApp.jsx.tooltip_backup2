@@ -642,7 +642,7 @@ function ExpectedDamagePreview({ player, enemy, fixedOrder, willOverdrive, enemy
   );
 }
 
-export function EtherBar({ pts, slots, previewGain = 0, color = "cyan", label, pulse = false, showBarTooltip = false, showPtsTooltip = false }) {
+export function EtherBar({ pts, slots, previewGain = 0, color = "cyan", label, pulse = false }) {
   const safePts = Number.isFinite(pts) ? pts : 0;
   const derivedSlots = Number.isFinite(slots) ? slots : etherSlots(safePts);
   const safeSlots = Number.isFinite(derivedSlots) ? derivedSlots : 0;
@@ -685,6 +685,8 @@ export function EtherBar({ pts, slots, previewGain = 0, color = "cyan", label, p
   const compactCurrent = formatCompact(currentPts);
   const compactNext = formatCompact(nextSlotCost);
   const fullTitle = `${currentPts.toLocaleString()} / ${nextSlotCost.toLocaleString()}`;
+  const [showPtsTooltip, setShowPtsTooltip] = useState(false);
+  const [showBarTooltip, setShowBarTooltip] = useState(false);
 
   // 슬롯별 색상 (플레이어: 보색 관계로 시인성 극대화)
   const playerSlotColors = [
@@ -743,8 +745,8 @@ export function EtherBar({ pts, slots, previewGain = 0, color = "cyan", label, p
         background: 'rgba(9, 17, 27, 0.95)',
         overflow: 'hidden',
       }}
-        onMouseEnter={() => actions.setShowBarTooltip(true)}
-        onMouseLeave={() => actions.setShowBarTooltip(false)}
+        onMouseEnter={() => setShowBarTooltip(true)}
+        onMouseLeave={() => setShowBarTooltip(false)}
       >
         <div style={{
           position: 'absolute',
@@ -765,8 +767,8 @@ export function EtherBar({ pts, slots, previewGain = 0, color = "cyan", label, p
       )}
       <div
         style={{ textAlign: 'center', color: textColor, fontSize: '20px', position: 'relative' }}
-        onMouseEnter={() => actions.setShowPtsTooltip(true)}
-        onMouseLeave={() => actions.setShowPtsTooltip(false)}
+        onMouseEnter={() => setShowPtsTooltip(true)}
+        onMouseLeave={() => setShowPtsTooltip(false)}
       >
         <div key={`pts-${safePts}`} style={{ fontFamily: 'monospace', lineHeight: 1.1, display: 'inline-flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
           <div>{compactCurrent}</div>
@@ -1172,6 +1174,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const escapeBanRef = useRef(new Set());
   const escapeUsedThisTurnRef = useRef(new Set());
   const hoveredCardRef = useRef(null);
+  const [showTooltip, setShowTooltip] = useState(false); // 툴팁 표시 여부 (딜레이 후)
   const tooltipTimerRef = useRef(null);
   const logEndRef = useRef(null);
   const devilDiceTriggeredRef = useRef(false); // 턴 내 악마의 주사위 발동 여부
@@ -1405,14 +1408,14 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       requestAnimationFrame(() => {
         requestAnimationFrame(() => actions.setTooltipVisible(true));
       });
-      actions.setTooltipVisible(true);
+      setShowTooltip(true);
     }, 300);
   }, []);
 
   const hideCardTraitTooltip = useCallback(() => {
     actions.setHoveredCard(null);
     actions.setTooltipVisible(false);
-    actions.setTooltipVisible(false);
+    setShowTooltip(false);
     if (tooltipTimerRef.current) clearTimeout(tooltipTimerRef.current);
   }, []);
 
@@ -3285,8 +3288,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
           previewGain={previewEtherGain}
           label="ETHER"
           pulse={playerTransferPulse}
-          showBarTooltip={showBarTooltip}
-          showPtsTooltip={showPtsTooltip}
         />
       </div>
       {/* 예상 피해량 - 오른쪽 고정 패널 */}
@@ -4528,7 +4529,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       {showCharacterSheet && <CharacterSheet onClose={closeCharacterSheet} />}
 
       {/* 특성 툴팁 */}
-      {tooltipVisible && tooltipVisible && hoveredCard && hoveredCard.card.traits && hoveredCard.card.traits.length > 0 && (
+      {showTooltip && tooltipVisible && hoveredCard && hoveredCard.card.traits && hoveredCard.card.traits.length > 0 && (
         <div
           className={`trait-tooltip ${tooltipVisible ? 'tooltip-visible' : ''}`}
           style={{
