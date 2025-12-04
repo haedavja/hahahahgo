@@ -1,5 +1,4 @@
-import { useEffect, useMemo, useRef, useState, useCallback, useReducer } from "react";
-import { useMapState } from "./hooks/useMapState";
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { useGameStore } from "../../state/gameStore";
 import { calculateEtherSlots, getCurrentSlotPts, getSlotProgress, getNextSlotCost } from "../../lib/etherUtils";
 import { CharacterSheet } from "../character/CharacterSheet";
@@ -132,6 +131,11 @@ const PATCH_VERSION_TAG = "12-04-03:28"; // 다음 패치마다 여기를 최신
  */
 
 export function MapDemo() {
+  const [showCharacterSheet, setShowCharacterSheet] = useState(false);
+  const [isDungeonExploring, setIsDungeonExploring] = useState(false);
+  const [devToolsOpen, setDevToolsOpen] = useState(false);
+  const [hoveredRelic, setHoveredRelic] = useState(null);
+
   const map = useGameStore((state) => state.map);
   const resources = useGameStore((state) => state.resources || {});
   const prevEtherRef = useRef(resources.etherPts ?? 0);
@@ -149,9 +153,7 @@ export function MapDemo() {
     (relicList || []).forEach(id => { if (!savedSet.has(id)) merged.push(id); });
     return merged;
   }, []);
-
-  // orderedRelics 초기값 계산 (localStorage 복원)
-  const initialOrderedRelics = useMemo(() => {
+  const [orderedRelics, setOrderedRelics] = useState(() => {
     try {
       const saved = localStorage.getItem("relicOrder");
       if (saved) {
@@ -160,29 +162,15 @@ export function MapDemo() {
       }
     } catch { }
     return relics || [];
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Map UI 상태 (useReducer 기반)
-  const { mapUI, actions } = useMapState({
-    orderedRelics: initialOrderedRelics,
   });
-
-  // Destructure map UI state
-  const showCharacterSheet = mapUI.showCharacterSheet;
-  const isDungeonExploring = mapUI.isDungeonExploring;
-  const devToolsOpen = mapUI.devToolsOpen;
-  const hoveredRelic = mapUI.hoveredRelic;
-  const orderedRelics = mapUI.orderedRelics;
-  const relicActivated = mapUI.relicActivated;
-
   const dragRelicIndexRef = useRef(null);
+  const [relicActivated, setRelicActivated] = useState(null);
   useEffect(() => {
     // 새 유물 추가/제거 시 순서를 유지하면서 병합
-    actions.setOrderedRelics((prev) => {
+    setOrderedRelics((prev) => {
       return mergeRelicOrder(relics || [], prev);
     });
-  }, [relics, mergeRelicOrder, actions]);
+  }, [relics, mergeRelicOrder]);
   useEffect(() => {
     try {
       localStorage.setItem("relicOrder", JSON.stringify(orderedRelics));
@@ -209,12 +197,12 @@ export function MapDemo() {
     const handleKeyDown = (e) => {
       if (e.altKey && (e.key === 'd' || e.key === 'D')) {
         e.preventDefault();
-        actions.setDevToolsOpen((prev) => !prev);
+        setDevToolsOpen((prev) => !prev);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [actions]);
+  }, []);
 
   const nodes = map?.nodes ?? [];
   const mapViewRef = useRef(null);
@@ -238,11 +226,11 @@ export function MapDemo() {
     const delta = curr - prev;
     prevEtherRef.current = curr;
     if (delta > 0 && relics?.includes('redCompass')) {
-      actions.setRelicActivated('redCompass');
-      const t = setTimeout(() => actions.setRelicActivated(null), 700);
+      setRelicActivated('redCompass');
+      const t = setTimeout(() => setRelicActivated(null), 700);
       return () => clearTimeout(t);
     }
-  }, [resources.etherPts, relics, actions]);
+  }, [resources.etherPts, relics]);
 
   const mapHeight = useMemo(() => {
     if (!nodes.length) return 800;
@@ -290,27 +278,27 @@ export function MapDemo() {
   useEffect(() => {
     const handleKeyPress = (e) => {
       if (e.key === "c" || e.key === "C") {
-        actions.setShowCharacterSheet((prev) => !prev);
+        setShowCharacterSheet((prev) => !prev);
       }
     };
     window.addEventListener("keydown", handleKeyPress);
     return () => window.removeEventListener("keydown", handleKeyPress);
-  }, [actions]);
+  }, []);
 
   // 던전 탐험 상태 관리
   useEffect(() => {
     if (activeDungeon?.confirmed) {
       // 던전 진입 확정 시 탐험 시작
-      actions.setIsDungeonExploring(true);
+      setIsDungeonExploring(true);
     } else if (!activeDungeon) {
       // activeDungeon이 사라졌을 때
       if (!activeBattle) {
         // 전투 중이 아니면 즉시 탐험 종료 (탈출/완료)
-        actions.setIsDungeonExploring(false);
+        setIsDungeonExploring(false);
       }
       // 전투 중이면 그대로 유지 (던전 내 전투)
     }
-  }, [activeDungeon, activeBattle, actions]);
+  }, [activeDungeon, activeBattle]);
 
   const availablePrayers = useMemo(
     () => PRAYER_COSTS.filter((cost) => (resources.etherPts ?? 0) >= cost),
@@ -369,7 +357,7 @@ export function MapDemo() {
                   draggable
                   onDragStart={(e) => {
                     dragRelicIndexRef.current = index;
-                    actions.setRelicActivated(relicId);
+                    setRelicActivated(relicId);
                     e.dataTransfer.effectAllowed = 'move';
                     try {
                       const img = new Image();
@@ -385,20 +373,20 @@ export function MapDemo() {
                     e.preventDefault();
                     const from = dragRelicIndexRef.current;
                     dragRelicIndexRef.current = null;
-                    actions.setRelicActivated(null);
+                    setRelicActivated(null);
                     if (from === null || from === index) return;
                     const next = Array.from(orderedRelics);
                     const [item] = next.splice(from, 1);
                     next.splice(index, 0, item);
-                    actions.setOrderedRelics(next);
+                    setOrderedRelics(next);
                   }}
                   onMouseDown={() => {
-                    actions.setRelicActivated(prev => prev === relicId ? null : relicId);
+                    setRelicActivated(prev => prev === relicId ? null : relicId);
                   }}
                 >
                   <div
-                    onMouseEnter={() => actions.setHoveredRelic(relicId)}
-                    onMouseLeave={() => actions.setHoveredRelic(null)}
+                    onMouseEnter={() => setHoveredRelic(relicId)}
+                    onMouseLeave={() => setHoveredRelic(null)}
                     style={{
                       fontSize: '2rem',
                       padding: '4px',
@@ -764,10 +752,10 @@ export function MapDemo() {
         </div>
       )}
 
-      {showCharacterSheet && <CharacterSheet onClose={() => actions.setShowCharacterSheet(false)} />}
+      {showCharacterSheet && <CharacterSheet onClose={() => setShowCharacterSheet(false)} />}
 
       {/* 개발자 도구 오버레이 */}
-      <DevTools isOpen={devToolsOpen} onClose={() => actions.setDevToolsOpen(false)} />
+      <DevTools isOpen={devToolsOpen} onClose={() => setDevToolsOpen(false)} />
     </div>
   );
 }
