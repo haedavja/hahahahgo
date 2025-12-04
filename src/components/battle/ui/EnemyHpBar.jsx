@@ -1,0 +1,127 @@
+/**
+ * EnemyHpBar.jsx
+ *
+ * 적 HP 바와 상태 표시 컴포넌트
+ */
+
+export const EnemyHpBar = ({
+  battle,
+  previewDamage,
+  dulledLevel,
+  enemy,
+  enemyHit,
+  enemyBlockAnim,
+  soulShatter,
+  groupedEnemyMembers,
+  enemyOverdriveFlash,
+  enemyEtherValue,
+  enemyTransferPulse,
+  enemySoulScale,
+  formatCompactValue
+}) => {
+  return (
+    <div style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginRight: '0', paddingRight: '0', gap: '40px', background: 'transparent', border: 'none', boxShadow: 'none' }}>
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '16px',
+        padding: '0',
+        margin: '0',
+        borderRadius: '0',
+        background: 'transparent',
+        border: 'none',
+        boxShadow: 'none',
+        position: 'fixed',
+        top: '530px',
+        right: '640px',
+        pointerEvents: 'none'
+      }}>
+        <div style={{ textAlign: 'right', position: 'relative', paddingRight: '8px', pointerEvents: 'auto', display: 'flex', alignItems: 'center', gap: '14px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{ position: 'relative', paddingTop: '30px' }}>
+                {(battle.phase === 'select' || battle.phase === 'respond') && previewDamage.value > 0 && (
+                  <div className={`predicted-damage-inline ${previewDamage.lethal ? 'lethal' : ''} ${previewDamage.overkill ? 'overkill' : ''}`}>
+                    <span className="predicted-damage-inline-value">🗡️ -{previewDamage.value}</span>
+                    {previewDamage.lethal && (
+                      <span className={`predicted-damage-inline-icon ${previewDamage.overkill ? 'overkill-icon' : ''}`} aria-hidden="true">
+                        {previewDamage.overkill ? '☠️' : '💀'}
+                      </span>
+                    )}
+                  </div>
+                )}
+                {(() => {
+                  const hideEnemyVitals = dulledLevel >= 3;
+                  const hpText = hideEnemyVitals ? '??' : `${enemy.hp}/${enemy.maxHp}`;
+                  const blockText = hideEnemyVitals ? '??' : (enemy.block > 0 ? `${enemy.block}` : null);
+                  return (
+                  <div className={enemyHit ? 'hit-animation' : ''} style={{ color: '#f87171', fontSize: '1.25rem', fontWeight: 'bold', textAlign: 'right', transition: 'opacity 0.4s ease, transform 0.4s ease', opacity: soulShatter ? 0 : 1, transform: soulShatter ? 'scale(0.9)' : 'scale(1)', position: 'absolute', top: '-20px', right: '-200px', width: '200px' }}>
+                    {blockText && <span className={enemyBlockAnim ? 'block-animation' : ''} style={{ color: '#60a5fa', marginRight: '8px' }}>🛡️{blockText}</span>}
+                    ❤️ {hpText}
+                  </div>
+                );
+                })()}
+              </div>
+              <div className="hp-bar-enhanced mb-1" style={{ width: '200px', height: '12px', position: 'relative', overflow: 'hidden' }}>
+                <div className="hp-fill" style={{ width: `${dulledLevel >= 3 ? 0 : (enemy.hp / enemy.maxHp) * 100}%` }}></div>
+                {enemy.block > 0 && dulledLevel < 3 && (
+                  <div style={{
+                    position: 'absolute',
+                    left: 0,
+                    top: 0,
+                    height: '100%',
+                    width: `${Math.min((enemy.block / enemy.maxHp) * 100, 100)}%`,
+                    background: 'linear-gradient(90deg, rgba(96, 165, 250, 0.6), rgba(96, 165, 250, 0.3))',
+                    borderRight: '2px solid #60a5fa'
+                  }}></div>
+                )}
+              </div>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px', marginTop: '-88px' }}>
+              {groupedEnemyMembers.map((member, idx) => {
+                const rawName = member.name || '몬스터';
+                const displayName = member.count > 1 ? `${rawName} x${member.count}` : rawName;
+                return (
+                  <div key={`${rawName}-${idx}`} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <span style={{
+                      fontSize: '0.95rem',
+                      color: '#e2e8f0',
+                      fontWeight: '600',
+                      textShadow: '0 2px 4px rgba(0,0,0,0.5)',
+                      background: 'rgba(0,0,0,0.3)',
+                      padding: '2px 8px',
+                      borderRadius: '4px',
+                      transform: 'translateX(220px)'
+                    }}>
+                      {displayName}
+                    </span>
+                    <div
+                      className={`character-display ${soulShatter ? 'soul-shatter-target' : ''} ${enemyOverdriveFlash ? 'overdrive-burst' : ''}`}
+                      style={{
+                        fontSize: idx === 0 ? '64px' : '56px',
+                        filter: idx === 0 ? 'none' : 'brightness(0.95)',
+                        transform: 'translateX(220px)'
+                      }}
+                    >
+                      {member.emoji || '👹'}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </div>
+      <div
+        className={`soul-orb ${enemyTransferPulse ? 'pulse' : ''} ${soulShatter ? 'shatter' : ''}`}
+        title={dulledLevel >= 3 ? '?? / ??' : `${(enemyEtherValue || 0).toLocaleString()} / ${((enemy?.etherCapacity ?? enemyEtherValue) || 0).toLocaleString()}`}
+        style={{ position: 'fixed', top: '470px', right: '300px' }}>
+        <div className={`soul-orb-shell ${enemyTransferPulse ? 'pulse' : ''} ${soulShatter ? 'shatter' : ''}`} style={{ transform: `scale(${enemySoulScale})` }} />
+        <div className="soul-orb-content">
+          <div className="soul-orb-value">{dulledLevel >= 3 ? '??' : formatCompactValue(enemyEtherValue)}</div>
+          <div className="soul-orb-label">SOUL</div>
+        </div>
+      </div>
+    </div>
+  );
+};

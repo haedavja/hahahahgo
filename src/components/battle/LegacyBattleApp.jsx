@@ -43,6 +43,12 @@ import {
   applyDamageTakenEffects,
   calculateEtherGain as calculateRelicEtherGain
 } from "../../lib/relicEffects";
+import { PlayerHpBar } from "./ui/PlayerHpBar";
+import { PlayerEtherBox } from "./ui/PlayerEtherBox";
+import { EnemyHpBar } from "./ui/EnemyHpBar";
+import { EnemyEtherBox } from "./ui/EnemyEtherBox";
+import { CentralPhaseDisplay } from "./ui/CentralPhaseDisplay";
+import { EtherComparisonBar } from "./ui/EtherComparisonBar";
 
 const STUN_RANGE = 5; // 기절 효과 범위(타임라인 기준)
 
@@ -3621,372 +3627,66 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
         {/* 플레이어/적 정보 + 중앙 정보 통합 레이아웃 */}
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'flex-end', marginBottom: '50px', gap: '120px', position: 'relative', marginTop: '40px', paddingRight: '40px' }}>
-          {battle.phase === 'resolve' && etherFinalValue !== null && enemyEtherFinalValue !== null && (
-            <div style={{
-              position: 'absolute',
-              top: '750px',
-              left: 'calc(50% - 50px)',
-              transform: 'translateX(-50%)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '32px',
-              padding: '12px 36px',
-              background: 'rgba(8, 15, 30, 0.35)',
-              borderRadius: '18px',
-              border: '1.5px solid rgba(148, 163, 184, 0.35)',
-              boxShadow: '0 10px 28px rgba(0,0,0,0.35), inset 0 0 12px rgba(94, 234, 212, 0.1)'
-            }}>
-              <div style={{
-                padding: '10px 20px',
-                borderRadius: '12px',
-                background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.18), rgba(56, 189, 248, 0.14))',
-                border: '2px solid rgba(125, 211, 252, 0.9)',
-                color: '#e0f2fe',
-                fontWeight: '900',
-                letterSpacing: '0.14em',
-                fontSize: '1.25rem',
-                minWidth: '190px',
-                textAlign: 'center',
-                whiteSpace: 'nowrap',
-                boxShadow: '0 0 16px rgba(125, 211, 252, 0.35)'
-              }}>
-                {etherFinalValue.toLocaleString()} P T
-              </div>
-              <div style={{ width: '96px', height: '2px', background: 'linear-gradient(90deg, rgba(125,211,252,0.0), rgba(125,211,252,0.8))', boxShadow: '0 0 10px rgba(125,211,252,0.35)' }} />
-              <div style={{
-                padding: '12px 22px',
-                borderRadius: '12px',
-                background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.25), rgba(16, 185, 129, 0.25))',
-                border: '2px solid rgba(125, 211, 252, 0.7)',
-                color: '#e0f2fe',
-                fontWeight: '900',
-                fontSize: '1.3rem',
-                letterSpacing: '0.14em',
-                whiteSpace: 'nowrap',
-                minWidth: '130px',
-                textAlign: 'center'
-              }}>
-                Δ {netFinalEther.toLocaleString()} P T
-              </div>
-              <div style={{ width: '96px', height: '2px', background: 'linear-gradient(90deg, rgba(125,211,252,0.8), rgba(125,211,252,0.0))', boxShadow: '0 0 10px rgba(125,211,252,0.35)' }} />
-              <div style={{
-                padding: '10px 20px',
-                borderRadius: '12px',
-                background: 'linear-gradient(135deg, rgba(248, 113, 113, 0.22), rgba(244, 63, 94, 0.14))',
-                border: '2px solid rgba(248, 113, 113, 0.9)',
-                color: '#ffe4e6',
-                fontWeight: '900',
-                letterSpacing: '0.14em',
-                fontSize: '1.25rem',
-                minWidth: '190px',
-                textAlign: 'center',
-                whiteSpace: 'nowrap',
-                boxShadow: '0 0 16px rgba(248, 113, 113, 0.35)'
-              }}>
-                {enemyEtherFinalValue.toLocaleString()} P T
-              </div>
-            </div>
-          )}
+          <EtherComparisonBar
+            battle={battle}
+            etherFinalValue={etherFinalValue}
+            enemyEtherFinalValue={enemyEtherFinalValue}
+            netFinalEther={netFinalEther}
+            position="top"
+          />
+
           {/* 왼쪽: 플레이어 */}
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '12px', minWidth: '360px', position: 'relative', justifyContent: 'flex-end', paddingTop: '200px' }}>
-            {/* 플레이어 에테르 박스 */}
-            {currentCombo && (battle.phase === 'select' || battle.phase === 'respond' || battle.phase === 'resolve') && (
-              <div
-                className="player-ether-box"
-                style={{
-                  position: 'absolute',
-                  top: '70px',
-                  left: '40px',
-                  padding: '0',
-                  borderRadius: '12px',
-                  background: 'transparent',
-                  border: 'none',
-                  boxShadow: 'none',
-                  minHeight: '140px',
-                  pointerEvents: 'none'
-                }}
-              >
-                <div className="combo-display" style={{ textAlign: 'center' }}>
-                  <div style={{
-                    fontSize: '1.92rem',
-                    fontWeight: 'bold',
-                    color: '#fbbf24',
-                    marginBottom: '2px',
-                    height: '2.5rem',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    position: 'relative'
-                  }}>
-                    <span>{currentCombo.name}</span>
-                    {currentDeflation && (
-                      <div style={{
-                        position: 'absolute',
-                        left: 'calc(50% + 120px)',
-                        fontSize: etherCalcPhase === 'deflation' ? '1.1rem' : '0.9rem',
-                        fontWeight: 'bold',
-                        color: '#fca5a5',
-                        background: 'linear-gradient(135deg, rgba(252, 165, 165, 0.25), rgba(252, 165, 165, 0.1))',
-                        border: '1.5px solid rgba(252, 165, 165, 0.5)',
-                        borderRadius: '6px',
-                        padding: '4px 10px',
-                        letterSpacing: '0.05em',
-                        boxShadow: '0 0 10px rgba(252, 165, 165, 0.3), inset 0 0 5px rgba(252, 165, 165, 0.15)',
-                        transition: 'font-size 0.3s ease, transform 0.3s ease',
-                        transform: etherCalcPhase === 'deflation' ? 'scale(1.2)' : 'scale(1)',
-                        textShadow: etherCalcPhase === 'deflation' ? '0 0 15px rgba(252, 165, 165, 0.6)' : 'none'
-                      }}>
-                        -{Math.round((1 - currentDeflation.multiplier) * 100)}%
-                      </div>
-                    )}
-                  </div>
-                  <div style={{
-                    fontSize: etherPulse ? '1.8rem' : (etherCalcPhase === 'sum' ? '2rem' : '1.5rem'),
-                    color: '#fbbf24',
-                    fontWeight: 'bold',
-                    letterSpacing: '0.2em',
-                    marginBottom: '2px',
-                    transition: 'font-size 0.3s ease, transform 0.3s ease',
-                    transform: etherPulse ? 'scale(1.2)' : (etherCalcPhase === 'sum' ? 'scale(1.3)' : 'scale(1)'),
-                    textShadow: etherCalcPhase === 'sum' ? '0 0 20px #fbbf24' : 'none',
-                    visibility: battle.phase === 'resolve' ? 'visible' : 'hidden',
-                    height: '1.8rem'
-                  }}>
-                    + {turnEtherAccumulated.toString().split('').join(' ')} P T
-                  </div>
-                  <div style={{
-                    fontSize: etherCalcPhase === 'multiply' ? '1.6rem' : '1.32rem',
-                    color: '#fbbf24',
-                    fontWeight: 'bold',
-                    letterSpacing: '0.15em',
-                    minWidth: '400px',
-                    height: '2rem',
-                    marginTop: '8px',
-                    display: 'flex',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    gap: '12px',
-                    transition: 'font-size 0.3s ease, transform 0.3s ease',
-                    transform: (etherCalcPhase === 'multiply' || multiplierPulse) ? 'scale(1.3)' : 'scale(1)',
-                    textShadow: (etherCalcPhase === 'multiply' || multiplierPulse) ? '0 0 20px #fbbf24' : 'none'
-                  }}>
-                    <span>× {finalComboMultiplier.toFixed(2).split('').join(' ')}</span>
-                  </div>
-                </div>
-              </div>
-            )}
-            <div style={{ position: 'fixed', top: '500px', left: '150px', zIndex: 3000, pointerEvents: 'none' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '16px', position: 'relative' }}>
-                <div style={{ position: 'relative', pointerEvents: 'auto' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <div className={`character-display ${playerOverdriveFlash ? 'overdrive-burst' : ''}`} style={{ fontSize: '64px' }}>🧙‍♂️</div>
-                    <div></div>
-                    <div style={{ position: 'relative' }}>
-                      <div className={playerHit ? 'hit-animation' : ''} style={{ color: '#f87171', fontSize: '1.25rem', fontWeight: 'bold', position: 'absolute', top: '-30px', left: '0' }}>
-                        ❤️ {player.hp}/{player.maxHp}
-                        {player.block > 0 && <span className={playerBlockAnim ? 'block-animation' : ''} style={{ color: '#60a5fa', marginLeft: '8px' }}>🛡️{player.block}</span>}
-                      </div>
-                      <div className="hp-bar-enhanced mb-1" style={{ width: '200px', height: '12px', position: 'relative', overflow: 'hidden' }}>
-                        <div className="hp-fill" style={{ width: `${(player.hp / player.maxHp) * 100}%` }}></div>
-                        {player.block > 0 && (
-                          <div style={{
-                            position: 'absolute',
-                            left: 0,
-                            top: 0,
-                            height: '100%',
-                            width: `${Math.min((player.block / player.maxHp) * 100, 100)}%`,
-                            background: 'linear-gradient(90deg, rgba(96, 165, 250, 0.6), rgba(96, 165, 250, 0.3))',
-                            borderRight: '2px solid #60a5fa'
-                          }}></div>
-                        )}
-                      </div>
-                      {/* 체력바 바로 아래 상태 라인 */}
-                      <div style={{ display: 'flex', gap: '12px', marginTop: '6px', fontSize: '0.9rem', fontWeight: '700' }}>
-                        {(player.strength || 0) !== 0 && (
-                          <span style={{ color: '#fbbf24' }}>💪 힘 {player.strength || 0}</span>
-                        )}
-                        {effectiveAgility !== 0 && (
-                          <span style={{ color: effectiveAgility > 0 ? '#34d399' : '#ef4444' }}>⚡ 민첩 {effectiveAgility}</span>
-                        )}
-                        {(player.insight || 0) !== 0 && (
-                          <span style={{ color: '#a78bfa' }}>👁️ 통찰 {player.insight || 0}</span>
-                        )}
-                        {dulledLevel > 0 && (
-                          <span style={{ color: '#94a3b8' }}>🌫️ 우둔 {dulledLevel}</span>
-                        )}
-                        {player.etherOverflow > 0 && (
-                          <span style={{ color: '#a78bfa', fontSize: '0.85rem' }}>🌊 범람 {player.etherOverflow} PT</span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <PlayerEtherBox
+              currentCombo={currentCombo}
+              battle={battle}
+              currentDeflation={currentDeflation}
+              etherCalcPhase={etherCalcPhase}
+              turnEtherAccumulated={turnEtherAccumulated}
+              etherPulse={etherPulse}
+              finalComboMultiplier={finalComboMultiplier}
+              multiplierPulse={multiplierPulse}
+            />
+            <PlayerHpBar
+              player={player}
+              playerHit={playerHit}
+              playerBlockAnim={playerBlockAnim}
+              playerOverdriveFlash={playerOverdriveFlash}
+              effectiveAgility={effectiveAgility}
+              dulledLevel={dulledLevel}
+            />
           </div>
 
-          {/* 중앙 UI 박스 */}
-          <div style={{
-            textAlign: 'center',
-            flex: '0 0 auto',
-            paddingTop: '20px',
-            marginRight: '0',
-            display: 'inline-flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: '10px',
-            background: 'transparent',
-            border: 'none',
-            borderRadius: '16px',
-            padding: '20px 28px',
-            boxShadow: 'none',
-            position: 'fixed',
-            top: '270px',
-            left: '50%',
-            transform: 'translate(calc(-50% - 165px), 0)',
-            zIndex: 3600,
-            pointerEvents: 'auto'
-          }}>
-            <div style={{ fontSize: '36px', fontWeight: 'bold', color: '#f8fafc', textShadow: '0 2px 8px rgba(0,0,0,0.5)', marginBottom: '16px' }}>
-              {battle.phase === 'select' ? '선택 단계' : battle.phase === 'respond' ? '대응 단계' : '진행 단계'}
-            </div>
-            <div style={{ fontSize: '1.25rem', fontWeight: '700', color: '#7dd3fc', marginBottom: '12px' }}>
-              속도 {totalSpeed}/{MAX_SPEED} · 선택 {battle.selected.length}/{MAX_SUBMIT_CARDS}
-            </div>
+          <CentralPhaseDisplay
+            battle={battle}
+            totalSpeed={totalSpeed}
+            MAX_SPEED={MAX_SPEED}
+            MAX_SUBMIT_CARDS={MAX_SUBMIT_CARDS}
+            redrawHand={redrawHand}
+            canRedraw={canRedraw}
+            startResolve={startResolve}
+            playSound={playSound}
+            actions={actions}
+            willOverdrive={willOverdrive}
+            etherSlots={etherSlots}
+            player={player}
+            beginResolveFromRespond={beginResolveFromRespond}
+            rewindToSelect={rewindToSelect}
+            rewindUsed={rewindUsed}
+            respondSnapshot={respondSnapshot}
+            autoProgress={autoProgress}
+            etherFinalValue={etherFinalValue}
+            enemy={enemy}
+            finishTurn={finishTurn}
+          />
 
-            {/* 버튼들 - 속도/선택 텍스트 하단 */}
-            {battle.phase === 'select' && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'center', marginTop: '16px' }}>
-                <button onClick={redrawHand} disabled={!canRedraw} className="btn-enhanced flex items-center gap-2" style={{ fontSize: '1rem', padding: '8px 20px', minWidth: '200px' }}>
-                  <RefreshCw size={18} /> 리드로우 (R)
-                </button>
-                <button onClick={() => { startResolve(); playSound(900, 120); }} disabled={battle.selected.length === 0} className="btn-enhanced btn-primary flex items-center gap-2" style={{ fontSize: '1.25rem', padding: '9.6px 24px', fontWeight: '700', minWidth: '200px' }}>
-                  <Play size={22} /> 제출 <span style={{ fontSize: '1.4rem', fontWeight: '900' }}>(E)</span>
-                </button>
-                <button onClick={() => actions.setWillOverdrive(v => !v)}
-                  disabled={etherSlots(player.etherPts) <= 0}
-                  className={`btn-enhanced ${willOverdrive ? 'btn-primary' : ''} flex items-center gap-2`}
-                  style={{ fontSize: '1rem', padding: '8px 20px', minWidth: '200px' }}>
-                  ✨ 기원 {willOverdrive ? 'ON' : 'OFF'} (Space)
-                </button>
-              </div>
-            )}
-            {battle.phase === 'respond' && (
-              <div style={{ display: 'flex', justifyContent: 'center', marginTop: '16px' }}>
-                <div style={{ display: 'flex', gap: '10px' }}>
-                  <button onClick={beginResolveFromRespond} className="btn-enhanced btn-success flex items-center gap-2" style={{ fontSize: '1.25rem', padding: '9.6px 24px', fontWeight: '700', minWidth: '200px' }}>
-                    <Play size={22} /> 진행 시작 <span style={{ fontSize: '1.4rem', fontWeight: '900' }}>(E)</span>
-                  </button>
-                  <button
-                    onClick={rewindToSelect}
-                    className="btn-enhanced flex items-center gap-2"
-                    disabled={rewindUsed || !respondSnapshot}
-                    style={{ fontSize: '1rem', padding: '9.6px 18px', fontWeight: '700', minWidth: '160px', opacity: rewindUsed ? 0.5 : 1 }}
-                  >
-                    ⏪ 되감기 (1회)
-                  </button>
-                </div>
-              </div>
-            )}
-            {battle.phase === 'resolve' && battle.qIndex < battle.queue.length && (
-              <div style={{ display: 'flex', justifyContent: 'center', marginTop: '16px' }}>
-                <button
-                  onClick={() => actions.setAutoProgress(!autoProgress)}
-                  className={`btn-enhanced flex items-center gap-2 ${autoProgress ? 'btn-primary' : ''}`}
-                  style={{ fontSize: '1.25rem', padding: '12px 24px', fontWeight: '700', minWidth: '200px' }}
-                >
-                  {autoProgress ? (
-                    <>⏸️ 진행 중지 <span style={{ fontSize: '1.4rem', fontWeight: '900' }}>(E)</span></>
-                  ) : (
-                    <>▶️ 진행 <span style={{ fontSize: '1.4rem', fontWeight: '900' }}>(E)</span></>
-                  )}
-                </button>
-              </div>
-            )}
-            {battle.phase === 'resolve' && battle.qIndex >= battle.queue.length && etherFinalValue !== null && (
-              <div style={{ display: 'flex', justifyContent: 'center', marginTop: '16px' }}>
-                {enemy.hp <= 0 ? (
-                  <button onClick={() => finishTurn('전투 승리')} className="btn-enhanced btn-success flex items-center gap-2" style={{ fontSize: '1.25rem', padding: '12px 24px', fontWeight: '700', minWidth: '200px' }}>
-                    🎉 전투 종료 <span style={{ fontSize: '1.4rem', fontWeight: '900' }}>(E)</span>
-                  </button>
-                ) : (
-                  <button onClick={() => finishTurn('수동 턴 종료')} className="btn-enhanced btn-primary flex items-center gap-2" style={{ fontSize: '1.25rem', padding: '12px 24px', fontWeight: '700', minWidth: '200px' }}>
-                    ⏭️ 턴 종료 <span style={{ fontSize: '1.4rem', fontWeight: '900' }}>(E)</span>
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* 최종값 텍스트를 중앙 UI 박스 하단으로 이동 */}
-          {battle.phase === 'resolve' && etherFinalValue !== null && enemyEtherFinalValue !== null && (
-            <div style={{
-              position: 'fixed',
-              top: '620px',
-              left: '50%',
-              transform: 'translate(calc(-50% - 180px), 0)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '32px',
-              padding: '12px 36px',
-              background: 'rgba(8, 15, 30, 0.35)',
-              borderRadius: '18px',
-              border: '1.5px solid rgba(148, 163, 184, 0.35)',
-              boxShadow: '0 10px 28px rgba(0,0,0,0.35), inset 0 0 12px rgba(94, 234, 212, 0.1)',
-              pointerEvents: 'none',
-              zIndex: 3600
-            }}>
-              <div style={{
-                padding: '10px 20px',
-                borderRadius: '12px',
-                background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.18), rgba(56, 189, 248, 0.14))',
-                border: '2px solid rgba(125, 211, 252, 0.9)',
-                color: '#e0f2fe',
-                fontWeight: '900',
-                letterSpacing: '0.14em',
-                fontSize: '1.25rem',
-                minWidth: '190px',
-                textAlign: 'center',
-                whiteSpace: 'nowrap',
-                boxShadow: '0 0 16px rgba(125, 211, 252, 0.35)'
-              }}>
-                {etherFinalValue.toLocaleString()} P T
-              </div>
-              <div style={{ width: '96px', height: '2px', background: 'linear-gradient(90deg, rgba(125,211,252,0.0), rgba(125,211,252,0.8))', boxShadow: '0 0 10px rgba(125,211,252,0.35)' }} />
-              <div style={{
-                padding: '12px 22px',
-                borderRadius: '12px',
-                background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.25), rgba(16, 185, 129, 0.25))',
-                border: '2px solid rgba(125, 211, 252, 0.7)',
-                color: '#e0f2fe',
-                fontWeight: '900',
-                fontSize: '1.3rem',
-                letterSpacing: '0.14em',
-                whiteSpace: 'nowrap',
-                minWidth: '130px',
-                textAlign: 'center'
-              }}>
-                Δ {netFinalEther.toLocaleString()} P T
-              </div>
-              <div style={{ width: '96px', height: '2px', background: 'linear-gradient(90deg, rgba(125,211,252,0.8), rgba(125,211,252,0.0))', boxShadow: '0 0 10px rgba(125,211,252,0.35)' }} />
-              <div style={{
-                padding: '10px 20px',
-                borderRadius: '12px',
-                background: 'linear-gradient(135deg, rgba(248, 113, 113, 0.22), rgba(244, 63, 94, 0.14))',
-                border: '2px solid rgba(248, 113, 113, 0.9)',
-                color: '#ffe4e6',
-                fontWeight: '900',
-                letterSpacing: '0.14em',
-                fontSize: '1.25rem',
-                minWidth: '190px',
-                textAlign: 'center',
-                whiteSpace: 'nowrap',
-                boxShadow: '0 0 16px rgba(248, 113, 113, 0.35)'
-              }}>
-                {enemyEtherFinalValue.toLocaleString()} P T
-              </div>
-            </div>
-          )}
+          <EtherComparisonBar
+            battle={battle}
+            etherFinalValue={etherFinalValue}
+            enemyEtherFinalValue={enemyEtherFinalValue}
+            netFinalEther={netFinalEther}
+            position="bottom"
+          />
 
           {/* 오른쪽: 적 */}
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '12px', minWidth: '360px', position: 'relative', justifyContent: 'center', paddingTop: '120px' }}>
@@ -3995,199 +3695,34 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                 <div className="soul-shatter-text">영혼파괴!</div>
               </div>
             )}
-            {/* 몬스터 콤보 + 에테르 계산 - 절대 위치로 왼쪽 배치 */}
-            {enemyCombo && !((battle.phase === 'select') && ((insightReveal?.level || 0) === 0)) && (battle.phase === 'select' || battle.phase === 'respond' || battle.phase === 'resolve') && (
-              <div
-                className="enemy-ether-box"
-                style={{
-                  position: 'fixed',
-                  top: '330px',
-                  right: '510px',
-                  padding: '0',
-                  borderRadius: '12px',
-                  background: 'transparent',
-                  border: 'none',
-                  boxShadow: 'none',
-                  minHeight: '140px',
-                  pointerEvents: 'none',
-                  textAlign: 'center'
-                }}
-              >
-                <div className="combo-display">
-                  <div style={{
-                    fontSize: '1.92rem',
-                    fontWeight: 'bold',
-                    color: '#fbbf24',
-                    marginBottom: '2px',
-                    height: '2.5rem',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    position: 'relative'
-                  }}>
-                    <span>{enemyCombo.name}</span>
-                    {enemyCurrentDeflation && (
-                      <div style={{
-                        position: 'absolute',
-                        right: 'calc(50% + 120px)',
-                        fontSize: enemyEtherCalcPhase === 'deflation' ? '1.1rem' : '0.9rem',
-                        fontWeight: 'bold',
-                        color: '#fca5a5',
-                        background: 'linear-gradient(135deg, rgba(252, 165, 165, 0.25), rgba(252, 165, 165, 0.1))',
-                        border: '1.5px solid rgba(252, 165, 165, 0.5)',
-                        borderRadius: '6px',
-                        padding: '4px 10px',
-                        letterSpacing: '0.05em',
-                        boxShadow: '0 0 10px rgba(252, 165, 165, 0.3), inset 0 0 5px rgba(252, 165, 165, 0.15)',
-                        transition: 'font-size 0.3s ease, transform 0.3s ease',
-                        transform: enemyEtherCalcPhase === 'deflation' ? 'scale(1.2)' : 'scale(1)',
-                        textShadow: enemyEtherCalcPhase === 'deflation' ? '0 0 15px rgba(252, 165, 165, 0.6)' : 'none'
-                      }}>
-                        -{Math.round((1 - enemyCurrentDeflation.multiplier) * 100)}%
-                      </div>
-                    )}
-                  </div>
-                  <div style={{
-                    fontSize: enemyEtherCalcPhase === 'sum' ? '2rem' : '1.5rem',
-                    color: '#fbbf24',
-                    fontWeight: 'bold',
-                    letterSpacing: '0.2em',
-                    marginBottom: '2px',
-                    transition: 'font-size 0.3s ease, transform 0.3s ease',
-                    transform: enemyEtherCalcPhase === 'sum' ? 'scale(1.3)' : 'scale(1)',
-                    textShadow: enemyEtherCalcPhase === 'sum' ? '0 0 20px #fbbf24' : 'none',
-                    visibility: battle.phase === 'resolve' ? 'visible' : 'hidden',
-                    height: '1.8rem'
-                  }}>
-                    + {enemyTurnEtherAccumulated.toString().split('').join(' ')} P T
-                  </div>
-                  <div style={{
-                    fontSize: enemyEtherCalcPhase === 'multiply' ? '1.6rem' : '1.32rem',
-                    color: '#fbbf24',
-                    fontWeight: 'bold',
-                    letterSpacing: '0.15em',
-                    minWidth: '400px',
-                    height: '2rem',
-                    marginTop: '8px',
-                    display: 'flex',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    gap: '12px',
-                    transition: 'font-size 0.3s ease, transform 0.3s ease',
-                    transform: enemyEtherCalcPhase === 'multiply' ? 'scale(1.3)' : 'scale(1)',
-                    textShadow: enemyEtherCalcPhase === 'multiply' ? '0 0 20px #fbbf24' : 'none'
-                  }}>
-                    <span>× {((enemyCombo && COMBO_MULTIPLIERS[enemyCombo.name]) || 1).toFixed(2).split('').join(' ')}</span>
-                  </div>
-                </div>
-              </div>
-            )}
-            <div style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginRight: '0', paddingRight: '0', gap: '40px', background: 'transparent', border: 'none', boxShadow: 'none' }}>
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '16px',
-                padding: '0',
-                margin: '0',
-                borderRadius: '0',
-                background: 'transparent',
-                border: 'none',
-                boxShadow: 'none',
-                position: 'fixed',
-                top: '530px',
-                right: '640px',
-                pointerEvents: 'none'
-              }}>
-                <div style={{ textAlign: 'right', position: 'relative', paddingRight: '8px', pointerEvents: 'auto', display: 'flex', alignItems: 'center', gap: '14px' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <div style={{ position: 'relative', paddingTop: '30px' }}>
-                        {(battle.phase === 'select' || battle.phase === 'respond') && previewDamage.value > 0 && (
-                          <div className={`predicted-damage-inline ${previewDamage.lethal ? 'lethal' : ''} ${previewDamage.overkill ? 'overkill' : ''}`}>
-                            <span className="predicted-damage-inline-value">🗡️ -{previewDamage.value}</span>
-                            {previewDamage.lethal && (
-                              <span className={`predicted-damage-inline-icon ${previewDamage.overkill ? 'overkill-icon' : ''}`} aria-hidden="true">
-                                {previewDamage.overkill ? '☠️' : '💀'}
-                              </span>
-                            )}
-                          </div>
-                        )}
-                        {(() => {
-                          const hideEnemyVitals = dulledLevel >= 3;
-                          const hpText = hideEnemyVitals ? '??' : `${enemy.hp}/${enemy.maxHp}`;
-                          const blockText = hideEnemyVitals ? '??' : (enemy.block > 0 ? `${enemy.block}` : null);
-                          return (
-                          <div className={enemyHit ? 'hit-animation' : ''} style={{ color: '#f87171', fontSize: '1.25rem', fontWeight: 'bold', textAlign: 'right', transition: 'opacity 0.4s ease, transform 0.4s ease', opacity: soulShatter ? 0 : 1, transform: soulShatter ? 'scale(0.9)' : 'scale(1)', position: 'absolute', top: '-20px', right: '-200px', width: '200px' }}>
-                            {blockText && <span className={enemyBlockAnim ? 'block-animation' : ''} style={{ color: '#60a5fa', marginRight: '8px' }}>🛡️{blockText}</span>}
-                            ❤️ {hpText}
-                          </div>
-                        );
-                        })()}
-                      </div>
-                      <div className="hp-bar-enhanced mb-1" style={{ width: '200px', height: '12px', position: 'relative', overflow: 'hidden' }}>
-                        <div className="hp-fill" style={{ width: `${dulledLevel >= 3 ? 0 : (enemy.hp / enemy.maxHp) * 100}%` }}></div>
-                        {enemy.block > 0 && dulledLevel < 3 && (
-                          <div style={{
-                            position: 'absolute',
-                            left: 0,
-                            top: 0,
-                            height: '100%',
-                            width: `${Math.min((enemy.block / enemy.maxHp) * 100, 100)}%`,
-                            background: 'linear-gradient(90deg, rgba(96, 165, 250, 0.6), rgba(96, 165, 250, 0.3))',
-                            borderRight: '2px solid #60a5fa'
-                          }}></div>
-                        )}
-                      </div>
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px', marginTop: '-88px' }}>
-                      {groupedEnemyMembers.map((member, idx) => {
-                        const rawName = member.name || '몬스터';
-                        const displayName = member.count > 1 ? `${rawName} x${member.count}` : rawName;
-                        return (
-                          <div key={`${rawName}-${idx}`} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                            <span style={{
-                              fontSize: '0.95rem',
-                              color: '#e2e8f0',
-                              fontWeight: '600',
-                              textShadow: '0 2px 4px rgba(0,0,0,0.5)',
-                              background: 'rgba(0,0,0,0.3)',
-                              padding: '2px 8px',
-                              borderRadius: '4px',
-                              transform: 'translateX(220px)'
-                            }}>
-                              {displayName}
-                            </span>
-                            <div
-                              className={`character-display ${soulShatter ? 'soul-shatter-target' : ''} ${enemyOverdriveFlash ? 'overdrive-burst' : ''}`}
-                              style={{
-                                fontSize: idx === 0 ? '64px' : '56px',
-                                filter: idx === 0 ? 'none' : 'brightness(0.95)',
-                                transform: 'translateX(220px)'
-                              }}
-                            >
-                              {member.emoji || '👹'}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div
-                className={`soul-orb ${enemyTransferPulse ? 'pulse' : ''} ${soulShatter ? 'shatter' : ''}`}
-                title={dulledLevel >= 3 ? '?? / ??' : `${(enemyEtherValue || 0).toLocaleString()} / ${((enemy?.etherCapacity ?? enemyEtherValue) || 0).toLocaleString()}`}
-                style={{ position: 'fixed', top: '470px', right: '300px' }}>
-                <div className={`soul-orb-shell ${enemyTransferPulse ? 'pulse' : ''} ${soulShatter ? 'shatter' : ''}`} style={{ transform: `scale(${enemySoulScale})` }} />
-                <div className="soul-orb-content">
-                  <div className="soul-orb-value">{dulledLevel >= 3 ? '??' : formatCompactValue(enemyEtherValue)}</div>
-                  <div className="soul-orb-label">SOUL</div>
-                </div>
-              </div>
-            </div>
+            <EnemyEtherBox
+              enemyCombo={enemyCombo}
+              battle={battle}
+              insightReveal={insightReveal}
+              enemyCurrentDeflation={enemyCurrentDeflation}
+              enemyEtherCalcPhase={enemyEtherCalcPhase}
+              enemyTurnEtherAccumulated={enemyTurnEtherAccumulated}
+              COMBO_MULTIPLIERS={COMBO_MULTIPLIERS}
+            />
+            <EnemyHpBar
+              battle={battle}
+              previewDamage={previewDamage}
+              dulledLevel={dulledLevel}
+              enemy={enemy}
+              enemyHit={enemyHit}
+              enemyBlockAnim={enemyBlockAnim}
+              soulShatter={soulShatter}
+              groupedEnemyMembers={groupedEnemyMembers}
+              enemyOverdriveFlash={enemyOverdriveFlash}
+              enemyEtherValue={enemyEtherValue}
+              enemyTransferPulse={enemyTransferPulse}
+              enemySoulScale={enemySoulScale}
+              formatCompactValue={formatCompactValue}
+            />
           </div>
         </div>
       </div>
+
 
       {/* 독립 활동력 표시 (좌측 하단 고정) */}
       {(battle.phase === 'select' || battle.phase === 'respond' || battle.phase === 'resolve' || (enemy && enemy.hp <= 0) || (player && player.hp <= 0)) && (

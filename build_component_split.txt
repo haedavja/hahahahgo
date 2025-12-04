@@ -1,0 +1,23 @@
+
+> strategy-map@0.0.0 build
+> vite build
+
+[36mvite v7.2.2 [32mbuilding client environment for production...[36m[39m
+transforming...
+[32m✓[39m 58 modules transformed.
+[31m✗[39m Build failed in 477ms
+[31merror during build:
+[31m[vite]: Rollup failed to resolve import "lucide-react" from "Z:/바이브코딩/memory bank/hahahahgo/src/components/battle/ui/CentralPhaseDisplay.jsx".
+This is most likely unintended because it can break your application at runtime.
+If you do want to externalize this module explicitly add it to
+`build.rollupOptions.external`[31m
+    at viteLog (file:///Z:/%EB%B0%94%EC%9D%B4%EB%B8%8C%EC%BD%94%EB%94%A9/memory%20bank/hahahahgo/node_modules/vite/dist/node/chunks/config.js:34254:57)
+    at file:///Z:/%EB%B0%94%EC%9D%B4%EB%B8%8C%EC%BD%94%EB%94%A9/memory%20bank/hahahahgo/node_modules/vite/dist/node/chunks/config.js:34288:73
+    at onwarn (file:///Z:/%EB%B0%94%EC%9D%B4%EB%B8%8C%EC%BD%94%EB%94%A9/memory%20bank/hahahahgo/node_modules/@vitejs/plugin-react/dist/index.js:76:7)
+    at file:///Z:/%EB%B0%94%EC%9D%B4%EB%B8%8C%EC%BD%94%EB%94%A9/memory%20bank/hahahahgo/node_modules/vite/dist/node/chunks/config.js:34288:28
+    at onRollupLog (file:///Z:/%EB%B0%94%EC%9D%B4%EB%B8%8C%EC%BD%94%EB%94%A9/memory%20bank/hahahahgo/node_modules/vite/dist/node/chunks/config.js:34283:63)
+    at onLog (file:///Z:/%EB%B0%94%EC%9D%B4%EB%B8%8C%EC%BD%94%EB%94%A9/memory%20bank/hahahahgo/node_modules/vite/dist/node/chunks/config.js:34086:4)
+    at file:///Z:/%EB%B0%94%EC%9D%B4%EB%B8%8C%EC%BD%94%EB%94%A9/memory%20bank/hahahahgo/node_modules/rollup/dist/es/shared/node-entry.js:20947:32
+    at Object.logger [as onLog] (file:///Z:/%EB%B0%94%EC%9D%B4%EB%B8%8C%EC%BD%94%EB%94%A9/memory%20bank/hahahahgo/node_modules/rollup/dist/es/shared/node-entry.js:22834:9)
+    at ModuleLoader.handleInvalidResolvedId (file:///Z:/%EB%B0%94%EC%9D%B4%EB%B8%8C%EC%BD%94%EB%94%A9/memory%20bank/hahahahgo/node_modules/rollup/dist/es/shared/node-entry.js:21578:26)
+    at file:///Z:/%EB%B0%94%EC%9D%B4%EB%B8%8C%EC%BD%94%EB%94%A9/memory%20bank/hahahahgo/node_modules/rollup/dist/es/shared/node-entry.js:21536:26[39m
