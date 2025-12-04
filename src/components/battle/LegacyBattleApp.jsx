@@ -49,6 +49,9 @@ import { EnemyHpBar } from "./ui/EnemyHpBar";
 import { EnemyEtherBox } from "./ui/EnemyEtherBox";
 import { CentralPhaseDisplay } from "./ui/CentralPhaseDisplay";
 import { EtherComparisonBar } from "./ui/EtherComparisonBar";
+import { BattleLog } from "./ui/BattleLog";
+import { RelicDisplay } from "./ui/RelicDisplay";
+import { TimelineDisplay } from "./ui/TimelineDisplay";
 
 const STUN_RANGE = 5; // 기절 효과 범위(타임라인 기준)
 
@@ -582,33 +585,7 @@ function ExpectedDamagePreview({ player, enemy, fixedOrder, willOverdrive, enemy
       )}
 
       {/* 진행 단계 전투 로그 */}
-      {phase === 'resolve' && log && log.length > 0 && (
-        <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '2px solid rgba(148, 163, 184, 0.3)' }}>
-          <div style={{ fontSize: '15px', fontWeight: 'bold', color: '#f8fafc', marginBottom: '12px' }}>
-            🎮 전투 로그
-          </div>
-          <div ref={logContainerRef} style={{ height: '360px', minHeight: '360px', maxHeight: '360px', overflowY: 'auto' }}>
-            {log.filter(line => {
-              // 불필요한 로그 제거
-              if (line.includes('게임 시작') || line.includes('적 성향 힌트')) return false;
-              return true;
-            }).map((line, i) => {
-              // 몬스터로 시작하는 텍스트 감지
-              const startsWithMonster = line.trim().startsWith('몬스터') || (line.includes('👾') && line.substring(line.indexOf('👾') + 2).trim().startsWith('몬스터'));
-              const isPlayerAction = line.includes('플레이어 ->') || line.includes('플레이어→') || line.includes('플레이어 •');
-              return (
-                <div key={i} style={{
-                  fontSize: '13px',
-                  color: startsWithMonster ? '#fca5a5' : isPlayerAction ? '#60a5fa' : '#cbd5e1',
-                  marginBottom: '6px',
-                  lineHeight: '1.5'
-                }} dangerouslySetInnerHTML={{ __html: line }}>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
+      <BattleLog phase={phase} log={log} logContainerRef={logContainerRef} />
 
       {/* 진행 단계 제어 버튼 (전투 로그 아래) */}
       {phase === 'resolve' && (
@@ -3330,300 +3307,33 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         )}
       </div>
 
-      {/* 타임라인 숫자 오버레이 (고정) */}
-      {(() => {
-        const commonMax = Math.max(player.maxSpeed || DEFAULT_PLAYER_MAX_SPEED, enemy.maxSpeed || DEFAULT_ENEMY_MAX_SPEED);
-        const ticks = generateSpeedTicks(commonMax);
-        return (
-          <div style={{ position: 'fixed', top: '155px', left: '240px', right: '360px', width: 'auto', maxWidth: '1400px', zIndex: 3600, pointerEvents: 'none' }}>
-            <div style={{ position: 'relative', height: '28px', color: '#ffb366', textShadow: '0 0 8px rgba(255, 179, 102, 0.9), 0 0 14px rgba(0, 0, 0, 0.8)', fontWeight: 800, fontSize: '15px' }}>
-              {ticks.map((tick) => {
-                const label = tick.toString().split('').join(' ');
-                const left = (tick / commonMax) * 100;
-                return (
-                  <span
-                    key={tick}
-                    style={{
-                      position: 'absolute',
-                      left: `${left}%`,
-                      transform: 'translate(-50%, 0)',
-                      whiteSpace: 'nowrap'
-                    }}
-                  >
-                    {label}
-                  </span>
-                );
-              })}
-            </div>
-          </div>
-        );
-      })()}
+      <TimelineDisplay
+        player={player}
+        enemy={enemy}
+        DEFAULT_PLAYER_MAX_SPEED={DEFAULT_PLAYER_MAX_SPEED}
+        DEFAULT_ENEMY_MAX_SPEED={DEFAULT_ENEMY_MAX_SPEED}
+        generateSpeedTicks={generateSpeedTicks}
+        battle={battle}
+        timelineProgress={timelineProgress}
+        timelineIndicatorVisible={timelineIndicatorVisible}
+        insightAnimLevel={insightAnimLevel}
+        insightAnimPulseKey={insightAnimPulseKey}
+        enemyOverdriveVisible={enemyOverdriveVisible}
+        enemyOverdriveLabel={enemyOverdriveLabel}
+        dulledLevel={dulledLevel}
+        playerTimeline={playerTimeline}
+        queue={queue}
+        executingCardIndex={executingCardIndex}
+        usedCardIndices={usedCardIndices}
+        qIndex={qIndex}
+        enemyTimeline={enemyTimeline}
+        effectiveInsight={effectiveInsight}
+        insightReveal={insightReveal}
+        actions={actions}
+      />
 
       {/* 상단 메인 영역 */}
       <div>
-
-        {/* 유물 표시 (상단 고정) */}
-        {orderedRelicList && orderedRelicList.length > 0 && (
-          <div style={{
-            position: 'fixed',
-            top: '12px',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            zIndex: 4000,
-            pointerEvents: 'none'
-          }}>
-            <div style={{
-              display: 'flex',
-              gap: '6px',
-              padding: '8px 12px',
-              background: 'rgba(15, 23, 42, 0.9)',
-              border: '2px solid rgba(148, 163, 184, 0.5)',
-              borderRadius: '12px',
-              boxShadow: '0 0 15px rgba(148, 163, 184, 0.3)',
-              pointerEvents: 'auto'
-            }}>
-              {orderedRelicList.map((relicId, index) => {
-                const relic = RELICS[relicId];
-                if (!relic) return null;
-
-                const isActivated = relicActivated === relicId || activeRelicSet.has(relicId);
-                const isHovered = hoveredRelic === relicId;
-                // 지속 강조 제외 대상: 에테르 결정/악마의 주사위/희귀한 조약돌(etherCardMultiplier)
-                const isPersistent = (relic.effects?.type === 'PASSIVE'
-                  && relicId !== 'etherGem'
-                  && relicId !== 'devilDice'
-                  && relicId !== 'rareStone' // 희귀한 조약돌은 상시 강조 제외
-                  && !relic.effects?.etherCardMultiplier
-                  && !relic.effects?.etherMultiplier)
-                  || relic.effects?.type === 'ON_TURN_START' // 피피한 갑옷
-                  || relicId === 'bloodShackles'; // 피의 족쇄 - 전투 중 지속 강조
-                const isHighlighted = isPersistent || isActivated;
-                const rarityText = {
-                  [RELIC_RARITIES.COMMON]: '일반',
-                  [RELIC_RARITIES.RARE]: '희귀',
-                  [RELIC_RARITIES.SPECIAL]: '특별',
-                  [RELIC_RARITIES.LEGENDARY]: '전설'
-                }[relic.rarity] || '알 수 없음';
-
-                return (
-                  <div
-                    key={index}
-                    style={{ position: 'relative' }}
-                    draggable
-                    onDragStart={handleRelicDragStart(index, relicId)}
-                    onDragOver={handleRelicDragOver}
-                    onDrop={handleRelicDrop(index)}
-                    onMouseDown={() => actions.setRelicActivated(relicActivated === relicId ? null : relicId)} // 클릭 시 토글
-                  >
-                    <div
-                      onMouseEnter={() => setHoveredRelic(relicId)}
-                      onMouseLeave={() => setHoveredRelic(null)}
-                      style={{
-                        fontSize: '2rem',
-                        padding: '4px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s ease',
-                        filter: isHighlighted ? 'brightness(1.15) drop-shadow(0 0 4px rgba(251, 191, 36, 0.35))' : 'brightness(1)',
-                        transform: isHovered ? 'scale(1.12)' : (isActivated ? 'scale(1.16)' : 'scale(1)'),
-                        animation: isActivated ? 'relicActivate 0.4s ease' : 'none',
-                        background: isHighlighted ? 'rgba(251, 191, 36, 0.12)' : 'transparent',
-                        borderRadius: '8px',
-                        border: isHighlighted ? '1px solid rgba(251, 191, 36, 0.5)' : '1px solid transparent',
-                        boxShadow: isHighlighted ? '0 0 15px rgba(251, 191, 36, 0.5)' : 'none'
-                      }}>
-                      <span>{relic.emoji}</span>
-                    </div>
-
-                    {/* 개별 툴팁 */}
-                    {isHovered && (
-                      <div style={{
-                        position: 'absolute',
-                        top: '100%',
-                        left: '50%',
-                        transform: 'translateX(-50%)',
-                        marginTop: '8px',
-                        background: 'rgba(15, 23, 42, 0.98)',
-                        border: `2px solid ${RELIC_RARITY_COLORS[relic.rarity]}`,
-                        borderRadius: '8px',
-                        padding: '12px 16px',
-                        minWidth: '220px',
-                        boxShadow: `0 4px 20px ${RELIC_RARITY_COLORS[relic.rarity]}66`,
-                        zIndex: 1000,
-                        pointerEvents: 'none'
-                      }}>
-                        <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: RELIC_RARITY_COLORS[relic.rarity], marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <span style={{ fontSize: '1.3rem' }}>{relic.emoji}</span>
-                          {relic.name}
-                        </div>
-                        <div style={{ fontSize: '0.8rem', color: RELIC_RARITY_COLORS[relic.rarity], opacity: 0.8, marginBottom: '8px' }}>
-                          {rarityText}
-                        </div>
-                        <div style={{ fontSize: '0.9rem', color: '#e2e8f0', lineHeight: '1.5' }}>
-                          {relic.description}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* Timeline - 1줄 길게 (화면 가득) */}
-        <div style={{ marginBottom: '32px', position: 'fixed', top: '70px', left: '240px', right: '360px', width: 'auto', maxWidth: '1400px', zIndex: 3500, background: 'transparent' }}>
-          <div className="panel-enhanced timeline-panel" style={{ minHeight: '130px', background: 'transparent', border: 'none', boxShadow: 'none', padding: '0', margin: '0' }}>
-            <div className="timeline-body" style={{ marginTop: '0', padding: '14px 0 0 0', background: 'transparent', borderRadius: '0', border: 'none', boxShadow: 'none', position: 'relative' }}>
-              {/* 타임라인 progress indicator (시곗바늘) */}
-              {battle.phase === 'resolve' && (
-                <div
-                  className="timeline-progress-indicator"
-                  style={{
-                    left: `${timelineProgress}%`,
-                    opacity: timelineIndicatorVisible ? 1 : 0,
-                    transition: 'left 0.5s linear, opacity 0.3s ease-out'
-                  }}
-                />
-              )}
-              <div className="timeline-lanes" style={{ position: 'relative' }}>
-                {insightAnimLevel === 1 && (
-                  <div className="insight-overlay insight-glitch" aria-hidden="true" />
-                )}
-                {insightAnimLevel === 2 && (
-                  <div className="insight-overlay insight-scan" aria-hidden="true">
-                    <div className="insight-scan-beam" />
-                  </div>
-                )}
-                {insightAnimLevel === 3 && (
-                  <div className="insight-overlay insight-beam" aria-hidden="true" key={insightAnimPulseKey} />
-                )}
-                {enemyOverdriveVisible && (
-                  <div style={{
-                    position: 'absolute',
-                    right: '12px',
-                    top: '-18px',
-                    padding: '6px 12px',
-                    borderRadius: '10px',
-                    background: 'linear-gradient(135deg, rgba(244, 114, 182, 0.15), rgba(99, 102, 241, 0.2))',
-                    border: '1.5px solid rgba(147, 197, 253, 0.6)',
-                    color: '#c4d4ff',
-                    fontWeight: '800',
-                    letterSpacing: '0.08em',
-                    boxShadow: '0 6px 16px rgba(79, 70, 229, 0.35)',
-                    display: 'flex',
-                    gap: '8px',
-                    alignItems: 'center'
-                  }}>
-                    <span role="img" aria-label="overdrive">✨</span> {enemyOverdriveLabel}
-                  </div>
-                )}
-                {(() => {
-                  const playerMax = player.maxSpeed || DEFAULT_PLAYER_MAX_SPEED;
-                  const enemyMax = enemy.maxSpeed || DEFAULT_ENEMY_MAX_SPEED;
-                  const commonMax = Math.max(playerMax, enemyMax);
-                  const playerRatio = playerMax / commonMax;
-                  const enemyRatio = enemyMax / commonMax;
-                  const hideEnemyTimeline =
-                    (dulledLevel >= 2 && battle.phase === 'resolve') ||
-                    (dulledLevel >= 1 && battle.phase === 'respond');
-                  return (
-                    <>
-                      <div className="timeline-lane player-lane" style={{ width: `${playerRatio * 100}%` }}>
-                        {Array.from({ length: playerMax + 1 }).map((_, i) => (
-                          <div key={`p-grid-${i}`} className="timeline-gridline" style={{ left: `${(i / playerMax) * 100}%` }} />
-                        ))}
-                        {playerTimeline.map((a, idx) => {
-                          const Icon = a.card.icon || Sword;
-                          const sameCount = playerTimeline.filter((q, i) => i < idx && q.sp === a.sp).length;
-                          const offset = sameCount * 28;
-                          const strengthBonus = player.strength || 0;
-                          const num = a.card.type === 'attack'
-                            ? (a.card.damage + strengthBonus) * (a.card.hits || 1)
-                            : a.card.type === 'defense'
-                              ? (a.card.block || 0) + strengthBonus
-                              : 0;
-                          const globalIndex = battle.phase === 'resolve' && queue ? queue.findIndex(q => q === a) : -1;
-                          const isExecuting = executingCardIndex === globalIndex;
-                          const isUsed = Array.isArray(usedCardIndices) && usedCardIndices.includes(globalIndex) && globalIndex < qIndex;
-                          const normalizedPosition = (a.sp / playerMax) * 100;
-                          return (
-                            <div key={idx}
-                              className={`timeline-marker marker-player ${isExecuting ? 'timeline-active' : ''} ${isUsed ? 'timeline-used' : ''}`}
-                              style={{ left: `${normalizedPosition}%`, top: `${6 + offset}px` }}>
-                              <Icon size={14} className="text-white" />
-                              <span className="text-white text-xs font-bold">{num > 0 ? num : ''}</span>
-                            </div>
-                          );
-                        })}
-                      </div>
-
-                      <div className="timeline-lane enemy-lane" style={{ width: `${enemyRatio * 100}%` }}>
-                        {!hideEnemyTimeline && (
-                          <>
-                            {Array.from({ length: enemyMax + 1 }).map((_, i) => (
-                              <div key={`e-grid-${i}`} className="timeline-gridline" style={{ left: `${(i / enemyMax) * 100}%` }} />
-                            ))}
-                            {enemyTimeline.map((a, idx) => {
-                              const Icon = a.card.icon || Shield;
-                              const sameCount = enemyTimeline.filter((q, i) => i < idx && q.sp === a.sp).length;
-                              const offset = sameCount * 28;
-                              const num = a.card.type === 'attack' ? (a.card.damage * (a.card.hits || 1)) : (a.card.block || 0);
-                              const globalIndex = battle.phase === 'resolve' && queue ? queue.findIndex(q => q === a) : -1;
-                              const isExecuting = executingCardIndex === globalIndex;
-                              const isUsed = Array.isArray(usedCardIndices) && usedCardIndices.includes(globalIndex) && globalIndex < qIndex;
-                              const normalizedPosition = (a.sp / enemyMax) * 100;
-                              const levelForTooltip = battle.phase === 'select' ? (insightReveal?.level || 0) : (effectiveInsight || 0);
-                              const canShowTooltip = levelForTooltip >= 3;
-                              const markerCls = [
-                                'timeline-marker',
-                                'marker-enemy',
-                                isExecuting ? 'timeline-active' : '',
-                                isUsed ? 'timeline-used' : '',
-                                canShowTooltip ? 'insight-lv3-glow' : ''
-                              ].join(' ');
-                              return (
-                                <div key={idx}
-                                  className={markerCls}
-                                  style={{ left: `${normalizedPosition}%`, top: `${6 + offset}px` }}
-                                  onMouseEnter={(e) => {
-                                    if (!canShowTooltip) return;
-                                    actions.setHoveredEnemyAction({
-                                      action: a.card,
-                                      idx,
-                                      left: normalizedPosition,
-                                      top: 6 + offset,
-                                      pageX: e.clientX,
-                                      pageY: e.clientY,
-                                    });
-                                  }}
-                                  onMouseLeave={() => actions.setHoveredEnemyAction(null)}
-                                >
-                                  <div className="marker-content">
-                                    <Icon size={14} className="text-white" />
-                                    {canShowTooltip && <span className="insight-eye-badge">👁️</span>}
-                                    <span className="text-white text-xs font-bold">{num > 0 ? num : ''}</span>
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </>
-                        )}
-                      </div>
-                    </>
-                  );
-                })()}
-              </div>
-            </div>
-          </div>
-        </div>
-        {/* 고정된 타임라인 공간 확보용 여백 */}
-        <div style={{ height: '220px' }} />
 
         {/* 플레이어/적 정보 + 중앙 정보 통합 레이아웃 */}
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'flex-end', marginBottom: '50px', gap: '120px', position: 'relative', marginTop: '40px', paddingRight: '40px' }}>
