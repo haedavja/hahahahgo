@@ -11,28 +11,26 @@ import { battleReducer, createInitialState, ACTIONS } from '../reducer/battleRed
  * @returns {Object} { battle, actions } - 상태와 액션 객체
  */
 export function useBattleState(initialStateOverrides = {}) {
-  const initialState = useMemo(
-    () => {
-      // createInitialState에서 기본 상태를 생성하되, 오버라이드된 필드만 덮어쓰기
-      const baseState = createInitialState({
-        initialPlayerState: initialStateOverrides.player,
-        initialEnemyState: initialStateOverrides.enemy,
-        initialPlayerRelics: initialStateOverrides.orderedRelics || [],
-        simplifiedMode: initialStateOverrides.isSimplified || false,
-        sortType: initialStateOverrides.sortType || 'speed'
-      });
+  // Lazy initializer function for useReducer
+  const initializeBattleState = useCallback(() => {
+    // createInitialState에서 기본 상태를 생성하되, 오버라이드된 필드만 덮어쓰기
+    const baseState = createInitialState({
+      initialPlayerState: initialStateOverrides.player,
+      initialEnemyState: initialStateOverrides.enemy,
+      initialPlayerRelics: initialStateOverrides.orderedRelics || [],
+      simplifiedMode: initialStateOverrides.isSimplified || false,
+      sortType: initialStateOverrides.sortType || 'speed'
+    });
 
-      // 나머지 필드들 병합
-      return {
-        ...baseState,
-        ...initialStateOverrides
-      };
-    },
+    // 나머지 필드들 병합
+    return {
+      ...baseState,
+      ...initialStateOverrides
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    []
-  );
+  }, []);
 
-  const [battle, dispatch] = useReducer(battleReducer, initialState);
+  const [battle, dispatch] = useReducer(battleReducer, null, initializeBattleState);
 
   // =====================
   // 액션 헬퍼 함수들
@@ -71,7 +69,7 @@ export function useBattleState(initialStateOverrides = {}) {
 
     // === 전투 실행 ===
     setQueue: (queue) => dispatch({ type: ACTIONS.SET_QUEUE, payload: queue }),
-    setQIndex: (index) => dispatch({ type: ACTIONS.SET_QINDEX, payload: index }),
+    setQIndex: (index) => dispatch({ type: ACTIONS.SET_Q_INDEX, payload: index }),
     setFixedOrder: (order) => dispatch({ type: ACTIONS.SET_FIXED_ORDER, payload: order }),
     setEnemyPlan: (plan) => dispatch({ type: ACTIONS.SET_ENEMY_PLAN, payload: plan }),
 

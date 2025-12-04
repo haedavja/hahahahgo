@@ -1106,8 +1106,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   // 진행 단계에서는 동기화/변경을 막아 일관성 유지
   useEffect(() => {
     if (battle.phase === 'resolve') return;
-    actions.setOrderedRelics(mergeRelicOrder(relics, orderedRelicList));
-  }, [relics, mergeRelicOrder, battle.phase, orderedRelicList]);
+    setOrderedRelics(prev => mergeRelicOrder(relics, prev));
+  }, [relics, mergeRelicOrder, battle.phase]);
 
   const addLog = useCallback((m) => {
     actions.updateLog([...battle.log, m].slice(-200));
@@ -1183,13 +1183,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const resultSentRef = useRef(false);
   const turnStartProcessedRef = useRef(false); // 턴 시작 효과 중복 실행 방지
   const dragRelicIndexRef = useRef(null); // 유물 드래그 인덱스
-  const battleRef = useRef(battle); // battle 상태를 ref로 유지 (setTimeout closure 문제 해결)
-
-  // battle 상태가 변경될 때마다 ref 업데이트
-  useEffect(() => {
-    battleRef.current = battle;
-  }, [battle]);
-
   const computeComboMultiplier = useCallback((baseMult, cardsCount, includeFiveCard = true, includeRefBook = true, relicOrderOverride = null) => {
     let mult = baseMult;
     const order = relicOrderOverride || orderedRelicList;
@@ -1264,9 +1257,11 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     return { multiplier: mult, steps };
   }, [orderedRelicList]);
   const flashRelic = (relicId, tone = 800, duration = 500) => {
-    const nextSet = new Set(activeRelicSet);
-    nextSet.add(relicId);
-    actions.setActiveRelicSet(nextSet);
+    actions.setActiveRelicSet(prev => {
+      const next = new Set(prev);
+      next.add(relicId);
+      return next;
+    });
     actions.setRelicActivated(relicId);
     const relic = RELICS[relicId];
     if (relic?.effects && (relic.effects.comboMultiplierPerCard || relic.effects.etherCardMultiplier || relic.effects.etherMultiplier || relic.effects.etherFiveCardBonus)) {
@@ -1275,10 +1270,12 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     }
     playSound(tone, duration * 0.6);
     setTimeout(() => {
-      const nextSet = new Set(activeRelicSet);
-      nextSet.delete(relicId);
-      actions.setActiveRelicSet(nextSet);
-      actions.setRelicActivated(relicActivated === relicId ? null : relicActivated);
+      actions.setActiveRelicSet(prev => {
+        const next = new Set(prev);
+        next.delete(relicId);
+        return next;
+      });
+      actions.setRelicActivated(prev => (prev === relicId ? null : prev));
     }, duration);
   };
   const handleRelicDragStart = (idx, relicId) => (e) => {
@@ -1304,7 +1301,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     const arr = Array.from(orderedRelicList);
     const [item] = arr.splice(from, 1);
     arr.splice(idx, 0, item);
-    actions.setOrderedRelics(arr);
+    setOrderedRelics(arr);
   };
 
   // 통찰 시스템: 유효 통찰 및 공개 정보 계산
@@ -1462,9 +1459,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     prevRevealLevelRef.current = 0;
     actions.setInsightAnimLevel(0);
     actions.setInsightAnimPulseKey((k) => k + 1);
-    actions.setEnemyEtherFinalValue(null);
-    actions.setEnemyEtherCalcPhase(null);
-    actions.setEnemyCurrentDeflation(null);
+    setEnemyEtherFinalValue(null);
+    setEnemyEtherCalcPhase(null);
+    setEnemyCurrentDeflation(null);
     if ((safeInitialPlayer?.insight || 0) > 0) {
       // 전투 시작 시에도 통찰 연출 1회 재생
       setTimeout(() => {
@@ -1490,24 +1487,23 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       : CARDS.slice(0, 10); // 8장 → 10장
     actions.setHand(rawHand);
     actions.setCanRedraw(true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [safeInitialPlayer, playerEther, addLog, startingStrength, effectiveCardDrawBonus]);
 
-  // Enemy initialization - only run once on mount
   useEffect(() => {
-    if (!initialEnemy) return;
-    const hp = initialEnemy.hp ?? initialEnemy.maxHp ?? 30;
+    if (!safeInitialEnemy) return;
+    const hp = safeInitialEnemy.hp ?? safeInitialEnemy.maxHp ?? enemy?.maxHp ?? 30;
     actions.setEnemy({
-      deck: initialEnemy.deck || ENEMIES[0]?.deck || [],
-      name: initialEnemy.name ?? '적',
+      ...(enemy || {}),
+      deck: safeInitialEnemy.deck || enemy?.deck || ENEMIES[enemyIndex]?.deck || [],
+      name: safeInitialEnemy.name ?? enemy?.name ?? '적',
       hp,
-      maxHp: initialEnemy.maxHp ?? hp,
+      maxHp: safeInitialEnemy.maxHp ?? hp,
       vulnMult: 1,
       vulnTurns: 0,
       block: 0,
       counter: 0,
-      etherPts: initialEnemy.etherPts ?? initialEnemy.etherCapacity ?? 300,
-      etherCapacity: initialEnemy.etherCapacity ?? 300,
+      etherPts: safeInitialEnemy.etherPts ?? safeInitialEnemy.etherCapacity ?? 300,
+      etherCapacity: safeInitialEnemy.etherCapacity ?? 300,
       etherOverdriveActive: false
     });
     actions.setSelected([]);
@@ -1518,8 +1514,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     turnStartProcessedRef.current = false;
     prevRevealLevelRef.current = 0;
     actions.setPhase('select');
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [safeInitialEnemy, enemyIndex]);
 
   // 전투 중 통찰 값 실시간 반영 (payload 재생성 없이)
   useEffect(() => {
@@ -1586,7 +1581,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         e.preventDefault();
         if (battle.qIndex < battle.queue.length) {
           // 타임라인 진행 중이면 진행 토글
-          actions.setAutoProgress(!autoProgress);
+          actions.setAutoProgress(prev => !prev);
         } else if (etherFinalValue !== null) {
           // 타임라인 끝나고 최종값 표시되면 턴 종료
           finishTurn('키보드 단축키 (E)');
@@ -1675,7 +1670,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     turnStartProcessedRef.current = true;
 
     actions.setFixedOrder(null);
-    actions.setActionEvents({});
+    setActionEvents({});
     actions.setCanRedraw(true);
     actions.setWillOverdrive(false);
 
@@ -1717,19 +1712,21 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     });
 
     // 방어력과 체력 회복 적용
-    const newHp = Math.min(player.maxHp, player.hp + turnStartRelicEffects.heal);
-    const newBlock = (player.block || 0) + turnStartRelicEffects.block;
-    const newDef = turnStartRelicEffects.block > 0; // 방어력이 있으면 def 플래그 활성화
-    actions.setPlayer({
-      ...player,
-      hp: newHp,
-      block: newBlock,
-      def: newDef,
-      energy: finalEnergy,
-      maxEnergy: baseMaxEnergy,
-      etherOverdriveActive: false,
-      etherOverflow: 0,
-      strength: player.strength || 0 // 힘 유지
+    setPlayer(p => {
+      const newHp = Math.min(p.maxHp, p.hp + turnStartRelicEffects.heal);
+      const newBlock = (p.block || 0) + turnStartRelicEffects.block;
+      const newDef = turnStartRelicEffects.block > 0; // 방어력이 있으면 def 플래그 활성화
+      return {
+        ...p,
+        hp: newHp,
+        block: newBlock,
+        def: newDef,
+        energy: finalEnergy,
+        maxEnergy: baseMaxEnergy,
+        etherOverdriveActive: false,
+        etherOverflow: 0,
+        strength: p.strength || 0 // 힘 유지
+      };
     });
 
     // 로그 추가
@@ -1799,7 +1796,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     if (combo?.name && (battle.phase === 'select' || battle.phase === 'respond' || battle.phase === 'resolve')) {
       const usageCount = (player.comboUsageCount || {})[combo.name] || 0;
       const deflationMult = Math.pow(0.5, usageCount);
-      actions.setCurrentDeflation(usageCount > 0 ? { multiplier: deflationMult, usageCount } : null);
+      setCurrentDeflation(usageCount > 0 ? { multiplier: deflationMult, usageCount } : null);
     }
 
     return combo;
@@ -1835,57 +1832,59 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     if (battle.phase !== 'select' && battle.phase !== 'respond') return;
     const exists = selected.some(s => s.id === card.id);
     if (battle.phase === 'respond') {
-      let next;
-      const cardSpeed = applyAgility(card.speedCost, effectiveAgility);
-      if (exists) {
-        next = selected.filter(s => !(s.__uid === card.__uid) && !(s.id === card.id && !('__uid' in s)));
-        playSound(400, 80); // 해지 사운드 (낮은 음)
-      }
-      else {
-        if (selected.length >= MAX_SUBMIT_CARDS) { addLog('⚠️ 최대 5장의 카드만 제출할 수 있습니다'); return; }
-        if (totalSpeed + cardSpeed > player.maxSpeed) { addLog('⚠️ 속도 초과'); return; }
-        if (totalEnergy + card.actionCost > player.maxEnergy) { addLog('⚠️ 행동력 부족'); return; }
-        next = [...selected, { ...card, __uid: Math.random().toString(36).slice(2) }];
-        playSound(800, 80); // 선택 사운드 (높은 음)
-      }
-      const combo = detectPokerCombo(next);
-      const enhanced = applyPokerBonus(next, combo);
-
-      // 수동 순서 유지: 정렬하지 않고 순서대로 fixedOrder 생성
-      const playerCards = enhanced.map((card, idx) => ({
-        actor: 'player',
-        card,
-        originalIndex: idx
-      }));
-
-      const enemyCards = (enemyPlan.actions || []).map((action, idx) => ({
-        actor: 'enemy',
-        card: action,
-        originalIndex: idx
-      }));
-
-      // 플레이어 카드를 먼저, 그 다음 적 카드 (수동 순서)
-      const manualOrder = [...playerCards, ...enemyCards];
-
-      // sp 값 재계산 (누적)
-      let ps = 0;
-      let es = 0;
-      const withSp = manualOrder.map(item => {
-        const isPlayer = item.actor === 'player';
-        const agility = isPlayer ? effectiveAgility : 0;
-        const finalSpeed = applyAgility(item.card.speedCost, agility);
-
-        if (isPlayer) {
-          ps += finalSpeed;
-          return { ...item, sp: ps, finalSpeed };
-        } else {
-          es += finalSpeed;
-          return { ...item, sp: es, finalSpeed };
+      actions.setSelected(prev => {
+        let next;
+        const cardSpeed = applyAgility(card.speedCost, effectiveAgility);
+        if (exists) {
+          next = prev.filter(s => !(s.__uid === card.__uid) && !(s.id === card.id && !('__uid' in s)));
+          playSound(400, 80); // 해지 사운드 (낮은 음)
         }
-      });
+        else {
+          if (prev.length >= MAX_SUBMIT_CARDS) { addLog('⚠️ 최대 5장의 카드만 제출할 수 있습니다'); return prev; }
+          if (totalSpeed + cardSpeed > player.maxSpeed) { addLog('⚠️ 속도 초과'); return prev; }
+          if (totalEnergy + card.actionCost > player.maxEnergy) { addLog('⚠️ 행동력 부족'); return prev; }
+          next = [...prev, { ...card, __uid: Math.random().toString(36).slice(2) }];
+          playSound(800, 80); // 선택 사운드 (높은 음)
+        }
+        const combo = detectPokerCombo(next);
+        const enhanced = applyPokerBonus(next, combo);
 
-      actions.setFixedOrder(withSp);
-      actions.setSelected(next);
+        // 수동 순서 유지: 정렬하지 않고 순서대로 fixedOrder 생성
+        const playerCards = enhanced.map((card, idx) => ({
+          actor: 'player',
+          card,
+          originalIndex: idx
+        }));
+
+        const enemyCards = (enemyPlan.actions || []).map((action, idx) => ({
+          actor: 'enemy',
+          card: action,
+          originalIndex: idx
+        }));
+
+        // 플레이어 카드를 먼저, 그 다음 적 카드 (수동 순서)
+        const manualOrder = [...playerCards, ...enemyCards];
+
+        // sp 값 재계산 (누적)
+        let ps = 0;
+        let es = 0;
+        const withSp = manualOrder.map(item => {
+          const isPlayer = item.actor === 'player';
+          const agility = isPlayer ? effectiveAgility : 0;
+          const finalSpeed = applyAgility(item.card.speedCost, agility);
+
+          if (isPlayer) {
+            ps += finalSpeed;
+            return { ...item, sp: ps, finalSpeed };
+          } else {
+            es += finalSpeed;
+            return { ...item, sp: es, finalSpeed };
+          }
+        });
+
+        actions.setFixedOrder(withSp);
+        return next;
+      });
       return;
     }
     const cardSpeed = applyAgility(card.speedCost, effectiveAgility);
@@ -1904,47 +1903,49 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const moveUp = (i) => {
     if (i === 0) return;
     if (battle.phase === 'respond') {
-      const n = [...selected];
-      [n[i - 1], n[i]] = [n[i], n[i - 1]];
+      actions.setSelected(prev => {
+        const n = [...prev];
+        [n[i - 1], n[i]] = [n[i], n[i - 1]];
 
-      const combo = detectPokerCombo(n);
-      const enhanced = applyPokerBonus(n, combo);
+        const combo = detectPokerCombo(n);
+        const enhanced = applyPokerBonus(n, combo);
 
-      // 수동 순서 유지: 정렬하지 않고 순서대로 fixedOrder 생성
-      const playerCards = enhanced.map((card, idx) => ({
-        actor: 'player',
-        card,
-        originalIndex: idx
-      }));
+        // 수동 순서 유지: 정렬하지 않고 순서대로 fixedOrder 생성
+        const playerCards = enhanced.map((card, idx) => ({
+          actor: 'player',
+          card,
+          originalIndex: idx
+        }));
 
-      const enemyCards = (enemyPlan.actions || []).map((action, idx) => ({
-        actor: 'enemy',
-        card: action,
-        originalIndex: idx
-      }));
+        const enemyCards = (enemyPlan.actions || []).map((action, idx) => ({
+          actor: 'enemy',
+          card: action,
+          originalIndex: idx
+        }));
 
-      // 플레이어 카드를 먼저, 그 다음 적 카드 (수동 순서)
-      const manualOrder = [...playerCards, ...enemyCards];
+        // 플레이어 카드를 먼저, 그 다음 적 카드 (수동 순서)
+        const manualOrder = [...playerCards, ...enemyCards];
 
-      // sp 값 재계산 (누적)
-      let ps = 0;
-      let es = 0;
-      const withSp = manualOrder.map(item => {
-        const isPlayer = item.actor === 'player';
-        const agility = isPlayer ? effectiveAgility : 0;
-        const finalSpeed = applyAgility(item.card.speedCost, agility);
+        // sp 값 재계산 (누적)
+        let ps = 0;
+        let es = 0;
+        const withSp = manualOrder.map(item => {
+          const isPlayer = item.actor === 'player';
+          const agility = isPlayer ? effectiveAgility : 0;
+          const finalSpeed = applyAgility(item.card.speedCost, agility);
 
-        if (isPlayer) {
-          ps += finalSpeed;
-          return { ...item, sp: ps, finalSpeed };
-        } else {
-          es += finalSpeed;
-          return { ...item, sp: es, finalSpeed };
-        }
+          if (isPlayer) {
+            ps += finalSpeed;
+            return { ...item, sp: ps, finalSpeed };
+          } else {
+            es += finalSpeed;
+            return { ...item, sp: es, finalSpeed };
+          }
+        });
+
+        actions.setFixedOrder(withSp);
+        return n;
       });
-
-      actions.setFixedOrder(withSp);
-      actions.setSelected(n);
     } else {
       const n = [...selected];
       [n[i - 1], n[i]] = [n[i], n[i - 1]];
@@ -1955,47 +1956,49 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const moveDown = (i) => {
     if (i === battle.selected.length - 1) return;
     if (battle.phase === 'respond') {
-      const n = [...selected];
-      [n[i], n[i + 1]] = [n[i + 1], n[i]];
+      actions.setSelected(prev => {
+        const n = [...prev];
+        [n[i], n[i + 1]] = [n[i + 1], n[i]];
 
-      const combo = detectPokerCombo(n);
-      const enhanced = applyPokerBonus(n, combo);
+        const combo = detectPokerCombo(n);
+        const enhanced = applyPokerBonus(n, combo);
 
-      // 수동 순서 유지: 정렬하지 않고 순서대로 fixedOrder 생성
-      const playerCards = enhanced.map((card, idx) => ({
-        actor: 'player',
-        card,
-        originalIndex: idx
-      }));
+        // 수동 순서 유지: 정렬하지 않고 순서대로 fixedOrder 생성
+        const playerCards = enhanced.map((card, idx) => ({
+          actor: 'player',
+          card,
+          originalIndex: idx
+        }));
 
-      const enemyCards = (enemyPlan.actions || []).map((action, idx) => ({
-        actor: 'enemy',
-        card: action,
-        originalIndex: idx
-      }));
+        const enemyCards = (enemyPlan.actions || []).map((action, idx) => ({
+          actor: 'enemy',
+          card: action,
+          originalIndex: idx
+        }));
 
-      // 플레이어 카드를 먼저, 그 다음 적 카드 (수동 순서)
-      const manualOrder = [...playerCards, ...enemyCards];
+        // 플레이어 카드를 먼저, 그 다음 적 카드 (수동 순서)
+        const manualOrder = [...playerCards, ...enemyCards];
 
-      // sp 값 재계산 (누적)
-      let ps = 0;
-      let es = 0;
-      const withSp = manualOrder.map(item => {
-        const isPlayer = item.actor === 'player';
-        const agility = isPlayer ? effectiveAgility : 0;
-        const finalSpeed = applyAgility(item.card.speedCost, agility);
+        // sp 값 재계산 (누적)
+        let ps = 0;
+        let es = 0;
+        const withSp = manualOrder.map(item => {
+          const isPlayer = item.actor === 'player';
+          const agility = isPlayer ? effectiveAgility : 0;
+          const finalSpeed = applyAgility(item.card.speedCost, agility);
 
-        if (isPlayer) {
-          ps += finalSpeed;
-          return { ...item, sp: ps, finalSpeed };
-        } else {
-          es += finalSpeed;
-          return { ...item, sp: es, finalSpeed };
-        }
+          if (isPlayer) {
+            ps += finalSpeed;
+            return { ...item, sp: ps, finalSpeed };
+          } else {
+            es += finalSpeed;
+            return { ...item, sp: es, finalSpeed };
+          }
+        });
+
+        actions.setFixedOrder(withSp);
+        return n;
       });
-
-      actions.setFixedOrder(withSp);
-      actions.setSelected(n);
     } else {
       const n = [...selected];
       [n[i], n[i + 1]] = [n[i + 1], n[i]];
@@ -2112,13 +2115,13 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
     const enhancedSelected = applyPokerBonus(traitEnhancedSelected, pCombo);
 
-    const q = sortCombinedOrderStablePF(enhancedSelected, enemyPlan.actions, effectiveAgility, 0);
+    const q = sortCombinedOrderStablePF(enhancedSelected, actions, effectiveAgility, 0);
     actions.setFixedOrder(q);
     // 대응 단계 되감기용 스냅샷 저장 (전투당 1회)
     if (!rewindUsed) {
       actions.setRespondSnapshot({
         selectedSnapshot: selected,
-        enemyActions: enemyPlan.actions,
+        enemyActions: actions,
       });
     }
     playCardSubmitSound(); // 카드 제출 사운드 재생
@@ -2148,11 +2151,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   }, [battle.selected, battle.phase, enemyPlan.actions]);
 
   const beginResolveFromRespond = () => {
-    console.log('[DEBUG] beginResolveFromRespond called, phase:', battle.phase, 'fixedOrder:', fixedOrder);
-    if (battle.phase !== 'respond') {
-      console.log('[DEBUG] Phase check failed, phase is:', battle.phase);
-      return;
-    }
     if (!fixedOrder) return addLog('오류: 고정된 순서가 없습니다');
 
     if (fixedOrder.length === 0) {
@@ -2174,45 +2172,18 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     });
 
     // 이전 턴의 에테르 애니메이션 상태 초기화
-    actions.setEtherCalcPhase(null);
-    actions.setEtherFinalValue(null);
-    actions.setEnemyEtherFinalValue(null);
-    actions.setCurrentDeflation(null);
-    actions.setEnemyEtherCalcPhase(null);
-    actions.setEnemyCurrentDeflation(null);
-
-    // 에테르 폭주 체크 (phase 변경 전에 실행)
-    const enemyWillOD = shouldEnemyOverdriveWithTurn(enemyPlan.mode, enemyPlan.actions, enemy.etherPts, turnNumber) && etherSlots(enemy.etherPts) > 0;
-    if (willOverdrive && etherSlots(player.etherPts) > 0) {
-      actions.setPlayer({ ...player, etherPts: player.etherPts - ETHER_THRESHOLD, etherOverdriveActive: true });
-      actions.setPlayerOverdriveFlash(true);
-      playSound(1400, 220);
-      setTimeout(() => actions.setPlayerOverdriveFlash(false), 650);
-      addLog('✴️ 에테르 폭주 발동! (이 턴 전체 유지)');
-    }
-    if (enemyWillOD) {
-      actions.setEnemy({ ...enemy, etherPts: enemy.etherPts - ETHER_THRESHOLD, etherOverdriveActive: true });
-      actions.setEnemyOverdriveFlash(true);
-      playSound(900, 220);
-      setTimeout(() => actions.setEnemyOverdriveFlash(false), 650);
-      addLog('☄️ 적 에테르 폭주 발동!');
-    }
+    setEtherCalcPhase(null);
+    setEtherFinalValue(null);
+    setEnemyEtherFinalValue(null);
+    setCurrentDeflation(null);
+    setEnemyEtherCalcPhase(null);
+    setEnemyCurrentDeflation(null);
 
     playProceedSound(); // 진행 버튼 사운드 재생
     actions.setQueue(newQ);
     actions.setQIndex(0);
-    console.log('[DEBUG] About to setPhase to resolve');
     actions.setPhase('resolve');
-    console.log('[DEBUG] Phase set to resolve');
     addLog('▶ 진행 시작');
-
-    // Phase 변경 확인용 타이머
-    setTimeout(() => {
-      console.log('[DEBUG] 100ms after setPhase, current phase:', battle.phase);
-    }, 100);
-    setTimeout(() => {
-      console.log('[DEBUG] 500ms after setPhase, current phase:', battle.phase);
-    }, 500);
 
     // 진행 단계 시작 시 플레이어와 적 상태 저장
     actions.setResolveStartPlayer({ ...player });
@@ -2223,9 +2194,25 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     devilDiceTriggeredRef.current = false;
 
     // 타임라인 progress 초기화
-    actions.setTimelineProgress(0);
-    actions.setTimelineIndicatorVisible(true);
+    setTimelineProgress(0);
+    setTimelineIndicatorVisible(true);
     actions.setNetEtherDelta(null);
+
+    const enemyWillOD = shouldEnemyOverdriveWithTurn(enemyPlan.mode, enemyPlan.actions, enemy.etherPts, turnNumber) && etherSlots(enemy.etherPts) > 0;
+    if ((battle.phase === 'respond' || battle.phase === 'select') && willOverdrive && etherSlots(player.etherPts) > 0) {
+      setPlayer(p => ({ ...p, etherPts: p.etherPts - ETHER_THRESHOLD, etherOverdriveActive: true }));
+      actions.setPlayerOverdriveFlash(true);
+      playSound(1400, 220);
+      setTimeout(() => actions.setPlayerOverdriveFlash(false), 650);
+      addLog('✴️ 에테르 폭주 발동! (이 턴 전체 유지)');
+    }
+    if ((battle.phase === 'respond' || battle.phase === 'select') && enemyWillOD) {
+      setEnemy(e => ({ ...e, etherPts: e.etherPts - ETHER_THRESHOLD, etherOverdriveActive: true }));
+      actions.setEnemyOverdriveFlash(true);
+      playSound(900, 220);
+      setTimeout(() => actions.setEnemyOverdriveFlash(false), 650);
+      addLog('☄️ 적 에테르 폭주 발동!');
+    }
 
     // 진행 버튼 누르면 자동 진행 활성화
     actions.setAutoProgress(true);
@@ -2246,7 +2233,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     actions.setFixedOrder(null);
     actions.setQueue([]);
     actions.setQIndex(0);
-    actions.setTimelineProgress(0);
+    setTimelineProgress(0);
     actions.setSelected(respondSnapshot.selectedSnapshot || []);
     addLog('⏪ 되감기 사용: 대응 단계 → 선택 단계 (전투당 1회)');
   };
@@ -2290,7 +2277,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     });
 
     // 디플레이션 정보 설정
-    actions.setCurrentDeflation(pCombo?.name ? {
+    setCurrentDeflation(pCombo?.name ? {
       comboName: pCombo.name,
       usageCount: playerDeflation.usageCount,
       multiplier: playerDeflation.multiplier
@@ -2310,7 +2297,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     const enemyFinalEther = enemyDeflation.gain;
 
     // 적 디플레이션 정보 설정
-    actions.setEnemyCurrentDeflation(eCombo?.name ? {
+    setEnemyCurrentDeflation(eCombo?.name ? {
       comboName: eCombo.name,
       usageCount: enemyDeflation.usageCount,
       multiplier: enemyDeflation.multiplier
@@ -2328,27 +2315,27 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     });
 
     // 1단계: 합계 강조 (플레이어 + 적 동시)
-    actions.setEtherCalcPhase('sum');
-    actions.setEnemyEtherCalcPhase('sum');
+    setEtherCalcPhase('sum');
+    setEnemyEtherCalcPhase('sum');
     setTimeout(() => {
       // 2단계: 곱셈 강조 + 명쾌한 사운드
-      actions.setEtherCalcPhase('multiply');
-      actions.setEnemyEtherCalcPhase('multiply');
+      setEtherCalcPhase('multiply');
+      setEnemyEtherCalcPhase('multiply');
       playSound(800, 100);
       setTimeout(() => {
         // 3단계: 디플레이션 배지 애니메이션 + 저음 사운드
         if (playerDeflation.usageCount > 0 || enemyDeflation.usageCount > 0) {
-          if (playerDeflation.usageCount > 0) actions.setEtherCalcPhase('deflation');
-          if (enemyDeflation.usageCount > 0) actions.setEnemyEtherCalcPhase('deflation');
+          if (playerDeflation.usageCount > 0) setEtherCalcPhase('deflation');
+          if (enemyDeflation.usageCount > 0) setEnemyEtherCalcPhase('deflation');
           playSound(200, 150);
         }
         setTimeout(() => {
           // 4단계: 최종값 표시 + 묵직한 사운드
-          actions.setEtherCalcPhase('result');
-          actions.setEnemyEtherCalcPhase('result');
+          setEtherCalcPhase('result');
+          setEnemyEtherCalcPhase('result');
           // 버튼 표시를 위해 값 설정 (finishTurn에서 정확한 값으로 다시 설정됨)
-          actions.setEtherFinalValue(playerFinalEther);
-          actions.setEnemyEtherFinalValue(enemyFinalEther);
+          setEtherFinalValue(playerFinalEther);
+          setEnemyEtherFinalValue(enemyFinalEther);
           playSound(400, 200);
         }, (playerDeflation.usageCount > 0 || enemyDeflation.usageCount > 0) ? 400 : 0);
       }, 600);
@@ -2356,10 +2343,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   };
 
   const stepOnce = () => {
-    const currentBattle = battleRef.current;
-    if (currentBattle.qIndex >= currentBattle.queue.length) return;
-    const a = currentBattle.queue[currentBattle.qIndex];
-    const currentQIndex = currentBattle.qIndex; // Capture current qIndex
+    if (battle.qIndex >= battle.queue.length) return;
+    const a = battle.queue[battle.qIndex];
 
     // 타임라인 progress 업데이트 (공통 최대 속도 기준 비율로)
     const playerMaxSpeed = player?.maxSpeed || DEFAULT_PLAYER_MAX_SPEED;
@@ -2368,26 +2353,24 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     const progressPercent = (a.sp / commonMaxSpeed) * 100;
 
     // 먼저 시곗바늘을 현재 카드 위치로 이동
-    actions.setTimelineProgress(progressPercent);
+    setTimelineProgress(progressPercent);
 
     // 시곗바늘 이동 완료 후 카드 발동 및 실행 (0.5초 transition 후)
     setTimeout(() => {
       // 실행 중인 카드 표시 (흔들림 애니메이션)
-      actions.setExecutingCardIndex(currentQIndex);
+      actions.setExecutingCardIndex(battle.qIndex);
 
       // 흔들림 애니메이션 종료 후 빛 바래짐 처리
       setTimeout(() => {
         actions.setExecutingCardIndex(null);
         // 흔들림이 끝난 후 사용된 카드로 표시 (빛 바래짐)
-        const currentBattle = battleRef.current;
-        const currentUsedIndices = currentBattle.usedCardIndices || [];
-        actions.setUsedCardIndices([...currentUsedIndices, currentQIndex]);
+        actions.setUsedCardIndices(prev => [...prev, battle.qIndex]);
       }, 350); // CSS 애니메이션 시간과 일치
 
       // 마지막 카드면 페이드아웃
-      if (currentQIndex >= currentBattle.queue.length - 1) {
+      if (battle.qIndex >= battle.queue.length - 1) {
         setTimeout(() => {
-          actions.setTimelineIndicatorVisible(false);
+          setTimelineIndicatorVisible(false);
         }, 300);
       }
 
@@ -2398,16 +2381,11 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         }
         setTimeout(() => {
           // 카드가 사용된 후 사라지는 애니메이션 시작
-          const currentBattle = battleRef.current;
-          const currentDisappearing = currentBattle.disappearingCards || [];
-          actions.setDisappearingCards([...currentDisappearing, currentQIndex]);
+          actions.setDisappearingCards(prev => [...prev, battle.qIndex]);
           setTimeout(() => {
             // 애니메이션 후 완전히 숨김
-            const currentBattle = battleRef.current;
-            const currentHidden = currentBattle.hiddenCards || [];
-            const currentDisappearing2 = currentBattle.disappearingCards || [];
-            actions.setHiddenCards([...currentHidden, currentQIndex]);
-            actions.setDisappearingCards(currentDisappearing2.filter(i => i !== currentQIndex));
+            actions.setHiddenCards(prev => [...prev, battle.qIndex]);
+            actions.setDisappearingCards(prev => prev.filter(i => i !== battle.qIndex));
           }, 600); // 애니메이션 지속 시간
         }, 300); // 사용 효과 후 바로 사라지기 시작
       }
@@ -2417,9 +2395,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   };
 
   const executeCardAction = () => {
-    const currentBattle = battleRef.current;
-    if (currentBattle.qIndex >= currentBattle.queue.length) return;
-    const a = currentBattle.queue[currentBattle.qIndex];
+    if (battle.qIndex >= battle.queue.length) return;
+    const a = battle.queue[battle.qIndex];
 
     const P = { ...player, def: player.def || false, block: player.block || 0, counter: player.counter || 0, vulnMult: player.vulnMult || 1, strength: player.strength || 0 };
     const E = { ...enemy, def: enemy.def || false, block: enemy.block || 0, counter: enemy.counter || 0, vulnMult: enemy.vulnMult || 1 };
@@ -2429,10 +2406,10 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
     // 플레이어 카드 사용 시 카드 사용 횟수 증가 (mastery, boredom 특성용)
     if (a.actor === 'player' && a.card.id) {
-      actions.setCardUsageCount({
-        ...cardUsageCount,
-        [a.card.id]: (cardUsageCount[a.card.id] || 0) + 1
-      });
+      actions.setCardUsageCount(prev => ({
+        ...prev,
+        [a.card.id]: (prev[a.card.id] || 0) + 1
+      }));
 
       // 양날의 검 (double_edge): 사용시 1 피해
       if (hasTrait(a.card, 'double_edge')) {
@@ -2448,7 +2425,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
       // 몸풀기 (warmup): 다음 턴 행동력 +2
       if (hasTrait(a.card, 'warmup')) {
-        actions.setNextTurnEffects({ ...nextTurnEffects, bonusEnergy: (nextTurnEffects.bonusEnergy || 0) + 2 });
+        actions.setNextTurnEffects(prev => ({ ...prev, bonusEnergy: (prev.bonusEnergy || 0) + 2 }));
         addLog(`🔥 "몸풀기" - 다음 턴 행동력 +2 예약`);
       }
 
@@ -2470,18 +2447,19 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     if (hasTrait(a.card, 'stun')) {
       const centerSp = a.sp ?? 0;
       const stunnedActions = [];
-      const targets = currentBattle.queue
-        .map((item, idx) => ({ item, idx }))
-        .filter(({ item, idx }) => {
-          if (idx <= currentBattle.qIndex || !item) return false;
-          const isOpponent = item.actor !== a.actor;
-          const withinRange = typeof item.sp === 'number' && item.sp >= centerSp && item.sp <= centerSp + STUN_RANGE;
-          return isOpponent && withinRange;
-        });
-      if (targets.length > 0) {
+      actions.setQueue(prevQueue => {
+        const targets = prevQueue
+          .map((item, idx) => ({ item, idx }))
+          .filter(({ item, idx }) => {
+            if (idx <= qIndex || !item) return false;
+            const isOpponent = item.actor !== a.actor;
+            const withinRange = typeof item.sp === 'number' && item.sp >= centerSp && item.sp <= centerSp + STUN_RANGE;
+            return isOpponent && withinRange;
+          });
+        if (targets.length === 0) return prevQueue;
         stunnedActions.push(...targets);
-        actions.setQueue(currentBattle.queue.filter((_, idx) => !targets.some(t => t.idx === idx)));
-      }
+        return prevQueue.filter((_, idx) => !targets.some(t => t.idx === idx));
+      });
       if (stunnedActions.length > 0) {
         const stunnedNames = stunnedActions.map(t => t.item?.card?.name || '카드').join(', ');
         const msg = `😵 "${a.card.name}"의 기절! 상대 카드 ${stunnedActions.length}장 파괴 (범위: ${centerSp}~${centerSp + STUN_RANGE}${stunnedNames ? `, 대상: ${stunnedNames}` : ''})`;
@@ -2498,66 +2476,69 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       const cardForEther = upgradedRarity ? { ...a.card, rarity: upgradedRarity } : a.card;
       const etherPerCard = Math.floor(getCardEtherGain(cardForEther) * passiveRelicEffects.etherMultiplier);
 
-      const newTurnEther = turnEtherAccumulated + etherPerCard;
-      console.log(`[에테르 누적] ${turnEtherAccumulated} + ${etherPerCard} = ${newTurnEther} (카드: ${a.card.name})`);
-      actions.setTurnEtherAccumulated(newTurnEther);
+      setTurnEtherAccumulated(prev => {
+        console.log(`[에테르 누적] ${prev} + ${etherPerCard} = ${prev + etherPerCard} (카드: ${a.card.name})`);
+        return prev + etherPerCard;
+      });
       // PT 증가 애니메이션
       actions.setEtherPulse(true);
       setTimeout(() => actions.setEtherPulse(false), 300);
 
       // 플레이어 카드 진행 시 유물 발동
-      const newCount = resolvedPlayerCards + 1;
-      const isLastPlayerCard = playerTimeline?.length > 0 && newCount === playerTimeline.length;
+      actions.setResolvedPlayerCards(prev => {
+        const newCount = prev + 1;
+        const isLastPlayerCard = playerTimeline?.length > 0 && newCount === playerTimeline.length;
 
-      // 유물이 있으면 발동 애니메이션 및 사운드 (좌→우 순차 재생)
-      if (relics.length > 0) {
-        const triggered = [];
-        orderedRelicList.forEach(relicId => {
-          const relic = RELICS[relicId];
-          // effects가 객체인 경우 처리 (/src/data/relics.js 사용)
-          if (relic?.effects?.type === 'PASSIVE' && relic?.effects?.comboMultiplierPerCard) {
-            // 에테르 결정: 카드마다 즉시 발동 표시/사운드
-            triggered.push({ id: relicId, tone: 800, duration: 500 });
-          } else if (relic?.effects?.type === 'PASSIVE' && (relic?.effects?.etherCardMultiplier || relicId === 'rareStone' || relic?.effects?.etherMultiplier)) {
-            if (relicId === 'referenceBook') {
-              // 참고서는 마지막 카드에서만 한 번 발동
-              if (isLastPlayerCard && !referenceBookTriggeredRef.current) {
-                referenceBookTriggeredRef.current = true;
-                triggered.push({ id: relicId, tone: 820, duration: 500 });
+        // 유물이 있으면 발동 애니메이션 및 사운드 (좌→우 순차 재생)
+        if (relics.length > 0) {
+          const triggered = [];
+          orderedRelicList.forEach(relicId => {
+            const relic = RELICS[relicId];
+            // effects가 객체인 경우 처리 (/src/data/relics.js 사용)
+            if (relic?.effects?.type === 'PASSIVE' && relic?.effects?.comboMultiplierPerCard) {
+              // 에테르 결정: 카드마다 즉시 발동 표시/사운드
+              triggered.push({ id: relicId, tone: 800, duration: 500 });
+            } else if (relic?.effects?.type === 'PASSIVE' && (relic?.effects?.etherCardMultiplier || relicId === 'rareStone' || relic?.effects?.etherMultiplier)) {
+              if (relicId === 'referenceBook') {
+                // 참고서는 마지막 카드에서만 한 번 발동
+                if (isLastPlayerCard && !referenceBookTriggeredRef.current) {
+                  referenceBookTriggeredRef.current = true;
+                  triggered.push({ id: relicId, tone: 820, duration: 500 });
+                }
+                return;
               }
-              return;
+              // 희귀한 조약돌 등: 카드마다 즉시 발동 (상시 배지 없음)
+              triggered.push({ id: relicId, tone: 820, duration: 400 });
+            } else if (relic?.effects?.type === 'PASSIVE' && relic?.effects?.etherFiveCardBonus && newCount >= 5 && !devilDiceTriggeredRef.current) {
+              // 악마의 주사위: 다섯번째 카드 처리 직후 발동
+              devilDiceTriggeredRef.current = true;
+              triggered.push({ id: relicId, tone: 980, duration: 800 });
             }
-            // 희귀한 조약돌 등: 카드마다 즉시 발동 (상시 배지 없음)
-            triggered.push({ id: relicId, tone: 820, duration: 400 });
-          } else if (relic?.effects?.type === 'PASSIVE' && relic?.effects?.etherFiveCardBonus && newCount >= 5 && !devilDiceTriggeredRef.current) {
-            // 악마의 주사위: 다섯번째 카드 처리 직후 발동
-            devilDiceTriggeredRef.current = true;
-            triggered.push({ id: relicId, tone: 980, duration: 800 });
+          });
+
+          if (triggered.length > 0) {
+            const playSeq = (idx = 0) => {
+              if (idx >= triggered.length) {
+                actions.setRelicActivated(null);
+                return;
+              }
+              const item = triggered[idx];
+              flashRelic(item.id, item.tone, item.duration);
+              setTimeout(() => playSeq(idx + 1), Math.max(200, item.duration * 0.6));
+            };
+            playSeq(0);
           }
-        });
-
-        if (triggered.length > 0) {
-          const playSeq = (idx = 0) => {
-            if (idx >= triggered.length) {
-              actions.setRelicActivated(null);
-              return;
-            }
-            const item = triggered[idx];
-            flashRelic(item.id, item.tone, item.duration);
-            setTimeout(() => playSeq(idx + 1), Math.max(200, item.duration * 0.6));
-          };
-          playSeq(0);
         }
-      }
 
-      actions.setResolvedPlayerCards(newCount);
+        return newCount;
+      });
     } else if (a.actor === 'enemy') {
-      actions.setEnemyTurnEtherAccumulated(enemyTurnEtherAccumulated + getCardEtherGain(a.card));
+      setEnemyTurnEtherAccumulated(prev => prev + getCardEtherGain(a.card));
     }
 
-    actions.setPlayer({ ...player, hp: P.hp, def: P.def, block: P.block, counter: P.counter, vulnMult: P.vulnMult || 1, strength: P.strength || 0 });
-    actions.setEnemy({ ...enemy, hp: E.hp, def: E.def, block: E.block, counter: E.counter, vulnMult: E.vulnMult || 1 });
-    actions.setActionEvents({ ...currentBattle.actionEvents, [currentBattle.qIndex]: actionEvents });
+    setPlayer(prev => ({ ...prev, hp: P.hp, def: P.def, block: P.block, counter: P.counter, vulnMult: P.vulnMult || 1, strength: P.strength || 0 }));
+    setEnemy(prev => ({ ...prev, hp: E.hp, def: E.def, block: E.block, counter: E.counter, vulnMult: E.vulnMult || 1 }));
+    setActionEvents(prev => ({ ...prev, [battle.qIndex]: actionEvents }));
 
     // 이벤트 처리: 애니메이션 및 사운드
     actionEvents.forEach(ev => {
@@ -2603,12 +2584,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       }
     });
 
-    const newQIndex = battleRef.current.qIndex + 1;
-
-    // battleRef를 즉시 업데이트 (React state 업데이트는 비동기이므로)
-    battleRef.current = { ...battleRef.current, qIndex: newQIndex };
-
-    actions.setQIndex(newQIndex);
+    const newQIndex = battle.qIndex + 1;
+    setQIndex(newQIndex);
 
     if (P.hp <= 0) { actions.setPostCombatOptions({ type: 'defeat' }); actions.setPhase('post'); return; }
     if (E.hp <= 0) {
@@ -2617,7 +2594,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       playSound(200, 500); // 낮은 주파수로 죽음 사운드
 
       // 타임라인 즉시 숨김 및 자동진행 중단
-      actions.setTimelineIndicatorVisible(false);
+      setTimelineIndicatorVisible(false);
       actions.setAutoProgress(false);
 
       // 남은 카드들을 비활성화 상태로 표시 (큐는 유지)
@@ -2631,12 +2608,12 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       const actualResolvedCards = resolvedPlayerCards;
 
       // 큐 인덱스를 끝으로 이동하여 더 이상 진행되지 않도록 함
-      actions.setQIndex(battle.queue.length);
+      setQIndex(battle.queue.length);
 
       // 에테르 계산 애니메이션은 useEffect에서 실행됨 (상태 업데이트 타이밍 보장)
       // 에테르가 없으면 버튼 표시를 위해 0으로 설정
       if (turnEtherAccumulated === 0) {
-        actions.setEtherFinalValue(0);
+        setEtherFinalValue(0);
       }
       return;
     }
@@ -2652,7 +2629,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       }, 1000);
       return () => clearTimeout(timer);
     }
-  }, [autoProgress, battle.phase, battle.qIndex, battle.queue.length, stepOnce]);
+  }, [autoProgress, battle.phase, battle.qIndex, battle.queue.length]);
 
   // 타임라인 완료 후 에테르 계산 애니메이션 실행
   // useEffect를 사용하여 turnEtherAccumulated 상태가 최신 값일 때 실행
@@ -2757,7 +2734,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       const currentStrength = player.strength || 0;
       const newStrength = currentStrength + turnEndRelicEffects.strength;
       addLog(`💪 유물 효과: 힘 ${turnEndRelicEffects.strength > 0 ? '+' : ''}${turnEndRelicEffects.strength} (총 ${newStrength})`);
-      actions.setPlayer({ ...player, strength: newStrength });
+      setPlayer(p => ({ ...p, strength: newStrength }));
     }
 
     // 턴 종료 시 조합 카운트 증가 (Deflation)
@@ -2827,7 +2804,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       addLog(`✴️ 에테르 획득: ${turnEtherAccumulated} × ${actualTotalMultiplier.toFixed(2)}${relicText} = ${playerBeforeDeflation} → ${playerFinalEther} PT${deflationText} (적용: ${playerAppliedEther} PT)`);
 
       // 최종값 UI에 로그와 동일한 값 표시
-      actions.setEtherFinalValue(playerFinalEther);
+      setEtherFinalValue(playerFinalEther);
     }
     // 적도 동일하게 적용/범람 계산 (슬롯 남은칸 제한 제거)
     let enemyAppliedEther = 0;
@@ -2840,16 +2817,16 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         ? ` (디플레이션: ${Math.round(enemyDeflation.multiplier * 100)}%)`
         : '';
       addLog(`☄️ 적 에테르 획득: ${enemyTurnEtherAccumulated} × ${enemyComboMult.toFixed(2)} = ${enemyBeforeDeflation} → ${enemyFinalEther} PT${deflationText} (적용: ${enemyAppliedEther} PT)`);
-      actions.setEnemyEtherCalcPhase('sum');
-      setTimeout(() => actions.setEnemyEtherCalcPhase('multiply'), 50);
+      setEnemyEtherCalcPhase('sum');
+      setTimeout(() => setEnemyEtherCalcPhase('multiply'), 50);
       setTimeout(() => {
-        actions.setEnemyEtherCalcPhase('deflation');
-        actions.setEnemyCurrentDeflation(enemyDeflation.usageCount > 0 ? { multiplier: enemyDeflation.multiplier, usageCount: enemyDeflation.usageCount } : null);
+        setEnemyEtherCalcPhase('deflation');
+        setEnemyCurrentDeflation(enemyDeflation.usageCount > 0 ? { multiplier: enemyDeflation.multiplier, usageCount: enemyDeflation.usageCount } : null);
       }, 150);
-      setTimeout(() => actions.setEnemyEtherCalcPhase('result'), 300);
+      setTimeout(() => setEnemyEtherCalcPhase('result'), 300);
     }
 
-    actions.setEnemyEtherFinalValue(enemyFinalEther);
+    setEnemyEtherFinalValue(enemyFinalEther);
 
     // 에테르 소지량 이동: 적용치 기준 (플레이어도 잃을 수 있음)
     const netTransfer = playerAppliedEther - enemyAppliedEther;
@@ -2892,50 +2869,55 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       addLog(`🔁 에테르 이동: 플레이어 ${movedPts > 0 ? '+' : ''}${movedPts} PT`);
     }
 
-    const newUsageCount = { ...(player.comboUsageCount || {}) };
-    if (pComboEnd?.name) {
-      newUsageCount[pComboEnd.name] = (newUsageCount[pComboEnd.name] || 0) + 1;
-    }
-    // 플레이어가 사용한 각 카드의 사용 횟수 증가 (숙련 특성용)
-    queue.forEach(action => {
-      if (action.actor === 'player' && action.card?.id) {
-        newUsageCount[action.card.id] = (newUsageCount[action.card.id] || 0) + 1;
+    setPlayer(p => {
+      const newUsageCount = { ...(p.comboUsageCount || {}) };
+      if (pComboEnd?.name) {
+        newUsageCount[pComboEnd.name] = (newUsageCount[pComboEnd.name] || 0) + 1;
       }
-    });
-    actions.setPlayer({
-      ...player,
-      block: 0,
-      def: false,
-      counter: 0,
-      vulnMult: 1,
-      vulnTurns: 0,
-      etherOverdriveActive: false,
-      comboUsageCount: newUsageCount,
-      etherPts: Math.max(0, nextPlayerPts),
-      etherOverflow: (player.etherOverflow || 0) + playerOverflow
+      // 플레이어가 사용한 각 카드의 사용 횟수 증가 (숙련 특성용)
+      queue.forEach(action => {
+        if (action.actor === 'player' && action.card?.id) {
+          newUsageCount[action.card.id] = (newUsageCount[action.card.id] || 0) + 1;
+        }
+      });
+      return {
+        ...p,
+        block: 0,
+        def: false,
+        counter: 0,
+        vulnMult: 1,
+        vulnTurns: 0,
+        etherOverdriveActive: false,
+        comboUsageCount: newUsageCount,
+        etherPts: Math.max(0, nextPlayerPts),
+        etherOverflow: (p.etherOverflow || 0) + playerOverflow
+      };
     });
 
-    const newEnemyUsageCount = { ...(enemy.comboUsageCount || {}) };
-    if (eComboEnd?.name) {
-      newEnemyUsageCount[eComboEnd.name] = (newEnemyUsageCount[eComboEnd.name] || 0) + 1;
-    }
-    const nextPts = Math.max(0, nextEnemyPts);
-    const nextEnemyPtsSnapshot = nextPts;
-    actions.setEnemy({
-      ...enemy,
-      block: 0,
-      def: false,
-      counter: 0,
-      vulnMult: 1,
-      vulnTurns: 0,
-      etherOverdriveActive: false,
-      comboUsageCount: newEnemyUsageCount,
-      etherPts: nextPts
+    let nextEnemyPtsSnapshot = null;
+    setEnemy(e => {
+      const newEnemyUsageCount = { ...(e.comboUsageCount || {}) };
+      if (eComboEnd?.name) {
+        newEnemyUsageCount[eComboEnd.name] = (newEnemyUsageCount[eComboEnd.name] || 0) + 1;
+      }
+      const nextPts = Math.max(0, nextEnemyPts);
+      nextEnemyPtsSnapshot = nextPts;
+      return {
+        ...e,
+        block: 0,
+        def: false,
+        counter: 0,
+        vulnMult: 1,
+        vulnTurns: 0,
+        etherOverdriveActive: false,
+        comboUsageCount: newEnemyUsageCount,
+        etherPts: nextPts
+      };
     });
 
     // 에테르 누적 카운터 리셋 (애니메이션 상태는 다음 턴 시작 시 리셋됨)
-    actions.setTurnEtherAccumulated(0);
-    actions.setEnemyTurnEtherAccumulated(0);
+    setTurnEtherAccumulated(0);
+    setEnemyTurnEtherAccumulated(0);
 
     actions.setSelected([]); actions.setQueue([]); actions.setQIndex(0); actions.setFixedOrder(null); actions.setUsedCardIndices([]);
     actions.setDisappearingCards([]); actions.setHiddenCards([]);
@@ -2993,16 +2975,16 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       // 카드 사용 시 에테르 누적 (실제 적용은 턴 종료 시)
       if (a.actor === 'player') {
         const gain = Math.floor(getCardEtherGain(a.card) * passiveRelicEffects.etherMultiplier);
-        actions.setTurnEtherAccumulated(turnEtherAccumulated + gain);
+        setTurnEtherAccumulated(prev => prev + gain);
       } else if (a.actor === 'enemy') {
-        actions.setEnemyTurnEtherAccumulated(enemyTurnEtherAccumulated + getCardEtherGain(a.card));
+        setEnemyTurnEtherAccumulated(prev => prev + getCardEtherGain(a.card));
       }
 
       if (P.hp <= 0) {
-        actions.setPlayer({ ...player, hp: P.hp, def: P.def, block: P.block, counter: P.counter, vulnMult: P.vulnMult || 1 });
-        actions.setEnemy({ ...enemy, hp: E.hp, def: E.def, block: E.block, counter: E.counter, vulnMult: E.vulnMult || 1 });
-        actions.setActionEvents({ ...battle.actionEvents, ...newEvents });
-        actions.setQIndex(i + 1);
+        setPlayer(prev => ({ ...prev, hp: P.hp, def: P.def, block: P.block, counter: P.counter, vulnMult: P.vulnMult || 1 }));
+        setEnemy(prev => ({ ...prev, hp: E.hp, def: E.def, block: E.block, counter: E.counter, vulnMult: E.vulnMult || 1 }));
+        setActionEvents(prev => ({ ...prev, ...newEvents }));
+        setQIndex(i + 1);
         actions.setPostCombatOptions({ type: 'defeat' }); actions.setPhase('post');
         return;
       }
@@ -3015,10 +2997,10 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         // 계속 진행 (플레이어의 남은 행동 처리)
       }
     }
-    actions.setPlayer({ ...player, hp: P.hp, def: P.def, block: P.block, counter: P.counter, vulnMult: P.vulnMult || 1 });
-    actions.setEnemy({ ...enemy, hp: E.hp, def: E.def, block: E.block, counter: E.counter, vulnMult: E.vulnMult || 1 });
-    actions.setActionEvents({ ...battle.actionEvents, ...newEvents });
-    actions.setQIndex(battle.queue.length);
+    setPlayer(prev => ({ ...prev, hp: P.hp, def: P.def, block: P.block, counter: P.counter, vulnMult: P.vulnMult || 1 }));
+    setEnemy(prev => ({ ...prev, hp: E.hp, def: E.def, block: E.block, counter: E.counter, vulnMult: E.vulnMult || 1 }));
+    setActionEvents(prev => ({ ...prev, ...newEvents }));
+    setQIndex(battle.queue.length);
 
     // 타임라인 완료 후 에테르 계산 애니메이션 시작
     if (turnEtherAccumulated > 0) {
@@ -3045,20 +3027,20 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       });
 
       // 1단계: 합계 강조
-      actions.setEtherCalcPhase('sum');
+      setEtherCalcPhase('sum');
       setTimeout(() => {
         // 2단계: 곱셈 강조 + 명쾌한 사운드
-        actions.setEtherCalcPhase('multiply');
+        setEtherCalcPhase('multiply');
         playSound(800, 100); // 명쾌한 사운드
         setTimeout(() => {
           // 3단계: 디플레이션 배지 애니메이션 + 저음 사운드
           if (playerDeflation.usageCount > 0) {
-            actions.setEtherCalcPhase('deflation');
+            setEtherCalcPhase('deflation');
             playSound(200, 150); // 저음 사운드
           }
           setTimeout(() => {
             // 4단계: 최종값 표시 + 묵직한 사운드
-            actions.setEtherCalcPhase('result');
+            setEtherCalcPhase('result');
             // 최종값은 finishTurn에서 설정됨 (애니메이션 시점의 값은 부정확)
             playSound(400, 200); // 묵직한 사운드
           }, playerDeflation.usageCount > 0 ? 400 : 0);
@@ -3411,7 +3393,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                     onDragStart={handleRelicDragStart(index, relicId)}
                     onDragOver={handleRelicDragOver}
                     onDrop={handleRelicDrop(index)}
-                    onMouseDown={() => actions.setRelicActivated(relicActivated === relicId ? null : relicId)} // 클릭 시 토글
+                    onMouseDown={() => actions.setRelicActivated(prev => prev === relicId ? null : relicId)} // 클릭 시 토글
                   >
                     <div
                       onMouseEnter={() => setHoveredRelic(relicId)}
@@ -3545,7 +3527,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                               : 0;
                           const globalIndex = battle.phase === 'resolve' && queue ? queue.findIndex(q => q === a) : -1;
                           const isExecuting = executingCardIndex === globalIndex;
-                          const isUsed = Array.isArray(usedCardIndices) && usedCardIndices.includes(globalIndex) && globalIndex < qIndex;
+                          const isUsed = usedCardIndices.includes(globalIndex) && globalIndex < qIndex;
                           const normalizedPosition = (a.sp / playerMax) * 100;
                           return (
                             <div key={idx}
@@ -3571,7 +3553,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                               const num = a.card.type === 'attack' ? (a.card.damage * (a.card.hits || 1)) : (a.card.block || 0);
                               const globalIndex = battle.phase === 'resolve' && queue ? queue.findIndex(q => q === a) : -1;
                               const isExecuting = executingCardIndex === globalIndex;
-                              const isUsed = Array.isArray(usedCardIndices) && usedCardIndices.includes(globalIndex) && globalIndex < qIndex;
+                              const isUsed = usedCardIndices.includes(globalIndex) && globalIndex < qIndex;
                               const normalizedPosition = (a.sp / enemyMax) * 100;
                               const levelForTooltip = battle.phase === 'select' ? (insightReveal?.level || 0) : (effectiveInsight || 0);
                               const canShowTooltip = levelForTooltip >= 3;
@@ -4203,9 +4185,11 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       {battle.phase === 'select' && (
         <div className="submit-button-fixed" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           <button onClick={() => {
-            const newVal = !isSimplified;
-            try { localStorage.setItem('battleIsSimplified', newVal.toString()); } catch { }
-            actions.setIsSimplified(newVal);
+            actions.setIsSimplified(prev => {
+              const newVal = !prev;
+              try { localStorage.setItem('battleIsSimplified', newVal.toString()); } catch { }
+              return newVal;
+            });
             playSound(500, 60);
           }} className={`btn-enhanced ${isSimplified ? 'btn-primary' : ''} flex items-center gap-2`}>
             {isSimplified ? '📋' : '📄'} 간소화 (Q)
@@ -4433,10 +4417,10 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
               {queue.filter(a => a.actor === 'player').map((a, i) => {
                 const Icon = a.card.icon;
                 const globalIndex = queue.findIndex(q => q === a);
-                const isUsed = Array.isArray(usedCardIndices) && usedCardIndices.includes(globalIndex);
-                const isDisappearing = Array.isArray(disappearingCards) && disappearingCards.includes(globalIndex);
-                const isHidden = Array.isArray(hiddenCards) && hiddenCards.includes(globalIndex);
-                const isDisabled = Array.isArray(disabledCardIndices) && disabledCardIndices.includes(globalIndex); // 비활성화된 카드 (몬스터 사망 시)
+                const isUsed = usedCardIndices.includes(globalIndex);
+                const isDisappearing = disappearingCards.includes(globalIndex);
+                const isHidden = hiddenCards.includes(globalIndex);
+                const isDisabled = disabledCardIndices.includes(globalIndex); // 비활성화된 카드 (몬스터 사망 시)
                 const currentBuild = useGameStore.getState().characterBuild;
                 const isMainSpecial = currentBuild?.mainSpecials?.includes(a.card.id);
                 const isSubSpecial = currentBuild?.subSpecials?.includes(a.card.id);

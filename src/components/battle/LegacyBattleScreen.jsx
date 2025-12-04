@@ -166,7 +166,7 @@ export function LegacyBattleScreen() {
   if (!activeBattle) return null;
 
   return (
-    <div className="battle-fullscreen" key={frameKey}>
+    <div className="battle-fullscreen">
       <LegacyBattleApp
         initialPlayer={payload?.player}
         initialEnemy={payload?.enemy}
