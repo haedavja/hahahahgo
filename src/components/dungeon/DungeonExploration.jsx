@@ -3,7 +3,7 @@ import { useDungeonState } from "./hooks/useDungeonState";
 import { useGameStore } from "../../state/gameStore";
 import { calculateEtherSlots, getCurrentSlotPts, getSlotProgress, getNextSlotCost } from "../../lib/etherUtils";
 import { CharacterSheet } from "../character/CharacterSheet";
-import { EtherBar } from "../battle/LegacyBattleApp";
+import { EtherBar } from "../battle/ui/EtherBar";
 import { RELICS, RELIC_RARITIES } from "../../data/relics";
 import "./dungeon.css";
 

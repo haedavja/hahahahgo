@@ -5,7 +5,7 @@ import { calculateEtherSlots, getCurrentSlotPts, getSlotProgress, getNextSlotCos
 import { CharacterSheet } from "../character/CharacterSheet";
 import { DungeonExploration } from "../dungeon/DungeonExploration";
 import { LegacyBattleScreen } from "../battle/LegacyBattleScreen";
-import { EtherBar } from "../battle/LegacyBattleApp";
+import { EtherBar } from "../battle/ui/EtherBar";
 import { DevTools } from "../dev/DevTools";
 import { RELICS, RELIC_RARITIES } from "../../data/relics";
 import { CARDS } from "../battle/battleData";
