@@ -39,6 +39,7 @@ import { processImmediateCardTraits, processCardPlayedRelicEffects } from "./uti
 import { collectTriggeredRelics, playRelicActivationSequence } from "./utils/relicActivationAnimation";
 import { processActionEventAnimations } from "./utils/eventAnimationProcessing";
 import { processStunEffect } from "./utils/stunProcessing";
+import { processPlayerEtherAccumulation, processEnemyEtherAccumulation } from "./utils/etherAccumulationProcessing";
 
 // 유물 희귀도별 색상
 const RELIC_RARITY_COLORS = {
@@ -1513,41 +1514,32 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
     // 카드 사용 시 에테르 누적 (실제 적용은 턴 종료 시)
     if (a.actor === 'player') {
-      // 희귀한 조약돌 효과: 카드당 획득 에테르 2배
-      const passiveRelicEffects = calculatePassiveEffects(orderedRelicList);
-      const upgradedRarity = cardUpgrades[a.card.id];
-      const cardForEther = upgradedRarity ? { ...a.card, rarity: upgradedRarity } : a.card;
-      const etherPerCard = Math.floor(getCardEtherGain(cardForEther) * passiveRelicEffects.etherMultiplier);
-
-      const newTurnEther = turnEtherAccumulated + etherPerCard;
-      console.log(`[에테르 누적] ${turnEtherAccumulated} + ${etherPerCard} = ${newTurnEther} (카드: ${a.card.name})`);
-      actions.setTurnEtherAccumulated(newTurnEther);
-      // PT 증가 애니메이션
-      actions.setEtherPulse(true);
-      setTimeout(() => actions.setEtherPulse(false), 300);
-
-      // 플레이어 카드 진행 시 유물 발동
-      const newCount = resolvedPlayerCards + 1;
-      const isLastPlayerCard = playerTimeline?.length > 0 && newCount === playerTimeline.length;
-
-      // 유물이 있으면 발동 애니메이션 및 사운드 (좌→우 순차 재생)
-      if (relics.length > 0) {
-        const triggered = collectTriggeredRelics({
-          orderedRelicList,
-          resolvedPlayerCards,
-          playerTimeline,
-          triggeredRefs: {
-            referenceBookTriggered: referenceBookTriggeredRef,
-            devilDiceTriggered: devilDiceTriggeredRef
-          }
-        });
-
-        playRelicActivationSequence(triggered, flashRelic, actions.setRelicActivated);
-      }
-
-      actions.setResolvedPlayerCards(newCount);
+      processPlayerEtherAccumulation({
+        card: a.card,
+        turnEtherAccumulated,
+        orderedRelicList,
+        cardUpgrades,
+        resolvedPlayerCards,
+        playerTimeline,
+        relics,
+        triggeredRefs: {
+          referenceBookTriggered: referenceBookTriggeredRef,
+          devilDiceTriggered: devilDiceTriggeredRef
+        },
+        calculatePassiveEffects,
+        getCardEtherGain,
+        collectTriggeredRelics,
+        playRelicActivationSequence,
+        flashRelic,
+        actions
+      });
     } else if (a.actor === 'enemy') {
-      actions.setEnemyTurnEtherAccumulated(enemyTurnEtherAccumulated + getCardEtherGain(a.card));
+      processEnemyEtherAccumulation({
+        card: a.card,
+        enemyTurnEtherAccumulated,
+        getCardEtherGain,
+        actions
+      });
     }
 
     actions.setPlayer({ ...player, hp: P.hp, def: P.def, block: P.block, counter: P.counter, vulnMult: P.vulnMult || 1, strength: P.strength || 0 });
