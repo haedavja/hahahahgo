@@ -7,7 +7,8 @@
 import { useGameStore } from '../../../state/gameStore';
 import { hasTrait, applyTraitModifiers } from '../utils/battleUtils';
 import { detectPokerCombo } from '../utils/comboDetection';
-import { TRAITS } from '../battleData';
+import { TraitBadgeList } from './TraitBadge';
+import { CardStatsSidebar } from './CardStatsSidebar';
 
 // X 아이콘 SVG 컴포넌트
 const X = ({ size = 24, className = "", strokeWidth = 2 }) => (
@@ -100,21 +101,7 @@ export const HandArea = ({
                   >
                     <div className="card-cost-badge-floating" style={{ color: costColor, WebkitTextStroke: '1px #000' }}>{enhancedCard.actionCost || c.actionCost}</div>
                     {sel && <div className="selection-number">{selIndex + 1}</div>}
-                    <div className="card-stats-sidebar">
-                      {enhancedCard.damage != null && enhancedCard.damage > 0 && (
-                        <div className="card-stat-item attack">
-                          ⚔️{enhancedCard.damage + (player.strength || 0)}{enhancedCard.hits ? `×${enhancedCard.hits}` : ''}
-                        </div>
-                      )}
-                      {enhancedCard.block != null && enhancedCard.block > 0 && (
-                        <div className="card-stat-item defense">
-                          🛡️{enhancedCard.block + (player.strength || 0)}
-                        </div>
-                      )}
-                      <div className="card-stat-item speed">
-                        ⏱️{formatSpeedText(enhancedCard.speedCost)}
-                      </div>
-                    </div>
+                    <CardStatsSidebar card={enhancedCard} strengthBonus={player.strength || 0} formatSpeedText={formatSpeedText} />
                     <div className="card-header" style={{ display: 'flex', justifyContent: 'center' }}>
                       <div className="font-black text-sm" style={{ display: 'flex', alignItems: 'center' }}>
                         {renderNameWithBadge(c, nameColor)}
@@ -129,26 +116,7 @@ export const HandArea = ({
                       )}
                     </div>
                     <div className={`card-footer ${isSimplified ? 'simplified-footer' : ''}`}>
-                      {c.traits && c.traits.length > 0 && (
-                        <span style={{ fontWeight: 600, display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-                          {c.traits.map((traitId) => {
-                            const trait = TRAITS[traitId];
-                            if (!trait) return null;
-                            const isPositive = trait.type === 'positive';
-                            return (
-                              <span key={traitId} style={{
-                                color: isPositive ? '#22c55e' : '#ef4444',
-                                background: isPositive ? 'rgba(34, 197, 94, 0.2)' : 'rgba(239, 68, 68, 0.2)',
-                                padding: '2px 6px',
-                                borderRadius: '4px',
-                                border: `1px solid ${isPositive ? '#22c55e' : '#ef4444'}`
-                              }}>
-                                {trait.name}
-                              </span>
-                            );
-                          })}
-                        </span>
-                      )}
+                      <TraitBadgeList traits={c.traits} />
                       <span className="card-description">{c.description || ''}</span>
                     </div>
                   </div>
@@ -181,21 +149,7 @@ export const HandArea = ({
               >
                 <div className={`game-card-large respond-phase-card ${c.type === 'attack' ? 'attack' : 'defense'}`}>
                   <div className="card-cost-badge-floating" style={{ color: costColor, WebkitTextStroke: '1px #000' }}>{c.actionCost}</div>
-                  <div className="card-stats-sidebar">
-                    {c.damage != null && c.damage > 0 && (
-                      <div className="card-stat-item attack">
-                        ⚔️{c.damage + (player.strength || 0)}{c.hits ? `×${c.hits}` : ''}
-                      </div>
-                    )}
-                    {c.block != null && c.block > 0 && (
-                      <div className="card-stat-item defense">
-                        🛡️{c.block + (player.strength || 0)}
-                      </div>
-                    )}
-                    <div className="card-stat-item speed">
-                      ⏱️{formatSpeedText(c.speedCost)}
-                    </div>
-                  </div>
+                  <CardStatsSidebar card={c} strengthBonus={player.strength || 0} formatSpeedText={formatSpeedText} />
                   <div className="card-header" style={{ display: 'flex', justifyContent: 'center' }}>
                     <div className="font-black text-sm" style={{ display: 'flex', alignItems: 'center' }}>
                       {renderNameWithBadge(c, nameColor)}
@@ -205,26 +159,7 @@ export const HandArea = ({
                     <Icon size={60} className="text-white opacity-80" />
                   </div>
                   <div className={`card-footer ${isSimplified ? 'simplified-footer' : ''}`}>
-                    {c.traits && c.traits.length > 0 && (
-                      <span style={{ fontWeight: 600, display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-                        {c.traits.map((traitId) => {
-                          const trait = TRAITS[traitId];
-                          if (!trait) return null;
-                          const isPositive = trait.type === 'positive';
-                          return (
-                            <span key={traitId} style={{
-                              color: isPositive ? '#22c55e' : '#ef4444',
-                              background: isPositive ? 'rgba(34, 197, 94, 0.2)' : 'rgba(239, 68, 68, 0.2)',
-                              padding: '2px 6px',
-                              borderRadius: '4px',
-                              border: `1px solid ${isPositive ? '#22c55e' : '#ef4444'}`
-                            }}>
-                              {trait.name}
-                            </span>
-                          );
-                        })}
-                      </span>
-                    )}
+                    <TraitBadgeList traits={c.traits} />
                     <span className="card-description">{c.description || ''}</span>
                   </div>
                 </div>
@@ -284,26 +219,7 @@ export const HandArea = ({
               >
                 <div className={`game-card-large resolve-phase-card ${a.card.type === 'attack' ? 'attack' : 'defense'} ${isUsed ? 'card-used' : ''} ${isDisappearing ? 'card-disappearing' : ''}`}>
                   <div className="card-cost-badge-floating" style={{ color: costColor, WebkitTextStroke: '1px #000' }}>{a.card.actionCost}</div>
-                  <div className="card-stats-sidebar">
-                    {a.card.damage != null && a.card.damage > 0 && (
-                      <div className="card-stat-item attack">
-                        ⚔️{a.card.damage + (player.strength || 0)}{a.card.hits ? `×${a.card.hits}` : ''}
-                      </div>
-                    )}
-                    {a.card.block != null && a.card.block > 0 && (
-                      <div className="card-stat-item defense">
-                        🛡️{a.card.block + (player.strength || 0)}
-                      </div>
-                    )}
-                    {a.card.counter !== undefined && (
-                      <div className="card-stat-item counter">
-                        ⚡{a.card.counter}
-                      </div>
-                    )}
-                    <div className="card-stat-item speed">
-                      ⏱️{formatSpeedText(a.card.speedCost)}
-                    </div>
-                  </div>
+                  <CardStatsSidebar card={a.card} strengthBonus={player.strength || 0} showCounter={true} formatSpeedText={formatSpeedText} />
                   <div className="card-header" style={{ display: 'flex', justifyContent: 'center' }}>
                     <div className="text-white font-black text-sm" style={{ display: 'flex', alignItems: 'center' }}>
                       {renderNameWithBadge(a.card, '#fff')}
@@ -313,26 +229,7 @@ export const HandArea = ({
                     <Icon size={60} className="text-white opacity-80" />
                   </div>
                   <div className={`card-footer ${isSimplified ? 'simplified-footer' : ''}`}>
-                    {a.card.traits && a.card.traits.length > 0 && (
-                      <span style={{ fontWeight: 600, display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-                        {a.card.traits.map((traitId) => {
-                          const trait = TRAITS[traitId];
-                          if (!trait) return null;
-                          const isPositive = trait.type === 'positive';
-                          return (
-                            <span key={traitId} style={{
-                              color: isPositive ? '#22c55e' : '#ef4444',
-                              background: isPositive ? 'rgba(34, 197, 94, 0.2)' : 'rgba(239, 68, 68, 0.2)',
-                              padding: '2px 6px',
-                              borderRadius: '4px',
-                              border: `1px solid ${isPositive ? '#22c55e' : '#ef4444'}`
-                            }}>
-                              {trait.name}
-                            </span>
-                          );
-                        })}
-                      </span>
-                    )}
+                    <TraitBadgeList traits={a.card.traits} />
                     <span className="card-description">{a.card.description || ''}</span>
                   </div>
                 </div>
