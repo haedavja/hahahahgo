@@ -40,6 +40,7 @@ import { collectTriggeredRelics, playRelicActivationSequence } from "./utils/rel
 import { processActionEventAnimations } from "./utils/eventAnimationProcessing";
 import { processStunEffect } from "./utils/stunProcessing";
 import { processPlayerEtherAccumulation, processEnemyEtherAccumulation } from "./utils/etherAccumulationProcessing";
+import { processEnemyDeath } from "./utils/enemyDeathProcessing";
 
 // 유물 희귀도별 색상
 const RELIC_RARITY_COLORS = {
@@ -1565,32 +1566,14 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
     if (P.hp <= 0) { actions.setPostCombatOptions({ type: 'defeat' }); actions.setPhase('post'); return; }
     if (E.hp <= 0) {
-      // 몬스터 죽음 애니메이션 및 사운드
-      actions.setEnemyHit(true);
-      playSound(200, 500); // 낮은 주파수로 죽음 사운드
-
-      // 타임라인 즉시 숨김 및 자동진행 중단
-      actions.setTimelineIndicatorVisible(false);
-      actions.setAutoProgress(false);
-
-      // 남은 카드들을 비활성화 상태로 표시 (큐는 유지)
-      const disabledIndices = queue.slice(newQIndex).map((_, idx) => newQIndex + idx);
-      actions.setDisabledCardIndices(disabledIndices);
-
-      // 실제로 실행 완료된 플레이어 카드 수 계산 (배율 계산에 사용)
-      // newQIndex는 다음에 실행될 카드의 인덱스이므로, newQIndex 이전까지만 카운트
-      // 단, 현재 실행 중인 카드(qIndex)는 아직 완료되지 않았으므로 제외
-      // resolvedPlayerCards 상태와 동일한 값을 사용하는 것이 정확함
-      const actualResolvedCards = resolvedPlayerCards;
-
-      // 큐 인덱스를 끝으로 이동하여 더 이상 진행되지 않도록 함
-      actions.setQIndex(battle.queue.length);
-
-      // 에테르 계산 애니메이션은 useEffect에서 실행됨 (상태 업데이트 타이밍 보장)
-      // 에테르가 없으면 버튼 표시를 위해 0으로 설정
-      if (turnEtherAccumulated === 0) {
-        actions.setEtherFinalValue(0);
-      }
+      processEnemyDeath({
+        newQIndex,
+        queue,
+        queueLength: battle.queue.length,
+        turnEtherAccumulated,
+        playSound,
+        actions
+      });
       return;
     }
 
