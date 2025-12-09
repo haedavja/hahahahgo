@@ -34,6 +34,7 @@ import { computeComboMultiplier as computeComboMultiplierUtil, explainComboMulti
 import { processCardTraitEffects } from "./utils/cardTraitEffects";
 import { calculateEtherTransfer } from "./utils/etherTransfer";
 import { calculateTurnEndEther, formatPlayerEtherLog, formatEnemyEtherLog } from "./utils/turnEndEtherCalculation";
+import { updateComboUsageCount, createTurnEndPlayerState, createTurnEndEnemyState, checkVictoryCondition } from "./utils/turnEndStateUpdate";
 
 // 유물 희귀도별 색상
 const RELIC_RARITY_COLORS = {
@@ -1840,46 +1841,23 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       addLog(`🔁 에테르 이동: 플레이어 ${movedPts > 0 ? '+' : ''}${movedPts} PT`);
     }
 
-    const newUsageCount = { ...(player.comboUsageCount || {}) };
-    if (pComboEnd?.name) {
-      newUsageCount[pComboEnd.name] = (newUsageCount[pComboEnd.name] || 0) + 1;
-    }
-    // 플레이어가 사용한 각 카드의 사용 횟수 증가 (숙련 특성용)
-    queue.forEach(action => {
-      if (action.actor === 'player' && action.card?.id) {
-        newUsageCount[action.card.id] = (newUsageCount[action.card.id] || 0) + 1;
-      }
-    });
-    actions.setPlayer({
-      ...player,
-      block: 0,
-      def: false,
-      counter: 0,
-      vulnMult: 1,
-      vulnTurns: 0,
-      etherOverdriveActive: false,
-      comboUsageCount: newUsageCount,
-      etherPts: Math.max(0, nextPlayerPts),
-      etherOverflow: (player.etherOverflow || 0) + playerOverflow
-    });
+    // 조합 사용 카운트 업데이트
+    const newUsageCount = updateComboUsageCount(player.comboUsageCount, pComboEnd, queue, 'player');
+    const newEnemyUsageCount = updateComboUsageCount(enemy.comboUsageCount, eComboEnd, [], 'enemy');
 
-    const newEnemyUsageCount = { ...(enemy.comboUsageCount || {}) };
-    if (eComboEnd?.name) {
-      newEnemyUsageCount[eComboEnd.name] = (newEnemyUsageCount[eComboEnd.name] || 0) + 1;
-    }
+    // 턴 종료 상태 업데이트
+    actions.setPlayer(createTurnEndPlayerState(player, {
+      comboUsageCount: newUsageCount,
+      etherPts: nextPlayerPts,
+      etherOverflow: playerOverflow
+    }));
+
     const nextPts = Math.max(0, nextEnemyPts);
     const nextEnemyPtsSnapshot = nextPts;
-    actions.setEnemy({
-      ...enemy,
-      block: 0,
-      def: false,
-      counter: 0,
-      vulnMult: 1,
-      vulnTurns: 0,
-      etherOverdriveActive: false,
+    actions.setEnemy(createTurnEndEnemyState(enemy, {
       comboUsageCount: newEnemyUsageCount,
       etherPts: nextPts
-    });
+    }));
 
     // 에테르 누적 카운터 리셋 (애니메이션 상태는 다음 턴 시작 시 리셋됨)
     actions.setTurnEtherAccumulated(0);
@@ -1889,17 +1867,16 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     actions.setDisappearingCards([]); actions.setHiddenCards([]);
 
     // 턴 종료 시 승리/패배 체크
-    const etherVictoryNow = nextEnemyPtsSnapshot !== null && nextEnemyPtsSnapshot <= 0;
-    const etherVictoryImmediate = nextEnemyPts <= 0;
-    if (enemy.hp <= 0 || etherVictoryNow || etherVictoryImmediate) {
-      if (etherVictoryNow || etherVictoryImmediate) {
+    const victoryCheck = checkVictoryCondition(enemy, nextEnemyPtsSnapshot);
+    if (victoryCheck.isVictory) {
+      if (victoryCheck.isEtherVictory) {
         actions.setSoulShatter(true);
       }
       actions.setNetEtherDelta(null);
       setTimeout(() => {
         actions.setPostCombatOptions({ type: 'victory' });
         actions.setPhase('post');
-      }, (etherVictoryNow || etherVictoryImmediate) ? 1200 : 500);
+      }, victoryCheck.delay);
       return;
     }
     if (player.hp <= 0) {
