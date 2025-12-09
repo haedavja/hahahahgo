@@ -37,6 +37,7 @@ import { calculateTurnEndEther, formatPlayerEtherLog, formatEnemyEtherLog } from
 import { updateComboUsageCount, createTurnEndPlayerState, createTurnEndEnemyState, checkVictoryCondition } from "./utils/turnEndStateUpdate";
 import { processImmediateCardTraits, processCardPlayedRelicEffects } from "./utils/cardImmediateEffects";
 import { collectTriggeredRelics, playRelicActivationSequence } from "./utils/relicActivationAnimation";
+import { processActionEventAnimations } from "./utils/eventAnimationProcessing";
 
 // 유물 희귀도별 색상
 const RELIC_RARITY_COLORS = {
@@ -1562,47 +1563,13 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     actions.setActionEvents({ ...currentBattle.actionEvents, [currentBattle.qIndex]: actionEvents });
 
     // 이벤트 처리: 애니메이션 및 사운드
-    actionEvents.forEach(ev => {
-      addLog(ev.msg);
-
-      // 피격 효과 (hit, pierce 타입)
-      if ((ev.type === 'hit' || ev.type === 'pierce') && ev.dmg > 0) {
-        playHitSound();
-        if (ev.actor === 'player') {
-          // 플레이어가 공격 -> 적 피격
-          actions.setEnemyHit(true);
-          setTimeout(() => actions.setEnemyHit(false), 300);
-        } else {
-          // 적이 공격 -> 플레이어 피격
-          actions.setPlayerHit(true);
-          setTimeout(() => actions.setPlayerHit(false), 300);
-        }
-      }
-
-      // 방어 효과 (defense 타입)
-      if (ev.type === 'defense') {
-        playBlockSound();
-        if (ev.actor === 'player') {
-          actions.setPlayerBlockAnim(true);
-          setTimeout(() => actions.setPlayerBlockAnim(false), 400);
-        } else {
-          actions.setEnemyBlockAnim(true);
-          setTimeout(() => actions.setEnemyBlockAnim(false), 400);
-        }
-      }
-
-      // 반격 피해
-      if (ev.actor === 'counter') {
-        playHitSound();
-        // counter는 반대 방향으로 피해가 가므로 타겟을 반대로
-        if (a.actor === 'player') {
-          actions.setPlayerHit(true);
-          setTimeout(() => actions.setPlayerHit(false), 300);
-        } else {
-          actions.setEnemyHit(true);
-          setTimeout(() => actions.setEnemyHit(false), 300);
-        }
-      }
+    processActionEventAnimations({
+      actionEvents,
+      action: a,
+      addLog,
+      playHitSound,
+      playBlockSound,
+      actions
     });
 
     const newQIndex = battleRef.current.qIndex + 1;
