@@ -4,7 +4,7 @@
  * 카드 특성 배지 표시 컴포넌트
  */
 
-import { TRAITS } from '../battleData';
+import { TRAITS } from '../battleData.js';
 
 /**
  * 단일 특성 배지 컴포넌트
