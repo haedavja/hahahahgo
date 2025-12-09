@@ -26,6 +26,7 @@ import { detectPokerCombo, applyPokerBonus } from "./utils/comboDetection";
 import { COMBO_MULTIPLIERS, BASE_ETHER_PER_CARD, CARD_ETHER_BY_RARITY, applyEtherDeflation, getCardEtherGain, calcCardsEther, calculateComboEtherGain } from "./utils/etherCalculations";
 import { sortCombinedOrderStablePF, addEther } from "./utils/combatUtils";
 import { createFixedOrder } from "./utils/cardOrdering";
+import { decideEnemyMode, generateEnemyActions, shouldEnemyOverdrive } from "./utils/enemyAI";
 
 // 유물 희귀도별 색상
 const RELIC_RARITY_COLORS = {
@@ -259,164 +260,11 @@ function applyAction(state, actor, card) {
   return { dealt: 0, taken: 0, events };
 }
 
-// AI: 성향 결정 & 행동 생성
-function decideEnemyMode() {
-  return choice([
-    { name: '공격적', key: 'aggro', prefer: 'attack' },
-    { name: '수비적', key: 'turtle', prefer: 'defense' },
-    { name: '균형적', key: 'balanced', prefer: 'mixed' }
-  ]);
-}
-
-function combosUpToN(arr, maxCards = 3) {
-  const out = [];
-  const n = arr.length;
-
-  function generate(start, current) {
-    if (current.length > 0) {
-      out.push([...current]);
-    }
-    if (current.length >= maxCards) return;
-
-    for (let i = start; i < n; i++) {
-      current.push(arr[i]);
-      generate(i + 1, current);
-      current.pop();
-    }
-  }
-
-  generate(0, []);
-  return out;
-}
-
-function generateEnemyActions(enemy, mode, enemyEtherSlots = 0, maxCards = 3, minCards = 1) {
-  if (!enemy) return [];
-
-  // Energy boost: give enemies extra energy based on count
-  const extraEnergy = Math.max(0, minCards - 1) * 2;
-  const energyBudget = BASE_PLAYER_ENERGY + (enemyEtherSlots || 0) + extraEnergy;
-
-  // Speed limit relaxation: allow more speed for multiple enemies
-  const effectiveMaxSpeed = MAX_SPEED + Math.max(0, minCards - 1) * 10;
-
-  let deck = (enemy.deck || [])
-    .map(id => ENEMY_CARDS.find(c => c.id === id))
-    .filter(Boolean);
-  if (deck.length === 0) {
-    // 덱 정보가 없을 때는 기본 적 카드 풀에서 임의 선택
-    deck = [...ENEMY_CARDS];
-  }
-
-  // Ensure deck has enough cards to meet minCards requirement
-  // If deck is too small, duplicate cards until we have at least minCards * 2 (to give some variety)
-  if (deck.length < minCards) {
-    const originalDeck = [...deck];
-    while (deck.length < minCards * 2) {
-      deck = [...deck, ...originalDeck];
-    }
-  }
-
-  // Generate all valid combinations
-  // Generate all valid combinations
-  const allCombos = combosUpToN(deck, maxCards);
-  const candidates = allCombos.filter(cards => {
-    const sp = cards.reduce((s, c) => s + c.speedCost, 0);
-    const en = cards.reduce((s, c) => s + c.actionCost, 0);
-    return sp <= effectiveMaxSpeed && en <= energyBudget;
-  });
-
-  // Filter candidates that meet minimum card count
-  const validCandidates = candidates.filter(c => c.length >= minCards);
-
-  const targetCandidates = validCandidates.length > 0 ? validCandidates : candidates;
-
-  function stat(list) {
-    const atk = list.filter(c => c.type === 'attack').reduce((a, c) => a + c.actionCost, 0);
-    const def = list.filter(c => c.type === 'defense').reduce((a, c) => a + c.actionCost, 0);
-    const dmg = list.filter(c => c.type === 'attack').reduce((a, c) => a + (c.damage || 0) * (c.hits || 1), 0);
-    const blk = list.filter(c => c.type === 'defense').reduce((a, c) => a + (c.block || 0), 0);
-    const sp = list.reduce((a, c) => a + c.speedCost, 0);
-    const en = list.reduce((a, c) => a + c.actionCost, 0);
-    return { atk, def, dmg, blk, sp, en };
-  }
-
-  function satisfies(m, list) {
-    // Use BASE energy threshold (not boosted) to avoid overly strict filtering
-    const baseThreshold = Math.ceil((BASE_PLAYER_ENERGY + (enemyEtherSlots || 0)) / 2);
-    const s = stat(list);
-    if (m?.key === 'aggro') return s.atk >= baseThreshold;
-    if (m?.key === 'turtle') return s.def >= baseThreshold;
-    if (m?.key === 'balanced') return s.atk === s.def;
-    return true;
-  }
-
-  function score(m, list) {
-    const s = stat(list);
-    let base = 0;
-    if (m?.key === 'aggro') base = s.atk * 100 + s.dmg * 10 - s.sp;
-    else if (m?.key === 'turtle') base = s.def * 100 + s.blk * 10 - s.sp;
-    else base = (s.dmg + s.blk) * 10 - s.sp;
-
-    // HUGE bonus for card count
-    base += list.length * 10000;
-
-    return base;
-  }
-
-  const satisfied = targetCandidates.filter(c => satisfies(mode, c));
-
-  if (satisfied.length > 0) {
-    satisfied.sort((a, b) => {
-      // Priority 1: MORE cards first (reversed from original)
-      if (a.length !== b.length) return b.length - a.length;
-      const sa = score(mode, a), sb = score(mode, b);
-      if (sa !== sb) return sb - sa;
-      const saStat = stat(a), sbStat = stat(b);
-      if (saStat.sp !== sbStat.sp) return saStat.sp - sbStat.sp;
-      if (saStat.en !== sbStat.en) return saStat.en - sbStat.en;
-      const aKey = a.map(c => c.id).join(','), bKey = b.map(c => c.id).join(',');
-      return aKey < bKey ? -1 : aKey > bKey ? 1 : 0;
-    });
-    return satisfied[0];
-  }
-
-  if (targetCandidates.length > 0) {
-    targetCandidates.sort((a, b) => {
-      // Priority 1: MORE cards first
-      if (a.length !== b.length) return b.length - a.length;
-      return score(mode, b) - score(mode, a);
-    });
-    return targetCandidates[0];
-  }
-
-  const single = deck
-    .filter(c => c.speedCost <= effectiveMaxSpeed && c.actionCost <= energyBudget)
-    .sort((a, b) => a.speedCost - b.speedCost || a.actionCost - b.actionCost)[0];
-  console.log(`[generateEnemyActions] Selected single card: ${single ? single.name : 'none'}`);
-  return single ? [single] : [];
-}
-
-function shouldEnemyOverdriveWithTurn(mode, actions, etherPts, turnNumber = 1) {
-  const slots = etherSlots(etherPts);
-  if (slots <= 0) return false;
-  if (turnNumber <= 1) return false;
-  // 몬스터 폭주는 패턴 확정 전까지 금지
-  return false;
-  if (!mode) return false;
-  if (mode.key === 'aggro') return true;
-  if (mode.key === 'balanced') return (actions || []).some(c => c.type === 'attack');
-  return false;
-}
-
-function shouldEnemyOverdrive(mode, actions, etherPts, turnNumber = 1) {
-  return shouldEnemyOverdriveWithTurn(mode, actions, etherPts, turnNumber);
-}
-
 function simulatePreview({ player, enemy, fixedOrder, willOverdrive, enemyMode, enemyActions, turnNumber = 1 }) {
   if (!fixedOrder || fixedOrder.length === 0) {
     return { pDealt: 0, pTaken: 0, finalPHp: player.hp, finalEHp: enemy.hp, lines: [] };
   }
-  const enemyWillOD = shouldEnemyOverdriveWithTurn(enemyMode, enemyActions, enemy.etherPts, turnNumber);
+  const enemyWillOD = shouldEnemyOverdrive(enemyMode, enemyActions, enemy.etherPts, turnNumber);
   const P = { ...player, def: false, block: 0, counter: 0, etherOverdriveActive: !!willOverdrive, strength: player.strength || 0 };
   const E = { ...enemy, def: false, block: 0, counter: 0, etherOverdriveActive: enemyWillOD, strength: enemy.strength || 0 };
   const st = { player: P, enemy: E, log: [] };
