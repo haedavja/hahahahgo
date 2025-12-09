@@ -43,6 +43,7 @@ import { processPlayerEtherAccumulation, processEnemyEtherAccumulation } from ".
 import { processEnemyDeath } from "./utils/enemyDeathProcessing";
 import { playTurnEndRelicAnimations, applyTurnEndRelicEffectsToNextTurn } from "./utils/turnEndRelicEffectsProcessing";
 import { startEtherCalculationAnimationSequence } from "./utils/etherCalculationAnimation";
+import { renderRarityBadge, renderNameWithBadge, getCardDisplayRarity } from "./utils/cardRenderingUtils";
 
 // 유물 희귀도별 색상
 const RELIC_RARITY_COLORS = {
@@ -338,47 +339,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const insightBadgeTimerRef = useRef(null);
   const insightAnimTimerRef = useRef(null);
   const prevRevealLevelRef = useRef(0);
-  const rarityBadges = {
-    rare: { color: '#60a5fa', label: '희귀' },
-    special: { color: '#34d399', label: '특별' },
-    legendary: { color: '#fbbf24', label: '전설' },
-  };
-  const getCardDisplayRarity = (card) => cardUpgrades[card.id] || card.rarity || 'common';
-  const renderRarityBadge = (card) => {
-    const badge = rarityBadges[getCardDisplayRarity(card)];
-    if (!badge) return null;
-    return (
-      <span
-        title={badge.label}
-        style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          padding: '2px 10px',
-          borderRadius: '12px',
-          background: badge.color,
-          color: '#0f172a',
-          fontWeight: 800,
-          boxShadow: `0 0 10px ${badge.color}`,
-          marginLeft: '6px'
-        }}
-      >
-        {badge.label}
-      </span>
-    );
-  };
-  const renderNameWithBadge = (card, defaultColor) => {
-    const badge = rarityBadges[getCardDisplayRarity(card)];
-    if (!badge) {
-      return <span style={{ color: defaultColor }}>{card.name}</span>;
-    }
-    return (
-      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-        <span style={{ color: '#0f172a', background: badge.color, padding: '2px 10px', borderRadius: '12px', fontWeight: 800, boxShadow: `0 0 10px ${badge.color}` }}>
-          {card.name}
-        </span>
-      </span>
-    );
-  };
   // 탈주 카드는 사용된 다음 턴에만 등장 금지
   const escapeBanRef = useRef(new Set());
   const escapeUsedThisTurnRef = useRef(new Set());
@@ -2277,7 +2237,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         showCardTraitTooltip={showCardTraitTooltip}
         hideCardTraitTooltip={hideCardTraitTooltip}
         formatSpeedText={formatSpeedText}
-        renderNameWithBadge={renderNameWithBadge}
+        renderNameWithBadge={(card, defaultColor) => renderNameWithBadge(card, cardUpgrades, defaultColor)}
         fixedOrder={fixedOrder}
         moveUp={moveUp}
         moveDown={moveDown}
