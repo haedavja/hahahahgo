@@ -4,6 +4,8 @@
  * 플레이어 에테르 계산 표시 컴포넌트
  */
 
+import { DeflationBadge } from './DeflationBadge';
+
 export const PlayerEtherBox = ({
   currentCombo,
   battle,
@@ -47,26 +49,11 @@ export const PlayerEtherBox = ({
           position: 'relative'
         }}>
           <span>{currentCombo.name}</span>
-          {currentDeflation && (
-            <div style={{
-              position: 'absolute',
-              left: 'calc(50% + 120px)',
-              fontSize: etherCalcPhase === 'deflation' ? '1.1rem' : '0.9rem',
-              fontWeight: 'bold',
-              color: '#fca5a5',
-              background: 'linear-gradient(135deg, rgba(252, 165, 165, 0.25), rgba(252, 165, 165, 0.1))',
-              border: '1.5px solid rgba(252, 165, 165, 0.5)',
-              borderRadius: '6px',
-              padding: '4px 10px',
-              letterSpacing: '0.05em',
-              boxShadow: '0 0 10px rgba(252, 165, 165, 0.3), inset 0 0 5px rgba(252, 165, 165, 0.15)',
-              transition: 'font-size 0.3s ease, transform 0.3s ease',
-              transform: etherCalcPhase === 'deflation' ? 'scale(1.2)' : 'scale(1)',
-              textShadow: etherCalcPhase === 'deflation' ? '0 0 15px rgba(252, 165, 165, 0.6)' : 'none'
-            }}>
-              -{Math.round((1 - currentDeflation.multiplier) * 100)}%
-            </div>
-          )}
+          <DeflationBadge
+            deflation={currentDeflation}
+            isActive={etherCalcPhase === 'deflation'}
+            position="left"
+          />
         </div>
         <div style={{
           fontSize: etherPulse ? '1.8rem' : (etherCalcPhase === 'sum' ? '2rem' : '1.5rem'),

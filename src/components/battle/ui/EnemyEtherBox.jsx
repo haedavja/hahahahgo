@@ -4,6 +4,8 @@
  * 적 에테르 계산 표시 컴포넌트
  */
 
+import { DeflationBadge } from './DeflationBadge';
+
 export const EnemyEtherBox = ({
   enemyCombo,
   battle,
@@ -47,26 +49,11 @@ export const EnemyEtherBox = ({
           position: 'relative'
         }}>
           <span>{enemyCombo.name}</span>
-          {enemyCurrentDeflation && (
-            <div style={{
-              position: 'absolute',
-              right: 'calc(50% + 120px)',
-              fontSize: enemyEtherCalcPhase === 'deflation' ? '1.1rem' : '0.9rem',
-              fontWeight: 'bold',
-              color: '#fca5a5',
-              background: 'linear-gradient(135deg, rgba(252, 165, 165, 0.25), rgba(252, 165, 165, 0.1))',
-              border: '1.5px solid rgba(252, 165, 165, 0.5)',
-              borderRadius: '6px',
-              padding: '4px 10px',
-              letterSpacing: '0.05em',
-              boxShadow: '0 0 10px rgba(252, 165, 165, 0.3), inset 0 0 5px rgba(252, 165, 165, 0.15)',
-              transition: 'font-size 0.3s ease, transform 0.3s ease',
-              transform: enemyEtherCalcPhase === 'deflation' ? 'scale(1.2)' : 'scale(1)',
-              textShadow: enemyEtherCalcPhase === 'deflation' ? '0 0 15px rgba(252, 165, 165, 0.6)' : 'none'
-            }}>
-              -{Math.round((1 - enemyCurrentDeflation.multiplier) * 100)}%
-            </div>
-          )}
+          <DeflationBadge
+            deflation={enemyCurrentDeflation}
+            isActive={enemyEtherCalcPhase === 'deflation'}
+            position="right"
+          />
         </div>
         <div style={{
           fontSize: enemyEtherCalcPhase === 'sum' ? '2rem' : '1.5rem',
