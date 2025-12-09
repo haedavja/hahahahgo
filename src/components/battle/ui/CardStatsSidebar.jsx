@@ -4,6 +4,8 @@
  * 카드 통계 사이드바 컴포넌트 (공격력, 방어력, 속도)
  */
 
+import React from 'react';
+
 /**
  * 카드 스탯 사이드바 컴포넌트
  * @param {Object} card - 카드 객체

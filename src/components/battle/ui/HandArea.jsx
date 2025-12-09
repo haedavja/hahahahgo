@@ -116,7 +116,7 @@ export const HandArea = ({
                       )}
                     </div>
                     <div className={`card-footer ${isSimplified ? 'simplified-footer' : ''}`}>
-                      <TraitBadgeList traits={c.traits} />
+                      {c.traits && c.traits.length > 0 ? <TraitBadgeList traits={c.traits} /> : null}
                       <span className="card-description">{c.description || ''}</span>
                     </div>
                   </div>
@@ -159,7 +159,7 @@ export const HandArea = ({
                     <Icon size={60} className="text-white opacity-80" />
                   </div>
                   <div className={`card-footer ${isSimplified ? 'simplified-footer' : ''}`}>
-                    <TraitBadgeList traits={c.traits} />
+                    {c.traits && c.traits.length > 0 ? <TraitBadgeList traits={c.traits} /> : null}
                     <span className="card-description">{c.description || ''}</span>
                   </div>
                 </div>
@@ -229,7 +229,7 @@ export const HandArea = ({
                     <Icon size={60} className="text-white opacity-80" />
                   </div>
                   <div className={`card-footer ${isSimplified ? 'simplified-footer' : ''}`}>
-                    <TraitBadgeList traits={a.card.traits} />
+                    {a.card.traits && a.card.traits.length > 0 ? <TraitBadgeList traits={a.card.traits} /> : null}
                     <span className="card-description">{a.card.description || ''}</span>
                   </div>
                 </div>
