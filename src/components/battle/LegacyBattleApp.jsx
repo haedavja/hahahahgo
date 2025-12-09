@@ -31,6 +31,8 @@ import { applyAction, simulatePreview } from "./utils/battleSimulation";
 import { drawCharacterBuildHand } from "./utils/handGeneration";
 import { calculateEffectiveInsight, getInsightRevealLevel, playInsightSound } from "./utils/insightSystem";
 import { computeComboMultiplier as computeComboMultiplierUtil, explainComboMultiplier as explainComboMultiplierUtil } from "./utils/comboMultiplier";
+import { processCardTraitEffects } from "./utils/cardTraitEffects";
+import { calculateEtherTransfer } from "./utils/etherTransfer";
 
 // 유물 희귀도별 색상
 const RELIC_RARITY_COLORS = {
@@ -1703,53 +1705,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     escapeUsedThisTurnRef.current = new Set();
 
     // 다음 턴 효과 처리 (특성 기반)
-    const newNextTurnEffects = {
-      guaranteedCards: [],
-      bonusEnergy: 0,
-      energyPenalty: 0,
-      etherBlocked: false,
-      mainSpecialOnly: false,
-      subSpecialBoost: 0,
-    };
-
-    // 선택된 카드들의 특성 확인
-    selected.forEach(card => {
-      // 반복 (repeat): 다음턴에도 손패에 확정적으로 등장
-      if (hasTrait(card, 'repeat')) {
-        newNextTurnEffects.guaranteedCards.push(card.id);
-        addLog(`🔄 "반복" - ${card.name}이(가) 다음턴에도 등장합니다.`);
-      }
-
-      // 몸풀기 (warmup): 다음턴 행동력 +2
-      if (hasTrait(card, 'warmup')) {
-        newNextTurnEffects.bonusEnergy += 2;
-        addLog(`⚡ "몸풀기" - 다음턴 행동력 +2`);
-      }
-
-      // 탈진 (exhaust): 다음턴 행동력 -2
-      if (hasTrait(card, 'exhaust')) {
-        newNextTurnEffects.energyPenalty += 2;
-        addLog(`😰 "탈진" - 다음턴 행동력 -2`);
-      }
-
-      // 망각 (oblivion): 이후 에테르 획득 불가
-      if (hasTrait(card, 'oblivion')) {
-        newNextTurnEffects.etherBlocked = true;
-        addLog(`🚫 "망각" - 이후 에테르 획득이 불가능해집니다!`);
-      }
-
-      // 파탄 (ruin): 다음턴 주특기만 등장
-      if (hasTrait(card, 'ruin')) {
-        newNextTurnEffects.mainSpecialOnly = true;
-        addLog(`⚠️ "파탄" - 다음턴은 주특기 카드만 뽑힙니다.`);
-      }
-
-      // 장군 (general): 다음턴 보조특기 등장률 25% 증가
-      if (hasTrait(card, 'general')) {
-        newNextTurnEffects.subSpecialBoost += 0.25;
-        addLog(`👑 "장군" - 다음턴 보조특기 등장률 증가!`);
-      }
-    });
+    const newNextTurnEffects = processCardTraitEffects(selected, addLog);
 
     // 유물 턴 종료 효과 적용 (계약서, 은화 등)
     const turnEndRelicEffects = applyTurnEndEffects(relics, {
@@ -1884,30 +1840,19 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     actions.setEnemyEtherFinalValue(enemyFinalEther);
 
     // 에테르 소지량 이동: 적용치 기준 (플레이어도 잃을 수 있음)
-    const netTransfer = playerAppliedEther - enemyAppliedEther;
     const curPlayerPts = player.etherPts || 0;
     const curEnemyPts = enemy.etherPts || 0;
-    let nextPlayerPts = curPlayerPts;
-    let nextEnemyPts = curEnemyPts;
-    let movedPts = 0;
-    if (netTransfer > 0) {
-      const move = Math.min(netTransfer, curEnemyPts);
-      movedPts += move;
-      nextPlayerPts += move;
-      nextEnemyPts = Math.max(0, curEnemyPts - move);
-    } else if (netTransfer < 0) {
-      const move = Math.min(-netTransfer, curPlayerPts);
-      movedPts -= move;
-      nextPlayerPts = Math.max(0, curPlayerPts - move);
-      nextEnemyPts += move;
-    }
+    const { nextPlayerPts, nextEnemyPts, movedPts } = calculateEtherTransfer(
+      playerAppliedEther,
+      enemyAppliedEther,
+      curPlayerPts,
+      curEnemyPts,
+      enemy.hp
+    );
 
-    // 몬스터가 처치된 경우: 남은 에테르 전부 플레이어에게 이전
-    if (enemy.hp <= 0 && nextEnemyPts > 0) {
-      movedPts += nextEnemyPts;
-      nextPlayerPts += nextEnemyPts;
-      addLog(`💠 적 잔여 에테르 회수: +${nextEnemyPts} PT`);
-      nextEnemyPts = 0;
+    // 몬스터가 처치된 경우 로그 추가
+    if (enemy.hp <= 0 && curEnemyPts > 0) {
+      addLog(`💠 적 잔여 에테르 회수: +${curEnemyPts} PT`);
     }
 
     // 실제 이동된 양을 델타로 기록 (0이어도 표시 일치용)
