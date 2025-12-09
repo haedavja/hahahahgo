@@ -644,22 +644,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     }
   }, [battle.phase]);
 
-  // 키보드 단축키 처리
-  useKeyboardShortcuts({
-    battle,
-    player,
-    canRedraw,
-    autoProgress,
-    etherFinalValue,
-    actions,
-    startResolve,
-    beginResolveFromRespond,
-    redrawHand,
-    finishTurn,
-    cycleSortType,
-    playSound
-  });
-
   useEffect(() => {
     if (!enemy) {
       const e = ENEMIES[enemyIndex];
@@ -1726,6 +1710,22 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   };
 
   const removeSelectedAt = (i) => actions.setSelected(battle.selected.filter((_, idx) => idx !== i));
+
+  // 키보드 단축키 처리
+  useKeyboardShortcuts({
+    battle,
+    player,
+    canRedraw,
+    autoProgress,
+    etherFinalValue,
+    actions,
+    startResolve,
+    beginResolveFromRespond,
+    redrawHand,
+    finishTurn,
+    cycleSortType,
+    playSound
+  });
 
   const playerTimeline = useMemo(() => {
     if (battle.phase === 'select') {
