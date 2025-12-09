@@ -7,8 +7,8 @@
 import { useGameStore } from '../../../state/gameStore';
 import { hasTrait, applyTraitModifiers } from '../utils/battleUtils';
 import { detectPokerCombo } from '../utils/comboDetection';
-import { TraitBadgeList } from './TraitBadge';
-import { CardStatsSidebar } from './CardStatsSidebar';
+import { TraitBadgeList } from './TraitBadge.jsx';
+import { CardStatsSidebar } from './CardStatsSidebar.jsx';
 
 // X 아이콘 SVG 컴포넌트
 const X = ({ size = 24, className = "", strokeWidth = 2 }) => (
