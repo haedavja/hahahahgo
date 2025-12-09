@@ -35,6 +35,7 @@ import { processCardTraitEffects } from "./utils/cardTraitEffects";
 import { calculateEtherTransfer } from "./utils/etherTransfer";
 import { calculateTurnEndEther, formatPlayerEtherLog, formatEnemyEtherLog } from "./utils/turnEndEtherCalculation";
 import { updateComboUsageCount, createTurnEndPlayerState, createTurnEndEnemyState, checkVictoryCondition } from "./utils/turnEndStateUpdate";
+import { processImmediateCardTraits, processCardPlayedRelicEffects } from "./utils/cardImmediateEffects";
 
 // 유물 희귀도별 색상
 const RELIC_RARITY_COLORS = {
@@ -1470,37 +1471,27 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         [a.card.id]: (cardUsageCount[a.card.id] || 0) + 1
       });
 
-      // 양날의 검 (double_edge): 사용시 1 피해
-      if (hasTrait(a.card, 'double_edge')) {
-        P.hp = Math.max(0, P.hp - 1);
-        addLog(`⚠️ "양날의 검" - 플레이어가 1 피해를 입었습니다.`);
-      }
-
-      // 단련 (training): 사용 후 힘 +1
-      if (hasTrait(a.card, 'training')) {
-        P.strength = (P.strength || 0) + 1;
-        addLog(`💪 "단련" - 힘이 1 증가했습니다. (현재: ${P.strength})`);
-      }
-
-      // 몸풀기 (warmup): 다음 턴 행동력 +2
-      if (hasTrait(a.card, 'warmup')) {
-        actions.setNextTurnEffects({ ...nextTurnEffects, bonusEnergy: (nextTurnEffects.bonusEnergy || 0) + 2 });
-        addLog(`🔥 "몸풀기" - 다음 턴 행동력 +2 예약`);
+      // 즉시 발동 특성 처리 (double_edge, training, warmup)
+      const updatedNextTurnEffects = processImmediateCardTraits({
+        card: a.card,
+        playerState: P,
+        nextTurnEffects,
+        addLog
+      });
+      if (updatedNextTurnEffects !== nextTurnEffects) {
+        actions.setNextTurnEffects(updatedNextTurnEffects);
       }
 
       // 유물: 카드 사용 시 효과 (불멸의 가면 등)
-      const cardRelicEffects = applyCardPlayedEffects(relics, a.card, { player: P, enemy: E });
-      if (cardRelicEffects.heal) {
-        const maxHpVal = P.maxHp ?? player.maxHp ?? safeInitialPlayer.maxHp ?? 100;
-        const healed = Math.min(maxHpVal, (P.hp || 0) + cardRelicEffects.heal);
-        const healDelta = healed - (P.hp || 0);
-        if (healDelta > 0) {
-          P.hp = healed;
-          addLog(`🎭 유물 효과: 체력 +${healDelta} (불멸의 가면 등)`);
-          actions.setRelicActivated('immortalMask');
-          setTimeout(() => actions.setRelicActivated(null), 500);
-        }
-      }
+      processCardPlayedRelicEffects({
+        relics,
+        card: a.card,
+        playerState: P,
+        enemyState: E,
+        safeInitialPlayer,
+        addLog,
+        setRelicActivated: actions.setRelicActivated
+      });
     }
 
     if (hasTrait(a.card, 'stun')) {
