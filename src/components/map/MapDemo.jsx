@@ -8,17 +8,10 @@ import { LegacyBattleScreen } from "../battle/LegacyBattleScreen";
 import { EtherBar } from "../battle/ui/EtherBar";
 import { DevTools } from "../dev/DevTools";
 import { RELICS, RELIC_RARITIES } from "../../data/relics";
+import { RELIC_RARITY_COLORS } from "../../lib/relics";
 import { CARDS } from "../battle/battleData";
 import { CARD_ETHER_BY_RARITY } from "../battle/utils/etherCalculations";
 import { applyNodeMoveEther } from "../../lib/relicEffects";
-
-// 유물 희귀도별 색상
-const RELIC_RARITY_COLORS = {
-  [RELIC_RARITIES.COMMON]: '#94a3b8',
-  [RELIC_RARITIES.RARE]: '#60a5fa',
-  [RELIC_RARITIES.SPECIAL]: '#a78bfa',
-  [RELIC_RARITIES.LEGENDARY]: '#fbbf24',
-};
 
 const NODE_WIDTH = 96;
 const NODE_HEIGHT = 100;

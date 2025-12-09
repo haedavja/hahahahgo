@@ -19,7 +19,7 @@ import { calculateEtherSlots, getCurrentSlotPts, getSlotProgress, getNextSlotCos
 import { CharacterSheet } from "../character/CharacterSheet";
 import { useGameStore } from "../../state/gameStore";
 import { RELICS, RELIC_RARITIES } from "../../data/relics";
-import { RELIC_EFFECT, applyRelicEffects, applyRelicComboMultiplier } from "../../lib/relics";
+import { RELIC_EFFECT, applyRelicEffects, applyRelicComboMultiplier, RELIC_RARITY_COLORS } from "../../lib/relics";
 import { applyAgility } from "../../lib/agilityUtils";
 import { choice, hasTrait, applyTraitModifiers, applyStrengthToCard, applyStrengthToHand, getCardRarity } from "./utils/battleUtils";
 import { detectPokerCombo, applyPokerBonus } from "./utils/comboDetection";
@@ -48,14 +48,6 @@ import { startEnemyEtherAnimation } from "./utils/enemyEtherAnimation";
 import { processEtherTransfer } from "./utils/etherTransferProcessing";
 import { processVictoryDefeatTransition } from "./utils/victoryDefeatTransition";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
-
-// 유물 희귀도별 색상
-const RELIC_RARITY_COLORS = {
-  [RELIC_RARITIES.COMMON]: '#94a3b8',
-  [RELIC_RARITIES.RARE]: '#60a5fa',
-  [RELIC_RARITIES.SPECIAL]: '#a78bfa',
-  [RELIC_RARITIES.LEGENDARY]: '#fbbf24',
-};
 import {
   calculatePassiveEffects,
   applyCombatStartEffects,

@@ -5,15 +5,8 @@ import { calculateEtherSlots, getCurrentSlotPts, getSlotProgress, getNextSlotCos
 import { CharacterSheet } from "../character/CharacterSheet";
 import { EtherBar } from "../battle/ui/EtherBar";
 import { RELICS, RELIC_RARITIES } from "../../data/relics";
+import { RELIC_RARITY_COLORS } from "../../lib/relics";
 import "./dungeon.css";
-
-// 유물 희귀도별 색상
-const RELIC_RARITY_COLORS = {
-  [RELIC_RARITIES.COMMON]: '#94a3b8',
-  [RELIC_RARITIES.RARE]: '#60a5fa',
-  [RELIC_RARITIES.SPECIAL]: '#a78bfa',
-  [RELIC_RARITIES.LEGENDARY]: '#fbbf24',
-};
 
 // ========== 설정 ==========
 const CONFIG = {
