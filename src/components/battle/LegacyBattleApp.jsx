@@ -1140,7 +1140,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     actions.setEnemyCurrentDeflation(null);
 
     // 에테르 폭주 체크 (phase 변경 전에 실행)
-    const enemyWillOD = shouldEnemyOverdriveWithTurn(enemyPlan.mode, enemyPlan.actions, enemy.etherPts, turnNumber) && etherSlots(enemy.etherPts) > 0;
+    const enemyWillOD = shouldEnemyOverdrive(enemyPlan.mode, enemyPlan.actions, enemy.etherPts, turnNumber) && etherSlots(enemy.etherPts) > 0;
     if (willOverdrive && etherSlots(player.etherPts) > 0) {
       actions.setPlayer({ ...player, etherPts: player.etherPts - ETHER_THRESHOLD, etherOverdriveActive: true });
       actions.setPlayerOverdriveFlash(true);
@@ -1828,7 +1828,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const remainingEnergy = Math.max(0, playerEnergyBudget - totalEnergy);
   const insightLevelSelect = insightReveal?.level || 0;
   const insightVisible = insightReveal?.visible;
-  const enemyWillOverdrivePlan = shouldEnemyOverdriveWithTurn(enemyPlan.mode, enemyPlan.actions, enemy.etherPts, turnNumber);
+  const enemyWillOverdrivePlan = shouldEnemyOverdrive(enemyPlan.mode, enemyPlan.actions, enemy.etherPts, turnNumber);
   const canRevealOverdrive =
     (battle.phase === 'select' && insightVisible && insightLevelSelect >= 2) ||
     (battle.phase === 'respond' && insightVisible && insightLevelSelect >= 1) ||
