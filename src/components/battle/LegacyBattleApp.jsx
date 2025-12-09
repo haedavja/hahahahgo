@@ -33,6 +33,7 @@ import { calculateEffectiveInsight, getInsightRevealLevel, playInsightSound } fr
 import { computeComboMultiplier as computeComboMultiplierUtil, explainComboMultiplier as explainComboMultiplierUtil } from "./utils/comboMultiplier";
 import { processCardTraitEffects } from "./utils/cardTraitEffects";
 import { calculateEtherTransfer } from "./utils/etherTransfer";
+import { formatCompactValue } from "./utils/formatUtils";
 import { calculateTurnEndEther, formatPlayerEtherLog, formatEnemyEtherLog } from "./utils/turnEndEtherCalculation";
 import { updateComboUsageCount, createTurnEndPlayerState, createTurnEndEnemyState, checkVictoryCondition } from "./utils/turnEndStateUpdate";
 import { processImmediateCardTraits, processCardPlayedRelicEffects } from "./utils/cardImmediateEffects";
@@ -1816,14 +1817,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const playerEtherValue = player?.etherPts ?? 0;
   const playerEtherSlots = etherSlots(playerEtherValue);
   const enemyEtherValue = enemy?.etherPts ?? 0;
-  const formatCompactValue = (num) => {
-    if (!Number.isFinite(num)) return '0';
-    const abs = Math.abs(num);
-    if (abs >= 1e9) return `${(num / 1e9).toFixed(2)}B`;
-    if (abs >= 1e6) return `${(num / 1e6).toFixed(2)}M`;
-    if (abs >= 1e3) return `${(num / 1e3).toFixed(2)}K`;
-    return num.toLocaleString();
-  };
   const playerEnergyBudget = player.energy || BASE_PLAYER_ENERGY;
   const remainingEnergy = Math.max(0, playerEnergyBudget - totalEnergy);
   const insightLevelSelect = insightReveal?.level || 0;

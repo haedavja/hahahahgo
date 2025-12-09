@@ -5,6 +5,7 @@
  */
 
 import { calculateEtherSlots, getCurrentSlotPts, getSlotProgress, getNextSlotCost } from '../../../lib/etherUtils';
+import { formatCompactValue } from '../utils/formatUtils';
 
 const etherSlots = (pts) => calculateEtherSlots(pts || 0);
 
@@ -23,15 +24,6 @@ export function EtherBar({
   const derivedSlots = Number.isFinite(slots) ? slots : etherSlots(safePts);
   const safeSlots = Number.isFinite(derivedSlots) ? derivedSlots : 0;
   const safePreview = Number.isFinite(previewGain) ? previewGain : 0;
-
-  // 숫자 축약 포맷터 (K/M/B) + 전체 문자열
-  const formatCompact = (num) => {
-    const abs = Math.abs(num);
-    if (abs >= 1e9) return `${(num / 1e9).toFixed(2)}B`;
-    if (abs >= 1e6) return `${(num / 1e6).toFixed(2)}M`;
-    if (abs >= 1e3) return `${(num / 1e3).toFixed(2)}K`;
-    return num.toLocaleString();
-  };
 
   // 현재 슬롯 내의 pt (각 슬롯 도달시마다 0으로 리셋)
   const currentPts = getCurrentSlotPts(safePts);
@@ -58,8 +50,8 @@ export function EtherBar({
   const textColor = color === 'red' ? '#fca5a5' : '#8fd3ff';
 
   // 표시용 압축 문자열과 툴팁용 전체 문자열
-  const compactCurrent = formatCompact(currentPts);
-  const compactNext = formatCompact(nextSlotCost);
+  const compactCurrent = formatCompactValue(currentPts);
+  const compactNext = formatCompactValue(nextSlotCost);
   const fullTitle = `${currentPts.toLocaleString()} / ${nextSlotCost.toLocaleString()}`;
 
   // 슬롯별 색상 (플레이어: 보색 관계로 시인성 극대화)
