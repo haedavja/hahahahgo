@@ -33,6 +33,7 @@ import { calculateEffectiveInsight, getInsightRevealLevel, playInsightSound } fr
 import { computeComboMultiplier as computeComboMultiplierUtil, explainComboMultiplier as explainComboMultiplierUtil } from "./utils/comboMultiplier";
 import { processCardTraitEffects } from "./utils/cardTraitEffects";
 import { calculateEtherTransfer } from "./utils/etherTransfer";
+import { calculateTurnEndEther, formatPlayerEtherLog, formatEnemyEtherLog } from "./utils/turnEndEtherCalculation";
 
 // 유물 희귀도별 색상
 const RELIC_RARITY_COLORS = {
@@ -1752,87 +1753,57 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     const pComboEnd = detectPokerCombo(selected);
     const eComboEnd = detectPokerCombo(enemyPlan.actions);
 
-    // 에테르 최종 계산 및 적용 (애니메이션은 stepOnce에서 처리됨)
-    const basePlayerComboMult = pComboEnd ? (COMBO_MULTIPLIERS[pComboEnd.name] || 1) : 1;
-    const playerComboMult = finalComboMultiplier || basePlayerComboMult;
-    const relicMultBonus = playerComboMult - basePlayerComboMult;
+    // 에테르 최종 계산 (유물 배율 및 디플레이션 적용)
+    const etherResult = calculateTurnEndEther({
+      playerCombo: pComboEnd,
+      enemyCombo: eComboEnd,
+      turnEtherAccumulated,
+      enemyTurnEtherAccumulated,
+      finalComboMultiplier,
+      player,
+      enemy
+    });
 
-    // 턴 종료 시점에는 에테르 결정/조약돌 발동 애니메이션을 중복 노출하지 않음 (카드 실행 시에만)
-
-    const enemyComboMult = eComboEnd ? (COMBO_MULTIPLIERS[eComboEnd.name] || 1) : 1;
-
-    // 조합 배율 적용 (유물 배율 이미 반영됨)
-    let playerBeforeDeflation = Math.round(turnEtherAccumulated * playerComboMult);
-
-    const enemyBeforeDeflation = Math.round(enemyTurnEtherAccumulated * enemyComboMult);
-
-    // 디플레이션 적용
-    const playerDeflation = pComboEnd?.name
-      ? applyEtherDeflation(playerBeforeDeflation, pComboEnd.name, player.comboUsageCount || {})
-      : { gain: playerBeforeDeflation, multiplier: 1, usageCount: 0 };
-
-    const enemyDeflation = eComboEnd?.name
-      ? applyEtherDeflation(enemyBeforeDeflation, eComboEnd.name, enemy.comboUsageCount || {})
-      : { gain: enemyBeforeDeflation, multiplier: 1, usageCount: 0 };
-
-    // finishTurn에서 항상 새로 계산 (애니메이션 시점의 값은 상태 업데이트 타이밍 문제로 부정확할 수 있음)
-    const playerFinalEther = playerDeflation.gain;
-    const enemyFinalEther = enemyDeflation.gain;
+    const { player: playerEther, enemy: enemyEther } = etherResult;
+    const playerFinalEther = playerEther.finalEther;
+    const enemyFinalEther = enemyEther.finalEther;
+    const playerAppliedEther = playerEther.appliedEther;
+    const enemyAppliedEther = enemyEther.appliedEther;
+    const playerOverflow = playerEther.overflow;
+    const enemyOverflow = enemyEther.overflow;
 
     console.log('[finishTurn 계산]', {
       turnEtherAccumulated,
       comboName: pComboEnd?.name,
-      basePlayerComboMult,
-      relicMultBonus,
-      playerComboMult,
-      playerBeforeDeflation,
-      deflationMult: playerDeflation.multiplier,
-      usageCount: playerDeflation.usageCount,
-      playerFinalEther: playerFinalEther,
+      basePlayerComboMult: playerEther.baseComboMult,
+      relicMultBonus: playerEther.relicMultBonus,
+      playerComboMult: playerEther.finalComboMult,
+      playerBeforeDeflation: playerEther.beforeDeflation,
+      deflationMult: playerEther.deflation.multiplier,
+      usageCount: playerEther.deflation.usageCount,
+      playerFinalEther,
       selectedCards: battle.selected.length,
-      resolvedPlayerCards: resolvedPlayerCards,
+      resolvedPlayerCards,
       comboUsageCount: player.comboUsageCount,
       comboUsageForThisCombo: player.comboUsageCount?.[pComboEnd?.name] || 0
     });
 
-    // 에테르 범람 계산: 현재 슬롯 내에서 초과분은 범람
-    let playerAppliedEther = 0;
-    let playerOverflow = 0;
-
+    // 플레이어 에테르 획득 처리
     if (playerFinalEther > 0) {
-      playerAppliedEther = playerFinalEther;
-      playerOverflow = 0;
-
-      // 실제 적용된 총 배율 계산 (조합 배율 + 참고서 + 악마의 주사위)
-      const actualTotalMultiplier = turnEtherAccumulated > 0
-        ? (playerBeforeDeflation / turnEtherAccumulated)
-        : 1;
-
-      const deflationText = playerDeflation.usageCount > 0
-        ? ` (디플레이션 -${Math.round((1 - playerDeflation.multiplier) * 100)}%, ${playerDeflation.usageCount}회 사용)`
-        : '';
-      const relicText = relicMultBonus > 0 ? ` (유물 배율 +${relicMultBonus.toFixed(2)})` : '';
-      addLog(`✴️ 에테르 획득: ${turnEtherAccumulated} × ${actualTotalMultiplier.toFixed(2)}${relicText} = ${playerBeforeDeflation} → ${playerFinalEther} PT${deflationText} (적용: ${playerAppliedEther} PT)`);
-
-      // 최종값 UI에 로그와 동일한 값 표시
+      addLog(formatPlayerEtherLog(playerEther, turnEtherAccumulated));
       actions.setEtherFinalValue(playerFinalEther);
     }
-    // 적도 동일하게 적용/범람 계산 (슬롯 남은칸 제한 제거)
-    let enemyAppliedEther = 0;
-    let enemyOverflow = 0;
-    if (enemyFinalEther > 0) {
-      enemyAppliedEther = enemyFinalEther;
-      enemyOverflow = 0;
 
-      const deflationText = enemyDeflation.usageCount > 0
-        ? ` (디플레이션: ${Math.round(enemyDeflation.multiplier * 100)}%)`
-        : '';
-      addLog(`☄️ 적 에테르 획득: ${enemyTurnEtherAccumulated} × ${enemyComboMult.toFixed(2)} = ${enemyBeforeDeflation} → ${enemyFinalEther} PT${deflationText} (적용: ${enemyAppliedEther} PT)`);
+    // 적 에테르 획득 처리
+    if (enemyFinalEther > 0) {
+      addLog(formatEnemyEtherLog(enemyEther, enemyTurnEtherAccumulated));
       actions.setEnemyEtherCalcPhase('sum');
       setTimeout(() => actions.setEnemyEtherCalcPhase('multiply'), 50);
       setTimeout(() => {
         actions.setEnemyEtherCalcPhase('deflation');
-        actions.setEnemyCurrentDeflation(enemyDeflation.usageCount > 0 ? { multiplier: enemyDeflation.multiplier, usageCount: enemyDeflation.usageCount } : null);
+        actions.setEnemyCurrentDeflation(enemyEther.deflation.usageCount > 0
+          ? { multiplier: enemyEther.deflation.multiplier, usageCount: enemyEther.deflation.usageCount }
+          : null);
       }, 150);
       setTimeout(() => actions.setEnemyEtherCalcPhase('result'), 300);
     }
