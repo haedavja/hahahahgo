@@ -36,6 +36,7 @@ import { calculateEtherTransfer } from "./utils/etherTransfer";
 import { calculateTurnEndEther, formatPlayerEtherLog, formatEnemyEtherLog } from "./utils/turnEndEtherCalculation";
 import { updateComboUsageCount, createTurnEndPlayerState, createTurnEndEnemyState, checkVictoryCondition } from "./utils/turnEndStateUpdate";
 import { processImmediateCardTraits, processCardPlayedRelicEffects } from "./utils/cardImmediateEffects";
+import { collectTriggeredRelics, playRelicActivationSequence } from "./utils/relicActivationAnimation";
 
 // 유물 희귀도별 색상
 const RELIC_RARITY_COLORS = {
@@ -1538,43 +1539,17 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
       // 유물이 있으면 발동 애니메이션 및 사운드 (좌→우 순차 재생)
       if (relics.length > 0) {
-        const triggered = [];
-        orderedRelicList.forEach(relicId => {
-          const relic = RELICS[relicId];
-          // effects가 객체인 경우 처리 (/src/data/relics.js 사용)
-          if (relic?.effects?.type === 'PASSIVE' && relic?.effects?.comboMultiplierPerCard) {
-            // 에테르 결정: 카드마다 즉시 발동 표시/사운드
-            triggered.push({ id: relicId, tone: 800, duration: 500 });
-          } else if (relic?.effects?.type === 'PASSIVE' && (relic?.effects?.etherCardMultiplier || relicId === 'rareStone' || relic?.effects?.etherMultiplier)) {
-            if (relicId === 'referenceBook') {
-              // 참고서는 마지막 카드에서만 한 번 발동
-              if (isLastPlayerCard && !referenceBookTriggeredRef.current) {
-                referenceBookTriggeredRef.current = true;
-                triggered.push({ id: relicId, tone: 820, duration: 500 });
-              }
-              return;
-            }
-            // 희귀한 조약돌 등: 카드마다 즉시 발동 (상시 배지 없음)
-            triggered.push({ id: relicId, tone: 820, duration: 400 });
-          } else if (relic?.effects?.type === 'PASSIVE' && relic?.effects?.etherFiveCardBonus && newCount >= 5 && !devilDiceTriggeredRef.current) {
-            // 악마의 주사위: 다섯번째 카드 처리 직후 발동
-            devilDiceTriggeredRef.current = true;
-            triggered.push({ id: relicId, tone: 980, duration: 800 });
+        const triggered = collectTriggeredRelics({
+          orderedRelicList,
+          resolvedPlayerCards,
+          playerTimeline,
+          triggeredRefs: {
+            referenceBookTriggered: referenceBookTriggeredRef,
+            devilDiceTriggered: devilDiceTriggeredRef
           }
         });
 
-        if (triggered.length > 0) {
-          const playSeq = (idx = 0) => {
-            if (idx >= triggered.length) {
-              actions.setRelicActivated(null);
-              return;
-            }
-            const item = triggered[idx];
-            flashRelic(item.id, item.tone, item.duration);
-            setTimeout(() => playSeq(idx + 1), Math.max(200, item.duration * 0.6));
-          };
-          playSeq(0);
-        }
+        playRelicActivationSequence(triggered, flashRelic, actions.setRelicActivated);
       }
 
       actions.setResolvedPlayerCards(newCount);
