@@ -47,6 +47,7 @@ import { renderRarityBadge, renderNameWithBadge, getCardDisplayRarity } from "./
 import { startEnemyEtherAnimation } from "./utils/enemyEtherAnimation";
 import { processEtherTransfer } from "./utils/etherTransferProcessing";
 import { processVictoryDefeatTransition } from "./utils/victoryDefeatTransition";
+import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
 
 // 유물 희귀도별 색상
 const RELIC_RARITY_COLORS = {
@@ -651,62 +652,21 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     }
   }, [battle.phase]);
 
-  // C 키로 캐릭터 창 열기, Q 키로 간소화, E 키로 제출/진행/턴 종료, R 키로 리드로우, 스페이스바로 기원, F 키로 정렬
-  useEffect(() => {
-    const handleKeyPress = (e) => {
-      if (e.key === "c" || e.key === "C") {
-        e.preventDefault();
-        e.stopPropagation();
-        actions.setShowCharacterSheet((prev) => !prev);
-      }
-      if ((e.key === "q" || e.key === "Q") && battle.phase === 'select') {
-        e.preventDefault();
-        actions.setIsSimplified((prev) => {
-          const newVal = !prev;
-          try { localStorage.setItem('battleIsSimplified', newVal.toString()); } catch { }
-          return newVal;
-        });
-      }
-      if ((e.key === "e" || e.key === "E") && battle.phase === 'select' && battle.selected.length > 0) {
-        e.preventDefault();
-        startResolve();
-        playSound(900, 120);
-      }
-      if ((e.key === "e" || e.key === "E") && battle.phase === 'respond') {
-        e.preventDefault();
-        beginResolveFromRespond();
-      }
-      if ((e.key === "r" || e.key === "R") && battle.phase === 'select' && canRedraw) {
-        e.preventDefault();
-        redrawHand();
-      }
-      if (e.key === " " && (battle.phase === 'select' || battle.phase === 'respond')) {
-        // 스페이스바로 기원 토글
-        e.preventDefault(); // 스페이스바 기본 동작 방지 (스크롤)
-        if (etherSlots(player.etherPts) > 0) {
-          actions.setWillOverdrive(v => !v);
-        }
-      }
-      if ((e.key === "e" || e.key === "E") && battle.phase === 'resolve') {
-        e.preventDefault();
-        if (battle.qIndex < battle.queue.length) {
-          // 타임라인 진행 중이면 진행 토글
-          actions.setAutoProgress(!autoProgress);
-        } else if (etherFinalValue !== null) {
-          // 타임라인 끝나고 최종값 표시되면 턴 종료
-          finishTurn('키보드 단축키 (E)');
-        }
-      }
-      if ((e.key === "f" || e.key === "F") && battle.phase === 'select') {
-        e.preventDefault();
-        // F키로 카드 정렬
-        cycleSortType();
-      }
-    };
-    window.addEventListener("keydown", handleKeyPress);
-    return () => window.removeEventListener("keydown", handleKeyPress);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [battle.phase, battle.selected, battle.canRedraw, player.etherPts, sortType, autoProgress, battle.qIndex, battle.queue.length, etherFinalValue]);
+  // 키보드 단축키 처리
+  useKeyboardShortcuts({
+    battle,
+    player,
+    canRedraw,
+    autoProgress,
+    etherFinalValue,
+    actions,
+    startResolve,
+    beginResolveFromRespond,
+    redrawHand,
+    finishTurn,
+    cycleSortType,
+    playSound
+  });
 
   useEffect(() => {
     if (!enemy) {
