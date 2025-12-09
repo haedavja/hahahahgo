@@ -1973,6 +1973,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
           resolveStartPlayer={resolveStartPlayer}
           resolveStartEnemy={resolveStartEnemy}
           turnNumber={turnNumber}
+          simulatePreview={simulatePreview}
         />
         {/* 배율 경로: 단계와 무관하게 항상 표시 */}
         {comboStepsLog.length > 0 && (
