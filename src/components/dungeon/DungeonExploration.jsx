@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useReducer } from "react";
+import { useState, useEffect, useRef, useReducer, useCallback } from "react";
 import { useDungeonState } from "./hooks/useDungeonState";
 import { useGameStore } from "../../state/gameStore";
 import { calculateEtherSlots, getCurrentSlotPts, getSlotProgress, getNextSlotCost } from "../../lib/etherUtils";
@@ -326,7 +326,7 @@ export function DungeonExploration() {
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
     };
-  }, [segmentIndex, playerX]);
+  }, [handleInteraction, actions]);
 
   // ========== 플레이어 이동 ==========
   useEffect(() => {
@@ -467,7 +467,7 @@ export function DungeonExploration() {
   }, [segment, playerX, cameraX, playerHp, maxHp, playerY, resources.etherPts]);
 
   // ========== 상호작용 ==========
-  const handleInteraction = () => {
+  const handleInteraction = useCallback(() => {
     if (!segment) return;
 
     // 오브젝트 체크
@@ -507,7 +507,7 @@ export function DungeonExploration() {
         actions.setMessage("");
       }
     }
-  };
+  }, [segment, playerX, actions, applyEtherDelta, setMessage, startBattle, segmentIndex, preBattleState, handleCompleteDungeon]);
 
   // ========== 보상 확인 ==========
   const closeRewardModal = () => {
