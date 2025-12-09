@@ -85,8 +85,8 @@ export function EtherBar({
         background: 'rgba(9, 17, 27, 0.95)',
         overflow: 'hidden',
       }}
-        onMouseEnter={() => actions.setShowBarTooltip(true)}
-        onMouseLeave={() => actions.setShowBarTooltip(false)}
+        onMouseEnter={() => actions?.setShowBarTooltip(true)}
+        onMouseLeave={() => actions?.setShowBarTooltip(false)}
       >
         <div style={{
           position: 'absolute',
@@ -107,8 +107,8 @@ export function EtherBar({
       )}
       <div
         style={{ textAlign: 'center', color: textColor, fontSize: '20px', position: 'relative' }}
-        onMouseEnter={() => actions.setShowPtsTooltip(true)}
-        onMouseLeave={() => actions.setShowPtsTooltip(false)}
+        onMouseEnter={() => actions?.setShowPtsTooltip(true)}
+        onMouseLeave={() => actions?.setShowPtsTooltip(false)}
       >
         <div key={`pts-${safePts}`} style={{ fontFamily: 'monospace', lineHeight: 1.1, display: 'inline-flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
           <div>{compactCurrent}</div>
