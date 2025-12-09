@@ -41,6 +41,7 @@ import { processActionEventAnimations } from "./utils/eventAnimationProcessing";
 import { processStunEffect } from "./utils/stunProcessing";
 import { processPlayerEtherAccumulation, processEnemyEtherAccumulation } from "./utils/etherAccumulationProcessing";
 import { processEnemyDeath } from "./utils/enemyDeathProcessing";
+import { playTurnEndRelicAnimations, applyTurnEndRelicEffectsToNextTurn } from "./utils/turnEndRelicEffectsProcessing";
 
 // 유물 희귀도별 색상
 const RELIC_RARITY_COLORS = {
@@ -1617,38 +1618,26 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     });
 
     // 턴 종료 유물 발동 애니메이션
-    relics.forEach(relicId => {
-      const relic = RELICS[relicId];
-      if (relic?.effects?.type === 'ON_TURN_END') {
-        const condition = relic.effects.condition;
-        if (!condition || condition({ cardsPlayedThisTurn: battle.selected.length, player, enemy })) {
-          actions.setRelicActivated(relicId);
-          playSound(800, 200);
-          setTimeout(() => actions.setRelicActivated(null), 500);
-        }
-      }
+    playTurnEndRelicAnimations({
+      relics,
+      RELICS,
+      cardsPlayedThisTurn: battle.selected.length,
+      player,
+      enemy,
+      playSound,
+      actions
     });
 
-    // 턴 종료 유물 효과를 다음 턴 효과에 추가
-    if (turnEndRelicEffects.energyNextTurn > 0) {
-      newNextTurnEffects.bonusEnergy += turnEndRelicEffects.energyNextTurn;
-      addLog(`📜 유물 효과: 다음턴 행동력 +${turnEndRelicEffects.energyNextTurn}`);
-      console.log("[턴 종료 계약서 효과]", {
-        "battle.selected.length": battle.selected.length,
-        "turnEndRelicEffects.energyNextTurn": turnEndRelicEffects.energyNextTurn,
-        "newNextTurnEffects.bonusEnergy": newNextTurnEffects.bonusEnergy
-      });
-    }
+    // 턴 종료 유물 효과를 다음 턴 효과에 적용
+    const updatedNextTurnEffects = applyTurnEndRelicEffectsToNextTurn({
+      turnEndRelicEffects,
+      nextTurnEffects: newNextTurnEffects,
+      player,
+      addLog,
+      actions
+    });
 
-    actions.setNextTurnEffects(newNextTurnEffects);
-
-    // 힘 증가 즉시 적용 (은화 등) - 상태 업데이트 후에 적용
-    if (turnEndRelicEffects.strength !== 0) {
-      const currentStrength = player.strength || 0;
-      const newStrength = currentStrength + turnEndRelicEffects.strength;
-      addLog(`💪 유물 효과: 힘 ${turnEndRelicEffects.strength > 0 ? '+' : ''}${turnEndRelicEffects.strength} (총 ${newStrength})`);
-      actions.setPlayer({ ...player, strength: newStrength });
-    }
+    actions.setNextTurnEffects(updatedNextTurnEffects);
 
     // 턴 종료 시 조합 카운트 증가 (Deflation)
     const pComboEnd = detectPokerCombo(selected);
