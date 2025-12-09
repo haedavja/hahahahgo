@@ -25,6 +25,7 @@ import { choice, hasTrait, applyTraitModifiers, applyStrengthToCard, applyStreng
 import { detectPokerCombo, applyPokerBonus } from "./utils/comboDetection";
 import { COMBO_MULTIPLIERS, BASE_ETHER_PER_CARD, CARD_ETHER_BY_RARITY, applyEtherDeflation, getCardEtherGain, calcCardsEther, calculateComboEtherGain } from "./utils/etherCalculations";
 import { sortCombinedOrderStablePF, addEther } from "./utils/combatUtils";
+import { createFixedOrder } from "./utils/cardOrdering";
 
 // 유물 희귀도별 색상
 const RELIC_RARITY_COLORS = {
@@ -1483,40 +1484,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       }
       const combo = detectPokerCombo(next);
       const enhanced = applyPokerBonus(next, combo);
-
-      // 수동 순서 유지: 정렬하지 않고 순서대로 fixedOrder 생성
-      const playerCards = enhanced.map((card, idx) => ({
-        actor: 'player',
-        card,
-        originalIndex: idx
-      }));
-
-      const enemyCards = (enemyPlan.actions || []).map((action, idx) => ({
-        actor: 'enemy',
-        card: action,
-        originalIndex: idx
-      }));
-
-      // 플레이어 카드를 먼저, 그 다음 적 카드 (수동 순서)
-      const manualOrder = [...playerCards, ...enemyCards];
-
-      // sp 값 재계산 (누적)
-      let ps = 0;
-      let es = 0;
-      const withSp = manualOrder.map(item => {
-        const isPlayer = item.actor === 'player';
-        const agility = isPlayer ? effectiveAgility : 0;
-        const finalSpeed = applyAgility(item.card.speedCost, agility);
-
-        if (isPlayer) {
-          ps += finalSpeed;
-          return { ...item, sp: ps, finalSpeed };
-        } else {
-          es += finalSpeed;
-          return { ...item, sp: es, finalSpeed };
-        }
-      });
-
+      const withSp = createFixedOrder(enhanced, enemyPlan.actions, effectiveAgility);
       actions.setFixedOrder(withSp);
       actions.setSelected(next);
       return;
@@ -1542,40 +1510,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
       const combo = detectPokerCombo(n);
       const enhanced = applyPokerBonus(n, combo);
-
-      // 수동 순서 유지: 정렬하지 않고 순서대로 fixedOrder 생성
-      const playerCards = enhanced.map((card, idx) => ({
-        actor: 'player',
-        card,
-        originalIndex: idx
-      }));
-
-      const enemyCards = (enemyPlan.actions || []).map((action, idx) => ({
-        actor: 'enemy',
-        card: action,
-        originalIndex: idx
-      }));
-
-      // 플레이어 카드를 먼저, 그 다음 적 카드 (수동 순서)
-      const manualOrder = [...playerCards, ...enemyCards];
-
-      // sp 값 재계산 (누적)
-      let ps = 0;
-      let es = 0;
-      const withSp = manualOrder.map(item => {
-        const isPlayer = item.actor === 'player';
-        const agility = isPlayer ? effectiveAgility : 0;
-        const finalSpeed = applyAgility(item.card.speedCost, agility);
-
-        if (isPlayer) {
-          ps += finalSpeed;
-          return { ...item, sp: ps, finalSpeed };
-        } else {
-          es += finalSpeed;
-          return { ...item, sp: es, finalSpeed };
-        }
-      });
-
+      const withSp = createFixedOrder(enhanced, enemyPlan.actions, effectiveAgility);
       actions.setFixedOrder(withSp);
       actions.setSelected(n);
     } else {
@@ -1593,40 +1528,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
       const combo = detectPokerCombo(n);
       const enhanced = applyPokerBonus(n, combo);
-
-      // 수동 순서 유지: 정렬하지 않고 순서대로 fixedOrder 생성
-      const playerCards = enhanced.map((card, idx) => ({
-        actor: 'player',
-        card,
-        originalIndex: idx
-      }));
-
-      const enemyCards = (enemyPlan.actions || []).map((action, idx) => ({
-        actor: 'enemy',
-        card: action,
-        originalIndex: idx
-      }));
-
-      // 플레이어 카드를 먼저, 그 다음 적 카드 (수동 순서)
-      const manualOrder = [...playerCards, ...enemyCards];
-
-      // sp 값 재계산 (누적)
-      let ps = 0;
-      let es = 0;
-      const withSp = manualOrder.map(item => {
-        const isPlayer = item.actor === 'player';
-        const agility = isPlayer ? effectiveAgility : 0;
-        const finalSpeed = applyAgility(item.card.speedCost, agility);
-
-        if (isPlayer) {
-          ps += finalSpeed;
-          return { ...item, sp: ps, finalSpeed };
-        } else {
-          es += finalSpeed;
-          return { ...item, sp: es, finalSpeed };
-        }
-      });
-
+      const withSp = createFixedOrder(enhanced, enemyPlan.actions, effectiveAgility);
       actions.setFixedOrder(withSp);
       actions.setSelected(n);
     } else {
