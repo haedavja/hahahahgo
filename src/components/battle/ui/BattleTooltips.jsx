@@ -100,7 +100,7 @@ export const BattleTooltips = ({
             top: `${hoveredEnemyAction.pageY + 24}px`,
             transform: 'translate(-50%, 0)',
             pointerEvents: 'none',
-            zIndex: 3000,
+            zIndex: 10000,
           }}
         >
           <div className="insight-tooltip-title">
