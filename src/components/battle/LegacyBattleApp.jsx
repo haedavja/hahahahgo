@@ -38,6 +38,7 @@ import { updateComboUsageCount, createTurnEndPlayerState, createTurnEndEnemyStat
 import { processImmediateCardTraits, processCardPlayedRelicEffects } from "./utils/cardImmediateEffects";
 import { collectTriggeredRelics, playRelicActivationSequence } from "./utils/relicActivationAnimation";
 import { processActionEventAnimations } from "./utils/eventAnimationProcessing";
+import { processStunEffect } from "./utils/stunProcessing";
 
 // 유물 희귀도별 색상
 const RELIC_RARITY_COLORS = {
@@ -71,7 +72,6 @@ import { ExpectedDamagePreview } from "./ui/ExpectedDamagePreview";
 import { EtherBar } from "./ui/EtherBar";
 import { Sword, Shield, Heart, Zap, Flame, Clock, Skull, X, ChevronUp, ChevronDown, Play, StepForward, RefreshCw, ICON_MAP } from "./ui/BattleIcons";
 
-const STUN_RANGE = 5; // 기절 효과 범위(타임라인 기준)
 
 const CARDS = BASE_PLAYER_CARDS.map(card => ({
   ...card,
@@ -1497,25 +1497,17 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     }
 
     if (hasTrait(a.card, 'stun')) {
-      const centerSp = a.sp ?? 0;
-      const stunnedActions = [];
-      const targets = currentBattle.queue
-        .map((item, idx) => ({ item, idx }))
-        .filter(({ item, idx }) => {
-          if (idx <= currentBattle.qIndex || !item) return false;
-          const isOpponent = item.actor !== a.actor;
-          const withinRange = typeof item.sp === 'number' && item.sp >= centerSp && item.sp <= centerSp + STUN_RANGE;
-          return isOpponent && withinRange;
-        });
-      if (targets.length > 0) {
-        stunnedActions.push(...targets);
-        actions.setQueue(currentBattle.queue.filter((_, idx) => !targets.some(t => t.idx === idx)));
+      const { updatedQueue, stunEvent } = processStunEffect({
+        action: a,
+        queue: currentBattle.queue,
+        currentQIndex: currentBattle.qIndex,
+        addLog
+      });
+      if (updatedQueue !== currentBattle.queue) {
+        actions.setQueue(updatedQueue);
       }
-      if (stunnedActions.length > 0) {
-        const stunnedNames = stunnedActions.map(t => t.item?.card?.name || '카드').join(', ');
-        const msg = `😵 "${a.card.name}"의 기절! 상대 카드 ${stunnedActions.length}장 파괴 (범위: ${centerSp}~${centerSp + STUN_RANGE}${stunnedNames ? `, 대상: ${stunnedNames}` : ''})`;
-        addLog(msg);
-        actionEvents = [...actionEvents, { actor: a.actor, card: a.card.name, type: 'stun', msg }];
+      if (stunEvent) {
+        actionEvents = [...actionEvents, stunEvent];
       }
     }
 
