@@ -128,7 +128,7 @@ export const TimelineDisplay = ({
                   <div key={`p-grid-${i}`} className="timeline-gridline" style={{ left: `${(i / playerMax) * 100}%` }} />
                 ))}
                 {playerTimeline.map((a, idx) => {
-                  const Icon = a.card.icon || Sword;
+                  const Icon = a.card.icon || (a.card.type === 'attack' ? Sword : Shield);
                   const sameCount = playerTimeline.filter((q, i) => i < idx && q.sp === a.sp).length;
                   const offset = sameCount * 28;
                   const strengthBonus = player.strength || 0;
@@ -159,7 +159,7 @@ export const TimelineDisplay = ({
                       <div key={`e-grid-${i}`} className="timeline-gridline" style={{ left: `${(i / enemyMax) * 100}%` }} />
                     ))}
                     {enemyTimeline.map((a, idx) => {
-                      const Icon = a.card.icon || Shield;
+                      const Icon = a.card.icon || (a.card.type === 'attack' ? Sword : Shield);
                       const sameCount = enemyTimeline.filter((q, i) => i < idx && q.sp === a.sp).length;
                       const offset = sameCount * 28;
                       const num = a.card.type === 'attack' ? (a.card.damage * (a.card.hits || 1)) : (a.card.block || 0);
