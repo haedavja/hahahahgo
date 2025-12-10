@@ -1,4 +1,5 @@
 import { hasTrait } from '../utils/battleUtils';
+import { applyTokenEffectsToCard, applyTokenEffectsOnDamage, consumeTokens } from '../../../lib/tokenEffects';
 
 /**
  * 전투 행동 처리 로직
@@ -17,16 +18,29 @@ import { hasTrait } from '../utils/battleUtils';
  * @returns {Object} - { actor: 업데이트된 actor, events: 이벤트 배열, log: 로그 메시지 }
  */
 export function applyDefense(actor, card, actorName) {
+  // 토큰 효과 적용 (방어력 증가/감소)
+  const { modifiedCard, consumedTokens } = applyTokenEffectsToCard(card, actor, 'defense');
+
   const prev = actor.block || 0;
   const strengthBonus = actor.strength || 0;
-  const added = (card.block || 0) + strengthBonus;
+  const added = (modifiedCard.block || 0) + strengthBonus;
   const after = prev + added;
+
+  // 소모된 토큰 제거
+  let tokenLogs = [];
+  let updatedTokens = actor.tokens;
+  if (consumedTokens.length > 0) {
+    const consumeResult = consumeTokens(actor, consumedTokens);
+    updatedTokens = consumeResult.tokens;
+    tokenLogs = consumeResult.logs;
+  }
 
   const updatedActor = {
     ...actor,
     def: true,
     block: after,
-    counter: card.counter !== undefined ? (card.counter || 0) : actor.counter
+    counter: card.counter !== undefined ? (card.counter || 0) : actor.counter,
+    tokens: updatedTokens
   };
 
   const who = actorName === 'player' ? '플레이어' : '몬스터';
@@ -42,13 +56,14 @@ export function applyDefense(actor, card, actorName) {
   };
 
   const logMsg = `${actorName === 'player' ? '🔵' : '👾'} ${card.name} → ${msg}`;
+  const allLogs = tokenLogs.length > 0 ? [logMsg, ...tokenLogs] : [logMsg];
 
   return {
     actor: updatedActor,
     dealt: 0,
     taken: 0,
     events: [event],
-    log: logMsg
+    log: allLogs.join(' | ')
   };
 }
 
@@ -65,7 +80,10 @@ export function applyDefense(actor, card, actorName) {
  * @returns {Object} - { attacker, defender, damage, events, logs }
  */
 function calculateSingleHit(attacker, defender, card, attackerName) {
-  const base = card.damage;
+  // 토큰 효과 적용 (공격력 증가/감소)
+  const { modifiedCard, consumedTokens: attackerConsumedTokens } = applyTokenEffectsToCard(card, attacker, 'attack');
+
+  const base = modifiedCard.damage;
   const strengthBonus = attacker.strength || 0;
   const boost = attacker.etherOverdriveActive ? 2 : 1;
   let dmg = (base + strengthBonus) * boost;
@@ -78,6 +96,49 @@ function calculateSingleHit(attacker, defender, card, attackerName) {
 
   let updatedAttacker = { ...attacker };
   let updatedDefender = { ...defender };
+
+  // 공격자의 소모된 토큰 제거
+  if (attackerConsumedTokens.length > 0) {
+    const consumeResult = consumeTokens(updatedAttacker, attackerConsumedTokens);
+    updatedAttacker.tokens = consumeResult.tokens;
+    logs.push(...consumeResult.logs);
+  }
+
+  // 토큰 효과 적용 (회피, 허약, 반격 등)
+  const tokenDamageResult = applyTokenEffectsOnDamage(dmg, defender, attacker);
+
+  // 방어자의 소모된 토큰 제거
+  if (tokenDamageResult.consumedTokens.length > 0) {
+    const consumeResult = consumeTokens(updatedDefender, tokenDamageResult.consumedTokens);
+    updatedDefender.tokens = consumeResult.tokens;
+    logs.push(...consumeResult.logs);
+  }
+
+  // 회피 성공 시 즉시 리턴
+  if (tokenDamageResult.dodged) {
+    events.push({
+      actor: attackerName,
+      card: card.name,
+      type: 'dodge',
+      msg: tokenDamageResult.logs.join(', ')
+    });
+    logs.push(...tokenDamageResult.logs);
+    return {
+      attacker: updatedAttacker,
+      defender: updatedDefender,
+      damage: 0,
+      events,
+      logs
+    };
+  }
+
+  // 토큰 효과 로그 추가
+  if (tokenDamageResult.logs.length > 0) {
+    logs.push(...tokenDamageResult.logs);
+  }
+
+  // 피해 증가/감소 효과 적용 (허약, 아픔)
+  dmg = tokenDamageResult.finalDamage;
 
   // 방어력이 있는 경우
   if (updatedDefender.def && (updatedDefender.block || 0) > 0) {
@@ -128,9 +189,10 @@ function calculateSingleHit(attacker, defender, card, attackerName) {
 
       damageDealt += finalDmg;
 
-      // 반격 처리
-      if (updatedDefender.counter && finalDmg > 0) {
-        const counterResult = applyCounter(updatedDefender, updatedAttacker, attackerName);
+      // 반격 처리 (기존 counter 속성 + 토큰 반격)
+      const totalCounter = (updatedDefender.counter || 0) + (tokenDamageResult.reflected || 0);
+      if (totalCounter > 0 && finalDmg > 0) {
+        const counterResult = applyCounter(updatedDefender, updatedAttacker, attackerName, totalCounter);
         updatedAttacker = counterResult.attacker;
         events.push(...counterResult.events);
         logs.push(...counterResult.logs);
@@ -160,9 +222,10 @@ function calculateSingleHit(attacker, defender, card, attackerName) {
 
     damageDealt += finalDmg;
 
-    // 반격 처리
-    if (updatedDefender.counter && finalDmg > 0) {
-      const counterResult = applyCounter(updatedDefender, updatedAttacker, attackerName);
+    // 반격 처리 (기존 counter 속성 + 토큰 반격)
+    const totalCounter = (updatedDefender.counter || 0) + (tokenDamageResult.reflected || 0);
+    if (totalCounter > 0 && finalDmg > 0) {
+      const counterResult = applyCounter(updatedDefender, updatedAttacker, attackerName, totalCounter);
       updatedAttacker = counterResult.attacker;
       events.push(...counterResult.events);
       logs.push(...counterResult.logs);
@@ -182,23 +245,27 @@ function calculateSingleHit(attacker, defender, card, attackerName) {
 
 /**
  * 반격 처리
+ * @param {Object} defender - 방어자
+ * @param {Object} attacker - 공격자
+ * @param {string} attackerName - 공격자 이름
+ * @param {number} counterDmg - 반격 피해량 (기본값: defender.counter)
  */
-function applyCounter(defender, attacker, attackerName) {
-  const counterDmg = defender.counter;
+function applyCounter(defender, attacker, attackerName, counterDmg = null) {
+  const actualCounterDmg = counterDmg !== null ? counterDmg : (defender.counter || 0);
   const beforeHP = attacker.hp;
   const updatedAttacker = {
     ...attacker,
-    hp: Math.max(0, attacker.hp - counterDmg)
+    hp: Math.max(0, attacker.hp - actualCounterDmg)
   };
 
-  const cmsg = `${attackerName === 'player' ? '몬스터 -> 플레이어' : '플레이어 -> 몬스터'} • 반격 ${counterDmg} (체력 ${beforeHP} -> ${updatedAttacker.hp})`;
+  const cmsg = `${attackerName === 'player' ? '몬스터 -> 플레이어' : '플레이어 -> 몬스터'} • 반격 ${actualCounterDmg} (체력 ${beforeHP} -> ${updatedAttacker.hp})`;
 
-  const event = { actor: 'counter', value: counterDmg, msg: cmsg };
+  const event = { actor: 'counter', value: actualCounterDmg, msg: cmsg };
   const log = `${attackerName === 'player' ? '🔵' : '👾'} ${cmsg}`;
 
   return {
     attacker: updatedAttacker,
-    damage: counterDmg,
+    damage: actualCounterDmg,
     events: [event],
     logs: [log]
   };

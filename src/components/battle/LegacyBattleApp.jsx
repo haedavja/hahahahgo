@@ -27,7 +27,8 @@ import { COMBO_MULTIPLIERS, BASE_ETHER_PER_CARD, CARD_ETHER_BY_RARITY, applyEthe
 import { sortCombinedOrderStablePF, addEther } from "./utils/combatUtils";
 import { createFixedOrder } from "./utils/cardOrdering";
 import { decideEnemyMode, generateEnemyActions, shouldEnemyOverdrive } from "./utils/enemyAI";
-import { applyAction, simulatePreview } from "./utils/battleSimulation";
+import { simulatePreview } from "./utils/battleSimulation";
+import { applyAction } from "./logic/combatActions";
 import { drawCharacterBuildHand } from "./utils/handGeneration";
 import { calculateEffectiveInsight, getInsightRevealLevel, playInsightSound } from "./utils/insightSystem";
 import { computeComboMultiplier as computeComboMultiplierUtil, explainComboMultiplier as explainComboMultiplierUtil } from "./utils/comboMultiplier";
@@ -156,7 +157,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     comboUsageCount: {},
     strength: startingStrength,
     insight: startingInsight,
-    maxSpeed: safeInitialPlayer.maxSpeed ?? DEFAULT_PLAYER_MAX_SPEED
+    maxSpeed: safeInitialPlayer.maxSpeed ?? DEFAULT_PLAYER_MAX_SPEED,
+    tokens: { usage: [], turn: [], permanent: [] }
   };
 
   // Initialize battle state with useReducer
@@ -176,7 +178,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       etherOverdriveActive: false,
       strength: 0,
       shroud: safeInitialEnemy.shroud ?? 0,
-      maxSpeed: safeInitialEnemy.maxSpeed ?? DEFAULT_ENEMY_MAX_SPEED
+      maxSpeed: safeInitialEnemy.maxSpeed ?? DEFAULT_ENEMY_MAX_SPEED,
+      tokens: { usage: [], turn: [], permanent: [] }
     }) : null,
     phase: 'select',
     hand: [],
@@ -1364,11 +1367,24 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     if (currentBattle.qIndex >= currentBattle.queue.length) return;
     const a = currentBattle.queue[currentBattle.qIndex];
 
-    const P = { ...player, def: player.def || false, block: player.block || 0, counter: player.counter || 0, vulnMult: player.vulnMult || 1, strength: player.strength || 0 };
-    const E = { ...enemy, def: enemy.def || false, block: enemy.block || 0, counter: enemy.counter || 0, vulnMult: enemy.vulnMult || 1 };
+    let P = { ...player, def: player.def || false, block: player.block || 0, counter: player.counter || 0, vulnMult: player.vulnMult || 1, strength: player.strength || 0, tokens: player.tokens };
+    let E = { ...enemy, def: enemy.def || false, block: enemy.block || 0, counter: enemy.counter || 0, vulnMult: enemy.vulnMult || 1, tokens: enemy.tokens };
     const tempState = { player: P, enemy: E, log: [] };
-    const { events } = applyAction(tempState, a.actor, a.card);
+    const actionResult = applyAction(tempState, a.actor, a.card);
+    const { events, updatedState } = actionResult;
     let actionEvents = events;
+
+    // applyAction에서 반환된 updatedState로 P와 E 재할당
+    if (updatedState) {
+      P = updatedState.player;
+      E = updatedState.enemy;
+    } else {
+      console.error('[executeCardAction] updatedState is undefined!', {
+        card: a.card,
+        actor: a.actor,
+        actionResult
+      });
+    }
 
     // 플레이어 카드 사용 시 카드 사용 횟수 증가 (mastery, boredom 특성용)
     if (a.actor === 'player' && a.card.id) {
@@ -1398,6 +1414,15 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         addLog,
         setRelicActivated: actions.setRelicActivated
       });
+
+      // 토큰: 카드 onPlay 효과 처리
+      if (a.card.onPlay && typeof a.card.onPlay === 'function') {
+        try {
+          a.card.onPlay(battle, actions);
+        } catch (error) {
+          console.error('[Token onPlay Error]', error);
+        }
+      }
     }
 
     if (hasTrait(a.card, 'stun')) {
@@ -1445,8 +1470,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       });
     }
 
-    actions.setPlayer({ ...player, hp: P.hp, def: P.def, block: P.block, counter: P.counter, vulnMult: P.vulnMult || 1, strength: P.strength || 0 });
-    actions.setEnemy({ ...enemy, hp: E.hp, def: E.def, block: E.block, counter: E.counter, vulnMult: E.vulnMult || 1 });
+    actions.setPlayer({ ...player, hp: P.hp, def: P.def, block: P.block, counter: P.counter, vulnMult: P.vulnMult || 1, strength: P.strength || 0, tokens: P.tokens });
+    actions.setEnemy({ ...enemy, hp: E.hp, def: E.def, block: E.block, counter: E.counter, vulnMult: E.vulnMult || 1, tokens: E.tokens });
     actions.setActionEvents({ ...currentBattle.actionEvents, [currentBattle.qIndex]: actionEvents });
 
     // 이벤트 처리: 애니메이션 및 사운드
@@ -1504,6 +1529,11 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
   const finishTurn = (reason) => {
     addLog(`턴 종료: ${reason || ''}`);
+
+    // 턴소모 토큰 제거
+    actions.clearPlayerTurnTokens();
+    actions.clearEnemyTurnTokens();
+
     // 이번 턴 사용한 탈주 카드를 다음 턴 한정으로 차단
     escapeBanRef.current = new Set(escapeUsedThisTurnRef.current);
     escapeUsedThisTurnRef.current = new Set();
@@ -2002,6 +2032,22 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         effectiveInsight={effectiveInsight}
         insightReveal={insightReveal}
         actions={actions}
+      />
+
+      {/* 유물 표시 */}
+      <RelicDisplay
+        orderedRelicList={orderedRelicList}
+        RELICS={RELICS}
+        RELIC_RARITIES={RELIC_RARITIES}
+        RELIC_RARITY_COLORS={RELIC_RARITY_COLORS}
+        relicActivated={relicActivated}
+        activeRelicSet={activeRelicSet}
+        hoveredRelic={hoveredRelic}
+        setHoveredRelic={actions.setHoveredRelic}
+        actions={actions}
+        handleRelicDragStart={handleRelicDragStart}
+        handleRelicDragOver={handleRelicDragOver}
+        handleRelicDrop={handleRelicDrop}
       />
 
       {/* 상단 메인 영역 */}

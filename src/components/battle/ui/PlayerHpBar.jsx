@@ -4,6 +4,8 @@
  * 플레이어 HP 바와 상태 표시 컴포넌트
  */
 
+import { TokenDisplay } from './TokenDisplay';
+
 export const PlayerHpBar = ({
   player,
   playerHit,
@@ -55,6 +57,8 @@ export const PlayerHpBar = ({
                   <span style={{ color: '#a78bfa', fontSize: '0.85rem' }}>🌊 범람 {player.etherOverflow} PT</span>
                 )}
               </div>
+              {/* 토큰 표시 */}
+              <TokenDisplay entity={player} position="player" />
             </div>
           </div>
         </div>

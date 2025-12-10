@@ -4,6 +4,8 @@
  * 적 HP 바와 상태 표시 컴포넌트
  */
 
+import { TokenDisplay } from './TokenDisplay';
+
 export const EnemyHpBar = ({
   battle,
   previewDamage,
@@ -76,6 +78,8 @@ export const EnemyHpBar = ({
                   }}></div>
                 )}
               </div>
+              {/* 토큰 표시 */}
+              <TokenDisplay entity={enemy} position="enemy" />
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px', marginTop: '-88px' }}>
               {groupedEnemyMembers.map((member, idx) => {

@@ -3,6 +3,8 @@
  * 70개의 useState를 하나의 useReducer로 통합
  */
 
+import { createEmptyTokens } from '../../../lib/tokenUtils';
+
 // =====================
 // 초기 상태 정의
 // =====================
@@ -265,6 +267,10 @@ export const ACTIONS = {
   // === 적 행동 툴팁 ===
   SET_HOVERED_ENEMY_ACTION: 'SET_HOVERED_ENEMY_ACTION',
 
+  // === 토큰 시스템 ===
+  UPDATE_PLAYER_TOKENS: 'UPDATE_PLAYER_TOKENS',
+  UPDATE_ENEMY_TOKENS: 'UPDATE_ENEMY_TOKENS',
+
   // === 복합 액션 (여러 상태를 한번에 변경) ===
   RESET_TURN: 'RESET_TURN',
   RESET_ETHER_ANIMATION: 'RESET_ETHER_ANIMATION',
@@ -496,6 +502,12 @@ export function battleReducer(state, action) {
     // === 적 행동 툴팁 ===
     case ACTIONS.SET_HOVERED_ENEMY_ACTION:
       return { ...state, hoveredEnemyAction: action.payload };
+
+    // === 토큰 시스템 ===
+    case ACTIONS.UPDATE_PLAYER_TOKENS:
+      return { ...state, player: { ...state.player, tokens: action.payload } };
+    case ACTIONS.UPDATE_ENEMY_TOKENS:
+      return { ...state, enemy: { ...state.enemy, tokens: action.payload } };
 
     // === 복합 액션 ===
     case ACTIONS.RESET_TURN:

@@ -124,6 +124,78 @@ export const CARDS = [
   { id: "die", name: "죽어라", type: "attack", damage: 29, speedCost: 7, actionCost: 6, iconKey: "flame", description: "살아남기 어려울겁니다.", traits: ["slaughter", "crush", "knockback"], rarity: "legendary" },
   { id: "absolute", name: "절대우위", type: "attack", damage: 26, speedCost: 16, actionCost: 6, iconKey: "flame", description: "뭘 하든 소용없습니다.", traits: ["blank_check", "stun"], rarity: "legendary" },
   { id: "apocalypse", name: "종말", type: "attack", damage: 79, speedCost: 25, actionCost: 6, iconKey: "flame", description: "다음은 없습니다.", traits: ["pinnacle"], rarity: "legendary" },
+
+  // === 토큰 테스트 카드 ===
+  {
+    id: "battle_cry",
+    name: "전투함성",
+    type: "attack",
+    damage: 10,
+    speedCost: 3,
+    actionCost: 1,
+    iconKey: "flame",
+    description: "공세 1스택을 얻습니다. 다음 공격의 위력이 50% 증가합니다.",
+    traits: [],
+    onPlay: (battle, actions) => {
+      actions.addTokenToPlayer('offense', 1);
+    }
+  },
+  {
+    id: "shield_stance",
+    name: "방어태세",
+    type: "defense",
+    block: 8,
+    speedCost: 3,
+    actionCost: 1,
+    iconKey: "shield",
+    description: "수세 1스택을 얻습니다. 다음 방어의 효과가 50% 증가합니다.",
+    traits: [],
+    onPlay: (battle, actions) => {
+      actions.addTokenToPlayer('guard', 1);
+    }
+  },
+  {
+    id: "power_strike",
+    name: "힘의 일격",
+    type: "attack",
+    damage: 15,
+    speedCost: 5,
+    actionCost: 2,
+    iconKey: "sword",
+    description: "공격 1스택을 얻습니다. 이번 턴 모든 공격력이 50% 증가합니다.",
+    traits: [],
+    onPlay: (battle, actions) => {
+      actions.addTokenToPlayer('attack', 1);
+    }
+  },
+  {
+    id: "fortify",
+    name: "방어강화",
+    type: "defense",
+    block: 12,
+    speedCost: 5,
+    actionCost: 2,
+    iconKey: "shield",
+    description: "방어 1스택을 얻습니다. 이번 턴 모든 방어력이 50% 증가합니다.",
+    traits: [],
+    onPlay: (battle, actions) => {
+      actions.addTokenToPlayer('defense', 1);
+    }
+  },
+  {
+    id: "weaken",
+    name: "약화",
+    type: "attack",
+    damage: 8,
+    speedCost: 4,
+    actionCost: 1,
+    iconKey: "flame",
+    description: "상대에게 허약 1스택을 부여합니다. 상대가 이번 턴 50% 더 많은 피해를 받습니다.",
+    traits: [],
+    onPlay: (battle, actions) => {
+      actions.addTokenToEnemy('vulnerable', 1);
+    }
+  },
 ];
 
 export const ENEMY_CARDS = [

@@ -1,5 +1,6 @@
 import { useReducer, useMemo, useCallback } from 'react';
 import { battleReducer, createInitialState, ACTIONS } from '../reducer/battleReducer';
+import { addToken, removeToken, clearTurnTokens } from '../../../lib/tokenUtils';
 
 /**
  * useBattleState Hook
@@ -127,6 +128,44 @@ export function useBattleState(initialStateOverrides = {}) {
 
     // === 적 행동 툴팁 ===
     setHoveredEnemyAction: (action) => dispatch({ type: ACTIONS.SET_HOVERED_ENEMY_ACTION, payload: action }),
+
+    // === 토큰 시스템 ===
+    addTokenToPlayer: (tokenId, stacks = 1) => {
+      const result = addToken(battle.player, tokenId, stacks);
+      dispatch({ type: ACTIONS.UPDATE_PLAYER_TOKENS, payload: result.tokens });
+      result.logs.forEach(log => dispatch({ type: ACTIONS.ADD_LOG, payload: log }));
+      return result;
+    },
+    addTokenToEnemy: (tokenId, stacks = 1) => {
+      const result = addToken(battle.enemy, tokenId, stacks);
+      dispatch({ type: ACTIONS.UPDATE_ENEMY_TOKENS, payload: result.tokens });
+      result.logs.forEach(log => dispatch({ type: ACTIONS.ADD_LOG, payload: log }));
+      return result;
+    },
+    removeTokenFromPlayer: (tokenId, tokenType, stacks = 1) => {
+      const result = removeToken(battle.player, tokenId, tokenType, stacks);
+      dispatch({ type: ACTIONS.UPDATE_PLAYER_TOKENS, payload: result.tokens });
+      result.logs.forEach(log => dispatch({ type: ACTIONS.ADD_LOG, payload: log }));
+      return result;
+    },
+    removeTokenFromEnemy: (tokenId, tokenType, stacks = 1) => {
+      const result = removeToken(battle.enemy, tokenId, tokenType, stacks);
+      dispatch({ type: ACTIONS.UPDATE_ENEMY_TOKENS, payload: result.tokens });
+      result.logs.forEach(log => dispatch({ type: ACTIONS.ADD_LOG, payload: log }));
+      return result;
+    },
+    clearPlayerTurnTokens: () => {
+      const result = clearTurnTokens(battle.player);
+      dispatch({ type: ACTIONS.UPDATE_PLAYER_TOKENS, payload: result.tokens });
+      result.logs.forEach(log => dispatch({ type: ACTIONS.ADD_LOG, payload: log }));
+      return result;
+    },
+    clearEnemyTurnTokens: () => {
+      const result = clearTurnTokens(battle.enemy);
+      dispatch({ type: ACTIONS.UPDATE_ENEMY_TOKENS, payload: result.tokens });
+      result.logs.forEach(log => dispatch({ type: ACTIONS.ADD_LOG, payload: log }));
+      return result;
+    },
 
     // === 추가 상태들 ===
     setUsedCardIndices: (indices) => dispatch({ type: ACTIONS.SET_USED_CARD_INDICES, payload: indices }),
