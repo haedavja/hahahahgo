@@ -109,6 +109,7 @@ const createEventPayload = (node, mapRisk) => {
   if (!definition) return null;
   return {
     definition,
+    currentStage: null, // stages 구조 지원: null이면 초기 상태
     resolved: false,
     outcome: null,
     risk: mapRisk,
@@ -489,7 +490,12 @@ export const useGameStore = create((set, get) => ({
       const active = state.activeEvent;
       if (!active || active.resolved) return state;
 
-      const choice = active.definition.choices?.find((item) => item.id === choiceId);
+      // 현재 스테이지에 맞는 choices 가져오기
+      const currentStage = active.currentStage;
+      const stageData = currentStage && active.definition.stages?.[currentStage];
+      const choices = stageData ? stageData.choices : active.definition.choices;
+
+      const choice = choices?.find((item) => item.id === choiceId);
       if (!choice || !canAfford(state.resources, choice.cost || {})) return state;
 
       // 비용 지불
@@ -503,6 +509,18 @@ export const useGameStore = create((set, get) => ({
         rewards = result.applied;
       }
 
+      // nextStage가 있으면 같은 이벤트 내 다음 스테이지로 전환
+      if (choice.nextStage && active.definition.stages?.[choice.nextStage]) {
+        return {
+          ...state,
+          resources,
+          activeEvent: {
+            ...active,
+            currentStage: choice.nextStage,
+          },
+        };
+      }
+
       // nextEvent가 있으면 다음 이벤트로 전환
       if (choice.nextEvent && NEW_EVENT_LIBRARY[choice.nextEvent]) {
         const nextDef = NEW_EVENT_LIBRARY[choice.nextEvent];
@@ -512,6 +530,7 @@ export const useGameStore = create((set, get) => ({
           activeEvent: {
             ...active,
             definition: nextDef,
+            currentStage: null, // 새 이벤트는 초기 상태로
             resolved: false,
             outcome: null,
           },

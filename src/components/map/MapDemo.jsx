@@ -46,6 +46,7 @@ const RESOURCE_LABELS = {
   loot: "전리품",
   material: "원자재",
   etherPts: "에테르",
+  grace: "은총화",
 };
 
 const describeAmount = (value) => {
@@ -549,19 +550,26 @@ export function MapDemo() {
 
       <div className="map-version-tag">{PATCH_VERSION_TAG}</div>
 
-      {activeEvent && (
+      {activeEvent && (() => {
+        // 현재 스테이지에 맞는 description과 choices 가져오기
+        const currentStage = activeEvent.currentStage;
+        const stageData = currentStage && activeEvent.definition?.stages?.[currentStage];
+        const currentDescription = stageData?.description ?? activeEvent.definition?.description ?? "설명 없음";
+        const currentChoices = stageData?.choices ?? activeEvent.definition?.choices ?? [];
+
+        return (
         <div className="event-modal-overlay">
           <div className="event-modal">
             <header>
               <h3>{activeEvent.definition?.title ?? "미확인 사건"}</h3>
               <small>우호 확률 {friendlyPercent(activeEvent.friendlyChance) ?? "정보 없음"}</small>
             </header>
-            <p>{activeEvent.definition?.description ?? "설명 없음"}</p>
+            <p>{currentDescription}</p>
 
             {!activeEvent.resolved && (
               <>
                 <div className="event-choices">
-                  {activeEvent.definition?.choices?.map((choice) => {
+                  {currentChoices.map((choice) => {
                     const affordable = canAfford(resources, choice.cost || {});
                     return (
                       <div key={choice.id} className="choice-card">
@@ -620,7 +628,8 @@ export function MapDemo() {
             )}
           </div>
         </div>
-      )}
+        );
+      })()}
 
       {activeRest && (
         <div className="event-modal-overlay" onClick={closeRest}>
