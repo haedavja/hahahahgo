@@ -129,7 +129,7 @@ const friendlyPercent = (chance) => {
   return `${Math.round(chance * 100)}%`;
 };
 
-const PATCH_VERSION_TAG = "12-11-16:15"; // 다음 패치마다 여기를 최신 시간(월-일-시-분, KST)으로 갱신하세요.
+const PATCH_VERSION_TAG = "12-12-02:22"; // 다음 패치마다 여기를 최신 시간(월-일-시-분, KST)으로 갱신하세요.
 
 /* v11-25-19:33 갱신 내역
  * - 카드 스탯 폰트 크기 일원화 및 확대:
