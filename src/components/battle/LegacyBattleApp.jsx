@@ -76,6 +76,7 @@ import { EtherBar } from "./ui/EtherBar";
 import { Sword, Shield, Heart, Zap, Flame, Clock, Skull, X, ChevronUp, ChevronDown, Play, StepForward, RefreshCw, ICON_MAP } from "./ui/BattleIcons";
 import { selectBattleAnomalies, applyAnomalyEffects, formatAnomaliesForDisplay } from "../../lib/anomalyUtils";
 import { AnomalyDisplay, AnomalyNotification } from "./ui/AnomalyDisplay";
+import { TIMING, createStepOnceAnimations, executeCardActionCore, finishTurnCore, runAllCore } from "./logic/battleExecution";
 
 
 const CARDS = BASE_PLAYER_CARDS.map(card => ({
@@ -1385,7 +1386,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     // 먼저 시곗바늘을 현재 카드 위치로 이동
     actions.setTimelineProgress(progressPercent);
 
-    // 시곗바늘 이동 완료 후 카드 발동 및 실행 (0.25초 transition 후)
+    // 시곗바늘 이동 완료 후 카드 발동 및 실행
     setTimeout(() => {
       // 실행 중인 카드 표시 (흔들림 애니메이션)
       actions.setExecutingCardIndex(currentQIndex);
@@ -1397,13 +1398,13 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         const currentBattle = battleRef.current;
         const currentUsedIndices = currentBattle.usedCardIndices || [];
         actions.setUsedCardIndices([...currentUsedIndices, currentQIndex]);
-      }, 200); // CSS 애니메이션 시간 단축
+      }, TIMING.CARD_SHAKE_DURATION);
 
       // 마지막 카드면 페이드아웃
       if (currentQIndex >= currentBattle.queue.length - 1) {
         setTimeout(() => {
           actions.setTimelineIndicatorVisible(false);
-        }, 150);
+        }, TIMING.CARD_FADEOUT_DELAY);
       }
 
       // 카드 소멸 이펙트는 플레이어만 적용
@@ -1423,12 +1424,12 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
             const currentDisappearing2 = currentBattle.disappearingCards || [];
             actions.setHiddenCards([...currentHidden, currentQIndex]);
             actions.setDisappearingCards(currentDisappearing2.filter(i => i !== currentQIndex));
-          }, 300); // 애니메이션 지속 시간 단축
-        }, 150); // 사용 효과 후 바로 사라지기 시작
+          }, TIMING.CARD_DISAPPEAR_DURATION);
+        }, TIMING.CARD_DISAPPEAR_START);
       }
 
       executeCardAction();
-    }, 250); // CSS transition 시간 단축 (0.25s)
+    }, TIMING.CARD_EXECUTION_DELAY);
   };
 
   const executeCardAction = () => {
@@ -1581,7 +1582,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     if (autoProgress && battle.phase === 'resolve' && battle.qIndex < battle.queue.length) {
       const timer = setTimeout(() => {
         stepOnce();
-      }, 450);
+      }, TIMING.AUTO_PROGRESS_DELAY);
       return () => clearTimeout(timer);
     }
   }, [autoProgress, battle.phase, battle.qIndex, battle.queue.length, stepOnce]);
@@ -1592,7 +1593,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     if (battle.phase === 'resolve' && battle.qIndex >= battle.queue.length && battle.queue.length > 0 && turnEtherAccumulated > 0 && etherCalcPhase === null) {
       // 모든 카드가 실행되고 에테르가 누적된 상태에서, 애니메이션이 아직 시작되지 않았을 때만 실행
       // resolvedPlayerCards를 전달하여 몬스터 사망 시에도 정확한 카드 수 사용
-      setTimeout(() => startEtherCalculationAnimation(turnEtherAccumulated, resolvedPlayerCards), 400);
+      setTimeout(() => startEtherCalculationAnimation(turnEtherAccumulated, resolvedPlayerCards), TIMING.ETHER_CALC_START_DELAY);
     }
   }, [battle.phase, battle.qIndex, battle.queue.length, turnEtherAccumulated, etherCalcPhase, resolvedPlayerCards]);
 
