@@ -617,6 +617,7 @@ export const useGameStore = create((set, get) => ({
             success: true,
             cost: choice.cost || {},
             rewards,
+            resultDescription: choice.resultDescription || null,
           },
         },
       };

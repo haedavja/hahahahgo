@@ -12,21 +12,21 @@ export const NEW_EVENT_LIBRARY = {
     difficulty: 'medium',
     choices: [
       { id: "approach", label: "다가간다", nextStage: "inspect" },
-      { id: "ignore", label: "무시한다" }
+      { id: "ignore", label: "무시한다", resultDescription: "굳이 위험을 감수할 필요는 없습니다. 발걸음을 돌립니다." }
     ],
     stages: {
       "inspect": {
         description: "가까이 가니 화면에 '복구 가능' 메시지가 깜빡입니다.",
         choices: [
-          { id: "destroy", label: "때려 부순다", rewards: { material: 2 } },
-          { id: "extract", label: "은총화로 정보 추출", cost: { grace: 1 }, rewards: { intel: 50 } },
+          { id: "destroy", label: "때려 부순다", resultDescription: "쾅! 모니터가 산산조각 났습니다. 잔해 속에서 쓸만한 부품들이 보입니다.", rewards: { material: 2 } },
+          { id: "extract", label: "은총화로 정보 추출", resultDescription: "은총화가 빛을 발하며 AI의 메모리에서 귀중한 정보를 추출합니다.", cost: { grace: 1 }, rewards: { intel: 50 } },
           { id: "repair", label: "수리를 시도한다", statRequirement: { insight: 2 }, nextStage: "repair-result" }
         ]
       },
       "repair-result": {
         description: "수리에 성공했습니다! AI가 감사 인사를 합니다.",
         choices: [
-          { id: "accept", label: "정보를 받는다", rewards: { intel: 30, material: 1 } }
+          { id: "accept", label: "정보를 받는다", resultDescription: "\"고맙습니다, 인간.\" AI가 저장된 데이터와 여분의 부품을 건네줍니다.", rewards: { intel: 30, material: 1 } }
         ]
       }
     }

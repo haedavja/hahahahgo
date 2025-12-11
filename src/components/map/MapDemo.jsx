@@ -129,7 +129,7 @@ const friendlyPercent = (chance) => {
   return `${Math.round(chance * 100)}%`;
 };
 
-const PATCH_VERSION_TAG = "12-12-02:22"; // 다음 패치마다 여기를 최신 시간(월-일-시-분, KST)으로 갱신하세요.
+const PATCH_VERSION_TAG = "12-12-02:31"; // 다음 패치마다 여기를 최신 시간(월-일-시-분, KST)으로 갱신하세요.
 
 /* v11-25-19:33 갱신 내역
  * - 카드 스탯 폰트 크기 일원화 및 확대:
@@ -600,7 +600,6 @@ export function MapDemo() {
           <div className="event-modal">
             <header>
               <h3>{activeEvent.definition?.title ?? "미확인 사건"}</h3>
-              <small>우호 확률 {friendlyPercent(activeEvent.friendlyChance) ?? "정보 없음"}</small>
             </header>
             <p>{currentDescription}</p>
 
@@ -661,7 +660,9 @@ export function MapDemo() {
 
             {activeEvent.resolved && activeEvent.outcome && (
               <div className="event-result">
-                <strong>{activeEvent.outcome.choice}</strong>
+                {activeEvent.outcome.resultDescription && (
+                  <p style={{ marginBottom: "12px", lineHeight: "1.6" }}>{activeEvent.outcome.resultDescription}</p>
+                )}
                 {activeEvent.outcome.cost && Object.keys(activeEvent.outcome.cost).length > 0 && (
                   <p>소모: {formatApplied(Object.fromEntries(Object.entries(activeEvent.outcome.cost).map(([k, v]) => [k, -v])))}</p>
                 )}
