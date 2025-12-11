@@ -440,9 +440,9 @@ export const NEW_EVENT_LIBRARY = {
       "sacrifice": {
         description: "이 제단이 무엇을 요구하는지는 명확합니다. 피입니다.",
         choices: [
-          { id: "sacrifice-10", label: "HP 10을 바친다", hpRequirement: { min: 21 }, cost: { hp: 10 }, rewards: { memory: 120 } },
-          { id: "sacrifice-20", label: "HP 20을 바친다", hpRequirement: { min: 41 }, cost: { hp: 20 }, rewards: { memory: 250 } },
-          { id: "sacrifice-30", label: "HP 30을 바친다", hpRequirement: { min: 41 }, cost: { hp: 30 }, rewards: { memory: 400 } },
+          { id: "sacrifice-10", label: "체력 10을 바친다", hpRequirement: { min: 21 }, cost: { hp: 10 }, rewards: { memory: 120 } },
+          { id: "sacrifice-20", label: "체력 20을 바친다", hpRequirement: { min: 41 }, cost: { hp: 20 }, rewards: { memory: 250 } },
+          { id: "sacrifice-30", label: "체력 30을 바친다", hpRequirement: { min: 41 }, cost: { hp: 30 }, rewards: { memory: 400 } },
           { id: "leave", label: "그만둔다" }
         ]
       }
@@ -866,7 +866,7 @@ export const NEW_EVENT_LIBRARY = {
       "demand": {
         description: "제물이 될 것을 요구합니다. 거절하면 전투가 벌어질 것 같습니다.",
         choices: [
-          { id: "sacrifice", label: "HP 50%를 바친다", hpRequirement: { min: 30 }, cost: { hpPercent: 50 }, rewards: { relic: "rare" } },
+          { id: "sacrifice", label: "체력 50%를 바친다", hpRequirement: { min: 30 }, cost: { hpPercent: 50 }, rewards: { relic: "rare" } },
           { id: "fight", label: "거절하고 전투", combatTrigger: true, combatRewards: { relic: 1 } },
           { id: "flee", label: "도망친다", penalties: { mapRisk: 10 } }
         ]
