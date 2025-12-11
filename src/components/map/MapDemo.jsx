@@ -127,7 +127,7 @@ const friendlyPercent = (chance) => {
   return `${Math.round(chance * 100)}%`;
 };
 
-const PATCH_VERSION_TAG = "12-11-15:30"; // 다음 패치마다 여기를 최신 시간(월-일-시-분, KST)으로 갱신하세요.
+const PATCH_VERSION_TAG = "12-11-15:45"; // 다음 패치마다 여기를 최신 시간(월-일-시-분, KST)으로 갱신하세요.
 
 /* v11-25-19:33 갱신 내역
  * - 카드 스탯 폰트 크기 일원화 및 확대:
@@ -210,6 +210,22 @@ export function MapDemo() {
   const healAtRest = useGameStore((state) => state.healAtRest);
   const upgradeCardRarity = useGameStore((state) => state.upgradeCardRarity);
   const cardUpgrades = useGameStore((state) => state.cardUpgrades || {});
+  const playerInsight = useGameStore((state) => state.playerInsight || 0);
+  const playerStrength = useGameStore((state) => state.playerStrength || 0);
+  const playerAgility = useGameStore((state) => state.playerAgility || 0);
+
+  // 스탯 요구사항 충족 여부 체크
+  const meetsStatRequirement = useCallback((statRequirement) => {
+    if (!statRequirement) return true;
+    const playerStats = {
+      insight: playerInsight,
+      strength: playerStrength,
+      agility: playerAgility,
+    };
+    return Object.entries(statRequirement).every(
+      ([stat, required]) => (playerStats[stat] ?? 0) >= required
+    );
+  }, [playerInsight, playerStrength, playerAgility]);
 
   // Alt+D 핫키로 DevTools 토글
   useEffect(() => {
@@ -591,6 +607,8 @@ export function MapDemo() {
                 <div className="event-choices">
                   {currentChoices.map((choice) => {
                     const affordable = canAfford(resources, choice.cost || {});
+                    const hasRequiredStats = meetsStatRequirement(choice.statRequirement);
+                    const canSelect = affordable && hasRequiredStats;
                     return (
                       <div key={choice.id} className="choice-card">
                         <strong>{choice.label}</strong>
@@ -601,11 +619,12 @@ export function MapDemo() {
                           <small>보상: {describeBundle(choice.rewards)}</small>
                         )}
                         {choice.statRequirement && (
-                          <small style={{ color: "#fbbf24" }}>
+                          <small style={{ color: hasRequiredStats ? "#4ade80" : "#ef4444" }}>
                             요구: {Object.entries(choice.statRequirement).map(([k, v]) => `${STAT_LABELS[k] ?? k} ${v}`).join(", ")}
+                            {!hasRequiredStats && " (부족)"}
                           </small>
                         )}
-                        <button type="button" disabled={!affordable} onClick={() => chooseEvent(choice.id)}>
+                        <button type="button" disabled={!canSelect} onClick={() => chooseEvent(choice.id)}>
                           선택
                         </button>
                       </div>
