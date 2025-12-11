@@ -141,7 +141,7 @@ export const createInitialState = () => {
   // calculatePassiveEffects는 gameStore에서 사용되므로 여기서는 기본값만 설정
   return {
     map: generateMap(),
-    mapRisk: Math.floor(Math.random() * 61) + 20,
+    mapRisk: 0, // 위험도는 0%부터 시작
     resources: { gold: 40, intel: 2, loot: 1, material: 1, etherPts: 0, memory: 0 },
     playerHp: 100,
     maxHp: 100, // 유물 효과는 gameStore의 addRelic/setRelics에서 적용됨

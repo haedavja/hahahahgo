@@ -9,6 +9,7 @@ import { hasTrait, applyTraitModifiers } from '../utils/battleUtils';
 import { detectPokerCombo } from '../utils/comboDetection';
 import { TraitBadgeList } from './TraitBadge.jsx';
 import { CardStatsSidebar } from './CardStatsSidebar.jsx';
+import { Sword, Shield } from './BattleIcons';
 
 // X 아이콘 SVG 컴포넌트
 const X = ({ size = 24, className = "", strokeWidth = 2 }) => (
@@ -65,7 +66,7 @@ export const HandArea = ({
         return (
           <div className="hand-cards">
             {getSortedHand().map((c, idx) => {
-              const Icon = c.icon;
+              const Icon = c.icon || (c.type === 'attack' ? Sword : Shield);
               const usageCount = player.comboUsageCount?.[c.id] || 0;
               const selIndex = selected.findIndex(s => s.id === c.id);
               const sel = selIndex !== -1;
@@ -131,7 +132,7 @@ export const HandArea = ({
         <div className="hand-cards" style={{ justifyContent: 'center' }}>
           {fixedOrder.filter(a => a.actor === 'player').map((action, idx, arr) => {
             const c = action.card;
-            const Icon = c.icon;
+            const Icon = c.icon || (c.type === 'attack' ? Sword : Shield);
             const currentBuild = useGameStore.getState().characterBuild;
             const isMainSpecial = currentBuild?.mainSpecials?.includes(c.id);
             const isSubSpecial = currentBuild?.subSpecials?.includes(c.id);
@@ -184,7 +185,7 @@ export const HandArea = ({
       {battle.phase === 'resolve' && queue && battle.queue.length > 0 && (
         <div className="hand-cards" style={{ justifyContent: 'center' }}>
           {queue.filter(a => a.actor === 'player').map((a, i) => {
-            const Icon = a.card.icon;
+            const Icon = a.card.icon || (a.card.type === 'attack' ? Sword : Shield);
             const globalIndex = queue.findIndex(q => q === a);
             const isUsed = Array.isArray(usedCardIndices) && usedCardIndices.includes(globalIndex);
             const isDisappearing = Array.isArray(disappearingCards) && disappearingCards.includes(globalIndex);
