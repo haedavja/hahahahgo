@@ -1116,6 +1116,28 @@ export const useGameStore = create((set, get) => ({
       ...state,
       activeRest: { nodeId: "DEV-REST" },
     })),
+
+  // 개발용: 특정 이벤트 강제 트리거
+  devTriggerEvent: (eventId) =>
+    set((state) => {
+      const definition = NEW_EVENT_LIBRARY[eventId];
+      if (!definition) {
+        console.warn(`[devTriggerEvent] Event not found: ${eventId}`);
+        return state;
+      }
+      console.log('[devTriggerEvent] Triggering event:', eventId, definition);
+      return {
+        ...state,
+        activeEvent: {
+          definition,
+          currentStage: null,
+          resolved: false,
+          outcome: null,
+          risk: state.mapRisk,
+          friendlyChance: computeFriendlyChance(state.mapRisk),
+        },
+      };
+    }),
 }));
 
 export const selectors = {
