@@ -557,6 +557,13 @@ export function MapDemo() {
         const currentDescription = stageData?.description ?? activeEvent.definition?.description ?? "설명 없음";
         const currentChoices = stageData?.choices ?? activeEvent.definition?.choices ?? [];
 
+        // DEBUG: 이벤트 데이터 확인
+        console.log('=== EVENT DEBUG ===');
+        console.log('currentStage:', currentStage);
+        console.log('definition.choices:', activeEvent.definition?.choices);
+        console.log('stageData:', stageData);
+        console.log('currentChoices:', currentChoices);
+
         return (
         <div className="event-modal-overlay">
           <div className="event-modal">
