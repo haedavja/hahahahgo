@@ -1,6 +1,8 @@
 // 새로운 이벤트 시스템 - 다단계 대화 지원
 // 에테르(ether) → 은총화(grace)로 변경
 
+console.log('=== newEvents.js LOADED (v2) ===');
+
 export const NEW_EVENT_LIBRARY = {
   // === 자원 이벤트 - 복합 자원 ===
   "broken-ai": {
