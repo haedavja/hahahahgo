@@ -508,6 +508,22 @@ export const useGameStore = create((set, get) => ({
       const choice = choices?.find((item) => item.id === choiceId);
       if (!choice || !canAfford(state.resources, choice.cost || {})) return state;
 
+      // 스탯 요구사항 체크
+      if (choice.statRequirement) {
+        const playerStats = {
+          insight: state.playerInsight || 0,
+          strength: state.playerStrength || 0,
+          agility: state.playerAgility || 0,
+        };
+        const meetsRequirements = Object.entries(choice.statRequirement).every(
+          ([stat, required]) => (playerStats[stat] ?? 0) >= required
+        );
+        if (!meetsRequirements) {
+          console.log('[chooseEvent] 스탯 요구사항 미달:', choice.statRequirement, '보유:', playerStats);
+          return state;
+        }
+      }
+
       // 비용 지불
       let resources = payCost(choice.cost || {}, state.resources);
 
