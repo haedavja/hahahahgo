@@ -1,5 +1,5 @@
 ﻿import { create } from "zustand";
-import { eventLibrary } from "../data/events";
+import { eventLibrary, getEventStep } from "../data/events";
 import { createInitialState } from "./useGameState";
 import { ENEMY_DECKS } from "../data/cards";
 import { CARDS } from "../components/battle/battleData";
@@ -113,6 +113,7 @@ const createEventPayload = (node, mapRisk) => {
     outcome: null,
     risk: mapRisk,
     friendlyChance: computeFriendlyChance(mapRisk),
+    currentStep: "start", // 다단계 이벤트용 현재 단계
   };
 };
 
@@ -489,10 +490,29 @@ export const useGameStore = create((set, get) => ({
       const active = state.activeEvent;
       if (!active || active.resolved) return state;
 
-      const choice = active.definition.choices.find((item) => item.id === choiceId);
+      // 다단계 이벤트 지원: 현재 단계에서 선택지 가져오기
+      const currentStep = getEventStep(active.definition, active.currentStep);
+      if (!currentStep || !currentStep.choices) return state;
+
+      const choice = currentStep.choices.find((item) => item.id === choiceId);
       if (!choice || !canAfford(state.resources, choice.cost || {})) return state;
 
+      // 비용 지불
       let resources = payCost(choice.cost || {}, state.resources);
+
+      // 단계 이동 (final이 아닌 경우)
+      if (choice.next && !choice.final) {
+        return {
+          ...state,
+          resources,
+          activeEvent: {
+            ...active,
+            currentStep: choice.next,
+          },
+        };
+      }
+
+      // 최종 선택 (final: true 또는 단일 단계 이벤트)
       let rewards = {};
       let penalty = {};
       const chance = active.friendlyChance;

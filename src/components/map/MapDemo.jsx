@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, useCallback, useReducer } from "react";
 import { useMapState } from "./hooks/useMapState";
 import { useGameStore } from "../../state/gameStore";
+import { getEventStep, getEventTitle } from "../../data/events";
 import { calculateEtherSlots, getCurrentSlotPts, getSlotProgress, getNextSlotCost } from "../../lib/etherUtils";
 import { CharacterSheet } from "../character/CharacterSheet";
 import { DungeonExploration } from "../dungeon/DungeonExploration";
@@ -549,29 +550,42 @@ export function MapDemo() {
 
       <div className="map-version-tag">{PATCH_VERSION_TAG}</div>
 
-      {activeEvent && (
+      {activeEvent && (() => {
+        // 다단계 이벤트 지원: 현재 단계 정보 가져오기
+        const currentStep = getEventStep(activeEvent.definition, activeEvent.currentStep);
+        const eventTitle = getEventTitle(activeEvent.definition);
+
+        return (
         <div className="event-modal-overlay">
           <div className="event-modal">
             <header>
-              <h3>{activeEvent.definition?.title ?? "미확인 사건"}</h3>
+              <h3>{eventTitle}</h3>
               <small>우호 확률 {friendlyPercent(activeEvent.friendlyChance) ?? "정보 없음"}</small>
             </header>
-            <p>{activeEvent.definition?.description}</p>
+            <p>{currentStep?.description ?? "설명 없음"}</p>
 
             {!activeEvent.resolved && (
               <>
                 <div className="event-choices">
-                  {activeEvent.definition?.choices?.map((choice) => {
+                  {currentStep?.choices?.map((choice) => {
                     const affordable = canAfford(resources, choice.cost || {});
+                    // 단계 이동 선택지는 보상/패널티 표시 생략
+                    const isNavigation = choice.next && !choice.final;
                     return (
                       <div key={choice.id} className="choice-card">
                         <strong>{choice.label}</strong>
                         <p>{choice.detail}</p>
-                        <small>비용: {describeCost(choice.cost)}</small>
-                        <small>보상: {describeBundle(choice.rewards)}</small>
-                        <small>패널티: {describeBundle(choice.penalty)}</small>
+                        {choice.cost && Object.keys(choice.cost).length > 0 && (
+                          <small>비용: {describeCost(choice.cost)}</small>
+                        )}
+                        {!isNavigation && choice.rewards && Object.keys(choice.rewards).length > 0 && (
+                          <small>보상: {describeBundle(choice.rewards)}</small>
+                        )}
+                        {!isNavigation && choice.penalty && Object.keys(choice.penalty).length > 0 && (
+                          <small>패널티: {describeBundle(choice.penalty)}</small>
+                        )}
                         <button type="button" disabled={!affordable} onClick={() => chooseEvent(choice.id)}>
-                          선택
+                          {isNavigation ? "진행" : "선택"}
                         </button>
                       </div>
                     );
@@ -612,7 +626,8 @@ export function MapDemo() {
             )}
           </div>
         </div>
-      )}
+        );
+      })()}
 
       {activeRest && (
         <div className="event-modal-overlay" onClick={closeRest}>
