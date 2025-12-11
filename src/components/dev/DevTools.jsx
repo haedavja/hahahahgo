@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { useGameStore } from '../../state/gameStore';
 import { getAllRelics, RELIC_RARITIES } from '../../data/relics';
 import { CARDS } from '../battle/battleData';
+import { ANOMALY_TYPES } from '../../data/anomalies';
+import { NEW_EVENT_LIBRARY } from '../../data/newEvents';
 
 /**
  * 개발자 도구 오버레이
@@ -23,6 +25,7 @@ export function DevTools({ isOpen, onClose }) {
     setMapRisk,
     selectNode,
     devClearAllNodes,
+    devTeleportToNode,
     devForceWin,
     devForceLose,
     updatePlayerStrength,
@@ -38,6 +41,9 @@ export function DevTools({ isOpen, onClose }) {
     upgradeCardRarity,
     devDulledLevel,
     setDevDulledLevel,
+    devForcedAnomalies,
+    setDevForcedAnomalies,
+    devTriggerEvent,
   } = useGameStore();
 
   if (!isOpen) return null;
@@ -149,6 +155,7 @@ export function DevTools({ isOpen, onClose }) {
             setMapRisk={setMapRisk}
             selectNode={selectNode}
             devClearAllNodes={devClearAllNodes}
+            devTeleportToNode={devTeleportToNode}
           />
         )}
         {activeTab === 'battle' && (
@@ -159,6 +166,8 @@ export function DevTools({ isOpen, onClose }) {
           playerInsight={playerInsight}
           devDulledLevel={devDulledLevel}
           setDevDulledLevel={setDevDulledLevel}
+          devForcedAnomalies={devForcedAnomalies}
+          setDevForcedAnomalies={setDevForcedAnomalies}
           devForceWin={devForceWin}
           devForceLose={devForceLose}
           updatePlayerStrength={updatePlayerStrength}
@@ -340,8 +349,30 @@ function ResourcesTab({ resources, setResources, devOpenRest, awakenAtRest, clos
 }
 
 // 맵 관리 탭
-function MapTab({ map, mapRisk, setMapRisk, selectNode, devClearAllNodes }) {
+function MapTab({ map, mapRisk, setMapRisk, selectNode, devClearAllNodes, devTeleportToNode }) {
   const currentNode = map?.nodes?.find(n => n.id === map.currentNodeId);
+  const [selectedNodeId, setSelectedNodeId] = useState('');
+
+  // 노드 타입별 이모지
+  const nodeEmojis = {
+    battle: '⚔️',
+    rest: '🔥',
+    shop: '🏪',
+    event: '🎲',
+    boss: '👹',
+  };
+
+  // 레이어별로 노드 그룹화
+  const nodesByLayer = React.useMemo(() => {
+    if (!map?.nodes) return {};
+    const grouped = {};
+    map.nodes.forEach(node => {
+      const layer = node.layer || 0;
+      if (!grouped[layer]) grouped[layer] = [];
+      grouped[layer].push(node);
+    });
+    return grouped;
+  }, [map?.nodes]);
 
   return (
     <div>
@@ -368,12 +399,12 @@ function MapTab({ map, mapRisk, setMapRisk, selectNode, devClearAllNodes }) {
           fontSize: '0.875rem',
           color: '#cbd5e1',
         }}>
-          맵 위험도: <span style={{ color: '#fbbf24', fontWeight: 'bold' }}>{mapRisk}</span>
+          맵 위험도: <span style={{ color: '#fbbf24', fontWeight: 'bold' }}>{mapRisk}%</span>
         </label>
         <input
           type="range"
-          min="20"
-          max="80"
+          min="0"
+          max="100"
           value={mapRisk}
           onChange={(e) => setMapRisk(parseInt(e.target.value))}
           style={{
@@ -390,8 +421,8 @@ function MapTab({ map, mapRisk, setMapRisk, selectNode, devClearAllNodes }) {
           color: '#64748b',
           marginTop: '4px',
         }}>
-          <span>안전 (20)</span>
-          <span>위험 (80)</span>
+          <span>안전 (0%)</span>
+          <span>위험 (100%)</span>
         </div>
       </div>
 
@@ -417,7 +448,7 @@ function MapTab({ map, mapRisk, setMapRisk, selectNode, devClearAllNodes }) {
         </button>
       </div>
 
-      {/* 노드 점프 (추후 구현) */}
+      {/* 노드 텔레포트 */}
       <div style={{
         marginTop: '16px',
         padding: '12px',
@@ -425,8 +456,88 @@ function MapTab({ map, mapRisk, setMapRisk, selectNode, devClearAllNodes }) {
         borderRadius: '8px',
         border: '1px solid #334155',
       }}>
-        <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
-          💡 노드 점프 기능은 추후 추가 예정
+        <h4 style={{ color: '#cbd5e1', fontSize: '0.875rem', marginBottom: '8px' }}>🚀 노드 텔레포트</h4>
+
+        {/* 드롭다운 방식 */}
+        <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
+          <select
+            value={selectedNodeId}
+            onChange={(e) => setSelectedNodeId(e.target.value)}
+            style={{
+              flex: 1,
+              padding: '8px',
+              background: '#1e293b',
+              border: '1px solid #334155',
+              borderRadius: '6px',
+              color: '#cbd5e1',
+              fontSize: '0.875rem',
+            }}
+          >
+            <option value="">노드 선택...</option>
+            {Object.entries(nodesByLayer).sort(([a], [b]) => parseInt(a) - parseInt(b)).map(([layer, nodes]) => (
+              <optgroup key={layer} label={`Layer ${layer}`}>
+                {nodes.map(node => (
+                  <option key={node.id} value={node.id}>
+                    {nodeEmojis[node.type] || '📍'} {node.id} - {node.displayLabel || node.type}
+                    {node.cleared ? ' ✓' : ''}
+                  </option>
+                ))}
+              </optgroup>
+            ))}
+          </select>
+          <button
+            onClick={() => {
+              if (selectedNodeId) {
+                devTeleportToNode(selectedNodeId);
+              }
+            }}
+            disabled={!selectedNodeId}
+            style={{
+              padding: '8px 16px',
+              background: selectedNodeId ? '#8b5cf6' : '#334155',
+              border: 'none',
+              borderRadius: '6px',
+              color: '#fff',
+              fontSize: '0.875rem',
+              fontWeight: 'bold',
+              cursor: selectedNodeId ? 'pointer' : 'not-allowed',
+            }}
+          >
+            이동
+          </button>
+        </div>
+
+        {/* 레이어별 빠른 버튼 */}
+        <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginBottom: '6px' }}>빠른 이동:</div>
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))',
+          gap: '6px',
+          maxHeight: '200px',
+          overflowY: 'auto',
+          padding: '4px',
+        }}>
+          {map?.nodes?.slice(0, 30).map(node => (
+            <button
+              key={node.id}
+              onClick={() => devTeleportToNode(node.id)}
+              style={{
+                padding: '6px 8px',
+                background: node.id === currentNode?.id ? '#8b5cf6' : '#1e293b',
+                border: `1px solid ${node.id === currentNode?.id ? '#a78bfa' : '#334155'}`,
+                borderRadius: '4px',
+                color: node.id === currentNode?.id ? '#fff' : '#94a3b8',
+                fontSize: '0.7rem',
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+              }}
+              title={`${node.id} - ${node.displayLabel || node.type}`}
+            >
+              {nodeEmojis[node.type] || '📍'} {node.id.split('-')[1] || node.id}
+            </button>
+          ))}
         </div>
       </div>
     </div>
@@ -441,6 +552,8 @@ function BattleTab({
   playerInsight,
   devDulledLevel,
   setDevDulledLevel,
+  devForcedAnomalies,
+  setDevForcedAnomalies,
   devForceWin,
   devForceLose,
   updatePlayerStrength,
@@ -450,7 +563,12 @@ function BattleTab({
   const [strengthInput, setStrengthInput] = React.useState(playerStrength || 0);
   const [agilityInput, setAgilityInput] = React.useState(playerAgility || 0);
   const [insightInput, setInsightInput] = React.useState(playerInsight || 0);
+  // devDulledLevel은 내부적으로 insight의 음수 값 (insight = -devDulledLevel)
   const [dulledInput, setDulledInput] = React.useState(devDulledLevel ?? 0);
+
+  // 이변 강제 발동 상태
+  const [selectedAnomalies, setSelectedAnomalies] = React.useState({});
+  const [anomalyLevels, setAnomalyLevels] = React.useState({});
 
   React.useEffect(() => {
     setStrengthInput(playerStrength || 0);
@@ -583,10 +701,10 @@ function BattleTab({
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
             <input
               type="number"
-              min="0"
+              min="-99"
               max="99"
               value={insightInput}
-              onChange={(e) => setInsightInput(Math.max(0, Math.min(99, parseInt(e.target.value) || 0)))}
+              onChange={(e) => setInsightInput(Math.max(-99, Math.min(99, parseInt(e.target.value) || 0)))}
               style={{
                 flex: 1,
                 padding: '8px',
@@ -618,23 +736,33 @@ function BattleTab({
           </div>
         </div>
 
-        {/* 우둔(장막) 디버프 강제 테스트 */}
-        <div>
+        {/* 통찰 레벨 강제 테스트 (-3~+3) */}
+        <div style={{ marginTop: '16px' }}>
           <label style={{
             display: 'block',
             marginBottom: '8px',
             fontSize: '0.875rem',
             color: '#cbd5e1',
           }}>
-            🌀 우둔 레벨 강제: <span style={{ color: '#f87171', fontWeight: 'bold' }}>{devDulledLevel ?? 0}</span>
+            👁️ 통찰 레벨 강제: <span style={{
+              color: devDulledLevel === null || devDulledLevel === undefined ? '#a78bfa' :
+                     devDulledLevel > 0 ? '#f87171' : devDulledLevel < 0 ? '#8b5cf6' : '#e2e8f0',
+              fontWeight: 'bold'
+            }}>
+              {devDulledLevel === null || devDulledLevel === undefined ? '해제' : -devDulledLevel}
+            </span>
           </label>
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
             <input
               type="number"
-              min="0"
+              min="-3"
               max="3"
-              value={dulledInput}
-              onChange={(e) => setDulledInput(Math.max(0, Math.min(3, parseInt(e.target.value) || 0)))}
+              value={dulledInput === null || dulledInput === undefined ? 0 : -dulledInput}
+              onChange={(e) => {
+                const insightValue = parseInt(e.target.value) || 0;
+                const clampedValue = Math.max(-3, Math.min(3, insightValue));
+                setDulledInput(-clampedValue); // 내부적으로는 dulled 형식으로 저장 (insight를 음수로 변환)
+              }}
               style={{
                 flex: 1,
                 padding: '8px',
@@ -649,7 +777,7 @@ function BattleTab({
               onClick={() => setDevDulledLevel(dulledInput)}
               style={{
                 padding: '8px 16px',
-                background: '#ef4444',
+                background: '#a78bfa',
                 border: 'none',
                 borderRadius: '6px',
                 color: '#fff',
@@ -677,9 +805,162 @@ function BattleTab({
             </button>
           </div>
           <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '4px' }}>
-            0: 정상, 1~3: 우둔 레벨 강제 (타임라인/체력/소울 정보 숨김 테스트)
+            -3: 망각 🌑 / -2: 미련 🌘 / -1: 우둔 🌫️ / 0: 평온 🌕 / +1: 예측 🔮 / +2: 독심 👁️ / +3: 혜안 ✨
           </div>
         </div>
+      </div>
+
+      {/* 이변 강제 발동 */}
+      <h3 style={{ marginTop: '20px', color: '#ef4444', fontSize: '1.125rem' }}>⚠️ 이변 강제 발동</h3>
+      <div style={{
+        padding: '16px',
+        background: '#0f172a',
+        borderRadius: '8px',
+        marginBottom: '20px',
+      }}>
+        <div style={{ marginBottom: '12px', fontSize: '0.875rem', color: '#cbd5e1' }}>
+          다음 전투에서 발동할 이변을 선택하세요:
+        </div>
+
+        {Object.entries(ANOMALY_TYPES).map(([key, anomaly]) => {
+          const isSelected = selectedAnomalies[anomaly.id] || false;
+          const level = anomalyLevels[anomaly.id] || 1;
+
+          return (
+            <div key={anomaly.id} style={{
+              marginBottom: '12px',
+              padding: '12px',
+              background: isSelected ? '#1e293b' : 'transparent',
+              border: `1px solid ${isSelected ? anomaly.color : '#334155'}`,
+              borderRadius: '8px',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: isSelected ? '8px' : '0' }}>
+                <input
+                  type="checkbox"
+                  checked={isSelected}
+                  onChange={(e) => {
+                    setSelectedAnomalies(prev => ({
+                      ...prev,
+                      [anomaly.id]: e.target.checked
+                    }));
+                    if (!anomalyLevels[anomaly.id]) {
+                      setAnomalyLevels(prev => ({ ...prev, [anomaly.id]: 1 }));
+                    }
+                  }}
+                  style={{ cursor: 'pointer' }}
+                />
+                <span style={{ fontSize: '1.2rem' }}>{anomaly.emoji}</span>
+                <span style={{ color: anomaly.color, fontWeight: 'bold', fontSize: '0.9rem' }}>
+                  {anomaly.name}
+                </span>
+              </div>
+
+              {isSelected && (
+                <div style={{ marginLeft: '28px' }}>
+                  <label style={{
+                    display: 'block',
+                    marginBottom: '4px',
+                    fontSize: '0.8rem',
+                    color: '#94a3b8'
+                  }}>
+                    레벨: {level}
+                  </label>
+                  <input
+                    type="range"
+                    min="1"
+                    max="4"
+                    value={level}
+                    onChange={(e) => {
+                      setAnomalyLevels(prev => ({
+                        ...prev,
+                        [anomaly.id]: parseInt(e.target.value)
+                      }));
+                    }}
+                    style={{ width: '100%' }}
+                  />
+                  <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '4px' }}>
+                    {anomaly.getEffect(level).description}
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+
+        <div style={{ display: 'flex', gap: '8px', marginTop: '16px' }}>
+          <button
+            onClick={() => {
+              const forcedAnomalies = Object.entries(selectedAnomalies)
+                .filter(([id, selected]) => selected)
+                .map(([id]) => ({
+                  anomalyId: id,
+                  level: anomalyLevels[id] || 1
+                }));
+
+              if (forcedAnomalies.length > 0) {
+                setDevForcedAnomalies(forcedAnomalies);
+              } else {
+                setDevForcedAnomalies(null);
+              }
+            }}
+            style={{
+              flex: 1,
+              padding: '10px',
+              background: '#ef4444',
+              border: 'none',
+              borderRadius: '6px',
+              color: '#fff',
+              fontSize: '0.875rem',
+              fontWeight: 'bold',
+              cursor: 'pointer',
+            }}
+          >
+            적용
+          </button>
+          <button
+            onClick={() => {
+              setDevForcedAnomalies(null);
+              setSelectedAnomalies({});
+              setAnomalyLevels({});
+            }}
+            style={{
+              flex: 1,
+              padding: '10px',
+              background: '#334155',
+              border: 'none',
+              borderRadius: '6px',
+              color: '#e2e8f0',
+              fontSize: '0.875rem',
+              fontWeight: 'bold',
+              cursor: 'pointer',
+            }}
+          >
+            해제
+          </button>
+        </div>
+
+        {devForcedAnomalies && devForcedAnomalies.length > 0 && (
+          <div style={{
+            marginTop: '12px',
+            padding: '8px',
+            background: '#1e293b',
+            borderRadius: '6px',
+            fontSize: '0.8rem',
+            color: '#cbd5e1'
+          }}>
+            <div style={{ color: '#ef4444', fontWeight: 'bold', marginBottom: '4px' }}>
+              ⚠️ 다음 전투에서 발동:
+            </div>
+            {devForcedAnomalies.map(({ anomalyId, level }) => {
+              const anomaly = Object.values(ANOMALY_TYPES).find(a => a.id === anomalyId);
+              return anomaly ? (
+                <div key={anomalyId} style={{ marginLeft: '8px' }}>
+                  {anomaly.emoji} {anomaly.name} (Lv.{level})
+                </div>
+              ) : null;
+            })}
+          </div>
+        )}
       </div>
 
       <h3 style={{ marginTop: 0, color: '#fbbf24', fontSize: '1.125rem' }}>전투 제어</h3>
@@ -942,16 +1223,162 @@ function RelicsTab({ relics, addRelic, removeRelic, setRelics }) {
 
 // 이벤트 관리 탭
 function EventTab() {
+  const [searchTerm, setSearchTerm] = useState('');
+  const { devTriggerEvent } = useGameStore();
+
+  // 모든 이벤트를 배열로 변환
+  const allEvents = Object.entries(NEW_EVENT_LIBRARY).map(([id, definition]) => ({
+    id,
+    title: definition.title || id,
+    description: definition.description || '',
+    multiStage: definition.multiStage || false,
+  }));
+
+  // 검색어로 필터링
+  const filteredEvents = allEvents.filter((event) => {
+    const term = searchTerm.toLowerCase();
+    return (
+      event.id.toLowerCase().includes(term) ||
+      event.title.toLowerCase().includes(term) ||
+      event.description.toLowerCase().includes(term)
+    );
+  });
+
   return (
     <div>
       <h3 style={{ marginTop: 0, color: '#fbbf24', fontSize: '1.125rem' }}>이벤트 제어</h3>
+
+      {/* 검색 입력 */}
+      <div style={{ marginBottom: '16px' }}>
+        <input
+          type="text"
+          placeholder="이벤트 ID 또는 제목으로 검색..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          style={{
+            width: '100%',
+            padding: '10px 12px',
+            background: '#0f172a',
+            border: '1px solid #334155',
+            borderRadius: '6px',
+            color: '#e2e8f0',
+            fontSize: '0.875rem',
+          }}
+        />
+      </div>
+
+      {/* 이벤트 목록 */}
       <div style={{
-        padding: '20px',
-        textAlign: 'center',
-        color: '#64748b',
-        fontSize: '0.875rem',
+        maxHeight: '400px',
+        overflowY: 'auto',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '8px',
       }}>
-        이벤트 제어 기능은 추후 추가 예정
+        {filteredEvents.length === 0 ? (
+          <div style={{
+            padding: '20px',
+            textAlign: 'center',
+            color: '#64748b',
+            fontSize: '0.875rem',
+          }}>
+            검색 결과가 없습니다
+          </div>
+        ) : (
+          filteredEvents.map((event) => (
+            <div
+              key={event.id}
+              style={{
+                background: '#1e293b',
+                border: '1px solid #334155',
+                borderRadius: '6px',
+                padding: '12px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px',
+              }}
+            >
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                gap: '12px',
+              }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{
+                    fontWeight: 'bold',
+                    color: '#fbbf24',
+                    fontSize: '0.9rem',
+                    marginBottom: '4px',
+                  }}>
+                    {event.title}
+                    {event.multiStage && (
+                      <span style={{
+                        marginLeft: '8px',
+                        fontSize: '0.7rem',
+                        color: '#a78bfa',
+                        background: 'rgba(167, 139, 250, 0.1)',
+                        padding: '2px 6px',
+                        borderRadius: '4px',
+                      }}>
+                        다단계
+                      </span>
+                    )}
+                  </div>
+                  <div style={{
+                    fontSize: '0.75rem',
+                    color: '#64748b',
+                    marginBottom: '4px',
+                  }}>
+                    ID: {event.id}
+                  </div>
+                  <div style={{
+                    fontSize: '0.8rem',
+                    color: '#94a3b8',
+                    lineHeight: 1.4,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    display: '-webkit-box',
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: 'vertical',
+                  }}>
+                    {event.description}
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    devTriggerEvent(event.id);
+                    console.log(`[EventTab] Triggered event: ${event.id}`);
+                  }}
+                  style={{
+                    padding: '8px 16px',
+                    background: '#10b981',
+                    border: 'none',
+                    borderRadius: '6px',
+                    color: '#fff',
+                    fontWeight: 'bold',
+                    cursor: 'pointer',
+                    fontSize: '0.8rem',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  실행
+                </button>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* 총 이벤트 수 표시 */}
+      <div style={{
+        marginTop: '16px',
+        padding: '8px',
+        textAlign: 'center',
+        fontSize: '0.8rem',
+        color: '#64748b',
+      }}>
+        총 {allEvents.length}개 이벤트 중 {filteredEvents.length}개 표시
       </div>
     </div>
   );

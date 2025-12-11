@@ -151,12 +151,9 @@ function calculateSingleHit(attacker, defender, card, attackerName) {
       updatedDefender.block = remaining;
       dmg = 0;
 
-      updatedAttacker.vulnMult = 1 + (remaining * 0.5);
-      updatedAttacker.vulnTurns = 1;
-
       const crushText = crushMultiplier > 1 ? ' [분쇄×2]' : '';
       const formula = `(방어력 ${beforeBlock} - 공격력 ${base}${boost > 1 ? '×2' : ''}${crushText} = ${remaining})`;
-      const msg = `${attackerName === 'player' ? '플레이어 -> 몬스터' : '몬스터 -> 플레이어'} • 차단 성공 ${formula} + 취약 ×${updatedAttacker.vulnMult.toFixed(1)}`;
+      const msg = `${attackerName === 'player' ? '플레이어 -> 몬스터' : '몬스터 -> 플레이어'} • 차단 성공 ${formula}`;
 
       events.push({ actor: attackerName, card: card.name, type: 'blocked', msg });
       logs.push(`${attackerName === 'player' ? '🔵' : '👾'} ${card.name} → ${msg}`);
@@ -167,8 +164,7 @@ function calculateSingleHit(attacker, defender, card, attackerName) {
       const remained = Math.max(0, effectiveDmg - blocked);
       updatedDefender.block = 0;
 
-      const vulnMul = (updatedDefender.vulnMult && updatedDefender.vulnMult > 1) ? updatedDefender.vulnMult : 1;
-      const finalDmg = Math.floor(remained * vulnMul);
+      const finalDmg = Math.floor(remained);
       const beforeHP = updatedDefender.hp;
       updatedDefender.hp = Math.max(0, updatedDefender.hp - finalDmg);
 
@@ -202,8 +198,7 @@ function calculateSingleHit(attacker, defender, card, attackerName) {
   }
   // 방어력이 없는 경우
   else {
-    const vulnMul = (updatedDefender.vulnMult && updatedDefender.vulnMult > 1) ? updatedDefender.vulnMult : 1;
-    const finalDmg = Math.floor(dmg * vulnMul);
+    const finalDmg = Math.floor(dmg);
     const beforeHP = updatedDefender.hp;
     updatedDefender.hp = Math.max(0, updatedDefender.hp - finalDmg);
 

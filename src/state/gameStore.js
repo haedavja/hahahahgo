@@ -1,16 +1,16 @@
 ﻿import { create } from "zustand";
-import { eventLibrary } from "../data/events";
 import { createInitialState } from "./useGameState";
 import { ENEMY_DECKS } from "../data/cards";
 import { CARDS } from "../components/battle/battleData";
 import { drawHand, buildSpeedTimeline } from "../lib/speedQueue";
 import { simulateBattle, pickOutcome } from "../lib/battleResolver";
 import { calculatePassiveEffects, applyCombatEndEffects, applyNodeMoveEther } from "../lib/relicEffects";
+import { NEW_EVENT_LIBRARY, EVENT_KEYS } from "../data/newEvents";
+import { calculateEtherSlots, slotsToPts } from "../lib/etherUtils";
+import { getRelicsByRarity, RELIC_RARITIES, RELICS } from "../data/relics";
 
 // 전투에서 사용되는 카드 8종의 ID 배열
 const BATTLE_CARDS = CARDS.slice(0, 8).map(card => card.id);
-
-const EVENT_KEYS = Object.keys(eventLibrary);
 const BATTLE_TYPES = new Set(["battle", "elite", "boss", "dungeon"]);
 const BATTLE_REWARDS = {
   battle: { gold: { min: 10, max: 16 }, loot: { min: 1, max: 2 } },
@@ -42,8 +42,43 @@ const cloneNodes = (nodes = []) =>
 
 const ensureEventKey = (node) => {
   if (node.eventKey || !EVENT_KEYS.length) return;
-  const index = Math.floor(Math.random() * EVENT_KEYS.length);
-  node.eventKey = EVENT_KEYS[index];
+
+  // 노드 레이어에 따른 난이도 필터링
+  const layer = node.layer || 0;
+  let availableEvents;
+
+  // 선택지에 비용이 있는지 확인하는 헬퍼 함수
+  const hasCostInChoices = (event) => {
+    if (!event.choices) return false;
+    return event.choices.some(choice => choice.cost && Object.keys(choice.cost).length > 0);
+  };
+
+  if (layer <= 2) {
+    // 초반 (레이어 0-2): easy 이벤트 + 비용 없는 이벤트만
+    availableEvents = EVENT_KEYS.filter(key => {
+      const event = NEW_EVENT_LIBRARY[key];
+      const isEasy = !event.difficulty || event.difficulty === 'easy';
+      const noCost = !hasCostInChoices(event);
+      return isEasy && noCost;
+    });
+  } else if (layer <= 4) {
+    // 중반 (레이어 3-4): easy + medium 이벤트
+    availableEvents = EVENT_KEYS.filter(key => {
+      const event = NEW_EVENT_LIBRARY[key];
+      return !event.difficulty || event.difficulty === 'easy' || event.difficulty === 'medium';
+    });
+  } else {
+    // 후반 (레이어 5+): 모든 이벤트
+    availableEvents = EVENT_KEYS;
+  }
+
+  // 사용 가능한 이벤트가 없으면 모든 이벤트에서 선택
+  if (availableEvents.length === 0) {
+    availableEvents = EVENT_KEYS;
+  }
+
+  const index = Math.floor(Math.random() * availableEvents.length);
+  node.eventKey = availableEvents[index];
 };
 
 const resolveAmount = (value) => {
@@ -55,7 +90,9 @@ const resolveAmount = (value) => {
 };
 
 const canAfford = (resources, cost = {}) =>
-  Object.entries(cost).every(([key, value]) => (resources[key] ?? 0) >= value);
+  Object.entries(cost)
+    .filter(([key]) => key !== 'hp' && key !== 'hpPercent') // hp는 별도 관리되므로 제외
+    .every(([key, value]) => (resources[key] ?? 0) >= value);
 
 const payCost = (cost = {}, resources = {}) => {
   const next = { ...resources };
@@ -65,28 +102,108 @@ const payCost = (cost = {}, resources = {}) => {
   return next;
 };
 
-const grantRewards = (rewards = {}, resources = {}) => {
+const grantRewards = (rewards = {}, resources = {}, currentState = {}) => {
   const applied = {};
-  const next = { ...resources };
+  const nextResources = { ...resources };
+  const stats = { strength: 0, agility: 0, insight: 0 };
+  let etherSlots = 0;
+  let relicToAdd = null; // 유물 ID 저장
+
   Object.entries(rewards).forEach(([key, value]) => {
     const amount = resolveAmount(value);
-    next[key] = (next[key] ?? 0) + amount;
-    applied[key] = amount;
+
+    // 스탯은 별도로 처리
+    if (key === 'strength' || key === 'agility' || key === 'insight') {
+      stats[key] = amount;
+      applied[key] = amount;
+    }
+    // ether는 슬롯으로 변환 - slotsToPts를 사용해서 필요한 pt 계산
+    else if (key === 'ether') {
+      etherSlots = amount;
+      // 현재 슬롯 수 계산
+      const currentEtherPts = nextResources.etherPts ?? 0;
+      const currentSlots = calculateEtherSlots(currentEtherPts);
+      // 목표 슬롯까지 필요한 총 pt
+      const targetSlots = currentSlots + amount;
+      const targetPts = slotsToPts(targetSlots);
+      // 추가해야 할 pt = 목표 pt - 현재 pt
+      const ptsToAdd = targetPts - currentEtherPts;
+
+      nextResources.etherPts = currentEtherPts + ptsToAdd;
+      applied.etherPts = ptsToAdd;
+      applied.etherSlots = amount; // 슬롯 수도 표시
+    }
+    // relic은 특별 처리: 유물 선택 로직
+    else if (key === 'relic') {
+      console.log('[grantRewards] Relic reward detected:', { value, type: typeof value });
+      // value가 숫자면 일반 등급 유물 랜덤 선택
+      if (typeof value === 'number') {
+        const commonRelics = getRelicsByRarity(RELIC_RARITIES.COMMON);
+        console.log('[grantRewards] Common relics available:', commonRelics.length, commonRelics.map(r => r.id));
+        relicToAdd = commonRelics[Math.floor(Math.random() * commonRelics.length)]?.id;
+        console.log('[grantRewards] Selected common relic:', relicToAdd);
+      }
+      // value가 "rare"면 희귀 등급 유물 랜덤 선택
+      else if (value === 'rare') {
+        const rareRelics = getRelicsByRarity(RELIC_RARITIES.RARE);
+        console.log('[grantRewards] Rare relics available:', rareRelics.length);
+        relicToAdd = rareRelics[Math.floor(Math.random() * rareRelics.length)]?.id;
+        console.log('[grantRewards] Selected rare relic:', relicToAdd);
+      }
+      // value가 "rare+"면 희귀/특별 등급 유물 랜덤 선택
+      else if (value === 'rare+') {
+        const rareRelics = getRelicsByRarity(RELIC_RARITIES.RARE);
+        const specialRelics = getRelicsByRarity(RELIC_RARITIES.SPECIAL);
+        const combined = [...rareRelics, ...specialRelics];
+        console.log('[grantRewards] Rare+ relics available:', combined.length);
+        relicToAdd = combined[Math.floor(Math.random() * combined.length)]?.id;
+        console.log('[grantRewards] Selected rare+ relic:', relicToAdd);
+      }
+      // 그 외는 특정 유물 ID로 처리
+      else if (typeof value === 'string') {
+        relicToAdd = RELICS[value] ? value : null;
+        console.log('[grantRewards] Specific relic requested:', value, 'found:', !!RELICS[value]);
+      }
+
+      if (relicToAdd) {
+        applied.relic = relicToAdd;
+        console.log('[grantRewards] Relic added to applied:', relicToAdd);
+      } else {
+        console.warn('[grantRewards] No relic was selected!');
+      }
+    }
+    // 일반 자원
+    else {
+      nextResources[key] = (nextResources[key] ?? 0) + amount;
+      applied[key] = amount;
+    }
   });
-  return { next, applied };
+
+  return { next: nextResources, applied, stats, etherSlots, relicToAdd };
 };
 
 const applyPenalty = (penalty = {}, resources = {}) => {
   const applied = {};
   const next = { ...resources };
+  const stats = { strength: 0, agility: 0, insight: 0 };
+
   Object.entries(penalty).forEach(([key, value]) => {
     const amount = resolveAmount(value);
-    const current = next[key] ?? 0;
-    const actual = Math.min(current, amount);
-    next[key] = Math.max(0, current - actual);
-    applied[key] = -actual;
+
+    // 스탯은 별도로 처리 (음수 허용)
+    if (key === 'strength' || key === 'agility' || key === 'insight') {
+      stats[key] = -amount; // 패널티는 음수로
+      applied[key] = -amount;
+    }
+    // 일반 자원 (0 이하로 내려가지 않음)
+    else {
+      const current = next[key] ?? 0;
+      const actual = Math.min(current, amount);
+      next[key] = Math.max(0, current - actual);
+      applied[key] = -actual;
+    }
   });
-  return { next, applied };
+  return { next, applied, stats };
 };
 
 const computeFriendlyChance = (mapRisk) => Math.max(0.2, Math.min(0.85, 1 - mapRisk / 120));
@@ -105,7 +222,7 @@ const applyInitialRelicEffects = (state) => {
 const createEventPayload = (node, mapRisk) => {
   if (!node || node.type !== "event" || node.isStart) return null;
   ensureEventKey(node);
-  const definition = eventLibrary[node.eventKey];
+  const definition = NEW_EVENT_LIBRARY[node.eventKey];
   if (!definition) return null;
   return {
     definition,
@@ -113,6 +230,7 @@ const createEventPayload = (node, mapRisk) => {
     outcome: null,
     risk: mapRisk,
     friendlyChance: computeFriendlyChance(mapRisk),
+    currentStage: null, // null means we're in the main event, not a stage
   };
 };
 
@@ -256,6 +374,7 @@ const travelToNode = (state, nodeId) => {
 export const useGameStore = create((set, get) => ({
   ...applyInitialRelicEffects(createInitialState()),
   devDulledLevel: null,
+  devForcedAnomalies: null, // Array of { anomalyId, level } or null for random
 
   resetRun: () => set(() => applyInitialRelicEffects(createInitialState())),
 
@@ -489,40 +608,225 @@ export const useGameStore = create((set, get) => ({
       const active = state.activeEvent;
       if (!active || active.resolved) return state;
 
-      const choice = active.definition.choices.find((item) => item.id === choiceId);
-      if (!choice || !canAfford(state.resources, choice.cost || {})) return state;
+      // Determine which choices to use based on current stage
+      let currentChoices;
+      if (active.currentStage && active.definition.stages && active.definition.stages[active.currentStage]) {
+        // We're in a stage, use stage choices
+        currentChoices = active.definition.stages[active.currentStage].choices || [];
+      } else {
+        // We're in the main event, use main choices
+        currentChoices = active.definition.choices || [];
+      }
+
+      const choice = currentChoices.find((item) => item.id === choiceId);
+      if (!choice) return state;
+
+      // 자원 비용 체크만 수행 (HP는 체크하지 않음 - 플레이어가 죽을 수 있는 선택도 허용)
+      if (!canAfford(state.resources, choice.cost || {})) return state;
 
       let resources = payCost(choice.cost || {}, state.resources);
+      let playerHp = state.playerHp;
+      let playerStrength = state.playerStrength || 0;
+      let playerAgility = state.playerAgility || 0;
+      let playerInsight = state.playerInsight || 0;
       let rewards = {};
-      let penalty = {};
-      const chance = active.friendlyChance;
-      const isFriendly = Math.random() < chance;
+      let penalties = {};
+      let isSuccess = true;
 
-      if (isFriendly) {
-        const result = grantRewards(choice.rewards || {}, resources);
-        resources = result.next;
-        rewards = result.applied;
-      } else {
-        const result = applyPenalty(choice.penalty || {}, resources);
-        resources = result.next;
-        penalty = result.applied;
+      // Handle statCheck (if present, it determines success/failure)
+      if (choice.statCheck) {
+        isSuccess = true;
+        const playerStats = {
+          strength: playerStrength,
+          agility: playerAgility,
+          insight: playerInsight,
+        };
+        // Check if player meets all stat requirements
+        for (const [stat, required] of Object.entries(choice.statCheck)) {
+          if ((playerStats[stat] || 0) < required) {
+            isSuccess = false;
+            break;
+          }
+        }
+        console.log('[Event Choice] Stat check:', { statCheck: choice.statCheck, playerStats, isSuccess });
       }
+
+      // HP 비용 처리
+      if (choice.cost?.hp) {
+        playerHp = Math.max(0, playerHp - choice.cost.hp);
+      }
+
+      // HP % 비용 처리
+      if (choice.cost?.hpPercent) {
+        const hpCost = Math.floor(playerHp * (choice.cost.hpPercent / 100));
+        playerHp = Math.max(0, playerHp - hpCost);
+      }
+
+      // 유물 추가를 위한 변수
+      let relicToAdd = null;
+      let mapRiskDelta = 0; // 위험도 변화량
+
+      // 확률/스탯 기반 결과 처리
+      if (choice.probability !== undefined && !choice.statCheck) {
+        // probability가 있고 statCheck가 없는 경우에만 probability로 판정
+        isSuccess = Math.random() < choice.probability;
+        console.log('[Event Choice] Probability check:', { probability: choice.probability, isSuccess });
+      }
+
+      // statCheck 또는 probability 결과에 따라 보상/페널티 적용
+      if (choice.statCheck || choice.probability !== undefined) {
+        if (isSuccess) {
+          if (choice.successRewards) {
+            console.log('[Event Choice] Applying success rewards:', choice.successRewards);
+            const result = grantRewards(choice.successRewards, resources, state);
+            resources = result.next;
+            rewards = result.applied;
+            relicToAdd = result.relicToAdd;
+            // 스탯 적용
+            playerStrength += result.stats.strength;
+            playerAgility += result.stats.agility;
+            playerInsight += result.stats.insight;
+            console.log('[Event Choice] Success rewards applied:', { rewards, stats: result.stats, relicToAdd, newResources: resources });
+          }
+        } else {
+          if (choice.failurePenalties) {
+            console.log('[Event Choice] Applying failure penalties:', choice.failurePenalties);
+            // mapRisk는 별도 처리
+            if (choice.failurePenalties.mapRisk) {
+              mapRiskDelta += choice.failurePenalties.mapRisk;
+              console.log('[Event Choice] mapRisk penalty:', choice.failurePenalties.mapRisk);
+            }
+            const result = applyPenalty(choice.failurePenalties, resources);
+            resources = result.next;
+            penalties = result.applied;
+            // 스탯 패널티 적용
+            playerStrength += result.stats.strength;
+            playerAgility += result.stats.agility;
+            playerInsight += result.stats.insight;
+            console.log('[Event Choice] Failure penalties applied:', { penalties, stats: result.stats, mapRiskDelta, newResources: resources });
+          }
+        }
+      } else {
+        // 확정 보상/페널티
+        if (choice.rewards) {
+          console.log('[Event Choice] Applying guaranteed rewards:', choice.rewards);
+          const result = grantRewards(choice.rewards, resources, state);
+          resources = result.next;
+          rewards = result.applied;
+          relicToAdd = result.relicToAdd;
+          // 스탯 적용
+          playerStrength += result.stats.strength;
+          playerAgility += result.stats.agility;
+          playerInsight += result.stats.insight;
+          console.log('[Event Choice] Guaranteed rewards applied:', { rewards, stats: result.stats, relicToAdd, newResources: resources });
+        }
+        if (choice.penalties) {
+          console.log('[Event Choice] Applying guaranteed penalties:', choice.penalties);
+          // mapRisk는 별도 처리
+          if (choice.penalties.mapRisk) {
+            mapRiskDelta += choice.penalties.mapRisk;
+            console.log('[Event Choice] mapRisk penalty:', choice.penalties.mapRisk);
+          }
+          const result = applyPenalty(choice.penalties, resources);
+          resources = result.next;
+          penalties = result.applied;
+          // 스탯 패널티 적용
+          playerStrength += result.stats.strength;
+          playerAgility += result.stats.agility;
+          playerInsight += result.stats.insight;
+          console.log('[Event Choice] Guaranteed penalties applied:', { penalties, stats: result.stats, mapRiskDelta, newResources: resources });
+        }
+      }
+
+      // 전투 트리거 처리 (TODO: 실제 전투 시스템과 연동 필요)
+      let combatTriggered = choice.combatTrigger || false;
+
+      // 유물 추가 처리
+      let newRelics = state.relics;
+      let newMaxHp = state.maxHp;
+      let newPlayerHp = playerHp;
+      let updatedStrength = playerStrength;
+      let updatedAgility = playerAgility;
+
+      console.log('[Event Choice] Relic addition check:', {
+        relicToAdd,
+        currentRelics: state.relics,
+        alreadyHas: state.relics.includes(relicToAdd)
+      });
+
+      if (relicToAdd && !state.relics.includes(relicToAdd)) {
+        console.log('[Event Choice] Adding new relic to inventory...');
+        const oldRelics = state.relics;
+        newRelics = [...state.relics, relicToAdd];
+        const oldPassiveEffects = calculatePassiveEffects(oldRelics);
+        const newPassiveEffects = calculatePassiveEffects(newRelics);
+
+        // maxHp 증가량 계산
+        const maxHpIncrease = newPassiveEffects.maxHp - oldPassiveEffects.maxHp;
+        newMaxHp = 100 + newPassiveEffects.maxHp;
+        // maxHp가 증가한 만큼 현재 체력도 회복
+        newPlayerHp = Math.min(newMaxHp, playerHp + maxHpIncrease);
+
+        // 패시브 스탯 업데이트
+        updatedStrength = newPassiveEffects.strength;
+        updatedAgility = newPassiveEffects.agility;
+
+        console.log('[Event Choice] Relic added:', { relicId: relicToAdd, newRelics, oldMaxHp: state.maxHp, newMaxHp, newPlayerHp });
+      } else if (relicToAdd && state.relics.includes(relicToAdd)) {
+        console.log('[Event Choice] Relic already in inventory, skipping');
+      } else {
+        console.log('[Event Choice] No relic to add');
+      }
+
+      // Determine next stage based on success/failure
+      let nextStage = null;
+      let shouldResolve = true;
+
+      // Check for stage transitions
+      if (choice.nextStage) {
+        // Unconditional transition to next stage
+        nextStage = choice.nextStage;
+        shouldResolve = false;
+      } else if (isSuccess && choice.successNextStage) {
+        // Success leads to next stage
+        nextStage = choice.successNextStage;
+        shouldResolve = false;
+      } else if (!isSuccess && choice.failureNextStage) {
+        // Failure leads to next stage (rare, but supported)
+        nextStage = choice.failureNextStage;
+        shouldResolve = false;
+      }
+
+      console.log('[Event Choice] Stage transition check:', {
+        currentStage: active.currentStage,
+        nextStage,
+        shouldResolve,
+        isSuccess,
+        choiceLabel: choice.label
+      });
 
       return {
         ...state,
+        playerHp: newPlayerHp,
+        playerStrength: updatedStrength,
+        playerAgility: updatedAgility,
+        playerInsight,
+        maxHp: newMaxHp,
+        relics: newRelics,
         resources,
+        mapRisk: Math.max(0, state.mapRisk + mapRiskDelta), // 위험도 업데이트 (음수 방지)
         activeEvent: {
           ...active,
-          resolved: true,
-          outcome: {
+          currentStage: nextStage || active.currentStage, // Update to next stage if transitioning
+          resolved: shouldResolve,
+          outcome: shouldResolve ? {
             choice: choice.label,
-            success: isFriendly,
-            text: isFriendly ? choice.successText : choice.failureText,
+            success: isSuccess,
             cost: choice.cost || {},
             rewards,
-            penalty,
-            probability: chance,
-          },
+            penalties,
+            combatTriggered,
+          } : null, // Don't set outcome if transitioning to another stage
         },
       };
     }),
@@ -841,6 +1145,12 @@ export const useGameStore = create((set, get) => ({
           : Math.max(0, Math.min(3, Number(level) || 0)),
     })),
 
+  setDevForcedAnomalies: (anomalies) =>
+    set((state) => ({
+      ...state,
+      devForcedAnomalies: anomalies, // null or array of { anomalyId, level }
+    })),
+
   // ==================== 개발자 도구 전용 액션 ====================
 
   // 자원 직접 설정
@@ -854,8 +1164,27 @@ export const useGameStore = create((set, get) => ({
   setMapRisk: (value) =>
     set((state) => ({
       ...state,
-      mapRisk: Math.max(20, Math.min(80, value)),
+      mapRisk: Math.max(0, Math.min(100, value)),
     })),
+
+  // 기원을 통해 위험도 감소 (에테르 1슬롯 소모)
+  reduceMapRiskByPrayer: (amount = 20) =>
+    set((state) => {
+      const currentEther = state.resources.etherPts || 0;
+      if (currentEther < 1) {
+        console.warn('[Prayer] Not enough ether');
+        return state;
+      }
+
+      return {
+        ...state,
+        mapRisk: Math.max(0, state.mapRisk - amount),
+        resources: {
+          ...state.resources,
+          etherPts: currentEther - 1
+        }
+      };
+    }),
 
   // 모든 노드 해금 (cleared=true, selectable=true)
   devClearAllNodes: () =>
@@ -871,6 +1200,40 @@ export const useGameStore = create((set, get) => ({
           ...state.map,
           nodes: updatedNodes,
         },
+      };
+    }),
+
+  // 특정 노드로 텔레포트 (개발자 모드)
+  devTeleportToNode: (nodeId) =>
+    set((state) => {
+      const targetNode = state.map.nodes.find((n) => n.id === nodeId);
+      if (!targetNode) {
+        console.warn(`[DEV] Node not found: ${nodeId}`);
+        return state;
+      }
+
+      // 노드를 선택 가능하게 만들고 cleared=false로 설정
+      const updatedNodes = cloneNodes(state.map.nodes).map((node) => {
+        if (node.id === nodeId) {
+          return { ...node, cleared: false, selectable: true };
+        }
+        return node;
+      });
+
+      return {
+        ...state,
+        map: {
+          ...state.map,
+          nodes: updatedNodes,
+          currentNodeId: nodeId,
+        },
+        // 현재 진행 중인 이벤트/전투/휴식 등 초기화
+        activeBattle: null,
+        lastBattleResult: null,
+        activeEvent: null,
+        activeRest: null,
+        activeDungeon: null,
+        activeShop: null,
       };
     }),
 
@@ -1019,6 +1382,7 @@ export const useGameStore = create((set, get) => ({
       if (memory < AWAKEN_COST) return state;
 
       const choices = {
+        none: (s) => ({}), // 기원용: 기억만 소모하고 개성 없음
         brave: (s) => ({ playerStrength: (s.playerStrength || 0) + 1, trait: '용맹함' }),
         sturdy: (s) => {
           const newMax = (s.maxHp || 0) + 10;
@@ -1089,6 +1453,32 @@ export const useGameStore = create((set, get) => ({
       ...state,
       activeRest: { nodeId: "DEV-REST" },
     })),
+
+  // 개발용: 이벤트 강제 트리거
+  devTriggerEvent: (eventId) =>
+    set((state) => {
+      const definition = NEW_EVENT_LIBRARY[eventId];
+      if (!definition) {
+        console.error(`[devTriggerEvent] Event not found: ${eventId}`);
+        return state;
+      }
+
+      const eventPayload = {
+        definition,
+        resolved: false,
+        outcome: null,
+        risk: state.mapRisk,
+        friendlyChance: computeFriendlyChance(state.mapRisk),
+        currentStage: null,
+      };
+
+      console.log(`[devTriggerEvent] Triggering event: ${eventId}`, eventPayload);
+
+      return {
+        ...state,
+        activeEvent: eventPayload,
+      };
+    }),
 }));
 
 export const selectors = {

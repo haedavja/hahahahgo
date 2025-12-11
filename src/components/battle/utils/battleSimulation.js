@@ -52,10 +52,9 @@ export function applyAction(state, actor, card) {
         if (effectiveDmg < beforeBlock) {
           const remaining = beforeBlock - effectiveDmg;
           B.block = remaining; dmg = 0;
-          A.vulnMult = 1 + (remaining * 0.5); A.vulnTurns = 1;
           const crushText = crushMultiplier > 1 ? ' [분쇄×2]' : '';
           const formula = `(방어력 ${beforeBlock} - 공격력 ${base}${boost > 1 ? '×2' : ''}${crushText} = ${remaining})`;
-          const msg = `${actor === 'player' ? '플레이어 -> 몬스터' : '몬스터 -> 플레이어'} • 차단 성공 ${formula} + 취약 ×${A.vulnMult.toFixed(1)}`;
+          const msg = `${actor === 'player' ? '플레이어 -> 몬스터' : '몬스터 -> 플레이어'} • 차단 성공 ${formula}`;
           events.push({ actor, card: card.name, type: 'blocked', msg });
           state.log.push(`${actor === 'player' ? '🔵' : '👾'} ${card.name} → ${msg}`);
         } else {
@@ -64,8 +63,7 @@ export function applyAction(state, actor, card) {
           const crushText = crushMultiplier > 1 ? ' [분쇄×2]' : '';
           const formula = `(방어력 ${blocked} - 공격력 ${base}${boost > 1 ? '×2' : ''}${crushText} = 0)`;
           B.block = 0;
-          const vulnMul = (B.vulnMult && B.vulnMult > 1) ? B.vulnMult : 1;
-          const finalDmg = Math.floor(remained * vulnMul);
+          const finalDmg = Math.floor(remained);
           const beforeHP = B.hp; B.hp = Math.max(0, B.hp - finalDmg);
           const msg = `${actor === 'player' ? '플레이어 -> 몬스터' : '몬스터 -> 플레이어'} • 차단 ${blocked} ${formula}, 관통 ${finalDmg} (체력 ${beforeHP} -> ${B.hp})`;
           events.push({ actor, card: card.name, type: 'pierce', dmg: finalDmg, beforeHP, afterHP: B.hp, msg });
@@ -79,8 +77,7 @@ export function applyAction(state, actor, card) {
           totalDealt += finalDmg;
         }
       } else {
-        const vulnMul = (B.vulnMult && B.vulnMult > 1) ? B.vulnMult : 1;
-        const finalDmg = Math.floor(dmg * vulnMul);
+        const finalDmg = Math.floor(dmg);
         const beforeHP = B.hp; B.hp = Math.max(0, B.hp - finalDmg);
         const msg = `${actor === 'player' ? '플레이어 -> 몬스터' : '몬스터 -> 플레이어'} • 데미지 ${finalDmg}${boost > 1 ? ' (에테르 폭주×2)' : ''} (체력 ${beforeHP} -> ${B.hp})`;
         events.push({ actor, card: card.name, type: 'hit', dmg: finalDmg, beforeHP, afterHP: B.hp, msg });

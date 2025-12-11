@@ -45,12 +45,31 @@ const RESOURCE_LABELS = {
   intel: "정보",
   loot: "전리품",
   material: "원자재",
-  etherPts: "에테르",
+  etherPts: "은총화",
+  ether: "은총화",
+  trait: "특성",
+  relic: "유물",
+  card: "카드",
+  memory: "기억",
+  insight: "통찰",
+  hp: "체력",
+  strength: "힘",
+  agility: "민첩",
+  maxHp: "최대 체력",
+  block: "방어",
 };
 
 const describeAmount = (value) => {
   if (value == null) return "0";
   if (typeof value === "number") return `${value}`;
+  if (typeof value === "string") {
+    // 특수 값 처리
+    if (value === "random") return "랜덤";
+    if (value === "rare") return "희귀";
+    if (value === "common") return "일반";
+    if (value === "curse") return "저주";
+    return value;
+  }
   const min = value.min ?? 0;
   const max = value.max ?? min;
   return min === max ? `${min}` : `${min}~${max}`;
@@ -81,7 +100,9 @@ const formatApplied = (bundle = {}) => {
 };
 
 const canAfford = (resources, cost = {}) =>
-  Object.entries(cost).every(([key, value]) => (resources[key] ?? 0) >= value);
+  Object.entries(cost)
+    .filter(([key]) => key !== 'hp' && key !== 'hpPercent') // hp는 별도 관리되므로 제외
+    .every(([key, value]) => (resources[key] ?? 0) >= value);
 
 const formatBattleLogEntry = (entry) => {
   if (!entry) return "";
@@ -191,11 +212,16 @@ export function MapDemo() {
   const bypassDungeon = useGameStore((state) => state.bypassDungeon);
   const playerHp = useGameStore((state) => state.playerHp);
   const maxHp = useGameStore((state) => state.maxHp);
+  const playerStrength = useGameStore((state) => state.playerStrength);
+  const playerAgility = useGameStore((state) => state.playerAgility);
+  const playerInsight = useGameStore((state) => state.playerInsight);
   const awakenAtRest = useGameStore((state) => state.awakenAtRest);
   const closeRest = useGameStore((state) => state.closeRest);
   const healAtRest = useGameStore((state) => state.healAtRest);
   const upgradeCardRarity = useGameStore((state) => state.upgradeCardRarity);
   const cardUpgrades = useGameStore((state) => state.cardUpgrades || {});
+  const reduceMapRiskByPrayer = useGameStore((state) => state.reduceMapRiskByPrayer);
+  const etherPts = useGameStore((state) => state.resources.etherPts || 0);
 
   // Alt+D 핫키로 DevTools 토글
   useEffect(() => {
@@ -556,55 +582,83 @@ export function MapDemo() {
               <h3>{activeEvent.definition?.title ?? "미확인 사건"}</h3>
               <small>우호 확률 {friendlyPercent(activeEvent.friendlyChance) ?? "정보 없음"}</small>
             </header>
-            <p>{activeEvent.definition?.description}</p>
+            <p>{
+              // Show stage description if in a stage, otherwise show main description
+              activeEvent.currentStage && activeEvent.definition?.stages?.[activeEvent.currentStage]
+                ? activeEvent.definition.stages[activeEvent.currentStage].description
+                : activeEvent.definition?.description
+            }</p>
 
             {!activeEvent.resolved && (
               <>
                 <div className="event-choices">
-                  {activeEvent.definition?.choices?.map((choice) => {
-                    const affordable = canAfford(resources, choice.cost || {});
+                  {/* Show stage choices if in a stage, otherwise show main choices */}
+                  {(activeEvent.currentStage && activeEvent.definition?.stages?.[activeEvent.currentStage]
+                    ? activeEvent.definition.stages[activeEvent.currentStage].choices
+                    : activeEvent.definition?.choices
+                  )?.map((choice) => {
+                    // 자원 체크 (HP는 무시)
+                    const canAffordCost = canAfford(resources, choice.cost || {});
+
+                    // 스탯 요구사항 체크 (statRequirement 또는 statCheck)
+                    const playerStats = {
+                      strength: playerStrength || 0,
+                      agility: playerAgility || 0,
+                      insight: playerInsight || 0,
+                    };
+
+                    const statCheckOrReq = choice.statCheck || choice.statRequirement;
+                    const meetsStatRequirement = !statCheckOrReq || Object.entries(statCheckOrReq).every(
+                      ([stat, required]) => (playerStats[stat] || 0) >= required
+                    );
+
+                    const canSelect = canAffordCost && meetsStatRequirement;
+
+                    // 스탯 요구사항 한글 표시 (statRequirement 또는 statCheck)
+                    const statReqText = statCheckOrReq
+                      ? Object.entries(statCheckOrReq)
+                          .map(([stat, val]) => `${RESOURCE_LABELS[stat] || stat} ${val}`)
+                          .join(', ')
+                      : null;
+
                     return (
                       <div key={choice.id} className="choice-card">
                         <strong>{choice.label}</strong>
                         <p>{choice.detail}</p>
                         <small>비용: {describeCost(choice.cost)}</small>
-                        <small>보상: {describeBundle(choice.rewards)}</small>
-                        <small>패널티: {describeBundle(choice.penalty)}</small>
-                        <button type="button" disabled={!affordable} onClick={() => chooseEvent(choice.id)}>
+                        {choice.rewards && <small>보상: {describeBundle(choice.rewards)}</small>}
+                        {choice.successRewards && <small>성공: {describeBundle(choice.successRewards)}</small>}
+                        {choice.penalties && <small>패널티: {describeBundle(choice.penalties)}</small>}
+                        {choice.failurePenalties && <small>실패: {describeBundle(choice.failurePenalties)}</small>}
+                        {choice.probability !== undefined && <small>확률: {Math.round(choice.probability * 100)}%</small>}
+                        {statReqText && <small>필요: {statReqText}</small>}
+                        <button type="button" disabled={!canSelect} onClick={() => chooseEvent(choice.id)}>
                           선택
                         </button>
                       </div>
                     );
                   })}
                 </div>
-
-                {availablePrayers.length > 0 && (
-                  <div className="event-choices">
-                    <strong>기도 (에테르 사용)</strong>
-                    {availablePrayers.map((cost) => (
-                      <div key={`prayer-${cost}`} className="choice-card">
-                        <strong>기도 x{cost}</strong>
-                        <p>에테르를 소모해 우호적 결과를 강제합니다.</p>
-                        <small>비용: 에테르 {cost}</small>
-                        <small>보상: 정보 획득 + 안정화</small>
-                        <button type="button" onClick={() => invokePrayer(cost)}>
-                          기도한다
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
               </>
             )}
 
             {activeEvent.resolved && activeEvent.outcome && (
               <div className="event-result">
                 <strong>{activeEvent.outcome.choice}</strong>
-                <p>{activeEvent.outcome.success ? "우호적 처리" : "비우호적 처리"}</p>
-                <p>{activeEvent.outcome.text}</p>
-                <p>소모: {formatApplied(Object.fromEntries(Object.entries(activeEvent.outcome.cost || {}).map(([k, v]) => [k, -v])))}</p>
-                <p>획득: {formatApplied(activeEvent.outcome.rewards)}</p>
-                <p>손실: {formatApplied(activeEvent.outcome.penalty)}</p>
+                <p>{activeEvent.outcome.success ? "✓ 성공" : "✗ 실패"}</p>
+                {activeEvent.outcome.text && <p>{activeEvent.outcome.text}</p>}
+                {Object.keys(activeEvent.outcome.cost || {}).length > 0 && (
+                  <p>소모: {formatApplied(Object.fromEntries(Object.entries(activeEvent.outcome.cost || {}).map(([k, v]) => [k, -v])))}</p>
+                )}
+                {Object.keys(activeEvent.outcome.rewards || {}).length > 0 && (
+                  <p>획득: {formatApplied(activeEvent.outcome.rewards)}</p>
+                )}
+                {Object.keys(activeEvent.outcome.penalties || {}).length > 0 && (
+                  <p>손실: {formatApplied(activeEvent.outcome.penalties)}</p>
+                )}
+                {activeEvent.outcome.combatTriggered && (
+                  <p style={{ color: "#ff6b6b" }}>⚔️ 전투가 시작됩니다!</p>
+                )}
                 <button type="button" className="close-btn" onClick={closeEvent}>
                   확인
                 </button>
@@ -646,8 +700,19 @@ export function MapDemo() {
               </div>
               <div className="choice-card">
                 <strong>신앙</strong>
-                <div style={{ marginTop: "8px" }}>
+                <div style={{ marginTop: "8px", display: "flex", flexDirection: "column", gap: "8px" }}>
                   <button className="btn" disabled={!canAwaken} onClick={() => awakenAtRest("random")}>랜덤 개성</button>
+                  <button
+                    className="btn"
+                    disabled={etherPts < 1 || mapRisk === 0}
+                    onClick={() => {
+                      reduceMapRiskByPrayer(20);
+                      closeRest();
+                    }}
+                    title={etherPts < 1 ? "에테르가 부족합니다 (1슬롯 필요)" : mapRisk === 0 ? "위험도가 이미 0%입니다" : "위험도 -20% (에테르 1슬롯 소모)"}
+                  >
+                    🙏 기원 (위험도 -{Math.min(20, mapRisk)}%, 에테르 1슬롯)
+                  </button>
                 </div>
               </div>
               <div className="choice-card">
