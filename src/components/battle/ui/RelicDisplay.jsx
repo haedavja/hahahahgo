@@ -60,6 +60,19 @@ export const RelicDisplay = ({
             || relic.effects?.type === 'ON_TURN_START' // 피피한 갑옷
             || relicId === 'bloodShackles'; // 피의 족쇄 - 전투 중 지속 강조
           const isHighlighted = isPersistent || isActivated;
+
+          // 색상 결정: 패시브는 하늘색, 일시 발동은 황금색
+          const highlightColor = isPersistent
+            ? { r: 135, g: 206, b: 235 } // 하늘색
+            : { r: 251, g: 191, b: 36 };  // 황금색
+
+          // 밝기 설정: 패시브는 덜 밝게
+          const brightness = isPersistent ? 1.05 : 1.15;
+          const glowIntensity = isPersistent ? 0.15 : 0.35;
+          const bgOpacity = isPersistent ? 0.06 : 0.12;
+          const borderOpacity = isPersistent ? 0.25 : 0.5;
+          const shadowIntensity = isPersistent ? 0.25 : 0.5;
+
           const rarityText = {
             [RELIC_RARITIES.COMMON]: '일반',
             [RELIC_RARITIES.RARE]: '희귀',
@@ -88,13 +101,13 @@ export const RelicDisplay = ({
                   justifyContent: 'center',
                   cursor: 'pointer',
                   transition: 'all 0.2s ease',
-                  filter: isHighlighted ? 'brightness(1.15) drop-shadow(0 0 4px rgba(251, 191, 36, 0.35))' : 'brightness(1)',
+                  filter: isHighlighted ? `brightness(${brightness}) drop-shadow(0 0 4px rgba(${highlightColor.r}, ${highlightColor.g}, ${highlightColor.b}, ${glowIntensity}))` : 'brightness(1)',
                   transform: isHovered ? 'scale(1.12)' : (isActivated ? 'scale(1.16)' : 'scale(1)'),
                   animation: isActivated ? 'relicActivate 0.4s ease' : 'none',
-                  background: isHighlighted ? 'rgba(251, 191, 36, 0.12)' : 'transparent',
+                  background: isHighlighted ? `rgba(${highlightColor.r}, ${highlightColor.g}, ${highlightColor.b}, ${bgOpacity})` : 'transparent',
                   borderRadius: '8px',
-                  border: isHighlighted ? '1px solid rgba(251, 191, 36, 0.5)' : '1px solid transparent',
-                  boxShadow: isHighlighted ? '0 0 15px rgba(251, 191, 36, 0.5)' : 'none'
+                  border: isHighlighted ? `1px solid rgba(${highlightColor.r}, ${highlightColor.g}, ${highlightColor.b}, ${borderOpacity})` : '1px solid transparent',
+                  boxShadow: isHighlighted ? `0 0 15px rgba(${highlightColor.r}, ${highlightColor.g}, ${highlightColor.b}, ${shadowIntensity})` : 'none'
                 }}>
                 <span>{relic.emoji}</span>
               </div>

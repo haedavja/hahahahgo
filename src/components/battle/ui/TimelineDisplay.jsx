@@ -87,7 +87,7 @@ export const TimelineDisplay = ({
                 style={{
                   left: `${timelineProgress}%`,
                   opacity: timelineIndicatorVisible ? 1 : 0,
-                  transition: 'left 0.5s linear, opacity 0.3s ease-out'
+                  transition: 'left 0.25s linear, opacity 0.3s ease-out'
                 }}
               />
             )}

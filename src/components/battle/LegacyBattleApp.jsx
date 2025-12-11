@@ -74,6 +74,8 @@ import { BattleTooltips } from "./ui/BattleTooltips";
 import { ExpectedDamagePreview } from "./ui/ExpectedDamagePreview";
 import { EtherBar } from "./ui/EtherBar";
 import { Sword, Shield, Heart, Zap, Flame, Clock, Skull, X, ChevronUp, ChevronDown, Play, StepForward, RefreshCw, ICON_MAP } from "./ui/BattleIcons";
+import { selectBattleAnomalies, applyAnomalyEffects, formatAnomaliesForDisplay } from "../../lib/anomalyUtils";
+import { AnomalyDisplay, AnomalyNotification } from "./ui/AnomalyDisplay";
 
 
 const CARDS = BASE_PLAYER_CARDS.map(card => ({
@@ -98,6 +100,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const playerAgility = useGameStore((state) => state.playerAgility || 0);
   const relics = useGameStore((state) => state.relics || []);
   const devDulledLevel = useGameStore((state) => state.devDulledLevel ?? null);
+  const devForcedAnomalies = useGameStore((state) => state.devForcedAnomalies ?? null);
+  const mapRisk = useGameStore((state) => state.mapRisk || 0);
   const mergeRelicOrder = useCallback((relicList = [], saved = []) => {
     const savedSet = new Set(saved);
     const merged = [];
@@ -126,24 +130,44 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   }, [orderedRelics]);
   const orderedRelicList = orderedRelics && orderedRelics.length ? orderedRelics : relics;
 
+  // 이변 시스템: 전투 시작 시 이변 선택
+  const [activeAnomalies, setActiveAnomalies] = useState([]);
+  const [showAnomalyNotification, setShowAnomalyNotification] = useState(false);
+
   const safeInitialPlayer = initialPlayer || {};
   const safeInitialEnemy = initialEnemy || {};
   const enemyCount = safeInitialEnemy.enemyCount ?? 1; // Extract enemy count for multi-enemy battles
+
+  // 이변 선택 및 적용 (전투 시작 전)
+  const isBoss = safeInitialEnemy.type === 'boss' || safeInitialEnemy.isBoss;
+  const selectedAnomalies = useMemo(() => {
+    return selectBattleAnomalies(mapRisk, isBoss, devForcedAnomalies);
+  }, [mapRisk, isBoss, devForcedAnomalies]);
+
+  // 이변 효과를 초기 플레이어 상태에 적용
+  const playerWithAnomalies = useMemo(() => {
+    if (selectedAnomalies.length === 0) return safeInitialPlayer;
+    const anomalyResult = applyAnomalyEffects(selectedAnomalies, safeInitialPlayer, useGameStore.getState());
+    return anomalyResult.player;
+  }, [selectedAnomalies, safeInitialPlayer]);
+
   const passiveRelicStats = calculatePassiveEffects(orderedRelicList);
   // 전투 시작 에너지는 payload에서 계산된 값을 신뢰하고, 없을 때만 기본값 사용
-  const baseEnergy = safeInitialPlayer.energy ?? BASE_PLAYER_ENERGY;
-  const baseMaxEnergy = safeInitialPlayer.maxEnergy ?? baseEnergy;
+  const baseEnergy = playerWithAnomalies.energy ?? BASE_PLAYER_ENERGY;
+  // 이변 패널티를 고려한 최대 행동력 계산
+  const energyPenalty = playerWithAnomalies.energyPenalty || 0;
+  const baseMaxEnergy = Math.max(0, (playerWithAnomalies.maxEnergy ?? baseEnergy) - energyPenalty);
   // 민첩도 payload에 값이 있으면 우선 사용하고, 없으면 스토어 값을 사용
-  const effectiveAgility = safeInitialPlayer.agility ?? playerAgility ?? 0;
+  const effectiveAgility = playerWithAnomalies.agility ?? playerAgility ?? 0;
   const effectiveCardDrawBonus = passiveRelicStats.cardDrawBonus || 0;
-  const startingEther = typeof safeInitialPlayer.etherPts === 'number' ? safeInitialPlayer.etherPts : playerEther;
-  const startingBlock = safeInitialPlayer.block ?? 0; // 유물 효과로 인한 시작 방어력
-  const startingStrength = safeInitialPlayer.strength ?? playerStrength ?? 0; // 전투 시작 힘 (유물 효과 포함)
-  const startingInsight = safeInitialPlayer.insight ?? 0; // 통찰
+  const startingEther = typeof playerWithAnomalies.etherPts === 'number' ? playerWithAnomalies.etherPts : playerEther;
+  const startingBlock = playerWithAnomalies.block ?? 0; // 유물 효과로 인한 시작 방어력
+  const startingStrength = playerWithAnomalies.strength ?? playerStrength ?? 0; // 전투 시작 힘 (유물 효과 포함)
+  const startingInsight = playerWithAnomalies.insight ?? 0; // 통찰
 
   const initialPlayerState = {
-    hp: safeInitialPlayer.hp ?? 30,
-    maxHp: safeInitialPlayer.maxHp ?? safeInitialPlayer.hp ?? 30,
+    hp: playerWithAnomalies.hp ?? 30,
+    maxHp: playerWithAnomalies.maxHp ?? playerWithAnomalies.hp ?? 30,
     energy: baseEnergy,
     maxEnergy: baseMaxEnergy,
     vulnMult: 1,
@@ -157,8 +181,15 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     comboUsageCount: {},
     strength: startingStrength,
     insight: startingInsight,
-    maxSpeed: safeInitialPlayer.maxSpeed ?? DEFAULT_PLAYER_MAX_SPEED,
-    tokens: { usage: [], turn: [], permanent: [] }
+    // 이변 패널티를 고려한 최대 속도 계산
+    maxSpeed: Math.max(0, (playerWithAnomalies.maxSpeed ?? DEFAULT_PLAYER_MAX_SPEED) - (playerWithAnomalies.speedPenalty || 0)),
+    tokens: playerWithAnomalies.tokens || { usage: [], turn: [], permanent: [] },
+    // 이변 효과 플래그 보존
+    etherBan: playerWithAnomalies.etherBan || false,
+    energyPenalty: playerWithAnomalies.energyPenalty || 0,
+    speedPenalty: playerWithAnomalies.speedPenalty || 0,
+    drawPenalty: playerWithAnomalies.drawPenalty || 0,
+    insightPenalty: playerWithAnomalies.insightPenalty || 0
   };
 
   // Initialize battle state with useReducer
@@ -319,6 +350,15 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     actions.setOrderedRelics(mergeRelicOrder(relics, orderedRelicList));
   }, [relics, mergeRelicOrder, battle.phase, orderedRelicList]);
 
+  // 개발자 모드에서 힘이 변경될 때 실시간 반영
+  useEffect(() => {
+    if (battle.phase === 'resolve') return;
+    const currentStrength = player.strength || 0;
+    if (currentStrength !== playerStrength) {
+      actions.setPlayer({ ...player, strength: playerStrength });
+    }
+  }, [playerStrength]);
+
   const addLog = useCallback((m) => {
     actions.updateLog([...battle.log, m].slice(-200));
   }, [actions, battle.log]);
@@ -414,16 +454,25 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     return calculateEffectiveInsight(player.insight, enemy?.shroud);
   }, [player.insight, enemy?.shroud]);
 
-  // 우둔 레벨: 장막이 통찰보다 높을 때 (shroud - insight)
-  const dulledLevel = useMemo(() => {
+  // 통찰 레벨: insight - shroud - insightPenalty (-3 ~ +3)
+  // -3: 망각, -2: 미련, -1: 우둔, 0: 평온, +1: 예측, +2: 독심, +3: 혜안
+  const insightLevel = useMemo(() => {
     const shroud = enemy?.shroud || 0;
     const insight = player.insight || 0;
-    const base = Math.max(0, shroud - insight);
+    // 이변 패널티 적용
+    const insightPenalty = player.insightPenalty || 0;
+    const base = Math.max(-3, Math.min(3, insight - shroud - insightPenalty));
     if (devDulledLevel !== null && devDulledLevel !== undefined) {
-      return Math.max(0, Math.min(3, devDulledLevel));
+      // devDulledLevel은 이제 insight의 음수 값으로 저장됨 (insight = -devDulledLevel)
+      // 예: devDulledLevel = -3 → insightLevel = 3 (혜안)
+      // 예: devDulledLevel = 1 → insightLevel = -1 (우둔)
+      return Math.max(-3, Math.min(3, -devDulledLevel));
     }
     return base;
-  }, [player.insight, enemy?.shroud, devDulledLevel]);
+  }, [player.insight, player.insightPenalty, enemy?.shroud, devDulledLevel]);
+
+  // 하위 호환성을 위한 dulledLevel (우둔 레벨만, 0~3)
+  const dulledLevel = Math.max(0, -insightLevel);
 
   const insightReveal = useMemo(() => {
     if (battle.phase !== 'select') return { level: 0, visible: false };
@@ -647,6 +696,26 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       actions.setUsedCardIndices([]);
     }
   }, [battle.phase]);
+
+  // 이변 알림 표시 (전투 시작 시 한 번만)
+  const anomalyNotificationShownRef = useRef(false);
+
+  useEffect(() => {
+    if (enemy && selectedAnomalies.length > 0 && !anomalyNotificationShownRef.current) {
+      console.log('[Anomaly System] Showing notification for', selectedAnomalies.length, 'anomalies');
+
+      // 이변 로그 추가
+      selectedAnomalies.forEach(({ anomaly, level }) => {
+        const effect = anomaly.getEffect(level);
+        addLog(`⚠️ ${anomaly.emoji} ${anomaly.name} (Lv.${level}): ${effect.description}`);
+      });
+
+      // 이변 알림 표시
+      setActiveAnomalies(selectedAnomalies);
+      setShowAnomalyNotification(true);
+      anomalyNotificationShownRef.current = true;
+    }
+  }, [enemy, selectedAnomalies]);
 
   useEffect(() => {
     if (!enemy) {
@@ -1316,7 +1385,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     // 먼저 시곗바늘을 현재 카드 위치로 이동
     actions.setTimelineProgress(progressPercent);
 
-    // 시곗바늘 이동 완료 후 카드 발동 및 실행 (0.5초 transition 후)
+    // 시곗바늘 이동 완료 후 카드 발동 및 실행 (0.25초 transition 후)
     setTimeout(() => {
       // 실행 중인 카드 표시 (흔들림 애니메이션)
       actions.setExecutingCardIndex(currentQIndex);
@@ -1328,13 +1397,13 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         const currentBattle = battleRef.current;
         const currentUsedIndices = currentBattle.usedCardIndices || [];
         actions.setUsedCardIndices([...currentUsedIndices, currentQIndex]);
-      }, 350); // CSS 애니메이션 시간과 일치
+      }, 200); // CSS 애니메이션 시간 단축
 
       // 마지막 카드면 페이드아웃
       if (currentQIndex >= currentBattle.queue.length - 1) {
         setTimeout(() => {
           actions.setTimelineIndicatorVisible(false);
-        }, 300);
+        }, 150);
       }
 
       // 카드 소멸 이펙트는 플레이어만 적용
@@ -1354,12 +1423,12 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
             const currentDisappearing2 = currentBattle.disappearingCards || [];
             actions.setHiddenCards([...currentHidden, currentQIndex]);
             actions.setDisappearingCards(currentDisappearing2.filter(i => i !== currentQIndex));
-          }, 600); // 애니메이션 지속 시간
-        }, 300); // 사용 효과 후 바로 사라지기 시작
+          }, 300); // 애니메이션 지속 시간 단축
+        }, 150); // 사용 효과 후 바로 사라지기 시작
       }
 
       executeCardAction();
-    }, 500); // CSS transition 시간과 일치 (0.5s)
+    }, 250); // CSS transition 시간 단축 (0.25s)
   };
 
   const executeCardAction = () => {
@@ -1512,7 +1581,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     if (autoProgress && battle.phase === 'resolve' && battle.qIndex < battle.queue.length) {
       const timer = setTimeout(() => {
         stepOnce();
-      }, 1000);
+      }, 450);
       return () => clearTimeout(timer);
     }
   }, [autoProgress, battle.phase, battle.qIndex, battle.queue.length, stepOnce]);
@@ -1523,7 +1592,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     if (battle.phase === 'resolve' && battle.qIndex >= battle.queue.length && battle.queue.length > 0 && turnEtherAccumulated > 0 && etherCalcPhase === null) {
       // 모든 카드가 실행되고 에테르가 누적된 상태에서, 애니메이션이 아직 시작되지 않았을 때만 실행
       // resolvedPlayerCards를 전달하여 몬스터 사망 시에도 정확한 카드 수 사용
-      setTimeout(() => startEtherCalculationAnimation(turnEtherAccumulated, resolvedPlayerCards), 900);
+      setTimeout(() => startEtherCalculationAnimation(turnEtherAccumulated, resolvedPlayerCards), 400);
     }
   }, [battle.phase, battle.qIndex, battle.queue.length, turnEtherAccumulated, etherCalcPhase, resolvedPlayerCards]);
 
@@ -1626,8 +1695,15 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     // 에테르 소지량 이동: 적용치 기준 (플레이어도 잃을 수 있음)
     const curPlayerPts = player.etherPts || 0;
     const curEnemyPts = enemy.etherPts || 0;
+
+    // 이변: 에테르 획득 불가 체크
+    const effectivePlayerAppliedEther = player.etherBan ? 0 : playerAppliedEther;
+    if (player.etherBan && playerAppliedEther > 0) {
+      addLog('⚠️ [디플레이션의 저주] 에테르 획득이 차단되었습니다!');
+    }
+
     const { nextPlayerPts, nextEnemyPts, movedPts } = processEtherTransfer({
-      playerAppliedEther,
+      playerAppliedEther: effectivePlayerAppliedEther,
       enemyAppliedEther,
       curPlayerPts,
       curEnemyPts,
@@ -1954,6 +2030,17 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
   return (
     <div className="legacy-battle-root w-full min-h-screen pb-64">
+      {/* 이변 표시 */}
+      <AnomalyDisplay anomalies={activeAnomalies} />
+
+      {/* 이변 알림 */}
+      {showAnomalyNotification && (
+        <AnomalyNotification
+          anomalies={activeAnomalies}
+          onDismiss={() => setShowAnomalyNotification(false)}
+        />
+      )}
+
       {/* 에테르 게이지 - 왼쪽 고정 */}
       <div style={{
         position: 'fixed',
@@ -2082,6 +2169,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
               playerOverdriveFlash={playerOverdriveFlash}
               effectiveAgility={effectiveAgility}
               dulledLevel={dulledLevel}
+              insightLevel={insightLevel}
             />
           </div>
 
