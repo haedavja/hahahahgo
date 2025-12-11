@@ -63,7 +63,9 @@ const resolveAmount = (value) => {
 };
 
 const canAfford = (resources, cost = {}) =>
-  Object.entries(cost).every(([key, value]) => (resources[key] ?? 0) >= value);
+  Object.entries(cost)
+    .filter(([key]) => key !== 'hp' && key !== 'hpPercent') // HP 비용은 항상 선택 가능
+    .every(([key, value]) => (resources[key] ?? 0) >= value);
 
 const payCost = (cost = {}, resources = {}) => {
   const next = { ...resources };
@@ -509,6 +511,16 @@ export const useGameStore = create((set, get) => ({
       // 비용 지불
       let resources = payCost(choice.cost || {}, state.resources);
 
+      // HP 비용 처리
+      let newPlayerHp = state.playerHp;
+      if (choice.cost?.hp) {
+        newPlayerHp = Math.max(1, newPlayerHp - choice.cost.hp); // 최소 1 HP 유지
+      }
+      if (choice.cost?.hpPercent) {
+        const hpCost = Math.floor(state.maxHp * (choice.cost.hpPercent / 100));
+        newPlayerHp = Math.max(1, newPlayerHp - hpCost); // 최소 1 HP 유지
+      }
+
       // 보상 지급
       let rewards = {};
       let newSubSpecials = [...(state.characterBuild?.subSpecials || [])];
@@ -542,6 +554,7 @@ export const useGameStore = create((set, get) => ({
         return {
           ...state,
           resources,
+          playerHp: newPlayerHp,
           characterBuild: updatedCharacterBuild,
           activeEvent: {
             ...active,
@@ -556,6 +569,7 @@ export const useGameStore = create((set, get) => ({
         return {
           ...state,
           resources,
+          playerHp: newPlayerHp,
           characterBuild: updatedCharacterBuild,
           activeEvent: {
             ...active,
@@ -576,6 +590,7 @@ export const useGameStore = create((set, get) => ({
       return {
         ...state,
         resources,
+        playerHp: newPlayerHp,
         characterBuild: updatedCharacterBuild,
         completedEvents: newCompletedEvents,
         activeEvent: {
