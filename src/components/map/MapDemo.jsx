@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState, useCallback, useReducer } from "react";
 import { useMapState } from "./hooks/useMapState";
 import { useGameStore } from "../../state/gameStore";
-import { getEventStep, getEventTitle } from "../../data/events";
 import { calculateEtherSlots, getCurrentSlotPts, getSlotProgress, getNextSlotCost } from "../../lib/etherUtils";
 import { CharacterSheet } from "../character/CharacterSheet";
 import { DungeonExploration } from "../dungeon/DungeonExploration";
@@ -550,42 +549,36 @@ export function MapDemo() {
 
       <div className="map-version-tag">{PATCH_VERSION_TAG}</div>
 
-      {activeEvent && (() => {
-        // 다단계 이벤트 지원: 현재 단계 정보 가져오기
-        const currentStep = getEventStep(activeEvent.definition, activeEvent.currentStep);
-        const eventTitle = getEventTitle(activeEvent.definition);
-
-        return (
+      {activeEvent && (
         <div className="event-modal-overlay">
           <div className="event-modal">
             <header>
-              <h3>{eventTitle}</h3>
+              <h3>{activeEvent.definition?.title ?? "미확인 사건"}</h3>
               <small>우호 확률 {friendlyPercent(activeEvent.friendlyChance) ?? "정보 없음"}</small>
             </header>
-            <p>{currentStep?.description ?? "설명 없음"}</p>
+            <p>{activeEvent.definition?.description ?? "설명 없음"}</p>
 
             {!activeEvent.resolved && (
               <>
                 <div className="event-choices">
-                  {currentStep?.choices?.map((choice) => {
+                  {activeEvent.definition?.choices?.map((choice) => {
                     const affordable = canAfford(resources, choice.cost || {});
-                    // 단계 이동 선택지는 보상/패널티 표시 생략
-                    const isNavigation = choice.next && !choice.final;
                     return (
                       <div key={choice.id} className="choice-card">
                         <strong>{choice.label}</strong>
-                        <p>{choice.detail}</p>
                         {choice.cost && Object.keys(choice.cost).length > 0 && (
                           <small>비용: {describeCost(choice.cost)}</small>
                         )}
-                        {!isNavigation && choice.rewards && Object.keys(choice.rewards).length > 0 && (
+                        {choice.rewards && Object.keys(choice.rewards).length > 0 && (
                           <small>보상: {describeBundle(choice.rewards)}</small>
                         )}
-                        {!isNavigation && choice.penalty && Object.keys(choice.penalty).length > 0 && (
-                          <small>패널티: {describeBundle(choice.penalty)}</small>
+                        {choice.statRequirement && (
+                          <small style={{ color: "#fbbf24" }}>
+                            요구: {Object.entries(choice.statRequirement).map(([k, v]) => `${k} ${v}`).join(", ")}
+                          </small>
                         )}
                         <button type="button" disabled={!affordable} onClick={() => chooseEvent(choice.id)}>
-                          {isNavigation ? "진행" : "선택"}
+                          선택
                         </button>
                       </div>
                     );
@@ -614,11 +607,12 @@ export function MapDemo() {
             {activeEvent.resolved && activeEvent.outcome && (
               <div className="event-result">
                 <strong>{activeEvent.outcome.choice}</strong>
-                <p>{activeEvent.outcome.success ? "우호적 처리" : "비우호적 처리"}</p>
-                <p>{activeEvent.outcome.text}</p>
-                <p>소모: {formatApplied(Object.fromEntries(Object.entries(activeEvent.outcome.cost || {}).map(([k, v]) => [k, -v])))}</p>
-                <p>획득: {formatApplied(activeEvent.outcome.rewards)}</p>
-                <p>손실: {formatApplied(activeEvent.outcome.penalty)}</p>
+                {activeEvent.outcome.cost && Object.keys(activeEvent.outcome.cost).length > 0 && (
+                  <p>소모: {formatApplied(Object.fromEntries(Object.entries(activeEvent.outcome.cost).map(([k, v]) => [k, -v])))}</p>
+                )}
+                {activeEvent.outcome.rewards && Object.keys(activeEvent.outcome.rewards).length > 0 && (
+                  <p>획득: {formatApplied(activeEvent.outcome.rewards)}</p>
+                )}
                 <button type="button" className="close-btn" onClick={closeEvent}>
                   확인
                 </button>
@@ -626,8 +620,7 @@ export function MapDemo() {
             )}
           </div>
         </div>
-        );
-      })()}
+      )}
 
       {activeRest && (
         <div className="event-modal-overlay" onClick={closeRest}>

@@ -1,5 +1,5 @@
 ﻿import { create } from "zustand";
-import { eventLibrary, getEventStep } from "../data/events";
+import { NEW_EVENT_LIBRARY } from "../data/newEvents";
 import { createInitialState } from "./useGameState";
 import { ENEMY_DECKS } from "../data/cards";
 import { CARDS } from "../components/battle/battleData";
@@ -10,7 +10,7 @@ import { calculatePassiveEffects, applyCombatEndEffects, applyNodeMoveEther } fr
 // 전투에서 사용되는 카드 8종의 ID 배열
 const BATTLE_CARDS = CARDS.slice(0, 8).map(card => card.id);
 
-const EVENT_KEYS = Object.keys(eventLibrary);
+const EVENT_KEYS = Object.keys(NEW_EVENT_LIBRARY);
 const BATTLE_TYPES = new Set(["battle", "elite", "boss", "dungeon"]);
 const BATTLE_REWARDS = {
   battle: { gold: { min: 10, max: 16 }, loot: { min: 1, max: 2 } },
@@ -105,7 +105,7 @@ const applyInitialRelicEffects = (state) => {
 const createEventPayload = (node, mapRisk) => {
   if (!node || node.type !== "event" || node.isStart) return null;
   ensureEventKey(node);
-  const definition = eventLibrary[node.eventKey];
+  const definition = NEW_EVENT_LIBRARY[node.eventKey];
   if (!definition) return null;
   return {
     definition,
@@ -113,7 +113,6 @@ const createEventPayload = (node, mapRisk) => {
     outcome: null,
     risk: mapRisk,
     friendlyChance: computeFriendlyChance(mapRisk),
-    currentStep: "start", // 다단계 이벤트용 현재 단계
   };
 };
 
@@ -490,44 +489,36 @@ export const useGameStore = create((set, get) => ({
       const active = state.activeEvent;
       if (!active || active.resolved) return state;
 
-      // 다단계 이벤트 지원: 현재 단계에서 선택지 가져오기
-      const currentStep = getEventStep(active.definition, active.currentStep);
-      if (!currentStep || !currentStep.choices) return state;
-
-      const choice = currentStep.choices.find((item) => item.id === choiceId);
+      const choice = active.definition.choices?.find((item) => item.id === choiceId);
       if (!choice || !canAfford(state.resources, choice.cost || {})) return state;
 
       // 비용 지불
       let resources = payCost(choice.cost || {}, state.resources);
 
-      // 단계 이동 (final이 아닌 경우)
-      if (choice.next && !choice.final) {
+      // 보상 지급
+      let rewards = {};
+      if (choice.rewards) {
+        const result = grantRewards(choice.rewards, resources);
+        resources = result.next;
+        rewards = result.applied;
+      }
+
+      // nextEvent가 있으면 다음 이벤트로 전환
+      if (choice.nextEvent && NEW_EVENT_LIBRARY[choice.nextEvent]) {
+        const nextDef = NEW_EVENT_LIBRARY[choice.nextEvent];
         return {
           ...state,
           resources,
           activeEvent: {
             ...active,
-            currentStep: choice.next,
+            definition: nextDef,
+            resolved: false,
+            outcome: null,
           },
         };
       }
 
-      // 최종 선택 (final: true 또는 단일 단계 이벤트)
-      let rewards = {};
-      let penalty = {};
-      const chance = active.friendlyChance;
-      const isFriendly = Math.random() < chance;
-
-      if (isFriendly) {
-        const result = grantRewards(choice.rewards || {}, resources);
-        resources = result.next;
-        rewards = result.applied;
-      } else {
-        const result = applyPenalty(choice.penalty || {}, resources);
-        resources = result.next;
-        penalty = result.applied;
-      }
-
+      // 이벤트 종료
       return {
         ...state,
         resources,
@@ -536,12 +527,9 @@ export const useGameStore = create((set, get) => ({
           resolved: true,
           outcome: {
             choice: choice.label,
-            success: isFriendly,
-            text: isFriendly ? choice.successText : choice.failureText,
+            success: true,
             cost: choice.cost || {},
             rewards,
-            penalty,
-            probability: chance,
           },
         },
       };
