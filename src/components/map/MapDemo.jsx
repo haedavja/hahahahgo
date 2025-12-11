@@ -49,6 +49,12 @@ const RESOURCE_LABELS = {
   grace: "은총화",
 };
 
+const STAT_LABELS = {
+  insight: "통찰",
+  strength: "힘",
+  agility: "민첩",
+};
+
 const describeAmount = (value) => {
   if (value == null) return "0";
   if (typeof value === "number") return `${value}`;
@@ -589,7 +595,7 @@ export function MapDemo() {
                         )}
                         {choice.statRequirement && (
                           <small style={{ color: "#fbbf24" }}>
-                            요구: {Object.entries(choice.statRequirement).map(([k, v]) => `${k} ${v}`).join(", ")}
+                            요구: {Object.entries(choice.statRequirement).map(([k, v]) => `${STAT_LABELS[k] ?? k} ${v}`).join(", ")}
                           </small>
                         )}
                         <button type="button" disabled={!affordable} onClick={() => chooseEvent(choice.id)}>
