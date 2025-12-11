@@ -40,10 +40,18 @@ const cloneNodes = (nodes = []) =>
     dungeonData: node.dungeonData ? { ...node.dungeonData } : undefined,
   }));
 
-const ensureEventKey = (node) => {
+const ensureEventKey = (node, completedEvents = []) => {
   if (node.eventKey || !EVENT_KEYS.length) return;
-  const index = Math.floor(Math.random() * EVENT_KEYS.length);
-  node.eventKey = EVENT_KEYS[index];
+  // 완료된 이벤트 제외
+  const availableEvents = EVENT_KEYS.filter(key => !completedEvents.includes(key));
+  if (!availableEvents.length) {
+    // 모든 이벤트를 완료했으면 전체에서 랜덤 선택
+    const index = Math.floor(Math.random() * EVENT_KEYS.length);
+    node.eventKey = EVENT_KEYS[index];
+  } else {
+    const index = Math.floor(Math.random() * availableEvents.length);
+    node.eventKey = availableEvents[index];
+  }
 };
 
 const resolveAmount = (value) => {
@@ -102,9 +110,9 @@ const applyInitialRelicEffects = (state) => {
   };
 };
 
-const createEventPayload = (node, mapRisk) => {
+const createEventPayload = (node, mapRisk, completedEvents = []) => {
   if (!node || node.type !== "event" || node.isStart) return null;
-  ensureEventKey(node);
+  ensureEventKey(node, completedEvents);
   const definition = NEW_EVENT_LIBRARY[node.eventKey];
   if (!definition) return null;
   return {
@@ -248,7 +256,7 @@ const travelToNode = (state, nodeId) => {
 
   return {
     map: { ...state.map, nodes, currentNodeId: target.id },
-    event: createEventPayload(target, state.mapRisk),
+    event: createEventPayload(target, state.mapRisk, state.completedEvents || []),
     battle: createBattlePayload(target, state.characterBuild, state.playerHp, state.maxHp),
     target,
   };
@@ -537,10 +545,16 @@ export const useGameStore = create((set, get) => ({
         };
       }
 
-      // 이벤트 종료
+      // 이벤트 종료 - 완료된 이벤트 목록에 추가
+      const eventId = active.definition?.id;
+      const newCompletedEvents = eventId && !state.completedEvents?.includes(eventId)
+        ? [...(state.completedEvents || []), eventId]
+        : state.completedEvents || [];
+
       return {
         ...state,
         resources,
+        completedEvents: newCompletedEvents,
         activeEvent: {
           ...active,
           resolved: true,
