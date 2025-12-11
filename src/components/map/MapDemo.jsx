@@ -47,6 +47,13 @@ const RESOURCE_LABELS = {
   material: "원자재",
   etherPts: "에테르",
   grace: "은총화",
+  memory: "기억",
+  card: "카드",
+  insight: "통찰",
+  strength: "힘",
+  agility: "민첩",
+  hp: "체력",
+  relic: "유물",
 };
 
 const STAT_LABELS = {
