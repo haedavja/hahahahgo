@@ -511,17 +511,38 @@ export const useGameStore = create((set, get) => ({
 
       // 보상 지급
       let rewards = {};
+      let newSubSpecials = [...(state.characterBuild?.subSpecials || [])];
+
       if (choice.rewards) {
         const result = grantRewards(choice.rewards, resources);
         resources = result.next;
         rewards = result.applied;
+
+        // 카드 보상 처리 - 랜덤 카드를 subSpecials에 추가
+        if (choice.rewards.card && choice.rewards.card > 0) {
+          const cardCount = resolveAmount(choice.rewards.card);
+          const availableCards = CARDS.filter(c => !newSubSpecials.includes(c.id));
+          for (let i = 0; i < cardCount && availableCards.length > 0; i++) {
+            const randomIndex = Math.floor(Math.random() * availableCards.length);
+            const selectedCard = availableCards.splice(randomIndex, 1)[0];
+            newSubSpecials.push(selectedCard.id);
+            console.log(`[Event] 카드 획득: ${selectedCard.name} (${selectedCard.id})`);
+          }
+        }
       }
+
+      // characterBuild 업데이트
+      const updatedCharacterBuild = {
+        ...state.characterBuild,
+        subSpecials: newSubSpecials,
+      };
 
       // nextStage가 있으면 같은 이벤트 내 다음 스테이지로 전환
       if (choice.nextStage && active.definition.stages?.[choice.nextStage]) {
         return {
           ...state,
           resources,
+          characterBuild: updatedCharacterBuild,
           activeEvent: {
             ...active,
             currentStage: choice.nextStage,
@@ -535,6 +556,7 @@ export const useGameStore = create((set, get) => ({
         return {
           ...state,
           resources,
+          characterBuild: updatedCharacterBuild,
           activeEvent: {
             ...active,
             definition: nextDef,
@@ -554,6 +576,7 @@ export const useGameStore = create((set, get) => ({
       return {
         ...state,
         resources,
+        characterBuild: updatedCharacterBuild,
         completedEvents: newCompletedEvents,
         activeEvent: {
           ...active,
