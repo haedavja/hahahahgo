@@ -144,8 +144,8 @@ export const createInitialState = ({
   // === 카드 빙결 애니메이션 ===
   freezingEnemyCards: [], // 빙결 중인 적 카드 인덱스
 
-  // === 빙결 순서 플래그 ===
-  frozenOrder: false, // true면 beginResolveFromRespond에서 SP 정렬 건너뜀
+  // === 빙결 순서 카운터 ===
+  frozenOrder: 0, // 0보다 크면 빙결 효과 적용 (남은 턴 수)
 });
 
 // =====================

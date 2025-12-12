@@ -1239,15 +1239,18 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     });
     actions.setFixedOrder(q);
 
-    // 빙결 플래그 처리 - frozenOrder 설정 (beginResolveFromRespond에서 SP 정렬 건너뜀)
+    // 빙결 플래그 처리 - enemyFrozen 초기화 (frozenOrder는 ItemSlots에서 이미 설정됨)
     if (currentPlayer.enemyFrozen) {
       actions.setPlayer({ ...currentPlayer, enemyFrozen: false });
-      actions.setFrozenOrder(true);
-      // battleRef도 즉시 업데이트
-      if (battleRef.current) {
-        battleRef.current.frozenOrder = true;
+      // frozenOrder가 아직 설정되지 않은 경우에만 1로 설정 (안전장치)
+      const currentFrozenOrder = battleRef.current?.frozenOrder || 0;
+      if (currentFrozenOrder <= 0) {
+        actions.setFrozenOrder(1);
+        if (battleRef.current) {
+          battleRef.current.frozenOrder = 1;
+        }
       }
-      console.log('[startResolve] 빙결 효과 적용 - frozenOrder=true 설정');
+      console.log('[startResolve] 빙결 효과 적용 - frozenOrder:', battleRef.current?.frozenOrder);
     }
     // 대응 단계 되감기용 스냅샷 저장 (전투당 1회)
     if (!rewindUsed) {
@@ -1367,14 +1370,14 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       return;
     }
 
-    // 빙결 효과 확인 - frozenOrder가 true면 SP 정렬 건너뜀
-    const isFrozenOrder = currentBattle?.frozenOrder || battleRef.current?.frozenOrder;
+    // 빙결 효과 확인 - frozenOrder > 0이면 SP 정렬 건너뜀
+    const frozenOrderCount = currentBattle?.frozenOrder || battleRef.current?.frozenOrder || 0;
     console.log('[beginResolveFromRespond] 빙결 순서 확인:', {
-      frozenOrder: isFrozenOrder,
+      frozenOrder: frozenOrderCount,
       queueBefore: newQ.map(x => x.actor)
     });
 
-    if (!isFrozenOrder) {
+    if (frozenOrderCount <= 0) {
       // SP 값으로 정렬 (같은 SP면 배열 순서 유지 = 수동 순서 유지)
       newQ.sort((a, b) => {
         if (a.sp !== b.sp) return a.sp - b.sp;
@@ -1382,12 +1385,13 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         return 0;
       });
     } else {
-      // 빙결 효과 사용됨 - 플래그 초기화
-      actions.setFrozenOrder(false);
+      // 빙결 효과 사용됨 - 카운터 1 감소
+      const newCount = frozenOrderCount - 1;
+      actions.setFrozenOrder(newCount);
       if (battleRef.current) {
-        battleRef.current.frozenOrder = false;
+        battleRef.current.frozenOrder = newCount;
       }
-      addLog('❄️ 빙결 효과 발동: 플레이어 카드 우선!');
+      addLog(`❄️ 빙결 효과 발동: 플레이어 카드 우선!${newCount > 0 ? ` (${newCount}턴 남음)` : ''}`);
     }
 
     console.log('[beginResolveFromRespond] 최종 큐 순서:', newQ.map(x => x.actor));

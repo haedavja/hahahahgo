@@ -162,11 +162,15 @@ export function ItemSlots({ phase, battleActions, player, enemy, enemyPlan, batt
         // 빙결 사운드 재생
         playFreezeSound();
 
-        // frozenOrder 플래그 설정 (beginResolveFromRespond에서 SP 정렬 건너뜀)
+        // frozenOrder 카운터 설정 (effect.value = 지속 턴 수, 기본 1턴)
+        const freezeTurns = effect.value || 1;
+        const currentFrozenOrder = battleRef?.current?.frozenOrder || 0;
+        const newFrozenOrder = currentFrozenOrder + freezeTurns;
+
         if (battleActions.setFrozenOrder) {
-          battleActions.setFrozenOrder(true);
+          battleActions.setFrozenOrder(newFrozenOrder);
           if (battleRef?.current) {
-            battleRef.current.frozenOrder = true;
+            battleRef.current.frozenOrder = newFrozenOrder;
           }
         }
 

@@ -81,7 +81,7 @@ export const EnemyHpBar = ({
                   )}
                 </div>
                 {/* 상태이상 표시 - HP바 아래 */}
-                {frozenOrder && (
+                {frozenOrder > 0 && (
                   <div
                     className="enemy-status-frozen"
                     style={{
@@ -102,6 +102,13 @@ export const EnemyHpBar = ({
                     }}>
                     <span>❄️</span>
                     <span>빙결됨</span>
+                    <span style={{
+                      marginLeft: '2px',
+                      padding: '0 4px',
+                      background: 'rgba(100, 200, 255, 0.3)',
+                      borderRadius: '3px',
+                      fontSize: '11px'
+                    }}>x{frozenOrder}</span>
                     {/* 툴팁 */}
                     <div className="status-tooltip" style={{
                       position: 'absolute',
@@ -122,8 +129,8 @@ export const EnemyHpBar = ({
                       zIndex: 1000,
                       boxShadow: '0 4px 12px rgba(0, 0, 0, 0.5)'
                     }}>
-                      <div style={{ fontWeight: 700, color: '#7dd3fc', marginBottom: '6px', fontSize: '14px' }}>❄️ 빙결</div>
-                      <div style={{ lineHeight: 1.5 }}>이번 턴 플레이어 카드가<br/>모두 먼저 발동합니다.</div>
+                      <div style={{ fontWeight: 700, color: '#7dd3fc', marginBottom: '6px', fontSize: '14px' }}>❄️ 빙결 (x{frozenOrder})</div>
+                      <div style={{ lineHeight: 1.5 }}>{frozenOrder}턴 동안 플레이어 카드가<br/>모두 먼저 발동합니다.</div>
                     </div>
                   </div>
                 )}
