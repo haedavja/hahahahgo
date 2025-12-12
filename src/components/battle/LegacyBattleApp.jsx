@@ -1942,16 +1942,23 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     console.log('[finishTurn] STEP 4: etherMultiplier 초기화 시작', { latestPlayerMult: latestPlayer.etherMultiplier });
 
     // 턴 종료 상태 업데이트
-    const newPlayerState = createTurnEndPlayerState(latestPlayer, {
-      comboUsageCount: newUsageCount,
-      etherPts: nextPlayerPts,
-      etherOverflow: playerOverflow,
-      etherMultiplier: 1  // 에테르 증폭 배율 초기화
-    });
-    console.log('[finishTurn] 턴 종료 후 플레이어 상태:', {
-      'before etherMultiplier': latestPlayer.etherMultiplier,
-      'after etherMultiplier': newPlayerState.etherMultiplier
-    });
+    let newPlayerState;
+    try {
+      console.log('[finishTurn] createTurnEndPlayerState 호출 전');
+      newPlayerState = createTurnEndPlayerState(latestPlayer, {
+        comboUsageCount: newUsageCount,
+        etherPts: nextPlayerPts,
+        etherOverflow: playerOverflow,
+        etherMultiplier: 1  // 에테르 증폭 배율 초기화
+      });
+      console.log('[finishTurn] createTurnEndPlayerState 호출 후:', {
+        'before etherMultiplier': latestPlayer.etherMultiplier,
+        'after etherMultiplier': newPlayerState.etherMultiplier
+      });
+    } catch (err) {
+      console.error('[finishTurn] createTurnEndPlayerState 에러:', err);
+      newPlayerState = { ...latestPlayer, etherMultiplier: 1 };
+    }
     actions.setPlayer(newPlayerState);
 
     // battleRef도 즉시 업데이트
