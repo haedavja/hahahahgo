@@ -1893,6 +1893,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       comboUsageForThisCombo: player.comboUsageCount?.[pComboEnd?.name] || 0
     });
 
+    console.log('[finishTurn] STEP 1: 에테르 처리 시작');
+
     // 플레이어 에테르 획득 처리
     if (playerFinalEther > 0) {
       addLog(formatPlayerEtherLog(playerEther, turnEtherAccumulated));
@@ -1906,6 +1908,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     }
 
     actions.setEnemyEtherFinalValue(enemyFinalEther);
+
+    console.log('[finishTurn] STEP 2: 에테르 이동 시작');
 
     // 에테르 소지량 이동: 적용치 기준 (플레이어도 잃을 수 있음)
     const curPlayerPts = player.etherPts || 0;
@@ -1929,9 +1933,13 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       actions
     });
 
+    console.log('[finishTurn] STEP 3: 조합 카운트 업데이트');
+
     // 조합 사용 카운트 업데이트
     const newUsageCount = updateComboUsageCount(player.comboUsageCount, pComboEnd, queue, 'player');
     const newEnemyUsageCount = updateComboUsageCount(enemy.comboUsageCount, eComboEnd, [], 'enemy');
+
+    console.log('[finishTurn] STEP 4: etherMultiplier 초기화 시작', { latestPlayerMult: latestPlayer.etherMultiplier });
 
     // 턴 종료 상태 업데이트
     const newPlayerState = createTurnEndPlayerState(latestPlayer, {
