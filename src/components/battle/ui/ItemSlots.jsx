@@ -1,0 +1,121 @@
+import { useGameStore } from "../../../state/gameStore";
+
+const STAT_LABELS = {
+  strength: "힘",
+  agility: "민첩",
+  insight: "통찰",
+};
+
+/**
+ * 전투 화면용 아이템 슬롯 컴포넌트
+ * phase가 'select' 또는 'respond'일 때만 전투용 아이템 사용 가능
+ */
+export function ItemSlots({ phase }) {
+  const items = useGameStore((state) => state.items || [null, null, null]);
+  const useItem = useGameStore((state) => state.useItem);
+  const itemBuffs = useGameStore((state) => state.itemBuffs || {});
+
+  // 전투용 아이템은 select/respond 단계에서만 사용 가능
+  const canUseCombatItem = phase === 'select' || phase === 'respond';
+
+  const handleUseItem = (idx) => {
+    const item = items[idx];
+    if (!item) return;
+
+    // 범용 아이템은 항상 사용 가능
+    if (item.usableIn === 'any') {
+      useItem(idx);
+      return;
+    }
+
+    // 전투용 아이템은 select/respond 단계에서만
+    if (item.usableIn === 'combat' && canUseCombatItem) {
+      useItem(idx);
+    }
+  };
+
+  const getItemUsability = (item) => {
+    if (!item) return false;
+    if (item.usableIn === 'any') return true;
+    if (item.usableIn === 'combat') return canUseCombatItem;
+    return false;
+  };
+
+  return (
+    <div style={{
+      position: 'fixed',
+      left: '20px',
+      top: '20px',
+      display: 'flex',
+      gap: '8px',
+      zIndex: 100,
+    }}>
+      {items.map((item, idx) => {
+        const canUse = getItemUsability(item);
+        return (
+          <div
+            key={idx}
+            onClick={() => canUse && handleUseItem(idx)}
+            title={item ? `${item.name}\n${item.description}${item.usableIn === 'combat' && !canUseCombatItem ? '\n(선택/대응 단계에서만 사용 가능)' : ''}` : '빈 슬롯'}
+            style={{
+              position: 'relative',
+              width: '48px',
+              height: '48px',
+              borderRadius: '8px',
+              border: `2px solid ${canUse ? 'rgba(100, 220, 150, 0.9)' : item ? 'rgba(120, 140, 180, 0.5)' : 'rgba(80, 90, 110, 0.5)'}`,
+              background: 'rgba(12, 18, 32, 0.9)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: canUse ? 'pointer' : 'default',
+              transition: 'all 0.2s',
+              boxShadow: canUse ? '0 0 8px rgba(100, 220, 150, 0.4)' : 'none',
+              opacity: item && !canUse ? 0.6 : 1,
+            }}
+          >
+            {item ? (
+              <>
+                <span style={{ fontSize: '24px' }}>{item.icon || '?'}</span>
+                {item.usableIn === 'combat' && !canUseCombatItem && (
+                  <span style={{
+                    position: 'absolute',
+                    bottom: '2px',
+                    right: '2px',
+                    fontSize: '10px',
+                    color: 'rgba(255, 100, 100, 0.8)',
+                  }}>⏸</span>
+                )}
+              </>
+            ) : (
+              <span style={{ fontSize: '18px', color: 'rgba(100, 110, 130, 0.6)' }}>-</span>
+            )}
+          </div>
+        );
+      })}
+
+      {/* 아이템 버프 표시 */}
+      {Object.keys(itemBuffs).length > 0 && (
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '4px',
+          marginLeft: '8px',
+        }}>
+          {Object.entries(itemBuffs).map(([stat, value]) => (
+            <span key={stat} style={{
+              padding: '4px 8px',
+              background: 'rgba(100, 200, 150, 0.2)',
+              border: '1px solid rgba(100, 200, 150, 0.5)',
+              borderRadius: '6px',
+              fontSize: '11px',
+              color: '#86efac',
+              whiteSpace: 'nowrap',
+            }}>
+              {STAT_LABELS[stat] || stat} +{value}
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}

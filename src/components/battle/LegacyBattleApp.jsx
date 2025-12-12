@@ -18,6 +18,7 @@ import {
 import { calculateEtherSlots, getCurrentSlotPts, getSlotProgress, getNextSlotCost, MAX_SLOTS } from "../../lib/etherUtils";
 import { CharacterSheet } from "../character/CharacterSheet";
 import { useGameStore } from "../../state/gameStore";
+import { ItemSlots } from "./ui/ItemSlots";
 import { RELICS, RELIC_RARITIES } from "../../data/relics";
 import { RELIC_EFFECT, applyRelicEffects, applyRelicComboMultiplier, RELIC_RARITY_COLORS } from "../../lib/relics";
 import { applyAgility } from "../../lib/agilityUtils";
@@ -2061,6 +2062,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
           showPtsTooltip={showPtsTooltip}
         />
       </div>
+
+      {/* 아이템 슬롯 - 왼쪽 상단 고정 */}
+      <ItemSlots phase={battle.phase} />
       {/* 예상 피해량 - 오른쪽 고정 패널 */}
       <div className="expect-sidebar-fixed">
         <ExpectedDamagePreview

@@ -6,6 +6,7 @@ import { CARDS } from "../components/battle/battleData";
 import { drawHand, buildSpeedTimeline } from "../lib/speedQueue";
 import { simulateBattle, pickOutcome } from "../lib/battleResolver";
 import { calculatePassiveEffects, applyCombatEndEffects, applyNodeMoveEther } from "../lib/relicEffects";
+import { ITEMS, getItem } from "../data/items";
 
 // 전투에서 사용되는 카드 8종의 ID 배열
 const BATTLE_CARDS = CARDS.slice(0, 8).map(card => card.id);
@@ -338,6 +339,8 @@ export const useGameStore = create((set, get) => ({
         resources: updatedResources,
         // pendingNextEvent가 사용됐으면 초기화
         pendingNextEvent: result.usedPendingEvent ? null : state.pendingNextEvent,
+        // 아이템 버프 초기화 (1노드 지속)
+        itemBuffs: {},
       };
     }),
 
@@ -1223,6 +1226,118 @@ export const useGameStore = create((set, get) => ({
           friendlyChance: computeFriendlyChance(state.mapRisk),
         },
       };
+    }),
+
+  // ==================== 아이템 관리 ====================
+
+  // 아이템 획득 (빈 슬롯에 추가)
+  addItem: (itemId) =>
+    set((state) => {
+      const item = getItem(itemId);
+      if (!item) {
+        console.warn(`[addItem] Item not found: ${itemId}`);
+        return state;
+      }
+      const items = [...state.items];
+      const emptySlot = items.findIndex((slot) => slot === null);
+      if (emptySlot === -1) {
+        console.warn('[addItem] No empty slot available');
+        return state;
+      }
+      items[emptySlot] = item;
+      console.log(`[addItem] Added ${item.name} to slot ${emptySlot}`);
+      return { ...state, items };
+    }),
+
+  // 아이템 제거
+  removeItem: (slotIndex) =>
+    set((state) => {
+      if (slotIndex < 0 || slotIndex >= state.items.length) return state;
+      const items = [...state.items];
+      items[slotIndex] = null;
+      return { ...state, items };
+    }),
+
+  // 아이템 사용
+  useItem: (slotIndex, battleContext = null) =>
+    set((state) => {
+      if (slotIndex < 0 || slotIndex >= state.items.length) return state;
+      const item = state.items[slotIndex];
+      if (!item) {
+        console.warn('[useItem] No item in slot', slotIndex);
+        return state;
+      }
+
+      // 전투 중이면 combat 아이템만, 아니면 any 아이템만 사용 가능
+      const inBattle = !!state.activeBattle;
+      if (item.usableIn === 'combat' && !inBattle) {
+        console.warn('[useItem] Combat item can only be used in battle');
+        return state;
+      }
+
+      // 아이템 슬롯에서 제거
+      const items = [...state.items];
+      items[slotIndex] = null;
+
+      // 효과 적용
+      const effect = item.effect;
+      let updates = { items };
+
+      switch (effect.type) {
+        case 'heal': {
+          const maxHp = state.maxHp ?? 100;
+          const newHp = Math.min(maxHp, (state.playerHp ?? 0) + effect.value);
+          updates.playerHp = newHp;
+          console.log(`[useItem] ${item.name}: 체력 ${effect.value} 회복 (현재: ${newHp})`);
+          break;
+        }
+        case 'statBoost': {
+          // 1노드 지속 스탯 버프
+          const newBuffs = { ...(state.itemBuffs || {}) };
+          newBuffs[effect.stat] = (newBuffs[effect.stat] || 0) + effect.value;
+          updates.itemBuffs = newBuffs;
+          console.log(`[useItem] ${item.name}: ${effect.stat} +${effect.value} (1노드)`);
+          break;
+        }
+        case 'etherMultiplier':
+        case 'etherSteal':
+        case 'damage':
+        case 'defense':
+        case 'attackBoost':
+        case 'turnEnergy':
+        case 'maxEnergy':
+        case 'cardDestroy':
+        case 'cardFreeze': {
+          // 전투용 아이템 - battleContext에 효과 전달
+          // 실제 효과는 전투 시스템에서 처리
+          console.log(`[useItem] ${item.name}: 전투 효과 발동 - ${effect.type}: ${effect.value}`);
+          // 전투 아이템 효과는 별도로 activeBattle에 저장
+          if (state.activeBattle) {
+            const battle = { ...state.activeBattle };
+            battle.pendingItemEffects = [...(battle.pendingItemEffects || []), effect];
+            updates.activeBattle = battle;
+          }
+          break;
+        }
+        default:
+          console.warn(`[useItem] Unknown effect type: ${effect.type}`);
+      }
+
+      return { ...state, ...updates };
+    }),
+
+  // 아이템 버프 초기화 (노드 이동 시 호출)
+  clearItemBuffs: () =>
+    set((state) => ({
+      ...state,
+      itemBuffs: {},
+    })),
+
+  // 개발용: 아이템 직접 설정
+  devSetItems: (itemIds) =>
+    set((state) => {
+      const items = itemIds.map((id) => (id ? getItem(id) : null));
+      return { ...state, items };
     }),
 }));
 

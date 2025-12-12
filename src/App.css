@@ -267,6 +267,7 @@ body {
   z-index: 60;
 }
 .item-slot {
+  position: relative;
   width: 48px;
   height: 48px;
   border-radius: 8px;
@@ -294,6 +295,36 @@ body {
 .item-empty {
   font-size: 18px;
   color: rgba(100, 110, 130, 0.6);
+}
+.item-slot.usable {
+  border-color: rgba(100, 220, 150, 0.9);
+  box-shadow: 0 0 8px rgba(100, 220, 150, 0.4);
+}
+.item-slot.usable:hover {
+  transform: scale(1.1);
+  box-shadow: 0 0 12px rgba(100, 220, 150, 0.6);
+}
+.item-combat-only {
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  font-size: 10px;
+  color: rgba(255, 100, 100, 0.8);
+}
+.item-buffs {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+}
+.item-buff {
+  padding: 4px 8px;
+  background: rgba(100, 200, 150, 0.2);
+  border: 1px solid rgba(100, 200, 150, 0.5);
+  border-radius: 6px;
+  font-size: 11px;
+  color: #86efac;
+  white-space: nowrap;
 }
 
 .map-version-tag {

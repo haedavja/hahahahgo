@@ -216,6 +216,8 @@ export function MapDemo() {
   const playerInsight = useGameStore((state) => state.playerInsight || 0);
   const playerStrength = useGameStore((state) => state.playerStrength || 0);
   const playerAgility = useGameStore((state) => state.playerAgility || 0);
+  const useItem = useGameStore((state) => state.useItem);
+  const itemBuffs = useGameStore((state) => state.itemBuffs || {});
 
   // 스탯 요구사항 충족 여부 체크
   const meetsStatRequirement = useCallback((statRequirement) => {
@@ -572,15 +574,40 @@ export function MapDemo() {
 
       {/* 아이템 슬롯 3개 */}
       <div className="item-slots">
-        {items.map((item, idx) => (
-          <div key={idx} className={`item-slot ${item ? 'filled' : 'empty'}`}>
-            {item ? (
-              <span className="item-icon">{item.icon || '?'}</span>
-            ) : (
-              <span className="item-empty">-</span>
-            )}
+        {items.map((item, idx) => {
+          const inBattle = !!activeBattle;
+          const canUse = item && (item.usableIn === 'any' || (item.usableIn === 'combat' && inBattle));
+          return (
+            <div
+              key={idx}
+              className={`item-slot ${item ? 'filled' : 'empty'} ${canUse ? 'usable' : ''}`}
+              onClick={() => canUse && useItem(idx)}
+              title={item ? `${item.name}\n${item.description}${!canUse && item.usableIn === 'combat' ? '\n(전투 중에만 사용 가능)' : ''}` : '빈 슬롯'}
+              style={{ cursor: canUse ? 'pointer' : 'default' }}
+            >
+              {item ? (
+                <>
+                  <span className="item-icon">{item.icon || '?'}</span>
+                  {item.usableIn === 'combat' && !inBattle && (
+                    <span className="item-combat-only">⚔</span>
+                  )}
+                </>
+              ) : (
+                <span className="item-empty">-</span>
+              )}
+            </div>
+          );
+        })}
+        {/* 아이템 버프 표시 */}
+        {Object.keys(itemBuffs).length > 0 && (
+          <div className="item-buffs">
+            {Object.entries(itemBuffs).map(([stat, value]) => (
+              <span key={stat} className="item-buff">
+                {STAT_LABELS[stat] || stat} +{value}
+              </span>
+            ))}
           </div>
-        ))}
+        )}
       </div>
 
       <div className="resources-display">
