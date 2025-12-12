@@ -1570,6 +1570,13 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       // 2단계: 곱셈 강조 + 명쾌한 사운드
       actions.setEtherCalcPhase('multiply');
       actions.setEnemyEtherCalcPhase('multiply');
+      // 에테르 증폭 배율이 적용되었으면 상태에서 제거 (배율 갱신 시점)
+      if (etherAmplifierMult > 1) {
+        const currentPlayer = battleRef.current?.player || player;
+        const updatedPlayer = { ...currentPlayer, etherMultiplier: 1 };
+        actions.setPlayer(updatedPlayer);
+        battleRef.current.player = updatedPlayer;
+      }
       playSound(800, 100);
       setTimeout(() => {
         // 3단계: 디플레이션 배지 애니메이션 + 저음 사운드

@@ -341,7 +341,7 @@ body {
   opacity: 0;
   visibility: hidden;
   transition: opacity 0.15s, visibility 0.15s;
-  z-index: 200;
+  z-index: 99999;
   pointer-events: none;
 }
 .item-slot:hover .item-tooltip {
