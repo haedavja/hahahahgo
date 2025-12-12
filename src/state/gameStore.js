@@ -39,28 +39,34 @@ const cloneNodes = (nodes = []) =>
     dungeonData: node.dungeonData ? { ...node.dungeonData } : undefined,
   }));
 
-// pendingNextEvent가 있으면 우선 사용, 없으면 랜덤 선택
-// 반환값: pendingNextEvent를 사용했으면 true
+// pendingNextEvent가 있으면 랜덤 풀에 추가
+// 반환값: pendingNextEvent가 선택됐으면 true
 const ensureEventKey = (node, completedEvents = [], pendingNextEvent = null) => {
   if (node.eventKey || !EVENT_KEYS.length) return false;
 
-  // pendingNextEvent가 있으면 우선 사용
-  if (pendingNextEvent && NEW_EVENT_LIBRARY[pendingNextEvent]) {
-    node.eventKey = pendingNextEvent;
-    return true; // pendingNextEvent 사용됨
+  // 완료된 이벤트 제외
+  let availableEvents = EVENT_KEYS.filter(key => !completedEvents.includes(key));
+
+  // pendingNextEvent가 있으면 랜덤 풀에 추가 (아직 완료 안 했으면)
+  if (pendingNextEvent && NEW_EVENT_LIBRARY[pendingNextEvent] && !completedEvents.includes(pendingNextEvent)) {
+    // 중복 방지
+    if (!availableEvents.includes(pendingNextEvent)) {
+      availableEvents = [...availableEvents, pendingNextEvent];
+    }
   }
 
-  // 완료된 이벤트 제외
-  const availableEvents = EVENT_KEYS.filter(key => !completedEvents.includes(key));
   if (!availableEvents.length) {
     // 모든 이벤트를 완료했으면 전체에서 랜덤 선택
     const index = Math.floor(Math.random() * EVENT_KEYS.length);
     node.eventKey = EVENT_KEYS[index];
-  } else {
-    const index = Math.floor(Math.random() * availableEvents.length);
-    node.eventKey = availableEvents[index];
+    return false;
   }
-  return false;
+
+  const index = Math.floor(Math.random() * availableEvents.length);
+  node.eventKey = availableEvents[index];
+
+  // pendingNextEvent가 선택됐으면 true 반환 (초기화용)
+  return node.eventKey === pendingNextEvent;
 };
 
 const resolveAmount = (value) => {
