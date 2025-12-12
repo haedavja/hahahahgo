@@ -150,6 +150,7 @@ export function MapDemo() {
   const activeDungeon = useGameStore((state) => state.activeDungeon);
   const lastBattleResult = useGameStore((state) => state.lastBattleResult);
   const relics = useGameStore((state) => state.relics);
+  const items = useGameStore((state) => state.items || [null, null, null]);
   const activeRest = useGameStore((state) => state.activeRest);
   const mergeRelicOrder = useCallback((relicList = [], saved = []) => {
     const savedSet = new Set(saved);
@@ -568,6 +569,19 @@ export function MapDemo() {
       </div>
 
       <div className="risk-indicator">위험도 {riskDisplay}%</div>
+
+      {/* 아이템 슬롯 3개 */}
+      <div className="item-slots">
+        {items.map((item, idx) => (
+          <div key={idx} className={`item-slot ${item ? 'filled' : 'empty'}`}>
+            {item ? (
+              <span className="item-icon">{item.icon || '?'}</span>
+            ) : (
+              <span className="item-empty">-</span>
+            )}
+          </div>
+        ))}
+      </div>
 
       <div className="resources-display">
         <div style={{ color: "#ffd700", fontSize: "13px" }}>금: {resources.gold}</div>

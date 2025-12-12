@@ -155,6 +155,7 @@ export const createInitialState = () => {
     playerEgos: [], // 획득한 자아 목록
     cardUpgrades: {}, // 카드 업그레이드(카드 ID -> 희귀도)
     relics: initialRelics,
+    items: [null, null, null], // 아이템 슬롯 3개 (null = 빈 슬롯)
     completedEvents: [], // 완료된 이벤트 ID 목록 (중복 방지)
     pendingNextEvent: null, // 다음에 등장할 연쇄 이벤트 ID (alparius 등)
     activeEvent: null,

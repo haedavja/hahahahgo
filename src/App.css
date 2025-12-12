@@ -256,6 +256,46 @@ body {
   gap: 6px;
   z-index: 60;
 }
+
+/* 아이템 슬롯 - 왼쪽 상단 */
+.item-slots {
+  position: fixed;
+  left: 20px;
+  top: 20px;
+  display: flex;
+  gap: 8px;
+  z-index: 60;
+}
+.item-slot {
+  width: 48px;
+  height: 48px;
+  border-radius: 8px;
+  border: 2px solid rgba(120, 140, 180, 0.5);
+  background: rgba(12, 18, 32, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: border-color 0.2s, transform 0.15s;
+}
+.item-slot:hover {
+  border-color: rgba(160, 190, 255, 0.8);
+  transform: scale(1.05);
+}
+.item-slot.filled {
+  border-color: rgba(100, 200, 150, 0.7);
+}
+.item-slot.empty {
+  border-color: rgba(80, 90, 110, 0.5);
+}
+.item-icon {
+  font-size: 24px;
+}
+.item-empty {
+  font-size: 18px;
+  color: rgba(100, 110, 130, 0.6);
+}
+
 .map-version-tag {
   position: fixed;
   left: 40px;
