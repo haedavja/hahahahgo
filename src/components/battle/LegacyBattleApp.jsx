@@ -1932,7 +1932,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     actions.setPlayer(createTurnEndPlayerState(player, {
       comboUsageCount: newUsageCount,
       etherPts: nextPlayerPts,
-      etherOverflow: playerOverflow
+      etherOverflow: playerOverflow,
+      etherMultiplier: 1  // 에테르 증폭 배율 초기화
     }));
 
     const nextPts = Math.max(0, nextEnemyPts);
