@@ -22,7 +22,8 @@ export function startEtherCalculationAnimationSequence({
   selected,
   player,
   playSound,
-  actions
+  actions,
+  onMultiplierConsumed
 }) {
   if (turnEtherAccumulated <= 0) return;
 
@@ -66,7 +67,10 @@ export function startEtherCalculationAnimationSequence({
       setTimeout(() => {
         // 4단계: 최종값 표시 + 묵직한 사운드
         actions.setEtherCalcPhase('result');
-        // 최종값은 finishTurn에서 설정됨 (애니메이션 시점의 값은 부정확)
+        // 에테르 증폭 배율이 적용되었으면 상태에서 제거
+        if (etherAmplifierMult > 1 && onMultiplierConsumed) {
+          onMultiplierConsumed();
+        }
         playSound(400, 200); // 묵직한 사운드
       }, playerDeflation.usageCount > 0 ? 400 : 0);
     }, 600);

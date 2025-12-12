@@ -2062,7 +2062,14 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       selected,
       player: latestPlayerForAnim,
       playSound,
-      actions
+      actions,
+      onMultiplierConsumed: () => {
+        // 에테르 증폭 배율 리셋 (계산에 적용됨을 보여줌)
+        const currentPlayer = battleRef.current?.player || player;
+        const updatedPlayer = { ...currentPlayer, etherMultiplier: 1 };
+        actions.setPlayer(updatedPlayer);
+        battleRef.current.player = updatedPlayer;
+      }
     });
   };
 
