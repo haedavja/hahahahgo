@@ -1310,25 +1310,45 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   }, [battle.phase, enemyPlan.actions, enemyPlan.manuallyModified, fixedOrder]);
 
   const beginResolveFromRespond = () => {
+    // battleRef에서 최신 상태 가져오기
+    const currentBattle = battleRef.current;
+    const currentEnemyPlan = currentBattle?.enemyPlan;
+    const currentFixedOrder = currentBattle?.fixedOrder || fixedOrder;
+
     console.log('[DEBUG] beginResolveFromRespond called:', {
-      phase: battle.phase,
-      fixedOrderLength: fixedOrder?.length,
-      fixedOrderEnemyCards: fixedOrder?.filter(x => x.actor === 'enemy').length,
-      enemyPlanActionsLength: enemyPlan.actions?.length,
-      manuallyModified: enemyPlan.manuallyModified
+      phase: currentBattle?.phase,
+      fixedOrderLength: currentFixedOrder?.length,
+      fixedOrderEnemyCards: currentFixedOrder?.filter(x => x.actor === 'enemy').length,
+      enemyPlanActionsLength: currentEnemyPlan?.actions?.length,
+      manuallyModified: currentEnemyPlan?.manuallyModified
     });
-    if (battle.phase !== 'respond') {
-      console.log('[DEBUG] Phase check failed, phase is:', battle.phase);
+
+    if (currentBattle?.phase !== 'respond') {
+      console.log('[DEBUG] Phase check failed, phase is:', currentBattle?.phase);
       return;
     }
-    if (!fixedOrder) return addLog('오류: 고정된 순서가 없습니다');
+    if (!currentFixedOrder) return addLog('오류: 고정된 순서가 없습니다');
 
-    if (fixedOrder.length === 0) {
+    if (currentFixedOrder.length === 0) {
       addLog('⚠️ 실행할 행동이 없습니다. 최소 1장 이상을 유지하거나 적이 행동 가능한 상태여야 합니다.');
       return;
     }
 
-    const newQ = fixedOrder.map(x => ({ actor: x.actor, card: x.card, sp: x.sp }));
+    // 카드 파괴된 경우 fixedOrder에서 파괴된 카드 제거
+    let effectiveFixedOrder = currentFixedOrder;
+    if (currentEnemyPlan?.manuallyModified && currentEnemyPlan?.actions) {
+      const remainingActions = new Set(currentEnemyPlan.actions);
+      effectiveFixedOrder = currentFixedOrder.filter(item => {
+        if (item.actor === 'player') return true;
+        return remainingActions.has(item.card);
+      });
+      console.log('[DEBUG] 카드 파괴로 인한 fixedOrder 필터링:', {
+        original: currentFixedOrder.length,
+        filtered: effectiveFixedOrder.length
+      });
+    }
+
+    const newQ = effectiveFixedOrder.map(x => ({ actor: x.actor, card: x.card, sp: x.sp }));
     console.log('[DEBUG] newQ created:', {
       totalLength: newQ.length,
       enemyCardsInQueue: newQ.filter(x => x.actor === 'enemy').length
