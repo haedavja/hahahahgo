@@ -1736,7 +1736,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         collectTriggeredRelics,
         playRelicActivationSequence,
         flashRelic,
-        actions
+        actions,
+        playerEtherMultiplier: player.etherMultiplier || 1
       });
     } else if (a.actor === 'enemy') {
       processEnemyEtherAccumulation({

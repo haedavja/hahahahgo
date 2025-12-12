@@ -61,8 +61,8 @@ export function ItemSlots({ phase, battleActions, player, enemy, enemyPlan, batt
         logMsg = `⚔️ ${item.name}: 힘 +${effect.value}!`;
         break;
       case 'etherMultiplier':
-        newPlayer.etherMultiplier = effect.value;
-        logMsg = `💎 ${item.name}: 에테르 획득 ${effect.value}배!`;
+        newPlayer.etherMultiplier = (newPlayer.etherMultiplier || 1) * effect.value;
+        logMsg = `💎 ${item.name}: 에테르 획득 ${effect.value}배! (총 ${newPlayer.etherMultiplier}배)`;
         break;
       case 'etherSteal': {
         const steal = Math.min(effect.value, newEnemy.etherPts || 0);

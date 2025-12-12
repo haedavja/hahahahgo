@@ -21,6 +21,7 @@
  * @param {Function} params.playRelicActivationSequence - 유물 애니메이션 재생 함수
  * @param {Function} params.flashRelic - 유물 플래시 함수
  * @param {Object} params.actions - 상태 업데이트 함수 모음
+ * @param {number} params.playerEtherMultiplier - 플레이어 에테르 배율 (아이템 효과)
  * @returns {Object} { newTurnEther, newResolvedPlayerCards }
  */
 export function processPlayerEtherAccumulation({
@@ -37,13 +38,16 @@ export function processPlayerEtherAccumulation({
   collectTriggeredRelics,
   playRelicActivationSequence,
   flashRelic,
-  actions
+  actions,
+  playerEtherMultiplier = 1
 }) {
   // 희귀한 조약돌 효과: 카드당 획득 에테르 2배
   const passiveRelicEffects = calculatePassiveEffects(orderedRelicList);
   const upgradedRarity = cardUpgrades[card.id];
   const cardForEther = upgradedRarity ? { ...card, rarity: upgradedRarity } : card;
-  const etherPerCard = Math.floor(getCardEtherGain(cardForEther) * passiveRelicEffects.etherMultiplier);
+  // 유물 배율과 플레이어 아이템 배율 모두 적용
+  const totalMultiplier = passiveRelicEffects.etherMultiplier * playerEtherMultiplier;
+  const etherPerCard = Math.floor(getCardEtherGain(cardForEther) * totalMultiplier);
 
   const newTurnEther = turnEtherAccumulated + etherPerCard;
   console.log(`[에테르 누적] ${turnEtherAccumulated} + ${etherPerCard} = ${newTurnEther} (카드: ${card.name})`);
