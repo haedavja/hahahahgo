@@ -1,5 +1,5 @@
 ﻿import { create } from "zustand";
-import { NEW_EVENT_LIBRARY } from "../data/newEvents";
+import { NEW_EVENT_LIBRARY, EVENT_KEYS } from "../data/newEvents";
 import { createInitialState } from "./useGameState";
 import { ENEMY_DECKS } from "../data/cards";
 import { CARDS } from "../components/battle/battleData";
@@ -10,7 +10,6 @@ import { calculatePassiveEffects, applyCombatEndEffects, applyNodeMoveEther } fr
 // 전투에서 사용되는 카드 8종의 ID 배열
 const BATTLE_CARDS = CARDS.slice(0, 8).map(card => card.id);
 
-const EVENT_KEYS = Object.keys(NEW_EVENT_LIBRARY);
 const BATTLE_TYPES = new Set(["battle", "elite", "boss", "dungeon"]);
 const BATTLE_REWARDS = {
   battle: { gold: { min: 10, max: 16 }, loot: { min: 1, max: 2 } },
