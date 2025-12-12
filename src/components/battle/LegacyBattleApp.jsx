@@ -890,17 +890,24 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       addLog(`🤖 적 성향 힌트: ${mode.name}`);
     }
     // manuallyModified가 true면 기존 actions 유지 (카드 파괴 등으로 수동 변경된 경우)
+    // battleRef에서도 최신 상태 확인 (이중 체크)
+    const refEnemyPlan = battleRef.current?.enemyPlan;
+    const latestManuallyModified = battle.enemyPlan.manuallyModified || refEnemyPlan?.manuallyModified;
+
     console.log('[턴시작 useEffect] 실행됨:', {
-      manuallyModified: battle.enemyPlan.manuallyModified,
+      closureManuallyModified: battle.enemyPlan.manuallyModified,
+      refManuallyModified: refEnemyPlan?.manuallyModified,
+      latestManuallyModified,
       actionsLength: battle.enemyPlan.actions?.length,
-      actionsNames: battle.enemyPlan.actions?.map(a => a.name || a.type),
       turnStartProcessed: turnStartProcessedRef.current,
       enemyCount,
       enemyEtherPts: enemy?.etherPts
     });
-    if (battle.enemyPlan.manuallyModified) {
+
+    if (latestManuallyModified) {
       console.log('[턴시작 useEffect] ★ manuallyModified=true → 기존 actions 유지');
-      actions.setEnemyPlan({ ...battle.enemyPlan, mode });
+      const currentActions = refEnemyPlan?.actions || battle.enemyPlan.actions;
+      actions.setEnemyPlan({ mode, actions: currentActions, manuallyModified: true });
     } else {
       const slots = etherSlots(enemy?.etherPts || 0);
       console.log('[턴시작 useEffect] ★ manuallyModified=false → 새 actions 생성:', { slots, enemyCount });
@@ -919,31 +926,48 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   }, [battle.phase, battle.queue, fixedOrder]);
 
   // 선택 단계 진입 시 적 행동을 미리 계산해 통찰 UI가 바로 보이도록 함
+  // 주의: 카드 파괴 후 재생성 방지를 위해 battleRef에서 최신 상태 확인
   useEffect(() => {
+    // battleRef에서 최신 상태 확인 (closure는 stale할 수 있음)
+    const currentEnemyPlan = battleRef.current?.enemyPlan;
+
     console.log('[선택단계 useEffect] 트리거됨:', {
       phase: battle.phase,
-      mode: enemyPlan?.mode?.name,
-      actionsLength: enemyPlan?.actions?.length,
-      manuallyModified: enemyPlan?.manuallyModified
+      closureActionsLength: enemyPlan?.actions?.length,
+      closureManuallyModified: enemyPlan?.manuallyModified,
+      refActionsLength: currentEnemyPlan?.actions?.length,
+      refManuallyModified: currentEnemyPlan?.manuallyModified
     });
+
     if (battle.phase !== 'select') {
       console.log('[선택단계 useEffect] 조기 리턴 (phase !== select)');
       return;
     }
-    if (!enemyPlan?.mode) {
+
+    // battleRef에서 최신 manuallyModified 확인
+    const latestManuallyModified = currentEnemyPlan?.manuallyModified || enemyPlan?.manuallyModified;
+    const latestActions = currentEnemyPlan?.actions || enemyPlan?.actions;
+    const latestMode = currentEnemyPlan?.mode || enemyPlan?.mode;
+
+    if (!latestMode) {
       console.log('[선택단계 useEffect] 조기 리턴 (mode 없음)');
       return;
     }
+
     // manuallyModified가 true면 재생성하지 않음 (카드 파괴 등으로 수동 변경된 경우)
-    if ((enemyPlan.actions && enemyPlan.actions.length > 0) || enemyPlan.manuallyModified) {
-      console.log('[선택단계 useEffect] ★ 조기 리턴 (actions 있음 또는 manuallyModified=true)');
+    if ((latestActions && latestActions.length > 0) || latestManuallyModified) {
+      console.log('[선택단계 useEffect] ★ 조기 리턴 (actions 있음 또는 manuallyModified=true):', {
+        hasActions: latestActions?.length > 0,
+        manuallyModified: latestManuallyModified
+      });
       return;
     }
+
     console.log('[선택단계 useEffect] ★★★ 새 actions 생성! ★★★');
     const slots = etherSlots(enemy?.etherPts || 0);
-    const generatedActions = generateEnemyActions(enemy, enemyPlan.mode, slots, enemyCount, enemyCount);
+    const generatedActions = generateEnemyActions(enemy, latestMode, slots, enemyCount, enemyCount);
     console.log('[선택단계 useEffect] 생성된 actions:', generatedActions?.map(a => a.name || a.type));
-    actions.setEnemyPlan({ ...battle.enemyPlan, actions: generatedActions });
+    actions.setEnemyPlan({ mode: latestMode, actions: generatedActions });
   }, [battle.phase, enemyPlan?.mode, enemyPlan?.actions?.length, enemyPlan?.manuallyModified, enemy]);
 
   const totalEnergy = useMemo(() => battle.selected.reduce((s, c) => s + c.actionCost, 0), [battle.selected]);
