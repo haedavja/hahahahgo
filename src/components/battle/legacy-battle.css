@@ -1809,3 +1809,9 @@ body {
     box-shadow: 0 0 12px rgba(100, 200, 255, 0.8);
   }
 }
+
+/* 빙결 상태이상 툴팁 */
+.enemy-status-frozen:hover .status-tooltip {
+  opacity: 1 !important;
+  visibility: visible !important;
+}

@@ -65,39 +65,69 @@ export const EnemyHpBar = ({
                 );
                 })()}
               </div>
-              <div className="hp-bar-enhanced mb-1" style={{ width: '200px', height: '12px', position: 'relative', overflow: 'hidden' }}>
-                <div className="hp-fill" style={{ width: `${dulledLevel >= 3 ? 0 : (enemy.hp / enemy.maxHp) * 100}%` }}></div>
-                {enemy.block > 0 && dulledLevel < 3 && (
-                  <div style={{
-                    position: 'absolute',
-                    left: 0,
-                    top: 0,
-                    height: '100%',
-                    width: `${Math.min((enemy.block / enemy.maxHp) * 100, 100)}%`,
-                    background: 'linear-gradient(90deg, rgba(96, 165, 250, 0.6), rgba(96, 165, 250, 0.3))',
-                    borderRight: '2px solid #60a5fa'
-                  }}></div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <div className="hp-bar-enhanced mb-1" style={{ width: '200px', height: '12px', position: 'relative', overflow: 'hidden' }}>
+                  <div className="hp-fill" style={{ width: `${dulledLevel >= 3 ? 0 : (enemy.hp / enemy.maxHp) * 100}%` }}></div>
+                  {enemy.block > 0 && dulledLevel < 3 && (
+                    <div style={{
+                      position: 'absolute',
+                      left: 0,
+                      top: 0,
+                      height: '100%',
+                      width: `${Math.min((enemy.block / enemy.maxHp) * 100, 100)}%`,
+                      background: 'linear-gradient(90deg, rgba(96, 165, 250, 0.6), rgba(96, 165, 250, 0.3))',
+                      borderRight: '2px solid #60a5fa'
+                    }}></div>
+                  )}
+                </div>
+                {/* 상태이상 표시 - HP바 아래 */}
+                {frozenOrder && (
+                  <div
+                    className="enemy-status-frozen"
+                    style={{
+                      position: 'relative',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      padding: '2px 8px',
+                      background: 'rgba(100, 200, 255, 0.2)',
+                      border: '1px solid rgba(100, 200, 255, 0.6)',
+                      borderRadius: '4px',
+                      fontSize: '12px',
+                      color: '#7dd3fc',
+                      fontWeight: '600',
+                      animation: 'frozenPulse 1.5s ease-in-out infinite',
+                      cursor: 'help',
+                      width: 'fit-content'
+                    }}>
+                    <span>❄️</span>
+                    <span>빙결됨</span>
+                    {/* 툴팁 */}
+                    <div className="status-tooltip" style={{
+                      position: 'absolute',
+                      left: '100%',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      marginLeft: '8px',
+                      padding: '8px 12px',
+                      background: 'rgba(15, 23, 42, 0.98)',
+                      border: '1px solid rgba(100, 200, 255, 0.5)',
+                      borderRadius: '6px',
+                      fontSize: '11px',
+                      color: '#e2e8f0',
+                      whiteSpace: 'nowrap',
+                      opacity: 0,
+                      visibility: 'hidden',
+                      transition: 'opacity 0.15s, visibility 0.15s',
+                      zIndex: 1000,
+                      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.5)'
+                    }}>
+                      <div style={{ fontWeight: 700, color: '#7dd3fc', marginBottom: '4px' }}>❄️ 빙결</div>
+                      <div style={{ lineHeight: 1.4 }}>이번 턴 플레이어 카드가<br/>모두 먼저 발동합니다.</div>
+                    </div>
+                  </div>
                 )}
               </div>
-              {/* 상태이상 표시 */}
-              {frozenOrder && (
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  padding: '2px 8px',
-                  background: 'rgba(100, 200, 255, 0.2)',
-                  border: '1px solid rgba(100, 200, 255, 0.6)',
-                  borderRadius: '4px',
-                  fontSize: '12px',
-                  color: '#7dd3fc',
-                  fontWeight: '600',
-                  animation: 'frozenPulse 1.5s ease-in-out infinite'
-                }}>
-                  <span>❄️</span>
-                  <span>빙결됨</span>
-                </div>
-              )}
               {/* 토큰 표시 */}
               <TokenDisplay entity={enemy} position="enemy" />
             </div>
