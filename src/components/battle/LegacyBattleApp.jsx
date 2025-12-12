@@ -1490,7 +1490,10 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     // 몬스터가 죽었을 때는 actualResolvedCards(실제 실행된 카드 수), 아니면 battle.selected.length(전체 선택된 카드 수)
     const cardCountForMultiplier = actualResolvedCards !== null ? actualResolvedCards : battle.selected.length;
     const playerComboMult = finalComboMultiplier || basePlayerComboMult;
-    let playerBeforeDeflation = Math.round(totalEtherPts * playerComboMult);
+    // 에테르 증폭제 배율 적용
+    const etherAmplifierMult = displayEtherMultiplierRef.current || 1;
+    const totalPlayerMult = playerComboMult * etherAmplifierMult;
+    let playerBeforeDeflation = Math.round(totalEtherPts * totalPlayerMult);
 
 
     // 디플레이션 적용
@@ -1507,6 +1510,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       comboName: pCombo?.name,
       basePlayerComboMult,
       playerComboMult,
+      etherAmplifierMult,
+      totalPlayerMult,
       relicBonus: playerComboMult - basePlayerComboMult,
       playerBeforeDeflation,
       deflationMult: playerDeflation.multiplier,
