@@ -879,10 +879,15 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     if (!battle.enemyPlan.mode) {
       addLog(`🤖 적 성향 힌트: ${mode.name}`);
     }
-    const slots = etherSlots(enemy?.etherPts || 0);
-    const planActions = generateEnemyActions(enemy, mode, slots, enemyCount, enemyCount);
-    actions.setEnemyPlan({ mode, actions: planActions });
-  }, [battle.phase, enemy, enemyPlan.mode, nextTurnEffects]);
+    // manuallyModified가 true면 기존 actions 유지 (카드 파괴 등으로 수동 변경된 경우)
+    if (battle.enemyPlan.manuallyModified) {
+      actions.setEnemyPlan({ ...battle.enemyPlan, mode });
+    } else {
+      const slots = etherSlots(enemy?.etherPts || 0);
+      const planActions = generateEnemyActions(enemy, mode, slots, enemyCount, enemyCount);
+      actions.setEnemyPlan({ mode, actions: planActions });
+    }
+  }, [battle.phase, enemy, enemyPlan.mode, enemyPlan.manuallyModified, nextTurnEffects]);
 
   useEffect(() => {
     if (battle.phase === 'resolve' && (!queue || battle.queue.length === 0) && fixedOrder && fixedOrder.length > 0) {
@@ -1178,6 +1183,25 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     }
     */
   }, [battle.selected, battle.phase, enemyPlan.actions]);
+
+  // respond 단계에서 적 카드 파괴 시 fixedOrder 업데이트
+  useEffect(() => {
+    if (battle.phase !== 'respond') return;
+    if (!enemyPlan.manuallyModified) return;
+    if (!fixedOrder) return;
+
+    // fixedOrder에서 파괴된 적 카드 제거 (enemyPlan.actions에 없는 적 카드)
+    const remainingEnemyActions = new Set(enemyPlan.actions);
+    const updatedFixedOrder = fixedOrder.filter(item => {
+      if (item.actor === 'player') return true;
+      // 적 카드는 현재 enemyPlan.actions에 있는 것만 유지
+      return remainingEnemyActions.has(item.card);
+    });
+
+    if (updatedFixedOrder.length !== fixedOrder.length) {
+      actions.setFixedOrder(updatedFixedOrder);
+    }
+  }, [battle.phase, enemyPlan.actions, enemyPlan.manuallyModified, fixedOrder]);
 
   const beginResolveFromRespond = () => {
     console.log('[DEBUG] beginResolveFromRespond called, phase:', battle.phase, 'fixedOrder:', fixedOrder);

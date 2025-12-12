@@ -79,13 +79,22 @@ export function ItemSlots({ phase, battleActions, player, enemy, enemyPlan }) {
         for (let i = startIdx; i < enemyPlan.actions.length; i++) {
           destroyedIndices.push(i);
         }
+
         // 파괴 애니메이션용 인덱스 설정
         battleActions.setDestroyingEnemyCards(destroyedIndices);
 
-        // 0.6초 후 실제 제거
+        // 즉시 카드 제거 (manuallyModified로 재생성 방지)
+        const newActions = enemyPlan.actions.slice(0, -destroyCount);
+        battleActions.setEnemyPlan({ ...enemyPlan, actions: newActions, manuallyModified: true });
+
+        // respond 단계면 fixedOrder에서도 파괴된 적 카드 제거
+        if (phase === 'respond' && battleActions.setFixedOrder) {
+          // fixedOrder 업데이트는 LegacyBattleApp에서 enemyPlan.actions 변경을 감지해서 처리
+          // 여기서는 setEnemyPlan 호출로 충분
+        }
+
+        // 0.6초 후 애니메이션 상태 정리
         setTimeout(() => {
-          const newActions = enemyPlan.actions.slice(0, -destroyCount);
-          battleActions.setEnemyPlan({ ...enemyPlan, actions: newActions, manuallyModified: true });
           battleActions.setDestroyingEnemyCards([]);
         }, 600);
 
