@@ -1132,8 +1132,17 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
     const enhancedSelected = applyPokerBonus(traitEnhancedSelected, pCombo);
 
-    const q = sortCombinedOrderStablePF(enhancedSelected, enemyPlan.actions, effectiveAgility, 0);
+    // 빙결 효과: 플레이어 카드가 모두 먼저 발동
+    const q = player.enemyFrozen
+      ? createFixedOrder(enhancedSelected, enemyPlan.actions, effectiveAgility)
+      : sortCombinedOrderStablePF(enhancedSelected, enemyPlan.actions, effectiveAgility, 0);
     actions.setFixedOrder(q);
+
+    // 빙결 플래그 초기화 (한 번 사용 후 제거)
+    if (player.enemyFrozen) {
+      actions.setPlayer({ ...player, enemyFrozen: false });
+      actions.addLog('❄️ 빙결 효과 발동: 플레이어 카드 우선!');
+    }
     // 대응 단계 되감기용 스냅샷 저장 (전투당 1회)
     if (!rewindUsed) {
       actions.setRespondSnapshot({
@@ -2072,6 +2081,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         battleActions={actions}
         player={battle.player}
         enemy={battle.enemy}
+        enemyPlan={battle.enemyPlan}
       />
       {/* 예상 피해량 - 오른쪽 고정 패널 */}
       <div className="expect-sidebar-fixed">

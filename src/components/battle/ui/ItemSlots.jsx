@@ -10,11 +10,12 @@ const STAT_LABELS = {
  * 전투 화면용 아이템 슬롯 컴포넌트
  * phase가 'select' 또는 'respond'일 때만 전투용 아이템 사용 가능
  * @param {string} phase - 현재 전투 단계
- * @param {object} battleActions - 전투 상태 액션 (setPlayer, setEnemy, addLog)
+ * @param {object} battleActions - 전투 상태 액션 (setPlayer, setEnemy, addLog, setEnemyPlan)
  * @param {object} player - 현재 플레이어 상태
  * @param {object} enemy - 현재 적 상태
+ * @param {object} enemyPlan - 적의 행동 계획 { actions: [], mode: string }
  */
-export function ItemSlots({ phase, battleActions, player, enemy }) {
+export function ItemSlots({ phase, battleActions, player, enemy, enemyPlan }) {
   const items = useGameStore((state) => state.items || [null, null, null]);
   const useItem = useGameStore((state) => state.useItem);
   const removeItem = useGameStore((state) => state.removeItem);
@@ -58,12 +59,35 @@ export function ItemSlots({ phase, battleActions, player, enemy }) {
         newPlayer.etherMultiplier = effect.value;
         logMsg = `💎 ${item.name}: 에테르 획득 ${effect.value}배!`;
         break;
-      case 'etherSteal':
+      case 'etherSteal': {
         const steal = Math.min(effect.value, newEnemy.etherPts || 0);
         newEnemy.etherPts = Math.max(0, (newEnemy.etherPts || 0) - steal);
         newPlayer.etherPts = (newPlayer.etherPts || 0) + steal;
         logMsg = `🔮 ${item.name}: 적 에테르 ${steal} 흡수!`;
         break;
+      }
+      case 'cardDestroy': {
+        // 적 카드 파괴 - enemyPlan.actions에서 N장 제거
+        if (!enemyPlan?.actions || enemyPlan.actions.length === 0) {
+          logMsg = `💨 ${item.name}: 파괴할 적 카드가 없습니다!`;
+          break;
+        }
+        const destroyCount = Math.min(effect.value, enemyPlan.actions.length);
+        // 뒤에서부터 제거 (가장 나중에 발동하는 카드부터)
+        const newActions = enemyPlan.actions.slice(0, -destroyCount);
+        battleActions.setEnemyPlan({ ...enemyPlan, actions: newActions });
+        logMsg = `💥 ${item.name}: 적 카드 ${destroyCount}장 파괴!`;
+        // cardDestroy는 player/enemy 상태 변경 없음
+        removeItem(slotIdx);
+        if (logMsg) battleActions.addLog(logMsg);
+        return; // early return - setPlayer/setEnemy 호출 안함
+      }
+      case 'cardFreeze': {
+        // 적 카드 빙결 - 플레이어 카드가 모두 먼저 발동
+        newPlayer.enemyFrozen = true;
+        logMsg = `❄️ ${item.name}: 적 카드 빙결! (플레이어 카드 우선 발동)`;
+        break;
+      }
       default:
         console.log(`[아이템] 미구현 효과: ${effect.type}`);
         return;
