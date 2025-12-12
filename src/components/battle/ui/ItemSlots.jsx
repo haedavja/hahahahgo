@@ -1,4 +1,5 @@
 import { useGameStore } from "../../../state/gameStore";
+import { playCardDestroySound, playFreezeSound } from "../../../lib/soundUtils";
 
 const STAT_LABELS = {
   strength: "힘",
@@ -95,6 +96,9 @@ export function ItemSlots({ phase, battleActions, player, enemy, enemyPlan, batt
         // 파괴 애니메이션용 인덱스 설정
         battleActions.setDestroyingEnemyCards(destroyedIndices);
 
+        // 파괴 사운드 재생
+        playCardDestroySound();
+
         // battleRef에서 최신 enemyPlan 가져오기 (prop은 stale할 수 있음)
         const currentEnemyPlan = battleRef?.current?.enemyPlan || enemyPlan;
         const currentActions = currentEnemyPlan.actions || [];
@@ -154,6 +158,22 @@ export function ItemSlots({ phase, battleActions, player, enemy, enemyPlan, batt
       case 'cardFreeze': {
         // 적 카드 빙결 - 플레이어 카드가 모두 먼저 발동
         newPlayer.enemyFrozen = true;
+
+        // 빙결 사운드 재생
+        playFreezeSound();
+
+        // 모든 적 카드에 빙결 애니메이션 적용
+        const currentEnemyPlan = battleRef?.current?.enemyPlan || enemyPlan;
+        const enemyCardCount = currentEnemyPlan?.actions?.length || 0;
+        if (enemyCardCount > 0 && battleActions.setFreezingEnemyCards) {
+          const allEnemyIndices = Array.from({ length: enemyCardCount }, (_, i) => i);
+          battleActions.setFreezingEnemyCards(allEnemyIndices);
+
+          // 0.7초 후 애니메이션 상태 정리
+          setTimeout(() => {
+            battleActions.setFreezingEnemyCards([]);
+          }, 700);
+        }
 
         // respond 단계에서 사용 시 fixedOrder를 즉시 재정렬
         const latestPhase = getLatestPhase();

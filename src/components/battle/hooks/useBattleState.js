@@ -132,6 +132,9 @@ export function useBattleState(initialStateOverrides = {}) {
     // === 카드 파괴 애니메이션 ===
     setDestroyingEnemyCards: (indices) => dispatch({ type: ACTIONS.SET_DESTROYING_ENEMY_CARDS, payload: indices }),
 
+    // === 카드 빙결 애니메이션 ===
+    setFreezingEnemyCards: (indices) => dispatch({ type: ACTIONS.SET_FREEZING_ENEMY_CARDS, payload: indices }),
+
     // === 토큰 시스템 ===
     addTokenToPlayer: (tokenId, stacks = 1) => {
       const result = addToken(battle.player, tokenId, stacks);

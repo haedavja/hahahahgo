@@ -40,7 +40,8 @@ export const TimelineDisplay = ({
   effectiveInsight,
   insightReveal,
   actions,
-  destroyingEnemyCards = []
+  destroyingEnemyCards = [],
+  freezingEnemyCards = []
 }) => {
   const commonMax = Math.max(player.maxSpeed || DEFAULT_PLAYER_MAX_SPEED, enemy.maxSpeed || DEFAULT_ENEMY_MAX_SPEED);
   const ticks = generateSpeedTicks(commonMax);
@@ -168,6 +169,7 @@ export const TimelineDisplay = ({
                       const isExecuting = executingCardIndex === globalIndex;
                       const isUsed = Array.isArray(usedCardIndices) && usedCardIndices.includes(globalIndex) && globalIndex < qIndex;
                       const isDestroying = destroyingEnemyCards.includes(idx);
+                      const isFreezing = freezingEnemyCards.includes(idx);
                       const normalizedPosition = (a.sp / enemyMax) * 100;
                       const levelForTooltip = battle.phase === 'select' ? (insightReveal?.level || 0) : (effectiveInsight || 0);
                       const canShowTooltip = levelForTooltip >= 3;
@@ -177,7 +179,8 @@ export const TimelineDisplay = ({
                         isExecuting ? 'timeline-active' : '',
                         isUsed ? 'timeline-used' : '',
                         canShowTooltip ? 'insight-lv3-glow' : '',
-                        isDestroying ? 'timeline-destroying' : ''
+                        isDestroying ? 'timeline-destroying' : '',
+                        isFreezing ? 'timeline-freezing' : ''
                       ].join(' ');
                       return (
                         <div key={idx}

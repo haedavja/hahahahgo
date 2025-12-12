@@ -2310,6 +2310,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         insightReveal={insightReveal}
         actions={actions}
         destroyingEnemyCards={battle.destroyingEnemyCards}
+        freezingEnemyCards={battle.freezingEnemyCards}
       />
 
       {/* 유물 표시 */}

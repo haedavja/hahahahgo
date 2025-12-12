@@ -140,6 +140,9 @@ export const createInitialState = ({
 
   // === 카드 파괴 애니메이션 ===
   destroyingEnemyCards: [], // 파괴 중인 적 카드 인덱스
+
+  // === 카드 빙결 애니메이션 ===
+  freezingEnemyCards: [], // 빙결 중인 적 카드 인덱스
 });
 
 // =====================
@@ -272,6 +275,9 @@ export const ACTIONS = {
 
   // === 카드 파괴 애니메이션 ===
   SET_DESTROYING_ENEMY_CARDS: 'SET_DESTROYING_ENEMY_CARDS',
+
+  // === 카드 빙결 애니메이션 ===
+  SET_FREEZING_ENEMY_CARDS: 'SET_FREEZING_ENEMY_CARDS',
 
   // === 토큰 시스템 ===
   UPDATE_PLAYER_TOKENS: 'UPDATE_PLAYER_TOKENS',
@@ -512,6 +518,10 @@ export function battleReducer(state, action) {
     // === 카드 파괴 애니메이션 ===
     case ACTIONS.SET_DESTROYING_ENEMY_CARDS:
       return { ...state, destroyingEnemyCards: action.payload };
+
+    // === 카드 빙결 애니메이션 ===
+    case ACTIONS.SET_FREEZING_ENEMY_CARDS:
+      return { ...state, freezingEnemyCards: action.payload };
 
     // === 토큰 시스템 ===
     case ACTIONS.UPDATE_PLAYER_TOKENS:
