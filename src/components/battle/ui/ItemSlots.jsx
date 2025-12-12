@@ -165,6 +165,16 @@ export function ItemSlots({ phase, battleActions, player, enemy, enemyPlan, batt
     // 상태 업데이트
     battleActions.setPlayer(newPlayer);
     battleActions.setEnemy(newEnemy);
+
+    // battleRef를 즉시 동기적으로 업데이트 (useEffect 대기하지 않음)
+    if (battleRef?.current) {
+      battleRef.current.player = newPlayer;
+      battleRef.current.enemy = newEnemy;
+      console.log('[아이템] battleRef 즉시 업데이트:', {
+        enemyFrozen: newPlayer.enemyFrozen
+      });
+    }
+
     if (logMsg) battleActions.addLog(logMsg);
 
     // 아이템 제거
