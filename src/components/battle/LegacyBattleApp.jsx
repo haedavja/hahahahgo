@@ -779,19 +779,29 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   }, [battle.phase]);
 
   useEffect(() => {
+    console.log('[턴시작 useEffect] 트리거됨:', {
+      hasEnemy: !!enemy,
+      phase: battle.phase,
+      turnStartProcessed: turnStartProcessedRef.current,
+      manuallyModified: battle.enemyPlan.manuallyModified
+    });
+
     if (!enemy || battle.phase !== 'select') {
       // phase가 select가 아니면 플래그 리셋
       if (battle.phase !== 'select') {
         turnStartProcessedRef.current = false;
       }
+      console.log('[턴시작 useEffect] 조기 리턴 (enemy 또는 phase 조건)');
       return;
     }
 
     // 턴 시작 효과가 이미 처리되었으면 중복 실행 방지
     if (turnStartProcessedRef.current) {
+      console.log('[턴시작 useEffect] 조기 리턴 (이미 처리됨)');
       return;
     }
     turnStartProcessedRef.current = true;
+    console.log('[턴시작 useEffect] 턴 시작 처리 진행');
 
     actions.setFixedOrder(null);
     actions.setActionEvents({});
@@ -910,22 +920,29 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
   // 선택 단계 진입 시 적 행동을 미리 계산해 통찰 UI가 바로 보이도록 함
   useEffect(() => {
-    console.log('[선택단계 useEffect] 실행:', {
+    console.log('[선택단계 useEffect] 트리거됨:', {
       phase: battle.phase,
       mode: enemyPlan?.mode?.name,
       actionsLength: enemyPlan?.actions?.length,
       manuallyModified: enemyPlan?.manuallyModified
     });
-    if (battle.phase !== 'select') return;
-    if (!enemyPlan?.mode) return;
-    // manuallyModified가 true면 재생성하지 않음 (카드 파괴 등으로 수동 변경된 경우)
-    if ((enemyPlan.actions && enemyPlan.actions.length > 0) || enemyPlan.manuallyModified) {
-      console.log('[선택단계 useEffect] actions 있음 또는 manuallyModified=true, 재생성 안함');
+    if (battle.phase !== 'select') {
+      console.log('[선택단계 useEffect] 조기 리턴 (phase !== select)');
       return;
     }
-    console.log('[선택단계 useEffect] 새 actions 생성!');
+    if (!enemyPlan?.mode) {
+      console.log('[선택단계 useEffect] 조기 리턴 (mode 없음)');
+      return;
+    }
+    // manuallyModified가 true면 재생성하지 않음 (카드 파괴 등으로 수동 변경된 경우)
+    if ((enemyPlan.actions && enemyPlan.actions.length > 0) || enemyPlan.manuallyModified) {
+      console.log('[선택단계 useEffect] ★ 조기 리턴 (actions 있음 또는 manuallyModified=true)');
+      return;
+    }
+    console.log('[선택단계 useEffect] ★★★ 새 actions 생성! ★★★');
     const slots = etherSlots(enemy?.etherPts || 0);
     const generatedActions = generateEnemyActions(enemy, enemyPlan.mode, slots, enemyCount, enemyCount);
+    console.log('[선택단계 useEffect] 생성된 actions:', generatedActions?.map(a => a.name || a.type));
     actions.setEnemyPlan({ ...battle.enemyPlan, actions: generatedActions });
   }, [battle.phase, enemyPlan?.mode, enemyPlan?.actions?.length, enemyPlan?.manuallyModified, enemy]);
 

@@ -101,8 +101,21 @@ export function ItemSlots({ phase, battleActions, player, enemy, enemyPlan, batt
           newActionsLength: newActions.length,
           newActionsRefs: newActions.map(a => a.name || a.type)
         });
-        battleActions.setEnemyPlan({ ...enemyPlan, actions: newActions, manuallyModified: true });
-        console.log('[cardDestroy] setEnemyPlan 호출 완료');
+        const newEnemyPlan = { ...enemyPlan, actions: newActions, manuallyModified: true };
+        console.log('[cardDestroy] setEnemyPlan 호출:', {
+          newEnemyPlan,
+          hasManuallyModified: newEnemyPlan.manuallyModified
+        });
+        battleActions.setEnemyPlan(newEnemyPlan);
+
+        // 상태 업데이트 확인 (다음 렌더링 후)
+        setTimeout(() => {
+          console.log('[cardDestroy] 상태 업데이트 확인 (100ms 후):', {
+            battleRefPhase: battleRef?.current?.phase,
+            battleRefManuallyModified: battleRef?.current?.enemyPlan?.manuallyModified,
+            battleRefActionsLength: battleRef?.current?.enemyPlan?.actions?.length
+          });
+        }, 100);
 
         // respond 단계면 fixedOrder에서도 파괴된 적 카드 제거
         if (phase === 'respond' && battleActions.setFixedOrder) {
