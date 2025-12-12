@@ -58,7 +58,7 @@ export const EnemyHpBar = ({
                   const hpText = hideEnemyVitals ? '??' : `${enemy.hp}/${enemy.maxHp}`;
                   const blockText = hideEnemyVitals ? '??' : (enemy.block > 0 ? `${enemy.block}` : null);
                   return (
-                  <div className={enemyHit ? 'hit-animation' : ''} style={{ color: '#f87171', fontSize: '1.25rem', fontWeight: 'bold', textAlign: 'right', transition: 'opacity 0.4s ease, transform 0.4s ease', opacity: soulShatter ? 0 : 1, transform: soulShatter ? 'scale(0.9)' : 'scale(1)', position: 'absolute', top: '-20px', right: '-200px', width: '200px' }}>
+                  <div className={enemyHit ? 'hit-animation' : ''} style={{ color: '#f87171', fontSize: '1.25rem', fontWeight: 'bold', textAlign: 'right', transition: 'opacity 0.4s ease, transform 0.4s ease', opacity: soulShatter ? 0 : 1, transform: soulShatter ? 'scale(0.9)' : 'scale(1)', position: 'absolute', top: frozenOrder ? '-35px' : '-20px', right: '-200px', width: '200px' }}>
                     {blockText && <span className={enemyBlockAnim ? 'block-animation' : ''} style={{ color: '#60a5fa', marginRight: '8px' }}>🛡️{blockText}</span>}
                     ❤️ {hpText}
                   </div>
@@ -109,11 +109,11 @@ export const EnemyHpBar = ({
                       top: '50%',
                       transform: 'translateY(-50%)',
                       marginLeft: '8px',
-                      padding: '8px 12px',
+                      padding: '10px 14px',
                       background: 'rgba(15, 23, 42, 0.98)',
                       border: '1px solid rgba(100, 200, 255, 0.5)',
                       borderRadius: '6px',
-                      fontSize: '11px',
+                      fontSize: '13px',
                       color: '#e2e8f0',
                       whiteSpace: 'nowrap',
                       opacity: 0,
@@ -122,8 +122,8 @@ export const EnemyHpBar = ({
                       zIndex: 1000,
                       boxShadow: '0 4px 12px rgba(0, 0, 0, 0.5)'
                     }}>
-                      <div style={{ fontWeight: 700, color: '#7dd3fc', marginBottom: '4px' }}>❄️ 빙결</div>
-                      <div style={{ lineHeight: 1.4 }}>이번 턴 플레이어 카드가<br/>모두 먼저 발동합니다.</div>
+                      <div style={{ fontWeight: 700, color: '#7dd3fc', marginBottom: '6px', fontSize: '14px' }}>❄️ 빙결</div>
+                      <div style={{ lineHeight: 1.5 }}>이번 턴 플레이어 카드가<br/>모두 먼저 발동합니다.</div>
                     </div>
                   </div>
                 )}
