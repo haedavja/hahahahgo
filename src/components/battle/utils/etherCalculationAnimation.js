@@ -28,7 +28,10 @@ export function startEtherCalculationAnimationSequence({
 
   const pCombo = detectPokerCombo(selected);
   const playerComboMult = pCombo ? (COMBO_MULTIPLIERS[pCombo.name] || 1) : 1;
-  const playerBeforeDeflation = Math.round(turnEtherAccumulated * playerComboMult);
+  // 에테르 증폭제 배율 적용
+  const etherAmplifierMult = player.etherMultiplier || 1;
+  const totalPlayerMult = playerComboMult * etherAmplifierMult;
+  const playerBeforeDeflation = Math.round(turnEtherAccumulated * totalPlayerMult);
 
   // 디플레이션 적용
   const playerDeflation = pCombo?.name

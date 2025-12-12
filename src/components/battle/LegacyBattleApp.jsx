@@ -2055,10 +2055,12 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     actions.setQIndex(battle.queue.length);
 
     // 타임라인 완료 후 에테르 계산 애니메이션 시작
+    // battleRef에서 최신 player 상태 가져오기 (아이템 효과의 etherMultiplier 포함)
+    const latestPlayerForAnim = battleRef.current?.player || player;
     startEtherCalculationAnimationSequence({
       turnEtherAccumulated,
       selected,
-      player,
+      player: latestPlayerForAnim,
       playSound,
       actions
     });
@@ -2420,7 +2422,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
               etherCalcPhase={etherCalcPhase}
               turnEtherAccumulated={turnEtherAccumulated}
               etherPulse={etherPulse}
-              finalComboMultiplier={finalComboMultiplier}
+              finalComboMultiplier={finalComboMultiplier * (player.etherMultiplier || 1)}
               multiplierPulse={multiplierPulse}
             />
             <PlayerHpBar
