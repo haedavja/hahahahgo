@@ -226,7 +226,8 @@ export function ItemSlots({ phase, battleActions, player, enemy, enemyPlan, batt
       battleRef.current.player = newPlayer;
       battleRef.current.enemy = newEnemy;
       console.log('[아이템] battleRef 즉시 업데이트:', {
-        enemyFrozen: newPlayer.enemyFrozen
+        enemyFrozen: newPlayer.enemyFrozen,
+        etherMultiplier: newPlayer.etherMultiplier
       });
     }
 

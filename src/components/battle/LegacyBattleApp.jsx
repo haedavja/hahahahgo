@@ -1854,6 +1854,11 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     // 에테르 최종 계산 (유물 배율 및 디플레이션 적용)
     // battleRef에서 최신 player 상태 가져오기 (아이템 효과의 etherMultiplier 등)
     const latestPlayer = battleRef.current?.player || player;
+    console.log('[finishTurn] etherMultiplier 확인:', {
+      'battleRef.current?.player?.etherMultiplier': battleRef.current?.player?.etherMultiplier,
+      'player.etherMultiplier': player.etherMultiplier,
+      'latestPlayer.etherMultiplier': latestPlayer.etherMultiplier
+    });
     const etherResult = calculateTurnEndEther({
       playerCombo: pComboEnd,
       enemyCombo: eComboEnd,
