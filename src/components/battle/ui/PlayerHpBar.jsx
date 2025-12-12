@@ -161,7 +161,7 @@ export const PlayerHpBar = ({
                     color: '#a78bfa',
                     description: `턴 종료 시 에테르 획득량이 ${player.etherMultiplier}배가 됩니다.`
                   }}>
-                    <span style={{ color: '#a78bfa' }}>💎 증폭 x{player.etherMultiplier}</span>
+                    <span style={{ color: '#a78bfa' }}>💎 x{player.etherMultiplier}</span>
                   </StatTooltip>
                 )}
                 {effectiveAgility !== 0 && (
