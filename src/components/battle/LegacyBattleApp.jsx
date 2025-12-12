@@ -1852,13 +1852,15 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     const eComboEnd = detectPokerCombo(enemyPlan.actions);
 
     // 에테르 최종 계산 (유물 배율 및 디플레이션 적용)
+    // battleRef에서 최신 player 상태 가져오기 (아이템 효과의 etherMultiplier 등)
+    const latestPlayer = battleRef.current?.player || player;
     const etherResult = calculateTurnEndEther({
       playerCombo: pComboEnd,
       enemyCombo: eComboEnd,
       turnEtherAccumulated,
       enemyTurnEtherAccumulated,
       finalComboMultiplier,
-      player,
+      player: latestPlayer,
       enemy
     });
 
