@@ -162,6 +162,14 @@ export function ItemSlots({ phase, battleActions, player, enemy, enemyPlan, batt
         // 빙결 사운드 재생
         playFreezeSound();
 
+        // frozenOrder 플래그 설정 (beginResolveFromRespond에서 SP 정렬 건너뜀)
+        if (battleActions.setFrozenOrder) {
+          battleActions.setFrozenOrder(true);
+          if (battleRef?.current) {
+            battleRef.current.frozenOrder = true;
+          }
+        }
+
         // 모든 적 카드에 빙결 애니메이션 적용
         const currentEnemyPlan = battleRef?.current?.enemyPlan || enemyPlan;
         const enemyCardCount = currentEnemyPlan?.actions?.length || 0;

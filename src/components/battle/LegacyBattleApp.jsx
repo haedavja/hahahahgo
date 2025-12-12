@@ -1224,7 +1224,11 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
     // 빙결 효과: 플레이어 카드가 모두 먼저 발동 (battle.player에서 최신 값 확인)
     const currentPlayer = currentBattle.player;
-    console.log('[startResolve] fixedOrder 생성에 사용할 actions 길이:', generatedActions?.length);
+    console.log('[startResolve] 빙결 확인:', {
+      enemyFrozen: currentPlayer.enemyFrozen,
+      battleRefEnemyFrozen: battleRef.current?.player?.enemyFrozen,
+      actionsLength: generatedActions?.length
+    });
     const q = currentPlayer.enemyFrozen
       ? createFixedOrder(enhancedSelected, generatedActions, effectiveAgility)
       : sortCombinedOrderStablePF(enhancedSelected, generatedActions, effectiveAgility, 0);
@@ -1235,10 +1239,15 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     });
     actions.setFixedOrder(q);
 
-    // 빙결 플래그 초기화 (한 번 사용 후 제거)
+    // 빙결 플래그 처리 - frozenOrder 설정 (beginResolveFromRespond에서 SP 정렬 건너뜀)
     if (currentPlayer.enemyFrozen) {
       actions.setPlayer({ ...currentPlayer, enemyFrozen: false });
-      actions.addLog('❄️ 빙결 효과 발동: 플레이어 카드 우선!');
+      actions.setFrozenOrder(true);
+      // battleRef도 즉시 업데이트
+      if (battleRef.current) {
+        battleRef.current.frozenOrder = true;
+      }
+      console.log('[startResolve] 빙결 효과 적용 - frozenOrder=true 설정');
     }
     // 대응 단계 되감기용 스냅샷 저장 (전투당 1회)
     if (!rewindUsed) {
@@ -1358,12 +1367,30 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       return;
     }
 
-    // SP 값으로 정렬 (같은 SP면 배열 순서 유지 = 수동 순서 유지)
-    newQ.sort((a, b) => {
-      if (a.sp !== b.sp) return a.sp - b.sp;
-      // SP가 같으면 원래 배열 순서 유지 (stable sort)
-      return 0;
+    // 빙결 효과 확인 - frozenOrder가 true면 SP 정렬 건너뜀
+    const isFrozenOrder = currentBattle?.frozenOrder || battleRef.current?.frozenOrder;
+    console.log('[beginResolveFromRespond] 빙결 순서 확인:', {
+      frozenOrder: isFrozenOrder,
+      queueBefore: newQ.map(x => x.actor)
     });
+
+    if (!isFrozenOrder) {
+      // SP 값으로 정렬 (같은 SP면 배열 순서 유지 = 수동 순서 유지)
+      newQ.sort((a, b) => {
+        if (a.sp !== b.sp) return a.sp - b.sp;
+        // SP가 같으면 원래 배열 순서 유지 (stable sort)
+        return 0;
+      });
+    } else {
+      // 빙결 효과 사용됨 - 플래그 초기화
+      actions.setFrozenOrder(false);
+      if (battleRef.current) {
+        battleRef.current.frozenOrder = false;
+      }
+      addLog('❄️ 빙결 효과 발동: 플레이어 카드 우선!');
+    }
+
+    console.log('[beginResolveFromRespond] 최종 큐 순서:', newQ.map(x => x.actor));
 
     // 이전 턴의 에테르 애니메이션 상태 초기화
     actions.setEtherCalcPhase(null);

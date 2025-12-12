@@ -135,6 +135,9 @@ export function useBattleState(initialStateOverrides = {}) {
     // === 카드 빙결 애니메이션 ===
     setFreezingEnemyCards: (indices) => dispatch({ type: ACTIONS.SET_FREEZING_ENEMY_CARDS, payload: indices }),
 
+    // === 빙결 순서 플래그 ===
+    setFrozenOrder: (value) => dispatch({ type: ACTIONS.SET_FROZEN_ORDER, payload: value }),
+
     // === 토큰 시스템 ===
     addTokenToPlayer: (tokenId, stacks = 1) => {
       const result = addToken(battle.player, tokenId, stacks);
