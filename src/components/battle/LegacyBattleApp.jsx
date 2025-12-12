@@ -2453,6 +2453,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
               enemyTransferPulse={enemyTransferPulse}
               enemySoulScale={enemySoulScale}
               formatCompactValue={formatCompactValue}
+              frozenOrder={battle.frozenOrder}
             />
           </div>
         </div>

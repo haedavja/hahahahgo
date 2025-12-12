@@ -19,7 +19,8 @@ export const EnemyHpBar = ({
   enemyEtherValue,
   enemyTransferPulse,
   enemySoulScale,
-  formatCompactValue
+  formatCompactValue,
+  frozenOrder
 }) => {
   return (
     <div style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginRight: '0', paddingRight: '0', gap: '40px', background: 'transparent', border: 'none', boxShadow: 'none' }}>
@@ -78,6 +79,25 @@ export const EnemyHpBar = ({
                   }}></div>
                 )}
               </div>
+              {/* 상태이상 표시 */}
+              {frozenOrder && (
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: '2px 8px',
+                  background: 'rgba(100, 200, 255, 0.2)',
+                  border: '1px solid rgba(100, 200, 255, 0.6)',
+                  borderRadius: '4px',
+                  fontSize: '12px',
+                  color: '#7dd3fc',
+                  fontWeight: '600',
+                  animation: 'frozenPulse 1.5s ease-in-out infinite'
+                }}>
+                  <span>❄️</span>
+                  <span>빙결됨</span>
+                </div>
+              )}
               {/* 토큰 표시 */}
               <TokenDisplay entity={enemy} position="enemy" />
             </div>

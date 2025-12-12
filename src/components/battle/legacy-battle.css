@@ -1797,3 +1797,15 @@ body {
   box-shadow: 0 0 10px rgba(100, 200, 255, 0.4), inset 0 0 8px rgba(200, 240, 255, 0.3);
   border-color: rgba(150, 220, 255, 0.8);
 }
+
+/* 빙결 상태이상 표시 펄스 애니메이션 */
+@keyframes frozenPulse {
+  0%, 100% {
+    opacity: 1;
+    box-shadow: 0 0 4px rgba(100, 200, 255, 0.4);
+  }
+  50% {
+    opacity: 0.8;
+    box-shadow: 0 0 12px rgba(100, 200, 255, 0.8);
+  }
+}
