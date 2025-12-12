@@ -880,17 +880,22 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       addLog(`🤖 적 성향 힌트: ${mode.name}`);
     }
     // manuallyModified가 true면 기존 actions 유지 (카드 파괴 등으로 수동 변경된 경우)
-    console.log('[턴시작 useEffect] manuallyModified 체크:', {
+    console.log('[턴시작 useEffect] 실행됨:', {
       manuallyModified: battle.enemyPlan.manuallyModified,
-      actionsLength: battle.enemyPlan.actions?.length
+      actionsLength: battle.enemyPlan.actions?.length,
+      actionsNames: battle.enemyPlan.actions?.map(a => a.name || a.type),
+      turnStartProcessed: turnStartProcessedRef.current,
+      enemyCount,
+      enemyEtherPts: enemy?.etherPts
     });
     if (battle.enemyPlan.manuallyModified) {
-      console.log('[턴시작 useEffect] manuallyModified=true, 기존 actions 유지');
+      console.log('[턴시작 useEffect] ★ manuallyModified=true → 기존 actions 유지');
       actions.setEnemyPlan({ ...battle.enemyPlan, mode });
     } else {
-      console.log('[턴시작 useEffect] manuallyModified=false, 새 actions 생성');
       const slots = etherSlots(enemy?.etherPts || 0);
+      console.log('[턴시작 useEffect] ★ manuallyModified=false → 새 actions 생성:', { slots, enemyCount });
       const planActions = generateEnemyActions(enemy, mode, slots, enemyCount, enemyCount);
+      console.log('[턴시작 useEffect] 생성된 planActions:', planActions?.map(a => a.name || a.type));
       actions.setEnemyPlan({ mode, actions: planActions });
     }
   }, [battle.phase, enemy, enemyPlan.mode, enemyPlan.manuallyModified, nextTurnEffects]);
@@ -1850,6 +1855,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
     actions.setTurnNumber(t => t + 1);
     actions.setNetEtherDelta(null);
+    // 다음 턴을 위해 enemyPlan 리셋 (manuallyModified 플래그 제거)
+    // mode는 유지하여 적 성향이 바뀌지 않도록 함
+    actions.setEnemyPlan({ actions: [], mode: enemyPlan.mode, manuallyModified: false });
     actions.setPhase('select');
   };
 
