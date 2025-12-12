@@ -99,18 +99,6 @@ const canAfford = (resources, cost = {}) =>
     .filter(([key]) => key !== 'hp' && key !== 'hpPercent') // HP 비용은 항상 선택 가능
     .every(([key, value]) => (resources[key] ?? 0) >= value);
 
-// 부족한 자원 목록 반환
-const getInsufficientResources = (resources, cost = {}) =>
-  Object.entries(cost)
-    .filter(([key]) => key !== 'hp' && key !== 'hpPercent') // HP 비용은 항상 선택 가능
-    .filter(([key, value]) => (resources[key] ?? 0) < value)
-    .map(([key, value]) => ({
-      key,
-      required: value,
-      current: resources[key] ?? 0,
-      label: RESOURCE_LABELS[key] ?? key
-    }));
-
 const formatBattleLogEntry = (entry) => {
   if (!entry) return "";
   if (typeof entry === "string") return entry;
@@ -633,16 +621,13 @@ export function MapDemo() {
                         `보유: insight=${playerInsight}, strength=${playerStrength}, agility=${playerAgility}`,
                         `충족=${hasRequiredStats}, 선택가능=${canSelect}`);
                     }
-                    const insufficientResources = getInsufficientResources(resources, choice.cost || {});
                     return (
                       <div key={choice.id} className="choice-card">
                         <strong>{choice.label}</strong>
                         {choice.cost && Object.keys(choice.cost).length > 0 && (
                           <small style={{ color: affordable ? undefined : "#ef4444" }}>
                             비용: {describeCost(choice.cost)}
-                            {!affordable && insufficientResources.length > 0 && (
-                              <> ({insufficientResources.map(r => `${r.label} 부족`).join(", ")})</>
-                            )}
+                            {!affordable && " (부족)"}
                           </small>
                         )}
                         {choice.rewards && Object.keys(choice.rewards).length > 0 && (
