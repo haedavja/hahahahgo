@@ -31,7 +31,10 @@ export function calculateTurnEndEther({
   const basePlayerComboMult = playerCombo ? (COMBO_MULTIPLIERS[playerCombo.name] || 1) : 1;
   const playerComboMult = finalComboMultiplier || basePlayerComboMult;
   const relicMultBonus = playerComboMult - basePlayerComboMult;
-  const playerBeforeDeflation = Math.round(turnEtherAccumulated * playerComboMult);
+  // 에테르 증폭제 배율 적용 (아이템 효과)
+  const etherAmplifierMult = player.etherMultiplier || 1;
+  const totalPlayerMult = playerComboMult * etherAmplifierMult;
+  const playerBeforeDeflation = Math.round(turnEtherAccumulated * totalPlayerMult);
 
   const playerDeflation = playerCombo?.name
     ? applyEtherDeflation(playerBeforeDeflation, playerCombo.name, player.comboUsageCount || {})
@@ -54,6 +57,7 @@ export function calculateTurnEndEther({
       baseComboMult: basePlayerComboMult,
       finalComboMult: playerComboMult,
       relicMultBonus,
+      etherAmplifierMult,
       beforeDeflation: playerBeforeDeflation,
       deflation: playerDeflation,
       finalEther: playerFinalEther,
@@ -78,7 +82,7 @@ export function calculateTurnEndEther({
  * @returns {string} 로그 메시지
  */
 export function formatPlayerEtherLog(result, turnEtherAccumulated) {
-  const { beforeDeflation, deflation, finalEther, appliedEther, relicMultBonus } = result;
+  const { beforeDeflation, deflation, finalEther, appliedEther, relicMultBonus, etherAmplifierMult = 1 } = result;
 
   const actualTotalMultiplier = turnEtherAccumulated > 0
     ? (beforeDeflation / turnEtherAccumulated)
@@ -89,8 +93,9 @@ export function formatPlayerEtherLog(result, turnEtherAccumulated) {
     : '';
 
   const relicText = relicMultBonus > 0 ? ` (유물 배율 +${relicMultBonus.toFixed(2)})` : '';
+  const amplifierText = etherAmplifierMult > 1 ? ` (증폭 ×${etherAmplifierMult})` : '';
 
-  return `✴️ 에테르 획득: ${turnEtherAccumulated} × ${actualTotalMultiplier.toFixed(2)}${relicText} = ${beforeDeflation} → ${finalEther} PT${deflationText} (적용: ${appliedEther} PT)`;
+  return `✴️ 에테르 획득: ${turnEtherAccumulated} × ${actualTotalMultiplier.toFixed(2)}${relicText}${amplifierText} = ${beforeDeflation} → ${finalEther} PT${deflationText} (적용: ${appliedEther} PT)`;
 }
 
 /**

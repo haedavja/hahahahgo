@@ -242,8 +242,7 @@ export function executeCardActionCore(params) {
       collectTriggeredRelics,
       playRelicActivationSequence,
       flashRelic,
-      actions,
-      playerEtherMultiplier: player.etherMultiplier || 1
+      actions
     });
   } else if (action.actor === 'enemy') {
     processEnemyEtherAccumulation({

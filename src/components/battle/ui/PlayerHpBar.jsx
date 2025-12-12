@@ -154,6 +154,16 @@ export const PlayerHpBar = ({
                     <span style={{ color: '#fbbf24' }}>💪 힘 {player.strength || 0}</span>
                   </StatTooltip>
                 )}
+                {(player.etherMultiplier || 1) > 1 && (
+                  <StatTooltip stat={{
+                    name: '에테르 증폭',
+                    emoji: '💎',
+                    color: '#a78bfa',
+                    description: `턴 종료 시 에테르 획득량이 ${player.etherMultiplier}배가 됩니다.`
+                  }}>
+                    <span style={{ color: '#a78bfa' }}>💎 증폭 x{player.etherMultiplier}</span>
+                  </StatTooltip>
+                )}
                 {effectiveAgility !== 0 && (
                   <StatTooltip stat={{
                     name: '민첩',
