@@ -80,12 +80,25 @@ export function ItemSlots({ phase, battleActions, player, enemy, enemyPlan }) {
           destroyedIndices.push(i);
         }
 
+        console.log('[cardDestroy] 파괴 시작:', {
+          phase,
+          originalCount: enemyPlan.actions.length,
+          destroyCount,
+          destroyedIndices,
+          currentManuallyModified: enemyPlan.manuallyModified
+        });
+
         // 파괴 애니메이션용 인덱스 설정
         battleActions.setDestroyingEnemyCards(destroyedIndices);
 
         // 즉시 카드 제거 (manuallyModified로 재생성 방지)
         const newActions = enemyPlan.actions.slice(0, -destroyCount);
+        console.log('[cardDestroy] 새 actions 생성:', {
+          newActionsLength: newActions.length,
+          newActionsRefs: newActions.map(a => a.name || a.type)
+        });
         battleActions.setEnemyPlan({ ...enemyPlan, actions: newActions, manuallyModified: true });
+        console.log('[cardDestroy] setEnemyPlan 호출 완료');
 
         // respond 단계면 fixedOrder에서도 파괴된 적 카드 제거
         if (phase === 'respond' && battleActions.setFixedOrder) {

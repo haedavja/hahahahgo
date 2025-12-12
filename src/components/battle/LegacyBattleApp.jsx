@@ -880,9 +880,15 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       addLog(`🤖 적 성향 힌트: ${mode.name}`);
     }
     // manuallyModified가 true면 기존 actions 유지 (카드 파괴 등으로 수동 변경된 경우)
+    console.log('[턴시작 useEffect] manuallyModified 체크:', {
+      manuallyModified: battle.enemyPlan.manuallyModified,
+      actionsLength: battle.enemyPlan.actions?.length
+    });
     if (battle.enemyPlan.manuallyModified) {
+      console.log('[턴시작 useEffect] manuallyModified=true, 기존 actions 유지');
       actions.setEnemyPlan({ ...battle.enemyPlan, mode });
     } else {
+      console.log('[턴시작 useEffect] manuallyModified=false, 새 actions 생성');
       const slots = etherSlots(enemy?.etherPts || 0);
       const planActions = generateEnemyActions(enemy, mode, slots, enemyCount, enemyCount);
       actions.setEnemyPlan({ mode, actions: planActions });
@@ -899,10 +905,20 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
   // 선택 단계 진입 시 적 행동을 미리 계산해 통찰 UI가 바로 보이도록 함
   useEffect(() => {
+    console.log('[선택단계 useEffect] 실행:', {
+      phase: battle.phase,
+      mode: enemyPlan?.mode?.name,
+      actionsLength: enemyPlan?.actions?.length,
+      manuallyModified: enemyPlan?.manuallyModified
+    });
     if (battle.phase !== 'select') return;
     if (!enemyPlan?.mode) return;
     // manuallyModified가 true면 재생성하지 않음 (카드 파괴 등으로 수동 변경된 경우)
-    if ((enemyPlan.actions && enemyPlan.actions.length > 0) || enemyPlan.manuallyModified) return;
+    if ((enemyPlan.actions && enemyPlan.actions.length > 0) || enemyPlan.manuallyModified) {
+      console.log('[선택단계 useEffect] actions 있음 또는 manuallyModified=true, 재생성 안함');
+      return;
+    }
+    console.log('[선택단계 useEffect] 새 actions 생성!');
     const slots = etherSlots(enemy?.etherPts || 0);
     const generatedActions = generateEnemyActions(enemy, enemyPlan.mode, slots, enemyCount, enemyCount);
     actions.setEnemyPlan({ ...battle.enemyPlan, actions: generatedActions });
@@ -1119,12 +1135,21 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   };
 
   const startResolve = () => {
+    console.log('[startResolve] 호출됨:', {
+      phase: battle.phase,
+      enemyActionsLength: enemyPlan.actions?.length,
+      manuallyModified: enemyPlan.manuallyModified,
+      actionsNames: enemyPlan.actions?.map(a => a.name || a.type)
+    });
     if (battle.phase !== 'select') return;
     // manuallyModified가 true면 재생성하지 않음 (카드 파괴 등으로 수동 변경된 경우)
+    const willRegenerate = !((enemyPlan.actions && enemyPlan.actions.length > 0) || enemyPlan.manuallyModified);
+    console.log('[startResolve] willRegenerate:', willRegenerate);
     const generatedActions =
       (enemyPlan.actions && enemyPlan.actions.length > 0) || enemyPlan.manuallyModified
         ? enemyPlan.actions
         : generateEnemyActions(enemy, enemyPlan.mode, etherSlots(enemy.etherPts), enemyCount, enemyCount);
+    console.log('[startResolve] generatedActions 길이:', generatedActions?.length);
     actions.setEnemyPlan({ ...battle.enemyPlan, actions: generatedActions });
 
     const pCombo = detectPokerCombo(selected);
@@ -1141,9 +1166,15 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
     // 빙결 효과: 플레이어 카드가 모두 먼저 발동 (battle.player에서 최신 값 확인)
     const currentPlayer = battle.player;
+    console.log('[startResolve] enemyPlan.actions 길이 (fixedOrder 생성 시):', enemyPlan.actions?.length);
     const q = currentPlayer.enemyFrozen
       ? createFixedOrder(enhancedSelected, enemyPlan.actions, effectiveAgility)
       : sortCombinedOrderStablePF(enhancedSelected, enemyPlan.actions, effectiveAgility, 0);
+    console.log('[startResolve] fixedOrder 생성됨:', {
+      totalLength: q.length,
+      playerCards: q.filter(x => x.actor === 'player').length,
+      enemyCards: q.filter(x => x.actor === 'enemy').length
+    });
     actions.setFixedOrder(q);
 
     // 빙결 플래그 초기화 (한 번 사용 후 제거)
@@ -1186,25 +1217,48 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
   // respond 단계에서 적 카드 파괴 시 fixedOrder 업데이트
   useEffect(() => {
+    console.log('[fixedOrder 업데이트 useEffect] 실행:', {
+      phase: battle.phase,
+      manuallyModified: enemyPlan.manuallyModified,
+      fixedOrderLength: fixedOrder?.length,
+      enemyActionsLength: enemyPlan.actions?.length
+    });
     if (battle.phase !== 'respond') return;
     if (!enemyPlan.manuallyModified) return;
     if (!fixedOrder) return;
 
     // fixedOrder에서 파괴된 적 카드 제거 (enemyPlan.actions에 없는 적 카드)
     const remainingEnemyActions = new Set(enemyPlan.actions);
+    console.log('[fixedOrder 업데이트] remainingEnemyActions Set 크기:', remainingEnemyActions.size);
+
     const updatedFixedOrder = fixedOrder.filter(item => {
       if (item.actor === 'player') return true;
       // 적 카드는 현재 enemyPlan.actions에 있는 것만 유지
-      return remainingEnemyActions.has(item.card);
+      const isRemaining = remainingEnemyActions.has(item.card);
+      console.log('[fixedOrder 필터] item.card:', item.card?.name || item.card?.type, 'isRemaining:', isRemaining);
+      return isRemaining;
+    });
+
+    console.log('[fixedOrder 업데이트] 결과:', {
+      originalLength: fixedOrder.length,
+      updatedLength: updatedFixedOrder.length,
+      removed: fixedOrder.length - updatedFixedOrder.length
     });
 
     if (updatedFixedOrder.length !== fixedOrder.length) {
+      console.log('[fixedOrder 업데이트] setFixedOrder 호출!');
       actions.setFixedOrder(updatedFixedOrder);
     }
   }, [battle.phase, enemyPlan.actions, enemyPlan.manuallyModified, fixedOrder]);
 
   const beginResolveFromRespond = () => {
-    console.log('[DEBUG] beginResolveFromRespond called, phase:', battle.phase, 'fixedOrder:', fixedOrder);
+    console.log('[DEBUG] beginResolveFromRespond called:', {
+      phase: battle.phase,
+      fixedOrderLength: fixedOrder?.length,
+      fixedOrderEnemyCards: fixedOrder?.filter(x => x.actor === 'enemy').length,
+      enemyPlanActionsLength: enemyPlan.actions?.length,
+      manuallyModified: enemyPlan.manuallyModified
+    });
     if (battle.phase !== 'respond') {
       console.log('[DEBUG] Phase check failed, phase is:', battle.phase);
       return;
@@ -1217,6 +1271,10 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     }
 
     const newQ = fixedOrder.map(x => ({ actor: x.actor, card: x.card, sp: x.sp }));
+    console.log('[DEBUG] newQ created:', {
+      totalLength: newQ.length,
+      enemyCardsInQueue: newQ.filter(x => x.actor === 'enemy').length
+    });
     if (newQ.length === 0) {
       addLog('⚠️ 큐 생성 실패: 실행할 항목이 없습니다');
       return;
