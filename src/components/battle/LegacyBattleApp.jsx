@@ -265,13 +265,21 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   // 전투용 아이템 효과 처리
   const pendingItemEffects = useGameStore((state) => state.activeBattle?.pendingItemEffects || []);
   const clearPendingItemEffects = useGameStore((state) => state.clearPendingItemEffects);
+  const lastProcessedEffectsRef = useRef(0);
 
   useEffect(() => {
+    // 효과가 없거나 이미 처리했으면 스킵
     if (pendingItemEffects.length === 0) return;
-    if (!player || !enemy) return;
+    if (pendingItemEffects.length === lastProcessedEffectsRef.current) return;
+    if (!battle.player || !battle.enemy) return;
 
-    let newPlayer = { ...player };
-    let newEnemy = { ...enemy };
+    // 현재 처리할 효과 개수 기록
+    lastProcessedEffectsRef.current = pendingItemEffects.length;
+
+    const currentPlayer = battle.player;
+    const currentEnemy = battle.enemy;
+    let newPlayer = { ...currentPlayer };
+    let newEnemy = { ...currentEnemy };
     const effectLogs = [];
 
     pendingItemEffects.forEach((effect) => {
@@ -325,11 +333,11 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       actions.setPlayer(newPlayer);
       actions.setEnemy(newEnemy);
       effectLogs.forEach(msg => actions.addLog(msg));
+      // 효과 대기열 초기화
+      clearPendingItemEffects();
+      lastProcessedEffectsRef.current = 0;
     }
-
-    // 효과 대기열 초기화
-    clearPendingItemEffects();
-  }, [pendingItemEffects, player, enemy, actions, clearPendingItemEffects]);
+  }, [pendingItemEffects, battle.player, battle.enemy, actions, clearPendingItemEffects]);
 
   // 카드 관리
   const hand = battle.hand;
