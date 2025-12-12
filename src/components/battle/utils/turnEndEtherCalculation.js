@@ -36,6 +36,14 @@ export function calculateTurnEndEther({
   const totalPlayerMult = playerComboMult * etherAmplifierMult;
   const playerBeforeDeflation = Math.round(turnEtherAccumulated * totalPlayerMult);
 
+  console.log('[calculateTurnEndEther] 계산 상세:', {
+    turnEtherAccumulated,
+    playerComboMult,
+    etherAmplifierMult,
+    totalPlayerMult,
+    playerBeforeDeflation
+  });
+
   const playerDeflation = playerCombo?.name
     ? applyEtherDeflation(playerBeforeDeflation, playerCombo.name, player.comboUsageCount || {})
     : { gain: playerBeforeDeflation, multiplier: 1, usageCount: 0 };
