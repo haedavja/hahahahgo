@@ -116,6 +116,16 @@ export function ItemSlots({ phase, battleActions, player, enemy, enemyPlan, batt
         });
         battleActions.setEnemyPlan(newEnemyPlan);
 
+        // battleRef를 즉시 동기적으로 업데이트 (useEffect 대기하지 않음)
+        // 이렇게 해야 다른 코드가 battleRef.current를 읽을 때 즉시 최신 값을 얻음
+        if (battleRef?.current) {
+          battleRef.current.enemyPlan = newEnemyPlan;
+          console.log('[cardDestroy] battleRef 즉시 업데이트 완료:', {
+            refActionsLength: battleRef.current.enemyPlan.actions.length,
+            refManuallyModified: battleRef.current.enemyPlan.manuallyModified
+          });
+        }
+
         // 상태 업데이트 확인 (다음 렌더링 후)
         setTimeout(() => {
           console.log('[cardDestroy] 상태 업데이트 확인 (100ms 후):', {
