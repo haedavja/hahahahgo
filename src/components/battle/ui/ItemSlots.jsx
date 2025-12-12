@@ -9,28 +9,88 @@ const STAT_LABELS = {
 /**
  * 전투 화면용 아이템 슬롯 컴포넌트
  * phase가 'select' 또는 'respond'일 때만 전투용 아이템 사용 가능
+ * @param {string} phase - 현재 전투 단계
+ * @param {object} battleActions - 전투 상태 액션 (setPlayer, setEnemy, addLog)
+ * @param {object} player - 현재 플레이어 상태
+ * @param {object} enemy - 현재 적 상태
  */
-export function ItemSlots({ phase }) {
+export function ItemSlots({ phase, battleActions, player, enemy }) {
   const items = useGameStore((state) => state.items || [null, null, null]);
   const useItem = useGameStore((state) => state.useItem);
+  const removeItem = useGameStore((state) => state.removeItem);
   const itemBuffs = useGameStore((state) => state.itemBuffs || {});
 
   // 전투용 아이템은 select/respond 단계에서만 사용 가능
   const canUseCombatItem = phase === 'select' || phase === 'respond';
 
+  // 전투용 아이템 효과 직접 적용
+  const applyCombatItemEffect = (item, slotIdx) => {
+    if (!item.effect || !battleActions) return;
+
+    const effect = item.effect;
+    let newPlayer = { ...player };
+    let newEnemy = { ...enemy };
+    let logMsg = '';
+
+    switch (effect.type) {
+      case 'damage':
+        newEnemy.hp = Math.max(0, newEnemy.hp - effect.value);
+        logMsg = `💥 ${item.name}: 적에게 ${effect.value} 피해!`;
+        break;
+      case 'defense':
+        newPlayer.block = (newPlayer.block || 0) + effect.value;
+        logMsg = `🛡️ ${item.name}: 방어력 ${effect.value} 획득!`;
+        break;
+      case 'turnEnergy':
+        newPlayer.energy = Math.min(newPlayer.maxEnergy || 10, (newPlayer.energy || 0) + effect.value);
+        logMsg = `⚡ ${item.name}: 에너지 ${effect.value} 회복!`;
+        break;
+      case 'maxEnergy':
+        newPlayer.maxEnergy = (newPlayer.maxEnergy || 6) + effect.value;
+        newPlayer.energy = (newPlayer.energy || 0) + effect.value;
+        logMsg = `📦 ${item.name}: 최대 에너지 +${effect.value}!`;
+        break;
+      case 'attackBoost':
+        newPlayer.strength = (newPlayer.strength || 0) + effect.value;
+        logMsg = `⚔️ ${item.name}: 힘 +${effect.value}!`;
+        break;
+      case 'etherMultiplier':
+        newPlayer.etherMultiplier = effect.value;
+        logMsg = `💎 ${item.name}: 에테르 획득 ${effect.value}배!`;
+        break;
+      case 'etherSteal':
+        const steal = Math.min(effect.value, newEnemy.etherPts || 0);
+        newEnemy.etherPts = Math.max(0, (newEnemy.etherPts || 0) - steal);
+        newPlayer.etherPts = (newPlayer.etherPts || 0) + steal;
+        logMsg = `🔮 ${item.name}: 적 에테르 ${steal} 흡수!`;
+        break;
+      default:
+        console.log(`[아이템] 미구현 효과: ${effect.type}`);
+        return;
+    }
+
+    // 상태 업데이트
+    battleActions.setPlayer(newPlayer);
+    battleActions.setEnemy(newEnemy);
+    if (logMsg) battleActions.addLog(logMsg);
+
+    // 아이템 제거
+    removeItem(slotIdx);
+  };
+
   const handleUseItem = (idx) => {
     const item = items[idx];
     if (!item) return;
 
-    // 범용 아이템은 항상 사용 가능
+    // 범용 아이템은 항상 사용 가능 (치유, 스탯 버프)
     if (item.usableIn === 'any') {
       useItem(idx);
       return;
     }
 
-    // 전투용 아이템은 select/respond 단계에서만
+    // 전투용 아이템은 select/respond 단계에서만 - 직접 효과 적용
     if (item.usableIn === 'combat' && canUseCombatItem) {
-      useItem(idx);
+      applyCombatItemEffect(item, idx);
     }
   };
 

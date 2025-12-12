@@ -262,85 +262,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const enemyPlan = battle.enemyPlan;
   const enemyIndex = battle.enemyIndex;
 
-  // 전투용 아이템 효과 처리
-  const pendingItemEffects = useGameStore((state) => state.activeBattle?.pendingItemEffects || []);
-  const clearPendingItemEffects = useGameStore((state) => state.clearPendingItemEffects);
-  const lastProcessedEffectsRef = useRef(0);
-
-  useEffect(() => {
-    // 효과가 없거나 이미 처리했으면 스킵
-    if (pendingItemEffects.length === 0) return;
-    if (pendingItemEffects.length === lastProcessedEffectsRef.current) return;
-
-    // battleRef를 사용하여 현재 상태 접근 (무한 루프 방지)
-    const currentBattle = battleRef.current;
-    if (!currentBattle?.player || !currentBattle?.enemy) return;
-
-    // 현재 처리할 효과 개수 기록
-    lastProcessedEffectsRef.current = pendingItemEffects.length;
-
-    const currentPlayer = currentBattle.player;
-    const currentEnemy = currentBattle.enemy;
-    let newPlayer = { ...currentPlayer };
-    let newEnemy = { ...currentEnemy };
-    const effectLogs = [];
-
-    pendingItemEffects.forEach((effect) => {
-      switch (effect.type) {
-        case 'damage':
-          // 적에게 피해
-          const dmg = effect.value;
-          newEnemy.hp = Math.max(0, newEnemy.hp - dmg);
-          effectLogs.push(`💥 아이템 효과: 적에게 ${dmg} 피해!`);
-          break;
-        case 'defense':
-          // 방어력 획득
-          newPlayer.block = (newPlayer.block || 0) + effect.value;
-          effectLogs.push(`🛡️ 아이템 효과: 방어력 ${effect.value} 획득!`);
-          break;
-        case 'turnEnergy':
-          // 에너지 회복
-          newPlayer.energy = Math.min(newPlayer.maxEnergy || 10, (newPlayer.energy || 0) + effect.value);
-          effectLogs.push(`⚡ 아이템 효과: 에너지 ${effect.value} 회복!`);
-          break;
-        case 'maxEnergy':
-          // 최대 에너지 증가
-          newPlayer.maxEnergy = (newPlayer.maxEnergy || 6) + effect.value;
-          newPlayer.energy = (newPlayer.energy || 0) + effect.value;
-          effectLogs.push(`📦 아이템 효과: 최대 에너지 +${effect.value}!`);
-          break;
-        case 'attackBoost':
-          // 공격력 증가
-          newPlayer.strength = (newPlayer.strength || 0) + effect.value;
-          effectLogs.push(`⚔️ 아이템 효과: 힘 +${effect.value}!`);
-          break;
-        case 'etherMultiplier':
-          // 에테르 배율 (다음 턴 계산에 적용)
-          newPlayer.etherMultiplier = effect.value;
-          effectLogs.push(`💎 아이템 효과: 에테르 획득 ${effect.value}배!`);
-          break;
-        case 'etherSteal':
-          // 적 에테르 흡수
-          const steal = Math.min(effect.value, newEnemy.etherPts || 0);
-          newEnemy.etherPts = Math.max(0, (newEnemy.etherPts || 0) - steal);
-          newPlayer.etherPts = (newPlayer.etherPts || 0) + steal;
-          effectLogs.push(`🔮 아이템 효과: 적 에테르 ${steal} 흡수!`);
-          break;
-        default:
-          console.log(`[아이템] 미구현 효과: ${effect.type}`);
-      }
-    });
-
-    // 상태 업데이트
-    if (effectLogs.length > 0) {
-      actions.setPlayer(newPlayer);
-      actions.setEnemy(newEnemy);
-      effectLogs.forEach(msg => actions.addLog(msg));
-      // 효과 대기열 초기화
-      clearPendingItemEffects();
-      lastProcessedEffectsRef.current = 0;
-    }
-  }, [pendingItemEffects, actions, clearPendingItemEffects]);
+  // 전투용 아이템 효과 처리 - useItem 시 바로 처리하도록 변경
+  // (무한 루프 방지를 위해 useEffect 대신 직접 호출 방식 사용)
 
   // 카드 관리
   const hand = battle.hand;
@@ -2144,7 +2067,12 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       </div>
 
       {/* 아이템 슬롯 - 왼쪽 상단 고정 */}
-      <ItemSlots phase={battle.phase} />
+      <ItemSlots
+        phase={battle.phase}
+        battleActions={actions}
+        player={battle.player}
+        enemy={battle.enemy}
+      />
       {/* 예상 피해량 - 오른쪽 고정 패널 */}
       <div className="expect-sidebar-fixed">
         <ExpectedDamagePreview
