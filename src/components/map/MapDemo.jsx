@@ -219,18 +219,23 @@ export function MapDemo() {
   const useItem = useGameStore((state) => state.useItem);
   const itemBuffs = useGameStore((state) => state.itemBuffs || {});
 
-  // 스탯 요구사항 충족 여부 체크
+  // 아이템 버프를 포함한 유효 스탯 계산
+  const effectiveStrength = playerStrength + (itemBuffs.strength || 0);
+  const effectiveAgility = playerAgility + (itemBuffs.agility || 0);
+  const effectiveInsight = playerInsight + (itemBuffs.insight || 0);
+
+  // 스탯 요구사항 충족 여부 체크 (아이템 버프 포함)
   const meetsStatRequirement = useCallback((statRequirement) => {
     if (!statRequirement) return true;
     const playerStats = {
-      insight: playerInsight,
-      strength: playerStrength,
-      agility: playerAgility,
+      insight: effectiveInsight,
+      strength: effectiveStrength,
+      agility: effectiveAgility,
     };
     return Object.entries(statRequirement).every(
       ([stat, required]) => (playerStats[stat] ?? 0) >= required
     );
-  }, [playerInsight, playerStrength, playerAgility]);
+  }, [effectiveInsight, effectiveStrength, effectiveAgility]);
 
   // Alt+D 핫키로 DevTools 토글
   useEffect(() => {

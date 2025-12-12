@@ -105,12 +105,17 @@ export function LegacyBattleScreen() {
   const playerEnergyBonus = useGameStore((state) => state.playerEnergyBonus ?? 0);
   const playerStrength = useGameStore((state) => state.playerStrength ?? 0);
   const playerMaxSpeedBonus = useGameStore((state) => state.playerMaxSpeedBonus ?? 0);
+  const itemBuffs = useGameStore((state) => state.itemBuffs || {});
+
+  // 아이템 버프 적용한 유효 스탯
+  const effectiveStrength = playerStrength + (itemBuffs.strength || 0);
+  const effectiveInsight = playerInsight + (itemBuffs.insight || 0);
 
   // 전투 시작 시의 통찰 값을 고정해 payload를 재생성하지 않도록 저장
-  const [battleInsight, setBattleInsight] = useState(playerInsight || 0);
+  const [battleInsight, setBattleInsight] = useState(effectiveInsight || 0);
   useEffect(() => {
     if (activeBattle) {
-      setBattleInsight(playerInsight || 0);
+      setBattleInsight(effectiveInsight || 0);
     }
   }, [activeBattle]);
 
@@ -122,10 +127,10 @@ export function LegacyBattleScreen() {
       maxHp,
       battleInsight,
       playerEnergyBonus,
-      playerStrength,
+      effectiveStrength,
       playerMaxSpeedBonus
     );
-  }, [activeBattle, playerEther, relics, maxHp, battleInsight, playerEnergyBonus, playerStrength, playerMaxSpeedBonus]);
+  }, [activeBattle, playerEther, relics, maxHp, battleInsight, playerEnergyBonus, effectiveStrength, playerMaxSpeedBonus]);
   const frameKey = activeBattle ? `${activeBattle.nodeId}-${activeBattle.kind}` : "idle";
 
   const [devToolsOpen, setDevToolsOpen] = useState(false);
@@ -171,7 +176,7 @@ export function LegacyBattleScreen() {
         initialPlayer={payload?.player}
         initialEnemy={payload?.enemy}
         playerEther={playerEther}
-        liveInsight={playerInsight}
+        liveInsight={effectiveInsight}
         onBattleResult={handleBattleResult}
       />
 
