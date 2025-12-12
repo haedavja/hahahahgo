@@ -1859,6 +1859,10 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       'player.etherMultiplier': player.etherMultiplier,
       'latestPlayer.etherMultiplier': latestPlayer.etherMultiplier
     });
+    console.log('[finishTurn] 콤보 확인:', {
+      'pComboEnd': pComboEnd,
+      'finalComboMultiplier': finalComboMultiplier
+    });
     const etherResult = calculateTurnEndEther({
       playerCombo: pComboEnd,
       enemyCombo: eComboEnd,
