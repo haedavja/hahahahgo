@@ -587,7 +587,6 @@ export function MapDemo() {
               key={idx}
               className={`item-slot ${item ? 'filled' : 'empty'} ${canUse ? 'usable' : ''}`}
               onClick={() => canUse && useItem(idx)}
-              title={item ? `${item.name}\n${item.description}${!canUse && item.usableIn === 'combat' ? '\n(전투 중에만 사용 가능)' : ''}` : '빈 슬롯'}
               style={{ cursor: canUse ? 'pointer' : 'default' }}
             >
               {item ? (
@@ -596,6 +595,19 @@ export function MapDemo() {
                   {item.usableIn === 'combat' && !inBattle && (
                     <span className="item-combat-only">⚔</span>
                   )}
+                  {/* 아이템 툴팁 */}
+                  <div className="item-tooltip">
+                    <div className="item-tooltip-name">{item.name}</div>
+                    <div className="item-tooltip-desc">{item.description}</div>
+                    {item.usableIn === 'combat' && (
+                      <div className="item-tooltip-usage">
+                        {inBattle ? '✓ 선택/대응 단계에서 사용' : '⚔ 전투 선택/대응 단계에서만 사용 가능'}
+                      </div>
+                    )}
+                    {item.usableIn === 'any' && (
+                      <div className="item-tooltip-usage" style={{ color: '#86efac' }}>✓ 언제든 사용 가능</div>
+                    )}
+                  </div>
                 </>
               ) : (
                 <span className="item-empty">-</span>

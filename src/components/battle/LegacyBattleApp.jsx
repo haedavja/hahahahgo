@@ -262,6 +262,75 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const enemyPlan = battle.enemyPlan;
   const enemyIndex = battle.enemyIndex;
 
+  // 전투용 아이템 효과 처리
+  const pendingItemEffects = useGameStore((state) => state.activeBattle?.pendingItemEffects || []);
+  const clearPendingItemEffects = useGameStore((state) => state.clearPendingItemEffects);
+
+  useEffect(() => {
+    if (pendingItemEffects.length === 0) return;
+    if (!player || !enemy) return;
+
+    let newPlayer = { ...player };
+    let newEnemy = { ...enemy };
+    const effectLogs = [];
+
+    pendingItemEffects.forEach((effect) => {
+      switch (effect.type) {
+        case 'damage':
+          // 적에게 피해
+          const dmg = effect.value;
+          newEnemy.hp = Math.max(0, newEnemy.hp - dmg);
+          effectLogs.push(`💥 아이템 효과: 적에게 ${dmg} 피해!`);
+          break;
+        case 'defense':
+          // 방어력 획득
+          newPlayer.block = (newPlayer.block || 0) + effect.value;
+          effectLogs.push(`🛡️ 아이템 효과: 방어력 ${effect.value} 획득!`);
+          break;
+        case 'turnEnergy':
+          // 에너지 회복
+          newPlayer.energy = Math.min(newPlayer.maxEnergy || 10, (newPlayer.energy || 0) + effect.value);
+          effectLogs.push(`⚡ 아이템 효과: 에너지 ${effect.value} 회복!`);
+          break;
+        case 'maxEnergy':
+          // 최대 에너지 증가
+          newPlayer.maxEnergy = (newPlayer.maxEnergy || 6) + effect.value;
+          newPlayer.energy = (newPlayer.energy || 0) + effect.value;
+          effectLogs.push(`📦 아이템 효과: 최대 에너지 +${effect.value}!`);
+          break;
+        case 'attackBoost':
+          // 공격력 증가
+          newPlayer.strength = (newPlayer.strength || 0) + effect.value;
+          effectLogs.push(`⚔️ 아이템 효과: 힘 +${effect.value}!`);
+          break;
+        case 'etherMultiplier':
+          // 에테르 배율 (다음 턴 계산에 적용)
+          newPlayer.etherMultiplier = effect.value;
+          effectLogs.push(`💎 아이템 효과: 에테르 획득 ${effect.value}배!`);
+          break;
+        case 'etherSteal':
+          // 적 에테르 흡수
+          const steal = Math.min(effect.value, newEnemy.etherPts || 0);
+          newEnemy.etherPts = Math.max(0, (newEnemy.etherPts || 0) - steal);
+          newPlayer.etherPts = (newPlayer.etherPts || 0) + steal;
+          effectLogs.push(`🔮 아이템 효과: 적 에테르 ${steal} 흡수!`);
+          break;
+        default:
+          console.log(`[아이템] 미구현 효과: ${effect.type}`);
+      }
+    });
+
+    // 상태 업데이트
+    if (effectLogs.length > 0) {
+      actions.setPlayer(newPlayer);
+      actions.setEnemy(newEnemy);
+      effectLogs.forEach(msg => actions.addLog(msg));
+    }
+
+    // 효과 대기열 초기화
+    clearPendingItemEffects();
+  }, [pendingItemEffects, player, enemy, actions, clearPendingItemEffects]);
+
   // 카드 관리
   const hand = battle.hand;
   const selected = battle.selected;

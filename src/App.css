@@ -327,6 +327,46 @@ body {
   white-space: nowrap;
 }
 
+/* 아이템 툴팁 */
+.item-tooltip {
+  position: absolute;
+  left: 56px;
+  top: 0;
+  min-width: 180px;
+  padding: 10px 12px;
+  background: rgba(15, 23, 42, 0.98);
+  border: 1px solid rgba(100, 140, 200, 0.5);
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.15s, visibility 0.15s;
+  z-index: 200;
+  pointer-events: none;
+}
+.item-slot:hover .item-tooltip {
+  opacity: 1;
+  visibility: visible;
+}
+.item-tooltip-name {
+  font-weight: 700;
+  font-size: 13px;
+  color: #fbbf24;
+  margin-bottom: 6px;
+}
+.item-tooltip-desc {
+  font-size: 12px;
+  color: #cbd5e1;
+  line-height: 1.4;
+  margin-bottom: 6px;
+}
+.item-tooltip-usage {
+  font-size: 11px;
+  color: #f87171;
+  padding-top: 4px;
+  border-top: 1px solid rgba(100, 120, 150, 0.3);
+}
+
 .map-version-tag {
   position: fixed;
   left: 40px;

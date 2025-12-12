@@ -56,7 +56,7 @@ export function ItemSlots({ phase }) {
           <div
             key={idx}
             onClick={() => canUse && handleUseItem(idx)}
-            title={item ? `${item.name}\n${item.description}${item.usableIn === 'combat' && !canUseCombatItem ? '\n(선택/대응 단계에서만 사용 가능)' : ''}` : '빈 슬롯'}
+            className="battle-item-slot"
             style={{
               position: 'relative',
               width: '48px',
@@ -85,6 +85,43 @@ export function ItemSlots({ phase }) {
                     color: 'rgba(255, 100, 100, 0.8)',
                   }}>⏸</span>
                 )}
+                {/* 아이템 툴팁 */}
+                <div style={{
+                  position: 'absolute',
+                  left: '56px',
+                  top: '0',
+                  minWidth: '180px',
+                  padding: '10px 12px',
+                  background: 'rgba(15, 23, 42, 0.98)',
+                  border: '1px solid rgba(100, 140, 200, 0.5)',
+                  borderRadius: '8px',
+                  boxShadow: '0 4px 20px rgba(0, 0, 0, 0.6)',
+                  opacity: 0,
+                  visibility: 'hidden',
+                  transition: 'opacity 0.15s, visibility 0.15s',
+                  zIndex: 200,
+                  pointerEvents: 'none',
+                }}
+                className="battle-item-tooltip"
+                >
+                  <div style={{ fontWeight: 700, fontSize: '13px', color: '#fbbf24', marginBottom: '6px' }}>
+                    {item.name}
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#cbd5e1', lineHeight: 1.4, marginBottom: '6px' }}>
+                    {item.description}
+                  </div>
+                  <div style={{
+                    fontSize: '11px',
+                    color: canUseCombatItem ? '#86efac' : '#f87171',
+                    paddingTop: '4px',
+                    borderTop: '1px solid rgba(100, 120, 150, 0.3)',
+                  }}>
+                    {item.usableIn === 'combat'
+                      ? (canUseCombatItem ? '✓ 지금 사용 가능 (선택/대응 단계)' : '⏸ 선택/대응 단계에서만 사용 가능')
+                      : '✓ 언제든 사용 가능'
+                    }
+                  </div>
+                </div>
               </>
             ) : (
               <span style={{ fontSize: '18px', color: 'rgba(100, 110, 130, 0.6)' }}>-</span>
@@ -116,6 +153,13 @@ export function ItemSlots({ phase }) {
           ))}
         </div>
       )}
+
+      <style>{`
+        .battle-item-slot:hover .battle-item-tooltip {
+          opacity: 1 !important;
+          visibility: visible !important;
+        }
+      `}</style>
     </div>
   );
 }

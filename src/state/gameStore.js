@@ -1339,6 +1339,15 @@ export const useGameStore = create((set, get) => ({
       const items = itemIds.map((id) => (id ? getItem(id) : null));
       return { ...state, items };
     }),
+
+  // 전투용 아이템 효과 대기열 초기화
+  clearPendingItemEffects: () =>
+    set((state) => {
+      if (!state.activeBattle) return state;
+      const battle = { ...state.activeBattle };
+      battle.pendingItemEffects = [];
+      return { ...state, activeBattle: battle };
+    }),
 }));
 
 export const selectors = {
