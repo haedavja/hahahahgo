@@ -1934,12 +1934,22 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     const newEnemyUsageCount = updateComboUsageCount(enemy.comboUsageCount, eComboEnd, [], 'enemy');
 
     // 턴 종료 상태 업데이트
-    actions.setPlayer(createTurnEndPlayerState(player, {
+    const newPlayerState = createTurnEndPlayerState(latestPlayer, {
       comboUsageCount: newUsageCount,
       etherPts: nextPlayerPts,
       etherOverflow: playerOverflow,
       etherMultiplier: 1  // 에테르 증폭 배율 초기화
-    }));
+    });
+    console.log('[finishTurn] 턴 종료 후 플레이어 상태:', {
+      'before etherMultiplier': latestPlayer.etherMultiplier,
+      'after etherMultiplier': newPlayerState.etherMultiplier
+    });
+    actions.setPlayer(newPlayerState);
+
+    // battleRef도 즉시 업데이트
+    if (battleRef.current) {
+      battleRef.current.player = newPlayerState;
+    }
 
     const nextPts = Math.max(0, nextEnemyPts);
     const nextEnemyPtsSnapshot = nextPts;
