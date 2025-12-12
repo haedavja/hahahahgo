@@ -2342,6 +2342,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         actions={actions}
         destroyingEnemyCards={battle.destroyingEnemyCards}
         freezingEnemyCards={battle.freezingEnemyCards}
+        frozenOrder={battle.frozenOrder}
       />
 
       {/* 유물 표시 */}

@@ -41,7 +41,8 @@ export const TimelineDisplay = ({
   insightReveal,
   actions,
   destroyingEnemyCards = [],
-  freezingEnemyCards = []
+  freezingEnemyCards = [],
+  frozenOrder = 0
 }) => {
   const commonMax = Math.max(player.maxSpeed || DEFAULT_PLAYER_MAX_SPEED, enemy.maxSpeed || DEFAULT_ENEMY_MAX_SPEED);
   const ticks = generateSpeedTicks(commonMax);
@@ -170,6 +171,7 @@ export const TimelineDisplay = ({
                       const isUsed = Array.isArray(usedCardIndices) && usedCardIndices.includes(globalIndex) && globalIndex < qIndex;
                       const isDestroying = destroyingEnemyCards.includes(idx);
                       const isFreezing = freezingEnemyCards.includes(idx);
+                      const isFrozen = frozenOrder > 0 && !isFreezing; // 빙결 상태 지속 (애니메이션 중이 아닐 때)
                       const normalizedPosition = (a.sp / enemyMax) * 100;
                       const levelForTooltip = battle.phase === 'select' ? (insightReveal?.level || 0) : (effectiveInsight || 0);
                       const canShowTooltip = levelForTooltip >= 3;
@@ -180,7 +182,8 @@ export const TimelineDisplay = ({
                         isUsed ? 'timeline-used' : '',
                         canShowTooltip ? 'insight-lv3-glow' : '',
                         isDestroying ? 'timeline-destroying' : '',
-                        isFreezing ? 'timeline-freezing' : ''
+                        isFreezing ? 'timeline-freezing' : '',
+                        isFrozen ? 'timeline-frozen' : ''
                       ].join(' ');
                       return (
                         <div key={idx}
