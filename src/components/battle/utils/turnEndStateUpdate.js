@@ -38,7 +38,7 @@ export function updateComboUsageCount(currentUsageCount, combo, queue = [], acto
  * @param {Object} params - 업데이트 파라미터
  * @returns {Object} 업데이트된 플레이어 상태
  */
-export function createTurnEndPlayerState(player, { comboUsageCount, etherPts, etherOverflow }) {
+export function createTurnEndPlayerState(player, { comboUsageCount, etherPts, etherOverflow, etherMultiplier = 1 }) {
   return {
     ...player,
     block: 0,
@@ -49,7 +49,8 @@ export function createTurnEndPlayerState(player, { comboUsageCount, etherPts, et
     etherOverdriveActive: false,
     comboUsageCount,
     etherPts: Math.max(0, etherPts),
-    etherOverflow: (player.etherOverflow || 0) + (etherOverflow || 0)
+    etherOverflow: (player.etherOverflow || 0) + (etherOverflow || 0),
+    etherMultiplier
   };
 }
 
