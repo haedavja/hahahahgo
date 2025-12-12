@@ -101,9 +101,7 @@ export const EnemyHpBar = ({
                       width: 'fit-content'
                     }}>
                     <span>❄️</span>
-                    <span>빙결됨</span>
                     <span style={{
-                      marginLeft: '2px',
                       padding: '0 4px',
                       background: 'rgba(100, 200, 255, 0.3)',
                       borderRadius: '3px',
@@ -116,11 +114,11 @@ export const EnemyHpBar = ({
                       top: '50%',
                       transform: 'translateY(-50%)',
                       marginLeft: '8px',
-                      padding: '10px 14px',
+                      padding: '12px 16px',
                       background: 'rgba(15, 23, 42, 0.98)',
                       border: '1px solid rgba(100, 200, 255, 0.5)',
                       borderRadius: '6px',
-                      fontSize: '13px',
+                      fontSize: '15px',
                       color: '#e2e8f0',
                       whiteSpace: 'nowrap',
                       opacity: 0,
@@ -129,7 +127,7 @@ export const EnemyHpBar = ({
                       zIndex: 1000,
                       boxShadow: '0 4px 12px rgba(0, 0, 0, 0.5)'
                     }}>
-                      <div style={{ fontWeight: 700, color: '#7dd3fc', marginBottom: '6px', fontSize: '14px' }}>❄️ 빙결 (x{frozenOrder})</div>
+                      <div style={{ fontWeight: 700, color: '#7dd3fc', marginBottom: '8px', fontSize: '16px' }}>❄️ 빙결 (x{frozenOrder})</div>
                       <div style={{ lineHeight: 1.5 }}>{frozenOrder}턴 동안 플레이어 카드가<br/>모두 먼저 발동합니다.</div>
                     </div>
                   </div>
