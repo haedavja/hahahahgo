@@ -896,11 +896,12 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   useEffect(() => {
     if (battle.phase !== 'select') return;
     if (!enemyPlan?.mode) return;
-    if (enemyPlan.actions && enemyPlan.actions.length > 0) return;
+    // manuallyModified가 true면 재생성하지 않음 (카드 파괴 등으로 수동 변경된 경우)
+    if ((enemyPlan.actions && enemyPlan.actions.length > 0) || enemyPlan.manuallyModified) return;
     const slots = etherSlots(enemy?.etherPts || 0);
     const generatedActions = generateEnemyActions(enemy, enemyPlan.mode, slots, enemyCount, enemyCount);
     actions.setEnemyPlan({ ...battle.enemyPlan, actions: generatedActions });
-  }, [battle.phase, enemyPlan?.mode, enemyPlan?.actions?.length, enemy]);
+  }, [battle.phase, enemyPlan?.mode, enemyPlan?.actions?.length, enemyPlan?.manuallyModified, enemy]);
 
   const totalEnergy = useMemo(() => battle.selected.reduce((s, c) => s + c.actionCost, 0), [battle.selected]);
   const totalSpeed = useMemo(
@@ -1114,8 +1115,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
   const startResolve = () => {
     if (battle.phase !== 'select') return;
+    // manuallyModified가 true면 재생성하지 않음 (카드 파괴 등으로 수동 변경된 경우)
     const generatedActions =
-      enemyPlan.actions && enemyPlan.actions.length > 0
+      (enemyPlan.actions && enemyPlan.actions.length > 0) || enemyPlan.manuallyModified
         ? enemyPlan.actions
         : generateEnemyActions(enemy, enemyPlan.mode, etherSlots(enemy.etherPts), enemyCount, enemyCount);
     actions.setEnemyPlan({ ...battle.enemyPlan, actions: generatedActions });
@@ -1132,15 +1134,16 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
     const enhancedSelected = applyPokerBonus(traitEnhancedSelected, pCombo);
 
-    // 빙결 효과: 플레이어 카드가 모두 먼저 발동
-    const q = player.enemyFrozen
+    // 빙결 효과: 플레이어 카드가 모두 먼저 발동 (battle.player에서 최신 값 확인)
+    const currentPlayer = battle.player;
+    const q = currentPlayer.enemyFrozen
       ? createFixedOrder(enhancedSelected, enemyPlan.actions, effectiveAgility)
       : sortCombinedOrderStablePF(enhancedSelected, enemyPlan.actions, effectiveAgility, 0);
     actions.setFixedOrder(q);
 
     // 빙결 플래그 초기화 (한 번 사용 후 제거)
-    if (player.enemyFrozen) {
-      actions.setPlayer({ ...player, enemyFrozen: false });
+    if (currentPlayer.enemyFrozen) {
+      actions.setPlayer({ ...currentPlayer, enemyFrozen: false });
       actions.addLog('❄️ 빙결 효과 발동: 플레이어 카드 우선!');
     }
     // 대응 단계 되감기용 스냅샷 저장 (전투당 1회)

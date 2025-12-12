@@ -75,7 +75,8 @@ export function ItemSlots({ phase, battleActions, player, enemy, enemyPlan }) {
         const destroyCount = Math.min(effect.value, enemyPlan.actions.length);
         // 뒤에서부터 제거 (가장 나중에 발동하는 카드부터)
         const newActions = enemyPlan.actions.slice(0, -destroyCount);
-        battleActions.setEnemyPlan({ ...enemyPlan, actions: newActions });
+        // manuallyModified 플래그로 재생성 방지
+        battleActions.setEnemyPlan({ ...enemyPlan, actions: newActions, manuallyModified: true });
         logMsg = `💥 ${item.name}: 적 카드 ${destroyCount}장 파괴!`;
         // cardDestroy는 player/enemy 상태 변경 없음
         removeItem(slotIdx);
