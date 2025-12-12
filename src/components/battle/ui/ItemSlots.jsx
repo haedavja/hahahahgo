@@ -154,6 +154,29 @@ export function ItemSlots({ phase, battleActions, player, enemy, enemyPlan, batt
       case 'cardFreeze': {
         // 적 카드 빙결 - 플레이어 카드가 모두 먼저 발동
         newPlayer.enemyFrozen = true;
+
+        // respond 단계에서 사용 시 fixedOrder를 즉시 재정렬
+        const latestPhase = getLatestPhase();
+        if (latestPhase === 'respond' && battleRef?.current?.fixedOrder && battleActions.setFixedOrder) {
+          const currentFixedOrder = battleRef.current.fixedOrder;
+          // 플레이어 카드를 먼저, 적 카드를 나중에
+          const playerCards = currentFixedOrder.filter(x => x.actor === 'player');
+          const enemyCards = currentFixedOrder.filter(x => x.actor === 'enemy');
+          const frozenOrder = [...playerCards, ...enemyCards];
+
+          console.log('[cardFreeze] respond 단계에서 fixedOrder 재정렬:', {
+            before: currentFixedOrder.map(x => x.actor),
+            after: frozenOrder.map(x => x.actor)
+          });
+
+          battleActions.setFixedOrder(frozenOrder);
+
+          // battleRef도 즉시 업데이트
+          if (battleRef?.current) {
+            battleRef.current.fixedOrder = frozenOrder;
+          }
+        }
+
         logMsg = `❄️ ${item.name}: 적 카드 빙결! (플레이어 카드 우선 발동)`;
         break;
       }
