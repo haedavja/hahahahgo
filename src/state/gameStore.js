@@ -39,8 +39,17 @@ const cloneNodes = (nodes = []) =>
     dungeonData: node.dungeonData ? { ...node.dungeonData } : undefined,
   }));
 
-const ensureEventKey = (node, completedEvents = []) => {
-  if (node.eventKey || !EVENT_KEYS.length) return;
+// pendingNextEvent가 있으면 우선 사용, 없으면 랜덤 선택
+// 반환값: pendingNextEvent를 사용했으면 true
+const ensureEventKey = (node, completedEvents = [], pendingNextEvent = null) => {
+  if (node.eventKey || !EVENT_KEYS.length) return false;
+
+  // pendingNextEvent가 있으면 우선 사용
+  if (pendingNextEvent && NEW_EVENT_LIBRARY[pendingNextEvent]) {
+    node.eventKey = pendingNextEvent;
+    return true; // pendingNextEvent 사용됨
+  }
+
   // 완료된 이벤트 제외
   const availableEvents = EVENT_KEYS.filter(key => !completedEvents.includes(key));
   if (!availableEvents.length) {
@@ -51,6 +60,7 @@ const ensureEventKey = (node, completedEvents = []) => {
     const index = Math.floor(Math.random() * availableEvents.length);
     node.eventKey = availableEvents[index];
   }
+  return false;
 };
 
 const resolveAmount = (value) => {
@@ -111,18 +121,22 @@ const applyInitialRelicEffects = (state) => {
   };
 };
 
-const createEventPayload = (node, mapRisk, completedEvents = []) => {
-  if (!node || node.type !== "event" || node.isStart) return null;
-  ensureEventKey(node, completedEvents);
+// 반환값: { payload, usedPendingEvent }
+const createEventPayload = (node, mapRisk, completedEvents = [], pendingNextEvent = null) => {
+  if (!node || node.type !== "event" || node.isStart) return { payload: null, usedPendingEvent: false };
+  const usedPendingEvent = ensureEventKey(node, completedEvents, pendingNextEvent);
   const definition = NEW_EVENT_LIBRARY[node.eventKey];
-  if (!definition) return null;
+  if (!definition) return { payload: null, usedPendingEvent: false };
   return {
-    definition,
-    currentStage: null, // stages 구조 지원: null이면 초기 상태
-    resolved: false,
-    outcome: null,
-    risk: mapRisk,
-    friendlyChance: computeFriendlyChance(mapRisk),
+    payload: {
+      definition,
+      currentStage: null, // stages 구조 지원: null이면 초기 상태
+      resolved: false,
+      outcome: null,
+      risk: mapRisk,
+      friendlyChance: computeFriendlyChance(mapRisk),
+    },
+    usedPendingEvent,
   };
 };
 
@@ -255,11 +269,17 @@ const travelToNode = (state, nodeId) => {
     if (nextNode && !nextNode.cleared) nextNode.selectable = true;
   });
 
+  // pendingNextEvent가 있으면 우선 사용
+  const { payload: event, usedPendingEvent } = createEventPayload(
+    target, state.mapRisk, state.completedEvents || [], state.pendingNextEvent
+  );
+
   return {
     map: { ...state.map, nodes, currentNodeId: target.id },
-    event: createEventPayload(target, state.mapRisk, state.completedEvents || []),
+    event,
     battle: createBattlePayload(target, state.characterBuild, state.playerHp, state.maxHp),
     target,
+    usedPendingEvent, // pendingNextEvent 사용 여부
   };
 };
 
@@ -310,6 +330,8 @@ export const useGameStore = create((set, get) => ({
         activeDungeon: null,
         activeRest: result.target?.type === "rest" ? { nodeId: result.target.id } : null,
         resources: updatedResources,
+        // pendingNextEvent가 사용됐으면 초기화
+        pendingNextEvent: result.usedPendingEvent ? null : state.pendingNextEvent,
       };
     }),
 
@@ -354,6 +376,8 @@ export const useGameStore = create((set, get) => ({
         activeEvent: result.event,
         activeBattle: result.battle ?? null,
         activeDungeon: null,
+        // pendingNextEvent가 사용됐으면 초기화
+        pendingNextEvent: result.usedPendingEvent ? null : state.pendingNextEvent,
       };
     }),
 
@@ -578,29 +602,16 @@ export const useGameStore = create((set, get) => ({
         };
       }
 
-      // nextEvent가 있으면 다음 이벤트로 전환
-      if (choice.nextEvent && NEW_EVENT_LIBRARY[choice.nextEvent]) {
-        const nextDef = NEW_EVENT_LIBRARY[choice.nextEvent];
-        return {
-          ...state,
-          resources,
-          playerHp: newPlayerHp,
-          characterBuild: updatedCharacterBuild,
-          activeEvent: {
-            ...active,
-            definition: nextDef,
-            currentStage: null, // 새 이벤트는 초기 상태로
-            resolved: false,
-            outcome: null,
-          },
-        };
-      }
-
       // 이벤트 종료 - 완료된 이벤트 목록에 추가
       const eventId = active.definition?.id;
       const newCompletedEvents = eventId && !state.completedEvents?.includes(eventId)
         ? [...(state.completedEvents || []), eventId]
         : state.completedEvents || [];
+
+      // nextEvent가 있으면 다음 이벤트 노드에서 등장하도록 예약
+      const pendingNextEvent = (choice.nextEvent && NEW_EVENT_LIBRARY[choice.nextEvent])
+        ? choice.nextEvent
+        : state.pendingNextEvent;
 
       return {
         ...state,
@@ -608,6 +619,7 @@ export const useGameStore = create((set, get) => ({
         playerHp: newPlayerHp,
         characterBuild: updatedCharacterBuild,
         completedEvents: newCompletedEvents,
+        pendingNextEvent,
         activeEvent: {
           ...active,
           resolved: true,
