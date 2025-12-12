@@ -95,16 +95,24 @@ export function ItemSlots({ phase, battleActions, player, enemy, enemyPlan, batt
         // 파괴 애니메이션용 인덱스 설정
         battleActions.setDestroyingEnemyCards(destroyedIndices);
 
+        // battleRef에서 최신 enemyPlan 가져오기 (prop은 stale할 수 있음)
+        const currentEnemyPlan = battleRef?.current?.enemyPlan || enemyPlan;
+        const currentActions = currentEnemyPlan.actions || [];
+
         // 즉시 카드 제거 (manuallyModified로 재생성 방지)
-        const newActions = enemyPlan.actions.slice(0, -destroyCount);
-        console.log('[cardDestroy] 새 actions 생성:', {
-          newActionsLength: newActions.length,
-          newActionsRefs: newActions.map(a => a.name || a.type)
-        });
-        const newEnemyPlan = { ...enemyPlan, actions: newActions, manuallyModified: true };
+        const actualDestroyCount = Math.min(destroyCount, currentActions.length);
+        const newActions = currentActions.slice(0, -actualDestroyCount);
+
+        // 명시적으로 새 enemyPlan 구성 (spread 대신 직접 설정)
+        const newEnemyPlan = {
+          mode: currentEnemyPlan.mode,
+          actions: newActions,
+          manuallyModified: true
+        };
         console.log('[cardDestroy] setEnemyPlan 호출:', {
-          newEnemyPlan,
-          hasManuallyModified: newEnemyPlan.manuallyModified
+          currentActionsLength: currentActions.length,
+          newActionsLength: newActions.length,
+          manuallyModified: true
         });
         battleActions.setEnemyPlan(newEnemyPlan);
 

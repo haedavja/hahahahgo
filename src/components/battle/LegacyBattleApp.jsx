@@ -1157,22 +1157,34 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   };
 
   const startResolve = () => {
+    // battleRef에서 최신 상태 가져오기 (closure는 stale할 수 있음)
+    const currentBattle = battleRef.current;
+    const currentEnemyPlan = currentBattle.enemyPlan;
+
     console.log('[startResolve] 호출됨:', {
-      phase: battle.phase,
-      enemyActionsLength: enemyPlan.actions?.length,
-      manuallyModified: enemyPlan.manuallyModified,
-      actionsNames: enemyPlan.actions?.map(a => a.name || a.type)
+      phase: currentBattle.phase,
+      enemyActionsLength: currentEnemyPlan.actions?.length,
+      manuallyModified: currentEnemyPlan.manuallyModified,
+      actionsNames: currentEnemyPlan.actions?.map(a => a.name || a.type)
     });
-    if (battle.phase !== 'select') return;
+    if (currentBattle.phase !== 'select') return;
+
     // manuallyModified가 true면 재생성하지 않음 (카드 파괴 등으로 수동 변경된 경우)
-    const willRegenerate = !((enemyPlan.actions && enemyPlan.actions.length > 0) || enemyPlan.manuallyModified);
-    console.log('[startResolve] willRegenerate:', willRegenerate);
-    const generatedActions =
-      (enemyPlan.actions && enemyPlan.actions.length > 0) || enemyPlan.manuallyModified
-        ? enemyPlan.actions
-        : generateEnemyActions(enemy, enemyPlan.mode, etherSlots(enemy.etherPts), enemyCount, enemyCount);
+    const hasActions = currentEnemyPlan.actions && currentEnemyPlan.actions.length > 0;
+    const willRegenerate = !(hasActions || currentEnemyPlan.manuallyModified);
+    console.log('[startResolve] willRegenerate:', willRegenerate, { hasActions, manuallyModified: currentEnemyPlan.manuallyModified });
+
+    const generatedActions = willRegenerate
+        ? generateEnemyActions(enemy, currentEnemyPlan.mode, etherSlots(enemy.etherPts), enemyCount, enemyCount)
+        : currentEnemyPlan.actions;
     console.log('[startResolve] generatedActions 길이:', generatedActions?.length);
-    actions.setEnemyPlan({ ...battle.enemyPlan, actions: generatedActions });
+
+    // 명시적으로 새 enemyPlan 구성
+    actions.setEnemyPlan({
+      mode: currentEnemyPlan.mode,
+      actions: generatedActions,
+      manuallyModified: currentEnemyPlan.manuallyModified
+    });
 
     const pCombo = detectPokerCombo(selected);
 
@@ -1187,11 +1199,11 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     const enhancedSelected = applyPokerBonus(traitEnhancedSelected, pCombo);
 
     // 빙결 효과: 플레이어 카드가 모두 먼저 발동 (battle.player에서 최신 값 확인)
-    const currentPlayer = battle.player;
-    console.log('[startResolve] enemyPlan.actions 길이 (fixedOrder 생성 시):', enemyPlan.actions?.length);
+    const currentPlayer = currentBattle.player;
+    console.log('[startResolve] fixedOrder 생성에 사용할 actions 길이:', generatedActions?.length);
     const q = currentPlayer.enemyFrozen
-      ? createFixedOrder(enhancedSelected, enemyPlan.actions, effectiveAgility)
-      : sortCombinedOrderStablePF(enhancedSelected, enemyPlan.actions, effectiveAgility, 0);
+      ? createFixedOrder(enhancedSelected, generatedActions, effectiveAgility)
+      : sortCombinedOrderStablePF(enhancedSelected, generatedActions, effectiveAgility, 0);
     console.log('[startResolve] fixedOrder 생성됨:', {
       totalLength: q.length,
       playerCards: q.filter(x => x.actor === 'player').length,
@@ -1208,7 +1220,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     if (!rewindUsed) {
       actions.setRespondSnapshot({
         selectedSnapshot: selected,
-        enemyActions: enemyPlan.actions,
+        enemyActions: generatedActions,
       });
     }
     playCardSubmitSound(); // 카드 제출 사운드 재생
