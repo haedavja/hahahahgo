@@ -14,15 +14,19 @@ const STAT_LABELS = {
  * @param {object} player - 현재 플레이어 상태
  * @param {object} enemy - 현재 적 상태
  * @param {object} enemyPlan - 적의 행동 계획 { actions: [], mode: string }
+ * @param {object} battleRef - 최신 battle 상태를 가진 ref (closure 문제 방지)
  */
-export function ItemSlots({ phase, battleActions, player, enemy, enemyPlan }) {
+export function ItemSlots({ phase, battleActions, player, enemy, enemyPlan, battleRef }) {
   const items = useGameStore((state) => state.items || [null, null, null]);
   const useItem = useGameStore((state) => state.useItem);
   const removeItem = useGameStore((state) => state.removeItem);
   const itemBuffs = useGameStore((state) => state.itemBuffs || {});
 
-  // 전투용 아이템은 select/respond 단계에서만 사용 가능
+  // 전투용 아이템은 select/respond 단계에서만 사용 가능 (prop 기반, UI 표시용)
   const canUseCombatItem = phase === 'select' || phase === 'respond';
+
+  // 최신 phase를 가져오는 헬퍼 함수 (실제 사용 시 검증용)
+  const getLatestPhase = () => battleRef?.current?.phase || phase;
 
   // 전투용 아이템 효과 직접 적용
   const applyCombatItemEffect = (item, slotIdx) => {
@@ -146,9 +150,23 @@ export function ItemSlots({ phase, battleActions, player, enemy, enemyPlan }) {
       return;
     }
 
-    // 전투용 아이템은 select/respond 단계에서만 - 직접 효과 적용
-    if (item.usableIn === 'combat' && canUseCombatItem) {
+    // 전투용 아이템: 최신 phase를 확인하여 resolve 단계면 사용 불가
+    // (prop phase는 stale할 수 있으므로 battleRef에서 최신 값을 확인)
+    const latestPhase = getLatestPhase();
+    const canUseNow = latestPhase === 'select' || latestPhase === 'respond';
+
+    console.log('[handleUseItem] 전투 아이템 사용 시도:', {
+      item: item.name,
+      propPhase: phase,
+      latestPhase,
+      canUseNow
+    });
+
+    if (item.usableIn === 'combat' && canUseNow) {
       applyCombatItemEffect(item, idx);
+    } else if (item.usableIn === 'combat' && !canUseNow) {
+      console.log('[handleUseItem] resolve 단계에서 전투 아이템 사용 차단');
+      battleActions.addLog('⚠️ 진행 중에는 아이템을 사용할 수 없습니다!');
     }
   };
 

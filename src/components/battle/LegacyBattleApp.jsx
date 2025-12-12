@@ -2167,6 +2167,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         player={battle.player}
         enemy={battle.enemy}
         enemyPlan={battle.enemyPlan}
+        battleRef={battleRef}
       />
       {/* 예상 피해량 - 오른쪽 고정 패널 */}
       <div className="expect-sidebar-fixed">
