@@ -2145,6 +2145,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         effectiveInsight={effectiveInsight}
         insightReveal={insightReveal}
         actions={actions}
+        destroyingEnemyCards={battle.destroyingEnemyCards}
       />
 
       {/* 유물 표시 */}

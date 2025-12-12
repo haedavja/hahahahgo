@@ -137,6 +137,9 @@ export const createInitialState = ({
 
   // === 적 행동 툴팁 ===
   hoveredEnemyAction: null,
+
+  // === 카드 파괴 애니메이션 ===
+  destroyingEnemyCards: [], // 파괴 중인 적 카드 인덱스
 });
 
 // =====================
@@ -266,6 +269,9 @@ export const ACTIONS = {
 
   // === 적 행동 툴팁 ===
   SET_HOVERED_ENEMY_ACTION: 'SET_HOVERED_ENEMY_ACTION',
+
+  // === 카드 파괴 애니메이션 ===
+  SET_DESTROYING_ENEMY_CARDS: 'SET_DESTROYING_ENEMY_CARDS',
 
   // === 토큰 시스템 ===
   UPDATE_PLAYER_TOKENS: 'UPDATE_PLAYER_TOKENS',
@@ -502,6 +508,10 @@ export function battleReducer(state, action) {
     // === 적 행동 툴팁 ===
     case ACTIONS.SET_HOVERED_ENEMY_ACTION:
       return { ...state, hoveredEnemyAction: action.payload };
+
+    // === 카드 파괴 애니메이션 ===
+    case ACTIONS.SET_DESTROYING_ENEMY_CARDS:
+      return { ...state, destroyingEnemyCards: action.payload };
 
     // === 토큰 시스템 ===
     case ACTIONS.UPDATE_PLAYER_TOKENS:

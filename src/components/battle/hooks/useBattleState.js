@@ -129,6 +129,9 @@ export function useBattleState(initialStateOverrides = {}) {
     // === 적 행동 툴팁 ===
     setHoveredEnemyAction: (action) => dispatch({ type: ACTIONS.SET_HOVERED_ENEMY_ACTION, payload: action }),
 
+    // === 카드 파괴 애니메이션 ===
+    setDestroyingEnemyCards: (indices) => dispatch({ type: ACTIONS.SET_DESTROYING_ENEMY_CARDS, payload: indices }),
+
     // === 토큰 시스템 ===
     addTokenToPlayer: (tokenId, stacks = 1) => {
       const result = addToken(battle.player, tokenId, stacks);

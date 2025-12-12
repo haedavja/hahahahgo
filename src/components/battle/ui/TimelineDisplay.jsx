@@ -39,7 +39,8 @@ export const TimelineDisplay = ({
   enemyTimeline,
   effectiveInsight,
   insightReveal,
-  actions
+  actions,
+  destroyingEnemyCards = []
 }) => {
   const commonMax = Math.max(player.maxSpeed || DEFAULT_PLAYER_MAX_SPEED, enemy.maxSpeed || DEFAULT_ENEMY_MAX_SPEED);
   const ticks = generateSpeedTicks(commonMax);
@@ -166,6 +167,7 @@ export const TimelineDisplay = ({
                       const globalIndex = battle.phase === 'resolve' && queue ? queue.findIndex(q => q === a) : -1;
                       const isExecuting = executingCardIndex === globalIndex;
                       const isUsed = Array.isArray(usedCardIndices) && usedCardIndices.includes(globalIndex) && globalIndex < qIndex;
+                      const isDestroying = destroyingEnemyCards.includes(idx);
                       const normalizedPosition = (a.sp / enemyMax) * 100;
                       const levelForTooltip = battle.phase === 'select' ? (insightReveal?.level || 0) : (effectiveInsight || 0);
                       const canShowTooltip = levelForTooltip >= 3;
@@ -174,7 +176,8 @@ export const TimelineDisplay = ({
                         'marker-enemy',
                         isExecuting ? 'timeline-active' : '',
                         isUsed ? 'timeline-used' : '',
-                        canShowTooltip ? 'insight-lv3-glow' : ''
+                        canShowTooltip ? 'insight-lv3-glow' : '',
+                        isDestroying ? 'timeline-destroying' : ''
                       ].join(' ');
                       return (
                         <div key={idx}

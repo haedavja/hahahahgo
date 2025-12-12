@@ -73,15 +73,26 @@ export function ItemSlots({ phase, battleActions, player, enemy, enemyPlan }) {
           break;
         }
         const destroyCount = Math.min(effect.value, enemyPlan.actions.length);
-        // 뒤에서부터 제거 (가장 나중에 발동하는 카드부터)
-        const newActions = enemyPlan.actions.slice(0, -destroyCount);
-        // manuallyModified 플래그로 재생성 방지
-        battleActions.setEnemyPlan({ ...enemyPlan, actions: newActions, manuallyModified: true });
+        // 뒤에서부터 파괴할 카드 인덱스 계산
+        const startIdx = enemyPlan.actions.length - destroyCount;
+        const destroyedIndices = [];
+        for (let i = startIdx; i < enemyPlan.actions.length; i++) {
+          destroyedIndices.push(i);
+        }
+        // 파괴 애니메이션용 인덱스 설정
+        battleActions.setDestroyingEnemyCards(destroyedIndices);
+
+        // 0.6초 후 실제 제거
+        setTimeout(() => {
+          const newActions = enemyPlan.actions.slice(0, -destroyCount);
+          battleActions.setEnemyPlan({ ...enemyPlan, actions: newActions, manuallyModified: true });
+          battleActions.setDestroyingEnemyCards([]);
+        }, 600);
+
         logMsg = `💥 ${item.name}: 적 카드 ${destroyCount}장 파괴!`;
-        // cardDestroy는 player/enemy 상태 변경 없음
         removeItem(slotIdx);
         if (logMsg) battleActions.addLog(logMsg);
-        return; // early return - setPlayer/setEnemy 호출 안함
+        return;
       }
       case 'cardFreeze': {
         // 적 카드 빙결 - 플레이어 카드가 모두 먼저 발동
