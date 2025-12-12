@@ -271,13 +271,16 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     // 효과가 없거나 이미 처리했으면 스킵
     if (pendingItemEffects.length === 0) return;
     if (pendingItemEffects.length === lastProcessedEffectsRef.current) return;
-    if (!battle.player || !battle.enemy) return;
+
+    // battleRef를 사용하여 현재 상태 접근 (무한 루프 방지)
+    const currentBattle = battleRef.current;
+    if (!currentBattle?.player || !currentBattle?.enemy) return;
 
     // 현재 처리할 효과 개수 기록
     lastProcessedEffectsRef.current = pendingItemEffects.length;
 
-    const currentPlayer = battle.player;
-    const currentEnemy = battle.enemy;
+    const currentPlayer = currentBattle.player;
+    const currentEnemy = currentBattle.enemy;
     let newPlayer = { ...currentPlayer };
     let newEnemy = { ...currentEnemy };
     const effectLogs = [];
@@ -337,7 +340,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       clearPendingItemEffects();
       lastProcessedEffectsRef.current = 0;
     }
-  }, [pendingItemEffects, battle.player, battle.enemy, actions, clearPendingItemEffects]);
+  }, [pendingItemEffects, actions, clearPendingItemEffects]);
 
   // 카드 관리
   const hand = battle.hand;
