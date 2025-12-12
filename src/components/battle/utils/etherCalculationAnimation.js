@@ -57,6 +57,10 @@ export function startEtherCalculationAnimationSequence({
   setTimeout(() => {
     // 2단계: 곱셈 강조 + 명쾌한 사운드
     actions.setEtherCalcPhase('multiply');
+    // 에테르 증폭 배율이 적용되었으면 상태에서 제거 (배율 갱신 시점)
+    if (etherAmplifierMult > 1 && onMultiplierConsumed) {
+      onMultiplierConsumed();
+    }
     playSound(800, 100); // 명쾌한 사운드
     setTimeout(() => {
       // 3단계: 디플레이션 배지 애니메이션 + 저음 사운드
@@ -67,10 +71,6 @@ export function startEtherCalculationAnimationSequence({
       setTimeout(() => {
         // 4단계: 최종값 표시 + 묵직한 사운드
         actions.setEtherCalcPhase('result');
-        // 에테르 증폭 배율이 적용되었으면 상태에서 제거
-        if (etherAmplifierMult > 1 && onMultiplierConsumed) {
-          onMultiplierConsumed();
-        }
         playSound(400, 200); // 묵직한 사운드
       }, playerDeflation.usageCount > 0 ? 400 : 0);
     }, 600);
