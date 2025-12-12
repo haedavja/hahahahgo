@@ -14,8 +14,14 @@ export const PlayerEtherBox = ({
   turnEtherAccumulated,
   etherPulse,
   finalComboMultiplier,
+  etherMultiplier = 1,
   multiplierPulse
 }) => {
+  // multiply 단계 이후에만 에테르 증폭 배율 적용
+  const isAfterMultiply = etherCalcPhase === 'multiply' || etherCalcPhase === 'deflation' || etherCalcPhase === 'result';
+  const displayMultiplier = isAfterMultiply
+    ? finalComboMultiplier * etherMultiplier
+    : finalComboMultiplier;
   if (!currentCombo || !(battle.phase === 'select' || battle.phase === 'respond' || battle.phase === 'resolve')) {
     return null;
   }
@@ -85,7 +91,7 @@ export const PlayerEtherBox = ({
           transform: (etherCalcPhase === 'multiply' || multiplierPulse) ? 'scale(1.3)' : 'scale(1)',
           textShadow: (etherCalcPhase === 'multiply' || multiplierPulse) ? '0 0 20px #fbbf24' : 'none'
         }}>
-          <span>× {finalComboMultiplier.toFixed(2).split('').join(' ')}</span>
+          <span>× {displayMultiplier.toFixed(2).split('').join(' ')}</span>
         </div>
       </div>
     </div>

@@ -397,11 +397,19 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const turnStartProcessedRef = useRef(false); // 턴 시작 효과 중복 실행 방지
   const dragRelicIndexRef = useRef(null); // 유물 드래그 인덱스
   const battleRef = useRef(battle); // battle 상태를 ref로 유지 (setTimeout closure 문제 해결)
+  const displayEtherMultiplierRef = useRef(1); // 애니메이션 표시용 에테르 배율 (리셋되어도 유지)
 
   // battle 상태가 변경될 때마다 ref 업데이트
   useEffect(() => {
     battleRef.current = battle;
   }, [battle]);
+
+  // resolve 단계 진입 시 에테르 배율 캡처 (애니메이션 중 리셋되어도 표시 유지)
+  useEffect(() => {
+    if (battle.phase === 'resolve') {
+      displayEtherMultiplierRef.current = player.etherMultiplier || 1;
+    }
+  }, [battle.phase]);
 
   const computeComboMultiplier = useCallback((baseMult, cardsCount, includeFiveCard = true, includeRefBook = true, relicOrderOverride = null) => {
     return computeComboMultiplierUtil(baseMult, cardsCount, includeFiveCard, includeRefBook, relicOrderOverride, orderedRelicList);
@@ -2429,7 +2437,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
               etherCalcPhase={etherCalcPhase}
               turnEtherAccumulated={turnEtherAccumulated}
               etherPulse={etherPulse}
-              finalComboMultiplier={finalComboMultiplier * (player.etherMultiplier || 1)}
+              finalComboMultiplier={finalComboMultiplier}
+              etherMultiplier={displayEtherMultiplierRef.current}
               multiplierPulse={multiplierPulse}
             />
             <PlayerHpBar
