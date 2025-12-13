@@ -345,9 +345,13 @@ export function CharacterSheet({ onClose }) {
           </div>
           {playerEgos && playerEgos.length > 0 ? (
             <ul style={{ margin: 0, paddingLeft: "18px", lineHeight: 1.4, color: "#fde68a" }}>
-              {playerEgos.map((ego) => (
-                <li key={ego}>{ego}</li>
-              ))}
+              {playerEgos.map((ego, idx) => {
+                const egoName = typeof ego === 'object' ? ego.name : ego;
+                const egoKey = typeof ego === 'object' ? `${ego.name}-${idx}` : ego;
+                return (
+                  <li key={egoKey}>{egoName}</li>
+                );
+              })}
             </ul>
           ) : (
             <div style={{ color: "#9ca3af", fontSize: "0.9rem" }}>아직 자아가 없습니다.</div>

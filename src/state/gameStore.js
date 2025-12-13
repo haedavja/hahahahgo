@@ -1157,11 +1157,40 @@ export const useGameStore = create((set, get) => ({
       const newTraits = [...(state.playerTraits || [])];
       if (applied.trait) newTraits.push(applied.trait);
 
-      // 자아 체크: 특정 개성 조합 총합 5개 이상이면 자아 1회 생성(소모 없음)
-      const traitCounts = newTraits.reduce((acc, t) => {
-        acc[t] = (acc[t] || 0) + 1;
-        return acc;
-      }, {});
+      return {
+        ...state,
+        ...applied,
+        resources: { ...state.resources, memory: memory - AWAKEN_COST },
+        playerTraits: newTraits,
+        activeRest: null,
+      };
+    }),
+
+  // 자아 형성: 5개의 개성을 소모하여 자아 생성
+  formEgo: (selectedTraits) =>
+    set((state) => {
+      if (!selectedTraits || selectedTraits.length !== 5) return state;
+
+      // 선택된 개성이 실제로 보유중인지 확인
+      const availableTraits = [...(state.playerTraits || [])];
+      const traitsToRemove = [...selectedTraits];
+      for (const trait of traitsToRemove) {
+        const idx = availableTraits.indexOf(trait);
+        if (idx === -1) return state; // 보유하지 않은 개성 선택
+        availableTraits.splice(idx, 1);
+      }
+
+      // 개성별 효과 정의
+      const traitEffects = {
+        '용맹함': { playerStrength: 1 },
+        '굳건함': { maxHp: 10, playerHp: 10 },
+        '냉철함': { playerInsight: 1 },
+        '철저함': { extraSubSpecialSlots: 1 },
+        '열정적': { playerMaxSpeedBonus: 5 },
+        '활력적': { playerEnergyBonus: 1 },
+      };
+
+      // 자아 규칙: 개성 조합에 따른 자아 이름 결정
       const egoRules = [
         { ego: '헌신', parts: ['열정적', '용맹함'] },
         { ego: '지략', parts: ['냉철함', '용맹함'] },
@@ -1176,23 +1205,49 @@ export const useGameStore = create((set, get) => ({
         { ego: '정열', parts: ['활력적', '열정적'] },
         { ego: '지배', parts: ['활력적', '철저함'] },
       ];
-      const ownedEgos = new Set(state.playerEgos || []);
-      const newEgos = [...ownedEgos];
-      // 조건을 만족하는 모든 자아를 획득 (중복 제외)
+
+      // 선택된 개성 카운트
+      const traitCounts = selectedTraits.reduce((acc, t) => {
+        acc[t] = (acc[t] || 0) + 1;
+        return acc;
+      }, {});
+
+      // 자아 이름 결정 (가장 많은 조합 기준)
+      let bestEgo = null;
+      let bestScore = 0;
       for (const { ego, parts } of egoRules) {
-        const total = (traitCounts[parts[0]] || 0) + (traitCounts[parts[1]] || 0);
-        if (total >= 5 && !ownedEgos.has(ego)) {
-          newEgos.push(ego);
+        const score = (traitCounts[parts[0]] || 0) + (traitCounts[parts[1]] || 0);
+        if (score > bestScore) {
+          bestScore = score;
+          bestEgo = ego;
+        }
+      }
+      if (!bestEgo) bestEgo = '각성'; // 기본값
+
+      // 소모된 개성들의 효과 합산
+      const combinedEffects = {};
+      for (const trait of selectedTraits) {
+        const effects = traitEffects[trait];
+        if (effects) {
+          for (const [key, value] of Object.entries(effects)) {
+            combinedEffects[key] = (combinedEffects[key] || 0) + value;
+          }
         }
       }
 
+      // 새 자아 객체 생성
+      const newEgo = {
+        name: bestEgo,
+        consumedTraits: selectedTraits,
+        effects: combinedEffects,
+      };
+
+      const newEgos = [...(state.playerEgos || []), newEgo];
+
       return {
         ...state,
-        ...applied,
-        resources: { ...state.resources, memory: memory - AWAKEN_COST },
-        playerTraits: newTraits,
+        playerTraits: availableTraits,
         playerEgos: newEgos,
-        activeRest: null,
       };
     }),
 

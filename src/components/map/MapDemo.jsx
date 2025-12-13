@@ -211,6 +211,8 @@ export function MapDemo() {
   const awakenAtRest = useGameStore((state) => state.awakenAtRest);
   const closeRest = useGameStore((state) => state.closeRest);
   const healAtRest = useGameStore((state) => state.healAtRest);
+  const formEgo = useGameStore((state) => state.formEgo);
+  const playerTraits = useGameStore((state) => state.playerTraits || []);
   const upgradeCardRarity = useGameStore((state) => state.upgradeCardRarity);
   const cardUpgrades = useGameStore((state) => state.cardUpgrades || {});
   const playerInsight = useGameStore((state) => state.playerInsight || 0);
@@ -254,6 +256,11 @@ export function MapDemo() {
   const riskDisplay = Number.isFinite(mapRisk) ? mapRisk.toFixed(1) : "-";
   const memoryValue = resources.memory ?? 0;
   const canAwaken = memoryValue >= 100;
+
+  // 자아 형성용 상태
+  const [egoFormMode, setEgoFormMode] = useState(false);
+  const [selectedTraitsForEgo, setSelectedTraitsForEgo] = useState([]);
+  const canFormEgo = playerTraits.length >= 5;
   const aetherValue = resources.etherPts ?? 0;
   const aetherSlots = calculateEtherSlots(aetherValue); // 인플레이션 적용
   const aetherCurrentPts = getCurrentSlotPts(aetherValue); // 현재 슬롯 내의 pt (슬롯마다 0으로 리셋)
@@ -794,9 +801,87 @@ export function MapDemo() {
                   <RestUpgradePanel cardUpgrades={cardUpgrades} onUpgrade={upgradeCardRarity} />
                 </div>
               </div>
+              <div className="choice-card">
+                <strong>자아 형성</strong>
+                <div style={{ marginTop: "8px" }}>
+                  <button
+                    className="btn"
+                    disabled={!canFormEgo}
+                    onClick={() => {
+                      setEgoFormMode(true);
+                      setSelectedTraitsForEgo([]);
+                    }}
+                  >
+                    {canFormEgo ? `개성 5개 소모 (보유: ${playerTraits.length}개)` : `개성 부족 (${playerTraits.length}/5)`}
+                  </button>
+                </div>
+              </div>
             </div>
+
+            {/* 자아 형성 모드 */}
+            {egoFormMode && (
+              <div style={{ marginTop: "16px", padding: "12px", background: "rgba(253, 230, 138, 0.1)", borderRadius: "8px", border: "1px solid rgba(253, 230, 138, 0.3)" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
+                  <strong style={{ color: "#fde68a" }}>✨ 자아 형성 - 개성 5개 선택</strong>
+                  <span style={{ color: "#9ca3af" }}>선택: {selectedTraitsForEgo.length}/5</span>
+                </div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginBottom: "12px" }}>
+                  {playerTraits.map((trait, idx) => {
+                    const selectedCount = selectedTraitsForEgo.filter((_, i) => selectedTraitsForEgo[i] === trait && playerTraits.slice(0, idx + 1).filter(t => t === trait).length > selectedTraitsForEgo.slice(0, selectedTraitsForEgo.indexOf(trait, selectedTraitsForEgo.lastIndexOf(trait)) + 1).filter(t => t === trait).length).length;
+                    const isSelected = selectedTraitsForEgo.includes(idx);
+                    const canSelect = !isSelected && selectedTraitsForEgo.length < 5;
+                    return (
+                      <button
+                        key={idx}
+                        className="btn"
+                        style={{
+                          background: isSelected ? "rgba(253, 230, 138, 0.3)" : "rgba(30, 41, 59, 0.8)",
+                          border: isSelected ? "2px solid #fde68a" : "1px solid #475569",
+                          color: isSelected ? "#fde68a" : "#e2e8f0",
+                          opacity: canSelect || isSelected ? 1 : 0.5,
+                        }}
+                        onClick={() => {
+                          if (isSelected) {
+                            setSelectedTraitsForEgo(prev => prev.filter(i => i !== idx));
+                          } else if (canSelect) {
+                            setSelectedTraitsForEgo(prev => [...prev, idx]);
+                          }
+                        }}
+                      >
+                        {trait}
+                      </button>
+                    );
+                  })}
+                </div>
+                <div style={{ display: "flex", gap: "8px" }}>
+                  <button
+                    className="btn"
+                    disabled={selectedTraitsForEgo.length !== 5}
+                    onClick={() => {
+                      const traitsToConsume = selectedTraitsForEgo.map(idx => playerTraits[idx]);
+                      formEgo(traitsToConsume);
+                      setEgoFormMode(false);
+                      setSelectedTraitsForEgo([]);
+                    }}
+                    style={{ background: selectedTraitsForEgo.length === 5 ? "rgba(134, 239, 172, 0.2)" : undefined }}
+                  >
+                    자아 형성
+                  </button>
+                  <button
+                    className="btn"
+                    onClick={() => {
+                      setEgoFormMode(false);
+                      setSelectedTraitsForEgo([]);
+                    }}
+                  >
+                    취소
+                  </button>
+                </div>
+              </div>
+            )}
+
             <div style={{ display: "flex", gap: "10px", marginTop: "12px" }}>
-              <button className="btn" onClick={closeRest}>닫기</button>
+              <button className="btn" onClick={() => { closeRest(); setEgoFormMode(false); setSelectedTraitsForEgo([]); }}>닫기</button>
             </div>
           </div>
         </div>

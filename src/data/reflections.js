@@ -278,8 +278,8 @@ export function getActiveReflections(traits) {
 }
 
 /**
- * 획득한 자아(한국어 이름)로 활성화된 성찰 목록 반환
- * @param {string[]} egos - 한국어 자아 이름 배열 (예: ['헌신'])
+ * 획득한 자아로 활성화된 성찰 목록 반환
+ * @param {(string|Object)[]} egos - 자아 배열 (문자열 또는 { name, consumedTraits, effects } 객체)
  * @returns {Object[]} 활성화된 성찰 목록
  */
 export function getReflectionsByEgos(egos) {
@@ -287,7 +287,9 @@ export function getReflectionsByEgos(egos) {
 
   const activeReflections = [];
 
-  for (const egoName of egos) {
+  for (const ego of egos) {
+    // 자아가 객체인 경우 name 속성 사용, 문자열인 경우 그대로 사용
+    const egoName = typeof ego === 'object' ? ego.name : ego;
     const reflectionId = EGO_NAME_TO_REFLECTION_ID[egoName];
     if (reflectionId && REFLECTIONS[reflectionId]) {
       activeReflections.push(REFLECTIONS[reflectionId]);
