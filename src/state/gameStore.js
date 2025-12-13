@@ -1178,14 +1178,11 @@ export const useGameStore = create((set, get) => ({
       ];
       const ownedEgos = new Set(state.playerEgos || []);
       const newEgos = [...ownedEgos];
-      // 자아는 한 번만 형성됨: 아직 자아가 없을 때만 검사
-      if (ownedEgos.size === 0) {
-        for (const { ego, parts } of egoRules) {
-          const total = (traitCounts[parts[0]] || 0) + (traitCounts[parts[1]] || 0);
-          if (total >= 5) {
-            newEgos.push(ego);
-            break; // 첫 번째 만족 자아만 획득
-          }
+      // 조건을 만족하는 모든 자아를 획득 (중복 제외)
+      for (const { ego, parts } of egoRules) {
+        const total = (traitCounts[parts[0]] || 0) + (traitCounts[parts[1]] || 0);
+        if (total >= 5 && !ownedEgos.has(ego)) {
+          newEgos.push(ego);
         }
       }
 
