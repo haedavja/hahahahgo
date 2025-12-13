@@ -709,10 +709,9 @@ export function DungeonExploration() {
       const newAttempts = attemptCount + 1;
       const maxAttempts = choice.maxAttempts || 5;
 
-      // 스케일링 요구조건이 있는 경우에만 canPass 체크
-      // 없으면 maxAttempts까지 반드시 시도해야 함
+      // 스케일링 요구조건 체크 (현재 시도에 대한 스탯 충족 여부)
       const hasScalingReq = !!choice.scalingRequirement;
-      const canPass = hasScalingReq && checkRequirement(choice, newAttempts);
+      const meetsRequirement = hasScalingReq ? checkRequirement(choice, newAttempts) : true;
 
       // 화면 흔들림 효과
       if (choice.screenEffect === 'shake') {
@@ -720,28 +719,43 @@ export function DungeonExploration() {
         setTimeout(() => actions.setScreenShake(false), 200);
       }
 
-      // 경고 체크
-      if (choice.warningAtAttempt && newAttempts === choice.warningAtAttempt) {
-        actions.setMessage(choice.warningText || '뭔가 이상한 기운이...');
-      }
-
-      // 최대 시도 횟수 도달 또는 요구조건 충족 (스케일링 있는 경우만)
-      if (newAttempts >= maxAttempts || canPass) {
-        // 성공/실패 판정
-        // - 스케일링 요구조건 충족: 성공
-        // - 최대 시도 도달: 확률적 성공/실패
-        const isSuccess = canPass || Math.random() < (choice.successRate ?? 0.5);
-        const outcome = isSuccess ? choice.outcomes.success : choice.outcomes.failure;
-
-        // 결과 적용
+      // 스탯 미달 시 즉시 실패
+      if (hasScalingReq && !meetsRequirement) {
+        const outcome = choice.outcomes.failure;
         applyChoiceOutcome(outcome, obj);
-
-        // 결과 텍스트 표시
         actions.setMessage(outcome.text);
 
         // 기로 완료 처리
         obj.used = true;
         actions.setCrossroadModal(null);
+
+        // 일정 시간 후 메시지 클리어
+        setTimeout(() => actions.setMessage(''), 3000);
+        return;
+      }
+
+      // 경고 체크
+      if (choice.warningAtAttempt && newAttempts === choice.warningAtAttempt) {
+        actions.setMessage(choice.warningText || '뭔가 이상한 기운이...');
+      }
+
+      // 최대 시도 횟수 도달 시 (스케일링 없거나, 스케일링 있으면서 요구조건 충족)
+      if (newAttempts >= maxAttempts) {
+        // 스케일링 없는 경우: 확률적 성공/실패
+        // 스케일링 있는 경우: 여기까지 왔으면 매번 충족했으므로 성공
+        const isSuccess = hasScalingReq ? true : (Math.random() < (choice.successRate ?? 0.5));
+        const outcome = isSuccess ? choice.outcomes.success : choice.outcomes.failure;
+
+        // 결과 적용
+        applyChoiceOutcome(outcome, obj);
+        actions.setMessage(outcome.text);
+
+        // 기로 완료 처리
+        obj.used = true;
+        actions.setCrossroadModal(null);
+
+        // 일정 시간 후 메시지 클리어
+        setTimeout(() => actions.setMessage(''), 3000);
       } else {
         // 진행 중 - 진행 텍스트 표시
         const progressIdx = Math.min(newAttempts - 1, (choice.progressText?.length || 1) - 1);
@@ -768,6 +782,9 @@ export function DungeonExploration() {
       // 기로 완료 처리
       obj.used = true;
       actions.setCrossroadModal(null);
+
+      // 일정 시간 후 메시지 클리어
+      setTimeout(() => actions.setMessage(''), 3000);
     }
   }, [crossroadModal, checkRequirement, actions]);
 
