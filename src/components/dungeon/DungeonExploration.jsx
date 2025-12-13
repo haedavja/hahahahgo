@@ -116,13 +116,12 @@ function generateDungeon() {
       corridorIndices.push(i);
     }
   }
-  // 랜덤하게 1-2개 선택 (최소 1개 보장)
-  const crossroadCount = Math.max(1, Math.min(corridorIndices.length, 1 + Math.floor(Math.random() * 2)));
-  const crossroadSegments = new Set();
-  while (crossroadSegments.size < crossroadCount && corridorIndices.length > 0) {
-    const idx = Math.floor(Math.random() * corridorIndices.length);
-    crossroadSegments.add(corridorIndices[idx]);
-    corridorIndices.splice(idx, 1);
+  // 첫 번째 세그먼트(0)에 항상 기로 배치 + 추가로 랜덤 1개
+  const crossroadSegments = new Set([0]);  // 던전 입구에서 바로 기로
+  const remainingCorridors = corridorIndices.filter(i => i !== 0);
+  if (remainingCorridors.length > 0 && Math.random() < 0.5) {
+    const idx = Math.floor(Math.random() * remainingCorridors.length);
+    crossroadSegments.add(remainingCorridors[idx]);
   }
 
   console.log('[Dungeon] 생성 - 세그먼트 수:', count, '기로 위치:', [...crossroadSegments]);
@@ -141,7 +140,7 @@ function generateDungeon() {
       objects.push({
         id: `crossroad_${i}`,
         typeId: "crossroad",
-        x: 600,  // 복도 초반부 (플레이어가 빨리 만남)
+        x: i === 0 ? 300 : 600,  // 첫 세그먼트는 더 가깝게 배치
         used: false,
         template: template,  // 기로 템플릿 데이터
         choiceState: {},     // 선택지 상태 (시도 횟수 등)
@@ -702,9 +701,12 @@ export function DungeonExploration() {
     // 반복 선택 가능한 선택지인 경우
     if (choice.repeatable) {
       const newAttempts = attemptCount + 1;
+      const maxAttempts = choice.maxAttempts || 5;
 
-      // 요구조건 확인 (현재 시도 횟수 기준)
-      const canPass = checkRequirement(choice, newAttempts);
+      // 스케일링 요구조건이 있는 경우에만 canPass 체크
+      // 없으면 maxAttempts까지 반드시 시도해야 함
+      const hasScalingReq = !!choice.scalingRequirement;
+      const canPass = hasScalingReq && checkRequirement(choice, newAttempts);
 
       // 화면 흔들림 효과
       if (choice.screenEffect === 'shake') {
@@ -717,21 +719,19 @@ export function DungeonExploration() {
         actions.setMessage(choice.warningText || '뭔가 이상한 기운이...');
       }
 
-      // 최대 시도 횟수 도달 또는 요구조건 충족
-      if (newAttempts >= (choice.maxAttempts || 5) || canPass) {
+      // 최대 시도 횟수 도달 또는 요구조건 충족 (스케일링 있는 경우만)
+      if (newAttempts >= maxAttempts || canPass) {
         // 성공/실패 판정
-        const isSuccess = canPass || Math.random() < (newAttempts / choice.maxAttempts);
+        // - 스케일링 요구조건 충족: 성공
+        // - 최대 시도 도달: 확률적 성공/실패
+        const isSuccess = canPass || Math.random() < (choice.successRate ?? 0.5);
         const outcome = isSuccess ? choice.outcomes.success : choice.outcomes.failure;
 
         // 결과 적용
         applyChoiceOutcome(outcome, obj);
 
-        // 진행 텍스트가 있으면 마지막 것 표시
-        if (choice.progressText && isSuccess) {
-          actions.setMessage(choice.progressText[choice.progressText.length - 1] || outcome.text);
-        } else {
-          actions.setMessage(outcome.text);
-        }
+        // 결과 텍스트 표시
+        actions.setMessage(outcome.text);
 
         // 기로 완료 처리
         obj.used = true;
@@ -739,7 +739,7 @@ export function DungeonExploration() {
       } else {
         // 진행 중 - 진행 텍스트 표시
         const progressIdx = Math.min(newAttempts - 1, (choice.progressText?.length || 1) - 1);
-        const progressMsg = choice.progressText?.[progressIdx] || `시도 ${newAttempts}/${choice.maxAttempts}`;
+        const progressMsg = choice.progressText?.[progressIdx] || `시도 ${newAttempts}/${maxAttempts}`;
         actions.setMessage(progressMsg);
 
         // 선택지 상태 업데이트
