@@ -28,7 +28,7 @@ export const ITEMS = {
     id: 'ether-absorber-small',
     name: '에테르 흡수기 (소)',
     icon: '🔮',
-    description: '적 에테르 50 흡수',
+    description: '즉시 에테르 50을 적으로부터 얻어옵니다',
     tier: 1,
     usableIn: 'combat',
     effect: { type: 'etherSteal', value: 50 }
@@ -37,7 +37,7 @@ export const ITEMS = {
     id: 'ether-absorber-large',
     name: '에테르 흡수기 (대)',
     icon: '🔯',
-    description: '적 에테르 100 흡수',
+    description: '즉시 에테르 100을 적으로부터 얻어옵니다',
     tier: 2,
     usableIn: 'combat',
     effect: { type: 'etherSteal', value: 100 }
