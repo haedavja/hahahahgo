@@ -9,4 +9,8 @@ export default defineConfig({
     port: 80,        // 포트 없이 http://<PC_IP>/ 로 접근 가능
     strictPort: true,
   },
+  test: {
+    globals: true,
+    environment: 'node',
+  },
 })
