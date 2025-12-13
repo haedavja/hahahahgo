@@ -1,0 +1,250 @@
+/**
+ * reflections.js
+ *
+ * 개성(Personality Traits)과 성찰(Reflection) 시스템 정의
+ * 자아를 얻으면 성찰 능력이 활성화되며,
+ * 개성 조합에 따라 매 턴 확률적으로 긍정 효과 발동
+ */
+
+// 기본 개성 정의
+export const PERSONALITY_TRAITS = {
+  valiant: {
+    id: 'valiant',
+    name: '용맹함',
+    emoji: '⚔️',
+    description: '두려움 없이 전진하는 성향'
+  },
+  passionate: {
+    id: 'passionate',
+    name: '열정적',
+    emoji: '🔥',
+    description: '뜨거운 열정으로 임하는 성향'
+  },
+  calm: {
+    id: 'calm',
+    name: '냉철함',
+    emoji: '❄️',
+    description: '차분하게 상황을 분석하는 성향'
+  },
+  thorough: {
+    id: 'thorough',
+    name: '철저함',
+    emoji: '🎯',
+    description: '꼼꼼하게 준비하는 성향'
+  },
+  energetic: {
+    id: 'energetic',
+    name: '활력적',
+    emoji: '⚡',
+    description: '활기차게 움직이는 성향'
+  },
+  steadfast: {
+    id: 'steadfast',
+    name: '굳건함',
+    emoji: '🛡️',
+    description: '흔들리지 않는 단단한 성향'
+  }
+};
+
+// 성찰 효과 타입
+export const REFLECTION_EFFECT_TYPES = {
+  ADD_TOKEN: 'addToken',           // 토큰 추가
+  ENERGY_BOOST: 'energyBoost',     // 행동력 증가
+  HEAL_PERCENT: 'healPercent',     // 체력 % 회복
+  ETHER_MULTIPLIER: 'etherMultiplier', // 에테르 배율
+  TIMELINE_BOOST: 'timelineBoost', // 타임라인 최대치 증가
+  CARD_FREEZE: 'cardFreeze'        // 적 타임라인 동결
+};
+
+// 성찰 정의
+export const REFLECTIONS = {
+  // === 50% 확률 (용맹함 조합) ===
+  devotion: {
+    id: 'devotion',
+    name: '헌신',
+    emoji: '💪',
+    description: '매 턴 50% 확률로 공세 획득',
+    requires: ['passionate', 'valiant'],
+    probability: 0.5,
+    effect: {
+      type: REFLECTION_EFFECT_TYPES.ADD_TOKEN,
+      tokenId: 'offense',
+      stacks: 1
+    }
+  },
+  strategy: {
+    id: 'strategy',
+    name: '지략',
+    emoji: '🧠',
+    description: '매 턴 50% 확률로 수세 획득',
+    requires: ['calm', 'valiant'],
+    probability: 0.5,
+    effect: {
+      type: REFLECTION_EFFECT_TYPES.ADD_TOKEN,
+      tokenId: 'guard',
+      stacks: 1
+    }
+  },
+  pursuit: {
+    id: 'pursuit',
+    name: '추격',
+    emoji: '💨',
+    description: '매 턴 50% 확률로 흐릿함 획득',
+    requires: ['thorough', 'valiant'],
+    probability: 0.5,
+    effect: {
+      type: REFLECTION_EFFECT_TYPES.ADD_TOKEN,
+      tokenId: 'blur',
+      stacks: 1
+    }
+  },
+  dynamism: {
+    id: 'dynamism',
+    name: '역동',
+    emoji: '🌟',
+    description: '매 턴 50% 확률로 행동력 +1',
+    requires: ['energetic', 'valiant'],
+    probability: 0.5,
+    effect: {
+      type: REFLECTION_EFFECT_TYPES.ENERGY_BOOST,
+      value: 1
+    }
+  },
+
+  // === 30% 확률 (굳건함 조합) ===
+  resolve: {
+    id: 'resolve',
+    name: '결의',
+    emoji: '❤️',
+    description: '매 턴 30% 확률로 체력 2% 회복 (최대 4회)',
+    requires: ['steadfast', 'calm'],
+    probability: 0.3,
+    maxTriggers: 4,
+    effect: {
+      type: REFLECTION_EFFECT_TYPES.HEAL_PERCENT,
+      value: 0.02
+    }
+  },
+  drive: {
+    id: 'drive',
+    name: '추진',
+    emoji: '💪',
+    description: '매 턴 30% 확률로 힘 +1',
+    requires: ['steadfast', 'energetic'],
+    probability: 0.3,
+    effect: {
+      type: REFLECTION_EFFECT_TYPES.ADD_TOKEN,
+      tokenId: 'strength',
+      stacks: 1
+    }
+  },
+  faith: {
+    id: 'faith',
+    name: '신념',
+    emoji: '✨',
+    description: '매 턴 30% 확률로 면역 +1',
+    requires: ['steadfast', 'passionate'],
+    probability: 0.3,
+    effect: {
+      type: REFLECTION_EFFECT_TYPES.ADD_TOKEN,
+      tokenId: 'immunity',
+      stacks: 1
+    }
+  },
+  completion: {
+    id: 'completion',
+    name: '완성',
+    emoji: '💎',
+    description: '매 턴 30% 확률로 에테르 1.5배 획득',
+    requires: ['steadfast', 'thorough'],
+    probability: 0.3,
+    effect: {
+      type: REFLECTION_EFFECT_TYPES.ETHER_MULTIPLIER,
+      value: 1.5
+    }
+  },
+
+  // === 30% 확률 (기타 조합) ===
+  analysis: {
+    id: 'analysis',
+    name: '분석',
+    emoji: '👁️',
+    description: '매 턴 30% 확률로 통찰 +1',
+    requires: ['calm', 'passionate'],
+    probability: 0.3,
+    effect: {
+      type: REFLECTION_EFFECT_TYPES.ADD_TOKEN,
+      tokenId: 'insight',
+      stacks: 1
+    }
+  },
+  execution: {
+    id: 'execution',
+    name: '실행',
+    emoji: '⏱️',
+    description: '매 턴 30% 확률로 타임라인 +5',
+    requires: ['calm', 'thorough'],
+    probability: 0.3,
+    effect: {
+      type: REFLECTION_EFFECT_TYPES.TIMELINE_BOOST,
+      value: 5
+    }
+  },
+  passion: {
+    id: 'passion',
+    name: '정열',
+    emoji: '🔥',
+    description: '매 턴 30% 확률로 민첩 +1',
+    requires: ['energetic', 'passionate'],
+    probability: 0.3,
+    effect: {
+      type: REFLECTION_EFFECT_TYPES.ADD_TOKEN,
+      tokenId: 'agility',
+      stacks: 1
+    }
+  },
+  dominance: {
+    id: 'dominance',
+    name: '지배',
+    emoji: '❄️',
+    description: '매 턴 30% 확률로 적 타임라인 동결',
+    requires: ['energetic', 'thorough'],
+    probability: 0.3,
+    effect: {
+      type: REFLECTION_EFFECT_TYPES.CARD_FREEZE,
+      value: 1
+    }
+  }
+};
+
+/**
+ * 개성 배열로 활성화된 성찰 목록 반환
+ * @param {string[]} traits - 개성 ID 배열
+ * @returns {Object[]} 활성화된 성찰 목록
+ */
+export function getActiveReflections(traits) {
+  if (!traits || traits.length < 2) return [];
+
+  const traitSet = new Set(traits);
+  const activeReflections = [];
+
+  for (const reflection of Object.values(REFLECTIONS)) {
+    const hasAll = reflection.requires.every(req => traitSet.has(req));
+    if (hasAll) {
+      activeReflections.push(reflection);
+    }
+  }
+
+  return activeReflections;
+}
+
+/**
+ * 개성 수에 따른 확률 보너스 계산
+ * @param {number} traitCount - 개성 개수
+ * @returns {number} 추가 확률 (0 ~ 0.25)
+ */
+export function getTraitCountBonus(traitCount) {
+  // 5개 초과 시 개당 5% 추가
+  if (traitCount <= 5) return 0;
+  return (traitCount - 5) * 0.05;
+}
