@@ -96,14 +96,19 @@ const OBJECT_TYPES = {
 };
 
 // ========== 기로 템플릿 선택 ==========
-function getRandomCrossroadTemplate() {
+function getRandomCrossroadTemplate(forcedTemplateId = null) {
+  // 강제 템플릿이 지정된 경우
+  if (forcedTemplateId && OBSTACLE_TEMPLATES[forcedTemplateId]) {
+    console.log('[Dungeon] 강제 기로 템플릿 사용:', forcedTemplateId);
+    return { ...OBSTACLE_TEMPLATES[forcedTemplateId] };
+  }
   const templates = Object.keys(OBSTACLE_TEMPLATES);
   const key = templates[Math.floor(Math.random() * templates.length)];
   return { ...OBSTACLE_TEMPLATES[key] };
 }
 
 // ========== 던전 생성 ==========
-function generateDungeon() {
+function generateDungeon(forcedCrossroadId = null) {
   const count = CONFIG.SEGMENT_COUNT.min +
     Math.floor(Math.random() * (CONFIG.SEGMENT_COUNT.max - CONFIG.SEGMENT_COUNT.min + 1));
 
@@ -135,7 +140,7 @@ function generateDungeon() {
 
     // 기로 추가 (복도 세그먼트에)
     if (crossroadSegments.has(i)) {
-      const template = getRandomCrossroadTemplate();
+      const template = getRandomCrossroadTemplate(forcedCrossroadId);
       console.log('[Dungeon] 기로 추가 - 세그먼트:', i, '템플릿:', template.name);
       objects.push({
         id: `crossroad_${i}`,
@@ -308,14 +313,15 @@ export function DungeonExploration() {
   const resources = useGameStore((s) => s.resources);
   const playerHp = useGameStore((s) => s.playerHp);
   const maxHp = useGameStore((s) => s.maxHp);
+  const devForcedCrossroad = useGameStore((s) => s.devForcedCrossroad);
 
   // 던전 데이터 생성 (한 번만)
   useEffect(() => {
     if (activeDungeon && !activeDungeon.dungeonData) {
-      const newDungeon = generateDungeon();
+      const newDungeon = generateDungeon(devForcedCrossroad);
       setDungeonData(newDungeon);
     }
-  }, [activeDungeon, setDungeonData]);
+  }, [activeDungeon, setDungeonData, devForcedCrossroad]);
 
   // 초기 자원 저장 (한 번만)
   useEffect(() => {

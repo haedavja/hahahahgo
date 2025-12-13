@@ -5,6 +5,7 @@ import { CARDS } from '../battle/battleData';
 import { ANOMALY_TYPES } from '../../data/anomalies';
 import { NEW_EVENT_LIBRARY } from '../../data/newEvents';
 import { ITEMS, ITEM_IDS } from '../../data/items';
+import { OBSTACLE_TEMPLATES } from '../../data/dungeonNodes';
 
 /**
  * 개발자 도구 오버레이
@@ -49,6 +50,8 @@ export function DevTools({ isOpen, onClose, useNewDungeon, setUseNewDungeon }) {
     addItem,
     removeItem,
     devSetItems,
+    devForcedCrossroad,
+    setDevForcedCrossroad,
   } = useGameStore();
 
   if (!isOpen) return null;
@@ -164,6 +167,8 @@ export function DevTools({ isOpen, onClose, useNewDungeon, setUseNewDungeon }) {
             devTeleportToNode={devTeleportToNode}
             useNewDungeon={useNewDungeon}
             setUseNewDungeon={setUseNewDungeon}
+            devForcedCrossroad={devForcedCrossroad}
+            setDevForcedCrossroad={setDevForcedCrossroad}
           />
         )}
         {activeTab === 'battle' && (
@@ -373,7 +378,7 @@ function ResourcesTab({ resources, setResources, devOpenRest, awakenAtRest, clos
 }
 
 // 맵 관리 탭
-function MapTab({ map, mapRisk, setMapRisk, selectNode, devClearAllNodes, devTeleportToNode, useNewDungeon, setUseNewDungeon }) {
+function MapTab({ map, mapRisk, setMapRisk, selectNode, devClearAllNodes, devTeleportToNode, useNewDungeon, setUseNewDungeon, devForcedCrossroad, setDevForcedCrossroad }) {
   const currentNode = map?.nodes?.find(n => n.id === map.currentNodeId);
   const [selectedNodeId, setSelectedNodeId] = useState('');
 
@@ -596,6 +601,83 @@ function MapTab({ map, mapRisk, setMapRisk, selectNode, devClearAllNodes, devTel
           {useNewDungeon
             ? '✅ 메트로배니아 스타일 양방향 이동, 기로 시스템 활성화'
             : '기존 선형 던전 시스템 사용 중'}
+        </div>
+      </div>
+
+      {/* 기로 템플릿 강제 선택 */}
+      <div style={{
+        marginTop: '16px',
+        padding: '12px',
+        background: '#0f172a',
+        borderRadius: '8px',
+        border: '1px solid #334155',
+      }}>
+        <h4 style={{ color: '#cbd5e1', fontSize: '0.875rem', marginBottom: '8px' }}>🔀 기로 템플릿 강제</h4>
+        <div style={{ fontSize: '0.75rem', color: '#64748b', marginBottom: '8px' }}>
+          다음 던전 진입 시 모든 기로에 적용됩니다
+        </div>
+
+        {/* 현재 설정 표시 */}
+        {devForcedCrossroad && (
+          <div style={{
+            padding: '8px',
+            background: 'rgba(139, 92, 246, 0.15)',
+            border: '1px solid #8b5cf6',
+            borderRadius: '6px',
+            marginBottom: '12px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+          }}>
+            <span style={{ color: '#a78bfa', fontSize: '0.875rem' }}>
+              ✓ {OBSTACLE_TEMPLATES[devForcedCrossroad]?.name || devForcedCrossroad}
+            </span>
+            <button
+              onClick={() => setDevForcedCrossroad(null)}
+              style={{
+                padding: '4px 8px',
+                background: '#334155',
+                border: 'none',
+                borderRadius: '4px',
+                color: '#e2e8f0',
+                fontSize: '0.75rem',
+                cursor: 'pointer',
+              }}
+            >
+              해제
+            </button>
+          </div>
+        )}
+
+        {/* 기로 템플릿 목록 */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(2, 1fr)',
+          gap: '8px',
+          maxHeight: '200px',
+          overflowY: 'auto',
+        }}>
+          {Object.entries(OBSTACLE_TEMPLATES).map(([key, template]) => (
+            <button
+              key={key}
+              onClick={() => setDevForcedCrossroad(key)}
+              style={{
+                padding: '10px 8px',
+                background: devForcedCrossroad === key ? '#8b5cf6' : '#1e293b',
+                border: `1px solid ${devForcedCrossroad === key ? '#a78bfa' : '#334155'}`,
+                borderRadius: '6px',
+                color: devForcedCrossroad === key ? '#fff' : '#cbd5e1',
+                fontSize: '0.8rem',
+                cursor: 'pointer',
+                textAlign: 'left',
+              }}
+            >
+              <div style={{ fontWeight: 'bold', marginBottom: '2px' }}>{template.name}</div>
+              <div style={{ fontSize: '0.7rem', color: devForcedCrossroad === key ? '#e0d4fc' : '#64748b' }}>
+                {template.choices?.length || 0}개 선택지
+              </div>
+            </button>
+          ))}
         </div>
       </div>
     </div>

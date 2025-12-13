@@ -293,6 +293,7 @@ const travelToNode = (state, nodeId) => {
 export const useGameStore = create((set, get) => ({
   ...applyInitialRelicEffects(createInitialState()),
   devDulledLevel: null,
+  devForcedCrossroad: null,  // 강제할 기로 템플릿 ID (예: 'cliff', 'lockedChest')
 
   resetRun: () => set(() => applyInitialRelicEffects(createInitialState())),
 
@@ -1042,6 +1043,12 @@ export const useGameStore = create((set, get) => ({
         level === null || level === undefined
           ? null
           : Math.max(0, Math.min(3, Number(level) || 0)),
+    })),
+
+  setDevForcedCrossroad: (templateId) =>
+    set((state) => ({
+      ...state,
+      devForcedCrossroad: templateId || null,
     })),
 
   // ==================== 개발자 도구 전용 액션 ====================
