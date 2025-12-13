@@ -371,6 +371,7 @@ export function DungeonExploration() {
   const animationRef = useRef(null);
   const preBattleState = useRef(null); // 전투 전 상태 저장
   const interactionRef = useRef(null); // 상호작용 함수 ref
+  const playerXRef = useRef(playerX); // 플레이어 X 위치 ref (이동 루프용)
 
   const segment = dungeonData[segmentIndex];
   const playerY = CONFIG.FLOOR_Y - CONFIG.PLAYER.height;
@@ -385,7 +386,7 @@ export function DungeonExploration() {
     const handleKeyDown = (e) => {
       if (["a", "d", "A", "D"].includes(e.key)) {
         e.preventDefault();
-        actions.setKeys((prev) => ({ ...prev, [e.key.toLowerCase()]: true }));
+        actions.updateKeys({ [e.key.toLowerCase()]: true });
       }
       if (e.key === "w" || e.key === "W") {
         e.preventDefault();
@@ -393,13 +394,13 @@ export function DungeonExploration() {
       }
       if (e.key === "c" || e.key === "C") {
         e.preventDefault();
-        actions.setShowCharacter((prev) => !prev);
+        actions.setShowCharacter(!showCharacter);
       }
     };
 
     const handleKeyUp = (e) => {
       if (["a", "d", "A", "D"].includes(e.key)) {
-        actions.setKeys((prev) => ({ ...prev, [e.key.toLowerCase()]: false }));
+        actions.updateKeys({ [e.key.toLowerCase()]: false });
       }
     };
 
@@ -410,18 +411,28 @@ export function DungeonExploration() {
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
     };
-  }, [actions]);
+  }, [actions, showCharacter]);
+
+  // playerX ref 동기화
+  useEffect(() => {
+    playerXRef.current = playerX;
+  }, [playerX]);
 
   // ========== 플레이어 이동 ==========
   useEffect(() => {
     if (!segment) return;
 
     const moveLoop = () => {
+      let newX = playerXRef.current;
       if (keys.a) {
-        actions.setPlayerX((x) => Math.max(50, x - CONFIG.PLAYER.speed));
+        newX = Math.max(50, newX - CONFIG.PLAYER.speed);
       }
       if (keys.d) {
-        actions.setPlayerX((x) => Math.min(segment.width - 50, x + CONFIG.PLAYER.speed));
+        newX = Math.min(segment.width - 50, newX + CONFIG.PLAYER.speed);
+      }
+      if (newX !== playerXRef.current) {
+        playerXRef.current = newX;
+        actions.setPlayerX(newX);
       }
       animationRef.current = requestAnimationFrame(moveLoop);
     };
@@ -432,7 +443,7 @@ export function DungeonExploration() {
         cancelAnimationFrame(animationRef.current);
       }
     };
-  }, [keys, segment]);
+  }, [keys, segment, actions]);
 
   // ========== 카메라 ==========
   useEffect(() => {
@@ -584,7 +595,7 @@ export function DungeonExploration() {
       if (segment.isLast) {
         handleCompleteDungeon();
       } else {
-        actions.setSegmentIndex((i) => i + 1);
+        actions.setSegmentIndex(segmentIndex + 1);
         actions.setPlayerX(100);
         actions.setMessage("");
       }
