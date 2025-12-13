@@ -46,21 +46,17 @@ export const EnemyHpBar = ({
                 {(battle.phase === 'select' || battle.phase === 'respond') && previewDamage.value > 0 && (
                   <div className={`predicted-damage-inline ${previewDamage.lethal ? 'lethal' : ''} ${previewDamage.overkill ? 'overkill' : ''}`}>
                     <span className="predicted-damage-inline-value">🗡️ -{previewDamage.value}</span>
-                    {previewDamage.lethal && (
-                      <span className={`predicted-damage-inline-icon ${previewDamage.overkill ? 'overkill-icon' : ''}`} aria-hidden="true">
-                        {previewDamage.overkill ? '☠️' : '💀'}
-                      </span>
-                    )}
                   </div>
                 )}
                 {(() => {
                   const hideEnemyVitals = dulledLevel >= 3;
                   const hpText = hideEnemyVitals ? '??' : `${enemy.hp}/${enemy.maxHp}`;
                   const blockText = hideEnemyVitals ? '??' : (enemy.block > 0 ? `${enemy.block}` : null);
+                  const showLethalIcon = (battle.phase === 'select' || battle.phase === 'respond') && previewDamage.lethal;
                   return (
                   <div className={enemyHit ? 'hit-animation' : ''} style={{ color: '#f87171', fontSize: '1.25rem', fontWeight: 'bold', textAlign: 'right', transition: 'opacity 0.4s ease, transform 0.4s ease', opacity: soulShatter ? 0 : 1, transform: soulShatter ? 'scale(0.9)' : 'scale(1)', position: 'absolute', top: frozenOrder ? '-35px' : '-20px', right: '-200px', width: '200px' }}>
                     {blockText && <span className={enemyBlockAnim ? 'block-animation' : ''} style={{ color: '#60a5fa', marginRight: '8px' }}>🛡️{blockText}</span>}
-                    ❤️ {hpText}
+                    ❤️ {hpText} {showLethalIcon && <span style={{ marginLeft: '4px' }}>{previewDamage.overkill ? '☠️' : '💀'}</span>}
                   </div>
                 );
                 })()}
