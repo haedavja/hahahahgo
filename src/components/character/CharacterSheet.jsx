@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import { useGameStore } from "../../state/gameStore";
 import { CARDS, TRAITS } from "../battle/battleData";
 import { calculatePassiveEffects } from "../../lib/relicEffects";
+import { getActiveReflections, getTraitCountBonus, convertTraitsToIds, REFLECTIONS } from "../../data/reflections";
 
 const TRAIT_EFFECTS = {
   용맹함: { label: "힘", value: 1 },
@@ -45,6 +46,19 @@ export function CharacterSheet({ onClose }) {
     return calculatePassiveEffects(relics || []);
   }, [relics]);
 
+  // 활성화된 성찰 및 확률 계산
+  const activeReflectionsInfo = useMemo(() => {
+    if (!playerEgos || playerEgos.length === 0) return [];
+    const traitIds = convertTraitsToIds(playerTraits);
+    const activeReflections = getActiveReflections(traitIds);
+    const probabilityBonus = getTraitCountBonus(playerTraits.length);
+
+    return activeReflections.map(r => ({
+      ...r,
+      finalProbability: Math.min(1, r.probability + probabilityBonus)
+    }));
+  }, [playerTraits, playerEgos]);
+
   // 현재 스탯
   const currentHp = playerHp;
   const baseEnergy = 6 + playerEnergyBonus;
@@ -81,6 +95,8 @@ export function CharacterSheet({ onClose }) {
   // 툴팁 상태
   const [hoveredTrait, setHoveredTrait] = useState(null);
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
+  const [showEgoTooltip, setShowEgoTooltip] = useState(false);
+  const [egoTooltipPosition, setEgoTooltipPosition] = useState({ x: 0, y: 0 });
   const tooltipRef = useRef(null);
   const [hoveredCard, setHoveredCard] = useState(null);
   const [showCardTooltip, setShowCardTooltip] = useState(false);
@@ -310,10 +326,22 @@ export function CharacterSheet({ onClose }) {
             marginBottom: "16px",
             background: "rgba(5, 8, 13, 0.92)",
             border: "1px solid rgba(118, 134, 185, 0.4)",
+            position: "relative",
           }}
+          onMouseEnter={(e) => {
+            if (playerEgos && playerEgos.length > 0) {
+              const rect = e.currentTarget.getBoundingClientRect();
+              setEgoTooltipPosition({ x: rect.right + 10, y: rect.top });
+              setShowEgoTooltip(true);
+            }
+          }}
+          onMouseLeave={() => setShowEgoTooltip(false)}
         >
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px", fontSize: "14px" }}>
             <span style={{ opacity: 0.8 }}>자아</span>
+            {playerEgos && playerEgos.length > 0 && (
+              <span style={{ opacity: 0.5, fontSize: "12px" }}>hover로 성찰 확인</span>
+            )}
           </div>
           {playerEgos && playerEgos.length > 0 ? (
             <ul style={{ margin: 0, paddingLeft: "18px", lineHeight: 1.4, color: "#fde68a" }}>
@@ -325,6 +353,52 @@ export function CharacterSheet({ onClose }) {
             <div style={{ color: "#9ca3af", fontSize: "0.9rem" }}>아직 자아가 없습니다.</div>
           )}
         </div>
+
+        {/* 성찰 툴팁 */}
+        {showEgoTooltip && activeReflectionsInfo.length > 0 && (
+          <div
+            style={{
+              position: "fixed",
+              left: egoTooltipPosition.x,
+              top: egoTooltipPosition.y,
+              background: "rgba(15, 20, 30, 0.98)",
+              border: "1px solid rgba(253, 230, 138, 0.6)",
+              borderRadius: "8px",
+              padding: "12px 16px",
+              zIndex: 9999,
+              minWidth: "280px",
+              maxWidth: "350px",
+              boxShadow: "0 4px 20px rgba(0, 0, 0, 0.5)",
+            }}
+          >
+            <div style={{ fontSize: "14px", fontWeight: "bold", color: "#fde68a", marginBottom: "10px", borderBottom: "1px solid rgba(253, 230, 138, 0.3)", paddingBottom: "6px" }}>
+              ✨ 활성화된 성찰
+            </div>
+            <div style={{ fontSize: "13px", lineHeight: 1.6 }}>
+              {activeReflectionsInfo.map((r) => (
+                <div key={r.id} style={{ marginBottom: "8px", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                  <div>
+                    <span style={{ color: "#fde68a" }}>{r.emoji} {r.name}</span>
+                    <div style={{ color: "#9ca3af", fontSize: "12px", marginTop: "2px" }}>{r.description}</div>
+                  </div>
+                  <span style={{
+                    color: r.finalProbability >= 0.5 ? "#86efac" : "#fbbf24",
+                    fontWeight: "bold",
+                    marginLeft: "12px",
+                    whiteSpace: "nowrap"
+                  }}>
+                    {Math.round(r.finalProbability * 100)}%
+                  </span>
+                </div>
+              ))}
+            </div>
+            {playerTraits.length > 5 && (
+              <div style={{ fontSize: "11px", color: "#86efac", marginTop: "8px", borderTop: "1px solid rgba(253, 230, 138, 0.2)", paddingTop: "6px" }}>
+                개성 보너스: +{Math.round(getTraitCountBonus(playerTraits.length) * 100)}% (개성 {playerTraits.length}개)
+              </div>
+            )}
+          </div>
+        )}
 
         <div style={{ display: "flex", alignItems: "center", marginBottom: "12px", gap: "16px" }}>
           <div style={{ display: "flex", flex: 1 }}>
