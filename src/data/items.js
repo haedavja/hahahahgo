@@ -48,19 +48,19 @@ export const ITEMS = {
     id: 'explosive-small',
     name: '폭발물 (소)',
     icon: '💣',
-    description: '적에게 15 피해',
+    description: '즉시 적에게 50만큼 피해를 줍니다',
     tier: 1,
     usableIn: 'combat',
-    effect: { type: 'damage', value: 15 }
+    effect: { type: 'damage', value: 50 }
   },
   'explosive-large': {
     id: 'explosive-large',
     name: '폭발물 (대)',
     icon: '🧨',
-    description: '적에게 40 피해',
+    description: '즉시 적에게 100만큼 피해를 줍니다',
     tier: 2,
     usableIn: 'combat',
-    effect: { type: 'damage', value: 40 }
+    effect: { type: 'damage', value: 100 }
   },
 
   // === 방어력 부여 ===
