@@ -78,8 +78,8 @@ export const OBSTACLE_TEMPLATES = {
           '거의 다 왔습니다. 조금만 더!',
           '마침내 정상에 도착했습니다!',
         ],
-        // 시도할수록 힘 요구량 증가 (1회차: 1, 2회차: 2, 3회차: 3, ...)
-        scalingRequirement: { stat: 'strength', baseValue: 0, increment: 1 },
+        // 시도할수록 힘 요구량 증가 (1회차: 0, 2회차: 0, 3회차: 1, 4회차: 2, 5회차: 3)
+        scalingRequirement: { stat: 'strength', baseValue: -2, increment: 1 },
         outcomes: {
           success: {
             type: CHOICE_RESULT_TYPES.SUCCESS,
@@ -204,7 +204,8 @@ export const OBSTACLE_TEMPLATES = {
           '거의 다 왔습니다! 널빤지가 흔들립니다.',
           '안전하게 건넜습니다!',
         ],
-        scalingRequirement: { stat: 'agility', baseValue: 0, increment: 1 },
+        // 1회차: 0, 2회차: 1, 3회차: 2, 4회차: 3
+        scalingRequirement: { stat: 'agility', baseValue: -1, increment: 1 },
         outcomes: {
           success: {
             type: CHOICE_RESULT_TYPES.SUCCESS,
@@ -411,7 +412,8 @@ export const OBSTACLE_TEMPLATES = {
           '차갑고 끈적한 것이 느껴집니다. 거미줄?',
           '드디어 빛이 보입니다!',
         ],
-        scalingRequirement: { stat: 'agility', baseValue: 0, increment: 1 },
+        // 1회차: 0, 2회차: 1, 3회차: 2, 4회차: 3
+        scalingRequirement: { stat: 'agility', baseValue: -1, increment: 1 },
         warningAtAttempt: 2,
         warningText: '발밑에서 무언가 움직이는 소리가 들립니다...',
         outcomes: {
@@ -479,7 +481,8 @@ export const OBSTACLE_TEMPLATES = {
           '허리까지 잠겼습니다. 피부가 따끔거립니다.',
           '거의 다 왔습니다!',
         ],
-        scalingRequirement: { stat: 'strength', baseValue: 1, increment: 1 },
+        // 1회차: 1, 2회차: 2, 3회차: 3
+        scalingRequirement: { stat: 'strength', baseValue: 0, increment: 1 },
         outcomes: {
           success: {
             type: CHOICE_RESULT_TYPES.PARTIAL,
