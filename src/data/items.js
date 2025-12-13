@@ -83,24 +83,24 @@ export const ITEMS = {
     effect: { type: 'defense', value: 50 }
   },
 
-  // === 공격 강화제 (공격력 증가) ===
+  // === 공격 강화제 (공격 상태 부여) ===
   'attack-boost-small': {
     id: 'attack-boost-small',
     name: '공격 강화제 (소)',
     icon: '⚔️',
-    description: '이번 턴 공격력 +5',
+    description: '공격 상태를 얻습니다',
     tier: 1,
     usableIn: 'combat',
-    effect: { type: 'attackBoost', value: 5 }
+    effect: { type: 'grantTokens', tokens: [{ id: 'attack', stacks: 1 }] }
   },
   'attack-boost-large': {
     id: 'attack-boost-large',
     name: '공격 강화제 (대)',
     icon: '🗡️',
-    description: '이번 턴 공격력 +12',
+    description: '공격, 공격+ 상태를 얻습니다',
     tier: 2,
     usableIn: 'combat',
-    effect: { type: 'attackBoost', value: 12 }
+    effect: { type: 'grantTokens', tokens: [{ id: 'attack', stacks: 1 }, { id: 'attackPlus', stacks: 1 }] }
   },
 
   // === 에너지 충전기 (턴 에너지 회복) ===
@@ -108,19 +108,19 @@ export const ITEMS = {
     id: 'energy-charger-small',
     name: '에너지 충전기 (소)',
     icon: '🔋',
-    description: '에너지 1 회복',
+    description: '에너지 3 회복',
     tier: 1,
     usableIn: 'combat',
-    effect: { type: 'turnEnergy', value: 1 }
+    effect: { type: 'turnEnergy', value: 3 }
   },
   'energy-charger-large': {
     id: 'energy-charger-large',
     name: '에너지 충전기 (대)',
     icon: '⚡',
-    description: '에너지 2 회복',
+    description: '에너지 4 회복',
     tier: 2,
     usableIn: 'combat',
-    effect: { type: 'turnEnergy', value: 2 }
+    effect: { type: 'turnEnergy', value: 4 }
   },
 
   // === 에너지 확장기 (최대 에너지 증가) ===

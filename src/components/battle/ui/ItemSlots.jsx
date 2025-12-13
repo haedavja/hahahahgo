@@ -1,5 +1,6 @@
 import { useGameStore } from "../../../state/gameStore";
 import { playCardDestroySound, playFreezeSound } from "../../../lib/soundUtils";
+import { addToken } from "../../../lib/tokenUtils";
 
 const STAT_LABELS = {
   strength: "힘",
@@ -60,6 +61,18 @@ export function ItemSlots({ phase, battleActions, player, enemy, enemyPlan, batt
         newPlayer.strength = (newPlayer.strength || 0) + effect.value;
         logMsg = `⚔️ ${item.name}: 힘 +${effect.value}!`;
         break;
+      case 'grantTokens': {
+        // 여러 토큰을 부여 (effect.tokens: [{id, stacks}])
+        const tokenLogs = [];
+        for (const tokenGrant of effect.tokens) {
+          const result = addToken(newPlayer, tokenGrant.id, tokenGrant.stacks || 1);
+          newPlayer.tokens = result.tokens;
+          tokenLogs.push(...result.logs);
+        }
+        const tokenNames = effect.tokens.map(t => t.id).join(', ');
+        logMsg = `⚔️ ${item.name}: ${tokenNames} 상태 획득!`;
+        break;
+      }
       case 'etherMultiplier':
         newPlayer.etherMultiplier = (newPlayer.etherMultiplier || 1) * effect.value;
         logMsg = `💎 ${item.name}: 에테르 획득 ${effect.value}배! (총 ${newPlayer.etherMultiplier}배)`;
