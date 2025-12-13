@@ -344,9 +344,18 @@ function ResourcesTab({ resources, setResources, devOpenRest, awakenAtRest, clos
         </div>
       </div>
 
+      {/* 휴식 노드 열기 */}
+      <div style={{ marginTop: '20px' }}>
+        <h4 style={{ color: '#cbd5e1', fontSize: '0.875rem', marginBottom: '6px' }}>휴식 노드:</h4>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+          <button className="btn" style={{ background: 'rgba(253, 230, 138, 0.2)', border: '1px solid #fde68a' }} onClick={devOpenRest}>⛺ 휴식 창 열기</button>
+          <button className="btn" onClick={closeRest}>휴식 창 닫기</button>
+        </div>
+      </div>
+
       {/* 각성 강제 (DEV) */}
       <div style={{ marginTop: '20px' }}>
-        <h4 style={{ color: '#cbd5e1', fontSize: '0.875rem', marginBottom: '6px' }}>각성 강제(기억 100 필요):</h4>
+        <h4 style={{ color: '#cbd5e1', fontSize: '0.875rem', marginBottom: '6px' }}>개성 즉시 추가 (기억 100 필요):</h4>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
           <button className="btn" onClick={() => { devOpenRest(); awakenAtRest('brave'); }}>용맹(+힘)</button>
           <button className="btn" onClick={() => { devOpenRest(); awakenAtRest('sturdy'); }}>굳건(+체력)</button>
@@ -355,7 +364,6 @@ function ResourcesTab({ resources, setResources, devOpenRest, awakenAtRest, clos
           <button className="btn" onClick={() => { devOpenRest(); awakenAtRest('passionate'); }}>열정(+속도)</button>
           <button className="btn" onClick={() => { devOpenRest(); awakenAtRest('lively'); }}>활력(+행동력)</button>
           <button className="btn" onClick={() => { devOpenRest(); awakenAtRest('random'); }}>랜덤</button>
-          <button className="btn" onClick={closeRest}>휴식 창 닫기</button>
         </div>
       </div>
     </div>
