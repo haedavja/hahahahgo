@@ -863,7 +863,12 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         enemyFreezeTurns: reflectionResult.updatedBattleState.enemyFreezeTurns
       });
 
-      // 성찰 발동 로그
+      // 성찰 발동 시 효과음과 로그
+      if (reflectionResult.effects.length > 0) {
+        // 성찰 발동 효과음 (맑은 종소리 느낌)
+        playSound(1200, 150);
+        setTimeout(() => playSound(1500, 100), 100);
+      }
       reflectionResult.logs.forEach(log => addLog(log));
     }
     // 성찰 상태 업데이트
