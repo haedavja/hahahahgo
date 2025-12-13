@@ -223,12 +223,18 @@ export const OBSTACLE_TEMPLATES = {
         id: 'dash_across',
         text: '전력질주로 한 번에 건넌다.',
         repeatable: false,
-        requirements: { agility: 4 },
+        requirements: {},
+        successRate: 0.5,
         outcomes: {
           success: {
             type: CHOICE_RESULT_TYPES.SUCCESS,
             text: '빠른 발놀림으로 단숨에 건넜습니다!',
             effect: { unlockNode: 'next_area' },
+          },
+          failure: {
+            type: CHOICE_RESULT_TYPES.FAILURE,
+            text: '너무 급하게 달리다 발이 미끄러졌습니다!',
+            effect: { damage: 10 },
           },
         },
       },
@@ -316,7 +322,7 @@ export const OBSTACLE_TEMPLATES = {
     choices: [
       {
         id: 'blood_offering',
-        text: '피를 바친다. (체력 -10)',
+        text: '피를 바친다.',
         repeatable: false,
         requirements: {},
         outcomes: {

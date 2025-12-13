@@ -1216,19 +1216,6 @@ export function DungeonExploration() {
               {crossroadModal.template?.choices?.map((choice) => {
                 const attemptCount = crossroadModal.choiceState[choice.id]?.attempts || 0;
                 const canSelect = choice.repeatable || attemptCount === 0;
-                const meetsRequirement = checkRequirement(choice, attemptCount);
-
-                // 스케일링 요구조건이 있으면 표시
-                let requirementText = "";
-                if (choice.scalingRequirement) {
-                  const req = choice.scalingRequirement;
-                  const requiredValue = req.baseValue + (req.increment * attemptCount);
-                  const statName = req.stat === 'strength' ? '힘' :
-                                   req.stat === 'agility' ? '민첩' : '통찰';
-                  const currentValue = req.stat === 'strength' ? playerStrength :
-                                       req.stat === 'agility' ? playerAgility : playerInsight;
-                  requirementText = `${statName} ${currentValue}/${requiredValue}`;
-                }
 
                 return (
                   <button
@@ -1238,11 +1225,9 @@ export function DungeonExploration() {
                     style={{
                       padding: "16px 20px",
                       background: canSelect
-                        ? (meetsRequirement ? "rgba(34, 197, 94, 0.15)" : "rgba(59, 130, 246, 0.15)")
+                        ? "rgba(59, 130, 246, 0.15)"
                         : "rgba(100, 116, 139, 0.1)",
-                      border: `2px solid ${canSelect
-                        ? (meetsRequirement ? "#22c55e" : "#3b82f6")
-                        : "#475569"}`,
+                      border: `2px solid ${canSelect ? "#3b82f6" : "#475569"}`,
                       borderRadius: "10px",
                       color: canSelect ? "#e2e8f0" : "#64748b",
                       fontSize: "15px",
@@ -1255,15 +1240,6 @@ export function DungeonExploration() {
                     <div style={{ fontWeight: "600", marginBottom: "4px" }}>
                       {choice.text}
                     </div>
-                    {requirementText && (
-                      <div style={{
-                        fontSize: "12px",
-                        color: meetsRequirement ? "#22c55e" : "#f59e0b",
-                        marginTop: "4px",
-                      }}>
-                        {meetsRequirement ? "✓ " : "⚠ "}{requirementText}
-                      </div>
-                    )}
                     {choice.repeatable && attemptCount > 0 && (
                       <div style={{
                         fontSize: "12px",
