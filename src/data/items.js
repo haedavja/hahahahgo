@@ -97,10 +97,10 @@ export const ITEMS = {
     id: 'attack-boost-large',
     name: '공격 강화제 (대)',
     icon: '🗡️',
-    description: '공격, 공격+ 상태를 얻습니다',
+    description: '공격+ 상태를 얻습니다',
     tier: 2,
     usableIn: 'combat',
-    effect: { type: 'grantTokens', tokens: [{ id: 'attack', stacks: 1 }, { id: 'attackPlus', stacks: 1 }] }
+    effect: { type: 'grantTokens', tokens: [{ id: 'attackPlus', stacks: 1 }] }
   },
 
   // === 에너지 충전기 (턴 에너지 회복) ===

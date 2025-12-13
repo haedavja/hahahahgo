@@ -48,10 +48,14 @@ export function ItemSlots({ phase, battleActions, player, enemy, enemyPlan, batt
         newPlayer.block = (newPlayer.block || 0) + effect.value;
         logMsg = `🛡️ ${item.name}: 방어력 ${effect.value} 획득!`;
         break;
-      case 'turnEnergy':
-        newPlayer.energy = Math.min(newPlayer.maxEnergy || 10, (newPlayer.energy || 0) + effect.value);
-        logMsg = `⚡ ${item.name}: 에너지 ${effect.value} 회복!`;
+      case 'turnEnergy': {
+        // 최대값 초과 허용
+        const beforeEnergy = newPlayer.energy || 0;
+        newPlayer.energy = beforeEnergy + effect.value;
+        console.log('[turnEnergy] 에너지 충전:', { before: beforeEnergy, add: effect.value, after: newPlayer.energy });
+        logMsg = `⚡ ${item.name}: 에너지 +${effect.value}! (현재: ${newPlayer.energy})`;
         break;
+      }
       case 'maxEnergy':
         newPlayer.maxEnergy = (newPlayer.maxEnergy || 6) + effect.value;
         newPlayer.energy = (newPlayer.energy || 0) + effect.value;
