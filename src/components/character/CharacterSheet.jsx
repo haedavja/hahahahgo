@@ -344,12 +344,37 @@ export function CharacterSheet({ onClose }) {
             )}
           </div>
           {playerEgos && playerEgos.length > 0 ? (
-            <ul style={{ margin: 0, paddingLeft: "18px", lineHeight: 1.4, color: "#fde68a" }}>
+            <ul style={{ margin: 0, paddingLeft: "18px", lineHeight: 1.6, color: "#fde68a" }}>
               {playerEgos.map((ego, idx) => {
                 const egoName = typeof ego === 'object' ? ego.name : ego;
                 const egoKey = typeof ego === 'object' ? `${ego.name}-${idx}` : ego;
+                const egoEffects = typeof ego === 'object' ? ego.effects : null;
+
+                // 효과 텍스트 생성
+                const effectLabels = {
+                  playerStrength: '힘',
+                  maxHp: '체력',
+                  playerHp: null, // maxHp와 함께 표시되므로 생략
+                  playerInsight: '통찰',
+                  extraSubSpecialSlots: '보조슬롯',
+                  playerMaxSpeedBonus: '속도',
+                  playerEnergyBonus: '행동력',
+                };
+
+                const effectText = egoEffects ? Object.entries(egoEffects)
+                  .filter(([key]) => effectLabels[key])
+                  .map(([key, value]) => `${effectLabels[key]}+${value}`)
+                  .join(' ') : '';
+
                 return (
-                  <li key={egoKey}>{egoName}</li>
+                  <li key={egoKey}>
+                    {egoName}
+                    {effectText && (
+                      <span style={{ color: "#86efac", fontSize: "12px", marginLeft: "8px" }}>
+                        ({effectText})
+                      </span>
+                    )}
+                  </li>
                 );
               })}
             </ul>
