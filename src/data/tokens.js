@@ -352,6 +352,26 @@ export const TOKENS = {
     emoji: '☠️',
     description: '저주마다 특성이 다를 예정. 만들어놓기만 할 것.',
     effect: { type: 'CURSE', value: 1 }
+  },
+
+  // === 특수 효과 토큰 ===
+  persistent_strike: {
+    id: 'persistent_strike',
+    name: '집요한 타격',
+    type: TOKEN_TYPES.TURN,
+    category: TOKEN_CATEGORIES.POSITIVE,
+    emoji: '👊',
+    description: '이번 턴에 적이 카드를 사용할 때마다 피해를 입힌다.',
+    effect: { type: 'PERSISTENT_STRIKE', value: 20 }
+  },
+  half_ether: {
+    id: 'half_ether',
+    name: '에테르 감소',
+    type: TOKEN_TYPES.TURN,
+    category: TOKEN_CATEGORIES.NEGATIVE,
+    emoji: '✨',
+    description: '이번 턴 에테르 획득이 50% 감소한다.',
+    effect: { type: 'HALF_ETHER', value: 0.5 }
   }
 };
 

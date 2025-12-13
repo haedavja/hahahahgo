@@ -58,7 +58,10 @@ export function calculateTurnEndEther({
     ? applyEtherDeflation(enemyBeforeDeflation, enemyCombo.name, enemy.comboUsageCount || {})
     : { gain: enemyBeforeDeflation, multiplier: 1, usageCount: 0 };
 
-  const enemyFinalEther = enemyDeflation.gain;
+  // half_ether 토큰 효과 적용 (헤드샷 등)
+  const hasHalfEther = enemy.tokens?.some(t => t.id === 'half_ether');
+  const halfEtherMult = hasHalfEther ? 0.5 : 1;
+  const enemyFinalEther = Math.floor(enemyDeflation.gain * halfEtherMult);
 
   return {
     player: {
@@ -76,6 +79,7 @@ export function calculateTurnEndEther({
       comboMult: enemyComboMult,
       beforeDeflation: enemyBeforeDeflation,
       deflation: enemyDeflation,
+      halfEtherMult,
       finalEther: enemyFinalEther,
       appliedEther: enemyFinalEther,
       overflow: 0
@@ -113,11 +117,15 @@ export function formatPlayerEtherLog(result, turnEtherAccumulated) {
  * @returns {string} 로그 메시지
  */
 export function formatEnemyEtherLog(result, enemyTurnEtherAccumulated) {
-  const { comboMult, beforeDeflation, deflation, finalEther, appliedEther } = result;
+  const { comboMult, beforeDeflation, deflation, finalEther, appliedEther, halfEtherMult = 1 } = result;
 
   const deflationText = deflation.usageCount > 0
     ? ` (디플레이션: ${Math.round(deflation.multiplier * 100)}%)`
     : '';
 
-  return `☄️ 적 에테르 획득: ${enemyTurnEtherAccumulated} × ${comboMult.toFixed(2)} = ${beforeDeflation} → ${finalEther} PT${deflationText} (적용: ${appliedEther} PT)`;
+  const halfEtherText = halfEtherMult < 1
+    ? ` [에테르 감소 ×${halfEtherMult}]`
+    : '';
+
+  return `☄️ 적 에테르 획득: ${enemyTurnEtherAccumulated} × ${comboMult.toFixed(2)} = ${beforeDeflation} → ${finalEther} PT${deflationText}${halfEtherText} (적용: ${appliedEther} PT)`;
 }

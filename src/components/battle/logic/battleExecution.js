@@ -155,7 +155,33 @@ export function executeCardActionCore(params) {
   };
 
   const tempState = { player: P, enemy: E, log: [] };
-  const actionResult = applyAction(tempState, action.actor, action.card);
+
+  // battleContext 생성 (special 효과용)
+  const queue = battleRef.current?.queue || [];
+  const currentQIndex = battleRef.current?.qIndex || 0;
+  const selected = battle.selected || [];
+
+  // 플레이어 공격 카드 목록
+  const playerAttackCards = selected.filter(c => c.type === 'attack');
+  // 이 카드가 타임라인상 마지막인지
+  const isLastCard = currentQIndex >= queue.length - 1;
+  // 이번 턴 사용하지 않은 공격 카드 수 (선택했지만 아직 발동하지 않은 공격 카드)
+  const usedCardIndices = battleRef.current?.usedCardIndices || [];
+  const unusedAttackCards = playerAttackCards.filter((c, idx) => {
+    // 현재 카드 이후에 발동할 카드 중 공격 카드 개수
+    const cardQueueIndex = queue.findIndex(q => q.card?.id === c.id && q.actor === 'player');
+    return cardQueueIndex > currentQIndex;
+  }).length;
+
+  const battleContext = {
+    playerAttackCards,
+    isLastCard,
+    unusedAttackCards,
+    queue,
+    currentQIndex
+  };
+
+  const actionResult = applyAction(tempState, action.actor, action.card, battleContext);
   const { events, updatedState } = actionResult;
   let actionEvents = events;
 
@@ -251,6 +277,23 @@ export function executeCardActionCore(params) {
       getCardEtherGain,
       actions
     });
+
+    // 집요한 타격 (persistent_strike) 효과 처리
+    const persistentStrikeToken = P.tokens?.find(t => t.id === 'persistent_strike');
+    if (persistentStrikeToken) {
+      const strikeDamage = P._persistentStrikeDamage || 20;
+      const beforeHP = E.hp;
+      E.hp = Math.max(0, E.hp - strikeDamage);
+      const msg = `👊 집요한 타격: 적에게 ${strikeDamage} 피해! (체력 ${beforeHP} -> ${E.hp})`;
+      addLog(msg);
+      actionEvents.push({
+        actor: 'player',
+        card: '집요한 타격',
+        type: 'hit',
+        dmg: strikeDamage,
+        msg
+      });
+    }
   }
 
   // 상태 업데이트
@@ -507,6 +550,9 @@ export function runAllCore(params) {
   let playerDefeated = false;
   let finalQIndex = qIndex;
 
+  // runAll용 battleContext 생성
+  const playerAttackCards = selected.filter(c => c.type === 'attack');
+
   for (let i = qIndex; i < battle.queue.length; i++) {
     const a = battle.queue[i];
 
@@ -514,7 +560,22 @@ export function runAllCore(params) {
       continue;
     }
 
-    const { events } = applyAction(tempState, a.actor, a.card);
+    // battleContext 생성 (각 카드마다 다를 수 있음)
+    const isLastCard = i >= battle.queue.length - 1;
+    const unusedAttackCards = playerAttackCards.filter(c => {
+      const cardQueueIndex = battle.queue.findIndex(q => q.card?.id === c.id && q.actor === 'player');
+      return cardQueueIndex > i;
+    }).length;
+
+    const battleContext = {
+      playerAttackCards,
+      isLastCard,
+      unusedAttackCards,
+      queue: battle.queue,
+      currentQIndex: i
+    };
+
+    const { events } = applyAction(tempState, a.actor, a.card, battleContext);
     newEvents[i] = events;
     events.forEach(ev => addLog(ev.msg));
 

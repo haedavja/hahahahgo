@@ -1,5 +1,10 @@
 import { hasTrait } from '../utils/battleUtils';
 import { applyTokenEffectsToCard, applyTokenEffectsOnDamage, consumeTokens } from '../../../lib/tokenEffects';
+import {
+  processPreAttackSpecials,
+  processPostAttackSpecials,
+  shouldIgnoreBlock
+} from '../utils/cardSpecialEffects';
 
 /**
  * 전투 행동 처리 로직
@@ -77,25 +82,41 @@ export function applyDefense(actor, card, actorName) {
  * @param {Object} defender - 방어자
  * @param {Object} card - 사용한 카드
  * @param {string} attackerName - 'player' 또는 'enemy'
+ * @param {Object} battleContext - 전투 컨텍스트 (special 효과용)
  * @returns {Object} - { attacker, defender, damage, events, logs }
  */
-function calculateSingleHit(attacker, defender, card, attackerName) {
+function calculateSingleHit(attacker, defender, card, attackerName, battleContext = {}) {
   // 토큰 효과 적용 (공격력 증가/감소)
-  const { modifiedCard, consumedTokens: attackerConsumedTokens } = applyTokenEffectsToCard(card, attacker, 'attack');
+  const { modifiedCard: tokenModifiedCard, consumedTokens: attackerConsumedTokens } = applyTokenEffectsToCard(card, attacker, 'attack');
+
+  // special 효과 적용 (공격 전)
+  const preAttackResult = processPreAttackSpecials({
+    card: tokenModifiedCard,
+    attacker,
+    defender,
+    attackerName,
+    battleContext
+  });
+
+  const modifiedCard = preAttackResult.modifiedCard;
+  let currentAttacker = preAttackResult.attacker;
+  let currentDefender = preAttackResult.defender;
+  const specialEvents = preAttackResult.events;
+  const specialLogs = preAttackResult.logs;
 
   const base = modifiedCard.damage;
-  const strengthBonus = attacker.strength || 0;
-  const boost = attacker.etherOverdriveActive ? 2 : 1;
+  const strengthBonus = currentAttacker.strength || 0;
+  const boost = currentAttacker.etherOverdriveActive ? 2 : 1;
   let dmg = (base + strengthBonus) * boost;
 
   const crushMultiplier = hasTrait(card, 'crush') ? 2 : 1;
-  const events = [];
-  const logs = [];
+  const events = [...specialEvents];
+  const logs = [...specialLogs];
   let damageDealt = 0;
   let damageTaken = 0;
 
-  let updatedAttacker = { ...attacker };
-  let updatedDefender = { ...defender };
+  let updatedAttacker = { ...currentAttacker };
+  let updatedDefender = { ...currentDefender };
 
   // 공격자의 소모된 토큰 제거
   if (attackerConsumedTokens.length > 0) {
@@ -105,7 +126,7 @@ function calculateSingleHit(attacker, defender, card, attackerName) {
   }
 
   // 토큰 효과 적용 (회피, 허약, 반격 등)
-  const tokenDamageResult = applyTokenEffectsOnDamage(dmg, defender, attacker);
+  const tokenDamageResult = applyTokenEffectsOnDamage(dmg, currentDefender, currentAttacker);
 
   // 방어자의 소모된 토큰 제거
   if (tokenDamageResult.consumedTokens.length > 0) {
@@ -140,8 +161,11 @@ function calculateSingleHit(attacker, defender, card, attackerName) {
   // 피해 증가/감소 효과 적용 (허약, 아픔)
   dmg = tokenDamageResult.finalDamage;
 
-  // 방어력이 있는 경우
-  if (updatedDefender.def && (updatedDefender.block || 0) > 0) {
+  // ignoreBlock 체크 - 방어력 무시 시 방어력이 없는 것처럼 처리
+  const ignoreBlock = shouldIgnoreBlock(modifiedCard);
+
+  // 방어력이 있는 경우 (단, ignoreBlock이면 무시)
+  if (!ignoreBlock && updatedDefender.def && (updatedDefender.block || 0) > 0) {
     const beforeBlock = updatedDefender.block;
     const effectiveDmg = dmg * crushMultiplier;
 
@@ -200,14 +224,15 @@ function calculateSingleHit(attacker, defender, card, attackerName) {
       }
     }
   }
-  // 방어력이 없는 경우
+  // 방어력이 없는 경우 (또는 ignoreBlock으로 무시)
   else {
     const vulnMul = (updatedDefender.vulnMult && updatedDefender.vulnMult > 1) ? updatedDefender.vulnMult : 1;
     const finalDmg = Math.floor(dmg * vulnMul);
     const beforeHP = updatedDefender.hp;
     updatedDefender.hp = Math.max(0, updatedDefender.hp - finalDmg);
 
-    const msg = `${attackerName === 'player' ? '플레이어 -> 몬스터' : '몬스터 -> 플레이어'} • 데미지 ${finalDmg}${boost > 1 ? ' (에테르 폭주×2)' : ''} (체력 ${beforeHP} -> ${updatedDefender.hp})`;
+    const ignoreBlockText = ignoreBlock && (updatedDefender.block || 0) > 0 ? ' [방어 무시]' : '';
+    const msg = `${attackerName === 'player' ? '플레이어 -> 몬스터' : '몬스터 -> 플레이어'} • 데미지 ${finalDmg}${boost > 1 ? ' (에테르 폭주×2)' : ''}${ignoreBlockText} (체력 ${beforeHP} -> ${updatedDefender.hp})`;
 
     events.push({
       actor: attackerName,
@@ -272,9 +297,14 @@ function applyCounter(defender, attacker, attackerName, counterDmg = null) {
 }
 
 /**
- * 공격 행동 적용 (다중 타격 지원)
+ * 공격 행동 적용 (다중 타격 지원 + special 효과)
+ * @param {Object} attacker - 공격자
+ * @param {Object} defender - 방어자
+ * @param {Object} card - 사용한 카드
+ * @param {string} attackerName - 'player' 또는 'enemy'
+ * @param {Object} battleContext - 전투 컨텍스트 (special 효과용)
  */
-export function applyAttack(attacker, defender, card, attackerName) {
+export function applyAttack(attacker, defender, card, attackerName, battleContext = {}) {
   const hits = card.hits || 1;
   let totalDealt = 0;
   let totalTaken = 0;
@@ -284,14 +314,43 @@ export function applyAttack(attacker, defender, card, attackerName) {
   let currentAttacker = { ...attacker };
   let currentDefender = { ...defender };
 
+  // 기본 타격 수행
   for (let i = 0; i < hits; i++) {
-    const result = calculateSingleHit(currentAttacker, currentDefender, card, attackerName);
+    const result = calculateSingleHit(currentAttacker, currentDefender, card, attackerName, battleContext);
     currentAttacker = result.attacker;
     currentDefender = result.defender;
     totalDealt += result.damage;
-    totalTaken += result.damageTaken;
+    totalTaken += result.damageTaken || 0;
     allEvents.push(...result.events);
     allLogs.push(...result.logs);
+  }
+
+  // 공격 후 special 효과 처리
+  const postAttackResult = processPostAttackSpecials({
+    card,
+    attacker: currentAttacker,
+    defender: currentDefender,
+    attackerName,
+    damageDealt: totalDealt,
+    battleContext
+  });
+
+  currentAttacker = postAttackResult.attacker;
+  currentDefender = postAttackResult.defender;
+  allEvents.push(...postAttackResult.events);
+  allLogs.push(...postAttackResult.logs);
+
+  // 추가 타격 처리 (repeatIfLast, repeatPerUnusedAttack 등)
+  if (postAttackResult.extraHits > 0) {
+    for (let i = 0; i < postAttackResult.extraHits; i++) {
+      const result = calculateSingleHit(currentAttacker, currentDefender, card, attackerName, battleContext);
+      currentAttacker = result.attacker;
+      currentDefender = result.defender;
+      totalDealt += result.damage;
+      totalTaken += result.damageTaken || 0;
+      allEvents.push(...result.events);
+      allLogs.push(...result.logs);
+    }
   }
 
   return {
@@ -313,9 +372,10 @@ export function applyAttack(attacker, defender, card, attackerName) {
  * @param {Object} state - 전체 전투 상태 { player, enemy, log }
  * @param {string} actor - 'player' 또는 'enemy'
  * @param {Object} card - 사용할 카드
+ * @param {Object} battleContext - 전투 컨텍스트 (special 효과용)
  * @returns {Object} - { dealt, taken, events, updatedState }
  */
-export function applyAction(state, actor, card) {
+export function applyAction(state, actor, card, battleContext = {}) {
   const A = actor === 'player' ? state.player : state.enemy;
   const B = actor === 'player' ? state.enemy : state.player;
 
@@ -337,7 +397,7 @@ export function applyAction(state, actor, card) {
   }
 
   if (card.type === 'attack') {
-    result = applyAttack(A, B, card, actor);
+    result = applyAttack(A, B, card, actor, battleContext);
     const actorKey = actor;
     const defenderKey = actor === 'player' ? 'enemy' : 'player';
     const updatedState = {
