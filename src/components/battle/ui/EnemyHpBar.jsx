@@ -50,13 +50,13 @@ export const EnemyHpBar = ({
                   const showDamage = (battle.phase === 'select' || battle.phase === 'respond') && previewDamage.value > 0;
                   return (
                   <div className={enemyHit ? 'hit-animation' : ''} style={{ color: '#f87171', fontSize: '1.25rem', fontWeight: 'bold', textAlign: 'right', transition: 'opacity 0.4s ease, transform 0.4s ease', opacity: soulShatter ? 0 : 1, transform: soulShatter ? 'scale(0.9)' : 'scale(1)', position: 'absolute', top: frozenOrder ? '-35px' : '-20px', right: '-200px', width: '280px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '8px' }}>
-                    {blockText && <span className={enemyBlockAnim ? 'block-animation' : ''} style={{ color: '#60a5fa' }}>🛡️{blockText}</span>}
-                    <span>❤️ {hpText}</span>
                     {showDamage && (
                       <span className={`${previewDamage.lethal ? 'lethal' : ''} ${previewDamage.overkill ? 'overkill' : ''}`} style={{ color: '#fbbf24' }}>
                         🗡️-{previewDamage.value}{previewDamage.lethal && (previewDamage.overkill ? '☠️' : '💀')}
                       </span>
                     )}
+                    {blockText && <span className={enemyBlockAnim ? 'block-animation' : ''} style={{ color: '#60a5fa' }}>🛡️{blockText}</span>}
+                    <span>❤️ {hpText}</span>
                   </div>
                 );
                 })()}
