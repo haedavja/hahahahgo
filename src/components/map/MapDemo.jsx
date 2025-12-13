@@ -819,7 +819,84 @@ export function MapDemo() {
             </div>
 
             {/* 자아 형성 모드 */}
-            {egoFormMode && (
+            {egoFormMode && (() => {
+              // 선택된 개성으로 자아 미리보기 계산
+              const selectedTraitNames = selectedTraitsForEgo.map(idx => playerTraits[idx]);
+              const traitCounts = selectedTraitNames.reduce((acc, t) => {
+                acc[t] = (acc[t] || 0) + 1;
+                return acc;
+              }, {});
+
+              const egoRules = [
+                { ego: '헌신', parts: ['열정적', '용맹함'], emoji: '💪' },
+                { ego: '지략', parts: ['냉철함', '용맹함'], emoji: '🧠' },
+                { ego: '추격', parts: ['철저함', '용맹함'], emoji: '💨' },
+                { ego: '역동', parts: ['활력적', '용맹함'], emoji: '🌟' },
+                { ego: '결의', parts: ['굳건함', '냉철함'], emoji: '❤️' },
+                { ego: '추진', parts: ['굳건함', '활력적'], emoji: '💪' },
+                { ego: '신념', parts: ['굳건함', '열정적'], emoji: '✨' },
+                { ego: '완성', parts: ['굳건함', '철저함'], emoji: '💎' },
+                { ego: '분석', parts: ['냉철함', '열정적'], emoji: '👁️' },
+                { ego: '실행', parts: ['냉철함', '철저함'], emoji: '⏱️' },
+                { ego: '정열', parts: ['활력적', '열정적'], emoji: '🔥' },
+                { ego: '지배', parts: ['활력적', '철저함'], emoji: '❄️' },
+              ];
+
+              const traitEffectDesc = {
+                '용맹함': '힘 +1',
+                '굳건함': '체력 +10',
+                '냉철함': '통찰 +1',
+                '철저함': '보조슬롯 +1',
+                '열정적': '속도 +5',
+                '활력적': '행동력 +1',
+              };
+
+              const reflectionDesc = {
+                '헌신': '공세 획득',
+                '지략': '수세 획득',
+                '추격': '흐릿함 획득',
+                '역동': '행동력 +1',
+                '결의': '체력 2% 회복',
+                '추진': '힘 +1',
+                '신념': '면역 +1',
+                '완성': '에테르 1.5배',
+                '분석': '통찰 +1',
+                '실행': '타임라인 +5',
+                '정열': '민첩 +1',
+                '지배': '적 동결',
+              };
+
+              let previewEgo = null;
+              let previewEmoji = '';
+              let bestScore = 0;
+              for (const { ego, parts, emoji } of egoRules) {
+                const score = (traitCounts[parts[0]] || 0) + (traitCounts[parts[1]] || 0);
+                if (score > bestScore) {
+                  bestScore = score;
+                  previewEgo = ego;
+                  previewEmoji = emoji;
+                }
+              }
+
+              // 효과 합산
+              const effectSummary = {};
+              for (const trait of selectedTraitNames) {
+                const desc = traitEffectDesc[trait];
+                if (desc) {
+                  effectSummary[desc] = (effectSummary[desc] || 0) + 1;
+                }
+              }
+              const effectText = Object.entries(effectSummary)
+                .map(([effect, count]) => {
+                  const match = effect.match(/(.+?)([+-]?\d+)/);
+                  if (match) {
+                    return `${match[1]}${parseInt(match[2]) * count > 0 ? '+' : ''}${parseInt(match[2]) * count}`;
+                  }
+                  return `${effect} x${count}`;
+                })
+                .join(', ');
+
+              return (
               <div style={{ marginTop: "16px", padding: "12px", background: "rgba(253, 230, 138, 0.1)", borderRadius: "8px", border: "1px solid rgba(253, 230, 138, 0.3)" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
                   <strong style={{ color: "#fde68a" }}>✨ 자아 형성 - 개성 5개 선택</strong>
@@ -827,7 +904,6 @@ export function MapDemo() {
                 </div>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginBottom: "12px" }}>
                   {playerTraits.map((trait, idx) => {
-                    const selectedCount = selectedTraitsForEgo.filter((_, i) => selectedTraitsForEgo[i] === trait && playerTraits.slice(0, idx + 1).filter(t => t === trait).length > selectedTraitsForEgo.slice(0, selectedTraitsForEgo.indexOf(trait, selectedTraitsForEgo.lastIndexOf(trait)) + 1).filter(t => t === trait).length).length;
                     const isSelected = selectedTraitsForEgo.includes(idx);
                     const canSelect = !isSelected && selectedTraitsForEgo.length < 5;
                     return (
@@ -853,6 +929,37 @@ export function MapDemo() {
                     );
                   })}
                 </div>
+
+                {/* 자아 미리보기 */}
+                {selectedTraitsForEgo.length > 0 && (
+                  <div style={{
+                    marginBottom: "12px",
+                    padding: "10px",
+                    background: "rgba(15, 23, 42, 0.8)",
+                    borderRadius: "6px",
+                    border: previewEgo ? "1px solid rgba(134, 239, 172, 0.3)" : "1px solid rgba(100, 116, 139, 0.3)"
+                  }}>
+                    <div style={{ fontSize: "12px", color: "#9ca3af", marginBottom: "4px" }}>미리보기</div>
+                    {previewEgo ? (
+                      <>
+                        <div style={{ fontSize: "16px", color: "#fde68a", fontWeight: "bold" }}>
+                          {previewEmoji} {previewEgo}
+                        </div>
+                        <div style={{ fontSize: "13px", color: "#86efac", marginTop: "4px" }}>
+                          효과: {effectText || '없음'}
+                        </div>
+                        <div style={{ fontSize: "13px", color: "#7dd3fc", marginTop: "2px" }}>
+                          성찰: 매 턴 확률로 {reflectionDesc[previewEgo]}
+                        </div>
+                      </>
+                    ) : (
+                      <div style={{ fontSize: "14px", color: "#fbbf24" }}>
+                        조합에 해당하는 자아 없음 (기본: 각성)
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 <div style={{ display: "flex", gap: "8px" }}>
                   <button
                     className="btn"
@@ -878,7 +985,8 @@ export function MapDemo() {
                   </button>
                 </div>
               </div>
-            )}
+              );
+            })()}
 
             <div style={{ display: "flex", gap: "10px", marginTop: "12px" }}>
               <button className="btn" onClick={() => { closeRest(); setEgoFormMode(false); setSelectedTraitsForEgo([]); }}>닫기</button>
