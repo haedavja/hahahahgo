@@ -48,6 +48,7 @@ import { playTurnEndRelicAnimations, applyTurnEndRelicEffectsToNextTurn } from "
 import { startEtherCalculationAnimationSequence } from "./utils/etherCalculationAnimation";
 import { renderRarityBadge, renderNameWithBadge, getCardDisplayRarity } from "./utils/cardRenderingUtils";
 import { startEnemyEtherAnimation } from "./utils/enemyEtherAnimation";
+import { processQueueCollisions } from "./utils/cardSpecialEffects";
 import { processEtherTransfer } from "./utils/etherTransferProcessing";
 import { processVictoryDefeatTransition } from "./utils/victoryDefeatTransition";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
@@ -1402,7 +1403,11 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       addLog(`❄️ 빙결 효과 발동: 플레이어 카드 우선!${newCount > 0 ? ` (${newCount}턴 남음)` : ''}`);
     }
 
-    console.log('[beginResolveFromRespond] 최종 큐 순서:', newQ.map(x => x.actor));
+    // destroyOnCollision 충돌 처리 (박치기 등)
+    const collisionResult = processQueueCollisions(newQ, addLog);
+    const finalQ = collisionResult.filteredQueue;
+
+    console.log('[beginResolveFromRespond] 최종 큐 순서:', finalQ.map(x => x.actor));
 
     // 이전 턴의 에테르 애니메이션 상태 초기화
     actions.setEtherCalcPhase(null);
@@ -1430,7 +1435,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     }
 
     playProceedSound(); // 진행 버튼 사운드 재생
-    actions.setQueue(newQ);
+    actions.setQueue(finalQ);
     actions.setQIndex(0);
     console.log('[DEBUG] About to setPhase to resolve');
     actions.setPhase('resolve');

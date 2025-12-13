@@ -229,6 +229,51 @@ export function processCollisionSpecials({
 }
 
 /**
+ * 큐에서 충돌 감지 및 적 카드 파괴 처리
+ * @param {Array} queue - 정렬된 큐 배열 (sp 값 포함)
+ * @param {Function} addLog - 로그 추가 함수
+ * @returns {Object} { filteredQueue, destroyedCards, logs }
+ */
+export function processQueueCollisions(queue, addLog) {
+  const destroyedCards = [];
+  const logs = [];
+
+  // destroyOnCollision 특성을 가진 플레이어 카드 찾기
+  const playerCardsWithCollision = queue.filter(
+    item => item.actor === 'player' && hasSpecial(item.card, 'destroyOnCollision')
+  );
+
+  if (playerCardsWithCollision.length === 0) {
+    return { filteredQueue: queue, destroyedCards, logs };
+  }
+
+  // 적 카드와의 충돌 감지
+  const cardsToRemove = new Set();
+
+  for (const playerItem of playerCardsWithCollision) {
+    // 같은 sp 값을 가진 적 카드 찾기
+    const collidingEnemyCards = queue.filter(
+      item => item.actor === 'enemy' && item.sp === playerItem.sp
+    );
+
+    for (const enemyItem of collidingEnemyCards) {
+      if (!cardsToRemove.has(enemyItem)) {
+        cardsToRemove.add(enemyItem);
+        destroyedCards.push(enemyItem.card);
+        const msg = `💥 ${playerItem.card.name}: 타임라인 충돌! ${enemyItem.card?.name || '적 카드'} 파괴!`;
+        logs.push(msg);
+        if (addLog) addLog(msg);
+      }
+    }
+  }
+
+  // 파괴된 카드 제외한 큐 반환
+  const filteredQueue = queue.filter(item => !cardsToRemove.has(item));
+
+  return { filteredQueue, destroyedCards, logs };
+}
+
+/**
  * 방어력 무시 여부 확인
  */
 export function shouldIgnoreBlock(card) {
