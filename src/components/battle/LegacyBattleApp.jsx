@@ -684,8 +684,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     actions.setQueue([]);
     actions.setQIndex(0);
     actions.setFixedOrder(null);
-    // 새로운 적으로 전환 시 턴 시작 처리 플래그 리셋
-    turnStartProcessedRef.current = false;
+    // 참고: turnStartProcessedRef는 player init에서 이미 리셋됨
+    // 여기서 다시 리셋하면 턴 시작 효과가 두 번 발동됨
     prevRevealLevelRef.current = 0;
     actions.setPhase('select');
     // eslint-disable-next-line react-hooks/exhaustive-deps
