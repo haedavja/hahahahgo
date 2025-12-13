@@ -10,7 +10,7 @@ import { ITEMS, ITEM_IDS } from '../../data/items';
  * 개발자 도구 오버레이
  * Alt+D로 토글
  */
-export function DevTools({ isOpen, onClose }) {
+export function DevTools({ isOpen, onClose, useNewDungeon, setUseNewDungeon }) {
   const [activeTab, setActiveTab] = useState('resources');
 
   const {
@@ -162,6 +162,8 @@ export function DevTools({ isOpen, onClose }) {
             selectNode={selectNode}
             devClearAllNodes={devClearAllNodes}
             devTeleportToNode={devTeleportToNode}
+            useNewDungeon={useNewDungeon}
+            setUseNewDungeon={setUseNewDungeon}
           />
         )}
         {activeTab === 'battle' && (
@@ -371,7 +373,7 @@ function ResourcesTab({ resources, setResources, devOpenRest, awakenAtRest, clos
 }
 
 // 맵 관리 탭
-function MapTab({ map, mapRisk, setMapRisk, selectNode, devClearAllNodes, devTeleportToNode }) {
+function MapTab({ map, mapRisk, setMapRisk, selectNode, devClearAllNodes, devTeleportToNode, useNewDungeon, setUseNewDungeon }) {
   const currentNode = map?.nodes?.find(n => n.id === map.currentNodeId);
   const [selectedNodeId, setSelectedNodeId] = useState('');
 
@@ -560,6 +562,40 @@ function MapTab({ map, mapRisk, setMapRisk, selectNode, devClearAllNodes, devTel
               {nodeEmojis[node.type] || '📍'} {node.id.split('-')[1] || node.id}
             </button>
           ))}
+        </div>
+      </div>
+
+      {/* 새 던전 시스템 토글 */}
+      <div style={{
+        marginTop: '16px',
+        padding: '12px',
+        background: '#0f172a',
+        borderRadius: '8px',
+        border: '1px solid #334155',
+      }}>
+        <h4 style={{ color: '#cbd5e1', fontSize: '0.875rem', marginBottom: '8px' }}>☠️ 던전 시스템</h4>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <label style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            cursor: 'pointer',
+          }}>
+            <input
+              type="checkbox"
+              checked={useNewDungeon || false}
+              onChange={(e) => setUseNewDungeon && setUseNewDungeon(e.target.checked)}
+              style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+            />
+            <span style={{ color: useNewDungeon ? '#22c55e' : '#94a3b8', fontSize: '0.875rem' }}>
+              새 던전 시스템 (그래프 기반)
+            </span>
+          </label>
+        </div>
+        <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '8px' }}>
+          {useNewDungeon
+            ? '✅ 메트로배니아 스타일 양방향 이동, 기로 시스템 활성화'
+            : '기존 선형 던전 시스템 사용 중'}
         </div>
       </div>
     </div>

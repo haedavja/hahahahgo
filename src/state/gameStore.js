@@ -527,6 +527,93 @@ export const useGameStore = create((set, get) => ({
       };
     }),
 
+  // === 새 던전 시스템 (그래프 기반) ===
+
+  // 던전 노드 이동
+  navigateDungeonNode: (targetNodeId) =>
+    set((state) => {
+      if (!state.activeDungeon?.dungeonData) return state;
+
+      const dungeon = state.activeDungeon.dungeonData;
+      const currentNode = dungeon.nodes.find(n => n.id === dungeon.currentNodeId);
+      const targetNode = dungeon.nodes.find(n => n.id === targetNodeId);
+
+      if (!currentNode || !targetNode) return state;
+
+      // 연결된 노드인지 확인
+      if (!currentNode.connections.includes(targetNodeId)) return state;
+
+      // 시간 증가
+      const newTimeElapsed = (dungeon.timeElapsed || 0) + 1;
+
+      // 노드 방문 처리
+      const updatedNodes = dungeon.nodes.map(n =>
+        n.id === targetNodeId ? { ...n, visited: true } : n
+      );
+
+      return {
+        ...state,
+        activeDungeon: {
+          ...state.activeDungeon,
+          dungeonData: {
+            ...dungeon,
+            currentNodeId: targetNodeId,
+            timeElapsed: newTimeElapsed,
+            nodes: updatedNodes,
+          },
+        },
+      };
+    }),
+
+  // 던전 노드 클리어
+  clearDungeonNode: (nodeId) =>
+    set((state) => {
+      if (!state.activeDungeon?.dungeonData) return state;
+
+      const dungeon = state.activeDungeon.dungeonData;
+      const updatedNodes = dungeon.nodes.map(n =>
+        n.id === nodeId ? { ...n, cleared: true, event: null } : n
+      );
+
+      return {
+        ...state,
+        activeDungeon: {
+          ...state.activeDungeon,
+          dungeonData: {
+            ...dungeon,
+            nodes: updatedNodes,
+          },
+        },
+      };
+    }),
+
+  // 시간 페널티 적용 (에테르 감소)
+  applyDungeonTimePenalty: (etherDecay) =>
+    set((state) => {
+      if (etherDecay <= 0) return state;
+
+      const currentEther = state.resources?.etherPts || 0;
+      return {
+        ...state,
+        resources: {
+          ...state.resources,
+          etherPts: Math.max(0, currentEther - etherDecay),
+        },
+      };
+    }),
+
+  // 플레이어 피해 적용
+  applyDamage: (damage) =>
+    set((state) => {
+      const currentHp = state.playerHp || 0;
+      const newHp = Math.max(0, currentHp - damage);
+
+      return {
+        ...state,
+        playerHp: newHp,
+      };
+    }),
+
   chooseEvent: (choiceId) =>
     set((state) => {
       const active = state.activeEvent;
