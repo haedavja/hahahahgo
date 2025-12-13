@@ -49,6 +49,8 @@ import { startEtherCalculationAnimationSequence } from "./utils/etherCalculation
 import { renderRarityBadge, renderNameWithBadge, getCardDisplayRarity } from "./utils/cardRenderingUtils";
 import { startEnemyEtherAnimation } from "./utils/enemyEtherAnimation";
 import { processQueueCollisions } from "./utils/cardSpecialEffects";
+import { processReflections, initReflectionState, resetTurnReflectionEffects, decreaseEnemyFreeze } from "../../lib/reflectionEffects";
+import { convertTraitsToIds } from "../../data/reflections";
 import { processEtherTransfer } from "./utils/etherTransferProcessing";
 import { processVictoryDefeatTransition } from "./utils/victoryDefeatTransition";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
@@ -105,6 +107,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const devDulledLevel = useGameStore((state) => state.devDulledLevel ?? null);
   const devForcedAnomalies = useGameStore((state) => state.devForcedAnomalies ?? null);
   const mapRisk = useGameStore((state) => state.mapRisk || 0);
+  const playerTraits = useGameStore((state) => state.playerTraits || []);
+  const playerEgos = useGameStore((state) => state.playerEgos || []);
   const mergeRelicOrder = useCallback((relicList = [], saved = []) => {
     const savedSet = new Set(saved);
     const merged = [];
@@ -249,6 +253,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       mainSpecialOnly: false,
       subSpecialBoost: 0,
     },
+    reflectionState: initReflectionState(),
     insightBadge: {
       level: safeInitialPlayer.insight || 0,
       dir: 'up',
@@ -836,12 +841,41 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       }
     });
 
+    // === 성찰 효과 처리 (자아가 있을 때만) ===
+    let reflectionResult = { updatedPlayer: player, updatedBattleState: battle.reflectionState, effects: [], logs: [] };
+    const hasEgo = playerEgos && playerEgos.length > 0;
+    if (hasEgo) {
+      const traitIds = convertTraitsToIds(playerTraits);
+      const playerForReflection = {
+        ...player,
+        hasEgo: true,
+        traits: traitIds,
+        tokens: player.tokens || { usage: [], turn: [], permanent: [] }
+      };
+      reflectionResult = processReflections(playerForReflection, battle.reflectionState);
+
+      console.log("[턴 시작 성찰 효과]", {
+        hasEgo,
+        traits: traitIds,
+        effects: reflectionResult.effects.map(e => e.reflectionId),
+        bonusEnergy: reflectionResult.updatedBattleState.bonusEnergy,
+        timelineBonus: reflectionResult.updatedBattleState.timelineBonus,
+        enemyFreezeTurns: reflectionResult.updatedBattleState.enemyFreezeTurns
+      });
+
+      // 성찰 발동 로그
+      reflectionResult.logs.forEach(log => addLog(log));
+    }
+    // 성찰 상태 업데이트
+    actions.setReflectionState(reflectionResult.updatedBattleState);
+
     // 특성 효과로 인한 에너지 보너스/페널티 적용
     const passiveRelicEffects = calculatePassiveEffects(orderedRelicList);
     // baseMaxEnergy는 초기 payload에서 계산된 값 (활력 각성 포함)
     // safeInitialPlayer.maxEnergy = 6 + playerEnergyBonus + passiveEffects.maxEnergy
     const baseEnergy = baseMaxEnergy;
-    const energyBonus = (nextTurnEffects.bonusEnergy || 0) + turnStartRelicEffects.energy;
+    const reflectionEnergyBonus = reflectionResult.updatedBattleState.bonusEnergy || 0;
+    const energyBonus = (nextTurnEffects.bonusEnergy || 0) + turnStartRelicEffects.energy + reflectionEnergyBonus;
     const energyPenalty = nextTurnEffects.energyPenalty || 0;
     const finalEnergy = Math.max(0, baseEnergy + energyBonus - energyPenalty);
 
@@ -854,10 +888,20 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       finalEnergy
     });
 
-    // 방어력과 체력 회복 적용
-    const newHp = Math.min(player.maxHp, player.hp + turnStartRelicEffects.heal);
+    // 방어력과 체력 회복 적용 (성찰 회복 효과 포함)
+    const reflectionHealedHp = reflectionResult.updatedPlayer.hp || player.hp;
+    const newHp = Math.min(player.maxHp, reflectionHealedHp + turnStartRelicEffects.heal);
     const newBlock = (player.block || 0) + turnStartRelicEffects.block;
     const newDef = turnStartRelicEffects.block > 0; // 방어력이 있으면 def 플래그 활성화
+    // 성찰 효과로 얻은 토큰 적용
+    const newTokens = reflectionResult.updatedPlayer.tokens || player.tokens || { usage: [], turn: [], permanent: [] };
+    // 타임라인 보너스 적용 (성찰 실행 효과)
+    const reflectionTimelineBonus = reflectionResult.updatedBattleState.timelineBonus || 0;
+    const newMaxSpeed = (player.maxSpeed || DEFAULT_PLAYER_MAX_SPEED) + reflectionTimelineBonus;
+    // 에테르 배율 적용 (성찰 완성 효과)
+    const reflectionEtherMultiplier = reflectionResult.updatedBattleState.etherMultiplier || 1;
+    const currentEtherMultiplier = player.etherMultiplier || 1;
+    const newEtherMultiplier = currentEtherMultiplier * reflectionEtherMultiplier;
     actions.setPlayer({
       ...player,
       hp: newHp,
@@ -865,9 +909,12 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       def: newDef,
       energy: finalEnergy,
       maxEnergy: baseMaxEnergy,
+      maxSpeed: newMaxSpeed, // 타임라인 보너스 적용
+      etherMultiplier: newEtherMultiplier, // 에테르 배율 적용
       etherOverdriveActive: false,
       etherOverflow: 0,
-      strength: player.strength || 0 // 힘 유지
+      strength: player.strength || 0, // 힘 유지
+      tokens: newTokens // 성찰 토큰 적용
     });
 
     // 로그 추가
@@ -882,6 +929,17 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     }
     if (energyBonus > 0) {
       addLog(`⚡ 다음턴 보너스 행동력: +${energyBonus}`);
+    }
+
+    // 성찰 지배 효과: 적 타임라인 동결
+    const reflectionFreezeTurns = reflectionResult.updatedBattleState.enemyFreezeTurns || 0;
+    if (reflectionFreezeTurns > 0) {
+      const currentFrozenOrder = battle.frozenOrder || 0;
+      const newFrozenOrder = Math.max(currentFrozenOrder, reflectionFreezeTurns);
+      actions.setFrozenOrder(newFrozenOrder);
+      if (battleRef.current) {
+        battleRef.current.frozenOrder = newFrozenOrder;
+      }
     }
 
     // 매 턴 시작 시 새로운 손패 생성 (캐릭터 빌드 및 특성 효과 적용)

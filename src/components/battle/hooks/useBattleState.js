@@ -192,6 +192,7 @@ export function useBattleState(initialStateOverrides = {}) {
     setPostCombatOptions: (options) => dispatch({ type: ACTIONS.SET_POST_COMBAT_OPTIONS, payload: options }),
     setNextTurnEffects: (effects) => dispatch({ type: ACTIONS.SET_NEXT_TURN_EFFECTS, payload: effects }),
     updateNextTurnEffects: (updates) => dispatch({ type: ACTIONS.UPDATE_NEXT_TURN_EFFECTS, payload: updates }),
+    setReflectionState: (state) => dispatch({ type: ACTIONS.SET_REFLECTION_STATE, payload: state }),
     setOrderedRelics: (relics) => dispatch({ type: ACTIONS.SET_ORDERED_RELICS, payload: relics }),
     incrementQIndex: () => dispatch({ type: ACTIONS.INCREMENT_Q_INDEX }),
     updateLog: (log) => dispatch({ type: ACTIONS.SET_LOG, payload: log }),

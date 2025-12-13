@@ -240,6 +240,9 @@ export const ACTIONS = {
   SET_NEXT_TURN_EFFECTS: 'SET_NEXT_TURN_EFFECTS',
   UPDATE_NEXT_TURN_EFFECTS: 'UPDATE_NEXT_TURN_EFFECTS',
 
+  // === 성찰 상태 ===
+  SET_REFLECTION_STATE: 'SET_REFLECTION_STATE',
+
   // === 애니메이션 ===
   SET_PLAYER_HIT: 'SET_PLAYER_HIT',
   SET_ENEMY_HIT: 'SET_ENEMY_HIT',
@@ -462,6 +465,10 @@ export function battleReducer(state, action) {
           ...action.payload
         }
       };
+
+    // === 성찰 상태 ===
+    case ACTIONS.SET_REFLECTION_STATE:
+      return { ...state, reflectionState: action.payload };
 
     // === 애니메이션 ===
     case ACTIONS.SET_PLAYER_HIT:

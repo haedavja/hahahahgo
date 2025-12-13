@@ -6,6 +6,28 @@
  * 개성 조합에 따라 매 턴 확률적으로 긍정 효과 발동
  */
 
+// 한국어 개성 이름 → 영어 ID 매핑
+export const TRAIT_NAME_TO_ID = {
+  '용맹함': 'valiant',
+  '열정적': 'passionate',
+  '냉철함': 'calm',
+  '철저함': 'thorough',
+  '활력적': 'energetic',
+  '굳건함': 'steadfast'
+};
+
+/**
+ * 한국어 개성 이름 배열을 영어 ID 배열로 변환
+ * @param {string[]} koreanTraits - 한국어 개성 이름 배열
+ * @returns {string[]} 영어 개성 ID 배열
+ */
+export function convertTraitsToIds(koreanTraits) {
+  if (!koreanTraits || !Array.isArray(koreanTraits)) return [];
+  return koreanTraits
+    .map(trait => TRAIT_NAME_TO_ID[trait])
+    .filter(id => id); // 매핑되지 않은 값 제외
+}
+
 // 기본 개성 정의
 export const PERSONALITY_TRAITS = {
   valiant: {
