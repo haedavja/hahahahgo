@@ -703,8 +703,8 @@ export function DungeonExploration() {
     if (choice.repeatable) {
       const newAttempts = attemptCount + 1;
 
-      // 요구조건 확인
-      const canPass = checkRequirement(choice, attemptCount);
+      // 요구조건 확인 (현재 시도 횟수 기준)
+      const canPass = checkRequirement(choice, newAttempts);
 
       // 화면 흔들림 효과
       if (choice.screenEffect === 'shake') {
