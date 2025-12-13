@@ -101,7 +101,7 @@ export const REFLECTIONS = {
     id: 'devotion',
     name: '헌신',
     emoji: '💪',
-    description: '매 턴 50% 확률로 공세 획득',
+    description: '공세 획득',
     requires: ['passionate', 'valiant'],
     probability: 0.5,
     effect: {
@@ -114,7 +114,7 @@ export const REFLECTIONS = {
     id: 'strategy',
     name: '지략',
     emoji: '🧠',
-    description: '매 턴 50% 확률로 수세 획득',
+    description: '수세 획득',
     requires: ['calm', 'valiant'],
     probability: 0.5,
     effect: {
@@ -127,7 +127,7 @@ export const REFLECTIONS = {
     id: 'pursuit',
     name: '추격',
     emoji: '💨',
-    description: '매 턴 50% 확률로 흐릿함 획득',
+    description: '흐릿함 획득',
     requires: ['thorough', 'valiant'],
     probability: 0.5,
     effect: {
@@ -140,7 +140,7 @@ export const REFLECTIONS = {
     id: 'dynamism',
     name: '역동',
     emoji: '🌟',
-    description: '매 턴 50% 확률로 행동력 +1',
+    description: '행동력 +1',
     requires: ['energetic', 'valiant'],
     probability: 0.5,
     effect: {
@@ -154,7 +154,7 @@ export const REFLECTIONS = {
     id: 'resolve',
     name: '결의',
     emoji: '❤️',
-    description: '매 턴 30% 확률로 체력 2% 회복 (최대 4회)',
+    description: '체력 2% 회복 (최대 4회)',
     requires: ['steadfast', 'calm'],
     probability: 0.3,
     maxTriggers: 4,
@@ -167,7 +167,7 @@ export const REFLECTIONS = {
     id: 'drive',
     name: '추진',
     emoji: '💪',
-    description: '매 턴 30% 확률로 힘 +1',
+    description: '힘 +1',
     requires: ['steadfast', 'energetic'],
     probability: 0.3,
     effect: {
@@ -180,7 +180,7 @@ export const REFLECTIONS = {
     id: 'faith',
     name: '신념',
     emoji: '✨',
-    description: '매 턴 30% 확률로 면역 +1',
+    description: '면역 +1',
     requires: ['steadfast', 'passionate'],
     probability: 0.3,
     effect: {
@@ -193,7 +193,7 @@ export const REFLECTIONS = {
     id: 'completion',
     name: '완성',
     emoji: '💎',
-    description: '매 턴 30% 확률로 에테르 1.5배 획득',
+    description: '에테르 1.5배 획득',
     requires: ['steadfast', 'thorough'],
     probability: 0.3,
     effect: {
@@ -207,7 +207,7 @@ export const REFLECTIONS = {
     id: 'analysis',
     name: '분석',
     emoji: '👁️',
-    description: '매 턴 30% 확률로 통찰 +1',
+    description: '통찰 +1',
     requires: ['calm', 'passionate'],
     probability: 0.3,
     effect: {
@@ -220,7 +220,7 @@ export const REFLECTIONS = {
     id: 'execution',
     name: '실행',
     emoji: '⏱️',
-    description: '매 턴 30% 확률로 타임라인 +5',
+    description: '타임라인 +5',
     requires: ['calm', 'thorough'],
     probability: 0.3,
     effect: {
@@ -232,7 +232,7 @@ export const REFLECTIONS = {
     id: 'passion',
     name: '정열',
     emoji: '🔥',
-    description: '매 턴 30% 확률로 민첩 +1',
+    description: '민첩 +1',
     requires: ['energetic', 'passionate'],
     probability: 0.3,
     effect: {
@@ -245,7 +245,7 @@ export const REFLECTIONS = {
     id: 'dominance',
     name: '지배',
     emoji: '❄️',
-    description: '매 턴 30% 확률로 적 타임라인 동결',
+    description: '적 타임라인 동결',
     requires: ['energetic', 'thorough'],
     probability: 0.3,
     effect: {
