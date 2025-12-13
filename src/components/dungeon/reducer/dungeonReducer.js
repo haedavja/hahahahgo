@@ -14,6 +14,8 @@ export const ACTIONS = {
   SET_SHOW_CHARACTER: 'SET_SHOW_CHARACTER',
   SET_DUNGEON_SUMMARY: 'SET_DUNGEON_SUMMARY',
   SET_HOVERED_RELIC: 'SET_HOVERED_RELIC',
+  SET_CROSSROAD_MODAL: 'SET_CROSSROAD_MODAL',
+  SET_SCREEN_SHAKE: 'SET_SCREEN_SHAKE',
 
   // 복합 액션
   UPDATE_KEYS: 'UPDATE_KEYS',
@@ -31,6 +33,8 @@ export const createInitialState = (overrides = {}) => ({
   showCharacter: false,
   dungeonSummary: null,
   hoveredRelic: null,
+  crossroadModal: null,  // 기로 선택지 모달
+  screenShake: false,    // 화면 흔들림 효과
   ...overrides
 });
 
@@ -63,6 +67,12 @@ export const dungeonReducer = (state, action) => {
 
     case ACTIONS.SET_HOVERED_RELIC:
       return { ...state, hoveredRelic: action.payload };
+
+    case ACTIONS.SET_CROSSROAD_MODAL:
+      return { ...state, crossroadModal: action.payload };
+
+    case ACTIONS.SET_SCREEN_SHAKE:
+      return { ...state, screenShake: action.payload };
 
     // === 복합 액션 ===
     case ACTIONS.UPDATE_KEYS:

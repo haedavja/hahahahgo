@@ -23,6 +23,8 @@ export function useDungeonState(initialStateOverrides = {}) {
     setShowCharacter: (show) => dispatch({ type: ACTIONS.SET_SHOW_CHARACTER, payload: show }),
     setDungeonSummary: (summary) => dispatch({ type: ACTIONS.SET_DUNGEON_SUMMARY, payload: summary }),
     setHoveredRelic: (relicId) => dispatch({ type: ACTIONS.SET_HOVERED_RELIC, payload: relicId }),
+    setCrossroadModal: (modal) => dispatch({ type: ACTIONS.SET_CROSSROAD_MODAL, payload: modal }),
+    setScreenShake: (shake) => dispatch({ type: ACTIONS.SET_SCREEN_SHAKE, payload: shake }),
 
     // === 복합 액션 ===
     updateKeys: (keyUpdates) => dispatch({ type: ACTIONS.UPDATE_KEYS, payload: keyUpdates }),

@@ -6,6 +6,7 @@ import { CharacterSheet } from "../character/CharacterSheet";
 import { EtherBar } from "../battle/ui/EtherBar";
 import { RELICS, RELIC_RARITIES } from "../../data/relics";
 import { RELIC_RARITY_COLORS } from "../../lib/relics";
+import { OBSTACLE_TEMPLATES } from "../../data/dungeonNodes";
 import "./dungeon.css";
 
 // ========== 설정 ==========
@@ -58,12 +59,48 @@ const OBJECT_TYPES = {
       ctx.fillText("!", x, y - 40);
     },
   },
-  // 확장 포인트: 새로운 타입 추가 예시
-  // EVENT: {
-  //   id: "event", label: "?", canReuse: true, probRoom: 0.0, probCorridor: 0.0,
-  //   render: (ctx, x, y, used) => { ... }
-  // },
+  CROSSROAD: {
+    id: "crossroad",
+    label: "기로",
+    canReuse: true,  // 기로는 선택지를 통해 처리
+    probRoom: 0.0,
+    probCorridor: 0.0,  // 수동으로 배치
+    render: (ctx, x, y, used) => {
+      // 갈림길 표시 (돌 표지판 형태)
+      ctx.fillStyle = used ? "#555" : "#7f8c8d";
+      // 기둥
+      ctx.fillRect(x - 8, y - 60, 16, 60);
+      // 왼쪽 화살표
+      ctx.fillStyle = used ? "#666" : "#3498db";
+      ctx.beginPath();
+      ctx.moveTo(x - 35, y - 50);
+      ctx.lineTo(x - 10, y - 60);
+      ctx.lineTo(x - 10, y - 40);
+      ctx.closePath();
+      ctx.fill();
+      // 오른쪽 화살표
+      ctx.fillStyle = used ? "#666" : "#e74c3c";
+      ctx.beginPath();
+      ctx.moveTo(x + 35, y - 50);
+      ctx.lineTo(x + 10, y - 60);
+      ctx.lineTo(x + 10, y - 40);
+      ctx.closePath();
+      ctx.fill();
+      // 물음표
+      ctx.fillStyle = used ? "#888" : "#f1c40f";
+      ctx.font = "bold 24px Arial";
+      ctx.textAlign = "center";
+      ctx.fillText("?", x, y - 70);
+    },
+  },
 };
+
+// ========== 기로 템플릿 선택 ==========
+function getRandomCrossroadTemplate() {
+  const templates = Object.keys(OBSTACLE_TEMPLATES);
+  const key = templates[Math.floor(Math.random() * templates.length)];
+  return { ...OBSTACLE_TEMPLATES[key] };
+}
 
 // ========== 던전 생성 ==========
 function generateDungeon() {
@@ -72,12 +109,41 @@ function generateDungeon() {
 
   const segments = [];
 
+  // 기로 배치할 세그먼트 인덱스 (복도 중 1-2개)
+  const corridorIndices = [];
+  for (let i = 0; i < count; i++) {
+    if (i % 2 === 0 && i > 0 && i < count - 1) {  // 복도 세그먼트
+      corridorIndices.push(i);
+    }
+  }
+  // 랜덤하게 1-2개 선택
+  const crossroadCount = Math.min(corridorIndices.length, 1 + Math.floor(Math.random() * 2));
+  const crossroadSegments = new Set();
+  while (crossroadSegments.size < crossroadCount && corridorIndices.length > 0) {
+    const idx = Math.floor(Math.random() * corridorIndices.length);
+    crossroadSegments.add(corridorIndices[idx]);
+    corridorIndices.splice(idx, 1);
+  }
+
   for (let i = 0; i < count; i++) {
     const isRoom = i % 2 === 1;
     const width = isRoom ? CONFIG.ROOM_WIDTH : CONFIG.CORRIDOR_WIDTH;
 
     // 오브젝트 생성
     const objects = createObjects(isRoom, i);
+
+    // 기로 추가 (복도 세그먼트에)
+    if (crossroadSegments.has(i)) {
+      const template = getRandomCrossroadTemplate();
+      objects.push({
+        id: `crossroad_${i}`,
+        typeId: "crossroad",
+        x: 1500,  // 복도 중앙 부근
+        used: false,
+        template: template,  // 기로 템플릿 데이터
+        choiceState: {},     // 선택지 상태 (시도 횟수 등)
+      });
+    }
 
     segments.push({
       id: `seg_${i}`,
@@ -210,8 +276,15 @@ const OBJECT_HANDLERS = {
     });
   },
 
-  // 확장 포인트: 새로운 핸들러 추가
-  // event: (obj, context) => { ... },
+  // 기로 핸들러 - 선택지 모달 열기
+  crossroad: (obj, context) => {
+    // 기로 모달 열기
+    context.actions.setCrossroadModal({
+      obj,
+      template: obj.template,
+      choiceState: obj.choiceState || {},
+    });
+  },
 };
 
 // ========== 메인 컴포넌트 ==========
@@ -276,6 +349,13 @@ export function DungeonExploration() {
   const showCharacter = dungeon.showCharacter;
   const dungeonSummary = dungeon.dungeonSummary;
   const hoveredRelic = dungeon.hoveredRelic;
+  const crossroadModal = dungeon.crossroadModal;
+  const screenShake = dungeon.screenShake;
+
+  // 플레이어 스탯 가져오기 (기로 선택지 요구조건 체크용)
+  const playerStrength = useGameStore((s) => s.playerStrength) || 0;
+  const playerAgility = useGameStore((s) => s.playerAgility) || 0;
+  const playerInsight = useGameStore((s) => s.playerInsight) || 0;
 
 
   // 던전 중 획득한 자원 델타 (x값) - activeDungeon에서 가져옴 (재마운트 시에도 유지)
@@ -569,6 +649,153 @@ export function DungeonExploration() {
       skipDungeon();
     }
   };
+
+  // ========== 기로 선택지 처리 ==========
+
+  // 스탯 요구조건 충족 여부 확인
+  const checkRequirement = useCallback((choice, attemptCount = 0) => {
+    const req = choice.requirements || {};
+    const scaling = choice.scalingRequirement;
+
+    // 기본 요구조건 체크
+    if (req.strength && playerStrength < req.strength) return false;
+    if (req.agility && playerAgility < req.agility) return false;
+    if (req.insight && playerInsight < req.insight) return false;
+
+    // 스케일링 요구조건 체크 (시도 횟수에 따라 증가)
+    if (scaling) {
+      const requiredValue = scaling.baseValue + (scaling.increment * attemptCount);
+      const statValue = scaling.stat === 'strength' ? playerStrength :
+                        scaling.stat === 'agility' ? playerAgility :
+                        scaling.stat === 'insight' ? playerInsight : 0;
+      if (statValue < requiredValue) return false;
+    }
+
+    return true;
+  }, [playerStrength, playerAgility, playerInsight]);
+
+  // 선택지 실행
+  const executeChoice = useCallback((choice, choiceState) => {
+    if (!crossroadModal) return;
+
+    const { obj } = crossroadModal;
+    const attemptCount = choiceState[choice.id]?.attempts || 0;
+
+    // 반복 선택 가능한 선택지인 경우
+    if (choice.repeatable) {
+      const newAttempts = attemptCount + 1;
+
+      // 요구조건 확인
+      const canPass = checkRequirement(choice, attemptCount);
+
+      // 화면 흔들림 효과
+      if (choice.screenEffect === 'shake') {
+        actions.setScreenShake(true);
+        setTimeout(() => actions.setScreenShake(false), 200);
+      }
+
+      // 경고 체크
+      if (choice.warningAtAttempt && newAttempts === choice.warningAtAttempt) {
+        actions.setMessage(choice.warningText || '뭔가 이상한 기운이...');
+      }
+
+      // 최대 시도 횟수 도달 또는 요구조건 충족
+      if (newAttempts >= (choice.maxAttempts || 5) || canPass) {
+        // 성공/실패 판정
+        const isSuccess = canPass || Math.random() < (newAttempts / choice.maxAttempts);
+        const outcome = isSuccess ? choice.outcomes.success : choice.outcomes.failure;
+
+        // 결과 적용
+        applyChoiceOutcome(outcome, obj);
+
+        // 진행 텍스트가 있으면 마지막 것 표시
+        if (choice.progressText && isSuccess) {
+          actions.setMessage(choice.progressText[choice.progressText.length - 1] || outcome.text);
+        } else {
+          actions.setMessage(outcome.text);
+        }
+
+        // 기로 완료 처리
+        obj.used = true;
+        actions.setCrossroadModal(null);
+      } else {
+        // 진행 중 - 진행 텍스트 표시
+        const progressIdx = Math.min(newAttempts - 1, (choice.progressText?.length || 1) - 1);
+        const progressMsg = choice.progressText?.[progressIdx] || `시도 ${newAttempts}/${choice.maxAttempts}`;
+        actions.setMessage(progressMsg);
+
+        // 선택지 상태 업데이트
+        const newChoiceState = {
+          ...choiceState,
+          [choice.id]: { attempts: newAttempts },
+        };
+        obj.choiceState = newChoiceState;
+        actions.setCrossroadModal({
+          ...crossroadModal,
+          choiceState: newChoiceState,
+        });
+      }
+    } else {
+      // 일회성 선택지
+      const outcome = choice.outcomes.success;
+      applyChoiceOutcome(outcome, obj);
+      actions.setMessage(outcome.text);
+
+      // 기로 완료 처리
+      obj.used = true;
+      actions.setCrossroadModal(null);
+    }
+  }, [crossroadModal, checkRequirement, actions]);
+
+  // 선택지 결과 적용
+  const applyChoiceOutcome = useCallback((outcome, obj) => {
+    if (!outcome?.effect) return;
+
+    const effect = outcome.effect;
+
+    // 피해 적용
+    if (effect.damage) {
+      // playerHp 감소 (gameStore에서 처리)
+      const currentHp = useGameStore.getState().playerHp || 50;
+      useGameStore.setState({ playerHp: Math.max(0, currentHp - effect.damage) });
+    }
+
+    // 보상 적용
+    if (effect.reward) {
+      const newDeltas = { ...dungeonDeltas };
+      if (effect.reward.gold) {
+        const gold = typeof effect.reward.gold === 'object'
+          ? effect.reward.gold.min + Math.floor(Math.random() * (effect.reward.gold.max - effect.reward.gold.min + 1))
+          : effect.reward.gold;
+        newDeltas.gold += gold;
+      }
+      if (effect.reward.loot) {
+        newDeltas.loot += effect.reward.loot;
+      }
+      setDungeonDeltas(newDeltas);
+    }
+
+    // 전투 트리거
+    if (effect.triggerCombat) {
+      const enemyHp = effect.triggerCombat === 'mimic' ? 40 : 25;
+      preBattleState.current = {
+        segmentIndex,
+        playerX: obj.x,
+      };
+      startBattle({
+        nodeId: `dungeon-crossroad-${segmentIndex}`,
+        kind: "combat",
+        label: effect.triggerCombat === 'mimic' ? "미믹" : "습격",
+        enemyHp,
+        rewards: {},
+      });
+    }
+  }, [dungeonDeltas, setDungeonDeltas, segmentIndex, startBattle]);
+
+  // 기로 모달 닫기
+  const closeCrossroadModal = useCallback(() => {
+    actions.setCrossroadModal(null);
+  }, [actions]);
 
   return (
     <div style={{
@@ -892,6 +1119,136 @@ export function DungeonExploration() {
               }}
             >
               확인
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* 기로 선택지 모달 */}
+      {crossroadModal && (
+        <div style={{
+          position: "fixed",
+          inset: 0,
+          background: "rgba(0,0,0,0.85)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          zIndex: 200,
+          animation: screenShake ? "shake 0.2s ease-in-out" : undefined,
+        }}>
+          <div style={{
+            background: "linear-gradient(145deg, #1e293b, #0f172a)",
+            padding: "32px",
+            borderRadius: "16px",
+            border: "2px solid #475569",
+            boxShadow: "0 20px 60px rgba(0,0,0,0.8)",
+            maxWidth: "500px",
+            width: "90%",
+          }}>
+            {/* 제목 */}
+            <h3 style={{
+              margin: "0 0 8px",
+              fontSize: "24px",
+              color: "#f1c40f",
+              textAlign: "center",
+            }}>
+              {crossroadModal.template?.name || "기로"}
+            </h3>
+
+            {/* 설명 */}
+            <p style={{
+              margin: "0 0 24px",
+              fontSize: "15px",
+              color: "#94a3b8",
+              textAlign: "center",
+              lineHeight: 1.6,
+            }}>
+              {crossroadModal.template?.description || "선택의 순간입니다."}
+            </p>
+
+            {/* 선택지 목록 */}
+            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+              {crossroadModal.template?.choices?.map((choice) => {
+                const attemptCount = crossroadModal.choiceState[choice.id]?.attempts || 0;
+                const canSelect = choice.repeatable || attemptCount === 0;
+                const meetsRequirement = checkRequirement(choice, attemptCount);
+
+                // 스케일링 요구조건이 있으면 표시
+                let requirementText = "";
+                if (choice.scalingRequirement) {
+                  const req = choice.scalingRequirement;
+                  const requiredValue = req.baseValue + (req.increment * attemptCount);
+                  const statName = req.stat === 'strength' ? '힘' :
+                                   req.stat === 'agility' ? '민첩' : '통찰';
+                  const currentValue = req.stat === 'strength' ? playerStrength :
+                                       req.stat === 'agility' ? playerAgility : playerInsight;
+                  requirementText = `${statName} ${currentValue}/${requiredValue}`;
+                }
+
+                return (
+                  <button
+                    key={choice.id}
+                    onClick={() => canSelect && executeChoice(choice, crossroadModal.choiceState)}
+                    disabled={!canSelect}
+                    style={{
+                      padding: "16px 20px",
+                      background: canSelect
+                        ? (meetsRequirement ? "rgba(34, 197, 94, 0.15)" : "rgba(59, 130, 246, 0.15)")
+                        : "rgba(100, 116, 139, 0.1)",
+                      border: `2px solid ${canSelect
+                        ? (meetsRequirement ? "#22c55e" : "#3b82f6")
+                        : "#475569"}`,
+                      borderRadius: "10px",
+                      color: canSelect ? "#e2e8f0" : "#64748b",
+                      fontSize: "15px",
+                      cursor: canSelect ? "pointer" : "not-allowed",
+                      textAlign: "left",
+                      transition: "all 0.2s",
+                      opacity: canSelect ? 1 : 0.5,
+                    }}
+                  >
+                    <div style={{ fontWeight: "600", marginBottom: "4px" }}>
+                      {choice.text}
+                    </div>
+                    {requirementText && (
+                      <div style={{
+                        fontSize: "12px",
+                        color: meetsRequirement ? "#22c55e" : "#f59e0b",
+                        marginTop: "4px",
+                      }}>
+                        {meetsRequirement ? "✓ " : "⚠ "}{requirementText}
+                      </div>
+                    )}
+                    {choice.repeatable && attemptCount > 0 && (
+                      <div style={{
+                        fontSize: "12px",
+                        color: "#94a3b8",
+                        marginTop: "4px",
+                      }}>
+                        시도: {attemptCount}/{choice.maxAttempts || 5}
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* 닫기 버튼 */}
+            <button
+              onClick={closeCrossroadModal}
+              style={{
+                marginTop: "20px",
+                width: "100%",
+                padding: "12px",
+                background: "#334155",
+                border: "none",
+                borderRadius: "8px",
+                color: "#94a3b8",
+                fontSize: "14px",
+                cursor: "pointer",
+              }}
+            >
+              물러나기
             </button>
           </div>
         </div>
