@@ -60,7 +60,7 @@ export const EnemyHpBar = ({
                   return (
                   <div className={enemyHit ? 'hit-animation' : ''} style={{ color: '#f87171', fontSize: '1.25rem', fontWeight: 'bold', textAlign: 'right', transition: 'opacity 0.4s ease, transform 0.4s ease', opacity: soulShatter ? 0 : 1, transform: soulShatter ? 'scale(0.9)' : 'scale(1)', position: 'absolute', top: frozenOrder ? '-35px' : '-20px', right: '-200px', width: '200px' }}>
                     {blockText && <span className={enemyBlockAnim ? 'block-animation' : ''} style={{ color: '#60a5fa', marginRight: '8px' }}>🛡️{blockText}</span>}
-                    💀 {hpText}
+                    ❤️ {hpText}
                   </div>
                 );
                 })()}
