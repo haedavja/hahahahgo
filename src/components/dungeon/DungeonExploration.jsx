@@ -112,18 +112,20 @@ function generateDungeon() {
   // 기로 배치할 세그먼트 인덱스 (복도 중 1-2개)
   const corridorIndices = [];
   for (let i = 0; i < count; i++) {
-    if (i % 2 === 0 && i > 0 && i < count - 1) {  // 복도 세그먼트
+    if (i % 2 === 0 && i < count - 1) {  // 복도 세그먼트 (첫 번째 포함)
       corridorIndices.push(i);
     }
   }
-  // 랜덤하게 1-2개 선택
-  const crossroadCount = Math.min(corridorIndices.length, 1 + Math.floor(Math.random() * 2));
+  // 랜덤하게 1-2개 선택 (최소 1개 보장)
+  const crossroadCount = Math.max(1, Math.min(corridorIndices.length, 1 + Math.floor(Math.random() * 2)));
   const crossroadSegments = new Set();
   while (crossroadSegments.size < crossroadCount && corridorIndices.length > 0) {
     const idx = Math.floor(Math.random() * corridorIndices.length);
     crossroadSegments.add(corridorIndices[idx]);
     corridorIndices.splice(idx, 1);
   }
+
+  console.log('[Dungeon] 생성 - 세그먼트 수:', count, '기로 위치:', [...crossroadSegments]);
 
   for (let i = 0; i < count; i++) {
     const isRoom = i % 2 === 1;
@@ -135,10 +137,11 @@ function generateDungeon() {
     // 기로 추가 (복도 세그먼트에)
     if (crossroadSegments.has(i)) {
       const template = getRandomCrossroadTemplate();
+      console.log('[Dungeon] 기로 추가 - 세그먼트:', i, '템플릿:', template.name);
       objects.push({
         id: `crossroad_${i}`,
         typeId: "crossroad",
-        x: 1500,  // 복도 중앙 부근
+        x: 600,  // 복도 초반부 (플레이어가 빨리 만남)
         used: false,
         template: template,  // 기로 템플릿 데이터
         choiceState: {},     // 선택지 상태 (시도 횟수 등)
@@ -564,13 +567,11 @@ export function DungeonExploration() {
         if (handler) {
           handler(obj, {
             applyEtherDelta,
-            setMessage,
+            actions,
             startBattle,
             segmentIndex,
             preBattleState,
             playerX,
-            setPlayerX,
-            setSegmentIndex,
           });
         }
         return;
@@ -587,7 +588,7 @@ export function DungeonExploration() {
         actions.setMessage("");
       }
     }
-  }, [segment, playerX, actions, applyEtherDelta, setMessage, startBattle, segmentIndex, preBattleState, handleCompleteDungeon]);
+  }, [segment, playerX, actions, applyEtherDelta, startBattle, segmentIndex, handleCompleteDungeon]);
 
   // ========== 보상 확인 ==========
   const closeRewardModal = () => {
