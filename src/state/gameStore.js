@@ -1077,6 +1077,33 @@ export const useGameStore = create((set, get) => ({
       };
     }),
 
+  // 노드 텔레포트 (개발자 도구용)
+  devTeleportToNode: (nodeId) =>
+    set((state) => {
+      const nodes = state.map?.nodes;
+      if (!nodes) return state;
+
+      const targetNode = nodes.find((n) => n.id === nodeId);
+      if (!targetNode) return state;
+
+      // 현재 노드를 타겟 노드로 변경
+      const updatedNodes = cloneNodes(nodes).map((node) => ({
+        ...node,
+        // 타겟 노드까지의 경로에 있는 노드들을 cleared로 설정
+        cleared: node.cleared || node.id === nodeId,
+        selectable: true,
+      }));
+
+      return {
+        ...state,
+        map: {
+          ...state.map,
+          nodes: updatedNodes,
+          currentNodeId: nodeId,
+        },
+      };
+    }),
+
   // 강제 승리 (전투 중일 때만)
   devForceWin: () =>
     set((state) => {
