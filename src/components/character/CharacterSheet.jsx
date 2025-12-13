@@ -364,26 +364,27 @@ export function CharacterSheet({ onClose }) {
               background: "rgba(15, 20, 30, 0.98)",
               border: "1px solid rgba(253, 230, 138, 0.6)",
               borderRadius: "8px",
-              padding: "12px 16px",
+              padding: "16px 20px",
               zIndex: 9999,
-              minWidth: "280px",
-              maxWidth: "350px",
+              minWidth: "320px",
+              maxWidth: "400px",
               boxShadow: "0 4px 20px rgba(0, 0, 0, 0.5)",
             }}
           >
-            <div style={{ fontSize: "14px", fontWeight: "bold", color: "#fde68a", marginBottom: "10px", borderBottom: "1px solid rgba(253, 230, 138, 0.3)", paddingBottom: "6px" }}>
+            <div style={{ fontSize: "18px", fontWeight: "bold", color: "#fde68a", marginBottom: "12px", borderBottom: "1px solid rgba(253, 230, 138, 0.3)", paddingBottom: "8px" }}>
               ✨ 활성화된 성찰
             </div>
-            <div style={{ fontSize: "13px", lineHeight: 1.6 }}>
+            <div style={{ fontSize: "16px", lineHeight: 1.6 }}>
               {activeReflectionsInfo.map((r) => (
-                <div key={r.id} style={{ marginBottom: "8px", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                <div key={r.id} style={{ marginBottom: "10px", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                   <div>
                     <span style={{ color: "#fde68a" }}>{r.emoji} {r.name}</span>
-                    <div style={{ color: "#9ca3af", fontSize: "12px", marginTop: "2px" }}>{r.description}</div>
+                    <div style={{ color: "#9ca3af", fontSize: "14px", marginTop: "3px" }}>{r.description}</div>
                   </div>
                   <span style={{
                     color: r.finalProbability >= 0.5 ? "#86efac" : "#fbbf24",
                     fontWeight: "bold",
+                    fontSize: "16px",
                     marginLeft: "12px",
                     whiteSpace: "nowrap"
                   }}>
@@ -393,7 +394,7 @@ export function CharacterSheet({ onClose }) {
               ))}
             </div>
             {playerTraits.length > 5 && (
-              <div style={{ fontSize: "11px", color: "#86efac", marginTop: "8px", borderTop: "1px solid rgba(253, 230, 138, 0.2)", paddingTop: "6px" }}>
+              <div style={{ fontSize: "13px", color: "#86efac", marginTop: "10px", borderTop: "1px solid rgba(253, 230, 138, 0.2)", paddingTop: "8px" }}>
                 개성 보너스: +{Math.round(getTraitCountBonus(playerTraits.length) * 100)}% (개성 {playerTraits.length}개)
               </div>
             )}
