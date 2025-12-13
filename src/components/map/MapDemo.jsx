@@ -369,7 +369,7 @@ export function MapDemo() {
           top: "20px",
           left: "50%",
           transform: "translateX(-50%)",
-          zIndex: 100,
+          zIndex: 10000,
           pointerEvents: 'none',
         }}>
           <div style={{
