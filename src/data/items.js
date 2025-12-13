@@ -188,19 +188,19 @@ export const ITEMS = {
     id: 'healing-potion-small',
     name: '치유제 (소)',
     icon: '🧪',
-    description: '체력 15 회복',
+    description: '체력의 25% 회복',
     tier: 1,
     usableIn: 'any',
-    effect: { type: 'heal', value: 15 }
+    effect: { type: 'healPercent', value: 25 }
   },
   'healing-potion-large': {
     id: 'healing-potion-large',
     name: '치유제 (대)',
     icon: '⚗️',
-    description: '체력 40 회복',
+    description: '체력의 50% 회복',
     tier: 2,
     usableIn: 'any',
-    effect: { type: 'heal', value: 40 }
+    effect: { type: 'healPercent', value: 50 }
   },
 
   // === 근력 강화제 (힘 증가) - 1노드 지속 ===

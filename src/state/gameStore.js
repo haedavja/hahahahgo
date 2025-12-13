@@ -1291,6 +1291,14 @@ export const useGameStore = create((set, get) => ({
           console.log(`[useItem] ${item.name}: 체력 ${effect.value} 회복 (현재: ${newHp})`);
           break;
         }
+        case 'healPercent': {
+          const maxHp = state.maxHp ?? 100;
+          const healAmount = Math.floor(maxHp * effect.value / 100);
+          const newHp = Math.min(maxHp, (state.playerHp ?? 0) + healAmount);
+          updates.playerHp = newHp;
+          console.log(`[useItem] ${item.name}: 체력 ${effect.value}% (${healAmount}) 회복 (현재: ${newHp})`);
+          break;
+        }
         case 'statBoost': {
           // 1노드 지속 스탯 버프
           const newBuffs = { ...(state.itemBuffs || {}) };
