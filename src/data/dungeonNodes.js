@@ -185,6 +185,366 @@ export const OBSTACLE_TEMPLATES = {
       },
     ],
   },
+
+  unstableBridge: {
+    id: 'unstable_bridge',
+    name: '흔들리는 다리',
+    description: '낡은 나무 다리가 깊은 절벽 위에 위태롭게 걸쳐 있습니다. 아래는 보이지 않습니다.',
+    eventType: DUNGEON_EVENT_TYPES.OBSTACLE,
+    choices: [
+      {
+        id: 'careful_cross',
+        text: '조심스럽게 건넌다.',
+        repeatable: true,
+        maxAttempts: 4,
+        requirements: {},
+        progressText: [
+          '한 발짝... 다리가 삐걱거립니다.',
+          '절반쯤 왔습니다. 바람이 불어옵니다.',
+          '거의 다 왔습니다! 널빤지가 흔들립니다.',
+          '안전하게 건넜습니다!',
+        ],
+        scalingRequirement: { stat: 'agility', baseValue: 0, increment: 1 },
+        outcomes: {
+          success: {
+            type: CHOICE_RESULT_TYPES.SUCCESS,
+            text: '무사히 다리를 건넜습니다!',
+            effect: { unlockNode: 'next_area' },
+          },
+          failure: {
+            type: CHOICE_RESULT_TYPES.FAILURE,
+            text: '발을 헛디뎠습니다! 간신히 매달렸지만 손에 상처를 입었습니다.',
+            effect: { damage: 8 },
+          },
+        },
+      },
+      {
+        id: 'dash_across',
+        text: '전력질주로 한 번에 건넌다.',
+        repeatable: false,
+        requirements: { agility: 4 },
+        outcomes: {
+          success: {
+            type: CHOICE_RESULT_TYPES.SUCCESS,
+            text: '빠른 발놀림으로 단숨에 건넜습니다!',
+            effect: { unlockNode: 'next_area' },
+          },
+        },
+      },
+      {
+        id: 'retreat_bridge',
+        text: '돌아간다.',
+        repeatable: false,
+        requirements: {},
+        outcomes: {
+          success: {
+            type: CHOICE_RESULT_TYPES.SUCCESS,
+            text: '위험을 피해 돌아섭니다.',
+            effect: { returnToPrevious: true },
+          },
+        },
+      },
+    ],
+  },
+
+  mysteriousStatue: {
+    id: 'mysterious_statue',
+    name: '신비로운 석상',
+    description: '고대 석상이 서 있습니다. 한 손은 앞으로 뻗어 있고, 다른 손에는 보석이 쥐어져 있습니다.',
+    eventType: DUNGEON_EVENT_TYPES.CURIO,
+    choices: [
+      {
+        id: 'examine',
+        text: '석상을 자세히 살핀다.',
+        repeatable: true,
+        maxAttempts: 3,
+        requirements: {},
+        progressText: [
+          '석상의 표면에 희미한 문양이 새겨져 있습니다...',
+          '문양이 고대 언어입니다. 해독을 시도합니다...',
+          '"경배하는 자에게 축복을" - 의미를 이해했습니다!',
+        ],
+        scalingRequirement: { stat: 'insight', baseValue: 0, increment: 2 },
+        outcomes: {
+          success: {
+            type: CHOICE_RESULT_TYPES.SUCCESS,
+            text: '석상 앞에 무릎을 꿇자, 보석이 손에 떨어집니다.',
+            effect: { reward: { gold: { min: 20, max: 35 }, relic: 'random_common' } },
+          },
+          failure: {
+            type: CHOICE_RESULT_TYPES.FAILURE,
+            text: '문양의 의미를 잘못 해석했습니다. 석상의 눈이 붉게 빛나며...',
+            effect: { damage: 6, debuff: 'curse' },
+          },
+        },
+      },
+      {
+        id: 'take_gem',
+        text: '보석을 낚아챈다.',
+        repeatable: false,
+        requirements: {},
+        outcomes: {
+          success: {
+            type: CHOICE_RESULT_TYPES.PARTIAL,
+            text: '보석을 손에 넣었지만, 석상의 눈이 번뜩입니다!',
+            effect: { reward: { gold: { min: 10, max: 15 } }, triggerCombat: 'stone_guardian' },
+          },
+        },
+      },
+      {
+        id: 'ignore_statue',
+        text: '지나친다.',
+        repeatable: false,
+        requirements: {},
+        outcomes: {
+          success: {
+            type: CHOICE_RESULT_TYPES.SUCCESS,
+            text: '석상을 지나쳐 갑니다.',
+            effect: {},
+          },
+        },
+      },
+    ],
+  },
+
+  ancientAltar: {
+    id: 'ancient_altar',
+    name: '고대 제단',
+    description: '핏빛 제단이 어두운 빛을 뿜고 있습니다. 제단 위에 금화가 쌓여 있습니다.',
+    eventType: DUNGEON_EVENT_TYPES.CURIO,
+    choices: [
+      {
+        id: 'blood_offering',
+        text: '피를 바친다. (체력 -10)',
+        repeatable: false,
+        requirements: {},
+        outcomes: {
+          success: {
+            type: CHOICE_RESULT_TYPES.SUCCESS,
+            text: '제단이 당신의 피를 받아들입니다. 금화와 함께 신비로운 힘이 느껴집니다.',
+            effect: { damage: 10, reward: { gold: { min: 30, max: 50 } }, buff: 'blood_pact' },
+          },
+        },
+      },
+      {
+        id: 'pray',
+        text: '기도를 올린다.',
+        repeatable: true,
+        maxAttempts: 3,
+        requirements: {},
+        progressText: [
+          '제단 앞에 무릎 꿇고 기도합니다...',
+          '마음을 비우고 집중합니다...',
+          '제단의 의지와 연결되었습니다.',
+        ],
+        scalingRequirement: { stat: 'insight', baseValue: 1, increment: 2 },
+        outcomes: {
+          success: {
+            type: CHOICE_RESULT_TYPES.SUCCESS,
+            text: '제단이 당신의 경건함을 인정합니다. 피 없이도 축복을 내립니다.',
+            effect: { reward: { gold: { min: 15, max: 25 } }, buff: 'blessed' },
+          },
+          failure: {
+            type: CHOICE_RESULT_TYPES.FAILURE,
+            text: '제단이 분노합니다! 불경한 자에게 저주를!',
+            effect: { debuff: 'curse', damage: 5 },
+          },
+        },
+      },
+      {
+        id: 'steal_gold',
+        text: '금화를 훔친다.',
+        repeatable: false,
+        requirements: {},
+        outcomes: {
+          success: {
+            type: CHOICE_RESULT_TYPES.PARTIAL,
+            text: '금화를 쓸어 담는 순간, 제단의 수호자가 깨어납니다!',
+            effect: { reward: { gold: { min: 20, max: 30 } }, triggerCombat: 'altar_guardian' },
+          },
+        },
+      },
+      {
+        id: 'leave_altar',
+        text: '건드리지 않는다.',
+        repeatable: false,
+        requirements: {},
+        outcomes: {
+          success: {
+            type: CHOICE_RESULT_TYPES.SUCCESS,
+            text: '현명한 선택입니다. 제단을 피해 지나갑니다.',
+            effect: {},
+          },
+        },
+      },
+    ],
+  },
+
+  darkPassage: {
+    id: 'dark_passage',
+    name: '칠흑의 통로',
+    description: '앞이 전혀 보이지 않는 어두운 통로입니다. 발밑에서 무언가 딸깍거리는 소리가 납니다.',
+    eventType: DUNGEON_EVENT_TYPES.TRAP,
+    choices: [
+      {
+        id: 'use_torch',
+        text: '횃불을 켠다.',
+        repeatable: false,
+        requirements: { item: 'torch' },
+        outcomes: {
+          success: {
+            type: CHOICE_RESULT_TYPES.SUCCESS,
+            text: '횃불 불빛에 바닥의 함정들이 드러납니다. 조심히 피해갑니다.',
+            effect: { consumeItem: 'torch', unlockNode: 'next_area' },
+          },
+        },
+      },
+      {
+        id: 'careful_step',
+        text: '더듬더듬 조심히 나아간다.',
+        repeatable: true,
+        maxAttempts: 4,
+        requirements: {},
+        progressText: [
+          '한 발짝... 조심스럽게 발을 내딛습니다.',
+          '딸깍! 뭔가를 밟았지만 반응이 없습니다...',
+          '차갑고 끈적한 것이 느껴집니다. 거미줄?',
+          '드디어 빛이 보입니다!',
+        ],
+        scalingRequirement: { stat: 'agility', baseValue: 0, increment: 1 },
+        warningAtAttempt: 2,
+        warningText: '발밑에서 무언가 움직이는 소리가 들립니다...',
+        outcomes: {
+          success: {
+            type: CHOICE_RESULT_TYPES.SUCCESS,
+            text: '함정을 모두 피해 통로를 빠져나왔습니다!',
+            effect: { unlockNode: 'next_area' },
+          },
+          failure: {
+            type: CHOICE_RESULT_TYPES.FAILURE,
+            text: '찌릭! 숨겨진 가시에 찔렸습니다. 독이 몸에 퍼집니다.',
+            effect: { damage: 6, debuff: 'poison' },
+          },
+        },
+      },
+      {
+        id: 'run_through',
+        text: '전력으로 달린다!',
+        repeatable: false,
+        requirements: {},
+        successRate: 0.3,
+        outcomes: {
+          success: {
+            type: CHOICE_RESULT_TYPES.SUCCESS,
+            text: '운이 좋았습니다! 함정을 모두 피해 달려 나왔습니다.',
+            effect: { unlockNode: 'next_area' },
+          },
+          failure: {
+            type: CHOICE_RESULT_TYPES.FAILURE,
+            text: '쾅! 벽에 부딪히고 함정에 걸려 나뒹굴었습니다.',
+            effect: { damage: 15 },
+          },
+        },
+      },
+      {
+        id: 'go_back_dark',
+        text: '돌아간다.',
+        repeatable: false,
+        requirements: {},
+        outcomes: {
+          success: {
+            type: CHOICE_RESULT_TYPES.SUCCESS,
+            text: '위험한 통로를 피해 되돌아갑니다.',
+            effect: { returnToPrevious: true },
+          },
+        },
+      },
+    ],
+  },
+
+  poisonousSwamp: {
+    id: 'poisonous_swamp',
+    name: '독늪',
+    description: '독기가 피어오르는 늪이 길을 막고 있습니다. 건너편에 빛나는 무언가가 보입니다.',
+    eventType: DUNGEON_EVENT_TYPES.OBSTACLE,
+    choices: [
+      {
+        id: 'wade_through',
+        text: '억지로 건넌다.',
+        repeatable: true,
+        maxAttempts: 3,
+        requirements: {},
+        progressText: [
+          '발목까지 잠겼습니다. 독기가 코를 찌릅니다.',
+          '허리까지 잠겼습니다. 피부가 따끔거립니다.',
+          '거의 다 왔습니다!',
+        ],
+        scalingRequirement: { stat: 'strength', baseValue: 1, increment: 1 },
+        outcomes: {
+          success: {
+            type: CHOICE_RESULT_TYPES.PARTIAL,
+            text: '겨우 건넜습니다. 하지만 독이 스며들었습니다.',
+            effect: { debuff: 'poison', reward: { gold: { min: 25, max: 40 } } },
+          },
+          failure: {
+            type: CHOICE_RESULT_TYPES.FAILURE,
+            text: '중독이 심각합니다. 겨우 빠져나왔지만...',
+            effect: { damage: 12, debuff: 'poison' },
+          },
+        },
+      },
+      {
+        id: 'use_antidote',
+        text: '해독제를 바르고 건넌다.',
+        repeatable: false,
+        requirements: { item: 'antidote' },
+        outcomes: {
+          success: {
+            type: CHOICE_RESULT_TYPES.SUCCESS,
+            text: '해독제 덕분에 독을 피하고 안전하게 보물을 얻었습니다!',
+            effect: { consumeItem: 'antidote', reward: { gold: { min: 25, max: 40 }, potion: 1 } },
+          },
+        },
+      },
+      {
+        id: 'find_another_way',
+        text: '다른 길을 찾는다.',
+        repeatable: true,
+        maxAttempts: 2,
+        requirements: {},
+        progressText: [
+          '주변을 둘러봅니다...',
+          '숨겨진 샛길을 발견했습니다!',
+        ],
+        scalingRequirement: { stat: 'insight', baseValue: 2, increment: 2 },
+        outcomes: {
+          success: {
+            type: CHOICE_RESULT_TYPES.SUCCESS,
+            text: '우회로를 찾아 안전하게 건넜습니다.',
+            effect: { unlockNode: 'next_area' },
+          },
+          failure: {
+            type: CHOICE_RESULT_TYPES.FAILURE,
+            text: '다른 길은 없었습니다. 시간만 낭비했습니다.',
+            effect: {},
+          },
+        },
+      },
+      {
+        id: 'skip_swamp',
+        text: '포기한다.',
+        repeatable: false,
+        requirements: {},
+        outcomes: {
+          success: {
+            type: CHOICE_RESULT_TYPES.SUCCESS,
+            text: '보물을 포기하고 돌아섭니다.',
+            effect: {},
+          },
+        },
+      },
+    ],
+  },
 };
 
 /**
