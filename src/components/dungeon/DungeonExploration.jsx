@@ -370,6 +370,7 @@ export function DungeonExploration() {
   const canvasRef = useRef(null);
   const animationRef = useRef(null);
   const preBattleState = useRef(null); // 전투 전 상태 저장
+  const interactionRef = useRef(null); // 상호작용 함수 ref
 
   const segment = dungeonData[segmentIndex];
   const playerY = CONFIG.FLOOR_Y - CONFIG.PLAYER.height;
@@ -388,7 +389,7 @@ export function DungeonExploration() {
       }
       if (e.key === "w" || e.key === "W") {
         e.preventDefault();
-        handleInteraction();
+        interactionRef.current?.();
       }
       if (e.key === "c" || e.key === "C") {
         e.preventDefault();
@@ -409,7 +410,7 @@ export function DungeonExploration() {
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
     };
-  }, [handleInteraction, actions]);
+  }, [actions]);
 
   // ========== 플레이어 이동 ==========
   useEffect(() => {
@@ -588,7 +589,12 @@ export function DungeonExploration() {
         actions.setMessage("");
       }
     }
-  }, [segment, playerX, actions, applyEtherDelta, startBattle, segmentIndex, handleCompleteDungeon]);
+  }, [segment, playerX, actions, applyEtherDelta, startBattle, segmentIndex]);
+
+  // handleInteraction ref 업데이트
+  useEffect(() => {
+    interactionRef.current = handleInteraction;
+  }, [handleInteraction]);
 
   // ========== 보상 확인 ==========
   const closeRewardModal = () => {
