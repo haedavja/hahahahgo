@@ -168,7 +168,7 @@ export const ITEMS = {
     id: 'freeze-device-small',
     name: '빙결 장치 (소)',
     icon: '❄️',
-    description: '적 카드 1장 빙결 (1턴)',
+    description: '적의 타임라인을 1턴 동결',
     tier: 1,
     usableIn: 'combat',
     effect: { type: 'cardFreeze', value: 1 }
@@ -177,7 +177,7 @@ export const ITEMS = {
     id: 'freeze-device-large',
     name: '빙결 장치 (대)',
     icon: '🧊',
-    description: '적 카드 2장 빙결 (2턴)',
+    description: '적의 타임라인을 2턴 동결',
     tier: 2,
     usableIn: 'combat',
     effect: { type: 'cardFreeze', value: 2 }
