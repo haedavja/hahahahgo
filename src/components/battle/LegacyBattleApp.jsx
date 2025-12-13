@@ -848,14 +848,14 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       const traitIds = convertTraitsToIds(playerTraits);
       const playerForReflection = {
         ...player,
-        hasEgo: true,
+        egos: playerEgos,  // 한국어 자아 이름 배열
         traits: traitIds,
         tokens: player.tokens || { usage: [], turn: [], permanent: [] }
       };
       reflectionResult = processReflections(playerForReflection, battle.reflectionState);
 
       console.log("[턴 시작 성찰 효과]", {
-        hasEgo,
+        egos: playerEgos,
         traits: traitIds,
         effects: reflectionResult.effects.map(e => e.reflectionId),
         bonusEnergy: reflectionResult.updatedBattleState.bonusEnergy,

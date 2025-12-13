@@ -13,6 +13,7 @@ import {
 } from './reflectionEffects.js';
 import {
   getActiveReflections,
+  getReflectionsByEgos,
   getTraitCountBonus,
   REFLECTIONS
 } from '../data/reflections.js';
@@ -35,32 +36,29 @@ afterEach(() => {
   restoreRandom();
 });
 
-// 테스트용 플레이어 생성
+// 테스트용 플레이어 생성 (자아 기반)
 function createPlayer(overrides = {}) {
   return {
     hp: 100,
     maxHp: 100,
-    hasEgo: true,
-    traits: [],
+    egos: [],      // 한국어 자아 이름 배열
+    traits: [],    // 영어 개성 ID 배열 (확률 보너스용)
     tokens: createEmptyTokens(),
     ...overrides
   };
 }
 
-describe('getActiveReflections', () => {
-  it('개성 2개 조합으로 성찰 활성화', () => {
-    const traits = ['passionate', 'valiant'];
-    const reflections = getActiveReflections(traits);
+describe('getReflectionsByEgos', () => {
+  it('자아로 성찰 활성화', () => {
+    const reflections = getReflectionsByEgos(['헌신']);
 
     expect(reflections.length).toBe(1);
     expect(reflections[0].id).toBe('devotion');
   });
 
-  it('개성 3개로 여러 성찰 활성화', () => {
-    const traits = ['passionate', 'valiant', 'calm'];
-    const reflections = getActiveReflections(traits);
+  it('여러 자아로 여러 성찰 활성화', () => {
+    const reflections = getReflectionsByEgos(['헌신', '지략', '분석']);
 
-    // 헌신(열정+용맹), 지략(냉철+용맹), 분석(냉철+열정)
     expect(reflections.length).toBe(3);
     const ids = reflections.map(r => r.id);
     expect(ids).toContain('devotion');
@@ -68,14 +66,25 @@ describe('getActiveReflections', () => {
     expect(ids).toContain('analysis');
   });
 
-  it('개성 1개면 성찰 없음', () => {
-    const reflections = getActiveReflections(['valiant']);
+  it('자아 없으면 성찰 없음', () => {
+    const reflections = getReflectionsByEgos([]);
     expect(reflections.length).toBe(0);
   });
 
-  it('개성 없으면 성찰 없음', () => {
-    const reflections = getActiveReflections([]);
-    expect(reflections.length).toBe(0);
+  it('잘못된 자아 이름은 무시', () => {
+    const reflections = getReflectionsByEgos(['없는자아', '헌신']);
+    expect(reflections.length).toBe(1);
+    expect(reflections[0].id).toBe('devotion');
+  });
+});
+
+describe('getActiveReflections (deprecated)', () => {
+  it('개성 2개 조합으로 성찰 활성화', () => {
+    const traits = ['passionate', 'valiant'];
+    const reflections = getActiveReflections(traits);
+
+    expect(reflections.length).toBe(1);
+    expect(reflections[0].id).toBe('devotion');
   });
 });
 
@@ -97,15 +106,15 @@ describe('getTraitCountBonus', () => {
 describe('processReflections', () => {
   describe('기본 동작', () => {
     it('자아 없으면 성찰 불가', () => {
-      const player = createPlayer({ hasEgo: false, traits: ['passionate', 'valiant'] });
+      const player = createPlayer({ egos: [], traits: ['passionate', 'valiant'] });
       const result = processReflections(player, {});
 
       expect(result.effects.length).toBe(0);
       expect(result.logs.length).toBe(0);
     });
 
-    it('개성 부족하면 성찰 불가', () => {
-      const player = createPlayer({ traits: ['valiant'] });
+    it('잘못된 자아면 성찰 불가', () => {
+      const player = createPlayer({ egos: ['없는자아'] });
       const result = processReflections(player, {});
 
       expect(result.effects.length).toBe(0);
@@ -116,7 +125,7 @@ describe('processReflections', () => {
     it('50% 확률 성공 시 공세 획득', () => {
       mockRandom(0.3); // 50% 확률 → 성공
 
-      const player = createPlayer({ traits: ['passionate', 'valiant'] });
+      const player = createPlayer({ egos: ['헌신'] });
       const result = processReflections(player, {});
 
       expect(result.effects.length).toBe(1);
@@ -129,7 +138,7 @@ describe('processReflections', () => {
     it('50% 확률 실패', () => {
       mockRandom(0.7); // 50% 확률 → 실패
 
-      const player = createPlayer({ traits: ['passionate', 'valiant'] });
+      const player = createPlayer({ egos: ['헌신'] });
       const result = processReflections(player, {});
 
       expect(result.effects.length).toBe(0);
@@ -140,7 +149,7 @@ describe('processReflections', () => {
     it('행동력 보너스 적용', () => {
       mockRandom(0.3);
 
-      const player = createPlayer({ traits: ['energetic', 'valiant'] });
+      const player = createPlayer({ egos: ['역동'] });
       const result = processReflections(player, {});
 
       expect(result.updatedBattleState.bonusEnergy).toBe(1);
@@ -154,7 +163,7 @@ describe('processReflections', () => {
       const player = createPlayer({
         hp: 50,
         maxHp: 100,
-        traits: ['steadfast', 'calm']
+        egos: ['결의']
       });
       const result = processReflections(player, {});
 
@@ -164,7 +173,7 @@ describe('processReflections', () => {
     it('최대 4회 제한', () => {
       mockRandom(0.1);
 
-      const player = createPlayer({ traits: ['steadfast', 'calm'] });
+      const player = createPlayer({ egos: ['결의'] });
       const battleState = { reflectionTriggerCounts: { resolve: 4 } };
 
       const result = processReflections(player, battleState);
@@ -179,7 +188,7 @@ describe('processReflections', () => {
     it('에테르 배율 적용', () => {
       mockRandom(0.2);
 
-      const player = createPlayer({ traits: ['steadfast', 'thorough'] });
+      const player = createPlayer({ egos: ['완성'] });
       const result = processReflections(player, {});
 
       expect(result.updatedBattleState.etherMultiplier).toBe(1.5);
@@ -190,7 +199,7 @@ describe('processReflections', () => {
     it('타임라인 보너스 적용', () => {
       mockRandom(0.2);
 
-      const player = createPlayer({ traits: ['calm', 'thorough'] });
+      const player = createPlayer({ egos: ['실행'] });
       const result = processReflections(player, {});
 
       expect(result.updatedBattleState.timelineBonus).toBe(5);
@@ -201,7 +210,7 @@ describe('processReflections', () => {
     it('적 동결 턴 적용', () => {
       mockRandom(0.2);
 
-      const player = createPlayer({ traits: ['energetic', 'thorough'] });
+      const player = createPlayer({ egos: ['지배'] });
       const result = processReflections(player, {});
 
       expect(result.updatedBattleState.enemyFreezeTurns).toBe(1);
@@ -214,11 +223,12 @@ describe('processReflections', () => {
       mockRandom(0.35); // 30%면 실패, 40%면 성공
 
       const player = createPlayer({
+        egos: ['결의'],
         traits: ['steadfast', 'calm', 'valiant', 'passionate', 'thorough', 'energetic', 'extra']
       });
       const result = processReflections(player, {});
 
-      // 결의(굳건+냉철)가 발동해야 함
+      // 결의가 발동해야 함 (30% + 10% = 40%)
       const resolveEffect = result.effects.find(e => e.reflectionId === 'resolve');
       expect(resolveEffect).toBeDefined();
     });

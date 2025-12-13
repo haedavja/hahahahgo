@@ -16,6 +16,22 @@ export const TRAIT_NAME_TO_ID = {
   '굳건함': 'steadfast'
 };
 
+// 한국어 자아 이름 → 성찰 ID 매핑
+export const EGO_NAME_TO_REFLECTION_ID = {
+  '헌신': 'devotion',
+  '지략': 'strategy',
+  '추격': 'pursuit',
+  '역동': 'dynamism',
+  '결의': 'resolve',
+  '추진': 'drive',
+  '신념': 'faith',
+  '완성': 'completion',
+  '분석': 'analysis',
+  '실행': 'execution',
+  '정열': 'passion',
+  '지배': 'dominance'
+};
+
 /**
  * 한국어 개성 이름 배열을 영어 ID 배열로 변환
  * @param {string[]} koreanTraits - 한국어 개성 이름 배열
@@ -240,9 +256,10 @@ export const REFLECTIONS = {
 };
 
 /**
- * 개성 배열로 활성화된 성찰 목록 반환
+ * 개성 배열로 활성화된 성찰 목록 반환 (모든 조합 체크)
  * @param {string[]} traits - 개성 ID 배열
  * @returns {Object[]} 활성화된 성찰 목록
+ * @deprecated 자아 기반 성찰 시스템으로 변경됨. getReflectionsByEgos 사용 권장
  */
 export function getActiveReflections(traits) {
   if (!traits || traits.length < 2) return [];
@@ -254,6 +271,26 @@ export function getActiveReflections(traits) {
     const hasAll = reflection.requires.every(req => traitSet.has(req));
     if (hasAll) {
       activeReflections.push(reflection);
+    }
+  }
+
+  return activeReflections;
+}
+
+/**
+ * 획득한 자아(한국어 이름)로 활성화된 성찰 목록 반환
+ * @param {string[]} egos - 한국어 자아 이름 배열 (예: ['헌신'])
+ * @returns {Object[]} 활성화된 성찰 목록
+ */
+export function getReflectionsByEgos(egos) {
+  if (!egos || egos.length === 0) return [];
+
+  const activeReflections = [];
+
+  for (const egoName of egos) {
+    const reflectionId = EGO_NAME_TO_REFLECTION_ID[egoName];
+    if (reflectionId && REFLECTIONS[reflectionId]) {
+      activeReflections.push(REFLECTIONS[reflectionId]);
     }
   }
 

@@ -8,14 +8,14 @@
 import {
   REFLECTIONS,
   REFLECTION_EFFECT_TYPES,
-  getActiveReflections,
+  getReflectionsByEgos,
   getTraitCountBonus
 } from '../data/reflections.js';
 import { addToken } from './tokenUtils.js';
 
 /**
  * 턴 시작 시 성찰 효과 처리
- * @param {Object} player - 플레이어 객체
+ * @param {Object} player - 플레이어 객체 (egos: 한국어 자아 배열, traits: 개성 배열 필요)
  * @param {Object} battleState - 전투 상태 (reflectionTriggerCounts 포함)
  * @returns {Object} { updatedPlayer, updatedBattleState, effects, logs }
  */
@@ -28,23 +28,19 @@ export function processReflections(player, battleState = {}) {
   };
 
   // 자아가 없으면 성찰 불가
-  if (!player.hasEgo) {
+  const egos = player.egos || [];
+  if (egos.length === 0) {
     return results;
   }
 
-  // 개성 목록 가져오기
-  const traits = player.traits || [];
-  if (traits.length < 2) {
-    return results;
-  }
-
-  // 활성화된 성찰 목록
-  const activeReflections = getActiveReflections(traits);
+  // 획득한 자아에 해당하는 성찰만 활성화
+  const activeReflections = getReflectionsByEgos(egos);
   if (activeReflections.length === 0) {
     return results;
   }
 
   // 개성 수에 따른 확률 보너스
+  const traits = player.traits || [];
   const probabilityBonus = getTraitCountBonus(traits.length);
 
   // 발동 횟수 추적 (결의 등 최대 횟수 제한용)

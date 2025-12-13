@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import { useGameStore } from "../../state/gameStore";
 import { CARDS, TRAITS } from "../battle/battleData";
 import { calculatePassiveEffects } from "../../lib/relicEffects";
-import { getActiveReflections, getTraitCountBonus, convertTraitsToIds, REFLECTIONS } from "../../data/reflections";
+import { getReflectionsByEgos, getTraitCountBonus, REFLECTIONS } from "../../data/reflections";
 
 const TRAIT_EFFECTS = {
   용맹함: { label: "힘", value: 1 },
@@ -46,11 +46,11 @@ export function CharacterSheet({ onClose }) {
     return calculatePassiveEffects(relics || []);
   }, [relics]);
 
-  // 활성화된 성찰 및 확률 계산
+  // 활성화된 성찰 및 확률 계산 (획득한 자아 기준)
   const activeReflectionsInfo = useMemo(() => {
     if (!playerEgos || playerEgos.length === 0) return [];
-    const traitIds = convertTraitsToIds(playerTraits);
-    const activeReflections = getActiveReflections(traitIds);
+    // 획득한 자아에 해당하는 성찰만 가져옴
+    const activeReflections = getReflectionsByEgos(playerEgos);
     const probabilityBonus = getTraitCountBonus(playerTraits.length);
 
     return activeReflections.map(r => ({
