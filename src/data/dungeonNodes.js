@@ -10,6 +10,18 @@ export const DUNGEON_NODE_TYPES = {
   CORRIDOR: 'corridor',      // 복도 (이동 구간)
   CROSSROAD: 'crossroad',    // 기로 (선택지)
   EXIT: 'exit',              // 출구
+  SHORTCUT: 'shortcut',      // 숏컷 연결점
+  TREASURE: 'treasure',      // 보물방
+  BOSS: 'boss',              // 보스방
+};
+
+// 연결 타입 정의
+export const CONNECTION_TYPES = {
+  OPEN: 'open',              // 항상 통과 가능
+  STAT_GATE: 'stat_gate',    // 스탯 필요 (힘/민첩/통찰)
+  ITEM_GATE: 'item_gate',    // 아이템 필요 (열쇠, 횃불 등)
+  ONE_WAY: 'one_way',        // 일방통행 (한쪽에서만 열 수 있음)
+  LOCKED: 'locked',          // 잠김 (다른 곳에서 해제해야 함)
 };
 
 // 이벤트 타입 정의
@@ -557,90 +569,362 @@ export const OBSTACLE_TEMPLATES = {
 };
 
 /**
- * 던전 생성 함수
- * @param {string} dungeonId - 던전 ID
- * @param {Object} config - 던전 설정
- * @returns {Object} 생성된 던전 데이터
+ * 연결 정보 생성 헬퍼
+ */
+function createConnection(targetId, type = CONNECTION_TYPES.OPEN, requirements = null) {
+  return {
+    targetId,
+    type,
+    requirements,  // { stat: 'strength', value: 3 } 또는 { item: 'key' }
+    unlocked: type === CONNECTION_TYPES.OPEN,
+  };
+}
+
+/**
+ * 메트로배니아 스타일 던전 생성 함수
+ * - 메인 경로 + 분기 경로
+ * - 스탯/아이템 관문
+ * - 숏컷 문
  */
 export function generateDungeonGraph(dungeonId, config = {}) {
   const {
-    nodeCount = { min: 8, max: 12 },
-    branchChance = 0.3,         // 분기 확률
-    eventDensity = 0.6,         // 이벤트 밀도
-    minCombats = 2,
+    mainPathLength = 6,         // 메인 경로 길이
+    branchCount = 2,            // 분기 경로 수
     difficulty = 1,
   } = config;
 
   const nodes = [];
-  const totalNodes = nodeCount.min + Math.floor(Math.random() * (nodeCount.max - nodeCount.min + 1));
+  const connections = {};  // nodeId -> Connection[]
 
-  // 입구 노드
+  // 1. 입구 노드
+  const entranceId = `${dungeonId}_entrance`;
   nodes.push({
-    id: `${dungeonId}_entrance`,
+    id: entranceId,
     type: DUNGEON_NODE_TYPES.ENTRANCE,
     name: '던전 입구',
     description: '어둠이 당신을 맞이합니다.',
-    connections: [],
+    x: 0, y: 2,  // 미니맵용 좌표
     event: null,
     visited: true,
     cleared: true,
   });
+  connections[entranceId] = [];
 
-  // 중간 노드들 생성
-  let currentNodeIndex = 0;
-  for (let i = 1; i < totalNodes - 1; i++) {
-    const isBranch = Math.random() < branchChance && i > 2 && i < totalNodes - 3;
-    const nodeType = isBranch ? DUNGEON_NODE_TYPES.CROSSROAD :
+  // 2. 메인 경로 생성
+  let prevId = entranceId;
+  const mainPath = [entranceId];
+
+  for (let i = 1; i <= mainPathLength; i++) {
+    const nodeId = `${dungeonId}_main_${i}`;
+    const isLast = i === mainPathLength;
+    const nodeType = isLast ? DUNGEON_NODE_TYPES.EXIT :
                      (i % 2 === 0 ? DUNGEON_NODE_TYPES.ROOM : DUNGEON_NODE_TYPES.CORRIDOR);
 
-    const node = {
-      id: `${dungeonId}_node_${i}`,
+    nodes.push({
+      id: nodeId,
       type: nodeType,
-      name: getNodeName(nodeType, i),
-      description: getNodeDescription(nodeType),
-      connections: [],
-      event: Math.random() < eventDensity ? generateEvent(nodeType, difficulty) : null,
+      name: isLast ? '던전 출구' : getNodeName(nodeType, i),
+      description: isLast ? '빛이 보입니다.' : getNodeDescription(nodeType),
+      x: i, y: 2,
+      event: !isLast && i > 1 ? generateEvent(nodeType, difficulty) : null,
       visited: false,
       cleared: false,
-    };
+    });
 
-    // 이전 노드와 연결 (양방향)
-    const prevNode = nodes[currentNodeIndex];
-    prevNode.connections.push(node.id);
-    node.connections.push(prevNode.id);
+    // 양방향 연결 (OPEN)
+    connections[nodeId] = [];
+    connections[prevId].push(createConnection(nodeId, CONNECTION_TYPES.OPEN));
+    connections[nodeId].push(createConnection(prevId, CONNECTION_TYPES.OPEN));
 
-    nodes.push(node);
-    currentNodeIndex = nodes.length - 1;
+    mainPath.push(nodeId);
+    prevId = nodeId;
   }
 
-  // 출구 노드
-  const exitNode = {
-    id: `${dungeonId}_exit`,
-    type: DUNGEON_NODE_TYPES.EXIT,
-    name: '던전 출구',
-    description: '빛이 보입니다.',
-    connections: [],
-    event: null,
+  // 3. 분기 경로 추가 (스탯 관문)
+  const branchPoints = [2, 4];  // 메인 경로에서 분기할 위치
+  const stats = ['strength', 'agility', 'insight'];
+
+  branchPoints.forEach((branchIdx, i) => {
+    if (branchIdx >= mainPath.length) return;
+
+    const branchStartId = mainPath[branchIdx];
+    const stat = stats[i % stats.length];
+    const branchId = `${dungeonId}_branch_${i}`;
+    const treasureId = `${dungeonId}_treasure_${i}`;
+
+    // 분기 방
+    nodes.push({
+      id: branchId,
+      type: DUNGEON_NODE_TYPES.CROSSROAD,
+      name: '갈림길',
+      description: '다른 길이 보입니다.',
+      x: branchIdx, y: i === 0 ? 1 : 3,
+      event: { type: DUNGEON_EVENT_TYPES.OBSTACLE, templateId: getObstacleForStat(stat) },
+      visited: false,
+      cleared: false,
+    });
+    connections[branchId] = [];
+
+    // 메인 → 분기 (스탯 관문)
+    connections[branchStartId].push(createConnection(branchId, CONNECTION_TYPES.STAT_GATE, { stat, value: 2 }));
+    connections[branchId].push(createConnection(branchStartId, CONNECTION_TYPES.OPEN));
+
+    // 보물방
+    nodes.push({
+      id: treasureId,
+      type: DUNGEON_NODE_TYPES.TREASURE,
+      name: '보물방',
+      description: '귀중한 것들이 빛나고 있습니다.',
+      x: branchIdx + 1, y: i === 0 ? 1 : 3,
+      event: { type: DUNGEON_EVENT_TYPES.CHEST, quality: 'rare' },
+      visited: false,
+      cleared: false,
+    });
+    connections[treasureId] = [];
+    connections[branchId].push(createConnection(treasureId, CONNECTION_TYPES.OPEN));
+    connections[treasureId].push(createConnection(branchId, CONNECTION_TYPES.OPEN));
+
+    // 숏컷: 보물방 → 메인 경로 앞쪽 (일방통행, 열면 양방향)
+    if (branchIdx + 2 < mainPath.length) {
+      const shortcutTargetId = mainPath[branchIdx + 2];
+      connections[treasureId].push(createConnection(shortcutTargetId, CONNECTION_TYPES.ONE_WAY));
+      // 반대편은 잠김 상태로 시작 (treasureId에서 열어야 함)
+      connections[shortcutTargetId].push(createConnection(treasureId, CONNECTION_TYPES.LOCKED));
+    }
+  });
+
+  // 4. 숨겨진 방 (통찰 필요)
+  const hiddenId = `${dungeonId}_hidden`;
+  const hiddenConnectIdx = Math.min(3, mainPath.length - 2);
+  nodes.push({
+    id: hiddenId,
+    type: DUNGEON_NODE_TYPES.ROOM,
+    name: '숨겨진 방',
+    description: '벽 뒤에 숨겨진 공간입니다.',
+    x: hiddenConnectIdx, y: 0,
+    event: { type: DUNGEON_EVENT_TYPES.CURIO, quality: 'legendary' },
     visited: false,
     cleared: false,
-  };
-
-  // 마지막 노드와 출구 연결
-  const lastNode = nodes[nodes.length - 1];
-  lastNode.connections.push(exitNode.id);
-  exitNode.connections.push(lastNode.id);
-  nodes.push(exitNode);
-
-  // 최소 전투 보장
-  ensureMinCombats(nodes, minCombats);
+    hidden: true,  // 발견 전까지 미니맵에 안 보임
+  });
+  connections[hiddenId] = [];
+  connections[mainPath[hiddenConnectIdx]].push(
+    createConnection(hiddenId, CONNECTION_TYPES.STAT_GATE, { stat: 'insight', value: 3 })
+  );
+  connections[hiddenId].push(createConnection(mainPath[hiddenConnectIdx], CONNECTION_TYPES.OPEN));
 
   return {
     id: dungeonId,
     nodes,
-    currentNodeId: nodes[0].id,
+    connections,  // 별도 연결 맵
+    currentNodeId: entranceId,
+    unlockedShortcuts: [],  // 열린 숏컷 ID 배열
+    discoveredHidden: [],   // 발견한 숨겨진 방 ID 배열
     timeElapsed: 0,
-    maxTime: 30,  // 30턴 제한
+    maxTime: 30,
   };
+}
+
+/**
+ * 스탯에 맞는 장애물 템플릿 반환
+ */
+function getObstacleForStat(stat) {
+  const mapping = {
+    strength: 'cliff',
+    agility: 'unstableBridge',
+    insight: 'mysteriousStatue',
+  };
+  return mapping[stat] || 'cliff';
+}
+
+/**
+ * 연결 통과 가능 여부 체크
+ * @param {Object} connection - 연결 정보
+ * @param {Object} playerStats - { strength, agility, insight }
+ * @param {Array} playerItems - 플레이어 아이템 배열
+ * @param {Array} unlockedShortcuts - 열린 숏컷 배열
+ * @returns {Object} { canPass: boolean, reason: string }
+ */
+export function canPassConnection(connection, playerStats, playerItems = [], unlockedShortcuts = []) {
+  const { type, requirements, targetId } = connection;
+
+  // 이미 열린 연결
+  if (connection.unlocked) {
+    return { canPass: true, reason: null };
+  }
+
+  switch (type) {
+    case CONNECTION_TYPES.OPEN:
+      return { canPass: true, reason: null };
+
+    case CONNECTION_TYPES.STAT_GATE:
+      if (!requirements) return { canPass: true, reason: null };
+      const statValue = playerStats[requirements.stat] || 0;
+      const needed = requirements.value || 0;
+      if (statValue >= needed) {
+        return { canPass: true, reason: null };
+      }
+      return {
+        canPass: false,
+        reason: `${getStatName(requirements.stat)} ${needed} 필요 (현재: ${statValue})`,
+      };
+
+    case CONNECTION_TYPES.ITEM_GATE:
+      if (!requirements) return { canPass: true, reason: null };
+      const hasItem = playerItems.some(item => item.id === requirements.item);
+      if (hasItem) {
+        return { canPass: true, reason: null, consumeItem: requirements.consume };
+      }
+      return {
+        canPass: false,
+        reason: `${requirements.itemName || requirements.item} 필요`,
+      };
+
+    case CONNECTION_TYPES.ONE_WAY:
+      // 일방통행은 해당 방향에서는 통과 가능
+      return { canPass: true, reason: null, isOneWay: true };
+
+    case CONNECTION_TYPES.LOCKED:
+      // 잠긴 문은 반대편에서 열어야 함
+      if (unlockedShortcuts.includes(targetId)) {
+        return { canPass: true, reason: null };
+      }
+      return {
+        canPass: false,
+        reason: '반대편에서 열어야 합니다',
+        isLocked: true,
+      };
+
+    default:
+      return { canPass: true, reason: null };
+  }
+}
+
+/**
+ * 숏컷 열기 (일방통행 문을 양방향으로 변경)
+ * @param {Object} dungeonState - 던전 상태
+ * @param {string} fromNodeId - 현재 노드 ID
+ * @param {string} toNodeId - 대상 노드 ID
+ * @returns {Object} 업데이트된 던전 상태
+ */
+export function unlockShortcut(dungeonState, fromNodeId, toNodeId) {
+  const newState = { ...dungeonState };
+
+  // 숏컷 목록에 추가
+  if (!newState.unlockedShortcuts.includes(fromNodeId)) {
+    newState.unlockedShortcuts = [...newState.unlockedShortcuts, fromNodeId];
+  }
+  if (!newState.unlockedShortcuts.includes(toNodeId)) {
+    newState.unlockedShortcuts = [...newState.unlockedShortcuts, toNodeId];
+  }
+
+  // 연결 상태 업데이트
+  const connections = { ...newState.connections };
+
+  // 반대편 LOCKED 연결을 unlocked로 변경
+  if (connections[toNodeId]) {
+    connections[toNodeId] = connections[toNodeId].map(conn => {
+      if (conn.targetId === fromNodeId && conn.type === CONNECTION_TYPES.LOCKED) {
+        return { ...conn, unlocked: true };
+      }
+      return conn;
+    });
+  }
+
+  newState.connections = connections;
+  return newState;
+}
+
+/**
+ * 노드 이동
+ * @param {Object} dungeonState - 던전 상태
+ * @param {string} targetNodeId - 이동할 노드 ID
+ * @param {Object} playerStats - 플레이어 스탯
+ * @param {Array} playerItems - 플레이어 아이템
+ * @returns {Object} { success, newState, message, consumedItem }
+ */
+export function moveToNode(dungeonState, targetNodeId, playerStats, playerItems = []) {
+  const currentNodeId = dungeonState.currentNodeId;
+  const connections = dungeonState.connections[currentNodeId] || [];
+
+  // 연결 찾기
+  const connection = connections.find(c => c.targetId === targetNodeId);
+  if (!connection) {
+    return { success: false, message: '연결되지 않은 장소입니다.' };
+  }
+
+  // 통과 가능 여부 체크
+  const checkResult = canPassConnection(
+    connection,
+    playerStats,
+    playerItems,
+    dungeonState.unlockedShortcuts
+  );
+
+  if (!checkResult.canPass) {
+    return { success: false, message: checkResult.reason };
+  }
+
+  // 상태 업데이트
+  let newState = { ...dungeonState };
+
+  // 일방통행 문이면 숏컷 열기
+  if (checkResult.isOneWay) {
+    newState = unlockShortcut(newState, currentNodeId, targetNodeId);
+  }
+
+  // 노드 이동
+  newState.currentNodeId = targetNodeId;
+  newState.timeElapsed += 1;
+
+  // 방문 처리
+  const nodeIdx = newState.nodes.findIndex(n => n.id === targetNodeId);
+  if (nodeIdx >= 0) {
+    newState.nodes = [...newState.nodes];
+    newState.nodes[nodeIdx] = { ...newState.nodes[nodeIdx], visited: true };
+
+    // 숨겨진 방 발견
+    if (newState.nodes[nodeIdx].hidden && !newState.discoveredHidden.includes(targetNodeId)) {
+      newState.discoveredHidden = [...newState.discoveredHidden, targetNodeId];
+    }
+  }
+
+  return {
+    success: true,
+    newState,
+    consumedItem: checkResult.consumeItem,
+  };
+}
+
+/**
+ * 현재 노드에서 갈 수 있는 연결 목록
+ */
+export function getAvailableConnections(dungeonState, playerStats, playerItems = []) {
+  const currentNodeId = dungeonState.currentNodeId;
+  const connections = dungeonState.connections[currentNodeId] || [];
+
+  return connections.map(conn => {
+    const targetNode = dungeonState.nodes.find(n => n.id === conn.targetId);
+    const checkResult = canPassConnection(
+      conn,
+      playerStats,
+      playerItems,
+      dungeonState.unlockedShortcuts
+    );
+
+    return {
+      ...conn,
+      targetNode,
+      canPass: checkResult.canPass,
+      reason: checkResult.reason,
+      isLocked: checkResult.isLocked,
+    };
+  });
+}
+
+function getStatName(stat) {
+  const names = { strength: '힘', agility: '민첩', insight: '통찰' };
+  return names[stat] || stat;
 }
 
 function getNodeName(type, index) {
