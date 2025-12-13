@@ -5,9 +5,10 @@
  * 실제 tokenUtils, cardSpecialEffects 모두 사용
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { applyAction, applyAttack, applyDefense } from '../logic/combatActions.js';
 import { createEmptyTokens } from '../../../lib/tokenUtils.js';
+import { processQueueCollisions } from './cardSpecialEffects.js';
 
 // 테스트용 기본 엔티티 생성
 function createPlayer(overrides = {}) {
@@ -441,5 +442,143 @@ describe('통합 테스트: 엣지 케이스', () => {
     const result = applyAction(state, 'enemy', card);
 
     expect(result.updatedState.player.hp).toBe(85);
+  });
+});
+
+describe('통합 테스트: 회피 토큰 (Math.random mock)', () => {
+  let originalRandom;
+
+  beforeEach(() => {
+    originalRandom = Math.random;
+  });
+
+  afterEach(() => {
+    Math.random = originalRandom;
+  });
+
+  it('회피 성공 (확률 50%, 랜덤 0.3)', () => {
+    Math.random = () => 0.3; // 50% 확률 → 0.3 < 0.5 → 회피 성공
+
+    const state = createState({}, {
+      tokens: {
+        usage: [{ id: 'blur', stacks: 1 }],
+        turn: [],
+        permanent: []
+      }
+    });
+    const card = { type: 'attack', name: '타격', damage: 30 };
+
+    const result = applyAction(state, 'player', card);
+
+    expect(result.updatedState.enemy.hp).toBe(100); // 회피 → 피해 없음
+    expect(result.dealt).toBe(0);
+  });
+
+  it('회피 실패 (확률 50%, 랜덤 0.7)', () => {
+    Math.random = () => 0.7; // 50% 확률 → 0.7 >= 0.5 → 회피 실패
+
+    const state = createState({}, {
+      tokens: {
+        usage: [{ id: 'blur', stacks: 1 }],
+        turn: [],
+        permanent: []
+      }
+    });
+    const card = { type: 'attack', name: '타격', damage: 30 };
+
+    const result = applyAction(state, 'player', card);
+
+    expect(result.updatedState.enemy.hp).toBe(70); // 회피 실패 → 피해 30
+    expect(result.dealt).toBe(30);
+  });
+
+  it('blurPlus 75% 회피 성공', () => {
+    Math.random = () => 0.6; // 75% 확률 → 0.6 < 0.75 → 회피 성공
+
+    const state = createState({}, {
+      tokens: {
+        usage: [{ id: 'blurPlus', stacks: 1 }],
+        turn: [],
+        permanent: []
+      }
+    });
+    const card = { type: 'attack', name: '타격', damage: 30 };
+
+    const result = applyAction(state, 'player', card);
+
+    expect(result.updatedState.enemy.hp).toBe(100);
+    expect(result.dealt).toBe(0);
+  });
+
+  it('dodge 턴 토큰 회피', () => {
+    Math.random = () => 0.4;
+
+    const state = createState({}, {
+      tokens: {
+        usage: [],
+        turn: [{ id: 'dodge', stacks: 1 }],
+        permanent: []
+      }
+    });
+    const card = { type: 'attack', name: '타격', damage: 25 };
+
+    const result = applyAction(state, 'player', card);
+
+    expect(result.updatedState.enemy.hp).toBe(100);
+  });
+});
+
+describe('통합 테스트: processQueueCollisions 실제 연동', () => {
+  it('복잡한 큐 충돌 처리', () => {
+    const queue = [
+      { actor: 'player', card: { name: '박치기', special: 'destroyOnCollision' }, sp: 5 },
+      { actor: 'player', card: { name: '타격', damage: 20 }, sp: 8 },
+      { actor: 'enemy', card: { name: '적1' }, sp: 5 },
+      { actor: 'enemy', card: { name: '적2' }, sp: 8 },
+      { actor: 'enemy', card: { name: '적3' }, sp: 12 }
+    ];
+
+    const logs = [];
+    const result = processQueueCollisions(queue, msg => logs.push(msg));
+
+    // 박치기(sp:5)가 적1(sp:5) 파괴
+    expect(result.filteredQueue.length).toBe(4);
+    expect(result.destroyedCards.length).toBe(1);
+    expect(result.destroyedCards[0].name).toBe('적1');
+    expect(logs.length).toBe(1);
+  });
+
+  it('다중 박치기 카드', () => {
+    const queue = [
+      { actor: 'player', card: { name: '박치기1', special: 'destroyOnCollision' }, sp: 3 },
+      { actor: 'player', card: { name: '박치기2', special: 'destroyOnCollision' }, sp: 7 },
+      { actor: 'enemy', card: { name: '적1' }, sp: 3 },
+      { actor: 'enemy', card: { name: '적2' }, sp: 7 },
+      { actor: 'enemy', card: { name: '적3' }, sp: 10 }
+    ];
+
+    const result = processQueueCollisions(queue, () => {});
+
+    expect(result.filteredQueue.length).toBe(3); // 플레이어 2 + 적3
+    expect(result.destroyedCards.length).toBe(2);
+  });
+
+  it('sp 불일치면 파괴 안됨', () => {
+    const queue = [
+      { actor: 'player', card: { name: '박치기', special: 'destroyOnCollision' }, sp: 5 },
+      { actor: 'enemy', card: { name: '적 카드' }, sp: 6 }
+    ];
+
+    const result = processQueueCollisions(queue, () => {});
+
+    expect(result.filteredQueue.length).toBe(2);
+    expect(result.destroyedCards.length).toBe(0);
+  });
+
+  it('빈 큐 처리', () => {
+    const result = processQueueCollisions([], () => {});
+
+    expect(result.filteredQueue.length).toBe(0);
+    expect(result.destroyedCards.length).toBe(0);
   });
 });
