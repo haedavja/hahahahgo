@@ -1086,21 +1086,34 @@ export const useGameStore = create((set, get) => ({
       const targetNode = nodes.find((n) => n.id === nodeId);
       if (!targetNode) return state;
 
-      // 현재 노드를 타겟 노드로 변경
-      const updatedNodes = cloneNodes(nodes).map((node) => ({
-        ...node,
-        // 타겟 노드까지의 경로에 있는 노드들을 cleared로 설정
-        cleared: node.cleared || node.id === nodeId,
-        selectable: true,
-      }));
+      // 던전 노드인 경우
+      if (targetNode.type === "dungeon") {
+        return {
+          ...state,
+          activeDungeon: { nodeId: targetNode.id, revealed: false, confirmed: false },
+        };
+      }
+
+      // travelToNode 로직 사용하여 노드 활성화
+      const result = travelToNode(state, nodeId);
+      if (!result) {
+        // travelToNode가 실패하면 단순 이동만
+        return {
+          ...state,
+          map: {
+            ...state.map,
+            currentNodeId: nodeId,
+          },
+        };
+      }
 
       return {
         ...state,
-        map: {
-          ...state.map,
-          nodes: updatedNodes,
-          currentNodeId: nodeId,
-        },
+        map: result.map,
+        activeEvent: result.event,
+        activeBattle: result.battle,
+        // pendingNextEvent 사용된 경우 클리어
+        pendingNextEvent: result.usedPendingEvent ? null : state.pendingNextEvent,
       };
     }),
 
