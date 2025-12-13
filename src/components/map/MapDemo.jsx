@@ -4,7 +4,7 @@ import { useGameStore } from "../../state/gameStore";
 import { calculateEtherSlots, getCurrentSlotPts, getSlotProgress, getNextSlotCost } from "../../lib/etherUtils";
 import { CharacterSheet } from "../character/CharacterSheet";
 import { DungeonExploration } from "../dungeon/DungeonExploration";
-import { DungeonExplorationNew } from "../dungeon/DungeonExplorationNew";
+import { GraphDungeonExploration } from "../dungeon/GraphDungeonExploration";
 import { LegacyBattleScreen } from "../battle/LegacyBattleScreen";
 import { EtherBar } from "../battle/ui/EtherBar";
 import { DevTools } from "../dev/DevTools";
@@ -1058,7 +1058,7 @@ export function MapDemo() {
 
       {isDungeonExploring && (
         <div style={{ display: activeBattle ? 'none' : 'block' }}>
-          {useNewDungeon ? <DungeonExplorationNew /> : <DungeonExploration />}
+          {useNewDungeon ? <GraphDungeonExploration /> : <DungeonExploration />}
         </div>
       )}
 
