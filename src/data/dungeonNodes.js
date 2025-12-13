@@ -264,7 +264,7 @@ export const OBSTACLE_TEMPLATES = {
           '문양이 고대 언어입니다. 해독을 시도합니다...',
           '"경배하는 자에게 축복을" - 의미를 이해했습니다!',
         ],
-        scalingRequirement: { stat: 'insight', baseValue: 0, increment: 2 },
+        scalingRequirement: { stat: 'insight', baseValue: 0, increment: 1 },
         outcomes: {
           success: {
             type: CHOICE_RESULT_TYPES.SUCCESS,
@@ -337,7 +337,7 @@ export const OBSTACLE_TEMPLATES = {
           '마음을 비우고 집중합니다...',
           '제단의 의지와 연결되었습니다.',
         ],
-        scalingRequirement: { stat: 'insight', baseValue: 1, increment: 2 },
+        scalingRequirement: { stat: 'insight', baseValue: 0, increment: 1 },
         outcomes: {
           success: {
             type: CHOICE_RESULT_TYPES.SUCCESS,
@@ -516,7 +516,7 @@ export const OBSTACLE_TEMPLATES = {
           '주변을 둘러봅니다...',
           '숨겨진 샛길을 발견했습니다!',
         ],
-        scalingRequirement: { stat: 'insight', baseValue: 2, increment: 2 },
+        scalingRequirement: { stat: 'insight', baseValue: 1, increment: 1 },
         outcomes: {
           success: {
             type: CHOICE_RESULT_TYPES.SUCCESS,

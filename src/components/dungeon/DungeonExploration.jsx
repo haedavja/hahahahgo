@@ -775,7 +775,11 @@ export function DungeonExploration() {
       }
     } else {
       // 일회성 선택지
-      const outcome = choice.outcomes.success;
+      // successRate가 있으면 확률 판정, 없으면 항상 성공
+      const hasSuccessRate = choice.successRate !== undefined;
+      const isSuccess = hasSuccessRate ? (Math.random() < choice.successRate) : true;
+      const outcome = isSuccess ? choice.outcomes.success : choice.outcomes.failure;
+
       applyChoiceOutcome(outcome, obj);
       actions.setMessage(outcome.text);
 
