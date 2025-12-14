@@ -510,6 +510,33 @@ export const useGameStore = create((set, get) => ({
       };
     }),
 
+  // 미로 던전: 현재 방 키 설정
+  setCurrentRoomKey: (roomKey) =>
+    set((state) => {
+      if (!state.activeDungeon) return state;
+      return {
+        ...state,
+        activeDungeon: { ...state.activeDungeon, currentRoomKey: roomKey },
+      };
+    }),
+
+  // 미로 던전: 방 방문 상태 업데이트
+  updateMazeRoom: (roomKey, updates) =>
+    set((state) => {
+      if (!state.activeDungeon?.dungeonData?.grid) return state;
+      const grid = { ...state.activeDungeon.dungeonData.grid };
+      if (grid[roomKey]) {
+        grid[roomKey] = { ...grid[roomKey], ...updates };
+      }
+      return {
+        ...state,
+        activeDungeon: {
+          ...state.activeDungeon,
+          dungeonData: { ...state.activeDungeon.dungeonData, grid },
+        },
+      };
+    }),
+
   setDungeonInitialResources: (initialResources) =>
     set((state) => {
       if (!state.activeDungeon) return state;

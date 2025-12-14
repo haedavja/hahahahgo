@@ -18,6 +18,15 @@ const CONFIG = {
   ROOM_WIDTH: 1200,
   CORRIDOR_WIDTH: 3000,
   MIN_COMBAT_COUNT: 2,
+  // 미로 던전 설정
+  MAZE: {
+    GRID_SIZE: 5,          // 5x5 그리드
+    MIN_ROOMS: 12,         // 최소 방 개수
+    MAX_ROOMS: 18,         // 최대 방 개수
+    DEAD_END_REWARD: 0.7,  // 막다른 방에 보상 확률
+    HIDDEN_ROOM_CHANCE: 0.15, // 숨겨진 방 확률
+    LOOP_CHANCE: 0.3,      // 루프 생성 확률
+  },
 };
 
 // ========== 오브젝트 타입 정의 ==========
@@ -124,7 +133,303 @@ const OBJECT_TYPES = {
       ctx.fillText(unlocked ? "숏컷" : "🔒", x, y - 85);
     },
   },
+  HIDDEN_DOOR: {
+    id: "hidden_door",
+    label: "숨겨진 문",
+    canReuse: true,
+    probRoom: 0.0,
+    probCorridor: 0.0,
+    render: (ctx, x, y, used, discovered) => {
+      if (discovered) {
+        // 발견된 숨겨진 문
+        ctx.fillStyle = "#8b5cf6";
+        ctx.fillRect(x - 25, y - 80, 50, 80);
+        ctx.fillStyle = "#1e1b4b";
+        ctx.fillRect(x - 18, y - 70, 36, 70);
+        ctx.fillStyle = "#c4b5fd";
+        ctx.font = "bold 12px Arial";
+        ctx.textAlign = "center";
+        ctx.fillText("비밀 통로", x, y - 85);
+      } else {
+        // 발견되지 않은 상태 - 벽의 균열처럼 보임
+        ctx.strokeStyle = "#374151";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(x - 5, y - 60);
+        ctx.lineTo(x + 2, y - 40);
+        ctx.lineTo(x - 3, y - 20);
+        ctx.stroke();
+      }
+    },
+  },
 };
+
+// ========== 미로 생성 알고리즘 ==========
+const DIRECTIONS = {
+  north: { dx: 0, dy: -1, opposite: 'south' },
+  south: { dx: 0, dy: 1, opposite: 'north' },
+  east: { dx: 1, dy: 0, opposite: 'west' },
+  west: { dx: -1, dy: 0, opposite: 'east' },
+};
+
+function generateMaze(forcedCrossroadId = null) {
+  const { GRID_SIZE, MIN_ROOMS, MAX_ROOMS, DEAD_END_REWARD, HIDDEN_ROOM_CHANCE, LOOP_CHANCE } = CONFIG.MAZE;
+
+  // 그리드 초기화
+  const grid = {};
+  const getKey = (x, y) => `${x},${y}`;
+
+  // 시작 위치 (중앙 하단)
+  const startX = Math.floor(GRID_SIZE / 2);
+  const startY = GRID_SIZE - 1;
+
+  // 출구 위치 (중앙 상단 근처)
+  const exitX = Math.floor(GRID_SIZE / 2);
+  const exitY = 0;
+
+  // DFS로 미로 생성
+  const stack = [{ x: startX, y: startY }];
+  const visited = new Set();
+  visited.add(getKey(startX, startY));
+
+  // 첫 방 생성
+  grid[getKey(startX, startY)] = createRoom(startX, startY, 'entrance');
+
+  while (stack.length > 0 && visited.size < MAX_ROOMS) {
+    const current = stack[stack.length - 1];
+    const { x, y } = current;
+
+    // 이웃 방향 섞기
+    const directions = Object.keys(DIRECTIONS).sort(() => Math.random() - 0.5);
+    let foundNext = false;
+
+    for (const dir of directions) {
+      const { dx, dy, opposite } = DIRECTIONS[dir];
+      const nx = x + dx;
+      const ny = y + dy;
+      const neighborKey = getKey(nx, ny);
+
+      // 그리드 범위 체크
+      if (nx < 0 || nx >= GRID_SIZE || ny < 0 || ny >= GRID_SIZE) continue;
+
+      if (!visited.has(neighborKey)) {
+        // 새 방 생성
+        visited.add(neighborKey);
+
+        // 숨겨진 방 결정
+        const isHidden = Math.random() < HIDDEN_ROOM_CHANCE && visited.size > 3;
+        const roomType = (nx === exitX && ny === exitY) ? 'exit' : (isHidden ? 'hidden' : 'normal');
+
+        grid[neighborKey] = createRoom(nx, ny, roomType);
+
+        // 연결 (숨겨진 방은 hidden_door로 연결)
+        if (isHidden) {
+          grid[getKey(x, y)].exits[dir] = { type: 'hidden', targetKey: neighborKey };
+          grid[neighborKey].exits[opposite] = { type: 'hidden', targetKey: getKey(x, y) };
+        } else {
+          grid[getKey(x, y)].exits[dir] = { type: 'normal', targetKey: neighborKey };
+          grid[neighborKey].exits[opposite] = { type: 'normal', targetKey: getKey(x, y) };
+        }
+
+        stack.push({ x: nx, y: ny });
+        foundNext = true;
+        break;
+      }
+    }
+
+    if (!foundNext) {
+      stack.pop();
+    }
+  }
+
+  // 출구가 없으면 강제 생성
+  if (!grid[getKey(exitX, exitY)]) {
+    // 가장 가까운 방에서 출구로 연결
+    let closestRoom = null;
+    let minDist = Infinity;
+
+    for (const key of Object.keys(grid)) {
+      const [rx, ry] = key.split(',').map(Number);
+      const dist = Math.abs(rx - exitX) + Math.abs(ry - exitY);
+      if (dist < minDist && dist > 0) {
+        minDist = dist;
+        closestRoom = { x: rx, y: ry, key };
+      }
+    }
+
+    if (closestRoom) {
+      // 출구까지 경로 생성
+      let cx = closestRoom.x;
+      let cy = closestRoom.y;
+
+      while (cx !== exitX || cy !== exitY) {
+        const currentKey = getKey(cx, cy);
+        let nextX = cx;
+        let nextY = cy;
+        let dir = null;
+
+        if (cx !== exitX) {
+          nextX = cx + (exitX > cx ? 1 : -1);
+          dir = exitX > cx ? 'east' : 'west';
+        } else if (cy !== exitY) {
+          nextY = cy + (exitY > cy ? 1 : -1);
+          dir = exitY > cy ? 'south' : 'north';
+        }
+
+        const nextKey = getKey(nextX, nextY);
+        const opposite = DIRECTIONS[dir].opposite;
+
+        if (!grid[nextKey]) {
+          const roomType = (nextX === exitX && nextY === exitY) ? 'exit' : 'normal';
+          grid[nextKey] = createRoom(nextX, nextY, roomType);
+        }
+
+        grid[currentKey].exits[dir] = { type: 'normal', targetKey: nextKey };
+        grid[nextKey].exits[opposite] = { type: 'normal', targetKey: currentKey };
+
+        cx = nextX;
+        cy = nextY;
+      }
+    }
+  }
+
+  // 루프 추가 (대체 경로)
+  const roomKeys = Object.keys(grid);
+  for (const key of roomKeys) {
+    const [x, y] = key.split(',').map(Number);
+    const room = grid[key];
+
+    for (const [dir, { dx, dy, opposite }] of Object.entries(DIRECTIONS)) {
+      if (room.exits[dir]) continue; // 이미 연결됨
+
+      const nx = x + dx;
+      const ny = y + dy;
+      const neighborKey = getKey(nx, ny);
+
+      if (grid[neighborKey] && Math.random() < LOOP_CHANCE) {
+        // 루프 연결
+        room.exits[dir] = { type: 'normal', targetKey: neighborKey };
+        grid[neighborKey].exits[opposite] = { type: 'normal', targetKey: key };
+      }
+    }
+  }
+
+  // 막다른 방에 보상 추가
+  for (const key of roomKeys) {
+    const room = grid[key];
+    const exitCount = Object.values(room.exits).filter(e => e).length;
+
+    if (exitCount === 1 && room.roomType !== 'entrance' && room.roomType !== 'exit') {
+      // 막다른 방
+      room.isDeadEnd = true;
+      if (Math.random() < DEAD_END_REWARD) {
+        // 특별 보상 추가
+        room.objects.push({
+          id: `treasure_${key}`,
+          typeId: "chest",
+          x: 600,
+          used: false,
+          isSpecial: true, // 특별 보물
+        });
+      }
+    }
+  }
+
+  // 기로 추가
+  const normalRooms = roomKeys.filter(k => {
+    const r = grid[k];
+    return r.roomType === 'normal' && !r.isDeadEnd;
+  });
+
+  if (normalRooms.length > 0) {
+    const crossroadRoom = normalRooms[Math.floor(Math.random() * normalRooms.length)];
+    const template = getRandomCrossroadTemplate(forcedCrossroadId);
+    grid[crossroadRoom].objects.push({
+      id: `crossroad_${crossroadRoom}`,
+      typeId: "crossroad",
+      x: 600,
+      used: false,
+      template: template,
+      choiceState: {},
+    });
+  }
+
+  // 최소 전투 보장
+  ensureMazeMinimumCombats(grid, CONFIG.MIN_COMBAT_COUNT);
+
+  console.log('[Maze] 생성 완료 - 방 개수:', Object.keys(grid).length);
+
+  return {
+    grid,
+    startKey: getKey(startX, startY),
+    exitKey: getKey(exitX, exitY),
+    gridSize: GRID_SIZE,
+  };
+}
+
+function createRoom(x, y, roomType) {
+  const objects = [];
+
+  // 입구/출구가 아닌 경우 오브젝트 생성
+  if (roomType !== 'entrance' && roomType !== 'exit') {
+    const count = 1 + Math.floor(Math.random() * 2); // 1-2개
+
+    for (let i = 0; i < count; i++) {
+      const rand = Math.random();
+      let type = null;
+
+      if (rand < 0.35) {
+        type = OBJECT_TYPES.CHEST;
+      } else if (rand < 0.60) {
+        type = OBJECT_TYPES.CURIO;
+      } else {
+        type = OBJECT_TYPES.COMBAT;
+      }
+
+      objects.push({
+        id: `obj_${x}_${y}_${i}`,
+        typeId: type.id,
+        x: 350 + i * 250 + Math.random() * 100,
+        used: false,
+      });
+    }
+  }
+
+  return {
+    id: `room_${x}_${y}`,
+    x,
+    y,
+    roomType,
+    exits: { north: null, south: null, east: null, west: null },
+    objects,
+    visited: roomType === 'entrance', // 입구는 시작부터 방문
+    discovered: roomType !== 'hidden', // 숨겨진 방은 발견되지 않은 상태
+    width: CONFIG.ROOM_WIDTH,
+    isDeadEnd: false,
+  };
+}
+
+function ensureMazeMinimumCombats(grid, minCount) {
+  const rooms = Object.values(grid);
+  const combatCount = rooms.reduce((sum, room) =>
+    sum + room.objects.filter(o => o.typeId === "combat").length, 0
+  );
+
+  let needed = minCount - combatCount;
+
+  while (needed > 0) {
+    const randomRoom = rooms[Math.floor(Math.random() * rooms.length)];
+    if (randomRoom.roomType === 'entrance' || randomRoom.roomType === 'exit') continue;
+
+    const nonCombat = randomRoom.objects.filter(o => o.typeId !== "combat" && o.typeId !== "crossroad");
+    if (nonCombat.length > 0) {
+      nonCombat[0].typeId = "combat";
+      needed--;
+    } else {
+      break;
+    }
+  }
+}
 
 // ========== 기로 템플릿 선택 ==========
 function getRandomCrossroadTemplate(forcedTemplateId = null) {
@@ -319,9 +624,16 @@ function ensureMinimumCombats(segments) {
 const OBJECT_HANDLERS = {
   chest: (obj, context) => {
     obj.used = true;
-    const ether = -(1 + Math.floor(Math.random() * 3));
-    context.applyEtherDelta(ether);
-    context.actions.setMessage(`보물 상자를 열었습니다. 에테르 ${ether}`);
+    // 특별 보물 (막다른 방)은 보상이 더 좋음
+    if (obj.isSpecial) {
+      const ether = -(3 + Math.floor(Math.random() * 4)); // 더 많은 에테르
+      context.applyEtherDelta(ether);
+      context.actions.setMessage(`✨ 특별한 보물 상자를 열었습니다! 에테르 ${ether}`);
+    } else {
+      const ether = -(1 + Math.floor(Math.random() * 3));
+      context.applyEtherDelta(ether);
+      context.actions.setMessage(`보물 상자를 열었습니다. 에테르 ${ether}`);
+    }
   },
 
   curio: (obj, context) => {
@@ -343,12 +655,13 @@ const OBJECT_HANDLERS = {
 
     // 전투 전 상태 저장 (오브젝트의 정확한 위치 저장)
     context.preBattleState.current = {
+      roomKey: context.currentRoomKey, // 미로 시스템용
       segmentIndex: context.segmentIndex,
       playerX: obj.x, // 플레이어의 현재 위치가 아닌 오브젝트 위치로 복귀
     };
 
     context.startBattle({
-      nodeId: `dungeon-${context.segmentIndex}`,
+      nodeId: `dungeon-${context.currentRoomKey || context.segmentIndex}`,
       kind: "combat",
       label: "던전 몬스터",
       enemyHp,
@@ -430,11 +743,11 @@ export function DungeonExploration() {
   const maxHp = useGameStore((s) => s.maxHp);
   const devForcedCrossroad = useGameStore((s) => s.devForcedCrossroad);
 
-  // 던전 데이터 생성 (한 번만)
+  // 던전 데이터 생성 (한 번만) - 미로 시스템 사용
   useEffect(() => {
     if (activeDungeon && !activeDungeon.dungeonData) {
-      const newDungeon = generateDungeon(devForcedCrossroad);
-      setDungeonData(newDungeon);
+      const mazeData = generateMaze(devForcedCrossroad);
+      setDungeonData(mazeData);
     }
   }, [activeDungeon, setDungeonData, devForcedCrossroad]);
 
@@ -453,17 +766,22 @@ export function DungeonExploration() {
     }
   }, [activeDungeon, setDungeonDeltas]);
 
-  // 던전 데이터는 activeDungeon에서 가져옴
-  const dungeonData = activeDungeon?.dungeonData || [];
-  // activeDungeon에서 위치 정보 가져오기 (재마운트 시에도 유지)
+  // 던전 데이터는 activeDungeon에서 가져옴 (미로 데이터 구조)
+  const mazeData = activeDungeon?.dungeonData || null;
+  const grid = mazeData?.grid || {};
+  const startKey = mazeData?.startKey || '2,4';
+  const exitKey = mazeData?.exitKey || '2,0';
+
+  // 현재 방 키 (세그먼트 인덱스 대신 사용)
+  const currentRoomKey = activeDungeon?.currentRoomKey || startKey;
+
   // Dungeon 상태 (useReducer 기반)
   const { dungeon, actions } = useDungeonState({
-    segmentIndex: activeDungeon?.segmentIndex || 0,
-    playerX: activeDungeon?.playerX || 100,
+    segmentIndex: 0, // 미로에서는 사용 안함, 호환성 유지
+    playerX: activeDungeon?.playerX || 600, // 중앙에서 시작
   });
 
   // Destructure dungeon state
-  const segmentIndex = dungeon.segmentIndex;
   const playerX = dungeon.playerX;
   const cameraX = dungeon.cameraX;
   const keys = dungeon.keys;
@@ -474,6 +792,9 @@ export function DungeonExploration() {
   const hoveredRelic = dungeon.hoveredRelic;
   const crossroadModal = dungeon.crossroadModal;
   const screenShake = dungeon.screenShake;
+
+  // 현재 방 데이터
+  const currentRoom = grid[currentRoomKey];
 
   // 플레이어 스탯 가져오기 (기로 선택지 요구조건 체크용)
   const playerStrength = useGameStore((s) => s.playerStrength) || 0;
@@ -487,19 +808,24 @@ export function DungeonExploration() {
   // 초기 자원은 activeDungeon에서 가져옴 (재마운트 시에도 유지) - z값
   const initialResources = activeDungeon?.initialResources || resources;
 
+  // 미로 던전용 gameStore 함수
+  const setCurrentRoomKey = useGameStore((s) => s.setCurrentRoomKey);
+  const updateMazeRoom = useGameStore((s) => s.updateMazeRoom);
+
   const canvasRef = useRef(null);
   const animationRef = useRef(null);
   const preBattleState = useRef(null); // 전투 전 상태 저장
   const interactionRef = useRef(null); // 상호작용 함수 ref
   const playerXRef = useRef(playerX); // 플레이어 X 위치 ref (이동 루프용)
 
-  const segment = dungeonData[segmentIndex];
+  // 현재 방 (미로 시스템)
+  const segment = currentRoom; // 호환성을 위해 segment로 alias
   const playerY = CONFIG.FLOOR_Y - CONFIG.PLAYER.height;
 
   // 위치 정보를 activeDungeon에 저장 (재마운트 시 복원용)
   useEffect(() => {
-    setDungeonPosition(segmentIndex, playerX);
-  }, [segmentIndex, playerX, setDungeonPosition]);
+    setDungeonPosition(0, playerX); // segmentIndex 대신 0 사용
+  }, [playerX, setDungeonPosition]);
 
   // ========== 키 입력 ==========
   useEffect(() => {
@@ -597,16 +923,122 @@ export function DungeonExploration() {
     const ctx = canvas.getContext("2d");
     ctx.clearRect(0, 0, CONFIG.VIEWPORT.width, CONFIG.VIEWPORT.height);
 
-    // 배경
-    ctx.fillStyle = segment.isRoom ? "#16213e" : "#1a1a2e";
+    // 배경 (방 타입에 따라 다른 색상)
+    const bgColors = {
+      entrance: "#1a2a1a",  // 입구 - 녹색 톤
+      exit: "#2a1a2a",      // 출구 - 보라색 톤
+      hidden: "#2a2a1a",    // 숨겨진 방 - 황금색 톤
+      normal: "#16213e",    // 일반 방
+    };
+    ctx.fillStyle = bgColors[segment.roomType] || bgColors.normal;
     ctx.fillRect(0, 0, CONFIG.VIEWPORT.width, CONFIG.VIEWPORT.height);
+
+    // 벽 텍스처 (상단)
+    ctx.fillStyle = "#0a1628";
+    ctx.fillRect(0, 0, CONFIG.VIEWPORT.width, 100);
 
     // 바닥
     ctx.fillStyle = "#0f3460";
     ctx.fillRect(0, CONFIG.FLOOR_Y, CONFIG.VIEWPORT.width, 100);
 
+    // 방 유형 표시
+    const roomLabels = {
+      entrance: "입구",
+      exit: "출구",
+      hidden: "비밀의 방",
+      normal: "",
+    };
+    if (segment.roomType !== 'normal') {
+      ctx.fillStyle = segment.roomType === 'exit' ? "#22c55e" : "#fbbf24";
+      ctx.font = "bold 24px Arial";
+      ctx.textAlign = "center";
+      ctx.fillText(roomLabels[segment.roomType] || "", CONFIG.VIEWPORT.width / 2, 60);
+    }
+
+    // 막다른 방 표시
+    if (segment.isDeadEnd) {
+      ctx.fillStyle = "#ef4444";
+      ctx.font = "16px Arial";
+      ctx.textAlign = "center";
+      ctx.fillText("막다른 방", CONFIG.VIEWPORT.width / 2, 85);
+    }
+
+    // 4방향 문 렌더링
+    const doorPositions = {
+      north: { x: CONFIG.VIEWPORT.width / 2, y: 120, label: "▲ 북쪽" },
+      south: { x: CONFIG.VIEWPORT.width / 2, y: CONFIG.FLOOR_Y - 30, label: "▼ 남쪽" },
+      west: { x: 100, y: CONFIG.FLOOR_Y / 2 + 100, label: "◀ 서쪽" },
+      east: { x: CONFIG.VIEWPORT.width - 100, y: CONFIG.FLOOR_Y / 2 + 100, label: "동쪽 ▶" },
+    };
+
+    // 각 방향 문 렌더링
+    Object.entries(doorPositions).forEach(([dir, pos]) => {
+      const exit = segment.exits[dir];
+      if (!exit) {
+        // 문 없음 - 벽 표시
+        ctx.fillStyle = "#1e293b";
+        if (dir === 'north' || dir === 'south') {
+          // 수평 벽
+          // (이미 배경으로 그려짐)
+        } else {
+          // 수직 벽 (좌우)
+          const wallX = dir === 'west' ? 0 : CONFIG.VIEWPORT.width - 60;
+          ctx.fillRect(wallX, 100, 60, CONFIG.FLOOR_Y - 100);
+        }
+      } else {
+        // 문 있음
+        const isHidden = exit.type === 'hidden';
+        const targetRoom = grid[exit.targetKey];
+        const isDiscovered = !isHidden || (targetRoom && targetRoom.discovered);
+
+        // 문 배경
+        ctx.fillStyle = isHidden
+          ? (isDiscovered ? "#8b5cf6" : "#374151")  // 숨겨진 문
+          : (segment.roomType === 'exit' && dir === 'north' ? "#22c55e" : "#3b82f6"); // 일반 문
+
+        if (dir === 'north') {
+          // 북쪽 문 (상단 중앙)
+          ctx.fillRect(pos.x - 40, 100, 80, 50);
+          ctx.fillStyle = isHidden && !isDiscovered ? "#1f2937" : "#0f172a";
+          ctx.fillRect(pos.x - 30, 105, 60, 45);
+        } else if (dir === 'south') {
+          // 남쪽 문 (하단 중앙)
+          ctx.fillRect(pos.x - 40, pos.y, 80, 60);
+          ctx.fillStyle = isHidden && !isDiscovered ? "#1f2937" : "#0f172a";
+          ctx.fillRect(pos.x - 30, pos.y + 5, 60, 55);
+        } else {
+          // 좌우 문
+          const doorX = dir === 'west' ? 0 : CONFIG.VIEWPORT.width - 60;
+          ctx.fillRect(doorX, pos.y - 50, 60, 100);
+          ctx.fillStyle = isHidden && !isDiscovered ? "#1f2937" : "#0f172a";
+          ctx.fillRect(doorX + 5, pos.y - 45, 50, 90);
+        }
+
+        // 문 라벨
+        ctx.fillStyle = isHidden && !isDiscovered ? "#64748b" : "#e2e8f0";
+        ctx.font = "14px Arial";
+        ctx.textAlign = "center";
+
+        if (dir === 'north') {
+          ctx.fillText(isHidden && !isDiscovered ? "???" : pos.label, pos.x, pos.y - 10);
+        } else if (dir === 'south') {
+          ctx.fillText(isHidden && !isDiscovered ? "???" : pos.label, pos.x, pos.y + 80);
+        } else if (dir === 'west') {
+          ctx.save();
+          ctx.translate(50, pos.y);
+          ctx.fillText(isHidden && !isDiscovered ? "???" : pos.label, 0, 0);
+          ctx.restore();
+        } else {
+          ctx.save();
+          ctx.translate(CONFIG.VIEWPORT.width - 50, pos.y);
+          ctx.fillText(isHidden && !isDiscovered ? "???" : pos.label, 0, 0);
+          ctx.restore();
+        }
+      }
+    });
+
     // 오브젝트 렌더링
-    segment.objects.forEach((obj) => {
+    (segment.objects || []).forEach((obj) => {
       const screenX = obj.x - cameraX;
       if (screenX < -100 || screenX > CONFIG.VIEWPORT.width + 100) return;
 
@@ -615,112 +1047,141 @@ export function DungeonExploration() {
 
       ctx.save();
       ctx.globalAlpha = obj.used && !objType.canReuse ? 0.3 : 1.0;
+
+      // 특별 보물은 반짝임 효과
+      if (obj.isSpecial && !obj.used) {
+        ctx.shadowColor = "#fbbf24";
+        ctx.shadowBlur = 15;
+      }
+
       // 숏컷의 경우 unlocked 상태 전달
       if (obj.typeId === 'shortcut') {
         objType.render(ctx, screenX, CONFIG.FLOOR_Y, obj.used, obj.unlocked);
+      } else if (obj.typeId === 'hidden_door') {
+        objType.render(ctx, screenX, CONFIG.FLOOR_Y, obj.used, obj.discovered);
       } else {
         objType.render(ctx, screenX, CONFIG.FLOOR_Y, obj.used);
       }
       ctx.restore();
     });
 
-    // 입구 (이전 세그먼트로 돌아가기) - 첫 세그먼트가 아닌 경우
-    if (segmentIndex > 0) {
-      const entranceX = 30;
-      const entranceScreenX = entranceX - cameraX;
-      if (entranceScreenX > -100 && entranceScreenX < CONFIG.VIEWPORT.width + 100) {
-        ctx.fillStyle = "#8b5cf6";  // 보라색
-        ctx.fillRect(entranceScreenX - 20, CONFIG.FLOOR_Y - 90, 40, 90);
-        ctx.fillStyle = "#fff";
-        ctx.font = "14px Arial";
-        ctx.textAlign = "center";
-        ctx.fillText("◀ 뒤로", entranceScreenX, CONFIG.FLOOR_Y - 100);
-      }
-    }
-
-    // 출구
-    const exitScreenX = segment.exitX - cameraX;
-    if (exitScreenX > -100 && exitScreenX < CONFIG.VIEWPORT.width + 100) {
-      ctx.fillStyle = segment.isLast ? "#27ae60" : "#3498db";
-      ctx.fillRect(exitScreenX - 20, CONFIG.FLOOR_Y - 90, 40, 90);
-      ctx.fillStyle = "#fff";
-      ctx.font = "14px Arial";
-      ctx.textAlign = "center";
-      ctx.fillText(segment.isLast ? "출구" : "다음 ▶", exitScreenX, CONFIG.FLOOR_Y - 100);
-    }
-
-    // 미니맵 렌더링 (오른쪽 상단)
-    const minimapX = CONFIG.VIEWPORT.width - 180;
-    const minimapY = 20;
-    const minimapW = 160;
-    const minimapH = 40;
-    const segmentW = minimapW / dungeonData.length;
+    // ========== 2D 미로 미니맵 렌더링 (오른쪽 상단) ==========
+    const gridSize = mazeData?.gridSize || CONFIG.MAZE.GRID_SIZE;
+    const cellSize = 24;
+    const minimapPadding = 15;
+    const minimapW = gridSize * cellSize + minimapPadding * 2;
+    const minimapH = gridSize * cellSize + minimapPadding * 2;
+    const minimapX = CONFIG.VIEWPORT.width - minimapW - 10;
+    const minimapY = 110;
 
     // 미니맵 배경
-    ctx.fillStyle = "rgba(15, 23, 42, 0.9)";
-    ctx.fillRect(minimapX - 5, minimapY - 5, minimapW + 10, minimapH + 25);
+    ctx.fillStyle = "rgba(15, 23, 42, 0.95)";
+    ctx.fillRect(minimapX - 5, minimapY - 25, minimapW + 10, minimapH + 35);
     ctx.strokeStyle = "#475569";
-    ctx.lineWidth = 1;
-    ctx.strokeRect(minimapX - 5, minimapY - 5, minimapW + 10, minimapH + 25);
+    ctx.lineWidth = 2;
+    ctx.strokeRect(minimapX - 5, minimapY - 25, minimapW + 10, minimapH + 35);
 
     // 미니맵 타이틀
     ctx.fillStyle = "#94a3b8";
-    ctx.font = "10px Arial";
-    ctx.textAlign = "left";
-    ctx.fillText("던전 지도", minimapX, minimapY + minimapH + 15);
+    ctx.font = "bold 12px Arial";
+    ctx.textAlign = "center";
+    ctx.fillText("미로 지도", minimapX + minimapW / 2, minimapY - 8);
 
-    // 숏컷 연결선 먼저 그리기
-    dungeonData.forEach((seg, idx) => {
-      const shortcut = seg.objects.find(o => o.typeId === 'shortcut' && o.isOrigin);
-      if (shortcut && shortcut.unlocked) {
-        const fromX = minimapX + idx * segmentW + segmentW / 2;
-        const toX = minimapX + shortcut.targetSegment * segmentW + segmentW / 2;
-        ctx.strokeStyle = "#22c55e";
-        ctx.lineWidth = 2;
-        ctx.setLineDash([3, 3]);
+    // 연결선 먼저 그리기
+    Object.entries(grid).forEach(([key, room]) => {
+      if (!room.visited && !room.discovered) return; // 발견 안된 방은 그리지 않음
+
+      const cellX = minimapX + minimapPadding + room.x * cellSize;
+      const cellY = minimapY + minimapPadding + room.y * cellSize;
+      const centerX = cellX + cellSize / 2;
+      const centerY = cellY + cellSize / 2;
+
+      // 연결선 그리기
+      Object.entries(room.exits).forEach(([dir, exit]) => {
+        if (!exit) return;
+
+        const targetRoom = grid[exit.targetKey];
+        if (!targetRoom) return;
+        if (!targetRoom.visited && !targetRoom.discovered) return;
+
+        const isHidden = exit.type === 'hidden';
+        ctx.strokeStyle = isHidden ? "#8b5cf6" : "#475569";
+        ctx.lineWidth = isHidden ? 1 : 2;
+        ctx.setLineDash(isHidden ? [2, 2] : []);
+
+        let endX = centerX;
+        let endY = centerY;
+
+        switch (dir) {
+          case 'north': endY -= cellSize / 2; break;
+          case 'south': endY += cellSize / 2; break;
+          case 'west': endX -= cellSize / 2; break;
+          case 'east': endX += cellSize / 2; break;
+        }
+
         ctx.beginPath();
-        ctx.moveTo(fromX, minimapY - 3);
-        ctx.bezierCurveTo(fromX, minimapY - 15, toX, minimapY - 15, toX, minimapY - 3);
+        ctx.moveTo(centerX, centerY);
+        ctx.lineTo(endX, endY);
         ctx.stroke();
         ctx.setLineDash([]);
-      }
+      });
     });
 
-    // 세그먼트 표시
-    dungeonData.forEach((seg, idx) => {
-      const x = minimapX + idx * segmentW;
-      const visited = idx <= segmentIndex;
+    // 방 그리기
+    Object.entries(grid).forEach(([key, room]) => {
+      const cellX = minimapX + minimapPadding + room.x * cellSize;
+      const cellY = minimapY + minimapPadding + room.y * cellSize;
 
-      // 세그먼트 배경
-      ctx.fillStyle = visited ? (seg.isRoom ? "#3b82f6" : "#475569") : "#1e293b";
-      ctx.fillRect(x + 1, minimapY, segmentW - 2, minimapH);
-
-      // 숏컷 표시 (세그먼트 상단에 작은 점)
-      const hasShortcut = seg.objects.some(o => o.typeId === 'shortcut');
-      if (hasShortcut) {
-        const shortcut = seg.objects.find(o => o.typeId === 'shortcut');
-        ctx.fillStyle = shortcut?.unlocked ? "#22c55e" : "#ef4444";
-        ctx.beginPath();
-        ctx.arc(x + segmentW / 2, minimapY - 3, 3, 0, Math.PI * 2);
-        ctx.fill();
+      if (!room.visited && !room.discovered) {
+        // 발견 안된 방 - 어두운 타일로만 표시
+        ctx.fillStyle = "#1e293b";
+        ctx.fillRect(cellX + 2, cellY + 2, cellSize - 4, cellSize - 4);
+        return;
       }
+
+      // 방 타입별 색상
+      let roomColor = "#475569"; // 기본 (방문 안함)
+      if (room.visited) {
+        switch (room.roomType) {
+          case 'entrance': roomColor = "#22c55e"; break;
+          case 'exit': roomColor = "#fbbf24"; break;
+          case 'hidden': roomColor = "#8b5cf6"; break;
+          default: roomColor = room.isDeadEnd ? "#ef4444" : "#3b82f6";
+        }
+      } else if (room.discovered) {
+        roomColor = "#334155"; // 발견됐지만 방문 안함
+      }
+
+      ctx.fillStyle = roomColor;
+      ctx.fillRect(cellX + 2, cellY + 2, cellSize - 4, cellSize - 4);
 
       // 현재 위치 표시
-      if (idx === segmentIndex) {
-        ctx.fillStyle = "#22c55e";
+      if (key === currentRoomKey) {
+        ctx.fillStyle = "#ffffff";
         ctx.beginPath();
-        ctx.arc(x + segmentW / 2, minimapY + minimapH / 2, 4, 0, Math.PI * 2);
+        ctx.arc(cellX + cellSize / 2, cellY + cellSize / 2, 4, 0, Math.PI * 2);
         ctx.fill();
       }
 
-      // 출구 표시
-      if (seg.isLast) {
-        ctx.fillStyle = visited ? "#fbbf24" : "#64748b";
-        ctx.font = "bold 10px Arial";
-        ctx.textAlign = "center";
-        ctx.fillText("★", x + segmentW / 2, minimapY + minimapH / 2 + 4);
+      // 특수 방 아이콘
+      ctx.font = "bold 10px Arial";
+      ctx.textAlign = "center";
+      if (room.roomType === 'exit') {
+        ctx.fillStyle = "#0f172a";
+        ctx.fillText("★", cellX + cellSize / 2, cellY + cellSize / 2 + 4);
+      } else if (room.roomType === 'entrance') {
+        ctx.fillStyle = "#0f172a";
+        ctx.fillText("▶", cellX + cellSize / 2, cellY + cellSize / 2 + 3);
       }
     });
+
+    // 탐험률 표시
+    const totalRooms = Object.keys(grid).length;
+    const visitedRooms = Object.values(grid).filter(r => r.visited).length;
+    ctx.fillStyle = "#94a3b8";
+    ctx.font = "10px Arial";
+    ctx.textAlign = "center";
+    ctx.fillText(`탐험: ${visitedRooms}/${totalRooms}`, minimapX + minimapW / 2, minimapY + minimapH + 5);
 
     // 플레이어
     const playerScreenX = playerX - cameraX;
@@ -771,28 +1232,89 @@ export function DungeonExploration() {
     ctx.font = "12px Arial";
     ctx.textAlign = "center";
     ctx.fillText(`${playerHp}/${maxHp}`, playerScreenX, hpY + hpH + 14);
-  }, [segment, playerX, cameraX, playerHp, maxHp, playerY, resources.etherPts]);
+  }, [segment, playerX, cameraX, playerHp, maxHp, playerY, resources.etherPts, grid, currentRoomKey, mazeData]);
+
+  // ========== 미로 이동 함수 ==========
+  const moveToRoom = useCallback((direction) => {
+    if (!segment || !segment.exits) return false;
+
+    const exit = segment.exits[direction];
+    if (!exit) {
+      actions.setMessage("그 방향에는 문이 없습니다.");
+      return false;
+    }
+
+    const targetRoom = grid[exit.targetKey];
+    if (!targetRoom) return false;
+
+    // 숨겨진 문 체크
+    if (exit.type === 'hidden' && !targetRoom.discovered) {
+      // 스탯 체크로 발견 시도
+      const requiredInsight = 3;
+      if (playerInsight >= requiredInsight) {
+        // 숨겨진 방 발견!
+        updateMazeRoom(exit.targetKey, { discovered: true });
+        actions.setMessage(`비밀 통로를 발견했습니다! (통찰 ${playerInsight})`);
+        return false; // 발견만 하고 이동은 다음 상호작용에서
+      } else {
+        actions.setMessage(`벽에 균열이 보입니다... (통찰 ${requiredInsight} 필요)`);
+        return false;
+      }
+    }
+
+    // 방 이동
+    setCurrentRoomKey(exit.targetKey);
+    updateMazeRoom(exit.targetKey, { visited: true });
+    actions.setPlayerX(600); // 방 중앙에서 시작
+
+    // 출구 방 도착 시 완료 메시지
+    if (targetRoom.roomType === 'exit') {
+      actions.setMessage("출구에 도착했습니다! W키로 던전을 완료하세요.");
+    } else if (targetRoom.roomType === 'hidden') {
+      actions.setMessage("비밀의 방에 들어왔습니다!");
+    } else if (targetRoom.isDeadEnd) {
+      actions.setMessage("막다른 방입니다.");
+    } else {
+      actions.setMessage("");
+    }
+
+    return true;
+  }, [segment, grid, playerInsight, actions, setCurrentRoomKey, updateMazeRoom]);
 
   // ========== 상호작용 ==========
   const handleInteraction = useCallback(() => {
     if (!segment) return;
 
-    // 입구 체크 (이전 세그먼트로 돌아가기)
-    if (segmentIndex > 0 && playerX < 80) {
-      const prevSegment = dungeonData[segmentIndex - 1];
-      actions.setSegmentIndex(segmentIndex - 1);
-      // 이전 세그먼트의 출구 근처로 이동
-      actions.setPlayerX(prevSegment.exitX - 100);
-      actions.setMessage("이전 구역으로 돌아왔습니다.");
-      return;
+    // 문 상호작용 체크 (플레이어 위치 기반)
+    const doorZones = {
+      north: { minX: 700, maxX: 900, check: () => true },  // 상단 중앙
+      south: { minX: 700, maxX: 900, check: () => true },  // 하단 중앙
+      west: { minX: 0, maxX: 150, check: () => true },     // 좌측
+      east: { minX: 1050, maxX: 1200, check: () => true }, // 우측
+    };
+
+    // 현재 위치에서 가장 가까운 문 찾기
+    for (const [dir, zone] of Object.entries(doorZones)) {
+      if (playerX >= zone.minX && playerX <= zone.maxX && segment.exits[dir]) {
+        // 출구 방에서 완료
+        if (segment.roomType === 'exit') {
+          handleCompleteDungeon();
+          return;
+        }
+
+        // 문으로 이동
+        if (moveToRoom(dir)) {
+          return;
+        }
+      }
     }
 
     // 오브젝트 체크
-    for (const obj of segment.objects) {
+    for (const obj of segment.objects || []) {
       if (Math.abs(playerX - obj.x) < 80) {
         const objType = OBJECT_TYPES[obj.typeId.toUpperCase()];
 
-        if (obj.used && !objType.canReuse) {
+        if (obj.used && !objType?.canReuse) {
           actions.setMessage("이미 사용했습니다.");
           return;
         }
@@ -803,10 +1325,11 @@ export function DungeonExploration() {
             applyEtherDelta,
             actions,
             startBattle,
-            segmentIndex,
+            segmentIndex: 0,
             preBattleState,
             playerX,
-            dungeonData,
+            currentRoomKey,
+            grid,
             setDungeonData,
           });
         }
@@ -814,17 +1337,24 @@ export function DungeonExploration() {
       }
     }
 
-    // 출구 체크
-    if (Math.abs(playerX - segment.exitX) < 80) {
-      if (segment.isLast) {
-        handleCompleteDungeon();
-      } else {
-        actions.setSegmentIndex(segmentIndex + 1);
-        actions.setPlayerX(100);
-        actions.setMessage("");
-      }
+    // 출구 방에서 완료 (방 중앙에서도 가능)
+    if (segment.roomType === 'exit') {
+      handleCompleteDungeon();
+      return;
     }
-  }, [segment, playerX, actions, applyEtherDelta, startBattle, segmentIndex, dungeonData, setDungeonData]);
+
+    // 아무것도 없으면 가이드 메시지
+    const availableDirs = Object.entries(segment.exits)
+      .filter(([, exit]) => exit)
+      .map(([dir]) => {
+        const labels = { north: '북', south: '남', east: '동', west: '서' };
+        return labels[dir];
+      });
+
+    if (availableDirs.length > 0) {
+      actions.setMessage(`이동 가능: ${availableDirs.join(', ')} (해당 방향의 문 앞에서 W)`);
+    }
+  }, [segment, playerX, actions, applyEtherDelta, startBattle, setDungeonData, currentRoomKey, grid, moveToRoom]);
 
   // handleInteraction ref 업데이트
   useEffect(() => {
@@ -845,7 +1375,10 @@ export function DungeonExploration() {
 
     // 전투 전 상태 복원
     if (preBattleState.current) {
-      actions.setSegmentIndex(preBattleState.current.segmentIndex);
+      // 미로 시스템에서는 currentRoomKey 복원
+      if (preBattleState.current.roomKey) {
+        setCurrentRoomKey(preBattleState.current.roomKey);
+      }
       actions.setPlayerX(preBattleState.current.playerX);
       preBattleState.current = null;
     }
@@ -1243,10 +1776,19 @@ export function DungeonExploration() {
         background: "rgba(0,0,0,0.7)",
         padding: "12px",
         borderRadius: "8px",
+        textAlign: "center",
       }}>
-        <div>던전 {segmentIndex + 1}/{dungeonData.length}</div>
+        <div>
+          {segment?.roomType === 'entrance' ? '🏠 입구' :
+           segment?.roomType === 'exit' ? '🚪 출구' :
+           segment?.roomType === 'hidden' ? '✨ 비밀의 방' :
+           segment?.isDeadEnd ? '⚠️ 막다른 방' : '📍 미로'}
+        </div>
+        <div style={{ fontSize: "12px", marginTop: "4px", color: "#94a3b8" }}>
+          좌표: ({segment?.x}, {segment?.y})
+        </div>
         <div style={{ fontSize: "12px", marginTop: "4px" }}>
-          W: 상호작용 | A/D: 이동 | C: 캐릭터
+          W: 상호작용/이동 | A/D: 좌우 | C: 캐릭터
         </div>
       </div>
 
