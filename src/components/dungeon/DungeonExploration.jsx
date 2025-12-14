@@ -998,7 +998,7 @@ export function DungeonExploration() {
 
         // 문 색상 결정
         const doorColor = isHidden
-          ? (isDiscovered ? "#8b5cf6" : "#374151")
+          ? (isDiscovered ? "#8b5cf6" : "#4b5563")  // 숨겨진 문은 더 밝은 회색으로 힌트
           : (segment.roomType === 'exit' && dir === 'north' ? "#22c55e" : "#3b82f6");
 
         // 발광 효과 (그라데이션)
@@ -1026,7 +1026,7 @@ export function DungeonExploration() {
           ctx.fillRect(pos.x - doorW/2, pos.y, doorW, doorH);
 
           // 문 내부 (어두운 부분)
-          ctx.fillStyle = isHidden && !isDiscovered ? "#1f2937" : "#0f172a";
+          ctx.fillStyle = isHidden && !isDiscovered ? "#374151" : "#0f172a";
           ctx.fillRect(pos.x - doorW/2 + 10, pos.y + 8, doorW - 20, doorH - 8);
 
           // 화살표 아이콘
@@ -1056,7 +1056,7 @@ export function DungeonExploration() {
           ctx.fillRect(pos.x - doorW/2, pos.y, doorW, doorH);
 
           // 문 내부
-          ctx.fillStyle = isHidden && !isDiscovered ? "#1f2937" : "#0f172a";
+          ctx.fillStyle = isHidden && !isDiscovered ? "#374151" : "#0f172a";
           ctx.fillRect(pos.x - doorW/2 + 10, pos.y + 8, doorW - 20, doorH - 16);
 
           // 화살표 아이콘
@@ -1087,7 +1087,7 @@ export function DungeonExploration() {
           ctx.fillRect(doorX, pos.y - doorH/2, doorW, doorH);
 
           // 문 내부
-          ctx.fillStyle = isHidden && !isDiscovered ? "#1f2937" : "#0f172a";
+          ctx.fillStyle = isHidden && !isDiscovered ? "#374151" : "#0f172a";
           if (dir === 'west') {
             ctx.fillRect(doorX + 8, pos.y - doorH/2 + 10, doorW - 16, doorH - 20);
           } else {
@@ -1152,13 +1152,13 @@ export function DungeonExploration() {
       ctx.restore();
     });
 
-    // ========== 2D 미로 미니맵 렌더링 (오른쪽 상단) ==========
+    // ========== 2D 미로 미니맵 렌더링 (왼쪽 상단 - 동쪽 문과 겹치지 않게) ==========
     const gridSize = mazeData?.gridSize || CONFIG.MAZE.GRID_SIZE;
     const cellSize = 24;
     const minimapPadding = 15;
     const minimapW = gridSize * cellSize + minimapPadding * 2;
     const minimapH = gridSize * cellSize + minimapPadding * 2;
-    const minimapX = CONFIG.VIEWPORT.width - minimapW - 10;
+    const minimapX = 10;  // 왼쪽으로 이동
     const minimapY = 110;
 
     // 미니맵 배경
