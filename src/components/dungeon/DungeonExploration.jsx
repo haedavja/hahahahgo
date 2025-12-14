@@ -359,7 +359,7 @@ function generateMaze(forcedCrossroadId = null) {
     grid[crossroadRoom].objects.push({
       id: `crossroad_${crossroadRoom}`,
       typeId: "crossroad",
-      x: 600,
+      x: 800,  // 문과 겹치지 않는 위치 (남쪽 600, 북쪽 1000 피함)
       used: false,
       template: template,
       choiceState: {},

@@ -65,20 +65,18 @@ export function processActionEventAnimations({
     if ((ev.type === 'hit' || ev.type === 'pierce') && ev.dmg > 0) {
       playHitSound();
 
-      // 화면 흔들림 (대미지가 클수록 강하게)
-      const shakeIntensity = ev.dmg >= 15 ? 3 : (ev.dmg >= 8 ? 2 : 1);
-      triggerScreenShake(shakeIntensity);
-
       // 대미지 팝업
       const target = ev.actor === 'player' ? 'enemy' : 'player';
       createDamagePopup(target, ev.dmg, 'damage');
 
       if (ev.actor === 'player') {
-        // 플레이어가 공격 -> 적 피격
+        // 플레이어가 공격 -> 적 피격 (화면 흔들림 없음)
         actions.setEnemyHit(true);
         setTimeout(() => actions.setEnemyHit(false), 300);
       } else {
-        // 적이 공격 -> 플레이어 피격
+        // 적이 공격 -> 플레이어 피격 (화면 흔들림)
+        const shakeIntensity = ev.dmg >= 15 ? 3 : (ev.dmg >= 8 ? 2 : 1);
+        triggerScreenShake(shakeIntensity);
         actions.setPlayerHit(true);
         setTimeout(() => actions.setPlayerHit(false), 300);
       }
@@ -106,14 +104,16 @@ export function processActionEventAnimations({
     // 반격 피해
     if (ev.actor === 'counter') {
       playHitSound();
-      triggerScreenShake(2);
 
       // counter는 반대 방향으로 피해가 가므로 타겟을 반대로
       if (action.actor === 'player') {
+        // 플레이어가 공격했는데 반격당함 -> 플레이어 피격 (화면 흔들림)
+        triggerScreenShake(2);
         createDamagePopup('player', ev.dmg || 0, 'damage');
         actions.setPlayerHit(true);
         setTimeout(() => actions.setPlayerHit(false), 300);
       } else {
+        // 적이 공격했는데 반격당함 -> 적 피격 (화면 흔들림 없음)
         createDamagePopup('enemy', ev.dmg || 0, 'damage');
         actions.setEnemyHit(true);
         setTimeout(() => actions.setEnemyHit(false), 300);
