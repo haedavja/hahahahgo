@@ -868,13 +868,19 @@ export function DungeonExploration() {
   useEffect(() => {
     if (!segment) return;
 
+    // 이동 경계 계산 (문이 없는 방향은 벽으로 막음)
+    const hasWestDoor = segment.exits?.west != null;
+    const hasEastDoor = segment.exits?.east != null;
+    const minX = hasWestDoor ? 50 : 150;  // 서쪽 문 없으면 벽에서 멀리
+    const maxX = hasEastDoor ? segment.width - 50 : segment.width - 150;  // 동쪽 문 없으면 벽에서 멀리
+
     const moveLoop = () => {
       let newX = playerXRef.current;
       if (keys.a) {
-        newX = Math.max(50, newX - CONFIG.PLAYER.speed);
+        newX = Math.max(minX, newX - CONFIG.PLAYER.speed);
       }
       if (keys.d) {
-        newX = Math.min(segment.width - 50, newX + CONFIG.PLAYER.speed);
+        newX = Math.min(maxX, newX + CONFIG.PLAYER.speed);
       }
       if (newX !== playerXRef.current) {
         playerXRef.current = newX;
