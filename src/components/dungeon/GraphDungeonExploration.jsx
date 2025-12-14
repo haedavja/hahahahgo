@@ -61,8 +61,11 @@ export function GraphDungeonExploration() {
 
   // 던전 초기화
   useEffect(() => {
+    console.log('[GraphDungeonExploration useEffect] activeDungeon:', activeDungeon, 'dungeonState:', !!dungeonState);
     if (activeDungeon && !dungeonState) {
+      console.log('[GraphDungeonExploration useEffect] Generating new dungeon graph...');
       const newDungeon = generateDungeonGraph('dungeon_' + Date.now());
+      console.log('[GraphDungeonExploration useEffect] Generated dungeon:', newDungeon);
       setDungeonState(newDungeon);
       setMessage('던전에 입장했습니다. 탐험을 시작하세요.');
     }
@@ -280,9 +283,12 @@ export function GraphDungeonExploration() {
     }
   };
 
+  console.log('[GraphDungeonExploration render] activeDungeon:', activeDungeon, 'dungeonState:', !!dungeonState);
   if (!activeDungeon || !dungeonState) {
+    console.log('[GraphDungeonExploration render] Returning null - activeDungeon:', !!activeDungeon, 'dungeonState:', !!dungeonState);
     return null;
   }
+  console.log('[GraphDungeonExploration render] Rendering dungeon UI');
 
   return (
     <div style={{

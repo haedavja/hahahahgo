@@ -298,6 +298,7 @@ const OBJECT_HANDLERS = {
 export function DungeonExploration() {
   // Store hooks
   const activeDungeon = useGameStore((s) => s.activeDungeon);
+  console.log('[DungeonExploration] render, activeDungeon:', activeDungeon);
   const setDungeonData = useGameStore((s) => s.setDungeonData);
   const setDungeonPosition = useGameStore((s) => s.setDungeonPosition);
   const setDungeonInitialResources = useGameStore((s) => s.setDungeonInitialResources);
