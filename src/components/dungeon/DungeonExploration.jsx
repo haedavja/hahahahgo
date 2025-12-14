@@ -93,6 +93,37 @@ const OBJECT_TYPES = {
       ctx.fillText("?", x, y - 70);
     },
   },
+  SHORTCUT: {
+    id: "shortcut",
+    label: "숏컷 문",
+    canReuse: true,
+    probRoom: 0.0,
+    probCorridor: 0.0,  // 수동으로 배치
+    render: (ctx, x, y, used, unlocked) => {
+      // 숏컷 문 (아치형)
+      ctx.fillStyle = unlocked ? "#22c55e" : "#475569";
+      // 문틀
+      ctx.fillRect(x - 25, y - 80, 50, 80);
+      // 문 안쪽 (열리면 통로가 보임)
+      ctx.fillStyle = unlocked ? "#0f172a" : "#1e293b";
+      ctx.fillRect(x - 18, y - 70, 36, 70);
+      // 아치
+      ctx.fillStyle = unlocked ? "#22c55e" : "#475569";
+      ctx.beginPath();
+      ctx.arc(x, y - 70, 18, Math.PI, 0, false);
+      ctx.fill();
+      // 손잡이 또는 자물쇠
+      ctx.fillStyle = unlocked ? "#fbbf24" : "#ef4444";
+      ctx.beginPath();
+      ctx.arc(x + 10, y - 35, 4, 0, Math.PI * 2);
+      ctx.fill();
+      // 라벨
+      ctx.fillStyle = unlocked ? "#22c55e" : "#94a3b8";
+      ctx.font = "bold 12px Arial";
+      ctx.textAlign = "center";
+      ctx.fillText(unlocked ? "숏컷" : "🔒", x, y - 85);
+    },
+  },
 };
 
 // ========== 기로 템플릿 선택 ==========
@@ -129,7 +160,18 @@ function generateDungeon(forcedCrossroadId = null) {
     crossroadSegments.add(remainingCorridors[idx]);
   }
 
-  console.log('[Dungeon] 생성 - 세그먼트 수:', count, '기로 위치:', [...crossroadSegments]);
+  // 숏컷 배치할 세그먼트 (후반부 방에 숏컷 문 배치, 초반으로 연결)
+  const shortcutPairs = [];
+  if (count >= 5) {
+    // 세그먼트 4 또는 6 (방)에서 세그먼트 1 (방)로 연결
+    const fromIdx = count >= 7 ? 5 : 3;  // 방 세그먼트 (홀수 인덱스)
+    const toIdx = 1;  // 첫 번째 방
+    if (fromIdx < count) {
+      shortcutPairs.push({ from: fromIdx, to: toIdx });
+    }
+  }
+
+  console.log('[Dungeon] 생성 - 세그먼트 수:', count, '기로 위치:', [...crossroadSegments], '숏컷:', shortcutPairs);
 
   for (let i = 0; i < count; i++) {
     const isRoom = i % 2 === 1;
@@ -149,6 +191,37 @@ function generateDungeon(forcedCrossroadId = null) {
         used: false,
         template: template,  // 기로 템플릿 데이터
         choiceState: {},     // 선택지 상태 (시도 횟수 등)
+      });
+    }
+
+    // 숏컷 문 추가
+    const shortcutFrom = shortcutPairs.find(p => p.from === i);
+    const shortcutTo = shortcutPairs.find(p => p.to === i);
+
+    if (shortcutFrom) {
+      // 이 세그먼트에서 출발하는 숏컷 (처음엔 잠김, 여기서 열 수 있음)
+      objects.push({
+        id: `shortcut_from_${i}`,
+        typeId: "shortcut",
+        x: isRoom ? 800 : 1500,
+        used: false,
+        unlocked: false,
+        targetSegment: shortcutFrom.to,
+        isOrigin: true,  // 이 문에서 열 수 있음
+      });
+    }
+
+    if (shortcutTo) {
+      // 이 세그먼트로 도착하는 숏컷 (연결된 문)
+      objects.push({
+        id: `shortcut_to_${i}`,
+        typeId: "shortcut",
+        x: isRoom ? 200 : 400,
+        used: false,
+        unlocked: false,
+        targetSegment: shortcutTo.from,
+        isOrigin: false,  // 반대편에서 열어야 함
+        linkedShortcutId: `shortcut_from_${shortcutTo.from}`,
       });
     }
 
@@ -292,13 +365,54 @@ const OBJECT_HANDLERS = {
       choiceState: obj.choiceState || {},
     });
   },
+
+  // 숏컷 핸들러 - 문 열기 또는 이동
+  shortcut: (obj, context) => {
+    const { actions, segmentIndex, dungeonData, setDungeonData } = context;
+
+    if (!obj.unlocked) {
+      if (obj.isOrigin) {
+        // 원본 문에서 열기
+        actions.setMessage("숏컷을 열었습니다! 이제 양방향으로 이동할 수 있습니다.");
+
+        // 양쪽 숏컷 모두 열기
+        const newDungeonData = dungeonData.map((seg, idx) => {
+          if (idx === segmentIndex || idx === obj.targetSegment) {
+            return {
+              ...seg,
+              objects: seg.objects.map(o => {
+                if (o.typeId === 'shortcut' && (o.targetSegment === obj.targetSegment || o.targetSegment === segmentIndex)) {
+                  return { ...o, unlocked: true };
+                }
+                return o;
+              }),
+            };
+          }
+          return seg;
+        });
+        setDungeonData(newDungeonData);
+      } else {
+        // 반대편 문 - 아직 잠김
+        actions.setMessage("잠긴 문입니다. 반대편에서 열어야 합니다.");
+      }
+    } else {
+      // 열린 숏컷으로 이동
+      const targetSeg = dungeonData[obj.targetSegment];
+      if (targetSeg) {
+        actions.setSegmentIndex(obj.targetSegment);
+        // 도착 세그먼트의 숏컷 위치 근처로 이동
+        const targetShortcut = targetSeg.objects.find(o => o.typeId === 'shortcut');
+        actions.setPlayerX(targetShortcut ? targetShortcut.x + 50 : 200);
+        actions.setMessage(`숏컷을 통해 이동했습니다!`);
+      }
+    }
+  },
 };
 
 // ========== 메인 컴포넌트 ==========
 export function DungeonExploration() {
   // Store hooks
   const activeDungeon = useGameStore((s) => s.activeDungeon);
-  console.log('[DungeonExploration] render, activeDungeon:', activeDungeon);
   const setDungeonData = useGameStore((s) => s.setDungeonData);
   const setDungeonPosition = useGameStore((s) => s.setDungeonPosition);
   const setDungeonInitialResources = useGameStore((s) => s.setDungeonInitialResources);
@@ -501,9 +615,28 @@ export function DungeonExploration() {
 
       ctx.save();
       ctx.globalAlpha = obj.used && !objType.canReuse ? 0.3 : 1.0;
-      objType.render(ctx, screenX, CONFIG.FLOOR_Y, obj.used);
+      // 숏컷의 경우 unlocked 상태 전달
+      if (obj.typeId === 'shortcut') {
+        objType.render(ctx, screenX, CONFIG.FLOOR_Y, obj.used, obj.unlocked);
+      } else {
+        objType.render(ctx, screenX, CONFIG.FLOOR_Y, obj.used);
+      }
       ctx.restore();
     });
+
+    // 입구 (이전 세그먼트로 돌아가기) - 첫 세그먼트가 아닌 경우
+    if (segmentIndex > 0) {
+      const entranceX = 30;
+      const entranceScreenX = entranceX - cameraX;
+      if (entranceScreenX > -100 && entranceScreenX < CONFIG.VIEWPORT.width + 100) {
+        ctx.fillStyle = "#8b5cf6";  // 보라색
+        ctx.fillRect(entranceScreenX - 20, CONFIG.FLOOR_Y - 90, 40, 90);
+        ctx.fillStyle = "#fff";
+        ctx.font = "14px Arial";
+        ctx.textAlign = "center";
+        ctx.fillText("◀ 뒤로", entranceScreenX, CONFIG.FLOOR_Y - 100);
+      }
+    }
 
     // 출구
     const exitScreenX = segment.exitX - cameraX;
@@ -513,8 +646,81 @@ export function DungeonExploration() {
       ctx.fillStyle = "#fff";
       ctx.font = "14px Arial";
       ctx.textAlign = "center";
-      ctx.fillText(segment.isLast ? "출구" : "다음", exitScreenX, CONFIG.FLOOR_Y - 100);
+      ctx.fillText(segment.isLast ? "출구" : "다음 ▶", exitScreenX, CONFIG.FLOOR_Y - 100);
     }
+
+    // 미니맵 렌더링 (오른쪽 상단)
+    const minimapX = CONFIG.VIEWPORT.width - 180;
+    const minimapY = 20;
+    const minimapW = 160;
+    const minimapH = 40;
+    const segmentW = minimapW / dungeonData.length;
+
+    // 미니맵 배경
+    ctx.fillStyle = "rgba(15, 23, 42, 0.9)";
+    ctx.fillRect(minimapX - 5, minimapY - 5, minimapW + 10, minimapH + 25);
+    ctx.strokeStyle = "#475569";
+    ctx.lineWidth = 1;
+    ctx.strokeRect(minimapX - 5, minimapY - 5, minimapW + 10, minimapH + 25);
+
+    // 미니맵 타이틀
+    ctx.fillStyle = "#94a3b8";
+    ctx.font = "10px Arial";
+    ctx.textAlign = "left";
+    ctx.fillText("던전 지도", minimapX, minimapY + minimapH + 15);
+
+    // 숏컷 연결선 먼저 그리기
+    dungeonData.forEach((seg, idx) => {
+      const shortcut = seg.objects.find(o => o.typeId === 'shortcut' && o.isOrigin);
+      if (shortcut && shortcut.unlocked) {
+        const fromX = minimapX + idx * segmentW + segmentW / 2;
+        const toX = minimapX + shortcut.targetSegment * segmentW + segmentW / 2;
+        ctx.strokeStyle = "#22c55e";
+        ctx.lineWidth = 2;
+        ctx.setLineDash([3, 3]);
+        ctx.beginPath();
+        ctx.moveTo(fromX, minimapY - 3);
+        ctx.bezierCurveTo(fromX, minimapY - 15, toX, minimapY - 15, toX, minimapY - 3);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+    });
+
+    // 세그먼트 표시
+    dungeonData.forEach((seg, idx) => {
+      const x = minimapX + idx * segmentW;
+      const visited = idx <= segmentIndex;
+
+      // 세그먼트 배경
+      ctx.fillStyle = visited ? (seg.isRoom ? "#3b82f6" : "#475569") : "#1e293b";
+      ctx.fillRect(x + 1, minimapY, segmentW - 2, minimapH);
+
+      // 숏컷 표시 (세그먼트 상단에 작은 점)
+      const hasShortcut = seg.objects.some(o => o.typeId === 'shortcut');
+      if (hasShortcut) {
+        const shortcut = seg.objects.find(o => o.typeId === 'shortcut');
+        ctx.fillStyle = shortcut?.unlocked ? "#22c55e" : "#ef4444";
+        ctx.beginPath();
+        ctx.arc(x + segmentW / 2, minimapY - 3, 3, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // 현재 위치 표시
+      if (idx === segmentIndex) {
+        ctx.fillStyle = "#22c55e";
+        ctx.beginPath();
+        ctx.arc(x + segmentW / 2, minimapY + minimapH / 2, 4, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // 출구 표시
+      if (seg.isLast) {
+        ctx.fillStyle = visited ? "#fbbf24" : "#64748b";
+        ctx.font = "bold 10px Arial";
+        ctx.textAlign = "center";
+        ctx.fillText("★", x + segmentW / 2, minimapY + minimapH / 2 + 4);
+      }
+    });
 
     // 플레이어
     const playerScreenX = playerX - cameraX;
@@ -571,6 +777,16 @@ export function DungeonExploration() {
   const handleInteraction = useCallback(() => {
     if (!segment) return;
 
+    // 입구 체크 (이전 세그먼트로 돌아가기)
+    if (segmentIndex > 0 && playerX < 80) {
+      const prevSegment = dungeonData[segmentIndex - 1];
+      actions.setSegmentIndex(segmentIndex - 1);
+      // 이전 세그먼트의 출구 근처로 이동
+      actions.setPlayerX(prevSegment.exitX - 100);
+      actions.setMessage("이전 구역으로 돌아왔습니다.");
+      return;
+    }
+
     // 오브젝트 체크
     for (const obj of segment.objects) {
       if (Math.abs(playerX - obj.x) < 80) {
@@ -590,6 +806,8 @@ export function DungeonExploration() {
             segmentIndex,
             preBattleState,
             playerX,
+            dungeonData,
+            setDungeonData,
           });
         }
         return;
@@ -606,7 +824,7 @@ export function DungeonExploration() {
         actions.setMessage("");
       }
     }
-  }, [segment, playerX, actions, applyEtherDelta, startBattle, segmentIndex]);
+  }, [segment, playerX, actions, applyEtherDelta, startBattle, segmentIndex, dungeonData, setDungeonData]);
 
   // handleInteraction ref 업데이트
   useEffect(() => {

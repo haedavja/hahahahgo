@@ -349,16 +349,13 @@ export function MapDemo() {
 
   // 던전 탐험 상태 관리
   useEffect(() => {
-    console.log('[MapDemo useEffect] activeDungeon:', activeDungeon, 'activeBattle:', !!activeBattle, 'isDungeonExploring:', isDungeonExploring);
     if (activeDungeon?.confirmed) {
       // 던전 진입 확정 시 탐험 시작
-      console.log('[MapDemo useEffect] activeDungeon.confirmed is true, setting isDungeonExploring to true');
       actions.setIsDungeonExploring(true);
     } else if (!activeDungeon) {
       // activeDungeon이 사라졌을 때
       if (!activeBattle) {
         // 전투 중이 아니면 즉시 탐험 종료 (탈출/완료)
-        console.log('[MapDemo useEffect] activeDungeon is null, setting isDungeonExploring to false');
         actions.setIsDungeonExploring(false);
       }
       // 전투 중이면 그대로 유지 (던전 내 전투)
@@ -1061,7 +1058,6 @@ export function MapDemo() {
 
       {isDungeonExploring && (
         <div style={{ display: activeBattle ? 'none' : 'block' }}>
-          {console.log('[MapDemo render] isDungeonExploring=true, useNewDungeon:', useNewDungeon)}
           {useNewDungeon ? <GraphDungeonExploration /> : <DungeonExploration />}
         </div>
       )}
