@@ -7,6 +7,16 @@ import { EtherBar } from "../battle/ui/EtherBar";
 import { RELICS, RELIC_RARITIES } from "../../data/relics";
 import { RELIC_RARITY_COLORS } from "../../lib/relics";
 import { OBSTACLE_TEMPLATES } from "../../data/dungeonNodes";
+import {
+  playDoorSound,
+  playRewardSound,
+  playSecretSound,
+  playVictorySound,
+  playDangerSound,
+  playInteractSound,
+  playChoiceAppearSound,
+  playChoiceSelectSound,
+} from "../../lib/soundUtils";
 import "./dungeon.css";
 
 // ========== 설정 ==========
@@ -624,6 +634,7 @@ function ensureMinimumCombats(segments) {
 const OBJECT_HANDLERS = {
   chest: (obj, context) => {
     obj.used = true;
+    playRewardSound();  // 보물 획득 사운드
     // 특별 보물 (막다른 방)은 보상이 더 좋음
     if (obj.isSpecial) {
       const ether = -(3 + Math.floor(Math.random() * 4)); // 더 많은 에테르
@@ -643,6 +654,12 @@ const OBJECT_HANDLERS = {
       ? (3 + Math.floor(Math.random() * 4))
       : -(2 + Math.floor(Math.random() * 3));
 
+    if (isBad) {
+      playDangerSound();  // 불길한 결과 사운드
+    } else {
+      playRewardSound();  // 유익한 결과 사운드
+    }
+
     context.applyEtherDelta(ether);
     context.actions.setMessage(
       `${isBad ? "불길한" : "유익한"} 기운이 느껴진다. 에테르 ${ether > 0 ? "+" : ""}${ether}`
@@ -651,6 +668,7 @@ const OBJECT_HANDLERS = {
 
   combat: (obj, context) => {
     obj.used = true;
+    playDangerSound();  // 적 조우 사운드
     const enemyHp = 25 + Math.floor(Math.random() * 10);
 
     // 전투 전 상태 저장 (오브젝트의 정확한 위치 저장)
@@ -671,6 +689,7 @@ const OBJECT_HANDLERS = {
 
   // 기로 핸들러 - 선택지 모달 열기
   crossroad: (obj, context) => {
+    playChoiceAppearSound();  // 선택지 등장 사운드
     // 기로 모달 열기
     context.actions.setCrossroadModal({
       obj,
@@ -1358,6 +1377,7 @@ export function DungeonExploration() {
       const requiredInsight = 3;
       if (playerInsight >= requiredInsight) {
         // 숨겨진 방 발견!
+        playSecretSound();  // 비밀 발견 사운드
         updateMazeRoom(exit.targetKey, { discovered: true });
         actions.setMessage(`비밀 통로를 발견했습니다! (통찰 ${playerInsight})`);
         return false; // 발견만 하고 이동은 다음 상호작용에서
@@ -1366,6 +1386,9 @@ export function DungeonExploration() {
         return false;
       }
     }
+
+    // 방 이동 사운드
+    playDoorSound();
 
     // 방 이동
     setCurrentRoomKey(exit.targetKey);
@@ -1376,6 +1399,7 @@ export function DungeonExploration() {
     if (targetRoom.roomType === 'exit') {
       actions.setMessage("출구에 도착했습니다! W키로 던전을 완료하세요.");
     } else if (targetRoom.roomType === 'hidden') {
+      playSecretSound();  // 비밀의 방 입장 사운드
       actions.setMessage("비밀의 방에 들어왔습니다!");
     } else if (targetRoom.isDeadEnd) {
       actions.setMessage("막다른 방입니다.");
@@ -1506,6 +1530,7 @@ export function DungeonExploration() {
   };
 
   const handleCompleteDungeon = () => {
+    playVictorySound();  // 던전 완료 팡파레
     // dungeonDeltas를 사용 (x값)
     const summary = {
       gold: dungeonDeltas.gold,
@@ -1576,6 +1601,8 @@ export function DungeonExploration() {
   const executeChoice = useCallback((choice, choiceState) => {
     if (!crossroadModal) return;
 
+    playChoiceSelectSound();  // 선택 확정 사운드
+
     const { obj } = crossroadModal;
     const attemptCount = choiceState[choice.id]?.attempts || 0;
 
@@ -1597,6 +1624,8 @@ export function DungeonExploration() {
 
       // 스탯 미달 시 즉시 실패
       if (hasScalingReq && !meetsRequirement) {
+        playDangerSound();  // 실패 사운드
+
         // 실패 전 strainText 표시 (마지막 것)
         const strainIdx = Math.min(newAttempts - 1, (choice.strainText?.length || 1) - 1);
         const strainMsg = choice.strainText?.[strainIdx];

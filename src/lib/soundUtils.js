@@ -240,3 +240,326 @@ export function playFreezeSound() {
     console.warn('Failed to play freeze sound:', error);
   }
 }
+
+// ========== 던전 탐험 사운드 ==========
+
+/**
+ * 문 열기/방 이동 사운드
+ */
+export function playDoorSound() {
+  try {
+    const ctx = getAudioContext();
+
+    // 문 삐걱 소리 (낮은 노이즈)
+    const bufferSize = ctx.sampleRate * 0.2;
+    const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const output = noiseBuffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      output[i] = (Math.random() * 2 - 1) * (1 - i / bufferSize);
+    }
+
+    const noiseSource = ctx.createBufferSource();
+    noiseSource.buffer = noiseBuffer;
+
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.value = 400;
+
+    const noiseGain = ctx.createGain();
+    noiseSource.connect(filter);
+    filter.connect(noiseGain);
+    noiseGain.connect(ctx.destination);
+
+    noiseGain.gain.setValueAtTime(0.15, ctx.currentTime);
+    noiseGain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
+
+    noiseSource.start(ctx.currentTime);
+    noiseSource.stop(ctx.currentTime + 0.2);
+
+    // 문 쿵 소리
+    const osc = ctx.createOscillator();
+    const oscGain = ctx.createGain();
+    osc.connect(oscGain);
+    oscGain.connect(ctx.destination);
+
+    osc.frequency.setValueAtTime(80, ctx.currentTime + 0.1);
+    osc.frequency.exponentialRampToValueAtTime(40, ctx.currentTime + 0.25);
+    osc.type = 'sine';
+
+    oscGain.gain.setValueAtTime(0, ctx.currentTime);
+    oscGain.gain.setValueAtTime(0.2, ctx.currentTime + 0.1);
+    oscGain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+
+    osc.start(ctx.currentTime + 0.1);
+    osc.stop(ctx.currentTime + 0.3);
+  } catch (error) {
+    console.warn('Failed to play door sound:', error);
+  }
+}
+
+/**
+ * 아이템/보상 획득 사운드
+ */
+export function playRewardSound() {
+  try {
+    const ctx = getAudioContext();
+
+    // 상승하는 3화음 (도-미-솔)
+    const notes = [523, 659, 784]; // C5, E5, G5
+
+    notes.forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.frequency.value = freq;
+      osc.type = 'sine';
+
+      const startTime = ctx.currentTime + i * 0.08;
+      gain.gain.setValueAtTime(0, startTime);
+      gain.gain.linearRampToValueAtTime(0.15, startTime + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.01, startTime + 0.3);
+
+      osc.start(startTime);
+      osc.stop(startTime + 0.3);
+    });
+  } catch (error) {
+    console.warn('Failed to play reward sound:', error);
+  }
+}
+
+/**
+ * 발걸음 소리
+ */
+export function playFootstepSound() {
+  try {
+    const ctx = getAudioContext();
+
+    // 짧은 노이즈 버스트
+    const bufferSize = ctx.sampleRate * 0.05;
+    const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const output = noiseBuffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      output[i] = (Math.random() * 2 - 1) * (1 - i / bufferSize);
+    }
+
+    const noiseSource = ctx.createBufferSource();
+    noiseSource.buffer = noiseBuffer;
+
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.value = 800;
+
+    const gain = ctx.createGain();
+    noiseSource.connect(filter);
+    filter.connect(gain);
+    gain.connect(ctx.destination);
+
+    gain.gain.setValueAtTime(0.08, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.05);
+
+    noiseSource.start(ctx.currentTime);
+    noiseSource.stop(ctx.currentTime + 0.05);
+  } catch (error) {
+    console.warn('Failed to play footstep sound:', error);
+  }
+}
+
+/**
+ * 비밀 발견 사운드
+ */
+export function playSecretSound() {
+  try {
+    const ctx = getAudioContext();
+
+    // 신비로운 상승음
+    const osc1 = ctx.createOscillator();
+    const osc2 = ctx.createOscillator();
+    const gain1 = ctx.createGain();
+    const gain2 = ctx.createGain();
+
+    osc1.connect(gain1);
+    osc2.connect(gain2);
+    gain1.connect(ctx.destination);
+    gain2.connect(ctx.destination);
+
+    // 옥타브 간격
+    osc1.frequency.setValueAtTime(440, ctx.currentTime);
+    osc1.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.4);
+    osc2.frequency.setValueAtTime(880, ctx.currentTime);
+    osc2.frequency.exponentialRampToValueAtTime(1760, ctx.currentTime + 0.4);
+
+    osc1.type = 'sine';
+    osc2.type = 'triangle';
+
+    gain1.gain.setValueAtTime(0.12, ctx.currentTime);
+    gain1.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
+    gain2.gain.setValueAtTime(0.08, ctx.currentTime);
+    gain2.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
+
+    osc1.start(ctx.currentTime);
+    osc2.start(ctx.currentTime);
+    osc1.stop(ctx.currentTime + 0.5);
+    osc2.stop(ctx.currentTime + 0.5);
+  } catch (error) {
+    console.warn('Failed to play secret sound:', error);
+  }
+}
+
+/**
+ * 던전 완료 사운드 (팡파레)
+ */
+export function playVictorySound() {
+  try {
+    const ctx = getAudioContext();
+
+    // 승리 팡파레 (도-미-솔-도)
+    const notes = [523, 659, 784, 1047]; // C5, E5, G5, C6
+
+    notes.forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.frequency.value = freq;
+      osc.type = i === 3 ? 'triangle' : 'sine';
+
+      const startTime = ctx.currentTime + i * 0.12;
+      const duration = i === 3 ? 0.6 : 0.2;
+
+      gain.gain.setValueAtTime(0, startTime);
+      gain.gain.linearRampToValueAtTime(0.2, startTime + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.01, startTime + duration);
+
+      osc.start(startTime);
+      osc.stop(startTime + duration);
+    });
+  } catch (error) {
+    console.warn('Failed to play victory sound:', error);
+  }
+}
+
+/**
+ * 실패/위험 사운드
+ */
+export function playDangerSound() {
+  try {
+    const ctx = getAudioContext();
+
+    // 하강하는 불협화음
+    const osc1 = ctx.createOscillator();
+    const osc2 = ctx.createOscillator();
+    const gain1 = ctx.createGain();
+    const gain2 = ctx.createGain();
+
+    osc1.connect(gain1);
+    osc2.connect(gain2);
+    gain1.connect(ctx.destination);
+    gain2.connect(ctx.destination);
+
+    osc1.frequency.setValueAtTime(300, ctx.currentTime);
+    osc1.frequency.exponentialRampToValueAtTime(100, ctx.currentTime + 0.3);
+    osc2.frequency.setValueAtTime(320, ctx.currentTime); // 약간 불협화음
+    osc2.frequency.exponentialRampToValueAtTime(90, ctx.currentTime + 0.3);
+
+    osc1.type = 'sawtooth';
+    osc2.type = 'sawtooth';
+
+    gain1.gain.setValueAtTime(0.15, ctx.currentTime);
+    gain1.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.35);
+    gain2.gain.setValueAtTime(0.1, ctx.currentTime);
+    gain2.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.35);
+
+    osc1.start(ctx.currentTime);
+    osc2.start(ctx.currentTime);
+    osc1.stop(ctx.currentTime + 0.35);
+    osc2.stop(ctx.currentTime + 0.35);
+  } catch (error) {
+    console.warn('Failed to play danger sound:', error);
+  }
+}
+
+/**
+ * 상호작용 사운드 (오브젝트 터치)
+ */
+export function playInteractSound() {
+  try {
+    const ctx = getAudioContext();
+
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.frequency.setValueAtTime(600, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(800, ctx.currentTime + 0.08);
+    osc.type = 'sine';
+
+    gain.gain.setValueAtTime(0.12, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
+
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.1);
+  } catch (error) {
+    console.warn('Failed to play interact sound:', error);
+  }
+}
+
+/**
+ * 선택지 등장 사운드
+ */
+export function playChoiceAppearSound() {
+  try {
+    const ctx = getAudioContext();
+
+    // 두 음 연속 (띵똥)
+    const notes = [523, 659]; // C5, E5
+
+    notes.forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.frequency.value = freq;
+      osc.type = 'sine';
+
+      const startTime = ctx.currentTime + i * 0.1;
+      gain.gain.setValueAtTime(0.1, startTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, startTime + 0.15);
+
+      osc.start(startTime);
+      osc.stop(startTime + 0.15);
+    });
+  } catch (error) {
+    console.warn('Failed to play choice appear sound:', error);
+  }
+}
+
+/**
+ * 선택 확정 사운드
+ */
+export function playChoiceSelectSound() {
+  try {
+    const ctx = getAudioContext();
+
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.frequency.setValueAtTime(440, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.1);
+    osc.type = 'square';
+
+    gain.gain.setValueAtTime(0.1, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15);
+
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.15);
+  } catch (error) {
+    console.warn('Failed to play choice select sound:', error);
+  }
+}
