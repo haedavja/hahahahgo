@@ -969,10 +969,10 @@ export function DungeonExploration() {
       ctx.fillText("막다른 방", CONFIG.VIEWPORT.width / 2, 85);
     }
 
-    // 4방향 문 렌더링
+    // 4방향 문 렌더링 (북쪽과 남쪽은 다른 위치에)
     const doorPositions = {
-      north: { x: CONFIG.VIEWPORT.width / 2, y: 100, label: "북쪽" },
-      south: { x: CONFIG.VIEWPORT.width / 2, y: CONFIG.FLOOR_Y - 50, label: "남쪽" },
+      north: { x: CONFIG.VIEWPORT.width / 2 + 200, y: 100, label: "북쪽" },      // 오른쪽으로 오프셋
+      south: { x: CONFIG.VIEWPORT.width / 2 - 200, y: CONFIG.FLOOR_Y - 50, label: "남쪽" },  // 왼쪽으로 오프셋
       west: { x: 80, y: CONFIG.FLOOR_Y / 2 + 80, label: "서쪽" },
       east: { x: CONFIG.VIEWPORT.width - 80, y: CONFIG.FLOOR_Y / 2 + 80, label: "동쪽" },
     };
@@ -1375,8 +1375,8 @@ export function DungeonExploration() {
     // 문 상호작용 체크 (플레이어 위치 기반) - 뷰포트 기준
     const vw = CONFIG.VIEWPORT.width;
     const doorZones = {
-      north: { minX: vw / 2 - 80, maxX: vw / 2 + 80, check: () => true },  // 상단 중앙 (120px 문)
-      south: { minX: vw / 2 - 80, maxX: vw / 2 + 80, check: () => true },  // 하단 중앙 (120px 문)
+      north: { minX: vw / 2 + 200 - 80, maxX: vw / 2 + 200 + 80, check: () => true },  // 오른쪽 오프셋
+      south: { minX: vw / 2 - 200 - 80, maxX: vw / 2 - 200 + 80, check: () => true },  // 왼쪽 오프셋
       west: { minX: 0, maxX: 120, check: () => true },                      // 좌측 (80px 문)
       east: { minX: vw - 120, maxX: vw, check: () => true },                // 우측 (80px 문)
     };
