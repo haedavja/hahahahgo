@@ -1309,14 +1309,14 @@ export function DungeonExploration() {
       }
     }
 
-    // 오브젝트 체크
+    // 오브젝트 체크 (이미 사용된 오브젝트는 건너뛰기)
     for (const obj of segment.objects || []) {
       if (Math.abs(playerX - obj.x) < 80) {
         const objType = OBJECT_TYPES[obj.typeId.toUpperCase()];
 
+        // 이미 사용된 오브젝트는 건너뛰고 다음 오브젝트 확인
         if (obj.used && !objType?.canReuse) {
-          actions.setMessage("이미 사용했습니다.");
-          return;
+          continue;
         }
 
         const handler = OBJECT_HANDLERS[obj.typeId];
