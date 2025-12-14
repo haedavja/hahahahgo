@@ -84,11 +84,17 @@ export const OBSTACLE_TEMPLATES = {
         maxAttempts: 5,
         requirements: {},  // 기본 선택지
         progressText: [
-          '아직 한참 더 올라가야 할 것 같습니다.',
-          '손에 땀이 납니다. 계속 올라갑니다.',
-          '당신의 손이 힘이 부족해 후들거립니다.',
-          '거의 다 왔습니다. 조금만 더!',
-          '마침내 정상에 도착했습니다!',
+          '손을 뻗어 바위틈을 잡습니다. 아직 한참 더 올라가야 합니다.',
+          '중간쯤 왔습니다. 손에 땀이 납니다.',
+          '팔에 힘이 빠지기 시작합니다. 거의 다 왔습니다!',
+          '정상이 코앞입니다! 마지막 힘을 짜냅니다.',
+        ],
+        // 스탯 부족 시 표시되는 텍스트 (시도 횟수별)
+        strainText: [
+          '손아귀에 힘이 부족합니다. 바위가 미끄럽게 느껴집니다.',
+          '팔이 후들후들 떨립니다. 힘이 부족한 것 같습니다.',
+          '온몸이 떨리기 시작합니다. 이대로는 위험합니다!',
+          '손가락 끝에 감각이 없어집니다. 더 이상은...',
         ],
         // 시도할수록 힘 요구량 증가 (1회차: 0, 2회차: 0, 3회차: 1, 4회차: 2, 5회차: 3)
         scalingRequirement: { stat: 'strength', baseValue: -2, increment: 1 },
@@ -159,9 +165,15 @@ export const OBSTACLE_TEMPLATES = {
         maxAttempts: 5,
         requirements: {},
         progressText: [
-          '쾅! 있는 힘껏 내려칩니다.',
+          '쾅! 있는 힘껏 내려칩니다. 자물쇠에 흠집이 났습니다.',
           '쾅! 쾅! 자물쇠가 조금 휘어졌습니다.',
           '쾅! 쾅! 쾅! 거의 다 부서졌습니다!',
+          '한 번만 더!',
+        ],
+        strainText: [
+          '힘이 부족합니다. 손목이 아파옵니다.',
+          '팔에 쥐가 납니다. 힘을 더 길러야 할 것 같습니다.',
+          '주먹에서 피가 납니다. 이대로는 자물쇠보다 손이 먼저 부서질 것 같습니다.',
         ],
         screenEffect: 'shake',  // 화면 흔들림
         soundEffect: 'bang',    // 효과음
@@ -212,9 +224,13 @@ export const OBSTACLE_TEMPLATES = {
         requirements: {},
         progressText: [
           '한 발짝... 다리가 삐걱거립니다.',
-          '절반쯤 왔습니다. 바람이 불어옵니다.',
+          '절반쯤 왔습니다. 균형을 잡으며 천천히.',
           '거의 다 왔습니다! 널빤지가 흔들립니다.',
-          '안전하게 건넜습니다!',
+        ],
+        strainText: [
+          '다리가 후들거립니다. 균형 잡기가 어렵습니다.',
+          '발이 미끄러질 것 같습니다. 몸이 굳어갑니다.',
+          '현기증이 납니다. 아래를 보지 않으려 애쓰지만...',
         ],
         // 1회차: 0, 2회차: 1, 3회차: 2, 4회차: 3
         scalingRequirement: { stat: 'agility', baseValue: -1, increment: 1 },
@@ -281,13 +297,16 @@ export const OBSTACLE_TEMPLATES = {
         progressText: [
           '석상의 표면에 희미한 문양이 새겨져 있습니다...',
           '문양이 고대 언어입니다. 해독을 시도합니다...',
-          '"경배하는 자에게 축복을" - 의미를 이해했습니다!',
+        ],
+        strainText: [
+          '문양의 의미를 알 것 같은데... 머리가 아파옵니다.',
+          '집중하려 하지만 생각이 흐려집니다. 통찰력이 부족한 것 같습니다.',
         ],
         scalingRequirement: { stat: 'insight', baseValue: 0, increment: 1 },
         outcomes: {
           success: {
             type: CHOICE_RESULT_TYPES.SUCCESS,
-            text: '석상 앞에 무릎을 꿇자, 보석이 손에 떨어집니다.',
+            text: '"경배하는 자에게 축복을" - 석상 앞에 무릎을 꿇자, 보석이 손에 떨어집니다.',
             effect: { reward: { gold: { min: 20, max: 35 }, relic: 'random_common' } },
           },
           failure: {
@@ -354,7 +373,10 @@ export const OBSTACLE_TEMPLATES = {
         progressText: [
           '제단 앞에 무릎 꿇고 기도합니다...',
           '마음을 비우고 집중합니다...',
-          '제단의 의지와 연결되었습니다.',
+        ],
+        strainText: [
+          '집중이 흐트러집니다. 마음이 어지럽습니다.',
+          '제단의 의지를 느낄 수 없습니다. 통찰력이 부족한 것 같습니다.',
         ],
         scalingRequirement: { stat: 'insight', baseValue: 0, increment: 1 },
         outcomes: {
@@ -428,7 +450,11 @@ export const OBSTACLE_TEMPLATES = {
           '한 발짝... 조심스럽게 발을 내딛습니다.',
           '딸깍! 뭔가를 밟았지만 반응이 없습니다...',
           '차갑고 끈적한 것이 느껴집니다. 거미줄?',
-          '드디어 빛이 보입니다!',
+        ],
+        strainText: [
+          '어둠 속에서 방향 감각을 잃어갑니다.',
+          '발이 휘청거립니다. 민첩하게 대응하기 어렵습니다.',
+          '무언가에 걸려 넘어질 뻔 했습니다!',
         ],
         // 1회차: 0, 2회차: 1, 3회차: 2, 4회차: 3
         scalingRequirement: { stat: 'agility', baseValue: -1, increment: 1 },
@@ -497,7 +523,10 @@ export const OBSTACLE_TEMPLATES = {
         progressText: [
           '발목까지 잠겼습니다. 독기가 코를 찌릅니다.',
           '허리까지 잠겼습니다. 피부가 따끔거립니다.',
-          '거의 다 왔습니다!',
+        ],
+        strainText: [
+          '다리에 힘이 빠집니다. 늪에서 발을 빼기 어렵습니다.',
+          '온몸이 무거워집니다. 체력이 부족합니다.',
         ],
         // 1회차: 1, 2회차: 2, 3회차: 3
         scalingRequirement: { stat: 'strength', baseValue: 0, increment: 1 },
@@ -535,13 +564,15 @@ export const OBSTACLE_TEMPLATES = {
         requirements: {},
         progressText: [
           '주변을 둘러봅니다...',
-          '숨겨진 샛길을 발견했습니다!',
+        ],
+        strainText: [
+          '아무리 봐도 다른 길이 보이지 않습니다. 통찰력이 부족한 것 같습니다.',
         ],
         scalingRequirement: { stat: 'insight', baseValue: 1, increment: 1 },
         outcomes: {
           success: {
             type: CHOICE_RESULT_TYPES.SUCCESS,
-            text: '우회로를 찾아 안전하게 건넜습니다.',
+            text: '숨겨진 샛길을 발견했습니다! 우회로를 찾아 안전하게 건넜습니다.',
             effect: { unlockNode: 'next_area' },
           },
           failure: {

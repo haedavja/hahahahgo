@@ -1449,6 +1449,23 @@ export function DungeonExploration() {
     return true;
   }, [playerStrength, playerAgility, playerInsight]);
 
+  // 스탯 여유도 계산 (얼마나 여유있게 충족하는지)
+  const getStatMargin = useCallback((choice, attemptNum) => {
+    if (!choice.scalingRequirement) return Infinity;
+
+    const { stat, baseValue, increment } = choice.scalingRequirement;
+    const requiredValue = baseValue + (attemptNum * increment);
+
+    const statMap = {
+      strength: playerStrength,
+      agility: playerAgility,
+      insight: playerInsight,
+    };
+    const playerStat = statMap[stat] || 0;
+
+    return playerStat - requiredValue; // 양수면 여유, 음수면 부족
+  }, [playerStrength, playerAgility, playerInsight]);
+
   // 선택지 실행
   const executeChoice = useCallback((choice, choiceState) => {
     if (!crossroadModal) return;
@@ -1464,6 +1481,7 @@ export function DungeonExploration() {
       // 스케일링 요구조건 체크 (현재 시도에 대한 스탯 충족 여부)
       const hasScalingReq = !!choice.scalingRequirement;
       const meetsRequirement = hasScalingReq ? checkRequirement(choice, newAttempts) : true;
+      const statMargin = hasScalingReq ? getStatMargin(choice, newAttempts) : Infinity;
 
       // 화면 흔들림 효과
       if (choice.screenEffect === 'shake') {
@@ -1473,16 +1491,24 @@ export function DungeonExploration() {
 
       // 스탯 미달 시 즉시 실패
       if (hasScalingReq && !meetsRequirement) {
+        // 실패 전 strainText 표시 (마지막 것)
+        const strainIdx = Math.min(newAttempts - 1, (choice.strainText?.length || 1) - 1);
+        const strainMsg = choice.strainText?.[strainIdx];
+
         const outcome = choice.outcomes.failure;
+        const finalMsg = strainMsg
+          ? `${strainMsg}\n\n${outcome.text}`
+          : outcome.text;
+
         applyChoiceOutcome(outcome, obj);
-        actions.setMessage(outcome.text);
+        actions.setMessage(finalMsg);
 
         // 기로 완료 처리
         obj.used = true;
         actions.setCrossroadModal(null);
 
         // 일정 시간 후 메시지 클리어
-        setTimeout(() => actions.setMessage(''), 3000);
+        setTimeout(() => actions.setMessage(''), 4000);
         return;
       }
 
@@ -1511,7 +1537,27 @@ export function DungeonExploration() {
       } else {
         // 진행 중 - 진행 텍스트 표시
         const progressIdx = Math.min(newAttempts - 1, (choice.progressText?.length || 1) - 1);
-        const progressMsg = choice.progressText?.[progressIdx] || `시도 ${newAttempts}/${maxAttempts}`;
+        let progressMsg = choice.progressText?.[progressIdx] || `시도 ${newAttempts}/${maxAttempts}`;
+
+        // 스탯이 빠듯하면 strainText도 함께 표시 (0~1 여유일 때)
+        if (hasScalingReq && statMargin >= 0 && statMargin <= 1 && choice.strainText) {
+          const strainIdx = Math.min(newAttempts - 1, choice.strainText.length - 1);
+          const strainMsg = choice.strainText[strainIdx];
+          if (strainMsg) {
+            progressMsg = `${progressMsg}\n\n${strainMsg}`;
+          }
+        }
+
+        // 다음 시도 요구 스탯 미리 체크하여 경고
+        const nextMargin = hasScalingReq ? getStatMargin(choice, newAttempts + 1) : Infinity;
+        if (hasScalingReq && nextMargin < 0 && choice.strainText) {
+          const strainIdx = Math.min(newAttempts - 1, choice.strainText.length - 1);
+          const strainMsg = choice.strainText[strainIdx];
+          if (strainMsg && !progressMsg.includes(strainMsg)) {
+            progressMsg = `${progressMsg}\n\n⚠️ ${strainMsg}`;
+          }
+        }
+
         actions.setMessage(progressMsg);
 
         // 선택지 상태 업데이트
@@ -1542,7 +1588,7 @@ export function DungeonExploration() {
       // 일정 시간 후 메시지 클리어
       setTimeout(() => actions.setMessage(''), 3000);
     }
-  }, [crossroadModal, checkRequirement, actions]);
+  }, [crossroadModal, checkRequirement, getStatMargin, actions]);
 
   // 선택지 결과 적용
   const applyChoiceOutcome = useCallback((outcome, obj) => {
