@@ -965,10 +965,10 @@ export function DungeonExploration() {
 
     // 4방향 문 렌더링
     const doorPositions = {
-      north: { x: CONFIG.VIEWPORT.width / 2, y: 120, label: "▲ 북쪽" },
-      south: { x: CONFIG.VIEWPORT.width / 2, y: CONFIG.FLOOR_Y - 30, label: "▼ 남쪽" },
-      west: { x: 100, y: CONFIG.FLOOR_Y / 2 + 100, label: "◀ 서쪽" },
-      east: { x: CONFIG.VIEWPORT.width - 100, y: CONFIG.FLOOR_Y / 2 + 100, label: "동쪽 ▶" },
+      north: { x: CONFIG.VIEWPORT.width / 2, y: 100, label: "북쪽" },
+      south: { x: CONFIG.VIEWPORT.width / 2, y: CONFIG.FLOOR_Y - 50, label: "남쪽" },
+      west: { x: 80, y: CONFIG.FLOOR_Y / 2 + 80, label: "서쪽" },
+      east: { x: CONFIG.VIEWPORT.width - 80, y: CONFIG.FLOOR_Y / 2 + 80, label: "동쪽" },
     };
 
     // 각 방향 문 렌더링
@@ -978,12 +978,11 @@ export function DungeonExploration() {
         // 문 없음 - 벽 표시
         ctx.fillStyle = "#1e293b";
         if (dir === 'north' || dir === 'south') {
-          // 수평 벽
-          // (이미 배경으로 그려짐)
+          // 수평 벽 (이미 배경으로 그려짐)
         } else {
           // 수직 벽 (좌우)
-          const wallX = dir === 'west' ? 0 : CONFIG.VIEWPORT.width - 60;
-          ctx.fillRect(wallX, 100, 60, CONFIG.FLOOR_Y - 100);
+          const wallX = dir === 'west' ? 0 : CONFIG.VIEWPORT.width - 80;
+          ctx.fillRect(wallX, 100, 80, CONFIG.FLOOR_Y - 100);
         }
       } else {
         // 문 있음
@@ -991,49 +990,131 @@ export function DungeonExploration() {
         const targetRoom = grid[exit.targetKey];
         const isDiscovered = !isHidden || (targetRoom && targetRoom.discovered);
 
-        // 문 배경
-        ctx.fillStyle = isHidden
-          ? (isDiscovered ? "#8b5cf6" : "#374151")  // 숨겨진 문
-          : (segment.roomType === 'exit' && dir === 'north' ? "#22c55e" : "#3b82f6"); // 일반 문
+        // 문 색상 결정
+        const doorColor = isHidden
+          ? (isDiscovered ? "#8b5cf6" : "#374151")
+          : (segment.roomType === 'exit' && dir === 'north' ? "#22c55e" : "#3b82f6");
+
+        // 발광 효과 (그라데이션)
+        const glowSize = 20;
+        ctx.save();
 
         if (dir === 'north') {
-          // 북쪽 문 (상단 중앙)
-          ctx.fillRect(pos.x - 40, 100, 80, 50);
+          // 북쪽 문 (상단 중앙) - 크게
+          const doorW = 120, doorH = 70;
+
+          // 외부 발광
+          const gradient = ctx.createRadialGradient(pos.x, pos.y + doorH/2, 0, pos.x, pos.y + doorH/2, doorW);
+          gradient.addColorStop(0, doorColor + "80");
+          gradient.addColorStop(1, "transparent");
+          ctx.fillStyle = gradient;
+          ctx.fillRect(pos.x - doorW, pos.y - glowSize, doorW * 2, doorH + glowSize * 2);
+
+          // 문틀 (밝은 테두리)
+          ctx.strokeStyle = doorColor;
+          ctx.lineWidth = 4;
+          ctx.strokeRect(pos.x - doorW/2, pos.y, doorW, doorH);
+
+          // 문 배경
+          ctx.fillStyle = doorColor;
+          ctx.fillRect(pos.x - doorW/2, pos.y, doorW, doorH);
+
+          // 문 내부 (어두운 부분)
           ctx.fillStyle = isHidden && !isDiscovered ? "#1f2937" : "#0f172a";
-          ctx.fillRect(pos.x - 30, 105, 60, 45);
+          ctx.fillRect(pos.x - doorW/2 + 10, pos.y + 8, doorW - 20, doorH - 8);
+
+          // 화살표 아이콘
+          ctx.fillStyle = "#ffffff";
+          ctx.font = "bold 28px Arial";
+          ctx.textAlign = "center";
+          ctx.fillText("▲", pos.x, pos.y + doorH/2 + 10);
+
         } else if (dir === 'south') {
           // 남쪽 문 (하단 중앙)
-          ctx.fillRect(pos.x - 40, pos.y, 80, 60);
+          const doorW = 120, doorH = 80;
+
+          // 외부 발광
+          const gradient = ctx.createRadialGradient(pos.x, pos.y + doorH/2, 0, pos.x, pos.y + doorH/2, doorW);
+          gradient.addColorStop(0, doorColor + "80");
+          gradient.addColorStop(1, "transparent");
+          ctx.fillStyle = gradient;
+          ctx.fillRect(pos.x - doorW, pos.y - glowSize, doorW * 2, doorH + glowSize * 2);
+
+          // 문틀
+          ctx.strokeStyle = doorColor;
+          ctx.lineWidth = 4;
+          ctx.strokeRect(pos.x - doorW/2, pos.y, doorW, doorH);
+
+          // 문 배경
+          ctx.fillStyle = doorColor;
+          ctx.fillRect(pos.x - doorW/2, pos.y, doorW, doorH);
+
+          // 문 내부
           ctx.fillStyle = isHidden && !isDiscovered ? "#1f2937" : "#0f172a";
-          ctx.fillRect(pos.x - 30, pos.y + 5, 60, 55);
+          ctx.fillRect(pos.x - doorW/2 + 10, pos.y + 8, doorW - 20, doorH - 16);
+
+          // 화살표 아이콘
+          ctx.fillStyle = "#ffffff";
+          ctx.font = "bold 28px Arial";
+          ctx.textAlign = "center";
+          ctx.fillText("▼", pos.x, pos.y + doorH/2 + 10);
+
         } else {
           // 좌우 문
-          const doorX = dir === 'west' ? 0 : CONFIG.VIEWPORT.width - 60;
-          ctx.fillRect(doorX, pos.y - 50, 60, 100);
+          const doorW = 80, doorH = 140;
+          const doorX = dir === 'west' ? 0 : CONFIG.VIEWPORT.width - doorW;
+
+          // 외부 발광
+          const gradient = ctx.createRadialGradient(doorX + doorW/2, pos.y, 0, doorX + doorW/2, pos.y, doorH);
+          gradient.addColorStop(0, doorColor + "80");
+          gradient.addColorStop(1, "transparent");
+          ctx.fillStyle = gradient;
+          ctx.fillRect(doorX - glowSize, pos.y - doorH/2 - glowSize, doorW + glowSize * 2, doorH + glowSize * 2);
+
+          // 문틀
+          ctx.strokeStyle = doorColor;
+          ctx.lineWidth = 4;
+          ctx.strokeRect(doorX, pos.y - doorH/2, doorW, doorH);
+
+          // 문 배경
+          ctx.fillStyle = doorColor;
+          ctx.fillRect(doorX, pos.y - doorH/2, doorW, doorH);
+
+          // 문 내부
           ctx.fillStyle = isHidden && !isDiscovered ? "#1f2937" : "#0f172a";
-          ctx.fillRect(doorX + 5, pos.y - 45, 50, 90);
+          if (dir === 'west') {
+            ctx.fillRect(doorX + 8, pos.y - doorH/2 + 10, doorW - 16, doorH - 20);
+          } else {
+            ctx.fillRect(doorX + 8, pos.y - doorH/2 + 10, doorW - 16, doorH - 20);
+          }
+
+          // 화살표 아이콘
+          ctx.fillStyle = "#ffffff";
+          ctx.font = "bold 28px Arial";
+          ctx.textAlign = "center";
+          ctx.fillText(dir === 'west' ? "◀" : "▶", doorX + doorW/2, pos.y + 10);
         }
 
-        // 문 라벨
-        ctx.fillStyle = isHidden && !isDiscovered ? "#64748b" : "#e2e8f0";
-        ctx.font = "14px Arial";
+        ctx.restore();
+
+        // 문 라벨 (더 크고 명확하게)
+        ctx.fillStyle = isHidden && !isDiscovered ? "#64748b" : "#ffffff";
+        ctx.font = "bold 18px Arial";
         ctx.textAlign = "center";
+        ctx.shadowColor = "#000000";
+        ctx.shadowBlur = 4;
 
+        const labelText = isHidden && !isDiscovered ? "???" : pos.label;
         if (dir === 'north') {
-          ctx.fillText(isHidden && !isDiscovered ? "???" : pos.label, pos.x, pos.y - 10);
+          ctx.fillText(labelText, pos.x, pos.y - 10);
         } else if (dir === 'south') {
-          ctx.fillText(isHidden && !isDiscovered ? "???" : pos.label, pos.x, pos.y + 80);
+          ctx.fillText(labelText, pos.x, pos.y + 100);
         } else if (dir === 'west') {
-          ctx.save();
-          ctx.translate(50, pos.y);
-          ctx.fillText(isHidden && !isDiscovered ? "???" : pos.label, 0, 0);
-          ctx.restore();
+          ctx.fillText(labelText, 50, pos.y + 90);
         } else {
-          ctx.save();
-          ctx.translate(CONFIG.VIEWPORT.width - 50, pos.y);
-          ctx.fillText(isHidden && !isDiscovered ? "???" : pos.label, 0, 0);
-          ctx.restore();
+          ctx.fillText(labelText, CONFIG.VIEWPORT.width - 50, pos.y + 90);
         }
+        ctx.shadowBlur = 0;
       }
     });
 
@@ -1288,10 +1369,10 @@ export function DungeonExploration() {
     // 문 상호작용 체크 (플레이어 위치 기반) - 뷰포트 기준
     const vw = CONFIG.VIEWPORT.width;
     const doorZones = {
-      north: { minX: vw / 2 - 100, maxX: vw / 2 + 100, check: () => true },  // 상단 중앙 (700-900)
-      south: { minX: vw / 2 - 100, maxX: vw / 2 + 100, check: () => true },  // 하단 중앙 (700-900)
-      west: { minX: 0, maxX: 150, check: () => true },                        // 좌측 (0-150)
-      east: { minX: vw - 150, maxX: vw, check: () => true },                  // 우측 (1450-1600)
+      north: { minX: vw / 2 - 80, maxX: vw / 2 + 80, check: () => true },  // 상단 중앙 (120px 문)
+      south: { minX: vw / 2 - 80, maxX: vw / 2 + 80, check: () => true },  // 하단 중앙 (120px 문)
+      west: { minX: 0, maxX: 120, check: () => true },                      // 좌측 (80px 문)
+      east: { minX: vw - 120, maxX: vw, check: () => true },                // 우측 (80px 문)
     };
 
     // 현재 위치에서 가장 가까운 문 찾기
