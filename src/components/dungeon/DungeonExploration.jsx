@@ -995,11 +995,27 @@ export function DungeonExploration() {
         const isHidden = exit.type === 'hidden';
         const targetRoom = grid[exit.targetKey];
         const isDiscovered = !isHidden || (targetRoom && targetRoom.discovered);
+        const isVisited = targetRoom && targetRoom.visited;  // 이미 방문한 방인지
 
         // 문 색상 결정
-        const doorColor = isHidden
-          ? (isDiscovered ? "#8b5cf6" : "#4b5563")  // 숨겨진 문은 더 밝은 회색으로 힌트
-          : (segment.roomType === 'exit' && dir === 'north' ? "#22c55e" : "#3b82f6");
+        let doorColor;
+        if (isHidden) {
+          doorColor = isDiscovered ? "#8b5cf6" : "#4b5563";  // 숨겨진 문
+        } else if (isVisited) {
+          doorColor = "#f59e0b";  // 방문한 방 = 주황색
+        } else if (segment.roomType === 'exit' && dir === 'north') {
+          doorColor = "#22c55e";  // 출구 = 초록색
+        } else {
+          doorColor = "#3b82f6";  // 새로운 방 = 파란색
+        }
+
+        // 화살표 아이콘 결정 (방문한 방은 ↩ 표시)
+        const arrows = {
+          north: isVisited ? "↩" : "▲",
+          south: isVisited ? "↩" : "▼",
+          west: isVisited ? "↩" : "◀",
+          east: isVisited ? "↩" : "▶",
+        };
 
         // 발광 효과 (그라데이션)
         const glowSize = 20;
@@ -1033,7 +1049,7 @@ export function DungeonExploration() {
           ctx.fillStyle = "#ffffff";
           ctx.font = "bold 28px Arial";
           ctx.textAlign = "center";
-          ctx.fillText("▲", pos.x, pos.y + doorH/2 + 10);
+          ctx.fillText(arrows[dir], pos.x, pos.y + doorH/2 + 10);
 
         } else if (dir === 'south') {
           // 남쪽 문 (하단 중앙)
@@ -1063,7 +1079,7 @@ export function DungeonExploration() {
           ctx.fillStyle = "#ffffff";
           ctx.font = "bold 28px Arial";
           ctx.textAlign = "center";
-          ctx.fillText("▼", pos.x, pos.y + doorH/2 + 10);
+          ctx.fillText(arrows[dir], pos.x, pos.y + doorH/2 + 10);
 
         } else {
           // 좌우 문
@@ -1098,19 +1114,21 @@ export function DungeonExploration() {
           ctx.fillStyle = "#ffffff";
           ctx.font = "bold 28px Arial";
           ctx.textAlign = "center";
-          ctx.fillText(dir === 'west' ? "◀" : "▶", doorX + doorW/2, pos.y + 10);
+          ctx.fillText(arrows[dir], doorX + doorW/2, pos.y + 10);
         }
 
         ctx.restore();
 
-        // 문 라벨 (더 크고 명확하게)
-        ctx.fillStyle = isHidden && !isDiscovered ? "#64748b" : "#ffffff";
+        // 문 라벨 (더 크고 명확하게) - 방문한 방은 "되돌아가기" 표시
+        const labelText = isHidden && !isDiscovered
+          ? "???"
+          : (isVisited ? `${pos.label} ↩` : pos.label);
+        ctx.fillStyle = isHidden && !isDiscovered ? "#64748b" : (isVisited ? "#fbbf24" : "#ffffff");
         ctx.font = "bold 18px Arial";
         ctx.textAlign = "center";
         ctx.shadowColor = "#000000";
         ctx.shadowBlur = 4;
 
-        const labelText = isHidden && !isDiscovered ? "???" : pos.label;
         if (dir === 'north') {
           ctx.fillText(labelText, pos.x, pos.y - 10);
         } else if (dir === 'south') {
