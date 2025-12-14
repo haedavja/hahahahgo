@@ -292,6 +292,8 @@ export function GraphDungeonExploration() {
 
   return (
     <div style={{
+      position: 'fixed',
+      inset: 0,
       display: 'flex',
       flexDirection: 'column',
       gap: '16px',
@@ -299,6 +301,8 @@ export function GraphDungeonExploration() {
       background: 'linear-gradient(180deg, #0f172a 0%, #1e293b 100%)',
       minHeight: '100vh',
       color: '#e2e8f0',
+      zIndex: 100,
+      overflow: 'auto',
     }}>
       {/* 헤더 */}
       <div style={{
