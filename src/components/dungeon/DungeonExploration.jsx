@@ -15,7 +15,7 @@ const CONFIG = {
   VIEWPORT: { width: 1600, height: 600 },
   PLAYER: { width: 40, height: 64, speed: 5 },
   FLOOR_Y: 500,
-  ROOM_WIDTH: 1200,
+  ROOM_WIDTH: 1600,  // 뷰포트와 동일하게 (미로 방 크기)
   CORRIDOR_WIDTH: 3000,
   MIN_COMBAT_COUNT: 2,
   // 미로 던전 설정
@@ -1285,12 +1285,13 @@ export function DungeonExploration() {
   const handleInteraction = useCallback(() => {
     if (!segment) return;
 
-    // 문 상호작용 체크 (플레이어 위치 기반)
+    // 문 상호작용 체크 (플레이어 위치 기반) - 뷰포트 기준
+    const vw = CONFIG.VIEWPORT.width;
     const doorZones = {
-      north: { minX: 700, maxX: 900, check: () => true },  // 상단 중앙
-      south: { minX: 700, maxX: 900, check: () => true },  // 하단 중앙
-      west: { minX: 0, maxX: 150, check: () => true },     // 좌측
-      east: { minX: 1050, maxX: 1200, check: () => true }, // 우측
+      north: { minX: vw / 2 - 100, maxX: vw / 2 + 100, check: () => true },  // 상단 중앙 (700-900)
+      south: { minX: vw / 2 - 100, maxX: vw / 2 + 100, check: () => true },  // 하단 중앙 (700-900)
+      west: { minX: 0, maxX: 150, check: () => true },                        // 좌측 (0-150)
+      east: { minX: vw - 150, maxX: vw, check: () => true },                  // 우측 (1450-1600)
     };
 
     // 현재 위치에서 가장 가까운 문 찾기
