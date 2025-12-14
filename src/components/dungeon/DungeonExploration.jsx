@@ -7,6 +7,8 @@ import { EtherBar } from "../battle/ui/EtherBar";
 import { RELICS, RELIC_RARITIES } from "../../data/relics";
 import { RELIC_RARITY_COLORS } from "../../lib/relics";
 import { OBSTACLE_TEMPLATES } from "../../data/dungeonNodes";
+import { getRandomEnemy } from "../battle/battleData";
+import { updateStats } from "../../state/metaProgress";
 import {
   playDoorSound,
   playRewardSound,
@@ -669,7 +671,13 @@ const OBJECT_HANDLERS = {
   combat: (obj, context) => {
     obj.used = true;
     playDangerSound();  // 적 조우 사운드
-    const enemyHp = 25 + Math.floor(Math.random() * 10);
+
+    // 던전 깊이에 따른 적 티어 결정 (1-4)
+    const dungeonDepth = context.segmentIndex || 0;
+    const tier = Math.min(4, Math.max(1, Math.floor(dungeonDepth / 2) + 1));
+
+    // 티어 기반 랜덤 적 선택
+    const enemy = getRandomEnemy(tier);
 
     // 전투 전 상태 저장 (오브젝트의 정확한 위치 저장)
     context.preBattleState.current = {
@@ -681,8 +689,9 @@ const OBJECT_HANDLERS = {
     context.startBattle({
       nodeId: `dungeon-${context.currentRoomKey || context.segmentIndex}`,
       kind: "combat",
-      label: "던전 몬스터",
-      enemyHp,
+      label: enemy?.name || "던전 몬스터",
+      enemyId: enemy?.id,
+      tier,
       rewards: {}, // 던전에서는 수동으로 보상 처리하므로 자동 보상 비활성화
     });
   },
@@ -1401,6 +1410,8 @@ export function DungeonExploration() {
     } else if (targetRoom.roomType === 'hidden') {
       playSecretSound();  // 비밀의 방 입장 사운드
       actions.setMessage("비밀의 방에 들어왔습니다!");
+      // 메타 진행: 비밀 방 발견 통계 업데이트
+      updateStats({ secretRoomsFound: 1 });
     } else if (targetRoom.isDeadEnd) {
       actions.setMessage("막다른 방입니다.");
     } else {
@@ -1755,20 +1766,35 @@ export function DungeonExploration() {
 
     // 전투 트리거
     if (effect.triggerCombat) {
-      const enemyHp = effect.triggerCombat === 'mimic' ? 40 : 25;
       preBattleState.current = {
         roomKey: currentRoomKey,
         playerX: obj.x,
       };
-      startBattle({
-        nodeId: `dungeon-crossroad-${currentRoomKey}`,
-        kind: "combat",
-        label: effect.triggerCombat === 'mimic' ? "미믹" : "습격",
-        enemyHp,
-        rewards: {},
-      });
+
+      if (effect.triggerCombat === 'mimic') {
+        // 미믹은 고정 적
+        startBattle({
+          nodeId: `dungeon-crossroad-${currentRoomKey}`,
+          kind: "combat",
+          label: "미믹",
+          enemyHp: 40,
+          rewards: {},
+        });
+      } else {
+        // 습격은 티어 기반 랜덤 적
+        const tier = Math.min(3, Math.max(1, Math.floor((segment?.depth || 0) / 2) + 1));
+        const enemy = getRandomEnemy(tier);
+        startBattle({
+          nodeId: `dungeon-crossroad-${currentRoomKey}`,
+          kind: "combat",
+          label: enemy?.name || "습격",
+          enemyId: enemy?.id,
+          tier,
+          rewards: {},
+        });
+      }
     }
-  }, [dungeonDeltas, setDungeonDeltas, currentRoomKey, startBattle]);
+  }, [dungeonDeltas, setDungeonDeltas, currentRoomKey, startBattle, segment]);
 
   // 기로 모달 닫기
   const closeCrossroadModal = useCallback(() => {

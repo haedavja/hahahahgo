@@ -2,11 +2,12 @@
 import { NEW_EVENT_LIBRARY, EVENT_KEYS } from "../data/newEvents";
 import { createInitialState } from "./useGameState";
 import { ENEMY_DECKS } from "../data/cards";
-import { CARDS } from "../components/battle/battleData";
+import { CARDS, ENEMIES, getRandomEnemy, getRandomEnemyGroup, getEnemyGroupDetails } from "../components/battle/battleData";
 import { drawHand, buildSpeedTimeline } from "../lib/speedQueue";
 import { simulateBattle, pickOutcome } from "../lib/battleResolver";
 import { calculatePassiveEffects, applyCombatEndEffects, applyNodeMoveEther } from "../lib/relicEffects";
 import { ITEMS, getItem } from "../data/items";
+import { loadMetaProgress, updateStats, getRunBonuses, onRunComplete } from "./metaProgress";
 
 // 전투에서 사용되는 카드 8종의 ID 배열
 const BATTLE_CARDS = CARDS.slice(0, 8).map(card => card.id);
@@ -117,14 +118,25 @@ const applyPenalty = (penalty = {}, resources = {}) => {
 
 const computeFriendlyChance = (mapRisk) => Math.max(0.2, Math.min(0.85, 1 - mapRisk / 120));
 
-// 초기 상태에 유물 패시브 효과를 적용하는 헬퍼
+// 초기 상태에 유물 패시브 효과와 메타 진행 보너스를 적용하는 헬퍼
 const applyInitialRelicEffects = (state) => {
   const passiveEffects = calculatePassiveEffects(state.relics);
+  const metaBonuses = getRunBonuses();
+
+  // 런 시작 통계 업데이트
+  updateStats({ totalRuns: 1 });
+
   return {
     ...state,
-    maxHp: 100 + passiveEffects.maxHp,
+    maxHp: 100 + passiveEffects.maxHp + metaBonuses.hp,
+    playerHp: 100 + passiveEffects.maxHp + metaBonuses.hp, // 시작 HP도 동일하게
     playerStrength: passiveEffects.strength,
     playerAgility: passiveEffects.agility,
+    resources: {
+      ...state.resources,
+      gold: (state.resources?.gold || 0) + metaBonuses.gold,
+    },
+    metaBonuses, // 런 내에서 참조용
   };
 };
 
@@ -459,6 +471,9 @@ export const useGameStore = create((set, get) => ({
       const dungeonNode = nodes.find((n) => n.id === nodeId);
 
       if (!dungeonNode) return { ...state, activeDungeon: null };
+
+      // 메타 진행: 던전 클리어 통계 업데이트
+      updateStats({ dungeonClears: 1 });
 
       // 던전 노드 클리어
       dungeonNode.cleared = true;
@@ -828,7 +843,26 @@ export const useGameStore = create((set, get) => ({
         ? [...characterBuild.mainSpecials, ...characterBuild.subSpecials]
         : [...BATTLE_CARDS];
 
-      const enemyLibrary = [...resolveEnemyDeck("battle")];
+      // 적 선택: enemyId, enemyTier, 또는 기본값 사용
+      let enemy = null;
+      let enemyDeck = [];
+
+      if (battleConfig.enemyId) {
+        // 특정 적 ID가 지정된 경우
+        enemy = ENEMIES.find(e => e.id === battleConfig.enemyId);
+      } else if (battleConfig.tier) {
+        // 티어 기반 랜덤 적 선택
+        enemy = getRandomEnemy(battleConfig.tier);
+      }
+
+      if (enemy) {
+        enemyDeck = enemy.deck || [];
+      } else {
+        // 기본 적 덱 사용
+        enemyDeck = resolveEnemyDeck("battle");
+      }
+
+      const enemyLibrary = [...enemyDeck];
       const playerDrawPile = hasCharacterBuild ? [] : [...playerLibrary];
       const enemyDrawPile = [...enemyLibrary];
 
@@ -836,12 +870,15 @@ export const useGameStore = create((set, get) => ({
         ? drawCharacterBuildHand(characterBuild.mainSpecials, characterBuild.subSpecials)
         : drawHand(playerDrawPile, 3);
 
-      const enemyHand = drawHand(enemyDrawPile, 3);
+      const enemyHand = drawHand(enemyDrawPile, Math.min(3, enemyDrawPile.length));
+
+      // 적 HP 결정: 지정된 값, 적 데이터, 또는 기본값
+      const enemyHp = battleConfig.enemyHp || (enemy?.hp) || 30;
 
       // 전투 시뮬레이션 생성 (현재 playerHp, maxHp 사용)
       const battleStats = {
         player: { hp: state.playerHp, maxHp: state.maxHp, block: 0 },
-        enemy: { hp: battleConfig.enemyHp || 30, block: 0 }
+        enemy: { hp: enemyHp, maxHp: enemyHp, block: 0 }
       };
 
       const timeline = buildSpeedTimeline(playerHand, enemyHand, 30);
@@ -853,14 +890,24 @@ export const useGameStore = create((set, get) => ({
         tuLimit: 30,
       };
 
+      // 적 정보 저장 (표시용)
+      const enemyInfo = enemy ? {
+        id: enemy.id,
+        name: enemy.name,
+        emoji: enemy.emoji,
+        tier: enemy.tier,
+        isBoss: enemy.isBoss || false,
+      } : null;
+
       return {
         ...state,
         activeBattle: {
           nodeId: battleConfig.nodeId || "dungeon-combat",
           kind: battleConfig.kind || "combat",
-          label: battleConfig.label || "던전 몬스터",
-          rewards: battleConfig.rewards || { gold: { min: 5, max: 10 }, loot: 1 },
-          difficulty: 3,
+          label: battleConfig.label || (enemy?.name) || "던전 몬스터",
+          rewards: battleConfig.rewards || { gold: { min: 5 + (enemy?.tier || 1) * 3, max: 10 + (enemy?.tier || 1) * 5 }, loot: 1 },
+          difficulty: enemy?.tier || 2,
+          enemyInfo,
           playerLibrary,
           playerDrawPile,
           playerDiscardPile: [],
@@ -886,6 +933,22 @@ export const useGameStore = create((set, get) => ({
       const autoResult = pickOutcome(state.activeBattle.simulation, "victory");
     const resultLabel = outcome.result ?? autoResult;
     const rewards = resultLabel === "victory" ? grantRewards(rewardsDef, state.resources) : { next: state.resources, applied: {} };
+
+    // 메타 진행 통계 업데이트 (승리 시)
+    if (resultLabel === "victory") {
+      const enemyInfo = state.activeBattle.enemyInfo;
+      const statsUpdate = {
+        totalKills: 1,
+        totalDamageDealt: outcome.damageDealt || 0,
+      };
+
+      // 보스 처치 체크
+      if (enemyInfo?.isBoss || state.activeBattle.kind === "boss") {
+        statsUpdate.bossKills = 1;
+      }
+
+      updateStats(statsUpdate);
+    }
 
     // Update player HP from battle result
     // 실제 전투 결과가 전달되면 그 값을 사용, 없으면 시뮬레이션 결과 사용
@@ -924,6 +987,7 @@ export const useGameStore = create((set, get) => ({
         finalState: state.activeBattle.simulation?.finalState ?? null,
         initialState: state.activeBattle.simulation?.initialState ?? null,
         rewards: rewards.applied,
+        enemyInfo: state.activeBattle.enemyInfo,
       },
     };
     }),
