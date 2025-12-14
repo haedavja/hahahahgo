@@ -1576,18 +1576,18 @@ export function DungeonExploration() {
     if (effect.triggerCombat) {
       const enemyHp = effect.triggerCombat === 'mimic' ? 40 : 25;
       preBattleState.current = {
-        segmentIndex,
+        roomKey: currentRoomKey,
         playerX: obj.x,
       };
       startBattle({
-        nodeId: `dungeon-crossroad-${segmentIndex}`,
+        nodeId: `dungeon-crossroad-${currentRoomKey}`,
         kind: "combat",
         label: effect.triggerCombat === 'mimic' ? "미믹" : "습격",
         enemyHp,
         rewards: {},
       });
     }
-  }, [dungeonDeltas, setDungeonDeltas, segmentIndex, startBattle]);
+  }, [dungeonDeltas, setDungeonDeltas, currentRoomKey, startBattle]);
 
   // 기로 모달 닫기
   const closeCrossroadModal = useCallback(() => {
