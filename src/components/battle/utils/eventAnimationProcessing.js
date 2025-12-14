@@ -5,6 +5,42 @@
  */
 
 /**
+ * 화면 흔들림 효과 트리거
+ * @param {number} intensity - 강도 (1=약함, 2=중간, 3=강함)
+ */
+function triggerScreenShake(intensity = 1) {
+  const root = document.querySelector('.legacy-battle-root');
+  if (root) {
+    root.classList.add('screen-shake');
+    setTimeout(() => root.classList.remove('screen-shake'), 400);
+  }
+}
+
+/**
+ * 대미지 팝업 생성
+ * @param {string} target - 'player' 또는 'enemy'
+ * @param {number} value - 대미지 값
+ * @param {string} type - 'damage', 'heal', 'block'
+ */
+function createDamagePopup(target, value, type = 'damage') {
+  const popup = document.createElement('div');
+  popup.className = `damage-popup ${type === 'damage' && value >= 10 ? 'critical' : ''} ${type}`;
+  popup.textContent = type === 'damage' ? `-${value}` : (type === 'heal' ? `+${value}` : `🛡️${value}`);
+
+  // 위치 설정
+  if (target === 'enemy') {
+    popup.style.right = '350px';
+    popup.style.top = '450px';
+  } else {
+    popup.style.left = '350px';
+    popup.style.top = '450px';
+  }
+
+  document.body.appendChild(popup);
+  setTimeout(() => popup.remove(), 800);
+}
+
+/**
  * 액션 이벤트 처리: 애니메이션 및 사운드 재생
  * @param {Object} params - 파라미터
  * @param {Array} params.actionEvents - 처리할 액션 이벤트 목록
@@ -28,6 +64,15 @@ export function processActionEventAnimations({
     // 피격 효과 (hit, pierce 타입)
     if ((ev.type === 'hit' || ev.type === 'pierce') && ev.dmg > 0) {
       playHitSound();
+
+      // 화면 흔들림 (대미지가 클수록 강하게)
+      const shakeIntensity = ev.dmg >= 15 ? 3 : (ev.dmg >= 8 ? 2 : 1);
+      triggerScreenShake(shakeIntensity);
+
+      // 대미지 팝업
+      const target = ev.actor === 'player' ? 'enemy' : 'player';
+      createDamagePopup(target, ev.dmg, 'damage');
+
       if (ev.actor === 'player') {
         // 플레이어가 공격 -> 적 피격
         actions.setEnemyHit(true);
@@ -42,6 +87,13 @@ export function processActionEventAnimations({
     // 방어 효과 (defense 타입)
     if (ev.type === 'defense') {
       playBlockSound();
+
+      // 방어력 획득 팝업
+      if (ev.block && ev.block > 0) {
+        const target = ev.actor === 'player' ? 'player' : 'enemy';
+        createDamagePopup(target, ev.block, 'block');
+      }
+
       if (ev.actor === 'player') {
         actions.setPlayerBlockAnim(true);
         setTimeout(() => actions.setPlayerBlockAnim(false), 400);
@@ -54,11 +106,15 @@ export function processActionEventAnimations({
     // 반격 피해
     if (ev.actor === 'counter') {
       playHitSound();
+      triggerScreenShake(2);
+
       // counter는 반대 방향으로 피해가 가므로 타겟을 반대로
       if (action.actor === 'player') {
+        createDamagePopup('player', ev.dmg || 0, 'damage');
         actions.setPlayerHit(true);
         setTimeout(() => actions.setPlayerHit(false), 300);
       } else {
+        createDamagePopup('enemy', ev.dmg || 0, 'damage');
         actions.setEnemyHit(true);
         setTimeout(() => actions.setEnemyHit(false), 300);
       }

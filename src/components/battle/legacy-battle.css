@@ -1815,3 +1815,175 @@ body {
   opacity: 1 !important;
   visibility: visible !important;
 }
+
+/* ========== 전투 피드백 강화 ========== */
+
+/* 화면 흔들림 효과 */
+@keyframes screenShake {
+  0%, 100% { transform: translate(0, 0); }
+  10% { transform: translate(-8px, -4px); }
+  20% { transform: translate(8px, 4px); }
+  30% { transform: translate(-6px, 2px); }
+  40% { transform: translate(6px, -2px); }
+  50% { transform: translate(-4px, 4px); }
+  60% { transform: translate(4px, -4px); }
+  70% { transform: translate(-2px, 2px); }
+  80% { transform: translate(2px, -2px); }
+  90% { transform: translate(-1px, 1px); }
+}
+
+.screen-shake {
+  animation: screenShake 0.4s ease-out;
+}
+
+/* 대미지 숫자 팝업 */
+@keyframes damagePopup {
+  0% {
+    opacity: 1;
+    transform: translateY(0) scale(1.2);
+  }
+  20% {
+    transform: translateY(-20px) scale(1.4);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-60px) scale(0.8);
+  }
+}
+
+.damage-popup {
+  position: absolute;
+  font-size: 2rem;
+  font-weight: 900;
+  color: #ef4444;
+  text-shadow:
+    0 0 10px rgba(239, 68, 68, 0.8),
+    2px 2px 0 #000,
+    -2px -2px 0 #000,
+    2px -2px 0 #000,
+    -2px 2px 0 #000;
+  pointer-events: none;
+  z-index: 1000;
+  animation: damagePopup 0.8s ease-out forwards;
+}
+
+.damage-popup.critical {
+  font-size: 2.5rem;
+  color: #fbbf24;
+  text-shadow:
+    0 0 20px rgba(251, 191, 36, 1),
+    2px 2px 0 #000,
+    -2px -2px 0 #000,
+    2px -2px 0 #000,
+    -2px 2px 0 #000;
+}
+
+.damage-popup.heal {
+  color: #22c55e;
+  text-shadow:
+    0 0 10px rgba(34, 197, 94, 0.8),
+    2px 2px 0 #000,
+    -2px -2px 0 #000,
+    2px -2px 0 #000,
+    -2px 2px 0 #000;
+}
+
+.damage-popup.block {
+  color: #60a5fa;
+  text-shadow:
+    0 0 10px rgba(96, 165, 250, 0.8),
+    2px 2px 0 #000,
+    -2px -2px 0 #000,
+    2px -2px 0 #000,
+    -2px 2px 0 #000;
+}
+
+/* 강화된 hit 애니메이션 */
+@keyframes enhancedHit {
+  0% {
+    transform: scale(1);
+    filter: brightness(1);
+  }
+  10% {
+    transform: scale(0.95) translateX(-5px);
+    filter: brightness(2) saturate(0);
+  }
+  20% {
+    transform: scale(1.05) translateX(5px);
+    filter: brightness(1.5) saturate(1.5);
+  }
+  40% {
+    transform: scale(0.98) translateX(-3px);
+    filter: brightness(1.2);
+  }
+  60% {
+    transform: scale(1.02) translateX(2px);
+  }
+  100% {
+    transform: scale(1) translateX(0);
+    filter: brightness(1);
+  }
+}
+
+.enhanced-hit-animation {
+  animation: enhancedHit 0.5s ease-out;
+}
+
+/* 카드 사용 이펙트 */
+@keyframes cardUseFlash {
+  0% {
+    box-shadow: 0 0 0 rgba(251, 191, 36, 0);
+  }
+  50% {
+    box-shadow: 0 0 40px rgba(251, 191, 36, 0.8), 0 0 80px rgba(251, 191, 36, 0.4);
+  }
+  100% {
+    box-shadow: 0 0 0 rgba(251, 191, 36, 0);
+  }
+}
+
+.card-use-flash {
+  animation: cardUseFlash 0.3s ease-out;
+}
+
+/* 승리 효과 */
+@keyframes victoryGlow {
+  0%, 100% {
+    filter: brightness(1);
+    text-shadow: 0 0 10px rgba(34, 197, 94, 0.5);
+  }
+  50% {
+    filter: brightness(1.3);
+    text-shadow: 0 0 30px rgba(34, 197, 94, 1), 0 0 60px rgba(34, 197, 94, 0.5);
+  }
+}
+
+.victory-glow {
+  animation: victoryGlow 1s ease-in-out infinite;
+}
+
+/* 에테르 전송 효과 */
+@keyframes etherTransfer {
+  0% {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: translateX(50px) scale(0.8);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(100px) scale(0.5);
+  }
+}
+
+.ether-transfer-particle {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  background: radial-gradient(circle, #a78bfa, #7c3aed);
+  border-radius: 50%;
+  pointer-events: none;
+  animation: etherTransfer 0.6s ease-out forwards;
+}
