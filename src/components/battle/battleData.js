@@ -203,52 +203,145 @@ export const CARDS = [
 ];
 
 export const ENEMY_CARDS = [
+  // 기본 카드
   { id: "e1", name: "Attack", type: "attack", damage: 13, speedCost: 3, actionCost: 1, iconKey: "sword" },
   { id: "e2", name: "Heavy", type: "attack", damage: 36, speedCost: 8, actionCost: 2, iconKey: "flame" },
   { id: "e3", name: "Guard", type: "defense", block: 12, speedCost: 2, actionCost: 1, iconKey: "shield" },
   { id: "e4", name: "Strike", type: "attack", damage: 15, speedCost: 5, actionCost: 1, iconKey: "sword" },
   { id: "e5", name: "Defense", type: "defense", block: 16, speedCost: 6, actionCost: 1, iconKey: "shield" },
   { id: "e6", name: "Barrier", type: "defense", block: 38, speedCost: 9, actionCost: 2, iconKey: "shield" },
+
+  // 새로운 적 카드
+  { id: "e7", name: "Quick Jab", type: "attack", damage: 8, speedCost: 1, actionCost: 1, iconKey: "sword" },      // 빠른 공격
+  { id: "e8", name: "Poison Spit", type: "attack", damage: 10, speedCost: 4, actionCost: 1, iconKey: "skull", poison: 3 },  // 독 공격
+  { id: "e9", name: "Leech", type: "attack", damage: 12, speedCost: 5, actionCost: 1, iconKey: "heart", lifesteal: 0.5 },   // 흡혈
+  { id: "e10", name: "Frenzy", type: "attack", damage: 20, speedCost: 6, actionCost: 1, iconKey: "flame", selfDamage: 5 }, // 광란 (자해)
+  { id: "e11", name: "Shell Up", type: "defense", block: 25, speedCost: 4, actionCost: 1, iconKey: "shield", thorns: 3 },   // 가시 방어
+  { id: "e12", name: "Rage", type: "buff", speedCost: 3, actionCost: 1, iconKey: "flame", enrage: 1.5 },           // 분노 버프
+  { id: "e13", name: "Summon", type: "special", speedCost: 7, actionCost: 2, iconKey: "skull", summon: 'minion' }, // 소환
+  { id: "e14", name: "Blast", type: "attack", damage: 25, speedCost: 7, actionCost: 2, iconKey: "flame", aoe: true }, // 광역기
 ];
 
 export const ENEMIES = [
-  { id: "goblin", name: "Goblin", hp: 20, deck: ["e1", "e3", "e4"], emoji: "👺" },
-  { id: "slime", name: "Slime", hp: 15, deck: ["e1", "e3"], emoji: "💧" },
-  { id: "orc", name: "Orc", hp: 40, deck: ["e2", "e6", "e4"], emoji: "👹" },
+  // 기본 적
+  { id: "goblin", name: "고블린", hp: 20, deck: ["e1", "e3", "e4"], emoji: "👺", tier: 1 },
+  { id: "slime", name: "슬라임", hp: 15, deck: ["e1", "e3"], emoji: "🟢", tier: 1 },
+  { id: "orc", name: "오크", hp: 40, deck: ["e2", "e6", "e4"], emoji: "👹", tier: 2 },
+
+  // 새로운 적 - Tier 1 (약한 적)
+  { id: "rat", name: "쥐떼", hp: 12, deck: ["e7", "e7", "e1"], emoji: "🐀", tier: 1,
+    description: "빠르지만 약한 공격" },
+  { id: "bat", name: "박쥐", hp: 18, deck: ["e7", "e9", "e3"], emoji: "🦇", tier: 1,
+    description: "체력을 흡수하는 공격" },
+  { id: "mushroom", name: "독버섯", hp: 16, deck: ["e8", "e3", "e8"], emoji: "🍄", tier: 1,
+    description: "독 공격에 주의" },
+
+  // Tier 2 (중간 적)
+  { id: "skeleton", name: "스켈레톤", hp: 30, deck: ["e1", "e4", "e11"], emoji: "💀", tier: 2,
+    description: "단단한 방어와 반격" },
+  { id: "wolf", name: "늑대", hp: 28, deck: ["e7", "e7", "e4", "e10"], emoji: "🐺", tier: 2,
+    description: "빠른 연속 공격" },
+  { id: "imp", name: "임프", hp: 25, deck: ["e8", "e9", "e7"], emoji: "😈", tier: 2,
+    description: "다양한 상태이상" },
+
+  // Tier 3 (강한 적)
+  { id: "golem", name: "골렘", hp: 60, deck: ["e2", "e6", "e11", "e5"], emoji: "🗿", tier: 3,
+    description: "높은 체력과 방어력" },
+  { id: "vampire", name: "뱀파이어", hp: 45, deck: ["e9", "e9", "e4", "e12"], emoji: "🧛", tier: 3,
+    description: "강력한 흡혈 공격" },
+  { id: "necromancer", name: "네크로맨서", hp: 35, deck: ["e8", "e13", "e3", "e14"], emoji: "🧙", tier: 3,
+    description: "미니언을 소환함" },
+
+  // 보스급
+  { id: "dragon", name: "드래곤", hp: 100, deck: ["e2", "e14", "e6", "e12", "e2"], emoji: "🐉", tier: 4,
+    description: "강력한 광역 공격", isBoss: true },
+  { id: "demon_lord", name: "마왕", hp: 120, deck: ["e10", "e14", "e12", "e9", "e2"], emoji: "👿", tier: 4,
+    description: "최종 보스", isBoss: true },
 ];
 
 // 몬스터 그룹 (여러 적 동시 등장)
 export const ENEMY_GROUPS = [
+  // Tier 1 그룹
   {
     id: "slime_pack",
     name: "슬라임 무리",
-    enemies: [
-      { id: "slime", name: "Slime", hp: 15, deck: ["e1", "e3"], emoji: "💧" },
-      { id: "slime", name: "Slime", hp: 15, deck: ["e1", "e3"], emoji: "💧" },
-      { id: "slime", name: "Slime", hp: 15, deck: ["e1", "e3"], emoji: "💧" },
-      { id: "slime", name: "Slime", hp: 15, deck: ["e1", "e3"], emoji: "💧" }
-    ]
+    tier: 1,
+    enemies: ["slime", "slime", "slime", "slime"]
   },
   {
-    id: "goblin_slime_mix",
-    name: "고블린과 슬라임",
-    enemies: [
-      { id: "goblin", name: "Goblin", hp: 20, deck: ["e1", "e3", "e4"], emoji: "👺" },
-      { id: "slime", name: "Slime", hp: 15, deck: ["e1", "e3"], emoji: "💧" },
-      { id: "slime", name: "Slime", hp: 15, deck: ["e1", "e3"], emoji: "💧" },
-      { id: "slime", name: "Slime", hp: 15, deck: ["e1", "e3"], emoji: "💧" },
-      { id: "slime", name: "Slime", hp: 15, deck: ["e1", "e3"], emoji: "💧" }
-    ]
+    id: "rat_swarm",
+    name: "쥐떼 습격",
+    tier: 1,
+    enemies: ["rat", "rat", "rat", "rat", "rat"]
   },
+  {
+    id: "cave_dwellers",
+    name: "동굴 생물들",
+    tier: 1,
+    enemies: ["bat", "bat", "mushroom", "mushroom"]
+  },
+
+  // Tier 2 그룹
   {
     id: "goblin_trio",
     name: "고블린 3인조",
-    enemies: [
-      { id: "goblin", name: "Goblin", hp: 20, deck: ["e1", "e3", "e4"], emoji: "👺" },
-      { id: "goblin", name: "Goblin", hp: 20, deck: ["e1", "e3", "e4"], emoji: "👺" },
-      { id: "goblin", name: "Goblin", hp: 20, deck: ["e1", "e3", "e4"], emoji: "👺" }
-    ]
-  }
+    tier: 2,
+    enemies: ["goblin", "goblin", "goblin"]
+  },
+  {
+    id: "undead_patrol",
+    name: "언데드 순찰대",
+    tier: 2,
+    enemies: ["skeleton", "skeleton", "bat"]
+  },
+  {
+    id: "wolf_pack",
+    name: "늑대 무리",
+    tier: 2,
+    enemies: ["wolf", "wolf", "wolf"]
+  },
+  {
+    id: "imp_gang",
+    name: "임프 패거리",
+    tier: 2,
+    enemies: ["imp", "imp", "mushroom"]
+  },
+
+  // Tier 3 그룹
+  {
+    id: "golem_guardian",
+    name: "골렘 수호대",
+    tier: 3,
+    enemies: ["golem", "skeleton", "skeleton"]
+  },
+  {
+    id: "vampire_coven",
+    name: "흡혈귀 결사",
+    tier: 3,
+    enemies: ["vampire", "bat", "bat", "bat"]
+  },
+  {
+    id: "necro_army",
+    name: "망자의 군대",
+    tier: 3,
+    enemies: ["necromancer", "skeleton", "skeleton", "skeleton"]
+  },
+
+  // 보스 그룹
+  {
+    id: "dragon_lair",
+    name: "드래곤의 둥지",
+    tier: 4,
+    enemies: ["dragon"],
+    isBoss: true
+  },
+  {
+    id: "demon_throne",
+    name: "마왕의 옥좌",
+    tier: 4,
+    enemies: ["demon_lord"],
+    isBoss: true
+  },
 ];
 
 // 몬스터 그룹 헬퍼 함수
@@ -257,7 +350,42 @@ export function getEnemyGroup(groupId) {
   if (!group) return null;
   return {
     name: group.name,
-    enemies: group.enemies.map(e => e.id),
-    enemyCount: group.enemies.length
+    enemies: group.enemies,
+    enemyCount: group.enemies.length,
+    tier: group.tier,
+    isBoss: group.isBoss
+  };
+}
+
+// 티어별 적 가져오기
+export function getEnemiesByTier(tier) {
+  return ENEMIES.filter(e => e.tier === tier);
+}
+
+// 랜덤 적 가져오기 (티어 기반)
+export function getRandomEnemy(tier = 1) {
+  const enemies = getEnemiesByTier(tier);
+  if (enemies.length === 0) return ENEMIES[0];
+  return enemies[Math.floor(Math.random() * enemies.length)];
+}
+
+// 랜덤 적 그룹 가져오기 (티어 기반)
+export function getRandomEnemyGroup(tier = 1) {
+  const groups = ENEMY_GROUPS.filter(g => g.tier === tier);
+  if (groups.length === 0) return ENEMY_GROUPS[0];
+  return groups[Math.floor(Math.random() * groups.length)];
+}
+
+// 그룹의 적 상세 정보 가져오기
+export function getEnemyGroupDetails(groupId) {
+  const group = ENEMY_GROUPS.find(g => g.id === groupId);
+  if (!group) return null;
+
+  return {
+    ...group,
+    enemies: group.enemies.map(id => {
+      const enemy = ENEMIES.find(e => e.id === id);
+      return enemy ? { ...enemy } : null;
+    }).filter(Boolean)
   };
 }
