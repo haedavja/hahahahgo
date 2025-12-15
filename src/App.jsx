@@ -1,6 +1,7 @@
 ﻿import "./App.css";
 import { lazy, Suspense } from "react";
 import { useGameStore } from "./state/gameStore";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 
 // 동적 import로 코드 스플리팅
 const MapDemo = lazy(() => import("./components/map/MapDemo").then(m => ({ default: m.MapDemo })));
@@ -26,20 +27,20 @@ function LoadingFallback() {
 function App() {
   const activeBattle = useGameStore((state) => state.activeBattle);
 
-  if (activeBattle) {
-    return (
-      <Suspense fallback={<LoadingFallback />}>
-        <div className="battle-fullscreen">
-          <LegacyBattleScreen />
-        </div>
-      </Suspense>
-    );
-  }
-
   return (
-    <Suspense fallback={<LoadingFallback />}>
-      <MapDemo />
-    </Suspense>
+    <ErrorBoundary>
+      {activeBattle ? (
+        <Suspense fallback={<LoadingFallback />}>
+          <div className="battle-fullscreen">
+            <LegacyBattleScreen />
+          </div>
+        </Suspense>
+      ) : (
+        <Suspense fallback={<LoadingFallback />}>
+          <MapDemo />
+        </Suspense>
+      )}
+    </ErrorBoundary>
   );
 }
 
