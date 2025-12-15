@@ -34,90 +34,111 @@ export function setupParryReady({ action, addLog }) {
 }
 
 /**
- * 적 카드 발동 시 패리 트리거 체크
+ * 적 카드 발동 시 패리 트리거 체크 (여러 패리 상태 지원)
  * @param {Object} params - 파라미터
- * @param {Object} params.parryReadyState - 패리 대기 상태
+ * @param {Array} params.parryReadyStates - 패리 대기 상태 배열
  * @param {Object} params.enemyAction - 적 액션 (card, sp, actor 포함)
  * @param {Array} params.queue - 액션 큐
  * @param {number} params.currentQIndex - 현재 큐 인덱스
  * @param {Function} params.addLog - 로그 추가 함수
  * @param {Function} params.playParrySound - 패리 사운드 재생 함수
- * @returns {Object} { updatedQueue, parryEvent, updatedParryState }
+ * @returns {Object} { updatedQueue, parryEvents, updatedParryStates }
  */
-export function checkParryTrigger({ parryReadyState, enemyAction, queue, currentQIndex, addLog, playParrySound }) {
-  // 패리 대기 상태가 없거나 이미 트리거됐으면 스킵
-  if (!parryReadyState?.active || parryReadyState.triggered) {
-    return { updatedQueue: queue, parryEvent: null, updatedParryState: parryReadyState };
+export function checkParryTrigger({ parryReadyStates, enemyAction, queue, currentQIndex, addLog, playParrySound }) {
+  // 배열이 아니면 단일 상태를 배열로 변환 (하위 호환)
+  const states = Array.isArray(parryReadyStates) ? parryReadyStates : (parryReadyStates ? [parryReadyStates] : []);
+
+  // 활성 상태가 없으면 스킵
+  const activeStates = states.filter(s => s?.active && !s.triggered);
+  if (activeStates.length === 0) {
+    return { updatedQueue: queue, parryEvents: [], updatedParryStates: states };
   }
 
   // 적 공격이 아니면 스킵
   if (enemyAction.card?.type !== 'attack') {
-    return { updatedQueue: queue, parryEvent: null, updatedParryState: parryReadyState };
-  }
-
-  // 같은 편이면 스킵 (플레이어 패리는 적 공격에만 반응)
-  if (enemyAction.actor === parryReadyState.actor) {
-    return { updatedQueue: queue, parryEvent: null, updatedParryState: parryReadyState };
+    return { updatedQueue: queue, parryEvents: [], updatedParryStates: states };
   }
 
   const enemySp = enemyAction.sp ?? 0;
+  let currentQueue = queue;
+  const parryEvents = [];
+  let totalPushAmount = 0;
 
-  // 범위 체크: centerSp < enemySp <= maxSp
-  if (enemySp <= parryReadyState.centerSp || enemySp > parryReadyState.maxSp) {
-    return { updatedQueue: queue, parryEvent: null, updatedParryState: parryReadyState };
-  }
-
-  // 패리 트리거! 사운드 재생
-  if (playParrySound) {
-    playParrySound();
-  }
-
-  const pushAmount = parryReadyState.pushAmount;
-
-  // 모든 적 카드의 sp를 pushAmount만큼 뒤로 밀기 (현재 발동 중인 카드 제외)
-  const updatedQueue = queue.map((item, idx) => {
-    if (idx <= currentQIndex || !item) return item;
-    if (item.actor !== parryReadyState.actor) {
-      return {
-        ...item,
-        sp: (item.sp ?? 0) + pushAmount
-      };
+  // 각 패리 상태를 체크
+  const updatedParryStates = states.map(parryState => {
+    if (!parryState?.active || parryState.triggered) {
+      return parryState;
     }
-    return item;
+
+    // 같은 편이면 스킵
+    if (enemyAction.actor === parryState.actor) {
+      return parryState;
+    }
+
+    // 범위 체크: centerSp < enemySp <= maxSp
+    if (enemySp <= parryState.centerSp || enemySp > parryState.maxSp) {
+      return parryState;
+    }
+
+    // 패리 트리거!
+    totalPushAmount += parryState.pushAmount;
+
+    // 로그 및 이벤트 생성
+    const msg = `🛡️✨ "${parryState.cardName}" 패리 성공! "${enemyAction.card?.name}" 쳐냄! +${parryState.pushAmount} 밀림`;
+    addLog(msg);
+
+    parryEvents.push({
+      actor: parryState.actor,
+      card: parryState.cardName,
+      type: 'parry',
+      pushAmount: parryState.pushAmount,
+      triggeredBy: enemyAction.card?.name,
+      msg
+    });
+
+    // 패리 상태 업데이트 (한 번만 발동)
+    return {
+      ...parryState,
+      triggered: true,
+      active: false
+    };
   });
 
-  // 밀린 후 sp 기준으로 재정렬 (현재 인덱스 이후만)
-  const beforeCurrent = updatedQueue.slice(0, currentQIndex + 1);
-  const afterCurrent = updatedQueue.slice(currentQIndex + 1);
+  // 패리가 발동됐으면 사운드 재생 및 큐 업데이트
+  if (totalPushAmount > 0) {
+    if (playParrySound) {
+      playParrySound();
+    }
 
-  afterCurrent.sort((a, b) => {
-    if ((a.sp ?? 0) !== (b.sp ?? 0)) return (a.sp ?? 0) - (b.sp ?? 0);
-    return 0;
-  });
+    // 모든 적 카드의 sp를 총 pushAmount만큼 뒤로 밀기
+    currentQueue = queue.map((item, idx) => {
+      if (idx <= currentQIndex || !item) return item;
+      if (item.actor !== 'player') {
+        return {
+          ...item,
+          sp: (item.sp ?? 0) + totalPushAmount
+        };
+      }
+      return item;
+    });
 
-  const finalQueue = [...beforeCurrent, ...afterCurrent];
+    // 밀린 후 sp 기준으로 재정렬 (현재 인덱스 이후만)
+    const beforeCurrent = currentQueue.slice(0, currentQIndex + 1);
+    const afterCurrent = currentQueue.slice(currentQIndex + 1);
 
-  // 로그 및 이벤트 생성
-  const msg = `🛡️✨ "${parryReadyState.cardName}" 패리 성공! "${enemyAction.card?.name}" 쳐냄! 모든 적 카드 +${pushAmount} 밀림`;
-  addLog(msg);
+    afterCurrent.sort((a, b) => {
+      if ((a.sp ?? 0) !== (b.sp ?? 0)) return (a.sp ?? 0) - (b.sp ?? 0);
+      return 0;
+    });
 
-  const parryEvent = {
-    actor: parryReadyState.actor,
-    card: parryReadyState.cardName,
-    type: 'parry',
-    pushAmount,
-    triggeredBy: enemyAction.card?.name,
-    msg
-  };
+    currentQueue = [...beforeCurrent, ...afterCurrent];
 
-  // 패리 상태 업데이트 (한 번만 발동)
-  const updatedParryState = {
-    ...parryReadyState,
-    triggered: true,
-    active: false
-  };
+    if (parryEvents.length > 1) {
+      addLog(`🛡️ 총 ${parryEvents.length}개 패리! 모든 적 카드 +${totalPushAmount} 밀림`);
+    }
+  }
 
-  return { updatedQueue: finalQueue, parryEvent, updatedParryState };
+  return { updatedQueue: currentQueue, parryEvents, updatedParryStates };
 }
 
 /**

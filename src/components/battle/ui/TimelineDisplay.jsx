@@ -43,7 +43,7 @@ export const TimelineDisplay = ({
   destroyingEnemyCards = [],
   freezingEnemyCards = [],
   frozenOrder = 0,
-  parryReadyState = null
+  parryReadyStates = []
 }) => {
   const commonMax = Math.max(player.maxSpeed || DEFAULT_PLAYER_MAX_SPEED, enemy.maxSpeed || DEFAULT_ENEMY_MAX_SPEED);
   const ticks = generateSpeedTicks(commonMax);
@@ -131,29 +131,38 @@ export const TimelineDisplay = ({
                 {Array.from({ length: playerMax + 1 }).map((_, i) => (
                   <div key={`p-grid-${i}`} className="timeline-gridline" style={{ left: `${(i / playerMax) * 100}%` }} />
                 ))}
-                {/* 패리 범위 표시 */}
-                {parryReadyState?.active && (() => {
-                  const parryMaxPercent = (parryReadyState.maxSp / playerMax) * 100;
+                {/* 패리 범위 표시 (여러 개 지원) */}
+                {(Array.isArray(parryReadyStates) ? parryReadyStates : []).map((parryState, parryIdx) => {
+                  if (!parryState?.active) return null;
+                  const parryMaxPercent = (parryState.maxSp / playerMax) * 100;
                   const isExpired = timelineProgress > parryMaxPercent;
+                  // 여러 패리 범위에 다른 색상 적용
+                  const colors = [
+                    { start: '#22d3ee', end: '#a855f7', shadow: 'rgba(34, 211, 238, 0.8)' },
+                    { start: '#34d399', end: '#fbbf24', shadow: 'rgba(52, 211, 153, 0.8)' },
+                    { start: '#f472b6', end: '#60a5fa', shadow: 'rgba(244, 114, 182, 0.8)' }
+                  ];
+                  const color = colors[parryIdx % colors.length];
                   return (
                     <div
+                      key={`parry-${parryIdx}`}
                       className="parry-range-indicator"
                       style={{
                         position: 'absolute',
-                        left: `${(parryReadyState.centerSp / playerMax) * 100}%`,
-                        width: `${((parryReadyState.maxSp - parryReadyState.centerSp) / playerMax) * 100}%`,
-                        top: '50%',
+                        left: `${(parryState.centerSp / playerMax) * 100}%`,
+                        width: `${((parryState.maxSp - parryState.centerSp) / playerMax) * 100}%`,
+                        top: `${50 + parryIdx * 8}%`,
                         transform: 'translateY(-50%)',
                         height: '4px',
                         background: isExpired
                           ? 'linear-gradient(90deg, #6b7280, #9ca3af)'
-                          : 'linear-gradient(90deg, #22d3ee, #a855f7)',
+                          : `linear-gradient(90deg, ${color.start}, ${color.end})`,
                         borderRadius: '2px',
                         boxShadow: isExpired
                           ? 'none'
-                          : '0 0 8px rgba(34, 211, 238, 0.8), 0 0 16px rgba(168, 85, 247, 0.6)',
+                          : `0 0 8px ${color.shadow}, 0 0 16px ${color.shadow}`,
                         opacity: isExpired ? 0.4 : 1,
-                        zIndex: 10,
+                        zIndex: 10 + parryIdx,
                         pointerEvents: 'none',
                         transition: 'opacity 0.3s, background 0.3s, box-shadow 0.3s'
                       }}
@@ -166,9 +175,9 @@ export const TimelineDisplay = ({
                         transform: 'translate(-50%, -50%)',
                         width: '8px',
                         height: '16px',
-                        background: isExpired ? '#6b7280' : '#22d3ee',
+                        background: isExpired ? '#6b7280' : color.start,
                         borderRadius: '2px',
-                        boxShadow: isExpired ? 'none' : '0 0 6px rgba(34, 211, 238, 0.9)',
+                        boxShadow: isExpired ? 'none' : `0 0 6px ${color.shadow}`,
                         transition: 'background 0.3s, box-shadow 0.3s'
                       }} />
                       {/* 끝점 마커 */}
@@ -179,14 +188,14 @@ export const TimelineDisplay = ({
                         transform: 'translate(50%, -50%)',
                         width: '8px',
                         height: '16px',
-                        background: isExpired ? '#9ca3af' : '#a855f7',
+                        background: isExpired ? '#9ca3af' : color.end,
                         borderRadius: '2px',
-                        boxShadow: isExpired ? 'none' : '0 0 6px rgba(168, 85, 247, 0.9)',
+                        boxShadow: isExpired ? 'none' : `0 0 6px ${color.shadow}`,
                         transition: 'background 0.3s, box-shadow 0.3s'
                       }} />
                     </div>
                   );
-                })()}
+                })}
                 {playerTimeline.map((a, idx) => {
                   const Icon = a.card.icon || (a.card.type === 'attack' ? Sword : Shield);
                   const sameCount = playerTimeline.filter((q, i) => i < idx && q.sp === a.sp).length;
