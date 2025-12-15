@@ -23,8 +23,11 @@ import {
  * @returns {Object} - { actor: 업데이트된 actor, events: 이벤트 배열, log: 로그 메시지 }
  */
 export function applyDefense(actor, card, actorName) {
-  // 토큰 효과 적용 (방어력 증가/감소)
-  const { modifiedCard, consumedTokens } = applyTokenEffectsToCard(card, actor, 'defense');
+  // 유령카드는 토큰 효과 미적용
+  const isGhost = card.isGhost === true;
+  const { modifiedCard, consumedTokens } = isGhost
+    ? { modifiedCard: card, consumedTokens: [] }
+    : applyTokenEffectsToCard(card, actor, 'defense');
 
   const prev = actor.block || 0;
   const strengthBonus = actor.strength || 0;
@@ -86,8 +89,11 @@ export function applyDefense(actor, card, actorName) {
  * @returns {Object} - { attacker, defender, damage, events, logs }
  */
 function calculateSingleHit(attacker, defender, card, attackerName, battleContext = {}) {
-  // 토큰 효과 적용 (공격력 증가/감소)
-  const { modifiedCard: tokenModifiedCard, consumedTokens: attackerConsumedTokens } = applyTokenEffectsToCard(card, attacker, 'attack');
+  // 유령카드는 토큰 효과 미적용
+  const isGhost = card.isGhost === true;
+  const { modifiedCard: tokenModifiedCard, consumedTokens: attackerConsumedTokens } = isGhost
+    ? { modifiedCard: card, consumedTokens: [] }
+    : applyTokenEffectsToCard(card, attacker, 'attack');
 
   // special 효과 적용 (공격 전)
   const preAttackResult = processPreAttackSpecials({

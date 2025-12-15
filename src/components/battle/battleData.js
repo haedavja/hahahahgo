@@ -173,6 +173,19 @@ export const CARDS = [
     parryPushAmount: 3
   },
   {
+    id: "breach",
+    name: "브리치",
+    type: "defense",
+    block: 0,
+    speedCost: 5,
+    actionCost: 2,
+    iconKey: "shield",
+    description: "랜덤 카드 3장 중 하나를 선택해 이 카드 +3 위치에 유령카드로 삽입합니다. 유령카드는 콤보/아이템/유물 효과를 받지 않습니다.",
+    traits: [],
+    special: "breach",
+    breachSpOffset: 3
+  },
+  {
     id: "power_strike",
     name: "힘의 일격",
     type: "attack",

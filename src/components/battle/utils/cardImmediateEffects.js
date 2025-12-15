@@ -68,6 +68,11 @@ export function processCardPlayedRelicEffects({
   addLog,
   setRelicActivated
 }) {
+  // 유령카드는 유물 효과 미적용
+  if (card.isGhost) {
+    return false;
+  }
+
   const cardRelicEffects = applyCardPlayedEffects(relics, card, { player: playerState, enemy: enemyState });
 
   if (cardRelicEffects.heal) {

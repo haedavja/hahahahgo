@@ -77,6 +77,7 @@ import { TimelineDisplay } from "./ui/TimelineDisplay";
 import { HandArea } from "./ui/HandArea";
 import { BattleTooltips } from "./ui/BattleTooltips";
 import { ExpectedDamagePreview } from "./ui/ExpectedDamagePreview";
+import { BreachSelectionModal } from "./ui/BreachSelectionModal";
 import { EtherBar } from "./ui/EtherBar";
 import { Sword, Shield, Heart, Zap, Flame, Clock, Skull, X, ChevronUp, ChevronDown, Play, StepForward, RefreshCw, ICON_MAP } from "./ui/BattleIcons";
 import { selectBattleAnomalies, applyAnomalyEffects, formatAnomaliesForDisplay } from "../../lib/anomalyUtils";
@@ -407,6 +408,10 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const displayEtherMultiplierRef = useRef(1); // 애니메이션 표시용 에테르 배율 (리셋되어도 유지)
   const [parryReadyStates, setParryReadyStates] = useState([]); // 쳐내기 패리 대기 상태 배열 (렌더링용)
   const parryReadyStatesRef = useRef([]); // 쳐내기 패리 대기 상태 배열 (setTimeout용)
+
+  // 브리치 카드 선택 상태
+  const [breachSelection, setBreachSelection] = useState(null); // { cards: [], breachSp: number, breachCard: object }
+  const breachSelectionRef = useRef(null);
 
   // battle 상태가 변경될 때마다 ref 업데이트
   useEffect(() => {
@@ -1671,6 +1676,57 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     }, 400);
   };
 
+  // 브리치 카드 선택 처리
+  const handleBreachSelect = useCallback((selectedCard, idx) => {
+    const breach = breachSelectionRef.current;
+    if (!breach) return;
+
+    const insertSp = breach.breachSp + (breach.breachCard?.breachSpOffset || 3);
+
+    addLog(`👻 "${selectedCard.name}" 선택! 타임라인 ${insertSp}에 유령카드로 삽입.`);
+
+    // 유령카드 생성 (isGhost 플래그 추가)
+    const ghostCard = {
+      ...selectedCard,
+      isGhost: true, // 유령카드 표시
+      __uid: `ghost_${Math.random().toString(36).slice(2)}`
+    };
+
+    const ghostAction = {
+      actor: 'player',
+      card: ghostCard,
+      sp: insertSp
+    };
+
+    // 현재 큐에 유령카드 삽입 (sp 기준으로 정렬)
+    const currentQ = battleRef.current.queue;
+    const currentQIndex = battleRef.current.qIndex;
+
+    // 현재 인덱스 이후의 카드들에 삽입
+    const beforeCurrent = currentQ.slice(0, currentQIndex + 1);
+    const afterCurrent = [...currentQ.slice(currentQIndex + 1), ghostAction];
+
+    // sp 기준으로 정렬
+    afterCurrent.sort((a, b) => {
+      if ((a.sp ?? 0) !== (b.sp ?? 0)) return (a.sp ?? 0) - (b.sp ?? 0);
+      // 같은 sp면 유령카드가 먼저
+      if (a.card?.isGhost && !b.card?.isGhost) return -1;
+      if (!a.card?.isGhost && b.card?.isGhost) return 1;
+      return 0;
+    });
+
+    const newQueue = [...beforeCurrent, ...afterCurrent];
+    actions.setQueue(newQueue);
+
+    // 브리치 선택 상태 초기화
+    breachSelectionRef.current = null;
+    setBreachSelection(null);
+
+    // 선택 완료 후 게임 진행 재개 (다음 stepOnce 자동 호출되지 않으므로 수동 호출)
+    // qIndex를 증가시켜야 다음 카드로 진행
+    actions.setQIndex(currentQIndex + 1);
+  }, [addLog, actions]);
+
   const stepOnce = () => {
     const currentBattle = battleRef.current;
     if (currentBattle.qIndex >= currentBattle.queue.length) return;
@@ -1818,6 +1874,28 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       setParryReadyStates([...parryReadyStatesRef.current]);
     }
 
+    // 브리치(breach) 효과 처리: 랜덤 카드 3장 생성 후 선택 대기
+    if (a.card.special === 'breach' && a.actor === 'player') {
+      // 공격/방어 카드 중 랜덤 3장 선택
+      const cardPool = CARDS.filter(c => (c.type === 'attack' || c.type === 'defense') && c.id !== 'breach');
+      const shuffled = [...cardPool].sort(() => Math.random() - 0.5);
+      const breachCards = shuffled.slice(0, 3);
+
+      addLog(`👻 "${a.card.name}" 발동! 카드를 선택하세요.`);
+
+      // 브리치 선택 상태 설정 (게임 일시정지)
+      const breachState = {
+        cards: breachCards,
+        breachSp: a.sp,
+        breachCard: a.card
+      };
+      breachSelectionRef.current = breachState;
+      setBreachSelection(breachState);
+
+      // 브리치 선택 중에는 stepOnce 진행을 멈춤 (사용자가 선택할 때까지)
+      return;
+    }
+
     // 적 카드 발동 시 패리 트리거 체크 (모든 활성 패리 상태 확인)
     const hasActiveParry = parryReadyStatesRef.current.some(s => s?.active && !s.triggered);
     if (a.actor === 'enemy' && hasActiveParry) {
@@ -1853,7 +1931,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     }
 
     // 카드 사용 시 에테르 누적 (실제 적용은 턴 종료 시)
-    if (a.actor === 'player') {
+    // 유령카드는 에테르 누적 및 콤보 배율 카드 수에서 제외
+    if (a.actor === 'player' && !a.card.isGhost) {
       processPlayerEtherAccumulation({
         card: a.card,
         turnEtherAccumulated,
@@ -2434,6 +2513,15 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         <AnomalyNotification
           anomalies={activeAnomalies}
           onDismiss={() => setShowAnomalyNotification(false)}
+        />
+      )}
+
+      {/* 브리치 카드 선택 모달 */}
+      {breachSelection && (
+        <BreachSelectionModal
+          breachSelection={breachSelection}
+          onSelect={handleBreachSelect}
+          strengthBonus={player.strength || 0}
         />
       )}
 
