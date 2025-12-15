@@ -103,7 +103,7 @@ export const CentralPhaseDisplay = ({
           </button>
         </div>
       )}
-      {battle.phase === 'resolve' && battle.qIndex >= battle.queue.length && etherFinalValue !== null && (
+      {battle.phase === 'resolve' && battle.qIndex >= battle.queue.length && (
         <div style={{ display: 'flex', justifyContent: 'center', marginTop: '16px' }}>
           {enemy.hp <= 0 ? (
             <button onClick={() => finishTurn('전투 승리')} className="btn-enhanced btn-success flex items-center gap-2" style={{ fontSize: '1.25rem', padding: '12px 24px', fontWeight: '700', minWidth: '200px' }}>
