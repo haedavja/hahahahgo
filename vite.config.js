@@ -31,6 +31,14 @@ export default defineConfig({
         },
       },
     },
+    // 프로덕션 빌드에서 console.log 제거
+    minify: 'terser',
+    terserOptions: {
+      compress: {
+        drop_console: true,
+        drop_debugger: true,
+      },
+    },
   },
   test: {
     globals: true,
