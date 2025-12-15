@@ -25,21 +25,8 @@ function triggerScreenShake(intensity = 1) {
  * @param {string} type - 'damage', 'heal', 'block'
  */
 function createDamagePopup(target, value, type = 'damage') {
-  const popup = document.createElement('div');
-  popup.className = `damage-popup ${type === 'damage' && value >= 10 ? 'critical' : ''} ${type}`;
-  popup.textContent = type === 'damage' ? `-${value}` : (type === 'heal' ? `+${value}` : `🛡️${value}`);
-
-  // 위치 설정
-  if (target === 'enemy') {
-    popup.style.right = '350px';
-    popup.style.top = '450px';
-  } else {
-    popup.style.left = '350px';
-    popup.style.top = '450px';
-  }
-
-  document.body.appendChild(popup);
-  setTimeout(() => popup.remove(), 800);
+  // 임시 비활성화 - 화면 압축 원인 테스트
+  return;
 }
 
 /**
