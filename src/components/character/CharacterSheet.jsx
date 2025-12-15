@@ -118,9 +118,14 @@ export function CharacterSheet({ onClose }) {
     }
   }, [mainSpecials, subSpecials, initialized, updateCharacterBuild]);
 
+  // 카드 개수 카운트 헬퍼
+  const getCardCount = (cardId, list) => list.filter(id => id === cardId).length;
+
   const getCardStyle = (cardId) => {
-    const isMain = mainSpecials.includes(cardId);
-    const isSub = subSpecials.includes(cardId);
+    const mainCount = getCardCount(cardId, mainSpecials);
+    const subCount = getCardCount(cardId, subSpecials);
+    const isMain = mainCount > 0;
+    const isSub = subCount > 0;
 
     let borderColor = "rgba(118, 134, 185, 0.4)";
     let boxShadow = "none";
@@ -128,11 +133,11 @@ export function CharacterSheet({ onClose }) {
 
     if (isMain) {
       borderColor = "#f5d76e";
-      boxShadow = "0 0 8px rgba(245, 215, 110, 0.6)";
+      boxShadow = `0 0 ${8 + mainCount * 4}px rgba(245, 215, 110, ${0.4 + mainCount * 0.15})`;
       background = "rgba(42, 38, 21, 0.95)";
     } else if (isSub) {
       borderColor = "#7dd3fc";
-      boxShadow = "0 0 8px rgba(125, 211, 252, 0.6)";
+      boxShadow = `0 0 ${8 + subCount * 4}px rgba(125, 211, 252, ${0.4 + subCount * 0.15})`;
       background = "rgba(23, 37, 56, 0.95)";
     }
 
@@ -148,23 +153,34 @@ export function CharacterSheet({ onClose }) {
     };
   };
 
-  const handleCardClick = (cardId) => {
+  // 좌클릭: 추가, 우클릭: 제거
+  const handleCardClick = (cardId, isRightClick = false) => {
     if (specialMode === "main") {
       setMainSpecials((prev) => {
-        if (prev.includes(cardId)) {
-          return prev.filter((id) => id !== cardId);
+        if (isRightClick) {
+          // 우클릭: 하나만 제거
+          const idx = prev.lastIndexOf(cardId);
+          if (idx !== -1) {
+            return [...prev.slice(0, idx), ...prev.slice(idx + 1)];
+          }
+          return prev;
         }
+        // 좌클릭: 추가 (슬롯 제한 확인)
         if (prev.length >= maxMainSlots) return prev;
-        setSubSpecials((prevSub) => prevSub.filter((id) => id !== cardId));
         return [...prev, cardId];
       });
     } else {
       setSubSpecials((prev) => {
-        if (prev.includes(cardId)) {
-          return prev.filter((id) => id !== cardId);
+        if (isRightClick) {
+          // 우클릭: 하나만 제거
+          const idx = prev.lastIndexOf(cardId);
+          if (idx !== -1) {
+            return [...prev.slice(0, idx), ...prev.slice(idx + 1)];
+          }
+          return prev;
         }
+        // 좌클릭: 추가 (슬롯 제한 확인)
         if (prev.length >= maxSubSlots) return prev;
-        setMainSpecials((prevMain) => prevMain.filter((id) => id !== cardId));
         return [...prev, cardId];
       });
     }
@@ -431,7 +447,12 @@ export function CharacterSheet({ onClose }) {
           </div>
         </div>
 
-        <h3 style={{ fontSize: "16px", margin: "0 0 8px", color: "#fff" }}>카드 선택</h3>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "8px" }}>
+          <h3 style={{ fontSize: "16px", margin: 0, color: "#fff" }}>카드 선택</h3>
+          <span style={{ fontSize: "12px", opacity: 0.6, color: "#9fb6ff" }}>
+            좌클릭: 추가 / 우클릭: 제거 (중복 가능)
+          </span>
+        </div>
         <div
           style={{
             borderRadius: "12px",
@@ -454,14 +475,20 @@ export function CharacterSheet({ onClose }) {
             }}
           >
             {availableCards.map((card) => {
-              const isMain = mainSpecials.includes(card.id);
-              const isSub = subSpecials.includes(card.id);
+              const mainCount = getCardCount(card.id, mainSpecials);
+              const subCount = getCardCount(card.id, subSpecials);
+              const isMain = mainCount > 0;
+              const isSub = subCount > 0;
 
               return (
                 <div
                   key={card.id}
                   style={{...getCardStyle(card.id), position: "relative"}}
-                  onClick={() => handleCardClick(card.id)}
+                  onClick={() => handleCardClick(card.id, false)}
+                  onContextMenu={(e) => {
+                    e.preventDefault();
+                    handleCardClick(card.id, true);
+                  }}
                   onMouseEnter={(e) => {
                     if (card.traits && card.traits.length > 0) {
                       const rect = e.currentTarget.getBoundingClientRect();
@@ -491,7 +518,7 @@ export function CharacterSheet({ onClose }) {
                           color: "#000",
                           fontWeight: 700,
                         }}>
-                          주특기
+                          주특기 {mainCount > 1 ? `x${mainCount}` : ''}
                         </span>
                       )}
                       {isSub && (
@@ -503,7 +530,7 @@ export function CharacterSheet({ onClose }) {
                           color: "#000",
                           fontWeight: 700,
                         }}>
-                          보조
+                          보조 {subCount > 1 ? `x${subCount}` : ''}
                         </span>
                       )}
                     </span>
