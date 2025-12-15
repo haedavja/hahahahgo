@@ -129,5 +129,9 @@ export function drawCharacterBuildHand(characterBuild, nextTurnEffects = {}, pre
   const allCards = [...guaranteed, ...mainCards, ...subCards, ...filteredOtherCards]
     .filter(card => !(hasTrait(card, 'escape') && banSet.has(card.id)));
 
-  return allCards;
+  // 각 카드에 고유 ID 부여 (중복 카드 구별용)
+  return allCards.map((card, idx) => ({
+    ...card,
+    __handUid: `${card.id}_${idx}_${Math.random().toString(36).slice(2, 8)}`
+  }));
 }

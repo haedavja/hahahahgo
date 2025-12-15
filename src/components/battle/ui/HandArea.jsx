@@ -68,7 +68,9 @@ export const HandArea = ({
             {getSortedHand().map((c, idx) => {
               const Icon = c.icon || (c.type === 'attack' ? Sword : Shield);
               const usageCount = player.comboUsageCount?.[c.id] || 0;
-              const selIndex = selected.findIndex(s => s.id === c.id);
+              // __handUid로 개별 카드 식별 (중복 카드 구별)
+              const cardUid = c.__handUid || c.__uid;
+              const selIndex = selected.findIndex(s => (s.__handUid || s.__uid) === cardUid);
               const sel = selIndex !== -1;
               // 카드가 조합에 포함되는지 확인
               const isInCombo = sel && (isFlush || comboCardCosts.has(c.actionCost));

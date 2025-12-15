@@ -1095,19 +1095,21 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
   const toggle = (card) => {
     if (battle.phase !== 'select' && battle.phase !== 'respond') return;
-    const exists = selected.some(s => s.id === card.id);
+    // __handUid 또는 __uid로 개별 카드 식별
+    const cardUid = card.__handUid || card.__uid;
+    const exists = selected.some(s => (s.__handUid || s.__uid) === cardUid);
     if (battle.phase === 'respond') {
       let next;
       const cardSpeed = applyAgility(card.speedCost, effectiveAgility);
       if (exists) {
-        next = selected.filter(s => !(s.__uid === card.__uid) && !(s.id === card.id && !('__uid' in s)));
+        next = selected.filter(s => (s.__handUid || s.__uid) !== cardUid);
         playSound(400, 80); // 해지 사운드 (낮은 음)
       }
       else {
         if (selected.length >= MAX_SUBMIT_CARDS) { addLog('⚠️ 최대 5장의 카드만 제출할 수 있습니다'); return; }
         if (totalSpeed + cardSpeed > player.maxSpeed) { addLog('⚠️ 속도 초과'); return; }
         if (totalEnergy + card.actionCost > player.maxEnergy) { addLog('⚠️ 행동력 부족'); return; }
-        next = [...selected, { ...card, __uid: Math.random().toString(36).slice(2) }];
+        next = [...selected, { ...card, __uid: card.__handUid || Math.random().toString(36).slice(2) }];
         playSound(800, 80); // 선택 사운드 (높은 음)
       }
       const combo = detectPokerCombo(next);
@@ -1119,14 +1121,14 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     }
     const cardSpeed = applyAgility(card.speedCost, effectiveAgility);
     if (exists) {
-      actions.setSelected(battle.selected.filter(s => s.id !== card.id));
+      actions.setSelected(battle.selected.filter(s => (s.__handUid || s.__uid) !== cardUid));
       playSound(400, 80); // 해지 사운드 (낮은 음)
       return;
     }
     if (battle.selected.length >= MAX_SUBMIT_CARDS) return addLog('⚠️ 최대 5장의 카드만 제출할 수 있습니다');
     if (totalSpeed + cardSpeed > player.maxSpeed) return addLog('⚠️ 속도 초과');
     if (totalEnergy + card.actionCost > player.maxEnergy) return addLog('⚠️ 행동력 부족');
-    actions.setSelected([...selected, { ...card, __uid: Math.random().toString(36).slice(2) }]);
+    actions.setSelected([...selected, { ...card, __uid: card.__handUid || Math.random().toString(36).slice(2) }]);
     playSound(800, 80); // 선택 사운드 (높은 음)
   };
 
