@@ -563,3 +563,46 @@ export function playChoiceSelectSound() {
     console.warn('Failed to play choice select sound:', error);
   }
 }
+
+/**
+ * 패리 성공 사운드 (팅! - 높은 금속성 소리)
+ */
+export function playParrySound() {
+  try {
+    const ctx = getAudioContext();
+
+    // 메인 팅 소리 (높은 주파수)
+    const osc1 = ctx.createOscillator();
+    const gain1 = ctx.createGain();
+    osc1.connect(gain1);
+    gain1.connect(ctx.destination);
+
+    osc1.frequency.setValueAtTime(1800, ctx.currentTime);
+    osc1.frequency.exponentialRampToValueAtTime(1200, ctx.currentTime + 0.15);
+    osc1.type = 'sine';
+
+    gain1.gain.setValueAtTime(0.25, ctx.currentTime);
+    gain1.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
+
+    osc1.start(ctx.currentTime);
+    osc1.stop(ctx.currentTime + 0.2);
+
+    // 금속 배음 (더 높은 주파수)
+    const osc2 = ctx.createOscillator();
+    const gain2 = ctx.createGain();
+    osc2.connect(gain2);
+    gain2.connect(ctx.destination);
+
+    osc2.frequency.setValueAtTime(2800, ctx.currentTime);
+    osc2.frequency.exponentialRampToValueAtTime(2000, ctx.currentTime + 0.1);
+    osc2.type = 'triangle';
+
+    gain2.gain.setValueAtTime(0.12, ctx.currentTime);
+    gain2.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.12);
+
+    osc2.start(ctx.currentTime);
+    osc2.stop(ctx.currentTime + 0.12);
+  } catch (error) {
+    console.warn('Failed to play parry sound:', error);
+  }
+}

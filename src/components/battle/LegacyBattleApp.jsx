@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef, useCallback, useReducer } from "react";
 import "./legacy-battle.css";
-import { playHitSound, playBlockSound, playCardSubmitSound, playProceedSound } from "../../lib/soundUtils";
+import { playHitSound, playBlockSound, playCardSubmitSound, playProceedSound, playParrySound } from "../../lib/soundUtils";
 import { useBattleState } from "./hooks/useBattleState";
 import {
   MAX_SPEED,
@@ -42,7 +42,7 @@ import { processImmediateCardTraits, processCardPlayedRelicEffects } from "./uti
 import { collectTriggeredRelics, playRelicActivationSequence } from "./utils/relicActivationAnimation";
 import { processActionEventAnimations } from "./utils/eventAnimationProcessing";
 import { processStunEffect } from "./utils/stunProcessing";
-import { processParryEffect } from "./utils/parryProcessing";
+import { setupParryReady, checkParryTrigger, resetParryState } from "./utils/parryProcessing";
 import { processPlayerEtherAccumulation, processEnemyEtherAccumulation } from "./utils/etherAccumulationProcessing";
 import { processEnemyDeath } from "./utils/enemyDeathProcessing";
 import { playTurnEndRelicAnimations, applyTurnEndRelicEffectsToNextTurn } from "./utils/turnEndRelicEffectsProcessing";
@@ -405,6 +405,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const dragRelicIndexRef = useRef(null); // 유물 드래그 인덱스
   const battleRef = useRef(battle); // battle 상태를 ref로 유지 (setTimeout closure 문제 해결)
   const displayEtherMultiplierRef = useRef(1); // 애니메이션 표시용 에테르 배율 (리셋되어도 유지)
+  const parryReadyStateRef = useRef(null); // 쳐내기 패리 대기 상태
 
   // battle 상태가 변경될 때마다 ref 업데이트
   useEffect(() => {
@@ -1806,15 +1807,24 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       }
     }
 
-    // 쳐내기(parryPush) 효과 처리
-    if (a.card.special === 'parryPush') {
+    // 쳐내기(parryPush) 효과 처리: 패리 대기 상태 설정
+    if (a.card.special === 'parryPush' && a.actor === 'player') {
+      const parryState = setupParryReady({ action: a, addLog });
+      parryReadyStateRef.current = parryState;
+    }
+
+    // 적 카드 발동 시 패리 트리거 체크
+    if (a.actor === 'enemy' && parryReadyStateRef.current?.active) {
       const currentQ = battleRef.current.queue;
-      const { updatedQueue, parryEvent } = processParryEffect({
-        action: a,
+      const { updatedQueue, parryEvent, updatedParryState } = checkParryTrigger({
+        parryReadyState: parryReadyStateRef.current,
+        enemyAction: a,
         queue: currentQ,
         currentQIndex: currentBattle.qIndex,
-        addLog
+        addLog,
+        playParrySound
       });
+      parryReadyStateRef.current = updatedParryState;
       if (updatedQueue !== currentQ) {
         actions.setQueue(updatedQueue);
       }
@@ -1916,6 +1926,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     // 턴소모 토큰 제거
     actions.clearPlayerTurnTokens();
     actions.clearEnemyTurnTokens();
+
+    // 패리 대기 상태 초기화
+    parryReadyStateRef.current = resetParryState();
 
     // 이번 턴 사용한 탈주 카드를 다음 턴 한정으로 차단
     escapeBanRef.current = new Set(escapeUsedThisTurnRef.current);
