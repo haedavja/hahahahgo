@@ -405,7 +405,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const dragRelicIndexRef = useRef(null); // 유물 드래그 인덱스
   const battleRef = useRef(battle); // battle 상태를 ref로 유지 (setTimeout closure 문제 해결)
   const displayEtherMultiplierRef = useRef(1); // 애니메이션 표시용 에테르 배율 (리셋되어도 유지)
-  const parryReadyStateRef = useRef(null); // 쳐내기 패리 대기 상태
+  const [parryReadyState, setParryReadyState] = useState(null); // 쳐내기 패리 대기 상태 (렌더링용)
+  const parryReadyStateRef = useRef(null); // 쳐내기 패리 대기 상태 (setTimeout용)
 
   // battle 상태가 변경될 때마다 ref 업데이트
   useEffect(() => {
@@ -1811,6 +1812,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     if (a.card.special === 'parryPush' && a.actor === 'player') {
       const parryState = setupParryReady({ action: a, addLog });
       parryReadyStateRef.current = parryState;
+      setParryReadyState(parryState);
     }
 
     // 적 카드 발동 시 패리 트리거 체크
@@ -1825,6 +1827,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         playParrySound
       });
       parryReadyStateRef.current = updatedParryState;
+      setParryReadyState(updatedParryState);
       if (updatedQueue !== currentQ) {
         actions.setQueue(updatedQueue);
       }
@@ -1929,6 +1932,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
     // 패리 대기 상태 초기화
     parryReadyStateRef.current = resetParryState();
+    setParryReadyState(null);
 
     // 이번 턴 사용한 탈주 카드를 다음 턴 한정으로 차단
     escapeBanRef.current = new Set(escapeUsedThisTurnRef.current);
@@ -2508,6 +2512,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         destroyingEnemyCards={battle.destroyingEnemyCards}
         freezingEnemyCards={battle.freezingEnemyCards}
         frozenOrder={battle.frozenOrder}
+        parryReadyState={parryReadyState}
       />
 
       {/* 유물 표시 */}
