@@ -1822,11 +1822,12 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     const hasActiveParry = parryReadyStatesRef.current.some(s => s?.active && !s.triggered);
     if (a.actor === 'enemy' && hasActiveParry) {
       const currentQ = battleRef.current.queue;
-      const { updatedQueue, parryEvents, updatedParryStates } = checkParryTrigger({
+      const { updatedQueue, parryEvents, updatedParryStates, outCards } = checkParryTrigger({
         parryReadyStates: parryReadyStatesRef.current,
         enemyAction: a,
         queue: currentQ,
         currentQIndex: currentBattle.qIndex,
+        enemyMaxSpeed: enemy.maxSpeed,
         addLog,
         playParrySound
       });
@@ -1837,6 +1838,17 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       }
       if (parryEvents && parryEvents.length > 0) {
         actionEvents = [...actionEvents, ...parryEvents];
+      }
+      // 아웃된 카드 이벤트 추가
+      if (outCards && outCards.length > 0) {
+        outCards.forEach(outCard => {
+          actionEvents.push({
+            actor: 'player',
+            type: 'out',
+            card: outCard.card?.name,
+            msg: `🚫 "${outCard.card?.name}" 아웃!`
+          });
+        });
       }
     }
 

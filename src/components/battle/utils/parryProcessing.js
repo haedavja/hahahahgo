@@ -40,23 +40,24 @@ export function setupParryReady({ action, addLog }) {
  * @param {Object} params.enemyAction - 적 액션 (card, sp, actor 포함)
  * @param {Array} params.queue - 액션 큐
  * @param {number} params.currentQIndex - 현재 큐 인덱스
+ * @param {number} params.enemyMaxSpeed - 적 타임라인 최대 속도 (아웃 판정용)
  * @param {Function} params.addLog - 로그 추가 함수
  * @param {Function} params.playParrySound - 패리 사운드 재생 함수
- * @returns {Object} { updatedQueue, parryEvents, updatedParryStates }
+ * @returns {Object} { updatedQueue, parryEvents, updatedParryStates, outCards }
  */
-export function checkParryTrigger({ parryReadyStates, enemyAction, queue, currentQIndex, addLog, playParrySound }) {
+export function checkParryTrigger({ parryReadyStates, enemyAction, queue, currentQIndex, enemyMaxSpeed, addLog, playParrySound }) {
   // 배열이 아니면 단일 상태를 배열로 변환 (하위 호환)
   const states = Array.isArray(parryReadyStates) ? parryReadyStates : (parryReadyStates ? [parryReadyStates] : []);
 
   // 활성 상태가 없으면 스킵
   const activeStates = states.filter(s => s?.active && !s.triggered);
   if (activeStates.length === 0) {
-    return { updatedQueue: queue, parryEvents: [], updatedParryStates: states };
+    return { updatedQueue: queue, parryEvents: [], updatedParryStates: states, outCards: [] };
   }
 
   // 적 공격이 아니면 스킵
   if (enemyAction.card?.type !== 'attack') {
-    return { updatedQueue: queue, parryEvents: [], updatedParryStates: states };
+    return { updatedQueue: queue, parryEvents: [], updatedParryStates: states, outCards: [] };
   }
 
   const enemySp = enemyAction.sp ?? 0;
@@ -104,6 +105,8 @@ export function checkParryTrigger({ parryReadyStates, enemyAction, queue, curren
     };
   });
 
+  const outCards = [];
+
   // 패리가 발동됐으면 사운드 재생 및 큐 업데이트
   if (totalPushAmount > 0) {
     if (playParrySound) {
@@ -122,6 +125,20 @@ export function checkParryTrigger({ parryReadyStates, enemyAction, queue, curren
       return item;
     });
 
+    // 아웃 처리: enemyMaxSpeed를 초과한 적 카드 제거
+    const maxSpeed = enemyMaxSpeed || 30; // 기본값 30
+    const filteredQueue = [];
+    for (const item of currentQueue) {
+      if (item && item.actor !== 'player' && (item.sp ?? 0) > maxSpeed) {
+        // 아웃! 큐에서 제거
+        outCards.push(item);
+        addLog(`🚫 아웃! "${item.card?.name}" 카드가 타임라인 밖으로 밀려남! (sp: ${item.sp} > ${maxSpeed})`);
+      } else {
+        filteredQueue.push(item);
+      }
+    }
+    currentQueue = filteredQueue;
+
     // 밀린 후 sp 기준으로 재정렬 (현재 인덱스 이후만)
     const beforeCurrent = currentQueue.slice(0, currentQIndex + 1);
     const afterCurrent = currentQueue.slice(currentQIndex + 1);
@@ -138,7 +155,7 @@ export function checkParryTrigger({ parryReadyStates, enemyAction, queue, curren
     }
   }
 
-  return { updatedQueue: currentQueue, parryEvents, updatedParryStates };
+  return { updatedQueue: currentQueue, parryEvents, updatedParryStates, outCards };
 }
 
 /**
