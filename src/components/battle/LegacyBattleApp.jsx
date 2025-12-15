@@ -1901,6 +1901,27 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
       addLog(`👻 "${a.card.name}" 발동! 카드를 선택하세요.`);
 
+      // 브리치 카드도 에테르 누적 (return 전에 처리)
+      processPlayerEtherAccumulation({
+        card: a.card,
+        turnEtherAccumulated,
+        orderedRelicList,
+        cardUpgrades,
+        resolvedPlayerCards,
+        playerTimeline,
+        relics,
+        triggeredRefs: {
+          referenceBookTriggered: referenceBookTriggeredRef,
+          devilDiceTriggered: devilDiceTriggeredRef
+        },
+        calculatePassiveEffects,
+        getCardEtherGain,
+        collectTriggeredRelics,
+        playRelicActivationSequence,
+        flashRelic,
+        actions
+      });
+
       // 브리치 선택 상태 설정 (게임 일시정지)
       const breachState = {
         cards: breachCards,
