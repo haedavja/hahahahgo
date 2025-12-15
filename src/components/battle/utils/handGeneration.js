@@ -117,17 +117,17 @@ export function drawCharacterBuildHand(characterBuild, nextTurnEffects = {}, pre
       return Math.random() < applyBonus(prob);
     });
 
-  // 중복 제거 후 반환
-  const allCards = [...guaranteed, ...mainCards, ...subCards, ...otherCards]
-    .filter(card => !(hasTrait(card, 'escape') && banSet.has(card.id)));
-  const uniqueCards = [];
-  const seenIds = new Set();
-  for (const card of allCards) {
-    if (!seenIds.has(card.id)) {
-      seenIds.add(card.id);
-      uniqueCards.push(card);
-    }
-  }
+  // 주특기/보조특기/확정 카드는 중복 허용, 기타 카드(10%)만 중복 제거
+  const seenOtherIds = new Set();
+  const filteredOtherCards = otherCards.filter(card => {
+    if (seenOtherIds.has(card.id)) return false;
+    seenOtherIds.add(card.id);
+    return true;
+  });
 
-  return uniqueCards;
+  // 탈주 카드 필터링 후 반환 (중복 허용)
+  const allCards = [...guaranteed, ...mainCards, ...subCards, ...filteredOtherCards]
+    .filter(card => !(hasTrait(card, 'escape') && banSet.has(card.id)));
+
+  return allCards;
 }

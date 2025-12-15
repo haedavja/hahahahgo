@@ -92,6 +92,10 @@ export function CharacterSheet({ onClose }) {
   const [subSpecials, setSubSpecials] = useState([]);
   const [initialized, setInitialized] = useState(false);
 
+  // 개발자 모드
+  const [devMode, setDevMode] = useState(false);
+  const [devCardInput, setDevCardInput] = useState("");
+
   // 툴팁 상태
   const [hoveredTrait, setHoveredTrait] = useState(null);
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
@@ -151,6 +155,23 @@ export function CharacterSheet({ onClose }) {
       transition: "all 0.15s ease",
       cursor: "pointer",
     };
+  };
+
+  // 개발자 모드: 카드 ID로 추가
+  const handleDevAddCard = () => {
+    const cardId = devCardInput.trim();
+    if (!cardId) return;
+    const card = CARDS.find(c => c.id === cardId);
+    if (!card) {
+      alert(`카드 ID "${cardId}"를 찾을 수 없습니다.`);
+      return;
+    }
+    if (specialMode === "main") {
+      setMainSpecials(prev => [...prev, cardId]);
+    } else {
+      setSubSpecials(prev => [...prev, cardId]);
+    }
+    setDevCardInput("");
   };
 
   // 좌클릭: 추가, 우클릭: 제거
@@ -251,9 +272,25 @@ export function CharacterSheet({ onClose }) {
               주특기 / 보조특기 카드 선택
             </div>
           </div>
-          <button
-            type="button"
-            onClick={(e) => {
+          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+            <button
+              type="button"
+              onClick={() => setDevMode(!devMode)}
+              style={{
+                padding: "6px 12px",
+                fontSize: "12px",
+                borderRadius: "8px",
+                border: devMode ? "1px solid #f59e0b" : "1px solid rgba(118, 134, 185, 0.5)",
+                background: devMode ? "rgba(245, 158, 11, 0.2)" : "rgba(8, 11, 19, 0.95)",
+                color: devMode ? "#f59e0b" : "#9fb6ff",
+                cursor: "pointer",
+              }}
+            >
+              DEV
+            </button>
+            <button
+              type="button"
+              onClick={(e) => {
               e.stopPropagation();
               onClose();
             }}
@@ -269,7 +306,79 @@ export function CharacterSheet({ onClose }) {
           >
             닫기
           </button>
+          </div>
         </div>
+
+        {/* 개발자 모드 패널 */}
+        {devMode && (
+          <div
+            style={{
+              borderRadius: "12px",
+              padding: "12px 16px",
+              marginBottom: "16px",
+              background: "rgba(245, 158, 11, 0.1)",
+              border: "1px solid rgba(245, 158, 11, 0.4)",
+            }}
+          >
+            <div style={{ fontSize: "14px", fontWeight: 600, color: "#f59e0b", marginBottom: "8px" }}>
+              🛠️ 개발자 모드
+            </div>
+            <div style={{ display: "flex", gap: "8px", alignItems: "center", marginBottom: "8px" }}>
+              <input
+                type="text"
+                value={devCardInput}
+                onChange={(e) => setDevCardInput(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleDevAddCard()}
+                placeholder="카드 ID 입력 (예: slash, deflect)"
+                style={{
+                  flex: 1,
+                  padding: "8px 12px",
+                  borderRadius: "6px",
+                  border: "1px solid rgba(245, 158, 11, 0.4)",
+                  background: "rgba(8, 11, 19, 0.9)",
+                  color: "#fff",
+                  fontSize: "13px",
+                }}
+              />
+              <button
+                type="button"
+                onClick={handleDevAddCard}
+                style={{
+                  padding: "8px 16px",
+                  borderRadius: "6px",
+                  border: "1px solid #f59e0b",
+                  background: "linear-gradient(135deg, #f59e0b, #d97706)",
+                  color: "#000",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                }}
+              >
+                {specialMode === "main" ? "주특기 추가" : "보조 추가"}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (specialMode === "main") setMainSpecials([]);
+                  else setSubSpecials([]);
+                }}
+                style={{
+                  padding: "8px 12px",
+                  borderRadius: "6px",
+                  border: "1px solid #ef4444",
+                  background: "rgba(239, 68, 68, 0.2)",
+                  color: "#ef4444",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                }}
+              >
+                초기화
+              </button>
+            </div>
+            <div style={{ fontSize: "11px", opacity: 0.7, color: "#f59e0b" }}>
+              카드 ID 예시: slash, deflect, stab, heavy, quick, parry, guard, rocket_punch, jab, drunken_fist
+            </div>
+          </div>
+        )}
 
         <div
           style={{
