@@ -132,49 +132,61 @@ export const TimelineDisplay = ({
                   <div key={`p-grid-${i}`} className="timeline-gridline" style={{ left: `${(i / playerMax) * 100}%` }} />
                 ))}
                 {/* 패리 범위 표시 */}
-                {parryReadyState?.active && (
-                  <div
-                    className="parry-range-indicator"
-                    style={{
-                      position: 'absolute',
-                      left: `${(parryReadyState.centerSp / playerMax) * 100}%`,
-                      width: `${((parryReadyState.maxSp - parryReadyState.centerSp) / playerMax) * 100}%`,
-                      top: '50%',
-                      transform: 'translateY(-50%)',
-                      height: '4px',
-                      background: 'linear-gradient(90deg, #22d3ee, #a855f7)',
-                      borderRadius: '2px',
-                      boxShadow: '0 0 8px rgba(34, 211, 238, 0.8), 0 0 16px rgba(168, 85, 247, 0.6)',
-                      zIndex: 10,
-                      pointerEvents: 'none'
-                    }}
-                  >
-                    {/* 시작점 마커 */}
-                    <div style={{
-                      position: 'absolute',
-                      left: 0,
-                      top: '50%',
-                      transform: 'translate(-50%, -50%)',
-                      width: '8px',
-                      height: '16px',
-                      background: '#22d3ee',
-                      borderRadius: '2px',
-                      boxShadow: '0 0 6px rgba(34, 211, 238, 0.9)'
-                    }} />
-                    {/* 끝점 마커 */}
-                    <div style={{
-                      position: 'absolute',
-                      right: 0,
-                      top: '50%',
-                      transform: 'translate(50%, -50%)',
-                      width: '8px',
-                      height: '16px',
-                      background: '#a855f7',
-                      borderRadius: '2px',
-                      boxShadow: '0 0 6px rgba(168, 85, 247, 0.9)'
-                    }} />
-                  </div>
-                )}
+                {parryReadyState?.active && (() => {
+                  const parryMaxPercent = (parryReadyState.maxSp / playerMax) * 100;
+                  const isExpired = timelineProgress > parryMaxPercent;
+                  return (
+                    <div
+                      className="parry-range-indicator"
+                      style={{
+                        position: 'absolute',
+                        left: `${(parryReadyState.centerSp / playerMax) * 100}%`,
+                        width: `${((parryReadyState.maxSp - parryReadyState.centerSp) / playerMax) * 100}%`,
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        height: '4px',
+                        background: isExpired
+                          ? 'linear-gradient(90deg, #6b7280, #9ca3af)'
+                          : 'linear-gradient(90deg, #22d3ee, #a855f7)',
+                        borderRadius: '2px',
+                        boxShadow: isExpired
+                          ? 'none'
+                          : '0 0 8px rgba(34, 211, 238, 0.8), 0 0 16px rgba(168, 85, 247, 0.6)',
+                        opacity: isExpired ? 0.4 : 1,
+                        zIndex: 10,
+                        pointerEvents: 'none',
+                        transition: 'opacity 0.3s, background 0.3s, box-shadow 0.3s'
+                      }}
+                    >
+                      {/* 시작점 마커 */}
+                      <div style={{
+                        position: 'absolute',
+                        left: 0,
+                        top: '50%',
+                        transform: 'translate(-50%, -50%)',
+                        width: '8px',
+                        height: '16px',
+                        background: isExpired ? '#6b7280' : '#22d3ee',
+                        borderRadius: '2px',
+                        boxShadow: isExpired ? 'none' : '0 0 6px rgba(34, 211, 238, 0.9)',
+                        transition: 'background 0.3s, box-shadow 0.3s'
+                      }} />
+                      {/* 끝점 마커 */}
+                      <div style={{
+                        position: 'absolute',
+                        right: 0,
+                        top: '50%',
+                        transform: 'translate(50%, -50%)',
+                        width: '8px',
+                        height: '16px',
+                        background: isExpired ? '#9ca3af' : '#a855f7',
+                        borderRadius: '2px',
+                        boxShadow: isExpired ? 'none' : '0 0 6px rgba(168, 85, 247, 0.9)',
+                        transition: 'background 0.3s, box-shadow 0.3s'
+                      }} />
+                    </div>
+                  );
+                })()}
                 {playerTimeline.map((a, idx) => {
                   const Icon = a.card.icon || (a.card.type === 'attack' ? Sword : Shield);
                   const sameCount = playerTimeline.filter((q, i) => i < idx && q.sp === a.sp).length;
