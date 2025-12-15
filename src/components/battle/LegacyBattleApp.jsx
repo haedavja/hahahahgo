@@ -659,7 +659,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     const currentBuild = useGameStore.getState().characterBuild;
     const hasCharacterBuild = currentBuild && (currentBuild.mainSpecials?.length > 0 || currentBuild.subSpecials?.length > 0);
     const rawHand = hasCharacterBuild
-      ? drawCharacterBuildHand(currentBuild, {}, [], effectiveCardDrawBonus, escapeBanRef.current)
+      ? drawCharacterBuildHand(currentBuild, {}, [], effectiveCardDrawBonus, escapeBanRef.current, battle.vanishedCards || [])
       : CARDS.slice(0, 10); // 8장 → 10장
     actions.setHand(rawHand);
     actions.setCanRedraw(true);
@@ -774,7 +774,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       const currentBuild = useGameStore.getState().characterBuild;
       const hasCharacterBuild = currentBuild && (currentBuild.mainSpecials?.length > 0 || currentBuild.subSpecials?.length > 0);
       const rawHand = hasCharacterBuild
-        ? drawCharacterBuildHand(currentBuild, nextTurnEffects, [], effectiveCardDrawBonus)
+        ? drawCharacterBuildHand(currentBuild, nextTurnEffects, [], effectiveCardDrawBonus, escapeBanRef.current, vanishedCards)
         : CARDS.slice(0, 10); // 8장 → 10장
       actions.setHand(rawHand);
       actions.setSelected([]);
@@ -954,7 +954,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     const currentBuild = useGameStore.getState().characterBuild;
     const hasCharacterBuild = currentBuild && (currentBuild.mainSpecials?.length > 0 || currentBuild.subSpecials?.length > 0);
     const rawHand = hasCharacterBuild
-      ? drawCharacterBuildHand(currentBuild, nextTurnEffects, battle.hand, effectiveCardDrawBonus, escapeBanRef.current)
+      ? drawCharacterBuildHand(currentBuild, nextTurnEffects, battle.hand, effectiveCardDrawBonus, escapeBanRef.current, vanishedCards)
       : CARDS.slice(0, 10); // 8장 → 10장
     actions.setHand(rawHand);
     actions.setSelected([]);
@@ -1197,7 +1197,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     const currentBuild = useGameStore.getState().characterBuild;
     const hasCharacterBuild = currentBuild && (currentBuild.mainSpecials?.length > 0 || currentBuild.subSpecials?.length > 0);
     const rawHand = hasCharacterBuild
-      ? drawCharacterBuildHand(currentBuild, nextTurnEffects, hand, effectiveCardDrawBonus, escapeBanRef.current)
+      ? drawCharacterBuildHand(currentBuild, nextTurnEffects, hand, effectiveCardDrawBonus, escapeBanRef.current, vanishedCards)
       : CARDS.slice(0, 10); // 8장 → 10장
     actions.setHand(rawHand);
     actions.setSelected([]);
@@ -1761,12 +1761,13 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         [a.card.id]: (cardUsageCount[a.card.id] || 0) + 1
       });
 
-      // 즉시 발동 특성 처리 (double_edge, training, warmup)
+      // 즉시 발동 특성 처리 (double_edge, training, warmup, vanish)
       const updatedNextTurnEffects = processImmediateCardTraits({
         card: a.card,
         playerState: P,
         nextTurnEffects,
-        addLog
+        addLog,
+        addVanishedCard: actions.addVanishedCard
       });
       if (updatedNextTurnEffects !== nextTurnEffects) {
         actions.setNextTurnEffects(updatedNextTurnEffects);

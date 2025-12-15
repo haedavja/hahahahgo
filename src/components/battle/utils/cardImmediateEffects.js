@@ -14,9 +14,10 @@ import { applyCardPlayedEffects } from "../../../lib/relicEffects";
  * @param {Object} params.playerState - 플레이어 상태 (수정됨)
  * @param {Object} params.nextTurnEffects - 다음 턴 효과
  * @param {Function} params.addLog - 로그 추가 함수
+ * @param {Function} params.addVanishedCard - 소멸 카드 추가 함수 (선택적)
  * @returns {Object} 업데이트된 다음 턴 효과
  */
-export function processImmediateCardTraits({ card, playerState, nextTurnEffects, addLog }) {
+export function processImmediateCardTraits({ card, playerState, nextTurnEffects, addLog, addVanishedCard }) {
   let updatedNextTurnEffects = { ...nextTurnEffects };
 
   // 양날의 검 (double_edge): 사용시 1 피해
@@ -35,6 +36,12 @@ export function processImmediateCardTraits({ card, playerState, nextTurnEffects,
   if (hasTrait(card, 'warmup')) {
     updatedNextTurnEffects.bonusEnergy = (updatedNextTurnEffects.bonusEnergy || 0) + 2;
     addLog(`🔥 "몸풀기" - 다음 턴 행동력 +2 예약`);
+  }
+
+  // 소멸 (vanish): 사용 후 게임에서 제외
+  if (hasTrait(card, 'vanish') && addVanishedCard) {
+    addVanishedCard(card.id);
+    addLog(`💨 "소멸" - "${card.name}" 카드가 소멸되었습니다.`);
   }
 
   return updatedNextTurnEffects;

@@ -14,19 +14,25 @@ import { hasTrait } from "./battleUtils";
  * @param {Array} previousHand - 이전 손패 (현재 미사용)
  * @param {number} cardDrawBonus - 카드 드로우 보너스
  * @param {Set} escapeBan - 탈주 금지 카드 ID 세트
+ * @param {Array} vanishedCards - 소멸된 카드 ID 배열
  * @returns {Array} 생성된 손패 카드 배열
  */
-export function drawCharacterBuildHand(characterBuild, nextTurnEffects = {}, previousHand = [], cardDrawBonus = 0, escapeBan = new Set()) {
+export function drawCharacterBuildHand(characterBuild, nextTurnEffects = {}, previousHand = [], cardDrawBonus = 0, escapeBan = new Set(), vanishedCards = []) {
   if (!characterBuild) return CARDS.slice(0, 10); // 8장 → 10장
 
   const { mainSpecials = [], subSpecials = [] } = characterBuild;
   const { guaranteedCards = [], mainSpecialOnly = false, subSpecialBoost = 0 } = nextTurnEffects;
   const applyBonus = (prob) => Math.min(1, Math.max(0, prob + (cardDrawBonus || 0)));
   const banSet = escapeBan instanceof Set ? escapeBan : new Set();
+  const vanishedSet = new Set(vanishedCards || []);
+
+  // 소멸된 카드인지 확인하는 헬퍼 함수
+  const isVanished = (cardId) => vanishedSet.has(cardId);
 
   // 파탄 (ruin) 특성: 주특기만 등장
   if (mainSpecialOnly) {
     const mainCards = mainSpecials
+      .filter(cardId => !isVanished(cardId)) // 소멸된 카드 제외
       .map(cardId => CARDS.find(card => card.id === cardId))
       .filter(Boolean);
     return mainCards;
@@ -34,11 +40,13 @@ export function drawCharacterBuildHand(characterBuild, nextTurnEffects = {}, pre
 
   // 확정 등장 카드 (반복, 보험)
   const guaranteed = guaranteedCards
+    .filter(cardId => !isVanished(cardId)) // 소멸된 카드 제외
     .map(cardId => CARDS.find(card => card.id === cardId))
     .filter(card => card && !(hasTrait(card, 'escape') && banSet.has(card.id)));
 
   // 주특기 카드는 100% 등장 (탈주 제외)
   const mainCards = mainSpecials
+    .filter(cardId => !isVanished(cardId)) // 소멸된 카드 제외
     .map(cardId => CARDS.find(card => card.id === cardId))
     .filter(card => {
       if (!card) return false;
@@ -63,6 +71,7 @@ export function drawCharacterBuildHand(characterBuild, nextTurnEffects = {}, pre
   // 보조특기 카드는 각각 50% 확률로 등장 (장군 특성으로 증가 가능)
   const baseSubProb = 0.5 + subSpecialBoost;
   const subCards = subSpecials
+    .filter(cardId => !isVanished(cardId)) // 소멸된 카드 제외
     .map(cardId => CARDS.find(card => card.id === cardId))
     .filter(card => {
       if (!card) return false;
@@ -89,6 +98,7 @@ export function drawCharacterBuildHand(characterBuild, nextTurnEffects = {}, pre
   const usedCardIds = new Set([...mainSpecials, ...subSpecials]);
   const otherCards = CARDS
     .filter(card => !usedCardIds.has(card.id))
+    .filter(card => !isVanished(card.id)) // 소멸된 카드 제외
     .filter(card => {
       if (!card) return false;
       // 탈주 (escape): 이전에 사용했으면 등장하지 않음

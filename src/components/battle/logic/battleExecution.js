@@ -204,12 +204,13 @@ export function executeCardActionCore(params) {
       [action.card.id]: (cardUsageCount[action.card.id] || 0) + 1
     });
 
-    // 즉시 발동 특성 처리
+    // 즉시 발동 특성 처리 (vanish 포함)
     const updatedNextTurnEffects = processImmediateCardTraits({
       card: action.card,
       playerState: P,
       nextTurnEffects,
-      addLog
+      addLog,
+      addVanishedCard: actions.addVanishedCard
     });
     if (updatedNextTurnEffects !== nextTurnEffects) {
       actions.setNextTurnEffects(updatedNextTurnEffects);
