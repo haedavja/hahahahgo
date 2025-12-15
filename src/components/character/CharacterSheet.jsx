@@ -560,239 +560,23 @@ export function CharacterSheet({ onClose }) {
           </div>
         )}
 
-        <div style={{ display: "flex", alignItems: "center", marginBottom: "12px", gap: "16px" }}>
-          <div style={{ display: "flex", flex: 1 }}>
-            <button type="button" style={getModeButtonStyle("main")} onClick={() => setSpecialMode("main")}>
-              주특기 선택 모드
-            </button>
-            <button type="button" style={getModeButtonStyle("sub")} onClick={() => setSpecialMode("sub")}>
-              보조특기 선택 모드
-            </button>
-          </div>
-          <div style={{ fontSize: "13px", opacity: 0.9, textAlign: "right", minWidth: "140px", color: "#9fb6ff" }}>
-            <div>주특기: {mainSpecials.length} / {maxMainSlots}</div>
-            <div>보조특기: {subSpecials.length} / {maxSubSlots}</div>
-          </div>
-        </div>
-
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "8px" }}>
-          <h3 style={{ fontSize: "16px", margin: 0, color: "#fff" }}>카드 선택</h3>
-          <span style={{ fontSize: "12px", opacity: 0.6, color: "#9fb6ff" }}>
-            좌클릭: 추가 / 우클릭: 제거 (중복 가능)
-          </span>
-        </div>
+        {/* 슬롯 현황 */}
         <div
           style={{
             borderRadius: "12px",
-            padding: "12px",
-            marginBottom: "12px",
+            padding: "12px 16px",
             background: "rgba(5, 8, 13, 0.92)",
             border: "1px solid rgba(118, 134, 185, 0.4)",
-            flex: 1,
-            overflowY: "auto",
-            maxHeight: "50vh",
           }}
         >
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))",
-              gridAutoRows: "minmax(70px, auto)",
-              columnGap: "8px",
-              rowGap: "8px",
-            }}
-          >
-            {availableCards.map((card) => {
-              const mainCount = getCardCount(card.id, mainSpecials);
-              const subCount = getCardCount(card.id, subSpecials);
-              const isMain = mainCount > 0;
-              const isSub = subCount > 0;
-
-              return (
-                <div
-                  key={card.id}
-                  style={{...getCardStyle(card.id), position: "relative"}}
-                  onClick={() => handleCardClick(card.id, false)}
-                  onContextMenu={(e) => {
-                    e.preventDefault();
-                    handleCardClick(card.id, true);
-                  }}
-                  onMouseEnter={(e) => {
-                    if (card.traits && card.traits.length > 0) {
-                      const rect = e.currentTarget.getBoundingClientRect();
-                      const fullCard = CARDS.find(c => c.id === card.id);
-                      setHoveredCard({ card: fullCard, x: rect.right, y: rect.top });
-                      if (cardTooltipTimerRef.current) clearTimeout(cardTooltipTimerRef.current);
-                      cardTooltipTimerRef.current = setTimeout(() => {
-                        setShowCardTooltip(true);
-                      }, 500);
-                    }
-                  }}
-                  onMouseLeave={() => {
-                    setHoveredCard(null);
-                    setShowCardTooltip(false);
-                    if (cardTooltipTimerRef.current) clearTimeout(cardTooltipTimerRef.current);
-                  }}
-                >
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
-                    <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                      <b style={{ color: card.type === "attack" ? "#ef4444" : "#60a5fa" }}>{card.name}</b>
-                      {isMain && (
-                        <span style={{
-                          fontSize: "11px",
-                          padding: "2px 6px",
-                          borderRadius: "4px",
-                          background: "linear-gradient(135deg, #f5d76e, #c9a64a)",
-                          color: "#000",
-                          fontWeight: 700,
-                        }}>
-                          주특기 {mainCount > 1 ? `x${mainCount}` : ''}
-                        </span>
-                      )}
-                      {isSub && (
-                        <span style={{
-                          fontSize: "11px",
-                          padding: "2px 6px",
-                          borderRadius: "4px",
-                          background: "linear-gradient(135deg, #7dd3fc, #2b6fbf)",
-                          color: "#000",
-                          fontWeight: 700,
-                        }}>
-                          보조 {subCount > 1 ? `x${subCount}` : ''}
-                        </span>
-                      )}
-                    </span>
-                    <span style={{ fontSize: "12px", opacity: 0.8, color: "#9fb6ff", display: "flex", gap: "8px" }}>
-                      <span>AP {card.ap}</span>
-                      <span>속도 {card.speed}</span>
-                      <span>{card.desc}</span>
-                    </span>
-                  </div>
-                  {card.description && (
-                    <div style={{ fontSize: "12px", opacity: 0.75, color: "#9fb6ff", marginBottom: "4px", fontStyle: "italic" }}>
-                      {card.description}
-                    </div>
-                  )}
-                  {card.traits && card.traits.length > 0 && (
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: "4px", marginTop: "6px" }}>
-                      {card.traits.map((traitId) => {
-                        const trait = TRAITS[traitId];
-                        if (!trait) return null;
-                        const isPositive = trait.type === "positive";
-                        return (
-                          <span
-                            key={traitId}
-                            style={{
-                              fontSize: "11px",
-                              padding: "2px 6px",
-                              borderRadius: "4px",
-                              background: isPositive ? "rgba(34, 197, 94, 0.2)" : "rgba(239, 68, 68, 0.2)",
-                              border: `1px solid ${isPositive ? "#22c55e" : "#ef4444"}`,
-                              color: isPositive ? "#22c55e" : "#ef4444",
-                              fontWeight: 600,
-                              cursor: "help",
-                            }}
-                            onMouseEnter={(e) => handleTraitMouseEnter(e, trait)}
-                            onMouseLeave={handleTraitMouseLeave}
-                          >
-                            {trait.name} {"★".repeat(trait.weight)}
-                          </span>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+          <div style={{ fontSize: "14px", opacity: 0.9, color: "#9fb6ff", display: "flex", justifyContent: "space-between" }}>
+            <span>주특기: <b style={{ color: "#f5d76e" }}>{mainSpecials.length} / {maxMainSlots}</b></span>
+            <span>보조특기: <b style={{ color: "#7dd3fc" }}>{subSpecials.length} / {maxSubSlots}</b></span>
           </div>
         </div>
       </div>
 
-      {/* 커스텀 툴팁 */}
-      {hoveredTrait && (
-        <div
-          ref={tooltipRef}
-          style={{
-            position: "fixed",
-            left: `${tooltipPosition.x}px`,
-            top: `${tooltipPosition.y}px`,
-            background: "rgba(0, 0, 0, 0.95)",
-            border: `2px solid ${hoveredTrait.type === "positive" ? "#22c55e" : "#ef4444"}`,
-            borderRadius: "8px",
-            padding: "12px 16px",
-            color: "#fff",
-            fontSize: "16px",
-            fontWeight: 500,
-            maxWidth: "300px",
-            zIndex: 10000,
-            pointerEvents: "none",
-            boxShadow: "0 4px 16px rgba(0, 0, 0, 0.5)",
-            lineHeight: "1.5",
-          }}
-        >
-          <div style={{ marginBottom: "6px", fontWeight: 700, color: hoveredTrait.type === "positive" ? "#22c55e" : "#ef4444" }}>
-            {hoveredTrait.name} {"★".repeat(hoveredTrait.weight)}
-          </div>
-          <div style={{ fontSize: "14px", opacity: 0.9 }}>
-            {hoveredTrait.description}
-          </div>
-        </div>
-      )}
-
-      {/* 카드 특성 툴팁 */}
-      {showCardTooltip && hoveredCard && hoveredCard.card.traits && hoveredCard.card.traits.length > 0 && (
-        <div
-          style={{
-            position: 'fixed',
-            left: `${hoveredCard.x + 10}px`,
-            top: `${hoveredCard.y}px`,
-            background: 'rgba(0, 0, 0, 0.95)',
-            border: '2px solid #fbbf24',
-            borderRadius: '12px',
-            padding: '20px',
-            color: '#fff',
-            maxWidth: '400px',
-            zIndex: 10000,
-            pointerEvents: 'none',
-            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.8)',
-          }}
-        >
-          <div style={{ fontSize: '21px', fontWeight: 700, color: '#fbbf24', marginBottom: '12px' }}>
-            특성 정보
-          </div>
-          {hoveredCard.card.traits.map(traitId => {
-            const trait = TRAITS[traitId];
-            if (!trait) return null;
-            const isPositive = trait.type === 'positive';
-            return (
-              <div key={traitId} style={{ marginBottom: '12px' }}>
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  marginBottom: '4px'
-                }}>
-                  <span style={{
-                    fontSize: '19px',
-                    fontWeight: 700,
-                    color: isPositive ? '#22c55e' : '#ef4444'
-                  }}>
-                    {trait.name}
-                  </span>
-                  <span style={{ fontSize: '16px', color: '#fbbf24' }}>
-                    {"★".repeat(trait.weight)}
-                  </span>
-                </div>
-                <div style={{ fontSize: '18px', color: '#9fb6ff', lineHeight: 1.5 }}>
-                  {trait.description}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {/* 보유 카드 목록 모달 */}
+      {/* 보유 카드 및 선택 모달 */}
       {showOwnedCards && (
         <div
           style={{
@@ -812,8 +596,8 @@ export function CharacterSheet({ onClose }) {
           <div
             onClick={(e) => e.stopPropagation()}
             style={{
-              width: '700px',
-              maxHeight: '80vh',
+              width: '900px',
+              maxHeight: '90vh',
               background: 'rgba(8, 11, 19, 0.98)',
               borderRadius: '16px',
               border: '2px solid #22c55e',
@@ -823,8 +607,8 @@ export function CharacterSheet({ onClose }) {
               flexDirection: 'column',
             }}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-              <h2 style={{ fontSize: '20px', margin: 0, color: '#22c55e' }}>🃏 보유 카드 목록</h2>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h2 style={{ fontSize: '20px', margin: 0, color: '#22c55e' }}>🃏 카드 관리</h2>
               <button
                 type="button"
                 onClick={() => setShowOwnedCards(false)}
@@ -842,94 +626,252 @@ export function CharacterSheet({ onClose }) {
               </button>
             </div>
 
-            <div style={{ overflowY: 'auto', flex: 1 }}>
-              {/* 주특기 섹션 */}
-              <div style={{ marginBottom: '24px' }}>
-                <h3 style={{ fontSize: '16px', color: '#f5d76e', marginBottom: '12px', borderBottom: '1px solid rgba(245, 215, 110, 0.3)', paddingBottom: '8px' }}>
-                  ⭐ 주특기 ({mainSpecials.length}장)
-                </h3>
-                {mainSpecials.length > 0 ? (
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                    {mainSpecials.map((cardId, idx) => {
-                      const card = CARDS.find(c => c.id === cardId);
-                      if (!card) return null;
-                      return (
-                        <div
-                          key={`main-${cardId}-${idx}`}
-                          style={{
-                            padding: '10px 14px',
-                            borderRadius: '8px',
-                            background: 'rgba(245, 215, 110, 0.15)',
-                            border: '1px solid #f5d76e',
-                            minWidth: '140px',
-                          }}
-                        >
-                          <div style={{ fontWeight: 600, color: card.type === 'attack' ? '#ef4444' : '#60a5fa', marginBottom: '4px' }}>
-                            {card.name}
-                          </div>
-                          <div style={{ fontSize: '12px', color: '#9fb6ff', display: 'flex', gap: '8px' }}>
-                            <span>AP {card.actionCost}</span>
-                            <span>속도 {card.speedCost}</span>
-                          </div>
-                          <div style={{ fontSize: '11px', color: '#9fb6ff', opacity: 0.8, marginTop: '4px' }}>
-                            {card.damage ? `공격력 ${card.damage}${card.hits > 1 ? ` x${card.hits}` : ''}` : ''}
-                            {card.block ? `방어력 ${card.block}` : ''}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <div style={{ color: '#9ca3af', fontSize: '14px' }}>주특기가 없습니다.</div>
-                )}
-              </div>
-
-              {/* 보조특기 섹션 */}
-              <div>
-                <h3 style={{ fontSize: '16px', color: '#7dd3fc', marginBottom: '12px', borderBottom: '1px solid rgba(125, 211, 252, 0.3)', paddingBottom: '8px' }}>
-                  💠 보조특기 ({subSpecials.length}장)
-                </h3>
-                {subSpecials.length > 0 ? (
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                    {subSpecials.map((cardId, idx) => {
-                      const card = CARDS.find(c => c.id === cardId);
-                      if (!card) return null;
-                      return (
-                        <div
-                          key={`sub-${cardId}-${idx}`}
-                          style={{
-                            padding: '10px 14px',
-                            borderRadius: '8px',
-                            background: 'rgba(125, 211, 252, 0.15)',
-                            border: '1px solid #7dd3fc',
-                            minWidth: '140px',
-                          }}
-                        >
-                          <div style={{ fontWeight: 600, color: card.type === 'attack' ? '#ef4444' : '#60a5fa', marginBottom: '4px' }}>
-                            {card.name}
-                          </div>
-                          <div style={{ fontSize: '12px', color: '#9fb6ff', display: 'flex', gap: '8px' }}>
-                            <span>AP {card.actionCost}</span>
-                            <span>속도 {card.speedCost}</span>
-                          </div>
-                          <div style={{ fontSize: '11px', color: '#9fb6ff', opacity: 0.8, marginTop: '4px' }}>
-                            {card.damage ? `공격력 ${card.damage}${card.hits > 1 ? ` x${card.hits}` : ''}` : ''}
-                            {card.block ? `방어력 ${card.block}` : ''}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <div style={{ color: '#9ca3af', fontSize: '14px' }}>보조특기가 없습니다.</div>
-                )}
-              </div>
+            {/* 슬롯 현황 */}
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              padding: '10px 16px',
+              marginBottom: '12px',
+              background: 'rgba(5, 8, 13, 0.92)',
+              borderRadius: '8px',
+              border: '1px solid rgba(118, 134, 185, 0.4)',
+            }}>
+              <span style={{ color: '#9fb6ff', fontSize: '14px' }}>
+                주특기: <b style={{ color: '#f5d76e' }}>{mainSpecials.length} / {maxMainSlots}</b>
+              </span>
+              <span style={{ color: '#9fb6ff', fontSize: '14px' }}>
+                보조특기: <b style={{ color: '#7dd3fc' }}>{subSpecials.length} / {maxSubSlots}</b>
+              </span>
             </div>
 
-            <div style={{ marginTop: '16px', fontSize: '12px', color: '#9ca3af', textAlign: 'center' }}>
-              총 {mainSpecials.length + subSpecials.length}장의 카드를 보유 중
+            {/* 모드 선택 버튼 */}
+            <div style={{ display: 'flex', marginBottom: '16px' }}>
+              <button
+                type="button"
+                onClick={() => setSpecialMode('main')}
+                style={getModeButtonStyle('main')}
+              >
+                ⭐ 주특기 선택 모드
+              </button>
+              <button
+                type="button"
+                onClick={() => setSpecialMode('sub')}
+                style={getModeButtonStyle('sub')}
+              >
+                💠 보조특기 선택 모드
+              </button>
+            </div>
+
+            {/* 선택 안내 */}
+            <div style={{
+              fontSize: '12px',
+              color: '#9ca3af',
+              marginBottom: '12px',
+              padding: '8px 12px',
+              background: 'rgba(100, 116, 139, 0.1)',
+              borderRadius: '6px',
+            }}>
+              💡 좌클릭: 카드 추가 | 우클릭: 카드 제거 | 같은 카드를 여러 번 추가할 수 있습니다
+            </div>
+
+            <div style={{ overflowY: 'auto', flex: 1 }}>
+              {/* 현재 보유한 카드 */}
+              <div style={{ marginBottom: '20px' }}>
+                <h3 style={{
+                  fontSize: '14px',
+                  color: specialMode === 'main' ? '#f5d76e' : '#7dd3fc',
+                  marginBottom: '10px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                }}>
+                  {specialMode === 'main' ? '⭐ 선택된 주특기' : '💠 선택된 보조특기'}
+                  <span style={{ opacity: 0.7, fontWeight: 'normal' }}>
+                    ({specialMode === 'main' ? mainSpecials.length : subSpecials.length}장)
+                  </span>
+                </h3>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', minHeight: '36px' }}>
+                  {(specialMode === 'main' ? mainSpecials : subSpecials).map((cardId, idx) => {
+                    const card = CARDS.find(c => c.id === cardId);
+                    if (!card) return null;
+                    return (
+                      <div
+                        key={`selected-${cardId}-${idx}`}
+                        onClick={() => handleCardClick(cardId, true)}
+                        style={{
+                          padding: '6px 10px',
+                          borderRadius: '6px',
+                          background: specialMode === 'main' ? 'rgba(245, 215, 110, 0.2)' : 'rgba(125, 211, 252, 0.2)',
+                          border: `1px solid ${specialMode === 'main' ? '#f5d76e' : '#7dd3fc'}`,
+                          fontSize: '12px',
+                          color: card.type === 'attack' ? '#f87171' : '#60a5fa',
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease',
+                        }}
+                        title="클릭하여 제거"
+                      >
+                        {card.name}
+                      </div>
+                    );
+                  })}
+                  {(specialMode === 'main' ? mainSpecials : subSpecials).length === 0 && (
+                    <span style={{ color: '#6b7280', fontSize: '13px' }}>선택된 카드가 없습니다</span>
+                  )}
+                </div>
+              </div>
+
+              {/* 전체 카드 목록 */}
+              <h3 style={{ fontSize: '14px', color: '#9fb6ff', marginBottom: '10px' }}>📜 전체 카드 목록</h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                {availableCards.map((c) => {
+                  const mainCount = getCardCount(c.id, mainSpecials);
+                  const subCount = getCardCount(c.id, subSpecials);
+                  const isSelected = specialMode === 'main' ? mainCount > 0 : subCount > 0;
+                  const count = specialMode === 'main' ? mainCount : subCount;
+
+                  return (
+                    <div
+                      key={c.id}
+                      style={getCardStyle(c.id)}
+                      onClick={() => handleCardClick(c.id, false)}
+                      onContextMenu={(e) => {
+                        e.preventDefault();
+                        handleCardClick(c.id, true);
+                      }}
+                      onMouseEnter={(e) => {
+                        if (c.traits && c.traits.length > 0) {
+                          cardTooltipTimerRef.current = setTimeout(() => {
+                            setHoveredCard(c);
+                            setShowCardTooltip(true);
+                            const rect = e.currentTarget.getBoundingClientRect();
+                            setTooltipPosition({ x: rect.right + 10, y: rect.top });
+                          }, 300);
+                        }
+                      }}
+                      onMouseLeave={() => {
+                        if (cardTooltipTimerRef.current) {
+                          clearTimeout(cardTooltipTimerRef.current);
+                        }
+                        setShowCardTooltip(false);
+                        setHoveredCard(null);
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{
+                            fontWeight: 600,
+                            color: c.type === 'attack' ? '#f87171' : '#60a5fa',
+                            fontSize: '14px',
+                          }}>
+                            {c.name}
+                          </span>
+                          {isSelected && (
+                            <span style={{
+                              fontSize: '11px',
+                              padding: '2px 6px',
+                              borderRadius: '4px',
+                              background: specialMode === 'main' ? 'rgba(245, 215, 110, 0.3)' : 'rgba(125, 211, 252, 0.3)',
+                              color: specialMode === 'main' ? '#f5d76e' : '#7dd3fc',
+                            }}>
+                              x{count}
+                            </span>
+                          )}
+                          {c.traits && c.traits.length > 0 && (
+                            <div style={{ display: 'flex', gap: '4px' }}>
+                              {c.traits.map((trait, idx) => (
+                                <span
+                                  key={idx}
+                                  style={{
+                                    fontSize: '10px',
+                                    padding: '1px 4px',
+                                    borderRadius: '3px',
+                                    background: 'rgba(251, 191, 36, 0.2)',
+                                    color: '#fbbf24',
+                                  }}
+                                  onMouseEnter={(e) => handleTraitMouseEnter(e, trait)}
+                                  onMouseLeave={handleTraitMouseLeave}
+                                >
+                                  {trait}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                        <div style={{ display: 'flex', gap: '12px', fontSize: '12px', color: '#9fb6ff' }}>
+                          <span>AP <b>{c.ap}</b></span>
+                          <span>속도 <b>{c.speed}</b></span>
+                          <span style={{ color: '#9ca3af', minWidth: '100px' }}>{c.desc}</span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
+
+          {/* 카드 특성 툴팁 */}
+          {showCardTooltip && hoveredCard && hoveredCard.traits && (
+            <div
+              ref={tooltipRef}
+              style={{
+                position: 'fixed',
+                left: tooltipPosition.x,
+                top: tooltipPosition.y,
+                background: 'rgba(15, 20, 30, 0.98)',
+                border: '1px solid rgba(251, 191, 36, 0.6)',
+                borderRadius: '8px',
+                padding: '12px 16px',
+                zIndex: 10002,
+                maxWidth: '300px',
+                boxShadow: '0 4px 20px rgba(0, 0, 0, 0.5)',
+              }}
+            >
+              <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#fbbf24', marginBottom: '8px' }}>
+                {hoveredCard.name} - 특성
+              </div>
+              {hoveredCard.traits.map((trait, idx) => {
+                const traitData = TRAITS[trait];
+                return (
+                  <div key={idx} style={{ marginBottom: '6px' }}>
+                    <span style={{ color: '#fbbf24' }}>{trait}</span>
+                    {traitData && (
+                      <div style={{ fontSize: '12px', color: '#9ca3af', marginTop: '2px' }}>
+                        {traitData.description}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* 개성 특성 툴팁 */}
+          {hoveredTrait && (
+            <div
+              style={{
+                position: 'fixed',
+                left: tooltipPosition.x,
+                top: tooltipPosition.y,
+                background: 'rgba(15, 20, 30, 0.98)',
+                border: '1px solid rgba(251, 191, 36, 0.6)',
+                borderRadius: '8px',
+                padding: '12px 16px',
+                zIndex: 10002,
+                maxWidth: '280px',
+                boxShadow: '0 4px 20px rgba(0, 0, 0, 0.5)',
+              }}
+            >
+              <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#fbbf24', marginBottom: '4px' }}>
+                {hoveredTrait}
+              </div>
+              {TRAITS[hoveredTrait] && (
+                <div style={{ fontSize: '12px', color: '#9ca3af' }}>
+                  {TRAITS[hoveredTrait].description}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>
