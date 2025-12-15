@@ -9,8 +9,11 @@
  * @param {number} intensity - 강도 (1=약함, 2=중간, 3=강함)
  */
 function triggerScreenShake(intensity = 1) {
-  // 임시 비활성화 - 화면 압축 원인 테스트
-  return;
+  const root = document.getElementById('root');
+  if (root) {
+    root.classList.add('screen-shake');
+    setTimeout(() => root.classList.remove('screen-shake'), 250);
+  }
 }
 
 /**
@@ -20,8 +23,21 @@ function triggerScreenShake(intensity = 1) {
  * @param {string} type - 'damage', 'heal', 'block'
  */
 function createDamagePopup(target, value, type = 'damage') {
-  // 임시 비활성화 - 화면 압축 원인 테스트
-  return;
+  const popup = document.createElement('div');
+  popup.className = `damage-popup ${type === 'damage' && value >= 10 ? 'critical' : ''} ${type}`;
+  popup.textContent = type === 'damage' ? `-${value}` : (type === 'heal' ? `+${value}` : `🛡️${value}`);
+
+  // 위치 설정
+  if (target === 'enemy') {
+    popup.style.right = '350px';
+    popup.style.top = '450px';
+  } else {
+    popup.style.left = '350px';
+    popup.style.top = '450px';
+  }
+
+  document.body.appendChild(popup);
+  setTimeout(() => popup.remove(), 800);
 }
 
 /**
