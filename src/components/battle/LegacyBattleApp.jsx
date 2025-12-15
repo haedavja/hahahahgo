@@ -1728,6 +1728,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   }, [addLog, actions]);
 
   const stepOnce = () => {
+    // 브리치 선택 대기 중이면 진행 차단
+    if (breachSelectionRef.current) return;
+
     const currentBattle = battleRef.current;
     if (currentBattle.qIndex >= currentBattle.queue.length) return;
     const a = currentBattle.queue[currentBattle.qIndex];
