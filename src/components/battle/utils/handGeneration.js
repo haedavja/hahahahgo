@@ -85,8 +85,30 @@ export function drawCharacterBuildHand(characterBuild, nextTurnEffects = {}, pre
       return Math.random() < applyBonus(prob);
     });
 
+  // 나머지 보유 카드 (주특기/보조특기 제외) 각각 10% 확률로 등장
+  const usedCardIds = new Set([...mainSpecials, ...subSpecials]);
+  const otherCards = CARDS
+    .filter(card => !usedCardIds.has(card.id))
+    .filter(card => {
+      if (!card) return false;
+      // 탈주 (escape): 이전에 사용했으면 등장하지 않음
+      if (hasTrait(card, 'escape') && banSet.has(card.id)) {
+        return false;
+      }
+      // 개근 (attendance): 등장확률 25% 증가 (10% → 35%)
+      let prob = 0.1;
+      if (hasTrait(card, 'attendance')) {
+        prob += 0.25;
+      }
+      // 도피꾼 (deserter): 등장확률 25% 감소 (10% → 0%, 최소 0)
+      if (hasTrait(card, 'deserter')) {
+        prob -= 0.25;
+      }
+      return Math.random() < applyBonus(prob);
+    });
+
   // 중복 제거 후 반환
-  const allCards = [...guaranteed, ...mainCards, ...subCards]
+  const allCards = [...guaranteed, ...mainCards, ...subCards, ...otherCards]
     .filter(card => !(hasTrait(card, 'escape') && banSet.has(card.id)));
   const uniqueCards = [];
   const seenIds = new Set();
