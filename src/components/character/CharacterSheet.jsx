@@ -106,6 +106,9 @@ export function CharacterSheet({ onClose }) {
   const [showCardTooltip, setShowCardTooltip] = useState(false);
   const cardTooltipTimerRef = useRef(null);
 
+  // 보유 카드 목록 모달
+  const [showOwnedCards, setShowOwnedCards] = useState(false);
+
   // 컴포넌트 마운트 시 한 번만 스토어에서 로드
   useEffect(() => {
     if (!initialized && characterBuild) {
@@ -273,6 +276,22 @@ export function CharacterSheet({ onClose }) {
             </div>
           </div>
           <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+            <button
+              type="button"
+              onClick={() => setShowOwnedCards(true)}
+              style={{
+                padding: "6px 12px",
+                fontSize: "12px",
+                borderRadius: "8px",
+                border: "1px solid #22c55e",
+                background: "rgba(34, 197, 94, 0.2)",
+                color: "#22c55e",
+                cursor: "pointer",
+                fontWeight: 600,
+              }}
+            >
+              🃏 보유 카드
+            </button>
             <button
               type="button"
               onClick={() => setDevMode(!devMode)}
@@ -770,6 +789,147 @@ export function CharacterSheet({ onClose }) {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* 보유 카드 목록 모달 */}
+      {showOwnedCards && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0, 0, 0, 0.85)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 10001,
+          }}
+          onClick={() => setShowOwnedCards(false)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: '700px',
+              maxHeight: '80vh',
+              background: 'rgba(8, 11, 19, 0.98)',
+              borderRadius: '16px',
+              border: '2px solid #22c55e',
+              boxShadow: '0 0 40px rgba(34, 197, 94, 0.3)',
+              padding: '24px',
+              display: 'flex',
+              flexDirection: 'column',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h2 style={{ fontSize: '20px', margin: 0, color: '#22c55e' }}>🃏 보유 카드 목록</h2>
+              <button
+                type="button"
+                onClick={() => setShowOwnedCards(false)}
+                style={{
+                  padding: '6px 12px',
+                  fontSize: '13px',
+                  borderRadius: '8px',
+                  border: '1px solid rgba(118, 134, 185, 0.5)',
+                  background: 'rgba(8, 11, 19, 0.95)',
+                  color: '#fca5a5',
+                  cursor: 'pointer',
+                }}
+              >
+                닫기
+              </button>
+            </div>
+
+            <div style={{ overflowY: 'auto', flex: 1 }}>
+              {/* 주특기 섹션 */}
+              <div style={{ marginBottom: '24px' }}>
+                <h3 style={{ fontSize: '16px', color: '#f5d76e', marginBottom: '12px', borderBottom: '1px solid rgba(245, 215, 110, 0.3)', paddingBottom: '8px' }}>
+                  ⭐ 주특기 ({mainSpecials.length}장)
+                </h3>
+                {mainSpecials.length > 0 ? (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                    {mainSpecials.map((cardId, idx) => {
+                      const card = CARDS.find(c => c.id === cardId);
+                      if (!card) return null;
+                      return (
+                        <div
+                          key={`main-${cardId}-${idx}`}
+                          style={{
+                            padding: '10px 14px',
+                            borderRadius: '8px',
+                            background: 'rgba(245, 215, 110, 0.15)',
+                            border: '1px solid #f5d76e',
+                            minWidth: '140px',
+                          }}
+                        >
+                          <div style={{ fontWeight: 600, color: card.type === 'attack' ? '#ef4444' : '#60a5fa', marginBottom: '4px' }}>
+                            {card.name}
+                          </div>
+                          <div style={{ fontSize: '12px', color: '#9fb6ff', display: 'flex', gap: '8px' }}>
+                            <span>AP {card.actionCost}</span>
+                            <span>속도 {card.speedCost}</span>
+                          </div>
+                          <div style={{ fontSize: '11px', color: '#9fb6ff', opacity: 0.8, marginTop: '4px' }}>
+                            {card.damage ? `공격력 ${card.damage}${card.hits > 1 ? ` x${card.hits}` : ''}` : ''}
+                            {card.block ? `방어력 ${card.block}` : ''}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div style={{ color: '#9ca3af', fontSize: '14px' }}>주특기가 없습니다.</div>
+                )}
+              </div>
+
+              {/* 보조특기 섹션 */}
+              <div>
+                <h3 style={{ fontSize: '16px', color: '#7dd3fc', marginBottom: '12px', borderBottom: '1px solid rgba(125, 211, 252, 0.3)', paddingBottom: '8px' }}>
+                  💠 보조특기 ({subSpecials.length}장)
+                </h3>
+                {subSpecials.length > 0 ? (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                    {subSpecials.map((cardId, idx) => {
+                      const card = CARDS.find(c => c.id === cardId);
+                      if (!card) return null;
+                      return (
+                        <div
+                          key={`sub-${cardId}-${idx}`}
+                          style={{
+                            padding: '10px 14px',
+                            borderRadius: '8px',
+                            background: 'rgba(125, 211, 252, 0.15)',
+                            border: '1px solid #7dd3fc',
+                            minWidth: '140px',
+                          }}
+                        >
+                          <div style={{ fontWeight: 600, color: card.type === 'attack' ? '#ef4444' : '#60a5fa', marginBottom: '4px' }}>
+                            {card.name}
+                          </div>
+                          <div style={{ fontSize: '12px', color: '#9fb6ff', display: 'flex', gap: '8px' }}>
+                            <span>AP {card.actionCost}</span>
+                            <span>속도 {card.speedCost}</span>
+                          </div>
+                          <div style={{ fontSize: '11px', color: '#9fb6ff', opacity: 0.8, marginTop: '4px' }}>
+                            {card.damage ? `공격력 ${card.damage}${card.hits > 1 ? ` x${card.hits}` : ''}` : ''}
+                            {card.block ? `방어력 ${card.block}` : ''}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div style={{ color: '#9ca3af', fontSize: '14px' }}>보조특기가 없습니다.</div>
+                )}
+              </div>
+            </div>
+
+            <div style={{ marginTop: '16px', fontSize: '12px', color: '#9ca3af', textAlign: 'center' }}>
+              총 {mainSpecials.length + subSpecials.length}장의 카드를 보유 중
+            </div>
+          </div>
         </div>
       )}
     </div>
