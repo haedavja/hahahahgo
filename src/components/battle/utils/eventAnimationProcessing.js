@@ -12,7 +12,7 @@ function triggerScreenShake(intensity = 1) {
   const root = document.querySelector('.legacy-battle-root');
   if (root) {
     root.classList.add('screen-shake');
-    setTimeout(() => root.classList.remove('screen-shake'), 400);
+    setTimeout(() => root.classList.remove('screen-shake'), 250);
   }
 }
 
