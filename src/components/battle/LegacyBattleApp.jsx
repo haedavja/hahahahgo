@@ -42,6 +42,7 @@ import { processImmediateCardTraits, processCardPlayedRelicEffects } from "./uti
 import { collectTriggeredRelics, playRelicActivationSequence } from "./utils/relicActivationAnimation";
 import { processActionEventAnimations } from "./utils/eventAnimationProcessing";
 import { processStunEffect } from "./utils/stunProcessing";
+import { processParryEffect } from "./utils/parryProcessing";
 import { processPlayerEtherAccumulation, processEnemyEtherAccumulation } from "./utils/etherAccumulationProcessing";
 import { processEnemyDeath } from "./utils/enemyDeathProcessing";
 import { playTurnEndRelicAnimations, applyTurnEndRelicEffectsToNextTurn } from "./utils/turnEndRelicEffectsProcessing";
@@ -1802,6 +1803,23 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       }
       if (stunEvent) {
         actionEvents = [...actionEvents, stunEvent];
+      }
+    }
+
+    // 쳐내기(parryPush) 효과 처리
+    if (a.card.special === 'parryPush') {
+      const currentQ = battleRef.current.queue;
+      const { updatedQueue, parryEvent } = processParryEffect({
+        action: a,
+        queue: currentQ,
+        currentQIndex: currentBattle.qIndex,
+        addLog
+      });
+      if (updatedQueue !== currentQ) {
+        actions.setQueue(updatedQueue);
+      }
+      if (parryEvent) {
+        actionEvents = [...actionEvents, parryEvent];
       }
     }
 

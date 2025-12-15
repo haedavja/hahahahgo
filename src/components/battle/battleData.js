@@ -159,6 +159,20 @@ export const CARDS = [
     }
   },
   {
+    id: "deflect",
+    name: "쳐내기",
+    type: "defense",
+    block: 8,
+    speedCost: 3,
+    actionCost: 1,
+    iconKey: "shield",
+    description: "발동 후 5 범위 안에 적 공격이 있으면 모든 적 카드를 타임라인에서 3 뒤로 밀어냅니다.",
+    traits: [],
+    special: "parryPush",
+    parryRange: 5,
+    parryPushAmount: 3
+  },
+  {
     id: "power_strike",
     name: "힘의 일격",
     type: "attack",
