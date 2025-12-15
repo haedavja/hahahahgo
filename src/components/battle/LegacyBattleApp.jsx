@@ -78,6 +78,7 @@ import { HandArea } from "./ui/HandArea";
 import { BattleTooltips } from "./ui/BattleTooltips";
 import { ExpectedDamagePreview } from "./ui/ExpectedDamagePreview";
 import { BreachSelectionModal } from "./ui/BreachSelectionModal";
+import { CardRewardModal } from "./ui/CardRewardModal";
 import { EtherBar } from "./ui/EtherBar";
 import { Sword, Shield, Heart, Zap, Flame, Clock, Skull, X, ChevronUp, ChevronDown, Play, StepForward, RefreshCw, ICON_MAP } from "./ui/BattleIcons";
 import { selectBattleAnomalies, applyAnomalyEffects, formatAnomaliesForDisplay } from "../../lib/anomalyUtils";
@@ -413,6 +414,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const [breachSelection, setBreachSelection] = useState(null); // { cards: [], breachSp: number, breachCard: object }
   const breachSelectionRef = useRef(null);
   const stepOnceRef = useRef(null); // stepOnce 함수 참조 (브리치 선택 후 진행 재개용)
+
+  // 카드 보상 선택 상태 (승리 후)
+  const [cardReward, setCardReward] = useState(null); // { cards: [] }
 
   // battle 상태가 변경될 때마다 ref 업데이트
   useEffect(() => {
@@ -1739,6 +1743,48 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     }, 100);
   }, [addLog, actions]);
 
+  // 카드 보상 선택 처리 (승리 후)
+  const handleRewardSelect = useCallback((selectedCard, idx) => {
+    addLog(`🎁 "${selectedCard.name}" 획득!`);
+
+    // 선택한 카드를 subSpecials에 추가 (localStorage에 저장)
+    try {
+      const stored = localStorage.getItem('characterBuild');
+      if (stored) {
+        const build = JSON.parse(stored);
+        const newSubSpecials = [...(build.subSpecials || []), selectedCard.id];
+        const updatedBuild = { ...build, subSpecials: newSubSpecials };
+        localStorage.setItem('characterBuild', JSON.stringify(updatedBuild));
+        console.log('[CardReward] 카드 추가됨:', selectedCard.name, 'to subSpecials');
+      }
+    } catch (err) {
+      console.error('[CardReward] localStorage 저장 실패:', err);
+    }
+
+    // 모달 닫기 및 post 페이즈로 전환
+    setCardReward(null);
+    actions.setPostCombatOptions({ type: 'victory' });
+    actions.setPhase('post');
+  }, [addLog, actions]);
+
+  // 카드 보상 건너뛰기
+  const handleRewardSkip = useCallback(() => {
+    addLog('카드 보상을 건너뛰었습니다.');
+    setCardReward(null);
+    actions.setPostCombatOptions({ type: 'victory' });
+    actions.setPhase('post');
+  }, [addLog, actions]);
+
+  // 승리 시 카드 보상 모달 표시
+  const showCardRewardModal = useCallback(() => {
+    // 공격/방어 카드 중 랜덤 3장 선택
+    const cardPool = CARDS.filter(c => (c.type === 'attack' || c.type === 'defense'));
+    const shuffled = [...cardPool].sort(() => Math.random() - 0.5);
+    const rewardCards = shuffled.slice(0, 3);
+
+    setCardReward({ cards: rewardCards });
+  }, []);
+
   const stepOnce = () => {
     // 브리치 선택 대기 중이면 진행 차단
     if (breachSelectionRef.current) return;
@@ -2247,7 +2293,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       player,
       nextEnemyPtsSnapshot,
       checkVictoryCondition,
-      actions
+      actions,
+      onVictory: showCardRewardModal
     });
     if (transitionResult.shouldReturn) return;
 
@@ -2561,6 +2608,15 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
           breachSelection={breachSelection}
           onSelect={handleBreachSelect}
           strengthBonus={player.strength || 0}
+        />
+      )}
+
+      {/* 카드 보상 선택 모달 (승리 후) */}
+      {cardReward && (
+        <CardRewardModal
+          rewardCards={cardReward.cards}
+          onSelect={handleRewardSelect}
+          onSkip={handleRewardSkip}
         />
       )}
 
