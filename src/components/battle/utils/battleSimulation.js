@@ -52,10 +52,9 @@ export function applyAction(state, actor, card) {
         if (effectiveDmg < beforeBlock) {
           const remaining = beforeBlock - effectiveDmg;
           B.block = remaining; dmg = 0;
-          A.vulnMult = 1 + (remaining * 0.5); A.vulnTurns = 1;
           const crushText = crushMultiplier > 1 ? ' [분쇄×2]' : '';
           const formula = `(방어력 ${beforeBlock} - 공격력 ${base}${boost > 1 ? '×2' : ''}${crushText} = ${remaining})`;
-          const msg = `${actor === 'player' ? '플레이어 -> 몬스터' : '몬스터 -> 플레이어'} • 차단 성공 ${formula} + 취약 ×${A.vulnMult.toFixed(1)}`;
+          const msg = `${actor === 'player' ? '플레이어 -> 몬스터' : '몬스터 -> 플레이어'} • 차단 성공 ${formula}`;
           events.push({ actor, card: card.name, type: 'blocked', msg });
           state.log.push(`${actor === 'player' ? '🔵' : '👾'} ${card.name} → ${msg}`);
         } else {

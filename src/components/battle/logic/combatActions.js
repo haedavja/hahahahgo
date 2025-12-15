@@ -181,12 +181,9 @@ function calculateSingleHit(attacker, defender, card, attackerName, battleContex
       updatedDefender.block = remaining;
       dmg = 0;
 
-      updatedAttacker.vulnMult = 1 + (remaining * 0.5);
-      updatedAttacker.vulnTurns = 1;
-
       const crushText = crushMultiplier > 1 ? ' [분쇄×2]' : '';
       const formula = `(방어력 ${beforeBlock} - 공격력 ${base}${boost > 1 ? '×2' : ''}${crushText} = ${remaining})`;
-      const msg = `${attackerName === 'player' ? '플레이어 -> 몬스터' : '몬스터 -> 플레이어'} • 차단 성공 ${formula} + 취약 ×${updatedAttacker.vulnMult.toFixed(1)}`;
+      const msg = `${attackerName === 'player' ? '플레이어 -> 몬스터' : '몬스터 -> 플레이어'} • 차단 성공 ${formula}`;
 
       events.push({ actor: attackerName, card: card.name, type: 'blocked', msg });
       logs.push(`${attackerName === 'player' ? '🔵' : '👾'} ${card.name} → ${msg}`);
