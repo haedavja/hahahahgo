@@ -200,12 +200,20 @@ const computeBattlePlan = (kind, playerCards, enemyCards, currentPlayerHp = null
 };
 
 const drawCharacterBuildHand = (mainSpecials, subSpecials) => {
-  // 주특기 카드는 100% 등장
+  // 1. 주특기 카드는 100% 등장
   const mainCards = mainSpecials.map((cardId) => cardId);
-  // 보조특기 카드는 각각 50% 확률로 등장
+  // 2. 보조특기 카드는 각각 50% 확률로 등장
   const subCards = subSpecials.filter(() => Math.random() < 0.5);
+
+  // 3. 나머지 보유 카드 (주특기/보조특기 제외) 각각 10% 확률로 등장
+  const usedCardIds = new Set([...mainSpecials, ...subSpecials]);
+  const otherCards = CARDS
+    .filter(card => !usedCardIds.has(card.id))
+    .filter(() => Math.random() < 0.1)
+    .map(card => card.id);
+
   // 합쳐서 손패 생성
-  const cardIds = [...mainCards, ...subCards];
+  const cardIds = [...mainCards, ...subCards, ...otherCards];
   return drawHand(cardIds, cardIds.length);
 };
 
