@@ -1722,9 +1722,13 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     breachSelectionRef.current = null;
     setBreachSelection(null);
 
-    // 선택 완료 후 게임 진행 재개 (다음 stepOnce 자동 호출되지 않으므로 수동 호출)
-    // qIndex를 증가시켜야 다음 카드로 진행
-    actions.setQIndex(currentQIndex + 1);
+    // 선택 완료 후 게임 진행 재개
+    const newQIndex = currentQIndex + 1;
+
+    // battleRef를 즉시 업데이트 (React state 업데이트는 비동기이므로)
+    battleRef.current = { ...battleRef.current, queue: newQueue, qIndex: newQIndex };
+
+    actions.setQIndex(newQIndex);
   }, [addLog, actions]);
 
   const stepOnce = () => {
