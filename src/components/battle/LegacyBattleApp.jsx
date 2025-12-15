@@ -412,6 +412,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   // 브리치 카드 선택 상태
   const [breachSelection, setBreachSelection] = useState(null); // { cards: [], breachSp: number, breachCard: object }
   const breachSelectionRef = useRef(null);
+  const stepOnceRef = useRef(null); // stepOnce 함수 참조 (브리치 선택 후 진행 재개용)
 
   // battle 상태가 변경될 때마다 ref 업데이트
   useEffect(() => {
@@ -1729,6 +1730,13 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     battleRef.current = { ...battleRef.current, queue: newQueue, qIndex: newQIndex };
 
     actions.setQIndex(newQIndex);
+
+    // 자동 진행을 위해 다음 stepOnce 호출 예약
+    setTimeout(() => {
+      if (battleRef.current.qIndex < battleRef.current.queue.length) {
+        stepOnceRef.current?.();
+      }
+    }, 100);
   }, [addLog, actions]);
 
   const stepOnce = () => {
@@ -1794,6 +1802,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       executeCardAction();
     }, TIMING.CARD_EXECUTION_DELAY);
   };
+
+  // stepOnce를 ref에 저장 (브리치 선택 후 진행 재개용)
+  stepOnceRef.current = stepOnce;
 
   const executeCardAction = () => {
     const currentBattle = battleRef.current;
