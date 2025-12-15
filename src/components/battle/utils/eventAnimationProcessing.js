@@ -9,7 +9,9 @@
  * @param {number} intensity - 강도 (1=약함, 2=중간, 3=강함)
  */
 function triggerScreenShake(intensity = 1) {
-  const root = document.querySelector('.legacy-battle-root');
+  // #root에 적용해서 전체 페이지가 함께 움직이도록 함
+  // (.legacy-battle-root에 적용하면 부모 배경이 보여서 압축처럼 보임)
+  const root = document.getElementById('root');
   if (root) {
     root.classList.add('screen-shake');
     setTimeout(() => root.classList.remove('screen-shake'), 250);
