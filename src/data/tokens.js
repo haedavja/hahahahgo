@@ -411,6 +411,15 @@ export const TOKENS = {
     description: '다음 사격 공격이 화상을 입힌다.',
     effect: { type: 'INCENDIARY', value: 1 }
   },
+  burn: {
+    id: 'burn',
+    name: '화상',
+    type: TOKEN_TYPES.TURN,
+    category: TOKEN_CATEGORIES.NEGATIVE,
+    emoji: '🔥',
+    description: '턴 종료 시 5 피해를 받는다.',
+    effect: { type: 'BURN', value: 5 }
+  },
 
   // === 치명타/통찰 관련 토큰 ===
   crit_boost: {

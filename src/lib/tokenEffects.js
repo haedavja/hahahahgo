@@ -42,6 +42,24 @@ export function applyTokenEffectsToCard(card, entity, cardType) {
       modifiedCard.damage = 0;
       return { modifiedCard, consumedTokens: [] };
     }
+
+    // 철갑탄: 방어력 무시 (_ignoreBlock 플래그 사용 - shouldIgnoreBlock과 호환)
+    const armorPiercingToken = allTokens.find(
+      t => t.effect?.type === 'ARMOR_PIERCING' && t.durationType === 'usage'
+    );
+    if (armorPiercingToken) {
+      modifiedCard._ignoreBlock = true;
+      consumedTokens.push({ id: 'armor_piercing', type: 'usage' });
+    }
+
+    // 소이탄: 화상 부여 (_applyBurn 플래그)
+    const incendiaryToken = allTokens.find(
+      t => t.effect?.type === 'INCENDIARY' && t.durationType === 'usage'
+    );
+    if (incendiaryToken) {
+      modifiedCard._applyBurn = true;
+      consumedTokens.push({ id: 'incendiary', type: 'usage' });
+    }
   }
 
   // 공격력 증가 토큰

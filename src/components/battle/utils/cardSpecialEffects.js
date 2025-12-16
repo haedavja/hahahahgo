@@ -282,6 +282,17 @@ export function processPostAttackSpecials({
     logs.push(msg);
   }
 
+  // === _applyBurn: 소이탄 토큰 효과 - 화상 부여 ===
+  if (card._applyBurn) {
+    const result = addToken(modifiedDefender, 'burn', 1);
+    modifiedDefender.tokens = result.tokens;
+    const who = attackerName === 'player' ? '플레이어' : '몬스터';
+    const target = attackerName === 'player' ? '몬스터' : '플레이어';
+    const msg = `${who} -> ${target} • 🔥 소이탄: 화상 부여!`;
+    events.push({ actor: attackerName, card: card.name, type: 'special', msg });
+    logs.push(msg);
+  }
+
   return {
     attacker: modifiedAttacker,
     defender: modifiedDefender,
