@@ -1910,6 +1910,14 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     if (currentBattle.qIndex >= currentBattle.queue.length) return;
     const a = currentBattle.queue[currentBattle.qIndex];
 
+    console.log('[executeCardAction] 카드 실행 시작:', {
+      cardName: a.card?.name,
+      cardId: a.card?.id,
+      qIndex: currentBattle.qIndex,
+      'battleRef.current.player.tokens': JSON.stringify(currentBattle.player?.tokens),
+      'React player.tokens': JSON.stringify(player?.tokens)
+    });
+
     // battleRef에서 최신 player/enemy 상태 가져오기 (애니메이션 중 방어자세 방어력, 토큰 등 반영)
     const latestPlayer = currentBattle.player || player;
     const latestEnemy = currentBattle.enemy || enemy;
