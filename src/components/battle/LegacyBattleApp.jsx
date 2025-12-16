@@ -172,6 +172,10 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   // 민첩도 payload에 값이 있으면 우선 사용하고, 없으면 스토어 값을 사용
   const effectiveAgility = playerWithAnomalies.agility ?? playerAgility ?? 0;
   const effectiveCardDrawBonus = passiveRelicStats.cardDrawBonus || 0;
+  // 슈퍼-장갑 상징: 최대 카드 제출 수 (0이면 기본값 5 사용)
+  const effectiveMaxSubmitCards = passiveRelicStats.maxSubmitCards > 0
+    ? passiveRelicStats.maxSubmitCards
+    : MAX_SUBMIT_CARDS + (passiveRelicStats.extraCardPlay || 0);
   const startingEther = typeof playerWithAnomalies.etherPts === 'number' ? playerWithAnomalies.etherPts : playerEther;
   const startingBlock = playerWithAnomalies.block ?? 0; // 상징 효과로 인한 시작 방어력
   const startingStrength = playerWithAnomalies.strength ?? playerStrength ?? 0; // 전투 시작 힘 (상징 효과 포함)
@@ -1121,7 +1125,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         playSound(400, 80); // 해지 사운드 (낮은 음)
       }
       else {
-        if (selected.length >= MAX_SUBMIT_CARDS) { addLog('⚠️ 최대 5장의 카드만 제출할 수 있습니다'); return; }
+        if (selected.length >= effectiveMaxSubmitCards) { addLog(`⚠️ 최대 ${effectiveMaxSubmitCards}장의 카드만 제출할 수 있습니다`); return; }
         if (totalSpeed + cardSpeed > player.maxSpeed) { addLog('⚠️ 속도 초과'); return; }
         if (totalEnergy + card.actionCost > player.maxEnergy) { addLog('⚠️ 행동력 부족'); return; }
         next = [...selected, { ...card, __uid: card.__handUid || Math.random().toString(36).slice(2) }];
@@ -1140,7 +1144,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       playSound(400, 80); // 해지 사운드 (낮은 음)
       return;
     }
-    if (battle.selected.length >= MAX_SUBMIT_CARDS) return addLog('⚠️ 최대 5장의 카드만 제출할 수 있습니다');
+    if (battle.selected.length >= effectiveMaxSubmitCards) return addLog(`⚠️ 최대 ${effectiveMaxSubmitCards}장의 카드만 제출할 수 있습니다`);
     if (totalSpeed + cardSpeed > player.maxSpeed) return addLog('⚠️ 속도 초과');
     if (totalEnergy + card.actionCost > player.maxEnergy) return addLog('⚠️ 행동력 부족');
     actions.setSelected([...selected, { ...card, __uid: card.__handUid || Math.random().toString(36).slice(2) }]);
@@ -2762,7 +2766,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   }, [enemy?.composition, enemy?.name, enemy?.emoji, enemy?.count, enemy?.quantity]);
 
   const handDisabled = (c) => (
-    battle.selected.length >= MAX_SUBMIT_CARDS ||
+    battle.selected.length >= effectiveMaxSubmitCards ||
     totalSpeed + applyAgility(c.speedCost, effectiveAgility) > player.maxSpeed ||
     totalEnergy + c.actionCost > player.maxEnergy
   );
@@ -3056,7 +3060,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
             battle={battle}
             totalSpeed={totalSpeed}
             MAX_SPEED={MAX_SPEED}
-            MAX_SUBMIT_CARDS={MAX_SUBMIT_CARDS}
+            MAX_SUBMIT_CARDS={effectiveMaxSubmitCards}
             redrawHand={redrawHand}
             canRedraw={canRedraw}
             startResolve={startResolve}

@@ -400,6 +400,19 @@ export const RELICS = {
     },
   },
 
+  superArmor: {
+    id: 'superArmor',
+    name: '슈퍼-장갑',
+    emoji: '🧤',
+    rarity: RELIC_RARITIES.DEV,
+    tags: [RELIC_TAGS.DRAW],
+    description: '최대 10장까지 카드를 낼 수 있습니다. (개발용)',
+    effects: {
+      type: 'PASSIVE',
+      maxSubmitCards: 10,
+    },
+  },
+
   // ==================== 추가 상징 ====================
   mockingMask: {
     id: 'mockingMask',

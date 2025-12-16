@@ -24,6 +24,8 @@ export function calculatePassiveEffects(relicIds = []) {
     etherMultiplier: 1,
     etherFiveCardBonus: 0,
     etherCardMultiplier: false,
+    maxSubmitCards: 0,      // 최대 카드 제출 수 증가 (슈퍼-장갑)
+    extraCardPlay: 0,       // 추가 카드 사용 가능 (바람의 눈물)
   };
 
   relicIds.forEach(relicId => {
@@ -44,6 +46,8 @@ export function calculatePassiveEffects(relicIds = []) {
     if (effects.etherMultiplier) stats.etherMultiplier *= effects.etherMultiplier;
     if (effects.etherFiveCardBonus) stats.etherFiveCardBonus = effects.etherFiveCardBonus;
     if (effects.etherCardMultiplier) stats.etherCardMultiplier = true;
+    if (effects.maxSubmitCards) stats.maxSubmitCards = effects.maxSubmitCards; // 덮어쓰기 (고정값)
+    if (effects.extraCardPlay) stats.extraCardPlay += effects.extraCardPlay;
   });
 
   return stats;
