@@ -179,28 +179,26 @@ export function CharacterSheet({ onClose }) {
     setDevCardInput("");
   };
 
-  // 좌클릭: 추가 (중복 불가), 우클릭: 제거
+  // 좌클릭: 토글 (추가/제거), 우클릭: 제거
   const handleCardClick = (cardId, isRightClick = false) => {
     if (specialMode === "main") {
       setMainSpecials((prev) => {
-        if (isRightClick) {
-          // 우클릭: 제거
+        if (isRightClick || prev.includes(cardId)) {
+          // 우클릭 또는 이미 선택된 카드면 제거
           return prev.filter(id => id !== cardId);
         }
-        // 좌클릭: 추가 (슬롯 제한 + 중복 확인)
+        // 좌클릭: 추가 (슬롯 제한 확인)
         if (prev.length >= maxMainSlots) return prev;
-        if (prev.includes(cardId)) return prev; // 이미 있으면 추가 안함
         return [...prev, cardId];
       });
     } else {
       setSubSpecials((prev) => {
-        if (isRightClick) {
-          // 우클릭: 제거
+        if (isRightClick || prev.includes(cardId)) {
+          // 우클릭 또는 이미 선택된 카드면 제거
           return prev.filter(id => id !== cardId);
         }
-        // 좌클릭: 추가 (슬롯 제한 + 중복 확인)
+        // 좌클릭: 추가 (슬롯 제한 확인)
         if (prev.length >= maxSubSlots) return prev;
-        if (prev.includes(cardId)) return prev; // 이미 있으면 추가 안함
         return [...prev, cardId];
       });
     }
