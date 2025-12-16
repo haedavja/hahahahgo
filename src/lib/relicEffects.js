@@ -14,6 +14,8 @@ export function calculatePassiveEffects(relicIds = []) {
   const stats = {
     maxEnergy: 0,
     maxHp: 0,
+    maxSpeed: 0,
+    speed: 0,
     strength: 0,
     agility: 0,
     subSpecialSlots: 0,
@@ -32,6 +34,8 @@ export function calculatePassiveEffects(relicIds = []) {
 
     if (effects.maxEnergy) stats.maxEnergy += effects.maxEnergy;
     if (effects.maxHp) stats.maxHp += effects.maxHp;
+    if (effects.maxSpeed) stats.maxSpeed += effects.maxSpeed;
+    if (effects.speed) stats.speed += effects.speed;
     if (effects.strength) stats.strength += effects.strength;
     if (effects.agility) stats.agility += effects.agility;
     if (effects.subSpecialSlots) stats.subSpecialSlots += effects.subSpecialSlots;

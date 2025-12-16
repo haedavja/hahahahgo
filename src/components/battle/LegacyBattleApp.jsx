@@ -193,8 +193,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     comboUsageCount: {},
     strength: startingStrength,
     insight: startingInsight,
-    // 이변 패널티를 고려한 최대 속도 계산
-    maxSpeed: Math.max(0, (playerWithAnomalies.maxSpeed ?? DEFAULT_PLAYER_MAX_SPEED) - (playerWithAnomalies.speedPenalty || 0)),
+    // 이변 패널티와 상징 효과를 고려한 최대 속도 계산
+    maxSpeed: Math.max(0, (playerWithAnomalies.maxSpeed ?? DEFAULT_PLAYER_MAX_SPEED) + (passiveRelicStats.maxSpeed || 0) + (passiveRelicStats.speed || 0) - (playerWithAnomalies.speedPenalty || 0)),
     tokens: playerWithAnomalies.tokens || { usage: [], turn: [], permanent: [] },
     // 이변 효과 플래그 보존
     etherBan: playerWithAnomalies.etherBan || false,

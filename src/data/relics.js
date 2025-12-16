@@ -386,6 +386,19 @@ export const RELICS = {
     },
   },
 
+  lightShoes: {
+    id: 'lightShoes',
+    name: '빛의 신발',
+    emoji: '👟',
+    rarity: RELIC_RARITIES.SPECIAL,
+    tags: [RELIC_TAGS.SPEED],
+    description: '최대 속도가 100 증가합니다. (개발용)',
+    effects: {
+      type: 'PASSIVE',
+      maxSpeed: 100,
+    },
+  },
+
   // ==================== 추가 상징 ====================
   mockingMask: {
     id: 'mockingMask',
