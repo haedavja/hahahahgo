@@ -936,25 +936,29 @@ body {
 }
 
 .energy-orb-compact {
-  width: 100px;
-  height: 100px;
+  width: 130px;
+  height: 130px;
   border-radius: 999px;
   background: radial-gradient(circle at 30% 30%, #ffe066, #f59e0b);
-  border: 3px solid rgba(255, 255, 255, 0.8);
+  border: 4px solid rgba(255, 255, 255, 0.8);
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 900;
-  font-size: 36px;
+  font-size: 32px;
+  font-family: 'Courier New', Courier, monospace;
+  letter-spacing: -1px;
   color: #09090c;
-  box-shadow: 0 8px 30px rgba(249, 115, 22, 0.5);
+  box-shadow: 0 10px 35px rgba(249, 115, 22, 0.55);
   flex-shrink: 0;
+  min-width: 130px;
+  text-align: center;
 }
 
 /* ?낅┰ ?쒕룞???쒖떆 (醫뚯륫 ?섎떒 怨좎젙) */
 .energy-display-fixed {
   position: fixed;
-  bottom: 230px; /* ?먮옒 ?꾩튂濡?蹂듦뎄 */
+  bottom: 245px; /* ?먮옒 ?꾩튂濡?蹂듦뎄 */
   left: 120px; /* 20px ??120px (?ㅻⅨ履쎌쑝濡?100px ?대룞) */
   z-index: 50; /* 50 ?좎? (移대뱶蹂대떎 ??쾶) */
 }
