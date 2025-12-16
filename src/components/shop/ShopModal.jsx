@@ -527,6 +527,7 @@ export function ShopModal({ merchantType = 'shop', onClose }) {
                             borderRadius: '12px',
                             opacity: sold ? 0.5 : 1,
                             transition: 'all 0.2s',
+                            position: 'relative',
                           }}
                         >
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
@@ -570,40 +571,34 @@ export function ShopModal({ merchantType = 'shop', onClose }) {
                               <div style={{ display: 'flex', gap: '4px' }}>
                                 <button
                                   type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    if (canAfford) handleBuyCard(id, price, true);
-                                  }}
-                                  disabled={!canAfford}
+                                  onClick={() => handleBuyCard(id, price, true)}
                                   style={{
-                                    padding: '4px 8px',
-                                    background: canAfford ? 'rgba(251, 191, 36, 0.2)' : 'rgba(100, 116, 139, 0.2)',
+                                    padding: '6px 10px',
+                                    background: canAfford ? 'rgba(251, 191, 36, 0.3)' : 'rgba(100, 116, 139, 0.2)',
                                     border: `1px solid ${canAfford ? '#fbbf24' : '#475569'}`,
                                     borderRadius: '4px',
                                     color: canAfford ? '#fbbf24' : '#64748b',
-                                    fontSize: '0.7rem',
+                                    fontSize: '0.75rem',
                                     cursor: canAfford ? 'pointer' : 'not-allowed',
                                     fontWeight: 600,
+                                    pointerEvents: canAfford ? 'auto' : 'none',
                                   }}
                                 >
                                   ⭐주특기
                                 </button>
                                 <button
                                   type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    if (canAfford) handleBuyCard(id, price, false);
-                                  }}
-                                  disabled={!canAfford}
+                                  onClick={() => handleBuyCard(id, price, false)}
                                   style={{
-                                    padding: '4px 8px',
-                                    background: canAfford ? 'rgba(96, 165, 250, 0.2)' : 'rgba(100, 116, 139, 0.2)',
+                                    padding: '6px 10px',
+                                    background: canAfford ? 'rgba(96, 165, 250, 0.3)' : 'rgba(100, 116, 139, 0.2)',
                                     border: `1px solid ${canAfford ? '#60a5fa' : '#475569'}`,
                                     borderRadius: '4px',
                                     color: canAfford ? '#60a5fa' : '#64748b',
-                                    fontSize: '0.7rem',
+                                    fontSize: '0.75rem',
                                     cursor: canAfford ? 'pointer' : 'not-allowed',
                                     fontWeight: 600,
+                                    pointerEvents: canAfford ? 'auto' : 'none',
                                   }}
                                 >
                                   💠보조
