@@ -1,6 +1,35 @@
-import { useReducer, useMemo, useCallback } from 'react';
+import { useReducer, useMemo, useCallback, useRef, useEffect } from 'react';
 import { battleReducer, createInitialState, ACTIONS } from '../reducer/battleReducer';
 import { addToken, removeToken, clearTurnTokens } from '../../../lib/tokenUtils';
+
+/**
+ * =============================================================================
+ * STALE CLOSURE 문제 해결 패턴
+ * =============================================================================
+ *
+ * 문제: useMemo/useCallback 내부에서 state를 직접 참조하면 클로저에 갇힌
+ *      생성 시점의 stale 값을 사용하게 됨
+ *
+ * 예시 (BAD):
+ *   const actions = useMemo(() => ({
+ *     doSomething: () => {
+ *       const value = battle.player; // ❌ stale closure!
+ *     }
+ *   }), [dispatch]); // dependency에 battle이 없으므로 battle 변경 시 갱신 안됨
+ *
+ * 해결 (GOOD):
+ *   const battleRef = useRef(battle);
+ *   useEffect(() => { battleRef.current = battle; }, [battle]);
+ *
+ *   const actions = useMemo(() => ({
+ *     doSomething: () => {
+ *       const value = battleRef.current.player; // ✅ 항상 최신 상태!
+ *     }
+ *   }), [dispatch]);
+ *
+ * 이 파일에서 battleRef를 사용하여 토큰 함수들이 항상 최신 상태를 참조하도록 함
+ * =============================================================================
+ */
 
 /**
  * useBattleState Hook
@@ -32,6 +61,15 @@ export function useBattleState(initialStateOverrides = {}) {
   }, []);
 
   const [battle, dispatch] = useReducer(battleReducer, null, initializeBattleState);
+
+  // =====================
+  // STALE CLOSURE 문제 해결
+  // 토큰 함수들이 항상 최신 상태를 참조하도록 ref 사용
+  // =====================
+  const battleRef = useRef(battle);
+  useEffect(() => {
+    battleRef.current = battle;
+  }, [battle]);
 
   // =====================
   // 액션 헬퍼 함수들
@@ -139,38 +177,45 @@ export function useBattleState(initialStateOverrides = {}) {
     setFrozenOrder: (value) => dispatch({ type: ACTIONS.SET_FROZEN_ORDER, payload: value }),
 
     // === 토큰 시스템 ===
+    // 주의: battleRef.current 사용 - stale closure 방지
     addTokenToPlayer: (tokenId, stacks = 1) => {
-      const result = addToken(battle.player, tokenId, stacks);
+      const current = battleRef.current;  // 항상 최신 상태 참조!
+      const result = addToken(current.player, tokenId, stacks);
       dispatch({ type: ACTIONS.UPDATE_PLAYER_TOKENS, payload: result.tokens });
       result.logs.forEach(log => dispatch({ type: ACTIONS.ADD_LOG, payload: log }));
       return result;
     },
     addTokenToEnemy: (tokenId, stacks = 1) => {
-      const result = addToken(battle.enemy, tokenId, stacks);
+      const current = battleRef.current;  // 항상 최신 상태 참조!
+      const result = addToken(current.enemy, tokenId, stacks);
       dispatch({ type: ACTIONS.UPDATE_ENEMY_TOKENS, payload: result.tokens });
       result.logs.forEach(log => dispatch({ type: ACTIONS.ADD_LOG, payload: log }));
       return result;
     },
     removeTokenFromPlayer: (tokenId, tokenType, stacks = 1) => {
-      const result = removeToken(battle.player, tokenId, tokenType, stacks);
+      const current = battleRef.current;  // 항상 최신 상태 참조!
+      const result = removeToken(current.player, tokenId, tokenType, stacks);
       dispatch({ type: ACTIONS.UPDATE_PLAYER_TOKENS, payload: result.tokens });
       result.logs.forEach(log => dispatch({ type: ACTIONS.ADD_LOG, payload: log }));
       return result;
     },
     removeTokenFromEnemy: (tokenId, tokenType, stacks = 1) => {
-      const result = removeToken(battle.enemy, tokenId, tokenType, stacks);
+      const current = battleRef.current;  // 항상 최신 상태 참조!
+      const result = removeToken(current.enemy, tokenId, tokenType, stacks);
       dispatch({ type: ACTIONS.UPDATE_ENEMY_TOKENS, payload: result.tokens });
       result.logs.forEach(log => dispatch({ type: ACTIONS.ADD_LOG, payload: log }));
       return result;
     },
     clearPlayerTurnTokens: () => {
-      const result = clearTurnTokens(battle.player);
+      const current = battleRef.current;  // 항상 최신 상태 참조!
+      const result = clearTurnTokens(current.player);
       dispatch({ type: ACTIONS.UPDATE_PLAYER_TOKENS, payload: result.tokens });
       result.logs.forEach(log => dispatch({ type: ACTIONS.ADD_LOG, payload: log }));
       return result;
     },
     clearEnemyTurnTokens: () => {
-      const result = clearTurnTokens(battle.enemy);
+      const current = battleRef.current;  // 항상 최신 상태 참조!
+      const result = clearTurnTokens(current.enemy);
       dispatch({ type: ACTIONS.UPDATE_ENEMY_TOKENS, payload: result.tokens });
       result.logs.forEach(log => dispatch({ type: ACTIONS.ADD_LOG, payload: log }));
       return result;
