@@ -569,7 +569,11 @@ export function ShopModal({ merchantType = 'shop', onClose }) {
                               </span>
                               <div style={{ display: 'flex', gap: '4px' }}>
                                 <button
-                                  onClick={() => canAfford && handleBuyCard(id, price, true)}
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (canAfford) handleBuyCard(id, price, true);
+                                  }}
                                   disabled={!canAfford}
                                   style={{
                                     padding: '4px 8px',
@@ -585,7 +589,11 @@ export function ShopModal({ merchantType = 'shop', onClose }) {
                                   ⭐주특기
                                 </button>
                                 <button
-                                  onClick={() => canAfford && handleBuyCard(id, price, false)}
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (canAfford) handleBuyCard(id, price, false);
+                                  }}
                                   disabled={!canAfford}
                                   style={{
                                     padding: '4px 8px',
