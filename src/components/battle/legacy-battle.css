@@ -1992,12 +1992,16 @@ body {
 /* no-hover 클래스: 호버 효과 완전 비활성화 */
 .game-card-large.no-hover,
 .game-card-large.no-hover:hover,
-.game-card-large.no-hover:hover:not(.disabled) {
+.game-card-large.no-hover:hover:not(.disabled),
+.game-card-large.no-hover.selected,
+.game-card-large.no-hover.selected:hover,
+.game-card-large.no-hover.selected:hover:not(.disabled) {
   transition: none !important;
   z-index: auto !important;
   margin-right: 0 !important;
   width: 154px !important;
   height: 200px !important;
+  transform: none !important;
 }
 
 .game-card-large.no-hover .card-header,

@@ -692,7 +692,7 @@ export function CharacterSheet({ onClose }) {
                     ({specialMode === 'main' ? mainSpecials.length : subSpecials.length}장)
                   </span>
                 </h3>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', minHeight: '160px', alignItems: 'flex-start' }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', minHeight: '160px', alignItems: 'flex-start' }}>
                   {(specialMode === 'main' ? mainSpecials : subSpecials).map((cardId, idx) => {
                     const card = CARDS.find(c => c.id === cardId);
                     if (!card) return null;
@@ -702,43 +702,45 @@ export function CharacterSheet({ onClose }) {
                     return (
                       <div
                         key={`selected-${cardId}-${idx}`}
-                        onClick={() => handleCardClick(cardId, true)}
-                        className={`game-card-large no-hover ${card.type === 'attack' ? 'attack' : 'defense'}`}
-                        style={{
-                          cursor: 'pointer',
-                          transform: 'scale(0.55)',
-                          transformOrigin: 'top left',
-                          boxShadow: `0 0 15px ${borderColor}40`,
-                          border: `2px solid ${borderColor}`,
-                        }}
-                        title="클릭하여 제거"
+                        style={{ transform: 'scale(0.7)', transformOrigin: 'top left', width: '108px', height: '140px' }}
                       >
-                        <div className="card-cost-badge-floating" style={{
-                          color: isMainSpecial ? '#fcd34d' : '#60a5fa',
-                          WebkitTextStroke: '1px #000'
-                        }}>
-                          {card.actionCost}
-                        </div>
-                        <div className="card-stats-sidebar">
-                          {card.damage != null && card.damage > 0 && (
-                            <div className="card-stat-item attack">⚔️{card.damage}{card.hits ? `×${card.hits}` : ''}</div>
-                          )}
-                          {card.block != null && card.block > 0 && (
-                            <div className="card-stat-item defense">🛡️{card.block}</div>
-                          )}
-                          <div className="card-stat-item speed">⏱️{card.speedCost}</div>
-                        </div>
-                        <div className="card-header" style={{ display: 'flex', justifyContent: 'center' }}>
-                          <div className="font-black text-sm" style={{ color: isMainSpecial ? '#fcd34d' : '#7dd3fc' }}>
-                            {card.name}
+                        <div
+                          onClick={() => handleCardClick(cardId, true)}
+                          className={`game-card-large no-hover ${card.type === 'attack' ? 'attack' : 'defense'}`}
+                          style={{
+                            cursor: 'pointer',
+                            boxShadow: `0 0 15px ${borderColor}40`,
+                            border: `2px solid ${borderColor}`,
+                          }}
+                          title="클릭하여 제거"
+                        >
+                          <div className="card-cost-badge-floating" style={{
+                            color: isMainSpecial ? '#fcd34d' : '#60a5fa',
+                            WebkitTextStroke: '1px #000'
+                          }}>
+                            {card.actionCost}
                           </div>
-                        </div>
-                        <div className="card-icon-area">
-                          <Icon size={50} className="text-white opacity-80" />
-                        </div>
-                        <div className="card-footer">
-                          {card.traits && card.traits.length > 0 && <TraitBadgeList traits={card.traits} />}
-                          <span className="card-description">{card.description || ''}</span>
+                          <div className="card-stats-sidebar">
+                            {card.damage != null && card.damage > 0 && (
+                              <div className="card-stat-item attack">⚔️{card.damage}{card.hits ? `×${card.hits}` : ''}</div>
+                            )}
+                            {card.block != null && card.block > 0 && (
+                              <div className="card-stat-item defense">🛡️{card.block}</div>
+                            )}
+                            <div className="card-stat-item speed">⏱️{card.speedCost}</div>
+                          </div>
+                          <div className="card-header" style={{ display: 'flex', justifyContent: 'center' }}>
+                            <div className="font-black text-sm" style={{ color: isMainSpecial ? '#fcd34d' : '#7dd3fc' }}>
+                              {card.name}
+                            </div>
+                          </div>
+                          <div className="card-icon-area">
+                            <Icon size={50} className="text-white opacity-80" />
+                          </div>
+                          <div className="card-footer">
+                            {card.traits && card.traits.length > 0 && <TraitBadgeList traits={card.traits} />}
+                            <span className="card-description">{card.description || ''}</span>
+                          </div>
                         </div>
                       </div>
                     );
@@ -751,7 +753,7 @@ export function CharacterSheet({ onClose }) {
 
               {/* 전체 카드 목록 - 전투 스타일 */}
               <h3 style={{ fontSize: '14px', color: '#9fb6ff', marginBottom: '12px' }}>📜 전체 카드 목록</h3>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px' }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
                 {availableCards.map((c) => {
                   const card = CARDS.find(cd => cd.id === c.id);
                   if (!card) return null;
@@ -773,63 +775,65 @@ export function CharacterSheet({ onClose }) {
                   return (
                     <div
                       key={c.id}
-                      onClick={() => handleCardClick(c.id, false)}
-                      onContextMenu={(e) => {
-                        e.preventDefault();
-                        handleCardClick(c.id, true);
-                      }}
-                      className={`game-card-large no-hover ${card.type === 'attack' ? 'attack' : 'defense'}`}
-                      style={{
-                        cursor: 'pointer',
-                        transform: 'scale(0.5)',
-                        transformOrigin: 'top left',
-                        ...borderStyle,
-                      }}
+                      style={{ transform: 'scale(0.65)', transformOrigin: 'top left', width: '100px', height: '130px' }}
                     >
-                      <div className="card-cost-badge-floating" style={{
-                        color: isMainSpecial ? '#fcd34d' : isSubSpecial ? '#60a5fa' : '#fff',
-                        WebkitTextStroke: '1px #000'
-                      }}>
-                        {card.actionCost}
-                      </div>
-                      {isSelected && (
-                        <div style={{
-                          position: 'absolute',
-                          top: '8px',
-                          right: '8px',
-                          background: specialMode === 'main' ? '#f5d76e' : '#7dd3fc',
-                          color: '#000',
-                          padding: '2px 8px',
-                          borderRadius: '10px',
-                          fontSize: '12px',
-                          fontWeight: 700,
-                          zIndex: 10,
+                      <div
+                        onClick={() => handleCardClick(c.id, false)}
+                        onContextMenu={(e) => {
+                          e.preventDefault();
+                          handleCardClick(c.id, true);
+                        }}
+                        className={`game-card-large no-hover ${card.type === 'attack' ? 'attack' : 'defense'}`}
+                        style={{
+                          cursor: 'pointer',
+                          ...borderStyle,
+                        }}
+                      >
+                        <div className="card-cost-badge-floating" style={{
+                          color: isMainSpecial ? '#fcd34d' : isSubSpecial ? '#60a5fa' : '#fff',
+                          WebkitTextStroke: '1px #000'
                         }}>
-                          x{count}
+                          {card.actionCost}
                         </div>
-                      )}
-                      <div className="card-stats-sidebar">
-                        {card.damage != null && card.damage > 0 && (
-                          <div className="card-stat-item attack">⚔️{card.damage}{card.hits ? `×${card.hits}` : ''}</div>
+                        {isSelected && (
+                          <div style={{
+                            position: 'absolute',
+                            top: '8px',
+                            right: '8px',
+                            background: specialMode === 'main' ? '#f5d76e' : '#7dd3fc',
+                            color: '#000',
+                            padding: '2px 8px',
+                            borderRadius: '10px',
+                            fontSize: '12px',
+                            fontWeight: 700,
+                            zIndex: 10,
+                          }}>
+                            x{count}
+                          </div>
                         )}
-                        {card.block != null && card.block > 0 && (
-                          <div className="card-stat-item defense">🛡️{card.block}</div>
-                        )}
-                        <div className="card-stat-item speed">⏱️{card.speedCost}</div>
-                      </div>
-                      <div className="card-header" style={{ display: 'flex', justifyContent: 'center' }}>
-                        <div className="font-black text-sm" style={{
-                          color: isMainSpecial ? '#fcd34d' : isSubSpecial ? '#7dd3fc' : '#fff'
-                        }}>
-                          {card.name}
+                        <div className="card-stats-sidebar">
+                          {card.damage != null && card.damage > 0 && (
+                            <div className="card-stat-item attack">⚔️{card.damage}{card.hits ? `×${card.hits}` : ''}</div>
+                          )}
+                          {card.block != null && card.block > 0 && (
+                            <div className="card-stat-item defense">🛡️{card.block}</div>
+                          )}
+                          <div className="card-stat-item speed">⏱️{card.speedCost}</div>
                         </div>
-                      </div>
-                      <div className="card-icon-area">
-                        <Icon size={50} className="text-white opacity-80" />
-                      </div>
-                      <div className="card-footer">
-                        {card.traits && card.traits.length > 0 && <TraitBadgeList traits={card.traits} />}
-                        <span className="card-description">{card.description || ''}</span>
+                        <div className="card-header" style={{ display: 'flex', justifyContent: 'center' }}>
+                          <div className="font-black text-sm" style={{
+                            color: isMainSpecial ? '#fcd34d' : isSubSpecial ? '#7dd3fc' : '#fff'
+                          }}>
+                            {card.name}
+                          </div>
+                        </div>
+                        <div className="card-icon-area">
+                          <Icon size={50} className="text-white opacity-80" />
+                        </div>
+                        <div className="card-footer">
+                          {card.traits && card.traits.length > 0 && <TraitBadgeList traits={card.traits} />}
+                          <span className="card-description">{card.description || ''}</span>
+                        </div>
                       </div>
                     </div>
                   );
