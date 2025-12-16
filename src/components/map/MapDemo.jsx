@@ -20,8 +20,6 @@ const NODE_HEIGHT = 100;
 const MAP_WIDTH = 960;
 const MAP_LAYERS = 11;
 const V_SPACING = 220;
-const PRAYER_COSTS = [1, 3, 5];
-
 const ICON_MAP = {
   battle: "⚔️",
   elite: "⛧",
@@ -221,7 +219,6 @@ export function MapDemo() {
   const selectNode = useGameStore((state) => state.selectNode);
   const chooseEvent = useGameStore((state) => state.chooseEvent);
   const closeEvent = useGameStore((state) => state.closeEvent);
-  const invokePrayer = useGameStore((state) => state.invokePrayer);
   const clearBattleResult = useGameStore((state) => state.clearBattleResult);
   const skipDungeon = useGameStore((state) => state.skipDungeon);
   const confirmDungeon = useGameStore((state) => state.confirmDungeon);
@@ -372,11 +369,6 @@ export function MapDemo() {
       // 전투 중이면 그대로 유지 (던전 내 전투)
     }
   }, [activeDungeon, activeBattle, actions]);
-
-  const availablePrayers = useMemo(
-    () => PRAYER_COSTS.filter((cost) => (resources.etherPts ?? 0) >= cost),
-    [resources.etherPts],
-  );
 
   const handleNodeClick = (node) => {
     if (!node || node.cleared || !node.selectable) return;
@@ -733,22 +725,6 @@ export function MapDemo() {
                   })}
                 </div>
 
-                {availablePrayers.length > 0 && (
-                  <div className="event-choices">
-                    <strong>기도 (에테르 사용)</strong>
-                    {availablePrayers.map((cost) => (
-                      <div key={`prayer-${cost}`} className="choice-card">
-                        <strong>기도 x{cost}</strong>
-                        <p>에테르를 소모해 우호적 결과를 강제합니다.</p>
-                        <small>비용: 에테르 {cost}</small>
-                        <small>보상: 정보 획득 + 안정화</small>
-                        <button type="button" onClick={() => invokePrayer(cost)}>
-                          기도한다
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
               </>
             )}
 
