@@ -1918,14 +1918,23 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     }
 
     // 방어자세 성장 방어력 적용 (이전에 발동된 growingDefense가 있으면 타임라인 진행에 따라 방어력 추가)
+    console.log('[growingDefense] check:', {
+      refExists: !!growingDefenseRef.current,
+      ref: growingDefenseRef.current,
+      currentCardSp: a.sp,
+      currentCardName: a.card?.name,
+      playerBlock: P.block
+    });
     if (growingDefenseRef.current) {
       const currentSp = a.sp || 0;
       const { lastProcessedSp } = growingDefenseRef.current;
       const defenseDelta = Math.max(0, currentSp - lastProcessedSp);
+      console.log('[growingDefense] calc:', { currentSp, lastProcessedSp, defenseDelta });
       if (defenseDelta > 0) {
         const prevBlock = P.block || 0;
         P.block = prevBlock + defenseDelta;
         P.def = true;
+        console.log('[growingDefense] applied:', { prevBlock, newBlock: P.block });
         addLog(`🛡️ 방어자세: 타임라인 진행 (${lastProcessedSp}→${currentSp}) → +${defenseDelta} 방어력 (${prevBlock}→${P.block})`);
         growingDefenseRef.current.lastProcessedSp = currentSp;
       }
