@@ -1759,19 +1759,14 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const handleRewardSelect = useCallback((selectedCard, idx) => {
     addLog(`🎁 "${selectedCard.name}" 획득!`);
 
-    // 선택한 카드를 subSpecials에 추가 (localStorage에 저장)
-    try {
-      const stored = localStorage.getItem('characterBuild');
-      if (stored) {
-        const build = JSON.parse(stored);
-        const newSubSpecials = [...(build.subSpecials || []), selectedCard.id];
-        const updatedBuild = { ...build, subSpecials: newSubSpecials };
-        localStorage.setItem('characterBuild', JSON.stringify(updatedBuild));
-        console.log('[CardReward] 카드 추가됨:', selectedCard.name, 'to subSpecials');
-      }
-    } catch (err) {
-      console.error('[CardReward] localStorage 저장 실패:', err);
-    }
+    // 선택한 카드를 subSpecials에 추가 (Zustand 스토어 업데이트)
+    const currentBuild = useGameStore.getState().characterBuild;
+    const newSubSpecials = [...(currentBuild?.subSpecials || []), selectedCard.id];
+    useGameStore.getState().updateCharacterBuild(
+      currentBuild?.mainSpecials || [],
+      newSubSpecials
+    );
+    console.log('[CardReward] 카드 추가됨:', selectedCard.name, 'to subSpecials');
 
     // 모달 닫기 및 post 페이즈로 전환
     setCardReward(null);
