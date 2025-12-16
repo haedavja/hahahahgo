@@ -364,6 +364,12 @@ export function processTimelineSpecials({
  * @returns {number} 추가 방어력
  */
 export function calculateGrowingDefense(card, ticksPassed) {
+  console.log('[calculateGrowingDefense]', {
+    cardName: card?.name,
+    cardSpecial: card?.special,
+    hasGrowingDefense: hasSpecial(card, 'growingDefense'),
+    ticksPassed
+  });
   if (!hasSpecial(card, 'growingDefense')) return 0;
   // 타임라인 1 지날때마다 방어력 1씩 증가
   return ticksPassed;
