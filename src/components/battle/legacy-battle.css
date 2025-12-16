@@ -1988,3 +1988,20 @@ body {
   pointer-events: none;
   animation: etherTransfer 0.6s ease-out forwards;
 }
+
+/* no-hover 클래스: 호버 효과 비활성화 (카드 관리 모달 등에서 사용) */
+.game-card-large.no-hover:hover {
+  transform: none !important;
+  z-index: auto !important;
+  margin-right: 0 !important;
+}
+
+.game-card-large.no-hover:hover .card-header,
+.game-card-large.no-hover:hover .card-icon-area svg,
+.game-card-large.no-hover:hover .card-footer,
+.game-card-large.no-hover:hover .card-stat-item {
+  font-size: inherit !important;
+  width: inherit !important;
+  height: inherit !important;
+  padding: inherit !important;
+}

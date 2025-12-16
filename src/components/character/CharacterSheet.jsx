@@ -692,7 +692,7 @@ export function CharacterSheet({ onClose }) {
                     ({specialMode === 'main' ? mainSpecials.length : subSpecials.length}장)
                   </span>
                 </h3>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', minHeight: '140px', alignItems: 'flex-start' }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', minHeight: '160px', alignItems: 'flex-start' }}>
                   {(specialMode === 'main' ? mainSpecials : subSpecials).map((cardId, idx) => {
                     const card = CARDS.find(c => c.id === cardId);
                     if (!card) return null;
@@ -703,13 +703,11 @@ export function CharacterSheet({ onClose }) {
                       <div
                         key={`selected-${cardId}-${idx}`}
                         onClick={() => handleCardClick(cardId, true)}
-                        className={`game-card-large ${card.type === 'attack' ? 'attack' : 'defense'}`}
+                        className={`game-card-large no-hover ${card.type === 'attack' ? 'attack' : 'defense'}`}
                         style={{
                           cursor: 'pointer',
-                          transform: 'scale(0.7)',
+                          transform: 'scale(0.55)',
                           transformOrigin: 'top left',
-                          marginRight: '-45px',
-                          marginBottom: '-40px',
                           boxShadow: `0 0 15px ${borderColor}40`,
                           border: `2px solid ${borderColor}`,
                         }}
@@ -753,7 +751,7 @@ export function CharacterSheet({ onClose }) {
 
               {/* 전체 카드 목록 - 전투 스타일 */}
               <h3 style={{ fontSize: '14px', color: '#9fb6ff', marginBottom: '12px' }}>📜 전체 카드 목록</h3>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px' }}>
                 {availableCards.map((c) => {
                   const card = CARDS.find(cd => cd.id === c.id);
                   if (!card) return null;
@@ -780,14 +778,11 @@ export function CharacterSheet({ onClose }) {
                         e.preventDefault();
                         handleCardClick(c.id, true);
                       }}
-                      className={`game-card-large ${card.type === 'attack' ? 'attack' : 'defense'}`}
+                      className={`game-card-large no-hover ${card.type === 'attack' ? 'attack' : 'defense'}`}
                       style={{
                         cursor: 'pointer',
-                        transform: 'scale(0.65)',
+                        transform: 'scale(0.5)',
                         transformOrigin: 'top left',
-                        marginRight: '-52px',
-                        marginBottom: '-50px',
-                        transition: 'all 0.15s ease',
                         ...borderStyle,
                       }}
                     >
