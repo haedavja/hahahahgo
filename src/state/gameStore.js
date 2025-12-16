@@ -199,7 +199,7 @@ const computeBattlePlan = (kind, playerCards, enemyCards, currentPlayerHp = null
   };
 };
 
-const drawCharacterBuildHand = (mainSpecials, subSpecials) => {
+const drawCharacterBuildHand = (mainSpecials, subSpecials, ownedCards = []) => {
   // 1. 주특기 카드는 100% 등장
   const mainCards = mainSpecials.map((cardId) => cardId);
   // 2. 보조특기 카드는 각각 50% 확률로 등장
@@ -207,10 +207,9 @@ const drawCharacterBuildHand = (mainSpecials, subSpecials) => {
 
   // 3. 나머지 보유 카드 (주특기/보조특기 제외) 각각 10% 확률로 등장
   const usedCardIds = new Set([...mainSpecials, ...subSpecials]);
-  const otherCards = CARDS
-    .filter(card => !usedCardIds.has(card.id))
-    .filter(() => Math.random() < 0.1)
-    .map(card => card.id);
+  const otherCards = ownedCards
+    .filter(cardId => !usedCardIds.has(cardId))
+    .filter(() => Math.random() < 0.1);
 
   // 합쳐서 손패 생성
   const cardIds = [...mainCards, ...subCards, ...otherCards];
@@ -246,7 +245,7 @@ const createBattlePayload = (node, characterBuild, playerHp = null, maxHp = null
   const enemyDrawPile = [...enemyLibrary];
 
   const playerHand = hasCharacterBuild
-    ? drawCharacterBuildHand(characterBuild.mainSpecials, characterBuild.subSpecials)
+    ? drawCharacterBuildHand(characterBuild.mainSpecials, characterBuild.subSpecials, characterBuild.ownedCards)
     : drawHand(playerDrawPile, 3);
 
   // 적 손패 크기를 개체 수에 비례해 확장 (기본 3장 * 개체 수, 드로우 가능한 한도 내)
@@ -907,7 +906,7 @@ export const useGameStore = create((set, get) => ({
       const enemyDrawPile = [...enemyLibrary];
 
       const playerHand = hasCharacterBuild
-        ? drawCharacterBuildHand(characterBuild.mainSpecials, characterBuild.subSpecials)
+        ? drawCharacterBuildHand(characterBuild.mainSpecials, characterBuild.subSpecials, characterBuild.ownedCards)
         : drawHand(playerDrawPile, 3);
 
       const enemyHand = drawHand(enemyDrawPile, Math.min(3, enemyDrawPile.length));
@@ -1097,10 +1096,11 @@ export const useGameStore = create((set, get) => ({
       let nextPlayerDraw;
 
       if (battle.hasCharacterBuild && battle.characterBuild) {
-        // 캐릭터 빌드: 주특기 100% + 보조특기 50% 확률
+        // 캐릭터 빌드: 주특기 100% + 보조특기 50% 확률 + 보유카드 10% 확률
         newPlayerHand = drawCharacterBuildHand(
           battle.characterBuild.mainSpecials,
-          battle.characterBuild.subSpecials
+          battle.characterBuild.subSpecials,
+          battle.characterBuild.ownedCards
         );
         nextPlayerDraw = [];
       } else {
