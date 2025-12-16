@@ -138,7 +138,7 @@ export function ShopModal({ merchantType = 'shop', onClose }) {
   };
 
   // 카드 구매
-  const handleBuyCard = (cardId, price, asMainSpecial = false) => {
+  const handleBuyCard = (cardId, price) => {
     if (gold < price) {
       showNotification('골드가 부족합니다!', 'error');
       return;
@@ -148,14 +148,10 @@ export function ShopModal({ merchantType = 'shop', onClose }) {
     const subSpecials = characterBuild?.subSpecials || [];
 
     addResources({ gold: -price });
-    if (asMainSpecial) {
-      updateCharacterBuild([...mainSpecials, cardId], subSpecials);
-    } else {
-      updateCharacterBuild(mainSpecials, [...subSpecials, cardId]);
-    }
+    updateCharacterBuild(mainSpecials, [...subSpecials, cardId]);
     setPurchasedCards((prev) => new Set([...prev, cardId]));
     const card = CARDS.find(c => c.id === cardId);
-    showNotification(`${card?.name || cardId}을(를) ${asMainSpecial ? '주특기' : '보조특기'}로 구매했습니다!`, 'success');
+    showNotification(`${card?.name || cardId}을(를) 구매했습니다!`, 'success');
   };
 
   // 아이템 판매
@@ -520,6 +516,7 @@ export function ShopModal({ merchantType = 'shop', onClose }) {
                       return (
                         <div
                           key={`${id}-${idx}`}
+                          onClick={() => !sold && handleBuyCard(id, price)}
                           style={{
                             padding: '12px',
                             background: sold ? 'rgba(100, 116, 139, 0.1)' : 'rgba(30, 41, 59, 0.5)',
@@ -527,7 +524,7 @@ export function ShopModal({ merchantType = 'shop', onClose }) {
                             borderRadius: '12px',
                             opacity: sold ? 0.5 : 1,
                             transition: 'all 0.2s',
-                            position: 'relative',
+                            cursor: sold ? 'not-allowed' : 'pointer',
                           }}
                         >
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
@@ -556,56 +553,18 @@ export function ShopModal({ merchantType = 'shop', onClose }) {
                             {card.damage ? ` · 피해 ${card.damage}${card.hits > 1 ? `×${card.hits}` : ''}` : ''}
                             {card.block ? ` · 방어 ${card.block}` : ''}
                           </div>
-                          {sold ? (
-                            <div style={{ textAlign: 'right' }}>
+                          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                            {sold ? (
                               <span style={{ color: '#64748b', fontWeight: 600 }}>품절</span>
-                            </div>
-                          ) : (
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
+                            ) : (
                               <span style={{
                                 fontWeight: 700,
                                 color: canAfford ? '#fbbf24' : '#ef4444',
                               }}>
                                 💰 {price}G
                               </span>
-                              <div style={{ display: 'flex', gap: '4px' }}>
-                                <button
-                                  type="button"
-                                  onClick={() => handleBuyCard(id, price, true)}
-                                  style={{
-                                    padding: '6px 10px',
-                                    background: canAfford ? 'rgba(251, 191, 36, 0.3)' : 'rgba(100, 116, 139, 0.2)',
-                                    border: `1px solid ${canAfford ? '#fbbf24' : '#475569'}`,
-                                    borderRadius: '4px',
-                                    color: canAfford ? '#fbbf24' : '#64748b',
-                                    fontSize: '0.75rem',
-                                    cursor: canAfford ? 'pointer' : 'not-allowed',
-                                    fontWeight: 600,
-                                    pointerEvents: canAfford ? 'auto' : 'none',
-                                  }}
-                                >
-                                  ⭐주특기
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => handleBuyCard(id, price, false)}
-                                  style={{
-                                    padding: '6px 10px',
-                                    background: canAfford ? 'rgba(96, 165, 250, 0.3)' : 'rgba(100, 116, 139, 0.2)',
-                                    border: `1px solid ${canAfford ? '#60a5fa' : '#475569'}`,
-                                    borderRadius: '4px',
-                                    color: canAfford ? '#60a5fa' : '#64748b',
-                                    fontSize: '0.75rem',
-                                    cursor: canAfford ? 'pointer' : 'not-allowed',
-                                    fontWeight: 600,
-                                    pointerEvents: canAfford ? 'auto' : 'none',
-                                  }}
-                                >
-                                  💠보조
-                                </button>
-                              </div>
-                            </div>
-                          )}
+                            )}
+                          </div>
                         </div>
                       );
                     })}
