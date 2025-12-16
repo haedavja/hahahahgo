@@ -171,8 +171,6 @@ export function DevTools({ isOpen, onClose, useNewDungeon, setUseNewDungeon, sho
             setUseNewDungeon={setUseNewDungeon}
             devForcedCrossroad={devForcedCrossroad}
             setDevForcedCrossroad={setDevForcedCrossroad}
-            showAllCards={showAllCards}
-            setShowAllCards={setShowAllCards}
           />
         )}
         {activeTab === 'battle' && (
@@ -217,6 +215,8 @@ export function DevTools({ isOpen, onClose, useNewDungeon, setUseNewDungeon, sho
             upgradeCardRarity={upgradeCardRarity}
             characterBuild={characterBuild}
             updateCharacterBuild={updateCharacterBuild}
+            showAllCards={showAllCards}
+            setShowAllCards={setShowAllCards}
           />
         )}
       </div>
@@ -384,7 +384,7 @@ function ResourcesTab({ resources, setResources, devOpenRest, awakenAtRest, clos
 }
 
 // 맵 관리 탭
-function MapTab({ map, mapRisk, setMapRisk, selectNode, devClearAllNodes, devTeleportToNode, useNewDungeon, setUseNewDungeon, devForcedCrossroad, setDevForcedCrossroad, showAllCards, setShowAllCards }) {
+function MapTab({ map, mapRisk, setMapRisk, selectNode, devClearAllNodes, devTeleportToNode, useNewDungeon, setUseNewDungeon, devForcedCrossroad, setDevForcedCrossroad }) {
   const currentNode = map?.nodes?.find(n => n.id === map.currentNodeId);
   const [selectedNodeId, setSelectedNodeId] = useState('');
 
@@ -607,40 +607,6 @@ function MapTab({ map, mapRisk, setMapRisk, selectNode, devClearAllNodes, devTel
           {useNewDungeon
             ? '✅ 메트로배니아 스타일 양방향 이동, 기로 시스템 활성화'
             : '기존 선형 던전 시스템 사용 중'}
-        </div>
-      </div>
-
-      {/* 전체 카드 표시 토글 */}
-      <div style={{
-        marginTop: '16px',
-        padding: '12px',
-        background: '#0f172a',
-        borderRadius: '8px',
-        border: '1px solid #334155',
-      }}>
-        <h4 style={{ color: '#cbd5e1', fontSize: '0.875rem', marginBottom: '8px' }}>🃏 캐릭터 창 설정</h4>
-        <div style={{ display: 'flex', alignItems: 'center' }}>
-          <label style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            cursor: 'pointer',
-          }}>
-            <input
-              type="checkbox"
-              checked={showAllCards || false}
-              onChange={(e) => setShowAllCards && setShowAllCards(e.target.checked)}
-              style={{ width: '18px', height: '18px', cursor: 'pointer' }}
-            />
-            <span style={{ color: showAllCards ? '#22c55e' : '#94a3b8', fontSize: '0.875rem' }}>
-              전체 카드 표시 (덱빌딩 모드)
-            </span>
-          </label>
-        </div>
-        <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '8px' }}>
-          {showAllCards
-            ? '✅ 모든 카드를 표시하여 자유롭게 선택 가능'
-            : '보유한 카드만 표시'}
         </div>
       </div>
 
@@ -1823,7 +1789,7 @@ function EventTab() {
 }
 
 // 카드 관리 탭
-function CardsTab({ cardUpgrades, upgradeCardRarity, characterBuild, updateCharacterBuild }) {
+function CardsTab({ cardUpgrades, upgradeCardRarity, characterBuild, updateCharacterBuild, showAllCards, setShowAllCards }) {
   const [selectedCardId, setSelectedCardId] = useState(CARDS[0]?.id || '');
   const [searchTerm, setSearchTerm] = useState('');
   const [specialMode, setSpecialMode] = useState('main'); // 'main' or 'sub'
@@ -2092,6 +2058,38 @@ function CardsTab({ cardUpgrades, upgradeCardRarity, characterBuild, updateChara
             </div>
           );
         })}
+      </div>
+
+      {/* 캐릭터 창 설정 */}
+      <div style={{
+        padding: '12px',
+        background: '#0f172a',
+        borderRadius: '8px',
+        marginBottom: '16px',
+        border: '1px solid #334155',
+      }}>
+        <h4 style={{ color: '#cbd5e1', fontSize: '0.875rem', marginBottom: '8px', marginTop: 0 }}>🃏 캐릭터 창 설정</h4>
+        <label style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          cursor: 'pointer',
+        }}>
+          <input
+            type="checkbox"
+            checked={showAllCards || false}
+            onChange={(e) => setShowAllCards(e.target.checked)}
+            style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+          />
+          <span style={{ color: showAllCards ? '#22c55e' : '#94a3b8', fontSize: '0.875rem' }}>
+            전체 카드 표시 (덱빌딩 모드)
+          </span>
+        </label>
+        <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '8px' }}>
+          {showAllCards
+            ? '✅ 캐릭터 창에서 모든 카드를 표시합니다'
+            : '캐릭터 창에서 보유 카드만 표시합니다'}
+        </div>
       </div>
 
       {/* 카드 등급 올리기 (기존 기능) */}
