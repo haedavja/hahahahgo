@@ -84,6 +84,7 @@ import { Sword, Shield, Heart, Zap, Flame, Clock, Skull, X, ChevronUp, ChevronDo
 import { selectBattleAnomalies, applyAnomalyEffects, formatAnomaliesForDisplay } from "../../lib/anomalyUtils";
 import { AnomalyDisplay, AnomalyNotification } from "./ui/AnomalyDisplay";
 import { TIMING, createStepOnceAnimations, executeCardActionCore, finishTurnCore, runAllCore } from "./logic/battleExecution";
+import { processTimelineSpecials } from "./utils/cardSpecialEffects";
 
 
 const CARDS = BASE_PLAYER_CARDS.map(card => ({
@@ -1860,7 +1861,15 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     let P = { ...player, def: player.def || false, block: player.block || 0, counter: player.counter || 0, vulnMult: player.vulnMult || 1, strength: player.strength || 0, tokens: player.tokens };
     let E = { ...enemy, def: enemy.def || false, block: enemy.block || 0, counter: enemy.counter || 0, vulnMult: enemy.vulnMult || 1, tokens: enemy.tokens };
     const tempState = { player: P, enemy: E, log: [] };
-    const actionResult = applyAction(tempState, a.actor, a.card);
+
+    // battleContext 생성 (special 효과용)
+    const battleContext = {
+      currentSp: a.sp || 0,  // 현재 카드의 타임라인 위치 (growingDefense용)
+      queue: currentBattle.queue,
+      currentQIndex: currentBattle.qIndex
+    };
+
+    const actionResult = applyAction(tempState, a.actor, a.card, battleContext);
     const { events, updatedState } = actionResult;
     let actionEvents = events;
 
@@ -1929,6 +1938,76 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       if (stunEvent) {
         actionEvents = [...actionEvents, stunEvent];
       }
+    }
+
+    // 타임라인 조작 효과 처리 (마르쉐, 런지, 비트, 흐트리기 등)
+    const timelineResult = processTimelineSpecials({
+      card: a.card,
+      actor: a.actor,
+      actorName: a.actor,
+      queue: battleRef.current.queue,
+      currentIndex: battleRef.current.qIndex,
+      damageDealt: actionResult.dealt || 0
+    });
+
+    if (timelineResult.events.length > 0) {
+      actionEvents = [...actionEvents, ...timelineResult.events];
+      timelineResult.logs.forEach(log => addLog(log));
+    }
+
+    // 타임라인 변경 적용
+    const { timelineChanges } = timelineResult;
+    if (timelineChanges.advancePlayer > 0 || timelineChanges.pushEnemy > 0 || timelineChanges.pushLastEnemy > 0) {
+      let updatedQueue = [...battleRef.current.queue];
+      const currentQIndex = battleRef.current.qIndex;
+
+      // 플레이어 카드 앞당기기 (현재 카드 이후의 플레이어 카드들)
+      if (timelineChanges.advancePlayer > 0) {
+        updatedQueue = updatedQueue.map((item, idx) => {
+          if (idx > currentQIndex && item.actor === 'player') {
+            return { ...item, sp: Math.max(0, item.sp - timelineChanges.advancePlayer) };
+          }
+          return item;
+        });
+      }
+
+      // 적 카드 뒤로 밀기 (현재 카드 이후의 적 카드들)
+      if (timelineChanges.pushEnemy > 0) {
+        updatedQueue = updatedQueue.map((item, idx) => {
+          if (idx > currentQIndex && item.actor === 'enemy') {
+            return { ...item, sp: item.sp + timelineChanges.pushEnemy };
+          }
+          return item;
+        });
+      }
+
+      // 적의 마지막 카드만 밀기
+      if (timelineChanges.pushLastEnemy > 0) {
+        // 현재 이후의 적 카드들 중 가장 마지막 카드 찾기
+        let lastEnemyIdx = -1;
+        for (let i = updatedQueue.length - 1; i > currentQIndex; i--) {
+          if (updatedQueue[i].actor === 'enemy') {
+            lastEnemyIdx = i;
+            break;
+          }
+        }
+        if (lastEnemyIdx !== -1) {
+          updatedQueue = updatedQueue.map((item, idx) => {
+            if (idx === lastEnemyIdx) {
+              return { ...item, sp: item.sp + timelineChanges.pushLastEnemy };
+            }
+            return item;
+          });
+        }
+      }
+
+      // 큐 재정렬 (sp 값 기준, 이미 처리된 카드들은 유지)
+      const processedCards = updatedQueue.slice(0, currentQIndex + 1);
+      const remainingCards = updatedQueue.slice(currentQIndex + 1);
+      remainingCards.sort((a, b) => a.sp - b.sp);
+      updatedQueue = [...processedCards, ...remainingCards];
+
+      actions.setQueue(updatedQueue);
     }
 
     // 쳐내기(parryPush) 효과 처리: 패리 대기 상태 배열에 추가
