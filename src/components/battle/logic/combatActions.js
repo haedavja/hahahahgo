@@ -275,7 +275,7 @@ function calculateSingleHit(attacker, defender, card, attackerName, battleContex
     const ignoreBlockText = ignoreBlock && (updatedDefender.block || 0) > 0 ? ' [방어 무시]' : '';
     const msg = `${attackerName === 'player' ? '플레이어 -> 몬스터' : '몬스터 -> 플레이어'} • 데미지 ${finalDmg}${critText}${boost > 1 ? ' (에테르 폭주×2)' : ''}${ignoreBlockText} (체력 ${beforeHP} -> ${updatedDefender.hp})`;
 
-    const hitEvent = {
+    events.push({
       actor: attackerName,
       card: card.name,
       type: 'hit',
@@ -283,9 +283,7 @@ function calculateSingleHit(attacker, defender, card, attackerName, battleContex
       beforeHP,
       afterHP: updatedDefender.hp,
       msg
-    };
-    console.log('[calculateSingleHit] 공격 이벤트 생성:', hitEvent);
-    events.push(hitEvent);
+    });
     logs.push(`${attackerName === 'player' ? '🔵' : '👾'} ${card.name} → ${msg}`);
 
     damageDealt += finalDmg;
