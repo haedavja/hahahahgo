@@ -244,23 +244,38 @@ export function executeCardActionCore(params) {
       setRelicActivated: actions.setRelicActivated
     });
 
-    // 토큰 onPlay 효과
+    // 토큰 onPlay 효과 - 현재 플레이어 상태(P)를 사용하도록 래핑
     if (action.card.onPlay && typeof action.card.onPlay === 'function') {
       try {
-        // 치명타 시 토큰 스택 +1 래퍼
         const isCritical = actionResult.isCritical;
-        const wrappedActions = isCritical ? {
+        // P는 현재 카드 실행 후의 최신 상태 (빈탄창 등 포함)
+        const currentPlayerForToken = { ...P };
+
+        const tokenActions = {
           ...actions,
           addTokenToPlayer: (tokenId, stacks = 1) => {
-            addLog(`💥 치명타! ${tokenId} +1 강화`);
-            return actions.addTokenToPlayer(tokenId, stacks + 1);
+            const actualStacks = isCritical ? stacks + 1 : stacks;
+            if (isCritical) {
+              addLog(`💥 치명타! ${tokenId} +1 강화`);
+            }
+            // 현재 플레이어 상태(P)를 사용하여 토큰 추가
+            const { addToken } = require('../../../lib/tokenUtils');
+            const result = addToken(currentPlayerForToken, tokenId, actualStacks);
+            // 결과를 P에 반영하고 dispatch
+            P.tokens = result.tokens;
+            actions.setPlayer({ ...P });
+            result.logs.forEach(log => addLog(log));
+            return result;
           },
           addTokenToEnemy: (tokenId, stacks = 1) => {
-            addLog(`💥 치명타! ${tokenId} +1 강화`);
-            return actions.addTokenToEnemy(tokenId, stacks + 1);
+            const actualStacks = isCritical ? stacks + 1 : stacks;
+            if (isCritical) {
+              addLog(`💥 치명타! ${tokenId} +1 강화`);
+            }
+            return actions.addTokenToEnemy(tokenId, actualStacks);
           }
-        } : actions;
-        action.card.onPlay(battle, wrappedActions);
+        };
+        action.card.onPlay(battle, tokenActions);
       } catch (error) {
         console.error('[Token onPlay Error]', error);
       }
