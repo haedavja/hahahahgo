@@ -4,7 +4,11 @@
  * 타임라인 및 타임라인 숫자 오버레이 컴포넌트
  */
 
+import { useRef } from 'react';
 import { hasSpecial } from '../utils/cardSpecialEffects';
+
+// 렌더 카운터 (디버그용)
+let renderCount = 0;
 
 // Lucide icons as simple SVG components
 const Sword = ({ size = 24, className = "" }) => (
@@ -216,17 +220,10 @@ export const TimelineDisplay = ({
                   const growingDefenseBonus = hasGrowingDef
                     ? (cardAlreadyUsed ? Math.max(0, currentTimelineSp - (a.sp || 0)) : 0)
                     : 0;
-                  // 디버그
+                  // 디버그 - 렌더 카운트 포함
                   if (hasGrowingDef && battle.phase === 'resolve') {
-                    console.log('[방어자세]', {
-                      cardAlreadyUsed,
-                      globalIdx,
-                      qIndex,
-                      timelineProgress: timelineProgress.toFixed(1),
-                      currentTimelineSp,
-                      cardSp: a.sp,
-                      growingDefenseBonus
-                    });
+                    renderCount++;
+                    console.log('[방어자세] 렌더#' + renderCount, 'bonus:', growingDefenseBonus, 'progress:', timelineProgress.toFixed(1), 'used:', cardAlreadyUsed);
                   }
                   // ignoreStrength 특성: 힘 보너스 무시
                   const effectiveStrengthBonus = a.card.ignoreStrength ? 0 : strengthBonus;
