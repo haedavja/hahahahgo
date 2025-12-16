@@ -220,11 +220,6 @@ export const TimelineDisplay = ({
                   const growingDefenseBonus = hasGrowingDef
                     ? (cardAlreadyUsed ? Math.max(0, currentTimelineSp - (a.sp || 0)) : 0)
                     : 0;
-                  // 디버그 - 렌더 카운트 포함
-                  if (hasGrowingDef && battle.phase === 'resolve') {
-                    renderCount++;
-                    console.log('[방어자세] 렌더#' + renderCount, 'bonus:', growingDefenseBonus, 'progress:', timelineProgress.toFixed(1), 'used:', cardAlreadyUsed);
-                  }
                   // ignoreStrength 특성: 힘 보너스 무시
                   const effectiveStrengthBonus = a.card.ignoreStrength ? 0 : strengthBonus;
                   const num = a.card.type === 'attack'
@@ -232,6 +227,11 @@ export const TimelineDisplay = ({
                     : a.card.type === 'defense'
                       ? (a.card.block || 0) + effectiveStrengthBonus + growingDefenseBonus
                       : 0;
+                  // 디버그 - 렌더 카운트 포함
+                  if (hasGrowingDef && battle.phase === 'resolve' && cardAlreadyUsed) {
+                    renderCount++;
+                    console.log('[방어자세] 렌더#' + renderCount, 'num:', num, 'block:', a.card.block, 'str:', effectiveStrengthBonus, 'bonus:', growingDefenseBonus);
+                  }
                   const globalIndex = battle.phase === 'resolve' && queue ? queue.findIndex(q => q === a) : -1;
                   const isExecuting = executingCardIndex === globalIndex;
                   const isUsed = Array.isArray(usedCardIndices) && usedCardIndices.includes(globalIndex) && globalIndex < qIndex;
