@@ -3,6 +3,7 @@ export const RELIC_RARITY = {
   COMMON: 'common',
   RARE: 'rare',
   LEGENDARY: 'legendary',
+  DEV: 'dev',  // 개발자 전용
 };
 
 // 상징 타입 (효과 적용 범위)
@@ -82,4 +83,5 @@ export const RELIC_RARITY_COLORS = {
   [RELIC_RARITY.COMMON]: '#94a3b8',     // 회색
   [RELIC_RARITY.RARE]: '#60a5fa',       // 파랑
   [RELIC_RARITY.LEGENDARY]: '#fbbf24',  // 금색
+  [RELIC_RARITY.DEV]: '#ef4444',        // 빨강 (개발자용)
 };

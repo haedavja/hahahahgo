@@ -9,6 +9,7 @@ export const RELIC_RARITIES = {
   RARE: 'rare',
   SPECIAL: 'special',
   LEGENDARY: 'legendary',
+  DEV: 'dev',  // 개발자 전용
 };
 
 export const RELIC_TAGS = {
@@ -364,7 +365,7 @@ export const RELICS = {
     id: 'infiniteShield',
     name: '무한방패',
     emoji: '🛡️',
-    rarity: RELIC_RARITIES.SPECIAL,
+    rarity: RELIC_RARITIES.DEV,
     tags: [RELIC_TAGS.DEFENSE],
     description: '턴 시작 시 방어력 1000을 얻습니다. (개발용)',
     effects: {
@@ -377,7 +378,7 @@ export const RELICS = {
     id: 'perpetualEngine',
     name: '영구동력',
     emoji: '♾️',
-    rarity: RELIC_RARITIES.SPECIAL,
+    rarity: RELIC_RARITIES.DEV,
     tags: [RELIC_TAGS.ENERGY],
     description: '최대 행동력이 30 증가합니다. (개발용)',
     effects: {
@@ -390,7 +391,7 @@ export const RELICS = {
     id: 'lightShoes',
     name: '빛의 신발',
     emoji: '👟',
-    rarity: RELIC_RARITIES.SPECIAL,
+    rarity: RELIC_RARITIES.DEV,
     tags: [RELIC_TAGS.SPEED],
     description: '최대 속도가 100 증가합니다. (개발용)',
     effects: {
