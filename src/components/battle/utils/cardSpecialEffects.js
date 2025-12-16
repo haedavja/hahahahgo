@@ -288,3 +288,118 @@ export function calculateAgilitySpeedReduction(card, player) {
   const agility = player.agility || 0;
   return agility * 3; // 민첩 1당 시간 소모 3 감소
 }
+
+/**
+ * 타임라인 조작 효과 처리
+ * @param {Object} params
+ * @returns {Object} { timelineChanges, events, logs }
+ */
+export function processTimelineSpecials({
+  card,
+  actor,
+  actorName,
+  queue,
+  currentIndex,
+  damageDealt = 0
+}) {
+  const events = [];
+  const logs = [];
+  const timelineChanges = {
+    advancePlayer: 0,    // 플레이어 카드 앞당김
+    pushEnemy: 0,        // 적 카드 뒤로 밀기
+    pushLastEnemy: 0,    // 적의 마지막 카드만 뒤로 밀기
+  };
+
+  // === advanceTimeline: 내 타임라인 앞당기기 (마르쉐) ===
+  if (hasSpecial(card, 'advanceTimeline')) {
+    const amount = card.advanceAmount || 4;
+    timelineChanges.advancePlayer = amount;
+    const msg = `⏪ ${card.name}: 내 타임라인 ${amount} 앞당김!`;
+    events.push({ actor: actorName, card: card.name, type: 'timeline', msg });
+    logs.push(msg);
+  }
+
+  // === pushEnemyTimeline: 피해 입히면 상대 타임라인 밀기 (런지) ===
+  if (hasSpecial(card, 'pushEnemyTimeline') && damageDealt > 0) {
+    const amount = card.pushAmount || 5;
+    timelineChanges.pushEnemy = amount;
+    const msg = `⏩ ${card.name}: 피해 성공! 적 타임라인 ${amount} 뒤로 밀림!`;
+    events.push({ actor: actorName, card: card.name, type: 'timeline', msg });
+    logs.push(msg);
+  }
+
+  // === beatEffect: 내 타임라인 앞당기고 피해 입히면 적 타임라인 밀기 (비트) ===
+  if (hasSpecial(card, 'beatEffect')) {
+    const advanceAmount = card.advanceAmount || 1;
+    timelineChanges.advancePlayer = advanceAmount;
+    const msg1 = `⏪ ${card.name}: 내 타임라인 ${advanceAmount} 앞당김!`;
+    events.push({ actor: actorName, card: card.name, type: 'timeline', msg: msg1 });
+    logs.push(msg1);
+
+    if (damageDealt > 0) {
+      const pushAmount = card.pushAmount || 2;
+      timelineChanges.pushEnemy = pushAmount;
+      const msg2 = `⏩ ${card.name}: 피해 성공! 적 타임라인 ${pushAmount} 뒤로 밀림!`;
+      events.push({ actor: actorName, card: card.name, type: 'timeline', msg: msg2 });
+      logs.push(msg2);
+    }
+  }
+
+  // === pushLastEnemyCard: 적의 마지막 카드만 밀기 (흐트리기) ===
+  if (hasSpecial(card, 'pushLastEnemyCard')) {
+    const amount = card.pushAmount || 9;
+    timelineChanges.pushLastEnemy = amount;
+    const msg = `⏩ ${card.name}: 적의 마지막 카드를 ${amount} 뒤로 밀음!`;
+    events.push({ actor: actorName, card: card.name, type: 'timeline', msg });
+    logs.push(msg);
+  }
+
+  return { timelineChanges, events, logs };
+}
+
+/**
+ * 성장하는 방어력 계산 (방어자세)
+ * @param {Object} card - 카드 객체
+ * @param {number} ticksPassed - 지나간 타임라인 틱 수
+ * @returns {number} 추가 방어력
+ */
+export function calculateGrowingDefense(card, ticksPassed) {
+  if (!hasSpecial(card, 'growingDefense')) return 0;
+  // 타임라인 1 지날때마다 방어력 1씩 증가
+  return ticksPassed;
+}
+
+/**
+ * 카드 창조 효과 처리 (플레쉬, 브리치 등)
+ * @param {Object} params
+ * @returns {Object} { createCard, events, logs }
+ */
+export function processCardCreationSpecials({
+  card,
+  actorName,
+  damageDealt = 0,
+  allCards = []
+}) {
+  const events = [];
+  const logs = [];
+  let createCard = null;
+
+  // === createAttackOnHit: 피해 입히면 공격 카드 창조 (플레쉬) ===
+  if (hasSpecial(card, 'createAttackOnHit') && damageDealt > 0) {
+    // 공격 카드 중에서 랜덤 선택
+    const attackCards = allCards.filter(c => c.type === 'attack' && c.id !== card.id);
+    if (attackCards.length > 0) {
+      const randomCard = attackCards[Math.floor(Math.random() * attackCards.length)];
+      createCard = {
+        ...randomCard,
+        isGhost: true, // 유령카드로 생성
+        createdBy: card.id
+      };
+      const msg = `✨ ${card.name}: 피해 성공! ${randomCard.name} 창조!`;
+      events.push({ actor: actorName, card: card.name, type: 'create', msg });
+      logs.push(msg);
+    }
+  }
+
+  return { createCard, events, logs };
+}

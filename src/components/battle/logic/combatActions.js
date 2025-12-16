@@ -3,7 +3,8 @@ import { applyTokenEffectsToCard, applyTokenEffectsOnDamage, consumeTokens } fro
 import {
   processPreAttackSpecials,
   processPostAttackSpecials,
-  shouldIgnoreBlock
+  shouldIgnoreBlock,
+  calculateGrowingDefense
 } from '../utils/cardSpecialEffects';
 
 /**
@@ -20,18 +21,26 @@ import {
  * @param {Object} actor - 행동 주체 (player 또는 enemy)
  * @param {Object} card - 사용한 카드
  * @param {string} actorName - 'player' 또는 'enemy'
+ * @param {Object} battleContext - 전투 컨텍스트 (special 효과용)
  * @returns {Object} - { actor: 업데이트된 actor, events: 이벤트 배열, log: 로그 메시지 }
  */
-export function applyDefense(actor, card, actorName) {
-  // 유령카드는 토큰 효과 미적용
+export function applyDefense(actor, card, actorName, battleContext = {}) {
+  // 유령카드나 ignoreStatus 특성이 있으면 토큰 효과 미적용
   const isGhost = card.isGhost === true;
-  const { modifiedCard, consumedTokens } = isGhost
+  const skipTokenEffects = isGhost || card.ignoreStatus === true;
+  const { modifiedCard, consumedTokens } = skipTokenEffects
     ? { modifiedCard: card, consumedTokens: [] }
     : applyTokenEffectsToCard(card, actor, 'defense');
 
   const prev = actor.block || 0;
-  const strengthBonus = actor.strength || 0;
-  const added = (modifiedCard.block || 0) + strengthBonus;
+  // ignoreStrength 특성이 있으면 힘 보너스 무시 (방어자세)
+  const strengthBonus = modifiedCard.ignoreStrength ? 0 : (actor.strength || 0);
+
+  // growingDefense 특성: 타임라인이 지날수록 방어력 증가 (방어자세)
+  const currentSp = battleContext.currentSp || 0;
+  const growingDefenseBonus = calculateGrowingDefense(modifiedCard, currentSp);
+
+  const added = (modifiedCard.block || 0) + strengthBonus + growingDefenseBonus;
   const after = prev + added;
 
   // 소모된 토큰 제거
@@ -52,9 +61,10 @@ export function applyDefense(actor, card, actorName) {
   };
 
   const who = actorName === 'player' ? '플레이어' : '몬스터';
+  const growingText = growingDefenseBonus > 0 ? ` (+${growingDefenseBonus} 방어자세)` : '';
   const msg = prev === 0
-    ? `${who} • 🛡️ +${added} = ${after}`
-    : `${who} • 🛡️ ${prev} + ${added} = ${after}`;
+    ? `${who} • 🛡️ +${added}${growingText} = ${after}`
+    : `${who} • 🛡️ ${prev} + ${added}${growingText} = ${after}`;
 
   const event = {
     actor: actorName,
@@ -385,7 +395,7 @@ export function applyAction(state, actor, card, battleContext = {}) {
   let result;
 
   if (card.type === 'defense') {
-    result = applyDefense(A, card, actor);
+    result = applyDefense(A, card, actor, battleContext);
     const updatedState = {
       ...state,
       [actor]: result.actor,
