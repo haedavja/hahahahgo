@@ -101,29 +101,44 @@ export function applyDefense(actor, card, actorName, battleContext = {}) {
  * @param {string} attackerName - 'player' 또는 'enemy'
  * @param {Object} battleContext - 전투 컨텍스트 (special 효과용)
  * @param {boolean} isCritical - 치명타 여부 (외부에서 전달)
+ * @param {Object} preProcessedResult - 이미 처리된 preAttack 결과 (선택적, 다중 타격 시 재사용)
  * @returns {Object} - { attacker, defender, damage, events, logs }
  */
-function calculateSingleHit(attacker, defender, card, attackerName, battleContext = {}, isCritical = false) {
+function calculateSingleHit(attacker, defender, card, attackerName, battleContext = {}, isCritical = false, preProcessedResult = null) {
   // 유령카드는 토큰 효과 미적용
   const isGhost = card.isGhost === true;
-  const { modifiedCard: tokenModifiedCard, consumedTokens: attackerConsumedTokens } = isGhost
-    ? { modifiedCard: card, consumedTokens: [] }
-    : applyTokenEffectsToCard(card, attacker, 'attack');
 
-  // special 효과 적용 (공격 전)
-  const preAttackResult = processPreAttackSpecials({
-    card: tokenModifiedCard,
-    attacker,
-    defender,
-    attackerName,
-    battleContext
-  });
+  let modifiedCard, currentAttacker, currentDefender, specialEvents, specialLogs, attackerConsumedTokens;
 
-  const modifiedCard = preAttackResult.modifiedCard;
-  let currentAttacker = preAttackResult.attacker;
-  let currentDefender = preAttackResult.defender;
-  const specialEvents = preAttackResult.events;
-  const specialLogs = preAttackResult.logs;
+  if (preProcessedResult) {
+    // 이미 처리된 결과 사용 (다중 타격 시)
+    modifiedCard = preProcessedResult.modifiedCard;
+    currentAttacker = { ...preProcessedResult.attacker };
+    currentDefender = { ...preProcessedResult.defender };
+    specialEvents = [];  // 첫 타격에서 이미 로그됨
+    specialLogs = [];
+    attackerConsumedTokens = preProcessedResult.consumedTokens || [];
+  } else {
+    // 첫 타격: 토큰 효과 및 pre-attack special 적용
+    const tokenResult = isGhost
+      ? { modifiedCard: card, consumedTokens: [] }
+      : applyTokenEffectsToCard(card, attacker, 'attack');
+
+    const preAttackResult = processPreAttackSpecials({
+      card: tokenResult.modifiedCard,
+      attacker,
+      defender,
+      attackerName,
+      battleContext
+    });
+
+    modifiedCard = preAttackResult.modifiedCard;
+    currentAttacker = preAttackResult.attacker;
+    currentDefender = preAttackResult.defender;
+    specialEvents = preAttackResult.events;
+    specialLogs = preAttackResult.logs;
+    attackerConsumedTokens = tokenResult.consumedTokens;
+  }
 
   const base = modifiedCard.damage;
   const strengthBonus = currentAttacker.strength || 0;
@@ -282,13 +297,22 @@ function calculateSingleHit(attacker, defender, card, attackerName, battleContex
     }
   }
 
+  // preProcessedResult 생성 (첫 타격 시에만 유효)
+  const resultPreProcessed = preProcessedResult || {
+    modifiedCard,
+    attacker: currentAttacker,
+    defender: currentDefender,
+    consumedTokens: attackerConsumedTokens
+  };
+
   return {
     attacker: updatedAttacker,
     defender: updatedDefender,
     damage: damageDealt,
     damageTaken,
     events,
-    logs
+    logs,
+    preProcessedResult: resultPreProcessed
   };
 }
 
@@ -329,7 +353,6 @@ function applyCounter(defender, attacker, attackerName, counterDmg = null) {
  * @param {Object} battleContext - 전투 컨텍스트 (special 효과용)
  */
 export function applyAttack(attacker, defender, card, attackerName, battleContext = {}) {
-  const hits = card.hits || 1;
   let totalDealt = 0;
   let totalTaken = 0;
   const allEvents = [];
@@ -345,9 +368,23 @@ export function applyAttack(attacker, defender, card, attackerName, battleContex
     : (battleContext.enemyRemainingEnergy || 0);
   const isCritical = rollCritical(currentAttacker, attackerRemainingEnergy);
 
-  // 기본 타격 수행
-  for (let i = 0; i < hits; i++) {
-    const result = calculateSingleHit(currentAttacker, currentDefender, card, attackerName, battleContext, isCritical);
+  // 첫 번째 타격: processPreAttackSpecials 호출하여 hits 결정
+  const firstHitResult = calculateSingleHit(currentAttacker, currentDefender, card, attackerName, battleContext, isCritical, null);
+  currentAttacker = firstHitResult.attacker;
+  currentDefender = firstHitResult.defender;
+  totalDealt += firstHitResult.damage;
+  totalTaken += firstHitResult.damageTaken || 0;
+  allEvents.push(...firstHitResult.events);
+  allLogs.push(...firstHitResult.logs);
+
+  // preProcessedResult 저장 (후속 타격에서 재사용)
+  const preProcessedResult = firstHitResult.preProcessedResult;
+  const modifiedCard = preProcessedResult?.modifiedCard || card;
+  const hits = modifiedCard.hits || card.hits || 1;
+
+  // 추가 타격 수행 (hits - 1번, 첫 타격은 이미 수행함)
+  for (let i = 1; i < hits; i++) {
+    const result = calculateSingleHit(currentAttacker, currentDefender, card, attackerName, battleContext, isCritical, preProcessedResult);
     currentAttacker = result.attacker;
     currentDefender = result.defender;
     totalDealt += result.damage;
