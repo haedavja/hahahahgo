@@ -13,7 +13,7 @@ export const BreachSelectionModal = ({
 }) => {
   if (!breachSelection) return null;
 
-  const { cards, breachSp, breachCard, sourceCardName } = breachSelection;
+  const { cards, breachSp, breachCard, sourceCardName, isLastChain } = breachSelection;
   const insertSp = breachSp + (breachCard?.breachSpOffset || 3);
 
   // 플레쉬 vs 브리치 구분
@@ -23,7 +23,9 @@ export const BreachSelectionModal = ({
     ? `피해 성공! ${cards.length}장 중 1장을 선택하세요. 선택한 카드는 타임라인 ${insertSp} 위치에 유령카드로 삽입됩니다.`
     : `아래 3장 중 1장을 선택하세요. 선택한 카드는 타임라인 ${insertSp} 위치에 유령카드로 삽입됩니다.`;
   const note = isFleche
-    ? '💨 유령카드로 즉시 발동! 피해 성공 시 다시 창조됩니다.'
+    ? isLastChain
+      ? '⚠️ 마지막 연쇄! 이번 카드가 피해를 입혀도 더 이상 창조되지 않습니다.'
+      : '💨 유령카드로 즉시 발동! 피해 성공 시 다시 창조됩니다.'
     : '💨 유령카드: 힘 보너스만 적용, 콤보/아이템/상징 효과 미적용';
 
   return (

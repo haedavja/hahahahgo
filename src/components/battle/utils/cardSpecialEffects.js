@@ -416,7 +416,11 @@ export function processCardCreationSpecials({
   const createdCards = [];
 
   // === createAttackOnHit 또는 플레쉬에서 창조된 카드: 피해 입히면 공격 카드 3장 창조 ===
-  const shouldCreateCards = (hasSpecial(card, 'createAttackOnHit') || card.isFromFleche) && damageDealt > 0;
+  // 플레쉬 연쇄는 최대 2번까지만 (원본 플레쉬 + 연쇄 1회 + 연쇄 2회)
+  const MAX_FLECHE_CHAIN = 2;
+  const currentChainCount = card.flecheChainCount || 0;
+  const canChain = card.isFromFleche ? currentChainCount < MAX_FLECHE_CHAIN : true;
+  const shouldCreateCards = (hasSpecial(card, 'createAttackOnHit') || card.isFromFleche) && damageDealt > 0 && canChain;
 
   if (shouldCreateCards) {
     // 공격 카드 중에서 랜덤 선택 (중복 방지, 원본 카드 제외)
@@ -427,6 +431,9 @@ export function processCardCreationSpecials({
       const shuffled = [...attackCards].sort(() => Math.random() - 0.5);
       const selectedCards = shuffled.slice(0, Math.min(3, shuffled.length));
 
+      // 연쇄 카운트 계산 (원본 플레쉬면 1, 연쇄 카드면 +1)
+      const nextChainCount = card.isFromFleche ? currentChainCount + 1 : 1;
+
       for (let i = 0; i < selectedCards.length; i++) {
         const selectedCard = selectedCards[i];
         const newCard = {
@@ -434,13 +441,15 @@ export function processCardCreationSpecials({
           isGhost: true, // 유령카드로 생성
           createdBy: originalCardId,  // 원본 플레쉬 카드 추적
           createdId: `${selectedCard.id}_created_${Date.now()}_${i}`,
-          isFromFleche: true  // 플레쉬에서 창조된 카드 표시 (연쇄 효과용)
+          isFromFleche: true,  // 플레쉬에서 창조된 카드 표시 (연쇄 효과용)
+          flecheChainCount: nextChainCount  // 연쇄 카운트 (최대 2)
         };
         createdCards.push(newCard);
       }
       const cardNames = createdCards.map(c => c.name).join(', ');
-      const sourceName = card.isFromFleche ? '플레쉬 연쇄' : card.name;
-      const msg = `✨ ${sourceName}: 피해 성공! ${createdCards.length}장의 공격 카드 창조! (${cardNames})`;
+      const sourceName = card.isFromFleche ? `플레쉬 연쇄 ${currentChainCount + 1}` : card.name;
+      const chainInfo = nextChainCount < MAX_FLECHE_CHAIN ? '' : ' (마지막 연쇄)';
+      const msg = `✨ ${sourceName}: 피해 성공! ${createdCards.length}장의 공격 카드 창조!${chainInfo} (${cardNames})`;
       events.push({ actor: actorName, card: card.name, type: 'create', msg });
       logs.push(msg);
     }

@@ -1695,11 +1695,12 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
     addLog(`👻 "${selectedCard.name}" 선택! 타임라인 ${insertSp}에 유령카드로 삽입.`);
 
-    // 유령카드 생성 (isGhost, isFromFleche 플래그 유지)
+    // 유령카드 생성 (isGhost, isFromFleche, flecheChainCount 플래그 유지)
     const ghostCard = {
       ...selectedCard,
       isGhost: true, // 유령카드 표시
       isFromFleche: selectedCard.isFromFleche || false,  // 플레쉬 연쇄 효과 유지
+      flecheChainCount: selectedCard.flecheChainCount || 0,  // 연쇄 카운트 유지 (최대 2)
       createdBy: selectedCard.createdBy,  // 원본 카드 추적
       __uid: `ghost_${Math.random().toString(36).slice(2)}`
     };
@@ -1964,16 +1965,19 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
     // 플레쉬 등 카드 창조 효과: 브리치처럼 3장 중 1장 선택
     if (actionResult.createdCards && actionResult.createdCards.length > 0 && a.actor === 'player') {
-      // 플레쉬 연쇄 효과인지 확인
-      const sourceName = a.card.isFromFleche ? '플레쉬 연쇄' : a.card.name;
-      addLog(`✨ "${sourceName}" 발동! 카드를 선택하세요.`);
+      // 플레쉬 연쇄 효과인지 확인 (연쇄 횟수 포함)
+      const chainCount = actionResult.createdCards[0]?.flecheChainCount || 0;
+      const sourceName = a.card.isFromFleche ? `플레쉬 연쇄 ${chainCount}` : a.card.name;
+      const isLastChain = chainCount >= 2;
+      addLog(`✨ "${sourceName}" 발동!${isLastChain ? ' (마지막 연쇄)' : ''} 카드를 선택하세요.`);
 
       // 브리치 선택 상태 설정 (게임 일시정지) - 브리치와 동일한 UI 재사용
       const breachState = {
         cards: actionResult.createdCards,
         breachSp: a.sp,
         breachCard: { ...a.card, breachSpOffset: 1 },  // +1 속도로 삽입
-        sourceCardName: sourceName  // 플레쉬/플레쉬 연쇄/브리치 구분용
+        sourceCardName: sourceName,  // 플레쉬/플레쉬 연쇄/브리치 구분용
+        isLastChain  // 마지막 연쇄 여부
       };
       breachSelectionRef.current = breachState;
       setBreachSelection(breachState);
