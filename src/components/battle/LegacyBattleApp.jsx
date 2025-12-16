@@ -674,7 +674,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     const hasCharacterBuild = currentBuild && (currentBuild.mainSpecials?.length > 0 || currentBuild.subSpecials?.length > 0);
     const rawHand = hasCharacterBuild
       ? drawCharacterBuildHand(currentBuild, {}, [], effectiveCardDrawBonus, escapeBanRef.current, battle.vanishedCards || [])
-      : CARDS.slice(0, 10); // 8장 → 10장
+      : CARDS.slice(0, 10).map((card, idx) => ({ ...card, __handUid: `${card.id}_${idx}_${Math.random().toString(36).slice(2, 8)}` }));
     actions.setHand(rawHand);
     actions.setCanRedraw(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -789,7 +789,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       const hasCharacterBuild = currentBuild && (currentBuild.mainSpecials?.length > 0 || currentBuild.subSpecials?.length > 0);
       const rawHand = hasCharacterBuild
         ? drawCharacterBuildHand(currentBuild, nextTurnEffects, [], effectiveCardDrawBonus, escapeBanRef.current, vanishedCards)
-        : CARDS.slice(0, 10); // 8장 → 10장
+        : CARDS.slice(0, 10).map((card, idx) => ({ ...card, __handUid: `${card.id}_${idx}_${Math.random().toString(36).slice(2, 8)}` }));
       actions.setHand(rawHand);
       actions.setSelected([]);
       actions.setCanRedraw(true);
@@ -969,7 +969,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     const hasCharacterBuild = currentBuild && (currentBuild.mainSpecials?.length > 0 || currentBuild.subSpecials?.length > 0);
     const rawHand = hasCharacterBuild
       ? drawCharacterBuildHand(currentBuild, nextTurnEffects, battle.hand, effectiveCardDrawBonus, escapeBanRef.current, vanishedCards)
-      : CARDS.slice(0, 10); // 8장 → 10장
+      : CARDS.slice(0, 10).map((card, idx) => ({ ...card, __handUid: `${card.id}_${idx}_${Math.random().toString(36).slice(2, 8)}` }));
     actions.setHand(rawHand);
     actions.setSelected([]);
 
@@ -1214,7 +1214,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     const hasCharacterBuild = currentBuild && (currentBuild.mainSpecials?.length > 0 || currentBuild.subSpecials?.length > 0);
     const rawHand = hasCharacterBuild
       ? drawCharacterBuildHand(currentBuild, nextTurnEffects, hand, effectiveCardDrawBonus, escapeBanRef.current, vanishedCards)
-      : CARDS.slice(0, 10); // 8장 → 10장
+      : CARDS.slice(0, 10).map((card, idx) => ({ ...card, __handUid: `${card.id}_${idx}_${Math.random().toString(36).slice(2, 8)}` }));
     actions.setHand(rawHand);
     actions.setSelected([]);
     actions.setCanRedraw(false);
