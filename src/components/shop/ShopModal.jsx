@@ -7,6 +7,7 @@ import { useState, useMemo } from 'react';
 import { useGameStore } from '../../state/gameStore';
 import { RELICS, RELIC_RARITIES } from '../../data/relics';
 import { ITEMS } from '../../data/items';
+import { CARDS } from '../battle/battleData';
 import {
   MERCHANT_TYPES,
   generateShopInventory,
@@ -37,11 +38,13 @@ export function ShopModal({ merchantType = 'shop', onClose }) {
   const items = useGameStore((state) => state.items || []);
   const playerHp = useGameStore((state) => state.playerHp);
   const maxHp = useGameStore((state) => state.maxHp);
+  const characterBuild = useGameStore((state) => state.characterBuild);
   const addResources = useGameStore((state) => state.addResources);
   const addRelic = useGameStore((state) => state.addRelic);
   const addItem = useGameStore((state) => state.addItem);
   const removeItem = useGameStore((state) => state.removeItem);
   const setPlayerHp = useGameStore((state) => state.setPlayerHp);
+  const removeCardFromDeck = useGameStore((state) => state.removeCardFromDeck);
 
   const merchant = MERCHANT_TYPES[merchantType] || MERCHANT_TYPES.shop;
 
@@ -53,6 +56,8 @@ export function ShopModal({ merchantType = 'shop', onClose }) {
   const [purchasedItems, setPurchasedItems] = useState(new Set());
   const [activeTab, setActiveTab] = useState('buy'); // 'buy' | 'sell' | 'service'
   const [notification, setNotification] = useState(null);
+  const [showCardRemovalModal, setShowCardRemovalModal] = useState(false);
+  const [cardRemovalPrice, setCardRemovalPrice] = useState(0);
 
   // 판매 가능한 아이템 (보유 중인 것)
   const sellableItems = useMemo(() => {
@@ -60,6 +65,25 @@ export function ShopModal({ merchantType = 'shop', onClose }) {
       .map((item, index) => ({ item, slotIndex: index }))
       .filter(({ item }) => item !== null);
   }, [items]);
+
+  // 플레이어 보유 카드 목록
+  const allPlayerCards = useMemo(() => {
+    const mainSpecials = characterBuild?.mainSpecials || [];
+    const subSpecials = characterBuild?.subSpecials || [];
+    const cards = [];
+
+    mainSpecials.forEach(cardId => {
+      const card = CARDS.find(c => c.id === cardId);
+      if (card) cards.push({ ...card, isMainSpecial: true });
+    });
+
+    subSpecials.forEach(cardId => {
+      const card = CARDS.find(c => c.id === cardId);
+      if (card) cards.push({ ...card, isMainSpecial: false });
+    });
+
+    return cards;
+  }, [characterBuild]);
 
   const showNotification = (message, type = 'info') => {
     setNotification({ message, type });
@@ -154,9 +178,27 @@ export function ShopModal({ merchantType = 'shop', onClose }) {
         showNotification('상품이 교체되었습니다!', 'success');
         break;
       }
+      case 'removeCard': {
+        if (allPlayerCards.length === 0) {
+          showNotification('제거할 카드가 없습니다!', 'error');
+          return;
+        }
+        // 골드 차감 없이 모달만 열기 (카드 선택 시 차감)
+        setCardRemovalPrice(price);
+        setShowCardRemovalModal(true);
+        break;
+      }
       default:
         showNotification('아직 구현되지 않은 서비스입니다.', 'error');
     }
+  };
+
+  // 카드 제거 확정
+  const handleRemoveCard = (card) => {
+    addResources({ gold: -cardRemovalPrice });
+    removeCardFromDeck(card.id, card.isMainSpecial);
+    setShowCardRemovalModal(false);
+    showNotification(`${card.name} 카드를 제거했습니다!`, 'success');
   };
 
   return (
@@ -511,6 +553,103 @@ export function ShopModal({ merchantType = 'shop', onClose }) {
           )}
         </div>
       </div>
+
+      {/* 카드 제거 모달 */}
+      {showCardRemovalModal && (
+        <div
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0, 0, 0, 0.8)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 10001,
+          }}
+          onClick={() => setShowCardRemovalModal(false)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: '600px',
+              maxHeight: '70vh',
+              background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
+              borderRadius: '16px',
+              border: '2px solid #ef4444',
+              boxShadow: '0 0 30px rgba(239, 68, 68, 0.3)',
+              padding: '20px',
+              display: 'flex',
+              flexDirection: 'column',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h3 style={{ margin: 0, color: '#ef4444' }}>✂️ 제거할 카드 선택</h3>
+              <span style={{ color: '#fbbf24', fontWeight: 600 }}>비용: {cardRemovalPrice}G</span>
+            </div>
+
+            <div style={{ flex: 1, overflowY: 'auto' }}>
+              {allPlayerCards.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '40px', color: '#64748b' }}>
+                  제거할 카드가 없습니다.
+                </div>
+              ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '12px' }}>
+                  {allPlayerCards.map((card, idx) => (
+                    <div
+                      key={`${card.id}-${idx}`}
+                      onClick={() => handleRemoveCard(card)}
+                      style={{
+                        padding: '12px',
+                        background: 'rgba(30, 41, 59, 0.8)',
+                        border: `2px solid ${card.isMainSpecial ? '#fbbf24' : '#60a5fa'}`,
+                        borderRadius: '10px',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
+                        <span style={{
+                          fontSize: '0.7rem',
+                          padding: '2px 6px',
+                          borderRadius: '4px',
+                          background: card.isMainSpecial ? 'rgba(251, 191, 36, 0.2)' : 'rgba(96, 165, 250, 0.2)',
+                          color: card.isMainSpecial ? '#fbbf24' : '#60a5fa',
+                        }}>
+                          {card.isMainSpecial ? '⭐주특기' : '💠보조'}
+                        </span>
+                      </div>
+                      <div style={{ fontWeight: 600, color: '#e2e8f0', marginBottom: '4px' }}>{card.name}</div>
+                      <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                        행동력 {card.actionCost} · 속도 {card.speedCost}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => setShowCardRemovalModal(false)}
+                style={{
+                  padding: '10px 20px',
+                  background: 'rgba(100, 116, 139, 0.3)',
+                  border: '1px solid #64748b',
+                  borderRadius: '8px',
+                  color: '#94a3b8',
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                }}
+              >
+                취소
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

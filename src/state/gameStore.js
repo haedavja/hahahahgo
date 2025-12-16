@@ -1149,6 +1149,26 @@ export const useGameStore = create((set, get) => ({
       },
     })),
 
+  // 덱에서 카드 제거 (상점 서비스용)
+  removeCardFromDeck: (cardId, isMainSpecial = false) =>
+    set((state) => {
+      const { mainSpecials, subSpecials } = state.characterBuild || { mainSpecials: [], subSpecials: [] };
+
+      if (isMainSpecial) {
+        const newMain = mainSpecials.filter(id => id !== cardId);
+        return {
+          ...state,
+          characterBuild: { mainSpecials: newMain, subSpecials },
+        };
+      } else {
+        const newSub = subSpecials.filter(id => id !== cardId);
+        return {
+          ...state,
+          characterBuild: { mainSpecials, subSpecials: newSub },
+        };
+      }
+    }),
+
   updatePlayerStrength: (strength) =>
     set((state) => ({
       ...state,

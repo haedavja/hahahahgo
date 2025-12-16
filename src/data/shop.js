@@ -215,7 +215,7 @@ export const SHOP_SERVICES = [
     id: 'removeCard',
     name: '카드 제거',
     emoji: '✂️',
-    description: '보조특기 카드 1장 제거',
+    description: '보유 카드 1장 제거',
     effect: { type: 'removeCard' },
   },
   {
