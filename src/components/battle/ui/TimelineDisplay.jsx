@@ -216,6 +216,18 @@ export const TimelineDisplay = ({
                   const growingDefenseBonus = hasGrowingDef
                     ? (cardAlreadyUsed ? Math.max(0, currentTimelineSp - (a.sp || 0)) : 0)
                     : 0;
+                  // 디버그
+                  if (hasGrowingDef && battle.phase === 'resolve') {
+                    console.log('[방어자세]', {
+                      cardAlreadyUsed,
+                      globalIdx,
+                      qIndex,
+                      timelineProgress: timelineProgress.toFixed(1),
+                      currentTimelineSp,
+                      cardSp: a.sp,
+                      growingDefenseBonus
+                    });
+                  }
                   // ignoreStrength 특성: 힘 보너스 무시
                   const effectiveStrengthBonus = a.card.ignoreStrength ? 0 : strengthBonus;
                   const num = a.card.type === 'attack'
