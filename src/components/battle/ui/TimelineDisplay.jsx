@@ -203,7 +203,7 @@ export const TimelineDisplay = ({
                   const sameCount = playerTimeline.filter((q, i) => i < idx && q.sp === a.sp).length;
                   const offset = sameCount * 28;
                   const strengthBonus = player.strength || 0;
-                  // growingDefense 특성 (방어자세): 타임라인 진행에 따라 방어력 실시간 증가
+                  // growingDefense 특성 (방어자세): 카드 발동 후 타임라인 진행에 따라 방어력 증가
                   const hasGrowingDef = hasSpecial(a.card, 'growingDefense');
                   const currentTimelineSp = battle.phase === 'resolve'
                     ? Math.floor((timelineProgress / 100) * playerMax)
@@ -211,10 +211,10 @@ export const TimelineDisplay = ({
                   // 카드가 이미 발동되었는지 확인
                   const globalIdx = battle.phase === 'resolve' && queue ? queue.findIndex(q => q === a) : -1;
                   const cardAlreadyUsed = globalIdx !== -1 && globalIdx < qIndex;
-                  // 발동 전: 현재 타임라인 위치 (카드 sp까지 제한 없이 표시)
-                  // 발동 후: 카드 sp로 고정
+                  // 발동 전: 0
+                  // 발동 후: 타임라인이 진행한 만큼 (currentTimelineSp - cardSp) 증가
                   const growingDefenseBonus = hasGrowingDef
-                    ? (cardAlreadyUsed ? (a.sp || 0) : currentTimelineSp)
+                    ? (cardAlreadyUsed ? Math.max(0, currentTimelineSp - (a.sp || 0)) : 0)
                     : 0;
                   // ignoreStrength 특성: 힘 보너스 무시
                   const effectiveStrengthBonus = a.card.ignoreStrength ? 0 : strengthBonus;
