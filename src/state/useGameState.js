@@ -168,6 +168,7 @@ export const createInitialState = () => {
     characterBuild: {
       mainSpecials: [],
       subSpecials: [],
+      ownedCards: [],
     },
   };
 };

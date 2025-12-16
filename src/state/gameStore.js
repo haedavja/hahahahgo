@@ -1146,25 +1146,36 @@ export const useGameStore = create((set, get) => ({
       characterBuild: {
         mainSpecials: mainSpecials ?? state.characterBuild.mainSpecials,
         subSpecials: subSpecials ?? state.characterBuild.subSpecials,
+        ownedCards: state.characterBuild?.ownedCards || [],
+      },
+    })),
+
+  // 보유 카드 추가 (상점 구매용 - 특기 지정 없음)
+  addOwnedCard: (cardId) =>
+    set((state) => ({
+      ...state,
+      characterBuild: {
+        ...state.characterBuild,
+        ownedCards: [...(state.characterBuild?.ownedCards || []), cardId],
       },
     })),
 
   // 덱에서 카드 제거 (상점 서비스용)
   removeCardFromDeck: (cardId, isMainSpecial = false) =>
     set((state) => {
-      const { mainSpecials, subSpecials } = state.characterBuild || { mainSpecials: [], subSpecials: [] };
+      const { mainSpecials, subSpecials, ownedCards } = state.characterBuild || { mainSpecials: [], subSpecials: [], ownedCards: [] };
 
       if (isMainSpecial) {
         const newMain = mainSpecials.filter(id => id !== cardId);
         return {
           ...state,
-          characterBuild: { mainSpecials: newMain, subSpecials },
+          characterBuild: { mainSpecials: newMain, subSpecials, ownedCards },
         };
       } else {
         const newSub = subSpecials.filter(id => id !== cardId);
         return {
           ...state,
-          characterBuild: { mainSpecials, subSpecials: newSub },
+          characterBuild: { mainSpecials, subSpecials: newSub, ownedCards },
         };
       }
     }),

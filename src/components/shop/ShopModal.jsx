@@ -46,7 +46,7 @@ export function ShopModal({ merchantType = 'shop', onClose }) {
   const removeItem = useGameStore((state) => state.removeItem);
   const setPlayerHp = useGameStore((state) => state.setPlayerHp);
   const removeCardFromDeck = useGameStore((state) => state.removeCardFromDeck);
-  const updateCharacterBuild = useGameStore((state) => state.updateCharacterBuild);
+  const addOwnedCard = useGameStore((state) => state.addOwnedCard);
 
   const merchant = MERCHANT_TYPES[merchantType] || MERCHANT_TYPES.shop;
 
@@ -69,7 +69,7 @@ export function ShopModal({ merchantType = 'shop', onClose }) {
       .filter(({ item }) => item !== null);
   }, [items]);
 
-  // 플레이어 보유 카드 목록
+  // 플레이어 보유 카드 목록 (특기 지정된 카드만 - 제거 서비스용)
   const allPlayerCards = useMemo(() => {
     const mainSpecials = characterBuild?.mainSpecials || [];
     const subSpecials = characterBuild?.subSpecials || [];
@@ -92,7 +92,7 @@ export function ShopModal({ merchantType = 'shop', onClose }) {
     });
 
     return cards;
-  }, [characterBuild, cardUpgrades]);
+  }, [characterBuild?.mainSpecials, characterBuild?.subSpecials, cardUpgrades]);
 
   const showNotification = (message, type = 'info') => {
     setNotification({ message, type });
@@ -143,11 +143,8 @@ export function ShopModal({ merchantType = 'shop', onClose }) {
       return;
     }
 
-    const mainSpecials = characterBuild?.mainSpecials || [];
-    const subSpecials = characterBuild?.subSpecials || [];
-
     addResources({ gold: -price });
-    updateCharacterBuild(mainSpecials, [...subSpecials, cardId]);
+    addOwnedCard(cardId);
     setPurchasedCards((prev) => new Set([...prev, cardId]));
     const card = CARDS.find(c => c.id === cardId);
     showNotification(`${card?.name || cardId}을(를) 구매했습니다!`, 'success');
