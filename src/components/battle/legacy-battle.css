@@ -1989,36 +1989,50 @@ body {
   animation: etherTransfer 0.6s ease-out forwards;
 }
 
-/* no-hover 클래스: 호버 효과 비활성화 (카드 관리 모달 등에서 사용) */
-.game-card-large.no-hover:hover {
-  transform: none !important;
+/* no-hover 클래스: 호버 효과 완전 비활성화 */
+.game-card-large.no-hover,
+.game-card-large.no-hover:hover,
+.game-card-large.no-hover:hover:not(.disabled) {
+  transition: none !important;
   z-index: auto !important;
   margin-right: 0 !important;
 }
 
+.game-card-large.no-hover:hover:not(.disabled) {
+  transform: scale(0.5) !important;
+}
+
+.game-card-large.no-hover .card-header,
 .game-card-large.no-hover:hover .card-header,
+.game-card-large.no-hover:hover:not(.disabled) .card-header {
+  font-size: 0.875rem !important;
+}
+
+.game-card-large.no-hover .card-icon-area svg,
 .game-card-large.no-hover:hover .card-icon-area svg,
+.game-card-large.no-hover:hover:not(.disabled) .card-icon-area svg {
+  width: 50px !important;
+  height: 50px !important;
+}
+
+.game-card-large.no-hover .card-footer,
 .game-card-large.no-hover:hover .card-footer,
-.game-card-large.no-hover:hover .card-stat-item {
-  font-size: inherit !important;
-  width: inherit !important;
-  height: inherit !important;
-  padding: inherit !important;
+.game-card-large.no-hover:hover:not(.disabled) .card-footer {
+  padding: 10px 12px !important;
+  font-size: 0.875rem !important;
 }
 
-/* no-hover 추가 스타일: 텍스트 영역도 호버시 변경 없음 */
-.game-card-large.no-hover:hover .card-description,
-.game-card-large.no-hover:hover .card-footer.simplified-footer,
-.game-card-large.no-hover:hover .card-footer.simplified-footer .card-description {
-  font-size: inherit !important;
-  display: inherit !important;
+.game-card-large.no-hover .card-stat-item,
+.game-card-large.no-hover:hover .card-stat-item,
+.game-card-large.no-hover:hover:not(.disabled) .card-stat-item {
+  font-size: 1rem !important;
 }
 
-.game-card-large.no-hover {
+.game-card-large.no-hover .card-description,
+.game-card-large.no-hover:hover .card-description {
+  font-size: 0.75rem !important;
+}
+
+.game-card-large.no-hover * {
   transition: none !important;
-}
-
-.game-card-large.no-hover:hover {
-  transform: inherit !important;
-  box-shadow: inherit !important;
 }
