@@ -3148,7 +3148,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       {(battle.phase === 'select' || battle.phase === 'respond' || battle.phase === 'resolve' || (enemy && enemy.hp <= 0) || (player && player.hp <= 0)) && (
         <div className="energy-display-fixed">
           <div className="energy-orb-compact">
-            {remainingEnergy} / {player.maxEnergy}
+            {remainingEnergy}<span style={{ margin: '0 6px' }}>/</span>{player.maxEnergy}
           </div>
         </div>
       )}
