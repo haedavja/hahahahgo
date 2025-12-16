@@ -120,20 +120,21 @@ function calculateSingleHit(attacker, defender, card, attackerName, battleContex
     specialLogs = [];
     attackerConsumedTokens = [];  // 토큰은 첫 타격에서만 소모
   } else {
-    // 첫 타격: 토큰 효과 및 pre-attack special 적용
-    const tokenResult = isGhost
-      ? { modifiedCard: card, consumedTokens: [] }
-      : applyTokenEffectsToCard(card, attacker, 'attack');
-
+    // 첫 타격: pre-attack special 먼저 적용 (reloadSpray 장전 등)
     const preAttackResult = processPreAttackSpecials({
-      card: tokenResult.modifiedCard,
+      card,
       attacker,
       defender,
       attackerName,
       battleContext
     });
 
-    modifiedCard = preAttackResult.modifiedCard;
+    // 그 다음 토큰 효과 적용 (빈탄창 체크 등) - preAttackResult.attacker의 토큰 사용
+    const tokenResult = isGhost
+      ? { modifiedCard: preAttackResult.modifiedCard, consumedTokens: [] }
+      : applyTokenEffectsToCard(preAttackResult.modifiedCard, preAttackResult.attacker, 'attack');
+
+    modifiedCard = tokenResult.modifiedCard;
     currentAttacker = preAttackResult.attacker;
     currentDefender = preAttackResult.defender;
     specialEvents = preAttackResult.events;
