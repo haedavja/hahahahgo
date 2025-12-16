@@ -50,7 +50,8 @@ export function processPreAttackSpecials({
     modifiedAttacker.def = false;
 
     if (playerBlockBefore > 0 || enemyBlockBefore > 0) {
-      const msg = `💥 ${card.name}: 양측 방어력 제거! (공격자: ${playerBlockBefore}→0, 방어자: ${enemyBlockBefore}→0)`;
+      const who = attackerName === 'player' ? '플레이어' : '몬스터';
+      const msg = `${who} • 💥 ${card.name}: 양측 방어력 제거! (공격자: ${playerBlockBefore}→0, 방어자: ${enemyBlockBefore}→0)`;
       events.push({ actor: attackerName, card: card.name, type: 'special', msg });
       logs.push(msg);
     }
@@ -63,7 +64,8 @@ export function processPreAttackSpecials({
 
     if (isOnlyAttack) {
       modifiedCard.damage = (modifiedCard.damage || 0) * 2;
-      const msg = `⚡ ${card.name}: 유일한 공격 카드! 피해 2배 (${card.damage}→${modifiedCard.damage})`;
+      const who = attackerName === 'player' ? '플레이어' : '몬스터';
+      const msg = `${who} • ⚡ ${card.name}: 유일한 공격 카드! 피해 2배 (${card.damage}→${modifiedCard.damage})`;
       events.push({ actor: attackerName, card: card.name, type: 'special', msg });
       logs.push(msg);
     }
@@ -76,7 +78,8 @@ export function processPreAttackSpecials({
       const bonusDamage = agility * 5;
       modifiedCard.damage = (modifiedCard.damage || 0) + bonusDamage;
       // speedCost 감소는 카드 선택 시점에서 처리해야 함 (타임라인 계산 전)
-      const msg = `🌀 ${card.name}: 민첩 ${agility} → +${bonusDamage} 추가 피해`;
+      const who = attackerName === 'player' ? '플레이어' : '몬스터';
+      const msg = `${who} • 🌀 ${card.name}: 민첩 ${agility} → +${bonusDamage} 추가 피해`;
       events.push({ actor: attackerName, card: card.name, type: 'special', msg });
       logs.push(msg);
     }
@@ -88,7 +91,8 @@ export function processPreAttackSpecials({
     const result = addToken(modifiedAttacker, 'loaded', 1);
     modifiedAttacker.tokens = result.tokens;
     if (result.logs.some(l => l.includes('상쇄'))) {
-      const msg = `🔫 ${card.name}: 장전! 빈탄창 해제!`;
+      const who = attackerName === 'player' ? '플레이어' : '몬스터';
+      const msg = `${who} • 🔫 ${card.name}: 장전! 빈탄창 해제!`;
       events.push({ actor: attackerName, card: card.name, type: 'special', msg });
       logs.push(msg);
     }
@@ -111,7 +115,8 @@ export function processPreAttackSpecials({
     hits = Math.max(1, hits);  // 최소 1회
     modifiedCard.hits = hits;
     modifiedCard._addEmptyChamber = true;  // 사용 후 빈탄창 플래그
-    const msg = `🎰 ${card.name}: 행동력 ${remainingEnergy} → ${hits}회 사격! (🎲 보너스 ${bonusCount}회)`;
+    const who = attackerName === 'player' ? '플레이어' : '몬스터';
+    const msg = `${who} • 🎰 ${card.name}: 행동력 ${remainingEnergy} → ${hits}회 사격! (🎲 보너스 ${bonusCount}회)`;
     events.push({ actor: attackerName, card: card.name, type: 'special', msg });
     logs.push(msg);
   }
@@ -153,7 +158,8 @@ export function processPostAttackSpecials({
     if (modifiedDefender.hp > 0 && modifiedDefender.hp < threshold) {
       const beforeHp = modifiedDefender.hp;
       modifiedDefender.hp = 0;
-      const msg = `💀 ${card.name}: 즉사 발동! (체력 ${beforeHp} < ${threshold} = 최대 체력의 10%)`;
+      const who = attackerName === 'player' ? '플레이어' : '몬스터';
+      const msg = `${who} • 💀 ${card.name}: 즉사 발동! (체력 ${beforeHp} < ${threshold} = 최대 체력의 10%)`;
       events.push({ actor: attackerName, card: card.name, type: 'execute', msg });
       logs.push(msg);
     }
@@ -166,7 +172,8 @@ export function processPostAttackSpecials({
     if (hadNoBlock) {
       const result = addToken(modifiedDefender, 'vulnerable', 1);
       modifiedDefender.tokens = result.tokens;
-      const msg = `🔻 ${card.name}: 취약 부여! (방어력 없음)`;
+      const who = attackerName === 'player' ? '플레이어' : '몬스터';
+      const msg = `${who} • 🔻 ${card.name}: 취약 부여! (방어력 없음)`;
       events.push({ actor: attackerName, card: card.name, type: 'special', msg });
       logs.push(msg);
     }
@@ -179,7 +186,8 @@ export function processPostAttackSpecials({
     if (hadNoBlock) {
       const result = addToken(modifiedDefender, 'vulnerable', 2);
       modifiedDefender.tokens = result.tokens;
-      const msg = `🔻🔻 ${card.name}: 2배 취약 부여! (방어력 없음)`;
+      const who = attackerName === 'player' ? '플레이어' : '몬스터';
+      const msg = `${who} • 🔻🔻 ${card.name}: 2배 취약 부여! (방어력 없음)`;
       events.push({ actor: attackerName, card: card.name, type: 'special', msg });
       logs.push(msg);
     }
@@ -191,7 +199,8 @@ export function processPostAttackSpecials({
 
     if (isLastCard) {
       extraHits = 1;
-      const msg = `🔁 ${card.name}: 마지막 카드! 1회 추가 타격`;
+      const who = attackerName === 'player' ? '플레이어' : '몬스터';
+      const msg = `${who} • 🔁 ${card.name}: 마지막 카드! 1회 추가 타격`;
       events.push({ actor: attackerName, card: card.name, type: 'special', msg });
       logs.push(msg);
     }
@@ -203,7 +212,8 @@ export function processPostAttackSpecials({
 
     if (unusedAttackCards > 0) {
       extraHits = unusedAttackCards;
-      const msg = `🔁 ${card.name}: 미사용 공격 카드 ${unusedAttackCards}장 → ${unusedAttackCards}회 추가 타격`;
+      const who = attackerName === 'player' ? '플레이어' : '몬스터';
+      const msg = `${who} • 🔁 ${card.name}: 미사용 공격 카드 ${unusedAttackCards}장 → ${unusedAttackCards}회 추가 타격`;
       events.push({ actor: attackerName, card: card.name, type: 'special', msg });
       logs.push(msg);
     }
@@ -214,7 +224,8 @@ export function processPostAttackSpecials({
     const result = addToken(modifiedAttacker, 'persistent_strike', 1);
     modifiedAttacker.tokens = result.tokens;
     modifiedAttacker._persistentStrikeDamage = card.damage || 20;
-    const msg = `👊 ${card.name}: 집요한 타격 활성화! (적 행동 시마다 ${card.damage} 피해)`;
+    const who = attackerName === 'player' ? '플레이어' : '몬스터';
+    const msg = `${who} • 👊 ${card.name}: 집요한 타격 활성화! (적 행동 시마다 ${card.damage} 피해)`;
     events.push({ actor: attackerName, card: card.name, type: 'special', msg });
     logs.push(msg);
   }
@@ -223,7 +234,8 @@ export function processPostAttackSpecials({
   if (hasSpecial(card, 'halfEnemyEther')) {
     const result = addToken(modifiedDefender, 'half_ether', 1);
     modifiedDefender.tokens = result.tokens;
-    const msg = `✨ ${card.name}: 이번 턴 적 에테르 획득 50% 감소!`;
+    const who = attackerName === 'player' ? '플레이어' : '몬스터';
+    const msg = `${who} • ✨ ${card.name}: 이번 턴 적 에테르 획득 50% 감소!`;
     events.push({ actor: attackerName, card: card.name, type: 'special', msg });
     logs.push(msg);
   }
@@ -232,7 +244,8 @@ export function processPostAttackSpecials({
   if (hasSpecial(card, 'emptyAfterUse') || card._addEmptyChamber) {
     const result = addToken(modifiedAttacker, 'empty_chamber', 1);
     modifiedAttacker.tokens = result.tokens;
-    const msg = `🔫 ${card.name}: 사용 후 빈탄창!`;
+    const who = attackerName === 'player' ? '플레이어' : '몬스터';
+    const msg = `${who} • 🔫 ${card.name}: 사용 후 빈탄창!`;
     events.push({ actor: attackerName, card: card.name, type: 'special', msg });
     logs.push(msg);
   }
@@ -242,7 +255,8 @@ export function processPostAttackSpecials({
     // onPlay에서 이미 loaded 추가됨, 여기서 empty_chamber 추가
     const result = addToken(modifiedAttacker, 'empty_chamber', 1);
     modifiedAttacker.tokens = result.tokens;
-    const msg = `🔫 ${card.name}: 난사 후 빈탄창!`;
+    const who = attackerName === 'player' ? '플레이어' : '몬스터';
+    const msg = `${who} • 🔫 ${card.name}: 난사 후 빈탄창!`;
     events.push({ actor: attackerName, card: card.name, type: 'special', msg });
     logs.push(msg);
   }
@@ -273,7 +287,8 @@ export function processCollisionSpecials({
   // === destroyOnCollision: 충돌 시 적 카드 파괴 ===
   if (hasSpecial(card, 'destroyOnCollision')) {
     destroyed = true;
-    const msg = `💥 ${card.name}: 충돌! ${enemyCard?.name || '적 카드'} 파괴!`;
+    const who = attackerName === 'player' ? '플레이어' : '몬스터';
+    const msg = `${who} • 💥 ${card.name}: 충돌! ${enemyCard?.name || '적 카드'} 파괴!`;
     events.push({ actor: attackerName, card: card.name, type: 'destroy', msg });
     logs.push(msg);
   }
@@ -313,7 +328,7 @@ export function processQueueCollisions(queue, addLog) {
       if (!cardsToRemove.has(enemyItem)) {
         cardsToRemove.add(enemyItem);
         destroyedCards.push(enemyItem.card);
-        const msg = `💥 ${playerItem.card.name}: 타임라인 충돌! ${enemyItem.card?.name || '적 카드'} 파괴!`;
+        const msg = `플레이어 • 💥 ${playerItem.card.name}: 타임라인 충돌! ${enemyItem.card?.name || '적 카드'} 파괴!`;
         logs.push(msg);
         if (addLog) addLog(msg);
       }
@@ -367,7 +382,8 @@ export function processTimelineSpecials({
   if (hasSpecial(card, 'advanceTimeline')) {
     const amount = card.advanceAmount || 4;
     timelineChanges.advancePlayer = amount;
-    const msg = `⏪ ${card.name}: 내 타임라인 ${amount} 앞당김!`;
+    const who = actorName === 'player' ? '플레이어' : '몬스터';
+    const msg = `${who} • ⏪ ${card.name}: 내 타임라인 ${amount} 앞당김!`;
     events.push({ actor: actorName, card: card.name, type: 'timeline', msg });
     logs.push(msg);
   }
@@ -376,7 +392,8 @@ export function processTimelineSpecials({
   if (hasSpecial(card, 'pushEnemyTimeline') && damageDealt > 0) {
     const amount = card.pushAmount || 5;
     timelineChanges.pushEnemy = amount;
-    const msg = `⏩ ${card.name}: 피해 성공! 적 타임라인 ${amount} 뒤로 밀림!`;
+    const who = actorName === 'player' ? '플레이어' : '몬스터';
+    const msg = `${who} • ⏩ ${card.name}: 피해 성공! 적 타임라인 ${amount} 뒤로 밀림!`;
     events.push({ actor: actorName, card: card.name, type: 'timeline', msg });
     logs.push(msg);
   }
@@ -385,14 +402,15 @@ export function processTimelineSpecials({
   if (hasSpecial(card, 'beatEffect')) {
     const advanceAmount = card.advanceAmount || 1;
     timelineChanges.advancePlayer = advanceAmount;
-    const msg1 = `⏪ ${card.name}: 내 타임라인 ${advanceAmount} 앞당김!`;
+    const who = actorName === 'player' ? '플레이어' : '몬스터';
+    const msg1 = `${who} • ⏪ ${card.name}: 내 타임라인 ${advanceAmount} 앞당김!`;
     events.push({ actor: actorName, card: card.name, type: 'timeline', msg: msg1 });
     logs.push(msg1);
 
     if (damageDealt > 0) {
       const pushAmount = card.pushAmount || 2;
       timelineChanges.pushEnemy = pushAmount;
-      const msg2 = `⏩ ${card.name}: 피해 성공! 적 타임라인 ${pushAmount} 뒤로 밀림!`;
+      const msg2 = `${who} • ⏩ ${card.name}: 피해 성공! 적 타임라인 ${pushAmount} 뒤로 밀림!`;
       events.push({ actor: actorName, card: card.name, type: 'timeline', msg: msg2 });
       logs.push(msg2);
     }
@@ -402,7 +420,8 @@ export function processTimelineSpecials({
   if (hasSpecial(card, 'pushLastEnemyCard')) {
     const amount = card.pushAmount || 9;
     timelineChanges.pushLastEnemy = amount;
-    const msg = `⏩ ${card.name}: 적의 마지막 카드를 ${amount} 뒤로 밀음!`;
+    const who = actorName === 'player' ? '플레이어' : '몬스터';
+    const msg = `${who} • ⏩ ${card.name}: 적의 마지막 카드를 ${amount} 뒤로 밀음!`;
     events.push({ actor: actorName, card: card.name, type: 'timeline', msg });
     logs.push(msg);
   }
@@ -472,7 +491,8 @@ export function processCardCreationSpecials({
       const cardNames = createdCards.map(c => c.name).join(', ');
       const sourceName = card.isFromFleche ? `플레쉬 연쇄 ${currentChainCount + 1}` : card.name;
       const chainInfo = nextChainCount < MAX_FLECHE_CHAIN ? '' : ' (마지막 연쇄)';
-      const msg = `✨ ${sourceName}: 피해 성공! ${createdCards.length}장의 공격 카드 창조!${chainInfo} (${cardNames})`;
+      const who = actorName === 'player' ? '플레이어' : '몬스터';
+      const msg = `${who} • ✨ ${sourceName}: 피해 성공! ${createdCards.length}장의 공격 카드 창조!${chainInfo} (${cardNames})`;
       events.push({ actor: actorName, card: card.name, type: 'create', msg });
       logs.push(msg);
     }
@@ -505,6 +525,7 @@ export function processCardPlaySpecials({
     const usedFencing = usedCardCategories.includes('fencing');
     const usedGun = usedCardCategories.includes('gun');
 
+    const who = attackerName === 'player' ? '플레이어' : '몬스터';
     if (usedFencing && !usedGun) {
       // 검격을 냈으면 총격 보너스
       const gunCards = allCards.filter(c => c.cardCategory === 'gun' && c.type === 'attack');
@@ -516,7 +537,7 @@ export function processCardPlaySpecials({
           createdBy: card.id,
           createdId: `${randomGun.id}_combo_${Date.now()}`
         });
-        const msg = `⚔️→🔫 ${card.name}: 검격 연계! "${randomGun.name}" 추가 발동!`;
+        const msg = `${who} • ⚔️→🔫 ${card.name}: 검격 연계! "${randomGun.name}" 추가 발동!`;
         events.push({ actor: attackerName, card: card.name, type: 'combo', msg });
         logs.push(msg);
       }
@@ -531,7 +552,7 @@ export function processCardPlaySpecials({
           createdBy: card.id,
           createdId: `${randomFencing.id}_combo_${Date.now()}`
         });
-        const msg = `🔫→⚔️ ${card.name}: 총격 연계! "${randomFencing.name}" 추가 발동!`;
+        const msg = `${who} • 🔫→⚔️ ${card.name}: 총격 연계! "${randomFencing.name}" 추가 발동!`;
         events.push({ actor: attackerName, card: card.name, type: 'combo', msg });
         logs.push(msg);
       }
@@ -549,7 +570,7 @@ export function processCardPlaySpecials({
           createdBy: card.id,
           createdId: `${randomCard.id}_combo_${Date.now()}`
         });
-        const msg = `🔄 ${card.name}: 복합 연계! "${randomCard.name}" 추가 발동!`;
+        const msg = `${who} • 🔄 ${card.name}: 복합 연계! "${randomCard.name}" 추가 발동!`;
         events.push({ actor: attackerName, card: card.name, type: 'combo', msg });
         logs.push(msg);
       }
@@ -561,7 +582,8 @@ export function processCardPlaySpecials({
     const hasReloadCard = hand.some(c => c.id === 'reload' || c.id === 'ap_load' || c.id === 'incendiary_load');
     if (hasReloadCard) {
       tokensToAdd.push({ id: 'loaded', stacks: 1 });
-      const msg = `🔄 ${card.name}: 손패에 장전 카드 감지! 자동 장전!`;
+      const who = attackerName === 'player' ? '플레이어' : '몬스터';
+      const msg = `${who} • 🔄 ${card.name}: 손패에 장전 카드 감지! 자동 장전!`;
       events.push({ actor: attackerName, card: card.name, type: 'special', msg });
       logs.push(msg);
     }
@@ -573,7 +595,8 @@ export function processCardPlaySpecials({
       maxSpeedBonus: 8,
       bonusEnergy: 2
     };
-    const msg = `🧠 ${card.name}: 정신집중! 다음 턴 최대속도 +8, 행동력 +2!`;
+    const who = attackerName === 'player' ? '플레이어' : '몬스터';
+    const msg = `${who} • 🧠 ${card.name}: 정신집중! 다음 턴 최대속도 +8, 행동력 +2!`;
     events.push({ actor: attackerName, card: card.name, type: 'special', msg });
     logs.push(msg);
   }
