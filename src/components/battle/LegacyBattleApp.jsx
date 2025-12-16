@@ -1816,9 +1816,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     const animateProgress = (currentTime) => {
       const elapsed = currentTime - startTime;
       const progress = Math.min(elapsed / animationDuration, 1);
-      // easeOutQuad 이징 함수로 자연스러운 감속
-      const easedProgress = 1 - Math.pow(1 - progress, 2);
-      const currentProgress = startProgress + (targetProgress - startProgress) * easedProgress;
+      // linear 보간 (시곗바늘이 일정 속도로 이동)
+      const currentProgress = startProgress + (targetProgress - startProgress) * progress;
 
       actions.setTimelineProgress(currentProgress);
 
