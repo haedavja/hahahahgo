@@ -792,11 +792,11 @@ export function CharacterSheet({ onClose }) {
                         {(isMainSpecial || isSubSpecial) && (
                           <div style={{
                             position: 'absolute',
-                            top: '8px',
+                            top: '38px',
                             right: '8px',
                             background: isMainSpecial ? '#f5d76e' : '#7dd3fc',
                             color: '#000',
-                            padding: '2px 8px',
+                            padding: '2px 6px',
                             borderRadius: '10px',
                             fontSize: '11px',
                             fontWeight: 700,
