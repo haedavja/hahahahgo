@@ -1910,14 +1910,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     if (currentBattle.qIndex >= currentBattle.queue.length) return;
     const a = currentBattle.queue[currentBattle.qIndex];
 
-    console.log('[executeCardAction] 카드 실행 시작:', {
-      cardName: a.card?.name,
-      cardId: a.card?.id,
-      qIndex: currentBattle.qIndex,
-      'battleRef.current.player.tokens': JSON.stringify(currentBattle.player?.tokens),
-      'React player.tokens': JSON.stringify(player?.tokens)
-    });
-
     // battleRef에서 최신 player/enemy 상태 가져오기 (애니메이션 중 방어자세 방어력, 토큰 등 반영)
     const latestPlayer = currentBattle.player || player;
     const latestEnemy = currentBattle.enemy || enemy;
@@ -2126,19 +2118,13 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
               return result;
             },
             removeTokenFromPlayer: (tokenId, tokenType, stacks = 1) => {
-              console.log('[onPlay removeToken] 시작:', { tokenId, tokenType, stacks });
-              console.log('[onPlay removeToken] 제거 전 currentPlayerForToken.tokens:', JSON.stringify(currentPlayerForToken.tokens));
               const result = removeToken(currentPlayerForToken, tokenId, tokenType, stacks);
-              console.log('[onPlay removeToken] 제거 후 result.tokens:', JSON.stringify(result.tokens));
-              console.log('[onPlay removeToken] result.logs:', result.logs);
               P.tokens = result.tokens;
               currentPlayerForToken.tokens = result.tokens;
               // battleRef 동기 업데이트 (finishTurn에서 최신 상태 사용 가능하도록)
               if (battleRef.current) {
                 battleRef.current = { ...battleRef.current, player: { ...P } };
               }
-              console.log('[onPlay removeToken] 업데이트 후 P.tokens:', JSON.stringify(P.tokens));
-              console.log('[onPlay removeToken] 업데이트 후 battleRef.current.player.tokens:', JSON.stringify(battleRef.current?.player?.tokens));
               actions.setPlayer({ ...P });
               result.logs.forEach(log => addLog(log));
               return result;
@@ -2358,12 +2344,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       });
     }
 
-    console.log('[executeCardAction] 카드 실행 후 최종 상태:', {
-      cardName: a.card?.name,
-      cardId: a.card?.id,
-      'P.tokens': JSON.stringify(P.tokens),
-      'battleRef.current.player.tokens': JSON.stringify(battleRef.current?.player?.tokens)
-    });
     actions.setPlayer({ ...player, hp: P.hp, def: P.def, block: P.block, counter: P.counter, vulnMult: P.vulnMult || 1, strength: P.strength || 0, tokens: P.tokens });
     actions.setEnemy({ ...enemy, hp: E.hp, def: E.def, block: E.block, counter: E.counter, vulnMult: E.vulnMult || 1, tokens: E.tokens });
     actions.setActionEvents({ ...currentBattle.actionEvents, [currentBattle.qIndex]: actionEvents });
