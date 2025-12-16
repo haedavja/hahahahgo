@@ -9,17 +9,17 @@
  * @param {Object} params - 파라미터
  * @param {Object} params.card - 사용한 카드
  * @param {number} params.turnEtherAccumulated - 현재 턴 누적 에테르
- * @param {Array} params.orderedRelicList - 정렬된 유물 ID 목록
+ * @param {Array} params.orderedRelicList - 정렬된 상징 ID 목록
  * @param {Object} params.cardUpgrades - 카드 업그레이드 정보
  * @param {number} params.resolvedPlayerCards - 해결된 플레이어 카드 수
  * @param {Array} params.playerTimeline - 플레이어 타임라인
- * @param {Array} params.relics - 유물 목록
+ * @param {Array} params.relics - 상징 목록
  * @param {Object} params.triggeredRefs - 발동 추적 ref 객체
  * @param {Function} params.calculatePassiveEffects - 패시브 효과 계산 함수
  * @param {Function} params.getCardEtherGain - 카드 에테르 획득 계산 함수
- * @param {Function} params.collectTriggeredRelics - 발동할 유물 수집 함수
- * @param {Function} params.playRelicActivationSequence - 유물 애니메이션 재생 함수
- * @param {Function} params.flashRelic - 유물 플래시 함수
+ * @param {Function} params.collectTriggeredRelics - 발동할 상징 수집 함수
+ * @param {Function} params.playRelicActivationSequence - 상징 애니메이션 재생 함수
+ * @param {Function} params.flashRelic - 상징 플래시 함수
  * @param {Object} params.actions - 상태 업데이트 함수 모음
  * @returns {Object} { newTurnEther, newResolvedPlayerCards }
  */
@@ -53,10 +53,10 @@ export function processPlayerEtherAccumulation({
   actions.setEtherPulse(true);
   setTimeout(() => actions.setEtherPulse(false), 300);
 
-  // 플레이어 카드 진행 시 유물 발동
+  // 플레이어 카드 진행 시 상징 발동
   const newCount = resolvedPlayerCards + 1;
 
-  // 유물이 있으면 발동 애니메이션 및 사운드 (좌→우 순차 재생)
+  // 상징이 있으면 발동 애니메이션 및 사운드 (좌→우 순차 재생)
   if (relics.length > 0) {
     const triggered = collectTriggeredRelics({
       orderedRelicList,

@@ -8,7 +8,7 @@
 import { RELICS, RELIC_RARITIES } from './relics';
 import { ITEMS } from './items';
 
-// 유물 등급별 가격
+// 상징 등급별 가격
 export const RELIC_PRICES = {
   [RELIC_RARITIES.COMMON]: 60,
   [RELIC_RARITIES.RARE]: 120,
@@ -50,7 +50,7 @@ export const MERCHANT_TYPES = {
     name: '여행 상인',
     emoji: '🏪',
     greeting: '어서 오세요, 모험가여. 무엇이 필요하신가요?',
-    relicSlots: 3,      // 유물 3개
+    relicSlots: 3,      // 상징 3개
     itemSlots: 4,       // 아이템 4개
     cardSlots: 3,       // 카드 3개
     hasServices: true,  // 서비스 제공
@@ -81,7 +81,7 @@ export const MERCHANT_TYPES = {
     cardSlots: 2,
     hasServices: false,
     canSell: true,
-    priceMultiplier: 1.3,  // 30% 비쌈 (대신 희귀 유물만)
+    priceMultiplier: 1.3,  // 30% 비쌈 (대신 희귀 상징만)
     minRarity: RELIC_RARITIES.RARE,  // 희귀 등급 이상만
     minCardRarity: 'rare',  // 희귀 카드 이상만
   },
@@ -103,7 +103,7 @@ export const MERCHANT_TYPES = {
 /**
  * 랜덤 상점 재고 생성
  * @param {string} merchantType - 상인 유형
- * @param {string[]} ownedRelics - 이미 보유한 유물 ID 배열
+ * @param {string[]} ownedRelics - 이미 보유한 상징 ID 배열
  * @param {Object[]} allCards - 전체 카드 배열 (CARDS)
  * @returns {Object} { relics: [{id, price}], items: [{id, price}], cards: [{id, price, rarity}] }
  */
@@ -111,11 +111,11 @@ export function generateShopInventory(merchantType = 'shop', ownedRelics = [], a
   const merchant = MERCHANT_TYPES[merchantType] || MERCHANT_TYPES.shop;
   const inventory = { relics: [], items: [], cards: [] };
 
-  // 유물 선택
+  // 상징 선택
   const availableRelics = Object.values(RELICS).filter(r => {
-    // 이미 보유한 유물 제외
+    // 이미 보유한 상징 제외
     if (ownedRelics.includes(r.id)) return false;
-    // 개발자 전용 유물 제외
+    // 개발자 전용 상징 제외
     if (r.id === 'infiniteShield' || r.id === 'perpetualEngine') return false;
     // 최소 등급 체크
     if (merchant.minRarity) {
@@ -227,8 +227,8 @@ export function getItemSellPrice(item, merchantType = 'shop') {
 }
 
 /**
- * 유물 판매 가격 계산 (보유 유물 판매 시)
- * @param {Object} relic - 유물 객체
+ * 상징 판매 가격 계산 (보유 상징 판매 시)
+ * @param {Object} relic - 상징 객체
  * @param {string} merchantType - 상인 유형
  * @returns {number} 판매 가격
  */

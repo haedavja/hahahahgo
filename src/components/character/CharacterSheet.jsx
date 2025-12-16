@@ -43,7 +43,7 @@ export function CharacterSheet({ onClose, showAllCards = false }) {
   const playerEgos = useGameStore((state) => state.playerEgos ?? []);
   const relics = useGameStore((state) => state.relics);
 
-  // 유물 패시브 효과 계산
+  // 상징 패시브 효과 계산
   const passiveEffects = useMemo(() => {
     return calculatePassiveEffects(relics || []);
   }, [relics]);
@@ -70,7 +70,7 @@ export function CharacterSheet({ onClose, showAllCards = false }) {
   const power = playerStrength || 0;
   const agility = playerAgility || 0;
 
-  // 슬롯 제한 (유물 효과 반영)
+  // 슬롯 제한 (상징 효과 반영)
   const maxMainSlots = 3 + passiveEffects.mainSpecialSlots;
   const maxSubSlots = 5 + passiveEffects.subSpecialSlots + extraSubSpecialSlots;
 

@@ -135,12 +135,12 @@ export function GraphDungeonExploration() {
       case DUNGEON_EVENT_TYPES.CURIO:
         const isBad = Math.random() < 0.3;
         if (isBad) {
-          setMessage('저주받은 유물이었습니다! 피해를 입었습니다.');
+          setMessage('저주받은 상징이었습니다! 피해를 입었습니다.');
           useGameStore.setState({ playerHp: Math.max(0, playerHp - 8) });
         } else {
           const reward = event.quality === 'legendary' ? 50 : 25;
           addResources({ gold: reward });
-          setMessage(`신비로운 유물에서 ${reward} 골드를 획득했습니다!`);
+          setMessage(`신비로운 상징에서 ${reward} 골드를 획득했습니다!`);
         }
         markNodeCleared(node.id, state);
         break;

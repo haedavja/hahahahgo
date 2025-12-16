@@ -320,7 +320,7 @@ export const CARDS = [
     speedCost: 5,
     actionCost: 2,
     iconKey: "shield",
-    description: "방어력 5. 공격과 방어 카드를 랜덤하게 3장 창조해 하나를 선택, 브리치 타임라인 +3 속도로 끼워넣음. 유령카드로 아이템/유물 효과 무시.",
+    description: "방어력 5. 공격과 방어 카드를 랜덤하게 3장 창조해 하나를 선택, 브리치 타임라인 +3 속도로 끼워넣음. 유령카드로 아이템/상징 효과 무시.",
     traits: [],
     special: "breach",
     breachSpOffset: 3

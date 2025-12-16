@@ -13,7 +13,7 @@ import { COMBO_MULTIPLIERS, applyEtherDeflation } from "./etherCalculations";
  * @param {Object} params.enemyCombo - 적 조합 정보
  * @param {number} params.turnEtherAccumulated - 이번 턴 누적 에테르
  * @param {number} params.enemyTurnEtherAccumulated - 적 턴 누적 에테르
- * @param {number} params.finalComboMultiplier - 최종 콤보 배율 (유물 포함)
+ * @param {number} params.finalComboMultiplier - 최종 콤보 배율 (상징 포함)
  * @param {Object} params.player - 플레이어 상태
  * @param {Object} params.enemy - 적 상태
  * @returns {Object} 계산 결과
@@ -104,7 +104,7 @@ export function formatPlayerEtherLog(result, turnEtherAccumulated) {
     ? ` (디플레이션 -${Math.round((1 - deflation.multiplier) * 100)}%, ${deflation.usageCount}회 사용)`
     : '';
 
-  const relicText = relicMultBonus > 0 ? ` (유물 배율 +${relicMultBonus.toFixed(2)})` : '';
+  const relicText = relicMultBonus > 0 ? ` (상징 배율 +${relicMultBonus.toFixed(2)})` : '';
   const amplifierText = etherAmplifierMult > 1 ? ` (증폭 ×${etherAmplifierMult})` : '';
 
   return `✴️ 에테르 획득: ${turnEtherAccumulated} × ${actualTotalMultiplier.toFixed(2)}${relicText}${amplifierText} = ${beforeDeflation} → ${finalEther} PT${deflationText} (적용: ${appliedEther} PT)`;

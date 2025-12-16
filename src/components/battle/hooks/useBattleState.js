@@ -105,7 +105,7 @@ export function useBattleState(initialStateOverrides = {}) {
     setRespondSnapshot: (snapshot) => dispatch({ type: ACTIONS.SET_RESPOND_SNAPSHOT, payload: snapshot }),
     setRewindUsed: (used) => dispatch({ type: ACTIONS.SET_REWIND_USED, payload: used }),
 
-    // === 유물 UI ===
+    // === 상징 UI ===
     setHoveredRelic: (relicId) => dispatch({ type: ACTIONS.SET_HOVERED_RELIC, payload: relicId }),
     setRelicActivated: (relicId) => dispatch({ type: ACTIONS.SET_RELIC_ACTIVATED, payload: relicId }),
     setActiveRelicSet: (relicSet) => dispatch({ type: ACTIONS.SET_ACTIVE_RELIC_SET, payload: relicSet }),

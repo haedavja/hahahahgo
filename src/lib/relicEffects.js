@@ -1,5 +1,5 @@
 /**
- * 유물 효과 처리 유틸리티
+ * 상징 효과 처리 유틸리티
  */
 
 import { getRelicById } from '../data/relics';
@@ -7,7 +7,7 @@ import { getNextSlotCost } from './etherUtils';
 
 /**
  * PASSIVE 효과를 계산하여 스탯 변화를 반환
- * @param {Array} relicIds - 유물 ID 배열
+ * @param {Array} relicIds - 상징 ID 배열
  * @returns {Object} 스탯 변화 객체
  */
 export function calculatePassiveEffects(relicIds = []) {
@@ -47,7 +47,7 @@ export function calculatePassiveEffects(relicIds = []) {
 
 /**
  * ON_COMBAT_START 효과 처리
- * @param {Array} relicIds - 유물 ID 배열
+ * @param {Array} relicIds - 상징 ID 배열
  * @param {Object} state - 현재 전투 상태
  * @returns {Object} 상태 변화
  */
@@ -77,7 +77,7 @@ export function applyCombatStartEffects(relicIds = [], state = {}) {
 
 /**
  * ON_COMBAT_END 효과 처리
- * @param {Array} relicIds - 유물 ID 배열
+ * @param {Array} relicIds - 상징 ID 배열
  * @param {Object} state - 현재 전투 상태
  * @returns {Object} 상태 변화
  */
@@ -116,7 +116,7 @@ export function applyCombatEndEffects(relicIds = [], state = {}) {
 
 /**
  * ON_TURN_START 효과 처리
- * @param {Array} relicIds - 유물 ID 배열
+ * @param {Array} relicIds - 상징 ID 배열
  * @param {Object} state - 현재 턴 상태
  * @returns {Object} 상태 변화
  */
@@ -148,7 +148,7 @@ export function applyTurnStartEffects(relicIds = [], state = {}) {
 
 /**
  * ON_TURN_END 효과 처리
- * @param {Array} relicIds - 유물 ID 배열
+ * @param {Array} relicIds - 상징 ID 배열
  * @param {Object} state - 현재 턴 상태
  * @returns {Object} 다음 턴에 적용할 효과
  */
@@ -176,7 +176,7 @@ export function applyTurnEndEffects(relicIds = [], state = {}) {
 
 /**
  * ON_CARD_PLAYED 효과 처리
- * @param {Array} relicIds - 유물 ID 배열
+ * @param {Array} relicIds - 상징 ID 배열
  * @param {Object} card - 사용된 카드
  * @param {Object} state - 현재 상태
  * @returns {Object} 상태 변화
@@ -200,7 +200,7 @@ export function applyCardPlayedEffects(relicIds = [], card = {}, state = {}) {
 
 /**
  * ON_DAMAGE_TAKEN 효과 처리
- * @param {Array} relicIds - 유물 ID 배열
+ * @param {Array} relicIds - 상징 ID 배열
  * @param {number} damage - 받은 피해량
  * @param {Object} state - 현재 상태
  * @returns {Object} 다음 턴 효과
@@ -227,10 +227,10 @@ export function applyDamageTakenEffects(relicIds = [], damage = 0, state = {}) {
 }
 
 /**
- * 에테르 획득량 계산 (유물 효과 적용)
+ * 에테르 획득량 계산 (상징 효과 적용)
  * @param {number} baseEther - 기본 에테르량
  * @param {number} cardsPlayed - 사용한 카드 수
- * @param {Array} relicIds - 유물 ID 배열
+ * @param {Array} relicIds - 상징 ID 배열
  * @returns {number} 최종 에테르량
  */
 export function calculateEtherGain(baseEther, cardsPlayed, relicIds = []) {
@@ -251,7 +251,7 @@ export function calculateEtherGain(baseEther, cardsPlayed, relicIds = []) {
 
 /**
  * 맵 이동 시 에테르 획득 (적색의 지남철)
- * @param {Array} relicIds - 유물 ID 배열
+ * @param {Array} relicIds - 상징 ID 배열
  * @param {number} currentEther - 현재 에테르
  * @returns {number} 증가한 에테르량
  */
@@ -277,8 +277,8 @@ export function applyNodeMoveEther(relicIds = [], currentEther = 0) {
 }
 
 /**
- * 유물로 인한 추가 슬롯 계산
- * @param {Array} relicIds - 유물 ID 배열
+ * 상징로 인한 추가 슬롯 계산
+ * @param {Array} relicIds - 상징 ID 배열
  * @returns {Object} {mainSlots, subSlots}
  */
 export function calculateExtraSlots(relicIds = []) {

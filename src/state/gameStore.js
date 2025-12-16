@@ -118,7 +118,7 @@ const applyPenalty = (penalty = {}, resources = {}) => {
 
 const computeFriendlyChance = (mapRisk) => Math.max(0.2, Math.min(0.85, 1 - mapRisk / 120));
 
-// 초기 상태에 유물 패시브 효과와 메타 진행 보너스를 적용하는 헬퍼
+// 초기 상태에 상징 패시브 효과와 메타 진행 보너스를 적용하는 헬퍼
 const applyInitialRelicEffects = (state) => {
   const passiveEffects = calculatePassiveEffects(state.relics);
   const metaBonuses = getRunBonuses();
@@ -330,7 +330,7 @@ export const useGameStore = create((set, get) => ({
       const result = travelToNode(state, nodeId);
       if (!result) return state;
 
-      // 맵 이동 시 유물 효과 적용 (황금 나침반)
+      // 맵 이동 시 상징 효과 적용 (황금 나침반)
       let updatedResources = state.resources;
       try {
         const currentEther = state.resources.etherPts ?? 0;
@@ -1353,9 +1353,9 @@ export const useGameStore = create((set, get) => ({
       };
     }),
 
-  // ==================== 유물 관리 ====================
+  // ==================== 상징 관리 ====================
 
-  // 유물 추가
+  // 상징 추가
   addRelic: (relicId) =>
     set((state) => {
       if (state.relics.includes(relicId)) return state;
@@ -1380,7 +1380,7 @@ export const useGameStore = create((set, get) => ({
       };
     }),
 
-  // 유물 제거
+  // 상징 제거
   removeRelic: (relicId) =>
     set((state) => {
       const newRelics = state.relics.filter((id) => id !== relicId);
@@ -1395,7 +1395,7 @@ export const useGameStore = create((set, get) => ({
       };
     }),
 
-  // 유물 직접 설정 (개발자 도구용)
+  // 상징 직접 설정 (개발자 도구용)
   setRelics: (relicIds) =>
     set((state) => {
       const passiveEffects = calculatePassiveEffects(relicIds);

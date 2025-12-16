@@ -135,16 +135,16 @@ const generateMap = () => {
 };
 
 export const createInitialState = () => {
-  const initialRelics = []; // 초기 유물 없음
+  const initialRelics = []; // 초기 상징 없음
 
-  // 유물 패시브 효과를 계산하기 위한 import (동적 import 대신 초기값 사용)
+  // 상징 패시브 효과를 계산하기 위한 import (동적 import 대신 초기값 사용)
   // calculatePassiveEffects는 gameStore에서 사용되므로 여기서는 기본값만 설정
   return {
     map: generateMap(),
     mapRisk: 0, // 위험도는 0%부터 시작
     resources: { gold: 40, intel: 2, loot: 1, material: 1, etherPts: 0, memory: 0 },
     playerHp: 100,
-    maxHp: 100, // 유물 효과는 gameStore의 addRelic/setRelics에서 적용됨
+    maxHp: 100, // 상징 효과는 gameStore의 addRelic/setRelics에서 적용됨
     playerStrength: 0,
     playerAgility: 0, // 민첩성 (카드 속도 감소)
     playerEnergyBonus: 0, // 활력 각성 등으로 인한 행동력 보너스

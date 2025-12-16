@@ -56,7 +56,7 @@ const OBJECT_TYPES = {
   },
   CURIO: {
     id: "curio",
-    label: "수상한 유물",
+    label: "수상한 상징",
     canReuse: false,
     probRoom: 0.35,
     probCorridor: 0.25,
@@ -1822,7 +1822,7 @@ export function DungeonExploration() {
         }}
       />
 
-      {/* 유물 표시 */}
+      {/* 상징 표시 */}
       {relics && relics.length > 0 && (
         <div style={{
           position: "absolute",

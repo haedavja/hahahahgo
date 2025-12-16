@@ -22,7 +22,7 @@ export const BreachSelectionModal = ({
         <div className="breach-modal-header">
           <h2>👻 브리치 - 카드 선택</h2>
           <p>아래 3장 중 1장을 선택하세요. 선택한 카드는 타임라인 {insertSp} 위치에 유령카드로 삽입됩니다.</p>
-          <p className="breach-ghost-note">💨 유령카드: 힘 보너스만 적용, 콤보/아이템/유물 효과 미적용</p>
+          <p className="breach-ghost-note">💨 유령카드: 힘 보너스만 적용, 콤보/아이템/상징 효과 미적용</p>
         </div>
 
         <div className="breach-card-options">

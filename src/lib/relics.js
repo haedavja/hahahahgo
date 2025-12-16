@@ -1,11 +1,11 @@
-// 유물 등급
+// 상징 등급
 export const RELIC_RARITY = {
   COMMON: 'common',
   RARE: 'rare',
   LEGENDARY: 'legendary',
 };
 
-// 유물 타입 (효과 적용 범위)
+// 상징 타입 (효과 적용 범위)
 export const RELIC_TYPE = {
   COMBAT: 'combat',      // 전투 관련
   EVENT: 'event',        // 이벤트 관련
@@ -13,7 +13,7 @@ export const RELIC_TYPE = {
   GENERAL: 'general',    // 일반적인 효과
 };
 
-// 유물 효과 타입
+// 상징 효과 타입
 export const RELIC_EFFECT = {
   ETHER_GAIN_BONUS: 'etherGainBonus',           // 에테르 획득량 증가
   ETHER_GAIN_FLAT: 'etherGainFlat',             // 에테르 획득량 고정값 증가
@@ -26,7 +26,7 @@ export const RELIC_EFFECT = {
 // src/data/relics.js에서 RELICS 가져오기
 import { getRelicById } from '../data/relics';
 
-// 유물 효과 계산 함수
+// 상징 효과 계산 함수
 export function applyRelicEffects(relics, effectType, baseValue) {
   if (!relics || relics.length === 0) return baseValue;
 
@@ -57,7 +57,7 @@ export function applyRelicEffects(relics, effectType, baseValue) {
   return result;
 }
 
-// 콤보 배율에 유물 효과 적용 (카드 개수 기반)
+// 콤보 배율에 상징 효과 적용 (카드 개수 기반)
 export function applyRelicComboMultiplier(relics, baseMultiplier, cardCount) {
   if (!relics || relics.length === 0) return baseMultiplier;
 
@@ -77,7 +77,7 @@ export function applyRelicComboMultiplier(relics, baseMultiplier, cardCount) {
   return baseMultiplier + bonusMultiplier;
 }
 
-// 유물 희귀도별 색상
+// 상징 희귀도별 색상
 export const RELIC_RARITY_COLORS = {
   [RELIC_RARITY.COMMON]: '#94a3b8',     // 회색
   [RELIC_RARITY.RARE]: '#60a5fa',       // 파랑

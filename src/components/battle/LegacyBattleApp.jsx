@@ -119,7 +119,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     const merged = [];
     // 1) 저장된 순서 중 현재 보유 중인 것만 유지
     saved.forEach(id => { if (relicList.includes(id)) merged.push(id); });
-    // 2) 새로 생긴 유물은 현재 보유 순서대로 뒤에 추가
+    // 2) 새로 생긴 상징은 현재 보유 순서대로 뒤에 추가
     relicList.forEach(id => { if (!savedSet.has(id)) merged.push(id); });
     return merged;
   }, []);
@@ -173,8 +173,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const effectiveAgility = playerWithAnomalies.agility ?? playerAgility ?? 0;
   const effectiveCardDrawBonus = passiveRelicStats.cardDrawBonus || 0;
   const startingEther = typeof playerWithAnomalies.etherPts === 'number' ? playerWithAnomalies.etherPts : playerEther;
-  const startingBlock = playerWithAnomalies.block ?? 0; // 유물 효과로 인한 시작 방어력
-  const startingStrength = playerWithAnomalies.strength ?? playerStrength ?? 0; // 전투 시작 힘 (유물 효과 포함)
+  const startingBlock = playerWithAnomalies.block ?? 0; // 상징 효과로 인한 시작 방어력
+  const startingStrength = playerWithAnomalies.strength ?? playerStrength ?? 0; // 전투 시작 힘 (상징 효과 포함)
   const startingInsight = playerWithAnomalies.insight ?? 0; // 통찰
 
   const initialPlayerState = {
@@ -314,7 +314,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const playerTransferPulse = battle.playerTransferPulse;
   const enemyTransferPulse = battle.enemyTransferPulse;
 
-  // 유물 UI
+  // 상징 UI
   const activeRelicSet = battle.activeRelicSet;
   const relicActivated = battle.relicActivated;
   const multiplierPulse = battle.multiplierPulse;
@@ -359,7 +359,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   // orderedRelics는 아직 useState로 관리 (localStorage 로직 때문에)
   const hoveredRelic = battle.hoveredRelic;
 
-  // 새 유물 추가/제거 시 기존 순서를 유지하면서 병합
+  // 새 상징 추가/제거 시 기존 순서를 유지하면서 병합
   // 진행 단계에서는 동기화/변경을 막아 일관성 유지
   useEffect(() => {
     if (battle.phase === 'resolve') return;
@@ -406,7 +406,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const initialEtherRef = useRef(typeof safeInitialPlayer.etherPts === 'number' ? safeInitialPlayer.etherPts : (playerEther ?? 0));
   const resultSentRef = useRef(false);
   const turnStartProcessedRef = useRef(false); // 턴 시작 효과 중복 실행 방지
-  const dragRelicIndexRef = useRef(null); // 유물 드래그 인덱스
+  const dragRelicIndexRef = useRef(null); // 상징 드래그 인덱스
   const battleRef = useRef(battle); // battle 상태를 ref로 유지 (setTimeout closure 문제 해결)
   const displayEtherMultiplierRef = useRef(1); // 애니메이션 표시용 에테르 배율 (리셋되어도 유지)
   const [parryReadyStates, setParryReadyStates] = useState([]); // 쳐내기 패리 대기 상태 배열 (렌더링용)
@@ -758,10 +758,10 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       const e = ENEMIES[enemyIndex];
       actions.setEnemy({ ...e, hp: e.hp, maxHp: e.hp, vulnMult: 1, vulnTurns: 0, block: 0, counter: 0, etherPts: 0, etherOverdriveActive: false, maxSpeed: e.maxSpeed ?? DEFAULT_ENEMY_MAX_SPEED });
 
-      // 전투 시작 유물 효과 로그 및 애니메이션
+      // 전투 시작 상징 효과 로그 및 애니메이션
       const combatStartEffects = applyCombatStartEffects(orderedRelicList, {});
 
-      // 전투 시작 유물 애니메이션
+      // 전투 시작 상징 애니메이션
       orderedRelicList.forEach(relicId => {
         const relic = RELICS[relicId];
         if (relic?.effects?.type === 'ON_COMBAT_START') {
@@ -772,16 +772,16 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       });
 
       if (combatStartEffects.damage > 0) {
-        addLog(`⛓️ 유물 효과: 체력 -${combatStartEffects.damage} (피의 족쇄)`);
+        addLog(`⛓️ 상징 효과: 체력 -${combatStartEffects.damage} (피의 족쇄)`);
       }
       if (combatStartEffects.strength > 0) {
-        addLog(`💪 유물 효과: 힘 +${combatStartEffects.strength}`);
+        addLog(`💪 상징 효과: 힘 +${combatStartEffects.strength}`);
       }
       if (combatStartEffects.block > 0) {
-        addLog(`🛡️ 유물 효과: 방어력 +${combatStartEffects.block}`);
+        addLog(`🛡️ 상징 효과: 방어력 +${combatStartEffects.block}`);
       }
       if (combatStartEffects.heal > 0) {
-        addLog(`💚 유물 효과: 체력 +${combatStartEffects.heal}`);
+        addLog(`💚 상징 효과: 체력 +${combatStartEffects.heal}`);
       }
 
       // 캐릭터 빌드가 있으면 사용, 없으면 기본 8장
@@ -839,16 +839,16 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     actions.setCanRedraw(true);
     actions.setWillOverdrive(false);
 
-    // 유물 턴 시작 효과 적용 (피피한 갑옷 등)
+    // 상징 턴 시작 효과 적용 (피피한 갑옷 등)
     const turnStartRelicEffects = applyTurnStartEffects(orderedRelicList, nextTurnEffects);
 
-    console.log("[턴 시작 유물 효과]", {
+    console.log("[턴 시작 상징 효과]", {
       block: turnStartRelicEffects.block,
       heal: turnStartRelicEffects.heal,
       energy: turnStartRelicEffects.energy
     });
 
-    // 턴 시작 유물 발동 애니메이션
+    // 턴 시작 상징 발동 애니메이션
     orderedRelicList.forEach(relicId => {
       const relic = RELICS[relicId];
       if (relic?.effects?.type === 'ON_TURN_START') {
@@ -941,13 +941,13 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
     // 로그 추가
     if (turnStartRelicEffects.block > 0) {
-      addLog(`🛡️ 유물 효과: 방어력 +${turnStartRelicEffects.block}`);
+      addLog(`🛡️ 상징 효과: 방어력 +${turnStartRelicEffects.block}`);
     }
     if (turnStartRelicEffects.heal > 0) {
-      addLog(`💚 유물 효과: 체력 +${turnStartRelicEffects.heal}`);
+      addLog(`💚 상징 효과: 체력 +${turnStartRelicEffects.heal}`);
     }
     if (turnStartRelicEffects.energy > 0) {
-      addLog(`⚡ 유물 효과: 행동력 +${turnStartRelicEffects.energy}`);
+      addLog(`⚡ 상징 효과: 행동력 +${turnStartRelicEffects.energy}`);
     }
     if (energyBonus > 0) {
       addLog(`⚡ 다음턴 보너스 행동력: +${energyBonus}`);
@@ -1081,7 +1081,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     return combo;
   }, [battle.selected, player.comboUsageCount, battle.phase]);
 
-  // 유물 효과를 포함한 최종 콤보 배율 (실시간 값 기반)
+  // 상징 효과를 포함한 최종 콤보 배율 (실시간 값 기반)
   const finalComboMultiplier = useMemo(() => {
     const baseMultiplier = currentCombo ? (COMBO_MULTIPLIERS[currentCombo.name] || 1) : 1;
     const isResolve = battle.phase === 'resolve';
@@ -1981,7 +1981,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         actions.setNextTurnEffects(updatedNextTurnEffects);
       }
 
-      // 유물: 카드 사용 시 효과 (불멸의 가면 등)
+      // 상징: 카드 사용 시 효과 (불멸의 가면 등)
       processCardPlayedRelicEffects({
         relics,
         card: a.card,
@@ -2290,14 +2290,14 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     // 다음 턴 효과 처리 (특성 기반)
     const newNextTurnEffects = processCardTraitEffects(selected, addLog);
 
-    // 유물 턴 종료 효과 적용 (계약서, 은화 등)
+    // 상징 턴 종료 효과 적용 (계약서, 은화 등)
     const turnEndRelicEffects = applyTurnEndEffects(relics, {
       cardsPlayedThisTurn: battle.selected.length,
       player,
       enemy,
     });
 
-    // 턴 종료 유물 발동 애니메이션
+    // 턴 종료 상징 발동 애니메이션
     playTurnEndRelicAnimations({
       relics,
       RELICS,
@@ -2308,7 +2308,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       actions
     });
 
-    // 턴 종료 유물 효과를 다음 턴 효과에 적용
+    // 턴 종료 상징 효과를 다음 턴 효과에 적용
     const updatedNextTurnEffects = applyTurnEndRelicEffectsToNextTurn({
       turnEndRelicEffects,
       nextTurnEffects: newNextTurnEffects,
@@ -2323,7 +2323,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     const pComboEnd = detectPokerCombo(selected);
     const eComboEnd = detectPokerCombo(enemyPlan.actions);
 
-    // 에테르 최종 계산 (유물 배율 및 디플레이션 적용)
+    // 에테르 최종 계산 (상징 배율 및 디플레이션 적용)
     // battleRef에서 최신 player 상태 가져오기 (아이템 효과의 etherMultiplier 등)
     const latestPlayer = battleRef.current?.player || player;
     console.log('[finishTurn] etherMultiplier 확인:', {
@@ -2883,7 +2883,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         parryReadyStates={parryReadyStates}
       />
 
-      {/* 유물 표시 */}
+      {/* 상징 표시 */}
       <RelicDisplay
         orderedRelicList={orderedRelicList}
         RELICS={RELICS}

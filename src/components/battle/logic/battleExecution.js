@@ -218,7 +218,7 @@ export function executeCardActionCore(params) {
       actions.setNextTurnEffects(updatedNextTurnEffects);
     }
 
-    // 유물 효과
+    // 상징 효과
     processCardPlayedRelicEffects({
       relics,
       card: action.card,
@@ -443,7 +443,7 @@ export function finishTurnCore(params) {
   // 다음 턴 효과 처리
   const newNextTurnEffects = processCardTraitEffects(selected, addLog);
 
-  // 유물 턴 종료 효과
+  // 상징 턴 종료 효과
   const turnEndRelicEffects = applyTurnEndEffects(relics, {
     cardsPlayedThisTurn: battle.selected.length,
     player,

@@ -116,7 +116,7 @@ export function DevTools({ isOpen, onClose, useNewDungeon, setUseNewDungeon, sho
       { id: 'resources', label: '💰 자원', icon: '💰' },
       { id: 'map', label: '🗺️ 맵', icon: '🗺️' },
       { id: 'battle', label: '⚔️ 전투', icon: '⚔️' },
-      { id: 'relics', label: '💎 유물', icon: '💎' },
+      { id: 'relics', label: '💎 상징', icon: '💎' },
       { id: 'items', label: '🎒 아이템', icon: '🎒' },
       { id: 'event', label: '🎲 이벤트', icon: '🎲' },
       { id: 'cards', label: '🃏 카드', icon: '🃏' },
@@ -1175,7 +1175,7 @@ function BattleTab({
   );
 }
 
-// 유물 관리 탭
+// 상징 관리 탭
 function RelicsTab({ relics, addRelic, removeRelic, setRelics }) {
   const [selectedRarity, setSelectedRarity] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -1212,9 +1212,9 @@ function RelicsTab({ relics, addRelic, removeRelic, setRelics }) {
 
   return (
     <div>
-      <h3 style={{ marginTop: 0, color: '#fbbf24', fontSize: '1.125rem' }}>유물 관리</h3>
+      <h3 style={{ marginTop: 0, color: '#fbbf24', fontSize: '1.125rem' }}>상징 관리</h3>
 
-      {/* 현재 보유 유물 */}
+      {/* 현재 보유 상징 */}
       <div style={{
         padding: '12px',
         background: '#0f172a',
@@ -1222,7 +1222,7 @@ function RelicsTab({ relics, addRelic, removeRelic, setRelics }) {
         marginBottom: '16px',
       }}>
         <div style={{ fontSize: '0.875rem', color: '#94a3b8', marginBottom: '8px' }}>
-          보유 유물 ({relics.length}개)
+          보유 상징 ({relics.length}개)
         </div>
         {relics.length > 0 ? (
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
@@ -1252,7 +1252,7 @@ function RelicsTab({ relics, addRelic, removeRelic, setRelics }) {
           </div>
         ) : (
           <div style={{ fontSize: '0.75rem', color: '#64748b', fontStyle: 'italic' }}>
-            보유한 유물이 없습니다
+            보유한 상징이 없습니다
           </div>
         )}
         <div style={{ marginTop: '12px', display: 'flex', gap: '8px' }}>
@@ -1298,7 +1298,7 @@ function RelicsTab({ relics, addRelic, removeRelic, setRelics }) {
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="유물 검색 (이름, 설명, 태그, ID)"
+          placeholder="상징 검색 (이름, 설명, 태그, ID)"
           style={{
             width: '100%',
             padding: '10px 12px',
@@ -1355,7 +1355,7 @@ function RelicsTab({ relics, addRelic, removeRelic, setRelics }) {
         ))}
       </div>
 
-      {/* 유물 목록 */}
+      {/* 상징 목록 */}
       <div style={{
         maxHeight: '300px',
         overflowY: 'auto',

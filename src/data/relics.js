@@ -1,7 +1,7 @@
 /**
- * 유물 데이터
+ * 상징 데이터
  *
- * 유물은 게임의 방향성을 결정짓는 아이템으로 개별 유물의 성능만큼이나 각 유물간의 연계가 중요하다.
+ * 상징은 게임의 방향성을 결정짓는 아이템으로 개별 상징의 성능만큼이나 각 상징간의 연계가 중요하다.
  */
 
 export const RELIC_RARITIES = {
@@ -26,7 +26,7 @@ export const RELIC_TAGS = {
 };
 
 /**
- * 유물 효과 타입
+ * 상징 효과 타입
  * - PASSIVE: 항상 적용되는 효과
  * - ON_COMBAT_START: 전투 시작 시
  * - ON_COMBAT_END: 전투 종료 시
@@ -386,7 +386,7 @@ export const RELICS = {
     },
   },
 
-  // ==================== 추가 유물 ====================
+  // ==================== 추가 상징 ====================
   mockingMask: {
     id: 'mockingMask',
     name: '비웃는 가면',
@@ -570,7 +570,7 @@ export const RELICS = {
     emoji: '📿',
     rarity: RELIC_RARITIES.RARE,
     tags: [RELIC_TAGS.ETHER],
-    description: '유물이 발동될때마다 에테르 50pt 획득.',
+    description: '상징이 발동될때마다 에테르 50pt 획득.',
     effects: {
       type: 'ON_RELIC_ACTIVATE',
       etherGain: 50,
@@ -609,28 +609,28 @@ export const RELICS = {
 };
 
 /**
- * 등급별 유물 목록 가져오기
+ * 등급별 상징 목록 가져오기
  */
 export function getRelicsByRarity(rarity) {
   return Object.values(RELICS).filter(relic => relic.rarity === rarity);
 }
 
 /**
- * 태그별 유물 목록 가져오기
+ * 태그별 상징 목록 가져오기
  */
 export function getRelicsByTag(tag) {
   return Object.values(RELICS).filter(relic => relic.tags.includes(tag));
 }
 
 /**
- * 유물 ID로 유물 데이터 가져오기
+ * 상징 ID로 상징 데이터 가져오기
  */
 export function getRelicById(id) {
   return RELICS[id] || null;
 }
 
 /**
- * 모든 유물 목록 가져오기
+ * 모든 상징 목록 가져오기
  */
 export function getAllRelics() {
   return Object.values(RELICS);

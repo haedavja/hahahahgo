@@ -48,15 +48,15 @@ export function processImmediateCardTraits({ card, playerState, nextTurnEffects,
 }
 
 /**
- * 카드 사용 시 유물 효과 처리 (힐 등)
+ * 카드 사용 시 상징 효과 처리 (힐 등)
  * @param {Object} params - 처리 파라미터
- * @param {Array} params.relics - 유물 목록
+ * @param {Array} params.relics - 상징 목록
  * @param {Object} params.card - 사용된 카드
  * @param {Object} params.playerState - 플레이어 상태 (수정됨)
  * @param {Object} params.enemyState - 적 상태
  * @param {Object} params.safeInitialPlayer - 안전 초기 플레이어 상태
  * @param {Function} params.addLog - 로그 추가 함수
- * @param {Function} params.setRelicActivated - 유물 활성화 설정 함수
+ * @param {Function} params.setRelicActivated - 상징 활성화 설정 함수
  * @returns {boolean} 효과가 발동되었는지 여부
  */
 export function processCardPlayedRelicEffects({
@@ -68,7 +68,7 @@ export function processCardPlayedRelicEffects({
   addLog,
   setRelicActivated
 }) {
-  // 유령카드는 유물 효과 미적용
+  // 유령카드는 상징 효과 미적용
   if (card.isGhost) {
     return false;
   }
@@ -82,7 +82,7 @@ export function processCardPlayedRelicEffects({
 
     if (healDelta > 0) {
       playerState.hp = healed;
-      addLog(`🎭 유물 효과: 체력 +${healDelta} (불멸의 가면 등)`);
+      addLog(`🎭 상징 효과: 체력 +${healDelta} (불멸의 가면 등)`);
       setRelicActivated('immortalMask');
       setTimeout(() => setRelicActivated(null), 500);
       return true;

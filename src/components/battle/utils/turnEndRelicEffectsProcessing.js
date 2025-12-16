@@ -1,14 +1,14 @@
 /**
  * turnEndRelicEffectsProcessing.js
  *
- * 턴 종료 시 유물 효과 처리 시스템
+ * 턴 종료 시 상징 효과 처리 시스템
  */
 
 /**
- * 턴 종료 유물 발동 애니메이션 재생
+ * 턴 종료 상징 발동 애니메이션 재생
  * @param {Object} params - 파라미터
- * @param {Array} params.relics - 유물 ID 목록
- * @param {Object} params.RELICS - 유물 데이터
+ * @param {Array} params.relics - 상징 ID 목록
+ * @param {Object} params.RELICS - 상징 데이터
  * @param {number} params.cardsPlayedThisTurn - 이번 턴에 사용한 카드 수
  * @param {Object} params.player - 플레이어 상태
  * @param {Object} params.enemy - 적 상태
@@ -38,9 +38,9 @@ export function playTurnEndRelicAnimations({
 }
 
 /**
- * 턴 종료 유물 효과를 다음 턴 효과에 적용
+ * 턴 종료 상징 효과를 다음 턴 효과에 적용
  * @param {Object} params - 파라미터
- * @param {Object} params.turnEndRelicEffects - 턴 종료 유물 효과
+ * @param {Object} params.turnEndRelicEffects - 턴 종료 상징 효과
  * @param {Object} params.nextTurnEffects - 다음 턴 효과
  * @param {Object} params.player - 플레이어 상태
  * @param {Function} params.addLog - 로그 추가 함수
@@ -59,7 +59,7 @@ export function applyTurnEndRelicEffectsToNextTurn({
   // 다음 턴 행동력 증가 (계약서 등)
   if (turnEndRelicEffects.energyNextTurn > 0) {
     updatedNextTurnEffects.bonusEnergy += turnEndRelicEffects.energyNextTurn;
-    addLog(`📜 유물 효과: 다음턴 행동력 +${turnEndRelicEffects.energyNextTurn}`);
+    addLog(`📜 상징 효과: 다음턴 행동력 +${turnEndRelicEffects.energyNextTurn}`);
     console.log("[턴 종료 계약서 효과]", {
       "turnEndRelicEffects.energyNextTurn": turnEndRelicEffects.energyNextTurn,
       "updatedNextTurnEffects.bonusEnergy": updatedNextTurnEffects.bonusEnergy
@@ -70,7 +70,7 @@ export function applyTurnEndRelicEffectsToNextTurn({
   if (turnEndRelicEffects.strength !== 0) {
     const currentStrength = player.strength || 0;
     const newStrength = currentStrength + turnEndRelicEffects.strength;
-    addLog(`💪 유물 효과: 힘 ${turnEndRelicEffects.strength > 0 ? '+' : ''}${turnEndRelicEffects.strength} (총 ${newStrength})`);
+    addLog(`💪 상징 효과: 힘 ${turnEndRelicEffects.strength > 0 ? '+' : ''}${turnEndRelicEffects.strength} (총 ${newStrength})`);
     actions.setPlayer({ ...player, strength: newStrength });
   }
 

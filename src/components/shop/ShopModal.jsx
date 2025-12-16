@@ -99,14 +99,14 @@ export function ShopModal({ merchantType = 'shop', onClose }) {
     setTimeout(() => setNotification(null), 2000);
   };
 
-  // 유물 구매
+  // 상징 구매
   const handleBuyRelic = (relicId, price) => {
     if (gold < price) {
       showNotification('골드가 부족합니다!', 'error');
       return;
     }
     if (relics.includes(relicId)) {
-      showNotification('이미 보유한 유물입니다!', 'error');
+      showNotification('이미 보유한 상징입니다!', 'error');
       return;
     }
 
@@ -373,10 +373,10 @@ export function ShopModal({ merchantType = 'shop', onClose }) {
         <div style={{ flex: 1, overflowY: 'auto' }}>
           {activeTab === 'buy' && (
             <div>
-              {/* 유물 */}
+              {/* 상징 */}
               {inventory.relics.length > 0 && (
                 <div style={{ marginBottom: '20px' }}>
-                  <h3 style={{ fontSize: '1rem', color: '#a78bfa', marginBottom: '12px' }}>✨ 유물</h3>
+                  <h3 style={{ fontSize: '1rem', color: '#a78bfa', marginBottom: '12px' }}>✨ 상징</h3>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '12px' }}>
                     {inventory.relics.map(({ id, price }) => {
                       const relic = RELICS[id];

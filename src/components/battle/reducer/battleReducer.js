@@ -85,7 +85,7 @@ export const createInitialState = ({
   showPtsTooltip: false,
   showBarTooltip: false,
 
-  // === 유물 ===
+  // === 상징 ===
   orderedRelics: initialPlayerRelics,
 
   // === 전투 종료 후 ===
@@ -110,9 +110,9 @@ export const createInitialState = ({
   respondSnapshot: null, // 대응 단계 진입 시 상태 스냅샷(되감기용)
   rewindUsed: false, // 전투당 1회 되감기 사용 여부
 
-  // === 유물 UI ===
-  hoveredRelic: null, // 호버된 유물 ID
-  relicActivated: null, // 발동된 유물 ID (애니메이션용)
+  // === 상징 UI ===
+  hoveredRelic: null, // 호버된 상징 ID
+  relicActivated: null, // 발동된 상징 ID (애니메이션용)
   activeRelicSet: new Set(), // 동시 강조용
   multiplierPulse: false, // 배율 강조 애니메이션
 
@@ -230,7 +230,7 @@ export const ACTIONS = {
   SET_SHOW_PTS_TOOLTIP: 'SET_SHOW_PTS_TOOLTIP',
   SET_SHOW_BAR_TOOLTIP: 'SET_SHOW_BAR_TOOLTIP',
 
-  // === 유물 ===
+  // === 상징 ===
   SET_ORDERED_RELICS: 'SET_ORDERED_RELICS',
 
   // === 전투 종료 ===
@@ -256,7 +256,7 @@ export const ACTIONS = {
   SET_RESPOND_SNAPSHOT: 'SET_RESPOND_SNAPSHOT',
   SET_REWIND_USED: 'SET_REWIND_USED',
 
-  // === 유물 UI ===
+  // === 상징 UI ===
   SET_HOVERED_RELIC: 'SET_HOVERED_RELIC',
   SET_RELIC_ACTIVATED: 'SET_RELIC_ACTIVATED',
   SET_ACTIVE_RELIC_SET: 'SET_ACTIVE_RELIC_SET',
@@ -446,7 +446,7 @@ export function battleReducer(state, action) {
     case ACTIONS.SET_SHOW_BAR_TOOLTIP:
       return { ...state, showBarTooltip: action.payload };
 
-    // === 유물 ===
+    // === 상징 ===
     case ACTIONS.SET_ORDERED_RELICS:
       return { ...state, orderedRelics: action.payload };
 
@@ -492,7 +492,7 @@ export function battleReducer(state, action) {
     case ACTIONS.SET_REWIND_USED:
       return { ...state, rewindUsed: action.payload };
 
-    // === 유물 UI ===
+    // === 상징 UI ===
     case ACTIONS.SET_HOVERED_RELIC:
       return { ...state, hoveredRelic: action.payload };
     case ACTIONS.SET_RELIC_ACTIVATED:

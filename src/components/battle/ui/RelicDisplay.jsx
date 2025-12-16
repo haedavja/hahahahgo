@@ -1,7 +1,7 @@
 /**
  * RelicDisplay.jsx
  *
- * 상단 유물 표시 컴포넌트
+ * 상단 상징 표시 컴포넌트
  */
 
 export const RelicDisplay = ({

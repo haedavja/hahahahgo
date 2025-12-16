@@ -1,7 +1,7 @@
 /**
  * comboMultiplier.js
  *
- * 콤보 배율 계산 시스템 (유물 효과 통합)
+ * 콤보 배율 계산 시스템 (상징 효과 통합)
  */
 
 import { RELICS } from "../../../data/relics";
@@ -9,13 +9,13 @@ import { applyRelicComboMultiplier } from "../../../lib/relics";
 import { calculatePassiveEffects } from "../../../lib/relicEffects";
 
 /**
- * 유물 효과를 적용한 콤보 배율 계산
+ * 상징 효과를 적용한 콤보 배율 계산
  * @param {number} baseMult - 기본 배율
  * @param {number} cardsCount - 카드 개수
  * @param {boolean} includeFiveCard - 5장 보너스 포함 여부
  * @param {boolean} includeRefBook - 참고서 효과 포함 여부
- * @param {Array|null} relicOrderOverride - 유물 순서 오버라이드 (null이면 orderedRelicList 사용)
- * @param {Array} orderedRelicList - 현재 유물 순서
+ * @param {Array|null} relicOrderOverride - 상징 순서 오버라이드 (null이면 orderedRelicList 사용)
+ * @param {Array} orderedRelicList - 현재 상징 순서
  * @returns {number} 최종 배율
  */
 export function computeComboMultiplier(
@@ -66,8 +66,8 @@ export function computeComboMultiplier(
  * @param {number} cardsCount - 카드 개수
  * @param {boolean} includeFiveCard - 5장 보너스 포함 여부
  * @param {boolean} includeRefBook - 참고서 효과 포함 여부
- * @param {Array|null} relicOrderOverride - 유물 순서 오버라이드
- * @param {Array} orderedRelicList - 현재 유물 순서
+ * @param {Array|null} relicOrderOverride - 상징 순서 오버라이드
+ * @param {Array} orderedRelicList - 현재 상징 순서
  * @returns {Object} { multiplier: number, steps: string[] }
  */
 export function explainComboMultiplier(

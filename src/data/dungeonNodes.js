@@ -29,7 +29,7 @@ export const DUNGEON_EVENT_TYPES = {
   NONE: 'none',
   CHEST: 'chest',            // 보물상자
   COMBAT: 'combat',          // 전투
-  CURIO: 'curio',            // 수상한 유물
+  CURIO: 'curio',            // 수상한 상징
   OBSTACLE: 'obstacle',      // 장애물 (절벽, 잠긴 문 등)
   TRAP: 'trap',              // 함정
   REST: 'rest',              // 휴식처
@@ -988,7 +988,7 @@ function generateEvent(nodeType, difficulty) {
   }
 
   if (nodeType === DUNGEON_NODE_TYPES.ROOM) {
-    // 방: 보물, 유물 위주
+    // 방: 보물, 상징 위주
     if (rand < 0.35) return { type: DUNGEON_EVENT_TYPES.CHEST };
     if (rand < 0.55) return { type: DUNGEON_EVENT_TYPES.CURIO };
     if (rand < 0.7) return { type: DUNGEON_EVENT_TYPES.COMBAT, difficulty };

@@ -70,7 +70,7 @@ export const NEW_EVENT_LIBRARY = {
     description: "🎩 화려한 복장의 신사가 당신을 불러 세웁니다. \"희귀한 물건만 취급합니다.\"",
     difficulty: 'medium',
     choices: [
-      { id: "shop", label: "🛒 컬렉션을 구경한다", openShop: "collector", resultDescription: "수집가가 은밀하게 가방을 엽니다. 눈부신 유물들이 빛납니다." },
+      { id: "shop", label: "🛒 컬렉션을 구경한다", openShop: "collector", resultDescription: "수집가가 은밀하게 가방을 엽니다. 눈부신 상징들이 빛납니다." },
       { id: "leave", label: "됐습니다", resultDescription: "수집가가 고개를 끄덕입니다. \"현명한 선택일 수도, 후회할 선택일 수도...\"" }
     ]
   },
@@ -711,20 +711,20 @@ export const NEW_EVENT_LIBRARY = {
     }
   },
 
-  // === 유물 이벤트 ===
+  // === 상징 이벤트 ===
   "relic-junk-dealer": {
     id: "relic-junk-dealer",
-    title: "고물상의 유물",
-    description: "이봐, 이거 어때? 고물상이 유물을 보여줍니다.",
+    title: "고물상의 상징",
+    description: "이봐, 이거 어때? 고물상이 상징을 보여줍니다.",
     choices: [
       { id: "look", label: "살펴본다", nextStage: "offer" },
       { id: "refuse", label: "거절", resultDescription: "쓸모없는 고물들입니다. 그냥 지나칩니다." }
     ],
     stages: {
       "offer": {
-        description: "\"금 100이면 이 유물을 줄게. 어때?\"",
+        description: "\"금 100이면 이 상징을 줄게. 어때?\"",
         choices: [
-          { id: "accept", label: "수락", resultDescription: "금화를 건네자 고물상이 유물을 내밀며 싱긋 웃습니다.", cost: { gold: 100 }, rewards: { relic: 1 } },
+          { id: "accept", label: "수락", resultDescription: "금화를 건네자 고물상이 상징을 내밀며 싱긋 웃습니다.", cost: { gold: 100 }, rewards: { relic: 1 } },
           { id: "more", label: "다른 것도 보여줘", statRequirement: { insight: 1 }, nextStage: "more-items" },
           { id: "refuse", label: "거절", resultDescription: "\"에이, 아깝네.\" 고물상이 투덜거립니다." }
         ]
@@ -751,8 +751,8 @@ export const NEW_EVENT_LIBRARY = {
       "dig": {
         description: "파내려면 힘이 들 것 같습니다.",
         choices: [
-          { id: "dig", label: "파낸다", resultDescription: "으으윽... 힘들게 고철을 치우자 빛나는 유물이 모습을 드러냅니다.", cost: { hp: 20 }, rewards: { relic: 1 } },
-          { id: "throw", label: "힘으로 치운다", resultDescription: "강한 힘으로 고철을 한번에 치웁니다! 유물이 나타났습니다.", statRequirement: { strength: 2 }, rewards: { relic: 1 } },
+          { id: "dig", label: "파낸다", resultDescription: "으으윽... 힘들게 고철을 치우자 빛나는 상징이 모습을 드러냅니다.", cost: { hp: 20 }, rewards: { relic: 1 } },
+          { id: "throw", label: "힘으로 치운다", resultDescription: "강한 힘으로 고철을 한번에 치웁니다! 상징이 나타났습니다.", statRequirement: { strength: 2 }, rewards: { relic: 1 } },
           { id: "leave", label: "포기한다", resultDescription: "너무 힘들어 보입니다. 포기하고 떠납니다." }
         ]
       }
@@ -762,7 +762,7 @@ export const NEW_EVENT_LIBRARY = {
   "trap-beyond": {
     id: "trap-beyond",
     title: "함정 너머에",
-    description: "위험해 보이는 미로 너머에 번쩍이는 유물이 보입니다.",
+    description: "위험해 보이는 미로 너머에 번쩍이는 상징이 보입니다.",
     choices: [
       { id: "approach", label: "도전한다", nextStage: "attempt" },
       { id: "leave", label: "포기한다", resultDescription: "목숨보다 소중한 건 없습니다. 아쉽지만 물러납니다." }
@@ -771,8 +771,8 @@ export const NEW_EVENT_LIBRARY = {
       "attempt": {
         description: "함정이 보입니다. 어떻게 통과하시겠습니까?",
         choices: [
-          { id: "rush", label: "달려간다", resultDescription: "쿵! 챵! 퍽! 상처투성이가 됐지만 유물을 손에 넣었습니다!", cost: { hp: 25 }, rewards: { relic: 1 } },
-          { id: "dodge", label: "민첩하게 피한다", resultDescription: "화살이 스쳐 지나갑니다! 날렵하게 유물을 획득했습니다.", statRequirement: { agility: 2 }, rewards: { relic: 1 } },
+          { id: "rush", label: "달려간다", resultDescription: "쿵! 챵! 퍽! 상처투성이가 됐지만 상징을 손에 넣었습니다!", cost: { hp: 25 }, rewards: { relic: 1 } },
+          { id: "dodge", label: "민첩하게 피한다", resultDescription: "화살이 스쳐 지나갑니다! 날렵하게 상징을 획득했습니다.", statRequirement: { agility: 2 }, rewards: { relic: 1 } },
           { id: "retreat", label: "물러난다", resultDescription: "역시 위험합니다. 물러나는 게 현명합니다." }
         ]
       }
@@ -791,7 +791,7 @@ export const NEW_EVENT_LIBRARY = {
       "analysis": {
         description: "뚫으려면 엄청난 힘과 민첩이 필요합니다.",
         choices: [
-          { id: "attempt", label: "시도한다", resultDescription: "쾅! 슉! 쨍! 불가능을 가능으로 만들었습니다! 희귀 유물을 획득했습니다!", statRequirement: { strength: 2, agility: 2 }, rewards: { relic: "rare+" } },
+          { id: "attempt", label: "시도한다", resultDescription: "쾅! 슉! 쨍! 불가능을 가능으로 만들었습니다! 희귀 상징을 획득했습니다!", statRequirement: { strength: 2, agility: 2 }, rewards: { relic: "rare+" } },
           { id: "give-up", label: "포기한다", resultDescription: "아직 실력이 부족합니다. 다음 기회를 노립니다." }
         ]
       }
@@ -830,10 +830,10 @@ export const NEW_EVENT_LIBRARY = {
       "searching": {
         description: "어디를 뒤지시겠습니까?",
         choices: [
-          { id: "large", label: "큰 잔해", resultDescription: "힘을 써서 큰 잔해를 치웁니다. 그 밑에서 유물을 발견했습니다!", statRequirement: { strength: 2 }, rewards: { relic: 1 } },
+          { id: "large", label: "큰 잔해", resultDescription: "힘을 써서 큰 잔해를 치웁니다. 그 밑에서 상징을 발견했습니다!", statRequirement: { strength: 2 }, rewards: { relic: 1 } },
           { id: "small", label: "작은 잔해", resultDescription: "작은 잔해를 뒤집니다...", statRequirement: { strength: 1 }, probability: 0.5, successRewards: { relic: 1 } },
-          { id: "insight", label: "유력한 장소", resultDescription: "예리한 관찰력으로 숨겨진 유물을 찾아냈습니다!", statRequirement: { insight: 2 }, rewards: { relic: 1 } },
-          { id: "both", label: "확실한 장소", resultDescription: "힘과 지혜를 모두 동원해 최고의 유물을 발굴했습니다!", statRequirement: { strength: 2, insight: 2 }, rewards: { relic: "rare" } },
+          { id: "insight", label: "유력한 장소", resultDescription: "예리한 관찰력으로 숨겨진 상징을 찾아냈습니다!", statRequirement: { insight: 2 }, rewards: { relic: 1 } },
+          { id: "both", label: "확실한 장소", resultDescription: "힘과 지혜를 모두 동원해 최고의 상징을 발굴했습니다!", statRequirement: { strength: 2, insight: 2 }, rewards: { relic: "rare" } },
           { id: "leave", label: "그만둔다", resultDescription: "더 뒤져봐야 의미가 없을 것 같습니다. 떠납니다." }
         ]
       }
@@ -860,7 +860,7 @@ export const NEW_EVENT_LIBRARY = {
       "gratitude": {
         description: "피난민이 눈물을 흘리며 감사합니다. \"언젠가 꼭 보답하겠습니다...\"",
         choices: [
-          { id: "accept", label: "가보를 받는다", resultDescription: "\"이건 우리 가문의 가보입니다. 받아주세요.\" 유물과 함께 따뜻함이 전해집니다.", rewards: { relic: 1, insight: 1 } },
+          { id: "accept", label: "가보를 받는다", resultDescription: "\"이건 우리 가문의 가보입니다. 받아주세요.\" 상징과 함께 따뜻함이 전해집니다.", rewards: { relic: 1, insight: 1 } },
           { id: "refuse", label: "가지고 있어라", resultDescription: "\"소중한 건 네가 가지렴.\" 피난민이 감격해 울먹입니다. 마음이 맑아집니다.", rewards: { insight: 2 } }
         ]
       }
@@ -899,7 +899,7 @@ export const NEW_EVENT_LIBRARY = {
       "demand": {
         description: "제물이 될 것을 요구합니다. 거절하면 전투가 벌어질 것 같습니다.",
         choices: [
-          { id: "sacrifice", label: "체력 50%를 바친다", resultDescription: "피가 제단에 스며듭니다. 고통스럽지만 희귀한 유물이 나타납니다.", hpRequirement: { min: 30 }, cost: { hpPercent: 50 }, rewards: { relic: "rare" } },
+          { id: "sacrifice", label: "체력 50%를 바친다", resultDescription: "피가 제단에 스며듭니다. 고통스럽지만 희귀한 상징이 나타납니다.", hpRequirement: { min: 30 }, cost: { hpPercent: 50 }, rewards: { relic: "rare" } },
           { id: "fight", label: "거절하고 전투", resultDescription: "\"불경한 자!\" 광신도들이 달려듭니다!", combatTrigger: true, combatRewards: { relic: 1 } },
           { id: "flee", label: "도망친다", resultDescription: "서둘러 도망칩니다! 하지만 추격당할 위험이 높아졌습니다.", penalties: { mapRisk: 10 } }
         ]
@@ -994,7 +994,7 @@ export const EVENT_KEYS = Object.keys(NEW_EVENT_LIBRARY).filter(
   key => NEW_EVENT_LIBRARY[key].isInitial !== false
 );
 
-// 특수 유물 정보
+// 특수 상징 정보
 export const SPECIAL_RELICS = {
   "alparius-emblem": {
     name: "알빠리우스의 문장",

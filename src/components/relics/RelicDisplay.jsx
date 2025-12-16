@@ -2,7 +2,7 @@ import { useState, useRef } from 'react';
 import { getRelicById, RELIC_RARITIES } from '../../data/relics';
 
 /**
- * 유물 등급별 색상
+ * 상징 등급별 색상
  */
 const RARITY_COLORS = {
   [RELIC_RARITIES.COMMON]: {
@@ -38,7 +38,7 @@ const RARITY_NAMES = {
 };
 
 /**
- * 단일 유물 아이콘 표시
+ * 단일 상징 아이콘 표시
  */
 export function RelicIcon({ relicId, size = 'medium', onClick, showTooltip = true }) {
   const [hovered, setHovered] = useState(false);
@@ -130,13 +130,13 @@ export function RelicIcon({ relicId, size = 'medium', onClick, showTooltip = tru
 }
 
 /**
- * 유물 목록 표시 (가로 나열)
+ * 상징 목록 표시 (가로 나열)
  */
 export function RelicList({ relicIds = [], size = 'medium', onRelicClick }) {
   if (!relicIds || relicIds.length === 0) {
     return (
       <div style={{ fontSize: '14px', color: '#64748b', fontStyle: 'italic' }}>
-        보유한 유물이 없습니다
+        보유한 상징이 없습니다
       </div>
     );
   }
@@ -156,7 +156,7 @@ export function RelicList({ relicIds = [], size = 'medium', onRelicClick }) {
 }
 
 /**
- * 유물 카드 표시 (상세 정보 포함)
+ * 상징 카드 표시 (상세 정보 포함)
  */
 export function RelicCard({ relicId, onClick, selected = false }) {
   const relic = getRelicById(relicId);
@@ -217,7 +217,7 @@ export function RelicCard({ relicId, onClick, selected = false }) {
 }
 
 /**
- * 유물별 이모지 매핑
+ * 상징별 이모지 매핑
  */
 function getRelicEmoji(relicId) {
   const emojiMap = {

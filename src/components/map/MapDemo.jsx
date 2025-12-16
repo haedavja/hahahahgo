@@ -55,7 +55,7 @@ const RESOURCE_LABELS = {
   strength: "힘",
   agility: "민첩",
   hp: "체력",
-  relic: "유물",
+  relic: "상징",
 };
 
 const STAT_LABELS = {
@@ -208,7 +208,7 @@ export function MapDemo() {
     }
   });
   useEffect(() => {
-    // 새 유물 추가/제거 시 순서를 유지하면서 병합
+    // 새 상징 추가/제거 시 순서를 유지하면서 병합
     actions.setOrderedRelics((prev) => {
       return mergeRelicOrder(relics || [], prev);
     });
@@ -292,7 +292,7 @@ export function MapDemo() {
   const hpRatio = Math.max(0, Math.min(1, playerHp / maxHp)); // HP 비율
   const hpColor = hpRatio > 0.5 ? "#86efac" : hpRatio > 0.25 ? "#fde047" : "#fca5a5";
 
-  // 황금 나침반 발동 표시: 에테르가 증가했고 유물이 있을 때 배지/사운드
+  // 황금 나침반 발동 표시: 에테르가 증가했고 상징이 있을 때 배지/사운드
   useEffect(() => {
     const prev = prevEtherRef.current ?? 0;
     const curr = resources.etherPts ?? 0;
@@ -390,7 +390,7 @@ export function MapDemo() {
         <small>속도 시스템 기준 · React + Vite 시연</small>
       </header>
 
-      {/* 유물 표시 */}
+      {/* 상징 표시 */}
       {orderedRelics && orderedRelics.length > 0 && (
         <div style={{
           position: "absolute",

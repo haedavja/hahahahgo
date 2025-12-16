@@ -1,19 +1,19 @@
 /**
  * relicActivationAnimation.js
  *
- * 유물 발동 애니메이션 시스템
+ * 상징 발동 애니메이션 시스템
  */
 
 import { RELICS } from "../../../data/relics";
 
 /**
- * 카드 사용 시 발동할 유물 목록 수집
+ * 카드 사용 시 발동할 상징 목록 수집
  * @param {Object} params - 파라미터
- * @param {Array} params.orderedRelicList - 정렬된 유물 ID 목록
+ * @param {Array} params.orderedRelicList - 정렬된 상징 ID 목록
  * @param {number} params.resolvedPlayerCards - 해결된 플레이어 카드 수
  * @param {Array} params.playerTimeline - 플레이어 타임라인
  * @param {Object} params.triggeredRefs - 발동 추적 ref 객체
- * @returns {Array} 발동할 유물 목록 [{ id, tone, duration }, ...]
+ * @returns {Array} 발동할 상징 목록 [{ id, tone, duration }, ...]
  */
 export function collectTriggeredRelics({
   orderedRelicList,
@@ -56,10 +56,10 @@ export function collectTriggeredRelics({
 }
 
 /**
- * 유물 발동 애니메이션 시퀀스 실행
- * @param {Array} triggered - 발동할 유물 목록
- * @param {Function} flashRelic - 유물 플래시 함수
- * @param {Function} setRelicActivated - 유물 활성화 상태 설정 함수
+ * 상징 발동 애니메이션 시퀀스 실행
+ * @param {Array} triggered - 발동할 상징 목록
+ * @param {Function} flashRelic - 상징 플래시 함수
+ * @param {Function} setRelicActivated - 상징 활성화 상태 설정 함수
  */
 export function playRelicActivationSequence(triggered, flashRelic, setRelicActivated) {
   if (triggered.length === 0) return;

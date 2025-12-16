@@ -45,9 +45,9 @@ const buildBattlePayload = (battle, etherPts, relics, maxHp, playerInsight, play
     }
   }
 
-  // 유물 패시브 효과 계산
+  // 상징 패시브 효과 계산
   const passiveEffects = calculatePassiveEffects(relics);
-  // 행동력: 기본 6 + 활력 보너스 + 유물 패시브
+  // 행동력: 기본 6 + 활력 보너스 + 상징 패시브
   const baseEnergy = 6 + (playerEnergyBonus || 0) + (passiveEffects.maxEnergy || 0);
   const maxEnergy = baseEnergy;
 
@@ -72,7 +72,7 @@ const buildBattlePayload = (battle, etherPts, relics, maxHp, playerInsight, play
   return {
     player: {
       hp: startingHp,
-      maxHp: maxHp, // gameStore의 maxHp 사용 (유물 효과가 이미 적용됨)
+      maxHp: maxHp, // gameStore의 maxHp 사용 (상징 효과가 이미 적용됨)
       energy: maxEnergy + combatStartEffects.energy, // 시작 에너지 = maxEnergy + 전투 시작 보너스
       maxEnergy: maxEnergy + combatStartEffects.energy,
       block: combatStartEffects.block, // 시작 방어력
