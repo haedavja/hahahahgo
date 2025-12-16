@@ -211,6 +211,22 @@ export const TimelineDisplay = ({
                   const effectiveSp = Math.min(currentTimelineSp, a.sp || 0);
                   const hasGrowingDef = hasSpecial(a.card, 'growingDefense');
                   const growingDefenseBonus = hasGrowingDef ? effectiveSp : 0;
+                  // 디버그: 방어자세 카드 확인
+                  if (a.card.type === 'defense' && battle.phase === 'resolve') {
+                    console.log('[방어자세 디버그]', {
+                      cardName: a.card.name,
+                      cardId: a.card.id,
+                      special: a.card.special,
+                      hasGrowingDef,
+                      timelineProgress,
+                      playerMax,
+                      currentTimelineSp,
+                      cardSp: a.sp,
+                      effectiveSp,
+                      growingDefenseBonus,
+                      finalNum: (a.card.block || 0) + (a.card.ignoreStrength ? 0 : (player.strength || 0)) + growingDefenseBonus
+                    });
+                  }
                   // ignoreStrength 특성: 힘 보너스 무시
                   const effectiveStrengthBonus = a.card.ignoreStrength ? 0 : strengthBonus;
                   const num = a.card.type === 'attack'
