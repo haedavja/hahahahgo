@@ -394,6 +394,13 @@ export function applyAttack(attacker, defender, card, attackerName, battleContex
     allLogs.push(...result.logs);
   }
 
+  // 다중 타격 총합 로그 (2회 이상 타격 시)
+  if (hits > 1) {
+    const multiHitMsg = `🔥 ${card.name}: ${hits}회 타격! 총 ${totalDealt} 데미지!`;
+    allEvents.push({ actor: attackerName, card: card.name, type: 'multihit', msg: multiHitMsg });
+    allLogs.push(multiHitMsg);
+  }
+
   // 공격 후 special 효과 처리
   const postAttackResult = processPostAttackSpecials({
     card,
