@@ -1819,6 +1819,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       // linear 보간 (시곗바늘이 일정 속도로 이동)
       const currentProgress = startProgress + (targetProgress - startProgress) * progress;
 
+      console.log('[애니메이션]', Math.round(currentProgress * 10) / 10, '% (프레임:', Math.round(progress * 100), '%)');
       actions.setTimelineProgress(currentProgress);
 
       if (progress < 1) {
