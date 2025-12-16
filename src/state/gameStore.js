@@ -1232,6 +1232,30 @@ export const useGameStore = create((set, get) => ({
         };
       }
 
+      // 상점 노드인 경우
+      if (targetNode.type === "shop") {
+        return {
+          ...state,
+          map: {
+            ...state.map,
+            currentNodeId: nodeId,
+          },
+          activeShop: { nodeId: targetNode.id, merchantType: 'shop' },
+        };
+      }
+
+      // 휴식 노드인 경우
+      if (targetNode.type === "rest") {
+        return {
+          ...state,
+          map: {
+            ...state.map,
+            currentNodeId: nodeId,
+          },
+          activeRest: { nodeId: targetNode.id },
+        };
+      }
+
       // travelToNode 로직 사용하여 노드 활성화
       const result = travelToNode(state, nodeId);
       if (!result) {
