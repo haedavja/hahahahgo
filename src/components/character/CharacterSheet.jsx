@@ -126,15 +126,18 @@ export function CharacterSheet({ onClose, showAllCards = false }) {
   // 카드 개수 카운트 헬퍼
   const getCardCount = (cardId, list) => list.filter(id => id === cardId).length;
 
+  // 보유 카드 (상점 구매 등)
+  const ownedCards = characterBuild?.ownedCards || [];
+
   // 표시할 카드 목록 (showAllCards가 false면 보유 카드만)
   const displayedCards = useMemo(() => {
     if (showAllCards) {
       return availableCards;
     }
-    // 보유한 카드 ID 목록 (중복 제거)
-    const ownedCardIds = new Set([...mainSpecials, ...subSpecials]);
-    return availableCards.filter(c => ownedCardIds.has(c.id));
-  }, [showAllCards, mainSpecials, subSpecials]);
+    // 보유한 카드 ID 목록 (중복 제거) - 주특기, 보조특기, 보유카드 모두 포함
+    const allOwnedCardIds = new Set([...mainSpecials, ...subSpecials, ...ownedCards]);
+    return availableCards.filter(c => allOwnedCardIds.has(c.id));
+  }, [showAllCards, mainSpecials, subSpecials, ownedCards]);
 
   const getCardStyle = (cardId) => {
     const mainCount = getCardCount(cardId, mainSpecials);
@@ -661,17 +664,21 @@ export function CharacterSheet({ onClose, showAllCards = false }) {
                   if (!card) return null;
                   const mainCount = getCardCount(c.id, mainSpecials);
                   const subCount = getCardCount(c.id, subSpecials);
+                  const ownedCount = getCardCount(c.id, ownedCards);
                   const isSelected = specialMode === 'main' ? mainCount > 0 : subCount > 0;
                   const count = specialMode === 'main' ? mainCount : subCount;
                   const Icon = card.type === 'attack' ? Sword : Shield;
                   const isMainSpecial = mainCount > 0;
                   const isSubSpecial = subCount > 0;
+                  const isOwnedOnly = ownedCount > 0 && !isMainSpecial && !isSubSpecial;
 
                   let borderStyle = {};
                   if (isMainSpecial) {
                     borderStyle = { border: '2px solid #f5d76e', boxShadow: '0 0 10px rgba(245, 215, 110, 0.4)' };
                   } else if (isSubSpecial) {
                     borderStyle = { border: '2px solid #7dd3fc', boxShadow: '0 0 10px rgba(125, 211, 252, 0.4)' };
+                  } else if (isOwnedOnly) {
+                    borderStyle = { border: '2px solid #a78bfa', boxShadow: '0 0 10px rgba(167, 139, 250, 0.4)' };
                   }
 
                   return (
@@ -692,17 +699,17 @@ export function CharacterSheet({ onClose, showAllCards = false }) {
                         }}
                       >
                         <div className="card-cost-badge-floating" style={{
-                          color: isMainSpecial ? '#fcd34d' : isSubSpecial ? '#60a5fa' : '#fff',
+                          color: isMainSpecial ? '#fcd34d' : isSubSpecial ? '#60a5fa' : isOwnedOnly ? '#a78bfa' : '#fff',
                           WebkitTextStroke: '1px #000'
                         }}>
                           {card.actionCost}
                         </div>
-                        {(isMainSpecial || isSubSpecial) && (
+                        {(isMainSpecial || isSubSpecial || isOwnedOnly) && (
                           <div style={{
                             position: 'absolute',
                             top: '-4px',
                             right: '-4px',
-                            background: isMainSpecial ? '#f5d76e' : '#7dd3fc',
+                            background: isMainSpecial ? '#f5d76e' : isSubSpecial ? '#7dd3fc' : '#a78bfa',
                             color: '#000',
                             padding: '2px 6px',
                             borderRadius: '10px',
@@ -710,7 +717,7 @@ export function CharacterSheet({ onClose, showAllCards = false }) {
                             fontWeight: 700,
                             zIndex: 10,
                           }}>
-                            {isMainSpecial ? '⭐' : '💠'}
+                            {isMainSpecial ? '⭐' : isSubSpecial ? '💠' : '🛒'}
                           </div>
                         )}
                         <div className="card-stats-sidebar">
@@ -724,7 +731,7 @@ export function CharacterSheet({ onClose, showAllCards = false }) {
                         </div>
                         <div className="card-header" style={{ display: 'flex', justifyContent: 'center' }}>
                           <div className="font-black text-sm" style={{
-                            color: isMainSpecial ? '#fcd34d' : isSubSpecial ? '#7dd3fc' : '#fff'
+                            color: isMainSpecial ? '#fcd34d' : isSubSpecial ? '#7dd3fc' : isOwnedOnly ? '#a78bfa' : '#fff'
                           }}>
                             {card.name}
                           </div>
