@@ -789,20 +789,20 @@ export function CharacterSheet({ onClose }) {
                         }}>
                           {card.actionCost}
                         </div>
-                        {isSelected && (
+                        {(isMainSpecial || isSubSpecial) && (
                           <div style={{
                             position: 'absolute',
                             top: '8px',
                             right: '8px',
-                            background: specialMode === 'main' ? '#f5d76e' : '#7dd3fc',
+                            background: isMainSpecial ? '#f5d76e' : '#7dd3fc',
                             color: '#000',
                             padding: '2px 8px',
                             borderRadius: '10px',
-                            fontSize: '12px',
+                            fontSize: '11px',
                             fontWeight: 700,
                             zIndex: 10,
                           }}>
-                            x{count}
+                            {isMainSpecial ? '⭐주특기' : '💠보조'}
                           </div>
                         )}
                         <div className="card-stats-sidebar">
