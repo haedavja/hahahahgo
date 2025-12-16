@@ -80,18 +80,6 @@ export const TRAITS = {
 };
 
 export const CARDS = [
-  // === 기존 카드 (영어 이름) ===
-  { id: "quick", name: "Quick Slash", type: "attack", damage: 13, speedCost: 3, actionCost: 1, iconKey: "sword", description: "빠르게 적을 베어낸다. 낮은 속도 코스트로 신속한 공격이 가능하다.", traits: [] },
-  { id: "slash", name: "Slash", type: "attack", damage: 30, speedCost: 5, actionCost: 2, iconKey: "sword", description: "강력한 베기 공격. 균형 잡힌 데미지와 속도를 제공한다.", traits: [] },
-  { id: "heavy", name: "Heavy Strike", type: "attack", damage: 40, speedCost: 10, actionCost: 2, iconKey: "flame", description: "묵직한 일격. 높은 데미지를 주지만 속도가 느리다.", traits: [] },
-  { id: "double", name: "Double Slash", type: "attack", damage: 17, hits: 2, speedCost: 7, actionCost: 2, iconKey: "sword", description: "두 번 연속 베기. 방어를 뚫기에 유리하다.", traits: [] },
-  { id: "precise", name: "Precise Strike", type: "attack", damage: 32, speedCost: 6, actionCost: 2, iconKey: "sword", description: "정확한 타격. 안정적인 데미지를 보장한다.", traits: [] },
-  { id: "rush", name: "Rush Attack", type: "attack", damage: 14, speedCost: 4, actionCost: 1, iconKey: "flame", description: "돌진 공격. 빠른 속도로 적을 압박한다.", traits: [] },
-  { id: "parry", name: "Parry", type: "defense", block: 12, speedCost: 2, actionCost: 1, iconKey: "shield", description: "빠른 패링. 적의 공격을 재빠르게 막아낸다.", traits: [] },
-  { id: "guard", name: "Guard", type: "defense", block: 16, speedCost: 6, actionCost: 1, iconKey: "shield", description: "견고한 방어 자세. 적당한 방어력을 제공한다.", traits: [] },
-  { id: "wall", name: "Iron Wall", type: "defense", block: 38, speedCost: 9, actionCost: 2, iconKey: "shield", description: "철벽 방어. 강력한 방어막을 형성하지만 느리다.", traits: [] },
-  { id: "counter", name: "Counter Stance", type: "defense", block: 14, counter: 3, speedCost: 4, actionCost: 1, iconKey: "shield", description: "반격 자세. 방어하면서 공격받을 시 반격한다.", traits: [] },
-
   // === 펜싱 카드 ===
   {
     id: "riposte",
@@ -415,72 +403,7 @@ export const CARDS = [
     special: "mentalFocus"
   },
 
-  // === 행동력 1 (일반) 5개 ===
-  { id: "stab", name: "잽 찌르기", type: "attack", damage: 13, speedCost: 3, actionCost: 1, iconKey: "sword", description: "3의 시간을 소모해 13의 피해를 가합니다.", traits: [] },
-  { id: "strike", name: "타격", type: "attack", damage: 17, speedCost: 7, actionCost: 1, iconKey: "sword", description: "7의 시간을 소모해 17의 피해를 가합니다.", traits: [] },
-  { id: "spin_slash", name: "회전참격", type: "attack", damage: 23, speedCost: 13, actionCost: 1, iconKey: "flame", description: "13의 시간을 소모해 23의 피해를 가합니다.", traits: [] },
-  { id: "combo_hit", name: "연타", type: "attack", damage: 12, hits: 2, speedCost: 15, actionCost: 1, iconKey: "flame", description: "15의 시간을 소모해 12의 피해를 2회 가합니다.", traits: [] },
-  { id: "desperate", name: "필사의 일격", type: "attack", damage: 40, speedCost: 20, actionCost: 1, iconKey: "flame", description: "20의 시간과 40의 피해를 가합니다. 발동시 양측의 방어력을 0으로 합니다.", traits: [], special: "clearAllBlock" },
-
-  // === 행동력 1 (특성가짐) 5개 ===
-  { id: "jab", name: "잽", type: "attack", damage: 13, speedCost: 1, actionCost: 1, iconKey: "sword", description: "1의 시간을 소모해 13의 피해를 가합니다. 시간을 최소한으로 먹습니다.", traits: ["swift"] },
-  { id: "risky_attack", name: "도박적 공세", type: "attack", damage: 8, hits: 3, speedCost: 7, actionCost: 1, iconKey: "flame", description: "7의 시간을 소모해 8의 피해를 3번 가합니다.", traits: ["escape"] },
-  { id: "drunken_fist", name: "취권", type: "attack", damage: 25, speedCost: 13, actionCost: 1, iconKey: "flame", description: "13의 시간을 소모해 25의 피해를 가합니다. 민첩 1당 시간소모를 3 줄이고 5의 추가피해를 입힙니다.", traits: ["supporting"], special: "agilityBonus" },
-  { id: "beat_down", name: "줘패고 줘패기", type: "attack", damage: 2, hits: 10, speedCost: 16, actionCost: 1, iconKey: "flame", description: "16의 시간을 소모해 2피해를 10회 가합니다.", traits: ["exhaust"] },
-  { id: "rocket_punch", name: "로켓펀치", type: "attack", damage: 50, speedCost: 24, actionCost: 1, iconKey: "flame", description: "24의 시간을 소모해 50의 피해를 가합니다. 상대의 방어력을 무시합니다.", traits: ["vanish"], special: "ignoreBlock" },
-
-  // === 행동력 2 (일반) 5개 ===
-  { id: "iron_fist", name: "철권", type: "attack", damage: 10, speedCost: 5, actionCost: 2, iconKey: "flame", description: "5의 시간을 소모해 10의 피해를 가합니다.", traits: ["training"] },
-  { id: "headbutt", name: "박치기", type: "attack", damage: 25, speedCost: 9, actionCost: 2, iconKey: "flame", description: "9의 시간을 소모해 25의 피해를 가합니다. 타임라인상의 적 카드와 겹치면 상대카드 파괴.", traits: ["strongbone"], special: "destroyOnCollision" },
-  { id: "dropkick", name: "드롭킥", type: "attack", damage: 20, speedCost: 12, actionCost: 2, iconKey: "flame", description: "12의 시간을 소모해 20의 피해를 가합니다. 상대방의 방어력이 없다면 취약을 부여합니다.", traits: ["cooperation"], special: "vulnIfNoBlock" },
-  { id: "chain_attack", name: "연쇄기", type: "attack", damage: 15, speedCost: 15, actionCost: 2, iconKey: "flame", description: "15의 시간을 소모해 15의 피해를 가합니다. 이번턴 사용하지 않은 공격카드당 1회 반복.", traits: [], special: "repeatPerUnusedAttack" },
-  { id: "skull_crush", name: "두개골 부수기", type: "attack", damage: 25, speedCost: 16, actionCost: 2, iconKey: "flame", description: "16의 시간을 소모해 25의 피해를 가합니다. 남은 상대의 체력이 10% 미만이면 즉사.", traits: ["mastery"], special: "executeUnder10" },
-
-  // === 행동력 3 (희귀) 5개 ===
-  { id: "cleave", name: "가르기", type: "attack", damage: 23, speedCost: 5, actionCost: 3, iconKey: "sword", description: "5의 시간을 소모해 23의 피해를 가합니다. 빠르고 강한 일격입니다.", traits: ["destroyer"], rarity: "rare" },
-  { id: "vital_strike", name: "급소가격", type: "attack", damage: 17, speedCost: 7, actionCost: 3, iconKey: "flame", description: "7의 시간을 소모해 17의 피해를 가합니다. 상대의 방어력이 없다면 2배의 취약을 발생시킵니다.", traits: ["stun", "exhaust"], special: "doubleVulnIfNoBlock", rarity: "rare" },
-  { id: "kick", name: "걷어차기", type: "attack", damage: 18, speedCost: 8, actionCost: 3, iconKey: "flame", description: "8의 시간을 소모해 18의 피해를 가합니다. 이 카드가 유일한 공격카드일 경우 2배 피해.", traits: ["knockback"], special: "doubleDamageIfSolo", rarity: "rare" },
-  { id: "prepare_hit", name: "후려치기", type: "attack", damage: 30, speedCost: 11, actionCost: 3, iconKey: "sword", description: "11의 시간을 소모해 30의 피해를 가합니다. 타임라인상 마지막 카드라면 1회 더 타격합니다.", traits: ["training", "warmup", "outcast"], special: "repeatIfLast", rarity: "rare" },
-  { id: "persistent", name: "집요한 타격", type: "attack", damage: 20, speedCost: 12, actionCost: 3, iconKey: "flame", description: "12의 시간을 소모해 20의 피해를 가합니다. 이 카드 발동 이후 적 카드가 발동할때마다 타격합니다.", traits: ["attendance", "crush"], special: "hitOnEnemyAction", rarity: "rare" },
-
-  // === 행동력 4 (희귀) 2개 ===
-  { id: "hadouken", name: "파동권", type: "attack", damage: 25, speedCost: 4, actionCost: 4, iconKey: "flame", description: "4의 시간을 소모해 25의 피해를 가합니다. 방어력을 무시합니다.", traits: [], special: "ignoreBlock", rarity: "rare" },
-  { id: "headshot", name: "헤드샷", type: "attack", damage: 20, speedCost: 10, actionCost: 4, iconKey: "flame", description: "10의 시간을 소모해 20의 피해를 가합니다. 이번턴 적의 에테르 획득을 절반으로 줄입니다.", traits: ["stun"], special: "halfEnemyEther", rarity: "rare" },
-
-  // === 행동력 6 (전설) 3개 ===
-  { id: "die", name: "죽어라", type: "attack", damage: 29, speedCost: 7, actionCost: 6, iconKey: "flame", description: "살아남기 어려울겁니다.", traits: ["slaughter", "crush", "knockback"], rarity: "legendary" },
-  { id: "absolute", name: "절대우위", type: "attack", damage: 26, speedCost: 16, actionCost: 6, iconKey: "flame", description: "뭘 하든 소용없습니다.", traits: ["blank_check", "stun"], rarity: "legendary" },
-  { id: "apocalypse", name: "종말", type: "attack", damage: 79, speedCost: 25, actionCost: 6, iconKey: "flame", description: "다음은 없습니다.", traits: ["pinnacle"], rarity: "legendary" },
-
-  // === 토큰 테스트 카드 ===
-  {
-    id: "battle_cry",
-    name: "전투함성",
-    type: "attack",
-    damage: 10,
-    speedCost: 3,
-    actionCost: 1,
-    iconKey: "flame",
-    description: "공세 1스택을 얻습니다. 다음 공격의 위력이 50% 증가합니다.",
-    traits: [],
-    onPlay: (battle, actions) => {
-      actions.addTokenToPlayer('offense', 1);
-    }
-  },
-  {
-    id: "shield_stance",
-    name: "방어태세",
-    type: "defense",
-    block: 8,
-    speedCost: 3,
-    actionCost: 1,
-    iconKey: "shield",
-    description: "수세 1스택을 얻습니다. 다음 방어의 효과가 50% 증가합니다.",
-    traits: [],
-    onPlay: (battle, actions) => {
-      actions.addTokenToPlayer('guard', 1);
-    }
-  },
+  // === 펜싱 유틸리티 카드 ===
   {
     id: "deflect",
     name: "쳐내기",
@@ -507,48 +430,6 @@ export const CARDS = [
     traits: [],
     special: "breach",
     breachSpOffset: 3
-  },
-  {
-    id: "power_strike",
-    name: "힘의 일격",
-    type: "attack",
-    damage: 15,
-    speedCost: 5,
-    actionCost: 2,
-    iconKey: "sword",
-    description: "공격 1스택을 얻습니다. 이번 턴 모든 공격력이 50% 증가합니다.",
-    traits: [],
-    onPlay: (battle, actions) => {
-      actions.addTokenToPlayer('attack', 1);
-    }
-  },
-  {
-    id: "fortify",
-    name: "방어강화",
-    type: "defense",
-    block: 12,
-    speedCost: 5,
-    actionCost: 2,
-    iconKey: "shield",
-    description: "방어 1스택을 얻습니다. 이번 턴 모든 방어력이 50% 증가합니다.",
-    traits: [],
-    onPlay: (battle, actions) => {
-      actions.addTokenToPlayer('defense', 1);
-    }
-  },
-  {
-    id: "weaken",
-    name: "약화",
-    type: "attack",
-    damage: 8,
-    speedCost: 4,
-    actionCost: 1,
-    iconKey: "flame",
-    description: "상대에게 허약 1스택을 부여합니다. 상대가 이번 턴 50% 더 많은 피해를 받습니다.",
-    traits: [],
-    onPlay: (battle, actions) => {
-      actions.addTokenToEnemy('vulnerable', 1);
-    }
   },
 ];
 
