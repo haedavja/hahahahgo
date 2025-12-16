@@ -54,6 +54,18 @@ export function addToken(entity, tokenId, stacks = 1) {
       logs.push(`빈탄창이 없어 장전 효과 없음`);
       return { tokens, logs };
     }
+
+    // 빈탄창 토큰은 장전이 없으면 1스택만 유지 (누적 안됨)
+    if (tokenId === 'empty_chamber') {
+      // 이미 빈탄창이 있으면 추가하지 않음
+      for (const type of [TOKEN_TYPES.USAGE, TOKEN_TYPES.TURN, TOKEN_TYPES.PERMANENT]) {
+        const arr = tokens[type] || [];
+        if (arr.some(t => t.id === 'empty_chamber')) {
+          logs.push(`이미 빈탄창 상태`);
+          return { tokens, logs };
+        }
+      }
+    }
   }
 
   // 토큰 추가

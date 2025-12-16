@@ -198,8 +198,8 @@ export const HandArea = ({
             const isSubSpecial = currentBuild?.subSpecials?.includes(a.card.id);
             const costColor = isMainSpecial ? '#fcd34d' : isSubSpecial ? '#60a5fa' : '#fff';
 
-            // 완전히 숨겨진 카드는 렌더링하지 않음
-            if (isHidden) return null;
+            // 사용된 카드(hidden)는 사라지지 않고 빛만 잃음
+            const isDimmed = isHidden || isDisabled;
 
             return (
               <div
@@ -216,11 +216,12 @@ export const HandArea = ({
                   alignItems: 'center',
                   position: 'relative',
                   marginLeft: i === 0 ? '0' : '-20px',
-                  opacity: isDisabled ? 0.4 : 1, // 비활성화된 카드는 투명하게
-                  filter: isDisabled ? 'grayscale(0.8) brightness(0.6)' : 'none' // 빛바란 효과
+                  opacity: isDimmed ? 0.4 : 1, // 사용된/비활성화된 카드는 투명하게
+                  filter: isDimmed ? 'grayscale(0.8) brightness(0.6)' : 'none', // 빛바란 효과
+                  transition: 'opacity 0.3s ease, filter 0.3s ease'
                 }}
               >
-                <div className={`game-card-large resolve-phase-card ${a.card.type === 'attack' ? 'attack' : 'defense'} ${isUsed ? 'card-used' : ''} ${isDisappearing ? 'card-disappearing' : ''}`}>
+                <div className={`game-card-large resolve-phase-card ${a.card.type === 'attack' ? 'attack' : 'defense'} ${isUsed ? 'card-used' : ''}`}>
                   <div className="card-cost-badge-floating" style={{ color: costColor, WebkitTextStroke: '1px #000' }}>{a.card.actionCost}</div>
                   <CardStatsSidebar card={a.card} strengthBonus={player.strength || 0} showCounter={true} formatSpeedText={formatSpeedText} />
                   <div className="card-header" style={{ display: 'flex', justifyContent: 'center' }}>
