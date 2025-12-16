@@ -89,6 +89,8 @@ export function processPreAttackSpecials({
     const hits = Math.max(1, remainingEnergy);  // 최소 1회, 남은 행동력 = 공격 횟수
     modifiedCard.hits = hits;
     modifiedCard._addEmptyChamber = true;  // 사용 후 빈탄창 플래그
+    console.log('[gyrusRoulette] battleContext:', JSON.stringify(battleContext, null, 2));
+    console.log('[gyrusRoulette] remainingEnergy:', remainingEnergy, 'hits:', hits);
     const msg = `🎰 ${card.name}: 최종 남은 행동력 ${remainingEnergy} = ${hits}회 사격!`;
     events.push({ actor: attackerName, card: card.name, type: 'special', msg });
     logs.push(msg);

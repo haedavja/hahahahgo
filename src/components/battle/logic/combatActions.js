@@ -382,6 +382,8 @@ export function applyAttack(attacker, defender, card, attackerName, battleContex
   const modifiedCard = preProcessedResult?.modifiedCard || card;
   const hits = modifiedCard.hits || card.hits || 1;
 
+  console.log('[applyAttack] card.special:', card.special, 'modifiedCard.hits:', modifiedCard?.hits, 'card.hits:', card?.hits, 'final hits:', hits);
+
   // 추가 타격 수행 (hits - 1번, 첫 타격은 이미 수행함)
   for (let i = 1; i < hits; i++) {
     const result = calculateSingleHit(currentAttacker, currentDefender, card, attackerName, battleContext, isCritical, preProcessedResult);
