@@ -415,6 +415,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const [breachSelection, setBreachSelection] = useState(null); // { cards: [], breachSp: number, breachCard: object }
   const breachSelectionRef = useRef(null);
   const stepOnceRef = useRef(null); // stepOnce 함수 참조 (브리치 선택 후 진행 재개용)
+  const timelineAnimationRef = useRef(null); // 타임라인 진행 애니메이션 ref
 
   // 카드 보상 선택 상태 (승리 후)
   const [cardReward, setCardReward] = useState(null); // { cards: [] }
@@ -1799,10 +1800,36 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     const playerMaxSpeed = player?.maxSpeed || DEFAULT_PLAYER_MAX_SPEED;
     const enemyMaxSpeed = enemy?.maxSpeed || DEFAULT_ENEMY_MAX_SPEED;
     const commonMaxSpeed = Math.max(playerMaxSpeed, enemyMaxSpeed);
-    const progressPercent = (a.sp / commonMaxSpeed) * 100;
+    const targetProgress = (a.sp / commonMaxSpeed) * 100;
 
-    // 먼저 시곗바늘을 현재 카드 위치로 이동
-    actions.setTimelineProgress(progressPercent);
+    // 이전 애니메이션 정리
+    if (timelineAnimationRef.current) {
+      cancelAnimationFrame(timelineAnimationRef.current);
+      timelineAnimationRef.current = null;
+    }
+
+    // 부드러운 타임라인 진행 애니메이션 (방어자세 실시간 방어력용)
+    const startProgress = currentBattle.timelineProgress || 0;
+    const animationDuration = TIMING.CARD_EXECUTION_DELAY; // 애니메이션 지속시간
+    const startTime = performance.now();
+
+    const animateProgress = (currentTime) => {
+      const elapsed = currentTime - startTime;
+      const progress = Math.min(elapsed / animationDuration, 1);
+      // easeOutQuad 이징 함수로 자연스러운 감속
+      const easedProgress = 1 - Math.pow(1 - progress, 2);
+      const currentProgress = startProgress + (targetProgress - startProgress) * easedProgress;
+
+      actions.setTimelineProgress(currentProgress);
+
+      if (progress < 1) {
+        timelineAnimationRef.current = requestAnimationFrame(animateProgress);
+      } else {
+        timelineAnimationRef.current = null;
+      }
+    };
+
+    timelineAnimationRef.current = requestAnimationFrame(animateProgress);
 
     // 시곗바늘 이동 완료 후 카드 발동 및 실행
     setTimeout(() => {
@@ -2171,6 +2198,16 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       return () => clearTimeout(timer);
     }
   }, [autoProgress, battle.phase, battle.qIndex, battle.queue.length, stepOnce]);
+
+  // 타임라인 애니메이션 cleanup (페이즈 변경 또는 언마운트 시)
+  useEffect(() => {
+    return () => {
+      if (timelineAnimationRef.current) {
+        cancelAnimationFrame(timelineAnimationRef.current);
+        timelineAnimationRef.current = null;
+      }
+    };
+  }, [battle.phase]);
 
   // 타임라인 완료 후 에테르 계산 애니메이션 실행
   // useEffect를 사용하여 turnEtherAccumulated 상태가 최신 값일 때 실행
