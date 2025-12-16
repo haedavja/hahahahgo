@@ -58,7 +58,9 @@ export function processActionEventAnimations({
   playBlockSound,
   actions
 }) {
+  console.log('[processActionEventAnimations] 받은 이벤트:', actionEvents);
   actionEvents.forEach(ev => {
+    console.log('[processActionEventAnimations] 이벤트 처리:', ev.type, ev.msg);
     addLog(ev.msg);
 
     // 피격 효과 (hit, pierce 타입)
