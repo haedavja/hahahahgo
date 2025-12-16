@@ -5,7 +5,7 @@
  * 각 카드의 special 필드에 정의된 고유 효과를 처리
  */
 
-import { addToken, getAllTokens } from '../../../lib/tokenUtils';
+import { addToken, removeToken, getAllTokens } from '../../../lib/tokenUtils';
 
 /**
  * 카드의 special 효과 존재 여부 확인
@@ -85,12 +85,12 @@ export function processPreAttackSpecials({
     }
   }
 
-  // === reloadSpray: 장전 후 사격 (빈탄창 해제) ===
+  // === reloadSpray: 장전 후 사격 (빈탄창 직접 제거) ===
   if (hasSpecial(card, 'reloadSpray')) {
-    // 빈탄창이 있으면 장전으로 상쇄
-    const result = addToken(modifiedAttacker, 'loaded', 1);
+    // 빈탄창 직접 제거
+    const result = removeToken(modifiedAttacker, 'empty_chamber', 'permanent', 99);
     modifiedAttacker.tokens = result.tokens;
-    if (result.logs.some(l => l.includes('상쇄'))) {
+    if (result.logs.length > 0) {
       const who = attackerName === 'player' ? '플레이어' : '몬스터';
       const msg = `${who} • 🔫 ${card.name}: 장전! 빈탄창 해제!`;
       events.push({ actor: attackerName, card: card.name, type: 'special', msg });

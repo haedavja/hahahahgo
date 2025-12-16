@@ -1909,10 +1909,11 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     if (currentBattle.qIndex >= currentBattle.queue.length) return;
     const a = currentBattle.queue[currentBattle.qIndex];
 
-    // battleRef에서 최신 player 상태 가져오기 (애니메이션 중 방어자세 방어력 반영)
+    // battleRef에서 최신 player/enemy 상태 가져오기 (애니메이션 중 방어자세 방어력, 토큰 등 반영)
     const latestPlayer = currentBattle.player || player;
-    let P = { ...player, def: latestPlayer.def || player.def || false, block: latestPlayer.block ?? player.block ?? 0, counter: player.counter || 0, vulnMult: player.vulnMult || 1, strength: player.strength || 0, tokens: player.tokens };
-    let E = { ...enemy, def: enemy.def || false, block: enemy.block || 0, counter: enemy.counter || 0, vulnMult: enemy.vulnMult || 1, tokens: enemy.tokens };
+    const latestEnemy = currentBattle.enemy || enemy;
+    let P = { ...player, def: latestPlayer.def || player.def || false, block: latestPlayer.block ?? player.block ?? 0, counter: player.counter || 0, vulnMult: player.vulnMult || 1, strength: player.strength || 0, tokens: latestPlayer.tokens };
+    let E = { ...enemy, def: latestEnemy.def || enemy.def || false, block: latestEnemy.block ?? enemy.block ?? 0, counter: enemy.counter || 0, vulnMult: enemy.vulnMult || 1, tokens: latestEnemy.tokens };
 
     const tempState = { player: P, enemy: E, log: [] };
 
