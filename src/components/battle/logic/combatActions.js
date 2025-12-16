@@ -383,6 +383,13 @@ export function applyAttack(attacker, defender, card, attackerName, battleContex
   const modifiedCard = preProcessedResult?.modifiedCard || card;
   const hits = modifiedCard.hits || card.hits || 1;
 
+  // 다중 타격 시 첫 번째 타격 로그 추가
+  if (hits > 1) {
+    const firstHitDmg = firstHitResult.damage;
+    const hitLog = `💥 ${card.name} [1/${hits}]: ${firstHitDmg} 데미지`;
+    allLogs.push(hitLog);
+  }
+
   // 추가 타격 수행 (hits - 1번, 첫 타격은 이미 수행함)
   for (let i = 1; i < hits; i++) {
     const result = calculateSingleHit(currentAttacker, currentDefender, card, attackerName, battleContext, isCritical, preProcessedResult);
@@ -391,12 +398,14 @@ export function applyAttack(attacker, defender, card, attackerName, battleContex
     totalDealt += result.damage;
     totalTaken += result.damageTaken || 0;
     allEvents.push(...result.events);
-    allLogs.push(...result.logs);
+    // 각 타격별 로그 추가
+    const hitLog = `💥 ${card.name} [${i + 1}/${hits}]: ${result.damage} 데미지`;
+    allLogs.push(hitLog);
   }
 
   // 다중 타격 총합 로그 (2회 이상 타격 시)
   if (hits > 1) {
-    const multiHitMsg = `🔥 ${card.name}: ${hits}회 타격! 총 ${totalDealt} 데미지!`;
+    const multiHitMsg = `🔥 ${card.name}: ${hits}회 타격 완료! 총 ${totalDealt} 데미지!`;
     allEvents.push({ actor: attackerName, card: card.name, type: 'multihit', msg: multiHitMsg });
     allLogs.push(multiHitMsg);
   }
