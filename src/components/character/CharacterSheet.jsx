@@ -187,8 +187,9 @@ export function CharacterSheet({ onClose }) {
           // 우클릭 또는 이미 선택된 카드면 제거
           return prev.filter(id => id !== cardId);
         }
-        // 좌클릭: 추가 (슬롯 제한 확인)
+        // 좌클릭: 추가 (슬롯 제한 + 보조특기 중복 확인)
         if (prev.length >= maxMainSlots) return prev;
+        if (subSpecials.includes(cardId)) return prev; // 보조특기에 이미 있으면 추가 안함
         return [...prev, cardId];
       });
     } else {
@@ -197,8 +198,9 @@ export function CharacterSheet({ onClose }) {
           // 우클릭 또는 이미 선택된 카드면 제거
           return prev.filter(id => id !== cardId);
         }
-        // 좌클릭: 추가 (슬롯 제한 확인)
+        // 좌클릭: 추가 (슬롯 제한 + 주특기 중복 확인)
         if (prev.length >= maxSubSlots) return prev;
+        if (mainSpecials.includes(cardId)) return prev; // 주특기에 이미 있으면 추가 안함
         return [...prev, cardId];
       });
     }
