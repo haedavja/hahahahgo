@@ -52,7 +52,7 @@ import { renderRarityBadge, renderNameWithBadge, getCardDisplayRarity } from "./
 import { startEnemyEtherAnimation } from "./utils/enemyEtherAnimation";
 import { processQueueCollisions } from "./utils/cardSpecialEffects";
 import { processReflections, initReflectionState, resetTurnReflectionEffects, decreaseEnemyFreeze } from "../../lib/reflectionEffects";
-import { clearTurnTokens, addToken, removeToken } from "../../lib/tokenUtils";
+import { clearTurnTokens, addToken, removeToken, getAllTokens } from "../../lib/tokenUtils";
 import { convertTraitsToIds } from "../../data/reflections";
 import { processEtherTransfer } from "./utils/etherTransferProcessing";
 import { processVictoryDefeatTransition } from "./utils/victoryDefeatTransition";
@@ -2416,8 +2416,25 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
     // 턴소모 토큰 제거 - battleRef에서 최신 상태 사용 (stale closure 방지)
     const currentBattle = battleRef.current || {};
-    const latestPlayer = currentBattle.player || battle.player;
-    const latestEnemy = currentBattle.enemy || battle.enemy;
+    let latestPlayer = currentBattle.player || battle.player;
+    let latestEnemy = currentBattle.enemy || battle.enemy;
+
+    // === 화상(BURN) 피해 처리 (턴 종료 시, 토큰 제거 전) ===
+    // 플레이어 화상 피해
+    const playerBurnTokens = getAllTokens(latestPlayer).filter(t => t.effect?.type === 'BURN');
+    if (playerBurnTokens.length > 0) {
+      const totalBurnDamage = playerBurnTokens.reduce((sum, t) => sum + (t.effect?.value || 5) * (t.stacks || 1), 0);
+      latestPlayer = { ...latestPlayer, hp: Math.max(0, latestPlayer.hp - totalBurnDamage) };
+      addLog(`🔥 화상 피해: 플레이어 -${totalBurnDamage} HP`);
+    }
+
+    // 적 화상 피해
+    const enemyBurnTokens = getAllTokens(latestEnemy).filter(t => t.effect?.type === 'BURN');
+    if (enemyBurnTokens.length > 0) {
+      const totalBurnDamage = enemyBurnTokens.reduce((sum, t) => sum + (t.effect?.value || 5) * (t.stacks || 1), 0);
+      latestEnemy = { ...latestEnemy, hp: Math.max(0, latestEnemy.hp - totalBurnDamage) };
+      addLog(`🔥 화상 피해: 적 -${totalBurnDamage} HP`);
+    }
 
     const playerTokenResult = clearTurnTokens(latestPlayer);
     playerTokenResult.logs.forEach(log => addLog(log));
