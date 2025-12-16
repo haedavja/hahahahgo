@@ -13,16 +13,26 @@ export const BreachSelectionModal = ({
 }) => {
   if (!breachSelection) return null;
 
-  const { cards, breachSp, breachCard } = breachSelection;
+  const { cards, breachSp, breachCard, sourceCardName } = breachSelection;
   const insertSp = breachSp + (breachCard?.breachSpOffset || 3);
+
+  // 플레쉬 vs 브리치 구분
+  const isFleche = sourceCardName && sourceCardName !== '브리치';
+  const title = isFleche ? `⚔️ ${sourceCardName} - 카드 선택` : '👻 브리치 - 카드 선택';
+  const desc = isFleche
+    ? `피해 성공! ${cards.length}장 중 1장을 선택하세요. 선택한 카드는 타임라인 ${insertSp} 위치에 유령카드로 삽입됩니다.`
+    : `아래 3장 중 1장을 선택하세요. 선택한 카드는 타임라인 ${insertSp} 위치에 유령카드로 삽입됩니다.`;
+  const note = isFleche
+    ? '💨 유령카드로 즉시 발동! 피해 성공 시 다시 창조됩니다.'
+    : '💨 유령카드: 힘 보너스만 적용, 콤보/아이템/상징 효과 미적용';
 
   return (
     <div className="breach-modal-overlay">
       <div className="breach-modal">
         <div className="breach-modal-header">
-          <h2>👻 브리치 - 카드 선택</h2>
-          <p>아래 3장 중 1장을 선택하세요. 선택한 카드는 타임라인 {insertSp} 위치에 유령카드로 삽입됩니다.</p>
-          <p className="breach-ghost-note">💨 유령카드: 힘 보너스만 적용, 콤보/아이템/상징 효과 미적용</p>
+          <h2>{title}</h2>
+          <p>{desc}</p>
+          <p className="breach-ghost-note">{note}</p>
         </div>
 
         <div className="breach-card-options">

@@ -385,24 +385,32 @@ export function processCardCreationSpecials({
   const logs = [];
   const createdCards = [];
 
-  // === createAttackOnHit: 피해 입히면 공격 카드 3장 창조 (플레쉬) ===
-  if (hasSpecial(card, 'createAttackOnHit') && damageDealt > 0) {
-    // 공격 카드 중에서 랜덤 선택
-    const attackCards = allCards.filter(c => c.type === 'attack' && c.id !== card.id);
+  // === createAttackOnHit 또는 플레쉬에서 창조된 카드: 피해 입히면 공격 카드 3장 창조 ===
+  const shouldCreateCards = (hasSpecial(card, 'createAttackOnHit') || card.isFromFleche) && damageDealt > 0;
+
+  if (shouldCreateCards) {
+    // 공격 카드 중에서 랜덤 선택 (중복 방지, 원본 카드 제외)
+    const originalCardId = card.createdBy || card.id;  // 원본 플레쉬 카드 ID
+    const attackCards = allCards.filter(c => c.type === 'attack' && c.id !== originalCardId);
     if (attackCards.length > 0) {
-      // 3장의 공격 카드 창조
-      for (let i = 0; i < 3; i++) {
-        const randomCard = attackCards[Math.floor(Math.random() * attackCards.length)];
+      // 3장의 서로 다른 공격 카드 창조 (중복 방지)
+      const shuffled = [...attackCards].sort(() => Math.random() - 0.5);
+      const selectedCards = shuffled.slice(0, Math.min(3, shuffled.length));
+
+      for (let i = 0; i < selectedCards.length; i++) {
+        const selectedCard = selectedCards[i];
         const newCard = {
-          ...randomCard,
+          ...selectedCard,
           isGhost: true, // 유령카드로 생성
-          createdBy: card.id,
-          createdId: `${randomCard.id}_created_${Date.now()}_${i}`
+          createdBy: originalCardId,  // 원본 플레쉬 카드 추적
+          createdId: `${selectedCard.id}_created_${Date.now()}_${i}`,
+          isFromFleche: true  // 플레쉬에서 창조된 카드 표시 (연쇄 효과용)
         };
         createdCards.push(newCard);
       }
       const cardNames = createdCards.map(c => c.name).join(', ');
-      const msg = `✨ ${card.name}: 피해 성공! 3장의 공격 카드 창조! (${cardNames})`;
+      const sourceName = card.isFromFleche ? '플레쉬 연쇄' : card.name;
+      const msg = `✨ ${sourceName}: 피해 성공! ${createdCards.length}장의 공격 카드 창조! (${cardNames})`;
       events.push({ actor: actorName, card: card.name, type: 'create', msg });
       logs.push(msg);
     }
