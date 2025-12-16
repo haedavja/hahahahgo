@@ -126,15 +126,15 @@ export function CharacterSheet({ onClose, showAllCards = false }) {
   // 카드 개수 카운트 헬퍼
   const getCardCount = (cardId, list) => list.filter(id => id === cardId).length;
 
-  // 보유 카드 (상점 구매 등)
+  // 대기 카드 (상점 구매 등)
   const ownedCards = characterBuild?.ownedCards || [];
 
-  // 표시할 카드 목록 (showAllCards가 false면 보유 카드만)
+  // 표시할 카드 목록 (showAllCards가 false면 소유 카드만)
   const displayedCards = useMemo(() => {
     if (showAllCards) {
       return availableCards;
     }
-    // 보유한 카드 ID 목록 (중복 제거) - 주특기, 보조특기, 보유카드 모두 포함
+    // 카드 ID 목록 (중복 제거) - 주특기, 보조특기, 대기카드 모두 포함
     const allOwnedCardIds = new Set([...mainSpecials, ...subSpecials, ...ownedCards]);
     return availableCards.filter(c => allOwnedCardIds.has(c.id));
   }, [showAllCards, mainSpecials, subSpecials, ownedCards]);
@@ -717,7 +717,7 @@ export function CharacterSheet({ onClose, showAllCards = false }) {
                             fontWeight: 700,
                             zIndex: 10,
                           }}>
-                            {isMainSpecial ? '⭐' : isSubSpecial ? '💠' : '🛒'}
+                            {isMainSpecial ? '⭐' : isSubSpecial ? '💠' : '⏳'}
                           </div>
                         )}
                         <div className="card-stats-sidebar">

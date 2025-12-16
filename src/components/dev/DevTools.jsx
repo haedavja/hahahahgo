@@ -1929,7 +1929,7 @@ function CardsTab({ cardUpgrades, upgradeCardRarity, characterBuild, updateChara
         </div>
 
         <div style={{ fontSize: '0.875rem', color: '#94a3b8', marginBottom: '8px', marginTop: '12px' }}>
-          보유카드 ({ownedCards.length}개) - 10% 손패
+          대기카드 ({ownedCards.length}개) - 10% 손패
         </div>
         <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
           {ownedCards.length === 0 ? (
@@ -2006,7 +2006,7 @@ function CardsTab({ cardUpgrades, upgradeCardRarity, characterBuild, updateChara
             cursor: 'pointer',
           }}
         >
-          보유카드 추가
+          대기카드 추가
         </button>
         <button
           onClick={clearAll}
