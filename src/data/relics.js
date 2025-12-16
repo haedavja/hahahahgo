@@ -20,6 +20,9 @@ export const RELIC_TAGS = {
   STRENGTH: 'strength',  // 힘
   AGILITY: 'agility',    // 민첩
   ETHER: 'ether',        // 에테르
+  SPEED: 'speed',        // 속도
+  TIMELINE: 'timeline',  // 타임라인
+  TOKEN: 'token',        // 토큰
 };
 
 /**
@@ -380,6 +383,224 @@ export const RELICS = {
     effects: {
       type: 'PASSIVE',
       maxEnergy: 30,
+    },
+  },
+
+  // ==================== 추가 유물 ====================
+  mockingMask: {
+    id: 'mockingMask',
+    name: '비웃는 가면',
+    emoji: '🎭',
+    rarity: RELIC_RARITIES.RARE,
+    tags: [RELIC_TAGS.ETHER],
+    description: '카드의 부정적 특성 하나당 2배수를 더합니다.',
+    effects: {
+      type: 'PASSIVE',
+      negativeTraitMultiplier: 2,
+    },
+  },
+
+  celebrationWreath: {
+    id: 'celebrationWreath',
+    name: '축하의 화환',
+    emoji: '💐',
+    rarity: RELIC_RARITIES.RARE,
+    tags: [RELIC_TAGS.ETHER],
+    description: '카드의 긍정적 특성 하나당 2배수를 더합니다.',
+    effects: {
+      type: 'PASSIVE',
+      positiveTraitMultiplier: 2,
+    },
+  },
+
+  windCloak: {
+    id: 'windCloak',
+    name: '바람망토',
+    emoji: '🧣',
+    rarity: RELIC_RARITIES.COMMON,
+    tags: [RELIC_TAGS.SPEED],
+    description: '속도를 5 얻습니다.',
+    effects: {
+      type: 'PASSIVE',
+      speed: 5,
+    },
+  },
+
+  lightBag: {
+    id: 'lightBag',
+    name: '가벼운 가방',
+    emoji: '🎒',
+    rarity: RELIC_RARITIES.RARE,
+    tags: [RELIC_TAGS.SPEED, RELIC_TAGS.ENERGY],
+    description: '최대 행동력 1을 잃고 속도를 12 얻습니다.',
+    effects: {
+      type: 'PASSIVE',
+      maxEnergy: -1,
+      speed: 12,
+    },
+  },
+
+  prostheticArm: {
+    id: 'prostheticArm',
+    name: '의수',
+    emoji: '🦾',
+    rarity: RELIC_RARITIES.RARE,
+    tags: [RELIC_TAGS.TIMELINE],
+    description: '방어카드만 냈다면 상대의 타임라인을 동결합니다.',
+    effects: {
+      type: 'ON_TURN_END',
+      condition: (state) => state.cardsPlayedThisTurn > 0 && state.allCardsDefense,
+      freezeEnemyTimeline: true,
+    },
+  },
+
+  charityGold: {
+    id: 'charityGold',
+    name: '적선의 금화',
+    emoji: '🪙',
+    rarity: RELIC_RARITIES.RARE,
+    tags: [RELIC_TAGS.TIMELINE],
+    description: '행동력 2 이하의 카드만 냈다면 상대의 타임라인을 동결합니다.',
+    effects: {
+      type: 'ON_TURN_END',
+      condition: (state) => state.cardsPlayedThisTurn > 0 && state.allCardsLowCost,
+      freezeEnemyTimeline: true,
+    },
+  },
+
+  laughingBell: {
+    id: 'laughingBell',
+    name: '웃는 종',
+    emoji: '🔔',
+    rarity: RELIC_RARITIES.RARE,
+    tags: [RELIC_TAGS.TIMELINE],
+    description: '낸 카드가 3장 이하면 카드의 시간소모 5 감소.',
+    effects: {
+      type: 'ON_TURN_END',
+      condition: (state) => state.cardsPlayedThisTurn <= 3,
+      speedCostReduction: 5,
+    },
+  },
+
+  wreath: {
+    id: 'wreath',
+    name: '화환',
+    emoji: '🌸',
+    rarity: RELIC_RARITIES.RARE,
+    tags: [RELIC_TAGS.ETHER],
+    description: '은총화를 획득하면 공격, 방어 1회 부여.',
+    effects: {
+      type: 'ON_GRACE_GAIN',
+      grantOffense: 1,
+      grantDefense: 1,
+    },
+  },
+
+  pocketWatch: {
+    id: 'pocketWatch',
+    name: '시계',
+    emoji: '⏱️',
+    rarity: RELIC_RARITIES.SPECIAL,
+    tags: [RELIC_TAGS.TIMELINE],
+    description: '되감기 1회를 추가합니다.',
+    effects: {
+      type: 'PASSIVE',
+      rewindCount: 1,
+    },
+  },
+
+  dud: {
+    id: 'dud',
+    name: '불발탄',
+    emoji: '💣',
+    rarity: RELIC_RARITIES.RARE,
+    tags: [RELIC_TAGS.TOKEN, RELIC_TAGS.HEAL],
+    description: '긍정 토큰 1회 얻을때마다 체력 3회복, 부정 토큰 1회 얻을때마다 체력 1 상실.',
+    effects: {
+      type: 'ON_TOKEN_GAIN',
+      healOnPositive: 3,
+      damageOnNegative: 1,
+    },
+  },
+
+  bulletproofVest: {
+    id: 'bulletproofVest',
+    name: '방탄복',
+    emoji: '🦺',
+    rarity: RELIC_RARITIES.RARE,
+    tags: [RELIC_TAGS.DEFENSE],
+    description: '한 턴에 공격을 2번 이상 받으면 다음 턴 시작시 수세 1회 획득.',
+    effects: {
+      type: 'ON_TURN_END',
+      condition: (state) => state.timesAttackedThisTurn >= 2,
+      grantDefensiveNextTurn: 1,
+    },
+  },
+
+  neckGlove: {
+    id: 'neckGlove',
+    name: '목장갑',
+    emoji: '🧤',
+    rarity: RELIC_RARITIES.RARE,
+    tags: [RELIC_TAGS.ETHER],
+    description: '투페어 이상 내면 공세+ 1회 획득.',
+    effects: {
+      type: 'ON_COMBO',
+      condition: (comboRank) => comboRank >= 3, // 투페어 이상
+      grantOffensePlus: 1,
+    },
+  },
+
+  windTear: {
+    id: 'windTear',
+    name: '바람의 눈물',
+    emoji: '💧',
+    rarity: RELIC_RARITIES.SPECIAL,
+    tags: [RELIC_TAGS.DRAW],
+    description: '카드를 한 장 더 낼 수 있습니다.',
+    effects: {
+      type: 'PASSIVE',
+      extraCardPlay: 1,
+    },
+  },
+
+  rosary: {
+    id: 'rosary',
+    name: '묵주',
+    emoji: '📿',
+    rarity: RELIC_RARITIES.RARE,
+    tags: [RELIC_TAGS.ETHER],
+    description: '유물이 발동될때마다 에테르 50pt 획득.',
+    effects: {
+      type: 'ON_RELIC_ACTIVATE',
+      etherGain: 50,
+    },
+  },
+
+  bullet: {
+    id: 'bullet',
+    name: '총알',
+    emoji: '🔫',
+    rarity: RELIC_RARITIES.RARE,
+    tags: [RELIC_TAGS.ETHER],
+    description: '하이카드일 경우 5배수를 더합니다.',
+    effects: {
+      type: 'ON_COMBO',
+      condition: (comboRank) => comboRank === 1, // 하이카드
+      comboMultiplierBonus: 5,
+    },
+  },
+
+  tonic: {
+    id: 'tonic',
+    name: '보약',
+    emoji: '🍵',
+    rarity: RELIC_RARITIES.COMMON,
+    tags: [RELIC_TAGS.DEFENSE],
+    description: '전투 시작시 면역 1회 획득.',
+    effects: {
+      type: 'ON_COMBAT_START',
+      grantImmunity: 1,
     },
   },
 
