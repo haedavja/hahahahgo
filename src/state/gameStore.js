@@ -1152,13 +1152,17 @@ export const useGameStore = create((set, get) => ({
 
   // 보유 카드 추가 (상점 구매용 - 특기 지정 없음)
   addOwnedCard: (cardId) =>
-    set((state) => ({
-      ...state,
-      characterBuild: {
-        ...state.characterBuild,
-        ownedCards: [...(state.characterBuild?.ownedCards || []), cardId],
-      },
-    })),
+    set((state) => {
+      const newOwnedCards = [...(state.characterBuild?.ownedCards || []), cardId];
+      console.log('[addOwnedCard] cardId:', cardId, 'newOwnedCards:', newOwnedCards);
+      return {
+        ...state,
+        characterBuild: {
+          ...state.characterBuild,
+          ownedCards: newOwnedCards,
+        },
+      };
+    }),
 
   // 보유 카드 제거 (한 장만)
   removeOwnedCard: (cardId) =>

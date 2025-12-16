@@ -138,13 +138,16 @@ export function ShopModal({ merchantType = 'shop', onClose }) {
 
   // 카드 구매 (보유 카드에 추가 - 10% 확률로 손패에 등장)
   const handleBuyCard = (cardId, price) => {
+    console.log('[handleBuyCard] cardId:', cardId, 'price:', price, 'addOwnedCard:', addOwnedCard);
     if (gold < price) {
       showNotification('골드가 부족합니다!', 'error');
       return;
     }
 
     addResources({ gold: -price });
+    console.log('[handleBuyCard] calling addOwnedCard...');
     addOwnedCard(cardId);
+    console.log('[handleBuyCard] addOwnedCard called');
     setPurchasedCards((prev) => new Set([...prev, cardId]));
     const card = CARDS.find(c => c.id === cardId);
     showNotification(`${card?.name || cardId}을(를) 구매했습니다!`, 'success');
