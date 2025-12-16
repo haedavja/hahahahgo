@@ -802,7 +802,7 @@ export function CharacterSheet({ onClose }) {
                             fontWeight: 700,
                             zIndex: 10,
                           }}>
-                            {isMainSpecial ? '⭐주특기' : '💠보조'}
+                            {isMainSpecial ? '⭐' : '💠'}
                           </div>
                         )}
                         <div className="card-stats-sidebar">
