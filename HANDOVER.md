@@ -20,7 +20,7 @@
 ### 게임 컨셉
 - 포커 조합 기반 전략 카드 게임
 - 플레이어 vs 적 턴제 전투 시스템
-- 카드 특성(Traits), 에테르(Ether), 유물(Relics) 시스템
+- 카드 특성(Traits), 에테르(Ether), 상징(Relics) 시스템
 
 ---
 
@@ -44,9 +44,9 @@
    - 자동 스크롤 기능
 
 2. `RelicDisplay.jsx` (138줄)
-   - 상단 유물 표시 UI
-   - 드래그앤드롭으로 유물 순서 변경
-   - 유물 희귀도별 색상 표시
+   - 상단 상징 표시 UI
+   - 드래그앤드롭으로 상징 순서 변경
+   - 상징 희귀도별 색상 표시
    - 호버 툴팁
 
 3. `TimelineDisplay.jsx` (253줄)
@@ -85,7 +85,7 @@ src/
 ├── components/
 │   ├── battle/
 │   │   ├── LegacyBattleApp.jsx (3618줄) - 메인 전투 컴포넌트
-│   │   ├── battleData.js - 카드, 특성, 유물 데이터
+│   │   ├── battleData.js - 카드, 특성, 상징 데이터
 │   │   ├── ui/ (UI 컴포넌트 폴더)
 │   │   │   ├── PlayerHpBar.jsx
 │   │   │   ├── PlayerEtherBox.jsx
@@ -188,7 +188,7 @@ npm run build
    - 협동(Cooperation): 조합에 포함 시 강화
    - 사용 횟수에 따른 동적 효과
 
-3. **유물 (Relics)**:
+3. **상징 (Relics)**:
    - 패시브 효과
    - 희귀도: COMMON, RARE, EPIC, LEGENDARY
    - 드래그앤드롭으로 순서 변경
