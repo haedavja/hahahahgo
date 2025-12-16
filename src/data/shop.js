@@ -22,6 +22,14 @@ export const ITEM_PRICES = {
   2: 50,  // 대형 아이템
 };
 
+// 카드 등급별 가격
+export const CARD_PRICES = {
+  common: 15,
+  rare: 30,
+  special: 50,
+  legendary: 80,
+};
+
 // 서비스 가격
 export const SERVICE_PRICES = {
   healSmall: 30,      // 체력 25% 회복
@@ -177,6 +185,20 @@ export function getItemSellPrice(item, merchantType = 'shop') {
 export function getRelicSellPrice(relic, merchantType = 'shop') {
   const merchant = MERCHANT_TYPES[merchantType] || MERCHANT_TYPES.shop;
   const basePrice = RELIC_PRICES[relic.rarity] || 100;
+  const sellMultiplier = merchant.sellPriceMultiplier || SELL_PRICE_MULTIPLIER;
+  return Math.round(basePrice * sellMultiplier);
+}
+
+/**
+ * 카드 판매 가격 계산
+ * @param {Object} card - 카드 객체
+ * @param {string} cardRarity - 카드 등급 (업그레이드된 등급 사용)
+ * @param {string} merchantType - 상인 유형
+ * @returns {number} 판매 가격
+ */
+export function getCardSellPrice(card, cardRarity = 'common', merchantType = 'shop') {
+  const merchant = MERCHANT_TYPES[merchantType] || MERCHANT_TYPES.shop;
+  const basePrice = CARD_PRICES[cardRarity] || CARD_PRICES.common;
   const sellMultiplier = merchant.sellPriceMultiplier || SELL_PRICE_MULTIPLIER;
   return Math.round(basePrice * sellMultiplier);
 }

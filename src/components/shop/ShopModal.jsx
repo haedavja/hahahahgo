@@ -12,6 +12,7 @@ import {
   MERCHANT_TYPES,
   generateShopInventory,
   getItemSellPrice,
+  getCardSellPrice,
   getServicePrice,
   SHOP_SERVICES,
   RELIC_PRICES,
@@ -39,6 +40,7 @@ export function ShopModal({ merchantType = 'shop', onClose }) {
   const playerHp = useGameStore((state) => state.playerHp);
   const maxHp = useGameStore((state) => state.maxHp);
   const characterBuild = useGameStore((state) => state.characterBuild);
+  const cardUpgrades = useGameStore((state) => state.cardUpgrades || {});
   const addResources = useGameStore((state) => state.addResources);
   const addRelic = useGameStore((state) => state.addRelic);
   const addItem = useGameStore((state) => state.addItem);
@@ -74,16 +76,22 @@ export function ShopModal({ merchantType = 'shop', onClose }) {
 
     mainSpecials.forEach(cardId => {
       const card = CARDS.find(c => c.id === cardId);
-      if (card) cards.push({ ...card, isMainSpecial: true });
+      if (card) {
+        const rarity = cardUpgrades[cardId] || card.rarity || 'common';
+        cards.push({ ...card, isMainSpecial: true, currentRarity: rarity });
+      }
     });
 
     subSpecials.forEach(cardId => {
       const card = CARDS.find(c => c.id === cardId);
-      if (card) cards.push({ ...card, isMainSpecial: false });
+      if (card) {
+        const rarity = cardUpgrades[cardId] || card.rarity || 'common';
+        cards.push({ ...card, isMainSpecial: false, currentRarity: rarity });
+      }
     });
 
     return cards;
-  }, [characterBuild]);
+  }, [characterBuild, cardUpgrades]);
 
   const showNotification = (message, type = 'info') => {
     setNotification({ message, type });
@@ -136,6 +144,14 @@ export function ShopModal({ merchantType = 'shop', onClose }) {
     addResources({ gold: sellPrice });
     removeItem(slotIndex);
     showNotification(`${item.name}을(를) ${sellPrice}G에 판매했습니다!`, 'success');
+  };
+
+  // 카드 판매
+  const handleSellCard = (card) => {
+    const sellPrice = getCardSellPrice(card, card.currentRarity, merchantType);
+    addResources({ gold: sellPrice });
+    removeCardFromDeck(card.id, card.isMainSpecial);
+    showNotification(`${card.name} 카드를 ${sellPrice}G에 판매했습니다!`, 'success');
   };
 
   // 서비스 이용
@@ -468,13 +484,14 @@ export function ShopModal({ merchantType = 'shop', onClose }) {
 
           {activeTab === 'sell' && (
             <div>
-              <h3 style={{ fontSize: '1rem', color: '#22c55e', marginBottom: '12px' }}>💰 아이템 판매</h3>
+              {/* 아이템 판매 */}
+              <h3 style={{ fontSize: '1rem', color: '#22c55e', marginBottom: '12px' }}>📦 아이템 판매</h3>
               {sellableItems.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '40px', color: '#64748b' }}>
+                <div style={{ textAlign: 'center', padding: '20px', color: '#64748b', marginBottom: '20px' }}>
                   판매할 아이템이 없습니다.
                 </div>
               ) : (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '12px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '12px', marginBottom: '20px' }}>
                   {sellableItems.map(({ item, slotIndex }) => {
                     const sellPrice = getItemSellPrice(item, merchantType);
 
@@ -500,6 +517,67 @@ export function ShopModal({ merchantType = 'shop', onClose }) {
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
                           <span style={{ fontWeight: 700, color: '#22c55e' }}>
+                            판매가: {sellPrice}G
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* 카드 판매 */}
+              <h3 style={{ fontSize: '1rem', color: '#f59e0b', marginBottom: '12px' }}>🃏 카드 판매</h3>
+              {allPlayerCards.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '20px', color: '#64748b' }}>
+                  판매할 카드가 없습니다.
+                </div>
+              ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '12px' }}>
+                  {allPlayerCards.map((card, idx) => {
+                    const sellPrice = getCardSellPrice(card, card.currentRarity, merchantType);
+                    const rarityColors = { common: '#94a3b8', rare: '#60a5fa', special: '#a78bfa', legendary: '#fbbf24' };
+                    const rarityNames = { common: '일반', rare: '희귀', special: '특별', legendary: '전설' };
+
+                    return (
+                      <div
+                        key={`${card.id}-${idx}`}
+                        onClick={() => handleSellCard(card)}
+                        style={{
+                          padding: '12px',
+                          background: 'rgba(245, 158, 11, 0.1)',
+                          border: `2px solid ${card.isMainSpecial ? '#fbbf24' : '#60a5fa'}`,
+                          borderRadius: '12px',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s',
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
+                          <span style={{
+                            fontSize: '0.7rem',
+                            padding: '2px 6px',
+                            borderRadius: '4px',
+                            background: card.isMainSpecial ? 'rgba(251, 191, 36, 0.2)' : 'rgba(96, 165, 250, 0.2)',
+                            color: card.isMainSpecial ? '#fbbf24' : '#60a5fa',
+                          }}>
+                            {card.isMainSpecial ? '⭐주특기' : '💠보조'}
+                          </span>
+                          <span style={{
+                            fontSize: '0.65rem',
+                            padding: '2px 5px',
+                            borderRadius: '4px',
+                            background: `${rarityColors[card.currentRarity]}20`,
+                            color: rarityColors[card.currentRarity],
+                          }}>
+                            {rarityNames[card.currentRarity]}
+                          </span>
+                        </div>
+                        <div style={{ fontWeight: 600, color: '#e2e8f0', marginBottom: '4px' }}>{card.name}</div>
+                        <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginBottom: '8px' }}>
+                          행동력 {card.actionCost} · 속도 {card.speedCost}
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                          <span style={{ fontWeight: 700, color: '#f59e0b' }}>
                             판매가: {sellPrice}G
                           </span>
                         </div>
