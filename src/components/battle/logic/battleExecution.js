@@ -661,7 +661,8 @@ export function runAllCore(params) {
     block: player.block || 0,
     counter: player.counter || 0,
     vulnMult: player.vulnMult || 1,
-    etherPts: player.etherPts || 0
+    etherPts: player.etherPts || 0,
+    tokens: player.tokens
   };
   let E = {
     ...enemy,
@@ -669,10 +670,11 @@ export function runAllCore(params) {
     block: enemy.block || 0,
     counter: enemy.counter || 0,
     vulnMult: enemy.vulnMult || 1,
-    etherPts: enemy.etherPts || 0
+    etherPts: enemy.etherPts || 0,
+    tokens: enemy.tokens
   };
 
-  const tempState = { player: P, enemy: E, log: [] };
+  let tempState = { player: P, enemy: E, log: [] };
   const newEvents = {};
   let enemyDefeated = false;
   let playerDefeated = false;
@@ -716,9 +718,17 @@ export function runAllCore(params) {
       enemyRemainingEnergy: calcEnemyRemainingEnergy  // 적 치명타 확률용 남은 에너지
     };
 
-    const { events } = applyAction(tempState, a.actor, a.card, battleContext);
+    const actionResult = applyAction(tempState, a.actor, a.card, battleContext);
+    const { events, updatedState } = actionResult;
     newEvents[i] = events;
     events.forEach(ev => addLog(ev.msg));
+
+    // 상태 업데이트 (다음 카드가 이전 카드의 결과를 반영하도록)
+    if (updatedState) {
+      P = updatedState.player;
+      E = updatedState.enemy;
+      tempState = { player: P, enemy: E, log: [] };
+    }
 
     if (a.actor === 'player') {
       const gain = Math.floor(getCardEtherGain(a.card) * passiveRelicEffects.etherMultiplier);
@@ -748,7 +758,8 @@ export function runAllCore(params) {
     def: P.def,
     block: P.block,
     counter: P.counter,
-    vulnMult: P.vulnMult || 1
+    vulnMult: P.vulnMult || 1,
+    tokens: P.tokens
   });
   actions.setEnemy({
     ...enemy,
@@ -756,7 +767,8 @@ export function runAllCore(params) {
     def: E.def,
     block: E.block,
     counter: E.counter,
-    vulnMult: E.vulnMult || 1
+    vulnMult: E.vulnMult || 1,
+    tokens: E.tokens
   });
   actions.setActionEvents({ ...battle.actionEvents, ...newEvents });
 
