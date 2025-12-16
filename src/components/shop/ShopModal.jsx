@@ -47,15 +47,17 @@ export function ShopModal({ merchantType = 'shop', onClose }) {
   const removeItem = useGameStore((state) => state.removeItem);
   const setPlayerHp = useGameStore((state) => state.setPlayerHp);
   const removeCardFromDeck = useGameStore((state) => state.removeCardFromDeck);
+  const updateCharacterBuild = useGameStore((state) => state.updateCharacterBuild);
 
   const merchant = MERCHANT_TYPES[merchantType] || MERCHANT_TYPES.shop;
 
   // 상점 재고 (처음 열 때 생성, reroll 시 갱신)
   const [inventory, setInventory] = useState(() =>
-    generateShopInventory(merchantType, relics)
+    generateShopInventory(merchantType, relics, CARDS)
   );
   const [purchasedRelics, setPurchasedRelics] = useState(new Set());
   const [purchasedItems, setPurchasedItems] = useState(new Set());
+  const [purchasedCards, setPurchasedCards] = useState(new Set());
   const [activeTab, setActiveTab] = useState('buy'); // 'buy' | 'sell' | 'service'
   const [notification, setNotification] = useState(null);
   const [showCardRemovalModal, setShowCardRemovalModal] = useState(false);
@@ -135,6 +137,27 @@ export function ShopModal({ merchantType = 'shop', onClose }) {
     showNotification(`${ITEMS[itemId]?.name}을(를) 구매했습니다!`, 'success');
   };
 
+  // 카드 구매
+  const handleBuyCard = (cardId, price, asMainSpecial = false) => {
+    if (gold < price) {
+      showNotification('골드가 부족합니다!', 'error');
+      return;
+    }
+
+    const mainSpecials = characterBuild?.mainSpecials || [];
+    const subSpecials = characterBuild?.subSpecials || [];
+
+    addResources({ gold: -price });
+    if (asMainSpecial) {
+      updateCharacterBuild([...mainSpecials, cardId], subSpecials);
+    } else {
+      updateCharacterBuild(mainSpecials, [...subSpecials, cardId]);
+    }
+    setPurchasedCards((prev) => new Set([...prev, cardId]));
+    const card = CARDS.find(c => c.id === cardId);
+    showNotification(`${card?.name || cardId}을(를) ${asMainSpecial ? '주특기' : '보조특기'}로 구매했습니다!`, 'success');
+  };
+
   // 아이템 판매
   const handleSellItem = (slotIndex) => {
     const item = items[slotIndex];
@@ -188,9 +211,10 @@ export function ShopModal({ merchantType = 'shop', onClose }) {
       }
       case 'reroll': {
         addResources({ gold: -price });
-        setInventory(generateShopInventory(merchantType, relics));
+        setInventory(generateShopInventory(merchantType, relics, CARDS));
         setPurchasedRelics(new Set());
         setPurchasedItems(new Set());
+        setPurchasedCards(new Set());
         showNotification('상품이 교체되었습니다!', 'success');
         break;
       }
@@ -428,7 +452,7 @@ export function ShopModal({ merchantType = 'shop', onClose }) {
 
               {/* 아이템 */}
               {inventory.items.length > 0 && (
-                <div>
+                <div style={{ marginBottom: '20px' }}>
                   <h3 style={{ fontSize: '1rem', color: '#60a5fa', marginBottom: '12px' }}>📦 아이템</h3>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '12px' }}>
                     {inventory.items.map(({ id, price }, idx) => {
@@ -473,6 +497,112 @@ export function ShopModal({ merchantType = 'shop', onClose }) {
                               </span>
                             )}
                           </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* 카드 */}
+              {inventory.cards && inventory.cards.length > 0 && (
+                <div>
+                  <h3 style={{ fontSize: '1rem', color: '#f59e0b', marginBottom: '12px' }}>🃏 카드</h3>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '12px' }}>
+                    {inventory.cards.map(({ id, price, rarity }, idx) => {
+                      const card = CARDS.find(c => c.id === id);
+                      if (!card) return null;
+                      const sold = purchasedCards.has(id);
+                      const canAfford = gold >= price;
+                      const rarityColors = { common: '#94a3b8', rare: '#60a5fa', special: '#a78bfa', legendary: '#fbbf24' };
+                      const rarityNames = { common: '일반', rare: '희귀', special: '특별', legendary: '전설' };
+
+                      return (
+                        <div
+                          key={`${id}-${idx}`}
+                          style={{
+                            padding: '12px',
+                            background: sold ? 'rgba(100, 116, 139, 0.1)' : 'rgba(30, 41, 59, 0.5)',
+                            border: `2px solid ${sold ? '#475569' : rarityColors[rarity]}`,
+                            borderRadius: '12px',
+                            opacity: sold ? 0.5 : 1,
+                            transition: 'all 0.2s',
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                            <span style={{
+                              fontSize: '0.7rem',
+                              padding: '2px 6px',
+                              borderRadius: '4px',
+                              background: `${rarityColors[rarity]}20`,
+                              color: rarityColors[rarity],
+                            }}>
+                              {rarityNames[rarity]}
+                            </span>
+                            <span style={{
+                              fontSize: '0.7rem',
+                              padding: '2px 6px',
+                              borderRadius: '4px',
+                              background: card.type === 'attack' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(59, 130, 246, 0.2)',
+                              color: card.type === 'attack' ? '#f87171' : '#60a5fa',
+                            }}>
+                              {card.type === 'attack' ? '⚔️공격' : '🛡️방어'}
+                            </span>
+                          </div>
+                          <div style={{ fontWeight: 600, color: rarityColors[rarity], marginBottom: '4px' }}>{card.name}</div>
+                          <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginBottom: '8px' }}>
+                            행동력 {card.actionCost} · 속도 {card.speedCost}
+                            {card.damage ? ` · 피해 ${card.damage}${card.hits > 1 ? `×${card.hits}` : ''}` : ''}
+                            {card.block ? ` · 방어 ${card.block}` : ''}
+                          </div>
+                          {sold ? (
+                            <div style={{ textAlign: 'right' }}>
+                              <span style={{ color: '#64748b', fontWeight: 600 }}>품절</span>
+                            </div>
+                          ) : (
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
+                              <span style={{
+                                fontWeight: 700,
+                                color: canAfford ? '#fbbf24' : '#ef4444',
+                              }}>
+                                💰 {price}G
+                              </span>
+                              <div style={{ display: 'flex', gap: '4px' }}>
+                                <button
+                                  onClick={() => canAfford && handleBuyCard(id, price, true)}
+                                  disabled={!canAfford}
+                                  style={{
+                                    padding: '4px 8px',
+                                    background: canAfford ? 'rgba(251, 191, 36, 0.2)' : 'rgba(100, 116, 139, 0.2)',
+                                    border: `1px solid ${canAfford ? '#fbbf24' : '#475569'}`,
+                                    borderRadius: '4px',
+                                    color: canAfford ? '#fbbf24' : '#64748b',
+                                    fontSize: '0.7rem',
+                                    cursor: canAfford ? 'pointer' : 'not-allowed',
+                                    fontWeight: 600,
+                                  }}
+                                >
+                                  ⭐주특기
+                                </button>
+                                <button
+                                  onClick={() => canAfford && handleBuyCard(id, price, false)}
+                                  disabled={!canAfford}
+                                  style={{
+                                    padding: '4px 8px',
+                                    background: canAfford ? 'rgba(96, 165, 250, 0.2)' : 'rgba(100, 116, 139, 0.2)',
+                                    border: `1px solid ${canAfford ? '#60a5fa' : '#475569'}`,
+                                    borderRadius: '4px',
+                                    color: canAfford ? '#60a5fa' : '#64748b',
+                                    fontSize: '0.7rem',
+                                    cursor: canAfford ? 'pointer' : 'not-allowed',
+                                    fontWeight: 600,
+                                  }}
+                                >
+                                  💠보조
+                                </button>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       );
                     })}

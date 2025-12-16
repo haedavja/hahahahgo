@@ -52,6 +52,7 @@ export const MERCHANT_TYPES = {
     greeting: '어서 오세요, 모험가여. 무엇이 필요하신가요?',
     relicSlots: 3,      // 유물 3개
     itemSlots: 4,       // 아이템 4개
+    cardSlots: 3,       // 카드 3개
     hasServices: true,  // 서비스 제공
     canSell: true,      // 전리품 매입
     priceMultiplier: 1.0,
@@ -64,6 +65,7 @@ export const MERCHANT_TYPES = {
     greeting: '이런 곳에서 손님을 만나다니! 좋은 물건이 있어요.',
     relicSlots: 2,
     itemSlots: 3,
+    cardSlots: 2,
     hasServices: false,
     canSell: true,
     priceMultiplier: 0.9,  // 10% 할인
@@ -76,10 +78,12 @@ export const MERCHANT_TYPES = {
     greeting: '희귀한 물건만 취급합니다. 눈이 높으시군요.',
     relicSlots: 2,
     itemSlots: 2,
+    cardSlots: 2,
     hasServices: false,
     canSell: true,
     priceMultiplier: 1.3,  // 30% 비쌈 (대신 희귀 유물만)
     minRarity: RELIC_RARITIES.RARE,  // 희귀 등급 이상만
+    minCardRarity: 'rare',  // 희귀 카드 이상만
   },
   // 전리품 매입 전문 상인
   buyer: {
@@ -89,6 +93,7 @@ export const MERCHANT_TYPES = {
     greeting: '좋은 물건 있으면 비싸게 사드립니다!',
     relicSlots: 0,
     itemSlots: 0,
+    cardSlots: 0,
     hasServices: false,
     canSell: true,
     sellPriceMultiplier: 1.2,  // 20% 높은 가격에 매입
@@ -99,11 +104,12 @@ export const MERCHANT_TYPES = {
  * 랜덤 상점 재고 생성
  * @param {string} merchantType - 상인 유형
  * @param {string[]} ownedRelics - 이미 보유한 유물 ID 배열
- * @returns {Object} { relics: [{id, price}], items: [{id, price}] }
+ * @param {Object[]} allCards - 전체 카드 배열 (CARDS)
+ * @returns {Object} { relics: [{id, price}], items: [{id, price}], cards: [{id, price, rarity}] }
  */
-export function generateShopInventory(merchantType = 'shop', ownedRelics = []) {
+export function generateShopInventory(merchantType = 'shop', ownedRelics = [], allCards = []) {
   const merchant = MERCHANT_TYPES[merchantType] || MERCHANT_TYPES.shop;
-  const inventory = { relics: [], items: [] };
+  const inventory = { relics: [], items: [], cards: [] };
 
   // 유물 선택
   const availableRelics = Object.values(RELICS).filter(r => {
@@ -158,6 +164,50 @@ export function generateShopInventory(merchantType = 'shop', ownedRelics = []) {
       id: item.id,
       price: Math.round(basePrice * merchant.priceMultiplier),
     });
+  }
+
+  // 카드 선택
+  if (merchant.cardSlots > 0 && allCards.length > 0) {
+    const cardRarityOrder = ['common', 'rare', 'special', 'legendary'];
+    const cardWeights = {
+      common: 4,
+      rare: 2,
+      special: 1,
+      legendary: 0.3,
+    };
+
+    // 최소 등급 필터링
+    let availableCards = [...allCards];
+    if (merchant.minCardRarity) {
+      const minIdx = cardRarityOrder.indexOf(merchant.minCardRarity);
+      availableCards = availableCards.filter(c => {
+        const cardIdx = cardRarityOrder.indexOf(c.rarity || 'common');
+        return cardIdx >= minIdx;
+      });
+    }
+
+    // 셔플 후 가중치 기반 선택
+    availableCards = availableCards.sort(() => Math.random() - 0.5);
+
+    for (let i = 0; i < merchant.cardSlots && availableCards.length > 0; i++) {
+      const totalWeight = availableCards.reduce((sum, c) => sum + (cardWeights[c.rarity || 'common'] || 1), 0);
+      let rand = Math.random() * totalWeight;
+
+      for (let j = 0; j < availableCards.length; j++) {
+        rand -= cardWeights[availableCards[j].rarity || 'common'] || 1;
+        if (rand <= 0) {
+          const card = availableCards.splice(j, 1)[0];
+          const cardRarity = card.rarity || 'common';
+          const basePrice = CARD_PRICES[cardRarity] || CARD_PRICES.common;
+          inventory.cards.push({
+            id: card.id,
+            price: Math.round(basePrice * merchant.priceMultiplier),
+            rarity: cardRarity,
+          });
+          break;
+        }
+      }
+    }
   }
 
   return inventory;
