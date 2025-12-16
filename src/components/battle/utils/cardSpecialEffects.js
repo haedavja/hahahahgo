@@ -82,14 +82,16 @@ export function processPreAttackSpecials({
     }
   }
 
-  // === gyrusRoulette: 진행 단계 최종 남은 행동력만큼 타격 횟수 ===
+  // === gyrusRoulette: 진행 단계 최종 남은 행동력만큼 타격 횟수 (50% 확률로 2배) ===
   if (hasSpecial(card, 'gyrusRoulette')) {
-    // remainingEnergy는 진행 단계 시작 시점에서 모든 선택 카드 비용 차감 후 최종 남은 값
     const remainingEnergy = battleContext.remainingEnergy || 0;
-    const hits = Math.max(1, remainingEnergy);  // 최소 1회, 남은 행동력 = 공격 횟수
+    const isDoubleHit = Math.random() < 0.5;  // 50% 확률
+    const multiplier = isDoubleHit ? 2 : 1;
+    const hits = Math.max(1, remainingEnergy * multiplier);
     modifiedCard.hits = hits;
     modifiedCard._addEmptyChamber = true;  // 사용 후 빈탄창 플래그
-    const msg = `🎰 ${card.name}: 최종 남은 행동력 ${remainingEnergy} = ${hits}회 사격!`;
+    const bonusText = isDoubleHit ? ' (🎲 2배!)' : '';
+    const msg = `🎰 ${card.name}: 남은 행동력 ${remainingEnergy} × ${multiplier} = ${hits}회 사격!${bonusText}`;
     events.push({ actor: attackerName, card: card.name, type: 'special', msg });
     logs.push(msg);
   }
