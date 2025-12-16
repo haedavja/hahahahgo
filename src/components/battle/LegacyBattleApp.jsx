@@ -52,7 +52,7 @@ import { renderRarityBadge, renderNameWithBadge, getCardDisplayRarity } from "./
 import { startEnemyEtherAnimation } from "./utils/enemyEtherAnimation";
 import { processQueueCollisions } from "./utils/cardSpecialEffects";
 import { processReflections, initReflectionState, resetTurnReflectionEffects, decreaseEnemyFreeze } from "../../lib/reflectionEffects";
-import { clearTurnTokens } from "../../lib/tokenUtils";
+import { clearTurnTokens, addToken, removeToken } from "../../lib/tokenUtils";
 import { convertTraitsToIds } from "../../data/reflections";
 import { processEtherTransfer } from "./utils/etherTransferProcessing";
 import { processVictoryDefeatTransition } from "./utils/victoryDefeatTransition";
@@ -2114,7 +2114,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
               if (isCritical) {
                 addLog(`💥 치명타! ${tokenId} +1 강화`);
               }
-              const { addToken } = require('../../../lib/tokenUtils');
               const result = addToken(currentPlayerForToken, tokenId, actualStacks);
               P.tokens = result.tokens;
               currentPlayerForToken.tokens = result.tokens;
@@ -2129,7 +2128,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
             removeTokenFromPlayer: (tokenId, tokenType, stacks = 1) => {
               console.log('[onPlay removeToken] 시작:', { tokenId, tokenType, stacks });
               console.log('[onPlay removeToken] 제거 전 currentPlayerForToken.tokens:', JSON.stringify(currentPlayerForToken.tokens));
-              const { removeToken } = require('../../../lib/tokenUtils');
               const result = removeToken(currentPlayerForToken, tokenId, tokenType, stacks);
               console.log('[onPlay removeToken] 제거 후 result.tokens:', JSON.stringify(result.tokens));
               console.log('[onPlay removeToken] result.logs:', result.logs);
