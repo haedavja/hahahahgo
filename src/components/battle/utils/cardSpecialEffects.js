@@ -159,7 +159,10 @@ export function processPostAttackSpecials({
       const beforeHp = modifiedDefender.hp;
       modifiedDefender.hp = 0;
       const who = attackerName === 'player' ? '플레이어' : '몬스터';
-      const msg = `${who} • 💀 ${card.name}: 즉사 발동! (체력 ${beforeHp} < ${threshold} = 최대 체력의 10%)`;
+      const target = attackerName === 'player' ? '몬스터' : '플레이어';
+      const hpBeforeDmg = beforeHp + damageDealt;
+      const dmgInfo = damageDealt > 0 ? ` 데미지 ${damageDealt} (체력 ${hpBeforeDmg} -> ${beforeHp}),` : '';
+      const msg = `${who} -> ${target} •${dmgInfo} 💀 ${card.name}: 즉사 발동! (체력 ${beforeHp} < ${threshold})`;
       events.push({ actor: attackerName, card: card.name, type: 'execute', msg });
       logs.push(msg);
     }
@@ -173,7 +176,10 @@ export function processPostAttackSpecials({
       const result = addToken(modifiedDefender, 'vulnerable', 1);
       modifiedDefender.tokens = result.tokens;
       const who = attackerName === 'player' ? '플레이어' : '몬스터';
-      const msg = `${who} • 🔻 ${card.name}: 취약 부여! (방어력 없음)`;
+      const target = attackerName === 'player' ? '몬스터' : '플레이어';
+      const hpBefore = modifiedDefender.hp + damageDealt;
+      const dmgInfo = damageDealt > 0 ? ` 데미지 ${damageDealt} (체력 ${hpBefore} -> ${modifiedDefender.hp}),` : '';
+      const msg = `${who} -> ${target} •${dmgInfo} 🔻 ${card.name}: 취약 부여! (방어력 없음)`;
       events.push({ actor: attackerName, card: card.name, type: 'special', msg });
       logs.push(msg);
     }
@@ -187,7 +193,10 @@ export function processPostAttackSpecials({
       const result = addToken(modifiedDefender, 'vulnerable', 2);
       modifiedDefender.tokens = result.tokens;
       const who = attackerName === 'player' ? '플레이어' : '몬스터';
-      const msg = `${who} • 🔻🔻 ${card.name}: 2배 취약 부여! (방어력 없음)`;
+      const target = attackerName === 'player' ? '몬스터' : '플레이어';
+      const hpBefore = modifiedDefender.hp + damageDealt;
+      const dmgInfo = damageDealt > 0 ? ` 데미지 ${damageDealt} (체력 ${hpBefore} -> ${modifiedDefender.hp}),` : '';
+      const msg = `${who} -> ${target} •${dmgInfo} 🔻🔻 ${card.name}: 2배 취약 부여! (방어력 없음)`;
       events.push({ actor: attackerName, card: card.name, type: 'special', msg });
       logs.push(msg);
     }
@@ -225,7 +234,10 @@ export function processPostAttackSpecials({
     modifiedAttacker.tokens = result.tokens;
     modifiedAttacker._persistentStrikeDamage = card.damage || 20;
     const who = attackerName === 'player' ? '플레이어' : '몬스터';
-    const msg = `${who} • 👊 ${card.name}: 집요한 타격 활성화! (적 행동 시마다 ${card.damage} 피해)`;
+    const target = attackerName === 'player' ? '몬스터' : '플레이어';
+    const hpBefore = modifiedDefender.hp + damageDealt;
+    const dmgInfo = damageDealt > 0 ? ` 데미지 ${damageDealt} (체력 ${hpBefore} -> ${modifiedDefender.hp}),` : '';
+    const msg = `${who} -> ${target} •${dmgInfo} 👊 ${card.name}: 집요한 타격 활성화! (적 행동 시마다 ${card.damage} 피해)`;
     events.push({ actor: attackerName, card: card.name, type: 'special', msg });
     logs.push(msg);
   }
@@ -235,7 +247,10 @@ export function processPostAttackSpecials({
     const result = addToken(modifiedDefender, 'half_ether', 1);
     modifiedDefender.tokens = result.tokens;
     const who = attackerName === 'player' ? '플레이어' : '몬스터';
-    const msg = `${who} • ✨ ${card.name}: 이번 턴 적 에테르 획득 50% 감소!`;
+    const target = attackerName === 'player' ? '몬스터' : '플레이어';
+    const hpBefore = modifiedDefender.hp + damageDealt;
+    const dmgInfo = damageDealt > 0 ? ` 데미지 ${damageDealt} (체력 ${hpBefore} -> ${modifiedDefender.hp}),` : '';
+    const msg = `${who} -> ${target} •${dmgInfo} ✨ ${card.name}: 이번 턴 적 에테르 획득 50% 감소!`;
     events.push({ actor: attackerName, card: card.name, type: 'special', msg });
     logs.push(msg);
   }
@@ -245,7 +260,10 @@ export function processPostAttackSpecials({
     const result = addToken(modifiedAttacker, 'empty_chamber', 1);
     modifiedAttacker.tokens = result.tokens;
     const who = attackerName === 'player' ? '플레이어' : '몬스터';
-    const msg = `${who} • 🔫 ${card.name}: 사용 후 빈탄창!`;
+    const target = attackerName === 'player' ? '몬스터' : '플레이어';
+    const hpBefore = modifiedDefender.hp + damageDealt;
+    const dmgInfo = damageDealt > 0 ? ` 데미지 ${damageDealt} (체력 ${hpBefore} -> ${modifiedDefender.hp}),` : '';
+    const msg = `${who} -> ${target} •${dmgInfo} 🔫 ${card.name}: 사용 후 빈탄창!`;
     events.push({ actor: attackerName, card: card.name, type: 'special', msg });
     logs.push(msg);
   }
@@ -256,7 +274,10 @@ export function processPostAttackSpecials({
     const result = addToken(modifiedAttacker, 'empty_chamber', 1);
     modifiedAttacker.tokens = result.tokens;
     const who = attackerName === 'player' ? '플레이어' : '몬스터';
-    const msg = `${who} • 🔫 ${card.name}: 난사 후 빈탄창!`;
+    const target = attackerName === 'player' ? '몬스터' : '플레이어';
+    const hpBefore = modifiedDefender.hp + damageDealt;
+    const dmgInfo = damageDealt > 0 ? ` 데미지 ${damageDealt} (체력 ${hpBefore} -> ${modifiedDefender.hp}),` : '';
+    const msg = `${who} -> ${target} •${dmgInfo} 🔫 ${card.name}: 난사 후 빈탄창!`;
     events.push({ actor: attackerName, card: card.name, type: 'special', msg });
     logs.push(msg);
   }
