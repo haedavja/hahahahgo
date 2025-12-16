@@ -686,7 +686,7 @@ export function CharacterSheet({ onClose }) {
                     ({specialMode === 'main' ? mainSpecials.length : subSpecials.length}장)
                   </span>
                 </h3>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', minHeight: '160px', alignItems: 'flex-start' }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', minHeight: '230px', alignItems: 'flex-start' }}>
                   {(specialMode === 'main' ? mainSpecials : subSpecials).map((cardId, idx) => {
                     const card = CARDS.find(c => c.id === cardId);
                     if (!card) return null;
@@ -696,7 +696,7 @@ export function CharacterSheet({ onClose }) {
                     return (
                       <div
                         key={`selected-${cardId}-${idx}`}
-                        style={{ transform: 'scale(0.85)', transformOrigin: 'top left', width: '131px', height: '170px' }}
+                        style={{ transform: 'scale(1.1)', transformOrigin: 'top left', width: '170px', height: '220px' }}
                       >
                         <div
                           onClick={() => handleCardClick(cardId, true)}
@@ -769,7 +769,7 @@ export function CharacterSheet({ onClose }) {
                   return (
                     <div
                       key={c.id}
-                      style={{ transform: 'scale(0.8)', transformOrigin: 'top left', width: '123px', height: '160px' }}
+                      style={{ transform: 'scale(1.05)', transformOrigin: 'top left', width: '162px', height: '210px' }}
                     >
                       <div
                         onClick={() => handleCardClick(c.id, false)}
