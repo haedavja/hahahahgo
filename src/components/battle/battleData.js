@@ -92,8 +92,148 @@ export const CARDS = [
   { id: "wall", name: "Iron Wall", type: "defense", block: 38, speedCost: 9, actionCost: 2, iconKey: "shield", description: "철벽 방어. 강력한 방어막을 형성하지만 느리다.", traits: [] },
   { id: "counter", name: "Counter Stance", type: "defense", block: 14, counter: 3, speedCost: 4, actionCost: 1, iconKey: "shield", description: "반격 자세. 방어하면서 공격받을 시 반격한다.", traits: [] },
 
+  // === 펜싱 카드 ===
+  {
+    id: "riposte",
+    name: "받아치기",
+    type: "defense",
+    block: 6,
+    counter: 2,
+    speedCost: 8,
+    actionCost: 1,
+    iconKey: "shield",
+    description: "방어력 6, 반격 2회, 수세 1회. 상대의 공격을 받아치며 반격한다.",
+    traits: [],
+    onPlay: (battle, actions) => {
+      actions.addTokenToPlayer('guard', 1);
+    }
+  },
+  {
+    id: "marche",
+    name: "마르쉐",
+    type: "defense",
+    block: 5,
+    speedCost: 6,
+    actionCost: 1,
+    iconKey: "shield",
+    description: "방어력 5, 흐릿함 1회. 내 타임라인을 4씩 앞당긴다.",
+    traits: [],
+    special: "advanceTimeline",
+    advanceAmount: 4,
+    onPlay: (battle, actions) => {
+      actions.addTokenToPlayer('blur', 1);
+    }
+  },
+  {
+    id: "lunge",
+    name: "런지",
+    type: "attack",
+    damage: 17,
+    speedCost: 12,
+    actionCost: 1,
+    iconKey: "sword",
+    description: "공격력 17. 피해를 입히는데 성공하면 상대 타임라인 5 뒤로 밀림.",
+    traits: [],
+    special: "pushEnemyTimeline",
+    pushAmount: 5
+  },
+  {
+    id: "fleche",
+    name: "플레쉬",
+    type: "attack",
+    damage: 6,
+    speedCost: 11,
+    actionCost: 2,
+    iconKey: "sword",
+    description: "공격력 6. 피해를 입히면 공격 카드를 창조하고, 다시 피해를 입히면 또 창조한다.",
+    traits: [],
+    special: "createAttackOnHit"
+  },
+  {
+    id: "flank",
+    name: "플랭크",
+    type: "attack",
+    damage: 20,
+    speedCost: 14,
+    actionCost: 1,
+    iconKey: "sword",
+    description: "공격력 20. 분쇄 특성으로 상대 방어력에 2배 피해를 준다.",
+    traits: ["crush"]
+  },
+  {
+    id: "thrust",
+    name: "찌르기",
+    type: "attack",
+    damage: 13,
+    speedCost: 8,
+    actionCost: 2,
+    iconKey: "sword",
+    description: "공격력 13, 무너짐 1회. 상대에게 취약을 부여한다.",
+    traits: [],
+    onPlay: (battle, actions) => {
+      actions.addTokenToEnemy('vulnerable', 1);
+    }
+  },
+  {
+    id: "beat",
+    name: "비트",
+    type: "attack",
+    damage: 4,
+    hits: 2,
+    speedCost: 9,
+    actionCost: 2,
+    iconKey: "sword",
+    description: "공격력 4, 2번 피해. 내 타임라인 1 앞당기고 피해 입히면 상대 타임라인 2 뒤로.",
+    traits: [],
+    special: "beatEffect",
+    advanceAmount: 1,
+    pushAmount: 2
+  },
+  {
+    id: "feint",
+    name: "페인트",
+    type: "attack",
+    damage: 5,
+    speedCost: 4,
+    actionCost: 1,
+    iconKey: "sword",
+    description: "공격력 5. 회피 1회, 공세 1회를 얻는다.",
+    traits: [],
+    onPlay: (battle, actions) => {
+      actions.addTokenToPlayer('evasion', 1);
+      actions.addTokenToPlayer('offense', 1);
+    }
+  },
+  {
+    id: "defensive_stance",
+    name: "방어자세",
+    type: "defense",
+    block: 0,
+    speedCost: 3,
+    actionCost: 2,
+    iconKey: "shield",
+    description: "타임라인 1 지날때마다 방어력 1씩 증가. 힘, 상태이상 무시.",
+    traits: [],
+    special: "growingDefense",
+    ignoreStrength: true,
+    ignoreStatus: true
+  },
+  {
+    id: "disrupt",
+    name: "흐트리기",
+    type: "attack",
+    damage: 19,
+    speedCost: 7,
+    actionCost: 3,
+    iconKey: "sword",
+    description: "공격력 19. 타임라인상 적의 마지막 카드를 9만큼 뒤로 민다.",
+    traits: [],
+    special: "pushLastEnemyCard",
+    pushAmount: 9
+  },
+
   // === 행동력 1 (일반) 5개 ===
-  { id: "stab", name: "찌르기", type: "attack", damage: 13, speedCost: 3, actionCost: 1, iconKey: "sword", description: "3의 시간을 소모해 13의 피해를 가합니다.", traits: [] },
+  { id: "stab", name: "잽 찌르기", type: "attack", damage: 13, speedCost: 3, actionCost: 1, iconKey: "sword", description: "3의 시간을 소모해 13의 피해를 가합니다.", traits: [] },
   { id: "strike", name: "타격", type: "attack", damage: 17, speedCost: 7, actionCost: 1, iconKey: "sword", description: "7의 시간을 소모해 17의 피해를 가합니다.", traits: [] },
   { id: "spin_slash", name: "회전참격", type: "attack", damage: 23, speedCost: 13, actionCost: 1, iconKey: "flame", description: "13의 시간을 소모해 23의 피해를 가합니다.", traits: [] },
   { id: "combo_hit", name: "연타", type: "attack", damage: 12, hits: 2, speedCost: 15, actionCost: 1, iconKey: "flame", description: "15의 시간을 소모해 12의 피해를 2회 가합니다.", traits: [] },
@@ -176,11 +316,11 @@ export const CARDS = [
     id: "breach",
     name: "브리치",
     type: "defense",
-    block: 0,
+    block: 5,
     speedCost: 5,
     actionCost: 2,
     iconKey: "shield",
-    description: "랜덤 카드 3장 중 하나를 선택해 이 카드 +3 위치에 유령카드로 삽입합니다. 유령카드는 콤보/아이템/유물 효과를 받지 않습니다.",
+    description: "방어력 5. 공격과 방어 카드를 랜덤하게 3장 창조해 하나를 선택, 브리치 타임라인 +3 속도로 끼워넣음. 유령카드로 아이템/유물 효과 무시.",
     traits: [],
     special: "breach",
     breachSpOffset: 3
