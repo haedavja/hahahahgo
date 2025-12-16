@@ -82,6 +82,18 @@ export function processPreAttackSpecials({
     }
   }
 
+  // === reloadSpray: 장전 후 사격 (빈탄창 해제) ===
+  if (hasSpecial(card, 'reloadSpray')) {
+    // 빈탄창이 있으면 장전으로 상쇄
+    const result = addToken(modifiedAttacker, 'loaded', 1);
+    modifiedAttacker.tokens = result.tokens;
+    if (result.logs.some(l => l.includes('상쇄'))) {
+      const msg = `🔫 ${card.name}: 장전! 빈탄창 해제!`;
+      events.push({ actor: attackerName, card: card.name, type: 'special', msg });
+      logs.push(msg);
+    }
+  }
+
   // === gyrusRoulette: 행동력 1당 50% 확률로 2회 타격 ===
   if (hasSpecial(card, 'gyrusRoulette')) {
     const remainingEnergy = battleContext.remainingEnergy || 0;

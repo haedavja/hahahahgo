@@ -365,10 +365,8 @@ export const CARDS = [
     description: "장전 후 5피해를 4회 사격. 사용 후 빈탄창.",
     traits: [],
     special: "reloadSpray",
-    cardCategory: "gun",
-    onPlay: (battle, actions) => {
-      actions.addTokenToPlayer('loaded', 1);
-    }
+    cardCategory: "gun"
+    // loaded 토큰은 processPreAttackSpecials에서 처리 (빈탄창 상쇄)
   },
   {
     id: "combo_style",

@@ -383,10 +383,11 @@ export function applyAttack(attacker, defender, card, attackerName, battleContex
   const modifiedCard = preProcessedResult?.modifiedCard || card;
   const hits = modifiedCard.hits || card.hits || 1;
 
-  // 다중 타격 시 첫 번째 타격 로그 추가
+  // 다중 타격 시 첫 번째 타격 로그 추가 (이벤트로도 추가하여 전투 로그에 표시)
   if (hits > 1) {
     const firstHitDmg = firstHitResult.damage;
     const hitLog = `💥 ${card.name} [1/${hits}]: ${firstHitDmg} 데미지`;
+    allEvents.push({ actor: attackerName, card: card.name, type: 'hitBreakdown', msg: hitLog });
     allLogs.push(hitLog);
   }
 
@@ -398,8 +399,9 @@ export function applyAttack(attacker, defender, card, attackerName, battleContex
     totalDealt += result.damage;
     totalTaken += result.damageTaken || 0;
     allEvents.push(...result.events);
-    // 각 타격별 로그 추가
+    // 각 타격별 로그 추가 (이벤트로도 추가하여 전투 로그에 표시)
     const hitLog = `💥 ${card.name} [${i + 1}/${hits}]: ${result.damage} 데미지`;
+    allEvents.push({ actor: attackerName, card: card.name, type: 'hitBreakdown', msg: hitLog });
     allLogs.push(hitLog);
   }
 
