@@ -52,6 +52,7 @@ import { renderRarityBadge, renderNameWithBadge, getCardDisplayRarity } from "./
 import { startEnemyEtherAnimation } from "./utils/enemyEtherAnimation";
 import { processQueueCollisions } from "./utils/cardSpecialEffects";
 import { processReflections, initReflectionState, resetTurnReflectionEffects, decreaseEnemyFreeze } from "../../lib/reflectionEffects";
+import { clearTurnTokens } from "../../lib/tokenUtils";
 import { convertTraitsToIds } from "../../data/reflections";
 import { processEtherTransfer } from "./utils/etherTransferProcessing";
 import { processVictoryDefeatTransition } from "./utils/victoryDefeatTransition";
@@ -2105,6 +2106,10 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
               const result = addToken(currentPlayerForToken, tokenId, actualStacks);
               P.tokens = result.tokens;
               currentPlayerForToken.tokens = result.tokens;
+              // battleRef 동기 업데이트 (finishTurn에서 최신 상태 사용 가능하도록)
+              if (battleRef.current) {
+                battleRef.current = { ...battleRef.current, player: { ...P } };
+              }
               actions.setPlayer({ ...P });
               result.logs.forEach(log => addLog(log));
               return result;
@@ -2114,6 +2119,10 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
               const result = removeToken(currentPlayerForToken, tokenId, tokenType, stacks);
               P.tokens = result.tokens;
               currentPlayerForToken.tokens = result.tokens;
+              // battleRef 동기 업데이트 (finishTurn에서 최신 상태 사용 가능하도록)
+              if (battleRef.current) {
+                battleRef.current = { ...battleRef.current, player: { ...P } };
+              }
               actions.setPlayer({ ...P });
               result.logs.forEach(log => addLog(log));
               return result;
@@ -2403,9 +2412,18 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const finishTurn = (reason) => {
     addLog(`턴 종료: ${reason || ''}`);
 
-    // 턴소모 토큰 제거
-    actions.clearPlayerTurnTokens();
-    actions.clearEnemyTurnTokens();
+    // 턴소모 토큰 제거 - battleRef에서 최신 상태 사용 (stale closure 방지)
+    const currentBattle = battleRef.current || {};
+    const latestPlayer = currentBattle.player || battle.player;
+    const latestEnemy = currentBattle.enemy || battle.enemy;
+
+    const playerTokenResult = clearTurnTokens(latestPlayer);
+    playerTokenResult.logs.forEach(log => addLog(log));
+    actions.setPlayer({ ...latestPlayer, tokens: playerTokenResult.tokens });
+
+    const enemyTokenResult = clearTurnTokens(latestEnemy);
+    enemyTokenResult.logs.forEach(log => addLog(log));
+    actions.setEnemy({ ...latestEnemy, tokens: enemyTokenResult.tokens });
 
     // 패리 대기 상태 배열 초기화
     parryReadyStatesRef.current = [];
