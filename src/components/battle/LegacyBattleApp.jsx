@@ -85,7 +85,7 @@ import { Sword, Shield, Heart, Zap, Flame, Clock, Skull, X, ChevronUp, ChevronDo
 import { selectBattleAnomalies, applyAnomalyEffects, formatAnomaliesForDisplay } from "../../lib/anomalyUtils";
 import { AnomalyDisplay, AnomalyNotification } from "./ui/AnomalyDisplay";
 import { TIMING, createStepOnceAnimations, executeCardActionCore, finishTurnCore, runAllCore } from "./logic/battleExecution";
-import { processTimelineSpecials } from "./utils/cardSpecialEffects";
+import { processTimelineSpecials, hasSpecial } from "./utils/cardSpecialEffects";
 
 
 const CARDS = BASE_PLAYER_CARDS.map(card => ({
@@ -411,6 +411,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const displayEtherMultiplierRef = useRef(1); // 애니메이션 표시용 에테르 배율 (리셋되어도 유지)
   const [parryReadyStates, setParryReadyStates] = useState([]); // 쳐내기 패리 대기 상태 배열 (렌더링용)
   const parryReadyStatesRef = useRef([]); // 쳐내기 패리 대기 상태 배열 (setTimeout용)
+  const growingDefenseRef = useRef(null); // 방어자세: { activatedSp, lastProcessedSp }
 
   // 브리치 카드 선택 상태
   const [breachSelection, setBreachSelection] = useState(null); // { cards: [], breachSp: number, breachCard: object }
@@ -1890,6 +1891,21 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
     let P = { ...player, def: player.def || false, block: player.block || 0, counter: player.counter || 0, vulnMult: player.vulnMult || 1, strength: player.strength || 0, tokens: player.tokens };
     let E = { ...enemy, def: enemy.def || false, block: enemy.block || 0, counter: enemy.counter || 0, vulnMult: enemy.vulnMult || 1, tokens: enemy.tokens };
+
+    // 방어자세 성장 방어력 적용 (이전에 발동된 growingDefense가 있으면 타임라인 진행에 따라 방어력 추가)
+    if (growingDefenseRef.current) {
+      const currentSp = a.sp || 0;
+      const { lastProcessedSp } = growingDefenseRef.current;
+      const defenseDelta = Math.max(0, currentSp - lastProcessedSp);
+      if (defenseDelta > 0) {
+        const prevBlock = P.block || 0;
+        P.block = prevBlock + defenseDelta;
+        P.def = true;
+        addLog(`🛡️ 방어자세: 타임라인 진행 (${lastProcessedSp}→${currentSp}) → +${defenseDelta} 방어력 (${prevBlock}→${P.block})`);
+        growingDefenseRef.current.lastProcessedSp = currentSp;
+      }
+    }
+
     const tempState = { player: P, enemy: E, log: [] };
 
     // battleContext 생성 (special 효과용)
@@ -1921,6 +1937,16 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         ...cardUsageCount,
         [a.card.id]: (cardUsageCount[a.card.id] || 0) + 1
       });
+
+      // 방어자세 (growingDefense): 발동 시 활성화, 이후 타임라인 진행마다 방어력 +1
+      if (hasSpecial(a.card, 'growingDefense')) {
+        const cardSp = a.sp || 0;
+        growingDefenseRef.current = {
+          activatedSp: cardSp,
+          lastProcessedSp: cardSp
+        };
+        addLog(`🛡️ 방어자세 발동! (타임라인 ${cardSp}에서 활성화)`);
+      }
 
       // 즉시 발동 특성 처리 (double_edge, training, warmup, vanish)
       const updatedNextTurnEffects = processImmediateCardTraits({
@@ -2232,6 +2258,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     // 패리 대기 상태 배열 초기화
     parryReadyStatesRef.current = [];
     setParryReadyStates([]);
+
+    // 방어자세 성장 방어력 초기화
+    growingDefenseRef.current = null;
 
     // 이번 턴 사용한 탈주 카드를 다음 턴 한정으로 차단
     escapeBanRef.current = new Set(escapeUsedThisTurnRef.current);

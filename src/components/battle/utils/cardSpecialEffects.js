@@ -359,14 +359,15 @@ export function processTimelineSpecials({
 
 /**
  * 성장하는 방어력 계산 (방어자세)
+ * 발동 시에는 0, 이후 타임라인 진행 시 LegacyBattleApp에서 직접 추가
  * @param {Object} card - 카드 객체
  * @param {number} ticksPassed - 지나간 타임라인 틱 수
  * @returns {number} 추가 방어력
  */
 export function calculateGrowingDefense(card, ticksPassed) {
   if (!hasSpecial(card, 'growingDefense')) return 0;
-  // 타임라인 1 지날때마다 방어력 1씩 증가
-  return ticksPassed;
+  // 발동 시에는 0 - 이후 타임라인 진행마다 방어력은 별도로 추가됨
+  return 0;
 }
 
 /**
