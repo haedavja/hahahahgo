@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback, useReducer } from "react";
+import { flushSync } from "react-dom";
 import "./legacy-battle.css";
 import { playHitSound, playBlockSound, playCardSubmitSound, playProceedSound, playParrySound } from "../../lib/soundUtils";
 import { useBattleState } from "./hooks/useBattleState";
@@ -1819,8 +1820,10 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       // linear 보간 (시곗바늘이 일정 속도로 이동)
       const currentProgress = startProgress + (targetProgress - startProgress) * progress;
 
-      console.log('[애니메이션]', Math.round(currentProgress * 10) / 10, '% (프레임:', Math.round(progress * 100), '%)');
-      actions.setTimelineProgress(currentProgress);
+      // flushSync로 강제 동기 렌더링 (방어자세 실시간 업데이트용)
+      flushSync(() => {
+        actions.setTimelineProgress(currentProgress);
+      });
 
       if (progress < 1) {
         timelineAnimationRef.current = requestAnimationFrame(animateProgress);
