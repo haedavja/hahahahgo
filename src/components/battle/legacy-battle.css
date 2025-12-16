@@ -2005,3 +2005,20 @@ body {
   height: inherit !important;
   padding: inherit !important;
 }
+
+/* no-hover 추가 스타일: 텍스트 영역도 호버시 변경 없음 */
+.game-card-large.no-hover:hover .card-description,
+.game-card-large.no-hover:hover .card-footer.simplified-footer,
+.game-card-large.no-hover:hover .card-footer.simplified-footer .card-description {
+  font-size: inherit !important;
+  display: inherit !important;
+}
+
+.game-card-large.no-hover {
+  transition: none !important;
+}
+
+.game-card-large.no-hover:hover {
+  transform: inherit !important;
+  box-shadow: inherit !important;
+}
