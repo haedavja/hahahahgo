@@ -793,7 +793,7 @@ export function CharacterSheet({ onClose }) {
                           <div style={{
                             position: 'absolute',
                             top: '8px',
-                            left: '8px',
+                            right: '8px',
                             background: isMainSpecial ? '#f5d76e' : '#7dd3fc',
                             color: '#000',
                             padding: '2px 6px',
