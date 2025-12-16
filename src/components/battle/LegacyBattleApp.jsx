@@ -1892,20 +1892,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     let P = { ...player, def: player.def || false, block: player.block || 0, counter: player.counter || 0, vulnMult: player.vulnMult || 1, strength: player.strength || 0, tokens: player.tokens };
     let E = { ...enemy, def: enemy.def || false, block: enemy.block || 0, counter: enemy.counter || 0, vulnMult: enemy.vulnMult || 1, tokens: enemy.tokens };
 
-    // 방어자세 성장 방어력 적용 (이전에 발동된 growingDefense가 있으면 타임라인 진행에 따라 방어력 추가)
-    if (growingDefenseRef.current) {
-      const currentSp = a.sp || 0;
-      const { lastProcessedSp } = growingDefenseRef.current;
-      const defenseDelta = Math.max(0, currentSp - lastProcessedSp);
-      if (defenseDelta > 0) {
-        const prevBlock = P.block || 0;
-        P.block = prevBlock + defenseDelta;
-        P.def = true;
-        addLog(`🛡️ 방어자세: 타임라인 진행 (${lastProcessedSp}→${currentSp}) → +${defenseDelta} 방어력 (${prevBlock}→${P.block})`);
-        growingDefenseRef.current.lastProcessedSp = currentSp;
-      }
-    }
-
     const tempState = { player: P, enemy: E, log: [] };
 
     // battleContext 생성 (special 효과용)
@@ -1929,6 +1915,20 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         actor: a.actor,
         actionResult
       });
+    }
+
+    // 방어자세 성장 방어력 적용 (이전에 발동된 growingDefense가 있으면 타임라인 진행에 따라 방어력 추가)
+    if (growingDefenseRef.current) {
+      const currentSp = a.sp || 0;
+      const { lastProcessedSp } = growingDefenseRef.current;
+      const defenseDelta = Math.max(0, currentSp - lastProcessedSp);
+      if (defenseDelta > 0) {
+        const prevBlock = P.block || 0;
+        P.block = prevBlock + defenseDelta;
+        P.def = true;
+        addLog(`🛡️ 방어자세: 타임라인 진행 (${lastProcessedSp}→${currentSp}) → +${defenseDelta} 방어력 (${prevBlock}→${P.block})`);
+        growingDefenseRef.current.lastProcessedSp = currentSp;
+      }
     }
 
     // 플레이어 카드 사용 시 카드 사용 횟수 증가 (mastery, boredom 특성용)
