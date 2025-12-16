@@ -53,6 +53,39 @@ export const NEW_EVENT_LIBRARY = {
     }
   },
 
+  "wandering-merchant": {
+    id: "wandering-merchant",
+    title: "떠돌이 상인",
+    description: "🎒 어둠 속에서 등불 하나가 다가옵니다. 커다란 배낭을 짊어진 상인이네요.",
+    difficulty: 'easy',
+    choices: [
+      { id: "shop", label: "🛒 물건을 구경한다", openShop: "wanderer", resultDescription: "상인이 배낭을 열어 물건들을 펼쳐 보입니다." },
+      { id: "leave", label: "그냥 지나친다", resultDescription: "상인이 아쉬운 듯 손을 흔듭니다. \"다음에 또 보시오!\"" }
+    ]
+  },
+
+  "rare-collector": {
+    id: "rare-collector",
+    title: "수집가",
+    description: "🎩 화려한 복장의 신사가 당신을 불러 세웁니다. \"희귀한 물건만 취급합니다.\"",
+    difficulty: 'medium',
+    choices: [
+      { id: "shop", label: "🛒 컬렉션을 구경한다", openShop: "collector", resultDescription: "수집가가 은밀하게 가방을 엽니다. 눈부신 유물들이 빛납니다." },
+      { id: "leave", label: "됐습니다", resultDescription: "수집가가 고개를 끄덕입니다. \"현명한 선택일 수도, 후회할 선택일 수도...\"" }
+    ]
+  },
+
+  "junk-dealer": {
+    id: "junk-dealer",
+    title: "고물상",
+    description: "💰 수레를 끄는 노인이 다가옵니다. \"좋은 물건 있으면 비싸게 사드립니다!\"",
+    difficulty: 'easy',
+    choices: [
+      { id: "shop", label: "💰 물건을 판다", openShop: "buyer", resultDescription: "고물상이 안경을 꺼내 쓰며 물건을 살핍니다." },
+      { id: "leave", label: "팔 것 없소", resultDescription: "\"아쉽군요. 좋은 물건 생기면 찾아오시오!\"" }
+    ]
+  },
+
   // === 자원 이벤트 - 정보 (알빠리우스 연계) ===
   "alparius-1": {
     id: "alparius-1",
@@ -679,9 +712,9 @@ export const NEW_EVENT_LIBRARY = {
   },
 
   // === 유물 이벤트 ===
-  "junk-dealer": {
-    id: "junk-dealer",
-    title: "고물상",
+  "relic-junk-dealer": {
+    id: "relic-junk-dealer",
+    title: "고물상의 유물",
     description: "이봐, 이거 어때? 고물상이 유물을 보여줍니다.",
     choices: [
       { id: "look", label: "살펴본다", nextStage: "offer" },

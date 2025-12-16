@@ -163,6 +163,7 @@ export const createInitialState = () => {
     activeRest: null,
     activeDungeon: null,
     activeBattle: null,
+    activeShop: null,
     lastBattleResult: null,
     characterBuild: {
       mainSpecials: [],

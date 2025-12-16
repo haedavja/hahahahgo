@@ -357,6 +357,7 @@ export const useGameStore = create((set, get) => ({
         activeBattle: result.battle ?? null,
         activeDungeon: null,
         activeRest: result.target?.type === "rest" ? { nodeId: result.target.id } : null,
+        activeShop: result.target?.type === "shop" ? { nodeId: result.target.id, merchantType: 'shop' } : null,
         resources: updatedResources,
         // pendingNextEvent가 사용됐으면 초기화
         pendingNextEvent: result.usedPendingEvent ? null : state.pendingNextEvent,
@@ -749,6 +750,26 @@ export const useGameStore = create((set, get) => ({
         };
       }
 
+      // openShop이 있으면 상점 열기
+      if (choice.openShop) {
+        return {
+          ...state,
+          resources,
+          playerHp: newPlayerHp,
+          characterBuild: updatedCharacterBuild,
+          activeShop: { merchantType: choice.openShop },
+          activeEvent: {
+            ...active,
+            resolved: true,
+            outcome: {
+              choice: choice.label,
+              success: true,
+              resultDescription: choice.resultDescription || null,
+            },
+          },
+        };
+      }
+
       // 이벤트 종료 - 완료된 이벤트 목록에 추가
       const eventId = active.definition?.id;
       const newCompletedEvents = eventId && !state.completedEvents?.includes(eventId)
@@ -811,6 +832,17 @@ export const useGameStore = create((set, get) => ({
 
   closeEvent: () =>
     set((state) => (state.activeEvent ? { ...state, activeEvent: null } : state)),
+
+  // 상점 열기
+  openShop: (merchantType = 'shop') =>
+    set((state) => ({
+      ...state,
+      activeShop: { merchantType },
+    })),
+
+  // 상점 닫기
+  closeShop: () =>
+    set((state) => (state.activeShop ? { ...state, activeShop: null } : state)),
 
   applyEtherDelta: (delta = 0) =>
     set((state) => {

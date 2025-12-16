@@ -6,6 +6,7 @@ import { CharacterSheet } from "../character/CharacterSheet";
 import { DungeonExploration } from "../dungeon/DungeonExploration";
 import { GraphDungeonExploration } from "../dungeon/GraphDungeonExploration";
 import { LegacyBattleScreen } from "../battle/LegacyBattleScreen";
+import { ShopModal } from "../shop/ShopModal";
 import { EtherBar } from "../battle/ui/EtherBar";
 import { DevTools } from "../dev/DevTools";
 import { RELICS, RELIC_RARITIES } from "../../data/relics";
@@ -153,6 +154,7 @@ export function MapDemo() {
   const relics = useGameStore((state) => state.relics);
   const items = useGameStore((state) => state.items || [null, null, null]);
   const activeRest = useGameStore((state) => state.activeRest);
+  const activeShop = useGameStore((state) => state.activeShop);
   const mergeRelicOrder = useCallback((relicList = [], saved = []) => {
     const savedSet = new Set(saved);
     const merged = [];
@@ -220,6 +222,7 @@ export function MapDemo() {
   const maxHp = useGameStore((state) => state.maxHp);
   const awakenAtRest = useGameStore((state) => state.awakenAtRest);
   const closeRest = useGameStore((state) => state.closeRest);
+  const closeShop = useGameStore((state) => state.closeShop);
   const healAtRest = useGameStore((state) => state.healAtRest);
   const formEgo = useGameStore((state) => state.formEgo);
   const playerTraits = useGameStore((state) => state.playerTraits || []);
@@ -1089,6 +1092,8 @@ export function MapDemo() {
       )}
 
       {showCharacterSheet && <CharacterSheet onClose={() => actions.setShowCharacterSheet(false)} />}
+
+      {activeShop && <ShopModal merchantType={activeShop.merchantType || 'shop'} onClose={closeShop} />}
 
       {/* 개발자 도구 오버레이 */}
       <DevTools
