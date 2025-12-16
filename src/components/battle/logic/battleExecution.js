@@ -175,17 +175,17 @@ export function executeCardActionCore(params) {
     return cardQueueIndex > currentQIndex;
   }).length;
 
-  // 남은 에너지 계산 (치명타 확률에 사용)
-  const playerQueueCards = queue.filter(q => q.actor === 'player');
-  const totalEnergyUsed = playerQueueCards.reduce((sum, q) => sum + (q.card?.actionCost || 0), 0);
+  // 현재까지 사용된 에너지 계산 (가이러스 룰렛 등 실시간 남은 에너지 기반 효과용)
+  const executedPlayerCards = queue.slice(0, currentQIndex).filter(q => q.actor === 'player');
+  const energyUsedSoFar = executedPlayerCards.reduce((sum, q) => sum + (q.card?.actionCost || 0), 0);
   const playerEnergyBudget = P.energy || P.maxEnergy || BASE_PLAYER_ENERGY;
-  const remainingEnergy = Math.max(0, playerEnergyBudget - totalEnergyUsed);
+  const remainingEnergy = Math.max(0, playerEnergyBudget - energyUsedSoFar);
 
-  // 적 남은 에너지 계산
-  const enemyQueueCards = queue.filter(q => q.actor === 'enemy');
-  const enemyTotalEnergyUsed = enemyQueueCards.reduce((sum, q) => sum + (q.card?.actionCost || 0), 0);
+  // 적 남은 에너지 계산 (현재까지 실행된 카드 기준)
+  const executedEnemyCards = queue.slice(0, currentQIndex).filter(q => q.actor === 'enemy');
+  const enemyEnergyUsedSoFar = executedEnemyCards.reduce((sum, q) => sum + (q.card?.actionCost || 0), 0);
   const enemyEnergyBudget = E.energy || E.maxEnergy || BASE_PLAYER_ENERGY;
-  const enemyRemainingEnergy = Math.max(0, enemyEnergyBudget - enemyTotalEnergyUsed);
+  const enemyRemainingEnergy = Math.max(0, enemyEnergyBudget - enemyEnergyUsedSoFar);
 
   const battleContext = {
     playerAttackCards,
@@ -653,18 +653,8 @@ export function runAllCore(params) {
 
   // runAll용 battleContext 생성
   const playerAttackCards = selected.filter(c => c.type === 'attack');
-
-  // 남은 에너지 계산 (치명타 확률에 사용)
-  const playerQueueCards = battle.queue.filter(q => q.actor === 'player');
-  const totalEnergyUsed = playerQueueCards.reduce((sum, q) => sum + (q.card?.actionCost || 0), 0);
   const playerEnergyBudget = P.energy || P.maxEnergy || BASE_PLAYER_ENERGY;
-  const runAllRemainingEnergy = Math.max(0, playerEnergyBudget - totalEnergyUsed);
-
-  // 적 남은 에너지 계산
-  const enemyQueueCards = battle.queue.filter(q => q.actor === 'enemy');
-  const enemyTotalEnergyUsed = enemyQueueCards.reduce((sum, q) => sum + (q.card?.actionCost || 0), 0);
   const enemyEnergyBudget = E.energy || E.maxEnergy || BASE_PLAYER_ENERGY;
-  const runAllEnemyRemainingEnergy = Math.max(0, enemyEnergyBudget - enemyTotalEnergyUsed);
 
   for (let i = qIndex; i < battle.queue.length; i++) {
     const a = battle.queue[i];
@@ -673,12 +663,20 @@ export function runAllCore(params) {
       continue;
     }
 
-    // battleContext 생성 (각 카드마다 다를 수 있음)
+    // battleContext 생성 (각 카드마다 남은 에너지를 동적으로 계산)
     const isLastCard = i >= battle.queue.length - 1;
     const unusedAttackCards = playerAttackCards.filter(c => {
       const cardQueueIndex = battle.queue.findIndex(q => q.card?.id === c.id && q.actor === 'player');
       return cardQueueIndex > i;
     }).length;
+
+    // 현재까지 사용된 에너지 계산 (가이러스 룰렛 등 실시간 남은 에너지 기반 효과용)
+    const executedPlayerCards = battle.queue.slice(0, i).filter(q => q.actor === 'player');
+    const energyUsedSoFar = executedPlayerCards.reduce((sum, q) => sum + (q.card?.actionCost || 0), 0);
+    const calcRemainingEnergy = Math.max(0, playerEnergyBudget - energyUsedSoFar);
+    const executedEnemyCards = battle.queue.slice(0, i).filter(q => q.actor === 'enemy');
+    const enemyEnergyUsedSoFar = executedEnemyCards.reduce((sum, q) => sum + (q.card?.actionCost || 0), 0);
+    const calcEnemyRemainingEnergy = Math.max(0, enemyEnergyBudget - enemyEnergyUsedSoFar);
 
     const battleContext = {
       playerAttackCards,
@@ -687,8 +685,8 @@ export function runAllCore(params) {
       queue: battle.queue,
       currentQIndex: i,
       currentSp: a.sp || 0,  // 현재 카드의 타임라인 위치 (growingDefense용)
-      remainingEnergy: runAllRemainingEnergy,  // 플레이어 치명타 확률용 남은 에너지
-      enemyRemainingEnergy: runAllEnemyRemainingEnergy  // 적 치명타 확률용 남은 에너지
+      remainingEnergy: calcRemainingEnergy,  // 플레이어 치명타/가이러스룰렛용 남은 에너지
+      enemyRemainingEnergy: calcEnemyRemainingEnergy  // 적 치명타 확률용 남은 에너지
     };
 
     const { events } = applyAction(tempState, a.actor, a.card, battleContext);

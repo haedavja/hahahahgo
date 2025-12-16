@@ -1922,22 +1922,25 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     const tempState = { player: P, enemy: E, log: [] };
 
     // battleContext 생성 (special 효과용)
-    // 남은 에너지 계산 (치명타 확률에 사용)
-    const playerCards = currentBattle.queue.filter(q => q.actor === 'player');
-    const totalEnergyUsed = playerCards.reduce((sum, q) => sum + (q.card?.actionCost || 0), 0);
-    const playerEnergyBudget = P.energy || P.maxEnergy || BASE_PLAYER_ENERGY;
-    const calculatedRemainingEnergy = Math.max(0, playerEnergyBudget - totalEnergyUsed);
-
-    // 적 남은 에너지 계산
-    const enemyCards = currentBattle.queue.filter(q => q.actor === 'enemy');
-    const enemyTotalEnergyUsed = enemyCards.reduce((sum, q) => sum + (q.card?.actionCost || 0), 0);
-    const enemyEnergyBudget = E.energy || E.maxEnergy || BASE_PLAYER_ENERGY;
-    const calculatedEnemyRemainingEnergy = Math.max(0, enemyEnergyBudget - enemyTotalEnergyUsed);
-
-    // 이번 턴에 사용된 카드 카테고리 추적 (comboStyle용)
+    // 이번 턴에 실행된 카드 추적 (현재 카드 이전까지)
     const executedPlayerCards = currentBattle.queue
       .slice(0, currentBattle.qIndex)
       .filter(q => q.actor === 'player');
+    const executedEnemyCards = currentBattle.queue
+      .slice(0, currentBattle.qIndex)
+      .filter(q => q.actor === 'enemy');
+
+    // 현재까지 사용된 에너지 계산 (가이러스 룰렛 등 실시간 남은 에너지 기반 효과용)
+    const energyUsedSoFar = executedPlayerCards.reduce((sum, q) => sum + (q.card?.actionCost || 0), 0);
+    const playerEnergyBudget = P.energy || P.maxEnergy || BASE_PLAYER_ENERGY;
+    const calculatedRemainingEnergy = Math.max(0, playerEnergyBudget - energyUsedSoFar);
+
+    // 적 남은 에너지 계산 (현재까지 실행된 카드 기준)
+    const enemyEnergyUsedSoFar = executedEnemyCards.reduce((sum, q) => sum + (q.card?.actionCost || 0), 0);
+    const enemyEnergyBudget = E.energy || E.maxEnergy || BASE_PLAYER_ENERGY;
+    const calculatedEnemyRemainingEnergy = Math.max(0, enemyEnergyBudget - enemyEnergyUsedSoFar);
+
+    // 이번 턴에 사용된 카드 카테고리 추적 (comboStyle용)
     const usedCardCategories = [...new Set(executedPlayerCards.map(q => q.card?.cardCategory).filter(Boolean))];
 
     const battleContext = {
@@ -2613,7 +2616,29 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         continue;
       }
 
-      const { events } = applyAction(tempState, a.actor, a.card);
+      // battleContext 생성 (가이러스 룰렛 등 실시간 남은 에너지 기반 효과용)
+      const executedPlayerCards = battle.queue.slice(0, i).filter(q => q.actor === 'player');
+      const executedEnemyCards = battle.queue.slice(0, i).filter(q => q.actor === 'enemy');
+      const energyUsedSoFar = executedPlayerCards.reduce((sum, q) => sum + (q.card?.actionCost || 0), 0);
+      const playerEnergyBudget = P.energy || P.maxEnergy || BASE_PLAYER_ENERGY;
+      const calcRemainingEnergy = Math.max(0, playerEnergyBudget - energyUsedSoFar);
+      const enemyEnergyUsedSoFar = executedEnemyCards.reduce((sum, q) => sum + (q.card?.actionCost || 0), 0);
+      const enemyEnergyBudget = E.energy || E.maxEnergy || BASE_PLAYER_ENERGY;
+      const calcEnemyRemainingEnergy = Math.max(0, enemyEnergyBudget - enemyEnergyUsedSoFar);
+      const usedCardCategories = [...new Set(executedPlayerCards.map(q => q.card?.cardCategory).filter(Boolean))];
+
+      const battleContext = {
+        currentSp: a.sp || 0,
+        queue: battle.queue,
+        currentQIndex: i,
+        remainingEnergy: calcRemainingEnergy,
+        enemyRemainingEnergy: calcEnemyRemainingEnergy,
+        allCards: CARDS,
+        usedCardCategories,
+        hand: battle.hand || []
+      };
+
+      const { events } = applyAction(tempState, a.actor, a.card, battleContext);
       newEvents[i] = events;
       events.forEach(ev => addLog(ev.msg));
 
