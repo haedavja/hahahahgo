@@ -1956,6 +1956,10 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     if (updatedState) {
       P = updatedState.player;
       E = updatedState.enemy;
+      // battleRef 동기 업데이트 (다음 카드 실행 시 최신 상태 사용)
+      if (battleRef.current) {
+        battleRef.current = { ...battleRef.current, player: P, enemy: E };
+      }
     } else {
       console.error('[executeCardAction] updatedState is undefined!', {
         card: a.card,
@@ -2419,11 +2423,18 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
     const playerTokenResult = clearTurnTokens(latestPlayer);
     playerTokenResult.logs.forEach(log => addLog(log));
-    actions.setPlayer({ ...latestPlayer, tokens: playerTokenResult.tokens });
+    const updatedPlayer = { ...latestPlayer, tokens: playerTokenResult.tokens };
+    actions.setPlayer(updatedPlayer);
 
     const enemyTokenResult = clearTurnTokens(latestEnemy);
     enemyTokenResult.logs.forEach(log => addLog(log));
-    actions.setEnemy({ ...latestEnemy, tokens: enemyTokenResult.tokens });
+    const updatedEnemy = { ...latestEnemy, tokens: enemyTokenResult.tokens };
+    actions.setEnemy(updatedEnemy);
+
+    // battleRef 동기 업데이트 (다음 턴에서 최신 토큰 상태 사용)
+    if (battleRef.current) {
+      battleRef.current = { ...battleRef.current, player: updatedPlayer, enemy: updatedEnemy };
+    }
 
     // 패리 대기 상태 배열 초기화
     parryReadyStatesRef.current = [];
