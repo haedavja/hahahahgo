@@ -199,6 +199,14 @@ export function MapDemo() {
       return false;
     }
   });
+  // 전체 카드 표시 (개발자 모드)
+  const [showAllCards, setShowAllCards] = useState(() => {
+    try {
+      return localStorage.getItem('showAllCards') === 'true';
+    } catch {
+      return false;
+    }
+  });
   useEffect(() => {
     // 새 유물 추가/제거 시 순서를 유지하면서 병합
     actions.setOrderedRelics((prev) => {
@@ -1091,7 +1099,7 @@ export function MapDemo() {
         </div>
       )}
 
-      {showCharacterSheet && <CharacterSheet onClose={() => actions.setShowCharacterSheet(false)} />}
+      {showCharacterSheet && <CharacterSheet onClose={() => actions.setShowCharacterSheet(false)} showAllCards={showAllCards} />}
 
       {activeShop && <ShopModal merchantType={activeShop.merchantType || 'shop'} onClose={closeShop} />}
 
@@ -1104,6 +1112,13 @@ export function MapDemo() {
           setUseNewDungeon(value);
           try {
             localStorage.setItem('useNewDungeon', value.toString());
+          } catch {}
+        }}
+        showAllCards={showAllCards}
+        setShowAllCards={(value) => {
+          setShowAllCards(value);
+          try {
+            localStorage.setItem('showAllCards', value.toString());
           } catch {}
         }}
       />

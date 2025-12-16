@@ -28,7 +28,7 @@ const availableCards = CARDS.map((card, index) => ({
   description: card.description,
 }));
 
-export function CharacterSheet({ onClose }) {
+export function CharacterSheet({ onClose, showAllCards = false }) {
   const characterBuild = useGameStore((state) => state.characterBuild);
   const updateCharacterBuild = useGameStore((state) => state.updateCharacterBuild);
   const playerHp = useGameStore((state) => state.playerHp);
@@ -125,6 +125,16 @@ export function CharacterSheet({ onClose }) {
 
   // 카드 개수 카운트 헬퍼
   const getCardCount = (cardId, list) => list.filter(id => id === cardId).length;
+
+  // 표시할 카드 목록 (showAllCards가 false면 보유 카드만)
+  const displayedCards = useMemo(() => {
+    if (showAllCards) {
+      return availableCards;
+    }
+    // 보유한 카드 ID 목록 (중복 제거)
+    const ownedCardIds = new Set([...mainSpecials, ...subSpecials]);
+    return availableCards.filter(c => ownedCardIds.has(c.id));
+  }, [showAllCards, mainSpecials, subSpecials]);
 
   const getCardStyle = (cardId) => {
     const mainCount = getCardCount(cardId, mainSpecials);
@@ -638,10 +648,15 @@ export function CharacterSheet({ onClose }) {
                 </div>
               </div>
 
-              {/* 전체 카드 목록 - 전투 스타일 */}
-              <h3 style={{ fontSize: '14px', color: '#9fb6ff', marginBottom: '12px' }}>📜 전체 카드 목록</h3>
+              {/* 카드 목록 - 전투 스타일 */}
+              <h3 style={{ fontSize: '14px', color: '#9fb6ff', marginBottom: '12px' }}>
+                📜 {showAllCards ? '전체 카드 목록' : '보유 카드 목록'}
+                {!showAllCards && displayedCards.length === 0 && (
+                  <span style={{ color: '#64748b', fontWeight: 'normal', marginLeft: '8px' }}>(보유 카드 없음)</span>
+                )}
+              </h3>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
-                {availableCards.map((c) => {
+                {displayedCards.map((c) => {
                   const card = CARDS.find(cd => cd.id === c.id);
                   if (!card) return null;
                   const mainCount = getCardCount(c.id, mainSpecials);
