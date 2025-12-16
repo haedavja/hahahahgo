@@ -25,14 +25,6 @@ import {
  * @returns {Object} - { actor: 업데이트된 actor, events: 이벤트 배열, log: 로그 메시지 }
  */
 export function applyDefense(actor, card, actorName, battleContext = {}) {
-  console.log('[applyDefense] called with:', {
-    cardName: card?.name,
-    cardSpecial: card?.special,
-    battleContextCurrentSp: battleContext?.currentSp,
-    ignoreStatus: card?.ignoreStatus,
-    ignoreStrength: card?.ignoreStrength
-  });
-
   // 유령카드나 ignoreStatus 특성이 있으면 토큰 효과 미적용
   const isGhost = card.isGhost === true;
   const skipTokenEffects = isGhost || card.ignoreStatus === true;
@@ -47,7 +39,6 @@ export function applyDefense(actor, card, actorName, battleContext = {}) {
   // growingDefense 특성: 타임라인이 지날수록 방어력 증가 (방어자세)
   const currentSp = battleContext.currentSp || 0;
   const growingDefenseBonus = calculateGrowingDefense(modifiedCard, currentSp);
-  console.log('[applyDefense] growingDefenseBonus:', growingDefenseBonus);
 
   const added = (modifiedCard.block || 0) + strengthBonus + growingDefenseBonus;
   const after = prev + added;

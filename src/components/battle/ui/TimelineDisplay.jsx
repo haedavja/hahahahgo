@@ -4,6 +4,8 @@
  * 타임라인 및 타임라인 숫자 오버레이 컴포넌트
  */
 
+import { hasSpecial } from '../utils/cardSpecialEffects';
+
 // Lucide icons as simple SVG components
 const Sword = ({ size = 24, className = "" }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
@@ -201,10 +203,14 @@ export const TimelineDisplay = ({
                   const sameCount = playerTimeline.filter((q, i) => i < idx && q.sp === a.sp).length;
                   const offset = sameCount * 28;
                   const strengthBonus = player.strength || 0;
+                  // growingDefense 특성 (방어자세): sp만큼 방어력 증가
+                  const growingDefenseBonus = hasSpecial(a.card, 'growingDefense') ? (a.sp || 0) : 0;
+                  // ignoreStrength 특성: 힘 보너스 무시
+                  const effectiveStrengthBonus = a.card.ignoreStrength ? 0 : strengthBonus;
                   const num = a.card.type === 'attack'
                     ? (a.card.damage + strengthBonus) * (a.card.hits || 1)
                     : a.card.type === 'defense'
-                      ? (a.card.block || 0) + strengthBonus
+                      ? (a.card.block || 0) + effectiveStrengthBonus + growingDefenseBonus
                       : 0;
                   const globalIndex = battle.phase === 'resolve' && queue ? queue.findIndex(q => q === a) : -1;
                   const isExecuting = executingCardIndex === globalIndex;
