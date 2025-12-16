@@ -263,6 +263,18 @@ export function executeCardActionCore(params) {
             const result = addToken(currentPlayerForToken, tokenId, actualStacks);
             // 결과를 P에 반영하고 dispatch
             P.tokens = result.tokens;
+            currentPlayerForToken.tokens = result.tokens;
+            actions.setPlayer({ ...P });
+            result.logs.forEach(log => addLog(log));
+            return result;
+          },
+          removeTokenFromPlayer: (tokenId, tokenType, stacks = 1) => {
+            // 현재 플레이어 상태(P)를 사용하여 토큰 제거
+            const { removeToken } = require('../../../lib/tokenUtils');
+            const result = removeToken(currentPlayerForToken, tokenId, tokenType, stacks);
+            // 결과를 P에 반영하고 dispatch
+            P.tokens = result.tokens;
+            currentPlayerForToken.tokens = result.tokens;
             actions.setPlayer({ ...P });
             result.logs.forEach(log => addLog(log));
             return result;
