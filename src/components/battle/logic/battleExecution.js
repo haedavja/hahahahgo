@@ -8,6 +8,7 @@
 import { hasTrait } from '../utils/battleUtils';
 import { detectPokerCombo } from '../utils/comboDetection';
 import { getCardEtherGain } from '../utils/etherCalculations';
+import { BASE_PLAYER_ENERGY } from '../battleData';
 import { applyAction } from './combatActions';
 import { processTimelineSpecials } from '../utils/cardSpecialEffects';
 import { processCardTraitEffects } from '../utils/cardTraitEffects';
@@ -174,13 +175,27 @@ export function executeCardActionCore(params) {
     return cardQueueIndex > currentQIndex;
   }).length;
 
+  // 남은 에너지 계산 (치명타 확률에 사용)
+  const playerQueueCards = queue.filter(q => q.actor === 'player');
+  const totalEnergyUsed = playerQueueCards.reduce((sum, q) => sum + (q.card?.actionCost || 0), 0);
+  const playerEnergyBudget = P.energy || P.maxEnergy || BASE_PLAYER_ENERGY;
+  const remainingEnergy = Math.max(0, playerEnergyBudget - totalEnergyUsed);
+
+  // 적 남은 에너지 계산
+  const enemyQueueCards = queue.filter(q => q.actor === 'enemy');
+  const enemyTotalEnergyUsed = enemyQueueCards.reduce((sum, q) => sum + (q.card?.actionCost || 0), 0);
+  const enemyEnergyBudget = E.energy || E.maxEnergy || BASE_PLAYER_ENERGY;
+  const enemyRemainingEnergy = Math.max(0, enemyEnergyBudget - enemyTotalEnergyUsed);
+
   const battleContext = {
     playerAttackCards,
     isLastCard,
     unusedAttackCards,
     queue,
     currentQIndex,
-    currentSp: action.sp || 0  // 현재 카드의 타임라인 위치 (growingDefense용)
+    currentSp: action.sp || 0,  // 현재 카드의 타임라인 위치 (growingDefense용)
+    remainingEnergy,  // 플레이어 치명타 확률용 남은 에너지
+    enemyRemainingEnergy  // 적 치명타 확률용 남은 에너지
   };
 
   const actionResult = applyAction(tempState, action.actor, action.card, battleContext);
@@ -232,7 +247,20 @@ export function executeCardActionCore(params) {
     // 토큰 onPlay 효과
     if (action.card.onPlay && typeof action.card.onPlay === 'function') {
       try {
-        action.card.onPlay(battle, actions);
+        // 치명타 시 토큰 스택 +1 래퍼
+        const isCritical = actionResult.isCritical;
+        const wrappedActions = isCritical ? {
+          ...actions,
+          addTokenToPlayer: (tokenId, stacks = 1) => {
+            addLog(`💥 치명타! ${tokenId} +1 강화`);
+            return actions.addTokenToPlayer(tokenId, stacks + 1);
+          },
+          addTokenToEnemy: (tokenId, stacks = 1) => {
+            addLog(`💥 치명타! ${tokenId} +1 강화`);
+            return actions.addTokenToEnemy(tokenId, stacks + 1);
+          }
+        } : actions;
+        action.card.onPlay(battle, wrappedActions);
       } catch (error) {
         console.error('[Token onPlay Error]', error);
       }
@@ -626,6 +654,18 @@ export function runAllCore(params) {
   // runAll용 battleContext 생성
   const playerAttackCards = selected.filter(c => c.type === 'attack');
 
+  // 남은 에너지 계산 (치명타 확률에 사용)
+  const playerQueueCards = battle.queue.filter(q => q.actor === 'player');
+  const totalEnergyUsed = playerQueueCards.reduce((sum, q) => sum + (q.card?.actionCost || 0), 0);
+  const playerEnergyBudget = P.energy || P.maxEnergy || BASE_PLAYER_ENERGY;
+  const runAllRemainingEnergy = Math.max(0, playerEnergyBudget - totalEnergyUsed);
+
+  // 적 남은 에너지 계산
+  const enemyQueueCards = battle.queue.filter(q => q.actor === 'enemy');
+  const enemyTotalEnergyUsed = enemyQueueCards.reduce((sum, q) => sum + (q.card?.actionCost || 0), 0);
+  const enemyEnergyBudget = E.energy || E.maxEnergy || BASE_PLAYER_ENERGY;
+  const runAllEnemyRemainingEnergy = Math.max(0, enemyEnergyBudget - enemyTotalEnergyUsed);
+
   for (let i = qIndex; i < battle.queue.length; i++) {
     const a = battle.queue[i];
 
@@ -646,7 +686,9 @@ export function runAllCore(params) {
       unusedAttackCards,
       queue: battle.queue,
       currentQIndex: i,
-      currentSp: a.sp || 0  // 현재 카드의 타임라인 위치 (growingDefense용)
+      currentSp: a.sp || 0,  // 현재 카드의 타임라인 위치 (growingDefense용)
+      remainingEnergy: runAllRemainingEnergy,  // 플레이어 치명타 확률용 남은 에너지
+      enemyRemainingEnergy: runAllEnemyRemainingEnergy  // 적 치명타 확률용 남은 에너지
     };
 
     const { events } = applyAction(tempState, a.actor, a.card, battleContext);

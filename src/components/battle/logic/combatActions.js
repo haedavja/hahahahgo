@@ -4,7 +4,9 @@ import {
   processPreAttackSpecials,
   processPostAttackSpecials,
   shouldIgnoreBlock,
-  calculateGrowingDefense
+  calculateGrowingDefense,
+  rollCritical,
+  applyCriticalDamage
 } from '../utils/cardSpecialEffects';
 
 /**
@@ -96,9 +98,10 @@ export function applyDefense(actor, card, actorName, battleContext = {}) {
  * @param {Object} card - 사용한 카드
  * @param {string} attackerName - 'player' 또는 'enemy'
  * @param {Object} battleContext - 전투 컨텍스트 (special 효과용)
+ * @param {boolean} isCritical - 치명타 여부 (외부에서 전달)
  * @returns {Object} - { attacker, defender, damage, events, logs }
  */
-function calculateSingleHit(attacker, defender, card, attackerName, battleContext = {}) {
+function calculateSingleHit(attacker, defender, card, attackerName, battleContext = {}, isCritical = false) {
   // 유령카드는 토큰 효과 미적용
   const isGhost = card.isGhost === true;
   const { modifiedCard: tokenModifiedCard, consumedTokens: attackerConsumedTokens } = isGhost
@@ -124,6 +127,12 @@ function calculateSingleHit(attacker, defender, card, attackerName, battleContex
   const strengthBonus = currentAttacker.strength || 0;
   const boost = currentAttacker.etherOverdriveActive ? 2 : 1;
   let dmg = (base + strengthBonus) * boost;
+
+  // 치명타 적용 (isCritical은 외부에서 전달됨)
+  if (isCritical) {
+    dmg = applyCriticalDamage(dmg, true);
+  }
+  const critText = isCritical ? ' [💥치명타!]' : '';
 
   const crushMultiplier = hasTrait(card, 'crush') ? 2 : 1;
   const events = [...specialEvents];
@@ -192,8 +201,8 @@ function calculateSingleHit(attacker, defender, card, attackerName, battleContex
       dmg = 0;
 
       const crushText = crushMultiplier > 1 ? ' [분쇄×2]' : '';
-      const formula = `(방어력 ${beforeBlock} - 공격력 ${base}${boost > 1 ? '×2' : ''}${crushText} = ${remaining})`;
-      const msg = `${attackerName === 'player' ? '플레이어 -> 몬스터' : '몬스터 -> 플레이어'} • 차단 성공 ${formula}`;
+      const formula = `(방어력 ${beforeBlock} - 공격력 ${base}${boost > 1 ? '×2' : ''}${critText}${crushText} = ${remaining})`;
+      const msg = `${attackerName === 'player' ? '플레이어 -> 몬스터' : '몬스터 -> 플레이어'} • 차단 성공${critText} ${formula}`;
 
       events.push({ actor: attackerName, card: card.name, type: 'blocked', msg });
       logs.push(`${attackerName === 'player' ? '🔵' : '👾'} ${card.name} → ${msg}`);
@@ -210,8 +219,8 @@ function calculateSingleHit(attacker, defender, card, attackerName, battleContex
       updatedDefender.hp = Math.max(0, updatedDefender.hp - finalDmg);
 
       const crushText = crushMultiplier > 1 ? ' [분쇄×2]' : '';
-      const formula = `(방어력 ${blocked} - 공격력 ${base}${boost > 1 ? '×2' : ''}${crushText} = 0)`;
-      const msg = `${attackerName === 'player' ? '플레이어 -> 몬스터' : '몬스터 -> 플레이어'} • 차단 ${blocked} ${formula}, 관통 ${finalDmg} (체력 ${beforeHP} -> ${updatedDefender.hp})`;
+      const formula = `(방어력 ${blocked} - 공격력 ${base}${boost > 1 ? '×2' : ''}${critText}${crushText} = 0)`;
+      const msg = `${attackerName === 'player' ? '플레이어 -> 몬스터' : '몬스터 -> 플레이어'} • 차단 ${blocked}${critText} ${formula}, 관통 ${finalDmg} (체력 ${beforeHP} -> ${updatedDefender.hp})`;
 
       events.push({
         actor: attackerName,
@@ -245,7 +254,7 @@ function calculateSingleHit(attacker, defender, card, attackerName, battleContex
     updatedDefender.hp = Math.max(0, updatedDefender.hp - finalDmg);
 
     const ignoreBlockText = ignoreBlock && (updatedDefender.block || 0) > 0 ? ' [방어 무시]' : '';
-    const msg = `${attackerName === 'player' ? '플레이어 -> 몬스터' : '몬스터 -> 플레이어'} • 데미지 ${finalDmg}${boost > 1 ? ' (에테르 폭주×2)' : ''}${ignoreBlockText} (체력 ${beforeHP} -> ${updatedDefender.hp})`;
+    const msg = `${attackerName === 'player' ? '플레이어 -> 몬스터' : '몬스터 -> 플레이어'} • 데미지 ${finalDmg}${critText}${boost > 1 ? ' (에테르 폭주×2)' : ''}${ignoreBlockText} (체력 ${beforeHP} -> ${updatedDefender.hp})`;
 
     events.push({
       actor: attackerName,
@@ -327,9 +336,16 @@ export function applyAttack(attacker, defender, card, attackerName, battleContex
   let currentAttacker = { ...attacker };
   let currentDefender = { ...defender };
 
+  // 치명타 판정 (카드당 1번만 롤)
+  // 플레이어는 남은 행동력 사용, 적은 자체 남은 에너지 사용 (없으면 0)
+  const attackerRemainingEnergy = attackerName === 'player'
+    ? (battleContext.remainingEnergy || 0)
+    : (battleContext.enemyRemainingEnergy || 0);
+  const isCritical = rollCritical(currentAttacker, attackerRemainingEnergy);
+
   // 기본 타격 수행
   for (let i = 0; i < hits; i++) {
-    const result = calculateSingleHit(currentAttacker, currentDefender, card, attackerName, battleContext);
+    const result = calculateSingleHit(currentAttacker, currentDefender, card, attackerName, battleContext, isCritical);
     currentAttacker = result.attacker;
     currentDefender = result.defender;
     totalDealt += result.damage;
@@ -356,7 +372,7 @@ export function applyAttack(attacker, defender, card, attackerName, battleContex
   // 추가 타격 처리 (repeatIfLast, repeatPerUnusedAttack 등)
   if (postAttackResult.extraHits > 0) {
     for (let i = 0; i < postAttackResult.extraHits; i++) {
-      const result = calculateSingleHit(currentAttacker, currentDefender, card, attackerName, battleContext);
+      const result = calculateSingleHit(currentAttacker, currentDefender, card, attackerName, battleContext, isCritical);
       currentAttacker = result.attacker;
       currentDefender = result.defender;
       totalDealt += result.damage;
@@ -372,7 +388,8 @@ export function applyAttack(attacker, defender, card, attackerName, battleContex
     dealt: totalDealt,
     taken: totalTaken,
     events: allEvents,
-    logs: allLogs
+    logs: allLogs,
+    isCritical  // 치명타 여부 반환 (토큰 효과용)
   };
 }
 
@@ -423,7 +440,8 @@ export function applyAction(state, actor, card, battleContext = {}) {
       dealt: result.dealt,
       taken: result.taken,
       events: result.events,
-      updatedState
+      updatedState,
+      isCritical: result.isCritical  // 치명타 여부 전달 (토큰 효과용)
     };
   }
 

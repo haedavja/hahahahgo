@@ -1914,10 +1914,24 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     const tempState = { player: P, enemy: E, log: [] };
 
     // battleContext 생성 (special 효과용)
+    // 남은 에너지 계산 (치명타 확률에 사용)
+    const playerCards = currentBattle.queue.filter(q => q.actor === 'player');
+    const totalEnergyUsed = playerCards.reduce((sum, q) => sum + (q.card?.actionCost || 0), 0);
+    const playerEnergyBudget = P.energy || P.maxEnergy || BASE_PLAYER_ENERGY;
+    const calculatedRemainingEnergy = Math.max(0, playerEnergyBudget - totalEnergyUsed);
+
+    // 적 남은 에너지 계산
+    const enemyCards = currentBattle.queue.filter(q => q.actor === 'enemy');
+    const enemyTotalEnergyUsed = enemyCards.reduce((sum, q) => sum + (q.card?.actionCost || 0), 0);
+    const enemyEnergyBudget = E.energy || E.maxEnergy || BASE_PLAYER_ENERGY;
+    const calculatedEnemyRemainingEnergy = Math.max(0, enemyEnergyBudget - enemyTotalEnergyUsed);
+
     const battleContext = {
       currentSp: a.sp || 0,  // 현재 카드의 타임라인 위치 (growingDefense용)
       queue: currentBattle.queue,
-      currentQIndex: currentBattle.qIndex
+      currentQIndex: currentBattle.qIndex,
+      remainingEnergy: calculatedRemainingEnergy,  // 플레이어 치명타 확률용 남은 에너지
+      enemyRemainingEnergy: calculatedEnemyRemainingEnergy  // 적 치명타 확률용 남은 에너지
     };
 
     const actionResult = applyAction(tempState, a.actor, a.card, battleContext);
@@ -1995,7 +2009,20 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       // 토큰: 카드 onPlay 효과 처리
       if (a.card.onPlay && typeof a.card.onPlay === 'function') {
         try {
-          a.card.onPlay(battle, actions);
+          // 치명타 시 토큰 스택 +1 래퍼
+          const isCritical = actionResult.isCritical;
+          const wrappedActions = isCritical ? {
+            ...actions,
+            addTokenToPlayer: (tokenId, stacks = 1) => {
+              addLog(`💥 치명타! ${tokenId} +1 강화`);
+              return actions.addTokenToPlayer(tokenId, stacks + 1);
+            },
+            addTokenToEnemy: (tokenId, stacks = 1) => {
+              addLog(`💥 치명타! ${tokenId} +1 강화`);
+              return actions.addTokenToEnemy(tokenId, stacks + 1);
+            }
+          } : actions;
+          a.card.onPlay(battle, wrappedActions);
         } catch (error) {
           console.error('[Token onPlay Error]', error);
         }

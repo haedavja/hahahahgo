@@ -404,3 +404,53 @@ export function processCardCreationSpecials({
 
   return { createCard, events, logs };
 }
+
+// =====================
+// 치명타 시스템
+// =====================
+
+/**
+ * 치명타 확률 계산
+ * @param {Object} actor - 행동 주체 (player 또는 enemy)
+ * @param {number} remainingEnergy - 남은 행동력
+ * @returns {number} 치명타 확률 (0~100)
+ */
+export function calculateCritChance(actor, remainingEnergy = 0) {
+  const baseCritChance = 5; // 기본 5%
+  const strength = actor.strength || 0;
+  const energy = remainingEnergy || 0;
+
+  return baseCritChance + strength + energy;
+}
+
+/**
+ * 치명타 판정
+ * @param {Object} actor - 행동 주체
+ * @param {number} remainingEnergy - 남은 행동력
+ * @returns {boolean} 치명타 발생 여부
+ */
+export function rollCritical(actor, remainingEnergy = 0) {
+  const critChance = calculateCritChance(actor, remainingEnergy);
+  const roll = Math.random() * 100;
+  return roll < critChance;
+}
+
+/**
+ * 치명타 적용 (데미지)
+ * @param {number} damage - 원본 데미지
+ * @param {boolean} isCritical - 치명타 여부
+ * @returns {number} 최종 데미지
+ */
+export function applyCriticalDamage(damage, isCritical) {
+  return isCritical ? damage * 2 : damage;
+}
+
+/**
+ * 치명타 적용 (상태이상 스택)
+ * @param {number} stacks - 원본 스택 수
+ * @param {boolean} isCritical - 치명타 여부
+ * @returns {number} 최종 스택 수
+ */
+export function applyCriticalStacks(stacks, isCritical) {
+  return isCritical ? stacks + 1 : stacks;
+}
