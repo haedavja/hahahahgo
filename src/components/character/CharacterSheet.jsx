@@ -179,34 +179,28 @@ export function CharacterSheet({ onClose }) {
     setDevCardInput("");
   };
 
-  // 좌클릭: 추가, 우클릭: 제거
+  // 좌클릭: 추가 (중복 불가), 우클릭: 제거
   const handleCardClick = (cardId, isRightClick = false) => {
     if (specialMode === "main") {
       setMainSpecials((prev) => {
         if (isRightClick) {
-          // 우클릭: 하나만 제거
-          const idx = prev.lastIndexOf(cardId);
-          if (idx !== -1) {
-            return [...prev.slice(0, idx), ...prev.slice(idx + 1)];
-          }
-          return prev;
+          // 우클릭: 제거
+          return prev.filter(id => id !== cardId);
         }
-        // 좌클릭: 추가 (슬롯 제한 확인)
+        // 좌클릭: 추가 (슬롯 제한 + 중복 확인)
         if (prev.length >= maxMainSlots) return prev;
+        if (prev.includes(cardId)) return prev; // 이미 있으면 추가 안함
         return [...prev, cardId];
       });
     } else {
       setSubSpecials((prev) => {
         if (isRightClick) {
-          // 우클릭: 하나만 제거
-          const idx = prev.lastIndexOf(cardId);
-          if (idx !== -1) {
-            return [...prev.slice(0, idx), ...prev.slice(idx + 1)];
-          }
-          return prev;
+          // 우클릭: 제거
+          return prev.filter(id => id !== cardId);
         }
-        // 좌클릭: 추가 (슬롯 제한 확인)
+        // 좌클릭: 추가 (슬롯 제한 + 중복 확인)
         if (prev.length >= maxSubSlots) return prev;
+        if (prev.includes(cardId)) return prev; // 이미 있으면 추가 안함
         return [...prev, cardId];
       });
     }
@@ -673,7 +667,7 @@ export function CharacterSheet({ onClose }) {
               background: 'rgba(100, 116, 139, 0.1)',
               borderRadius: '6px',
             }}>
-              💡 좌클릭: 카드 추가 | 우클릭: 카드 제거 | 같은 카드를 여러 번 추가할 수 있습니다
+              💡 좌클릭: 카드 추가 | 우클릭: 카드 제거
             </div>
 
             <div style={{ overflowY: 'auto', flex: 1 }}>
