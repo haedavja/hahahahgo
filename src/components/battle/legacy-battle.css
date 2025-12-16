@@ -1996,6 +1996,8 @@ body {
   transition: none !important;
   z-index: auto !important;
   margin-right: 0 !important;
+  width: 154px !important;
+  height: 200px !important;
 }
 
 .game-card-large.no-hover .card-header,
@@ -2029,6 +2031,9 @@ body {
   font-size: 0.75rem !important;
 }
 
-.game-card-large.no-hover * {
+.game-card-large.no-hover,
+.game-card-large.no-hover *,
+.game-card-large.no-hover:hover,
+.game-card-large.no-hover:hover * {
   transition: none !important;
 }
