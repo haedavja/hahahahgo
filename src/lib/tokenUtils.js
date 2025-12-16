@@ -22,8 +22,20 @@ export function addToken(entity, tokenId, stacks = 1) {
   }
 
   const token = TOKENS[tokenId];
-  const tokens = { ...entity.tokens };
+  // 깊은 복사로 토큰 객체 생성
+  const tokens = {
+    usage: [...(entity.tokens?.usage || [])],
+    turn: [...(entity.tokens?.turn || [])],
+    permanent: [...(entity.tokens?.permanent || [])]
+  };
   const logs = [];
+
+  console.log('[addToken] 시작:', {
+    tokenId,
+    stacks,
+    entityTokens: JSON.stringify(entity.tokens),
+    copiedTokens: JSON.stringify(tokens)
+  });
 
   // 면역 토큰이 있고 부정 토큰을 추가하려는 경우
   if (token.category === TOKEN_CATEGORIES.NEGATIVE && hasToken(entity, 'immunity')) {
@@ -35,8 +47,10 @@ export function addToken(entity, tokenId, stacks = 1) {
 
   // 상쇄 처리
   const oppositeTokenId = TOKEN_CANCELLATION_MAP[tokenId];
+  console.log('[addToken] 상쇄 체크:', { tokenId, oppositeTokenId, hasMap: !!oppositeTokenId });
   if (oppositeTokenId) {
     const cancelled = cancelTokens(tokens, tokenId, oppositeTokenId, stacks);
+    console.log('[addToken] 상쇄 결과:', { cancelled: cancelled.cancelled, remaining: cancelled.remaining });
     if (cancelled.cancelled > 0) {
       logs.push(`${token.name}와 ${TOKENS[oppositeTokenId].name}이(가) ${cancelled.cancelled}스택 상쇄되었습니다!`);
 
@@ -165,6 +179,7 @@ function cancelTokens(tokens, newTokenId, oppositeTokenId, stacks) {
   const oppositeToken = TOKENS[oppositeTokenId];
 
   if (!oppositeToken) {
+    console.log('[cancelTokens] 반대 토큰 정의 없음:', oppositeTokenId);
     return { cancelled: 0, remaining: stacks, tokens };
   }
 
@@ -175,16 +190,19 @@ function cancelTokens(tokens, newTokenId, oppositeTokenId, stacks) {
 
   for (const type of [TOKEN_TYPES.USAGE, TOKEN_TYPES.TURN, TOKEN_TYPES.PERMANENT]) {
     const typeArray = tokens[type] || [];
+    console.log(`[cancelTokens] ${type} 배열 검색:`, typeArray.map(t => t.id));
     const index = typeArray.findIndex(t => t.id === oppositeTokenId);
     if (index !== -1) {
       oppositeStacks = typeArray[index].stacks;
       oppositeType = type;
       oppositeIndex = index;
+      console.log('[cancelTokens] 반대 토큰 발견:', { type, index, stacks: oppositeStacks });
       break;
     }
   }
 
   if (oppositeStacks === 0) {
+    console.log('[cancelTokens] 반대 토큰 없음 - 상쇄 불가');
     return { cancelled: 0, remaining: stacks, tokens };
   }
 
