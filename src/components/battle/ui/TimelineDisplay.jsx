@@ -211,12 +211,12 @@ export const TimelineDisplay = ({
                   // 카드가 이미 발동되었는지 확인
                   const globalIdx = battle.phase === 'resolve' && queue ? queue.findIndex(q => q === a) : -1;
                   const cardAlreadyUsed = globalIdx !== -1 && globalIdx < qIndex;
-                  // 발동 전: 0부터 시작해서 카드 sp까지 증가 (타임라인 진행에 따라)
-                  // 발동 후: 카드 sp로 고정 (최종 획득 방어력)
+                  // 발동 전: 0
+                  // 발동 후: 타임라인이 진행할수록 계속 증가 (currentTimelineSp - cardSp)
                   const growingDefenseBonus = hasGrowingDef
                     ? (cardAlreadyUsed
-                        ? (a.sp || 0)  // 발동 후: 최종값 고정
-                        : Math.min(currentTimelineSp, a.sp || 0))  // 발동 전: 0 → cardSp까지 증가
+                        ? Math.max(0, currentTimelineSp - (a.sp || 0))  // 발동 후: 0부터 시작해서 계속 증가
+                        : 0)  // 발동 전: 0
                     : 0;
                   // ignoreStrength 특성: 힘 보너스 무시
                   const effectiveStrengthBonus = a.card.ignoreStrength ? 0 : strengthBonus;
