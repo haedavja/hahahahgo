@@ -4,6 +4,7 @@ import {
   processPreAttackSpecials,
   processPostAttackSpecials,
   processCardCreationSpecials,
+  processCardPlaySpecials,
   shouldIgnoreBlock,
   calculateGrowingDefense,
   rollCritical,
@@ -416,46 +417,88 @@ export function applyAttack(attacker, defender, card, attackerName, battleContex
  * @param {string} actor - 'player' 또는 'enemy'
  * @param {Object} card - 사용할 카드
  * @param {Object} battleContext - 전투 컨텍스트 (special 효과용)
- * @returns {Object} - { dealt, taken, events, updatedState }
+ * @returns {Object} - { dealt, taken, events, updatedState, cardPlaySpecials }
  */
 export function applyAction(state, actor, card, battleContext = {}) {
   const A = actor === 'player' ? state.player : state.enemy;
   const B = actor === 'player' ? state.enemy : state.player;
 
   let result;
+  let updatedActor = A;
 
   if (card.type === 'defense') {
     result = applyDefense(A, card, actor, battleContext);
+    updatedActor = result.actor;
+
+    // 카드 사용 시 special 효과 처리 (autoReload, mentalFocus 등)
+    const cardPlayResult = processCardPlaySpecials({
+      card,
+      attacker: updatedActor,
+      attackerName: actor,
+      battleContext
+    });
+
+    // tokensToAdd 처리
+    if (cardPlayResult.tokensToAdd && cardPlayResult.tokensToAdd.length > 0) {
+      const { addToken } = require('../../../lib/tokenUtils');
+      cardPlayResult.tokensToAdd.forEach(tokenInfo => {
+        const tokenResult = addToken(updatedActor, tokenInfo.id, tokenInfo.stacks);
+        updatedActor = { ...updatedActor, tokens: tokenResult.tokens };
+      });
+    }
+
     const updatedState = {
       ...state,
-      [actor]: result.actor,
-      log: [...state.log, result.log]
+      [actor]: updatedActor,
+      log: [...state.log, result.log, ...cardPlayResult.logs]
     };
     return {
       dealt: result.dealt,
       taken: result.taken,
-      events: result.events,
-      updatedState
+      events: [...result.events, ...cardPlayResult.events],
+      updatedState,
+      cardPlaySpecials: cardPlayResult  // bonusCards, nextTurnEffects 등
     };
   }
 
   if (card.type === 'attack') {
     result = applyAttack(A, B, card, actor, battleContext);
+    updatedActor = result.attacker;
+    let updatedDefender = result.defender;
+
+    // 카드 사용 시 special 효과 처리 (comboStyle 등)
+    const cardPlayResult = processCardPlaySpecials({
+      card,
+      attacker: updatedActor,
+      attackerName: actor,
+      battleContext
+    });
+
+    // tokensToAdd 처리
+    if (cardPlayResult.tokensToAdd && cardPlayResult.tokensToAdd.length > 0) {
+      const { addToken } = require('../../../lib/tokenUtils');
+      cardPlayResult.tokensToAdd.forEach(tokenInfo => {
+        const tokenResult = addToken(updatedActor, tokenInfo.id, tokenInfo.stacks);
+        updatedActor = { ...updatedActor, tokens: tokenResult.tokens };
+      });
+    }
+
     const actorKey = actor;
     const defenderKey = actor === 'player' ? 'enemy' : 'player';
     const updatedState = {
       ...state,
-      [actorKey]: result.attacker,
-      [defenderKey]: result.defender,
-      log: [...state.log, ...result.logs]
+      [actorKey]: updatedActor,
+      [defenderKey]: updatedDefender,
+      log: [...state.log, ...result.logs, ...cardPlayResult.logs]
     };
     return {
       dealt: result.dealt,
       taken: result.taken,
-      events: result.events,
+      events: [...result.events, ...cardPlayResult.events],
       updatedState,
       isCritical: result.isCritical,  // 치명타 여부 전달 (토큰 효과용)
-      createdCards: result.createdCards || []  // 창조된 카드 배열
+      createdCards: result.createdCards || [],  // 창조된 카드 배열
+      cardPlaySpecials: cardPlayResult  // bonusCards, nextTurnEffects 등
     };
   }
 

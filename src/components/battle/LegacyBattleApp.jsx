@@ -917,9 +917,10 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     const newDef = turnStartRelicEffects.block > 0; // 방어력이 있으면 def 플래그 활성화
     // 성찰 효과로 얻은 토큰 적용
     const newTokens = reflectionResult.updatedPlayer.tokens || player.tokens || { usage: [], turn: [], permanent: [] };
-    // 타임라인 보너스 적용 (성찰 실행 효과)
+    // 타임라인 보너스 적용 (성찰 실행 효과 + mentalFocus 등 nextTurnEffects)
     const reflectionTimelineBonus = reflectionResult.updatedBattleState.timelineBonus || 0;
-    const newMaxSpeed = (player.maxSpeed || DEFAULT_PLAYER_MAX_SPEED) + reflectionTimelineBonus;
+    const maxSpeedBonusFromEffects = nextTurnEffects.maxSpeedBonus || 0;
+    const newMaxSpeed = (player.maxSpeed || DEFAULT_PLAYER_MAX_SPEED) + reflectionTimelineBonus + maxSpeedBonusFromEffects;
     // 에테르 배율 적용 (성찰 완성 효과)
     const reflectionEtherMultiplier = reflectionResult.updatedBattleState.etherMultiplier || 1;
     const currentEtherMultiplier = player.etherMultiplier || 1;
@@ -1928,13 +1929,21 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     const enemyEnergyBudget = E.energy || E.maxEnergy || BASE_PLAYER_ENERGY;
     const calculatedEnemyRemainingEnergy = Math.max(0, enemyEnergyBudget - enemyTotalEnergyUsed);
 
+    // 이번 턴에 사용된 카드 카테고리 추적 (comboStyle용)
+    const executedPlayerCards = currentBattle.queue
+      .slice(0, currentBattle.qIndex)
+      .filter(q => q.actor === 'player');
+    const usedCardCategories = [...new Set(executedPlayerCards.map(q => q.card?.cardCategory).filter(Boolean))];
+
     const battleContext = {
       currentSp: a.sp || 0,  // 현재 카드의 타임라인 위치 (growingDefense용)
       queue: currentBattle.queue,
       currentQIndex: currentBattle.qIndex,
       remainingEnergy: calculatedRemainingEnergy,  // 플레이어 치명타 확률용 남은 에너지
       enemyRemainingEnergy: calculatedEnemyRemainingEnergy,  // 적 치명타 확률용 남은 에너지
-      allCards: CARDS  // 카드 창조용 전체 카드 풀
+      allCards: CARDS,  // 카드 창조용 전체 카드 풀
+      usedCardCategories,  // comboStyle용: 이번 턴에 사용된 카드 카테고리
+      hand: currentBattle.hand || []  // autoReload용: 현재 손패
     };
 
     const actionResult = applyAction(tempState, a.actor, a.card, battleContext);
@@ -1971,6 +1980,52 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
       // 선택 중에는 stepOnce 진행을 멈춤 (사용자가 선택할 때까지)
       return;
+    }
+
+    // cardPlaySpecials 결과 처리 (comboStyle, mentalFocus 등)
+    if (actionResult.cardPlaySpecials && a.actor === 'player') {
+      const { bonusCards, nextTurnEffects: newNextTurnEffects } = actionResult.cardPlaySpecials;
+
+      // bonusCards 처리 (comboStyle): 큐에 유령카드로 추가
+      if (bonusCards && bonusCards.length > 0) {
+        const insertSp = (a.sp || 0) + 1;  // 현재 카드 +1 sp에 삽입
+        const currentQ = battleRef.current.queue;
+        const currentQIndex = battleRef.current.qIndex;
+
+        const newActions = bonusCards.map(bonusCard => ({
+          actor: 'player',
+          card: { ...bonusCard, isGhost: true, __uid: `combo_${Math.random().toString(36).slice(2)}` },
+          sp: insertSp
+        }));
+
+        // 현재 인덱스 이후에 삽입
+        const beforeCurrent = currentQ.slice(0, currentQIndex + 1);
+        const afterCurrent = [...currentQ.slice(currentQIndex + 1), ...newActions];
+
+        // sp 기준으로 정렬
+        afterCurrent.sort((x, y) => {
+          if ((x.sp ?? 0) !== (y.sp ?? 0)) return (x.sp ?? 0) - (y.sp ?? 0);
+          if (x.card?.isGhost && !y.card?.isGhost) return -1;
+          if (!x.card?.isGhost && y.card?.isGhost) return 1;
+          return 0;
+        });
+
+        const newQueue = [...beforeCurrent, ...afterCurrent];
+        actions.setQueue(newQueue);
+        battleRef.current = { ...battleRef.current, queue: newQueue };
+
+        addLog(`🔄 연계 효과: "${bonusCards.map(c => c.name).join(', ')}" 큐에 추가!`);
+      }
+
+      // nextTurnEffects 처리 (mentalFocus)
+      if (newNextTurnEffects) {
+        const updatedEffects = {
+          ...battle.nextTurnEffects,
+          bonusEnergy: (battle.nextTurnEffects.bonusEnergy || 0) + (newNextTurnEffects.bonusEnergy || 0),
+          maxSpeedBonus: (battle.nextTurnEffects.maxSpeedBonus || 0) + (newNextTurnEffects.maxSpeedBonus || 0)
+        };
+        actions.setNextTurnEffects(updatedEffects);
+      }
     }
 
     // 방어자세 성장 방어력 적용 (이전에 발동된 growingDefense가 있으면 타임라인 진행에 따라 방어력 추가)
@@ -2338,7 +2393,14 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     escapeUsedThisTurnRef.current = new Set();
 
     // 다음 턴 효과 처리 (특성 기반)
-    const newNextTurnEffects = processCardTraitEffects(selected, addLog);
+    const traitNextTurnEffects = processCardTraitEffects(selected, addLog);
+
+    // 카드 플레이 중 설정된 효과 병합 (mentalFocus의 maxSpeedBonus, bonusEnergy 등)
+    const newNextTurnEffects = {
+      ...traitNextTurnEffects,
+      bonusEnergy: (traitNextTurnEffects.bonusEnergy || 0) + (battle.nextTurnEffects.bonusEnergy || 0),
+      maxSpeedBonus: (traitNextTurnEffects.maxSpeedBonus || 0) + (battle.nextTurnEffects.maxSpeedBonus || 0)
+    };
 
     // 상징 턴 종료 효과 적용 (계약서, 은화 등)
     const turnEndRelicEffects = applyTurnEndEffects(relics, {

@@ -82,6 +82,17 @@ export function processPreAttackSpecials({
     }
   }
 
+  // === gyrusRoulette: 남은 행동력 x2만큼 타격 횟수 ===
+  if (hasSpecial(card, 'gyrusRoulette')) {
+    const remainingEnergy = battleContext.remainingEnergy || 0;
+    const hits = Math.max(1, remainingEnergy * 2);  // 최소 1회
+    modifiedCard.hits = hits;
+    modifiedCard._addEmptyChamber = true;  // 사용 후 빈탄창 플래그
+    const msg = `🎰 ${card.name}: 남은 행동력 ${remainingEnergy} x2 = ${hits}회 사격!`;
+    events.push({ actor: attackerName, card: card.name, type: 'special', msg });
+    logs.push(msg);
+  }
+
   return {
     modifiedCard,
     attacker: modifiedAttacker,
@@ -190,6 +201,25 @@ export function processPostAttackSpecials({
     const result = addToken(modifiedDefender, 'half_ether', 1);
     modifiedDefender.tokens = result.tokens;
     const msg = `✨ ${card.name}: 이번 턴 적 에테르 획득 50% 감소!`;
+    events.push({ actor: attackerName, card: card.name, type: 'special', msg });
+    logs.push(msg);
+  }
+
+  // === emptyAfterUse: 사용 후 빈탄창 ===
+  if (hasSpecial(card, 'emptyAfterUse') || card._addEmptyChamber) {
+    const result = addToken(modifiedAttacker, 'empty_chamber', 1);
+    modifiedAttacker.tokens = result.tokens;
+    const msg = `🔫 ${card.name}: 사용 후 빈탄창!`;
+    events.push({ actor: attackerName, card: card.name, type: 'special', msg });
+    logs.push(msg);
+  }
+
+  // === reloadSpray: 장전 후 사격, 사용 후 빈탄창 ===
+  if (hasSpecial(card, 'reloadSpray')) {
+    // onPlay에서 이미 loaded 추가됨, 여기서 empty_chamber 추가
+    const result = addToken(modifiedAttacker, 'empty_chamber', 1);
+    modifiedAttacker.tokens = result.tokens;
+    const msg = `🔫 ${card.name}: 난사 후 빈탄창!`;
     events.push({ actor: attackerName, card: card.name, type: 'special', msg });
     logs.push(msg);
   }
@@ -417,6 +447,106 @@ export function processCardCreationSpecials({
   }
 
   return { createdCards, events, logs };
+}
+
+/**
+ * 카드 사용 시 special 효과 처리 (comboStyle, autoReload, mentalFocus 등)
+ * @param {Object} params
+ * @returns {Object} { bonusCards, tokens, nextTurnEffects, events, logs }
+ */
+export function processCardPlaySpecials({
+  card,
+  attacker,
+  attackerName,
+  battleContext = {}
+}) {
+  const events = [];
+  const logs = [];
+  const bonusCards = [];  // 큐에 추가할 보너스 카드
+  const tokensToAdd = []; // 추가할 토큰
+  let nextTurnEffects = null;  // 다음 턴 효과
+
+  const { usedCardCategories = [], hand = [], allCards = [] } = battleContext;
+
+  // === comboStyle: 검격→총격 또는 총격→검격 보너스 ===
+  if (hasSpecial(card, 'comboStyle')) {
+    const usedFencing = usedCardCategories.includes('fencing');
+    const usedGun = usedCardCategories.includes('gun');
+
+    if (usedFencing && !usedGun) {
+      // 검격을 냈으면 총격 보너스
+      const gunCards = allCards.filter(c => c.cardCategory === 'gun' && c.type === 'attack');
+      if (gunCards.length > 0) {
+        const randomGun = gunCards[Math.floor(Math.random() * gunCards.length)];
+        bonusCards.push({
+          ...randomGun,
+          isGhost: true,
+          createdBy: card.id,
+          createdId: `${randomGun.id}_combo_${Date.now()}`
+        });
+        const msg = `⚔️→🔫 ${card.name}: 검격 연계! "${randomGun.name}" 추가 발동!`;
+        events.push({ actor: attackerName, card: card.name, type: 'combo', msg });
+        logs.push(msg);
+      }
+    } else if (usedGun && !usedFencing) {
+      // 총격을 냈으면 검격 보너스
+      const fencingCards = allCards.filter(c => c.cardCategory === 'fencing' && c.type === 'attack');
+      if (fencingCards.length > 0) {
+        const randomFencing = fencingCards[Math.floor(Math.random() * fencingCards.length)];
+        bonusCards.push({
+          ...randomFencing,
+          isGhost: true,
+          createdBy: card.id,
+          createdId: `${randomFencing.id}_combo_${Date.now()}`
+        });
+        const msg = `🔫→⚔️ ${card.name}: 총격 연계! "${randomFencing.name}" 추가 발동!`;
+        events.push({ actor: attackerName, card: card.name, type: 'combo', msg });
+        logs.push(msg);
+      }
+    } else if (usedFencing && usedGun) {
+      // 둘 다 냈으면 둘 중 랜덤
+      const useGun = Math.random() < 0.5;
+      const targetCards = useGun
+        ? allCards.filter(c => c.cardCategory === 'gun' && c.type === 'attack')
+        : allCards.filter(c => c.cardCategory === 'fencing' && c.type === 'attack');
+      if (targetCards.length > 0) {
+        const randomCard = targetCards[Math.floor(Math.random() * targetCards.length)];
+        bonusCards.push({
+          ...randomCard,
+          isGhost: true,
+          createdBy: card.id,
+          createdId: `${randomCard.id}_combo_${Date.now()}`
+        });
+        const msg = `🔄 ${card.name}: 복합 연계! "${randomCard.name}" 추가 발동!`;
+        events.push({ actor: attackerName, card: card.name, type: 'combo', msg });
+        logs.push(msg);
+      }
+    }
+  }
+
+  // === autoReload: 손패에 장전 카드가 있으면 자동 장전 ===
+  if (hasSpecial(card, 'autoReload')) {
+    const hasReloadCard = hand.some(c => c.id === 'reload' || c.id === 'ap_load' || c.id === 'incendiary_load');
+    if (hasReloadCard) {
+      tokensToAdd.push({ id: 'loaded', stacks: 1 });
+      const msg = `🔄 ${card.name}: 손패에 장전 카드 감지! 자동 장전!`;
+      events.push({ actor: attackerName, card: card.name, type: 'special', msg });
+      logs.push(msg);
+    }
+  }
+
+  // === mentalFocus: 다음 턴 최대속도 +8, 카드 2장 더 사용 가능 ===
+  if (hasSpecial(card, 'mentalFocus')) {
+    nextTurnEffects = {
+      maxSpeedBonus: 8,
+      bonusEnergy: 2
+    };
+    const msg = `🧠 ${card.name}: 정신집중! 다음 턴 최대속도 +8, 행동력 +2!`;
+    events.push({ actor: attackerName, card: card.name, type: 'special', msg });
+    logs.push(msg);
+  }
+
+  return { bonusCards, tokensToAdd, nextTurnEffects, events, logs };
 }
 
 // =====================
