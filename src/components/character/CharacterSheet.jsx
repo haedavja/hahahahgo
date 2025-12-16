@@ -3,6 +3,8 @@ import { useGameStore } from "../../state/gameStore";
 import { CARDS, TRAITS } from "../battle/battleData";
 import { calculatePassiveEffects } from "../../lib/relicEffects";
 import { getReflectionsByEgos, getTraitCountBonus, REFLECTIONS } from "../../data/reflections";
+import { TraitBadgeList } from "../battle/ui/TraitBadge.jsx";
+import { Sword, Shield } from "../battle/ui/BattleIcons";
 
 const TRAIT_EFFECTS = {
   용맹함: { label: "힘", value: 1 },
@@ -675,12 +677,12 @@ export function CharacterSheet({ onClose }) {
             </div>
 
             <div style={{ overflowY: 'auto', flex: 1 }}>
-              {/* 현재 보유한 카드 */}
+              {/* 현재 보유한 카드 - 전투 스타일 */}
               <div style={{ marginBottom: '20px' }}>
                 <h3 style={{
                   fontSize: '14px',
                   color: specialMode === 'main' ? '#f5d76e' : '#7dd3fc',
-                  marginBottom: '10px',
+                  marginBottom: '12px',
                   display: 'flex',
                   alignItems: 'center',
                   gap: '8px',
@@ -690,118 +692,149 @@ export function CharacterSheet({ onClose }) {
                     ({specialMode === 'main' ? mainSpecials.length : subSpecials.length}장)
                   </span>
                 </h3>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', minHeight: '36px' }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', minHeight: '140px', alignItems: 'flex-start' }}>
                   {(specialMode === 'main' ? mainSpecials : subSpecials).map((cardId, idx) => {
                     const card = CARDS.find(c => c.id === cardId);
                     if (!card) return null;
+                    const Icon = card.type === 'attack' ? Sword : Shield;
+                    const isMainSpecial = specialMode === 'main';
+                    const borderColor = isMainSpecial ? '#f5d76e' : '#7dd3fc';
                     return (
                       <div
                         key={`selected-${cardId}-${idx}`}
                         onClick={() => handleCardClick(cardId, true)}
+                        className={`game-card-large ${card.type === 'attack' ? 'attack' : 'defense'}`}
                         style={{
-                          padding: '6px 10px',
-                          borderRadius: '6px',
-                          background: specialMode === 'main' ? 'rgba(245, 215, 110, 0.2)' : 'rgba(125, 211, 252, 0.2)',
-                          border: `1px solid ${specialMode === 'main' ? '#f5d76e' : '#7dd3fc'}`,
-                          fontSize: '12px',
-                          color: card.type === 'attack' ? '#f87171' : '#60a5fa',
                           cursor: 'pointer',
-                          transition: 'all 0.15s ease',
+                          transform: 'scale(0.7)',
+                          transformOrigin: 'top left',
+                          marginRight: '-45px',
+                          marginBottom: '-40px',
+                          boxShadow: `0 0 15px ${borderColor}40`,
+                          border: `2px solid ${borderColor}`,
                         }}
                         title="클릭하여 제거"
                       >
-                        {card.name}
+                        <div className="card-cost-badge-floating" style={{
+                          color: isMainSpecial ? '#fcd34d' : '#60a5fa',
+                          WebkitTextStroke: '1px #000'
+                        }}>
+                          {card.actionCost}
+                        </div>
+                        <div className="card-stats-sidebar">
+                          {card.damage != null && card.damage > 0 && (
+                            <div className="card-stat-item attack">⚔️{card.damage}{card.hits ? `×${card.hits}` : ''}</div>
+                          )}
+                          {card.block != null && card.block > 0 && (
+                            <div className="card-stat-item defense">🛡️{card.block}</div>
+                          )}
+                          <div className="card-stat-item speed">⏱️{card.speedCost}</div>
+                        </div>
+                        <div className="card-header" style={{ display: 'flex', justifyContent: 'center' }}>
+                          <div className="font-black text-sm" style={{ color: isMainSpecial ? '#fcd34d' : '#7dd3fc' }}>
+                            {card.name}
+                          </div>
+                        </div>
+                        <div className="card-icon-area">
+                          <Icon size={50} className="text-white opacity-80" />
+                        </div>
+                        <div className="card-footer">
+                          {card.traits && card.traits.length > 0 && <TraitBadgeList traits={card.traits} />}
+                          <span className="card-description">{card.description || ''}</span>
+                        </div>
                       </div>
                     );
                   })}
                   {(specialMode === 'main' ? mainSpecials : subSpecials).length === 0 && (
-                    <span style={{ color: '#6b7280', fontSize: '13px' }}>선택된 카드가 없습니다</span>
+                    <span style={{ color: '#6b7280', fontSize: '13px', padding: '40px 0' }}>선택된 카드가 없습니다</span>
                   )}
                 </div>
               </div>
 
-              {/* 전체 카드 목록 */}
-              <h3 style={{ fontSize: '14px', color: '#9fb6ff', marginBottom: '10px' }}>📜 전체 카드 목록</h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              {/* 전체 카드 목록 - 전투 스타일 */}
+              <h3 style={{ fontSize: '14px', color: '#9fb6ff', marginBottom: '12px' }}>📜 전체 카드 목록</h3>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
                 {availableCards.map((c) => {
+                  const card = CARDS.find(cd => cd.id === c.id);
+                  if (!card) return null;
                   const mainCount = getCardCount(c.id, mainSpecials);
                   const subCount = getCardCount(c.id, subSpecials);
                   const isSelected = specialMode === 'main' ? mainCount > 0 : subCount > 0;
                   const count = specialMode === 'main' ? mainCount : subCount;
+                  const Icon = card.type === 'attack' ? Sword : Shield;
+                  const isMainSpecial = mainCount > 0;
+                  const isSubSpecial = subCount > 0;
+
+                  let borderStyle = {};
+                  if (isMainSpecial) {
+                    borderStyle = { border: '2px solid #f5d76e', boxShadow: '0 0 10px rgba(245, 215, 110, 0.4)' };
+                  } else if (isSubSpecial) {
+                    borderStyle = { border: '2px solid #7dd3fc', boxShadow: '0 0 10px rgba(125, 211, 252, 0.4)' };
+                  }
 
                   return (
                     <div
                       key={c.id}
-                      style={getCardStyle(c.id)}
                       onClick={() => handleCardClick(c.id, false)}
                       onContextMenu={(e) => {
                         e.preventDefault();
                         handleCardClick(c.id, true);
                       }}
-                      onMouseEnter={(e) => {
-                        if (c.traits && c.traits.length > 0) {
-                          cardTooltipTimerRef.current = setTimeout(() => {
-                            setHoveredCard(c);
-                            setShowCardTooltip(true);
-                            const rect = e.currentTarget.getBoundingClientRect();
-                            setTooltipPosition({ x: rect.right + 10, y: rect.top });
-                          }, 300);
-                        }
-                      }}
-                      onMouseLeave={() => {
-                        if (cardTooltipTimerRef.current) {
-                          clearTimeout(cardTooltipTimerRef.current);
-                        }
-                        setShowCardTooltip(false);
-                        setHoveredCard(null);
+                      className={`game-card-large ${card.type === 'attack' ? 'attack' : 'defense'}`}
+                      style={{
+                        cursor: 'pointer',
+                        transform: 'scale(0.65)',
+                        transformOrigin: 'top left',
+                        marginRight: '-52px',
+                        marginBottom: '-50px',
+                        transition: 'all 0.15s ease',
+                        ...borderStyle,
                       }}
                     >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <span style={{
-                            fontWeight: 600,
-                            color: c.type === 'attack' ? '#f87171' : '#60a5fa',
-                            fontSize: '14px',
-                          }}>
-                            {c.name}
-                          </span>
-                          {isSelected && (
-                            <span style={{
-                              fontSize: '11px',
-                              padding: '2px 6px',
-                              borderRadius: '4px',
-                              background: specialMode === 'main' ? 'rgba(245, 215, 110, 0.3)' : 'rgba(125, 211, 252, 0.3)',
-                              color: specialMode === 'main' ? '#f5d76e' : '#7dd3fc',
-                            }}>
-                              x{count}
-                            </span>
-                          )}
-                          {c.traits && c.traits.length > 0 && (
-                            <div style={{ display: 'flex', gap: '4px' }}>
-                              {c.traits.map((trait, idx) => (
-                                <span
-                                  key={idx}
-                                  style={{
-                                    fontSize: '10px',
-                                    padding: '1px 4px',
-                                    borderRadius: '3px',
-                                    background: 'rgba(251, 191, 36, 0.2)',
-                                    color: '#fbbf24',
-                                  }}
-                                  onMouseEnter={(e) => handleTraitMouseEnter(e, trait)}
-                                  onMouseLeave={handleTraitMouseLeave}
-                                >
-                                  {trait}
-                                </span>
-                              ))}
-                            </div>
-                          )}
+                      <div className="card-cost-badge-floating" style={{
+                        color: isMainSpecial ? '#fcd34d' : isSubSpecial ? '#60a5fa' : '#fff',
+                        WebkitTextStroke: '1px #000'
+                      }}>
+                        {card.actionCost}
+                      </div>
+                      {isSelected && (
+                        <div style={{
+                          position: 'absolute',
+                          top: '8px',
+                          right: '8px',
+                          background: specialMode === 'main' ? '#f5d76e' : '#7dd3fc',
+                          color: '#000',
+                          padding: '2px 8px',
+                          borderRadius: '10px',
+                          fontSize: '12px',
+                          fontWeight: 700,
+                          zIndex: 10,
+                        }}>
+                          x{count}
                         </div>
-                        <div style={{ display: 'flex', gap: '12px', fontSize: '12px', color: '#9fb6ff' }}>
-                          <span>AP <b>{c.ap}</b></span>
-                          <span>속도 <b>{c.speed}</b></span>
-                          <span style={{ color: '#9ca3af', minWidth: '100px' }}>{c.desc}</span>
+                      )}
+                      <div className="card-stats-sidebar">
+                        {card.damage != null && card.damage > 0 && (
+                          <div className="card-stat-item attack">⚔️{card.damage}{card.hits ? `×${card.hits}` : ''}</div>
+                        )}
+                        {card.block != null && card.block > 0 && (
+                          <div className="card-stat-item defense">🛡️{card.block}</div>
+                        )}
+                        <div className="card-stat-item speed">⏱️{card.speedCost}</div>
+                      </div>
+                      <div className="card-header" style={{ display: 'flex', justifyContent: 'center' }}>
+                        <div className="font-black text-sm" style={{
+                          color: isMainSpecial ? '#fcd34d' : isSubSpecial ? '#7dd3fc' : '#fff'
+                        }}>
+                          {card.name}
                         </div>
+                      </div>
+                      <div className="card-icon-area">
+                        <Icon size={50} className="text-white opacity-80" />
+                      </div>
+                      <div className="card-footer">
+                        {card.traits && card.traits.length > 0 && <TraitBadgeList traits={card.traits} />}
+                        <span className="card-description">{card.description || ''}</span>
                       </div>
                     </div>
                   );
@@ -810,68 +843,6 @@ export function CharacterSheet({ onClose }) {
             </div>
           </div>
 
-          {/* 카드 특성 툴팁 */}
-          {showCardTooltip && hoveredCard && hoveredCard.traits && (
-            <div
-              ref={tooltipRef}
-              style={{
-                position: 'fixed',
-                left: tooltipPosition.x,
-                top: tooltipPosition.y,
-                background: 'rgba(15, 20, 30, 0.98)',
-                border: '1px solid rgba(251, 191, 36, 0.6)',
-                borderRadius: '8px',
-                padding: '12px 16px',
-                zIndex: 10002,
-                maxWidth: '300px',
-                boxShadow: '0 4px 20px rgba(0, 0, 0, 0.5)',
-              }}
-            >
-              <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#fbbf24', marginBottom: '8px' }}>
-                {hoveredCard.name} - 특성
-              </div>
-              {hoveredCard.traits.map((trait, idx) => {
-                const traitData = TRAITS[trait];
-                return (
-                  <div key={idx} style={{ marginBottom: '6px' }}>
-                    <span style={{ color: '#fbbf24' }}>{trait}</span>
-                    {traitData && (
-                      <div style={{ fontSize: '12px', color: '#9ca3af', marginTop: '2px' }}>
-                        {traitData.description}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-
-          {/* 개성 특성 툴팁 */}
-          {hoveredTrait && (
-            <div
-              style={{
-                position: 'fixed',
-                left: tooltipPosition.x,
-                top: tooltipPosition.y,
-                background: 'rgba(15, 20, 30, 0.98)',
-                border: '1px solid rgba(251, 191, 36, 0.6)',
-                borderRadius: '8px',
-                padding: '12px 16px',
-                zIndex: 10002,
-                maxWidth: '280px',
-                boxShadow: '0 4px 20px rgba(0, 0, 0, 0.5)',
-              }}
-            >
-              <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#fbbf24', marginBottom: '4px' }}>
-                {hoveredTrait}
-              </div>
-              {TRAITS[hoveredTrait] && (
-                <div style={{ fontSize: '12px', color: '#9ca3af' }}>
-                  {TRAITS[hoveredTrait].description}
-                </div>
-              )}
-            </div>
-          )}
         </div>
       )}
     </div>
