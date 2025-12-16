@@ -1999,40 +1999,7 @@ body {
   transition: none !important;
   z-index: auto !important;
   margin-right: 0 !important;
-  width: 154px !important;
-  height: 200px !important;
   transform: none !important;
-}
-
-.game-card-large.no-hover .card-header,
-.game-card-large.no-hover:hover .card-header,
-.game-card-large.no-hover:hover:not(.disabled) .card-header {
-  font-size: 0.875rem !important;
-}
-
-.game-card-large.no-hover .card-icon-area svg,
-.game-card-large.no-hover:hover .card-icon-area svg,
-.game-card-large.no-hover:hover:not(.disabled) .card-icon-area svg {
-  width: 50px !important;
-  height: 50px !important;
-}
-
-.game-card-large.no-hover .card-footer,
-.game-card-large.no-hover:hover .card-footer,
-.game-card-large.no-hover:hover:not(.disabled) .card-footer {
-  padding: 10px 12px !important;
-  font-size: 0.875rem !important;
-}
-
-.game-card-large.no-hover .card-stat-item,
-.game-card-large.no-hover:hover .card-stat-item,
-.game-card-large.no-hover:hover:not(.disabled) .card-stat-item {
-  font-size: 1rem !important;
-}
-
-.game-card-large.no-hover .card-description,
-.game-card-large.no-hover:hover .card-description {
-  font-size: 0.75rem !important;
 }
 
 .game-card-large.no-hover,

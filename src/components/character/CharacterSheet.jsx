@@ -702,7 +702,7 @@ export function CharacterSheet({ onClose }) {
                     return (
                       <div
                         key={`selected-${cardId}-${idx}`}
-                        style={{ transform: 'scale(0.7)', transformOrigin: 'top left', width: '108px', height: '140px' }}
+                        style={{ transform: 'scale(0.85)', transformOrigin: 'top left', width: '131px', height: '170px' }}
                       >
                         <div
                           onClick={() => handleCardClick(cardId, true)}
@@ -775,7 +775,7 @@ export function CharacterSheet({ onClose }) {
                   return (
                     <div
                       key={c.id}
-                      style={{ transform: 'scale(0.65)', transformOrigin: 'top left', width: '100px', height: '130px' }}
+                      style={{ transform: 'scale(0.8)', transformOrigin: 'top left', width: '123px', height: '160px' }}
                     >
                       <div
                         onClick={() => handleCardClick(c.id, false)}
