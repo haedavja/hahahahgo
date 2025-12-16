@@ -39,9 +39,21 @@ export function addToken(entity, tokenId, stacks = 1) {
     const cancelled = cancelTokens(tokens, tokenId, oppositeTokenId, stacks);
     if (cancelled.cancelled > 0) {
       logs.push(`${token.name}와 ${TOKENS[oppositeTokenId].name}이(가) ${cancelled.cancelled}스택 상쇄되었습니다!`);
+
+      // 장전 토큰은 빈탄창만 제거하고 누적되지 않음
+      if (tokenId === 'loaded') {
+        return { tokens: cancelled.tokens, logs };
+      }
+
       return { tokens: cancelled.tokens, logs };
     }
     stacks = cancelled.remaining;
+
+    // 장전 토큰은 빈탄창이 없으면 추가되지 않음
+    if (tokenId === 'loaded') {
+      logs.push(`빈탄창이 없어 장전 효과 없음`);
+      return { tokens, logs };
+    }
   }
 
   // 토큰 추가
