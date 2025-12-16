@@ -1821,6 +1821,23 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       // linear 보간 (시곗바늘이 일정 속도로 이동)
       const currentProgress = startProgress + (targetProgress - startProgress) * progress;
 
+      // 방어자세 실시간 방어력 업데이트
+      if (growingDefenseRef.current) {
+        const currentTimelineSp = Math.floor((currentProgress / 100) * commonMaxSpeed);
+        const { activatedSp, totalDefenseApplied = 0 } = growingDefenseRef.current;
+        const totalDefenseNeeded = Math.max(0, currentTimelineSp - activatedSp);
+        const defenseDelta = totalDefenseNeeded - totalDefenseApplied;
+        if (defenseDelta > 0) {
+          const currentPlayer = battleRef.current?.player || player;
+          const newBlock = (currentPlayer.block || 0) + defenseDelta;
+          actions.setPlayer({ ...currentPlayer, block: newBlock, def: true });
+          if (battleRef.current) {
+            battleRef.current.player = { ...battleRef.current.player, block: newBlock, def: true };
+          }
+          growingDefenseRef.current.totalDefenseApplied = totalDefenseNeeded;
+        }
+      }
+
       // flushSync로 강제 동기 렌더링 (방어자세 실시간 업데이트용)
       flushSync(() => {
         actions.setTimelineProgress(currentProgress);
