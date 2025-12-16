@@ -286,7 +286,7 @@ export const CARDS = [
     traits: [],
     cardCategory: "gun",
     onPlay: (battle, actions) => {
-      actions.removeTokenFromPlayer('empty_chamber', 'permanent', 99);
+      // 장전 효과: loaded 토큰이 empty_chamber를 상쇄
       actions.addTokenToPlayer('loaded', 1);
       actions.addTokenToPlayer('armor_piercing', 1);
     }
@@ -303,7 +303,7 @@ export const CARDS = [
     traits: [],
     cardCategory: "gun",
     onPlay: (battle, actions) => {
-      actions.removeTokenFromPlayer('empty_chamber', 'permanent', 99);
+      // 장전 효과: loaded 토큰이 empty_chamber를 상쇄
       actions.addTokenToPlayer('loaded', 1);
       actions.addTokenToPlayer('incendiary', 1);
     }
@@ -320,8 +320,7 @@ export const CARDS = [
     traits: [],
     cardCategory: "gun",
     onPlay: (battle, actions) => {
-      // 빈탄창 명시적 제거 (토큰 상쇄 클로저 문제 우회)
-      actions.removeTokenFromPlayer('empty_chamber', 'permanent', 99);
+      // 장전 효과: loaded 토큰이 empty_chamber를 상쇄
       actions.addTokenToPlayer('loaded', 1);
     }
   },
