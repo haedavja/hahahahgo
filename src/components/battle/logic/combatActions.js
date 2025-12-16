@@ -3,6 +3,7 @@ import { applyTokenEffectsToCard, applyTokenEffectsOnDamage, consumeTokens } fro
 import {
   processPreAttackSpecials,
   processPostAttackSpecials,
+  processCardCreationSpecials,
   shouldIgnoreBlock,
   calculateGrowingDefense,
   rollCritical,
@@ -382,6 +383,17 @@ export function applyAttack(attacker, defender, card, attackerName, battleContex
     }
   }
 
+  // 카드 창조 효과 처리 (플레쉬: 피해 입히면 3장의 공격 카드 창조)
+  const cardCreationResult = processCardCreationSpecials({
+    card,
+    actorName: attackerName,
+    damageDealt: totalDealt,
+    allCards: battleContext.allCards || []
+  });
+
+  allEvents.push(...cardCreationResult.events);
+  allLogs.push(...cardCreationResult.logs);
+
   return {
     attacker: currentAttacker,
     defender: currentDefender,
@@ -389,7 +401,8 @@ export function applyAttack(attacker, defender, card, attackerName, battleContex
     taken: totalTaken,
     events: allEvents,
     logs: allLogs,
-    isCritical  // 치명타 여부 반환 (토큰 효과용)
+    isCritical,  // 치명타 여부 반환 (토큰 효과용)
+    createdCards: cardCreationResult.createdCards  // 창조된 카드 배열
   };
 }
 
@@ -441,7 +454,8 @@ export function applyAction(state, actor, card, battleContext = {}) {
       taken: result.taken,
       events: result.events,
       updatedState,
-      isCritical: result.isCritical  // 치명타 여부 전달 (토큰 효과용)
+      isCritical: result.isCritical,  // 치명타 여부 전달 (토큰 효과용)
+      createdCards: result.createdCards || []  // 창조된 카드 배열
     };
   }
 

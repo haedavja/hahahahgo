@@ -373,7 +373,7 @@ export function calculateGrowingDefense(card, ticksPassed) {
 /**
  * 카드 창조 효과 처리 (플레쉬, 브리치 등)
  * @param {Object} params
- * @returns {Object} { createCard, events, logs }
+ * @returns {Object} { createdCards, events, logs }
  */
 export function processCardCreationSpecials({
   card,
@@ -383,26 +383,32 @@ export function processCardCreationSpecials({
 }) {
   const events = [];
   const logs = [];
-  let createCard = null;
+  const createdCards = [];
 
-  // === createAttackOnHit: 피해 입히면 공격 카드 창조 (플레쉬) ===
+  // === createAttackOnHit: 피해 입히면 공격 카드 3장 창조 (플레쉬) ===
   if (hasSpecial(card, 'createAttackOnHit') && damageDealt > 0) {
     // 공격 카드 중에서 랜덤 선택
     const attackCards = allCards.filter(c => c.type === 'attack' && c.id !== card.id);
     if (attackCards.length > 0) {
-      const randomCard = attackCards[Math.floor(Math.random() * attackCards.length)];
-      createCard = {
-        ...randomCard,
-        isGhost: true, // 유령카드로 생성
-        createdBy: card.id
-      };
-      const msg = `✨ ${card.name}: 피해 성공! ${randomCard.name} 창조!`;
+      // 3장의 공격 카드 창조
+      for (let i = 0; i < 3; i++) {
+        const randomCard = attackCards[Math.floor(Math.random() * attackCards.length)];
+        const newCard = {
+          ...randomCard,
+          isGhost: true, // 유령카드로 생성
+          createdBy: card.id,
+          createdId: `${randomCard.id}_created_${Date.now()}_${i}`
+        };
+        createdCards.push(newCard);
+      }
+      const cardNames = createdCards.map(c => c.name).join(', ');
+      const msg = `✨ ${card.name}: 피해 성공! 3장의 공격 카드 창조! (${cardNames})`;
       events.push({ actor: actorName, card: card.name, type: 'create', msg });
       logs.push(msg);
     }
   }
 
-  return { createCard, events, logs };
+  return { createdCards, events, logs };
 }
 
 // =====================

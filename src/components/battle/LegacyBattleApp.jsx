@@ -1931,7 +1931,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       queue: currentBattle.queue,
       currentQIndex: currentBattle.qIndex,
       remainingEnergy: calculatedRemainingEnergy,  // 플레이어 치명타 확률용 남은 에너지
-      enemyRemainingEnergy: calculatedEnemyRemainingEnergy  // 적 치명타 확률용 남은 에너지
+      enemyRemainingEnergy: calculatedEnemyRemainingEnergy,  // 적 치명타 확률용 남은 에너지
+      allCards: CARDS  // 카드 창조용 전체 카드 풀
     };
 
     const actionResult = applyAction(tempState, a.actor, a.card, battleContext);
@@ -1948,6 +1949,23 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         actor: a.actor,
         actionResult
       });
+    }
+
+    // 플레쉬 등 카드 창조 효과: 브리치처럼 3장 중 1장 선택
+    if (actionResult.createdCards && actionResult.createdCards.length > 0 && a.actor === 'player') {
+      addLog(`✨ "${a.card.name}" 발동! 카드를 선택하세요.`);
+
+      // 브리치 선택 상태 설정 (게임 일시정지) - 브리치와 동일한 UI 재사용
+      const breachState = {
+        cards: actionResult.createdCards,
+        breachSp: a.sp,
+        breachCard: { ...a.card, breachSpOffset: 1 }  // +1 속도로 삽입
+      };
+      breachSelectionRef.current = breachState;
+      setBreachSelection(breachState);
+
+      // 선택 중에는 stepOnce 진행을 멈춤 (사용자가 선택할 때까지)
+      return;
     }
 
     // 방어자세 성장 방어력 적용 (이전에 발동된 growingDefense가 있으면 타임라인 진행에 따라 방어력 추가)
