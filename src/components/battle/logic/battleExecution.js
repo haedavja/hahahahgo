@@ -175,17 +175,17 @@ export function executeCardActionCore(params) {
     return cardQueueIndex > currentQIndex;
   }).length;
 
-  // 현재까지 사용된 에너지 계산 (가이러스 룰렛 등 실시간 남은 에너지 기반 효과용)
-  const executedPlayerCards = queue.slice(0, currentQIndex).filter(q => q.actor === 'player');
-  const energyUsedSoFar = executedPlayerCards.reduce((sum, q) => sum + (q.card?.actionCost || 0), 0);
+  // 진행 단계 최종 남은 행동력 계산 (가이러스 룰렛: 모든 선택 카드 비용 차감 후)
+  const allPlayerCards = queue.filter(q => q.actor === 'player');
+  const totalEnergyUsed = allPlayerCards.reduce((sum, q) => sum + (q.card?.actionCost || 0), 0);
   const playerEnergyBudget = P.energy || P.maxEnergy || BASE_PLAYER_ENERGY;
-  const remainingEnergy = Math.max(0, playerEnergyBudget - energyUsedSoFar);
+  const remainingEnergy = Math.max(0, playerEnergyBudget - totalEnergyUsed);
 
-  // 적 남은 에너지 계산 (현재까지 실행된 카드 기준)
-  const executedEnemyCards = queue.slice(0, currentQIndex).filter(q => q.actor === 'enemy');
-  const enemyEnergyUsedSoFar = executedEnemyCards.reduce((sum, q) => sum + (q.card?.actionCost || 0), 0);
+  // 적 남은 에너지 계산
+  const allEnemyCards = queue.filter(q => q.actor === 'enemy');
+  const enemyTotalEnergyUsed = allEnemyCards.reduce((sum, q) => sum + (q.card?.actionCost || 0), 0);
   const enemyEnergyBudget = E.energy || E.maxEnergy || BASE_PLAYER_ENERGY;
-  const enemyRemainingEnergy = Math.max(0, enemyEnergyBudget - enemyEnergyUsedSoFar);
+  const enemyRemainingEnergy = Math.max(0, enemyEnergyBudget - enemyTotalEnergyUsed);
 
   const battleContext = {
     playerAttackCards,
