@@ -112,12 +112,13 @@ function calculateSingleHit(attacker, defender, card, attackerName, battleContex
 
   if (preProcessedResult) {
     // 이미 처리된 결과 사용 (다중 타격 시)
+    // modifiedCard만 재사용하고, attacker/defender는 전달된 값 사용 (이전 타격 결과 반영)
     modifiedCard = preProcessedResult.modifiedCard;
-    currentAttacker = { ...preProcessedResult.attacker };
-    currentDefender = { ...preProcessedResult.defender };
+    currentAttacker = { ...attacker };  // 전달된 attacker 사용 (이전 타격으로 업데이트된 상태)
+    currentDefender = { ...defender };  // 전달된 defender 사용 (이전 타격으로 업데이트된 상태)
     specialEvents = [];  // 첫 타격에서 이미 로그됨
     specialLogs = [];
-    attackerConsumedTokens = preProcessedResult.consumedTokens || [];
+    attackerConsumedTokens = [];  // 토큰은 첫 타격에서만 소모
   } else {
     // 첫 타격: 토큰 효과 및 pre-attack special 적용
     const tokenResult = isGhost
@@ -381,8 +382,6 @@ export function applyAttack(attacker, defender, card, attackerName, battleContex
   const preProcessedResult = firstHitResult.preProcessedResult;
   const modifiedCard = preProcessedResult?.modifiedCard || card;
   const hits = modifiedCard.hits || card.hits || 1;
-
-  console.log('[applyAttack] card.special:', card.special, 'modifiedCard.hits:', modifiedCard?.hits, 'card.hits:', card?.hits, 'final hits:', hits);
 
   // 추가 타격 수행 (hits - 1번, 첫 타격은 이미 수행함)
   for (let i = 1; i < hits; i++) {
