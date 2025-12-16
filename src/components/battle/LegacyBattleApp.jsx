@@ -2091,20 +2091,42 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       // 토큰: 카드 onPlay 효과 처리
       if (a.card.onPlay && typeof a.card.onPlay === 'function') {
         try {
-          // 치명타 시 토큰 스택 +1 래퍼
+          // 치명타 시 토큰 스택 +1 래퍼 + 최신 플레이어 상태 사용
           const isCritical = actionResult.isCritical;
-          const wrappedActions = isCritical ? {
+          const currentPlayerForToken = { ...P };
+          const tokenActions = {
             ...actions,
             addTokenToPlayer: (tokenId, stacks = 1) => {
-              addLog(`💥 치명타! ${tokenId} +1 강화`);
-              return actions.addTokenToPlayer(tokenId, stacks + 1);
+              const actualStacks = isCritical ? stacks + 1 : stacks;
+              if (isCritical) {
+                addLog(`💥 치명타! ${tokenId} +1 강화`);
+              }
+              const { addToken } = require('../../../lib/tokenUtils');
+              const result = addToken(currentPlayerForToken, tokenId, actualStacks);
+              P.tokens = result.tokens;
+              currentPlayerForToken.tokens = result.tokens;
+              actions.setPlayer({ ...P });
+              result.logs.forEach(log => addLog(log));
+              return result;
+            },
+            removeTokenFromPlayer: (tokenId, tokenType, stacks = 1) => {
+              const { removeToken } = require('../../../lib/tokenUtils');
+              const result = removeToken(currentPlayerForToken, tokenId, tokenType, stacks);
+              P.tokens = result.tokens;
+              currentPlayerForToken.tokens = result.tokens;
+              actions.setPlayer({ ...P });
+              result.logs.forEach(log => addLog(log));
+              return result;
             },
             addTokenToEnemy: (tokenId, stacks = 1) => {
-              addLog(`💥 치명타! ${tokenId} +1 강화`);
-              return actions.addTokenToEnemy(tokenId, stacks + 1);
+              const actualStacks = isCritical ? stacks + 1 : stacks;
+              if (isCritical) {
+                addLog(`💥 치명타! ${tokenId} +1 강화`);
+              }
+              return actions.addTokenToEnemy(tokenId, actualStacks);
             }
-          } : actions;
-          a.card.onPlay(battle, wrappedActions);
+          };
+          a.card.onPlay(battle, tokenActions);
         } catch (error) {
           console.error('[Token onPlay Error]', error);
         }
