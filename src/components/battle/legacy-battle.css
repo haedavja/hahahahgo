@@ -1998,10 +1998,6 @@ body {
   margin-right: 0 !important;
 }
 
-.game-card-large.no-hover:hover:not(.disabled) {
-  transform: scale(0.5) !important;
-}
-
 .game-card-large.no-hover .card-header,
 .game-card-large.no-hover:hover .card-header,
 .game-card-large.no-hover:hover:not(.disabled) .card-header {
