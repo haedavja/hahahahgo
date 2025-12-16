@@ -31,6 +31,19 @@ export function applyTokenEffectsToCard(card, entity, cardType) {
     entityTokens: entity.tokens
   });
 
+  // 빈탄창 체크 (총기 카드는 빈탄창 상태에서 데미지 0)
+  if (cardType === 'attack' && card.cardCategory === 'gun') {
+    const hasEmptyChamber = allTokens.some(t => t.effect?.type === 'EMPTY_CHAMBER');
+    const hasLoaded = allTokens.some(t => t.effect?.type === 'LOADED');
+
+    // 빈탄창이 있고 장전이 없으면 데미지 0
+    if (hasEmptyChamber && !hasLoaded) {
+      console.log('[EMPTY_CHAMBER] 빈탄창 상태로 총기 카드 데미지 0');
+      modifiedCard.damage = 0;
+      return { modifiedCard, consumedTokens: [] };
+    }
+  }
+
   // 공격력 증가 토큰
   if (cardType === 'attack' && modifiedCard.damage > 0) {
     let damageBoost = 0;

@@ -372,6 +372,75 @@ export const TOKENS = {
     emoji: '✨',
     description: '이번 턴 에테르 획득이 50% 감소한다.',
     effect: { type: 'HALF_ETHER', value: 0.5 }
+  },
+
+  // === 총기 관련 토큰 ===
+  empty_chamber: {
+    id: 'empty_chamber',
+    name: '빈탄창',
+    type: TOKEN_TYPES.PERMANENT,
+    category: TOKEN_CATEGORIES.NEGATIVE,
+    emoji: '🔫',
+    description: '사격 카드의 피해가 0이 된다. 장전으로 해소.',
+    effect: { type: 'EMPTY_CHAMBER', value: 1 }
+  },
+  loaded: {
+    id: 'loaded',
+    name: '장전',
+    type: TOKEN_TYPES.PERMANENT,
+    category: TOKEN_CATEGORIES.POSITIVE,
+    emoji: '🔫',
+    description: '빈탄창 디버프를 상쇄한다.',
+    effect: { type: 'LOADED', value: 1 }
+  },
+  armor_piercing: {
+    id: 'armor_piercing',
+    name: '철갑탄',
+    type: TOKEN_TYPES.USAGE,
+    category: TOKEN_CATEGORIES.POSITIVE,
+    emoji: '🎯',
+    description: '다음 사격 공격이 방어력을 무시한다.',
+    effect: { type: 'ARMOR_PIERCING', value: 1 }
+  },
+  incendiary: {
+    id: 'incendiary',
+    name: '소이탄',
+    type: TOKEN_TYPES.USAGE,
+    category: TOKEN_CATEGORIES.POSITIVE,
+    emoji: '🔥',
+    description: '다음 사격 공격이 화상을 입힌다.',
+    effect: { type: 'INCENDIARY', value: 1 }
+  },
+
+  // === 치명타/통찰 관련 토큰 ===
+  crit_boost: {
+    id: 'crit_boost',
+    name: '집중',
+    type: TOKEN_TYPES.PERMANENT,
+    category: TOKEN_CATEGORIES.POSITIVE,
+    emoji: '🎯',
+    description: '치명타 확률이 5% 증가한다.',
+    effect: { type: 'CRIT_BOOST', value: 5 }
+  },
+  focus: {
+    id: 'focus',
+    name: '정신집중',
+    type: TOKEN_TYPES.TURN,
+    category: TOKEN_CATEGORIES.POSITIVE,
+    emoji: '🧘',
+    description: '다음 턴 최대속도 8 증가, 카드 2장 더 사용 가능.',
+    effect: { type: 'FOCUS', value: 1 }
+  },
+
+  // === 회피 토큰 (기존에 없었음) ===
+  evasion: {
+    id: 'evasion',
+    name: '회피',
+    type: TOKEN_TYPES.USAGE,
+    category: TOKEN_CATEGORIES.POSITIVE,
+    emoji: '💨',
+    description: '공격을 1회 100% 확률로 피한다.',
+    effect: { type: 'DODGE', value: 1.0 }
   }
 };
 
@@ -397,7 +466,11 @@ export const TOKEN_CANCELLATION_MAP = {
 
   // 행동력 증가 ↔ 행동력 감소
   warmedUp: 'dizzy',
-  dizzy: 'warmedUp'
+  dizzy: 'warmedUp',
+
+  // 장전 ↔ 빈탄창
+  loaded: 'empty_chamber',
+  empty_chamber: 'loaded'
 };
 
 // 토큰 배지 색상 (UI용)

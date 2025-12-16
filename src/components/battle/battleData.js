@@ -231,6 +231,189 @@ export const CARDS = [
     special: "pushLastEnemyCard",
     pushAmount: 9
   },
+  {
+    id: "redoublement",
+    name: "르두블망",
+    type: "defense",
+    block: 6,
+    counter: 2,
+    speedCost: 8,
+    actionCost: 1,
+    iconKey: "shield",
+    description: "방어력 6, 반격 2회, 수세 1회. 빠른 연속 공격에 대응한다.",
+    traits: [],
+    onPlay: (battle, actions) => {
+      actions.addTokenToPlayer('guard', 1);
+    }
+  },
+  {
+    id: "grind",
+    name: "갈아내기",
+    type: "attack",
+    damage: 50,
+    speedCost: 20,
+    actionCost: 3,
+    iconKey: "flame",
+    description: "공격력 50, 방어력 무시. 순수 깡딜로 상대를 갈아버린다.",
+    traits: [],
+    special: "ignoreBlock"
+  },
+
+  // === 총기 카드 ===
+  {
+    id: "double_tap",
+    name: "더블 탭",
+    type: "attack",
+    damage: 8,
+    hits: 2,
+    speedCost: 4,
+    actionCost: 2,
+    iconKey: "flame",
+    description: "공격력 8x2. 빠른 연사로 두 번 사격한다.",
+    traits: [],
+    cardCategory: "gun"
+  },
+  {
+    id: "gyrus_roulette",
+    name: "가이러스 룰렛",
+    type: "attack",
+    damage: 5,
+    speedCost: 6,
+    actionCost: 1,
+    iconKey: "flame",
+    description: "남은 행동력 x2만큼 총알을 쏜다. 사용 후 빈탄창.",
+    traits: [],
+    special: "gyrusRoulette",
+    cardCategory: "gun"
+  },
+  {
+    id: "ap_load",
+    name: "철갑탄 장전",
+    type: "defense",
+    block: 0,
+    speedCost: 2,
+    actionCost: 1,
+    iconKey: "shield",
+    description: "장전 효과 + 다음 총격이 방어력을 무시한다.",
+    traits: [],
+    cardCategory: "gun",
+    onPlay: (battle, actions) => {
+      actions.addTokenToPlayer('loaded', 1);
+      actions.addTokenToPlayer('armor_piercing', 1);
+    }
+  },
+  {
+    id: "incendiary_load",
+    name: "소이탄 장전",
+    type: "defense",
+    block: 0,
+    speedCost: 2,
+    actionCost: 1,
+    iconKey: "shield",
+    description: "장전 효과 + 다음 총격이 화상을 입힌다.",
+    traits: [],
+    cardCategory: "gun",
+    onPlay: (battle, actions) => {
+      actions.addTokenToPlayer('loaded', 1);
+      actions.addTokenToPlayer('incendiary', 1);
+    }
+  },
+  {
+    id: "reload",
+    name: "장전",
+    type: "defense",
+    block: 0,
+    speedCost: 2,
+    actionCost: 0,
+    iconKey: "shield",
+    description: "빈탄창 디버프를 제거한다.",
+    traits: [],
+    cardCategory: "gun",
+    onPlay: (battle, actions) => {
+      actions.addTokenToPlayer('loaded', 1);
+    }
+  },
+  {
+    id: "hawks_eye",
+    name: "매의 눈",
+    type: "defense",
+    block: 0,
+    speedCost: 3,
+    actionCost: 2,
+    iconKey: "shield",
+    description: "통찰 +1, 치명타율 +5%를 영구히 얻는다.",
+    traits: [],
+    onPlay: (battle, actions) => {
+      actions.addTokenToPlayer('insight', 1);
+      actions.addTokenToPlayer('crit_boost', 1);
+    }
+  },
+  {
+    id: "gun_headshot",
+    name: "헤드샷",
+    type: "attack",
+    damage: 30,
+    speedCost: 8,
+    actionCost: 1,
+    iconKey: "flame",
+    description: "공격력 30. 사용 후 빈탄창.",
+    traits: [],
+    special: "emptyAfterUse",
+    cardCategory: "gun"
+  },
+  {
+    id: "reload_spray",
+    name: "장전-난사",
+    type: "attack",
+    damage: 5,
+    hits: 4,
+    speedCost: 6,
+    actionCost: 3,
+    iconKey: "flame",
+    description: "장전 후 5피해를 4회 사격. 사용 후 빈탄창.",
+    traits: [],
+    special: "reloadSpray",
+    cardCategory: "gun",
+    onPlay: (battle, actions) => {
+      actions.addTokenToPlayer('loaded', 1);
+    }
+  },
+  {
+    id: "combo_style",
+    name: "연계",
+    type: "attack",
+    damage: 15,
+    speedCost: 5,
+    actionCost: 2,
+    iconKey: "sword",
+    description: "이번 턴 검격을 냈으면 추가 총격, 총격을 냈으면 추가 검격.",
+    traits: [],
+    special: "comboStyle"
+  },
+  {
+    id: "long_draw",
+    name: "롱빼",
+    type: "defense",
+    block: 7,
+    speedCost: 6,
+    actionCost: 1,
+    iconKey: "shield",
+    description: "방어력 7. 손패에 장전카드가 있으면 자동으로 장전한다.",
+    traits: [],
+    special: "autoReload"
+  },
+  {
+    id: "mental_focus",
+    name: "정신집중",
+    type: "defense",
+    block: 0,
+    speedCost: 1,
+    actionCost: 2,
+    iconKey: "shield",
+    description: "다음 턴 최대속도 8 증가, 카드 2장 더 사용 가능.",
+    traits: [],
+    special: "mentalFocus"
+  },
 
   // === 행동력 1 (일반) 5개 ===
   { id: "stab", name: "잽 찌르기", type: "attack", damage: 13, speedCost: 3, actionCost: 1, iconKey: "sword", description: "3의 시간을 소모해 13의 피해를 가합니다.", traits: [] },

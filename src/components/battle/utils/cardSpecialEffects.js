@@ -5,7 +5,7 @@
  * 각 카드의 special 필드에 정의된 고유 효과를 처리
  */
 
-import { addToken } from '../../../lib/tokenUtils';
+import { addToken, getAllTokens } from '../../../lib/tokenUtils';
 
 /**
  * 카드의 special 효과 존재 여부 확인
@@ -420,7 +420,18 @@ export function calculateCritChance(actor, remainingEnergy = 0) {
   const strength = actor.strength || 0;
   const energy = remainingEnergy || 0;
 
-  return baseCritChance + strength + energy;
+  // crit_boost 토큰 효과 (매의 눈 등)
+  let critBoostFromTokens = 0;
+  if (actor.tokens) {
+    const allTokens = getAllTokens(actor);
+    allTokens.forEach(token => {
+      if (token.effect?.type === 'CRIT_BOOST') {
+        critBoostFromTokens += (token.effect.value || 5) * (token.stacks || 1);
+      }
+    });
+  }
+
+  return baseCritChance + strength + energy + critBoostFromTokens;
 }
 
 /**
