@@ -24,6 +24,7 @@ import { startEnemyEtherAnimation } from '../utils/enemyEtherAnimation';
 import { processEtherTransfer } from '../utils/etherTransferProcessing';
 import { processVictoryDefeatTransition } from '../utils/victoryDefeatTransition';
 import { calculatePassiveEffects, applyTurnEndEffects } from '../../../lib/relicEffects';
+import { addToken, removeToken } from '../../../lib/tokenUtils';
 
 // =====================
 // 타이밍 상수 (밀리초)
@@ -259,7 +260,6 @@ export function executeCardActionCore(params) {
               addLog(`💥 치명타! ${tokenId} +1 강화`);
             }
             // 현재 플레이어 상태(P)를 사용하여 토큰 추가
-            const { addToken } = require('../../../lib/tokenUtils');
             const result = addToken(currentPlayerForToken, tokenId, actualStacks);
             // 결과를 P에 반영하고 dispatch
             P.tokens = result.tokens;
@@ -270,7 +270,6 @@ export function executeCardActionCore(params) {
           },
           removeTokenFromPlayer: (tokenId, tokenType, stacks = 1) => {
             // 현재 플레이어 상태(P)를 사용하여 토큰 제거
-            const { removeToken } = require('../../../lib/tokenUtils');
             const result = removeToken(currentPlayerForToken, tokenId, tokenType, stacks);
             // 결과를 P에 반영하고 dispatch
             P.tokens = result.tokens;

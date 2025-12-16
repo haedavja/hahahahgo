@@ -1,5 +1,6 @@
 import { hasTrait } from '../utils/battleUtils';
 import { applyTokenEffectsToCard, applyTokenEffectsOnDamage, consumeTokens } from '../../../lib/tokenEffects';
+import { addToken } from '../../../lib/tokenUtils';
 import {
   processPreAttackSpecials,
   processPostAttackSpecials,
@@ -497,7 +498,6 @@ export function applyAction(state, actor, card, battleContext = {}) {
 
     // tokensToAdd 처리
     if (cardPlayResult.tokensToAdd && cardPlayResult.tokensToAdd.length > 0) {
-      const { addToken } = require('../../../lib/tokenUtils');
       cardPlayResult.tokensToAdd.forEach(tokenInfo => {
         const tokenResult = addToken(updatedActor, tokenInfo.id, tokenInfo.stacks);
         updatedActor = { ...updatedActor, tokens: tokenResult.tokens };
@@ -533,7 +533,6 @@ export function applyAction(state, actor, card, battleContext = {}) {
 
     // tokensToAdd 처리
     if (cardPlayResult.tokensToAdd && cardPlayResult.tokensToAdd.length > 0) {
-      const { addToken } = require('../../../lib/tokenUtils');
       cardPlayResult.tokensToAdd.forEach(tokenInfo => {
         const tokenResult = addToken(updatedActor, tokenInfo.id, tokenInfo.stacks);
         updatedActor = { ...updatedActor, tokens: tokenResult.tokens };
