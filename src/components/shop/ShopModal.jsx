@@ -46,7 +46,7 @@ export function ShopModal({ merchantType = 'shop', onClose }) {
   const removeItem = useGameStore((state) => state.removeItem);
   const setPlayerHp = useGameStore((state) => state.setPlayerHp);
   const removeCardFromDeck = useGameStore((state) => state.removeCardFromDeck);
-  const updateCharacterBuild = useGameStore((state) => state.updateCharacterBuild);
+  const addOwnedCard = useGameStore((state) => state.addOwnedCard);
 
   const merchant = MERCHANT_TYPES[merchantType] || MERCHANT_TYPES.shop;
 
@@ -136,7 +136,7 @@ export function ShopModal({ merchantType = 'shop', onClose }) {
     showNotification(`${ITEMS[itemId]?.name}을(를) 구매했습니다!`, 'success');
   };
 
-  // 카드 구매 (보조특기에 추가 - 50% 확률로 손패에 등장)
+  // 카드 구매 (보유 카드에 추가 - 10% 확률로 손패에 등장)
   const handleBuyCard = (cardId, price) => {
     if (gold < price) {
       showNotification('골드가 부족합니다!', 'error');
@@ -144,9 +144,7 @@ export function ShopModal({ merchantType = 'shop', onClose }) {
     }
 
     addResources({ gold: -price });
-    // 보조특기에 추가 (50% 확률로 손패에 등장)
-    const currentSubSpecials = characterBuild?.subSpecials || [];
-    updateCharacterBuild(characterBuild?.mainSpecials || [], [...currentSubSpecials, cardId]);
+    addOwnedCard(cardId);
     setPurchasedCards((prev) => new Set([...prev, cardId]));
     const card = CARDS.find(c => c.id === cardId);
     showNotification(`${card?.name || cardId}을(를) 구매했습니다!`, 'success');
