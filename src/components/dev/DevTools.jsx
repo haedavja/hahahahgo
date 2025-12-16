@@ -54,6 +54,9 @@ export function DevTools({ isOpen, onClose, useNewDungeon, setUseNewDungeon, sho
     setDevForcedCrossroad,
     characterBuild,
     updateCharacterBuild,
+    addOwnedCard,
+    removeOwnedCard,
+    clearOwnedCards,
   } = useGameStore();
 
   if (!isOpen) return null;
@@ -215,6 +218,9 @@ export function DevTools({ isOpen, onClose, useNewDungeon, setUseNewDungeon, sho
             upgradeCardRarity={upgradeCardRarity}
             characterBuild={characterBuild}
             updateCharacterBuild={updateCharacterBuild}
+            addOwnedCard={addOwnedCard}
+            removeOwnedCard={removeOwnedCard}
+            clearOwnedCards={clearOwnedCards}
             showAllCards={showAllCards}
             setShowAllCards={setShowAllCards}
           />
@@ -1789,20 +1795,23 @@ function EventTab() {
 }
 
 // 카드 관리 탭
-function CardsTab({ cardUpgrades, upgradeCardRarity, characterBuild, updateCharacterBuild, showAllCards, setShowAllCards }) {
+function CardsTab({ cardUpgrades, upgradeCardRarity, characterBuild, updateCharacterBuild, addOwnedCard, removeOwnedCard, clearOwnedCards, showAllCards, setShowAllCards }) {
   const [selectedCardId, setSelectedCardId] = useState(CARDS[0]?.id || '');
   const [searchTerm, setSearchTerm] = useState('');
-  const [specialMode, setSpecialMode] = useState('main'); // 'main' or 'sub'
+  const [specialMode, setSpecialMode] = useState('main'); // 'main', 'sub', or 'owned'
 
   const mainSpecials = characterBuild?.mainSpecials || [];
   const subSpecials = characterBuild?.subSpecials || [];
+  const ownedCards = characterBuild?.ownedCards || [];
 
   // 카드 추가
   const addCard = (cardId) => {
     if (specialMode === 'main') {
       updateCharacterBuild([...mainSpecials, cardId], subSpecials);
-    } else {
+    } else if (specialMode === 'sub') {
       updateCharacterBuild(mainSpecials, [...subSpecials, cardId]);
+    } else {
+      addOwnedCard(cardId);
     }
   };
 
@@ -1827,8 +1836,10 @@ function CardsTab({ cardUpgrades, upgradeCardRarity, characterBuild, updateChara
   const clearAll = () => {
     if (specialMode === 'main') {
       updateCharacterBuild([], subSpecials);
-    } else {
+    } else if (specialMode === 'sub') {
       updateCharacterBuild(mainSpecials, []);
+    } else {
+      clearOwnedCards();
     }
   };
 
@@ -1916,6 +1927,38 @@ function CardsTab({ cardUpgrades, upgradeCardRarity, characterBuild, updateChara
             })
           )}
         </div>
+
+        <div style={{ fontSize: '0.875rem', color: '#94a3b8', marginBottom: '8px', marginTop: '12px' }}>
+          보유카드 ({ownedCards.length}개) - 10% 손패
+        </div>
+        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+          {ownedCards.length === 0 ? (
+            <span style={{ color: '#64748b', fontSize: '0.75rem' }}>없음</span>
+          ) : (
+            [...new Set(ownedCards)].map(cardId => {
+              const card = CARDS.find(c => c.id === cardId);
+              const count = getCount(cardId, ownedCards);
+              return (
+                <div
+                  key={cardId}
+                  onClick={() => removeOwnedCard(cardId)}
+                  style={{
+                    padding: '4px 10px',
+                    background: 'rgba(167, 139, 250, 0.15)',
+                    border: '1px solid #a78bfa',
+                    borderRadius: '6px',
+                    color: '#a78bfa',
+                    fontSize: '0.75rem',
+                    cursor: 'pointer',
+                  }}
+                  title="클릭하여 제거"
+                >
+                  {card?.name || cardId}{count > 1 ? ` x${count}` : ''} ✕
+                </div>
+              );
+            })
+          )}
+        </div>
       </div>
 
       {/* 모드 선택 & 초기화 */}
@@ -1949,6 +1992,21 @@ function CardsTab({ cardUpgrades, upgradeCardRarity, characterBuild, updateChara
           }}
         >
           보조특기 추가
+        </button>
+        <button
+          onClick={() => setSpecialMode('owned')}
+          style={{
+            flex: 1,
+            padding: '8px',
+            background: specialMode === 'owned' ? 'linear-gradient(135deg, #a78bfa, #7c3aed)' : '#1e293b',
+            border: specialMode === 'owned' ? 'none' : '1px solid #334155',
+            borderRadius: '6px',
+            color: specialMode === 'owned' ? '#fff' : '#94a3b8',
+            fontWeight: specialMode === 'owned' ? 'bold' : 'normal',
+            cursor: 'pointer',
+          }}
+        >
+          보유카드 추가
         </button>
         <button
           onClick={clearAll}

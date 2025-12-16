@@ -1160,6 +1160,32 @@ export const useGameStore = create((set, get) => ({
       },
     })),
 
+  // 보유 카드 제거 (한 장만)
+  removeOwnedCard: (cardId) =>
+    set((state) => {
+      const ownedCards = state.characterBuild?.ownedCards || [];
+      const idx = ownedCards.lastIndexOf(cardId);
+      if (idx === -1) return state;
+      const newOwned = [...ownedCards.slice(0, idx), ...ownedCards.slice(idx + 1)];
+      return {
+        ...state,
+        characterBuild: {
+          ...state.characterBuild,
+          ownedCards: newOwned,
+        },
+      };
+    }),
+
+  // 보유 카드 전체 제거
+  clearOwnedCards: () =>
+    set((state) => ({
+      ...state,
+      characterBuild: {
+        ...state.characterBuild,
+        ownedCards: [],
+      },
+    })),
+
   // 덱에서 카드 제거 (상점 서비스용)
   removeCardFromDeck: (cardId, isMainSpecial = false) =>
     set((state) => {
