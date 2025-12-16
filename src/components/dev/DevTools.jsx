@@ -1176,11 +1176,21 @@ function BattleTab({
 // 유물 관리 탭
 function RelicsTab({ relics, addRelic, removeRelic, setRelics }) {
   const [selectedRarity, setSelectedRarity] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
   const allRelics = getAllRelics();
 
-  const filteredRelics = selectedRarity === 'all'
-    ? allRelics
-    : allRelics.filter(r => r.rarity === selectedRarity);
+  const filteredRelics = allRelics.filter(r => {
+    // 등급 필터
+    const matchesRarity = selectedRarity === 'all' || r.rarity === selectedRarity;
+    // 검색 필터 (이름, 설명, 태그)
+    const query = searchQuery.toLowerCase().trim();
+    const matchesSearch = !query ||
+      r.name.toLowerCase().includes(query) ||
+      r.description.toLowerCase().includes(query) ||
+      r.id.toLowerCase().includes(query) ||
+      (r.tags && r.tags.some(tag => tag.toLowerCase().includes(query)));
+    return matchesRarity && matchesSearch;
+  });
 
   const hasRelic = (relicId) => relics.includes(relicId);
 
@@ -1278,6 +1288,32 @@ function RelicsTab({ relics, addRelic, removeRelic, setRelics }) {
             테스트 (일반 3개)
           </button>
         </div>
+      </div>
+
+      {/* 검색 */}
+      <div style={{ marginBottom: '12px' }}>
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="유물 검색 (이름, 설명, 태그, ID)"
+          style={{
+            width: '100%',
+            padding: '10px 12px',
+            background: '#1e293b',
+            border: '1px solid #334155',
+            borderRadius: '6px',
+            color: '#fff',
+            fontSize: '0.875rem',
+            outline: 'none',
+            boxSizing: 'border-box',
+          }}
+        />
+        {searchQuery && (
+          <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '4px' }}>
+            검색 결과: {filteredRelics.length}개
+          </div>
+        )}
       </div>
 
       {/* 등급 필터 */}
