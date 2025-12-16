@@ -1287,8 +1287,19 @@ export const useGameStore = create((set, get) => ({
         };
       }
 
+      // DEV: 텔레포트를 위해 임시로 노드를 selectable하고 cleared=false로 설정
+      const tempState = {
+        ...state,
+        map: {
+          ...state.map,
+          nodes: state.map.nodes.map(n =>
+            n.id === nodeId ? { ...n, selectable: true, cleared: false } : n
+          ),
+        },
+      };
+
       // travelToNode 로직 사용하여 노드 활성화
-      const result = travelToNode(state, nodeId);
+      const result = travelToNode(tempState, nodeId);
       if (!result) {
         // travelToNode가 실패하면 단순 이동만
         return {
