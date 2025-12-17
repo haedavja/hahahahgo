@@ -391,6 +391,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
   // addLog는 actions.addLog를 직접 사용 (stale closure 방지)
   const addLog = useCallback((m) => {
+    console.log('[addLog] 호출:', m, new Error().stack?.split('\n')[2]);
     actions.addLog(m);
   }, [actions]);
   const formatSpeedText = useCallback((baseSpeed) => {
@@ -2231,6 +2232,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     }
 
     // 이벤트 로그 출력
+    console.log('[executeCardAction] actionEvents:', actionEvents.length, actionEvents.map(e => e.msg));
     actionEvents.forEach(ev => {
       if (ev.msg) addLog(ev.msg);
     });
@@ -2973,6 +2975,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   };
 
   const runAll = () => {
+    console.log('[runAll] 호출됨');
     if (battle.qIndex >= battle.queue.length) return;
     playSound(1000, 150); // 전부실행 효과음
     const passiveRelicEffects = calculatePassiveEffects(orderedRelicList);
