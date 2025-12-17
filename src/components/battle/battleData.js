@@ -31,6 +31,7 @@ export const TRAITS = {
   insurance: { id: "insurance", name: "보험", type: "positive", weight: 1, description: "미등장 시 다음턴 확정 등장" },
   whetstone: { id: "whetstone", name: "숫돌", type: "positive", weight: 1, description: "다음 공격 피해 +3" },
   chain: { id: "chain", name: "연계", type: "positive", weight: 1, description: "다음 카드가 검격이면 타임라인 3 앞당김" },
+  creation: { id: "creation", name: "창조", type: "positive", weight: 1, description: "조건 충족 시 새로운 카드를 만들어낸다" },
 
   // 긍정 특성 (★★)
   hero: { id: "hero", name: "용사", type: "positive", weight: 2, description: "다음턴 상대 에테르 획득 방지" },
@@ -122,8 +123,8 @@ export const CARDS = [
     speedCost: 11,
     actionCost: 2,
     iconKey: "sword",
-    description: "공격력 6. 피해를 입히면 공격 카드를 창조하고, 다시 피해를 입히면 또 창조한다.",
-    traits: [],
+    description: "공격력 6. 피해를 입힐 때마다 공격 카드를 창조한다.",
+    traits: ["creation"],
     cardCategory: "fencing",
     special: "createAttackOnHit"
   },
@@ -476,8 +477,8 @@ export const CARDS = [
     speedCost: 5,
     actionCost: 2,
     iconKey: "shield",
-    description: "방어력 5. 공격과 방어 카드를 랜덤하게 3장 창조해 하나를 선택, 브리치 타임라인 +3 속도로 끼워넣음. 유령카드로 아이템/상징 효과 무시.",
-    traits: [],
+    description: "방어력 5. 공격/방어 카드 3장을 창조해 하나를 선택, 타임라인 +3 속도로 끼워넣음.",
+    traits: ["creation"],
     special: "breach",
     breachSpOffset: 3
   },
