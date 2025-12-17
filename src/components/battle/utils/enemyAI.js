@@ -158,7 +158,6 @@ export function generateEnemyActions(enemy, mode, enemyEtherSlots = 0, maxCards 
   const single = deck
     .filter(c => c.speedCost <= effectiveMaxSpeed && c.actionCost <= energyBudget)
     .sort((a, b) => a.speedCost - b.speedCost || a.actionCost - b.actionCost)[0];
-  console.log(`[generateEnemyActions] Selected single card: ${single ? single.name : 'none'}`);
   return single ? [single] : [];
 }
 

@@ -60,7 +60,6 @@ export function applyTurnEndRelicEffectsToNextTurn({
   if (turnEndRelicEffects.energyNextTurn > 0) {
     updatedNextTurnEffects.bonusEnergy += turnEndRelicEffects.energyNextTurn;
     addLog(`📜 상징 효과: 다음턴 행동력 +${turnEndRelicEffects.energyNextTurn}`);
-    console.log("[턴 종료 계약서 효과]", {
       "turnEndRelicEffects.energyNextTurn": turnEndRelicEffects.energyNextTurn,
       "updatedNextTurnEffects.bonusEnergy": updatedNextTurnEffects.bonusEnergy
     });

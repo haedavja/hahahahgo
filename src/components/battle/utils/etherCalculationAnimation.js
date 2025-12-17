@@ -41,7 +41,6 @@ export function startEtherCalculationAnimationSequence({
 
   const playerFinalEther = playerDeflation.gain;
 
-  console.log('[runAll 애니메이션]', {
     turnEtherAccumulated,
     comboName: pCombo?.name,
     playerComboMult,

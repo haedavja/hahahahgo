@@ -45,7 +45,6 @@ function createDamagePopup(target, value, type = 'damage') {
  * @param {Object} params - 파라미터
  * @param {Array} params.actionEvents - 처리할 액션 이벤트 목록
  * @param {Object} params.action - 현재 액션 (actor 정보 포함)
- * @param {Function} params.addLog - 로그 추가 함수
  * @param {Function} params.playHitSound - 피격 사운드 재생 함수
  * @param {Function} params.playBlockSound - 방어 사운드 재생 함수
  * @param {Object} params.actions - 상태 업데이트 함수 모음
@@ -53,13 +52,11 @@ function createDamagePopup(target, value, type = 'damage') {
 export function processActionEventAnimations({
   actionEvents,
   action,
-  addLog,  // 더 이상 사용하지 않음 (호출측에서 이미 로그 추가됨)
   playHitSound,
   playBlockSound,
   actions
 }) {
   actionEvents.forEach(ev => {
-    // 로그는 호출측에서 이미 추가됨 - 여기서는 애니메이션/사운드만 처리
 
     // 피격 효과 (hit, pierce 타입)
     if ((ev.type === 'hit' || ev.type === 'pierce') && ev.dmg > 0) {

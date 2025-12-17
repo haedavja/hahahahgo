@@ -46,7 +46,6 @@ export function processPlayerEtherAccumulation({
   const etherPerCard = Math.floor(getCardEtherGain(cardForEther) * passiveRelicEffects.etherMultiplier);
 
   const newTurnEther = turnEtherAccumulated + etherPerCard;
-  console.log(`[에테르 누적] ${turnEtherAccumulated} + ${etherPerCard} = ${newTurnEther} (카드: ${card.name})`);
   actions.setTurnEtherAccumulated(newTurnEther);
 
   // PT 증가 애니메이션

@@ -756,7 +756,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
   useEffect(() => {
     if (enemy && selectedAnomalies.length > 0 && !anomalyNotificationShownRef.current) {
-      console.log('[Anomaly System] Showing notification for', selectedAnomalies.length, 'anomalies');
 
       // 이변 로그 추가
       selectedAnomalies.forEach(({ anomaly, level }) => {
@@ -828,7 +827,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   }, [battle.phase]);
 
   useEffect(() => {
-    console.log('[턴시작 useEffect] 트리거됨:', {
       hasEnemy: !!enemy,
       phase: battle.phase,
       turnStartProcessed: turnStartProcessedRef.current,
@@ -840,17 +838,14 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       if (battle.phase !== 'select') {
         turnStartProcessedRef.current = false;
       }
-      console.log('[턴시작 useEffect] 조기 리턴 (enemy 또는 phase 조건)');
       return;
     }
 
     // 턴 시작 효과가 이미 처리되었으면 중복 실행 방지
     if (turnStartProcessedRef.current) {
-      console.log('[턴시작 useEffect] 조기 리턴 (이미 처리됨)');
       return;
     }
     turnStartProcessedRef.current = true;
-    console.log('[턴시작 useEffect] 턴 시작 처리 진행');
 
     actions.setFixedOrder(null);
     actions.setActionEvents({});
@@ -860,7 +855,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     // 상징 턴 시작 효과 적용 (피피한 갑옷 등)
     const turnStartRelicEffects = applyTurnStartEffects(orderedRelicList, nextTurnEffects);
 
-    console.log("[턴 시작 상징 효과]", {
       block: turnStartRelicEffects.block,
       heal: turnStartRelicEffects.heal,
       energy: turnStartRelicEffects.energy
@@ -889,7 +883,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       };
       reflectionResult = processReflections(playerForReflection, battle.reflectionState);
 
-      console.log("[턴 시작 성찰 효과]", {
         egos: playerEgos,
         traits: traitIds,
         effects: reflectionResult.effects.map(e => e.reflectionId),
@@ -919,7 +912,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     const energyPenalty = nextTurnEffects.energyPenalty || 0;
     const finalEnergy = Math.max(0, baseEnergy + energyBonus - energyPenalty);
 
-    console.log("[턴 시작 에너지 계산]", {
       baseEnergy,
       "nextTurnEffects.bonusEnergy": nextTurnEffects.bonusEnergy,
       "turnStartRelicEffects.energy": turnStartRelicEffects.energy,
@@ -1010,7 +1002,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     const refEnemyPlan = battleRef.current?.enemyPlan;
     const latestManuallyModified = battle.enemyPlan.manuallyModified || refEnemyPlan?.manuallyModified;
 
-    console.log('[턴시작 useEffect] 실행됨:', {
       closureManuallyModified: battle.enemyPlan.manuallyModified,
       refManuallyModified: refEnemyPlan?.manuallyModified,
       latestManuallyModified,
@@ -1021,14 +1012,11 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     });
 
     if (latestManuallyModified) {
-      console.log('[턴시작 useEffect] ★ manuallyModified=true → 기존 actions 유지');
       const currentActions = refEnemyPlan?.actions || battle.enemyPlan.actions;
       actions.setEnemyPlan({ mode, actions: currentActions, manuallyModified: true });
     } else {
       const slots = etherSlots(enemy?.etherPts || 0);
-      console.log('[턴시작 useEffect] ★ manuallyModified=false → 새 actions 생성:', { slots, enemyCount });
       const planActions = generateEnemyActions(enemy, mode, slots, enemyCount, enemyCount);
-      console.log('[턴시작 useEffect] 생성된 planActions:', planActions?.map(a => a.name || a.type));
       actions.setEnemyPlan({ mode, actions: planActions });
     }
   }, [battle.phase, enemy, enemyPlan.mode, enemyPlan.manuallyModified, nextTurnEffects]);
@@ -1047,7 +1035,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     // battleRef에서 최신 상태 확인 (closure는 stale할 수 있음)
     const currentEnemyPlan = battleRef.current?.enemyPlan;
 
-    console.log('[선택단계 useEffect] 트리거됨:', {
       phase: battle.phase,
       closureActionsLength: enemyPlan?.actions?.length,
       closureManuallyModified: enemyPlan?.manuallyModified,
@@ -1056,7 +1043,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     });
 
     if (battle.phase !== 'select') {
-      console.log('[선택단계 useEffect] 조기 리턴 (phase !== select)');
       return;
     }
 
@@ -1066,23 +1052,19 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     const latestMode = currentEnemyPlan?.mode || enemyPlan?.mode;
 
     if (!latestMode) {
-      console.log('[선택단계 useEffect] 조기 리턴 (mode 없음)');
       return;
     }
 
     // manuallyModified가 true면 재생성하지 않음 (카드 파괴 등으로 수동 변경된 경우)
     if ((latestActions && latestActions.length > 0) || latestManuallyModified) {
-      console.log('[선택단계 useEffect] ★ 조기 리턴 (actions 있음 또는 manuallyModified=true):', {
         hasActions: latestActions?.length > 0,
         manuallyModified: latestManuallyModified
       });
       return;
     }
 
-    console.log('[선택단계 useEffect] ★★★ 새 actions 생성! ★★★');
     const slots = etherSlots(enemy?.etherPts || 0);
     const generatedActions = generateEnemyActions(enemy, latestMode, slots, enemyCount, enemyCount);
-    console.log('[선택단계 useEffect] 생성된 actions:', generatedActions?.map(a => a.name || a.type));
     actions.setEnemyPlan({ mode: latestMode, actions: generatedActions });
   }, [battle.phase, enemyPlan?.mode, enemyPlan?.actions?.length, enemyPlan?.manuallyModified, enemy]);
 
@@ -1093,7 +1075,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   );
   const currentCombo = useMemo(() => {
     const combo = detectPokerCombo(battle.selected);
-    console.log('[currentCombo 업데이트]', {
       selectedCount: battle.selected.length,
       comboName: combo?.name || 'null'
     });
@@ -1303,7 +1284,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     const currentBattle = battleRef.current;
     const currentEnemyPlan = currentBattle.enemyPlan;
 
-    console.log('[startResolve] 호출됨:', {
       phase: currentBattle.phase,
       enemyActionsLength: currentEnemyPlan.actions?.length,
       manuallyModified: currentEnemyPlan.manuallyModified,
@@ -1314,12 +1294,10 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     // manuallyModified가 true면 재생성하지 않음 (카드 파괴 등으로 수동 변경된 경우)
     const hasActions = currentEnemyPlan.actions && currentEnemyPlan.actions.length > 0;
     const willRegenerate = !(hasActions || currentEnemyPlan.manuallyModified);
-    console.log('[startResolve] willRegenerate:', willRegenerate, { hasActions, manuallyModified: currentEnemyPlan.manuallyModified });
 
     const generatedActions = willRegenerate
         ? generateEnemyActions(enemy, currentEnemyPlan.mode, etherSlots(enemy.etherPts), enemyCount, enemyCount)
         : currentEnemyPlan.actions;
-    console.log('[startResolve] generatedActions 길이:', generatedActions?.length);
 
     // 명시적으로 새 enemyPlan 구성
     actions.setEnemyPlan({
@@ -1342,7 +1320,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
     // 빙결 효과: 플레이어 카드가 모두 먼저 발동 (battle.player에서 최신 값 확인)
     const currentPlayer = currentBattle.player;
-    console.log('[startResolve] 빙결 확인:', {
       enemyFrozen: currentPlayer.enemyFrozen,
       battleRefEnemyFrozen: battleRef.current?.player?.enemyFrozen,
       actionsLength: generatedActions?.length
@@ -1350,7 +1327,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     const q = currentPlayer.enemyFrozen
       ? createFixedOrder(enhancedSelected, generatedActions, effectiveAgility)
       : sortCombinedOrderStablePF(enhancedSelected, generatedActions, effectiveAgility, 0);
-    console.log('[startResolve] fixedOrder 생성됨:', {
       totalLength: q.length,
       playerCards: q.filter(x => x.actor === 'player').length,
       enemyCards: q.filter(x => x.actor === 'enemy').length
@@ -1368,7 +1344,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
           battleRef.current.frozenOrder = 1;
         }
       }
-      console.log('[startResolve] 빙결 효과 적용 - frozenOrder:', battleRef.current?.frozenOrder);
     }
     // 대응 단계 되감기용 스냅샷 저장 (전투당 1회)
     if (!rewindUsed) {
@@ -1405,7 +1380,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
   // respond 단계에서 적 카드 파괴 시 fixedOrder 업데이트
   useEffect(() => {
-    console.log('[fixedOrder 업데이트 useEffect] 실행:', {
       phase: battle.phase,
       manuallyModified: enemyPlan.manuallyModified,
       fixedOrderLength: fixedOrder?.length,
@@ -1417,24 +1391,20 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
     // fixedOrder에서 파괴된 적 카드 제거 (enemyPlan.actions에 없는 적 카드)
     const remainingEnemyActions = new Set(enemyPlan.actions);
-    console.log('[fixedOrder 업데이트] remainingEnemyActions Set 크기:', remainingEnemyActions.size);
 
     const updatedFixedOrder = fixedOrder.filter(item => {
       if (item.actor === 'player') return true;
       // 적 카드는 현재 enemyPlan.actions에 있는 것만 유지
       const isRemaining = remainingEnemyActions.has(item.card);
-      console.log('[fixedOrder 필터] item.card:', item.card?.name || item.card?.type, 'isRemaining:', isRemaining);
       return isRemaining;
     });
 
-    console.log('[fixedOrder 업데이트] 결과:', {
       originalLength: fixedOrder.length,
       updatedLength: updatedFixedOrder.length,
       removed: fixedOrder.length - updatedFixedOrder.length
     });
 
     if (updatedFixedOrder.length !== fixedOrder.length) {
-      console.log('[fixedOrder 업데이트] setFixedOrder 호출!');
       actions.setFixedOrder(updatedFixedOrder);
     }
   }, [battle.phase, enemyPlan.actions, enemyPlan.manuallyModified, fixedOrder]);
@@ -1445,7 +1415,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     const currentEnemyPlan = currentBattle?.enemyPlan;
     const currentFixedOrder = currentBattle?.fixedOrder || fixedOrder;
 
-    console.log('[DEBUG] beginResolveFromRespond called:', {
       phase: currentBattle?.phase,
       fixedOrderLength: currentFixedOrder?.length,
       fixedOrderEnemyCards: currentFixedOrder?.filter(x => x.actor === 'enemy').length,
@@ -1454,7 +1423,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     });
 
     if (currentBattle?.phase !== 'respond') {
-      console.log('[DEBUG] Phase check failed, phase is:', currentBattle?.phase);
       return;
     }
     if (!currentFixedOrder) return addLog('오류: 고정된 순서가 없습니다');
@@ -1472,14 +1440,12 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         if (item.actor === 'player') return true;
         return remainingActions.has(item.card);
       });
-      console.log('[DEBUG] 카드 파괴로 인한 fixedOrder 필터링:', {
         original: currentFixedOrder.length,
         filtered: effectiveFixedOrder.length
       });
     }
 
     const newQ = effectiveFixedOrder.map(x => ({ actor: x.actor, card: x.card, sp: x.sp }));
-    console.log('[DEBUG] newQ created:', {
       totalLength: newQ.length,
       enemyCardsInQueue: newQ.filter(x => x.actor === 'enemy').length
     });
@@ -1490,7 +1456,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
     // 빙결 효과 확인 - frozenOrder > 0이면 SP 정렬 건너뜀
     const frozenOrderCount = currentBattle?.frozenOrder || battleRef.current?.frozenOrder || 0;
-    console.log('[beginResolveFromRespond] 빙결 순서 확인:', {
       frozenOrder: frozenOrderCount,
       queueBefore: newQ.map(x => x.actor)
     });
@@ -1516,7 +1481,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     const collisionResult = processQueueCollisions(newQ, addLog);
     const finalQ = collisionResult.filteredQueue;
 
-    console.log('[beginResolveFromRespond] 최종 큐 순서:', finalQ.map(x => x.actor));
 
     // 이전 턴의 에테르 애니메이션 상태 초기화
     actions.setEtherCalcPhase(null);
@@ -1546,17 +1510,13 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     playProceedSound(); // 진행 버튼 사운드 재생
     actions.setQueue(finalQ);
     actions.setQIndex(0);
-    console.log('[DEBUG] About to setPhase to resolve');
     actions.setPhase('resolve');
-    console.log('[DEBUG] Phase set to resolve');
     addLog('▶ 진행 시작');
 
     // Phase 변경 확인용 타이머
     setTimeout(() => {
-      console.log('[DEBUG] 100ms after setPhase, current phase:', battle.phase);
     }, 100);
     setTimeout(() => {
-      console.log('[DEBUG] 500ms after setPhase, current phase:', battle.phase);
     }, 500);
 
     // 진행 단계 시작 시 플레이어와 적 상태 저장
@@ -1619,7 +1579,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     // 범람 계산은 최종값 표시에 포함하지 않음 (로그에만 표시)
     const playerFinalEther = actualGainedEther !== null ? actualGainedEther : playerDeflation.gain;
 
-    console.log('[에테르 계산 애니메이션]', {
       turnEtherAccumulated: totalEtherPts,
       comboName: pCombo?.name,
       basePlayerComboMult,
@@ -1666,7 +1625,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       multiplier: enemyDeflation.multiplier
     } : null);
 
-    console.log('[적 에테르 계산 애니메이션]', {
       enemyTurnEtherAccumulated,
       comboName: eCombo?.name,
       baseEnemyComboMult,
@@ -1788,7 +1746,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       currentBuild?.mainSpecials || [],
       newSubSpecials
     );
-    console.log('[CardReward] 카드 추가됨:', selectedCard.name, 'to subSpecials');
 
     // 모달 닫기 및 post 페이즈로 전환
     setCardReward(null);
@@ -2674,7 +2631,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     processActionEventAnimations({
       actionEvents,
       action: a,
-      addLog,
       playHitSound,
       playBlockSound,
       actions
@@ -2823,12 +2779,10 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
     // 에테르 최종 계산 (상징 배율 및 디플레이션 적용)
     // latestPlayer는 이미 finishTurn 시작 부분에서 battleRef로부터 가져옴
-    console.log('[finishTurn] etherMultiplier 확인:', {
       'battleRef.current?.player?.etherMultiplier': battleRef.current?.player?.etherMultiplier,
       'player.etherMultiplier': player.etherMultiplier,
       'latestPlayer.etherMultiplier': latestPlayer.etherMultiplier
     });
-    console.log('[finishTurn] 콤보 확인:', {
       'pComboEnd': pComboEnd,
       'finalComboMultiplier': finalComboMultiplier
     });
@@ -2850,7 +2804,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     const playerOverflow = playerEther.overflow;
     const enemyOverflow = enemyEther.overflow;
 
-    console.log('[finishTurn 계산]', {
       turnEtherAccumulated,
       comboName: pComboEnd?.name,
       basePlayerComboMult: playerEther.baseComboMult,
@@ -2866,7 +2819,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       comboUsageForThisCombo: player.comboUsageCount?.[pComboEnd?.name] || 0
     });
 
-    console.log('[finishTurn] STEP 1: 에테르 처리 시작');
 
     // 플레이어 에테르 획득 처리
     if (playerFinalEther > 0) {
@@ -2882,7 +2834,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
     actions.setEnemyEtherFinalValue(enemyFinalEther);
 
-    console.log('[finishTurn] STEP 2: 에테르 이동 시작');
 
     // 에테르 소지량 이동: 적용치 기준 (플레이어도 잃을 수 있음)
     const curPlayerPts = player.etherPts || 0;
@@ -2906,25 +2857,21 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       actions
     });
 
-    console.log('[finishTurn] STEP 3: 조합 카운트 업데이트');
 
     // 조합 사용 카운트 업데이트
     const newUsageCount = updateComboUsageCount(player.comboUsageCount, pComboEnd, queue, 'player');
     const newEnemyUsageCount = updateComboUsageCount(enemy.comboUsageCount, eComboEnd, [], 'enemy');
 
-    console.log('[finishTurn] STEP 4: etherMultiplier 초기화 시작', { latestPlayerMult: latestPlayer.etherMultiplier });
 
     // 턴 종료 상태 업데이트
     let newPlayerState;
     try {
-      console.log('[finishTurn] createTurnEndPlayerState 호출 전');
       newPlayerState = createTurnEndPlayerState(latestPlayer, {
         comboUsageCount: newUsageCount,
         etherPts: nextPlayerPts,
         etherOverflow: playerOverflow,
         etherMultiplier: 1  // 에테르 증폭 배율 초기화
       });
-      console.log('[finishTurn] createTurnEndPlayerState 호출 후:', {
         'before etherMultiplier': latestPlayer.etherMultiplier,
         'after etherMultiplier': newPlayerState.etherMultiplier
       });

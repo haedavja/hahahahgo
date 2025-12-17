@@ -483,7 +483,6 @@ export function executeCardActionCore(params) {
   processActionEventAnimations({
     actionEvents,
     action,
-    addLog,
     playHitSound,
     playBlockSound,
     actions

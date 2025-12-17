@@ -318,7 +318,6 @@ export function battleReducer(state, action) {
 
     // === 페이즈 ===
     case ACTIONS.SET_PHASE:
-      console.log('[REDUCER] SET_PHASE:', action.payload);
       if (action.payload === 'select') {
         console.trace('[STACK TRACE] SET_PHASE to select called from:');
       }

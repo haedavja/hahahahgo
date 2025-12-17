@@ -57,7 +57,6 @@ export function detectPokerCombo(cards) {
   }
 
   // 디버깅: 조합 감지 로그 (반환값 포함)
-  console.log('[detectPokerCombo] 결과:', {
     originalCount: cards.length,
     validCount: validCards.length,
     cards: validCards.map(c => ({ name: c.name, type: c.type, cost: c.actionCost })),

@@ -37,7 +37,6 @@ export function EtherBar({
   const tier = `x${safeSlots}`;
 
   // 디버깅: 값 확인
-  console.log('[EtherBar]', {
     pts,
     safePts,
     currentPts,

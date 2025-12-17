@@ -52,7 +52,6 @@ export function ItemSlots({ phase, battleActions, player, enemy, enemyPlan, batt
         // 최대값 초과 허용
         const beforeEnergy = newPlayer.energy || 0;
         newPlayer.energy = beforeEnergy + effect.value;
-        console.log('[turnEnergy] 에너지 충전:', { before: beforeEnergy, add: effect.value, after: newPlayer.energy });
         logMsg = `⚡ ${item.name}: 에너지 +${effect.value}! (현재: ${newPlayer.energy})`;
         break;
       }
@@ -102,7 +101,6 @@ export function ItemSlots({ phase, battleActions, player, enemy, enemyPlan, batt
           destroyedIndices.push(i);
         }
 
-        console.log('[cardDestroy] 파괴 시작:', {
           phase,
           originalCount: enemyPlan.actions.length,
           destroyCount,
@@ -130,7 +128,6 @@ export function ItemSlots({ phase, battleActions, player, enemy, enemyPlan, batt
           actions: newActions,
           manuallyModified: true
         };
-        console.log('[cardDestroy] setEnemyPlan 호출:', {
           currentActionsLength: currentActions.length,
           newActionsLength: newActions.length,
           manuallyModified: true
@@ -141,7 +138,6 @@ export function ItemSlots({ phase, battleActions, player, enemy, enemyPlan, batt
         // 이렇게 해야 다른 코드가 battleRef.current를 읽을 때 즉시 최신 값을 얻음
         if (battleRef?.current) {
           battleRef.current.enemyPlan = newEnemyPlan;
-          console.log('[cardDestroy] battleRef 즉시 업데이트 완료:', {
             refActionsLength: battleRef.current.enemyPlan.actions.length,
             refManuallyModified: battleRef.current.enemyPlan.manuallyModified
           });
@@ -149,7 +145,6 @@ export function ItemSlots({ phase, battleActions, player, enemy, enemyPlan, batt
 
         // 상태 업데이트 확인 (다음 렌더링 후)
         setTimeout(() => {
-          console.log('[cardDestroy] 상태 업데이트 확인 (100ms 후):', {
             battleRefPhase: battleRef?.current?.phase,
             battleRefManuallyModified: battleRef?.current?.enemyPlan?.manuallyModified,
             battleRefActionsLength: battleRef?.current?.enemyPlan?.actions?.length
@@ -213,7 +208,6 @@ export function ItemSlots({ phase, battleActions, player, enemy, enemyPlan, batt
           const enemyCards = currentFixedOrder.filter(x => x.actor === 'enemy');
           const frozenOrder = [...playerCards, ...enemyCards];
 
-          console.log('[cardFreeze] respond 단계에서 fixedOrder 재정렬:', {
             before: currentFixedOrder.map(x => x.actor),
             after: frozenOrder.map(x => x.actor)
           });
@@ -230,7 +224,6 @@ export function ItemSlots({ phase, battleActions, player, enemy, enemyPlan, batt
         break;
       }
       default:
-        console.log(`[아이템] 미구현 효과: ${effect.type}`);
         return;
     }
 
@@ -242,7 +235,6 @@ export function ItemSlots({ phase, battleActions, player, enemy, enemyPlan, batt
     if (battleRef?.current) {
       battleRef.current.player = newPlayer;
       battleRef.current.enemy = newEnemy;
-      console.log('[아이템] battleRef 즉시 업데이트:', {
         enemyFrozen: newPlayer.enemyFrozen,
         etherMultiplier: newPlayer.etherMultiplier
       });
@@ -269,7 +261,6 @@ export function ItemSlots({ phase, battleActions, player, enemy, enemyPlan, batt
     const latestPhase = getLatestPhase();
     const canUseNow = latestPhase === 'select' || latestPhase === 'respond';
 
-    console.log('[handleUseItem] 전투 아이템 사용 시도:', {
       item: item.name,
       propPhase: phase,
       latestPhase,
@@ -279,7 +270,6 @@ export function ItemSlots({ phase, battleActions, player, enemy, enemyPlan, batt
     if (item.usableIn === 'combat' && canUseNow) {
       applyCombatItemEffect(item, idx);
     } else if (item.usableIn === 'combat' && !canUseNow) {
-      console.log('[handleUseItem] resolve 단계에서 전투 아이템 사용 차단');
       battleActions.addLog('⚠️ 진행 중에는 아이템을 사용할 수 없습니다!');
     }
   };
