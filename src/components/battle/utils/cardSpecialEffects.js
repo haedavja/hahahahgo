@@ -190,6 +190,7 @@ export function processPreAttackSpecials({
   }
 
   // === gyrusRoulette: 행동력 1당 50% 확률로 2회 타격 ===
+  // 탄걸림은 이제 타격별 룰렛 시스템(processPerHitRoulette)에서 처리
   if (hasSpecial(card, 'gyrusRoulette')) {
     const remainingEnergy = battleContext.remainingEnergy || 0;
     // 행동력 1당 50% 확률로 1회 또는 2회 타격
@@ -205,7 +206,7 @@ export function processPreAttackSpecials({
     }
     hits = Math.max(1, hits);  // 최소 1회
     modifiedCard.hits = hits;
-    modifiedCard._addGunJam = true;  // 사용 후 탄걸림 플래그
+    // _addGunJam 제거됨 - 탄걸림은 타격별 룰렛에서 확률적으로 발생
     const who = attackerName === 'player' ? '플레이어' : '몬스터';
     const msg = `${who} • 🎰 ${card.name}: 행동력 ${remainingEnergy} → ${hits}회 사격! (🎲 보너스 ${bonusCount}회)`;
     events.push({ actor: attackerName, card: card.name, type: 'special', msg });
