@@ -433,6 +433,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const breachSelectionRef = useRef(null);
   const stepOnceRef = useRef(null); // stepOnce 함수 참조 (브리치 선택 후 진행 재개용)
   const timelineAnimationRef = useRef(null); // 타임라인 진행 애니메이션 ref
+  const isExecutingCardRef = useRef(false); // executeCardAction 중복 실행 방지
 
   // 카드 보상 선택 상태 (승리 후)
   const [cardReward, setCardReward] = useState(null); // { cards: [] }
@@ -2070,8 +2071,15 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   };
 
   const executeCardAction = async () => {
+    // 중복 실행 방지 (StrictMode 등에서 발생 가능)
+    if (isExecutingCardRef.current) return;
+    isExecutingCardRef.current = true;
+
     const currentBattle = battleRef.current;
-    if (currentBattle.qIndex >= currentBattle.queue.length) return;
+    if (currentBattle.qIndex >= currentBattle.queue.length) {
+      isExecutingCardRef.current = false;
+      return;
+    }
     const a = currentBattle.queue[currentBattle.qIndex];
 
     // battleRef에서 최신 player/enemy 상태 가져오기 (애니메이션 중 방어자세 방어력, 토큰 등 반영)
@@ -2286,6 +2294,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       setBreachSelection(breachState);
 
       // 선택 중에는 stepOnce 진행을 멈춤 (사용자가 선택할 때까지)
+      isExecutingCardRef.current = false;
       return;
     }
 
@@ -2588,6 +2597,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       setBreachSelection(breachState);
 
       // 브리치 선택 중에는 stepOnce 진행을 멈춤 (사용자가 선택할 때까지)
+      isExecutingCardRef.current = false;
       return;
     }
 
@@ -2677,8 +2687,14 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
     actions.setQIndex(newQIndex);
 
-    if (P.hp <= 0) { actions.setPostCombatOptions({ type: 'defeat' }); actions.setPhase('post'); return; }
+    if (P.hp <= 0) {
+      isExecutingCardRef.current = false;
+      actions.setPostCombatOptions({ type: 'defeat' });
+      actions.setPhase('post');
+      return;
+    }
     if (E.hp <= 0) {
+      isExecutingCardRef.current = false;
       processEnemyDeath({
         newQIndex,
         queue,
@@ -2691,6 +2707,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     }
 
     // 타임라인의 모든 카드 진행이 끝났을 때 에테르 계산 애니메이션은 useEffect에서 실행됨 (상태 업데이트 타이밍 보장)
+    isExecutingCardRef.current = false;
   };
 
   // 자동진행 기능 (stepOnceRef 사용으로 중복 실행 방지)
