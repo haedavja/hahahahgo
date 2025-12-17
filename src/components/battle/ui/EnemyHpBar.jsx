@@ -130,6 +130,7 @@ export const EnemyHpBar = ({
                     </div>
                   </div>
                 )}
+              </div>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px', marginTop: '-88px' }}>
               {groupedEnemyMembers.map((member, idx) => {
