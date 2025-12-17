@@ -5,6 +5,7 @@
  */
 
 import { COMBO_MULTIPLIERS, applyEtherDeflation } from "./etherCalculations";
+import { getAllTokens } from "../../../lib/tokenUtils";
 
 /**
  * 턴 종료 시 플레이어/적 에테르 최종 계산
@@ -59,7 +60,8 @@ export function calculateTurnEndEther({
     : { gain: enemyBeforeDeflation, multiplier: 1, usageCount: 0 };
 
   // half_ether 토큰 효과 적용 (헤드샷 등)
-  const hasHalfEther = enemy.tokens?.some(t => t.id === 'half_ether');
+  const enemyTokens = getAllTokens(enemy);
+  const hasHalfEther = enemyTokens.some(t => t.id === 'half_ether');
   const halfEtherMult = hasHalfEther ? 0.5 : 1;
   const enemyFinalEther = Math.floor(enemyDeflation.gain * halfEtherMult);
 
