@@ -92,6 +92,7 @@ export const CARDS = [
     iconKey: "shield",
     description: "방어력 6, 반격 2회, 수세 1회. 상대의 공격을 받아치며 반격한다.",
     traits: [],
+    cardCategory: "fencing",
     onPlay: (battle, actions) => {
       actions.addTokenToPlayer('guard', 1);
       actions.addTokenToPlayer('counter', 2);
@@ -107,6 +108,7 @@ export const CARDS = [
     iconKey: "shield",
     description: "방어력 5, 흐릿함 1회. 내 타임라인을 4씩 앞당긴다.",
     traits: [],
+    cardCategory: "fencing",
     special: "advanceTimeline",
     advanceAmount: 4,
     onPlay: (battle, actions) => {
@@ -123,6 +125,7 @@ export const CARDS = [
     iconKey: "sword",
     description: "공격력 17. 피해를 입히는데 성공하면 상대 타임라인 5 뒤로 밀림.",
     traits: [],
+    cardCategory: "fencing",
     special: "pushEnemyTimeline",
     pushAmount: 5
   },
@@ -136,6 +139,7 @@ export const CARDS = [
     iconKey: "sword",
     description: "공격력 6. 피해를 입히면 공격 카드를 창조하고, 다시 피해를 입히면 또 창조한다.",
     traits: [],
+    cardCategory: "fencing",
     special: "createAttackOnHit"
   },
   {
@@ -147,7 +151,8 @@ export const CARDS = [
     actionCost: 1,
     iconKey: "sword",
     description: "공격력 20. 분쇄 특성으로 상대 방어력에 2배 피해를 준다.",
-    traits: ["crush"]
+    traits: ["crush"],
+    cardCategory: "fencing"
   },
   {
     id: "thrust",
@@ -159,6 +164,7 @@ export const CARDS = [
     iconKey: "sword",
     description: "공격력 13, 무너짐 1회. 상대에게 취약을 부여한다.",
     traits: [],
+    cardCategory: "fencing",
     onPlay: (battle, actions) => {
       actions.addTokenToEnemy('vulnerable', 1);
     }
@@ -174,6 +180,7 @@ export const CARDS = [
     iconKey: "sword",
     description: "공격력 4, 2번 피해. 내 타임라인 1 앞당기고 피해 입히면 상대 타임라인 2 뒤로.",
     traits: [],
+    cardCategory: "fencing",
     special: "beatEffect",
     advanceAmount: 1,
     pushAmount: 2
@@ -188,6 +195,7 @@ export const CARDS = [
     iconKey: "sword",
     description: "공격력 5. 회피 1회, 공세 1회를 얻는다.",
     traits: [],
+    cardCategory: "fencing",
     onPlay: (battle, actions) => {
       actions.addTokenToPlayer('evasion', 1);
       actions.addTokenToPlayer('offense', 1);
@@ -203,6 +211,7 @@ export const CARDS = [
     iconKey: "shield",
     description: "타임라인 1 지날때마다 방어력 1씩 증가. 힘, 상태이상 무시.",
     traits: [],
+    cardCategory: "fencing",
     special: "growingDefense",
     ignoreStrength: true,
     ignoreStatus: true
@@ -217,6 +226,7 @@ export const CARDS = [
     iconKey: "sword",
     description: "공격력 19. 타임라인상 적의 마지막 카드를 9만큼 뒤로 민다.",
     traits: [],
+    cardCategory: "fencing",
     special: "pushLastEnemyCard",
     pushAmount: 9
   },
@@ -231,6 +241,7 @@ export const CARDS = [
     iconKey: "shield",
     description: "방어력 6, 반격 2회, 수세 1회. 빠른 연속 공격에 대응한다.",
     traits: [],
+    cardCategory: "fencing",
     onPlay: (battle, actions) => {
       actions.addTokenToPlayer('guard', 1);
     }
