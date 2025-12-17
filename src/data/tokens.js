@@ -420,6 +420,15 @@ export const TOKENS = {
     description: '타임라인에서 카드를 사용할 때마다 3 피해를 받는다.',
     effect: { type: 'BURN', value: 3 }
   },
+  jam_chance: {
+    id: 'jam_chance',
+    name: '탄걸림 확률',
+    type: TOKEN_TYPES.PERMANENT,
+    category: TOKEN_CATEGORIES.NEUTRAL,
+    emoji: '⚠️',
+    description: '총격 사용 시 스택 x 5% 확률로 빈탄창 발생. 장전 시 초기화.',
+    effect: { type: 'JAM_CHANCE', value: 5 }
+  },
 
   // === 치명타/통찰 관련 토큰 ===
   crit_boost: {

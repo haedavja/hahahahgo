@@ -89,12 +89,15 @@ export function processPreAttackSpecials({
     }
   }
 
-  // === reloadSpray: 장전 후 사격 (빈탄창 직접 제거) ===
+  // === reloadSpray: 장전 후 사격 (빈탄창 직접 제거 + 탄걸림 확률 초기화) ===
   if (hasSpecial(card, 'reloadSpray')) {
     // 빈탄창 직접 제거
     const result = removeToken(modifiedAttacker, 'empty_chamber', 'permanent', 99);
     modifiedAttacker.tokens = result.tokens;
-    if (result.logs.length > 0) {
+    // 탄걸림 확률 초기화
+    const jamResult = removeToken(modifiedAttacker, 'jam_chance', 'permanent', 99);
+    modifiedAttacker.tokens = jamResult.tokens;
+    if (result.logs.length > 0 || jamResult.logs.length > 0) {
       const who = attackerName === 'player' ? '플레이어' : '몬스터';
       const msg = `${who} • 🔫 ${card.name}: 장전! 빈탄창 해제!`;
       events.push({ actor: attackerName, card: card.name, type: 'special', msg });
@@ -596,6 +599,27 @@ export function processCardPlaySpecials({
   }
   if (card.type === 'attack' && card.cardCategory === 'gun') {
     tokensToAdd.push({ id: 'gunCombo', stacks: 1 });
+
+    // === 총격 빈탄창 확률 시스템 ===
+    const attackerTokens = attacker?.tokens || { usage: [], turn: [], permanent: [] };
+    const allAttackerTokens = [...(attackerTokens.usage || []), ...(attackerTokens.turn || []), ...(attackerTokens.permanent || [])];
+    const jamToken = allAttackerTokens.find(t => t.id === 'jam_chance');
+    const currentJamStacks = jamToken?.stacks || 0;
+    const jamChance = currentJamStacks * 0.05; // 스택당 5%
+
+    const who = attackerName === 'player' ? '플레이어' : '몬스터';
+
+    // 확률 판정
+    if (currentJamStacks > 0 && Math.random() < jamChance) {
+      // 빈탄창 발생!
+      tokensToAdd.push({ id: 'empty_chamber', stacks: 1 });
+      const msg = `${who} • ⚠️ ${card.name}: 탄걸림 발생! (${Math.round(jamChance * 100)}% 확률)`;
+      events.push({ actor: attackerName, card: card.name, type: 'jam', msg });
+      logs.push(msg);
+    }
+
+    // 총격 후 jam_chance 1스택 증가
+    tokensToAdd.push({ id: 'jam_chance', stacks: 1 });
   }
 
   // === comboStyle: 연계 토큰 기반으로 보너스 카드 발동 ===

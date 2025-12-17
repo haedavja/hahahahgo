@@ -332,6 +332,7 @@ export const CARDS = [
     onPlay: (battle, actions) => {
       // 빈탄창 직접 제거 후 추가 효과 적용
       actions.removeTokenFromPlayer('empty_chamber', 'permanent', 99);
+      actions.removeTokenFromPlayer('jam_chance', 'permanent', 99); // 탄걸림 확률 초기화
       actions.addTokenToPlayer('armor_piercing', 1);
     }
   },
@@ -350,6 +351,7 @@ export const CARDS = [
     onPlay: (battle, actions) => {
       // 빈탄창 직접 제거 후 추가 효과 적용
       actions.removeTokenFromPlayer('empty_chamber', 'permanent', 99);
+      actions.removeTokenFromPlayer('jam_chance', 'permanent', 99); // 탄걸림 확률 초기화
       actions.addTokenToPlayer('incendiary', 1);
     }
   },
@@ -367,6 +369,7 @@ export const CARDS = [
     onPlay: (battle, actions) => {
       // 빈탄창 직접 제거
       actions.removeTokenFromPlayer('empty_chamber', 'permanent', 99);
+      actions.removeTokenFromPlayer('jam_chance', 'permanent', 99); // 탄걸림 확률 초기화
     }
   },
   {
