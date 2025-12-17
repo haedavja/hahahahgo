@@ -621,14 +621,11 @@ export function processCardPlaySpecials({
     }
   }
 
-  // === mentalFocus: 다음 턴 최대속도 +8, 카드 2장 더 사용 가능 ===
+  // === mentalFocus: 정신집중 토큰 부여 ===
   if (hasSpecial(card, 'mentalFocus')) {
-    nextTurnEffects = {
-      maxSpeedBonus: 8,
-      extraCardPlay: 2
-    };
+    tokensToAdd.push({ id: 'focus', stacks: 1 });
     const who = attackerName === 'player' ? '플레이어' : '몬스터';
-    const msg = `${who} • 🧠 ${card.name}: 정신집중! 다음 턴 최대속도 +8, 카드 +2장!`;
+    const msg = `${who} • 🧘 ${card.name}: 정신집중!`;
     events.push({ actor: attackerName, card: card.name, type: 'special', msg });
     logs.push(msg);
   }

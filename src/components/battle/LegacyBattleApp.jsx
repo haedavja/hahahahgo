@@ -279,8 +279,13 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const enemyPlan = battle.enemyPlan;
   const enemyIndex = battle.enemyIndex;
 
-  // 동적 최대 카드 제출 수 (상징 효과 + nextTurnEffects.extraCardPlay)
-  const effectiveMaxSubmitCards = baseMaxSubmitCards + (battle.nextTurnEffects?.extraCardPlay || 0);
+  // 정신집중 토큰에서 추가 카드 사용 수 계산
+  const playerTokensForCardPlay = player?.tokens ? getAllTokens({ tokens: player.tokens }) : [];
+  const focusTokenForCardPlay = playerTokensForCardPlay.find(t => t.effect?.type === 'FOCUS');
+  const focusExtraCardPlayBonus = focusTokenForCardPlay ? 2 * (focusTokenForCardPlay.stacks || 1) : 0;
+
+  // 동적 최대 카드 제출 수 (상징 효과 + nextTurnEffects.extraCardPlay + 정신집중 토큰)
+  const effectiveMaxSubmitCards = baseMaxSubmitCards + (battle.nextTurnEffects?.extraCardPlay || 0) + focusExtraCardPlayBonus;
 
   // 전투용 아이템 효과 처리 - useItem 시 바로 처리하도록 변경
   // (무한 루프 방지를 위해 useEffect 대신 직접 호출 방식 사용)
@@ -926,9 +931,14 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     const newDef = turnStartRelicEffects.block > 0; // 방어력이 있으면 def 플래그 활성화
     // 성찰 효과로 얻은 토큰 적용
     const newTokens = reflectionResult.updatedPlayer.tokens || player.tokens || { usage: [], turn: [], permanent: [] };
-    // 타임라인 보너스 적용 (성찰 실행 효과 + mentalFocus 등 nextTurnEffects)
+    // 정신집중 토큰 효과 확인
+    const allPlayerTokens = getAllTokens({ tokens: newTokens });
+    const focusToken = allPlayerTokens.find(t => t.effect?.type === 'FOCUS');
+    const focusMaxSpeedBonus = focusToken ? 8 * (focusToken.stacks || 1) : 0;
+    const focusExtraCardPlay = focusToken ? 2 * (focusToken.stacks || 1) : 0;
+    // 타임라인 보너스 적용 (성찰 실행 효과 + 정신집중 토큰 + nextTurnEffects)
     const reflectionTimelineBonus = reflectionResult.updatedBattleState.timelineBonus || 0;
-    const maxSpeedBonusFromEffects = nextTurnEffects.maxSpeedBonus || 0;
+    const maxSpeedBonusFromEffects = (nextTurnEffects.maxSpeedBonus || 0) + focusMaxSpeedBonus;
     const newMaxSpeed = (player.maxSpeed || DEFAULT_PLAYER_MAX_SPEED) + reflectionTimelineBonus + maxSpeedBonusFromEffects;
     // 에테르 배율 적용 (성찰 완성 효과)
     const reflectionEtherMultiplier = reflectionResult.updatedBattleState.etherMultiplier || 1;
@@ -961,6 +971,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     }
     if (energyBonus > 0) {
       addLog(`⚡ 다음턴 보너스 행동력: +${energyBonus}`);
+    }
+    if (focusToken) {
+      addLog(`🧘 정신집중: 최대속도 +${focusMaxSpeedBonus}, 카드 +${focusExtraCardPlay}장`);
     }
 
     // 성찰 지배 효과: 적 타임라인 동결
