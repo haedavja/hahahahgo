@@ -162,11 +162,11 @@ export const CARDS = [
     speedCost: 8,
     actionCost: 2,
     iconKey: "sword",
-    description: "공격력 13, 무너짐 1회. 상대에게 취약을 부여한다.",
+    description: "공격력 13. 상대에게 흔들림을 부여한다. (방어력 -50%)",
     traits: [],
     cardCategory: "fencing",
     onPlay: (battle, actions) => {
-      actions.addTokenToEnemy('vulnerable', 1);
+      actions.addTokenToEnemy('shaken', 1);
     }
   },
   {
