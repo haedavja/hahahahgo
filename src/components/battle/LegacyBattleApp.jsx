@@ -2450,22 +2450,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     let latestPlayer = currentBattle.player || battle.player;
     let latestEnemy = currentBattle.enemy || battle.enemy;
 
-    // === 화상(BURN) 피해 처리 (턴 종료 시, 토큰 제거 전) ===
-    // 플레이어 화상 피해
-    const playerBurnTokens = getAllTokens(latestPlayer).filter(t => t.effect?.type === 'BURN');
-    if (playerBurnTokens.length > 0) {
-      const totalBurnDamage = playerBurnTokens.reduce((sum, t) => sum + (t.effect?.value || 5) * (t.stacks || 1), 0);
-      latestPlayer = { ...latestPlayer, hp: Math.max(0, latestPlayer.hp - totalBurnDamage) };
-      addLog(`🔥 화상 피해: 플레이어 -${totalBurnDamage} HP`);
-    }
-
-    // 적 화상 피해
-    const enemyBurnTokens = getAllTokens(latestEnemy).filter(t => t.effect?.type === 'BURN');
-    if (enemyBurnTokens.length > 0) {
-      const totalBurnDamage = enemyBurnTokens.reduce((sum, t) => sum + (t.effect?.value || 5) * (t.stacks || 1), 0);
-      latestEnemy = { ...latestEnemy, hp: Math.max(0, latestEnemy.hp - totalBurnDamage) };
-      addLog(`🔥 화상 피해: 적 -${totalBurnDamage} HP`);
-    }
+    // 화상(BURN) 피해는 이제 카드 사용 시마다 처리됨 (battleExecution.js)
 
     const playerTokenResult = clearTurnTokens(latestPlayer);
     playerTokenResult.logs.forEach(log => addLog(log));

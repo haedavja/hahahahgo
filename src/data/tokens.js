@@ -417,8 +417,8 @@ export const TOKENS = {
     type: TOKEN_TYPES.TURN,
     category: TOKEN_CATEGORIES.NEGATIVE,
     emoji: '🔥',
-    description: '턴 종료 시 5 피해를 받는다.',
-    effect: { type: 'BURN', value: 5 }
+    description: '타임라인에서 카드를 사용할 때마다 3 피해를 받는다.',
+    effect: { type: 'BURN', value: 3 }
   },
 
   // === 치명타/통찰 관련 토큰 ===

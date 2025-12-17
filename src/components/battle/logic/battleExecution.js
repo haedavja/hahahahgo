@@ -24,7 +24,7 @@ import { startEnemyEtherAnimation } from '../utils/enemyEtherAnimation';
 import { processEtherTransfer } from '../utils/etherTransferProcessing';
 import { processVictoryDefeatTransition } from '../utils/victoryDefeatTransition';
 import { calculatePassiveEffects, applyTurnEndEffects } from '../../../lib/relicEffects';
-import { addToken, removeToken } from '../../../lib/tokenUtils';
+import { addToken, removeToken, getAllTokens } from '../../../lib/tokenUtils';
 
 // =====================
 // 타이밍 상수 (밀리초)
@@ -212,6 +212,37 @@ export function executeCardActionCore(params) {
       actor: action.actor,
       actionResult
     });
+  }
+
+  // === 화상(BURN) 피해 처리: 카드 사용 시마다 피해 ===
+  if (action.actor === 'player') {
+    const playerBurnTokens = getAllTokens(P).filter(t => t.effect?.type === 'BURN');
+    if (playerBurnTokens.length > 0) {
+      const burnDamage = playerBurnTokens.reduce((sum, t) => sum + (t.effect?.value || 3) * (t.stacks || 1), 0);
+      P.hp = Math.max(0, P.hp - burnDamage);
+      addLog(`🔥 화상: 플레이어 -${burnDamage} HP`);
+      actionEvents.push({
+        actor: 'player',
+        card: action.card.name,
+        type: 'burn',
+        dmg: burnDamage,
+        msg: `🔥 화상: 플레이어 -${burnDamage} HP`
+      });
+    }
+  } else if (action.actor === 'enemy') {
+    const enemyBurnTokens = getAllTokens(E).filter(t => t.effect?.type === 'BURN');
+    if (enemyBurnTokens.length > 0) {
+      const burnDamage = enemyBurnTokens.reduce((sum, t) => sum + (t.effect?.value || 3) * (t.stacks || 1), 0);
+      E.hp = Math.max(0, E.hp - burnDamage);
+      addLog(`🔥 화상: 적 -${burnDamage} HP`);
+      actionEvents.push({
+        actor: 'enemy',
+        card: action.card.name,
+        type: 'burn',
+        dmg: burnDamage,
+        msg: `🔥 화상: 적 -${burnDamage} HP`
+      });
+    }
   }
 
   // 플레이어 카드 사용 시 추가 처리
@@ -727,6 +758,25 @@ export function runAllCore(params) {
       P = updatedState.player;
       E = updatedState.enemy;
       tempState = { player: P, enemy: E, log: [] };
+    }
+
+    // === 화상(BURN) 피해 처리: 카드 사용 시마다 피해 ===
+    if (a.actor === 'player') {
+      const playerBurnTokens = getAllTokens(P).filter(t => t.effect?.type === 'BURN');
+      if (playerBurnTokens.length > 0) {
+        const burnDamage = playerBurnTokens.reduce((sum, t) => sum + (t.effect?.value || 3) * (t.stacks || 1), 0);
+        P.hp = Math.max(0, P.hp - burnDamage);
+        addLog(`🔥 화상: 플레이어 -${burnDamage} HP`);
+        tempState = { player: P, enemy: E, log: [] };
+      }
+    } else if (a.actor === 'enemy') {
+      const enemyBurnTokens = getAllTokens(E).filter(t => t.effect?.type === 'BURN');
+      if (enemyBurnTokens.length > 0) {
+        const burnDamage = enemyBurnTokens.reduce((sum, t) => sum + (t.effect?.value || 3) * (t.stacks || 1), 0);
+        E.hp = Math.max(0, E.hp - burnDamage);
+        addLog(`🔥 화상: 적 -${burnDamage} HP`);
+        tempState = { player: P, enemy: E, log: [] };
+      }
     }
 
     if (a.actor === 'player') {
