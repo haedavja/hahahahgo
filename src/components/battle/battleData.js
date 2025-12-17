@@ -311,7 +311,7 @@ export const CARDS = [
     speedCost: 6,
     actionCost: 1,
     iconKey: "flame",
-    description: "남은 행동력 x2만큼 총알을 쏜다. 사용 후 빈탄창.",
+    description: "남은 행동력에 비례해 사격을 실행한다. 50% 확률로 행동력당 2번 사격한다.",
     traits: [],
     special: "gyrusRoulette",
     cardCategory: "gun"

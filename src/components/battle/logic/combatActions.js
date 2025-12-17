@@ -419,10 +419,12 @@ export function applyAttack(attacker, defender, card, attackerName, battleContex
     allLogs.push(hitLog);
   }
 
-  // 다중 타격 총합 로그 (2회 이상 타격 시)
+  // 다중 타격 총합 로그 (피해량x타격횟수 형식)
   if (hits > 1) {
-    const multiHitMsg = `🔥 ${card.name}${ghostLabel}: ${hits}회 타격 완료! 총 ${totalDealt} 데미지!`;
-    allEvents.push({ actor: attackerName, card: card.name, type: 'multihit', msg: multiHitMsg });
+    const who = attackerName === 'player' ? '플레이어 -> 몬스터' : '몬스터 -> 플레이어';
+    const perHitDmg = firstHitResult.damage;
+    const multiHitMsg = `${who} • 🔥 ${card.name}${ghostLabel}: ${perHitDmg}x${hits} = ${totalDealt} 데미지!`;
+    allEvents.push({ actor: attackerName, card: card.name, type: 'multihit', msg: multiHitMsg, dmg: totalDealt });
     allLogs.push(multiHitMsg);
   }
 

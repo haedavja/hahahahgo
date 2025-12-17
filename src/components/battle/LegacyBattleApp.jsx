@@ -2035,10 +2035,13 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       }
     }
 
-    // 총합 로그
+    // 총합 로그 (피해량x타격횟수 형식)
     if (hits > 1) {
-      const multiHitMsg = `🔥 ${card.name}${ghostLabel}: ${hits}회 타격 완료! 총 ${totalDealt} 데미지!`;
-      allEvents.push({ actor: attackerName, card: card.name, type: 'multihit', msg: multiHitMsg });
+      const who = attackerName === 'player' ? '플레이어 -> 몬스터' : '몬스터 -> 플레이어';
+      const perHitDmg = firstHitResult.damage;
+      const actualHits = Math.round(totalDealt / perHitDmg) || hits;
+      const multiHitMsg = `${who} • 🔥 ${card.name}${ghostLabel}: ${perHitDmg}x${actualHits} = ${totalDealt} 데미지!`;
+      allEvents.push({ actor: attackerName, card: card.name, type: 'multihit', msg: multiHitMsg, dmg: totalDealt });
       allLogs.push(multiHitMsg);
     }
 
