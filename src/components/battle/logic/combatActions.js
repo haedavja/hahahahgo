@@ -421,9 +421,9 @@ export function applyAttack(attacker, defender, card, attackerName, battleContex
     allLogs.push(multiHitMsg);
   }
 
-  // 공격 후 special 효과 처리
+  // 공격 후 special 효과 처리 (modifiedCard 사용 - _applyBurn 등 토큰 효과 포함)
   const postAttackResult = processPostAttackSpecials({
-    card,
+    card: modifiedCard,
     attacker: currentAttacker,
     defender: currentDefender,
     attackerName,
