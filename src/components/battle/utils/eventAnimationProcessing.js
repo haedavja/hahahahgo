@@ -53,13 +53,13 @@ function createDamagePopup(target, value, type = 'damage') {
 export function processActionEventAnimations({
   actionEvents,
   action,
-  addLog,
+  addLog,  // 더 이상 사용하지 않음 (호출측에서 이미 로그 추가됨)
   playHitSound,
   playBlockSound,
   actions
 }) {
   actionEvents.forEach(ev => {
-    addLog(ev.msg);
+    // 로그는 호출측에서 이미 추가됨 - 여기서는 애니메이션/사운드만 처리
 
     // 피격 효과 (hit, pierce 타입)
     if ((ev.type === 'hit' || ev.type === 'pierce') && ev.dmg > 0) {
