@@ -2221,6 +2221,11 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       }
     }
 
+    // 이벤트 로그 출력
+    actionEvents.forEach(ev => {
+      if (ev.msg) addLog(ev.msg);
+    });
+
     // === 화상(BURN) 피해 처리: 카드 사용 시마다 피해 ===
     if (a.actor === 'player') {
       const playerBurnTokens = getAllTokens(P).filter(t => t.effect?.type === 'BURN');
