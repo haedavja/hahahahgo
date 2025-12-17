@@ -41,8 +41,8 @@ export const EnemyHpBar = ({
       }}>
         <div style={{ textAlign: 'right', position: 'relative', paddingRight: '8px', pointerEvents: 'auto', display: 'flex', alignItems: 'center', gap: '14px' }}>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              {/* HP/방어력 텍스트 - 고정 위치 */}
+            <div style={{ position: 'relative', minWidth: '200px' }}>
+              {/* HP/방어력 텍스트 - HP바 위에 절대 위치 */}
               {(() => {
                 const hideEnemyVitals = dulledLevel >= 3;
                 const hpText = hideEnemyVitals ? '??' : `${enemy.hp}/${enemy.maxHp}`;
@@ -50,6 +50,9 @@ export const EnemyHpBar = ({
                 const showDamage = (battle.phase === 'select' || battle.phase === 'respond') && previewDamage.value > 0;
                 return (
                   <div className={enemyHit ? 'hit-animation' : ''} style={{
+                    position: 'absolute',
+                    top: '-30px',
+                    right: '0',
                     color: '#f87171',
                     fontSize: '1.25rem',
                     fontWeight: 'bold',
@@ -61,8 +64,7 @@ export const EnemyHpBar = ({
                     alignItems: 'center',
                     justifyContent: 'flex-end',
                     gap: '8px',
-                    whiteSpace: 'nowrap',
-                    minWidth: '200px'
+                    whiteSpace: 'nowrap'
                   }}>
                     {showDamage && (
                       <span className={`${previewDamage.lethal ? 'lethal' : ''} ${previewDamage.overkill ? 'overkill' : ''}`} style={{ color: '#fbbf24' }}>
@@ -74,7 +76,7 @@ export const EnemyHpBar = ({
                   </div>
                 );
               })()}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', minWidth: '200px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', width: '200px', paddingTop: '4px' }}>
                 <div className="hp-bar-enhanced mb-1" style={{ width: '200px', height: '12px', position: 'relative', overflow: 'hidden' }}>
                   <div className="hp-fill" style={{ width: `${dulledLevel >= 3 ? 0 : (enemy.hp / enemy.maxHp) * 100}%` }}></div>
                   {enemy.block > 0 && dulledLevel < 3 && (
