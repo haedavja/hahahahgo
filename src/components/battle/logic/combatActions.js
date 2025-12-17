@@ -143,8 +143,9 @@ function calculateSingleHit(attacker, defender, card, attackerName, battleContex
     attackerConsumedTokens = tokenResult.consumedTokens;
   }
 
-  const base = modifiedCard.damage;
+  const base = modifiedCard.damage || 0;
   const strengthBonus = currentAttacker.strength || 0;
+  const ghostText = isGhost ? ' [👻유령]' : '';
   const boost = currentAttacker.etherOverdriveActive ? 2 : 1;
   let dmg = (base + strengthBonus) * boost;
 
@@ -224,10 +225,10 @@ function calculateSingleHit(attacker, defender, card, attackerName, battleContex
 
       const crushText = crushMultiplier > 1 ? ' [분쇄×2]' : '';
       const formula = `(방어력 ${beforeBlock} - 공격력 ${base}${boost > 1 ? '×2' : ''}${critText}${crushText} = ${remaining})`;
-      const msg = `${attackerName === 'player' ? '플레이어 -> 몬스터' : '몬스터 -> 플레이어'} • 차단 성공${critText} ${formula}`;
+      const msg = `${attackerName === 'player' ? '플레이어 -> 몬스터' : '몬스터 -> 플레이어'} • 차단 성공${critText}${ghostText} ${formula}`;
 
       events.push({ actor: attackerName, card: card.name, type: 'blocked', msg });
-      logs.push(`${attackerName === 'player' ? '🔵' : '👾'} ${card.name} → ${msg}`);
+      logs.push(`${attackerName === 'player' ? '🔵' : '👾'} ${card.name}${ghostText} → ${msg}`);
     }
     // 부분 차단 + 관통
     else {
@@ -243,7 +244,7 @@ function calculateSingleHit(attacker, defender, card, attackerName, battleContex
 
       const crushText = crushMultiplier > 1 ? ' [분쇄×2]' : '';
       const formula = `(방어력 ${blocked} - 공격력 ${base}${boost > 1 ? '×2' : ''}${critText}${crushText} = 0)`;
-      const msg = `${attackerName === 'player' ? '플레이어 -> 몬스터' : '몬스터 -> 플레이어'} • 차단 ${blocked}${critText} ${formula}, 관통 ${finalDmg} (체력 ${beforeHP} -> ${updatedDefender.hp})`;
+      const msg = `${attackerName === 'player' ? '플레이어 -> 몬스터' : '몬스터 -> 플레이어'} • 차단 ${blocked}${critText}${ghostText} ${formula}, 관통 ${finalDmg} (체력 ${beforeHP} -> ${updatedDefender.hp})`;
 
       events.push({
         actor: attackerName,
@@ -254,7 +255,7 @@ function calculateSingleHit(attacker, defender, card, attackerName, battleContex
         afterHP: updatedDefender.hp,
         msg
       });
-      logs.push(`${attackerName === 'player' ? '🔵' : '👾'} ${card.name} → ${msg}`);
+      logs.push(`${attackerName === 'player' ? '🔵' : '👾'} ${card.name}${ghostText} → ${msg}`);
 
       damageDealt += finalDmg;
 
@@ -277,7 +278,7 @@ function calculateSingleHit(attacker, defender, card, attackerName, battleContex
     updatedDefender.hp = Math.max(0, updatedDefender.hp - finalDmg);
 
     const ignoreBlockText = ignoreBlock && (updatedDefender.block || 0) > 0 ? ' [방어 무시]' : '';
-    const msg = `${attackerName === 'player' ? '플레이어 -> 몬스터' : '몬스터 -> 플레이어'} • 데미지 ${finalDmg}${critText}${boost > 1 ? ' (에테르 폭주×2)' : ''}${ignoreBlockText} (체력 ${beforeHP} -> ${updatedDefender.hp})`;
+    const msg = `${attackerName === 'player' ? '플레이어 -> 몬스터' : '몬스터 -> 플레이어'} • 데미지 ${finalDmg}${critText}${ghostText}${boost > 1 ? ' (에테르 폭주×2)' : ''}${ignoreBlockText} (체력 ${beforeHP} -> ${updatedDefender.hp})`;
 
     events.push({
       actor: attackerName,
@@ -288,7 +289,7 @@ function calculateSingleHit(attacker, defender, card, attackerName, battleContex
       afterHP: updatedDefender.hp,
       msg
     });
-    logs.push(`${attackerName === 'player' ? '🔵' : '👾'} ${card.name} → ${msg}`);
+    logs.push(`${attackerName === 'player' ? '🔵' : '👾'} ${card.name}${ghostText} → ${msg}`);
 
     damageDealt += finalDmg;
 
@@ -391,10 +392,14 @@ export function applyAttack(attacker, defender, card, attackerName, battleContex
   const modifiedCard = preProcessedResult?.modifiedCard || card;
   const hits = modifiedCard.hits || card.hits || 1;
 
+  // 유령카드 여부 체크
+  const isGhostCard = card.isGhost === true;
+  const ghostLabel = isGhostCard ? ' [👻유령]' : '';
+
   // 다중 타격 시 첫 번째 타격 로그 추가 (이벤트로도 추가하여 전투 로그에 표시)
   if (hits > 1) {
     const firstHitDmg = firstHitResult.damage;
-    const hitLog = `💥 ${card.name} [1/${hits}]: ${firstHitDmg} 데미지`;
+    const hitLog = `💥 ${card.name}${ghostLabel} [1/${hits}]: ${firstHitDmg} 데미지`;
     allEvents.push({ actor: attackerName, card: card.name, type: 'hitBreakdown', msg: hitLog });
     allLogs.push(hitLog);
   }
@@ -409,14 +414,14 @@ export function applyAttack(attacker, defender, card, attackerName, battleContex
     totalBlockDestroyed += result.blockDestroyed || 0;
     allEvents.push(...result.events);
     // 각 타격별 로그 추가 (이벤트로도 추가하여 전투 로그에 표시)
-    const hitLog = `💥 ${card.name} [${i + 1}/${hits}]: ${result.damage} 데미지`;
+    const hitLog = `💥 ${card.name}${ghostLabel} [${i + 1}/${hits}]: ${result.damage} 데미지`;
     allEvents.push({ actor: attackerName, card: card.name, type: 'hitBreakdown', msg: hitLog });
     allLogs.push(hitLog);
   }
 
   // 다중 타격 총합 로그 (2회 이상 타격 시)
   if (hits > 1) {
-    const multiHitMsg = `🔥 ${card.name}: ${hits}회 타격 완료! 총 ${totalDealt} 데미지!`;
+    const multiHitMsg = `🔥 ${card.name}${ghostLabel}: ${hits}회 타격 완료! 총 ${totalDealt} 데미지!`;
     allEvents.push({ actor: attackerName, card: card.name, type: 'multihit', msg: multiHitMsg });
     allLogs.push(multiHitMsg);
   }
