@@ -44,7 +44,23 @@ const TokenBadge = ({ token, onClick }) => {
         }}
       >
         <span>{token.emoji}</span>
-        {token.stacks > 1 && (
+        {/* 룰렛 토큰: x{횟수} {확률}% 형식으로 표시 */}
+        {token.id === 'roulette' && token.stacks >= 1 && (
+          <span style={{
+            fontSize: '0.65rem',
+            fontWeight: 'bold',
+            color: '#1e293b',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            lineHeight: 1
+          }}>
+            <span>x{token.stacks}</span>
+            <span style={{ color: '#dc2626' }}>{token.stacks * 5}%</span>
+          </span>
+        )}
+        {/* 일반 토큰: 스택만 표시 */}
+        {token.id !== 'roulette' && token.stacks > 1 && (
           <span style={{
             fontSize: '0.7rem',
             fontWeight: 'bold',
@@ -87,7 +103,10 @@ const TokenBadge = ({ token, onClick }) => {
           }}>
             <span style={{ fontSize: '1.2rem' }}>{token.emoji}</span>
             {token.name}
-            {token.stacks > 1 && <span style={{ color: bgColor }}>×{token.stacks}</span>}
+            {token.id === 'roulette' && token.stacks >= 1 && (
+              <span style={{ color: '#dc2626' }}>({token.stacks * 5}%)</span>
+            )}
+            {token.id !== 'roulette' && token.stacks > 1 && <span style={{ color: bgColor }}>×{token.stacks}</span>}
           </div>
           <div style={{
             fontSize: '0.75rem',
@@ -102,7 +121,9 @@ const TokenBadge = ({ token, onClick }) => {
             color: '#e2e8f0',
             lineHeight: '1.5'
           }}>
-            {token.description}
+            {token.id === 'roulette'
+              ? `총격 ${token.stacks}회 사용. 다음 총격 시 ${token.stacks * 5}% 확률로 탄걸림.`
+              : token.description}
           </div>
         </div>
       )}

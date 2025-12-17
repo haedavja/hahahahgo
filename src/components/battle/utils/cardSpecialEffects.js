@@ -620,13 +620,8 @@ export function processCardPlaySpecials({
 
   const { hand = [], allCards = [] } = battleContext;
 
-  // === 카드 카테고리에 따른 연계 토큰 부여 (공격 카드만) ===
-  if (card.type === 'attack' && card.cardCategory === 'fencing') {
-    tokensToAdd.push({ id: 'fencingCombo', stacks: 1 });
-  }
+  // === 총격 룰렛 시스템 ===
   if (card.type === 'attack' && card.cardCategory === 'gun') {
-    tokensToAdd.push({ id: 'gunCombo', stacks: 1 });
-
     // === 총격 룰렛 시스템 ===
     const attackerTokens = attacker?.tokens || { usage: [], turn: [], permanent: [] };
     const allAttackerTokens = [...(attackerTokens.usage || []), ...(attackerTokens.turn || []), ...(attackerTokens.permanent || [])];
@@ -688,66 +683,6 @@ export function processCardPlaySpecials({
       } else if (bonusType === 'damage_mult') {
         // 비트용: 피해 2배 (카드에 직접 적용)
         // 이미 applyAttack에서 처리해야 함
-      }
-    }
-  }
-
-  // === comboStyle: 연계 토큰 기반으로 보너스 카드 발동 ===
-  if (hasSpecial(card, 'comboStyle')) {
-    // attacker의 토큰에서 연계 토큰 확인
-    const attackerTokens = attacker?.tokens || { usage: [], turn: [], permanent: [] };
-    const allTokens = [...(attackerTokens.usage || []), ...(attackerTokens.turn || []), ...(attackerTokens.permanent || [])];
-    const hasFencingCombo = allTokens.some(t => t.id === 'fencingCombo');
-    const hasGunCombo = allTokens.some(t => t.id === 'gunCombo');
-
-    const who = attackerName === 'player' ? '플레이어' : '몬스터';
-    if (hasFencingCombo && !hasGunCombo) {
-      // 검격 연계 토큰이 있으면 총격 보너스
-      const gunCards = allCards.filter(c => c.cardCategory === 'gun' && c.type === 'attack');
-      if (gunCards.length > 0) {
-        const randomGun = gunCards[Math.floor(Math.random() * gunCards.length)];
-        bonusCards.push({
-          ...randomGun,
-          isGhost: true,
-          createdBy: card.id,
-          createdId: `${randomGun.id}_combo_${Date.now()}`
-        });
-        const msg = `${who} • ⚔️→🔫 ${card.name}: 검격 연계! "${randomGun.name}" 추가 발동!`;
-        events.push({ actor: attackerName, card: card.name, type: 'combo', msg });
-        logs.push(msg);
-      }
-    } else if (hasGunCombo && !hasFencingCombo) {
-      // 총격 연계 토큰이 있으면 검격 보너스
-      const fencingCards = allCards.filter(c => c.cardCategory === 'fencing' && c.type === 'attack');
-      if (fencingCards.length > 0) {
-        const randomFencing = fencingCards[Math.floor(Math.random() * fencingCards.length)];
-        bonusCards.push({
-          ...randomFencing,
-          isGhost: true,
-          createdBy: card.id,
-          createdId: `${randomFencing.id}_combo_${Date.now()}`
-        });
-        const msg = `${who} • 🔫→⚔️ ${card.name}: 총격 연계! "${randomFencing.name}" 추가 발동!`;
-        events.push({ actor: attackerName, card: card.name, type: 'combo', msg });
-        logs.push(msg);
-      }
-    } else if (hasFencingCombo && hasGunCombo) {
-      // 둘 다 있으면 랜덤
-      const useGun = Math.random() < 0.5;
-      const targetCards = useGun
-        ? allCards.filter(c => c.cardCategory === 'gun' && c.type === 'attack')
-        : allCards.filter(c => c.cardCategory === 'fencing' && c.type === 'attack');
-      if (targetCards.length > 0) {
-        const randomCard = targetCards[Math.floor(Math.random() * targetCards.length)];
-        bonusCards.push({
-          ...randomCard,
-          isGhost: true,
-          createdBy: card.id,
-          createdId: `${randomCard.id}_combo_${Date.now()}`
-        });
-        const msg = `${who} • 🔄 ${card.name}: 복합 연계! "${randomCard.name}" 추가 발동!`;
-        events.push({ actor: attackerName, card: card.name, type: 'combo', msg });
-        logs.push(msg);
       }
     }
   }

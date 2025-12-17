@@ -4,7 +4,7 @@
  * 토큰 시스템 관리 유틸리티 함수
  */
 
-import { TOKENS, TOKEN_TYPES, TOKEN_CATEGORIES, TOKEN_CANCELLATION_MAP } from '../data/tokens';
+import { TOKENS, TOKEN_TYPES, TOKEN_CATEGORIES, TOKEN_CANCELLATION_MAP, GUN_JAM_REMOVES } from '../data/tokens';
 
 /**
  * 엔티티에 토큰 추가
@@ -69,6 +69,28 @@ export function addToken(entity, tokenId, stacks = 1) {
           logs.push(`이미 탄걸림 상태`);
           return { tokens, logs };
         }
+      }
+      // 탄걸림 추가 시 룰렛 제거
+      for (const removeTokenId of GUN_JAM_REMOVES) {
+        for (const type of [TOKEN_TYPES.USAGE, TOKEN_TYPES.TURN, TOKEN_TYPES.PERMANENT]) {
+          const arr = tokens[type] || [];
+          const idx = arr.findIndex(t => t.id === removeTokenId);
+          if (idx !== -1) {
+            arr.splice(idx, 1);
+            logs.push(`탄걸림 발생으로 ${TOKENS[removeTokenId]?.name || removeTokenId} 제거됨`);
+          }
+        }
+      }
+    }
+  }
+
+  // 룰렛은 탄걸림이 있으면 추가 안됨
+  if (tokenId === 'roulette') {
+    for (const type of [TOKEN_TYPES.USAGE, TOKEN_TYPES.TURN, TOKEN_TYPES.PERMANENT]) {
+      const arr = tokens[type] || [];
+      if (arr.some(t => t.id === 'gun_jam')) {
+        logs.push(`탄걸림 상태에서는 룰렛 누적 안됨`);
+        return { tokens, logs };
       }
     }
   }
