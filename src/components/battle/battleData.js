@@ -31,7 +31,7 @@ export const TRAITS = {
   insurance: { id: "insurance", name: "보험", type: "positive", weight: 1, description: "미등장 시 다음턴 확정 등장" },
   whetstone: { id: "whetstone", name: "숫돌", type: "positive", weight: 1, description: "다음 공격 피해 +3" },
   chain: { id: "chain", name: "연계", type: "positive", weight: 1, description: "다음 카드가 검격이면 타임라인 3 앞당김" },
-  creation: { id: "creation", name: "창조", type: "positive", weight: 1, description: "조건 충족 시 새로운 카드를 만들어낸다" },
+  creation: { id: "creation", name: "창조", type: "positive", weight: 1, description: "조건 충족 시 유령카드를 만들어낸다. 유령카드는 아이템/상징 효과 무시" },
 
   // 긍정 특성 (★★)
   hero: { id: "hero", name: "용사", type: "positive", weight: 2, description: "다음턴 상대 에테르 획득 방지" },
