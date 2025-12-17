@@ -40,6 +40,7 @@ export const TRAITS = {
   advisor: { id: "advisor", name: "참모", type: "positive", weight: 2, description: "다음턴 리드로우 1회 부가" },
   knockback: { id: "knockback", name: "넉백", type: "positive", weight: 2, description: "상대 타임라인을 뒤로 민다" },
   advance: { id: "advance", name: "앞당김", type: "positive", weight: 2, description: "내 타임라인을 앞당긴다" },
+  cross: { id: "cross", name: "교차", type: "positive", weight: 2, description: "타임라인에서 적 카드와 겹치면 효과 발동/증폭" },
   destroyer: { id: "destroyer", name: "파괴자", type: "positive", weight: 2, description: "공격력 50% 증가" },
   warmup: { id: "warmup", name: "몸풀기", type: "positive", weight: 2, description: "다음턴 행동력 +2" },
   solidarity: { id: "solidarity", name: "연대", type: "positive", weight: 2, description: "획득 에테르만큼 방어력 즉시 획득" },
