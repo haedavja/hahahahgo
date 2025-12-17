@@ -2028,12 +2028,17 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
       // nextTurnEffects 처리 (mentalFocus)
       if (newNextTurnEffects) {
+        const currentEffects = battleRef.current?.nextTurnEffects || battle.nextTurnEffects;
         const updatedEffects = {
-          ...battle.nextTurnEffects,
-          bonusEnergy: (battle.nextTurnEffects.bonusEnergy || 0) + (newNextTurnEffects.bonusEnergy || 0),
-          maxSpeedBonus: (battle.nextTurnEffects.maxSpeedBonus || 0) + (newNextTurnEffects.maxSpeedBonus || 0)
+          ...currentEffects,
+          bonusEnergy: (currentEffects.bonusEnergy || 0) + (newNextTurnEffects.bonusEnergy || 0),
+          maxSpeedBonus: (currentEffects.maxSpeedBonus || 0) + (newNextTurnEffects.maxSpeedBonus || 0)
         };
         actions.setNextTurnEffects(updatedEffects);
+        // battleRef 동기 업데이트 (finishTurn에서 최신 값 사용)
+        if (battleRef.current) {
+          battleRef.current = { ...battleRef.current, nextTurnEffects: updatedEffects };
+        }
       }
     }
 
@@ -2466,10 +2471,11 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     const traitNextTurnEffects = processCardTraitEffects(selected, addLog);
 
     // 카드 플레이 중 설정된 효과 병합 (mentalFocus의 maxSpeedBonus, bonusEnergy 등)
+    const currentNextTurnEffects = battleRef.current?.nextTurnEffects || battle.nextTurnEffects;
     const newNextTurnEffects = {
       ...traitNextTurnEffects,
-      bonusEnergy: (traitNextTurnEffects.bonusEnergy || 0) + (battle.nextTurnEffects.bonusEnergy || 0),
-      maxSpeedBonus: (traitNextTurnEffects.maxSpeedBonus || 0) + (battle.nextTurnEffects.maxSpeedBonus || 0)
+      bonusEnergy: (traitNextTurnEffects.bonusEnergy || 0) + (currentNextTurnEffects.bonusEnergy || 0),
+      maxSpeedBonus: (traitNextTurnEffects.maxSpeedBonus || 0) + (currentNextTurnEffects.maxSpeedBonus || 0)
     };
 
     // 상징 턴 종료 효과 적용 (계약서, 은화 등)
