@@ -30,6 +30,7 @@ export const TRAITS = {
   training: { id: "training", name: "단련", type: "positive", weight: 1, description: "사용 후 힘 +1" },
   insurance: { id: "insurance", name: "보험", type: "positive", weight: 1, description: "미등장 시 다음턴 확정 등장" },
   whetstone: { id: "whetstone", name: "숫돌", type: "positive", weight: 1, description: "다음 공격 피해 +3" },
+  chain: { id: "chain", name: "연계", type: "positive", weight: 1, description: "다음 카드가 검격이면 타임라인 3 앞당김" },
 
   // 긍정 특성 (★★)
   hero: { id: "hero", name: "용사", type: "positive", weight: 2, description: "다음턴 상대 에테르 획득 방지" },
@@ -146,10 +147,9 @@ export const CARDS = [
     speedCost: 8,
     actionCost: 2,
     iconKey: "sword",
-    description: "공격력 13. 상대에게 흔들림을 부여한다. 다음 카드가 검격이면 타임라인 3 앞당김.",
-    traits: [],
+    description: "공격력 13. 상대에게 흔들림을 부여한다.",
+    traits: ["chain"],
     cardCategory: "fencing",
-    special: "advanceIfNextFencing",
     advanceAmount: 3,
     appliedTokens: [{ id: 'shaken', target: 'enemy' }],
     onPlay: (battle, actions) => {
@@ -180,10 +180,9 @@ export const CARDS = [
     speedCost: 4,
     actionCost: 1,
     iconKey: "sword",
-    description: "공격력 5. 회피 1회, 공세 1회를 얻는다. 다음 카드가 검격이면 타임라인 3 앞당김.",
-    traits: [],
+    description: "공격력 5. 회피 1회, 공세 1회를 얻는다.",
+    traits: ["chain"],
     cardCategory: "fencing",
-    special: "advanceIfNextFencing",
     advanceAmount: 3,
     appliedTokens: [{ id: 'evasion', target: 'player' }, { id: 'offense', target: 'player' }],
     onPlay: (battle, actions) => {
@@ -257,10 +256,9 @@ export const CARDS = [
     speedCost: 9,
     actionCost: 1,
     iconKey: "sword",
-    description: "공격력 15. 다음 카드가 검격이면 타임라인 3 앞당김.",
-    traits: [],
+    description: "공격력 15.",
+    traits: ["chain"],
     cardCategory: "fencing",
-    special: "advanceIfNextFencing",
     advanceAmount: 3
   },
   {
@@ -271,10 +269,10 @@ export const CARDS = [
     speedCost: 12,
     actionCost: 2,
     iconKey: "sword",
-    description: "공격력 14. 공격 시 상대 방어력을 없앤 만큼 내 방어력으로 획득. 다음 카드가 검격이면 타임라인 3 앞당김.",
-    traits: [],
+    description: "공격력 14. 공격 시 상대 방어력을 없앤 만큼 내 방어력으로 획득.",
+    traits: ["chain"],
     cardCategory: "fencing",
-    special: ["stealBlock", "advanceIfNextFencing"],
+    special: "stealBlock",
     advanceAmount: 3
   },
 
@@ -462,10 +460,10 @@ export const CARDS = [
     speedCost: 3,
     actionCost: 1,
     iconKey: "shield",
-    description: "발동 후 5 범위 안에 적 공격이 있으면 모든 적 카드를 3 뒤로 민다. 다음 카드가 검격이면 타임라인 3 앞당김.",
-    traits: [],
+    description: "방어력 8. 발동 후 5 범위 안에 적 공격이 있으면 모든 적 카드를 3 뒤로 민다.",
+    traits: ["chain"],
     cardCategory: "fencing",
-    special: ["parryPush", "advanceIfNextFencing"],
+    special: "parryPush",
     parryRange: 5,
     parryPushAmount: 3,
     advanceAmount: 3
