@@ -30,7 +30,7 @@ import { sortCombinedOrderStablePF, addEther } from "./utils/combatUtils";
 import { createFixedOrder } from "./utils/cardOrdering";
 import { decideEnemyMode, generateEnemyActions, shouldEnemyOverdrive } from "./utils/enemyAI";
 import { simulatePreview } from "./utils/battleSimulation";
-import { applyAction } from "./logic/combatActions";
+import { applyAction, prepareMultiHitAttack, calculateSingleHit, finalizeMultiHitAttack } from "./logic/combatActions";
 import { drawCharacterBuildHand } from "./utils/handGeneration";
 import { calculateEffectiveInsight, getInsightRevealLevel, playInsightSound } from "./utils/insightSystem";
 import { computeComboMultiplier as computeComboMultiplierUtil, explainComboMultiplier as explainComboMultiplierUtil } from "./utils/comboMultiplier";
@@ -86,7 +86,7 @@ import { Sword, Shield, Heart, Zap, Flame, Clock, Skull, X, ChevronUp, ChevronDo
 import { selectBattleAnomalies, applyAnomalyEffects, formatAnomaliesForDisplay } from "../../lib/anomalyUtils";
 import { AnomalyDisplay, AnomalyNotification } from "./ui/AnomalyDisplay";
 import { TIMING, createStepOnceAnimations, executeCardActionCore, finishTurnCore, runAllCore } from "./logic/battleExecution";
-import { processTimelineSpecials, hasSpecial } from "./utils/cardSpecialEffects";
+import { processTimelineSpecials, hasSpecial, processPerHitRoulette, processCardPlaySpecials } from "./utils/cardSpecialEffects";
 
 
 const CARDS = BASE_PLAYER_CARDS.map(card => ({
@@ -1924,7 +1924,143 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   // stepOnce를 ref에 저장 (브리치 선택 후 진행 재개용)
   stepOnceRef.current = stepOnce;
 
-  const executeCardAction = () => {
+  // 다중 타격 비동기 실행 (딜레이 + 타격별 룰렛 체크)
+  const executeMultiHitAsync = async (card, attacker, defender, attackerName, battleContext, onHitCallback) => {
+    const isGunCard = card.cardCategory === 'gun' && card.type === 'attack';
+    const ghostLabel = card.isGhost ? ' [👻유령]' : '';
+
+    // 첫 타격 준비 (치명타 판정, preProcessedResult 획득)
+    const prepResult = prepareMultiHitAttack(attacker, defender, card, attackerName, battleContext);
+    let { hits, isCritical, preProcessedResult, modifiedCard, currentAttacker, currentDefender } = prepResult;
+    const firstHitResult = prepResult.firstHitResult;
+
+    let totalDealt = firstHitResult.damage;
+    let totalTaken = firstHitResult.damageTaken || 0;
+    let totalBlockDestroyed = firstHitResult.blockDestroyed || 0;
+    const allEvents = [...firstHitResult.events];
+    const allLogs = [...firstHitResult.logs];
+
+    // 첫 타격 로그
+    if (hits > 1) {
+      const hitLog = `💥 ${card.name}${ghostLabel} [1/${hits}]: ${firstHitResult.damage} 데미지`;
+      allEvents.push({ actor: attackerName, card: card.name, type: 'hitBreakdown', msg: hitLog });
+      allLogs.push(hitLog);
+    }
+
+    // 첫 타격 후 룰렛 체크 (총기 카드)
+    if (isGunCard) {
+      const rouletteResult = processPerHitRoulette(currentAttacker, card, attackerName, 0, hits);
+      currentAttacker = rouletteResult.updatedAttacker;
+      if (rouletteResult.event) {
+        allEvents.push(rouletteResult.event);
+        allLogs.push(rouletteResult.log);
+      }
+      if (rouletteResult.jammed) {
+        // 탄걸림! 남은 타격 취소
+        const finalResult = finalizeMultiHitAttack(modifiedCard, currentAttacker, currentDefender, attackerName, totalDealt, totalBlockDestroyed, battleContext);
+        return {
+          attacker: finalResult.attacker,
+          defender: finalResult.defender,
+          dealt: totalDealt,
+          taken: totalTaken,
+          events: [...allEvents, ...finalResult.events],
+          logs: [...allLogs, ...finalResult.logs],
+          isCritical,
+          jammed: true,
+          hitsCompleted: 1,
+          totalHits: hits,
+          createdCards: finalResult.createdCards
+        };
+      }
+    }
+
+    // 첫 타격 콜백 (애니메이션/사운드)
+    if (onHitCallback) {
+      await onHitCallback(firstHitResult, 0, hits);
+    }
+
+    // 후속 타격 (딜레이 포함)
+    for (let i = 1; i < hits; i++) {
+      // 딜레이
+      await new Promise(resolve => setTimeout(resolve, TIMING.MULTI_HIT_DELAY));
+
+      // 타격 실행
+      const hitResult = calculateSingleHit(currentAttacker, currentDefender, card, attackerName, battleContext, isCritical, preProcessedResult);
+      currentAttacker = hitResult.attacker;
+      currentDefender = hitResult.defender;
+      totalDealt += hitResult.damage;
+      totalTaken += hitResult.damageTaken || 0;
+      totalBlockDestroyed += hitResult.blockDestroyed || 0;
+      allEvents.push(...hitResult.events);
+
+      // 타격 로그
+      const hitLog = `💥 ${card.name}${ghostLabel} [${i + 1}/${hits}]: ${hitResult.damage} 데미지`;
+      allEvents.push({ actor: attackerName, card: card.name, type: 'hitBreakdown', msg: hitLog });
+      allLogs.push(hitLog);
+
+      // 타격 콜백
+      if (onHitCallback) {
+        await onHitCallback(hitResult, i, hits);
+      }
+
+      // 룰렛 체크 (총기 카드)
+      if (isGunCard) {
+        const rouletteResult = processPerHitRoulette(currentAttacker, card, attackerName, i, hits);
+        currentAttacker = rouletteResult.updatedAttacker;
+        if (rouletteResult.event) {
+          allEvents.push(rouletteResult.event);
+          allLogs.push(rouletteResult.log);
+        }
+        if (rouletteResult.jammed && i < hits - 1) {
+          // 탄걸림! 남은 타격 취소
+          const cancelMsg = `🔫 ${card.name}: 탄걸림으로 ${hits - i - 1}회 타격 취소!`;
+          allEvents.push({ actor: attackerName, card: card.name, type: 'jamCancel', msg: cancelMsg });
+          allLogs.push(cancelMsg);
+
+          const finalResult = finalizeMultiHitAttack(modifiedCard, currentAttacker, currentDefender, attackerName, totalDealt, totalBlockDestroyed, battleContext);
+          return {
+            attacker: finalResult.attacker,
+            defender: finalResult.defender,
+            dealt: totalDealt,
+            taken: totalTaken,
+            events: [...allEvents, ...finalResult.events],
+            logs: [...allLogs, ...finalResult.logs],
+            isCritical,
+            jammed: true,
+            hitsCompleted: i + 1,
+            totalHits: hits,
+            createdCards: finalResult.createdCards
+          };
+        }
+      }
+    }
+
+    // 총합 로그
+    if (hits > 1) {
+      const multiHitMsg = `🔥 ${card.name}${ghostLabel}: ${hits}회 타격 완료! 총 ${totalDealt} 데미지!`;
+      allEvents.push({ actor: attackerName, card: card.name, type: 'multihit', msg: multiHitMsg });
+      allLogs.push(multiHitMsg);
+    }
+
+    // 후처리 (화상 부여 등)
+    const finalResult = finalizeMultiHitAttack(modifiedCard, currentAttacker, currentDefender, attackerName, totalDealt, totalBlockDestroyed, battleContext);
+
+    return {
+      attacker: finalResult.attacker,
+      defender: finalResult.defender,
+      dealt: totalDealt,
+      taken: totalTaken,
+      events: [...allEvents, ...finalResult.events],
+      logs: [...allLogs, ...finalResult.logs],
+      isCritical,
+      jammed: false,
+      hitsCompleted: hits,
+      totalHits: hits,
+      createdCards: finalResult.createdCards
+    };
+  };
+
+  const executeCardAction = async () => {
     const currentBattle = battleRef.current;
     if (currentBattle.qIndex >= currentBattle.queue.length) return;
     const a = currentBattle.queue[currentBattle.qIndex];
@@ -1967,24 +2103,114 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       hand: currentBattle.hand || []  // autoReload용: 현재 손패
     };
 
-    const actionResult = applyAction(tempState, a.actor, a.card, battleContext);
-    const { events, updatedState } = actionResult;
-    let actionEvents = events;
+    // 다중 타격 또는 총기 공격: 비동기 처리 (딜레이 + 타격별 룰렛)
+    const isAttackCard = a.card.type === 'attack';
+    const isGunCard = a.card.cardCategory === 'gun';
+    const hasMultipleHits = (a.card.hits || 1) > 1;
+    const useAsyncMultiHit = isAttackCard && (isGunCard || hasMultipleHits);
 
-    // applyAction에서 반환된 updatedState로 P와 E 재할당
-    if (updatedState) {
-      P = updatedState.player;
-      E = updatedState.enemy;
-      // battleRef 동기 업데이트 (다음 카드 실행 시 최신 상태 사용)
+    let actionResult;
+    let actionEvents;
+
+    if (useAsyncMultiHit) {
+      // 비동기 다중 타격 실행
+      const attacker = a.actor === 'player' ? P : E;
+      const defender = a.actor === 'player' ? E : P;
+
+      // 타격별 콜백: 피격 애니메이션 및 사운드
+      const onHitCallback = async (hitResult, hitIndex, totalHits) => {
+        if (hitResult.damage > 0) {
+          playHitSound();
+          if (a.actor === 'player') {
+            actions.setEnemyHit(true);
+            setTimeout(() => actions.setEnemyHit(false), 150);
+          } else {
+            actions.setPlayerHit(true);
+            setTimeout(() => actions.setPlayerHit(false), 150);
+          }
+        }
+      };
+
+      const multiHitResult = await executeMultiHitAsync(a.card, attacker, defender, a.actor, battleContext, onHitCallback);
+
+      // 결과 반영
+      if (a.actor === 'player') {
+        P = multiHitResult.attacker;
+        E = multiHitResult.defender;
+      } else {
+        E = multiHitResult.attacker;
+        P = multiHitResult.defender;
+      }
+
+      // 카드 사용 시 special 효과 처리 (교차 특성 등) - 룰렛은 이제 타격별로 처리됨
+      const cardPlayAttacker = a.actor === 'player' ? P : E;
+      const cardPlayResult = processCardPlaySpecials({
+        card: a.card,
+        attacker: cardPlayAttacker,
+        attackerName: a.actor,
+        battleContext
+      });
+
+      // cardPlayResult의 토큰 처리
+      if (cardPlayResult.tokensToAdd?.length > 0) {
+        cardPlayResult.tokensToAdd.forEach(tokenInfo => {
+          if (a.actor === 'player') {
+            const tokenResult = addToken(P, tokenInfo.id, tokenInfo.stacks);
+            P = { ...P, tokens: tokenResult.tokens };
+          } else {
+            const tokenResult = addToken(E, tokenInfo.id, tokenInfo.stacks);
+            E = { ...E, tokens: tokenResult.tokens };
+          }
+        });
+      }
+      if (cardPlayResult.tokensToRemove?.length > 0) {
+        cardPlayResult.tokensToRemove.forEach(tokenInfo => {
+          if (a.actor === 'player') {
+            const tokenResult = removeToken(P, tokenInfo.id, 'permanent', tokenInfo.stacks);
+            P = { ...P, tokens: tokenResult.tokens };
+          } else {
+            const tokenResult = removeToken(E, tokenInfo.id, 'permanent', tokenInfo.stacks);
+            E = { ...E, tokens: tokenResult.tokens };
+          }
+        });
+      }
+
+      actionEvents = [...multiHitResult.events, ...cardPlayResult.events];
+      actionResult = {
+        dealt: multiHitResult.dealt,
+        taken: multiHitResult.taken,
+        events: actionEvents,
+        isCritical: multiHitResult.isCritical,
+        createdCards: multiHitResult.createdCards,
+        updatedState: { player: P, enemy: E, log: [] },
+        cardPlaySpecials: cardPlayResult
+      };
+
+      // battleRef 동기 업데이트
       if (battleRef.current) {
         battleRef.current = { ...battleRef.current, player: P, enemy: E };
       }
     } else {
-      console.error('[executeCardAction] updatedState is undefined!', {
-        card: a.card,
-        actor: a.actor,
-        actionResult
-      });
+      // 기존 동기 처리 (방어 카드 또는 단일 타격 비총기 공격)
+      actionResult = applyAction(tempState, a.actor, a.card, battleContext);
+      const { events, updatedState } = actionResult;
+      actionEvents = events;
+
+      // applyAction에서 반환된 updatedState로 P와 E 재할당
+      if (updatedState) {
+        P = updatedState.player;
+        E = updatedState.enemy;
+        // battleRef 동기 업데이트 (다음 카드 실행 시 최신 상태 사용)
+        if (battleRef.current) {
+          battleRef.current = { ...battleRef.current, player: P, enemy: E };
+        }
+      } else {
+        console.error('[executeCardAction] updatedState is undefined!', {
+          card: a.card,
+          actor: a.actor,
+          actionResult
+        });
+      }
     }
 
     // === 화상(BURN) 피해 처리: 카드 사용 시마다 피해 ===

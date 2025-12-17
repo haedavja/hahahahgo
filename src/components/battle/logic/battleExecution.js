@@ -40,6 +40,9 @@ export const TIMING = {
   // 자동진행 타이밍
   AUTO_PROGRESS_DELAY: 450,       // 다음 카드로 넘어가는 대기 시간
 
+  // 다중 타격 타이밍
+  MULTI_HIT_DELAY: 100,           // 연속 타격 사이 딜레이 (100ms)
+
   // 에테르 계산 타이밍
   ETHER_CALC_START_DELAY: 400,    // 에테르 계산 시작 딜레이
   ETHER_MULTIPLY_DELAY: 600,      // 배율 적용 딜레이

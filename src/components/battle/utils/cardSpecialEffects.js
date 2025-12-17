@@ -19,6 +19,65 @@ export function hasSpecial(card, specialName) {
 }
 
 /**
+ * 타격별 룰렛 체크 (총기 카드 전용)
+ * 각 타격마다 룰렛 토큰 +1 및 탄걸림 확률 판정
+ * @param {Object} attacker - 공격자 상태
+ * @param {Object} card - 사용 카드
+ * @param {string} attackerName - 'player' 또는 'enemy'
+ * @param {number} hitIndex - 현재 타격 인덱스 (0부터 시작)
+ * @param {number} totalHits - 총 타격 횟수
+ * @returns {Object} { jammed, updatedAttacker, event, log }
+ */
+export function processPerHitRoulette(attacker, card, attackerName, hitIndex, totalHits) {
+  // 총기 카드가 아니면 스킵
+  if (card.cardCategory !== 'gun' || card.type !== 'attack') {
+    return { jammed: false, updatedAttacker: attacker, event: null, log: null };
+  }
+
+  let updatedAttacker = { ...attacker };
+  const attackerTokens = updatedAttacker.tokens || { usage: [], turn: [], permanent: [] };
+  const allAttackerTokens = [...(attackerTokens.usage || []), ...(attackerTokens.turn || []), ...(attackerTokens.permanent || [])];
+  const rouletteToken = allAttackerTokens.find(t => t.id === 'roulette');
+  const currentRouletteStacks = rouletteToken?.stacks || 0;
+  const jamChance = currentRouletteStacks * 0.05; // 스택당 5%
+
+  const who = attackerName === 'player' ? '플레이어' : '몬스터';
+  const hitLabel = totalHits > 1 ? ` [${hitIndex + 1}/${totalHits}]` : '';
+
+  // 확률 판정 (룰렛 스택이 있을 때만)
+  if (currentRouletteStacks > 0 && Math.random() < jamChance) {
+    // 탄걸림 발생!
+    const jamResult = addToken(updatedAttacker, 'gun_jam', 1);
+    updatedAttacker = { ...updatedAttacker, tokens: jamResult.tokens };
+
+    // 룰렛 완전 제거
+    const removeResult = setTokenStacks(updatedAttacker, 'roulette', 'permanent', 0);
+    updatedAttacker = { ...updatedAttacker, tokens: removeResult.tokens };
+
+    const msg = `${who} • 🎰 ${card.name}${hitLabel}: 탄걸림 발생! (${Math.round(jamChance * 100)}% 확률) 남은 타격 취소`;
+    return {
+      jammed: true,
+      updatedAttacker,
+      event: { actor: attackerName, card: card.name, type: 'jam', msg },
+      log: msg
+    };
+  }
+
+  // 탄걸림 안 발생 → 룰렛 스택 +1
+  const rouletteResult = addToken(updatedAttacker, 'roulette', 1);
+  updatedAttacker = { ...updatedAttacker, tokens: rouletteResult.tokens };
+  const newStacks = (currentRouletteStacks || 0) + 1;
+
+  const msg = `${who} • 🎰 ${card.name}${hitLabel}: 룰렛 ${newStacks} (${Math.round(newStacks * 5)}% 위험)`;
+  return {
+    jammed: false,
+    updatedAttacker,
+    event: { actor: attackerName, card: card.name, type: 'roulette', msg },
+    log: msg
+  };
+}
+
+/**
  * 공격 전 special 효과 처리 (피해 계산 전)
  * @param {Object} params
  * @returns {Object} { modifiedCard, attacker, defender, events, logs, skipNormalDamage }
@@ -622,30 +681,8 @@ export function processCardPlaySpecials({
 
   const { hand = [], allCards = [] } = battleContext;
 
-  // === 총격 룰렛 시스템 ===
-  if (card.type === 'attack' && card.cardCategory === 'gun') {
-    // === 총격 룰렛 시스템 ===
-    const attackerTokens = attacker?.tokens || { usage: [], turn: [], permanent: [] };
-    const allAttackerTokens = [...(attackerTokens.usage || []), ...(attackerTokens.turn || []), ...(attackerTokens.permanent || [])];
-    const rouletteToken = allAttackerTokens.find(t => t.id === 'roulette');
-    const currentRouletteStacks = rouletteToken?.stacks || 0;
-    const jamChance = currentRouletteStacks * 0.05; // 스택당 5%
-
-    const who = attackerName === 'player' ? '플레이어' : '몬스터';
-
-    // 확률 판정
-    if (currentRouletteStacks > 0 && Math.random() < jamChance) {
-      // 탄걸림 발생! 룰렛 제거됨
-      tokensToAdd.push({ id: 'gun_jam', stacks: 1 });
-      tokensToRemove.push({ id: 'roulette', stacks: 99 }); // 룰렛 완전 제거
-      const msg = `${who} • 🎰 ${card.name}: 탄걸림 발생! (${Math.round(jamChance * 100)}% 확률) 룰렛 제거됨`;
-      events.push({ actor: attackerName, card: card.name, type: 'jam', msg });
-      logs.push(msg);
-    } else {
-      // 탄걸림 안 발생 → 룰렛 스택 증가
-      tokensToAdd.push({ id: 'roulette', stacks: 1 });
-    }
-  }
+  // 총격 룰렛 시스템: 이제 processPerHitRoulette()에서 타격별로 처리됨
+  // (LegacyBattleApp.jsx의 executeMultiHitAttack에서 호출)
 
   // === 교차 특성: 타임라인에서 적 카드와 겹치면 보너스 효과 ===
   const hasCrossTrait = card.traits && card.traits.includes('cross');

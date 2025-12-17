@@ -105,7 +105,7 @@ export function applyDefense(actor, card, actorName, battleContext = {}) {
  * @param {Object} preProcessedResult - 이미 처리된 preAttack 결과 (선택적, 다중 타격 시 재사용)
  * @returns {Object} - { attacker, defender, damage, events, logs }
  */
-function calculateSingleHit(attacker, defender, card, attackerName, battleContext = {}, isCritical = false, preProcessedResult = null) {
+export function calculateSingleHit(attacker, defender, card, attackerName, battleContext = {}, isCritical = false, preProcessedResult = null) {
   // 유령카드는 토큰 효과 미적용
   const isGhost = card.isGhost === true;
 
@@ -474,6 +474,69 @@ export function applyAttack(attacker, defender, card, attackerName, battleContex
     logs: allLogs,
     isCritical,  // 치명타 여부 반환 (토큰 효과용)
     createdCards: cardCreationResult.createdCards  // 창조된 카드 배열
+  };
+}
+
+/**
+ * 다중 타격 공격 준비 (비동기 처리용)
+ * 첫 타격을 실행하고, 후속 타격에 필요한 데이터를 반환
+ * @returns {Object} - { hits, isCritical, preProcessedResult, modifiedCard, firstHitResult, currentAttacker, currentDefender }
+ */
+export function prepareMultiHitAttack(attacker, defender, card, attackerName, battleContext = {}) {
+  const currentAttacker = { ...attacker };
+  const currentDefender = { ...defender };
+
+  // 치명타 판정 (카드당 1번만 롤)
+  const attackerRemainingEnergy = attackerName === 'player'
+    ? (battleContext.remainingEnergy || 0)
+    : (battleContext.enemyRemainingEnergy || 0);
+  const isCritical = rollCritical(currentAttacker, attackerRemainingEnergy);
+
+  // 첫 타격 실행하여 preProcessedResult 획득
+  const firstHitResult = calculateSingleHit(currentAttacker, currentDefender, card, attackerName, battleContext, isCritical, null);
+
+  const preProcessedResult = firstHitResult.preProcessedResult;
+  const modifiedCard = preProcessedResult?.modifiedCard || card;
+  const hits = modifiedCard.hits || card.hits || 1;
+
+  return {
+    hits,
+    isCritical,
+    preProcessedResult,
+    modifiedCard,
+    firstHitResult,
+    currentAttacker: firstHitResult.attacker,
+    currentDefender: firstHitResult.defender
+  };
+}
+
+/**
+ * 공격 후 special 효과 처리 (외부 호출용)
+ */
+export function finalizeMultiHitAttack(modifiedCard, attacker, defender, attackerName, totalDealt, totalBlockDestroyed, battleContext = {}) {
+  const postAttackResult = processPostAttackSpecials({
+    card: modifiedCard,
+    attacker,
+    defender,
+    attackerName,
+    damageDealt: totalDealt,
+    battleContext: { ...battleContext, blockDestroyed: totalBlockDestroyed }
+  });
+
+  const cardCreationResult = processCardCreationSpecials({
+    card: modifiedCard,
+    actorName: attackerName,
+    damageDealt: totalDealt,
+    allCards: battleContext.allCards || []
+  });
+
+  return {
+    attacker: postAttackResult.attacker,
+    defender: postAttackResult.defender,
+    events: [...postAttackResult.events, ...cardCreationResult.events],
+    logs: [...postAttackResult.logs, ...cardCreationResult.logs],
+    extraHits: postAttackResult.extraHits || 0,
+    createdCards: cardCreationResult.createdCards
   };
 }
 
