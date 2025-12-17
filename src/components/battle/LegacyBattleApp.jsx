@@ -1948,9 +1948,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       hand: currentBattle.hand || []  // autoReload용: 현재 손패
     };
 
-    console.log('[DEBUG executeCardAction] calling applyAction for card:', a.card.name, 'type:', a.card.type);
     const actionResult = applyAction(tempState, a.actor, a.card, battleContext);
-    console.log('[DEBUG executeCardAction] actionResult:', actionResult);
     const { events, updatedState } = actionResult;
     let actionEvents = events;
 
@@ -2361,7 +2359,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     });
 
     const newQIndex = battleRef.current.qIndex + 1;
-    console.log('[DEBUG executeCardAction] advancing qIndex to:', newQIndex);
 
     // battleRef를 즉시 업데이트 (React state 업데이트는 비동기이므로)
     battleRef.current = { ...battleRef.current, qIndex: newQIndex };
@@ -2381,7 +2378,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       return;
     }
 
-    console.log('[DEBUG executeCardAction] completed for card, new qIndex:', newQIndex);
     // 타임라인의 모든 카드 진행이 끝났을 때 에테르 계산 애니메이션은 useEffect에서 실행됨 (상태 업데이트 타이밍 보장)
   };
 

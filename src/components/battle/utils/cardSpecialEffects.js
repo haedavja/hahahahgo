@@ -611,9 +611,7 @@ export function processCardPlaySpecials({
 
   // === autoReload: 손패에 장전 카드가 있으면 자동 장전 ===
   if (hasSpecial(card, 'autoReload')) {
-    console.log('[DEBUG autoReload] triggered, hand:', hand);
     const hasReloadCard = hand.some(c => c.id === 'reload' || c.id === 'ap_load' || c.id === 'incendiary_load');
-    console.log('[DEBUG autoReload] hasReloadCard:', hasReloadCard);
     if (hasReloadCard) {
       tokensToAdd.push({ id: 'loaded', stacks: 1 });
       const who = attackerName === 'player' ? '플레이어' : '몬스터';
@@ -621,7 +619,6 @@ export function processCardPlaySpecials({
       events.push({ actor: attackerName, card: card.name, type: 'special', msg });
       logs.push(msg);
     }
-    console.log('[DEBUG autoReload] done, tokensToAdd:', tokensToAdd);
   }
 
   // === mentalFocus: 다음 턴 최대속도 +8, 카드 2장 더 사용 가능 ===
