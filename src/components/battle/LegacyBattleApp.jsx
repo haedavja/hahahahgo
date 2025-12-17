@@ -1937,34 +1937,34 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     let totalDealt = firstHitResult.damage;
     let totalTaken = firstHitResult.damageTaken || 0;
     let totalBlockDestroyed = firstHitResult.blockDestroyed || 0;
-    const allEvents = [...firstHitResult.events];
-    const allLogs = [...firstHitResult.logs];
 
-    // 첫 타격 로그
-    if (hits > 1) {
-      const hitLog = `💥 ${card.name}${ghostLabel} [1/${hits}]: ${firstHitResult.damage} 데미지`;
-      allEvents.push({ actor: attackerName, card: card.name, type: 'hitBreakdown', msg: hitLog });
-      allLogs.push(hitLog);
-    }
+    // 다중 타격 시 개별 데미지 로그 필터링 (요약만 표시)
+    const skipEventTypes = hits > 1 ? ['hit', 'blocked', 'pierce'] : [];
+    const filteredEvents = firstHitResult.events.filter(ev => !skipEventTypes.includes(ev.type));
+    const allEvents = [...filteredEvents];
+    const allLogs = [];
 
     // 첫 타격 후 룰렛 체크 (총기 카드)
     if (isGunCard) {
       const rouletteResult = processPerHitRoulette(currentAttacker, card, attackerName, 0, hits);
       currentAttacker = rouletteResult.updatedAttacker;
-      if (rouletteResult.event) {
-        allEvents.push(rouletteResult.event);
-        allLogs.push(rouletteResult.log);
-      }
       if (rouletteResult.jammed) {
-        // 탄걸림! 남은 타격 취소
+        // 첫 타격에서 탄걸림! 남은 타격 취소
         const finalResult = finalizeMultiHitAttack(modifiedCard, currentAttacker, currentDefender, attackerName, totalDealt, totalBlockDestroyed, battleContext);
+        const who = attackerName === 'player' ? '플레이어 -> 몬스터' : '몬스터 -> 플레이어';
+        const perHitDmg = firstHitResult.damage;
+        const jamMsg = hits > 1
+          ? `${who} • 🔫 ${card.name}${ghostLabel}: ${perHitDmg}x1 = ${totalDealt} 데미지 (탄걸림! ${hits - 1}회 취소)`
+          : `${who} • 🔫 ${card.name}${ghostLabel}: ${totalDealt} 데미지 (탄걸림!)`;
+        allEvents.push({ actor: attackerName, card: card.name, type: 'multihit', msg: jamMsg, dmg: totalDealt });
+
         return {
           attacker: finalResult.attacker,
           defender: finalResult.defender,
           dealt: totalDealt,
           taken: totalTaken,
           events: [...allEvents, ...finalResult.events],
-          logs: [...allLogs, ...finalResult.logs],
+          logs: [jamMsg],
           isCritical,
           jammed: true,
           hitsCompleted: 1,
@@ -1991,14 +1991,12 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       totalDealt += hitResult.damage;
       totalTaken += hitResult.damageTaken || 0;
       totalBlockDestroyed += hitResult.blockDestroyed || 0;
-      allEvents.push(...hitResult.events);
 
-      // 타격 로그
-      const hitLog = `💥 ${card.name}${ghostLabel} [${i + 1}/${hits}]: ${hitResult.damage} 데미지`;
-      allEvents.push({ actor: attackerName, card: card.name, type: 'hitBreakdown', msg: hitLog });
-      allLogs.push(hitLog);
+      // 다중 타격 시 개별 데미지 로그 필터링
+      const filteredHitEvents = hitResult.events.filter(ev => !skipEventTypes.includes(ev.type));
+      allEvents.push(...filteredHitEvents);
 
-      // 타격 콜백
+      // 타격 콜백 (애니메이션/사운드)
       if (onHitCallback) {
         await onHitCallback(hitResult, i, hits);
       }
@@ -2007,27 +2005,26 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       if (isGunCard) {
         const rouletteResult = processPerHitRoulette(currentAttacker, card, attackerName, i, hits);
         currentAttacker = rouletteResult.updatedAttacker;
-        if (rouletteResult.event) {
-          allEvents.push(rouletteResult.event);
-          allLogs.push(rouletteResult.log);
-        }
         if (rouletteResult.jammed && i < hits - 1) {
-          // 탄걸림! 남은 타격 취소
-          const cancelMsg = `🔫 ${card.name}: 탄걸림으로 ${hits - i - 1}회 타격 취소!`;
-          allEvents.push({ actor: attackerName, card: card.name, type: 'jamCancel', msg: cancelMsg });
-          allLogs.push(cancelMsg);
-
+          // 탄걸림! 남은 타격 취소 - 요약 로그에 포함
           const finalResult = finalizeMultiHitAttack(modifiedCard, currentAttacker, currentDefender, attackerName, totalDealt, totalBlockDestroyed, battleContext);
+          // 탄걸림 요약 로그
+          const who = attackerName === 'player' ? '플레이어 -> 몬스터' : '몬스터 -> 플레이어';
+          const perHitDmg = firstHitResult.damage;
+          const actualHits = i + 1;
+          const jamMsg = `${who} • 🔫 ${card.name}${ghostLabel}: ${perHitDmg}x${actualHits} = ${totalDealt} 데미지 (탄걸림! ${hits - actualHits}회 취소)`;
+          allEvents.push({ actor: attackerName, card: card.name, type: 'multihit', msg: jamMsg, dmg: totalDealt });
+
           return {
             attacker: finalResult.attacker,
             defender: finalResult.defender,
             dealt: totalDealt,
             taken: totalTaken,
             events: [...allEvents, ...finalResult.events],
-            logs: [...allLogs, ...finalResult.logs],
+            logs: [...allLogs, jamMsg],
             isCritical,
             jammed: true,
-            hitsCompleted: i + 1,
+            hitsCompleted: actualHits,
             totalHits: hits,
             createdCards: finalResult.createdCards
           };
@@ -2036,13 +2033,18 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     }
 
     // 총합 로그 (피해량x타격횟수 형식)
+    const who = attackerName === 'player' ? '플레이어 -> 몬스터' : '몬스터 -> 플레이어';
+    const perHitDmg = firstHitResult.damage;
+    const icon = isGunCard ? '🔫' : '🔥';
     if (hits > 1) {
-      const who = attackerName === 'player' ? '플레이어 -> 몬스터' : '몬스터 -> 플레이어';
-      const perHitDmg = firstHitResult.damage;
-      const actualHits = Math.round(totalDealt / perHitDmg) || hits;
-      const multiHitMsg = `${who} • 🔥 ${card.name}${ghostLabel}: ${perHitDmg}x${actualHits} = ${totalDealt} 데미지!`;
+      const multiHitMsg = `${who} • ${icon} ${card.name}${ghostLabel}: ${perHitDmg}x${hits} = ${totalDealt} 데미지!`;
       allEvents.push({ actor: attackerName, card: card.name, type: 'multihit', msg: multiHitMsg, dmg: totalDealt });
       allLogs.push(multiHitMsg);
+    } else {
+      // 단일 타격 총기 공격
+      const singleHitMsg = `${who} • ${icon} ${card.name}${ghostLabel}: ${totalDealt} 데미지`;
+      allEvents.push({ actor: attackerName, card: card.name, type: 'hit', msg: singleHitMsg, dmg: totalDealt });
+      allLogs.push(singleHitMsg);
     }
 
     // 후처리 (화상 부여 등)

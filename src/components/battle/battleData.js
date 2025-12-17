@@ -307,7 +307,7 @@ export const CARDS = [
     id: "gyrus_roulette",
     name: "가이러스 룰렛",
     type: "attack",
-    damage: 5,
+    damage: 8,
     speedCost: 6,
     actionCost: 1,
     iconKey: "flame",
