@@ -2229,7 +2229,10 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
     // 이벤트 로그 출력 (actions.addLog 사용하여 reducer의 최신 상태 참조)
     actionEvents.forEach(ev => {
-      if (ev.msg) actions.addLog(ev.msg);
+      if (ev.msg) {
+        console.log('[executeCardAction] calling actions.addLog:', ev.msg);
+        actions.addLog(ev.msg);
+      }
     });
 
     // === 화상(BURN) 피해 처리: 카드 사용 시마다 피해 ===
