@@ -468,8 +468,8 @@ export const TOKENS = {
     type: TOKEN_TYPES.USAGE,
     category: TOKEN_CATEGORIES.POSITIVE,
     emoji: '💨',
-    description: '공격을 1회 100% 확률로 피한다.',
-    effect: { type: 'DODGE', value: 1.0 }
+    description: '공격을 1회 50% 확률로 피한다.',
+    effect: { type: 'DODGE', value: 0.5 }
   }
 };
 
