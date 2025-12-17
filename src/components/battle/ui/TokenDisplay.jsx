@@ -31,31 +31,26 @@ const TokenBadge = ({ token, onClick }) => {
         style={{
           display: 'flex',
           alignItems: 'center',
-          gap: '4px',
-          padding: '4px 8px',
+          gap: '2px',
+          padding: '4px 6px',
           background: bgColor,
           border: `2px solid ${borderColor}`,
           borderRadius: '8px',
-          fontSize: '0.85rem',
-          fontWeight: 'bold',
-          color: '#1e293b',
+          fontSize: '1.2rem',
           cursor: 'pointer',
           transition: 'all 0.2s ease',
           transform: isHovered ? 'scale(1.1)' : 'scale(1)',
           boxShadow: isHovered ? `0 0 12px ${borderColor}` : 'none'
         }}
       >
-        <span style={{ fontSize: '1.1rem' }}>{token.emoji}</span>
-        <span>{token.name}</span>
+        <span>{token.emoji}</span>
         {token.stacks > 1 && (
           <span style={{
-            background: 'rgba(0, 0, 0, 0.3)',
-            padding: '2px 6px',
-            borderRadius: '4px',
-            fontSize: '0.75rem',
-            color: '#fff'
+            fontSize: '0.7rem',
+            fontWeight: 'bold',
+            color: '#1e293b'
           }}>
-            ×{token.stacks}
+            {token.stacks}
           </span>
         )}
       </div>
