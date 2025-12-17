@@ -168,11 +168,10 @@ export const CARDS = [
     speedCost: 9,
     actionCost: 2,
     iconKey: "sword",
-    description: "공격력 4, 2번 피해. 피해 성공 시 넉백 2.",
-    traits: ["chain", "knockback"],
+    description: "공격력 4, 2번 피해. 교차 시 피해 2배. 피해 성공 시 넉백 2.",
+    traits: ["cross", "knockback"],
     cardCategory: "fencing",
     special: "beatEffect",
-    advanceAmount: 1,
     pushAmount: 2
   },
   {
