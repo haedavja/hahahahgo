@@ -123,7 +123,7 @@ export const CARDS = [
     speedCost: 11,
     actionCost: 2,
     iconKey: "sword",
-    description: "공격력 6. 피해를 입힐 때마다 공격 카드를 창조한다.",
+    description: "공격력 6. 피해를 입힐 때마다 최대 2번 공격 카드를 창조한다.",
     traits: ["creation"],
     cardCategory: "fencing",
     special: "createAttackOnHit"
