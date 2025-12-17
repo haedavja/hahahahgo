@@ -89,6 +89,31 @@ export function processPreAttackSpecials({
     }
   }
 
+  // === 교차 특성: 타임라인 겹침 시 피해 배율 적용 ===
+  const hasCrossTrait = card.traits && card.traits.includes('cross');
+  if (hasCrossTrait && card.crossBonus?.type === 'damage_mult') {
+    const { queue = [], currentSp = 0, currentQIndex = 0 } = battleContext;
+    const oppositeActor = attackerName === 'player' ? 'enemy' : 'player';
+
+    // 현재 카드 위치에서 적 카드와 겹치는지 확인
+    const isOverlapping = queue.some((q, idx) => {
+      if (q.actor !== oppositeActor) return false;
+      if (idx <= currentQIndex) return false; // 이미 실행된 카드는 제외
+      const spDiff = Math.abs((q.sp || 0) - currentSp);
+      return spDiff < 1; // 같은 위치
+    });
+
+    if (isOverlapping) {
+      const multiplier = card.crossBonus.value || 2;
+      const originalDamage = modifiedCard.damage || 0;
+      modifiedCard.damage = originalDamage * multiplier;
+      const who = attackerName === 'player' ? '플레이어' : '몬스터';
+      const msg = `${who} • ✨ ${card.name}: 교차! 피해 ${multiplier}배 (${originalDamage}→${modifiedCard.damage})`;
+      events.push({ actor: attackerName, card: card.name, type: 'cross', msg });
+      logs.push(msg);
+    }
+  }
+
   // === reloadSpray: 장전 후 사격 (탄걸림 제거 + 룰렛 초기화) ===
   if (hasSpecial(card, 'reloadSpray')) {
     // 탄걸림 제거
@@ -622,6 +647,48 @@ export function processCardPlaySpecials({
     } else {
       // 탄걸림 안 발생 → 룰렛 스택 증가
       tokensToAdd.push({ id: 'roulette', stacks: 1 });
+    }
+  }
+
+  // === 교차 특성: 타임라인에서 적 카드와 겹치면 보너스 효과 ===
+  const hasCrossTrait = card.traits && card.traits.includes('cross');
+  if (hasCrossTrait && card.crossBonus) {
+    const { queue = [], currentSp = 0, currentQIndex = 0 } = battleContext;
+    const oppositeActor = attackerName === 'player' ? 'enemy' : 'player';
+
+    // 현재 카드 위치에서 적 카드와 겹치는지 확인
+    // 타임라인 겹침: 같은 sp 값이거나, 범위가 겹치는 경우
+    const isOverlapping = queue.some((q, idx) => {
+      if (q.actor !== oppositeActor) return false;
+      if (idx <= currentQIndex) return false; // 이미 실행된 카드는 제외
+      // sp가 같거나 근접하면 겹침으로 판정 (속도 범위 고려)
+      const spDiff = Math.abs((q.sp || 0) - currentSp);
+      return spDiff < 1; // 같은 위치 (sp가 동일한 경우)
+    });
+
+    if (isOverlapping) {
+      const who = attackerName === 'player' ? '플레이어' : '몬스터';
+      const { type: bonusType, count = 1 } = card.crossBonus;
+
+      if (bonusType === 'gun_attack') {
+        // 사격 카드 추가
+        const gunCards = allCards.filter(c => c.cardCategory === 'gun' && c.type === 'attack');
+        for (let i = 0; i < count && gunCards.length > 0; i++) {
+          const randomGun = gunCards[Math.floor(Math.random() * gunCards.length)];
+          bonusCards.push({
+            ...randomGun,
+            isGhost: true,
+            createdBy: card.id,
+            createdId: `${randomGun.id}_cross_${Date.now()}_${i}`
+          });
+          const msg = `${who} • ✨ ${card.name}: 교차! "${randomGun.name}" 사격 추가!`;
+          events.push({ actor: attackerName, card: card.name, type: 'cross', msg });
+          logs.push(msg);
+        }
+      } else if (bonusType === 'damage_mult') {
+        // 비트용: 피해 2배 (카드에 직접 적용)
+        // 이미 applyAttack에서 처리해야 함
+      }
     }
   }
 

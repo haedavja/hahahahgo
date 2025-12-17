@@ -173,7 +173,8 @@ export const CARDS = [
     traits: ["cross", "knockback"],
     cardCategory: "fencing",
     special: "beatEffect",
-    pushAmount: 2
+    pushAmount: 2,
+    crossBonus: { type: 'damage_mult', value: 2 }
   },
   {
     id: "feint",
@@ -231,7 +232,7 @@ export const CARDS = [
     speedCost: 8,
     actionCost: 1,
     iconKey: "shield",
-    description: "방어력 6, 반격 2회. 교차 시 총격 1회.",
+    description: "방어력 6, 반격 2회. 교차 시 사격 1회.",
     traits: ["cross"],
     cardCategory: "fencing",
     crossBonus: { type: 'gun_attack', count: 1 }
