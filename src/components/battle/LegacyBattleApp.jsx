@@ -1934,6 +1934,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     let { hits, isCritical, preProcessedResult, modifiedCard, currentAttacker, currentDefender } = prepResult;
     const firstHitResult = prepResult.firstHitResult;
 
+    console.log('[executeMultiHitAsync] card:', card.name, 'hits:', hits, 'isGunCard:', isGunCard);
+
     let totalDealt = firstHitResult.damage;
     let totalTaken = firstHitResult.damageTaken || 0;
     let totalBlockDestroyed = firstHitResult.blockDestroyed || 0;
@@ -2041,17 +2043,21 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     const icon = isGunCard ? '🔫' : '🔥';
     if (hits > 1) {
       const multiHitMsg = `${who} • ${icon} ${card.name}${ghostLabel}: ${perHitDmg}x${hits} = ${totalDealt}${critText} 데미지!`;
+      console.log('[executeMultiHitAsync] multiHitMsg:', multiHitMsg);
       allEvents.push({ actor: attackerName, card: card.name, type: 'multihit', msg: multiHitMsg, dmg: totalDealt });
       allLogs.push(multiHitMsg);
     } else {
       // 단일 타격 총기 공격
       const singleHitMsg = `${who} • ${icon} ${card.name}${ghostLabel}: ${totalDealt}${critText} 데미지`;
+      console.log('[executeMultiHitAsync] singleHitMsg:', singleHitMsg);
       allEvents.push({ actor: attackerName, card: card.name, type: 'hit', msg: singleHitMsg, dmg: totalDealt });
       allLogs.push(singleHitMsg);
     }
 
     // 후처리 (화상 부여 등)
     const finalResult = finalizeMultiHitAttack(modifiedCard, currentAttacker, currentDefender, attackerName, totalDealt, totalBlockDestroyed, battleContext);
+
+    console.log('[executeMultiHitAsync] allEvents:', allEvents.length, 'finalResult.events:', finalResult.events.length);
 
     return {
       attacker: finalResult.attacker,
