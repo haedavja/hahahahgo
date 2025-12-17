@@ -2227,11 +2227,12 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       }
     }
 
-    // 이벤트 로그 출력
-    console.log('[executeCardAction] actionEvents:', actionEvents.length, actionEvents.map(ev => ev.msg));
-    actionEvents.forEach(ev => {
-      if (ev.msg) addLog(ev.msg);
-    });
+    // 이벤트 로그 출력 (한 번에 추가하여 상태 덮어쓰기 방지)
+    const eventMsgs = actionEvents.map(ev => ev.msg).filter(Boolean);
+    if (eventMsgs.length > 0) {
+      const currentLog = battleRef.current?.log || battle.log || [];
+      actions.updateLog([...currentLog, ...eventMsgs].slice(-200));
+    }
 
     // === 화상(BURN) 피해 처리: 카드 사용 시마다 피해 ===
     if (a.actor === 'player') {
