@@ -2228,6 +2228,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     }
 
     // 이벤트 로그 출력
+    console.log('[executeCardAction] actionEvents:', actionEvents.length, actionEvents.map(ev => ev.msg));
     actionEvents.forEach(ev => {
       if (ev.msg) addLog(ev.msg);
     });
