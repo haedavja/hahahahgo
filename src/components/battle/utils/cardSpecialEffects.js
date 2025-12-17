@@ -321,9 +321,11 @@ export function processPostAttackSpecials({
     modifiedDefender.tokens = result.tokens;
     const who = attackerName === 'player' ? '플레이어' : '몬스터';
     const target = attackerName === 'player' ? '몬스터' : '플레이어';
+    const hpBefore = modifiedDefender.hp + damageDealt;
+    const dmgInfo = damageDealt > 0 ? ` 데미지 ${damageDealt} (체력 ${hpBefore} -> ${modifiedDefender.hp}),` : '';
     const msg = hits > 1
-      ? `${who} -> ${target} • 🔥 소이탄: 화상 ${hits}스택 부여!`
-      : `${who} -> ${target} • 🔥 소이탄: 화상 부여!`;
+      ? `${who} -> ${target} •${dmgInfo} 🔥 소이탄: 화상 ${hits}스택 부여!`
+      : `${who} -> ${target} •${dmgInfo} 🔥 소이탄: 화상 부여!`;
     events.push({ actor: attackerName, card: card.name, type: 'special', msg });
     logs.push(msg);
   }
