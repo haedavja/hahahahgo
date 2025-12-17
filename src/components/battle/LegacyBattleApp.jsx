@@ -2693,15 +2693,15 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     // 타임라인의 모든 카드 진행이 끝났을 때 에테르 계산 애니메이션은 useEffect에서 실행됨 (상태 업데이트 타이밍 보장)
   };
 
-  // 자동진행 기능
+  // 자동진행 기능 (stepOnceRef 사용으로 중복 실행 방지)
   useEffect(() => {
     if (autoProgress && battle.phase === 'resolve' && battle.qIndex < battle.queue.length) {
       const timer = setTimeout(() => {
-        stepOnce();
+        stepOnceRef.current?.();
       }, TIMING.AUTO_PROGRESS_DELAY);
       return () => clearTimeout(timer);
     }
-  }, [autoProgress, battle.phase, battle.qIndex, battle.queue.length, stepOnce]);
+  }, [autoProgress, battle.phase, battle.qIndex, battle.queue.length]);
 
   // 타임라인 애니메이션 cleanup (페이즈 변경 또는 언마운트 시)
   useEffect(() => {
