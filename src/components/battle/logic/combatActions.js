@@ -384,8 +384,6 @@ export function applyAttack(attacker, defender, card, attackerName, battleContex
   totalDealt += firstHitResult.damage;
   totalTaken += firstHitResult.damageTaken || 0;
   totalBlockDestroyed += firstHitResult.blockDestroyed || 0;
-  allEvents.push(...firstHitResult.events);
-  allLogs.push(...firstHitResult.logs);
 
   // preProcessedResult 저장 (후속 타격에서 재사용)
   const preProcessedResult = firstHitResult.preProcessedResult;
@@ -396,12 +394,13 @@ export function applyAttack(attacker, defender, card, attackerName, battleContex
   const isGhostCard = card.isGhost === true;
   const ghostLabel = isGhostCard ? ' [👻유령]' : '';
 
-  // 다중 타격 시 첫 번째 타격 로그 추가 (이벤트로도 추가하여 전투 로그에 표시)
-  if (hits > 1) {
-    const firstHitDmg = firstHitResult.damage;
-    const hitLog = `💥 ${card.name}${ghostLabel} [1/${hits}]: ${firstHitDmg} 데미지`;
-    allEvents.push({ actor: attackerName, card: card.name, type: 'hitBreakdown', msg: hitLog });
-    allLogs.push(hitLog);
+  // 다중 타격 시 개별 hit 이벤트 필터링 (요약만 표시)
+  const skipEventTypes = hits > 1 ? ['hit', 'blocked', 'pierce'] : [];
+  const filteredFirstEvents = firstHitResult.events.filter(ev => !skipEventTypes.includes(ev.type));
+  allEvents.push(...filteredFirstEvents);
+  // 단일 타격일 때만 개별 로그 추가
+  if (hits === 1) {
+    allLogs.push(...firstHitResult.logs);
   }
 
   // 추가 타격 수행 (hits - 1번, 첫 타격은 이미 수행함)
@@ -412,18 +411,19 @@ export function applyAttack(attacker, defender, card, attackerName, battleContex
     totalDealt += result.damage;
     totalTaken += result.damageTaken || 0;
     totalBlockDestroyed += result.blockDestroyed || 0;
-    allEvents.push(...result.events);
-    // 각 타격별 로그 추가 (이벤트로도 추가하여 전투 로그에 표시)
-    const hitLog = `💥 ${card.name}${ghostLabel} [${i + 1}/${hits}]: ${result.damage} 데미지`;
-    allEvents.push({ actor: attackerName, card: card.name, type: 'hitBreakdown', msg: hitLog });
-    allLogs.push(hitLog);
+    // 다중 타격 시 개별 이벤트 필터링
+    const filteredEvents = result.events.filter(ev => !skipEventTypes.includes(ev.type));
+    allEvents.push(...filteredEvents);
   }
 
-  // 다중 타격 총합 로그 (피해량x타격횟수 형식)
+  // 다중 타격 총합 로그 (타격데미지x타격횟수 형식)
   if (hits > 1) {
     const who = attackerName === 'player' ? '플레이어 -> 몬스터' : '몬스터 -> 플레이어';
     const perHitDmg = firstHitResult.damage;
-    const multiHitMsg = `${who} • 🔥 ${card.name}${ghostLabel}: ${perHitDmg}x${hits} = ${totalDealt} 데미지!`;
+    const critText = isCritical ? ' 💥치명타!' : '';
+    const isGunCard = card.cardCategory === 'gun';
+    const icon = isGunCard ? '🔫' : '🔥';
+    const multiHitMsg = `${who} • ${icon} ${card.name}${ghostLabel}: ${perHitDmg}x${hits} = ${totalDealt}${critText} 데미지!`;
     allEvents.push({ actor: attackerName, card: card.name, type: 'multihit', msg: multiHitMsg, dmg: totalDealt });
     allLogs.push(multiHitMsg);
   }
