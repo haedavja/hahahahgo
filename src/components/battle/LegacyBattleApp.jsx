@@ -2888,7 +2888,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
     const nextPts = Math.max(0, nextEnemyPts);
     const nextEnemyPtsSnapshot = nextPts;
-    actions.setEnemy(createTurnEndEnemyState(enemy, {
+    actions.setEnemy(createTurnEndEnemyState(latestEnemy, {
       comboUsageCount: newEnemyUsageCount,
       etherPts: nextPts
     }));
