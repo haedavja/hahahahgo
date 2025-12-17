@@ -583,11 +583,11 @@ export function processCardPlaySpecials({
 
   const { hand = [], allCards = [] } = battleContext;
 
-  // === 카드 카테고리에 따른 연계 토큰 부여 ===
-  if (card.cardCategory === 'fencing') {
+  // === 카드 카테고리에 따른 연계 토큰 부여 (공격 카드만) ===
+  if (card.type === 'attack' && card.cardCategory === 'fencing') {
     tokensToAdd.push({ id: 'fencingCombo', stacks: 1 });
   }
-  if (card.cardCategory === 'gun') {
+  if (card.type === 'attack' && card.cardCategory === 'gun') {
     tokensToAdd.push({ id: 'gunCombo', stacks: 1 });
   }
 
