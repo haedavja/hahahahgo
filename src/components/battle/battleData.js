@@ -142,7 +142,7 @@ export const CARDS = [
   },
   {
     id: "thrust",
-    name: "찌르기",
+    name: "투셰",
     type: "attack",
     damage: 13,
     speedCost: 8,
@@ -193,7 +193,7 @@ export const CARDS = [
   },
   {
     id: "defensive_stance",
-    name: "방어자세",
+    name: "프로나시옹",
     type: "defense",
     block: 0,
     speedCost: 3,
@@ -208,7 +208,7 @@ export const CARDS = [
   },
   {
     id: "disrupt",
-    name: "흐트리기",
+    name: "데가지망",
     type: "attack",
     damage: 19,
     speedCost: 7,
@@ -455,7 +455,7 @@ export const CARDS = [
   // === 펜싱 유틸리티 카드 ===
   {
     id: "deflect",
-    name: "쳐내기",
+    name: "패링",
     type: "defense",
     block: 8,
     speedCost: 3,
