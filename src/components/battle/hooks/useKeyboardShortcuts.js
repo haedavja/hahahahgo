@@ -4,7 +4,7 @@
  * 전투 화면 키보드 단축키 처리
  */
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { calculateEtherSlots } from '../../../lib/etherUtils';
 
 /**
@@ -37,8 +37,34 @@ export function useKeyboardShortcuts({
   cycleSortType,
   playSound
 }) {
+  // Refs로 최신 함수 참조 유지 (stale closure 방지)
+  const callbacksRef = useRef({
+    startResolve,
+    beginResolveFromRespond,
+    redrawHand,
+    finishTurn,
+    cycleSortType,
+    playSound,
+    actions
+  });
+
+  // 매 렌더마다 최신 함수로 업데이트
+  useEffect(() => {
+    callbacksRef.current = {
+      startResolve,
+      beginResolveFromRespond,
+      redrawHand,
+      finishTurn,
+      cycleSortType,
+      playSound,
+      actions
+    };
+  });
+
   useEffect(() => {
     const handleKeyPress = (e) => {
+      const { actions, startResolve, beginResolveFromRespond, redrawHand, finishTurn, cycleSortType, playSound } = callbacksRef.current;
+
       // C 키: 캐릭터 창 토글
       if (e.key === "c" || e.key === "C") {
         e.preventDefault();
