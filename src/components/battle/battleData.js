@@ -125,10 +125,11 @@ export const CARDS = [
     speedCost: 11,
     actionCost: 2,
     iconKey: "sword",
-    description: "공격력 6. 피해를 입힐 때마다 최대 2번 공격 카드를 창조한다.",
-    traits: ["creation"],
+    description: "공격력 6. 피해를 입힐 때마다 최대 2번 공격 카드를 창조한다. 교차 시 사격 1회.",
+    traits: ["creation", "cross"],
     cardCategory: "fencing",
-    special: "createAttackOnHit"
+    special: "createAttackOnHit",
+    crossBonus: { type: 'gun_attack', count: 1 }
   },
   {
     id: "flank",
@@ -230,13 +231,10 @@ export const CARDS = [
     speedCost: 8,
     actionCost: 1,
     iconKey: "shield",
-    description: "방어력 6, 반격 2회, 수세 1회. 빠른 연속 공격에 대응한다.",
-    traits: [],
+    description: "방어력 6, 반격 2회. 교차 시 총격 1회.",
+    traits: ["cross"],
     cardCategory: "fencing",
-    appliedTokens: [{ id: 'guard', target: 'player' }],
-    onPlay: (battle, actions) => {
-      actions.addTokenToPlayer('guard', 1);
-    }
+    crossBonus: { type: 'gun_attack', count: 1 }
   },
   {
     id: "grind",
