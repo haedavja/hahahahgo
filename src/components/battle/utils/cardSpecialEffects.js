@@ -5,7 +5,7 @@
  * 각 카드의 special 필드에 정의된 고유 효과를 처리
  */
 
-import { addToken, removeToken, getAllTokens } from '../../../lib/tokenUtils';
+import { addToken, removeToken, getAllTokens, setTokenStacks } from '../../../lib/tokenUtils';
 
 /**
  * 카드의 special 효과 존재 여부 확인 (배열 지원)
@@ -114,15 +114,15 @@ export function processPreAttackSpecials({
     }
   }
 
-  // === reloadSpray: 장전 후 사격 (탄걸림 제거 + 룰렛 초기화) ===
+  // === reloadSpray: 장전 후 사격 (탄걸림 제거 + 룰렛 0으로 초기화) ===
   if (hasSpecial(card, 'reloadSpray')) {
     // 탄걸림 제거
     const result = removeToken(modifiedAttacker, 'gun_jam', 'permanent', 99);
     modifiedAttacker.tokens = result.tokens;
-    // 룰렛 초기화
-    const rouletteResult = removeToken(modifiedAttacker, 'roulette', 'permanent', 99);
+    // 룰렛 0으로 초기화
+    const rouletteResult = setTokenStacks(modifiedAttacker, 'roulette', 'permanent', 0);
     modifiedAttacker.tokens = rouletteResult.tokens;
-    if (result.logs.length > 0 || rouletteResult.logs.length > 0) {
+    if (result.logs.length > 0) {
       const who = attackerName === 'player' ? '플레이어' : '몬스터';
       const msg = `${who} • 🔫 ${card.name}: 장전! 탄걸림 해제!`;
       events.push({ actor: attackerName, card: card.name, type: 'special', msg });

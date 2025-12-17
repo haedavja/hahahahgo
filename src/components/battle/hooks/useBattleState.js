@@ -1,6 +1,6 @@
 import { useReducer, useMemo, useCallback, useRef, useEffect } from 'react';
 import { battleReducer, createInitialState, ACTIONS } from '../reducer/battleReducer';
-import { addToken, removeToken, clearTurnTokens } from '../../../lib/tokenUtils';
+import { addToken, removeToken, clearTurnTokens, setTokenStacks } from '../../../lib/tokenUtils';
 
 /**
  * =============================================================================
@@ -202,6 +202,20 @@ export function useBattleState(initialStateOverrides = {}) {
     removeTokenFromEnemy: (tokenId, tokenType, stacks = 1) => {
       const current = battleRef.current;  // 항상 최신 상태 참조!
       const result = removeToken(current.enemy, tokenId, tokenType, stacks);
+      dispatch({ type: ACTIONS.UPDATE_ENEMY_TOKENS, payload: result.tokens });
+      result.logs.forEach(log => dispatch({ type: ACTIONS.ADD_LOG, payload: log }));
+      return result;
+    },
+    resetTokenForPlayer: (tokenId, tokenType, newStacks = 0) => {
+      const current = battleRef.current;
+      const result = setTokenStacks(current.player, tokenId, tokenType, newStacks);
+      dispatch({ type: ACTIONS.UPDATE_PLAYER_TOKENS, payload: result.tokens });
+      result.logs.forEach(log => dispatch({ type: ACTIONS.ADD_LOG, payload: log }));
+      return result;
+    },
+    resetTokenForEnemy: (tokenId, tokenType, newStacks = 0) => {
+      const current = battleRef.current;
+      const result = setTokenStacks(current.enemy, tokenId, tokenType, newStacks);
       dispatch({ type: ACTIONS.UPDATE_ENEMY_TOKENS, payload: result.tokens });
       result.logs.forEach(log => dispatch({ type: ACTIONS.ADD_LOG, payload: log }));
       return result;

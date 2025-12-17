@@ -118,6 +118,46 @@ export function addToken(entity, tokenId, stacks = 1) {
 }
 
 /**
+ * 토큰 스택을 특정 값으로 설정 (리셋용)
+ *
+ * @param {Object} entity - player 또는 enemy 객체
+ * @param {string} tokenId - 토큰 ID
+ * @param {string} tokenType - 토큰 유형 (usage, turn, permanent)
+ * @param {number} newStacks - 설정할 스택 수
+ * @returns {Object} 업데이트된 토큰 상태 및 로그 메시지
+ */
+export function setTokenStacks(entity, tokenId, tokenType, newStacks) {
+  const tokens = { ...entity.tokens };
+  const logs = [];
+  const typeArray = [...(tokens[tokenType] || [])];
+  const existingIndex = typeArray.findIndex(t => t.id === tokenId);
+  const token = TOKENS[tokenId];
+
+  if (existingIndex === -1) {
+    // 토큰이 없으면 새로 추가 (newStacks > 0인 경우)
+    if (newStacks > 0) {
+      typeArray.push({ id: tokenId, stacks: newStacks });
+      logs.push(`${token?.name || tokenId} 토큰 ${newStacks}스택 설정`);
+    }
+  } else if (newStacks <= 0) {
+    // 0 이하면 토큰 제거
+    typeArray.splice(existingIndex, 1);
+    logs.push(`${token?.name || tokenId} 초기화`);
+  } else {
+    // 스택 업데이트
+    const oldStacks = typeArray[existingIndex].stacks;
+    typeArray[existingIndex] = {
+      ...typeArray[existingIndex],
+      stacks: newStacks
+    };
+    logs.push(`${token?.name || tokenId} 초기화 (${oldStacks} → ${newStacks})`);
+  }
+
+  tokens[tokenType] = typeArray;
+  return { tokens, logs };
+}
+
+/**
  * 엔티티에서 토큰 제거
  *
  * @param {Object} entity - player 또는 enemy 객체

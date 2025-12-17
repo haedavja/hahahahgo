@@ -1987,6 +1987,45 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       });
     }
 
+    // === 화상(BURN) 피해 처리: 카드 사용 시마다 피해 ===
+    if (a.actor === 'player') {
+      const playerBurnTokens = getAllTokens(P).filter(t => t.effect?.type === 'BURN');
+      if (playerBurnTokens.length > 0) {
+        const burnDamage = playerBurnTokens.reduce((sum, t) => sum + (t.effect?.value || 3) * (t.stacks || 1), 0);
+        P.hp = Math.max(0, P.hp - burnDamage);
+        addLog(`🔥 화상: 플레이어 -${burnDamage} HP`);
+        actionEvents.push({
+          actor: 'player',
+          card: a.card.name,
+          type: 'burn',
+          dmg: burnDamage,
+          msg: `🔥 화상: 플레이어 -${burnDamage} HP`
+        });
+        // battleRef 동기 업데이트
+        if (battleRef.current) {
+          battleRef.current = { ...battleRef.current, player: P };
+        }
+      }
+    } else if (a.actor === 'enemy') {
+      const enemyBurnTokens = getAllTokens(E).filter(t => t.effect?.type === 'BURN');
+      if (enemyBurnTokens.length > 0) {
+        const burnDamage = enemyBurnTokens.reduce((sum, t) => sum + (t.effect?.value || 3) * (t.stacks || 1), 0);
+        E.hp = Math.max(0, E.hp - burnDamage);
+        addLog(`🔥 화상: 적 -${burnDamage} HP`);
+        actionEvents.push({
+          actor: 'enemy',
+          card: a.card.name,
+          type: 'burn',
+          dmg: burnDamage,
+          msg: `🔥 화상: 적 -${burnDamage} HP`
+        });
+        // battleRef 동기 업데이트
+        if (battleRef.current) {
+          battleRef.current = { ...battleRef.current, enemy: E };
+        }
+      }
+    }
+
     // 플레쉬 등 카드 창조 효과: 브리치처럼 3장 중 1장 선택
     if (actionResult.createdCards && actionResult.createdCards.length > 0 && a.actor === 'player') {
       // 플레쉬 연쇄 효과인지 확인 (연쇄 횟수 포함)

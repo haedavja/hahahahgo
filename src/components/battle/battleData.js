@@ -329,9 +329,9 @@ export const CARDS = [
     cardCategory: "gun",
     appliedTokens: [{ id: 'armor_piercing', target: 'player' }],
     onPlay: (battle, actions) => {
-      // 탄걸림 해제 + 룰렛 초기화 후 추가 효과 적용
+      // 탄걸림 해제 + 룰렛 0으로 초기화 후 추가 효과 적용
       actions.removeTokenFromPlayer('gun_jam', 'permanent', 99);
-      actions.removeTokenFromPlayer('roulette', 'permanent', 99); // 룰렛 초기화
+      actions.resetTokenForPlayer('roulette', 'permanent', 0); // 룰렛 0으로 초기화
       actions.addTokenToPlayer('armor_piercing', 1);
     }
   },
@@ -348,9 +348,9 @@ export const CARDS = [
     cardCategory: "gun",
     appliedTokens: [{ id: 'incendiary', target: 'player' }],
     onPlay: (battle, actions) => {
-      // 탄걸림 해제 + 룰렛 초기화 후 추가 효과 적용
+      // 탄걸림 해제 + 룰렛 0으로 초기화 후 추가 효과 적용
       actions.removeTokenFromPlayer('gun_jam', 'permanent', 99);
-      actions.removeTokenFromPlayer('roulette', 'permanent', 99); // 룰렛 초기화
+      actions.resetTokenForPlayer('roulette', 'permanent', 0); // 룰렛 0으로 초기화
       actions.addTokenToPlayer('incendiary', 1);
     }
   },
@@ -366,9 +366,9 @@ export const CARDS = [
     traits: [],
     cardCategory: "gun",
     onPlay: (battle, actions) => {
-      // 탄걸림 해제 + 룰렛 초기화
+      // 탄걸림 해제 + 룰렛 0으로 초기화
       actions.removeTokenFromPlayer('gun_jam', 'permanent', 99);
-      actions.removeTokenFromPlayer('roulette', 'permanent', 99); // 룰렛 초기화
+      actions.resetTokenForPlayer('roulette', 'permanent', 0); // 룰렛 0으로 초기화
     }
   },
   {

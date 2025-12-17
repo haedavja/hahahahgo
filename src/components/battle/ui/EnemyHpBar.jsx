@@ -42,14 +42,28 @@ export const EnemyHpBar = ({
         <div style={{ textAlign: 'right', position: 'relative', paddingRight: '8px', pointerEvents: 'auto', display: 'flex', alignItems: 'center', gap: '14px' }}>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={{ position: 'relative', paddingTop: '30px' }}>
-                {(() => {
-                  const hideEnemyVitals = dulledLevel >= 3;
-                  const hpText = hideEnemyVitals ? '??' : `${enemy.hp}/${enemy.maxHp}`;
-                  const blockText = hideEnemyVitals ? '??' : (enemy.block > 0 ? `${enemy.block}` : null);
-                  const showDamage = (battle.phase === 'select' || battle.phase === 'respond') && previewDamage.value > 0;
-                  return (
-                  <div className={enemyHit ? 'hit-animation' : ''} style={{ color: '#f87171', fontSize: '1.25rem', fontWeight: 'bold', textAlign: 'right', transition: 'opacity 0.4s ease, transform 0.4s ease', opacity: soulShatter ? 0 : 1, transform: soulShatter ? 'scale(0.9)' : 'scale(1)', position: 'absolute', top: frozenOrder ? '-35px' : '-20px', right: '-200px', width: '280px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '8px' }}>
+              {/* HP/방어력 텍스트 - 고정 위치 */}
+              {(() => {
+                const hideEnemyVitals = dulledLevel >= 3;
+                const hpText = hideEnemyVitals ? '??' : `${enemy.hp}/${enemy.maxHp}`;
+                const blockText = hideEnemyVitals ? '??' : (enemy.block > 0 ? `${enemy.block}` : null);
+                const showDamage = (battle.phase === 'select' || battle.phase === 'respond') && previewDamage.value > 0;
+                return (
+                  <div className={enemyHit ? 'hit-animation' : ''} style={{
+                    color: '#f87171',
+                    fontSize: '1.25rem',
+                    fontWeight: 'bold',
+                    textAlign: 'right',
+                    transition: 'opacity 0.4s ease, transform 0.4s ease',
+                    opacity: soulShatter ? 0 : 1,
+                    transform: soulShatter ? 'scale(0.9)' : 'scale(1)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'flex-end',
+                    gap: '8px',
+                    whiteSpace: 'nowrap',
+                    minWidth: '200px'
+                  }}>
                     {showDamage && (
                       <span className={`${previewDamage.lethal ? 'lethal' : ''} ${previewDamage.overkill ? 'overkill' : ''}`} style={{ color: '#fbbf24' }}>
                         🗡️-{previewDamage.value}{previewDamage.lethal && (previewDamage.overkill ? '☠️' : '💀')}
@@ -59,9 +73,8 @@ export const EnemyHpBar = ({
                     <span>❤️ {hpText}</span>
                   </div>
                 );
-                })()}
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              })()}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', minWidth: '200px' }}>
                 <div className="hp-bar-enhanced mb-1" style={{ width: '200px', height: '12px', position: 'relative', overflow: 'hidden' }}>
                   <div className="hp-fill" style={{ width: `${dulledLevel >= 3 ? 0 : (enemy.hp / enemy.maxHp) * 100}%` }}></div>
                   {enemy.block > 0 && dulledLevel < 3 && (
@@ -76,8 +89,10 @@ export const EnemyHpBar = ({
                     }}></div>
                   )}
                 </div>
-                {/* 토큰 표시 - HP바 아래 */}
-                <TokenDisplay entity={enemy} position="enemy" />
+                {/* 토큰 표시 - HP바 아래, 고정 높이 컨테이너 */}
+                <div style={{ minHeight: '40px' }}>
+                  <TokenDisplay entity={enemy} position="enemy" />
+                </div>
                 {/* 빙결 상태이상 표시 */}
                 {frozenOrder > 0 && (
                   <div
