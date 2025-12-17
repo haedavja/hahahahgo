@@ -8,10 +8,14 @@
 import { addToken, removeToken, getAllTokens } from '../../../lib/tokenUtils';
 
 /**
- * 카드의 special 효과 존재 여부 확인
+ * 카드의 special 효과 존재 여부 확인 (배열 지원)
  */
 export function hasSpecial(card, specialName) {
-  return card?.special === specialName;
+  if (!card?.special) return false;
+  if (Array.isArray(card.special)) {
+    return card.special.includes(specialName);
+  }
+  return card.special === specialName;
 }
 
 /**

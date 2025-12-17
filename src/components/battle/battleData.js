@@ -82,23 +82,6 @@ export const TRAITS = {
 export const CARDS = [
   // === 펜싱 카드 ===
   {
-    id: "riposte",
-    name: "받아치기",
-    type: "defense",
-    block: 6,
-    counter: 2,
-    speedCost: 8,
-    actionCost: 1,
-    iconKey: "shield",
-    description: "방어력 6, 반격 2회, 수세 1회. 상대의 공격을 받아치며 반격한다.",
-    traits: [],
-    cardCategory: "fencing",
-    onPlay: (battle, actions) => {
-      actions.addTokenToPlayer('guard', 1);
-      actions.addTokenToPlayer('counter', 2);
-    }
-  },
-  {
     id: "marche",
     name: "마르쉐",
     type: "defense",
@@ -162,9 +145,11 @@ export const CARDS = [
     speedCost: 8,
     actionCost: 2,
     iconKey: "sword",
-    description: "공격력 13. 상대에게 흔들림을 부여한다. (방어력 -50%)",
+    description: "공격력 13. 상대에게 흔들림을 부여한다. 다음 카드가 검격이면 타임라인 3 앞당김.",
     traits: [],
     cardCategory: "fencing",
+    special: "advanceIfNextFencing",
+    advanceAmount: 3,
     onPlay: (battle, actions) => {
       actions.addTokenToEnemy('shaken', 1);
     }
@@ -193,9 +178,11 @@ export const CARDS = [
     speedCost: 4,
     actionCost: 1,
     iconKey: "sword",
-    description: "공격력 5. 회피 1회, 공세 1회를 얻는다.",
+    description: "공격력 5. 회피 1회, 공세 1회를 얻는다. 다음 카드가 검격이면 타임라인 3 앞당김.",
     traits: [],
     cardCategory: "fencing",
+    special: "advanceIfNextFencing",
+    advanceAmount: 3,
     onPlay: (battle, actions) => {
       actions.addTokenToPlayer('evasion', 1);
       actions.addTokenToPlayer('offense', 1);
@@ -280,10 +267,11 @@ export const CARDS = [
     speedCost: 12,
     actionCost: 2,
     iconKey: "sword",
-    description: "공격력 14. 공격 시 상대 방어력을 없앤 만큼 내 방어력으로 획득.",
+    description: "공격력 14. 공격 시 상대 방어력을 없앤 만큼 내 방어력으로 획득. 다음 카드가 검격이면 타임라인 3 앞당김.",
     traits: [],
     cardCategory: "fencing",
-    special: "stealBlock"
+    special: ["stealBlock", "advanceIfNextFencing"],
+    advanceAmount: 3
   },
 
   // === 총기 카드 ===
@@ -464,11 +452,13 @@ export const CARDS = [
     speedCost: 3,
     actionCost: 1,
     iconKey: "shield",
-    description: "발동 후 5 범위 안에 적 공격이 있으면 모든 적 카드를 타임라인에서 3 뒤로 밀어냅니다.",
+    description: "발동 후 5 범위 안에 적 공격이 있으면 모든 적 카드를 3 뒤로 민다. 다음 카드가 검격이면 타임라인 3 앞당김.",
     traits: [],
-    special: "parryPush",
+    cardCategory: "fencing",
+    special: ["parryPush", "advanceIfNextFencing"],
     parryRange: 5,
-    parryPushAmount: 3
+    parryPushAmount: 3,
+    advanceAmount: 3
   },
   {
     id: "breach",
