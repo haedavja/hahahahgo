@@ -550,16 +550,27 @@ export function processCardPlaySpecials({
   const tokensToAdd = []; // 추가할 토큰
   let nextTurnEffects = null;  // 다음 턴 효과
 
-  const { usedCardCategories = [], hand = [], allCards = [] } = battleContext;
+  const { hand = [], allCards = [] } = battleContext;
 
-  // === comboStyle: 검격→총격 또는 총격→검격 보너스 ===
+  // === 카드 카테고리에 따른 연계 토큰 부여 ===
+  if (card.cardCategory === 'fencing') {
+    tokensToAdd.push({ id: 'fencingCombo', stacks: 1 });
+  }
+  if (card.cardCategory === 'gun') {
+    tokensToAdd.push({ id: 'gunCombo', stacks: 1 });
+  }
+
+  // === comboStyle: 연계 토큰 기반으로 보너스 카드 발동 ===
   if (hasSpecial(card, 'comboStyle')) {
-    const usedFencing = usedCardCategories.includes('fencing');
-    const usedGun = usedCardCategories.includes('gun');
+    // attacker의 토큰에서 연계 토큰 확인
+    const attackerTokens = attacker?.tokens || { usage: [], turn: [], permanent: [] };
+    const allTokens = [...(attackerTokens.usage || []), ...(attackerTokens.turn || []), ...(attackerTokens.permanent || [])];
+    const hasFencingCombo = allTokens.some(t => t.id === 'fencingCombo');
+    const hasGunCombo = allTokens.some(t => t.id === 'gunCombo');
 
     const who = attackerName === 'player' ? '플레이어' : '몬스터';
-    if (usedFencing && !usedGun) {
-      // 검격을 냈으면 총격 보너스
+    if (hasFencingCombo && !hasGunCombo) {
+      // 검격 연계 토큰이 있으면 총격 보너스
       const gunCards = allCards.filter(c => c.cardCategory === 'gun' && c.type === 'attack');
       if (gunCards.length > 0) {
         const randomGun = gunCards[Math.floor(Math.random() * gunCards.length)];
@@ -573,8 +584,8 @@ export function processCardPlaySpecials({
         events.push({ actor: attackerName, card: card.name, type: 'combo', msg });
         logs.push(msg);
       }
-    } else if (usedGun && !usedFencing) {
-      // 총격을 냈으면 검격 보너스
+    } else if (hasGunCombo && !hasFencingCombo) {
+      // 총격 연계 토큰이 있으면 검격 보너스
       const fencingCards = allCards.filter(c => c.cardCategory === 'fencing' && c.type === 'attack');
       if (fencingCards.length > 0) {
         const randomFencing = fencingCards[Math.floor(Math.random() * fencingCards.length)];
@@ -588,8 +599,8 @@ export function processCardPlaySpecials({
         events.push({ actor: attackerName, card: card.name, type: 'combo', msg });
         logs.push(msg);
       }
-    } else if (usedFencing && usedGun) {
-      // 둘 다 냈으면 둘 중 랜덤
+    } else if (hasFencingCombo && hasGunCombo) {
+      // 둘 다 있으면 랜덤
       const useGun = Math.random() < 0.5;
       const targetCards = useGun
         ? allCards.filter(c => c.cardCategory === 'gun' && c.type === 'attack')

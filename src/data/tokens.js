@@ -441,6 +441,26 @@ export const TOKENS = {
     effect: { type: 'FOCUS', value: 1 }
   },
 
+  // === 연계 토큰 ===
+  fencingCombo: {
+    id: 'fencingCombo',
+    name: '검격 연계',
+    type: TOKEN_TYPES.TURN,
+    category: TOKEN_CATEGORIES.POSITIVE,
+    emoji: '⚔️',
+    description: '이번 턴 검격을 사용함. 연계 카드 사용 시 총격 추가.',
+    effect: { type: 'FENCING_COMBO', value: 1 }
+  },
+  gunCombo: {
+    id: 'gunCombo',
+    name: '총격 연계',
+    type: TOKEN_TYPES.TURN,
+    category: TOKEN_CATEGORIES.POSITIVE,
+    emoji: '🔫',
+    description: '이번 턴 총격을 사용함. 연계 카드 사용 시 검격 추가.',
+    effect: { type: 'GUN_COMBO', value: 1 }
+  },
+
   // === 회피 토큰 (기존에 없었음) ===
   evasion: {
     id: 'evasion',
