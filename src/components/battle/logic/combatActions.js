@@ -511,6 +511,14 @@ export function applyAction(state, actor, card, battleContext = {}) {
       });
     }
 
+    // tokensToRemove 처리
+    if (cardPlayResult.tokensToRemove && cardPlayResult.tokensToRemove.length > 0) {
+      cardPlayResult.tokensToRemove.forEach(tokenInfo => {
+        const tokenResult = removeToken(updatedActor, tokenInfo.id, 'permanent', tokenInfo.stacks);
+        updatedActor = { ...updatedActor, tokens: tokenResult.tokens };
+      });
+    }
+
     const updatedState = {
       ...state,
       [actor]: updatedActor,
@@ -542,6 +550,14 @@ export function applyAction(state, actor, card, battleContext = {}) {
     if (cardPlayResult.tokensToAdd && cardPlayResult.tokensToAdd.length > 0) {
       cardPlayResult.tokensToAdd.forEach(tokenInfo => {
         const tokenResult = addToken(updatedActor, tokenInfo.id, tokenInfo.stacks);
+        updatedActor = { ...updatedActor, tokens: tokenResult.tokens };
+      });
+    }
+
+    // tokensToRemove 처리
+    if (cardPlayResult.tokensToRemove && cardPlayResult.tokensToRemove.length > 0) {
+      cardPlayResult.tokensToRemove.forEach(tokenInfo => {
+        const tokenResult = removeToken(updatedActor, tokenInfo.id, 'permanent', tokenInfo.stacks);
         updatedActor = { ...updatedActor, tokens: tokenResult.tokens };
       });
     }

@@ -89,17 +89,17 @@ export function processPreAttackSpecials({
     }
   }
 
-  // === reloadSpray: 장전 후 사격 (빈탄창 직접 제거 + 탄걸림 확률 초기화) ===
+  // === reloadSpray: 장전 후 사격 (탄걸림 제거 + 룰렛 초기화) ===
   if (hasSpecial(card, 'reloadSpray')) {
-    // 빈탄창 직접 제거
-    const result = removeToken(modifiedAttacker, 'empty_chamber', 'permanent', 99);
+    // 탄걸림 제거
+    const result = removeToken(modifiedAttacker, 'gun_jam', 'permanent', 99);
     modifiedAttacker.tokens = result.tokens;
-    // 탄걸림 확률 초기화
-    const jamResult = removeToken(modifiedAttacker, 'jam_chance', 'permanent', 99);
-    modifiedAttacker.tokens = jamResult.tokens;
-    if (result.logs.length > 0 || jamResult.logs.length > 0) {
+    // 룰렛 초기화
+    const rouletteResult = removeToken(modifiedAttacker, 'roulette', 'permanent', 99);
+    modifiedAttacker.tokens = rouletteResult.tokens;
+    if (result.logs.length > 0 || rouletteResult.logs.length > 0) {
       const who = attackerName === 'player' ? '플레이어' : '몬스터';
-      const msg = `${who} • 🔫 ${card.name}: 장전! 빈탄창 해제!`;
+      const msg = `${who} • 🔫 ${card.name}: 장전! 탄걸림 해제!`;
       events.push({ actor: attackerName, card: card.name, type: 'special', msg });
       logs.push(msg);
     }
@@ -121,7 +121,7 @@ export function processPreAttackSpecials({
     }
     hits = Math.max(1, hits);  // 최소 1회
     modifiedCard.hits = hits;
-    modifiedCard._addEmptyChamber = true;  // 사용 후 빈탄창 플래그
+    modifiedCard._addGunJam = true;  // 사용 후 탄걸림 플래그
     const who = attackerName === 'player' ? '플레이어' : '몬스터';
     const msg = `${who} • 🎰 ${card.name}: 행동력 ${remainingEnergy} → ${hits}회 사격! (🎲 보너스 ${bonusCount}회)`;
     events.push({ actor: attackerName, card: card.name, type: 'special', msg });
@@ -262,29 +262,29 @@ export function processPostAttackSpecials({
     logs.push(msg);
   }
 
-  // === emptyAfterUse: 사용 후 빈탄창 ===
-  if (hasSpecial(card, 'emptyAfterUse') || card._addEmptyChamber) {
-    const result = addToken(modifiedAttacker, 'empty_chamber', 1);
+  // === emptyAfterUse: 사용 후 탄걸림 ===
+  if (hasSpecial(card, 'emptyAfterUse') || card._addGunJam) {
+    const result = addToken(modifiedAttacker, 'gun_jam', 1);
     modifiedAttacker.tokens = result.tokens;
     const who = attackerName === 'player' ? '플레이어' : '몬스터';
     const target = attackerName === 'player' ? '몬스터' : '플레이어';
     const hpBefore = modifiedDefender.hp + damageDealt;
     const dmgInfo = damageDealt > 0 ? ` 데미지 ${damageDealt} (체력 ${hpBefore} -> ${modifiedDefender.hp}),` : '';
-    const msg = `${who} -> ${target} •${dmgInfo} 🔫 ${card.name}: 사용 후 빈탄창!`;
+    const msg = `${who} -> ${target} •${dmgInfo} 🔫 ${card.name}: 사용 후 탄걸림!`;
     events.push({ actor: attackerName, card: card.name, type: 'special', msg });
     logs.push(msg);
   }
 
-  // === reloadSpray: 장전 후 사격, 사용 후 빈탄창 ===
+  // === reloadSpray: 장전 후 사격, 사용 후 탄걸림 ===
   if (hasSpecial(card, 'reloadSpray')) {
-    // onPlay에서 이미 loaded 추가됨, 여기서 empty_chamber 추가
-    const result = addToken(modifiedAttacker, 'empty_chamber', 1);
+    // onPlay에서 이미 loaded 추가됨, 여기서 gun_jam 추가
+    const result = addToken(modifiedAttacker, 'gun_jam', 1);
     modifiedAttacker.tokens = result.tokens;
     const who = attackerName === 'player' ? '플레이어' : '몬스터';
     const target = attackerName === 'player' ? '몬스터' : '플레이어';
     const hpBefore = modifiedDefender.hp + damageDealt;
     const dmgInfo = damageDealt > 0 ? ` 데미지 ${damageDealt} (체력 ${hpBefore} -> ${modifiedDefender.hp}),` : '';
-    const msg = `${who} -> ${target} •${dmgInfo} 🔫 ${card.name}: 난사 후 빈탄창!`;
+    const msg = `${who} -> ${target} •${dmgInfo} 🔫 ${card.name}: 난사 후 탄걸림!`;
     events.push({ actor: attackerName, card: card.name, type: 'special', msg });
     logs.push(msg);
   }
@@ -590,6 +590,7 @@ export function processCardPlaySpecials({
   const logs = [];
   const bonusCards = [];  // 큐에 추가할 보너스 카드
   const tokensToAdd = []; // 추가할 토큰
+  const tokensToRemove = []; // 제거할 토큰
   let nextTurnEffects = null;  // 다음 턴 효과
 
   const { hand = [], allCards = [] } = battleContext;
@@ -601,26 +602,27 @@ export function processCardPlaySpecials({
   if (card.type === 'attack' && card.cardCategory === 'gun') {
     tokensToAdd.push({ id: 'gunCombo', stacks: 1 });
 
-    // === 총격 빈탄창 확률 시스템 ===
+    // === 총격 룰렛 시스템 ===
     const attackerTokens = attacker?.tokens || { usage: [], turn: [], permanent: [] };
     const allAttackerTokens = [...(attackerTokens.usage || []), ...(attackerTokens.turn || []), ...(attackerTokens.permanent || [])];
-    const jamToken = allAttackerTokens.find(t => t.id === 'jam_chance');
-    const currentJamStacks = jamToken?.stacks || 0;
-    const jamChance = currentJamStacks * 0.05; // 스택당 5%
+    const rouletteToken = allAttackerTokens.find(t => t.id === 'roulette');
+    const currentRouletteStacks = rouletteToken?.stacks || 0;
+    const jamChance = currentRouletteStacks * 0.05; // 스택당 5%
 
     const who = attackerName === 'player' ? '플레이어' : '몬스터';
 
     // 확률 판정
-    if (currentJamStacks > 0 && Math.random() < jamChance) {
-      // 빈탄창 발생!
-      tokensToAdd.push({ id: 'empty_chamber', stacks: 1 });
-      const msg = `${who} • ⚠️ ${card.name}: 탄걸림 발생! (${Math.round(jamChance * 100)}% 확률)`;
+    if (currentRouletteStacks > 0 && Math.random() < jamChance) {
+      // 탄걸림 발생! 룰렛 제거됨
+      tokensToAdd.push({ id: 'gun_jam', stacks: 1 });
+      tokensToRemove.push({ id: 'roulette', stacks: 99 }); // 룰렛 완전 제거
+      const msg = `${who} • 🎰 ${card.name}: 탄걸림 발생! (${Math.round(jamChance * 100)}% 확률) 룰렛 제거됨`;
       events.push({ actor: attackerName, card: card.name, type: 'jam', msg });
       logs.push(msg);
+    } else {
+      // 탄걸림 안 발생 → 룰렛 스택 증가
+      tokensToAdd.push({ id: 'roulette', stacks: 1 });
     }
-
-    // 총격 후 jam_chance 1스택 증가
-    tokensToAdd.push({ id: 'jam_chance', stacks: 1 });
   }
 
   // === comboStyle: 연계 토큰 기반으로 보너스 카드 발동 ===
@@ -704,7 +706,7 @@ export function processCardPlaySpecials({
     logs.push(msg);
   }
 
-  return { bonusCards, tokensToAdd, nextTurnEffects, events, logs };
+  return { bonusCards, tokensToAdd, tokensToRemove, nextTurnEffects, events, logs };
 }
 
 // =====================

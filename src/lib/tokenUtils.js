@@ -45,7 +45,7 @@ export function addToken(entity, tokenId, stacks = 1) {
     if (cancelled.cancelled > 0) {
       logs.push(`${token.name}와 ${TOKENS[oppositeTokenId].name}이(가) ${cancelled.cancelled}스택 상쇄되었습니다!`);
 
-      // 장전 토큰은 빈탄창만 제거하고 누적되지 않음
+      // 장전 토큰은 탄걸림만 제거하고 누적되지 않음
       if (tokenId === 'loaded') {
         return { tokens: cancelled.tokens, logs };
       }
@@ -54,19 +54,19 @@ export function addToken(entity, tokenId, stacks = 1) {
     }
     stacks = cancelled.remaining;
 
-    // 장전 토큰은 빈탄창이 없으면 추가되지 않음
+    // 장전 토큰은 탄걸림이 없으면 추가되지 않음
     if (tokenId === 'loaded') {
-      logs.push(`빈탄창이 없어 장전 효과 없음`);
+      logs.push(`탄걸림이 없어 장전 효과 없음`);
       return { tokens, logs };
     }
 
-    // 빈탄창 토큰은 장전이 없으면 1스택만 유지 (누적 안됨)
-    if (tokenId === 'empty_chamber') {
-      // 이미 빈탄창이 있으면 추가하지 않음
+    // 탄걸림 토큰은 장전이 없으면 1스택만 유지 (누적 안됨)
+    if (tokenId === 'gun_jam') {
+      // 이미 탄걸림이 있으면 추가하지 않음
       for (const type of [TOKEN_TYPES.USAGE, TOKEN_TYPES.TURN, TOKEN_TYPES.PERMANENT]) {
         const arr = tokens[type] || [];
-        if (arr.some(t => t.id === 'empty_chamber')) {
-          logs.push(`이미 빈탄창 상태`);
+        if (arr.some(t => t.id === 'gun_jam')) {
+          logs.push(`이미 탄걸림 상태`);
           return { tokens, logs };
         }
       }

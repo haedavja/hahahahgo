@@ -330,9 +330,9 @@ export const CARDS = [
     cardCategory: "gun",
     appliedTokens: [{ id: 'armor_piercing', target: 'player' }],
     onPlay: (battle, actions) => {
-      // 빈탄창 직접 제거 후 추가 효과 적용
-      actions.removeTokenFromPlayer('empty_chamber', 'permanent', 99);
-      actions.removeTokenFromPlayer('jam_chance', 'permanent', 99); // 탄걸림 확률 초기화
+      // 탄걸림 해제 + 룰렛 초기화 후 추가 효과 적용
+      actions.removeTokenFromPlayer('gun_jam', 'permanent', 99);
+      actions.removeTokenFromPlayer('roulette', 'permanent', 99); // 룰렛 초기화
       actions.addTokenToPlayer('armor_piercing', 1);
     }
   },
@@ -349,9 +349,9 @@ export const CARDS = [
     cardCategory: "gun",
     appliedTokens: [{ id: 'incendiary', target: 'player' }],
     onPlay: (battle, actions) => {
-      // 빈탄창 직접 제거 후 추가 효과 적용
-      actions.removeTokenFromPlayer('empty_chamber', 'permanent', 99);
-      actions.removeTokenFromPlayer('jam_chance', 'permanent', 99); // 탄걸림 확률 초기화
+      // 탄걸림 해제 + 룰렛 초기화 후 추가 효과 적용
+      actions.removeTokenFromPlayer('gun_jam', 'permanent', 99);
+      actions.removeTokenFromPlayer('roulette', 'permanent', 99); // 룰렛 초기화
       actions.addTokenToPlayer('incendiary', 1);
     }
   },
@@ -363,13 +363,13 @@ export const CARDS = [
     speedCost: 2,
     actionCost: 0,
     iconKey: "shield",
-    description: "방어력 5. 빈탄창 디버프를 제거한다.",
+    description: "방어력 5. 탄걸림을 해제하고 룰렛을 초기화한다.",
     traits: [],
     cardCategory: "gun",
     onPlay: (battle, actions) => {
-      // 빈탄창 직접 제거
-      actions.removeTokenFromPlayer('empty_chamber', 'permanent', 99);
-      actions.removeTokenFromPlayer('jam_chance', 'permanent', 99); // 탄걸림 확률 초기화
+      // 탄걸림 해제 + 룰렛 초기화
+      actions.removeTokenFromPlayer('gun_jam', 'permanent', 99);
+      actions.removeTokenFromPlayer('roulette', 'permanent', 99); // 룰렛 초기화
     }
   },
   {

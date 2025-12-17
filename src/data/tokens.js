@@ -375,14 +375,14 @@ export const TOKENS = {
   },
 
   // === 총기 관련 토큰 ===
-  empty_chamber: {
-    id: 'empty_chamber',
-    name: '빈탄창',
+  gun_jam: {
+    id: 'gun_jam',
+    name: '탄걸림',
     type: TOKEN_TYPES.PERMANENT,
     category: TOKEN_CATEGORIES.NEGATIVE,
     emoji: '🔫',
     description: '사격 카드의 피해가 0이 된다. 장전으로 해소.',
-    effect: { type: 'EMPTY_CHAMBER', value: 1 }
+    effect: { type: 'GUN_JAM', value: 1 }
   },
   loaded: {
     id: 'loaded',
@@ -390,7 +390,7 @@ export const TOKENS = {
     type: TOKEN_TYPES.PERMANENT,
     category: TOKEN_CATEGORIES.POSITIVE,
     emoji: '🔫',
-    description: '빈탄창 디버프를 상쇄한다.',
+    description: '탄걸림 디버프를 상쇄한다.',
     effect: { type: 'LOADED', value: 1 }
   },
   armor_piercing: {
@@ -420,14 +420,14 @@ export const TOKENS = {
     description: '타임라인에서 카드를 사용할 때마다 3 피해를 받는다.',
     effect: { type: 'BURN', value: 3 }
   },
-  jam_chance: {
-    id: 'jam_chance',
-    name: '탄걸림 확률',
+  roulette: {
+    id: 'roulette',
+    name: '룰렛',
     type: TOKEN_TYPES.PERMANENT,
     category: TOKEN_CATEGORIES.NEUTRAL,
-    emoji: '⚠️',
-    description: '총격 사용 시 스택 x 5% 확률로 빈탄창 발생. 장전 시 초기화.',
-    effect: { type: 'JAM_CHANCE', value: 5 }
+    emoji: '🎰',
+    description: '총격 사용 시 스택 x 5% 확률로 탄걸림 발생. 탄걸림 시 제거됨.',
+    effect: { type: 'ROULETTE', value: 5 }
   },
 
   // === 치명타/통찰 관련 토큰 ===
@@ -507,8 +507,8 @@ export const TOKEN_CANCELLATION_MAP = {
   dizzy: 'warmedUp',
 
   // 장전 ↔ 빈탄창
-  loaded: 'empty_chamber',
-  empty_chamber: 'loaded'
+  loaded: 'gun_jam',
+  gun_jam: 'loaded'
 };
 
 // 토큰 배지 색상 (UI용)
