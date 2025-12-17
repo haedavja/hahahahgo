@@ -76,7 +76,9 @@ export const EnemyHpBar = ({
                     }}></div>
                   )}
                 </div>
-                {/* 상태이상 표시 - HP바 아래 */}
+                {/* 토큰 표시 - HP바 아래 */}
+                <TokenDisplay entity={enemy} position="enemy" />
+                {/* 빙결 상태이상 표시 */}
                 {frozenOrder > 0 && (
                   <div
                     className="enemy-status-frozen"
@@ -128,9 +130,6 @@ export const EnemyHpBar = ({
                     </div>
                   </div>
                 )}
-              </div>
-              {/* 토큰 표시 */}
-              <TokenDisplay entity={enemy} position="enemy" />
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px', marginTop: '-88px' }}>
               {groupedEnemyMembers.map((member, idx) => {
