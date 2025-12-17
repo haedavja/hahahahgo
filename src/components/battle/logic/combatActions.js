@@ -417,7 +417,6 @@ export function applyAttack(attacker, defender, card, attackerName, battleContex
   }
 
   // 다중 타격 총합 로그 (타격데미지x타격횟수 형식)
-  console.log('[applyAttack] hits:', hits, 'cardName:', card.name, 'totalDealt:', totalDealt);
   if (hits > 1) {
     const who = attackerName === 'player' ? '플레이어 -> 몬스터' : '몬스터 -> 플레이어';
     const perHitDmg = firstHitResult.damage;
@@ -425,7 +424,6 @@ export function applyAttack(attacker, defender, card, attackerName, battleContex
     const isGunCard = card.cardCategory === 'gun';
     const icon = isGunCard ? '🔫' : '🔥';
     const multiHitMsg = `${who} • ${icon} ${card.name}${ghostLabel}: ${perHitDmg}x${hits} = ${totalDealt}${critText} 데미지!`;
-    console.log('[applyAttack] multiHitMsg:', multiHitMsg);
     allEvents.push({ actor: attackerName, card: card.name, type: 'multihit', msg: multiHitMsg, dmg: totalDealt });
     allLogs.push(multiHitMsg);
   }
