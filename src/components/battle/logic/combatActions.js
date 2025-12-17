@@ -497,13 +497,17 @@ export function applyAction(state, actor, card, battleContext = {}) {
     });
 
     // tokensToAdd 처리
+    console.log('[DEBUG defense] cardPlayResult.tokensToAdd:', cardPlayResult.tokensToAdd);
     if (cardPlayResult.tokensToAdd && cardPlayResult.tokensToAdd.length > 0) {
       cardPlayResult.tokensToAdd.forEach(tokenInfo => {
+        console.log('[DEBUG defense] adding token:', tokenInfo.id, tokenInfo.stacks);
         const tokenResult = addToken(updatedActor, tokenInfo.id, tokenInfo.stacks);
+        console.log('[DEBUG defense] tokenResult:', tokenResult);
         updatedActor = { ...updatedActor, tokens: tokenResult.tokens };
       });
     }
 
+    console.log('[DEBUG defense] returning updatedState');
     const updatedState = {
       ...state,
       [actor]: updatedActor,
