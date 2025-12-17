@@ -2157,7 +2157,15 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
               if (isCritical) {
                 addLog(`💥 치명타! ${tokenId} +1 강화`);
               }
-              return actions.addTokenToEnemy(tokenId, actualStacks);
+              const result = addToken(E, tokenId, actualStacks);
+              E.tokens = result.tokens;
+              // battleRef 동기 업데이트
+              if (battleRef.current) {
+                battleRef.current = { ...battleRef.current, enemy: { ...E } };
+              }
+              actions.setEnemy({ ...E });
+              result.logs.forEach(log => addLog(log));
+              return result;
             }
           };
           a.card.onPlay(battle, tokenActions);
