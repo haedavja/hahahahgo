@@ -7,6 +7,7 @@
 import { CARDS } from '../battleData';
 import { TRAITS } from '../battleData';
 import { applyTraitModifiers } from '../utils/battleUtils';
+import { TOKENS, TOKEN_CATEGORIES } from '../../../data/tokens';
 
 export const BattleTooltips = ({
   tooltipVisible,
@@ -18,8 +19,8 @@ export const BattleTooltips = ({
 }) => {
   return (
     <>
-      {/* 특성 툴팁 */}
-      {tooltipVisible && tooltipVisible && hoveredCard && hoveredCard.card.traits && hoveredCard.card.traits.length > 0 && (
+      {/* 특성/토큰 툴팁 */}
+      {tooltipVisible && hoveredCard && ((hoveredCard.card.traits && hoveredCard.card.traits.length > 0) || (hoveredCard.card.appliedTokens && hoveredCard.card.appliedTokens.length > 0)) && (
         <div
           className={`trait-tooltip ${tooltipVisible ? 'tooltip-visible' : ''}`}
           style={{
@@ -38,7 +39,7 @@ export const BattleTooltips = ({
           }}
         >
           <div style={{ fontSize: '21px', fontWeight: 700, color: '#fbbf24', marginBottom: '12px' }}>
-            특성 정보
+            {hoveredCard.card.traits && hoveredCard.card.traits.length > 0 ? '특성 정보' : '토큰 효과'}
           </div>
           {(() => {
             const baseCard = CARDS.find(c => c.id === hoveredCard.card.id);
@@ -58,7 +59,8 @@ export const BattleTooltips = ({
               </div>
             ) : null;
           })()}
-          {hoveredCard.card.traits.map(traitId => {
+          {/* 특성 섹션 */}
+          {hoveredCard.card.traits && hoveredCard.card.traits.length > 0 && hoveredCard.card.traits.map(traitId => {
             const trait = TRAITS[traitId];
             if (!trait) return null;
             const isPositive = trait.type === 'positive';
@@ -87,6 +89,56 @@ export const BattleTooltips = ({
               </div>
             );
           })}
+          {/* 적용 토큰 섹션 */}
+          {hoveredCard.card.appliedTokens && hoveredCard.card.appliedTokens.length > 0 && (
+            <>
+              {hoveredCard.card.traits && hoveredCard.card.traits.length > 0 && (
+                <div style={{ borderTop: '1px solid rgba(255,255,255,0.2)', margin: '12px 0', paddingTop: '12px' }}>
+                  <div style={{ fontSize: '17px', fontWeight: 700, color: '#a78bfa', marginBottom: '8px' }}>
+                    부여 토큰
+                  </div>
+                </div>
+              )}
+              {hoveredCard.card.appliedTokens.map((tokenInfo, idx) => {
+                const token = TOKENS[tokenInfo.id];
+                if (!token) return null;
+                const isPositive = token.category === TOKEN_CATEGORIES.POSITIVE;
+                const isNegative = token.category === TOKEN_CATEGORIES.NEGATIVE;
+                const targetLabel = tokenInfo.target === 'player' ? '자신' : '적';
+                return (
+                  <div key={`${tokenInfo.id}-${idx}`} style={{ marginBottom: '12px' }}>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      marginBottom: '4px'
+                    }}>
+                      <span style={{ fontSize: '18px' }}>{token.emoji}</span>
+                      <span style={{
+                        fontSize: '19px',
+                        fontWeight: 700,
+                        color: isPositive ? '#22c55e' : isNegative ? '#ef4444' : '#94a3b8'
+                      }}>
+                        {token.name}
+                      </span>
+                      <span style={{
+                        fontSize: '13px',
+                        color: '#94a3b8',
+                        background: 'rgba(148, 163, 184, 0.2)',
+                        padding: '2px 6px',
+                        borderRadius: '4px'
+                      }}>
+                        → {targetLabel}
+                      </span>
+                    </div>
+                    <div style={{ fontSize: '16px', color: '#9fb6ff', lineHeight: 1.5 }}>
+                      {token.description}
+                    </div>
+                  </div>
+                );
+              })}
+            </>
+          )}
         </div>
       )}
 

@@ -94,6 +94,7 @@ export const CARDS = [
     cardCategory: "fencing",
     special: "advanceTimeline",
     advanceAmount: 4,
+    appliedTokens: [{ id: 'blur', target: 'player' }],
     onPlay: (battle, actions) => {
       actions.addTokenToPlayer('blur', 1);
     }
@@ -150,6 +151,7 @@ export const CARDS = [
     cardCategory: "fencing",
     special: "advanceIfNextFencing",
     advanceAmount: 3,
+    appliedTokens: [{ id: 'shaken', target: 'enemy' }],
     onPlay: (battle, actions) => {
       actions.addTokenToEnemy('shaken', 1);
     }
@@ -183,6 +185,7 @@ export const CARDS = [
     cardCategory: "fencing",
     special: "advanceIfNextFencing",
     advanceAmount: 3,
+    appliedTokens: [{ id: 'evasion', target: 'player' }, { id: 'offense', target: 'player' }],
     onPlay: (battle, actions) => {
       actions.addTokenToPlayer('evasion', 1);
       actions.addTokenToPlayer('offense', 1);
@@ -229,6 +232,7 @@ export const CARDS = [
     description: "방어력 6, 반격 2회, 수세 1회. 빠른 연속 공격에 대응한다.",
     traits: [],
     cardCategory: "fencing",
+    appliedTokens: [{ id: 'guard', target: 'player' }],
     onPlay: (battle, actions) => {
       actions.addTokenToPlayer('guard', 1);
     }
@@ -324,6 +328,7 @@ export const CARDS = [
     description: "장전 효과 + 다음 총격이 방어력을 무시한다.",
     traits: [],
     cardCategory: "gun",
+    appliedTokens: [{ id: 'armor_piercing', target: 'player' }],
     onPlay: (battle, actions) => {
       // 빈탄창 직접 제거 후 추가 효과 적용
       actions.removeTokenFromPlayer('empty_chamber', 'permanent', 99);
@@ -341,6 +346,7 @@ export const CARDS = [
     description: "장전 효과 + 다음 총격이 화상을 입힌다.",
     traits: [],
     cardCategory: "gun",
+    appliedTokens: [{ id: 'incendiary', target: 'player' }],
     onPlay: (battle, actions) => {
       // 빈탄창 직접 제거 후 추가 효과 적용
       actions.removeTokenFromPlayer('empty_chamber', 'permanent', 99);
@@ -373,6 +379,7 @@ export const CARDS = [
     iconKey: "shield",
     description: "통찰 +1, 치명타율 +5%를 영구히 얻는다.",
     traits: [],
+    appliedTokens: [{ id: 'insight', target: 'player' }, { id: 'crit_boost', target: 'player' }],
     onPlay: (battle, actions) => {
       actions.addTokenToPlayer('insight', 1);
       actions.addTokenToPlayer('crit_boost', 1);

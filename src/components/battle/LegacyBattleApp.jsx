@@ -595,7 +595,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   }, [hoveredCard]);
 
   const showCardTraitTooltip = useCallback((card, cardElement) => {
-    if (!card?.traits || card.traits.length === 0 || !cardElement) return;
+    const hasTraits = card?.traits && card.traits.length > 0;
+    const hasAppliedTokens = card?.appliedTokens && card.appliedTokens.length > 0;
+    if ((!hasTraits && !hasAppliedTokens) || !cardElement) return;
     const updatePos = () => {
       const rect = cardElement.getBoundingClientRect();
       actions.setHoveredCard({ card, x: rect.right + 16, y: rect.top });
