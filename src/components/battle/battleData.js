@@ -377,7 +377,7 @@ export const CARDS = [
     speedCost: 3,
     actionCost: 2,
     iconKey: "shield",
-    description: "통찰 +1, 치명타율 +5%를 영구히 얻는다.",
+    description: "이번 전투 동안 통찰 +1, 치명타율 +5%를 얻는다.",
     traits: [],
     appliedTokens: [{ id: 'insight', target: 'player' }, { id: 'crit_boost', target: 'player' }],
     onPlay: (battle, actions) => {
