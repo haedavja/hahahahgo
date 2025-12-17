@@ -293,6 +293,23 @@ export function processPostAttackSpecials({
     logs.push(msg);
   }
 
+  // === stealBlock: 파괴한 방어력 획득 ===
+  if (hasSpecial(card, 'stealBlock')) {
+    const { blockDestroyed = 0 } = battleContext;
+    if (blockDestroyed > 0) {
+      // 공격자에게 방어력 부여
+      modifiedAttacker.block = (modifiedAttacker.block || 0) + blockDestroyed;
+      modifiedAttacker.def = true;
+      const who = attackerName === 'player' ? '플레이어' : '몬스터';
+      const target = attackerName === 'player' ? '몬스터' : '플레이어';
+      const hpBefore = modifiedDefender.hp + damageDealt;
+      const dmgInfo = damageDealt > 0 ? ` 데미지 ${damageDealt} (체력 ${hpBefore} -> ${modifiedDefender.hp}),` : '';
+      const msg = `${who} -> ${target} •${dmgInfo} 🛡️ ${card.name}: 방어력 ${blockDestroyed} 탈취!`;
+      events.push({ actor: attackerName, card: card.name, type: 'special', msg });
+      logs.push(msg);
+    }
+  }
+
   return {
     attacker: modifiedAttacker,
     defender: modifiedDefender,

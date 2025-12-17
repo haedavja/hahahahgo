@@ -247,8 +247,45 @@ export const CARDS = [
     traits: [],
     special: "ignoreBlock"
   },
+  {
+    id: "strike",
+    name: "타격",
+    type: "attack",
+    damage: 15,
+    speedCost: 9,
+    actionCost: 1,
+    iconKey: "sword",
+    description: "공격력 15. 기본 검격 공격.",
+    traits: [],
+    cardCategory: "fencing"
+  },
+  {
+    id: "binding",
+    name: "바인딩",
+    type: "attack",
+    damage: 14,
+    speedCost: 12,
+    actionCost: 2,
+    iconKey: "sword",
+    description: "공격력 14. 공격 시 상대 방어력을 없앤 만큼 내 방어력으로 획득.",
+    traits: [],
+    cardCategory: "fencing",
+    special: "stealBlock"
+  },
 
   // === 총기 카드 ===
+  {
+    id: "shoot",
+    name: "사격",
+    type: "attack",
+    damage: 8,
+    speedCost: 3,
+    actionCost: 1,
+    iconKey: "flame",
+    description: "공격력 8. 기본 총격 공격.",
+    traits: [],
+    cardCategory: "gun"
+  },
   {
     id: "double_tap",
     name: "더블 탭",

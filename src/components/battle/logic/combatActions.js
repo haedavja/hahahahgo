@@ -159,6 +159,7 @@ function calculateSingleHit(attacker, defender, card, attackerName, battleContex
   const logs = [...specialLogs];
   let damageDealt = 0;
   let damageTaken = 0;
+  let blockDestroyed = 0;  // 파괴한 방어력 추적 (stealBlock용)
 
   let updatedAttacker = { ...currentAttacker };
   let updatedDefender = { ...currentDefender };
@@ -218,6 +219,7 @@ function calculateSingleHit(attacker, defender, card, attackerName, battleContex
     if (effectiveDmg < beforeBlock) {
       const remaining = beforeBlock - effectiveDmg;
       updatedDefender.block = remaining;
+      blockDestroyed = effectiveDmg;  // 파괴한 방어력
       dmg = 0;
 
       const crushText = crushMultiplier > 1 ? ' [분쇄×2]' : '';
@@ -232,6 +234,7 @@ function calculateSingleHit(attacker, defender, card, attackerName, battleContex
       const blocked = beforeBlock;
       const remained = Math.max(0, effectiveDmg - blocked);
       updatedDefender.block = 0;
+      blockDestroyed = blocked;  // 파괴한 방어력 = 전체 방어력
 
       const vulnMul = (updatedDefender.vulnMult && updatedDefender.vulnMult > 1) ? updatedDefender.vulnMult : 1;
       const finalDmg = Math.floor(remained * vulnMul);
@@ -313,6 +316,7 @@ function calculateSingleHit(attacker, defender, card, attackerName, battleContex
     defender: updatedDefender,
     damage: damageDealt,
     damageTaken,
+    blockDestroyed,  // 파괴한 방어력 (stealBlock용)
     events,
     logs,
     preProcessedResult: resultPreProcessed
@@ -358,6 +362,7 @@ function applyCounter(defender, attacker, attackerName, counterDmg = null) {
 export function applyAttack(attacker, defender, card, attackerName, battleContext = {}) {
   let totalDealt = 0;
   let totalTaken = 0;
+  let totalBlockDestroyed = 0;  // 총 파괴한 방어력 (stealBlock용)
   const allEvents = [];
   const allLogs = [];
 
@@ -377,6 +382,7 @@ export function applyAttack(attacker, defender, card, attackerName, battleContex
   currentDefender = firstHitResult.defender;
   totalDealt += firstHitResult.damage;
   totalTaken += firstHitResult.damageTaken || 0;
+  totalBlockDestroyed += firstHitResult.blockDestroyed || 0;
   allEvents.push(...firstHitResult.events);
   allLogs.push(...firstHitResult.logs);
 
@@ -400,6 +406,7 @@ export function applyAttack(attacker, defender, card, attackerName, battleContex
     currentDefender = result.defender;
     totalDealt += result.damage;
     totalTaken += result.damageTaken || 0;
+    totalBlockDestroyed += result.blockDestroyed || 0;
     allEvents.push(...result.events);
     // 각 타격별 로그 추가 (이벤트로도 추가하여 전투 로그에 표시)
     const hitLog = `💥 ${card.name} [${i + 1}/${hits}]: ${result.damage} 데미지`;
@@ -421,7 +428,7 @@ export function applyAttack(attacker, defender, card, attackerName, battleContex
     defender: currentDefender,
     attackerName,
     damageDealt: totalDealt,
-    battleContext
+    battleContext: { ...battleContext, blockDestroyed: totalBlockDestroyed }
   });
 
   currentAttacker = postAttackResult.attacker;
