@@ -94,6 +94,7 @@ export const CARDS = [
     traits: [],
     onPlay: (battle, actions) => {
       actions.addTokenToPlayer('guard', 1);
+      actions.addTokenToPlayer('counter', 2);
     }
   },
   {
