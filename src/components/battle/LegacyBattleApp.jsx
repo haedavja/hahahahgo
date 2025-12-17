@@ -174,7 +174,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const effectiveAgility = playerWithAnomalies.agility ?? playerAgility ?? 0;
   const effectiveCardDrawBonus = passiveRelicStats.cardDrawBonus || 0;
   // 슈퍼-장갑 상징: 최대 카드 제출 수 (0이면 기본값 5 사용)
-  const effectiveMaxSubmitCards = passiveRelicStats.maxSubmitCards > 0
+  const baseMaxSubmitCards = passiveRelicStats.maxSubmitCards > 0
     ? passiveRelicStats.maxSubmitCards
     : MAX_SUBMIT_CARDS + (passiveRelicStats.extraCardPlay || 0);
   const startingEther = typeof playerWithAnomalies.etherPts === 'number' ? playerWithAnomalies.etherPts : playerEther;
@@ -262,6 +262,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       etherBlocked: false,
       mainSpecialOnly: false,
       subSpecialBoost: 0,
+      extraCardPlay: 0,
     },
     reflectionState: initReflectionState(),
     insightBadge: {
@@ -277,6 +278,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const enemy = battle.enemy;
   const enemyPlan = battle.enemyPlan;
   const enemyIndex = battle.enemyIndex;
+
+  // 동적 최대 카드 제출 수 (상징 효과 + nextTurnEffects.extraCardPlay)
+  const effectiveMaxSubmitCards = baseMaxSubmitCards + (battle.nextTurnEffects?.extraCardPlay || 0);
 
   // 전투용 아이템 효과 처리 - useItem 시 바로 처리하도록 변경
   // (무한 루프 방지를 위해 useEffect 대신 직접 호출 방식 사용)
@@ -2032,7 +2036,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         const updatedEffects = {
           ...currentEffects,
           bonusEnergy: (currentEffects.bonusEnergy || 0) + (newNextTurnEffects.bonusEnergy || 0),
-          maxSpeedBonus: (currentEffects.maxSpeedBonus || 0) + (newNextTurnEffects.maxSpeedBonus || 0)
+          maxSpeedBonus: (currentEffects.maxSpeedBonus || 0) + (newNextTurnEffects.maxSpeedBonus || 0),
+          extraCardPlay: (currentEffects.extraCardPlay || 0) + (newNextTurnEffects.extraCardPlay || 0)
         };
         actions.setNextTurnEffects(updatedEffects);
         // battleRef 동기 업데이트 (finishTurn에서 최신 값 사용)
@@ -2470,12 +2475,13 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     // 다음 턴 효과 처리 (특성 기반)
     const traitNextTurnEffects = processCardTraitEffects(selected, addLog);
 
-    // 카드 플레이 중 설정된 효과 병합 (mentalFocus의 maxSpeedBonus, bonusEnergy 등)
+    // 카드 플레이 중 설정된 효과 병합 (mentalFocus의 maxSpeedBonus, extraCardPlay 등)
     const currentNextTurnEffects = battleRef.current?.nextTurnEffects || battle.nextTurnEffects;
     const newNextTurnEffects = {
       ...traitNextTurnEffects,
       bonusEnergy: (traitNextTurnEffects.bonusEnergy || 0) + (currentNextTurnEffects.bonusEnergy || 0),
-      maxSpeedBonus: (traitNextTurnEffects.maxSpeedBonus || 0) + (currentNextTurnEffects.maxSpeedBonus || 0)
+      maxSpeedBonus: (traitNextTurnEffects.maxSpeedBonus || 0) + (currentNextTurnEffects.maxSpeedBonus || 0),
+      extraCardPlay: (traitNextTurnEffects.extraCardPlay || 0) + (currentNextTurnEffects.extraCardPlay || 0)
     };
 
     // 상징 턴 종료 효과 적용 (계약서, 은화 등)
