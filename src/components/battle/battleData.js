@@ -255,9 +255,11 @@ export const CARDS = [
     speedCost: 9,
     actionCost: 1,
     iconKey: "sword",
-    description: "공격력 15. 기본 검격 공격.",
+    description: "공격력 15. 다음 카드가 검격이면 타임라인 3 앞당김.",
     traits: [],
-    cardCategory: "fencing"
+    cardCategory: "fencing",
+    special: "advanceIfNextFencing",
+    advanceAmount: 3
   },
   {
     id: "binding",

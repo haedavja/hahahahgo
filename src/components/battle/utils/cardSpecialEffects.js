@@ -475,6 +475,20 @@ export function processTimelineSpecials({
     logs.push(msg);
   }
 
+  // === advanceIfNextFencing: 다음 카드가 검격이면 타임라인 앞당김 (타격) ===
+  if (hasSpecial(card, 'advanceIfNextFencing')) {
+    // 큐에서 다음 플레이어 카드 찾기
+    const nextPlayerCard = queue.slice(currentIndex + 1).find(q => q.actor === actorName);
+    if (nextPlayerCard && nextPlayerCard.card?.cardCategory === 'fencing') {
+      const amount = card.advanceAmount || 3;
+      timelineChanges.advancePlayer = (timelineChanges.advancePlayer || 0) + amount;
+      const who = actorName === 'player' ? '플레이어' : '몬스터';
+      const msg = `${who} • ⏪ ${card.name}: 다음 검격 연계! 타임라인 ${amount} 앞당김!`;
+      events.push({ actor: actorName, card: card.name, type: 'timeline', msg });
+      logs.push(msg);
+    }
+  }
+
   return { timelineChanges, events, logs };
 }
 
