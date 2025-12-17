@@ -355,13 +355,13 @@ export const CARDS = [
   },
   {
     id: "reload",
-    name: "장전",
+    name: "전술장전",
     type: "defense",
-    block: 0,
+    block: 5,
     speedCost: 2,
     actionCost: 0,
     iconKey: "shield",
-    description: "빈탄창 디버프를 제거한다.",
+    description: "방어력 5. 빈탄창 디버프를 제거한다.",
     traits: [],
     cardCategory: "gun",
     onPlay: (battle, actions) => {
