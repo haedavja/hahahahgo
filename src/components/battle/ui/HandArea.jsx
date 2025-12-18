@@ -270,7 +270,8 @@ export const HandArea = ({
           transition: 'transform 0.1s, box-shadow 0.1s',
           fontSize: '14px',
           fontWeight: 'bold',
-          zIndex: 1000
+          zIndex: 1000,
+          pointerEvents: 'auto'
         }}
         onMouseEnter={e => {
           e.currentTarget.style.transform = 'scale(1.08)';
@@ -304,7 +305,8 @@ export const HandArea = ({
           transition: 'transform 0.1s, box-shadow 0.1s',
           fontSize: '14px',
           fontWeight: 'bold',
-          zIndex: 1000
+          zIndex: 1000,
+          pointerEvents: 'auto'
         }}
         onMouseEnter={e => {
           e.currentTarget.style.transform = 'scale(1.08)';
