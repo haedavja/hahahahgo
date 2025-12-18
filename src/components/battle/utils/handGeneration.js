@@ -67,9 +67,36 @@ export function initializeDeck(characterBuild, vanishedCards = []) {
     })
     .filter(Boolean);
 
-  // 대기 카드 (셔플하여 덱 하단)
+  // 주특기/보조특기에 사용된 카드 수 계산 (같은 카드 여러 장 사용 가능)
+  const usedMainCounts = {};
+  mainSpecials.forEach(cardId => {
+    usedMainCounts[cardId] = (usedMainCounts[cardId] || 0) + 1;
+  });
+  const usedSubCounts = {};
+  subSpecials.forEach(cardId => {
+    usedSubCounts[cardId] = (usedSubCounts[cardId] || 0) + 1;
+  });
+
+  // 대기 카드 (셔플하여 덱 하단) - 주특기/보조특기로 사용된 수만큼 제외
+  const remainingMainCounts = { ...usedMainCounts };
+  const remainingSubCounts = { ...usedSubCounts };
+
   const ownedCardObjs = ownedCards
-    .filter(cardId => !vanishedSet.has(cardId))
+    .filter(cardId => {
+      if (vanishedSet.has(cardId)) return false;
+
+      // 주특기로 사용된 카드인지 확인
+      if (remainingMainCounts[cardId] > 0) {
+        remainingMainCounts[cardId]--;
+        return false; // 이 카드는 주특기로 사용됨
+      }
+      // 보조특기로 사용된 카드인지 확인
+      if (remainingSubCounts[cardId] > 0) {
+        remainingSubCounts[cardId]--;
+        return false; // 이 카드는 보조특기로 사용됨
+      }
+      return true;
+    })
     .map((cardId, idx) => {
       const card = CARDS.find(c => c.id === cardId);
       if (!card) return null;
