@@ -41,16 +41,6 @@ export function startEtherCalculationAnimationSequence({
 
   const playerFinalEther = playerDeflation.gain;
 
-    turnEtherAccumulated,
-    comboName: pCombo?.name,
-    playerComboMult,
-    playerBeforeDeflation,
-    deflationMult: playerDeflation.multiplier,
-    usageCount: playerDeflation.usageCount,
-    playerFinalEther,
-    selectedCards: selected.length
-  });
-
   // 1단계: 합계 강조
   actions.setEtherCalcPhase('sum');
   setTimeout(() => {

@@ -60,9 +60,6 @@ export function applyTurnEndRelicEffectsToNextTurn({
   if (turnEndRelicEffects.energyNextTurn > 0) {
     updatedNextTurnEffects.bonusEnergy += turnEndRelicEffects.energyNextTurn;
     addLog(`📜 상징 효과: 다음턴 행동력 +${turnEndRelicEffects.energyNextTurn}`);
-      "turnEndRelicEffects.energyNextTurn": turnEndRelicEffects.energyNextTurn,
-      "updatedNextTurnEffects.bonusEnergy": updatedNextTurnEffects.bonusEnergy
-    });
   }
 
   // 힘 증가 즉시 적용 (은화 등)

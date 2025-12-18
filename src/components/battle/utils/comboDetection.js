@@ -56,19 +56,6 @@ export function detectPokerCombo(cards) {
     }
   }
 
-  // 디버깅: 조합 감지 로그 (반환값 포함)
-    originalCount: cards.length,
-    validCount: validCards.length,
-    cards: validCards.map(c => ({ name: c.name, type: c.type, cost: c.actionCost })),
-    freq: Object.fromEntries(freq),
-    counts,
-    allAttack,
-    allDefense,
-    isFlush,
-    pairCount: keysByCount(2).size,
-    '>>> 반환된 조합': result?.name || 'null'
-  });
-
   return result;
 }
 

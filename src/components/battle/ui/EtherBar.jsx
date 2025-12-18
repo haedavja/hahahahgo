@@ -36,16 +36,6 @@ export function EtherBar({
   const ratio = Math.max(0, Math.min(1, slotProgress));
   const tier = `x${safeSlots}`;
 
-  // 디버깅: 값 확인
-    pts,
-    safePts,
-    currentPts,
-    nextSlotCost,
-    ratio,
-    tier,
-    safeSlots
-  });
-
   const borderColor = color === 'red' ? '#ef4444' : '#53d7ff';
   const textColor = color === 'red' ? '#fca5a5' : '#8fd3ff';
 

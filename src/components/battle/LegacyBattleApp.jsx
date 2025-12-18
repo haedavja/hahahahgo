@@ -827,12 +827,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   }, [battle.phase]);
 
   useEffect(() => {
-      hasEnemy: !!enemy,
-      phase: battle.phase,
-      turnStartProcessed: turnStartProcessedRef.current,
-      manuallyModified: battle.enemyPlan.manuallyModified
-    });
-
     if (!enemy || battle.phase !== 'select') {
       // phase가 select가 아니면 플래그 리셋
       if (battle.phase !== 'select') {
@@ -854,11 +848,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
     // 상징 턴 시작 효과 적용 (피피한 갑옷 등)
     const turnStartRelicEffects = applyTurnStartEffects(orderedRelicList, nextTurnEffects);
-
-      block: turnStartRelicEffects.block,
-      heal: turnStartRelicEffects.heal,
-      energy: turnStartRelicEffects.energy
-    });
 
     // 턴 시작 상징 발동 애니메이션
     orderedRelicList.forEach(relicId => {
@@ -883,14 +872,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       };
       reflectionResult = processReflections(playerForReflection, battle.reflectionState);
 
-        egos: playerEgos,
-        traits: traitIds,
-        effects: reflectionResult.effects.map(e => e.reflectionId),
-        bonusEnergy: reflectionResult.updatedBattleState.bonusEnergy,
-        timelineBonus: reflectionResult.updatedBattleState.timelineBonus,
-        enemyFreezeTurns: reflectionResult.updatedBattleState.enemyFreezeTurns
-      });
-
       // 성찰 발동 시 효과음과 로그
       if (reflectionResult.effects.length > 0) {
         // 성찰 발동 효과음 (맑은 종소리 느낌)
@@ -911,14 +892,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     const energyBonus = (nextTurnEffects.bonusEnergy || 0) + turnStartRelicEffects.energy + reflectionEnergyBonus;
     const energyPenalty = nextTurnEffects.energyPenalty || 0;
     const finalEnergy = Math.max(0, baseEnergy + energyBonus - energyPenalty);
-
-      baseEnergy,
-      "nextTurnEffects.bonusEnergy": nextTurnEffects.bonusEnergy,
-      "turnStartRelicEffects.energy": turnStartRelicEffects.energy,
-      energyBonus,
-      energyPenalty,
-      finalEnergy
-    });
 
     // 방어력과 체력 회복 적용 (성찰 회복 효과 포함)
     const reflectionHealedHp = reflectionResult.updatedPlayer.hp || player.hp;
@@ -1002,15 +975,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     const refEnemyPlan = battleRef.current?.enemyPlan;
     const latestManuallyModified = battle.enemyPlan.manuallyModified || refEnemyPlan?.manuallyModified;
 
-      closureManuallyModified: battle.enemyPlan.manuallyModified,
-      refManuallyModified: refEnemyPlan?.manuallyModified,
-      latestManuallyModified,
-      actionsLength: battle.enemyPlan.actions?.length,
-      turnStartProcessed: turnStartProcessedRef.current,
-      enemyCount,
-      enemyEtherPts: enemy?.etherPts
-    });
-
     if (latestManuallyModified) {
       const currentActions = refEnemyPlan?.actions || battle.enemyPlan.actions;
       actions.setEnemyPlan({ mode, actions: currentActions, manuallyModified: true });
@@ -1035,13 +999,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     // battleRef에서 최신 상태 확인 (closure는 stale할 수 있음)
     const currentEnemyPlan = battleRef.current?.enemyPlan;
 
-      phase: battle.phase,
-      closureActionsLength: enemyPlan?.actions?.length,
-      closureManuallyModified: enemyPlan?.manuallyModified,
-      refActionsLength: currentEnemyPlan?.actions?.length,
-      refManuallyModified: currentEnemyPlan?.manuallyModified
-    });
-
     if (battle.phase !== 'select') {
       return;
     }
@@ -1057,9 +1014,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
     // manuallyModified가 true면 재생성하지 않음 (카드 파괴 등으로 수동 변경된 경우)
     if ((latestActions && latestActions.length > 0) || latestManuallyModified) {
-        hasActions: latestActions?.length > 0,
-        manuallyModified: latestManuallyModified
-      });
       return;
     }
 
@@ -1075,9 +1029,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   );
   const currentCombo = useMemo(() => {
     const combo = detectPokerCombo(battle.selected);
-      selectedCount: battle.selected.length,
-      comboName: combo?.name || 'null'
-    });
 
     // 디플레이션 정보 계산 (선택/대응/진행 단계에서)
     if (combo?.name && (battle.phase === 'select' || battle.phase === 'respond' || battle.phase === 'resolve')) {
@@ -1284,11 +1235,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     const currentBattle = battleRef.current;
     const currentEnemyPlan = currentBattle.enemyPlan;
 
-      phase: currentBattle.phase,
-      enemyActionsLength: currentEnemyPlan.actions?.length,
-      manuallyModified: currentEnemyPlan.manuallyModified,
-      actionsNames: currentEnemyPlan.actions?.map(a => a.name || a.type)
-    });
     if (currentBattle.phase !== 'select') return;
 
     // manuallyModified가 true면 재생성하지 않음 (카드 파괴 등으로 수동 변경된 경우)
@@ -1320,17 +1266,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
     // 빙결 효과: 플레이어 카드가 모두 먼저 발동 (battle.player에서 최신 값 확인)
     const currentPlayer = currentBattle.player;
-      enemyFrozen: currentPlayer.enemyFrozen,
-      battleRefEnemyFrozen: battleRef.current?.player?.enemyFrozen,
-      actionsLength: generatedActions?.length
-    });
     const q = currentPlayer.enemyFrozen
       ? createFixedOrder(enhancedSelected, generatedActions, effectiveAgility)
       : sortCombinedOrderStablePF(enhancedSelected, generatedActions, effectiveAgility, 0);
-      totalLength: q.length,
-      playerCards: q.filter(x => x.actor === 'player').length,
-      enemyCards: q.filter(x => x.actor === 'enemy').length
-    });
     actions.setFixedOrder(q);
 
     // 빙결 플래그 처리 - enemyFrozen 초기화 (frozenOrder는 ItemSlots에서 이미 설정됨)
@@ -1380,11 +1318,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
   // respond 단계에서 적 카드 파괴 시 fixedOrder 업데이트
   useEffect(() => {
-      phase: battle.phase,
-      manuallyModified: enemyPlan.manuallyModified,
-      fixedOrderLength: fixedOrder?.length,
-      enemyActionsLength: enemyPlan.actions?.length
-    });
     if (battle.phase !== 'respond') return;
     if (!enemyPlan.manuallyModified) return;
     if (!fixedOrder) return;
@@ -1399,11 +1332,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       return isRemaining;
     });
 
-      originalLength: fixedOrder.length,
-      updatedLength: updatedFixedOrder.length,
-      removed: fixedOrder.length - updatedFixedOrder.length
-    });
-
     if (updatedFixedOrder.length !== fixedOrder.length) {
       actions.setFixedOrder(updatedFixedOrder);
     }
@@ -1414,13 +1342,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     const currentBattle = battleRef.current;
     const currentEnemyPlan = currentBattle?.enemyPlan;
     const currentFixedOrder = currentBattle?.fixedOrder || fixedOrder;
-
-      phase: currentBattle?.phase,
-      fixedOrderLength: currentFixedOrder?.length,
-      fixedOrderEnemyCards: currentFixedOrder?.filter(x => x.actor === 'enemy').length,
-      enemyPlanActionsLength: currentEnemyPlan?.actions?.length,
-      manuallyModified: currentEnemyPlan?.manuallyModified
-    });
 
     if (currentBattle?.phase !== 'respond') {
       return;
@@ -1440,15 +1361,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         if (item.actor === 'player') return true;
         return remainingActions.has(item.card);
       });
-        original: currentFixedOrder.length,
-        filtered: effectiveFixedOrder.length
-      });
     }
 
     const newQ = effectiveFixedOrder.map(x => ({ actor: x.actor, card: x.card, sp: x.sp }));
-      totalLength: newQ.length,
-      enemyCardsInQueue: newQ.filter(x => x.actor === 'enemy').length
-    });
     if (newQ.length === 0) {
       addLog('⚠️ 큐 생성 실패: 실행할 항목이 없습니다');
       return;
@@ -1456,9 +1371,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
     // 빙결 효과 확인 - frozenOrder > 0이면 SP 정렬 건너뜀
     const frozenOrderCount = currentBattle?.frozenOrder || battleRef.current?.frozenOrder || 0;
-      frozenOrder: frozenOrderCount,
-      queueBefore: newQ.map(x => x.actor)
-    });
 
     if (frozenOrderCount <= 0) {
       // SP 값으로 정렬 (같은 SP면 배열 순서 유지 = 수동 순서 유지)
@@ -1579,25 +1491,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     // 범람 계산은 최종값 표시에 포함하지 않음 (로그에만 표시)
     const playerFinalEther = actualGainedEther !== null ? actualGainedEther : playerDeflation.gain;
 
-      turnEtherAccumulated: totalEtherPts,
-      comboName: pCombo?.name,
-      basePlayerComboMult,
-      playerComboMult,
-      etherAmplifierMult,
-      totalPlayerMult,
-      relicBonus: playerComboMult - basePlayerComboMult,
-      playerBeforeDeflation,
-      deflationMult: playerDeflation.multiplier,
-      usageCount: playerDeflation.usageCount,
-      playerFinalEther: playerFinalEther,
-      selectedCards: battle.selected.length,
-      actualResolvedCards: actualResolvedCards,
-      cardCountForMultiplier: cardCountForMultiplier,
-      actualGainedEther,
-      comboUsageCount: player.comboUsageCount,
-      comboUsageForThisCombo: player.comboUsageCount?.[pCombo?.name] || 0
-    });
-
     // 디플레이션 정보 설정
     actions.setCurrentDeflation(pCombo?.name ? {
       comboName: pCombo.name,
@@ -1624,16 +1517,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       usageCount: enemyDeflation.usageCount,
       multiplier: enemyDeflation.multiplier
     } : null);
-
-      enemyTurnEtherAccumulated,
-      comboName: eCombo?.name,
-      baseEnemyComboMult,
-      enemyBeforeDeflation,
-      deflationMult: enemyDeflation.multiplier,
-      usageCount: enemyDeflation.usageCount,
-      enemyFinalEther,
-      enemyCardCount
-    });
 
     // 1단계: 합계 강조 (플레이어 + 적 동시)
     actions.setEtherCalcPhase('sum');
@@ -2779,13 +2662,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
     // 에테르 최종 계산 (상징 배율 및 디플레이션 적용)
     // latestPlayer는 이미 finishTurn 시작 부분에서 battleRef로부터 가져옴
-      'battleRef.current?.player?.etherMultiplier': battleRef.current?.player?.etherMultiplier,
-      'player.etherMultiplier': player.etherMultiplier,
-      'latestPlayer.etherMultiplier': latestPlayer.etherMultiplier
-    });
-      'pComboEnd': pComboEnd,
-      'finalComboMultiplier': finalComboMultiplier
-    });
     const etherResult = calculateTurnEndEther({
       playerCombo: pComboEnd,
       enemyCombo: eComboEnd,
@@ -2803,22 +2679,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     const enemyAppliedEther = enemyEther.appliedEther;
     const playerOverflow = playerEther.overflow;
     const enemyOverflow = enemyEther.overflow;
-
-      turnEtherAccumulated,
-      comboName: pComboEnd?.name,
-      basePlayerComboMult: playerEther.baseComboMult,
-      relicMultBonus: playerEther.relicMultBonus,
-      playerComboMult: playerEther.finalComboMult,
-      playerBeforeDeflation: playerEther.beforeDeflation,
-      deflationMult: playerEther.deflation.multiplier,
-      usageCount: playerEther.deflation.usageCount,
-      playerFinalEther,
-      selectedCards: battle.selected.length,
-      resolvedPlayerCards,
-      comboUsageCount: player.comboUsageCount,
-      comboUsageForThisCombo: player.comboUsageCount?.[pComboEnd?.name] || 0
-    });
-
 
     // 플레이어 에테르 획득 처리
     if (playerFinalEther > 0) {
@@ -2871,9 +2731,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         etherPts: nextPlayerPts,
         etherOverflow: playerOverflow,
         etherMultiplier: 1  // 에테르 증폭 배율 초기화
-      });
-        'before etherMultiplier': latestPlayer.etherMultiplier,
-        'after etherMultiplier': newPlayerState.etherMultiplier
       });
     } catch (err) {
       console.error('[finishTurn] createTurnEndPlayerState 에러:', err);

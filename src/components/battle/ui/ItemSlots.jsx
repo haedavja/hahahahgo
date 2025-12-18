@@ -101,13 +101,6 @@ export function ItemSlots({ phase, battleActions, player, enemy, enemyPlan, batt
           destroyedIndices.push(i);
         }
 
-          phase,
-          originalCount: enemyPlan.actions.length,
-          destroyCount,
-          destroyedIndices,
-          currentManuallyModified: enemyPlan.manuallyModified
-        });
-
         // 파괴 애니메이션용 인덱스 설정
         battleActions.setDestroyingEnemyCards(destroyedIndices);
 
@@ -128,28 +121,13 @@ export function ItemSlots({ phase, battleActions, player, enemy, enemyPlan, batt
           actions: newActions,
           manuallyModified: true
         };
-          currentActionsLength: currentActions.length,
-          newActionsLength: newActions.length,
-          manuallyModified: true
-        });
         battleActions.setEnemyPlan(newEnemyPlan);
 
         // battleRef를 즉시 동기적으로 업데이트 (useEffect 대기하지 않음)
         // 이렇게 해야 다른 코드가 battleRef.current를 읽을 때 즉시 최신 값을 얻음
         if (battleRef?.current) {
           battleRef.current.enemyPlan = newEnemyPlan;
-            refActionsLength: battleRef.current.enemyPlan.actions.length,
-            refManuallyModified: battleRef.current.enemyPlan.manuallyModified
-          });
         }
-
-        // 상태 업데이트 확인 (다음 렌더링 후)
-        setTimeout(() => {
-            battleRefPhase: battleRef?.current?.phase,
-            battleRefManuallyModified: battleRef?.current?.enemyPlan?.manuallyModified,
-            battleRefActionsLength: battleRef?.current?.enemyPlan?.actions?.length
-          });
-        }, 100);
 
         // respond 단계면 fixedOrder에서도 파괴된 적 카드 제거
         if (phase === 'respond' && battleActions.setFixedOrder) {
@@ -208,10 +186,6 @@ export function ItemSlots({ phase, battleActions, player, enemy, enemyPlan, batt
           const enemyCards = currentFixedOrder.filter(x => x.actor === 'enemy');
           const frozenOrder = [...playerCards, ...enemyCards];
 
-            before: currentFixedOrder.map(x => x.actor),
-            after: frozenOrder.map(x => x.actor)
-          });
-
           battleActions.setFixedOrder(frozenOrder);
 
           // battleRef도 즉시 업데이트
@@ -235,9 +209,6 @@ export function ItemSlots({ phase, battleActions, player, enemy, enemyPlan, batt
     if (battleRef?.current) {
       battleRef.current.player = newPlayer;
       battleRef.current.enemy = newEnemy;
-        enemyFrozen: newPlayer.enemyFrozen,
-        etherMultiplier: newPlayer.etherMultiplier
-      });
     }
 
     if (logMsg) battleActions.addLog(logMsg);
@@ -260,12 +231,6 @@ export function ItemSlots({ phase, battleActions, player, enemy, enemyPlan, batt
     // (prop phase는 stale할 수 있으므로 battleRef에서 최신 값을 확인)
     const latestPhase = getLatestPhase();
     const canUseNow = latestPhase === 'select' || latestPhase === 'respond';
-
-      item: item.name,
-      propPhase: phase,
-      latestPhase,
-      canUseNow
-    });
 
     if (item.usableIn === 'combat' && canUseNow) {
       applyCombatItemEffect(item, idx);
