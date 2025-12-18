@@ -31,6 +31,11 @@ const PopupCard = ({ card, count, currentBuild }) => {
   const costColor = isMainSpecial ? '#fcd34d' : isSubSpecial ? '#60a5fa' : '#fff';
   const nameColor = isMainSpecial ? '#fcd34d' : isSubSpecial ? '#7dd3fc' : '#fff';
 
+  // 카드 확대 방지 핸들러
+  const preventScale = (e) => {
+    e.currentTarget.style.transform = 'none';
+  };
+
   return (
     <div
       style={{ position: 'relative' }}
@@ -39,7 +44,9 @@ const PopupCard = ({ card, count, currentBuild }) => {
     >
       <div
         className={`game-card-large ${card.type === 'attack' ? 'attack' : 'defense'}`}
-        style={{ cursor: 'default', transform: 'none', transition: 'none' }}
+        style={{ cursor: 'default' }}
+        onMouseEnter={preventScale}
+        onMouseMove={preventScale}
       >
         <div className="card-cost-badge-floating" style={{ color: costColor, WebkitTextStroke: '1px #000' }}>
           {card.actionCost}
@@ -89,14 +96,14 @@ const PopupCard = ({ card, count, currentBuild }) => {
           background: '#1a1a2e',
           border: '2px solid #555',
           borderRadius: '8px',
-          padding: '12px',
-          minWidth: '220px',
-          maxWidth: '280px',
+          padding: '14px',
+          minWidth: '240px',
+          maxWidth: '320px',
           zIndex: 100000,
           pointerEvents: 'none',
           boxShadow: '0 4px 16px rgba(0,0,0,0.7)'
         }}>
-          <div style={{ fontWeight: 'bold', color: '#fff', marginBottom: '8px', fontSize: '14px' }}>
+          <div style={{ fontWeight: 'bold', color: '#fff', marginBottom: '10px', fontSize: '18px' }}>
             특성
           </div>
           {card.traits.map(traitId => {
@@ -105,11 +112,11 @@ const PopupCard = ({ card, count, currentBuild }) => {
             const isPositive = trait.type === 'positive';
             const color = isPositive ? '#22c55e' : '#ef4444';
             return (
-              <div key={traitId} style={{ marginBottom: '8px' }}>
-                <div style={{ fontWeight: 'bold', color, fontSize: '13px' }}>
+              <div key={traitId} style={{ marginBottom: '10px' }}>
+                <div style={{ fontWeight: 'bold', color, fontSize: '17px' }}>
                   {trait.name}
                 </div>
-                <div style={{ color: '#aaa', fontSize: '12px', lineHeight: '1.4' }}>
+                <div style={{ color: '#aaa', fontSize: '16px', lineHeight: '1.4' }}>
                   {trait.description}
                 </div>
               </div>
