@@ -128,11 +128,16 @@ const CardListPopup = ({ title, cards, onClose, icon, bgGradient }) => {
               return (
                 <div
                   key={card.id + idx}
-                  style={{ position: 'relative', pointerEvents: 'none' }}
+                  style={{ position: 'relative' }}
+                  onMouseEnter={(e) => {
+                    // 카드 호버 효과 방지
+                    const cardEl = e.currentTarget.querySelector('.game-card-large');
+                    if (cardEl) cardEl.style.transform = 'none';
+                  }}
                 >
                   <div
                     className={`game-card-large ${card.type === 'attack' ? 'attack' : 'defense'}`}
-                    style={{ cursor: 'default', transform: 'none', transition: 'none' }}
+                    style={{ cursor: 'default' }}
                   >
                     <div className="card-cost-badge-floating" style={{ color: costColor, WebkitTextStroke: '1px #000' }}>
                       {card.actionCost}
