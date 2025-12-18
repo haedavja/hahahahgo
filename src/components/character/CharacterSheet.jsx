@@ -129,14 +129,32 @@ export function CharacterSheet({ onClose, showAllCards = false }) {
   // 대기 카드 (상점 구매 등)
   const ownedCards = characterBuild?.ownedCards || [];
 
-  // 표시할 카드 목록 (showAllCards가 false면 소유 카드만)
+  // 표시할 카드 목록 (showAllCards가 false면 소유 카드만, 중복 포함)
   const displayedCards = useMemo(() => {
     if (showAllCards) {
-      return availableCards;
+      return availableCards.map((card, idx) => ({ ...card, _displayKey: `all_${card.id}_${idx}` }));
     }
-    // 카드 ID 목록 (중복 제거) - 주특기, 보조특기, 대기카드 모두 포함
-    const allOwnedCardIds = new Set([...mainSpecials, ...subSpecials, ...ownedCards]);
-    return availableCards.filter(c => allOwnedCardIds.has(c.id));
+    // 각 카드를 개별 인스턴스로 표시 (중복 포함)
+    const result = [];
+    // 주특기 카드들
+    mainSpecials.forEach((cardId, idx) => {
+      const card = CARDS.find(c => c.id === cardId);
+      if (card) result.push({ ...card, _displayKey: `main_${cardId}_${idx}`, _type: 'main' });
+    });
+    // 보조특기 카드들
+    subSpecials.forEach((cardId, idx) => {
+      const card = CARDS.find(c => c.id === cardId);
+      if (card) result.push({ ...card, _displayKey: `sub_${cardId}_${idx}`, _type: 'sub' });
+    });
+    // 대기 카드들 (주특기/보조특기에 없는 것만)
+    const specialIds = new Set([...mainSpecials, ...subSpecials]);
+    ownedCards.forEach((cardId, idx) => {
+      if (!specialIds.has(cardId)) {
+        const card = CARDS.find(c => c.id === cardId);
+        if (card) result.push({ ...card, _displayKey: `owned_${cardId}_${idx}`, _type: 'owned' });
+      }
+    });
+    return result;
   }, [showAllCards, mainSpecials, subSpecials, ownedCards]);
 
   const getCardStyle = (cardId) => {
@@ -660,17 +678,12 @@ export function CharacterSheet({ onClose, showAllCards = false }) {
               </h3>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
                 {displayedCards.map((c) => {
-                  const card = CARDS.find(cd => cd.id === c.id);
+                  const card = c; // displayedCards에 이미 카드 정보 포함
                   if (!card) return null;
-                  const mainCount = getCardCount(c.id, mainSpecials);
-                  const subCount = getCardCount(c.id, subSpecials);
-                  const ownedCount = getCardCount(c.id, ownedCards);
-                  const isSelected = specialMode === 'main' ? mainCount > 0 : subCount > 0;
-                  const count = specialMode === 'main' ? mainCount : subCount;
                   const Icon = card.type === 'attack' ? Sword : Shield;
-                  const isMainSpecial = mainCount > 0;
-                  const isSubSpecial = subCount > 0;
-                  const isOwnedOnly = ownedCount > 0 && !isMainSpecial && !isSubSpecial;
+                  const isMainSpecial = c._type === 'main';
+                  const isSubSpecial = c._type === 'sub';
+                  const isOwnedOnly = c._type === 'owned';
 
                   let borderStyle = {};
                   if (isMainSpecial) {
@@ -683,7 +696,7 @@ export function CharacterSheet({ onClose, showAllCards = false }) {
 
                   return (
                     <div
-                      key={c.id}
+                      key={c._displayKey || c.id}
                       style={{ transform: 'scale(1.05)', transformOrigin: 'top left', width: '162px', height: '210px' }}
                     >
                       <div
@@ -717,7 +730,7 @@ export function CharacterSheet({ onClose, showAllCards = false }) {
                             fontWeight: 700,
                             zIndex: 10,
                           }}>
-                            {isMainSpecial ? `⭐${mainCount > 1 ? `×${mainCount}` : ''}` : isSubSpecial ? `💠${subCount > 1 ? `×${subCount}` : ''}` : `⏳×${ownedCount}`}
+                            {isMainSpecial ? '⭐' : isSubSpecial ? '💠' : '⏳'}
                           </div>
                         )}
                         <div className="card-stats-sidebar">
