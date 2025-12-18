@@ -5,6 +5,7 @@
  */
 
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useGameStore } from '../../../state/gameStore';
 import { hasTrait, applyTraitModifiers } from '../utils/battleUtils';
 import { detectPokerCombo } from '../utils/comboDetection';
@@ -235,24 +236,26 @@ export const HandArea = ({
         )}
       </div>
 
-      {/* 덱/무덤 팝업 */}
-      {showDeckPopup && (
+      {/* 덱/무덤 팝업 - Portal로 body에 렌더링 */}
+      {showDeckPopup && createPortal(
         <CardListPopup
           title="남은 덱"
           cards={deck}
           onClose={() => setShowDeckPopup(false)}
           icon="🎴"
           bgGradient="linear-gradient(135deg, #3b82f6, #1d4ed8)"
-        />
+        />,
+        document.body
       )}
-      {showDiscardPopup && (
+      {showDiscardPopup && createPortal(
         <CardListPopup
           title="무덤"
           cards={discardPile}
           onClose={() => setShowDiscardPopup(false)}
           icon="🪦"
           bgGradient="linear-gradient(135deg, #6b7280, #374151)"
-        />
+        />,
+        document.body
       )}
 
       {/* 덱 카운터 - 행동력 구슬 아래 (항상 표시) */}
