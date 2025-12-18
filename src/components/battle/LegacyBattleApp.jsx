@@ -2936,6 +2936,11 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     actions.setTurnEtherAccumulated(0);
     actions.setEnemyTurnEtherAccumulated(0);
 
+    // 사용한 카드(selected)를 무덤으로 이동
+    if (selected && selected.length > 0) {
+      actions.addToDiscard(selected);
+    }
+
     actions.setSelected([]); actions.setQueue([]); actions.setQIndex(0); actions.setFixedOrder(null); actions.setUsedCardIndices([]);
     actions.setDisappearingCards([]); actions.setHiddenCards([]);
 
