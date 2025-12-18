@@ -28,10 +28,10 @@ export function getDefaultStartingHand() {
  * @returns {Array} 생성된 손패 카드 배열
  */
 export function drawCharacterBuildHand(characterBuild, nextTurnEffects = {}, previousHand = [], cardDrawBonus = 0, escapeBan = new Set(), vanishedCards = []) {
-  if (!characterBuild) return getDefaultStartingHand(); // 기본 시작 덱 사용
+  if (!characterBuild) return []; // characterBuild 없으면 빈 손패
 
   const { mainSpecials = [], subSpecials = [], ownedCards = [] } = characterBuild;
-  const { guaranteedCards = [], mainSpecialOnly = false, subSpecialBoost = 0 } = nextTurnEffects;
+  const { guaranteedCards = [], mainSpecialOnly = false, subSpecialBoost = 0, devForceAllCards = false } = nextTurnEffects;
   const applyBonus = (prob) => Math.min(1, Math.max(0, prob + (cardDrawBonus || 0)));
   const banSet = escapeBan instanceof Set ? escapeBan : new Set();
   const vanishedSet = new Set(vanishedCards || []);
@@ -39,9 +39,8 @@ export function drawCharacterBuildHand(characterBuild, nextTurnEffects = {}, pre
   // 소멸된 카드인지 확인하는 헬퍼 함수
   const isVanished = (cardId) => vanishedSet.has(cardId);
 
-  // 주특기/보조특기가 없으면 ownedCards 전체를 100% 등장시킴
-  const noSpecialsSet = mainSpecials.length === 0 && subSpecials.length === 0;
-  if (noSpecialsSet && ownedCards.length > 0) {
+  // 개발자 모드: 모든 보유 카드 100% 등장
+  if (devForceAllCards && ownedCards.length > 0) {
     const allCards = ownedCards
       .filter(cardId => !isVanished(cardId))
       .map(cardId => CARDS.find(card => card.id === cardId))

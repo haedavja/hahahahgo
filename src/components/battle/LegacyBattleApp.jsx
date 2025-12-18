@@ -441,6 +441,11 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   // 함성(recallCard) 카드 선택 상태
   const [recallSelection, setRecallSelection] = useState(null); // { availableCards: [] }
 
+  // 개발자 모드: 모든 보유 카드 100% 등장
+  const [devForceAllCards, setDevForceAllCards] = useState(false);
+  const devForceAllCardsRef = useRef(false);
+  useEffect(() => { devForceAllCardsRef.current = devForceAllCards; }, [devForceAllCards]);
+
   // battle 상태가 변경될 때마다 ref 업데이트
   useEffect(() => {
     battleRef.current = battle;
@@ -694,7 +699,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     const currentBuild = useGameStore.getState().characterBuild;
     const hasCharacterBuild = currentBuild && (currentBuild.mainSpecials?.length > 0 || currentBuild.subSpecials?.length > 0 || currentBuild.ownedCards?.length > 0);
     const rawHand = hasCharacterBuild
-      ? drawCharacterBuildHand(currentBuild, {}, [], effectiveCardDrawBonus, escapeBanRef.current, battle.vanishedCards || [])
+      ? drawCharacterBuildHand(currentBuild, { devForceAllCards: devForceAllCardsRef.current }, [], effectiveCardDrawBonus, escapeBanRef.current, battle.vanishedCards || [])
       : CARDS.slice(0, 10).map((card, idx) => ({ ...card, __handUid: `${card.id}_${idx}_${Math.random().toString(36).slice(2, 8)}` }));
     actions.setHand(rawHand);
     actions.setCanRedraw(true);
@@ -808,7 +813,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       const currentBuild = useGameStore.getState().characterBuild;
       const hasCharacterBuild = currentBuild && (currentBuild.mainSpecials?.length > 0 || currentBuild.subSpecials?.length > 0 || currentBuild.ownedCards?.length > 0);
       const rawHand = hasCharacterBuild
-        ? drawCharacterBuildHand(currentBuild, nextTurnEffects, [], effectiveCardDrawBonus, escapeBanRef.current, vanishedCards)
+        ? drawCharacterBuildHand(currentBuild, { ...nextTurnEffects, devForceAllCards: devForceAllCardsRef.current }, [], effectiveCardDrawBonus, escapeBanRef.current, vanishedCards)
         : CARDS.slice(0, 10).map((card, idx) => ({ ...card, __handUid: `${card.id}_${idx}_${Math.random().toString(36).slice(2, 8)}` }));
       actions.setHand(rawHand);
       actions.setSelected([]);
@@ -963,7 +968,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     const currentBuild = useGameStore.getState().characterBuild;
     const hasCharacterBuild = currentBuild && (currentBuild.mainSpecials?.length > 0 || currentBuild.subSpecials?.length > 0 || currentBuild.ownedCards?.length > 0);
     const rawHand = hasCharacterBuild
-      ? drawCharacterBuildHand(currentBuild, nextTurnEffects, battle.hand, effectiveCardDrawBonus, escapeBanRef.current, vanishedCards)
+      ? drawCharacterBuildHand(currentBuild, { ...nextTurnEffects, devForceAllCards: devForceAllCardsRef.current }, battle.hand, effectiveCardDrawBonus, escapeBanRef.current, vanishedCards)
       : CARDS.slice(0, 10).map((card, idx) => ({ ...card, __handUid: `${card.id}_${idx}_${Math.random().toString(36).slice(2, 8)}` }));
     actions.setHand(rawHand);
     actions.setSelected([]);
@@ -1175,7 +1180,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     const currentBuild = useGameStore.getState().characterBuild;
     const hasCharacterBuild = currentBuild && (currentBuild.mainSpecials?.length > 0 || currentBuild.subSpecials?.length > 0 || currentBuild.ownedCards?.length > 0);
     const rawHand = hasCharacterBuild
-      ? drawCharacterBuildHand(currentBuild, nextTurnEffects, hand, effectiveCardDrawBonus, escapeBanRef.current, vanishedCards)
+      ? drawCharacterBuildHand(currentBuild, { ...nextTurnEffects, devForceAllCards: devForceAllCardsRef.current }, hand, effectiveCardDrawBonus, escapeBanRef.current, vanishedCards)
       : CARDS.slice(0, 10).map((card, idx) => ({ ...card, __handUid: `${card.id}_${idx}_${Math.random().toString(36).slice(2, 8)}` }));
     actions.setHand(rawHand);
     actions.setSelected([]);
@@ -3558,6 +3563,12 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
           </button>
           <button onClick={cycleSortType} className="btn-enhanced flex items-center gap-2" style={{ fontSize: '0.9rem' }}>
             🔀 정렬 ({sortType === 'speed' ? '시간' : sortType === 'energy' ? '행동력' : sortType === 'value' ? '밸류' : '종류'}) (F)
+          </button>
+          <button onClick={() => {
+            setDevForceAllCards(!devForceAllCards);
+            playSound(500, 60);
+          }} className={`btn-enhanced ${devForceAllCards ? 'btn-primary' : ''} flex items-center gap-2`} style={{ fontSize: '0.8rem' }}>
+            🛠️ DEV: 전체카드 {devForceAllCards ? 'ON' : 'OFF'}
           </button>
         </div>
       )}
