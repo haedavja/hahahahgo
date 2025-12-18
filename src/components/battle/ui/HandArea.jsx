@@ -128,12 +128,7 @@ const CardListPopup = ({ title, cards, onClose, icon, bgGradient }) => {
               return (
                 <div
                   key={card.id + idx}
-                  style={{ position: 'relative' }}
-                  onMouseEnter={(e) => {
-                    // 카드 호버 효과 방지
-                    const cardEl = e.currentTarget.querySelector('.game-card-large');
-                    if (cardEl) cardEl.style.transform = 'none';
-                  }}
+                  style={{ position: 'relative', pointerEvents: 'none' }}
                 >
                   <div
                     className={`game-card-large ${card.type === 'attack' ? 'attack' : 'defense'}`}
@@ -172,7 +167,11 @@ const CardListPopup = ({ title, cards, onClose, icon, bgGradient }) => {
                       <Icon size={60} className="text-white opacity-80" />
                     </div>
                     <div className="card-footer">
-                      {card.traits && card.traits.length > 0 ? <TraitBadgeList traits={card.traits} /> : null}
+                      {card.traits && card.traits.length > 0 ? (
+                        <div style={{ pointerEvents: 'auto' }}>
+                          <TraitBadgeList traits={card.traits} />
+                        </div>
+                      ) : null}
                       <span className="card-description">{card.description || ''}</span>
                     </div>
                   </div>
