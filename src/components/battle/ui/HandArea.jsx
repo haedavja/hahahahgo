@@ -22,70 +22,102 @@ const X = ({ size = 24, className = "", strokeWidth = 2 }) => (
   </svg>
 );
 
-// 팝업용 툴팁 특성 뱃지 컴포넌트
-const PopupTraitBadge = ({ traitId }) => {
+// 팝업용 카드 컴포넌트 (호버 시 툴팁 표시)
+const PopupCard = ({ card, count, currentBuild }) => {
   const [showTooltip, setShowTooltip] = useState(false);
-  const trait = TRAITS[traitId];
-  if (!trait) return null;
-
-  const isPositive = trait.type === 'positive';
-  const color = isPositive ? '#22c55e' : '#ef4444';
-  const background = isPositive ? 'rgba(34, 197, 94, 0.2)' : 'rgba(239, 68, 68, 0.2)';
+  const Icon = card.icon || (card.type === 'attack' ? Sword : Shield);
+  const isMainSpecial = currentBuild?.mainSpecials?.includes(card.id);
+  const isSubSpecial = currentBuild?.subSpecials?.includes(card.id);
+  const costColor = isMainSpecial ? '#fcd34d' : isSubSpecial ? '#60a5fa' : '#fff';
+  const nameColor = isMainSpecial ? '#fcd34d' : isSubSpecial ? '#7dd3fc' : '#fff';
 
   return (
-    <span
-      style={{
-        color,
-        background,
-        padding: '2px 6px',
-        borderRadius: '4px',
-        border: `1px solid ${color}`,
-        position: 'relative',
-        cursor: 'help',
-        pointerEvents: 'auto'
-      }}
+    <div
+      style={{ position: 'relative' }}
       onMouseEnter={() => setShowTooltip(true)}
       onMouseLeave={() => setShowTooltip(false)}
     >
-      {trait.name}
-      {showTooltip && (
+      <div
+        className={`game-card-large ${card.type === 'attack' ? 'attack' : 'defense'}`}
+        style={{ cursor: 'default', transform: 'none', transition: 'none' }}
+      >
+        <div className="card-cost-badge-floating" style={{ color: costColor, WebkitTextStroke: '1px #000' }}>
+          {card.actionCost}
+        </div>
+        {count > 1 && (
+          <div style={{
+            position: 'absolute',
+            top: '-8px',
+            right: '-8px',
+            background: '#ef4444',
+            color: '#fff',
+            borderRadius: '50%',
+            width: '24px',
+            height: '24px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '12px',
+            fontWeight: 'bold',
+            zIndex: 10
+          }}>
+            ×{count}
+          </div>
+        )}
+        <CardStatsSidebar card={card} strengthBonus={0} formatSpeedText={(speed) => `${speed}`} />
+        <div className="card-header" style={{ display: 'flex', justifyContent: 'center' }}>
+          <div className="font-black text-sm" style={{ display: 'flex', alignItems: 'center', color: nameColor }}>
+            {card.name}
+          </div>
+        </div>
+        <div className="card-icon-area">
+          <Icon size={60} className="text-white opacity-80" />
+        </div>
+        <div className="card-footer">
+          {card.traits && card.traits.length > 0 ? <TraitBadgeList traits={card.traits} /> : null}
+          <span className="card-description">{card.description || ''}</span>
+        </div>
+      </div>
+
+      {/* 특성 툴팁 - 카드 오른쪽에 표시 */}
+      {showTooltip && card.traits && card.traits.length > 0 && (
         <div style={{
           position: 'absolute',
-          bottom: '100%',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          marginBottom: '8px',
+          left: '100%',
+          top: '0',
+          marginLeft: '12px',
           background: '#1a1a2e',
-          border: `2px solid ${color}`,
+          border: '2px solid #555',
           borderRadius: '8px',
-          padding: '8px 12px',
-          minWidth: '200px',
+          padding: '12px',
+          minWidth: '220px',
           maxWidth: '280px',
           zIndex: 100000,
           pointerEvents: 'none',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.5)'
+          boxShadow: '0 4px 16px rgba(0,0,0,0.7)'
         }}>
-          <div style={{ fontWeight: 'bold', color, marginBottom: '4px' }}>
-            {trait.name}
+          <div style={{ fontWeight: 'bold', color: '#fff', marginBottom: '8px', fontSize: '14px' }}>
+            특성
           </div>
-          <div style={{ color: '#ccc', fontSize: '12px', lineHeight: '1.4' }}>
-            {trait.description}
-          </div>
+          {card.traits.map(traitId => {
+            const trait = TRAITS[traitId];
+            if (!trait) return null;
+            const isPositive = trait.type === 'positive';
+            const color = isPositive ? '#22c55e' : '#ef4444';
+            return (
+              <div key={traitId} style={{ marginBottom: '8px' }}>
+                <div style={{ fontWeight: 'bold', color, fontSize: '13px' }}>
+                  {trait.name}
+                </div>
+                <div style={{ color: '#aaa', fontSize: '12px', lineHeight: '1.4' }}>
+                  {trait.description}
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
-    </span>
-  );
-};
-
-const PopupTraitBadgeList = ({ traits }) => {
-  if (!traits || traits.length === 0) return null;
-
-  return (
-    <span style={{ fontWeight: 600, display: 'flex', gap: '4px', flexWrap: 'wrap', pointerEvents: 'auto' }}>
-      {traits.map((traitId) => (
-        <PopupTraitBadge key={traitId} traitId={traitId} />
-      ))}
-    </span>
+    </div>
   );
 };
 
@@ -186,64 +218,14 @@ const CardListPopup = ({ title, cards, onClose, icon, bgGradient }) => {
             gap: '12px',
             justifyContent: 'center'
           }}>
-            {Object.values(cardCounts).map(({ card, count }, idx) => {
-              const Icon = card.icon || (card.type === 'attack' ? Sword : Shield);
-              const isMainSpecial = currentBuild?.mainSpecials?.includes(card.id);
-              const isSubSpecial = currentBuild?.subSpecials?.includes(card.id);
-              const costColor = isMainSpecial ? '#fcd34d' : isSubSpecial ? '#60a5fa' : '#fff';
-              const nameColor = isMainSpecial ? '#fcd34d' : isSubSpecial ? '#7dd3fc' : '#fff';
-
-              return (
-                <div
-                  key={card.id + idx}
-                  style={{ position: 'relative', pointerEvents: 'none' }}
-                >
-                  <div
-                    className={`game-card-large ${card.type === 'attack' ? 'attack' : 'defense'}`}
-                    style={{ cursor: 'default' }}
-                  >
-                    <div className="card-cost-badge-floating" style={{ color: costColor, WebkitTextStroke: '1px #000' }}>
-                      {card.actionCost}
-                    </div>
-                    {count > 1 && (
-                      <div style={{
-                        position: 'absolute',
-                        top: '-8px',
-                        right: '-8px',
-                        background: '#ef4444',
-                        color: '#fff',
-                        borderRadius: '50%',
-                        width: '24px',
-                        height: '24px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '12px',
-                        fontWeight: 'bold',
-                        zIndex: 10
-                      }}>
-                        ×{count}
-                      </div>
-                    )}
-                    <CardStatsSidebar card={card} strengthBonus={0} formatSpeedText={(speed) => `${speed}`} />
-                    <div className="card-header" style={{ display: 'flex', justifyContent: 'center' }}>
-                      <div className="font-black text-sm" style={{ display: 'flex', alignItems: 'center', color: nameColor }}>
-                        {card.name}
-                      </div>
-                    </div>
-                    <div className="card-icon-area">
-                      <Icon size={60} className="text-white opacity-80" />
-                    </div>
-                    <div className="card-footer">
-                      {card.traits && card.traits.length > 0 ? (
-                        <PopupTraitBadgeList traits={card.traits} />
-                      ) : null}
-                      <span className="card-description">{card.description || ''}</span>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+            {Object.values(cardCounts).map(({ card, count }, idx) => (
+              <PopupCard
+                key={card.id + idx}
+                card={card}
+                count={count}
+                currentBuild={currentBuild}
+              />
+            ))}
           </div>
         )}
       </div>
