@@ -229,7 +229,7 @@ const createBattlePayload = (node, characterBuild, playerHp = null, maxHp = null
   const enemyCount = Math.max(1, node.enemyCount ?? ENEMY_COUNT_BY_TYPE[node.type] ?? ENEMY_COUNT_BY_TYPE.default);
 
   // 캐릭터 빌드가 있으면 그걸 사용, 없으면 기존 방식
-  const hasCharacterBuild = characterBuild && (characterBuild.mainSpecials.length > 0 || characterBuild.subSpecials.length > 0);
+  const hasCharacterBuild = characterBuild && (characterBuild.mainSpecials?.length > 0 || characterBuild.subSpecials?.length > 0 || characterBuild.ownedCards?.length > 0);
 
   const playerLibrary = hasCharacterBuild
     ? [...characterBuild.mainSpecials, ...characterBuild.subSpecials]
@@ -876,7 +876,7 @@ export const useGameStore = create((set, get) => ({
     set((state) => {
       // 던전에서 간단한 전투를 시작하는 함수
       const characterBuild = state.characterBuild;
-      const hasCharacterBuild = characterBuild && (characterBuild.mainSpecials.length > 0 || characterBuild.subSpecials.length > 0);
+      const hasCharacterBuild = characterBuild && (characterBuild.mainSpecials?.length > 0 || characterBuild.subSpecials?.length > 0 || characterBuild.ownedCards?.length > 0);
 
       const playerLibrary = hasCharacterBuild
         ? [...characterBuild.mainSpecials, ...characterBuild.subSpecials]
