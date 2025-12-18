@@ -135,16 +135,6 @@ const PopupCard = ({ card, count, currentBuild }) => {
 const CardListPopup = ({ title, cards, onClose, icon, bgGradient }) => {
   const currentBuild = useGameStore.getState().characterBuild;
 
-  // 카드 이름별로 그룹화하여 카운트
-  const cardCounts = {};
-  cards.forEach(card => {
-    const key = card.id;
-    if (!cardCounts[key]) {
-      cardCounts[key] = { card, count: 0 };
-    }
-    cardCounts[key].count++;
-  });
-
   return (
     <div
       style={{
@@ -228,11 +218,11 @@ const CardListPopup = ({ title, cards, onClose, icon, bgGradient }) => {
             gap: '12px',
             justifyContent: 'center'
           }}>
-            {Object.values(cardCounts).map(({ card, count }, idx) => (
+            {cards.map((card, idx) => (
               <PopupCard
-                key={card.id + idx}
+                key={card.id + idx + (card.__uid || '')}
                 card={card}
-                count={count}
+                count={1}
                 currentBuild={currentBuild}
               />
             ))}
