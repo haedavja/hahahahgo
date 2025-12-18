@@ -58,8 +58,8 @@ const CardListPopup = ({ title, cards, onClose, icon, bgGradient }) => {
           borderRadius: '16px',
           padding: '20px',
           minWidth: '320px',
-          maxWidth: '500px',
-          maxHeight: '70vh',
+          maxWidth: '90vw',
+          maxHeight: '85vh',
           overflow: 'auto',
           border: '2px solid #444',
           boxShadow: '0 8px 32px rgba(0, 0, 0, 1)',
@@ -112,77 +112,61 @@ const CardListPopup = ({ title, cards, onClose, icon, bgGradient }) => {
             카드가 없습니다
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: '12px',
+            justifyContent: 'center'
+          }}>
             {Object.values(cardCounts).map(({ card, count }, idx) => {
+              const Icon = card.icon || (card.type === 'attack' ? Sword : Shield);
               const isMainSpecial = currentBuild?.mainSpecials?.includes(card.id);
               const isSubSpecial = currentBuild?.subSpecials?.includes(card.id);
-              const slotType = isMainSpecial ? '주특기' : isSubSpecial ? '보조특기' : '대기';
-              const slotColor = isMainSpecial ? '#fcd34d' : isSubSpecial ? '#60a5fa' : '#9ca3af';
+              const costColor = isMainSpecial ? '#fcd34d' : isSubSpecial ? '#60a5fa' : '#fff';
+              const nameColor = isMainSpecial ? '#fcd34d' : isSubSpecial ? '#7dd3fc' : '#fff';
 
               return (
                 <div
                   key={card.id + idx}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '12px',
-                    padding: '10px 12px',
-                    background: card.type === 'attack'
-                      ? 'linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(185, 28, 28, 0.2))'
-                      : 'linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(29, 78, 216, 0.2))',
-                    borderRadius: '8px',
-                    border: `1px solid ${card.type === 'attack' ? '#ef4444' : '#3b82f6'}40`
-                  }}
+                  style={{ position: 'relative' }}
                 >
-                  <div style={{
-                    width: '28px',
-                    height: '28px',
-                    background: card.type === 'attack' ? '#ef4444' : '#3b82f6',
-                    borderRadius: '6px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontWeight: 'bold',
-                    fontSize: '14px'
-                  }}>
-                    {card.actionCost}
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{
-                      color: '#fff',
-                      fontWeight: 'bold',
-                      fontSize: '14px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px'
-                    }}>
-                      {card.name}
-                      {count > 1 && (
-                        <span style={{
-                          background: '#666',
-                          padding: '1px 6px',
-                          borderRadius: '10px',
-                          fontSize: '11px'
-                        }}>×{count}</span>
-                      )}
+                  <div className={`game-card-large ${card.type === 'attack' ? 'attack' : 'defense'}`}>
+                    <div className="card-cost-badge-floating" style={{ color: costColor, WebkitTextStroke: '1px #000' }}>
+                      {card.actionCost}
                     </div>
-                    <div style={{
-                      color: '#888',
-                      fontSize: '11px',
-                      marginTop: '2px'
-                    }}>
-                      {card.type === 'attack' ? `⚔️ ${card.damage}` : `🛡️ ${card.block}`} · 속도 {card.speed}
+                    {count > 1 && (
+                      <div style={{
+                        position: 'absolute',
+                        top: '-8px',
+                        right: '-8px',
+                        background: '#ef4444',
+                        color: '#fff',
+                        borderRadius: '50%',
+                        width: '24px',
+                        height: '24px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '12px',
+                        fontWeight: 'bold',
+                        zIndex: 10
+                      }}>
+                        ×{count}
+                      </div>
+                    )}
+                    <CardStatsSidebar card={card} strengthBonus={0} formatSpeedText={(speed) => `${speed}`} />
+                    <div className="card-header" style={{ display: 'flex', justifyContent: 'center' }}>
+                      <div className="font-black text-sm" style={{ display: 'flex', alignItems: 'center', color: nameColor }}>
+                        {card.name}
+                      </div>
                     </div>
-                  </div>
-                  <div style={{
-                    fontSize: '11px',
-                    color: slotColor,
-                    fontWeight: 'bold',
-                    padding: '2px 8px',
-                    background: `${slotColor}20`,
-                    borderRadius: '4px'
-                  }}>
-                    {slotType}
+                    <div className="card-icon-area">
+                      <Icon size={60} className="text-white opacity-80" />
+                    </div>
+                    <div className="card-footer">
+                      {card.traits && card.traits.length > 0 ? <TraitBadgeList traits={card.traits} /> : null}
+                      <span className="card-description">{card.description || ''}</span>
+                    </div>
                   </div>
                 </div>
               );
