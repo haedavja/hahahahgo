@@ -701,21 +701,26 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     const currentBuild = useGameStore.getState().characterBuild;
     const hasCharacterBuild = currentBuild && (currentBuild.mainSpecials?.length > 0 || currentBuild.subSpecials?.length > 0 || currentBuild.ownedCards?.length > 0);
 
-    if (hasCharacterBuild) {
-      // 덱 초기화 (주특기는 손패로, 보조특기는 덱 맨 위로)
-      const { deck: initialDeck, mainSpecialsHand } = initializeDeck(currentBuild, battle.vanishedCards || []);
-      // 덱에서 카드 드로우
-      const drawResult = drawFromDeck(initialDeck, [], DEFAULT_DRAW_COUNT, escapeBanRef.current);
-      actions.setDeck(drawResult.newDeck);
-      actions.setDiscardPile(drawResult.newDiscardPile);
-      // 주특기 + 드로우한 카드 = 손패
-      actions.setHand([...mainSpecialsHand, ...drawResult.drawnCards]);
-    } else {
-      // 캐릭터 빌드가 없으면 기존 방식 (테스트용)
-      const rawHand = CARDS.slice(0, 10).map((card, idx) => ({ ...card, __handUid: `${card.id}_${idx}_${Math.random().toString(36).slice(2, 8)}` }));
-      actions.setHand(rawHand);
-      actions.setDeck([]);
-      actions.setDiscardPile([]);
+    // 덱이 이미 초기화되었으면 스킵 (두 번째 useEffect에서 처리)
+    if (!deckInitializedRef.current) {
+      if (hasCharacterBuild) {
+        // 덱 초기화 (주특기는 손패로, 보조특기는 덱 맨 위로)
+        const { deck: initialDeck, mainSpecialsHand } = initializeDeck(currentBuild, battle.vanishedCards || []);
+        // 덱에서 카드 드로우
+        const drawResult = drawFromDeck(initialDeck, [], DEFAULT_DRAW_COUNT, escapeBanRef.current);
+        actions.setDeck(drawResult.newDeck);
+        actions.setDiscardPile(drawResult.newDiscardPile);
+        // 주특기 + 드로우한 카드 = 손패
+        actions.setHand([...mainSpecialsHand, ...drawResult.drawnCards]);
+        deckInitializedRef.current = true;
+      } else {
+        // 캐릭터 빌드가 없으면 기존 방식 (테스트용)
+        const rawHand = CARDS.slice(0, 10).map((card, idx) => ({ ...card, __handUid: `${card.id}_${idx}_${Math.random().toString(36).slice(2, 8)}` }));
+        actions.setHand(rawHand);
+        actions.setDeck([]);
+        actions.setDiscardPile([]);
+        deckInitializedRef.current = true;
+      }
     }
     actions.setCanRedraw(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -824,29 +829,31 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         addLog(`💚 상징 효과: 체력 +${combatStartEffects.heal}`);
       }
 
-      // 덱/무덤 시스템 초기화
-      const currentBuild = useGameStore.getState().characterBuild;
-      const hasCharacterBuild = currentBuild && (currentBuild.mainSpecials?.length > 0 || currentBuild.subSpecials?.length > 0 || currentBuild.ownedCards?.length > 0);
+      // 덱/무덤 시스템 초기화 (이미 초기화되었으면 스킵)
+      if (!deckInitializedRef.current) {
+        const currentBuild = useGameStore.getState().characterBuild;
+        const hasCharacterBuild = currentBuild && (currentBuild.mainSpecials?.length > 0 || currentBuild.subSpecials?.length > 0 || currentBuild.ownedCards?.length > 0);
 
-      if (hasCharacterBuild) {
-        // 덱 초기화 (주특기는 손패로, 보조특기는 덱 맨 위로)
-        const { deck: initialDeck, mainSpecialsHand } = initializeDeck(currentBuild, vanishedCards);
-        // 덱에서 카드 드로우
-        const drawResult = drawFromDeck(initialDeck, [], DEFAULT_DRAW_COUNT, escapeBanRef.current);
-        actions.setDeck(drawResult.newDeck);
-        actions.setDiscardPile(drawResult.newDiscardPile);
-        // 주특기 + 드로우한 카드 = 손패
-        const fullHand = [...mainSpecialsHand, ...drawResult.drawnCards];
-        actions.setHand(fullHand);
-        deckInitializedRef.current = true; // 덱 초기화 완료 표시
-        addLog(`🎴 시작 손패 ${fullHand.length}장 (주특기 ${mainSpecialsHand.length}장, 덱: ${drawResult.newDeck.length}장)`);
-      } else {
-        const rawHand = CARDS.slice(0, 10).map((card, idx) => ({ ...card, __handUid: `${card.id}_${idx}_${Math.random().toString(36).slice(2, 8)}` }));
-        actions.setHand(rawHand);
-        actions.setDeck([]);
-        actions.setDiscardPile([]);
-        deckInitializedRef.current = true; // 덱 초기화 완료 표시
-        addLog(`🎴 시작 손패 ${rawHand.length}장`);
+        if (hasCharacterBuild) {
+          // 덱 초기화 (주특기는 손패로, 보조특기는 덱 맨 위로)
+          const { deck: initialDeck, mainSpecialsHand } = initializeDeck(currentBuild, vanishedCards);
+          // 덱에서 카드 드로우
+          const drawResult = drawFromDeck(initialDeck, [], DEFAULT_DRAW_COUNT, escapeBanRef.current);
+          actions.setDeck(drawResult.newDeck);
+          actions.setDiscardPile(drawResult.newDiscardPile);
+          // 주특기 + 드로우한 카드 = 손패
+          const fullHand = [...mainSpecialsHand, ...drawResult.drawnCards];
+          actions.setHand(fullHand);
+          deckInitializedRef.current = true; // 덱 초기화 완료 표시
+          addLog(`🎴 시작 손패 ${fullHand.length}장 (주특기 ${mainSpecialsHand.length}장, 덱: ${drawResult.newDeck.length}장)`);
+        } else {
+          const rawHand = CARDS.slice(0, 10).map((card, idx) => ({ ...card, __handUid: `${card.id}_${idx}_${Math.random().toString(36).slice(2, 8)}` }));
+          actions.setHand(rawHand);
+          actions.setDeck([]);
+          actions.setDiscardPile([]);
+          deckInitializedRef.current = true; // 덱 초기화 완료 표시
+          addLog(`🎴 시작 손패 ${rawHand.length}장`);
+        }
       }
       actions.setSelected([]);
       actions.setCanRedraw(true);
@@ -2939,10 +2946,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     actions.setTurnEtherAccumulated(0);
     actions.setEnemyTurnEtherAccumulated(0);
 
-    // 사용한 카드(selected)를 무덤으로 이동
-    if (selected && selected.length > 0) {
-      actions.addToDiscard(selected);
-    }
+    // NOTE: selected 카드를 무덤에 추가하지 않음
+    // 다음 턴 시작 시 전체 hand가 무덤으로 이동하므로 (line 1017)
+    // 여기서 추가하면 주특기 카드 등이 중복됨 (selected는 hand 카드의 복사본)
 
     actions.setSelected([]); actions.setQueue([]); actions.setQIndex(0); actions.setFixedOrder(null); actions.setUsedCardIndices([]);
     actions.setDisappearingCards([]); actions.setHiddenCards([]);

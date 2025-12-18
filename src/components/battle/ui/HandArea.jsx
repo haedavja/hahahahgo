@@ -27,8 +27,9 @@ const PopupCard = ({ card, count, currentBuild }) => {
   const [showTooltip, setShowTooltip] = useState(false);
   const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
   const Icon = card.icon || (card.type === 'attack' ? Sword : Shield);
-  const isMainSpecial = currentBuild?.mainSpecials?.includes(card.id);
-  const isSubSpecial = currentBuild?.subSpecials?.includes(card.id);
+  // 카드 객체의 플래그를 사용 (같은 카드 타입이 주특기/보조특기에 각각 있을 때 구별)
+  const isMainSpecial = card.__isMainSpecial;
+  const isSubSpecial = card.__isSubSpecial;
   const costColor = isMainSpecial ? '#fcd34d' : isSubSpecial ? '#60a5fa' : '#fff';
   const nameColor = isMainSpecial ? '#fcd34d' : isSubSpecial ? '#7dd3fc' : '#fff';
 
@@ -390,9 +391,9 @@ export const HandArea = ({
               const isInCombo = sel && (isFlush || comboCardCosts.has(c.actionCost));
               const enhancedCard = applyTraitModifiers(c, { usageCount, isInCombo });
               const disabled = handDisabled(c) && !sel;
-              const currentBuild = useGameStore.getState().characterBuild;
-              const isMainSpecial = currentBuild?.mainSpecials?.includes(c.id);
-              const isSubSpecial = currentBuild?.subSpecials?.includes(c.id);
+              // 카드 객체의 플래그를 사용 (같은 카드 타입이 주특기/보조특기에 각각 있을 때 구별)
+              const isMainSpecial = c.__isMainSpecial;
+              const isSubSpecial = c.__isSubSpecial;
               const costColor = isMainSpecial ? '#fcd34d' : isSubSpecial ? '#60a5fa' : '#fff';
               const nameColor = isMainSpecial ? '#fcd34d' : isSubSpecial ? '#7dd3fc' : '#fff';
               // 협동 특성이 있고 조합에 포함된 경우
@@ -449,9 +450,9 @@ export const HandArea = ({
           {fixedOrder.filter(a => a.actor === 'player').map((action, idx, arr) => {
             const c = action.card;
             const Icon = c.icon || (c.type === 'attack' ? Sword : Shield);
-            const currentBuild = useGameStore.getState().characterBuild;
-            const isMainSpecial = currentBuild?.mainSpecials?.includes(c.id);
-            const isSubSpecial = currentBuild?.subSpecials?.includes(c.id);
+            // 카드 객체의 플래그를 사용 (같은 카드 타입이 주특기/보조특기에 각각 있을 때 구별)
+            const isMainSpecial = c.__isMainSpecial;
+            const isSubSpecial = c.__isSubSpecial;
             const costColor = isMainSpecial ? '#fcd34d' : isSubSpecial ? '#60a5fa' : '#fff';
             const nameColor = isMainSpecial ? '#fcd34d' : isSubSpecial ? '#7dd3fc' : '#fff';
             return (
@@ -507,9 +508,9 @@ export const HandArea = ({
             const isDisappearing = Array.isArray(disappearingCards) && disappearingCards.includes(globalIndex);
             const isHidden = Array.isArray(hiddenCards) && hiddenCards.includes(globalIndex);
             const isDisabled = Array.isArray(disabledCardIndices) && disabledCardIndices.includes(globalIndex); // 비활성화된 카드 (몬스터 사망 시)
-            const currentBuild = useGameStore.getState().characterBuild;
-            const isMainSpecial = currentBuild?.mainSpecials?.includes(a.card.id);
-            const isSubSpecial = currentBuild?.subSpecials?.includes(a.card.id);
+            // 카드 객체의 플래그를 사용 (같은 카드 타입이 주특기/보조특기에 각각 있을 때 구별)
+            const isMainSpecial = a.card.__isMainSpecial;
+            const isSubSpecial = a.card.__isSubSpecial;
             const costColor = isMainSpecial ? '#fcd34d' : isSubSpecial ? '#60a5fa' : '#fff';
 
             // 사용된 카드(hidden)는 사라지지 않고 빛만 잃음
