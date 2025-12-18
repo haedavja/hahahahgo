@@ -277,9 +277,27 @@ export const TOKENS = {
   },
 
   // === 부정 토큰: 공격 감소 ===
+  dull: {
+    id: 'dull',
+    name: '무딤',
+    type: TOKEN_TYPES.USAGE,
+    category: TOKEN_CATEGORIES.NEGATIVE,
+    emoji: '🔻',
+    description: '다음 공격 카드의 피해가 50% 감소한다.',
+    effect: { type: 'ATTACK_PENALTY', value: 0.5 }
+  },
+  dullPlus: {
+    id: 'dullPlus',
+    name: '무딤+',
+    type: TOKEN_TYPES.USAGE,
+    category: TOKEN_CATEGORIES.NEGATIVE,
+    emoji: '🔻',
+    description: '다음 공격 카드의 피해가 75% 감소한다.',
+    effect: { type: 'ATTACK_PENALTY', value: 0.75 }
+  },
   dullness: {
     id: 'dullness',
-    name: '무딤',
+    name: '부러짐',
     type: TOKEN_TYPES.TURN,
     category: TOKEN_CATEGORIES.NEGATIVE,
     emoji: '🔻',
@@ -288,12 +306,12 @@ export const TOKENS = {
   },
   dullnessPlus: {
     id: 'dullnessPlus',
-    name: '무딤+',
+    name: '부러짐+',
     type: TOKEN_TYPES.TURN,
     category: TOKEN_CATEGORIES.NEGATIVE,
     emoji: '🔻',
-    description: '이번 턴에 내는 모든 공격 카드의 피해가 100% 감소한다.',
-    effect: { type: 'ATTACK_PENALTY', value: 1.0 }
+    description: '이번 턴에 내는 모든 공격 카드의 피해가 75% 감소한다.',
+    effect: { type: 'ATTACK_PENALTY', value: 0.75 }
   },
 
   // === 부정 토큰: 방어 감소 ===
