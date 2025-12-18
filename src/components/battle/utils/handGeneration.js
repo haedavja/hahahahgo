@@ -104,11 +104,13 @@ export function drawCharacterBuildHand(characterBuild, nextTurnEffects = {}, pre
       return Math.random() < applyBonus(prob);
     });
 
-  // 나머지 보유 카드 (주특기/보조특기 제외) 각각 10% 확률로 등장
+  // 대기 카드 (ownedCards 중 주특기/보조특기 제외) 각각 10% 확률로 등장
+  const { ownedCards = [] } = characterBuild;
   const usedCardIds = new Set([...mainSpecials, ...subSpecials]);
-  const otherCards = CARDS
-    .filter(card => !usedCardIds.has(card.id))
-    .filter(card => !isVanished(card.id)) // 소멸된 카드 제외
+  const otherCards = ownedCards
+    .filter(cardId => !usedCardIds.has(cardId)) // 주특기/보조특기가 아닌 대기 카드만
+    .filter(cardId => !isVanished(cardId)) // 소멸된 카드 제외
+    .map(cardId => CARDS.find(card => card.id === cardId))
     .filter(card => {
       if (!card) return false;
       // 탈주 (escape): 이전에 사용했으면 등장하지 않음
