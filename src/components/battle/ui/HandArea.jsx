@@ -25,81 +25,83 @@ const X = ({ size = 24, className = "", strokeWidth = 2 }) => (
 // 팝업용 카드 컴포넌트 (호버 시 툴팁 표시)
 const PopupCard = ({ card, count, currentBuild }) => {
   const [showTooltip, setShowTooltip] = useState(false);
+  const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
   const Icon = card.icon || (card.type === 'attack' ? Sword : Shield);
   const isMainSpecial = currentBuild?.mainSpecials?.includes(card.id);
   const isSubSpecial = currentBuild?.subSpecials?.includes(card.id);
   const costColor = isMainSpecial ? '#fcd34d' : isSubSpecial ? '#60a5fa' : '#fff';
   const nameColor = isMainSpecial ? '#fcd34d' : isSubSpecial ? '#7dd3fc' : '#fff';
 
-  // 카드 확대 방지 핸들러
-  const preventScale = (e) => {
-    e.currentTarget.style.transform = 'none';
+  const handleMouseEnter = (e) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    setTooltipPos({ x: rect.right + 12, y: rect.top });
+    setShowTooltip(true);
   };
 
   return (
     <div
       style={{ position: 'relative' }}
-      onMouseEnter={() => setShowTooltip(true)}
+      onMouseEnter={handleMouseEnter}
       onMouseLeave={() => setShowTooltip(false)}
     >
-      <div
-        className={`game-card-large ${card.type === 'attack' ? 'attack' : 'defense'}`}
-        style={{ cursor: 'default' }}
-        onMouseEnter={preventScale}
-        onMouseMove={preventScale}
-      >
-        <div className="card-cost-badge-floating" style={{ color: costColor, WebkitTextStroke: '1px #000' }}>
-          {card.actionCost}
-        </div>
-        {count > 1 && (
-          <div style={{
-            position: 'absolute',
-            top: '-8px',
-            right: '-8px',
-            background: '#ef4444',
-            color: '#fff',
-            borderRadius: '50%',
-            width: '24px',
-            height: '24px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '12px',
-            fontWeight: 'bold',
-            zIndex: 10
-          }}>
-            ×{count}
+      {/* 카드를 pointerEvents: none으로 감싸서 CSS 호버 완전 차단 */}
+      <div style={{ pointerEvents: 'none' }}>
+        <div
+          className={`game-card-large ${card.type === 'attack' ? 'attack' : 'defense'}`}
+          style={{ cursor: 'default' }}
+        >
+          <div className="card-cost-badge-floating" style={{ color: costColor, WebkitTextStroke: '1px #000' }}>
+            {card.actionCost}
           </div>
-        )}
-        <CardStatsSidebar card={card} strengthBonus={0} formatSpeedText={(speed) => `${speed}`} />
-        <div className="card-header" style={{ display: 'flex', justifyContent: 'center' }}>
-          <div className="font-black text-sm" style={{ display: 'flex', alignItems: 'center', color: nameColor }}>
-            {card.name}
+          {count > 1 && (
+            <div style={{
+              position: 'absolute',
+              top: '-8px',
+              right: '-8px',
+              background: '#ef4444',
+              color: '#fff',
+              borderRadius: '50%',
+              width: '24px',
+              height: '24px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '12px',
+              fontWeight: 'bold',
+              zIndex: 10
+            }}>
+              ×{count}
+            </div>
+          )}
+          <CardStatsSidebar card={card} strengthBonus={0} formatSpeedText={(speed) => `${speed}`} />
+          <div className="card-header" style={{ display: 'flex', justifyContent: 'center' }}>
+            <div className="font-black text-sm" style={{ display: 'flex', alignItems: 'center', color: nameColor }}>
+              {card.name}
+            </div>
           </div>
-        </div>
-        <div className="card-icon-area">
-          <Icon size={60} className="text-white opacity-80" />
-        </div>
-        <div className="card-footer">
-          {card.traits && card.traits.length > 0 ? <TraitBadgeList traits={card.traits} /> : null}
-          <span className="card-description">{card.description || ''}</span>
+          <div className="card-icon-area">
+            <Icon size={60} className="text-white opacity-80" />
+          </div>
+          <div className="card-footer">
+            {card.traits && card.traits.length > 0 ? <TraitBadgeList traits={card.traits} /> : null}
+            <span className="card-description">{card.description || ''}</span>
+          </div>
         </div>
       </div>
 
-      {/* 특성 툴팁 - 카드 오른쪽에 표시 */}
-      {showTooltip && card.traits && card.traits.length > 0 && (
+      {/* 특성 툴팁 - Portal로 body에 렌더링하여 잘림 방지 */}
+      {showTooltip && card.traits && card.traits.length > 0 && createPortal(
         <div style={{
-          position: 'absolute',
-          left: '100%',
-          top: '0',
-          marginLeft: '12px',
+          position: 'fixed',
+          left: tooltipPos.x,
+          top: tooltipPos.y,
           background: '#1a1a2e',
           border: '2px solid #555',
           borderRadius: '8px',
           padding: '14px',
           minWidth: '240px',
           maxWidth: '320px',
-          zIndex: 100000,
+          zIndex: 200000,
           pointerEvents: 'none',
           boxShadow: '0 4px 16px rgba(0,0,0,0.7)'
         }}>
@@ -122,7 +124,8 @@ const PopupCard = ({ card, count, currentBuild }) => {
               </div>
             );
           })}
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
