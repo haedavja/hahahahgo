@@ -1,6 +1,7 @@
 import { hasTrait } from '../utils/battleUtils';
 import { applyTokenEffectsToCard, applyTokenEffectsOnDamage, consumeTokens } from '../../../lib/tokenEffects';
-import { addToken } from '../../../lib/tokenUtils';
+import { addToken, removeToken, hasToken, getTokenStacks } from '../../../lib/tokenUtils';
+import { CARDS } from '../battleData';
 import {
   processPreAttackSpecials,
   processPostAttackSpecials,
@@ -290,6 +291,16 @@ export function calculateSingleHit(attacker, defender, card, attackerName, battl
         logs.push(...counterResult.logs);
         damageTaken += counterResult.damage;
       }
+
+      // 대응사격 처리 (counterShot 토큰)
+      if (finalDmg > 0 && hasToken(updatedDefender, 'counterShot')) {
+        const counterShotResult = applyCounterShot(updatedDefender, updatedAttacker, attackerName);
+        updatedDefender = counterShotResult.defender;
+        updatedAttacker = counterShotResult.attacker;
+        events.push(...counterShotResult.events);
+        logs.push(...counterShotResult.logs);
+        damageTaken += counterShotResult.damage;
+      }
     }
   }
   // 방어력이 없는 경우 (또는 ignoreBlock으로 무시)
@@ -323,6 +334,16 @@ export function calculateSingleHit(attacker, defender, card, attackerName, battl
       events.push(...counterResult.events);
       logs.push(...counterResult.logs);
       damageTaken += counterResult.damage;
+    }
+
+    // 대응사격 처리 (counterShot 토큰)
+    if (finalDmg > 0 && hasToken(updatedDefender, 'counterShot')) {
+      const counterShotResult = applyCounterShot(updatedDefender, updatedAttacker, attackerName);
+      updatedDefender = counterShotResult.defender;
+      updatedAttacker = counterShotResult.attacker;
+      events.push(...counterShotResult.events);
+      logs.push(...counterShotResult.logs);
+      damageTaken += counterShotResult.damage;
     }
   }
 
@@ -371,6 +392,57 @@ function applyCounter(defender, attacker, attackerName, counterDmg = null) {
     damage: actualCounterDmg,
     events: [event],
     logs: [log]
+  };
+}
+
+/**
+ * 대응사격 처리
+ * @param {Object} defender - 방어자 (대응사격 토큰 보유자)
+ * @param {Object} attacker - 공격자 (피해를 받을 대상)
+ * @param {string} attackerName - 공격자 이름
+ * @returns {Object} - { defender, attacker, damage, events, logs }
+ */
+function applyCounterShot(defender, attacker, attackerName) {
+  const events = [];
+  const logs = [];
+
+  // 기본 사격 카드 찾기
+  const shootCard = CARDS.find(c => c.id === 'shoot');
+  if (!shootCard) {
+    return { defender, attacker, damage: 0, events, logs };
+  }
+
+  // 사격 피해 계산 (기본 피해)
+  const shotDamage = shootCard.damage || 8;
+  const beforeHP = attacker.hp;
+  const updatedAttacker = {
+    ...attacker,
+    hp: Math.max(0, attacker.hp - shotDamage)
+  };
+
+  // 대응사격 토큰 1스택 소모
+  const tokenResult = removeToken(defender, 'counterShot', 'usage', 1);
+  const updatedDefender = { ...defender, tokens: tokenResult.tokens };
+
+  const defenderName = attackerName === 'player' ? '몬스터' : '플레이어';
+  const targetName = attackerName === 'player' ? '플레이어' : '몬스터';
+  const cmsg = `${defenderName} -> ${targetName} • 🔫 대응사격 ${shotDamage} (체력 ${beforeHP} -> ${updatedAttacker.hp})`;
+
+  events.push({
+    actor: 'counterShot',
+    card: shootCard.name,
+    type: 'counterShot',
+    dmg: shotDamage,
+    msg: cmsg
+  });
+  logs.push(`${attackerName === 'player' ? '👾' : '🔵'} ${cmsg}`);
+
+  return {
+    defender: updatedDefender,
+    attacker: updatedAttacker,
+    damage: shotDamage,
+    events,
+    logs
   };
 }
 

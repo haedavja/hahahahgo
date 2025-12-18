@@ -145,6 +145,15 @@ export const TOKENS = {
     description: '공격 받으면 1회 5(+힘)의 피해를 되돌려줍니다.',
     effect: { type: 'COUNTER', value: 5 }
   },
+  counterShot: {
+    id: 'counterShot',
+    name: '대응사격',
+    type: TOKEN_TYPES.USAGE,
+    category: TOKEN_CATEGORIES.POSITIVE,
+    emoji: '🔫',
+    description: '공격 받을 때마다 기본 사격으로 반격합니다.',
+    effect: { type: 'COUNTER_SHOT', value: 1 }
+  },
   absorb: {
     id: 'absorb',
     name: '흡수',

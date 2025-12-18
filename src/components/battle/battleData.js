@@ -228,13 +228,18 @@ export const CARDS = [
     name: "르두블망",
     type: "defense",
     block: 6,
-    counter: 2,
     speedCost: 8,
     actionCost: 1,
     iconKey: "shield",
-    description: "방어력 6, 반격 2회. 교차 시 사격 1회.",
+    description: "방어력 6. 대응사격 2회 부여. 교차 시 사격 1회.",
     traits: ["cross"],
     cardCategory: "fencing",
+    appliedTokens: [
+      { id: 'counterShot', stacks: 2, target: 'player' }
+    ],
+    onPlay: (battle, actions) => {
+      actions.addTokenToPlayer('counterShot', 2);
+    },
     crossBonus: { type: 'gun_attack', count: 1 }
   },
   {
