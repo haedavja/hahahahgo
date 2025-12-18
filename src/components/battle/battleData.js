@@ -552,6 +552,45 @@ export const CARDS = [
     cardCategory: "gun",
     special: ["singleRoulette", "critLoad"]
   },
+  {
+    id: "intercept",
+    name: "요격",
+    type: "attack",
+    damage: 1,
+    speedCost: 3,
+    actionCost: 2,
+    iconKey: "flame",
+    description: "공격력 1. 적에게 무딤+ 부여. 치명타 시 흔들림+ 추가. 교차 시 부러짐+, 무방비+로 강화.",
+    traits: ["cross"],
+    cardCategory: "gun",
+    appliedTokens: [
+      { id: 'dullPlus', stacks: 1, target: 'enemy' }
+    ],
+    special: ["interceptTokens"],
+    crossBonus: { type: 'intercept_upgrade' }
+  },
+  {
+    id: "shout",
+    name: "함성",
+    type: "utility",
+    speedCost: 1,
+    actionCost: 1,
+    iconKey: "star",
+    description: "대기 카드 중 하나를 다음 턴에 손패로 가져온다.",
+    traits: [],
+    special: ["recallCard"]
+  },
+  {
+    id: "emergency_response",
+    name: "비상대응",
+    type: "utility",
+    speedCost: 3,
+    actionCost: 1,
+    iconKey: "star",
+    description: "손패가 6장 이하일 경우 대기 카드 3장을 즉시 뽑는다.",
+    traits: [],
+    special: ["emergencyDraw"]
+  },
 ];
 
 export const ENEMY_CARDS = [

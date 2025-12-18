@@ -433,6 +433,30 @@ export function processPostAttackSpecials({
     }
   }
 
+  // === interceptTokens: 요격 - 무딤+ 부여, 치명타시 흔들림+ 추가 ===
+  if (hasSpecial(card, 'interceptTokens')) {
+    const grantedAt = battleContext.currentTurn ? { turn: battleContext.currentTurn, sp: battleContext.currentSp || 0 } : null;
+    const who = attackerName === 'player' ? '플레이어' : '몬스터';
+    const target = attackerName === 'player' ? '몬스터' : '플레이어';
+
+    // 기본: 무딤+ 부여
+    const dullResult = addToken(modifiedDefender, 'dullPlus', 1, grantedAt);
+    modifiedDefender = { ...modifiedDefender, tokens: dullResult.tokens };
+    const dullMsg = `${who} -> ${target} • 🔻 ${card.name}: 무딤+ 부여!`;
+    events.push({ actor: attackerName, card: card.name, type: 'special', msg: dullMsg });
+    logs.push(dullMsg);
+
+    // 치명타 시: 흔들림+ 추가 부여
+    const { isCritical = false } = battleContext;
+    if (isCritical) {
+      const shakenResult = addToken(modifiedDefender, 'shakenPlus', 1, grantedAt);
+      modifiedDefender = { ...modifiedDefender, tokens: shakenResult.tokens };
+      const shakenMsg = `${who} -> ${target} • 💥 ${card.name}: 치명타! 흔들림+ 추가!`;
+      events.push({ actor: attackerName, card: card.name, type: 'special', msg: shakenMsg });
+      logs.push(shakenMsg);
+    }
+  }
+
   return {
     attacker: modifiedAttacker,
     defender: modifiedDefender,
@@ -764,6 +788,18 @@ export function processCardPlaySpecials({
           events.push({ actor: attackerName, card: card.name, type: 'cross', msg });
           logs.push(msg);
         });
+      } else if (bonusType === 'intercept_upgrade') {
+        // 요격용: 교차 시 무딤+/흔들림+ → 부러짐+/무방비+로 강화
+        const grantedAt = battleContext.currentTurn ? { turn: battleContext.currentTurn, sp: battleContext.currentSp || 0 } : null;
+        // 무딤+ 제거하고 부러짐+ 부여
+        tokensToRemove.push({ id: 'dullPlus', stacks: 1, targetEnemy: true });
+        tokensToAdd.push({ id: 'dullnessPlus', stacks: 1, grantedAt, targetEnemy: true });
+        // 흔들림+ 제거하고 무방비+ 부여
+        tokensToRemove.push({ id: 'shakenPlus', stacks: 1, targetEnemy: true });
+        tokensToAdd.push({ id: 'vulnerablePlus', stacks: 1, grantedAt, targetEnemy: true });
+        const msg = `${who} • ✨ ${card.name}: 교차! 무딤+→부러짐+, 흔들림+→무방비+ 강화!`;
+        events.push({ actor: attackerName, card: card.name, type: 'cross', msg });
+        logs.push(msg);
       }
     }
   }
@@ -788,6 +824,32 @@ export function processCardPlaySpecials({
     const msg = `${who} • 🧘 ${card.name}: 정신집중!`;
     events.push({ actor: attackerName, card: card.name, type: 'special', msg });
     logs.push(msg);
+  }
+
+  // === recallCard: 함성 - 대기 카드 중 하나를 다음 턴에 손패로 ===
+  if (hasSpecial(card, 'recallCard')) {
+    nextTurnEffects = { ...nextTurnEffects, recallCard: true };
+    const who = attackerName === 'player' ? '플레이어' : '몬스터';
+    const msg = `${who} • 📢 ${card.name}: 다음 턴에 대기 카드 1장을 손패로!`;
+    events.push({ actor: attackerName, card: card.name, type: 'special', msg });
+    logs.push(msg);
+  }
+
+  // === emergencyDraw: 비상대응 - 손패 6장 이하시 대기 카드 3장 즉시 뽑기 ===
+  if (hasSpecial(card, 'emergencyDraw')) {
+    const { handSize = 0 } = battleContext;
+    if (handSize <= 6) {
+      nextTurnEffects = { ...nextTurnEffects, emergencyDraw: 3 };
+      const who = attackerName === 'player' ? '플레이어' : '몬스터';
+      const msg = `${who} • 🚨 ${card.name}: 비상! 대기 카드 3장 즉시 뽑기!`;
+      events.push({ actor: attackerName, card: card.name, type: 'special', msg });
+      logs.push(msg);
+    } else {
+      const who = attackerName === 'player' ? '플레이어' : '몬스터';
+      const msg = `${who} • ❌ ${card.name}: 손패가 6장 초과! 효과 없음`;
+      events.push({ actor: attackerName, card: card.name, type: 'special', msg });
+      logs.push(msg);
+    }
   }
 
   return { bonusCards, tokensToAdd, tokensToRemove, nextTurnEffects, events, logs };
