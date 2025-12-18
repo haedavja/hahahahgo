@@ -12,6 +12,7 @@ import { detectPokerCombo } from '../utils/comboDetection';
 import { TraitBadgeList } from './TraitBadge.jsx';
 import { CardStatsSidebar } from './CardStatsSidebar.jsx';
 import { Sword, Shield } from './BattleIcons';
+import { TRAITS } from '../battleData';
 
 // X 아이콘 SVG 컴포넌트
 const X = ({ size = 24, className = "", strokeWidth = 2 }) => (
@@ -20,6 +21,73 @@ const X = ({ size = 24, className = "", strokeWidth = 2 }) => (
     <line x1="6" y1="6" x2="18" y2="18" />
   </svg>
 );
+
+// 팝업용 툴팁 특성 뱃지 컴포넌트
+const PopupTraitBadge = ({ traitId }) => {
+  const [showTooltip, setShowTooltip] = useState(false);
+  const trait = TRAITS[traitId];
+  if (!trait) return null;
+
+  const isPositive = trait.type === 'positive';
+  const color = isPositive ? '#22c55e' : '#ef4444';
+  const background = isPositive ? 'rgba(34, 197, 94, 0.2)' : 'rgba(239, 68, 68, 0.2)';
+
+  return (
+    <span
+      style={{
+        color,
+        background,
+        padding: '2px 6px',
+        borderRadius: '4px',
+        border: `1px solid ${color}`,
+        position: 'relative',
+        cursor: 'help',
+        pointerEvents: 'auto'
+      }}
+      onMouseEnter={() => setShowTooltip(true)}
+      onMouseLeave={() => setShowTooltip(false)}
+    >
+      {trait.name}
+      {showTooltip && (
+        <div style={{
+          position: 'absolute',
+          bottom: '100%',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          marginBottom: '8px',
+          background: '#1a1a2e',
+          border: `2px solid ${color}`,
+          borderRadius: '8px',
+          padding: '8px 12px',
+          minWidth: '200px',
+          maxWidth: '280px',
+          zIndex: 100000,
+          pointerEvents: 'none',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.5)'
+        }}>
+          <div style={{ fontWeight: 'bold', color, marginBottom: '4px' }}>
+            {trait.name}
+          </div>
+          <div style={{ color: '#ccc', fontSize: '12px', lineHeight: '1.4' }}>
+            {trait.description}
+          </div>
+        </div>
+      )}
+    </span>
+  );
+};
+
+const PopupTraitBadgeList = ({ traits }) => {
+  if (!traits || traits.length === 0) return null;
+
+  return (
+    <span style={{ fontWeight: 600, display: 'flex', gap: '4px', flexWrap: 'wrap', pointerEvents: 'auto' }}>
+      {traits.map((traitId) => (
+        <PopupTraitBadge key={traitId} traitId={traitId} />
+      ))}
+    </span>
+  );
+};
 
 // 덱/무덤 카드 목록 팝업 컴포넌트
 const CardListPopup = ({ title, cards, onClose, icon, bgGradient }) => {
@@ -168,9 +236,7 @@ const CardListPopup = ({ title, cards, onClose, icon, bgGradient }) => {
                     </div>
                     <div className="card-footer">
                       {card.traits && card.traits.length > 0 ? (
-                        <div style={{ pointerEvents: 'auto' }}>
-                          <TraitBadgeList traits={card.traits} />
-                        </div>
+                        <PopupTraitBadgeList traits={card.traits} />
                       ) : null}
                       <span className="card-description">{card.description || ''}</span>
                     </div>
