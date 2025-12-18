@@ -455,7 +455,7 @@ export const CARDS = [
   // === 펜싱 유틸리티 카드 ===
   {
     id: "deflect",
-    name: "패링",
+    name: "빠라드",
     type: "defense",
     block: 8,
     speedCost: 3,
