@@ -4,6 +4,7 @@
  * 하단 고정 손패 영역 컴포넌트
  */
 
+import { useState } from 'react';
 import { useGameStore } from '../../../state/gameStore';
 import { hasTrait, applyTraitModifiers } from '../utils/battleUtils';
 import { detectPokerCombo } from '../utils/comboDetection';
@@ -18,6 +19,175 @@ const X = ({ size = 24, className = "", strokeWidth = 2 }) => (
     <line x1="6" y1="6" x2="18" y2="18" />
   </svg>
 );
+
+// 덱/무덤 카드 목록 팝업 컴포넌트
+const CardListPopup = ({ title, cards, onClose, icon, bgGradient }) => {
+  const currentBuild = useGameStore.getState().characterBuild;
+
+  // 카드 이름별로 그룹화하여 카운트
+  const cardCounts = {};
+  cards.forEach(card => {
+    const key = card.id;
+    if (!cardCounts[key]) {
+      cardCounts[key] = { card, count: 0 };
+    }
+    cardCounts[key].count++;
+  });
+
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: 'rgba(0, 0, 0, 0.7)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 10000
+      }}
+      onClick={onClose}
+    >
+      <div
+        style={{
+          background: '#1a1a2e',
+          borderRadius: '16px',
+          padding: '20px',
+          minWidth: '320px',
+          maxWidth: '500px',
+          maxHeight: '70vh',
+          overflow: 'auto',
+          border: '2px solid #333',
+          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.5)'
+        }}
+        onClick={e => e.stopPropagation()}
+      >
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          marginBottom: '16px',
+          paddingBottom: '12px',
+          borderBottom: '1px solid #333'
+        }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            fontSize: '18px',
+            fontWeight: 'bold',
+            color: '#fff'
+          }}>
+            <span>{icon}</span>
+            <span>{title}</span>
+            <span style={{
+              background: bgGradient,
+              padding: '2px 8px',
+              borderRadius: '12px',
+              fontSize: '14px'
+            }}>{cards.length}장</span>
+          </div>
+          <button
+            onClick={onClose}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: '#888',
+              cursor: 'pointer',
+              fontSize: '20px',
+              padding: '4px 8px'
+            }}
+          >✕</button>
+        </div>
+
+        {cards.length === 0 ? (
+          <div style={{ color: '#666', textAlign: 'center', padding: '20px' }}>
+            카드가 없습니다
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {Object.values(cardCounts).map(({ card, count }, idx) => {
+              const isMainSpecial = currentBuild?.mainSpecials?.includes(card.id);
+              const isSubSpecial = currentBuild?.subSpecials?.includes(card.id);
+              const slotType = isMainSpecial ? '주특기' : isSubSpecial ? '보조특기' : '대기';
+              const slotColor = isMainSpecial ? '#fcd34d' : isSubSpecial ? '#60a5fa' : '#9ca3af';
+
+              return (
+                <div
+                  key={card.id + idx}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    padding: '10px 12px',
+                    background: card.type === 'attack'
+                      ? 'linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(185, 28, 28, 0.2))'
+                      : 'linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(29, 78, 216, 0.2))',
+                    borderRadius: '8px',
+                    border: `1px solid ${card.type === 'attack' ? '#ef4444' : '#3b82f6'}40`
+                  }}
+                >
+                  <div style={{
+                    width: '28px',
+                    height: '28px',
+                    background: card.type === 'attack' ? '#ef4444' : '#3b82f6',
+                    borderRadius: '6px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontWeight: 'bold',
+                    fontSize: '14px'
+                  }}>
+                    {card.actionCost}
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{
+                      color: '#fff',
+                      fontWeight: 'bold',
+                      fontSize: '14px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px'
+                    }}>
+                      {card.name}
+                      {count > 1 && (
+                        <span style={{
+                          background: '#666',
+                          padding: '1px 6px',
+                          borderRadius: '10px',
+                          fontSize: '11px'
+                        }}>×{count}</span>
+                      )}
+                    </div>
+                    <div style={{
+                      color: '#888',
+                      fontSize: '11px',
+                      marginTop: '2px'
+                    }}>
+                      {card.type === 'attack' ? `⚔️ ${card.damage}` : `🛡️ ${card.block}`} · 속도 {card.speed}
+                    </div>
+                  </div>
+                  <div style={{
+                    fontSize: '11px',
+                    color: slotColor,
+                    fontWeight: 'bold',
+                    padding: '2px 8px',
+                    background: `${slotColor}20`,
+                    borderRadius: '4px'
+                  }}>
+                    {slotType}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
 
 export const HandArea = ({
   battle,
@@ -40,9 +210,15 @@ export const HandArea = ({
   hiddenCards,
   disabledCardIndices,
   isSimplified,
-  deckCount = 0,
-  discardCount = 0
+  deck = [],
+  discardPile = []
 }) => {
+  const [showDeckPopup, setShowDeckPopup] = useState(false);
+  const [showDiscardPopup, setShowDiscardPopup] = useState(false);
+
+  const deckCount = deck.length;
+  const discardCount = discardPile.length;
+
   if (!(battle.phase === 'select' || battle.phase === 'respond' || battle.phase === 'resolve' || (enemy && enemy.hp <= 0) || (player && player.hp <= 0))) {
     return null;
   }
@@ -55,7 +231,27 @@ export const HandArea = ({
         )}
       </div>
 
-      {/* 덱/무덤 카운터 */}
+      {/* 덱/무덤 팝업 */}
+      {showDeckPopup && (
+        <CardListPopup
+          title="남은 덱"
+          cards={deck}
+          onClose={() => setShowDeckPopup(false)}
+          icon="🎴"
+          bgGradient="linear-gradient(135deg, #3b82f6, #1d4ed8)"
+        />
+      )}
+      {showDiscardPopup && (
+        <CardListPopup
+          title="무덤"
+          cards={discardPile}
+          onClose={() => setShowDiscardPopup(false)}
+          icon="🪦"
+          bgGradient="linear-gradient(135deg, #6b7280, #374151)"
+        />
+      )}
+
+      {/* 덱/무덤 카운터 - 클릭하면 카드 목록 표시 */}
       {(deckCount > 0 || discardCount > 0) && (
         <div className="deck-discard-counter" style={{
           display: 'flex',
@@ -65,29 +261,55 @@ export const HandArea = ({
           fontSize: '14px',
           fontWeight: 'bold'
         }}>
-          <div style={{
-            background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
-            padding: '6px 12px',
-            borderRadius: '8px',
-            color: '#fff',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            boxShadow: '0 2px 8px rgba(59, 130, 246, 0.4)'
-          }}>
+          <div
+            onClick={() => setShowDeckPopup(true)}
+            style={{
+              background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
+              padding: '6px 12px',
+              borderRadius: '8px',
+              color: '#fff',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              boxShadow: '0 2px 8px rgba(59, 130, 246, 0.4)',
+              cursor: 'pointer',
+              transition: 'transform 0.1s, box-shadow 0.1s'
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.transform = 'scale(1.05)';
+              e.currentTarget.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.6)';
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.transform = 'scale(1)';
+              e.currentTarget.style.boxShadow = '0 2px 8px rgba(59, 130, 246, 0.4)';
+            }}
+          >
             <span>🎴</span>
             <span>덱: {deckCount}</span>
           </div>
-          <div style={{
-            background: 'linear-gradient(135deg, #6b7280, #374151)',
-            padding: '6px 12px',
-            borderRadius: '8px',
-            color: '#fff',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            boxShadow: '0 2px 8px rgba(107, 114, 128, 0.4)'
-          }}>
+          <div
+            onClick={() => setShowDiscardPopup(true)}
+            style={{
+              background: 'linear-gradient(135deg, #6b7280, #374151)',
+              padding: '6px 12px',
+              borderRadius: '8px',
+              color: '#fff',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              boxShadow: '0 2px 8px rgba(107, 114, 128, 0.4)',
+              cursor: 'pointer',
+              transition: 'transform 0.1s, box-shadow 0.1s'
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.transform = 'scale(1.05)';
+              e.currentTarget.style.boxShadow = '0 4px 12px rgba(107, 114, 128, 0.6)';
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.transform = 'scale(1)';
+              e.currentTarget.style.boxShadow = '0 2px 8px rgba(107, 114, 128, 0.4)';
+            }}
+          >
             <span>🪦</span>
             <span>무덤: {discardCount}</span>
           </div>

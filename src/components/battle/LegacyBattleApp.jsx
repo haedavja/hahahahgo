@@ -3662,8 +3662,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         hiddenCards={hiddenCards}
         disabledCardIndices={disabledCardIndices}
         isSimplified={isSimplified}
-        deckCount={battle.deck?.length || 0}
-        discardCount={battle.discardPile?.length || 0}
+        deck={battle.deck || []}
+        discardPile={battle.discardPile || []}
       />
 
       {showCharacterSheet && <CharacterSheet onClose={closeCharacterSheet} />}
