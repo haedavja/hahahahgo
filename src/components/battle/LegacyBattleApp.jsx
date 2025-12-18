@@ -698,16 +698,21 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     actions.setPhase('select');
     // 덱/무덤 시스템 초기화
     const currentBuild = useGameStore.getState().characterBuild;
+    console.log('[DEBUG] currentBuild:', currentBuild);
     const hasCharacterBuild = currentBuild && (currentBuild.mainSpecials?.length > 0 || currentBuild.subSpecials?.length > 0 || currentBuild.ownedCards?.length > 0);
+    console.log('[DEBUG] hasCharacterBuild:', hasCharacterBuild);
 
     if (hasCharacterBuild) {
       // 덱 초기화 (ownedCards를 셔플하여 덱 생성)
       const initialDeck = initializeDeck(currentBuild, battle.vanishedCards || []);
+      console.log('[DEBUG] initialDeck:', initialDeck.length, initialDeck.map(c => c.id));
       // 덱에서 카드 드로우
       const drawResult = drawFromDeck(initialDeck, [], DEFAULT_DRAW_COUNT, escapeBanRef.current);
+      console.log('[DEBUG] drawResult:', { drawnCards: drawResult.drawnCards.length, newDeck: drawResult.newDeck.length });
       actions.setDeck(drawResult.newDeck);
       actions.setDiscardPile(drawResult.newDiscardPile);
       actions.setHand(drawResult.drawnCards);
+      console.log('[DEBUG] setHand called with:', drawResult.drawnCards.map(c => c.id));
     } else {
       // 캐릭터 빌드가 없으면 기존 방식 (테스트용)
       const rawHand = CARDS.slice(0, 10).map((card, idx) => ({ ...card, __handUid: `${card.id}_${idx}_${Math.random().toString(36).slice(2, 8)}` }));

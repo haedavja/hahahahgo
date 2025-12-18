@@ -336,6 +336,7 @@ export function battleReducer(state, action) {
 
     // === 카드 관리 ===
     case ACTIONS.SET_HAND:
+      console.log('[DEBUG] SET_HAND payload:', action.payload?.length, action.payload?.map(c => c.id));
       return { ...state, hand: action.payload };
     case ACTIONS.SET_SELECTED:
       return { ...state, selected: action.payload };
