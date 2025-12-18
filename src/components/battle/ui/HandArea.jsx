@@ -251,68 +251,75 @@ export const HandArea = ({
         />
       )}
 
-      {/* 덱/무덤 카운터 - 클릭하면 카드 목록 표시 */}
-      {(deckCount > 0 || discardCount > 0) && (
-        <div className="deck-discard-counter" style={{
-          display: 'flex',
-          gap: '16px',
-          justifyContent: 'center',
-          marginBottom: '8px',
-          fontSize: '14px',
-          fontWeight: 'bold'
-        }}>
-          <div
-            onClick={() => setShowDeckPopup(true)}
-            style={{
-              background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
-              padding: '6px 12px',
-              borderRadius: '8px',
-              color: '#fff',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              boxShadow: '0 2px 8px rgba(59, 130, 246, 0.4)',
-              cursor: 'pointer',
-              transition: 'transform 0.1s, box-shadow 0.1s'
-            }}
-            onMouseEnter={e => {
-              e.currentTarget.style.transform = 'scale(1.05)';
-              e.currentTarget.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.6)';
-            }}
-            onMouseLeave={e => {
-              e.currentTarget.style.transform = 'scale(1)';
-              e.currentTarget.style.boxShadow = '0 2px 8px rgba(59, 130, 246, 0.4)';
-            }}
-          >
-            <span>🎴</span>
-            <span>덱: {deckCount}</span>
-          </div>
-          <div
-            onClick={() => setShowDiscardPopup(true)}
-            style={{
-              background: 'linear-gradient(135deg, #6b7280, #374151)',
-              padding: '6px 12px',
-              borderRadius: '8px',
-              color: '#fff',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              boxShadow: '0 2px 8px rgba(107, 114, 128, 0.4)',
-              cursor: 'pointer',
-              transition: 'transform 0.1s, box-shadow 0.1s'
-            }}
-            onMouseEnter={e => {
-              e.currentTarget.style.transform = 'scale(1.05)';
-              e.currentTarget.style.boxShadow = '0 4px 12px rgba(107, 114, 128, 0.6)';
-            }}
-            onMouseLeave={e => {
-              e.currentTarget.style.transform = 'scale(1)';
-              e.currentTarget.style.boxShadow = '0 2px 8px rgba(107, 114, 128, 0.4)';
-            }}
-          >
-            <span>🪦</span>
-            <span>무덤: {discardCount}</span>
-          </div>
+      {/* 덱 카운터 - 왼쪽 하단 */}
+      {deckCount > 0 && (
+        <div
+          onClick={() => setShowDeckPopup(true)}
+          style={{
+            position: 'fixed',
+            left: '20px',
+            bottom: '20px',
+            background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
+            padding: '8px 14px',
+            borderRadius: '10px',
+            color: '#fff',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            boxShadow: '0 2px 12px rgba(59, 130, 246, 0.5)',
+            cursor: 'pointer',
+            transition: 'transform 0.1s, box-shadow 0.1s',
+            fontSize: '14px',
+            fontWeight: 'bold',
+            zIndex: 100
+          }}
+          onMouseEnter={e => {
+            e.currentTarget.style.transform = 'scale(1.08)';
+            e.currentTarget.style.boxShadow = '0 4px 16px rgba(59, 130, 246, 0.7)';
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.transform = 'scale(1)';
+            e.currentTarget.style.boxShadow = '0 2px 12px rgba(59, 130, 246, 0.5)';
+          }}
+        >
+          <span>🎴</span>
+          <span>덱: {deckCount}</span>
+        </div>
+      )}
+
+      {/* 무덤 카운터 - 오른쪽 하단 */}
+      {discardCount > 0 && (
+        <div
+          onClick={() => setShowDiscardPopup(true)}
+          style={{
+            position: 'fixed',
+            right: '20px',
+            bottom: '20px',
+            background: 'linear-gradient(135deg, #6b7280, #374151)',
+            padding: '8px 14px',
+            borderRadius: '10px',
+            color: '#fff',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            boxShadow: '0 2px 12px rgba(107, 114, 128, 0.5)',
+            cursor: 'pointer',
+            transition: 'transform 0.1s, box-shadow 0.1s',
+            fontSize: '14px',
+            fontWeight: 'bold',
+            zIndex: 100
+          }}
+          onMouseEnter={e => {
+            e.currentTarget.style.transform = 'scale(1.08)';
+            e.currentTarget.style.boxShadow = '0 4px 16px rgba(107, 114, 128, 0.7)';
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.transform = 'scale(1)';
+            e.currentTarget.style.boxShadow = '0 2px 12px rgba(107, 114, 128, 0.5)';
+          }}
+        >
+          <span>🪦</span>
+          <span>무덤: {discardCount}</span>
         </div>
       )}
 
