@@ -265,7 +265,8 @@ export function processPostAttackSpecials({
     const hadNoBlock = !defender.def || (defender.block || 0) <= 0;
 
     if (hadNoBlock) {
-      const result = addToken(modifiedDefender, 'vulnerable', 1);
+      const grantedAt = battleContext.currentTurn ? { turn: battleContext.currentTurn, sp: battleContext.currentSp || 0 } : null;
+      const result = addToken(modifiedDefender, 'vulnerable', 1, grantedAt);
       modifiedDefender.tokens = result.tokens;
       const who = attackerName === 'player' ? '플레이어' : '몬스터';
       const target = attackerName === 'player' ? '몬스터' : '플레이어';
@@ -282,7 +283,8 @@ export function processPostAttackSpecials({
     const hadNoBlock = !defender.def || (defender.block || 0) <= 0;
 
     if (hadNoBlock) {
-      const result = addToken(modifiedDefender, 'vulnerable', 2);
+      const grantedAt = battleContext.currentTurn ? { turn: battleContext.currentTurn, sp: battleContext.currentSp || 0 } : null;
+      const result = addToken(modifiedDefender, 'vulnerable', 2, grantedAt);
       modifiedDefender.tokens = result.tokens;
       const who = attackerName === 'player' ? '플레이어' : '몬스터';
       const target = attackerName === 'player' ? '몬스터' : '플레이어';
@@ -322,7 +324,8 @@ export function processPostAttackSpecials({
 
   // === hitOnEnemyAction: 적 카드 발동 시마다 타격 (상태 토큰으로 처리) ===
   if (hasSpecial(card, 'hitOnEnemyAction')) {
-    const result = addToken(modifiedAttacker, 'persistent_strike', 1);
+    const grantedAt = battleContext.currentTurn ? { turn: battleContext.currentTurn, sp: battleContext.currentSp || 0 } : null;
+    const result = addToken(modifiedAttacker, 'persistent_strike', 1, grantedAt);
     modifiedAttacker.tokens = result.tokens;
     modifiedAttacker._persistentStrikeDamage = card.damage || 20;
     const who = attackerName === 'player' ? '플레이어' : '몬스터';
@@ -336,7 +339,8 @@ export function processPostAttackSpecials({
 
   // === halfEnemyEther: 적 에테르 획득 절반 ===
   if (hasSpecial(card, 'halfEnemyEther')) {
-    const result = addToken(modifiedDefender, 'half_ether', 1);
+    const grantedAt = battleContext.currentTurn ? { turn: battleContext.currentTurn, sp: battleContext.currentSp || 0 } : null;
+    const result = addToken(modifiedDefender, 'half_ether', 1, grantedAt);
     modifiedDefender.tokens = result.tokens;
     const who = attackerName === 'player' ? '플레이어' : '몬스터';
     const target = attackerName === 'player' ? '몬스터' : '플레이어';
@@ -378,7 +382,8 @@ export function processPostAttackSpecials({
   // 데미지는 다중 타격 요약 로그에 표시되므로 여기서는 화상 효과만 표시
   if (card._applyBurn) {
     const hits = card.hits || 1;
-    const result = addToken(modifiedDefender, 'burn', hits);
+    const grantedAt = battleContext.currentTurn ? { turn: battleContext.currentTurn, sp: battleContext.currentSp || 0 } : null;
+    const result = addToken(modifiedDefender, 'burn', hits, grantedAt);
     modifiedDefender.tokens = result.tokens;
     const msg = hits > 1
       ? `🔥 소이탄: 화상 ${hits}스택 부여!`
@@ -738,7 +743,8 @@ export function processCardPlaySpecials({
 
   // === mentalFocus: 정신집중 토큰 부여 ===
   if (hasSpecial(card, 'mentalFocus')) {
-    tokensToAdd.push({ id: 'focus', stacks: 1 });
+    const grantedAt = battleContext.currentTurn ? { turn: battleContext.currentTurn, sp: battleContext.currentSp || 0 } : null;
+    tokensToAdd.push({ id: 'focus', stacks: 1, grantedAt });
     const who = attackerName === 'player' ? '플레이어' : '몬스터';
     const msg = `${who} • 🧘 ${card.name}: 정신집중!`;
     events.push({ actor: attackerName, card: card.name, type: 'special', msg });

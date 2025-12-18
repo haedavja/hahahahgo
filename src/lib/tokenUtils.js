@@ -13,9 +13,10 @@ import { TOKENS, TOKEN_TYPES, TOKEN_CATEGORIES, TOKEN_CANCELLATION_MAP, GUN_JAM_
  * @param {Object} entity - player 또는 enemy 객체
  * @param {string} tokenId - 토큰 ID
  * @param {number} stacks - 추가할 스택 수 (기본값: 1)
+ * @param {Object} grantedAt - 토큰 부여 위치 (턴 소모 토큰용) { turn: number, sp: number }
  * @returns {Object} 업데이트된 토큰 상태 및 로그 메시지
  */
-export function addToken(entity, tokenId, stacks = 1) {
+export function addToken(entity, tokenId, stacks = 1, grantedAt = null) {
   if (!TOKENS[tokenId]) {
     console.warn(`Unknown token: ${tokenId}`);
     return { tokens: entity.tokens, logs: [] };
@@ -106,9 +107,18 @@ export function addToken(entity, tokenId, stacks = 1) {
       ...typeArray[existingIndex],
       stacks: typeArray[existingIndex].stacks + stacks
     };
+    // 턴 소모 토큰이고 grantedAt이 있으면 업데이트 (더 늦은 만료 시점으로)
+    if (tokenType === TOKEN_TYPES.TURN && grantedAt) {
+      typeArray[existingIndex].grantedAt = grantedAt;
+    }
   } else {
     // 새 토큰 추가
-    typeArray.push({ id: tokenId, stacks });
+    const newToken = { id: tokenId, stacks };
+    // 턴 소모 토큰이고 grantedAt이 있으면 저장
+    if (tokenType === TOKEN_TYPES.TURN && grantedAt) {
+      newToken.grantedAt = grantedAt;
+    }
+    typeArray.push(newToken);
   }
 
   tokens[tokenType] = typeArray;
@@ -197,7 +207,8 @@ export function removeToken(entity, tokenId, tokenType, stacks = 1) {
 }
 
 /**
- * 턴 종료 시 턴소모 토큰 모두 제거
+ * 턴 종료 시 grantedAt이 없는 턴소모 토큰만 제거
+ * (grantedAt이 있는 토큰은 타임라인 기반으로 만료됨)
  *
  * @param {Object} entity - player 또는 enemy 객체
  * @returns {Object} 업데이트된 토큰 상태 및 로그 메시지
@@ -207,14 +218,64 @@ export function clearTurnTokens(entity) {
   const logs = [];
 
   const turnTokens = tokens[TOKEN_TYPES.TURN] || [];
+  const remainingTokens = [];
+
   turnTokens.forEach(t => {
-    const token = TOKENS[t.id];
-    if (token) {
-      logs.push(`${token.name} 토큰 ${t.stacks}스택 소멸 (턴 종료)`);
+    if (t.grantedAt) {
+      // grantedAt이 있는 토큰은 유지 (타임라인 기반 만료)
+      remainingTokens.push(t);
+    } else {
+      // grantedAt이 없는 토큰은 턴 종료 시 제거 (기존 동작)
+      const token = TOKENS[t.id];
+      if (token) {
+        logs.push(`${token.name} 토큰 ${t.stacks}스택 소멸 (턴 종료)`);
+      }
     }
   });
 
-  tokens[TOKEN_TYPES.TURN] = [];
+  tokens[TOKEN_TYPES.TURN] = remainingTokens;
+  return { tokens, logs };
+}
+
+/**
+ * 타임라인 기반 턴소모 토큰 만료 처리
+ * 현재 턴과 SP를 기준으로 만료된 토큰 제거
+ *
+ * @param {Object} entity - player 또는 enemy 객체
+ * @param {number} currentTurn - 현재 턴 번호
+ * @param {number} currentSp - 현재 타임라인 위치 (SP)
+ * @returns {Object} 업데이트된 토큰 상태 및 로그 메시지
+ */
+export function expireTurnTokensByTimeline(entity, currentTurn, currentSp) {
+  const tokens = { ...entity.tokens };
+  const logs = [];
+
+  const turnTokens = tokens[TOKEN_TYPES.TURN] || [];
+  const remainingTokens = [];
+
+  turnTokens.forEach(t => {
+    if (!t.grantedAt) {
+      // grantedAt이 없는 토큰은 유지 (턴 종료 시 제거됨)
+      remainingTokens.push(t);
+      return;
+    }
+
+    const { turn: grantedTurn, sp: grantedSp } = t.grantedAt;
+
+    // 만료 조건: 다음 턴 이후 AND 부여된 SP 이상
+    const isExpired = currentTurn > grantedTurn && currentSp >= grantedSp;
+
+    if (isExpired) {
+      const token = TOKENS[t.id];
+      if (token) {
+        logs.push(`${token.name} 토큰 ${t.stacks}스택 소멸 (SP ${grantedSp} 도달)`);
+      }
+    } else {
+      remainingTokens.push(t);
+    }
+  });
+
+  tokens[TOKEN_TYPES.TURN] = remainingTokens;
   return { tokens, logs };
 }
 

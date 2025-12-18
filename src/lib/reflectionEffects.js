@@ -17,9 +17,10 @@ import { addToken } from './tokenUtils.js';
  * 턴 시작 시 성찰 효과 처리
  * @param {Object} player - 플레이어 객체 (egos: 한국어 자아 배열, traits: 개성 배열 필요)
  * @param {Object} battleState - 전투 상태 (reflectionTriggerCounts 포함)
+ * @param {number} turnNumber - 현재 턴 번호 (토큰 grantedAt용)
  * @returns {Object} { updatedPlayer, updatedBattleState, effects, logs }
  */
-export function processReflections(player, battleState = {}) {
+export function processReflections(player, battleState = {}, turnNumber = 1) {
   const results = {
     updatedPlayer: { ...player },
     updatedBattleState: { ...battleState },
@@ -64,7 +65,8 @@ export function processReflections(player, battleState = {}) {
       const effectResult = applyReflectionEffect(
         reflection,
         results.updatedPlayer,
-        results.updatedBattleState
+        results.updatedBattleState,
+        turnNumber
       );
 
       results.updatedPlayer = effectResult.updatedPlayer;
@@ -93,9 +95,10 @@ export function processReflections(player, battleState = {}) {
  * @param {Object} reflection - 성찰 객체
  * @param {Object} player - 플레이어 객체
  * @param {Object} battleState - 전투 상태
+ * @param {number} turnNumber - 현재 턴 번호 (토큰 grantedAt용)
  * @returns {Object} { updatedPlayer, updatedBattleState, description }
  */
-function applyReflectionEffect(reflection, player, battleState) {
+function applyReflectionEffect(reflection, player, battleState, turnNumber = 1) {
   const { effect } = reflection;
   let updatedPlayer = { ...player };
   let updatedBattleState = { ...battleState };
@@ -103,7 +106,9 @@ function applyReflectionEffect(reflection, player, battleState) {
 
   switch (effect.type) {
     case REFLECTION_EFFECT_TYPES.ADD_TOKEN: {
-      const tokenResult = addToken(updatedPlayer, effect.tokenId, effect.stacks);
+      // 턴 시작 시 부여되는 토큰은 SP 0에서 부여됨
+      const grantedAt = { turn: turnNumber, sp: 0 };
+      const tokenResult = addToken(updatedPlayer, effect.tokenId, effect.stacks, grantedAt);
       updatedPlayer.tokens = tokenResult.tokens;
       description = `${effect.tokenId} ${effect.stacks}스택 획득`;
       break;

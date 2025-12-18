@@ -52,7 +52,7 @@ import { renderRarityBadge, renderNameWithBadge, getCardDisplayRarity } from "./
 import { startEnemyEtherAnimation } from "./utils/enemyEtherAnimation";
 import { processQueueCollisions } from "./utils/cardSpecialEffects";
 import { processReflections, initReflectionState, resetTurnReflectionEffects, decreaseEnemyFreeze } from "../../lib/reflectionEffects";
-import { clearTurnTokens, addToken, removeToken, getAllTokens } from "../../lib/tokenUtils";
+import { clearTurnTokens, addToken, removeToken, getAllTokens, expireTurnTokensByTimeline } from "../../lib/tokenUtils";
 import { convertTraitsToIds } from "../../data/reflections";
 import { processEtherTransfer } from "./utils/etherTransferProcessing";
 import { processVictoryDefeatTransition } from "./utils/victoryDefeatTransition";
@@ -870,7 +870,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         traits: traitIds,
         tokens: player.tokens || { usage: [], turn: [], permanent: [] }
       };
-      reflectionResult = processReflections(playerForReflection, battle.reflectionState);
+      reflectionResult = processReflections(playerForReflection, battle.reflectionState, turnNumber);
 
       // 성찰 발동 시 효과음과 로그
       if (reflectionResult.effects.length > 0) {
@@ -1928,6 +1928,25 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     let P = { ...player, def: latestPlayer.def || player.def || false, block: latestPlayer.block ?? player.block ?? 0, counter: player.counter || 0, vulnMult: player.vulnMult || 1, strength: player.strength || 0, tokens: latestPlayer.tokens };
     let E = { ...enemy, def: latestEnemy.def || enemy.def || false, block: latestEnemy.block ?? enemy.block ?? 0, counter: enemy.counter || 0, vulnMult: enemy.vulnMult || 1, tokens: latestEnemy.tokens };
 
+    // 타임라인 기반 토큰 만료 처리 (현재 SP 도달 시 이전 턴에서 부여된 토큰 제거)
+    const currentSp = a.sp || 0;
+    const playerExpireResult = expireTurnTokensByTimeline(P, turnNumber, currentSp);
+    const enemyExpireResult = expireTurnTokensByTimeline(E, turnNumber, currentSp);
+
+    if (playerExpireResult.logs.length > 0) {
+      P = { ...P, tokens: playerExpireResult.tokens };
+      playerExpireResult.logs.forEach(log => addLog(log));
+    }
+    if (enemyExpireResult.logs.length > 0) {
+      E = { ...E, tokens: enemyExpireResult.tokens };
+      enemyExpireResult.logs.forEach(log => addLog(log));
+    }
+
+    // battleRef 동기 업데이트 (토큰 만료 반영)
+    if (battleRef.current && (playerExpireResult.logs.length > 0 || enemyExpireResult.logs.length > 0)) {
+      battleRef.current = { ...battleRef.current, player: P, enemy: E };
+    }
+
     const tempState = { player: P, enemy: E, log: [] };
 
     // battleContext 생성 (special 효과용)
@@ -1951,6 +1970,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
     const battleContext = {
       currentSp: a.sp || 0,  // 현재 카드의 타임라인 위치 (growingDefense용)
+      currentTurn: turnNumber,  // 현재 턴 번호 (토큰 grantedAt용)
       queue: currentBattle.queue,
       currentQIndex: currentBattle.qIndex,
       remainingEnergy: calculatedRemainingEnergy,  // 플레이어 치명타 확률용 남은 에너지
@@ -2012,10 +2032,10 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       if (cardPlayResult.tokensToAdd?.length > 0) {
         cardPlayResult.tokensToAdd.forEach(tokenInfo => {
           if (a.actor === 'player') {
-            const tokenResult = addToken(P, tokenInfo.id, tokenInfo.stacks);
+            const tokenResult = addToken(P, tokenInfo.id, tokenInfo.stacks, tokenInfo.grantedAt);
             P = { ...P, tokens: tokenResult.tokens };
           } else {
-            const tokenResult = addToken(E, tokenInfo.id, tokenInfo.stacks);
+            const tokenResult = addToken(E, tokenInfo.id, tokenInfo.stacks, tokenInfo.grantedAt);
             E = { ...E, tokens: tokenResult.tokens };
           }
         });
@@ -2252,6 +2272,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
           // 치명타 시 토큰 스택 +1 래퍼 + 최신 플레이어 상태 사용
           const isCritical = actionResult.isCritical;
           const currentPlayerForToken = { ...P };
+          // grantedAt for turn-type tokens (timeline-based expiration)
+          const grantedAt = battleContext.currentTurn ? { turn: battleContext.currentTurn, sp: battleContext.currentSp || 0 } : null;
           const tokenActions = {
             ...actions,
             addTokenToPlayer: (tokenId, stacks = 1) => {
@@ -2259,7 +2281,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
               if (isCritical) {
                 addLog(`💥 치명타! ${tokenId} +1 강화`);
               }
-              const result = addToken(currentPlayerForToken, tokenId, actualStacks);
+              const result = addToken(currentPlayerForToken, tokenId, actualStacks, grantedAt);
               P.tokens = result.tokens;
               currentPlayerForToken.tokens = result.tokens;
               // battleRef 동기 업데이트 (finishTurn에서 최신 상태 사용 가능하도록)
@@ -2287,7 +2309,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
               if (isCritical) {
                 addLog(`💥 치명타! ${tokenId} +1 강화`);
               }
-              const result = addToken(E, tokenId, actualStacks);
+              const result = addToken(E, tokenId, actualStacks, grantedAt);
               E.tokens = result.tokens;
               // battleRef 동기 업데이트
               if (battleRef.current) {

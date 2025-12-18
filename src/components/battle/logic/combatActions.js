@@ -576,7 +576,7 @@ export function applyAction(state, actor, card, battleContext = {}) {
     // tokensToAdd 처리
     if (cardPlayResult.tokensToAdd && cardPlayResult.tokensToAdd.length > 0) {
       cardPlayResult.tokensToAdd.forEach(tokenInfo => {
-        const tokenResult = addToken(updatedActor, tokenInfo.id, tokenInfo.stacks);
+        const tokenResult = addToken(updatedActor, tokenInfo.id, tokenInfo.stacks, tokenInfo.grantedAt);
         updatedActor = { ...updatedActor, tokens: tokenResult.tokens };
       });
     }
@@ -619,7 +619,7 @@ export function applyAction(state, actor, card, battleContext = {}) {
     // tokensToAdd 처리
     if (cardPlayResult.tokensToAdd && cardPlayResult.tokensToAdd.length > 0) {
       cardPlayResult.tokensToAdd.forEach(tokenInfo => {
-        const tokenResult = addToken(updatedActor, tokenInfo.id, tokenInfo.stacks);
+        const tokenResult = addToken(updatedActor, tokenInfo.id, tokenInfo.stacks, tokenInfo.grantedAt);
         updatedActor = { ...updatedActor, tokens: tokenResult.tokens };
       });
     }
