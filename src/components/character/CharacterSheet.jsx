@@ -189,28 +189,39 @@ export function CharacterSheet({ onClose, showAllCards = false }) {
     };
   };
 
-  // 좌클릭: 토글 (추가/제거), 우클릭: 제거
+  // 좌클릭: 추가, 우클릭: 제거 (보유 카드 수만큼 선택 가능)
   const handleCardClick = (cardId, isRightClick = false) => {
+    // 보유한 카드 수 계산
+    const ownedCount = ownedCards.filter(id => id === cardId).length;
+    // 이미 선택된 카드 수 (주특기 + 보조특기)
+    const usedInMain = mainSpecials.filter(id => id === cardId).length;
+    const usedInSub = subSpecials.filter(id => id === cardId).length;
+    const totalUsed = usedInMain + usedInSub;
+
     if (specialMode === "main") {
       setMainSpecials((prev) => {
-        if (isRightClick || prev.includes(cardId)) {
-          // 우클릭 또는 이미 선택된 카드면 제거
-          return prev.filter(id => id !== cardId);
+        if (isRightClick) {
+          // 우클릭: 해당 카드 하나만 제거
+          const idx = prev.indexOf(cardId);
+          if (idx === -1) return prev;
+          return [...prev.slice(0, idx), ...prev.slice(idx + 1)];
         }
-        // 좌클릭: 추가 (슬롯 제한 + 보조특기 중복 확인)
+        // 좌클릭: 추가 (슬롯 제한 + 보유 카드 수 확인)
         if (prev.length >= maxMainSlots) return prev;
-        if (subSpecials.includes(cardId)) return prev; // 보조특기에 이미 있으면 추가 안함
+        if (totalUsed >= ownedCount) return prev; // 보유 수 초과 불가
         return [...prev, cardId];
       });
     } else {
       setSubSpecials((prev) => {
-        if (isRightClick || prev.includes(cardId)) {
-          // 우클릭 또는 이미 선택된 카드면 제거
-          return prev.filter(id => id !== cardId);
+        if (isRightClick) {
+          // 우클릭: 해당 카드 하나만 제거
+          const idx = prev.indexOf(cardId);
+          if (idx === -1) return prev;
+          return [...prev.slice(0, idx), ...prev.slice(idx + 1)];
         }
-        // 좌클릭: 추가 (슬롯 제한 + 주특기 중복 확인)
+        // 좌클릭: 추가 (슬롯 제한 + 보유 카드 수 확인)
         if (prev.length >= maxSubSlots) return prev;
-        if (mainSpecials.includes(cardId)) return prev; // 주특기에 이미 있으면 추가 안함
+        if (totalUsed >= ownedCount) return prev; // 보유 수 초과 불가
         return [...prev, cardId];
       });
     }
