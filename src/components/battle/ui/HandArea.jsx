@@ -251,14 +251,14 @@ export const HandArea = ({
         />
       )}
 
-      {/* 덱 카운터 - 왼쪽 하단 */}
+      {/* 덱 카운터 - 행동력 구슬 아래 */}
       {deckCount > 0 && (
         <div
           onClick={() => setShowDeckPopup(true)}
           style={{
             position: 'fixed',
-            left: '20px',
-            bottom: '20px',
+            left: '120px',
+            bottom: '100px',
             background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
             padding: '8px 14px',
             borderRadius: '10px',
