@@ -717,7 +717,7 @@ export function CharacterSheet({ onClose, showAllCards = false }) {
                             fontWeight: 700,
                             zIndex: 10,
                           }}>
-                            {isMainSpecial ? '⭐' : isSubSpecial ? '💠' : '⏳'}
+                            {isMainSpecial ? `⭐${mainCount > 1 ? `×${mainCount}` : ''}` : isSubSpecial ? `💠${subCount > 1 ? `×${subCount}` : ''}` : `⏳×${ownedCount}`}
                           </div>
                         )}
                         <div className="card-stats-sidebar">
