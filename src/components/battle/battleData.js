@@ -520,6 +520,10 @@ export const CARDS = [
     description: "방어력 3. 적에게 무딤, 흔들림 1회 부여. 교차 시 각각 1회 추가.",
     traits: ["cross"],
     cardCategory: "fencing",
+    appliedTokens: [
+      { id: 'dull', stacks: 1, target: 'enemy' },
+      { id: 'shaken', stacks: 1, target: 'enemy' }
+    ],
     onPlay: (battle, actions) => {
       actions.addTokenToEnemy('dull', 1);
       actions.addTokenToEnemy('shaken', 1);
