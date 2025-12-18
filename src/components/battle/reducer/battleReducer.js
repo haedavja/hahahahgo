@@ -626,6 +626,7 @@ export function battleReducer(state, action) {
       };
 
     case ACTIONS.RESET_BATTLE:
+      console.trace('[STACK TRACE] RESET_BATTLE called from:');
       return createInitialState(action.payload);
 
     default:
