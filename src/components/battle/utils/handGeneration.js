@@ -4,8 +4,18 @@
  * 캐릭터 빌드 기반 손패 생성 시스템
  */
 
-import { CARDS } from "../battleData";
+import { CARDS, DEFAULT_STARTING_DECK } from "../battleData";
 import { hasTrait } from "./battleUtils";
+
+/**
+ * 기본 시작 덱으로 손패 생성
+ * @returns {Array} 기본 시작 덱 카드 배열
+ */
+export function getDefaultStartingHand() {
+  return DEFAULT_STARTING_DECK
+    .map(cardId => CARDS.find(card => card.id === cardId))
+    .filter(Boolean);
+}
 
 /**
  * 캐릭터 빌드를 기반으로 손패 생성
@@ -18,7 +28,7 @@ import { hasTrait } from "./battleUtils";
  * @returns {Array} 생성된 손패 카드 배열
  */
 export function drawCharacterBuildHand(characterBuild, nextTurnEffects = {}, previousHand = [], cardDrawBonus = 0, escapeBan = new Set(), vanishedCards = []) {
-  if (!characterBuild) return CARDS.slice(0, 10); // 8장 → 10장
+  if (!characterBuild) return getDefaultStartingHand(); // 기본 시작 덱 사용
 
   const { mainSpecials = [], subSpecials = [] } = characterBuild;
   const { guaranteedCards = [], mainSpecialOnly = false, subSpecialBoost = 0 } = nextTurnEffects;

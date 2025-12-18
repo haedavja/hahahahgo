@@ -5,6 +5,17 @@ export const BASE_PLAYER_ENERGY = 6;
 export const MAX_SUBMIT_CARDS = 5;
 export const ETHER_THRESHOLD = 100;
 
+// 기본 시작 덱 (게임 시작 시 플레이어가 갖고 시작하는 카드)
+export const DEFAULT_STARTING_DECK = [
+  'shoot', 'shoot',           // 사격 2장
+  'strike', 'strike', 'strike', // 타격 3장
+  'reload',                   // 장전 1장
+  'quarte',                   // 꺄르트 1장
+  'octave',                   // 옥타브 1장
+  'breach',                   // 브리치 1장
+  'deflect'                   // 빠라드 1장
+];
+
 // 타임라인 틱 생성 함수 (동적)
 export function generateSpeedTicks(maxSpeed) {
   const tickInterval = 5;
