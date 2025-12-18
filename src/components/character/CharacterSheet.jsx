@@ -146,10 +146,19 @@ export function CharacterSheet({ onClose, showAllCards = false }) {
       const card = CARDS.find(c => c.id === cardId);
       if (card) result.push({ ...card, _displayKey: `sub_${cardId}_${idx}`, _type: 'sub' });
     });
-    // 대기 카드들 (주특기/보조특기에 없는 것만)
-    const specialIds = new Set([...mainSpecials, ...subSpecials]);
+    // 대기 카드들 (주특기/보조특기에 배치된 수를 제외한 나머지)
+    // 각 카드별 사용된 수 계산
+    const usedCounts = {};
+    [...mainSpecials, ...subSpecials].forEach(cardId => {
+      usedCounts[cardId] = (usedCounts[cardId] || 0) + 1;
+    });
+    // 보유 카드에서 사용된 수만큼 제외하고 나머지 표시
+    const shownCounts = {};
     ownedCards.forEach((cardId, idx) => {
-      if (!specialIds.has(cardId)) {
+      shownCounts[cardId] = (shownCounts[cardId] || 0) + 1;
+      const used = usedCounts[cardId] || 0;
+      // 이미 표시된 수가 (보유 수 - 사용 수)보다 적으면 표시
+      if (shownCounts[cardId] <= (ownedCards.filter(id => id === cardId).length - used)) {
         const card = CARDS.find(c => c.id === cardId);
         if (card) result.push({ ...card, _displayKey: `owned_${cardId}_${idx}`, _type: 'owned' });
       }
