@@ -422,7 +422,12 @@ function applyCounterShot(defender, attacker, attackerName) {
 
   // 대응사격 토큰 1스택 소모
   const tokenResult = removeToken(defender, 'counterShot', 'usage', 1);
-  const updatedDefender = { ...defender, tokens: tokenResult.tokens };
+  let updatedDefender = { ...defender, tokens: tokenResult.tokens };
+
+  // 룰렛 증가 (총기 사격이므로)
+  const rouletteResult = addToken(updatedDefender, 'roulette', 1);
+  updatedDefender = { ...updatedDefender, tokens: rouletteResult.tokens };
+  const newRouletteStacks = getTokenStacks(updatedDefender, 'roulette');
 
   const defenderName = attackerName === 'player' ? '몬스터' : '플레이어';
   const targetName = attackerName === 'player' ? '플레이어' : '몬스터';
@@ -436,6 +441,11 @@ function applyCounterShot(defender, attacker, attackerName) {
     msg: cmsg
   });
   logs.push(`${attackerName === 'player' ? '👾' : '🔵'} ${cmsg}`);
+
+  // 룰렛 증가 로그
+  const rouletteMsg = `${defenderName} • 🎰 대응사격: 룰렛 ${newRouletteStacks} (${Math.round(newRouletteStacks * 5)}% 위험)`;
+  events.push({ actor: 'counterShot', type: 'roulette', msg: rouletteMsg });
+  logs.push(`${attackerName === 'player' ? '👾' : '🔵'} ${rouletteMsg}`);
 
   return {
     defender: updatedDefender,
