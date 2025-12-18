@@ -39,7 +39,9 @@ export const HandArea = ({
   disappearingCards,
   hiddenCards,
   disabledCardIndices,
-  isSimplified
+  isSimplified,
+  deckCount = 0,
+  discardCount = 0
 }) => {
   if (!(battle.phase === 'select' || battle.phase === 'respond' || battle.phase === 'resolve' || (enemy && enemy.hp <= 0) || (player && player.hp <= 0))) {
     return null;
@@ -52,6 +54,45 @@ export const HandArea = ({
           <div className="hand-flag defeat">💀 패배...</div>
         )}
       </div>
+
+      {/* 덱/무덤 카운터 */}
+      {(deckCount > 0 || discardCount > 0) && (
+        <div className="deck-discard-counter" style={{
+          display: 'flex',
+          gap: '16px',
+          justifyContent: 'center',
+          marginBottom: '8px',
+          fontSize: '14px',
+          fontWeight: 'bold'
+        }}>
+          <div style={{
+            background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
+            padding: '6px 12px',
+            borderRadius: '8px',
+            color: '#fff',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            boxShadow: '0 2px 8px rgba(59, 130, 246, 0.4)'
+          }}>
+            <span>🎴</span>
+            <span>덱: {deckCount}</span>
+          </div>
+          <div style={{
+            background: 'linear-gradient(135deg, #6b7280, #374151)',
+            padding: '6px 12px',
+            borderRadius: '8px',
+            color: '#fff',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            boxShadow: '0 2px 8px rgba(107, 114, 128, 0.4)'
+          }}>
+            <span>🪦</span>
+            <span>무덤: {discardCount}</span>
+          </div>
+        </div>
+      )}
 
       {battle.phase === 'select' && (() => {
         // 현재 선택된 카드들의 조합 감지

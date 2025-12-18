@@ -11,6 +11,7 @@ import {
   BASE_PLAYER_ENERGY,
   MAX_SUBMIT_CARDS,
   ETHER_THRESHOLD,
+  DEFAULT_DRAW_COUNT,
   CARDS as BASE_PLAYER_CARDS,
   ENEMY_CARDS as BASE_ENEMY_CARDS,
   ENEMIES,
@@ -31,7 +32,7 @@ import { createFixedOrder } from "./utils/cardOrdering";
 import { decideEnemyMode, generateEnemyActions, shouldEnemyOverdrive } from "./utils/enemyAI";
 import { simulatePreview } from "./utils/battleSimulation";
 import { applyAction, prepareMultiHitAttack, calculateSingleHit, finalizeMultiHitAttack } from "./logic/combatActions";
-import { drawCharacterBuildHand } from "./utils/handGeneration";
+import { drawCharacterBuildHand, initializeDeck, drawFromDeck, shuffleArray } from "./utils/handGeneration";
 import { calculateEffectiveInsight, getInsightRevealLevel, playInsightSound } from "./utils/insightSystem";
 import { computeComboMultiplier as computeComboMultiplierUtil, explainComboMultiplier as explainComboMultiplierUtil } from "./utils/comboMultiplier";
 import { processCardTraitEffects } from "./utils/cardTraitEffects";
@@ -695,13 +696,25 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       }, 50);
     }
     actions.setPhase('select');
-    // 캐릭터 빌드가 있으면 사용, 없으면 기본 8장
+    // 덱/무덤 시스템 초기화
     const currentBuild = useGameStore.getState().characterBuild;
     const hasCharacterBuild = currentBuild && (currentBuild.mainSpecials?.length > 0 || currentBuild.subSpecials?.length > 0 || currentBuild.ownedCards?.length > 0);
-    const rawHand = hasCharacterBuild
-      ? drawCharacterBuildHand(currentBuild, { devForceAllCards: devForceAllCardsRef.current }, [], effectiveCardDrawBonus, escapeBanRef.current, battle.vanishedCards || [])
-      : CARDS.slice(0, 10).map((card, idx) => ({ ...card, __handUid: `${card.id}_${idx}_${Math.random().toString(36).slice(2, 8)}` }));
-    actions.setHand(rawHand);
+
+    if (hasCharacterBuild) {
+      // 덱 초기화 (ownedCards를 셔플하여 덱 생성)
+      const initialDeck = initializeDeck(currentBuild, battle.vanishedCards || []);
+      // 덱에서 카드 드로우
+      const drawResult = drawFromDeck(initialDeck, [], DEFAULT_DRAW_COUNT, escapeBanRef.current);
+      actions.setDeck(drawResult.newDeck);
+      actions.setDiscardPile(drawResult.newDiscardPile);
+      actions.setHand(drawResult.drawnCards);
+    } else {
+      // 캐릭터 빌드가 없으면 기존 방식 (테스트용)
+      const rawHand = CARDS.slice(0, 10).map((card, idx) => ({ ...card, __handUid: `${card.id}_${idx}_${Math.random().toString(36).slice(2, 8)}` }));
+      actions.setHand(rawHand);
+      actions.setDeck([]);
+      actions.setDiscardPile([]);
+    }
     actions.setCanRedraw(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -809,17 +822,28 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         addLog(`💚 상징 효과: 체력 +${combatStartEffects.heal}`);
       }
 
-      // 캐릭터 빌드가 있으면 사용, 없으면 기본 8장
+      // 덱/무덤 시스템 초기화
       const currentBuild = useGameStore.getState().characterBuild;
       const hasCharacterBuild = currentBuild && (currentBuild.mainSpecials?.length > 0 || currentBuild.subSpecials?.length > 0 || currentBuild.ownedCards?.length > 0);
-      const rawHand = hasCharacterBuild
-        ? drawCharacterBuildHand(currentBuild, { ...nextTurnEffects, devForceAllCards: devForceAllCardsRef.current }, [], effectiveCardDrawBonus, escapeBanRef.current, vanishedCards)
-        : CARDS.slice(0, 10).map((card, idx) => ({ ...card, __handUid: `${card.id}_${idx}_${Math.random().toString(36).slice(2, 8)}` }));
-      actions.setHand(rawHand);
+
+      if (hasCharacterBuild) {
+        // 덱 초기화 (ownedCards를 셔플하여 덱 생성)
+        const initialDeck = initializeDeck(currentBuild, vanishedCards);
+        // 덱에서 카드 드로우
+        const drawResult = drawFromDeck(initialDeck, [], DEFAULT_DRAW_COUNT, escapeBanRef.current);
+        actions.setDeck(drawResult.newDeck);
+        actions.setDiscardPile(drawResult.newDiscardPile);
+        actions.setHand(drawResult.drawnCards);
+        addLog(`🎴 시작 손패 ${drawResult.drawnCards.length}장 (덱: ${drawResult.newDeck.length}장)`);
+      } else {
+        const rawHand = CARDS.slice(0, 10).map((card, idx) => ({ ...card, __handUid: `${card.id}_${idx}_${Math.random().toString(36).slice(2, 8)}` }));
+        actions.setHand(rawHand);
+        actions.setDeck([]);
+        actions.setDiscardPile([]);
+        addLog(`🎴 시작 손패 ${rawHand.length}장`);
+      }
       actions.setSelected([]);
       actions.setCanRedraw(true);
-      const handCount = initialHand.length;
-      addLog(`🎴 시작 손패 ${handCount}장${hasCharacterBuild ? ' (캐릭터 빌드)' : ''}`);
     }
   }, []);
 
@@ -964,13 +988,30 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       }
     }
 
-    // 매 턴 시작 시 새로운 손패 생성 (캐릭터 빌드 및 특성 효과 적용)
+    // 매 턴 시작 시 새로운 손패 생성 (덱/무덤 시스템)
     const currentBuild = useGameStore.getState().characterBuild;
     const hasCharacterBuild = currentBuild && (currentBuild.mainSpecials?.length > 0 || currentBuild.subSpecials?.length > 0 || currentBuild.ownedCards?.length > 0);
-    const rawHand = hasCharacterBuild
-      ? drawCharacterBuildHand(currentBuild, { ...nextTurnEffects, devForceAllCards: devForceAllCardsRef.current }, battle.hand, effectiveCardDrawBonus, escapeBanRef.current, vanishedCards)
-      : CARDS.slice(0, 10).map((card, idx) => ({ ...card, __handUid: `${card.id}_${idx}_${Math.random().toString(36).slice(2, 8)}` }));
-    actions.setHand(rawHand);
+
+    if (hasCharacterBuild) {
+      // 현재 손패를 무덤으로 이동
+      const currentHand = battle.hand || [];
+      let currentDeck = battle.deck || [];
+      let currentDiscard = [...(battle.discardPile || []), ...currentHand];
+
+      // 덱에서 카드 드로우
+      const drawResult = drawFromDeck(currentDeck, currentDiscard, DEFAULT_DRAW_COUNT, escapeBanRef.current);
+
+      actions.setDeck(drawResult.newDeck);
+      actions.setDiscardPile(drawResult.newDiscardPile);
+      actions.setHand(drawResult.drawnCards);
+
+      if (drawResult.reshuffled) {
+        addLog('🔄 덱이 소진되어 무덤을 섞어 새 덱을 만들었습니다.');
+      }
+    } else {
+      const rawHand = CARDS.slice(0, 10).map((card, idx) => ({ ...card, __handUid: `${card.id}_${idx}_${Math.random().toString(36).slice(2, 8)}` }));
+      actions.setHand(rawHand);
+    }
     actions.setSelected([]);
 
     // 적 성향/행동을 턴 시작에 즉시 결정해 통찰 UI가 바로 표시되도록 함
@@ -1176,13 +1217,29 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
   const redrawHand = () => {
     if (!canRedraw) return addLog('🔒 이미 이번 턴 리드로우 사용됨');
-    // 캐릭터 빌드가 있으면 사용, 없으면 기본 8장
+
     const currentBuild = useGameStore.getState().characterBuild;
     const hasCharacterBuild = currentBuild && (currentBuild.mainSpecials?.length > 0 || currentBuild.subSpecials?.length > 0 || currentBuild.ownedCards?.length > 0);
-    const rawHand = hasCharacterBuild
-      ? drawCharacterBuildHand(currentBuild, { ...nextTurnEffects, devForceAllCards: devForceAllCardsRef.current }, hand, effectiveCardDrawBonus, escapeBanRef.current, vanishedCards)
-      : CARDS.slice(0, 10).map((card, idx) => ({ ...card, __handUid: `${card.id}_${idx}_${Math.random().toString(36).slice(2, 8)}` }));
-    actions.setHand(rawHand);
+
+    if (hasCharacterBuild) {
+      // 현재 손패를 무덤으로 이동하고 새로 드로우
+      const currentHand = battle.hand || [];
+      const currentDeck = battle.deck || [];
+      const currentDiscard = [...(battle.discardPile || []), ...currentHand];
+
+      const drawResult = drawFromDeck(currentDeck, currentDiscard, DEFAULT_DRAW_COUNT, escapeBanRef.current);
+      actions.setDeck(drawResult.newDeck);
+      actions.setDiscardPile(drawResult.newDiscardPile);
+      actions.setHand(drawResult.drawnCards);
+
+      if (drawResult.reshuffled) {
+        addLog('🔄 덱이 소진되어 무덤을 섞어 새 덱을 만들었습니다.');
+      }
+    } else {
+      const rawHand = CARDS.slice(0, 10).map((card, idx) => ({ ...card, __handUid: `${card.id}_${idx}_${Math.random().toString(36).slice(2, 8)}` }));
+      actions.setHand(rawHand);
+    }
+
     actions.setSelected([]);
     actions.setCanRedraw(false);
     addLog('🔄 손패 리드로우 사용');
@@ -2244,38 +2301,32 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
           extraCardPlay: (currentEffects.extraCardPlay || 0) + (newNextTurnEffects.extraCardPlay || 0)
         };
 
-        // === 비상대응 (emergencyDraw): 즉시 대기 카드 3장 뽑기 ===
+        // === 비상대응 (emergencyDraw): 즉시 덱에서 카드 뽑기 ===
         if (newNextTurnEffects.emergencyDraw && newNextTurnEffects.emergencyDraw > 0) {
-          const currentBuild = useGameStore.getState().characterBuild;
-          if (currentBuild) {
-            const { mainSpecials = [], subSpecials = [], ownedCards = [] } = currentBuild;
-            const usedCardIds = new Set([...mainSpecials, ...subSpecials]);
-            // 대기 카드: ownedCards 중 주특기/보조특기가 아닌 카드
-            const waitingCardIds = ownedCards.filter(id => !usedCardIds.has(id));
-            const waitingCards = waitingCardIds
-              .map(id => CARDS.find(c => c.id === id))
-              .filter(Boolean);
+          const currentDeck = battleRef.current?.deck || battle.deck || [];
+          const currentDiscard = battleRef.current?.discardPile || battle.discardPile || [];
 
-            if (waitingCards.length > 0) {
-              // 랜덤으로 최대 emergencyDraw 장수만큼 선택
-              const drawCount = Math.min(newNextTurnEffects.emergencyDraw, waitingCards.length);
-              const shuffled = [...waitingCards].sort(() => Math.random() - 0.5);
-              const drawnCards = shuffled.slice(0, drawCount).map((card, idx) => ({
-                ...card,
-                __handUid: `emergency_${card.id}_${idx}_${Math.random().toString(36).slice(2, 8)}`
-              }));
+          if (currentDeck.length > 0 || currentDiscard.length > 0) {
+            const drawResult = drawFromDeck(currentDeck, currentDiscard, newNextTurnEffects.emergencyDraw, escapeBanRef.current);
 
-              // 현재 손패에 추가
-              const currentHand = battleRef.current?.hand || battle.hand || [];
-              const newHand = [...currentHand, ...drawnCards];
-              actions.setHand(newHand);
-              if (battleRef.current) {
-                battleRef.current = { ...battleRef.current, hand: newHand };
-              }
-              addLog(`🚨 비상대응: ${drawnCards.map(c => c.name).join(', ')} 즉시 손패에 추가!`);
-            } else {
-              addLog(`🚨 비상대응: 대기 카드가 없습니다.`);
+            // 현재 손패에 추가
+            const currentHand = battleRef.current?.hand || battle.hand || [];
+            const newHand = [...currentHand, ...drawResult.drawnCards];
+
+            actions.setDeck(drawResult.newDeck);
+            actions.setDiscardPile(drawResult.newDiscardPile);
+            actions.setHand(newHand);
+
+            if (battleRef.current) {
+              battleRef.current = { ...battleRef.current, hand: newHand, deck: drawResult.newDeck, discardPile: drawResult.newDiscardPile };
             }
+
+            if (drawResult.reshuffled) {
+              addLog('🔄 덱이 소진되어 무덤을 섞어 새 덱을 만들었습니다.');
+            }
+            addLog(`🚨 비상대응: ${drawResult.drawnCards.map(c => c.name).join(', ')} 즉시 손패에 추가!`);
+          } else {
+            addLog(`🚨 비상대응: 덱과 무덤에 카드가 없습니다.`);
           }
         }
 
@@ -3602,6 +3653,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         hiddenCards={hiddenCards}
         disabledCardIndices={disabledCardIndices}
         isSimplified={isSimplified}
+        deckCount={battle.deck?.length || 0}
+        discardCount={battle.discardPile?.length || 0}
       />
 
       {showCharacterSheet && <CharacterSheet onClose={closeCharacterSheet} />}

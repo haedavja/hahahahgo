@@ -1,11 +1,93 @@
 /**
  * handGeneration.js
  *
- * 캐릭터 빌드 기반 손패 생성 시스템
+ * 캐릭터 빌드 기반 손패 생성 시스템 + 덱/무덤 시스템
  */
 
 import { CARDS, DEFAULT_STARTING_DECK } from "../battleData";
 import { hasTrait } from "./battleUtils";
+
+/**
+ * Fisher-Yates 셔플 알고리즘
+ * @param {Array} array - 셔플할 배열
+ * @returns {Array} 셔플된 새 배열
+ */
+export function shuffleArray(array) {
+  const arr = [...array];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+/**
+ * 보유 카드로 덱 초기화 (셔플된 상태로)
+ * @param {Object} characterBuild - 캐릭터 빌드 { mainSpecials, subSpecials, ownedCards }
+ * @param {Array} vanishedCards - 소멸된 카드 ID 배열
+ * @returns {Array} 셔플된 덱 카드 배열 (__handUid 포함)
+ */
+export function initializeDeck(characterBuild, vanishedCards = []) {
+  if (!characterBuild) return [];
+
+  const { ownedCards = [] } = characterBuild;
+  const vanishedSet = new Set(vanishedCards || []);
+
+  // ownedCards에서 소멸된 카드 제외하고 카드 객체로 변환
+  const deckCards = ownedCards
+    .filter(cardId => !vanishedSet.has(cardId))
+    .map(cardId => CARDS.find(card => card.id === cardId))
+    .filter(Boolean)
+    .map((card, idx) => ({
+      ...card,
+      __handUid: `${card.id}_${idx}_${Math.random().toString(36).slice(2, 8)}`
+    }));
+
+  // 셔플하여 반환
+  return shuffleArray(deckCards);
+}
+
+/**
+ * 덱에서 카드 드로우
+ * @param {Array} deck - 현재 덱
+ * @param {Array} discardPile - 현재 무덤
+ * @param {number} count - 드로우할 카드 수
+ * @param {Set} escapeBan - 탈주 금지 카드 ID 세트
+ * @returns {Object} { drawnCards, newDeck, newDiscardPile, reshuffled }
+ */
+export function drawFromDeck(deck, discardPile, count, escapeBan = new Set()) {
+  let currentDeck = [...deck];
+  let currentDiscard = [...discardPile];
+  let reshuffled = false;
+
+  // 덱이 부족하면 무덤을 셔플하여 덱에 추가
+  if (currentDeck.length < count && currentDiscard.length > 0) {
+    const shuffledDiscard = shuffleArray(currentDiscard);
+    currentDeck = [...currentDeck, ...shuffledDiscard];
+    currentDiscard = [];
+    reshuffled = true;
+  }
+
+  // 드로우
+  const drawnCards = currentDeck.slice(0, count).filter(card => {
+    // 탈주 카드가 금지된 경우 제외
+    if (hasTrait(card, 'escape') && escapeBan.has(card.id)) {
+      // 금지된 탈주 카드는 무덤으로
+      currentDiscard.push(card);
+      return false;
+    }
+    return true;
+  });
+
+  const newDeck = currentDeck.slice(count);
+
+  return {
+    drawnCards,
+    newDeck,
+    newDiscardPile: currentDiscard,
+    reshuffled
+  };
+}
 
 /**
  * 기본 시작 덱으로 손패 생성

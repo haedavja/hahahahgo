@@ -36,6 +36,10 @@ export const createInitialState = ({
   disabledCardIndices: [], // 비활성화된 카드 인덱스
   cardUsageCount: {}, // 카드별 사용 횟수 (mastery, boredom용)
 
+  // === 덱/무덤 시스템 ===
+  deck: [], // 드로우할 카드 덱 (셔플된 상태)
+  discardPile: [], // 사용한 카드가 쌓이는 무덤
+
   // === 적 계획 ===
   enemyPlan: { actions: [], mode: null },
 
@@ -178,6 +182,13 @@ export const ACTIONS = {
   SET_DISABLED_CARD_INDICES: 'SET_DISABLED_CARD_INDICES',
   SET_CARD_USAGE_COUNT: 'SET_CARD_USAGE_COUNT',
   INCREMENT_CARD_USAGE: 'INCREMENT_CARD_USAGE',
+
+  // === 덱/무덤 시스템 ===
+  SET_DECK: 'SET_DECK',
+  SET_DISCARD_PILE: 'SET_DISCARD_PILE',
+  ADD_TO_DISCARD: 'ADD_TO_DISCARD',
+  DRAW_FROM_DECK: 'DRAW_FROM_DECK',
+  SHUFFLE_DISCARD_INTO_DECK: 'SHUFFLE_DISCARD_INTO_DECK',
 
   // === 적 계획 ===
   SET_ENEMY_PLAN: 'SET_ENEMY_PLAN',
@@ -358,6 +369,40 @@ export function battleReducer(state, action) {
           [action.payload]: (state.cardUsageCount[action.payload] || 0) + 1
         }
       };
+
+    // === 덱/무덤 시스템 ===
+    case ACTIONS.SET_DECK:
+      return { ...state, deck: action.payload };
+    case ACTIONS.SET_DISCARD_PILE:
+      return { ...state, discardPile: action.payload };
+    case ACTIONS.ADD_TO_DISCARD:
+      // 카드 배열 또는 단일 카드를 무덤에 추가
+      return {
+        ...state,
+        discardPile: Array.isArray(action.payload)
+          ? [...state.discardPile, ...action.payload]
+          : [...state.discardPile, action.payload]
+      };
+    case ACTIONS.DRAW_FROM_DECK: {
+      // payload: 드로우할 카드 수
+      const drawCount = action.payload || 1;
+      const drawnCards = state.deck.slice(0, drawCount);
+      const remainingDeck = state.deck.slice(drawCount);
+      return {
+        ...state,
+        deck: remainingDeck,
+        hand: [...state.hand, ...drawnCards]
+      };
+    }
+    case ACTIONS.SHUFFLE_DISCARD_INTO_DECK: {
+      // 무덤을 셔플하여 덱으로 이동
+      const shuffledDiscard = [...state.discardPile].sort(() => Math.random() - 0.5);
+      return {
+        ...state,
+        deck: [...state.deck, ...shuffledDiscard],
+        discardPile: []
+      };
+    }
 
     // === 적 계획 ===
     case ACTIONS.SET_ENEMY_PLAN:

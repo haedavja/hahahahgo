@@ -4,6 +4,7 @@ export const DEFAULT_ENEMY_MAX_SPEED = 30; // 적 기본 최대 속도
 export const BASE_PLAYER_ENERGY = 6;
 export const MAX_SUBMIT_CARDS = 5;
 export const ETHER_THRESHOLD = 100;
+export const DEFAULT_DRAW_COUNT = 5; // 턴 시작 시 기본 드로우 수
 
 // 기본 시작 덱 (게임 시작 시 플레이어가 갖고 시작하는 카드)
 export const DEFAULT_STARTING_DECK = [

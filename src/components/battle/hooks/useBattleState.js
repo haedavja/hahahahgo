@@ -241,6 +241,14 @@ export function useBattleState(initialStateOverrides = {}) {
     setHiddenCards: (cards) => dispatch({ type: ACTIONS.SET_HIDDEN_CARDS, payload: cards }),
     setDisabledCardIndices: (indices) => dispatch({ type: ACTIONS.SET_DISABLED_CARD_INDICES, payload: indices }),
     setCardUsageCount: (count) => dispatch({ type: ACTIONS.SET_CARD_USAGE_COUNT, payload: count }),
+
+    // === 덱/무덤 시스템 ===
+    setDeck: (deck) => dispatch({ type: ACTIONS.SET_DECK, payload: deck }),
+    setDiscardPile: (pile) => dispatch({ type: ACTIONS.SET_DISCARD_PILE, payload: pile }),
+    addToDiscard: (cards) => dispatch({ type: ACTIONS.ADD_TO_DISCARD, payload: cards }),
+    drawFromDeck: (count) => dispatch({ type: ACTIONS.DRAW_FROM_DECK, payload: count }),
+    shuffleDiscardIntoDeck: () => dispatch({ type: ACTIONS.SHUFFLE_DISCARD_INTO_DECK }),
+
     setEtherAnimationPts: (pts) => dispatch({ type: ACTIONS.SET_ETHER_ANIMATION_PTS, payload: pts }),
     setExecutingCardIndex: (index) => dispatch({ type: ACTIONS.SET_EXECUTING_CARD_INDEX, payload: index }),
     setTurnNumber: (number) => dispatch({ type: ACTIONS.SET_TURN_NUMBER, payload: number }),
