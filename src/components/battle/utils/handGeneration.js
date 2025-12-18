@@ -30,18 +30,25 @@ export function shuffleArray(array) {
 export function initializeDeck(characterBuild, vanishedCards = []) {
   if (!characterBuild) return [];
 
-  const { ownedCards = [] } = characterBuild;
+  const { mainSpecials = [], subSpecials = [], ownedCards = [] } = characterBuild;
   const vanishedSet = new Set(vanishedCards || []);
 
-  // ownedCards에서 소멸된 카드 제외하고 카드 객체로 변환
-  const deckCards = ownedCards
+  // 모든 카드를 합쳐서 덱 생성 (주특기 + 보조특기 + 대기카드)
+  // 중복 카드 ID도 각각 별도의 카드로 취급
+  const allCardIds = [...mainSpecials, ...subSpecials, ...ownedCards];
+
+  // 카드 객체로 변환
+  const deckCards = allCardIds
     .filter(cardId => !vanishedSet.has(cardId))
-    .map(cardId => CARDS.find(card => card.id === cardId))
-    .filter(Boolean)
-    .map((card, idx) => ({
-      ...card,
-      __handUid: `${card.id}_${idx}_${Math.random().toString(36).slice(2, 8)}`
-    }));
+    .map((cardId, idx) => {
+      const card = CARDS.find(c => c.id === cardId);
+      if (!card) return null;
+      return {
+        ...card,
+        __handUid: `${card.id}_${idx}_${Math.random().toString(36).slice(2, 8)}`
+      };
+    })
+    .filter(Boolean);
 
   // 셔플하여 반환
   return shuffleArray(deckCards);
