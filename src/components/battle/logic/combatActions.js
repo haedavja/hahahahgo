@@ -586,6 +586,7 @@ export function applyAction(state, actor, card, battleContext = {}) {
   if (card.type === 'defense') {
     result = applyDefense(A, card, actor, battleContext);
     updatedActor = result.actor;
+    let updatedOpponent = B;
 
     // 카드 사용 시 special 효과 처리 (autoReload, mentalFocus 등)
     const cardPlayResult = processCardPlaySpecials({
@@ -595,11 +596,18 @@ export function applyAction(state, actor, card, battleContext = {}) {
       battleContext
     });
 
-    // tokensToAdd 처리
+    // tokensToAdd 처리 - targetEnemy 플래그에 따라 대상 결정
     if (cardPlayResult.tokensToAdd && cardPlayResult.tokensToAdd.length > 0) {
       cardPlayResult.tokensToAdd.forEach(tokenInfo => {
-        const tokenResult = addToken(updatedActor, tokenInfo.id, tokenInfo.stacks, tokenInfo.grantedAt);
-        updatedActor = { ...updatedActor, tokens: tokenResult.tokens };
+        if (tokenInfo.targetEnemy) {
+          // 적(상대)에게 토큰 부여
+          const tokenResult = addToken(updatedOpponent, tokenInfo.id, tokenInfo.stacks, tokenInfo.grantedAt);
+          updatedOpponent = { ...updatedOpponent, tokens: tokenResult.tokens };
+        } else {
+          // 자신에게 토큰 부여
+          const tokenResult = addToken(updatedActor, tokenInfo.id, tokenInfo.stacks, tokenInfo.grantedAt);
+          updatedActor = { ...updatedActor, tokens: tokenResult.tokens };
+        }
       });
     }
 
@@ -611,9 +619,11 @@ export function applyAction(state, actor, card, battleContext = {}) {
       });
     }
 
+    const opponentKey = actor === 'player' ? 'enemy' : 'player';
     const updatedState = {
       ...state,
       [actor]: updatedActor,
+      [opponentKey]: updatedOpponent,
       log: [...state.log, result.log, ...cardPlayResult.logs]
     };
     return {
@@ -638,11 +648,18 @@ export function applyAction(state, actor, card, battleContext = {}) {
       battleContext
     });
 
-    // tokensToAdd 처리
+    // tokensToAdd 처리 - targetEnemy 플래그에 따라 대상 결정
     if (cardPlayResult.tokensToAdd && cardPlayResult.tokensToAdd.length > 0) {
       cardPlayResult.tokensToAdd.forEach(tokenInfo => {
-        const tokenResult = addToken(updatedActor, tokenInfo.id, tokenInfo.stacks, tokenInfo.grantedAt);
-        updatedActor = { ...updatedActor, tokens: tokenResult.tokens };
+        if (tokenInfo.targetEnemy) {
+          // 적(상대)에게 토큰 부여
+          const tokenResult = addToken(updatedDefender, tokenInfo.id, tokenInfo.stacks, tokenInfo.grantedAt);
+          updatedDefender = { ...updatedDefender, tokens: tokenResult.tokens };
+        } else {
+          // 자신에게 토큰 부여
+          const tokenResult = addToken(updatedActor, tokenInfo.id, tokenInfo.stacks, tokenInfo.grantedAt);
+          updatedActor = { ...updatedActor, tokens: tokenResult.tokens };
+        }
       });
     }
 

@@ -2031,12 +2031,20 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       // cardPlayResult의 토큰 처리
       if (cardPlayResult.tokensToAdd?.length > 0) {
         cardPlayResult.tokensToAdd.forEach(tokenInfo => {
-          if (a.actor === 'player') {
-            const tokenResult = addToken(P, tokenInfo.id, tokenInfo.stacks, tokenInfo.grantedAt);
-            P = { ...P, tokens: tokenResult.tokens };
-          } else {
+          // targetEnemy 플래그에 따라 대상 결정
+          const isPlayerAction = a.actor === 'player';
+          const targetIsEnemy = tokenInfo.targetEnemy === true;
+
+          // 플레이어 행동 + targetEnemy면 적에게, 아니면 플레이어에게
+          // 적 행동 + targetEnemy면 플레이어에게, 아니면 적에게
+          const applyToEnemy = isPlayerAction ? targetIsEnemy : !targetIsEnemy;
+
+          if (applyToEnemy) {
             const tokenResult = addToken(E, tokenInfo.id, tokenInfo.stacks, tokenInfo.grantedAt);
             E = { ...E, tokens: tokenResult.tokens };
+          } else {
+            const tokenResult = addToken(P, tokenInfo.id, tokenInfo.stacks, tokenInfo.grantedAt);
+            P = { ...P, tokens: tokenResult.tokens };
           }
         });
       }
