@@ -702,13 +702,14 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     const hasCharacterBuild = currentBuild && (currentBuild.mainSpecials?.length > 0 || currentBuild.subSpecials?.length > 0 || currentBuild.ownedCards?.length > 0);
 
     if (hasCharacterBuild) {
-      // 덱 초기화 (ownedCards를 셔플하여 덱 생성)
-      const initialDeck = initializeDeck(currentBuild, battle.vanishedCards || []);
+      // 덱 초기화 (주특기는 손패로, 보조특기는 덱 맨 위로)
+      const { deck: initialDeck, mainSpecialsHand } = initializeDeck(currentBuild, battle.vanishedCards || []);
       // 덱에서 카드 드로우
       const drawResult = drawFromDeck(initialDeck, [], DEFAULT_DRAW_COUNT, escapeBanRef.current);
       actions.setDeck(drawResult.newDeck);
       actions.setDiscardPile(drawResult.newDiscardPile);
-      actions.setHand(drawResult.drawnCards);
+      // 주특기 + 드로우한 카드 = 손패
+      actions.setHand([...mainSpecialsHand, ...drawResult.drawnCards]);
     } else {
       // 캐릭터 빌드가 없으면 기존 방식 (테스트용)
       const rawHand = CARDS.slice(0, 10).map((card, idx) => ({ ...card, __handUid: `${card.id}_${idx}_${Math.random().toString(36).slice(2, 8)}` }));
@@ -828,15 +829,17 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       const hasCharacterBuild = currentBuild && (currentBuild.mainSpecials?.length > 0 || currentBuild.subSpecials?.length > 0 || currentBuild.ownedCards?.length > 0);
 
       if (hasCharacterBuild) {
-        // 덱 초기화 (ownedCards를 셔플하여 덱 생성)
-        const initialDeck = initializeDeck(currentBuild, vanishedCards);
+        // 덱 초기화 (주특기는 손패로, 보조특기는 덱 맨 위로)
+        const { deck: initialDeck, mainSpecialsHand } = initializeDeck(currentBuild, vanishedCards);
         // 덱에서 카드 드로우
         const drawResult = drawFromDeck(initialDeck, [], DEFAULT_DRAW_COUNT, escapeBanRef.current);
         actions.setDeck(drawResult.newDeck);
         actions.setDiscardPile(drawResult.newDiscardPile);
-        actions.setHand(drawResult.drawnCards);
+        // 주특기 + 드로우한 카드 = 손패
+        const fullHand = [...mainSpecialsHand, ...drawResult.drawnCards];
+        actions.setHand(fullHand);
         deckInitializedRef.current = true; // 덱 초기화 완료 표시
-        addLog(`🎴 시작 손패 ${drawResult.drawnCards.length}장 (덱: ${drawResult.newDeck.length}장)`);
+        addLog(`🎴 시작 손패 ${fullHand.length}장 (주특기 ${mainSpecialsHand.length}장, 덱: ${drawResult.newDeck.length}장)`);
       } else {
         const rawHand = CARDS.slice(0, 10).map((card, idx) => ({ ...card, __handUid: `${card.id}_${idx}_${Math.random().toString(36).slice(2, 8)}` }));
         actions.setHand(rawHand);
