@@ -30,7 +30,7 @@ export function getDefaultStartingHand() {
 export function drawCharacterBuildHand(characterBuild, nextTurnEffects = {}, previousHand = [], cardDrawBonus = 0, escapeBan = new Set(), vanishedCards = []) {
   if (!characterBuild) return getDefaultStartingHand(); // 기본 시작 덱 사용
 
-  const { mainSpecials = [], subSpecials = [] } = characterBuild;
+  const { mainSpecials = [], subSpecials = [], ownedCards = [] } = characterBuild;
   const { guaranteedCards = [], mainSpecialOnly = false, subSpecialBoost = 0 } = nextTurnEffects;
   const applyBonus = (prob) => Math.min(1, Math.max(0, prob + (cardDrawBonus || 0)));
   const banSet = escapeBan instanceof Set ? escapeBan : new Set();
@@ -38,6 +38,20 @@ export function drawCharacterBuildHand(characterBuild, nextTurnEffects = {}, pre
 
   // 소멸된 카드인지 확인하는 헬퍼 함수
   const isVanished = (cardId) => vanishedSet.has(cardId);
+
+  // 주특기/보조특기가 없으면 ownedCards 전체를 100% 등장시킴
+  const noSpecialsSet = mainSpecials.length === 0 && subSpecials.length === 0;
+  if (noSpecialsSet && ownedCards.length > 0) {
+    const allCards = ownedCards
+      .filter(cardId => !isVanished(cardId))
+      .map(cardId => CARDS.find(card => card.id === cardId))
+      .filter(Boolean)
+      .map((card, idx) => ({
+        ...card,
+        __handUid: `${card.id}_${idx}_${Math.random().toString(36).slice(2, 8)}`
+      }));
+    return allCards;
+  }
 
   // 파탄 (ruin) 특성: 주특기만 등장
   if (mainSpecialOnly) {
@@ -105,7 +119,6 @@ export function drawCharacterBuildHand(characterBuild, nextTurnEffects = {}, pre
     });
 
   // 대기 카드 (ownedCards 중 주특기/보조특기 제외) 각각 10% 확률로 등장
-  const { ownedCards = [] } = characterBuild;
   const usedCardIds = new Set([...mainSpecials, ...subSpecials]);
   const otherCards = ownedCards
     .filter(cardId => !usedCardIds.has(cardId)) // 주특기/보조특기가 아닌 대기 카드만

@@ -692,7 +692,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     actions.setPhase('select');
     // 캐릭터 빌드가 있으면 사용, 없으면 기본 8장
     const currentBuild = useGameStore.getState().characterBuild;
-    const hasCharacterBuild = currentBuild && (currentBuild.mainSpecials?.length > 0 || currentBuild.subSpecials?.length > 0);
+    const hasCharacterBuild = currentBuild && (currentBuild.mainSpecials?.length > 0 || currentBuild.subSpecials?.length > 0 || currentBuild.ownedCards?.length > 0);
     const rawHand = hasCharacterBuild
       ? drawCharacterBuildHand(currentBuild, {}, [], effectiveCardDrawBonus, escapeBanRef.current, battle.vanishedCards || [])
       : CARDS.slice(0, 10).map((card, idx) => ({ ...card, __handUid: `${card.id}_${idx}_${Math.random().toString(36).slice(2, 8)}` }));
@@ -806,7 +806,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
       // 캐릭터 빌드가 있으면 사용, 없으면 기본 8장
       const currentBuild = useGameStore.getState().characterBuild;
-      const hasCharacterBuild = currentBuild && (currentBuild.mainSpecials?.length > 0 || currentBuild.subSpecials?.length > 0);
+      const hasCharacterBuild = currentBuild && (currentBuild.mainSpecials?.length > 0 || currentBuild.subSpecials?.length > 0 || currentBuild.ownedCards?.length > 0);
       const rawHand = hasCharacterBuild
         ? drawCharacterBuildHand(currentBuild, nextTurnEffects, [], effectiveCardDrawBonus, escapeBanRef.current, vanishedCards)
         : CARDS.slice(0, 10).map((card, idx) => ({ ...card, __handUid: `${card.id}_${idx}_${Math.random().toString(36).slice(2, 8)}` }));
@@ -961,7 +961,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
     // 매 턴 시작 시 새로운 손패 생성 (캐릭터 빌드 및 특성 효과 적용)
     const currentBuild = useGameStore.getState().characterBuild;
-    const hasCharacterBuild = currentBuild && (currentBuild.mainSpecials?.length > 0 || currentBuild.subSpecials?.length > 0);
+    const hasCharacterBuild = currentBuild && (currentBuild.mainSpecials?.length > 0 || currentBuild.subSpecials?.length > 0 || currentBuild.ownedCards?.length > 0);
     const rawHand = hasCharacterBuild
       ? drawCharacterBuildHand(currentBuild, nextTurnEffects, battle.hand, effectiveCardDrawBonus, escapeBanRef.current, vanishedCards)
       : CARDS.slice(0, 10).map((card, idx) => ({ ...card, __handUid: `${card.id}_${idx}_${Math.random().toString(36).slice(2, 8)}` }));
@@ -1173,7 +1173,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     if (!canRedraw) return addLog('🔒 이미 이번 턴 리드로우 사용됨');
     // 캐릭터 빌드가 있으면 사용, 없으면 기본 8장
     const currentBuild = useGameStore.getState().characterBuild;
-    const hasCharacterBuild = currentBuild && (currentBuild.mainSpecials?.length > 0 || currentBuild.subSpecials?.length > 0);
+    const hasCharacterBuild = currentBuild && (currentBuild.mainSpecials?.length > 0 || currentBuild.subSpecials?.length > 0 || currentBuild.ownedCards?.length > 0);
     const rawHand = hasCharacterBuild
       ? drawCharacterBuildHand(currentBuild, nextTurnEffects, hand, effectiveCardDrawBonus, escapeBanRef.current, vanishedCards)
       : CARDS.slice(0, 10).map((card, idx) => ({ ...card, __handUid: `${card.id}_${idx}_${Math.random().toString(36).slice(2, 8)}` }));
