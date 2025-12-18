@@ -678,7 +678,7 @@ export function CharacterSheet({ onClose, showAllCards = false }) {
                   } else if (isSubSpecial) {
                     borderStyle = { border: '2px solid #7dd3fc', boxShadow: '0 0 10px rgba(125, 211, 252, 0.4)' };
                   } else if (isOwnedOnly) {
-                    borderStyle = { border: '2px solid #a78bfa', boxShadow: '0 0 10px rgba(167, 139, 250, 0.4)' };
+                    borderStyle = { border: '2px solid #64748b', boxShadow: '0 0 10px rgba(100, 116, 139, 0.4)' };
                   }
 
                   return (
@@ -699,7 +699,7 @@ export function CharacterSheet({ onClose, showAllCards = false }) {
                         }}
                       >
                         <div className="card-cost-badge-floating" style={{
-                          color: isMainSpecial ? '#fcd34d' : isSubSpecial ? '#60a5fa' : isOwnedOnly ? '#a78bfa' : '#fff',
+                          color: isMainSpecial ? '#fcd34d' : isSubSpecial ? '#60a5fa' : isOwnedOnly ? '#94a3b8' : '#fff',
                           WebkitTextStroke: '1px #000'
                         }}>
                           {card.actionCost}
@@ -709,8 +709,8 @@ export function CharacterSheet({ onClose, showAllCards = false }) {
                             position: 'absolute',
                             top: '-4px',
                             right: '-4px',
-                            background: isMainSpecial ? '#f5d76e' : isSubSpecial ? '#7dd3fc' : '#a78bfa',
-                            color: '#000',
+                            background: isMainSpecial ? '#f5d76e' : isSubSpecial ? '#7dd3fc' : '#64748b',
+                            color: isOwnedOnly ? '#fff' : '#000',
                             padding: '2px 6px',
                             borderRadius: '10px',
                             fontSize: '11px',
@@ -731,7 +731,7 @@ export function CharacterSheet({ onClose, showAllCards = false }) {
                         </div>
                         <div className="card-header" style={{ display: 'flex', justifyContent: 'center' }}>
                           <div className="font-black text-sm" style={{
-                            color: isMainSpecial ? '#fcd34d' : isSubSpecial ? '#7dd3fc' : isOwnedOnly ? '#a78bfa' : '#fff'
+                            color: isMainSpecial ? '#fcd34d' : isSubSpecial ? '#7dd3fc' : isOwnedOnly ? '#94a3b8' : '#fff'
                           }}>
                             {card.name}
                           </div>

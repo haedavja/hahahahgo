@@ -438,6 +438,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   // 카드 보상 선택 상태 (승리 후)
   const [cardReward, setCardReward] = useState(null); // { cards: [] }
 
+  // 함성(recallCard) 카드 선택 상태
+  const [recallSelection, setRecallSelection] = useState(null); // { availableCards: [] }
+
   // battle 상태가 변경될 때마다 ref 업데이트
   useEffect(() => {
     battleRef.current = battle;
@@ -1644,6 +1647,31 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     actions.setPhase('post');
   }, [addLog, actions]);
 
+  // 함성 (recallCard) 카드 선택 처리
+  const handleRecallSelect = useCallback((selectedCard) => {
+    addLog(`📢 함성: "${selectedCard.name}" 선택! 다음 턴에 확정 등장합니다.`);
+
+    // 선택한 카드를 nextTurnEffects.guaranteedCards에 추가
+    const currentEffects = battleRef.current?.nextTurnEffects || battle.nextTurnEffects;
+    const updatedEffects = {
+      ...currentEffects,
+      guaranteedCards: [...(currentEffects.guaranteedCards || []), selectedCard.id]
+    };
+    actions.setNextTurnEffects(updatedEffects);
+    if (battleRef.current) {
+      battleRef.current = { ...battleRef.current, nextTurnEffects: updatedEffects };
+    }
+
+    // 모달 닫기
+    setRecallSelection(null);
+  }, [addLog, actions, battle.nextTurnEffects]);
+
+  // 함성 건너뛰기
+  const handleRecallSkip = useCallback(() => {
+    addLog('📢 함성: 카드 선택을 건너뛰었습니다.');
+    setRecallSelection(null);
+  }, [addLog]);
+
   // 승리 시 카드 보상 모달 표시
   const showCardRewardModal = useCallback(() => {
     // 공격/방어 카드 중 랜덤 3장 선택
@@ -2201,7 +2229,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         addLog(`🔄 연계 효과: "${bonusCards.map(c => c.name).join(', ')}" 큐에 추가!`);
       }
 
-      // nextTurnEffects 처리 (mentalFocus)
+      // nextTurnEffects 처리 (mentalFocus, emergencyDraw, recallCard)
       if (newNextTurnEffects) {
         const currentEffects = battleRef.current?.nextTurnEffects || battle.nextTurnEffects;
         const updatedEffects = {
@@ -2210,6 +2238,65 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
           maxSpeedBonus: (currentEffects.maxSpeedBonus || 0) + (newNextTurnEffects.maxSpeedBonus || 0),
           extraCardPlay: (currentEffects.extraCardPlay || 0) + (newNextTurnEffects.extraCardPlay || 0)
         };
+
+        // === 비상대응 (emergencyDraw): 즉시 대기 카드 3장 뽑기 ===
+        if (newNextTurnEffects.emergencyDraw && newNextTurnEffects.emergencyDraw > 0) {
+          const currentBuild = useGameStore.getState().characterBuild;
+          if (currentBuild) {
+            const { mainSpecials = [], subSpecials = [], ownedCards = [] } = currentBuild;
+            const usedCardIds = new Set([...mainSpecials, ...subSpecials]);
+            // 대기 카드: ownedCards 중 주특기/보조특기가 아닌 카드
+            const waitingCardIds = ownedCards.filter(id => !usedCardIds.has(id));
+            const waitingCards = waitingCardIds
+              .map(id => CARDS.find(c => c.id === id))
+              .filter(Boolean);
+
+            if (waitingCards.length > 0) {
+              // 랜덤으로 최대 emergencyDraw 장수만큼 선택
+              const drawCount = Math.min(newNextTurnEffects.emergencyDraw, waitingCards.length);
+              const shuffled = [...waitingCards].sort(() => Math.random() - 0.5);
+              const drawnCards = shuffled.slice(0, drawCount).map((card, idx) => ({
+                ...card,
+                __handUid: `emergency_${card.id}_${idx}_${Math.random().toString(36).slice(2, 8)}`
+              }));
+
+              // 현재 손패에 추가
+              const currentHand = battleRef.current?.hand || battle.hand || [];
+              const newHand = [...currentHand, ...drawnCards];
+              actions.setHand(newHand);
+              if (battleRef.current) {
+                battleRef.current = { ...battleRef.current, hand: newHand };
+              }
+              addLog(`🚨 비상대응: ${drawnCards.map(c => c.name).join(', ')} 즉시 손패에 추가!`);
+            } else {
+              addLog(`🚨 비상대응: 대기 카드가 없습니다.`);
+            }
+          }
+        }
+
+        // === 함성 (recallCard): 다음 턴에 대기 카드 선택 UI 표시 ===
+        if (newNextTurnEffects.recallCard) {
+          const currentBuild = useGameStore.getState().characterBuild;
+          if (currentBuild) {
+            const { mainSpecials = [], subSpecials = [], ownedCards = [] } = currentBuild;
+            const usedCardIds = new Set([...mainSpecials, ...subSpecials]);
+            // 대기 카드: ownedCards 중 주특기/보조특기가 아닌 카드
+            const waitingCardIds = ownedCards.filter(id => !usedCardIds.has(id));
+            const waitingCards = waitingCardIds
+              .map(id => CARDS.find(c => c.id === id))
+              .filter(Boolean);
+
+            if (waitingCards.length > 0) {
+              // 선택 UI 표시를 위해 상태 저장
+              setRecallSelection({ availableCards: waitingCards });
+              addLog(`📢 함성: 대기 카드 중 1장을 선택하세요!`);
+            } else {
+              addLog(`📢 함성: 대기 카드가 없습니다.`);
+            }
+          }
+          // recallCard 플래그는 다음 턴에 사용되지 않으므로 효과에서 제외
+        }
+
         actions.setNextTurnEffects(updatedEffects);
         // battleRef 동기 업데이트 (finishTurn에서 최신 값 사용)
         if (battleRef.current) {
@@ -3143,6 +3230,95 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
           onSelect={handleRewardSelect}
           onSkip={handleRewardSkip}
         />
+      )}
+
+      {/* 함성 (recallCard) 카드 선택 모달 */}
+      {recallSelection && (
+        <div className="modal-overlay" style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(0, 0, 0, 0.85)',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 10000,
+        }}>
+          <div style={{
+            background: 'rgba(8, 11, 19, 0.98)',
+            border: '2px solid #fbbf24',
+            borderRadius: '16px',
+            padding: '24px',
+            maxWidth: '800px',
+            maxHeight: '80vh',
+            overflow: 'auto',
+          }}>
+            <h2 style={{ color: '#fbbf24', marginBottom: '16px', textAlign: 'center' }}>
+              📢 함성 - 다음 턴에 가져올 카드 선택
+            </h2>
+            <p style={{ color: '#9fb6ff', marginBottom: '20px', textAlign: 'center' }}>
+              대기 카드 중 1장을 선택하면 다음 턴에 확정으로 손패에 등장합니다.
+            </p>
+            <div style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: '12px',
+              justifyContent: 'center',
+              marginBottom: '20px',
+            }}>
+              {recallSelection.availableCards.map((card, idx) => (
+                <div
+                  key={`recall-${card.id}-${idx}`}
+                  onClick={() => handleRecallSelect(card)}
+                  className={`game-card-large no-hover ${card.type === 'attack' ? 'attack' : 'defense'}`}
+                  style={{
+                    cursor: 'pointer',
+                    width: '140px',
+                    height: '180px',
+                    transition: 'transform 0.2s, box-shadow 0.2s',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'scale(1.05)';
+                    e.currentTarget.style.boxShadow = '0 0 20px rgba(251, 191, 36, 0.6)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'scale(1)';
+                    e.currentTarget.style.boxShadow = 'none';
+                  }}
+                >
+                  <div className="card-cost-badge-floating">{card.actionCost}</div>
+                  <div className="card-stats-sidebar">
+                    {card.damage > 0 && <div className="card-stat-item attack">⚔️{card.damage}</div>}
+                    {card.block > 0 && <div className="card-stat-item defense">🛡️{card.block}</div>}
+                    <div className="card-stat-item speed">⏱️{card.speedCost}</div>
+                  </div>
+                  <div className="card-header" style={{ textAlign: 'center' }}>
+                    <div className="font-black text-sm">{card.name}</div>
+                  </div>
+                  <div className="card-footer">
+                    <span className="card-description">{card.description || ''}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div style={{ textAlign: 'center' }}>
+              <button
+                onClick={handleRecallSkip}
+                style={{
+                  padding: '10px 24px',
+                  fontSize: '14px',
+                  borderRadius: '8px',
+                  border: '1px solid rgba(118, 134, 185, 0.5)',
+                  background: 'rgba(8, 11, 19, 0.95)',
+                  color: '#9fb6ff',
+                  cursor: 'pointer',
+                }}
+              >
+                건너뛰기
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* 에테르 게이지 - 왼쪽 고정 */}
