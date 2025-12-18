@@ -34,6 +34,12 @@ export function processPerHitRoulette(attacker, card, attackerName, hitIndex, to
     return { jammed: false, updatedAttacker: attacker, event: null, log: null };
   }
 
+  // singleRoulette 특성: 첫 타격에만 룰렛 처리
+  const hasSingleRoulette = hasSpecial(card, 'singleRoulette');
+  if (hasSingleRoulette && hitIndex > 0) {
+    return { jammed: false, updatedAttacker: attacker, event: null, log: null };
+  }
+
   let updatedAttacker = { ...attacker };
   const attackerTokens = updatedAttacker.tokens || { usage: [], turn: [], permanent: [] };
   const allAttackerTokens = [...(attackerTokens.usage || []), ...(attackerTokens.turn || []), ...(attackerTokens.permanent || [])];
@@ -42,7 +48,7 @@ export function processPerHitRoulette(attacker, card, attackerName, hitIndex, to
   const jamChance = currentRouletteStacks * 0.05; // 스택당 5%
 
   const who = attackerName === 'player' ? '플레이어' : '몬스터';
-  const hitLabel = totalHits > 1 ? ` [${hitIndex + 1}/${totalHits}]` : '';
+  const hitLabel = totalHits > 1 && !hasSingleRoulette ? ` [${hitIndex + 1}/${totalHits}]` : '';
 
   // 확률 판정 (룰렛 스택이 있을 때만)
   if (currentRouletteStacks > 0 && Math.random() < jamChance) {
@@ -409,6 +415,24 @@ export function processPostAttackSpecials({
     }
   }
 
+  // === critLoad: 치명타 시 장전 (탄걸림 해제 + 룰렛 초기화) ===
+  if (hasSpecial(card, 'critLoad')) {
+    const { isCritical = false } = battleContext;
+    if (isCritical) {
+      // 탄걸림 제거
+      const removeJamResult = removeToken(modifiedAttacker, 'gun_jam', 'permanent', 99);
+      modifiedAttacker = { ...modifiedAttacker, tokens: removeJamResult.tokens };
+      // 룰렛 초기화
+      const resetRouletteResult = setTokenStacks(modifiedAttacker, 'roulette', 'permanent', 0);
+      modifiedAttacker = { ...modifiedAttacker, tokens: resetRouletteResult.tokens };
+
+      const who = attackerName === 'player' ? '플레이어' : '몬스터';
+      const msg = `${who} • 💥 ${card.name}: 치명타! 장전 완료!`;
+      events.push({ actor: attackerName, card: card.name, type: 'special', msg });
+      logs.push(msg);
+    }
+  }
+
   return {
     attacker: modifiedAttacker,
     defender: modifiedDefender,
@@ -725,6 +749,20 @@ export function processCardPlaySpecials({
       } else if (bonusType === 'damage_mult') {
         // 비트용: 피해 2배 (카드에 직접 적용)
         // 이미 applyAttack에서 처리해야 함
+      } else if (bonusType === 'add_tokens') {
+        // 셉팀용: 교차 시 토큰 추가 부여
+        const tokens = card.crossBonus.tokens || [];
+        tokens.forEach(tokenInfo => {
+          const grantedAt = battleContext.currentTurn ? { turn: battleContext.currentTurn, sp: battleContext.currentSp || 0 } : null;
+          if (tokenInfo.target === 'enemy') {
+            tokensToAdd.push({ id: tokenInfo.id, stacks: tokenInfo.stacks || 1, grantedAt, targetEnemy: true });
+          } else {
+            tokensToAdd.push({ id: tokenInfo.id, stacks: tokenInfo.stacks || 1, grantedAt });
+          }
+          const msg = `${who} • ✨ ${card.name}: 교차! ${tokenInfo.id} 토큰 추가!`;
+          events.push({ actor: attackerName, card: card.name, type: 'cross', msg });
+          logs.push(msg);
+        });
       }
     }
   }

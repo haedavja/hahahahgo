@@ -482,6 +482,67 @@ export const CARDS = [
     special: "breach",
     breachSpOffset: 3
   },
+  {
+    id: "octave",
+    name: "옥타브",
+    type: "defense",
+    block: 12,
+    speedCost: 5,
+    actionCost: 1,
+    iconKey: "shield",
+    description: "방어력 12. 교차 시 방어력 2배.",
+    traits: ["cross"],
+    cardCategory: "fencing",
+    crossBonus: { type: 'block_mult', value: 2 }
+  },
+  {
+    id: "quarte",
+    name: "꺄르트",
+    type: "defense",
+    block: 7,
+    speedCost: 5,
+    actionCost: 1,
+    iconKey: "shield",
+    description: "방어력 7. 연계. 교차 시 사격 1회.",
+    traits: ["chain", "cross"],
+    cardCategory: "fencing",
+    advanceAmount: 3,
+    crossBonus: { type: 'gun_attack', count: 1 }
+  },
+  {
+    id: "septime",
+    name: "셉팀",
+    type: "defense",
+    block: 3,
+    speedCost: 2,
+    actionCost: 1,
+    iconKey: "shield",
+    description: "방어력 3. 적에게 무딤, 흔들림 1회 부여. 교차 시 각각 1회 추가.",
+    traits: ["cross"],
+    cardCategory: "fencing",
+    onPlay: (battle, actions) => {
+      actions.addTokenToEnemy('dull', 1);
+      actions.addTokenToEnemy('shaken', 1);
+    },
+    crossBonus: { type: 'add_tokens', tokens: [
+      { id: 'dull', stacks: 1, target: 'enemy' },
+      { id: 'shaken', stacks: 1, target: 'enemy' }
+    ]}
+  },
+  {
+    id: "double_tap_v2",
+    name: "더블탭",
+    type: "attack",
+    damage: 8,
+    hits: 2,
+    speedCost: 4,
+    actionCost: 2,
+    iconKey: "flame",
+    description: "공격력 8x2. 룰렛 1회만 증가. 치명타 시 장전.",
+    traits: [],
+    cardCategory: "gun",
+    special: ["singleRoulette", "critLoad"]
+  },
 ];
 
 export const ENEMY_CARDS = [

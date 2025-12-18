@@ -45,7 +45,29 @@ export function applyDefense(actor, card, actorName, battleContext = {}) {
   const currentSp = battleContext.currentSp || 0;
   const growingDefenseBonus = calculateGrowingDefense(modifiedCard, currentSp);
 
-  const added = (modifiedCard.block || 0) + strengthBonus + growingDefenseBonus;
+  // 교차 특성: block_mult 타입일 경우 방어력 배수 적용
+  let crossBlockMult = 1;
+  let crossBonusText = '';
+  const hasCrossTrait = modifiedCard.traits && modifiedCard.traits.includes('cross');
+  if (hasCrossTrait && modifiedCard.crossBonus?.type === 'block_mult') {
+    const { queue = [], currentQIndex = 0 } = battleContext;
+    const oppositeActor = actorName === 'player' ? 'enemy' : 'player';
+
+    const isOverlapping = queue.some((q, idx) => {
+      if (q.actor !== oppositeActor) return false;
+      if (idx <= currentQIndex) return false;
+      const spDiff = Math.abs((q.sp || 0) - currentSp);
+      return spDiff < 1;
+    });
+
+    if (isOverlapping) {
+      crossBlockMult = modifiedCard.crossBonus.value || 2;
+      crossBonusText = ` (교차 ${crossBlockMult}배!)`;
+    }
+  }
+
+  const baseBlock = (modifiedCard.block || 0) + strengthBonus + growingDefenseBonus;
+  const added = Math.floor(baseBlock * crossBlockMult);
   const after = prev + added;
 
   // 소모된 토큰 제거
@@ -68,8 +90,8 @@ export function applyDefense(actor, card, actorName, battleContext = {}) {
   const who = actorName === 'player' ? '플레이어' : '몬스터';
   const growingText = growingDefenseBonus > 0 ? ` (+${growingDefenseBonus} 방어자세)` : '';
   const msg = prev === 0
-    ? `${who} • 🛡️ +${added}${growingText} = ${after}`
-    : `${who} • 🛡️ ${prev} + ${added}${growingText} = ${after}`;
+    ? `${who} • 🛡️ +${added}${growingText}${crossBonusText} = ${after}`
+    : `${who} • 🛡️ ${prev} + ${added}${growingText}${crossBonusText} = ${after}`;
 
   const event = {
     actor: actorName,
@@ -435,7 +457,7 @@ export function applyAttack(attacker, defender, card, attackerName, battleContex
     defender: currentDefender,
     attackerName,
     damageDealt: totalDealt,
-    battleContext: { ...battleContext, blockDestroyed: totalBlockDestroyed }
+    battleContext: { ...battleContext, blockDestroyed: totalBlockDestroyed, isCritical }
   });
 
   currentAttacker = postAttackResult.attacker;

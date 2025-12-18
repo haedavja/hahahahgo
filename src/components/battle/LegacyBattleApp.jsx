@@ -1792,7 +1792,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       currentAttacker = rouletteResult.updatedAttacker;
       if (rouletteResult.jammed) {
         // 첫 타격에서 탄걸림! 남은 타격 취소
-        const finalResult = finalizeMultiHitAttack(modifiedCard, currentAttacker, currentDefender, attackerName, totalDealt, totalBlockDestroyed, battleContext);
+        const finalResult = finalizeMultiHitAttack(modifiedCard, currentAttacker, currentDefender, attackerName, totalDealt, totalBlockDestroyed, { ...battleContext, isCritical });
         const who = attackerName === 'player' ? '플레이어 -> 몬스터' : '몬스터 -> 플레이어';
         const perHitDmg = firstHitResult.damage;
         const critText = isCritical ? ' 💥치명타!' : '';
@@ -1850,7 +1850,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         currentAttacker = rouletteResult.updatedAttacker;
         if (rouletteResult.jammed && i < hits - 1) {
           // 탄걸림! 남은 타격 취소 - 요약 로그에 포함
-          const finalResult = finalizeMultiHitAttack(modifiedCard, currentAttacker, currentDefender, attackerName, totalDealt, totalBlockDestroyed, battleContext);
+          const finalResult = finalizeMultiHitAttack(modifiedCard, currentAttacker, currentDefender, attackerName, totalDealt, totalBlockDestroyed, { ...battleContext, isCritical });
           // 탄걸림 요약 로그
           const who = attackerName === 'player' ? '플레이어 -> 몬스터' : '몬스터 -> 플레이어';
           const perHitDmg = firstHitResult.damage;
@@ -1893,7 +1893,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     }
 
     // 후처리 (화상 부여 등)
-    const finalResult = finalizeMultiHitAttack(modifiedCard, currentAttacker, currentDefender, attackerName, totalDealt, totalBlockDestroyed, battleContext);
+    const finalResult = finalizeMultiHitAttack(modifiedCard, currentAttacker, currentDefender, attackerName, totalDealt, totalBlockDestroyed, { ...battleContext, isCritical });
 
     return {
       attacker: finalResult.attacker,
