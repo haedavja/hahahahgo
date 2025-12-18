@@ -43,7 +43,6 @@ import { addToken, removeToken, clearTurnTokens, setTokenStacks } from '../../..
 export function useBattleState(initialStateOverrides = {}) {
   // Lazy initializer function for useReducer
   const initializeBattleState = useCallback(() => {
-    console.log('[DEBUG] initializeBattleState called - creating new state');
     // createInitialState에서 기본 상태를 생성하되, 오버라이드된 필드만 덮어쓰기
     const baseState = createInitialState({
       initialPlayerState: initialStateOverrides.player,
@@ -52,14 +51,12 @@ export function useBattleState(initialStateOverrides = {}) {
       simplifiedMode: initialStateOverrides.isSimplified || false,
       sortType: initialStateOverrides.sortType || 'speed'
     });
-    console.log('[DEBUG] baseState.hand:', baseState.hand);
 
     // 나머지 필드들 병합
     const finalState = {
       ...baseState,
       ...initialStateOverrides
     };
-    console.log('[DEBUG] finalState.hand after merge:', finalState.hand);
     return finalState;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -91,12 +88,7 @@ export function useBattleState(initialStateOverrides = {}) {
     setPhase: (phase) => dispatch({ type: ACTIONS.SET_PHASE, payload: phase }),
 
     // === 카드 관리 ===
-    setHand: (hand) => {
-      if (!hand || hand.length === 0) {
-        console.trace('[DISPATCH TRACE] setHand called with EMPTY array from:');
-      }
-      dispatch({ type: ACTIONS.SET_HAND, payload: hand });
-    },
+    setHand: (hand) => dispatch({ type: ACTIONS.SET_HAND, payload: hand }),
     setSelected: (selected) => dispatch({ type: ACTIONS.SET_SELECTED, payload: selected }),
     addSelected: (card) => dispatch({ type: ACTIONS.ADD_SELECTED, payload: card }),
     removeSelected: (index) => dispatch({ type: ACTIONS.REMOVE_SELECTED, payload: index }),

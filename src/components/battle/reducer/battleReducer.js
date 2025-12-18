@@ -329,17 +329,10 @@ export function battleReducer(state, action) {
 
     // === 페이즈 ===
     case ACTIONS.SET_PHASE:
-      if (action.payload === 'select') {
-        console.trace('[STACK TRACE] SET_PHASE to select called from:');
-      }
       return { ...state, phase: action.payload };
 
     // === 카드 관리 ===
     case ACTIONS.SET_HAND:
-      console.log('[DEBUG] SET_HAND payload:', action.payload?.length, action.payload?.map(c => c.id));
-      if (!action.payload || action.payload.length === 0) {
-        console.trace('[STACK TRACE] SET_HAND with EMPTY array called from:');
-      }
       return { ...state, hand: action.payload };
     case ACTIONS.SET_SELECTED:
       return { ...state, selected: action.payload };
@@ -626,7 +619,6 @@ export function battleReducer(state, action) {
       };
 
     case ACTIONS.RESET_BATTLE:
-      console.trace('[STACK TRACE] RESET_BATTLE called from:');
       return createInitialState(action.payload);
 
     default:

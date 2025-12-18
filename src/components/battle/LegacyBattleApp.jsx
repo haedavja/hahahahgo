@@ -293,7 +293,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
   // 카드 관리
   const hand = battle.hand;
-  console.log('[DEBUG] Render - battle.hand:', hand?.length, hand?.map(c => c.id));
   const selected = battle.selected;
   const canRedraw = battle.canRedraw;
   const queue = battle.queue;
@@ -423,6 +422,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const initialEtherRef = useRef(typeof safeInitialPlayer.etherPts === 'number' ? safeInitialPlayer.etherPts : (playerEther ?? 0));
   const resultSentRef = useRef(false);
   const turnStartProcessedRef = useRef(false); // 턴 시작 효과 중복 실행 방지
+  const deckInitializedRef = useRef(false); // 덱이 초기화되었는지 추적 (첫 턴 중복 드로우 방지)
   const dragRelicIndexRef = useRef(null); // 상징 드래그 인덱스
   const battleRef = useRef(battle); // battle 상태를 ref로 유지 (setTimeout closure 문제 해결)
   const displayEtherMultiplierRef = useRef(1); // 애니메이션 표시용 에테르 배율 (리셋되어도 유지)
@@ -698,23 +698,17 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     }
     actions.setPhase('select');
     // 덱/무덤 시스템 초기화
-    console.log('[DEBUG] First useEffect - Player init running');
     const currentBuild = useGameStore.getState().characterBuild;
-    console.log('[DEBUG] First useEffect - currentBuild:', currentBuild);
     const hasCharacterBuild = currentBuild && (currentBuild.mainSpecials?.length > 0 || currentBuild.subSpecials?.length > 0 || currentBuild.ownedCards?.length > 0);
-    console.log('[DEBUG] First useEffect - hasCharacterBuild:', hasCharacterBuild);
 
     if (hasCharacterBuild) {
       // 덱 초기화 (ownedCards를 셔플하여 덱 생성)
       const initialDeck = initializeDeck(currentBuild, battle.vanishedCards || []);
-      console.log('[DEBUG] First useEffect - initialDeck:', initialDeck.length, initialDeck.map(c => c.id));
       // 덱에서 카드 드로우
       const drawResult = drawFromDeck(initialDeck, [], DEFAULT_DRAW_COUNT, escapeBanRef.current);
-      console.log('[DEBUG] First useEffect - drawResult:', { drawnCards: drawResult.drawnCards.length, newDeck: drawResult.newDeck.length });
       actions.setDeck(drawResult.newDeck);
       actions.setDiscardPile(drawResult.newDiscardPile);
       actions.setHand(drawResult.drawnCards);
-      console.log('[DEBUG] First useEffect - setHand called with:', drawResult.drawnCards.map(c => c.id));
     } else {
       // 캐릭터 빌드가 없으면 기존 방식 (테스트용)
       const rawHand = CARDS.slice(0, 10).map((card, idx) => ({ ...card, __handUid: `${card.id}_${idx}_${Math.random().toString(36).slice(2, 8)}` }));
@@ -799,9 +793,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   }, [enemy, selectedAnomalies]);
 
   useEffect(() => {
-    console.log('[DEBUG] Third useEffect - enemy check:', { enemy: !!enemy, enemyIndex });
     if (!enemy) {
-      console.log('[DEBUG] Third useEffect - enemy is falsy, running fallback init');
       const e = ENEMIES[enemyIndex];
       actions.setEnemy({ ...e, hp: e.hp, maxHp: e.hp, vulnMult: 1, vulnTurns: 0, block: 0, counter: 0, etherPts: 0, etherOverdriveActive: false, maxSpeed: e.maxSpeed ?? DEFAULT_ENEMY_MAX_SPEED });
 
@@ -833,26 +825,24 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
       // 덱/무덤 시스템 초기화
       const currentBuild = useGameStore.getState().characterBuild;
-      console.log('[DEBUG] Third useEffect - currentBuild:', currentBuild);
       const hasCharacterBuild = currentBuild && (currentBuild.mainSpecials?.length > 0 || currentBuild.subSpecials?.length > 0 || currentBuild.ownedCards?.length > 0);
-      console.log('[DEBUG] Third useEffect - hasCharacterBuild:', hasCharacterBuild);
 
       if (hasCharacterBuild) {
         // 덱 초기화 (ownedCards를 셔플하여 덱 생성)
         const initialDeck = initializeDeck(currentBuild, vanishedCards);
-        console.log('[DEBUG] Third useEffect - initialDeck:', initialDeck.length);
         // 덱에서 카드 드로우
         const drawResult = drawFromDeck(initialDeck, [], DEFAULT_DRAW_COUNT, escapeBanRef.current);
-        console.log('[DEBUG] Third useEffect - drawResult:', { drawnCards: drawResult.drawnCards.length });
         actions.setDeck(drawResult.newDeck);
         actions.setDiscardPile(drawResult.newDiscardPile);
         actions.setHand(drawResult.drawnCards);
+        deckInitializedRef.current = true; // 덱 초기화 완료 표시
         addLog(`🎴 시작 손패 ${drawResult.drawnCards.length}장 (덱: ${drawResult.newDeck.length}장)`);
       } else {
         const rawHand = CARDS.slice(0, 10).map((card, idx) => ({ ...card, __handUid: `${card.id}_${idx}_${Math.random().toString(36).slice(2, 8)}` }));
         actions.setHand(rawHand);
         actions.setDeck([]);
         actions.setDiscardPile([]);
+        deckInitializedRef.current = true; // 덱 초기화 완료 표시
         addLog(`🎴 시작 손패 ${rawHand.length}장`);
       }
       actions.setSelected([]);
@@ -1002,30 +992,36 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     }
 
     // 매 턴 시작 시 새로운 손패 생성 (덱/무덤 시스템)
-    const currentBuild = useGameStore.getState().characterBuild;
-    const hasCharacterBuild = currentBuild && (currentBuild.mainSpecials?.length > 0 || currentBuild.subSpecials?.length > 0 || currentBuild.ownedCards?.length > 0);
-
-    if (hasCharacterBuild) {
-      // 현재 손패를 무덤으로 이동
-      const currentHand = battle.hand || [];
-      let currentDeck = battle.deck || [];
-      let currentDiscard = [...(battle.discardPile || []), ...currentHand];
-
-      // 덱에서 카드 드로우
-      const drawResult = drawFromDeck(currentDeck, currentDiscard, DEFAULT_DRAW_COUNT, escapeBanRef.current);
-
-      actions.setDeck(drawResult.newDeck);
-      actions.setDiscardPile(drawResult.newDiscardPile);
-      actions.setHand(drawResult.drawnCards);
-
-      if (drawResult.reshuffled) {
-        addLog('🔄 덱이 소진되어 무덤을 섞어 새 덱을 만들었습니다.');
-      }
+    // 턴 1에서는 첫 번째 useEffect가 이미 손패를 설정하므로 건너뜀
+    if (turnNumber === 1) {
+      // 첫 턴은 초기화 useEffect에서 처리됨 - 스킵
+      actions.setSelected([]);
     } else {
-      const rawHand = CARDS.slice(0, 10).map((card, idx) => ({ ...card, __handUid: `${card.id}_${idx}_${Math.random().toString(36).slice(2, 8)}` }));
-      actions.setHand(rawHand);
+      const currentBuild = useGameStore.getState().characterBuild;
+      const hasCharacterBuild = currentBuild && (currentBuild.mainSpecials?.length > 0 || currentBuild.subSpecials?.length > 0 || currentBuild.ownedCards?.length > 0);
+
+      if (hasCharacterBuild) {
+        // 현재 손패를 무덤으로 이동
+        const currentHand = battle.hand || [];
+        let currentDeck = battle.deck || [];
+        let currentDiscard = [...(battle.discardPile || []), ...currentHand];
+
+        // 덱에서 카드 드로우
+        const drawResult = drawFromDeck(currentDeck, currentDiscard, DEFAULT_DRAW_COUNT, escapeBanRef.current);
+
+        actions.setDeck(drawResult.newDeck);
+        actions.setDiscardPile(drawResult.newDiscardPile);
+        actions.setHand(drawResult.drawnCards);
+
+        if (drawResult.reshuffled) {
+          addLog('🔄 덱이 소진되어 무덤을 섞어 새 덱을 만들었습니다.');
+        }
+      } else {
+        const rawHand = CARDS.slice(0, 10).map((card, idx) => ({ ...card, __handUid: `${card.id}_${idx}_${Math.random().toString(36).slice(2, 8)}` }));
+        actions.setHand(rawHand);
+      }
+      actions.setSelected([]);
     }
-    actions.setSelected([]);
 
     // 적 성향/행동을 턴 시작에 즉시 결정해 통찰 UI가 바로 표시되도록 함
     const mode = battle.enemyPlan.mode || decideEnemyMode();
