@@ -1,3 +1,5 @@
+import { DEFAULT_STARTING_DECK } from '../components/battle/battleData';
+
 const MAP_COLUMNS = 7;
 const MAP_LAYERS = 11;
 const MAP_MIN_NODES = 2;
@@ -168,7 +170,7 @@ export const createInitialState = () => {
     characterBuild: {
       mainSpecials: [],
       subSpecials: [],
-      ownedCards: [],
+      ownedCards: [...DEFAULT_STARTING_DECK],  // 기본 시작 덱으로 초기화
     },
   };
 };
