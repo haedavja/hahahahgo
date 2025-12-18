@@ -42,11 +42,12 @@ const CardListPopup = ({ title, cards, onClose, icon, bgGradient }) => {
         left: 0,
         right: 0,
         bottom: 0,
-        background: 'rgba(0, 0, 0, 0.7)',
+        background: 'rgba(0, 0, 0, 0.95)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        zIndex: 10000
+        zIndex: 10000,
+        pointerEvents: 'auto'
       }}
       onClick={onClose}
     >
@@ -59,8 +60,9 @@ const CardListPopup = ({ title, cards, onClose, icon, bgGradient }) => {
           maxWidth: '500px',
           maxHeight: '70vh',
           overflow: 'auto',
-          border: '2px solid #333',
-          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.5)'
+          border: '2px solid #444',
+          boxShadow: '0 8px 32px rgba(0, 0, 0, 1)',
+          pointerEvents: 'auto'
         }}
         onClick={e => e.stopPropagation()}
       >
@@ -92,12 +94,14 @@ const CardListPopup = ({ title, cards, onClose, icon, bgGradient }) => {
           <button
             onClick={onClose}
             style={{
-              background: 'transparent',
+              background: '#333',
               border: 'none',
-              color: '#888',
+              color: '#fff',
               cursor: 'pointer',
               fontSize: '20px',
-              padding: '4px 8px'
+              padding: '8px 12px',
+              borderRadius: '8px',
+              pointerEvents: 'auto'
             }}
           >✕</button>
         </div>
