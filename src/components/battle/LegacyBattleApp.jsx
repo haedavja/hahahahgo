@@ -293,6 +293,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
   // 카드 관리
   const hand = battle.hand;
+  console.log('[DEBUG] Render - battle.hand:', hand?.length, hand?.map(c => c.id));
   const selected = battle.selected;
   const canRedraw = battle.canRedraw;
   const queue = battle.queue;
