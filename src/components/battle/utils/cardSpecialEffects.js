@@ -732,19 +732,20 @@ export function processCardPlaySpecials({
       const { type: bonusType, count = 1 } = card.crossBonus;
 
       if (bonusType === 'gun_attack') {
-        // 사격 카드 추가
-        const gunCards = allCards.filter(c => c.cardCategory === 'gun' && c.type === 'attack');
-        for (let i = 0; i < count && gunCards.length > 0; i++) {
-          const randomGun = gunCards[Math.floor(Math.random() * gunCards.length)];
-          bonusCards.push({
-            ...randomGun,
-            isGhost: true,
-            createdBy: card.id,
-            createdId: `${randomGun.id}_cross_${Date.now()}_${i}`
-          });
-          const msg = `${who} • ✨ ${card.name}: 교차! "${randomGun.name}" 사격 추가!`;
-          events.push({ actor: attackerName, card: card.name, type: 'cross', msg });
-          logs.push(msg);
+        // 기본 사격 카드(shoot)만 추가 - 특수 효과가 있는 카드는 제외
+        const basicShoot = allCards.find(c => c.id === 'shoot');
+        if (basicShoot) {
+          for (let i = 0; i < count; i++) {
+            bonusCards.push({
+              ...basicShoot,
+              isGhost: true,
+              createdBy: card.id,
+              createdId: `${basicShoot.id}_cross_${Date.now()}_${i}`
+            });
+            const msg = `${who} • ✨ ${card.name}: 교차! "${basicShoot.name}" 사격 추가!`;
+            events.push({ actor: attackerName, card: card.name, type: 'cross', msg });
+            logs.push(msg);
+          }
         }
       } else if (bonusType === 'damage_mult') {
         // 비트용: 피해 2배 (카드에 직접 적용)
