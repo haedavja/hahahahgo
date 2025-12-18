@@ -44,10 +44,9 @@ const CardListPopup = ({ title, cards, onClose, icon, bgGradient }) => {
         bottom: 0,
         background: 'rgba(0, 0, 0, 0.95)',
         display: 'flex',
-        alignItems: 'flex-start',
+        alignItems: 'center',
         justifyContent: 'center',
-        paddingTop: '80px',
-        zIndex: 10000,
+        zIndex: 99999,
         pointerEvents: 'auto'
       }}
       onClick={onClose}
