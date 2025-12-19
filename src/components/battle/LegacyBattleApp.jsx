@@ -1648,12 +1648,25 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     addLog(`👻 "${selectedCard.name}" 선택! 타임라인 ${insertSp}에 유령카드로 삽입.`);
 
     // 유령카드 생성 (isGhost, isFromFleche, flecheChainCount 플래그 유지)
+    // 브리치에서 선택한 카드의 원본 데이터를 CARDS에서 다시 찾아옴 (상태 저장 시 손실 방지)
+    const originalCard = CARDS.find(c => c.id === selectedCard.id) || selectedCard;
     const ghostCard = {
-      ...selectedCard,
-      isGhost: true, // 유령카드 표시
-      isFromFleche: selectedCard.isFromFleche || false,  // 플레쉬 연쇄 효과 유지
-      flecheChainCount: selectedCard.flecheChainCount || 0,  // 연쇄 카운트 유지 (최대 2)
-      createdBy: selectedCard.createdBy,  // 원본 카드 추적
+      ...originalCard,
+      // 카드 핵심 속성 명시적 복사 (스프레드 연산자 이슈 방지)
+      damage: originalCard.damage,
+      block: originalCard.block,
+      hits: originalCard.hits,
+      speedCost: originalCard.speedCost,
+      actionCost: originalCard.actionCost,
+      type: originalCard.type,
+      cardCategory: originalCard.cardCategory,
+      special: originalCard.special,
+      traits: originalCard.traits,
+      // 유령카드 플래그
+      isGhost: true,
+      isFromFleche: selectedCard.isFromFleche || false,
+      flecheChainCount: selectedCard.flecheChainCount || 0,
+      createdBy: selectedCard.createdBy,
       __uid: `ghost_${Math.random().toString(36).slice(2)}`
     };
 
@@ -2283,7 +2296,21 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
         const newActions = bonusCards.map(bonusCard => ({
           actor: 'player',
-          card: { ...bonusCard, isGhost: true, __uid: `combo_${Math.random().toString(36).slice(2)}` },
+          card: {
+            ...bonusCard,
+            // 카드 핵심 속성 명시적 복사 (손실 방지)
+            damage: bonusCard.damage,
+            block: bonusCard.block,
+            hits: bonusCard.hits,
+            speedCost: bonusCard.speedCost,
+            actionCost: bonusCard.actionCost,
+            type: bonusCard.type,
+            cardCategory: bonusCard.cardCategory,
+            special: bonusCard.special,
+            traits: bonusCard.traits,
+            isGhost: true,
+            __uid: `combo_${Math.random().toString(36).slice(2)}`
+          },
           sp: insertSp
         }));
 

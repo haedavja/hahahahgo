@@ -691,7 +691,18 @@ export function processCardCreationSpecials({
         const selectedCard = selectedCards[i];
         const newCard = {
           ...selectedCard,
-          isGhost: true, // 유령카드로 생성
+          // 카드 핵심 속성 명시적 복사 (손실 방지)
+          damage: selectedCard.damage,
+          block: selectedCard.block,
+          hits: selectedCard.hits,
+          speedCost: selectedCard.speedCost,
+          actionCost: selectedCard.actionCost,
+          type: selectedCard.type,
+          cardCategory: selectedCard.cardCategory,
+          special: selectedCard.special,
+          traits: selectedCard.traits,
+          // 유령카드 플래그
+          isGhost: true,
           createdBy: originalCardId,  // 원본 플레쉬 카드 추적
           createdId: `${selectedCard.id}_created_${Date.now()}_${i}`,
           isFromFleche: true,  // 플레쉬에서 창조된 카드 표시 (연쇄 효과용)
@@ -762,6 +773,17 @@ export function processCardPlaySpecials({
           for (let i = 0; i < count; i++) {
             bonusCards.push({
               ...basicShoot,
+              // 카드 핵심 속성 명시적 복사 (손실 방지)
+              damage: basicShoot.damage,
+              block: basicShoot.block,
+              hits: basicShoot.hits,
+              speedCost: basicShoot.speedCost,
+              actionCost: basicShoot.actionCost,
+              type: basicShoot.type,
+              cardCategory: basicShoot.cardCategory,
+              special: basicShoot.special,
+              traits: basicShoot.traits,
+              // 유령카드 플래그
               isGhost: true,
               createdBy: card.id,
               createdId: `${basicShoot.id}_cross_${Date.now()}_${i}`
