@@ -246,6 +246,15 @@ export const TOKENS = {
     description: '상대의 체력을 빼앗을 때마다 금을 10만큼 빼앗는다.',
     effect: { type: 'GOLD_ON_DAMAGE', value: 10 }
   },
+  finesse: {
+    id: 'finesse',
+    name: '기교',
+    type: TOKEN_TYPES.PERMANENT,
+    category: TOKEN_CATEGORIES.POSITIVE,
+    emoji: '✨',
+    description: '치명타 성공 시 획득. 특정 카드 사용 시 소모된다.',
+    effect: { type: 'FINESSE', value: 1 }
+  },
 
   // === 부정 토큰: 피해 증가 ===
   vulnerable: {

@@ -2243,6 +2243,18 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       }
     }
 
+    // === 치명타 발생 시 기교 토큰 부여 (플레이어만) ===
+    if (actionResult.isCritical && a.actor === 'player') {
+      const finesseResult = addToken(P, 'finesse', 1);
+      P.tokens = finesseResult.tokens;
+      addLog(`✨ 치명타! 기교 +1 획득`);
+      // battleRef 동기 업데이트
+      if (battleRef.current) {
+        battleRef.current = { ...battleRef.current, player: P };
+      }
+      actions.setPlayer({ ...P });
+    }
+
     // 이벤트 로그 출력
     actionEvents.forEach(ev => {
       if (ev.msg) addLog(ev.msg);
