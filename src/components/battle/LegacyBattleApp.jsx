@@ -31,7 +31,7 @@ import { sortCombinedOrderStablePF, addEther } from "./utils/combatUtils";
 import { createFixedOrder } from "./utils/cardOrdering";
 import { decideEnemyMode, generateEnemyActions, shouldEnemyOverdrive } from "./utils/enemyAI";
 import { simulatePreview } from "./utils/battleSimulation";
-import { applyAction, prepareMultiHitAttack, calculateSingleHit, finalizeMultiHitAttack } from "./logic/combatActions";
+import { applyAction, prepareMultiHitAttack, calculateSingleHit, finalizeMultiHitAttack, rollCritical } from "./logic/combatActions";
 import { drawCharacterBuildHand, initializeDeck, drawFromDeck, shuffleArray } from "./utils/handGeneration";
 import { calculateEffectiveInsight, getInsightRevealLevel, playInsightSound } from "./utils/insightSystem";
 import { computeComboMultiplier as computeComboMultiplierUtil, explainComboMultiplier as explainComboMultiplierUtil } from "./utils/comboMultiplier";
@@ -1911,15 +1911,19 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   // stepOnce를 ref에 저장 (브리치 선택 후 진행 재개용)
   stepOnceRef.current = stepOnce;
 
-  // 다중 타격 비동기 실행 (딜레이 + 타격별 룰렛 체크)
+  // 다중 타격 비동기 실행 (딜레이 + 타격별 룰렛 체크 + 타격별 치명타 판정)
   const executeMultiHitAsync = async (card, attacker, defender, attackerName, battleContext, onHitCallback) => {
     const isGunCard = card.cardCategory === 'gun' && card.type === 'attack';
     const ghostLabel = card.isGhost ? ' [👻유령]' : '';
 
     // 첫 타격 준비 (치명타 판정, preProcessedResult 획득)
     const prepResult = prepareMultiHitAttack(attacker, defender, card, attackerName, battleContext);
-    let { hits, isCritical, preProcessedResult, modifiedCard, currentAttacker, currentDefender } = prepResult;
+    let { hits, firstHitCritical, preProcessedResult, modifiedCard, currentAttacker, currentDefender, attackerRemainingEnergy } = prepResult;
     const firstHitResult = prepResult.firstHitResult;
+
+    // 치명타 추적 (타격별 개별 판정)
+    const criticalHits = [firstHitCritical];  // 각 타격의 치명타 여부 배열
+    let totalCritCount = firstHitCritical ? 1 : 0;
 
     let totalDealt = firstHitResult.damage;
     let totalTaken = firstHitResult.damageTaken || 0;
@@ -1937,10 +1941,10 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       currentAttacker = rouletteResult.updatedAttacker;
       if (rouletteResult.jammed) {
         // 첫 타격에서 탄걸림! 남은 타격 취소
-        const finalResult = finalizeMultiHitAttack(modifiedCard, currentAttacker, currentDefender, attackerName, totalDealt, totalBlockDestroyed, { ...battleContext, isCritical });
+        const finalResult = finalizeMultiHitAttack(modifiedCard, currentAttacker, currentDefender, attackerName, totalDealt, totalBlockDestroyed, { ...battleContext, isCritical: totalCritCount > 0 });
         const who = attackerName === 'player' ? '플레이어 -> 몬스터' : '몬스터 -> 플레이어';
         const perHitDmg = firstHitResult.damage;
-        const critText = isCritical ? ' 💥치명타!' : '';
+        const critText = firstHitCritical ? ' 💥치명타!' : '';
         const jamMsg = hits > 1
           ? `${who} • 🔫 ${card.name}${ghostLabel}: ${perHitDmg}x1 = ${totalDealt}${critText} 데미지 (탄걸림! ${hits - 1}회 취소)`
           : `${who} • 🔫 ${card.name}${ghostLabel}: ${totalDealt}${critText} 데미지 (탄걸림!)`;
@@ -1953,7 +1957,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
           taken: totalTaken,
           events: [...allEvents, ...finalResult.events],
           logs: [jamMsg],
-          isCritical,
+          isCritical: totalCritCount > 0,
+          criticalHits: totalCritCount,
           jammed: true,
           hitsCompleted: 1,
           totalHits: hits,
@@ -1972,8 +1977,13 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       // 딜레이
       await new Promise(resolve => setTimeout(resolve, TIMING.MULTI_HIT_DELAY));
 
+      // 타격별 치명타 판정
+      const hitCritical = rollCritical(currentAttacker, attackerRemainingEnergy);
+      criticalHits.push(hitCritical);
+      if (hitCritical) totalCritCount++;
+
       // 타격 실행
-      const hitResult = calculateSingleHit(currentAttacker, currentDefender, card, attackerName, battleContext, isCritical, preProcessedResult);
+      const hitResult = calculateSingleHit(currentAttacker, currentDefender, card, attackerName, battleContext, hitCritical, preProcessedResult);
       currentAttacker = hitResult.attacker;
       currentDefender = hitResult.defender;
       totalDealt += hitResult.damage;
@@ -1995,12 +2005,12 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         currentAttacker = rouletteResult.updatedAttacker;
         if (rouletteResult.jammed && i < hits - 1) {
           // 탄걸림! 남은 타격 취소 - 요약 로그에 포함
-          const finalResult = finalizeMultiHitAttack(modifiedCard, currentAttacker, currentDefender, attackerName, totalDealt, totalBlockDestroyed, { ...battleContext, isCritical });
+          const finalResult = finalizeMultiHitAttack(modifiedCard, currentAttacker, currentDefender, attackerName, totalDealt, totalBlockDestroyed, { ...battleContext, isCritical: totalCritCount > 0 });
           // 탄걸림 요약 로그
           const who = attackerName === 'player' ? '플레이어 -> 몬스터' : '몬스터 -> 플레이어';
           const perHitDmg = firstHitResult.damage;
-          const critText = isCritical ? ' 💥치명타!' : '';
           const actualHits = i + 1;
+          const critText = totalCritCount > 0 ? ` 💥치명타x${totalCritCount}!` : '';
           const jamMsg = `${who} • 🔫 ${card.name}${ghostLabel}: ${perHitDmg}x${actualHits} = ${totalDealt}${critText} 데미지 (탄걸림! ${hits - actualHits}회 취소)`;
           allEvents.push({ actor: attackerName, card: card.name, type: 'multihit', msg: jamMsg, dmg: totalDealt });
 
@@ -2011,7 +2021,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
             taken: totalTaken,
             events: [...allEvents, ...finalResult.events],
             logs: [...allLogs, jamMsg],
-            isCritical,
+            isCritical: totalCritCount > 0,
+            criticalHits: totalCritCount,
             jammed: true,
             hitsCompleted: actualHits,
             totalHits: hits,
@@ -2024,7 +2035,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     // 총합 로그 (타격데미지x타격횟수 형식)
     const who = attackerName === 'player' ? '플레이어 -> 몬스터' : '몬스터 -> 플레이어';
     const perHitDmg = firstHitResult.damage;
-    const critText = isCritical ? ' 💥치명타!' : '';
+    // 치명타 표시: 개별 표시 (예: 💥x2)
+    const critText = totalCritCount > 0 ? ` 💥치명타x${totalCritCount}!` : '';
     const icon = isGunCard ? '🔫' : '🔥';
     if (hits > 1) {
       const multiHitMsg = `${who} • ${icon} ${card.name}${ghostLabel}: ${perHitDmg}x${hits} = ${totalDealt}${critText} 데미지!`;
@@ -2032,13 +2044,14 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       allLogs.push(multiHitMsg);
     } else {
       // 단일 타격 총기 공격
-      const singleHitMsg = `${who} • ${icon} ${card.name}${ghostLabel}: ${totalDealt}${critText} 데미지`;
+      const singleCritText = totalCritCount > 0 ? ' 💥치명타!' : '';
+      const singleHitMsg = `${who} • ${icon} ${card.name}${ghostLabel}: ${totalDealt}${singleCritText} 데미지`;
       allEvents.push({ actor: attackerName, card: card.name, type: 'hit', msg: singleHitMsg, dmg: totalDealt });
       allLogs.push(singleHitMsg);
     }
 
     // 후처리 (화상 부여 등)
-    const finalResult = finalizeMultiHitAttack(modifiedCard, currentAttacker, currentDefender, attackerName, totalDealt, totalBlockDestroyed, { ...battleContext, isCritical });
+    const finalResult = finalizeMultiHitAttack(modifiedCard, currentAttacker, currentDefender, attackerName, totalDealt, totalBlockDestroyed, { ...battleContext, isCritical: totalCritCount > 0 });
 
     return {
       attacker: finalResult.attacker,
@@ -2047,7 +2060,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       taken: totalTaken,
       events: [...allEvents, ...finalResult.events],
       logs: [...allLogs, ...finalResult.logs],
-      isCritical,
+      isCritical: totalCritCount > 0,
+      criticalHits: totalCritCount,
       jammed: false,
       hitsCompleted: hits,
       totalHits: hits,
@@ -2211,6 +2225,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         taken: multiHitResult.taken,
         events: actionEvents,
         isCritical: multiHitResult.isCritical,
+        criticalHits: multiHitResult.criticalHits,  // 다단 공격 치명타 횟수
         createdCards: multiHitResult.createdCards,
         updatedState: { player: P, enemy: E, log: [] },
         cardPlaySpecials: cardPlayResult
@@ -2244,10 +2259,12 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     }
 
     // === 치명타 발생 시 기교 토큰 부여 (플레이어만) ===
+    // 다단 공격의 경우 치명타 횟수만큼 부여, 단일 공격은 1회
     if (actionResult.isCritical && a.actor === 'player') {
-      const finesseResult = addToken(P, 'finesse', 1);
+      const critCount = actionResult.criticalHits || 1;  // multiHitResult.criticalHits or 1 for single
+      const finesseResult = addToken(P, 'finesse', critCount);
       P.tokens = finesseResult.tokens;
-      addLog(`✨ 치명타! 기교 +1 획득`);
+      addLog(`✨ 치명타! 기교 +${critCount} 획득`);
       // battleRef 동기 업데이트
       if (battleRef.current) {
         battleRef.current = { ...battleRef.current, player: P };

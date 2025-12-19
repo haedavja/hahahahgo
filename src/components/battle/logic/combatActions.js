@@ -586,20 +586,20 @@ export function applyAttack(attacker, defender, card, attackerName, battleContex
 /**
  * 다중 타격 공격 준비 (비동기 처리용)
  * 첫 타격을 실행하고, 후속 타격에 필요한 데이터를 반환
- * @returns {Object} - { hits, isCritical, preProcessedResult, modifiedCard, firstHitResult, currentAttacker, currentDefender }
+ * @returns {Object} - { hits, firstHitCritical, preProcessedResult, modifiedCard, firstHitResult, currentAttacker, currentDefender, attackerRemainingEnergy }
  */
 export function prepareMultiHitAttack(attacker, defender, card, attackerName, battleContext = {}) {
   const currentAttacker = { ...attacker };
   const currentDefender = { ...defender };
 
-  // 치명타 판정 (카드당 1번만 롤)
+  // 치명타 판정 (타격당 개별 롤 - 첫 타격)
   const attackerRemainingEnergy = attackerName === 'player'
     ? (battleContext.remainingEnergy || 0)
     : (battleContext.enemyRemainingEnergy || 0);
-  const isCritical = rollCritical(currentAttacker, attackerRemainingEnergy);
+  const firstHitCritical = rollCritical(currentAttacker, attackerRemainingEnergy);
 
   // 첫 타격 실행하여 preProcessedResult 획득
-  const firstHitResult = calculateSingleHit(currentAttacker, currentDefender, card, attackerName, battleContext, isCritical, null);
+  const firstHitResult = calculateSingleHit(currentAttacker, currentDefender, card, attackerName, battleContext, firstHitCritical, null);
 
   const preProcessedResult = firstHitResult.preProcessedResult;
   const modifiedCard = preProcessedResult?.modifiedCard || card;
@@ -607,12 +607,13 @@ export function prepareMultiHitAttack(attacker, defender, card, attackerName, ba
 
   return {
     hits,
-    isCritical,
+    firstHitCritical,
     preProcessedResult,
     modifiedCard,
     firstHitResult,
     currentAttacker: firstHitResult.attacker,
-    currentDefender: firstHitResult.defender
+    currentDefender: firstHitResult.defender,
+    attackerRemainingEnergy  // 후속 타격 치명타 판정용
   };
 }
 
@@ -780,3 +781,6 @@ export function applyAction(state, actor, card, battleContext = {}) {
     updatedState: state
   };
 }
+
+// 외부에서 사용할 수 있도록 rollCritical 재-export
+export { rollCritical } from '../utils/cardSpecialEffects';
