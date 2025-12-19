@@ -100,7 +100,7 @@ export const CARDS = [
   {
     id: "marche",
     name: "마르쉐",
-    type: "defense",
+    type: "general",
     block: 5,
     speedCost: 6,
     actionCost: 1,
@@ -209,7 +209,7 @@ export const CARDS = [
   {
     id: "defensive_stance",
     name: "프로나시옹",
-    type: "defense",
+    type: "general",
     block: 0,
     speedCost: 3,
     actionCost: 2,
@@ -238,7 +238,7 @@ export const CARDS = [
   {
     id: "redoublement",
     name: "르두블망",
-    type: "defense",
+    type: "general",
     block: 6,
     speedCost: 8,
     actionCost: 1,
@@ -336,7 +336,7 @@ export const CARDS = [
   {
     id: "ap_load",
     name: "철갑탄 장전",
-    type: "defense",
+    type: "general",
     block: 0,
     speedCost: 2,
     actionCost: 1,
@@ -355,7 +355,7 @@ export const CARDS = [
   {
     id: "incendiary_load",
     name: "소이탄 장전",
-    type: "defense",
+    type: "general",
     block: 0,
     speedCost: 2,
     actionCost: 1,
@@ -374,7 +374,7 @@ export const CARDS = [
   {
     id: "reload",
     name: "전술장전",
-    type: "defense",
+    type: "general",
     block: 5,
     speedCost: 2,
     actionCost: 0,
@@ -391,7 +391,7 @@ export const CARDS = [
   {
     id: "hawks_eye",
     name: "매의 눈",
-    type: "defense",
+    type: "general",
     block: 0,
     speedCost: 3,
     actionCost: 2,
@@ -447,7 +447,7 @@ export const CARDS = [
   {
     id: "long_draw",
     name: "롱빼",
-    type: "defense",
+    type: "general",
     block: 7,
     speedCost: 6,
     actionCost: 1,
@@ -459,7 +459,7 @@ export const CARDS = [
   {
     id: "mental_focus",
     name: "정신집중",
-    type: "defense",
+    type: "general",
     block: 0,
     speedCost: 1,
     actionCost: 2,
@@ -473,7 +473,7 @@ export const CARDS = [
   {
     id: "deflect",
     name: "빠라드",
-    type: "defense",
+    type: "general",
     block: 8,
     speedCost: 3,
     actionCost: 1,
@@ -489,7 +489,7 @@ export const CARDS = [
   {
     id: "breach",
     name: "브리치",
-    type: "defense",
+    type: "general",
     block: 5,
     speedCost: 5,
     actionCost: 2,
@@ -502,7 +502,7 @@ export const CARDS = [
   {
     id: "octave",
     name: "옥타브",
-    type: "defense",
+    type: "general",
     block: 12,
     speedCost: 5,
     actionCost: 1,
@@ -515,7 +515,7 @@ export const CARDS = [
   {
     id: "quarte",
     name: "꺄르트",
-    type: "defense",
+    type: "general",
     block: 7,
     speedCost: 5,
     actionCost: 1,
@@ -529,7 +529,7 @@ export const CARDS = [
   {
     id: "septime",
     name: "셉팀",
-    type: "defense",
+    type: "general",
     block: 3,
     speedCost: 2,
     actionCost: 1,
@@ -584,7 +584,7 @@ export const CARDS = [
   {
     id: "shout",
     name: "함성",
-    type: "utility",
+    type: "special",
     speedCost: 1,
     actionCost: 1,
     iconKey: "star",
@@ -595,7 +595,7 @@ export const CARDS = [
   {
     id: "emergency_response",
     name: "비상대응",
-    type: "utility",
+    type: "special",
     speedCost: 3,
     actionCost: 1,
     iconKey: "star",
@@ -609,17 +609,17 @@ export const ENEMY_CARDS = [
   // 기본 카드
   { id: "e1", name: "Attack", type: "attack", damage: 13, speedCost: 3, actionCost: 1, iconKey: "sword" },
   { id: "e2", name: "Heavy", type: "attack", damage: 36, speedCost: 8, actionCost: 2, iconKey: "flame" },
-  { id: "e3", name: "Guard", type: "defense", block: 12, speedCost: 2, actionCost: 1, iconKey: "shield" },
+  { id: "e3", name: "Guard", type: "general", block: 12, speedCost: 2, actionCost: 1, iconKey: "shield" },
   { id: "e4", name: "Strike", type: "attack", damage: 15, speedCost: 5, actionCost: 1, iconKey: "sword" },
-  { id: "e5", name: "Defense", type: "defense", block: 16, speedCost: 6, actionCost: 1, iconKey: "shield" },
-  { id: "e6", name: "Barrier", type: "defense", block: 38, speedCost: 9, actionCost: 2, iconKey: "shield" },
+  { id: "e5", name: "Defense", type: "general", block: 16, speedCost: 6, actionCost: 1, iconKey: "shield" },
+  { id: "e6", name: "Barrier", type: "general", block: 38, speedCost: 9, actionCost: 2, iconKey: "shield" },
 
   // 새로운 적 카드
   { id: "e7", name: "Quick Jab", type: "attack", damage: 8, speedCost: 1, actionCost: 1, iconKey: "sword" },      // 빠른 공격
   { id: "e8", name: "Poison Spit", type: "attack", damage: 10, speedCost: 4, actionCost: 1, iconKey: "skull", poison: 3 },  // 독 공격
   { id: "e9", name: "Leech", type: "attack", damage: 12, speedCost: 5, actionCost: 1, iconKey: "heart", lifesteal: 0.5 },   // 흡혈
   { id: "e10", name: "Frenzy", type: "attack", damage: 20, speedCost: 6, actionCost: 1, iconKey: "flame", selfDamage: 5 }, // 광란 (자해)
-  { id: "e11", name: "Shell Up", type: "defense", block: 25, speedCost: 4, actionCost: 1, iconKey: "shield", thorns: 3 },   // 가시 방어
+  { id: "e11", name: "Shell Up", type: "general", block: 25, speedCost: 4, actionCost: 1, iconKey: "shield", thorns: 3 },   // 가시 방어
   { id: "e12", name: "Rage", type: "buff", speedCost: 3, actionCost: 1, iconKey: "flame", enrage: 1.5 },           // 분노 버프
   { id: "e13", name: "Summon", type: "special", speedCost: 7, actionCost: 2, iconKey: "skull", summon: 'minion' }, // 소환
   { id: "e14", name: "Blast", type: "attack", damage: 25, speedCost: 7, actionCost: 2, iconKey: "flame", aoe: true }, // 광역기

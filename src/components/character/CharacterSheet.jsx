@@ -70,9 +70,9 @@ export function CharacterSheet({ onClose, showAllCards = false }) {
   const power = playerStrength || 0;
   const agility = playerAgility || 0;
 
-  // 슬롯 제한 (상징 효과 반영)
-  const maxMainSlots = 3 + passiveEffects.mainSpecialSlots;
-  const maxSubSlots = 5 + passiveEffects.subSpecialSlots + extraSubSpecialSlots;
+  // 슬롯 제한 (상징 효과 반영) - 기본: 주특기 1개, 보조특기 2개
+  const maxMainSlots = 1 + passiveEffects.mainSpecialSlots;
+  const maxSubSlots = 2 + passiveEffects.subSpecialSlots + extraSubSpecialSlots;
 
   const traitCounts = useMemo(() => {
     return (playerTraits || []).reduce((acc, t) => {

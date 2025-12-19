@@ -1302,11 +1302,11 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         return bValue - aValue;
       });
     } else if (sortType === 'type') {
-      // 공격 -> 방어 -> 기타 순서로 정렬
-      const typeOrder = { 'attack': 0, 'defense': 1 };
+      // 공격 -> 범용 -> 특수 순서로 정렬
+      const typeOrder = { 'attack': 0, 'general': 1, 'special': 2 };
       sorted.sort((a, b) => {
-        const aOrder = typeOrder[a.type] ?? 2;
-        const bOrder = typeOrder[b.type] ?? 2;
+        const aOrder = typeOrder[a.type] ?? 3;
+        const bOrder = typeOrder[b.type] ?? 3;
         return aOrder - bOrder;
       });
     }
@@ -1704,15 +1704,10 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
   // 카드 보상 선택 처리 (승리 후)
   const handleRewardSelect = useCallback((selectedCard, idx) => {
-    addLog(`🎁 "${selectedCard.name}" 획득!`);
+    addLog(`🎁 "${selectedCard.name}" 획득! (대기 카드에 추가됨)`);
 
-    // 선택한 카드를 subSpecials에 추가 (Zustand 스토어 업데이트)
-    const currentBuild = useGameStore.getState().characterBuild;
-    const newSubSpecials = [...(currentBuild?.subSpecials || []), selectedCard.id];
-    useGameStore.getState().updateCharacterBuild(
-      currentBuild?.mainSpecials || [],
-      newSubSpecials
-    );
+    // 선택한 카드를 대기 카드(ownedCards)에 추가 (Zustand 스토어 업데이트)
+    useGameStore.getState().addOwnedCard(selectedCard.id);
 
     // 모달 닫기 및 post 페이즈로 전환
     setCardReward(null);
@@ -1755,8 +1750,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
   // 승리 시 카드 보상 모달 표시
   const showCardRewardModal = useCallback(() => {
-    // 공격/방어 카드 중 랜덤 3장 선택
-    const cardPool = CARDS.filter(c => (c.type === 'attack' || c.type === 'defense'));
+    // 공격/범용/특수 카드 중 랜덤 3장 선택
+    const cardPool = CARDS.filter(c => (c.type === 'attack' || c.type === 'general' || c.type === 'special'));
     const shuffled = [...cardPool].sort(() => Math.random() - 0.5);
     const rewardCards = shuffled.slice(0, 3);
 
@@ -2591,8 +2586,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
     // 브리치(breach) 효과 처리: 랜덤 카드 3장 생성 후 선택 대기
     if (a.card.special === 'breach' && a.actor === 'player') {
-      // 공격/방어 카드 중 랜덤 3장 선택
-      const cardPool = CARDS.filter(c => (c.type === 'attack' || c.type === 'defense') && c.id !== 'breach');
+      // 공격/범용/특수 카드 중 랜덤 3장 선택
+      const cardPool = CARDS.filter(c => (c.type === 'attack' || c.type === 'general' || c.type === 'special') && c.id !== 'breach');
       const shuffled = [...cardPool].sort(() => Math.random() - 0.5);
       const breachCards = shuffled.slice(0, 3);
 

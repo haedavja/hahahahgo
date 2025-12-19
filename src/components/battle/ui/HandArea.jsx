@@ -22,6 +22,13 @@ const X = ({ size = 24, className = "", strokeWidth = 2 }) => (
   </svg>
 );
 
+// 카드 타입에 따른 CSS 클래스 반환 (공격/범용/특수)
+const getCardTypeClass = (type) => {
+  if (type === 'attack') return 'attack';
+  if (type === 'special') return 'special';
+  return 'general'; // 기본값은 범용(general)
+};
+
 // 팝업용 카드 컴포넌트 (호버 시 툴팁 표시)
 const PopupCard = ({ card, count, currentBuild }) => {
   const [showTooltip, setShowTooltip] = useState(false);
@@ -48,7 +55,7 @@ const PopupCard = ({ card, count, currentBuild }) => {
       {/* 카드를 pointerEvents: none으로 감싸서 CSS 호버 완전 차단 */}
       <div style={{ pointerEvents: 'none' }}>
         <div
-          className={`game-card-large ${card.type === 'attack' ? 'attack' : 'defense'}`}
+          className={`game-card-large ${getCardTypeClass(card.type)}`}
           style={{ cursor: 'default' }}
         >
           <div className="card-cost-badge-floating" style={{ color: costColor, WebkitTextStroke: '1px #000' }}>
@@ -411,7 +418,7 @@ export const HandArea = ({
                   style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center', cursor: disabled ? 'not-allowed' : 'pointer', position: 'relative', marginLeft: idx === 0 ? '0' : '-20px' }}
                 >
                   <div
-                    className={`game-card-large select-phase-card ${c.type === 'attack' ? 'attack' : 'defense'} ${sel ? 'selected' : ''} ${disabled ? 'disabled' : ''}`}
+                    className={`game-card-large select-phase-card ${getCardTypeClass(c.type)} ${sel ? 'selected' : ''} ${disabled ? 'disabled' : ''}`}
                     style={cooperationActive ? {
                       boxShadow: '0 0 20px 4px rgba(34, 197, 94, 0.8), 0 0 40px 8px rgba(34, 197, 94, 0.4)',
                       border: '3px solid #22c55e'
@@ -465,7 +472,7 @@ export const HandArea = ({
                 onMouseLeave={hideCardTraitTooltip}
                 style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center', position: 'relative', marginLeft: idx === 0 ? '0' : '-20px' }}
               >
-                <div className={`game-card-large respond-phase-card ${c.type === 'attack' ? 'attack' : 'defense'}`}>
+                <div className={`game-card-large respond-phase-card ${getCardTypeClass(c.type)}`}>
                   <div className="card-cost-badge-floating" style={{ color: costColor, WebkitTextStroke: '1px #000' }}>{c.actionCost}</div>
                   <CardStatsSidebar card={c} strengthBonus={player.strength || 0} formatSpeedText={formatSpeedText} />
                   <div className="card-header" style={{ display: 'flex', justifyContent: 'center' }}>
@@ -536,7 +543,7 @@ export const HandArea = ({
                   transition: 'opacity 0.3s ease, filter 0.3s ease'
                 }}
               >
-                <div className={`game-card-large resolve-phase-card ${a.card.type === 'attack' ? 'attack' : 'defense'} ${isUsed ? 'card-used' : ''}`}>
+                <div className={`game-card-large resolve-phase-card ${getCardTypeClass(a.card.type)} ${isUsed ? 'card-used' : ''}`}>
                   <div className="card-cost-badge-floating" style={{ color: costColor, WebkitTextStroke: '1px #000' }}>{a.card.actionCost}</div>
                   <CardStatsSidebar card={a.card} strengthBonus={player.strength || 0} showCounter={true} formatSpeedText={formatSpeedText} />
                   <div className="card-header" style={{ display: 'flex', justifyContent: 'center' }}>
