@@ -325,13 +325,14 @@ export const CARDS = [
     name: "가이러스 룰렛",
     type: "attack",
     damage: 8,
-    speedCost: 6,
+    speedCost: 4,
     actionCost: 1,
     iconKey: "flame",
-    description: "남은 행동력에 비례해 사격을 실행한다. 50% 확률로 행동력당 2번 사격한다.",
+    description: "기교 1 소모. 남은 행동력에 비례해 사격을 실행한다. 50% 확률로 행동력당 2번 사격한다.",
     traits: [],
     special: "gyrusRoulette",
-    cardCategory: "gun"
+    cardCategory: "gun",
+    requiredTokens: [{ id: 'finesse', stacks: 1 }]
   },
   {
     id: "ap_load",

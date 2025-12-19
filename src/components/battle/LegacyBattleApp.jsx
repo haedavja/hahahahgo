@@ -1162,6 +1162,35 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     });
   }, [currentCombo, selected?.length, player.comboUsageCount]);
 
+  // 카드의 requiredTokens 요구사항 체크
+  const checkRequiredTokens = (card, currentSelected) => {
+    if (!card.requiredTokens || card.requiredTokens.length === 0) return { ok: true };
+
+    const playerTokens = getAllTokens(player);
+
+    for (const req of card.requiredTokens) {
+      // 이미 선택된 카드들이 소모하는 해당 토큰 수 계산
+      const alreadyReserved = currentSelected.reduce((sum, c) => {
+        if (!c.requiredTokens) return sum;
+        const sameReq = c.requiredTokens.find(r => r.id === req.id);
+        return sum + (sameReq ? sameReq.stacks : 0);
+      }, 0);
+
+      // 플레이어가 보유한 해당 토큰 수
+      const playerToken = playerTokens.find(t => t.id === req.id);
+      const playerStacks = playerToken?.stacks || 0;
+
+      // 사용 가능한 토큰 수 = 보유량 - 이미 선택된 카드가 요구하는 양
+      const available = playerStacks - alreadyReserved;
+
+      if (available < req.stacks) {
+        const tokenName = playerToken?.name || req.id;
+        return { ok: false, message: `⚠️ ${tokenName} 부족 (필요: ${req.stacks}, 사용 가능: ${available})` };
+      }
+    }
+    return { ok: true };
+  };
+
   const toggle = (card) => {
     if (battle.phase !== 'select' && battle.phase !== 'respond') return;
     // __handUid 또는 __uid로 개별 카드 식별
@@ -1178,6 +1207,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         if (selected.length >= effectiveMaxSubmitCards) { addLog(`⚠️ 최대 ${effectiveMaxSubmitCards}장의 카드만 제출할 수 있습니다`); return; }
         if (totalSpeed + cardSpeed > player.maxSpeed) { addLog('⚠️ 속도 초과'); return; }
         if (totalEnergy + card.actionCost > player.maxEnergy) { addLog('⚠️ 행동력 부족'); return; }
+        // requiredTokens 체크
+        const tokenCheck = checkRequiredTokens(card, selected);
+        if (!tokenCheck.ok) { addLog(tokenCheck.message); return; }
         next = [...selected, { ...card, __uid: card.__handUid || Math.random().toString(36).slice(2) }];
         playSound(800, 80); // 선택 사운드 (높은 음)
       }
@@ -1197,6 +1229,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     if (battle.selected.length >= effectiveMaxSubmitCards) return addLog(`⚠️ 최대 ${effectiveMaxSubmitCards}장의 카드만 제출할 수 있습니다`);
     if (totalSpeed + cardSpeed > player.maxSpeed) return addLog('⚠️ 속도 초과');
     if (totalEnergy + card.actionCost > player.maxEnergy) return addLog('⚠️ 행동력 부족');
+    // requiredTokens 체크
+    const tokenCheck = checkRequiredTokens(card, selected);
+    if (!tokenCheck.ok) return addLog(tokenCheck.message);
     actions.setSelected([...selected, { ...card, __uid: card.__handUid || Math.random().toString(36).slice(2) }]);
     playSound(800, 80); // 선택 사운드 (높은 음)
   };
@@ -2138,6 +2173,21 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       usedCardCategories,  // comboStyle용: 이번 턴에 사용된 카드 카테고리
       hand: currentBattle.hand || []  // autoReload용: 현재 손패
     };
+
+    // === requiredTokens 소모 (카드 실행 전) ===
+    if (a.actor === 'player' && a.card.requiredTokens && a.card.requiredTokens.length > 0) {
+      for (const req of a.card.requiredTokens) {
+        const tokenRemoveResult = removeToken(P, req.id, 'permanent', req.stacks);
+        P = { ...P, tokens: tokenRemoveResult.tokens };
+        addLog(`✨ ${req.id === 'finesse' ? '기교' : req.id} -${req.stacks} 소모`);
+      }
+      // tempState, battleRef 동기 업데이트
+      tempState.player = P;
+      if (battleRef.current) {
+        battleRef.current = { ...battleRef.current, player: P };
+      }
+      actions.setPlayer({ ...P });
+    }
 
     // 다중 타격 또는 총기 공격: 비동기 처리 (딜레이 + 타격별 룰렛)
     const isAttackCard = a.card.type === 'attack';
