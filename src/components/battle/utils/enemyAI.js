@@ -98,9 +98,9 @@ export function generateEnemyActions(enemy, mode, enemyEtherSlots = 0, maxCards 
 
   function stat(list) {
     const atk = list.filter(c => c.type === 'attack').reduce((a, c) => a + c.actionCost, 0);
-    const def = list.filter(c => c.type === 'defense').reduce((a, c) => a + c.actionCost, 0);
+    const def = list.filter(c => c.type === 'general' || c.type === 'defense').reduce((a, c) => a + c.actionCost, 0);
     const dmg = list.filter(c => c.type === 'attack').reduce((a, c) => a + (c.damage || 0) * (c.hits || 1), 0);
-    const blk = list.filter(c => c.type === 'defense').reduce((a, c) => a + (c.block || 0), 0);
+    const blk = list.filter(c => c.type === 'general' || c.type === 'defense').reduce((a, c) => a + (c.block || 0), 0);
     const sp = list.reduce((a, c) => a + c.speedCost, 0);
     const en = list.reduce((a, c) => a + c.actionCost, 0);
     return { atk, def, dmg, blk, sp, en };

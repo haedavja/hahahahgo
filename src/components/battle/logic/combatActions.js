@@ -665,7 +665,7 @@ export function applyAction(state, actor, card, battleContext = {}) {
   let result;
   let updatedActor = A;
 
-  if (card.type === 'defense') {
+  if (card.type === 'general' || card.type === 'defense') {
     result = applyDefense(A, card, actor, battleContext);
     updatedActor = result.actor;
     let updatedOpponent = B;

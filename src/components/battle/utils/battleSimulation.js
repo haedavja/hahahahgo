@@ -19,7 +19,7 @@ export function applyAction(state, actor, card) {
   const B = actor === 'player' ? state.enemy : state.player;
   const events = [];
 
-  if (card.type === 'defense') {
+  if (card.type === 'general' || card.type === 'defense') {
     const prev = A.block || 0;
     const strengthBonus = A.strength || 0;
     const added = (card.block || 0) + strengthBonus;

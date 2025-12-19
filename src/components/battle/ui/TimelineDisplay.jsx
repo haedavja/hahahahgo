@@ -222,7 +222,7 @@ export const TimelineDisplay = ({
                   const effectiveStrengthBonus = a.card.ignoreStrength ? 0 : strengthBonus;
                   const num = a.card.type === 'attack'
                     ? (a.card.damage + strengthBonus) * (a.card.hits || 1)
-                    : a.card.type === 'defense'
+                    : (a.card.type === 'general' || a.card.type === 'defense')
                       ? (a.card.block || 0) + effectiveStrengthBonus + growingDefenseBonus
                       : 0;
                   const globalIndex = battle.phase === 'resolve' && queue ? queue.findIndex(q => q === a) : -1;

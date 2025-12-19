@@ -33,7 +33,7 @@ export function detectPokerCombo(cards) {
   const keysByCount = (n) => new Set(Array.from(freq.entries()).filter(([k, v]) => v === n).map(([k]) => Number(k)));
 
   const allAttack = validCards.every(c => c.type === 'attack');
-  const allDefense = validCards.every(c => c.type === 'defense');
+  const allDefense = validCards.every(c => c.type === 'general' || c.type === 'defense');
   const isFlush = (allAttack || allDefense) && validCards.length >= 4;
 
   let result = null;

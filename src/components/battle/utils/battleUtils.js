@@ -95,7 +95,7 @@ export function applyStrengthToCard(card, strength = 0, isPlayerCard = true) {
   }
 
   // 방어 카드: 힘 1당 방어력 +1 (음수 허용, 최소 0)
-  if (modifiedCard.block && modifiedCard.type === 'defense') {
+  if (modifiedCard.block && (modifiedCard.type === 'general' || modifiedCard.type === 'defense')) {
     modifiedCard.block = Math.max(0, modifiedCard.block + strength);
   }
 
