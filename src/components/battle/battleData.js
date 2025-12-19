@@ -433,18 +433,6 @@ export const CARDS = [
     // loaded 토큰은 processPreAttackSpecials에서 처리 (빈탄창 상쇄)
   },
   {
-    id: "combo_style",
-    name: "연계",
-    type: "attack",
-    damage: 15,
-    speedCost: 5,
-    actionCost: 2,
-    iconKey: "sword",
-    description: "이번 턴 검격을 냈으면 추가 총격, 총격을 냈으면 추가 검격.",
-    traits: [],
-    special: "comboStyle"
-  },
-  {
     id: "long_draw",
     name: "롱빼",
     type: "general",
@@ -454,6 +442,7 @@ export const CARDS = [
     iconKey: "shield",
     description: "방어력 7. 손패에 장전카드가 있으면 자동으로 장전한다.",
     traits: [],
+    cardCategory: "fencing",
     special: "autoReload"
   },
   {
@@ -584,7 +573,8 @@ export const CARDS = [
   {
     id: "shout",
     name: "함성",
-    type: "special",
+    type: "general",
+    block: 0,
     speedCost: 1,
     actionCost: 1,
     iconKey: "star",
@@ -595,7 +585,8 @@ export const CARDS = [
   {
     id: "emergency_response",
     name: "비상대응",
-    type: "special",
+    type: "general",
+    block: 0,
     speedCost: 3,
     actionCost: 1,
     iconKey: "star",
