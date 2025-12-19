@@ -6,6 +6,7 @@
  */
 
 import { addToken, removeToken, getAllTokens, setTokenStacks } from '../../../lib/tokenUtils';
+import { TOKENS, TOKEN_CATEGORIES } from '../../../data/tokens';
 
 /**
  * 카드의 special 효과 존재 여부 확인 (배열 지원)
@@ -878,6 +879,60 @@ export function processCardPlaySpecials({
       const msg = `${who} • ❌ ${card.name}: 손패가 6장 초과! 효과 없음`;
       events.push({ actor: attackerName, card: card.name, type: 'special', msg });
       logs.push(msg);
+    }
+  }
+
+  // === stance: 스탠스 - 부정 토큰 제거 + 이전 카드에 따라 토큰 부여 ===
+  if (hasSpecial(card, 'stance')) {
+    const { queue = [], currentQIndex = 0 } = battleContext;
+    const who = attackerName === 'player' ? '플레이어' : '몬스터';
+    const grantedAt = battleContext.currentTurn ? { turn: battleContext.currentTurn, sp: battleContext.currentSp || 0 } : null;
+
+    // 이전 내 카드 찾기 (같은 actor의 이전 카드)
+    let previousCard = null;
+    for (let i = currentQIndex - 1; i >= 0; i--) {
+      if (queue[i]?.actor === attackerName) {
+        previousCard = queue[i].card;
+        break;
+      }
+    }
+
+    // 이전 카드 카테고리에 따라 토큰 부여
+    if (previousCard) {
+      if (previousCard.cardCategory === 'gun') {
+        // 총격 → 연계 (공세 획득)
+        tokensToAdd.push({ id: 'offense', stacks: 1, grantedAt });
+        const msg = `${who} • ⚔️ ${card.name}: 이전 총격! 공세 획득!`;
+        events.push({ actor: attackerName, card: card.name, type: 'special', msg });
+        logs.push(msg);
+      } else if (previousCard.cardCategory === 'fencing') {
+        // 검격 → 장전
+        tokensToAdd.push({ id: 'loaded', stacks: 1, grantedAt });
+        const msg = `${who} • 🔫 ${card.name}: 이전 검격! 장전 획득!`;
+        events.push({ actor: attackerName, card: card.name, type: 'special', msg });
+        logs.push(msg);
+      }
+    }
+
+    // 부정적 토큰 제거: attacker의 모든 부정 토큰 식별 후 tokensToRemove에 추가
+    const attackerTokens = getAllTokens(attacker);
+    const negativeTokens = attackerTokens.filter(t => {
+      const tokenDef = TOKENS[t.id];
+      return tokenDef && tokenDef.category === TOKEN_CATEGORIES.NEGATIVE;
+    });
+
+    if (negativeTokens.length > 0) {
+      negativeTokens.forEach(t => {
+        tokensToRemove.push({ id: t.id, stacks: t.stacks || 1 });
+      });
+      const removedNames = negativeTokens.map(t => TOKENS[t.id]?.name || t.id).join(', ');
+      const msg2 = `${who} • ✨ ${card.name}: 부정적 토큰 제거! (${removedNames})`;
+      events.push({ actor: attackerName, card: card.name, type: 'special', msg: msg2 });
+      logs.push(msg2);
+    } else {
+      const msg2 = `${who} • ✨ ${card.name}: 제거할 부정적 토큰 없음`;
+      events.push({ actor: attackerName, card: card.name, type: 'special', msg: msg2 });
+      logs.push(msg2);
     }
   }
 

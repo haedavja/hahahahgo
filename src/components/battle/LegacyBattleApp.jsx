@@ -2322,6 +2322,29 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       actions.setPlayer({ ...P });
     }
 
+    // === 바이올랑 모르: 처형 효과 (체력 30 이하 적 즉시 처형) ===
+    if (hasSpecial(a.card, 'violentMort') && a.actor === 'player' && a.card.type === 'attack') {
+      const EXECUTION_THRESHOLD = 30;
+      if (E.hp > 0 && E.hp <= EXECUTION_THRESHOLD) {
+        // 부활 토큰 제거 후 처형
+        const reviveToken = getAllTokens(E).find(t => t.effect?.type === 'REVIVE');
+        if (reviveToken) {
+          const reviveRemoveResult = removeToken(E, reviveToken.id, 'usage', reviveToken.stacks || 1);
+          E = { ...E, tokens: reviveRemoveResult.tokens };
+          addLog(`💀 처형: 부활 무시!`);
+        }
+        // 즉시 처형
+        E.hp = 0;
+        E.executed = true;  // 처형 플래그 (부활 방지용)
+        addLog(`💀 바이올랑 모르: 적 체력 ${EXECUTION_THRESHOLD} 이하! 처형!`);
+        // battleRef 동기 업데이트
+        if (battleRef.current) {
+          battleRef.current = { ...battleRef.current, enemy: E };
+        }
+        actions.setEnemy({ ...E });
+      }
+    }
+
     // 이벤트 로그 출력
     actionEvents.forEach(ev => {
       if (ev.msg) addLog(ev.msg);

@@ -595,6 +595,32 @@ export const CARDS = [
     traits: [],
     special: ["emergencyDraw"]
   },
+  {
+    id: "stance",
+    name: "스탠스",
+    type: "general",
+    block: 0,
+    speedCost: 1,
+    actionCost: 1,
+    iconKey: "star",
+    description: "부정적 토큰 제거. 이전 카드가 총격이면 연계, 검격이면 장전 획득.",
+    traits: [],
+    special: ["stance"]
+  },
+  {
+    id: "violent_mort",
+    name: "바이올랑 모르",
+    type: "attack",
+    damage: 45,
+    speedCost: 8,
+    actionCost: 1,
+    iconKey: "flame",
+    description: "기교 2 소모. 공격력 45. 체력 30 이하의 적은 처형한다.",
+    traits: [],
+    cardCategory: "fencing",
+    special: ["violentMort"],
+    requiredTokens: [{ id: 'finesse', stacks: 2 }]
+  },
 ];
 
 export const ENEMY_CARDS = [
