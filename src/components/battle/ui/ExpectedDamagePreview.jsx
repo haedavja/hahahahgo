@@ -101,8 +101,8 @@ export function ExpectedDamagePreview({
       {/* 진행 단계 전투 로그 (전투 종료 후에도 유지) */}
       <BattleLog phase={phase} log={log} logContainerRef={logContainerRef} showAlways={!!postCombatOptions} />
 
-      {/* 진행 단계 제어 버튼 또는 전투 종료 UI (전투 로그 아래) */}
-      {(phase === 'resolve' || postCombatOptions) && (
+      {/* 진행 단계 제어 버튼 또는 승리 UI (패배는 중앙 오버레이로 표시) */}
+      {(phase === 'resolve' || postCombatOptions?.type === 'victory') && (
         <div style={{
           marginTop: '20px',
           display: 'flex',
@@ -116,20 +116,20 @@ export function ExpectedDamagePreview({
           borderTop: '2px solid rgba(148, 163, 184, 0.3)',
           position: 'relative'
         }}>
-          {postCombatOptions && (
+          {postCombatOptions?.type === 'victory' && (
             <>
               <div style={{
                 fontSize: '48px',
                 fontWeight: 'bold',
-                color: postCombatOptions.type === 'victory' ? '#22c55e' : '#ef4444',
+                color: '#22c55e',
                 textShadow: '0 4px 12px rgba(0,0,0,0.8)',
                 marginTop: '16px',
                 marginBottom: '16px'
               }}>
-                {postCombatOptions.type === 'victory' ? '🎉 승리!' : '💀 패배...'}
+                🎉 승리!
               </div>
               <button onClick={handleExitToMap} className="btn-enhanced btn-primary flex items-center gap-2">
-                {postCombatOptions.type === 'victory' ? '🗺️ 맵으로 돌아가기' : '확인'}
+                🗺️ 맵으로 돌아가기
               </button>
             </>
           )}

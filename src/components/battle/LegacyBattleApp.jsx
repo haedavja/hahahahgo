@@ -3642,10 +3642,34 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
           </button>
         </div>
       )}
-      {player && player.hp <= 0 && (
-        <div className="submit-button-fixed">
-          <button onClick={() => window.location.reload()} className="btn-enhanced flex items-center gap-2">
-            🔄 재시작
+      {/* 패배 시 중앙 오버레이 (타임라인/로그는 뒤에 유지) */}
+      {postCombatOptions?.type === 'defeat' && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: 'rgba(0, 0, 0, 0.7)',
+          zIndex: 9999,
+          pointerEvents: 'auto'
+        }}>
+          <div style={{
+            fontSize: '64px',
+            fontWeight: 'bold',
+            color: '#ef4444',
+            textShadow: '0 4px 20px rgba(0,0,0,0.9)',
+            marginBottom: '24px'
+          }}>
+            💀 패배...
+          </div>
+          <button
+            onClick={handleExitToMap}
+            className="btn-enhanced btn-primary"
+            style={{ fontSize: '20px', padding: '16px 48px' }}
+          >
+            확인
           </button>
         </div>
       )}
