@@ -412,7 +412,7 @@ export const CARDS = [
     speedCost: 8,
     actionCost: 1,
     iconKey: "flame",
-    description: "공격력 15. 확정 치명타. 사용 후 빈탄창.",
+    description: "공격력 15. 확정 치명타. 사용 후 탄걸림.",
     traits: [],
     special: ["guaranteedCrit", "emptyAfterUse"],
     cardCategory: "gun"
