@@ -676,13 +676,20 @@ export function processCardCreationSpecials({
   const shouldCreateCards = (hasSpecial(card, 'createAttackOnHit') || card.isFromFleche) && damageDealt > 0 && canChain;
 
   if (shouldCreateCards) {
-    // 공격 카드 중에서 랜덤 선택 (중복 방지, 원본 카드 제외)
+    // 공격 카드 중에서 랜덤 선택 (중복 ID 방지, 원본 카드 제외)
     const originalCardId = card.createdBy || card.id;  // 원본 플레쉬 카드 ID
     const attackCards = allCards.filter(c => c.type === 'attack' && c.id !== originalCardId);
     if (attackCards.length > 0) {
-      // 3장의 서로 다른 공격 카드 창조 (중복 방지)
+      // 3장의 서로 다른 공격 카드 창조 (중복 ID 방지)
       const shuffled = [...attackCards].sort(() => Math.random() - 0.5);
-      const selectedCards = shuffled.slice(0, Math.min(3, shuffled.length));
+      const selectedCards = [];
+      const usedIds = new Set();
+      for (const c of shuffled) {
+        if (!usedIds.has(c.id) && selectedCards.length < 3) {
+          selectedCards.push(c);
+          usedIds.add(c.id);
+        }
+      }
 
       // 연쇄 카운트 계산 (원본 플레쉬면 1, 연쇄 카드면 +1)
       const nextChainCount = card.isFromFleche ? currentChainCount + 1 : 1;

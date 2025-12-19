@@ -606,32 +606,59 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     hoveredCardRef.current = hoveredCard;
   }, [hoveredCard]);
 
+  // 페이즈 변경 시 툴팁 정리 (카드가 사라질 때 툴팁이 남는 문제 방지)
+  useEffect(() => {
+    if (tooltipTimerRef.current) {
+      clearTimeout(tooltipTimerRef.current);
+      tooltipTimerRef.current = null;
+    }
+    actions.setHoveredCard(null);
+    actions.setTooltipVisible(false);
+  }, [phase]);
+
   const showCardTraitTooltip = useCallback((card, cardElement) => {
     const hasTraits = card?.traits && card.traits.length > 0;
     const hasAppliedTokens = card?.appliedTokens && card.appliedTokens.length > 0;
     if ((!hasTraits && !hasAppliedTokens) || !cardElement) return;
+
     const updatePos = () => {
+      // 요소가 DOM에 있고 보이는지 확인
+      if (!cardElement || !document.body.contains(cardElement)) {
+        actions.setHoveredCard(null);
+        actions.setTooltipVisible(false);
+        return false;
+      }
       const rect = cardElement.getBoundingClientRect();
-      actions.setHoveredCard({ card, x: rect.right + 16, y: rect.top });
+      // 유효한 위치인지 확인 (요소가 보이지 않으면 0, 0)
+      if (rect.width === 0 && rect.height === 0) {
+        actions.setHoveredCard(null);
+        actions.setTooltipVisible(false);
+        return false;
+      }
+      actions.setHoveredCard({ card, x: rect.right + 16, y: Math.max(10, rect.top) });
+      return true;
     };
-    updatePos();
+
+    if (!updatePos()) return;
     actions.setTooltipVisible(false);
     if (tooltipTimerRef.current) clearTimeout(tooltipTimerRef.current);
     tooltipTimerRef.current = setTimeout(() => {
       if (hoveredCardRef.current?.card?.id !== card.id) return;
-      updatePos(); // 위치 재측정 후 표시
+      if (!updatePos()) return; // 위치 재측정 후 표시
       requestAnimationFrame(() => {
-        requestAnimationFrame(() => actions.setTooltipVisible(true));
+        if (hoveredCardRef.current?.card?.id !== card.id) return;
+        actions.setTooltipVisible(true);
       });
-      actions.setTooltipVisible(true);
     }, 300);
   }, []);
 
   const hideCardTraitTooltip = useCallback(() => {
+    if (tooltipTimerRef.current) {
+      clearTimeout(tooltipTimerRef.current);
+      tooltipTimerRef.current = null;
+    }
     actions.setHoveredCard(null);
     actions.setTooltipVisible(false);
-    actions.setTooltipVisible(false);
-    if (tooltipTimerRef.current) clearTimeout(tooltipTimerRef.current);
   }, []);
 
   const handleExitToMap = () => {
@@ -2614,10 +2641,17 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
     // 브리치(breach) 효과 처리: 랜덤 카드 3장 생성 후 선택 대기
     if (a.card.special === 'breach' && a.actor === 'player') {
-      // 공격/범용/특수 카드 중 랜덤 3장 선택
+      // 공격/범용/특수 카드 중 랜덤 3장 선택 (중복 ID 방지)
       const cardPool = CARDS.filter(c => (c.type === 'attack' || c.type === 'general' || c.type === 'special') && c.id !== 'breach');
       const shuffled = [...cardPool].sort(() => Math.random() - 0.5);
-      const breachCards = shuffled.slice(0, 3);
+      const breachCards = [];
+      const usedIds = new Set();
+      for (const card of shuffled) {
+        if (!usedIds.has(card.id) && breachCards.length < 3) {
+          breachCards.push(card);
+          usedIds.add(card.id);
+        }
+      }
 
       addLog(`👻 "${a.card.name}" 발동! 카드를 선택하세요.`);
 
