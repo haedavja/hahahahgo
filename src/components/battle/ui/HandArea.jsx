@@ -470,8 +470,11 @@ export const HandArea = ({
                   showCardTraitTooltip(c, cardEl);
                 }}
                 onMouseLeave={hideCardTraitTooltip}
-                style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center', position: 'relative', marginLeft: idx === 0 ? '0' : '-20px' }}
+                style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center', position: 'relative', marginLeft: idx === 0 ? '0' : '8px' }}
               >
+                <div style={{ position: 'absolute', top: '-12px', left: '50%', transform: 'translateX(-50%)', background: '#3b82f6', color: '#fff', borderRadius: '50%', width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '14px', zIndex: 10, border: '2px solid #1e40af' }}>
+                  {idx + 1}
+                </div>
                 <div className={`game-card-large respond-phase-card ${getCardTypeClass(c.type)}`}>
                   <div className="card-cost-badge-floating" style={{ color: costColor, WebkitTextStroke: '1px #000' }}>{c.actionCost}</div>
                   <CardStatsSidebar card={c} strengthBonus={player.strength || 0} formatSpeedText={formatSpeedText} />
@@ -537,12 +540,15 @@ export const HandArea = ({
                   gap: '4px',
                   alignItems: 'center',
                   position: 'relative',
-                  marginLeft: i === 0 ? '0' : '-20px',
+                  marginLeft: i === 0 ? '0' : '8px',
                   opacity: isDimmed ? 0.4 : 1, // 사용된/비활성화된 카드는 투명하게
                   filter: isDimmed ? 'grayscale(0.8) brightness(0.6)' : 'none', // 빛바란 효과
                   transition: 'opacity 0.3s ease, filter 0.3s ease'
                 }}
               >
+                <div style={{ position: 'absolute', top: '-12px', left: '50%', transform: 'translateX(-50%)', background: '#3b82f6', color: '#fff', borderRadius: '50%', width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '14px', zIndex: 10, border: '2px solid #1e40af' }}>
+                  {i + 1}
+                </div>
                 <div className={`game-card-large resolve-phase-card ${getCardTypeClass(a.card.type)} ${isUsed ? 'card-used' : ''}`}>
                   <div className="card-cost-badge-floating" style={{ color: costColor, WebkitTextStroke: '1px #000' }}>{a.card.actionCost}</div>
                   <CardStatsSidebar card={a.card} strengthBonus={player.strength || 0} showCounter={true} formatSpeedText={formatSpeedText} />
