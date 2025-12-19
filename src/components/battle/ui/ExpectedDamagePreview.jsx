@@ -129,7 +129,7 @@ export function ExpectedDamagePreview({
                 {postCombatOptions.type === 'victory' ? '🎉 승리!' : '💀 패배...'}
               </div>
               <button onClick={handleExitToMap} className="btn-enhanced btn-primary flex items-center gap-2">
-                🗺️ 맵으로 돌아가기
+                {postCombatOptions.type === 'victory' ? '🗺️ 맵으로 돌아가기' : '확인'}
               </button>
             </>
           )}

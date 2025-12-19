@@ -762,7 +762,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   }, [liveInsight, player, actions]);
 
   useEffect(() => {
-    if (postCombatOptions?.type) {
+    // 승리 시에만 자동으로 결과 전송 (패배 시에는 사용자가 버튼 클릭 후 나감)
+    if (postCombatOptions?.type === 'victory') {
       notifyBattleResult(postCombatOptions.type);
     }
   }, [postCombatOptions, notifyBattleResult]);
