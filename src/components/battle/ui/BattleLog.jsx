@@ -4,8 +4,12 @@
  * 전투 로그 표시 컴포넌트
  */
 
-export const BattleLog = ({ phase, log, logContainerRef }) => {
-  if (phase !== 'resolve' || !log || log.length === 0) {
+export const BattleLog = ({ phase, log, logContainerRef, showAlways = false }) => {
+  // showAlways가 true이면 항상 표시 (패배 시에도 로그 유지)
+  if (!showAlways && phase !== 'resolve') {
+    return null;
+  }
+  if (!log || log.length === 0) {
     return null;
   }
 

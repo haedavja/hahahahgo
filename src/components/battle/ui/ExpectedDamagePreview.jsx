@@ -98,11 +98,11 @@ export function ExpectedDamagePreview({
         </div>
       )}
 
-      {/* 진행 단계 전투 로그 */}
-      <BattleLog phase={phase} log={log} logContainerRef={logContainerRef} />
+      {/* 진행 단계 전투 로그 (전투 종료 후에도 유지) */}
+      <BattleLog phase={phase} log={log} logContainerRef={logContainerRef} showAlways={!!postCombatOptions} />
 
-      {/* 진행 단계 제어 버튼 (전투 로그 아래) */}
-      {phase === 'resolve' && (
+      {/* 진행 단계 제어 버튼 또는 전투 종료 UI (전투 로그 아래) */}
+      {(phase === 'resolve' || postCombatOptions) && (
         <div style={{
           marginTop: '20px',
           display: 'flex',
