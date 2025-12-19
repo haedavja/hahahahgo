@@ -408,13 +408,13 @@ export const CARDS = [
     id: "gun_headshot",
     name: "헤드샷",
     type: "attack",
-    damage: 30,
+    damage: 15,
     speedCost: 8,
     actionCost: 1,
     iconKey: "flame",
-    description: "공격력 30. 사용 후 빈탄창.",
+    description: "공격력 15. 확정 치명타. 사용 후 빈탄창.",
     traits: [],
-    special: "emptyAfterUse",
+    special: ["guaranteedCrit", "emptyAfterUse"],
     cardCategory: "gun"
   },
   {
