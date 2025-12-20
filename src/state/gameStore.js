@@ -2,7 +2,7 @@
 import { NEW_EVENT_LIBRARY, EVENT_KEYS } from "../data/newEvents";
 import { createInitialState } from "./useGameState";
 import { ENEMY_DECKS } from "../data/cards";
-import { CARDS, ENEMIES, getRandomEnemy, getRandomEnemyGroup, getEnemyGroupDetails } from "../components/battle/battleData";
+import { CARDS, ENEMIES, ENEMY_CARDS, getRandomEnemy, getRandomEnemyGroup, getRandomEnemyGroupByNode, getEnemyGroupDetails } from "../components/battle/battleData";
 import { drawHand, buildSpeedTimeline } from "../lib/speedQueue";
 import { simulateBattle, pickOutcome } from "../lib/battleResolver";
 import { calculatePassiveEffects, applyCombatEndEffects, applyNodeMoveEther } from "../lib/relicEffects";
@@ -226,7 +226,6 @@ const ENEMY_COUNT_BY_TYPE = {
 
 const createBattlePayload = (node, characterBuild, playerHp = null, maxHp = null) => {
   if (!node || !BATTLE_TYPES.has(node.type) || node.isStart) return null;
-  const enemyCount = Math.max(1, node.enemyCount ?? ENEMY_COUNT_BY_TYPE[node.type] ?? ENEMY_COUNT_BY_TYPE.default);
 
   // 캐릭터 빌드가 있으면 그걸 사용, 없으면 기존 방식
   const hasCharacterBuild = characterBuild && (characterBuild.mainSpecials?.length > 0 || characterBuild.subSpecials?.length > 0 || characterBuild.ownedCards?.length > 0);
@@ -235,30 +234,79 @@ const createBattlePayload = (node, characterBuild, playerHp = null, maxHp = null
     ? [...characterBuild.mainSpecials, ...characterBuild.subSpecials]
     : [...BATTLE_CARDS];
 
-  // 적 덱을 개체 수만큼 복제해 다수 몬스터의 패턴을 더 많이 노출
-  const baseEnemyDeck = resolveEnemyDeck(node.type);
+  // === 새 ENEMY_GROUPS 시스템 사용 ===
+  // 노드 레이어 번호를 기반으로 적 그룹 선택
+  const nodeNumber = node.layer ?? 1;
+  let enemyGroup;
+
+  if (node.type === 'boss') {
+    // 보스는 살육자
+    enemyGroup = getEnemyGroupDetails('slaughterer_solo');
+  } else if (node.type === 'elite') {
+    // 엘리트는 탈영병 계열
+    const eliteGroups = ['deserter_solo', 'deserter_marauders'];
+    const randomId = eliteGroups[Math.floor(Math.random() * eliteGroups.length)];
+    enemyGroup = getEnemyGroupDetails(randomId);
+  } else {
+    // 일반 전투는 노드 번호 기반
+    const group = getRandomEnemyGroupByNode(nodeNumber);
+    enemyGroup = getEnemyGroupDetails(group.id);
+  }
+
+  // 그룹에서 적 정보 추출
+  const enemies = enemyGroup?.enemies || [];
+  const enemyCount = enemies.length || 1;
+
+  // 적 덱 구성: 각 적의 덱을 합침
   const enemyLibrary = [];
-  for (let i = 0; i < enemyCount; i += 1) {
+  enemies.forEach(enemy => {
+    if (enemy?.deck) {
+      enemyLibrary.push(...enemy.deck);
+    }
+  });
+
+  // 폴백: 적 덱이 없으면 기본 덱 사용
+  if (enemyLibrary.length === 0) {
+    const baseEnemyDeck = resolveEnemyDeck(node.type);
     enemyLibrary.push(...baseEnemyDeck);
   }
-  const playerDrawPile = hasCharacterBuild ? [] : [...playerLibrary]; // 캐릭터 빌드 사용 시 드로우 파일 사용 안 함
+
+  const playerDrawPile = hasCharacterBuild ? [] : [...playerLibrary];
   const enemyDrawPile = [...enemyLibrary];
 
   const playerHand = hasCharacterBuild
     ? drawCharacterBuildHand(characterBuild.mainSpecials, characterBuild.subSpecials, characterBuild.ownedCards)
     : drawHand(playerDrawPile, 3);
 
-  // 적 손패 크기를 개체 수에 비례해 확장 (기본 3장 * 개체 수, 드로우 가능한 한도 내)
-  // 적 손패를 개체 수에 비례해 확장 (최소 개체 수만큼은 항상 등장하도록 보장)
   const enemyHandSize = Math.max(enemyCount, Math.min(enemyDrawPile.length, 3 * enemyCount));
   const enemyHand = drawHand(enemyDrawPile, enemyHandSize);
   const { preview, simulation } = computeBattlePlan(node.type, playerHand, enemyHand, playerHp, maxHp, enemyCount);
 
+  // 총 적 HP 계산
+  const totalEnemyHp = enemies.reduce((sum, e) => sum + (e?.hp || 40), 0);
+
+  // 다중 적 정보 (각 적의 상세 데이터)
+  const mixedEnemies = enemies.map(e => ({
+    id: e?.id,
+    name: e?.name || '적',
+    emoji: e?.emoji || '👾',
+    hp: e?.hp || 40,
+    maxHp: e?.hp || 40,
+    ether: e?.ether || 100,
+    deck: e?.deck || [],
+    cardsPerTurn: e?.cardsPerTurn || 2,
+    passives: e?.passives || {},
+    tier: e?.tier || 1,
+    isBoss: e?.isBoss || false,
+  }));
+
   return {
     nodeId: node.id,
     kind: node.type,
-    label: node.displayLabel ?? BATTLE_LABEL[node.type] ?? node.type.toUpperCase(),
+    label: enemyGroup?.name || node.displayLabel || BATTLE_LABEL[node.type] || node.type.toUpperCase(),
     enemyCount,
+    totalEnemyHp,
+    mixedEnemies, // 다중 적 상세 정보
     rewards: BATTLE_REWARDS[node.type] ?? {},
     difficulty: node.type === "boss" ? 5 : node.type === "elite" ? 4 : node.type === "dungeon" ? 3 : 2,
     playerLibrary,
@@ -273,7 +321,7 @@ const createBattlePayload = (node, characterBuild, playerHp = null, maxHp = null
     maxSelection: MAX_PLAYER_SELECTION,
     preview,
     simulation,
-    hasCharacterBuild, // 캐릭터 빌드 사용 여부 저장
+    hasCharacterBuild,
     characterBuild: hasCharacterBuild ? characterBuild : null,
   };
 };

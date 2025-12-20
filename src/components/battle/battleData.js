@@ -872,6 +872,24 @@ export function getRandomEnemyGroup(tier = 1) {
   return groups[Math.floor(Math.random() * groups.length)];
 }
 
+// 노드 번호 기반 랜덤 적 그룹 가져오기
+export function getRandomEnemyGroupByNode(nodeNumber = 1) {
+  // 해당 노드 범위에 맞는 그룹들 필터링
+  const validGroups = ENEMY_GROUPS.filter(g => {
+    if (!g.nodeRange) return false;
+    const [min, max] = g.nodeRange;
+    return nodeNumber >= min && nodeNumber <= max;
+  });
+
+  if (validGroups.length === 0) {
+    // 범위가 없으면 tier 1 그룹 중 하나 반환
+    const tier1Groups = ENEMY_GROUPS.filter(g => g.tier === 1);
+    return tier1Groups.length > 0 ? tier1Groups[Math.floor(Math.random() * tier1Groups.length)] : ENEMY_GROUPS[0];
+  }
+
+  return validGroups[Math.floor(Math.random() * validGroups.length)];
+}
+
 // 그룹의 적 상세 정보 가져오기
 export function getEnemyGroupDetails(groupId) {
   const group = ENEMY_GROUPS.find(g => g.id === groupId);

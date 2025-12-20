@@ -1118,7 +1118,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       actions.setEnemyPlan({ mode, actions: currentActions, manuallyModified: true });
     } else {
       const slots = etherSlots(enemy?.etherPts || 0);
-      const planActions = generateEnemyActions(enemy, mode, slots, enemyCount, enemyCount);
+      const cardsPerTurn = enemy?.cardsPerTurn || enemyCount || 2;
+      const planActions = generateEnemyActions(enemy, mode, slots, cardsPerTurn, Math.min(1, cardsPerTurn));
       actions.setEnemyPlan({ mode, actions: planActions });
     }
   }, [battle.phase, enemy, enemyPlan.mode, enemyPlan.manuallyModified, nextTurnEffects]);
@@ -1156,7 +1157,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     }
 
     const slots = etherSlots(enemy?.etherPts || 0);
-    const generatedActions = generateEnemyActions(enemy, latestMode, slots, enemyCount, enemyCount);
+    const cardsPerTurn = enemy?.cardsPerTurn || enemyCount || 2;
+    const generatedActions = generateEnemyActions(enemy, latestMode, slots, cardsPerTurn, Math.min(1, cardsPerTurn));
     actions.setEnemyPlan({ mode: latestMode, actions: generatedActions });
   }, [battle.phase, enemyPlan?.mode, enemyPlan?.actions?.length, enemyPlan?.manuallyModified, enemy]);
 
@@ -1430,8 +1432,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     const hasActions = currentEnemyPlan.actions && currentEnemyPlan.actions.length > 0;
     const willRegenerate = !(hasActions || currentEnemyPlan.manuallyModified);
 
+    const cardsPerTurn = enemy?.cardsPerTurn || enemyCount || 2;
     const generatedActions = willRegenerate
-        ? generateEnemyActions(enemy, currentEnemyPlan.mode, etherSlots(enemy.etherPts), enemyCount, enemyCount)
+        ? generateEnemyActions(enemy, currentEnemyPlan.mode, etherSlots(enemy.etherPts), cardsPerTurn, Math.min(1, cardsPerTurn))
         : currentEnemyPlan.actions;
 
     // 명시적으로 새 enemyPlan 구성

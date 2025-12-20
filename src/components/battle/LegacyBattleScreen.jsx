@@ -18,15 +18,38 @@ const buildBattlePayload = (battle, etherPts, relics, maxHp, playerInsight, play
 
   let enemyComposition = [];
 
-  if (battle.enemies && Array.isArray(battle.enemies)) {
+  // mixedEnemies: 새 ENEMY_GROUPS 시스템에서 제공하는 적 상세 정보
+  if (battle.mixedEnemies && Array.isArray(battle.mixedEnemies) && battle.mixedEnemies.length > 0) {
+    const mixedEnemies = battle.mixedEnemies;
+    // 몬스터 타입별 개수 집계
+    const enemyCounts = {};
+    mixedEnemies.forEach(e => {
+      enemyCounts[e.name] = (enemyCounts[e.name] || 0) + 1;
+    });
+    // "구울×2 슬러심×1" 형식으로 표기
+    enemyName = Object.entries(enemyCounts)
+      .map(([name, count]) => count > 1 ? `${name}×${count}` : name)
+      .join(' ');
+    enemyHp = battle.totalEnemyHp || mixedEnemies.reduce((sum, e) => sum + (e.hp || 40), 0);
+    enemyDeck = mixedEnemies.flatMap(e => e.deck || []);
+    enemyCount = mixedEnemies.length;
+    enemyComposition = mixedEnemies.map(e => ({
+      name: e.name,
+      emoji: e.emoji || "👾",
+      hp: e.hp,
+      maxHp: e.maxHp || e.hp,
+      ether: e.ether,
+      cardsPerTurn: e.cardsPerTurn,
+      passives: e.passives,
+    }));
+  } else if (battle.enemies && Array.isArray(battle.enemies)) {
+    // 레거시: enemies가 ID 배열인 경우
     const mixedEnemies = battle.enemies.map(id => ENEMIES.find(e => e.id === id)).filter(Boolean);
     if (mixedEnemies.length > 0) {
-      // 몬스터 타입별 개수 집계
       const enemyCounts = {};
       mixedEnemies.forEach(e => {
         enemyCounts[e.name] = (enemyCounts[e.name] || 0) + 1;
       });
-      // "Goblin×3 Slime×4" 형식으로 표기
       enemyName = Object.entries(enemyCounts)
         .map(([name, count]) => count > 1 ? `${name}×${count}` : name)
         .join(' ');
@@ -84,11 +107,16 @@ const buildBattlePayload = (battle, etherPts, relics, maxHp, playerInsight, play
     enemy: {
       name: enemyName,
       hp: enemyHp,
+      maxHp: enemyHp,
       deck: enemyDeck,
       composition: enemyComposition,
       etherPts: enemyEtherCapacity,
       etherCapacity: enemyEtherCapacity,
       enemyCount: enemyCount,
+      // 첫 번째 적의 패시브와 cardsPerTurn 사용 (다중 적은 composition에서 개별 관리)
+      passives: enemyComposition[0]?.passives || {},
+      cardsPerTurn: enemyComposition[0]?.cardsPerTurn || 2,
+      ether: enemyComposition[0]?.ether || enemyEtherCapacity,
     },
   };
 };
