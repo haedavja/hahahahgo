@@ -540,9 +540,10 @@ export function processQueueCollisions(queue, addLog) {
 
 /**
  * 방어력 무시 여부 확인
+ * ignoreBlock 또는 piercing 특수 효과가 있으면 방어력 무시
  */
 export function shouldIgnoreBlock(card) {
-  return hasSpecial(card, 'ignoreBlock') || card._ignoreBlock === true;
+  return hasSpecial(card, 'ignoreBlock') || hasSpecial(card, 'piercing') || card._ignoreBlock === true;
 }
 
 /**

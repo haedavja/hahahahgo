@@ -624,143 +624,191 @@ export const CARDS = [
 ];
 
 export const ENEMY_CARDS = [
-  // 기본 카드
-  { id: "e1", name: "Attack", type: "attack", damage: 13, speedCost: 3, actionCost: 1, iconKey: "sword" },
-  { id: "e2", name: "Heavy", type: "attack", damage: 36, speedCost: 8, actionCost: 2, iconKey: "flame" },
-  { id: "e3", name: "Guard", type: "general", block: 12, speedCost: 2, actionCost: 1, iconKey: "shield" },
-  { id: "e4", name: "Strike", type: "attack", damage: 15, speedCost: 5, actionCost: 1, iconKey: "sword" },
-  { id: "e5", name: "Defense", type: "general", block: 16, speedCost: 6, actionCost: 1, iconKey: "shield" },
-  { id: "e6", name: "Barrier", type: "general", block: 38, speedCost: 9, actionCost: 2, iconKey: "shield" },
+  // === 구울 카드 ===
+  { id: "ghoul_attack", name: "물어뜯기", type: "attack", damage: 5, speedCost: 3, actionCost: 1, iconKey: "sword" },
+  { id: "ghoul_block", name: "움츠리기", type: "general", block: 8, speedCost: 2, actionCost: 1, iconKey: "shield" },
 
-  // 새로운 적 카드
-  { id: "e7", name: "Quick Jab", type: "attack", damage: 8, speedCost: 1, actionCost: 1, iconKey: "sword" },      // 빠른 공격
-  { id: "e8", name: "Poison Spit", type: "attack", damage: 10, speedCost: 4, actionCost: 1, iconKey: "skull", poison: 3 },  // 독 공격
-  { id: "e9", name: "Leech", type: "attack", damage: 12, speedCost: 5, actionCost: 1, iconKey: "heart", lifesteal: 0.5 },   // 흡혈
-  { id: "e10", name: "Frenzy", type: "attack", damage: 20, speedCost: 6, actionCost: 1, iconKey: "flame", selfDamage: 5 }, // 광란 (자해)
-  { id: "e11", name: "Shell Up", type: "general", block: 25, speedCost: 4, actionCost: 1, iconKey: "shield", thorns: 3 },   // 가시 방어
-  { id: "e12", name: "Rage", type: "buff", speedCost: 3, actionCost: 1, iconKey: "flame", enrage: 1.5 },           // 분노 버프
-  { id: "e13", name: "Summon", type: "special", speedCost: 7, actionCost: 2, iconKey: "skull", summon: 'minion' }, // 소환
-  { id: "e14", name: "Blast", type: "attack", damage: 25, speedCost: 7, actionCost: 2, iconKey: "flame", aoe: true }, // 광역기
+  // === 약탈자 카드 ===
+  { id: "marauder_attack", name: "찌르기", type: "attack", damage: 3, speedCost: 2, actionCost: 1, iconKey: "sword" },
+  { id: "marauder_block", name: "막기", type: "general", block: 4, speedCost: 2, actionCost: 1, iconKey: "shield" },
+
+  // === 탈영병 카드 ===
+  { id: "deserter_attack", name: "베기", type: "attack", damage: 7, speedCost: 4, actionCost: 1, iconKey: "sword" },
+  { id: "deserter_block", name: "방패막기", type: "general", block: 10, speedCost: 3, actionCost: 1, iconKey: "shield" },
+  { id: "deserter_double", name: "연속베기", type: "attack", damage: 5, hits: 2, speedCost: 5, actionCost: 1, iconKey: "sword" },
+  { id: "deserter_offense", name: "기합", type: "general", block: 0, speedCost: 2, actionCost: 1, iconKey: "flame",
+    appliedTokens: [{ id: 'offense', target: 'self' }] },
+  { id: "deserter_fortify", name: "경계태세", type: "general", block: 5, speedCost: 3, actionCost: 1, iconKey: "shield" },
+
+  // === 살육자 카드 ===
+  { id: "slaughterer_heavy", name: "처형", type: "attack", damage: 15, speedCost: 8, actionCost: 1, iconKey: "flame",
+    special: "piercing" },  // 방어력 무시
+  { id: "slaughterer_blur_block", name: "연막", type: "general", block: 7, speedCost: 4, actionCost: 1, iconKey: "shield",
+    appliedTokens: [{ id: 'blur', target: 'self' }] },
+  { id: "slaughterer_quick", name: "난도질", type: "attack", damage: 7, speedCost: 4, actionCost: 1, iconKey: "sword" },
+  { id: "slaughterer_rest", name: "휴식", type: "general", block: 0, speedCost: 5, actionCost: 1, iconKey: "heart",
+    special: "heal5" },
+
+  // === 슬러심 카드 (디버프 전용) ===
+  { id: "slurthim_burn", name: "부식액", type: "general", block: 0, speedCost: 3, actionCost: 1, iconKey: "skull",
+    appliedTokens: [{ id: 'burn', target: 'enemy' }] },
+  { id: "slurthim_vulnerable", name: "산성침", type: "general", block: 0, speedCost: 3, actionCost: 1, iconKey: "skull",
+    appliedTokens: [{ id: 'vulnerable', target: 'enemy' }] },
+  { id: "slurthim_dull", name: "점액", type: "general", block: 0, speedCost: 3, actionCost: 1, iconKey: "skull",
+    appliedTokens: [{ id: 'dull', target: 'enemy' }] },
 ];
 
 export const ENEMIES = [
-  // 기본 적
-  { id: "goblin", name: "고블린", hp: 20, deck: ["e1", "e3", "e4"], emoji: "👺", tier: 1 },
-  { id: "slime", name: "슬라임", hp: 15, deck: ["e1", "e3"], emoji: "🟢", tier: 1 },
-  { id: "orc", name: "오크", hp: 40, deck: ["e2", "e6", "e4"], emoji: "👹", tier: 2 },
-
-  // 새로운 적 - Tier 1 (약한 적)
-  { id: "rat", name: "쥐떼", hp: 12, deck: ["e7", "e7", "e1"], emoji: "🐀", tier: 1,
-    description: "빠르지만 약한 공격" },
-  { id: "bat", name: "박쥐", hp: 18, deck: ["e7", "e9", "e3"], emoji: "🦇", tier: 1,
-    description: "체력을 흡수하는 공격" },
-  { id: "mushroom", name: "독버섯", hp: 16, deck: ["e8", "e3", "e8"], emoji: "🍄", tier: 1,
-    description: "독 공격에 주의" },
-
-  // Tier 2 (중간 적)
-  { id: "skeleton", name: "스켈레톤", hp: 30, deck: ["e1", "e4", "e11"], emoji: "💀", tier: 2,
-    description: "단단한 방어와 반격" },
-  { id: "wolf", name: "늑대", hp: 28, deck: ["e7", "e7", "e4", "e10"], emoji: "🐺", tier: 2,
-    description: "빠른 연속 공격" },
-  { id: "imp", name: "임프", hp: 25, deck: ["e8", "e9", "e7"], emoji: "😈", tier: 2,
-    description: "다양한 상태이상" },
-
-  // Tier 3 (강한 적)
-  { id: "golem", name: "골렘", hp: 60, deck: ["e2", "e6", "e11", "e5"], emoji: "🗿", tier: 3,
-    description: "높은 체력과 방어력" },
-  { id: "vampire", name: "뱀파이어", hp: 45, deck: ["e9", "e9", "e4", "e12"], emoji: "🧛", tier: 3,
-    description: "강력한 흡혈 공격" },
-  { id: "necromancer", name: "네크로맨서", hp: 35, deck: ["e8", "e13", "e3", "e14"], emoji: "🧙", tier: 3,
-    description: "미니언을 소환함" },
-
-  // 보스급
-  { id: "dragon", name: "드래곤", hp: 100, deck: ["e2", "e14", "e6", "e12", "e2"], emoji: "🐉", tier: 4,
-    description: "강력한 광역 공격", isBoss: true },
-  { id: "demon_lord", name: "마왕", hp: 120, deck: ["e10", "e14", "e12", "e9", "e2"], emoji: "👿", tier: 4,
-    description: "최종 보스", isBoss: true },
+  // === 1막 일반 적 ===
+  {
+    id: "ghoul",
+    name: "구울",
+    hp: 40,
+    ether: 100,
+    deck: ["ghoul_attack", "ghoul_attack", "ghoul_block", "ghoul_block"],
+    cardsPerTurn: 2,
+    emoji: "💀",
+    tier: 1,
+    description: "약함, 초반적. 가끔 때로 등장."
+  },
+  {
+    id: "marauder",
+    name: "약탈자",
+    hp: 20,
+    ether: 80,
+    deck: ["marauder_attack", "marauder_block"],
+    cardsPerTurn: 1,
+    emoji: "🗡️",
+    tier: 1,
+    description: "지금은 죄악으로 가득한 나날을 보내고 있지만 모든게 멀쩡했던 시절엔 그저 평범한 시민이었습니다."
+  },
+  {
+    id: "deserter",
+    name: "탈영병",
+    hp: 70,
+    ether: 200,
+    deck: ["deserter_attack", "deserter_block", "deserter_double", "deserter_offense", "deserter_fortify"],
+    cardsPerTurn: 3,
+    emoji: "⚔️",
+    tier: 2,
+    description: "한때 보편국에 충성했던 병사입니다. 그러나 세상이 붕괴한 지금 자기 한몸 사리기 급급해 더 이상 수단과 방법을 가리지 않습니다.",
+    passives: {
+      veilAtStart: true,      // 전투 시작 시 장막 (통찰 차단)
+      healPerTurn: 4          // 매턴 체력 4 회복
+    }
+  },
+  {
+    id: "slaughterer",
+    name: "살육자",
+    hp: 150,
+    ether: 300,
+    deck: ["slaughterer_heavy", "slaughterer_blur_block", "slaughterer_quick", "slaughterer_rest"],
+    cardsPerTurn: 2,
+    emoji: "🔪",
+    tier: 3,
+    description: "혼자 다니는 준보스급 적.",
+    isBoss: true,
+    passives: {
+      strengthPerTurn: 1      // 매턴 힘 1 증가
+    }
+  },
+  {
+    id: "slurthim",
+    name: "슬러심",
+    hp: 60,
+    ether: 150,
+    deck: ["slurthim_burn", "slurthim_vulnerable", "slurthim_dull"],
+    cardsPerTurn: 1,
+    emoji: "🟢",
+    tier: 1,
+    description: "슬라임 비슷한 유독성 폐기물로 만들어진 흉물. 디버프만 거는 편."
+  },
 ];
 
 // 몬스터 그룹 (여러 적 동시 등장)
 export const ENEMY_GROUPS = [
-  // Tier 1 그룹
+  // === 초반 노드 (1-3) ===
   {
-    id: "slime_pack",
-    name: "슬라임 무리",
+    id: "ghoul_single",
+    name: "떠도는 구울",
     tier: 1,
-    enemies: ["slime", "slime", "slime", "slime"]
+    nodeRange: [1, 3],
+    enemies: ["ghoul"]
   },
   {
-    id: "rat_swarm",
-    name: "쥐떼 습격",
+    id: "marauder_duo",
+    name: "약탈자 무리",
     tier: 1,
-    enemies: ["rat", "rat", "rat", "rat", "rat"]
-  },
-  {
-    id: "cave_dwellers",
-    name: "동굴 생물들",
-    tier: 1,
-    enemies: ["bat", "bat", "mushroom", "mushroom"]
+    nodeRange: [1, 3],
+    enemies: ["marauder", "marauder"]
   },
 
-  // Tier 2 그룹
+  // === 중반 노드 (4-7) ===
   {
-    id: "goblin_trio",
-    name: "고블린 3인조",
-    tier: 2,
-    enemies: ["goblin", "goblin", "goblin"]
+    id: "ghoul_duo",
+    name: "구울 무리",
+    tier: 1,
+    nodeRange: [4, 7],
+    enemies: ["ghoul", "ghoul"]
   },
   {
-    id: "undead_patrol",
-    name: "언데드 순찰대",
-    tier: 2,
-    enemies: ["skeleton", "skeleton", "bat"]
+    id: "marauder_trio",
+    name: "약탈자 패거리",
+    tier: 1,
+    nodeRange: [4, 7],
+    enemies: ["marauder", "marauder", "marauder"]
   },
   {
-    id: "wolf_pack",
-    name: "늑대 무리",
+    id: "deserter_solo",
+    name: "탈영병",
     tier: 2,
-    enemies: ["wolf", "wolf", "wolf"]
+    nodeRange: [4, 7],
+    enemies: ["deserter"]
   },
   {
-    id: "imp_gang",
-    name: "임프 패거리",
+    id: "deserter_marauders",
+    name: "탈영병과 약탈자들",
     tier: 2,
-    enemies: ["imp", "imp", "mushroom"]
+    nodeRange: [4, 7],
+    enemies: ["deserter", "marauder", "marauder"]
+  },
+  {
+    id: "slurthim_ghouls",
+    name: "오염된 구울들",
+    tier: 2,
+    nodeRange: [4, 10],
+    enemies: ["slurthim", "ghoul", "ghoul"]
   },
 
-  // Tier 3 그룹
+  // === 후반 노드 (8-10) ===
   {
-    id: "golem_guardian",
-    name: "골렘 수호대",
-    tier: 3,
-    enemies: ["golem", "skeleton", "skeleton"]
+    id: "ghoul_trio",
+    name: "구울 떼",
+    tier: 2,
+    nodeRange: [8, 10],
+    enemies: ["ghoul", "ghoul", "ghoul"]
   },
   {
-    id: "vampire_coven",
-    name: "흡혈귀 결사",
-    tier: 3,
-    enemies: ["vampire", "bat", "bat", "bat"]
+    id: "marauder_gang",
+    name: "약탈자 집단",
+    tier: 2,
+    nodeRange: [8, 10],
+    enemies: ["marauder", "marauder", "marauder", "marauder"]
   },
   {
-    id: "necro_army",
-    name: "망자의 군대",
-    tier: 3,
-    enemies: ["necromancer", "skeleton", "skeleton", "skeleton"]
+    id: "deserter_army",
+    name: "탈영병의 부하들",
+    tier: 2,
+    nodeRange: [8, 10],
+    enemies: ["deserter", "marauder", "marauder", "marauder"]
   },
 
-  // 보스 그룹
+  // === 보스급 ===
   {
-    id: "dragon_lair",
-    name: "드래곤의 둥지",
-    tier: 4,
-    enemies: ["dragon"],
-    isBoss: true
-  },
-  {
-    id: "demon_throne",
-    name: "마왕의 옥좌",
-    tier: 4,
-    enemies: ["demon_lord"],
+    id: "slaughterer_solo",
+    name: "살육자",
+    tier: 3,
+    enemies: ["slaughterer"],
     isBoss: true
   },
 ];

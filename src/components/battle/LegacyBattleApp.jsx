@@ -53,7 +53,7 @@ import { renderRarityBadge, renderNameWithBadge, getCardDisplayRarity } from "./
 import { startEnemyEtherAnimation } from "./utils/enemyEtherAnimation";
 import { processQueueCollisions } from "./utils/cardSpecialEffects";
 import { processReflections, initReflectionState, resetTurnReflectionEffects, decreaseEnemyFreeze } from "../../lib/reflectionEffects";
-import { clearTurnTokens, addToken, removeToken, getAllTokens, expireTurnTokensByTimeline } from "../../lib/tokenUtils";
+import { clearTurnTokens, addToken, removeToken, getAllTokens, expireTurnTokensByTimeline, getTokenStacks } from "../../lib/tokenUtils";
 import { convertTraitsToIds } from "../../data/reflections";
 import { processEtherTransfer } from "./utils/etherTransferProcessing";
 import { processVictoryDefeatTransition } from "./utils/victoryDefeatTransition";
@@ -512,18 +512,23 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   };
 
   // 통찰 시스템: 유효 통찰 및 공개 정보 계산
+  // 장막(veil) 토큰은 통찰을 1씩 차단함
   const effectiveInsight = useMemo(() => {
-    return calculateEffectiveInsight(player.insight, enemy?.shroud);
-  }, [player.insight, enemy?.shroud]);
+    const baseInsight = calculateEffectiveInsight(player.insight, enemy?.shroud);
+    const veilStacks = enemy ? getTokenStacks(enemy, 'veil') : 0;
+    return Math.max(0, baseInsight - veilStacks);
+  }, [player.insight, enemy?.shroud, enemy?.tokens]);
 
-  // 통찰 레벨: insight - shroud - insightPenalty (-3 ~ +3)
+  // 통찰 레벨: insight - shroud - insightPenalty - veil (-3 ~ +3)
   // -3: 망각, -2: 미련, -1: 우둔, 0: 평온, +1: 예측, +2: 독심, +3: 혜안
   const insightLevel = useMemo(() => {
     const shroud = enemy?.shroud || 0;
     const insight = player.insight || 0;
     // 이변 패널티 적용
     const insightPenalty = player.insightPenalty || 0;
-    const base = Math.max(-3, Math.min(3, insight - shroud - insightPenalty));
+    // 장막(veil) 토큰 차단
+    const veilStacks = enemy ? getTokenStacks(enemy, 'veil') : 0;
+    const base = Math.max(-3, Math.min(3, insight - shroud - insightPenalty - veilStacks));
     if (devDulledLevel !== null && devDulledLevel !== undefined) {
       // devDulledLevel은 이제 insight의 음수 값으로 저장됨 (insight = -devDulledLevel)
       // 예: devDulledLevel = -3 → insightLevel = 3 (혜안)
@@ -531,7 +536,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       return Math.max(-3, Math.min(3, -devDulledLevel));
     }
     return base;
-  }, [player.insight, player.insightPenalty, enemy?.shroud, devDulledLevel]);
+  }, [player.insight, player.insightPenalty, enemy?.shroud, enemy?.tokens, devDulledLevel]);
 
   // 하위 호환성을 위한 dulledLevel (우둔 레벨만, 0~3)
   const dulledLevel = Math.max(0, -insightLevel);
@@ -1026,6 +1031,43 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       actions.setFrozenOrder(newFrozenOrder);
       if (battleRef.current) {
         battleRef.current.frozenOrder = newFrozenOrder;
+      }
+    }
+
+    // === 적 패시브 효과 처리 ===
+    let updatedEnemy = { ...enemy };
+    const enemyPassives = enemy.passives || {};
+
+    // 첫 턴: 장막(veil) 부여 (통찰 차단)
+    if (turnNumber === 1 && enemyPassives.veilAtStart) {
+      const veilResult = addToken(updatedEnemy, 'veil', 1);
+      updatedEnemy = { ...updatedEnemy, tokens: veilResult.tokens };
+      addLog(`🌫️ ${enemy.name}: 장막 - 적의 행동을 볼 수 없습니다!`);
+    }
+
+    // 매턴 체력 회복
+    if (enemyPassives.healPerTurn && enemyPassives.healPerTurn > 0) {
+      const healAmount = enemyPassives.healPerTurn;
+      const newEnemyHp = Math.min(enemy.maxHp || enemy.hp, updatedEnemy.hp + healAmount);
+      const actualHeal = newEnemyHp - updatedEnemy.hp;
+      if (actualHeal > 0) {
+        updatedEnemy.hp = newEnemyHp;
+        addLog(`💚 ${enemy.name}: 체력 +${actualHeal} 회복`);
+      }
+    }
+
+    // 매턴 힘 증가
+    if (enemyPassives.strengthPerTurn && enemyPassives.strengthPerTurn > 0) {
+      const strengthGain = enemyPassives.strengthPerTurn;
+      updatedEnemy.strength = (updatedEnemy.strength || 0) + strengthGain;
+      addLog(`💪 ${enemy.name}: 힘 +${strengthGain} 증가 (현재: ${updatedEnemy.strength})`);
+    }
+
+    // 적 상태 업데이트
+    if (JSON.stringify(updatedEnemy) !== JSON.stringify(enemy)) {
+      actions.setEnemy(updatedEnemy);
+      if (battleRef.current) {
+        battleRef.current = { ...battleRef.current, enemy: updatedEnemy };
       }
     }
 

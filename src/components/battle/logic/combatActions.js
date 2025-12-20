@@ -10,7 +10,8 @@ import {
   shouldIgnoreBlock,
   calculateGrowingDefense,
   rollCritical,
-  applyCriticalDamage
+  applyCriticalDamage,
+  hasSpecial
 } from '../utils/cardSpecialEffects';
 
 /**
@@ -80,7 +81,7 @@ export function applyDefense(actor, card, actorName, battleContext = {}) {
     tokenLogs = consumeResult.logs;
   }
 
-  const updatedActor = {
+  let updatedActor = {
     ...actor,
     def: true,
     block: after,
@@ -88,11 +89,28 @@ export function applyDefense(actor, card, actorName, battleContext = {}) {
     tokens: updatedTokens
   };
 
+  // heal5 특수 효과: 체력 5 회복
+  let healText = '';
+  if (hasSpecial(modifiedCard, 'heal5')) {
+    const maxHp = actor.maxHp || actor.hp;
+    const healAmount = 5;
+    const beforeHp = updatedActor.hp;
+    const newHp = Math.min(maxHp, beforeHp + healAmount);
+    const actualHeal = newHp - beforeHp;
+    if (actualHeal > 0) {
+      updatedActor = { ...updatedActor, hp: newHp };
+      healText = ` 💚 +${actualHeal} HP`;
+    }
+  }
+
   const who = actorName === 'player' ? '플레이어' : '몬스터';
   const growingText = growingDefenseBonus > 0 ? ` (+${growingDefenseBonus} 방어자세)` : '';
-  const msg = prev === 0
-    ? `${who} • 🛡️ +${added}${growingText}${crossBonusText} = ${after}`
-    : `${who} • 🛡️ ${prev} + ${added}${growingText}${crossBonusText} = ${after}`;
+  const blockMsg = added > 0
+    ? (prev === 0
+        ? `🛡️ +${added}${growingText}${crossBonusText} = ${after}`
+        : `🛡️ ${prev} + ${added}${growingText}${crossBonusText} = ${after}`)
+    : '';
+  const msg = `${who} •${blockMsg ? ' ' + blockMsg : ''}${healText}`.trim();
 
   const event = {
     actor: actorName,

@@ -389,6 +389,15 @@ export const TOKENS = {
     description: '저주마다 특성이 다를 예정. 만들어놓기만 할 것.',
     effect: { type: 'CURSE', value: 1 }
   },
+  veil: {
+    id: 'veil',
+    name: '장막',
+    type: TOKEN_TYPES.PERMANENT,
+    category: TOKEN_CATEGORIES.NEGATIVE,
+    emoji: '🌫️',
+    description: '통찰을 차단한다. 적의 행동을 미리 볼 수 없다.',
+    effect: { type: 'VEIL', value: 1 }
+  },
 
   // === 특수 효과 토큰 ===
   persistent_strike: {
