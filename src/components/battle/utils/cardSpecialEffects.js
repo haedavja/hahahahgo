@@ -5,7 +5,7 @@
  * 각 카드의 special 필드에 정의된 고유 효과를 처리
  */
 
-import { addToken, removeToken, getAllTokens, setTokenStacks } from '../../../lib/tokenUtils';
+import { addToken, removeToken, getAllTokens, setTokenStacks, getTokenStacks } from '../../../lib/tokenUtils';
 import { TOKENS, TOKEN_CATEGORIES } from '../../../data/tokens';
 
 /**
@@ -216,6 +216,27 @@ export function processPreAttackSpecials({
     // _addGunJam 제거됨 - 탄걸림은 타격별 룰렛에서 확률적으로 발생
     const who = attackerName === 'player' ? '플레이어' : '몬스터';
     const msg = `${who} • 🎰 ${card.name}: 행동력 ${remainingEnergy} → ${hits}회 사격! (🎲 보너스 ${bonusCount}회)`;
+    events.push({ actor: attackerName, card: card.name, type: 'special', msg });
+    logs.push(msg);
+  }
+
+  // === tempeteDechainee: 기교 스택 x3만큼 추가 타격 후 기교 모두 소모 ===
+  if (hasSpecial(card, 'tempeteDechainee')) {
+    const finesseStacks = getTokenStacks(modifiedAttacker, 'finesse');
+    const baseHits = modifiedCard.hits || card.hits || 3;
+    const bonusHits = finesseStacks * 3;
+    modifiedCard.hits = baseHits + bonusHits;
+
+    // 기교 토큰 모두 소모
+    if (finesseStacks > 0) {
+      const result = removeToken(modifiedAttacker, 'finesse', 'permanent', finesseStacks);
+      modifiedAttacker.tokens = result.tokens;
+    }
+
+    const who = attackerName === 'player' ? '플레이어' : '몬스터';
+    const msg = bonusHits > 0
+      ? `${who} • ⚔️ ${card.name}: 기교 ${finesseStacks} → +${bonusHits}회 추가! (총 ${modifiedCard.hits}회)`
+      : `${who} • ⚔️ ${card.name}: ${baseHits}회 타격`;
     events.push({ actor: attackerName, card: card.name, type: 'special', msg });
     logs.push(msg);
   }

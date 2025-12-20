@@ -621,6 +621,33 @@ export const CARDS = [
     special: ["violentMort"],
     requiredTokens: [{ id: 'finesse', stacks: 2 }]
   },
+  {
+    id: "hologram",
+    name: "홀로그램",
+    type: "general",
+    block: 0,
+    speedCost: 8,
+    actionCost: 2,
+    iconKey: "shield",
+    description: "기교 2 소모. 최대 체력만큼의 방어력 획득. 지속 1 (턴 종료 후에도 유지)",
+    traits: ["guard_stance"],
+    special: ["hologram"],
+    requiredTokens: [{ id: 'finesse', stacks: 2 }]
+  },
+  {
+    id: "tempete_dechainee",
+    name: "땅페트 데셰네",
+    type: "attack",
+    damage: 9,
+    hits: 3,
+    speedCost: 10,
+    actionCost: 3,
+    iconKey: "flame",
+    description: "공격력 9x3. 기교 스택 x3만큼 추가 타격 후 기교 모두 소모.",
+    traits: [],
+    cardCategory: "fencing",
+    special: ["tempeteDechainee"]
+  },
 ];
 
 export const ENEMY_CARDS = [

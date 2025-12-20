@@ -68,7 +68,15 @@ export function applyDefense(actor, card, actorName, battleContext = {}) {
     }
   }
 
-  const baseBlock = (modifiedCard.block || 0) + strengthBonus + growingDefenseBonus;
+  // hologram 특수 효과: 최대 체력만큼 방어력 획득
+  let hologramBlock = 0;
+  if (hasSpecial(modifiedCard, 'hologram')) {
+    hologramBlock = actor.maxHp || actor.hp || 0;
+  }
+
+  const baseBlock = hologramBlock > 0
+    ? hologramBlock + strengthBonus + growingDefenseBonus
+    : (modifiedCard.block || 0) + strengthBonus + growingDefenseBonus;
   const added = Math.floor(baseBlock * crossBlockMult);
   const after = prev + added;
 
@@ -105,10 +113,11 @@ export function applyDefense(actor, card, actorName, battleContext = {}) {
 
   const who = actorName === 'player' ? '플레이어' : '몬스터';
   const growingText = growingDefenseBonus > 0 ? ` (+${growingDefenseBonus} 방어자세)` : '';
+  const hologramText = hologramBlock > 0 ? ' (최대체력)' : '';
   const blockMsg = added > 0
     ? (prev === 0
-        ? `🛡️ +${added}${growingText}${crossBonusText} = ${after}`
-        : `🛡️ ${prev} + ${added}${growingText}${crossBonusText} = ${after}`)
+        ? `🛡️ +${added}${hologramText}${growingText}${crossBonusText} = ${after}`
+        : `🛡️ ${prev} + ${added}${hologramText}${growingText}${crossBonusText} = ${after}`)
     : '';
   const msg = `${who} •${blockMsg ? ' ' + blockMsg : ''}${healText}`.trim();
 
