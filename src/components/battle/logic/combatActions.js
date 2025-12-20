@@ -506,7 +506,7 @@ export function applyAttack(attacker, defender, card, attackerName, battleContex
   const attackerRemainingEnergy = attackerName === 'player'
     ? (battleContext.remainingEnergy || 0)
     : (battleContext.enemyRemainingEnergy || 0);
-  const isCritical = rollCritical(currentAttacker, attackerRemainingEnergy, card);
+  const isCritical = rollCritical(currentAttacker, attackerRemainingEnergy, card, attackerName);
 
   // 첫 번째 타격: processPreAttackSpecials 호출하여 hits 결정
   const firstHitResult = calculateSingleHit(currentAttacker, currentDefender, card, attackerName, battleContext, isCritical, null);
@@ -623,7 +623,7 @@ export function prepareMultiHitAttack(attacker, defender, card, attackerName, ba
   const attackerRemainingEnergy = attackerName === 'player'
     ? (battleContext.remainingEnergy || 0)
     : (battleContext.enemyRemainingEnergy || 0);
-  const firstHitCritical = rollCritical(currentAttacker, attackerRemainingEnergy, card);
+  const firstHitCritical = rollCritical(currentAttacker, attackerRemainingEnergy, card, attackerName);
 
   // 첫 타격 실행하여 preProcessedResult 획득
   const firstHitResult = calculateSingleHit(currentAttacker, currentDefender, card, attackerName, battleContext, firstHitCritical, null);

@@ -2058,7 +2058,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       await new Promise(resolve => setTimeout(resolve, TIMING.MULTI_HIT_DELAY));
 
       // 타격별 치명타 판정
-      const hitCritical = rollCritical(currentAttacker, attackerRemainingEnergy, card);
+      const hitCritical = rollCritical(currentAttacker, attackerRemainingEnergy, card, attackerName);
       criticalHits.push(hitCritical);
       if (hitCritical) totalCritCount++;
 

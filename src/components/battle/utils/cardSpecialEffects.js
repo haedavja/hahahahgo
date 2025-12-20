@@ -995,9 +995,15 @@ export function calculateCritChance(actor, remainingEnergy = 0) {
  * @param {Object} actor - 행동 주체
  * @param {number} remainingEnergy - 남은 행동력
  * @param {Object} card - 사용 카드 (optional, guaranteedCrit 체크용)
+ * @param {string} attackerName - 'player' 또는 'enemy' (optional)
  * @returns {boolean} 치명타 발생 여부
  */
-export function rollCritical(actor, remainingEnergy = 0, card = null) {
+export function rollCritical(actor, remainingEnergy = 0, card = null, attackerName = 'player') {
+  // 적은 기본적으로 치명타 확률 0
+  if (attackerName === 'enemy') {
+    return false;
+  }
+
   // 확정 치명타 체크
   if (card) {
     const specials = Array.isArray(card.special) ? card.special : [card.special];
