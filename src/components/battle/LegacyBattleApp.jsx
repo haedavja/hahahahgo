@@ -619,7 +619,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     }
     actions.setHoveredCard(null);
     actions.setTooltipVisible(false);
-  }, [phase]);
+  }, [battle.phase]);
 
   const showCardTraitTooltip = useCallback((card, cardElement) => {
     const hasTraits = card?.traits && card.traits.length > 0;
