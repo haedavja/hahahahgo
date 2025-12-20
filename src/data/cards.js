@@ -123,9 +123,10 @@ export const PLAYER_STARTER_DECK = [
 ];
 
 export const ENEMY_DECKS = {
-  battle: ["quick_slash", "guard", "sweep", "charge"],
-  elite: ["quick_slash", "heavy_strike", "venom_shot", "bone_crush"],
-  boss: ["dash", "heavy_strike", "bone_crush", "reinforce"],
-  dungeon: ["guard", "sweep", "venom_shot", "heavy_strike"],
-  default: ["quick_slash", "guard", "heavy_strike"],
+  // 새 몬스터 카드 ID 사용
+  battle: ["ghoul_attack", "ghoul_block", "marauder_attack", "marauder_block"],
+  elite: ["deserter_attack", "deserter_block", "deserter_double", "deserter_offense"],
+  boss: ["slaughterer_heavy", "slaughterer_blur_block", "slaughterer_quick", "slaughterer_rest"],
+  dungeon: ["ghoul_attack", "marauder_attack", "slurthim_burn", "slurthim_vulnerable"],
+  default: ["ghoul_attack", "ghoul_block", "marauder_attack"],
 };
