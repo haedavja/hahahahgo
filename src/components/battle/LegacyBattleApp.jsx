@@ -1292,7 +1292,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
             ...card,
             __uid: card.__handUid || Math.random().toString(36).slice(2),
           };
-          startDamageDistribution(cardWithUid, card.damage || 0);
+          startDamageDistribution(cardWithUid);
           playSound(600, 80);
           return;
         }
@@ -1333,7 +1333,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         ...card,
         __uid: card.__handUid || Math.random().toString(36).slice(2),
       };
-      startDamageDistribution(cardWithUid, card.damage || 0);
+      startDamageDistribution(cardWithUid);
       playSound(600, 80);
       return;
     }
@@ -1941,41 +1941,48 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     setRecallSelection(null);
   }, [addLog]);
 
-  // === 피해 분배 시스템 ===
-  // 분배 확정: 카드에 분배 정보를 저장하고 선택에 추가
+  // === 다중 타겟 선택 시스템 ===
+  // 타겟 선택 확정: 카드에 선택된 타겟 목록을 저장하고 선택에 추가
   const handleConfirmDistribution = useCallback(() => {
     const pendingCard = battle.pendingDistributionCard;
     if (!pendingCard) return;
 
-    const distribution = battle.damageDistribution;
-    // 분배가 하나도 없으면 취소 처리
-    const totalDistributed = Object.values(distribution).reduce((sum, v) => sum + (v || 0), 0);
-    if (totalDistributed === 0) {
+    const targetSelection = battle.damageDistribution;
+    // 선택된 타겟 목록 추출
+    const selectedTargets = Object.entries(targetSelection)
+      .filter(([_, isSelected]) => isSelected === true)
+      .map(([unitId]) => parseInt(unitId, 10));
+
+    if (selectedTargets.length === 0) {
       actions.resetDistribution();
       return;
     }
 
-    // 분배 정보를 카드에 저장
-    const cardWithDistribution = {
+    // 타겟 목록을 카드에 저장
+    const cardWithTargets = {
       ...pendingCard,
-      __damageDistribution: { ...distribution },
+      __targetUnitIds: selectedTargets,
     };
 
     // 선택에 추가
-    actions.addSelected(cardWithDistribution);
+    actions.addSelected(cardWithTargets);
     actions.resetDistribution();
-    addLog(`⚔️ 피해 분배 확정: ${Object.entries(distribution).filter(([_, v]) => v > 0).map(([uid, v]) => `${v}`).join(', ')}`);
-  }, [battle.pendingDistributionCard, battle.damageDistribution, actions, addLog]);
 
-  // 분배 취소
+    const targetNames = selectedTargets.map(id => {
+      const unit = enemyUnits.find(u => u.unitId === id);
+      return unit?.name || `유닛${id}`;
+    });
+    addLog(`🎯 다중 타겟: ${targetNames.join(', ')}`);
+  }, [battle.pendingDistributionCard, battle.damageDistribution, actions, addLog, enemyUnits]);
+
+  // 타겟 선택 취소
   const handleCancelDistribution = useCallback(() => {
     actions.resetDistribution();
   }, [actions]);
 
-  // 분배 모드 시작 (공격 카드 선택 시)
-  const startDamageDistribution = useCallback((card, totalDamage) => {
+  // 타겟 선택 모드 시작 (공격 카드 선택 시)
+  const startDamageDistribution = useCallback((card) => {
     actions.setPendingDistributionCard(card);
-    actions.setTotalDistributableDamage(totalDamage);
     actions.setDamageDistribution({});
     actions.setDistributionMode(true);
   }, [actions]);
@@ -3173,25 +3180,22 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     const hasUnits = enemyUnits.length > 1;  // 2개 이상일 때만 다중 유닛 처리
 
     if (hasUnits && a.actor === 'player' && a.card?.type === 'attack') {
-      const damageDistribution = a.card.__damageDistribution;
+      const targetUnitIds = a.card.__targetUnitIds;
 
-      if (damageDistribution && Object.keys(damageDistribution).length > 0) {
-        // === 분배 모드: 각 유닛에 지정된 피해량 적용 ===
+      if (targetUnitIds && targetUnitIds.length > 0) {
+        // === 다중 타겟 모드: 선택된 모든 유닛에 카드 피해 적용 ===
         let updatedUnits = [...enemyUnits];
-        let totalDamageDealt = 0;
+        const baseDamage = a.card.damage || 0;
         const damageLogParts = [];
 
-        for (const [unitIdStr, assignedDamage] of Object.entries(damageDistribution)) {
-          if (!assignedDamage || assignedDamage <= 0) continue;
-
-          const unitId = parseInt(unitIdStr, 10);
+        for (const unitId of targetUnitIds) {
           const targetUnit = updatedUnits.find(u => u.unitId === unitId && u.hp > 0);
           if (!targetUnit) continue;
 
           // 유닛별 방어력 적용
           const unitBlock = targetUnit.block || 0;
-          const blockedDamage = Math.min(unitBlock, assignedDamage);
-          const actualDamage = assignedDamage - blockedDamage;
+          const blockedDamage = Math.min(unitBlock, baseDamage);
+          const actualDamage = baseDamage - blockedDamage;
           const newBlock = unitBlock - blockedDamage;
           const newHp = Math.max(0, targetUnit.hp - actualDamage);
 
@@ -3202,10 +3206,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
             return u;
           });
 
-          totalDamageDealt += actualDamage;
-
           if (blockedDamage > 0) {
-            damageLogParts.push(`${targetUnit.name}: 공격력 ${assignedDamage} - 방어력 ${blockedDamage} = ${actualDamage}`);
+            damageLogParts.push(`${targetUnit.name}: 공격력 ${baseDamage} - 방어력 ${blockedDamage} = ${actualDamage}`);
           } else {
             damageLogParts.push(`${targetUnit.name}: ${actualDamage}`);
           }
@@ -3216,7 +3218,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         E.units = updatedUnits;
 
         if (damageLogParts.length > 0) {
-          addLog(`⚔️ 피해 분배: ${damageLogParts.join(', ')}`);
+          addLog(`⚔️ 다중 타겟: ${damageLogParts.join(', ')}`);
         }
       } else {
         // === 기존 단일 타겟 모드 ===
