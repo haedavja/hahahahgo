@@ -17,6 +17,11 @@ export const EnemyUnitsDisplay = ({
   enemyHit,
   enemyBlockAnim,
   soulShatter,
+  // 에테르 관련 props
+  enemyEtherValue = 0,
+  enemyEtherCapacity = 300,
+  enemyTransferPulse = false,
+  formatCompactValue,
 }) => {
   if (!units || units.length === 0) return null;
 
@@ -28,6 +33,9 @@ export const EnemyUnitsDisplay = ({
   // 유닛이 1개면 기존 방식 유지 (선택 불필요)
   const showTargeting = aliveUnits.length > 1;
 
+  // 에테르 스케일 계산
+  const enemySoulScale = Math.max(0.4, Math.min(1.3, enemyEtherCapacity > 0 ? enemyEtherValue / enemyEtherCapacity : 1));
+
   return (
     <div className="enemy-units-container" style={{
       display: 'flex',
@@ -38,6 +46,29 @@ export const EnemyUnitsDisplay = ({
       right: '300px',
       zIndex: 100,
     }}>
+      {/* 에테르 구슬 (영혼) */}
+      <div
+        className={`soul-orb ${enemyTransferPulse ? 'pulse' : ''} ${soulShatter ? 'shatter' : ''}`}
+        title={dulledLevel >= 3 ? '?? / ??' : `${enemyEtherValue.toLocaleString()} / ${enemyEtherCapacity.toLocaleString()}`}
+        style={{
+          alignSelf: 'flex-end',
+          marginRight: '20px',
+          marginBottom: '8px',
+        }}
+      >
+        <div
+          className={`soul-orb-shell ${enemyTransferPulse ? 'pulse' : ''} ${soulShatter ? 'shatter' : ''}`}
+          style={{ transform: `scale(${enemySoulScale})` }}
+        />
+        <div className="soul-orb-content">
+          <div className="soul-orb-value">
+            {dulledLevel >= 3 ? '??' : (formatCompactValue ? formatCompactValue(enemyEtherValue) : enemyEtherValue)}
+          </div>
+          <div className="soul-orb-label">SOUL</div>
+        </div>
+      </div>
+
+      {/* 유닛 목록 */}
       {aliveUnits.map((unit, idx) => {
         const isSelected = unit.unitId === selectedTargetUnit;
         const isTargetable = phase === 'select' || phase === 'respond';
@@ -183,7 +214,7 @@ export const EnemyUnitsDisplay = ({
 
               {/* 토큰 표시 */}
               <div style={{ marginTop: '6px', minHeight: '24px' }}>
-                <TokenDisplay entity={unit} position="enemy" compact />
+                <TokenDisplay entity={unit} position="enemy" />
               </div>
             </div>
           </div>

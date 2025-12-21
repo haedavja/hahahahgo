@@ -2931,7 +2931,44 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     }
 
     actions.setPlayer({ ...player, hp: P.hp, def: P.def, block: P.block, counter: P.counter, vulnMult: P.vulnMult || 1, strength: P.strength || 0, tokens: P.tokens });
-    actions.setEnemy({ ...enemy, hp: E.hp, def: E.def, block: E.block, counter: E.counter, vulnMult: E.vulnMult || 1, tokens: E.tokens });
+
+    // === 다중 유닛 데미지 분배 ===
+    const enemyUnits = E.units || enemy.units || [];
+    const hasUnits = enemyUnits.length > 1;  // 2개 이상일 때만 다중 유닛 처리
+
+    if (hasUnits && a.actor === 'player' && a.card?.type === 'attack') {
+      // actionResult에서 dealt 피해량 가져오기
+      const damageDealt = actionResult.dealt || 0;
+
+      if (damageDealt > 0) {
+        const selectedUnitId = battle.selectedTargetUnit ?? 0;
+        const aliveUnits = enemyUnits.filter(u => u.hp > 0);
+        let targetUnit = aliveUnits.find(u => u.unitId === selectedUnitId);
+        if (!targetUnit && aliveUnits.length > 0) {
+          targetUnit = aliveUnits[0];
+        }
+
+        if (targetUnit) {
+          const unitHpBefore = targetUnit.hp;
+          const newUnitHp = Math.max(0, targetUnit.hp - damageDealt);
+
+          const updatedUnits = enemyUnits.map(u => {
+            if (u.unitId === targetUnit.unitId) {
+              return { ...u, hp: newUnitHp };
+            }
+            return u;
+          });
+
+          const newTotalHp = updatedUnits.reduce((sum, u) => sum + Math.max(0, u.hp), 0);
+          E.hp = newTotalHp;
+          E.units = updatedUnits;
+
+          addLog(`🎯 ${targetUnit.name}에게 ${damageDealt} 피해 (${unitHpBefore} → ${newUnitHp})`);
+        }
+      }
+    }
+
+    actions.setEnemy({ ...enemy, hp: E.hp, def: E.def, block: E.block, counter: E.counter, vulnMult: E.vulnMult || 1, tokens: E.tokens, ...(E.units && { units: E.units }) });
     actions.setActionEvents({ ...currentBattle.actionEvents, [currentBattle.qIndex]: actionEvents });
 
     // 이벤트 처리: 애니메이션 및 사운드
@@ -3856,6 +3893,10 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                 enemyHit={enemyHit}
                 enemyBlockAnim={enemyBlockAnim}
                 soulShatter={soulShatter}
+                enemyEtherValue={enemyEtherValue}
+                enemyEtherCapacity={enemy?.etherCapacity ?? 300}
+                enemyTransferPulse={enemyTransferPulse}
+                formatCompactValue={formatCompactValue}
               />
             ) : (
               <EnemyHpBar
