@@ -2737,6 +2737,25 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
           // recallCard 플래그는 다음 턴에 사용되지 않으므로 효과에서 제외
         }
 
+        // === 엘 라피드 (addCardToHand): 즉시 손패에 카드 추가 ===
+        if (newNextTurnEffects.addCardToHand) {
+          const cardId = newNextTurnEffects.addCardToHand;
+          const cardToAdd = CARDS.find(c => c.id === cardId);
+          if (cardToAdd) {
+            const currentHand = battleRef.current?.hand || battle.hand || [];
+            const newCard = {
+              ...cardToAdd,
+              _instanceId: `${cardId}_copy_${Date.now()}`
+            };
+            const newHand = [...currentHand, newCard];
+            actions.setHand(newHand);
+            if (battleRef.current) {
+              battleRef.current = { ...battleRef.current, hand: newHand };
+            }
+            addLog(`📋 ${cardToAdd.name} 복사본이 손패에 추가되었습니다!`);
+          }
+        }
+
         actions.setNextTurnEffects(updatedEffects);
         // battleRef 동기 업데이트 (finishTurn에서 최신 값 사용)
         if (battleRef.current) {

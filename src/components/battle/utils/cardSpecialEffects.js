@@ -958,6 +958,42 @@ export function processCardPlaySpecials({
     }
   }
 
+  // === elRapide: 민첩 +2, 아픔 1회 (기교 1 소모시 생략), 자기 복제 ===
+  if (hasSpecial(card, 'elRapide')) {
+    const who = attackerName === 'player' ? '플레이어' : '몬스터';
+    const grantedAt = battleContext.currentTurn ? { turn: battleContext.currentTurn, sp: battleContext.currentSp || 0 } : null;
+
+    // 기교 1 소모 시 아픔 생략 체크
+    const hasFinesse = hasToken(attacker, 'finesse');
+    const finesseStacks = getTokenStacks(attacker, 'finesse');
+
+    if (hasFinesse && finesseStacks >= 1) {
+      // 기교 1 소모, 아픔 생략
+      tokensToRemove.push({ id: 'finesse', stacks: 1 });
+      const msg = `${who} • ✨ ${card.name}: 기교 1 소모! 아픔 생략, 민첩 +2`;
+      events.push({ actor: attackerName, card: card.name, type: 'special', msg });
+      logs.push(msg);
+    } else {
+      // 기교 없음, 아픔 1 부여
+      tokensToAdd.push({ id: 'pain', stacks: 1, grantedAt });
+      const msg = `${who} • 💢 ${card.name}: 아픔 1 획득, 민첩 +2`;
+      events.push({ actor: attackerName, card: card.name, type: 'special', msg });
+      logs.push(msg);
+    }
+
+    // 민첩 +2 (appliedTokens에서 처리되지만, 여기서도 확인)
+    tokensToAdd.push({ id: 'agility', stacks: 2, grantedAt });
+
+    // 자기 복제: 손패에 이 카드 복사 추가
+    nextTurnEffects = {
+      ...nextTurnEffects,
+      addCardToHand: card.id
+    };
+    const copyMsg = `${who} • 📋 ${card.name}: 손패에 복사본 추가!`;
+    events.push({ actor: attackerName, card: card.name, type: 'special', msg: copyMsg });
+    logs.push(copyMsg);
+  }
+
   return { bonusCards, tokensToAdd, tokensToRemove, nextTurnEffects, events, logs };
 }
 

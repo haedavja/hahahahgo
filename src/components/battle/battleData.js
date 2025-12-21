@@ -648,6 +648,37 @@ export const CARDS = [
     cardCategory: "fencing",
     special: ["tempeteDechainee"]
   },
+  {
+    id: "coup_droit",
+    name: "꾸 두르",
+    type: "attack",
+    damage: 11,
+    speedCost: 8,
+    actionCost: 1,
+    iconKey: "sword",
+    description: "기교 1 소모. 공격력 11. 무방비 1회 획득. 교차 시 효과 증폭. 넉백 3.",
+    traits: ["cross", "knockback"],
+    cardCategory: "fencing",
+    pushAmount: 3,
+    crossBonus: { type: 'damage_mult', value: 2 },
+    appliedTokens: [{ id: 'exposed', stacks: 1, target: 'player' }],
+    requiredTokens: [{ id: 'finesse', stacks: 1 }]
+  },
+  {
+    id: "el_rapide",
+    name: "엘 라피드",
+    type: "general",
+    block: 0,
+    speedCost: 4,
+    actionCost: 1,
+    iconKey: "flame",
+    description: "아픔 1회를 얻고 민첩 +2. 자기 자신을 손패에 추가. 기교 1 소모 시 아픔 생략.",
+    traits: [],
+    cardCategory: "fencing",
+    special: ["elRapide"],
+    optionalFinesse: { stacks: 1, skipToken: 'pain' }
+    // 민첩 +2와 아픔은 elRapide special에서 처리
+  },
 ];
 
 export const ENEMY_CARDS = [
