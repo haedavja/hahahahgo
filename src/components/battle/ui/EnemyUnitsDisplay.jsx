@@ -46,29 +46,7 @@ export const EnemyUnitsDisplay = ({
       right: '300px',
       zIndex: 100,
     }}>
-      {/* 에테르 구슬 (영혼) */}
-      <div
-        className={`soul-orb ${enemyTransferPulse ? 'pulse' : ''} ${soulShatter ? 'shatter' : ''}`}
-        title={dulledLevel >= 3 ? '?? / ??' : `${enemyEtherValue.toLocaleString()} / ${enemyEtherCapacity.toLocaleString()}`}
-        style={{
-          alignSelf: 'flex-end',
-          marginRight: '20px',
-          marginBottom: '8px',
-        }}
-      >
-        <div
-          className={`soul-orb-shell ${enemyTransferPulse ? 'pulse' : ''} ${soulShatter ? 'shatter' : ''}`}
-          style={{ transform: `scale(${enemySoulScale})` }}
-        />
-        <div className="soul-orb-content">
-          <div className="soul-orb-value">
-            {dulledLevel >= 3 ? '??' : (formatCompactValue ? formatCompactValue(enemyEtherValue) : enemyEtherValue)}
-          </div>
-          <div className="soul-orb-label">SOUL</div>
-        </div>
-      </div>
-
-      {/* 유닛 목록 */}
+      {/* 유닛 목록 (영혼 구슬 앞에 배치) */}
       {aliveUnits.map((unit, idx) => {
         const isSelected = unit.unitId === selectedTargetUnit;
         const isTargetable = phase === 'select' || phase === 'respond';
@@ -234,6 +212,28 @@ export const EnemyUnitsDisplay = ({
           💡 클릭하여 공격 대상 선택
         </div>
       )}
+
+      {/* 에테르 구슬 (영혼) - 유닛 아래에 배치 */}
+      <div
+        className={`soul-orb ${enemyTransferPulse ? 'pulse' : ''} ${soulShatter ? 'shatter' : ''}`}
+        title={dulledLevel >= 3 ? '?? / ??' : `${enemyEtherValue.toLocaleString()} / ${enemyEtherCapacity.toLocaleString()}`}
+        style={{
+          alignSelf: 'flex-end',
+          marginRight: '20px',
+          marginTop: '8px',
+        }}
+      >
+        <div
+          className={`soul-orb-shell ${enemyTransferPulse ? 'pulse' : ''} ${soulShatter ? 'shatter' : ''}`}
+          style={{ transform: `scale(${enemySoulScale})` }}
+        />
+        <div className="soul-orb-content">
+          <div className="soul-orb-value">
+            {dulledLevel >= 3 ? '??' : (formatCompactValue ? formatCompactValue(enemyEtherValue) : enemyEtherValue)}
+          </div>
+          <div className="soul-orb-label">SOUL</div>
+        </div>
+      </div>
     </div>
   );
 };

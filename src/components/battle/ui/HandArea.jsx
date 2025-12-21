@@ -263,8 +263,14 @@ export const HandArea = ({
   disabledCardIndices,
   isSimplified,
   deck = [],
-  discardPile = []
+  discardPile = [],
+  enemyUnits = []
 }) => {
+  // 타겟 유닛 정보 가져오기 헬퍼
+  const getTargetUnit = (targetUnitId) => {
+    if (!targetUnitId && targetUnitId !== 0) return null;
+    return enemyUnits.find(u => u.unitId === targetUnitId);
+  };
   const [showDeckPopup, setShowDeckPopup] = useState(false);
   const [showDiscardPopup, setShowDiscardPopup] = useState(false);
 
@@ -406,6 +412,9 @@ export const HandArea = ({
               // 협동 특성이 있고 조합에 포함된 경우
               const hasCooperation = hasTrait(c, 'cooperation');
               const cooperationActive = hasCooperation && isInCombo;
+              // 공격 카드의 타겟 유닛 정보
+              const selectedCard = sel ? selected[selIndex] : null;
+              const targetUnit = selectedCard?.__targetUnitId != null ? getTargetUnit(selectedCard.__targetUnitId) : null;
               return (
                 <div
                   key={c.id + idx}
@@ -426,6 +435,31 @@ export const HandArea = ({
                   >
                     <div className="card-cost-badge-floating" style={{ color: costColor, WebkitTextStroke: '1px #000' }}>{enhancedCard.actionCost || c.actionCost}</div>
                     {sel && <div className="selection-number">{selIndex + 1}</div>}
+                    {/* 타겟 유닛 표시 (다중 적 유닛일 때 공격 카드) */}
+                    {sel && targetUnit && (
+                      <div style={{
+                        position: 'absolute',
+                        bottom: '-8px',
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                        background: 'linear-gradient(135deg, #dc2626, #991b1b)',
+                        color: '#fff',
+                        borderRadius: '8px',
+                        padding: '2px 8px',
+                        fontSize: '11px',
+                        fontWeight: 'bold',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        zIndex: 15,
+                        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.4)',
+                        border: '1px solid #fca5a5',
+                        whiteSpace: 'nowrap',
+                      }}>
+                        <span>{targetUnit.emoji || '👾'}</span>
+                        <span>🎯</span>
+                      </div>
+                    )}
                     <CardStatsSidebar card={enhancedCard} strengthBonus={player.strength || 0} formatSpeedText={formatSpeedText} />
                     <div className="card-header" style={{ display: 'flex', justifyContent: 'center' }}>
                       <div className="font-black text-sm" style={{ display: 'flex', alignItems: 'center' }}>
@@ -462,6 +496,8 @@ export const HandArea = ({
             const isSubSpecial = c.__isSubSpecial;
             const costColor = isMainSpecial ? '#fcd34d' : isSubSpecial ? '#60a5fa' : '#fff';
             const nameColor = isMainSpecial ? '#fcd34d' : isSubSpecial ? '#7dd3fc' : '#fff';
+            // 타겟 유닛 정보
+            const targetUnit = c.__targetUnitId != null ? getTargetUnit(c.__targetUnitId) : null;
             return (
               <div
                 key={idx}
@@ -475,6 +511,29 @@ export const HandArea = ({
                 <div style={{ position: 'absolute', top: '-12px', left: '50%', transform: 'translateX(-50%)', background: '#3b82f6', color: '#fff', borderRadius: '50%', width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '14px', zIndex: 10, border: '2px solid #1e40af' }}>
                   {idx + 1}
                 </div>
+                {/* 타겟 유닛 표시 */}
+                {targetUnit && (
+                  <div style={{
+                    position: 'absolute',
+                    top: '-12px',
+                    right: '-8px',
+                    background: 'linear-gradient(135deg, #dc2626, #991b1b)',
+                    color: '#fff',
+                    borderRadius: '8px',
+                    padding: '2px 6px',
+                    fontSize: '11px',
+                    fontWeight: 'bold',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '2px',
+                    zIndex: 15,
+                    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.4)',
+                    border: '1px solid #fca5a5',
+                  }}>
+                    <span>{targetUnit.emoji || '👾'}</span>
+                    <span>🎯</span>
+                  </div>
+                )}
                 <div className={`game-card-large respond-phase-card ${getCardTypeClass(c.type)}`}>
                   <div className="card-cost-badge-floating" style={{ color: costColor, WebkitTextStroke: '1px #000' }}>{c.actionCost}</div>
                   <CardStatsSidebar card={c} strengthBonus={player.strength || 0} formatSpeedText={formatSpeedText} />
@@ -522,6 +581,8 @@ export const HandArea = ({
             const isMainSpecial = a.card.__isMainSpecial;
             const isSubSpecial = a.card.__isSubSpecial;
             const costColor = isMainSpecial ? '#fcd34d' : isSubSpecial ? '#60a5fa' : '#fff';
+            // 타겟 유닛 정보
+            const targetUnit = a.card.__targetUnitId != null ? getTargetUnit(a.card.__targetUnitId) : null;
 
             // 사용된 카드(hidden)는 사라지지 않고 빛만 잃음
             const isDimmed = isHidden || isDisabled;
@@ -549,6 +610,29 @@ export const HandArea = ({
                 <div style={{ position: 'absolute', top: '-12px', left: '50%', transform: 'translateX(-50%)', background: '#3b82f6', color: '#fff', borderRadius: '50%', width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '14px', zIndex: 10, border: '2px solid #1e40af' }}>
                   {i + 1}
                 </div>
+                {/* 타겟 유닛 표시 */}
+                {targetUnit && (
+                  <div style={{
+                    position: 'absolute',
+                    top: '-12px',
+                    right: '-8px',
+                    background: 'linear-gradient(135deg, #dc2626, #991b1b)',
+                    color: '#fff',
+                    borderRadius: '8px',
+                    padding: '2px 6px',
+                    fontSize: '11px',
+                    fontWeight: 'bold',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '2px',
+                    zIndex: 15,
+                    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.4)',
+                    border: '1px solid #fca5a5',
+                  }}>
+                    <span>{targetUnit.emoji || '👾'}</span>
+                    <span>🎯</span>
+                  </div>
+                )}
                 <div className={`game-card-large resolve-phase-card ${getCardTypeClass(a.card.type)} ${isUsed ? 'card-used' : ''}`}>
                   <div className="card-cost-badge-floating" style={{ color: costColor, WebkitTextStroke: '1px #000' }}>{a.card.actionCost}</div>
                   <CardStatsSidebar card={a.card} strengthBonus={player.strength || 0} showCounter={true} formatSpeedText={formatSpeedText} />

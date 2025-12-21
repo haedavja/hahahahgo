@@ -1282,7 +1282,13 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         // requiredTokens 체크
         const tokenCheck = checkRequiredTokens(card, selected);
         if (!tokenCheck.ok) { addLog(tokenCheck.message); return; }
-        next = [...selected, { ...card, __uid: card.__handUid || Math.random().toString(36).slice(2) }];
+        // 공격 카드인 경우 현재 선택된 타겟 유닛 ID 저장
+        const cardWithTarget = {
+          ...card,
+          __uid: card.__handUid || Math.random().toString(36).slice(2),
+          __targetUnitId: card.type === 'attack' && hasMultipleUnits ? selectedTargetUnit : null
+        };
+        next = [...selected, cardWithTarget];
         playSound(800, 80); // 선택 사운드 (높은 음)
       }
       const combo = detectPokerCombo(next);
@@ -1304,7 +1310,13 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     // requiredTokens 체크
     const tokenCheck = checkRequiredTokens(card, selected);
     if (!tokenCheck.ok) return addLog(tokenCheck.message);
-    actions.setSelected([...selected, { ...card, __uid: card.__handUid || Math.random().toString(36).slice(2) }]);
+    // 공격 카드인 경우 현재 선택된 타겟 유닛 ID 저장
+    const cardWithTarget = {
+      ...card,
+      __uid: card.__handUid || Math.random().toString(36).slice(2),
+      __targetUnitId: card.type === 'attack' && hasMultipleUnits ? selectedTargetUnit : null
+    };
+    actions.setSelected([...selected, cardWithTarget]);
     playSound(800, 80); // 선택 사운드 (높은 음)
   };
 
@@ -2941,9 +2953,10 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       const damageDealt = actionResult.dealt || 0;
 
       if (damageDealt > 0) {
-        const selectedUnitId = battle.selectedTargetUnit ?? 0;
+        // 카드에 지정된 타겟 유닛 ID 사용 (없으면 전역 선택 타겟 사용)
+        const cardTargetUnitId = a.card.__targetUnitId ?? battle.selectedTargetUnit ?? 0;
         const aliveUnits = enemyUnits.filter(u => u.hp > 0);
-        let targetUnit = aliveUnits.find(u => u.unitId === selectedUnitId);
+        let targetUnit = aliveUnits.find(u => u.unitId === cardTargetUnitId);
         if (!targetUnit && aliveUnits.length > 0) {
           targetUnit = aliveUnits[0];
         }
@@ -3779,6 +3792,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         freezingEnemyCards={battle.freezingEnemyCards}
         frozenOrder={battle.frozenOrder}
         parryReadyStates={parryReadyStates}
+        enemyUnits={enemyUnits}
       />
 
       {/* 상징 표시 */}
@@ -4008,6 +4022,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         isSimplified={isSimplified}
         deck={battle.deck || []}
         discardPile={battle.discardPile || []}
+        enemyUnits={enemyUnits}
       />
 
       {showCharacterSheet && <CharacterSheet onClose={closeCharacterSheet} />}
