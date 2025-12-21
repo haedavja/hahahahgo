@@ -22,6 +22,9 @@ export const EnemyUnitsDisplay = ({
   enemyEtherCapacity = 300,
   enemyTransferPulse = false,
   formatCompactValue,
+  // 공유 방어력 (enemy.block, enemy.def)
+  enemyBlock = 0,
+  enemyDef = false,
 }) => {
   if (!units || units.length === 0) return null;
 
@@ -147,12 +150,13 @@ export const EnemyUnitsDisplay = ({
                     {previewDamage.lethal && (previewDamage.overkill ? '☠️' : '💀')}
                   </span>
                 )}
-                {!hideVitals && unit.block > 0 && (
+                {/* 공유 방어력 표시 (선택된 유닛에 표시) */}
+                {!hideVitals && enemyDef && enemyBlock > 0 && isSelected && (
                   <span
-                    className={enemyBlockAnim && isSelected ? 'block-animation' : ''}
+                    className={enemyBlockAnim ? 'block-animation' : ''}
                     style={{ color: '#60a5fa', fontWeight: '600' }}
                   >
-                    🛡️{unit.block}
+                    🛡️{enemyBlock}
                   </span>
                 )}
                 <span style={{ color: '#f87171', fontWeight: '600' }}>
@@ -178,13 +182,14 @@ export const EnemyUnitsDisplay = ({
                     transition: 'width 0.3s ease',
                   }}
                 />
-                {!hideVitals && unit.block > 0 && (
+                {/* 공유 방어력 표시 (선택된 유닛의 HP바에 오버레이) */}
+                {!hideVitals && enemyDef && enemyBlock > 0 && isSelected && (
                   <div style={{
                     position: 'absolute',
                     left: 0,
                     top: 0,
                     height: '100%',
-                    width: `${Math.min((unit.block / unit.maxHp) * 100, 100)}%`,
+                    width: `${Math.min((enemyBlock / unit.maxHp) * 100, 100)}%`,
                     background: 'linear-gradient(90deg, rgba(96, 165, 250, 0.6), rgba(96, 165, 250, 0.3))',
                     borderRight: '2px solid #60a5fa',
                     transition: 'width 0.3s ease',

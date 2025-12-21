@@ -3910,6 +3910,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                 enemyEtherCapacity={enemy?.etherCapacity ?? 300}
                 enemyTransferPulse={enemyTransferPulse}
                 formatCompactValue={formatCompactValue}
+                enemyBlock={enemy?.block || 0}
+                enemyDef={enemy?.def || false}
               />
             ) : (
               <EnemyHpBar
