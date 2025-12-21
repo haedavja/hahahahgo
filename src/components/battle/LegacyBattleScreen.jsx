@@ -9,7 +9,7 @@ const buildBattlePayload = (battle, etherPts, relics, maxHp, playerInsight, play
   if (!battle) return null;
   const initialPlayer = battle.simulation?.initialState?.player;
   const initialEnemy = battle.simulation?.initialState?.enemy;
-  const enemyEtherCapacity = battle.enemyEtherCapacity ?? 300; // 기본 몬스터 에테르 소지량
+  // 몬스터 에테르 용량은 유닛들의 합계로 계산 (아래에서 설정)
 
   let enemyCount = battle.enemyCount ?? 1;
   let enemyName = battle.label ?? "Enemy";
@@ -96,7 +96,9 @@ const buildBattlePayload = (battle, etherPts, relics, maxHp, playerInsight, play
             count: 0,
             hp: 0,
             maxHp: 0,
+            ether: 0,
             individualHp: e.hp || 40,
+            individualEther: e.ether || 100,
             deck: e.deck || [],
             cardsPerTurn: 0,
             individualCardsPerTurn: e.cardsPerTurn || 2,
@@ -108,6 +110,7 @@ const buildBattlePayload = (battle, etherPts, relics, maxHp, playerInsight, play
         unit.count += 1;
         unit.hp += e.hp || 40;
         unit.maxHp += e.hp || 40;
+        unit.ether += e.ether || 100;
         unit.cardsPerTurn += e.cardsPerTurn || 2;
       });
 
@@ -127,6 +130,7 @@ const buildBattlePayload = (battle, etherPts, relics, maxHp, playerInsight, play
         emoji: u.emoji,
         hp: u.hp,
         maxHp: u.maxHp,
+        ether: u.ether,
         count: u.count,
       }));
     }
@@ -135,6 +139,7 @@ const buildBattlePayload = (battle, etherPts, relics, maxHp, playerInsight, play
     const baseEmoji = "👾";
     const singleName = battle.label ?? "Enemy";
     const singleHp = initialEnemy?.hp ?? 40;
+    const singleEther = initialEnemy?.ether ?? 100;
 
     enemyUnits = [{
       unitId: 0,
@@ -144,7 +149,9 @@ const buildBattlePayload = (battle, etherPts, relics, maxHp, playerInsight, play
       count: enemyCount,
       hp: singleHp * enemyCount,
       maxHp: singleHp * enemyCount,
+      ether: singleEther * enemyCount,
       individualHp: singleHp,
+      individualEther: singleEther,
       deck: enemyDeck,
       cardsPerTurn: 2 * enemyCount,
       passives: {},
@@ -154,7 +161,7 @@ const buildBattlePayload = (battle, etherPts, relics, maxHp, playerInsight, play
     }];
 
     enemyName = enemyCount > 1 ? `${singleName} x${enemyCount}` : singleName;
-    enemyComposition = [{ name: singleName, emoji: baseEmoji, hp: singleHp * enemyCount, maxHp: singleHp * enemyCount, count: enemyCount }];
+    enemyComposition = [{ name: singleName, emoji: baseEmoji, hp: singleHp * enemyCount, maxHp: singleHp * enemyCount, ether: singleEther * enemyCount, count: enemyCount }];
   }
 
   // 상징 패시브 효과 계산
@@ -181,6 +188,9 @@ const buildBattlePayload = (battle, etherPts, relics, maxHp, playerInsight, play
   const startingStrength = (playerStrength || 0) + (combatStartEffects.strength || 0);
   const startingMaxSpeed = 30 + (playerMaxSpeedBonus || 0);
 
+  // 몬스터 에테르 용량: 모든 유닛의 에테르 합계
+  const totalEnemyEther = enemyUnits.reduce((sum, u) => sum + (u.ether || u.individualEther * u.count || 100), 0);
+
   return {
     player: {
       hp: startingHp,
@@ -199,13 +209,13 @@ const buildBattlePayload = (battle, etherPts, relics, maxHp, playerInsight, play
       maxHp: enemyHp,
       deck: enemyDeck,
       composition: enemyComposition,
-      etherPts: enemyEtherCapacity,
-      etherCapacity: enemyEtherCapacity,
+      etherPts: totalEnemyEther,
+      etherCapacity: totalEnemyEther,
       enemyCount: enemyCount,
       // 패시브는 첫 번째 적 기준, cardsPerTurn은 모든 유닛 합계
       passives: enemyComposition[0]?.passives || {},
       cardsPerTurn: enemyUnits.reduce((sum, u) => sum + (u.cardsPerTurn || 2), 0),
-      ether: enemyComposition[0]?.ether || enemyEtherCapacity,
+      ether: totalEnemyEther,
       // 다중 유닛 시스템: 같은 종류 적을 묶은 유닛 배열
       units: enemyUnits,
     },
