@@ -540,23 +540,21 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   };
 
   // 통찰 시스템: 유효 통찰 및 공개 정보 계산
-  // 장막(veil) 토큰은 통찰을 1씩 차단함
+  // 장막(veil) 토큰은 이제 유닛별로 적용됨 (getInsightRevealLevel에서 처리)
   const effectiveInsight = useMemo(() => {
-    const baseInsight = calculateEffectiveInsight(player.insight, enemy?.shroud);
-    const veilStacks = enemy ? getTokenStacks(enemy, 'veil') : 0;
-    return Math.max(0, baseInsight - veilStacks);
-  }, [player.insight, enemy?.shroud, enemy?.tokens]);
+    // 기본 통찰: 플레이어 통찰 - 적 shroud (전역 veil은 더 이상 여기서 적용하지 않음)
+    return calculateEffectiveInsight(player.insight, enemy?.shroud);
+  }, [player.insight, enemy?.shroud]);
 
-  // 통찰 레벨: insight - shroud - insightPenalty - veil (-3 ~ +3)
+  // 통찰 레벨: insight - shroud - insightPenalty (-3 ~ +3)
   // -3: 망각, -2: 미련, -1: 우둔, 0: 평온, +1: 예측, +2: 독심, +3: 혜안
+  // (veil은 이제 유닛별로 적용되므로 전역 레벨 계산에서 제외)
   const insightLevel = useMemo(() => {
     const shroud = enemy?.shroud || 0;
     const insight = player.insight || 0;
     // 이변 패널티 적용
     const insightPenalty = player.insightPenalty || 0;
-    // 장막(veil) 토큰 차단
-    const veilStacks = enemy ? getTokenStacks(enemy, 'veil') : 0;
-    const base = Math.max(-3, Math.min(3, insight - shroud - insightPenalty - veilStacks));
+    const base = Math.max(-3, Math.min(3, insight - shroud - insightPenalty));
     if (devDulledLevel !== null && devDulledLevel !== undefined) {
       // devDulledLevel은 이제 insight의 음수 값으로 저장됨 (insight = -devDulledLevel)
       // 예: devDulledLevel = -3 → insightLevel = 3 (혜안)
@@ -564,15 +562,17 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       return Math.max(-3, Math.min(3, -devDulledLevel));
     }
     return base;
-  }, [player.insight, player.insightPenalty, enemy?.shroud, enemy?.tokens, devDulledLevel]);
+  }, [player.insight, player.insightPenalty, enemy?.shroud, devDulledLevel]);
 
   // 하위 호환성을 위한 dulledLevel (우둔 레벨만, 0~3)
   const dulledLevel = Math.max(0, -insightLevel);
 
   const insightReveal = useMemo(() => {
     if (battle.phase !== 'select') return { level: 0, visible: false };
-    return getInsightRevealLevel(effectiveInsight, enemyPlan.actions);
-  }, [effectiveInsight, enemyPlan.actions, battle.phase]);
+    // 유닛 배열 전달하여 유닛별 veil 적용
+    const units = enemy?.units || [];
+    return getInsightRevealLevel(effectiveInsight, enemyPlan.actions, units);
+  }, [effectiveInsight, enemyPlan.actions, battle.phase, enemy?.units]);
 
   // 통찰 수치 변화 시 배지/연출 트리거
   useEffect(() => {
@@ -1066,11 +1066,33 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     let updatedEnemy = { ...enemy };
     const enemyPassives = enemy.passives || {};
 
-    // 첫 턴: 장막(veil) 부여 (통찰 차단)
-    if (turnNumber === 1 && enemyPassives.veilAtStart) {
-      const veilResult = addToken(updatedEnemy, 'veil', 1);
-      updatedEnemy = { ...updatedEnemy, tokens: veilResult.tokens };
-      addLog(`🌫️ ${enemy.name}: 장막 - 적의 행동을 볼 수 없습니다!`);
+    // 첫 턴: 장막(veil) 부여 (통찰 차단) - 유닛별로 처리
+    if (turnNumber === 1) {
+      const units = updatedEnemy.units || [];
+      let updatedUnits = [...units];
+      let anyVeil = false;
+
+      for (let i = 0; i < updatedUnits.length; i++) {
+        const unit = updatedUnits[i];
+        const unitPassives = unit.passives || {};
+        if (unitPassives.veilAtStart) {
+          const veilResult = addToken(unit, 'veil', 1);
+          updatedUnits[i] = { ...unit, tokens: veilResult.tokens };
+          addLog(`🌫️ ${unit.name}: 장막 - 이 적의 행동을 볼 수 없습니다!`);
+          anyVeil = true;
+        }
+      }
+
+      if (anyVeil) {
+        updatedEnemy = { ...updatedEnemy, units: updatedUnits };
+      }
+
+      // 레거시 호환: 전체 enemy에 veilAtStart가 있는 경우 (유닛이 없는 경우)
+      if (enemyPassives.veilAtStart && units.length === 0) {
+        const veilResult = addToken(updatedEnemy, 'veil', 1);
+        updatedEnemy = { ...updatedEnemy, tokens: veilResult.tokens };
+        addLog(`🌫️ ${enemy.name}: 장막 - 적의 행동을 볼 수 없습니다!`);
+      }
     }
 
     // 매턴 체력 회복

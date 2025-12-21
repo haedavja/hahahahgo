@@ -4,6 +4,8 @@
  * 통찰(Insight) 시스템 - 적 정보 공개 레벨 관리
  */
 
+import { getTokenStacks } from "../../../lib/tokenUtils";
+
 /**
  * 유효 통찰 계산: 플레이어 통찰 - 적의 장막
  * @param {number} playerInsight - 플레이어 통찰
@@ -15,68 +17,114 @@ export const calculateEffectiveInsight = (playerInsight, enemyShroud) => {
 };
 
 /**
- * 통찰 레벨별 적 정보 공개
- * @param {number} effectiveInsight - 유효 통찰 (player.insight - enemy.shroud)
+ * 유닛의 veil 스택 가져오기
+ * @param {Object} unit - 유닛 객체
+ * @returns {number} veil 스택 수
+ */
+const getUnitVeil = (unit) => {
+  if (!unit) return 0;
+  return getTokenStacks(unit, 'veil') || 0;
+};
+
+/**
+ * 특정 통찰 레벨에 따른 action 정보 생성
+ * @param {Object} action - 적의 행동
+ * @param {number} idx - 인덱스
+ * @param {number} insightForAction - 이 action에 적용할 유효 통찰
+ * @param {number} totalActions - 전체 행동 수
+ * @returns {Object} 공개할 action 정보
+ */
+const getActionRevealInfo = (action, idx, insightForAction, totalActions) => {
+  if (insightForAction <= 0) {
+    // 레벨 0: 정보 없음 (카드 존재는 알지만 내용 비공개)
+    return {
+      index: idx,
+      hidden: true,
+      sourceUnitId: action.card?.__sourceUnitId,
+    };
+  }
+
+  if (insightForAction === 1) {
+    // 레벨 1: 대략적 순서만
+    return {
+      index: idx,
+      isFirst: idx === 0,
+      isLast: idx === totalActions - 1,
+      hidden: false,
+      revealLevel: 1,
+      sourceUnitId: action.card?.__sourceUnitId,
+    };
+  }
+
+  if (insightForAction === 2) {
+    // 레벨 2: 카드 이름과 속도
+    return {
+      index: idx,
+      card: action.card,
+      speed: action.speed,
+      hidden: false,
+      revealLevel: 2,
+      sourceUnitId: action.card?.__sourceUnitId,
+    };
+  }
+
+  // 레벨 3+: 모든 정보
+  return {
+    index: idx,
+    card: action.card,
+    speed: action.speed,
+    effects: action.card?.effects,
+    traits: action.card?.traits,
+    hidden: false,
+    revealLevel: 3,
+    sourceUnitId: action.card?.__sourceUnitId,
+  };
+};
+
+/**
+ * 통찰 레벨별 적 정보 공개 (유닛별 veil 적용)
+ * @param {number} baseInsight - 기본 유효 통찰 (player.insight - enemy.shroud)
  * @param {Array} enemyActions - 적의 행동 계획
+ * @param {Array} units - 적 유닛 배열 (각 유닛에 veil 토큰 있을 수 있음)
  * @returns {object} 공개할 정보 레벨
  */
-export const getInsightRevealLevel = (effectiveInsight, enemyActions) => {
+export const getInsightRevealLevel = (baseInsight, enemyActions, units = []) => {
   if (!enemyActions || enemyActions.length === 0) {
     return { level: 0, visible: false };
   }
 
-  if (effectiveInsight === 0) {
-    // 레벨 0: 정보 없음
+  // 각 action에 대해 해당 유닛의 veil을 적용한 유효 통찰 계산
+  const actionsWithReveal = enemyActions.map((action, idx) => {
+    const sourceUnitId = action.card?.__sourceUnitId;
+    const sourceUnit = units.find(u => u.unitId === sourceUnitId);
+    const unitVeil = getUnitVeil(sourceUnit);
+    const insightForAction = Math.max(0, baseInsight - unitVeil);
+
+    return getActionRevealInfo(action, idx, insightForAction, enemyActions.length);
+  });
+
+  // 최소 공개 레벨 (가장 낮은 레벨 기준으로 전체 표시 여부 결정)
+  const minLevel = actionsWithReveal.reduce((min, a) => {
+    if (a.hidden) return min;
+    return Math.min(min, a.revealLevel || 0);
+  }, 3);
+
+  const anyVisible = actionsWithReveal.some(a => !a.hidden);
+
+  if (!anyVisible) {
     return { level: 0, visible: false };
   }
 
-  if (effectiveInsight === 1) {
-    // 레벨 1: 카드 개수와 대략적 순서
-    return {
-      level: 1,
-      visible: true,
-      cardCount: enemyActions.length,
-      showRoughOrder: true,
-      actions: enemyActions.map((action, idx) => ({
-        index: idx,
-        isFirst: idx === 0,
-        isLast: idx === enemyActions.length - 1,
-      })),
-    };
-  }
-
-  if (effectiveInsight === 2) {
-    // 레벨 2: 정확한 카드 이름과 속도
-    return {
-      level: 2,
-      visible: true,
-      cardCount: enemyActions.length,
-      showCards: true,
-      showSpeed: true,
-      actions: enemyActions.map((action, idx) => ({
-        index: idx,
-        card: action.card,
-        speed: action.speed,
-      })),
-    };
-  }
-
-  // 레벨 3+: 모든 정보 (특수 패턴, 면역 등)
   return {
-    level: 3,
+    level: minLevel,
     visible: true,
     cardCount: enemyActions.length,
-    showCards: true,
-    showSpeed: true,
-    showEffects: true,
-    fullDetails: true,
-    actions: enemyActions.map((action, idx) => ({
-      index: idx,
-      card: action.card,
-      speed: action.speed,
-      effects: action.card?.effects,
-      traits: action.card?.traits,
-    })),
+    showRoughOrder: minLevel >= 1,
+    showCards: minLevel >= 2,
+    showSpeed: minLevel >= 2,
+    showEffects: minLevel >= 3,
+    fullDetails: minLevel >= 3,
+    actions: actionsWithReveal,
   };
 };
 
