@@ -2268,7 +2268,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     const sourceUnit = a.actor === 'enemy' && a.card.__sourceUnitId !== undefined
       ? currentUnitsForContext.find(u => u.unitId === a.card.__sourceUnitId)
       : null;
-    const enemyDisplayName = sourceUnit?.name || enemy?.name || '몬스터';
+    const enemyDisplayName = sourceUnit?.name || E.name || enemy?.name || '몬스터';
 
     const battleContext = {
       currentSp: a.sp || 0,  // 현재 카드의 타임라인 위치 (growingDefense용)
