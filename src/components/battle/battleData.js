@@ -650,17 +650,17 @@ export const CARDS = [
   },
   {
     id: "coup_droit",
-    name: "꾸 두르",
+    name: "꾸 두르와",
     type: "attack",
     damage: 11,
     speedCost: 8,
     actionCost: 1,
     iconKey: "sword",
-    description: "기교 1 소모. 공격력 11. 무방비 1회 획득. 교차 시 넉백 3.",
+    description: "기교 1 소모. 공격력 11. 적에게 무방비 1회 부여. 교차 시 넉백 3.",
     traits: ["cross", "knockback"],
     cardCategory: "fencing",
     crossBonus: { type: 'push', value: 3 },
-    appliedTokens: [{ id: 'exposed', stacks: 1, target: 'player' }],
+    appliedTokens: [{ id: 'exposed', stacks: 1, target: 'enemy' }],
     requiredTokens: [{ id: 'finesse', stacks: 1 }]
   },
   {
