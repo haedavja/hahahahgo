@@ -202,6 +202,12 @@ export function executeCardActionCore(params) {
     enemyRemainingEnergy  // 적 치명타 확률용 남은 에너지
   };
 
+  // 다중 유닛: 공격 전 enemy HP 저장 (데미지 계산용)
+  const enemyHpBefore = tempState.enemy.hp;
+  const selectedTargetUnit = battle.selectedTargetUnit ?? 0;
+  const enemyUnits = enemy.units || [];
+  const hasUnits = enemyUnits.length > 0;
+
   const actionResult = applyAction(tempState, action.actor, action.card, battleContext);
   const { events, updatedState } = actionResult;
   let actionEvents = events;
@@ -215,6 +221,47 @@ export function executeCardActionCore(params) {
       actor: action.actor,
       actionResult
     });
+  }
+
+  // === 다중 유닛 데미지 분배 ===
+  // 플레이어가 공격할 때 선택된 유닛에 데미지 적용
+  if (hasUnits && action.actor === 'player' && action.card?.type === 'attack') {
+    const damageDealt = Math.max(0, enemyHpBefore - E.hp);
+
+    if (damageDealt > 0) {
+      // 살아있는 유닛 중 선택된 유닛 찾기
+      const aliveUnits = enemyUnits.filter(u => u.hp > 0);
+      let targetUnit = aliveUnits.find(u => u.unitId === selectedTargetUnit);
+      if (!targetUnit && aliveUnits.length > 0) {
+        targetUnit = aliveUnits[0]; // 폴백: 첫 번째 살아있는 유닛
+      }
+
+      if (targetUnit) {
+        // 유닛에 데미지 적용
+        const unitHpBefore = targetUnit.hp;
+        const newUnitHp = Math.max(0, targetUnit.hp - damageDealt);
+
+        // 유닛 배열 업데이트
+        const updatedUnits = enemyUnits.map(u => {
+          if (u.unitId === targetUnit.unitId) {
+            return { ...u, hp: newUnitHp };
+          }
+          return u;
+        });
+
+        // 전체 HP 재계산 (모든 유닛 HP 합계)
+        const newTotalHp = updatedUnits.reduce((sum, u) => sum + Math.max(0, u.hp), 0);
+
+        // E 상태에 유닛과 총 HP 반영
+        E.hp = newTotalHp;
+        E.units = updatedUnits;
+
+        // 로그에 유닛 정보 추가
+        if (targetUnit.name) {
+          addLog(`🎯 ${targetUnit.name}에게 ${damageDealt} 피해 (${unitHpBefore} -> ${newUnitHp})`);
+        }
+      }
+    }
   }
 
   // === 화상(BURN) 피해 처리: 카드 사용 시마다 피해 ===
@@ -475,7 +522,9 @@ export function executeCardActionCore(params) {
     block: E.block,
     counter: E.counter,
     vulnMult: E.vulnMult || 1,
-    tokens: E.tokens
+    tokens: E.tokens,
+    // 다중 유닛: 유닛 배열도 업데이트
+    ...(E.units && { units: E.units })
   });
   actions.setActionEvents({ ...battleRef.current.actionEvents, [battleRef.current.qIndex]: actionEvents });
 
@@ -750,6 +799,12 @@ export function runAllCore(params) {
       enemyRemainingEnergy: calcEnemyRemainingEnergy  // 적 치명타 확률용 남은 에너지
     };
 
+    // 다중 유닛: 공격 전 enemy HP 저장 (데미지 계산용)
+    const enemyHpBefore = tempState.enemy.hp;
+    const selectedTargetUnit = battle.selectedTargetUnit ?? 0;
+    const enemyUnits = E.units || enemy.units || [];
+    const hasUnits = enemyUnits.length > 0;
+
     const actionResult = applyAction(tempState, a.actor, a.card, battleContext);
     const { events, updatedState } = actionResult;
     newEvents[i] = events;
@@ -760,6 +815,42 @@ export function runAllCore(params) {
       P = updatedState.player;
       E = updatedState.enemy;
       tempState = { player: P, enemy: E, log: [] };
+    }
+
+    // === 다중 유닛 데미지 분배 ===
+    if (hasUnits && a.actor === 'player' && a.card?.type === 'attack') {
+      const damageDealt = Math.max(0, enemyHpBefore - E.hp);
+
+      if (damageDealt > 0) {
+        // 현재 유닛 배열에서 살아있는 유닛 찾기
+        const currentUnits = E.units || enemyUnits;
+        const aliveUnits = currentUnits.filter(u => u.hp > 0);
+        let targetUnit = aliveUnits.find(u => u.unitId === selectedTargetUnit);
+        if (!targetUnit && aliveUnits.length > 0) {
+          targetUnit = aliveUnits[0];
+        }
+
+        if (targetUnit) {
+          const unitHpBefore = targetUnit.hp;
+          const newUnitHp = Math.max(0, targetUnit.hp - damageDealt);
+
+          const updatedUnits = currentUnits.map(u => {
+            if (u.unitId === targetUnit.unitId) {
+              return { ...u, hp: newUnitHp };
+            }
+            return u;
+          });
+
+          const newTotalHp = updatedUnits.reduce((sum, u) => sum + Math.max(0, u.hp), 0);
+          E.hp = newTotalHp;
+          E.units = updatedUnits;
+          tempState = { player: P, enemy: E, log: [] };
+
+          if (targetUnit.name) {
+            addLog(`🎯 ${targetUnit.name}에게 ${damageDealt} 피해 (${unitHpBefore} -> ${newUnitHp})`);
+          }
+        }
+      }
     }
 
     // === 화상(BURN) 피해 처리: 카드 사용 시마다 피해 ===
@@ -819,7 +910,9 @@ export function runAllCore(params) {
     block: E.block,
     counter: E.counter,
     vulnMult: E.vulnMult || 1,
-    tokens: E.tokens
+    tokens: E.tokens,
+    // 다중 유닛: 유닛 배열도 업데이트
+    ...(E.units && { units: E.units })
   });
   actions.setActionEvents({ ...battle.actionEvents, ...newEvents });
 

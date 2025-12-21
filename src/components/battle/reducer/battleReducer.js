@@ -20,6 +20,7 @@ export const createInitialState = ({
   player: initialPlayerState,
   enemy: initialEnemyState,
   enemyIndex: 0,
+  selectedTargetUnit: 0, // 현재 타겟팅된 유닛 ID (기본: 첫 번째 유닛)
 
   // === 전투 페이즈 ===
   phase: 'select', // 'select', 'planning', 'resolve', 'result', 'victory', 'defeat'
@@ -163,6 +164,10 @@ export const ACTIONS = {
   SET_ENEMY: 'SET_ENEMY',
   UPDATE_ENEMY: 'UPDATE_ENEMY',
   SET_ENEMY_INDEX: 'SET_ENEMY_INDEX',
+  // 다중 유닛 시스템
+  SET_SELECTED_TARGET_UNIT: 'SET_SELECTED_TARGET_UNIT',
+  UPDATE_ENEMY_UNIT: 'UPDATE_ENEMY_UNIT',
+  SET_ENEMY_UNITS: 'SET_ENEMY_UNITS',
 
   // === 페이즈 ===
   SET_PHASE: 'SET_PHASE',
@@ -326,6 +331,33 @@ export function battleReducer(state, action) {
       return { ...state, enemy: { ...state.enemy, ...action.payload } };
     case ACTIONS.SET_ENEMY_INDEX:
       return { ...state, enemyIndex: action.payload };
+
+    // === 다중 유닛 시스템 ===
+    case ACTIONS.SET_SELECTED_TARGET_UNIT:
+      return { ...state, selectedTargetUnit: action.payload };
+    case ACTIONS.SET_ENEMY_UNITS:
+      return {
+        ...state,
+        enemy: { ...state.enemy, units: action.payload }
+      };
+    case ACTIONS.UPDATE_ENEMY_UNIT: {
+      // payload: { unitId, updates: { hp, block, tokens, ... } }
+      const { unitId, updates } = action.payload;
+      const units = state.enemy.units || [];
+      const newUnits = units.map(u =>
+        u.unitId === unitId ? { ...u, ...updates } : u
+      );
+      // 전체 HP 재계산
+      const totalHp = newUnits.reduce((sum, u) => sum + Math.max(0, u.hp), 0);
+      return {
+        ...state,
+        enemy: {
+          ...state.enemy,
+          units: newUnits,
+          hp: totalHp,
+        }
+      };
+    }
 
     // === 페이즈 ===
     case ACTIONS.SET_PHASE:

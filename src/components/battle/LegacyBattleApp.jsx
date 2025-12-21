@@ -71,6 +71,7 @@ import {
 import { PlayerHpBar } from "./ui/PlayerHpBar";
 import { PlayerEtherBox } from "./ui/PlayerEtherBox";
 import { EnemyHpBar } from "./ui/EnemyHpBar";
+import { EnemyUnitsDisplay } from "./ui/EnemyUnitsDisplay";
 import { EnemyEtherBox } from "./ui/EnemyEtherBox";
 import { CentralPhaseDisplay } from "./ui/CentralPhaseDisplay";
 import { EtherComparisonBar } from "./ui/EtherComparisonBar";
@@ -279,6 +280,33 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const enemy = battle.enemy;
   const enemyPlan = battle.enemyPlan;
   const enemyIndex = battle.enemyIndex;
+  const selectedTargetUnit = battle.selectedTargetUnit ?? 0;
+
+  // 다중 유닛 시스템: 적 유닛 배열
+  const enemyUnits = enemy?.units || [];
+  const hasMultipleUnits = enemyUnits.length > 1;
+
+  // 현재 타겟 유닛 (살아있는 유닛 중 선택)
+  const targetUnit = useMemo(() => {
+    if (!enemyUnits || enemyUnits.length === 0) return null;
+    const alive = enemyUnits.filter(u => u.hp > 0);
+    if (alive.length === 0) return null;
+    // 선택된 유닛이 살아있으면 그대로, 아니면 첫 번째 살아있는 유닛
+    const selected = alive.find(u => u.unitId === selectedTargetUnit);
+    return selected || alive[0];
+  }, [enemyUnits, selectedTargetUnit]);
+
+  // 선택된 유닛이 사망하면 다음 살아있는 유닛으로 자동 전환
+  useEffect(() => {
+    if (!hasMultipleUnits) return;
+    const aliveUnits = enemyUnits.filter(u => u.hp > 0);
+    if (aliveUnits.length === 0) return;
+    const currentTarget = aliveUnits.find(u => u.unitId === selectedTargetUnit);
+    if (!currentTarget) {
+      // 현재 타겟이 사망했으므로 첫 번째 살아있는 유닛으로 전환
+      actions.setSelectedTargetUnit(aliveUnits[0].unitId);
+    }
+  }, [enemyUnits, selectedTargetUnit, hasMultipleUnits]);
 
   // 정신집중 토큰에서 추가 카드 사용 수 계산
   const playerTokensForCardPlay = player?.tokens ? getAllTokens({ tokens: player.tokens }) : [];
@@ -3483,8 +3511,11 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       enemyActions: enemyPlan.actions,
     }) || { pDealt: 0 };
     const value = sim.pDealt || 0;
-    const lethal = value > enemy.hp;
-    const overkill = value > enemy.maxHp;
+    // 다중 유닛: 타겟 유닛의 HP로 치명/과잉 판정
+    const targetHp = targetUnit ? targetUnit.hp : enemy.hp;
+    const targetMaxHp = targetUnit ? targetUnit.maxHp : enemy.maxHp;
+    const lethal = value > targetHp;
+    const overkill = value > targetMaxHp;
     actions.setPreviewDamage({ value, lethal, overkill });
     if (overkill && !overkillSoundRef.current) {
       playSound(1600, 260);
@@ -3497,7 +3528,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       lethalSoundRef.current = false;
       overkillSoundRef.current = false;
     }
-  }, [battle.phase, player, enemy, fixedOrder, playerTimeline, willOverdrive, enemyPlan.mode, enemyPlan.actions]);
+  }, [battle.phase, player, enemy, fixedOrder, playerTimeline, willOverdrive, enemyPlan.mode, enemyPlan.actions, targetUnit]);
 
   return (
     <div className="legacy-battle-root w-full min-h-screen pb-64">
@@ -3813,22 +3844,37 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
               enemyTurnEtherAccumulated={enemyTurnEtherAccumulated}
               COMBO_MULTIPLIERS={COMBO_MULTIPLIERS}
             />
-            <EnemyHpBar
-              battle={battle}
-              previewDamage={previewDamage}
-              dulledLevel={dulledLevel}
-              enemy={enemy}
-              enemyHit={enemyHit}
-              enemyBlockAnim={enemyBlockAnim}
-              soulShatter={soulShatter}
-              groupedEnemyMembers={groupedEnemyMembers}
-              enemyOverdriveFlash={enemyOverdriveFlash}
-              enemyEtherValue={enemyEtherValue}
-              enemyTransferPulse={enemyTransferPulse}
-              enemySoulScale={enemySoulScale}
-              formatCompactValue={formatCompactValue}
-              frozenOrder={battle.frozenOrder}
-            />
+            {/* 다중 유닛: EnemyUnitsDisplay, 단일 적: EnemyHpBar */}
+            {hasMultipleUnits ? (
+              <EnemyUnitsDisplay
+                units={enemyUnits}
+                selectedTargetUnit={selectedTargetUnit}
+                onSelectUnit={(unitId) => actions.setSelectedTargetUnit(unitId)}
+                previewDamage={previewDamage}
+                dulledLevel={dulledLevel}
+                phase={battle.phase}
+                enemyHit={enemyHit}
+                enemyBlockAnim={enemyBlockAnim}
+                soulShatter={soulShatter}
+              />
+            ) : (
+              <EnemyHpBar
+                battle={battle}
+                previewDamage={previewDamage}
+                dulledLevel={dulledLevel}
+                enemy={enemy}
+                enemyHit={enemyHit}
+                enemyBlockAnim={enemyBlockAnim}
+                soulShatter={soulShatter}
+                groupedEnemyMembers={groupedEnemyMembers}
+                enemyOverdriveFlash={enemyOverdriveFlash}
+                enemyEtherValue={enemyEtherValue}
+                enemyTransferPulse={enemyTransferPulse}
+                enemySoulScale={enemySoulScale}
+                formatCompactValue={formatCompactValue}
+                frozenOrder={battle.frozenOrder}
+              />
+            )}
           </div>
         </div>
       </div>

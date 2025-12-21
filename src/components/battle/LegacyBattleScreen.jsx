@@ -19,53 +19,142 @@ const buildBattlePayload = (battle, etherPts, relics, maxHp, playerInsight, play
   let enemyComposition = [];
 
   // mixedEnemies: 새 ENEMY_GROUPS 시스템에서 제공하는 적 상세 정보
+  // 같은 종류의 적을 유닛으로 묶어서 관리 (약탈자 x3 = 1유닛, 탈영병 x1 = 1유닛)
+  let enemyUnits = [];
+
   if (battle.mixedEnemies && Array.isArray(battle.mixedEnemies) && battle.mixedEnemies.length > 0) {
     const mixedEnemies = battle.mixedEnemies;
-    // 몬스터 타입별 개수 집계
-    const enemyCounts = {};
+
+    // 같은 종류의 적을 유닛으로 그룹화
+    const unitMap = new Map();
     mixedEnemies.forEach(e => {
-      enemyCounts[e.name] = (enemyCounts[e.name] || 0) + 1;
+      const key = e.id || e.name;
+      if (!unitMap.has(key)) {
+        unitMap.set(key, {
+          id: e.id,
+          name: e.name,
+          emoji: e.emoji || "👾",
+          count: 0,
+          hp: 0,
+          maxHp: 0,
+          individualHp: e.hp || 40,
+          individualMaxHp: e.maxHp || e.hp || 40,
+          ether: 0,
+          individualEther: e.ether || 100,
+          deck: e.deck || [],
+          cardsPerTurn: 0,
+          individualCardsPerTurn: e.cardsPerTurn || 2,
+          passives: e.passives || {},
+          tier: e.tier || 1,
+          isBoss: e.isBoss || false,
+        });
+      }
+      const unit = unitMap.get(key);
+      unit.count += 1;
+      unit.hp += e.hp || 40;
+      unit.maxHp += e.maxHp || e.hp || 40;
+      unit.ether += e.ether || 100;
+      unit.cardsPerTurn += e.cardsPerTurn || 2;
     });
-    // "구울×2 슬러심×1" 형식으로 표기
-    enemyName = Object.entries(enemyCounts)
-      .map(([name, count]) => count > 1 ? `${name}×${count}` : name)
-      .join(' ');
-    enemyHp = battle.totalEnemyHp || mixedEnemies.reduce((sum, e) => sum + (e.hp || 40), 0);
+
+    // Map을 배열로 변환하고 unitId 부여
+    enemyUnits = Array.from(unitMap.values()).map((unit, idx) => ({
+      ...unit,
+      unitId: idx,
+      block: 0,
+      tokens: { permanent: [], turn: [], usage: [] },
+    }));
+
+    // 기존 호환성을 위한 값들
+    enemyName = enemyUnits.map(u => u.count > 1 ? `${u.name}×${u.count}` : u.name).join(' ');
+    enemyHp = enemyUnits.reduce((sum, u) => sum + u.hp, 0);
     enemyDeck = mixedEnemies.flatMap(e => e.deck || []);
     enemyCount = mixedEnemies.length;
-    enemyComposition = mixedEnemies.map(e => ({
-      name: e.name,
-      emoji: e.emoji || "👾",
-      hp: e.hp,
-      maxHp: e.maxHp || e.hp,
-      ether: e.ether,
-      cardsPerTurn: e.cardsPerTurn,
-      passives: e.passives,
+    enemyComposition = enemyUnits.map(u => ({
+      name: u.name,
+      emoji: u.emoji,
+      hp: u.hp,
+      maxHp: u.maxHp,
+      ether: u.ether,
+      cardsPerTurn: u.cardsPerTurn,
+      passives: u.passives,
+      count: u.count,
     }));
   } else if (battle.enemies && Array.isArray(battle.enemies)) {
     // 레거시: enemies가 ID 배열인 경우
     const mixedEnemies = battle.enemies.map(id => ENEMIES.find(e => e.id === id)).filter(Boolean);
     if (mixedEnemies.length > 0) {
-      const enemyCounts = {};
+      // 같은 종류의 적을 유닛으로 그룹화
+      const unitMap = new Map();
       mixedEnemies.forEach(e => {
-        enemyCounts[e.name] = (enemyCounts[e.name] || 0) + 1;
+        const key = e.id || e.name;
+        if (!unitMap.has(key)) {
+          unitMap.set(key, {
+            id: e.id,
+            name: e.name,
+            emoji: e.emoji || "👾",
+            count: 0,
+            hp: 0,
+            maxHp: 0,
+            individualHp: e.hp || 40,
+            deck: e.deck || [],
+            cardsPerTurn: 0,
+            individualCardsPerTurn: e.cardsPerTurn || 2,
+            passives: e.passives || {},
+            tier: e.tier || 1,
+          });
+        }
+        const unit = unitMap.get(key);
+        unit.count += 1;
+        unit.hp += e.hp || 40;
+        unit.maxHp += e.hp || 40;
+        unit.cardsPerTurn += e.cardsPerTurn || 2;
       });
-      enemyName = Object.entries(enemyCounts)
-        .map(([name, count]) => count > 1 ? `${name}×${count}` : name)
-        .join(' ');
-      enemyHp = mixedEnemies.reduce((sum, e) => sum + e.hp, 0);
+
+      enemyUnits = Array.from(unitMap.values()).map((unit, idx) => ({
+        ...unit,
+        unitId: idx,
+        block: 0,
+        tokens: { permanent: [], turn: [], usage: [] },
+      }));
+
+      enemyName = enemyUnits.map(u => u.count > 1 ? `${u.name}×${u.count}` : u.name).join(' ');
+      enemyHp = enemyUnits.reduce((sum, u) => sum + u.hp, 0);
       enemyDeck = mixedEnemies.flatMap(e => e.deck);
       enemyCount = mixedEnemies.length;
-      enemyComposition = mixedEnemies.map(e => ({ name: e.name, emoji: e.emoji || "👾" }));
+      enemyComposition = enemyUnits.map(u => ({
+        name: u.name,
+        emoji: u.emoji,
+        hp: u.hp,
+        maxHp: u.maxHp,
+        count: u.count,
+      }));
     }
   } else {
+    // 기본 폴백: 단일 유닛
     const baseEmoji = "👾";
-    if (enemyCount > 1) {
-      enemyName = `${enemyName} x${enemyCount}`;
-      enemyComposition = Array(enemyCount).fill({ name: battle.label ?? "Enemy", emoji: baseEmoji });
-    } else {
-      enemyComposition = [{ name: enemyName, emoji: baseEmoji }];
-    }
+    const singleName = battle.label ?? "Enemy";
+    const singleHp = initialEnemy?.hp ?? 40;
+
+    enemyUnits = [{
+      unitId: 0,
+      id: 'default',
+      name: singleName,
+      emoji: baseEmoji,
+      count: enemyCount,
+      hp: singleHp * enemyCount,
+      maxHp: singleHp * enemyCount,
+      individualHp: singleHp,
+      deck: enemyDeck,
+      cardsPerTurn: 2 * enemyCount,
+      passives: {},
+      tier: 1,
+      block: 0,
+      tokens: { permanent: [], turn: [], usage: [] },
+    }];
+
+    enemyName = enemyCount > 1 ? `${singleName} x${enemyCount}` : singleName;
+    enemyComposition = [{ name: singleName, emoji: baseEmoji, hp: singleHp * enemyCount, maxHp: singleHp * enemyCount, count: enemyCount }];
   }
 
   // 상징 패시브 효과 계산
@@ -117,6 +206,8 @@ const buildBattlePayload = (battle, etherPts, relics, maxHp, playerInsight, play
       passives: enemyComposition[0]?.passives || {},
       cardsPerTurn: enemyComposition[0]?.cardsPerTurn || 2,
       ether: enemyComposition[0]?.ether || enemyEtherCapacity,
+      // 다중 유닛 시스템: 같은 종류 적을 묶은 유닛 배열
+      units: enemyUnits,
     },
   };
 };

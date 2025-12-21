@@ -83,6 +83,10 @@ export function useBattleState(initialStateOverrides = {}) {
     setEnemy: (enemy) => dispatch({ type: ACTIONS.SET_ENEMY, payload: enemy }),
     updateEnemy: (updates) => dispatch({ type: ACTIONS.UPDATE_ENEMY, payload: updates }),
     setEnemyIndex: (index) => dispatch({ type: ACTIONS.SET_ENEMY_INDEX, payload: index }),
+    // 다중 유닛 시스템
+    setSelectedTargetUnit: (unitId) => dispatch({ type: ACTIONS.SET_SELECTED_TARGET_UNIT, payload: unitId }),
+    setEnemyUnits: (units) => dispatch({ type: ACTIONS.SET_ENEMY_UNITS, payload: units }),
+    updateEnemyUnit: (unitId, updates) => dispatch({ type: ACTIONS.UPDATE_ENEMY_UNIT, payload: { unitId, updates } }),
 
     // === 전투 페이즈 ===
     setPhase: (phase) => dispatch({ type: ACTIONS.SET_PHASE, payload: phase }),
@@ -292,6 +296,9 @@ export function useBattleActions(dispatch) {
     setPhase: (phase) => dispatch({ type: ACTIONS.SET_PHASE, payload: phase }),
     addLog: (message) => dispatch({ type: ACTIONS.ADD_LOG, payload: message }),
     resetTurn: () => dispatch({ type: ACTIONS.RESET_TURN }),
-    // ... 필요한 액션 추가
+    // 다중 유닛 시스템
+    setSelectedTargetUnit: (unitId) => dispatch({ type: ACTIONS.SET_SELECTED_TARGET_UNIT, payload: unitId }),
+    setEnemyUnits: (units) => dispatch({ type: ACTIONS.SET_ENEMY_UNITS, payload: units }),
+    updateEnemyUnit: (unitId, updates) => dispatch({ type: ACTIONS.UPDATE_ENEMY_UNIT, payload: { unitId, updates } }),
   }), [dispatch]);
 }
