@@ -761,16 +761,23 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     const currentBuild = useGameStore.getState().characterBuild;
     const hasCharacterBuild = currentBuild && (currentBuild.mainSpecials?.length > 0 || currentBuild.subSpecials?.length > 0 || currentBuild.ownedCards?.length > 0);
 
+    // [DEBUG mainSpecials]
+    console.log('[DEBUG mainSpecials] characterBuild:', currentBuild);
+    console.log('[DEBUG mainSpecials] hasCharacterBuild:', hasCharacterBuild);
+
     // 덱이 이미 초기화되었으면 스킵 (두 번째 useEffect에서 처리)
     if (!deckInitializedRef.current) {
       if (hasCharacterBuild) {
         // 덱 초기화 (주특기는 손패로, 보조특기는 덱 맨 위로)
         const { deck: initialDeck, mainSpecialsHand } = initializeDeck(currentBuild, battle.vanishedCards || []);
+        console.log('[DEBUG mainSpecials] mainSpecialsHand:', mainSpecialsHand);
+        console.log('[DEBUG mainSpecials] initialDeck:', initialDeck);
         // 덱에서 카드 드로우
         const drawResult = drawFromDeck(initialDeck, [], DEFAULT_DRAW_COUNT, escapeBanRef.current);
         actions.setDeck(drawResult.newDeck);
         actions.setDiscardPile(drawResult.newDiscardPile);
         // 주특기 + 드로우한 카드 = 손패
+        console.log('[DEBUG mainSpecials] final hand:', [...mainSpecialsHand, ...drawResult.drawnCards]);
         actions.setHand([...mainSpecialsHand, ...drawResult.drawnCards]);
         deckInitializedRef.current = true;
       } else {
