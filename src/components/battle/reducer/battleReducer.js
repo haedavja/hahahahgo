@@ -128,6 +128,7 @@ export const createInitialState = ({
   hoveredCard: null, // 호버된 카드 정보 {card, position}
   tooltipVisible: false, // 툴팁 표시 여부
   previewDamage: { value: 0, lethal: false, overkill: false }, // 데미지 미리보기
+  perUnitPreviewDamage: {}, // 유닛별 데미지 미리보기 { unitId: { value, lethal, overkill } }
 
   // === 통찰 시스템 ===
   insightBadge: {
@@ -291,6 +292,7 @@ export const ACTIONS = {
   SET_HOVERED_CARD: 'SET_HOVERED_CARD',
   SET_TOOLTIP_VISIBLE: 'SET_TOOLTIP_VISIBLE',
   SET_PREVIEW_DAMAGE: 'SET_PREVIEW_DAMAGE',
+  SET_PER_UNIT_PREVIEW_DAMAGE: 'SET_PER_UNIT_PREVIEW_DAMAGE',
 
   // === 통찰 시스템 ===
   SET_INSIGHT_BADGE: 'SET_INSIGHT_BADGE',
@@ -600,6 +602,8 @@ export function battleReducer(state, action) {
       return { ...state, tooltipVisible: action.payload };
     case ACTIONS.SET_PREVIEW_DAMAGE:
       return { ...state, previewDamage: action.payload };
+    case ACTIONS.SET_PER_UNIT_PREVIEW_DAMAGE:
+      return { ...state, perUnitPreviewDamage: action.payload };
 
     // === 통찰 시스템 ===
     case ACTIONS.SET_INSIGHT_BADGE:

@@ -12,6 +12,7 @@ export const EnemyUnitsDisplay = ({
   selectedTargetUnit,
   onSelectUnit,
   previewDamage,
+  perUnitPreviewDamage = {},
   dulledLevel = 0,
   phase,
   enemyHit,
@@ -65,7 +66,9 @@ export const EnemyUnitsDisplay = ({
       {aliveUnits.map((unit, idx) => {
         const isSelected = unit.unitId === selectedTargetUnit;
         const isTargetable = phase === 'select' || phase === 'respond';
-        const showDamage = isTargetable && isSelected && previewDamage.value > 0;
+        // 유닛별 예상 피해량 조회 (perUnitPreviewDamage가 있으면 사용, 없으면 선택된 유닛에만 표시)
+        const unitPreview = perUnitPreviewDamage[unit.unitId];
+        const showDamage = isTargetable && unitPreview && unitPreview.value > 0;
         const hideVitals = dulledLevel >= 3;
 
         return (
@@ -153,11 +156,11 @@ export const EnemyUnitsDisplay = ({
               }}>
                 {showDamage && (
                   <span
-                    className={`${previewDamage.lethal ? 'lethal' : ''} ${previewDamage.overkill ? 'overkill' : ''}`}
+                    className={`${unitPreview.lethal ? 'lethal' : ''} ${unitPreview.overkill ? 'overkill' : ''}`}
                     style={{ color: '#fbbf24', fontWeight: '600' }}
                   >
-                    🗡️-{previewDamage.value}
-                    {previewDamage.lethal && (previewDamage.overkill ? '☠️' : '💀')}
+                    🗡️-{unitPreview.value}
+                    {unitPreview.lethal && (unitPreview.overkill ? '☠️' : '💀')}
                   </span>
                 )}
                 {/* 개별 유닛 방어력 표시 (다중 유닛 시), 공유 방어력 fallback (단일 유닛 시) */}

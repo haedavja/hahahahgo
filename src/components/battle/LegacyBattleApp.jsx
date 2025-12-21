@@ -3816,6 +3816,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   useEffect(() => {
     if (!(battle.phase === 'select' || battle.phase === 'respond') || !enemy) {
       actions.setPreviewDamage({ value: 0, lethal: false, overkill: false });
+      actions.setPerUnitPreviewDamage({});
       lethalSoundRef.current = false;
       overkillSoundRef.current = false;
       return;
@@ -3823,6 +3824,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     const order = (fixedOrder && fixedOrder.length > 0) ? fixedOrder : playerTimeline;
     if (!order || order.length === 0) {
       actions.setPreviewDamage({ value: 0, lethal: false, overkill: false });
+      actions.setPerUnitPreviewDamage({});
       lethalSoundRef.current = false;
       overkillSoundRef.current = false;
       return;
@@ -3842,6 +3844,49 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     const lethal = value > targetHp;
     const overkill = value > targetMaxHp;
     actions.setPreviewDamage({ value, lethal, overkill });
+
+    // 유닛별 피해량 계산 (다중 유닛 시스템용)
+    if (hasMultipleUnits && enemyUnits.length > 0) {
+      const boost = willOverdrive ? 2 : 1;
+      const strengthBonus = player.strength || 0;
+      const perUnitDamage = {};
+
+      // 플레이어 공격 카드의 피해량을 타겟 유닛별로 합산
+      for (const step of order) {
+        if (step.actor === 'player' && step.card.type === 'attack') {
+          const card = step.card;
+          const targetId = card.__targetUnitId ?? selectedTargetUnit ?? 0;
+          const hits = card.hits || 1;
+          const baseDamage = ((card.damage || 0) + strengthBonus) * boost * hits;
+
+          if (!perUnitDamage[targetId]) {
+            perUnitDamage[targetId] = 0;
+          }
+          perUnitDamage[targetId] += baseDamage;
+        }
+      }
+
+      // 각 유닛별 치명/과잉 판정
+      const perUnitPreview = {};
+      for (const [unitIdStr, damage] of Object.entries(perUnitDamage)) {
+        const unitId = parseInt(unitIdStr, 10);
+        const unit = enemyUnits.find(u => u.unitId === unitId);
+        if (unit && damage > 0) {
+          const unitBlock = unit.block || 0;
+          const effectiveDamage = Math.max(0, damage - unitBlock);
+          perUnitPreview[unitId] = {
+            value: damage,
+            effectiveDamage,
+            lethal: effectiveDamage >= unit.hp,
+            overkill: effectiveDamage >= unit.maxHp,
+          };
+        }
+      }
+      actions.setPerUnitPreviewDamage(perUnitPreview);
+    } else {
+      actions.setPerUnitPreviewDamage({});
+    }
+
     if (overkill && !overkillSoundRef.current) {
       playSound(1600, 260);
       overkillSoundRef.current = true;
@@ -3853,7 +3898,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       lethalSoundRef.current = false;
       overkillSoundRef.current = false;
     }
-  }, [battle.phase, player, enemy, fixedOrder, playerTimeline, willOverdrive, enemyPlan.mode, enemyPlan.actions, targetUnit]);
+  }, [battle.phase, player, enemy, fixedOrder, playerTimeline, willOverdrive, enemyPlan.mode, enemyPlan.actions, targetUnit, hasMultipleUnits, enemyUnits, selectedTargetUnit]);
 
   return (
     <div className="legacy-battle-root w-full min-h-screen pb-64">
@@ -4176,6 +4221,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                 selectedTargetUnit={selectedTargetUnit}
                 onSelectUnit={(unitId) => actions.setSelectedTargetUnit(unitId)}
                 previewDamage={previewDamage}
+                perUnitPreviewDamage={battle.perUnitPreviewDamage}
                 dulledLevel={dulledLevel}
                 phase={battle.phase}
                 enemyHit={enemyHit}

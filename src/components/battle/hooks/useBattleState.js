@@ -160,6 +160,7 @@ export function useBattleState(initialStateOverrides = {}) {
     setHoveredCard: (card) => dispatch({ type: ACTIONS.SET_HOVERED_CARD, payload: card }),
     setTooltipVisible: (visible) => dispatch({ type: ACTIONS.SET_TOOLTIP_VISIBLE, payload: visible }),
     setPreviewDamage: (damage) => dispatch({ type: ACTIONS.SET_PREVIEW_DAMAGE, payload: damage }),
+    setPerUnitPreviewDamage: (damage) => dispatch({ type: ACTIONS.SET_PER_UNIT_PREVIEW_DAMAGE, payload: damage }),
     setShowPtsTooltip: (show) => dispatch({ type: ACTIONS.SET_SHOW_PTS_TOOLTIP, payload: show }),
     setShowBarTooltip: (show) => dispatch({ type: ACTIONS.SET_SHOW_BAR_TOOLTIP, payload: show }),
 
