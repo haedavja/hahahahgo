@@ -53,7 +53,7 @@ import { renderRarityBadge, renderNameWithBadge, getCardDisplayRarity } from "./
 import { startEnemyEtherAnimation } from "./utils/enemyEtherAnimation";
 import { processQueueCollisions } from "./utils/cardSpecialEffects";
 import { processReflections, initReflectionState, resetTurnReflectionEffects, decreaseEnemyFreeze } from "../../lib/reflectionEffects";
-import { clearTurnTokens, addToken, removeToken, getAllTokens, expireTurnTokensByTimeline, getTokenStacks } from "../../lib/tokenUtils";
+import { clearTurnTokens, addToken, removeToken, getAllTokens, expireTurnTokensByTimeline, getTokenStacks, setTokenStacks } from "../../lib/tokenUtils";
 import { convertTraitsToIds } from "../../data/reflections";
 import { processEtherTransfer } from "./utils/etherTransferProcessing";
 import { processVictoryDefeatTransition } from "./utils/victoryDefeatTransition";
@@ -2723,6 +2723,18 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                 battleRef.current = { ...battleRef.current, enemy: { ...E } };
               }
               actions.setEnemy({ ...E });
+              result.logs.forEach(log => addLog(log));
+              return result;
+            },
+            // 룰렛 초기화 등을 위한 토큰 스택 리셋
+            resetTokenForPlayer: (tokenId, tokenType, newStacks = 0) => {
+              const result = setTokenStacks(currentPlayerForToken, tokenId, tokenType, newStacks);
+              P.tokens = result.tokens;
+              currentPlayerForToken.tokens = result.tokens;
+              if (battleRef.current) {
+                battleRef.current = { ...battleRef.current, player: { ...P } };
+              }
+              actions.setPlayer({ ...P });
               result.logs.forEach(log => addLog(log));
               return result;
             }

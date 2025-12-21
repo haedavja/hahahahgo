@@ -24,7 +24,7 @@ import { startEnemyEtherAnimation } from '../utils/enemyEtherAnimation';
 import { processEtherTransfer } from '../utils/etherTransferProcessing';
 import { processVictoryDefeatTransition } from '../utils/victoryDefeatTransition';
 import { calculatePassiveEffects, applyTurnEndEffects } from '../../../lib/relicEffects';
-import { addToken, removeToken, getAllTokens } from '../../../lib/tokenUtils';
+import { addToken, removeToken, getAllTokens, setTokenStacks } from '../../../lib/tokenUtils';
 
 // =====================
 // 타이밍 상수 (밀리초)
@@ -365,6 +365,15 @@ export function executeCardActionCore(params) {
               addLog(`💥 치명타! ${tokenId} +1 강화`);
             }
             return actions.addTokenToEnemy(tokenId, actualStacks);
+          },
+          // 룰렛 초기화 등을 위한 토큰 스택 리셋
+          resetTokenForPlayer: (tokenId, tokenType, newStacks = 0) => {
+            const result = setTokenStacks(currentPlayerForToken, tokenId, tokenType, newStacks);
+            P.tokens = result.tokens;
+            currentPlayerForToken.tokens = result.tokens;
+            actions.setPlayer({ ...P });
+            result.logs.forEach(log => addLog(log));
+            return result;
           }
         };
         action.card.onPlay(battle, tokenActions);
