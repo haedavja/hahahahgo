@@ -180,6 +180,57 @@ export function processPreAttackSpecials({
     }
   }
 
+  // === 후속/마무리 특성: 이전 카드가 연계/후속이면 보너스 ===
+  const hasFollowupTrait = card.traits && card.traits.includes('followup');
+  const hasFinisherTrait = card.traits && card.traits.includes('finisher');
+  if (hasFollowupTrait || hasFinisherTrait) {
+    const { queue = [], currentQIndex = 0 } = battleContext;
+    const who = attackerName === 'player' ? '플레이어' : '몬스터';
+
+    // 이전 내 카드 찾기 (같은 actor의 이전 카드)
+    let previousCard = null;
+    for (let i = currentQIndex - 1; i >= 0; i--) {
+      if (queue[i]?.actor === attackerName) {
+        previousCard = queue[i].card;
+        break;
+      }
+    }
+
+    if (previousCard) {
+      const prevHasChain = previousCard.traits && previousCard.traits.includes('chain');
+      const prevHasFollowup = previousCard.traits && previousCard.traits.includes('followup');
+
+      // 후속 특성: 연계되면 피해 50% 증가
+      if (hasFollowupTrait && prevHasChain && modifiedCard.damage) {
+        const originalDamage = modifiedCard.damage;
+        modifiedCard.damage = Math.ceil(originalDamage * 1.5);
+        const msg = `${who} • ⚡ ${card.name}: 후속! 피해 50% 증가 (${originalDamage}→${modifiedCard.damage})`;
+        events.push({ actor: attackerName, card: card.name, type: 'special', msg });
+        logs.push(msg);
+      }
+
+      // 마무리 특성: 연계되면 피해 50% 증가, 후속되면 기교 1 획득
+      if (hasFinisherTrait) {
+        if (prevHasChain && modifiedCard.damage) {
+          const originalDamage = modifiedCard.damage;
+          modifiedCard.damage = Math.ceil(originalDamage * 1.5);
+          const msg = `${who} • ⚡ ${card.name}: 마무리(연계)! 피해 50% 증가 (${originalDamage}→${modifiedCard.damage})`;
+          events.push({ actor: attackerName, card: card.name, type: 'special', msg });
+          logs.push(msg);
+        }
+        if (prevHasFollowup) {
+          // 기교 토큰 직접 부여
+          const grantedAt = battleContext.currentTurn ? { turn: battleContext.currentTurn, sp: battleContext.currentSp || 0 } : null;
+          const finesseResult = addToken(modifiedAttacker, 'finesse', 1, grantedAt);
+          modifiedAttacker.tokens = finesseResult.tokens;
+          const msg = `${who} • ✨ ${card.name}: 마무리(후속)! 기교 획득!`;
+          events.push({ actor: attackerName, card: card.name, type: 'special', msg });
+          logs.push(msg);
+        }
+      }
+    }
+  }
+
   // === reloadSpray: 장전 후 사격 (탄걸림 제거 + 룰렛 0으로 초기화) ===
   if (hasSpecial(card, 'reloadSpray')) {
     // 탄걸림 제거
