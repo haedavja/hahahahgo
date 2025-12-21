@@ -2263,6 +2263,13 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       .filter(q => q.actor === 'player');
     const usedCardCategories = [...new Set(executedPlayerCards.map(q => q.card?.cardCategory).filter(Boolean))];
 
+    // 적 카드의 소스 유닛 이름 가져오기
+    const currentUnitsForContext = E.units || enemy?.units || [];
+    const sourceUnit = a.actor === 'enemy' && a.card.__sourceUnitId !== undefined
+      ? currentUnitsForContext.find(u => u.unitId === a.card.__sourceUnitId)
+      : null;
+    const enemyDisplayName = sourceUnit?.name || enemy?.name || '몬스터';
+
     const battleContext = {
       currentSp: a.sp || 0,  // 현재 카드의 타임라인 위치 (growingDefense용)
       currentTurn: turnNumber,  // 현재 턴 번호 (토큰 grantedAt용)
@@ -2272,7 +2279,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       enemyRemainingEnergy: calculatedEnemyRemainingEnergy,  // 적 치명타 확률용 남은 에너지
       allCards: CARDS,  // 카드 창조용 전체 카드 풀
       usedCardCategories,  // comboStyle용: 이번 턴에 사용된 카드 카테고리
-      hand: currentBattle.hand || []  // autoReload용: 현재 손패
+      hand: currentBattle.hand || [],  // autoReload용: 현재 손패
+      enemyDisplayName  // 적 유닛 이름 (로그용)
     };
 
     // === requiredTokens 소모 (카드 실행 전) ===
