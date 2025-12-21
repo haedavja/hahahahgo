@@ -45,14 +45,8 @@ export const TimelineDisplay = ({
   destroyingEnemyCards = [],
   freezingEnemyCards = [],
   frozenOrder = 0,
-  parryReadyStates = [],
-  enemyUnits = []
+  parryReadyStates = []
 }) => {
-  // 타겟 유닛 정보 가져오기 헬퍼
-  const getTargetUnit = (targetUnitId) => {
-    if (targetUnitId == null) return null;
-    return enemyUnits.find(u => u.unitId === targetUnitId);
-  };
   const commonMax = Math.max(player.maxSpeed || DEFAULT_PLAYER_MAX_SPEED, enemy.maxSpeed || DEFAULT_ENEMY_MAX_SPEED);
   const ticks = generateSpeedTicks(commonMax);
   const playerMax = player.maxSpeed || DEFAULT_PLAYER_MAX_SPEED;
@@ -235,27 +229,12 @@ export const TimelineDisplay = ({
                   const isExecuting = executingCardIndex === globalIndex;
                   const isUsed = Array.isArray(usedCardIndices) && usedCardIndices.includes(globalIndex) && globalIndex < qIndex;
                   const normalizedPosition = (a.sp / playerMax) * 100;
-                  // 타겟 유닛 정보
-                  const targetUnit = a.card.__targetUnitId != null ? getTargetUnit(a.card.__targetUnitId) : null;
                   return (
                     <div key={idx}
                       className={`timeline-marker marker-player ${isExecuting ? 'timeline-active' : ''} ${isUsed ? 'timeline-used' : ''}`}
-                      style={{ left: `${normalizedPosition}%`, top: `${6 + offset}px`, position: 'relative' }}>
+                      style={{ left: `${normalizedPosition}%`, top: `${6 + offset}px` }}>
                       <Icon size={14} className="text-white" />
                       <span className="text-white text-xs font-bold">{num > 0 ? num : ''}</span>
-                      {/* 타겟 유닛 표시 */}
-                      {targetUnit && enemyUnits.length > 1 && (
-                        <div style={{
-                          position: 'absolute',
-                          bottom: '-14px',
-                          left: '50%',
-                          transform: 'translateX(-50%)',
-                          fontSize: '10px',
-                          whiteSpace: 'nowrap',
-                        }}>
-                          {targetUnit.emoji || '👾'}
-                        </div>
-                      )}
                     </div>
                   );
                 })}
