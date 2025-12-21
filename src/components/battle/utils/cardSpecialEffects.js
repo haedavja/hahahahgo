@@ -958,7 +958,7 @@ export function processCardPlaySpecials({
     }
   }
 
-  // === elRapide: 민첩 +2, 아픔 1회 (기교 1 소모시 생략), 자기 복제 ===
+  // === elRapide: 민첩 +2, 아픔 1회 (기교 1 소모시 생략) ===
   if (hasSpecial(card, 'elRapide')) {
     const who = attackerName === 'player' ? '플레이어' : '몬스터';
     const grantedAt = battleContext.currentTurn ? { turn: battleContext.currentTurn, sp: battleContext.currentSp || 0 } : null;
@@ -981,17 +981,8 @@ export function processCardPlaySpecials({
       logs.push(msg);
     }
 
-    // 민첩 +2 (appliedTokens에서 처리되지만, 여기서도 확인)
+    // 민첩 +2
     tokensToAdd.push({ id: 'agility', stacks: 2, grantedAt });
-
-    // 자기 복제: 손패에 이 카드 복사 추가
-    nextTurnEffects = {
-      ...nextTurnEffects,
-      addCardToHand: card.id
-    };
-    const copyMsg = `${who} • 📋 ${card.name}: 손패에 복사본 추가!`;
-    events.push({ actor: attackerName, card: card.name, type: 'special', msg: copyMsg });
-    logs.push(copyMsg);
   }
 
   return { bonusCards, tokensToAdd, tokensToRemove, nextTurnEffects, events, logs };
