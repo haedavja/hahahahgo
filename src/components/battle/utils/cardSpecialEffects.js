@@ -750,9 +750,13 @@ export function processCardCreationSpecials({
   const shouldCreateCards = (hasSpecial(card, 'createAttackOnHit') || card.isFromFleche) && damageDealt > 0 && canChain;
 
   if (shouldCreateCards) {
-    // 공격 카드 중에서 랜덤 선택 (중복 ID 방지, 원본 카드 제외)
+    // 공격 카드 중에서 랜덤 선택 (중복 ID 방지, 원본 카드 제외, 기교 소모 카드 제외 - 유령카드는 토큰 체크 없이 실행되므로)
     const originalCardId = card.createdBy || card.id;  // 원본 플레쉬 카드 ID
-    const attackCards = allCards.filter(c => c.type === 'attack' && c.id !== originalCardId);
+    const attackCards = allCards.filter(c =>
+      c.type === 'attack' &&
+      c.id !== originalCardId &&
+      (!c.requiredTokens || c.requiredTokens.length === 0)
+    );
     if (attackCards.length > 0) {
       // 3장의 서로 다른 공격 카드 창조 (중복 ID 방지)
       const shuffled = [...attackCards].sort(() => Math.random() - 0.5);
