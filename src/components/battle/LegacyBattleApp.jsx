@@ -2080,10 +2080,10 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         const finalResult = finalizeMultiHitAttack(modifiedCard, currentAttacker, currentDefender, attackerName, totalDealt, totalBlockDestroyed, { ...battleContext, isCritical: totalCritCount > 0 });
         const enemyName = battleContext.enemyDisplayName || '몬스터';
         const who = attackerName === 'player' ? `플레이어 -> ${enemyName}` : `${enemyName} -> 플레이어`;
-        const perHitDmg = firstHitResult.damage;
+        const baseDmgJam = modifiedCard.damage || card.damage || 0;
         const critText = firstHitCritical ? ' 💥치명타!' : '';
         const jamMsg = hits > 1
-          ? `${who} • 🔫 ${card.name}${ghostLabel}: ${perHitDmg}x1 = ${totalDealt}${critText} 데미지 (탄걸림! ${hits - 1}회 취소)`
+          ? `${who} • 🔫 ${card.name}${ghostLabel}: ${baseDmgJam}x1 = ${totalDealt}${critText} 데미지 (탄걸림! ${hits - 1}회 취소)`
           : `${who} • 🔫 ${card.name}${ghostLabel}: ${totalDealt}${critText} 데미지 (탄걸림!)`;
         allEvents.push({ actor: attackerName, card: card.name, type: 'multihit', msg: jamMsg, dmg: totalDealt });
 
@@ -2146,10 +2146,10 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
           // 탄걸림 요약 로그
           const enemyNameJam = battleContext.enemyDisplayName || '몬스터';
           const who = attackerName === 'player' ? `플레이어 -> ${enemyNameJam}` : `${enemyNameJam} -> 플레이어`;
-          const perHitDmg = firstHitResult.damage;
+          const baseDmgJam2 = modifiedCard.damage || card.damage || 0;
           const actualHits = i + 1;
           const critText = totalCritCount > 0 ? ` 💥치명타x${totalCritCount}!` : '';
-          const jamMsg = `${who} • 🔫 ${card.name}${ghostLabel}: ${perHitDmg}x${actualHits} = ${totalDealt}${critText} 데미지 (탄걸림! ${hits - actualHits}회 취소)`;
+          const jamMsg = `${who} • 🔫 ${card.name}${ghostLabel}: ${baseDmgJam2}x${actualHits} = ${totalDealt}${critText} 데미지 (탄걸림! ${hits - actualHits}회 취소)`;
           allEvents.push({ actor: attackerName, card: card.name, type: 'multihit', msg: jamMsg, dmg: totalDealt });
 
           return {
@@ -2173,12 +2173,13 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     // 총합 로그 (타격데미지x타격횟수 형식)
     const enemyNameSum = battleContext.enemyDisplayName || '몬스터';
     const who = attackerName === 'player' ? `플레이어 -> ${enemyNameSum}` : `${enemyNameSum} -> 플레이어`;
-    const perHitDmg = firstHitResult.damage;
+    // 카드 기본 공격력 사용 (방어로 막혀도 표시는 일관되게)
+    const baseDmg = modifiedCard.damage || card.damage || 0;
     // 치명타 표시: 개별 표시 (예: 💥x2)
     const critText = totalCritCount > 0 ? ` 💥치명타x${totalCritCount}!` : '';
     const icon = isGunCard ? '🔫' : '🔥';
     if (hits > 1) {
-      const multiHitMsg = `${who} • ${icon} ${card.name}${ghostLabel}: ${perHitDmg}x${hits} = ${totalDealt}${critText} 데미지!`;
+      const multiHitMsg = `${who} • ${icon} ${card.name}${ghostLabel}: ${baseDmg}x${hits} = ${totalDealt}${critText} 데미지!`;
       allEvents.push({ actor: attackerName, card: card.name, type: 'multihit', msg: multiHitMsg, dmg: totalDealt });
       allLogs.push(multiHitMsg);
     } else {

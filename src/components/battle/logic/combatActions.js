@@ -560,12 +560,13 @@ export function applyAttack(attacker, defender, card, attackerName, battleContex
   if (hits > 1) {
     const enemyNameMulti = battleContext.enemyDisplayName || '몬스터';
     const who = attackerName === 'player' ? `플레이어 -> ${enemyNameMulti}` : `${enemyNameMulti} -> 플레이어`;
-    const perHitDmg = firstHitResult.damage;
+    // 카드 기본 공격력 사용 (방어로 막혀도 표시는 일관되게)
+    const baseDmg = modifiedCard.damage || card.damage || 0;
     const critText = isCritical ? ' 💥치명타!' : '';
     const isGunCard = card.cardCategory === 'gun';
     const icon = isGunCard ? '🔫' : '🔥';
     const actorEmoji = attackerName === 'player' ? '🔵' : '👾';
-    const multiHitMsg = `${actorEmoji} ${who} • ${icon} ${card.name}${ghostLabel}: ${perHitDmg}x${hits} = ${totalDealt}${critText} 데미지!`;
+    const multiHitMsg = `${actorEmoji} ${who} • ${icon} ${card.name}${ghostLabel}: ${baseDmg}x${hits} = ${totalDealt}${critText} 데미지!`;
     allEvents.push({ actor: attackerName, card: card.name, type: 'multihit', msg: multiHitMsg, dmg: totalDealt });
     allLogs.push(multiHitMsg);
   }
