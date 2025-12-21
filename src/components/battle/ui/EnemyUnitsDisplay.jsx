@@ -37,16 +37,18 @@ export const EnemyUnitsDisplay = ({
   const enemySoulScale = Math.max(0.4, Math.min(1.3, enemyEtherCapacity > 0 ? enemyEtherValue / enemyEtherCapacity : 1));
 
   return (
-    <div className="enemy-units-container" style={{
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '16px',
-      position: 'fixed',
-      top: '400px',
-      right: '300px',
-      zIndex: 100,
-    }}>
-      {/* 유닛 목록 (영혼 구슬 앞에 배치) */}
+    <>
+      {/* 유닛 목록 - 단일 유닛 HP바와 비슷한 위치 */}
+      <div className="enemy-units-container" style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '12px',
+        position: 'fixed',
+        top: '250px',
+        right: '20px',
+        zIndex: 100,
+        maxWidth: '320px',
+      }}>
       {aliveUnits.map((unit, idx) => {
         const isSelected = unit.unitId === selectedTargetUnit;
         const isTargetable = phase === 'select' || phase === 'respond';
@@ -199,28 +201,29 @@ export const EnemyUnitsDisplay = ({
         );
       })}
 
-      {/* 타겟팅 힌트 */}
-      {showTargeting && (phase === 'select' || phase === 'respond') && (
-        <div style={{
-          fontSize: '0.8rem',
-          color: '#94a3b8',
-          textAlign: 'center',
-          padding: '4px 8px',
-          background: 'rgba(30, 41, 59, 0.6)',
-          borderRadius: '6px',
-        }}>
-          💡 클릭하여 공격 대상 선택
-        </div>
-      )}
+        {/* 타겟팅 힌트 */}
+        {showTargeting && (phase === 'select' || phase === 'respond') && (
+          <div style={{
+            fontSize: '0.75rem',
+            color: '#94a3b8',
+            textAlign: 'center',
+            padding: '4px 8px',
+            background: 'rgba(30, 41, 59, 0.6)',
+            borderRadius: '6px',
+          }}>
+            💡 클릭하여 공격 대상 선택
+          </div>
+        )}
+      </div>
 
-      {/* 에테르 구슬 (영혼) - 유닛 아래에 배치 */}
+      {/* 에테르 구슬 (영혼) - 단일 유닛과 같은 위치 */}
       <div
         className={`soul-orb ${enemyTransferPulse ? 'pulse' : ''} ${soulShatter ? 'shatter' : ''}`}
         title={dulledLevel >= 3 ? '?? / ??' : `${enemyEtherValue.toLocaleString()} / ${enemyEtherCapacity.toLocaleString()}`}
         style={{
-          alignSelf: 'flex-end',
-          marginRight: '20px',
-          marginTop: '8px',
+          position: 'fixed',
+          top: '470px',
+          right: '300px',
         }}
       >
         <div
@@ -234,6 +237,6 @@ export const EnemyUnitsDisplay = ({
           <div className="soul-orb-label">SOUL</div>
         </div>
       </div>
-    </div>
+    </>
   );
 };
