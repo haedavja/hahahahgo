@@ -903,6 +903,19 @@ export function processCardPlaySpecials({
         const msg = `${who} • ✨ ${card.name}: 교차! 무딤+→부러짐+, 흔들림+→무방비+ 강화!`;
         events.push({ actor: attackerName, card: card.name, type: 'cross', msg });
         logs.push(msg);
+      } else if (bonusType === 'destroy_card') {
+        // 사브르 에클레르용: 교차 시 적 카드 파괴
+        // 겹친 적 카드를 큐에서 제거하는 플래그 설정
+        nextTurnEffects = { ...nextTurnEffects, destroyOverlappingCard: true };
+        const msg = `${who} • ⚡ ${card.name}: 교차! 적 카드 파괴!`;
+        events.push({ actor: attackerName, card: card.name, type: 'cross', msg });
+        logs.push(msg);
+      } else if (bonusType === 'guaranteed_crit') {
+        // 회피 사격용: 교차 시 확정 치명타
+        nextTurnEffects = { ...nextTurnEffects, guaranteedCrit: true };
+        const msg = `${who} • 💥 ${card.name}: 교차! 확정 치명타!`;
+        events.push({ actor: attackerName, card: card.name, type: 'cross', msg });
+        logs.push(msg);
       }
     }
   }
@@ -1036,6 +1049,125 @@ export function processCardPlaySpecials({
     tokensToAdd.push({ id: 'agility', stacks: 2, grantedAt });
   }
 
+  // === manipulation: 탄걸림이면 장전, 아니면 사격 ===
+  if (hasSpecial(card, 'manipulation')) {
+    const who = attackerName === 'player' ? '플레이어' : '몬스터';
+    const hasJam = getTokenStacks(attacker, 'gun_jam') > 0;
+
+    if (hasJam) {
+      // 탄걸림 제거 + 장전
+      tokensToRemove.push({ id: 'gun_jam', stacks: 99 });
+      const grantedAt = battleContext.currentTurn ? { turn: battleContext.currentTurn, sp: battleContext.currentSp || 0 } : null;
+      tokensToAdd.push({ id: 'loaded', stacks: 1, grantedAt });
+      const msg = `${who} • 🔧 ${card.name}: 탄걸림 해제! 장전!`;
+      events.push({ actor: attackerName, card: card.name, type: 'special', msg });
+      logs.push(msg);
+    } else {
+      // 사격 1회 추가
+      const basicShoot = allCards.find(c => c.id === 'shoot');
+      if (basicShoot) {
+        bonusCards.push({
+          ...basicShoot,
+          damage: basicShoot.damage,
+          speedCost: 0, // 즉시 실행
+          actionCost: 0,
+          isGhost: true,
+          createdBy: card.id,
+          createdId: `${basicShoot.id}_manip_${Date.now()}`
+        });
+        const msg = `${who} • 🔫 ${card.name}: 사격!`;
+        events.push({ actor: attackerName, card: card.name, type: 'special', msg });
+        logs.push(msg);
+      }
+    }
+  }
+
+  // === spreadShot: 적의 수만큼 사격 ===
+  if (hasSpecial(card, 'spreadShot')) {
+    const who = attackerName === 'player' ? '플레이어' : '몬스터';
+    const { enemyUnits = [] } = battleContext;
+    const aliveUnits = enemyUnits.filter(u => u.hp > 0);
+    const enemyCount = Math.max(1, aliveUnits.length);
+
+    const basicShoot = allCards.find(c => c.id === 'shoot');
+    if (basicShoot) {
+      for (let i = 0; i < enemyCount; i++) {
+        bonusCards.push({
+          ...basicShoot,
+          damage: basicShoot.damage,
+          speedCost: 0,
+          actionCost: 0,
+          isGhost: true,
+          createdBy: card.id,
+          createdId: `${basicShoot.id}_spread_${Date.now()}_${i}`,
+          __targetUnitId: aliveUnits[i]?.unitId ?? 0 // 각 유닛에게 분산
+        });
+      }
+      const msg = `${who} • 🔫 ${card.name}: ${enemyCount}회 스프레드 사격!`;
+      events.push({ actor: attackerName, card: card.name, type: 'special', msg });
+      logs.push(msg);
+    }
+  }
+
+  // === executionSquad: 장전 + 탄걸림 면역 + 총격카드 4장 창조 ===
+  if (hasSpecial(card, 'executionSquad')) {
+    const who = attackerName === 'player' ? '플레이어' : '몬스터';
+    const grantedAt = battleContext.currentTurn ? { turn: battleContext.currentTurn, sp: battleContext.currentSp || 0 } : null;
+
+    // 장전
+    tokensToAdd.push({ id: 'loaded', stacks: 1, grantedAt });
+    // 탄걸림 면역 (이번 턴)
+    tokensToAdd.push({ id: 'jam_immune', stacks: 1, grantedAt });
+
+    // 총격카드 4장 창조
+    const basicShoot = allCards.find(c => c.id === 'shoot');
+    if (basicShoot) {
+      for (let i = 0; i < 4; i++) {
+        bonusCards.push({
+          ...basicShoot,
+          damage: basicShoot.damage,
+          speedCost: 1, // +1 속도에 배치
+          actionCost: 0,
+          isGhost: true,
+          createdBy: card.id,
+          createdId: `${basicShoot.id}_exec_${Date.now()}_${i}`
+        });
+      }
+      const msg = `${who} • 🔫 ${card.name}: 총살! 장전 + 탄걸림 면역 + 사격 4장 창조!`;
+      events.push({ actor: attackerName, card: card.name, type: 'special', msg });
+      logs.push(msg);
+    }
+  }
+
+  // === sharpenBlade: 이번 전투 모든 검격 카드 공격력 +3 ===
+  if (hasSpecial(card, 'sharpenBlade')) {
+    const who = attackerName === 'player' ? '플레이어' : '몬스터';
+    nextTurnEffects = { ...nextTurnEffects, fencingDamageBonus: 3 };
+    const msg = `${who} • ⚔️ ${card.name}: 날 세우기! 이번 전투 모든 검격 공격력 +3!`;
+    events.push({ actor: attackerName, card: card.name, type: 'special', msg });
+    logs.push(msg);
+  }
+
+  // === evasiveShot: 사격 1회 (방어력과 흐릿함은 appliedTokens로 처리) ===
+  if (hasSpecial(card, 'evasiveShot')) {
+    const who = attackerName === 'player' ? '플레이어' : '몬스터';
+    const basicShoot = allCards.find(c => c.id === 'shoot');
+    if (basicShoot) {
+      bonusCards.push({
+        ...basicShoot,
+        damage: basicShoot.damage,
+        speedCost: 0,
+        actionCost: 0,
+        isGhost: true,
+        createdBy: card.id,
+        createdId: `${basicShoot.id}_evasive_${Date.now()}`
+      });
+      const msg = `${who} • 🔫 ${card.name}: 회피 사격!`;
+      events.push({ actor: attackerName, card: card.name, type: 'special', msg });
+      logs.push(msg);
+    }
+  }
+
   return { bonusCards, tokensToAdd, tokensToRemove, nextTurnEffects, events, logs };
 }
 
@@ -1047,9 +1179,10 @@ export function processCardPlaySpecials({
  * 치명타 확률 계산
  * @param {Object} actor - 행동 주체 (player 또는 enemy)
  * @param {number} remainingEnergy - 남은 행동력
+ * @param {Object} card - 카드 객체 (optional, doubleCrit 체크용)
  * @returns {number} 치명타 확률 (0~100)
  */
-export function calculateCritChance(actor, remainingEnergy = 0) {
+export function calculateCritChance(actor, remainingEnergy = 0, card = null) {
   const baseCritChance = 5; // 기본 5%
   const strength = actor.strength || 0;
   const energy = remainingEnergy || 0;
@@ -1065,24 +1198,32 @@ export function calculateCritChance(actor, remainingEnergy = 0) {
     });
   }
 
-  return baseCritChance + strength + energy + critBoostFromTokens;
+  let totalChance = baseCritChance + strength + energy + critBoostFromTokens;
+
+  // doubleCrit special: 치명타 확률 2배
+  if (card && hasSpecial(card, 'doubleCrit')) {
+    totalChance *= 2;
+  }
+
+  return totalChance;
 }
 
 /**
  * 치명타 판정
  * @param {Object} actor - 행동 주체
  * @param {number} remainingEnergy - 남은 행동력
- * @param {Object} card - 사용 카드 (optional, guaranteedCrit 체크용)
+ * @param {Object} card - 사용 카드 (optional, guaranteedCrit/doubleCrit 체크용)
  * @param {string} attackerName - 'player' 또는 'enemy' (optional)
+ * @param {Object} battleContext - 전투 컨텍스트 (optional, 교차 확정 치명타 등)
  * @returns {boolean} 치명타 발생 여부
  */
-export function rollCritical(actor, remainingEnergy = 0, card = null, attackerName = 'player') {
+export function rollCritical(actor, remainingEnergy = 0, card = null, attackerName = 'player', battleContext = {}) {
   // 적은 기본적으로 치명타 확률 0
   if (attackerName === 'enemy') {
     return false;
   }
 
-  // 확정 치명타 체크
+  // 확정 치명타 체크 (카드 special)
   if (card) {
     const specials = Array.isArray(card.special) ? card.special : [card.special];
     if (specials.includes('guaranteedCrit')) {
@@ -1090,9 +1231,26 @@ export function rollCritical(actor, remainingEnergy = 0, card = null, attackerNa
     }
   }
 
-  const critChance = calculateCritChance(actor, remainingEnergy);
+  // 확정 치명타 체크 (교차 효과 등 battleContext)
+  if (battleContext.guaranteedCrit) {
+    return true;
+  }
+
+  const critChance = calculateCritChance(actor, remainingEnergy, card);
   const roll = Math.random() * 100;
   return roll < critChance;
+}
+
+/**
+ * 치명타 넉백 효과 처리
+ * @param {Object} card - 카드 객체
+ * @param {boolean} isCritical - 치명타 여부
+ * @returns {number} 넉백 값 (0이면 넉백 없음)
+ */
+export function getCritKnockback(card, isCritical) {
+  if (!isCritical || !card) return 0;
+  if (hasSpecial(card, 'critKnockback4')) return 4;
+  return 0;
 }
 
 /**
