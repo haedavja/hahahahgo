@@ -2170,22 +2170,29 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       }
     }
 
-    // 총합 로그 (타격데미지x타격횟수 형식)
+    // 총합 로그 (공격력 - 방어력 = 데미지 형식)
     const enemyNameSum = battleContext.enemyDisplayName || '몬스터';
     const who = attackerName === 'player' ? `플레이어 -> ${enemyNameSum}` : `${enemyNameSum} -> 플레이어`;
-    // 카드 기본 공격력 사용 (방어로 막혀도 표시는 일관되게)
     const baseDmg = modifiedCard.damage || card.damage || 0;
-    // 치명타 표시: 개별 표시 (예: 💥x2)
+    const totalAttack = baseDmg * hits;
     const critText = totalCritCount > 0 ? ` 💥치명타x${totalCritCount}!` : '';
     const icon = isGunCard ? '🔫' : '🔥';
+
+    // 방어력 차감 표시
+    let dmgFormula;
+    if (totalBlockDestroyed > 0) {
+      dmgFormula = `공격력 ${totalAttack} - 방어력 ${totalBlockDestroyed} = ${totalDealt}`;
+    } else {
+      dmgFormula = `${totalDealt}`;
+    }
+
     if (hits > 1) {
-      const multiHitMsg = `${who} • ${icon} ${card.name}${ghostLabel}: ${baseDmg}x${hits} = ${totalDealt}${critText} 데미지!`;
+      const multiHitMsg = `${who} • ${icon} ${card.name}${ghostLabel}: ${dmgFormula}${critText} 데미지!`;
       allEvents.push({ actor: attackerName, card: card.name, type: 'multihit', msg: multiHitMsg, dmg: totalDealt });
       allLogs.push(multiHitMsg);
     } else {
-      // 단일 타격 총기 공격
       const singleCritText = totalCritCount > 0 ? ' 💥치명타!' : '';
-      const singleHitMsg = `${who} • ${icon} ${card.name}${ghostLabel}: ${totalDealt}${singleCritText} 데미지`;
+      const singleHitMsg = `${who} • ${icon} ${card.name}${ghostLabel}: ${dmgFormula}${singleCritText} 데미지`;
       allEvents.push({ actor: attackerName, card: card.name, type: 'hit', msg: singleHitMsg, dmg: totalDealt });
       allLogs.push(singleHitMsg);
     }
