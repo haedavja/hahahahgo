@@ -150,10 +150,10 @@ export const EnemyUnitsDisplay = ({
                     {previewDamage.lethal && (previewDamage.overkill ? '☠️' : '💀')}
                   </span>
                 )}
-                {/* 공유 방어력 표시 (선택된 유닛에 표시) */}
-                {!hideVitals && enemyDef && enemyBlock > 0 && isSelected && (
+                {/* 공유 방어력 표시 (블록 값만 체크) */}
+                {!hideVitals && enemyBlock > 0 && (
                   <span
-                    className={enemyBlockAnim ? 'block-animation' : ''}
+                    className={enemyBlockAnim && isSelected ? 'block-animation' : ''}
                     style={{ color: '#60a5fa', fontWeight: '600' }}
                   >
                     🛡️{enemyBlock}
@@ -182,8 +182,8 @@ export const EnemyUnitsDisplay = ({
                     transition: 'width 0.3s ease',
                   }}
                 />
-                {/* 공유 방어력 표시 (선택된 유닛의 HP바에 오버레이) */}
-                {!hideVitals && enemyDef && enemyBlock > 0 && isSelected && (
+                {/* 공유 방어력 표시 (HP바에 오버레이) */}
+                {!hideVitals && enemyBlock > 0 && (
                   <div style={{
                     position: 'absolute',
                     left: 0,

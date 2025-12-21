@@ -1926,6 +1926,16 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     const currentBattle = battleRef.current;
     if (currentBattle.qIndex >= currentBattle.queue.length) return;
     const a = currentBattle.queue[currentBattle.qIndex];
+
+    // 죽은 적의 카드 스킵 (적 체력 0 이하이고 적 카드인 경우)
+    const currentEnemy = currentBattle.enemy || enemy;
+    if (a.actor === 'enemy' && currentEnemy.hp <= 0) {
+      // 다음 카드로 진행
+      const newQIndex = currentBattle.qIndex + 1;
+      actions.setQIndex(newQIndex);
+      battleRef.current = { ...battleRef.current, qIndex: newQIndex };
+      return;
+    }
     const currentQIndex = currentBattle.qIndex; // Capture current qIndex
 
     // 타임라인 progress 업데이트 (공통 최대 속도 기준 비율로)
