@@ -202,9 +202,9 @@ const buildBattlePayload = (battle, etherPts, relics, maxHp, playerInsight, play
       etherPts: enemyEtherCapacity,
       etherCapacity: enemyEtherCapacity,
       enemyCount: enemyCount,
-      // 첫 번째 적의 패시브와 cardsPerTurn 사용 (다중 적은 composition에서 개별 관리)
+      // 패시브는 첫 번째 적 기준, cardsPerTurn은 모든 유닛 합계
       passives: enemyComposition[0]?.passives || {},
-      cardsPerTurn: enemyComposition[0]?.cardsPerTurn || 2,
+      cardsPerTurn: enemyUnits.reduce((sum, u) => sum + (u.cardsPerTurn || 2), 0),
       ether: enemyComposition[0]?.ether || enemyEtherCapacity,
       // 다중 유닛 시스템: 같은 종류 적을 묶은 유닛 배열
       units: enemyUnits,
