@@ -2327,6 +2327,22 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       }
     }
 
+    // === 유닛 시스템: 적 방어 시 소스 유닛의 기존 block 사용 (누적값 표시용) ===
+    let sourceUnitIdForDefense = null;
+    if (a.actor === 'enemy' && (a.card.type === 'defense' || a.card.type === 'general') && hasUnitsForAttack) {
+      const cardSourceUnitId = a.card.__sourceUnitId;
+      if (cardSourceUnitId !== undefined && cardSourceUnitId !== null) {
+        const sourceUnitForDefense = currentUnitsForAttack.find(u => u.unitId === cardSourceUnitId);
+        if (sourceUnitForDefense) {
+          sourceUnitIdForDefense = cardSourceUnitId;
+          // 소스 유닛의 기존 block을 E.block으로 사용 (누적값 계산용)
+          E.block = sourceUnitForDefense.block || 0;
+          E.def = E.block > 0;
+          tempState.enemy = E;
+        }
+      }
+    }
+
     let actionResult;
     let actionEvents;
 
@@ -2471,12 +2487,13 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
       // 유닛이 있고 sourceUnitId가 설정되어 있으면 해당 유닛에 블록 전송
       if (currentUnits.length > 0 && sourceUnitId !== undefined && sourceUnitId !== null) {
-        const blockAdded = E.block;  // 이번 카드로 추가된 방어력
+        // E.block은 이미 누적값 (기존 + 새로 추가된 값)
+        const totalBlock = E.block;
 
-        // 소스 유닛에 방어력 추가
+        // 소스 유닛의 블록을 누적값으로 설정
         const updatedUnits = currentUnits.map(u => {
           if (u.unitId === sourceUnitId) {
-            return { ...u, block: (u.block || 0) + blockAdded };
+            return { ...u, block: totalBlock, def: true };
           }
           return u;
         });
