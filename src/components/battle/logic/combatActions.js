@@ -418,7 +418,8 @@ function applyCounter(defender, attacker, attackerName, counterDmg = null, battl
   const cmsg = `${attackerName === 'player' ? `${enemyName} -> 플레이어` : `플레이어 -> ${enemyName}`} • 반격 ${actualCounterDmg} (체력 ${beforeHP} -> ${updatedAttacker.hp})`;
 
   const event = { actor: 'counter', value: actualCounterDmg, msg: cmsg };
-  const log = `${attackerName === 'player' ? '🔵' : '👾'} ${cmsg}`;
+  // 반격은 방어자(defender)가 수행: 플레이어가 공격했으면 적이 반격 (👾), 적이 공격했으면 플레이어가 반격 (🔵)
+  const log = `${attackerName === 'player' ? '👾' : '🔵'} ${cmsg}`;
 
   return {
     attacker: updatedAttacker,
@@ -563,7 +564,8 @@ export function applyAttack(attacker, defender, card, attackerName, battleContex
     const critText = isCritical ? ' 💥치명타!' : '';
     const isGunCard = card.cardCategory === 'gun';
     const icon = isGunCard ? '🔫' : '🔥';
-    const multiHitMsg = `${who} • ${icon} ${card.name}${ghostLabel}: ${perHitDmg}x${hits} = ${totalDealt}${critText} 데미지!`;
+    const actorEmoji = attackerName === 'player' ? '🔵' : '👾';
+    const multiHitMsg = `${actorEmoji} ${who} • ${icon} ${card.name}${ghostLabel}: ${perHitDmg}x${hits} = ${totalDealt}${critText} 데미지!`;
     allEvents.push({ actor: attackerName, card: card.name, type: 'multihit', msg: multiHitMsg, dmg: totalDealt });
     allLogs.push(multiHitMsg);
   }
