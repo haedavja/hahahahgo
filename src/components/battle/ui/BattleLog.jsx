@@ -24,10 +24,10 @@ export const BattleLog = ({ phase, log, logContainerRef, showAlways = false }) =
           if (line.includes('게임 시작') || line.includes('적 성향 힌트')) return false;
           return true;
         }).map((line, i) => {
-          // 적 행동: "-> 플레이어" 패턴 (적이 플레이어를 공격)
-          const isEnemyAction = line.includes('-> 플레이어');
-          // 플레이어 행동: "플레이어 ->" 패턴 (플레이어가 적을 공격)
+          // 플레이어 행동: "플레이어 ->" 또는 "플레이어 •"
           const isPlayerAction = line.includes('플레이어 ->') || line.includes('플레이어 •');
+          // 적 행동: "-> 플레이어" 또는 (플레이어 행동이 아니면서 " •" 포함)
+          const isEnemyAction = line.includes('-> 플레이어') || (!isPlayerAction && line.includes(' •'));
           return (
             <div key={i} style={{
               fontSize: '13px',
