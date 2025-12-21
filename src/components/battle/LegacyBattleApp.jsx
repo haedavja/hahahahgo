@@ -3007,6 +3007,31 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
               if (isCritical) {
                 addLog(`💥 치명타! ${tokenId} +1 강화`);
               }
+
+              // 다중 유닛 시스템: 타겟 유닛에 토큰 부여
+              const currentUnits = E.units || enemy?.units || [];
+              if (currentUnits.length > 0 && targetUnitIdForAttack !== null) {
+                const updatedUnits = currentUnits.map(u => {
+                  if (u.unitId === targetUnitIdForAttack) {
+                    const unitResult = addToken(u, tokenId, actualStacks, grantedAt);
+                    return { ...u, tokens: unitResult.tokens };
+                  }
+                  return u;
+                });
+                E.units = updatedUnits;
+                // battleRef 동기 업데이트
+                if (battleRef.current) {
+                  battleRef.current = { ...battleRef.current, enemy: { ...E } };
+                }
+                actions.setEnemy({ ...E });
+                actions.setEnemyUnits(updatedUnits);
+                const targetUnit = currentUnits.find(u => u.unitId === targetUnitIdForAttack);
+                const targetName = targetUnit?.name || '적';
+                addLog(`🎯 ${targetName}에게 ${tokenId} 부여`);
+                return { tokens: updatedUnits.find(u => u.unitId === targetUnitIdForAttack)?.tokens || {}, logs: [] };
+              }
+
+              // 단일 적 또는 타겟 없음: 기존 방식
               const result = addToken(E, tokenId, actualStacks, grantedAt);
               E.tokens = result.tokens;
               // battleRef 동기 업데이트
