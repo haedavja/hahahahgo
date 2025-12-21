@@ -2078,7 +2078,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       if (rouletteResult.jammed) {
         // 첫 타격에서 탄걸림! 남은 타격 취소
         const finalResult = finalizeMultiHitAttack(modifiedCard, currentAttacker, currentDefender, attackerName, totalDealt, totalBlockDestroyed, { ...battleContext, isCritical: totalCritCount > 0 });
-        const who = attackerName === 'player' ? '플레이어 -> 몬스터' : '몬스터 -> 플레이어';
+        const enemyName = battleContext.enemyDisplayName || '몬스터';
+        const who = attackerName === 'player' ? `플레이어 -> ${enemyName}` : `${enemyName} -> 플레이어`;
         const perHitDmg = firstHitResult.damage;
         const critText = firstHitCritical ? ' 💥치명타!' : '';
         const jamMsg = hits > 1
@@ -2143,7 +2144,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
           // 탄걸림! 남은 타격 취소 - 요약 로그에 포함
           const finalResult = finalizeMultiHitAttack(modifiedCard, currentAttacker, currentDefender, attackerName, totalDealt, totalBlockDestroyed, { ...battleContext, isCritical: totalCritCount > 0 });
           // 탄걸림 요약 로그
-          const who = attackerName === 'player' ? '플레이어 -> 몬스터' : '몬스터 -> 플레이어';
+          const enemyNameJam = battleContext.enemyDisplayName || '몬스터';
+          const who = attackerName === 'player' ? `플레이어 -> ${enemyNameJam}` : `${enemyNameJam} -> 플레이어`;
           const perHitDmg = firstHitResult.damage;
           const actualHits = i + 1;
           const critText = totalCritCount > 0 ? ` 💥치명타x${totalCritCount}!` : '';
@@ -2169,7 +2171,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     }
 
     // 총합 로그 (타격데미지x타격횟수 형식)
-    const who = attackerName === 'player' ? '플레이어 -> 몬스터' : '몬스터 -> 플레이어';
+    const enemyNameSum = battleContext.enemyDisplayName || '몬스터';
+    const who = attackerName === 'player' ? `플레이어 -> ${enemyNameSum}` : `${enemyNameSum} -> 플레이어`;
     const perHitDmg = firstHitResult.damage;
     // 치명타 표시: 개별 표시 (예: 💥x2)
     const critText = totalCritCount > 0 ? ` 💥치명타x${totalCritCount}!` : '';
