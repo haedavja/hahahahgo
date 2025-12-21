@@ -66,7 +66,10 @@ const buildBattlePayload = (battle, etherPts, relics, maxHp, playerInsight, play
     }));
 
     // 기존 호환성을 위한 값들
-    enemyName = enemyUnits.map(u => u.count > 1 ? `${u.name}×${u.count}` : u.name).join(' ');
+    // battle.label이 있으면 그룹 이름 사용 (예: "오염된 구울들"), 없으면 유닛 이름 조합
+    if (!battle.label) {
+      enemyName = enemyUnits.map(u => u.count > 1 ? `${u.name}×${u.count}` : u.name).join(' + ');
+    }
     enemyHp = enemyUnits.reduce((sum, u) => sum + u.hp, 0);
     enemyDeck = mixedEnemies.flatMap(e => e.deck || []);
     enemyCount = mixedEnemies.length;
@@ -121,7 +124,10 @@ const buildBattlePayload = (battle, etherPts, relics, maxHp, playerInsight, play
         tokens: { permanent: [], turn: [], usage: [] },
       }));
 
-      enemyName = enemyUnits.map(u => u.count > 1 ? `${u.name}×${u.count}` : u.name).join(' ');
+      // battle.label이 있으면 그룹 이름 사용, 없으면 유닛 이름 조합
+      if (!battle.label) {
+        enemyName = enemyUnits.map(u => u.count > 1 ? `${u.name}×${u.count}` : u.name).join(' + ');
+      }
       enemyHp = enemyUnits.reduce((sum, u) => sum + u.hp, 0);
       enemyDeck = mixedEnemies.flatMap(e => e.deck);
       enemyCount = mixedEnemies.length;
