@@ -3230,8 +3230,12 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
     // 브리치(breach) 효과 처리: 랜덤 카드 3장 생성 후 선택 대기
     if (a.card.special === 'breach' && a.actor === 'player') {
-      // 공격/범용/특수 카드 중 랜덤 3장 선택 (중복 ID 방지)
-      const cardPool = CARDS.filter(c => (c.type === 'attack' || c.type === 'general' || c.type === 'special') && c.id !== 'breach');
+      // 공격/범용/특수 카드 중 랜덤 3장 선택 (중복 ID 방지, 기교 소모 카드 제외 - 유령카드는 토큰 체크 없이 실행되므로)
+      const cardPool = CARDS.filter(c =>
+        (c.type === 'attack' || c.type === 'general' || c.type === 'special') &&
+        c.id !== 'breach' &&
+        (!c.requiredTokens || c.requiredTokens.length === 0)
+      );
       const shuffled = [...cardPool].sort(() => Math.random() - 0.5);
       const breachCards = [];
       const usedIds = new Set();
