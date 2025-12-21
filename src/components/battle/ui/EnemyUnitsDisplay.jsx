@@ -38,14 +38,14 @@ export const EnemyUnitsDisplay = ({
 
   return (
     <>
-      {/* 유닛 목록 - 왼쪽에 배치 (플레이어와 대칭) */}
+      {/* 유닛 목록 - 에테르 구슬 왼쪽에 배치 */}
       <div className="enemy-units-container" style={{
         display: 'flex',
         flexDirection: 'column',
         gap: '12px',
         position: 'fixed',
         top: '250px',
-        left: '20px',
+        right: '420px',
         zIndex: 100,
         maxWidth: '320px',
       }}>
