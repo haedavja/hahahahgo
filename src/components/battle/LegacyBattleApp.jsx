@@ -120,6 +120,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const playerEgos = useGameStore((state) => state.playerEgos || []);
   // 개발자 모드: characterBuild 변경 감지
   const devCharacterBuild = useGameStore((state) => state.characterBuild);
+  // 개발자 모드: 전투 중 토큰 추가
+  const devBattleTokens = useGameStore((state) => state.devBattleTokens);
+  const devClearBattleTokens = useGameStore((state) => state.devClearBattleTokens);
   const mergeRelicOrder = useCallback((relicList = [], saved = []) => {
     const savedSet = new Set(saved);
     const merged = [];
@@ -829,6 +832,47 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
     prevDevBuildRef.current = { ...devCharacterBuild, mainSpecials: [...currentMainSpecials], subSpecials: [...currentSubSpecials] };
   }, [devCharacterBuild, battle.vanishedCards, actions]);
+
+  // 개발자 모드: 전투 중 토큰 즉시 추가
+  useEffect(() => {
+    if (!devBattleTokens || devBattleTokens.length === 0) return;
+
+    // 새 토큰들 처리
+    devBattleTokens.forEach(tokenInfo => {
+      const { id: tokenId, stacks, target } = tokenInfo;
+
+      if (target === 'player') {
+        const currentPlayer = battleRef.current?.player || player;
+        const tokenResult = addToken(currentPlayer, tokenId, stacks);
+        const updatedPlayer = { ...currentPlayer, tokens: tokenResult.tokens };
+
+        actions.setPlayer(updatedPlayer);
+        if (battleRef.current) {
+          battleRef.current = { ...battleRef.current, player: updatedPlayer };
+        }
+
+        const tokenName = TOKENS[tokenId]?.name || tokenId;
+        addLog(`[DEV] 🎁 ${tokenName} +${stacks} 부여`);
+      } else if (target === 'enemy') {
+        const currentEnemy = battleRef.current?.enemy || enemy;
+        const tokenResult = addToken(currentEnemy, tokenId, stacks);
+        const updatedEnemy = { ...currentEnemy, tokens: tokenResult.tokens };
+
+        actions.setEnemy(updatedEnemy);
+        if (battleRef.current) {
+          battleRef.current = { ...battleRef.current, enemy: updatedEnemy };
+        }
+
+        const tokenName = TOKENS[tokenId]?.name || tokenId;
+        addLog(`[DEV] 🎁 적에게 ${tokenName} +${stacks} 부여`);
+      }
+    });
+
+    // 처리 후 클리어
+    if (devClearBattleTokens) {
+      devClearBattleTokens();
+    }
+  }, [devBattleTokens, devClearBattleTokens, player, enemy, actions, addLog]);
 
   // Enemy initialization - only run once on mount
   useEffect(() => {

@@ -57,6 +57,7 @@ export function DevTools({ isOpen, onClose, useNewDungeon, setUseNewDungeon, sho
     addOwnedCard,
     removeOwnedCard,
     clearOwnedCards,
+    devAddBattleToken,
   } = useGameStore();
 
   if (!isOpen) return null;
@@ -191,6 +192,7 @@ export function DevTools({ isOpen, onClose, useNewDungeon, setUseNewDungeon, sho
           updatePlayerStrength={updatePlayerStrength}
           updatePlayerAgility={updatePlayerAgility}
           updatePlayerInsight={updatePlayerInsight}
+          devAddBattleToken={devAddBattleToken}
         />
         )}
         {activeTab === 'relics' && (
@@ -710,7 +712,8 @@ function BattleTab({
   devForceLose,
   updatePlayerStrength,
   updatePlayerAgility,
-  updatePlayerInsight
+  updatePlayerInsight,
+  devAddBattleToken
 }) {
   const [strengthInput, setStrengthInput] = React.useState(playerStrength || 0);
   const [agilityInput, setAgilityInput] = React.useState(playerAgility || 0);
@@ -960,6 +963,106 @@ function BattleTab({
             -3: 망각 🌑 / -2: 미련 🌘 / -1: 우둔 🌫️ / 0: 평온 🌕 / +1: 예측 🔮 / +2: 독심 👁️ / +3: 혜안 ✨
           </div>
         </div>
+      </div>
+
+      {/* 전투 중 토큰 추가 */}
+      <h3 style={{ marginTop: '20px', color: '#a78bfa', fontSize: '1.125rem' }}>✨ 전투 중 토큰 추가</h3>
+      <div style={{
+        padding: '16px',
+        background: '#0f172a',
+        borderRadius: '8px',
+        marginBottom: '20px',
+      }}>
+        <div style={{ marginBottom: '12px', fontSize: '0.875rem', color: '#cbd5e1' }}>
+          전투 중 즉시 토큰을 추가합니다 (전투 중일 때만 작동)
+        </div>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <button
+            onClick={() => devAddBattleToken && devAddBattleToken('finesse', 1, 'player')}
+            disabled={!activeBattle}
+            style={{
+              padding: '10px 16px',
+              background: activeBattle ? '#a78bfa' : '#334155',
+              border: 'none',
+              borderRadius: '6px',
+              color: '#fff',
+              fontWeight: 'bold',
+              cursor: activeBattle ? 'pointer' : 'not-allowed',
+              opacity: activeBattle ? 1 : 0.5,
+            }}
+          >
+            ✨ 기교 +1
+          </button>
+          <button
+            onClick={() => devAddBattleToken && devAddBattleToken('finesse', 3, 'player')}
+            disabled={!activeBattle}
+            style={{
+              padding: '10px 16px',
+              background: activeBattle ? '#8b5cf6' : '#334155',
+              border: 'none',
+              borderRadius: '6px',
+              color: '#fff',
+              fontWeight: 'bold',
+              cursor: activeBattle ? 'pointer' : 'not-allowed',
+              opacity: activeBattle ? 1 : 0.5,
+            }}
+          >
+            ✨ 기교 +3
+          </button>
+          <button
+            onClick={() => devAddBattleToken && devAddBattleToken('loaded', 1, 'player')}
+            disabled={!activeBattle}
+            style={{
+              padding: '10px 16px',
+              background: activeBattle ? '#22c55e' : '#334155',
+              border: 'none',
+              borderRadius: '6px',
+              color: '#fff',
+              fontWeight: 'bold',
+              cursor: activeBattle ? 'pointer' : 'not-allowed',
+              opacity: activeBattle ? 1 : 0.5,
+            }}
+          >
+            🔫 장전 +1
+          </button>
+          <button
+            onClick={() => devAddBattleToken && devAddBattleToken('evasion', 1, 'player')}
+            disabled={!activeBattle}
+            style={{
+              padding: '10px 16px',
+              background: activeBattle ? '#3b82f6' : '#334155',
+              border: 'none',
+              borderRadius: '6px',
+              color: '#fff',
+              fontWeight: 'bold',
+              cursor: activeBattle ? 'pointer' : 'not-allowed',
+              opacity: activeBattle ? 1 : 0.5,
+            }}
+          >
+            💨 회피 +1
+          </button>
+          <button
+            onClick={() => devAddBattleToken && devAddBattleToken('offense', 1, 'player')}
+            disabled={!activeBattle}
+            style={{
+              padding: '10px 16px',
+              background: activeBattle ? '#f59e0b' : '#334155',
+              border: 'none',
+              borderRadius: '6px',
+              color: '#fff',
+              fontWeight: 'bold',
+              cursor: activeBattle ? 'pointer' : 'not-allowed',
+              opacity: activeBattle ? 1 : 0.5,
+            }}
+          >
+            ⚔️ 공세 +1
+          </button>
+        </div>
+        {!activeBattle && (
+          <div style={{ fontSize: '0.75rem', color: '#ef4444', marginTop: '8px' }}>
+            ⚠️ 전투 중이 아닙니다. 전투를 시작하세요.
+          </div>
+        )}
       </div>
 
       {/* 이변 강제 발동 */}

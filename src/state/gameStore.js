@@ -361,6 +361,7 @@ export const useGameStore = create((set, get) => ({
   ...applyInitialRelicEffects(createInitialState()),
   devDulledLevel: null,
   devForcedCrossroad: null,  // 강제할 기로 템플릿 ID (예: 'cliff', 'lockedChest')
+  devBattleTokens: [],  // 개발자 모드에서 전투 중 추가할 토큰 [{id, stacks, target}]
 
   resetRun: () => set(() => applyInitialRelicEffects(createInitialState())),
 
@@ -1437,6 +1438,20 @@ export const useGameStore = create((set, get) => ({
         },
       };
     }),
+
+  // 개발자 모드: 전투 중 토큰 추가
+  devAddBattleToken: (tokenId, stacks = 1, target = 'player') =>
+    set((state) => ({
+      ...state,
+      devBattleTokens: [...state.devBattleTokens, { id: tokenId, stacks, target, timestamp: Date.now() }],
+    })),
+
+  // 개발자 모드: 전투 토큰 대기열 클리어
+  devClearBattleTokens: () =>
+    set((state) => ({
+      ...state,
+      devBattleTokens: [],
+    })),
 
   // ==================== 상징 관리 ====================
 
