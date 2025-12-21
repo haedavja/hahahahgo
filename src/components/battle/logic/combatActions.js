@@ -195,10 +195,12 @@ export function calculateSingleHit(attacker, defender, card, attackerName, battl
   }
 
   const base = modifiedCard.damage || 0;
+  // 날 세우기 보너스 적용 (검격 카드만)
+  const fencingBonus = (card.cardCategory === 'fencing' && battleContext.fencingDamageBonus) ? battleContext.fencingDamageBonus : 0;
   const strengthBonus = currentAttacker.strength || 0;
   const ghostText = isGhost ? ' [👻유령]' : '';
   const boost = currentAttacker.etherOverdriveActive ? 2 : 1;
-  let dmg = (base + strengthBonus) * boost;
+  let dmg = (base + fencingBonus + strengthBonus) * boost;
 
   // 치명타 적용 (isCritical은 외부에서 전달됨)
   if (isCritical) {

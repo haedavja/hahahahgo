@@ -2498,6 +2498,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       : null;
     const enemyDisplayName = sourceUnit?.name || E.name || enemy?.name || '몬스터';
 
+    // 현재 nextTurnEffects 가져오기 (fencingDamageBonus 등)
+    const currentNextTurnEffects = battleRef.current?.nextTurnEffects || battle.nextTurnEffects || {};
+
     const battleContext = {
       currentSp: a.sp || 0,  // 현재 카드의 타임라인 위치 (growingDefense용)
       currentTurn: turnNumber,  // 현재 턴 번호 (토큰 grantedAt용)
@@ -2508,7 +2511,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       allCards: CARDS,  // 카드 창조용 전체 카드 풀
       usedCardCategories,  // comboStyle용: 이번 턴에 사용된 카드 카테고리
       hand: currentBattle.hand || [],  // autoReload용: 현재 손패
-      enemyDisplayName  // 적 유닛 이름 (로그용)
+      enemyDisplayName,  // 적 유닛 이름 (로그용)
+      fencingDamageBonus: currentNextTurnEffects.fencingDamageBonus || 0  // 날 세우기: 검격 공격력 보너스
     };
 
     // === requiredTokens 소모 (카드 실행 전) ===
@@ -2892,14 +2896,16 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         addLog(`🔄 연계 효과: "${bonusCards.map(c => c.name).join(', ')}" 큐에 추가!`);
       }
 
-      // nextTurnEffects 처리 (mentalFocus, emergencyDraw, recallCard)
+      // nextTurnEffects 처리 (mentalFocus, emergencyDraw, recallCard, sharpenBlade)
       if (newNextTurnEffects) {
         const currentEffects = battleRef.current?.nextTurnEffects || battle.nextTurnEffects;
         const updatedEffects = {
           ...currentEffects,
           bonusEnergy: (currentEffects.bonusEnergy || 0) + (newNextTurnEffects.bonusEnergy || 0),
           maxSpeedBonus: (currentEffects.maxSpeedBonus || 0) + (newNextTurnEffects.maxSpeedBonus || 0),
-          extraCardPlay: (currentEffects.extraCardPlay || 0) + (newNextTurnEffects.extraCardPlay || 0)
+          extraCardPlay: (currentEffects.extraCardPlay || 0) + (newNextTurnEffects.extraCardPlay || 0),
+          // 날 세우기: 이번 전투 검격 공격력 보너스 (누적)
+          fencingDamageBonus: (currentEffects.fencingDamageBonus || 0) + (newNextTurnEffects.fencingDamageBonus || 0)
         };
 
         // === 비상대응 (emergencyDraw): 즉시 덱에서 카드 뽑기 ===
@@ -3849,6 +3855,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       // battleContext 생성
       const executedPlayerCards = battle.queue.slice(0, i).filter(q => q.actor === 'player');
       const usedCardCategories = [...new Set(executedPlayerCards.map(q => q.card?.cardCategory).filter(Boolean))];
+      const previewNextTurnEffects = battle.nextTurnEffects || {};
 
       const battleContext = {
         currentSp: a.sp || 0,
@@ -3858,7 +3865,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         enemyRemainingEnergy: finalEnemyRemainingEnergy,
         allCards: CARDS,
         usedCardCategories,
-        hand: battle.hand || []
+        hand: battle.hand || [],
+        fencingDamageBonus: previewNextTurnEffects.fencingDamageBonus || 0
       };
 
       const { events } = applyAction(tempState, a.actor, a.card, battleContext);
