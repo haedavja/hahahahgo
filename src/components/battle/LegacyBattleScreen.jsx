@@ -271,11 +271,15 @@ export function LegacyBattleScreen() {
       const finalResult = result === "victory" ? "victory" : "defeat";
 
       if (typeof deltaEther === "number" && deltaEther !== 0) {
-        applyEtherDelta(deltaEther);
+        // 몬스터는 플레이어 에테르를 빼앗을 수 없음 - 음수 델타 무시
+        if (deltaEther > 0) {
+          applyEtherDelta(deltaEther);
+        }
       } else if (typeof playerEther === "number") {
         const current = useGameStore.getState().resources.etherPts ?? 0;
         const diff = playerEther - current;
-        if (diff) applyEtherDelta(diff);
+        // 몬스터는 플레이어 에테르를 빼앗을 수 없음 - 음수 diff 무시
+        if (diff > 0) applyEtherDelta(diff);
       }
       resolveBattle({
         result: finalResult,

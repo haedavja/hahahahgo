@@ -32,11 +32,11 @@ export function calculateEtherTransfer(
     nextPlayerPts += move;
     nextEnemyPts = Math.max(0, currentEnemyPts - move);
   } else if (netTransfer < 0) {
-    // 적이 더 많이 획득 → 플레이어에게서 빼앗기
-    const move = Math.min(-netTransfer, currentPlayerPts);
-    movedPts -= move;
-    nextPlayerPts = Math.max(0, currentPlayerPts - move);
-    nextEnemyPts += move;
+    // 적이 더 많이 획득 → 적은 에테르를 획득하지만 플레이어에게서 빼앗지 않음
+    // (몬스터는 플레이어의 에테르를 빼앗을 수 없음)
+    // 적은 자체적으로 에테르를 획득하되, 플레이어 에테르는 감소하지 않음
+    nextEnemyPts += Math.abs(netTransfer);
+    // movedPts는 0 유지 (이동 없음)
   }
 
   // 몬스터가 처치된 경우: 남은 에테르 전부 플레이어에게 이전
