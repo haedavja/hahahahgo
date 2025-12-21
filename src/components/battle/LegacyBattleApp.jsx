@@ -29,7 +29,7 @@ import { detectPokerCombo, applyPokerBonus } from "./utils/comboDetection";
 import { COMBO_MULTIPLIERS, BASE_ETHER_PER_CARD, CARD_ETHER_BY_RARITY, applyEtherDeflation, getCardEtherGain, calcCardsEther, calculateComboEtherGain } from "./utils/etherCalculations";
 import { sortCombinedOrderStablePF, addEther } from "./utils/combatUtils";
 import { createFixedOrder } from "./utils/cardOrdering";
-import { decideEnemyMode, generateEnemyActions, shouldEnemyOverdrive } from "./utils/enemyAI";
+import { decideEnemyMode, generateEnemyActions, shouldEnemyOverdrive, assignSourceUnitToActions } from "./utils/enemyAI";
 import { simulatePreview } from "./utils/battleSimulation";
 import { applyAction, prepareMultiHitAttack, calculateSingleHit, finalizeMultiHitAttack, rollCritical } from "./logic/combatActions";
 import { drawCharacterBuildHand, initializeDeck, drawFromDeck, shuffleArray } from "./utils/handGeneration";
@@ -1147,7 +1147,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     } else {
       const slots = etherSlots(enemy?.etherPts || 0);
       const cardsPerTurn = enemy?.cardsPerTurn || enemyCount || 2;
-      const planActions = generateEnemyActions(enemy, mode, slots, cardsPerTurn, Math.min(1, cardsPerTurn));
+      const rawActions = generateEnemyActions(enemy, mode, slots, cardsPerTurn, Math.min(1, cardsPerTurn));
+      const planActions = assignSourceUnitToActions(rawActions, enemy?.units || []);
       actions.setEnemyPlan({ mode, actions: planActions });
     }
   }, [battle.phase, enemy, enemyPlan.mode, enemyPlan.manuallyModified, nextTurnEffects]);
@@ -1186,7 +1187,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
     const slots = etherSlots(enemy?.etherPts || 0);
     const cardsPerTurn = enemy?.cardsPerTurn || enemyCount || 2;
-    const generatedActions = generateEnemyActions(enemy, latestMode, slots, cardsPerTurn, Math.min(1, cardsPerTurn));
+    const rawActions = generateEnemyActions(enemy, latestMode, slots, cardsPerTurn, Math.min(1, cardsPerTurn));
+    const generatedActions = assignSourceUnitToActions(rawActions, enemy?.units || []);
     actions.setEnemyPlan({ mode: latestMode, actions: generatedActions });
   }, [battle.phase, enemyPlan?.mode, enemyPlan?.actions?.length, enemyPlan?.manuallyModified, enemy]);
 
@@ -1473,9 +1475,13 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     const willRegenerate = !(hasActions || currentEnemyPlan.manuallyModified);
 
     const cardsPerTurn = enemy?.cardsPerTurn || enemyCount || 2;
-    const generatedActions = willRegenerate
-        ? generateEnemyActions(enemy, currentEnemyPlan.mode, etherSlots(enemy.etherPts), cardsPerTurn, Math.min(1, cardsPerTurn))
-        : currentEnemyPlan.actions;
+    let generatedActions;
+    if (willRegenerate) {
+      const rawActions = generateEnemyActions(enemy, currentEnemyPlan.mode, etherSlots(enemy.etherPts), cardsPerTurn, Math.min(1, cardsPerTurn));
+      generatedActions = assignSourceUnitToActions(rawActions, enemy?.units || []);
+    } else {
+      generatedActions = currentEnemyPlan.actions;
+    }
 
     // 명시적으로 새 enemyPlan 구성
     actions.setEnemyPlan({
@@ -2290,6 +2296,29 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     const hasMultipleHits = (a.card.hits || 1) > 1;
     const useAsyncMultiHit = isAttackCard && (isGunCard || hasMultipleHits);
 
+    // === 다중 유닛: 플레이어 공격 시 타겟 유닛의 block 사용 ===
+    let targetUnitIdForAttack = null;
+    let originalEnemyBlock = E.block;  // 원래 공유 블록 저장
+    const currentUnitsForAttack = E.units || enemy?.units || [];
+    const hasMultiUnitsForAttack = currentUnitsForAttack.length > 1;
+
+    if (a.actor === 'player' && isAttackCard && hasMultiUnitsForAttack) {
+      const cardTargetUnitId = a.card.__targetUnitId ?? battle.selectedTargetUnit ?? 0;
+      const aliveUnitsForAttack = currentUnitsForAttack.filter(u => u.hp > 0);
+      let targetUnit = aliveUnitsForAttack.find(u => u.unitId === cardTargetUnitId);
+      if (!targetUnit && aliveUnitsForAttack.length > 0) {
+        targetUnit = aliveUnitsForAttack[0];
+      }
+
+      if (targetUnit) {
+        targetUnitIdForAttack = targetUnit.unitId;
+        // 타겟 유닛의 block을 E.block으로 사용 (공유 block 대신)
+        E.block = targetUnit.block || 0;
+        E.def = E.block > 0;
+        tempState.enemy = E;
+      }
+    }
+
     let actionResult;
     let actionEvents;
 
@@ -2400,6 +2429,64 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
           actor: a.actor,
           actionResult
         });
+      }
+    }
+
+    // === 다중 유닛: 플레이어 공격 후 타겟 유닛의 block 업데이트 ===
+    if (a.actor === 'player' && isAttackCard && hasMultiUnitsForAttack && targetUnitIdForAttack !== null) {
+      const remainingBlock = E.block || 0;  // 공격 후 남은 방어력
+      const unitsAfterAttack = E.units || currentUnitsForAttack;
+
+      // 타겟 유닛의 block 업데이트
+      const updatedUnitsAfterAttack = unitsAfterAttack.map(u => {
+        if (u.unitId === targetUnitIdForAttack) {
+          return { ...u, block: remainingBlock };
+        }
+        return u;
+      });
+
+      E.units = updatedUnitsAfterAttack;
+      E.block = 0;  // 공유 block 리셋 (개별 유닛이 가짐)
+      E.def = false;  // 공유 def 리셋
+
+      // battleRef 동기 업데이트
+      if (battleRef.current) {
+        battleRef.current = { ...battleRef.current, enemy: E };
+      }
+    }
+
+    // === 적 방어 카드: 개별 유닛에 방어력 적용 ===
+    // 다중 유닛 시 소스 유닛에게만 방어력 부여 (공유 block 대신)
+    if (a.actor === 'enemy' && (a.card.type === 'defense' || a.card.type === 'general') && E.block > 0) {
+      const currentUnits = E.units || enemy?.units || [];
+      const hasMultiUnits = currentUnits.length > 1;
+      const sourceUnitId = a.card.__sourceUnitId;
+
+      if (hasMultiUnits && sourceUnitId !== undefined && sourceUnitId !== null) {
+        const blockAdded = E.block;  // 이번 카드로 추가된 방어력
+
+        // 소스 유닛에 방어력 추가
+        const updatedUnits = currentUnits.map(u => {
+          if (u.unitId === sourceUnitId) {
+            return { ...u, block: (u.block || 0) + blockAdded };
+          }
+          return u;
+        });
+
+        // 공유 블록은 리셋하고 유닛별 블록 사용
+        E.units = updatedUnits;
+        E.block = 0;  // 공유 블록 리셋
+        E.def = false;  // 공유 def도 리셋 (개별 유닛이 가짐)
+
+        const sourceUnit = updatedUnits.find(u => u.unitId === sourceUnitId);
+        if (sourceUnit) {
+          addLog(`🛡️ ${sourceUnit.name} 방어력 +${blockAdded} (총 ${sourceUnit.block})`);
+        }
+
+        // battleRef 동기 업데이트
+        if (battleRef.current) {
+          battleRef.current = { ...battleRef.current, enemy: E };
+        }
       }
     }
 

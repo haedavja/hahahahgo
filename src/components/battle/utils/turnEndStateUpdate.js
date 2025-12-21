@@ -61,6 +61,12 @@ export function createTurnEndPlayerState(player, { comboUsageCount, etherPts, et
  * @returns {Object} 업데이트된 적 상태
  */
 export function createTurnEndEnemyState(enemy, { comboUsageCount, etherPts }) {
+  // 개별 유닛의 block도 초기화
+  const units = enemy.units || [];
+  const resetUnits = units.length > 0
+    ? units.map(u => ({ ...u, block: 0 }))
+    : units;
+
   return {
     ...enemy,
     block: 0,
@@ -70,7 +76,8 @@ export function createTurnEndEnemyState(enemy, { comboUsageCount, etherPts }) {
     vulnTurns: 0,
     etherOverdriveActive: false,
     comboUsageCount,
-    etherPts: Math.max(0, etherPts)
+    etherPts: Math.max(0, etherPts),
+    units: resetUnits
   };
 }
 

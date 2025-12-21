@@ -193,3 +193,60 @@ function shouldEnemyOverdriveWithTurn(mode, actions, etherPts, turnNumber = 1) {
 export function shouldEnemyOverdrive(mode, actions, etherPts, turnNumber = 1) {
   return shouldEnemyOverdriveWithTurn(mode, actions, etherPts, turnNumber);
 }
+
+/**
+ * 적 행동에 __sourceUnitId 할당
+ * 각 카드가 어떤 유닛에서 나왔는지 추적 (방어력 개별 적용용)
+ * @param {Array} actions - 생성된 적 행동 배열
+ * @param {Array} units - 적 유닛 배열 (각 유닛은 deck, unitId 보유)
+ * @returns {Array} __sourceUnitId가 할당된 행동 배열
+ */
+export function assignSourceUnitToActions(actions, units) {
+  if (!actions || actions.length === 0) return actions;
+  if (!units || units.length === 0) return actions;
+
+  // 살아있는 유닛만 고려
+  const aliveUnits = units.filter(u => u.hp > 0);
+  if (aliveUnits.length === 0) return actions;
+
+  // 유닛당 카드 사용 카운터 (같은 카드를 여러 유닛이 가질 수 있으므로)
+  const unitCardUsage = new Map();
+  aliveUnits.forEach(u => unitCardUsage.set(u.unitId, new Map()));
+
+  return actions.map(card => {
+    // 이 카드를 덱에 가지고 있는 유닛 찾기
+    const candidateUnits = aliveUnits.filter(u => {
+      if (!u.deck) return false;
+      const deckCardIds = u.deck;
+      return deckCardIds.includes(card.id);
+    });
+
+    if (candidateUnits.length === 0) {
+      // 어떤 유닛의 덱에도 없는 카드: 첫 번째 살아있는 유닛에 할당
+      return { ...card, __sourceUnitId: aliveUnits[0].unitId };
+    }
+
+    if (candidateUnits.length === 1) {
+      // 한 유닛만 이 카드를 가짐
+      return { ...card, __sourceUnitId: candidateUnits[0].unitId };
+    }
+
+    // 여러 유닛이 같은 카드를 가진 경우: 아직 덜 사용한 유닛에 할당
+    let minUsage = Infinity;
+    let selectedUnit = candidateUnits[0];
+
+    for (const unit of candidateUnits) {
+      const usage = unitCardUsage.get(unit.unitId)?.get(card.id) || 0;
+      if (usage < minUsage) {
+        minUsage = usage;
+        selectedUnit = unit;
+      }
+    }
+
+    // 사용 카운터 증가
+    const usageMap = unitCardUsage.get(selectedUnit.unitId);
+    usageMap.set(card.id, (usageMap.get(card.id) || 0) + 1);
+
+    return { ...card, __sourceUnitId: selectedUnit.unitId };
+  });
+}

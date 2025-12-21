@@ -150,13 +150,13 @@ export const EnemyUnitsDisplay = ({
                     {previewDamage.lethal && (previewDamage.overkill ? '☠️' : '💀')}
                   </span>
                 )}
-                {/* 공유 방어력 표시 (블록 값만 체크) */}
-                {!hideVitals && enemyBlock > 0 && (
+                {/* 개별 유닛 방어력 표시 (다중 유닛 시), 공유 방어력 fallback (단일 유닛 시) */}
+                {!hideVitals && ((unit.block || 0) > 0 || (showTargeting === false && enemyBlock > 0)) && (
                   <span
                     className={enemyBlockAnim && isSelected ? 'block-animation' : ''}
                     style={{ color: '#60a5fa', fontWeight: '600' }}
                   >
-                    🛡️{enemyBlock}
+                    🛡️{showTargeting ? (unit.block || 0) : (unit.block || enemyBlock || 0)}
                   </span>
                 )}
                 <span style={{ color: '#f87171', fontWeight: '600' }}>
@@ -182,19 +182,22 @@ export const EnemyUnitsDisplay = ({
                     transition: 'width 0.3s ease',
                   }}
                 />
-                {/* 공유 방어력 표시 (HP바에 오버레이) */}
-                {!hideVitals && enemyBlock > 0 && (
-                  <div style={{
-                    position: 'absolute',
-                    left: 0,
-                    top: 0,
-                    height: '100%',
-                    width: `${Math.min((enemyBlock / unit.maxHp) * 100, 100)}%`,
-                    background: 'linear-gradient(90deg, rgba(96, 165, 250, 0.6), rgba(96, 165, 250, 0.3))',
-                    borderRight: '2px solid #60a5fa',
-                    transition: 'width 0.3s ease',
-                  }} />
-                )}
+                {/* 개별 유닛 방어력 표시 (HP바에 오버레이) */}
+                {!hideVitals && (() => {
+                  const displayBlock = showTargeting ? (unit.block || 0) : (unit.block || enemyBlock || 0);
+                  return displayBlock > 0 && (
+                    <div style={{
+                      position: 'absolute',
+                      left: 0,
+                      top: 0,
+                      height: '100%',
+                      width: `${Math.min((displayBlock / unit.maxHp) * 100, 100)}%`,
+                      background: 'linear-gradient(90deg, rgba(96, 165, 250, 0.6), rgba(96, 165, 250, 0.3))',
+                      borderRight: '2px solid #60a5fa',
+                      transition: 'width 0.3s ease',
+                    }} />
+                  );
+                })()}
               </div>
 
               {/* 토큰 표시 */}
