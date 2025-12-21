@@ -2296,13 +2296,13 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     const hasMultipleHits = (a.card.hits || 1) > 1;
     const useAsyncMultiHit = isAttackCard && (isGunCard || hasMultipleHits);
 
-    // === 다중 유닛: 플레이어 공격 시 타겟 유닛의 block 사용 ===
+    // === 유닛 시스템: 플레이어 공격 시 타겟 유닛의 block 사용 ===
     let targetUnitIdForAttack = null;
     let originalEnemyBlock = E.block;  // 원래 공유 블록 저장
     const currentUnitsForAttack = E.units || enemy?.units || [];
-    const hasMultiUnitsForAttack = currentUnitsForAttack.length > 1;
+    const hasUnitsForAttack = currentUnitsForAttack.length > 0;
 
-    if (a.actor === 'player' && isAttackCard && hasMultiUnitsForAttack) {
+    if (a.actor === 'player' && isAttackCard && hasUnitsForAttack) {
       const cardTargetUnitId = a.card.__targetUnitId ?? battle.selectedTargetUnit ?? 0;
       const aliveUnitsForAttack = currentUnitsForAttack.filter(u => u.hp > 0);
       let targetUnit = aliveUnitsForAttack.find(u => u.unitId === cardTargetUnitId);
@@ -2432,8 +2432,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       }
     }
 
-    // === 다중 유닛: 플레이어 공격 후 타겟 유닛의 block 업데이트 ===
-    if (a.actor === 'player' && isAttackCard && hasMultiUnitsForAttack && targetUnitIdForAttack !== null) {
+    // === 유닛 시스템: 플레이어 공격 후 타겟 유닛의 block 업데이트 ===
+    if (a.actor === 'player' && isAttackCard && hasUnitsForAttack && targetUnitIdForAttack !== null) {
       const remainingBlock = E.block || 0;  // 공격 후 남은 방어력
       const unitsAfterAttack = E.units || currentUnitsForAttack;
 
@@ -2456,13 +2456,13 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     }
 
     // === 적 방어 카드: 개별 유닛에 방어력 적용 ===
-    // 다중 유닛 시 소스 유닛에게만 방어력 부여 (공유 block 대신)
+    // 유닛 시스템 사용 시 소스 유닛에게만 방어력 부여 (공유 block 대신)
     if (a.actor === 'enemy' && (a.card.type === 'defense' || a.card.type === 'general') && E.block > 0) {
       const currentUnits = E.units || enemy?.units || [];
-      const hasMultiUnits = currentUnits.length > 1;
       const sourceUnitId = a.card.__sourceUnitId;
 
-      if (hasMultiUnits && sourceUnitId !== undefined && sourceUnitId !== null) {
+      // 유닛이 있고 sourceUnitId가 설정되어 있으면 해당 유닛에 블록 전송
+      if (currentUnits.length > 0 && sourceUnitId !== undefined && sourceUnitId !== null) {
         const blockAdded = E.block;  // 이번 카드로 추가된 방어력
 
         // 소스 유닛에 방어력 추가
