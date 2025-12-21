@@ -181,6 +181,14 @@ export function useBattleState(initialStateOverrides = {}) {
     // === 빙결 순서 플래그 ===
     setFrozenOrder: (value) => dispatch({ type: ACTIONS.SET_FROZEN_ORDER, payload: value }),
 
+    // === 피해 분배 시스템 ===
+    setDistributionMode: (mode) => dispatch({ type: ACTIONS.SET_DISTRIBUTION_MODE, payload: mode }),
+    setPendingDistributionCard: (card) => dispatch({ type: ACTIONS.SET_PENDING_DISTRIBUTION_CARD, payload: card }),
+    setDamageDistribution: (dist) => dispatch({ type: ACTIONS.SET_DAMAGE_DISTRIBUTION, payload: dist }),
+    updateDamageDistribution: (unitId, damage) => dispatch({ type: ACTIONS.UPDATE_DAMAGE_DISTRIBUTION, payload: { unitId, damage } }),
+    setTotalDistributableDamage: (total) => dispatch({ type: ACTIONS.SET_TOTAL_DISTRIBUTABLE_DAMAGE, payload: total }),
+    resetDistribution: () => dispatch({ type: ACTIONS.RESET_DISTRIBUTION }),
+
     // === 토큰 시스템 ===
     // 주의: battleRef.current 사용 - stale closure 방지
     addTokenToPlayer: (tokenId, stacks = 1) => {

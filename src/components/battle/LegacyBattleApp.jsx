@@ -1284,6 +1284,19 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         // requiredTokens 체크
         const tokenCheck = checkRequiredTokens(card, selected);
         if (!tokenCheck.ok) { addLog(tokenCheck.message); return; }
+
+        // 공격 카드 + 다중 유닛: 분배 모드 진입 (respond 페이즈)
+        const aliveUnitsCount = enemyUnits.filter(u => u.hp > 0).length;
+        if (card.type === 'attack' && hasMultipleUnits && aliveUnitsCount > 1) {
+          const cardWithUid = {
+            ...card,
+            __uid: card.__handUid || Math.random().toString(36).slice(2),
+          };
+          startDamageDistribution(cardWithUid, card.damage || 0);
+          playSound(600, 80);
+          return;
+        }
+
         // 공격 카드인 경우 현재 선택된 타겟 유닛 ID 저장
         const cardWithTarget = {
           ...card,
@@ -1312,6 +1325,19 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     // requiredTokens 체크
     const tokenCheck = checkRequiredTokens(card, selected);
     if (!tokenCheck.ok) return addLog(tokenCheck.message);
+
+    // 공격 카드 + 다중 유닛: 분배 모드 진입
+    const aliveUnitsCount = enemyUnits.filter(u => u.hp > 0).length;
+    if (card.type === 'attack' && hasMultipleUnits && aliveUnitsCount > 1) {
+      const cardWithUid = {
+        ...card,
+        __uid: card.__handUid || Math.random().toString(36).slice(2),
+      };
+      startDamageDistribution(cardWithUid, card.damage || 0);
+      playSound(600, 80);
+      return;
+    }
+
     // 공격 카드인 경우 현재 선택된 타겟 유닛 ID 저장
     const cardWithTarget = {
       ...card,
@@ -1914,6 +1940,45 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     addLog('📢 함성: 카드 선택을 건너뛰었습니다.');
     setRecallSelection(null);
   }, [addLog]);
+
+  // === 피해 분배 시스템 ===
+  // 분배 확정: 카드에 분배 정보를 저장하고 선택에 추가
+  const handleConfirmDistribution = useCallback(() => {
+    const pendingCard = battle.pendingDistributionCard;
+    if (!pendingCard) return;
+
+    const distribution = battle.damageDistribution;
+    // 분배가 하나도 없으면 취소 처리
+    const totalDistributed = Object.values(distribution).reduce((sum, v) => sum + (v || 0), 0);
+    if (totalDistributed === 0) {
+      actions.resetDistribution();
+      return;
+    }
+
+    // 분배 정보를 카드에 저장
+    const cardWithDistribution = {
+      ...pendingCard,
+      __damageDistribution: { ...distribution },
+    };
+
+    // 선택에 추가
+    actions.addSelected(cardWithDistribution);
+    actions.resetDistribution();
+    addLog(`⚔️ 피해 분배 확정: ${Object.entries(distribution).filter(([_, v]) => v > 0).map(([uid, v]) => `${v}`).join(', ')}`);
+  }, [battle.pendingDistributionCard, battle.damageDistribution, actions, addLog]);
+
+  // 분배 취소
+  const handleCancelDistribution = useCallback(() => {
+    actions.resetDistribution();
+  }, [actions]);
+
+  // 분배 모드 시작 (공격 카드 선택 시)
+  const startDamageDistribution = useCallback((card, totalDamage) => {
+    actions.setPendingDistributionCard(card);
+    actions.setTotalDistributableDamage(totalDamage);
+    actions.setDamageDistribution({});
+    actions.setDistributionMode(true);
+  }, [actions]);
 
   // 승리 시 카드 보상 모달 표시
   const showCardRewardModal = useCallback(() => {
@@ -3108,34 +3173,81 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     const hasUnits = enemyUnits.length > 1;  // 2개 이상일 때만 다중 유닛 처리
 
     if (hasUnits && a.actor === 'player' && a.card?.type === 'attack') {
-      // actionResult에서 dealt 피해량 가져오기
-      const damageDealt = actionResult.dealt || 0;
+      const damageDistribution = a.card.__damageDistribution;
 
-      if (damageDealt > 0) {
-        // 카드에 지정된 타겟 유닛 ID 사용 (없으면 전역 선택 타겟 사용)
-        const cardTargetUnitId = a.card.__targetUnitId ?? battle.selectedTargetUnit ?? 0;
-        const aliveUnits = enemyUnits.filter(u => u.hp > 0);
-        let targetUnit = aliveUnits.find(u => u.unitId === cardTargetUnitId);
-        if (!targetUnit && aliveUnits.length > 0) {
-          targetUnit = aliveUnits[0];
-        }
+      if (damageDistribution && Object.keys(damageDistribution).length > 0) {
+        // === 분배 모드: 각 유닛에 지정된 피해량 적용 ===
+        let updatedUnits = [...enemyUnits];
+        let totalDamageDealt = 0;
+        const damageLogParts = [];
 
-        if (targetUnit) {
-          const unitHpBefore = targetUnit.hp;
-          const newUnitHp = Math.max(0, targetUnit.hp - damageDealt);
+        for (const [unitIdStr, assignedDamage] of Object.entries(damageDistribution)) {
+          if (!assignedDamage || assignedDamage <= 0) continue;
 
-          const updatedUnits = enemyUnits.map(u => {
-            if (u.unitId === targetUnit.unitId) {
-              return { ...u, hp: newUnitHp };
+          const unitId = parseInt(unitIdStr, 10);
+          const targetUnit = updatedUnits.find(u => u.unitId === unitId && u.hp > 0);
+          if (!targetUnit) continue;
+
+          // 유닛별 방어력 적용
+          const unitBlock = targetUnit.block || 0;
+          const blockedDamage = Math.min(unitBlock, assignedDamage);
+          const actualDamage = assignedDamage - blockedDamage;
+          const newBlock = unitBlock - blockedDamage;
+          const newHp = Math.max(0, targetUnit.hp - actualDamage);
+
+          updatedUnits = updatedUnits.map(u => {
+            if (u.unitId === unitId) {
+              return { ...u, hp: newHp, block: newBlock };
             }
             return u;
           });
 
-          const newTotalHp = updatedUnits.reduce((sum, u) => sum + Math.max(0, u.hp), 0);
-          E.hp = newTotalHp;
-          E.units = updatedUnits;
+          totalDamageDealt += actualDamage;
 
-          addLog(`🎯 ${targetUnit.name}에게 ${damageDealt} 피해 (${unitHpBefore} → ${newUnitHp})`);
+          if (blockedDamage > 0) {
+            damageLogParts.push(`${targetUnit.name}: 공격력 ${assignedDamage} - 방어력 ${blockedDamage} = ${actualDamage}`);
+          } else {
+            damageLogParts.push(`${targetUnit.name}: ${actualDamage}`);
+          }
+        }
+
+        const newTotalHp = updatedUnits.reduce((sum, u) => sum + Math.max(0, u.hp), 0);
+        E.hp = newTotalHp;
+        E.units = updatedUnits;
+
+        if (damageLogParts.length > 0) {
+          addLog(`⚔️ 피해 분배: ${damageLogParts.join(', ')}`);
+        }
+      } else {
+        // === 기존 단일 타겟 모드 ===
+        const damageDealt = actionResult.dealt || 0;
+
+        if (damageDealt > 0) {
+          // 카드에 지정된 타겟 유닛 ID 사용 (없으면 전역 선택 타겟 사용)
+          const cardTargetUnitId = a.card.__targetUnitId ?? battle.selectedTargetUnit ?? 0;
+          const aliveUnits = enemyUnits.filter(u => u.hp > 0);
+          let targetUnit = aliveUnits.find(u => u.unitId === cardTargetUnitId);
+          if (!targetUnit && aliveUnits.length > 0) {
+            targetUnit = aliveUnits[0];
+          }
+
+          if (targetUnit) {
+            const unitHpBefore = targetUnit.hp;
+            const newUnitHp = Math.max(0, targetUnit.hp - damageDealt);
+
+            const updatedUnits = enemyUnits.map(u => {
+              if (u.unitId === targetUnit.unitId) {
+                return { ...u, hp: newUnitHp };
+              }
+              return u;
+            });
+
+            const newTotalHp = updatedUnits.reduce((sum, u) => sum + Math.max(0, u.hp), 0);
+            E.hp = newTotalHp;
+            E.units = updatedUnits;
+
+            addLog(`🎯 ${targetUnit.name}에게 ${damageDealt} 피해 (${unitHpBefore} → ${newUnitHp})`);
+          }
         }
       }
     }
@@ -4071,6 +4183,13 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                 formatCompactValue={formatCompactValue}
                 enemyBlock={enemy?.block || 0}
                 enemyDef={enemy?.def || false}
+                // 피해 분배 시스템
+                distributionMode={battle.distributionMode}
+                damageDistribution={battle.damageDistribution}
+                totalDistributableDamage={battle.totalDistributableDamage}
+                onUpdateDistribution={(unitId, damage) => actions.updateDamageDistribution(unitId, damage)}
+                onConfirmDistribution={handleConfirmDistribution}
+                onCancelDistribution={handleCancelDistribution}
               />
             ) : (
               <EnemyHpBar

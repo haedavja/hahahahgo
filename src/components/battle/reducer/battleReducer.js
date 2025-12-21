@@ -151,6 +151,12 @@ export const createInitialState = ({
 
   // === 빙결 순서 카운터 ===
   frozenOrder: 0, // 0보다 크면 빙결 효과 적용 (남은 턴 수)
+
+  // === 피해 분배 시스템 ===
+  distributionMode: false, // 분배 모드 활성화 여부
+  pendingDistributionCard: null, // 분배 중인 카드
+  damageDistribution: {}, // { unitId: damageAmount, ... }
+  totalDistributableDamage: 0, // 분배 가능한 총 피해량
 });
 
 // =====================
@@ -303,6 +309,14 @@ export const ACTIONS = {
 
   // === 빙결 순서 플래그 ===
   SET_FROZEN_ORDER: 'SET_FROZEN_ORDER',
+
+  // === 피해 분배 시스템 ===
+  SET_DISTRIBUTION_MODE: 'SET_DISTRIBUTION_MODE',
+  SET_PENDING_DISTRIBUTION_CARD: 'SET_PENDING_DISTRIBUTION_CARD',
+  SET_DAMAGE_DISTRIBUTION: 'SET_DAMAGE_DISTRIBUTION',
+  UPDATE_DAMAGE_DISTRIBUTION: 'UPDATE_DAMAGE_DISTRIBUTION',
+  SET_TOTAL_DISTRIBUTABLE_DAMAGE: 'SET_TOTAL_DISTRIBUTABLE_DAMAGE',
+  RESET_DISTRIBUTION: 'RESET_DISTRIBUTION',
 
   // === 토큰 시스템 ===
   UPDATE_PLAYER_TOKENS: 'UPDATE_PLAYER_TOKENS',
@@ -612,6 +626,35 @@ export function battleReducer(state, action) {
     // === 빙결 순서 플래그 ===
     case ACTIONS.SET_FROZEN_ORDER:
       return { ...state, frozenOrder: action.payload };
+
+    // === 피해 분배 시스템 ===
+    case ACTIONS.SET_DISTRIBUTION_MODE:
+      return { ...state, distributionMode: action.payload };
+    case ACTIONS.SET_PENDING_DISTRIBUTION_CARD:
+      return { ...state, pendingDistributionCard: action.payload };
+    case ACTIONS.SET_DAMAGE_DISTRIBUTION:
+      return { ...state, damageDistribution: action.payload };
+    case ACTIONS.UPDATE_DAMAGE_DISTRIBUTION: {
+      // payload: { unitId, damage }
+      const { unitId, damage } = action.payload;
+      return {
+        ...state,
+        damageDistribution: {
+          ...state.damageDistribution,
+          [unitId]: damage
+        }
+      };
+    }
+    case ACTIONS.SET_TOTAL_DISTRIBUTABLE_DAMAGE:
+      return { ...state, totalDistributableDamage: action.payload };
+    case ACTIONS.RESET_DISTRIBUTION:
+      return {
+        ...state,
+        distributionMode: false,
+        pendingDistributionCard: null,
+        damageDistribution: {},
+        totalDistributableDamage: 0
+      };
 
     // === 토큰 시스템 ===
     case ACTIONS.UPDATE_PLAYER_TOKENS:

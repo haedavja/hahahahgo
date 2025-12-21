@@ -25,6 +25,13 @@ export const EnemyUnitsDisplay = ({
   // 공유 방어력 (enemy.block, enemy.def)
   enemyBlock = 0,
   enemyDef = false,
+  // 피해 분배 시스템
+  distributionMode = false,
+  damageDistribution = {},
+  totalDistributableDamage = 0,
+  onUpdateDistribution,
+  onConfirmDistribution,
+  onCancelDistribution,
 }) => {
   if (!units || units.length === 0) return null;
 
@@ -35,6 +42,10 @@ export const EnemyUnitsDisplay = ({
 
   // 유닛이 1개면 기존 방식 유지 (선택 불필요)
   const showTargeting = aliveUnits.length > 1;
+
+  // 분배된 피해량 합계
+  const distributedTotal = Object.values(damageDistribution).reduce((sum, v) => sum + (v || 0), 0);
+  const remainingDamage = totalDistributableDamage - distributedTotal;
 
   // 에테르 스케일 계산
   const enemySoulScale = Math.max(0.4, Math.min(1.3, enemyEtherCapacity > 0 ? enemyEtherValue / enemyEtherCapacity : 1));
@@ -204,13 +215,117 @@ export const EnemyUnitsDisplay = ({
               <div style={{ marginTop: '6px', minHeight: '24px' }}>
                 <TokenDisplay entity={unit} position="enemy" />
               </div>
+
+              {/* 피해 분배 UI */}
+              {distributionMode && (
+                <div style={{
+                  marginTop: '8px',
+                  padding: '8px',
+                  background: 'rgba(251, 191, 36, 0.1)',
+                  borderRadius: '8px',
+                  border: '1px solid rgba(251, 191, 36, 0.3)',
+                }}>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '8px',
+                  }}>
+                    <span style={{ fontSize: '0.85rem', color: '#fbbf24' }}>
+                      🗡️ 분배:
+                    </span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const current = damageDistribution[unit.unitId] || 0;
+                          if (current > 0) {
+                            onUpdateDistribution?.(unit.unitId, current - 1);
+                          }
+                        }}
+                        style={{
+                          width: '28px',
+                          height: '28px',
+                          border: '1px solid #94a3b8',
+                          borderRadius: '6px',
+                          background: 'rgba(30, 41, 59, 0.8)',
+                          color: '#e2e8f0',
+                          fontSize: '1.1rem',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        −
+                      </button>
+                      <span style={{
+                        minWidth: '40px',
+                        textAlign: 'center',
+                        fontSize: '1rem',
+                        fontWeight: '700',
+                        color: (damageDistribution[unit.unitId] || 0) > 0 ? '#fbbf24' : '#94a3b8',
+                      }}>
+                        {damageDistribution[unit.unitId] || 0}
+                      </span>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const current = damageDistribution[unit.unitId] || 0;
+                          if (remainingDamage > 0) {
+                            onUpdateDistribution?.(unit.unitId, current + 1);
+                          }
+                        }}
+                        style={{
+                          width: '28px',
+                          height: '28px',
+                          border: '1px solid #94a3b8',
+                          borderRadius: '6px',
+                          background: 'rgba(30, 41, 59, 0.8)',
+                          color: '#e2e8f0',
+                          fontSize: '1.1rem',
+                          cursor: remainingDamage > 0 ? 'pointer' : 'not-allowed',
+                          opacity: remainingDamage > 0 ? 1 : 0.5,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                        disabled={remainingDamage <= 0}
+                      >
+                        +
+                      </button>
+                      {/* 전체 할당 버튼 */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const current = damageDistribution[unit.unitId] || 0;
+                          onUpdateDistribution?.(unit.unitId, current + remainingDamage);
+                        }}
+                        style={{
+                          padding: '4px 8px',
+                          border: '1px solid #fbbf24',
+                          borderRadius: '6px',
+                          background: 'rgba(251, 191, 36, 0.2)',
+                          color: '#fbbf24',
+                          fontSize: '0.75rem',
+                          cursor: remainingDamage > 0 ? 'pointer' : 'not-allowed',
+                          opacity: remainingDamage > 0 ? 1 : 0.5,
+                        }}
+                        disabled={remainingDamage <= 0}
+                      >
+                        MAX
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         );
       })}
 
         {/* 타겟팅 힌트 */}
-        {showTargeting && (phase === 'select' || phase === 'respond') && (
+        {!distributionMode && showTargeting && (phase === 'select' || phase === 'respond') && (
           <div style={{
             fontSize: '0.75rem',
             color: '#94a3b8',
@@ -220,6 +335,70 @@ export const EnemyUnitsDisplay = ({
             borderRadius: '6px',
           }}>
             💡 클릭하여 공격 대상 선택
+          </div>
+        )}
+
+        {/* 분배 모드 컨트롤 패널 */}
+        {distributionMode && (
+          <div style={{
+            padding: '12px',
+            background: 'rgba(30, 41, 59, 0.9)',
+            borderRadius: '8px',
+            border: '1px solid rgba(251, 191, 36, 0.5)',
+          }}>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '10px',
+            }}>
+              <span style={{ fontSize: '0.9rem', color: '#e2e8f0' }}>
+                ⚔️ 피해 분배
+              </span>
+              <span style={{
+                fontSize: '0.9rem',
+                fontWeight: '700',
+                color: remainingDamage > 0 ? '#fbbf24' : '#22c55e',
+              }}>
+                남은 피해: {remainingDamage} / {totalDistributableDamage}
+              </span>
+            </div>
+            <div style={{
+              display: 'flex',
+              gap: '8px',
+              justifyContent: 'flex-end',
+            }}>
+              <button
+                onClick={onCancelDistribution}
+                style={{
+                  padding: '8px 16px',
+                  border: '1px solid #94a3b8',
+                  borderRadius: '6px',
+                  background: 'rgba(100, 116, 139, 0.3)',
+                  color: '#e2e8f0',
+                  fontSize: '0.85rem',
+                  cursor: 'pointer',
+                }}
+              >
+                취소
+              </button>
+              <button
+                onClick={onConfirmDistribution}
+                disabled={distributedTotal === 0}
+                style={{
+                  padding: '8px 16px',
+                  border: '1px solid #22c55e',
+                  borderRadius: '6px',
+                  background: distributedTotal > 0 ? 'rgba(34, 197, 94, 0.3)' : 'rgba(100, 116, 139, 0.2)',
+                  color: distributedTotal > 0 ? '#22c55e' : '#64748b',
+                  fontSize: '0.85rem',
+                  fontWeight: '600',
+                  cursor: distributedTotal > 0 ? 'pointer' : 'not-allowed',
+                }}
+              >
+                확인 ✓
+              </button>
+            </div>
           </div>
         )}
       </div>
