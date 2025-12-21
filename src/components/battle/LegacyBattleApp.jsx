@@ -2486,11 +2486,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         E.block = 0;  // 공유 블록 리셋
         E.def = false;  // 공유 def도 리셋 (개별 유닛이 가짐)
 
-        const sourceUnit = updatedUnits.find(u => u.unitId === sourceUnitId);
-        if (sourceUnit) {
-          addLog(`🛡️ ${sourceUnit.name} 방어력 +${blockAdded} (총 ${sourceUnit.block})`);
-        }
-
         // battleRef 동기 업데이트
         if (battleRef.current) {
           battleRef.current = { ...battleRef.current, enemy: E };
