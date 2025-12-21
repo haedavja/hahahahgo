@@ -3281,9 +3281,12 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
     // createFencingCards3 (벙 데 라므): 3x3 창조 선택 (3번의 선택, 각각 3장 중 1장)
     if (hasSpecial(a.card, 'createFencingCards3') && a.actor === 'player') {
-      // 펜싱 공격 카드 풀
+      // 펜싱 공격 카드 풀 (기교 소모 카드 제외 - 창조된 유령카드는 토큰 체크 없이 실행되므로)
       const fencingAttackCards = CARDS.filter(c =>
-        c.cardCategory === 'fencing' && c.type === 'attack' && c.id !== a.card.id
+        c.cardCategory === 'fencing' &&
+        c.type === 'attack' &&
+        c.id !== a.card.id &&
+        (!c.requiredTokens || c.requiredTokens.length === 0) // 기교 소모 카드 제외
       );
 
       if (fencingAttackCards.length >= 3) {
