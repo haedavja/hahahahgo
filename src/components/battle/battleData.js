@@ -258,7 +258,7 @@ export const CARDS = [
   },
   {
     id: "grind",
-    name: "갈아내기",
+    name: "람 데르",
     type: "attack",
     damage: 50,
     speedCost: 20,
