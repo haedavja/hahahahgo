@@ -284,7 +284,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
   // 다중 유닛 시스템: 적 유닛 배열
   const enemyUnits = enemy?.units || [];
-  const hasMultipleUnits = enemyUnits.length > 1;
+  const hasMultipleUnits = enemyUnits.length >= 1; // 유닛이 1개 이상이면 EnemyUnitsDisplay 사용
 
   // 현재 타겟 유닛 (살아있는 유닛 중 선택)
   const targetUnit = useMemo(() => {
