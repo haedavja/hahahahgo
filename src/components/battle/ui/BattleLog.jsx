@@ -24,13 +24,14 @@ export const BattleLog = ({ phase, log, logContainerRef, showAlways = false }) =
           if (line.includes('게임 시작') || line.includes('적 성향 힌트')) return false;
           return true;
         }).map((line, i) => {
-          // 몬스터로 시작하는 텍스트 감지
-          const startsWithMonster = line.trim().startsWith('몬스터') || (line.includes('👾') && line.substring(line.indexOf('👾') + 2).trim().startsWith('몬스터'));
-          const isPlayerAction = line.includes('플레이어 ->') || line.includes('플레이어→') || line.includes('플레이어 •');
+          // 👾 이모지가 있으면 적(몬스터) 행동
+          const isEnemyAction = line.includes('👾');
+          // 🔵 이모지가 있거나 플레이어 행동 패턴이면 플레이어 행동
+          const isPlayerAction = line.includes('🔵') || line.includes('플레이어 ->') || line.includes('플레이어→') || line.includes('플레이어 •');
           return (
             <div key={i} style={{
               fontSize: '13px',
-              color: startsWithMonster ? '#fca5a5' : isPlayerAction ? '#60a5fa' : '#cbd5e1',
+              color: isEnemyAction ? '#fca5a5' : isPlayerAction ? '#60a5fa' : '#cbd5e1',
               marginBottom: '6px',
               lineHeight: '1.5'
             }} dangerouslySetInnerHTML={{ __html: line }}>
