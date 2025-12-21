@@ -117,6 +117,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const mapRisk = useGameStore((state) => state.mapRisk || 0);
   const playerTraits = useGameStore((state) => state.playerTraits || []);
   const playerEgos = useGameStore((state) => state.playerEgos || []);
+  // 개발자 모드: characterBuild 변경 감지
+  const devCharacterBuild = useGameStore((state) => state.characterBuild);
   const mergeRelicOrder = useCallback((relicList = [], saved = []) => {
     const savedSet = new Set(saved);
     const merged = [];
@@ -792,6 +794,40 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     actions.setCanRedraw(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // [DEV] 개발자 모드에서 주특기/보조특기 변경 시 덱 재구성
+  const prevDevBuildRef = useRef(null);
+  useEffect(() => {
+    if (!devCharacterBuild) return;
+
+    const prevBuild = prevDevBuildRef.current;
+    const currentMainSpecials = devCharacterBuild.mainSpecials || [];
+    const currentSubSpecials = devCharacterBuild.subSpecials || [];
+
+    // 이전 값과 비교
+    const prevMainSpecials = prevBuild?.mainSpecials || [];
+    const prevSubSpecials = prevBuild?.subSpecials || [];
+
+    const mainChanged = JSON.stringify(currentMainSpecials) !== JSON.stringify(prevMainSpecials);
+    const subChanged = JSON.stringify(currentSubSpecials) !== JSON.stringify(prevSubSpecials);
+
+    // 첫 렌더링이 아니고, 주특기 또는 보조특기가 변경된 경우
+    if (prevBuild && (mainChanged || subChanged)) {
+      console.log('[DEV] 주특기/보조특기 변경 감지 - 덱 재구성');
+      console.log('[DEV] mainSpecials:', currentMainSpecials, 'subSpecials:', currentSubSpecials);
+
+      const { deck: newDeck, mainSpecialsHand } = initializeDeck(devCharacterBuild, battle.vanishedCards || []);
+      const drawResult = drawFromDeck(newDeck, [], DEFAULT_DRAW_COUNT, escapeBanRef.current);
+
+      actions.setDeck(drawResult.newDeck);
+      actions.setDiscardPile(drawResult.newDiscardPile);
+      actions.setHand([...mainSpecialsHand, ...drawResult.drawnCards]);
+
+      console.log('[DEV] 새 손패:', [...mainSpecialsHand, ...drawResult.drawnCards].map(c => c.name));
+    }
+
+    prevDevBuildRef.current = { ...devCharacterBuild, mainSpecials: [...currentMainSpecials], subSpecials: [...currentSubSpecials] };
+  }, [devCharacterBuild, battle.vanishedCards, actions]);
 
   // Enemy initialization - only run once on mount
   useEffect(() => {
