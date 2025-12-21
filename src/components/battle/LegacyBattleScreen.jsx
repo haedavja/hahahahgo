@@ -41,6 +41,7 @@ const buildBattlePayload = (battle, etherPts, relics, maxHp, playerInsight, play
           individualMaxHp: e.maxHp || e.hp || 40,
           ether: 0,
           individualEther: e.ether || 100,
+          speed: e.speed || 10,
           deck: e.deck || [],
           cardsPerTurn: 0,
           individualCardsPerTurn: e.cardsPerTurn || 2,
@@ -102,6 +103,7 @@ const buildBattlePayload = (battle, etherPts, relics, maxHp, playerInsight, play
             ether: 0,
             individualHp: e.hp || 40,
             individualEther: e.ether || 100,
+            speed: e.speed || 10,
             deck: e.deck || [],
             cardsPerTurn: 0,
             individualCardsPerTurn: e.cardsPerTurn || 2,
@@ -158,6 +160,7 @@ const buildBattlePayload = (battle, etherPts, relics, maxHp, playerInsight, play
       ether: singleEther * enemyCount,
       individualHp: singleHp,
       individualEther: singleEther,
+      speed: initialEnemy?.speed || 10,
       deck: enemyDeck,
       cardsPerTurn: 2 * enemyCount,
       passives: {},
@@ -197,6 +200,9 @@ const buildBattlePayload = (battle, etherPts, relics, maxHp, playerInsight, play
   // 몬스터 에테르 용량: 모든 유닛의 에테르 합계
   const totalEnemyEther = enemyUnits.reduce((sum, u) => sum + (u.ether || u.individualEther * u.count || 100), 0);
 
+  // 몬스터 최대 속도: 모든 유닛의 speed 합계
+  const totalEnemyMaxSpeed = enemyUnits.reduce((sum, u) => sum + (u.speed || 10), 0);
+
   return {
     player: {
       hp: startingHp,
@@ -218,6 +224,7 @@ const buildBattlePayload = (battle, etherPts, relics, maxHp, playerInsight, play
       etherPts: totalEnemyEther,
       etherCapacity: totalEnemyEther,
       enemyCount: enemyCount,
+      maxSpeed: totalEnemyMaxSpeed,
       // 패시브는 첫 번째 적 기준, cardsPerTurn은 모든 유닛 합계
       passives: enemyComposition[0]?.passives || {},
       cardsPerTurn: enemyUnits.reduce((sum, u) => sum + (u.cardsPerTurn || 2), 0),
