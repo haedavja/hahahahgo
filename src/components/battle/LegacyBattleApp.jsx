@@ -54,6 +54,7 @@ import { startEnemyEtherAnimation } from "./utils/enemyEtherAnimation";
 import { processQueueCollisions } from "./utils/cardSpecialEffects";
 import { processReflections, initReflectionState, resetTurnReflectionEffects, decreaseEnemyFreeze } from "../../lib/reflectionEffects";
 import { clearTurnTokens, addToken, removeToken, getAllTokens, expireTurnTokensByTimeline, getTokenStacks, setTokenStacks } from "../../lib/tokenUtils";
+import { TOKENS } from "../../data/tokens";
 import { convertTraitsToIds } from "../../data/reflections";
 import { processEtherTransfer } from "./utils/etherTransferProcessing";
 import { processVictoryDefeatTransition } from "./utils/victoryDefeatTransition";
@@ -3027,7 +3028,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                 actions.setEnemyUnits(updatedUnits);
                 const targetUnit = currentUnits.find(u => u.unitId === targetUnitIdForAttack);
                 const targetName = targetUnit?.name || '적';
-                addLog(`🎯 ${targetName}에게 ${tokenId} 부여`);
+                const tokenName = TOKENS[tokenId]?.name || tokenId;
+                addLog(`🎯 ${targetName}에게 ${tokenName} 부여`);
                 return { tokens: updatedUnits.find(u => u.unitId === targetUnitIdForAttack)?.tokens || {}, logs: [] };
               }
 
