@@ -310,19 +310,6 @@ export const CARDS = [
     cardCategory: "gun"
   },
   {
-    id: "double_tap",
-    name: "더블 탭",
-    type: "attack",
-    damage: 8,
-    hits: 2,
-    speedCost: 4,
-    actionCost: 2,
-    iconKey: "flame",
-    description: "공격력 8x2. 빠른 연사로 두 번 사격한다.",
-    traits: [],
-    cardCategory: "gun"
-  },
-  {
     id: "gyrus_roulette",
     name: "가이러스 룰렛",
     type: "attack",
