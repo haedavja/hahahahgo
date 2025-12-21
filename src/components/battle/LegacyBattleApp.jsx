@@ -464,9 +464,10 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const parryReadyStatesRef = useRef([]); // 쳐내기 패리 대기 상태 배열 (setTimeout용)
   const growingDefenseRef = useRef(null); // 방어자세: { activatedSp, lastProcessedSp }
 
-  // 브리치 카드 선택 상태
-  const [breachSelection, setBreachSelection] = useState(null); // { cards: [], breachSp: number, breachCard: object }
+  // 브리치 카드 선택 상태 (+ 창조 다중 선택 큐)
+  const [breachSelection, setBreachSelection] = useState(null); // { cards: [], breachSp: number, breachCard: object, queuedSelections?: [] }
   const breachSelectionRef = useRef(null);
+  const creationQueueRef = useRef([]); // 창조 다중 선택 대기열
   const stepOnceRef = useRef(null); // stepOnce 함수 참조 (브리치 선택 후 진행 재개용)
   const timelineAnimationRef = useRef(null); // 타임라인 진행 애니메이션 ref
   const isExecutingCardRef = useRef(false); // executeCardAction 중복 실행 방지
@@ -1962,7 +1963,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       isGhost: true,
       isFromFleche: selectedCard.isFromFleche || false,
       flecheChainCount: selectedCard.flecheChainCount || 0,
-      createdBy: selectedCard.createdBy,
+      createdBy: selectedCard.createdBy || breach.breachCard?.id,
+      // 창조 선택에서 범위 피해 플래그 적용
+      isAoe: breach.isAoe || false,
       __uid: `ghost_${Math.random().toString(36).slice(2)}`
     };
 
@@ -1991,6 +1994,31 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
     const newQueue = [...beforeCurrent, ...afterCurrent];
     actions.setQueue(newQueue);
+
+    // battleRef를 즉시 업데이트
+    battleRef.current = { ...battleRef.current, queue: newQueue };
+
+    // 창조 다중 선택 큐 확인 (벙 데 라므 등)
+    if (creationQueueRef.current.length > 0) {
+      // 다음 선택으로 진행
+      const nextSelection = creationQueueRef.current.shift();
+      const remainingCount = creationQueueRef.current.length;
+
+      addLog(`👻 창조 ${3 - remainingCount}/3: 카드를 선택하세요.`);
+
+      const nextBreachState = {
+        cards: nextSelection.cards,
+        breachSp: nextSelection.insertSp,
+        breachCard: nextSelection.breachCard,
+        isCreationSelection: true,
+        isAoe: nextSelection.isAoe
+      };
+      breachSelectionRef.current = nextBreachState;
+      setBreachSelection(nextBreachState);
+
+      // 선택 대기 (게임 일시정지 유지)
+      return;
+    }
 
     // 브리치 선택 상태 초기화
     breachSelectionRef.current = null;
@@ -3249,6 +3277,78 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       // 브리치 선택 중에는 stepOnce 진행을 멈춤 (사용자가 선택할 때까지)
       isExecutingCardRef.current = false;
       return;
+    }
+
+    // createFencingCards3 (벙 데 라므): 3x3 창조 선택 (3번의 선택, 각각 3장 중 1장)
+    if (hasSpecial(a.card, 'createFencingCards3') && a.actor === 'player') {
+      // 펜싱 공격 카드 풀
+      const fencingAttackCards = CARDS.filter(c =>
+        c.cardCategory === 'fencing' && c.type === 'attack' && c.id !== a.card.id
+      );
+
+      if (fencingAttackCards.length >= 3) {
+        // 3번의 선택을 위한 큐 생성 (각각 다른 3장)
+        const allShuffled = [...fencingAttackCards].sort(() => Math.random() - 0.5);
+        const usedIds = new Set();
+
+        // 창조 선택 큐 초기화
+        creationQueueRef.current = [];
+
+        for (let selectionIdx = 0; selectionIdx < 3; selectionIdx++) {
+          // 이 선택을 위한 3장 선택 (이전 선택에서 쓰인 카드 제외)
+          const availableCards = allShuffled.filter(c => !usedIds.has(c.id));
+          const selectionCards = availableCards.slice(0, 3);
+
+          // 선택된 카드 ID 기록 (다음 선택에서 제외)
+          selectionCards.forEach(c => usedIds.add(c.id));
+
+          creationQueueRef.current.push({
+            cards: selectionCards,
+            insertSp: a.sp + 1, // +1 속도에 배치
+            breachCard: { ...a.card, breachSpOffset: 1 },
+            isAoe: true // 범위 피해 플래그
+          });
+        }
+
+        addLog(`👻 "${a.card.name}" 발동! 검격 카드 창조 1/3: 카드를 선택하세요.`);
+
+        // 에테르 누적 (return 전에 처리)
+        processPlayerEtherAccumulation({
+          card: a.card,
+          turnEtherAccumulated,
+          orderedRelicList,
+          cardUpgrades,
+          resolvedPlayerCards,
+          playerTimeline,
+          relics,
+          triggeredRefs: {
+            referenceBookTriggered: referenceBookTriggeredRef,
+            devilDiceTriggered: devilDiceTriggeredRef
+          },
+          calculatePassiveEffects,
+          getCardEtherGain,
+          collectTriggeredRelics,
+          playRelicActivationSequence,
+          flashRelic,
+          actions
+        });
+
+        // 첫 번째 선택 시작
+        const firstSelection = creationQueueRef.current.shift();
+        const creationState = {
+          cards: firstSelection.cards,
+          breachSp: firstSelection.insertSp,
+          breachCard: firstSelection.breachCard,
+          isCreationSelection: true,
+          isAoe: firstSelection.isAoe
+        };
+        breachSelectionRef.current = creationState;
+        setBreachSelection(creationState);
+
+        // 선택 중에는 stepOnce 진행을 멈춤
+        isExecutingCardRef.current = false;
+        return;
+      }
     }
 
     // 적 카드 발동 시 패리 트리거 체크 (모든 활성 패리 상태 확인)

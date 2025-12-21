@@ -45,7 +45,7 @@ export const TRAITS = {
   chain: { id: "chain", name: "연계", type: "positive", weight: 1, description: "다음 카드가 검격이면 타임라인 3 앞당김" },
   followup: { id: "followup", name: "후속", type: "positive", weight: 1, description: "연계되면 피해 50% 증가" },
   finisher: { id: "finisher", name: "마무리", type: "positive", weight: 2, description: "연계되면 피해 50% 증가, 후속되면 기교 1 획득" },
-  creation: { id: "creation", name: "창조", type: "positive", weight: 1, description: "조건 충족 시 유령카드를 만들어낸다. 유령카드는 아이템/상징 효과 무시" },
+  creation: { id: "creation", name: "창조", type: "positive", weight: 1, description: "조건 충족시 3장의 유령 카드를 만들고 그 중 한 장을 선택한다. 유령카드는 아이템/상징 효과 무시." },
 
   // 긍정 특성 (★★)
   hero: { id: "hero", name: "용사", type: "positive", weight: 2, description: "다음턴 상대 에테르 획득 방지" },
@@ -759,7 +759,7 @@ export const CARDS = [
     speedCost: 10,
     actionCost: 3,
     iconKey: "flame",
-    description: "기교 3 소모. 범위 피해. 검격카드 3장 창조 (+1 속도), 창조된 카드도 범위 피해.",
+    description: "기교 3 소모. 범위 피해. 검격카드 3x3 창조 (3번의 선택, 각각 3장 중 1장, +1 속도), 창조된 카드도 범위 피해.",
     traits: ["chain"],
     cardCategory: "fencing",
     requiredTokens: [{ id: 'finesse', stacks: 3 }],

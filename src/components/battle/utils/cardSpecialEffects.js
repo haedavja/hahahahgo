@@ -1168,37 +1168,11 @@ export function processCardPlaySpecials({
     }
   }
 
-  // === createFencingCards3: 검격 카드 3장 창조 (+1 속도, 범위 피해) ===
+  // === createFencingCards3: 검격 카드 3x3 창조 (3번의 선택, 각각 3장 중 1장) ===
+  // 실제 선택 UI는 executeCardAction에서 처리 (breach와 유사)
+  // 여기서는 플래그만 설정
   if (hasSpecial(card, 'createFencingCards3')) {
-    const who = attackerName === 'player' ? '플레이어' : '몬스터';
-    // 펜싱 공격 카드 중에서 랜덤 선택
-    const fencingAttackCards = allCards.filter(c =>
-      c.cardCategory === 'fencing' && c.type === 'attack' && c.id !== card.id
-    );
-
-    if (fencingAttackCards.length > 0) {
-      const shuffled = [...fencingAttackCards].sort(() => Math.random() - 0.5);
-      const selectedCards = shuffled.slice(0, Math.min(3, shuffled.length));
-
-      for (let i = 0; i < selectedCards.length; i++) {
-        const selectedCard = selectedCards[i];
-        bonusCards.push({
-          ...selectedCard,
-          damage: selectedCard.damage,
-          hits: selectedCard.hits,
-          speedCost: 1, // +1 속도에 배치
-          actionCost: 0,
-          isGhost: true,
-          isAoe: true, // 범위 피해 플래그
-          createdBy: card.id,
-          createdId: `${selectedCard.id}_vent_${Date.now()}_${i}`
-        });
-      }
-      const cardNames = selectedCards.map(c => c.name).join(', ');
-      const msg = `${who} • ⚔️ ${card.name}: 검격 카드 3장 창조! (${cardNames}) - 범위 피해`;
-      events.push({ actor: attackerName, card: card.name, type: 'special', msg });
-      logs.push(msg);
-    }
+    nextTurnEffects = { ...nextTurnEffects, triggerCreation3x3: true, creationIsAoe: true };
   }
 
   // === aoeAttack 플래그 설정: 범위 피해 카드 표시 ===
