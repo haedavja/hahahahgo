@@ -38,14 +38,14 @@ export const EnemyUnitsDisplay = ({
 
   return (
     <>
-      {/* 유닛 목록 - 에테르 구슬 왼쪽에 배치 */}
+      {/* 유닛 목록 - 플레이어 체력바와 같은 높이, 에테르 구슬 왼쪽 */}
       <div className="enemy-units-container" style={{
         display: 'flex',
         flexDirection: 'column',
         gap: '12px',
         position: 'fixed',
-        top: '250px',
-        right: '420px',
+        top: '500px',
+        right: '550px',
         zIndex: 100,
         maxWidth: '320px',
       }}>
