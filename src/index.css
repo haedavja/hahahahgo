@@ -55,6 +55,12 @@ button:focus-visible {
   outline: none;
 }
 
+/* 모든 요소의 포커스 아웃라인 제거 */
+*:focus,
+*:focus-visible {
+  outline: none !important;
+}
+
 @media (prefers-color-scheme: light) {
   :root {
     color: #213547;
