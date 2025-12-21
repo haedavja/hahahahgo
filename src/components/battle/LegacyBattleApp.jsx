@@ -1285,9 +1285,10 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         const tokenCheck = checkRequiredTokens(card, selected);
         if (!tokenCheck.ok) { addLog(tokenCheck.message); return; }
 
-        // 공격 카드 + 다중 유닛: 분배 모드 진입 (respond 페이즈)
+        // 다중 타겟 카드 (multiTarget 특성): 타겟 선택 모드 진입
         const aliveUnitsCount = enemyUnits.filter(u => u.hp > 0).length;
-        if (card.type === 'attack' && hasMultipleUnits && aliveUnitsCount > 1) {
+        const isMultiTargetCard = card.traits?.includes('multiTarget');
+        if (isMultiTargetCard && hasMultipleUnits && aliveUnitsCount > 1) {
           const cardWithUid = {
             ...card,
             __uid: card.__handUid || Math.random().toString(36).slice(2),
@@ -1326,9 +1327,10 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     const tokenCheck = checkRequiredTokens(card, selected);
     if (!tokenCheck.ok) return addLog(tokenCheck.message);
 
-    // 공격 카드 + 다중 유닛: 분배 모드 진입
+    // 다중 타겟 카드 (multiTarget 특성): 타겟 선택 모드 진입
     const aliveUnitsCount = enemyUnits.filter(u => u.hp > 0).length;
-    if (card.type === 'attack' && hasMultipleUnits && aliveUnitsCount > 1) {
+    const isMultiTargetCard = card.traits?.includes('multiTarget');
+    if (isMultiTargetCard && hasMultipleUnits && aliveUnitsCount > 1) {
       const cardWithUid = {
         ...card,
         __uid: card.__handUid || Math.random().toString(36).slice(2),
