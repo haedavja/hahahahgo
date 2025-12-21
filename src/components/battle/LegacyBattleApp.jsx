@@ -3371,11 +3371,26 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     return Array.from(map.values());
   }, [enemy?.composition, enemy?.name, enemy?.emoji, enemy?.count, enemy?.quantity]);
 
-  const handDisabled = (c) => (
-    battle.selected.length >= effectiveMaxSubmitCards ||
-    totalSpeed + applyAgility(c.speedCost, effectiveAgility) > player.maxSpeed ||
-    totalEnergy + c.actionCost > player.maxEnergy
-  );
+  const handDisabled = (c) => {
+    // 기본 체크: 최대 선택 수, 속도 한계, 행동력 부족
+    if (battle.selected.length >= effectiveMaxSubmitCards ||
+        totalSpeed + applyAgility(c.speedCost, effectiveAgility) > player.maxSpeed ||
+        totalEnergy + c.actionCost > player.maxEnergy) {
+      return true;
+    }
+
+    // 필요 토큰 체크 (기교 등)
+    if (c.requiredTokens && Array.isArray(c.requiredTokens)) {
+      for (const req of c.requiredTokens) {
+        const currentStacks = getTokenStacks(player, req.id);
+        if (currentStacks < (req.stacks || 1)) {
+          return true;  // 토큰 부족
+        }
+      }
+    }
+
+    return false;
+  };
   const playerEtherValue = player?.etherPts ?? 0;
   const playerEtherSlots = etherSlots(playerEtherValue);
   const enemyEtherValue = enemy?.etherPts ?? 0;
