@@ -762,7 +762,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     const hasCharacterBuild = currentBuild && (currentBuild.mainSpecials?.length > 0 || currentBuild.subSpecials?.length > 0 || currentBuild.ownedCards?.length > 0);
 
     // [DEBUG mainSpecials]
-    console.log('[DEBUG mainSpecials] characterBuild:', currentBuild);
+    console.log('[DEBUG mainSpecials] mainSpecials:', currentBuild?.mainSpecials, 'subSpecials:', currentBuild?.subSpecials, 'ownedCards:', currentBuild?.ownedCards?.length);
     console.log('[DEBUG mainSpecials] hasCharacterBuild:', hasCharacterBuild);
 
     // 덱이 이미 초기화되었으면 스킵 (두 번째 useEffect에서 처리)
