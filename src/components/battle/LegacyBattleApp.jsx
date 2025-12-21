@@ -3280,8 +3280,49 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
     if (hasUnits && a.actor === 'player' && a.card?.type === 'attack') {
       const targetUnitIds = a.card.__targetUnitIds;
+      // AOE 공격 체크: aoeAttack special 또는 isAoe 플래그
+      const isAoeAttack = hasSpecial(a.card, 'aoeAttack') || a.card.isAoe === true;
 
-      if (targetUnitIds && targetUnitIds.length > 0) {
+      if (isAoeAttack) {
+        // === 범위 피해 모드: 모든 생존 유닛에 동일 피해 ===
+        let updatedUnits = [...enemyUnits];
+        const damageDealt = actionResult.dealt || 0;
+        const damageLogParts = [];
+
+        if (damageDealt > 0) {
+          const aliveUnits = updatedUnits.filter(u => u.hp > 0);
+
+          for (const targetUnit of aliveUnits) {
+            // 유닛별 방어력 적용
+            const unitBlock = targetUnit.block || 0;
+            const blockedDamage = Math.min(unitBlock, damageDealt);
+            const actualDamage = damageDealt - blockedDamage;
+            const newBlock = unitBlock - blockedDamage;
+            const newHp = Math.max(0, targetUnit.hp - actualDamage);
+
+            updatedUnits = updatedUnits.map(u => {
+              if (u.unitId === targetUnit.unitId) {
+                return { ...u, hp: newHp, block: newBlock };
+              }
+              return u;
+            });
+
+            if (blockedDamage > 0) {
+              damageLogParts.push(`${targetUnit.name}: ${actualDamage} (방어 ${blockedDamage})`);
+            } else {
+              damageLogParts.push(`${targetUnit.name}: ${actualDamage}`);
+            }
+          }
+
+          const newTotalHp = updatedUnits.reduce((sum, u) => sum + Math.max(0, u.hp), 0);
+          E.hp = newTotalHp;
+          E.units = updatedUnits;
+
+          if (damageLogParts.length > 0) {
+            addLog(`🌀 범위 피해: ${damageLogParts.join(', ')}`);
+          }
+        }
+      } else if (targetUnitIds && targetUnitIds.length > 0) {
         // === 다중 타겟 모드: 선택된 모든 유닛에 카드 피해 적용 ===
         let updatedUnits = [...enemyUnits];
         const baseDamage = a.card.damage || 0;
