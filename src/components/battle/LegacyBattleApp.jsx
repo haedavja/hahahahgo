@@ -1072,11 +1072,15 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       let updatedUnits = [...units];
       let anyVeil = false;
 
+      console.log('[DEBUG veil] turnNumber:', turnNumber, 'units:', units.length, units.map(u => ({ name: u.name, passives: u.passives, tokens: u.tokens })));
+
       for (let i = 0; i < updatedUnits.length; i++) {
         const unit = updatedUnits[i];
         const unitPassives = unit.passives || {};
+        console.log('[DEBUG veil] unit:', unit.name, 'veilAtStart:', unitPassives.veilAtStart);
         if (unitPassives.veilAtStart) {
           const veilResult = addToken(unit, 'veil', 1);
+          console.log('[DEBUG veil] veilResult:', veilResult);
           updatedUnits[i] = { ...unit, tokens: veilResult.tokens };
           addLog(`🌫️ ${unit.name}: 장막 - 이 적의 행동을 볼 수 없습니다!`);
           anyVeil = true;
@@ -1085,6 +1089,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
       if (anyVeil) {
         updatedEnemy = { ...updatedEnemy, units: updatedUnits };
+        console.log('[DEBUG veil] updatedEnemy.units after veil:', updatedEnemy.units.map(u => ({ name: u.name, tokens: u.tokens })));
       }
 
       // 레거시 호환: 전체 enemy에 veilAtStart가 있는 경우 (유닛이 없는 경우)

@@ -215,6 +215,7 @@ export const EnemyUnitsDisplay = ({
 
               {/* 토큰 표시 */}
               <div style={{ marginTop: '6px', minHeight: '24px' }}>
+                {console.log('[DEBUG TokenDisplay] unit:', unit.name, 'tokens:', unit.tokens)}
                 <TokenDisplay entity={unit} position="enemy" />
               </div>
 
