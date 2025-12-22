@@ -5,6 +5,7 @@ import { playHitSound, playBlockSound, playCardSubmitSound, playProceedSound, pl
 import { useBattleState } from "./hooks/useBattleState";
 import { useDamagePreview } from "./hooks/useDamagePreview";
 import { useBattleTimelines } from "./hooks/useBattleTimelines";
+import { useInsightSystem } from "./hooks/useInsightSystem";
 import {
   MAX_SPEED,
   DEFAULT_PLAYER_MAX_SPEED,
@@ -441,10 +442,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const cardUpgrades = useGameStore((state) => state.cardUpgrades || {}); // 카드 업그레이드(희귀도)
 
   // Keep refs as they are
-  const prevInsightRef = useRef(safeInitialPlayer.insight || 0);
-  const insightBadgeTimerRef = useRef(null);
-  const insightAnimTimerRef = useRef(null);
-  const prevRevealLevelRef = useRef(0);
   // 탈주 카드는 사용된 다음 턴에만 등장 금지
   const escapeBanRef = useRef(new Set());
   const escapeUsedThisTurnRef = useRef(new Set());
@@ -546,83 +543,17 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     actions.setOrderedRelics(arr);
   };
 
-  // 통찰 시스템: 유효 통찰 및 공개 정보 계산
-  // 장막(veil) 토큰은 이제 유닛별로 적용됨 (getInsightRevealLevel에서 처리)
-  const effectiveInsight = useMemo(() => {
-    // 기본 통찰: 플레이어 통찰 - 적 shroud (전역 veil은 더 이상 여기서 적용하지 않음)
-    return calculateEffectiveInsight(player.insight, enemy?.shroud);
-  }, [player.insight, enemy?.shroud]);
-
-  // 통찰 레벨: insight - shroud - insightPenalty (-3 ~ +3)
-  // -3: 망각, -2: 미련, -1: 우둔, 0: 평온, +1: 예측, +2: 독심, +3: 혜안
-  // (veil은 이제 유닛별로 적용되므로 전역 레벨 계산에서 제외)
-  const insightLevel = useMemo(() => {
-    const shroud = enemy?.shroud || 0;
-    const insight = player.insight || 0;
-    // 이변 패널티 적용
-    const insightPenalty = player.insightPenalty || 0;
-    const base = Math.max(-3, Math.min(3, insight - shroud - insightPenalty));
-    if (devDulledLevel !== null && devDulledLevel !== undefined) {
-      // devDulledLevel은 이제 insight의 음수 값으로 저장됨 (insight = -devDulledLevel)
-      // 예: devDulledLevel = -3 → insightLevel = 3 (혜안)
-      // 예: devDulledLevel = 1 → insightLevel = -1 (우둔)
-      return Math.max(-3, Math.min(3, -devDulledLevel));
-    }
-    return base;
-  }, [player.insight, player.insightPenalty, enemy?.shroud, devDulledLevel]);
-
-  // 하위 호환성을 위한 dulledLevel (우둔 레벨만, 0~3)
-  const dulledLevel = Math.max(0, -insightLevel);
-
-  const insightReveal = useMemo(() => {
-    if (battle.phase !== 'select') return { level: 0, visible: false };
-    // 유닛 배열 전달하여 유닛별 veil 적용
-    const units = enemy?.units || [];
-    return getInsightRevealLevel(effectiveInsight, enemyPlan.actions, units);
-  }, [effectiveInsight, enemyPlan.actions, battle.phase, enemy?.units]);
-
-  // 통찰 수치 변화 시 배지/연출 트리거
-  useEffect(() => {
-    const prev = prevInsightRef.current || 0;
-    const curr = player.insight || 0;
-    if (curr === prev) return;
-    const dir = curr > prev ? 'up' : 'down';
-    prevInsightRef.current = curr;
-    if (insightBadgeTimerRef.current) clearTimeout(insightBadgeTimerRef.current);
-    actions.setInsightBadge({
-      level: curr,
-      dir,
-      show: true,
-      key: Date.now(),
-    });
-    playInsightSound(curr > 0 ? Math.min(curr, 3) : 1);
-    insightBadgeTimerRef.current = setTimeout(() => {
-      actions.setInsightBadge((b) => ({ ...b, show: false }));
-    }, 1400);
-  }, [player.insight]);
-
-  // 통찰 레벨별 타임라인 연출 트리거 (선택 단계에서만)
-  useEffect(() => {
-    if (battle.phase !== 'select' && battle.phase !== 'respond' && battle.phase !== 'resolve') {
-      actions.setInsightAnimLevel(0);
-      actions.setHoveredEnemyAction(null);
-      return;
-    }
-    // select 단계는 insightReveal.level, respond 단계는 effectiveInsight 기준
-    const lvl = battle.phase === 'select' ? (insightReveal?.level || 0) : (effectiveInsight || 0);
-    const prev = prevRevealLevelRef.current || 0;
-    if (lvl === prev) return;
-    prevRevealLevelRef.current = lvl;
-    if (insightAnimTimerRef.current) clearTimeout(insightAnimTimerRef.current);
-    if (lvl > 0) {
-      actions.setInsightAnimLevel(lvl);
-      actions.setInsightAnimPulseKey((k) => k + 1);
-      playInsightSound(Math.min(lvl, 3));
-      insightAnimTimerRef.current = setTimeout(() => actions.setInsightAnimLevel(0), 1200);
-    } else {
-      actions.setInsightAnimLevel(0);
-    }
-  }, [insightReveal?.level, battle.phase]);
+  // 통찰 시스템 (커스텀 훅으로 분리)
+  const { effectiveInsight, insightLevel, dulledLevel, insightReveal } = useInsightSystem({
+    playerInsight: player.insight,
+    playerInsightPenalty: player.insightPenalty,
+    enemyShroud: enemy?.shroud,
+    enemyUnits: enemy?.units,
+    enemyPlanActions: enemyPlan.actions,
+    battlePhase: battle.phase,
+    devDulledLevel,
+    actions
+  });
 
   const notifyBattleResult = useCallback((resultType) => {
     if (!resultType || resultSentRef.current) return;
