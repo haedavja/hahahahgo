@@ -1,339 +1,20 @@
 /**
  * 전투 상태 관리 Reducer
- * 70개의 useState를 하나의 useReducer로 통합
+ *
+ * 분리된 모듈:
+ * - battleReducerState.js: 초기 상태 정의
+ * - battleReducerActions.js: 액션 타입 정의
  */
 
-import { createEmptyTokens } from '../../../lib/tokenUtils';
+// 분리된 모듈에서 import 및 re-export
+export { createInitialState } from './battleReducerState';
+export { ACTIONS } from './battleReducerActions';
+import { createInitialState } from './battleReducerState';
+import { ACTIONS } from './battleReducerActions';
 
-// =====================
-// 초기 상태 정의
-// =====================
-
-export const createInitialState = ({
-  initialPlayerState,
-  initialEnemyState,
-  initialPlayerRelics = [],
-  simplifiedMode = false,
-  sortType = 'cost'
-}) => ({
-  // === 플레이어 & 적 상태 ===
-  player: initialPlayerState,
-  enemy: initialEnemyState,
-  enemyIndex: 0,
-  selectedTargetUnit: 0, // 현재 타겟팅된 유닛 ID (기본: 첫 번째 유닛)
-
-  // === 전투 페이즈 ===
-  phase: 'select', // 'select', 'planning', 'resolve', 'result', 'victory', 'defeat'
-
-  // === 카드 관리 ===
-  hand: [],
-  selected: [],
-  canRedraw: true,
-  sortType: sortType,
-  vanishedCards: [], // 소멸 특성으로 제거된 카드
-  usedCardIndices: [],
-  disappearingCards: [], // 사라지는 중인 카드 인덱스
-  hiddenCards: [], // 완전히 숨겨진 카드 인덱스
-  disabledCardIndices: [], // 비활성화된 카드 인덱스
-  cardUsageCount: {}, // 카드별 사용 횟수 (mastery, boredom용)
-
-  // === 덱/무덤 시스템 ===
-  deck: [], // 드로우할 카드 덱 (셔플된 상태)
-  discardPile: [], // 사용한 카드가 쌓이는 무덤
-
-  // === 적 계획 ===
-  enemyPlan: { actions: [], mode: null },
-
-  // === 실행 큐 & 순서 ===
-  fixedOrder: null,
-  queue: [],
-  qIndex: 0,
-
-  // === 전투 로그 & 이벤트 ===
-  log: ["게임 시작!"],
-  actionEvents: {},
-
-  // === 턴 관리 ===
-  turnNumber: 1,
-
-  // === 에테르 시스템 ===
-  turnEtherAccumulated: 0, // 플레이어 이번 턴 누적 에테르
-  enemyTurnEtherAccumulated: 0, // 적 이번 턴 누적 에테르
-  netEtherDelta: null, // 최종 적용된 에테르 이동량(플레이어 기준)
-
-  // 에테르 애니메이션
-  etherAnimationPts: null, // 전체 획득량 표시
-  etherFinalValue: null, // 플레이어 최종 에테르값
-  enemyEtherFinalValue: null, // 적 최종 에테르값
-  etherCalcPhase: null, // 'sum', 'multiply', 'deflation', 'result'
-  enemyEtherCalcPhase: null,
-  currentDeflation: null, // 플레이어 디플레이션 정보
-  enemyCurrentDeflation: null, // 적 디플레이션 정보
-  etherPulse: false, // PT 증가 애니메이션
-  playerTransferPulse: false, // 에테르 이동 연출 (플레이어)
-  enemyTransferPulse: false, // 에테르 이동 연출 (적)
-
-  // === 기원(Overdrive) 연출 ===
-  willOverdrive: false,
-  playerOverdriveFlash: false,
-  enemyOverdriveFlash: false,
-  soulShatter: false, // 에테르 승리 연출
-
-  // === 타임라인 ===
-  timelineProgress: 0, // 0~100%
-  timelineIndicatorVisible: true,
-  executingCardIndex: null, // 현재 실행 중인 카드
-
-  // === UI 상태 ===
-  isSimplified: simplifiedMode,
-  showCharacterSheet: false,
-  showPtsTooltip: false,
-  showBarTooltip: false,
-
-  // === 상징 ===
-  orderedRelics: initialPlayerRelics,
-
-  // === 전투 종료 후 ===
-  postCombatOptions: null,
-
-  // === 다음 턴 효과 ===
-  nextTurnEffects: {
-    player: {},
-    enemy: {}
-  },
-
-  // === 애니메이션 ===
-  playerHit: false, // 플레이어 피격
-  enemyHit: false, // 적 피격
-  playerBlockAnim: false, // 플레이어 방어 애니메이션
-  enemyBlockAnim: false, // 적 방어 애니메이션
-
-  // === 자동진행 & 스냅샷 ===
-  autoProgress: false, // 자동진행 모드
-  resolveStartPlayer: null, // 진행 단계 시작 시 플레이어 상태
-  resolveStartEnemy: null, // 진행 단계 시작 시 적 상태
-  respondSnapshot: null, // 대응 단계 진입 시 상태 스냅샷(되감기용)
-  rewindUsed: false, // 전투당 1회 되감기 사용 여부
-
-  // === 상징 UI ===
-  hoveredRelic: null, // 호버된 상징 ID
-  relicActivated: null, // 발동된 상징 ID (애니메이션용)
-  activeRelicSet: new Set(), // 동시 강조용
-  multiplierPulse: false, // 배율 강조 애니메이션
-
-  // === 전투 진행 ===
-  resolvedPlayerCards: 0, // 진행 단계에서 진행된 플레이어 카드 수
-
-  // === 카드 툴팁 ===
-  hoveredCard: null, // 호버된 카드 정보 {card, position}
-  tooltipVisible: false, // 툴팁 표시 여부
-  previewDamage: { value: 0, lethal: false, overkill: false }, // 데미지 미리보기
-  perUnitPreviewDamage: {}, // 유닛별 데미지 미리보기 { unitId: { value, lethal, overkill } }
-
-  // === 통찰 시스템 ===
-  insightBadge: {
-    level: 0,
-    dir: 'up',
-    show: false,
-    key: 0,
-  },
-  insightAnimLevel: 0,
-  insightAnimPulseKey: 0,
-  showInsightTooltip: false,
-
-  // === 적 행동 툴팁 ===
-  hoveredEnemyAction: null,
-
-  // === 카드 파괴 애니메이션 ===
-  destroyingEnemyCards: [], // 파괴 중인 적 카드 인덱스
-
-  // === 카드 빙결 애니메이션 ===
-  freezingEnemyCards: [], // 빙결 중인 적 카드 인덱스
-
-  // === 빙결 순서 카운터 ===
-  frozenOrder: 0, // 0보다 크면 빙결 효과 적용 (남은 턴 수)
-
-  // === 피해 분배 시스템 ===
-  distributionMode: false, // 분배 모드 활성화 여부
-  pendingDistributionCard: null, // 분배 중인 카드
-  damageDistribution: {}, // { unitId: damageAmount, ... }
-  totalDistributableDamage: 0, // 분배 가능한 총 피해량
-});
-
-// =====================
-// 액션 타입 정의
-// =====================
-
-export const ACTIONS = {
-  // === 플레이어/적 상태 ===
-  SET_PLAYER: 'SET_PLAYER',
-  UPDATE_PLAYER: 'UPDATE_PLAYER',
-  SET_ENEMY: 'SET_ENEMY',
-  UPDATE_ENEMY: 'UPDATE_ENEMY',
-  SET_ENEMY_INDEX: 'SET_ENEMY_INDEX',
-  // 다중 유닛 시스템
-  SET_SELECTED_TARGET_UNIT: 'SET_SELECTED_TARGET_UNIT',
-  UPDATE_ENEMY_UNIT: 'UPDATE_ENEMY_UNIT',
-  SET_ENEMY_UNITS: 'SET_ENEMY_UNITS',
-
-  // === 페이즈 ===
-  SET_PHASE: 'SET_PHASE',
-
-  // === 카드 관리 ===
-  SET_HAND: 'SET_HAND',
-  SET_SELECTED: 'SET_SELECTED',
-  ADD_SELECTED: 'ADD_SELECTED',
-  REMOVE_SELECTED: 'REMOVE_SELECTED',
-  SET_CAN_REDRAW: 'SET_CAN_REDRAW',
-  SET_SORT_TYPE: 'SET_SORT_TYPE',
-  SET_VANISHED_CARDS: 'SET_VANISHED_CARDS',
-  ADD_VANISHED_CARD: 'ADD_VANISHED_CARD',
-  SET_USED_CARD_INDICES: 'SET_USED_CARD_INDICES',
-  SET_DISAPPEARING_CARDS: 'SET_DISAPPEARING_CARDS',
-  SET_HIDDEN_CARDS: 'SET_HIDDEN_CARDS',
-  SET_DISABLED_CARD_INDICES: 'SET_DISABLED_CARD_INDICES',
-  SET_CARD_USAGE_COUNT: 'SET_CARD_USAGE_COUNT',
-  INCREMENT_CARD_USAGE: 'INCREMENT_CARD_USAGE',
-
-  // === 덱/무덤 시스템 ===
-  SET_DECK: 'SET_DECK',
-  SET_DISCARD_PILE: 'SET_DISCARD_PILE',
-  ADD_TO_DISCARD: 'ADD_TO_DISCARD',
-  DRAW_FROM_DECK: 'DRAW_FROM_DECK',
-  SHUFFLE_DISCARD_INTO_DECK: 'SHUFFLE_DISCARD_INTO_DECK',
-
-  // === 적 계획 ===
-  SET_ENEMY_PLAN: 'SET_ENEMY_PLAN',
-
-  // === 실행 큐 ===
-  SET_FIXED_ORDER: 'SET_FIXED_ORDER',
-  SET_QUEUE: 'SET_QUEUE',
-  SET_Q_INDEX: 'SET_Q_INDEX',
-  INCREMENT_Q_INDEX: 'INCREMENT_Q_INDEX',
-
-  // === 로그 & 이벤트 ===
-  ADD_LOG: 'ADD_LOG',
-  SET_LOG: 'SET_LOG',
-  SET_ACTION_EVENTS: 'SET_ACTION_EVENTS',
-
-  // === 턴 ===
-  SET_TURN_NUMBER: 'SET_TURN_NUMBER',
-  INCREMENT_TURN: 'INCREMENT_TURN',
-
-  // === 에테르 ===
-  SET_TURN_ETHER_ACCUMULATED: 'SET_TURN_ETHER_ACCUMULATED',
-  SET_ENEMY_TURN_ETHER_ACCUMULATED: 'SET_ENEMY_TURN_ETHER_ACCUMULATED',
-  SET_NET_ETHER_DELTA: 'SET_NET_ETHER_DELTA',
-  SET_ETHER_ANIMATION_PTS: 'SET_ETHER_ANIMATION_PTS',
-  SET_ETHER_FINAL_VALUE: 'SET_ETHER_FINAL_VALUE',
-  SET_ENEMY_ETHER_FINAL_VALUE: 'SET_ENEMY_ETHER_FINAL_VALUE',
-  SET_ETHER_CALC_PHASE: 'SET_ETHER_CALC_PHASE',
-  SET_ENEMY_ETHER_CALC_PHASE: 'SET_ENEMY_ETHER_CALC_PHASE',
-  SET_CURRENT_DEFLATION: 'SET_CURRENT_DEFLATION',
-  SET_ENEMY_CURRENT_DEFLATION: 'SET_ENEMY_CURRENT_DEFLATION',
-  SET_ETHER_PULSE: 'SET_ETHER_PULSE',
-  SET_PLAYER_TRANSFER_PULSE: 'SET_PLAYER_TRANSFER_PULSE',
-  SET_ENEMY_TRANSFER_PULSE: 'SET_ENEMY_TRANSFER_PULSE',
-
-  // === 기원 ===
-  SET_WILL_OVERDRIVE: 'SET_WILL_OVERDRIVE',
-  SET_PLAYER_OVERDRIVE_FLASH: 'SET_PLAYER_OVERDRIVE_FLASH',
-  SET_ENEMY_OVERDRIVE_FLASH: 'SET_ENEMY_OVERDRIVE_FLASH',
-  SET_SOUL_SHATTER: 'SET_SOUL_SHATTER',
-
-  // === 타임라인 ===
-  SET_TIMELINE_PROGRESS: 'SET_TIMELINE_PROGRESS',
-  SET_TIMELINE_INDICATOR_VISIBLE: 'SET_TIMELINE_INDICATOR_VISIBLE',
-  SET_EXECUTING_CARD_INDEX: 'SET_EXECUTING_CARD_INDEX',
-
-  // === UI ===
-  SET_IS_SIMPLIFIED: 'SET_IS_SIMPLIFIED',
-  SET_SHOW_CHARACTER_SHEET: 'SET_SHOW_CHARACTER_SHEET',
-  TOGGLE_CHARACTER_SHEET: 'TOGGLE_CHARACTER_SHEET',
-  SET_SHOW_PTS_TOOLTIP: 'SET_SHOW_PTS_TOOLTIP',
-  SET_SHOW_BAR_TOOLTIP: 'SET_SHOW_BAR_TOOLTIP',
-
-  // === 상징 ===
-  SET_ORDERED_RELICS: 'SET_ORDERED_RELICS',
-
-  // === 전투 종료 ===
-  SET_POST_COMBAT_OPTIONS: 'SET_POST_COMBAT_OPTIONS',
-
-  // === 다음 턴 효과 ===
-  SET_NEXT_TURN_EFFECTS: 'SET_NEXT_TURN_EFFECTS',
-  UPDATE_NEXT_TURN_EFFECTS: 'UPDATE_NEXT_TURN_EFFECTS',
-
-  // === 성찰 상태 ===
-  SET_REFLECTION_STATE: 'SET_REFLECTION_STATE',
-
-  // === 애니메이션 ===
-  SET_PLAYER_HIT: 'SET_PLAYER_HIT',
-  SET_ENEMY_HIT: 'SET_ENEMY_HIT',
-  SET_PLAYER_BLOCK_ANIM: 'SET_PLAYER_BLOCK_ANIM',
-  SET_ENEMY_BLOCK_ANIM: 'SET_ENEMY_BLOCK_ANIM',
-
-  // === 자동진행 & 스냅샷 ===
-  SET_AUTO_PROGRESS: 'SET_AUTO_PROGRESS',
-  SET_RESOLVE_START_PLAYER: 'SET_RESOLVE_START_PLAYER',
-  SET_RESOLVE_START_ENEMY: 'SET_RESOLVE_START_ENEMY',
-  SET_RESPOND_SNAPSHOT: 'SET_RESPOND_SNAPSHOT',
-  SET_REWIND_USED: 'SET_REWIND_USED',
-
-  // === 상징 UI ===
-  SET_HOVERED_RELIC: 'SET_HOVERED_RELIC',
-  SET_RELIC_ACTIVATED: 'SET_RELIC_ACTIVATED',
-  SET_ACTIVE_RELIC_SET: 'SET_ACTIVE_RELIC_SET',
-  SET_MULTIPLIER_PULSE: 'SET_MULTIPLIER_PULSE',
-
-  // === 전투 진행 ===
-  SET_RESOLVED_PLAYER_CARDS: 'SET_RESOLVED_PLAYER_CARDS',
-
-  // === 카드 툴팁 ===
-  SET_HOVERED_CARD: 'SET_HOVERED_CARD',
-  SET_TOOLTIP_VISIBLE: 'SET_TOOLTIP_VISIBLE',
-  SET_PREVIEW_DAMAGE: 'SET_PREVIEW_DAMAGE',
-  SET_PER_UNIT_PREVIEW_DAMAGE: 'SET_PER_UNIT_PREVIEW_DAMAGE',
-
-  // === 통찰 시스템 ===
-  SET_INSIGHT_BADGE: 'SET_INSIGHT_BADGE',
-  SET_INSIGHT_ANIM_LEVEL: 'SET_INSIGHT_ANIM_LEVEL',
-  SET_INSIGHT_ANIM_PULSE_KEY: 'SET_INSIGHT_ANIM_PULSE_KEY',
-  SET_SHOW_INSIGHT_TOOLTIP: 'SET_SHOW_INSIGHT_TOOLTIP',
-
-  // === 적 행동 툴팁 ===
-  SET_HOVERED_ENEMY_ACTION: 'SET_HOVERED_ENEMY_ACTION',
-
-  // === 카드 파괴 애니메이션 ===
-  SET_DESTROYING_ENEMY_CARDS: 'SET_DESTROYING_ENEMY_CARDS',
-
-  // === 카드 빙결 애니메이션 ===
-  SET_FREEZING_ENEMY_CARDS: 'SET_FREEZING_ENEMY_CARDS',
-
-  // === 빙결 순서 플래그 ===
-  SET_FROZEN_ORDER: 'SET_FROZEN_ORDER',
-
-  // === 피해 분배 시스템 ===
-  SET_DISTRIBUTION_MODE: 'SET_DISTRIBUTION_MODE',
-  SET_PENDING_DISTRIBUTION_CARD: 'SET_PENDING_DISTRIBUTION_CARD',
-  SET_DAMAGE_DISTRIBUTION: 'SET_DAMAGE_DISTRIBUTION',
-  UPDATE_DAMAGE_DISTRIBUTION: 'UPDATE_DAMAGE_DISTRIBUTION',
-  SET_TOTAL_DISTRIBUTABLE_DAMAGE: 'SET_TOTAL_DISTRIBUTABLE_DAMAGE',
-  RESET_DISTRIBUTION: 'RESET_DISTRIBUTION',
-
-  // === 토큰 시스템 ===
-  UPDATE_PLAYER_TOKENS: 'UPDATE_PLAYER_TOKENS',
-  UPDATE_ENEMY_TOKENS: 'UPDATE_ENEMY_TOKENS',
-
-  // === 복합 액션 (여러 상태를 한번에 변경) ===
-  RESET_TURN: 'RESET_TURN',
-  RESET_ETHER_ANIMATION: 'RESET_ETHER_ANIMATION',
-  RESET_BATTLE: 'RESET_BATTLE',
-};
-
-// =====================
-// Reducer 함수
-// =====================
-
+/**
+ * Reducer 함수
+ */
 export function battleReducer(state, action) {
   switch (action.type) {
     // === 플레이어/적 상태 ===
@@ -352,27 +33,13 @@ export function battleReducer(state, action) {
     case ACTIONS.SET_SELECTED_TARGET_UNIT:
       return { ...state, selectedTargetUnit: action.payload };
     case ACTIONS.SET_ENEMY_UNITS:
-      return {
-        ...state,
-        enemy: { ...state.enemy, units: action.payload }
-      };
+      return { ...state, enemy: { ...state.enemy, units: action.payload } };
     case ACTIONS.UPDATE_ENEMY_UNIT: {
-      // payload: { unitId, updates: { hp, block, tokens, ... } }
       const { unitId, updates } = action.payload;
       const units = state.enemy.units || [];
-      const newUnits = units.map(u =>
-        u.unitId === unitId ? { ...u, ...updates } : u
-      );
-      // 전체 HP 재계산
+      const newUnits = units.map(u => u.unitId === unitId ? { ...u, ...updates } : u);
       const totalHp = newUnits.reduce((sum, u) => sum + Math.max(0, u.hp), 0);
-      return {
-        ...state,
-        enemy: {
-          ...state.enemy,
-          units: newUnits,
-          hp: totalHp,
-        }
-      };
+      return { ...state, enemy: { ...state.enemy, units: newUnits, hp: totalHp } };
     }
 
     // === 페이즈 ===
@@ -421,7 +88,6 @@ export function battleReducer(state, action) {
     case ACTIONS.SET_DISCARD_PILE:
       return { ...state, discardPile: action.payload };
     case ACTIONS.ADD_TO_DISCARD:
-      // 카드 배열 또는 단일 카드를 무덤에 추가
       return {
         ...state,
         discardPile: Array.isArray(action.payload)
@@ -429,24 +95,14 @@ export function battleReducer(state, action) {
           : [...state.discardPile, action.payload]
       };
     case ACTIONS.DRAW_FROM_DECK: {
-      // payload: 드로우할 카드 수
       const drawCount = action.payload || 1;
       const drawnCards = state.deck.slice(0, drawCount);
       const remainingDeck = state.deck.slice(drawCount);
-      return {
-        ...state,
-        deck: remainingDeck,
-        hand: [...state.hand, ...drawnCards]
-      };
+      return { ...state, deck: remainingDeck, hand: [...state.hand, ...drawnCards] };
     }
     case ACTIONS.SHUFFLE_DISCARD_INTO_DECK: {
-      // 무덤을 셔플하여 덱으로 이동
       const shuffledDiscard = [...state.discardPile].sort(() => Math.random() - 0.5);
-      return {
-        ...state,
-        deck: [...state.deck, ...shuffledDiscard],
-        discardPile: []
-      };
+      return { ...state, deck: [...state.deck, ...shuffledDiscard], discardPile: [] };
     }
 
     // === 적 계획 ===
@@ -547,13 +203,7 @@ export function battleReducer(state, action) {
     case ACTIONS.SET_NEXT_TURN_EFFECTS:
       return { ...state, nextTurnEffects: action.payload };
     case ACTIONS.UPDATE_NEXT_TURN_EFFECTS:
-      return {
-        ...state,
-        nextTurnEffects: {
-          ...state.nextTurnEffects,
-          ...action.payload
-        }
-      };
+      return { ...state, nextTurnEffects: { ...state.nextTurnEffects, ...action.payload } };
 
     // === 성찰 상태 ===
     case ACTIONS.SET_REFLECTION_STATE:
@@ -639,15 +289,8 @@ export function battleReducer(state, action) {
     case ACTIONS.SET_DAMAGE_DISTRIBUTION:
       return { ...state, damageDistribution: action.payload };
     case ACTIONS.UPDATE_DAMAGE_DISTRIBUTION: {
-      // payload: { unitId, damage }
       const { unitId, damage } = action.payload;
-      return {
-        ...state,
-        damageDistribution: {
-          ...state.damageDistribution,
-          [unitId]: damage
-        }
-      };
+      return { ...state, damageDistribution: { ...state.damageDistribution, [unitId]: damage } };
     }
     case ACTIONS.SET_TOTAL_DISTRIBUTABLE_DAMAGE:
       return { ...state, totalDistributableDamage: action.payload };
