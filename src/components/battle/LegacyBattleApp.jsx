@@ -98,6 +98,7 @@ import { EtherBar } from "./ui/EtherBar";
 import { Sword, Shield, Heart, Zap, Flame, Clock, Skull, X, ChevronUp, ChevronDown, Play, StepForward, RefreshCw, ICON_MAP } from "./ui/BattleIcons";
 import { selectBattleAnomalies, applyAnomalyEffects, formatAnomaliesForDisplay } from "../../lib/anomalyUtils";
 import { AnomalyDisplay, AnomalyNotification } from "./ui/AnomalyDisplay";
+import { DefeatOverlay } from "./ui/DefeatOverlay";
 import { TIMING, createStepOnceAnimations, executeCardActionCore, finishTurnCore, runAllCore, executeMultiHitAsync } from "./logic/battleExecution";
 import { processTimelineSpecials, hasSpecial, processPerHitRoulette, processCardPlaySpecials } from "./utils/cardSpecialEffects";
 
@@ -2936,36 +2937,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
           </button>
         </div>
       )}
-      {/* 패배 시 중앙 오버레이 (타임라인/로그는 뒤에 유지) */}
+      {/* 패배 시 중앙 오버레이 */}
       {postCombatOptions?.type === 'defeat' && (
-        <div style={{
-          position: 'fixed',
-          inset: 0,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          background: 'rgba(0, 0, 0, 0.7)',
-          zIndex: 9999,
-          pointerEvents: 'auto'
-        }}>
-          <div style={{
-            fontSize: '64px',
-            fontWeight: 'bold',
-            color: '#ef4444',
-            textShadow: '0 4px 20px rgba(0,0,0,0.9)',
-            marginBottom: '24px'
-          }}>
-            💀 패배...
-          </div>
-          <button
-            onClick={handleExitToMap}
-            className="btn-enhanced btn-primary"
-            style={{ fontSize: '20px', padding: '16px 48px' }}
-          >
-            확인
-          </button>
-        </div>
+        <DefeatOverlay onExit={handleExitToMap} />
       )}
 
       {/* 하단 고정 손패 영역 */}
