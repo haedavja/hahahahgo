@@ -1,25 +1,28 @@
+/**
+ * DungeonExploration.jsx
+ *
+ * 던전 탐험 메인 컴포넌트
+ * 분리된 모듈: renderDungeon, useCrossroadChoice, usePlayerMovement
+ */
+
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useDungeonState } from "./hooks/useDungeonState";
+import { useCrossroadChoice } from "./hooks/useCrossroadChoice";
+import { usePlayerMovement } from "./hooks/usePlayerMovement";
 import { useGameStore } from "../../state/gameStore";
-import { calculateEtherSlots, getCurrentSlotPts, getSlotProgress, getNextSlotCost } from "../../lib/etherUtils";
 import { CharacterSheet } from "../character/CharacterSheet";
 import { RELICS, RELIC_RARITIES } from "../../data/relics";
 import { RELIC_RARITY_COLORS } from "../../lib/relics";
-import { updateStats } from "../../state/metaProgress";
-import {
-  playDoorSound,
-  playSecretSound,
-  playVictorySound,
-  playDangerSound,
-  playChoiceSelectSound,
-} from "../../lib/soundUtils";
+import { playVictorySound } from "../../lib/soundUtils";
 import "./dungeon.css";
 
 // 분리된 모듈들
 import { CONFIG, OBJECT_TYPES } from "./utils/dungeonConfig";
 import { generateMaze } from "./utils/mazeGenerator";
 import { OBJECT_HANDLERS } from "./utils/dungeonHandlers";
+import { renderDungeonScene } from "./utils/renderDungeon";
 import { RewardModal, DungeonSummaryModal, CrossroadModal } from "./ui/DungeonModals";
+
 // ========== 메인 컴포넌트 ==========
 export function DungeonExploration() {
   // Store hooks
@@ -33,15 +36,20 @@ export function DungeonExploration() {
   const startBattle = useGameStore((s) => s.startBattle);
   const applyEtherDelta = useGameStore((s) => s.applyEtherDelta);
   const addResources = useGameStore((s) => s.addResources);
-  const lastBattleResult = useGameStore ((s) => s.lastBattleResult);
+  const lastBattleResult = useGameStore((s) => s.lastBattleResult);
   const clearBattleResult = useGameStore((s) => s.clearBattleResult);
   const relics = useGameStore((s) => s.relics);
   const resources = useGameStore((s) => s.resources);
   const playerHp = useGameStore((s) => s.playerHp);
   const maxHp = useGameStore((s) => s.maxHp);
   const devForcedCrossroad = useGameStore((s) => s.devForcedCrossroad);
+  const playerInsight = useGameStore((s) => s.playerInsight) || 0;
 
-  // 던전 데이터 생성 (한 번만) - 미로 시스템 사용
+  // 미로 던전용 gameStore 함수
+  const setCurrentRoomKey = useGameStore((s) => s.setCurrentRoomKey);
+  const updateMazeRoom = useGameStore((s) => s.updateMazeRoom);
+
+  // 던전 데이터 생성 (한 번만)
   useEffect(() => {
     if (activeDungeon && !activeDungeon.dungeonData) {
       const mazeData = generateMaze(devForcedCrossroad);
@@ -54,8 +62,7 @@ export function DungeonExploration() {
     if (activeDungeon && !activeDungeon.initialResources) {
       setDungeonInitialResources({ ...resources });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeDungeon, setDungeonInitialResources]);
+  }, [activeDungeon, setDungeonInitialResources, resources]);
 
   // 던전 델타 초기화 (한 번만)
   useEffect(() => {
@@ -64,146 +71,66 @@ export function DungeonExploration() {
     }
   }, [activeDungeon, setDungeonDeltas]);
 
-  // 던전 데이터는 activeDungeon에서 가져옴 (미로 데이터 구조)
+  // 던전 데이터
   const mazeData = activeDungeon?.dungeonData || null;
   const grid = mazeData?.grid || {};
   const startKey = mazeData?.startKey || '2,4';
-  const exitKey = mazeData?.exitKey || '2,0';
-
-  // 현재 방 키 (세그먼트 인덱스 대신 사용)
   const currentRoomKey = activeDungeon?.currentRoomKey || startKey;
+  const dungeonDeltas = activeDungeon?.dungeonDeltas || { gold: 0, intel: 0, loot: 0, material: 0 };
+  const initialResources = activeDungeon?.initialResources || resources;
 
   // Dungeon 상태 (useReducer 기반)
   const { dungeon, actions } = useDungeonState({
-    segmentIndex: 0, // 미로에서는 사용 안함, 호환성 유지
-    playerX: activeDungeon?.playerX || 600, // 중앙에서 시작
+    segmentIndex: 0,
+    playerX: activeDungeon?.playerX || 600,
   });
 
-  // Destructure dungeon state
-  const playerX = dungeon.playerX;
-  const cameraX = dungeon.cameraX;
-  const keys = dungeon.keys;
-  const message = dungeon.message;
-  const rewardModal = dungeon.rewardModal;
-  const showCharacter = dungeon.showCharacter;
-  const dungeonSummary = dungeon.dungeonSummary;
-  const hoveredRelic = dungeon.hoveredRelic;
-  const crossroadModal = dungeon.crossroadModal;
-  const screenShake = dungeon.screenShake;
+  const {
+    playerX, cameraX, keys, message, rewardModal,
+    showCharacter, dungeonSummary, hoveredRelic,
+    crossroadModal, screenShake
+  } = dungeon;
 
-  // 현재 방 데이터
-  const currentRoom = grid[currentRoomKey];
-
-  // 플레이어 스탯 가져오기 (기로 선택지 요구조건 체크용)
-  const playerStrength = useGameStore((s) => s.playerStrength) || 0;
-  const playerAgility = useGameStore((s) => s.playerAgility) || 0;
-  const playerInsight = useGameStore((s) => s.playerInsight) || 0;
-
-
-  // 던전 중 획득한 자원 델타 (x값) - activeDungeon에서 가져옴 (재마운트 시에도 유지)
-  const dungeonDeltas = activeDungeon?.dungeonDeltas || { gold: 0, intel: 0, loot: 0, material: 0 };
-
-  // 초기 자원은 activeDungeon에서 가져옴 (재마운트 시에도 유지) - z값
-  const initialResources = activeDungeon?.initialResources || resources;
-
-  // 미로 던전용 gameStore 함수
-  const setCurrentRoomKey = useGameStore((s) => s.setCurrentRoomKey);
-  const updateMazeRoom = useGameStore((s) => s.updateMazeRoom);
-
-  const canvasRef = useRef(null);
-  const animationRef = useRef(null);
-  const preBattleState = useRef(null); // 전투 전 상태 저장
-  const interactionRef = useRef(null); // 상호작용 함수 ref
-  const playerXRef = useRef(playerX); // 플레이어 X 위치 ref (이동 루프용)
-
-  // 현재 방 (미로 시스템)
-  const segment = currentRoom; // 호환성을 위해 segment로 alias
+  // 현재 방
+  const segment = grid[currentRoomKey];
   const playerY = CONFIG.FLOOR_Y - CONFIG.PLAYER.height;
 
-  // 위치 정보를 activeDungeon에 저장 (재마운트 시 복원용)
+  // Refs
+  const canvasRef = useRef(null);
+  const preBattleState = useRef(null);
+  const interactionRef = useRef(null);
+
+  // 위치 정보 저장
   useEffect(() => {
-    setDungeonPosition(0, playerX); // segmentIndex 대신 0 사용
+    setDungeonPosition(0, playerX);
   }, [playerX, setDungeonPosition]);
 
-  // ========== 키 입력 ==========
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (["a", "d", "A", "D"].includes(e.key)) {
-        e.preventDefault();
-        actions.updateKeys({ [e.key.toLowerCase()]: true });
-      }
-      if (e.key === "w" || e.key === "W") {
-        e.preventDefault();
-        interactionRef.current?.();
-      }
-      if (e.key === "c" || e.key === "C") {
-        e.preventDefault();
-        actions.setShowCharacter(!showCharacter);
-      }
-    };
+  // 플레이어 이동 훅
+  const { moveToRoom } = usePlayerMovement({
+    segment,
+    grid,
+    keys,
+    playerX,
+    playerInsight,
+    actions,
+    showCharacter,
+    setCurrentRoomKey,
+    updateMazeRoom,
+    interactionRef,
+  });
 
-    const handleKeyUp = (e) => {
-      if (["a", "d", "A", "D"].includes(e.key)) {
-        actions.updateKeys({ [e.key.toLowerCase()]: false });
-      }
-    };
+  // 기로 선택지 훅
+  const { executeChoice, closeCrossroadModal } = useCrossroadChoice({
+    crossroadModal,
+    dungeonDeltas,
+    setDungeonDeltas,
+    currentRoomKey,
+    startBattle,
+    segment,
+    actions,
+  });
 
-    window.addEventListener("keydown", handleKeyDown);
-    window.addEventListener("keyup", handleKeyUp);
-
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-      window.removeEventListener("keyup", handleKeyUp);
-    };
-  }, [actions, showCharacter]);
-
-  // playerX ref 동기화
-  useEffect(() => {
-    playerXRef.current = playerX;
-  }, [playerX]);
-
-  // ========== 플레이어 이동 ==========
-  useEffect(() => {
-    if (!segment) return;
-
-    // 이동 경계 계산 (문이 없는 방향은 벽으로 막음)
-    const hasWestDoor = segment.exits?.west != null;
-    const hasEastDoor = segment.exits?.east != null;
-    const minX = hasWestDoor ? 50 : 150;  // 서쪽 문 없으면 벽에서 멀리
-    const maxX = hasEastDoor ? segment.width - 50 : segment.width - 150;  // 동쪽 문 없으면 벽에서 멀리
-
-    const moveLoop = () => {
-      let newX = playerXRef.current;
-      if (keys.a) {
-        newX = Math.max(minX, newX - CONFIG.PLAYER.speed);
-      }
-      if (keys.d) {
-        newX = Math.min(maxX, newX + CONFIG.PLAYER.speed);
-      }
-      if (newX !== playerXRef.current) {
-        playerXRef.current = newX;
-        actions.setPlayerX(newX);
-      }
-      animationRef.current = requestAnimationFrame(moveLoop);
-    };
-
-    animationRef.current = requestAnimationFrame(moveLoop);
-    return () => {
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
-      }
-    };
-  }, [keys, segment, actions]);
-
-  // ========== 카메라 ==========
-  useEffect(() => {
-    if (!segment) return;
-    const target = playerX - CONFIG.VIEWPORT.width / 2;
-    const maxCamera = segment.width - CONFIG.VIEWPORT.width;
-    actions.setCameraX(Math.max(0, Math.min(maxCamera, target)));
-  }, [playerX, segment]);
-
-  // ========== 전투 결과 처리 ==========
+  // 전투 결과 처리
   useEffect(() => {
     if (!lastBattleResult || !lastBattleResult.nodeId.startsWith("dungeon-")) return;
 
@@ -215,520 +142,70 @@ export function DungeonExploration() {
       actions.setRewardModal({ gold: 0, loot: 0, victory: false });
     }
 
-    // 즉시 clear하여 중복 처리 방지 (재마운트 시 useEffect 재실행 방지)
     clearBattleResult();
-  }, [lastBattleResult, clearBattleResult]);
+  }, [lastBattleResult, clearBattleResult, actions]);
 
-  // ========== 렌더링 ==========
+  // Canvas 렌더링
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas || !segment) return;
 
     const ctx = canvas.getContext("2d");
-    ctx.clearRect(0, 0, CONFIG.VIEWPORT.width, CONFIG.VIEWPORT.height);
-
-    // 배경 (방 타입에 따라 다른 색상)
-    const bgColors = {
-      entrance: "#1a2a1a",  // 입구 - 녹색 톤
-      exit: "#2a1a2a",      // 출구 - 보라색 톤
-      hidden: "#2a2a1a",    // 숨겨진 방 - 황금색 톤
-      normal: "#16213e",    // 일반 방
-    };
-    ctx.fillStyle = bgColors[segment.roomType] || bgColors.normal;
-    ctx.fillRect(0, 0, CONFIG.VIEWPORT.width, CONFIG.VIEWPORT.height);
-
-    // 벽 텍스처 (상단)
-    ctx.fillStyle = "#0a1628";
-    ctx.fillRect(0, 0, CONFIG.VIEWPORT.width, 100);
-
-    // 바닥
-    ctx.fillStyle = "#0f3460";
-    ctx.fillRect(0, CONFIG.FLOOR_Y, CONFIG.VIEWPORT.width, 100);
-
-    // 방 유형 표시
-    const roomLabels = {
-      entrance: "입구",
-      exit: "출구",
-      hidden: "비밀의 방",
-      normal: "",
-    };
-    if (segment.roomType !== 'normal') {
-      ctx.fillStyle = segment.roomType === 'exit' ? "#22c55e" : "#fbbf24";
-      ctx.font = "bold 24px Arial";
-      ctx.textAlign = "center";
-      ctx.fillText(roomLabels[segment.roomType] || "", CONFIG.VIEWPORT.width / 2, 60);
-    }
-
-    // 막다른 방 표시
-    if (segment.isDeadEnd) {
-      ctx.fillStyle = "#ef4444";
-      ctx.font = "16px Arial";
-      ctx.textAlign = "center";
-      ctx.fillText("막다른 방", CONFIG.VIEWPORT.width / 2, 85);
-    }
-
-    // 4방향 문 렌더링 (북쪽과 남쪽은 다른 위치에)
-    const doorPositions = {
-      north: { x: CONFIG.VIEWPORT.width / 2 + 200, y: 100, label: "북쪽" },      // 오른쪽으로 오프셋
-      south: { x: CONFIG.VIEWPORT.width / 2 - 200, y: CONFIG.FLOOR_Y - 50, label: "남쪽" },  // 왼쪽으로 오프셋
-      west: { x: 80, y: CONFIG.FLOOR_Y / 2 + 80, label: "서쪽" },
-      east: { x: CONFIG.VIEWPORT.width - 80, y: CONFIG.FLOOR_Y / 2 + 80, label: "동쪽" },
-    };
-
-    // 각 방향 문 렌더링
-    Object.entries(doorPositions).forEach(([dir, pos]) => {
-      const exit = segment.exits[dir];
-      if (!exit) {
-        // 문 없음 - 벽 표시
-        ctx.fillStyle = "#1e293b";
-        if (dir === 'north' || dir === 'south') {
-          // 수평 벽 (이미 배경으로 그려짐)
-        } else {
-          // 수직 벽 (좌우)
-          const wallX = dir === 'west' ? 0 : CONFIG.VIEWPORT.width - 80;
-          ctx.fillRect(wallX, 100, 80, CONFIG.FLOOR_Y - 100);
-        }
-      } else {
-        // 문 있음
-        const isHidden = exit.type === 'hidden';
-        const targetRoom = grid[exit.targetKey];
-        const isDiscovered = !isHidden || (targetRoom && targetRoom.discovered);
-        const isVisited = targetRoom && targetRoom.visited;  // 이미 방문한 방인지
-
-        // 문 색상 결정
-        let doorColor;
-        if (isHidden) {
-          doorColor = isDiscovered ? "#8b5cf6" : "#4b5563";  // 숨겨진 문
-        } else if (isVisited) {
-          doorColor = "#f59e0b";  // 방문한 방 = 주황색
-        } else if (segment.roomType === 'exit' && dir === 'north') {
-          doorColor = "#22c55e";  // 출구 = 초록색
-        } else {
-          doorColor = "#3b82f6";  // 새로운 방 = 파란색
-        }
-
-        // 화살표 아이콘 결정 (방문한 방은 ↩ 표시)
-        const arrows = {
-          north: isVisited ? "↩" : "▲",
-          south: isVisited ? "↩" : "▼",
-          west: isVisited ? "↩" : "◀",
-          east: isVisited ? "↩" : "▶",
-        };
-
-        // 발광 효과 (그라데이션)
-        const glowSize = 20;
-        ctx.save();
-
-        if (dir === 'north') {
-          // 북쪽 문 (상단 중앙) - 크게
-          const doorW = 120, doorH = 70;
-
-          // 외부 발광
-          const gradient = ctx.createRadialGradient(pos.x, pos.y + doorH/2, 0, pos.x, pos.y + doorH/2, doorW);
-          gradient.addColorStop(0, doorColor + "80");
-          gradient.addColorStop(1, "transparent");
-          ctx.fillStyle = gradient;
-          ctx.fillRect(pos.x - doorW, pos.y - glowSize, doorW * 2, doorH + glowSize * 2);
-
-          // 문틀 (밝은 테두리)
-          ctx.strokeStyle = doorColor;
-          ctx.lineWidth = 4;
-          ctx.strokeRect(pos.x - doorW/2, pos.y, doorW, doorH);
-
-          // 문 배경
-          ctx.fillStyle = doorColor;
-          ctx.fillRect(pos.x - doorW/2, pos.y, doorW, doorH);
-
-          // 문 내부 (어두운 부분)
-          ctx.fillStyle = isHidden && !isDiscovered ? "#374151" : "#0f172a";
-          ctx.fillRect(pos.x - doorW/2 + 10, pos.y + 8, doorW - 20, doorH - 8);
-
-          // 화살표 아이콘
-          ctx.fillStyle = "#ffffff";
-          ctx.font = "bold 28px Arial";
-          ctx.textAlign = "center";
-          ctx.fillText(arrows[dir], pos.x, pos.y + doorH/2 + 10);
-
-        } else if (dir === 'south') {
-          // 남쪽 문 (하단 중앙)
-          const doorW = 120, doorH = 80;
-
-          // 외부 발광
-          const gradient = ctx.createRadialGradient(pos.x, pos.y + doorH/2, 0, pos.x, pos.y + doorH/2, doorW);
-          gradient.addColorStop(0, doorColor + "80");
-          gradient.addColorStop(1, "transparent");
-          ctx.fillStyle = gradient;
-          ctx.fillRect(pos.x - doorW, pos.y - glowSize, doorW * 2, doorH + glowSize * 2);
-
-          // 문틀
-          ctx.strokeStyle = doorColor;
-          ctx.lineWidth = 4;
-          ctx.strokeRect(pos.x - doorW/2, pos.y, doorW, doorH);
-
-          // 문 배경
-          ctx.fillStyle = doorColor;
-          ctx.fillRect(pos.x - doorW/2, pos.y, doorW, doorH);
-
-          // 문 내부
-          ctx.fillStyle = isHidden && !isDiscovered ? "#374151" : "#0f172a";
-          ctx.fillRect(pos.x - doorW/2 + 10, pos.y + 8, doorW - 20, doorH - 16);
-
-          // 화살표 아이콘
-          ctx.fillStyle = "#ffffff";
-          ctx.font = "bold 28px Arial";
-          ctx.textAlign = "center";
-          ctx.fillText(arrows[dir], pos.x, pos.y + doorH/2 + 10);
-
-        } else {
-          // 좌우 문
-          const doorW = 80, doorH = 140;
-          const doorX = dir === 'west' ? 0 : CONFIG.VIEWPORT.width - doorW;
-
-          // 외부 발광
-          const gradient = ctx.createRadialGradient(doorX + doorW/2, pos.y, 0, doorX + doorW/2, pos.y, doorH);
-          gradient.addColorStop(0, doorColor + "80");
-          gradient.addColorStop(1, "transparent");
-          ctx.fillStyle = gradient;
-          ctx.fillRect(doorX - glowSize, pos.y - doorH/2 - glowSize, doorW + glowSize * 2, doorH + glowSize * 2);
-
-          // 문틀
-          ctx.strokeStyle = doorColor;
-          ctx.lineWidth = 4;
-          ctx.strokeRect(doorX, pos.y - doorH/2, doorW, doorH);
-
-          // 문 배경
-          ctx.fillStyle = doorColor;
-          ctx.fillRect(doorX, pos.y - doorH/2, doorW, doorH);
-
-          // 문 내부
-          ctx.fillStyle = isHidden && !isDiscovered ? "#374151" : "#0f172a";
-          if (dir === 'west') {
-            ctx.fillRect(doorX + 8, pos.y - doorH/2 + 10, doorW - 16, doorH - 20);
-          } else {
-            ctx.fillRect(doorX + 8, pos.y - doorH/2 + 10, doorW - 16, doorH - 20);
-          }
-
-          // 화살표 아이콘
-          ctx.fillStyle = "#ffffff";
-          ctx.font = "bold 28px Arial";
-          ctx.textAlign = "center";
-          ctx.fillText(arrows[dir], doorX + doorW/2, pos.y + 10);
-        }
-
-        ctx.restore();
-
-        // 문 라벨 (더 크고 명확하게) - 방문한 방은 "되돌아가기" 표시
-        const labelText = isHidden && !isDiscovered
-          ? "???"
-          : (isVisited ? `${pos.label} ↩` : pos.label);
-        ctx.fillStyle = isHidden && !isDiscovered ? "#64748b" : (isVisited ? "#fbbf24" : "#ffffff");
-        ctx.font = "bold 18px Arial";
-        ctx.textAlign = "center";
-        ctx.shadowColor = "#000000";
-        ctx.shadowBlur = 4;
-
-        if (dir === 'north') {
-          ctx.fillText(labelText, pos.x, pos.y - 10);
-        } else if (dir === 'south') {
-          ctx.fillText(labelText, pos.x, pos.y + 100);
-        } else if (dir === 'west') {
-          ctx.fillText(labelText, 50, pos.y + 90);
-        } else {
-          ctx.fillText(labelText, CONFIG.VIEWPORT.width - 50, pos.y + 90);
-        }
-        ctx.shadowBlur = 0;
-      }
-    });
-
-    // 오브젝트 렌더링
-    (segment.objects || []).forEach((obj) => {
-      const screenX = obj.x - cameraX;
-      if (screenX < -100 || screenX > CONFIG.VIEWPORT.width + 100) return;
-
-      const objType = OBJECT_TYPES[obj.typeId.toUpperCase()];
-      if (!objType) return;
-
-      ctx.save();
-      ctx.globalAlpha = obj.used && !objType.canReuse ? 0.3 : 1.0;
-
-      // 특별 보물은 반짝임 효과
-      if (obj.isSpecial && !obj.used) {
-        ctx.shadowColor = "#fbbf24";
-        ctx.shadowBlur = 15;
-      }
-
-      // 숏컷의 경우 unlocked 상태 전달
-      if (obj.typeId === 'shortcut') {
-        objType.render(ctx, screenX, CONFIG.FLOOR_Y, obj.used, obj.unlocked);
-      } else if (obj.typeId === 'hidden_door') {
-        objType.render(ctx, screenX, CONFIG.FLOOR_Y, obj.used, obj.discovered);
-      } else {
-        objType.render(ctx, screenX, CONFIG.FLOOR_Y, obj.used);
-      }
-      ctx.restore();
-    });
-
-    // ========== 2D 미로 미니맵 렌더링 (왼쪽 상단 - 동쪽 문과 겹치지 않게) ==========
-    const gridSize = mazeData?.gridSize || CONFIG.MAZE.GRID_SIZE;
-    const cellSize = 24;
-    const minimapPadding = 15;
-    const minimapW = gridSize * cellSize + minimapPadding * 2;
-    const minimapH = gridSize * cellSize + minimapPadding * 2;
-    const minimapX = 10;  // 왼쪽으로 이동
-    const minimapY = 110;
-
-    // 미니맵 배경
-    ctx.fillStyle = "rgba(15, 23, 42, 0.95)";
-    ctx.fillRect(minimapX - 5, minimapY - 25, minimapW + 10, minimapH + 35);
-    ctx.strokeStyle = "#475569";
-    ctx.lineWidth = 2;
-    ctx.strokeRect(minimapX - 5, minimapY - 25, minimapW + 10, minimapH + 35);
-
-    // 미니맵 타이틀
-    ctx.fillStyle = "#94a3b8";
-    ctx.font = "bold 12px Arial";
-    ctx.textAlign = "center";
-    ctx.fillText("미로 지도", minimapX + minimapW / 2, minimapY - 8);
-
-    // 연결선 먼저 그리기
-    Object.entries(grid).forEach(([key, room]) => {
-      if (!room.visited && !room.discovered) return; // 발견 안된 방은 그리지 않음
-
-      const cellX = minimapX + minimapPadding + room.x * cellSize;
-      const cellY = minimapY + minimapPadding + room.y * cellSize;
-      const centerX = cellX + cellSize / 2;
-      const centerY = cellY + cellSize / 2;
-
-      // 연결선 그리기
-      Object.entries(room.exits).forEach(([dir, exit]) => {
-        if (!exit) return;
-
-        const targetRoom = grid[exit.targetKey];
-        if (!targetRoom) return;
-        if (!targetRoom.visited && !targetRoom.discovered) return;
-
-        const isHidden = exit.type === 'hidden';
-        ctx.strokeStyle = isHidden ? "#8b5cf6" : "#475569";
-        ctx.lineWidth = isHidden ? 1 : 2;
-        ctx.setLineDash(isHidden ? [2, 2] : []);
-
-        let endX = centerX;
-        let endY = centerY;
-
-        switch (dir) {
-          case 'north': endY -= cellSize / 2; break;
-          case 'south': endY += cellSize / 2; break;
-          case 'west': endX -= cellSize / 2; break;
-          case 'east': endX += cellSize / 2; break;
-        }
-
-        ctx.beginPath();
-        ctx.moveTo(centerX, centerY);
-        ctx.lineTo(endX, endY);
-        ctx.stroke();
-        ctx.setLineDash([]);
-      });
-    });
-
-    // 방 그리기
-    Object.entries(grid).forEach(([key, room]) => {
-      const cellX = minimapX + minimapPadding + room.x * cellSize;
-      const cellY = minimapY + minimapPadding + room.y * cellSize;
-
-      if (!room.visited && !room.discovered) {
-        // 발견 안된 방 - 어두운 타일로만 표시
-        ctx.fillStyle = "#1e293b";
-        ctx.fillRect(cellX + 2, cellY + 2, cellSize - 4, cellSize - 4);
-        return;
-      }
-
-      // 방 타입별 색상
-      let roomColor = "#475569"; // 기본 (방문 안함)
-      if (room.visited) {
-        switch (room.roomType) {
-          case 'entrance': roomColor = "#22c55e"; break;
-          case 'exit': roomColor = "#fbbf24"; break;
-          case 'hidden': roomColor = "#8b5cf6"; break;
-          default: roomColor = room.isDeadEnd ? "#ef4444" : "#3b82f6";
-        }
-      } else if (room.discovered) {
-        roomColor = "#334155"; // 발견됐지만 방문 안함
-      }
-
-      ctx.fillStyle = roomColor;
-      ctx.fillRect(cellX + 2, cellY + 2, cellSize - 4, cellSize - 4);
-
-      // 현재 위치 표시
-      if (key === currentRoomKey) {
-        ctx.fillStyle = "#ffffff";
-        ctx.beginPath();
-        ctx.arc(cellX + cellSize / 2, cellY + cellSize / 2, 4, 0, Math.PI * 2);
-        ctx.fill();
-      }
-
-      // 특수 방 아이콘
-      ctx.font = "bold 10px Arial";
-      ctx.textAlign = "center";
-      if (room.roomType === 'exit') {
-        ctx.fillStyle = "#0f172a";
-        ctx.fillText("★", cellX + cellSize / 2, cellY + cellSize / 2 + 4);
-      } else if (room.roomType === 'entrance') {
-        ctx.fillStyle = "#0f172a";
-        ctx.fillText("▶", cellX + cellSize / 2, cellY + cellSize / 2 + 3);
-      }
-    });
-
-    // 탐험률 표시
-    const totalRooms = Object.keys(grid).length;
-    const visitedRooms = Object.values(grid).filter(r => r.visited).length;
-    ctx.fillStyle = "#94a3b8";
-    ctx.font = "10px Arial";
-    ctx.textAlign = "center";
-    ctx.fillText(`탐험: ${visitedRooms}/${totalRooms}`, minimapX + minimapW / 2, minimapY + minimapH + 5);
-
-    // 플레이어
-    const playerScreenX = playerX - cameraX;
-    ctx.fillStyle = "#3498db";
-    ctx.fillRect(
-      playerScreenX - CONFIG.PLAYER.width / 2,
+    renderDungeonScene({
+      ctx,
+      segment,
+      grid,
+      currentRoomKey,
+      mazeData,
+      playerX,
       playerY,
-      CONFIG.PLAYER.width,
-      CONFIG.PLAYER.height
-    );
+      cameraX,
+      resources,
+      playerHp,
+      maxHp,
+    });
+  }, [segment, playerX, cameraX, playerHp, maxHp, playerY, resources, grid, currentRoomKey, mazeData]);
 
-    // 에테르 바 (상단)
-    const etherPts = resources.etherPts || 0;
-    const etherSlots = calculateEtherSlots(etherPts);
-    const etherProgress = getSlotProgress(etherPts);
-    const etherCurrentPts = getCurrentSlotPts(etherPts);
-    const etherNextSlotCost = getNextSlotCost(etherPts);
-    const etherW = 60;
-    const etherH = 8;
-    const etherY = playerY - 20;
+  // 던전 완료
+  const handleCompleteDungeon = useCallback(() => {
+    playVictorySound();
+    actions.setDungeonSummary({
+      gold: dungeonDeltas.gold,
+      intel: dungeonDeltas.intel,
+      loot: dungeonDeltas.loot,
+      material: dungeonDeltas.material,
+      isComplete: true,
+    });
+  }, [dungeonDeltas, actions]);
 
-    ctx.fillStyle = "#333";
-    ctx.fillRect(playerScreenX - etherW / 2, etherY, etherW, etherH);
-
-    ctx.fillStyle = "#53d7ff";
-    ctx.fillRect(playerScreenX - etherW / 2, etherY, etherW * etherProgress, etherH);
-
-    // 에테르 텍스트 (전투/맵과 동일하게 표시)
-    ctx.fillStyle = "#53d7ff";
-    ctx.font = "bold 12px Arial";
-    ctx.textAlign = "center";
-    ctx.fillText(`${etherCurrentPts}/${etherNextSlotCost}`, playerScreenX - 20, etherY - 5);
-    ctx.fillText(`x${etherSlots}`, playerScreenX + 20, etherY - 5);
-
-    // HP 바 (하단)
-    const hpRatio = playerHp / maxHp;
-    const hpW = 60;
-    const hpH = 8;
-    const hpY = playerY + CONFIG.PLAYER.height + 8;
-
-    ctx.fillStyle = "#333";
-    ctx.fillRect(playerScreenX - hpW / 2, hpY, hpW, hpH);
-
-    ctx.fillStyle = hpRatio > 0.5 ? "#22c55e" : hpRatio > 0.25 ? "#f59e0b" : "#ef4444";
-    ctx.fillRect(playerScreenX - hpW / 2, hpY, hpW * hpRatio, hpH);
-
-    ctx.fillStyle = "#fff";
-    ctx.font = "12px Arial";
-    ctx.textAlign = "center";
-    ctx.fillText(`${playerHp}/${maxHp}`, playerScreenX, hpY + hpH + 14);
-  }, [segment, playerX, cameraX, playerHp, maxHp, playerY, resources.etherPts, grid, currentRoomKey, mazeData]);
-
-  // ========== 미로 이동 함수 ==========
-  const moveToRoom = useCallback((direction) => {
-    if (!segment || !segment.exits) return false;
-
-    const exit = segment.exits[direction];
-    if (!exit) {
-      actions.setMessage("그 방향에는 문이 없습니다.");
-      return false;
-    }
-
-    const targetRoom = grid[exit.targetKey];
-    if (!targetRoom) return false;
-
-    // 숨겨진 문 체크
-    if (exit.type === 'hidden' && !targetRoom.discovered) {
-      // 스탯 체크로 발견 시도
-      const requiredInsight = 3;
-      if (playerInsight >= requiredInsight) {
-        // 숨겨진 방 발견!
-        playSecretSound();  // 비밀 발견 사운드
-        updateMazeRoom(exit.targetKey, { discovered: true });
-        actions.setMessage(`비밀 통로를 발견했습니다! (통찰 ${playerInsight})`);
-        return false; // 발견만 하고 이동은 다음 상호작용에서
-      } else {
-        actions.setMessage(`벽에 균열이 보입니다... (통찰 ${requiredInsight} 필요)`);
-        return false;
-      }
-    }
-
-    // 방 이동 사운드
-    playDoorSound();
-
-    // 방 이동
-    setCurrentRoomKey(exit.targetKey);
-    updateMazeRoom(exit.targetKey, { visited: true });
-    actions.setPlayerX(600); // 방 중앙에서 시작
-
-    // 출구 방 도착 시 완료 메시지
-    if (targetRoom.roomType === 'exit') {
-      actions.setMessage("출구에 도착했습니다! W키로 던전을 완료하세요.");
-    } else if (targetRoom.roomType === 'hidden') {
-      playSecretSound();  // 비밀의 방 입장 사운드
-      actions.setMessage("비밀의 방에 들어왔습니다!");
-      // 메타 진행: 비밀 방 발견 통계 업데이트
-      updateStats({ secretRoomsFound: 1 });
-    } else if (targetRoom.isDeadEnd) {
-      actions.setMessage("막다른 방입니다.");
-    } else {
-      actions.setMessage("");
-    }
-
-    return true;
-  }, [segment, grid, playerInsight, actions, setCurrentRoomKey, updateMazeRoom]);
-
-  // ========== 상호작용 ==========
+  // 상호작용
   const handleInteraction = useCallback(() => {
     if (!segment) return;
 
-    // 문 상호작용 체크 (플레이어 위치 기반) - 뷰포트 기준
     const vw = CONFIG.VIEWPORT.width;
     const doorZones = {
-      north: { minX: vw / 2 + 200 - 80, maxX: vw / 2 + 200 + 80, check: () => true },  // 오른쪽 오프셋
-      south: { minX: vw / 2 - 200 - 80, maxX: vw / 2 - 200 + 80, check: () => true },  // 왼쪽 오프셋
-      west: { minX: 0, maxX: 120, check: () => true },                      // 좌측 (80px 문)
-      east: { minX: vw - 120, maxX: vw, check: () => true },                // 우측 (80px 문)
+      north: { minX: vw / 2 + 200 - 80, maxX: vw / 2 + 200 + 80 },
+      south: { minX: vw / 2 - 200 - 80, maxX: vw / 2 - 200 + 80 },
+      west: { minX: 0, maxX: 120 },
+      east: { minX: vw - 120, maxX: vw },
     };
 
-    // 현재 위치에서 가장 가까운 문 찾기
+    // 문 상호작용
     for (const [dir, zone] of Object.entries(doorZones)) {
       if (playerX >= zone.minX && playerX <= zone.maxX && segment.exits[dir]) {
-        // 출구 방에서 완료
         if (segment.roomType === 'exit') {
           handleCompleteDungeon();
           return;
         }
-
-        // 문으로 이동
-        if (moveToRoom(dir)) {
-          return;
-        }
+        if (moveToRoom(dir)) return;
       }
     }
 
-    // 오브젝트 체크 (이미 사용된 오브젝트는 건너뛰기)
+    // 오브젝트 상호작용
     for (const obj of segment.objects || []) {
       if (Math.abs(playerX - obj.x) < 80) {
         const objType = OBJECT_TYPES[obj.typeId.toUpperCase()];
-
-        // 이미 사용된 오브젝트는 건너뛰고 다음 오브젝트 확인
-        if (obj.used && !objType?.canReuse) {
-          continue;
-        }
+        if (obj.used && !objType?.canReuse) continue;
 
         const handler = OBJECT_HANDLERS[obj.typeId];
         if (handler) {
@@ -748,45 +225,38 @@ export function DungeonExploration() {
       }
     }
 
-    // 출구 방에서 완료 (방 중앙에서도 가능)
+    // 출구 방에서 완료
     if (segment.roomType === 'exit') {
       handleCompleteDungeon();
       return;
     }
 
-    // 아무것도 없으면 가이드 메시지
+    // 가이드 메시지
     const availableDirs = Object.entries(segment.exits)
       .filter(([, exit]) => exit)
-      .map(([dir]) => {
-        const labels = { north: '북', south: '남', east: '동', west: '서' };
-        return labels[dir];
-      });
+      .map(([dir]) => ({ north: '북', south: '남', east: '동', west: '서' }[dir]));
 
     if (availableDirs.length > 0) {
       actions.setMessage(`이동 가능: ${availableDirs.join(', ')} (해당 방향의 문 앞에서 W)`);
     }
-  }, [segment, playerX, actions, applyEtherDelta, startBattle, setDungeonData, currentRoomKey, grid, moveToRoom]);
+  }, [segment, playerX, actions, applyEtherDelta, startBattle, setDungeonData, currentRoomKey, grid, moveToRoom, handleCompleteDungeon]);
 
   // handleInteraction ref 업데이트
   useEffect(() => {
     interactionRef.current = handleInteraction;
   }, [handleInteraction]);
 
-  // ========== 보상 확인 ==========
+  // 보상 모달 닫기
   const closeRewardModal = () => {
-    // 던전 중에는 실제 resources를 변경하지 않고 dungeonDeltas만 업데이트
     if (rewardModal.gold > 0 || rewardModal.loot > 0) {
-      const newDeltas = {
+      setDungeonDeltas({
         ...dungeonDeltas,
         gold: dungeonDeltas.gold + rewardModal.gold,
         loot: dungeonDeltas.loot + rewardModal.loot,
-      };
-      setDungeonDeltas(newDeltas);
+      });
     }
 
-    // 전투 전 상태 복원
     if (preBattleState.current) {
-      // 미로 시스템에서는 currentRoomKey 복원
       if (preBattleState.current.roomKey) {
         setCurrentRoomKey(preBattleState.current.roomKey);
       }
@@ -797,38 +267,21 @@ export function DungeonExploration() {
     actions.setRewardModal(null);
   };
 
-  // ========== 던전 탈출 ==========
+  // 던전 탈출
   const handleSkipDungeon = () => {
-    // dungeonDeltas를 사용 (x값)
-    const summary = {
+    actions.setDungeonSummary({
       gold: dungeonDeltas.gold,
       intel: dungeonDeltas.intel,
       loot: dungeonDeltas.loot,
       material: dungeonDeltas.material,
-      isComplete: false, // 탈출 버튼으로 나가는 경우
-    };
-    actions.setDungeonSummary(summary);
+      isComplete: false,
+    });
   };
 
-  const handleCompleteDungeon = () => {
-    playVictorySound();  // 던전 완료 팡파레
-    // dungeonDeltas를 사용 (x값)
-    const summary = {
-      gold: dungeonDeltas.gold,
-      intel: dungeonDeltas.intel,
-      loot: dungeonDeltas.loot,
-      material: dungeonDeltas.material,
-      isComplete: true, // 출구로 완료하는 경우
-    };
-    actions.setDungeonSummary(summary);
-  };
-
+  // 던전 요약 닫기
   const closeDungeonSummary = () => {
     const isComplete = dungeonSummary?.isComplete;
-
-    // 던전 종료 시 z값 + x값을 실제 resources에 반영
     addResources(dungeonDeltas);
-
     actions.setDungeonSummary(null);
     if (isComplete) {
       completeDungeon();
@@ -836,240 +289,6 @@ export function DungeonExploration() {
       skipDungeon();
     }
   };
-
-  // ========== 기로 선택지 처리 ==========
-
-  // 스탯 요구조건 충족 여부 확인
-  const checkRequirement = useCallback((choice, attemptCount = 0) => {
-    const req = choice.requirements || {};
-    const scaling = choice.scalingRequirement;
-
-    // 기본 요구조건 체크
-    if (req.strength && playerStrength < req.strength) return false;
-    if (req.agility && playerAgility < req.agility) return false;
-    if (req.insight && playerInsight < req.insight) return false;
-
-    // 스케일링 요구조건 체크 (시도 횟수에 따라 증가)
-    if (scaling) {
-      const requiredValue = scaling.baseValue + (scaling.increment * attemptCount);
-      const statValue = scaling.stat === 'strength' ? playerStrength :
-                        scaling.stat === 'agility' ? playerAgility :
-                        scaling.stat === 'insight' ? playerInsight : 0;
-      if (statValue < requiredValue) return false;
-    }
-
-    return true;
-  }, [playerStrength, playerAgility, playerInsight]);
-
-  // 스탯 여유도 계산 (얼마나 여유있게 충족하는지)
-  const getStatMargin = useCallback((choice, attemptNum) => {
-    if (!choice.scalingRequirement) return Infinity;
-
-    const { stat, baseValue, increment } = choice.scalingRequirement;
-    const requiredValue = baseValue + (attemptNum * increment);
-
-    const statMap = {
-      strength: playerStrength,
-      agility: playerAgility,
-      insight: playerInsight,
-    };
-    const playerStat = statMap[stat] || 0;
-
-    return playerStat - requiredValue; // 양수면 여유, 음수면 부족
-  }, [playerStrength, playerAgility, playerInsight]);
-
-  // 선택지 실행
-  const executeChoice = useCallback((choice, choiceState) => {
-    if (!crossroadModal) return;
-
-    playChoiceSelectSound();  // 선택 확정 사운드
-
-    const { obj } = crossroadModal;
-    const attemptCount = choiceState[choice.id]?.attempts || 0;
-
-    // 반복 선택 가능한 선택지인 경우
-    if (choice.repeatable) {
-      const newAttempts = attemptCount + 1;
-      const maxAttempts = choice.maxAttempts || 5;
-
-      // 스케일링 요구조건 체크 (현재 시도에 대한 스탯 충족 여부)
-      const hasScalingReq = !!choice.scalingRequirement;
-      const meetsRequirement = hasScalingReq ? checkRequirement(choice, newAttempts) : true;
-      const statMargin = hasScalingReq ? getStatMargin(choice, newAttempts) : Infinity;
-
-      // 화면 흔들림 효과
-      if (choice.screenEffect === 'shake') {
-        actions.setScreenShake(true);
-        setTimeout(() => actions.setScreenShake(false), 200);
-      }
-
-      // 스탯 미달 시 즉시 실패
-      if (hasScalingReq && !meetsRequirement) {
-        playDangerSound();  // 실패 사운드
-
-        // 실패 전 strainText 표시 (마지막 것)
-        const strainIdx = Math.min(newAttempts - 1, (choice.strainText?.length || 1) - 1);
-        const strainMsg = choice.strainText?.[strainIdx];
-
-        const outcome = choice.outcomes.failure;
-        const finalMsg = strainMsg
-          ? `${strainMsg}\n\n${outcome.text}`
-          : outcome.text;
-
-        applyChoiceOutcome(outcome, obj);
-        actions.setMessage(finalMsg);
-
-        // 기로 완료 처리
-        obj.used = true;
-        actions.setCrossroadModal(null);
-
-        // 일정 시간 후 메시지 클리어
-        setTimeout(() => actions.setMessage(''), 4000);
-        return;
-      }
-
-      // 경고 체크
-      if (choice.warningAtAttempt && newAttempts === choice.warningAtAttempt) {
-        actions.setMessage(choice.warningText || '뭔가 이상한 기운이...');
-      }
-
-      // 최대 시도 횟수 도달 시 (스케일링 없거나, 스케일링 있으면서 요구조건 충족)
-      if (newAttempts >= maxAttempts) {
-        // 스케일링 없는 경우: 확률적 성공/실패
-        // 스케일링 있는 경우: 여기까지 왔으면 매번 충족했으므로 성공
-        const isSuccess = hasScalingReq ? true : (Math.random() < (choice.successRate ?? 0.5));
-        const outcome = isSuccess ? choice.outcomes.success : choice.outcomes.failure;
-
-        // 결과 적용
-        applyChoiceOutcome(outcome, obj);
-        actions.setMessage(outcome.text);
-
-        // 기로 완료 처리
-        obj.used = true;
-        actions.setCrossroadModal(null);
-
-        // 일정 시간 후 메시지 클리어
-        setTimeout(() => actions.setMessage(''), 3000);
-      } else {
-        // 진행 중 - 진행 텍스트 표시
-        const progressIdx = Math.min(newAttempts - 1, (choice.progressText?.length || 1) - 1);
-        let progressMsg = choice.progressText?.[progressIdx] || `시도 ${newAttempts}/${maxAttempts}`;
-
-        // 스탯이 빠듯하면 strainText도 함께 표시 (0~1 여유일 때)
-        if (hasScalingReq && statMargin >= 0 && statMargin <= 1 && choice.strainText) {
-          const strainIdx = Math.min(newAttempts - 1, choice.strainText.length - 1);
-          const strainMsg = choice.strainText[strainIdx];
-          if (strainMsg) {
-            progressMsg = `${progressMsg}\n\n${strainMsg}`;
-          }
-        }
-
-        // 다음 시도 요구 스탯 미리 체크하여 경고
-        const nextMargin = hasScalingReq ? getStatMargin(choice, newAttempts + 1) : Infinity;
-        if (hasScalingReq && nextMargin < 0 && choice.strainText) {
-          const strainIdx = Math.min(newAttempts - 1, choice.strainText.length - 1);
-          const strainMsg = choice.strainText[strainIdx];
-          if (strainMsg && !progressMsg.includes(strainMsg)) {
-            progressMsg = `${progressMsg}\n\n⚠️ ${strainMsg}`;
-          }
-        }
-
-        actions.setMessage(progressMsg);
-
-        // 선택지 상태 업데이트
-        const newChoiceState = {
-          ...choiceState,
-          [choice.id]: { attempts: newAttempts },
-        };
-        obj.choiceState = newChoiceState;
-        actions.setCrossroadModal({
-          ...crossroadModal,
-          choiceState: newChoiceState,
-        });
-      }
-    } else {
-      // 일회성 선택지
-      // successRate가 있으면 확률 판정, 없으면 항상 성공
-      const hasSuccessRate = choice.successRate !== undefined;
-      const isSuccess = hasSuccessRate ? (Math.random() < choice.successRate) : true;
-      const outcome = isSuccess ? choice.outcomes.success : choice.outcomes.failure;
-
-      applyChoiceOutcome(outcome, obj);
-      actions.setMessage(outcome.text);
-
-      // 기로 완료 처리
-      obj.used = true;
-      actions.setCrossroadModal(null);
-
-      // 일정 시간 후 메시지 클리어
-      setTimeout(() => actions.setMessage(''), 3000);
-    }
-  }, [crossroadModal, checkRequirement, getStatMargin, actions]);
-
-  // 선택지 결과 적용
-  const applyChoiceOutcome = useCallback((outcome, obj) => {
-    if (!outcome?.effect) return;
-
-    const effect = outcome.effect;
-
-    // 피해 적용
-    if (effect.damage) {
-      // playerHp 감소 (gameStore에서 처리)
-      const currentHp = useGameStore.getState().playerHp || 50;
-      useGameStore.setState({ playerHp: Math.max(0, currentHp - effect.damage) });
-    }
-
-    // 보상 적용
-    if (effect.reward) {
-      const newDeltas = { ...dungeonDeltas };
-      if (effect.reward.gold) {
-        const gold = typeof effect.reward.gold === 'object'
-          ? effect.reward.gold.min + Math.floor(Math.random() * (effect.reward.gold.max - effect.reward.gold.min + 1))
-          : effect.reward.gold;
-        newDeltas.gold += gold;
-      }
-      if (effect.reward.loot) {
-        newDeltas.loot += effect.reward.loot;
-      }
-      setDungeonDeltas(newDeltas);
-    }
-
-    // 전투 트리거
-    if (effect.triggerCombat) {
-      preBattleState.current = {
-        roomKey: currentRoomKey,
-        playerX: obj.x,
-      };
-
-      if (effect.triggerCombat === 'mimic') {
-        // 미믹은 고정 적
-        startBattle({
-          nodeId: `dungeon-crossroad-${currentRoomKey}`,
-          kind: "combat",
-          label: "미믹",
-          enemyHp: 40,
-          rewards: {},
-        });
-      } else {
-        // 습격은 티어 기반 랜덤 적
-        const tier = Math.min(3, Math.max(1, Math.floor((segment?.depth || 0) / 2) + 1));
-        const enemy = getRandomEnemy(tier);
-        startBattle({
-          nodeId: `dungeon-crossroad-${currentRoomKey}`,
-          kind: "combat",
-          label: enemy?.name || "습격",
-          enemyId: enemy?.id,
-          tier,
-          rewards: {},
-        });
-      }
-    }
-  }, [dungeonDeltas, setDungeonDeltas, currentRoomKey, startBattle, segment]);
-
-  // 기로 모달 닫기
-  const closeCrossroadModal = useCallback(() => {
-    actions.setCrossroadModal(null);
-  }, [actions]);
 
   return (
     <div style={{
@@ -1086,10 +305,7 @@ export function DungeonExploration() {
         ref={canvasRef}
         width={CONFIG.VIEWPORT.width}
         height={CONFIG.VIEWPORT.height}
-        style={{
-          border: "2px solid #444",
-          borderRadius: "8px",
-        }}
+        style={{ border: "2px solid #444", borderRadius: "8px" }}
       />
 
       {/* 상징 표시 */}
@@ -1140,7 +356,6 @@ export function DungeonExploration() {
                     <span>{relic.emoji}</span>
                   </div>
 
-                  {/* 개별 툴팁 */}
                   {isHovered && (
                     <div style={{
                       position: 'absolute',
@@ -1176,7 +391,7 @@ export function DungeonExploration() {
         </div>
       )}
 
-      {/* 자원 - 중앙 상단 가로 배치 */}
+      {/* 자원 표시 */}
       <div style={{
         position: "absolute",
         top: "200px",
@@ -1219,7 +434,7 @@ export function DungeonExploration() {
         </div>
       </div>
 
-      {/* 이벤트 메시지 - 화면 중앙 */}
+      {/* 메시지 */}
       {message && (
         <div style={{
           position: "absolute",
@@ -1242,7 +457,7 @@ export function DungeonExploration() {
         </div>
       )}
 
-      {/* UI - 정보 */}
+      {/* UI 정보 */}
       <div style={{
         position: "absolute",
         top: "260px",
@@ -1289,13 +504,9 @@ export function DungeonExploration() {
         던전 탈출
       </button>
 
-      {/* 전투 보상 모달 */}
+      {/* 모달들 */}
       <RewardModal rewardModal={rewardModal} onClose={closeRewardModal} />
-
-      {/* 던전 탈출 요약 모달 */}
       <DungeonSummaryModal dungeonSummary={dungeonSummary} onClose={closeDungeonSummary} />
-
-      {/* 기로 선택지 모달 */}
       <CrossroadModal
         crossroadModal={crossroadModal}
         screenShake={screenShake}
