@@ -6,6 +6,9 @@ import { useBattleState } from "./hooks/useBattleState";
 import { useDamagePreview } from "./hooks/useDamagePreview";
 import { useBattleTimelines } from "./hooks/useBattleTimelines";
 import { useInsightSystem } from "./hooks/useInsightSystem";
+import { useRelicDrag } from "./hooks/useRelicDrag";
+import { useCardTooltip } from "./hooks/useCardTooltip";
+import { useEtherPreview } from "./hooks/useEtherPreview";
 import {
   MAX_SPEED,
   DEFAULT_PLAYER_MAX_SPEED,
@@ -445,8 +448,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   // 탈주 카드는 사용된 다음 턴에만 등장 금지
   const escapeBanRef = useRef(new Set());
   const escapeUsedThisTurnRef = useRef(new Set());
-  const hoveredCardRef = useRef(null);
-  const tooltipTimerRef = useRef(null);
   const logEndRef = useRef(null);
   const devilDiceTriggeredRef = useRef(false); // 턴 내 악마의 주사위 발동 여부
   const referenceBookTriggeredRef = useRef(false); // 턴 내 참고서 발동 여부
@@ -454,8 +455,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const resultSentRef = useRef(false);
   const turnStartProcessedRef = useRef(false); // 턴 시작 효과 중복 실행 방지
   const deckInitializedRef = useRef(false); // 덱이 초기화되었는지 추적 (첫 턴 중복 드로우 방지)
-  const dragRelicIndexRef = useRef(null); // 상징 드래그 인덱스
-  const battleRef = useRef(battle); // battle 상태를 ref로 유지 (setTimeout closure 문제 해결)
+    const battleRef = useRef(battle); // battle 상태를 ref로 유지 (setTimeout closure 문제 해결)
   const displayEtherMultiplierRef = useRef(1); // 애니메이션 표시용 에테르 배율 (리셋되어도 유지)
   const [parryReadyStates, setParryReadyStates] = useState([]); // 쳐내기 패리 대기 상태 배열 (렌더링용)
   const parryReadyStatesRef = useRef([]); // 쳐내기 패리 대기 상태 배열 (setTimeout용)
@@ -517,31 +517,11 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       actions.setRelicActivated(relicActivated === relicId ? null : relicActivated);
     }, duration);
   };
-  const handleRelicDragStart = (idx, relicId) => (e) => {
-    dragRelicIndexRef.current = idx;
-    actions.setRelicActivated(relicId); // 배지 표시
-    e.dataTransfer.effectAllowed = 'move';
-    try {
-      const img = new Image();
-      img.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9YQn1fEAAAAASUVORK5CYII=';
-      e.dataTransfer.setDragImage(img, 0, 0);
-    } catch { }
-  };
-  const handleRelicDragOver = (e) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-  };
-  const handleRelicDrop = (idx) => (e) => {
-    e.preventDefault();
-    const from = dragRelicIndexRef.current;
-    dragRelicIndexRef.current = null;
-    actions.setRelicActivated(null);
-    if (from === null || from === idx) return;
-    const arr = Array.from(orderedRelicList);
-    const [item] = arr.splice(from, 1);
-    arr.splice(idx, 0, item);
-    actions.setOrderedRelics(arr);
-  };
+  // 상징 드래그 앤 드롭 (커스텀 훅으로 분리)
+  const { handleRelicDragStart, handleRelicDragOver, handleRelicDrop } = useRelicDrag({
+    orderedRelicList,
+    actions
+  });
 
   // 통찰 시스템 (커스텀 훅으로 분리)
   const { effectiveInsight, insightLevel, dulledLevel, insightReveal } = useInsightSystem({
@@ -573,64 +553,12 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     actions.setShowCharacterSheet(false);
   }, []);
 
-  useEffect(() => {
-    hoveredCardRef.current = hoveredCard;
-  }, [hoveredCard]);
-
-  // 페이즈 변경 시 툴팁 정리 (카드가 사라질 때 툴팁이 남는 문제 방지)
-  useEffect(() => {
-    if (tooltipTimerRef.current) {
-      clearTimeout(tooltipTimerRef.current);
-      tooltipTimerRef.current = null;
-    }
-    actions.setHoveredCard(null);
-    actions.setTooltipVisible(false);
-  }, [battle.phase]);
-
-  const showCardTraitTooltip = useCallback((card, cardElement) => {
-    const hasTraits = card?.traits && card.traits.length > 0;
-    const hasAppliedTokens = card?.appliedTokens && card.appliedTokens.length > 0;
-    if ((!hasTraits && !hasAppliedTokens) || !cardElement) return;
-
-    const updatePos = () => {
-      // 요소가 DOM에 있고 보이는지 확인
-      if (!cardElement || !document.body.contains(cardElement)) {
-        actions.setHoveredCard(null);
-        actions.setTooltipVisible(false);
-        return false;
-      }
-      const rect = cardElement.getBoundingClientRect();
-      // 유효한 위치인지 확인 (요소가 보이지 않으면 0, 0)
-      if (rect.width === 0 && rect.height === 0) {
-        actions.setHoveredCard(null);
-        actions.setTooltipVisible(false);
-        return false;
-      }
-      actions.setHoveredCard({ card, x: rect.right + 16, y: Math.max(10, rect.top) });
-      return true;
-    };
-
-    if (!updatePos()) return;
-    actions.setTooltipVisible(false);
-    if (tooltipTimerRef.current) clearTimeout(tooltipTimerRef.current);
-    tooltipTimerRef.current = setTimeout(() => {
-      if (hoveredCardRef.current?.card?.id !== card.id) return;
-      if (!updatePos()) return; // 위치 재측정 후 표시
-      requestAnimationFrame(() => {
-        if (hoveredCardRef.current?.card?.id !== card.id) return;
-        actions.setTooltipVisible(true);
-      });
-    }, 300);
-  }, []);
-
-  const hideCardTraitTooltip = useCallback(() => {
-    if (tooltipTimerRef.current) {
-      clearTimeout(tooltipTimerRef.current);
-      tooltipTimerRef.current = null;
-    }
-    actions.setHoveredCard(null);
-    actions.setTooltipVisible(false);
-  }, []);
+  // 카드 툴팁 (커스텀 훅으로 분리)
+  const { showCardTraitTooltip, hideCardTraitTooltip } = useCardTooltip({
+    hoveredCard,
+    battlePhase: battle.phase,
+    actions
+  });
 
   const handleExitToMap = () => {
     const outcome = postCombatOptions?.type || (enemy && enemy.hp <= 0 ? 'victory' : (player && player.hp <= 0 ? 'defeat' : null));
@@ -3989,27 +3917,13 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     return steps || [];
   }, [currentCombo, resolvedPlayerCards, battle.selected.length, battle.phase, battle.qIndex, battle.queue.length, explainComboMultiplier, orderedRelicList]);
 
-  // 에테르 획득량 미리보기 계산
-  const previewEtherGain = useMemo(() => {
-    if (playerTimeline.length === 0) return 0;
-
-    // 희귀한 조약돌 효과 적용된 카드당 에테르
-    const passiveRelicEffects = calculatePassiveEffects(orderedRelicList);
-    const totalEtherPts = calcCardsEther(playerTimeline, passiveRelicEffects.etherMultiplier);
-
-    // 조합 배율 계산 (selected 기준으로 조합 감지) - 미리보기는 순수 콤보만
-    const pCombo = detectPokerCombo(selected);
-    const basePlayerComboMult = pCombo ? (COMBO_MULTIPLIERS[pCombo.name] || 1) : 1;
-    const playerComboMult = basePlayerComboMult;
-    let playerBeforeDeflation = Math.round(totalEtherPts * playerComboMult);
-
-    // 디플레이션 적용
-    const playerDeflation = pCombo?.name
-      ? applyEtherDeflation(playerBeforeDeflation, pCombo.name, player.comboUsageCount || {})
-      : { gain: playerBeforeDeflation, multiplier: 1, usageCount: 0 };
-
-    return playerDeflation.gain;
-  }, [playerTimeline, selected, orderedRelicList, player.comboUsageCount]);
+  // 에테르 획득량 미리보기 (커스텀 훅으로 분리)
+  const previewEtherGain = useEtherPreview({
+    playerTimeline,
+    selected,
+    orderedRelicList,
+    playerComboUsageCount: player.comboUsageCount
+  });
 
   // 적 조합 감지 (표시용)
   const enemyCombo = useMemo(() => detectPokerCombo(enemyPlan.actions || []), [enemyPlan.actions]);

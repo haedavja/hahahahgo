@@ -1,0 +1,75 @@
+import { useRef, useCallback, useEffect } from 'react';
+
+/**
+ * 카드 툴팁 관리 훅
+ * 카드 호버 시 특성 툴팁 표시/숨김 제어
+ */
+export function useCardTooltip({ hoveredCard, battlePhase, actions }) {
+  const tooltipTimerRef = useRef(null);
+  const hoveredCardRef = useRef(null);
+
+  // hoveredCard 상태를 ref로 유지 (타이머 콜백에서 참조)
+  useEffect(() => {
+    hoveredCardRef.current = hoveredCard;
+  }, [hoveredCard]);
+
+  // 페이즈 변경 시 툴팁 정리 (카드가 사라질 때 툴팁이 남는 문제 방지)
+  useEffect(() => {
+    if (tooltipTimerRef.current) {
+      clearTimeout(tooltipTimerRef.current);
+      tooltipTimerRef.current = null;
+    }
+    actions.setHoveredCard(null);
+    actions.setTooltipVisible(false);
+  }, [battlePhase, actions]);
+
+  const showCardTraitTooltip = useCallback((card, cardElement) => {
+    const hasTraits = card?.traits && card.traits.length > 0;
+    const hasAppliedTokens = card?.appliedTokens && card.appliedTokens.length > 0;
+    if ((!hasTraits && !hasAppliedTokens) || !cardElement) return;
+
+    const updatePos = () => {
+      // 요소가 DOM에 있고 보이는지 확인
+      if (!cardElement || !document.body.contains(cardElement)) {
+        actions.setHoveredCard(null);
+        actions.setTooltipVisible(false);
+        return false;
+      }
+      const rect = cardElement.getBoundingClientRect();
+      // 유효한 위치인지 확인 (요소가 보이지 않으면 0, 0)
+      if (rect.width === 0 && rect.height === 0) {
+        actions.setHoveredCard(null);
+        actions.setTooltipVisible(false);
+        return false;
+      }
+      actions.setHoveredCard({ card, x: rect.right + 16, y: Math.max(10, rect.top) });
+      return true;
+    };
+
+    if (!updatePos()) return;
+    actions.setTooltipVisible(false);
+    if (tooltipTimerRef.current) clearTimeout(tooltipTimerRef.current);
+    tooltipTimerRef.current = setTimeout(() => {
+      if (hoveredCardRef.current?.card?.id !== card.id) return;
+      if (!updatePos()) return; // 위치 재측정 후 표시
+      requestAnimationFrame(() => {
+        if (hoveredCardRef.current?.card?.id !== card.id) return;
+        actions.setTooltipVisible(true);
+      });
+    }, 300);
+  }, [actions]);
+
+  const hideCardTraitTooltip = useCallback(() => {
+    if (tooltipTimerRef.current) {
+      clearTimeout(tooltipTimerRef.current);
+      tooltipTimerRef.current = null;
+    }
+    actions.setHoveredCard(null);
+    actions.setTooltipVisible(false);
+  }, [actions]);
+
+  return {
+    showCardTraitTooltip,
+    hideCardTraitTooltip
+  };
+}
