@@ -1459,13 +1459,12 @@ export const useGameStore = create((set, get) => ({
   addRelic: (relicId) =>
     set((state) => {
       if (state.relics.includes(relicId)) return state;
-      const oldRelics = state.relics;
       const newRelics = [...state.relics, relicId];
-      const oldPassiveEffects = calculatePassiveEffects(oldRelics);
       const newPassiveEffects = calculatePassiveEffects(newRelics);
 
-      // maxHp 증가량 계산
-      const maxHpIncrease = newPassiveEffects.maxHp - oldPassiveEffects.maxHp;
+      // maxHp 증가량 계산 (state.maxHp에서 기존 보너스 역산으로 중복 호출 제거)
+      const oldMaxHpBonus = state.maxHp - 100;
+      const maxHpIncrease = newPassiveEffects.maxHp - oldMaxHpBonus;
       const newMaxHp = 100 + newPassiveEffects.maxHp;
       // maxHp가 증가한 만큼 현재 체력도 회복
       const newPlayerHp = state.playerHp + maxHpIncrease;

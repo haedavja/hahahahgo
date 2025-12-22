@@ -4096,7 +4096,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       : { gain: playerBeforeDeflation, multiplier: 1, usageCount: 0 };
 
     return playerDeflation.gain;
-  }, [playerTimeline, selected, relics, player.comboUsageCount]);
+  }, [playerTimeline, selected, orderedRelicList, player.comboUsageCount]);
 
   // 적 조합 감지 (표시용)
   const enemyCombo = useMemo(() => detectPokerCombo(enemyPlan.actions || []), [enemyPlan.actions]);
@@ -4109,22 +4109,14 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     return match ? match[1].trim() : null;
   }, [battle.log]);
 
-  // 예상 피해량 계산 및 사운드
-  useEffect(() => {
+  // 예상 피해량 계산 (useMemo로 최적화 - 필요한 값만 의존성으로)
+  const previewDamageResult = useMemo(() => {
     if (!(battle.phase === 'select' || battle.phase === 'respond') || !enemy) {
-      actions.setPreviewDamage({ value: 0, lethal: false, overkill: false });
-      actions.setPerUnitPreviewDamage({});
-      lethalSoundRef.current = false;
-      overkillSoundRef.current = false;
-      return;
+      return { value: 0, lethal: false, overkill: false, perUnitPreview: {} };
     }
     const order = (fixedOrder && fixedOrder.length > 0) ? fixedOrder : playerTimeline;
     if (!order || order.length === 0) {
-      actions.setPreviewDamage({ value: 0, lethal: false, overkill: false });
-      actions.setPerUnitPreviewDamage({});
-      lethalSoundRef.current = false;
-      overkillSoundRef.current = false;
-      return;
+      return { value: 0, lethal: false, overkill: false, perUnitPreview: {} };
     }
     const sim = simulatePreview({
       player,
@@ -4140,9 +4132,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     const targetMaxHp = targetUnit ? targetUnit.maxHp : enemy.maxHp;
     const lethal = value > targetHp;
     const overkill = value > targetMaxHp;
-    actions.setPreviewDamage({ value, lethal, overkill });
 
     // 유닛별 피해량 계산 (다중 유닛 시스템용)
+    let perUnitPreview = {};
     if (hasMultipleUnits && enemyUnits.length > 0) {
       const boost = willOverdrive ? 2 : 1;
       const strengthBonus = player.strength || 0;
@@ -4164,7 +4156,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       }
 
       // 각 유닛별 치명/과잉 판정
-      const perUnitPreview = {};
       for (const [unitIdStr, damage] of Object.entries(perUnitDamage)) {
         const unitId = parseInt(unitIdStr, 10);
         const unit = enemyUnits.find(u => u.unitId === unitId);
@@ -4179,10 +4170,26 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
           };
         }
       }
-      actions.setPerUnitPreviewDamage(perUnitPreview);
-    } else {
-      actions.setPerUnitPreviewDamage({});
     }
+
+    return { value, lethal, overkill, perUnitPreview };
+  }, [
+    battle.phase,
+    player.strength, player.hp, player.block, player.tokens,
+    enemy?.hp, enemy?.maxHp, enemy?.block,
+    fixedOrder, playerTimeline,
+    willOverdrive,
+    enemyPlan.mode, enemyPlan.actions,
+    targetUnit?.hp, targetUnit?.maxHp,
+    hasMultipleUnits, enemyUnits,
+    selectedTargetUnit
+  ]);
+
+  // 피해 미리보기 상태 업데이트 및 사운드 효과 (계산 결과 기반)
+  useEffect(() => {
+    const { value, lethal, overkill, perUnitPreview } = previewDamageResult;
+    actions.setPreviewDamage({ value, lethal, overkill });
+    actions.setPerUnitPreviewDamage(perUnitPreview);
 
     if (overkill && !overkillSoundRef.current) {
       playSound(1600, 260);
@@ -4195,7 +4202,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       lethalSoundRef.current = false;
       overkillSoundRef.current = false;
     }
-  }, [battle.phase, player, enemy, fixedOrder, playerTimeline, willOverdrive, enemyPlan.mode, enemyPlan.actions, targetUnit, hasMultipleUnits, enemyUnits, selectedTargetUnit]);
+  }, [previewDamageResult]);
 
   return (
     <div className="legacy-battle-root w-full min-h-screen pb-64">
