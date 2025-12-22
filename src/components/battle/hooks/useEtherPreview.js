@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { detectPokerCombo } from '../utils/comboDetection';
 import { COMBO_MULTIPLIERS, applyEtherDeflation, calcCardsEther } from '../utils/etherCalculations';
-import { calculatePassiveEffects } from '../../../lib/relics';
+import { calculatePassiveEffects } from '../../../lib/relicEffects';
 
 /**
  * 에테르 획득량 미리보기 훅

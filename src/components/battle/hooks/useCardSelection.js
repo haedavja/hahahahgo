@@ -2,7 +2,7 @@ import { useCallback } from 'react';
 import { applyAgility } from '../../../lib/agilityUtils';
 import { detectPokerCombo, applyPokerBonus } from '../utils/comboDetection';
 import { createFixedOrder } from '../utils/cardOrdering';
-import { getAllTokens } from '../utils/battleUtils';
+import { getAllTokens } from '../../../lib/tokenUtils';
 
 /**
  * 카드 선택 훅

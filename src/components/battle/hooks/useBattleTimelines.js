@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { detectPokerCombo } from '../utils/comboDetection';
-import { applyTraitModifiers } from '../utils/cardSpecialEffects';
+import { applyTraitModifiers } from '../utils/battleUtils';
 import { applyAgility } from '../../../lib/agilityUtils';
 
 /**

@@ -18,6 +18,7 @@ import { useCardSelection } from "./hooks/useCardSelection";
 import { usePhaseTransition } from "./hooks/usePhaseTransition";
 import { useResolveExecution } from "./hooks/useResolveExecution";
 import { useBreachSelection } from "./hooks/useBreachSelection";
+import { useTurnStartEffects } from "./hooks/useTurnStartEffects";
 import {
   MAX_SPEED,
   DEFAULT_PLAYER_MAX_SPEED,
@@ -44,7 +45,7 @@ import { detectPokerCombo, applyPokerBonus } from "./utils/comboDetection";
 import { COMBO_MULTIPLIERS, BASE_ETHER_PER_CARD, CARD_ETHER_BY_RARITY, applyEtherDeflation, getCardEtherGain, calcCardsEther, calculateComboEtherGain } from "./utils/etherCalculations";
 import { sortCombinedOrderStablePF, addEther } from "./utils/combatUtils";
 import { createFixedOrder } from "./utils/cardOrdering";
-import { decideEnemyMode, generateEnemyActions, shouldEnemyOverdrive, assignSourceUnitToActions } from "./utils/enemyAI";
+import { generateEnemyActions, shouldEnemyOverdrive, assignSourceUnitToActions } from "./utils/enemyAI";
 import { simulatePreview } from "./utils/battleSimulation";
 import { applyAction, prepareMultiHitAttack, calculateSingleHit, finalizeMultiHitAttack, rollCritical } from "./logic/combatActions";
 import { drawCharacterBuildHand, initializeDeck, drawFromDeck, shuffleArray } from "./utils/handGeneration";
@@ -70,19 +71,12 @@ import { processQueueCollisions } from "./utils/cardSpecialEffects";
 import { processReflections, initReflectionState, resetTurnReflectionEffects, decreaseEnemyFreeze } from "../../lib/reflectionEffects";
 import { clearTurnTokens, addToken, removeToken, getAllTokens, expireTurnTokensByTimeline, getTokenStacks, setTokenStacks } from "../../lib/tokenUtils";
 import { TOKENS } from "../../data/tokens";
-import { convertTraitsToIds } from "../../data/reflections";
 import { processEtherTransfer } from "./utils/etherTransferProcessing";
 import { processVictoryDefeatTransition } from "./utils/victoryDefeatTransition";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
 import {
   calculatePassiveEffects,
-  applyCombatStartEffects,
-  applyCombatEndEffects,
-  applyTurnStartEffects,
-  applyTurnEndEffects,
-  applyCardPlayedEffects,
-  applyDamageTakenEffects,
-  calculateEtherGain as calculateRelicEtherGain
+  applyCombatStartEffects
 } from "../../lib/relicEffects";
 import { PlayerHpBar } from "./ui/PlayerHpBar";
 import { PlayerEtherBox } from "./ui/PlayerEtherBox";
@@ -895,253 +889,27 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     }
   }, [battle.phase]);
 
-  useEffect(() => {
-    if (!enemy || battle.phase !== 'select') {
-      // phase가 select가 아니면 플래그 리셋
-      if (battle.phase !== 'select') {
-        turnStartProcessedRef.current = false;
-      }
-      return;
-    }
-
-    // 턴 시작 효과가 이미 처리되었으면 중복 실행 방지
-    if (turnStartProcessedRef.current) {
-      return;
-    }
-    turnStartProcessedRef.current = true;
-
-    actions.setFixedOrder(null);
-    actions.setActionEvents({});
-    actions.setCanRedraw(true);
-    actions.setWillOverdrive(false);
-
-    // 상징 턴 시작 효과 적용 (피피한 갑옷 등)
-    const turnStartRelicEffects = applyTurnStartEffects(orderedRelicList, nextTurnEffects);
-
-    // 턴 시작 상징 발동 애니메이션
-    orderedRelicList.forEach(relicId => {
-      const relic = RELICS[relicId];
-      if (relic?.effects?.type === 'ON_TURN_START') {
-        actions.setRelicActivated(relicId);
-        playSound(800, 200);
-        setTimeout(() => actions.setRelicActivated(null), 500);
-      }
-    });
-
-    // === 성찰 효과 처리 (자아가 있을 때만) ===
-    let reflectionResult = { updatedPlayer: player, updatedBattleState: battle.reflectionState, effects: [], logs: [] };
-    const hasEgo = playerEgos && playerEgos.length > 0;
-    if (hasEgo) {
-      const traitIds = convertTraitsToIds(playerTraits);
-      const playerForReflection = {
-        ...player,
-        egos: playerEgos,  // 한국어 자아 이름 배열
-        traits: traitIds,
-        tokens: player.tokens || { usage: [], turn: [], permanent: [] }
-      };
-      reflectionResult = processReflections(playerForReflection, battle.reflectionState, turnNumber);
-
-      // 성찰 발동 시 효과음과 로그
-      if (reflectionResult.effects.length > 0) {
-        // 성찰 발동 효과음 (맑은 종소리 느낌)
-        playSound(1200, 150);
-        setTimeout(() => playSound(1500, 100), 100);
-      }
-      reflectionResult.logs.forEach(log => addLog(log));
-    }
-    // 성찰 상태 업데이트
-    actions.setReflectionState(reflectionResult.updatedBattleState);
-
-    // 특성 효과로 인한 에너지 보너스/페널티 적용
-    const passiveRelicEffects = calculatePassiveEffects(orderedRelicList);
-    // baseMaxEnergy는 초기 payload에서 계산된 값 (활력 각성 포함)
-    // safeInitialPlayer.maxEnergy = 6 + playerEnergyBonus + passiveEffects.maxEnergy
-    const baseEnergy = baseMaxEnergy;
-    const reflectionEnergyBonus = reflectionResult.updatedBattleState.bonusEnergy || 0;
-    const energyBonus = (nextTurnEffects.bonusEnergy || 0) + turnStartRelicEffects.energy + reflectionEnergyBonus;
-    const energyPenalty = nextTurnEffects.energyPenalty || 0;
-    const finalEnergy = Math.max(0, baseEnergy + energyBonus - energyPenalty);
-
-    // 방어력과 체력 회복 적용 (성찰 회복 효과 포함)
-    const reflectionHealedHp = reflectionResult.updatedPlayer.hp || player.hp;
-    const newHp = Math.min(player.maxHp, reflectionHealedHp + turnStartRelicEffects.heal);
-    const newBlock = (player.block || 0) + turnStartRelicEffects.block;
-    const newDef = turnStartRelicEffects.block > 0; // 방어력이 있으면 def 플래그 활성화
-    // 성찰 효과로 얻은 토큰 적용
-    const newTokens = reflectionResult.updatedPlayer.tokens || player.tokens || { usage: [], turn: [], permanent: [] };
-    // 정신집중 토큰 효과 확인
-    const allPlayerTokens = getAllTokens({ tokens: newTokens });
-    const focusToken = allPlayerTokens.find(t => t.effect?.type === 'FOCUS');
-    const focusMaxSpeedBonus = focusToken ? 8 * (focusToken.stacks || 1) : 0;
-    const focusExtraCardPlay = focusToken ? 2 * (focusToken.stacks || 1) : 0;
-    // 타임라인 보너스 적용 (성찰 실행 효과 + 정신집중 토큰 + nextTurnEffects)
-    const reflectionTimelineBonus = reflectionResult.updatedBattleState.timelineBonus || 0;
-    const maxSpeedBonusFromEffects = (nextTurnEffects.maxSpeedBonus || 0) + focusMaxSpeedBonus;
-    const newMaxSpeed = (player.maxSpeed || DEFAULT_PLAYER_MAX_SPEED) + reflectionTimelineBonus + maxSpeedBonusFromEffects;
-    // 에테르 배율 적용 (성찰 완성 효과)
-    const reflectionEtherMultiplier = reflectionResult.updatedBattleState.etherMultiplier || 1;
-    const currentEtherMultiplier = player.etherMultiplier || 1;
-    const newEtherMultiplier = currentEtherMultiplier * reflectionEtherMultiplier;
-    actions.setPlayer({
-      ...player,
-      hp: newHp,
-      block: newBlock,
-      def: newDef,
-      energy: finalEnergy,
-      maxEnergy: baseMaxEnergy,
-      maxSpeed: newMaxSpeed, // 타임라인 보너스 적용
-      etherMultiplier: newEtherMultiplier, // 에테르 배율 적용
-      etherOverdriveActive: false,
-      etherOverflow: 0,
-      strength: player.strength || 0, // 힘 유지
-      tokens: newTokens // 성찰 토큰 적용
-    });
-
-    // 로그 추가
-    if (turnStartRelicEffects.block > 0) {
-      addLog(`🛡️ 상징 효과: 방어력 +${turnStartRelicEffects.block}`);
-    }
-    if (turnStartRelicEffects.heal > 0) {
-      addLog(`💚 상징 효과: 체력 +${turnStartRelicEffects.heal}`);
-    }
-    if (turnStartRelicEffects.energy > 0) {
-      addLog(`⚡ 상징 효과: 행동력 +${turnStartRelicEffects.energy}`);
-    }
-    if (energyBonus > 0) {
-      addLog(`⚡ 다음턴 보너스 행동력: +${energyBonus}`);
-    }
-    if (focusToken) {
-      addLog(`🧘 정신집중: 최대속도 +${focusMaxSpeedBonus}, 카드 +${focusExtraCardPlay}장`);
-    }
-
-    // 성찰 지배 효과: 적 타임라인 동결
-    const reflectionFreezeTurns = reflectionResult.updatedBattleState.enemyFreezeTurns || 0;
-    if (reflectionFreezeTurns > 0) {
-      const currentFrozenOrder = battle.frozenOrder || 0;
-      const newFrozenOrder = Math.max(currentFrozenOrder, reflectionFreezeTurns);
-      actions.setFrozenOrder(newFrozenOrder);
-      if (battleRef.current) {
-        battleRef.current.frozenOrder = newFrozenOrder;
-      }
-    }
-
-    // === 적 패시브 효과 처리 ===
-    let updatedEnemy = { ...enemy };
-    const enemyPassives = enemy.passives || {};
-
-    // 첫 턴: 장막(veil) 부여 (통찰 차단) - 유닛별로 처리
-    if (turnNumber === 1) {
-      const units = updatedEnemy.units || [];
-      let updatedUnits = [...units];
-      let anyVeil = false;
-
-      console.log('[DEBUG veil] turnNumber:', turnNumber, 'units:', units.length, units.map(u => ({ name: u.name, passives: u.passives, tokens: u.tokens })));
-
-      for (let i = 0; i < updatedUnits.length; i++) {
-        const unit = updatedUnits[i];
-        const unitPassives = unit.passives || {};
-        console.log('[DEBUG veil] unit:', unit.name, 'veilAtStart:', unitPassives.veilAtStart);
-        if (unitPassives.veilAtStart) {
-          const veilResult = addToken(unit, 'veil', 1);
-          console.log('[DEBUG veil] veilResult:', veilResult);
-          updatedUnits[i] = { ...unit, tokens: veilResult.tokens };
-          addLog(`🌫️ ${unit.name}: 장막 - 이 적의 행동을 볼 수 없습니다!`);
-          anyVeil = true;
-        }
-      }
-
-      if (anyVeil) {
-        updatedEnemy = { ...updatedEnemy, units: updatedUnits };
-        console.log('[DEBUG veil] updatedEnemy.units after veil:', updatedEnemy.units.map(u => ({ name: u.name, tokens: u.tokens })));
-      }
-
-      // 레거시 호환: 전체 enemy에 veilAtStart가 있는 경우 (유닛이 없는 경우)
-      if (enemyPassives.veilAtStart && units.length === 0) {
-        const veilResult = addToken(updatedEnemy, 'veil', 1);
-        updatedEnemy = { ...updatedEnemy, tokens: veilResult.tokens };
-        addLog(`🌫️ ${enemy.name}: 장막 - 적의 행동을 볼 수 없습니다!`);
-      }
-    }
-
-    // 매턴 체력 회복
-    if (enemyPassives.healPerTurn && enemyPassives.healPerTurn > 0) {
-      const healAmount = enemyPassives.healPerTurn;
-      const newEnemyHp = Math.min(enemy.maxHp || enemy.hp, updatedEnemy.hp + healAmount);
-      const actualHeal = newEnemyHp - updatedEnemy.hp;
-      if (actualHeal > 0) {
-        updatedEnemy.hp = newEnemyHp;
-        addLog(`💚 ${enemy.name}: 체력 +${actualHeal} 회복`);
-      }
-    }
-
-    // 매턴 힘 증가
-    if (enemyPassives.strengthPerTurn && enemyPassives.strengthPerTurn > 0) {
-      const strengthGain = enemyPassives.strengthPerTurn;
-      updatedEnemy.strength = (updatedEnemy.strength || 0) + strengthGain;
-      addLog(`💪 ${enemy.name}: 힘 +${strengthGain} 증가 (현재: ${updatedEnemy.strength})`);
-    }
-
-    // 적 상태 업데이트
-    if (JSON.stringify(updatedEnemy) !== JSON.stringify(enemy)) {
-      actions.setEnemy(updatedEnemy);
-      if (battleRef.current) {
-        battleRef.current = { ...battleRef.current, enemy: updatedEnemy };
-      }
-    }
-
-    // 매 턴 시작 시 새로운 손패 생성 (덱/무덤 시스템)
-    // 턴 1에서는 첫 번째 useEffect가 이미 손패를 설정하므로 건너뜀
-    if (turnNumber === 1) {
-      // 첫 턴은 초기화 useEffect에서 처리됨 - 스킵
-      actions.setSelected([]);
-    } else {
-      const currentBuild = useGameStore.getState().characterBuild;
-      const hasCharacterBuild = currentBuild && (currentBuild.mainSpecials?.length > 0 || currentBuild.subSpecials?.length > 0 || currentBuild.ownedCards?.length > 0);
-
-      if (hasCharacterBuild) {
-        // 현재 손패를 무덤으로 이동
-        const currentHand = battle.hand || [];
-        let currentDeck = battle.deck || [];
-        let currentDiscard = [...(battle.discardPile || []), ...currentHand];
-
-        // 덱에서 카드 드로우
-        const drawResult = drawFromDeck(currentDeck, currentDiscard, DEFAULT_DRAW_COUNT, escapeBanRef.current);
-
-        actions.setDeck(drawResult.newDeck);
-        actions.setDiscardPile(drawResult.newDiscardPile);
-        actions.setHand(drawResult.drawnCards);
-
-        if (drawResult.reshuffled) {
-          addLog('🔄 덱이 소진되어 무덤을 섞어 새 덱을 만들었습니다.');
-        }
-      } else {
-        const rawHand = CARDS.slice(0, 10).map((card, idx) => ({ ...card, __handUid: `${card.id}_${idx}_${Math.random().toString(36).slice(2, 8)}` }));
-        actions.setHand(rawHand);
-      }
-      actions.setSelected([]);
-    }
-
-    // 적 성향/행동을 턴 시작에 즉시 결정해 통찰 UI가 바로 표시되도록 함
-    const mode = battle.enemyPlan.mode || decideEnemyMode();
-    if (!battle.enemyPlan.mode) {
-      addLog(`🤖 적 성향 힌트: ${mode.name}`);
-    }
-    // manuallyModified가 true면 기존 actions 유지 (카드 파괴 등으로 수동 변경된 경우)
-    // battleRef에서도 최신 상태 확인 (이중 체크)
-    const refEnemyPlan = battleRef.current?.enemyPlan;
-    const latestManuallyModified = battle.enemyPlan.manuallyModified || refEnemyPlan?.manuallyModified;
-
-    if (latestManuallyModified) {
-      const currentActions = refEnemyPlan?.actions || battle.enemyPlan.actions;
-      actions.setEnemyPlan({ mode, actions: currentActions, manuallyModified: true });
-    } else {
-      const slots = etherSlots(enemy?.etherPts || 0);
-      const cardsPerTurn = enemy?.cardsPerTurn || enemyCount || 2;
-      const rawActions = generateEnemyActions(enemy, mode, slots, cardsPerTurn, Math.min(1, cardsPerTurn));
-      const planActions = assignSourceUnitToActions(rawActions, enemy?.units || []);
-      actions.setEnemyPlan({ mode, actions: planActions });
-    }
-  }, [battle.phase, enemy, enemyPlan.mode, enemyPlan.manuallyModified, nextTurnEffects]);
+  // 턴 시작 효과 처리 (커스텀 훅으로 분리)
+  useTurnStartEffects({
+    battle,
+    player,
+    enemy,
+    enemyPlan,
+    nextTurnEffects,
+    turnNumber,
+    baseMaxEnergy,
+    orderedRelicList,
+    playerEgos,
+    playerTraits,
+    enemyCount,
+    battleRef,
+    escapeBanRef,
+    turnStartProcessedRef,
+    etherSlots,
+    playSound,
+    addLog,
+    actions
+  });
 
   useEffect(() => {
     if (battle.phase === 'resolve' && (!queue || battle.queue.length === 0) && fixedOrder && fixedOrder.length > 0) {

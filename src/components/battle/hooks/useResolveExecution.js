@@ -2,7 +2,7 @@ import { useCallback } from 'react';
 import { detectPokerCombo } from '../utils/comboDetection';
 import { clearTurnTokens } from '../../../lib/tokenUtils';
 import { processCardTraitEffects } from '../utils/cardTraitEffects';
-import { applyTurnEndEffects, calculatePassiveEffects } from '../utils/relicEffects';
+import { applyTurnEndEffects, calculatePassiveEffects } from '../../../lib/relicEffects';
 import { playTurnEndRelicAnimations, applyTurnEndRelicEffectsToNextTurn } from '../utils/turnEndRelicEffectsProcessing';
 import { calculateTurnEndEther, formatPlayerEtherLog, formatEnemyEtherLog } from '../utils/turnEndEtherCalculation';
 import { startEnemyEtherAnimation } from '../utils/enemyEtherAnimation';
@@ -10,7 +10,8 @@ import { processEtherTransfer } from '../utils/etherTransferProcessing';
 import { updateComboUsageCount, createTurnEndPlayerState, createTurnEndEnemyState } from '../utils/turnEndStateUpdate';
 import { processVictoryDefeatTransition } from '../utils/victoryDefeatTransition';
 import { startEtherCalculationAnimationSequence } from '../utils/etherCalculationAnimation';
-import { applyAction, getCardEtherGain } from '../utils/battleExecution';
+import { applyAction } from '../logic/combatActions';
+import { getCardEtherGain } from '../utils/etherCalculations';
 import { CARDS, BASE_PLAYER_ENERGY } from '../battleData';
 
 /**
