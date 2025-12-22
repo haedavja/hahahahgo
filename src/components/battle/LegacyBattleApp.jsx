@@ -1170,7 +1170,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     [battle.selected, effectiveAgility]
   );
   // 콤보 시스템 (커스텀 훅으로 분리)
-  const { currentCombo, finalComboMultiplier, comboPreviewInfo } = useComboSystem({
+  const { currentCombo, finalComboMultiplier, comboPreviewInfo, comboStepsLog } = useComboSystem({
     battleSelected: battle.selected,
     battlePhase: battle.phase,
     playerComboUsageCount: player.comboUsageCount,
@@ -1178,6 +1178,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     battleQIndex: battle.qIndex,
     battleQueueLength: battle.queue.length,
     computeComboMultiplier,
+    explainComboMultiplier,
+    orderedRelicList,
     selected,
     actions
   });
@@ -3801,17 +3803,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     : rawNetDelta;
   const enemyCapacity = enemy?.etherCapacity ?? Math.max(enemyEtherValue, 1);
   const enemySoulScale = Math.max(0.4, Math.min(1.3, enemyCapacity > 0 ? enemyEtherValue / enemyCapacity : 1));
-
-  // 배율 경로 로그 (실시간 계산과 동일한 입력 사용)
-  const comboStepsLog = useMemo(() => {
-    if (!currentCombo) return [];
-    const baseMultiplier = currentCombo ? (COMBO_MULTIPLIERS[currentCombo.name] || 1) : 1;
-    const isResolve = battle.phase === 'resolve';
-    const cardsCount = isResolve ? resolvedPlayerCards : battle.selected.length;
-    const allowRefBook = isResolve ? (battle.qIndex >= battle.queue.length) : false;
-    const { steps } = explainComboMultiplier(baseMultiplier, cardsCount, true, allowRefBook, orderedRelicList);
-    return steps || [];
-  }, [currentCombo, resolvedPlayerCards, battle.selected.length, battle.phase, battle.qIndex, battle.queue.length, explainComboMultiplier, orderedRelicList]);
 
   // 에테르 획득량 미리보기 (커스텀 훅으로 분리)
   const previewEtherGain = useEtherPreview({

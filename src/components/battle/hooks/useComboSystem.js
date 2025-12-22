@@ -14,6 +14,8 @@ export function useComboSystem({
   battleQIndex,
   battleQueueLength,
   computeComboMultiplier,
+  explainComboMultiplier,
+  orderedRelicList,
   selected,
   actions
 }) {
@@ -61,9 +63,21 @@ export function useComboSystem({
     });
   }, [currentCombo, selected?.length, playerComboUsageCount]);
 
+  // 배율 경로 로그 (실시간 계산과 동일한 입력 사용)
+  const comboStepsLog = useMemo(() => {
+    if (!currentCombo) return [];
+    const baseMultiplier = currentCombo ? (COMBO_MULTIPLIERS[currentCombo.name] || 1) : 1;
+    const isResolve = battlePhase === 'resolve';
+    const cardsCount = isResolve ? resolvedPlayerCards : battleSelected.length;
+    const allowRefBook = isResolve ? (battleQIndex >= battleQueueLength) : false;
+    const { steps } = explainComboMultiplier(baseMultiplier, cardsCount, true, allowRefBook, orderedRelicList);
+    return steps || [];
+  }, [currentCombo, resolvedPlayerCards, battleSelected.length, battlePhase, battleQIndex, battleQueueLength, explainComboMultiplier, orderedRelicList]);
+
   return {
     currentCombo,
     finalComboMultiplier,
-    comboPreviewInfo
+    comboPreviewInfo,
+    comboStepsLog
   };
 }
