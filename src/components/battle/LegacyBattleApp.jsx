@@ -10,6 +10,8 @@ import { useRelicDrag } from "./hooks/useRelicDrag";
 import { useCardTooltip } from "./hooks/useCardTooltip";
 import { useEtherPreview } from "./hooks/useEtherPreview";
 import { useComboSystem } from "./hooks/useComboSystem";
+import { useRewardSelection } from "./hooks/useRewardSelection";
+import { useMultiTargetSelection } from "./hooks/useMultiTargetSelection";
 import {
   MAX_SPEED,
   DEFAULT_PLAYER_MAX_SPEED,
@@ -469,12 +471,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const stepOnceRef = useRef(null); // stepOnce 함수 참조 (브리치 선택 후 진행 재개용)
   const timelineAnimationRef = useRef(null); // 타임라인 진행 애니메이션 ref
   const isExecutingCardRef = useRef(false); // executeCardAction 중복 실행 방지
-
-  // 카드 보상 선택 상태 (승리 후)
-  const [cardReward, setCardReward] = useState(null); // { cards: [] }
-
-  // 함성(recallCard) 카드 선택 상태
-  const [recallSelection, setRecallSelection] = useState(null); // { availableCards: [] }
 
   // 개발자 모드: 모든 보유 카드 100% 등장
   const [devForceAllCards, setDevForceAllCards] = useState(false);
@@ -1874,107 +1870,32 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     }, 100);
   }, [addLog, actions]);
 
-  // 카드 보상 선택 처리 (승리 후)
-  const handleRewardSelect = useCallback((selectedCard, idx) => {
-    addLog(`🎁 "${selectedCard.name}" 획득! (대기 카드에 추가됨)`);
+  // 보상 및 함성 선택 (커스텀 훅으로 분리)
+  const {
+    cardReward,
+    recallSelection,
+    setRecallSelection,
+    handleRewardSelect,
+    handleRewardSkip,
+    handleRecallSelect,
+    handleRecallSkip,
+    showCardRewardModal
+  } = useRewardSelection({
+    CARDS,
+    battleRef,
+    battleNextTurnEffects: battle.nextTurnEffects,
+    addLog,
+    actions
+  });
 
-    // 선택한 카드를 대기 카드(ownedCards)에 추가 (Zustand 스토어 업데이트)
-    useGameStore.getState().addOwnedCard(selectedCard.id);
-
-    // 모달 닫기 및 post 페이즈로 전환
-    setCardReward(null);
-    actions.setPostCombatOptions({ type: 'victory' });
-    actions.setPhase('post');
-  }, [addLog, actions]);
-
-  // 카드 보상 건너뛰기
-  const handleRewardSkip = useCallback(() => {
-    addLog('카드 보상을 건너뛰었습니다.');
-    setCardReward(null);
-    actions.setPostCombatOptions({ type: 'victory' });
-    actions.setPhase('post');
-  }, [addLog, actions]);
-
-  // 함성 (recallCard) 카드 선택 처리
-  const handleRecallSelect = useCallback((selectedCard) => {
-    addLog(`📢 함성: "${selectedCard.name}" 선택! 다음 턴에 확정 등장합니다.`);
-
-    // 선택한 카드를 nextTurnEffects.guaranteedCards에 추가
-    const currentEffects = battleRef.current?.nextTurnEffects || battle.nextTurnEffects;
-    const updatedEffects = {
-      ...currentEffects,
-      guaranteedCards: [...(currentEffects.guaranteedCards || []), selectedCard.id]
-    };
-    actions.setNextTurnEffects(updatedEffects);
-    if (battleRef.current) {
-      battleRef.current = { ...battleRef.current, nextTurnEffects: updatedEffects };
-    }
-
-    // 모달 닫기
-    setRecallSelection(null);
-  }, [addLog, actions, battle.nextTurnEffects]);
-
-  // 함성 건너뛰기
-  const handleRecallSkip = useCallback(() => {
-    addLog('📢 함성: 카드 선택을 건너뛰었습니다.');
-    setRecallSelection(null);
-  }, [addLog]);
-
-  // === 다중 타겟 선택 시스템 ===
-  // 타겟 선택 확정: 카드에 선택된 타겟 목록을 저장하고 선택에 추가
-  const handleConfirmDistribution = useCallback(() => {
-    const pendingCard = battle.pendingDistributionCard;
-    if (!pendingCard) return;
-
-    const targetSelection = battle.damageDistribution;
-    // 선택된 타겟 목록 추출
-    const selectedTargets = Object.entries(targetSelection)
-      .filter(([_, isSelected]) => isSelected === true)
-      .map(([unitId]) => parseInt(unitId, 10));
-
-    if (selectedTargets.length === 0) {
-      actions.resetDistribution();
-      return;
-    }
-
-    // 타겟 목록을 카드에 저장
-    const cardWithTargets = {
-      ...pendingCard,
-      __targetUnitIds: selectedTargets,
-    };
-
-    // 선택에 추가
-    actions.addSelected(cardWithTargets);
-    actions.resetDistribution();
-
-    const targetNames = selectedTargets.map(id => {
-      const unit = enemyUnits.find(u => u.unitId === id);
-      return unit?.name || `유닛${id}`;
-    });
-    addLog(`🎯 다중 타겟: ${targetNames.join(', ')}`);
-  }, [battle.pendingDistributionCard, battle.damageDistribution, actions, addLog, enemyUnits]);
-
-  // 타겟 선택 취소
-  const handleCancelDistribution = useCallback(() => {
-    actions.resetDistribution();
-  }, [actions]);
-
-  // 타겟 선택 모드 시작 (공격 카드 선택 시)
-  const startDamageDistribution = useCallback((card) => {
-    actions.setPendingDistributionCard(card);
-    actions.setDamageDistribution({});
-    actions.setDistributionMode(true);
-  }, [actions]);
-
-  // 승리 시 카드 보상 모달 표시
-  const showCardRewardModal = useCallback(() => {
-    // 공격/범용/특수 카드 중 랜덤 3장 선택
-    const cardPool = CARDS.filter(c => (c.type === 'attack' || c.type === 'general' || c.type === 'special'));
-    const shuffled = [...cardPool].sort(() => Math.random() - 0.5);
-    const rewardCards = shuffled.slice(0, 3);
-
-    setCardReward({ cards: rewardCards });
-  }, []);
+  // 다중 타겟 선택 시스템 (커스텀 훅으로 분리)
+  const { handleConfirmDistribution, handleCancelDistribution, startDamageDistribution } = useMultiTargetSelection({
+    battlePendingDistributionCard: battle.pendingDistributionCard,
+    battleDamageDistribution: battle.damageDistribution,
+    enemyUnits,
+    addLog,
+    actions
+  });
 
   const stepOnce = () => {
     // 브리치 선택 대기 중이면 진행 차단
