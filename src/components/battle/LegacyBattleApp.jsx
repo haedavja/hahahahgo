@@ -12,6 +12,8 @@ import { useEtherPreview } from "./hooks/useEtherPreview";
 import { useComboSystem } from "./hooks/useComboSystem";
 import { useRewardSelection } from "./hooks/useRewardSelection";
 import { useMultiTargetSelection } from "./hooks/useMultiTargetSelection";
+import { useHandManagement } from "./hooks/useHandManagement";
+import { useEtherAnimation } from "./hooks/useEtherAnimation";
 import {
   MAX_SPEED,
   DEFAULT_PLAYER_MAX_SPEED,
@@ -1359,85 +1361,19 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     }
   }, []);
 
-  const redrawHand = () => {
-    if (!canRedraw) return addLog('🔒 이미 이번 턴 리드로우 사용됨');
-
-    const currentBuild = useGameStore.getState().characterBuild;
-    const hasCharacterBuild = currentBuild && (currentBuild.mainSpecials?.length > 0 || currentBuild.subSpecials?.length > 0 || currentBuild.ownedCards?.length > 0);
-
-    if (hasCharacterBuild) {
-      // 현재 손패를 무덤으로 이동하고 새로 드로우
-      const currentHand = battle.hand || [];
-      const currentDeck = battle.deck || [];
-      const currentDiscard = [...(battle.discardPile || []), ...currentHand];
-
-      const drawResult = drawFromDeck(currentDeck, currentDiscard, DEFAULT_DRAW_COUNT, escapeBanRef.current);
-      actions.setDeck(drawResult.newDeck);
-      actions.setDiscardPile(drawResult.newDiscardPile);
-      actions.setHand(drawResult.drawnCards);
-
-      if (drawResult.reshuffled) {
-        addLog('🔄 덱이 소진되어 무덤을 섞어 새 덱을 만들었습니다.');
-      }
-    } else {
-      const rawHand = CARDS.slice(0, 10).map((card, idx) => ({ ...card, __handUid: `${card.id}_${idx}_${Math.random().toString(36).slice(2, 8)}` }));
-      actions.setHand(rawHand);
-    }
-
-    actions.setSelected([]);
-    actions.setCanRedraw(false);
-    addLog('🔄 손패 리드로우 사용');
-    playSound(700, 90); // 리드로우 효과음
-  };
-
-  const cycleSortType = () => {
-    const sortCycle = ['speed', 'energy', 'value', 'type'];
-    const currentIndex = sortCycle.indexOf(sortType);
-    const nextIndex = (currentIndex + 1) % sortCycle.length;
-    const nextSort = sortCycle[nextIndex];
-    actions.setSortType(nextSort);
-    try {
-      localStorage.setItem('battleSortType', nextSort);
-    } catch { }
-
-    const sortLabels = {
-      speed: '시간 기준 정렬',
-      energy: '행동력 기준 정렬',
-      value: '밸류 기준 정렬',
-      type: '종류별 정렬'
-    };
-    addLog(`🔀 ${sortLabels[nextSort]}`);
-    playSound(600, 80); // 정렬 효과음
-  };
-
-  const getSortedHand = () => {
-    const sorted = [...hand];
-
-    if (sortType === 'speed') {
-      // 시간(속도) 내림차순 - 큰 것부터
-      sorted.sort((a, b) => b.speedCost - a.speedCost);
-    } else if (sortType === 'energy') {
-      // 행동력 내림차순 - 큰 것부터
-      sorted.sort((a, b) => b.actionCost - a.actionCost);
-    } else if (sortType === 'value') {
-      // 밸류(공격력+방어력) 내림차순 - 큰 것부터
-      sorted.sort((a, b) => {
-        const aValue = ((a.damage || 0) * (a.hits || 1)) + (a.block || 0);
-        const bValue = ((b.damage || 0) * (b.hits || 1)) + (b.block || 0);
-        return bValue - aValue;
-      });
-    } else if (sortType === 'type') {
-      // 공격 -> 범용 -> 특수 순서로 정렬
-      const typeOrder = { 'attack': 0, 'general': 1, 'special': 2 };
-      sorted.sort((a, b) => {
-        const aOrder = typeOrder[a.type] ?? 3;
-        const bOrder = typeOrder[b.type] ?? 3;
-        return aOrder - bOrder;
-      });
-    }
-
-    return sorted;
-  };
+  // 패 관리 (커스텀 훅으로 분리)
+  const { redrawHand, cycleSortType, getSortedHand } = useHandManagement({
+    canRedraw,
+    battleHand: battle.hand,
+    battleDeck: battle.deck,
+    battleDiscardPile: battle.discardPile,
+    sortType,
+    hand,
+    escapeBanRef,
+    addLog,
+    playSound,
+    actions
+  });
 
   const startResolve = () => {
     // battleRef에서 최신 상태 가져오기 (closure는 stale할 수 있음)
@@ -1682,90 +1618,20 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     addLog('⏪ 되감기 사용: 대응 단계 → 선택 단계 (전투당 1회)');
   };
 
-  // 에테르 계산 애니메이션 시작 (몬스터 사망 시 / 정상 종료 시 공통)
-  // skipFinalValueSet: true이면 setEtherFinalValue를 호출하지 않음 (finishTurn에서 이미 설정한 경우)
-  const startEtherCalculationAnimation = (totalEtherPts, actualResolvedCards = null, actualGainedEther = null, skipFinalValueSet = false) => {
-    const pCombo = detectPokerCombo(selected);
-    const basePlayerComboMult = pCombo ? (COMBO_MULTIPLIERS[pCombo.name] || 1) : 1;
-    // 몬스터가 죽었을 때는 actualResolvedCards(실제 실행된 카드 수), 아니면 battle.selected.length(전체 선택된 카드 수)
-    const cardCountForMultiplier = actualResolvedCards !== null ? actualResolvedCards : battle.selected.length;
-    const playerComboMult = finalComboMultiplier || basePlayerComboMult;
-    // 에테르 증폭제 배율 적용
-    const etherAmplifierMult = displayEtherMultiplierRef.current || 1;
-    const totalPlayerMult = playerComboMult * etherAmplifierMult;
-    let playerBeforeDeflation = Math.round(totalEtherPts * totalPlayerMult);
-
-
-    // 디플레이션 적용
-    const playerDeflation = pCombo?.name
-      ? applyEtherDeflation(playerBeforeDeflation, pCombo.name, player.comboUsageCount || {})
-      : { gain: playerBeforeDeflation, multiplier: 1, usageCount: 0 };
-
-    // actualGainedEther가 전달되면 그 값을 사용, 아니면 디플레이션까지만 적용한 값 사용
-    // 범람 계산은 최종값 표시에 포함하지 않음 (로그에만 표시)
-    const playerFinalEther = actualGainedEther !== null ? actualGainedEther : playerDeflation.gain;
-
-    // 디플레이션 정보 설정
-    actions.setCurrentDeflation(pCombo?.name ? {
-      comboName: pCombo.name,
-      usageCount: playerDeflation.usageCount,
-      multiplier: playerDeflation.multiplier
-    } : null);
-
-    // === 적 에테르 계산 (플레이어와 동일한 로직) ===
-    const eCombo = detectPokerCombo(enemyPlan.actions || []);
-    const baseEnemyComboMult = eCombo ? (COMBO_MULTIPLIERS[eCombo.name] || 1) : 1;
-    const enemyCardCount = enemyPlan.actions?.length || 0;
-    let enemyBeforeDeflation = Math.round(enemyTurnEtherAccumulated * baseEnemyComboMult);
-
-    // 적 디플레이션 적용
-    const enemyDeflation = eCombo?.name
-      ? applyEtherDeflation(enemyBeforeDeflation, eCombo.name, enemy.comboUsageCount || {})
-      : { gain: enemyBeforeDeflation, multiplier: 1, usageCount: 0 };
-
-    const enemyFinalEther = enemyDeflation.gain;
-
-    // 적 디플레이션 정보 설정
-    actions.setEnemyCurrentDeflation(eCombo?.name ? {
-      comboName: eCombo.name,
-      usageCount: enemyDeflation.usageCount,
-      multiplier: enemyDeflation.multiplier
-    } : null);
-
-    // 1단계: 합계 강조 (플레이어 + 적 동시)
-    actions.setEtherCalcPhase('sum');
-    actions.setEnemyEtherCalcPhase('sum');
-    setTimeout(() => {
-      // 2단계: 곱셈 강조 + 명쾌한 사운드
-      actions.setEtherCalcPhase('multiply');
-      actions.setEnemyEtherCalcPhase('multiply');
-      // 에테르 증폭 배율이 적용되었으면 상태에서 제거 (배율 갱신 시점)
-      if (etherAmplifierMult > 1) {
-        const currentPlayer = battleRef.current?.player || player;
-        const updatedPlayer = { ...currentPlayer, etherMultiplier: 1 };
-        actions.setPlayer(updatedPlayer);
-        battleRef.current.player = updatedPlayer;
-      }
-      playSound(800, 100);
-      setTimeout(() => {
-        // 3단계: 디플레이션 배지 애니메이션 + 저음 사운드
-        if (playerDeflation.usageCount > 0 || enemyDeflation.usageCount > 0) {
-          if (playerDeflation.usageCount > 0) actions.setEtherCalcPhase('deflation');
-          if (enemyDeflation.usageCount > 0) actions.setEnemyEtherCalcPhase('deflation');
-          playSound(200, 150);
-        }
-        setTimeout(() => {
-          // 4단계: 최종값 표시 + 묵직한 사운드
-          actions.setEtherCalcPhase('result');
-          actions.setEnemyEtherCalcPhase('result');
-          // 버튼 표시를 위해 값 설정 (finishTurn에서 정확한 값으로 다시 설정됨)
-          actions.setEtherFinalValue(playerFinalEther);
-          actions.setEnemyEtherFinalValue(enemyFinalEther);
-          playSound(400, 200);
-        }, (playerDeflation.usageCount > 0 || enemyDeflation.usageCount > 0) ? 400 : 0);
-      }, 600);
-    }, 400);
-  };
+  // 에테르 계산 애니메이션 (커스텀 훅으로 분리)
+  const { startEtherCalculationAnimation } = useEtherAnimation({
+    selected,
+    battleSelected: battle.selected,
+    finalComboMultiplier,
+    displayEtherMultiplierRef,
+    player,
+    enemy,
+    enemyPlan,
+    enemyTurnEtherAccumulated,
+    battleRef,
+    playSound,
+    actions
+  });
 
   // 브리치 카드 선택 처리
   const handleBreachSelect = useCallback((selectedCard, idx) => {
