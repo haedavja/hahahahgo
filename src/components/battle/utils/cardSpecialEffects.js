@@ -3,25 +3,34 @@
  *
  * 카드 special 효과 처리 시스템
  * 각 카드의 special 필드에 정의된 고유 효과를 처리
+ *
+ * 분리된 모듈:
+ * - preAttackSpecials.js: 공격 전 효과
+ * - postAttackSpecials.js: 공격 후 효과
+ * - cardPlaySpecials.js: 카드 사용 시 효과
  */
 
-import { addToken, removeToken, getAllTokens, setTokenStacks, getTokenStacks } from '../../../lib/tokenUtils';
-import { TOKENS, TOKEN_CATEGORIES } from '../../../data/tokens';
+import { addToken, setTokenStacks } from '../../../lib/tokenUtils';
 
-/**
- * 카드의 special 효과 존재 여부 확인 (배열 지원)
- */
-export function hasSpecial(card, specialName) {
-  if (!card?.special) return false;
-  if (Array.isArray(card.special)) {
-    return card.special.includes(specialName);
-  }
-  return card.special === specialName;
-}
+// 분리된 모듈에서 re-export
+export { hasSpecial, processPreAttackSpecials } from './preAttackSpecials';
+export { processPostAttackSpecials } from './postAttackSpecials';
+export { processCardPlaySpecials } from './cardPlaySpecials';
+
+// 치명타 시스템 re-export
+export {
+  calculateCritChance,
+  rollCritical,
+  getCritKnockback,
+  applyCriticalDamage,
+  applyCriticalStacks
+} from './criticalEffects';
+
+// hasSpecial 로컬 참조 (내부 사용용)
+import { hasSpecial } from './preAttackSpecials';
 
 /**
  * 타격별 룰렛 체크 (총기 카드 전용)
- * 각 타격마다 룰렛 토큰 +1 및 탄걸림 확률 판정
  * @param {Object} attacker - 공격자 상태
  * @param {Object} card - 사용 카드
  * @param {string} attackerName - 'player' 또는 'enemy'
@@ -30,12 +39,10 @@ export function hasSpecial(card, specialName) {
  * @returns {Object} { jammed, updatedAttacker, event, log }
  */
 export function processPerHitRoulette(attacker, card, attackerName, hitIndex, totalHits) {
-  // 총기 카드가 아니면 스킵
   if (card.cardCategory !== 'gun' || card.type !== 'attack') {
     return { jammed: false, updatedAttacker: attacker, event: null, log: null };
   }
 
-  // singleRoulette 특성: 첫 타격에만 룰렛 처리
   const hasSingleRoulette = hasSpecial(card, 'singleRoulette');
   if (hasSingleRoulette && hitIndex > 0) {
     return { jammed: false, updatedAttacker: attacker, event: null, log: null };
@@ -46,18 +53,15 @@ export function processPerHitRoulette(attacker, card, attackerName, hitIndex, to
   const allAttackerTokens = [...(attackerTokens.usage || []), ...(attackerTokens.turn || []), ...(attackerTokens.permanent || [])];
   const rouletteToken = allAttackerTokens.find(t => t.id === 'roulette');
   const currentRouletteStacks = rouletteToken?.stacks || 0;
-  const jamChance = currentRouletteStacks * 0.05; // 스택당 5%
+  const jamChance = currentRouletteStacks * 0.05;
 
   const who = attackerName === 'player' ? '플레이어' : '몬스터';
   const hitLabel = totalHits > 1 && !hasSingleRoulette ? ` [${hitIndex + 1}/${totalHits}]` : '';
 
-  // 확률 판정 (룰렛 스택이 있을 때만)
   if (currentRouletteStacks > 0 && Math.random() < jamChance) {
-    // 탄걸림 발생!
     const jamResult = addToken(updatedAttacker, 'gun_jam', 1);
     updatedAttacker = { ...updatedAttacker, tokens: jamResult.tokens };
 
-    // 룰렛 완전 제거
     const removeResult = setTokenStacks(updatedAttacker, 'roulette', 'permanent', 0);
     updatedAttacker = { ...updatedAttacker, tokens: removeResult.tokens };
 
@@ -70,7 +74,6 @@ export function processPerHitRoulette(attacker, card, attackerName, hitIndex, to
     };
   }
 
-  // 탄걸림 안 발생 → 룰렛 스택 +1
   const rouletteResult = addToken(updatedAttacker, 'roulette', 1);
   updatedAttacker = { ...updatedAttacker, tokens: rouletteResult.tokens };
   const newStacks = (currentRouletteStacks || 0) + 1;
@@ -85,475 +88,13 @@ export function processPerHitRoulette(attacker, card, attackerName, hitIndex, to
 }
 
 /**
- * 공격 전 special 효과 처리 (피해 계산 전)
- * @param {Object} params
- * @returns {Object} { modifiedCard, attacker, defender, events, logs, skipNormalDamage }
- */
-export function processPreAttackSpecials({
-  card,
-  attacker,
-  defender,
-  attackerName,
-  battleContext = {}
-}) {
-  let modifiedCard = { ...card };
-  let modifiedAttacker = { ...attacker };
-  let modifiedDefender = { ...defender };
-  const events = [];
-  const logs = [];
-  let skipNormalDamage = false;
-
-  // === ignoreBlock: 방어력 무시 ===
-  if (hasSpecial(card, 'ignoreBlock')) {
-    // 피해 계산 시 방어력을 무시하도록 플래그 설정
-    modifiedCard._ignoreBlock = true;
-  }
-
-  // === clearAllBlock: 양측 방어력 0 ===
-  if (hasSpecial(card, 'clearAllBlock')) {
-    const playerBlockBefore = modifiedAttacker.block || 0;
-    const enemyBlockBefore = modifiedDefender.block || 0;
-
-    modifiedAttacker.block = 0;
-    modifiedDefender.block = 0;
-    modifiedDefender.def = false;
-    modifiedAttacker.def = false;
-
-    if (playerBlockBefore > 0 || enemyBlockBefore > 0) {
-      const who = attackerName === 'player' ? '플레이어' : '몬스터';
-      const msg = `${who} • 💥 ${card.name}: 양측 방어력 제거! (공격자: ${playerBlockBefore}→0, 방어자: ${enemyBlockBefore}→0)`;
-      events.push({ actor: attackerName, card: card.name, type: 'special', msg });
-      logs.push(msg);
-    }
-  }
-
-  // === doubleDamageIfSolo: 유일한 공격 카드일 때 2배 피해 ===
-  if (hasSpecial(card, 'doubleDamageIfSolo')) {
-    const { playerAttackCards = [] } = battleContext;
-    const isOnlyAttack = playerAttackCards.length === 1;
-
-    if (isOnlyAttack) {
-      modifiedCard.damage = (modifiedCard.damage || 0) * 2;
-      const who = attackerName === 'player' ? '플레이어' : '몬스터';
-      const msg = `${who} • ⚡ ${card.name}: 유일한 공격 카드! 피해 2배 (${card.damage}→${modifiedCard.damage})`;
-      events.push({ actor: attackerName, card: card.name, type: 'special', msg });
-      logs.push(msg);
-    }
-  }
-
-  // === agilityBonus: 민첩 보너스 ===
-  if (hasSpecial(card, 'agilityBonus')) {
-    const agility = attacker.agility || 0;
-    if (agility > 0) {
-      const bonusDamage = agility * 5;
-      modifiedCard.damage = (modifiedCard.damage || 0) + bonusDamage;
-      // speedCost 감소는 카드 선택 시점에서 처리해야 함 (타임라인 계산 전)
-      const who = attackerName === 'player' ? '플레이어' : '몬스터';
-      const msg = `${who} • 🌀 ${card.name}: 민첩 ${agility} → +${bonusDamage} 추가 피해`;
-      events.push({ actor: attackerName, card: card.name, type: 'special', msg });
-      logs.push(msg);
-    }
-  }
-
-  // === 교차 특성: 타임라인 겹침 시 피해 배율 적용 ===
-  const hasCrossTrait = card.traits && card.traits.includes('cross');
-  if (hasCrossTrait && card.crossBonus?.type === 'damage_mult') {
-    const { queue = [], currentSp = 0, currentQIndex = 0 } = battleContext;
-    const oppositeActor = attackerName === 'player' ? 'enemy' : 'player';
-
-    // 현재 카드 위치에서 적 카드와 겹치는지 확인
-    const isOverlapping = queue.some((q, idx) => {
-      if (q.actor !== oppositeActor) return false;
-      if (idx <= currentQIndex) return false; // 이미 실행된 카드는 제외
-      const spDiff = Math.abs((q.sp || 0) - currentSp);
-      return spDiff < 1; // 같은 위치
-    });
-
-    if (isOverlapping) {
-      const multiplier = card.crossBonus.value || 2;
-      const originalDamage = modifiedCard.damage || 0;
-      modifiedCard.damage = originalDamage * multiplier;
-      const who = attackerName === 'player' ? '플레이어' : '몬스터';
-      const msg = `${who} • ✨ ${card.name}: 교차! 피해 ${multiplier}배 (${originalDamage}→${modifiedCard.damage})`;
-      events.push({ actor: attackerName, card: card.name, type: 'cross', msg });
-      logs.push(msg);
-    }
-  }
-
-  // === 후속/마무리 특성: 이전 카드가 연계/후속이면 보너스 ===
-  const hasFollowupTrait = card.traits && card.traits.includes('followup');
-  const hasFinisherTrait = card.traits && card.traits.includes('finisher');
-  if (hasFollowupTrait || hasFinisherTrait) {
-    const { queue = [], currentQIndex = 0 } = battleContext;
-    const who = attackerName === 'player' ? '플레이어' : '몬스터';
-
-    // 이전 내 카드 찾기 (같은 actor의 이전 카드)
-    let previousCard = null;
-    for (let i = currentQIndex - 1; i >= 0; i--) {
-      if (queue[i]?.actor === attackerName) {
-        previousCard = queue[i].card;
-        break;
-      }
-    }
-
-    if (previousCard) {
-      const prevHasChain = previousCard.traits && previousCard.traits.includes('chain');
-      const prevHasFollowup = previousCard.traits && previousCard.traits.includes('followup');
-
-      // 후속 특성: 연계되면 피해 50% 증가
-      if (hasFollowupTrait && prevHasChain && modifiedCard.damage) {
-        const originalDamage = modifiedCard.damage;
-        modifiedCard.damage = Math.ceil(originalDamage * 1.5);
-        const msg = `${who} • ⚡ ${card.name}: 후속! 피해 50% 증가 (${originalDamage}→${modifiedCard.damage})`;
-        events.push({ actor: attackerName, card: card.name, type: 'special', msg });
-        logs.push(msg);
-      }
-
-      // 마무리 특성: 연계되면 피해 50% 증가, 후속되면 기교 1 획득
-      if (hasFinisherTrait) {
-        if (prevHasChain && modifiedCard.damage) {
-          const originalDamage = modifiedCard.damage;
-          modifiedCard.damage = Math.ceil(originalDamage * 1.5);
-          const msg = `${who} • ⚡ ${card.name}: 마무리(연계)! 피해 50% 증가 (${originalDamage}→${modifiedCard.damage})`;
-          events.push({ actor: attackerName, card: card.name, type: 'special', msg });
-          logs.push(msg);
-        }
-        if (prevHasFollowup) {
-          // 기교 토큰 직접 부여
-          const grantedAt = battleContext.currentTurn ? { turn: battleContext.currentTurn, sp: battleContext.currentSp || 0 } : null;
-          const finesseResult = addToken(modifiedAttacker, 'finesse', 1, grantedAt);
-          modifiedAttacker.tokens = finesseResult.tokens;
-          const msg = `${who} • ✨ ${card.name}: 마무리(후속)! 기교 획득!`;
-          events.push({ actor: attackerName, card: card.name, type: 'special', msg });
-          logs.push(msg);
-        }
-      }
-    }
-  }
-
-  // === reloadSpray: 장전 후 사격 (탄걸림 제거 + 룰렛 0으로 초기화) ===
-  if (hasSpecial(card, 'reloadSpray')) {
-    // 탄걸림 제거
-    const result = removeToken(modifiedAttacker, 'gun_jam', 'permanent', 99);
-    modifiedAttacker.tokens = result.tokens;
-    // 룰렛 0으로 초기화
-    const rouletteResult = setTokenStacks(modifiedAttacker, 'roulette', 'permanent', 0);
-    modifiedAttacker.tokens = rouletteResult.tokens;
-    if (result.logs.length > 0) {
-      const who = attackerName === 'player' ? '플레이어' : '몬스터';
-      const msg = `${who} • 🔫 ${card.name}: 장전! 탄걸림 해제!`;
-      events.push({ actor: attackerName, card: card.name, type: 'special', msg });
-      logs.push(msg);
-    }
-  }
-
-  // === gyrusRoulette: 행동력 1당 50% 확률로 2회 타격 ===
-  // 탄걸림은 이제 타격별 룰렛 시스템(processPerHitRoulette)에서 처리
-  if (hasSpecial(card, 'gyrusRoulette')) {
-    const remainingEnergy = battleContext.remainingEnergy || 0;
-    // 행동력 1당 50% 확률로 1회 또는 2회 타격
-    let hits = 0;
-    let bonusCount = 0;
-    for (let i = 0; i < remainingEnergy; i++) {
-      if (Math.random() < 0.5) {
-        hits += 2;  // 50% 확률로 2회
-        bonusCount++;
-      } else {
-        hits += 1;  // 50% 확률로 1회
-      }
-    }
-    hits = Math.max(1, hits);  // 최소 1회
-    modifiedCard.hits = hits;
-    // _addGunJam 제거됨 - 탄걸림은 타격별 룰렛에서 확률적으로 발생
-    const who = attackerName === 'player' ? '플레이어' : '몬스터';
-    const msg = `${who} • 🎰 ${card.name}: 행동력 ${remainingEnergy} → ${hits}회 사격! (🎲 보너스 ${bonusCount}회)`;
-    events.push({ actor: attackerName, card: card.name, type: 'special', msg });
-    logs.push(msg);
-  }
-
-  // === tempeteDechainee: 기교 스택 x3만큼 추가 타격 후 기교 모두 소모 ===
-  if (hasSpecial(card, 'tempeteDechainee')) {
-    const finesseStacks = getTokenStacks(modifiedAttacker, 'finesse');
-    const baseHits = modifiedCard.hits || card.hits || 3;
-    const bonusHits = finesseStacks * 3;
-    modifiedCard.hits = baseHits + bonusHits;
-
-    // 기교 토큰 모두 소모
-    if (finesseStacks > 0) {
-      const result = removeToken(modifiedAttacker, 'finesse', 'permanent', finesseStacks);
-      modifiedAttacker.tokens = result.tokens;
-    }
-
-    const who = attackerName === 'player' ? '플레이어' : '몬스터';
-    const msg = bonusHits > 0
-      ? `${who} • ⚔️ ${card.name}: 기교 ${finesseStacks} → +${bonusHits}회 추가! (총 ${modifiedCard.hits}회)`
-      : `${who} • ⚔️ ${card.name}: ${baseHits}회 타격`;
-    events.push({ actor: attackerName, card: card.name, type: 'special', msg });
-    logs.push(msg);
-  }
-
-  return {
-    modifiedCard,
-    attacker: modifiedAttacker,
-    defender: modifiedDefender,
-    events,
-    logs,
-    skipNormalDamage
-  };
-}
-
-/**
- * 공격 후 special 효과 처리 (피해 적용 후)
- * @param {Object} params
- * @returns {Object} { attacker, defender, events, logs, extraHits }
- */
-export function processPostAttackSpecials({
-  card,
-  attacker,
-  defender,
-  attackerName,
-  damageDealt,
-  battleContext = {}
-}) {
-  let modifiedAttacker = { ...attacker };
-  let modifiedDefender = { ...defender };
-  const events = [];
-  const logs = [];
-  let extraHits = 0;
-
-  // === executeUnder10: 10% 미만 즉사 ===
-  if (hasSpecial(card, 'executeUnder10')) {
-    const maxHp = defender.maxHp || 100;
-    const threshold = Math.floor(maxHp * 0.1);
-
-    if (modifiedDefender.hp > 0 && modifiedDefender.hp < threshold) {
-      const beforeHp = modifiedDefender.hp;
-      modifiedDefender.hp = 0;
-      const who = attackerName === 'player' ? '플레이어' : '몬스터';
-      const target = attackerName === 'player' ? '몬스터' : '플레이어';
-      const hpBeforeDmg = beforeHp + damageDealt;
-      const dmgInfo = damageDealt > 0 ? ` 데미지 ${damageDealt} (체력 ${hpBeforeDmg} -> ${beforeHp}),` : '';
-      const msg = `${who} -> ${target} •${dmgInfo} 💀 ${card.name}: 즉사 발동! (체력 ${beforeHp} < ${threshold})`;
-      events.push({ actor: attackerName, card: card.name, type: 'execute', msg });
-      logs.push(msg);
-    }
-  }
-
-  // === vulnIfNoBlock: 방어력 없으면 취약 부여 ===
-  if (hasSpecial(card, 'vulnIfNoBlock')) {
-    const hadNoBlock = !defender.def || (defender.block || 0) <= 0;
-
-    if (hadNoBlock) {
-      const grantedAt = battleContext.currentTurn ? { turn: battleContext.currentTurn, sp: battleContext.currentSp || 0 } : null;
-      const result = addToken(modifiedDefender, 'vulnerable', 1, grantedAt);
-      modifiedDefender.tokens = result.tokens;
-      const who = attackerName === 'player' ? '플레이어' : '몬스터';
-      const target = attackerName === 'player' ? '몬스터' : '플레이어';
-      const hpBefore = modifiedDefender.hp + damageDealt;
-      const dmgInfo = damageDealt > 0 ? ` 데미지 ${damageDealt} (체력 ${hpBefore} -> ${modifiedDefender.hp}),` : '';
-      const msg = `${who} -> ${target} •${dmgInfo} 🔻 ${card.name}: 취약 부여! (방어력 없음)`;
-      events.push({ actor: attackerName, card: card.name, type: 'special', msg });
-      logs.push(msg);
-    }
-  }
-
-  // === doubleVulnIfNoBlock: 방어력 없으면 2배 취약 ===
-  if (hasSpecial(card, 'doubleVulnIfNoBlock')) {
-    const hadNoBlock = !defender.def || (defender.block || 0) <= 0;
-
-    if (hadNoBlock) {
-      const grantedAt = battleContext.currentTurn ? { turn: battleContext.currentTurn, sp: battleContext.currentSp || 0 } : null;
-      const result = addToken(modifiedDefender, 'vulnerable', 2, grantedAt);
-      modifiedDefender.tokens = result.tokens;
-      const who = attackerName === 'player' ? '플레이어' : '몬스터';
-      const target = attackerName === 'player' ? '몬스터' : '플레이어';
-      const hpBefore = modifiedDefender.hp + damageDealt;
-      const dmgInfo = damageDealt > 0 ? ` 데미지 ${damageDealt} (체력 ${hpBefore} -> ${modifiedDefender.hp}),` : '';
-      const msg = `${who} -> ${target} •${dmgInfo} 🔻🔻 ${card.name}: 2배 취약 부여! (방어력 없음)`;
-      events.push({ actor: attackerName, card: card.name, type: 'special', msg });
-      logs.push(msg);
-    }
-  }
-
-  // === repeatIfLast: 마지막 카드면 1회 추가 타격 ===
-  if (hasSpecial(card, 'repeatIfLast')) {
-    const { isLastCard = false } = battleContext;
-
-    if (isLastCard) {
-      extraHits = 1;
-      const who = attackerName === 'player' ? '플레이어' : '몬스터';
-      const msg = `${who} • 🔁 ${card.name}: 마지막 카드! 1회 추가 타격`;
-      events.push({ actor: attackerName, card: card.name, type: 'special', msg });
-      logs.push(msg);
-    }
-  }
-
-  // === repeatPerUnusedAttack: 미사용 공격 카드당 반복 ===
-  if (hasSpecial(card, 'repeatPerUnusedAttack')) {
-    const { unusedAttackCards = 0 } = battleContext;
-
-    if (unusedAttackCards > 0) {
-      extraHits = unusedAttackCards;
-      const who = attackerName === 'player' ? '플레이어' : '몬스터';
-      const msg = `${who} • 🔁 ${card.name}: 미사용 공격 카드 ${unusedAttackCards}장 → ${unusedAttackCards}회 추가 타격`;
-      events.push({ actor: attackerName, card: card.name, type: 'special', msg });
-      logs.push(msg);
-    }
-  }
-
-  // === hitOnEnemyAction: 적 카드 발동 시마다 타격 (상태 토큰으로 처리) ===
-  if (hasSpecial(card, 'hitOnEnemyAction')) {
-    const grantedAt = battleContext.currentTurn ? { turn: battleContext.currentTurn, sp: battleContext.currentSp || 0 } : null;
-    const result = addToken(modifiedAttacker, 'persistent_strike', 1, grantedAt);
-    modifiedAttacker.tokens = result.tokens;
-    modifiedAttacker._persistentStrikeDamage = card.damage || 20;
-    const who = attackerName === 'player' ? '플레이어' : '몬스터';
-    const target = attackerName === 'player' ? '몬스터' : '플레이어';
-    const hpBefore = modifiedDefender.hp + damageDealt;
-    const dmgInfo = damageDealt > 0 ? ` 데미지 ${damageDealt} (체력 ${hpBefore} -> ${modifiedDefender.hp}),` : '';
-    const msg = `${who} -> ${target} •${dmgInfo} 👊 ${card.name}: 집요한 타격 활성화! (적 행동 시마다 ${card.damage} 피해)`;
-    events.push({ actor: attackerName, card: card.name, type: 'special', msg });
-    logs.push(msg);
-  }
-
-  // === halfEnemyEther: 적 에테르 획득 절반 ===
-  if (hasSpecial(card, 'halfEnemyEther')) {
-    const grantedAt = battleContext.currentTurn ? { turn: battleContext.currentTurn, sp: battleContext.currentSp || 0 } : null;
-    const result = addToken(modifiedDefender, 'half_ether', 1, grantedAt);
-    modifiedDefender.tokens = result.tokens;
-    const who = attackerName === 'player' ? '플레이어' : '몬스터';
-    const target = attackerName === 'player' ? '몬스터' : '플레이어';
-    const hpBefore = modifiedDefender.hp + damageDealt;
-    const dmgInfo = damageDealt > 0 ? ` 데미지 ${damageDealt} (체력 ${hpBefore} -> ${modifiedDefender.hp}),` : '';
-    const msg = `${who} -> ${target} •${dmgInfo} ✨ ${card.name}: 이번 턴 적 에테르 획득 50% 감소!`;
-    events.push({ actor: attackerName, card: card.name, type: 'special', msg });
-    logs.push(msg);
-  }
-
-  // === emptyAfterUse: 사용 후 탄걸림 ===
-  if (hasSpecial(card, 'emptyAfterUse') || card._addGunJam) {
-    const result = addToken(modifiedAttacker, 'gun_jam', 1);
-    modifiedAttacker.tokens = result.tokens;
-    const who = attackerName === 'player' ? '플레이어' : '몬스터';
-    const target = attackerName === 'player' ? '몬스터' : '플레이어';
-    const hpBefore = modifiedDefender.hp + damageDealt;
-    const dmgInfo = damageDealt > 0 ? ` 데미지 ${damageDealt} (체력 ${hpBefore} -> ${modifiedDefender.hp}),` : '';
-    const msg = `${who} -> ${target} •${dmgInfo} 🔫 ${card.name}: 사용 후 탄걸림!`;
-    events.push({ actor: attackerName, card: card.name, type: 'special', msg });
-    logs.push(msg);
-  }
-
-  // === reloadSpray: 장전 후 사격, 사용 후 탄걸림 ===
-  if (hasSpecial(card, 'reloadSpray')) {
-    // onPlay에서 이미 loaded 추가됨, 여기서 gun_jam 추가
-    const result = addToken(modifiedAttacker, 'gun_jam', 1);
-    modifiedAttacker.tokens = result.tokens;
-    const who = attackerName === 'player' ? '플레이어' : '몬스터';
-    const target = attackerName === 'player' ? '몬스터' : '플레이어';
-    const hpBefore = modifiedDefender.hp + damageDealt;
-    const dmgInfo = damageDealt > 0 ? ` 데미지 ${damageDealt} (체력 ${hpBefore} -> ${modifiedDefender.hp}),` : '';
-    const msg = `${who} -> ${target} •${dmgInfo} 🔫 ${card.name}: 난사 후 탄걸림!`;
-    events.push({ actor: attackerName, card: card.name, type: 'special', msg });
-    logs.push(msg);
-  }
-
-  // === _applyBurn: 소이탄 토큰 효과 - 화상 부여 (타격 횟수만큼) ===
-  // 데미지는 다중 타격 요약 로그에 표시되므로 여기서는 화상 효과만 표시
-  if (card._applyBurn) {
-    const hits = card.hits || 1;
-    const grantedAt = battleContext.currentTurn ? { turn: battleContext.currentTurn, sp: battleContext.currentSp || 0 } : null;
-    const result = addToken(modifiedDefender, 'burn', hits, grantedAt);
-    modifiedDefender.tokens = result.tokens;
-    const msg = hits > 1
-      ? `🔥 소이탄: 화상 ${hits}스택 부여!`
-      : `🔥 소이탄: 화상 부여!`;
-    events.push({ actor: attackerName, card: card.name, type: 'special', msg });
-    logs.push(msg);
-  }
-
-  // === stealBlock: 파괴한 방어력 획득 ===
-  if (hasSpecial(card, 'stealBlock')) {
-    const { blockDestroyed = 0 } = battleContext;
-    if (blockDestroyed > 0) {
-      // 공격자에게 방어력 부여
-      modifiedAttacker.block = (modifiedAttacker.block || 0) + blockDestroyed;
-      modifiedAttacker.def = true;
-      const who = attackerName === 'player' ? '플레이어' : '몬스터';
-      const target = attackerName === 'player' ? '몬스터' : '플레이어';
-      const hpBefore = modifiedDefender.hp + damageDealt;
-      const dmgInfo = damageDealt > 0 ? ` 데미지 ${damageDealt} (체력 ${hpBefore} -> ${modifiedDefender.hp}),` : '';
-      const msg = `${who} -> ${target} •${dmgInfo} 🛡️ ${card.name}: 방어력 ${blockDestroyed} 탈취!`;
-      events.push({ actor: attackerName, card: card.name, type: 'special', msg });
-      logs.push(msg);
-    }
-  }
-
-  // === critLoad: 치명타 시 장전 (탄걸림 해제 + 룰렛 초기화) ===
-  if (hasSpecial(card, 'critLoad')) {
-    const { isCritical = false } = battleContext;
-    if (isCritical) {
-      // 탄걸림 제거
-      const removeJamResult = removeToken(modifiedAttacker, 'gun_jam', 'permanent', 99);
-      modifiedAttacker = { ...modifiedAttacker, tokens: removeJamResult.tokens };
-      // 룰렛 초기화
-      const resetRouletteResult = setTokenStacks(modifiedAttacker, 'roulette', 'permanent', 0);
-      modifiedAttacker = { ...modifiedAttacker, tokens: resetRouletteResult.tokens };
-
-      const who = attackerName === 'player' ? '플레이어' : '몬스터';
-      const msg = `${who} • 💥 ${card.name}: 치명타! 장전 완료!`;
-      events.push({ actor: attackerName, card: card.name, type: 'special', msg });
-      logs.push(msg);
-    }
-  }
-
-  // === interceptTokens: 요격 - 무딤+ 부여, 치명타시 흔들림+ 추가 ===
-  if (hasSpecial(card, 'interceptTokens')) {
-    const grantedAt = battleContext.currentTurn ? { turn: battleContext.currentTurn, sp: battleContext.currentSp || 0 } : null;
-    const who = attackerName === 'player' ? '플레이어' : '몬스터';
-    const target = attackerName === 'player' ? '몬스터' : '플레이어';
-
-    // 기본: 무딤+ 부여
-    const dullResult = addToken(modifiedDefender, 'dullPlus', 1, grantedAt);
-    modifiedDefender = { ...modifiedDefender, tokens: dullResult.tokens };
-    const dullMsg = `${who} -> ${target} • 🔻 ${card.name}: 무딤+ 부여!`;
-    events.push({ actor: attackerName, card: card.name, type: 'special', msg: dullMsg });
-    logs.push(dullMsg);
-
-    // 치명타 시: 흔들림+ 추가 부여
-    const { isCritical = false } = battleContext;
-    if (isCritical) {
-      const shakenResult = addToken(modifiedDefender, 'shakenPlus', 1, grantedAt);
-      modifiedDefender = { ...modifiedDefender, tokens: shakenResult.tokens };
-      const shakenMsg = `${who} -> ${target} • 💥 ${card.name}: 치명타! 흔들림+ 추가!`;
-      events.push({ actor: attackerName, card: card.name, type: 'special', msg: shakenMsg });
-      logs.push(shakenMsg);
-    }
-  }
-
-  return {
-    attacker: modifiedAttacker,
-    defender: modifiedDefender,
-    events,
-    logs,
-    extraHits
-  };
-}
-
-/**
  * 타임라인 충돌 시 special 효과 처리
- * @param {Object} params
- * @returns {Object} { destroyed, events, logs }
  */
-export function processCollisionSpecials({
-  card,
-  enemyCard,
-  attackerName
-}) {
+export function processCollisionSpecials({ card, enemyCard, attackerName }) {
   const events = [];
   const logs = [];
   let destroyed = false;
 
-  // === destroyOnCollision: 충돌 시 적 카드 파괴 ===
   if (hasSpecial(card, 'destroyOnCollision')) {
     destroyed = true;
     const who = attackerName === 'player' ? '플레이어' : '몬스터';
@@ -567,15 +108,11 @@ export function processCollisionSpecials({
 
 /**
  * 큐에서 충돌 감지 및 적 카드 파괴 처리
- * @param {Array} queue - 정렬된 큐 배열 (sp 값 포함)
- * @param {Function} addLog - 로그 추가 함수
- * @returns {Object} { filteredQueue, destroyedCards, logs }
  */
 export function processQueueCollisions(queue, addLog) {
   const destroyedCards = [];
   const logs = [];
 
-  // destroyOnCollision 특성을 가진 플레이어 카드 찾기
   const playerCardsWithCollision = queue.filter(
     item => item.actor === 'player' && hasSpecial(item.card, 'destroyOnCollision')
   );
@@ -584,11 +121,9 @@ export function processQueueCollisions(queue, addLog) {
     return { filteredQueue: queue, destroyedCards, logs };
   }
 
-  // 적 카드와의 충돌 감지
   const cardsToRemove = new Set();
 
   for (const playerItem of playerCardsWithCollision) {
-    // 같은 sp 값을 가진 적 카드 찾기
     const collidingEnemyCards = queue.filter(
       item => item.actor === 'enemy' && item.sp === playerItem.sp
     );
@@ -604,15 +139,12 @@ export function processQueueCollisions(queue, addLog) {
     }
   }
 
-  // 파괴된 카드 제외한 큐 반환
   const filteredQueue = queue.filter(item => !cardsToRemove.has(item));
-
   return { filteredQueue, destroyedCards, logs };
 }
 
 /**
  * 방어력 무시 여부 확인
- * ignoreBlock 또는 piercing 특수 효과가 있으면 방어력 무시
  */
 export function shouldIgnoreBlock(card) {
   return hasSpecial(card, 'ignoreBlock') || hasSpecial(card, 'piercing') || card._ignoreBlock === true;
@@ -624,31 +156,21 @@ export function shouldIgnoreBlock(card) {
 export function calculateAgilitySpeedReduction(card, player) {
   if (!hasSpecial(card, 'agilityBonus')) return 0;
   const agility = player.agility || 0;
-  return agility * 3; // 민첩 1당 시간 소모 3 감소
+  return agility * 3;
 }
 
 /**
  * 타임라인 조작 효과 처리
- * @param {Object} params
- * @returns {Object} { timelineChanges, events, logs }
  */
-export function processTimelineSpecials({
-  card,
-  actor,
-  actorName,
-  queue,
-  currentIndex,
-  damageDealt = 0
-}) {
+export function processTimelineSpecials({ card, actor, actorName, queue, currentIndex, damageDealt = 0 }) {
   const events = [];
   const logs = [];
   const timelineChanges = {
-    advancePlayer: 0,    // 플레이어 카드 앞당김
-    pushEnemy: 0,        // 적 카드 뒤로 밀기
-    pushLastEnemy: 0,    // 적의 마지막 카드만 뒤로 밀기
+    advancePlayer: 0,
+    pushEnemy: 0,
+    pushLastEnemy: 0,
   };
 
-  // === advanceTimeline: 내 타임라인 앞당기기 (마르쉐) ===
   if (hasSpecial(card, 'advanceTimeline')) {
     const amount = card.advanceAmount || 4;
     timelineChanges.advancePlayer = amount;
@@ -658,7 +180,6 @@ export function processTimelineSpecials({
     logs.push(msg);
   }
 
-  // === pushEnemyTimeline: 피해 입히면 상대 타임라인 밀기 (런지) ===
   if (hasSpecial(card, 'pushEnemyTimeline') && damageDealt > 0) {
     const amount = card.pushAmount || 5;
     timelineChanges.pushEnemy = amount;
@@ -668,7 +189,6 @@ export function processTimelineSpecials({
     logs.push(msg);
   }
 
-  // === beatEffect: 내 타임라인 앞당기고 피해 입히면 적 타임라인 밀기 (비트) ===
   if (hasSpecial(card, 'beatEffect')) {
     const advanceAmount = card.advanceAmount || 1;
     timelineChanges.advancePlayer = advanceAmount;
@@ -686,7 +206,6 @@ export function processTimelineSpecials({
     }
   }
 
-  // === pushLastEnemyCard: 적의 마지막 카드만 밀기 (흐트리기) ===
   if (hasSpecial(card, 'pushLastEnemyCard')) {
     const amount = card.pushAmount || 9;
     timelineChanges.pushLastEnemy = amount;
@@ -696,10 +215,8 @@ export function processTimelineSpecials({
     logs.push(msg);
   }
 
-  // === 연계 특성 또는 advanceIfNextFencing: 다음 카드가 검격이면 타임라인 앞당김 ===
   const hasChainTrait = card.traits && card.traits.includes('chain');
   if (hasChainTrait || hasSpecial(card, 'advanceIfNextFencing')) {
-    // 큐에서 다음 플레이어 카드 찾기
     const nextPlayerCard = queue.slice(currentIndex + 1).find(q => q.actor === actorName);
     if (nextPlayerCard && nextPlayerCard.card?.cardCategory === 'fencing') {
       const amount = card.advanceAmount || 3;
@@ -716,49 +233,33 @@ export function processTimelineSpecials({
 
 /**
  * 성장하는 방어력 계산 (방어자세)
- * 발동 시에는 0, 이후 타임라인 진행 시 LegacyBattleApp에서 직접 추가
- * @param {Object} card - 카드 객체
- * @param {number} ticksPassed - 지나간 타임라인 틱 수
- * @returns {number} 추가 방어력
  */
 export function calculateGrowingDefense(card, ticksPassed) {
   if (!hasSpecial(card, 'growingDefense')) return 0;
-  // 발동 시에는 0 - 이후 타임라인 진행마다 방어력은 별도로 추가됨
   return 0;
 }
 
 /**
- * 카드 창조 효과 처리 (플레쉬, 브리치 등)
- * @param {Object} params
- * @returns {Object} { createdCards, events, logs }
+ * 카드 창조 효과 처리
  */
-export function processCardCreationSpecials({
-  card,
-  actorName,
-  damageDealt = 0,
-  allCards = []
-}) {
+export function processCardCreationSpecials({ card, actorName, damageDealt = 0, allCards = [] }) {
   const events = [];
   const logs = [];
   const createdCards = [];
 
-  // === createAttackOnHit 또는 플레쉬에서 창조된 카드: 피해 입히면 공격 카드 3장 창조 ===
-  // 플레쉬 연쇄는 최대 2번까지만 (원본 플레쉬 + 연쇄 1회 + 연쇄 2회)
   const MAX_FLECHE_CHAIN = 2;
   const currentChainCount = card.flecheChainCount || 0;
   const canChain = card.isFromFleche ? currentChainCount < MAX_FLECHE_CHAIN : true;
   const shouldCreateCards = (hasSpecial(card, 'createAttackOnHit') || card.isFromFleche) && damageDealt > 0 && canChain;
 
   if (shouldCreateCards) {
-    // 공격 카드 중에서 랜덤 선택 (중복 ID 방지, 원본 카드 제외, 기교 소모 카드 제외 - 유령카드는 토큰 체크 없이 실행되므로)
-    const originalCardId = card.createdBy || card.id;  // 원본 플레쉬 카드 ID
+    const originalCardId = card.createdBy || card.id;
     const attackCards = allCards.filter(c =>
       c.type === 'attack' &&
       c.id !== originalCardId &&
       (!c.requiredTokens || c.requiredTokens.length === 0)
     );
     if (attackCards.length > 0) {
-      // 3장의 서로 다른 공격 카드 창조 (중복 ID 방지)
       const shuffled = [...attackCards].sort(() => Math.random() - 0.5);
       const selectedCards = [];
       const usedIds = new Set();
@@ -769,14 +270,12 @@ export function processCardCreationSpecials({
         }
       }
 
-      // 연쇄 카운트 계산 (원본 플레쉬면 1, 연쇄 카드면 +1)
       const nextChainCount = card.isFromFleche ? currentChainCount + 1 : 1;
 
       for (let i = 0; i < selectedCards.length; i++) {
         const selectedCard = selectedCards[i];
         const newCard = {
           ...selectedCard,
-          // 카드 핵심 속성 명시적 복사 (손실 방지)
           damage: selectedCard.damage,
           block: selectedCard.block,
           hits: selectedCard.hits,
@@ -786,12 +285,11 @@ export function processCardCreationSpecials({
           cardCategory: selectedCard.cardCategory,
           special: selectedCard.special,
           traits: selectedCard.traits,
-          // 유령카드 플래그
           isGhost: true,
-          createdBy: originalCardId,  // 원본 플레쉬 카드 추적
+          createdBy: originalCardId,
           createdId: `${selectedCard.id}_created_${Date.now()}_${i}`,
-          isFromFleche: true,  // 플레쉬에서 창조된 카드 표시 (연쇄 효과용)
-          flecheChainCount: nextChainCount  // 연쇄 카운트 (최대 2)
+          isFromFleche: true,
+          flecheChainCount: nextChainCount
         };
         createdCards.push(newCard);
       }
@@ -807,393 +305,3 @@ export function processCardCreationSpecials({
 
   return { createdCards, events, logs };
 }
-
-/**
- * 카드 사용 시 special 효과 처리 (comboStyle, autoReload, mentalFocus 등)
- * @param {Object} params
- * @returns {Object} { bonusCards, tokens, nextTurnEffects, events, logs }
- */
-export function processCardPlaySpecials({
-  card,
-  attacker,
-  attackerName,
-  battleContext = {}
-}) {
-  const events = [];
-  const logs = [];
-  const bonusCards = [];  // 큐에 추가할 보너스 카드
-  const tokensToAdd = []; // 추가할 토큰
-  const tokensToRemove = []; // 제거할 토큰
-  let nextTurnEffects = null;  // 다음 턴 효과
-
-  const { hand = [], allCards = [] } = battleContext;
-
-  // 총격 룰렛 시스템: 이제 processPerHitRoulette()에서 타격별로 처리됨
-  // (LegacyBattleApp.jsx의 executeMultiHitAttack에서 호출)
-
-  // === 교차 특성: 타임라인에서 적 카드와 겹치면 보너스 효과 ===
-  const hasCrossTrait = card.traits && card.traits.includes('cross');
-  if (hasCrossTrait && card.crossBonus) {
-    const { queue = [], currentSp = 0, currentQIndex = 0 } = battleContext;
-    const oppositeActor = attackerName === 'player' ? 'enemy' : 'player';
-
-    // 현재 카드 위치에서 적 카드와 겹치는지 확인
-    // 타임라인 겹침: 같은 sp 값이거나, 범위가 겹치는 경우
-    const isOverlapping = queue.some((q, idx) => {
-      if (q.actor !== oppositeActor) return false;
-      if (idx <= currentQIndex) return false; // 이미 실행된 카드는 제외
-      // sp가 같거나 근접하면 겹침으로 판정 (속도 범위 고려)
-      const spDiff = Math.abs((q.sp || 0) - currentSp);
-      return spDiff < 1; // 같은 위치 (sp가 동일한 경우)
-    });
-
-    if (isOverlapping) {
-      const who = attackerName === 'player' ? '플레이어' : '몬스터';
-      const { type: bonusType, count = 1 } = card.crossBonus;
-
-      if (bonusType === 'gun_attack') {
-        // 기본 사격 카드(shoot)만 추가 - 특수 효과가 있는 카드는 제외
-        const basicShoot = allCards.find(c => c.id === 'shoot');
-        if (basicShoot) {
-          for (let i = 0; i < count; i++) {
-            bonusCards.push({
-              ...basicShoot,
-              // 카드 핵심 속성 명시적 복사 (손실 방지)
-              damage: basicShoot.damage,
-              block: basicShoot.block,
-              hits: basicShoot.hits,
-              speedCost: basicShoot.speedCost,
-              actionCost: basicShoot.actionCost,
-              type: basicShoot.type,
-              cardCategory: basicShoot.cardCategory,
-              special: basicShoot.special,
-              traits: basicShoot.traits,
-              // 유령카드 플래그
-              isGhost: true,
-              createdBy: card.id,
-              createdId: `${basicShoot.id}_cross_${Date.now()}_${i}`
-            });
-            const msg = `${who} • ✨ ${card.name}: 교차! "${basicShoot.name}" 사격 추가!`;
-            events.push({ actor: attackerName, card: card.name, type: 'cross', msg });
-            logs.push(msg);
-          }
-        }
-      } else if (bonusType === 'damage_mult') {
-        // 비트용: 피해 2배 (카드에 직접 적용)
-        // 이미 applyAttack에서 처리해야 함
-      } else if (bonusType === 'add_tokens') {
-        // 셉팀용: 교차 시 토큰 추가 부여
-        const tokens = card.crossBonus.tokens || [];
-        tokens.forEach(tokenInfo => {
-          const grantedAt = battleContext.currentTurn ? { turn: battleContext.currentTurn, sp: battleContext.currentSp || 0 } : null;
-          if (tokenInfo.target === 'enemy') {
-            tokensToAdd.push({ id: tokenInfo.id, stacks: tokenInfo.stacks || 1, grantedAt, targetEnemy: true });
-          } else {
-            tokensToAdd.push({ id: tokenInfo.id, stacks: tokenInfo.stacks || 1, grantedAt });
-          }
-          const msg = `${who} • ✨ ${card.name}: 교차! ${tokenInfo.id} 토큰 추가!`;
-          events.push({ actor: attackerName, card: card.name, type: 'cross', msg });
-          logs.push(msg);
-        });
-      } else if (bonusType === 'intercept_upgrade') {
-        // 요격용: 교차 시 무딤+/흔들림+ → 부러짐+/무방비+로 강화
-        const grantedAt = battleContext.currentTurn ? { turn: battleContext.currentTurn, sp: battleContext.currentSp || 0 } : null;
-        // 무딤+ 제거하고 부러짐+ 부여
-        tokensToRemove.push({ id: 'dullPlus', stacks: 1, targetEnemy: true });
-        tokensToAdd.push({ id: 'dullnessPlus', stacks: 1, grantedAt, targetEnemy: true });
-        // 흔들림+ 제거하고 무방비+ 부여
-        tokensToRemove.push({ id: 'shakenPlus', stacks: 1, targetEnemy: true });
-        tokensToAdd.push({ id: 'vulnerablePlus', stacks: 1, grantedAt, targetEnemy: true });
-        const msg = `${who} • ✨ ${card.name}: 교차! 무딤+→부러짐+, 흔들림+→무방비+ 강화!`;
-        events.push({ actor: attackerName, card: card.name, type: 'cross', msg });
-        logs.push(msg);
-      } else if (bonusType === 'destroy_card') {
-        // 사브르 에클레르용: 교차 시 적 카드 파괴
-        // 겹친 적 카드를 큐에서 제거하는 플래그 설정
-        nextTurnEffects = { ...nextTurnEffects, destroyOverlappingCard: true };
-        const msg = `${who} • ⚡ ${card.name}: 교차! 적 카드 파괴!`;
-        events.push({ actor: attackerName, card: card.name, type: 'cross', msg });
-        logs.push(msg);
-      } else if (bonusType === 'guaranteed_crit') {
-        // 회피 사격용: 교차 시 확정 치명타
-        nextTurnEffects = { ...nextTurnEffects, guaranteedCrit: true };
-        const msg = `${who} • 💥 ${card.name}: 교차! 확정 치명타!`;
-        events.push({ actor: attackerName, card: card.name, type: 'cross', msg });
-        logs.push(msg);
-      }
-    }
-  }
-
-  // === autoReload: 손패에 장전 카드가 있으면 자동 장전 ===
-  if (hasSpecial(card, 'autoReload')) {
-    const hasReloadCard = hand.some(c => c.id === 'reload' || c.id === 'ap_load' || c.id === 'incendiary_load');
-    if (hasReloadCard) {
-      tokensToAdd.push({ id: 'loaded', stacks: 1 });
-      const who = attackerName === 'player' ? '플레이어' : '몬스터';
-      const msg = `${who} • 🔄 ${card.name}: 손패에 장전 카드 감지! 자동 장전!`;
-      events.push({ actor: attackerName, card: card.name, type: 'special', msg });
-      logs.push(msg);
-    }
-  }
-
-  // === mentalFocus: 정신집중 토큰 부여 ===
-  if (hasSpecial(card, 'mentalFocus')) {
-    const grantedAt = battleContext.currentTurn ? { turn: battleContext.currentTurn, sp: battleContext.currentSp || 0 } : null;
-    tokensToAdd.push({ id: 'focus', stacks: 1, grantedAt });
-    const who = attackerName === 'player' ? '플레이어' : '몬스터';
-    const msg = `${who} • 🧘 ${card.name}: 정신집중!`;
-    events.push({ actor: attackerName, card: card.name, type: 'special', msg });
-    logs.push(msg);
-  }
-
-  // === recallCard: 함성 - 대기 카드 중 하나를 다음 턴에 손패로 ===
-  if (hasSpecial(card, 'recallCard')) {
-    nextTurnEffects = { ...nextTurnEffects, recallCard: true };
-    const who = attackerName === 'player' ? '플레이어' : '몬스터';
-    const msg = `${who} • 📢 ${card.name}: 다음 턴에 대기 카드 1장을 손패로!`;
-    events.push({ actor: attackerName, card: card.name, type: 'special', msg });
-    logs.push(msg);
-  }
-
-  // === emergencyDraw: 비상대응 - 손패 6장 이하시 대기 카드 3장 즉시 뽑기 ===
-  if (hasSpecial(card, 'emergencyDraw')) {
-    const { handSize = 0 } = battleContext;
-    if (handSize <= 6) {
-      nextTurnEffects = { ...nextTurnEffects, emergencyDraw: 3 };
-      const who = attackerName === 'player' ? '플레이어' : '몬스터';
-      const msg = `${who} • 🚨 ${card.name}: 비상! 대기 카드 3장 즉시 뽑기!`;
-      events.push({ actor: attackerName, card: card.name, type: 'special', msg });
-      logs.push(msg);
-    } else {
-      const who = attackerName === 'player' ? '플레이어' : '몬스터';
-      const msg = `${who} • ❌ ${card.name}: 손패가 6장 초과! 효과 없음`;
-      events.push({ actor: attackerName, card: card.name, type: 'special', msg });
-      logs.push(msg);
-    }
-  }
-
-  // === stance: 스탠스 - 부정 토큰 제거 + 이전 카드에 따라 토큰 부여 ===
-  if (hasSpecial(card, 'stance')) {
-    const { queue = [], currentQIndex = 0 } = battleContext;
-    const who = attackerName === 'player' ? '플레이어' : '몬스터';
-    const grantedAt = battleContext.currentTurn ? { turn: battleContext.currentTurn, sp: battleContext.currentSp || 0 } : null;
-
-    // 이전 내 카드 찾기 (같은 actor의 이전 카드)
-    let previousCard = null;
-    for (let i = currentQIndex - 1; i >= 0; i--) {
-      if (queue[i]?.actor === attackerName) {
-        previousCard = queue[i].card;
-        break;
-      }
-    }
-
-    // 이전 카드 카테고리에 따라 토큰 부여
-    if (previousCard) {
-      if (previousCard.cardCategory === 'gun') {
-        // 총격 → 연계 (공세 획득)
-        tokensToAdd.push({ id: 'offense', stacks: 1, grantedAt });
-        const msg = `${who} • ⚔️ ${card.name}: 이전 총격! 공세 획득!`;
-        events.push({ actor: attackerName, card: card.name, type: 'special', msg });
-        logs.push(msg);
-      } else if (previousCard.cardCategory === 'fencing') {
-        // 검격 → 장전
-        tokensToAdd.push({ id: 'loaded', stacks: 1, grantedAt });
-        const msg = `${who} • 🔫 ${card.name}: 이전 검격! 장전 획득!`;
-        events.push({ actor: attackerName, card: card.name, type: 'special', msg });
-        logs.push(msg);
-      }
-    }
-
-    // 부정적 토큰 제거: attacker의 모든 부정 토큰 식별 후 tokensToRemove에 추가
-    const attackerTokens = getAllTokens(attacker);
-    const negativeTokens = attackerTokens.filter(t => {
-      const tokenDef = TOKENS[t.id];
-      return tokenDef && tokenDef.category === TOKEN_CATEGORIES.NEGATIVE;
-    });
-
-    if (negativeTokens.length > 0) {
-      negativeTokens.forEach(t => {
-        tokensToRemove.push({ id: t.id, stacks: t.stacks || 1 });
-      });
-      const removedNames = negativeTokens.map(t => TOKENS[t.id]?.name || t.id).join(', ');
-      const msg2 = `${who} • ✨ ${card.name}: 부정적 토큰 제거! (${removedNames})`;
-      events.push({ actor: attackerName, card: card.name, type: 'special', msg: msg2 });
-      logs.push(msg2);
-    } else {
-      const msg2 = `${who} • ✨ ${card.name}: 제거할 부정적 토큰 없음`;
-      events.push({ actor: attackerName, card: card.name, type: 'special', msg: msg2 });
-      logs.push(msg2);
-    }
-  }
-
-  // === elRapide: 민첩 +2, 아픔 1회 (기교 1 소모시 생략) ===
-  if (hasSpecial(card, 'elRapide')) {
-    const who = attackerName === 'player' ? '플레이어' : '몬스터';
-    const grantedAt = battleContext.currentTurn ? { turn: battleContext.currentTurn, sp: battleContext.currentSp || 0 } : null;
-
-    // 기교 1 소모 시 아픔 생략 체크
-    const hasFinesse = hasToken(attacker, 'finesse');
-    const finesseStacks = getTokenStacks(attacker, 'finesse');
-
-    if (hasFinesse && finesseStacks >= 1) {
-      // 기교 1 소모, 아픔 생략
-      tokensToRemove.push({ id: 'finesse', stacks: 1 });
-      const msg = `${who} • ✨ ${card.name}: 기교 1 소모! 아픔 생략, 민첩 +2`;
-      events.push({ actor: attackerName, card: card.name, type: 'special', msg });
-      logs.push(msg);
-    } else {
-      // 기교 없음, 아픔 1 부여
-      tokensToAdd.push({ id: 'pain', stacks: 1, grantedAt });
-      const msg = `${who} • 💢 ${card.name}: 아픔 1 획득, 민첩 +2`;
-      events.push({ actor: attackerName, card: card.name, type: 'special', msg });
-      logs.push(msg);
-    }
-
-    // 민첩 +2
-    tokensToAdd.push({ id: 'agility', stacks: 2, grantedAt });
-  }
-
-  // === manipulation: 탄걸림이면 장전, 아니면 사격 ===
-  if (hasSpecial(card, 'manipulation')) {
-    const who = attackerName === 'player' ? '플레이어' : '몬스터';
-    const hasJam = getTokenStacks(attacker, 'gun_jam') > 0;
-
-    if (hasJam) {
-      // 탄걸림 제거 + 장전
-      tokensToRemove.push({ id: 'gun_jam', stacks: 99 });
-      const grantedAt = battleContext.currentTurn ? { turn: battleContext.currentTurn, sp: battleContext.currentSp || 0 } : null;
-      tokensToAdd.push({ id: 'loaded', stacks: 1, grantedAt });
-      const msg = `${who} • 🔧 ${card.name}: 탄걸림 해제! 장전!`;
-      events.push({ actor: attackerName, card: card.name, type: 'special', msg });
-      logs.push(msg);
-    } else {
-      // 사격 1회 추가
-      const basicShoot = allCards.find(c => c.id === 'shoot');
-      if (basicShoot) {
-        bonusCards.push({
-          ...basicShoot,
-          damage: basicShoot.damage,
-          speedCost: 0, // 즉시 실행
-          actionCost: 0,
-          isGhost: true,
-          createdBy: card.id,
-          createdId: `${basicShoot.id}_manip_${Date.now()}`
-        });
-        const msg = `${who} • 🔫 ${card.name}: 사격!`;
-        events.push({ actor: attackerName, card: card.name, type: 'special', msg });
-        logs.push(msg);
-      }
-    }
-  }
-
-  // === spreadShot: 적의 수만큼 사격 ===
-  if (hasSpecial(card, 'spreadShot')) {
-    const who = attackerName === 'player' ? '플레이어' : '몬스터';
-    const { enemyUnits = [] } = battleContext;
-    const aliveUnits = enemyUnits.filter(u => u.hp > 0);
-    const enemyCount = Math.max(1, aliveUnits.length);
-
-    const basicShoot = allCards.find(c => c.id === 'shoot');
-    if (basicShoot) {
-      for (let i = 0; i < enemyCount; i++) {
-        bonusCards.push({
-          ...basicShoot,
-          damage: basicShoot.damage,
-          speedCost: 0,
-          actionCost: 0,
-          isGhost: true,
-          createdBy: card.id,
-          createdId: `${basicShoot.id}_spread_${Date.now()}_${i}`,
-          __targetUnitId: aliveUnits[i]?.unitId ?? 0 // 각 유닛에게 분산
-        });
-      }
-      const msg = `${who} • 🔫 ${card.name}: ${enemyCount}회 스프레드 사격!`;
-      events.push({ actor: attackerName, card: card.name, type: 'special', msg });
-      logs.push(msg);
-    }
-  }
-
-  // === executionSquad: 장전 + 탄걸림 면역 + 총격카드 4장 창조 ===
-  if (hasSpecial(card, 'executionSquad')) {
-    const who = attackerName === 'player' ? '플레이어' : '몬스터';
-    const grantedAt = battleContext.currentTurn ? { turn: battleContext.currentTurn, sp: battleContext.currentSp || 0 } : null;
-
-    // 장전
-    tokensToAdd.push({ id: 'loaded', stacks: 1, grantedAt });
-    // 탄걸림 면역 (이번 턴)
-    tokensToAdd.push({ id: 'jam_immune', stacks: 1, grantedAt });
-
-    // 총격카드 4장 창조
-    const basicShoot = allCards.find(c => c.id === 'shoot');
-    if (basicShoot) {
-      for (let i = 0; i < 4; i++) {
-        bonusCards.push({
-          ...basicShoot,
-          damage: basicShoot.damage,
-          speedCost: 1, // +1 속도에 배치
-          actionCost: 0,
-          isGhost: true,
-          createdBy: card.id,
-          createdId: `${basicShoot.id}_exec_${Date.now()}_${i}`
-        });
-      }
-      const msg = `${who} • 🔫 ${card.name}: 총살! 장전 + 탄걸림 면역 + 사격 4장 창조!`;
-      events.push({ actor: attackerName, card: card.name, type: 'special', msg });
-      logs.push(msg);
-    }
-  }
-
-  // === sharpenBlade: 이번 전투 모든 검격 카드 공격력 +3 ===
-  if (hasSpecial(card, 'sharpenBlade')) {
-    const who = attackerName === 'player' ? '플레이어' : '몬스터';
-    nextTurnEffects = { ...nextTurnEffects, fencingDamageBonus: 3 };
-    const msg = `${who} • ⚔️ ${card.name}: 날 세우기! 이번 전투 모든 검격 공격력 +3!`;
-    events.push({ actor: attackerName, card: card.name, type: 'special', msg });
-    logs.push(msg);
-  }
-
-  // === evasiveShot: 사격 1회 (방어력과 흐릿함은 appliedTokens로 처리) ===
-  if (hasSpecial(card, 'evasiveShot')) {
-    const who = attackerName === 'player' ? '플레이어' : '몬스터';
-    const basicShoot = allCards.find(c => c.id === 'shoot');
-    if (basicShoot) {
-      bonusCards.push({
-        ...basicShoot,
-        damage: basicShoot.damage,
-        speedCost: 0,
-        actionCost: 0,
-        isGhost: true,
-        createdBy: card.id,
-        createdId: `${basicShoot.id}_evasive_${Date.now()}`
-      });
-      const msg = `${who} • 🔫 ${card.name}: 회피 사격!`;
-      events.push({ actor: attackerName, card: card.name, type: 'special', msg });
-      logs.push(msg);
-    }
-  }
-
-  // === createFencingCards3: 검격 카드 3x3 창조 (3번의 선택, 각각 3장 중 1장) ===
-  // 실제 선택 UI는 executeCardAction에서 처리 (breach와 유사)
-  // 여기서는 플래그만 설정
-  if (hasSpecial(card, 'createFencingCards3')) {
-    nextTurnEffects = { ...nextTurnEffects, triggerCreation3x3: true, creationIsAoe: true };
-  }
-
-  // === aoeAttack 플래그 설정: 범위 피해 카드 표시 ===
-  if (hasSpecial(card, 'aoeAttack')) {
-    nextTurnEffects = { ...nextTurnEffects, isAoeAttack: true };
-  }
-
-  return { bonusCards, tokensToAdd, tokensToRemove, nextTurnEffects, events, logs };
-}
-
-// =====================
-// 치명타 시스템 (criticalEffects.js로 분리됨)
-// =====================
-export {
-  calculateCritChance,
-  rollCritical,
-  getCritKnockback,
-  applyCriticalDamage,
-  applyCriticalStacks
-} from './criticalEffects';
