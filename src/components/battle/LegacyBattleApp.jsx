@@ -4,6 +4,7 @@ import "./legacy-battle.css";
 import { playHitSound, playBlockSound, playCardSubmitSound, playProceedSound, playParrySound } from "../../lib/soundUtils";
 import { useBattleState } from "./hooks/useBattleState";
 import { useDamagePreview } from "./hooks/useDamagePreview";
+import { useBattleTimelines } from "./hooks/useBattleTimelines";
 import {
   MAX_SPEED,
   DEFAULT_PLAYER_MAX_SPEED,
@@ -3939,53 +3940,18 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     playSound
   });
 
-  const playerTimeline = useMemo(() => {
-    if (battle.phase === 'select') {
-      // 현재 선택된 카드들의 조합 감지
-      const currentCombo = detectPokerCombo(selected);
-      const comboCardCosts = new Set();
-      if (currentCombo?.bonusKeys) {
-        currentCombo.bonusKeys.forEach(cost => comboCardCosts.add(cost));
-      }
-      const isFlush = currentCombo?.name === '플러쉬';
-
-      let ps = 0;
-      return battle.selected.map((c, idx) => {
-        // 카드가 조합에 포함되는지 확인
-        const isInCombo = isFlush || comboCardCosts.has(c.actionCost);
-        const usageCount = player.comboUsageCount?.[c.id] || 0;
-        const enhancedCard = applyTraitModifiers(c, {
-          usageCount,
-          isInCombo,
-        });
-        const finalSpeed = applyAgility(enhancedCard.speedCost, effectiveAgility);
-        ps += finalSpeed;
-        return { actor: 'player', card: enhancedCard, sp: ps, idx, finalSpeed };
-      });
-    }
-    if (battle.phase === 'respond' && fixedOrder) return fixedOrder.filter(x => x.actor === 'player');
-    if (battle.phase === 'resolve') return battle.queue.filter(x => x.actor === 'player');
-    return [];
-  }, [battle.phase, battle.selected, fixedOrder, battle.queue, player.comboUsageCount, effectiveAgility]);
-
-  const enemyTimeline = useMemo(() => {
-    // 선택 단계에서는 통찰이 없으면 적 타임라인을 숨긴다
-    if (battle.phase === 'select') {
-      const actions = enemyPlan.actions || [];
-      if (!actions.length) return [];
-      if (!insightReveal || !insightReveal.visible || (insightReveal.level || 0) === 0) return [];
-      const level = insightReveal.level || 0;
-      const limited = level === 1 ? actions.slice(0, 2) : actions;
-      let sp = 0;
-      return limited.map((card, idx) => {
-        sp += card.speedCost || 0;
-        return { actor: 'enemy', card, sp, idx };
-      });
-    }
-    if (battle.phase === 'respond' && fixedOrder) return fixedOrder.filter(x => x.actor === 'enemy');
-    if (battle.phase === 'resolve') return queue.filter(x => x.actor === 'enemy');
-    return [];
-  }, [battle.phase, fixedOrder, queue, enemyPlan.actions, insightReveal]);
+  // 타임라인 계산 (커스텀 훅으로 분리)
+  const { playerTimeline, enemyTimeline } = useBattleTimelines({
+    battlePhase: battle.phase,
+    battleSelected: battle.selected,
+    fixedOrder,
+    battleQueue: battle.queue,
+    playerComboUsageCount: player.comboUsageCount,
+    effectiveAgility,
+    enemyPlanActions: enemyPlan.actions,
+    insightReveal,
+    selected
+  });
 
   // 피해 미리보기 계산 및 사운드 (커스텀 훅으로 분리)
   useDamagePreview({
