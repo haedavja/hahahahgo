@@ -15,6 +15,7 @@ import { useMultiTargetSelection } from "./hooks/useMultiTargetSelection";
 import { useHandManagement } from "./hooks/useHandManagement";
 import { useEtherAnimation } from "./hooks/useEtherAnimation";
 import { useCardSelection } from "./hooks/useCardSelection";
+import { usePhaseTransition } from "./hooks/usePhaseTransition";
 import {
   MAX_SPEED,
   DEFAULT_PLAYER_MAX_SPEED,
@@ -1246,74 +1247,28 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     actions
   });
 
-  const startResolve = () => {
-    // battleRef에서 최신 상태 가져오기 (closure는 stale할 수 있음)
-    const currentBattle = battleRef.current;
-    const currentEnemyPlan = currentBattle.enemyPlan;
-
-    if (currentBattle.phase !== 'select') return;
-
-    // manuallyModified가 true면 재생성하지 않음 (카드 파괴 등으로 수동 변경된 경우)
-    const hasActions = currentEnemyPlan.actions && currentEnemyPlan.actions.length > 0;
-    const willRegenerate = !(hasActions || currentEnemyPlan.manuallyModified);
-
-    const cardsPerTurn = enemy?.cardsPerTurn || enemyCount || 2;
-    let generatedActions;
-    if (willRegenerate) {
-      const rawActions = generateEnemyActions(enemy, currentEnemyPlan.mode, etherSlots(enemy.etherPts), cardsPerTurn, Math.min(1, cardsPerTurn));
-      generatedActions = assignSourceUnitToActions(rawActions, enemy?.units || []);
-    } else {
-      generatedActions = currentEnemyPlan.actions;
-    }
-
-    // 명시적으로 새 enemyPlan 구성
-    actions.setEnemyPlan({
-      mode: currentEnemyPlan.mode,
-      actions: generatedActions,
-      manuallyModified: currentEnemyPlan.manuallyModified
-    });
-
-    const pCombo = detectPokerCombo(selected);
-
-    // 특성 효과 적용 (사용 횟수는 선택 단계 기준으로 고정)
-    const traitEnhancedSelected = battle.selected.map(card =>
-      applyTraitModifiers(card, {
-        usageCount: 0,
-        isInCombo: pCombo !== null,
-      })
-    );
-
-    const enhancedSelected = applyPokerBonus(traitEnhancedSelected, pCombo);
-
-    // 빙결 효과: 플레이어 카드가 모두 먼저 발동 (battle.player에서 최신 값 확인)
-    const currentPlayer = currentBattle.player;
-    const q = currentPlayer.enemyFrozen
-      ? createFixedOrder(enhancedSelected, generatedActions, effectiveAgility)
-      : sortCombinedOrderStablePF(enhancedSelected, generatedActions, effectiveAgility, 0);
-    actions.setFixedOrder(q);
-
-    // 빙결 플래그 처리 - enemyFrozen 초기화 (frozenOrder는 ItemSlots에서 이미 설정됨)
-    if (currentPlayer.enemyFrozen) {
-      actions.setPlayer({ ...currentPlayer, enemyFrozen: false });
-      // frozenOrder가 아직 설정되지 않은 경우에만 1로 설정 (안전장치)
-      const currentFrozenOrder = battleRef.current?.frozenOrder || 0;
-      if (currentFrozenOrder <= 0) {
-        actions.setFrozenOrder(1);
-        if (battleRef.current) {
-          battleRef.current.frozenOrder = 1;
-        }
-      }
-    }
-    // 대응 단계 되감기용 스냅샷 저장 (전투당 1회)
-    if (!rewindUsed) {
-      actions.setRespondSnapshot({
-        selectedSnapshot: selected,
-        enemyActions: generatedActions,
-      });
-    }
-    playCardSubmitSound(); // 카드 제출 사운드 재생
-    actions.setPhase('respond');
-  };
+  // 페이즈 전환 (커스텀 훅으로 분리)
+  const { startResolve, beginResolveFromRespond, rewindToSelect } = usePhaseTransition({
+    battleRef,
+    battlePhase: battle.phase,
+    battleSelected: battle.selected,
+    selected,
+    fixedOrder,
+    effectiveAgility,
+    enemy,
+    enemyPlan,
+    enemyCount,
+    player,
+    willOverdrive,
+    turnNumber,
+    rewindUsed,
+    respondSnapshot,
+    devilDiceTriggeredRef,
+    etherSlots,
+    playSound,
+    addLog,
+    actions
+  });
 
   useEffect(() => {
     // respond 단계에서 자동 정렬 제거 (수동 조작 방해 방지)
@@ -1357,137 +1312,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       actions.setFixedOrder(updatedFixedOrder);
     }
   }, [battle.phase, enemyPlan.actions, enemyPlan.manuallyModified, fixedOrder]);
-
-  const beginResolveFromRespond = () => {
-    // battleRef에서 최신 상태 가져오기
-    const currentBattle = battleRef.current;
-    const currentEnemyPlan = currentBattle?.enemyPlan;
-    const currentFixedOrder = currentBattle?.fixedOrder || fixedOrder;
-
-    if (currentBattle?.phase !== 'respond') {
-      return;
-    }
-    if (!currentFixedOrder) return addLog('오류: 고정된 순서가 없습니다');
-
-    if (currentFixedOrder.length === 0) {
-      addLog('⚠️ 실행할 행동이 없습니다. 최소 1장 이상을 유지하거나 적이 행동 가능한 상태여야 합니다.');
-      return;
-    }
-
-    // 카드 파괴된 경우 fixedOrder에서 파괴된 카드 제거
-    let effectiveFixedOrder = currentFixedOrder;
-    if (currentEnemyPlan?.manuallyModified && currentEnemyPlan?.actions) {
-      const remainingActions = new Set(currentEnemyPlan.actions);
-      effectiveFixedOrder = currentFixedOrder.filter(item => {
-        if (item.actor === 'player') return true;
-        return remainingActions.has(item.card);
-      });
-    }
-
-    const newQ = effectiveFixedOrder.map(x => ({ actor: x.actor, card: x.card, sp: x.sp }));
-    if (newQ.length === 0) {
-      addLog('⚠️ 큐 생성 실패: 실행할 항목이 없습니다');
-      return;
-    }
-
-    // 빙결 효과 확인 - frozenOrder > 0이면 SP 정렬 건너뜀
-    const frozenOrderCount = currentBattle?.frozenOrder || battleRef.current?.frozenOrder || 0;
-
-    if (frozenOrderCount <= 0) {
-      // SP 값으로 정렬 (같은 SP면 배열 순서 유지 = 수동 순서 유지)
-      newQ.sort((a, b) => {
-        if (a.sp !== b.sp) return a.sp - b.sp;
-        // SP가 같으면 원래 배열 순서 유지 (stable sort)
-        return 0;
-      });
-    } else {
-      // 빙결 효과 사용됨 - 카운터 1 감소
-      const newCount = frozenOrderCount - 1;
-      actions.setFrozenOrder(newCount);
-      if (battleRef.current) {
-        battleRef.current.frozenOrder = newCount;
-      }
-      addLog(`❄️ 빙결 효과 발동: 플레이어 카드 우선!${newCount > 0 ? ` (${newCount}턴 남음)` : ''}`);
-    }
-
-    // destroyOnCollision 충돌 처리 (박치기 등)
-    const collisionResult = processQueueCollisions(newQ, addLog);
-    const finalQ = collisionResult.filteredQueue;
-
-
-    // 이전 턴의 에테르 애니메이션 상태 초기화
-    actions.setEtherCalcPhase(null);
-    actions.setEtherFinalValue(null);
-    actions.setEnemyEtherFinalValue(null);
-    actions.setCurrentDeflation(null);
-    actions.setEnemyEtherCalcPhase(null);
-    actions.setEnemyCurrentDeflation(null);
-
-    // 에테르 폭주 체크 (phase 변경 전에 실행)
-    const enemyWillOD = shouldEnemyOverdrive(enemyPlan.mode, enemyPlan.actions, enemy.etherPts, turnNumber) && etherSlots(enemy.etherPts) > 0;
-    if (willOverdrive && etherSlots(player.etherPts) > 0) {
-      actions.setPlayer({ ...player, etherPts: player.etherPts - ETHER_THRESHOLD, etherOverdriveActive: true });
-      actions.setPlayerOverdriveFlash(true);
-      playSound(1400, 220);
-      setTimeout(() => actions.setPlayerOverdriveFlash(false), 650);
-      addLog('✴️ 에테르 폭주 발동! (이 턴 전체 유지)');
-    }
-    if (enemyWillOD) {
-      actions.setEnemy({ ...enemy, etherPts: enemy.etherPts - ETHER_THRESHOLD, etherOverdriveActive: true });
-      actions.setEnemyOverdriveFlash(true);
-      playSound(900, 220);
-      setTimeout(() => actions.setEnemyOverdriveFlash(false), 650);
-      addLog('☄️ 적 에테르 폭주 발동!');
-    }
-
-    playProceedSound(); // 진행 버튼 사운드 재생
-    actions.setQueue(finalQ);
-    actions.setQIndex(0);
-    actions.setPhase('resolve');
-    addLog('▶ 진행 시작');
-
-    // Phase 변경 확인용 타이머
-    setTimeout(() => {
-    }, 100);
-    setTimeout(() => {
-    }, 500);
-
-    // 진행 단계 시작 시 플레이어와 적 상태 저장
-    actions.setResolveStartPlayer({ ...player });
-    actions.setResolveStartEnemy({ ...enemy });
-
-    // 진행된 플레이어 카드 수 초기화
-    actions.setResolvedPlayerCards(0);
-    devilDiceTriggeredRef.current = false;
-
-    // 타임라인 progress 초기화
-    actions.setTimelineProgress(0);
-    actions.setTimelineIndicatorVisible(true);
-    actions.setNetEtherDelta(null);
-
-    // 진행 버튼 누르면 자동 진행 활성화
-    actions.setAutoProgress(true);
-  };
-
-  // 대응 → 선택 되감기 (전투당 1회)
-  const rewindToSelect = () => {
-    if (rewindUsed) {
-      addLog('⚠️ 되감기는 전투당 1회만 사용할 수 있습니다.');
-      return;
-    }
-    if (!respondSnapshot) {
-      addLog('⚠️ 되감기할 상태가 없습니다.');
-      return;
-    }
-    actions.setRewindUsed(true);
-    actions.setPhase('select');
-    actions.setFixedOrder(null);
-    actions.setQueue([]);
-    actions.setQIndex(0);
-    actions.setTimelineProgress(0);
-    actions.setSelected(respondSnapshot.selectedSnapshot || []);
-    addLog('⏪ 되감기 사용: 대응 단계 → 선택 단계 (전투당 1회)');
-  };
 
   // 에테르 계산 애니메이션 (커스텀 훅으로 분리)
   const { startEtherCalculationAnimation } = useEtherAnimation({
