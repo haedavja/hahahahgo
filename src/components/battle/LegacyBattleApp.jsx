@@ -9,6 +9,7 @@ import { useInsightSystem } from "./hooks/useInsightSystem";
 import { useRelicDrag } from "./hooks/useRelicDrag";
 import { useCardTooltip } from "./hooks/useCardTooltip";
 import { useEtherPreview } from "./hooks/useEtherPreview";
+import { useComboSystem } from "./hooks/useComboSystem";
 import {
   MAX_SPEED,
   DEFAULT_PLAYER_MAX_SPEED,
@@ -1172,44 +1173,18 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     () => battle.selected.reduce((s, c) => s + applyAgility(c.speedCost, effectiveAgility), 0),
     [battle.selected, effectiveAgility]
   );
-  const currentCombo = useMemo(() => {
-    const combo = detectPokerCombo(battle.selected);
-
-    // 디플레이션 정보 계산 (선택/대응/진행 단계에서)
-    if (combo?.name && (battle.phase === 'select' || battle.phase === 'respond' || battle.phase === 'resolve')) {
-      const usageCount = (player.comboUsageCount || {})[combo.name] || 0;
-      const deflationMult = Math.pow(0.5, usageCount);
-      actions.setCurrentDeflation(usageCount > 0 ? { multiplier: deflationMult, usageCount } : null);
-    }
-
-    return combo;
-  }, [battle.selected, player.comboUsageCount, battle.phase]);
-
-  // 상징 효과를 포함한 최종 콤보 배율 (실시간 값 기반)
-  const finalComboMultiplier = useMemo(() => {
-    const baseMultiplier = currentCombo ? (COMBO_MULTIPLIERS[currentCombo.name] || 1) : 1;
-    const isResolve = battle.phase === 'resolve';
-    const cardsCount = isResolve ? resolvedPlayerCards : battle.selected.length;
-    const allowRefBook = isResolve ? (battle.qIndex >= battle.queue.length) : false;
-
-    if (!isResolve) return baseMultiplier;
-    return computeComboMultiplier(baseMultiplier, cardsCount, true, allowRefBook);
-  }, [currentCombo, resolvedPlayerCards, battle.selected.length, battle.phase, battle.qIndex, battle.queue.length, computeComboMultiplier]);
-  useEffect(() => {
-    if (battle.phase !== 'resolve') return;
-    actions.setMultiplierPulse(true);
-    const t = setTimeout(() => actions.setMultiplierPulse(false), 250);
-    return () => clearTimeout(t);
-  }, [finalComboMultiplier, battle.phase]);
-  const comboPreviewInfo = useMemo(() => {
-    if (!currentCombo) return null;
-    return calculateComboEtherGain({
-      cards: selected || [],
-      cardCount: selected?.length || 0,
-      comboName: currentCombo.name,
-      comboUsageCount: player.comboUsageCount || {},
-    });
-  }, [currentCombo, selected?.length, player.comboUsageCount]);
+  // 콤보 시스템 (커스텀 훅으로 분리)
+  const { currentCombo, finalComboMultiplier, comboPreviewInfo } = useComboSystem({
+    battleSelected: battle.selected,
+    battlePhase: battle.phase,
+    playerComboUsageCount: player.comboUsageCount,
+    resolvedPlayerCards,
+    battleQIndex: battle.qIndex,
+    battleQueueLength: battle.queue.length,
+    computeComboMultiplier,
+    selected,
+    actions
+  });
 
   // 카드의 requiredTokens 요구사항 체크
   const checkRequiredTokens = (card, currentSelected) => {
