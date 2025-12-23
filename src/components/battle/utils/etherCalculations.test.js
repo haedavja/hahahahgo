@@ -261,40 +261,40 @@ describe('calculateActionCostBonus', () => {
     expect(calculateActionCostBonus(cards)).toBe(0);
   });
 
-  it('2코스트 카드 하나당 +0.2', () => {
+  it('2코스트 카드 하나당 +1', () => {
     const cards = [{ actionCost: 2 }];
-    expect(calculateActionCostBonus(cards)).toBeCloseTo(0.2);
+    expect(calculateActionCostBonus(cards)).toBe(1);
   });
 
-  it('3코스트 카드 하나당 +0.3', () => {
+  it('3코스트 카드 하나당 +2', () => {
     const cards = [{ actionCost: 3 }];
-    expect(calculateActionCostBonus(cards)).toBeCloseTo(0.3);
+    expect(calculateActionCostBonus(cards)).toBe(2);
   });
 
-  it('2코스트 3장 = +0.6', () => {
+  it('2코스트 3장 = +3', () => {
     const cards = [
       { actionCost: 2 },
       { actionCost: 2 },
       { actionCost: 2 }
     ];
-    expect(calculateActionCostBonus(cards)).toBeCloseTo(0.6);
+    expect(calculateActionCostBonus(cards)).toBe(3);
   });
 
-  it('혼합 코스트: 1+2+3 = +0.5', () => {
+  it('혼합 코스트: 1+2+3 = +3', () => {
     const cards = [
       { actionCost: 1 },  // +0
-      { actionCost: 2 },  // +0.2
-      { actionCost: 3 }   // +0.3
+      { actionCost: 2 },  // +1
+      { actionCost: 3 }   // +2
     ];
-    expect(calculateActionCostBonus(cards)).toBeCloseTo(0.5);
+    expect(calculateActionCostBonus(cards)).toBe(3);
   });
 
   it('유령카드는 보너스에서 제외', () => {
     const cards = [
-      { actionCost: 2 },              // +0.2
+      { actionCost: 2 },              // +1
       { actionCost: 2, isGhost: true } // 제외
     ];
-    expect(calculateActionCostBonus(cards)).toBeCloseTo(0.2);
+    expect(calculateActionCostBonus(cards)).toBe(1);
   });
 
   it('entry.card 형식 지원', () => {
@@ -302,12 +302,12 @@ describe('calculateActionCostBonus', () => {
       { card: { actionCost: 2 } },
       { card: { actionCost: 2 } }
     ];
-    expect(calculateActionCostBonus(cards)).toBeCloseTo(0.4);
+    expect(calculateActionCostBonus(cards)).toBe(2);
   });
 });
 
 describe('calculateComboEtherGain - 액션코스트 보너스', () => {
-  it('2코스트 페어: 2.0 + 0.4 = 2.4x', () => {
+  it('2코스트 페어: 2.0 + 2 = 4x', () => {
     const result = calculateComboEtherGain({
       cards: [
         { rarity: 'common', actionCost: 2 },
@@ -317,12 +317,12 @@ describe('calculateComboEtherGain - 액션코스트 보너스', () => {
       comboUsageCount: {}
     });
     expect(result.baseGain).toBe(20);
-    expect(result.actionCostBonus).toBeCloseTo(0.4);
-    expect(result.comboMult).toBeCloseTo(2.4);
-    expect(result.gain).toBe(48); // 20 * 2.4
+    expect(result.actionCostBonus).toBe(2);
+    expect(result.comboMult).toBe(4);
+    expect(result.gain).toBe(80); // 20 * 4
   });
 
-  it('2코스트 트리플: 3.0 + 0.6 = 3.6x', () => {
+  it('2코스트 트리플: 3.0 + 3 = 6x', () => {
     const result = calculateComboEtherGain({
       cards: [
         { rarity: 'common', actionCost: 2 },
@@ -333,23 +333,23 @@ describe('calculateComboEtherGain - 액션코스트 보너스', () => {
       comboUsageCount: {}
     });
     expect(result.baseGain).toBe(30);
-    expect(result.actionCostBonus).toBeCloseTo(0.6);
-    expect(result.comboMult).toBeCloseTo(3.6);
-    expect(result.gain).toBe(108); // 30 * 3.6
+    expect(result.actionCostBonus).toBe(3);
+    expect(result.comboMult).toBe(6);
+    expect(result.gain).toBe(180); // 30 * 6
   });
 
-  it('혼합 코스트 트리플: 3.0 + 0.5 = 3.5x', () => {
+  it('혼합 코스트 트리플: 3.0 + 3 = 6x', () => {
     const result = calculateComboEtherGain({
       cards: [
         { rarity: 'common', actionCost: 1 },  // +0
-        { rarity: 'common', actionCost: 2 },  // +0.2
-        { rarity: 'common', actionCost: 3 }   // +0.3
+        { rarity: 'common', actionCost: 2 },  // +1
+        { rarity: 'common', actionCost: 3 }   // +2
       ],
       comboName: '트리플',
       comboUsageCount: {}
     });
-    expect(result.actionCostBonus).toBeCloseTo(0.5);
-    expect(result.comboMult).toBeCloseTo(3.5);
+    expect(result.actionCostBonus).toBe(3);
+    expect(result.comboMult).toBe(6);
   });
 
   it('1코스트만 사용: 보너스 없음', () => {
