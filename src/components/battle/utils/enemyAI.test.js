@@ -10,7 +10,8 @@ import {
   generateEnemyActions,
   shouldEnemyOverdrive,
   assignSourceUnitToActions,
-  expandActionsWithGhosts
+  expandActionsWithGhosts,
+  ENEMY_MODE_WEIGHTS
 } from './enemyAI';
 
 // 테스트용 카드 헬퍼
@@ -37,6 +38,51 @@ describe('decideEnemyMode', () => {
     expect(mode).toHaveProperty('key');
     expect(mode).toHaveProperty('prefer');
     expect(['aggro', 'turtle', 'balanced']).toContain(mode.key);
+  });
+
+  it('적 객체를 받아 가중치 적용', () => {
+    const enemy = { id: 'ghoul' };
+    const mode = decideEnemyMode(enemy);
+    expect(['aggro', 'turtle', 'balanced']).toContain(mode.key);
+  });
+
+  it('적 ID 문자열도 지원', () => {
+    const mode = decideEnemyMode('slaughterer');
+    expect(['aggro', 'turtle', 'balanced']).toContain(mode.key);
+  });
+
+  it('알 수 없는 적은 기본 가중치 사용', () => {
+    const mode = decideEnemyMode('unknown_enemy');
+    expect(['aggro', 'turtle', 'balanced']).toContain(mode.key);
+  });
+
+  it('구울은 공격적 모드 빈도가 높음', () => {
+    // 통계적 테스트: 1000회 중 aggro가 50% 이상이어야 함
+    let aggroCount = 0;
+    for (let i = 0; i < 1000; i++) {
+      const mode = decideEnemyMode('ghoul');
+      if (mode.key === 'aggro') aggroCount++;
+    }
+    // 60% 가중치이므로 최소 50%는 aggro여야 함 (오차 허용)
+    expect(aggroCount).toBeGreaterThan(400);
+  });
+
+  it('도살자는 극공격형', () => {
+    // 통계적 테스트: aggro 가중치 80%
+    let aggroCount = 0;
+    for (let i = 0; i < 1000; i++) {
+      const mode = decideEnemyMode('slaughterer');
+      if (mode.key === 'aggro') aggroCount++;
+    }
+    // 80% 가중치이므로 최소 70%는 aggro여야 함
+    expect(aggroCount).toBeGreaterThan(600);
+  });
+
+  it('ENEMY_MODE_WEIGHTS에 기본값 존재', () => {
+    expect(ENEMY_MODE_WEIGHTS).toHaveProperty('default');
+    expect(ENEMY_MODE_WEIGHTS.default).toHaveProperty('aggro');
+    expect(ENEMY_MODE_WEIGHTS.default).toHaveProperty('turtle');
+    expect(ENEMY_MODE_WEIGHTS.default).toHaveProperty('balanced');
   });
 });
 

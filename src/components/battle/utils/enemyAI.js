@@ -8,16 +8,63 @@ import { MAX_SPEED, BASE_PLAYER_ENERGY, ENEMY_CARDS } from "../battleData";
 import { choice } from "./battleUtils";
 import { calculateEtherSlots } from "../../../lib/etherUtils";
 
+// =====================
+// 몬스터별 AI 모드 가중치
+// =====================
+// { aggro, turtle, balanced } - 합계가 100일 필요 없음 (상대적 가중치)
+export const ENEMY_MODE_WEIGHTS = {
+  // Tier 1 - 일반 몬스터
+  'ghoul': { aggro: 60, turtle: 10, balanced: 30 },       // 공격적인 언데드
+  'marauder': { aggro: 40, turtle: 20, balanced: 40 },    // 균형잡힌 약탈자
+  'slurthim': { aggro: 30, turtle: 30, balanced: 40 },    // 디버프 위주
+
+  // Tier 2 - 중급 몬스터
+  'deserter': { aggro: 50, turtle: 25, balanced: 25 },    // 전술적 전투원
+
+  // Tier 3 - 보스 몬스터
+  'slaughterer': { aggro: 80, turtle: 5, balanced: 15 },  // 극공격형 보스
+
+  // 기본값 (알 수 없는 몬스터)
+  'default': { aggro: 33, turtle: 33, balanced: 34 }
+};
+
 /**
- * 적의 성향 결정
+ * 가중치 기반 랜덤 선택
+ * @param {Object} weights - { option: weight } 형태
+ * @returns {string} 선택된 옵션 키
+ */
+function weightedChoice(weights) {
+  const entries = Object.entries(weights);
+  const totalWeight = entries.reduce((sum, [, w]) => sum + w, 0);
+  let random = Math.random() * totalWeight;
+
+  for (const [key, weight] of entries) {
+    random -= weight;
+    if (random <= 0) return key;
+  }
+
+  return entries[0][0]; // fallback
+}
+
+/**
+ * 적의 성향 결정 (몬스터별 가중치 적용)
+ * @param {Object|string} enemy - 적 객체 또는 적 ID
  * @returns {Object} 선택된 모드 { name, key, prefer }
  */
-export function decideEnemyMode() {
-  return choice([
-    { name: '공격적', key: 'aggro', prefer: 'attack' },
-    { name: '수비적', key: 'turtle', prefer: 'defense' },
-    { name: '균형적', key: 'balanced', prefer: 'mixed' }
-  ]);
+export function decideEnemyMode(enemy = null) {
+  const MODES = {
+    aggro: { name: '공격적', key: 'aggro', prefer: 'attack' },
+    turtle: { name: '수비적', key: 'turtle', prefer: 'defense' },
+    balanced: { name: '균형적', key: 'balanced', prefer: 'mixed' }
+  };
+
+  // 적 ID 추출
+  const enemyId = typeof enemy === 'string' ? enemy : enemy?.id;
+  const weights = ENEMY_MODE_WEIGHTS[enemyId] || ENEMY_MODE_WEIGHTS['default'];
+
+  // 가중치 기반 선택
+  const selectedKey = weightedChoice(weights);
+  return MODES[selectedKey];
 }
 
 /**

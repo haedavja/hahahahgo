@@ -255,8 +255,8 @@ export function useTurnStartEffects({
       actions.setSelected([]);
     }
 
-    // 적 성향/행동을 턴 시작에 즉시 결정
-    const mode = battle.enemyPlan.mode || decideEnemyMode();
+    // 적 성향/행동을 턴 시작에 즉시 결정 (몬스터별 가중치 적용)
+    const mode = battle.enemyPlan.mode || decideEnemyMode(enemy);
     if (!battle.enemyPlan.mode) {
       addLog(`🤖 적 성향 힌트: ${mode.name}`);
     }
