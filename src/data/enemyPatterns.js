@@ -4,7 +4,6 @@
  * 몬스터별 행동 패턴 정의
  * 동시턴제에서 플레이어가 패턴을 읽고 대응하는 재미 제공
  *
- * TODO: AI 개선 작업 시 이 파일 확장
  * 상세 계획: docs/AI_IMPROVEMENT_PLAN.md 참조
  */
 
@@ -17,42 +16,103 @@
 
 export const ENEMY_PATTERNS = {
   // =====================
-  // 일반 몬스터
+  // Tier 1 일반 몬스터
   // =====================
 
-  // 예시: 고블린 - 2공격 1방어 반복
-  // 'goblin': {
-  //   type: 'cycle',
-  //   pattern: ['attack', 'attack', 'defense'],
-  //   description: '2연속 공격 후 방어'
-  // },
+  // 구울 - 공격적인 언데드, 2공격 1방어
+  // 패턴: ⚔️ ⚔️ 🛡️ (공격 공격 방어)
+  // 플레이어 전략: 3턴마다 방어할 때 강하게 공격
+  'ghoul': {
+    type: 'cycle',
+    pattern: ['attack', 'attack', 'defense'],
+    description: '2연속 공격 후 방어'
+  },
 
-  // 예시: 슬라임 - 방어 후 공격
-  // 'slime': {
-  //   type: 'cycle',
-  //   pattern: ['defense', 'attack'],
-  //   description: '방어 후 공격 반복'
-  // },
+  // 약탈자 - 신중한 인간, 공격과 방어 교대
+  // 패턴: ⚔️ 🛡️ (공격 방어)
+  // 플레이어 전략: 짝수턴에 공격, 홀수턴에 방어
+  'marauder': {
+    type: 'cycle',
+    pattern: ['attack', 'defense'],
+    description: '공격과 방어 교대'
+  },
+
+  // 슬러심 - 디버프 로테이션
+  // 패턴: 🔥 💔 🔽 (화상 취약 무딤)
+  // 플레이어 전략: 화상턴에 방어 집중, 취약 전에 공격
+  'slurthim': {
+    type: 'cycle',
+    pattern: ['debuff_burn', 'debuff_vulnerable', 'debuff_dull'],
+    description: '화상 → 취약 → 무딤 로테이션'
+  },
 
   // =====================
-  // 보스 몬스터
+  // Tier 2 중급 몬스터
   // =====================
 
-  // 예시: 드래곤 보스 - HP 페이즈 시스템
-  // 'boss_dragon': {
-  //   type: 'phase',
-  //   phases: [
-  //     { hpThreshold: 100, pattern: ['attack', 'attack', 'defense'] },
-  //     { hpThreshold: 50, pattern: ['charging', 'big_attack', 'rest'] },
-  //     { hpThreshold: 25, pattern: ['rage', 'rage'] }
-  //   ],
-  //   specialActions: {
-  //     'charging': { mode: 'turtle', showIntent: '⚡ 힘을 모으는 중...' },
-  //     'big_attack': { mode: 'aggro', damage: 50, showIntent: '💥 강력한 공격!' },
-  //     'rage': { mode: 'aggro', ignoreBlock: true, showIntent: '🔥 분노!' },
-  //     'rest': { mode: 'turtle', heal: 10, showIntent: '💤 휴식' }
-  //   }
-  // }
+  // 탈영병 - 전술적 전투원, 버프 후 공격
+  // 패턴: ✨ ⚔️ ⚔️ 🛡️ (기합 연속베기 베기 방패막기)
+  // 플레이어 전략: 기합턴에 강공격, 공격 2연속 후 카운터
+  'deserter': {
+    type: 'cycle',
+    pattern: ['buff', 'attack', 'attack', 'defense'],
+    description: '기합으로 강화 후 2연속 공격, 방어'
+  },
+
+  // =====================
+  // Tier 3 보스 몬스터
+  // =====================
+
+  // 살육자 - HP 페이즈 시스템
+  // Phase 1 (100-50%): 빠른 공격 위주
+  // Phase 2 (50-25%): 흐릿함으로 방어하면서 처형 준비
+  // Phase 3 (25% 이하): 연속 처형 (방어무시 강공격)
+  'slaughterer': {
+    type: 'phase',
+    phases: [
+      {
+        hpThreshold: 100,
+        pattern: ['attack', 'attack', 'defense'],
+        description: '일반 공세'
+      },
+      {
+        hpThreshold: 50,
+        pattern: ['charging', 'big_attack', 'rest'],
+        description: '충전 후 처형, 휴식'
+      },
+      {
+        hpThreshold: 25,
+        pattern: ['rage', 'rage'],
+        description: '광폭화 - 연속 처형'
+      }
+    ],
+    specialActions: {
+      'charging': {
+        mode: 'turtle',
+        showIntent: '⚡ 힘을 모으는 중...',
+        useCard: 'slaughterer_blur_block'
+      },
+      'big_attack': {
+        mode: 'aggro',
+        damage: 15,
+        showIntent: '💥 처형!',
+        useCard: 'slaughterer_heavy'
+      },
+      'rage': {
+        mode: 'aggro',
+        ignoreBlock: true,
+        showIntent: '🔥 광폭화!',
+        useCard: 'slaughterer_heavy'
+      },
+      'rest': {
+        mode: 'turtle',
+        heal: 5,
+        showIntent: '💤 휴식',
+        useCard: 'slaughterer_rest'
+      }
+    },
+    description: 'HP에 따라 페이즈 변경: 일반→충전→광폭화'
+  }
 };
 
 /**
@@ -102,19 +162,33 @@ export function patternActionToMode(action, config) {
       key: special.mode === 'aggro' ? 'aggro' : 'turtle',
       prefer: special.mode === 'aggro' ? 'attack' : 'defense',
       special: action,
-      intent: special.showIntent
+      intent: special.showIntent,
+      useCard: special.useCard
     };
   }
 
-  // 기본 행동
-  if (action === 'attack' || action === 'big_attack' || action === 'rage') {
-    return { key: 'aggro', prefer: 'attack' };
-  }
-  if (action === 'defense' || action === 'charging' || action === 'rest') {
-    return { key: 'turtle', prefer: 'defense' };
-  }
+  // 기본 행동 매핑
+  const actionModes = {
+    // 공격 계열
+    'attack': { key: 'aggro', prefer: 'attack' },
+    'big_attack': { key: 'aggro', prefer: 'attack' },
+    'rage': { key: 'aggro', prefer: 'attack' },
 
-  return { key: 'balanced', prefer: 'mixed' };
+    // 방어 계열
+    'defense': { key: 'turtle', prefer: 'defense' },
+    'charging': { key: 'turtle', prefer: 'defense' },
+    'rest': { key: 'turtle', prefer: 'defense' },
+
+    // 버프 계열 (방어적으로 행동하며 버프)
+    'buff': { key: 'turtle', prefer: 'defense' },
+
+    // 디버프 계열 (슬러심용)
+    'debuff_burn': { key: 'balanced', prefer: 'mixed' },
+    'debuff_vulnerable': { key: 'balanced', prefer: 'mixed' },
+    'debuff_dull': { key: 'balanced', prefer: 'mixed' }
+  };
+
+  return actionModes[action] || { key: 'balanced', prefer: 'mixed' };
 }
 
 /**
@@ -147,8 +221,38 @@ export function getNextTurnIntent(enemyId, turnNumber, enemyHp, maxHp) {
     'charging': { type: 'charging', icon: '⚡', text: '충전' },
     'big_attack': { type: 'big_attack', icon: '💥', text: '강공격' },
     'rage': { type: 'rage', icon: '🔥', text: '분노' },
-    'rest': { type: 'rest', icon: '💤', text: '휴식' }
+    'rest': { type: 'rest', icon: '💤', text: '휴식' },
+    'buff': { type: 'buff', icon: '✨', text: '강화' },
+    'debuff_burn': { type: 'debuff', icon: '🔥', text: '화상' },
+    'debuff_vulnerable': { type: 'debuff', icon: '💔', text: '취약' },
+    'debuff_dull': { type: 'debuff', icon: '🔽', text: '무딤' }
   };
 
   return defaultIntents[nextAction] || { type: 'unknown', icon: '❓', text: '???' };
+}
+
+/**
+ * 현재 페이즈 정보 가져오기 (보스용)
+ * @param {string} enemyId - 적 ID
+ * @param {number} enemyHp - 현재 HP
+ * @param {number} maxHp - 최대 HP
+ * @returns {Object|null} { phase, description, hpThreshold }
+ */
+export function getCurrentPhase(enemyId, enemyHp, maxHp) {
+  const config = ENEMY_PATTERNS[enemyId];
+  if (!config || config.type !== 'phase') return null;
+
+  const hpPercent = (enemyHp / maxHp) * 100;
+  const phase = [...config.phases]
+    .sort((a, b) => a.hpThreshold - b.hpThreshold)
+    .find(p => hpPercent <= p.hpThreshold);
+
+  if (!phase) return null;
+
+  return {
+    phase: config.phases.indexOf(phase) + 1,
+    description: phase.description,
+    hpThreshold: phase.hpThreshold,
+    pattern: phase.pattern
+  };
 }
