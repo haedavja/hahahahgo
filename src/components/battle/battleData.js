@@ -535,7 +535,7 @@ export const CARDS = [
     type: "attack",
     damage: 6,
     hits: 2,
-    speedCost: 6,
+    speedCost: 5,
     actionCost: 2,
     iconKey: "flame",
     description: "공격력 6x2. 룰렛 1회만 증가. 치명타 시 장전.",
