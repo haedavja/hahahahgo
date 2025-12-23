@@ -597,6 +597,415 @@ export const OBSTACLE_TEMPLATES = {
       },
     ],
   },
+
+  // === 자원 획득 상호작용 ===
+
+  oreVein: {
+    id: 'ore_vein',
+    name: '광맥',
+    description: '벽면에 빛나는 광석이 박혀 있습니다. 채굴할 수 있을 것 같습니다.',
+    eventType: DUNGEON_EVENT_TYPES.CURIO,
+    choices: [
+      {
+        id: 'mine_force',
+        text: '힘껏 캔다.',
+        repeatable: true,
+        maxAttempts: 3,
+        requirements: {},
+        progressText: [
+          '쿵! 광석 조각이 떨어집니다.',
+          '쿵! 쿵! 더 많은 광석이 드러납니다.',
+        ],
+        strainText: [
+          '팔에 힘이 부족합니다. 광석이 꿈쩍도 안 합니다.',
+          '손이 저려옵니다. 더 힘이 필요합니다.',
+        ],
+        scalingRequirement: { stat: 'strength', baseValue: 0, increment: 1 },
+        outcomes: {
+          success: {
+            type: CHOICE_RESULT_TYPES.SUCCESS,
+            text: '광석을 모두 캐냈습니다!',
+            effect: { reward: { material: { min: 2, max: 4 } } },
+          },
+          failure: {
+            type: CHOICE_RESULT_TYPES.FAILURE,
+            text: '힘이 부족해 광석을 캐지 못했습니다. 손만 다쳤습니다.',
+            effect: { damage: 4 },
+          },
+        },
+      },
+      {
+        id: 'mine_smart',
+        text: '약점을 찾아 캔다.',
+        repeatable: true,
+        maxAttempts: 2,
+        requirements: {},
+        progressText: [
+          '광맥의 결을 살펴봅니다...',
+        ],
+        strainText: [
+          '광맥의 구조가 복잡합니다. 통찰력이 부족합니다.',
+        ],
+        scalingRequirement: { stat: 'insight', baseValue: 1, increment: 1 },
+        outcomes: {
+          success: {
+            type: CHOICE_RESULT_TYPES.SUCCESS,
+            text: '정확한 지점을 찾아 효율적으로 캐냈습니다!',
+            effect: { reward: { material: { min: 3, max: 5 } } },
+          },
+          failure: {
+            type: CHOICE_RESULT_TYPES.FAILURE,
+            text: '잘못된 곳을 쳤습니다. 광석이 부서졌습니다.',
+            effect: { reward: { material: { min: 1, max: 1 } } },
+          },
+        },
+      },
+      {
+        id: 'leave_ore',
+        text: '지나친다.',
+        repeatable: false,
+        requirements: {},
+        outcomes: {
+          success: {
+            type: CHOICE_RESULT_TYPES.SUCCESS,
+            text: '광맥을 뒤로 하고 떠납니다.',
+            effect: {},
+          },
+        },
+      },
+    ],
+  },
+
+  corpse: {
+    id: 'corpse',
+    name: '모험가의 시체',
+    description: '불운한 모험가의 시체가 쓰러져 있습니다. 소지품이 남아있을지도 모릅니다.',
+    eventType: DUNGEON_EVENT_TYPES.CURIO,
+    choices: [
+      {
+        id: 'search_corpse',
+        text: '소지품을 뒤진다.',
+        repeatable: false,
+        requirements: {},
+        outcomes: {
+          success: {
+            type: CHOICE_RESULT_TYPES.SUCCESS,
+            text: '주머니에서 금화를 발견했습니다.',
+            effect: { reward: { gold: { min: 10, max: 20 } } },
+          },
+        },
+      },
+      {
+        id: 'search_thorough',
+        text: '꼼꼼히 수색한다.',
+        repeatable: true,
+        maxAttempts: 2,
+        requirements: {},
+        progressText: [
+          '옷 안쪽을 뒤집니다...',
+        ],
+        strainText: [
+          '뭔가 있는 것 같은데 찾기 어렵습니다.',
+        ],
+        scalingRequirement: { stat: 'insight', baseValue: 0, increment: 1 },
+        outcomes: {
+          success: {
+            type: CHOICE_RESULT_TYPES.SUCCESS,
+            text: '숨겨진 주머니에서 금화와 원자재를 발견했습니다!',
+            effect: { reward: { gold: { min: 15, max: 25 }, material: { min: 1, max: 2 } } },
+          },
+          failure: {
+            type: CHOICE_RESULT_TYPES.FAILURE,
+            text: '더 이상 찾을 것이 없습니다.',
+            effect: { reward: { gold: { min: 5, max: 10 } } },
+          },
+        },
+      },
+      {
+        id: 'bury_corpse',
+        text: '묵념하고 지나간다.',
+        repeatable: false,
+        requirements: {},
+        outcomes: {
+          success: {
+            type: CHOICE_RESULT_TYPES.SUCCESS,
+            text: '동료의 명복을 빕니다. 마음이 편안해집니다.',
+            effect: { buff: 'blessed' },
+          },
+        },
+      },
+    ],
+  },
+
+  abandonedVault: {
+    id: 'abandoned_vault',
+    name: '버려진 금고',
+    description: '먼지 쌓인 금고가 벽에 박혀 있습니다. 자물쇠가 녹슬어 있습니다.',
+    eventType: DUNGEON_EVENT_TYPES.CURIO,
+    choices: [
+      {
+        id: 'pick_lock',
+        text: '자물쇠를 딴다.',
+        repeatable: true,
+        maxAttempts: 3,
+        requirements: {},
+        progressText: [
+          '찰칵... 첫 번째 핀이 풀렸습니다.',
+          '찰칵... 거의 다 됐습니다.',
+        ],
+        strainText: [
+          '손놀림이 부족합니다. 핀이 다시 잠겼습니다.',
+          '손가락이 떨립니다. 섬세함이 부족합니다.',
+        ],
+        scalingRequirement: { stat: 'agility', baseValue: 0, increment: 1 },
+        outcomes: {
+          success: {
+            type: CHOICE_RESULT_TYPES.SUCCESS,
+            text: '딸깍! 금고가 열렸습니다. 금화가 가득합니다!',
+            effect: { reward: { gold: { min: 30, max: 50 } } },
+          },
+          failure: {
+            type: CHOICE_RESULT_TYPES.FAILURE,
+            text: '자물쇠가 완전히 망가졌습니다. 더 이상 열 수 없습니다.',
+            effect: {},
+          },
+        },
+      },
+      {
+        id: 'break_vault',
+        text: '힘으로 부순다.',
+        repeatable: true,
+        maxAttempts: 4,
+        requirements: {},
+        progressText: [
+          '쿵! 금고에 흠집이 났습니다.',
+          '쿵! 쿵! 문이 휘어지기 시작합니다.',
+          '거의 다 부서졌습니다!',
+        ],
+        strainText: [
+          '금고가 너무 튼튼합니다.',
+          '팔이 아파옵니다. 힘이 부족합니다.',
+        ],
+        scalingRequirement: { stat: 'strength', baseValue: 0, increment: 1 },
+        outcomes: {
+          success: {
+            type: CHOICE_RESULT_TYPES.PARTIAL,
+            text: '금고가 부서졌습니다! 일부 금화가 흩어졌지만 꽤 건졌습니다.',
+            effect: { reward: { gold: { min: 20, max: 35 } } },
+          },
+          failure: {
+            type: CHOICE_RESULT_TYPES.FAILURE,
+            text: '손만 다쳤습니다. 금고는 꿈쩍도 안 합니다.',
+            effect: { damage: 5 },
+          },
+        },
+      },
+      {
+        id: 'leave_vault',
+        text: '포기한다.',
+        repeatable: false,
+        requirements: {},
+        outcomes: {
+          success: {
+            type: CHOICE_RESULT_TYPES.SUCCESS,
+            text: '금고를 뒤로 하고 떠납니다.',
+            effect: {},
+          },
+        },
+      },
+    ],
+  },
+
+  mushroomCluster: {
+    id: 'mushroom_cluster',
+    name: '버섯 군락',
+    description: '형형색색의 버섯들이 자라고 있습니다. 일부는 귀한 재료로 쓰일 것 같습니다.',
+    eventType: DUNGEON_EVENT_TYPES.CURIO,
+    choices: [
+      {
+        id: 'gather_careful',
+        text: '조심히 채집한다.',
+        repeatable: true,
+        maxAttempts: 2,
+        requirements: {},
+        progressText: [
+          '버섯의 종류를 구분합니다...',
+        ],
+        strainText: [
+          '어떤 버섯이 좋은 건지 구분이 안 됩니다.',
+        ],
+        scalingRequirement: { stat: 'insight', baseValue: 0, increment: 1 },
+        outcomes: {
+          success: {
+            type: CHOICE_RESULT_TYPES.SUCCESS,
+            text: '귀한 버섯들만 골라 채집했습니다!',
+            effect: { reward: { material: { min: 2, max: 3 } } },
+          },
+          failure: {
+            type: CHOICE_RESULT_TYPES.FAILURE,
+            text: '독버섯을 만졌습니다! 손이 얼얼합니다.',
+            effect: { damage: 3, debuff: 'poison' },
+          },
+        },
+      },
+      {
+        id: 'gather_all',
+        text: '전부 긁어모은다.',
+        repeatable: false,
+        requirements: {},
+        outcomes: {
+          success: {
+            type: CHOICE_RESULT_TYPES.PARTIAL,
+            text: '버섯을 잔뜩 모았습니다. 일부는 쓸모없지만 괜찮은 것도 있습니다.',
+            effect: { reward: { material: { min: 1, max: 2 } } },
+          },
+        },
+      },
+      {
+        id: 'leave_mushroom',
+        text: '지나친다.',
+        repeatable: false,
+        requirements: {},
+        outcomes: {
+          success: {
+            type: CHOICE_RESULT_TYPES.SUCCESS,
+            text: '버섯밭을 피해 갑니다.',
+            effect: {},
+          },
+        },
+      },
+    ],
+  },
+
+  brokenCart: {
+    id: 'broken_cart',
+    name: '부서진 수레',
+    description: '상인의 수레가 전복되어 있습니다. 짐이 흩어져 있습니다.',
+    eventType: DUNGEON_EVENT_TYPES.CURIO,
+    choices: [
+      {
+        id: 'search_cart',
+        text: '짐을 뒤진다.',
+        repeatable: false,
+        requirements: {},
+        outcomes: {
+          success: {
+            type: CHOICE_RESULT_TYPES.SUCCESS,
+            text: '쓸만한 물건들을 찾았습니다.',
+            effect: { reward: { gold: { min: 8, max: 15 }, material: { min: 1, max: 2 } } },
+          },
+        },
+      },
+      {
+        id: 'salvage_cart',
+        text: '수레를 해체한다.',
+        repeatable: true,
+        maxAttempts: 2,
+        requirements: {},
+        progressText: [
+          '나무와 쇠붙이를 분리합니다...',
+        ],
+        strainText: [
+          '해체하기 어렵습니다. 힘이 부족합니다.',
+        ],
+        scalingRequirement: { stat: 'strength', baseValue: 0, increment: 1 },
+        outcomes: {
+          success: {
+            type: CHOICE_RESULT_TYPES.SUCCESS,
+            text: '수레를 해체해 원자재를 얻었습니다!',
+            effect: { reward: { material: { min: 2, max: 4 } } },
+          },
+          failure: {
+            type: CHOICE_RESULT_TYPES.FAILURE,
+            text: '수레가 너무 단단히 박혀있습니다.',
+            effect: { reward: { material: { min: 1, max: 1 } } },
+          },
+        },
+      },
+      {
+        id: 'leave_cart',
+        text: '지나친다.',
+        repeatable: false,
+        requirements: {},
+        outcomes: {
+          success: {
+            type: CHOICE_RESULT_TYPES.SUCCESS,
+            text: '수레를 뒤로 하고 떠납니다.',
+            effect: {},
+          },
+        },
+      },
+    ],
+  },
+
+  crystalFormation: {
+    id: 'crystal_formation',
+    name: '수정 결정',
+    description: '거대한 수정 결정이 천장에서 자라고 있습니다. 매우 귀한 재료입니다.',
+    eventType: DUNGEON_EVENT_TYPES.CURIO,
+    choices: [
+      {
+        id: 'climb_crystal',
+        text: '올라가서 캔다.',
+        repeatable: true,
+        maxAttempts: 3,
+        requirements: {},
+        progressText: [
+          '수정을 향해 올라갑니다...',
+          '거의 다 왔습니다. 손을 뻗으면 닿을 것 같습니다.',
+        ],
+        strainText: [
+          '미끄럽습니다. 민첩하게 균형을 잡기 어렵습니다.',
+          '손아귀에 힘이 빠집니다.',
+        ],
+        scalingRequirement: { stat: 'agility', baseValue: 0, increment: 1 },
+        outcomes: {
+          success: {
+            type: CHOICE_RESULT_TYPES.SUCCESS,
+            text: '수정을 성공적으로 채취했습니다!',
+            effect: { reward: { material: { min: 3, max: 5 } } },
+          },
+          failure: {
+            type: CHOICE_RESULT_TYPES.FAILURE,
+            text: '미끄러져 떨어졌습니다!',
+            effect: { damage: 8 },
+          },
+        },
+      },
+      {
+        id: 'throw_rock',
+        text: '돌을 던져 떨어뜨린다.',
+        repeatable: false,
+        requirements: {},
+        successRate: 0.5,
+        outcomes: {
+          success: {
+            type: CHOICE_RESULT_TYPES.PARTIAL,
+            text: '수정이 떨어졌습니다! 일부가 깨졌지만 꽤 건졌습니다.',
+            effect: { reward: { material: { min: 2, max: 3 } } },
+          },
+          failure: {
+            type: CHOICE_RESULT_TYPES.FAILURE,
+            text: '빗나갔습니다. 수정은 꿈쩍도 안 합니다.',
+            effect: {},
+          },
+        },
+      },
+      {
+        id: 'leave_crystal',
+        text: '포기한다.',
+        repeatable: false,
+        requirements: {},
+        outcomes: {
+          success: {
+            type: CHOICE_RESULT_TYPES.SUCCESS,
+            text: '수정을 뒤로 하고 떠납니다.',
+            effect: {},
+          },
+        },
+      },
+    ],
+  },
 };
 
 /**
