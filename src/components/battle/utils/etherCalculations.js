@@ -56,14 +56,14 @@ export function calculateActionCostBonus(cards) {
 
 /**
  * 에테르 Deflation: 같은 조합을 반복할수록 획득량 감소
- * 1번: 100%, 2번: 50%, 3번: 25%, ... 0에 수렴
+ * 1번: 100%, 2번: 80%, 3번: 64%, ... (20% 감소)
  * @param {number} baseGain - 기본 획득량
  * @param {string} comboName - 조합 이름
  * @param {Object} comboUsageCount - 조합별 사용 횟수
- * @param {number} deflationMultiplier - 디플레이션 배율 (기본값 0.5)
+ * @param {number} deflationMultiplier - 디플레이션 배율 (기본값 0.8)
  * @returns {Object} - 디플레이션 적용 결과 { gain, multiplier, usageCount }
  */
-export function applyEtherDeflation(baseGain, comboName, comboUsageCount, deflationMultiplier = 0.5) {
+export function applyEtherDeflation(baseGain, comboName, comboUsageCount, deflationMultiplier = 0.8) {
   const usageCount = comboUsageCount[comboName] || 0;
   const multiplier = Math.pow(deflationMultiplier, usageCount);
   return {

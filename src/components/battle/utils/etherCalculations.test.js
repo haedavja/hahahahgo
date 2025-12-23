@@ -21,8 +21,8 @@ describe('상수 검증', () => {
     expect(COMBO_MULTIPLIERS['페어']).toBe(2);
     expect(COMBO_MULTIPLIERS['투페어']).toBe(2.5);
     expect(COMBO_MULTIPLIERS['트리플']).toBe(3);
-    expect(COMBO_MULTIPLIERS['플러쉬']).toBe(3.25);
-    expect(COMBO_MULTIPLIERS['풀하우스']).toBe(3.5);
+    expect(COMBO_MULTIPLIERS['플러쉬']).toBe(3.5);
+    expect(COMBO_MULTIPLIERS['풀하우스']).toBe(3.75);
     expect(COMBO_MULTIPLIERS['포카드']).toBe(4);
     expect(COMBO_MULTIPLIERS['파이브카드']).toBe(5);
   });
@@ -43,17 +43,17 @@ describe('applyEtherDeflation', () => {
     expect(result.usageCount).toBe(0);
   });
 
-  it('두 번째 사용 시 50% 배율', () => {
+  it('두 번째 사용 시 80% 배율', () => {
     const result = applyEtherDeflation(100, '페어', { '페어': 1 });
-    expect(result.gain).toBe(50);
-    expect(result.multiplier).toBe(0.5);
+    expect(result.gain).toBe(80);
+    expect(result.multiplier).toBe(0.8);
     expect(result.usageCount).toBe(1);
   });
 
-  it('세 번째 사용 시 25% 배율', () => {
+  it('세 번째 사용 시 64% 배율', () => {
     const result = applyEtherDeflation(100, '페어', { '페어': 2 });
-    expect(result.gain).toBe(25);
-    expect(result.multiplier).toBe(0.25);
+    expect(result.gain).toBe(64);
+    expect(result.multiplier).toBeCloseTo(0.64);
     expect(result.usageCount).toBe(2);
   });
 
@@ -207,9 +207,9 @@ describe('calculateComboEtherGain', () => {
       comboUsageCount: { '페어': 1 }
     });
     expect(result.baseGain).toBe(20);
-    expect(result.gain).toBe(20); // 40 * 0.5
-    expect(result.deflationPct).toBe(50);
-    expect(result.deflationMult).toBe(0.5);
+    expect(result.gain).toBe(32); // 40 * 0.8
+    expect(result.deflationPct).toBe(20);
+    expect(result.deflationMult).toBe(0.8);
   });
 
   it('extraMultiplier 적용', () => {
