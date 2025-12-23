@@ -459,6 +459,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const initialEtherRef = useRef(typeof safeInitialPlayer.etherPts === 'number' ? safeInitialPlayer.etherPts : (playerEther ?? 0));
   const resultSentRef = useRef(false);
   const turnStartProcessedRef = useRef(false); // 턴 시작 효과 중복 실행 방지
+  const prevInsightRef = useRef(0); // 통찰 값 변화 추적용
+  const prevRevealLevelRef = useRef(0); // 통찰 공개 레벨 추적용
   const deckInitializedRef = useRef(false); // 덱이 초기화되었는지 추적 (첫 턴 중복 드로우 방지)
     const battleRef = useRef(battle); // battle 상태를 ref로 유지 (setTimeout closure 문제 해결)
   const displayEtherMultiplierRef = useRef(1); // 애니메이션 표시용 에테르 배율 (리셋되어도 유지)
@@ -2528,9 +2530,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     playSound
   });
 
-  if (!enemy) return <div className="text-white p-4">로딩…</div>;
-
   const enemyNameCounts = useMemo(() => {
+    if (!enemy) return {};
     const counts = {};
     (enemy.composition || []).forEach((m) => {
       const key = m?.name || '몬스터';
@@ -2539,9 +2540,10 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     const base = enemy?.name || '몬스터';
     if (!counts[base]) counts[base] = enemy?.count || enemy?.quantity || 1;
     return counts;
-  }, [enemy?.composition, enemy?.name, enemy?.count, enemy?.quantity]);
+  }, [enemy?.composition, enemy?.name, enemy?.count, enemy?.quantity, enemy]);
 
   const groupedEnemyMembers = useMemo(() => {
+    if (!enemy) return [];
     const list = enemy?.composition && enemy.composition.length > 0
       ? enemy.composition
       : [{ name: enemy?.name || '몬스터', emoji: enemy?.emoji || '👹', count: enemy?.count || enemy?.quantity || 1 }];
@@ -2559,7 +2561,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       }
     });
     return Array.from(map.values());
-  }, [enemy?.composition, enemy?.name, enemy?.emoji, enemy?.count, enemy?.quantity]);
+  }, [enemy?.composition, enemy?.name, enemy?.emoji, enemy?.count, enemy?.quantity, enemy]);
+
+  if (!enemy) return <div className="text-white p-4">로딩…</div>;
 
   const handDisabled = (c) => {
     // 기본 체크: 최대 선택 수, 속도 한계, 행동력 부족
