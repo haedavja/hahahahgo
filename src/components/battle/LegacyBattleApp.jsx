@@ -2563,6 +2563,25 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     return Array.from(map.values());
   }, [enemy?.composition, enemy?.name, enemy?.emoji, enemy?.count, enemy?.quantity, enemy]);
 
+  // 에테르 획득량 미리보기 (커스텀 훅으로 분리) - Hook은 조건부 return 전에 호출
+  const previewEtherGain = useEtherPreview({
+    playerTimeline,
+    selected,
+    orderedRelicList,
+    playerComboUsageCount: player?.comboUsageCount || {}
+  });
+
+  // 적 조합 감지 (표시용) - Hook은 조건부 return 전에 호출
+  const enemyCombo = useMemo(() => detectPokerCombo(enemyPlan?.actions || []), [enemyPlan?.actions]);
+
+  // 적 성향 힌트 추출 - Hook은 조건부 return 전에 호출
+  const enemyHint = useMemo(() => {
+    const hintLog = battle.log.find(line => line.includes('적 성향 힌트'));
+    if (!hintLog) return null;
+    const match = hintLog.match(/적 성향 힌트[:\s]*(.+)/);
+    return match ? match[1].trim() : null;
+  }, [battle.log]);
+
   if (!enemy) return <div className="text-white p-4">로딩…</div>;
 
   const handDisabled = (c) => {
@@ -2608,25 +2627,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     : rawNetDelta;
   const enemyCapacity = enemy?.etherCapacity ?? Math.max(enemyEtherValue, 1);
   const enemySoulScale = Math.max(0.4, Math.min(1.3, enemyCapacity > 0 ? enemyEtherValue / enemyCapacity : 1));
-
-  // 에테르 획득량 미리보기 (커스텀 훅으로 분리)
-  const previewEtherGain = useEtherPreview({
-    playerTimeline,
-    selected,
-    orderedRelicList,
-    playerComboUsageCount: player.comboUsageCount
-  });
-
-  // 적 조합 감지 (표시용)
-  const enemyCombo = useMemo(() => detectPokerCombo(enemyPlan.actions || []), [enemyPlan.actions]);
-
-  // 적 성향 힌트 추출
-  const enemyHint = useMemo(() => {
-    const hintLog = battle.log.find(line => line.includes('적 성향 힌트'));
-    if (!hintLog) return null;
-    const match = hintLog.match(/적 성향 힌트[:\s]*(.+)/);
-    return match ? match[1].trim() : null;
-  }, [battle.log]);
 
   return (
     <div className="legacy-battle-root w-full min-h-screen pb-64">

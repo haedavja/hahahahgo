@@ -5,6 +5,7 @@
  */
 
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useGameStore } from '../../../state/gameStore';
 import { hasTrait, applyTraitModifiers } from '../utils/battleUtils';
 import { detectPokerCombo } from '../utils/comboDetection';

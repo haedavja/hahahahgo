@@ -13,6 +13,7 @@ import { startEtherCalculationAnimationSequence } from '../utils/etherCalculatio
 import { applyAction } from '../logic/combatActions';
 import { getCardEtherGain } from '../utils/etherCalculations';
 import { CARDS, BASE_PLAYER_ENERGY } from '../battleData';
+import { RELICS } from '../../../data/relics';
 
 /**
  * 진행(resolve) 단계 실행 훅
@@ -103,7 +104,7 @@ export function useResolveExecution({
     // 턴 종료 상징 발동 애니메이션
     playTurnEndRelicAnimations({
       relics,
-      RELICS: require('../battleData').RELICS,
+      RELICS,
       cardsPlayedThisTurn: battle.selected.length,
       player,
       enemy,
