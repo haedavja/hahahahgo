@@ -940,13 +940,6 @@ export const ENEMY_GROUPS = [
     nodeRange: [1, 3],
     enemies: ["ghoul"]
   },
-  {
-    id: "marauder_duo",
-    name: "약탈자 무리",
-    tier: 1,
-    nodeRange: [1, 3],
-    enemies: ["marauder", "marauder"]
-  },
 
   // === 중반 노드 (4-7) ===
   {
