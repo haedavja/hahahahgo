@@ -15,36 +15,35 @@ import {
 export const OBJECT_HANDLERS = {
   chest: (obj, context) => {
     obj.used = true;
-    playRewardSound();  // 보물 획득 사운드
+    playRewardSound();
     // 특별 보물 (막다른 방)은 보상이 더 좋음
     if (obj.isSpecial) {
-      const ether = -(3 + Math.floor(Math.random() * 4)); // 더 많은 에테르
-      context.applyEtherDelta(ether);
-      context.actions.setMessage(`✨ 특별한 보물 상자를 열었습니다! 에테르 ${ether}`);
+      const gold = 25 + Math.floor(Math.random() * 25); // 25-49
+      const material = 1 + Math.floor(Math.random() * 2); // 1-2
+      context.addResources({ gold, material });
+      context.actions.setMessage(`✨ 특별한 보물 상자! ${gold} 골드와 원자재 ${material}개를 획득했습니다!`);
     } else {
-      const ether = -(1 + Math.floor(Math.random() * 3));
-      context.applyEtherDelta(ether);
-      context.actions.setMessage(`보물 상자를 열었습니다. 에테르 ${ether}`);
+      const gold = 12 + Math.floor(Math.random() * 15); // 12-26
+      context.addResources({ gold });
+      context.actions.setMessage(`보물 상자에서 ${gold} 골드를 획득했습니다.`);
     }
   },
 
   curio: (obj, context) => {
     obj.used = true;
-    const isBad = Math.random() < 0.5;
-    const ether = isBad
-      ? (3 + Math.floor(Math.random() * 4))
-      : -(2 + Math.floor(Math.random() * 3));
+    const isBad = Math.random() < 0.4; // 40% 나쁜 결과
 
     if (isBad) {
-      playDangerSound();  // 불길한 결과 사운드
+      playDangerSound();
+      const damage = 5 + Math.floor(Math.random() * 8); // 5-12 피해
+      context.actions.setMessage(`저주받은 상징이었습니다! ${damage} 피해를 입었습니다.`);
+      // 피해 처리는 별도 필요시 추가
     } else {
-      playRewardSound();  // 유익한 결과 사운드
+      playRewardSound();
+      const material = 2 + Math.floor(Math.random() * 3); // 2-4
+      context.addResources({ material });
+      context.actions.setMessage(`신비로운 상징에서 원자재 ${material}개를 획득했습니다!`);
     }
-
-    context.applyEtherDelta(ether);
-    context.actions.setMessage(
-      `${isBad ? "불길한" : "유익한"} 기운이 느껴진다. 에테르 ${ether > 0 ? "+" : ""}${ether}`
-    );
   },
 
   combat: (obj, context) => {
