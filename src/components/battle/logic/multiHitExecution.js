@@ -7,7 +7,7 @@
 
 import { prepareMultiHitAttack, calculateSingleHit, finalizeMultiHitAttack, rollCritical } from './combatActions';
 import { processPerHitRoulette } from '../utils/cardSpecialEffects';
-import { TIMING } from './battleExecution';
+import { TIMING } from './battleConstants'; // 순환 의존성 방지: battleExecution 대신 직접 import
 
 /**
  * 다중 타격 비동기 실행 (딜레이 + 타격별 룰렛 체크 + 타격별 치명타 판정)

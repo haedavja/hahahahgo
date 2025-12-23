@@ -5,7 +5,7 @@
  */
 
 import { getAllTokens } from '../../../lib/tokenUtils';
-import { hasSpecial } from './cardSpecialEffects';
+import { hasSpecial } from './preAttackSpecials'; // 순환 의존성 방지: cardSpecialEffects 대신 직접 import
 
 /**
  * 치명타 확률 계산
