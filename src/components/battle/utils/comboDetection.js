@@ -12,8 +12,8 @@ import { hasTrait } from './battleUtils';
 export function detectPokerCombo(cards) {
   if (!cards || cards.length === 0) return null;
 
-  // 소외 (outcast) 특성 카드는 조합 계산에서 제외
-  const validCards = cards.filter(c => !hasTrait(c, 'outcast'));
+  // 소외 (outcast) 특성 카드와 유령카드는 조합 계산에서 제외
+  const validCards = cards.filter(c => !hasTrait(c, 'outcast') && !c.isGhost);
 
   // 유효 카드가 없으면 조합 없음 (하이카드도 아님)
   if (validCards.length === 0) return null;

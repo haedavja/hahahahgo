@@ -177,6 +177,50 @@ describe('detectPokerCombo', () => {
     });
   });
 
+  describe('유령카드 처리', () => {
+    it('유령카드는 조합 계산에서 제외', () => {
+      const cards = [
+        { actionCost: 2, type: 'attack', isGhost: true },
+        { actionCost: 2, type: 'attack' },
+        { actionCost: 3, type: 'attack' }
+      ];
+      const result = detectPokerCombo(cards);
+      // 유령 제외 후 카드 2장 (2, 3)이므로 하이카드
+      expect(result.name).toBe('하이카드');
+    });
+
+    it('유령카드 제외 후 페어 감지', () => {
+      const cards = [
+        { actionCost: 2, type: 'attack', isGhost: true },
+        { actionCost: 2, type: 'attack' },
+        { actionCost: 2, type: 'attack' }
+      ];
+      const result = detectPokerCombo(cards);
+      // 유령 제외 후 2장 페어
+      expect(result.name).toBe('페어');
+    });
+
+    it('모든 카드가 유령이면 null 반환', () => {
+      const cards = [
+        { actionCost: 2, type: 'attack', isGhost: true },
+        { actionCost: 2, type: 'attack', isGhost: true }
+      ];
+      expect(detectPokerCombo(cards)).toBeNull();
+    });
+
+    it('유령카드 3장 + 실제카드 1장 = 하이카드', () => {
+      const cards = [
+        { actionCost: 1, type: 'attack', isGhost: true },
+        { actionCost: 1, type: 'attack', isGhost: true },
+        { actionCost: 1, type: 'attack', isGhost: true },
+        { actionCost: 1, type: 'attack' }
+      ];
+      const result = detectPokerCombo(cards);
+      // 실제 카드 1장만 = 하이카드
+      expect(result.name).toBe('하이카드');
+    });
+  });
+
   describe('우선순위 테스트', () => {
     it('포카드가 플러쉬보다 우선', () => {
       const cards = [

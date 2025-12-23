@@ -54,10 +54,13 @@ export const getCardEtherGain = (card) => CARD_ETHER_BY_RARITY[getCardRarity(car
 
 /**
  * 카드 배열의 총 에테르 계산
+ * 유령카드(isGhost)는 에테르 획득에서 제외
  */
 export const calcCardsEther = (cards = [], multiplier = 1) =>
   (cards || []).reduce((sum, entry) => {
     const cardObj = entry.card || entry;
+    // 유령카드는 에테르 획득 제외
+    if (cardObj.isGhost) return sum;
     return sum + Math.floor(getCardEtherGain(cardObj) * multiplier);
   }, 0);
 

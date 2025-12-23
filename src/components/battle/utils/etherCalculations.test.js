@@ -132,6 +132,32 @@ describe('calcCardsEther', () => {
     ];
     expect(calcCardsEther(cards)).toBe(35);
   });
+
+  it('유령카드는 에테르 계산에서 제외', () => {
+    const cards = [
+      { rarity: 'common' },           // 10
+      { rarity: 'common', isGhost: true },  // 제외
+      { rarity: 'rare' }              // 25
+    ];
+    expect(calcCardsEther(cards)).toBe(35); // 10 + 25
+  });
+
+  it('모든 유령카드면 에테르 0', () => {
+    const cards = [
+      { rarity: 'common', isGhost: true },
+      { rarity: 'rare', isGhost: true }
+    ];
+    expect(calcCardsEther(cards)).toBe(0);
+  });
+
+  it('entry.card 형식에서도 유령카드 제외', () => {
+    const cards = [
+      { card: { rarity: 'common' } },                    // 10
+      { card: { rarity: 'common', isGhost: true } },     // 제외
+      { card: { rarity: 'rare' } }                       // 25
+    ];
+    expect(calcCardsEther(cards)).toBe(35);
+  });
 });
 
 describe('calculateComboEtherGain', () => {

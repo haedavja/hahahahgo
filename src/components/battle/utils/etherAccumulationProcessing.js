@@ -39,6 +39,13 @@ export function processPlayerEtherAccumulation({
   flashRelic,
   actions
 }) {
+  // 유령카드는 에테르 획득 제외
+  if (card.isGhost) {
+    const newCount = resolvedPlayerCards + 1;
+    actions.setResolvedPlayerCards(newCount);
+    return { newTurnEther: turnEtherAccumulated, newResolvedPlayerCards: newCount };
+  }
+
   // 희귀한 조약돌 효과: 카드당 획득 에테르 2배
   const passiveRelicEffects = calculatePassiveEffects(orderedRelicList);
   const upgradedRarity = cardUpgrades[card.id];
@@ -87,6 +94,11 @@ export function processEnemyEtherAccumulation({
   getCardEtherGain,
   actions
 }) {
+  // 유령카드는 에테르 획득 제외
+  if (card.isGhost) {
+    return enemyTurnEtherAccumulated;
+  }
+
   const newEnemyTurnEther = enemyTurnEtherAccumulated + getCardEtherGain(card);
   actions.setEnemyTurnEtherAccumulated(newEnemyTurnEther);
   return newEnemyTurnEther;
