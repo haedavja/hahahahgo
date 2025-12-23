@@ -157,6 +157,153 @@ export const OBJECT_TYPES = {
       }
     },
   },
+
+  // === 자원 획득 오브젝트 ===
+  ORE: {
+    id: "ore",
+    label: "광맥",
+    canReuse: false,
+    probRoom: 0.15,
+    probCorridor: 0.10,
+    render: (ctx, x, y, used) => {
+      // 바위 형태
+      ctx.fillStyle = used ? "#555" : "#78716c";
+      ctx.beginPath();
+      ctx.moveTo(x - 30, y);
+      ctx.lineTo(x - 20, y - 35);
+      ctx.lineTo(x + 5, y - 40);
+      ctx.lineTo(x + 25, y - 25);
+      ctx.lineTo(x + 30, y);
+      ctx.closePath();
+      ctx.fill();
+      // 반짝이는 광석
+      if (!used) {
+        ctx.fillStyle = "#fbbf24";
+        ctx.beginPath();
+        ctx.arc(x - 5, y - 20, 6, 0, Math.PI * 2);
+        ctx.arc(x + 10, y - 15, 4, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    },
+  },
+  GOLD_PILE: {
+    id: "gold_pile",
+    label: "금화 더미",
+    canReuse: false,
+    probRoom: 0.12,
+    probCorridor: 0.08,
+    render: (ctx, x, y, used) => {
+      ctx.fillStyle = used ? "#555" : "#fbbf24";
+      // 동전 더미
+      for (let i = 0; i < 5; i++) {
+        ctx.beginPath();
+        ctx.ellipse(x - 10 + i * 5, y - 5 - i * 3, 12, 6, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      if (!used) {
+        ctx.fillStyle = "#f59e0b";
+        ctx.font = "bold 16px Arial";
+        ctx.textAlign = "center";
+        ctx.fillText("$", x, y - 25);
+      }
+    },
+  },
+  CRATE: {
+    id: "crate",
+    label: "나무 상자",
+    canReuse: false,
+    probRoom: 0.15,
+    probCorridor: 0.12,
+    render: (ctx, x, y, used) => {
+      ctx.fillStyle = used ? "#555" : "#a16207";
+      ctx.fillRect(x - 20, y - 30, 40, 30);
+      // 나무 무늬
+      ctx.strokeStyle = used ? "#444" : "#854d0e";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(x - 20, y - 15);
+      ctx.lineTo(x + 20, y - 15);
+      ctx.moveTo(x, y - 30);
+      ctx.lineTo(x, y);
+      ctx.stroke();
+    },
+  },
+  CRYSTAL: {
+    id: "crystal",
+    label: "수정",
+    canReuse: false,
+    probRoom: 0.10,
+    probCorridor: 0.05,
+    render: (ctx, x, y, used) => {
+      ctx.fillStyle = used ? "#555" : "#a78bfa";
+      // 수정 결정 형태
+      ctx.beginPath();
+      ctx.moveTo(x, y - 45);
+      ctx.lineTo(x + 15, y - 15);
+      ctx.lineTo(x + 10, y);
+      ctx.lineTo(x - 10, y);
+      ctx.lineTo(x - 15, y - 15);
+      ctx.closePath();
+      ctx.fill();
+      if (!used) {
+        ctx.fillStyle = "#c4b5fd";
+        ctx.beginPath();
+        ctx.moveTo(x - 5, y - 35);
+        ctx.lineTo(x + 5, y - 20);
+        ctx.lineTo(x - 2, y - 20);
+        ctx.closePath();
+        ctx.fill();
+      }
+    },
+  },
+  MUSHROOM: {
+    id: "mushroom",
+    label: "버섯",
+    canReuse: false,
+    probRoom: 0.12,
+    probCorridor: 0.10,
+    render: (ctx, x, y, used) => {
+      // 버섯 줄기
+      ctx.fillStyle = used ? "#666" : "#fef3c7";
+      ctx.fillRect(x - 6, y - 20, 12, 20);
+      // 버섯 갓
+      ctx.fillStyle = used ? "#555" : "#dc2626";
+      ctx.beginPath();
+      ctx.arc(x, y - 20, 18, Math.PI, 0, false);
+      ctx.fill();
+      // 점무늬
+      if (!used) {
+        ctx.fillStyle = "#fef2f2";
+        ctx.beginPath();
+        ctx.arc(x - 8, y - 25, 3, 0, Math.PI * 2);
+        ctx.arc(x + 6, y - 28, 2, 0, Math.PI * 2);
+        ctx.arc(x + 2, y - 22, 2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    },
+  },
+  CORPSE: {
+    id: "corpse",
+    label: "시체",
+    canReuse: false,
+    probRoom: 0.08,
+    probCorridor: 0.06,
+    render: (ctx, x, y, used) => {
+      ctx.fillStyle = used ? "#444" : "#64748b";
+      // 누워있는 형태
+      ctx.fillRect(x - 25, y - 10, 50, 10);
+      // 머리
+      ctx.beginPath();
+      ctx.arc(x - 20, y - 15, 8, 0, Math.PI * 2);
+      ctx.fill();
+      if (!used) {
+        ctx.fillStyle = "#94a3b8";
+        ctx.font = "12px Arial";
+        ctx.textAlign = "center";
+        ctx.fillText("💀", x + 15, y - 5);
+      }
+    },
+  },
 };
 
 // ========== 미로 방향 정의 ==========

@@ -86,6 +86,70 @@ export const OBJECT_HANDLERS = {
     });
   },
 
+  // === 자원 획득 오브젝트 ===
+  ore: (obj, context) => {
+    obj.used = true;
+    playRewardSound();
+    const material = 2 + Math.floor(Math.random() * 3); // 2-4
+    context.addResources({ material });
+    context.actions.setMessage(`광맥에서 원자재 ${material}개를 획득했습니다!`);
+  },
+
+  gold_pile: (obj, context) => {
+    obj.used = true;
+    playRewardSound();
+    const gold = 15 + Math.floor(Math.random() * 20); // 15-34
+    context.addResources({ gold });
+    context.actions.setMessage(`금화 더미에서 ${gold} 골드를 획득했습니다!`);
+  },
+
+  crate: (obj, context) => {
+    obj.used = true;
+    playRewardSound();
+    const gold = 5 + Math.floor(Math.random() * 10); // 5-14
+    const material = Math.random() < 0.5 ? 1 : 0;
+    context.addResources({ gold, material });
+    const msg = material > 0
+      ? `나무 상자에서 ${gold} 골드와 원자재 ${material}개를 획득했습니다!`
+      : `나무 상자에서 ${gold} 골드를 획득했습니다.`;
+    context.actions.setMessage(msg);
+  },
+
+  crystal: (obj, context) => {
+    obj.used = true;
+    playRewardSound();
+    const material = 3 + Math.floor(Math.random() * 3); // 3-5
+    context.addResources({ material });
+    context.actions.setMessage(`✨ 수정에서 원자재 ${material}개를 획득했습니다!`);
+  },
+
+  mushroom: (obj, context) => {
+    obj.used = true;
+    const isBad = Math.random() < 0.3;
+    if (isBad) {
+      playDangerSound();
+      context.actions.setMessage("독버섯이었습니다! 독이 퍼집니다...");
+      // 독 효과는 별도 처리 필요시 추가
+    } else {
+      playRewardSound();
+      const material = 1 + Math.floor(Math.random() * 2); // 1-2
+      context.addResources({ material });
+      context.actions.setMessage(`버섯에서 원자재 ${material}개를 획득했습니다.`);
+    }
+  },
+
+  corpse: (obj, context) => {
+    obj.used = true;
+    playRewardSound();
+    const gold = 8 + Math.floor(Math.random() * 12); // 8-19
+    const material = Math.random() < 0.3 ? 1 : 0;
+    context.addResources({ gold, material });
+    const msg = material > 0
+      ? `시체에서 ${gold} 골드와 원자재 ${material}개를 발견했습니다.`
+      : `시체에서 ${gold} 골드를 발견했습니다.`;
+    context.actions.setMessage(msg);
+  },
+
   // 숏컷 핸들러 - 문 열기 또는 이동
   shortcut: (obj, context) => {
     const { actions, segmentIndex, dungeonData, setDungeonData } = context;

@@ -211,6 +211,7 @@ export function DungeonExploration() {
         if (handler) {
           handler(obj, {
             applyEtherDelta,
+            addResources,
             actions,
             startBattle,
             segmentIndex: 0,
