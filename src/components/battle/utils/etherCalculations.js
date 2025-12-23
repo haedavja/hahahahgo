@@ -1,4 +1,4 @@
-import { getCardRarity } from './battleUtils';
+import { getCardRarity, hasTrait } from './battleUtils';
 
 // =====================
 // 에테르 계산 상수
@@ -23,6 +23,32 @@ export const CARD_ETHER_BY_RARITY = {
   special: 100,
   legendary: 500
 };
+
+// =====================
+// 액션코스트 보너스 계산
+// =====================
+
+/**
+ * 고비용 카드 보너스 계산
+ * 2코스트: +0.2x, 3코스트: +0.3x, N코스트: +N*0.1x (N>=2)
+ * @param {Array} cards - 카드 배열
+ * @returns {number} - 액션코스트 보너스 합계
+ */
+export function calculateActionCostBonus(cards) {
+  if (!cards || cards.length === 0) return 0;
+
+  return cards.reduce((bonus, entry) => {
+    const card = entry.card || entry;
+    // 유령카드와 소외 카드는 보너스에서 제외
+    if (card.isGhost || hasTrait(card, 'outcast')) return bonus;
+    const actionCost = card.actionCost || 1;
+    // 2코스트 이상만 보너스: N코스트 = +N*0.1x
+    if (actionCost >= 2) {
+      return bonus + actionCost * 0.1;
+    }
+    return bonus;
+  }, 0);
+}
 
 // =====================
 // 에테르 계산 함수
@@ -78,7 +104,10 @@ export function calculateComboEtherGain({ cards = [], cardCount = 0, comboName =
   const baseGain = cards.length > 0
     ? calcCardsEther(cards)
     : Math.round(cardCount * BASE_ETHER_PER_CARD);
-  const comboMult = comboName ? (COMBO_MULTIPLIERS[comboName] || 1) : 1;
+  const baseComboMult = comboName ? (COMBO_MULTIPLIERS[comboName] || 1) : 1;
+  // 고비용 카드 보너스 적용 (2코스트: +0.2x, 3코스트: +0.3x, ...)
+  const actionCostBonus = calculateActionCostBonus(cards);
+  const comboMult = baseComboMult + actionCostBonus;
   const multiplied = Math.round(baseGain * comboMult * extraMultiplier);
   const deflated = comboName
     ? applyEtherDeflation(multiplied, comboName, comboUsageCount)
@@ -88,6 +117,7 @@ export function calculateComboEtherGain({ cards = [], cardCount = 0, comboName =
     gain: deflated.gain,
     baseGain,
     comboMult: comboMult * extraMultiplier,
+    actionCostBonus,
     deflationPct,
     deflationMult: deflated.multiplier,
   };
