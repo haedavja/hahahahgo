@@ -9,7 +9,8 @@ import {
   decideEnemyMode,
   generateEnemyActions,
   shouldEnemyOverdrive,
-  assignSourceUnitToActions
+  assignSourceUnitToActions,
+  expandActionsWithGhosts
 } from './enemyAI';
 
 // 테스트용 카드 헬퍼
@@ -164,5 +165,134 @@ describe('assignSourceUnitToActions', () => {
     const result = assignSourceUnitToActions(actions, units);
     expect(result[0].__sourceUnitId).toBe(1);
     expect(result[1].__sourceUnitId).toBe(1);
+  });
+});
+
+describe('expandActionsWithGhosts', () => {
+  it('actions가 비어있으면 그대로 반환', () => {
+    const result = expandActionsWithGhosts([], []);
+    expect(result).toEqual([]);
+  });
+
+  it('units가 비어있으면 그대로 반환', () => {
+    const actions = [{ id: 'atk1' }];
+    const result = expandActionsWithGhosts(actions, []);
+    expect(result).toEqual(actions);
+  });
+
+  it('단일 유닛이면 유령카드 생성 안 함', () => {
+    const actions = [{ id: 'atk1', damage: 10 }];
+    const units = [{ unitId: 1, hp: 50, deck: ['atk1'] }];
+    const result = expandActionsWithGhosts(actions, units);
+
+    expect(result.length).toBe(1);
+    expect(result[0].isGhost).toBeFalsy();
+  });
+
+  it('2개 유닛: 실제 1장 + 유령 1장', () => {
+    const actions = [{ id: 'atk1', damage: 10 }];
+    const units = [
+      { unitId: 1, hp: 50, deck: ['atk1'] },
+      { unitId: 2, hp: 50, deck: ['atk1'] }
+    ];
+    const result = expandActionsWithGhosts(actions, units);
+
+    expect(result.length).toBe(2);
+
+    // 실제 카드 1장
+    const realCards = result.filter(c => !c.isGhost);
+    expect(realCards.length).toBe(1);
+
+    // 유령 카드 1장
+    const ghostCards = result.filter(c => c.isGhost);
+    expect(ghostCards.length).toBe(1);
+    expect(ghostCards[0].createdBy).toBe('atk1');
+  });
+
+  it('3개 유닛: 실제 1장 + 유령 2장', () => {
+    const actions = [{ id: 'atk1', damage: 10 }];
+    const units = [
+      { unitId: 1, hp: 50, deck: ['atk1'] },
+      { unitId: 2, hp: 50, deck: ['atk1'] },
+      { unitId: 3, hp: 50, deck: ['atk1'] }
+    ];
+    const result = expandActionsWithGhosts(actions, units);
+
+    expect(result.length).toBe(3);
+
+    const realCards = result.filter(c => !c.isGhost);
+    const ghostCards = result.filter(c => c.isGhost);
+
+    expect(realCards.length).toBe(1);
+    expect(ghostCards.length).toBe(2);
+  });
+
+  it('죽은 유닛은 무시', () => {
+    const actions = [{ id: 'atk1', damage: 10 }];
+    const units = [
+      { unitId: 1, hp: 50, deck: ['atk1'] },
+      { unitId: 2, hp: 0, deck: ['atk1'] },  // 죽음
+      { unitId: 3, hp: 50, deck: ['atk1'] }
+    ];
+    const result = expandActionsWithGhosts(actions, units);
+
+    // 살아있는 유닛 2개만 고려
+    expect(result.length).toBe(2);
+
+    const realCards = result.filter(c => !c.isGhost);
+    const ghostCards = result.filter(c => c.isGhost);
+
+    expect(realCards.length).toBe(1);
+    expect(ghostCards.length).toBe(1);
+  });
+
+  it('각 유닛에 다른 __sourceUnitId 할당', () => {
+    const actions = [{ id: 'atk1', damage: 10 }];
+    const units = [
+      { unitId: 1, hp: 50, deck: ['atk1'] },
+      { unitId: 2, hp: 50, deck: ['atk1'] },
+      { unitId: 3, hp: 50, deck: ['atk1'] }
+    ];
+    const result = expandActionsWithGhosts(actions, units);
+
+    const unitIds = result.map(c => c.__sourceUnitId);
+    expect(unitIds).toContain(1);
+    expect(unitIds).toContain(2);
+    expect(unitIds).toContain(3);
+  });
+
+  it('여러 실제 카드 + 유령카드 확장', () => {
+    const actions = [
+      { id: 'atk1', damage: 10 },
+      { id: 'def1', block: 5 }
+    ];
+    const units = [
+      { unitId: 1, hp: 50, deck: ['atk1', 'def1'] },
+      { unitId: 2, hp: 50, deck: ['atk1', 'def1'] }
+    ];
+    const result = expandActionsWithGhosts(actions, units);
+
+    // 카드 2장 x 유닛 2개 = 총 4장
+    expect(result.length).toBe(4);
+
+    const realCards = result.filter(c => !c.isGhost);
+    const ghostCards = result.filter(c => c.isGhost);
+
+    expect(realCards.length).toBe(2);
+    expect(ghostCards.length).toBe(2);
+  });
+
+  it('유령카드는 원본 카드 속성 복사', () => {
+    const actions = [{ id: 'atk1', damage: 10, type: 'attack', speedCost: 5 }];
+    const units = [
+      { unitId: 1, hp: 50, deck: ['atk1'] },
+      { unitId: 2, hp: 50, deck: ['atk1'] }
+    ];
+    const result = expandActionsWithGhosts(actions, units);
+
+    const ghost = result.find(c => c.isGhost);
+    expect(ghost.damage).toBe(10);
+    expect(ghost.type).toBe('attack');
+    expect(ghost.speedCost).toBe(5);
   });
 });

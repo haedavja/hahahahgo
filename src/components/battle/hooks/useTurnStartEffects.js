@@ -5,7 +5,7 @@ import { processReflections } from '../../../lib/reflectionEffects';
 import { convertTraitsToIds } from '../../../data/reflections';
 import { getAllTokens, addToken } from '../../../lib/tokenUtils';
 import { drawFromDeck } from '../utils/handGeneration';
-import { decideEnemyMode, generateEnemyActions, assignSourceUnitToActions } from '../utils/enemyAI';
+import { decideEnemyMode, generateEnemyActions, expandActionsWithGhosts } from '../utils/enemyAI';
 import { useGameStore } from '../../../state/gameStore';
 import { DEFAULT_PLAYER_MAX_SPEED, DEFAULT_DRAW_COUNT, CARDS } from '../battleData';
 
@@ -269,9 +269,11 @@ export function useTurnStartEffects({
       actions.setEnemyPlan({ mode, actions: currentActions, manuallyModified: true });
     } else {
       const slots = etherSlots(enemy?.etherPts || 0);
-      const cardsPerTurn = enemy?.cardsPerTurn || enemyCount || 2;
-      const rawActions = generateEnemyActions(enemy, mode, slots, cardsPerTurn, Math.min(1, cardsPerTurn));
-      const planActions = assignSourceUnitToActions(rawActions, enemy?.units || []);
+      // 단일 몬스터 기준 카드 수 (다중 몬스터는 유령카드로 확장)
+      const singleEnemyCards = enemy?.cardsPerTurn || 1;
+      const rawActions = generateEnemyActions(enemy, mode, slots, singleEnemyCards, Math.min(1, singleEnemyCards));
+      // 다중 몬스터: 실제 카드 + 유령카드로 확장
+      const planActions = expandActionsWithGhosts(rawActions, enemy?.units || []);
       actions.setEnemyPlan({ mode, actions: planActions });
     }
   }, [battle.phase, enemy, enemyPlan.mode, enemyPlan.manuallyModified, nextTurnEffects]);

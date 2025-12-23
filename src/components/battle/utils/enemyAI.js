@@ -250,3 +250,57 @@ export function assignSourceUnitToActions(actions, units) {
     return { ...card, __sourceUnitId: selectedUnit.unitId };
   });
 }
+
+/**
+ * 다중 몬스터 유령카드 확장
+ * 실제 카드 1장당 (유닛 수 - 1)개의 유령 복사본 생성
+ *
+ * 예: 약탈자 3마리, 실제 카드 [공격1]
+ * → [공격1 (유닛1)] + [공격1 👻 (유닛2)] + [공격1 👻 (유닛3)]
+ *
+ * @param {Array} actions - 실제 카드 배열
+ * @param {Array} units - 적 유닛 배열
+ * @returns {Array} 유령카드가 포함된 확장 배열
+ */
+export function expandActionsWithGhosts(actions, units) {
+  if (!actions || actions.length === 0) return actions;
+  if (!units || units.length === 0) return actions;
+
+  // 살아있는 유닛만 고려
+  const aliveUnits = units.filter(u => u.hp > 0);
+  if (aliveUnits.length <= 1) {
+    // 유닛이 1개 이하면 유령카드 불필요
+    return assignSourceUnitToActions(actions, units);
+  }
+
+  const expandedActions = [];
+  let unitIndex = 0;
+
+  for (const card of actions) {
+    // 첫 번째 유닛에 실제 카드 할당
+    const primaryUnit = aliveUnits[unitIndex % aliveUnits.length];
+    const realCard = {
+      ...card,
+      __sourceUnitId: primaryUnit.unitId,
+      __uid: `real_${card.id}_${Date.now()}_${Math.random().toString(36).slice(2)}`
+    };
+    expandedActions.push(realCard);
+
+    // 나머지 유닛에 유령카드 할당
+    for (let i = 1; i < aliveUnits.length; i++) {
+      const ghostUnit = aliveUnits[(unitIndex + i) % aliveUnits.length];
+      const ghostCard = {
+        ...card,
+        isGhost: true,
+        __sourceUnitId: ghostUnit.unitId,
+        __uid: `ghost_${card.id}_${ghostUnit.unitId}_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+        createdBy: card.id
+      };
+      expandedActions.push(ghostCard);
+    }
+
+    unitIndex++;
+  }
+
+  return expandedActions;
+}
