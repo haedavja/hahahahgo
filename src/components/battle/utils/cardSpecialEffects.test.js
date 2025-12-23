@@ -3,6 +3,8 @@
  *
  * 카드 special 효과 유닛 테스트 (Vitest)
  * 실제 모듈 import 테스트
+ *
+ * @vitest-environment node
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';

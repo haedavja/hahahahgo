@@ -2,6 +2,8 @@
  * reflectionEffects.test.js
  *
  * 성찰 시스템 테스트
+ *
+ * @vitest-environment node
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';

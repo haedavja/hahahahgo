@@ -3,6 +3,8 @@
  *
  * 전투 시스템 통합 테스트 (Mock 없음)
  * 실제 tokenUtils, cardSpecialEffects 모두 사용
+ *
+ * @vitest-environment node
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
