@@ -29,9 +29,15 @@ import { TOKENS, TOKEN_TYPES, TOKEN_CATEGORIES, TOKEN_CANCELLATION_MAP, GUN_JAM_
  * @returns {Object} 업데이트된 토큰 상태 및 로그 메시지
  */
 export function addToken(entity, tokenId, stacks = 1, grantedAt = null) {
+  // 엔티티 검증
+  if (!entity) {
+    console.warn('[addToken] Entity is null or undefined');
+    return { tokens: { usage: [], turn: [], permanent: [] }, logs: [] };
+  }
+
   if (!TOKENS[tokenId]) {
     console.warn(`Unknown token: ${tokenId}`);
-    return { tokens: entity.tokens, logs: [] };
+    return { tokens: entity.tokens || { usage: [], turn: [], permanent: [] }, logs: [] };
   }
 
   const token = TOKENS[tokenId];
@@ -189,6 +195,12 @@ export function setTokenStacks(entity, tokenId, tokenType, newStacks) {
  * @returns {Object} 업데이트된 토큰 상태 및 로그 메시지
  */
 export function removeToken(entity, tokenId, tokenType, stacks = 1) {
+  // 엔티티 검증
+  if (!entity) {
+    console.warn('[removeToken] Entity is null or undefined');
+    return { tokens: { usage: [], turn: [], permanent: [] }, logs: [] };
+  }
+
   const tokens = { ...entity.tokens };
   const logs = [];
   const typeArray = tokens[tokenType] || [];

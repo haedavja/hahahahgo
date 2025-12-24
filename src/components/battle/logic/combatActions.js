@@ -48,6 +48,19 @@ import { calculateSingleHit } from './hitCalculation';
  * @returns {AttackResult} 공격 결과
  */
 export function applyAttack(attacker, defender, card, attackerName, battleContext = {}) {
+  // 입력 검증
+  if (!attacker || !defender || !card) {
+    console.error('[applyAttack] Invalid input:', { attacker: !!attacker, defender: !!defender, card: !!card });
+    return {
+      attacker: attacker || {},
+      defender: defender || {},
+      totalDealt: 0,
+      totalTaken: 0,
+      events: [],
+      logs: ['⚠️ 공격 처리 오류']
+    };
+  }
+
   let totalDealt = 0;
   let totalTaken = 0;
   let totalBlockDestroyed = 0;
