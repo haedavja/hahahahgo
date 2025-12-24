@@ -1,7 +1,11 @@
 /**
- * anomalyUtils.js
+ * @file anomalyUtils.js
+ * @description 이변 시스템 유틸리티
  *
- * 이변 시스템 유틸리티 함수
+ * ## 이변 시스템
+ * - 발동 확률: mapRisk%
+ * - 강도 레벨: mapRisk / 25 (최대 4)
+ * - 보스전: 다중 이변 발동
  */
 
 import { selectRandomAnomaly, selectMultipleAnomalies, ANOMALY_TYPES } from '../data/anomalies';

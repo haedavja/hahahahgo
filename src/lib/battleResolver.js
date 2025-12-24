@@ -1,3 +1,13 @@
+/**
+ * @file battleResolver.js
+ * @description 전투 해결 시뮬레이터
+ *
+ * ## 기능
+ * - 공격/방어/지원 카드 적용
+ * - 승패 판정 (victory/defeat/draw)
+ * - 여러 라운드 시뮬레이션
+ */
+
 import { CARD_LIBRARY } from "../data/cards";
 
 const DEFAULT_STATS = {

@@ -1,4 +1,11 @@
-// 웹 오디오 API를 사용한 사운드 효과 유틸리티
+/**
+ * @file soundUtils.js
+ * @description 웹 오디오 API 사운드 효과
+ *
+ * ## 사운드 종류
+ * - 피격/회복/카드선택/위험 등
+ * - Oscillator 기반 합성음
+ */
 
 let audioContext = null;
 

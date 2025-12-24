@@ -1,3 +1,14 @@
+/**
+ * @file speedQueue.js
+ * @description 카드 속도 우선순위 큐
+ *
+ * ## 우선순위
+ * - instant: 3 (즉시)
+ * - quick: 2 (빠름)
+ * - normal: 1 (보통)
+ * - slow: 0 (느림)
+ */
+
 import { CARD_LIBRARY } from "../data/cards";
 
 const PRIORITY_WEIGHT = {

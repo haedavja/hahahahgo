@@ -1,8 +1,11 @@
 /**
- * reflectionEffects.js
+ * @file reflectionEffects.js
+ * @description 성찰 효과 처리 유틸리티
  *
- * 성찰 효과 처리 유틸리티
- * 매 턴 시작 시 성찰 효과를 확률적으로 발동
+ * ## 발동 조건
+ * - 매 턴 시작 시 확률 발동
+ * - 자아(ego) 보유 시 해당 성찰 활성화
+ * - 개성 5개 초과 시 확률 보너스
  */
 
 import {

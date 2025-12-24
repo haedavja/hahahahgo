@@ -1,3 +1,13 @@
+/**
+ * @file relics.js
+ * @description 상징 효과 계산 유틸리티
+ *
+ * ## 효과 타입
+ * - ETHER_GAIN_BONUS: 에테르 획득량 %증가
+ * - CARD_DAMAGE_BONUS: 카드 피해 증가
+ * - EVENT_CHOICE_UNLOCK: 이벤트 선택지 해금
+ */
+
 // 상징 등급
 export const RELIC_RARITY = {
   COMMON: 'common',

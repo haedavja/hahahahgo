@@ -1,7 +1,11 @@
 /**
- * comboMultiplier.js
+ * @file comboMultiplier.js
+ * @description 콤보 배율 계산 시스템
  *
- * 콤보 배율 계산 시스템 (상징 효과 통합)
+ * ## 배율 요소
+ * - 기본 콤보 배율
+ * - 5장 카드 보너스
+ * - 상징 효과 (참고서 등)
  */
 
 import { RELICS } from "../../../data/relics";

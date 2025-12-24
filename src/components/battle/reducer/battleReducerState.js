@@ -1,8 +1,12 @@
 /**
- * battleReducerState.js
+ * @file battleReducerState.js
+ * @description 전투 상태 초기값 정의
  *
- * 전투 상태 초기값 정의
- * battleReducer.js에서 분리됨
+ * ## 상태 구조
+ * - player/enemy: 유닛 상태
+ * - phase: 전투 페이즈
+ * - hand/selected: 카드 관리
+ * - ether: 에테르 시스템
  */
 
 /**

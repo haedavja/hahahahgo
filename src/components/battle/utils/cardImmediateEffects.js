@@ -1,7 +1,11 @@
 /**
- * cardImmediateEffects.js
+ * @file cardImmediateEffects.js
+ * @description 카드 즉시 발동 특성 처리
  *
- * 카드 사용 시 즉시 발동되는 특성 처리 시스템
+ * ## 특성 예시
+ * - double_edge: 사용시 자해
+ * - training: 힘 +1
+ * - sacrifice: HP 소모 후 강화
  */
 
 import { hasTrait } from "./battleUtils";

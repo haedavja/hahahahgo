@@ -1,8 +1,12 @@
 /**
- * battleReducerActions.js
+ * @file battleReducerActions.js
+ * @description 전투 리듀서 액션 타입 정의
  *
- * 전투 액션 타입 정의
- * battleReducer.js에서 분리됨
+ * ## 액션 카테고리
+ * - 플레이어/적 상태
+ * - 페이즈 관리
+ * - 카드 관리
+ * - 에테르/토큰
  */
 
 export const ACTIONS = {

@@ -1,6 +1,11 @@
 /**
- * 던전 기로(선택지) 시스템
- * 반복 선택, 스탯 기반 잠금, 결과 처리
+ * @file dungeonChoices.js
+ * @description 던전 기로(선택지) 시스템
+ *
+ * ## 기능
+ * - 반복 선택 지원
+ * - 스탯 기반 잠금
+ * - 결과 처리 (보상/패널티)
  */
 
 import { CHOICE_RESULT_TYPES } from '../data/dungeonNodes';
