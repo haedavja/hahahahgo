@@ -14,15 +14,6 @@
  * @property {Object[]} effects - 레벨별 효과
  */
 
-/**
- * 이변 타입 정의
- *
- * 발동 확률: mapRisk%
- * 강도 레벨: Math.floor(mapRisk / 25), 최대 4레벨
- * 일반 전투: 1개 발동
- * 보스 전투: 여러 개 발동 가능
- */
-
 export const ANOMALY_TYPES = {
   DEFLATION_CURSE: {
     id: 'deflation_curse',
