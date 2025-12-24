@@ -1,0 +1,203 @@
+/**
+ * @file dungeonHandlers.js
+ * @description 던전 오브젝트 상호작용 핸들러
+ * @typedef {import('../../../types').DungeonObject} DungeonObject
+ * @typedef {import('../../../types').ResourceReward} ResourceReward
+ *
+ * @typedef {Object} HandlerContext
+ * @property {Function} applyEtherDelta - 에테르 변경 함수
+ * @property {Function} addResources - 자원 추가 함수 (gold, material)
+ * @property {Object} actions - UI 액션 객체
+ * @property {Function} startBattle - 전투 시작 함수
+ * @property {number} segmentIndex - 현재 세그먼트 인덱스
+ * @property {string} currentRoomKey - 현재 방 키
+ * @property {Object} preBattleState - 전투 전 상태 참조
+ */
+
+import { getRandomEnemy } from '../../battle/battleData';
+import {
+  playRewardSound,
+  playDangerSound,
+  playChoiceAppearSound,
+} from '../../../lib/soundUtils';
+
+// ========== 이벤트 핸들러 ==========
+export const OBJECT_HANDLERS = {
+  chest: (obj, context) => {
+    obj.used = true;
+    playRewardSound();
+    // 특별 보물 (막다른 방)은 보상이 더 좋음
+    if (obj.isSpecial) {
+      const gold = 25 + Math.floor(Math.random() * 25); // 25-49
+      const material = 1 + Math.floor(Math.random() * 2); // 1-2
+      context.addResources({ gold, material });
+      context.actions.setMessage(`✨ 특별한 보물 상자! ${gold} 골드와 원자재 ${material}개를 획득했습니다!`);
+    } else {
+      const gold = 12 + Math.floor(Math.random() * 15); // 12-26
+      context.addResources({ gold });
+      context.actions.setMessage(`보물 상자에서 ${gold} 골드를 획득했습니다.`);
+    }
+  },
+
+  curio: (obj, context) => {
+    obj.used = true;
+    const isBad = Math.random() < 0.4; // 40% 나쁜 결과
+
+    if (isBad) {
+      playDangerSound();
+      const damage = 5 + Math.floor(Math.random() * 8); // 5-12 피해
+      context.actions.setMessage(`저주받은 상징이었습니다! ${damage} 피해를 입었습니다.`);
+      // 피해 처리는 별도 필요시 추가
+    } else {
+      playRewardSound();
+      const material = 2 + Math.floor(Math.random() * 3); // 2-4
+      context.addResources({ material });
+      context.actions.setMessage(`신비로운 상징에서 원자재 ${material}개를 획득했습니다!`);
+    }
+  },
+
+  combat: (obj, context) => {
+    obj.used = true;
+    playDangerSound();  // 적 조우 사운드
+
+    // 던전 깊이에 따른 적 티어 결정 (1-4)
+    const dungeonDepth = context.segmentIndex || 0;
+    const tier = Math.min(4, Math.max(1, Math.floor(dungeonDepth / 2) + 1));
+
+    // 티어 기반 랜덤 적 선택
+    const enemy = getRandomEnemy(tier);
+
+    // 전투 전 상태 저장 (오브젝트의 정확한 위치 저장)
+    context.preBattleState.current = {
+      roomKey: context.currentRoomKey, // 미로 시스템용
+      segmentIndex: context.segmentIndex,
+      playerX: obj.x, // 플레이어의 현재 위치가 아닌 오브젝트 위치로 복귀
+    };
+
+    context.startBattle({
+      nodeId: `dungeon-${context.currentRoomKey || context.segmentIndex}`,
+      kind: "combat",
+      label: enemy?.name || "던전 몬스터",
+      enemyId: enemy?.id,
+      tier,
+      rewards: {}, // 던전에서는 수동으로 보상 처리하므로 자동 보상 비활성화
+    });
+  },
+
+  // 기로 핸들러 - 선택지 모달 열기
+  crossroad: (obj, context) => {
+    playChoiceAppearSound();  // 선택지 등장 사운드
+    // 기로 모달 열기
+    context.actions.setCrossroadModal({
+      obj,
+      template: obj.template,
+      choiceState: obj.choiceState || {},
+    });
+  },
+
+  // === 자원 획득 오브젝트 ===
+  ore: (obj, context) => {
+    obj.used = true;
+    playRewardSound();
+    const material = 2 + Math.floor(Math.random() * 3); // 2-4
+    context.addResources({ material });
+    context.actions.setMessage(`광맥에서 원자재 ${material}개를 획득했습니다!`);
+  },
+
+  gold_pile: (obj, context) => {
+    obj.used = true;
+    playRewardSound();
+    const gold = 15 + Math.floor(Math.random() * 20); // 15-34
+    context.addResources({ gold });
+    context.actions.setMessage(`금화 더미에서 ${gold} 골드를 획득했습니다!`);
+  },
+
+  crate: (obj, context) => {
+    obj.used = true;
+    playRewardSound();
+    const gold = 5 + Math.floor(Math.random() * 10); // 5-14
+    const material = Math.random() < 0.5 ? 1 : 0;
+    context.addResources({ gold, material });
+    const msg = material > 0
+      ? `나무 상자에서 ${gold} 골드와 원자재 ${material}개를 획득했습니다!`
+      : `나무 상자에서 ${gold} 골드를 획득했습니다.`;
+    context.actions.setMessage(msg);
+  },
+
+  crystal: (obj, context) => {
+    obj.used = true;
+    playRewardSound();
+    const material = 3 + Math.floor(Math.random() * 3); // 3-5
+    context.addResources({ material });
+    context.actions.setMessage(`✨ 수정에서 원자재 ${material}개를 획득했습니다!`);
+  },
+
+  mushroom: (obj, context) => {
+    obj.used = true;
+    const isBad = Math.random() < 0.3;
+    if (isBad) {
+      playDangerSound();
+      context.actions.setMessage("독버섯이었습니다! 독이 퍼집니다...");
+      // 독 효과는 별도 처리 필요시 추가
+    } else {
+      playRewardSound();
+      const material = 1 + Math.floor(Math.random() * 2); // 1-2
+      context.addResources({ material });
+      context.actions.setMessage(`버섯에서 원자재 ${material}개를 획득했습니다.`);
+    }
+  },
+
+  corpse: (obj, context) => {
+    obj.used = true;
+    playRewardSound();
+    const gold = 8 + Math.floor(Math.random() * 12); // 8-19
+    const material = Math.random() < 0.3 ? 1 : 0;
+    context.addResources({ gold, material });
+    const msg = material > 0
+      ? `시체에서 ${gold} 골드와 원자재 ${material}개를 발견했습니다.`
+      : `시체에서 ${gold} 골드를 발견했습니다.`;
+    context.actions.setMessage(msg);
+  },
+
+  // 숏컷 핸들러 - 문 열기 또는 이동
+  shortcut: (obj, context) => {
+    const { actions, segmentIndex, dungeonData, setDungeonData } = context;
+
+    if (!obj.unlocked) {
+      if (obj.isOrigin) {
+        // 원본 문에서 열기
+        actions.setMessage("숏컷을 열었습니다! 이제 양방향으로 이동할 수 있습니다.");
+
+        // 양쪽 숏컷 모두 열기
+        const newDungeonData = dungeonData.map((seg, idx) => {
+          if (idx === segmentIndex || idx === obj.targetSegment) {
+            return {
+              ...seg,
+              objects: seg.objects.map(o => {
+                if (o.typeId === 'shortcut' && (o.targetSegment === obj.targetSegment || o.targetSegment === segmentIndex)) {
+                  return { ...o, unlocked: true };
+                }
+                return o;
+              }),
+            };
+          }
+          return seg;
+        });
+        setDungeonData(newDungeonData);
+      } else {
+        // 반대편 문 - 아직 잠김
+        actions.setMessage("잠긴 문입니다. 반대편에서 열어야 합니다.");
+      }
+    } else {
+      // 열린 숏컷으로 이동
+      const targetSeg = dungeonData[obj.targetSegment];
+      if (targetSeg) {
+        actions.setSegmentIndex(obj.targetSegment);
+        // 도착 세그먼트의 숏컷 위치 근처로 이동
+        const targetShortcut = targetSeg.objects.find(o => o.typeId === 'shortcut');
+        actions.setPlayerX(targetShortcut ? targetShortcut.x + 50 : 200);
+        actions.setMessage(`숏컷을 통해 이동했습니다!`);
+      }
+    }
+  },
+};

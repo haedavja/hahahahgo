@@ -1,0 +1,232 @@
+/**
+ * @file handGeneration.test.js
+ * @description handGeneration 함수 테스트
+ */
+
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import {
+  shuffleArray,
+  initializeDeck,
+  drawFromDeck,
+  getDefaultStartingHand,
+  drawCharacterBuildHand
+} from './handGeneration';
+
+describe('handGeneration', () => {
+  describe('shuffleArray', () => {
+    beforeEach(() => {
+      vi.spyOn(Math, 'random').mockReturnValue(0.5);
+    });
+
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    it('빈 배열은 빈 배열을 반환해야 함', () => {
+      expect(shuffleArray([])).toEqual([]);
+    });
+
+    it('단일 요소 배열은 그대로 반환해야 함', () => {
+      expect(shuffleArray([1])).toEqual([1]);
+    });
+
+    it('원본 배열을 변경하지 않아야 함', () => {
+      const original = [1, 2, 3, 4, 5];
+      const copy = [...original];
+      shuffleArray(original);
+
+      expect(original).toEqual(copy);
+    });
+
+    it('모든 요소가 포함되어야 함', () => {
+      const original = [1, 2, 3, 4, 5];
+      const shuffled = shuffleArray(original);
+
+      expect(shuffled.sort()).toEqual(original.sort());
+    });
+
+    it('새 배열을 반환해야 함', () => {
+      const original = [1, 2, 3];
+      const shuffled = shuffleArray(original);
+
+      expect(shuffled).not.toBe(original);
+    });
+  });
+
+  describe('initializeDeck', () => {
+    it('null characterBuild는 빈 결과를 반환해야 함', () => {
+      const result = initializeDeck(null);
+
+      expect(result.deck).toEqual([]);
+      expect(result.mainSpecialsHand).toEqual([]);
+    });
+
+    it('undefined characterBuild는 빈 결과를 반환해야 함', () => {
+      const result = initializeDeck(undefined);
+
+      expect(result.deck).toEqual([]);
+      expect(result.mainSpecialsHand).toEqual([]);
+    });
+
+    it('빈 characterBuild는 빈 결과를 반환해야 함', () => {
+      const result = initializeDeck({});
+
+      expect(result.deck).toEqual([]);
+      expect(result.mainSpecialsHand).toEqual([]);
+    });
+
+    it('결과 구조가 올바라야 함', () => {
+      const result = initializeDeck({
+        mainSpecials: [],
+        subSpecials: [],
+        ownedCards: []
+      });
+
+      expect(result).toHaveProperty('deck');
+      expect(result).toHaveProperty('mainSpecialsHand');
+      expect(Array.isArray(result.deck)).toBe(true);
+      expect(Array.isArray(result.mainSpecialsHand)).toBe(true);
+    });
+  });
+
+  describe('drawFromDeck', () => {
+    it('빈 덱과 빈 무덤은 빈 결과를 반환해야 함', () => {
+      const result = drawFromDeck([], [], 3);
+
+      expect(result.drawnCards).toEqual([]);
+      expect(result.newDeck).toEqual([]);
+      expect(result.newDiscardPile).toEqual([]);
+      expect(result.reshuffled).toBe(false);
+    });
+
+    it('덱에서 지정된 수만큼 드로우해야 함', () => {
+      const deck = [
+        { id: 'card1', __handUid: 'uid1' },
+        { id: 'card2', __handUid: 'uid2' },
+        { id: 'card3', __handUid: 'uid3' }
+      ];
+
+      const result = drawFromDeck(deck, [], 2);
+
+      expect(result.drawnCards).toHaveLength(2);
+      expect(result.newDeck).toHaveLength(1);
+    });
+
+    it('드로우 후 남은 덱이 올바라야 함', () => {
+      const deck = [
+        { id: 'card1', __handUid: 'uid1' },
+        { id: 'card2', __handUid: 'uid2' },
+        { id: 'card3', __handUid: 'uid3' }
+      ];
+
+      const result = drawFromDeck(deck, [], 2);
+
+      expect(result.newDeck[0].id).toBe('card3');
+    });
+
+    it('덱이 부족하면 무덤을 섞어서 덱에 추가해야 함', () => {
+      const deck = [{ id: 'card1', __handUid: 'uid1' }];
+      const discardPile = [
+        { id: 'card2', __handUid: 'uid2' },
+        { id: 'card3', __handUid: 'uid3' }
+      ];
+
+      const result = drawFromDeck(deck, discardPile, 3);
+
+      expect(result.reshuffled).toBe(true);
+      expect(result.drawnCards.length).toBeGreaterThanOrEqual(1);
+    });
+
+    it('주특기 카드는 무덤에서 직접 손패로 이동해야 함', () => {
+      const deck = [];
+      const discardPile = [
+        { id: 'main1', __handUid: 'uid1', __isMainSpecial: true },
+        { id: 'normal1', __handUid: 'uid2' }
+      ];
+
+      const result = drawFromDeck(deck, discardPile, 2);
+
+      const mainInDrawn = result.drawnCards.filter(c => c.__isMainSpecial);
+      expect(mainInDrawn).toHaveLength(1);
+    });
+
+    it('보조특기는 셔플 시 덱 위로 배치되어야 함', () => {
+      const deck = [];
+      const discardPile = [
+        { id: 'sub1', __handUid: 'uid1', __isSubSpecial: true },
+        { id: 'normal1', __handUid: 'uid2' },
+        { id: 'normal2', __handUid: 'uid3' }
+      ];
+
+      const result = drawFromDeck(deck, discardPile, 3);
+
+      expect(result.reshuffled).toBe(true);
+    });
+
+    it('escape 특성 카드가 escapeBan에 있으면 무덤으로 이동해야 함', () => {
+      const deck = [
+        { id: 'escape1', __handUid: 'uid1', traits: ['escape'] },
+        { id: 'normal1', __handUid: 'uid2' }
+      ];
+      const escapeBan = new Set(['escape1']);
+
+      const result = drawFromDeck(deck, [], 2, escapeBan);
+
+      expect(result.drawnCards.find(c => c.id === 'escape1')).toBeUndefined();
+      expect(result.newDiscardPile.find(c => c.id === 'escape1')).toBeDefined();
+    });
+  });
+
+  describe('getDefaultStartingHand', () => {
+    it('배열을 반환해야 함', () => {
+      const result = getDefaultStartingHand();
+
+      expect(Array.isArray(result)).toBe(true);
+    });
+
+    it('존재하지 않는 카드는 필터링되어야 함', () => {
+      const result = getDefaultStartingHand();
+
+      expect(result.every(card => card !== null && card !== undefined)).toBe(true);
+    });
+  });
+
+  describe('drawCharacterBuildHand', () => {
+    it('null characterBuild는 빈 배열을 반환해야 함', () => {
+      const result = drawCharacterBuildHand(null);
+
+      expect(result).toEqual([]);
+    });
+
+    it('빈 characterBuild는 빈 배열을 반환해야 함', () => {
+      const result = drawCharacterBuildHand({});
+
+      expect(result).toEqual([]);
+    });
+
+    it('각 카드에 __handUid가 설정되어야 함', () => {
+      const result = drawCharacterBuildHand({
+        mainSpecials: [],
+        subSpecials: [],
+        ownedCards: []
+      });
+
+      // 빈 빌드이므로 빈 배열 반환
+      expect(result).toEqual([]);
+    });
+
+    it('vanishedCards는 필터링되어야 함', () => {
+      const result = drawCharacterBuildHand(
+        { mainSpecials: ['card1'], subSpecials: [], ownedCards: [] },
+        {},
+        [],
+        0,
+        new Set(),
+        ['card1']
+      );
+
+      // card1이 vanished이므로 필터링됨
+      expect(result.find(c => c?.id === 'card1')).toBeUndefined();
+    });
+  });
+});

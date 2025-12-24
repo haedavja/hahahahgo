@@ -1,0 +1,196 @@
+/**
+ * @file turnEndCore.js
+ * @description 턴 종료 핵심 로직
+ * @typedef {import('../../../types').Card} Card
+ *
+ * battleExecution.js에서 분리됨
+ *
+ * ## 턴 종료 처리 흐름
+ * 1. 콤보 감지 및 에테르 계산
+ * 2. 카드 특성 효과 처리
+ * 3. 상징 턴 종료 효과 적용
+ * 4. 승리/패배 조건 확인
+ */
+
+import { detectPokerCombo } from '../utils/comboDetection';
+import { processCardTraitEffects } from '../utils/cardTraitEffects';
+import { calculateTurnEndEther, formatPlayerEtherLog, formatEnemyEtherLog } from '../utils/turnEndEtherCalculation';
+import { updateComboUsageCount, createTurnEndPlayerState, createTurnEndEnemyState, checkVictoryCondition } from '../utils/turnEndStateUpdate';
+import { playTurnEndRelicAnimations, applyTurnEndRelicEffectsToNextTurn } from '../utils/turnEndRelicEffectsProcessing';
+import { startEnemyEtherAnimation } from '../utils/enemyEtherAnimation';
+import { processEtherTransfer } from '../utils/etherTransferProcessing';
+import { processVictoryDefeatTransition } from '../utils/victoryDefeatTransition';
+import { applyTurnEndEffects } from '../../../lib/relicEffects';
+
+/**
+ * finishTurn 핵심 로직
+ */
+export function finishTurnCore(params) {
+  const {
+    reason,
+    player,
+    enemy,
+    battle,
+    battleRef,
+    selected,
+    enemyPlan,
+    queue,
+    turnEtherAccumulated,
+    enemyTurnEtherAccumulated,
+    finalComboMultiplier,
+    relics,
+    nextTurnEffects,
+    escapeBanRef,
+    escapeUsedThisTurnRef,
+    RELICS,
+    calculateEtherTransfer,
+    addLog,
+    playSound,
+    actions,
+  } = params;
+
+  addLog(`턴 종료: ${reason || ''}`);
+
+  // 턴소모 토큰 제거
+  actions.clearPlayerTurnTokens();
+  actions.clearEnemyTurnTokens();
+
+  // 탈주 카드 차단
+  escapeBanRef.current = new Set(escapeUsedThisTurnRef.current);
+  escapeUsedThisTurnRef.current = new Set();
+
+  // 다음 턴 효과 처리
+  const newNextTurnEffects = processCardTraitEffects(selected, addLog);
+
+  // 상징 턴 종료 효과
+  const turnEndRelicEffects = applyTurnEndEffects(relics, {
+    cardsPlayedThisTurn: battle.selected.length,
+    player,
+    enemy,
+  });
+
+  playTurnEndRelicAnimations({
+    relics,
+    RELICS,
+    cardsPlayedThisTurn: battle.selected.length,
+    player,
+    enemy,
+    playSound,
+    actions
+  });
+
+  const updatedNextTurnEffects = applyTurnEndRelicEffectsToNextTurn({
+    turnEndRelicEffects,
+    nextTurnEffects: newNextTurnEffects,
+    player,
+    addLog,
+    actions
+  });
+
+  actions.setNextTurnEffects(updatedNextTurnEffects);
+
+  // 조합 감지
+  const pComboEnd = detectPokerCombo(selected);
+  const eComboEnd = detectPokerCombo(enemyPlan.actions);
+
+  // 에테르 최종 계산
+  const latestPlayer = battleRef.current?.player || player;
+  const etherResult = calculateTurnEndEther({
+    playerCombo: pComboEnd,
+    enemyCombo: eComboEnd,
+    turnEtherAccumulated,
+    enemyTurnEtherAccumulated,
+    finalComboMultiplier,
+    player: latestPlayer,
+    enemy
+  });
+
+  const { player: playerEther, enemy: enemyEther } = etherResult;
+  const playerFinalEther = playerEther.finalEther;
+  const enemyFinalEther = enemyEther.finalEther;
+  const playerAppliedEther = playerEther.appliedEther;
+  const enemyAppliedEther = enemyEther.appliedEther;
+  const playerOverflow = playerEther.overflow;
+
+  // 로깅
+  if (playerFinalEther > 0) {
+    addLog(formatPlayerEtherLog(playerEther, turnEtherAccumulated));
+    actions.setEtherFinalValue(playerFinalEther);
+  }
+
+  if (enemyFinalEther > 0) {
+    addLog(formatEnemyEtherLog(enemyEther, enemyTurnEtherAccumulated));
+    startEnemyEtherAnimation({ enemyFinalEther, enemyEther, actions });
+  }
+
+  actions.setEnemyEtherFinalValue(enemyFinalEther);
+
+  // 에테르 이동
+  const curPlayerPts = player.etherPts || 0;
+  const curEnemyPts = enemy.etherPts || 0;
+
+  const effectivePlayerAppliedEther = player.etherBan ? 0 : playerAppliedEther;
+  if (player.etherBan && playerAppliedEther > 0) {
+    addLog('⚠️ [디플레이션의 저주] 에테르 획득이 차단되었습니다!');
+  }
+
+  const { nextPlayerPts, nextEnemyPts } = processEtherTransfer({
+    playerAppliedEther: effectivePlayerAppliedEther,
+    enemyAppliedEther,
+    curPlayerPts,
+    curEnemyPts,
+    enemyHp: enemy.hp,
+    calculateEtherTransfer,
+    addLog,
+    playSound,
+    actions
+  });
+
+  // 조합 사용 카운트 업데이트
+  const newUsageCount = updateComboUsageCount(player.comboUsageCount, pComboEnd, queue, 'player');
+  const newEnemyUsageCount = updateComboUsageCount(enemy.comboUsageCount, eComboEnd, [], 'enemy');
+
+  // 상태 업데이트
+  actions.setPlayer(createTurnEndPlayerState(player, {
+    comboUsageCount: newUsageCount,
+    etherPts: nextPlayerPts,
+    etherOverflow: playerOverflow,
+    etherMultiplier: 1
+  }));
+
+  const nextPts = Math.max(0, nextEnemyPts);
+  actions.setEnemy(createTurnEndEnemyState(enemy, {
+    comboUsageCount: newEnemyUsageCount,
+    etherPts: nextPts
+  }));
+
+  // 리셋
+  actions.setTurnEtherAccumulated(0);
+  actions.setEnemyTurnEtherAccumulated(0);
+  actions.setSelected([]);
+  actions.setQueue([]);
+  actions.setQIndex(0);
+  actions.setFixedOrder(null);
+  actions.setUsedCardIndices([]);
+  actions.setDisappearingCards([]);
+  actions.setHiddenCards([]);
+
+  // 승리/패배 체크
+  const transitionResult = processVictoryDefeatTransition({
+    enemy,
+    player,
+    nextEnemyPtsSnapshot: nextPts,
+    checkVictoryCondition,
+    actions
+  });
+
+  if (transitionResult.shouldReturn) {
+    return { shouldReturn: true };
+  }
+
+  actions.setTurnNumber(t => t + 1);
+  actions.setNetEtherDelta(null);
+  actions.setPhase('select');
+
+  return { shouldReturn: false };
+}
