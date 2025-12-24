@@ -999,6 +999,15 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     actions
   });
 
+  // 다중 타겟 선택 시스템 (커스텀 훅으로 분리) - useCardSelection보다 먼저 정의
+  const { handleConfirmDistribution, handleCancelDistribution, startDamageDistribution } = useMultiTargetSelection({
+    battlePendingDistributionCard: battle.pendingDistributionCard,
+    battleDamageDistribution: battle.damageDistribution,
+    enemyUnits,
+    addLog,
+    actions
+  });
+
   // 카드 선택 (커스텀 훅으로 분리)
   const { toggle, moveUp, moveDown } = useCardSelection({
     battlePhase: battle.phase,
@@ -1158,15 +1167,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     CARDS,
     battleRef,
     battleNextTurnEffects: battle.nextTurnEffects,
-    addLog,
-    actions
-  });
-
-  // 다중 타겟 선택 시스템 (커스텀 훅으로 분리)
-  const { handleConfirmDistribution, handleCancelDistribution, startDamageDistribution } = useMultiTargetSelection({
-    battlePendingDistributionCard: battle.pendingDistributionCard,
-    battleDamageDistribution: battle.damageDistribution,
-    enemyUnits,
     addLog,
     actions
   });
