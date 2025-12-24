@@ -1,5 +1,19 @@
-// 새로운 이벤트 시스템 - 다단계 대화 지원
-// 에테르(ether) → 은총화(grace)로 변경
+/**
+ * @file newEvents.js
+ * @description 다단계 이벤트 시스템
+ *
+ * ## 이벤트 구조
+ * - stages: 다단계 대화 지원
+ * - choices: 선택지
+ * - statRequirement: 스탯 요구조건
+ *
+ * ## 자원 변환
+ * - 에테르(ether) → 은총화(grace)
+ *
+ * @typedef {Object} EventStage
+ * @property {string} description - 단계 설명
+ * @property {Object[]} choices - 선택지
+ */
 
 console.log('=== newEvents.js LOADED (v2) ===');
 

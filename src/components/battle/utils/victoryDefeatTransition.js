@@ -1,7 +1,13 @@
 /**
- * victoryDefeatTransition.js
+ * @file victoryDefeatTransition.js
+ * @description 승리/패배 전환 시스템
  *
- * 승리/패배 체크 및 페이즈 전환 시스템
+ * ## 승리 조건
+ * - 적 HP 0 이하
+ * - 에테르 버스트 승리
+ *
+ * ## 패배 조건
+ * - 플레이어 HP 0 이하
  */
 
 /**

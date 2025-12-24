@@ -1,7 +1,12 @@
 /**
- * metaProgress.js
+ * @file metaProgress.js
+ * @description 메타 진행 시스템
  *
- * 메타 진행 시스템 - 런 간 영구 진행 상황 관리
+ * ## 영구 저장 데이터
+ * - 통계: 총 런, 클리어 횟수
+ * - 업적: 해금된 업적
+ * - 언락: 해금된 콘텐츠
+ *
  * localStorage에 저장되어 게임 재시작 후에도 유지됨
  */
 

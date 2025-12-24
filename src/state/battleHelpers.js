@@ -1,6 +1,12 @@
 /**
- * battleHelpers.js
- * 전투 관련 헬퍼 함수들
+ * @file battleHelpers.js
+ * @description 전투 관련 헬퍼 함수
+ *
+ * ## 기능
+ * - 전투 초기화
+ * - 적 생성
+ * - 손패 드로우
+ * - 전투 시뮬레이션
  */
 
 import { ENEMY_DECKS } from "../data/cards";

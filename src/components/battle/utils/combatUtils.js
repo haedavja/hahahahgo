@@ -1,8 +1,15 @@
-import { applyAgility } from '../../../lib/agilityUtils';
+/**
+ * @file combatUtils.js
+ * @description 전투 시퀀스 유틸리티
+ * @typedef {import('../../../types').Card} Card
+ *
+ * ## 기능
+ * - 플레이어/적 카드 속도 정렬
+ * - 타임라인 순서 결정
+ * - 민첩 스탯 적용
+ */
 
-// =====================
-// 전투 시퀀스 유틸리티
-// =====================
+import { applyAgility } from '../../../lib/agilityUtils';
 
 /**
  * 플레이어와 적의 카드를 속도 순서대로 정렬

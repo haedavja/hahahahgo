@@ -1,6 +1,23 @@
-// 아이템 데이터
-// usableIn: 'combat' = 전투 대응단계에서만, 'any' = 언제든지
-// duration: 'instant' = 즉시 효과, 'node' = 1노드 지속
+/**
+ * @file items.js
+ * @description 소모성 아이템 데이터
+ *
+ * ## 사용 시점
+ * - combat: 전투 대응단계에서만
+ * - any: 언제든지
+ *
+ * ## 지속시간
+ * - instant: 즉시 효과
+ * - node: 1노드 지속
+ *
+ * @typedef {Object} Item
+ * @property {string} id - 아이템 ID
+ * @property {string} name - 이름
+ * @property {string} icon - 아이콘
+ * @property {number} tier - 티어 (1-2)
+ * @property {'combat'|'any'} usableIn - 사용 시점
+ * @property {Object} effect - 효과
+ */
 
 export const ITEMS = {
   // === 에테르 증폭제 (에테르 획득량 배율 증가) ===

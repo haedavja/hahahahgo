@@ -1,7 +1,11 @@
 /**
- * enemyDeathProcessing.js
+ * @file enemyDeathProcessing.js
+ * @description 적 사망 처리 시스템
  *
- * 적 사망 처리 시스템
+ * ## 사망 처리
+ * - 남은 적 행동 스킵
+ * - 사망 애니메이션
+ * - 에테르 계산 트리거
  */
 
 /**

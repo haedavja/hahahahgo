@@ -1,7 +1,12 @@
 /**
- * cardOrdering.js
+ * @file cardOrdering.js
+ * @description 카드 순서 및 타임라인 유틸리티
+ * @typedef {import('../../../types').Card} Card
  *
- * 카드 순서 조정 및 타임라인 재계산 유틸리티
+ * ## 기능
+ * - fixedOrder 생성 (수동 순서)
+ * - 타임라인 재계산
+ * - 민첩 적용 속도 계산
  */
 
 import { applyAgility } from "../../../lib/agilityUtils";

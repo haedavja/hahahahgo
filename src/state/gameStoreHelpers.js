@@ -1,6 +1,11 @@
 /**
- * gameStoreHelpers.js
- * 게임 스토어에서 사용되는 유틸리티 함수들
+ * @file gameStoreHelpers.js
+ * @description 게임 스토어 유틸리티 함수
+ *
+ * ## 기능
+ * - 노드 클론/관리
+ * - 이벤트 처리
+ * - 보상 적용
  */
 
 import { NEW_EVENT_LIBRARY, EVENT_KEYS } from "../data/newEvents";

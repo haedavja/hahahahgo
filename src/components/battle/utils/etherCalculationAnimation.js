@@ -1,7 +1,12 @@
 /**
- * etherCalculationAnimation.js
+ * @file etherCalculationAnimation.js
+ * @description 에테르 계산 애니메이션 시스템
  *
- * 에테르 계산 애니메이션 시스템
+ * ## 애니메이션 시퀀스
+ * 1. 합계 강조
+ * 2. 콤보 배율 적용
+ * 3. 디플레이션 표시
+ * 4. 최종값 표시
  */
 
 import { COMBO_MULTIPLIERS } from "./etherCalculations";

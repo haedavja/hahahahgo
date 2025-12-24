@@ -1,7 +1,11 @@
 /**
- * etherAccumulationProcessing.js
+ * @file etherAccumulationProcessing.js
+ * @description 카드 사용 시 에테르 누적 처리
  *
- * 카드 사용 시 에테르 누적 처리 시스템
+ * ## 누적 처리
+ * - 카드 희귀도별 에테르 값
+ * - 상징 배율 적용
+ * - 턴 누적량 갱신
  */
 
 /**

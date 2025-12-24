@@ -1,7 +1,11 @@
 /**
- * relicActivationAnimation.js
+ * @file relicActivationAnimation.js
+ * @description 상징 발동 애니메이션 시스템
  *
- * 상징 발동 애니메이션 시스템
+ * ## 기능
+ * - 카드 사용 시 상징 발동 체크
+ * - 상징 발동 시퀀스 애니메이션
+ * - 플래시 효과
  */
 
 import { RELICS } from "../../../data/relics";

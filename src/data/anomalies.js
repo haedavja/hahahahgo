@@ -1,8 +1,17 @@
 /**
- * anomalies.js
+ * @file anomalies.js
+ * @description 이변(異變) 시스템 데이터
  *
- * 이변(異變) 시스템 데이터
- * 위험도(mapRisk)에 따라 전투 시작 시 발동되는 디버프 효과
+ * ## 이변 시스템
+ * - 발동 확률: mapRisk%
+ * - 강도: Math.floor(mapRisk / 25), 최대 4레벨
+ * - 일반 전투: 1개 발동
+ * - 보스 전투: 여러 개 발동
+ *
+ * @typedef {Object} Anomaly
+ * @property {string} id - 이변 ID
+ * @property {string} name - 이름
+ * @property {Object[]} effects - 레벨별 효과
  */
 
 /**

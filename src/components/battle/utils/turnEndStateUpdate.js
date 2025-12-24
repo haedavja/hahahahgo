@@ -1,7 +1,11 @@
 /**
- * turnEndStateUpdate.js
+ * @file turnEndStateUpdate.js
+ * @description 턴 종료 상태 업데이트 시스템
  *
- * 턴 종료 시 플레이어/적 상태 업데이트 시스템
+ * ## 기능
+ * - 조합 사용 카운트 업데이트
+ * - 플레이어/적 턴 종료 상태 생성
+ * - 에테르/디플레이션 상태 반영
  */
 
 /**

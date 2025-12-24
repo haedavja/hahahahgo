@@ -1,8 +1,18 @@
 /**
- * 상점 시스템 데이터
+ * @file shop.js
+ * @description 상점 시스템 데이터
  *
- * 화폐: 골드(gold)만 사용
- * 상점 종류: 고정 상점(던전 노드), 랜덤 상인(이벤트)
+ * ## 화폐
+ * - 골드(gold)만 사용
+ *
+ * ## 상점 종류
+ * - 고정 상점: 던전 노드
+ * - 랜덤 상인: 이벤트
+ *
+ * @typedef {Object} MerchantType
+ * @property {string} id - 상인 ID
+ * @property {string} name - 이름
+ * @property {Object} stock - 재고 설정
  */
 
 import { RELICS, RELIC_RARITIES } from './relics';

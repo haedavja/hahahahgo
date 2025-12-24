@@ -1,7 +1,12 @@
 /**
- * battleSimulation.js
+ * @file battleSimulation.js
+ * @description 전투 시뮬레이션 시스템
+ * @typedef {import('../../../types').Card} Card
  *
- * 전투 시뮬레이션 및 액션 처리 시스템
+ * ## 기능
+ * - 전투 결과 시뮬레이션 (미리보기용)
+ * - 공격/방어 액션 적용
+ * - 예상 피해량 계산
  */
 
 import { hasTrait } from "./battleUtils";

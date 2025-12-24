@@ -1,7 +1,10 @@
 /**
- * etherTransferProcessing.js
+ * @file etherTransferProcessing.js
+ * @description 에테르 전송 처리 및 애니메이션
  *
- * 에테르 전송 처리 및 애니메이션 시스템
+ * ## 에테르 전송
+ * - 획득량 차이로 이동량 결정
+ * - 사운드/시각 피드백
  */
 
 /**

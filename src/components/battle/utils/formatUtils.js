@@ -1,7 +1,10 @@
 /**
- * formatUtils.js
+ * @file formatUtils.js
+ * @description 숫자 포맷팅 유틸리티
  *
- * 숫자 포맷팅 유틸리티 함수
+ * ## 기능
+ * - 큰 숫자 축약 (K/M/B)
+ * - 숫자 표시 포맷팅
  */
 
 /**

@@ -1,7 +1,11 @@
 /**
- * eventAnimationProcessing.js
+ * @file eventAnimationProcessing.js
+ * @description 액션 이벤트 애니메이션/사운드 시스템
  *
- * 액션 이벤트 애니메이션 및 사운드 처리 시스템
+ * ## 기능
+ * - 화면 흔들림 효과
+ * - 피격/방어 사운드
+ * - 이벤트별 시각 피드백
  */
 
 /**

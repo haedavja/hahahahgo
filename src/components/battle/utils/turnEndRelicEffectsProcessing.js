@@ -1,7 +1,11 @@
 /**
- * turnEndRelicEffectsProcessing.js
+ * @file turnEndRelicEffectsProcessing.js
+ * @description 턴 종료 상징 효과 처리
  *
- * 턴 종료 시 상징 효과 처리 시스템
+ * ## 기능
+ * - 턴 종료 상징 발동 체크
+ * - 다음 턴 효과 적용
+ * - 발동 애니메이션 재생
  */
 
 /**

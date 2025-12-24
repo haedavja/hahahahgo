@@ -1,7 +1,10 @@
 /**
- * enemyEtherAnimation.js
+ * @file enemyEtherAnimation.js
+ * @description 적 에테르 계산 애니메이션
  *
- * 적 에테르 계산 애니메이션 시스템
+ * ## 적 에테르 표시
+ * - 합계/배율/최종값 순서
+ * - 디플레이션 표시
  */
 
 /**

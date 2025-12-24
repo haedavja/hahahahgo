@@ -1,7 +1,12 @@
 /**
- * turnEndEtherCalculation.js
+ * @file turnEndEtherCalculation.js
+ * @description 턴 종료 에테르 최종 계산 시스템
  *
- * 턴 종료 시 에테르 최종 계산 시스템
+ * ## 계산 흐름
+ * 1. 기본 에테르 × 콤보 배율
+ * 2. 디플레이션 적용
+ * 3. 범람 체크 (최대치 초과분)
+ * 4. 플레이어/적 각각 계산
  */
 
 import { COMBO_MULTIPLIERS, applyEtherDeflation } from "./etherCalculations";

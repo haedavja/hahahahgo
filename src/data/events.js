@@ -1,13 +1,18 @@
 /**
- * 이벤트 라이브러리
+ * @file events.js
+ * @description 이벤트 라이브러리
  *
- * 구조 설명:
+ * ## 이벤트 구조
  * - steps: 다단계 이벤트
  *   - 각 step에 description, choices
- *   - choice.next: 다음 단계로 이동
- *   - choice.final: true면 결과 처리 후 종료
+ *   - choice.next: 다음 단계 이동
+ *   - choice.final: 결과 처리 후 종료
+ * - choices만 있으면 단일 단계 (레거시 호환)
  *
- * - choices만 있으면 단일 단계 이벤트 (기존 방식 호환)
+ * @typedef {Object} Event
+ * @property {string} id - 이벤트 ID
+ * @property {Object[]} steps - 단계 배열
+ * @property {Object[]} choices - 선택지 (단일 단계용)
  */
 
 export const eventLibrary = {

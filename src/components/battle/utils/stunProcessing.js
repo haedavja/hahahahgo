@@ -1,7 +1,10 @@
 /**
- * stunProcessing.js
+ * @file stunProcessing.js
+ * @description 기절(stun) 효과 처리 시스템
  *
- * 기절(stun) 효과 처리 시스템
+ * ## 기절 효과
+ * - 타임라인 범위 내 적 카드 취소
+ * - 범위: STUN_RANGE (5)
  */
 
 export const STUN_RANGE = 5; // 기절 효과 범위(타임라인 기준)

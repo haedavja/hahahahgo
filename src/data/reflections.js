@@ -1,9 +1,18 @@
 /**
- * reflections.js
+ * @file reflections.js
+ * @description 개성과 성찰 시스템 정의
  *
- * 개성(Personality Traits)과 성찰(Reflection) 시스템 정의
- * 자아를 얻으면 성찰 능력이 활성화되며,
- * 개성 조합에 따라 매 턴 확률적으로 긍정 효과 발동
+ * ## 개성 (Personality Traits)
+ * - 용맹함, 열정적, 냉철함, 철저함, 활력적, 굳건함
+ *
+ * ## 성찰 (Reflection)
+ * - 자아 획득 시 활성화
+ * - 개성 조합에 따라 매 턴 확률적 효과 발동
+ *
+ * @typedef {Object} Reflection
+ * @property {string} id - 성찰 ID
+ * @property {string[]} requiredTraits - 필요 개성
+ * @property {Object} effects - 효과
  */
 
 // 한국어 개성 이름 → 영어 ID 매핑
