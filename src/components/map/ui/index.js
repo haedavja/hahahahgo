@@ -1,6 +1,6 @@
 /**
- * map/ui/index.js
- * 맵 UI 컴포넌트 re-export
+ * @file index.js
+ * @description 맵 UI 컴포넌트 re-export
  */
 
 export { RelicsBar } from './RelicsBar';

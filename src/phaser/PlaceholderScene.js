@@ -1,3 +1,12 @@
+/**
+ * @file PlaceholderScene.js
+ * @description Phaser 플레이스홀더 씬
+ *
+ * ## 용도
+ * - 개발 중 임시 화면
+ * - mapRisk 실시간 표시
+ */
+
 import Phaser from "phaser";
 import { useGameStore } from "../state/gameStore";
 

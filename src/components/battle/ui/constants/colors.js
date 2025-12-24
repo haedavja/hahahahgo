@@ -1,7 +1,11 @@
 /**
- * colors.js
+ * @file colors.js
+ * @description UI 공통 색상 상수
  *
- * UI 컴포넌트에서 사용되는 공통 색상 상수
+ * ## 색상 카테고리
+ * - DEFLATION: 감쇄 효과
+ * - PLAYER_SLOT: 에테르 슬롯 (보색 배치)
+ * - BLOCK: 방어 관련
  */
 
 // Deflation (감쇄) 관련 색상

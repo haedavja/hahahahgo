@@ -1,3 +1,13 @@
+/**
+ * @file useGameState.js
+ * @description 게임 전역 상태 및 맵 생성 시스템
+ *
+ * ## 맵 구조
+ * - 11개 레이어, 7개 컬럼
+ * - 레이어당 2-4개 노드
+ * - 시작/보스 노드는 중앙 고정
+ */
+
 import { DEFAULT_STARTING_DECK } from '../components/battle/battleData';
 
 const MAP_COLUMNS = 7;

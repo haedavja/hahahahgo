@@ -1,5 +1,10 @@
 /**
- * Vitest 테스트 셋업 파일
+ * @file setup.js
+ * @description Vitest 테스트 셋업
+ *
+ * ## 전역 모킹
+ * - ResizeObserver
+ * - AudioContext
  */
 import '@testing-library/jest-dom';
 

@@ -1,6 +1,6 @@
 /**
- * tabs/index.js
- * 모든 DevTools 탭 컴포넌트를 re-export
+ * @file index.js
+ * @description DevTools 탭 컴포넌트 re-export
  */
 
 export { ResourcesTab } from './ResourcesTab';

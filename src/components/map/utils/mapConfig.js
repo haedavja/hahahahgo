@@ -1,6 +1,10 @@
 /**
- * mapConfig.js
- * 맵 관련 상수 및 유틸리티 함수
+ * @file mapConfig.js
+ * @description 맵 상수 및 유틸리티
+ *
+ * ## 레이아웃
+ * - 960px 너비, 11개 레이어
+ * - 노드: 96x100px
  */
 
 // 레이아웃 상수

@@ -1,8 +1,11 @@
 /**
- * useCharacterSheet.js
+ * @file useCharacterSheet.js
+ * @description 캐릭터 시트 상태 관리 훅
  *
- * 캐릭터 시트 상태 관리 훅
- * CharacterSheet.jsx에서 분리됨
+ * ## 기능
+ * - 덱/카드 관리
+ * - 개성 효과 계산
+ * - 성찰 시스템 연동
  */
 
 import { useState, useEffect, useMemo } from "react";

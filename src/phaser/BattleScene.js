@@ -1,3 +1,13 @@
+/**
+ * @file BattleScene.js
+ * @description Phaser 전투 씬
+ *
+ * ## 기능
+ * - 전투 상태 실시간 표시
+ * - 타임라인/핸드 정보 렌더링
+ * - gameStore 구독 및 업데이트
+ */
+
 import Phaser from "phaser";
 import { useGameStore } from "../state/gameStore";
 
