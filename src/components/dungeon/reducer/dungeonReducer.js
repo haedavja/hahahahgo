@@ -1,7 +1,16 @@
 /**
- * Dungeon Reducer
+ * @file dungeonReducer.js
+ * @description 던전 탐험 상태 관리 Reducer
+ * @typedef {import('../../../types').DungeonObject} DungeonObject
  *
  * DungeonExploration의 9개 useState를 단일 reducer로 통합
+ *
+ * ## 상태 구조
+ * - segmentIndex: 현재 세그먼트 인덱스
+ * - playerX: 플레이어 X 좌표
+ * - cameraX: 카메라 X 좌표
+ * - message: 화면 메시지
+ * - rewardModal/crossroadModal: 모달 상태
  */
 
 export const ACTIONS = {

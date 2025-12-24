@@ -1,10 +1,18 @@
+/**
+ * @file useDungeonState.js
+ * @description 던전 탐험 상태 관리 Hook
+ * @typedef {import('../../../types').DungeonObject} DungeonObject
+ */
+
 import { useReducer, useMemo } from 'react';
 import { dungeonReducer, createInitialState, ACTIONS } from '../reducer/dungeonReducer';
 
 /**
  * useDungeonState Hook
- *
  * 던전 탐험 상태 관리를 위한 커스텀 Hook
+ *
+ * @param {Object} [initialStateOverrides={}] - 초기 상태 오버라이드
+ * @returns {{dungeon: Object, actions: Object}} 던전 상태와 액션
  */
 export function useDungeonState(initialStateOverrides = {}) {
   const [dungeon, dispatch] = useReducer(

@@ -1,7 +1,13 @@
 /**
- * tokenEffects.js
+ * @file tokenEffects.js
+ * @description 토큰 효과 적용 로직
+ * @typedef {import('../types').Card} Card
+ * @typedef {import('../types').Token} Token
  *
- * 토큰 효과 적용 로직
+ * ## 효과 적용 시점
+ * - applyTokenEffectsToCard: 카드 사용 전 (공격력/방어력 수정)
+ * - applyTokenEffectsOnDamage: 피해 계산 시
+ * - consumeTokens: 효과 적용 후 토큰 소모
  */
 
 import { getAllTokens, removeToken } from './tokenUtils';

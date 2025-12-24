@@ -1,4 +1,25 @@
-﻿import { create } from "zustand";
+﻿/**
+ * @file gameStore.js
+ * @description 메인 게임 상태 저장소 (Zustand)
+ * @typedef {import('../types').GameState} GameState
+ * @typedef {import('../types').Resources} Resources
+ * @typedef {import('../types').Card} Card
+ *
+ * ## 주요 상태
+ * - player: 플레이어 스탯 (hp, maxHp, gold, material 등)
+ * - map: 맵 노드 정보
+ * - activeBattle: 현재 전투 정보
+ * - characterBuild: 덱 구성 (주특기, 보조특기, 카드)
+ * - orderedRelics: 장착된 상징 목록
+ *
+ * ## 주요 액션
+ * - selectNode: 맵 노드 선택
+ * - startBattle: 전투 시작
+ * - endBattle: 전투 종료
+ * - addResources: 자원 추가
+ */
+
+import { create } from "zustand";
 import { NEW_EVENT_LIBRARY } from "../data/newEvents";
 import { createInitialState } from "./useGameState";
 import { CARDS, ENEMIES, getRandomEnemy } from "../components/battle/battleData";

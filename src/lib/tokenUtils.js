@@ -1,7 +1,19 @@
 /**
- * tokenUtils.js
+ * @file tokenUtils.js
+ * @description 토큰 시스템 관리 유틸리티 함수
+ * @typedef {import('../types').Token} Token
+ * @typedef {import('../types').TokenTarget} TokenTarget
  *
- * 토큰 시스템 관리 유틸리티 함수
+ * ## 토큰 시스템 개요
+ * 토큰은 전투 중 캐릭터에게 부여되는 상태 효과
+ *
+ * ## 토큰 타입
+ * - usage: 사용 소모 (1회 사용 후 소멸)
+ * - turn: 턴 소모 (해당 턴 동안 지속)
+ * - permanent: 반영구 (전투 중 지속)
+ *
+ * ## 상쇄 시스템
+ * 일부 토큰은 반대 토큰과 상쇄됨 (예: 공세 ↔ 약화)
  */
 
 import { TOKENS, TOKEN_TYPES, TOKEN_CATEGORIES, TOKEN_CANCELLATION_MAP, GUN_JAM_REMOVES } from '../data/tokens';

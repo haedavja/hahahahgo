@@ -1,8 +1,14 @@
 /**
- * enemyPatterns.js
+ * @file enemyPatterns.js
+ * @description 몬스터별 행동 패턴 정의
+ * @typedef {import('../types').Enemy} Enemy
  *
- * 몬스터별 행동 패턴 정의
  * 동시턴제에서 플레이어가 패턴을 읽고 대응하는 재미 제공
+ *
+ * ## 패턴 타입
+ * - cycle: 고정 순환 (턴 % 패턴길이)
+ * - phase: HP 기반 페이즈 전환
+ * - random: 랜덤 (기본값)
  *
  * 상세 계획: docs/AI_IMPROVEMENT_PLAN.md 참조
  */

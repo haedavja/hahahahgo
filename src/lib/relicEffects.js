@@ -1,5 +1,14 @@
 /**
- * 상징 효과 처리 유틸리티
+ * @file relicEffects.js
+ * @description 상징 효과 처리 유틸리티
+ * @typedef {import('../types').Relic} Relic
+ * @typedef {import('../types').RelicEffect} RelicEffect
+ *
+ * ## 효과 타입
+ * - PASSIVE: 항상 적용 (스탯 증가 등)
+ * - ON_COMBAT_START: 전투 시작 시
+ * - ON_TURN_START: 턴 시작 시
+ * - ON_CARD_PLAYED: 카드 사용 시
  */
 
 import { getRelicById } from '../data/relics';
