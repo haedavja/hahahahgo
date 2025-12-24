@@ -57,7 +57,7 @@ export const STAT_LABELS = {
 };
 
 // 패치 버전 태그
-export const PATCH_VERSION_TAG = "12-18-04:55";
+export const PATCH_VERSION_TAG = "12-24-20:48";
 
 // 유틸리티 함수들
 export const describeAmount = (value) => {
