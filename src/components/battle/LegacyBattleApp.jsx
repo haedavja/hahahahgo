@@ -511,6 +511,32 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const explainComboMultiplier = useCallback((baseMult, cardsCount, includeFiveCard = true, includeRefBook = true, relicOrderOverride = null) => {
     return explainComboMultiplierUtil(baseMult, cardsCount, includeFiveCard, includeRefBook, relicOrderOverride, orderedRelicList);
   }, [orderedRelicList]);
+
+  // 효과음 재생 함수 (useCallback으로 안정적인 참조 유지)
+  const playSound = useCallback((frequency = 800, duration = 100) => {
+    try {
+      // eslint-disable-next-line no-undef
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      const audioContext = new AudioContextClass();
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+
+      oscillator.frequency.value = frequency;
+      oscillator.type = 'sine';
+
+      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration / 1000);
+
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + duration / 1000);
+    } catch (e) {
+      // 효과음 재생 실패 시 무시
+    }
+  }, []);
+
   const flashRelic = (relicId, tone = 800, duration = 500) => {
     const nextSet = new Set(activeRelicSet);
     nextSet.add(relicId);
@@ -992,31 +1018,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     addLog,
     actions
   });
-
-  // 효과음 재생 함수 (useCallback으로 안정적인 참조 유지)
-  const playSound = useCallback((frequency = 800, duration = 100) => {
-    try {
-      // eslint-disable-next-line no-undef
-      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-      const audioContext = new AudioContextClass();
-      const oscillator = audioContext.createOscillator();
-      const gainNode = audioContext.createGain();
-
-      oscillator.connect(gainNode);
-      gainNode.connect(audioContext.destination);
-
-      oscillator.frequency.value = frequency;
-      oscillator.type = 'sine';
-
-      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration / 1000);
-
-      oscillator.start(audioContext.currentTime);
-      oscillator.stop(audioContext.currentTime + duration / 1000);
-    } catch (e) {
-      // 효과음 재생 실패 시 무시
-    }
-  }, []);
 
   // 패 관리 (커스텀 훅으로 분리)
   const { redrawHand, cycleSortType, getSortedHand } = useHandManagement({
