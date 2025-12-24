@@ -280,7 +280,10 @@ export function applyTokenEffectsOnEnergy(baseEnergy, entity) {
  * @returns {number} 힘 보너스
  */
 export function getTotalStrength(entity) {
-  if (!entity || !entity.tokens) {
+  if (!entity) {
+    return 0;
+  }
+  if (!entity.tokens) {
     return entity.strength || 0;
   }
 
@@ -303,7 +306,10 @@ export function getTotalStrength(entity) {
  * @returns {number} 민첩 보너스
  */
 export function getTotalAgility(entity) {
-  if (!entity || !entity.tokens) {
+  if (!entity) {
+    return 0;
+  }
+  if (!entity.tokens) {
     return entity.agility || 0;
   }
 
