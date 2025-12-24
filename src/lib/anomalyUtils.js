@@ -40,11 +40,8 @@ export function getAnomalyLevel(mapRisk) {
  * @returns {Array} 선택된 이변 배열 [{ anomaly, level }]
  */
 export function selectBattleAnomalies(mapRisk, isBoss = false, devForcedAnomalies = null) {
-  console.log('[selectBattleAnomalies]', { mapRisk, isBoss, devForcedAnomalies });
-
   // 개발자 모드: 강제 이변 적용
   if (devForcedAnomalies && devForcedAnomalies.length > 0) {
-    console.log('[Dev Mode] Forcing anomalies:', devForcedAnomalies);
     return devForcedAnomalies.map(({ anomalyId, level }) => {
       const anomaly = Object.values(ANOMALY_TYPES).find(a => a.id === anomalyId);
       if (!anomaly) {
@@ -52,23 +49,20 @@ export function selectBattleAnomalies(mapRisk, isBoss = false, devForcedAnomalie
         return null;
       }
       return { anomaly, level };
-    }).filter(Boolean); // Remove null entries
+    }).filter(Boolean);
   }
 
-  // 디버그: 임시로 항상 발동 (mapRisk >= 50일 때)
+  // mapRisk >= 50일 때 항상 발동
   const forceOccur = mapRisk >= 50;
 
   // 이변 발동 체크
   const willOccur = forceOccur || checkAnomalyOccurrence(mapRisk);
-  console.log('[Anomaly Occurrence Check]', { mapRisk, probability: mapRisk / 100, willOccur, forceOccur });
 
   if (!willOccur) {
-    console.log('[Anomaly] Not occurring');
     return [];
   }
 
   const level = getAnomalyLevel(mapRisk);
-  console.log('[Anomaly Level]', { mapRisk, level });
 
   if (isBoss) {
     // 보스 전투: 여러 개 발동 가능 (레벨에 따라 1-3개)

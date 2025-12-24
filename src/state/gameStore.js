@@ -83,8 +83,6 @@ export const useGameStore = create((set, get) => ({
         if (etherGain > 0) {
           const newEtherPts = currentEther + etherGain;
           updatedResources = { ...state.resources, etherPts: newEtherPts };
-          // 이동 시 발동 로그/피드백
-          console.log(`🧭 황금 나침반 발동: +${etherGain}pt (총 ${newEtherPts}pt)`);
         }
       } catch (error) {
         console.error('Error applying node move ether:', error);
@@ -434,7 +432,6 @@ export const useGameStore = create((set, get) => ({
           ([stat, required]) => (playerStats[stat] ?? 0) >= required
         );
         if (!meetsRequirements) {
-          console.log('[chooseEvent] 스탯 요구사항 미달:', choice.statRequirement, '보유:', playerStats);
           return state;
         }
       }
@@ -469,7 +466,6 @@ export const useGameStore = create((set, get) => ({
             const randomIndex = Math.floor(Math.random() * availableCards.length);
             const selectedCard = availableCards.splice(randomIndex, 1)[0];
             newOwnedCards.push(selectedCard.id);
-            console.log(`[Event] 카드 획득 (대기 카드): ${selectedCard.name} (${selectedCard.id})`);
           }
         }
       }
@@ -1381,7 +1377,6 @@ export const useGameStore = create((set, get) => ({
         console.warn(`[devTriggerEvent] Event not found: ${eventId}`);
         return state;
       }
-      console.log('[devTriggerEvent] Triggering event:', eventId, definition);
       return {
         ...state,
         activeEvent: {
@@ -1412,7 +1407,6 @@ export const useGameStore = create((set, get) => ({
         return state;
       }
       items[emptySlot] = item;
-      console.log(`[addItem] Added ${item.name} to slot ${emptySlot}`);
       return { ...state, items };
     }),
 
@@ -1455,7 +1449,6 @@ export const useGameStore = create((set, get) => ({
           const maxHp = state.maxHp ?? 100;
           const newHp = Math.min(maxHp, (state.playerHp ?? 0) + effect.value);
           updates.playerHp = newHp;
-          console.log(`[useItem] ${item.name}: 체력 ${effect.value} 회복 (현재: ${newHp})`);
           break;
         }
         case 'healPercent': {
@@ -1463,7 +1456,6 @@ export const useGameStore = create((set, get) => ({
           const healAmount = Math.floor(maxHp * effect.value / 100);
           const newHp = Math.min(maxHp, (state.playerHp ?? 0) + healAmount);
           updates.playerHp = newHp;
-          console.log(`[useItem] ${item.name}: 체력 ${effect.value}% (${healAmount}) 회복 (현재: ${newHp})`);
           break;
         }
         case 'statBoost': {
@@ -1471,7 +1463,6 @@ export const useGameStore = create((set, get) => ({
           const newBuffs = { ...(state.itemBuffs || {}) };
           newBuffs[effect.stat] = (newBuffs[effect.stat] || 0) + effect.value;
           updates.itemBuffs = newBuffs;
-          console.log(`[useItem] ${item.name}: ${effect.stat} +${effect.value} (1노드)`);
           break;
         }
         case 'etherMultiplier':
@@ -1484,8 +1475,6 @@ export const useGameStore = create((set, get) => ({
         case 'cardDestroy':
         case 'cardFreeze': {
           // 전투용 아이템 - battleContext에 효과 전달
-          // 실제 효과는 전투 시스템에서 처리
-          console.log(`[useItem] ${item.name}: 전투 효과 발동 - ${effect.type}: ${effect.value}`);
           // 전투 아이템 효과는 별도로 activeBattle에 저장
           if (state.activeBattle) {
             const battle = { ...state.activeBattle };

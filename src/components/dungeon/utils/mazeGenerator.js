@@ -25,7 +25,6 @@ import { OBSTACLE_TEMPLATES } from '../../../data/dungeonNodes';
 export function getRandomCrossroadTemplate(forcedTemplateId = null) {
   // 강제 템플릿이 지정된 경우
   if (forcedTemplateId && OBSTACLE_TEMPLATES[forcedTemplateId]) {
-    console.log('[Dungeon] 강제 기로 템플릿 사용:', forcedTemplateId);
     return { ...OBSTACLE_TEMPLATES[forcedTemplateId] };
   }
   const templates = Object.keys(OBSTACLE_TEMPLATES);
@@ -285,8 +284,6 @@ export function generateMaze(forcedCrossroadId = null) {
   // 최소 전투 보장
   ensureMazeMinimumCombats(grid, CONFIG.MIN_COMBAT_COUNT);
 
-  console.log('[Maze] 생성 완료 - 방 개수:', Object.keys(grid).length);
-
   return {
     grid,
     startKey: getKey(startX, startY),
@@ -401,8 +398,6 @@ export function generateDungeon(forcedCrossroadId = null) {
     }
   }
 
-  console.log('[Dungeon] 생성 - 세그먼트 수:', count, '기로 위치:', [...crossroadSegments], '숏컷:', shortcutPairs);
-
   for (let i = 0; i < count; i++) {
     const isRoom = i % 2 === 1;
     const width = isRoom ? CONFIG.ROOM_WIDTH : CONFIG.CORRIDOR_WIDTH;
@@ -413,7 +408,6 @@ export function generateDungeon(forcedCrossroadId = null) {
     // 기로 추가 (복도 세그먼트에)
     if (crossroadSegments.has(i)) {
       const template = getRandomCrossroadTemplate(forcedCrossroadId);
-      console.log('[Dungeon] 기로 추가 - 세그먼트:', i, '템플릿:', template.name);
       objects.push({
         id: `crossroad_${i}`,
         typeId: "crossroad",

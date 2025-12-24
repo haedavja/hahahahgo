@@ -30,13 +30,6 @@ export function applyTokenEffectsToCard(card, entity, cardType) {
   const consumedTokens = [];
   const allTokens = getAllTokens(entity);
 
-  console.log('[applyTokenEffectsToCard]', {
-    cardName: card.name,
-    cardType,
-    allTokens,
-    entityTokens: entity.tokens
-  });
-
   // 빈탄창 체크 (총기 카드는 빈탄창 상태에서 데미지 0)
   if (cardType === 'attack' && card.cardCategory === 'gun') {
     const hasEmptyChamber = allTokens.some(t => t.effect?.type === 'EMPTY_CHAMBER');
@@ -44,7 +37,6 @@ export function applyTokenEffectsToCard(card, entity, cardType) {
 
     // 빈탄창이 있고 장전이 없으면 데미지 0
     if (hasEmptyChamber && !hasLoaded) {
-      console.log('[EMPTY_CHAMBER] 빈탄창 상태로 총기 카드 데미지 0');
       modifiedCard.damage = 0;
       return { modifiedCard, consumedTokens: [] };
     }
@@ -74,12 +66,6 @@ export function applyTokenEffectsToCard(card, entity, cardType) {
 
     // 턴소모 토큰 (모든 공격 카드에 적용)
     allTokens.forEach(token => {
-      console.log('[ATTACK_BOOST check]', {
-        tokenName: token.name,
-        durationType: token.durationType,
-        effectType: token.effect?.type,
-        match: token.durationType === 'turn' && token.effect?.type === 'ATTACK_BOOST'
-      });
       if (token.durationType === 'turn' && token.effect.type === 'ATTACK_BOOST') {
         damageBoost += token.effect.value * (token.stacks || 1);
       }
@@ -95,9 +81,7 @@ export function applyTokenEffectsToCard(card, entity, cardType) {
     }
 
     if (damageBoost > 0) {
-      const oldDamage = modifiedCard.damage;
       modifiedCard.damage = Math.round(modifiedCard.damage * (1 + damageBoost));
-      console.log('[DAMAGE BOOST]', { oldDamage, damageBoost, newDamage: modifiedCard.damage });
     }
   }
 

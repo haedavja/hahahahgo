@@ -133,7 +133,6 @@ export function EventTab() {
                 <button
                   onClick={() => {
                     devTriggerEvent(event.id);
-                    console.log(`[EventTab] Triggered event: ${event.id}`);
                   }}
                   style={{
                     padding: '8px 16px',

@@ -15,8 +15,6 @@
  * @property {Object[]} choices - 선택지
  */
 
-console.log('=== newEvents.js LOADED (v2) ===');
-
 export const NEW_EVENT_LIBRARY = {
   // === 자원 이벤트 - 복합 자원 ===
   "broken-ai": {
