@@ -1,3 +1,14 @@
+/**
+ * @file useResolveExecution.js
+ * @description 진행(resolve) 단계 실행 훅
+ * @typedef {import('../../../types').Card} Card
+ *
+ * ## 제공 기능
+ * - finishTurn: 턴 종료 처리
+ * - runAll: 전체 큐 실행
+ * - stepOnce: 단일 액션 실행
+ */
+
 import { useCallback } from 'react';
 import { detectPokerCombo } from '../utils/comboDetection';
 import { clearTurnTokens } from '../../../lib/tokenUtils';
@@ -17,7 +28,7 @@ import { RELICS } from '../../../data/relics';
 
 /**
  * 진행(resolve) 단계 실행 훅
- * finishTurn, runAll 기능 제공
+ * @returns {{finishTurn: Function, runAll: Function, stepOnce: Function}}
  */
 export function useResolveExecution({
   battle,

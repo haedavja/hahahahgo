@@ -1,8 +1,21 @@
+/**
+ * @file useRelicDrag.js
+ * @description 상징 드래그 앤 드롭 훅
+ *
+ * ## 기능
+ * - 상징 순서 드래그 재배치
+ * - 드래그 시각 피드백
+ * - 드롭 영역 하이라이트
+ */
+
 import { useRef, useCallback } from 'react';
 
 /**
  * 상징 드래그 앤 드롭 훅
- * 상징 순서 재배치를 위한 드래그 이벤트 핸들러 제공
+ * @param {Object} params
+ * @param {string[]} params.orderedRelicList - 보유 상징 목록
+ * @param {Object} params.actions - 상태 업데이트 액션
+ * @returns {{handleRelicDragStart: Function, handleRelicDragOver: Function, handleRelicDrop: Function, handleRelicDragEnd: Function}}
  */
 export function useRelicDrag({ orderedRelicList, actions }) {
   const dragRelicIndexRef = useRef(null);

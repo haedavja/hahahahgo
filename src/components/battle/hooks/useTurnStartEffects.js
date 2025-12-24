@@ -1,3 +1,22 @@
+/**
+ * @file useTurnStartEffects.js
+ * @description 턴 시작 효과 처리 훅
+ * @typedef {import('../../../types').Card} Card
+ *
+ * ## 턴 시작 처리 순서
+ * 1. 상징 턴 시작 효과 (피피한 갑옷 등)
+ * 2. 성찰 효과 처리 (자아 보유 시)
+ * 3. 에너지/체력/방어력 보너스 적용
+ * 4. 적 패시브 효과 (회복, 힘 증가 등)
+ * 5. 손패 생성 (덱에서 드로우)
+ * 6. 적 성향/행동 계획 생성
+ *
+ * ## 적 패시브 효과
+ * - veilAtStart: 첫 턴 장막 부여
+ * - healPerTurn: 매턴 체력 회복
+ * - strengthPerTurn: 매턴 힘 증가
+ */
+
 import { useEffect } from 'react';
 import { RELICS } from '../../../data/relics';
 import { applyTurnStartEffects, calculatePassiveEffects } from '../../../lib/relicEffects';
@@ -11,11 +30,24 @@ import { DEFAULT_PLAYER_MAX_SPEED, DEFAULT_DRAW_COUNT, CARDS } from '../battleDa
 
 /**
  * 턴 시작 효과 처리 훅
- * - 상징 턴 시작 효과
- * - 성찰 효과 처리
- * - 적 패시브 효과 처리
- * - 손패 생성
- * - 적 성향/행동 계획
+ * @param {Object} params
+ * @param {Object} params.battle - 전투 상태
+ * @param {Object} params.player - 플레이어 상태
+ * @param {Object} params.enemy - 적 상태
+ * @param {Object} params.enemyPlan - 적 행동 계획
+ * @param {Object} params.nextTurnEffects - 다음 턴 효과
+ * @param {number} params.turnNumber - 현재 턴 번호
+ * @param {number} params.baseMaxEnergy - 기본 최대 에너지
+ * @param {string[]} params.orderedRelicList - 보유 상징 목록
+ * @param {string[]} params.playerEgos - 플레이어 자아 목록
+ * @param {string[]} params.playerTraits - 플레이어 특성 목록
+ * @param {React.MutableRefObject<Object>} params.battleRef - 전투 상태 ref
+ * @param {React.MutableRefObject<Set>} params.escapeBanRef - 탈주 차단 ref
+ * @param {React.MutableRefObject<boolean>} params.turnStartProcessedRef - 턴 시작 처리 완료 ref
+ * @param {Function} params.etherSlots - 에테르 슬롯 계산
+ * @param {Function} params.playSound - 사운드 재생
+ * @param {Function} params.addLog - 로그 추가
+ * @param {Object} params.actions - 상태 업데이트 액션
  */
 export function useTurnStartEffects({
   battle,

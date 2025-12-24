@@ -1,8 +1,15 @@
 /**
- * turnEndCore.js
+ * @file turnEndCore.js
+ * @description 턴 종료 핵심 로직
+ * @typedef {import('../../../types').Card} Card
  *
- * 턴 종료 핵심 로직 - finishTurnCore
  * battleExecution.js에서 분리됨
+ *
+ * ## 턴 종료 처리 흐름
+ * 1. 콤보 감지 및 에테르 계산
+ * 2. 카드 특성 효과 처리
+ * 3. 상징 턴 종료 효과 적용
+ * 4. 승리/패배 조건 확인
  */
 
 import { detectPokerCombo } from '../utils/comboDetection';

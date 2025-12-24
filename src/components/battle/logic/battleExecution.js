@@ -1,15 +1,16 @@
 /**
- * battleExecution.js
+ * @file battleExecution.js
+ * @description 전투 실행 로직 - 메인 엔트리 포인트
+ * @typedef {import('../../../types').Card} Card
  *
- * 전투 실행 로직 - 메인 엔트리 포인트
  * LegacyBattleApp.jsx에서 분리됨
  *
- * 분리된 모듈:
- * - cardExecutionCore.js: executeCardActionCore
- * - turnEndCore.js: finishTurnCore
- * - runAllCore.js: runAllCore
- * - multiHitExecution.js: executeMultiHitAsync
- * - battleConstants.js: TIMING 상수 (순환 의존성 방지)
+ * ## 분리된 모듈
+ * - cardExecutionCore.js: 카드 실행 핵심 로직
+ * - turnEndCore.js: 턴 종료 처리
+ * - runAllCore.js: 전체 큐 실행
+ * - multiHitExecution.js: 다중 타격 처리
+ * - battleConstants.js: TIMING 상수
  */
 
 import { hasTrait } from '../utils/battleUtils';

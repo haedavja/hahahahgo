@@ -1,7 +1,21 @@
 /**
- * mazeGenerator.js
+ * @file mazeGenerator.js
+ * @description 미로 및 던전 생성 알고리즘
  *
- * 미로 및 던전 생성 알고리즘
+ * ## 생성 알고리즘
+ * - 재귀적 미로 생성
+ * - 기로 템플릿 배치
+ * - 오브젝트 랜덤 배치
+ *
+ * ## 배치 규칙
+ * - 벽: 외곽 및 미로 구조
+ * - 문: 주요 통로 연결
+ * - 기로: 선택지 이벤트 발생 지점
+ * - 보물: 랜덤 보상 오브젝트
+ *
+ * @typedef {Object} GridCell
+ * @property {number} type - 셀 타입 (0: 바닥, 1: 벽, ...)
+ * @property {Object|null} object - 배치된 오브젝트
  */
 
 import { CONFIG, OBJECT_TYPES, DIRECTIONS } from './dungeonConfig';

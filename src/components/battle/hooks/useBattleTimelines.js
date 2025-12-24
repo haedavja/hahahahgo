@@ -1,3 +1,25 @@
+/**
+ * @file useBattleTimelines.js
+ * @description 전투 타임라인 계산 훅
+ * @typedef {import('../../../types').Card} Card
+ *
+ * ## 타임라인 계산
+ * - select: 선택 카드로 속도 계산
+ * - respond: 고정 순서 사용
+ * - resolve: 실행 큐 사용
+ *
+ * ## 통찰 연동
+ * - 레벨 0: 적 숨김
+ * - 레벨 1: 적 2장만
+ * - 레벨 2+: 적 전체
+ *
+ * @typedef {Object} TimelineItem
+ * @property {'player'|'enemy'} actor - 행동 주체
+ * @property {Card} card - 카드 정보
+ * @property {number} sp - 속도 포인트
+ * @property {number} idx - 인덱스
+ */
+
 import { useMemo } from 'react';
 import { detectPokerCombo } from '../utils/comboDetection';
 import { applyTraitModifiers } from '../utils/battleUtils';
@@ -5,7 +27,17 @@ import { applyAgility } from '../../../lib/agilityUtils';
 
 /**
  * 전투 타임라인 계산 훅
- * 플레이어와 적의 타임라인을 계산하여 반환
+ * @param {Object} params
+ * @param {string} params.battlePhase - 현재 페이즈
+ * @param {Card[]} params.battleSelected - 전투 선택 카드
+ * @param {TimelineItem[]} params.fixedOrder - 고정 순서
+ * @param {TimelineItem[]} params.battleQueue - 실행 큐
+ * @param {Object} params.playerComboUsageCount - 콤보 사용 횟수
+ * @param {number} params.effectiveAgility - 유효 민첩
+ * @param {Card[]} params.enemyPlanActions - 적 행동 계획
+ * @param {Object} params.insightReveal - 통찰 정보
+ * @param {Card[]} params.selected - 선택된 카드
+ * @returns {{playerTimeline: TimelineItem[], enemyTimeline: TimelineItem[]}}
  */
 export function useBattleTimelines({
   battlePhase,

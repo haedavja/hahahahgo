@@ -1,8 +1,17 @@
 /**
- * usePlayerMovement.js
+ * @file usePlayerMovement.js
+ * @description 플레이어 이동 및 카메라 훅
  *
- * 플레이어 이동, 카메라, 키 입력 관련 훅
- * DungeonExploration.jsx에서 분리됨
+ * ## 기능
+ * - 키보드 입력 처리 (WASD/방향키)
+ * - 그리드 기반 이동
+ * - 카메라 추적
+ * - 문/비밀통로 상호작용
+ *
+ * ## 이동 규칙
+ * - 벽/장애물 충돌 체크
+ * - 문은 상호작용 필요
+ * - 비밀통로는 발견 후 이동 가능
  */
 
 import { useEffect, useRef, useCallback } from 'react';
@@ -11,7 +20,16 @@ import { playDoorSound, playSecretSound } from '../../../lib/soundUtils';
 import { updateStats } from '../../../state/metaProgress';
 
 /**
- * 플레이어 이동 및 카메라 관련 훅
+ * 플레이어 이동 및 카메라 훅
+ * @param {Object} params
+ * @param {Object} params.segment - 현재 던전 세그먼트
+ * @param {number[][]} params.grid - 던전 그리드
+ * @param {Object} params.keys - 키 입력 상태
+ * @param {number} params.playerX - 플레이어 X 좌표
+ * @param {number} params.playerY - 플레이어 Y 좌표
+ * @param {Function} params.setPlayerX - X 좌표 설정
+ * @param {Function} params.setPlayerY - Y 좌표 설정
+ * @param {Object} params.actions - 상태 업데이트 액션
  */
 export function usePlayerMovement({
   segment,

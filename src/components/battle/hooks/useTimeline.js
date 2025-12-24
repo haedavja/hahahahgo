@@ -1,17 +1,30 @@
+/**
+ * @file useTimeline.js
+ * @description 전투 타임라인 진행 상태 관리 훅
+ *
+ * ## 기능
+ * - 타임라인 진행 상태 관리
+ * - 자동/수동 진행 전환
+ * - 진행 속도 제어
+ * - 일시정지/재개
+ *
+ * @typedef {Object} TimelineState
+ * @property {boolean} isPlaying - 재생 중 여부
+ * @property {number} progress - 진행률 (0~100)
+ * @property {number} currentIndex - 현재 인덱스
+ */
+
 import { useState, useEffect, useRef, useCallback } from 'react';
 
 /**
- * useTimeline Hook
- *
- * 전투 타임라인 진행 상태 관리
- *
+ * 타임라인 훅
  * @param {Array} queue - 행동 큐
  * @param {number} currentIndex - 현재 실행 중인 인덱스
  * @param {Object} options - 옵션
  * @param {number} options.speed - 진행 속도 (ms) default: 100
  * @param {boolean} options.auto - 자동 진행 여부 default: false
  * @param {Function} options.onProgress - 진행 시 콜백
- * @returns {Object} 타임라인 상태 및 제어 함수
+ * @returns {TimelineState} 타임라인 상태 및 제어 함수
  */
 export function useTimeline(queue = [], currentIndex = 0, options = {}) {
   const {

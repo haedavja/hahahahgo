@@ -1,9 +1,41 @@
+/**
+ * @file useDamagePreview.js
+ * @description 피해 미리보기 계산 훅
+ * @typedef {import('../../../types').Card} Card
+ *
+ * ## 기능
+ * - 예상 피해량 계산 (시뮬레이션 기반)
+ * - 치명/과잉 피해 판정
+ * - 다중 유닛별 피해량 계산
+ * - 피해 예측 사운드 효과
+ *
+ * @typedef {Object} PreviewDamageResult
+ * @property {number} value - 총 예상 피해량
+ * @property {boolean} lethal - 치명타 여부 (적 HP 초과)
+ * @property {boolean} overkill - 과잉 여부 (적 최대 HP 초과)
+ * @property {Object} perUnitPreview - 유닛별 피해 미리보기
+ */
+
 import { useMemo, useEffect, useRef } from 'react';
 import { simulatePreview } from '../utils/battleSimulation';
 
 /**
- * 피해 미리보기 계산 및 사운드 효과 훅
- * LegacyBattleApp에서 분리된 피해 미리보기 로직
+ * 피해 미리보기 계산 훅
+ * @param {Object} params
+ * @param {string} params.battlePhase - 현재 페이즈
+ * @param {Object} params.player - 플레이어 상태
+ * @param {Object} params.enemy - 적 상태
+ * @param {Object[]} params.fixedOrder - 고정 순서
+ * @param {Object[]} params.playerTimeline - 플레이어 타임라인
+ * @param {boolean} params.willOverdrive - 폭주 예정 여부
+ * @param {Object} params.enemyPlan - 적 행동 계획
+ * @param {Object|null} params.targetUnit - 타겟 유닛
+ * @param {boolean} params.hasMultipleUnits - 다중 유닛 여부
+ * @param {Object[]} params.enemyUnits - 적 유닛 배열
+ * @param {number} params.selectedTargetUnit - 선택된 타겟 유닛 ID
+ * @param {Object} params.actions - 상태 업데이트 액션
+ * @param {Function} params.playSound - 사운드 재생
+ * @returns {PreviewDamageResult}
  */
 export function useDamagePreview({
   battlePhase,

@@ -1,3 +1,23 @@
+/**
+ * @file usePhaseTransition.js
+ * @description 전투 페이즈 전환 훅
+ * @typedef {import('../../../types').Card} Card
+ *
+ * ## 페이즈 흐름
+ * select → respond → resolve
+ *
+ * ## 제공 기능
+ * - startResolve: select → respond
+ * - beginResolveFromRespond: respond → resolve
+ * - rewindToSelect: respond → select (되감기)
+ *
+ * ## 처리 내용
+ * - 적 행동 자동 생성
+ * - 포커 조합 보너스 적용
+ * - 타임라인 순서 결정
+ * - 에테르 폭주 발동
+ */
+
 import { useCallback } from 'react';
 import { detectPokerCombo, applyPokerBonus } from '../utils/comboDetection';
 import { createFixedOrder } from '../utils/cardOrdering';
@@ -11,7 +31,24 @@ import { ETHER_THRESHOLD } from '../battleData';
 
 /**
  * 페이즈 전환 훅
- * select → respond → resolve 페이즈 전환 처리
+ * @param {Object} params
+ * @param {React.MutableRefObject<Object>} params.battleRef - 전투 상태 ref
+ * @param {string} params.battlePhase - 현재 페이즈
+ * @param {Card[]} params.battleSelected - 전투 선택 카드
+ * @param {Card[]} params.selected - 선택된 카드
+ * @param {Object[]} params.fixedOrder - 고정 실행 순서
+ * @param {number} params.effectiveAgility - 유효 민첩
+ * @param {Object} params.enemy - 적 상태
+ * @param {Object} params.enemyPlan - 적 행동 계획
+ * @param {Object} params.player - 플레이어 상태
+ * @param {boolean} params.willOverdrive - 폭주 예정 여부
+ * @param {number} params.turnNumber - 현재 턴
+ * @param {boolean} params.rewindUsed - 되감기 사용 여부
+ * @param {Function} params.etherSlots - 에테르 슬롯 계산
+ * @param {Function} params.playSound - 사운드 재생
+ * @param {Function} params.addLog - 로그 추가
+ * @param {Object} params.actions - 상태 업데이트 액션
+ * @returns {{startResolve: Function, beginResolveFromRespond: Function, rewindToSelect: Function}}
  */
 export function usePhaseTransition({
   battleRef,

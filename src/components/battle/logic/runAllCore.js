@@ -1,8 +1,12 @@
 /**
- * runAllCore.js
+ * @file runAllCore.js
+ * @description 전체 큐 실행 핵심 로직
+ * @typedef {import('../../../types').Card} Card
  *
- * 전체 실행 핵심 로직 - runAllCore
  * battleExecution.js에서 분리됨
+ *
+ * ## 기능
+ * 타임라인의 모든 액션을 순차 실행
  */
 
 import { getCardEtherGain } from '../utils/etherCalculations';

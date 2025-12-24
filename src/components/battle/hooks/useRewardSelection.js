@@ -1,9 +1,26 @@
+/**
+ * @file useRewardSelection.js
+ * @description 보상 카드 선택 훅
+ * @typedef {import('../../../types').Card} Card
+ *
+ * ## 기능
+ * - 승리 후 카드 보상 선택
+ * - 함성 카드 선택 처리
+ * - 덱에 카드 추가
+ */
+
 import { useState, useCallback } from 'react';
 import { useGameStore } from '../../../state/gameStore';
 
 /**
  * 보상 및 함성 카드 선택 훅
- * 승리 후 카드 보상 선택 및 함성 카드 선택 처리
+ * @param {Object} params
+ * @param {Card[]} params.CARDS - 전체 카드 목록
+ * @param {React.MutableRefObject<Object>} params.battleRef - 전투 상태 ref
+ * @param {Object} params.battleNextTurnEffects - 다음 턴 효과
+ * @param {Function} params.addLog - 로그 추가
+ * @param {Object} params.actions - 상태 업데이트 액션
+ * @returns {{showCardRewardModal: Function, handleCardReward: Function, handleCrySelect: Function}}
  */
 export function useRewardSelection({
   CARDS,

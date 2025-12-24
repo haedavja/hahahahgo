@@ -1,3 +1,18 @@
+/**
+ * @file useEtherPreview.js
+ * @description 에테르 획득량 미리보기 훅
+ * @typedef {import('../../../types').Card} Card
+ *
+ * ## 계산 공식
+ * 예상 에테르 = 카드 에테르 합계 × 콤보 배율 × 상징 배율 × 디플레이션
+ *
+ * @typedef {Object} EtherPreviewResult
+ * @property {number} baseEther - 기본 에테르 합계
+ * @property {number} comboMultiplier - 콤보 배율
+ * @property {number} deflationMultiplier - 디플레이션 배율
+ * @property {number} finalEther - 최종 예상 에테르
+ */
+
 import { useMemo } from 'react';
 import { detectPokerCombo } from '../utils/comboDetection';
 import { COMBO_MULTIPLIERS, applyEtherDeflation, calcCardsEther } from '../utils/etherCalculations';
@@ -5,7 +20,12 @@ import { calculatePassiveEffects } from '../../../lib/relicEffects';
 
 /**
  * 에테르 획득량 미리보기 훅
- * 선택된 카드 조합에 따른 예상 에테르 획득량 계산
+ * @param {Object} params
+ * @param {Object[]} params.playerTimeline - 플레이어 타임라인
+ * @param {Card[]} params.selected - 선택된 카드
+ * @param {string[]} params.orderedRelicList - 보유 상징 목록
+ * @param {Object} params.playerComboUsageCount - 콤보 사용 횟수
+ * @returns {EtherPreviewResult}
  */
 export function useEtherPreview({
   playerTimeline,

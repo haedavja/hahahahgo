@@ -1,8 +1,14 @@
 /**
- * multiHitExecution.js
+ * @file multiHitExecution.js
+ * @description 다중 타격 비동기 실행
+ * @typedef {import('../../../types').Card} Card
  *
- * 다중 타격 비동기 실행 - executeMultiHitAsync
  * battleExecution.js에서 분리됨
+ *
+ * ## 기능
+ * - 타격별 딜레이 처리
+ * - 타격별 룰렛/치명타 판정
+ * - 총기 카드 탄걸림 처리
  */
 
 import { prepareMultiHitAttack, calculateSingleHit, finalizeMultiHitAttack, rollCritical } from './combatActions';

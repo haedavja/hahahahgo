@@ -1,8 +1,17 @@
 /**
- * renderDungeon.js
+ * @file renderDungeon.js
+ * @description 던전 Canvas 렌더링 로직
  *
- * 던전 Canvas 렌더링 로직
- * DungeonExploration.jsx에서 분리됨
+ * ## 렌더링 레이어
+ * 1. 배경/바닥
+ * 2. 벽/장애물
+ * 3. 오브젝트 (보물, 기로 등)
+ * 4. 플레이어
+ * 5. UI 오버레이
+ *
+ * ## 좌표 변환
+ * - 그리드 좌표 → 캔버스 픽셀 좌표
+ * - 카메라 오프셋 적용
  */
 
 import { CONFIG, OBJECT_TYPES } from './dungeonConfig';

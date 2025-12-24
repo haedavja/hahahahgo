@@ -1,8 +1,23 @@
+/**
+ * @file useCardTooltip.js
+ * @description 카드 툴팁 관리 훅
+ * @typedef {import('../../../types').Card} Card
+ *
+ * ## 기능
+ * - 카드 호버 시 특성 툴팁 표시
+ * - 페이즈 변경 시 툴팁 자동 정리
+ * - 지연 표시 (300ms)로 깜빡임 방지
+ */
+
 import { useRef, useCallback, useEffect } from 'react';
 
 /**
  * 카드 툴팁 관리 훅
- * 카드 호버 시 특성 툴팁 표시/숨김 제어
+ * @param {Object} params
+ * @param {Object|null} params.hoveredCard - 호버된 카드 정보
+ * @param {string} params.battlePhase - 현재 페이즈
+ * @param {Object} params.actions - 상태 업데이트 액션
+ * @returns {{showCardTraitTooltip: Function, hideCardTraitTooltip: Function}}
  */
 export function useCardTooltip({ hoveredCard, battlePhase, actions }) {
   const tooltipTimerRef = useRef(null);

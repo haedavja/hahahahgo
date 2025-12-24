@@ -1,15 +1,21 @@
 /**
- * useKeyboardShortcuts.js
+ * @file useKeyboardShortcuts.js
+ * @description 전투 화면 키보드 단축키 처리 훅
  *
- * 전투 화면 키보드 단축키 처리
+ * ## 지원 단축키
+ * - Enter/Space: 진행/확인
+ * - 1-5: 손패 카드 선택
+ * - R: 리드로우
+ * - O: 에테르 폭주 토글
+ * - ESC: 선택 취소/메뉴
  */
 
 import { useEffect, useRef } from 'react';
 import { calculateEtherSlots } from '../../../lib/etherUtils';
 
 /**
- * 전투 키보드 단축키를 처리하는 Hook
- * @param {Object} params - 파라미터
+ * 전투 키보드 단축키 훅
+ * @param {Object} params
  * @param {Object} params.battle - 전투 상태
  * @param {Object} params.player - 플레이어 상태
  * @param {boolean} params.canRedraw - 리드로우 가능 여부

@@ -1,8 +1,25 @@
+/**
+ * @file useMultiTargetSelection.js
+ * @description 다중 타겟 선택 훅
+ * @typedef {import('../../../types').Card} Card
+ *
+ * ## 기능
+ * - multiTarget 특성 카드의 타겟 선택
+ * - 피해량 분배 처리
+ * - 유닛별 타겟 지정
+ */
+
 import { useCallback } from 'react';
 
 /**
  * 다중 타겟 선택 훅
- * multiTarget 특성 카드의 타겟 선택 처리
+ * @param {Object} params
+ * @param {Card|null} params.battlePendingDistributionCard - 분배 대기 카드
+ * @param {Object} params.battleDamageDistribution - 피해 분배 상태
+ * @param {Object[]} params.enemyUnits - 적 유닛 배열
+ * @param {Function} params.addLog - 로그 추가
+ * @param {Object} params.actions - 상태 업데이트 액션
+ * @returns {{handleConfirmDistribution: Function, handleTargetClick: Function}}
  */
 export function useMultiTargetSelection({
   battlePendingDistributionCard,

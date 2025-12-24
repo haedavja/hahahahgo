@@ -1,10 +1,37 @@
+/**
+ * @file useEtherAnimation.js
+ * @description 에테르 계산 애니메이션 훅
+ * @typedef {import('../../../types').Card} Card
+ *
+ * ## 애니메이션 단계
+ * 1. sum: 합계 강조
+ * 2. multiply: 콤보 배율 + 에테르 증폭제 적용
+ * 3. deflation: 디플레이션 배지 애니메이션
+ * 4. result: 최종값 표시
+ *
+ * ## 에테르 계산 공식
+ * 최종 = 기본 × 콤보배율 × 증폭제 × 디플레이션
+ */
+
 import { useCallback } from 'react';
 import { detectPokerCombo } from '../utils/comboDetection';
 import { COMBO_MULTIPLIERS, applyEtherDeflation } from '../utils/etherCalculations';
 
 /**
  * 에테르 계산 애니메이션 훅
- * 턴 종료 시 에테르 획득량 계산 및 애니메이션 처리
+ * @param {Object} params
+ * @param {Card[]} params.selected - 선택된 카드 배열
+ * @param {Card[]} params.battleSelected - 전투 선택 카드
+ * @param {number|null} params.finalComboMultiplier - 최종 콤보 배율
+ * @param {React.MutableRefObject<number>} params.displayEtherMultiplierRef - 표시용 에테르 배율
+ * @param {Object} params.player - 플레이어 상태
+ * @param {Object} params.enemy - 적 상태
+ * @param {Object} params.enemyPlan - 적 행동 계획
+ * @param {number} params.enemyTurnEtherAccumulated - 적 턴 에테르 누적
+ * @param {React.MutableRefObject<Object>} params.battleRef - 전투 상태 ref
+ * @param {Function} params.playSound - 사운드 재생
+ * @param {Object} params.actions - 상태 업데이트 액션
+ * @returns {{startEtherCalculationAnimation: Function}}
  */
 export function useEtherAnimation({
   selected,

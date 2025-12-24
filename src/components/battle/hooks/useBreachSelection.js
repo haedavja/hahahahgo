@@ -1,8 +1,25 @@
+/**
+ * @file useBreachSelection.js
+ * @description 브리치/창조 카드 선택 훅
+ * @typedef {import('../../../types').Card} Card
+ *
+ * ## 기능
+ * - 브리치 효과로 카드 생성
+ * - 생성된 카드를 큐에 추가
+ * - 선택 UI 상태 관리
+ */
+
 import { useCallback, useState, useRef } from 'react';
 
 /**
  * 브리치/창조 카드 선택 훅
- * handleBreachSelect, breachSelection 상태 관리
+ * @param {Object} params
+ * @param {Card[]} params.CARDS - 전체 카드 목록
+ * @param {React.MutableRefObject<Object>} params.battleRef - 전투 상태 ref
+ * @param {React.MutableRefObject<Function>} params.stepOnceRef - stepOnce 함수 ref
+ * @param {Function} params.addLog - 로그 추가
+ * @param {Object} params.actions - 상태 업데이트 액션
+ * @returns {{breachSelection: Object|null, handleBreachSelect: Function}}
  */
 export function useBreachSelection({
   CARDS,

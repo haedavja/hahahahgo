@@ -1,8 +1,15 @@
 /**
- * cardExecutionCore.js
+ * @file cardExecutionCore.js
+ * @description 카드 실행 핵심 로직
+ * @typedef {import('../../../types').Card} Card
  *
- * 카드 실행 핵심 로직 - executeCardActionCore
  * battleExecution.js에서 분리됨
+ *
+ * ## 카드 실행 흐름
+ * 1. 카드 특성 즉시 효과 처리
+ * 2. 공격/방어 액션 적용
+ * 3. 에테르 누적 처리
+ * 4. 이벤트 애니메이션 처리
  */
 
 import { hasTrait } from '../utils/battleUtils';

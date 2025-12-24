@@ -1,8 +1,21 @@
 /**
- * useCrossroadChoice.js
+ * @file useCrossroadChoice.js
+ * @description 던전 기로 선택지 훅
  *
- * 던전 기로 선택지 상태 및 로직
- * DungeonExploration.jsx에서 분리됨
+ * ## 기로 시스템
+ * - 스탯 기반 선택지 분기
+ * - 반복 시도 (스케일링 요구조건)
+ * - 성공/실패 결과 적용
+ *
+ * ## 스케일링 요구조건
+ * 시도할수록 필요 스탯 증가
+ * 실패 시 패널티 발생
+ *
+ * @typedef {Object} Choice
+ * @property {string} id - 선택지 ID
+ * @property {Object} requirements - 스탯 요구조건
+ * @property {Object} scalingRequirement - 스케일링 요구조건
+ * @property {Object} outcomes - 성공/실패 결과
  */
 
 import { useCallback } from 'react';
@@ -10,7 +23,16 @@ import { useGameStore } from '../../../state/gameStore';
 import { playChoiceSelectSound, playDangerSound } from '../../../lib/soundUtils';
 
 /**
- * 기로 선택지 관련 훅
+ * 기로 선택지 훅
+ * @param {Object} params
+ * @param {Object|null} params.crossroadModal - 기로 모달 상태
+ * @param {Object} params.dungeonDeltas - 던전 델타값
+ * @param {Function} params.setDungeonDeltas - 델타 설정
+ * @param {string} params.currentRoomKey - 현재 방 키
+ * @param {Function} params.startBattle - 전투 시작 함수
+ * @param {Object} params.segment - 현재 세그먼트
+ * @param {Object} params.actions - 상태 업데이트 액션
+ * @returns {{checkRequirement: Function, executeChoice: Function, closeCrossroadModal: Function}}
  */
 export function useCrossroadChoice({
   crossroadModal,
