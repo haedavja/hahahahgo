@@ -238,6 +238,11 @@ export function removeToken(entity, tokenId, tokenType, stacks = 1) {
  * @returns {Object} 업데이트된 토큰 상태 및 로그 메시지
  */
 export function clearTurnTokens(entity) {
+  // 엔티티 검증
+  if (!entity) {
+    return { tokens: { usage: [], turn: [], permanent: [] }, logs: [] };
+  }
+
   const tokens = { ...entity.tokens };
   const logs = [];
 
@@ -370,7 +375,7 @@ function cancelTokens(tokens, newTokenId, oppositeTokenId, stacks) {
  * @returns {boolean} 토큰 보유 여부
  */
 export function hasToken(entity, tokenId) {
-  if (!entity.tokens) return false;
+  if (!entity || !entity.tokens) return false;
 
   for (const type of [TOKEN_TYPES.USAGE, TOKEN_TYPES.TURN, TOKEN_TYPES.PERMANENT]) {
     const typeArray = entity.tokens[type] || [];
@@ -389,7 +394,7 @@ export function hasToken(entity, tokenId) {
  * @returns {number} 토큰 스택 수
  */
 export function getTokenStacks(entity, tokenId) {
-  if (!entity.tokens) return 0;
+  if (!entity || !entity.tokens) return 0;
 
   for (const type of [TOKEN_TYPES.USAGE, TOKEN_TYPES.TURN, TOKEN_TYPES.PERMANENT]) {
     const typeArray = entity.tokens[type] || [];
@@ -408,7 +413,7 @@ export function getTokenStacks(entity, tokenId) {
  * @returns {Array} 토큰 배열 [{ id, stacks, type, category, ...tokenData }]
  */
 export function getAllTokens(entity) {
-  if (!entity.tokens) return [];
+  if (!entity || !entity.tokens) return [];
 
   const allTokens = [];
 
