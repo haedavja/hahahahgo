@@ -1,8 +1,15 @@
 /**
- * cardPlaySpecials.js
+ * @file cardPlaySpecials.js
+ * @description 카드 사용 시 special 효과 처리
+ * @typedef {import('../../../types').Card} Card
  *
- * 카드 사용 시 special 효과 처리 (comboStyle, autoReload, mentalFocus 등)
  * cardSpecialEffects.js에서 분리됨
+ *
+ * ## 처리되는 효과
+ * - comboStyle: 조합 스타일 보너스
+ * - autoReload: 자동 장전
+ * - mentalFocus: 정신 집중
+ * - drawCard: 카드 드로우
  */
 
 import { getAllTokens, getTokenStacks } from '../../../lib/tokenUtils';

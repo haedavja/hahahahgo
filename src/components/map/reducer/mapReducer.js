@@ -1,8 +1,13 @@
 /**
- * mapReducer.js
+ * @file mapReducer.js
+ * @description MapDemo 컴포넌트의 상태 관리 Reducer
+ * @typedef {import('../../../types').Relic} Relic
  *
- * MapDemo 컴포넌트의 상태를 관리하는 reducer
- * 6개 useState를 단일 reducer로 통합
+ * ## 관리 상태
+ * - showCharacterSheet: 캐릭터 시트 표시
+ * - isDungeonExploring: 던전 탐험 중
+ * - devToolsOpen: 개발자 도구 열림
+ * - hoveredRelic/orderedRelics: 상징 관련
  */
 
 export const ACTIONS = {

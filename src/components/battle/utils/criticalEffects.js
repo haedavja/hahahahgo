@@ -1,7 +1,13 @@
 /**
- * criticalEffects.js
+ * @file criticalEffects.js
+ * @description 치명타 관련 유틸리티 함수들
+ * @typedef {import('../../../types').Card} Card
  *
- * 치명타 관련 유틸리티 함수들
+ * ## 치명타 확률 공식
+ * 기본 5% + (힘 × 2%) + (남은 행동력 × 1%) + 토큰 보너스
+ *
+ * ## 치명타 피해 공식
+ * 기본 피해 × 1.5 (doubleCrit 시 2.0)
  */
 
 import { getAllTokens } from '../../../lib/tokenUtils';

@@ -1,8 +1,15 @@
 /**
- * postAttackSpecials.js
+ * @file postAttackSpecials.js
+ * @description 공격 후 special 효과 처리 (피해 적용 후)
+ * @typedef {import('../../../types').Card} Card
  *
- * 공격 후 special 효과 처리 (피해 적용 후)
  * cardSpecialEffects.js에서 분리됨
+ *
+ * ## 처리되는 효과
+ * - executeUnder10: 10% 미만 즉사
+ * - bleed: 출혈 부여
+ * - stun: 기절 부여
+ * - knockback: 넉백
  */
 
 import { addToken, removeToken, setTokenStacks } from '../../../lib/tokenUtils';

@@ -1,6 +1,19 @@
 /**
- * 던전 노드 시스템
+ * @file dungeonNodes.js
+ * @description 던전 노드 시스템
+ * @typedef {import('../types').DungeonObject} DungeonObject
+ *
  * 메트로배니아 스타일 던전을 위한 그래프 기반 구조
+ *
+ * ## 노드 타입
+ * - ROOM: 방 (이벤트/보물)
+ * - CORRIDOR: 복도 (이동)
+ * - CROSSROAD: 기로 (선택지)
+ *
+ * ## 연결 타입
+ * - OPEN: 항상 통과
+ * - STAT_GATE: 스탯 필요
+ * - ITEM_GATE: 아이템 필요
  */
 
 // 노드 타입 정의

@@ -1,8 +1,15 @@
 /**
- * preAttackSpecials.js
+ * @file preAttackSpecials.js
+ * @description 공격 전 special 효과 처리 (피해 계산 전)
+ * @typedef {import('../../../types').Card} Card
  *
- * 공격 전 special 효과 처리 (피해 계산 전)
  * cardSpecialEffects.js에서 분리됨
+ *
+ * ## 처리되는 효과
+ * - ignoreBlock: 방어력 무시
+ * - pierce: 관통 피해
+ * - lifesteal: 흡혈
+ * - multiShot: 다중 사격
  */
 
 import { addToken, removeToken, setTokenStacks, getTokenStacks } from '../../../lib/tokenUtils';

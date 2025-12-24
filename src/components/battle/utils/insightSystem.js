@@ -1,7 +1,15 @@
 /**
- * insightSystem.js
+ * @file insightSystem.js
+ * @description 통찰(Insight) 시스템 - 적 정보 공개 레벨 관리
  *
- * 통찰(Insight) 시스템 - 적 정보 공개 레벨 관리
+ * ## 통찰 레벨별 공개 정보
+ * - 0: 적 존재만 표시
+ * - 1: 적 이름/HP 공개
+ * - 2: 적 행동 타입(공격/방어) 공개
+ * - 3: 적 카드 상세 정보 공개
+ *
+ * ## 장막(Shroud) 시스템
+ * 적의 장막 스택만큼 통찰 효과 감소
  */
 
 import { getTokenStacks } from "../../../lib/tokenUtils";

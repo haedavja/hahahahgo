@@ -1,7 +1,18 @@
 /**
- * enemyAI.js
+ * @file enemyAI.js
+ * @description 적 AI 행동 결정 시스템
+ * @typedef {import('../../../types').Card} Card
+ * @typedef {import('../../../types').Enemy} Enemy
  *
- * 적 AI 행동 결정 시스템
+ * ## AI 모드
+ * - aggro: 공격적 (공격 카드 우선)
+ * - turtle: 방어적 (방어 카드 우선)
+ * - balanced: 균형 (상황에 따라)
+ *
+ * ## 행동 결정 흐름
+ * 1. 몬스터별 모드 가중치 확인
+ * 2. 가중치 기반 모드 선택
+ * 3. 모드에 따른 카드 선택
  */
 
 import { MAX_SPEED, BASE_PLAYER_ENERGY, ENEMY_CARDS } from "../battleData";

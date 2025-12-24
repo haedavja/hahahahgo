@@ -1,14 +1,18 @@
+/**
+ * @file useMapState.js
+ * @description Map UI 상태 관리 Hook
+ * @typedef {import('../../../types').Relic} Relic
+ */
+
 import { useReducer, useMemo } from 'react';
 import { mapReducer, createInitialState, ACTIONS } from '../reducer/mapReducer';
 
 /**
  * useMapState Hook
- *
  * Map UI 상태 관리를 위한 커스텀 Hook
- * mapReducer를 래핑하여 사용하기 쉬운 API 제공
  *
- * @param {Object} initialStateOverrides - 초기 상태 오버라이드
- * @returns {Object} { mapUI, actions } - 상태와 액션 객체
+ * @param {Object} [initialStateOverrides={}] - 초기 상태 오버라이드
+ * @returns {{mapUI: Object, actions: Object}} 상태와 액션 객체
  */
 export function useMapState(initialStateOverrides = {}) {
   const [mapUI, dispatch] = useReducer(
