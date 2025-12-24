@@ -1,14 +1,27 @@
+/**
+ * @file battleUtils.js
+ * @description 전투 시스템 유틸리티 함수
+ * @typedef {import('../../../types').Card} Card
+ * @typedef {import('../../../types').CardTrait} CardTrait
+ */
+
 // =====================
 // 기본 유틸리티 함수
 // =====================
 
 /**
  * 배열에서 랜덤으로 하나 선택
+ * @template T
+ * @param {T[]} arr - 선택할 배열
+ * @returns {T} 랜덤 선택된 요소
  */
 export const choice = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
 /**
  * 카드가 특정 특성을 가지고 있는지 확인
+ * @param {Card} card - 확인할 카드
+ * @param {CardTrait} traitId - 특성 ID
+ * @returns {boolean} 특성 보유 여부
  */
 export function hasTrait(card, traitId) {
   return card.traits && card.traits.includes(traitId);
@@ -16,6 +29,11 @@ export function hasTrait(card, traitId) {
 
 /**
  * 특성 효과를 카드에 적용
+ * @param {Card} card - 적용할 카드
+ * @param {Object} [context={}] - 적용 컨텍스트
+ * @param {boolean} [context.isInCombo] - 조합에 포함 여부
+ * @param {number} [context.usageCount] - 사용 횟수
+ * @returns {Card} 수정된 카드
  */
 export function applyTraitModifiers(card, context = {}) {
   let modifiedCard = { ...card };

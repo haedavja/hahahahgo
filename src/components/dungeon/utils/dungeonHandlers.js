@@ -1,7 +1,17 @@
 /**
- * dungeonHandlers.js
+ * @file dungeonHandlers.js
+ * @description 던전 오브젝트 상호작용 핸들러
+ * @typedef {import('../../../types').DungeonObject} DungeonObject
+ * @typedef {import('../../../types').ResourceReward} ResourceReward
  *
- * 던전 오브젝트 상호작용 핸들러
+ * @typedef {Object} HandlerContext
+ * @property {Function} applyEtherDelta - 에테르 변경 함수
+ * @property {Function} addResources - 자원 추가 함수 (gold, material)
+ * @property {Object} actions - UI 액션 객체
+ * @property {Function} startBattle - 전투 시작 함수
+ * @property {number} segmentIndex - 현재 세그먼트 인덱스
+ * @property {string} currentRoomKey - 현재 방 키
+ * @property {Object} preBattleState - 전투 전 상태 참조
  */
 
 import { getRandomEnemy } from '../../battle/battleData';

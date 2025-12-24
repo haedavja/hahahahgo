@@ -1,3 +1,9 @@
+/**
+ * @file etherCalculations.js
+ * @description 에테르 계산 시스템
+ * @typedef {import('../../../types').Card} Card
+ */
+
 import { getCardRarity, hasTrait } from './battleUtils';
 
 // =====================

@@ -1,3 +1,12 @@
+/**
+ * @file battleData.js
+ * @description 전투 시스템 데이터 정의 (카드, 특성, 적)
+ * @typedef {import('../../types').Card} Card
+ * @typedef {import('../../types').CardTrait} CardTrait
+ * @typedef {import('../../types').TraitDefinition} TraitDefinition
+ * @typedef {import('../../types').Enemy} Enemy
+ */
+
 export const MAX_SPEED = 30; // 기본 최대 속도 (레거시 호환용)
 export const DEFAULT_PLAYER_MAX_SPEED = 30; // 플레이어 기본 최대 속도
 export const DEFAULT_ENEMY_MAX_SPEED = 30; // 적 기본 최대 속도

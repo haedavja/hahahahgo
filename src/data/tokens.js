@@ -1,7 +1,9 @@
 /**
- * tokens.js
+ * @file tokens.js
+ * @description 게임 토큰(상태이상) 시스템 정의
+ * @typedef {import('../types').Token} Token
+ * @typedef {import('../types').TokenTarget} TokenTarget
  *
- * 게임 토큰(상태이상) 시스템 정의
  * 다키스트 던전 참고
  */
 

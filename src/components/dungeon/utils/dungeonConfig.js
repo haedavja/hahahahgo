@@ -1,7 +1,16 @@
 /**
- * dungeonConfig.js
+ * @file dungeonConfig.js
+ * @description 던전 설정 및 오브젝트 타입 정의
+ * @typedef {import('../../../types').DungeonObject} DungeonObject
+ * @typedef {import('../../../types').DungeonObjectType} DungeonObjectType
  *
- * 던전 설정 및 오브젝트 타입 정의
+ * @typedef {Object} ObjectTypeConfig
+ * @property {string} id - 오브젝트 타입 ID
+ * @property {string} label - 표시 이름
+ * @property {boolean} canReuse - 재사용 가능 여부
+ * @property {number} probRoom - 방에서의 등장 확률
+ * @property {number} probCorridor - 복도에서의 등장 확률
+ * @property {Function} render - 렌더링 함수
  */
 
 // ========== 설정 ==========
