@@ -44,6 +44,11 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.js'],
+    mockReset: true,
+    restoreMocks: true,
+    clearMocks: true,
+    isolate: true,
+    fileParallelism: false,
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html'],

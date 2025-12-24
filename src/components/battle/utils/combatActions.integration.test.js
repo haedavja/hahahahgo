@@ -12,6 +12,15 @@ import { applyAction, applyAttack, applyDefense } from '../logic/combatActions.j
 import { createEmptyTokens } from '../../../lib/tokenUtils.js';
 import { processQueueCollisions } from './cardSpecialEffects.js';
 
+// Math.random 고정 (치명타 방지)
+const originalRandom = Math.random;
+beforeEach(() => {
+  Math.random = () => 0.99; // 항상 높은 값 = 치명타 없음
+});
+afterEach(() => {
+  Math.random = originalRandom;
+});
+
 // 테스트용 기본 엔티티 생성
 function createPlayer(overrides = {}) {
   return {
