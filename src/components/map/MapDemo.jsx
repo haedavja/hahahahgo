@@ -4,7 +4,6 @@ import { useGameStore } from "../../state/gameStore";
 import { calculateEtherSlots, getCurrentSlotPts, getSlotProgress, getNextSlotCost } from "../../lib/etherUtils";
 import { CharacterSheet } from "../character/CharacterSheet";
 import { DungeonExploration } from "../dungeon/DungeonExploration";
-import { GraphDungeonExploration } from "../dungeon/GraphDungeonExploration";
 import { LegacyBattleScreen } from "../battle/LegacyBattleScreen";
 import { ShopModal } from "../shop/ShopModal";
 import { EtherBar } from "../battle/ui/EtherBar";
@@ -71,14 +70,6 @@ export function MapDemo() {
   const orderedRelics = mapUI.orderedRelics;
   const relicActivated = mapUI.relicActivated;
 
-  // 새 던전 시스템 사용 여부 (localStorage에서 복원)
-  const [useNewDungeon, setUseNewDungeon] = useState(() => {
-    try {
-      return localStorage.getItem('useNewDungeon') === 'true';
-    } catch {
-      return false;
-    }
-  });
   // 전체 카드 표시 (개발자 모드)
   const [showAllCards, setShowAllCards] = useState(() => {
     try {
@@ -504,7 +495,7 @@ export function MapDemo() {
 
       {isDungeonExploring && (
         <div style={{ display: activeBattle ? 'none' : 'block' }}>
-          {useNewDungeon ? <GraphDungeonExploration /> : <DungeonExploration />}
+          <DungeonExploration />
         </div>
       )}
 
@@ -542,13 +533,6 @@ export function MapDemo() {
       <DevTools
         isOpen={devToolsOpen}
         onClose={() => actions.setDevToolsOpen(false)}
-        useNewDungeon={useNewDungeon}
-        setUseNewDungeon={(value) => {
-          setUseNewDungeon(value);
-          try {
-            localStorage.setItem('useNewDungeon', value.toString());
-          } catch {}
-        }}
         showAllCards={showAllCards}
         setShowAllCards={(value) => {
           setShowAllCards(value);

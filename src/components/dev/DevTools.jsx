@@ -14,7 +14,7 @@ import {
  * 개발자 도구 오버레이
  * Alt+D로 토글
  */
-export function DevTools({ isOpen, onClose, useNewDungeon, setUseNewDungeon, showAllCards, setShowAllCards }) {
+export function DevTools({ isOpen, onClose, showAllCards, setShowAllCards }) {
   const [activeTab, setActiveTab] = useState('resources');
 
   const {
@@ -174,8 +174,6 @@ export function DevTools({ isOpen, onClose, useNewDungeon, setUseNewDungeon, sho
             selectNode={selectNode}
             devClearAllNodes={devClearAllNodes}
             devTeleportToNode={devTeleportToNode}
-            useNewDungeon={useNewDungeon}
-            setUseNewDungeon={setUseNewDungeon}
             devForcedCrossroad={devForcedCrossroad}
             setDevForcedCrossroad={setDevForcedCrossroad}
           />

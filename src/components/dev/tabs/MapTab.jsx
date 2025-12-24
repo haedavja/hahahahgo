@@ -6,7 +6,7 @@
 import React, { useState, useMemo } from 'react';
 import { OBSTACLE_TEMPLATES } from '../../../data/dungeonNodes';
 
-export function MapTab({ map, mapRisk, setMapRisk, selectNode, devClearAllNodes, devTeleportToNode, useNewDungeon, setUseNewDungeon, devForcedCrossroad, setDevForcedCrossroad }) {
+export function MapTab({ map, mapRisk, setMapRisk, selectNode, devClearAllNodes, devTeleportToNode, devForcedCrossroad, setDevForcedCrossroad }) {
   const currentNode = map?.nodes?.find(n => n.id === map.currentNodeId);
   const [selectedNodeId, setSelectedNodeId] = useState('');
 
@@ -195,40 +195,6 @@ export function MapTab({ map, mapRisk, setMapRisk, selectNode, devClearAllNodes,
               {nodeEmojis[node.type] || '📍'} {node.id.split('-')[1] || node.id}
             </button>
           ))}
-        </div>
-      </div>
-
-      {/* 새 던전 시스템 토글 */}
-      <div style={{
-        marginTop: '16px',
-        padding: '12px',
-        background: '#0f172a',
-        borderRadius: '8px',
-        border: '1px solid #334155',
-      }}>
-        <h4 style={{ color: '#cbd5e1', fontSize: '0.875rem', marginBottom: '8px' }}>☠️ 던전 시스템</h4>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <label style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            cursor: 'pointer',
-          }}>
-            <input
-              type="checkbox"
-              checked={useNewDungeon || false}
-              onChange={(e) => setUseNewDungeon && setUseNewDungeon(e.target.checked)}
-              style={{ width: '18px', height: '18px', cursor: 'pointer' }}
-            />
-            <span style={{ color: useNewDungeon ? '#22c55e' : '#94a3b8', fontSize: '0.875rem' }}>
-              새 던전 시스템 (그래프 기반)
-            </span>
-          </label>
-        </div>
-        <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '8px' }}>
-          {useNewDungeon
-            ? '✅ 메트로배니아 스타일 양방향 이동, 기로 시스템 활성화'
-            : '기존 선형 던전 시스템 사용 중'}
         </div>
       </div>
 
