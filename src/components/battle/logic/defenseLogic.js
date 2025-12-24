@@ -1,8 +1,12 @@
 /**
- * defenseLogic.js
+ * @file defenseLogic.js
+ * @description 방어 행동 처리 로직
+ * @typedef {import('../../../types').Card} Card
  *
- * 방어 행동 처리 로직
  * combatActions.js에서 분리됨
+ *
+ * ## 방어력 계산 공식
+ * 최종 방어력 = (카드 기본값 + 힘 보너스 + 성장 보너스) × 교차 배율 + 홀로그램 보너스
  */
 
 import { applyTokenEffectsToCard, consumeTokens } from '../../../lib/tokenEffects';

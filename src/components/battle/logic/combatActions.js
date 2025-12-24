@@ -1,7 +1,23 @@
 /**
- * combatActions.js
+ * @file combatActions.js
+ * @description 전투 행동 처리 로직
+ * @typedef {import('../../../types').Card} Card
+ * @typedef {import('../../../types').Token} Token
  *
- * 전투 행동 처리 로직
+ * @typedef {Object} CombatActor
+ * @property {number} hp - 현재 체력
+ * @property {number} maxHp - 최대 체력
+ * @property {number} block - 방어력
+ * @property {number} strength - 힘
+ * @property {Token[]} tokens - 토큰 배열
+ *
+ * @typedef {Object} AttackResult
+ * @property {CombatActor} attacker - 업데이트된 공격자
+ * @property {CombatActor} defender - 업데이트된 방어자
+ * @property {number} totalDealt - 가한 총 피해
+ * @property {number} totalTaken - 받은 총 피해
+ * @property {Array} events - 이벤트 배열
+ * @property {Array} logs - 로그 배열
  *
  * 분리된 모듈:
  * - defenseLogic.js: 방어 행동 처리
@@ -24,6 +40,12 @@ import { calculateSingleHit } from './hitCalculation';
 
 /**
  * 공격 행동 적용 (다중 타격 지원 + special 효과)
+ * @param {CombatActor} attacker - 공격자
+ * @param {CombatActor} defender - 방어자
+ * @param {Card} card - 사용된 카드
+ * @param {'player'|'enemy'} attackerName - 공격자 이름
+ * @param {Object} battleContext - 전투 컨텍스트
+ * @returns {AttackResult} 공격 결과
  */
 export function applyAttack(attacker, defender, card, attackerName, battleContext = {}) {
   let totalDealt = 0;

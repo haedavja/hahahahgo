@@ -1,3 +1,9 @@
+/**
+ * @file useCardSelection.js
+ * @description 카드 선택/해제 및 순서 변경 처리 훅
+ * @typedef {import('../../../types').Card} Card
+ */
+
 import { useCallback } from 'react';
 import { applyAgility } from '../../../lib/agilityUtils';
 import { detectPokerCombo, applyPokerBonus } from '../utils/comboDetection';
@@ -7,6 +13,13 @@ import { getAllTokens } from '../../../lib/tokenUtils';
 /**
  * 카드 선택 훅
  * 카드 선택/해제, 순서 변경 처리
+ *
+ * @param {Object} params
+ * @param {string} params.battlePhase - 현재 페이즈
+ * @param {Card[]} params.battleSelected - 선택된 카드들
+ * @param {number} params.effectiveAgility - 유효 민첩
+ * @param {number} params.effectiveMaxSubmitCards - 최대 제출 카드 수
+ * @returns {{toggleCard: Function, reorderCard: Function, checkRequiredTokens: Function}}
  */
 export function useCardSelection({
   battlePhase,

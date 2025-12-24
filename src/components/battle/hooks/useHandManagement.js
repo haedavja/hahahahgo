@@ -1,3 +1,9 @@
+/**
+ * @file useHandManagement.js
+ * @description 패 관리 훅 (리드로우, 정렬)
+ * @typedef {import('../../../types').Card} Card
+ */
+
 import { useCallback } from 'react';
 import { useGameStore } from '../../../state/gameStore';
 import { drawFromDeck } from '../utils/handGeneration';
@@ -6,6 +12,14 @@ import { CARDS as BASE_CARDS, DEFAULT_DRAW_COUNT } from '../battleData';
 /**
  * 패 관리 훅
  * 리드로우, 정렬 기능 제공
+ *
+ * @param {Object} params
+ * @param {boolean} params.canRedraw - 리드로우 가능 여부
+ * @param {Card[]} params.battleHand - 현재 손패
+ * @param {Card[]} params.battleDeck - 덱
+ * @param {Card[]} params.battleDiscardPile - 무덤
+ * @param {string} params.sortType - 정렬 타입
+ * @returns {{redrawHand: Function, handleSort: Function}}
  */
 export function useHandManagement({
   canRedraw,

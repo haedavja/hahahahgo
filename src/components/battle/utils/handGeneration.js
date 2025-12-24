@@ -1,10 +1,18 @@
 /**
- * handGeneration.js
+ * @file handGeneration.js
+ * @description 캐릭터 빌드 기반 손패 생성 시스템 + 덱/무덤 시스템
+ * @typedef {import('../../../types').Card} Card
  *
- * 캐릭터 빌드 기반 손패 생성 시스템 + 덱/무덤 시스템
+ * ## 카드 순환 시스템
+ * - 주특기: 덱에 포함되지 않음, 손패↔무덤만 순환
+ * - 보조특기: 항상 덱의 맨 위에 배치
+ * - 대기카드: 셔플하여 덱 하단에 배치
  *
- * 주특기: 덱에 포함되지 않음, 손패↔무덤만 순환
- * 보조특기: 항상 덱의 맨 위에 배치
+ * ## 손패 생성 흐름
+ * 1. initializeDeck: 캐릭터 빌드로 초기 덱 구성
+ * 2. drawFromDeck: 덱에서 카드 드로우
+ * 3. 손패 사용 → 무덤으로 이동
+ * 4. 덱 소진 시 무덤을 섞어 새 덱 생성
  */
 
 import { CARDS, DEFAULT_STARTING_DECK } from "../battleData";

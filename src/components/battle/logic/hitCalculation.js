@@ -1,7 +1,8 @@
 /**
- * hitCalculation.js
+ * @file hitCalculation.js
+ * @description 단일 타격 계산 및 반격 처리 로직
+ * @typedef {import('../../../types').Card} Card
  *
- * 단일 타격 계산 및 반격 처리 로직
  * combatActions.js에서 분리됨
  */
 
@@ -17,6 +18,12 @@ import {
 
 /**
  * 반격 처리
+ * @param {Object} defender - 반격하는 방어자
+ * @param {Object} attacker - 반격 대상 공격자
+ * @param {'player'|'enemy'} attackerName - 원래 공격자 이름
+ * @param {number|null} counterDmg - 반격 피해량 (null이면 defender.counter 사용)
+ * @param {Object} battleContext - 전투 컨텍스트
+ * @returns {{attacker: Object, damage: number, events: Array, logs: Array}}
  */
 export function applyCounter(defender, attacker, attackerName, counterDmg = null, battleContext = {}) {
   const actualCounterDmg = counterDmg !== null ? counterDmg : (defender.counter || 0);
@@ -41,7 +48,12 @@ export function applyCounter(defender, attacker, attackerName, counterDmg = null
 }
 
 /**
- * 대응사격 처리
+ * 대응사격 처리 (사격 카드로 반격)
+ * @param {Object} defender - 대응사격하는 방어자
+ * @param {Object} attacker - 대응사격 대상
+ * @param {'player'|'enemy'} attackerName - 원래 공격자 이름
+ * @param {Object} battleContext - 전투 컨텍스트
+ * @returns {{defender: Object, attacker: Object, damage: number, events: Array, logs: Array}}
  */
 export function applyCounterShot(defender, attacker, attackerName, battleContext = {}) {
   const events = [];

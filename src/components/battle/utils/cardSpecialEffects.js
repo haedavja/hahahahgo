@@ -1,8 +1,14 @@
 /**
- * cardSpecialEffects.js
+ * @file cardSpecialEffects.js
+ * @description 카드 special 효과 처리 시스템
+ * @typedef {import('../../../types').Card} Card
  *
- * 카드 special 효과 처리 시스템
  * 각 카드의 special 필드에 정의된 고유 효과를 처리
+ *
+ * ## 효과 처리 시점
+ * - preAttackSpecials: 공격 피해 계산 전
+ * - postAttackSpecials: 공격 피해 적용 후
+ * - cardPlaySpecials: 카드 사용 시 (공격/방어 무관)
  *
  * 분리된 모듈:
  * - preAttackSpecials.js: 공격 전 효과
