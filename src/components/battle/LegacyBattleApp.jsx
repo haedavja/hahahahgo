@@ -1123,6 +1123,24 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     actions
   });
 
+  // 보상 및 함성 선택 (커스텀 훅으로 분리) - useResolveExecution보다 먼저 정의
+  const {
+    cardReward,
+    recallSelection,
+    setRecallSelection,
+    handleRewardSelect,
+    handleRewardSkip,
+    handleRecallSelect,
+    handleRecallSkip,
+    showCardRewardModal
+  } = useRewardSelection({
+    CARDS,
+    battleRef,
+    battleNextTurnEffects: battle.nextTurnEffects,
+    addLog,
+    actions
+  });
+
   // 진행 단계 실행 (커스텀 훅으로 분리)
   const { finishTurn, runAll } = useResolveExecution({
     battle,
@@ -1150,24 +1168,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     startEtherCalculationAnimation,
     addLog,
     playSound,
-    actions
-  });
-
-  // 보상 및 함성 선택 (커스텀 훅으로 분리)
-  const {
-    cardReward,
-    recallSelection,
-    setRecallSelection,
-    handleRewardSelect,
-    handleRewardSkip,
-    handleRecallSelect,
-    handleRecallSkip,
-    showCardRewardModal
-  } = useRewardSelection({
-    CARDS,
-    battleRef,
-    battleNextTurnEffects: battle.nextTurnEffects,
-    addLog,
     actions
   });
 
