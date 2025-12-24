@@ -1,9 +1,17 @@
 /**
- * 전투 상태 관리 Reducer
+ * @file battleReducer.js
+ * @description 전투 상태 관리 Reducer
+ * @typedef {import('../../../types').Card} Card
+ * @typedef {import('../../../types').Token} Token
+ * @typedef {import('../../../types').BattleState} BattleState
  *
  * 분리된 모듈:
  * - battleReducerState.js: 초기 상태 정의
  * - battleReducerActions.js: 액션 타입 정의
+ *
+ * @typedef {Object} BattleAction
+ * @property {string} type - 액션 타입 (ACTIONS 상수)
+ * @property {*} payload - 액션 데이터
  */
 
 // 분리된 모듈에서 import 및 re-export
@@ -13,7 +21,10 @@ import { createInitialState } from './battleReducerState';
 import { ACTIONS } from './battleReducerActions';
 
 /**
- * Reducer 함수
+ * 전투 상태 Reducer
+ * @param {Object} state - 현재 전투 상태
+ * @param {BattleAction} action - 디스패치된 액션
+ * @returns {Object} 새로운 상태
  */
 export function battleReducer(state, action) {
   switch (action.type) {

@@ -1,3 +1,12 @@
+/**
+ * @file useEtherSystem.js
+ * @description 에테르 시스템 관리 Hook
+ *
+ * ## 에테르 슬롯 시스템
+ * 에테르 포인트가 누적되면 슬롯이 채워지고,
+ * 임계치(100)에 도달하면 오버드라이브 상태가 됨
+ */
+
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { ETHER_THRESHOLD } from '../battleData';
 import { calculateEtherSlots, getCurrentSlotPts, getSlotProgress, getNextSlotCost, MAX_SLOTS } from '../../../lib/etherUtils';
@@ -8,10 +17,10 @@ import { calculateEtherSlots, getCurrentSlotPts, getSlotProgress, getNextSlotCos
  * 에테르 시스템 관리 (포인트, 슬롯, 오버드라이브)
  *
  * @param {number} initialPts - 초기 에테르 포인트
- * @param {Object} options - 옵션
- * @param {number} options.threshold - 오버드라이브 임계값
- * @param {boolean} options.animated - 애니메이션 사용 여부
- * @returns {Object} 에테르 시스템 상태 및 함수
+ * @param {Object} [options] - 옵션
+ * @param {number} [options.threshold=100] - 오버드라이브 임계값
+ * @param {boolean} [options.animated=true] - 애니메이션 사용 여부
+ * @returns {{pts: number, slots: number, isOverdrive: boolean, addEther: Function, consumeEther: Function}}
  */
 export function useEtherSystem(initialPts = 0, options = {}) {
   const {

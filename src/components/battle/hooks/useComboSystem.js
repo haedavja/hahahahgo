@@ -1,3 +1,9 @@
+/**
+ * @file useComboSystem.js
+ * @description 콤보 시스템 관리 Hook
+ * @typedef {import('../../../types').Card} Card
+ */
+
 import { useMemo, useEffect } from 'react';
 import { detectPokerCombo } from '../utils/comboDetection';
 import { COMBO_MULTIPLIERS, calculateComboEtherGain } from '../utils/etherCalculations';
@@ -5,6 +11,13 @@ import { COMBO_MULTIPLIERS, calculateComboEtherGain } from '../utils/etherCalcul
 /**
  * 콤보 시스템 훅
  * 선택된 카드의 조합 감지, 배율 계산, 디플레이션 정보 관리
+ *
+ * @param {Object} params
+ * @param {Card[]} params.battleSelected - 선택된 카드 배열
+ * @param {string} params.battlePhase - 현재 전투 페이즈
+ * @param {Object} params.playerComboUsageCount - 조합별 사용 횟수
+ * @param {number} params.resolvedPlayerCards - 해결된 플레이어 카드 수
+ * @returns {{currentCombo: Object|null, finalComboMultiplier: number}}
  */
 export function useComboSystem({
   battleSelected,

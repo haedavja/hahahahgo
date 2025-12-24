@@ -1,7 +1,15 @@
 /**
- * comboScoring.js
+ * @file comboScoring.js
+ * @description 적 AI의 포커 콤보 인식 및 점수 계산
+ * @typedef {import('../../../types').Card} Card
  *
- * 적 AI의 포커 콤보 인식 및 점수 계산
+ * ## AI 콤보 시스템 개요
+ * 적 AI가 카드를 선택할 때 콤보 가치를 평가하는 시스템.
+ * 콤보 점수는 AI의 카드 선택 우선순위에 영향을 미침.
+ *
+ * ## 점수 계산 공식
+ * 최종점수 = COMBO_SCORE_WEIGHTS[조합] × ENEMY_COMBO_TENDENCIES[적ID]
+ *
  * 설계 문서: docs/AI_COMBO_RECOGNITION_DESIGN.md
  */
 
@@ -11,7 +19,8 @@ import { COMBO_MULTIPLIERS } from './etherCalculations';
 // =====================
 // 콤보 점수 가중치
 // =====================
-// 배율 기반이지만 AI가 너무 콤보만 추구하지 않도록 조정
+// 에테르 배율과 대응하지만, AI가 콤보만 추구하지 않도록 조정된 값
+// 예: 포카드(4배)가 페어(2배)보다 4배 좋은 건 아님 → 점수는 4배 차이 아님
 
 export const COMBO_SCORE_WEIGHTS = {
   '하이카드': 0,        // 기본, 보너스 없음

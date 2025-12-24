@@ -1,3 +1,11 @@
+/**
+ * @file useBattleState.js
+ * @description 전투 상태 관리 커스텀 Hook
+ * @typedef {import('../../../types').Card} Card
+ * @typedef {import('../../../types').Token} Token
+ * @typedef {import('../../../types').BattleState} BattleState
+ */
+
 import { useReducer, useMemo, useCallback, useRef, useEffect } from 'react';
 import { battleReducer, createInitialState, ACTIONS } from '../reducer/battleReducer';
 import { addToken, removeToken, clearTurnTokens, setTokenStacks } from '../../../lib/tokenUtils';

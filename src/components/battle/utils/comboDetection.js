@@ -1,3 +1,24 @@
+/**
+ * @file comboDetection.js
+ * @description 포커 조합 감지 시스템
+ * @typedef {import('../../../types').Card} Card
+ *
+ * ## 조합 감지 규칙
+ * 카드의 actionCost를 포커 숫자처럼 취급하여 조합 판정:
+ * - 파이브카드: 같은 actionCost 5장
+ * - 포카드: 같은 actionCost 4장
+ * - 풀하우스: 트리플 + 페어
+ * - 플러쉬: 같은 타입(공격/방어) 4장 이상
+ * - 트리플: 같은 actionCost 3장
+ * - 투페어: 페어 2개
+ * - 페어: 같은 actionCost 2장
+ * - 하이카드: 조합 없음
+ *
+ * ## 제외 조건
+ * - 'outcast' 특성 카드: 조합에서 제외
+ * - 유령카드 (isGhost): 조합에서 제외
+ */
+
 import { hasTrait } from './battleUtils';
 
 // =====================
@@ -6,8 +27,8 @@ import { hasTrait } from './battleUtils';
 
 /**
  * 포커 조합 감지
- * @param {Array} cards - 조합을 감지할 카드 배열
- * @returns {Object|null} - 조합 이름과 보너스 키 Set, 조합이 없으면 null
+ * @param {Card[]} cards - 조합을 감지할 카드 배열
+ * @returns {{name: string, bonusKeys: Set<number>|null}|null} 조합 정보 또는 null
  */
 export function detectPokerCombo(cards) {
   if (!cards || cards.length === 0) return null;
@@ -26,16 +47,21 @@ export function detectPokerCombo(cards) {
     };
   }
 
+  // actionCost별 카드 수 집계 (예: {1: 2, 2: 3} = 1코스트 2장, 2코스트 3장)
   const freq = new Map();
   for (const c of validCards) { freq.set(c.actionCost, (freq.get(c.actionCost) || 0) + 1); }
   const counts = Array.from(freq.values());
-  const have = (n) => counts.includes(n);
+
+  // 헬퍼 함수
+  const have = (n) => counts.includes(n); // n장짜리 그룹이 있는지
   const keysByCount = (n) => new Set(Array.from(freq.entries()).filter(([k, v]) => v === n).map(([k]) => Number(k)));
 
+  // 플러쉬 판정: 모든 카드가 공격형 또는 방어형이고 4장 이상
   const allAttack = validCards.every(c => c.type === 'attack');
   const allDefense = validCards.every(c => c.type === 'general' || c.type === 'defense');
   const isFlush = (allAttack || allDefense) && validCards.length >= 4;
 
+  // 조합 우선순위: 파이브카드 > 포카드 > 풀하우스 > 플러쉬 > 투페어 > 트리플 > 페어 > 하이카드
   let result = null;
   if (have(5)) result = { name: '파이브카드', bonusKeys: keysByCount(5) };
   else if (have(4)) result = { name: '포카드', bonusKeys: keysByCount(4) };
