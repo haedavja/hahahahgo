@@ -1,18 +1,36 @@
 /**
- * ResourcesTab.jsx
+ * ResourcesTab.tsx
  * 자원 관리 탭
  */
 
 import { useState } from 'react';
 
-export function ResourcesTab({ resources, setResources, devOpenRest, awakenAtRest, closeRest }) {
-  const [inputs, setInputs] = useState(resources);
+interface Resources {
+  gold: number;
+  intel: number;
+  loot: number;
+  material: number;
+  aether: number;
+  memory: number;
+  [key: string]: number;
+}
+
+interface ResourcesTabProps {
+  resources: Resources;
+  setResources: (resources: Resources) => void;
+  devOpenRest: () => void;
+  awakenAtRest: (trait: string) => void;
+  closeRest: () => void;
+}
+
+export function ResourcesTab({ resources, setResources, devOpenRest, awakenAtRest, closeRest }: ResourcesTabProps) {
+  const [inputs, setInputs] = useState<Resources>(resources);
 
   const applyResources = () => {
     setResources(inputs);
   };
 
-  const presets = {
+  const presets: Record<string, Resources> = {
     '풍족': { gold: 999, intel: 10, loot: 10, material: 10, aether: 50, memory: 200 },
     '초반': { gold: 50, intel: 2, loot: 1, material: 1, aether: 0, memory: 0 },
     '중반': { gold: 200, intel: 5, loot: 5, material: 3, aether: 10, memory: 50 },

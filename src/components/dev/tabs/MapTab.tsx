@@ -1,17 +1,41 @@
 /**
- * MapTab.jsx
+ * MapTab.tsx
  * 맵 관리 탭
  */
 
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo, ChangeEvent } from 'react';
 import { OBSTACLE_TEMPLATES } from '../../../data/dungeonNodes';
 
-export function MapTab({ map, mapRisk, setMapRisk, selectNode, devClearAllNodes, devTeleportToNode, devForcedCrossroad, setDevForcedCrossroad }) {
+interface MapNode {
+  id: string;
+  layer?: number;
+  type: string;
+  displayLabel?: string;
+  cleared?: boolean;
+}
+
+interface GameMap {
+  nodes?: MapNode[];
+  currentNodeId?: string;
+}
+
+interface MapTabProps {
+  map: GameMap | null;
+  mapRisk: number;
+  setMapRisk: (risk: number) => void;
+  selectNode: (nodeId: string) => void;
+  devClearAllNodes: () => void;
+  devTeleportToNode: (nodeId: string) => void;
+  devForcedCrossroad: string | null;
+  setDevForcedCrossroad: (crossroad: string | null) => void;
+}
+
+export function MapTab({ map, mapRisk, setMapRisk, selectNode, devClearAllNodes, devTeleportToNode, devForcedCrossroad, setDevForcedCrossroad }: MapTabProps) {
   const currentNode = map?.nodes?.find(n => n.id === map.currentNodeId);
-  const [selectedNodeId, setSelectedNodeId] = useState('');
+  const [selectedNodeId, setSelectedNodeId] = useState<string>('');
 
   // 노드 타입별 이모지
-  const nodeEmojis = {
+  const nodeEmojis: Record<string, string> = {
     battle: '⚔️',
     rest: '🔥',
     shop: '🏪',
@@ -22,7 +46,7 @@ export function MapTab({ map, mapRisk, setMapRisk, selectNode, devClearAllNodes,
   // 레이어별로 노드 그룹화
   const nodesByLayer = useMemo(() => {
     if (!map?.nodes) return {};
-    const grouped = {};
+    const grouped: Record<number, MapNode[]> = {};
     map.nodes.forEach(node => {
       const layer = node.layer || 0;
       if (!grouped[layer]) grouped[layer] = [];
@@ -63,7 +87,7 @@ export function MapTab({ map, mapRisk, setMapRisk, selectNode, devClearAllNodes,
           min="0"
           max="100"
           value={mapRisk}
-          onChange={(e) => setMapRisk(parseInt(e.target.value))}
+          onChange={(e: ChangeEvent<HTMLInputElement>) => setMapRisk(parseInt(e.target.value))}
           style={{
             width: '100%',
             height: '8px',
@@ -119,7 +143,7 @@ export function MapTab({ map, mapRisk, setMapRisk, selectNode, devClearAllNodes,
         <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
           <select
             value={selectedNodeId}
-            onChange={(e) => setSelectedNodeId(e.target.value)}
+            onChange={(e: ChangeEvent<HTMLSelectElement>) => setSelectedNodeId(e.target.value)}
             style={{
               flex: 1,
               padding: '8px',
@@ -224,7 +248,7 @@ export function MapTab({ map, mapRisk, setMapRisk, selectNode, devClearAllNodes,
             alignItems: 'center',
           }}>
             <span style={{ color: '#a78bfa', fontSize: '0.875rem' }}>
-              ✓ {OBSTACLE_TEMPLATES[devForcedCrossroad]?.name || devForcedCrossroad}
+              ✓ {(OBSTACLE_TEMPLATES as Record<string, { name: string }>)[devForcedCrossroad]?.name || devForcedCrossroad}
             </span>
             <button
               onClick={() => setDevForcedCrossroad(null)}
@@ -251,7 +275,7 @@ export function MapTab({ map, mapRisk, setMapRisk, selectNode, devClearAllNodes,
           maxHeight: '200px',
           overflowY: 'auto',
         }}>
-          {Object.entries(OBSTACLE_TEMPLATES).map(([key, template]) => (
+          {Object.entries(OBSTACLE_TEMPLATES as Record<string, { name: string; choices?: unknown[] }>).map(([key, template]) => (
             <button
               key={key}
               onClick={() => setDevForcedCrossroad(key)}

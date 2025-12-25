@@ -1,5 +1,5 @@
 /**
- * @file index.js
+ * @file index.ts
  * @description DevTools 탭 컴포넌트 re-export
  */
 
