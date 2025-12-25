@@ -1,5 +1,5 @@
 /**
- * @file parryProcessing.js
+ * @file parryProcessing.ts
  * @description 쳐내기(parry) 효과 처리 시스템
  *
  * ## 쳐내기 흐름
@@ -8,14 +8,79 @@
  * 3. 트리거 시 적 카드 타임라인 밀어냄
  */
 
+/** 카드 정보 */
+interface CardInfo {
+  name?: string;
+  type?: string;
+  parryRange?: number;
+  parryPushAmount?: number;
+  [key: string]: unknown;
+}
+
+/** 액션 정보 */
+interface Action {
+  card: CardInfo;
+  sp?: number;
+  actor: 'player' | 'enemy';
+}
+
+/** 큐 아이템 */
+interface QueueItem {
+  card?: CardInfo;
+  sp?: number;
+  actor?: 'player' | 'enemy';
+}
+
+/** 패리 대기 상태 */
+interface ParryReadyState {
+  active: boolean;
+  actor: 'player' | 'enemy';
+  cardName?: string;
+  centerSp: number;
+  maxSp: number;
+  pushAmount: number;
+  triggered: boolean;
+}
+
+/** 패리 이벤트 */
+interface ParryEvent {
+  actor: 'player' | 'enemy';
+  card?: string;
+  type: 'parry';
+  pushAmount: number;
+  triggeredBy?: string;
+  msg: string;
+}
+
+/** 패리 트리거 결과 */
+interface ParryTriggerResult {
+  updatedQueue: QueueItem[];
+  parryEvents: ParryEvent[];
+  updatedParryStates: ParryReadyState[];
+  outCards: QueueItem[];
+}
+
+/** setupParryReady 파라미터 */
+interface SetupParryReadyParams {
+  action: Action;
+  addLog: (msg: string) => void;
+}
+
+/** checkParryTrigger 파라미터 */
+interface CheckParryTriggerParams {
+  parryReadyStates: ParryReadyState | ParryReadyState[] | null | undefined;
+  enemyAction: Action;
+  queue: QueueItem[];
+  currentQIndex: number;
+  enemyMaxSpeed?: number;
+  addLog: (msg: string) => void;
+  playParrySound?: () => void;
+}
+
 /**
  * 쳐내기 카드 발동 시 패리 대기 상태 설정
- * @param {Object} params - 파라미터
- * @param {Object} params.action - 현재 액션 (card, sp, actor 포함)
- * @param {Function} params.addLog - 로그 추가 함수
- * @returns {Object} parryReadyState - 패리 대기 상태 객체
  */
-export function setupParryReady({ action, addLog }) {
+export function setupParryReady({ action, addLog }: SetupParryReadyParams): ParryReadyState {
   const card = action.card;
   const parryRange = card.parryRange ?? 5;
   const pushAmount = card.parryPushAmount ?? 3;
@@ -36,19 +101,20 @@ export function setupParryReady({ action, addLog }) {
 
 /**
  * 적 카드 발동 시 패리 트리거 체크 (여러 패리 상태 지원)
- * @param {Object} params - 파라미터
- * @param {Array} params.parryReadyStates - 패리 대기 상태 배열
- * @param {Object} params.enemyAction - 적 액션 (card, sp, actor 포함)
- * @param {Array} params.queue - 액션 큐
- * @param {number} params.currentQIndex - 현재 큐 인덱스
- * @param {number} params.enemyMaxSpeed - 적 타임라인 최대 속도 (아웃 판정용)
- * @param {Function} params.addLog - 로그 추가 함수
- * @param {Function} params.playParrySound - 패리 사운드 재생 함수
- * @returns {Object} { updatedQueue, parryEvents, updatedParryStates, outCards }
  */
-export function checkParryTrigger({ parryReadyStates, enemyAction, queue, currentQIndex, enemyMaxSpeed, addLog, playParrySound }) {
+export function checkParryTrigger({
+  parryReadyStates,
+  enemyAction,
+  queue,
+  currentQIndex,
+  enemyMaxSpeed,
+  addLog,
+  playParrySound
+}: CheckParryTriggerParams): ParryTriggerResult {
   // 배열이 아니면 단일 상태를 배열로 변환 (하위 호환)
-  const states = Array.isArray(parryReadyStates) ? parryReadyStates : (parryReadyStates ? [parryReadyStates] : []);
+  const states: ParryReadyState[] = Array.isArray(parryReadyStates)
+    ? parryReadyStates
+    : (parryReadyStates ? [parryReadyStates] : []);
 
   // 활성 상태가 없으면 스킵
   const activeStates = states.filter(s => s?.active && !s.triggered);
@@ -63,7 +129,7 @@ export function checkParryTrigger({ parryReadyStates, enemyAction, queue, curren
 
   const enemySp = enemyAction.sp ?? 0;
   let currentQueue = queue;
-  const parryEvents = [];
+  const parryEvents: ParryEvent[] = [];
   let totalPushAmount = 0;
 
   // 각 패리 상태를 체크
@@ -106,7 +172,7 @@ export function checkParryTrigger({ parryReadyStates, enemyAction, queue, curren
     };
   });
 
-  const outCards = [];
+  const outCards: QueueItem[] = [];
 
   // 패리가 발동됐으면 사운드 재생 및 큐 업데이트
   if (totalPushAmount > 0) {
@@ -127,11 +193,10 @@ export function checkParryTrigger({ parryReadyStates, enemyAction, queue, curren
     });
 
     // 아웃 처리: enemyMaxSpeed를 초과한 적 카드 제거
-    const maxSpeed = enemyMaxSpeed || 30; // 기본값 30
-    const filteredQueue = [];
+    const maxSpeed = enemyMaxSpeed || 30;
+    const filteredQueue: QueueItem[] = [];
     for (const item of currentQueue) {
       if (item && item.actor !== 'player' && (item.sp ?? 0) > maxSpeed) {
-        // 아웃! 큐에서 제거
         outCards.push(item);
         addLog(`🚫 아웃! "${item.card?.name}" 카드가 타임라인 밖으로 밀려남! (sp: ${item.sp} > ${maxSpeed})`);
       } else {
@@ -161,8 +226,7 @@ export function checkParryTrigger({ parryReadyStates, enemyAction, queue, curren
 
 /**
  * 턴 종료 시 패리 상태 초기화
- * @returns {null}
  */
-export function resetParryState() {
+export function resetParryState(): null {
   return null;
 }
