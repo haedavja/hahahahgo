@@ -5,7 +5,7 @@ import { ErrorBoundary } from "./components/ErrorBoundary";
 
 // 동적 import로 코드 스플리팅
 const MapDemo = lazy(() => import("./components/map/MapDemo").then(m => ({ default: m.MapDemo })));
-const LegacyBattleScreen = lazy(() => import("./components/battle/LegacyBattleScreen").then(m => ({ default: m.LegacyBattleScreen })));
+const BattleScreen = lazy(() => import("./components/battle/BattleScreen").then(m => ({ default: m.BattleScreen })));
 
 // 로딩 컴포넌트
 function LoadingFallback() {
@@ -32,7 +32,7 @@ function App() {
       {activeBattle ? (
         <Suspense fallback={<LoadingFallback />}>
           <div className="battle-fullscreen">
-            <LegacyBattleScreen />
+            <BattleScreen />
           </div>
         </Suspense>
       ) : (

@@ -4,7 +4,7 @@ import { useGameStore } from "../../state/gameStore";
 import { calculateEtherSlots, getCurrentSlotPts, getSlotProgress, getNextSlotCost } from "../../lib/etherUtils";
 import { CharacterSheet } from "../character/CharacterSheet";
 import { DungeonExploration } from "../dungeon/DungeonExploration";
-import { LegacyBattleScreen } from "../battle/LegacyBattleScreen";
+import { BattleScreen } from "../battle/BattleScreen";
 import { ShopModal } from "../shop/ShopModal";
 import { EtherBar } from "../battle/ui/EtherBar";
 import { DevTools } from "../dev/DevTools";
@@ -442,7 +442,7 @@ export function MapDemo() {
         />
       )}
 
-      {activeBattle && <LegacyBattleScreen />}
+      {activeBattle && <BattleScreen />}
 
       {activeDungeon && !activeDungeon.confirmed && (
         <div className="event-modal-overlay">

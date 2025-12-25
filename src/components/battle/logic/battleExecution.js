@@ -3,7 +3,7 @@
  * @description 전투 실행 로직 - 메인 엔트리 포인트
  * @typedef {import('../../../types').Card} Card
  *
- * LegacyBattleApp.jsx에서 분리됨
+ * BattleApp.jsx에서 분리됨
  *
  * ## 분리된 모듈
  * - cardExecutionCore.js: 카드 실행 핵심 로직

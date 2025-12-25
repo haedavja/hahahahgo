@@ -1,6 +1,6 @@
 import { useMemo, useCallback, useState, useEffect } from "react";
 import { useGameStore } from "../../state/gameStore";
-import { LegacyBattleApp } from "./LegacyBattleApp";
+import { BattleApp } from "./BattleApp";
 import { DevTools } from "../dev/DevTools";
 import { calculatePassiveEffects, applyCombatStartEffects } from "../../lib/relicEffects";
 import { ENEMIES } from "./battleData";
@@ -235,7 +235,7 @@ const buildBattlePayload = (battle, etherPts, relics, maxHp, playerInsight, play
   };
 };
 
-export function LegacyBattleScreen() {
+export function BattleScreen() {
   const activeBattle = useGameStore((state) => state.activeBattle);
   const resolveBattle = useGameStore((state) => state.resolveBattle);
   const applyEtherDelta = useGameStore((state) => state.applyEtherDelta);
@@ -318,7 +318,7 @@ export function LegacyBattleScreen() {
 
   return (
     <div className="battle-fullscreen">
-      <LegacyBattleApp
+      <BattleApp
         initialPlayer={payload?.player}
         initialEnemy={payload?.enemy}
         playerEther={playerEther}

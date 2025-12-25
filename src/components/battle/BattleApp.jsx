@@ -2968,7 +2968,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   );
 }
 
-export const LegacyBattleApp = ({ initialPlayer, initialEnemy, playerEther, liveInsight, onBattleResult = () => { } }) => (
+export const BattleApp = ({ initialPlayer, initialEnemy, playerEther, liveInsight, onBattleResult = () => { } }) => (
   <Game
     initialPlayer={initialPlayer}
     initialEnemy={initialEnemy}
@@ -2978,4 +2978,4 @@ export const LegacyBattleApp = ({ initialPlayer, initialEnemy, playerEther, live
   />
 );
 
-export default LegacyBattleApp;
+export default BattleApp;

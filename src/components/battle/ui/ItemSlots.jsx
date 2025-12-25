@@ -131,7 +131,7 @@ export function ItemSlots({ phase, battleActions, player, enemy, enemyPlan, batt
 
         // respond 단계면 fixedOrder에서도 파괴된 적 카드 제거
         if (phase === 'respond' && battleActions.setFixedOrder) {
-          // fixedOrder 업데이트는 LegacyBattleApp에서 enemyPlan.actions 변경을 감지해서 처리
+          // fixedOrder 업데이트는 BattleApp에서 enemyPlan.actions 변경을 감지해서 처리
           // 여기서는 setEnemyPlan 호출로 충분
         }
 

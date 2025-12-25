@@ -1,6 +1,6 @@
 import { useGameStore } from "../../state/gameStore";
 
-export function LegacyBattlePane() {
+export function BattlePane() {
   const activeBattle = useGameStore((state) => state.activeBattle);
 
   if (!activeBattle) return null;
