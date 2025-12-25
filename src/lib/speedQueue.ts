@@ -10,47 +10,20 @@
  */
 
 import { CARD_LIBRARY } from "../data/cards";
-import type { Card } from "../types";
+import type {
+  InflatedCard,
+  SpeedQueueHandCard as HandCard,
+  TimelineAction,
+  TimelineEntry,
+  TurnPreview,
+  CreateTurnPreviewOptions
+} from "../types";
 
 /** 카드 우선순위 */
 export type CardPriority = 'instant' | 'quick' | 'normal' | 'slow';
 
-/** 우선순위 가중치가 추가된 카드 */
-export interface InflatedCard extends Card {
-  priorityWeight: number;
-}
-
-/** 인스턴스 ID가 추가된 핸드 카드 */
-export interface HandCard extends InflatedCard {
-  instanceId: string;
-}
-
-/** 타임라인 행동 */
-export interface TimelineAction {
-  actor: 'player' | 'enemy';
-  cardId: string;
-  name?: string;
-  speedCost: number;
-  priorityWeight: number;
-  priority: string;
-  actionCost: number;
-  tags: string[];
-  roll: number;
-}
-
-/** 타임라인 항목 */
-export interface TimelineEntry extends TimelineAction {
-  order: number;
-  tu: number;
-}
-
-/** 턴 미리보기 */
-export interface TurnPreview {
-  playerHand: HandCard[];
-  enemyHand: HandCard[];
-  timeline: TimelineEntry[];
-  tuLimit: number;
-}
+// Re-export types for backward compatibility
+export type { InflatedCard, HandCard, TimelineAction, TimelineEntry, TurnPreview };
 
 const PRIORITY_WEIGHT: Record<string, number> = {
   instant: 3,
@@ -136,12 +109,6 @@ export const buildSpeedTimeline = (
 
   return timeline;
 };
-
-interface CreateTurnPreviewOptions {
-  playerHandSize?: number;
-  enemyHandSize?: number;
-  maxTU?: number;
-}
 
 export const createTurnPreview = (
   playerDeck: string[],

@@ -18,30 +18,11 @@ import type {
   DamageEffectResult,
   HealEffectResult,
   ReviveResult,
-  TokenEffectPayload
+  TokenEffectPayload,
+  TokenInstanceWithEffect,
+  ModifiableCard,
+  TokenConsumeResult as ConsumeResult
 } from '../types';
-
-/** 토큰 인스턴스 (표시용, 효과 포함) */
-interface TokenInstanceWithEffect {
-  id: string;
-  stacks: number;
-  durationType: string;
-  effect: TokenEffectPayload;
-  name: string;
-  [key: string]: unknown;
-}
-
-/** 카드 (수정 가능) */
-interface ModifiableCard extends Card {
-  _ignoreBlock?: boolean;
-  _applyBurn?: boolean;
-}
-
-/** 토큰 소모 결과 */
-interface ConsumeResult {
-  tokens: TokenState;
-  logs: string[];
-}
 
 /**
  * 카드에 토큰 효과 적용

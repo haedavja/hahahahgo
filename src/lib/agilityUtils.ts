@@ -8,12 +8,7 @@
  * - 최소 속도는 1 (0 이하로 내려가지 않음)
  */
 
-import type { Card } from '../types';
-
-/** 민첩 적용된 카드 (원본 속도 보존) */
-interface CardWithOriginalSpeed extends Card {
-  originalSpeedCost?: number;
-}
+import type { CardWithOriginalSpeed } from '../types';
 
 /**
  * 민첩성을 적용하여 카드의 실제 속도를 계산합니다.

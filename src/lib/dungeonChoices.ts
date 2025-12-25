@@ -9,107 +9,21 @@
  */
 
 import { CHOICE_RESULT_TYPES } from '../data/dungeonNodes';
-
-interface StatRequirement {
-  stat: string;
-  value: number;
-}
-
-interface ScalingRequirement {
-  stat: string;
-  baseValue: number;
-  increment: number;
-}
-
-interface Requirements {
-  item?: string;
-  strength?: number;
-  agility?: number;
-  insight?: number;
-  energy?: number;
-  [key: string]: unknown;
-}
-
-interface OutcomeEffect {
-  [key: string]: unknown;
-}
-
-interface Outcome {
-  type?: string;
-  effect?: OutcomeEffect;
-  text: string;
-}
-
-interface SpecialOverride {
-  requiredSpecial: string;
-  text: string;
-  outcome: Outcome;
-}
-
-interface Choice {
-  text: string;
-  repeatable?: boolean;
-  maxAttempts?: number;
-  requirements?: Requirements;
-  scalingRequirement?: ScalingRequirement;
-  specialOverrides?: SpecialOverride[];
-  warningAtAttempt?: number;
-  warningText?: string;
-  progressText?: string[];
-  outcomes: {
-    success: Outcome;
-    failure: Outcome;
-  };
-  screenEffect?: string;
-  soundEffect?: string;
-}
-
-interface PlayerStats {
-  strength?: number;
-  agility?: number;
-  insight?: number;
-  energy?: number;
-  specials?: string[];
-  [key: string]: unknown;
-}
-
-interface ChoiceState {
-  attempts?: number;
-  completed?: boolean;
-}
-
-interface Inventory {
-  items?: string[];
-  keys?: string[];
-}
-
-interface CanSelectResult {
-  canSelect: boolean;
-  reason: string | null;
-  isHidden: boolean;
-  statRequired?: StatRequirement;
-}
-
-interface ExecuteResult {
-  result: string;
-  effect: OutcomeEffect;
-  message: string;
-  newState: ChoiceState;
-  isSpecial?: boolean;
-  warning?: string | null;
-  progressMessage?: string | null;
-  canContinue?: boolean;
-  screenEffect?: string;
-  soundEffect?: string;
-}
-
-interface ChoiceDisplayInfo {
-  text: string;
-  subtext: string;
-  disabled: boolean;
-  hidden: boolean;
-  isSpecial?: boolean;
-}
+import type {
+  DungeonStatRequirement as StatRequirement,
+  DungeonScalingRequirement as ScalingRequirement,
+  DungeonChoiceRequirements as Requirements,
+  DungeonOutcomeEffect as OutcomeEffect,
+  DungeonOutcome as Outcome,
+  DungeonSpecialOverride as SpecialOverride,
+  DungeonChoice as Choice,
+  DungeonPlayerStats as PlayerStats,
+  DungeonChoiceState as ChoiceState,
+  DungeonInventory as Inventory,
+  DungeonCanSelectResult as CanSelectResult,
+  DungeonExecuteResult as ExecuteResult,
+  DungeonChoiceDisplayInfo as ChoiceDisplayInfo
+} from '../types';
 
 /**
  * 선택지가 선택 가능한지 확인

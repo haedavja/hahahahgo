@@ -9,82 +9,19 @@
  */
 
 import { CARD_LIBRARY } from "../data/cards";
-
-interface ActorStats {
-  hp: number;
-  block: number;
-}
-
-interface BattleStats {
-  player: ActorStats;
-  enemy: ActorStats;
-}
-
-interface Card {
-  id: string;
-  name?: string;
-  damage?: number;
-  block?: number;
-  tags?: string[];
-  [key: string]: unknown;
-}
-
-interface TimelineEntry {
-  order: number;
-  actor: 'player' | 'enemy';
-  cardId: string;
-  speedCost: number;
-  [key: string]: unknown;
-}
-
-interface AttackResult {
-  blocked: number;
-  hpDamage: number;
-}
-
-interface BlockResult {
-  block: number;
-}
-
-interface SupportResult {
-  buff?: string;
-}
-
-interface LogDetail {
-  type: string;
-  blocked?: number;
-  hpDamage?: number;
-  targetHP?: number;
-  targetBlock?: number;
-  block?: number;
-  actorBlock?: number;
-  buff?: string;
-}
-
-interface LogRecord {
-  order: number;
-  actor: string;
-  cardId: string;
-  name?: string;
-  speedCost: number;
-  detail: LogDetail | null;
-  actorHP: number;
-  actorBlock: number;
-  targetHP: number;
-  targetBlock: number;
-}
-
-interface BattleStatus {
-  [key: string]: boolean;
-}
-
-interface SimulationResult {
-  winner: 'player' | 'enemy' | 'draw';
-  log: LogRecord[];
-  finalState: BattleStats;
-  initialState: BattleStats;
-  status: BattleStatus;
-}
+import type {
+  ResolverActorStats as ActorStats,
+  ResolverBattleStats as BattleStats,
+  ResolverCard as Card,
+  ResolverTimelineEntry as TimelineEntry,
+  ResolverAttackResult as AttackResult,
+  ResolverBlockResult as BlockResult,
+  ResolverSupportResult as SupportResult,
+  ResolverLogDetail as LogDetail,
+  ResolverLogRecord as LogRecord,
+  ResolverBattleStatus as BattleStatus,
+  ResolverSimulationResult as SimulationResult
+} from '../types';
 
 const DEFAULT_STATS: BattleStats = {
   player: { hp: 50, block: 0 },

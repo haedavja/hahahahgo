@@ -20,20 +20,10 @@ import type {
   TokenState,
   TokenEntity,
   TokenModificationResult,
-  TokenDefinition
+  TokenDefinition,
+  TokenCancelResult as CancelResult,
+  TokenDisplayData
 } from '../types';
-
-/** 토큰 상쇄 결과 */
-interface CancelResult {
-  cancelled: number;
-  remaining: number;
-  tokens: TokenState;
-}
-
-/** 토큰 데이터 (표시용) */
-interface TokenDisplayData extends TokenDefinition, TokenInstance {
-  durationType: string;
-}
 
 /**
  * 엔티티에 토큰 추가

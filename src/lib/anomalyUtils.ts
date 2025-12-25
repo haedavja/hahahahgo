@@ -11,71 +11,16 @@
 import { selectRandomAnomaly, selectMultipleAnomalies, ANOMALY_TYPES } from '../data/anomalies';
 import { addToken } from './tokenUtils';
 import { TOKENS } from '../data/tokens';
-
-interface AnomalyEffect {
-  type: string;
-  value?: number;
-  description: string;
-}
-
-interface Anomaly {
-  id: string;
-  name: string;
-  emoji: string;
-  color: string;
-  description: string;
-  getEffect: (level: number) => AnomalyEffect;
-}
-
-interface AnomalyWithLevel {
-  anomaly: Anomaly;
-  level: number;
-}
-
-interface ForcedAnomaly {
-  anomalyId: string;
-  level: number;
-}
-
-interface TokenState {
-  usage: unknown[];
-  turn: unknown[];
-  permanent: unknown[];
-  [key: string]: unknown[];
-}
-
-interface Player {
-  hp?: number;
-  maxHp?: number;
-  tokens?: TokenState;
-  etherBan?: boolean;
-  energyPenalty?: number;
-  speedPenalty?: number;
-  drawPenalty?: number;
-  insightPenalty?: number;
-  [key: string]: unknown;
-}
-
-interface ApplyAnomalyResult {
-  player: Player;
-  logs: string[];
-}
-
-interface AnomalyDisplay {
-  id: string;
-  name: string;
-  emoji: string;
-  color: string;
-  level: number;
-  effect: AnomalyEffect;
-  description: string;
-}
-
-interface PenaltyResult {
-  energy: number;
-  speed: number;
-  insight: number;
-}
+import type {
+  AnomalyEffect,
+  AnomalyDefinition as Anomaly,
+  AnomalyWithLevel,
+  ForcedAnomaly,
+  AnomalyPlayer as Player,
+  ApplyAnomalyResult,
+  AnomalyDisplay,
+  AnomalyPenaltyResult as PenaltyResult
+} from '../types';
 
 /**
  * 이변 발동 확률 체크

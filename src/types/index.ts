@@ -2039,3 +2039,513 @@ export interface EventAnimActions {
   setPlayerBlockAnim: (value: boolean) => void;
   setEnemyBlockAnim: (value: boolean) => void;
 }
+
+// ==================== 속도 큐 시스템 타입 ====================
+
+/** 우선순위 가중치가 추가된 카드 */
+export interface InflatedCard extends Card {
+  priorityWeight: number;
+}
+
+/** 인스턴스 ID가 추가된 핸드 카드 (speedQueue) */
+export interface SpeedQueueHandCard extends InflatedCard {
+  instanceId: string;
+}
+
+/** 타임라인 행동 */
+export interface TimelineAction {
+  actor: 'player' | 'enemy';
+  cardId: string;
+  name?: string;
+  speedCost: number;
+  priorityWeight: number;
+  priority: string;
+  actionCost: number;
+  tags: string[];
+  roll: number;
+}
+
+/** 타임라인 항목 */
+export interface TimelineEntry extends TimelineAction {
+  order: number;
+  tu: number;
+}
+
+/** 턴 미리보기 */
+export interface TurnPreview {
+  playerHand: SpeedQueueHandCard[];
+  enemyHand: SpeedQueueHandCard[];
+  timeline: TimelineEntry[];
+  tuLimit: number;
+}
+
+/** 턴 미리보기 옵션 */
+export interface CreateTurnPreviewOptions {
+  playerHandSize?: number;
+  enemyHandSize?: number;
+  maxTU?: number;
+}
+
+// ==================== 민첩 시스템 타입 ====================
+
+/** 원본 속도 보존 카드 */
+export interface CardWithOriginalSpeed extends Card {
+  originalSpeedCost?: number;
+}
+
+// ==================== 상징 효과 시스템 타입 ====================
+
+/** 상징 (효과 포함) */
+export interface RelicWithEffects {
+  id: string;
+  effects: RelicEffectsDefinition;
+  [key: string]: unknown;
+}
+
+/** 전투 종료 상태 (상징용) */
+export interface RelicCombatEndState {
+  playerHp?: number;
+  maxHp?: number;
+}
+
+/** 턴 상태 (상징용) */
+export interface RelicTurnState {
+  blockNextTurn?: number;
+  energyNextTurn?: number;
+  healNextTurn?: number;
+  [key: string]: unknown;
+}
+
+// ==================== 토큰 효과 시스템 타입 ====================
+
+/** 토큰 인스턴스 (표시용, 효과 포함) */
+export interface TokenInstanceWithEffect {
+  id: string;
+  stacks: number;
+  durationType: string;
+  effect: TokenEffectPayload;
+  name: string;
+  [key: string]: unknown;
+}
+
+/** 카드 (수정 가능) */
+export interface ModifiableCard extends Card {
+  _ignoreBlock?: boolean;
+  _applyBurn?: boolean;
+}
+
+/** 토큰 소모 결과 */
+export interface TokenConsumeResult {
+  tokens: TokenState;
+  logs: string[];
+}
+
+// ==================== 토큰 유틸리티 타입 ====================
+
+/** 토큰 상쇄 결과 */
+export interface TokenCancelResult {
+  cancelled: number;
+  remaining: number;
+  tokens: TokenState;
+}
+
+/** 토큰 데이터 (표시용) */
+export interface TokenDisplayData extends TokenDefinition, TokenInstance {
+  durationType: string;
+}
+
+// ==================== 성찰 시스템 타입 ====================
+
+/** 성찰 플레이어 */
+export interface ReflectionPlayer {
+  egos?: string[];
+  traits?: string[];
+  hp?: number;
+  maxHp?: number;
+  tokens?: TokenState;
+  [key: string]: unknown;
+}
+
+/** 성찰 전투 상태 */
+export interface ReflectionBattleState {
+  reflectionTriggerCounts?: Record<string, number>;
+  bonusEnergy?: number;
+  etherMultiplier?: number;
+  timelineBonus?: number;
+  enemyFreezeTurns?: number;
+  [key: string]: unknown;
+}
+
+/** 성찰 효과 */
+export interface ReflectionEffect {
+  type: string;
+  tokenId?: string;
+  stacks?: number;
+  value?: number;
+}
+
+/** 성찰 정의 */
+export interface Reflection {
+  id: string;
+  name: string;
+  probability: number;
+  maxTriggers?: number;
+  effect: ReflectionEffect;
+}
+
+/** 성찰 효과 결과 */
+export interface ReflectionEffectResult {
+  updatedPlayer: ReflectionPlayer;
+  updatedBattleState: ReflectionBattleState;
+  description: string;
+}
+
+/** 처리된 성찰 효과 */
+export interface ProcessedReflectionEffect {
+  reflectionId: string;
+  reflectionName: string;
+  updatedPlayer: ReflectionPlayer;
+  updatedBattleState: ReflectionBattleState;
+  description: string;
+}
+
+/** 성찰 처리 결과 */
+export interface ProcessReflectionsResult {
+  updatedPlayer: ReflectionPlayer;
+  updatedBattleState: ReflectionBattleState;
+  effects: ProcessedReflectionEffect[];
+  logs: string[];
+}
+
+/** 초기 성찰 상태 */
+export interface InitialReflectionState {
+  reflectionTriggerCounts: Record<string, number>;
+  bonusEnergy: number;
+  etherMultiplier: number;
+  timelineBonus: number;
+  enemyFreezeTurns: number;
+}
+
+// ==================== 전투 해결기 타입 ====================
+
+/** 액터 스탯 */
+export interface ResolverActorStats {
+  hp: number;
+  block: number;
+}
+
+/** 전투 스탯 */
+export interface ResolverBattleStats {
+  player: ResolverActorStats;
+  enemy: ResolverActorStats;
+}
+
+/** 전투 해결기 카드 */
+export interface ResolverCard {
+  id: string;
+  name?: string;
+  damage?: number;
+  block?: number;
+  tags?: string[];
+  [key: string]: unknown;
+}
+
+/** 전투 해결기 타임라인 항목 */
+export interface ResolverTimelineEntry {
+  order: number;
+  actor: 'player' | 'enemy';
+  cardId: string;
+  speedCost: number;
+  [key: string]: unknown;
+}
+
+/** 공격 결과 */
+export interface ResolverAttackResult {
+  blocked: number;
+  hpDamage: number;
+}
+
+/** 방어 결과 */
+export interface ResolverBlockResult {
+  block: number;
+}
+
+/** 지원 결과 */
+export interface ResolverSupportResult {
+  buff?: string;
+}
+
+/** 로그 상세 */
+export interface ResolverLogDetail {
+  type: string;
+  blocked?: number;
+  hpDamage?: number;
+  targetHP?: number;
+  targetBlock?: number;
+  block?: number;
+  actorBlock?: number;
+  buff?: string;
+}
+
+/** 로그 기록 */
+export interface ResolverLogRecord {
+  order: number;
+  actor: string;
+  cardId: string;
+  name?: string;
+  speedCost: number;
+  detail: ResolverLogDetail | null;
+  actorHP: number;
+  actorBlock: number;
+  targetHP: number;
+  targetBlock: number;
+}
+
+/** 전투 상태 플래그 */
+export interface ResolverBattleStatus {
+  [key: string]: boolean;
+}
+
+/** 전투 해결 결과 */
+export interface ResolverSimulationResult {
+  winner: 'player' | 'enemy' | 'draw';
+  log: ResolverLogRecord[];
+  finalState: ResolverBattleStats;
+  initialState: ResolverBattleStats;
+  status: ResolverBattleStatus;
+}
+
+// ==================== 상징 유틸리티 타입 ====================
+
+/** 상징 효과 */
+export interface RelicUtilEffect {
+  type: string;
+  value: number;
+}
+
+/** 상징 효과 정의 */
+export interface RelicUtilEffects {
+  type?: string;
+  effects?: RelicUtilEffect[];
+  comboMultiplierPerCard?: number;
+  [key: string]: unknown;
+}
+
+/** 상징 유틸리티 */
+export interface RelicUtil {
+  id: string;
+  effects: RelicUtilEffects;
+  [key: string]: unknown;
+}
+
+// ==================== 이변 시스템 타입 ====================
+
+/** 이변 효과 */
+export interface AnomalyEffect {
+  type: string;
+  value?: number;
+  description: string;
+}
+
+/** 이변 정의 */
+export interface AnomalyDefinition {
+  id: string;
+  name: string;
+  emoji: string;
+  color: string;
+  description: string;
+  getEffect: (level: number) => AnomalyEffect;
+}
+
+/** 이변 (레벨 포함) */
+export interface AnomalyWithLevel {
+  anomaly: AnomalyDefinition;
+  level: number;
+}
+
+/** 강제 이변 (개발용) */
+export interface ForcedAnomaly {
+  anomalyId: string;
+  level: number;
+}
+
+/** 이변 플레이어 */
+export interface AnomalyPlayer {
+  hp?: number;
+  maxHp?: number;
+  tokens?: TokenState;
+  etherBan?: boolean;
+  energyPenalty?: number;
+  speedPenalty?: number;
+  drawPenalty?: number;
+  insightPenalty?: number;
+  [key: string]: unknown;
+}
+
+/** 이변 적용 결과 */
+export interface ApplyAnomalyResult {
+  player: AnomalyPlayer;
+  logs: string[];
+}
+
+/** 이변 표시 정보 */
+export interface AnomalyDisplay {
+  id: string;
+  name: string;
+  emoji: string;
+  color: string;
+  level: number;
+  effect: AnomalyEffect;
+  description: string;
+}
+
+/** 이변 패널티 결과 */
+export interface AnomalyPenaltyResult {
+  energy: number;
+  speed: number;
+  insight: number;
+}
+
+// ==================== 던전 선택지 시스템 타입 ====================
+
+/** 스탯 요구사항 */
+export interface DungeonStatRequirement {
+  stat: string;
+  value: number;
+}
+
+/** 스케일링 요구사항 */
+export interface DungeonScalingRequirement {
+  stat: string;
+  baseValue: number;
+  increment: number;
+}
+
+/** 선택지 요구사항 */
+export interface DungeonChoiceRequirements {
+  item?: string;
+  strength?: number;
+  agility?: number;
+  insight?: number;
+  energy?: number;
+  [key: string]: unknown;
+}
+
+/** 결과 효과 */
+export interface DungeonOutcomeEffect {
+  [key: string]: unknown;
+}
+
+/** 결과 */
+export interface DungeonOutcome {
+  type?: string;
+  effect?: DungeonOutcomeEffect;
+  text: string;
+}
+
+/** 특수 오버라이드 */
+export interface DungeonSpecialOverride {
+  requiredSpecial: string;
+  text: string;
+  outcome: DungeonOutcome;
+}
+
+/** 선택지 */
+export interface DungeonChoice {
+  text: string;
+  repeatable?: boolean;
+  maxAttempts?: number;
+  requirements?: DungeonChoiceRequirements;
+  scalingRequirement?: DungeonScalingRequirement;
+  specialOverrides?: DungeonSpecialOverride[];
+  warningAtAttempt?: number;
+  warningText?: string;
+  progressText?: string[];
+  outcomes: {
+    success: DungeonOutcome;
+    failure: DungeonOutcome;
+  };
+  screenEffect?: string;
+  soundEffect?: string;
+}
+
+/** 플레이어 스탯 (던전용) */
+export interface DungeonPlayerStats {
+  strength?: number;
+  agility?: number;
+  insight?: number;
+  energy?: number;
+  specials?: string[];
+  [key: string]: unknown;
+}
+
+/** 선택지 상태 */
+export interface DungeonChoiceState {
+  attempts?: number;
+  completed?: boolean;
+}
+
+/** 인벤토리 */
+export interface DungeonInventory {
+  items?: string[];
+  keys?: string[];
+}
+
+/** 선택 가능 결과 */
+export interface DungeonCanSelectResult {
+  canSelect: boolean;
+  reason: string | null;
+  isHidden: boolean;
+  statRequired?: DungeonStatRequirement;
+}
+
+/** 선택 실행 결과 */
+export interface DungeonExecuteResult {
+  result: string;
+  effect: DungeonOutcomeEffect;
+  message: string;
+  newState: DungeonChoiceState;
+  isSpecial?: boolean;
+  warning?: string | null;
+  progressMessage?: string | null;
+  canContinue?: boolean;
+  screenEffect?: string;
+  soundEffect?: string;
+}
+
+/** 선택지 표시 정보 */
+export interface DungeonChoiceDisplayInfo {
+  text: string;
+  subtext: string;
+  disabled: boolean;
+  hidden: boolean;
+  isSpecial?: boolean;
+}
+
+// ==================== 에러 로거 타입 ====================
+
+/** 에러 컨텍스트 */
+export interface ErrorContext {
+  phase?: string;
+  action?: string;
+  componentName?: string;
+  additionalInfo?: Record<string, unknown>;
+}
+
+/** 에러 로그 항목 */
+export interface ErrorLogEntry {
+  id: string;
+  timestamp: string;
+  message: string;
+  stack?: string;
+  context?: ErrorContext;
+  userAgent: string;
+  url: string;
+}
+
+/** 에러 로거 설정 */
+export interface ErrorLoggerConfig {
+  maxEntries: number;
+  storageKey: string;
+  enableConsole: boolean;
+}

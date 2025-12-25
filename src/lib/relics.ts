@@ -42,23 +42,11 @@ export const RELIC_EFFECT = {
 
 export type RelicEffectType = typeof RELIC_EFFECT[keyof typeof RELIC_EFFECT];
 
-interface Effect {
-  type: string;
-  value: number;
-}
-
-interface RelicEffects {
-  type?: string;
-  effects?: Effect[];
-  comboMultiplierPerCard?: number;
-  [key: string]: unknown;
-}
-
-interface Relic {
-  id: string;
-  effects: RelicEffects;
-  [key: string]: unknown;
-}
+import type {
+  RelicUtilEffect as Effect,
+  RelicUtilEffects as RelicEffects,
+  RelicUtil as Relic
+} from '../types';
 
 /**
  * 상징 효과 계산 함수

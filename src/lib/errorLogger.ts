@@ -9,31 +9,14 @@
  * - 개발 모드에서 콘솔 출력
  */
 
-/** 에러 로그 항목 */
-export interface ErrorLogEntry {
-  id: string;
-  timestamp: string;
-  message: string;
-  stack?: string;
-  context?: ErrorContext;
-  userAgent: string;
-  url: string;
-}
+import type {
+  ErrorLogEntry,
+  ErrorContext,
+  ErrorLoggerConfig
+} from '../types';
 
-/** 에러 컨텍스트 */
-export interface ErrorContext {
-  phase?: string;
-  action?: string;
-  componentName?: string;
-  additionalInfo?: Record<string, unknown>;
-}
-
-/** 에러 로그 설정 */
-interface ErrorLoggerConfig {
-  maxEntries: number;
-  storageKey: string;
-  enableConsole: boolean;
-}
+// Re-export for backward compatibility
+export type { ErrorLogEntry, ErrorContext };
 
 const DEFAULT_CONFIG: ErrorLoggerConfig = {
   maxEntries: 50,

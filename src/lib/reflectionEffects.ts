@@ -15,75 +15,16 @@ import {
   getTraitCountBonus
 } from '../data/reflections.js';
 import { addToken } from './tokenUtils';
-
-interface TokenState {
-  usage: unknown[];
-  turn: unknown[];
-  permanent: unknown[];
-  [key: string]: unknown[];
-}
-
-interface Player {
-  egos?: string[];
-  traits?: string[];
-  hp?: number;
-  maxHp?: number;
-  tokens?: TokenState;
-  [key: string]: unknown;
-}
-
-interface BattleState {
-  reflectionTriggerCounts?: Record<string, number>;
-  bonusEnergy?: number;
-  etherMultiplier?: number;
-  timelineBonus?: number;
-  enemyFreezeTurns?: number;
-  [key: string]: unknown;
-}
-
-interface ReflectionEffect {
-  type: string;
-  tokenId?: string;
-  stacks?: number;
-  value?: number;
-}
-
-interface Reflection {
-  id: string;
-  name: string;
-  probability: number;
-  maxTriggers?: number;
-  effect: ReflectionEffect;
-}
-
-interface EffectResult {
-  updatedPlayer: Player;
-  updatedBattleState: BattleState;
-  description: string;
-}
-
-interface ProcessedEffect {
-  reflectionId: string;
-  reflectionName: string;
-  updatedPlayer: Player;
-  updatedBattleState: BattleState;
-  description: string;
-}
-
-interface ProcessReflectionsResult {
-  updatedPlayer: Player;
-  updatedBattleState: BattleState;
-  effects: ProcessedEffect[];
-  logs: string[];
-}
-
-interface InitialReflectionState {
-  reflectionTriggerCounts: Record<string, number>;
-  bonusEnergy: number;
-  etherMultiplier: number;
-  timelineBonus: number;
-  enemyFreezeTurns: number;
-}
+import type {
+  ReflectionPlayer as Player,
+  ReflectionBattleState as BattleState,
+  ReflectionEffect,
+  Reflection,
+  ReflectionEffectResult as EffectResult,
+  ProcessedReflectionEffect as ProcessedEffect,
+  ProcessReflectionsResult,
+  InitialReflectionState
+} from '../types';
 
 /**
  * 턴 시작 시 성찰 효과 처리

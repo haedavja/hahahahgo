@@ -21,29 +21,11 @@ import type {
   TurnEndChanges,
   CardPlayedChanges,
   DamageTakenChanges,
-  ExtraSlots
+  ExtraSlots,
+  RelicWithEffects,
+  RelicCombatEndState as CombatEndState,
+  RelicTurnState as TurnState
 } from '../types';
-
-/** 상징 (효과 포함) */
-interface RelicWithEffects {
-  id: string;
-  effects: RelicEffectsDefinition;
-  [key: string]: unknown;
-}
-
-/** 전투 종료 상태 */
-interface CombatEndState {
-  playerHp?: number;
-  maxHp?: number;
-}
-
-/** 턴 상태 */
-interface TurnState {
-  blockNextTurn?: number;
-  energyNextTurn?: number;
-  healNextTurn?: number;
-  [key: string]: unknown;
-}
 
 /**
  * PASSIVE 효과를 계산하여 스탯 변화를 반환
