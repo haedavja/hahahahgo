@@ -116,8 +116,40 @@ docs: 테스트 파일 JSDoc 보강
 
 ---
 
+## TypeScript
+
+점진적 TypeScript 도입 중. 새 유틸 함수는 `.ts`로 작성 권장.
+
+```typescript
+// src/lib/myUtil.ts
+export function myFunction(value: number): string {
+  return value.toString();
+}
+```
+
+타입 정의는 `src/types/index.ts` 참조.
+
+---
+
+## 에러 처리
+
+`src/lib/errorLogger.ts` 사용:
+
+```typescript
+import { logError } from '../lib/errorLogger';
+
+try {
+  riskyOperation();
+} catch (error) {
+  logError(error, { phase: 'battle', action: 'attack' });
+}
+```
+
+---
+
 ## 현재 코드 상태 (2024.12)
 
-- 테스트: 914개
-- 테스트 파일: 42개 (JSDoc 완료)
+- 테스트: 961개
+- 테스트 파일: 47개 (JSDoc 완료)
+- TypeScript 파일: 3개 (점진적 도입 중)
 - 린트 에러: 136개 (미사용 변수, 점진적 해결)
