@@ -142,13 +142,13 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         const ids = JSON.parse(saved);
         if (Array.isArray(ids) && ids.length) return mergeRelicOrder(relics, ids);
       }
-    } catch { }
+    } catch { /* ignore */ }
     return relics || [];
   });
   useEffect(() => {
     try {
       localStorage.setItem('relicOrder', JSON.stringify(orderedRelics));
-    } catch { }
+    } catch { /* ignore */ }
   }, [orderedRelics]);
   const orderedRelicList = orderedRelics && orderedRelics.length ? orderedRelics : relics;
 
@@ -2905,7 +2905,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         <div className="submit-button-fixed" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           <button onClick={() => {
             const newVal = !isSimplified;
-            try { localStorage.setItem('battleIsSimplified', newVal.toString()); } catch { }
+            try { localStorage.setItem('battleIsSimplified', newVal.toString()); } catch { /* ignore */ }
             actions.setIsSimplified(newVal);
             playSound(500, 60);
           }} className={`btn-enhanced ${isSimplified ? 'btn-primary' : ''} flex items-center gap-2`}>
