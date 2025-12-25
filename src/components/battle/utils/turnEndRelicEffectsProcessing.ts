@@ -1,24 +1,62 @@
 /**
- * @file turnEndRelicEffectsProcessing.js
+ * @file turnEndRelicEffectsProcessing.ts
  * @description 턴 종료 상징 효과 처리
- *
- * ## 기능
- * - 턴 종료 상징 발동 체크
- * - 다음 턴 효과 적용
- * - 발동 애니메이션 재생
  */
 
-/**
- * 턴 종료 상징 발동 애니메이션 재생
- * @param {Object} params - 파라미터
- * @param {Array} params.relics - 상징 ID 목록
- * @param {Object} params.RELICS - 상징 데이터
- * @param {number} params.cardsPlayedThisTurn - 이번 턴에 사용한 카드 수
- * @param {Object} params.player - 플레이어 상태
- * @param {Object} params.enemy - 적 상태
- * @param {Function} params.playSound - 사운드 재생 함수
- * @param {Object} params.actions - 상태 업데이트 함수 모음
- */
+interface RelicData {
+  effects?: {
+    type?: string;
+    condition?: (params: { cardsPlayedThisTurn: number; player: Player; enemy: Enemy }) => boolean;
+  };
+  [key: string]: unknown;
+}
+
+interface RelicsMap {
+  [key: string]: RelicData;
+}
+
+interface Player {
+  strength?: number;
+  [key: string]: unknown;
+}
+
+interface Enemy {
+  [key: string]: unknown;
+}
+
+interface Actions {
+  setRelicActivated: (id: string | null) => void;
+  setPlayer: (player: Player) => void;
+}
+
+interface TurnEndRelicEffects {
+  energyNextTurn: number;
+  strength: number;
+}
+
+interface NextTurnEffects {
+  bonusEnergy: number;
+  [key: string]: unknown;
+}
+
+interface PlayTurnEndRelicAnimationsParams {
+  relics: string[];
+  RELICS: RelicsMap;
+  cardsPlayedThisTurn: number;
+  player: Player;
+  enemy: Enemy;
+  playSound: (freq: number, duration: number) => void;
+  actions: Actions;
+}
+
+interface ApplyTurnEndRelicEffectsParams {
+  turnEndRelicEffects: TurnEndRelicEffects;
+  nextTurnEffects: NextTurnEffects;
+  player: Player;
+  addLog: (msg: string) => void;
+  actions: Actions;
+}
+
 export function playTurnEndRelicAnimations({
   relics,
   RELICS,
@@ -27,7 +65,7 @@ export function playTurnEndRelicAnimations({
   enemy,
   playSound,
   actions
-}) {
+}: PlayTurnEndRelicAnimationsParams): void {
   relics.forEach(relicId => {
     const relic = RELICS[relicId];
     if (relic?.effects?.type === 'ON_TURN_END') {
@@ -41,32 +79,20 @@ export function playTurnEndRelicAnimations({
   });
 }
 
-/**
- * 턴 종료 상징 효과를 다음 턴 효과에 적용
- * @param {Object} params - 파라미터
- * @param {Object} params.turnEndRelicEffects - 턴 종료 상징 효과
- * @param {Object} params.nextTurnEffects - 다음 턴 효과
- * @param {Object} params.player - 플레이어 상태
- * @param {Function} params.addLog - 로그 추가 함수
- * @param {Object} params.actions - 상태 업데이트 함수 모음
- * @returns {Object} 업데이트된 다음 턴 효과
- */
 export function applyTurnEndRelicEffectsToNextTurn({
   turnEndRelicEffects,
   nextTurnEffects,
   player,
   addLog,
   actions
-}) {
+}: ApplyTurnEndRelicEffectsParams): NextTurnEffects {
   const updatedNextTurnEffects = { ...nextTurnEffects };
 
-  // 다음 턴 행동력 증가 (계약서 등)
   if (turnEndRelicEffects.energyNextTurn > 0) {
     updatedNextTurnEffects.bonusEnergy += turnEndRelicEffects.energyNextTurn;
     addLog(`📜 상징 효과: 다음턴 행동력 +${turnEndRelicEffects.energyNextTurn}`);
   }
 
-  // 힘 증가 즉시 적용 (은화 등)
   if (turnEndRelicEffects.strength !== 0) {
     const currentStrength = player.strength || 0;
     const newStrength = currentStrength + turnEndRelicEffects.strength;

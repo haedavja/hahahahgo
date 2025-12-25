@@ -1,5 +1,5 @@
 /**
- * @file turnEndStateUpdate.js
+ * @file turnEndStateUpdate.ts
  * @description 턴 종료 상태 업데이트 시스템
  *
  * ## 기능
@@ -8,23 +8,73 @@
  * - 에테르/디플레이션 상태 반영
  */
 
+interface CardInfo {
+  id?: string;
+  [key: string]: unknown;
+}
+
+interface Action {
+  actor: 'player' | 'enemy';
+  card?: CardInfo;
+}
+
+interface Combo {
+  name?: string;
+}
+
+interface Unit {
+  block?: number;
+  [key: string]: unknown;
+}
+
+interface Player {
+  etherOverflow?: number;
+  [key: string]: unknown;
+}
+
+interface Enemy {
+  hp: number;
+  units?: Unit[];
+  [key: string]: unknown;
+}
+
+interface ComboUsageCount {
+  [key: string]: number;
+}
+
+interface TurnEndPlayerParams {
+  comboUsageCount: ComboUsageCount;
+  etherPts: number;
+  etherOverflow?: number;
+  etherMultiplier?: number;
+}
+
+interface TurnEndEnemyParams {
+  comboUsageCount: ComboUsageCount;
+  etherPts: number;
+}
+
+interface VictoryConditionResult {
+  isVictory: boolean;
+  isEtherVictory: boolean;
+  delay: number;
+}
+
 /**
  * 조합 사용 카운트 업데이트
- * @param {Object} currentUsageCount - 현재 사용 카운트
- * @param {Object} combo - 조합 정보 (name 속성 포함)
- * @param {Array} queue - 액션 큐 (카드 사용 추적용)
- * @param {string} actorFilter - 필터링할 actor ('player' 또는 'enemy')
- * @returns {Object} 업데이트된 사용 카운트
  */
-export function updateComboUsageCount(currentUsageCount, combo, queue = [], actorFilter = 'player') {
-  const newUsageCount = { ...(currentUsageCount || {}) };
+export function updateComboUsageCount(
+  currentUsageCount: ComboUsageCount | null | undefined,
+  combo: Combo | null | undefined,
+  queue: Action[] = [],
+  actorFilter: 'player' | 'enemy' = 'player'
+): ComboUsageCount {
+  const newUsageCount: ComboUsageCount = { ...(currentUsageCount || {}) };
 
-  // 조합 사용 횟수 증가
   if (combo?.name) {
     newUsageCount[combo.name] = (newUsageCount[combo.name] || 0) + 1;
   }
 
-  // 플레이어인 경우 각 카드 사용 횟수 증가 (숙련 특성용)
   if (actorFilter === 'player') {
     queue.forEach(action => {
       if (action.actor === actorFilter && action.card?.id) {
@@ -38,11 +88,11 @@ export function updateComboUsageCount(currentUsageCount, combo, queue = [], acto
 
 /**
  * 턴 종료 시 플레이어 상태 업데이트 객체 생성
- * @param {Object} player - 현재 플레이어 상태
- * @param {Object} params - 업데이트 파라미터
- * @returns {Object} 업데이트된 플레이어 상태
  */
-export function createTurnEndPlayerState(player, { comboUsageCount, etherPts, etherOverflow, etherMultiplier = 1 }) {
+export function createTurnEndPlayerState(
+  player: Player,
+  { comboUsageCount, etherPts, etherOverflow, etherMultiplier = 1 }: TurnEndPlayerParams
+): Player {
   return {
     ...player,
     block: 0,
@@ -60,12 +110,11 @@ export function createTurnEndPlayerState(player, { comboUsageCount, etherPts, et
 
 /**
  * 턴 종료 시 적 상태 업데이트 객체 생성
- * @param {Object} enemy - 현재 적 상태
- * @param {Object} params - 업데이트 파라미터
- * @returns {Object} 업데이트된 적 상태
  */
-export function createTurnEndEnemyState(enemy, { comboUsageCount, etherPts }) {
-  // 개별 유닛의 block도 초기화
+export function createTurnEndEnemyState(
+  enemy: Enemy,
+  { comboUsageCount, etherPts }: TurnEndEnemyParams
+): Enemy {
   const units = enemy.units || [];
   const resetUnits = units.length > 0
     ? units.map(u => ({ ...u, block: 0 }))
@@ -87,11 +136,8 @@ export function createTurnEndEnemyState(enemy, { comboUsageCount, etherPts }) {
 
 /**
  * 승리 조건 확인
- * @param {Object} enemy - 적 상태
- * @param {number} enemyEtherPts - 적 에테르 포인트
- * @returns {Object} { isVictory, isEtherVictory, delay }
  */
-export function checkVictoryCondition(enemy, enemyEtherPts) {
+export function checkVictoryCondition(enemy: Enemy, enemyEtherPts: number): VictoryConditionResult {
   const isEtherVictory = enemyEtherPts <= 0;
   const isHpVictory = enemy.hp <= 0;
   const isVictory = isHpVictory || isEtherVictory;

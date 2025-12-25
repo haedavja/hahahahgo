@@ -1,29 +1,73 @@
 /**
- * @file turnEndEtherCalculation.js
+ * @file turnEndEtherCalculation.ts
  * @description 턴 종료 에테르 최종 계산 시스템
- *
- * ## 계산 흐름
- * 1. 기본 에테르 × 콤보 배율
- * 2. 디플레이션 적용
- * 3. 범람 체크 (최대치 초과분)
- * 4. 플레이어/적 각각 계산
  */
 
 import { COMBO_MULTIPLIERS, applyEtherDeflation } from "./etherCalculations";
 import { getAllTokens } from "../../../lib/tokenUtils";
 
-/**
- * 턴 종료 시 플레이어/적 에테르 최종 계산
- * @param {Object} params - 계산 파라미터
- * @param {Object} params.playerCombo - 플레이어 조합 정보
- * @param {Object} params.enemyCombo - 적 조합 정보
- * @param {number} params.turnEtherAccumulated - 이번 턴 누적 에테르
- * @param {number} params.enemyTurnEtherAccumulated - 적 턴 누적 에테르
- * @param {number} params.finalComboMultiplier - 최종 콤보 배율 (상징 포함)
- * @param {Object} params.player - 플레이어 상태
- * @param {Object} params.enemy - 적 상태
- * @returns {Object} 계산 결과
- */
+interface Combo {
+  name?: string;
+}
+
+interface ComboUsageCount {
+  [key: string]: number;
+}
+
+interface Player {
+  comboUsageCount?: ComboUsageCount;
+  etherMultiplier?: number;
+  [key: string]: unknown;
+}
+
+interface Enemy {
+  comboUsageCount?: ComboUsageCount;
+  [key: string]: unknown;
+}
+
+interface DeflationResult {
+  gain: number;
+  multiplier: number;
+  usageCount: number;
+}
+
+interface PlayerEtherResult {
+  baseComboMult: number;
+  finalComboMult: number;
+  relicMultBonus: number;
+  etherAmplifierMult: number;
+  beforeDeflation: number;
+  deflation: DeflationResult;
+  finalEther: number;
+  appliedEther: number;
+  overflow: number;
+}
+
+interface EnemyEtherResult {
+  comboMult: number;
+  beforeDeflation: number;
+  deflation: DeflationResult;
+  halfEtherMult: number;
+  finalEther: number;
+  appliedEther: number;
+  overflow: number;
+}
+
+interface TurnEndEtherResult {
+  player: PlayerEtherResult;
+  enemy: EnemyEtherResult;
+}
+
+interface CalculateTurnEndEtherParams {
+  playerCombo: Combo | null | undefined;
+  enemyCombo: Combo | null | undefined;
+  turnEtherAccumulated: number;
+  enemyTurnEtherAccumulated: number;
+  finalComboMultiplier: number;
+  player: Player;
+  enemy: Enemy;
+}
+
 export function calculateTurnEndEther({
   playerCombo,
   enemyCombo,
@@ -32,12 +76,10 @@ export function calculateTurnEndEther({
   finalComboMultiplier,
   player,
   enemy
-}) {
-  // 플레이어 에테르 계산
-  const basePlayerComboMult = playerCombo ? (COMBO_MULTIPLIERS[playerCombo.name] || 1) : 1;
+}: CalculateTurnEndEtherParams): TurnEndEtherResult {
+  const basePlayerComboMult = playerCombo ? (COMBO_MULTIPLIERS[playerCombo.name || ''] || 1) : 1;
   const playerComboMult = finalComboMultiplier || basePlayerComboMult;
   const relicMultBonus = playerComboMult - basePlayerComboMult;
-  // 에테르 증폭제 배율 적용 (아이템 효과)
   const etherAmplifierMult = player.etherMultiplier || 1;
   const totalPlayerMult = playerComboMult * etherAmplifierMult;
   const playerBeforeDeflation = Math.round(turnEtherAccumulated * totalPlayerMult);
@@ -48,17 +90,15 @@ export function calculateTurnEndEther({
 
   const playerFinalEther = playerDeflation.gain;
 
-  // 적 에테르 계산
-  const enemyComboMult = enemyCombo ? (COMBO_MULTIPLIERS[enemyCombo.name] || 1) : 1;
+  const enemyComboMult = enemyCombo ? (COMBO_MULTIPLIERS[enemyCombo.name || ''] || 1) : 1;
   const enemyBeforeDeflation = Math.round(enemyTurnEtherAccumulated * enemyComboMult);
 
   const enemyDeflation = enemyCombo?.name
     ? applyEtherDeflation(enemyBeforeDeflation, enemyCombo.name, enemy.comboUsageCount || {})
     : { gain: enemyBeforeDeflation, multiplier: 1, usageCount: 0 };
 
-  // half_ether 토큰 효과 적용 (헤드샷 등)
   const enemyTokens = getAllTokens(enemy);
-  const hasHalfEther = enemyTokens.some(t => t.id === 'half_ether');
+  const hasHalfEther = enemyTokens.some((t: { id: string }) => t.id === 'half_ether');
   const halfEtherMult = hasHalfEther ? 0.5 : 1;
   const enemyFinalEther = Math.floor(enemyDeflation.gain * halfEtherMult);
 
@@ -86,13 +126,7 @@ export function calculateTurnEndEther({
   };
 }
 
-/**
- * 플레이어 에테르 획득 로그 메시지 생성
- * @param {Object} result - calculateTurnEndEther의 player 결과
- * @param {number} turnEtherAccumulated - 이번 턴 누적 에테르
- * @returns {string} 로그 메시지
- */
-export function formatPlayerEtherLog(result, turnEtherAccumulated) {
+export function formatPlayerEtherLog(result: PlayerEtherResult, turnEtherAccumulated: number): string {
   const { beforeDeflation, deflation, finalEther, appliedEther, relicMultBonus, etherAmplifierMult = 1 } = result;
 
   const actualTotalMultiplier = turnEtherAccumulated > 0
@@ -109,13 +143,7 @@ export function formatPlayerEtherLog(result, turnEtherAccumulated) {
   return `✴️ 에테르 획득: ${turnEtherAccumulated} × ${actualTotalMultiplier.toFixed(2)}${relicText}${amplifierText} = ${beforeDeflation} → ${finalEther} PT${deflationText} (적용: ${appliedEther} PT)`;
 }
 
-/**
- * 적 에테르 획득 로그 메시지 생성
- * @param {Object} result - calculateTurnEndEther의 enemy 결과
- * @param {number} enemyTurnEtherAccumulated - 적 턴 누적 에테르
- * @returns {string} 로그 메시지
- */
-export function formatEnemyEtherLog(result, enemyTurnEtherAccumulated) {
+export function formatEnemyEtherLog(result: EnemyEtherResult, enemyTurnEtherAccumulated: number): string {
   const { comboMult, beforeDeflation, deflation, finalEther, appliedEther, halfEtherMult = 1 } = result;
 
   const deflationText = deflation.usageCount > 0
