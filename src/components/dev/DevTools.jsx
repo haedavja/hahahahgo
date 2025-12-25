@@ -61,6 +61,7 @@ export function DevTools({ isOpen, onClose, showAllCards, setShowAllCards }) {
     removeOwnedCard,
     clearOwnedCards,
     devAddBattleToken,
+    devStartBattle,
   } = useGameStore();
 
   if (!isOpen) return null;
@@ -194,6 +195,7 @@ export function DevTools({ isOpen, onClose, showAllCards, setShowAllCards }) {
             updatePlayerAgility={updatePlayerAgility}
             updatePlayerInsight={updatePlayerInsight}
             devAddBattleToken={devAddBattleToken}
+            devStartBattle={devStartBattle}
           />
         )}
         {activeTab === 'relics' && (

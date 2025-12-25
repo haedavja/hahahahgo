@@ -5,6 +5,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { ANOMALY_TYPES } from '../../../data/anomalies';
+import { ENEMY_GROUPS, ENEMIES } from '../../battle/battleData';
 
 export function BattleTab({
   activeBattle,
@@ -20,7 +21,8 @@ export function BattleTab({
   updatePlayerStrength,
   updatePlayerAgility,
   updatePlayerInsight,
-  devAddBattleToken
+  devAddBattleToken,
+  devStartBattle
 }) {
   const [strengthInput, setStrengthInput] = useState(playerStrength || 0);
   const [agilityInput, setAgilityInput] = useState(playerAgility || 0);
@@ -521,6 +523,83 @@ export function BattleTab({
                 </div>
               ) : null;
             })}
+          </div>
+        )}
+      </div>
+
+      {/* 전투 시작 - 적 선택 */}
+      <h3 style={{ marginTop: '20px', color: '#10b981', fontSize: '1.125rem' }}>🎯 전투 시작</h3>
+      <div style={{
+        padding: '16px',
+        background: '#0f172a',
+        borderRadius: '8px',
+        marginBottom: '20px',
+      }}>
+        <div style={{ marginBottom: '12px', fontSize: '0.875rem', color: '#cbd5e1' }}>
+          원하는 적과 전투를 시작합니다:
+        </div>
+
+        {/* 티어별 그룹화 */}
+        {[1, 2, 3].map(tier => {
+          const tierGroups = ENEMY_GROUPS.filter(g => g.tier === tier);
+          if (tierGroups.length === 0) return null;
+
+          return (
+            <div key={tier} style={{ marginBottom: '16px' }}>
+              <div style={{
+                fontSize: '0.8rem',
+                color: tier === 1 ? '#22c55e' : tier === 2 ? '#f59e0b' : '#ef4444',
+                fontWeight: 'bold',
+                marginBottom: '8px',
+                padding: '4px 8px',
+                background: 'rgba(255,255,255,0.05)',
+                borderRadius: '4px',
+                display: 'inline-block',
+              }}>
+                {tier === 1 ? '⭐ Tier 1 (초급)' : tier === 2 ? '⭐⭐ Tier 2 (중급)' : '⭐⭐⭐ Tier 3 (보스)'}
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                {tierGroups.map(group => {
+                  // 그룹의 적 정보 가져오기
+                  const enemyInfos = group.enemies.map(eid => ENEMIES.find(e => e.id === eid));
+                  const totalHp = enemyInfos.reduce((sum, e) => sum + (e?.hp || 0), 0);
+                  const emojis = [...new Set(enemyInfos.map(e => e?.emoji || '👾'))].join('');
+
+                  return (
+                    <button
+                      key={group.id}
+                      onClick={() => devStartBattle && devStartBattle(group.id)}
+                      disabled={!!activeBattle}
+                      style={{
+                        padding: '10px 14px',
+                        background: activeBattle ? '#334155' : tier === 1 ? '#166534' : tier === 2 ? '#92400e' : '#991b1b',
+                        border: 'none',
+                        borderRadius: '8px',
+                        color: '#fff',
+                        fontSize: '0.8rem',
+                        fontWeight: 'bold',
+                        cursor: activeBattle ? 'not-allowed' : 'pointer',
+                        opacity: activeBattle ? 0.5 : 1,
+                        textAlign: 'left',
+                        minWidth: '140px',
+                      }}
+                      title={`${group.name}\n적: ${group.enemies.join(', ')}\nHP: ${totalHp}`}
+                    >
+                      <div style={{ marginBottom: '4px' }}>{emojis} {group.name}</div>
+                      <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.7)' }}>
+                        HP: {totalHp} | {group.enemies.length}마리
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+
+        {activeBattle && (
+          <div style={{ fontSize: '0.75rem', color: '#ef4444', marginTop: '8px' }}>
+            ⚠️ 전투 중에는 새 전투를 시작할 수 없습니다.
           </div>
         )}
       </div>

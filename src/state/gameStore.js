@@ -22,7 +22,7 @@
 import { create } from "zustand";
 import { NEW_EVENT_LIBRARY } from "../data/newEvents";
 import { createInitialState } from "./useGameState";
-import { CARDS, ENEMIES, getRandomEnemy } from "../components/battle/battleData";
+import { CARDS, ENEMIES, ENEMY_GROUPS, getRandomEnemy } from "../components/battle/battleData";
 import { drawHand, buildSpeedTimeline } from "../lib/speedQueue";
 import { simulateBattle, pickOutcome } from "../lib/battleResolver";
 import { calculatePassiveEffects, applyCombatEndEffects, applyNodeMoveEther } from "../lib/relicEffects";
@@ -1144,6 +1144,112 @@ export const useGameStore = create((set, get) => ({
       ...state,
       devBattleTokens: [],
     })),
+
+  // 개발자 모드: 원하는 적과 전투 시작
+  devStartBattle: (groupId) =>
+    set((state) => {
+      // 이미 전투 중이면 무시
+      if (state.activeBattle) return state;
+
+      // ENEMY_GROUPS에서 해당 그룹 찾기
+      const group = ENEMY_GROUPS.find(g => g.id === groupId);
+      if (!group) {
+        console.warn(`[DEV] 전투 그룹을 찾을 수 없음: ${groupId}`);
+        return state;
+      }
+
+      // 그룹의 첫 번째 적 정보 가져오기 (대표 적)
+      const primaryEnemyId = group.enemies[0];
+      const primaryEnemy = ENEMIES.find(e => e.id === primaryEnemyId);
+
+      // 모든 적의 총 HP 계산
+      const totalEnemyHp = group.enemies.reduce((sum, enemyId) => {
+        const enemy = ENEMIES.find(e => e.id === enemyId);
+        return sum + (enemy?.hp || 30);
+      }, 0);
+
+      // 적 덱 합치기 (모든 적의 카드)
+      const combinedDeck = group.enemies.flatMap(enemyId => {
+        const enemy = ENEMIES.find(e => e.id === enemyId);
+        return enemy?.deck || [];
+      });
+
+      // 캐릭터 빌드 기반 플레이어 핸드 생성
+      const characterBuild = state.characterBuild;
+      const hasCharacterBuild = characterBuild && (
+        characterBuild.mainSpecials?.length > 0 ||
+        characterBuild.subSpecials?.length > 0 ||
+        characterBuild.ownedCards?.length > 0
+      );
+
+      const playerLibrary = hasCharacterBuild
+        ? [...(characterBuild.mainSpecials || []), ...(characterBuild.subSpecials || [])]
+        : [...CARDS];
+
+      const playerDrawPile = hasCharacterBuild ? [] : [...playerLibrary];
+      const enemyDrawPile = [...combinedDeck];
+
+      const playerHand = hasCharacterBuild
+        ? drawCharacterBuildHand(characterBuild.mainSpecials, characterBuild.subSpecials, characterBuild.ownedCards)
+        : drawHand(playerDrawPile, 3);
+
+      const enemyHand = drawHand(enemyDrawPile, Math.min(3, enemyDrawPile.length));
+
+      const battleStats = {
+        player: { hp: state.playerHp, maxHp: state.maxHp, block: 0 },
+        enemy: { hp: totalEnemyHp, maxHp: totalEnemyHp, block: 0 }
+      };
+
+      const timeline = buildSpeedTimeline(playerHand, enemyHand, 30);
+      const simulation = simulateBattle(timeline, battleStats);
+
+      // 적 유닛 정보 생성 (다중 적 지원)
+      const enemyUnits = group.enemies.map((enemyId, idx) => {
+        const enemy = ENEMIES.find(e => e.id === enemyId);
+        return {
+          unitId: idx,
+          id: enemyId,
+          name: enemy?.name || enemyId,
+          emoji: enemy?.emoji || "👾",
+          hp: enemy?.hp || 30,
+          maxHp: enemy?.hp || 30,
+          ether: enemy?.ether || 100,
+          deck: enemy?.deck || [],
+          cardsPerTurn: enemy?.cardsPerTurn || 1,
+          tier: enemy?.tier || 1,
+          passives: enemy?.passives || {},
+        };
+      });
+
+      return {
+        ...state,
+        activeBattle: {
+          nodeId: `dev-battle-${groupId}`,
+          kind: "combat",
+          label: group.name,
+          rewards: { gold: { min: 10, max: 20 }, loot: 1 },
+          difficulty: group.tier,
+          tier: group.tier,
+          preview: {
+            playerHand,
+            enemyHand,
+            timeline,
+            tuLimit: 30,
+          },
+          enemyStats: { hp: totalEnemyHp, maxHp: totalEnemyHp },
+          enemyInfo: {
+            id: primaryEnemyId,
+            name: group.name,
+            emoji: primaryEnemy?.emoji || "👾",
+            tier: group.tier,
+            isBoss: primaryEnemy?.isBoss || false,
+          },
+          enemyUnits,
+          groupId: group.id,
+          devMode: true,
+        },
+      };
+    }),
 
   // ==================== 상징 관리 ====================
 
