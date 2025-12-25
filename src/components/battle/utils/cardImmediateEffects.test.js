@@ -1,6 +1,17 @@
 /**
  * @file cardImmediateEffects.test.js
- * @description cardImmediateEffects 함수 테스트
+ * @description 카드 즉시 발동 효과 테스트
+ *
+ * ## 테스트 대상
+ * - processImmediateCardTraits: 카드 특성에 따른 즉시 효과 처리
+ * - processCardPlayedRelicEffects: 카드 사용 시 상징 효과 (힐 등)
+ *
+ * ## 주요 테스트 케이스
+ * - double_edge: 사용 시 자해 1 피해
+ * - training: 힘 +1 영구 증가
+ * - warmup: 다음 턴 행동력 +2
+ * - vanish: 카드 소멸 처리
+ * - 상징 힐: maxHp 제한, 유령카드 제외
  */
 
 import { describe, it, expect, vi } from 'vitest';

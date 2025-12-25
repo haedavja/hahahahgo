@@ -1,6 +1,17 @@
 /**
  * @file stunProcessing.test.js
- * @description stunProcessing 함수 테스트
+ * @description 기절(스턴) 효과 처리 테스트
+ *
+ * ## 테스트 대상
+ * - STUN_RANGE: 기절 범위 상수 (5)
+ * - processStunEffect: 범위 내 적 카드 제거
+ *
+ * ## 주요 테스트 케이스
+ * - 범위(centerSp ~ centerSp+5) 경계 조건
+ * - 아군 카드는 제거 안 함
+ * - 현재 인덱스 이전 카드 영향 없음
+ * - stunEvent 생성 (로그 메시지 포함)
+ * - sp가 없는 카드는 범위 체크 제외
  */
 
 import { describe, it, expect, vi } from 'vitest';

@@ -1,6 +1,18 @@
 /**
  * @file turnEndEtherCalculation.test.js
- * @description turnEndEtherCalculation 함수 테스트
+ * @description 턴 종료 에테르 최종 계산 테스트
+ *
+ * ## 테스트 대상
+ * - calculateTurnEndEther: 플레이어/적 에테르 최종 계산
+ * - formatPlayerEtherLog: 플레이어 에테르 로그 메시지 생성
+ * - formatEnemyEtherLog: 적 에테르 로그 메시지 생성
+ *
+ * ## 주요 테스트 케이스
+ * - 콤보 배율 (페어 2x, 트리플 3x 등)
+ * - 에테르 증폭제(etherMultiplier) 적용
+ * - 디플레이션 (반복 사용 시 감소)
+ * - half_ether 토큰 (적 에테르 반감)
+ * - 상징 배율 보너스 계산
  */
 
 import { describe, it, expect, vi } from 'vitest';

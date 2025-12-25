@@ -1,6 +1,16 @@
 /**
  * @file etherTransferProcessing.test.js
- * @description etherTransferProcessing 함수 테스트
+ * @description 에테르 전송 처리 테스트
+ *
+ * ## 테스트 대상
+ * - processEtherTransfer: 에테르 전송 계산 및 애니메이션 트리거
+ *
+ * ## 주요 테스트 케이스
+ * - 에테르 이동량(movedPts) 계산
+ * - 적 처치 시 잔여 에테르 회수 로그
+ * - 펄스 애니메이션 활성화/비활성화 (450ms)
+ * - 양수/음수 이동 시 사운드 주파수 (900Hz/600Hz)
+ * - 이동량 0일 때 애니메이션/사운드 스킵
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';

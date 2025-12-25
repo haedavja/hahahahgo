@@ -1,6 +1,18 @@
 /**
  * @file turnEndStateUpdate.test.js
- * @description turnEndStateUpdate 함수 테스트
+ * @description 턴 종료 상태 업데이트 테스트
+ *
+ * ## 테스트 대상
+ * - updateComboUsageCount: 조합/카드 사용 횟수 추적 (디플레이션용)
+ * - createTurnEndPlayerState: 플레이어 턴 종료 상태 생성
+ * - createTurnEndEnemyState: 적 턴 종료 상태 생성 (유닛 포함)
+ * - checkVictoryCondition: HP/에테르 승리 조건 확인
+ *
+ * ## 주요 테스트 케이스
+ * - 방어/취약/폭주 상태 초기화
+ * - 에테르 포인트 음수 방지
+ * - 다중 유닛 block 초기화
+ * - HP 승리 vs 에테르 승리 구분
  */
 
 import { describe, it, expect } from 'vitest';

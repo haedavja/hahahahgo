@@ -1,6 +1,17 @@
 /**
  * @file etherAccumulationProcessing.test.js
- * @description etherAccumulationProcessing 함수 테스트
+ * @description 에테르 누적 처리 테스트
+ *
+ * ## 테스트 대상
+ * - processPlayerEtherAccumulation: 플레이어 카드 사용 시 에테르 누적
+ * - processEnemyEtherAccumulation: 적 카드 사용 시 에테르 누적
+ *
+ * ## 주요 테스트 케이스
+ * - 유령카드(isGhost) 에테르 제외
+ * - 희귀한 조약돌 배율(etherMultiplier) 적용
+ * - 카드 업그레이드 레어리티 반영
+ * - 에테르 펄스 애니메이션 (300ms)
+ * - 상징 발동 수집 및 애니메이션
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';

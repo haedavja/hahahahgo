@@ -1,6 +1,16 @@
 /**
  * @file battleSimulation.test.js
- * @description battleSimulation 함수 테스트
+ * @description 전투 시뮬레이션 함수 테스트
+ *
+ * ## 테스트 대상
+ * - applyAction: 공격/방어 액션을 상태에 적용하고 데미지 계산
+ * - simulatePreview: 턴 전체를 미리보기로 시뮬레이션
+ *
+ * ## 주요 테스트 케이스
+ * - 방어: block 누적, strength 보너스, counter 반격
+ * - 공격: 기본 데미지, 다타(hits), crush 특성, 취약(vulnMult)
+ * - 에테르 폭주: 2배 피해 적용
+ * - 시뮬레이션: 연속 액션, 플레이어 사망 시 중단
  */
 
 import { describe, it, expect, vi } from 'vitest';

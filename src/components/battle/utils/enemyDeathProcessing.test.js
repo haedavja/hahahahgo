@@ -1,6 +1,16 @@
 /**
  * @file enemyDeathProcessing.test.js
- * @description enemyDeathProcessing 함수 테스트
+ * @description 적 사망 처리 테스트
+ *
+ * ## 테스트 대상
+ * - processEnemyDeath: 적 HP 0 시 사망 처리 및 UI 업데이트
+ *
+ * ## 주요 테스트 케이스
+ * - 적 피격 애니메이션(setEnemyHit) 활성화
+ * - 사망 사운드 재생 (200Hz, 500ms)
+ * - 타임라인 숨김 및 자동진행 중단
+ * - 남은 카드 비활성화(disabledCardIndices)
+ * - 에테르 누적 0일 때 최종값 설정
  */
 
 import { describe, it, expect, vi } from 'vitest';

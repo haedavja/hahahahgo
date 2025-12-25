@@ -1,6 +1,19 @@
 /**
  * @file parryProcessing.test.js
- * @description parryProcessing 함수 테스트
+ * @description 쳐내기(패리) 효과 처리 테스트
+ *
+ * ## 테스트 대상
+ * - setupParryReady: 패리 대기 상태 생성
+ * - checkParryTrigger: 패리 트리거 체크 및 적 카드 밀기
+ * - resetParryState: 패리 상태 초기화
+ *
+ * ## 주요 테스트 케이스
+ * - 패리 범위(centerSp ~ maxSp) 경계 조건
+ * - 적 공격만 트리거 (스킬 제외)
+ * - pushAmount만큼 적 카드 sp 밀기
+ * - maxSpeed 초과 시 아웃(outCards) 처리
+ * - 다중 패리 동시 발동
+ * - 밀린 후 sp 기준 재정렬
  */
 
 import { describe, it, expect, vi } from 'vitest';

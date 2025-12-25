@@ -1,6 +1,17 @@
 /**
  * @file turnEndRelicEffectsProcessing.test.js
- * @description turnEndRelicEffectsProcessing 함수 테스트
+ * @description 턴 종료 상징 효과 처리 테스트
+ *
+ * ## 테스트 대상
+ * - playTurnEndRelicAnimations: ON_TURN_END 상징 발동 애니메이션
+ * - applyTurnEndRelicEffectsToNextTurn: 다음 턴 효과 적용
+ *
+ * ## 주요 테스트 케이스
+ * - ON_TURN_END 타입 상징만 발동
+ * - 조건(condition) 함수 체크
+ * - 다음 턴 행동력(energyNextTurn) 추가
+ * - 힘(strength) 즉시 적용
+ * - 상징 활성화 애니메이션 (500ms)
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
