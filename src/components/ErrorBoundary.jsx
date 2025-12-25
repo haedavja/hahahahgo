@@ -1,4 +1,5 @@
 import { Component } from 'react';
+import { handleBoundaryError } from '../lib/errorLogger';
 
 /**
  * ErrorBoundary - 컴포넌트 에러 캐치 및 폴백 UI 표시
@@ -6,7 +7,7 @@ import { Component } from 'react';
 export class ErrorBoundary extends Component {
   constructor(props) {
     super(props);
-    this.state = { hasError: false, error: null };
+    this.state = { hasError: false, error: null, errorId: null };
   }
 
   static getDerivedStateFromError(error) {
@@ -14,8 +15,9 @@ export class ErrorBoundary extends Component {
   }
 
   componentDidCatch(error, errorInfo) {
-    // 프로덕션에서는 에러 리포팅 서비스로 전송 가능
-    console.error('ErrorBoundary caught:', error, errorInfo);
+    // 에러 로거로 기록
+    const entry = handleBoundaryError(error, errorInfo);
+    this.setState({ errorId: entry.id });
   }
 
   handleReload = () => {
@@ -84,6 +86,11 @@ export class ErrorBoundary extends Component {
               게임 초기화
             </button>
           </div>
+          {this.state.errorId && (
+            <p style={{ color: '#64748b', fontSize: '0.75rem', marginTop: '16px' }}>
+              에러 ID: {this.state.errorId}
+            </p>
+          )}
           {import.meta.env.DEV && this.state.error && (
             <pre style={{
               marginTop: '24px',
