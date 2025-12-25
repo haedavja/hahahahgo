@@ -8,12 +8,10 @@
  * - 최대 이동량 제한 (현재 보유량)
  */
 
-/** 에테르 이동 결과 */
-export interface EtherTransferResult {
-  nextPlayerPts: number;
-  nextEnemyPts: number;
-  movedPts: number;
-}
+import type { EtherTransferResult } from '../../../types';
+
+// Re-export for backwards compatibility
+export type { EtherTransferResult } from '../../../types';
 
 /**
  * 에테르 이동량 계산 (플레이어 ↔ 적)

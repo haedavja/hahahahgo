@@ -10,65 +10,18 @@
  * 최종점수 = COMBO_SCORE_WEIGHTS[조합] × ENEMY_COMBO_TENDENCIES[적ID]
  */
 
+import type {
+  ComboName,
+  ComboScoringCard,
+  ComboScoringEnemy,
+  AIMode,
+  ComboScoreResult,
+  PotentialComboAnalysis,
+  ComboStrategyResult,
+  ComboScoreOptions
+} from '../../../types';
 import { detectPokerCombo } from './comboDetection';
 import { COMBO_MULTIPLIERS } from './etherCalculations';
-
-/** 콤보 이름 타입 */
-type ComboName = '하이카드' | '페어' | '투페어' | '트리플' | '플러쉬' | '풀하우스' | '포카드' | '파이브카드';
-
-/** 카드 타입 */
-interface Card {
-  id?: string;
-  type?: 'attack' | 'defense' | 'general' | 'support';
-  actionCost: number;
-  speedCost?: number;
-  damage?: number;
-  hits?: number;
-  block?: number;
-  traits?: string[];
-  isGhost?: boolean;
-  [key: string]: unknown;
-}
-
-/** 적 정보 */
-interface Enemy {
-  id?: string;
-  hp?: number;
-  maxHp?: number;
-  ether?: number;
-  deck?: string[];
-}
-
-/** AI 모드 */
-interface AIMode {
-  key?: 'aggro' | 'turtle' | 'balanced';
-}
-
-/** 콤보 점수 결과 */
-interface ComboScoreResult {
-  comboName: string | null;
-  score: number;
-  multiplier: number;
-  bonusKeys?: Set<number> | null;
-}
-
-/** 잠재 콤보 분석 결과 */
-interface PotentialComboAnalysis {
-  costFrequency: Map<number, number>;
-  canFlush: boolean;
-  flushType?: 'attack' | 'defense' | null;
-  maxSameCost: number;
-  pairCosts: number[];
-  bestPotentialCombo: ComboName | null;
-}
-
-/** 콤보 전략 결과 */
-interface ComboStrategyResult {
-  comboWeight: number;
-  etherPriority: boolean;
-  targetCombo: ComboName | null;
-  baseTendency: number;
-}
 
 /**
  * 콤보별 점수 가중치
@@ -100,7 +53,7 @@ export const ENEMY_COMBO_TENDENCIES: Record<string, number> = {
 /**
  * 카드 조합의 콤보 점수 계산
  */
-export function calculateComboScore(cards: Card[]): ComboScoreResult {
+export function calculateComboScore(cards: ComboScoringCard[]): ComboScoreResult {
   if (!cards || cards.length === 0) {
     return { comboName: null, score: 0, multiplier: 1 };
   }
@@ -122,7 +75,7 @@ export function calculateComboScore(cards: Card[]): ComboScoreResult {
 /**
  * 잠재적 콤보 분석 (덱 분석용)
  */
-export function analyzePotentialCombos(deck: Card[]): PotentialComboAnalysis {
+export function analyzePotentialCombos(deck: ComboScoringCard[]): PotentialComboAnalysis {
   if (!deck || deck.length === 0) {
     return {
       costFrequency: new Map(),
@@ -183,7 +136,7 @@ export function analyzePotentialCombos(deck: Card[]): PotentialComboAnalysis {
 /**
  * 콤보 완성을 위한 카드 필터링
  */
-export function filterCardsForCombo(deck: Card[], targetCombo: ComboName): Card[] {
+export function filterCardsForCombo(deck: ComboScoringCard[], targetCombo: ComboName): ComboScoringCard[] {
   if (!deck || deck.length === 0) return [];
 
   const analysis = analyzePotentialCombos(deck);
@@ -232,7 +185,7 @@ export function filterCardsForCombo(deck: Card[], targetCombo: ComboName): Card[
  * 콤보 인식 전략 결정
  */
 export function decideComboStrategy(
-  enemy: Enemy | null | undefined,
+  enemy: ComboScoringEnemy | null | undefined,
   playerEther: number = 0,
   turnNumber: number = 1
 ): ComboStrategyResult {
@@ -277,19 +230,13 @@ export function decideComboStrategy(
   };
 }
 
-/** scoreWithCombo 옵션 */
-interface ScoreOptions {
-  comboWeight?: number;
-  etherPriority?: boolean;
-}
-
 /**
  * 콤보 점수를 포함한 최종 스코어 계산
  */
 export function scoreWithCombo(
   mode: AIMode | null | undefined,
-  cards: Card[],
-  options: ScoreOptions = {}
+  cards: ComboScoringCard[],
+  options: ComboScoreOptions = {}
 ): number {
   const {
     comboWeight = 0.5,

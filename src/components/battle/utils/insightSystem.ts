@@ -12,54 +12,14 @@
  * 적의 장막 스택만큼 통찰 효과 감소
  */
 
+import type {
+  InsightCardInfo,
+  InsightEnemyAction,
+  InsightUnit,
+  InsightActionRevealInfo,
+  InsightRevealResult
+} from '../../../types';
 import { getTokenStacks } from "../../../lib/tokenUtils";
-
-/** 카드 정보 */
-interface CardInfo {
-  __sourceUnitId?: number;
-  effects?: unknown[];
-  traits?: string[];
-  [key: string]: unknown;
-}
-
-/** 적 행동 */
-interface EnemyAction {
-  card?: CardInfo;
-  speed?: number;
-}
-
-/** 유닛 정보 */
-interface Unit {
-  unitId: number;
-  tokens?: unknown[];
-}
-
-/** Action 공개 정보 */
-interface ActionRevealInfo {
-  index: number;
-  hidden: boolean;
-  sourceUnitId?: number;
-  isFirst?: boolean;
-  isLast?: boolean;
-  revealLevel?: number;
-  card?: CardInfo;
-  speed?: number;
-  effects?: unknown[];
-  traits?: string[];
-}
-
-/** 통찰 공개 레벨 결과 */
-interface InsightRevealResult {
-  level: number;
-  visible: boolean;
-  cardCount?: number;
-  showRoughOrder?: boolean;
-  showCards?: boolean;
-  showSpeed?: boolean;
-  showEffects?: boolean;
-  fullDetails?: boolean;
-  actions?: ActionRevealInfo[];
-}
 
 /**
  * 유효 통찰 계산: 플레이어 통찰 - 적의 장막
@@ -76,7 +36,7 @@ export const calculateEffectiveInsight = (playerInsight: number, enemyShroud: nu
  * @param unit - 유닛 객체
  * @returns veil 스택 수
  */
-const getUnitVeil = (unit: Unit | undefined): number => {
+const getUnitVeil = (unit: InsightUnit | undefined): number => {
   if (!unit) return 0;
   return getTokenStacks(unit, 'veil') || 0;
 };
@@ -90,11 +50,11 @@ const getUnitVeil = (unit: Unit | undefined): number => {
  * @returns 공개할 action 정보
  */
 const getActionRevealInfo = (
-  action: EnemyAction,
+  action: InsightEnemyAction,
   idx: number,
   insightForAction: number,
   totalActions: number
-): ActionRevealInfo => {
+): InsightActionRevealInfo => {
   if (insightForAction <= 0) {
     // 레벨 0: 정보 없음 (카드 존재는 알지만 내용 비공개)
     return {
@@ -150,8 +110,8 @@ const getActionRevealInfo = (
  */
 export const getInsightRevealLevel = (
   baseInsight: number,
-  enemyActions: EnemyAction[],
-  units: Unit[] = []
+  enemyActions: InsightEnemyAction[],
+  units: InsightUnit[] = []
 ): InsightRevealResult => {
   if (!enemyActions || enemyActions.length === 0) {
     return { level: 0, visible: false };

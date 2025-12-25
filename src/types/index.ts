@@ -1168,3 +1168,117 @@ export interface AICardStats {
   sp: number;
   en: number;
 }
+
+// ==================== 통찰 시스템 타입 ====================
+
+/** 통찰 시스템용 카드 정보 */
+export interface InsightCardInfo {
+  __sourceUnitId?: number;
+  effects?: unknown[];
+  traits?: string[];
+  [key: string]: unknown;
+}
+
+/** 통찰 시스템용 적 행동 */
+export interface InsightEnemyAction {
+  card?: InsightCardInfo;
+  speed?: number;
+}
+
+/** 통찰 시스템용 유닛 정보 */
+export interface InsightUnit {
+  unitId: number;
+  tokens?: unknown[];
+}
+
+/** 통찰 액션 공개 정보 */
+export interface InsightActionRevealInfo {
+  index: number;
+  hidden: boolean;
+  sourceUnitId?: number;
+  isFirst?: boolean;
+  isLast?: boolean;
+  revealLevel?: number;
+  card?: InsightCardInfo;
+  speed?: number;
+  effects?: unknown[];
+  traits?: string[];
+}
+
+/** 통찰 공개 레벨 결과 */
+export interface InsightRevealResult {
+  level: number;
+  visible: boolean;
+  cardCount?: number;
+  showRoughOrder?: boolean;
+  showCards?: boolean;
+  showSpeed?: boolean;
+  showEffects?: boolean;
+  fullDetails?: boolean;
+  actions?: InsightActionRevealInfo[];
+}
+
+// ==================== 에테르 이동 타입 ====================
+
+/** 에테르 이동 결과 */
+export interface EtherTransferResult {
+  nextPlayerPts: number;
+  nextEnemyPts: number;
+  movedPts: number;
+}
+
+// ==================== 콤보 점수 시스템 타입 ====================
+
+/** 콤보 이름 */
+export type ComboName = '하이카드' | '페어' | '투페어' | '트리플' | '플러쉬' | '풀하우스' | '포카드' | '파이브카드';
+
+/** 콤보 점수용 카드 */
+export interface ComboScoringCard extends ComboCard {
+  id?: string;
+  type?: 'attack' | 'defense' | 'general' | 'support';
+  speedCost?: number;
+  damage?: number;
+  hits?: number;
+  block?: number;
+}
+
+/** 콤보 점수용 적 */
+export interface ComboScoringEnemy {
+  id?: string;
+  hp?: number;
+  maxHp?: number;
+  ether?: number;
+  deck?: string[];
+}
+
+/** 콤보 점수 결과 */
+export interface ComboScoreResult {
+  comboName: string | null;
+  score: number;
+  multiplier: number;
+  bonusKeys?: Set<number> | null;
+}
+
+/** 잠재 콤보 분석 결과 */
+export interface PotentialComboAnalysis {
+  costFrequency: Map<number, number>;
+  canFlush: boolean;
+  flushType?: 'attack' | 'defense' | null;
+  maxSameCost: number;
+  pairCosts: number[];
+  bestPotentialCombo: ComboName | null;
+}
+
+/** 콤보 전략 결과 */
+export interface ComboStrategyResult {
+  comboWeight: number;
+  etherPriority: boolean;
+  targetCombo: ComboName | null;
+  baseTendency: number;
+}
+
+/** 콤보 점수 옵션 */
+export interface ComboScoreOptions {
+  comboWeight?: number;
+  etherPriority?: boolean;
+}
