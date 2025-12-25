@@ -1,6 +1,16 @@
 /**
  * @file etherTransfer.test.js
- * @description etherTransfer 함수 테스트
+ * @description 에테르 전송 계산 테스트
+ *
+ * ## 테스트 대상
+ * - calculateEtherTransfer: 플레이어/적 간 에테르 이동량 계산
+ *
+ * ## 주요 테스트 케이스
+ * - 플레이어 우위: 적에게서 에테르 빼앗기
+ * - 적 우위: 플레이어 에테르 감소
+ * - 적 처치 시 잔여 에테르 전부 획득
+ * - 음수 에테르 방지
+ * - 이동량(movedPts) 정확한 계산
  */
 
 import { describe, it, expect } from 'vitest';

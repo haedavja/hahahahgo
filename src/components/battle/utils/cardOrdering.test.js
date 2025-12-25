@@ -1,6 +1,16 @@
 /**
  * @file cardOrdering.test.js
- * @description cardOrdering 함수 테스트
+ * @description 카드 순서 생성 테스트
+ *
+ * ## 테스트 대상
+ * - createFixedOrder: 플레이어/적 카드를 sp 기준으로 정렬
+ *
+ * ## 주요 테스트 케이스
+ * - 빈 배열 처리
+ * - 플레이어/적 카드 혼합 정렬
+ * - speedCost → sp 변환 (누적)
+ * - 같은 sp일 때 플레이어 우선
+ * - 초기 sp 오프셋 적용
  */
 
 import { describe, it, expect } from 'vitest';

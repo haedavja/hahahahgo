@@ -1,6 +1,19 @@
 /**
  * @file criticalEffects.test.js
- * @description criticalEffects 함수 테스트
+ * @description 치명타 효과 처리 테스트
+ *
+ * ## 테스트 대상
+ * - calculateCritChance: 치명타 확률 계산
+ * - rollCritical: 치명타 판정 (랜덤)
+ * - getCritKnockback: 치명타 넉백량 계산
+ * - applyCriticalDamage: 치명타 데미지 배율 적용
+ * - applyCriticalStacks: 치명타 스택 효과
+ *
+ * ## 주요 테스트 케이스
+ * - 기본 치명타 확률 (10%)
+ * - 토큰/상징에 의한 확률 증가
+ * - 치명타 2배 데미지
+ * - Math.random 모킹으로 결정적 테스트
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';

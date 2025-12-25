@@ -1,6 +1,16 @@
 /**
  * @file cardPlaySpecials.test.js
- * @description cardPlaySpecials 함수 테스트
+ * @description 카드 사용 시 특수 효과 테스트
+ *
+ * ## 테스트 대상
+ * - processCardPlaySpecials: 카드 사용 시 즉시 효과 처리
+ *
+ * ## 주요 테스트 케이스
+ * - autoReload: 탄창 자동 재장전
+ * - mentalFocus: 집중 토큰 부여
+ * - createdBy: 생성된 카드 ID 추적
+ * - selfDamage: 자해 피해
+ * - drawCards: 추가 드로우
  */
 
 import { describe, it, expect } from 'vitest';

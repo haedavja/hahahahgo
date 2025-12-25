@@ -1,6 +1,17 @@
 /**
  * @file preAttackSpecials.test.js
- * @description preAttackSpecials 함수 테스트
+ * @description 공격 전 특수 효과 테스트
+ *
+ * ## 테스트 대상
+ * - hasSpecial: 카드 special 속성 확인
+ * - processPreAttackSpecials: 공격 전 효과 처리
+ *
+ * ## 주요 테스트 케이스
+ * - ignoreBlock: 방어력 무시
+ * - armorBreak: 방어력 파괴
+ * - vampiric: 흡혈 (데미지의 일부 회복)
+ * - null/undefined 안전 처리
+ * - special 객체/배열 모두 지원
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';

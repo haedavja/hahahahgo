@@ -1,6 +1,17 @@
 /**
  * @file combatUtils.test.js
- * @description combatUtils 함수 테스트
+ * @description 전투 유틸리티 함수 테스트
+ *
+ * ## 테스트 대상
+ * - sortCombinedOrderStablePF: 플레이어/적 액션 안정 정렬
+ * - addEther: 에테르 슬롯에 값 추가
+ * - etherSlots: 에테르 슬롯 초기화
+ *
+ * ## 주요 테스트 케이스
+ * - sp 기준 오름차순 정렬
+ * - 같은 sp일 때 원래 순서 유지 (안정 정렬)
+ * - 에테르 값 누적
+ * - 슬롯 인덱스 범위 처리
  */
 
 import { describe, it, expect } from 'vitest';

@@ -1,6 +1,16 @@
 /**
  * @file comboMultiplier.test.js
- * @description comboMultiplier 함수 테스트
+ * @description 콤보 배율 계산 테스트
+ *
+ * ## 테스트 대상
+ * - computeComboMultiplier: 상징/조건 기반 최종 배율 계산
+ * - explainComboMultiplier: 배율 설명 문자열 생성
+ *
+ * ## 주요 테스트 케이스
+ * - 기본 배율 반환 (상징 없을 때)
+ * - 카드 0장일 때 기본값
+ * - 상징별 배율 보너스 (ancientScale, goldenScale 등)
+ * - 공격/방어 비율 조건 체크
  */
 
 import { describe, it, expect } from 'vitest';

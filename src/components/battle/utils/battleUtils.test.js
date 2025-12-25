@@ -1,6 +1,18 @@
 /**
  * @file battleUtils.test.js
- * @description battleUtils 함수 테스트
+ * @description 전투 기본 유틸리티 테스트
+ *
+ * ## 테스트 대상
+ * - choice: 배열에서 랜덤 요소 선택
+ * - hasTrait: 카드 특성 보유 확인
+ * - applyTraitModifiers: 특성에 따른 카드 수치 변경
+ * - applyStrengthToCard/Hand: 힘 스탯 적용
+ * - getCardRarity: 카드 희귀도 반환
+ *
+ * ## 주요 테스트 케이스
+ * - null/undefined 안전 처리
+ * - traits 배열/단일값 모두 지원
+ * - strength 보너스 데미지/방어력 적용
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';

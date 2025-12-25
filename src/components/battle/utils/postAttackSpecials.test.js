@@ -1,6 +1,16 @@
 /**
  * @file postAttackSpecials.test.js
- * @description postAttackSpecials 함수 테스트
+ * @description 공격 후 특수 효과 테스트
+ *
+ * ## 테스트 대상
+ * - processPostAttackSpecials: 공격 후 효과 처리
+ *
+ * ## 주요 테스트 케이스
+ * - execute: HP 임계치 이하 즉사
+ * - vuln: 취약 상태 부여
+ * - gun_jam: 총기 고장 (행동 불가)
+ * - knockback: 적 타임라인 밀기
+ * - bleed: 출혈 토큰 부여
  */
 
 import { describe, it, expect } from 'vitest';

@@ -1,6 +1,16 @@
 /**
  * @file formatUtils.test.js
- * @description formatUtils 함수 테스트
+ * @description 숫자 포맷팅 유틸리티 테스트
+ *
+ * ## 테스트 대상
+ * - formatCompactValue: 큰 숫자를 K/M/B 단위로 축약
+ *
+ * ## 주요 테스트 케이스
+ * - 0~999: 그대로 표시
+ * - 1,000 이상: K(천) 단위
+ * - 1,000,000 이상: M(백만) 단위
+ * - 1,000,000,000 이상: B(십억) 단위
+ * - 소수점 2자리 반올림
  */
 
 import { describe, it, expect } from 'vitest';

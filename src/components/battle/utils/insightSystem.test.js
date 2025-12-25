@@ -1,6 +1,16 @@
 /**
  * @file insightSystem.test.js
- * @description insightSystem 함수 테스트
+ * @description 통찰/장막 시스템 테스트
+ *
+ * ## 테스트 대상
+ * - calculateEffectiveInsight: 장막 적용 후 유효 통찰 계산
+ * - getInsightRevealLevel: 통찰 단계별 정보 공개 레벨
+ *
+ * ## 주요 테스트 케이스
+ * - 장막 0: 통찰 그대로
+ * - 장막 > 통찰: 유효 통찰 0
+ * - 통찰 레벨별 공개 정보 (카드명, 데미지, 특성 등)
+ * - 음수 통찰 방지
  */
 
 import { describe, it, expect } from 'vitest';

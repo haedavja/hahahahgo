@@ -1,6 +1,19 @@
 /**
  * @file handGeneration.test.js
- * @description handGeneration 함수 테스트
+ * @description 핸드/덱 생성 테스트
+ *
+ * ## 테스트 대상
+ * - shuffleArray: 배열 셔플 (Fisher-Yates)
+ * - initializeDeck: 덱 초기화
+ * - drawFromDeck: 덱에서 카드 드로우
+ * - getDefaultStartingHand: 기본 시작 핸드
+ * - drawCharacterBuildHand: 캐릭터 빌드 기반 핸드
+ *
+ * ## 주요 테스트 케이스
+ * - 셔플 후 원본 배열 유지
+ * - 덱 소진 시 discard 재셔플
+ * - 시작 핸드 크기 설정
+ * - 캐릭터별 보장 카드 포함
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';

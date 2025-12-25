@@ -1,6 +1,16 @@
 /**
  * @file cardTraitEffects.test.js
- * @description cardTraitEffects 함수 테스트
+ * @description 카드 특성 효과 처리 테스트
+ *
+ * ## 테스트 대상
+ * - processCardTraitEffects: 특성 기반 다음 턴 효과 계산
+ *
+ * ## 주요 테스트 케이스
+ * - repeat: 카드 반복 사용
+ * - warmup: 다음 턴 행동력 보너스
+ * - exhaust: 사용 후 소멸
+ * - afterimage: 유령 카드 생성
+ * - 보장 카드(guaranteedCards) 추가
  */
 
 import { describe, it, expect, vi } from 'vitest';
