@@ -62,7 +62,10 @@ interface CardStats {
   en: number;
 }
 
-// 몬스터별 AI 모드 가중치
+/**
+ * 몬스터별 AI 모드 가중치
+ * { aggro, turtle, balanced } - 상대적 가중치로 모드 선택 확률 결정
+ */
 export const ENEMY_MODE_WEIGHTS: Record<string, ModeWeights> = {
   // Tier 1 - 일반 몬스터
   'ghoul': { aggro: 60, turtle: 10, balanced: 30 },

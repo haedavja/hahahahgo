@@ -67,9 +67,10 @@ interface ComboStrategyResult {
   baseTendency: number;
 }
 
-// =====================
-// 콤보 점수 가중치
-// =====================
+/**
+ * 콤보별 점수 가중치
+ * 높을수록 AI가 해당 콤보를 선호함
+ */
 export const COMBO_SCORE_WEIGHTS: Record<ComboName, number> = {
   '하이카드': 0,
   '페어': 100,
@@ -81,9 +82,10 @@ export const COMBO_SCORE_WEIGHTS: Record<ComboName, number> = {
   '파이브카드': 500
 };
 
-// =====================
-// 몬스터별 콤보 성향
-// =====================
+/**
+ * 몬스터별 콤보 성향 계수
+ * 0~1 사이 값, 높을수록 콤보를 적극적으로 노림
+ */
 export const ENEMY_COMBO_TENDENCIES: Record<string, number> = {
   'ghoul': 0.3,
   'marauder': 0.5,

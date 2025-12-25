@@ -49,7 +49,8 @@ interface StunProcessingParams {
   addLog: (msg: string) => void;
 }
 
-export const STUN_RANGE = 5; // 기절 효과 범위(타임라인 기준)
+/** 기절 효과 범위 (타임라인 기준) */
+export const STUN_RANGE = 5;
 
 /**
  * 기절 효과 처리
