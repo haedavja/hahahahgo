@@ -1,40 +1,32 @@
 /**
- * @file comboMultiplier.js
+ * @file comboMultiplier.ts
  * @description 콤보 배율 계산 시스템
- *
- * ## 배율 요소
- * - 기본 콤보 배율
- * - 5장 카드 보너스
- * - 상징 효과 (참고서 등)
  */
 
 import { RELICS } from "../../../data/relics";
 import { applyRelicComboMultiplier } from "../../../lib/relics";
 import { calculatePassiveEffects } from "../../../lib/relicEffects";
 
+interface ExplainResult {
+  multiplier: number;
+  steps: string[];
+}
+
 /**
  * 상징 효과를 적용한 콤보 배율 계산
- * @param {number} baseMult - 기본 배율
- * @param {number} cardsCount - 카드 개수
- * @param {boolean} includeFiveCard - 5장 보너스 포함 여부
- * @param {boolean} includeRefBook - 참고서 효과 포함 여부
- * @param {Array|null} relicOrderOverride - 상징 순서 오버라이드 (null이면 orderedRelicList 사용)
- * @param {Array} orderedRelicList - 현재 상징 순서
- * @returns {number} 최종 배율
  */
 export function computeComboMultiplier(
-  baseMult,
-  cardsCount,
-  includeFiveCard = true,
-  includeRefBook = true,
-  relicOrderOverride = null,
-  orderedRelicList = []
-) {
+  baseMult: number,
+  cardsCount: number,
+  includeFiveCard: boolean = true,
+  includeRefBook: boolean = true,
+  relicOrderOverride: string[] | null = null,
+  orderedRelicList: string[] = []
+): number {
   let mult = baseMult;
   const order = relicOrderOverride || orderedRelicList;
   const passive = calculatePassiveEffects(order);
 
-  // 1) 카드당 적용되는 배율(에테르 결정 등) 우선, 위치 순서대로
   order.forEach(rid => {
     const relic = RELICS[rid];
     if (!relic?.effects) return;
@@ -43,7 +35,6 @@ export function computeComboMultiplier(
     }
   });
 
-  // 2) 참고서: 조건 충족 시 위치 순서로 단 한 번
   if (includeRefBook && passive.etherCardMultiplier && cardsCount > 0) {
     order.forEach(rid => {
       const relic = RELICS[rid];
@@ -52,7 +43,6 @@ export function computeComboMultiplier(
     });
   }
 
-  // 3) 악마의 주사위: 조건 충족 시 위치 순서로 곱 (항상 마지막 우선)
   if (includeFiveCard && passive.etherFiveCardBonus > 0 && cardsCount >= 5) {
     order.forEach(rid => {
       const relic = RELICS[rid];
@@ -66,28 +56,20 @@ export function computeComboMultiplier(
 
 /**
  * 배율 계산 과정을 설명용으로 반환
- * @param {number} baseMult - 기본 배율
- * @param {number} cardsCount - 카드 개수
- * @param {boolean} includeFiveCard - 5장 보너스 포함 여부
- * @param {boolean} includeRefBook - 참고서 효과 포함 여부
- * @param {Array|null} relicOrderOverride - 상징 순서 오버라이드
- * @param {Array} orderedRelicList - 현재 상징 순서
- * @returns {Object} { multiplier: number, steps: string[] }
  */
 export function explainComboMultiplier(
-  baseMult,
-  cardsCount,
-  includeFiveCard = true,
-  includeRefBook = true,
-  relicOrderOverride = null,
-  orderedRelicList = []
-) {
+  baseMult: number,
+  cardsCount: number,
+  includeFiveCard: boolean = true,
+  includeRefBook: boolean = true,
+  relicOrderOverride: string[] | null = null,
+  orderedRelicList: string[] = []
+): ExplainResult {
   let mult = baseMult;
   const order = relicOrderOverride || orderedRelicList;
-  const steps = [`기본: ${mult.toFixed(2)}`];
+  const steps: string[] = [`기본: ${mult.toFixed(2)}`];
   const passive = calculatePassiveEffects(order);
 
-  // 1) 카드당 배율 우선
   order.forEach(rid => {
     const relic = RELICS[rid];
     if (!relic?.effects) return;
@@ -98,7 +80,6 @@ export function explainComboMultiplier(
     }
   });
 
-  // 2) 참고서
   if (includeRefBook && passive.etherCardMultiplier && cardsCount > 0) {
     order.forEach(rid => {
       const relic = RELICS[rid];
@@ -109,7 +90,6 @@ export function explainComboMultiplier(
     });
   }
 
-  // 3) 악마의 주사위
   if (includeFiveCard && passive.etherFiveCardBonus > 0 && cardsCount >= 5) {
     order.forEach(rid => {
       const relic = RELICS[rid];
