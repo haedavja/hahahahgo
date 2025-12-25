@@ -1,5 +1,5 @@
 /**
- * @file enemyEtherAnimation.js
+ * @file enemyEtherAnimation.ts
  * @description 적 에테르 계산 애니메이션
  *
  * ## 적 에테르 표시
@@ -7,14 +7,34 @@
  * - 디플레이션 표시
  */
 
+type EtherCalcPhase = 'sum' | 'multiply' | 'deflation' | 'result';
+
+interface DeflationInfo {
+  multiplier: number;
+  usageCount: number;
+}
+
+interface EnemyEther {
+  deflation: DeflationInfo;
+}
+
+interface Actions {
+  setEnemyEtherCalcPhase: (phase: EtherCalcPhase) => void;
+  setEnemyCurrentDeflation: (deflation: DeflationInfo | null) => void;
+}
+
 /**
  * 적 에테르 계산 애니메이션 시작
- * @param {Object} params - 파라미터
- * @param {number} params.enemyFinalEther - 적 최종 에테르
- * @param {Object} params.enemyEther - 적 에테르 계산 결과
- * @param {Function} params.actions - 상태 업데이트 함수 모음
  */
-export function startEnemyEtherAnimation({ enemyFinalEther, enemyEther, actions }) {
+export function startEnemyEtherAnimation({
+  enemyFinalEther,
+  enemyEther,
+  actions
+}: {
+  enemyFinalEther: number;
+  enemyEther: EnemyEther;
+  actions: Actions;
+}): void {
   if (enemyFinalEther <= 0) return;
 
   actions.setEnemyEtherCalcPhase('sum');

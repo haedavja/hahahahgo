@@ -1,9 +1,6 @@
 /**
- * @file postAttackSpecials.js
+ * @file postAttackSpecials.ts
  * @description 공격 후 special 효과 처리 (피해 적용 후)
- * @typedef {import('../../../types').Card} Card
- *
- * cardSpecialEffects.js에서 분리됨
  *
  * ## 처리되는 효과
  * - executeUnder10: 10% 미만 즉사
@@ -15,10 +12,59 @@
 import { addToken, removeToken, setTokenStacks } from '../../../lib/tokenUtils';
 import { hasSpecial } from './preAttackSpecials';
 
+interface Card {
+  id: string;
+  name: string;
+  damage?: number;
+  hits?: number;
+  special?: string | string[];
+  _applyBurn?: boolean;
+  _addGunJam?: boolean;
+  [key: string]: unknown;
+}
+
+interface Token {
+  id: string;
+  stacks?: number;
+  [key: string]: unknown;
+}
+
+interface Actor {
+  hp: number;
+  maxHp?: number;
+  block?: number;
+  def?: boolean;
+  tokens?: Token[];
+  [key: string]: unknown;
+}
+
+interface BattleContext {
+  currentTurn?: number;
+  currentSp?: number;
+  isLastCard?: boolean;
+  unusedAttackCards?: number;
+  blockDestroyed?: number;
+  isCritical?: boolean;
+  [key: string]: unknown;
+}
+
+interface Event {
+  actor: string;
+  card: string;
+  type: string;
+  msg: string;
+}
+
+interface PostAttackResult {
+  attacker: Actor;
+  defender: Actor;
+  events: Event[];
+  logs: string[];
+  extraHits: number;
+}
+
 /**
  * 공격 후 special 효과 처리 (피해 적용 후)
- * @param {Object} params
- * @returns {Object} { attacker, defender, events, logs, extraHits }
  */
 export function processPostAttackSpecials({
   card,
@@ -27,11 +73,18 @@ export function processPostAttackSpecials({
   attackerName,
   damageDealt,
   battleContext = {}
-}) {
-  let modifiedAttacker = { ...attacker };
-  let modifiedDefender = { ...defender };
-  const events = [];
-  const logs = [];
+}: {
+  card: Card;
+  attacker: Actor;
+  defender: Actor;
+  attackerName: 'player' | 'enemy';
+  damageDealt: number;
+  battleContext?: BattleContext;
+}): PostAttackResult {
+  let modifiedAttacker: Actor = { ...attacker };
+  let modifiedDefender: Actor = { ...defender };
+  const events: Event[] = [];
+  const logs: string[] = [];
   let extraHits = 0;
 
   // === executeUnder10: 10% 미만 즉사 ===

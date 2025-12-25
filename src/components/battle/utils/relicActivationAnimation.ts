@@ -1,5 +1,5 @@
 /**
- * @file relicActivationAnimation.js
+ * @file relicActivationAnimation.ts
  * @description 상징 발동 애니메이션 시스템
  *
  * ## 기능
@@ -10,24 +10,38 @@
 
 import { RELICS } from "../../../data/relics";
 
+interface TriggeredRefs {
+  referenceBookTriggered: { current: boolean };
+  devilDiceTriggered: { current: boolean };
+}
+
+interface RelicTrigger {
+  id: string;
+  tone: number;
+  duration: number;
+}
+
+interface TimelineItem {
+  [key: string]: unknown;
+}
+
 /**
  * 카드 사용 시 발동할 상징 목록 수집
- * @param {Object} params - 파라미터
- * @param {Array} params.orderedRelicList - 정렬된 상징 ID 목록
- * @param {number} params.resolvedPlayerCards - 해결된 플레이어 카드 수
- * @param {Array} params.playerTimeline - 플레이어 타임라인
- * @param {Object} params.triggeredRefs - 발동 추적 ref 객체
- * @returns {Array} 발동할 상징 목록 [{ id, tone, duration }, ...]
  */
 export function collectTriggeredRelics({
   orderedRelicList,
   resolvedPlayerCards,
   playerTimeline,
   triggeredRefs
-}) {
+}: {
+  orderedRelicList: string[];
+  resolvedPlayerCards: number;
+  playerTimeline: TimelineItem[] | null;
+  triggeredRefs: TriggeredRefs;
+}): RelicTrigger[] {
   const newCount = resolvedPlayerCards + 1;
-  const isLastPlayerCard = playerTimeline?.length > 0 && newCount === playerTimeline.length;
-  const triggered = [];
+  const isLastPlayerCard = playerTimeline?.length && playerTimeline.length > 0 && newCount === playerTimeline.length;
+  const triggered: RelicTrigger[] = [];
 
   orderedRelicList.forEach(relicId => {
     const relic = RELICS[relicId];
@@ -61,14 +75,15 @@ export function collectTriggeredRelics({
 
 /**
  * 상징 발동 애니메이션 시퀀스 실행
- * @param {Array} triggered - 발동할 상징 목록
- * @param {Function} flashRelic - 상징 플래시 함수
- * @param {Function} setRelicActivated - 상징 활성화 상태 설정 함수
  */
-export function playRelicActivationSequence(triggered, flashRelic, setRelicActivated) {
+export function playRelicActivationSequence(
+  triggered: RelicTrigger[],
+  flashRelic: (id: string, tone: number, duration: number) => void,
+  setRelicActivated: (id: string | null) => void
+): void {
   if (triggered.length === 0) return;
 
-  const playSeq = (idx = 0) => {
+  const playSeq = (idx: number = 0): void => {
     if (idx >= triggered.length) {
       setRelicActivated(null);
       return;

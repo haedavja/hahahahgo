@@ -1,9 +1,6 @@
 /**
- * @file preAttackSpecials.js
+ * @file preAttackSpecials.ts
  * @description 공격 전 special 효과 처리 (피해 계산 전)
- * @typedef {import('../../../types').Card} Card
- *
- * cardSpecialEffects.js에서 분리됨
  *
  * ## 처리되는 효과
  * - ignoreBlock: 방어력 무시
@@ -14,10 +11,75 @@
 
 import { addToken, removeToken, setTokenStacks, getTokenStacks } from '../../../lib/tokenUtils';
 
+interface Card {
+  id: string;
+  name: string;
+  damage?: number;
+  block?: number;
+  hits?: number;
+  traits?: string[];
+  special?: string | string[];
+  crossBonus?: {
+    type?: string;
+    value?: number;
+  };
+  _ignoreBlock?: boolean;
+  [key: string]: unknown;
+}
+
+interface Token {
+  id: string;
+  stacks?: number;
+  [key: string]: unknown;
+}
+
+interface Actor {
+  block?: number;
+  def?: boolean;
+  hp?: number;
+  maxHp?: number;
+  agility?: number;
+  tokens?: Token[];
+  [key: string]: unknown;
+}
+
+interface QueueItem {
+  actor: string;
+  sp?: number;
+  card?: Card;
+  [key: string]: unknown;
+}
+
+interface BattleContext {
+  playerAttackCards?: Card[];
+  queue?: QueueItem[];
+  currentSp?: number;
+  currentQIndex?: number;
+  currentTurn?: number;
+  remainingEnergy?: number;
+  [key: string]: unknown;
+}
+
+interface Event {
+  actor: string;
+  card: string;
+  type: string;
+  msg: string;
+}
+
+interface PreAttackResult {
+  modifiedCard: Card;
+  attacker: Actor;
+  defender: Actor;
+  events: Event[];
+  logs: string[];
+  skipNormalDamage: boolean;
+}
+
 /**
  * 카드의 special 효과 존재 여부 확인 (배열 지원)
  */
-export function hasSpecial(card, specialName) {
+export function hasSpecial(card: Card | null | undefined, specialName: string): boolean {
   if (!card?.special) return false;
   if (Array.isArray(card.special)) {
     return card.special.includes(specialName);
@@ -27,8 +89,6 @@ export function hasSpecial(card, specialName) {
 
 /**
  * 공격 전 special 효과 처리 (피해 계산 전)
- * @param {Object} params
- * @returns {Object} { modifiedCard, attacker, defender, events, logs, skipNormalDamage }
  */
 export function processPreAttackSpecials({
   card,
@@ -36,13 +96,19 @@ export function processPreAttackSpecials({
   defender,
   attackerName,
   battleContext = {}
-}) {
-  let modifiedCard = { ...card };
-  let modifiedAttacker = { ...attacker };
-  let modifiedDefender = { ...defender };
-  const events = [];
-  const logs = [];
-  let skipNormalDamage = false;
+}: {
+  card: Card;
+  attacker: Actor;
+  defender: Actor;
+  attackerName: 'player' | 'enemy';
+  battleContext?: BattleContext;
+}): PreAttackResult {
+  let modifiedCard: Card = { ...card };
+  let modifiedAttacker: Actor = { ...attacker };
+  let modifiedDefender: Actor = { ...defender };
+  const events: Event[] = [];
+  const logs: string[] = [];
+  const skipNormalDamage = false;
 
   // === ignoreBlock: 방어력 무시 ===
   if (hasSpecial(card, 'ignoreBlock')) {
@@ -125,10 +191,10 @@ export function processPreAttackSpecials({
     const { queue = [], currentQIndex = 0 } = battleContext;
     const who = attackerName === 'player' ? '플레이어' : '몬스터';
 
-    let previousCard = null;
+    let previousCard: Card | null = null;
     for (let i = currentQIndex - 1; i >= 0; i--) {
       if (queue[i]?.actor === attackerName) {
-        previousCard = queue[i].card;
+        previousCard = queue[i].card || null;
         break;
       }
     }

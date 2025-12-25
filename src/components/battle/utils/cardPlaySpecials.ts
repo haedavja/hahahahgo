@@ -1,9 +1,6 @@
 /**
- * @file cardPlaySpecials.js
+ * @file cardPlaySpecials.ts
  * @description 카드 사용 시 special 효과 처리
- * @typedef {import('../../../types').Card} Card
- *
- * cardSpecialEffects.js에서 분리됨
  *
  * ## 처리되는 효과
  * - comboStyle: 조합 스타일 보너스
@@ -16,30 +13,132 @@ import { getAllTokens, getTokenStacks } from '../../../lib/tokenUtils';
 import { TOKENS, TOKEN_CATEGORIES } from '../../../data/tokens';
 import { hasSpecial } from './preAttackSpecials';
 
+interface Card {
+  id: string;
+  name: string;
+  damage?: number;
+  block?: number;
+  hits?: number;
+  speedCost?: number;
+  actionCost?: number;
+  type?: string;
+  cardCategory?: string;
+  special?: string | string[];
+  traits?: string[];
+  isGhost?: boolean;
+  createdBy?: string;
+  createdId?: string;
+  crossBonus?: {
+    type?: string;
+    count?: number;
+    tokens?: Array<{
+      id: string;
+      stacks?: number;
+      target?: string;
+    }>;
+  };
+  __targetUnitId?: number;
+  [key: string]: unknown;
+}
+
+interface Token {
+  id: string;
+  stacks?: number;
+  [key: string]: unknown;
+}
+
+interface Actor {
+  tokens?: Token[];
+  [key: string]: unknown;
+}
+
+interface QueueItem {
+  actor: string;
+  sp?: number;
+  card?: Card;
+  [key: string]: unknown;
+}
+
+interface EnemyUnit {
+  hp: number;
+  unitId?: number;
+  [key: string]: unknown;
+}
+
+interface BattleContext {
+  hand?: Card[];
+  allCards?: Card[];
+  queue?: QueueItem[];
+  currentSp?: number;
+  currentQIndex?: number;
+  currentTurn?: number;
+  handSize?: number;
+  enemyUnits?: EnemyUnit[];
+  [key: string]: unknown;
+}
+
+interface TokenAction {
+  id: string;
+  stacks: number;
+  grantedAt?: { turn: number; sp: number } | null;
+  targetEnemy?: boolean;
+}
+
+interface Event {
+  actor: string;
+  card: string;
+  type: string;
+  msg: string;
+}
+
+interface NextTurnEffects {
+  destroyOverlappingCard?: boolean;
+  guaranteedCrit?: boolean;
+  recallCard?: boolean;
+  emergencyDraw?: number;
+  fencingDamageBonus?: number;
+  triggerCreation3x3?: boolean;
+  creationIsAoe?: boolean;
+  isAoeAttack?: boolean;
+  [key: string]: unknown;
+}
+
+interface CardPlayResult {
+  bonusCards: Card[];
+  tokensToAdd: TokenAction[];
+  tokensToRemove: TokenAction[];
+  nextTurnEffects: NextTurnEffects | null;
+  events: Event[];
+  logs: string[];
+}
+
 /**
  * 토큰 존재 여부 확인
  */
-function hasToken(entity, tokenId) {
+function hasToken(entity: Actor, tokenId: string): boolean {
   return getTokenStacks(entity, tokenId) > 0;
 }
 
 /**
  * 카드 사용 시 special 효과 처리
- * @param {Object} params
- * @returns {Object} { bonusCards, tokensToAdd, tokensToRemove, nextTurnEffects, events, logs }
  */
 export function processCardPlaySpecials({
   card,
   attacker,
   attackerName,
   battleContext = {}
-}) {
-  const events = [];
-  const logs = [];
-  const bonusCards = [];
-  const tokensToAdd = [];
-  const tokensToRemove = [];
-  let nextTurnEffects = null;
+}: {
+  card: Card;
+  attacker: Actor;
+  attackerName: 'player' | 'enemy';
+  battleContext?: BattleContext;
+}): CardPlayResult {
+  const events: Event[] = [];
+  const logs: string[] = [];
+  const bonusCards: Card[] = [];
+  const tokensToAdd: TokenAction[] = [];
+  const tokensToRemove: TokenAction[] = [];
+  let nextTurnEffects: NextTurnEffects | null = null;
 
   const { hand = [], allCards = [] } = battleContext;
 
@@ -174,10 +273,10 @@ export function processCardPlaySpecials({
     const who = attackerName === 'player' ? '플레이어' : '몬스터';
     const grantedAt = battleContext.currentTurn ? { turn: battleContext.currentTurn, sp: battleContext.currentSp || 0 } : null;
 
-    let previousCard = null;
+    let previousCard: Card | null = null;
     for (let i = currentQIndex - 1; i >= 0; i--) {
       if (queue[i]?.actor === attackerName) {
-        previousCard = queue[i].card;
+        previousCard = queue[i].card || null;
         break;
       }
     }
@@ -196,7 +295,7 @@ export function processCardPlaySpecials({
       }
     }
 
-    const attackerTokens = getAllTokens(attacker);
+    const attackerTokens = getAllTokens(attacker) as Token[];
     const negativeTokens = attackerTokens.filter(t => {
       const tokenDef = TOKENS[t.id];
       return tokenDef && tokenDef.category === TOKEN_CATEGORIES.NEGATIVE;

@@ -1,5 +1,5 @@
 /**
- * @file victoryDefeatTransition.js
+ * @file victoryDefeatTransition.ts
  * @description 승리/패배 전환 시스템
  *
  * ## 승리 조건
@@ -10,16 +10,41 @@
  * - 플레이어 HP 0 이하
  */
 
+interface Enemy {
+  hp: number;
+  [key: string]: unknown;
+}
+
+interface Player {
+  hp: number;
+  [key: string]: unknown;
+}
+
+interface VictoryCheckResult {
+  isVictory: boolean;
+  isEtherVictory?: boolean;
+  delay: number;
+}
+
+interface PostCombatOptions {
+  type: 'victory' | 'defeat';
+}
+
+interface Actions {
+  setSoulShatter: (value: boolean) => void;
+  setNetEtherDelta: (value: null | number) => void;
+  setPostCombatOptions: (options: PostCombatOptions) => void;
+  setPhase: (phase: string) => void;
+}
+
+interface ProcessResult {
+  shouldReturn: boolean;
+  isVictory: boolean;
+  isDefeat: boolean;
+}
+
 /**
  * 승리/패배 체크 및 페이즈 전환 처리
- * @param {Object} params - 파라미터
- * @param {Object} params.enemy - 적 상태
- * @param {Object} params.player - 플레이어 상태
- * @param {number} params.nextEnemyPtsSnapshot - 다음 턴 적 에테르 PT
- * @param {Function} params.checkVictoryCondition - 승리 조건 체크 함수
- * @param {Object} params.actions - 상태 업데이트 함수 모음
- * @param {Function} params.onVictory - 승리 시 호출할 콜백 (카드 보상 모달 등)
- * @returns {Object} { shouldReturn, isVictory, isDefeat }
  */
 export function processVictoryDefeatTransition({
   enemy,
@@ -28,7 +53,14 @@ export function processVictoryDefeatTransition({
   checkVictoryCondition,
   actions,
   onVictory
-}) {
+}: {
+  enemy: Enemy;
+  player: Player;
+  nextEnemyPtsSnapshot: number;
+  checkVictoryCondition: (enemy: Enemy, pts: number) => VictoryCheckResult;
+  actions: Actions;
+  onVictory?: () => void;
+}): ProcessResult {
   // 승리 체크
   const victoryCheck = checkVictoryCondition(enemy, nextEnemyPtsSnapshot);
   if (victoryCheck.isVictory) {
@@ -37,7 +69,6 @@ export function processVictoryDefeatTransition({
     }
     actions.setNetEtherDelta(null);
     setTimeout(() => {
-      // onVictory 콜백이 있으면 호출 (카드 보상 모달 표시)
       if (onVictory) {
         onVictory();
       } else {

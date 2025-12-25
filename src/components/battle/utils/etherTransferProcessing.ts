@@ -1,5 +1,5 @@
 /**
- * @file etherTransferProcessing.js
+ * @file etherTransferProcessing.ts
  * @description 에테르 전송 처리 및 애니메이션
  *
  * ## 에테르 전송
@@ -7,19 +7,28 @@
  * - 사운드/시각 피드백
  */
 
+interface TransferResult {
+  nextPlayerPts: number;
+  nextEnemyPts: number;
+  movedPts: number;
+}
+
+interface Actions {
+  setNetEtherDelta: (value: number | null) => void;
+  setPlayerTransferPulse: (value: boolean) => void;
+  setEnemyTransferPulse: (value: boolean) => void;
+}
+
+type CalculateEtherTransferFn = (
+  playerAppliedEther: number,
+  enemyAppliedEther: number,
+  curPlayerPts: number,
+  curEnemyPts: number,
+  enemyHp: number
+) => TransferResult;
+
 /**
  * 에테르 전송 처리 및 애니메이션
- * @param {Object} params - 파라미터
- * @param {number} params.playerAppliedEther - 플레이어 적용 에테르
- * @param {number} params.enemyAppliedEther - 적 적용 에테르
- * @param {number} params.curPlayerPts - 현재 플레이어 PT
- * @param {number} params.curEnemyPts - 현재 적 PT
- * @param {number} params.enemyHp - 적 HP
- * @param {Function} params.calculateEtherTransfer - 에테르 전송 계산 함수
- * @param {Function} params.addLog - 로그 추가 함수
- * @param {Function} params.playSound - 사운드 재생 함수
- * @param {Object} params.actions - 상태 업데이트 함수 모음
- * @returns {Object} { nextPlayerPts, nextEnemyPts, movedPts }
  */
 export function processEtherTransfer({
   playerAppliedEther,
@@ -31,7 +40,17 @@ export function processEtherTransfer({
   addLog,
   playSound,
   actions
-}) {
+}: {
+  playerAppliedEther: number;
+  enemyAppliedEther: number;
+  curPlayerPts: number;
+  curEnemyPts: number;
+  enemyHp: number;
+  calculateEtherTransfer: CalculateEtherTransferFn;
+  addLog: (msg: string) => void;
+  playSound: (frequency: number, duration: number) => void;
+  actions: Actions;
+}): TransferResult {
   const { nextPlayerPts, nextEnemyPts, movedPts } = calculateEtherTransfer(
     playerAppliedEther,
     enemyAppliedEther,

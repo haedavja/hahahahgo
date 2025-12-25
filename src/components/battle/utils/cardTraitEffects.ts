@@ -1,27 +1,36 @@
 /**
- * @file cardTraitEffects.js
+ * @file cardTraitEffects.ts
  * @description 카드 특성(trait) 기반 다음 턴 효과 처리 시스템
- * @typedef {import('../../../types').Card} Card
- *
- * @typedef {Object} NextTurnEffects
- * @property {string[]} guaranteedCards - 확정 등장 카드 ID 목록
- * @property {number} bonusEnergy - 추가 행동력
- * @property {number} energyPenalty - 행동력 페널티
- * @property {boolean} etherBlocked - 에테르 획득 차단 여부
- * @property {boolean} mainSpecialOnly - 주특기만 등장 여부
- * @property {number} subSpecialBoost - 보조특기 등장률 증가
  */
 
 import { hasTrait } from "./battleUtils";
 
+interface Card {
+  id: string;
+  name: string;
+  traits?: string[];
+  [key: string]: unknown;
+}
+
+interface NextTurnEffects {
+  guaranteedCards: string[];
+  bonusEnergy: number;
+  energyPenalty: number;
+  etherBlocked: boolean;
+  mainSpecialOnly: boolean;
+  subSpecialBoost: number;
+}
+
+type LogFunction = (message: string) => void;
+
 /**
  * 선택된 카드들의 특성을 분석하여 다음 턴 효과 생성
- * @param {Card[]} selectedCards - 선택된 카드 배열
- * @param {Function} addLog - 로그 추가 함수
- * @returns {Object} 다음 턴 효과 객체
  */
-export function processCardTraitEffects(selectedCards, addLog = () => {}) {
-  const nextTurnEffects = {
+export function processCardTraitEffects(
+  selectedCards: Card[],
+  addLog: LogFunction = () => {}
+): NextTurnEffects {
+  const nextTurnEffects: NextTurnEffects = {
     guaranteedCards: [],
     bonusEnergy: 0,
     energyPenalty: 0,
