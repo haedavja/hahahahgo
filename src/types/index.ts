@@ -2549,3 +2549,190 @@ export interface ErrorLoggerConfig {
   storageKey: string;
   enableConsole: boolean;
 }
+
+// ==================== 전투 행동 시스템 타입 ====================
+
+/** 전투 행동자 (확장) */
+export interface CombatActor extends Combatant {
+  def?: boolean;
+  tokens?: Record<string, unknown>;
+  etherOverdriveActive?: boolean;
+  vulnMult?: number;
+  [key: string]: unknown;
+}
+
+/** 전투 카드 (확장) */
+export interface CombatCard extends Card {
+  isGhost?: boolean;
+  hits?: number;
+  cardCategory?: string;
+  [key: string]: unknown;
+}
+
+/** 전투 컨텍스트 (확장) */
+export interface CombatBattleContext extends BattleContext {
+  remainingEnergy?: number;
+  enemyRemainingEnergy?: number;
+  allCards?: Card[];
+  [key: string]: unknown;
+}
+
+/** 전투 상태 */
+export interface CombatState {
+  player: CombatActor;
+  enemy: CombatActor;
+  log: string[];
+  [key: string]: unknown;
+}
+
+/** 다중 타격 준비 결과 */
+export interface MultiHitPrepareResult {
+  hits: number;
+  firstHitCritical: boolean;
+  preProcessedResult: Record<string, unknown> | null;
+  modifiedCard: CombatCard;
+  firstHitResult: Record<string, unknown>;
+  currentAttacker: CombatActor;
+  currentDefender: CombatActor;
+  attackerRemainingEnergy: number;
+}
+
+/** 다중 타격 마무리 결과 */
+export interface MultiHitFinalizeResult {
+  attacker: CombatActor;
+  defender: CombatActor;
+  events: BattleEvent[];
+  logs: string[];
+  extraHits: number;
+  createdCards: Card[];
+}
+
+// ==================== 리듀서 액션 타입 ====================
+
+/** 리듀서 플레이어 상태 */
+export interface ReducerPlayerState {
+  hp: number;
+  maxHp: number;
+  block: number;
+  tokens: TokenInstance[];
+  energy: number;
+  maxEnergy: number;
+  strength?: number;
+  agility?: number;
+  [key: string]: unknown;
+}
+
+/** 리듀서 적 상태 */
+export interface ReducerEnemyState {
+  hp: number;
+  maxHp: number;
+  block: number;
+  tokens: TokenInstance[];
+  units?: ReducerEnemyUnitState[];
+  [key: string]: unknown;
+}
+
+/** 리듀서 적 유닛 상태 */
+export interface ReducerEnemyUnitState {
+  unitId: number;
+  hp: number;
+  maxHp: number;
+  block: number;
+  tokens: TokenInstance[];
+  [key: string]: unknown;
+}
+
+/** 다음 턴 효과 (리듀서) */
+export interface ReducerNextTurnEffects {
+  player: Record<string, unknown>;
+  enemy: Record<string, unknown>;
+}
+
+/** 피해 미리보기 */
+export interface PreviewDamage {
+  value: number;
+  lethal: boolean;
+  overkill: boolean;
+}
+
+/** 통찰 배지 */
+export interface InsightBadge {
+  level: number;
+  dir: 'up' | 'down';
+  show: boolean;
+  key: number;
+}
+
+/** 적 계획 */
+export interface EnemyPlan {
+  actions: Card[];
+  mode: string | null;
+}
+
+// ==================== 훅 타입 ====================
+
+/** 초기 상태 오버라이드 옵션 */
+export interface BattleInitialStateOverrides {
+  player?: Partial<PlayerBattleState>;
+  enemy?: Partial<EnemyUnit>;
+  orderedRelics?: Relic[];
+  isSimplified?: boolean;
+  sortType?: 'speed' | 'order';
+  [key: string]: unknown;
+}
+
+// ==================== 애니메이션 시스템 타입 ====================
+
+/** 에테르 계산 페이즈 (애니메이션) */
+export type AnimEtherCalcPhase = 'sum' | 'multiply' | 'deflation' | 'result';
+
+/** 디플레이션 정보 */
+export interface DeflationInfo {
+  multiplier: number;
+  usageCount: number;
+}
+
+/** 적 에테르 상태 */
+export interface EnemyEtherState {
+  deflation: DeflationInfo;
+}
+
+/** 적 에테르 애니메이션 액션 */
+export interface EnemyEtherAnimActions {
+  setEnemyEtherCalcPhase: (phase: AnimEtherCalcPhase) => void;
+  setEnemyCurrentDeflation: (deflation: DeflationInfo | null) => void;
+}
+
+/** 상징 발동 Refs */
+export interface RelicTriggeredRefs {
+  referenceBookTriggered: { current: boolean };
+  devilDiceTriggered: { current: boolean };
+}
+
+/** 상징 발동 정보 */
+export interface RelicTrigger {
+  id: string;
+  tone: number;
+  duration: number;
+}
+
+/** 에테르 계산 애니메이션 카드 */
+export interface EtherAnimCard {
+  actionCost: number;
+  type?: string;
+  traits?: string[];
+  isGhost?: boolean;
+  [key: string]: unknown;
+}
+
+/** 에테르 계산 플레이어 상태 */
+export interface EtherAnimPlayer {
+  etherMultiplier?: number;
+  comboUsageCount?: Record<string, number>;
+  [key: string]: unknown;
+}
+
+/** 에테르 계산 애니메이션 액션 */
+export interface EtherCalcAnimActions {
+  setEtherCalcPhase: (phase: AnimEtherCalcPhase) => void;
+}

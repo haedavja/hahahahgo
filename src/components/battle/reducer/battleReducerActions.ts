@@ -9,7 +9,18 @@
  * - 에테르/토큰
  */
 
-import type { Card, Relic, Token } from '../../../types';
+import type {
+  Card,
+  Relic,
+  TokenInstance as Token,
+  ReducerPlayerState as PlayerState,
+  ReducerEnemyState as EnemyState,
+  ReducerEnemyUnitState as EnemyUnitState,
+  ReducerNextTurnEffects as NextTurnEffects,
+  PreviewDamage,
+  InsightBadge,
+  EnemyPlan
+} from '../../../types';
 
 /** 액션 타입 상수 */
 export const ACTIONS = {
@@ -185,39 +196,6 @@ export type ActionValue = typeof ACTIONS[ActionType];
 
 // ==================== 타입 안전 액션 정의 ====================
 
-/** 플레이어 상태 */
-interface PlayerState {
-  hp: number;
-  maxHp: number;
-  block: number;
-  tokens: Token[];
-  energy: number;
-  maxEnergy: number;
-  strength?: number;
-  agility?: number;
-  [key: string]: unknown;
-}
-
-/** 적 상태 */
-interface EnemyState {
-  hp: number;
-  maxHp: number;
-  block: number;
-  tokens: Token[];
-  units?: EnemyUnitState[];
-  [key: string]: unknown;
-}
-
-/** 적 유닛 상태 */
-interface EnemyUnitState {
-  unitId: number;
-  hp: number;
-  maxHp: number;
-  block: number;
-  tokens: Token[];
-  [key: string]: unknown;
-}
-
 /** 전투 페이즈 */
 export type BattlePhase =
   | 'select' | 'confirm' | 'resolve' | 'execution'
@@ -230,33 +208,6 @@ export type SortType = 'speed' | 'cost' | 'order';
 export type EtherCalcPhase =
   | 'base' | 'combo' | 'multiplier' | 'deflation'
   | 'transfer' | 'final' | null;
-
-/** 다음 턴 효과 */
-interface NextTurnEffects {
-  player: Record<string, unknown>;
-  enemy: Record<string, unknown>;
-}
-
-/** 피해 미리보기 */
-interface PreviewDamage {
-  value: number;
-  lethal: boolean;
-  overkill: boolean;
-}
-
-/** 통찰 배지 */
-interface InsightBadge {
-  level: number;
-  dir: 'up' | 'down';
-  show: boolean;
-  key: number;
-}
-
-/** 적 계획 */
-interface EnemyPlan {
-  actions: Card[];
-  mode: string | null;
-}
 
 // ==================== 액션 유니온 타입 ====================
 

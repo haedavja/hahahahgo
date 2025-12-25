@@ -3,7 +3,12 @@
  * @description 전투 상태 관리 커스텀 Hook
  */
 
-import type { BattleState, PlayerBattleState, EnemyUnit, Relic } from '../../../types';
+import type {
+  BattleState,
+  PlayerBattleState,
+  EnemyUnit,
+  BattleInitialStateOverrides as InitialStateOverrides
+} from '../../../types';
 import { useReducer, useMemo, useCallback, useRef, useEffect, type Dispatch } from 'react';
 import { battleReducer, createInitialState, ACTIONS } from '../reducer/battleReducer';
 import { addToken, removeToken, clearTurnTokens, setTokenStacks } from '../../../lib/tokenUtils';
@@ -36,16 +41,6 @@ import { addToken, removeToken, clearTurnTokens, setTokenStacks } from '../../..
  * 이 파일에서 battleRef를 사용하여 토큰 함수들이 항상 최신 상태를 참조하도록 함
  * =============================================================================
  */
-
-/** 초기 상태 오버라이드 옵션 */
-interface InitialStateOverrides {
-  player?: Partial<PlayerBattleState>;
-  enemy?: Partial<EnemyUnit>;
-  orderedRelics?: Relic[];
-  isSimplified?: boolean;
-  sortType?: 'speed' | 'order';
-  [key: string]: unknown;
-}
 
 /** useBattleState 반환 타입 */
 interface UseBattleStateResult {

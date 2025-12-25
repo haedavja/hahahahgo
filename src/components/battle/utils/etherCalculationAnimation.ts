@@ -12,26 +12,12 @@
 import { COMBO_MULTIPLIERS } from "./etherCalculations";
 import { applyEtherDeflation } from "./etherCalculations";
 import { detectPokerCombo } from "./comboDetection";
-
-interface Card {
-  actionCost: number;
-  type?: string;
-  traits?: string[];
-  isGhost?: boolean;
-  [key: string]: unknown;
-}
-
-interface Player {
-  etherMultiplier?: number;
-  comboUsageCount?: Record<string, number>;
-  [key: string]: unknown;
-}
-
-type EtherCalcPhase = 'sum' | 'multiply' | 'deflation' | 'result';
-
-interface Actions {
-  setEtherCalcPhase: (phase: EtherCalcPhase) => void;
-}
+import type {
+  EtherAnimCard as Card,
+  EtherAnimPlayer as Player,
+  AnimEtherCalcPhase as EtherCalcPhase,
+  EtherCalcAnimActions as Actions
+} from '../../../types';
 
 /**
  * 에테르 계산 애니메이션 시퀀스 시작

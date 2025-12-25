@@ -9,17 +9,10 @@
  */
 
 import { RELICS } from "../../../data/relics";
-
-interface TriggeredRefs {
-  referenceBookTriggered: { current: boolean };
-  devilDiceTriggered: { current: boolean };
-}
-
-interface RelicTrigger {
-  id: string;
-  tone: number;
-  duration: number;
-}
+import type {
+  RelicTriggeredRefs as TriggeredRefs,
+  RelicTrigger
+} from '../../../types';
 
 interface TimelineItem {
   [key: string]: unknown;

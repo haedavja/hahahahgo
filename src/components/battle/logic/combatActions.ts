@@ -9,13 +9,14 @@
 
 import type {
   Card,
-  Combatant,
-  BattleEvent,
-  BattleContext,
   AttackResult,
   ActionResult,
-  TokenToAdd,
-  TokenToRemove
+  CombatActor,
+  CombatCard,
+  CombatBattleContext,
+  CombatState,
+  MultiHitPrepareResult,
+  MultiHitFinalizeResult
 } from '../../../types';
 import { addToken, removeToken } from '../../../lib/tokenUtils';
 import {
@@ -30,39 +31,6 @@ export { applyDefense } from './defenseLogic';
 export { calculateSingleHit, applyCounter, applyCounterShot } from './hitCalculation';
 import { applyDefense } from './defenseLogic';
 import { calculateSingleHit } from './hitCalculation';
-
-/** 전투 행동자 (확장) */
-interface CombatActor extends Combatant {
-  def?: boolean;
-  tokens?: Record<string, unknown>;
-  etherOverdriveActive?: boolean;
-  vulnMult?: number;
-  [key: string]: unknown;
-}
-
-/** 전투 카드 (확장) */
-interface CombatCard extends Card {
-  isGhost?: boolean;
-  hits?: number;
-  cardCategory?: string;
-  [key: string]: unknown;
-}
-
-/** 전투 컨텍스트 (확장) */
-interface CombatBattleContext extends BattleContext {
-  remainingEnergy?: number;
-  enemyRemainingEnergy?: number;
-  allCards?: Card[];
-  [key: string]: unknown;
-}
-
-/** 전투 상태 */
-interface CombatState {
-  player: CombatActor;
-  enemy: CombatActor;
-  log: string[];
-  [key: string]: unknown;
-}
 
 /**
  * 공격 행동 적용 (다중 타격 지원 + special 효과)
@@ -217,17 +185,6 @@ export function applyAttack(
   };
 }
 
-/** 다중 타격 준비 결과 */
-interface MultiHitPrepareResult {
-  hits: number;
-  firstHitCritical: boolean;
-  preProcessedResult: Record<string, unknown> | null;
-  modifiedCard: CombatCard;
-  firstHitResult: Record<string, unknown>;
-  currentAttacker: CombatActor;
-  currentDefender: CombatActor;
-  attackerRemainingEnergy: number;
-}
 
 /**
  * 다중 타격 공격 준비 (비동기 처리용)
@@ -265,15 +222,6 @@ export function prepareMultiHitAttack(
   };
 }
 
-/** 다중 타격 마무리 결과 */
-interface MultiHitFinalizeResult {
-  attacker: CombatActor;
-  defender: CombatActor;
-  events: BattleEvent[];
-  logs: string[];
-  extraHits: number;
-  createdCards: Card[];
-}
 
 /**
  * 공격 후 special 효과 처리 (외부 호출용)

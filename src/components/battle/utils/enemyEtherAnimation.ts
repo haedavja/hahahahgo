@@ -7,21 +7,12 @@
  * - 디플레이션 표시
  */
 
-type EtherCalcPhase = 'sum' | 'multiply' | 'deflation' | 'result';
-
-interface DeflationInfo {
-  multiplier: number;
-  usageCount: number;
-}
-
-interface EnemyEther {
-  deflation: DeflationInfo;
-}
-
-interface Actions {
-  setEnemyEtherCalcPhase: (phase: EtherCalcPhase) => void;
-  setEnemyCurrentDeflation: (deflation: DeflationInfo | null) => void;
-}
+import type {
+  AnimEtherCalcPhase as EtherCalcPhase,
+  DeflationInfo,
+  EnemyEtherState as EnemyEther,
+  EnemyEtherAnimActions as Actions
+} from '../../../types';
 
 /**
  * 적 에테르 계산 애니메이션 시작
