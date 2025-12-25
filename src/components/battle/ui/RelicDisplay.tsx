@@ -1,10 +1,56 @@
 /**
- * RelicDisplay.jsx
+ * RelicDisplay.tsx
  *
  * 상단 상징 표시 컴포넌트
  */
 
-export const RelicDisplay = ({
+import { FC, DragEvent } from 'react';
+
+interface RelicEffect {
+  type?: string;
+  etherCardMultiplier?: number;
+  etherMultiplier?: number;
+}
+
+interface Relic {
+  emoji: string;
+  name: string;
+  description: string;
+  rarity: string;
+  effects?: RelicEffect;
+}
+
+interface RelicsMap {
+  [key: string]: Relic;
+}
+
+interface RelicRarities {
+  COMMON: string;
+  RARE: string;
+  SPECIAL: string;
+  LEGENDARY: string;
+}
+
+interface Actions {
+  setRelicActivated: (relicId: string | null) => void;
+}
+
+interface RelicDisplayProps {
+  orderedRelicList: string[] | null;
+  RELICS: RelicsMap;
+  RELIC_RARITIES: RelicRarities;
+  RELIC_RARITY_COLORS: Record<string, string>;
+  relicActivated: string | null;
+  activeRelicSet: Set<string>;
+  hoveredRelic: string | null;
+  setHoveredRelic: (relicId: string | null) => void;
+  actions: Actions;
+  handleRelicDragStart: (index: number, relicId: string) => (e: DragEvent<HTMLDivElement>) => void;
+  handleRelicDragOver: (e: DragEvent<HTMLDivElement>) => void;
+  handleRelicDrop: (index: number) => (e: DragEvent<HTMLDivElement>) => void;
+}
+
+export const RelicDisplay: FC<RelicDisplayProps> = ({
   orderedRelicList,
   RELICS,
   RELIC_RARITIES,
@@ -73,12 +119,12 @@ export const RelicDisplay = ({
           const borderOpacity = isPersistent ? 0.25 : 0.5;
           const shadowIntensity = isPersistent ? 0.25 : 0.5;
 
-          const rarityText = {
+          const rarityText: Record<string, string> = {
             [RELIC_RARITIES.COMMON]: '일반',
             [RELIC_RARITIES.RARE]: '희귀',
             [RELIC_RARITIES.SPECIAL]: '특별',
             [RELIC_RARITIES.LEGENDARY]: '전설'
-          }[relic.rarity] || '알 수 없음';
+          };
 
           return (
             <div
@@ -134,7 +180,7 @@ export const RelicDisplay = ({
                     {relic.name}
                   </div>
                   <div style={{ fontSize: '0.8rem', color: RELIC_RARITY_COLORS[relic.rarity], opacity: 0.8, marginBottom: '8px' }}>
-                    {rarityText}
+                    {rarityText[relic.rarity] || '알 수 없음'}
                   </div>
                   <div style={{ fontSize: '0.9rem', color: '#e2e8f0', lineHeight: '1.5' }}>
                     {relic.description}

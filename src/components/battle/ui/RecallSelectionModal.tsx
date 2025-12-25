@@ -1,10 +1,34 @@
-import React from 'react';
-
 /**
+ * RecallSelectionModal.tsx
+ *
  * 함성 (recallCard) 카드 선택 모달
  * 다음 턴에 가져올 카드를 선택하는 UI
  */
-export function RecallSelectionModal({ recallSelection, onSelect, onSkip }) {
+
+import { FC, MouseEvent } from 'react';
+
+interface Card {
+  id: string;
+  name: string;
+  type: string;
+  actionCost: number;
+  speedCost: number;
+  damage?: number;
+  block?: number;
+  description?: string;
+}
+
+interface RecallSelection {
+  availableCards: Card[];
+}
+
+interface RecallSelectionModalProps {
+  recallSelection: RecallSelection | null;
+  onSelect: (card: Card) => void;
+  onSkip: () => void;
+}
+
+export const RecallSelectionModal: FC<RecallSelectionModalProps> = ({ recallSelection, onSelect, onSkip }) => {
   if (!recallSelection) return null;
 
   return (
@@ -51,19 +75,19 @@ export function RecallSelectionModal({ recallSelection, onSelect, onSkip }) {
                 height: '180px',
                 transition: 'transform 0.2s, box-shadow 0.2s',
               }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'scale(1.05)';
-                e.currentTarget.style.boxShadow = '0 0 20px rgba(251, 191, 36, 0.6)';
+              onMouseEnter={(e: MouseEvent<HTMLDivElement>) => {
+                (e.currentTarget as HTMLDivElement).style.transform = 'scale(1.05)';
+                (e.currentTarget as HTMLDivElement).style.boxShadow = '0 0 20px rgba(251, 191, 36, 0.6)';
               }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'scale(1)';
-                e.currentTarget.style.boxShadow = 'none';
+              onMouseLeave={(e: MouseEvent<HTMLDivElement>) => {
+                (e.currentTarget as HTMLDivElement).style.transform = 'scale(1)';
+                (e.currentTarget as HTMLDivElement).style.boxShadow = 'none';
               }}
             >
               <div className="card-cost-badge-floating">{card.actionCost}</div>
               <div className="card-stats-sidebar">
-                {card.damage > 0 && <div className="card-stat-item attack">⚔️{card.damage}</div>}
-                {card.block > 0 && <div className="card-stat-item defense">🛡️{card.block}</div>}
+                {(card.damage ?? 0) > 0 && <div className="card-stat-item attack">⚔️{card.damage}</div>}
+                {(card.block ?? 0) > 0 && <div className="card-stat-item defense">🛡️{card.block}</div>}
                 <div className="card-stat-item speed">⏱️{card.speedCost}</div>
               </div>
               <div className="card-header" style={{ textAlign: 'center' }}>
@@ -94,4 +118,4 @@ export function RecallSelectionModal({ recallSelection, onSelect, onSkip }) {
       </div>
     </div>
   );
-}
+};

@@ -1,19 +1,26 @@
 /**
- * DeflationBadge.jsx
+ * DeflationBadge.tsx
  *
  * 에테르 감쇄 표시 배지 컴포넌트
  */
 
+import { FC } from 'react';
 import { DEFLATION_COLORS } from './constants/colors';
+
+interface Deflation {
+  multiplier: number;
+}
+
+interface DeflationBadgeProps {
+  deflation: Deflation | null;
+  isActive: boolean;
+  position?: 'left' | 'right';
+}
 
 /**
  * 에테르 감쇄율을 표시하는 배지 컴포넌트
- * @param {Object} props
- * @param {Object} props.deflation - 감쇄 정보 객체 { multiplier: number }
- * @param {boolean} props.isActive - 감쇄 단계 활성화 여부
- * @param {string} props.position - 배치 위치 ('left' | 'right')
  */
-export function DeflationBadge({ deflation, isActive, position = 'left' }) {
+export const DeflationBadge: FC<DeflationBadgeProps> = ({ deflation, isActive, position = 'left' }) => {
   if (!deflation) return null;
 
   const percentage = Math.round((1 - deflation.multiplier) * 100);
@@ -42,4 +49,4 @@ export function DeflationBadge({ deflation, isActive, position = 'left' }) {
       -{percentage}%
     </div>
   );
-}
+};

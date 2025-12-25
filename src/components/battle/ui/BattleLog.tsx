@@ -1,10 +1,19 @@
 /**
- * BattleLog.jsx
+ * BattleLog.tsx
  *
  * 전투 로그 표시 컴포넌트
  */
 
-export const BattleLog = ({ phase, log, logContainerRef, showAlways = false }) => {
+import { FC, RefObject } from 'react';
+
+interface BattleLogProps {
+  phase: string;
+  log: string[] | null;
+  logContainerRef: RefObject<HTMLDivElement>;
+  showAlways?: boolean;
+}
+
+export const BattleLog: FC<BattleLogProps> = ({ phase, log, logContainerRef, showAlways = false }) => {
   // showAlways가 true이면 항상 표시 (패배 시에도 로그 유지)
   if (!showAlways && phase !== 'resolve') {
     return null;

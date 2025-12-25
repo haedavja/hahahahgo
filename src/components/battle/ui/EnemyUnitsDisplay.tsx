@@ -1,13 +1,68 @@
 /**
- * EnemyUnitsDisplay.jsx
+ * EnemyUnitsDisplay.tsx
  *
  * 다중 적 유닛 표시 및 타겟팅 UI
  * 각 유닛은 개별 HP/방어력을 가지며 클릭으로 타겟 선택 가능
  */
 
+import { FC, MouseEvent } from 'react';
 import { TokenDisplay } from './TokenDisplay';
 
-export const EnemyUnitsDisplay = ({
+interface TokenState {
+  usage: unknown[];
+  turn: unknown[];
+  permanent: unknown[];
+}
+
+interface Unit {
+  unitId: number;
+  name: string;
+  emoji?: string;
+  hp: number;
+  maxHp: number;
+  block?: number;
+  count?: number;
+  tokens?: TokenState;
+}
+
+interface UnitPreviewDamage {
+  value: number;
+  lethal?: boolean;
+  overkill?: boolean;
+}
+
+interface PreviewDamage {
+  value: number;
+  lethal?: boolean;
+  overkill?: boolean;
+}
+
+interface EnemyUnitsDisplayProps {
+  units?: Unit[];
+  selectedTargetUnit: number | null;
+  onSelectUnit: (unitId: number) => void;
+  previewDamage: PreviewDamage;
+  perUnitPreviewDamage?: Record<number, UnitPreviewDamage>;
+  dulledLevel?: number;
+  phase: string;
+  enemyHit: boolean;
+  enemyBlockAnim: boolean;
+  soulShatter: boolean;
+  enemyEtherValue?: number;
+  enemyEtherCapacity?: number;
+  enemyTransferPulse?: boolean;
+  formatCompactValue?: (value: number) => string;
+  enemyBlock?: number;
+  enemyDef?: boolean;
+  distributionMode?: boolean;
+  damageDistribution?: Record<number, boolean>;
+  totalDistributableDamage?: number;
+  onUpdateDistribution?: (unitId: number, isTargeted: boolean) => void;
+  onConfirmDistribution?: () => void;
+  onCancelDistribution?: () => void;
+}
+
+export const EnemyUnitsDisplay: FC<EnemyUnitsDisplayProps> = ({
   units = [],
   selectedTargetUnit,
   onSelectUnit,
@@ -18,15 +73,12 @@ export const EnemyUnitsDisplay = ({
   enemyHit,
   enemyBlockAnim,
   soulShatter,
-  // 에테르 관련 props
   enemyEtherValue = 0,
   enemyEtherCapacity = 300,
   enemyTransferPulse = false,
   formatCompactValue,
-  // 공유 방어력 (enemy.block, enemy.def)
   enemyBlock = 0,
   enemyDef = false,
-  // 피해 분배 시스템
   distributionMode = false,
   damageDistribution = {},
   totalDistributableDamage = 0,
@@ -123,7 +175,7 @@ export const EnemyUnitsDisplay = ({
                   color: '#e2e8f0',
                 }}>
                   {unit.name}
-                  {unit.count > 1 && (
+                  {(unit.count ?? 0) > 1 && (
                     <span style={{
                       marginLeft: '6px',
                       fontSize: '0.85rem',
@@ -226,7 +278,7 @@ export const EnemyUnitsDisplay = ({
                     marginTop: '8px',
                   }}>
                     <button
-                      onClick={(e) => {
+                      onClick={(e: MouseEvent<HTMLButtonElement>) => {
                         e.stopPropagation();
                         onUpdateDistribution?.(unit.unitId, !isTargeted);
                       }}

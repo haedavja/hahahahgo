@@ -1,19 +1,30 @@
 /**
- * CardStatsSidebar.jsx
+ * CardStatsSidebar.tsx
  *
  * 카드 통계 사이드바 컴포넌트 (공격력, 방어력, 속도)
  */
 
-import React from 'react';
+import { FC } from 'react';
+
+interface Card {
+  damage?: number | null;
+  block?: number | null;
+  counter?: number;
+  speedCost: number;
+  hits?: number;
+}
+
+interface CardStatsSidebarProps {
+  card: Card;
+  strengthBonus?: number;
+  showCounter?: boolean;
+  formatSpeedText: (speed: number) => string;
+}
 
 /**
  * 카드 스탯 사이드바 컴포넌트
- * @param {Object} card - 카드 객체
- * @param {number} strengthBonus - 힘 보너스 (player.strength)
- * @param {boolean} showCounter - counter 속성 표시 여부 (기본값: false)
- * @param {Function} formatSpeedText - 속도 텍스트 포맷 함수
  */
-export const CardStatsSidebar = ({ card, strengthBonus = 0, showCounter = false, formatSpeedText }) => {
+export const CardStatsSidebar: FC<CardStatsSidebarProps> = ({ card, strengthBonus = 0, showCounter = false, formatSpeedText }) => {
   return (
     <div className="card-stats-sidebar">
       {card.damage != null && card.damage > 0 && (

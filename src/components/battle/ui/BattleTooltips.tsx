@@ -1,15 +1,63 @@
 /**
- * BattleTooltips.jsx
+ * BattleTooltips.tsx
  *
  * 특성 툴팁 & 통찰 툴팁 컴포넌트
  */
 
+import { FC } from 'react';
 import { CARDS } from '../battleData';
 import { TRAITS } from '../battleData';
 import { applyTraitModifiers } from '../utils/battleUtils';
 import { TOKENS, TOKEN_CATEGORIES } from '../../../data/tokens';
 
-export const BattleTooltips = ({
+interface Card {
+  id: string;
+  name?: string;
+  damage?: number;
+  block?: number;
+  traits?: string[];
+  appliedTokens?: Array<{
+    id: string;
+    target: 'player' | 'enemy';
+  }>;
+  speedCost?: number;
+  speed?: number;
+  hits?: number;
+}
+
+interface HoveredCard {
+  card: Card;
+  x: number;
+  y: number;
+}
+
+interface HoveredEnemyAction {
+  action: Card | null;
+  idx: number;
+  left: number;
+  top: number;
+  pageX: number;
+  pageY: number;
+}
+
+interface InsightReveal {
+  level?: number;
+}
+
+interface Battle {
+  phase: string;
+}
+
+interface BattleTooltipsProps {
+  tooltipVisible: boolean;
+  hoveredCard: HoveredCard | null;
+  battle: Battle;
+  hoveredEnemyAction: HoveredEnemyAction | null;
+  insightReveal: InsightReveal | null;
+  effectiveInsight: number | null;
+}
+
+export const BattleTooltips: FC<BattleTooltipsProps> = ({
   tooltipVisible,
   hoveredCard,
   battle,
@@ -42,9 +90,9 @@ export const BattleTooltips = ({
             {hoveredCard.card.traits && hoveredCard.card.traits.length > 0 ? '특성 정보' : '토큰 효과'}
           </div>
           {(() => {
-            const baseCard = CARDS.find(c => c.id === hoveredCard.card.id);
+            const baseCard = CARDS.find((c: Card) => c.id === hoveredCard.card.id);
             const enhancedCard = applyTraitModifiers(baseCard || hoveredCard.card, { usageCount: 0, isInCombo: false });
-            const parts = [];
+            const parts: string[] = [];
             if (baseCard?.damage && enhancedCard.damage && enhancedCard.damage !== baseCard.damage) {
               const mult = (enhancedCard.damage / baseCard.damage).toFixed(2);
               parts.push(`공격력: ${enhancedCard.damage} = ${baseCard.damage} × ${mult}`);

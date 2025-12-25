@@ -1,10 +1,55 @@
 /**
- * CentralPhaseDisplay.jsx
+ * CentralPhaseDisplay.tsx
  *
  * 중앙 단계 표시 및 컨트롤 버튼 컴포넌트
  */
 
-export const CentralPhaseDisplay = ({
+import { FC, Dispatch, SetStateAction } from 'react';
+
+interface Battle {
+  phase: string;
+  selected: unknown[];
+  queue: unknown[];
+  qIndex: number;
+}
+
+interface Player {
+  etherPts: number;
+}
+
+interface Enemy {
+  hp: number;
+}
+
+interface Actions {
+  setWillOverdrive: Dispatch<SetStateAction<boolean>>;
+  setAutoProgress: (value: boolean) => void;
+}
+
+interface CentralPhaseDisplayProps {
+  battle: Battle;
+  totalSpeed: number;
+  MAX_SPEED: number;
+  MAX_SUBMIT_CARDS: number;
+  redrawHand: () => void;
+  canRedraw: boolean;
+  startResolve: () => void;
+  playSound: (freq: number, duration: number) => void;
+  actions: Actions;
+  willOverdrive: boolean;
+  etherSlots: (pts: number) => number;
+  player: Player;
+  beginResolveFromRespond: () => void;
+  rewindToSelect: () => void;
+  rewindUsed: boolean;
+  respondSnapshot: unknown;
+  autoProgress: boolean;
+  etherFinalValue: number | null;
+  enemy: Enemy;
+  finishTurn: (reason: string) => void;
+}
+
+export const CentralPhaseDisplay: FC<CentralPhaseDisplayProps> = ({
   battle,
   totalSpeed,
   MAX_SPEED,
@@ -22,7 +67,6 @@ export const CentralPhaseDisplay = ({
   rewindUsed,
   respondSnapshot,
   autoProgress,
-  etherFinalValue,
   enemy,
   finishTurn
 }) => {

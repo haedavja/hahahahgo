@@ -1,22 +1,28 @@
 /**
- * HandArea.jsx
+ * HandArea.tsx
  *
  * 하단 고정 손패 영역 컴포넌트
  */
 
-import { useState } from 'react';
+import { FC, useState, MouseEvent } from 'react';
 import { createPortal } from 'react-dom';
 import { useGameStore } from '../../../state/gameStore';
 import { hasTrait, applyTraitModifiers } from '../utils/battleUtils';
 import { detectPokerCombo } from '../utils/comboDetection';
-import { TraitBadgeList } from './TraitBadge.jsx';
-import { CardStatsSidebar } from './CardStatsSidebar.jsx';
+import { TraitBadgeList } from './TraitBadge';
+import { CardStatsSidebar } from './CardStatsSidebar';
 import { Sword, Shield } from './BattleIcons';
 import { TRAITS } from '../battleData';
-import { CardListPopup } from './CardPopups.jsx';
+import { CardListPopup } from './CardPopups';
+
+interface IconProps {
+  size?: number;
+  className?: string;
+  strokeWidth?: number;
+}
 
 // X 아이콘 SVG 컴포넌트
-const X = ({ size = 24, className = "", strokeWidth = 2 }) => (
+const X: FC<IconProps> = ({ size = 24, className = "", strokeWidth = 2 }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className}>
     <line x1="18" y1="6" x2="6" y2="18" />
     <line x1="6" y1="6" x2="18" y2="18" />
@@ -24,13 +30,94 @@ const X = ({ size = 24, className = "", strokeWidth = 2 }) => (
 );
 
 // 카드 타입에 따른 CSS 클래스 반환 (공격/범용/특수)
-const getCardTypeClass = (type) => {
+const getCardTypeClass = (type: string): string => {
   if (type === 'attack') return 'attack';
   if (type === 'special') return 'special';
   return 'general'; // 기본값은 범용(general)
 };
 
-export const HandArea = ({
+interface Trait {
+  id: string;
+  name?: string;
+  description?: string;
+}
+
+interface Card {
+  id: string;
+  name: string;
+  type: string;
+  actionCost: number;
+  speedCost: number;
+  damage?: number;
+  block?: number;
+  description?: string;
+  traits?: Trait[];
+  icon?: FC<IconProps>;
+  __handUid?: string;
+  __uid?: string;
+  __isMainSpecial?: boolean;
+  __isSubSpecial?: boolean;
+  __targetUnitId?: number;
+}
+
+interface Unit {
+  unitId: number;
+  name: string;
+  emoji?: string;
+  hp: number;
+  maxHp: number;
+}
+
+interface Battle {
+  phase: string;
+  queue: Action[];
+}
+
+interface Player {
+  hp: number;
+  energy?: number;
+  maxEnergy?: number;
+  strength?: number;
+  comboUsageCount?: Record<string, number>;
+}
+
+interface Enemy {
+  hp: number;
+}
+
+interface Action {
+  actor: 'player' | 'enemy';
+  card: Card;
+  speed?: number;
+}
+
+interface HandAreaProps {
+  battle: Battle;
+  player: Player | null;
+  enemy: Enemy | null;
+  selected: Card[];
+  getSortedHand: () => Card[];
+  toggle: (card: Card) => void;
+  handDisabled: (card: Card) => boolean;
+  showCardTraitTooltip: (card: Card, element: Element | null) => void;
+  hideCardTraitTooltip: () => void;
+  formatSpeedText: (speed: number) => string;
+  renderNameWithBadge: (card: Card, color: string) => React.ReactNode;
+  fixedOrder?: Action[];
+  moveUp?: (idx: number) => void;
+  moveDown?: (idx: number) => void;
+  queue?: Action[];
+  usedCardIndices?: number[];
+  disappearingCards?: number[];
+  hiddenCards?: number[];
+  disabledCardIndices?: number[];
+  isSimplified?: boolean;
+  deck?: Card[];
+  discardPile?: Card[];
+  enemyUnits?: Unit[];
+}
+
+export const HandArea: FC<HandAreaProps> = ({
   battle,
   player,
   enemy,
@@ -56,9 +143,9 @@ export const HandArea = ({
   enemyUnits = []
 }) => {
   // 타겟 유닛 정보 가져오기 헬퍼
-  const getTargetUnit = (targetUnitId) => {
-    if (!targetUnitId && targetUnitId !== 0) return null;
-    return enemyUnits.find(u => u.unitId === targetUnitId);
+  const getTargetUnit = (targetUnitId: number | undefined): Unit | null => {
+    if (targetUnitId === undefined && targetUnitId !== 0) return null;
+    return enemyUnits.find(u => u.unitId === targetUnitId) || null;
   };
   const [showDeckPopup, setShowDeckPopup] = useState(false);
   const [showDiscardPopup, setShowDiscardPopup] = useState(false);
@@ -122,13 +209,13 @@ export const HandArea = ({
           zIndex: 1000,
           pointerEvents: 'auto'
         }}
-        onMouseEnter={e => {
-          e.currentTarget.style.transform = 'scale(1.08)';
-          e.currentTarget.style.boxShadow = '0 4px 16px rgba(59, 130, 246, 0.7)';
+        onMouseEnter={(e: MouseEvent<HTMLDivElement>) => {
+          (e.currentTarget as HTMLDivElement).style.transform = 'scale(1.08)';
+          (e.currentTarget as HTMLDivElement).style.boxShadow = '0 4px 16px rgba(59, 130, 246, 0.7)';
         }}
-        onMouseLeave={e => {
-          e.currentTarget.style.transform = 'scale(1)';
-          e.currentTarget.style.boxShadow = '0 2px 12px rgba(59, 130, 246, 0.5)';
+        onMouseLeave={(e: MouseEvent<HTMLDivElement>) => {
+          (e.currentTarget as HTMLDivElement).style.transform = 'scale(1)';
+          (e.currentTarget as HTMLDivElement).style.boxShadow = '0 2px 12px rgba(59, 130, 246, 0.5)';
         }}
       >
         <span>🎴</span>
@@ -157,13 +244,13 @@ export const HandArea = ({
           zIndex: 1000,
           pointerEvents: 'auto'
         }}
-        onMouseEnter={e => {
-          e.currentTarget.style.transform = 'scale(1.08)';
-          e.currentTarget.style.boxShadow = '0 4px 16px rgba(107, 114, 128, 0.7)';
+        onMouseEnter={(e: MouseEvent<HTMLDivElement>) => {
+          (e.currentTarget as HTMLDivElement).style.transform = 'scale(1.08)';
+          (e.currentTarget as HTMLDivElement).style.boxShadow = '0 4px 16px rgba(107, 114, 128, 0.7)';
         }}
-        onMouseLeave={e => {
-          e.currentTarget.style.transform = 'scale(1)';
-          e.currentTarget.style.boxShadow = '0 2px 12px rgba(107, 114, 128, 0.5)';
+        onMouseLeave={(e: MouseEvent<HTMLDivElement>) => {
+          (e.currentTarget as HTMLDivElement).style.transform = 'scale(1)';
+          (e.currentTarget as HTMLDivElement).style.boxShadow = '0 2px 12px rgba(107, 114, 128, 0.5)';
         }}
       >
         <span>🪦</span>
@@ -173,9 +260,9 @@ export const HandArea = ({
       {battle.phase === 'select' && (() => {
         // 현재 선택된 카드들의 조합 감지
         const currentCombo = detectPokerCombo(selected);
-        const comboCardCosts = new Set();
+        const comboCardCosts = new Set<number>();
         if (currentCombo?.bonusKeys) {
-          currentCombo.bonusKeys.forEach(cost => comboCardCosts.add(cost));
+          currentCombo.bonusKeys.forEach((cost: number) => comboCardCosts.add(cost));
         }
         // 플러쉬는 모든 카드가 조합 대상
         const isFlush = currentCombo?.name === '플러쉬';
@@ -184,7 +271,7 @@ export const HandArea = ({
           <div className="hand-cards">
             {getSortedHand().map((c, idx) => {
               const Icon = c.icon || (c.type === 'attack' ? Sword : Shield);
-              const usageCount = player.comboUsageCount?.[c.id] || 0;
+              const usageCount = player?.comboUsageCount?.[c.id] || 0;
               // __handUid로 개별 카드 식별 (중복 카드 구별)
               const cardUid = c.__handUid || c.__uid;
               const selIndex = selected.findIndex(s => (s.__handUid || s.__uid) === cardUid);
@@ -208,7 +295,7 @@ export const HandArea = ({
                 <div
                   key={c.id + idx}
                   onClick={() => !disabled && toggle(enhancedCard)}
-                  onMouseEnter={(e) => {
+                  onMouseEnter={(e: MouseEvent<HTMLDivElement>) => {
                     const cardEl = e.currentTarget.querySelector('.game-card-large');
                     showCardTraitTooltip(c, cardEl);
                   }}
@@ -249,7 +336,7 @@ export const HandArea = ({
                         <span>🎯</span>
                       </div>
                     )}
-                    <CardStatsSidebar card={enhancedCard} strengthBonus={player.strength || 0} formatSpeedText={formatSpeedText} />
+                    <CardStatsSidebar card={enhancedCard} strengthBonus={player?.strength || 0} formatSpeedText={formatSpeedText} />
                     <div className="card-header" style={{ display: 'flex', justifyContent: 'center' }}>
                       <div className="font-black text-sm" style={{ display: 'flex', alignItems: 'center' }}>
                         {renderNameWithBadge(c, nameColor)}
@@ -290,7 +377,7 @@ export const HandArea = ({
             return (
               <div
                 key={idx}
-                onMouseEnter={(e) => {
+                onMouseEnter={(e: MouseEvent<HTMLDivElement>) => {
                   const cardEl = e.currentTarget.querySelector('.game-card-large');
                   showCardTraitTooltip(c, cardEl);
                 }}
@@ -325,7 +412,7 @@ export const HandArea = ({
                 )}
                 <div className={`game-card-large respond-phase-card ${getCardTypeClass(c.type)}`}>
                   <div className="card-cost-badge-floating" style={{ color: costColor, WebkitTextStroke: '1px #000' }}>{c.actionCost}</div>
-                  <CardStatsSidebar card={c} strengthBonus={player.strength || 0} formatSpeedText={formatSpeedText} />
+                  <CardStatsSidebar card={c} strengthBonus={player?.strength || 0} formatSpeedText={formatSpeedText} />
                   <div className="card-header" style={{ display: 'flex', justifyContent: 'center' }}>
                     <div className="font-black text-sm" style={{ display: 'flex', alignItems: 'center' }}>
                       {renderNameWithBadge(c, nameColor)}
@@ -340,12 +427,12 @@ export const HandArea = ({
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: '8px' }}>
-                  {idx > 0 && (
+                  {idx > 0 && moveUp && (
                     <button onClick={() => moveUp(idx)} className="btn-enhanced text-xs" style={{ padding: '4px 12px' }}>
                       ←
                     </button>
                   )}
-                  {idx < arr.length - 1 && (
+                  {idx < arr.length - 1 && moveDown && (
                     <button onClick={() => moveDown(idx)} className="btn-enhanced text-xs" style={{ padding: '4px 12px' }}>
                       →
                     </button>
@@ -379,7 +466,7 @@ export const HandArea = ({
             return (
               <div
                 key={`resolve-${globalIndex}`}
-                onMouseEnter={(e) => {
+                onMouseEnter={(e: MouseEvent<HTMLDivElement>) => {
                   const cardEl = e.currentTarget.querySelector('.game-card-large');
                   showCardTraitTooltip(a.card, cardEl);
                 }}
@@ -424,7 +511,7 @@ export const HandArea = ({
                 )}
                 <div className={`game-card-large resolve-phase-card ${getCardTypeClass(a.card.type)} ${isUsed ? 'card-used' : ''}`}>
                   <div className="card-cost-badge-floating" style={{ color: costColor, WebkitTextStroke: '1px #000' }}>{a.card.actionCost}</div>
-                  <CardStatsSidebar card={a.card} strengthBonus={player.strength || 0} showCounter={true} formatSpeedText={formatSpeedText} />
+                  <CardStatsSidebar card={a.card} strengthBonus={player?.strength || 0} showCounter={true} formatSpeedText={formatSpeedText} />
                   <div className="card-header" style={{ display: 'flex', justifyContent: 'center' }}>
                     <div className="text-white font-black text-sm" style={{ display: 'flex', alignItems: 'center' }}>
                       {renderNameWithBadge(a.card, '#fff')}

@@ -1,12 +1,60 @@
 /**
- * EnemyHpBar.jsx
+ * EnemyHpBar.tsx
  *
  * 적 HP 바와 상태 표시 컴포넌트
  */
 
+import { FC } from 'react';
 import { TokenDisplay } from './TokenDisplay';
 
-export const EnemyHpBar = ({
+interface Battle {
+  phase: string;
+}
+
+interface PreviewDamage {
+  value: number;
+  lethal?: boolean;
+  overkill?: boolean;
+}
+
+interface TokenState {
+  usage: unknown[];
+  turn: unknown[];
+  permanent: unknown[];
+}
+
+interface Enemy {
+  hp: number;
+  maxHp: number;
+  block: number;
+  tokens?: TokenState;
+  etherCapacity?: number;
+}
+
+interface GroupedEnemyMember {
+  name?: string;
+  count: number;
+  emoji?: string;
+}
+
+interface EnemyHpBarProps {
+  battle: Battle;
+  previewDamage: PreviewDamage;
+  dulledLevel: number;
+  enemy: Enemy;
+  enemyHit: boolean;
+  enemyBlockAnim: boolean;
+  soulShatter: boolean;
+  groupedEnemyMembers: GroupedEnemyMember[];
+  enemyOverdriveFlash: boolean;
+  enemyEtherValue: number;
+  enemyTransferPulse: boolean;
+  enemySoulScale: number;
+  formatCompactValue: (value: number) => string;
+  frozenOrder: number;
+}
+
+export const EnemyHpBar: FC<EnemyHpBarProps> = ({
   battle,
   previewDamage,
   dulledLevel,

@@ -1,15 +1,29 @@
 /**
- * EtherComparisonBar.jsx
+ * EtherComparisonBar.tsx
  *
  * 에테르 비교 표시 컴포넌트 (resolve 단계에서 표시)
  */
 
-export const EtherComparisonBar = ({
+import { FC } from 'react';
+
+interface Battle {
+  phase: string;
+}
+
+interface EtherComparisonBarProps {
+  battle: Battle;
+  etherFinalValue: number | null;
+  enemyEtherFinalValue: number | null;
+  netFinalEther: number;
+  position?: 'top' | 'bottom';
+}
+
+export const EtherComparisonBar: FC<EtherComparisonBarProps> = ({
   battle,
   etherFinalValue,
   enemyEtherFinalValue,
   netFinalEther,
-  position = 'top' // 'top' or 'bottom'
+  position = 'top'
 }) => {
   if (battle.phase !== 'resolve' || etherFinalValue === null || enemyEtherFinalValue === null) {
     return null;

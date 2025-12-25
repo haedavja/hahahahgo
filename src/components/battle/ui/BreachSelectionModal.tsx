@@ -1,12 +1,44 @@
 /**
- * BreachSelectionModal.jsx
+ * BreachSelectionModal.tsx
  *
  * 브리치 카드 발동 시 3장 중 1장을 선택하는 모달
  */
 
+import { FC } from 'react';
 import { Sword, Shield } from './BattleIcons';
 
-export const BreachSelectionModal = ({
+interface Card {
+  id?: string;
+  name: string;
+  type: string;
+  actionCost: number;
+  speedCost: number;
+  damage?: number;
+  block?: number;
+  hits?: number;
+  description?: string;
+  icon?: FC<{ size?: number; className?: string }>;
+}
+
+interface BreachCard {
+  breachSpOffset?: number;
+}
+
+interface BreachSelection {
+  cards: Card[];
+  breachSp: number;
+  breachCard: BreachCard | null;
+  sourceCardName: string | null;
+  isLastChain?: boolean;
+}
+
+interface BreachSelectionModalProps {
+  breachSelection: BreachSelection | null;
+  onSelect: (card: Card, idx: number) => void;
+  strengthBonus?: number;
+}
+
+export const BreachSelectionModal: FC<BreachSelectionModalProps> = ({
   breachSelection,
   onSelect,
   strengthBonus = 0
@@ -57,7 +89,7 @@ export const BreachSelectionModal = ({
                 </div>
                 <div className="breach-card-stats">
                   {isAttack ? (
-                    <span className="stat-damage">⚔️ {displayDamage}{card.hits > 1 ? ` x${card.hits}` : ''}</span>
+                    <span className="stat-damage">⚔️ {displayDamage}{card.hits && card.hits > 1 ? ` x${card.hits}` : ''}</span>
                   ) : (
                     <span className="stat-block">🛡️ {displayBlock}</span>
                   )}

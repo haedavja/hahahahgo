@@ -1,16 +1,20 @@
 /**
- * TraitBadge.jsx
+ * TraitBadge.tsx
  *
  * 카드 특성 배지 표시 컴포넌트
  */
 
-import React from 'react';
+import { FC } from 'react';
 import { TRAITS } from '../battleData';
+
+interface TraitBadgeProps {
+  traitId: string;
+}
 
 /**
  * 단일 특성 배지 컴포넌트
  */
-export const TraitBadge = ({ traitId }) => {
+export const TraitBadge: FC<TraitBadgeProps> = ({ traitId }) => {
   const trait = TRAITS[traitId];
   if (!trait) return null;
 
@@ -33,10 +37,14 @@ export const TraitBadge = ({ traitId }) => {
   );
 };
 
+interface TraitBadgeListProps {
+  traits: string[] | null;
+}
+
 /**
  * 특성 배지 리스트 컴포넌트
  */
-export const TraitBadgeList = ({ traits }) => {
+export const TraitBadgeList: FC<TraitBadgeListProps> = ({ traits }) => {
   if (!traits || traits.length === 0) return null;
 
   return (

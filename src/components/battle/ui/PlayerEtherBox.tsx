@@ -1,12 +1,37 @@
 /**
- * PlayerEtherBox.jsx
+ * PlayerEtherBox.tsx
  *
  * 플레이어 에테르 계산 표시 컴포넌트
  */
 
+import { FC } from 'react';
 import { DeflationBadge } from './DeflationBadge';
 
-export const PlayerEtherBox = ({
+interface CurrentCombo {
+  name: string;
+}
+
+interface Battle {
+  phase: string;
+}
+
+interface Deflation {
+  multiplier: number;
+}
+
+interface PlayerEtherBoxProps {
+  currentCombo: CurrentCombo | null;
+  battle: Battle;
+  currentDeflation: Deflation | null;
+  etherCalcPhase: string;
+  turnEtherAccumulated: number;
+  etherPulse: boolean;
+  finalComboMultiplier: number;
+  etherMultiplier?: number;
+  multiplierPulse: boolean;
+}
+
+export const PlayerEtherBox: FC<PlayerEtherBoxProps> = ({
   currentCombo,
   battle,
   currentDeflation,

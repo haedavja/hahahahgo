@@ -1,87 +1,174 @@
+/**
+ * ItemSlots.tsx
+ *
+ * 전투 화면용 아이템 슬롯 컴포넌트
+ * phase가 'select' 또는 'respond'일 때만 전투용 아이템 사용 가능
+ */
+
+import { FC, MutableRefObject } from 'react';
 import { useGameStore } from "../../../state/gameStore";
 import { playCardDestroySound, playFreezeSound } from "../../../lib/soundUtils";
 import { addToken } from "../../../lib/tokenUtils";
 
-const STAT_LABELS = {
+const STAT_LABELS: Record<string, string> = {
   strength: "힘",
   agility: "민첩",
   insight: "통찰",
 };
 
-/**
- * 전투 화면용 아이템 슬롯 컴포넌트
- * phase가 'select' 또는 'respond'일 때만 전투용 아이템 사용 가능
- * @param {string} phase - 현재 전투 단계
- * @param {object} battleActions - 전투 상태 액션 (setPlayer, setEnemy, addLog, setEnemyPlan)
- * @param {object} player - 현재 플레이어 상태
- * @param {object} enemy - 현재 적 상태
- * @param {object} enemyPlan - 적의 행동 계획 { actions: [], mode: string }
- * @param {object} battleRef - 최신 battle 상태를 가진 ref (closure 문제 방지)
- */
-export function ItemSlots({ phase, battleActions, player, enemy, enemyPlan, battleRef }) {
-  const items = useGameStore((state) => state.items || [null, null, null]);
-  const useItem = useGameStore((state) => state.useItem);
-  const removeItem = useGameStore((state) => state.removeItem);
-  const itemBuffs = useGameStore((state) => state.itemBuffs || {});
+interface TokenGrant {
+  id: string;
+  stacks?: number;
+}
+
+interface ItemEffect {
+  type: string;
+  value?: number;
+  tokens?: TokenGrant[];
+}
+
+interface Item {
+  name: string;
+  description: string;
+  icon?: string;
+  usableIn: 'any' | 'combat';
+  effect?: ItemEffect;
+}
+
+interface TokenState {
+  usage: unknown[];
+  turn: unknown[];
+  permanent: unknown[];
+}
+
+interface Player {
+  hp: number;
+  energy?: number;
+  maxEnergy?: number;
+  block?: number;
+  strength?: number;
+  etherPts?: number;
+  etherMultiplier?: number;
+  enemyFrozen?: boolean;
+  tokens?: TokenState;
+}
+
+interface Enemy {
+  hp: number;
+  etherPts?: number;
+}
+
+interface EnemyAction {
+  card?: unknown;
+  [key: string]: unknown;
+}
+
+interface EnemyPlan {
+  mode?: string;
+  actions: EnemyAction[];
+  manuallyModified?: boolean;
+}
+
+interface FixedOrderAction {
+  actor: 'player' | 'enemy';
+  card?: unknown;
+}
+
+interface BattleRef {
+  phase?: string;
+  player?: Player;
+  enemy?: Enemy;
+  enemyPlan?: EnemyPlan;
+  fixedOrder?: FixedOrderAction[];
+  frozenOrder?: number;
+}
+
+interface BattleActions {
+  setPlayer: (player: Player) => void;
+  setEnemy: (enemy: Enemy) => void;
+  addLog: (msg: string) => void;
+  setEnemyPlan: (plan: EnemyPlan) => void;
+  setDestroyingEnemyCards?: (indices: number[]) => void;
+  setFrozenOrder?: (order: number) => void;
+  setFreezingEnemyCards?: (indices: number[]) => void;
+  setFixedOrder?: (order: FixedOrderAction[]) => void;
+}
+
+interface ItemSlotsProps {
+  phase: string;
+  battleActions: BattleActions;
+  player: Player;
+  enemy: Enemy;
+  enemyPlan: EnemyPlan | null;
+  battleRef: MutableRefObject<BattleRef | null>;
+}
+
+export const ItemSlots: FC<ItemSlotsProps> = ({ phase, battleActions, player, enemy, enemyPlan, battleRef }) => {
+  const items = useGameStore((state) => (state as { items?: (Item | null)[] }).items || [null, null, null]);
+  const useItem = useGameStore((state) => (state as { useItem: (idx: number) => void }).useItem);
+  const removeItem = useGameStore((state) => (state as { removeItem: (idx: number) => void }).removeItem);
+  const itemBuffs = useGameStore((state) => (state as { itemBuffs?: Record<string, number> }).itemBuffs || {});
 
   // 전투용 아이템은 select/respond 단계에서만 사용 가능 (prop 기반, UI 표시용)
   const canUseCombatItem = phase === 'select' || phase === 'respond';
 
   // 최신 phase를 가져오는 헬퍼 함수 (실제 사용 시 검증용)
-  const getLatestPhase = () => battleRef?.current?.phase || phase;
+  const getLatestPhase = (): string => battleRef?.current?.phase || phase;
 
   // 전투용 아이템 효과 직접 적용
-  const applyCombatItemEffect = (item, slotIdx) => {
+  const applyCombatItemEffect = (item: Item, slotIdx: number): void => {
     if (!item.effect || !battleActions) return;
 
     const effect = item.effect;
-    let newPlayer = { ...player };
-    let newEnemy = { ...enemy };
+    let newPlayer: Player = { ...player };
+    let newEnemy: Enemy = { ...enemy };
     let logMsg = '';
 
     switch (effect.type) {
       case 'damage':
-        newEnemy.hp = Math.max(0, newEnemy.hp - effect.value);
+        newEnemy.hp = Math.max(0, newEnemy.hp - (effect.value || 0));
         logMsg = `💥 ${item.name}: 적에게 ${effect.value} 피해!`;
         break;
       case 'defense':
-        newPlayer.block = (newPlayer.block || 0) + effect.value;
+        newPlayer.block = (newPlayer.block || 0) + (effect.value || 0);
         logMsg = `🛡️ ${item.name}: 방어력 ${effect.value} 획득!`;
         break;
       case 'turnEnergy': {
         // 최대값 초과 허용
         const beforeEnergy = newPlayer.energy || 0;
-        newPlayer.energy = beforeEnergy + effect.value;
+        newPlayer.energy = beforeEnergy + (effect.value || 0);
         logMsg = `⚡ ${item.name}: 에너지 +${effect.value}! (현재: ${newPlayer.energy})`;
         break;
       }
       case 'maxEnergy':
-        newPlayer.maxEnergy = (newPlayer.maxEnergy || 6) + effect.value;
-        newPlayer.energy = (newPlayer.energy || 0) + effect.value;
+        newPlayer.maxEnergy = (newPlayer.maxEnergy || 6) + (effect.value || 0);
+        newPlayer.energy = (newPlayer.energy || 0) + (effect.value || 0);
         logMsg = `📦 ${item.name}: 최대 에너지 +${effect.value}!`;
         break;
       case 'attackBoost':
-        newPlayer.strength = (newPlayer.strength || 0) + effect.value;
+        newPlayer.strength = (newPlayer.strength || 0) + (effect.value || 0);
         logMsg = `⚔️ ${item.name}: 힘 +${effect.value}!`;
         break;
       case 'grantTokens': {
         // 여러 토큰을 부여 (effect.tokens: [{id, stacks}])
-        const tokenLogs = [];
-        for (const tokenGrant of effect.tokens) {
-          const result = addToken(newPlayer, tokenGrant.id, tokenGrant.stacks || 1);
-          newPlayer.tokens = result.tokens;
-          tokenLogs.push(...result.logs);
+        const tokenLogs: string[] = [];
+        if (effect.tokens) {
+          for (const tokenGrant of effect.tokens) {
+            const result = addToken(newPlayer, tokenGrant.id, tokenGrant.stacks || 1);
+            newPlayer.tokens = result.tokens;
+            tokenLogs.push(...result.logs);
+          }
+          const tokenNames = effect.tokens.map(t => t.id).join(', ');
+          logMsg = `⚔️ ${item.name}: ${tokenNames} 상태 획득!`;
         }
-        const tokenNames = effect.tokens.map(t => t.id).join(', ');
-        logMsg = `⚔️ ${item.name}: ${tokenNames} 상태 획득!`;
         break;
       }
       case 'etherMultiplier':
-        newPlayer.etherMultiplier = (newPlayer.etherMultiplier || 1) * effect.value;
+        newPlayer.etherMultiplier = (newPlayer.etherMultiplier || 1) * (effect.value || 1);
         logMsg = `💎 ${item.name}: 에테르 획득 ${effect.value}배! (총 ${newPlayer.etherMultiplier}배)`;
         break;
       case 'etherSteal': {
-        const steal = Math.min(effect.value, newEnemy.etherPts || 0);
+        const steal = Math.min(effect.value || 0, newEnemy.etherPts || 0);
         newEnemy.etherPts = Math.max(0, (newEnemy.etherPts || 0) - steal);
         newPlayer.etherPts = (newPlayer.etherPts || 0) + steal;
         logMsg = `🔮 ${item.name}: 적 에테르 ${steal} 흡수!`;
@@ -93,16 +180,16 @@ export function ItemSlots({ phase, battleActions, player, enemy, enemyPlan, batt
           logMsg = `💨 ${item.name}: 파괴할 적 카드가 없습니다!`;
           break;
         }
-        const destroyCount = Math.min(effect.value, enemyPlan.actions.length);
+        const destroyCount = Math.min(effect.value || 0, enemyPlan.actions.length);
         // 뒤에서부터 파괴할 카드 인덱스 계산
         const startIdx = enemyPlan.actions.length - destroyCount;
-        const destroyedIndices = [];
+        const destroyedIndices: number[] = [];
         for (let i = startIdx; i < enemyPlan.actions.length; i++) {
           destroyedIndices.push(i);
         }
 
         // 파괴 애니메이션용 인덱스 설정
-        battleActions.setDestroyingEnemyCards(destroyedIndices);
+        battleActions.setDestroyingEnemyCards?.(destroyedIndices);
 
         // 파괴 사운드 재생
         playCardDestroySound();
@@ -116,7 +203,7 @@ export function ItemSlots({ phase, battleActions, player, enemy, enemyPlan, batt
         const newActions = currentActions.slice(0, -actualDestroyCount);
 
         // 명시적으로 새 enemyPlan 구성 (spread 대신 직접 설정)
-        const newEnemyPlan = {
+        const newEnemyPlan: EnemyPlan = {
           mode: currentEnemyPlan.mode,
           actions: newActions,
           manuallyModified: true
@@ -137,7 +224,7 @@ export function ItemSlots({ phase, battleActions, player, enemy, enemyPlan, batt
 
         // 0.6초 후 애니메이션 상태 정리
         setTimeout(() => {
-          battleActions.setDestroyingEnemyCards([]);
+          battleActions.setDestroyingEnemyCards?.([]);
         }, 600);
 
         logMsg = `💥 ${item.name}: 적 카드 ${destroyCount}장 파괴!`;
@@ -173,7 +260,7 @@ export function ItemSlots({ phase, battleActions, player, enemy, enemyPlan, batt
 
           // 0.7초 후 애니메이션 상태 정리
           setTimeout(() => {
-            battleActions.setFreezingEnemyCards([]);
+            battleActions.setFreezingEnemyCards?.([]);
           }, 700);
         }
 
@@ -217,7 +304,7 @@ export function ItemSlots({ phase, battleActions, player, enemy, enemyPlan, batt
     removeItem(slotIdx);
   };
 
-  const handleUseItem = (idx) => {
+  const handleUseItem = (idx: number): void => {
     const item = items[idx];
     if (!item) return;
 
@@ -239,7 +326,7 @@ export function ItemSlots({ phase, battleActions, player, enemy, enemyPlan, batt
     }
   };
 
-  const getItemUsability = (item) => {
+  const getItemUsability = (item: Item | null): boolean => {
     if (!item) return false;
     if (item.usableIn === 'any') return true;
     if (item.usableIn === 'combat') return canUseCombatItem;
@@ -367,4 +454,4 @@ export function ItemSlots({ phase, battleActions, player, enemy, enemyPlan, batt
       `}</style>
     </div>
   );
-}
+};

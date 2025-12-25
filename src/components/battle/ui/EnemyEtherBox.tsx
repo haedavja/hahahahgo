@@ -1,12 +1,39 @@
 /**
- * EnemyEtherBox.jsx
+ * EnemyEtherBox.tsx
  *
  * 적 에테르 계산 표시 컴포넌트
  */
 
+import { FC } from 'react';
 import { DeflationBadge } from './DeflationBadge';
 
-export const EnemyEtherBox = ({
+interface EnemyCombo {
+  name: string;
+}
+
+interface Battle {
+  phase: string;
+}
+
+interface InsightReveal {
+  level?: number;
+}
+
+interface Deflation {
+  multiplier: number;
+}
+
+interface EnemyEtherBoxProps {
+  enemyCombo: EnemyCombo | null;
+  battle: Battle;
+  insightReveal: InsightReveal | null;
+  enemyCurrentDeflation: Deflation | null;
+  enemyEtherCalcPhase: string;
+  enemyTurnEtherAccumulated: number;
+  COMBO_MULTIPLIERS: Record<string, number>;
+}
+
+export const EnemyEtherBox: FC<EnemyEtherBoxProps> = ({
   enemyCombo,
   battle,
   insightReveal,

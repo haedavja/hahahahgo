@@ -1,8 +1,17 @@
 /**
+ * DefeatOverlay.tsx
+ *
  * 패배 오버레이 컴포넌트
  * 패배 시 중앙에 표시되는 오버레이
  */
-export function DefeatOverlay({ onExit }) {
+
+import { FC } from 'react';
+
+interface DefeatOverlayProps {
+  onExit: () => void;
+}
+
+export const DefeatOverlay: FC<DefeatOverlayProps> = ({ onExit }) => {
   return (
     <div style={{
       position: 'fixed',
@@ -33,4 +42,4 @@ export function DefeatOverlay({ onExit }) {
       </button>
     </div>
   );
-}
+};

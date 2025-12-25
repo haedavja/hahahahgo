@@ -1,15 +1,22 @@
 /**
- * PlayerHpBar.jsx
+ * PlayerHpBar.tsx
  *
  * 플레이어 HP 바와 상태 표시 컴포넌트
  */
 
-import { useState } from 'react';
+import { useState, FC, ReactNode } from 'react';
 import { TokenDisplay } from './TokenDisplay';
 
+interface InsightLevelInfo {
+  name: string;
+  emoji: string;
+  color: string;
+  description: string;
+}
+
 // 통찰 레벨에 따른 이름과 이모지
-const getInsightLevelInfo = (level) => {
-  const info = {
+const getInsightLevelInfo = (level: number): InsightLevelInfo => {
+  const info: Record<string, InsightLevelInfo> = {
     '-3': {
       name: '망각',
       emoji: '🌑',
@@ -56,8 +63,20 @@ const getInsightLevelInfo = (level) => {
   return info[level.toString()] || info['0'];
 };
 
+interface StatInfo {
+  name: string;
+  emoji: string;
+  color: string;
+  description: string;
+}
+
+interface StatTooltipProps {
+  stat: StatInfo;
+  children: ReactNode;
+}
+
 // 상태이상 툴팁 컴포넌트
-const StatTooltip = ({ stat, children }) => {
+const StatTooltip: FC<StatTooltipProps> = ({ stat, children }) => {
   const [isHovered, setIsHovered] = useState(false);
 
   return (
@@ -108,7 +127,33 @@ const StatTooltip = ({ stat, children }) => {
   );
 };
 
-export const PlayerHpBar = ({
+interface TokenState {
+  usage: unknown[];
+  turn: unknown[];
+  permanent: unknown[];
+}
+
+interface Player {
+  hp: number;
+  maxHp: number;
+  block: number;
+  strength?: number;
+  etherMultiplier?: number;
+  etherOverflow?: number;
+  tokens?: TokenState;
+}
+
+interface PlayerHpBarProps {
+  player: Player;
+  playerHit: boolean;
+  playerBlockAnim: boolean;
+  playerOverdriveFlash: boolean;
+  effectiveAgility: number;
+  dulledLevel: number;
+  insightLevel?: number;
+}
+
+export const PlayerHpBar: FC<PlayerHpBarProps> = ({
   player,
   playerHit,
   playerBlockAnim,
@@ -185,7 +230,7 @@ export const PlayerHpBar = ({
                     </StatTooltip>
                   );
                 })()}
-                {player.etherOverflow > 0 && (
+                {(player.etherOverflow ?? 0) > 0 && (
                   <StatTooltip stat={{
                     name: '에테르 범람',
                     emoji: '🌊',

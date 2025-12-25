@@ -1,16 +1,34 @@
 /**
- * EtherBar.jsx
+ * EtherBar.tsx
  *
  * 에테르 게이지 바 컴포넌트
  */
 
+import { FC } from 'react';
 import { calculateEtherSlots, getCurrentSlotPts, getSlotProgress, getNextSlotCost } from '../../../lib/etherUtils';
 import { formatCompactValue } from '../utils/formatUtils';
 import { PLAYER_SLOT_COLORS, ENEMY_SLOT_COLORS } from './constants/colors';
 
-const etherSlots = (pts) => calculateEtherSlots(pts || 0);
+const etherSlots = (pts: number): number => calculateEtherSlots(pts || 0);
 
-export function EtherBar({
+interface EtherBarActions {
+  setShowBarTooltip: (show: boolean) => void;
+  setShowPtsTooltip: (show: boolean) => void;
+}
+
+interface EtherBarProps {
+  pts: number;
+  slots?: number;
+  previewGain?: number;
+  color?: 'cyan' | 'red';
+  label?: string;
+  pulse?: boolean;
+  showBarTooltip?: boolean;
+  showPtsTooltip?: boolean;
+  actions?: EtherBarActions;
+}
+
+export const EtherBar: FC<EtherBarProps> = ({
   pts,
   slots,
   previewGain = 0,
@@ -20,7 +38,7 @@ export function EtherBar({
   showBarTooltip = false,
   showPtsTooltip = false,
   actions
-}) {
+}) => {
   const safePts = Number.isFinite(pts) ? pts : 0;
   const derivedSlots = Number.isFinite(slots) ? slots : etherSlots(safePts);
   const safeSlots = Number.isFinite(derivedSlots) ? derivedSlots : 0;
@@ -122,4 +140,4 @@ export function EtherBar({
       </div>
     </div>
   );
-}
+};

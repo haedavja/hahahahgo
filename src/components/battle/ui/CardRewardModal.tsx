@@ -1,12 +1,32 @@
 /**
- * CardRewardModal.jsx
+ * CardRewardModal.tsx
  *
  * 전투 승리 후 3장 중 1장을 선택해 덱에 추가하는 모달
  */
 
+import { FC } from 'react';
 import { Sword, Shield } from './BattleIcons';
 
-export const CardRewardModal = ({
+interface Card {
+  id?: string;
+  name: string;
+  type: string;
+  actionCost: number;
+  speedCost: number;
+  damage?: number;
+  block?: number;
+  hits?: number;
+  description?: string;
+  icon?: FC<{ size?: number; className?: string }>;
+}
+
+interface CardRewardModalProps {
+  rewardCards: Card[] | null;
+  onSelect: (card: Card, idx: number) => void;
+  onSkip: () => void;
+}
+
+export const CardRewardModal: FC<CardRewardModalProps> = ({
   rewardCards,
   onSelect,
   onSkip
@@ -39,7 +59,7 @@ export const CardRewardModal = ({
                 </div>
                 <div className="reward-card-stats">
                   {isAttack ? (
-                    <span className="stat-damage">⚔️ {card.damage || 0}{card.hits > 1 ? ` x${card.hits}` : ''}</span>
+                    <span className="stat-damage">⚔️ {card.damage || 0}{card.hits && card.hits > 1 ? ` x${card.hits}` : ''}</span>
                   ) : (
                     <span className="stat-block">🛡️ {card.block || 0}</span>
                   )}

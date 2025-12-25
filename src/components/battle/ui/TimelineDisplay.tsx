@@ -1,25 +1,116 @@
 /**
- * TimelineDisplay.jsx
+ * TimelineDisplay.tsx
  *
  * 타임라인 및 타임라인 숫자 오버레이 컴포넌트
  */
 
+import { FC } from 'react';
 import { hasSpecial } from '../utils/cardSpecialEffects';
 
+interface IconProps {
+  size?: number;
+  className?: string;
+}
+
 // Lucide icons as simple SVG components
-const Sword = ({ size = 24, className = "" }) => (
+const Sword: FC<IconProps> = ({ size = 24, className = "" }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
     <path d="M14.5 17.5 3 6V3h3l11.5 11.5M13 19l6-6M16 16l4 4M19 21l2-2" />
   </svg>
 );
 
-const Shield = ({ size = 24, className = "" }) => (
+const Shield: FC<IconProps> = ({ size = 24, className = "" }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
     <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
   </svg>
 );
 
-export const TimelineDisplay = ({
+interface Card {
+  id?: string;
+  name?: string;
+  type: string;
+  damage?: number;
+  block?: number;
+  hits?: number;
+  speedCost?: number;
+  ignoreStrength?: boolean;
+  traits?: string[];
+  icon?: FC<IconProps>;
+}
+
+interface TimelineAction {
+  sp: number;
+  card: Card;
+  actor?: string;
+}
+
+interface ParryState {
+  active: boolean;
+  centerSp: number;
+  maxSp: number;
+}
+
+interface Player {
+  maxSpeed?: number;
+  strength?: number;
+}
+
+interface Enemy {
+  maxSpeed?: number;
+}
+
+interface Battle {
+  phase: string;
+  queue?: TimelineAction[];
+}
+
+interface InsightReveal {
+  level?: number;
+}
+
+interface HoveredEnemyAction {
+  action: Card | null;
+  idx: number;
+  left: number;
+  top: number;
+  pageX: number;
+  pageY: number;
+}
+
+interface Actions {
+  setHoveredEnemyAction: (action: HoveredEnemyAction | null) => void;
+}
+
+interface TimelineDisplayProps {
+  player: Player;
+  enemy: Enemy;
+  DEFAULT_PLAYER_MAX_SPEED: number;
+  DEFAULT_ENEMY_MAX_SPEED: number;
+  generateSpeedTicks: (max: number) => number[];
+  battle: Battle;
+  timelineProgress: number;
+  timelineIndicatorVisible: boolean;
+  insightAnimLevel: number;
+  insightAnimPulseKey: number;
+  enemyOverdriveVisible: boolean;
+  enemyOverdriveLabel: string;
+  dulledLevel: number;
+  playerTimeline: TimelineAction[];
+  queue: TimelineAction[] | null;
+  executingCardIndex: number;
+  usedCardIndices: number[];
+  qIndex: number;
+  enemyTimeline: TimelineAction[];
+  effectiveInsight: number | null;
+  insightReveal: InsightReveal | null;
+  actions: Actions;
+  destroyingEnemyCards?: number[];
+  freezingEnemyCards?: number[];
+  frozenOrder?: number;
+  parryReadyStates?: ParryState[];
+}
+
+export const TimelineDisplay: FC<TimelineDisplayProps> = ({
   player,
   enemy,
   DEFAULT_PLAYER_MAX_SPEED,
@@ -221,7 +312,7 @@ export const TimelineDisplay = ({
                   // ignoreStrength 특성: 힘 보너스 무시
                   const effectiveStrengthBonus = a.card.ignoreStrength ? 0 : strengthBonus;
                   const num = a.card.type === 'attack'
-                    ? (a.card.damage + strengthBonus) * (a.card.hits || 1)
+                    ? ((a.card.damage ?? 0) + strengthBonus) * (a.card.hits || 1)
                     : (a.card.type === 'general' || a.card.type === 'defense')
                       ? (a.card.block || 0) + effectiveStrengthBonus + growingDefenseBonus
                       : 0;
@@ -250,7 +341,7 @@ export const TimelineDisplay = ({
                       const Icon = a.card.icon || (a.card.type === 'attack' ? Sword : Shield);
                       const sameCount = enemyTimeline.filter((q, i) => i < idx && q.sp === a.sp).length;
                       const offset = sameCount * 28;
-                      const num = a.card.type === 'attack' ? (a.card.damage * (a.card.hits || 1)) : (a.card.block || 0);
+                      const num = a.card.type === 'attack' ? ((a.card.damage ?? 0) * (a.card.hits || 1)) : (a.card.block || 0);
                       const globalIndex = battle.phase === 'resolve' && queue ? queue.findIndex(q => q === a) : -1;
                       const isExecuting = executingCardIndex === globalIndex;
                       const isUsed = Array.isArray(usedCardIndices) && usedCardIndices.includes(globalIndex) && globalIndex < qIndex;

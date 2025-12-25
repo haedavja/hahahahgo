@@ -1,30 +1,58 @@
 /**
- * CardPopups.jsx
+ * CardPopups.tsx
  *
  * 카드 팝업 관련 컴포넌트들
  * - PopupCard: 팝업용 카드 컴포넌트 (호버 시 툴팁 표시)
  * - CardListPopup: 덱/무덤 카드 목록 팝업 컴포넌트
  */
 
-import { useState } from 'react';
+import { useState, FC, MouseEvent } from 'react';
 import { createPortal } from 'react-dom';
 import { useGameStore } from '../../../state/gameStore';
-import { TraitBadgeList } from './TraitBadge.jsx';
-import { CardStatsSidebar } from './CardStatsSidebar.jsx';
+import { TraitBadgeList } from './TraitBadge';
+import { CardStatsSidebar } from './CardStatsSidebar';
 import { Sword, Shield } from './BattleIcons';
 import { TRAITS } from '../battleData';
 
+interface Card {
+  id: string;
+  name: string;
+  type: string;
+  actionCost: number;
+  speedCost: number;
+  damage?: number;
+  block?: number;
+  hits?: number;
+  description?: string;
+  traits?: string[];
+  icon?: FC<{ size?: number; className?: string }>;
+  __isMainSpecial?: boolean;
+  __isSubSpecial?: boolean;
+  __uid?: string;
+}
+
+interface CharacterBuild {
+  mainSpecial?: string;
+  subSpecial?: string;
+}
+
 // 카드 타입에 따른 CSS 클래스 반환 (공격/범용/특수)
-const getCardTypeClass = (type) => {
+const getCardTypeClass = (type: string): string => {
   if (type === 'attack') return 'attack';
   if (type === 'special') return 'special';
   return 'general';
 };
 
+interface PopupCardProps {
+  card: Card;
+  count: number;
+  currentBuild?: CharacterBuild;
+}
+
 /**
  * 팝업용 카드 컴포넌트 (호버 시 툴팁 표시)
  */
-export const PopupCard = ({ card, count, currentBuild }) => {
+export const PopupCard: FC<PopupCardProps> = ({ card, count, currentBuild }) => {
   const [showTooltip, setShowTooltip] = useState(false);
   const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
   const Icon = card.icon || (card.type === 'attack' ? Sword : Shield);
@@ -34,7 +62,7 @@ export const PopupCard = ({ card, count, currentBuild }) => {
   const costColor = isMainSpecial ? '#fcd34d' : isSubSpecial ? '#60a5fa' : '#fff';
   const nameColor = isMainSpecial ? '#fcd34d' : isSubSpecial ? '#7dd3fc' : '#fff';
 
-  const handleMouseEnter = (e) => {
+  const handleMouseEnter = (e: MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
     setTooltipPos({ x: rect.right + 12, y: rect.top });
     setShowTooltip(true);
@@ -133,10 +161,18 @@ export const PopupCard = ({ card, count, currentBuild }) => {
   );
 };
 
+interface CardListPopupProps {
+  title: string;
+  cards: Card[];
+  onClose: () => void;
+  icon: string;
+  bgGradient: string;
+}
+
 /**
  * 덱/무덤 카드 목록 팝업 컴포넌트
  */
-export const CardListPopup = ({ title, cards, onClose, icon, bgGradient }) => {
+export const CardListPopup: FC<CardListPopupProps> = ({ title, cards, onClose, icon, bgGradient }) => {
   const currentBuild = useGameStore.getState().characterBuild;
 
   return (

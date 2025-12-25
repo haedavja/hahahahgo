@@ -1,18 +1,31 @@
 /**
- * AnomalyDisplay.jsx
+ * AnomalyDisplay.tsx
  *
  * 이변 표시 UI 컴포넌트
  * 전투 화면 상단에 활성화된 이변 정보를 표시
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, FC } from 'react';
+
+interface AudioContextConstructor {
+  new (): AudioContext;
+}
+
+declare global {
+  interface Window {
+    webkitAudioContext?: AudioContextConstructor;
+  }
+}
 
 /**
  * 사이렌 같은 경고음 재생 (Web Audio API 사용)
  */
-const playWarningSound = () => {
+const playWarningSound = (): void => {
   try {
-    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) return;
+
+    const audioContext = new AudioContextClass();
     const currentTime = audioContext.currentTime;
 
     // 사이렌 효과: 상승-하강을 2번 반복 (덜 자극적으로)
@@ -72,8 +85,30 @@ const playWarningSound = () => {
   }
 };
 
-export const AnomalyDisplay = ({ anomalies }) => {
-  const [expandedAnomalyId, setExpandedAnomalyId] = useState(null);
+interface AnomalyEffect {
+  description: string;
+}
+
+interface Anomaly {
+  id: string;
+  name: string;
+  emoji: string;
+  color: string;
+  description: string;
+  getEffect: (level: number) => AnomalyEffect;
+}
+
+interface AnomalyWithLevel {
+  anomaly: Anomaly;
+  level: number;
+}
+
+interface AnomalyDisplayProps {
+  anomalies: AnomalyWithLevel[] | null;
+}
+
+export const AnomalyDisplay: FC<AnomalyDisplayProps> = ({ anomalies }) => {
+  const [expandedAnomalyId, setExpandedAnomalyId] = useState<string | null>(null);
 
   if (!anomalies || anomalies.length === 0) {
     return null;
@@ -199,11 +234,16 @@ export const AnomalyDisplay = ({ anomalies }) => {
   );
 };
 
+interface AnomalyNotificationProps {
+  anomalies: AnomalyWithLevel[] | null;
+  onDismiss: () => void;
+}
+
 /**
  * 이변 알림 배너 (전투 시작 시 표시)
  */
-export const AnomalyNotification = ({ anomalies, onDismiss }) => {
-  const [visibleAnomalies, setVisibleAnomalies] = useState([]);
+export const AnomalyNotification: FC<AnomalyNotificationProps> = ({ anomalies, onDismiss }) => {
+  const [visibleAnomalies, setVisibleAnomalies] = useState<AnomalyWithLevel[]>([]);
 
   useEffect(() => {
     if (!anomalies || anomalies.length === 0) {
@@ -215,7 +255,7 @@ export const AnomalyNotification = ({ anomalies, onDismiss }) => {
     setVisibleAnomalies([]);
 
     // Store timeout IDs for cleanup
-    const timeoutIds = [];
+    const timeoutIds: ReturnType<typeof setTimeout>[] = [];
 
     // 화면 흔들림 효과 - body에 클래스 추가
     document.body.classList.add('screen-shake-active');
@@ -382,12 +422,12 @@ export const AnomalyNotification = ({ anomalies, onDismiss }) => {
           boxShadow: '0 4px 15px rgba(239, 68, 68, 0.3)'
         }}
         onMouseEnter={e => {
-          e.target.style.background = 'linear-gradient(135deg, #dc2626, #b91c1c)';
-          e.target.style.boxShadow = '0 6px 20px rgba(239, 68, 68, 0.5)';
+          (e.target as HTMLButtonElement).style.background = 'linear-gradient(135deg, #dc2626, #b91c1c)';
+          (e.target as HTMLButtonElement).style.boxShadow = '0 6px 20px rgba(239, 68, 68, 0.5)';
         }}
         onMouseLeave={e => {
-          e.target.style.background = 'linear-gradient(135deg, #ef4444, #dc2626)';
-          e.target.style.boxShadow = '0 4px 15px rgba(239, 68, 68, 0.3)';
+          (e.target as HTMLButtonElement).style.background = 'linear-gradient(135deg, #ef4444, #dc2626)';
+          (e.target as HTMLButtonElement).style.boxShadow = '0 4px 15px rgba(239, 68, 68, 0.3)';
         }}
       >
         확인

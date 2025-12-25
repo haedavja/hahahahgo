@@ -1,17 +1,43 @@
 /**
- * TokenDisplay.jsx
+ * TokenDisplay.tsx
  *
  * 토큰 표시 컴포넌트
  */
 
-import React, { useState } from 'react';
+import { useState, FC, MouseEvent } from 'react';
 import { getAllTokens } from '../../../lib/tokenUtils';
-import { TOKEN_COLORS, TOKEN_CATEGORY_COLORS, TOKENS } from '../../../data/tokens';
+import { TOKEN_COLORS, TOKEN_CATEGORY_COLORS } from '../../../data/tokens';
+
+interface TokenData {
+  id: string;
+  name: string;
+  emoji: string;
+  description: string;
+  stacks: number;
+  durationType: 'usage' | 'turn' | 'permanent';
+  category: 'positive' | 'negative' | 'neutral';
+}
+
+interface TokenState {
+  usage: unknown[];
+  turn: unknown[];
+  permanent: unknown[];
+}
+
+interface Entity {
+  tokens?: TokenState;
+  [key: string]: unknown;
+}
+
+interface TokenBadgeProps {
+  token: TokenData;
+  onClick?: () => void;
+}
 
 /**
  * 단일 토큰 배지 컴포넌트
  */
-const TokenBadge = ({ token, onClick }) => {
+const TokenBadge: FC<TokenBadgeProps> = ({ token, onClick }) => {
   const [isHovered, setIsHovered] = useState(false);
 
   const bgColor = TOKEN_COLORS[token.durationType];
@@ -131,16 +157,18 @@ const TokenBadge = ({ token, onClick }) => {
   );
 };
 
+interface TokenDisplayProps {
+  entity: Entity | null;
+  position?: 'player' | 'enemy';
+}
+
 /**
  * 토큰 표시 컴포넌트
- *
- * @param {Object} entity - player 또는 enemy 객체
- * @param {string} position - 배치 위치 ('player' 또는 'enemy')
  */
-export const TokenDisplay = ({ entity, position = 'player' }) => {
+export const TokenDisplay: FC<TokenDisplayProps> = ({ entity, position = 'player' }) => {
   if (!entity || !entity.tokens) return null;
 
-  const allTokens = getAllTokens(entity);
+  const allTokens = getAllTokens(entity) as TokenData[];
   if (allTokens.length === 0) return null;
 
   // 유형별로 그룹화
@@ -205,15 +233,17 @@ export const TokenDisplay = ({ entity, position = 'player' }) => {
   );
 };
 
+interface TokenCounterProps {
+  entity: Entity | null;
+}
+
 /**
  * 간소화된 토큰 카운터 (아이콘만 표시)
- *
- * @param {Object} entity - player 또는 enemy 객체
  */
-export const TokenCounter = ({ entity }) => {
+export const TokenCounter: FC<TokenCounterProps> = ({ entity }) => {
   if (!entity || !entity.tokens) return null;
 
-  const allTokens = getAllTokens(entity);
+  const allTokens = getAllTokens(entity) as TokenData[];
   if (allTokens.length === 0) return null;
 
   const positiveCount = allTokens.filter(t => t.category === 'positive').reduce((sum, t) => sum + t.stacks, 0);

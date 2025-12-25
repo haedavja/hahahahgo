@@ -1,13 +1,75 @@
 /**
- * ExpectedDamagePreview.jsx
+ * ExpectedDamagePreview.tsx
  *
  * 예상 피해량 미리보기 패널 컴포넌트
  */
 
-import { useMemo, useRef, useEffect } from 'react';
+import { FC, useMemo, useRef, useEffect, RefObject } from 'react';
 import { BattleLog } from './BattleLog';
 
-export function ExpectedDamagePreview({
+interface Player {
+  hp: number;
+  maxHp: number;
+  block: number;
+  [key: string]: unknown;
+}
+
+interface Enemy {
+  hp: number;
+  maxHp: number;
+  block: number;
+  [key: string]: unknown;
+}
+
+interface Action {
+  [key: string]: unknown;
+}
+
+interface SimulationResult {
+  pDealt: number | string;
+  pTaken: number | string;
+  finalEHp: number;
+  finalPHp: number;
+  lines?: string[];
+}
+
+interface PostCombatOptions {
+  type: 'victory' | 'defeat';
+}
+
+interface ExpectedDamagePreviewProps {
+  player: Player;
+  enemy: Enemy;
+  fixedOrder: Action[] | null;
+  willOverdrive: boolean;
+  enemyMode: string;
+  enemyActions: Action[];
+  phase: string;
+  log: string[] | null;
+  qIndex: number;
+  queue: Action[] | null;
+  stepOnce: () => void;
+  runAll: () => void;
+  finishTurn: (reason: string) => void;
+  postCombatOptions: PostCombatOptions | null;
+  handleExitToMap: () => void;
+  autoProgress: boolean;
+  setAutoProgress: (value: boolean) => void;
+  resolveStartPlayer: Player | null;
+  resolveStartEnemy: Enemy | null;
+  turnNumber?: number;
+  simulatePreview: (params: {
+    player: Player;
+    enemy: Enemy;
+    fixedOrder: Action[] | null;
+    willOverdrive: boolean;
+    enemyMode: string;
+    enemyActions: Action[];
+    turnNumber: number;
+  }) => SimulationResult;
+}
+
+export const ExpectedDamagePreview: FC<ExpectedDamagePreviewProps> = ({
   player,
   enemy,
   fixedOrder,
@@ -29,7 +91,7 @@ export function ExpectedDamagePreview({
   resolveStartEnemy,
   turnNumber = 1,
   simulatePreview
-}) {
+}) => {
   // 진행 단계에서는 시작 시점의 상태로 시뮬레이션, 그 외는 현재 상태 사용
   const simPlayer = phase === 'resolve' && resolveStartPlayer ? resolveStartPlayer : player;
   const simEnemy = phase === 'resolve' && resolveStartEnemy ? resolveStartEnemy : enemy;
@@ -44,7 +106,7 @@ export function ExpectedDamagePreview({
   const phaseLabel = phase === 'select' ? '선택 단계' : phase === 'respond' ? '대응 단계' : '진행 단계';
 
   // 전투 로그 자동 스크롤
-  const logContainerRef = useRef(null);
+  const logContainerRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (logContainerRef.current && phase === 'resolve' && log && log.length > 0) {
       logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight;
@@ -137,4 +199,4 @@ export function ExpectedDamagePreview({
       )}
     </div>
   );
-}
+};
