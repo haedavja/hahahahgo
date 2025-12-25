@@ -1,7 +1,6 @@
 /**
- * @file turnEndCore.js
+ * @file turnEndCore.ts
  * @description 턴 종료 핵심 로직
- * @typedef {import('../../../types').Card} Card
  *
  * battleExecution.js에서 분리됨
  *
@@ -12,6 +11,7 @@
  * 4. 승리/패배 조건 확인
  */
 
+import type { FinishTurnCoreParams, FinishTurnResult } from '../../../types';
 import { detectPokerCombo } from '../utils/comboDetection';
 import { processCardTraitEffects } from '../utils/cardTraitEffects';
 import { calculateTurnEndEther, formatPlayerEtherLog, formatEnemyEtherLog } from '../utils/turnEndEtherCalculation';
@@ -25,7 +25,7 @@ import { applyTurnEndEffects } from '../../../lib/relicEffects';
 /**
  * finishTurn 핵심 로직
  */
-export function finishTurnCore(params) {
+export function finishTurnCore(params: FinishTurnCoreParams): FinishTurnResult {
   const {
     reason,
     player,

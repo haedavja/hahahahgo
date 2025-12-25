@@ -3,40 +3,22 @@
  * @description 치명타 관련 유틸리티 함수들
  */
 
+import type {
+  CriticalToken,
+  CriticalActor,
+  CriticalCard,
+  CriticalBattleContext
+} from '../../../types';
 import { getAllTokens } from '../../../lib/tokenUtils';
 import { hasSpecial } from './preAttackSpecials';
-
-interface Token {
-  id?: string;
-  stacks?: number;
-  effect?: {
-    type?: string;
-    value?: number;
-  };
-}
-
-interface Actor {
-  strength?: number;
-  tokens?: Token[];
-}
-
-interface CardInfo {
-  special?: string | string[];
-  [key: string]: unknown;
-}
-
-interface BattleContext {
-  guaranteedCrit?: boolean;
-  [key: string]: unknown;
-}
 
 /**
  * 치명타 확률 계산
  */
 export function calculateCritChance(
-  actor: Actor,
+  actor: CriticalActor,
   remainingEnergy: number = 0,
-  card: CardInfo | null = null
+  card: CriticalCard | null = null
 ): number {
   const baseCritChance = 5;
   const strength = actor.strength || 0;
@@ -44,7 +26,7 @@ export function calculateCritChance(
 
   let critBoostFromTokens = 0;
   if (actor.tokens) {
-    const allTokens = getAllTokens(actor) as Token[];
+    const allTokens = getAllTokens(actor) as CriticalToken[];
     allTokens.forEach(token => {
       if (token.effect?.type === 'CRIT_BOOST') {
         critBoostFromTokens += (token.effect.value || 5) * (token.stacks || 1);
@@ -65,11 +47,11 @@ export function calculateCritChance(
  * 치명타 판정
  */
 export function rollCritical(
-  actor: Actor,
+  actor: CriticalActor,
   remainingEnergy: number = 0,
-  card: CardInfo | null = null,
+  card: CriticalCard | null = null,
   attackerName: 'player' | 'enemy' = 'player',
-  battleContext: BattleContext = {}
+  battleContext: CriticalBattleContext = {}
 ): boolean {
   if (attackerName === 'enemy') {
     return false;
@@ -94,7 +76,7 @@ export function rollCritical(
 /**
  * 치명타 넉백 효과 처리
  */
-export function getCritKnockback(card: CardInfo | null, isCritical: boolean): number {
+export function getCritKnockback(card: CriticalCard | null, isCritical: boolean): number {
   if (!isCritical || !card) return 0;
   if (hasSpecial(card, 'critKnockback4')) return 4;
   return 0;

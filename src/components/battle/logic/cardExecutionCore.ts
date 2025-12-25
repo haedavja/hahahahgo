@@ -1,7 +1,6 @@
 /**
- * @file cardExecutionCore.js
+ * @file cardExecutionCore.ts
  * @description 카드 실행 핵심 로직
- * @typedef {import('../../../types').Card} Card
  *
  * battleExecution.js에서 분리됨
  *
@@ -12,6 +11,7 @@
  * 4. 이벤트 애니메이션 처리
  */
 
+import type { ExecuteCardActionCoreParams, ExecuteCardActionResult, BattleEvent } from '../../../types';
 import { hasTrait } from '../utils/battleUtils';
 import { getCardEtherGain } from '../utils/etherCalculations';
 import { BASE_PLAYER_ENERGY } from '../battleData';
@@ -27,7 +27,7 @@ import { addToken, removeToken, getAllTokens, setTokenStacks } from '../../../li
 /**
  * executeCardAction 핵심 로직
  */
-export function executeCardActionCore(params) {
+export function executeCardActionCore(params: ExecuteCardActionCoreParams): ExecuteCardActionResult {
   const {
     action,
     player,

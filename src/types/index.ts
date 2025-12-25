@@ -913,3 +913,151 @@ export interface CardPlayResult {
   events: SpecialEvent[];
   logs: string[];
 }
+
+// ==================== 치명타 시스템 타입 ====================
+
+/** 치명타 시스템용 토큰 (효과 포함) */
+export interface CriticalToken {
+  id?: string;
+  stacks?: number;
+  effect?: {
+    type?: string;
+    value?: number;
+  };
+}
+
+/** 치명타 시스템용 행동자 */
+export interface CriticalActor {
+  strength?: number;
+  tokens?: CriticalToken[];
+}
+
+/** 치명타 시스템용 카드 */
+export interface CriticalCard {
+  special?: string | string[];
+  [key: string]: unknown;
+}
+
+/** 치명타 시스템용 전투 컨텍스트 */
+export interface CriticalBattleContext {
+  guaranteedCrit?: boolean;
+  [key: string]: unknown;
+}
+
+// ==================== 핵심 로직 타입 ====================
+
+/** 배틀 액션 */
+export interface BattleAction {
+  actor: 'player' | 'enemy';
+  card?: Card | SpecialCard;
+  sp?: number;
+  [key: string]: unknown;
+}
+
+/** 배틀 참조 객체 */
+export interface BattleRef {
+  player?: Combatant;
+  queue?: BattleAction[];
+  qIndex?: number;
+  usedCardIndices?: number[];
+  actionEvents?: Record<number, BattleEvent[]>;
+  [key: string]: unknown;
+}
+
+/** 배틀 상태 (리듀서용) */
+export interface BattleStateObject {
+  selected: Card[];
+  [key: string]: unknown;
+}
+
+/** 플레이어 전투 데이터 */
+export interface PlayerCombatData extends Combatant {
+  etherPts?: number;
+  etherOverflow?: number;
+  etherMultiplier?: number;
+  etherBan?: boolean;
+  comboUsageCount?: Record<string, number>;
+  energy?: number;
+  maxEnergy?: number;
+  [key: string]: unknown;
+}
+
+/** 적 전투 데이터 */
+export interface EnemyCombatData extends Combatant {
+  etherPts?: number;
+  comboUsageCount?: Record<string, number>;
+  energy?: number;
+  maxEnergy?: number;
+  units?: EnemyUnit[];
+  [key: string]: unknown;
+}
+
+/** 적 계획 */
+export interface EnemyPlan {
+  actions: Card[];
+  [key: string]: unknown;
+}
+
+/** 턴 종료 핵심 로직 파라미터 */
+export interface FinishTurnCoreParams {
+  reason?: string;
+  player: PlayerCombatData;
+  enemy: EnemyCombatData;
+  battle: BattleStateObject;
+  battleRef: { current: BattleRef | null };
+  selected: Card[];
+  enemyPlan: EnemyPlan;
+  queue: BattleAction[];
+  turnEtherAccumulated: number;
+  enemyTurnEtherAccumulated: number;
+  finalComboMultiplier: number;
+  relics: Relic[];
+  nextTurnEffects: NextTurnEffects | null;
+  escapeBanRef: { current: Set<string> };
+  escapeUsedThisTurnRef: { current: Set<string> };
+  RELICS: Record<string, Relic>;
+  calculateEtherTransfer: (amount: number, currentPts: number) => number;
+  addLog: (msg: string) => void;
+  playSound?: (sound: string) => void;
+  actions: Record<string, (...args: unknown[]) => void>;
+}
+
+/** 턴 종료 결과 */
+export interface FinishTurnResult {
+  shouldReturn: boolean;
+}
+
+/** 카드 실행 핵심 로직 파라미터 */
+export interface ExecuteCardActionCoreParams {
+  action: BattleAction;
+  player: PlayerCombatData;
+  enemy: EnemyCombatData;
+  battle: BattleStateObject;
+  battleRef: { current: BattleRef | null };
+  cardUsageCount: Record<string, number>;
+  nextTurnEffects: NextTurnEffects | null;
+  turnEtherAccumulated: number;
+  enemyTurnEtherAccumulated: number;
+  orderedRelicList: Relic[];
+  cardUpgrades: Record<string, unknown>;
+  resolvedPlayerCards: Card[];
+  playerTimeline: Card[];
+  relics: Relic[];
+  safeInitialPlayer: PlayerCombatData;
+  triggeredRefs: { current: Set<string> };
+  calculatePassiveEffects: (...args: unknown[]) => unknown;
+  collectTriggeredRelics: (...args: unknown[]) => unknown;
+  playRelicActivationSequence: (...args: unknown[]) => void;
+  flashRelic: (relicId: string) => void;
+  addLog: (msg: string) => void;
+  playHitSound?: () => void;
+  playBlockSound?: () => void;
+  actions: Record<string, (...args: unknown[]) => void>;
+}
+
+/** 카드 실행 결과 */
+export interface ExecuteCardActionResult {
+  P: PlayerCombatData;
+  E: EnemyCombatData;
+  actionEvents: BattleEvent[];
+}
