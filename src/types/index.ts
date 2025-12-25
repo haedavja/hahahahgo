@@ -763,3 +763,153 @@ export interface TokenToRemove {
   id: string;
   stacks: number;
 }
+
+// ==================== 특수 효과 타입 ====================
+
+/** 특수 효과용 카드 (확장) */
+export interface SpecialCard extends Card {
+  crossBonus?: {
+    type?: string;
+    value?: number;
+    count?: number;
+    tokens?: Array<{
+      id: string;
+      stacks?: number;
+      target?: string;
+    }>;
+  };
+  advanceAmount?: number;
+  pushAmount?: number;
+  isFromFleche?: boolean;
+  flecheChainCount?: number;
+  requiredTokens?: string[];
+  _ignoreBlock?: boolean;
+  _applyBurn?: boolean;
+  _addGunJam?: boolean;
+  __targetUnitId?: number;
+  [key: string]: unknown;
+}
+
+/** 특수 효과용 행동자 */
+export interface SpecialActor extends Combatant {
+  def?: boolean;
+  agility?: number;
+  etherOverdriveActive?: boolean;
+  vulnMult?: number;
+  _persistentStrikeDamage?: number;
+  tokens?: Record<string, unknown> | Token[];
+  [key: string]: unknown;
+}
+
+/** 특수 효과용 큐 아이템 */
+export interface SpecialQueueItem {
+  actor: 'player' | 'enemy';
+  sp?: number;
+  card?: SpecialCard;
+  [key: string]: unknown;
+}
+
+/** 특수 효과용 전투 컨텍스트 */
+export interface SpecialBattleContext extends BattleContext {
+  hand?: Card[];
+  allCards?: Card[];
+  queue?: SpecialQueueItem[];
+  playerAttackCards?: Card[];
+  currentSp?: number;
+  currentQIndex?: number;
+  currentTurn?: number;
+  remainingEnergy?: number;
+  enemyRemainingEnergy?: number;
+  handSize?: number;
+  isLastCard?: boolean;
+  unusedAttackCards?: number;
+  blockDestroyed?: number;
+  isCritical?: boolean;
+  enemyUnits?: EnemyUnit[];
+}
+
+/** 특수 효과 이벤트 */
+export interface SpecialEvent {
+  actor: string;
+  card: string;
+  type: string;
+  msg: string;
+}
+
+/** 룰렛 결과 */
+export interface RouletteResult {
+  jammed: boolean;
+  updatedAttacker: SpecialActor;
+  event: SpecialEvent | null;
+  log: string | null;
+}
+
+/** 충돌 결과 */
+export interface CollisionResult {
+  destroyed: boolean;
+  events: SpecialEvent[];
+  logs: string[];
+}
+
+/** 타임라인 변경 */
+export interface TimelineChanges {
+  advancePlayer: number;
+  pushEnemy: number;
+  pushLastEnemy: number;
+}
+
+/** 타임라인 결과 */
+export interface TimelineResult {
+  timelineChanges: TimelineChanges;
+  events: SpecialEvent[];
+  logs: string[];
+}
+
+/** 카드 생성 결과 */
+export interface CardCreationResult {
+  createdCards: Card[];
+  events: SpecialEvent[];
+  logs: string[];
+}
+
+/** 공격 전 특수 효과 결과 */
+export interface PreAttackResult {
+  modifiedCard: SpecialCard;
+  attacker: SpecialActor;
+  defender: SpecialActor;
+  events: SpecialEvent[];
+  logs: string[];
+  skipNormalDamage: boolean;
+}
+
+/** 공격 후 특수 효과 결과 */
+export interface PostAttackResult {
+  attacker: SpecialActor;
+  defender: SpecialActor;
+  events: SpecialEvent[];
+  logs: string[];
+  extraHits: number;
+}
+
+/** 다음 턴 효과 */
+export interface NextTurnEffects {
+  destroyOverlappingCard?: boolean;
+  guaranteedCrit?: boolean;
+  recallCard?: boolean;
+  emergencyDraw?: number;
+  fencingDamageBonus?: number;
+  triggerCreation3x3?: boolean;
+  creationIsAoe?: boolean;
+  isAoeAttack?: boolean;
+  [key: string]: unknown;
+}
+
+/** 카드 플레이 결과 */
+export interface CardPlayResult {
+  bonusCards: Card[];
+  tokensToAdd: TokenToAdd[];
+  tokensToRemove: TokenToRemove[];
+  nextTurnEffects: NextTurnEffects | null;
+  events: SpecialEvent[];
+  logs: string[];
+}

@@ -15,6 +15,19 @@
  * - cardPlaySpecials.ts: 카드 사용 시 효과
  */
 
+import type {
+  Card,
+  Token,
+  SpecialCard,
+  SpecialActor,
+  SpecialQueueItem,
+  SpecialEvent,
+  RouletteResult,
+  CollisionResult,
+  TimelineChanges,
+  TimelineResult,
+  CardCreationResult
+} from '../../../types';
 import { addToken, setTokenStacks } from '../../../lib/tokenUtils';
 
 // 분리된 모듈에서 re-export
@@ -34,99 +47,19 @@ export {
 // hasSpecial 로컬 참조 (내부 사용용)
 import { hasSpecial } from './preAttackSpecials';
 
-interface Card {
-  id: string;
-  name: string;
-  damage?: number;
-  block?: number;
-  hits?: number;
-  speedCost?: number;
-  actionCost?: number;
-  type?: string;
-  cardCategory?: string;
-  special?: string | string[];
-  traits?: string[];
-  advanceAmount?: number;
-  pushAmount?: number;
-  isGhost?: boolean;
-  createdBy?: string;
-  createdId?: string;
-  isFromFleche?: boolean;
-  flecheChainCount?: number;
-  requiredTokens?: string[];
-  _ignoreBlock?: boolean;
-  [key: string]: unknown;
-}
-
-interface Token {
-  id: string;
-  stacks?: number;
-  [key: string]: unknown;
-}
-
+/** 토큰 컨테이너 */
 interface TokensContainer {
   usage?: Token[];
   turn?: Token[];
   permanent?: Token[];
 }
 
-interface Actor {
-  agility?: number;
-  tokens?: TokensContainer | Token[];
-  [key: string]: unknown;
-}
-
-interface QueueItem {
-  actor: string;
-  sp?: number;
-  card?: Card;
-  [key: string]: unknown;
-}
-
-interface Event {
-  actor: string;
-  card: string;
-  type: string;
-  msg: string;
-}
-
-interface RouletteResult {
-  jammed: boolean;
-  updatedAttacker: Actor;
-  event: Event | null;
-  log: string | null;
-}
-
-interface CollisionResult {
-  destroyed: boolean;
-  events: Event[];
-  logs: string[];
-}
-
-interface TimelineChanges {
-  advancePlayer: number;
-  pushEnemy: number;
-  pushLastEnemy: number;
-}
-
-interface TimelineResult {
-  timelineChanges: TimelineChanges;
-  events: Event[];
-  logs: string[];
-}
-
-interface CardCreationResult {
-  createdCards: Card[];
-  events: Event[];
-  logs: string[];
-}
-
 /**
  * 타격별 룰렛 체크 (총기 카드 전용)
  */
 export function processPerHitRoulette(
-  attacker: Actor,
-  card: Card,
+  attacker: SpecialActor,
+  card: SpecialCard,
   attackerName: 'player' | 'enemy',
   hitIndex: number,
   totalHits: number
@@ -140,7 +73,7 @@ export function processPerHitRoulette(
     return { jammed: false, updatedAttacker: attacker, event: null, log: null };
   }
 
-  let updatedAttacker: Actor = { ...attacker };
+  let updatedAttacker: SpecialActor = { ...attacker };
   const attackerTokens = (updatedAttacker.tokens || { usage: [], turn: [], permanent: [] }) as TokensContainer;
   const allAttackerTokens = [...(attackerTokens.usage || []), ...(attackerTokens.turn || []), ...(attackerTokens.permanent || [])];
   const rouletteToken = allAttackerTokens.find(t => t.id === 'roulette');
@@ -187,11 +120,11 @@ export function processCollisionSpecials({
   enemyCard,
   attackerName
 }: {
-  card: Card;
-  enemyCard: Card | null;
+  card: SpecialCard;
+  enemyCard: SpecialCard | null;
   attackerName: 'player' | 'enemy';
 }): CollisionResult {
-  const events: Event[] = [];
+  const events: SpecialEvent[] = [];
   const logs: string[] = [];
   let destroyed = false;
 
@@ -210,10 +143,10 @@ export function processCollisionSpecials({
  * 큐에서 충돌 감지 및 적 카드 파괴 처리
  */
 export function processQueueCollisions(
-  queue: QueueItem[],
+  queue: SpecialQueueItem[],
   addLog?: (msg: string) => void
-): { filteredQueue: QueueItem[]; destroyedCards: Card[]; logs: string[] } {
-  const destroyedCards: Card[] = [];
+): { filteredQueue: SpecialQueueItem[]; destroyedCards: SpecialCard[]; logs: string[] } {
+  const destroyedCards: SpecialCard[] = [];
   const logs: string[] = [];
 
   const playerCardsWithCollision = queue.filter(
@@ -224,7 +157,7 @@ export function processQueueCollisions(
     return { filteredQueue: queue, destroyedCards, logs };
   }
 
-  const cardsToRemove = new Set<QueueItem>();
+  const cardsToRemove = new Set<SpecialQueueItem>();
 
   for (const playerItem of playerCardsWithCollision) {
     const collidingEnemyCards = queue.filter(
@@ -251,14 +184,14 @@ export function processQueueCollisions(
 /**
  * 방어력 무시 여부 확인
  */
-export function shouldIgnoreBlock(card: Card): boolean {
+export function shouldIgnoreBlock(card: SpecialCard): boolean {
   return hasSpecial(card, 'ignoreBlock') || hasSpecial(card, 'piercing') || card._ignoreBlock === true;
 }
 
 /**
  * 민첩 보너스로 speedCost 감소 계산
  */
-export function calculateAgilitySpeedReduction(card: Card, player: Actor): number {
+export function calculateAgilitySpeedReduction(card: SpecialCard, player: SpecialActor): number {
   if (!hasSpecial(card, 'agilityBonus')) return 0;
   const agility = player.agility || 0;
   return agility * 3;
@@ -275,14 +208,14 @@ export function processTimelineSpecials({
   currentIndex,
   damageDealt = 0
 }: {
-  card: Card;
-  actor: Actor;
+  card: SpecialCard;
+  actor: SpecialActor;
   actorName: 'player' | 'enemy';
-  queue: QueueItem[];
+  queue: SpecialQueueItem[];
   currentIndex: number;
   damageDealt?: number;
 }): TimelineResult {
-  const events: Event[] = [];
+  const events: SpecialEvent[] = [];
   const logs: string[] = [];
   const timelineChanges: TimelineChanges = {
     advancePlayer: 0,
@@ -353,7 +286,7 @@ export function processTimelineSpecials({
 /**
  * 성장하는 방어력 계산 (방어자세)
  */
-export function calculateGrowingDefense(card: Card, ticksPassed: number): number {
+export function calculateGrowingDefense(card: SpecialCard, ticksPassed: number): number {
   if (!hasSpecial(card, 'growingDefense')) return 0;
   return 0;
 }
@@ -367,12 +300,12 @@ export function processCardCreationSpecials({
   damageDealt = 0,
   allCards = []
 }: {
-  card: Card;
+  card: SpecialCard;
   actorName: 'player' | 'enemy';
   damageDealt?: number;
   allCards?: Card[];
 }): CardCreationResult {
-  const events: Event[] = [];
+  const events: SpecialEvent[] = [];
   const logs: string[] = [];
   const createdCards: Card[] = [];
 

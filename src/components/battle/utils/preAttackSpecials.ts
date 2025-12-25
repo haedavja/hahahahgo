@@ -9,77 +9,20 @@
  * - multiShot: 다중 사격
  */
 
+import type {
+  SpecialCard,
+  SpecialActor,
+  SpecialQueueItem,
+  SpecialBattleContext,
+  SpecialEvent,
+  PreAttackResult
+} from '../../../types';
 import { addToken, removeToken, setTokenStacks, getTokenStacks } from '../../../lib/tokenUtils';
-
-interface Card {
-  id?: string;
-  name?: string;
-  damage?: number;
-  block?: number;
-  hits?: number;
-  traits?: string[];
-  special?: string | string[];
-  crossBonus?: {
-    type?: string;
-    value?: number;
-  };
-  _ignoreBlock?: boolean;
-  [key: string]: unknown;
-}
-
-interface Token {
-  id: string;
-  stacks?: number;
-  [key: string]: unknown;
-}
-
-interface Actor {
-  block?: number;
-  def?: boolean;
-  hp?: number;
-  maxHp?: number;
-  agility?: number;
-  tokens?: Token[];
-  [key: string]: unknown;
-}
-
-interface QueueItem {
-  actor: string;
-  sp?: number;
-  card?: Card;
-  [key: string]: unknown;
-}
-
-interface BattleContext {
-  playerAttackCards?: Card[];
-  queue?: QueueItem[];
-  currentSp?: number;
-  currentQIndex?: number;
-  currentTurn?: number;
-  remainingEnergy?: number;
-  [key: string]: unknown;
-}
-
-interface Event {
-  actor: string;
-  card: string;
-  type: string;
-  msg: string;
-}
-
-interface PreAttackResult {
-  modifiedCard: Card;
-  attacker: Actor;
-  defender: Actor;
-  events: Event[];
-  logs: string[];
-  skipNormalDamage: boolean;
-}
 
 /**
  * 카드의 special 효과 존재 여부 확인 (배열 지원)
  */
-export function hasSpecial(card: Card | null | undefined, specialName: string): boolean {
+export function hasSpecial(card: SpecialCard | null | undefined, specialName: string): boolean {
   if (!card?.special) return false;
   if (Array.isArray(card.special)) {
     return card.special.includes(specialName);
@@ -97,16 +40,16 @@ export function processPreAttackSpecials({
   attackerName,
   battleContext = {}
 }: {
-  card: Card;
-  attacker: Actor;
-  defender: Actor;
+  card: SpecialCard;
+  attacker: SpecialActor;
+  defender: SpecialActor;
   attackerName: 'player' | 'enemy';
-  battleContext?: BattleContext;
+  battleContext?: SpecialBattleContext;
 }): PreAttackResult {
-  let modifiedCard: Card = { ...card };
-  let modifiedAttacker: Actor = { ...attacker };
-  let modifiedDefender: Actor = { ...defender };
-  const events: Event[] = [];
+  let modifiedCard: SpecialCard = { ...card };
+  let modifiedAttacker: SpecialActor = { ...attacker };
+  let modifiedDefender: SpecialActor = { ...defender };
+  const events: SpecialEvent[] = [];
   const logs: string[] = [];
   const skipNormalDamage = false;
 

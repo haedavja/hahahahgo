@@ -9,113 +9,25 @@
  * - drawCard: 카드 드로우
  */
 
+import type {
+  Card,
+  Token,
+  SpecialCard,
+  SpecialActor,
+  SpecialBattleContext,
+  SpecialEvent,
+  TokenToAdd,
+  NextTurnEffects,
+  CardPlayResult
+} from '../../../types';
 import { getAllTokens, getTokenStacks } from '../../../lib/tokenUtils';
 import { TOKENS, TOKEN_CATEGORIES } from '../../../data/tokens';
 import { hasSpecial } from './preAttackSpecials';
 
-interface Card {
-  id: string;
-  name: string;
-  damage?: number;
-  block?: number;
-  hits?: number;
-  speedCost?: number;
-  actionCost?: number;
-  type?: string;
-  cardCategory?: string;
-  special?: string | string[];
-  traits?: string[];
-  isGhost?: boolean;
-  createdBy?: string;
-  createdId?: string;
-  crossBonus?: {
-    type?: string;
-    count?: number;
-    tokens?: Array<{
-      id: string;
-      stacks?: number;
-      target?: string;
-    }>;
-  };
-  __targetUnitId?: number;
-  [key: string]: unknown;
-}
-
-interface Token {
-  id: string;
-  stacks?: number;
-  [key: string]: unknown;
-}
-
-interface Actor {
-  tokens?: Token[];
-  [key: string]: unknown;
-}
-
-interface QueueItem {
-  actor: string;
-  sp?: number;
-  card?: Card;
-  [key: string]: unknown;
-}
-
-interface EnemyUnit {
-  hp: number;
-  unitId?: number;
-  [key: string]: unknown;
-}
-
-interface BattleContext {
-  hand?: Card[];
-  allCards?: Card[];
-  queue?: QueueItem[];
-  currentSp?: number;
-  currentQIndex?: number;
-  currentTurn?: number;
-  handSize?: number;
-  enemyUnits?: EnemyUnit[];
-  [key: string]: unknown;
-}
-
-interface TokenAction {
-  id: string;
-  stacks: number;
-  grantedAt?: { turn: number; sp: number } | null;
-  targetEnemy?: boolean;
-}
-
-interface Event {
-  actor: string;
-  card: string;
-  type: string;
-  msg: string;
-}
-
-interface NextTurnEffects {
-  destroyOverlappingCard?: boolean;
-  guaranteedCrit?: boolean;
-  recallCard?: boolean;
-  emergencyDraw?: number;
-  fencingDamageBonus?: number;
-  triggerCreation3x3?: boolean;
-  creationIsAoe?: boolean;
-  isAoeAttack?: boolean;
-  [key: string]: unknown;
-}
-
-interface CardPlayResult {
-  bonusCards: Card[];
-  tokensToAdd: TokenAction[];
-  tokensToRemove: TokenAction[];
-  nextTurnEffects: NextTurnEffects | null;
-  events: Event[];
-  logs: string[];
-}
-
 /**
  * 토큰 존재 여부 확인
  */
-function hasToken(entity: Actor, tokenId: string): boolean {
+function hasToken(entity: SpecialActor, tokenId: string): boolean {
   return getTokenStacks(entity, tokenId) > 0;
 }
 
@@ -128,16 +40,16 @@ export function processCardPlaySpecials({
   attackerName,
   battleContext = {}
 }: {
-  card: Card;
-  attacker: Actor;
+  card: SpecialCard;
+  attacker: SpecialActor;
   attackerName: 'player' | 'enemy';
-  battleContext?: BattleContext;
+  battleContext?: SpecialBattleContext;
 }): CardPlayResult {
-  const events: Event[] = [];
+  const events: SpecialEvent[] = [];
   const logs: string[] = [];
   const bonusCards: Card[] = [];
-  const tokensToAdd: TokenAction[] = [];
-  const tokensToRemove: TokenAction[] = [];
+  const tokensToAdd: TokenToAdd[] = [];
+  const tokensToRemove: TokenToAdd[] = [];
   let nextTurnEffects: NextTurnEffects | null = null;
 
   const { hand = [], allCards = [] } = battleContext;
