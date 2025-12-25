@@ -1,5 +1,5 @@
-﻿import "./App.css";
-import { lazy, Suspense } from "react";
+import "./App.css";
+import { lazy, Suspense, FC } from "react";
 import { useGameStore } from "./state/gameStore";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 
@@ -8,7 +8,7 @@ const MapDemo = lazy(() => import("./components/map/MapDemo").then(m => ({ defau
 const BattleScreen = lazy(() => import("./components/battle/BattleScreen").then(m => ({ default: m.BattleScreen })));
 
 // 로딩 컴포넌트
-function LoadingFallback() {
+const LoadingFallback: FC = () => {
   return (
     <div style={{
       display: 'flex',
@@ -22,10 +22,10 @@ function LoadingFallback() {
       로딩 중...
     </div>
   );
-}
+};
 
-function App() {
-  const activeBattle = useGameStore((state) => state.activeBattle);
+const App: FC = () => {
+  const activeBattle = useGameStore((state) => (state as { activeBattle?: unknown }).activeBattle);
 
   return (
     <ErrorBoundary>
@@ -42,6 +42,6 @@ function App() {
       )}
     </ErrorBoundary>
   );
-}
+};
 
 export default App;

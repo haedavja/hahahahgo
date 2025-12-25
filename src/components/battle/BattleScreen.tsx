@@ -1,32 +1,166 @@
-import { useMemo, useCallback, useState, useEffect } from "react";
+/**
+ * BattleScreen.tsx
+ *
+ * 전투 화면 컴포넌트 - 전투 페이로드 생성 및 BattleApp 렌더링
+ */
+
+import { FC, useMemo, useCallback, useState, useEffect } from "react";
 import { useGameStore } from "../../state/gameStore";
 import { BattleApp } from "./BattleApp";
 import { DevTools } from "../dev/DevTools";
 import { calculatePassiveEffects, applyCombatStartEffects } from "../../lib/relicEffects";
 import { ENEMIES } from "./battleData";
 
-const buildBattlePayload = (battle, etherPts, relics, maxHp, playerInsight, playerEnergyBonus = 0, playerStrength = 0, playerMaxSpeedBonus = 0) => {
+interface Passives {
+  [key: string]: unknown;
+}
+
+interface EnemyData {
+  id?: string;
+  name: string;
+  emoji?: string;
+  hp?: number;
+  maxHp?: number;
+  ether?: number;
+  speed?: number;
+  deck?: unknown[];
+  cardsPerTurn?: number;
+  passives?: Passives;
+  tier?: number;
+  isBoss?: boolean;
+}
+
+interface TokenState {
+  usage: unknown[];
+  turn: unknown[];
+  permanent: unknown[];
+}
+
+interface EnemyUnit {
+  unitId: number;
+  id?: string;
+  name: string;
+  emoji: string;
+  count: number;
+  hp: number;
+  maxHp: number;
+  ether: number;
+  individualHp: number;
+  individualMaxHp?: number;
+  individualEther: number;
+  speed: number;
+  deck: unknown[];
+  cardsPerTurn: number;
+  individualCardsPerTurn: number;
+  passives: Passives;
+  tier: number;
+  isBoss?: boolean;
+  block: number;
+  tokens: TokenState;
+}
+
+interface EnemyComposition {
+  name: string;
+  emoji: string;
+  hp: number;
+  maxHp: number;
+  ether: number;
+  cardsPerTurn?: number;
+  passives?: Passives;
+  count: number;
+}
+
+interface InitialPlayer {
+  hp?: number;
+}
+
+interface InitialEnemy {
+  hp?: number;
+  deck?: unknown[];
+  speed?: number;
+  ether?: number;
+}
+
+interface Simulation {
+  initialState?: {
+    player?: InitialPlayer;
+    enemy?: InitialEnemy;
+  };
+}
+
+interface Battle {
+  nodeId?: string;
+  kind?: string;
+  label?: string;
+  enemyCount?: number;
+  simulation?: Simulation;
+  mixedEnemies?: EnemyData[];
+  enemies?: string[];
+}
+
+interface BattlePayload {
+  player: {
+    hp: number;
+    maxHp: number;
+    energy: number;
+    maxEnergy: number;
+    block: number;
+    strength: number;
+    insight: number;
+    maxSpeed: number;
+    etherPts: number;
+  };
+  enemy: {
+    name: string;
+    hp: number;
+    maxHp: number;
+    deck: unknown[];
+    composition: EnemyComposition[];
+    etherPts: number;
+    etherCapacity: number;
+    enemyCount: number;
+    maxSpeed: number;
+    passives: Passives;
+    cardsPerTurn: number;
+    ether: number;
+    units: EnemyUnit[];
+  };
+}
+
+interface BattleResult {
+  result: 'victory' | 'defeat';
+  playerEther: number;
+  deltaEther?: number;
+  playerHp: number;
+  playerMaxHp: number;
+}
+
+const buildBattlePayload = (
+  battle: Battle | null,
+  etherPts: number,
+  relics: string[],
+  maxHp: number,
+  playerInsight: number,
+  playerEnergyBonus = 0,
+  playerStrength = 0,
+  playerMaxSpeedBonus = 0
+): BattlePayload | null => {
   if (!battle) return null;
   const initialPlayer = battle.simulation?.initialState?.player;
   const initialEnemy = battle.simulation?.initialState?.enemy;
-  // 몬스터 에테르 용량은 유닛들의 합계로 계산 (아래에서 설정)
 
   let enemyCount = battle.enemyCount ?? 1;
   let enemyName = battle.label ?? "Enemy";
   let enemyHp = initialEnemy?.hp ? Math.round(initialEnemy.hp) : 30;
-  let enemyDeck = initialEnemy?.deck || [];
+  let enemyDeck: unknown[] = initialEnemy?.deck || [];
 
-  let enemyComposition = [];
-
-  // mixedEnemies: 새 ENEMY_GROUPS 시스템에서 제공하는 적 상세 정보
-  // 같은 종류의 적을 유닛으로 묶어서 관리 (약탈자 x3 = 1유닛, 탈영병 x1 = 1유닛)
-  let enemyUnits = [];
+  let enemyComposition: EnemyComposition[] = [];
+  let enemyUnits: EnemyUnit[] = [];
 
   if (battle.mixedEnemies && Array.isArray(battle.mixedEnemies) && battle.mixedEnemies.length > 0) {
     const mixedEnemies = battle.mixedEnemies;
 
-    // 같은 종류의 적을 유닛으로 그룹화
-    const unitMap = new Map();
+    const unitMap = new Map<string, EnemyUnit>();
     mixedEnemies.forEach(e => {
       const key = e.id || e.name;
       if (!unitMap.has(key)) {
@@ -48,9 +182,12 @@ const buildBattlePayload = (battle, etherPts, relics, maxHp, playerInsight, play
           passives: e.passives || {},
           tier: e.tier || 1,
           isBoss: e.isBoss || false,
+          unitId: 0,
+          block: 0,
+          tokens: { permanent: [], turn: [], usage: [] },
         });
       }
-      const unit = unitMap.get(key);
+      const unit = unitMap.get(key)!;
       unit.count += 1;
       unit.hp += e.hp || 40;
       unit.maxHp += e.maxHp || e.hp || 40;
@@ -58,7 +195,6 @@ const buildBattlePayload = (battle, etherPts, relics, maxHp, playerInsight, play
       unit.cardsPerTurn += e.cardsPerTurn || 2;
     });
 
-    // Map을 배열로 변환하고 unitId 부여
     enemyUnits = Array.from(unitMap.values()).map((unit, idx) => ({
       ...unit,
       unitId: idx,
@@ -66,8 +202,6 @@ const buildBattlePayload = (battle, etherPts, relics, maxHp, playerInsight, play
       tokens: { permanent: [], turn: [], usage: [] },
     }));
 
-    // 기존 호환성을 위한 값들
-    // battle.label이 있으면 그룹 이름 사용 (예: "오염된 구울들"), 없으면 유닛 이름 조합
     if (!battle.label) {
       enemyName = enemyUnits.map(u => u.count > 1 ? `${u.name}×${u.count}` : u.name).join(' + ');
     }
@@ -85,11 +219,9 @@ const buildBattlePayload = (battle, etherPts, relics, maxHp, playerInsight, play
       count: u.count,
     }));
   } else if (battle.enemies && Array.isArray(battle.enemies)) {
-    // 레거시: enemies가 ID 배열인 경우
-    const mixedEnemies = battle.enemies.map(id => ENEMIES.find(e => e.id === id)).filter(Boolean);
+    const mixedEnemies = battle.enemies.map(id => ENEMIES.find((e: EnemyData) => e.id === id)).filter(Boolean) as EnemyData[];
     if (mixedEnemies.length > 0) {
-      // 같은 종류의 적을 유닛으로 그룹화
-      const unitMap = new Map();
+      const unitMap = new Map<string, EnemyUnit>();
       mixedEnemies.forEach(e => {
         const key = e.id || e.name;
         if (!unitMap.has(key)) {
@@ -109,9 +241,12 @@ const buildBattlePayload = (battle, etherPts, relics, maxHp, playerInsight, play
             individualCardsPerTurn: e.cardsPerTurn || 2,
             passives: e.passives || {},
             tier: e.tier || 1,
+            unitId: 0,
+            block: 0,
+            tokens: { permanent: [], turn: [], usage: [] },
           });
         }
-        const unit = unitMap.get(key);
+        const unit = unitMap.get(key)!;
         unit.count += 1;
         unit.hp += e.hp || 40;
         unit.maxHp += e.hp || 40;
@@ -126,12 +261,11 @@ const buildBattlePayload = (battle, etherPts, relics, maxHp, playerInsight, play
         tokens: { permanent: [], turn: [], usage: [] },
       }));
 
-      // battle.label이 있으면 그룹 이름 사용, 없으면 유닛 이름 조합
       if (!battle.label) {
         enemyName = enemyUnits.map(u => u.count > 1 ? `${u.name}×${u.count}` : u.name).join(' + ');
       }
       enemyHp = enemyUnits.reduce((sum, u) => sum + u.hp, 0);
-      enemyDeck = mixedEnemies.flatMap(e => e.deck);
+      enemyDeck = mixedEnemies.flatMap(e => e.deck || []);
       enemyCount = mixedEnemies.length;
       enemyComposition = enemyUnits.map(u => ({
         name: u.name,
@@ -143,7 +277,6 @@ const buildBattlePayload = (battle, etherPts, relics, maxHp, playerInsight, play
       }));
     }
   } else {
-    // 기본 폴백: 단일 유닛
     const baseEmoji = "👾";
     const singleName = battle.label ?? "Enemy";
     const singleHp = initialEnemy?.hp ?? 40;
@@ -163,6 +296,7 @@ const buildBattlePayload = (battle, etherPts, relics, maxHp, playerInsight, play
       speed: initialEnemy?.speed || 10,
       deck: enemyDeck,
       cardsPerTurn: 2 * enemyCount,
+      individualCardsPerTurn: 2,
       passives: {},
       tier: 1,
       block: 0,
@@ -173,45 +307,35 @@ const buildBattlePayload = (battle, etherPts, relics, maxHp, playerInsight, play
     enemyComposition = [{ name: singleName, emoji: baseEmoji, hp: singleHp * enemyCount, maxHp: singleHp * enemyCount, ether: singleEther * enemyCount, count: enemyCount }];
   }
 
-  // 상징 패시브 효과 계산
   const passiveEffects = calculatePassiveEffects(relics);
-  // 행동력: 기본 6 + 활력 보너스 + 상징 패시브
   const baseEnergy = 6 + (playerEnergyBonus || 0) + (passiveEffects.maxEnergy || 0);
   const maxEnergy = baseEnergy;
 
-  // 전투 시작 효과 계산
   const combatStartEffects = applyCombatStartEffects(relics, {});
 
-  // 전투 시작 시 체력/방어력 보너스 적용
-  // 피의 족쇄 등의 피해를 적용하고 회복 효과를 더함
   const startingHp = Math.max(
-    1, // 최소 체력 1
+    1,
     Math.min(
       maxHp,
       (initialPlayer?.hp ?? maxHp) - combatStartEffects.damage + combatStartEffects.heal
     )
   );
 
-  // 피의 족쇄 등의 힘 보너스 계산
-  // 힘: 스토어 값 + 전투 시작 보너스 (패시브는 스토어에 반영된다고 가정)
   const startingStrength = (playerStrength || 0) + (combatStartEffects.strength || 0);
   const startingMaxSpeed = 30 + (playerMaxSpeedBonus || 0);
 
-  // 몬스터 에테르 용량: 모든 유닛의 에테르 합계
   const totalEnemyEther = enemyUnits.reduce((sum, u) => sum + (u.ether || u.individualEther * u.count || 100), 0);
-
-  // 몬스터 최대 속도: 모든 유닛의 speed 합계
   const totalEnemyMaxSpeed = enemyUnits.reduce((sum, u) => sum + (u.speed || 10), 0);
 
   return {
     player: {
       hp: startingHp,
-      maxHp: maxHp, // gameStore의 maxHp 사용 (상징 효과가 이미 적용됨)
-      energy: maxEnergy + combatStartEffects.energy, // 시작 에너지 = maxEnergy + 전투 시작 보너스
+      maxHp: maxHp,
+      energy: maxEnergy + combatStartEffects.energy,
       maxEnergy: maxEnergy + combatStartEffects.energy,
-      block: combatStartEffects.block, // 시작 방어력
-      strength: startingStrength, // 시작 힘
-      insight: playerInsight ?? 0, // 통찰
+      block: combatStartEffects.block,
+      strength: startingStrength,
+      insight: playerInsight ?? 0,
       maxSpeed: startingMaxSpeed,
       etherPts,
     },
@@ -225,45 +349,40 @@ const buildBattlePayload = (battle, etherPts, relics, maxHp, playerInsight, play
       etherCapacity: totalEnemyEther,
       enemyCount: enemyCount,
       maxSpeed: totalEnemyMaxSpeed,
-      // 패시브는 첫 번째 적 기준, cardsPerTurn은 모든 유닛 합계
       passives: enemyComposition[0]?.passives || {},
       cardsPerTurn: enemyUnits.reduce((sum, u) => sum + (u.cardsPerTurn || 2), 0),
       ether: totalEnemyEther,
-      // 다중 유닛 시스템: 같은 종류 적을 묶은 유닛 배열
       units: enemyUnits,
     },
   };
 };
 
-export function BattleScreen() {
-  const activeBattle = useGameStore((state) => state.activeBattle);
-  const resolveBattle = useGameStore((state) => state.resolveBattle);
-  const applyEtherDelta = useGameStore((state) => state.applyEtherDelta);
-  const lastBattleResult = useGameStore((state) => state.lastBattleResult);
-  const playerEther = useGameStore((state) => state.resources.etherPts ?? 0);
-  const relics = useGameStore((state) => state.relics);
-  const maxHp = useGameStore((state) => state.maxHp);
-  const playerInsight = useGameStore((state) => state.playerInsight ?? 0);
-  const playerEnergyBonus = useGameStore((state) => state.playerEnergyBonus ?? 0);
-  const playerStrength = useGameStore((state) => state.playerStrength ?? 0);
-  const playerMaxSpeedBonus = useGameStore((state) => state.playerMaxSpeedBonus ?? 0);
-  const itemBuffs = useGameStore((state) => state.itemBuffs || {});
+export const BattleScreen: FC = () => {
+  const activeBattle = useGameStore((state) => (state as { activeBattle?: Battle }).activeBattle);
+  const resolveBattle = useGameStore((state) => (state as { resolveBattle: (result: unknown) => void }).resolveBattle);
+  const applyEtherDelta = useGameStore((state) => (state as { applyEtherDelta: (delta: number) => void }).applyEtherDelta);
+  const playerEther = useGameStore((state) => (state as { resources: { etherPts?: number } }).resources.etherPts ?? 0);
+  const relics = useGameStore((state) => (state as { relics: string[] }).relics);
+  const maxHp = useGameStore((state) => (state as { maxHp: number }).maxHp);
+  const playerInsight = useGameStore((state) => (state as { playerInsight?: number }).playerInsight ?? 0);
+  const playerEnergyBonus = useGameStore((state) => (state as { playerEnergyBonus?: number }).playerEnergyBonus ?? 0);
+  const playerStrength = useGameStore((state) => (state as { playerStrength?: number }).playerStrength ?? 0);
+  const playerMaxSpeedBonus = useGameStore((state) => (state as { playerMaxSpeedBonus?: number }).playerMaxSpeedBonus ?? 0);
+  const itemBuffs = useGameStore((state) => (state as { itemBuffs?: Record<string, number> }).itemBuffs || {});
 
-  // 아이템 버프 적용한 유효 스탯
   const effectiveStrength = playerStrength + (itemBuffs.strength || 0);
   const effectiveInsight = playerInsight + (itemBuffs.insight || 0);
 
-  // 전투 시작 시의 통찰 값을 고정해 payload를 재생성하지 않도록 저장
   const [battleInsight, setBattleInsight] = useState(effectiveInsight || 0);
   useEffect(() => {
     if (activeBattle) {
       setBattleInsight(effectiveInsight || 0);
     }
-  }, [activeBattle]);
+  }, [activeBattle, effectiveInsight]);
 
   const payload = useMemo(() => {
     return buildBattlePayload(
-      activeBattle,
+      activeBattle || null,
       playerEther,
       relics,
       maxHp,
@@ -273,13 +392,11 @@ export function BattleScreen() {
       playerMaxSpeedBonus
     );
   }, [activeBattle, playerEther, relics, maxHp, battleInsight, playerEnergyBonus, effectiveStrength, playerMaxSpeedBonus]);
-  const frameKey = activeBattle ? `${activeBattle.nodeId}-${activeBattle.kind}` : "idle";
 
   const [devToolsOpen, setDevToolsOpen] = useState(false);
 
-  // Alt+D 단축키
   useEffect(() => {
-    const handleKeyDown = (e) => {
+    const handleKeyDown = (e: KeyboardEvent): void => {
       if (e.altKey && (e.key === 'd' || e.key === 'D')) {
         e.preventDefault();
         setDevToolsOpen((prev) => !prev);
@@ -290,24 +407,22 @@ export function BattleScreen() {
   }, []);
 
   const handleBattleResult = useCallback(
-    ({ result, playerEther, deltaEther, playerHp, playerMaxHp }) => {
+    ({ result, playerEther: resultEther, deltaEther, playerHp, playerMaxHp }: BattleResult): void => {
       const finalResult = result === "victory" ? "victory" : "defeat";
 
       if (typeof deltaEther === "number" && deltaEther !== 0) {
-        // 몬스터는 플레이어 에테르를 빼앗을 수 없음 - 음수 델타 무시
         if (deltaEther > 0) {
           applyEtherDelta(deltaEther);
         }
-      } else if (typeof playerEther === "number") {
-        const current = useGameStore.getState().resources.etherPts ?? 0;
-        const diff = playerEther - current;
-        // 몬스터는 플레이어 에테르를 빼앗을 수 없음 - 음수 diff 무시
+      } else if (typeof resultEther === "number") {
+        const current = (useGameStore.getState() as { resources: { etherPts?: number } }).resources.etherPts ?? 0;
+        const diff = resultEther - current;
         if (diff > 0) applyEtherDelta(diff);
       }
       resolveBattle({
         result: finalResult,
-        etherPts: playerEther,
-        playerHp: playerHp, // 실제 전투 결과 체력 전달
+        etherPts: resultEther,
+        playerHp: playerHp,
         playerMaxHp: playerMaxHp
       });
     },
@@ -329,4 +444,4 @@ export function BattleScreen() {
       <DevTools isOpen={devToolsOpen} onClose={() => setDevToolsOpen(false)} />
     </div>
   );
-}
+};

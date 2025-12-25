@@ -1,18 +1,40 @@
 /**
- * CardManagementModal.jsx
+ * CardManagementModal.tsx
  *
  * 카드 관리 모달 컴포넌트
- * CharacterSheet.jsx에서 분리됨
+ * CharacterSheet에서 분리됨
  */
 
+import { FC, MouseEvent } from 'react';
 import { CARDS } from "../battle/battleData";
-import { TraitBadgeList } from "../battle/ui/TraitBadge.jsx";
+import { TraitBadgeList } from "../battle/ui/TraitBadge";
 import { Sword, Shield } from "../battle/ui/BattleIcons";
+
+interface Card {
+  id: string;
+  name: string;
+  type: string;
+  actionCost: number;
+  speedCost: number;
+  damage?: number;
+  block?: number;
+  hits?: number;
+  description?: string;
+  traits?: unknown[];
+  _displayKey?: string;
+  _type?: string;
+}
+
+interface SelectedCardsProps {
+  cards: string[];
+  specialMode: 'main' | 'sub';
+  onCardRemove: (cardId: string) => void;
+}
 
 /**
  * 선택된 카드 표시 컴포넌트
  */
-function SelectedCards({ cards, specialMode, onCardRemove }) {
+const SelectedCards: FC<SelectedCardsProps> = ({ cards, specialMode, onCardRemove }) => {
   const isMainSpecial = specialMode === 'main';
   const borderColor = isMainSpecial ? '#f5d76e' : '#7dd3fc';
 
@@ -33,7 +55,7 @@ function SelectedCards({ cards, specialMode, onCardRemove }) {
       </h3>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', minHeight: '230px', alignItems: 'flex-start' }}>
         {cards.map((cardId, idx) => {
-          const card = CARDS.find(c => c.id === cardId);
+          const card = (CARDS as Card[]).find(c => c.id === cardId);
           if (!card) return null;
           const Icon = card.type === 'attack' ? Sword : Shield;
           return (
@@ -88,18 +110,25 @@ function SelectedCards({ cards, specialMode, onCardRemove }) {
       </div>
     </div>
   );
+};
+
+interface CardItemProps {
+  card: Card;
+  displayKey?: string;
+  cardType?: string;
+  onCardClick: (cardId: string, isRightClick: boolean) => void;
 }
 
 /**
  * 카드 아이템 컴포넌트
  */
-function CardItem({ card, displayKey, cardType, onCardClick }) {
+const CardItem: FC<CardItemProps> = ({ card, displayKey, cardType, onCardClick }) => {
   const Icon = card.type === 'attack' ? Sword : Shield;
   const isMainSpecial = cardType === 'main';
   const isSubSpecial = cardType === 'sub';
   const isOwnedOnly = cardType === 'owned';
 
-  let borderStyle = {};
+  let borderStyle: Record<string, string> = {};
   if (isMainSpecial) {
     borderStyle = { border: '2px solid #f5d76e', boxShadow: '0 0 10px rgba(245, 215, 110, 0.4)' };
   } else if (isSubSpecial) {
@@ -115,7 +144,7 @@ function CardItem({ card, displayKey, cardType, onCardClick }) {
     >
       <div
         onClick={() => onCardClick(card.id, false)}
-        onContextMenu={(e) => {
+        onContextMenu={(e: MouseEvent<HTMLDivElement>) => {
           e.preventDefault();
           onCardClick(card.id, true);
         }}
@@ -173,12 +202,25 @@ function CardItem({ card, displayKey, cardType, onCardClick }) {
       </div>
     </div>
   );
+};
+
+interface CardManagementModalProps {
+  onClose: () => void;
+  specialMode: 'main' | 'sub';
+  setSpecialMode: (mode: 'main' | 'sub') => void;
+  mainSpecials: string[];
+  subSpecials: string[];
+  maxMainSlots: number;
+  maxSubSlots: number;
+  displayedCards: Card[];
+  showAllCards: boolean;
+  onCardClick: (cardId: string, isRightClick: boolean) => void;
 }
 
 /**
  * 카드 관리 모달
  */
-export function CardManagementModal({
+export const CardManagementModal: FC<CardManagementModalProps> = ({
   onClose,
   specialMode,
   setSpecialMode,
@@ -189,8 +231,8 @@ export function CardManagementModal({
   displayedCards,
   showAllCards,
   onCardClick,
-}) {
-  const getModeButtonStyle = (mode) => ({
+}) => {
+  const getModeButtonStyle = (mode: 'main' | 'sub'): Record<string, unknown> => ({
     flex: 1,
     padding: "8px 12px",
     fontSize: "14px",
@@ -211,7 +253,7 @@ export function CardManagementModal({
 
   const selectedCards = specialMode === 'main' ? mainSpecials : subSpecials;
 
-  const handleCardRemove = (cardId) => {
+  const handleCardRemove = (cardId: string): void => {
     onCardClick(cardId, true);
   };
 
@@ -232,7 +274,7 @@ export function CardManagementModal({
       onClick={onClose}
     >
       <div
-        onClick={(e) => e.stopPropagation()}
+        onClick={(e: MouseEvent<HTMLDivElement>) => e.stopPropagation()}
         style={{
           width: '900px',
           maxHeight: '90vh',
@@ -287,14 +329,14 @@ export function CardManagementModal({
           <button
             type="button"
             onClick={() => setSpecialMode('main')}
-            style={getModeButtonStyle('main')}
+            style={getModeButtonStyle('main') as React.CSSProperties}
           >
             ⭐ 주특기 선택 모드
           </button>
           <button
             type="button"
             onClick={() => setSpecialMode('sub')}
-            style={getModeButtonStyle('sub')}
+            style={getModeButtonStyle('sub') as React.CSSProperties}
           >
             💠 보조특기 선택 모드
           </button>
@@ -342,4 +384,4 @@ export function CardManagementModal({
       </div>
     </div>
   );
-}
+};

@@ -1,11 +1,23 @@
+/**
+ * BattlePane.tsx
+ *
+ * 레거시 전투 모드 패널 컴포넌트
+ */
+
+import { FC } from 'react';
 import { useGameStore } from "../../state/gameStore";
 
-export function BattlePane() {
-  const activeBattle = useGameStore((state) => state.activeBattle);
+interface ActiveBattle {
+  label: string;
+  kind: string;
+}
+
+export const BattlePane: FC = () => {
+  const activeBattle = useGameStore((state) => (state as { activeBattle?: ActiveBattle }).activeBattle);
 
   if (!activeBattle) return null;
 
-  const openWindow = () => {
+  const openWindow = (): void => {
     window.open("/battle-legacy.html", "_blank", "noopener,noreferrer");
   };
 
@@ -28,4 +40,4 @@ export function BattlePane() {
       <iframe title="legacy battle" src="/battle-legacy.html" className="legacy-pane-frame" />
     </section>
   );
-}
+};

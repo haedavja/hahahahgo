@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { flushSync } from "react-dom";
 import "./legacy-battle.css";
 import { playHitSound, playBlockSound, playParrySound } from "../../lib/soundUtils";
@@ -105,12 +105,20 @@ const ENEMY_CARDS = BASE_ENEMY_CARDS.map(card => ({
 // =====================
 // 에테르 관련 유틸리티 (로컬 래퍼)
 // =====================
-const etherSlots = (pts) => calculateEtherSlots(pts || 0); // 인플레이션 적용
+const etherSlots = (pts: number): number => calculateEtherSlots(pts || 0); // 인플레이션 적용
 
 // =====================
 // Game Component
 // =====================
-function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, liveInsight }) {
+interface GameProps {
+  initialPlayer: any;
+  initialEnemy: any;
+  playerEther?: number;
+  onBattleResult?: (result: any) => void;
+  liveInsight?: number;
+}
+
+function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, liveInsight }: GameProps): JSX.Element | null {
   const playerStrength = useGameStore((state) => state.playerStrength || 0);
   const playerAgility = useGameStore((state) => state.playerAgility || 0);
   const relics = useGameStore((state) => state.relics || []);
@@ -2968,7 +2976,15 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   );
 }
 
-export const BattleApp = ({ initialPlayer, initialEnemy, playerEther, liveInsight, onBattleResult = () => { } }) => (
+interface BattleAppProps {
+  initialPlayer: any;
+  initialEnemy: any;
+  playerEther?: number;
+  liveInsight?: number;
+  onBattleResult?: (result: any) => void;
+}
+
+export const BattleApp: React.FC<BattleAppProps> = ({ initialPlayer, initialEnemy, playerEther, liveInsight, onBattleResult = () => { } }) => (
   <Game
     initialPlayer={initialPlayer}
     initialEnemy={initialEnemy}
