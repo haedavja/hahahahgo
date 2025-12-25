@@ -1,7 +1,7 @@
-import { useState, useEffect, useMemo, useRef, useCallback, useReducer } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { flushSync } from "react-dom";
 import "./legacy-battle.css";
-import { playHitSound, playBlockSound, playCardSubmitSound, playProceedSound, playParrySound } from "../../lib/soundUtils";
+import { playHitSound, playBlockSound, playParrySound } from "../../lib/soundUtils";
 import { useBattleState } from "./hooks/useBattleState";
 import { useDamagePreview } from "./hooks/useDamagePreview";
 import { useBattleTimelines } from "./hooks/useBattleTimelines";
@@ -33,46 +33,36 @@ import {
   ENEMIES,
   TRAITS,
 } from "./battleData";
-import { calculateEtherSlots, getCurrentSlotPts, getSlotProgress, getNextSlotCost, MAX_SLOTS } from "../../lib/etherUtils";
+import { calculateEtherSlots, MAX_SLOTS } from "../../lib/etherUtils";
 import { CharacterSheet } from "../character/CharacterSheet";
 import { useGameStore } from "../../state/gameStore";
 import { ItemSlots } from "./ui/ItemSlots";
 import { RELICS, RELIC_RARITIES } from "../../data/relics";
-import { RELIC_EFFECT, applyRelicEffects, applyRelicComboMultiplier, RELIC_RARITY_COLORS } from "../../lib/relics";
+import { RELIC_EFFECT, RELIC_RARITY_COLORS } from "../../lib/relics";
 import { applyAgility } from "../../lib/agilityUtils";
-import { choice, hasTrait, applyTraitModifiers, applyStrengthToCard, applyStrengthToHand, getCardRarity } from "./utils/battleUtils";
-import { detectPokerCombo, applyPokerBonus } from "./utils/comboDetection";
-import { COMBO_MULTIPLIERS, BASE_ETHER_PER_CARD, CARD_ETHER_BY_RARITY, applyEtherDeflation, getCardEtherGain, calcCardsEther, calculateComboEtherGain } from "./utils/etherCalculations";
-import { sortCombinedOrderStablePF, addEther } from "./utils/combatUtils";
-import { createFixedOrder } from "./utils/cardOrdering";
+import { hasTrait } from "./utils/battleUtils";
+import { detectPokerCombo } from "./utils/comboDetection";
+import { COMBO_MULTIPLIERS, BASE_ETHER_PER_CARD, CARD_ETHER_BY_RARITY, getCardEtherGain } from "./utils/etherCalculations";
 import { generateEnemyActions, shouldEnemyOverdrive, assignSourceUnitToActions } from "./utils/enemyAI";
 import { simulatePreview } from "./utils/battleSimulation";
-import { applyAction, prepareMultiHitAttack, calculateSingleHit, finalizeMultiHitAttack, rollCritical } from "./logic/combatActions";
-import { drawCharacterBuildHand, initializeDeck, drawFromDeck, shuffleArray } from "./utils/handGeneration";
-import { calculateEffectiveInsight, getInsightRevealLevel, playInsightSound } from "./utils/insightSystem";
+import { applyAction } from "./logic/combatActions";
+import { initializeDeck, drawFromDeck } from "./utils/handGeneration";
+import { playInsightSound } from "./utils/insightSystem";
 import { computeComboMultiplier as computeComboMultiplierUtil, explainComboMultiplier as explainComboMultiplierUtil } from "./utils/comboMultiplier";
-import { processCardTraitEffects } from "./utils/cardTraitEffects";
 import { calculateEtherTransfer } from "./utils/etherTransfer";
 import { formatCompactValue } from "./utils/formatUtils";
-import { calculateTurnEndEther, formatPlayerEtherLog, formatEnemyEtherLog } from "./utils/turnEndEtherCalculation";
-import { updateComboUsageCount, createTurnEndPlayerState, createTurnEndEnemyState, checkVictoryCondition } from "./utils/turnEndStateUpdate";
+import { checkVictoryCondition } from "./utils/turnEndStateUpdate";
 import { processImmediateCardTraits, processCardPlayedRelicEffects } from "./utils/cardImmediateEffects";
 import { collectTriggeredRelics, playRelicActivationSequence } from "./utils/relicActivationAnimation";
 import { processActionEventAnimations } from "./utils/eventAnimationProcessing";
 import { processStunEffect } from "./utils/stunProcessing";
-import { setupParryReady, checkParryTrigger, resetParryState } from "./utils/parryProcessing";
+import { setupParryReady, checkParryTrigger } from "./utils/parryProcessing";
 import { processPlayerEtherAccumulation, processEnemyEtherAccumulation } from "./utils/etherAccumulationProcessing";
 import { processEnemyDeath } from "./utils/enemyDeathProcessing";
-import { playTurnEndRelicAnimations, applyTurnEndRelicEffectsToNextTurn } from "./utils/turnEndRelicEffectsProcessing";
-import { startEtherCalculationAnimationSequence } from "./utils/etherCalculationAnimation";
-import { renderRarityBadge, renderNameWithBadge, getCardDisplayRarity } from "./utils/cardRenderingUtils";
-import { startEnemyEtherAnimation } from "./utils/enemyEtherAnimation";
-import { processQueueCollisions } from "./utils/cardSpecialEffects";
-import { processReflections, initReflectionState, resetTurnReflectionEffects, decreaseEnemyFreeze } from "../../lib/reflectionEffects";
-import { clearTurnTokens, addToken, removeToken, getAllTokens, expireTurnTokensByTimeline, getTokenStacks, setTokenStacks } from "../../lib/tokenUtils";
+import { renderNameWithBadge } from "./utils/cardRenderingUtils";
+import { initReflectionState } from "../../lib/reflectionEffects";
+import { addToken, removeToken, getAllTokens, expireTurnTokensByTimeline, getTokenStacks, setTokenStacks } from "../../lib/tokenUtils";
 import { TOKENS } from "../../data/tokens";
-import { processEtherTransfer } from "./utils/etherTransferProcessing";
-import { processVictoryDefeatTransition } from "./utils/victoryDefeatTransition";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
 import {
   calculatePassiveEffects,
@@ -96,11 +86,11 @@ import { CardRewardModal } from "./ui/CardRewardModal";
 import { RecallSelectionModal } from "./ui/RecallSelectionModal";
 import { EtherBar } from "./ui/EtherBar";
 import { Sword, Shield, Heart, Zap, Flame, Clock, Skull, X, ChevronUp, ChevronDown, Play, StepForward, RefreshCw, ICON_MAP } from "./ui/BattleIcons";
-import { selectBattleAnomalies, applyAnomalyEffects, formatAnomaliesForDisplay } from "../../lib/anomalyUtils";
+import { selectBattleAnomalies, applyAnomalyEffects } from "../../lib/anomalyUtils";
 import { AnomalyDisplay, AnomalyNotification } from "./ui/AnomalyDisplay";
 import { DefeatOverlay } from "./ui/DefeatOverlay";
-import { TIMING, createStepOnceAnimations, executeCardActionCore, finishTurnCore, runAllCore, executeMultiHitAsync } from "./logic/battleExecution";
-import { processTimelineSpecials, hasSpecial, processPerHitRoulette, processCardPlaySpecials } from "./utils/cardSpecialEffects";
+import { TIMING, executeMultiHitAsync } from "./logic/battleExecution";
+import { processTimelineSpecials, hasSpecial, processCardPlaySpecials } from "./utils/cardSpecialEffects";
 
 
 const CARDS = BASE_PLAYER_CARDS.map(card => ({
@@ -517,7 +507,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   // 효과음 재생 함수 (useCallback으로 안정적인 참조 유지)
   const playSound = useCallback((frequency = 800, duration = 100) => {
     try {
-      // eslint-disable-next-line no-undef
+       
       const AudioContextClass = window.AudioContext || window.webkitAudioContext;
       const audioContext = new AudioContextClass();
       const oscillator = audioContext.createOscillator();

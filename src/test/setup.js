@@ -9,14 +9,14 @@
 import '@testing-library/jest-dom';
 
 // 전역 모킹 (필요시)
-global.ResizeObserver = class ResizeObserver {
+globalThis.ResizeObserver = class ResizeObserver {
   observe() {}
   unobserve() {}
   disconnect() {}
 };
 
 // Audio API 모킹
-global.AudioContext = class AudioContext {
+globalThis.AudioContext = class AudioContext {
   createOscillator() {
     return {
       connect: () => {},

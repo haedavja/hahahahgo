@@ -142,7 +142,7 @@ export const getInsightRevealLevel = (baseInsight, enemyActions, units = []) => 
  */
 export const playInsightSound = (level = 1) => {
   try {
-    // eslint-disable-next-line no-undef
+     
     const AudioContextClass = window.AudioContext || window.webkitAudioContext;
     const audioContext = new AudioContextClass();
     const osc = audioContext.createOscillator();

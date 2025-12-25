@@ -26,7 +26,7 @@ export class ErrorBoundary extends Component {
     // 게임 상태 초기화
     try {
       localStorage.removeItem('hahahahgo_game_state');
-    } catch (e) {
+    } catch {
       // ignore
     }
     window.location.reload();

@@ -137,7 +137,7 @@ export function useKeyboardShortcuts({
 
     window.addEventListener("keydown", handleKeyPress);
     return () => window.removeEventListener("keydown", handleKeyPress);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [
     battle.phase,
     battle.selected,
