@@ -1,8 +1,18 @@
 /**
- * combatActions.integration.test.js
+ * @file combatActions.integration.test.js
+ * @description 전투 시스템 통합 테스트 (Mock 없음)
  *
- * 전투 시스템 통합 테스트 (Mock 없음)
- * 실제 tokenUtils, cardSpecialEffects 모두 사용
+ * ## 테스트 대상
+ * - applyAction: 공격/방어 액션 적용 (실제 모듈 사용)
+ * - applyAttack: 공격 피해 계산 및 적용
+ * - applyDefense: 방어력 누적 및 반격
+ *
+ * ## 주요 테스트 케이스
+ * - 힘(strength) 보너스 피해
+ * - 방어력 파괴 후 잔여 피해
+ * - 다타(hits) 연속 공격
+ * - 반격(counter) 데미지 반사
+ * - 취약(vulnerable) 피해 증가
  *
  * @vitest-environment node
  */

@@ -1,7 +1,19 @@
 /**
- * reflectionEffects.test.js
+ * @file reflectionEffects.test.js
+ * @description 성찰 시스템 테스트
  *
- * 성찰 시스템 테스트
+ * ## 테스트 대상
+ * - processReflections: 턴 시작 시 성찰 효과 적용
+ * - initReflectionState: 성찰 상태 초기화
+ * - resetTurnReflectionEffects: 턴 종료 시 효과 리셋
+ * - decreaseEnemyFreeze: 적 동결 감소
+ * - getReflectionsByEgos: 자아 기반 성찰 활성화
+ *
+ * ## 주요 테스트 케이스
+ * - 자아별 성찰 활성화 (헌신, 지략, 분석 등)
+ * - 개성(traits)에 따른 확률 보너스
+ * - 적 동결/감속 효과
+ * - 잘못된 자아 이름 무시
  *
  * @vitest-environment node
  */

@@ -1,4 +1,20 @@
 /**
+ * @file comboScoring.test.js
+ * @description 적 AI 콤보 점수 계산 테스트
+ *
+ * ## 테스트 대상
+ * - COMBO_SCORE_WEIGHTS: 콤보별 AI 점수 가중치
+ * - ENEMY_COMBO_TENDENCIES: 적 종류별 콤보 성향
+ * - calculateComboScore: 카드 조합 점수 계산
+ * - analyzePotentialCombos: 가능한 콤보 분석
+ * - filterCardsForCombo: 콤보용 카드 필터링
+ * - decideComboStrategy: 콤보 전략 결정
+ *
+ * ## 주요 테스트 케이스
+ * - 콤보 점수 순서 (하이카드 < 페어 < 트리플 < 포카드)
+ * - 적 종류별 콤보 성향 (슬러심=0, 탈영병=높음)
+ * - 행동력 제한 내 최적 콤보 선택
+ *
  * @vitest-environment node
  */
 import { describe, it, expect } from 'vitest';

@@ -1,8 +1,20 @@
 /**
- * cardSpecialEffects.test.js
+ * @file cardSpecialEffects.test.js
+ * @description 카드 special 효과 유닛 테스트
  *
- * 카드 special 효과 유닛 테스트 (Vitest)
- * 실제 모듈 import 테스트
+ * ## 테스트 대상
+ * - hasSpecial: 카드 special 속성 확인
+ * - shouldIgnoreBlock: 방어력 무시 여부
+ * - processPreAttackSpecials: 공격 전 효과 처리
+ * - processPostAttackSpecials: 공격 후 효과 처리
+ * - processQueueCollisions: 타임라인 충돌 처리
+ * - calculateAgilitySpeedReduction: 민첩 속도 감소
+ *
+ * ## 주요 테스트 케이스
+ * - ignoreBlock/clearAllBlock 방어력 관련
+ * - 취약/출혈/화상 상태이상 부여
+ * - 타임라인 겹침 시 cross 특성 발동
+ * - null/undefined 안전 처리
  *
  * @vitest-environment node
  */

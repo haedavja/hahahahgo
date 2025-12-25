@@ -1,7 +1,19 @@
 /**
- * enemyAI.test.js
+ * @file enemyAI.test.js
+ * @description 적 AI 행동 결정 로직 테스트
  *
- * 적 AI 행동 결정 로직 테스트
+ * ## 테스트 대상
+ * - decideEnemyMode: 공격/방어/균형 모드 결정
+ * - generateEnemyActions: 행동력 기반 카드 선택
+ * - shouldEnemyOverdrive: 폭주 조건 판정
+ * - assignSourceUnitToActions: 유닛별 행동 할당
+ * - expandActionsWithGhosts: 유령 카드 확장
+ *
+ * ## 주요 테스트 케이스
+ * - 적 종류별 모드 가중치 (구울=공격적, 탈영병=전술적)
+ * - 행동력 내 카드 조합 선택
+ * - HP 임계치 기반 폭주 판정
+ * - 다중 유닛 행동 분배
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';

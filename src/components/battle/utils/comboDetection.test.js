@@ -1,7 +1,16 @@
 /**
- * comboDetection.test.js
+ * @file comboDetection.test.js
+ * @description 포커 콤보 감지 로직 테스트
  *
- * 포커 콤보 감지 로직 테스트
+ * ## 테스트 대상
+ * - detectPokerCombo: actionCost 기반 포커 패 감지
+ * - applyPokerBonus: 콤보 보너스 카드 강화
+ *
+ * ## 주요 테스트 케이스
+ * - 하이카드/페어/투페어/트리플/풀하우스/포카드/파이브카드
+ * - 플러쉬 (동일 타입 4장 이상)
+ * - bonusKeys 정확한 설정
+ * - null/undefined/빈 배열 안전 처리
  */
 
 import { describe, it, expect } from 'vitest';

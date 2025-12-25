@@ -1,7 +1,20 @@
 /**
- * etherCalculations.test.js
+ * @file etherCalculations.test.js
+ * @description 에테르 계산 로직 테스트
  *
- * 에테르 계산 로직 테스트
+ * ## 테스트 대상
+ * - COMBO_MULTIPLIERS: 콤보별 에테르 배율 상수
+ * - CARD_ETHER_BY_RARITY: 레어리티별 에테르 획득량
+ * - applyEtherDeflation: 디플레이션 (반복 사용 감소)
+ * - getCardEtherGain: 카드 1장 에테르 계산
+ * - calcCardsEther: 카드 배열 총 에테르
+ * - calculateComboEtherGain: 콤보 최종 에테르
+ *
+ * ## 주요 테스트 케이스
+ * - 디플레이션 배율 (100% → 80% → 64%)
+ * - 레어리티별 에테르 (common=10, rare=25, legendary=500)
+ * - actionCost 보너스 에테르
+ * - 콤보 배율 적용 (페어 2x, 트리플 3x 등)
  */
 
 import { describe, it, expect } from 'vitest';
