@@ -1,5 +1,5 @@
 /**
- * @file battleReducerActions.js
+ * @file battleReducerActions.ts
  * @description 전투 리듀서 액션 타입 정의
  *
  * ## 액션 카테고리
@@ -9,6 +9,9 @@
  * - 에테르/토큰
  */
 
+import type { Card, Relic, Token } from '../../../types';
+
+/** 액션 타입 상수 */
 export const ACTIONS = {
   // === 플레이어/적 상태 ===
   SET_PLAYER: 'SET_PLAYER',
@@ -172,4 +175,267 @@ export const ACTIONS = {
   RESET_TURN: 'RESET_TURN',
   RESET_ETHER_ANIMATION: 'RESET_ETHER_ANIMATION',
   RESET_BATTLE: 'RESET_BATTLE',
-};
+} as const;
+
+/** 액션 타입 키 */
+export type ActionType = keyof typeof ACTIONS;
+
+/** 액션 값 타입 */
+export type ActionValue = typeof ACTIONS[ActionType];
+
+// ==================== 타입 안전 액션 정의 ====================
+
+/** 플레이어 상태 */
+interface PlayerState {
+  hp: number;
+  maxHp: number;
+  block: number;
+  tokens: Token[];
+  energy: number;
+  maxEnergy: number;
+  strength?: number;
+  agility?: number;
+  [key: string]: unknown;
+}
+
+/** 적 상태 */
+interface EnemyState {
+  hp: number;
+  maxHp: number;
+  block: number;
+  tokens: Token[];
+  units?: EnemyUnitState[];
+  [key: string]: unknown;
+}
+
+/** 적 유닛 상태 */
+interface EnemyUnitState {
+  unitId: number;
+  hp: number;
+  maxHp: number;
+  block: number;
+  tokens: Token[];
+  [key: string]: unknown;
+}
+
+/** 전투 페이즈 */
+export type BattlePhase =
+  | 'select' | 'confirm' | 'resolve' | 'execution'
+  | 'turnEnd' | 'etherCalc' | 'victory' | 'defeat';
+
+/** 정렬 타입 */
+export type SortType = 'speed' | 'cost' | 'order';
+
+/** 에테르 계산 페이즈 */
+export type EtherCalcPhase =
+  | 'base' | 'combo' | 'multiplier' | 'deflation'
+  | 'transfer' | 'final' | null;
+
+/** 다음 턴 효과 */
+interface NextTurnEffects {
+  player: Record<string, unknown>;
+  enemy: Record<string, unknown>;
+}
+
+/** 피해 미리보기 */
+interface PreviewDamage {
+  value: number;
+  lethal: boolean;
+  overkill: boolean;
+}
+
+/** 통찰 배지 */
+interface InsightBadge {
+  level: number;
+  dir: 'up' | 'down';
+  show: boolean;
+  key: number;
+}
+
+/** 적 계획 */
+interface EnemyPlan {
+  actions: Card[];
+  mode: string | null;
+}
+
+// ==================== 액션 유니온 타입 ====================
+
+/** 플레이어/적 상태 액션 */
+type PlayerEnemyAction =
+  | { type: typeof ACTIONS.SET_PLAYER; payload: PlayerState }
+  | { type: typeof ACTIONS.UPDATE_PLAYER; payload: Partial<PlayerState> }
+  | { type: typeof ACTIONS.SET_ENEMY; payload: EnemyState }
+  | { type: typeof ACTIONS.UPDATE_ENEMY; payload: Partial<EnemyState> }
+  | { type: typeof ACTIONS.SET_ENEMY_INDEX; payload: number }
+  | { type: typeof ACTIONS.SET_SELECTED_TARGET_UNIT; payload: number }
+  | { type: typeof ACTIONS.SET_ENEMY_UNITS; payload: EnemyUnitState[] }
+  | { type: typeof ACTIONS.UPDATE_ENEMY_UNIT; payload: { unitId: number; updates: Partial<EnemyUnitState> } };
+
+/** 페이즈 액션 */
+type PhaseAction =
+  | { type: typeof ACTIONS.SET_PHASE; payload: BattlePhase };
+
+/** 카드 관리 액션 */
+type CardAction =
+  | { type: typeof ACTIONS.SET_HAND; payload: Card[] }
+  | { type: typeof ACTIONS.SET_SELECTED; payload: Card[] }
+  | { type: typeof ACTIONS.ADD_SELECTED; payload: Card }
+  | { type: typeof ACTIONS.REMOVE_SELECTED; payload: number }
+  | { type: typeof ACTIONS.SET_CAN_REDRAW; payload: boolean }
+  | { type: typeof ACTIONS.SET_SORT_TYPE; payload: SortType }
+  | { type: typeof ACTIONS.SET_VANISHED_CARDS; payload: Card[] }
+  | { type: typeof ACTIONS.ADD_VANISHED_CARD; payload: Card }
+  | { type: typeof ACTIONS.SET_USED_CARD_INDICES; payload: number[] }
+  | { type: typeof ACTIONS.SET_DISAPPEARING_CARDS; payload: number[] }
+  | { type: typeof ACTIONS.SET_HIDDEN_CARDS; payload: number[] }
+  | { type: typeof ACTIONS.SET_DISABLED_CARD_INDICES; payload: number[] }
+  | { type: typeof ACTIONS.SET_CARD_USAGE_COUNT; payload: Record<string, number> }
+  | { type: typeof ACTIONS.INCREMENT_CARD_USAGE; payload: string };
+
+/** 덱/무덤 액션 */
+type DeckAction =
+  | { type: typeof ACTIONS.SET_DECK; payload: Card[] }
+  | { type: typeof ACTIONS.SET_DISCARD_PILE; payload: Card[] }
+  | { type: typeof ACTIONS.ADD_TO_DISCARD; payload: Card }
+  | { type: typeof ACTIONS.DRAW_FROM_DECK; payload: number }
+  | { type: typeof ACTIONS.SHUFFLE_DISCARD_INTO_DECK };
+
+/** 적 계획/큐 액션 */
+type QueueAction =
+  | { type: typeof ACTIONS.SET_ENEMY_PLAN; payload: EnemyPlan }
+  | { type: typeof ACTIONS.SET_FIXED_ORDER; payload: unknown[] | null }
+  | { type: typeof ACTIONS.SET_QUEUE; payload: unknown[] }
+  | { type: typeof ACTIONS.SET_Q_INDEX; payload: number }
+  | { type: typeof ACTIONS.INCREMENT_Q_INDEX };
+
+/** 로그/이벤트 액션 */
+type LogAction =
+  | { type: typeof ACTIONS.ADD_LOG; payload: string }
+  | { type: typeof ACTIONS.SET_LOG; payload: string[] }
+  | { type: typeof ACTIONS.SET_ACTION_EVENTS; payload: Record<string, unknown> };
+
+/** 턴 액션 */
+type TurnAction =
+  | { type: typeof ACTIONS.SET_TURN_NUMBER; payload: number }
+  | { type: typeof ACTIONS.INCREMENT_TURN };
+
+/** 에테르 액션 */
+type EtherAction =
+  | { type: typeof ACTIONS.SET_TURN_ETHER_ACCUMULATED; payload: number }
+  | { type: typeof ACTIONS.SET_ENEMY_TURN_ETHER_ACCUMULATED; payload: number }
+  | { type: typeof ACTIONS.SET_NET_ETHER_DELTA; payload: number | null }
+  | { type: typeof ACTIONS.SET_ETHER_ANIMATION_PTS; payload: number | null }
+  | { type: typeof ACTIONS.SET_ETHER_FINAL_VALUE; payload: number | null }
+  | { type: typeof ACTIONS.SET_ENEMY_ETHER_FINAL_VALUE; payload: number | null }
+  | { type: typeof ACTIONS.SET_ETHER_CALC_PHASE; payload: EtherCalcPhase }
+  | { type: typeof ACTIONS.SET_ENEMY_ETHER_CALC_PHASE; payload: EtherCalcPhase }
+  | { type: typeof ACTIONS.SET_CURRENT_DEFLATION; payload: number | null }
+  | { type: typeof ACTIONS.SET_ENEMY_CURRENT_DEFLATION; payload: number | null }
+  | { type: typeof ACTIONS.SET_ETHER_PULSE; payload: boolean }
+  | { type: typeof ACTIONS.SET_PLAYER_TRANSFER_PULSE; payload: boolean }
+  | { type: typeof ACTIONS.SET_ENEMY_TRANSFER_PULSE; payload: boolean };
+
+/** 기원 액션 */
+type OverdriveAction =
+  | { type: typeof ACTIONS.SET_WILL_OVERDRIVE; payload: boolean }
+  | { type: typeof ACTIONS.SET_PLAYER_OVERDRIVE_FLASH; payload: boolean }
+  | { type: typeof ACTIONS.SET_ENEMY_OVERDRIVE_FLASH; payload: boolean }
+  | { type: typeof ACTIONS.SET_SOUL_SHATTER; payload: boolean };
+
+/** 타임라인 액션 */
+type TimelineAction =
+  | { type: typeof ACTIONS.SET_TIMELINE_PROGRESS; payload: number }
+  | { type: typeof ACTIONS.SET_TIMELINE_INDICATOR_VISIBLE; payload: boolean }
+  | { type: typeof ACTIONS.SET_EXECUTING_CARD_INDEX; payload: number | null };
+
+/** UI 액션 */
+type UIAction =
+  | { type: typeof ACTIONS.SET_IS_SIMPLIFIED; payload: boolean }
+  | { type: typeof ACTIONS.SET_SHOW_CHARACTER_SHEET; payload: boolean }
+  | { type: typeof ACTIONS.TOGGLE_CHARACTER_SHEET }
+  | { type: typeof ACTIONS.SET_SHOW_PTS_TOOLTIP; payload: boolean }
+  | { type: typeof ACTIONS.SET_SHOW_BAR_TOOLTIP; payload: boolean }
+  | { type: typeof ACTIONS.SET_HOVERED_CARD; payload: Card | null }
+  | { type: typeof ACTIONS.SET_TOOLTIP_VISIBLE; payload: boolean }
+  | { type: typeof ACTIONS.SET_PREVIEW_DAMAGE; payload: PreviewDamage }
+  | { type: typeof ACTIONS.SET_PER_UNIT_PREVIEW_DAMAGE; payload: Record<number, PreviewDamage> }
+  | { type: typeof ACTIONS.SET_INSIGHT_BADGE; payload: InsightBadge }
+  | { type: typeof ACTIONS.SET_INSIGHT_ANIM_LEVEL; payload: number }
+  | { type: typeof ACTIONS.SET_INSIGHT_ANIM_PULSE_KEY; payload: number }
+  | { type: typeof ACTIONS.SET_SHOW_INSIGHT_TOOLTIP; payload: boolean }
+  | { type: typeof ACTIONS.SET_HOVERED_ENEMY_ACTION; payload: unknown | null };
+
+/** 상징 액션 */
+type RelicAction =
+  | { type: typeof ACTIONS.SET_ORDERED_RELICS; payload: Relic[] }
+  | { type: typeof ACTIONS.SET_HOVERED_RELIC; payload: string | null }
+  | { type: typeof ACTIONS.SET_RELIC_ACTIVATED; payload: string | null }
+  | { type: typeof ACTIONS.SET_ACTIVE_RELIC_SET; payload: Set<string> }
+  | { type: typeof ACTIONS.SET_MULTIPLIER_PULSE; payload: boolean };
+
+/** 애니메이션 액션 */
+type AnimationAction =
+  | { type: typeof ACTIONS.SET_PLAYER_HIT; payload: boolean }
+  | { type: typeof ACTIONS.SET_ENEMY_HIT; payload: boolean }
+  | { type: typeof ACTIONS.SET_PLAYER_BLOCK_ANIM; payload: boolean }
+  | { type: typeof ACTIONS.SET_ENEMY_BLOCK_ANIM; payload: boolean }
+  | { type: typeof ACTIONS.SET_DESTROYING_ENEMY_CARDS; payload: number[] }
+  | { type: typeof ACTIONS.SET_FREEZING_ENEMY_CARDS; payload: number[] }
+  | { type: typeof ACTIONS.SET_FROZEN_ORDER; payload: number };
+
+/** 자동진행/스냅샷 액션 */
+type ProgressAction =
+  | { type: typeof ACTIONS.SET_AUTO_PROGRESS; payload: boolean }
+  | { type: typeof ACTIONS.SET_RESOLVE_START_PLAYER; payload: PlayerState | null }
+  | { type: typeof ACTIONS.SET_RESOLVE_START_ENEMY; payload: EnemyState | null }
+  | { type: typeof ACTIONS.SET_RESPOND_SNAPSHOT; payload: unknown | null }
+  | { type: typeof ACTIONS.SET_REWIND_USED; payload: boolean }
+  | { type: typeof ACTIONS.SET_RESOLVED_PLAYER_CARDS; payload: number };
+
+/** 기타 액션 */
+type MiscAction =
+  | { type: typeof ACTIONS.SET_POST_COMBAT_OPTIONS; payload: unknown | null }
+  | { type: typeof ACTIONS.SET_NEXT_TURN_EFFECTS; payload: NextTurnEffects }
+  | { type: typeof ACTIONS.UPDATE_NEXT_TURN_EFFECTS; payload: Partial<NextTurnEffects> }
+  | { type: typeof ACTIONS.SET_REFLECTION_STATE; payload: unknown };
+
+/** 피해 분배 액션 */
+type DistributionAction =
+  | { type: typeof ACTIONS.SET_DISTRIBUTION_MODE; payload: boolean }
+  | { type: typeof ACTIONS.SET_PENDING_DISTRIBUTION_CARD; payload: Card | null }
+  | { type: typeof ACTIONS.SET_DAMAGE_DISTRIBUTION; payload: Record<number, number> }
+  | { type: typeof ACTIONS.UPDATE_DAMAGE_DISTRIBUTION; payload: { unitId: number; damage: number } }
+  | { type: typeof ACTIONS.SET_TOTAL_DISTRIBUTABLE_DAMAGE; payload: number }
+  | { type: typeof ACTIONS.RESET_DISTRIBUTION };
+
+/** 토큰 액션 */
+type TokenAction =
+  | { type: typeof ACTIONS.UPDATE_PLAYER_TOKENS; payload: Token[] }
+  | { type: typeof ACTIONS.UPDATE_ENEMY_TOKENS; payload: Token[] };
+
+/** 복합 액션 */
+type ComplexAction =
+  | { type: typeof ACTIONS.RESET_TURN }
+  | { type: typeof ACTIONS.RESET_ETHER_ANIMATION }
+  | { type: typeof ACTIONS.RESET_BATTLE };
+
+/** 모든 배틀 액션 유니온 타입 */
+export type BattleAction =
+  | PlayerEnemyAction
+  | PhaseAction
+  | CardAction
+  | DeckAction
+  | QueueAction
+  | LogAction
+  | TurnAction
+  | EtherAction
+  | OverdriveAction
+  | TimelineAction
+  | UIAction
+  | RelicAction
+  | AnimationAction
+  | ProgressAction
+  | MiscAction
+  | DistributionAction
+  | TokenAction
+  | ComplexAction;

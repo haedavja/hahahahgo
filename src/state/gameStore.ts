@@ -1,9 +1,6 @@
-﻿/**
- * @file gameStore.js
+/**
+ * @file gameStore.ts
  * @description 메인 게임 상태 저장소 (Zustand)
- * @typedef {import('../types').GameState} GameState
- * @typedef {import('../types').Resources} Resources
- * @typedef {import('../types').Card} Card
  *
  * ## 주요 상태
  * - player: 플레이어 스탯 (hp, maxHp, gold, material 등)
@@ -19,7 +16,8 @@
  * - addResources: 자원 추가
  */
 
-import { create } from "zustand";
+import { create, type StateCreator } from "zustand";
+import type { Card, Relic, MapNode, Resources } from "../types";
 import { NEW_EVENT_LIBRARY } from "../data/newEvents";
 import { createInitialState } from "./useGameState";
 import { CARDS, ENEMIES, ENEMY_GROUPS, getRandomEnemy } from "../components/battle/battleData";
@@ -53,7 +51,116 @@ import {
   travelToNode,
 } from "./battleHelpers";
 
-export const useGameStore = create((set, get) => ({
+// ==================== 상태 타입 정의 ====================
+
+/** 플레이어 스탯 */
+export interface PlayerStats {
+  hp: number;
+  maxHp: number;
+  energy: number;
+  maxEnergy: number;
+  handSize: number;
+  strength?: number;
+  agility?: number;
+  insight?: number;
+  etherOverdriveActive?: boolean;
+  [key: string]: unknown;
+}
+
+/** 캐릭터 빌드 */
+export interface CharacterBuild {
+  mainSpecials: string[];
+  subSpecials: string[];
+  cards: Card[];
+  traits: string[];
+  egos: string[];
+  [key: string]: unknown;
+}
+
+/** 맵 상태 */
+export interface MapState {
+  nodes: MapNode[];
+  currentNodeId: string;
+  baseLayer?: number;
+}
+
+/** 활성 전투 */
+export interface ActiveBattle {
+  enemy: unknown;
+  enemyGroup?: unknown;
+  nodeId?: string;
+  [key: string]: unknown;
+}
+
+/** 활성 이벤트 */
+export interface ActiveEvent {
+  id: string;
+  step?: string;
+  nodeId?: string;
+  [key: string]: unknown;
+}
+
+/** 활성 던전 */
+export interface ActiveDungeon {
+  nodeId: string;
+  revealed?: boolean;
+  confirmed?: boolean;
+  dungeonData?: unknown;
+  [key: string]: unknown;
+}
+
+/** 게임 스토어 상태 */
+export interface GameStoreState {
+  // 플레이어 상태
+  player: PlayerStats;
+  resources: Resources;
+  characterBuild: CharacterBuild;
+  relics: Relic[];
+  orderedRelics: Relic[];
+
+  // 맵 상태
+  map: MapState;
+  mapRisk: number;
+
+  // 활성 상태
+  activeBattle: ActiveBattle | null;
+  activeEvent: ActiveEvent | null;
+  activeDungeon: ActiveDungeon | null;
+  activeRest: { nodeId: string } | null;
+  activeShop: { nodeId: string; merchantType: string } | null;
+
+  // 개발자 옵션
+  devDulledLevel: number | null;
+  devForcedCrossroad: string | null;
+  devBattleTokens: Array<{ id: string; stacks: number; target: string }>;
+
+  // 아이템/버프
+  itemBuffs: Record<string, unknown>;
+  pendingNextEvent: unknown | null;
+}
+
+/** 게임 스토어 액션 */
+export interface GameStoreActions {
+  resetRun: () => void;
+  selectNode: (nodeId: string) => void;
+  confirmDungeon: () => void;
+  enterDungeon: () => void;
+  skipDungeon: () => void;
+  startBattle: (config?: unknown) => void;
+  endBattle: (result: unknown) => void;
+  addResources: (resources: Partial<Resources>) => void;
+  updatePlayer: (updates: Partial<PlayerStats>) => void;
+  addRelic: (relic: Relic) => void;
+  removeRelic: (relicId: string) => void;
+  setActiveEvent: (event: ActiveEvent | null) => void;
+  closeEvent: () => void;
+  [key: string]: unknown;
+}
+
+/** 게임 스토어 전체 타입 */
+export type GameStore = GameStoreState & GameStoreActions;
+
+export const useGameStore = create<GameStore>((set, get) => ({
   ...applyInitialRelicEffects(createInitialState()),
   devDulledLevel: null,
   devForcedCrossroad: null,  // 강제할 기로 템플릿 ID (예: 'cliff', 'lockedChest')

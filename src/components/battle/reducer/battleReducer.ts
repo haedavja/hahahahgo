@@ -1,32 +1,29 @@
 /**
- * @file battleReducer.js
+ * @file battleReducer.ts
  * @description 전투 상태 관리 Reducer
- * @typedef {import('../../../types').Card} Card
- * @typedef {import('../../../types').Token} Token
- * @typedef {import('../../../types').BattleState} BattleState
  *
  * 분리된 모듈:
- * - battleReducerState.js: 초기 상태 정의
- * - battleReducerActions.js: 액션 타입 정의
- *
- * @typedef {Object} BattleAction
- * @property {string} type - 액션 타입 (ACTIONS 상수)
- * @property {*} payload - 액션 데이터
+ * - battleReducerState.ts: 초기 상태 정의
+ * - battleReducerActions.ts: 액션 타입 정의
  */
+
+import type { FullBattleState } from './battleReducerState';
 
 // 분리된 모듈에서 import 및 re-export
 export { createInitialState } from './battleReducerState';
+export type { FullBattleState } from './battleReducerState';
 export { ACTIONS } from './battleReducerActions';
-import { createInitialState } from './battleReducerState';
-import { ACTIONS } from './battleReducerActions';
+export type { BattleAction, BattlePhase, SortType, EtherCalcPhase } from './battleReducerActions';
+
+import { ACTIONS, type BattleAction } from './battleReducerActions';
 
 /**
  * 전투 상태 Reducer
- * @param {Object} state - 현재 전투 상태
- * @param {BattleAction} action - 디스패치된 액션
- * @returns {Object} 새로운 상태
+ * @param state - 현재 전투 상태
+ * @param action - 디스패치된 액션
+ * @returns 새로운 상태
  */
-export function battleReducer(state, action) {
+export function battleReducer(state: FullBattleState, action: BattleAction): FullBattleState {
   switch (action.type) {
     // === 플레이어/적 상태 ===
     case ACTIONS.SET_PLAYER:

@@ -1,5 +1,5 @@
 /**
- * @file battleReducerState.js
+ * @file battleReducerState.ts
  * @description 전투 상태 초기값 정의
  *
  * ## 상태 구조
@@ -8,6 +8,213 @@
  * - hand/selected: 카드 관리
  * - ether: 에테르 시스템
  */
+
+import type { Card, Token, Relic } from '../../../types';
+import type { BattlePhase, SortType, EtherCalcPhase } from './battleReducerActions';
+
+// ==================== 상태 타입 정의 ====================
+
+/** 플레이어 상태 */
+export interface PlayerState {
+  hp: number;
+  maxHp: number;
+  block: number;
+  tokens: Token[];
+  energy: number;
+  maxEnergy: number;
+  strength?: number;
+  agility?: number;
+  insight?: number;
+  [key: string]: unknown;
+}
+
+/** 적 상태 */
+export interface EnemyState {
+  hp: number;
+  maxHp: number;
+  block: number;
+  tokens: Token[];
+  units?: EnemyUnitState[];
+  [key: string]: unknown;
+}
+
+/** 적 유닛 상태 */
+export interface EnemyUnitState {
+  unitId: number;
+  hp: number;
+  maxHp: number;
+  block: number;
+  tokens: Token[];
+  [key: string]: unknown;
+}
+
+/** 적 계획 */
+export interface EnemyPlan {
+  actions: Card[];
+  mode: string | null;
+}
+
+/** 다음 턴 효과 */
+export interface NextTurnEffects {
+  player: Record<string, unknown>;
+  enemy: Record<string, unknown>;
+}
+
+/** 피해 미리보기 */
+export interface PreviewDamage {
+  value: number;
+  lethal: boolean;
+  overkill: boolean;
+}
+
+/** 통찰 배지 */
+export interface InsightBadge {
+  level: number;
+  dir: 'up' | 'down';
+  show: boolean;
+  key: number;
+}
+
+/** 전체 전투 상태 */
+export interface FullBattleState {
+  // 플레이어 & 적 상태
+  player: PlayerState;
+  enemy: EnemyState;
+  enemyIndex: number;
+  selectedTargetUnit: number;
+
+  // 전투 페이즈
+  phase: BattlePhase;
+
+  // 카드 관리
+  hand: Card[];
+  selected: Card[];
+  canRedraw: boolean;
+  sortType: SortType;
+  vanishedCards: Card[];
+  usedCardIndices: number[];
+  disappearingCards: number[];
+  hiddenCards: number[];
+  disabledCardIndices: number[];
+  cardUsageCount: Record<string, number>;
+
+  // 덱/무덤 시스템
+  deck: Card[];
+  discardPile: Card[];
+
+  // 적 계획
+  enemyPlan: EnemyPlan;
+
+  // 실행 큐 & 순서
+  fixedOrder: unknown[] | null;
+  queue: unknown[];
+  qIndex: number;
+
+  // 전투 로그 & 이벤트
+  log: string[];
+  actionEvents: Record<string, unknown>;
+
+  // 턴 관리
+  turnNumber: number;
+
+  // 에테르 시스템
+  turnEtherAccumulated: number;
+  enemyTurnEtherAccumulated: number;
+  netEtherDelta: number | null;
+  etherAnimationPts: number | null;
+  etherFinalValue: number | null;
+  enemyEtherFinalValue: number | null;
+  etherCalcPhase: EtherCalcPhase;
+  enemyEtherCalcPhase: EtherCalcPhase;
+  currentDeflation: number | null;
+  enemyCurrentDeflation: number | null;
+  etherPulse: boolean;
+  playerTransferPulse: boolean;
+  enemyTransferPulse: boolean;
+
+  // 기원(Overdrive) 연출
+  willOverdrive: boolean;
+  playerOverdriveFlash: boolean;
+  enemyOverdriveFlash: boolean;
+  soulShatter: boolean;
+
+  // 타임라인
+  timelineProgress: number;
+  timelineIndicatorVisible: boolean;
+  executingCardIndex: number | null;
+
+  // UI 상태
+  isSimplified: boolean;
+  showCharacterSheet: boolean;
+  showPtsTooltip: boolean;
+  showBarTooltip: boolean;
+
+  // 상징
+  orderedRelics: Relic[];
+
+  // 전투 종료 후
+  postCombatOptions: unknown | null;
+
+  // 다음 턴 효과
+  nextTurnEffects: NextTurnEffects;
+
+  // 애니메이션
+  playerHit: boolean;
+  enemyHit: boolean;
+  playerBlockAnim: boolean;
+  enemyBlockAnim: boolean;
+
+  // 자동진행 & 스냅샷
+  autoProgress: boolean;
+  resolveStartPlayer: PlayerState | null;
+  resolveStartEnemy: EnemyState | null;
+  respondSnapshot: unknown | null;
+  rewindUsed: boolean;
+
+  // 상징 UI
+  hoveredRelic: string | null;
+  relicActivated: string | null;
+  activeRelicSet: Set<string>;
+  multiplierPulse: boolean;
+
+  // 전투 진행
+  resolvedPlayerCards: number;
+
+  // 카드 툴팁
+  hoveredCard: Card | null;
+  tooltipVisible: boolean;
+  previewDamage: PreviewDamage;
+  perUnitPreviewDamage: Record<number, PreviewDamage>;
+
+  // 통찰 시스템
+  insightBadge: InsightBadge;
+  insightAnimLevel: number;
+  insightAnimPulseKey: number;
+  showInsightTooltip: boolean;
+
+  // 적 행동 툴팁
+  hoveredEnemyAction: unknown | null;
+
+  // 카드 파괴/빙결 애니메이션
+  destroyingEnemyCards: number[];
+  freezingEnemyCards: number[];
+  frozenOrder: number;
+
+  // 피해 분배 시스템
+  distributionMode: boolean;
+  pendingDistributionCard: Card | null;
+  damageDistribution: Record<number, number>;
+  totalDistributableDamage: number;
+}
+
+/** 초기 상태 생성 옵션 */
+export interface CreateInitialStateOptions {
+  initialPlayerState: PlayerState;
+  initialEnemyState: EnemyState;
+  initialPlayerRelics?: Relic[];
+  simplifiedMode?: boolean;
+  sortType?: SortType;
+}
 
 /**
  * 초기 상태 생성 함수
@@ -18,7 +225,7 @@ export const createInitialState = ({
   initialPlayerRelics = [],
   simplifiedMode = false,
   sortType = 'cost'
-}) => ({
+}: CreateInitialStateOptions): FullBattleState => ({
   // === 플레이어 & 적 상태 ===
   player: initialPlayerState,
   enemy: initialEnemyState,
