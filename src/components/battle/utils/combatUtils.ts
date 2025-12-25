@@ -8,23 +8,8 @@
  * - 민첩 스탯 적용
  */
 
+import type { OrderingCardInfo, CombatQueueItem, EtherSlotCalculator } from '../../../types';
 import { applyAgility } from '../../../lib/agilityUtils';
-
-/** 카드 정보 */
-interface CardInfo {
-  speedCost: number;
-  [key: string]: unknown;
-}
-
-/** 정렬된 큐 항목 */
-interface QueueItem {
-  actor: 'player' | 'enemy';
-  card: CardInfo;
-  sp: number;
-  idx: number;
-  originalSpeed: number;
-  finalSpeed: number;
-}
 
 /**
  * 플레이어와 적의 카드를 속도 순서대로 정렬
@@ -35,12 +20,12 @@ interface QueueItem {
  * @returns 정렬된 행동 큐
  */
 export function sortCombinedOrderStablePF(
-  playerCards: CardInfo[] | null | undefined,
-  enemyCards: CardInfo[] | null | undefined,
+  playerCards: OrderingCardInfo[] | null | undefined,
+  enemyCards: OrderingCardInfo[] | null | undefined,
   playerAgility: number = 0,
   enemyAgility: number = 0
-): QueueItem[] {
-  const q: QueueItem[] = [];
+): CombatQueueItem[] {
+  const q: CombatQueueItem[] = [];
   let ps = 0, es = 0;
 
   (playerCards || []).forEach((c, idx) => {
@@ -63,9 +48,6 @@ export function sortCombinedOrderStablePF(
 
   return q;
 }
-
-/** 에테르 슬롯 계산 함수 타입 */
-type EtherSlotCalculator = (pts: number) => number;
 
 /**
  * 에테르 슬롯 계산 (인플레이션 적용)

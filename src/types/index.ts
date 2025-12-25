@@ -1397,3 +1397,149 @@ export interface OrderItem {
   sp?: number;
   finalSpeed?: number;
 }
+
+// ==================== 전투 유틸리티 타입 ====================
+
+/** 정렬된 큐 아이템 */
+export interface CombatQueueItem {
+  actor: 'player' | 'enemy';
+  card: OrderingCardInfo;
+  sp: number;
+  idx: number;
+  originalSpeed: number;
+  finalSpeed: number;
+}
+
+/** 에테르 슬롯 계산 함수 타입 */
+export type EtherSlotCalculator = (pts: number) => number;
+
+// ==================== 턴 종료 상태 업데이트 타입 ====================
+
+/** 턴 종료용 액션 */
+export interface TurnEndAction {
+  actor: 'player' | 'enemy';
+  card?: { id?: string; [key: string]: unknown };
+}
+
+/** 턴 종료용 콤보 */
+export interface TurnEndCombo {
+  name?: string;
+}
+
+/** 턴 종료용 유닛 */
+export interface TurnEndUnit {
+  block?: number;
+  [key: string]: unknown;
+}
+
+/** 턴 종료용 플레이어 */
+export interface TurnEndPlayer {
+  etherOverflow?: number;
+  [key: string]: unknown;
+}
+
+/** 턴 종료용 적 */
+export interface TurnEndEnemy {
+  hp: number;
+  units?: TurnEndUnit[];
+  [key: string]: unknown;
+}
+
+/** 콤보 사용 카운트 */
+export interface ComboUsageCount {
+  [key: string]: number;
+}
+
+/** 턴 종료 플레이어 파라미터 */
+export interface TurnEndPlayerParams {
+  comboUsageCount: ComboUsageCount;
+  etherPts: number;
+  etherOverflow?: number;
+  etherMultiplier?: number;
+}
+
+/** 턴 종료 적 파라미터 */
+export interface TurnEndEnemyParams {
+  comboUsageCount: ComboUsageCount;
+  etherPts: number;
+}
+
+/** 승리 조건 결과 */
+export interface VictoryConditionResult {
+  isVictory: boolean;
+  isEtherVictory: boolean;
+  delay: number;
+}
+
+// ==================== 기절 처리 타입 ====================
+
+/** 기절 처리용 카드 정보 */
+export interface StunCardInfo {
+  name?: string;
+  [key: string]: unknown;
+}
+
+/** 기절 처리용 액션 */
+export interface StunAction {
+  card: StunCardInfo;
+  sp?: number;
+  actor: 'player' | 'enemy';
+}
+
+/** 기절 처리용 큐 아이템 */
+export interface StunQueueItem {
+  card?: StunCardInfo;
+  sp?: number;
+  actor?: 'player' | 'enemy';
+}
+
+/** 기절 이벤트 */
+export interface StunEvent {
+  actor: 'player' | 'enemy';
+  card: string;
+  type: 'stun';
+  msg: string;
+}
+
+/** 기절 처리 결과 */
+export interface StunProcessingResult {
+  updatedQueue: StunQueueItem[];
+  stunEvent: StunEvent | null;
+}
+
+/** 기절 처리 파라미터 */
+export interface StunProcessingParams {
+  action: StunAction;
+  queue: StunQueueItem[];
+  currentQIndex: number;
+  addLog: LogFunction;
+}
+
+// ==================== 방어 로직 타입 ====================
+
+/** 방어용 카드 (확장) */
+export interface DefenseCard extends Card {
+  isGhost?: boolean;
+  ignoreStatus?: boolean;
+  ignoreStrength?: boolean;
+  crossBonus?: {
+    type: string;
+    value?: number;
+  };
+  counter?: number;
+  [key: string]: unknown;
+}
+
+/** 방어용 행동자 */
+export interface DefenseActor extends Combatant {
+  def?: boolean;
+  tokens?: Record<string, unknown>;
+  [key: string]: unknown;
+}
+
+/** 방어용 전투 컨텍스트 */
+export interface DefenseBattleContext extends BattleContext {
+  currentSp?: number;
+  queue?: Array<{ actor: string; sp?: number }>;
+  currentQIndex?: number;
+}

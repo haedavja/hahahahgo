@@ -9,41 +9,13 @@
  */
 
 import type {
-  Card,
-  Combatant,
-  BattleEvent,
-  BattleContext,
+  DefenseCard,
+  DefenseActor,
+  DefenseBattleContext,
   DefenseResult
 } from '../../../types';
 import { applyTokenEffectsToCard, consumeTokens } from '../../../lib/tokenEffects';
 import { calculateGrowingDefense, hasSpecial } from '../utils/cardSpecialEffects';
-
-/** 방어 카드 (확장) */
-interface DefenseCard extends Card {
-  isGhost?: boolean;
-  ignoreStatus?: boolean;
-  ignoreStrength?: boolean;
-  crossBonus?: {
-    type: string;
-    value?: number;
-  };
-  counter?: number;
-  [key: string]: unknown;
-}
-
-/** 방어 행동자 */
-interface DefenseActor extends Combatant {
-  def?: boolean;
-  tokens?: Record<string, unknown>;
-  [key: string]: unknown;
-}
-
-/** 방어 전투 컨텍스트 */
-interface DefenseBattleContext extends BattleContext {
-  currentSp?: number;
-  queue?: Array<{ actor: string; sp?: number }>;
-  currentQIndex?: number;
-}
 
 /**
  * 방어 행동 적용

@@ -7,47 +7,13 @@
  * - 범위: STUN_RANGE (5)
  */
 
-/** 카드 정보 */
-interface CardInfo {
-  name?: string;
-  [key: string]: unknown;
-}
-
-/** 액션 정보 */
-interface Action {
-  card: CardInfo;
-  sp?: number;
-  actor: 'player' | 'enemy';
-}
-
-/** 큐 아이템 */
-interface QueueItem {
-  card?: CardInfo;
-  sp?: number;
-  actor?: 'player' | 'enemy';
-}
-
-/** 기절 이벤트 */
-interface StunEvent {
-  actor: 'player' | 'enemy';
-  card: string;
-  type: 'stun';
-  msg: string;
-}
-
-/** 기절 처리 결과 */
-interface StunProcessingResult {
-  updatedQueue: QueueItem[];
-  stunEvent: StunEvent | null;
-}
-
-/** 기절 처리 파라미터 */
-interface StunProcessingParams {
-  action: Action;
-  queue: QueueItem[];
-  currentQIndex: number;
-  addLog: (msg: string) => void;
-}
+import type {
+  StunAction,
+  StunQueueItem,
+  StunEvent,
+  StunProcessingResult,
+  StunProcessingParams
+} from '../../../types';
 
 /** 기절 효과 범위 (타임라인 기준) */
 export const STUN_RANGE = 5;
