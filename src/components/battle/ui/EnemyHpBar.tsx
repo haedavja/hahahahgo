@@ -6,35 +6,15 @@
 
 import { FC } from 'react';
 import { TokenDisplay } from './TokenDisplay';
+import type {
+  PreviewDamage,
+  TokenState,
+  HpBarEnemy as Enemy,
+  GroupedEnemyMember
+} from '../../../types';
 
 interface Battle {
   phase: string;
-}
-
-interface PreviewDamage {
-  value: number;
-  lethal?: boolean;
-  overkill?: boolean;
-}
-
-interface TokenState {
-  usage: unknown[];
-  turn: unknown[];
-  permanent: unknown[];
-}
-
-interface Enemy {
-  hp: number;
-  maxHp: number;
-  block: number;
-  tokens?: TokenState;
-  etherCapacity?: number;
-}
-
-interface GroupedEnemyMember {
-  name?: string;
-  count: number;
-  emoji?: string;
 }
 
 interface EnemyHpBarProps {

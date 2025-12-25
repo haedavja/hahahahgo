@@ -7,12 +7,7 @@
 
 import { FC, MouseEvent } from 'react';
 import { TokenDisplay } from './TokenDisplay';
-
-interface TokenState {
-  usage: unknown[];
-  turn: unknown[];
-  permanent: unknown[];
-}
+import type { TokenState, PreviewDamage } from '../../../types';
 
 interface Unit {
   unitId: number;
@@ -25,17 +20,7 @@ interface Unit {
   tokens?: TokenState;
 }
 
-interface UnitPreviewDamage {
-  value: number;
-  lethal?: boolean;
-  overkill?: boolean;
-}
-
-interface PreviewDamage {
-  value: number;
-  lethal?: boolean;
-  overkill?: boolean;
-}
+interface UnitPreviewDamage extends PreviewDamage {}
 
 interface EnemyUnitsDisplayProps {
   units?: Unit[];

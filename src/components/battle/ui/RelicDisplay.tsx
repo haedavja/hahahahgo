@@ -5,35 +5,13 @@
  */
 
 import { FC, DragEvent } from 'react';
-
-interface RelicEffect {
-  type?: string;
-  etherCardMultiplier?: number;
-  etherMultiplier?: number;
-}
-
-interface Relic {
-  emoji: string;
-  name: string;
-  description: string;
-  rarity: string;
-  effects?: RelicEffect;
-}
-
-interface RelicsMap {
-  [key: string]: Relic;
-}
-
-interface RelicRarities {
-  COMMON: string;
-  RARE: string;
-  SPECIAL: string;
-  LEGENDARY: string;
-}
-
-interface Actions {
-  setRelicActivated: (relicId: string | null) => void;
-}
+import type {
+  UIRelicEffect as RelicEffect,
+  UIRelic as Relic,
+  RelicsMap,
+  RelicRarities,
+  RelicDisplayActions as Actions
+} from '../../../types';
 
 interface RelicDisplayProps {
   orderedRelicList: string[] | null;

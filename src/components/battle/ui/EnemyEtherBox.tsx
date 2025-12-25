@@ -6,21 +6,10 @@
 
 import { FC } from 'react';
 import { DeflationBadge } from './DeflationBadge';
-
-interface EnemyCombo {
-  name: string;
-}
+import type { ComboInfo as EnemyCombo, InsightReveal, UIDeflation as Deflation } from '../../../types';
 
 interface Battle {
   phase: string;
-}
-
-interface InsightReveal {
-  level?: number;
-}
-
-interface Deflation {
-  multiplier: number;
 }
 
 interface EnemyEtherBoxProps {

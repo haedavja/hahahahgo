@@ -6,10 +6,7 @@
 
 import { FC } from 'react';
 import { DEFLATION_COLORS } from './constants/colors';
-
-interface Deflation {
-  multiplier: number;
-}
+import type { UIDeflation as Deflation } from '../../../types';
 
 interface DeflationBadgeProps {
   deflation: Deflation | null;

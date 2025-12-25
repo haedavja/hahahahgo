@@ -6,13 +6,9 @@
 
 import { useState, FC, ReactNode } from 'react';
 import { TokenDisplay } from './TokenDisplay';
+import type { TokenState, HpBarPlayer as Player, StatInfo } from '../../../types';
 
-interface InsightLevelInfo {
-  name: string;
-  emoji: string;
-  color: string;
-  description: string;
-}
+interface InsightLevelInfo extends StatInfo {}
 
 // 통찰 레벨에 따른 이름과 이모지
 const getInsightLevelInfo = (level: number): InsightLevelInfo => {
@@ -62,13 +58,6 @@ const getInsightLevelInfo = (level: number): InsightLevelInfo => {
   };
   return info[level.toString()] || info['0'];
 };
-
-interface StatInfo {
-  name: string;
-  emoji: string;
-  color: string;
-  description: string;
-}
 
 interface StatTooltipProps {
   stat: StatInfo;
@@ -126,22 +115,6 @@ const StatTooltip: FC<StatTooltipProps> = ({ stat, children }) => {
     </span>
   );
 };
-
-interface TokenState {
-  usage: unknown[];
-  turn: unknown[];
-  permanent: unknown[];
-}
-
-interface Player {
-  hp: number;
-  maxHp: number;
-  block: number;
-  strength?: number;
-  etherMultiplier?: number;
-  etherOverflow?: number;
-  tokens?: TokenState;
-}
 
 interface PlayerHpBarProps {
   player: Player;

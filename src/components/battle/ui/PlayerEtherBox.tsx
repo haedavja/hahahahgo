@@ -6,17 +6,10 @@
 
 import { FC } from 'react';
 import { DeflationBadge } from './DeflationBadge';
-
-interface CurrentCombo {
-  name: string;
-}
+import type { ComboInfo as CurrentCombo, UIDeflation as Deflation } from '../../../types';
 
 interface Battle {
   phase: string;
-}
-
-interface Deflation {
-  multiplier: number;
 }
 
 interface PlayerEtherBoxProps {

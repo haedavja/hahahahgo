@@ -13,28 +13,7 @@ import { TraitBadgeList } from './TraitBadge';
 import { CardStatsSidebar } from './CardStatsSidebar';
 import { Sword, Shield } from './BattleIcons';
 import { TRAITS } from '../battleData';
-
-interface Card {
-  id: string;
-  name: string;
-  type: string;
-  actionCost: number;
-  speedCost: number;
-  damage?: number;
-  block?: number;
-  hits?: number;
-  description?: string;
-  traits?: string[];
-  icon?: FC<{ size?: number; className?: string }>;
-  __isMainSpecial?: boolean;
-  __isSubSpecial?: boolean;
-  __uid?: string;
-}
-
-interface CharacterBuild {
-  mainSpecial?: string;
-  subSpecial?: string;
-}
+import type { PopupCard as Card, CharacterBuild } from '../../../types';
 
 // 카드 타입에 따른 CSS 클래스 반환 (공격/범용/특수)
 const getCardTypeClass = (type: string): string => {

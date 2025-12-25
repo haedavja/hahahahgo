@@ -2736,3 +2736,267 @@ export interface EtherAnimPlayer {
 export interface EtherCalcAnimActions {
   setEtherCalcPhase: (phase: AnimEtherCalcPhase) => void;
 }
+
+// ==================== UI 컴포넌트 타입 ====================
+
+/** 아이콘 컴포넌트 Props */
+export interface IconProps {
+  size?: number;
+  className?: string;
+  strokeWidth?: number;
+}
+
+/** 토큰 상태 (UI용) */
+export interface TokenState {
+  usage: unknown[];
+  turn: unknown[];
+  permanent: unknown[];
+}
+
+/** 토큰 데이터 (UI용) */
+export interface TokenData {
+  id: string;
+  name: string;
+  emoji: string;
+  description: string;
+  stacks: number;
+  durationType: 'usage' | 'turn' | 'permanent';
+  category: 'positive' | 'negative' | 'neutral';
+}
+
+/** 토큰 엔티티 (UI용) */
+export interface TokenEntity {
+  tokens?: TokenState;
+  [key: string]: unknown;
+}
+
+/** 타임라인 액션 */
+export interface TimelineAction {
+  sp: number;
+  card: TimelineCard;
+  actor?: string;
+}
+
+/** 타임라인 카드 */
+export interface TimelineCard {
+  id?: string;
+  name?: string;
+  type: string;
+  damage?: number;
+  block?: number;
+  hits?: number;
+  speedCost?: number;
+  ignoreStrength?: boolean;
+  traits?: string[];
+  icon?: React.FC<IconProps>;
+}
+
+/** 패리 상태 */
+export interface ParryState {
+  active: boolean;
+  centerSp: number;
+  maxSp: number;
+}
+
+/** 호버된 적 행동 */
+export interface HoveredEnemyAction {
+  action: TimelineCard | null;
+  idx: number;
+  left: number;
+  top: number;
+  pageX: number;
+  pageY: number;
+}
+
+/** 타임라인 표시 액션 */
+export interface TimelineDisplayActions {
+  setHoveredEnemyAction: (action: HoveredEnemyAction | null) => void;
+}
+
+/** 통찰 공개 정보 */
+export interface InsightReveal {
+  level?: number;
+}
+
+/** 타임라인 플레이어 */
+export interface TimelinePlayer {
+  maxSpeed?: number;
+  strength?: number;
+}
+
+/** 타임라인 적 */
+export interface TimelineEnemy {
+  maxSpeed?: number;
+}
+
+/** 타임라인 전투 상태 */
+export interface TimelineBattle {
+  phase: string;
+  queue?: TimelineAction[];
+}
+
+/** 그룹화된 적 멤버 */
+export interface GroupedEnemyMember {
+  name?: string;
+  count: number;
+  emoji?: string;
+}
+
+/** HP바 플레이어 상태 */
+export interface HpBarPlayer {
+  hp: number;
+  maxHp: number;
+  block: number;
+  strength?: number;
+  etherMultiplier?: number;
+  etherOverflow?: number;
+  tokens?: TokenState;
+}
+
+/** HP바 적 상태 */
+export interface HpBarEnemy {
+  hp: number;
+  maxHp: number;
+  block: number;
+  tokens?: TokenState;
+  etherCapacity?: number;
+}
+
+/** 상태 정보 (툴팁용) */
+export interface StatInfo {
+  name: string;
+  emoji: string;
+  color: string;
+  description: string;
+}
+
+/** 손패 카드 */
+export interface HandCard {
+  id: string;
+  name: string;
+  type: string;
+  actionCost: number;
+  speedCost: number;
+  damage?: number;
+  block?: number;
+  description?: string;
+  traits?: HandCardTrait[];
+  icon?: React.FC<IconProps>;
+  __handUid?: string;
+  __uid?: string;
+  __isMainSpecial?: boolean;
+  __isSubSpecial?: boolean;
+  __targetUnitId?: number;
+}
+
+/** 손패 카드 특성 */
+export interface HandCardTrait {
+  id: string;
+  name?: string;
+  description?: string;
+}
+
+/** 손패 유닛 */
+export interface HandUnit {
+  unitId: number;
+  name: string;
+  emoji?: string;
+  hp: number;
+  maxHp: number;
+}
+
+/** 손패 전투 상태 */
+export interface HandBattle {
+  phase: string;
+  queue: HandAction[];
+}
+
+/** 손패 플레이어 상태 */
+export interface HandPlayer {
+  hp: number;
+  energy?: number;
+  maxEnergy?: number;
+  strength?: number;
+  comboUsageCount?: Record<string, number>;
+}
+
+/** 손패 적 상태 */
+export interface HandEnemy {
+  hp: number;
+}
+
+/** 손패 액션 */
+export interface HandAction {
+  actor: 'player' | 'enemy';
+  card: HandCard;
+  speed?: number;
+}
+
+/** 콤보 정보 */
+export interface ComboInfo {
+  name: string;
+  bonusKeys?: number[];
+}
+
+/** 디플레이션 (UI용) */
+export interface UIDeflation {
+  multiplier: number;
+}
+
+/** 상징 효과 (UI용) */
+export interface UIRelicEffect {
+  type?: string;
+  etherCardMultiplier?: number;
+  etherMultiplier?: number;
+}
+
+/** 상징 (UI용) */
+export interface UIRelic {
+  emoji: string;
+  name: string;
+  description: string;
+  rarity: string;
+  effects?: UIRelicEffect;
+}
+
+/** 상징 맵 */
+export interface RelicsMap {
+  [key: string]: UIRelic;
+}
+
+/** 상징 희귀도 상수 */
+export interface RelicRarities {
+  COMMON: string;
+  RARE: string;
+  SPECIAL: string;
+  LEGENDARY: string;
+}
+
+/** 상징 표시 액션 */
+export interface RelicDisplayActions {
+  setRelicActivated: (relicId: string | null) => void;
+}
+
+/** 팝업 카드 */
+export interface PopupCard {
+  id: string;
+  name: string;
+  type: string;
+  actionCost: number;
+  speedCost: number;
+  damage?: number;
+  block?: number;
+  hits?: number;
+  description?: string;
+  traits?: string[];
+  icon?: React.FC<IconProps>;
+  __isMainSpecial?: boolean;
+  __isSubSpecial?: boolean;
+  __uid?: string;
+}
+
+/** 캐릭터 빌드 */
+export interface CharacterBuild {
+  mainSpecial?: string;
+  subSpecial?: string;
+}

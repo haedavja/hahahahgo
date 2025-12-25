@@ -6,6 +6,11 @@
  */
 
 import { useState, useEffect, FC } from 'react';
+import type {
+  AnomalyEffect,
+  AnomalyDefinition as Anomaly,
+  AnomalyWithLevel
+} from '../../../types';
 
 interface AudioContextConstructor {
   new (): AudioContext;
@@ -84,24 +89,6 @@ const playWarningSound = (): void => {
     console.warn('Warning sound failed to play:', error);
   }
 };
-
-interface AnomalyEffect {
-  description: string;
-}
-
-interface Anomaly {
-  id: string;
-  name: string;
-  emoji: string;
-  color: string;
-  description: string;
-  getEffect: (level: number) => AnomalyEffect;
-}
-
-interface AnomalyWithLevel {
-  anomaly: Anomaly;
-  level: number;
-}
 
 interface AnomalyDisplayProps {
   anomalies: AnomalyWithLevel[] | null;

@@ -6,11 +6,18 @@
 
 import { FC } from 'react';
 import { hasSpecial } from '../utils/cardSpecialEffects';
-
-interface IconProps {
-  size?: number;
-  className?: string;
-}
+import type {
+  IconProps,
+  TimelineAction,
+  TimelineCard,
+  ParryState,
+  HoveredEnemyAction,
+  TimelineDisplayActions as Actions,
+  InsightReveal,
+  TimelinePlayer as Player,
+  TimelineEnemy as Enemy,
+  TimelineBattle as Battle
+} from '../../../types';
 
 // Lucide icons as simple SVG components
 const Sword: FC<IconProps> = ({ size = 24, className = "" }) => (
@@ -24,62 +31,6 @@ const Shield: FC<IconProps> = ({ size = 24, className = "" }) => (
     <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
   </svg>
 );
-
-interface Card {
-  id?: string;
-  name?: string;
-  type: string;
-  damage?: number;
-  block?: number;
-  hits?: number;
-  speedCost?: number;
-  ignoreStrength?: boolean;
-  traits?: string[];
-  icon?: FC<IconProps>;
-}
-
-interface TimelineAction {
-  sp: number;
-  card: Card;
-  actor?: string;
-}
-
-interface ParryState {
-  active: boolean;
-  centerSp: number;
-  maxSp: number;
-}
-
-interface Player {
-  maxSpeed?: number;
-  strength?: number;
-}
-
-interface Enemy {
-  maxSpeed?: number;
-}
-
-interface Battle {
-  phase: string;
-  queue?: TimelineAction[];
-}
-
-interface InsightReveal {
-  level?: number;
-}
-
-interface HoveredEnemyAction {
-  action: Card | null;
-  idx: number;
-  left: number;
-  top: number;
-  pageX: number;
-  pageY: number;
-}
-
-interface Actions {
-  setHoveredEnemyAction: (action: HoveredEnemyAction | null) => void;
-}
 
 interface TimelineDisplayProps {
   player: Player;

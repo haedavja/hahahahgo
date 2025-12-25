@@ -5,11 +5,9 @@
  */
 
 import { FC } from 'react';
+import type { IconProps } from '../../../types';
 
-interface IconProps {
-  size?: number;
-  className?: string;
-}
+export type { IconProps };
 
 export const Sword: FC<IconProps> = ({ size = 24, className = "" }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>

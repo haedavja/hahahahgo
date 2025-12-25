@@ -14,12 +14,16 @@ import { CardStatsSidebar } from './CardStatsSidebar';
 import { Sword, Shield } from './BattleIcons';
 import { TRAITS } from '../battleData';
 import { CardListPopup } from './CardPopups';
-
-interface IconProps {
-  size?: number;
-  className?: string;
-  strokeWidth?: number;
-}
+import type {
+  IconProps,
+  HandCard as Card,
+  HandCardTrait as Trait,
+  HandUnit as Unit,
+  HandBattle as Battle,
+  HandPlayer as Player,
+  HandEnemy as Enemy,
+  HandAction as Action
+} from '../../../types';
 
 // X 아이콘 SVG 컴포넌트
 const X: FC<IconProps> = ({ size = 24, className = "", strokeWidth = 2 }) => (
@@ -35,61 +39,6 @@ const getCardTypeClass = (type: string): string => {
   if (type === 'special') return 'special';
   return 'general'; // 기본값은 범용(general)
 };
-
-interface Trait {
-  id: string;
-  name?: string;
-  description?: string;
-}
-
-interface Card {
-  id: string;
-  name: string;
-  type: string;
-  actionCost: number;
-  speedCost: number;
-  damage?: number;
-  block?: number;
-  description?: string;
-  traits?: Trait[];
-  icon?: FC<IconProps>;
-  __handUid?: string;
-  __uid?: string;
-  __isMainSpecial?: boolean;
-  __isSubSpecial?: boolean;
-  __targetUnitId?: number;
-}
-
-interface Unit {
-  unitId: number;
-  name: string;
-  emoji?: string;
-  hp: number;
-  maxHp: number;
-}
-
-interface Battle {
-  phase: string;
-  queue: Action[];
-}
-
-interface Player {
-  hp: number;
-  energy?: number;
-  maxEnergy?: number;
-  strength?: number;
-  comboUsageCount?: Record<string, number>;
-}
-
-interface Enemy {
-  hp: number;
-}
-
-interface Action {
-  actor: 'player' | 'enemy';
-  card: Card;
-  speed?: number;
-}
 
 interface HandAreaProps {
   battle: Battle;

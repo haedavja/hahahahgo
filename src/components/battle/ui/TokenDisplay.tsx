@@ -7,27 +7,7 @@
 import { useState, FC, MouseEvent } from 'react';
 import { getAllTokens } from '../../../lib/tokenUtils';
 import { TOKEN_COLORS, TOKEN_CATEGORY_COLORS } from '../../../data/tokens';
-
-interface TokenData {
-  id: string;
-  name: string;
-  emoji: string;
-  description: string;
-  stacks: number;
-  durationType: 'usage' | 'turn' | 'permanent';
-  category: 'positive' | 'negative' | 'neutral';
-}
-
-interface TokenState {
-  usage: unknown[];
-  turn: unknown[];
-  permanent: unknown[];
-}
-
-interface Entity {
-  tokens?: TokenState;
-  [key: string]: unknown;
-}
+import type { TokenData, TokenState, TokenEntity as Entity } from '../../../types';
 
 interface TokenBadgeProps {
   token: TokenData;
