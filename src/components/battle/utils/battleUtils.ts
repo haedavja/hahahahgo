@@ -3,18 +3,7 @@
  * @description 전투 시스템 유틸리티 함수
  */
 
-import type { Card, CardRarity } from '../../../types';
-
-/** 카드 (배틀 유틸용 확장) */
-interface BattleCard extends Card {
-  [key: string]: unknown;
-}
-
-/** 특성 적용 컨텍스트 */
-interface TraitContext {
-  isInCombo?: boolean;
-  usageCount?: number;
-}
+import type { CardRarity, BattleCard, TraitContext } from '../../../types';
 
 /**
  * 배열에서 랜덤으로 하나 선택

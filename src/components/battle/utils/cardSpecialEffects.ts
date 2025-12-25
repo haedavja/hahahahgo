@@ -17,7 +17,6 @@
 
 import type {
   Card,
-  Token,
   SpecialCard,
   SpecialActor,
   SpecialQueueItem,
@@ -26,7 +25,8 @@ import type {
   CollisionResult,
   TimelineChanges,
   TimelineResult,
-  CardCreationResult
+  CardCreationResult,
+  TokensContainer
 } from '../../../types';
 import { addToken, setTokenStacks } from '../../../lib/tokenUtils';
 
@@ -46,13 +46,6 @@ export {
 
 // hasSpecial 로컬 참조 (내부 사용용)
 import { hasSpecial } from './preAttackSpecials';
-
-/** 토큰 컨테이너 */
-interface TokensContainer {
-  usage?: Token[];
-  turn?: Token[];
-  permanent?: Token[];
-}
 
 /**
  * 타격별 룰렛 체크 (총기 카드 전용)

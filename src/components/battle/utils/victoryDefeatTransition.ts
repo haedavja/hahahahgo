@@ -10,38 +10,13 @@
  * - 플레이어 HP 0 이하
  */
 
-interface Enemy {
-  hp: number;
-  [key: string]: unknown;
-}
-
-interface Player {
-  hp: number;
-  [key: string]: unknown;
-}
-
-interface VictoryCheckResult {
-  isVictory: boolean;
-  isEtherVictory?: boolean;
-  delay: number;
-}
-
-interface PostCombatOptions {
-  type: 'victory' | 'defeat';
-}
-
-interface Actions {
-  setSoulShatter: (value: boolean) => void;
-  setNetEtherDelta: (value: null | number) => void;
-  setPostCombatOptions: (options: PostCombatOptions) => void;
-  setPhase: (phase: string) => void;
-}
-
-interface ProcessResult {
-  shouldReturn: boolean;
-  isVictory: boolean;
-  isDefeat: boolean;
-}
+import type {
+  VictoryEnemy,
+  VictoryPlayer,
+  VictoryCheckResult,
+  VictoryDefeatActions,
+  VictoryDefeatProcessResult
+} from '../../../types';
 
 /**
  * 승리/패배 체크 및 페이즈 전환 처리
@@ -54,13 +29,13 @@ export function processVictoryDefeatTransition({
   actions,
   onVictory
 }: {
-  enemy: Enemy;
-  player: Player;
+  enemy: VictoryEnemy;
+  player: VictoryPlayer;
   nextEnemyPtsSnapshot: number;
-  checkVictoryCondition: (enemy: Enemy, pts: number) => VictoryCheckResult;
-  actions: Actions;
+  checkVictoryCondition: (enemy: VictoryEnemy, pts: number) => VictoryCheckResult;
+  actions: VictoryDefeatActions;
   onVictory?: () => void;
-}): ProcessResult {
+}): VictoryDefeatProcessResult {
   // 승리 체크
   const victoryCheck = checkVictoryCondition(enemy, nextEnemyPtsSnapshot);
   if (victoryCheck.isVictory) {

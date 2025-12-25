@@ -3,70 +3,14 @@
  * @description 턴 종료 에테르 최종 계산 시스템
  */
 
+import type {
+  TurnEndEtherResult,
+  PlayerEtherResult,
+  EnemyEtherResult,
+  CalculateTurnEndEtherParams
+} from '../../../types';
 import { COMBO_MULTIPLIERS, applyEtherDeflation } from "./etherCalculations";
 import { getAllTokens } from "../../../lib/tokenUtils";
-
-interface Combo {
-  name?: string;
-}
-
-interface ComboUsageCount {
-  [key: string]: number;
-}
-
-interface Player {
-  comboUsageCount?: ComboUsageCount;
-  etherMultiplier?: number;
-  [key: string]: unknown;
-}
-
-interface Enemy {
-  comboUsageCount?: ComboUsageCount;
-  [key: string]: unknown;
-}
-
-interface DeflationResult {
-  gain: number;
-  multiplier: number;
-  usageCount: number;
-}
-
-interface PlayerEtherResult {
-  baseComboMult: number;
-  finalComboMult: number;
-  relicMultBonus: number;
-  etherAmplifierMult: number;
-  beforeDeflation: number;
-  deflation: DeflationResult;
-  finalEther: number;
-  appliedEther: number;
-  overflow: number;
-}
-
-interface EnemyEtherResult {
-  comboMult: number;
-  beforeDeflation: number;
-  deflation: DeflationResult;
-  halfEtherMult: number;
-  finalEther: number;
-  appliedEther: number;
-  overflow: number;
-}
-
-interface TurnEndEtherResult {
-  player: PlayerEtherResult;
-  enemy: EnemyEtherResult;
-}
-
-interface CalculateTurnEndEtherParams {
-  playerCombo: Combo | null | undefined;
-  enemyCombo: Combo | null | undefined;
-  turnEtherAccumulated: number;
-  enemyTurnEtherAccumulated: number;
-  finalComboMultiplier: number;
-  player: Player;
-  enemy: Enemy;
-}
 
 /**
  * 턴 종료 시 플레이어와 적의 에테르를 최종 계산

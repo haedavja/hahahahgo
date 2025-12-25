@@ -8,74 +8,15 @@
  * 3. 트리거 시 적 카드 타임라인 밀어냄
  */
 
-/** 카드 정보 */
-interface CardInfo {
-  name?: string;
-  type?: string;
-  parryRange?: number;
-  parryPushAmount?: number;
-  [key: string]: unknown;
-}
-
-/** 액션 정보 */
-interface Action {
-  card: CardInfo;
-  sp?: number;
-  actor: 'player' | 'enemy';
-}
-
-/** 큐 아이템 */
-interface QueueItem {
-  card?: CardInfo;
-  sp?: number;
-  actor?: 'player' | 'enemy';
-}
-
-/** 패리 대기 상태 */
-interface ParryReadyState {
-  active: boolean;
-  actor: 'player' | 'enemy';
-  cardName?: string;
-  centerSp: number;
-  maxSp: number;
-  pushAmount: number;
-  triggered: boolean;
-}
-
-/** 패리 이벤트 */
-interface ParryEvent {
-  actor: 'player' | 'enemy';
-  card?: string;
-  type: 'parry';
-  pushAmount: number;
-  triggeredBy?: string;
-  msg: string;
-}
-
-/** 패리 트리거 결과 */
-interface ParryTriggerResult {
-  updatedQueue: QueueItem[];
-  parryEvents: ParryEvent[];
-  updatedParryStates: ParryReadyState[];
-  outCards: QueueItem[];
-}
-
-/** setupParryReady 파라미터 */
-interface SetupParryReadyParams {
-  action: Action;
-  addLog: (msg: string) => void;
-}
-
-/** checkParryTrigger 파라미터 */
-interface CheckParryTriggerParams {
-  parryReadyStates: ParryReadyState | ParryReadyState[] | null | undefined;
-  enemyAction: Action;
-  queue: QueueItem[];
-  currentQIndex: number;
-  enemyMaxSpeed?: number;
-  addLog: (msg: string) => void;
-  playParrySound?: () => void;
-}
+import type {
+  ParryAction,
+  ParryQueueItem,
+  ParryReadyState,
+  ParryEvent,
+  ParryTriggerResult,
+  SetupParryReadyParams,
+  CheckParryTriggerParams
+} from '../../../types';
 
 /**
  * 쳐내기 카드 발동 시 패리 대기 상태 설정

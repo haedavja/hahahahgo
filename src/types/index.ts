@@ -1543,3 +1543,313 @@ export interface DefenseBattleContext extends BattleContext {
   queue?: Array<{ actor: string; sp?: number }>;
   currentQIndex?: number;
 }
+
+// ==================== 카드 즉시 효과 타입 ====================
+
+/** 즉시 효과용 카드 정보 */
+export interface ImmediateCardInfo {
+  id?: string;
+  name?: string;
+  isGhost?: boolean;
+  traits?: string[];
+  [key: string]: unknown;
+}
+
+/** 즉시 효과용 플레이어 상태 */
+export interface ImmediatePlayerState {
+  hp?: number;
+  maxHp?: number;
+  strength?: number;
+  [key: string]: unknown;
+}
+
+/** 즉시 효과용 적 상태 */
+export interface ImmediateEnemyState {
+  [key: string]: unknown;
+}
+
+/** 즉시 효과용 다음 턴 효과 */
+export interface ImmediateNextTurnEffects {
+  bonusEnergy?: number;
+  [key: string]: unknown;
+}
+
+/** 즉시 카드 특성 처리 파라미터 */
+export interface ProcessImmediateCardTraitsParams {
+  card: ImmediateCardInfo;
+  playerState: ImmediatePlayerState;
+  nextTurnEffects: ImmediateNextTurnEffects;
+  addLog: LogFunction;
+  addVanishedCard?: (cardId: string) => void;
+}
+
+/** 카드 사용 상징 효과 처리 파라미터 */
+export interface ProcessCardPlayedRelicEffectsParams {
+  relics: string[];
+  card: ImmediateCardInfo;
+  playerState: ImmediatePlayerState;
+  enemyState: ImmediateEnemyState;
+  safeInitialPlayer?: ImmediatePlayerState;
+  addLog: LogFunction;
+  setRelicActivated: (id: string | null) => void;
+}
+
+// ==================== 토큰 컨테이너 타입 ====================
+
+/** 토큰 컨테이너 */
+export interface TokensContainer {
+  usage?: Token[];
+  turn?: Token[];
+  permanent?: Token[];
+}
+
+// ==================== 적 사망 처리 타입 ====================
+
+/** 적 사망 처리 액션 */
+export interface EnemyDeathActions {
+  setEnemyHit: (value: boolean) => void;
+  setTimelineIndicatorVisible: (value: boolean) => void;
+  setAutoProgress: (value: boolean) => void;
+  setDisabledCardIndices: (indices: number[]) => void;
+  setQIndex: (index: number) => void;
+  setEtherFinalValue: (value: number) => void;
+}
+
+/** 적 사망 처리 파라미터 */
+export interface ProcessEnemyDeathParams {
+  newQIndex: number;
+  queue: Array<{ [key: string]: unknown }>;
+  queueLength: number;
+  turnEtherAccumulated: number;
+  playSound: (freq: number, duration: number) => void;
+  actions: EnemyDeathActions;
+}
+
+// ==================== 쳐내기(패리) 처리 타입 ====================
+
+/** 패리용 카드 정보 */
+export interface ParryCardInfo {
+  name?: string;
+  type?: string;
+  parryRange?: number;
+  parryPushAmount?: number;
+  [key: string]: unknown;
+}
+
+/** 패리용 액션 */
+export interface ParryAction {
+  card: ParryCardInfo;
+  sp?: number;
+  actor: 'player' | 'enemy';
+}
+
+/** 패리용 큐 아이템 */
+export interface ParryQueueItem {
+  card?: ParryCardInfo;
+  sp?: number;
+  actor?: 'player' | 'enemy';
+}
+
+/** 패리 대기 상태 */
+export interface ParryReadyState {
+  active: boolean;
+  actor: 'player' | 'enemy';
+  cardName?: string;
+  centerSp: number;
+  maxSp: number;
+  pushAmount: number;
+  triggered: boolean;
+}
+
+/** 패리 이벤트 */
+export interface ParryEvent {
+  actor: 'player' | 'enemy';
+  card?: string;
+  type: 'parry';
+  pushAmount: number;
+  triggeredBy?: string;
+  msg: string;
+}
+
+/** 패리 트리거 결과 */
+export interface ParryTriggerResult {
+  updatedQueue: ParryQueueItem[];
+  parryEvents: ParryEvent[];
+  updatedParryStates: ParryReadyState[];
+  outCards: ParryQueueItem[];
+}
+
+/** 패리 대기 설정 파라미터 */
+export interface SetupParryReadyParams {
+  action: ParryAction;
+  addLog: LogFunction;
+}
+
+/** 패리 트리거 체크 파라미터 */
+export interface CheckParryTriggerParams {
+  parryReadyStates: ParryReadyState | ParryReadyState[] | null | undefined;
+  enemyAction: ParryAction;
+  queue: ParryQueueItem[];
+  currentQIndex: number;
+  enemyMaxSpeed?: number;
+  addLog: LogFunction;
+  playParrySound?: () => void;
+}
+
+// ==================== 에테르 계산 타입 ====================
+
+/** 에테르 계산용 카드 */
+export interface EtherCard {
+  actionCost?: number;
+  rarity?: string;
+  traits?: string[];
+  isGhost?: boolean;
+  [key: string]: unknown;
+}
+
+/** 에테르 계산용 카드 엔트리 */
+export interface EtherCardEntry {
+  card?: EtherCard;
+  [key: string]: unknown;
+}
+
+/** 디플레이션 결과 */
+export interface DeflationResult {
+  gain: number;
+  multiplier: number;
+  usageCount: number;
+}
+
+/** 콤보 에테르 획득 결과 */
+export interface ComboEtherGainResult {
+  gain: number;
+  baseGain: number;
+  comboMult: number;
+  actionCostBonus: number;
+  deflationPct: number;
+  deflationMult: number;
+}
+
+/** 콤보 에테르 획득 계산 파라미터 */
+export interface CalculateComboEtherGainParams {
+  cards?: (EtherCard | EtherCardEntry)[];
+  cardCount?: number;
+  comboName?: string | null;
+  comboUsageCount?: ComboUsageCount;
+  extraMultiplier?: number;
+}
+
+// ==================== 턴 종료 에테르 계산 타입 ====================
+
+/** 턴 종료 에테르용 콤보 */
+export interface TurnEndEtherCombo {
+  name?: string;
+}
+
+/** 턴 종료 에테르용 플레이어 */
+export interface TurnEndEtherPlayer {
+  comboUsageCount?: ComboUsageCount;
+  etherMultiplier?: number;
+  [key: string]: unknown;
+}
+
+/** 턴 종료 에테르용 적 */
+export interface TurnEndEtherEnemy {
+  comboUsageCount?: ComboUsageCount;
+  [key: string]: unknown;
+}
+
+/** 플레이어 에테르 결과 */
+export interface PlayerEtherResult {
+  baseComboMult: number;
+  finalComboMult: number;
+  relicMultBonus: number;
+  etherAmplifierMult: number;
+  beforeDeflation: number;
+  deflation: DeflationResult;
+  finalEther: number;
+  appliedEther: number;
+  overflow: number;
+}
+
+/** 적 에테르 결과 */
+export interface EnemyEtherResult {
+  comboMult: number;
+  beforeDeflation: number;
+  deflation: DeflationResult;
+  halfEtherMult: number;
+  finalEther: number;
+  appliedEther: number;
+  overflow: number;
+}
+
+/** 턴 종료 에테르 결과 */
+export interface TurnEndEtherResult {
+  player: PlayerEtherResult;
+  enemy: EnemyEtherResult;
+}
+
+/** 턴 종료 에테르 계산 파라미터 */
+export interface CalculateTurnEndEtherParams {
+  playerCombo: TurnEndEtherCombo | null | undefined;
+  enemyCombo: TurnEndEtherCombo | null | undefined;
+  turnEtherAccumulated: number;
+  enemyTurnEtherAccumulated: number;
+  finalComboMultiplier: number;
+  player: TurnEndEtherPlayer;
+  enemy: TurnEndEtherEnemy;
+}
+
+// ==================== 배틀 유틸리티 타입 ====================
+
+/** 배틀 유틸용 카드 */
+export interface BattleCard extends Card {
+  [key: string]: unknown;
+}
+
+/** 특성 적용 컨텍스트 */
+export interface TraitContext {
+  isInCombo?: boolean;
+  usageCount?: number;
+}
+
+// ==================== 승리/패배 전환 타입 ====================
+
+/** 승리/패배용 적 */
+export interface VictoryEnemy {
+  hp: number;
+  [key: string]: unknown;
+}
+
+/** 승리/패배용 플레이어 */
+export interface VictoryPlayer {
+  hp: number;
+  [key: string]: unknown;
+}
+
+/** 승리 체크 결과 */
+export interface VictoryCheckResult {
+  isVictory: boolean;
+  isEtherVictory?: boolean;
+  delay: number;
+}
+
+/** 전투 후 옵션 */
+export interface PostCombatOptions {
+  type: 'victory' | 'defeat';
+}
+
+/** 승리/패배 전환 액션 */
+export interface VictoryDefeatActions {
+  setSoulShatter: (value: boolean) => void;
+  setNetEtherDelta: (value: null | number) => void;
+  setPostCombatOptions: (options: PostCombatOptions) => void;
+  setPhase: (phase: string) => void;
+}
+
+/** 승리/패배 처리 결과 */
+export interface VictoryDefeatProcessResult {
+  shouldReturn: boolean;
+  isVictory: boolean;
+  isDefeat: boolean;
+}

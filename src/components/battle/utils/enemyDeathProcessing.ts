@@ -8,27 +8,7 @@
  * - 에테르 계산 트리거
  */
 
-interface QueueItem {
-  [key: string]: unknown;
-}
-
-interface Actions {
-  setEnemyHit: (value: boolean) => void;
-  setTimelineIndicatorVisible: (value: boolean) => void;
-  setAutoProgress: (value: boolean) => void;
-  setDisabledCardIndices: (indices: number[]) => void;
-  setQIndex: (index: number) => void;
-  setEtherFinalValue: (value: number) => void;
-}
-
-interface ProcessEnemyDeathParams {
-  newQIndex: number;
-  queue: QueueItem[];
-  queueLength: number;
-  turnEtherAccumulated: number;
-  playSound: (freq: number, duration: number) => void;
-  actions: Actions;
-}
+import type { ProcessEnemyDeathParams } from '../../../types';
 
 /**
  * 적 사망 처리

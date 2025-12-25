@@ -3,50 +3,13 @@
  * @description 카드 즉시 발동 특성 처리
  */
 
+import type {
+  ImmediateNextTurnEffects,
+  ProcessImmediateCardTraitsParams,
+  ProcessCardPlayedRelicEffectsParams
+} from '../../../types';
 import { hasTrait } from "./battleUtils";
 import { applyCardPlayedEffects } from "../../../lib/relicEffects";
-
-interface CardInfo {
-  id?: string;
-  name?: string;
-  isGhost?: boolean;
-  traits?: string[];
-  [key: string]: unknown;
-}
-
-interface PlayerState {
-  hp?: number;
-  maxHp?: number;
-  strength?: number;
-  [key: string]: unknown;
-}
-
-interface EnemyState {
-  [key: string]: unknown;
-}
-
-interface NextTurnEffects {
-  bonusEnergy?: number;
-  [key: string]: unknown;
-}
-
-interface ProcessImmediateCardTraitsParams {
-  card: CardInfo;
-  playerState: PlayerState;
-  nextTurnEffects: NextTurnEffects;
-  addLog: (msg: string) => void;
-  addVanishedCard?: (cardId: string) => void;
-}
-
-interface ProcessCardPlayedRelicEffectsParams {
-  relics: string[];
-  card: CardInfo;
-  playerState: PlayerState;
-  enemyState: EnemyState;
-  safeInitialPlayer?: PlayerState;
-  addLog: (msg: string) => void;
-  setRelicActivated: (id: string | null) => void;
-}
 
 /**
  * 카드의 즉시 발동 특성 처리
@@ -58,7 +21,7 @@ export function processImmediateCardTraits({
   nextTurnEffects,
   addLog,
   addVanishedCard
-}: ProcessImmediateCardTraitsParams): NextTurnEffects {
+}: ProcessImmediateCardTraitsParams): ImmediateNextTurnEffects {
   const updatedNextTurnEffects = { ...nextTurnEffects };
 
   if (hasTrait(card, 'double_edge')) {
