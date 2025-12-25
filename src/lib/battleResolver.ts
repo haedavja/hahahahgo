@@ -1,5 +1,5 @@
 /**
- * @file battleResolver.js
+ * @file battleResolver.ts
  * @description 전투 해결 시뮬레이터
  *
  * ## 기능
@@ -10,25 +10,100 @@
 
 import { CARD_LIBRARY } from "../data/cards";
 
-const DEFAULT_STATS = {
+interface ActorStats {
+  hp: number;
+  block: number;
+}
+
+interface BattleStats {
+  player: ActorStats;
+  enemy: ActorStats;
+}
+
+interface Card {
+  id: string;
+  name?: string;
+  damage?: number;
+  block?: number;
+  tags?: string[];
+  [key: string]: unknown;
+}
+
+interface TimelineEntry {
+  order: number;
+  actor: 'player' | 'enemy';
+  cardId: string;
+  speedCost: number;
+  [key: string]: unknown;
+}
+
+interface AttackResult {
+  blocked: number;
+  hpDamage: number;
+}
+
+interface BlockResult {
+  block: number;
+}
+
+interface SupportResult {
+  buff?: string;
+}
+
+interface LogDetail {
+  type: string;
+  blocked?: number;
+  hpDamage?: number;
+  targetHP?: number;
+  targetBlock?: number;
+  block?: number;
+  actorBlock?: number;
+  buff?: string;
+}
+
+interface LogRecord {
+  order: number;
+  actor: string;
+  cardId: string;
+  name?: string;
+  speedCost: number;
+  detail: LogDetail | null;
+  actorHP: number;
+  actorBlock: number;
+  targetHP: number;
+  targetBlock: number;
+}
+
+interface BattleStatus {
+  [key: string]: boolean;
+}
+
+interface SimulationResult {
+  winner: 'player' | 'enemy' | 'draw';
+  log: LogRecord[];
+  finalState: BattleStats;
+  initialState: BattleStats;
+  status: BattleStatus;
+}
+
+const DEFAULT_STATS: BattleStats = {
   player: { hp: 50, block: 0 },
   enemy: { hp: 40, block: 0 },
 };
 
-const RESULT_PRIORITY = {
-  victory: 2,
-  defeat: 1,
-  draw: 0,
-};
+const clamp = (value: number, min: number, max: number): number =>
+  Math.min(max, Math.max(min, value));
 
-const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
-
-const cloneState = (stats = DEFAULT_STATS) => ({
+const cloneState = (stats: BattleStats = DEFAULT_STATS): BattleStats => ({
   player: { hp: stats.player?.hp ?? 50, block: stats.player?.block ?? 0 },
   enemy: { hp: stats.enemy?.hp ?? 40, block: stats.enemy?.block ?? 0 },
 });
 
-const applyAttack = (attacker, defender, card) => {
+const applyAttack = (
+  _attacker: ActorStats,
+  defender: ActorStats,
+  card: Card
+): AttackResult => {
   const damage = card.damage ?? 0;
   const blocked = Math.min(defender.block, damage);
   const hpDamage = Math.max(0, damage - blocked);
@@ -37,13 +112,17 @@ const applyAttack = (attacker, defender, card) => {
   return { blocked, hpDamage };
 };
 
-const applyBlock = (actor, card) => {
+const applyBlock = (actor: ActorStats, card: Card): BlockResult => {
   const block = card.block ?? 0;
   actor.block = (actor.block ?? 0) + block;
   return { block };
 };
 
-const applySupport = (actor, card, status) => {
+const applySupport = (
+  _actor: ActorStats,
+  card: Card,
+  status: BattleStatus
+): SupportResult | null => {
   if (card.tags?.includes("buff")) {
     status[`${card.id}_buff`] = true;
     return { buff: card.id };
@@ -51,23 +130,26 @@ const applySupport = (actor, card, status) => {
   return null;
 };
 
-export const simulateBattle = (timeline = [], stats = DEFAULT_STATS) => {
+export const simulateBattle = (
+  timeline: TimelineEntry[] = [],
+  stats: BattleStats = DEFAULT_STATS
+): SimulationResult => {
   const state = cloneState(stats);
   const initial = cloneState(stats);
-  const status = {};
-  const log = [];
-  let winner = "draw";
+  const status: BattleStatus = {};
+  const log: LogRecord[] = [];
+  let winner: 'player' | 'enemy' | 'draw' = 'draw';
 
   for (const entry of timeline) {
     if (state.player.hp <= 0 || state.enemy.hp <= 0) break;
-    const card = CARD_LIBRARY[entry.cardId];
+    const card = CARD_LIBRARY[entry.cardId] as Card | undefined;
     if (!card) continue;
     const actorKey = entry.actor;
-    const targetKey = actorKey === "player" ? "enemy" : "player";
+    const targetKey: 'player' | 'enemy' = actorKey === "player" ? "enemy" : "player";
     const actor = state[actorKey];
     const target = state[targetKey];
 
-    const record = {
+    const record: LogRecord = {
       order: entry.order,
       actor: actorKey,
       cardId: card.id,
@@ -125,7 +207,10 @@ export const simulateBattle = (timeline = [], stats = DEFAULT_STATS) => {
   };
 };
 
-export const pickOutcome = (simulation, fallback = "victory") => {
+export const pickOutcome = (
+  simulation: SimulationResult | null,
+  fallback: string = "victory"
+): string => {
   if (!simulation) return fallback;
   if (simulation.winner === "player") return "victory";
   if (simulation.winner === "enemy") return "defeat";

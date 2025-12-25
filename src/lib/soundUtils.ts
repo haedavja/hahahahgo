@@ -1,5 +1,5 @@
 /**
- * @file soundUtils.js
+ * @file soundUtils.ts
  * @description 웹 오디오 API 사운드 효과
  *
  * ## 사운드 종류
@@ -7,12 +7,17 @@
  * - Oscillator 기반 합성음
  */
 
-let audioContext = null;
+type AudioContextType = typeof window extends { AudioContext: infer T } ? T : never;
 
-// AudioContext 초기화 (사용자 상호작용 후 한 번만)
-function getAudioContext() {
+let audioContext: AudioContext | null = null;
+
+/**
+ * AudioContext 초기화 (사용자 상호작용 후 한 번만)
+ */
+function getAudioContext(): AudioContext {
   if (!audioContext) {
-    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    audioContext = new AudioContextClass();
   }
   return audioContext;
 }
@@ -20,7 +25,7 @@ function getAudioContext() {
 /**
  * 피격 사운드 재생 (낮은 주파수, 짧은 지속시간)
  */
-export function playHitSound() {
+export function playHitSound(): void {
   try {
     const ctx = getAudioContext();
     const oscillator = ctx.createOscillator();
@@ -29,11 +34,9 @@ export function playHitSound() {
     oscillator.connect(gainNode);
     gainNode.connect(ctx.destination);
 
-    // 낮은 주파수 (140Hz) - 둔탁한 타격음
     oscillator.frequency.value = 140;
     oscillator.type = 'sine';
 
-    // 볼륨 엔벨로프 (빠르게 페이드아웃)
     gainNode.gain.setValueAtTime(0.3, ctx.currentTime);
     gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15);
 
@@ -47,7 +50,7 @@ export function playHitSound() {
 /**
  * 방어력 획득 사운드 재생 (높은 주파수, 밝은 톤)
  */
-export function playBlockSound() {
+export function playBlockSound(): void {
   try {
     const ctx = getAudioContext();
     const oscillator = ctx.createOscillator();
@@ -56,12 +59,10 @@ export function playBlockSound() {
     oscillator.connect(gainNode);
     gainNode.connect(ctx.destination);
 
-    // 높은 주파수 (800Hz → 1200Hz) - 방어막 전개 소리
     oscillator.frequency.setValueAtTime(800, ctx.currentTime);
     oscillator.frequency.exponentialRampToValueAtTime(1200, ctx.currentTime + 0.1);
     oscillator.type = 'triangle';
 
-    // 볼륨 엔벨로프
     gainNode.gain.setValueAtTime(0.2, ctx.currentTime);
     gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
 
@@ -75,7 +76,7 @@ export function playBlockSound() {
 /**
  * 카드 제출 사운드 재생 (중간 주파수, 짧고 경쾌한 톤)
  */
-export function playCardSubmitSound() {
+export function playCardSubmitSound(): void {
   try {
     const ctx = getAudioContext();
     const oscillator = ctx.createOscillator();
@@ -84,11 +85,9 @@ export function playCardSubmitSound() {
     oscillator.connect(gainNode);
     gainNode.connect(ctx.destination);
 
-    // 중간 주파수 (523Hz - C5 음) - 카드 제출 소리
     oscillator.frequency.value = 523;
     oscillator.type = 'sine';
 
-    // 볼륨 엔벨로프 (짧고 경쾌하게)
     gainNode.gain.setValueAtTime(0.15, ctx.currentTime);
     gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
 
@@ -102,7 +101,7 @@ export function playCardSubmitSound() {
 /**
  * 진행 버튼 사운드 재생 (상승하는 주파수, 확정적인 톤)
  */
-export function playProceedSound() {
+export function playProceedSound(): void {
   try {
     const ctx = getAudioContext();
     const oscillator = ctx.createOscillator();
@@ -111,12 +110,10 @@ export function playProceedSound() {
     oscillator.connect(gainNode);
     gainNode.connect(ctx.destination);
 
-    // 상승하는 주파수 (400Hz → 600Hz) - 진행 확정 소리
     oscillator.frequency.setValueAtTime(400, ctx.currentTime);
     oscillator.frequency.exponentialRampToValueAtTime(600, ctx.currentTime + 0.15);
     oscillator.type = 'square';
 
-    // 볼륨 엔벨로프
     gainNode.gain.setValueAtTime(0.2, ctx.currentTime);
     gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
 
@@ -130,11 +127,10 @@ export function playProceedSound() {
 /**
  * 카드 파괴 사운드 재생 (찢기는 소리 - 노이즈 + 하강 주파수)
  */
-export function playCardDestroySound() {
+export function playCardDestroySound(): void {
   try {
     const ctx = getAudioContext();
 
-    // 노이즈 생성 (찢기는 효과)
     const bufferSize = ctx.sampleRate * 0.3;
     const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
     const output = noiseBuffer.getChannelData(0);
@@ -145,7 +141,6 @@ export function playCardDestroySound() {
     const noiseSource = ctx.createBufferSource();
     noiseSource.buffer = noiseBuffer;
 
-    // 필터 (고주파 노이즈 - 종이 찢는 소리)
     const filter = ctx.createBiquadFilter();
     filter.type = 'highpass';
     filter.frequency.value = 2000;
@@ -161,7 +156,6 @@ export function playCardDestroySound() {
     noiseSource.start(ctx.currentTime);
     noiseSource.stop(ctx.currentTime + 0.25);
 
-    // 하강 톤 (파괴 효과)
     const oscillator = ctx.createOscillator();
     const oscGain = ctx.createGain();
     oscillator.connect(oscGain);
@@ -184,11 +178,10 @@ export function playCardDestroySound() {
 /**
  * 빙결 사운드 재생 (얼어붙는 소리 - 고음 + 결정화 효과)
  */
-export function playFreezeSound() {
+export function playFreezeSound(): void {
   try {
     const ctx = getAudioContext();
 
-    // 메인 빙결 톤 (상승하는 고음)
     const osc1 = ctx.createOscillator();
     const gain1 = ctx.createGain();
     osc1.connect(gain1);
@@ -204,7 +197,6 @@ export function playFreezeSound() {
     osc1.start(ctx.currentTime);
     osc1.stop(ctx.currentTime + 0.4);
 
-    // 결정화 효과 (빠른 트릴)
     const osc2 = ctx.createOscillator();
     const gain2 = ctx.createGain();
     osc2.connect(gain2);
@@ -213,7 +205,6 @@ export function playFreezeSound() {
     osc2.frequency.setValueAtTime(1200, ctx.currentTime);
     osc2.type = 'triangle';
 
-    // LFO로 트릴 효과
     const lfo = ctx.createOscillator();
     const lfoGain = ctx.createGain();
     lfo.connect(lfoGain);
@@ -229,7 +220,6 @@ export function playFreezeSound() {
     lfo.stop(ctx.currentTime + 0.35);
     osc2.stop(ctx.currentTime + 0.35);
 
-    // 얼음 깨지는 클릭음
     const osc3 = ctx.createOscillator();
     const gain3 = ctx.createGain();
     osc3.connect(gain3);
@@ -248,16 +238,13 @@ export function playFreezeSound() {
   }
 }
 
-// ========== 던전 탐험 사운드 ==========
-
 /**
  * 문 열기/방 이동 사운드
  */
-export function playDoorSound() {
+export function playDoorSound(): void {
   try {
     const ctx = getAudioContext();
 
-    // 문 삐걱 소리 (낮은 노이즈)
     const bufferSize = ctx.sampleRate * 0.2;
     const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
     const output = noiseBuffer.getChannelData(0);
@@ -283,7 +270,6 @@ export function playDoorSound() {
     noiseSource.start(ctx.currentTime);
     noiseSource.stop(ctx.currentTime + 0.2);
 
-    // 문 쿵 소리
     const osc = ctx.createOscillator();
     const oscGain = ctx.createGain();
     osc.connect(oscGain);
@@ -307,12 +293,11 @@ export function playDoorSound() {
 /**
  * 아이템/보상 획득 사운드
  */
-export function playRewardSound() {
+export function playRewardSound(): void {
   try {
     const ctx = getAudioContext();
 
-    // 상승하는 3화음 (도-미-솔)
-    const notes = [523, 659, 784]; // C5, E5, G5
+    const notes = [523, 659, 784];
 
     notes.forEach((freq, i) => {
       const osc = ctx.createOscillator();
@@ -339,11 +324,10 @@ export function playRewardSound() {
 /**
  * 발걸음 소리
  */
-export function playFootstepSound() {
+export function playFootstepSound(): void {
   try {
     const ctx = getAudioContext();
 
-    // 짧은 노이즈 버스트
     const bufferSize = ctx.sampleRate * 0.05;
     const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
     const output = noiseBuffer.getChannelData(0);
@@ -376,11 +360,10 @@ export function playFootstepSound() {
 /**
  * 비밀 발견 사운드
  */
-export function playSecretSound() {
+export function playSecretSound(): void {
   try {
     const ctx = getAudioContext();
 
-    // 신비로운 상승음
     const osc1 = ctx.createOscillator();
     const osc2 = ctx.createOscillator();
     const gain1 = ctx.createGain();
@@ -391,7 +374,6 @@ export function playSecretSound() {
     gain1.connect(ctx.destination);
     gain2.connect(ctx.destination);
 
-    // 옥타브 간격
     osc1.frequency.setValueAtTime(440, ctx.currentTime);
     osc1.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.4);
     osc2.frequency.setValueAtTime(880, ctx.currentTime);
@@ -417,12 +399,11 @@ export function playSecretSound() {
 /**
  * 던전 완료 사운드 (팡파레)
  */
-export function playVictorySound() {
+export function playVictorySound(): void {
   try {
     const ctx = getAudioContext();
 
-    // 승리 팡파레 (도-미-솔-도)
-    const notes = [523, 659, 784, 1047]; // C5, E5, G5, C6
+    const notes = [523, 659, 784, 1047];
 
     notes.forEach((freq, i) => {
       const osc = ctx.createOscillator();
@@ -451,11 +432,10 @@ export function playVictorySound() {
 /**
  * 실패/위험 사운드
  */
-export function playDangerSound() {
+export function playDangerSound(): void {
   try {
     const ctx = getAudioContext();
 
-    // 하강하는 불협화음
     const osc1 = ctx.createOscillator();
     const osc2 = ctx.createOscillator();
     const gain1 = ctx.createGain();
@@ -468,7 +448,7 @@ export function playDangerSound() {
 
     osc1.frequency.setValueAtTime(300, ctx.currentTime);
     osc1.frequency.exponentialRampToValueAtTime(100, ctx.currentTime + 0.3);
-    osc2.frequency.setValueAtTime(320, ctx.currentTime); // 약간 불협화음
+    osc2.frequency.setValueAtTime(320, ctx.currentTime);
     osc2.frequency.exponentialRampToValueAtTime(90, ctx.currentTime + 0.3);
 
     osc1.type = 'sawtooth';
@@ -491,7 +471,7 @@ export function playDangerSound() {
 /**
  * 상호작용 사운드 (오브젝트 터치)
  */
-export function playInteractSound() {
+export function playInteractSound(): void {
   try {
     const ctx = getAudioContext();
 
@@ -517,12 +497,11 @@ export function playInteractSound() {
 /**
  * 선택지 등장 사운드
  */
-export function playChoiceAppearSound() {
+export function playChoiceAppearSound(): void {
   try {
     const ctx = getAudioContext();
 
-    // 두 음 연속 (띵똥)
-    const notes = [523, 659]; // C5, E5
+    const notes = [523, 659];
 
     notes.forEach((freq, i) => {
       const osc = ctx.createOscillator();
@@ -548,7 +527,7 @@ export function playChoiceAppearSound() {
 /**
  * 선택 확정 사운드
  */
-export function playChoiceSelectSound() {
+export function playChoiceSelectSound(): void {
   try {
     const ctx = getAudioContext();
 
@@ -574,11 +553,10 @@ export function playChoiceSelectSound() {
 /**
  * 패리 성공 사운드 (팅! - 높은 금속성 소리)
  */
-export function playParrySound() {
+export function playParrySound(): void {
   try {
     const ctx = getAudioContext();
 
-    // 메인 팅 소리 (높은 주파수)
     const osc1 = ctx.createOscillator();
     const gain1 = ctx.createGain();
     osc1.connect(gain1);
@@ -594,7 +572,6 @@ export function playParrySound() {
     osc1.start(ctx.currentTime);
     osc1.stop(ctx.currentTime + 0.2);
 
-    // 금속 배음 (더 높은 주파수)
     const osc2 = ctx.createOscillator();
     const gain2 = ctx.createGain();
     osc2.connect(gain2);

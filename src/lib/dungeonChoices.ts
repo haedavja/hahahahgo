@@ -1,5 +1,5 @@
 /**
- * @file dungeonChoices.js
+ * @file dungeonChoices.ts
  * @description 던전 기로(선택지) 시스템
  *
  * ## 기능
@@ -10,15 +10,116 @@
 
 import { CHOICE_RESULT_TYPES } from '../data/dungeonNodes';
 
+interface StatRequirement {
+  stat: string;
+  value: number;
+}
+
+interface ScalingRequirement {
+  stat: string;
+  baseValue: number;
+  increment: number;
+}
+
+interface Requirements {
+  item?: string;
+  strength?: number;
+  agility?: number;
+  insight?: number;
+  energy?: number;
+  [key: string]: unknown;
+}
+
+interface OutcomeEffect {
+  [key: string]: unknown;
+}
+
+interface Outcome {
+  type?: string;
+  effect?: OutcomeEffect;
+  text: string;
+}
+
+interface SpecialOverride {
+  requiredSpecial: string;
+  text: string;
+  outcome: Outcome;
+}
+
+interface Choice {
+  text: string;
+  repeatable?: boolean;
+  maxAttempts?: number;
+  requirements?: Requirements;
+  scalingRequirement?: ScalingRequirement;
+  specialOverrides?: SpecialOverride[];
+  warningAtAttempt?: number;
+  warningText?: string;
+  progressText?: string[];
+  outcomes: {
+    success: Outcome;
+    failure: Outcome;
+  };
+  screenEffect?: string;
+  soundEffect?: string;
+}
+
+interface PlayerStats {
+  strength?: number;
+  agility?: number;
+  insight?: number;
+  energy?: number;
+  specials?: string[];
+  [key: string]: unknown;
+}
+
+interface ChoiceState {
+  attempts?: number;
+  completed?: boolean;
+}
+
+interface Inventory {
+  items?: string[];
+  keys?: string[];
+}
+
+interface CanSelectResult {
+  canSelect: boolean;
+  reason: string | null;
+  isHidden: boolean;
+  statRequired?: StatRequirement;
+}
+
+interface ExecuteResult {
+  result: string;
+  effect: OutcomeEffect;
+  message: string;
+  newState: ChoiceState;
+  isSpecial?: boolean;
+  warning?: string | null;
+  progressMessage?: string | null;
+  canContinue?: boolean;
+  screenEffect?: string;
+  soundEffect?: string;
+}
+
+interface ChoiceDisplayInfo {
+  text: string;
+  subtext: string;
+  disabled: boolean;
+  hidden: boolean;
+  isSpecial?: boolean;
+}
+
 /**
  * 선택지가 선택 가능한지 확인
- * @param {Object} choice - 선택지 정의
- * @param {Object} playerStats - 플레이어 스탯 { strength, agility, insight, specials }
- * @param {Object} choiceState - 현재 선택 상태 { attempts, completed }
- * @param {Object} inventory - 인벤토리 { items, keys }
- * @returns {Object} { canSelect, reason, isHidden }
  */
-export function canSelectChoice(choice, playerStats, choiceState = {}, inventory = {}) {
+export function canSelectChoice(
+  choice: Choice,
+  playerStats: PlayerStats,
+  choiceState: ChoiceState = {},
+  inventory: Inventory = {}
+): CanSelectResult {
   const attempts = choiceState.attempts || 0;
 
   // 이미 완료된 선택지
@@ -49,7 +150,7 @@ export function canSelectChoice(choice, playerStats, choiceState = {}, inventory
   if (choice.scalingRequirement) {
     const { stat, baseValue, increment } = choice.scalingRequirement;
     const requiredValue = baseValue + (attempts * increment);
-    const playerValue = playerStats[stat] || 0;
+    const playerValue = (playerStats[stat] as number) || 0;
 
     if (playerValue < requiredValue) {
       return {
@@ -66,8 +167,8 @@ export function canSelectChoice(choice, playerStats, choiceState = {}, inventory
     for (const [stat, value] of Object.entries(choice.requirements)) {
       if (stat === 'item') continue; // 아이템은 위에서 처리
 
-      const playerValue = playerStats[stat] || 0;
-      if (playerValue < value) {
+      const playerValue = (playerStats[stat] as number) || 0;
+      if (playerValue < (value as number)) {
         return {
           canSelect: false,
           reason: `${getStatName(stat)} ${value} 필요`,
@@ -82,11 +183,11 @@ export function canSelectChoice(choice, playerStats, choiceState = {}, inventory
 
 /**
  * 특수 선택지(주특기 기반) 확인
- * @param {Object} choice - 선택지 정의
- * @param {string[]} playerSpecials - 플레이어 주특기 배열
- * @returns {Object|null} 사용 가능한 특수 선택지 또는 null
  */
-export function getSpecialOverride(choice, playerSpecials = []) {
+export function getSpecialOverride(
+  choice: Choice,
+  playerSpecials: string[] = []
+): SpecialOverride | null {
   if (!choice.specialOverrides) return null;
 
   for (const override of choice.specialOverrides) {
@@ -100,20 +201,20 @@ export function getSpecialOverride(choice, playerSpecials = []) {
 
 /**
  * 선택 실행 및 결과 계산
- * @param {Object} choice - 선택지 정의
- * @param {Object} playerStats - 플레이어 스탯
- * @param {Object} choiceState - 현재 선택 상태
- * @param {Object} specialOverride - 특수 선택지 (있을 경우)
- * @returns {Object} { result, effect, message, newState }
  */
-export function executeChoice(choice, playerStats, choiceState = {}, specialOverride = null) {
+export function executeChoice(
+  choice: Choice,
+  playerStats: PlayerStats,
+  choiceState: ChoiceState = {},
+  specialOverride: SpecialOverride | null = null
+): ExecuteResult {
   const attempts = (choiceState.attempts || 0) + 1;
-  const newState = { ...choiceState, attempts };
+  const newState: ChoiceState = { ...choiceState, attempts };
 
   // 특수 선택지 사용 시 즉시 성공
   if (specialOverride) {
     return {
-      result: specialOverride.outcome.type,
+      result: specialOverride.outcome.type || 'success',
       effect: specialOverride.outcome.effect || {},
       message: specialOverride.outcome.text,
       newState: { ...newState, completed: true },
@@ -122,13 +223,13 @@ export function executeChoice(choice, playerStats, choiceState = {}, specialOver
   }
 
   // 경고 체크
-  let warning = null;
+  let warning: string | null = null;
   if (choice.warningAtAttempt && attempts === choice.warningAtAttempt) {
-    warning = choice.warningText;
+    warning = choice.warningText || null;
   }
 
   // 진행 텍스트
-  let progressMessage = null;
+  let progressMessage: string | null = null;
   if (choice.progressText && attempts <= choice.progressText.length) {
     progressMessage = choice.progressText[attempts - 1];
   }
@@ -139,7 +240,7 @@ export function executeChoice(choice, playerStats, choiceState = {}, specialOver
     if (choice.scalingRequirement) {
       const { stat, baseValue, increment } = choice.scalingRequirement;
       const requiredValue = baseValue + ((attempts - 1) * increment);
-      const playerValue = playerStats[stat] || 0;
+      const playerValue = (playerStats[stat] as number) || 0;
 
       if (playerValue >= requiredValue) {
         // 성공
@@ -167,7 +268,7 @@ export function executeChoice(choice, playerStats, choiceState = {}, specialOver
     // 스케일링 없으면 성공 처리
     const outcome = choice.outcomes.success || choice.outcomes.failure;
     return {
-      result: outcome.type,
+      result: outcome.type || 'success',
       effect: outcome.effect || {},
       message: outcome.text,
       newState: { ...newState, completed: true },
@@ -191,26 +292,20 @@ export function executeChoice(choice, playerStats, choiceState = {}, specialOver
 
 /**
  * 과잉 선택 체크 (경고 후에도 계속 시도)
- * @param {Object} choice - 선택지 정의
- * @param {number} attempts - 현재 시도 횟수
- * @returns {boolean} 과잉 선택 여부
  */
-export function isOverpushing(choice, attempts) {
+export function isOverpushing(choice: Choice, attempts: number): boolean {
   if (!choice.warningAtAttempt) return false;
   return attempts >= choice.warningAtAttempt;
 }
 
 /**
  * 과잉 선택 시 패널티 결과 계산
- * @param {Object} choice - 선택지 정의
- * @param {number} attempts - 시도 횟수
- * @returns {Object|null} 패널티 결과
  */
-export function getOverpushPenalty(choice, attempts) {
+export function getOverpushPenalty(choice: Choice, attempts: number): Outcome | null {
   if (!isOverpushing(choice, attempts)) return null;
 
   // 경고 후 추가 시도 횟수
-  const overAttempts = attempts - choice.warningAtAttempt;
+  const overAttempts = attempts - (choice.warningAtAttempt || 0);
 
   // 확률적 패널티 (시도할수록 확률 증가)
   const penaltyChance = Math.min(0.8, 0.2 + (overAttempts * 0.2));
@@ -225,8 +320,8 @@ export function getOverpushPenalty(choice, attempts) {
 /**
  * 스탯 이름 한글 변환
  */
-function getStatName(stat) {
-  const names = {
+function getStatName(stat: string): string {
+  const names: Record<string, string> = {
     strength: '힘',
     agility: '민첩',
     insight: '통찰',
@@ -237,13 +332,13 @@ function getStatName(stat) {
 
 /**
  * 선택지 표시 텍스트 생성
- * @param {Object} choice - 선택지 정의
- * @param {Object} playerStats - 플레이어 스탯
- * @param {Object} choiceState - 현재 상태
- * @param {Object} specialOverride - 특수 선택지
- * @returns {Object} { text, subtext, disabled, hidden }
  */
-export function getChoiceDisplayInfo(choice, playerStats, choiceState = {}, specialOverride = null) {
+export function getChoiceDisplayInfo(
+  choice: Choice,
+  playerStats: PlayerStats,
+  choiceState: ChoiceState = {},
+  specialOverride: SpecialOverride | null = null
+): ChoiceDisplayInfo {
   const { canSelect, reason, isHidden } = canSelectChoice(choice, playerStats, choiceState);
 
   if (isHidden) {
