@@ -1,5 +1,5 @@
 /**
- * @file stunProcessing.js
+ * @file stunProcessing.ts
  * @description 기절(stun) 효과 처리 시스템
  *
  * ## 기절 효과
@@ -7,20 +7,63 @@
  * - 범위: STUN_RANGE (5)
  */
 
+/** 카드 정보 */
+interface CardInfo {
+  name?: string;
+  [key: string]: unknown;
+}
+
+/** 액션 정보 */
+interface Action {
+  card: CardInfo;
+  sp?: number;
+  actor: 'player' | 'enemy';
+}
+
+/** 큐 아이템 */
+interface QueueItem {
+  card?: CardInfo;
+  sp?: number;
+  actor?: 'player' | 'enemy';
+}
+
+/** 기절 이벤트 */
+interface StunEvent {
+  actor: 'player' | 'enemy';
+  card: string;
+  type: 'stun';
+  msg: string;
+}
+
+/** 기절 처리 결과 */
+interface StunProcessingResult {
+  updatedQueue: QueueItem[];
+  stunEvent: StunEvent | null;
+}
+
+/** 기절 처리 파라미터 */
+interface StunProcessingParams {
+  action: Action;
+  queue: QueueItem[];
+  currentQIndex: number;
+  addLog: (msg: string) => void;
+}
+
 export const STUN_RANGE = 5; // 기절 효과 범위(타임라인 기준)
 
 /**
  * 기절 효과 처리
- * @param {Object} params - 파라미터
- * @param {Object} params.action - 현재 액션 (card, sp, actor 포함)
- * @param {Array} params.queue - 액션 큐
- * @param {number} params.currentQIndex - 현재 큐 인덱스
- * @param {Function} params.addLog - 로그 추가 함수
- * @returns {Object} { updatedQueue, stunEvent }
+ * @param params - 파라미터
+ * @returns { updatedQueue, stunEvent }
  */
-export function processStunEffect({ action, queue, currentQIndex, addLog }) {
+export function processStunEffect({
+  action,
+  queue,
+  currentQIndex,
+  addLog
+}: StunProcessingParams): StunProcessingResult {
   const centerSp = action.sp ?? 0;
-  const stunnedActions = [];
+  const stunnedActions: Array<{ item: QueueItem; idx: number }> = [];
 
   const targets = queue
     .map((item, idx) => ({ item, idx }))
@@ -39,12 +82,12 @@ export function processStunEffect({ action, queue, currentQIndex, addLog }) {
     ? queue.filter((_, idx) => !targets.some(t => t.idx === idx))
     : queue;
 
-  let stunEvent = null;
+  let stunEvent: StunEvent | null = null;
   if (stunnedActions.length > 0) {
     const stunnedNames = stunnedActions.map(t => t.item?.card?.name || '카드').join(', ');
     const msg = `😵 "${action.card.name}"의 기절! 상대 카드 ${stunnedActions.length}장 파괴 (범위: ${centerSp}~${centerSp + STUN_RANGE}${stunnedNames ? `, 대상: ${stunnedNames}` : ''})`;
     addLog(msg);
-    stunEvent = { actor: action.actor, card: action.card.name, type: 'stun', msg };
+    stunEvent = { actor: action.actor, card: action.card.name || '', type: 'stun', msg };
   }
 
   return { updatedQueue, stunEvent };
