@@ -1,7 +1,6 @@
 /**
- * @file cardOrdering.js
+ * @file cardOrdering.ts
  * @description 카드 순서 및 타임라인 유틸리티
- * @typedef {import('../../../types').Card} Card
  *
  * ## 기능
  * - fixedOrder 생성 (수동 순서)
@@ -11,23 +10,48 @@
 
 import { applyAgility } from "../../../lib/agilityUtils";
 
+/** 카드 정보 (간략화) */
+interface CardInfo {
+  speedCost: number;
+  [key: string]: unknown;
+}
+
+/** 적 행동 */
+interface EnemyAction {
+  speedCost: number;
+  [key: string]: unknown;
+}
+
+/** 순서 항목 */
+interface OrderItem {
+  actor: 'player' | 'enemy';
+  card: CardInfo | EnemyAction;
+  originalIndex: number;
+  sp?: number;
+  finalSpeed?: number;
+}
+
 /**
  * 플레이어와 적 카드를 결합하여 수동 순서로 fixedOrder 생성
- * @param {Array} enhancedPlayerCards - 강화된 플레이어 카드 배열
- * @param {Array} enemyActions - 적의 행동 배열
- * @param {number} effectiveAgility - 플레이어의 유효 민첩성
- * @returns {Array} sp 값이 계산된 fixedOrder 배열
+ * @param enhancedPlayerCards - 강화된 플레이어 카드 배열
+ * @param enemyActions - 적의 행동 배열
+ * @param effectiveAgility - 플레이어의 유효 민첩성
+ * @returns sp 값이 계산된 fixedOrder 배열
  */
-export function createFixedOrder(enhancedPlayerCards, enemyActions, effectiveAgility) {
+export function createFixedOrder(
+  enhancedPlayerCards: CardInfo[],
+  enemyActions: EnemyAction[] | null | undefined,
+  effectiveAgility: number
+): OrderItem[] {
   // 플레이어 카드 매핑
-  const playerCards = enhancedPlayerCards.map((card, idx) => ({
+  const playerCards: OrderItem[] = enhancedPlayerCards.map((card, idx) => ({
     actor: 'player',
     card,
     originalIndex: idx
   }));
 
   // 적 카드 매핑
-  const enemyCards = (enemyActions || []).map((action, idx) => ({
+  const enemyCards: OrderItem[] = (enemyActions || []).map((action, idx) => ({
     actor: 'enemy',
     card: action,
     originalIndex: idx

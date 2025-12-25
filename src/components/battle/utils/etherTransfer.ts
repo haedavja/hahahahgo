@@ -1,5 +1,5 @@
 /**
- * @file etherTransfer.js
+ * @file etherTransfer.ts
  * @description 에테르 이동 계산 시스템
  *
  * ## 에테르 이동 규칙
@@ -8,22 +8,29 @@
  * - 최대 이동량 제한 (현재 보유량)
  */
 
+/** 에테르 이동 결과 */
+export interface EtherTransferResult {
+  nextPlayerPts: number;
+  nextEnemyPts: number;
+  movedPts: number;
+}
+
 /**
  * 에테르 이동량 계산 (플레이어 ↔ 적)
- * @param {number} playerAppliedEther - 플레이어가 획득한 에테르
- * @param {number} enemyAppliedEther - 적이 획득한 에테르
- * @param {number} currentPlayerPts - 현재 플레이어 에테르
- * @param {number} currentEnemyPts - 현재 적 에테르
- * @param {number} enemyHp - 적의 현재 체력
- * @returns {Object} { nextPlayerPts, nextEnemyPts, movedPts }
+ * @param playerAppliedEther - 플레이어가 획득한 에테르
+ * @param enemyAppliedEther - 적이 획득한 에테르
+ * @param currentPlayerPts - 현재 플레이어 에테르
+ * @param currentEnemyPts - 현재 적 에테르
+ * @param enemyHp - 적의 현재 체력
+ * @returns { nextPlayerPts, nextEnemyPts, movedPts }
  */
 export function calculateEtherTransfer(
-  playerAppliedEther,
-  enemyAppliedEther,
-  currentPlayerPts,
-  currentEnemyPts,
-  enemyHp
-) {
+  playerAppliedEther: number,
+  enemyAppliedEther: number,
+  currentPlayerPts: number,
+  currentEnemyPts: number,
+  enemyHp: number
+): EtherTransferResult {
   const netTransfer = playerAppliedEther - enemyAppliedEther;
   let nextPlayerPts = currentPlayerPts;
   let nextEnemyPts = currentEnemyPts;
