@@ -1,28 +1,28 @@
 /**
- * @file tokens.js
+ * @file tokens.ts
  * @description 게임 토큰(상태이상) 시스템 정의
- * @typedef {import('../types').Token} Token
- * @typedef {import('../types').TokenTarget} TokenTarget
  *
  * 다키스트 던전 참고
  */
 
-// 토큰 유형
-export const TOKEN_TYPES = {
+import type { TokenType, TokenCategory, TokenDefinition } from '../types';
+
+/** 토큰 유형 상수 */
+export const TOKEN_TYPES: Record<string, TokenType> = {
   USAGE: 'usage',        // 사용소모: 1회 사용 후 소멸
   TURN: 'turn',          // 턴소모: 해당 턴 동안 지속
   PERMANENT: 'permanent' // 반영구: 전투 중 지속
-};
+} as const;
 
-// 토큰 카테고리
-export const TOKEN_CATEGORIES = {
+/** 토큰 카테고리 상수 */
+export const TOKEN_CATEGORIES: Record<string, TokenCategory> = {
   POSITIVE: 'positive',  // 긍정
   NEGATIVE: 'negative',  // 부정
   NEUTRAL: 'neutral'     // 중립
-};
+} as const;
 
-// 토큰 정의
-export const TOKENS = {
+/** 토큰 정의 */
+export const TOKENS: Record<string, TokenDefinition> = {
   // === 긍정 토큰: 공격 증가 ===
   offense: {
     id: 'offense',

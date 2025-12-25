@@ -1,13 +1,12 @@
 /**
- * @file cards.js
+ * @file cards.ts
  * @description 카드 라이브러리 정의
- * @typedef {import('../types').Card} Card
- * @typedef {import('../types').CardType} CardType
- * @typedef {import('../types').CardTrait} CardTrait
  */
 
-/** @type {Record<string, Card>} */
-export const CARD_LIBRARY = {
+import type { Card } from '../types';
+
+/** 카드 라이브러리 */
+export const CARD_LIBRARY: Record<string, Card> = {
   quick_slash: {
     id: "quick_slash",
     name: "퀵 슬래시",

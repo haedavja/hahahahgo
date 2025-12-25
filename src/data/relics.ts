@@ -1,20 +1,20 @@
 /**
- * @file relics.js
+ * @file relics.ts
  * @description 상징(Relic) 데이터
- * @typedef {import('../types').Relic} Relic
- * @typedef {import('../types').RelicRarity} RelicRarity
- * @typedef {import('../types').RelicEffect} RelicEffect
  *
  * 상징은 게임의 방향성을 결정짓는 아이템으로 개별 상징의 성능만큼이나 각 상징간의 연계가 중요하다.
  */
 
-export const RELIC_RARITIES = {
+import type { RelicRarity } from '../types';
+
+/** 상징 희귀도 상수 */
+export const RELIC_RARITIES: Record<string, RelicRarity | 'dev'> = {
   COMMON: 'common',
   RARE: 'rare',
   SPECIAL: 'special',
   LEGENDARY: 'legendary',
   DEV: 'dev',  // 개발자 전용
-};
+} as const;
 
 export const RELIC_TAGS = {
   ENERGY: 'energy',      // 행동력

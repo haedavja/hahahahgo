@@ -1,11 +1,16 @@
 /**
- * @file hitCalculation.js
+ * @file hitCalculation.ts
  * @description 단일 타격 계산 및 반격 처리 로직
- * @typedef {import('../../../types').Card} Card
  *
- * combatActions.js에서 분리됨
+ * combatActions.ts에서 분리됨
  */
 
+import type {
+  Card,
+  Combatant,
+  BattleEvent,
+  CounterResult
+} from '../../../types';
 import { hasTrait } from '../utils/battleUtils';
 import { applyTokenEffectsToCard, applyTokenEffectsOnDamage, consumeTokens } from '../../../lib/tokenEffects';
 import { addToken, removeToken, hasToken, getTokenStacks } from '../../../lib/tokenUtils';
@@ -16,16 +21,57 @@ import {
   applyCriticalDamage
 } from '../utils/cardSpecialEffects';
 
+/** 전투 컨텍스트 */
+interface BattleContext {
+  enemyDisplayName?: string;
+  fencingDamageBonus?: number;
+  [key: string]: unknown;
+}
+
+/** 대응사격 결과 */
+interface CounterShotResult {
+  defender: Combatant;
+  attacker: Combatant;
+  damage: number;
+  events: BattleEvent[];
+  logs: string[];
+}
+
+/** 단일 타격 결과 */
+interface SingleHitResult {
+  attacker: Combatant;
+  defender: Combatant;
+  damage: number;
+  damageTaken?: number;
+  blockDestroyed?: number;
+  events: BattleEvent[];
+  logs: string[];
+  preProcessedResult?: PreProcessedResult;
+}
+
+/** 사전 처리 결과 */
+interface PreProcessedResult {
+  modifiedCard: Card;
+  attacker: Combatant;
+  defender: Combatant;
+  consumedTokens: string[];
+}
+
 /**
  * 반격 처리
- * @param {Object} defender - 반격하는 방어자
- * @param {Object} attacker - 반격 대상 공격자
- * @param {'player'|'enemy'} attackerName - 원래 공격자 이름
- * @param {number|null} counterDmg - 반격 피해량 (null이면 defender.counter 사용)
- * @param {Object} battleContext - 전투 컨텍스트
- * @returns {{attacker: Object, damage: number, events: Array, logs: Array}}
+ * @param defender - 반격하는 방어자
+ * @param attacker - 반격 대상 공격자
+ * @param attackerName - 원래 공격자 이름
+ * @param counterDmg - 반격 피해량 (null이면 defender.counter 사용)
+ * @param battleContext - 전투 컨텍스트
  */
-export function applyCounter(defender, attacker, attackerName, counterDmg = null, battleContext = {}) {
+export function applyCounter(
+  defender: Combatant,
+  attacker: Combatant,
+  attackerName: 'player' | 'enemy',
+  counterDmg: number | null = null,
+  battleContext: BattleContext = {}
+): CounterResult {
   const actualCounterDmg = counterDmg !== null ? counterDmg : (defender.counter || 0);
   const beforeHP = attacker.hp;
   const updatedAttacker = {
@@ -49,13 +95,17 @@ export function applyCounter(defender, attacker, attackerName, counterDmg = null
 
 /**
  * 대응사격 처리 (사격 카드로 반격)
- * @param {Object} defender - 대응사격하는 방어자
- * @param {Object} attacker - 대응사격 대상
- * @param {'player'|'enemy'} attackerName - 원래 공격자 이름
- * @param {Object} battleContext - 전투 컨텍스트
- * @returns {{defender: Object, attacker: Object, damage: number, events: Array, logs: Array}}
+ * @param defender - 대응사격하는 방어자
+ * @param attacker - 대응사격 대상
+ * @param attackerName - 원래 공격자 이름
+ * @param battleContext - 전투 컨텍스트
  */
-export function applyCounterShot(defender, attacker, attackerName, battleContext = {}) {
+export function applyCounterShot(
+  defender: Combatant,
+  attacker: Combatant,
+  attackerName: 'player' | 'enemy',
+  battleContext: BattleContext = {}
+): CounterShotResult {
   const events = [];
   const logs = [];
 
@@ -107,8 +157,23 @@ export function applyCounterShot(defender, attacker, attackerName, battleContext
 
 /**
  * 단일 타격 계산
+ * @param attacker - 공격자
+ * @param defender - 방어자
+ * @param card - 사용 카드
+ * @param attackerName - 공격자 이름
+ * @param battleContext - 전투 컨텍스트
+ * @param isCritical - 치명타 여부
+ * @param preProcessedResult - 사전 처리 결과
  */
-export function calculateSingleHit(attacker, defender, card, attackerName, battleContext = {}, isCritical = false, preProcessedResult = null) {
+export function calculateSingleHit(
+  attacker: Combatant,
+  defender: Combatant,
+  card: Card,
+  attackerName: 'player' | 'enemy',
+  battleContext: BattleContext = {},
+  isCritical = false,
+  preProcessedResult: PreProcessedResult | null = null
+): SingleHitResult {
   const isGhost = card.isGhost === true;
 
   let modifiedCard, currentAttacker, currentDefender, specialEvents, specialLogs, attackerConsumedTokens;

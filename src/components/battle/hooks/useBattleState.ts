@@ -1,12 +1,10 @@
 /**
- * @file useBattleState.js
+ * @file useBattleState.ts
  * @description 전투 상태 관리 커스텀 Hook
- * @typedef {import('../../../types').Card} Card
- * @typedef {import('../../../types').Token} Token
- * @typedef {import('../../../types').BattleState} BattleState
  */
 
-import { useReducer, useMemo, useCallback, useRef, useEffect } from 'react';
+import type { BattleState, PlayerBattleState, EnemyUnit, Relic } from '../../../types';
+import { useReducer, useMemo, useCallback, useRef, useEffect, type Dispatch } from 'react';
 import { battleReducer, createInitialState, ACTIONS } from '../reducer/battleReducer';
 import { addToken, removeToken, clearTurnTokens, setTokenStacks } from '../../../lib/tokenUtils';
 
@@ -39,16 +37,47 @@ import { addToken, removeToken, clearTurnTokens, setTokenStacks } from '../../..
  * =============================================================================
  */
 
+/** 초기 상태 오버라이드 옵션 */
+interface InitialStateOverrides {
+  player?: Partial<PlayerBattleState>;
+  enemy?: Partial<EnemyUnit>;
+  orderedRelics?: Relic[];
+  isSimplified?: boolean;
+  sortType?: 'speed' | 'order';
+  [key: string]: unknown;
+}
+
+/** useBattleState 반환 타입 */
+interface UseBattleStateResult {
+  battle: BattleState;
+  actions: BattleActions;
+}
+
+/** 전투 액션 타입 */
+interface BattleActions {
+  setPhase: (phase: string) => void;
+  nextTurn: () => void;
+  updatePlayer: (updates: Partial<PlayerBattleState>) => void;
+  updateEnemy: (updates: Partial<EnemyUnit>) => void;
+  addPlayerToken: (tokenId: string, stacks?: number) => void;
+  removePlayerToken: (tokenId: string, type?: string, stacks?: number) => void;
+  addEnemyToken: (tokenId: string, stacks?: number) => void;
+  removeEnemyToken: (tokenId: string, type?: string, stacks?: number) => void;
+  clearTurnTokens: (target: 'player' | 'enemy') => void;
+  setTokenStacks: (target: 'player' | 'enemy', tokenId: string, stacks: number) => void;
+  dispatch: Dispatch<unknown>;
+}
+
 /**
  * useBattleState Hook
  *
  * 전투 상태 관리를 위한 커스텀 Hook
  * battleReducer를 래핑하여 사용하기 쉬운 API 제공
  *
- * @param {Object} initialStateOverrides - 초기 상태 오버라이드 (모든 필드 선택 가능)
- * @returns {Object} { battle, actions } - 상태와 액션 객체
+ * @param initialStateOverrides - 초기 상태 오버라이드 (모든 필드 선택 가능)
+ * @returns { battle, actions } - 상태와 액션 객체
  */
-export function useBattleState(initialStateOverrides = {}) {
+export function useBattleState(initialStateOverrides: InitialStateOverrides = {}): UseBattleStateResult {
   // Lazy initializer function for useReducer
   const initializeBattleState = useCallback(() => {
     // createInitialState에서 기본 상태를 생성하되, 오버라이드된 필드만 덮어쓰기
