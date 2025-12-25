@@ -48,6 +48,10 @@ interface ProcessCardPlayedRelicEffectsParams {
   setRelicActivated: (id: string | null) => void;
 }
 
+/**
+ * 카드의 즉시 발동 특성 처리
+ * - 양날의 검, 단련, 몸풀기, 소멸 등
+ */
 export function processImmediateCardTraits({
   card,
   playerState,
@@ -80,6 +84,10 @@ export function processImmediateCardTraits({
   return updatedNextTurnEffects;
 }
 
+/**
+ * 카드 사용 시 상징 효과 처리
+ * - 불멸의 가면 등 카드 사용 트리거 효과
+ */
 export function processCardPlayedRelicEffects({
   relics,
   card,

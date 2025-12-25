@@ -57,6 +57,10 @@ interface ApplyTurnEndRelicEffectsParams {
   actions: Actions;
 }
 
+/**
+ * 턴 종료 시 상징 애니메이션 재생
+ * - ON_TURN_END 타입 상징의 조건 확인 및 활성화
+ */
 export function playTurnEndRelicAnimations({
   relics,
   RELICS,
@@ -79,6 +83,10 @@ export function playTurnEndRelicAnimations({
   });
 }
 
+/**
+ * 턴 종료 상징 효과를 다음 턴에 적용
+ * - 행동력 보너스, 힘 증가 등
+ */
 export function applyTurnEndRelicEffectsToNextTurn({
   turnEndRelicEffects,
   nextTurnEffects,

@@ -68,6 +68,10 @@ interface CalculateTurnEndEtherParams {
   enemy: Enemy;
 }
 
+/**
+ * 턴 종료 시 플레이어와 적의 에테르를 최종 계산
+ * - 콤보 배율, 상징 배율, 디플레이션 적용
+ */
 export function calculateTurnEndEther({
   playerCombo,
   enemyCombo,
@@ -126,6 +130,9 @@ export function calculateTurnEndEther({
   };
 }
 
+/**
+ * 플레이어 에테르 획득 로그 포맷팅
+ */
 export function formatPlayerEtherLog(result: PlayerEtherResult, turnEtherAccumulated: number): string {
   const { beforeDeflation, deflation, finalEther, appliedEther, relicMultBonus, etherAmplifierMult = 1 } = result;
 
@@ -143,6 +150,9 @@ export function formatPlayerEtherLog(result: PlayerEtherResult, turnEtherAccumul
   return `✴️ 에테르 획득: ${turnEtherAccumulated} × ${actualTotalMultiplier.toFixed(2)}${relicText}${amplifierText} = ${beforeDeflation} → ${finalEther} PT${deflationText} (적용: ${appliedEther} PT)`;
 }
 
+/**
+ * 적 에테르 획득 로그 포맷팅
+ */
 export function formatEnemyEtherLog(result: EnemyEtherResult, enemyTurnEtherAccumulated: number): string {
   const { comboMult, beforeDeflation, deflation, finalEther, appliedEther, halfEtherMult = 1 } = result;
 
