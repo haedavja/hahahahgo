@@ -9,7 +9,11 @@ import type {
   Card,
   Combatant,
   BattleEvent,
-  CounterResult
+  CounterResult,
+  BattleContext,
+  CounterShotResult,
+  SingleHitResult,
+  PreProcessedResult
 } from '../../../types';
 import { hasTrait } from '../utils/battleUtils';
 import { applyTokenEffectsToCard, applyTokenEffectsOnDamage, consumeTokens } from '../../../lib/tokenEffects';
@@ -20,42 +24,6 @@ import {
   shouldIgnoreBlock,
   applyCriticalDamage
 } from '../utils/cardSpecialEffects';
-
-/** 전투 컨텍스트 */
-interface BattleContext {
-  enemyDisplayName?: string;
-  fencingDamageBonus?: number;
-  [key: string]: unknown;
-}
-
-/** 대응사격 결과 */
-interface CounterShotResult {
-  defender: Combatant;
-  attacker: Combatant;
-  damage: number;
-  events: BattleEvent[];
-  logs: string[];
-}
-
-/** 단일 타격 결과 */
-interface SingleHitResult {
-  attacker: Combatant;
-  defender: Combatant;
-  damage: number;
-  damageTaken?: number;
-  blockDestroyed?: number;
-  events: BattleEvent[];
-  logs: string[];
-  preProcessedResult?: PreProcessedResult;
-}
-
-/** 사전 처리 결과 */
-interface PreProcessedResult {
-  modifiedCard: Card;
-  attacker: Combatant;
-  defender: Combatant;
-  consumedTokens: string[];
-}
 
 /**
  * 반격 처리

@@ -674,3 +674,92 @@ export interface ExtraSlots {
   mainSlots: number;
   subSlots: number;
 }
+
+// ==================== 타격 계산 타입 ====================
+
+/** 대응사격 결과 */
+export interface CounterShotResult {
+  defender: Combatant;
+  attacker: Combatant;
+  damage: number;
+  events: BattleEvent[];
+  logs: string[];
+}
+
+/** 단일 타격 결과 */
+export interface SingleHitResult {
+  attacker: Combatant;
+  defender: Combatant;
+  damage: number;
+  damageTaken?: number;
+  blockDestroyed?: number;
+  events: BattleEvent[];
+  logs: string[];
+  preProcessedResult?: PreProcessedResult;
+}
+
+/** 사전 처리 결과 */
+export interface PreProcessedResult {
+  modifiedCard: Card;
+  attacker: Combatant;
+  defender: Combatant;
+  consumedTokens: string[];
+}
+
+// ==================== 방어 로직 타입 ====================
+
+/** 방어 행동 결과 */
+export interface DefenseResult {
+  actor: Combatant;
+  dealt: number;
+  taken: number;
+  events: BattleEvent[];
+  log: string;
+}
+
+// ==================== 공격 로직 타입 ====================
+
+/** 공격 행동 결과 */
+export interface AttackResult {
+  attacker: Combatant;
+  defender: Combatant;
+  dealt: number;
+  taken: number;
+  events: BattleEvent[];
+  logs: string[];
+  isCritical?: boolean;
+  createdCards?: Card[];
+}
+
+/** 행동 적용 결과 */
+export interface ActionResult {
+  dealt: number;
+  taken: number;
+  events: BattleEvent[];
+  updatedState: Record<string, unknown>;
+  isCritical?: boolean;
+  createdCards?: Card[];
+  cardPlaySpecials?: CardPlaySpecialsResult;
+}
+
+/** 카드 사용 특수 효과 결과 */
+export interface CardPlaySpecialsResult {
+  tokensToAdd?: TokenToAdd[];
+  tokensToRemove?: TokenToRemove[];
+  events: BattleEvent[];
+  logs: string[];
+}
+
+/** 추가할 토큰 정보 */
+export interface TokenToAdd {
+  id: string;
+  stacks: number;
+  targetEnemy?: boolean;
+  grantedAt?: { turn: number; sp: number };
+}
+
+/** 제거할 토큰 정보 */
+export interface TokenToRemove {
+  id: string;
+  stacks: number;
+}

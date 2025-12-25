@@ -3,17 +3,14 @@
  * @description 전투 시스템 유틸리티 함수
  */
 
-interface Card {
-  traits?: string[];
-  damage?: number;
-  block?: number;
-  speedCost?: number;
-  actionCost?: number;
-  type?: string;
-  rarity?: string;
+import type { Card, CardRarity } from '../../../types';
+
+/** 카드 (배틀 유틸용 확장) */
+interface BattleCard extends Card {
   [key: string]: unknown;
 }
 
+/** 특성 적용 컨텍스트 */
 interface TraitContext {
   isInCombo?: boolean;
   usageCount?: number;
@@ -27,14 +24,14 @@ export const choice = <T>(arr: T[]): T => arr[Math.floor(Math.random() * arr.len
 /**
  * 카드가 특정 특성을 가지고 있는지 확인
  */
-export function hasTrait(card: Card, traitId: string): boolean {
+export function hasTrait(card: BattleCard, traitId: string): boolean {
   return !!(card.traits && card.traits.includes(traitId));
 }
 
 /**
  * 특성 효과를 카드에 적용
  */
-export function applyTraitModifiers(card: Card, context: TraitContext = {}): Card {
+export function applyTraitModifiers(card: BattleCard, context: TraitContext = {}): BattleCard {
   const modifiedCard = { ...card };
 
   if (hasTrait(card, 'strongbone')) {
@@ -90,7 +87,7 @@ export function applyTraitModifiers(card: Card, context: TraitContext = {}): Car
 /**
  * 힘 스탯을 카드에 적용하는 함수
  */
-export function applyStrengthToCard(card: Card, strength: number = 0, isPlayerCard: boolean = true): Card {
+export function applyStrengthToCard(card: BattleCard, strength: number = 0, isPlayerCard: boolean = true): BattleCard {
   if (!isPlayerCard || strength === 0) return card;
 
   const modifiedCard = { ...card };
@@ -109,7 +106,7 @@ export function applyStrengthToCard(card: Card, strength: number = 0, isPlayerCa
 /**
  * 손패 전체에 힘 스탯 적용
  */
-export function applyStrengthToHand(hand: Card[], strength: number = 0): Card[] {
+export function applyStrengthToHand(hand: BattleCard[], strength: number = 0): BattleCard[] {
   if (strength === 0) return hand;
   return hand.map(card => applyStrengthToCard(card, strength, true));
 }
@@ -117,4 +114,4 @@ export function applyStrengthToHand(hand: Card[], strength: number = 0): Card[] 
 /**
  * 카드 희귀도 반환
  */
-export const getCardRarity = (card: Card | null | undefined): string => card?.rarity || 'common';
+export const getCardRarity = (card: BattleCard | null | undefined): CardRarity => (card?.rarity || 'common') as CardRarity;

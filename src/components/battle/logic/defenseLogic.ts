@@ -1,26 +1,64 @@
 /**
- * @file defenseLogic.js
+ * @file defenseLogic.ts
  * @description 방어 행동 처리 로직
- * @typedef {import('../../../types').Card} Card
  *
- * combatActions.js에서 분리됨
+ * combatActions.ts에서 분리됨
  *
  * ## 방어력 계산 공식
  * 최종 방어력 = (카드 기본값 + 힘 보너스 + 성장 보너스) × 교차 배율 + 홀로그램 보너스
  */
 
+import type {
+  Card,
+  Combatant,
+  BattleEvent,
+  BattleContext,
+  DefenseResult
+} from '../../../types';
 import { applyTokenEffectsToCard, consumeTokens } from '../../../lib/tokenEffects';
 import { calculateGrowingDefense, hasSpecial } from '../utils/cardSpecialEffects';
 
+/** 방어 카드 (확장) */
+interface DefenseCard extends Card {
+  isGhost?: boolean;
+  ignoreStatus?: boolean;
+  ignoreStrength?: boolean;
+  crossBonus?: {
+    type: string;
+    value?: number;
+  };
+  counter?: number;
+  [key: string]: unknown;
+}
+
+/** 방어 행동자 */
+interface DefenseActor extends Combatant {
+  def?: boolean;
+  tokens?: Record<string, unknown>;
+  [key: string]: unknown;
+}
+
+/** 방어 전투 컨텍스트 */
+interface DefenseBattleContext extends BattleContext {
+  currentSp?: number;
+  queue?: Array<{ actor: string; sp?: number }>;
+  currentQIndex?: number;
+}
+
 /**
  * 방어 행동 적용
- * @param {Object} actor - 행동 주체 (player 또는 enemy)
- * @param {Object} card - 사용한 카드
- * @param {string} actorName - 'player' 또는 'enemy'
- * @param {Object} battleContext - 전투 컨텍스트 (special 효과용)
- * @returns {Object} - { actor: 업데이트된 actor, events: 이벤트 배열, log: 로그 메시지 }
+ * @param actor - 행동 주체 (player 또는 enemy)
+ * @param card - 사용한 카드
+ * @param actorName - 'player' 또는 'enemy'
+ * @param battleContext - 전투 컨텍스트 (special 효과용)
+ * @returns { actor: 업데이트된 actor, events: 이벤트 배열, log: 로그 메시지 }
  */
-export function applyDefense(actor, card, actorName, battleContext = {}) {
+export function applyDefense(
+  actor: DefenseActor,
+  card: DefenseCard,
+  actorName: 'player' | 'enemy',
+  battleContext: DefenseBattleContext = {}
+): DefenseResult {
   // 유령카드나 ignoreStatus 특성이 있으면 토큰 효과 미적용
   const isGhost = card.isGhost === true;
   const skipTokenEffects = isGhost || card.ignoreStatus === true;

@@ -1,29 +1,22 @@
 /**
- * @file combatActions.js
+ * @file combatActions.ts
  * @description 전투 행동 처리 로직
- * @typedef {import('../../../types').Card} Card
- * @typedef {import('../../../types').Token} Token
- *
- * @typedef {Object} CombatActor
- * @property {number} hp - 현재 체력
- * @property {number} maxHp - 최대 체력
- * @property {number} block - 방어력
- * @property {number} strength - 힘
- * @property {Token[]} tokens - 토큰 배열
- *
- * @typedef {Object} AttackResult
- * @property {CombatActor} attacker - 업데이트된 공격자
- * @property {CombatActor} defender - 업데이트된 방어자
- * @property {number} totalDealt - 가한 총 피해
- * @property {number} totalTaken - 받은 총 피해
- * @property {Array} events - 이벤트 배열
- * @property {Array} logs - 로그 배열
  *
  * 분리된 모듈:
- * - defenseLogic.js: 방어 행동 처리
- * - hitCalculation.js: 단일 타격 계산 및 반격 처리
+ * - defenseLogic.ts: 방어 행동 처리
+ * - hitCalculation.ts: 단일 타격 계산 및 반격 처리
  */
 
+import type {
+  Card,
+  Combatant,
+  BattleEvent,
+  BattleContext,
+  AttackResult,
+  ActionResult,
+  TokenToAdd,
+  TokenToRemove
+} from '../../../types';
 import { addToken, removeToken } from '../../../lib/tokenUtils';
 import {
   processPostAttackSpecials,
@@ -38,16 +31,55 @@ export { calculateSingleHit, applyCounter, applyCounterShot } from './hitCalcula
 import { applyDefense } from './defenseLogic';
 import { calculateSingleHit } from './hitCalculation';
 
+/** 전투 행동자 (확장) */
+interface CombatActor extends Combatant {
+  def?: boolean;
+  tokens?: Record<string, unknown>;
+  etherOverdriveActive?: boolean;
+  vulnMult?: number;
+  [key: string]: unknown;
+}
+
+/** 전투 카드 (확장) */
+interface CombatCard extends Card {
+  isGhost?: boolean;
+  hits?: number;
+  cardCategory?: string;
+  [key: string]: unknown;
+}
+
+/** 전투 컨텍스트 (확장) */
+interface CombatBattleContext extends BattleContext {
+  remainingEnergy?: number;
+  enemyRemainingEnergy?: number;
+  allCards?: Card[];
+  [key: string]: unknown;
+}
+
+/** 전투 상태 */
+interface CombatState {
+  player: CombatActor;
+  enemy: CombatActor;
+  log: string[];
+  [key: string]: unknown;
+}
+
 /**
  * 공격 행동 적용 (다중 타격 지원 + special 효과)
- * @param {CombatActor} attacker - 공격자
- * @param {CombatActor} defender - 방어자
- * @param {Card} card - 사용된 카드
- * @param {'player'|'enemy'} attackerName - 공격자 이름
- * @param {Object} battleContext - 전투 컨텍스트
- * @returns {AttackResult} 공격 결과
+ * @param attacker - 공격자
+ * @param defender - 방어자
+ * @param card - 사용된 카드
+ * @param attackerName - 공격자 이름
+ * @param battleContext - 전투 컨텍스트
+ * @returns 공격 결과
  */
-export function applyAttack(attacker, defender, card, attackerName, battleContext = {}) {
+export function applyAttack(
+  attacker: CombatActor,
+  defender: CombatActor,
+  card: CombatCard,
+  attackerName: 'player' | 'enemy',
+  battleContext: CombatBattleContext = {}
+): AttackResult {
   // 입력 검증
   if (!attacker || !defender || !card) {
     console.error('[applyAttack] Invalid input:', { attacker: !!attacker, defender: !!defender, card: !!card });
@@ -185,10 +217,28 @@ export function applyAttack(attacker, defender, card, attackerName, battleContex
   };
 }
 
+/** 다중 타격 준비 결과 */
+interface MultiHitPrepareResult {
+  hits: number;
+  firstHitCritical: boolean;
+  preProcessedResult: Record<string, unknown> | null;
+  modifiedCard: CombatCard;
+  firstHitResult: Record<string, unknown>;
+  currentAttacker: CombatActor;
+  currentDefender: CombatActor;
+  attackerRemainingEnergy: number;
+}
+
 /**
  * 다중 타격 공격 준비 (비동기 처리용)
  */
-export function prepareMultiHitAttack(attacker, defender, card, attackerName, battleContext = {}) {
+export function prepareMultiHitAttack(
+  attacker: CombatActor,
+  defender: CombatActor,
+  card: CombatCard,
+  attackerName: 'player' | 'enemy',
+  battleContext: CombatBattleContext = {}
+): MultiHitPrepareResult {
   const currentAttacker = { ...attacker };
   const currentDefender = { ...defender };
 
@@ -215,10 +265,28 @@ export function prepareMultiHitAttack(attacker, defender, card, attackerName, ba
   };
 }
 
+/** 다중 타격 마무리 결과 */
+interface MultiHitFinalizeResult {
+  attacker: CombatActor;
+  defender: CombatActor;
+  events: BattleEvent[];
+  logs: string[];
+  extraHits: number;
+  createdCards: Card[];
+}
+
 /**
  * 공격 후 special 효과 처리 (외부 호출용)
  */
-export function finalizeMultiHitAttack(modifiedCard, attacker, defender, attackerName, totalDealt, totalBlockDestroyed, battleContext = {}) {
+export function finalizeMultiHitAttack(
+  modifiedCard: CombatCard,
+  attacker: CombatActor,
+  defender: CombatActor,
+  attackerName: 'player' | 'enemy',
+  totalDealt: number,
+  totalBlockDestroyed: number,
+  battleContext: CombatBattleContext = {}
+): MultiHitFinalizeResult {
   const postAttackResult = processPostAttackSpecials({
     card: modifiedCard,
     attacker,
@@ -248,7 +316,12 @@ export function finalizeMultiHitAttack(modifiedCard, attacker, defender, attacke
 /**
  * 전투 행동 통합 처리 (방어/공격 자동 판별)
  */
-export function applyAction(state, actor, card, battleContext = {}) {
+export function applyAction(
+  state: CombatState,
+  actor: 'player' | 'enemy',
+  card: CombatCard,
+  battleContext: CombatBattleContext = {}
+): ActionResult {
   const A = actor === 'player' ? state.player : state.enemy;
   const B = actor === 'player' ? state.enemy : state.player;
 
