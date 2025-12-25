@@ -360,10 +360,13 @@ export interface TokenDefinition {
   category: TokenCategory;
   emoji: string;
   description: string;
-  effect: {
-    type: string;
-    value: number;
-  };
+  effect: TokenEffectPayload;
+}
+
+/** 토큰 효과 페이로드 (정의용) */
+export interface TokenEffectPayload {
+  type: string;
+  value: number;
 }
 
 /** 토큰 조작 결과 */
@@ -424,4 +427,154 @@ export interface Position {
 export interface Range {
   min: number;
   max: number;
+}
+
+// ==================== 토큰 효과 시스템 ====================
+
+/** 토큰 효과 타입 ID */
+export type TokenEffectType =
+  | 'ATTACK_BOOST' | 'ATTACK_PENALTY'
+  | 'DEFENSE_BOOST' | 'DEFENSE_PENALTY'
+  | 'DODGE' | 'COUNTER' | 'COUNTER_SHOT'
+  | 'LIFESTEAL' | 'REVIVE' | 'IMMUNITY'
+  | 'DAMAGE_TAKEN' | 'ENERGY_BOOST' | 'ENERGY_PENALTY'
+  | 'STRENGTH' | 'AGILITY' | 'INSIGHT'
+  | 'ETHER_TO_ENERGY' | 'REDUCE_INSIGHT'
+  | 'GOLD_ON_DAMAGE' | 'FINESSE'
+  | 'PERSISTENT_STRIKE' | 'HALF_ETHER'
+  | 'GUN_JAM' | 'LOADED' | 'ARMOR_PIERCING'
+  | 'INCENDIARY' | 'BURN' | 'ROULETTE'
+  | 'CRIT_BOOST' | 'FOCUS' | 'CURSE' | 'VEIL'
+  | 'EMPTY_CHAMBER';
+
+/** 토큰 효과 정의 */
+export interface TokenEffect {
+  type: TokenEffectType;
+  value: number;
+}
+
+/** 토큰 인스턴스 (실제 보유 토큰) */
+export interface TokenInstance {
+  id: string;
+  stacks: number;
+  grantedAt?: { turn: number; sp: number };
+}
+
+/** 토큰 상태 (유형별 분류) */
+export interface TokenState {
+  usage: TokenInstance[];
+  turn: TokenInstance[];
+  permanent: TokenInstance[];
+  [key: string]: TokenInstance[];
+}
+
+/** 토큰이 있는 엔티티 */
+export interface TokenEntity {
+  tokens?: TokenState;
+  strength?: number;
+  agility?: number;
+  insight?: number;
+  maxHp?: number;
+  hp?: number;
+  block?: number;
+  counter?: number;
+  [key: string]: unknown;
+}
+
+/** 토큰 조작 결과 (확장) */
+export interface TokenModificationResult {
+  tokens: TokenState;
+  logs: string[];
+  cancelled?: number;
+  remaining?: number;
+}
+
+// ==================== 카드 확장 타입 ====================
+
+/** 확장된 카드 인터페이스 (런타임 속성 포함) */
+export interface ExtendedCard extends Card {
+  __handUid?: string;
+  __uid?: string;
+  __isMainSpecial?: boolean;
+  __isSubSpecial?: boolean;
+  __targetUnitId?: number;
+  _ignoreBlock?: boolean;
+  _applyBurn?: boolean;
+}
+
+/** 카드 효과 적용 결과 */
+export interface CardEffectResult {
+  modifiedCard: Card;
+  consumedTokens: ConsumedToken[];
+}
+
+/** 소모된 토큰 정보 */
+export interface ConsumedToken {
+  id: string;
+  type: TokenType;
+}
+
+/** 피해 효과 적용 결과 */
+export interface DamageEffectResult {
+  finalDamage: number;
+  dodged: boolean;
+  reflected: number;
+  consumedTokens: ConsumedToken[];
+  logs: string[];
+}
+
+/** 회복 효과 적용 결과 */
+export interface HealEffectResult {
+  healing: number;
+  consumedTokens: ConsumedToken[];
+  logs: string[];
+}
+
+/** 부활 결과 */
+export interface ReviveResult {
+  revived: boolean;
+  newHp: number;
+  consumedTokens: ConsumedToken[];
+  logs: string[];
+}
+
+// ==================== 전투 큐 타입 ====================
+
+/** 행동 큐 아이템 */
+export interface QueueAction {
+  actor: 'player' | 'enemy';
+  card: Card;
+  speed?: number;
+  unitId?: number;
+}
+
+/** 전투 컨텍스트 */
+export interface BattleContext {
+  enemyDisplayName?: string;
+  fencingDamageBonus?: number;
+  [key: string]: unknown;
+}
+
+// ==================== UI 컴포넌트 Props ====================
+
+/** 아이콘 Props */
+export interface IconProps {
+  size?: number;
+  className?: string;
+  strokeWidth?: number;
+}
+
+/** 에테르 바 Props */
+export interface EtherBarProps {
+  currentPts: number;
+  maxSlots?: number;
+  showSlotInfo?: boolean;
+}
+
+/** 체력 바 Props */
+export interface HpBarProps {
+  current: number;
+  max: number;
+  showText?: boolean;
+  color?: string;
 }

@@ -9,77 +9,35 @@
  */
 
 import { getAllTokens, removeToken } from './tokenUtils';
+import type {
+  TokenEntity,
+  TokenState,
+  Card,
+  CardEffectResult,
+  ConsumedToken,
+  DamageEffectResult,
+  HealEffectResult,
+  ReviveResult,
+  TokenEffectPayload
+} from '../types';
 
-interface TokenEffect {
-  type: string;
-  value: number;
-}
-
-interface TokenInstance {
+/** 토큰 인스턴스 (표시용, 효과 포함) */
+interface TokenInstanceWithEffect {
   id: string;
   stacks: number;
   durationType: string;
-  effect: TokenEffect;
+  effect: TokenEffectPayload;
   name: string;
   [key: string]: unknown;
 }
 
-interface TokenState {
-  usage: unknown[];
-  turn: unknown[];
-  permanent: unknown[];
-  [key: string]: unknown[];
-}
-
-interface Entity {
-  tokens?: TokenState;
-  strength?: number;
-  agility?: number;
-  maxHp?: number;
-  hp?: number;
-  [key: string]: unknown;
-}
-
-interface Card {
-  damage?: number;
-  block?: number;
-  cardCategory?: string;
+/** 카드 (수정 가능) */
+interface ModifiableCard extends Card {
   _ignoreBlock?: boolean;
   _applyBurn?: boolean;
-  [key: string]: unknown;
 }
 
-interface ConsumedToken {
-  id: string;
-  type: string;
-}
-
-interface CardEffectResult {
-  modifiedCard: Card;
-  consumedTokens: ConsumedToken[];
-}
-
-interface DamageEffectResult {
-  finalDamage: number;
-  dodged: boolean;
-  reflected: number;
-  consumedTokens: ConsumedToken[];
-  logs: string[];
-}
-
-interface HealEffectResult {
-  healing: number;
-  consumedTokens: ConsumedToken[];
-  logs: string[];
-}
-
-interface ReviveResult {
-  revived: boolean;
-  newHp: number;
-  consumedTokens: ConsumedToken[];
-  logs: string[];
-}
-
+/** 토큰 소모 결과 */
 interface ConsumeResult {
   tokens: TokenState;
   logs: string[];
@@ -90,16 +48,16 @@ interface ConsumeResult {
  */
 export function applyTokenEffectsToCard(
   card: Card,
-  entity: Entity,
+  entity: TokenEntity,
   cardType: string
 ): CardEffectResult {
   if (!card || !entity || !entity.tokens) {
     return { modifiedCard: card, consumedTokens: [] };
   }
 
-  let modifiedCard: Card = { ...card };
+  let modifiedCard: ModifiableCard = { ...card };
   const consumedTokens: ConsumedToken[] = [];
-  const allTokens = getAllTokens(entity) as TokenInstance[];
+  const allTokens = getAllTokens(entity) as TokenInstanceWithEffect[];
 
   // 빈탄창 체크 (총기 카드는 빈탄창 상태에서 데미지 0)
   if (cardType === 'attack' && card.cardCategory === 'gun') {
@@ -229,8 +187,8 @@ export function applyTokenEffectsToCard(
  */
 export function applyTokenEffectsOnDamage(
   damage: number,
-  defender: Entity,
-  attacker: Entity | null
+  defender: TokenEntity,
+  attacker: TokenEntity | null
 ): DamageEffectResult {
   if (!defender || !defender.tokens) {
     return { finalDamage: damage, dodged: false, reflected: 0, consumedTokens: [], logs: [] };
@@ -239,7 +197,7 @@ export function applyTokenEffectsOnDamage(
   let finalDamage = damage;
   const consumedTokens: ConsumedToken[] = [];
   const logs: string[] = [];
-  const allTokens = getAllTokens(defender) as TokenInstance[];
+  const allTokens = getAllTokens(defender) as TokenInstanceWithEffect[];
 
   // 1. 회피 체크
   const dodgeToken = allTokens.find(t => t.effect.type === 'DODGE');
@@ -295,13 +253,13 @@ export function applyTokenEffectsOnDamage(
  */
 export function applyTokenEffectsOnHeal(
   damageDealt: number,
-  entity: Entity
+  entity: TokenEntity
 ): HealEffectResult {
   if (!entity || !entity.tokens) {
     return { healing: 0, consumedTokens: [], logs: [] };
   }
 
-  const allTokens = getAllTokens(entity) as TokenInstance[];
+  const allTokens = getAllTokens(entity) as TokenInstanceWithEffect[];
   const consumedTokens: ConsumedToken[] = [];
   const logs: string[] = [];
 
@@ -319,12 +277,12 @@ export function applyTokenEffectsOnHeal(
 /**
  * 최대 에너지에 토큰 효과 적용
  */
-export function applyTokenEffectsOnEnergy(baseEnergy: number, entity: Entity): number {
+export function applyTokenEffectsOnEnergy(baseEnergy: number, entity: TokenEntity): number {
   if (!entity || !entity.tokens) {
     return baseEnergy;
   }
 
-  const allTokens = getAllTokens(entity) as TokenInstance[];
+  const allTokens = getAllTokens(entity) as TokenInstanceWithEffect[];
   let energyModifier = 0;
 
   allTokens.forEach(token => {
@@ -341,7 +299,7 @@ export function applyTokenEffectsOnEnergy(baseEnergy: number, entity: Entity): n
 /**
  * 힘 토큰의 총합 계산
  */
-export function getTotalStrength(entity: Entity): number {
+export function getTotalStrength(entity: TokenEntity): number {
   if (!entity) {
     return 0;
   }
@@ -349,7 +307,7 @@ export function getTotalStrength(entity: Entity): number {
     return entity.strength || 0;
   }
 
-  const allTokens = getAllTokens(entity) as TokenInstance[];
+  const allTokens = getAllTokens(entity) as TokenInstanceWithEffect[];
   let strengthBonus = entity.strength || 0;
 
   allTokens.forEach(token => {
@@ -364,7 +322,7 @@ export function getTotalStrength(entity: Entity): number {
 /**
  * 민첩 토큰의 총합 계산
  */
-export function getTotalAgility(entity: Entity): number {
+export function getTotalAgility(entity: TokenEntity): number {
   if (!entity) {
     return 0;
   }
@@ -372,7 +330,7 @@ export function getTotalAgility(entity: Entity): number {
     return entity.agility || 0;
   }
 
-  const allTokens = getAllTokens(entity) as TokenInstance[];
+  const allTokens = getAllTokens(entity) as TokenInstanceWithEffect[];
   let agilityBonus = entity.agility || 0;
 
   allTokens.forEach(token => {
@@ -387,12 +345,12 @@ export function getTotalAgility(entity: Entity): number {
 /**
  * 사망 시 부활 토큰 체크
  */
-export function checkReviveToken(entity: Entity): ReviveResult {
+export function checkReviveToken(entity: TokenEntity): ReviveResult {
   if (!entity || !entity.tokens) {
     return { revived: false, newHp: 0, consumedTokens: [], logs: [] };
   }
 
-  const allTokens = getAllTokens(entity) as TokenInstance[];
+  const allTokens = getAllTokens(entity) as TokenInstanceWithEffect[];
   const reviveToken = allTokens.find(t => t.effect.type === 'REVIVE');
 
   if (reviveToken) {
@@ -412,8 +370,8 @@ export function checkReviveToken(entity: Entity): ReviveResult {
 /**
  * 사용소모 토큰 일괄 소모
  */
-export function consumeTokens(entity: Entity, consumedTokens: ConsumedToken[]): ConsumeResult {
-  let currentEntity: Entity = { ...entity };
+export function consumeTokens(entity: TokenEntity, consumedTokens: ConsumedToken[]): ConsumeResult {
+  let currentEntity: TokenEntity = { ...entity };
   const logs: string[] = [];
 
   consumedTokens.forEach(({ id, type }) => {

@@ -15,44 +15,24 @@
  */
 
 import { TOKENS, TOKEN_TYPES, TOKEN_CATEGORIES, TOKEN_CANCELLATION_MAP, GUN_JAM_REMOVES } from '../data/tokens';
+import type {
+  TokenInstance,
+  TokenState,
+  TokenEntity,
+  TokenModificationResult,
+  TokenDefinition
+} from '../types';
 
-interface TokenInstance {
-  id: string;
-  stacks: number;
-  grantedAt?: { turn: number; sp: number };
-}
-
-interface TokenState {
-  usage: TokenInstance[];
-  turn: TokenInstance[];
-  permanent: TokenInstance[];
-  [key: string]: TokenInstance[];
-}
-
-interface Entity {
-  tokens?: TokenState;
-  [key: string]: unknown;
-}
-
-interface TokenResult {
-  tokens: TokenState;
-  logs: string[];
-}
-
+/** 토큰 상쇄 결과 */
 interface CancelResult {
   cancelled: number;
   remaining: number;
   tokens: TokenState;
 }
 
-interface TokenData {
-  id: string;
-  name: string;
-  emoji?: string;
-  type: string;
-  category?: string;
-  effect?: unknown;
-  [key: string]: unknown;
+/** 토큰 데이터 (표시용) */
+interface TokenDisplayData extends TokenDefinition, TokenInstance {
+  durationType: string;
 }
 
 /**
@@ -60,11 +40,11 @@ interface TokenData {
  * 상쇄 규칙 적용
  */
 export function addToken(
-  entity: Entity | null | undefined,
+  entity: TokenEntity | null | undefined,
   tokenId: string,
   stacks: number = 1,
   grantedAt: { turn: number; sp: number } | null = null
-): TokenResult {
+): TokenModificationResult {
   if (!entity) {
     console.warn('[addToken] Entity is null or undefined');
     return { tokens: { usage: [], turn: [], permanent: [] }, logs: [] };
@@ -169,11 +149,11 @@ export function addToken(
  * 토큰 스택을 특정 값으로 설정 (리셋용)
  */
 export function setTokenStacks(
-  entity: Entity,
+  entity: TokenEntity,
   tokenId: string,
   tokenType: string,
   newStacks: number
-): TokenResult {
+): TokenModificationResult {
   const tokens = { ...entity.tokens } as TokenState;
   const logs: string[] = [];
   const typeArray = [...(tokens[tokenType] || [])];
@@ -205,11 +185,11 @@ export function setTokenStacks(
  * 엔티티에서 토큰 제거
  */
 export function removeToken(
-  entity: Entity | null | undefined,
+  entity: TokenEntity | null | undefined,
   tokenId: string,
   tokenType: string,
   stacks: number = 1
-): TokenResult {
+): TokenModificationResult {
   if (!entity) {
     console.warn('[removeToken] Entity is null or undefined');
     return { tokens: { usage: [], turn: [], permanent: [] }, logs: [] };
@@ -245,7 +225,7 @@ export function removeToken(
 /**
  * 턴 종료 시 grantedAt이 없는 턴소모 토큰만 제거
  */
-export function clearTurnTokens(entity: Entity | null | undefined): TokenResult {
+export function clearTurnTokens(entity: TokenEntity | null | undefined): TokenModificationResult {
   if (!entity) {
     return { tokens: { usage: [], turn: [], permanent: [] }, logs: [] };
   }
@@ -275,10 +255,10 @@ export function clearTurnTokens(entity: Entity | null | undefined): TokenResult 
  * 타임라인 기반 턴소모 토큰 만료 처리
  */
 export function expireTurnTokensByTimeline(
-  entity: Entity,
+  entity: TokenEntity,
   currentTurn: number,
   currentSp: number
-): TokenResult {
+): TokenModificationResult {
   const tokens = { ...entity.tokens } as TokenState;
   const logs: string[] = [];
 
@@ -365,7 +345,7 @@ function cancelTokens(
 /**
  * 특정 토큰 보유 여부 확인
  */
-export function hasToken(entity: Entity | null | undefined, tokenId: string): boolean {
+export function hasToken(entity: TokenEntity | null | undefined, tokenId: string): boolean {
   if (!entity || !entity.tokens) return false;
 
   for (const type of [TOKEN_TYPES.USAGE, TOKEN_TYPES.TURN, TOKEN_TYPES.PERMANENT]) {
@@ -380,7 +360,7 @@ export function hasToken(entity: Entity | null | undefined, tokenId: string): bo
 /**
  * 특정 토큰의 총 스택 수 가져오기
  */
-export function getTokenStacks(entity: Entity | null | undefined, tokenId: string): number {
+export function getTokenStacks(entity: TokenEntity | null | undefined, tokenId: string): number {
   if (!entity || !entity.tokens) return 0;
 
   for (const type of [TOKEN_TYPES.USAGE, TOKEN_TYPES.TURN, TOKEN_TYPES.PERMANENT]) {
@@ -396,10 +376,10 @@ export function getTokenStacks(entity: Entity | null | undefined, tokenId: strin
 /**
  * 엔티티의 모든 토큰 가져오기 (정렬된 배열)
  */
-export function getAllTokens(entity: Entity | null | undefined): (TokenData & TokenInstance & { durationType: string })[] {
+export function getAllTokens(entity: TokenEntity | null | undefined): TokenDisplayData[] {
   if (!entity || !entity.tokens) return [];
 
-  const allTokens: (TokenData & TokenInstance & { durationType: string })[] = [];
+  const allTokens: TokenDisplayData[] = [];
 
   for (const type of [TOKEN_TYPES.PERMANENT, TOKEN_TYPES.USAGE, TOKEN_TYPES.TURN]) {
     const typeArray = entity.tokens[type] || [];
@@ -421,7 +401,7 @@ export function getAllTokens(entity: Entity | null | undefined): (TokenData & To
 /**
  * 토큰이 빈 상태인지 확인
  */
-export function hasNoTokens(entity: Entity): boolean {
+export function hasNoTokens(entity: TokenEntity): boolean {
   if (!entity.tokens) return true;
 
   for (const type of [TOKEN_TYPES.USAGE, TOKEN_TYPES.TURN, TOKEN_TYPES.PERMANENT]) {
