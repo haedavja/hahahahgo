@@ -26,7 +26,7 @@ describe('tokenUtils', () => {
       const entity = createEntity();
       const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
-      const result = addToken(entity, 'nonexistent_token', 1);
+      addToken(entity, 'nonexistent_token', 1);
 
       expect(consoleSpy).toHaveBeenCalledWith('Unknown token: nonexistent_token');
       consoleSpy.mockRestore();

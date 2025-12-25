@@ -14,7 +14,7 @@
  * - 상징 힐: maxHp 제한, 유령카드 제외
  */
 
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { processImmediateCardTraits, processCardPlayedRelicEffects } from './cardImmediateEffects';
 
 vi.mock('../../../lib/relicEffects', () => ({

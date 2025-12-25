@@ -74,7 +74,7 @@ export function useHandManagement({
     actions.setSortType(nextSort);
     try {
       localStorage.setItem('battleSortType', nextSort);
-    } catch { }
+    } catch { /* ignore */ }
 
     const sortLabels = {
       speed: '시간 기준 정렬',

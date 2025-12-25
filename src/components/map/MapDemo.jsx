@@ -52,7 +52,7 @@ export function MapDemo() {
         const ids = JSON.parse(saved);
         if (Array.isArray(ids) && ids.length) return mergeRelicOrder(relics || [], ids);
       }
-    } catch { }
+    } catch { /* ignore */ }
     return relics || [];
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -87,7 +87,7 @@ export function MapDemo() {
   useEffect(() => {
     try {
       localStorage.setItem("relicOrder", JSON.stringify(orderedRelics));
-    } catch { }
+    } catch { /* ignore */ }
   }, [orderedRelics]);
   const selectNode = useGameStore((state) => state.selectNode);
   const chooseEvent = useGameStore((state) => state.chooseEvent);

@@ -28,7 +28,7 @@ export function useRelicDrag({ orderedRelicList, actions }) {
       const img = new Image();
       img.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9YQn1fEAAAAASUVORK5CYII=';
       e.dataTransfer.setDragImage(img, 0, 0);
-    } catch { }
+    } catch { /* ignore */ }
   }, [actions]);
 
   const handleRelicDragOver = useCallback((e) => {

@@ -25,7 +25,6 @@ import { sortCombinedOrderStablePF } from '../utils/combatUtils';
 import { generateEnemyActions, shouldEnemyOverdrive, assignSourceUnitToActions } from '../utils/enemyAI';
 import { applyTraitModifiers } from '../utils/battleUtils';
 import { processQueueCollisions } from '../utils/cardSpecialEffects';
-import { calculateEtherSlots } from '../../../lib/etherUtils';
 import { playCardSubmitSound, playProceedSound } from '../../../lib/soundUtils';
 import { ETHER_THRESHOLD } from '../battleData';
 

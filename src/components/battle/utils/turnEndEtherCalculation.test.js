@@ -15,7 +15,7 @@
  * - 상징 배율 보너스 계산
  */
 
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { calculateTurnEndEther, formatPlayerEtherLog, formatEnemyEtherLog } from './turnEndEtherCalculation';
 
 vi.mock('../../../lib/tokenUtils', () => ({

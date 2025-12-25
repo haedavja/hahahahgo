@@ -17,7 +17,7 @@
  * @vitest-environment node
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { applyAction, applyAttack, applyDefense } from '../logic/combatActions.js';
 import { createEmptyTokens } from '../../../lib/tokenUtils.js';
 import { processQueueCollisions } from './cardSpecialEffects.js';

@@ -16,7 +16,7 @@
  * - 다중 유닛 행동 분배
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import {
   decideEnemyMode,
   generateEnemyActions,

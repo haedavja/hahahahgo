@@ -83,7 +83,7 @@ export function useKeyboardShortcuts({
         e.preventDefault();
         actions.setIsSimplified((prev) => {
           const newVal = !prev;
-          try { localStorage.setItem('battleIsSimplified', newVal.toString()); } catch { }
+          try { localStorage.setItem('battleIsSimplified', newVal.toString()); } catch { /* ignore */ }
           return newVal;
         });
       }

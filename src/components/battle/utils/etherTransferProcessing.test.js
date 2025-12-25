@@ -13,7 +13,7 @@
  * - 이동량 0일 때 애니메이션/사운드 스킵
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { processEtherTransfer } from './etherTransferProcessing';
 
 describe('etherTransferProcessing', () => {
