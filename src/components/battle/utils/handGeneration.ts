@@ -7,7 +7,12 @@ import { CARDS, DEFAULT_STARTING_DECK } from "../battleData";
 import { hasTrait } from "./battleUtils";
 
 interface Card {
-  id: string;
+  id?: string;
+  name?: string;
+  type?: string;
+  block?: number;
+  speedCost?: number;
+  actionCost?: number;
   __handUid?: string;
   __isMainSpecial?: boolean;
   __isSubSpecial?: boolean;
@@ -72,7 +77,7 @@ export function initializeDeck(
         __isMainSpecial: true
       };
     })
-    .filter((card): card is Card => card !== null);
+    .filter(Boolean) as Card[];
 
   const subSpecialCards: Card[] = subSpecials
     .filter(cardId => !vanishedSet.has(cardId))
@@ -85,7 +90,7 @@ export function initializeDeck(
         __isSubSpecial: true
       };
     })
-    .filter((card): card is Card => card !== null);
+    .filter(Boolean) as Card[];
 
   const usedMainCounts: Record<string, number> = {};
   mainSpecials.forEach(cardId => {
@@ -120,7 +125,7 @@ export function initializeDeck(
         __handUid: `owned_${card.id}_${idx}_${Math.random().toString(36).slice(2, 8)}`
       };
     })
-    .filter((card): card is Card => card !== null);
+    .filter(Boolean) as Card[];
 
   const shuffledOwned = shuffleArray(ownedCardObjs);
   const deck = [...subSpecialCards, ...shuffledOwned];
@@ -180,7 +185,7 @@ export function drawFromDeck(
 export function getDefaultStartingHand(): Card[] {
   return DEFAULT_STARTING_DECK
     .map((cardId: string) => CARDS.find((card: Card) => card.id === cardId))
-    .filter((card): card is Card => card !== undefined && card !== null);
+    .filter(Boolean) as Card[];
 }
 
 /**
@@ -211,5 +216,5 @@ export function drawCharacterBuildHand(
         __handUid: `${card.id}_${idx}_${Math.random().toString(36).slice(2, 8)}`
       };
     })
-    .filter((card): card is Card => card !== null);
+    .filter(Boolean) as Card[];
 }

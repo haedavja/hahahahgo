@@ -64,7 +64,7 @@ interface QueueStep {
 }
 
 interface Mode {
-  key: string;
+  key: 'aggro' | 'turtle' | 'balanced';
   name: string;
   prefer: string;
 }

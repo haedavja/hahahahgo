@@ -7,8 +7,8 @@ interface Card {
   traits?: string[];
   damage?: number;
   block?: number;
-  speedCost: number;
-  actionCost: number;
+  speedCost?: number;
+  actionCost?: number;
   type?: string;
   rarity?: string;
   [key: string]: unknown;

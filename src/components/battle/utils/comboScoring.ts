@@ -25,6 +25,9 @@ interface Card {
   damage?: number;
   hits?: number;
   block?: number;
+  traits?: string[];
+  isGhost?: boolean;
+  [key: string]: unknown;
 }
 
 /** 적 정보 */
@@ -46,7 +49,7 @@ interface ComboScoreResult {
   comboName: string | null;
   score: number;
   multiplier: number;
-  bonusKeys?: string[];
+  bonusKeys?: Set<number> | null;
 }
 
 /** 잠재 콤보 분석 결과 */

@@ -18,14 +18,15 @@ import { choice } from "./battleUtils";
 import { calculateEtherSlots } from "../../../lib/etherUtils";
 
 interface Card {
-  id: string;
-  name: string;
+  id?: string;
+  name?: string;
   damage?: number;
   block?: number;
   hits?: number;
-  speedCost: number;
-  actionCost: number;
+  speedCost?: number;
+  actionCost?: number;
   type?: string;
+  iconKey?: string;
   isGhost?: boolean;
   createdBy?: string;
   __sourceUnitId?: number;
@@ -157,7 +158,7 @@ export function generateEnemyActions(
 
   let deck = (enemy.deck || [])
     .map(id => ENEMY_CARDS.find((c: Card) => c.id === id))
-    .filter((c): c is Card => Boolean(c));
+    .filter(Boolean) as Card[];
 
   if (deck.length === 0) {
     deck = [...ENEMY_CARDS];
@@ -172,8 +173,8 @@ export function generateEnemyActions(
 
   const allCombos = combosUpToN(deck, maxCards);
   const candidates = allCombos.filter(cards => {
-    const sp = cards.reduce((s, c) => s + c.speedCost, 0);
-    const en = cards.reduce((s, c) => s + c.actionCost, 0);
+    const sp = cards.reduce((s, c) => s + (c.speedCost || 0), 0);
+    const en = cards.reduce((s, c) => s + (c.actionCost || 0), 0);
     return sp <= effectiveMaxSpeed && en <= energyBudget;
   });
 
@@ -181,12 +182,12 @@ export function generateEnemyActions(
   const targetCandidates = validCandidates.length > 0 ? validCandidates : candidates;
 
   function stat(list: Card[]): CardStats {
-    const atk = list.filter(c => c.type === 'attack').reduce((a, c) => a + c.actionCost, 0);
-    const def = list.filter(c => c.type === 'general' || c.type === 'defense').reduce((a, c) => a + c.actionCost, 0);
+    const atk = list.filter(c => c.type === 'attack').reduce((a, c) => a + (c.actionCost || 0), 0);
+    const def = list.filter(c => c.type === 'general' || c.type === 'defense').reduce((a, c) => a + (c.actionCost || 0), 0);
     const dmg = list.filter(c => c.type === 'attack').reduce((a, c) => a + (c.damage || 0) * (c.hits || 1), 0);
     const blk = list.filter(c => c.type === 'general' || c.type === 'defense').reduce((a, c) => a + (c.block || 0), 0);
-    const sp = list.reduce((a, c) => a + c.speedCost, 0);
-    const en = list.reduce((a, c) => a + c.actionCost, 0);
+    const sp = list.reduce((a, c) => a + (c.speedCost || 0), 0);
+    const en = list.reduce((a, c) => a + (c.actionCost || 0), 0);
     return { atk, def, dmg, blk, sp, en };
   }
 

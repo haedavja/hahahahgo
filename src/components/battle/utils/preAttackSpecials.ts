@@ -12,8 +12,8 @@
 import { addToken, removeToken, setTokenStacks, getTokenStacks } from '../../../lib/tokenUtils';
 
 interface Card {
-  id: string;
-  name: string;
+  id?: string;
+  name?: string;
   damage?: number;
   block?: number;
   hits?: number;
