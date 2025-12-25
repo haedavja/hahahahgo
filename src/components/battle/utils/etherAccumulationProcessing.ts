@@ -8,67 +8,15 @@
  * - 턴 누적량 갱신
  */
 
-interface CardInfo {
-  id?: string;
-  isGhost?: boolean;
-  rarity?: string;
-  [key: string]: unknown;
-}
-
-interface PassiveEffects {
-  etherMultiplier: number;
-  [key: string]: unknown;
-}
-
-interface Actions {
-  setResolvedPlayerCards: (count: number) => void;
-  setTurnEtherAccumulated: (value: number) => void;
-  setEtherPulse: (value: boolean) => void;
-  setRelicActivated: (id: string | null) => void;
-  setEnemyTurnEtherAccumulated: (value: number) => void;
-}
-
-interface TriggeredRefs {
-  [key: string]: boolean;
-}
-
-interface PlayerEtherAccumulationParams {
-  card: CardInfo;
-  turnEtherAccumulated: number;
-  orderedRelicList: string[];
-  cardUpgrades: Record<string, string>;
-  resolvedPlayerCards: number;
-  playerTimeline: unknown[];
-  relics: unknown[];
-  triggeredRefs: TriggeredRefs;
-  calculatePassiveEffects: (relicList: string[]) => PassiveEffects;
-  getCardEtherGain: (card: CardInfo) => number;
-  collectTriggeredRelics: (params: {
-    orderedRelicList: string[];
-    resolvedPlayerCards: number;
-    playerTimeline: unknown[];
-    triggeredRefs: TriggeredRefs;
-  }) => string[];
-  playRelicActivationSequence: (
-    triggered: string[],
-    flashRelic: (id: string) => void,
-    setRelicActivated: (id: string | null) => void
-  ) => void;
-  flashRelic: (id: string) => void;
-  actions: Actions;
-}
-
-interface PlayerEtherAccumulationResult {
-  newTurnEther: number;
-  newResolvedPlayerCards: number;
-}
-
-interface EnemyEtherAccumulationParams {
-  card: CardInfo;
-  enemyTurnEtherAccumulated: number;
-  getCardEtherGain: (card: CardInfo) => number;
-  actions: Actions;
-}
+import type {
+  EtherAccumCardInfo,
+  PassiveEffects,
+  EtherAccumActions,
+  TriggeredRefs,
+  PlayerEtherAccumulationParams,
+  PlayerEtherAccumulationResult,
+  EnemyEtherAccumulationParams
+} from '../../../types';
 
 /**
  * 플레이어 카드 사용 시 에테르 누적 처리

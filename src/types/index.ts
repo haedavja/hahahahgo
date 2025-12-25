@@ -1853,3 +1853,189 @@ export interface VictoryDefeatProcessResult {
   isVictory: boolean;
   isDefeat: boolean;
 }
+
+// ==================== 에테르 전송 처리 타입 ====================
+
+/** 에테르 전송 결과 (처리용) */
+export interface EtherTransferProcessResult {
+  nextPlayerPts: number;
+  nextEnemyPts: number;
+  movedPts: number;
+}
+
+/** 에테르 전송 액션 */
+export interface EtherTransferProcessActions {
+  setNetEtherDelta: (value: number | null) => void;
+  setPlayerTransferPulse: (value: boolean) => void;
+  setEnemyTransferPulse: (value: boolean) => void;
+}
+
+/** 에테르 전송 계산 함수 타입 */
+export type CalculateEtherTransferFn = (
+  playerAppliedEther: number,
+  enemyAppliedEther: number,
+  curPlayerPts: number,
+  curEnemyPts: number,
+  enemyHp: number
+) => EtherTransferProcessResult;
+
+// ==================== 턴 종료 상징 효과 타입 ====================
+
+/** 상징 데이터 */
+export interface RelicData {
+  effects?: {
+    type?: string;
+    condition?: (params: { cardsPlayedThisTurn: number; player: RelicPlayer; enemy: RelicEnemy }) => boolean;
+  };
+  [key: string]: unknown;
+}
+
+/** 상징 맵 */
+export interface RelicsMap {
+  [key: string]: RelicData;
+}
+
+/** 상징용 플레이어 */
+export interface RelicPlayer {
+  strength?: number;
+  [key: string]: unknown;
+}
+
+/** 상징용 적 */
+export interface RelicEnemy {
+  [key: string]: unknown;
+}
+
+/** 상징 처리 액션 */
+export interface RelicProcessActions {
+  setRelicActivated: (id: string | null) => void;
+  setPlayer: (player: RelicPlayer) => void;
+}
+
+/** 턴 종료 상징 효과 */
+export interface TurnEndRelicEffects {
+  energyNextTurn: number;
+  strength: number;
+}
+
+/** 상징용 다음 턴 효과 */
+export interface RelicNextTurnEffects {
+  bonusEnergy: number;
+  [key: string]: unknown;
+}
+
+/** 턴 종료 상징 애니메이션 파라미터 */
+export interface PlayTurnEndRelicAnimationsParams {
+  relics: string[];
+  RELICS: RelicsMap;
+  cardsPlayedThisTurn: number;
+  player: RelicPlayer;
+  enemy: RelicEnemy;
+  playSound: (freq: number, duration: number) => void;
+  actions: RelicProcessActions;
+}
+
+/** 턴 종료 상징 효과 적용 파라미터 */
+export interface ApplyTurnEndRelicEffectsParams {
+  turnEndRelicEffects: TurnEndRelicEffects;
+  nextTurnEffects: RelicNextTurnEffects;
+  player: RelicPlayer;
+  addLog: LogFunction;
+  actions: RelicProcessActions;
+}
+
+// ==================== 에테르 누적 처리 타입 ====================
+
+/** 에테르 누적용 카드 정보 */
+export interface EtherAccumCardInfo {
+  id?: string;
+  isGhost?: boolean;
+  rarity?: string;
+  [key: string]: unknown;
+}
+
+/** 패시브 효과 */
+export interface PassiveEffects {
+  etherMultiplier: number;
+  [key: string]: unknown;
+}
+
+/** 에테르 누적 액션 */
+export interface EtherAccumActions {
+  setResolvedPlayerCards: (count: number) => void;
+  setTurnEtherAccumulated: (value: number) => void;
+  setEtherPulse: (value: boolean) => void;
+  setRelicActivated: (id: string | null) => void;
+  setEnemyTurnEtherAccumulated: (value: number) => void;
+}
+
+/** 트리거된 상징 참조 */
+export interface TriggeredRefs {
+  [key: string]: boolean;
+}
+
+/** 플레이어 에테르 누적 파라미터 */
+export interface PlayerEtherAccumulationParams {
+  card: EtherAccumCardInfo;
+  turnEtherAccumulated: number;
+  orderedRelicList: string[];
+  cardUpgrades: Record<string, string>;
+  resolvedPlayerCards: number;
+  playerTimeline: unknown[];
+  relics: unknown[];
+  triggeredRefs: TriggeredRefs;
+  calculatePassiveEffects: (relicList: string[]) => PassiveEffects;
+  getCardEtherGain: (card: EtherAccumCardInfo) => number;
+  collectTriggeredRelics: (params: {
+    orderedRelicList: string[];
+    resolvedPlayerCards: number;
+    playerTimeline: unknown[];
+    triggeredRefs: TriggeredRefs;
+  }) => string[];
+  playRelicActivationSequence: (
+    triggered: string[],
+    flashRelic: (id: string) => void,
+    setRelicActivated: (id: string | null) => void
+  ) => void;
+  flashRelic: (id: string) => void;
+  actions: EtherAccumActions;
+}
+
+/** 플레이어 에테르 누적 결과 */
+export interface PlayerEtherAccumulationResult {
+  newTurnEther: number;
+  newResolvedPlayerCards: number;
+}
+
+/** 적 에테르 누적 파라미터 */
+export interface EnemyEtherAccumulationParams {
+  card: EtherAccumCardInfo;
+  enemyTurnEtherAccumulated: number;
+  getCardEtherGain: (card: EtherAccumCardInfo) => number;
+  actions: EtherAccumActions;
+}
+
+// ==================== 이벤트 애니메이션 처리 타입 ====================
+
+/** 액션 이벤트 (애니메이션용) */
+export interface AnimActionEvent {
+  type: string;
+  actor: string;
+  dmg?: number;
+  block?: number;
+  [key: string]: unknown;
+}
+
+/** 애니메이션용 액션 */
+export interface AnimAction {
+  actor: 'player' | 'enemy';
+  [key: string]: unknown;
+}
+
+/** 이벤트 애니메이션 액션 */
+export interface EventAnimActions {
+  setEnemyHit: (value: boolean) => void;
+  setPlayerHit: (value: boolean) => void;
+  setPlayerBlockAnim: (value: boolean) => void;
+  setEnemyBlockAnim: (value: boolean) => void;
+}

@@ -3,59 +3,16 @@
  * @description 턴 종료 상징 효과 처리
  */
 
-interface RelicData {
-  effects?: {
-    type?: string;
-    condition?: (params: { cardsPlayedThisTurn: number; player: Player; enemy: Enemy }) => boolean;
-  };
-  [key: string]: unknown;
-}
-
-interface RelicsMap {
-  [key: string]: RelicData;
-}
-
-interface Player {
-  strength?: number;
-  [key: string]: unknown;
-}
-
-interface Enemy {
-  [key: string]: unknown;
-}
-
-interface Actions {
-  setRelicActivated: (id: string | null) => void;
-  setPlayer: (player: Player) => void;
-}
-
-interface TurnEndRelicEffects {
-  energyNextTurn: number;
-  strength: number;
-}
-
-interface NextTurnEffects {
-  bonusEnergy: number;
-  [key: string]: unknown;
-}
-
-interface PlayTurnEndRelicAnimationsParams {
-  relics: string[];
-  RELICS: RelicsMap;
-  cardsPlayedThisTurn: number;
-  player: Player;
-  enemy: Enemy;
-  playSound: (freq: number, duration: number) => void;
-  actions: Actions;
-}
-
-interface ApplyTurnEndRelicEffectsParams {
-  turnEndRelicEffects: TurnEndRelicEffects;
-  nextTurnEffects: NextTurnEffects;
-  player: Player;
-  addLog: (msg: string) => void;
-  actions: Actions;
-}
+import type {
+  RelicsMap,
+  RelicPlayer,
+  RelicEnemy,
+  RelicProcessActions,
+  TurnEndRelicEffects,
+  RelicNextTurnEffects,
+  PlayTurnEndRelicAnimationsParams,
+  ApplyTurnEndRelicEffectsParams
+} from '../../../types';
 
 /**
  * 턴 종료 시 상징 애니메이션 재생

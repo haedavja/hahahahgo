@@ -8,25 +8,11 @@
  * - 이벤트별 시각 피드백
  */
 
-interface ActionEvent {
-  type: string;
-  actor: string;
-  dmg?: number;
-  block?: number;
-  [key: string]: unknown;
-}
-
-interface Action {
-  actor: 'player' | 'enemy';
-  [key: string]: unknown;
-}
-
-interface Actions {
-  setEnemyHit: (value: boolean) => void;
-  setPlayerHit: (value: boolean) => void;
-  setPlayerBlockAnim: (value: boolean) => void;
-  setEnemyBlockAnim: (value: boolean) => void;
-}
+import type {
+  AnimActionEvent,
+  AnimAction,
+  EventAnimActions
+} from '../../../types';
 
 /**
  * 화면 흔들림 효과 트리거
@@ -69,11 +55,11 @@ export function processActionEventAnimations({
   playBlockSound,
   actions
 }: {
-  actionEvents: ActionEvent[];
-  action: Action;
+  actionEvents: AnimActionEvent[];
+  action: AnimAction;
   playHitSound: () => void;
   playBlockSound: () => void;
-  actions: Actions;
+  actions: EventAnimActions;
 }): void {
   actionEvents.forEach(ev => {
     // 피격 효과 (hit, pierce 타입)

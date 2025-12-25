@@ -7,25 +7,11 @@
  * - 사운드/시각 피드백
  */
 
-interface TransferResult {
-  nextPlayerPts: number;
-  nextEnemyPts: number;
-  movedPts: number;
-}
-
-interface Actions {
-  setNetEtherDelta: (value: number | null) => void;
-  setPlayerTransferPulse: (value: boolean) => void;
-  setEnemyTransferPulse: (value: boolean) => void;
-}
-
-type CalculateEtherTransferFn = (
-  playerAppliedEther: number,
-  enemyAppliedEther: number,
-  curPlayerPts: number,
-  curEnemyPts: number,
-  enemyHp: number
-) => TransferResult;
+import type {
+  EtherTransferProcessResult,
+  EtherTransferProcessActions,
+  CalculateEtherTransferFn
+} from '../../../types';
 
 /**
  * 에테르 전송 처리 및 애니메이션
@@ -49,8 +35,8 @@ export function processEtherTransfer({
   calculateEtherTransfer: CalculateEtherTransferFn;
   addLog: (msg: string) => void;
   playSound: (frequency: number, duration: number) => void;
-  actions: Actions;
-}): TransferResult {
+  actions: EtherTransferProcessActions;
+}): EtherTransferProcessResult {
   const { nextPlayerPts, nextEnemyPts, movedPts } = calculateEtherTransfer(
     playerAppliedEther,
     enemyAppliedEther,
