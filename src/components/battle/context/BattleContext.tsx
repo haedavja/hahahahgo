@@ -14,12 +14,7 @@
  */
 
 import { createContext, useContext, ReactNode, FC } from 'react';
-
-interface TokenState {
-  usage: unknown[];
-  turn: unknown[];
-  permanent: unknown[];
-}
+import type { TokenState } from '../../../types';
 
 interface EnemyUnit {
   unitId: number;

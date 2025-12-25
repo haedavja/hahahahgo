@@ -10,6 +10,7 @@ import { BattleApp } from "./BattleApp";
 import { DevTools } from "../dev/DevTools";
 import { calculatePassiveEffects, applyCombatStartEffects } from "../../lib/relicEffects";
 import { ENEMIES } from "./battleData";
+import type { TokenState } from '../../types';
 
 interface Passives {
   [key: string]: unknown;
@@ -28,12 +29,6 @@ interface EnemyData {
   passives?: Passives;
   tier?: number;
   isBoss?: boolean;
-}
-
-interface TokenState {
-  usage: unknown[];
-  turn: unknown[];
-  permanent: unknown[];
 }
 
 interface EnemyUnit {
