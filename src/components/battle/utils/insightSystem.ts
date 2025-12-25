@@ -1,5 +1,5 @@
 /**
- * @file insightSystem.js
+ * @file insightSystem.ts
  * @description 통찰(Insight) 시스템 - 적 정보 공개 레벨 관리
  *
  * ## 통찰 레벨별 공개 정보
@@ -14,35 +14,87 @@
 
 import { getTokenStacks } from "../../../lib/tokenUtils";
 
+/** 카드 정보 */
+interface CardInfo {
+  __sourceUnitId?: number;
+  effects?: unknown[];
+  traits?: string[];
+  [key: string]: unknown;
+}
+
+/** 적 행동 */
+interface EnemyAction {
+  card?: CardInfo;
+  speed?: number;
+}
+
+/** 유닛 정보 */
+interface Unit {
+  unitId: number;
+  tokens?: unknown[];
+}
+
+/** Action 공개 정보 */
+interface ActionRevealInfo {
+  index: number;
+  hidden: boolean;
+  sourceUnitId?: number;
+  isFirst?: boolean;
+  isLast?: boolean;
+  revealLevel?: number;
+  card?: CardInfo;
+  speed?: number;
+  effects?: unknown[];
+  traits?: string[];
+}
+
+/** 통찰 공개 레벨 결과 */
+interface InsightRevealResult {
+  level: number;
+  visible: boolean;
+  cardCount?: number;
+  showRoughOrder?: boolean;
+  showCards?: boolean;
+  showSpeed?: boolean;
+  showEffects?: boolean;
+  fullDetails?: boolean;
+  actions?: ActionRevealInfo[];
+}
+
 /**
  * 유효 통찰 계산: 플레이어 통찰 - 적의 장막
- * @param {number} playerInsight - 플레이어 통찰
- * @param {number} enemyShroud - 적의 장막
- * @returns {number} 유효 통찰
+ * @param playerInsight - 플레이어 통찰
+ * @param enemyShroud - 적의 장막
+ * @returns 유효 통찰
  */
-export const calculateEffectiveInsight = (playerInsight, enemyShroud) => {
+export const calculateEffectiveInsight = (playerInsight: number, enemyShroud: number): number => {
   return Math.max(0, (playerInsight || 0) - (enemyShroud || 0));
 };
 
 /**
  * 유닛의 veil 스택 가져오기
- * @param {Object} unit - 유닛 객체
- * @returns {number} veil 스택 수
+ * @param unit - 유닛 객체
+ * @returns veil 스택 수
  */
-const getUnitVeil = (unit) => {
+const getUnitVeil = (unit: Unit | undefined): number => {
   if (!unit) return 0;
   return getTokenStacks(unit, 'veil') || 0;
 };
 
 /**
  * 특정 통찰 레벨에 따른 action 정보 생성
- * @param {Object} action - 적의 행동
- * @param {number} idx - 인덱스
- * @param {number} insightForAction - 이 action에 적용할 유효 통찰
- * @param {number} totalActions - 전체 행동 수
- * @returns {Object} 공개할 action 정보
+ * @param action - 적의 행동
+ * @param idx - 인덱스
+ * @param insightForAction - 이 action에 적용할 유효 통찰
+ * @param totalActions - 전체 행동 수
+ * @returns 공개할 action 정보
  */
-const getActionRevealInfo = (action, idx, insightForAction, totalActions) => {
+const getActionRevealInfo = (
+  action: EnemyAction,
+  idx: number,
+  insightForAction: number,
+  totalActions: number
+): ActionRevealInfo => {
   if (insightForAction <= 0) {
     // 레벨 0: 정보 없음 (카드 존재는 알지만 내용 비공개)
     return {
@@ -91,12 +143,16 @@ const getActionRevealInfo = (action, idx, insightForAction, totalActions) => {
 
 /**
  * 통찰 레벨별 적 정보 공개 (유닛별 veil 적용)
- * @param {number} baseInsight - 기본 유효 통찰 (player.insight - enemy.shroud)
- * @param {Array} enemyActions - 적의 행동 계획
- * @param {Array} units - 적 유닛 배열 (각 유닛에 veil 토큰 있을 수 있음)
- * @returns {object} 공개할 정보 레벨
+ * @param baseInsight - 기본 유효 통찰 (player.insight - enemy.shroud)
+ * @param enemyActions - 적의 행동 계획
+ * @param units - 적 유닛 배열 (각 유닛에 veil 토큰 있을 수 있음)
+ * @returns 공개할 정보 레벨
  */
-export const getInsightRevealLevel = (baseInsight, enemyActions, units = []) => {
+export const getInsightRevealLevel = (
+  baseInsight: number,
+  enemyActions: EnemyAction[],
+  units: Unit[] = []
+): InsightRevealResult => {
   if (!enemyActions || enemyActions.length === 0) {
     return { level: 0, visible: false };
   }
@@ -136,14 +192,22 @@ export const getInsightRevealLevel = (baseInsight, enemyActions, units = []) => 
   };
 };
 
+// Window 인터페이스 확장 (webkitAudioContext)
+declare global {
+  interface Window {
+    webkitAudioContext?: typeof AudioContext;
+  }
+}
+
 /**
  * 통찰 레벨에 따른 짧은 효과음
- * @param {number} level - 통찰 레벨 (1, 2, 3+)
+ * @param level - 통찰 레벨 (1, 2, 3+)
  */
-export const playInsightSound = (level = 1) => {
+export const playInsightSound = (level: number = 1): void => {
   try {
-     
     const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) return;
+
     const audioContext = new AudioContextClass();
     const osc = audioContext.createOscillator();
     const gain = audioContext.createGain();
