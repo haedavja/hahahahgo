@@ -11,112 +11,38 @@
 
 import { getRelicById } from '../data/relics';
 import { getNextSlotCost } from './etherUtils';
+import type {
+  Card,
+  RelicEffectsDefinition,
+  PassiveStats,
+  CombatStartChanges,
+  CombatEndChanges,
+  TurnStartChanges,
+  TurnEndChanges,
+  CardPlayedChanges,
+  DamageTakenChanges,
+  ExtraSlots
+} from '../types';
 
-interface RelicEffects {
-  type?: string;
-  maxEnergy?: number;
-  maxHp?: number;
-  maxSpeed?: number;
-  speed?: number;
-  strength?: number;
-  agility?: number;
-  subSpecialSlots?: number;
-  mainSpecialSlots?: number;
-  cardDrawBonus?: number;
-  etherMultiplier?: number;
-  etherFiveCardBonus?: number;
-  etherCardMultiplier?: boolean;
-  maxSubmitCards?: number;
-  extraCardPlay?: number;
-  block?: number;
-  heal?: number;
-  energy?: number;
-  damage?: number;
-  condition?: (state: TurnState) => boolean;
-  healIfDamaged?: number;
-  maxHpIfFull?: number;
-  energyNextTurn?: number;
-  blockNextTurn?: number;
-  healNextTurn?: number;
-  etherPercent?: number;
-  [key: string]: unknown;
-}
-
-interface Relic {
+/** 상징 (효과 포함) */
+interface RelicWithEffects {
   id: string;
-  effects: RelicEffects;
+  effects: RelicEffectsDefinition;
   [key: string]: unknown;
 }
 
-interface PassiveStats {
-  maxEnergy: number;
-  maxHp: number;
-  maxSpeed: number;
-  speed: number;
-  strength: number;
-  agility: number;
-  subSpecialSlots: number;
-  mainSpecialSlots: number;
-  cardDrawBonus: number;
-  etherMultiplier: number;
-  etherFiveCardBonus: number;
-  etherCardMultiplier: boolean;
-  maxSubmitCards: number;
-  extraCardPlay: number;
-}
-
-interface CombatStartChanges {
-  block: number;
-  heal: number;
-  energy: number;
-  damage: number;
-  strength: number;
-}
-
+/** 전투 종료 상태 */
 interface CombatEndState {
   playerHp?: number;
   maxHp?: number;
 }
 
-interface CombatEndChanges {
-  heal: number;
-  maxHp: number;
-}
-
+/** 턴 상태 */
 interface TurnState {
   blockNextTurn?: number;
   energyNextTurn?: number;
   healNextTurn?: number;
   [key: string]: unknown;
-}
-
-interface TurnStartChanges {
-  block: number;
-  energy: number;
-  heal: number;
-}
-
-interface TurnEndChanges {
-  strength: number;
-  energyNextTurn: number;
-}
-
-interface Card {
-  [key: string]: unknown;
-}
-
-interface CardPlayedChanges {
-  heal: number;
-}
-
-interface DamageTakenChanges {
-  blockNextTurn: number;
-  healNextTurn: number;
-}
-
-interface ExtraSlots {
-  mainSlots: number;
-  subSlots: number;
 }
 
 /**
@@ -141,7 +67,7 @@ export function calculatePassiveEffects(relicIds: string[] = []): PassiveStats {
   };
 
   relicIds.forEach(relicId => {
-    const relic = getRelicById(relicId) as Relic | null;
+    const relic = getRelicById(relicId) as RelicWithEffects | null;
     if (!relic || relic.effects.type !== 'PASSIVE') return;
 
     const effects = relic.effects;
@@ -181,7 +107,7 @@ export function applyCombatStartEffects(
   };
 
   relicIds.forEach(relicId => {
-    const relic = getRelicById(relicId) as Relic | null;
+    const relic = getRelicById(relicId) as RelicWithEffects | null;
     if (!relic || relic.effects.type !== 'ON_COMBAT_START') return;
 
     const effects = relic.effects;
@@ -208,7 +134,7 @@ export function applyCombatEndEffects(
   };
 
   relicIds.forEach(relicId => {
-    const relic = getRelicById(relicId) as Relic | null;
+    const relic = getRelicById(relicId) as RelicWithEffects | null;
     if (!relic || relic.effects.type !== 'ON_COMBAT_END') return;
 
     const effects = relic.effects;
@@ -248,7 +174,7 @@ export function applyTurnStartEffects(
   };
 
   relicIds.forEach(relicId => {
-    const relic = getRelicById(relicId) as Relic | null;
+    const relic = getRelicById(relicId) as RelicWithEffects | null;
     if (!relic || relic.effects.type !== 'ON_TURN_START') return;
 
     const effects = relic.effects;
@@ -279,7 +205,7 @@ export function applyTurnEndEffects(
   };
 
   relicIds.forEach(relicId => {
-    const relic = getRelicById(relicId) as Relic | null;
+    const relic = getRelicById(relicId) as RelicWithEffects | null;
     if (!relic || relic.effects.type !== 'ON_TURN_END') return;
 
     const effects = relic.effects;
@@ -307,7 +233,7 @@ export function applyCardPlayedEffects(
   };
 
   relicIds.forEach(relicId => {
-    const relic = getRelicById(relicId) as Relic | null;
+    const relic = getRelicById(relicId) as RelicWithEffects | null;
     if (!relic || relic.effects.type !== 'ON_CARD_PLAYED') return;
 
     const effects = relic.effects;
@@ -334,7 +260,7 @@ export function applyDamageTakenEffects(
   if (damage <= 0) return changes;
 
   relicIds.forEach(relicId => {
-    const relic = getRelicById(relicId) as Relic | null;
+    const relic = getRelicById(relicId) as RelicWithEffects | null;
     if (!relic || relic.effects.type !== 'ON_DAMAGE_TAKEN') return;
 
     const effects = relic.effects;
@@ -376,7 +302,7 @@ export function applyNodeMoveEther(
   let etherGain = 0;
 
   relicIds.forEach(relicId => {
-    const relic = getRelicById(relicId) as Relic | null;
+    const relic = getRelicById(relicId) as RelicWithEffects | null;
     if (!relic || relic.effects.type !== 'ON_NODE_MOVE') return;
 
     const effects = relic.effects;

@@ -10,26 +10,23 @@
  */
 
 import { CARD_LIBRARY } from "../data/cards";
+import type { Card } from "../types";
 
-interface Card {
-  id: string;
-  name?: string;
-  priority?: 'instant' | 'quick' | 'normal' | 'slow';
-  speedCost?: number;
-  actionCost?: number;
-  tags?: string[];
-  [key: string]: unknown;
-}
+/** 카드 우선순위 */
+export type CardPriority = 'instant' | 'quick' | 'normal' | 'slow';
 
-interface InflatedCard extends Card {
+/** 우선순위 가중치가 추가된 카드 */
+export interface InflatedCard extends Card {
   priorityWeight: number;
 }
 
-interface HandCard extends InflatedCard {
+/** 인스턴스 ID가 추가된 핸드 카드 */
+export interface HandCard extends InflatedCard {
   instanceId: string;
 }
 
-interface Action {
+/** 타임라인 행동 */
+export interface TimelineAction {
   actor: 'player' | 'enemy';
   cardId: string;
   name?: string;
@@ -41,12 +38,14 @@ interface Action {
   roll: number;
 }
 
-interface TimelineEntry extends Action {
+/** 타임라인 항목 */
+export interface TimelineEntry extends TimelineAction {
   order: number;
   tu: number;
 }
 
-interface TurnPreview {
+/** 턴 미리보기 */
+export interface TurnPreview {
   playerHand: HandCard[];
   enemyHand: HandCard[];
   timeline: TimelineEntry[];
@@ -95,7 +94,7 @@ export const drawHand = (deck: string[], count: number): HandCard[] => {
   return hand;
 };
 
-const toAction = (actor: 'player' | 'enemy', card: InflatedCard): Action => ({
+const toAction = (actor: 'player' | 'enemy', card: InflatedCard): TimelineAction => ({
   actor,
   cardId: card.id,
   name: card.name,
@@ -112,7 +111,7 @@ export const buildSpeedTimeline = (
   enemyCards: InflatedCard[],
   maxTU: number = 30
 ): TimelineEntry[] => {
-  const combined: Action[] = [
+  const combined: TimelineAction[] = [
     ...playerCards.map((card) => toAction("player", card)),
     ...enemyCards.map((card) => toAction("enemy", card)),
   ];

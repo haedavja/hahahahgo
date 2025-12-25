@@ -8,10 +8,11 @@
  * - 최소 속도는 1 (0 이하로 내려가지 않음)
  */
 
-interface Card {
-  speedCost: number;
+import type { Card } from '../types';
+
+/** 민첩 적용된 카드 (원본 속도 보존) */
+interface CardWithOriginalSpeed extends Card {
   originalSpeedCost?: number;
-  [key: string]: unknown;
 }
 
 /**
@@ -36,7 +37,7 @@ export function applyAgility(baseSpeed: number, agility: number = 0): number {
  * @param agility - 민첩성 (양수: 속도 감소, 음수: 속도 증가)
  * @returns 민첩성이 적용된 카드 배열 (새 객체)
  */
-export function applyAgilityToCards<T extends Card>(cards: T[], agility: number = 0): T[] {
+export function applyAgilityToCards<T extends CardWithOriginalSpeed>(cards: T[], agility: number = 0): T[] {
   if (!Array.isArray(cards) || cards.length === 0) return cards;
   if (typeof agility !== 'number' || agility === 0) return cards;
 

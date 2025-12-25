@@ -578,3 +578,99 @@ export interface HpBarProps {
   showText?: boolean;
   color?: string;
 }
+
+// ==================== 상징 효과 상세 ====================
+
+/** 상징 효과 정의 */
+export interface RelicEffectsDefinition {
+  type?: RelicEffectType;
+  maxEnergy?: number;
+  maxHp?: number;
+  maxSpeed?: number;
+  speed?: number;
+  strength?: number;
+  agility?: number;
+  subSpecialSlots?: number;
+  mainSpecialSlots?: number;
+  cardDrawBonus?: number;
+  etherMultiplier?: number;
+  etherFiveCardBonus?: number;
+  etherCardMultiplier?: boolean;
+  maxSubmitCards?: number;
+  extraCardPlay?: number;
+  block?: number;
+  heal?: number;
+  energy?: number;
+  damage?: number;
+  condition?: (state: Record<string, unknown>) => boolean;
+  healIfDamaged?: number;
+  maxHpIfFull?: number;
+  energyNextTurn?: number;
+  blockNextTurn?: number;
+  healNextTurn?: number;
+  etherPercent?: number;
+  [key: string]: unknown;
+}
+
+/** 패시브 스탯 합계 */
+export interface PassiveStats {
+  maxEnergy: number;
+  maxHp: number;
+  maxSpeed: number;
+  speed: number;
+  strength: number;
+  agility: number;
+  subSpecialSlots: number;
+  mainSpecialSlots: number;
+  cardDrawBonus: number;
+  etherMultiplier: number;
+  etherFiveCardBonus: number;
+  etherCardMultiplier: boolean;
+  maxSubmitCards: number;
+  extraCardPlay: number;
+}
+
+/** 전투 시작 효과 */
+export interface CombatStartChanges {
+  block: number;
+  heal: number;
+  energy: number;
+  damage: number;
+  strength: number;
+}
+
+/** 전투 종료 효과 */
+export interface CombatEndChanges {
+  heal: number;
+  maxHp: number;
+}
+
+/** 턴 시작 효과 */
+export interface TurnStartChanges {
+  block: number;
+  energy: number;
+  heal: number;
+}
+
+/** 턴 종료 효과 */
+export interface TurnEndChanges {
+  strength: number;
+  energyNextTurn: number;
+}
+
+/** 카드 사용 효과 */
+export interface CardPlayedChanges {
+  heal: number;
+}
+
+/** 피해 받음 효과 */
+export interface DamageTakenChanges {
+  blockNextTurn: number;
+  healNextTurn: number;
+}
+
+/** 추가 슬롯 */
+export interface ExtraSlots {
+  mainSlots: number;
+  subSlots: number;
+}
