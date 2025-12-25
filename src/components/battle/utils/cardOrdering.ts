@@ -8,28 +8,8 @@
  * - 민첩 적용 속도 계산
  */
 
+import type { OrderingCardInfo, OrderingEnemyAction, OrderItem } from '../../../types';
 import { applyAgility } from "../../../lib/agilityUtils";
-
-/** 카드 정보 (간략화) */
-interface CardInfo {
-  speedCost: number;
-  [key: string]: unknown;
-}
-
-/** 적 행동 */
-interface EnemyAction {
-  speedCost: number;
-  [key: string]: unknown;
-}
-
-/** 순서 항목 */
-interface OrderItem {
-  actor: 'player' | 'enemy';
-  card: CardInfo | EnemyAction;
-  originalIndex: number;
-  sp?: number;
-  finalSpeed?: number;
-}
 
 /**
  * 플레이어와 적 카드를 결합하여 수동 순서로 fixedOrder 생성
@@ -39,8 +19,8 @@ interface OrderItem {
  * @returns sp 값이 계산된 fixedOrder 배열
  */
 export function createFixedOrder(
-  enhancedPlayerCards: CardInfo[],
-  enemyActions: EnemyAction[] | null | undefined,
+  enhancedPlayerCards: OrderingCardInfo[],
+  enemyActions: OrderingEnemyAction[] | null | undefined,
   effectiveAgility: number
 ): OrderItem[] {
   // 플레이어 카드 매핑

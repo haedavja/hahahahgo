@@ -8,82 +8,26 @@
  * - 예상 피해량 계산
  */
 
+import type {
+  SimCard,
+  SimActor,
+  SimBattleState,
+  SimActionEvent,
+  SimActionResult,
+  SimQueueStep,
+  SimulationResult,
+  AIMode
+} from '../../../types';
 import { hasTrait } from "./battleUtils";
 import { shouldEnemyOverdrive } from "./enemyAI";
-
-interface Card {
-  name: string;
-  type?: string;
-  damage?: number;
-  block?: number;
-  hits?: number;
-  counter?: number;
-  traits?: string[];
-  [key: string]: unknown;
-}
-
-interface Actor {
-  hp: number;
-  block?: number;
-  def?: boolean;
-  counter?: number;
-  etherOverdriveActive?: boolean;
-  strength?: number;
-  vulnMult?: number;
-  etherPts?: number;
-  [key: string]: unknown;
-}
-
-interface BattleState {
-  player: Actor;
-  enemy: Actor;
-  log: string[];
-}
-
-interface ActionEvent {
-  actor: string;
-  card: string;
-  type: string;
-  msg: string;
-  dmg?: number;
-  beforeHP?: number;
-  afterHP?: number;
-  block?: number;
-  value?: number;
-}
-
-interface ActionResult {
-  dealt: number;
-  taken: number;
-  events: ActionEvent[];
-}
-
-interface QueueStep {
-  actor: 'player' | 'enemy';
-  card: Card;
-}
-
-interface Mode {
-  key: 'aggro' | 'turtle' | 'balanced';
-  name: string;
-  prefer: string;
-}
-
-interface SimulationResult {
-  pDealt: number;
-  pTaken: number;
-  finalPHp: number;
-  finalEHp: number;
-  lines: string[];
-}
 
 /**
  * 전투 액션 적용 (공격/방어)
  */
-export function applyAction(state: BattleState, actor: 'player' | 'enemy', card: Card): ActionResult {
+export function applyAction(state: SimBattleState, actor: 'player' | 'enemy', card: SimCard): SimActionResult {
   const A = actor === 'player' ? state.player : state.enemy;
   const B = actor === 'player' ? state.enemy : state.player;
-  const events: ActionEvent[] = [];
+  const events: SimActionEvent[] = [];
 
   if (card.type === 'general' || card.type === 'defense') {
     const prev = A.block || 0;
@@ -186,21 +130,21 @@ export function simulatePreview({
   enemyActions,
   turnNumber = 1
 }: {
-  player: Actor;
-  enemy: Actor;
-  fixedOrder: QueueStep[] | null;
+  player: SimActor;
+  enemy: SimActor;
+  fixedOrder: SimQueueStep[] | null;
   willOverdrive?: boolean;
-  enemyMode?: Mode | null;
-  enemyActions?: Card[];
+  enemyMode?: AIMode | null;
+  enemyActions?: SimCard[];
   turnNumber?: number;
 }): SimulationResult {
   if (!fixedOrder || fixedOrder.length === 0) {
     return { pDealt: 0, pTaken: 0, finalPHp: player.hp, finalEHp: enemy.hp, lines: [] };
   }
   const enemyWillOD = shouldEnemyOverdrive(enemyMode || null, enemyActions || null, enemy.etherPts || 0, turnNumber);
-  const P: Actor = { ...player, def: false, block: 0, counter: 0, etherOverdriveActive: !!willOverdrive, strength: player.strength || 0 };
-  const E: Actor = { ...enemy, def: false, block: 0, counter: 0, etherOverdriveActive: enemyWillOD, strength: enemy.strength || 0 };
-  const st: BattleState = { player: P, enemy: E, log: [] };
+  const P: SimActor = { ...player, def: false, block: 0, counter: 0, etherOverdriveActive: !!willOverdrive, strength: player.strength || 0 };
+  const E: SimActor = { ...enemy, def: false, block: 0, counter: 0, etherOverdriveActive: enemyWillOD, strength: enemy.strength || 0 };
+  const st: SimBattleState = { player: P, enemy: E, log: [] };
   let pDealt = 0, pTaken = 0;
   const lines: string[] = [];
   for (const step of fixedOrder) {

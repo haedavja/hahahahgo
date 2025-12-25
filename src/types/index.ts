@@ -1282,3 +1282,118 @@ export interface ComboScoreOptions {
   comboWeight?: number;
   etherPriority?: boolean;
 }
+
+// ==================== 전투 시뮬레이션 타입 ====================
+
+/** 시뮬레이션용 카드 */
+export interface SimCard {
+  name: string;
+  type?: string;
+  damage?: number;
+  block?: number;
+  hits?: number;
+  counter?: number;
+  traits?: string[];
+  [key: string]: unknown;
+}
+
+/** 시뮬레이션용 행동자 */
+export interface SimActor {
+  hp: number;
+  block?: number;
+  def?: boolean;
+  counter?: number;
+  etherOverdriveActive?: boolean;
+  strength?: number;
+  vulnMult?: number;
+  etherPts?: number;
+  [key: string]: unknown;
+}
+
+/** 시뮬레이션용 전투 상태 */
+export interface SimBattleState {
+  player: SimActor;
+  enemy: SimActor;
+  log: string[];
+}
+
+/** 시뮬레이션 액션 이벤트 */
+export interface SimActionEvent {
+  actor: string;
+  card: string;
+  type: string;
+  msg: string;
+  dmg?: number;
+  beforeHP?: number;
+  afterHP?: number;
+  block?: number;
+  value?: number;
+}
+
+/** 시뮬레이션 액션 결과 */
+export interface SimActionResult {
+  dealt: number;
+  taken: number;
+  events: SimActionEvent[];
+}
+
+/** 시뮬레이션 큐 단계 */
+export interface SimQueueStep {
+  actor: 'player' | 'enemy';
+  card: SimCard;
+}
+
+/** 시뮬레이션 결과 */
+export interface SimulationResult {
+  pDealt: number;
+  pTaken: number;
+  finalPHp: number;
+  finalEHp: number;
+  lines: string[];
+}
+
+// ==================== 카드 특성 효과 타입 ====================
+
+/** 특성 효과용 카드 */
+export interface TraitEffectCard {
+  id: string;
+  name: string;
+  traits?: string[];
+  [key: string]: unknown;
+}
+
+/** 카드 특성 다음 턴 효과 */
+export interface CardTraitNextTurnEffects {
+  guaranteedCards: string[];
+  bonusEnergy: number;
+  energyPenalty: number;
+  etherBlocked: boolean;
+  mainSpecialOnly: boolean;
+  subSpecialBoost: number;
+}
+
+/** 로그 함수 타입 */
+export type LogFunction = (message: string) => void;
+
+// ==================== 카드 순서 타입 ====================
+
+/** 순서 계산용 카드 정보 */
+export interface OrderingCardInfo {
+  speedCost: number;
+  [key: string]: unknown;
+}
+
+/** 순서 계산용 적 행동 */
+export interface OrderingEnemyAction {
+  speedCost: number;
+  [key: string]: unknown;
+}
+
+/** 순서 항목 */
+export interface OrderItem {
+  actor: 'player' | 'enemy';
+  card: OrderingCardInfo | OrderingEnemyAction;
+  originalIndex: number;
+  sp?: number;
+  finalSpeed?: number;
+}

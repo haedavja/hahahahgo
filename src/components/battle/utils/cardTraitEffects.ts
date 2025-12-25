@@ -3,34 +3,17 @@
  * @description 카드 특성(trait) 기반 다음 턴 효과 처리 시스템
  */
 
+import type { TraitEffectCard, CardTraitNextTurnEffects, LogFunction } from '../../../types';
 import { hasTrait } from "./battleUtils";
-
-interface Card {
-  id: string;
-  name: string;
-  traits?: string[];
-  [key: string]: unknown;
-}
-
-interface NextTurnEffects {
-  guaranteedCards: string[];
-  bonusEnergy: number;
-  energyPenalty: number;
-  etherBlocked: boolean;
-  mainSpecialOnly: boolean;
-  subSpecialBoost: number;
-}
-
-type LogFunction = (message: string) => void;
 
 /**
  * 선택된 카드들의 특성을 분석하여 다음 턴 효과 생성
  */
 export function processCardTraitEffects(
-  selectedCards: Card[],
+  selectedCards: TraitEffectCard[],
   addLog: LogFunction = () => {}
-): NextTurnEffects {
-  const nextTurnEffects: NextTurnEffects = {
+): CardTraitNextTurnEffects {
+  const nextTurnEffects: CardTraitNextTurnEffects = {
     guaranteedCards: [],
     bonusEnergy: 0,
     energyPenalty: 0,
