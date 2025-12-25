@@ -9,6 +9,7 @@ import { CARDS } from '../battleData';
 import { TRAITS } from '../battleData';
 import { applyTraitModifiers } from '../utils/battleUtils';
 import { TOKENS, TOKEN_CATEGORIES } from '../../../data/tokens';
+import type { HoveredEnemyAction, InsightReveal } from '../../../types';
 
 interface Card {
   id: string;
@@ -29,19 +30,6 @@ interface HoveredCard {
   card: Card;
   x: number;
   y: number;
-}
-
-interface HoveredEnemyAction {
-  action: Card | null;
-  idx: number;
-  left: number;
-  top: number;
-  pageX: number;
-  pageY: number;
-}
-
-interface InsightReveal {
-  level?: number;
 }
 
 interface Battle {
