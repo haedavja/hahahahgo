@@ -18,25 +18,13 @@
  * - 유령카드 (isGhost): 조합에서 제외
  */
 
+import type { ComboCard, ComboResult } from '../../../types';
 import { hasTrait } from './battleUtils';
-
-interface Card {
-  actionCost: number;
-  type?: string;
-  traits?: string[];
-  isGhost?: boolean;
-  [key: string]: unknown;
-}
-
-interface ComboResult {
-  name: string;
-  bonusKeys: Set<number> | null;
-}
 
 /**
  * 포커 조합 감지
  */
-export function detectPokerCombo(cards: Card[]): ComboResult | null {
+export function detectPokerCombo(cards: ComboCard[]): ComboResult | null {
   if (!cards || cards.length === 0) return null;
 
   // 소외 (outcast) 특성 카드와 유령카드는 조합 계산에서 제외
@@ -98,7 +86,7 @@ export function detectPokerCombo(cards: Card[]): ComboResult | null {
  * 포커 조합 보너스 적용
  * 조합 보너스 기능 삭제됨 - 이제 조합은 에테르 배율만 제공
  */
-export function applyPokerBonus(cards: Card[], combo: ComboResult | null): Card[] {
+export function applyPokerBonus(cards: ComboCard[], combo: ComboResult | null): ComboCard[] {
   if (!combo) return cards;
   return cards.map(c => {
     // _combo 태그만 추가 (공격력/방어력 보너스는 제거)

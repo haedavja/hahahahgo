@@ -3,14 +3,10 @@
  * @description 콤보 배율 계산 시스템
  */
 
+import type { ComboExplainResult } from '../../../types';
 import { RELICS } from "../../../data/relics";
 import { applyRelicComboMultiplier } from "../../../lib/relics";
 import { calculatePassiveEffects } from "../../../lib/relicEffects";
-
-interface ExplainResult {
-  multiplier: number;
-  steps: string[];
-}
 
 /**
  * 상징 효과를 적용한 콤보 배율 계산
@@ -64,7 +60,7 @@ export function explainComboMultiplier(
   includeRefBook: boolean = true,
   relicOrderOverride: string[] | null = null,
   orderedRelicList: string[] = []
-): ExplainResult {
+): ComboExplainResult {
   let mult = baseMult;
   const order = relicOrderOverride || orderedRelicList;
   const steps: string[] = [`기본: ${mult.toFixed(2)}`];

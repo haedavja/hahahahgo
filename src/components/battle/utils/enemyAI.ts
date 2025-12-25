@@ -13,61 +13,16 @@
  * 3. 모드에 따른 카드 선택
  */
 
+import type { AICard, AIEnemy, AIModeWeights, AIMode, AICardStats } from '../../../types';
 import { MAX_SPEED, BASE_PLAYER_ENERGY, ENEMY_CARDS } from "../battleData";
 import { choice } from "./battleUtils";
 import { calculateEtherSlots } from "../../../lib/etherUtils";
-
-interface Card {
-  id?: string;
-  name?: string;
-  damage?: number;
-  block?: number;
-  hits?: number;
-  speedCost?: number;
-  actionCost?: number;
-  type?: string;
-  iconKey?: string;
-  isGhost?: boolean;
-  createdBy?: string;
-  __sourceUnitId?: number;
-  __uid?: string;
-  [key: string]: unknown;
-}
-
-interface Enemy {
-  id?: string;
-  hp: number;
-  deck?: string[];
-  unitId?: number;
-  [key: string]: unknown;
-}
-
-interface ModeWeights {
-  aggro: number;
-  turtle: number;
-  balanced: number;
-}
-
-interface Mode {
-  name: string;
-  key: 'aggro' | 'turtle' | 'balanced';
-  prefer: string;
-}
-
-interface CardStats {
-  atk: number;
-  def: number;
-  dmg: number;
-  blk: number;
-  sp: number;
-  en: number;
-}
 
 /**
  * 몬스터별 AI 모드 가중치
  * { aggro, turtle, balanced } - 상대적 가중치로 모드 선택 확률 결정
  */
-export const ENEMY_MODE_WEIGHTS: Record<string, ModeWeights> = {
+export const ENEMY_MODE_WEIGHTS: Record<string, AIModeWeights> = {
   // Tier 1 - 일반 몬스터
   'ghoul': { aggro: 60, turtle: 10, balanced: 30 },
   'marauder': { aggro: 40, turtle: 20, balanced: 40 },
@@ -86,7 +41,7 @@ export const ENEMY_MODE_WEIGHTS: Record<string, ModeWeights> = {
 /**
  * 가중치 기반 랜덤 선택
  */
-function weightedChoice(weights: ModeWeights): 'aggro' | 'turtle' | 'balanced' {
+function weightedChoice(weights: AIModeWeights): 'aggro' | 'turtle' | 'balanced' {
   const entries = Object.entries(weights) as Array<['aggro' | 'turtle' | 'balanced', number]>;
   const totalWeight = entries.reduce((sum, [, w]) => sum + w, 0);
   let random = Math.random() * totalWeight;
@@ -102,8 +57,8 @@ function weightedChoice(weights: ModeWeights): 'aggro' | 'turtle' | 'balanced' {
 /**
  * 적의 성향 결정 (몬스터별 가중치 적용)
  */
-export function decideEnemyMode(enemy: Enemy | string | null = null): Mode {
-  const MODES: Record<string, Mode> = {
+export function decideEnemyMode(enemy: AIEnemy | string | null = null): AIMode {
+  const MODES: Record<string, AIMode> = {
     aggro: { name: '공격적', key: 'aggro', prefer: 'attack' },
     turtle: { name: '수비적', key: 'turtle', prefer: 'defense' },
     balanced: { name: '균형적', key: 'balanced', prefer: 'mixed' }
@@ -119,11 +74,11 @@ export function decideEnemyMode(enemy: Enemy | string | null = null): Mode {
 /**
  * 배열에서 최대 maxCards개의 모든 조합 생성
  */
-function combosUpToN(arr: Card[], maxCards: number = 3): Card[][] {
-  const out: Card[][] = [];
+function combosUpToN(arr: AICard[], maxCards: number = 3): AICard[][] {
+  const out: AICard[][] = [];
   const n = arr.length;
 
-  function generate(start: number, current: Card[]): void {
+  function generate(start: number, current: AICard[]): void {
     if (current.length > 0) {
       out.push([...current]);
     }
@@ -144,12 +99,12 @@ function combosUpToN(arr: Card[], maxCards: number = 3): Card[][] {
  * 적의 행동 생성
  */
 export function generateEnemyActions(
-  enemy: Enemy | null,
-  mode: Mode | null,
+  enemy: AIEnemy | null,
+  mode: AIMode | null,
   enemyEtherSlots: number = 0,
   maxCards: number = 3,
   minCards: number = 1
-): Card[] {
+): AICard[] {
   if (!enemy) return [];
 
   const extraEnergy = Math.max(0, minCards - 1) * 2;
@@ -157,8 +112,8 @@ export function generateEnemyActions(
   const effectiveMaxSpeed = MAX_SPEED + Math.max(0, minCards - 1) * 10;
 
   let deck = (enemy.deck || [])
-    .map(id => ENEMY_CARDS.find((c: Card) => c.id === id))
-    .filter(Boolean) as Card[];
+    .map(id => ENEMY_CARDS.find((c: AICard) => c.id === id))
+    .filter(Boolean) as AICard[];
 
   if (deck.length === 0) {
     deck = [...ENEMY_CARDS];
@@ -181,7 +136,7 @@ export function generateEnemyActions(
   const validCandidates = candidates.filter(c => c.length >= minCards);
   const targetCandidates = validCandidates.length > 0 ? validCandidates : candidates;
 
-  function stat(list: Card[]): CardStats {
+  function stat(list: AICard[]): AICardStats {
     const atk = list.filter(c => c.type === 'attack').reduce((a, c) => a + (c.actionCost || 0), 0);
     const def = list.filter(c => c.type === 'general' || c.type === 'defense').reduce((a, c) => a + (c.actionCost || 0), 0);
     const dmg = list.filter(c => c.type === 'attack').reduce((a, c) => a + (c.damage || 0) * (c.hits || 1), 0);
@@ -191,7 +146,7 @@ export function generateEnemyActions(
     return { atk, def, dmg, blk, sp, en };
   }
 
-  function satisfies(m: Mode | null, list: Card[]): boolean {
+  function satisfies(m: AIMode | null, list: AICard[]): boolean {
     const baseThreshold = Math.ceil((BASE_PLAYER_ENERGY + (enemyEtherSlots || 0)) / 2);
     const s = stat(list);
     if (m?.key === 'aggro') return s.atk >= baseThreshold;
@@ -200,7 +155,7 @@ export function generateEnemyActions(
     return true;
   }
 
-  function score(m: Mode | null, list: Card[]): number {
+  function score(m: AIMode | null, list: AICard[]): number {
     const s = stat(list);
     let base = 0;
     if (m?.key === 'aggro') base = s.atk * 100 + s.dmg * 10 - s.sp;
@@ -245,8 +200,8 @@ export function generateEnemyActions(
  * 적이 폭주(Overdrive)할지 결정
  */
 function shouldEnemyOverdriveWithTurn(
-  mode: Mode | null,
-  actions: Card[] | null,
+  mode: AIMode | null,
+  actions: AICard[] | null,
   etherPts: number,
   turnNumber: number = 1
 ): boolean {
@@ -260,8 +215,8 @@ function shouldEnemyOverdriveWithTurn(
  * 적이 폭주할지 결정 (Wrapper)
  */
 export function shouldEnemyOverdrive(
-  mode: Mode | null,
-  actions: Card[] | null,
+  mode: AIMode | null,
+  actions: AICard[] | null,
   etherPts: number,
   turnNumber: number = 1
 ): boolean {
@@ -271,7 +226,7 @@ export function shouldEnemyOverdrive(
 /**
  * 적 행동에 __sourceUnitId 할당
  */
-export function assignSourceUnitToActions(actions: Card[], units: Enemy[]): Card[] {
+export function assignSourceUnitToActions(actions: AICard[], units: AIEnemy[]): AICard[] {
   if (!actions || actions.length === 0) return actions;
   if (!units || units.length === 0) return actions;
 
@@ -316,7 +271,7 @@ export function assignSourceUnitToActions(actions: Card[], units: Enemy[]): Card
 /**
  * 다중 몬스터 유령카드 확장
  */
-export function expandActionsWithGhosts(actions: Card[], units: Enemy[]): Card[] {
+export function expandActionsWithGhosts(actions: AICard[], units: AIEnemy[]): AICard[] {
   if (!actions || actions.length === 0) return actions;
   if (!units || units.length === 0) return actions;
 
@@ -325,12 +280,12 @@ export function expandActionsWithGhosts(actions: Card[], units: Enemy[]): Card[]
     return assignSourceUnitToActions(actions, units);
   }
 
-  const expandedActions: Card[] = [];
+  const expandedActions: AICard[] = [];
   let unitIndex = 0;
 
   for (const card of actions) {
     const primaryUnit = aliveUnits[unitIndex % aliveUnits.length];
-    const realCard: Card = {
+    const realCard: AICard = {
       ...card,
       __sourceUnitId: primaryUnit.unitId,
       __uid: `real_${card.id}_${Date.now()}_${Math.random().toString(36).slice(2)}`
@@ -339,7 +294,7 @@ export function expandActionsWithGhosts(actions: Card[], units: Enemy[]): Card[]
 
     for (let i = 1; i < aliveUnits.length; i++) {
       const ghostUnit = aliveUnits[(unitIndex + i) % aliveUnits.length];
-      const ghostCard: Card = {
+      const ghostCard: AICard = {
         ...card,
         isGhost: true,
         __sourceUnitId: ghostUnit.unitId,

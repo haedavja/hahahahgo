@@ -3,44 +3,15 @@
  * @description 캐릭터 빌드 기반 손패 생성 시스템 + 덱/무덤 시스템
  */
 
+import type {
+  HandCard,
+  CharacterBuild,
+  NextTurnEffects,
+  DrawResult,
+  InitializeDeckResult
+} from '../../../types';
 import { CARDS, DEFAULT_STARTING_DECK } from "../battleData";
 import { hasTrait } from "./battleUtils";
-
-interface Card {
-  id?: string;
-  name?: string;
-  type?: string;
-  block?: number;
-  speedCost?: number;
-  actionCost?: number;
-  __handUid?: string;
-  __isMainSpecial?: boolean;
-  __isSubSpecial?: boolean;
-  traits?: string[];
-  [key: string]: unknown;
-}
-
-interface CharacterBuild {
-  mainSpecials?: string[];
-  subSpecials?: string[];
-  ownedCards?: string[];
-}
-
-interface NextTurnEffects {
-  [key: string]: unknown;
-}
-
-interface DrawResult {
-  drawnCards: Card[];
-  newDeck: Card[];
-  newDiscardPile: Card[];
-  reshuffled: boolean;
-}
-
-interface InitializeDeckResult {
-  deck: Card[];
-  mainSpecialsHand: Card[];
-}
 
 /**
  * Fisher-Yates 셔플 알고리즘
@@ -66,10 +37,10 @@ export function initializeDeck(
   const { mainSpecials = [], subSpecials = [], ownedCards = [] } = characterBuild;
   const vanishedSet = new Set(vanishedCards || []);
 
-  const mainSpecialsHand: Card[] = mainSpecials
+  const mainSpecialsHand: HandCard[] = mainSpecials
     .filter(cardId => !vanishedSet.has(cardId))
     .map((cardId, idx) => {
-      const card = CARDS.find((c: Card) => c.id === cardId);
+      const card = CARDS.find((c: HandCard) => c.id === cardId);
       if (!card) return null;
       return {
         ...card,
@@ -77,12 +48,12 @@ export function initializeDeck(
         __isMainSpecial: true
       };
     })
-    .filter(Boolean) as Card[];
+    .filter(Boolean) as HandCard[];
 
-  const subSpecialCards: Card[] = subSpecials
+  const subSpecialCards: HandCard[] = subSpecials
     .filter(cardId => !vanishedSet.has(cardId))
     .map((cardId, idx) => {
-      const card = CARDS.find((c: Card) => c.id === cardId);
+      const card = CARDS.find((c: HandCard) => c.id === cardId);
       if (!card) return null;
       return {
         ...card,
@@ -90,7 +61,7 @@ export function initializeDeck(
         __isSubSpecial: true
       };
     })
-    .filter(Boolean) as Card[];
+    .filter(Boolean) as HandCard[];
 
   const usedMainCounts: Record<string, number> = {};
   mainSpecials.forEach(cardId => {
@@ -104,7 +75,7 @@ export function initializeDeck(
   const remainingMainCounts = { ...usedMainCounts };
   const remainingSubCounts = { ...usedSubCounts };
 
-  const ownedCardObjs: Card[] = ownedCards
+  const ownedCardObjs: HandCard[] = ownedCards
     .filter(cardId => {
       if (vanishedSet.has(cardId)) return false;
       if (remainingMainCounts[cardId] > 0) {
@@ -118,14 +89,14 @@ export function initializeDeck(
       return true;
     })
     .map((cardId, idx) => {
-      const card = CARDS.find((c: Card) => c.id === cardId);
+      const card = CARDS.find((c: HandCard) => c.id === cardId);
       if (!card) return null;
       return {
         ...card,
         __handUid: `owned_${card.id}_${idx}_${Math.random().toString(36).slice(2, 8)}`
       };
     })
-    .filter(Boolean) as Card[];
+    .filter(Boolean) as HandCard[];
 
   const shuffledOwned = shuffleArray(ownedCardObjs);
   const deck = [...subSpecialCards, ...shuffledOwned];
@@ -137,8 +108,8 @@ export function initializeDeck(
  * 덱에서 카드 드로우
  */
 export function drawFromDeck(
-  deck: Card[],
-  discardPile: Card[],
+  deck: HandCard[],
+  discardPile: HandCard[],
   count: number,
   escapeBan: Set<string> = new Set()
 ): DrawResult {
@@ -182,10 +153,10 @@ export function drawFromDeck(
 /**
  * 기본 시작 덱으로 손패 생성
  */
-export function getDefaultStartingHand(): Card[] {
+export function getDefaultStartingHand(): HandCard[] {
   return DEFAULT_STARTING_DECK
-    .map((cardId: string) => CARDS.find((card: Card) => card.id === cardId))
-    .filter(Boolean) as Card[];
+    .map((cardId: string) => CARDS.find((card: HandCard) => card.id === cardId))
+    .filter(Boolean) as HandCard[];
 }
 
 /**
@@ -194,11 +165,11 @@ export function getDefaultStartingHand(): Card[] {
 export function drawCharacterBuildHand(
   characterBuild: CharacterBuild | null | undefined,
   nextTurnEffects: NextTurnEffects = {},
-  previousHand: Card[] = [],
+  previousHand: HandCard[] = [],
   cardDrawBonus: number = 0,
   escapeBan: Set<string> = new Set(),
   vanishedCards: string[] = []
-): Card[] {
+): HandCard[] {
   if (!characterBuild) return [];
 
   const { mainSpecials = [], subSpecials = [], ownedCards = [] } = characterBuild;
@@ -209,12 +180,12 @@ export function drawCharacterBuildHand(
   return allCardIds
     .filter(cardId => !vanishedSet.has(cardId))
     .map((cardId, idx) => {
-      const card = CARDS.find((c: Card) => c.id === cardId);
+      const card = CARDS.find((c: HandCard) => c.id === cardId);
       if (!card) return null;
       return {
         ...card,
         __handUid: `${card.id}_${idx}_${Math.random().toString(36).slice(2, 8)}`
       };
     })
-    .filter(Boolean) as Card[];
+    .filter(Boolean) as HandCard[];
 }

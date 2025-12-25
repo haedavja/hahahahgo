@@ -1061,3 +1061,110 @@ export interface ExecuteCardActionResult {
   E: EnemyCombatData;
   actionEvents: BattleEvent[];
 }
+
+// ==================== 콤보 감지 시스템 타입 ====================
+
+/** 콤보 감지용 카드 */
+export interface ComboCard {
+  actionCost: number;
+  type?: string;
+  traits?: string[];
+  isGhost?: boolean;
+  [key: string]: unknown;
+}
+
+/** 콤보 감지 결과 */
+export interface ComboResult {
+  name: string;
+  bonusKeys: Set<number> | null;
+}
+
+/** 콤보 배율 설명 결과 */
+export interface ComboExplainResult {
+  multiplier: number;
+  steps: string[];
+}
+
+// ==================== 손패 생성 시스템 타입 ====================
+
+/** 손패용 카드 (확장) */
+export interface HandCard extends Card {
+  __handUid?: string;
+  __isMainSpecial?: boolean;
+  __isSubSpecial?: boolean;
+  [key: string]: unknown;
+}
+
+/** 캐릭터 빌드 */
+export interface CharacterBuild {
+  mainSpecials?: string[];
+  subSpecials?: string[];
+  ownedCards?: string[];
+}
+
+/** 카드 드로우 결과 */
+export interface DrawResult {
+  drawnCards: HandCard[];
+  newDeck: HandCard[];
+  newDiscardPile: HandCard[];
+  reshuffled: boolean;
+}
+
+/** 덱 초기화 결과 */
+export interface InitializeDeckResult {
+  deck: HandCard[];
+  mainSpecialsHand: HandCard[];
+}
+
+// ==================== 적 AI 시스템 타입 ====================
+
+/** AI용 카드 */
+export interface AICard {
+  id?: string;
+  name?: string;
+  damage?: number;
+  block?: number;
+  hits?: number;
+  speedCost?: number;
+  actionCost?: number;
+  type?: string;
+  iconKey?: string;
+  isGhost?: boolean;
+  createdBy?: string;
+  __sourceUnitId?: number;
+  __uid?: string;
+  [key: string]: unknown;
+}
+
+/** AI용 적 */
+export interface AIEnemy {
+  id?: string;
+  hp: number;
+  deck?: string[];
+  unitId?: number;
+  [key: string]: unknown;
+}
+
+/** AI 모드 가중치 */
+export interface AIModeWeights {
+  aggro: number;
+  turtle: number;
+  balanced: number;
+}
+
+/** AI 모드 */
+export interface AIMode {
+  name: string;
+  key: 'aggro' | 'turtle' | 'balanced';
+  prefer: string;
+}
+
+/** AI 카드 통계 */
+export interface AICardStats {
+  atk: number;
+  def: number;
+  dmg: number;
+  blk: number;
+  sp: number;
+  en: number;
+}
