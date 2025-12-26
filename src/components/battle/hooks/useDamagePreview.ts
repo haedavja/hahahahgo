@@ -106,9 +106,10 @@ export function useDamagePreview({
       for (const [unitIdStr, damage] of Object.entries(perUnitDamage)) {
         const unitId = parseInt(unitIdStr, 10);
         const unit = enemyUnits.find(u => u.unitId === unitId);
-        if (unit && (damage as any) > 0) {
+        const damageNum = Number(damage);
+        if (unit && damageNum > 0) {
           const unitBlock = unit.block || 0;
-          const effectiveDamage = Math.max(0, (damage as any) - unitBlock);
+          const effectiveDamage = Math.max(0, damageNum - unitBlock);
           perUnitPreview[unitId] = {
             value: damage,
             effectiveDamage,

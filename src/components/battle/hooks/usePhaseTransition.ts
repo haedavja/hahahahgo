@@ -22,6 +22,7 @@ import { useCallback } from 'react';
 import { detectPokerCombo, applyPokerBonus } from '../utils/comboDetection';
 import { createFixedOrder } from '../utils/cardOrdering';
 import { sortCombinedOrderStablePF } from '../utils/combatUtils';
+import type { OrderingCardInfo } from '../../../types';
 import { generateEnemyActions, shouldEnemyOverdrive, assignSourceUnitToActions } from '../utils/enemyAI';
 import { applyTraitModifiers } from '../utils/battleUtils';
 import { processQueueCollisions } from '../utils/cardSpecialEffects';
@@ -109,8 +110,8 @@ export function usePhaseTransition({
 
     const currentPlayer = currentBattle.player;
     const q = currentPlayer.enemyFrozen
-      ? createFixedOrder(enhancedSelected as any, generatedActions, effectiveAgility)
-      : sortCombinedOrderStablePF(enhancedSelected as any, generatedActions, effectiveAgility, 0);
+      ? createFixedOrder(enhancedSelected as unknown as OrderingCardInfo[], generatedActions, effectiveAgility)
+      : sortCombinedOrderStablePF(enhancedSelected as unknown as OrderingCardInfo[], generatedActions, effectiveAgility, 0);
     actions.setFixedOrder(q);
 
     if (currentPlayer.enemyFrozen) {

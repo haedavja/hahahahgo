@@ -37,6 +37,21 @@ export const CONNECTION_TYPES = {
   LOCKED: 'locked',          // 잠김 (다른 곳에서 해제해야 함)
 };
 
+// 연결 인터페이스
+interface DungeonConnection {
+  targetId: string;
+  type: string;
+  requirements: { stat?: string; value?: number; item?: string } | null;
+  unlocked: boolean;
+}
+
+// 던전 생성 설정 인터페이스
+interface DungeonGenerationConfig {
+  mainPathLength?: number;
+  branchCount?: number;
+  difficulty?: number;
+}
+
 // 이벤트 타입 정의
 export const DUNGEON_EVENT_TYPES = {
   NONE: 'none',
@@ -1024,13 +1039,17 @@ export const OBSTACLE_TEMPLATES = {
 /**
  * 연결 정보 생성 헬퍼
  */
-function createConnection(targetId: any, type = CONNECTION_TYPES.OPEN, requirements = null) {
+function createConnection(
+  targetId: string,
+  type = CONNECTION_TYPES.OPEN,
+  requirements: DungeonConnection['requirements'] = null
+): DungeonConnection {
   return {
     targetId,
     type,
     requirements,  // { stat: 'strength', value: 3 } 또는 { item: 'key' }
     unlocked: type === CONNECTION_TYPES.OPEN,
-  } as any;
+  };
 }
 
 /**
@@ -1039,12 +1058,12 @@ function createConnection(targetId: any, type = CONNECTION_TYPES.OPEN, requireme
  * - 스탯/아이템 관문
  * - 숏컷 문
  */
-export function generateDungeonGraph(dungeonId, config: any = {}) {
+export function generateDungeonGraph(dungeonId: string, config: DungeonGenerationConfig = {}) {
   const {
     mainPathLength = 6,         // 메인 경로 길이
     branchCount = 2,            // 분기 경로 수
     difficulty = 1,
-  } = config as any;
+  } = config;
 
   const nodes = [];
   const connections = {};  // nodeId -> Connection[]

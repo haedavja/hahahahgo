@@ -72,6 +72,12 @@ export const createPlayerActions: SliceCreator = (set) => ({
       };
     }),
 
+  setPlayerHp: (hp) =>
+    set((state) => ({
+      ...state,
+      playerHp: Math.max(0, hp),
+    })),
+
   clearItemBuffs: () =>
     set((state) => ({
       ...state,

@@ -95,7 +95,7 @@ export function useCharacterSheet({ showAllCards = false }) {
     return `${traitId} ${count > 1 ? `(x${count})` : ""} (${effect.label} +${total})`;
   };
 
-  const [specialMode, setSpecialMode] = useState("main");
+  const [specialMode, setSpecialMode] = useState<'main' | 'sub'>("main");
   const [mainSpecials, setMainSpecials] = useState([]);
   const [subSpecials, setSubSpecials] = useState([]);
   const [initialized, setInitialized] = useState(false);

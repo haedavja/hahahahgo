@@ -172,6 +172,7 @@ export interface PlayerSliceActions {
   addResources: (resources: Partial<Resources>) => void;
   applyEtherDelta: (delta: number) => void;
   applyDamage: (damage: number) => void;
+  setPlayerHp: (hp: number) => void;
   clearItemBuffs: () => void;
 }
 
