@@ -117,7 +117,7 @@ import {
   calculatePassiveEffects,
   applyCombatStartEffects
 } from "../../lib/relicEffects";
-import type { BattlePayload, BattleResult, OrderItem, Card, ItemSlotsBattleActions, AIMode, AICard, AIEnemy, TokenEntity, SpecialCard, HandCard } from "../../types";
+import type { BattlePayload, BattleResult, OrderItem, Card, ItemSlotsBattleActions, AIMode, AICard, AIEnemy, TokenEntity, SpecialCard, HandCard, SpecialActor, SpecialBattleContext, SpecialQueueItem, CombatState, CombatCard, CombatBattleContext, StunQueueItem, ParryQueueItem, ParryReadyState, ComboCard, HandAction } from "../../types";
 import type { PlayerState, EnemyState, SortType, BattlePhase } from "./reducer/battleReducerActions";
 import type { BattleActions } from "./hooks/useBattleState";
 import { PlayerHpBar } from "./ui/PlayerHpBar";
@@ -1506,20 +1506,20 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
       // 결과 반영
       if (a.actor === 'player') {
-        P = multiHitResult.attacker as any;
-        E = multiHitResult.defender as any;
+        P = multiHitResult.attacker as typeof P;
+        E = multiHitResult.defender as typeof E;
       } else {
-        E = multiHitResult.attacker as any;
-        P = multiHitResult.defender as any;
+        E = multiHitResult.attacker as typeof E;
+        P = multiHitResult.defender as typeof P;
       }
 
       // 카드 사용 시 special 효과 처리 (교차 특성 등) - 룰렛은 이제 타격별로 처리됨
       const cardPlayAttacker = a.actor === 'player' ? P : E;
       const cardPlayResult = processCardPlaySpecials({
-        card: a.card as any,
-        attacker: cardPlayAttacker as any,
-        attackerName: a.actor as any,
-        battleContext: battleContext as any
+        card: a.card as unknown as SpecialCard,
+        attacker: cardPlayAttacker as unknown as SpecialActor,
+        attackerName: a.actor as 'player' | 'enemy',
+        battleContext: battleContext as unknown as SpecialBattleContext
       });
 
       // cardPlayResult의 토큰 처리
@@ -1572,7 +1572,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       }
     } else {
       // 기존 동기 처리 (방어 카드 또는 단일 타격 비총기 공격)
-      actionResult = applyAction(tempState as any, a.actor, a.card as any, battleContext as any);
+      actionResult = applyAction(tempState as unknown as CombatState, a.actor, a.card as unknown as CombatCard, battleContext as unknown as CombatBattleContext);
       const { events, updatedState } = actionResult;
       actionEvents = events;
 
@@ -1909,10 +1909,11 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     }
 
     // 플레이어 카드 사용 시 카드 사용 횟수 증가 (mastery, boredom 특성용)
-    if (a.actor === 'player' && a.card.id) {
+    const cardId = (a.card as { id?: string }).id;
+    if (a.actor === 'player' && cardId) {
       actions.setCardUsageCount({
         ...cardUsageCount,
-        [a.card.id as any]: ((cardUsageCount as any)[a.card.id as any] || 0) + 1
+        [cardId]: ((cardUsageCount as Record<string, number>)[cardId] || 0) + 1
       });
 
       // 방어자세 (growingDefense): 발동 시 활성화, 이후 타임라인 진행마다 방어력 +1
@@ -1963,7 +1964,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
               if (isCritical) {
                 addLog(`💥 치명타! ${tokenId} +1 강화`);
               }
-              const result = addToken(currentPlayerForToken as any, tokenId, actualStacks, grantedAt);
+              const result = addToken(currentPlayerForToken as TokenEntity, tokenId, actualStacks, grantedAt);
               P.tokens = result.tokens;
               currentPlayerForToken.tokens = result.tokens;
               // battleRef 동기 업데이트 (finishTurn에서 최신 상태 사용 가능하도록)
@@ -1975,7 +1976,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
               return result;
             },
             removeTokenFromPlayer: (tokenId, tokenType, stacks = 1) => {
-              const result = removeToken(currentPlayerForToken as any, tokenId, tokenType, stacks);
+              const result = removeToken(currentPlayerForToken as TokenEntity, tokenId, tokenType, stacks);
               P.tokens = result.tokens;
               currentPlayerForToken.tokens = result.tokens;
               // battleRef 동기 업데이트 (finishTurn에서 최신 상태 사용 가능하도록)
@@ -2029,7 +2030,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
             },
             // 룰렛 초기화 등을 위한 토큰 스택 리셋
             resetTokenForPlayer: (tokenId, tokenType, newStacks = 0) => {
-              const result = setTokenStacks(currentPlayerForToken as any, tokenId, tokenType, newStacks);
+              const result = setTokenStacks(currentPlayerForToken as TokenEntity, tokenId, tokenType, newStacks);
               P.tokens = result.tokens;
               currentPlayerForToken.tokens = result.tokens;
               if (battleRef.current) {
@@ -2050,7 +2051,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     if (hasTrait(a.card, 'stun')) {
       const { updatedQueue, stunEvent } = processStunEffect({
         action: a,
-        queue: currentBattle.queue as any,
+        queue: currentBattle.queue as unknown as StunQueueItem[],
         currentQIndex: currentBattle.qIndex,
         addLog
       });
@@ -2064,10 +2065,10 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
     // 타임라인 조작 효과 처리 (마르쉐, 런지, 비트, 흐트리기 등)
     const timelineResult = processTimelineSpecials({
-      card: a.card as any,
-      actor: a.actor as any,
-      actorName: a.actor as any,
-      queue: battleRef.current.queue as any,
+      card: a.card as unknown as SpecialCard,
+      actor: (a.actor === 'player' ? P : E) as unknown as SpecialActor,
+      actorName: a.actor as 'player' | 'enemy',
+      queue: battleRef.current.queue as unknown as SpecialQueueItem[],
       currentIndex: battleRef.current.qIndex,
       damageDealt: actionResult.dealt || 0
     });
@@ -2084,10 +2085,12 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       const currentQIndex = battleRef.current.qIndex;
 
       // 플레이어 카드 앞당기기 (현재 카드 이후의 플레이어 카드들)
+      type QueueItemWithSp = { actor: 'player' | 'enemy'; sp?: number };
       if (timelineChanges.advancePlayer > 0) {
         updatedQueue = updatedQueue.map((item, idx) => {
-          if (idx > currentQIndex && (item as any).actor === 'player') {
-            return { ...item, sp: Math.max(0, (item as any).sp - timelineChanges.advancePlayer) };
+          const typedItem = item as unknown as QueueItemWithSp;
+          if (idx > currentQIndex && typedItem.actor === 'player') {
+            return { ...item, sp: Math.max(0, (typedItem.sp || 0) - timelineChanges.advancePlayer) };
           }
           return item;
         });
@@ -2096,8 +2099,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       // 적 카드 뒤로 밀기 (현재 카드 이후의 적 카드들)
       if (timelineChanges.pushEnemy > 0) {
         updatedQueue = updatedQueue.map((item, idx) => {
-          if (idx > currentQIndex && (item as any).actor === 'enemy') {
-            return { ...item, sp: (item as any).sp + timelineChanges.pushEnemy };
+          const typedItem = item as unknown as QueueItemWithSp;
+          if (idx > currentQIndex && typedItem.actor === 'enemy') {
+            return { ...item, sp: (typedItem.sp || 0) + timelineChanges.pushEnemy };
           }
           return item;
         });
@@ -2108,7 +2112,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         // 현재 이후의 적 카드들 중 가장 마지막 카드 찾기
         let lastEnemyIdx = -1;
         for (let i = updatedQueue.length - 1; i > currentQIndex; i--) {
-          if ((updatedQueue[i] as any).actor === 'enemy') {
+          if ((updatedQueue[i] as unknown as QueueItemWithSp).actor === 'enemy') {
             lastEnemyIdx = i;
             break;
           }
@@ -2116,7 +2120,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         if (lastEnemyIdx !== -1) {
           updatedQueue = updatedQueue.map((item, idx) => {
             if (idx === lastEnemyIdx) {
-              return { ...item, sp: (item as any).sp + timelineChanges.pushLastEnemy };
+              const typedItem = item as unknown as QueueItemWithSp;
+              return { ...item, sp: (typedItem.sp || 0) + timelineChanges.pushLastEnemy };
             }
             return item;
           });
@@ -2126,7 +2131,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       // 큐 재정렬 (sp 값 기준, 이미 처리된 카드들은 유지)
       const processedCards = updatedQueue.slice(0, currentQIndex + 1);
       const remainingCards = updatedQueue.slice(currentQIndex + 1);
-      remainingCards.sort((a, b) => (a as any).sp - (b as any).sp);
+      remainingCards.sort((a, b) => ((a as unknown as QueueItemWithSp).sp || 0) - ((b as unknown as QueueItemWithSp).sp || 0));
       updatedQueue = [...processedCards, ...remainingCards];
 
       actions.setQueue(updatedQueue);
@@ -2274,11 +2279,11 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     if (a.actor === 'enemy' && hasActiveParry) {
       const currentQ = battleRef.current.queue;
       const { updatedQueue, parryEvents, updatedParryStates, outCards } = checkParryTrigger({
-        parryReadyStates: parryReadyStatesRef.current as any,
+        parryReadyStates: parryReadyStatesRef.current as ParryReadyState[],
         enemyAction: a,
-        queue: currentQ as any,
+        queue: currentQ as unknown as ParryQueueItem[],
         currentQIndex: currentBattle.qIndex,
-        enemyMaxSpeed: enemy.maxSpeed as any,
+        enemyMaxSpeed: Number(enemy.maxSpeed) || 0,
         addLog,
         playParrySound
       });
@@ -2384,21 +2389,21 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
             addLog(`🌀 범위 피해: ${damageLogParts.join(', ')}`);
           }
         }
-      } else if (targetUnitIds && (targetUnitIds as any).length > 0) {
+      } else if (Array.isArray(targetUnitIds) && targetUnitIds.length > 0) {
         // === 다중 타겟 모드: 선택된 모든 유닛에 카드 피해 적용 ===
         let updatedUnits = [...enemyUnits];
-        const baseDamage = a.card.damage || 0;
+        const baseDamage = Number((a.card as { damage?: number }).damage) || 0;
         const damageLogParts = [];
 
-        for (const unitId of targetUnitIds as any) {
+        for (const unitId of targetUnitIds) {
           const targetUnit = updatedUnits.find(u => u.unitId === unitId && u.hp > 0);
           if (!targetUnit) continue;
 
           // 유닛별 방어력 적용
           const unitBlock = targetUnit.block || 0;
-          const blockedDamage = Math.min(unitBlock, baseDamage as any);
-          const actualDamage = (baseDamage as any) - blockedDamage;
-          const newBlock = (unitBlock as any) - blockedDamage;
+          const blockedDamage = Math.min(unitBlock, baseDamage);
+          const actualDamage = baseDamage - blockedDamage;
+          const newBlock = unitBlock - blockedDamage;
           const newHp = Math.max(0, targetUnit.hp - actualDamage);
 
           updatedUnits = updatedUnits.map(u => {
@@ -2462,7 +2467,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     // 이벤트 처리: 애니메이션 및 사운드
     processActionEventAnimations({
       actionEvents,
-      action: a as any,
+      action: a as unknown as HandAction,
       playHitSound,
       playBlockSound,
       actions
@@ -2621,7 +2626,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   });
 
   // 적 조합 감지 (표시용) - Hook은 조건부 return 전에 호출
-  const enemyCombo = useMemo(() => detectPokerCombo((enemyPlan?.actions || []) as any), [enemyPlan?.actions]);
+  const enemyCombo = useMemo(() => detectPokerCombo((enemyPlan?.actions || []) as unknown as ComboCard[]), [enemyPlan?.actions]);
 
   // 적 성향 힌트 추출 - Hook은 조건부 return 전에 호출
   const enemyHint = useMemo(() => {
