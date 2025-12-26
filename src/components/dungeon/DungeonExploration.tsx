@@ -6,6 +6,7 @@
  */
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import { useShallow } from 'zustand/react/shallow';
 import type { DungeonObject } from "../../types";
 import { useDungeonState } from "./hooks/useDungeonState";
 
@@ -42,29 +43,41 @@ import { RewardModal, DungeonSummaryModal, CrossroadModal } from "./ui/DungeonMo
 
 // ========== 메인 컴포넌트 ==========
 export function DungeonExploration() {
-  // Store hooks
-  const activeDungeon = useGameStore((s) => s.activeDungeon);
-  const setDungeonData = useGameStore((s) => s.setDungeonData);
-  const setDungeonPosition = useGameStore((s) => s.setDungeonPosition);
-  const setDungeonInitialResources = useGameStore((s) => s.setDungeonInitialResources);
-  const setDungeonDeltas = useGameStore((s) => s.setDungeonDeltas);
-  const skipDungeon = useGameStore((s) => s.skipDungeon);
-  const completeDungeon = useGameStore((s) => s.completeDungeon);
-  const startBattle = useGameStore((s) => s.startBattle);
-  const applyEtherDelta = useGameStore((s) => s.applyEtherDelta);
-  const addResources = useGameStore((s) => s.addResources);
-  const lastBattleResult = useGameStore((s) => s.lastBattleResult);
-  const clearBattleResult = useGameStore((s) => s.clearBattleResult);
-  const relics = useGameStore((s) => s.relics);
-  const resources = useGameStore((s) => s.resources);
-  const playerHp = useGameStore((s) => s.playerHp);
-  const maxHp = useGameStore((s) => s.maxHp);
-  const devForcedCrossroad = useGameStore((s) => s.devForcedCrossroad);
-  const playerInsight = useGameStore((s) => s.playerInsight) || 0;
+  // 상태 셀렉터 (그룹화)
+  const { activeDungeon, lastBattleResult, relics, resources, playerHp, maxHp, devForcedCrossroad, playerInsight } = useGameStore(
+    useShallow((s) => ({
+      activeDungeon: s.activeDungeon,
+      lastBattleResult: s.lastBattleResult,
+      relics: s.relics,
+      resources: s.resources,
+      playerHp: s.playerHp,
+      maxHp: s.maxHp,
+      devForcedCrossroad: s.devForcedCrossroad,
+      playerInsight: s.playerInsight || 0,
+    }))
+  );
 
-  // 미로 던전용 gameStore 함수
-  const setCurrentRoomKey = useGameStore((s) => s.setCurrentRoomKey);
-  const updateMazeRoom = useGameStore((s) => s.updateMazeRoom);
+  // 액션 셀렉터 (그룹화)
+  const {
+    setDungeonData, setDungeonPosition, setDungeonInitialResources, setDungeonDeltas,
+    skipDungeon, completeDungeon, startBattle, applyEtherDelta, addResources,
+    clearBattleResult, setCurrentRoomKey, updateMazeRoom
+  } = useGameStore(
+    useShallow((s) => ({
+      setDungeonData: s.setDungeonData,
+      setDungeonPosition: s.setDungeonPosition,
+      setDungeonInitialResources: s.setDungeonInitialResources,
+      setDungeonDeltas: s.setDungeonDeltas,
+      skipDungeon: s.skipDungeon,
+      completeDungeon: s.completeDungeon,
+      startBattle: s.startBattle,
+      applyEtherDelta: s.applyEtherDelta,
+      addResources: s.addResources,
+      clearBattleResult: s.clearBattleResult,
+      setCurrentRoomKey: s.setCurrentRoomKey,
+      updateMazeRoom: s.updateMazeRoom,
+    }))
+  );
 
   // 던전 데이터 생성 (한 번만)
   useEffect(() => {

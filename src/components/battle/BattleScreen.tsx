@@ -5,6 +5,7 @@
  */
 
 import { FC, useMemo, useCallback, useState, useEffect } from "react";
+import { useShallow } from 'zustand/react/shallow';
 import { useGameStore } from "../../state/gameStore";
 import { BattleApp } from "./BattleApp";
 import { DevTools } from "../dev/DevTools";
@@ -245,17 +246,28 @@ const buildBattlePayload = (
 };
 
 export const BattleScreen: FC = () => {
-  const activeBattle = useGameStore((state) => (state as { activeBattle?: Battle }).activeBattle);
-  const resolveBattle = useGameStore((state) => (state as { resolveBattle: (result: BattleResult) => void }).resolveBattle);
-  const applyEtherDelta = useGameStore((state) => (state as { applyEtherDelta: (delta: number) => void }).applyEtherDelta);
-  const playerEther = useGameStore((state) => (state as { resources: { etherPts?: number } }).resources.etherPts ?? 0);
-  const relics = useGameStore((state) => (state as { relics: string[] }).relics);
-  const maxHp = useGameStore((state) => (state as { maxHp: number }).maxHp);
-  const playerInsight = useGameStore((state) => (state as { playerInsight?: number }).playerInsight ?? 0);
-  const playerEnergyBonus = useGameStore((state) => (state as { playerEnergyBonus?: number }).playerEnergyBonus ?? 0);
-  const playerStrength = useGameStore((state) => (state as { playerStrength?: number }).playerStrength ?? 0);
-  const playerMaxSpeedBonus = useGameStore((state) => (state as { playerMaxSpeedBonus?: number }).playerMaxSpeedBonus ?? 0);
-  const itemBuffs = useGameStore((state) => (state as { itemBuffs?: Record<string, number> }).itemBuffs || {});
+  // 상태 셀렉터 (그룹화)
+  const { activeBattle, playerEther, relics, maxHp, playerInsight, playerEnergyBonus, playerStrength, playerMaxSpeedBonus, itemBuffs } = useGameStore(
+    useShallow((state) => ({
+      activeBattle: (state as { activeBattle?: Battle }).activeBattle,
+      playerEther: (state as { resources: { etherPts?: number } }).resources.etherPts ?? 0,
+      relics: (state as { relics: string[] }).relics,
+      maxHp: (state as { maxHp: number }).maxHp,
+      playerInsight: (state as { playerInsight?: number }).playerInsight ?? 0,
+      playerEnergyBonus: (state as { playerEnergyBonus?: number }).playerEnergyBonus ?? 0,
+      playerStrength: (state as { playerStrength?: number }).playerStrength ?? 0,
+      playerMaxSpeedBonus: (state as { playerMaxSpeedBonus?: number }).playerMaxSpeedBonus ?? 0,
+      itemBuffs: (state as { itemBuffs?: Record<string, number> }).itemBuffs || {},
+    }))
+  );
+
+  // 액션 셀렉터 (그룹화)
+  const { resolveBattle, applyEtherDelta } = useGameStore(
+    useShallow((state) => ({
+      resolveBattle: (state as { resolveBattle: (result: BattleResult) => void }).resolveBattle,
+      applyEtherDelta: (state as { applyEtherDelta: (delta: number) => void }).applyEtherDelta,
+    }))
+  );
 
   const effectiveStrength = playerStrength + (itemBuffs.strength || 0);
   const effectiveInsight = playerInsight + (itemBuffs.insight || 0);
