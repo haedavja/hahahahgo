@@ -17,7 +17,7 @@
  */
 
 import { create, type StateCreator } from "zustand";
-import type { Card, Relic, MapNode, Resources } from "../types";
+import type { Card, Relic, MapNode, Resources, ActiveEvent, ActiveDungeon } from "../types";
 import { NEW_EVENT_LIBRARY } from "../data/newEvents";
 import { createInitialState } from "./useGameState";
 import { CARDS, ENEMIES, ENEMY_GROUPS, getRandomEnemy } from "../components/battle/battleData";
@@ -92,22 +92,8 @@ export interface ActiveBattle {
   [key: string]: unknown;
 }
 
-/** 활성 이벤트 */
-export interface ActiveEvent {
-  id: string;
-  step?: string;
-  nodeId?: string;
-  [key: string]: unknown;
-}
-
-/** 활성 던전 */
-export interface ActiveDungeon {
-  nodeId: string;
-  revealed?: boolean;
-  confirmed?: boolean;
-  dungeonData?: unknown;
-  [key: string]: unknown;
-}
+// ActiveEvent, ActiveDungeon은 types/index.ts에서 import
+export type { ActiveEvent, ActiveDungeon } from "../types";
 
 /** 게임 스토어 상태 */
 export interface GameStoreState {

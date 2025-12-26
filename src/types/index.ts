@@ -224,6 +224,23 @@ export interface MapNode {
 
 // ==================== 게임 상태 ====================
 
+/** 활성 이벤트 */
+export interface ActiveEvent {
+  id: string;
+  step?: string;
+  nodeId?: string;
+  [key: string]: unknown;
+}
+
+/** 활성 던전 */
+export interface ActiveDungeon {
+  nodeId: string;
+  revealed?: boolean;
+  confirmed?: boolean;
+  dungeonData?: unknown;
+  [key: string]: unknown;
+}
+
 /** 게임 전체 상태 */
 export interface GameState {
   resources: Resources;
@@ -239,8 +256,8 @@ export interface GameState {
   };
   mapRisk: number;
   activeBattle: BattleState | null;
-  activeDungeon: object | null;
-  activeEvent: object | null;
+  activeDungeon: ActiveDungeon | null;
+  activeEvent: ActiveEvent | null;
 }
 
 // ==================== 전투 확장 타입 ====================
