@@ -14,50 +14,14 @@
  */
 
 import { createContext, useContext, ReactNode, FC } from 'react';
-import type { TokenState } from '../../../types';
-
-interface EnemyUnit {
-  unitId: number;
-  name: string;
-  emoji?: string;
-  hp: number;
-  maxHp: number;
-  block?: number;
-  tokens?: TokenState;
-}
-
-interface Player {
-  hp: number;
-  maxHp: number;
-  energy?: number;
-  maxEnergy?: number;
-  block?: number;
-  strength?: number;
-  etherPts?: number;
-}
-
-interface Enemy {
-  name: string;
-  hp: number;
-  maxHp: number;
-  etherPts?: number;
-  etherCapacity?: number;
-}
-
-interface Battle {
-  phase: string;
-  hand?: unknown[];
-  selected?: unknown[];
-}
-
-interface Actions {
-  [key: string]: (...args: unknown[]) => void;
-}
-
-interface Formatters {
-  formatSpeedText?: (speed: number) => string;
-  [key: string]: unknown;
-}
+import type {
+  ContextEnemyUnit as EnemyUnit,
+  ContextPlayer as Player,
+  ContextEnemy as Enemy,
+  ContextBattle as Battle,
+  ContextActions as Actions,
+  ContextFormatters as Formatters,
+} from '../../../types';
 
 export interface BattleContextValue {
   battle: Battle;

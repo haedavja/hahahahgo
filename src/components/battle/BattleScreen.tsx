@@ -10,125 +10,16 @@ import { BattleApp } from "./BattleApp";
 import { DevTools } from "../dev/DevTools";
 import { calculatePassiveEffects, applyCombatStartEffects } from "../../lib/relicEffects";
 import { ENEMIES } from "./battleData";
-import type { TokenState } from '../../types';
-
-interface Passives {
-  [key: string]: unknown;
-}
-
-interface EnemyData {
-  id?: string;
-  name: string;
-  emoji?: string;
-  hp?: number;
-  maxHp?: number;
-  ether?: number;
-  speed?: number;
-  deck?: unknown[];
-  cardsPerTurn?: number;
-  passives?: Passives;
-  tier?: number;
-  isBoss?: boolean;
-}
-
-interface EnemyUnit {
-  unitId: number;
-  id?: string;
-  name: string;
-  emoji: string;
-  count: number;
-  hp: number;
-  maxHp: number;
-  ether: number;
-  individualHp: number;
-  individualMaxHp?: number;
-  individualEther: number;
-  speed: number;
-  deck: unknown[];
-  cardsPerTurn: number;
-  individualCardsPerTurn: number;
-  passives: Passives;
-  tier: number;
-  isBoss?: boolean;
-  block: number;
-  tokens: TokenState;
-}
-
-interface EnemyComposition {
-  name: string;
-  emoji: string;
-  hp: number;
-  maxHp: number;
-  ether: number;
-  cardsPerTurn?: number;
-  passives?: Passives;
-  count: number;
-}
-
-interface InitialPlayer {
-  hp?: number;
-}
-
-interface InitialEnemy {
-  hp?: number;
-  deck?: unknown[];
-  speed?: number;
-  ether?: number;
-}
-
-interface Simulation {
-  initialState?: {
-    player?: InitialPlayer;
-    enemy?: InitialEnemy;
-  };
-}
-
-interface Battle {
-  nodeId?: string;
-  kind?: string;
-  label?: string;
-  enemyCount?: number;
-  simulation?: Simulation;
-  mixedEnemies?: EnemyData[];
-  enemies?: string[];
-}
-
-interface BattlePayload {
-  player: {
-    hp: number;
-    maxHp: number;
-    energy: number;
-    maxEnergy: number;
-    block: number;
-    strength: number;
-    insight: number;
-    maxSpeed: number;
-    etherPts: number;
-  };
-  enemy: {
-    name: string;
-    hp: number;
-    maxHp: number;
-    deck: unknown[];
-    composition: EnemyComposition[];
-    etherPts: number;
-    etherCapacity: number;
-    enemyCount: number;
-    maxSpeed: number;
-    passives: Passives;
-    cardsPerTurn: number;
-    ether: number;
-    units: EnemyUnit[];
-  };
-}
-
-interface BattleResult {
-  result: 'victory' | 'defeat';
-  playerEther: number;
-  deltaEther?: number;
-  playerHp: number;
-  playerMaxHp: number;
-}
+import type {
+  TokenState,
+  BattlePassives as Passives,
+  BattleEnemyData as EnemyData,
+  BattleEnemyUnit as EnemyUnit,
+  BattleEnemyComposition as EnemyComposition,
+  BattleData as Battle,
+  BattlePayload,
+  BattleResult,
+} from '../../types';
 
 const buildBattlePayload = (
   battle: Battle | null,

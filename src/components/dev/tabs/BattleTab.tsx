@@ -6,37 +6,17 @@
 import { useState, useEffect, ChangeEvent } from 'react';
 import { ANOMALY_TYPES } from '../../../data/anomalies';
 import { ENEMY_GROUPS, ENEMIES } from '../../battle/battleData';
-
-interface Anomaly {
-  id: string;
-  name: string;
-  emoji: string;
-  color: string;
-  getEffect: (level: number) => { description: string };
-}
-
-interface ForcedAnomaly {
-  anomalyId: string;
-  level: number;
-}
-
-interface ActiveBattle {
-  label: string;
-  kind: string;
-  difficulty: string;
-}
+import type {
+  AnomalyType as Anomaly,
+  ForcedAnomaly,
+  ActiveBattle,
+  EnemyGroup,
+} from '../../../types';
 
 interface Enemy {
   id: string;
   hp: number;
   emoji?: string;
-}
-
-interface EnemyGroup {
-  id: string;
-  name: string;
-  tier: number;
-  enemies: string[];
 }
 
 interface BattleTabProps {
