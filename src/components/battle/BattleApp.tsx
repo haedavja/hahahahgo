@@ -68,6 +68,7 @@ import {
   calculatePassiveEffects,
   applyCombatStartEffects
 } from "../../lib/relicEffects";
+import type { BattlePayload, BattleResult } from "../../types";
 import { PlayerHpBar } from "./ui/PlayerHpBar";
 import { PlayerEtherBox } from "./ui/PlayerEtherBox";
 import { EnemyHpBar } from "./ui/EnemyHpBar";
@@ -111,10 +112,10 @@ const etherSlots = (pts: number): number => calculateEtherSlots(pts || 0); // ì
 // Game Component
 // =====================
 interface GameProps {
-  initialPlayer: any;
-  initialEnemy: any;
+  initialPlayer: BattlePayload['player'];
+  initialEnemy: BattlePayload['enemy'];
   playerEther?: number;
-  onBattleResult?: (result: any) => void;
+  onBattleResult?: (result: BattleResult) => void;
   liveInsight?: number;
 }
 
@@ -2977,11 +2978,11 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 }
 
 interface BattleAppProps {
-  initialPlayer: any;
-  initialEnemy: any;
+  initialPlayer: BattlePayload['player'];
+  initialEnemy: BattlePayload['enemy'];
   playerEther?: number;
   liveInsight?: number;
-  onBattleResult?: (result: any) => void;
+  onBattleResult?: (result: BattleResult) => void;
 }
 
 export const BattleApp: React.FC<BattleAppProps> = ({ initialPlayer, initialEnemy, playerEther, liveInsight, onBattleResult = () => { } }) => (
