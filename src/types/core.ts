@@ -85,6 +85,12 @@ export interface Resources {
   memory: number;
 }
 
+/** 자원 값 (숫자 또는 범위) */
+export type ResourceValue = number | { min: number; max: number };
+
+/** 자원 변동 (비용/보상) */
+export type ResourceDelta = Partial<Record<string, ResourceValue>>;
+
 /** 자원 보상 (범위 지정 가능) */
 export interface ResourceReward {
   gold?: number | { min: number; max: number };

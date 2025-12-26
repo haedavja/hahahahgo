@@ -11,15 +11,27 @@
 import { NEW_EVENT_LIBRARY, EVENT_KEYS } from "../data/newEvents";
 import { calculatePassiveEffects } from "../lib/relicEffects";
 import { getRunBonuses, updateStats } from "./metaProgress";
-import type { MapNode, Resources, ActiveEvent, NewEventDefinition } from "../types";
+import type { MapNode, Resources, ActiveEvent, NewEventDefinition, ResourceValue, ResourceDelta, EventRewards } from "../types";
 
-// ==================== 타입 정의 ====================
+// ==================== 타입 export ====================
 
-/** 리소스 값 (숫자 또는 범위) */
-type ResourceValue = number | { min: number; max: number };
+export type { ResourceValue, ResourceDelta };
 
-/** 리소스 비용/보상 객체 */
-type ResourceDelta = Partial<Record<string, ResourceValue>>;
+// ==================== 보상 처리 ====================
+
+/** EventRewards에서 순수 리소스만 추출 */
+const RESOURCE_KEYS = new Set(['gold', 'intel', 'loot', 'material', 'etherPts', 'memory']);
+
+export const extractResourceDelta = (rewards: EventRewards | undefined): ResourceDelta => {
+  if (!rewards) return {};
+  const result: ResourceDelta = {};
+  for (const [key, value] of Object.entries(rewards)) {
+    if (RESOURCE_KEYS.has(key) && value !== undefined) {
+      result[key] = value as ResourceValue;
+    }
+  }
+  return result;
+};
 
 /** 이벤트 페이로드 결과 */
 export interface EventPayloadResult {

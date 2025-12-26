@@ -10,10 +10,11 @@
 
 import Phaser from "phaser";
 import { useGameStore } from "../state/gameStore";
+import type { ActiveBattle } from "../state/slices/types";
 
 export class BattleScene extends Phaser.Scene {
   private unsubscribes: Array<() => void>;
-  private currentBattle: any;
+  private currentBattle: ActiveBattle | null;
   private titleText: Phaser.GameObjects.Text | null;
   private infoText: Phaser.GameObjects.Text | null;
   private timelineText: Phaser.GameObjects.Text | null;
@@ -100,8 +101,8 @@ export class BattleScene extends Phaser.Scene {
 
     this.unsubscribes.push(
       useGameStore.subscribe(
-        (state) => {
-          const battle = state.activeBattle;
+        (state) => state.activeBattle,
+        (battle) => {
           this.currentBattle = battle;
           if (!battle) {
             this.scene.start("PlaceholderScene");
@@ -109,7 +110,7 @@ export class BattleScene extends Phaser.Scene {
             this.updateTexts(battle);
           }
         },
-      ) as any,
+      ),
     );
 
     const finishBattle = () => {
@@ -128,7 +129,7 @@ export class BattleScene extends Phaser.Scene {
     this.events.once(Phaser.Scenes.Events.DESTROY, () => this.cleanup());
   }
 
-  updateTexts(battle) {
+  updateTexts(battle: ActiveBattle) {
     if (!battle) return;
     this.titleText?.setText(`전투: ${battle.label}`);
     this.infoText?.setText(`유형 ${battle.kind.toUpperCase()} | 난이도 ${battle.difficulty}`);

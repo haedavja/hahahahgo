@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useGameStore } from '../../state/gameStore';
+import type { GameStore } from '../../state/slices/types';
 import {
   ResourcesTab,
   MapTab,
@@ -25,6 +26,7 @@ interface DevToolsProps {
 export function DevTools({ isOpen, onClose, showAllCards, setShowAllCards }: DevToolsProps) {
   const [activeTab, setActiveTab] = useState<string>('resources');
 
+  const store = useGameStore() as GameStore;
   const {
     resources,
     map,
@@ -70,7 +72,7 @@ export function DevTools({ isOpen, onClose, showAllCards, setShowAllCards }: Dev
     clearOwnedCards,
     devAddBattleToken,
     devStartBattle,
-  } = useGameStore() as any;
+  } = store;
 
   if (!isOpen) return null;
 
@@ -138,7 +140,7 @@ export function DevTools({ isOpen, onClose, showAllCards, setShowAllCards }: Dev
         backgroundColor: '#0f172a',
         borderBottom: '1px solid #334155',
       }}>
-        {tabs.map((tab: any) => (
+        {tabs.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}

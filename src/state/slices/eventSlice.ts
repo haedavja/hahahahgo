@@ -10,7 +10,7 @@ import type { GameStore, EventSliceActions } from './types';
 import type { ActiveEvent } from '../../types';
 import { NEW_EVENT_LIBRARY } from '../../data/newEvents';
 import { CARDS } from '../../components/battle/battleData';
-import { canAfford, payCost, grantRewards, resolveAmount } from '../gameStoreHelpers';
+import { canAfford, payCost, grantRewards, resolveAmount, extractResourceDelta } from '../gameStoreHelpers';
 
 export type EventActionsSlice = EventSliceActions;
 
@@ -53,7 +53,8 @@ export const createEventActions: SliceCreator = (set) => ({
       let newOwnedCards = [...(state.characterBuild?.ownedCards || [])];
 
       if (choice.rewards) {
-        const result = grantRewards(choice.rewards as any, resources as any);
+        const resourceDelta = extractResourceDelta(choice.rewards);
+        const result = grantRewards(resourceDelta, resources);
         resources = result.next;
         rewards = result.applied;
 

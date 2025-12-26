@@ -9,6 +9,7 @@
 
 import Phaser from "phaser";
 import { useGameStore } from "../state/gameStore";
+import type { GameStore } from "../state/slices/types";
 
 export class PlaceholderScene extends Phaser.Scene {
   unsubscribes: Array<() => void>;
@@ -42,8 +43,8 @@ export class PlaceholderScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     this.unsubscribes.push(
-      (useGameStore.subscribe as any)(
-        (state: any) => state.mapRisk,
+      useGameStore.subscribe(
+        (state: GameStore) => state.mapRisk,
         (mapRisk: number) => {
           if (this.riskText) {
             this.riskText.setText(this.formatRisk(mapRisk));
@@ -53,9 +54,9 @@ export class PlaceholderScene extends Phaser.Scene {
     );
 
     this.unsubscribes.push(
-      (useGameStore.subscribe as any)(
-        (state: any) => state.activeBattle,
-        (battle: any) => {
+      useGameStore.subscribe(
+        (state: GameStore) => state.activeBattle,
+        (battle) => {
           if (battle) {
             this.scene.start("BattleScene");
           }

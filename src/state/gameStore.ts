@@ -25,6 +25,7 @@
  */
 
 import { create } from "zustand";
+import { subscribeWithSelector } from "zustand/middleware";
 import { createInitialState } from "./useGameState";
 import { applyInitialRelicEffects } from "./gameStoreHelpers";
 
@@ -63,7 +64,7 @@ import type { GameStore } from "./slices/types";
 
 // ==================== 스토어 생성 ====================
 
-export const useGameStore = create<GameStore>((set, get, store) => {
+export const useGameStore = create<GameStore>()(subscribeWithSelector((set, get, store) => {
   // 초기 상태 (상징 효과 적용)
   const initialState = applyInitialRelicEffects(createInitialState());
   const args = [set, get, store] as const;
@@ -107,7 +108,7 @@ export const useGameStore = create<GameStore>((set, get, store) => {
     // 코어 액션 (슬라이스에 포함되지 않은 액션)
     resetRun: () => set(() => applyInitialRelicEffects(createInitialState()) as unknown as GameStore),
   } as unknown as GameStore;
-});
+}));
 
 // ==================== 셀렉터 ====================
 
