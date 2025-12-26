@@ -203,7 +203,7 @@ export type BattlePhase =
   | 'turnEnd' | 'etherCalc' | 'victory' | 'defeat';
 
 /** 정렬 타입 */
-export type SortType = 'speed' | 'cost' | 'order';
+export type SortType = 'speed' | 'cost' | 'order' | 'energy' | 'value' | 'type';
 
 /** 에테르 계산 페이즈 */
 export type EtherCalcPhase =

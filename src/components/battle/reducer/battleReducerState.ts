@@ -52,12 +52,18 @@ export interface EnemyUnitState {
 export interface EnemyPlan {
   actions: Card[];
   mode: string | null;
+  manuallyModified?: boolean;
 }
 
 /** 다음 턴 효과 */
 export interface NextTurnEffects {
   player: Record<string, unknown>;
   enemy: Record<string, unknown>;
+  extraCardPlay?: number;
+  bonusEnergy?: number;
+  maxSpeedBonus?: number;
+  guaranteedCards?: string[];
+  [key: string]: unknown;
 }
 
 /** 피해 미리보기 */

@@ -42,38 +42,64 @@ export interface Combatant {
   hp: number;
   maxHp: number;
   block: number;
-  tokens: Token[];
+  tokens: Token[] | TokenState;
   strength?: number;
   agility?: number;
   insight?: number;
   counter?: number;
+  vulnMult?: number;
+  vulnTurns?: number;
+  etherPts?: number;
+  etherOverflow?: number;
+  etherOverdriveActive?: boolean;
+  maxSpeed?: number;
+  [key: string]: unknown;
 }
 
 /** 플레이어 전투 상태 */
 export interface PlayerBattleState extends Combatant {
   energy: number;
   maxEnergy: number;
-  hand: Card[];
-  deck: Card[];
-  discard: Card[];
-  exhaust: Card[];
-  timeline: number;
-  maxTimeline: number;
-  ether: number;
-  etherMultiplier: number;
+  hand?: Card[];
+  deck?: Card[];
+  discard?: Card[];
+  exhaust?: Card[];
+  timeline?: number;
+  maxTimeline?: number;
+  ether?: number;
+  etherMultiplier?: number;
+  def?: boolean;
+  comboUsageCount?: Record<string, number>;
+  etherBan?: boolean;
+  energyPenalty?: number;
+  speedPenalty?: number;
+  drawPenalty?: number;
+  insightPenalty?: number;
 }
 
 /** 적 유닛 */
 export interface EnemyUnit extends Combatant {
-  id: string;
-  name: string;
-  tier: number;
-  damage: number;
-  defense: number;
-  speed: number;
+  id?: string;
+  name?: string;
+  tier?: number;
+  damage?: number;
+  defense?: number;
+  speed?: number;
   pattern?: string;
   intent?: EnemyIntent;
   isDead?: boolean;
+  etherCapacity?: number;
+  shroud?: number;
+  unitId?: number;
+  emoji?: string;
+  cardsPerTurn?: number;
+  passives?: Record<string, unknown>;
+  isBoss?: boolean;
+  type?: string;
+  deckId?: string;
+  deck?: string[];
+  units?: EnemyUnit[];
+  enemyCount?: number;
 }
 
 /** 적 의도 표시 */
@@ -325,6 +351,8 @@ export interface EnemyCombatData extends Combatant {
 /** 적 계획 */
 export interface EnemyPlan {
   actions: Card[];
+  mode?: string | null;
+  manuallyModified?: boolean;
   [key: string]: unknown;
 }
 
@@ -429,6 +457,16 @@ export interface NextTurnEffects {
   triggerCreation3x3?: boolean;
   creationIsAoe?: boolean;
   isAoeAttack?: boolean;
+  extraCardPlay?: number;
+  bonusEnergy?: number;
+  maxSpeedBonus?: number;
+  guaranteedCards?: string[];
+  energyPenalty?: number;
+  etherBlocked?: boolean;
+  mainSpecialOnly?: boolean;
+  subSpecialBoost?: number;
+  player?: Record<string, unknown>;
+  enemy?: Record<string, unknown>;
   [key: string]: unknown;
 }
 

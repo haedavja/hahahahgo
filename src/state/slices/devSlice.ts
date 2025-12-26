@@ -29,6 +29,9 @@ export const createDevActions: SliceCreator = (set) => ({
   setDevForcedCrossroad: (templateId) =>
     set((state) => ({ ...state, devForcedCrossroad: templateId || null })),
 
+  setDevForcedAnomalies: (anomalyIds) =>
+    set((state) => ({ ...state, devForcedAnomalies: anomalyIds || null })),
+
   setResources: (newResources) =>
     set((state) => ({ ...state, resources: { ...state.resources, ...newResources } })),
 

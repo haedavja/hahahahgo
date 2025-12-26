@@ -88,7 +88,8 @@ export const useGameStore = create<GameStore>((set, get, store) => {
     // 개발자 모드 상태 (초기값)
     devDulledLevel: null as number | null,
     devForcedCrossroad: null as string | null,
-    devBattleTokens: [] as string[],
+    devBattleTokens: [] as Array<{ id: string; stacks: number; target: string; timestamp?: number }>,
+    devForcedAnomalies: null as string[] | null,
 
     // 슬라이스 액션
     ...playerActions,
