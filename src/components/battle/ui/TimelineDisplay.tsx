@@ -8,7 +8,7 @@ import { FC } from 'react';
 import { hasSpecial } from '../utils/cardSpecialEffects';
 import type {
   IconProps,
-  TimelineAction,
+  UITimelineAction,
   TimelineCard,
   ParryState,
   HoveredEnemyAction,
@@ -46,12 +46,12 @@ interface TimelineDisplayProps {
   enemyOverdriveVisible: boolean;
   enemyOverdriveLabel: string;
   dulledLevel: number;
-  playerTimeline: TimelineAction[];
-  queue: TimelineAction[] | null;
+  playerTimeline: UITimelineAction[];
+  queue: UITimelineAction[] | null;
   executingCardIndex: number;
   usedCardIndices: number[];
   qIndex: number;
-  enemyTimeline: TimelineAction[];
+  enemyTimeline: UITimelineAction[];
   effectiveInsight: number | null;
   insightReveal: InsightReveal | null;
   actions: Actions;

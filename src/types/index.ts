@@ -401,8 +401,8 @@ export type ComboType =
   | 'highCard' | 'onePair' | 'twoPair' | 'threeOfAKind'
   | 'straight' | 'fullHouse' | 'fourOfAKind' | 'fiveOfAKind';
 
-/** 콤보 결과 */
-export interface ComboResult {
+/** 감지된 콤보 결과 */
+export interface DetectedCombo {
   type: ComboType;
   rank: number;
   multiplier: number;
@@ -1090,8 +1090,8 @@ export interface ComboCard {
   [key: string]: unknown;
 }
 
-/** 콤보 감지 결과 */
-export interface ComboResult {
+/** 콤보 계산 결과 */
+export interface ComboCalculation {
   name: string;
   bonusKeys: Set<number> | null;
 }
@@ -2680,8 +2680,8 @@ export interface InsightBadge {
   key: number;
 }
 
-/** 적 계획 */
-export interface EnemyPlan {
+/** 훅용 적 계획 */
+export interface HookEnemyPlan {
   actions: Card[];
   mode: string | null;
 }
@@ -2787,8 +2787,8 @@ export interface TokenEntity {
   [key: string]: unknown;
 }
 
-/** 타임라인 액션 */
-export interface TimelineAction {
+/** UI용 타임라인 액션 */
+export interface UITimelineAction {
   sp: number;
   card: TimelineCard;
   actor?: string;
@@ -2849,7 +2849,7 @@ export interface TimelineEnemy {
 /** 타임라인 전투 상태 */
 export interface TimelineBattle {
   phase: string;
-  queue?: TimelineAction[];
+  queue?: UITimelineAction[];
 }
 
 /** 그룹화된 적 멤버 */
@@ -2887,8 +2887,8 @@ export interface StatInfo {
   description: string;
 }
 
-/** 손패 카드 */
-export interface HandCard {
+/** UI용 손패 카드 */
+export interface UIHandCard {
   id: string;
   name: string;
   type: string;
@@ -2976,8 +2976,8 @@ export interface UIRelic {
   effects?: UIRelicEffect;
 }
 
-/** 상징 맵 */
-export interface RelicsMap {
+/** UI용 상징 맵 */
+export interface UIRelicsMap {
   [key: string]: UIRelic;
 }
 
@@ -3491,8 +3491,8 @@ export interface ReflectionInfo {
 
 // ==================== MapTab 컴포넌트 타입 ====================
 
-/** 맵 노드 */
-export interface MapNode {
+/** UI용 맵 노드 */
+export interface UIMapNode {
   id: string;
   layer?: number;
   type: string;

@@ -18,13 +18,13 @@
  * - 유령카드 (isGhost): 조합에서 제외
  */
 
-import type { ComboCard, ComboResult } from '../../../types';
+import type { ComboCard, ComboCalculation } from '../../../types';
 import { hasTrait } from './battleUtils';
 
 /**
  * 포커 조합 감지
  */
-export function detectPokerCombo(cards: ComboCard[]): ComboResult | null {
+export function detectPokerCombo(cards: ComboCard[]): ComboCalculation | null {
   if (!cards || cards.length === 0) return null;
 
   // 소외 (outcast) 특성 카드와 유령카드는 조합 계산에서 제외
@@ -59,7 +59,7 @@ export function detectPokerCombo(cards: ComboCard[]): ComboResult | null {
   const isFlush = (allAttack || allDefense) && validCards.length >= 4;
 
   // 조합 우선순위: 파이브카드 > 포카드 > 풀하우스 > 플러쉬 > 투페어 > 트리플 > 페어 > 하이카드
-  let result: ComboResult | null = null;
+  let result: ComboCalculation | null = null;
   if (have(5)) result = { name: '파이브카드', bonusKeys: keysByCount(5) };
   else if (have(4)) result = { name: '포카드', bonusKeys: keysByCount(4) };
   else if (have(3) && have(2)) {
@@ -86,7 +86,7 @@ export function detectPokerCombo(cards: ComboCard[]): ComboResult | null {
  * 포커 조합 보너스 적용
  * 조합 보너스 기능 삭제됨 - 이제 조합은 에테르 배율만 제공
  */
-export function applyPokerBonus(cards: ComboCard[], combo: ComboResult | null): ComboCard[] {
+export function applyPokerBonus(cards: ComboCard[], combo: ComboCalculation | null): ComboCard[] {
   if (!combo) return cards;
   return cards.map(c => {
     // _combo 태그만 추가 (공격력/방어력 보너스는 제거)
