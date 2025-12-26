@@ -89,7 +89,8 @@ export type RelicRarity = 'common' | 'rare' | 'special' | 'legendary';
 export type RelicEffectType =
   | 'PASSIVE' | 'ON_COMBAT_START' | 'ON_COMBAT_END'
   | 'ON_TURN_START' | 'ON_TURN_END' | 'ON_CARD_PLAYED'
-  | 'ON_DAMAGE_TAKEN' | 'ON_CARD_DRAW' | 'ON_COMBO';
+  | 'ON_DAMAGE_TAKEN' | 'ON_CARD_DRAW' | 'ON_COMBO'
+  | 'ON_NODE_MOVE';
 
 /** 상징 효과 */
 export interface RelicEffect {

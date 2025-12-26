@@ -79,7 +79,7 @@ export const simulateBattle = (
 
   for (const entry of timeline) {
     if (state.player.hp <= 0 || state.enemy.hp <= 0) break;
-    const card = CARD_LIBRARY[entry.cardId] as any;
+    const card = CARD_LIBRARY[entry.cardId];
     if (!card) continue;
     const actorKey = entry.actor;
     const targetKey: 'player' | 'enemy' = actorKey === "player" ? "enemy" : "player";

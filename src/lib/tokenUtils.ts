@@ -408,8 +408,8 @@ export function hasNoTokens(entity: TokenEntity): boolean {
  */
 export function createEmptyTokens(): TokenState {
   return {
-    [TOKEN_TYPES.USAGE]: [],
-    [TOKEN_TYPES.TURN]: [],
-    [TOKEN_TYPES.PERMANENT]: []
-  } as any;
+    usage: [],
+    turn: [],
+    permanent: []
+  };
 }

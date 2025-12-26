@@ -971,7 +971,6 @@ export interface ResolverCard {
   damage?: number;
   block?: number;
   tags?: string[];
-  [key: string]: unknown;
 }
 
 /** 전투 해결기 타임라인 항목 */
