@@ -75,13 +75,13 @@ export function DevTools({ isOpen, onClose, showAllCards, setShowAllCards }: Dev
   if (!isOpen) return null;
 
   const tabs: Tab[] = [
-    { id: 'resources', label: '💰 자원', icon: '💰' } as any,
-    { id: 'map', label: '🗺️ 맵', icon: '🗺️' } as any,
-    { id: 'battle', label: '⚔️ 전투', icon: '⚔️' } as any,
-    { id: 'relics', label: '💎 상징', icon: '💎' } as any,
-    { id: 'items', label: '🎒 아이템', icon: '🎒' } as any,
-    { id: 'event', label: '🎲 이벤트', icon: '🎲' } as any,
-    { id: 'cards', label: '🃏 카드', icon: '🃏' } as any,
+    { id: 'resources', label: '💰 자원', icon: '💰' },
+    { id: 'map', label: '🗺️ 맵', icon: '🗺️' },
+    { id: 'battle', label: '⚔️ 전투', icon: '⚔️' },
+    { id: 'relics', label: '💎 상징', icon: '💎' },
+    { id: 'items', label: '🎒 아이템', icon: '🎒' },
+    { id: 'event', label: '🎲 이벤트', icon: '🎲' },
+    { id: 'cards', label: '🃏 카드', icon: '🃏' },
   ];
 
   return (

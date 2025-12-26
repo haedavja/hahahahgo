@@ -160,10 +160,10 @@ function EgoFormPanel({
   setEgoFormMode,
 }) {
   const selectedTraitNames = selectedTraitsForEgo.map(idx => playerTraits[idx]);
-  const traitCounts = selectedTraitNames.reduce((acc, t) => {
+  const traitCounts: Record<string, number> = selectedTraitNames.reduce((acc: Record<string, number>, t) => {
     acc[t] = (acc[t] || 0) + 1;
     return acc;
-  }, {} as any);
+  }, {});
 
   let previewEgo = null;
   let previewEmoji = '';
@@ -178,9 +178,9 @@ function EgoFormPanel({
   }
 
   // 효과 합산
-  const effectSummary = {} as any;
+  const effectSummary: Record<string, number> = {};
   for (const trait of selectedTraitNames) {
-    const desc = (TRAIT_EFFECT_DESC as any)[trait];
+    const desc = (TRAIT_EFFECT_DESC as Record<string, string>)[trait];
     if (desc) {
       effectSummary[desc] = (effectSummary[desc] || 0) + 1;
     }
@@ -189,7 +189,7 @@ function EgoFormPanel({
     .map(([effect, count]) => {
       const match = effect.match(/(.+?)([+-]?\d+)/);
       if (match) {
-        return `${match[1]}${parseInt(match[2]) * (count as any) > 0 ? '+' : ''}${parseInt(match[2]) * (count as any)}`;
+        return `${match[1]}${parseInt(match[2]) * (count as number) > 0 ? '+' : ''}${parseInt(match[2]) * (count as number)}`;
       }
       return `${effect} x${count}`;
     })
@@ -321,7 +321,7 @@ function RestUpgradePanel({ cardUpgrades, onUpgrade }) {
   };
 
   const selected = cards.find((c) => c.id === selectedCard);
-  const currentRarity = selected ? (cardUpgrades[selected.id] || (selected as any).rarity || 'common') : null;
+  const currentRarity = selected ? (cardUpgrades[selected.id] || (selected as { rarity?: string }).rarity || 'common') : null;
   const nextRarity = selected ? getNextRarity(selected) : null;
 
   return (
@@ -351,7 +351,7 @@ function RestUpgradePanel({ cardUpgrades, onUpgrade }) {
             </header>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "10px", maxHeight: "400px", overflowY: "auto" }}>
               {cards.map((card) => {
-                const current = cardUpgrades[card.id] || (card as any).rarity || 'common';
+                const current = cardUpgrades[card.id] || (card as { rarity?: string }).rarity || 'common';
                 const badge = rarityBadge[current];
                 return (
                   <button

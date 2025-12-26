@@ -180,11 +180,11 @@ export function processPostAttackSpecials({
 
   // === _applyBurn: 소이탄 토큰 효과 - 화상 부여 ===
   if (card._applyBurn) {
-    const hits = (card.hits as any) || 1;
+    const hits = card.hits || 1;
     const grantedAt = battleContext.currentTurn ? { turn: battleContext.currentTurn, sp: battleContext.currentSp || 0 } : null;
-    const result = addToken(modifiedDefender, 'burn', hits as any, grantedAt);
+    const result = addToken(modifiedDefender, 'burn', hits, grantedAt);
     modifiedDefender.tokens = result.tokens;
-    const msg = (hits as any) > 1
+    const msg = hits > 1
       ? `🔥 소이탄: 화상 ${hits}스택 부여!`
       : `🔥 소이탄: 화상 부여!`;
     events.push({ actor: attackerName, card: card.name, type: 'special', msg });
@@ -193,8 +193,8 @@ export function processPostAttackSpecials({
 
   // === stealBlock: 파괴한 방어력 획득 ===
   if (hasSpecial(card, 'stealBlock')) {
-    const { blockDestroyed = 0 } = (battleContext || {}) as any;
-    if ((blockDestroyed as number) > 0) {
+    const blockDestroyed = battleContext?.blockDestroyed ?? 0;
+    if (blockDestroyed > 0) {
       modifiedAttacker.block = (modifiedAttacker.block || 0) + blockDestroyed;
       modifiedAttacker.def = true;
       const who = attackerName === 'player' ? '플레이어' : '몬스터';

@@ -48,6 +48,20 @@ export interface Card {
   hits?: number;
   counter?: number;
   rarity?: CardRarity;
+  // 토큰 요구사항
+  requiredTokens?: string[];
+  // 카드 생성 관련
+  createdBy?: string;
+  createdId?: string;
+  isFromFleche?: boolean;
+  flecheChainCount?: number;
+  // 특수 효과 플래그
+  _applyBurn?: boolean;
+  crossBonus?: { value?: number };
+  // 내부 마킹
+  __targetUnitId?: string | number;
+  __isSubSpecial?: boolean;
+  __isMainSpecial?: boolean;
 }
 
 /** 카드 특성 정의 */

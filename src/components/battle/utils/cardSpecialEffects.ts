@@ -57,7 +57,7 @@ export function processPerHitRoulette(
   hitIndex: number,
   totalHits: number
 ): RouletteResult {
-  if ((card.cardCategory as any) !== 'gun' || card.type !== 'attack') {
+  if (card.cardCategory !== 'gun' || card.type !== 'attack') {
     return { jammed: false, updatedAttacker: attacker, event: null, log: null };
   }
 
@@ -312,7 +312,7 @@ export function processCardCreationSpecials({
     const attackCards = allCards.filter(c =>
       c.type === 'attack' &&
       c.id !== originalCardId &&
-      (!(c as any).requiredTokens || (c as any).requiredTokens.length === 0)
+      (!c.requiredTokens || c.requiredTokens.length === 0)
     );
     if (attackCards.length > 0) {
       const shuffled = [...attackCards].sort(() => Math.random() - 0.5);
@@ -332,8 +332,8 @@ export function processCardCreationSpecials({
         const newCard: Card = {
           ...selectedCard,
           damage: selectedCard.damage,
-          block: (selectedCard as any).block,
-          hits: (selectedCard as any).hits,
+          block: selectedCard.block,
+          hits: selectedCard.hits,
           speedCost: selectedCard.speedCost,
           actionCost: selectedCard.actionCost,
           type: selectedCard.type,
@@ -345,7 +345,7 @@ export function processCardCreationSpecials({
           createdId: `${selectedCard.id}_created_${Date.now()}_${i}`,
           isFromFleche: true,
           flecheChainCount: nextChainCount
-        } as any;
+        };
         createdCards.push(newCard);
       }
       const cardNames = createdCards.map(c => c.name).join(', ');

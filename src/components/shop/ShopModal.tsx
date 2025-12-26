@@ -61,7 +61,7 @@ export function ShopModal({ merchantType = 'shop', onClose }) {
     mainSpecials.forEach(cardId => {
       const card = CARDS.find(c => c.id === cardId);
       if (card) {
-        const rarity = cardUpgrades[cardId] || (card as any).rarity || 'common';
+        const rarity = cardUpgrades[cardId] || (card as { rarity?: string }).rarity || 'common';
         cards.push({ ...card, isMainSpecial: true, currentRarity: rarity });
       }
     });
@@ -69,7 +69,7 @@ export function ShopModal({ merchantType = 'shop', onClose }) {
     subSpecials.forEach(cardId => {
       const card = CARDS.find(c => c.id === cardId);
       if (card) {
-        const rarity = cardUpgrades[cardId] || (card as any).rarity || 'common';
+        const rarity = cardUpgrades[cardId] || (card as { rarity?: string }).rarity || 'common';
         cards.push({ ...card, isMainSpecial: false, currentRarity: rarity });
       }
     });
