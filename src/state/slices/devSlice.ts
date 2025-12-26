@@ -1,0 +1,314 @@
+/**
+ * @file devSlice.ts
+ * @description 개발자 도구 슬라이스
+ */
+
+import type { SliceCreator, DevSliceState, DevSliceActions } from './types';
+import { ENEMIES, ENEMY_GROUPS, CARDS } from '../../components/battle/battleData';
+import { drawHand, buildSpeedTimeline } from '../../lib/speedQueue';
+import { simulateBattle } from '../../lib/battleResolver';
+import { NEW_EVENT_LIBRARY } from '../../data/newEvents';
+import { cloneNodes, grantRewards, computeFriendlyChance } from '../gameStoreHelpers';
+import { travelToNode, drawCharacterBuildHand } from '../battleHelpers';
+
+export type DevSlice = DevSliceState & DevSliceActions;
+
+export const createDevSlice: SliceCreator<DevSlice> = (set, get) => ({
+  // 초기 상태
+  devDulledLevel: null,
+  devForcedCrossroad: null,
+  devBattleTokens: [],
+
+  // 액션
+  setDevDulledLevel: (level) =>
+    set((state) => ({
+      ...state,
+      devDulledLevel:
+        level === null || level === undefined
+          ? null
+          : Math.max(0, Math.min(3, Number(level) || 0)),
+    })),
+
+  setDevForcedCrossroad: (templateId) =>
+    set((state) => ({
+      ...state,
+      devForcedCrossroad: templateId || null,
+    })),
+
+  setResources: (newResources) =>
+    set((state) => ({
+      ...state,
+      resources: { ...state.resources, ...newResources },
+    })),
+
+  devClearAllNodes: () =>
+    set((state) => {
+      const updatedNodes = cloneNodes(state.map.nodes).map((node) => ({
+        ...node,
+        cleared: true,
+        selectable: true,
+      }));
+      return {
+        ...state,
+        map: {
+          ...state.map,
+          nodes: updatedNodes,
+        },
+      };
+    }),
+
+  devTeleportToNode: (nodeId) =>
+    set((state) => {
+      const nodes = state.map?.nodes;
+      if (!nodes) return state;
+
+      const targetNode = nodes.find((n) => n.id === nodeId);
+      if (!targetNode) return state;
+
+      // 던전 노드인 경우
+      if (targetNode.type === 'dungeon') {
+        return {
+          ...state,
+          activeDungeon: { nodeId: targetNode.id, revealed: false, confirmed: false },
+        };
+      }
+
+      // 상점 노드인 경우
+      if (targetNode.type === 'shop') {
+        return {
+          ...state,
+          map: {
+            ...state.map,
+            currentNodeId: nodeId,
+          },
+          activeShop: { nodeId: targetNode.id, merchantType: 'shop' },
+        };
+      }
+
+      // 휴식 노드인 경우
+      if (targetNode.type === 'rest') {
+        return {
+          ...state,
+          map: {
+            ...state.map,
+            currentNodeId: nodeId,
+          },
+          activeRest: { nodeId: targetNode.id },
+        };
+      }
+
+      // 임시로 노드를 selectable하고 cleared=false로 설정
+      const tempState = {
+        ...state,
+        map: {
+          ...state.map,
+          nodes: state.map.nodes.map((n) =>
+            n.id === nodeId ? { ...n, selectable: true, cleared: false } : n
+          ),
+        },
+      };
+
+      const result = travelToNode(tempState, nodeId);
+      if (!result) {
+        return {
+          ...state,
+          map: {
+            ...state.map,
+            currentNodeId: nodeId,
+          },
+        };
+      }
+
+      return {
+        ...state,
+        map: result.map,
+        activeEvent: result.event,
+        activeBattle: result.battle,
+        pendingNextEvent: result.usedPendingEvent ? null : state.pendingNextEvent,
+      };
+    }),
+
+  devForceWin: () =>
+    set((state) => {
+      if (!state.activeBattle) return state;
+      const rewardsDef = state.activeBattle.rewards ?? {};
+      const rewards = grantRewards(rewardsDef, state.resources);
+      return {
+        ...state,
+        resources: rewards.next,
+        activeBattle: null,
+        lastBattleResult: {
+          nodeId: state.activeBattle.nodeId as string,
+          kind: state.activeBattle.kind as string,
+          label: state.activeBattle.label as string,
+          result: 'victory',
+          log: ['[DEV] 강제 승리'],
+          finalState: null,
+          initialState: null,
+          rewards: rewards.applied,
+        },
+      };
+    }),
+
+  devForceLose: () =>
+    set((state) => {
+      if (!state.activeBattle) return state;
+      return {
+        ...state,
+        activeBattle: null,
+        lastBattleResult: {
+          nodeId: state.activeBattle.nodeId as string,
+          kind: state.activeBattle.kind as string,
+          label: state.activeBattle.label as string,
+          result: 'defeat',
+          log: ['[DEV] 강제 패배'],
+          finalState: null,
+          initialState: null,
+          rewards: {},
+        },
+      };
+    }),
+
+  devAddBattleToken: (tokenId, stacks = 1, target = 'player') =>
+    set((state) => ({
+      ...state,
+      devBattleTokens: [
+        ...state.devBattleTokens,
+        { id: tokenId, stacks, target, timestamp: Date.now() },
+      ],
+    })),
+
+  devClearBattleTokens: () =>
+    set((state) => ({
+      ...state,
+      devBattleTokens: [],
+    })),
+
+  devStartBattle: (groupId) =>
+    set((state) => {
+      if (state.activeBattle) return state;
+
+      const group = ENEMY_GROUPS.find((g) => g.id === groupId);
+      if (!group) {
+        console.warn(`[DEV] 전투 그룹을 찾을 수 없음: ${groupId}`);
+        return state;
+      }
+
+      const primaryEnemyId = group.enemies[0];
+      const primaryEnemy = ENEMIES.find((e) => e.id === primaryEnemyId);
+
+      const totalEnemyHp = group.enemies.reduce((sum, enemyId) => {
+        const enemy = ENEMIES.find((e) => e.id === enemyId);
+        return sum + (enemy?.hp || 30);
+      }, 0);
+
+      const combinedDeck = group.enemies.flatMap((enemyId) => {
+        const enemy = ENEMIES.find((e) => e.id === enemyId);
+        return enemy?.deck || [];
+      });
+
+      const characterBuild = state.characterBuild;
+      const hasCharacterBuild =
+        characterBuild &&
+        (characterBuild.mainSpecials?.length > 0 ||
+          characterBuild.subSpecials?.length > 0 ||
+          characterBuild.ownedCards?.length > 0);
+
+      const playerLibrary = hasCharacterBuild
+        ? [...(characterBuild.mainSpecials || []), ...(characterBuild.subSpecials || [])]
+        : [...CARDS];
+
+      const playerDrawPile = hasCharacterBuild ? [] : [...playerLibrary];
+      const enemyDrawPile = [...combinedDeck];
+
+      const playerHand = hasCharacterBuild
+        ? drawCharacterBuildHand(
+            characterBuild.mainSpecials,
+            characterBuild.subSpecials,
+            characterBuild.ownedCards
+          )
+        : drawHand(playerDrawPile, 3);
+
+      const enemyHand = drawHand(enemyDrawPile, Math.min(3, enemyDrawPile.length));
+
+      const battleStats = {
+        player: { hp: state.playerHp, maxHp: state.maxHp, block: 0 },
+        enemy: { hp: totalEnemyHp, maxHp: totalEnemyHp, block: 0 },
+      };
+
+      const timeline = buildSpeedTimeline(playerHand, enemyHand, 30);
+      const simulation = simulateBattle(timeline, battleStats);
+
+      const enemyUnits = group.enemies.map((enemyId, idx) => {
+        const enemy = ENEMIES.find((e) => e.id === enemyId);
+        return {
+          unitId: idx,
+          id: enemyId,
+          name: enemy?.name || enemyId,
+          emoji: enemy?.emoji || '👾',
+          hp: enemy?.hp || 30,
+          maxHp: enemy?.hp || 30,
+          ether: enemy?.ether || 100,
+          deck: enemy?.deck || [],
+          cardsPerTurn: enemy?.cardsPerTurn || 1,
+          tier: enemy?.tier || 1,
+          passives: enemy?.passives || {},
+        };
+      });
+
+      return {
+        ...state,
+        activeBattle: {
+          nodeId: `dev-battle-${groupId}`,
+          kind: 'combat',
+          label: group.name,
+          rewards: { gold: { min: 10, max: 20 }, loot: 1 },
+          difficulty: group.tier,
+          tier: group.tier,
+          preview: {
+            playerHand,
+            enemyHand,
+            timeline,
+            tuLimit: 30,
+          },
+          enemyStats: { hp: totalEnemyHp, maxHp: totalEnemyHp },
+          enemyInfo: {
+            id: primaryEnemyId,
+            name: group.name,
+            emoji: primaryEnemy?.emoji || '👾',
+            tier: group.tier,
+            isBoss: primaryEnemy?.isBoss || false,
+          },
+          enemyUnits,
+          groupId: group.id,
+          devMode: true,
+        },
+      };
+    }),
+
+  devOpenRest: () =>
+    set((state) => ({
+      ...state,
+      activeRest: { nodeId: 'DEV-REST' },
+    })),
+
+  devTriggerEvent: (eventId) =>
+    set((state) => {
+      const definition = NEW_EVENT_LIBRARY[eventId];
+      if (!definition) {
+        console.warn(`[devTriggerEvent] Event not found: ${eventId}`);
+        return state;
+      }
+      return {
+        ...state,
+        activeEvent: {
+          definition,
+          currentStage: null,
+          resolved: false,
+          outcome: null,
+          risk: state.mapRisk,
+          friendlyChance: computeFriendlyChance(state.mapRisk),
+        },
+      };
+    }),
+});

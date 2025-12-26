@@ -14,6 +14,22 @@
  * - startBattle: 전투 시작
  * - endBattle: 전투 종료
  * - addResources: 자원 추가
+ *
+ * ## 슬라이스 아키텍처
+ * 모듈화된 슬라이스 버전이 ./slices/ 디렉토리에 있습니다:
+ * - playerSlice: 플레이어 상태
+ * - mapSlice: 맵 네비게이션
+ * - dungeonSlice: 던전 탐험
+ * - battleSlice: 전투 시스템
+ * - eventSlice: 이벤트 시스템
+ * - buildSlice: 캐릭터 빌드
+ * - relicSlice: 상징 관리
+ * - itemSlice: 아이템 관리
+ * - restSlice: 휴식/각성
+ * - shopSlice: 상점
+ * - devSlice: 개발자 도구
+ *
+ * @see ./slices/index.ts
  */
 
 import { create, type StateCreator } from "zustand";
