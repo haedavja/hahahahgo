@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
+import { useShallow } from 'zustand/react/shallow';
 import type { Resources, MapNode } from "../../types";
 import { useMapState } from "./hooks/useMapState";
 import { useGameStore } from "../../state/gameStore";
@@ -25,18 +26,29 @@ import {
 } from "./utils/mapConfig";
 
 export function MapDemo() {
-  const map = useGameStore((state) => state.map);
-  const resources = useGameStore((state) => state.resources || {}) as Resources;
+  // 맵 상태 셀렉터 (그룹화)
+  const { map, mapRisk, resources } = useGameStore(
+    useShallow((state) => ({
+      map: state.map,
+      mapRisk: state.mapRisk,
+      resources: (state.resources || {}) as Resources,
+    }))
+  );
   const prevEtherRef = useRef(resources.etherPts ?? 0);
-  const mapRisk = useGameStore((state) => state.mapRisk);
-  const activeEvent = useGameStore((state) => state.activeEvent);
-  const activeBattle = useGameStore((state) => state.activeBattle);
-  const activeDungeon = useGameStore((state) => state.activeDungeon);
-  const lastBattleResult = useGameStore((state) => state.lastBattleResult);
-  const relics = useGameStore((state) => state.relics);
-  const items = useGameStore((state) => state.items || [null, null, null]);
-  const activeRest = useGameStore((state) => state.activeRest);
-  const activeShop = useGameStore((state) => state.activeShop);
+
+  // 모달/이벤트 상태 셀렉터 (그룹화)
+  const { activeEvent, activeBattle, activeDungeon, lastBattleResult, activeRest, activeShop, relics, items } = useGameStore(
+    useShallow((state) => ({
+      activeEvent: state.activeEvent,
+      activeBattle: state.activeBattle,
+      activeDungeon: state.activeDungeon,
+      lastBattleResult: state.lastBattleResult,
+      activeRest: state.activeRest,
+      activeShop: state.activeShop,
+      relics: state.relics,
+      items: state.items || [null, null, null],
+    }))
+  );
   const mergeRelicOrder = useCallback((relicList = [], saved = []) => {
     const savedSet = new Set(saved);
     const merged = [];
@@ -90,28 +102,45 @@ export function MapDemo() {
       localStorage.setItem("relicOrder", JSON.stringify(orderedRelics));
     } catch { /* ignore */ }
   }, [orderedRelics]);
-  const selectNode = useGameStore((state) => state.selectNode);
-  const chooseEvent = useGameStore((state) => state.chooseEvent);
-  const closeEvent = useGameStore((state) => state.closeEvent);
-  const clearBattleResult = useGameStore((state) => state.clearBattleResult);
-  const skipDungeon = useGameStore((state) => state.skipDungeon);
-  const confirmDungeon = useGameStore((state) => state.confirmDungeon);
-  const bypassDungeon = useGameStore((state) => state.bypassDungeon);
-  const playerHp = useGameStore((state) => state.playerHp);
-  const maxHp = useGameStore((state) => state.maxHp);
-  const awakenAtRest = useGameStore((state) => state.awakenAtRest);
-  const closeRest = useGameStore((state) => state.closeRest);
-  const closeShop = useGameStore((state) => state.closeShop);
-  const healAtRest = useGameStore((state) => state.healAtRest);
-  const formEgo = useGameStore((state) => state.formEgo);
-  const playerTraits = useGameStore((state) => state.playerTraits || []);
-  const upgradeCardRarity = useGameStore((state) => state.upgradeCardRarity);
-  const cardUpgrades = useGameStore((state) => state.cardUpgrades || {});
-  const playerInsight = useGameStore((state) => state.playerInsight || 0);
-  const playerStrength = useGameStore((state) => state.playerStrength || 0);
-  const playerAgility = useGameStore((state) => state.playerAgility || 0);
-  const useItem = useGameStore((state) => state.useItem);
-  const itemBuffs = useGameStore((state) => state.itemBuffs || {});
+
+  // 플레이어 스탯 셀렉터 (그룹화)
+  const { playerHp, maxHp, playerStrength, playerAgility, playerInsight, playerTraits, cardUpgrades, itemBuffs } = useGameStore(
+    useShallow((state) => ({
+      playerHp: state.playerHp,
+      maxHp: state.maxHp,
+      playerStrength: state.playerStrength || 0,
+      playerAgility: state.playerAgility || 0,
+      playerInsight: state.playerInsight || 0,
+      playerTraits: state.playerTraits || [],
+      cardUpgrades: state.cardUpgrades || {},
+      itemBuffs: state.itemBuffs || {},
+    }))
+  );
+
+  // 액션 셀렉터 (그룹화)
+  const {
+    selectNode, chooseEvent, closeEvent, clearBattleResult,
+    skipDungeon, confirmDungeon, bypassDungeon,
+    awakenAtRest, closeRest, closeShop, healAtRest,
+    formEgo, upgradeCardRarity, useItem
+  } = useGameStore(
+    useShallow((state) => ({
+      selectNode: state.selectNode,
+      chooseEvent: state.chooseEvent,
+      closeEvent: state.closeEvent,
+      clearBattleResult: state.clearBattleResult,
+      skipDungeon: state.skipDungeon,
+      confirmDungeon: state.confirmDungeon,
+      bypassDungeon: state.bypassDungeon,
+      awakenAtRest: state.awakenAtRest,
+      closeRest: state.closeRest,
+      closeShop: state.closeShop,
+      healAtRest: state.healAtRest,
+      formEgo: state.formEgo,
+      upgradeCardRarity: state.upgradeCardRarity,
+      useItem: state.useItem,
+    }))
+  );
 
   // 아이템 버프를 포함한 유효 스탯 계산
   const effectiveStrength = playerStrength + (itemBuffs.strength || 0);
