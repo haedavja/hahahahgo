@@ -5,12 +5,7 @@
  */
 
 import { FC } from 'react';
-import { useGameStore } from "../../state/gameStore";
-
-interface ActiveBattle {
-  label: string;
-  kind: string;
-}
+import { useGameStore, type ActiveBattle } from "../../state/gameStore";
 
 export const BattlePane: FC = () => {
   const activeBattle = useGameStore((state) => (state as { activeBattle?: ActiveBattle }).activeBattle);

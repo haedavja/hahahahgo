@@ -9,7 +9,7 @@
  * - ether: 에테르 시스템
  */
 
-import type { Card, Token, Relic } from '../../../types';
+import type { Card, Token, Relic, RespondSnapshot } from '../../../types';
 import type { BattlePhase, SortType, EtherCalcPhase } from './battleReducerActions';
 
 // ==================== 상태 타입 정의 ====================
@@ -168,7 +168,7 @@ export interface FullBattleState {
   autoProgress: boolean;
   resolveStartPlayer: PlayerState | null;
   resolveStartEnemy: EnemyState | null;
-  respondSnapshot: unknown | null;
+  respondSnapshot: RespondSnapshot | null;
   rewindUsed: boolean;
 
   // 상징 UI

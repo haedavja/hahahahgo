@@ -11,6 +11,7 @@ import { DevTools } from "../dev/DevTools";
 import { calculatePassiveEffects, applyCombatStartEffects } from "../../lib/relicEffects";
 import { ENEMIES } from "./battleData";
 import type {
+  Card,
   TokenState,
   BattlePassives as Passives,
   BattleEnemyData as EnemyData,
@@ -38,7 +39,7 @@ const buildBattlePayload = (
   let enemyCount = battle.enemyCount ?? 1;
   let enemyName = battle.label ?? "Enemy";
   let enemyHp = initialEnemy?.hp ? Math.round(initialEnemy.hp) : 30;
-  let enemyDeck: unknown[] = initialEnemy?.deck || [];
+  let enemyDeck: Card[] = initialEnemy?.deck || [];
 
   let enemyComposition: EnemyComposition[] = [];
   let enemyUnits: EnemyUnit[] = [];
@@ -245,7 +246,7 @@ const buildBattlePayload = (
 
 export const BattleScreen: FC = () => {
   const activeBattle = useGameStore((state) => (state as { activeBattle?: Battle }).activeBattle);
-  const resolveBattle = useGameStore((state) => (state as { resolveBattle: (result: unknown) => void }).resolveBattle);
+  const resolveBattle = useGameStore((state) => (state as { resolveBattle: (result: BattleResult) => void }).resolveBattle);
   const applyEtherDelta = useGameStore((state) => (state as { applyEtherDelta: (delta: number) => void }).applyEtherDelta);
   const playerEther = useGameStore((state) => (state as { resources: { etherPts?: number } }).resources.etherPts ?? 0);
   const relics = useGameStore((state) => (state as { relics: string[] }).relics);

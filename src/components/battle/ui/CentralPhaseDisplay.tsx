@@ -10,6 +10,7 @@ import type {
   CentralPlayer as Player,
   CentralEnemy as Enemy,
   CentralActions as Actions,
+  RespondSnapshot,
 } from '../../../types';
 
 interface CentralPhaseDisplayProps {
@@ -28,7 +29,7 @@ interface CentralPhaseDisplayProps {
   beginResolveFromRespond: () => void;
   rewindToSelect: () => void;
   rewindUsed: boolean;
-  respondSnapshot: unknown;
+  respondSnapshot: RespondSnapshot | null;
   autoProgress: boolean;
   etherFinalValue: number | null;
   enemy: Enemy;

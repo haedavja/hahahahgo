@@ -19,7 +19,8 @@ import type {
   ReducerNextTurnEffects as NextTurnEffects,
   PreviewDamage,
   InsightBadge,
-  EnemyPlan
+  EnemyPlan,
+  RespondSnapshot
 } from '../../../types';
 
 /** 액션 타입 상수 */
@@ -339,7 +340,7 @@ type ProgressAction =
   | { type: typeof ACTIONS.SET_AUTO_PROGRESS; payload: boolean }
   | { type: typeof ACTIONS.SET_RESOLVE_START_PLAYER; payload: PlayerState | null }
   | { type: typeof ACTIONS.SET_RESOLVE_START_ENEMY; payload: EnemyState | null }
-  | { type: typeof ACTIONS.SET_RESPOND_SNAPSHOT; payload: unknown | null }
+  | { type: typeof ACTIONS.SET_RESPOND_SNAPSHOT; payload: RespondSnapshot | null }
   | { type: typeof ACTIONS.SET_REWIND_USED; payload: boolean }
   | { type: typeof ACTIONS.SET_RESOLVED_PLAYER_CARDS; payload: number };
 

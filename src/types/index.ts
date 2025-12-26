@@ -3143,6 +3143,12 @@ export interface CentralActions {
   setAutoProgress: (value: boolean) => void;
 }
 
+/** 대응 단계 스냅샷 */
+export interface RespondSnapshot {
+  selectedSnapshot: Card[];
+  enemyActions: Array<{ [key: string]: unknown }>;
+}
+
 // ==================== BattleScreen 컴포넌트 타입 ====================
 
 /** 패시브 효과 */
