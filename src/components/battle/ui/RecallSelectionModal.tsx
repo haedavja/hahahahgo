@@ -61,11 +61,11 @@ export const RecallSelectionModal: FC<RecallSelectionModalProps> = ({ recallSele
                 height: '180px',
                 transition: 'transform 0.2s, box-shadow 0.2s',
               }}
-              onMouseEnter={(e: MouseEvent<HTMLDivElement>) => {
+              onMouseEnter={(e: any) => {
                 (e.currentTarget as HTMLDivElement).style.transform = 'scale(1.05)';
                 (e.currentTarget as HTMLDivElement).style.boxShadow = '0 0 20px rgba(251, 191, 36, 0.6)';
               }}
-              onMouseLeave={(e: MouseEvent<HTMLDivElement>) => {
+              onMouseLeave={(e: any) => {
                 (e.currentTarget as HTMLDivElement).style.transform = 'scale(1)';
                 (e.currentTarget as HTMLDivElement).style.boxShadow = 'none';
               }}

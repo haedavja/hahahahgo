@@ -22,14 +22,14 @@ import { setupParryReady, checkParryTrigger, resetParryState } from './parryProc
 describe('parryProcessing', () => {
   describe('setupParryReady', () => {
     it('기본 패리 대기 상태를 생성해야 함', () => {
-      const addLog = vi.fn();
-      const action = {
-        card: { name: 'Parry Card' },
+      const addLog: any = vi.fn();
+      const action: any = {
+        card: { name: 'Parry Card' } as any,
         sp: 5,
         actor: 'player'
       };
 
-      const result = setupParryReady({ action, addLog });
+      const result = setupParryReady({ action: action as any, addLog });
 
       expect(result.active).toBe(true);
       expect(result.actor).toBe('player');
@@ -41,48 +41,48 @@ describe('parryProcessing', () => {
     });
 
     it('카드의 parryRange를 사용해야 함', () => {
-      const addLog = vi.fn();
-      const action = {
-        card: { name: 'Wide Parry', parryRange: 10 },
+      const addLog: any = vi.fn();
+      const action: any = {
+        card: { name: 'Wide Parry', parryRange: 10 } as any,
         sp: 3,
         actor: 'player'
       };
 
-      const result = setupParryReady({ action, addLog });
+      const result = setupParryReady({ action: action as any, addLog });
 
       expect(result.maxSp).toBe(13); // 3 + 10
     });
 
     it('카드의 parryPushAmount를 사용해야 함', () => {
-      const addLog = vi.fn();
-      const action = {
-        card: { name: 'Heavy Parry', parryPushAmount: 7 },
+      const addLog: any = vi.fn();
+      const action: any = {
+        card: { name: 'Heavy Parry', parryPushAmount: 7 } as any,
         sp: 5,
         actor: 'player'
       };
 
-      const result = setupParryReady({ action, addLog });
+      const result = setupParryReady({ action: action as any, addLog });
 
       expect(result.pushAmount).toBe(7);
     });
 
     it('sp가 없으면 0을 사용해야 함', () => {
-      const addLog = vi.fn();
-      const action = {
-        card: { name: 'Parry' },
+      const addLog: any = vi.fn();
+      const action: any = {
+        card: { name: 'Parry' } as any,
         actor: 'player'
       };
 
-      const result = setupParryReady({ action, addLog });
+      const result = setupParryReady({ action: action as any, addLog });
 
       expect(result.centerSp).toBe(0);
       expect(result.maxSp).toBe(5);
     });
 
     it('addLog가 호출되어야 함', () => {
-      const addLog = vi.fn();
-      const action = {
-        card: { name: 'Test Parry' },
+      const addLog: any = vi.fn();
+      const action: any = {
+        card: { name: 'Test Parry' } as any,
         sp: 2,
         actor: 'player'
       };
@@ -106,18 +106,18 @@ describe('parryProcessing', () => {
       ...overrides
     });
 
-    const createQueue = () => [
-      { actor: 'player', card: { name: 'Player Card', type: 'attack' }, sp: 3 },
-      { actor: 'enemy', card: { name: 'Enemy Attack', type: 'attack' }, sp: 7 },
-      { actor: 'enemy', card: { name: 'Enemy Skill', type: 'skill' }, sp: 12 },
-      { actor: 'player', card: { name: 'Player Card 2', type: 'attack' }, sp: 15 }
+    const createQueue = (): any => [
+      { actor: 'player', card: { name: 'Player Card', type: 'attack' } as any, sp: 3 },
+      { actor: 'enemy', card: { name: 'Enemy Attack', type: 'attack' } as any, sp: 7 },
+      { actor: 'enemy', card: { name: 'Enemy Skill', type: 'skill' } as any, sp: 12 },
+      { actor: 'player', card: { name: 'Player Card 2', type: 'attack' } as any, sp: 15 }
     ];
 
     it('활성 패리가 없으면 변경 없이 반환해야 함', () => {
-      const addLog = vi.fn();
+      const addLog: any = vi.fn();
       const result = checkParryTrigger({
-        parryReadyStates: [],
-        enemyAction: { card: { name: 'Attack', type: 'attack' }, sp: 7, actor: 'enemy' },
+        parryReadyStates: [] as any,
+        enemyAction: { card: { name: 'Attack', type: 'attack' } as any, sp: 7, actor: 'enemy' },
         queue: createQueue(),
         currentQIndex: 0,
         enemyMaxSpeed: 30,
@@ -130,10 +130,10 @@ describe('parryProcessing', () => {
     });
 
     it('적 공격이 아니면 트리거하지 않아야 함', () => {
-      const addLog = vi.fn();
+      const addLog: any = vi.fn();
       const result = checkParryTrigger({
-        parryReadyStates: [createParryState()],
-        enemyAction: { card: { name: 'Skill', type: 'skill' }, sp: 7, actor: 'enemy' },
+        parryReadyStates: [createParryState()] as any,
+        enemyAction: { card: { name: 'Skill', type: 'skill' } as any, sp: 7, actor: 'enemy' },
         queue: createQueue(),
         currentQIndex: 0,
         enemyMaxSpeed: 30,
@@ -145,11 +145,11 @@ describe('parryProcessing', () => {
     });
 
     it('범위 내 적 공격 시 패리 트리거되어야 함', () => {
-      const addLog = vi.fn();
-      const playParrySound = vi.fn();
+      const addLog: any = vi.fn();
+      const playParrySound: any = vi.fn();
       const result = checkParryTrigger({
-        parryReadyStates: [createParryState()],
-        enemyAction: { card: { name: 'Enemy Attack', type: 'attack' }, sp: 7, actor: 'enemy' },
+        parryReadyStates: [createParryState()] as any,
+        enemyAction: { card: { name: 'Enemy Attack', type: 'attack' } as any, sp: 7, actor: 'enemy' },
         queue: createQueue(),
         currentQIndex: 0,
         enemyMaxSpeed: 30,
@@ -163,10 +163,10 @@ describe('parryProcessing', () => {
     });
 
     it('범위 밖 적 공격은 트리거하지 않아야 함', () => {
-      const addLog = vi.fn();
+      const addLog: any = vi.fn();
       const result = checkParryTrigger({
-        parryReadyStates: [createParryState({ centerSp: 5, maxSp: 10 })],
-        enemyAction: { card: { name: 'Attack', type: 'attack' }, sp: 15, actor: 'enemy' },
+        parryReadyStates: [createParryState({ centerSp: 5, maxSp: 10 })] as any,
+        enemyAction: { card: { name: 'Attack', type: 'attack' } as any, sp: 15, actor: 'enemy' },
         queue: createQueue(),
         currentQIndex: 0,
         enemyMaxSpeed: 30,
@@ -178,10 +178,10 @@ describe('parryProcessing', () => {
     });
 
     it('centerSp와 같은 sp는 트리거하지 않아야 함 (centerSp < enemySp)', () => {
-      const addLog = vi.fn();
+      const addLog: any = vi.fn();
       const result = checkParryTrigger({
-        parryReadyStates: [createParryState({ centerSp: 7, maxSp: 12 })],
-        enemyAction: { card: { name: 'Attack', type: 'attack' }, sp: 7, actor: 'enemy' },
+        parryReadyStates: [createParryState({ centerSp: 7, maxSp: 12 })] as any,
+        enemyAction: { card: { name: 'Attack', type: 'attack' } as any, sp: 7, actor: 'enemy' },
         queue: createQueue(),
         currentQIndex: 0,
         enemyMaxSpeed: 30,
@@ -193,10 +193,10 @@ describe('parryProcessing', () => {
     });
 
     it('maxSp와 같은 sp는 트리거해야 함 (enemySp <= maxSp)', () => {
-      const addLog = vi.fn();
+      const addLog: any = vi.fn();
       const result = checkParryTrigger({
-        parryReadyStates: [createParryState({ centerSp: 5, maxSp: 10 })],
-        enemyAction: { card: { name: 'Attack', type: 'attack' }, sp: 10, actor: 'enemy' },
+        parryReadyStates: [createParryState({ centerSp: 5, maxSp: 10 })] as any,
+        enemyAction: { card: { name: 'Attack', type: 'attack' } as any, sp: 10, actor: 'enemy' },
         queue: createQueue(),
         currentQIndex: 0,
         enemyMaxSpeed: 30,
@@ -208,10 +208,10 @@ describe('parryProcessing', () => {
     });
 
     it('같은 편 공격은 트리거하지 않아야 함', () => {
-      const addLog = vi.fn();
+      const addLog: any = vi.fn();
       const result = checkParryTrigger({
-        parryReadyStates: [createParryState({ actor: 'enemy' })],
-        enemyAction: { card: { name: 'Attack', type: 'attack' }, sp: 7, actor: 'enemy' },
+        parryReadyStates: [createParryState({ actor: 'enemy' })] as any,
+        enemyAction: { card: { name: 'Attack', type: 'attack' } as any, sp: 7, actor: 'enemy' },
         queue: createQueue(),
         currentQIndex: 0,
         enemyMaxSpeed: 30,
@@ -223,16 +223,16 @@ describe('parryProcessing', () => {
     });
 
     it('패리 후 적 카드 sp를 밀어야 함', () => {
-      const addLog = vi.fn();
-      const queue = [
-        { actor: 'player', card: { name: 'Current' }, sp: 5 },
-        { actor: 'enemy', card: { name: 'Enemy 1', type: 'attack' }, sp: 8 },
-        { actor: 'enemy', card: { name: 'Enemy 2', type: 'attack' }, sp: 12 }
-      ];
+      const addLog: any = vi.fn();
+      const queue: any = [
+        { actor: 'player', card: { name: 'Current' } as any, sp: 5 },
+        { actor: 'enemy', card: { name: 'Enemy 1', type: 'attack' } as any, sp: 8 },
+        { actor: 'enemy', card: { name: 'Enemy 2', type: 'attack' } as any, sp: 12 }
+      ] as any;
 
       const result = checkParryTrigger({
-        parryReadyStates: [createParryState({ pushAmount: 5 })],
-        enemyAction: { card: { name: 'Enemy 1', type: 'attack' }, sp: 8, actor: 'enemy' },
+        parryReadyStates: [createParryState({ pushAmount: 5 })] as any,
+        enemyAction: { card: { name: 'Enemy 1', type: 'attack' } as any, sp: 8, actor: 'enemy' },
         queue,
         currentQIndex: 0,
         enemyMaxSpeed: 30,
@@ -247,16 +247,16 @@ describe('parryProcessing', () => {
     });
 
     it('플레이어 카드는 밀리지 않아야 함', () => {
-      const addLog = vi.fn();
-      const queue = [
-        { actor: 'player', card: { name: 'Current' }, sp: 5 },
-        { actor: 'enemy', card: { name: 'Enemy', type: 'attack' }, sp: 8 },
-        { actor: 'player', card: { name: 'Player Future' }, sp: 15 }
-      ];
+      const addLog: any = vi.fn();
+      const queue: any = [
+        { actor: 'player', card: { name: 'Current' } as any, sp: 5 },
+        { actor: 'enemy', card: { name: 'Enemy', type: 'attack' } as any, sp: 8 },
+        { actor: 'player', card: { name: 'Player Future' } as any, sp: 15 }
+      ] as any;
 
       const result = checkParryTrigger({
-        parryReadyStates: [createParryState({ pushAmount: 5 })],
-        enemyAction: { card: { name: 'Enemy', type: 'attack' }, sp: 8, actor: 'enemy' },
+        parryReadyStates: [createParryState({ pushAmount: 5 })] as any,
+        enemyAction: { card: { name: 'Enemy', type: 'attack' } as any, sp: 8, actor: 'enemy' },
         queue,
         currentQIndex: 0,
         enemyMaxSpeed: 30,
@@ -269,15 +269,15 @@ describe('parryProcessing', () => {
     });
 
     it('maxSpeed 초과 시 아웃 처리해야 함', () => {
-      const addLog = vi.fn();
-      const queue = [
-        { actor: 'player', card: { name: 'Current' }, sp: 5 },
-        { actor: 'enemy', card: { name: 'Enemy', type: 'attack' }, sp: 28 }
-      ];
+      const addLog: any = vi.fn();
+      const queue: any = [
+        { actor: 'player', card: { name: 'Current' } as any, sp: 5 },
+        { actor: 'enemy', card: { name: 'Enemy', type: 'attack' } as any, sp: 28 }
+      ] as any;
 
       const result = checkParryTrigger({
-        parryReadyStates: [createParryState({ centerSp: 25, maxSp: 30, pushAmount: 5 })],
-        enemyAction: { card: { name: 'Enemy', type: 'attack' }, sp: 28, actor: 'enemy' },
+        parryReadyStates: [createParryState({ centerSp: 25, maxSp: 30, pushAmount: 5 })] as any,
+        enemyAction: { card: { name: 'Enemy', type: 'attack' } as any, sp: 28, actor: 'enemy' },
         queue,
         currentQIndex: 0,
         enemyMaxSpeed: 30,
@@ -291,13 +291,13 @@ describe('parryProcessing', () => {
     });
 
     it('여러 패리 상태가 동시에 트리거될 수 있어야 함', () => {
-      const addLog = vi.fn();
+      const addLog: any = vi.fn();
       const result = checkParryTrigger({
         parryReadyStates: [
-          createParryState({ cardName: 'Parry 1', pushAmount: 2 }),
-          createParryState({ cardName: 'Parry 2', pushAmount: 3 })
-        ],
-        enemyAction: { card: { name: 'Attack', type: 'attack' }, sp: 7, actor: 'enemy' },
+          createParryState({ cardName: 'Parry 1', pushAmount: 2 }) as any,
+          createParryState({ cardName: 'Parry 2', pushAmount: 3 }) as any
+        ] as any,
+        enemyAction: { card: { name: 'Attack', type: 'attack' } as any, sp: 7, actor: 'enemy' },
         queue: createQueue(),
         currentQIndex: 0,
         enemyMaxSpeed: 30,
@@ -310,10 +310,10 @@ describe('parryProcessing', () => {
     });
 
     it('이미 트리거된 패리는 다시 트리거하지 않아야 함', () => {
-      const addLog = vi.fn();
+      const addLog: any = vi.fn();
       const result = checkParryTrigger({
-        parryReadyStates: [createParryState({ triggered: true })],
-        enemyAction: { card: { name: 'Attack', type: 'attack' }, sp: 7, actor: 'enemy' },
+        parryReadyStates: [createParryState({ triggered: true })] as any,
+        enemyAction: { card: { name: 'Attack', type: 'attack' } as any, sp: 7, actor: 'enemy' },
         queue: createQueue(),
         currentQIndex: 0,
         enemyMaxSpeed: 30,
@@ -325,10 +325,10 @@ describe('parryProcessing', () => {
     });
 
     it('단일 패리 상태도 처리해야 함 (하위 호환)', () => {
-      const addLog = vi.fn();
+      const addLog: any = vi.fn();
       const result = checkParryTrigger({
-        parryReadyStates: createParryState(), // 배열 아님
-        enemyAction: { card: { name: 'Attack', type: 'attack' }, sp: 7, actor: 'enemy' },
+        parryReadyStates: createParryState() as any, // 배열 아님
+        enemyAction: { card: { name: 'Attack', type: 'attack' } as any, sp: 7, actor: 'enemy' },
         queue: createQueue(),
         currentQIndex: 0,
         enemyMaxSpeed: 30,
@@ -340,10 +340,10 @@ describe('parryProcessing', () => {
     });
 
     it('null parryReadyStates는 빈 배열로 처리해야 함', () => {
-      const addLog = vi.fn();
+      const addLog: any = vi.fn();
       const result = checkParryTrigger({
-        parryReadyStates: null,
-        enemyAction: { card: { name: 'Attack', type: 'attack' }, sp: 7, actor: 'enemy' },
+        parryReadyStates: null as any,
+        enemyAction: { card: { name: 'Attack', type: 'attack' } as any, sp: 7, actor: 'enemy' },
         queue: createQueue(),
         currentQIndex: 0,
         enemyMaxSpeed: 30,
@@ -356,17 +356,17 @@ describe('parryProcessing', () => {
     });
 
     it('패리 후 큐가 sp 기준으로 정렬되어야 함', () => {
-      const addLog = vi.fn();
-      const queue = [
-        { actor: 'player', card: { name: 'Current' }, sp: 5 },
-        { actor: 'enemy', card: { name: 'Enemy 1' }, sp: 8 },
-        { actor: 'player', card: { name: 'Player 2' }, sp: 10 },
-        { actor: 'enemy', card: { name: 'Enemy 2' }, sp: 12 }
-      ];
+      const addLog: any = vi.fn();
+      const queue: any = [
+        { actor: 'player', card: { name: 'Current' } as any, sp: 5 },
+        { actor: 'enemy', card: { name: 'Enemy 1' } as any, sp: 8 },
+        { actor: 'player', card: { name: 'Player 2' } as any, sp: 10 },
+        { actor: 'enemy', card: { name: 'Enemy 2' } as any, sp: 12 }
+      ] as any;
 
       const result = checkParryTrigger({
-        parryReadyStates: [createParryState({ pushAmount: 5 })],
-        enemyAction: { card: { name: 'Attack', type: 'attack' }, sp: 7, actor: 'enemy' },
+        parryReadyStates: [createParryState({ pushAmount: 5 })] as any,
+        enemyAction: { card: { name: 'Attack', type: 'attack' } as any, sp: 7, actor: 'enemy' },
         queue,
         currentQIndex: 0,
         enemyMaxSpeed: 30,

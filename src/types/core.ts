@@ -201,7 +201,7 @@ export interface TokenEntity {
 
 /** 토큰 조작 결과 */
 export interface TokenOperationResult {
-  tokens: Token[];
+  tokens: TokenState;
   added?: number;
   removed?: number;
   cancelled?: boolean;
@@ -217,9 +217,9 @@ export interface TokenModificationResult {
 
 /** 토큰 컨테이너 */
 export interface TokensContainer {
-  usage?: Token[];
-  turn?: Token[];
-  permanent?: Token[];
+  usage?: TokenInstance[];
+  turn?: TokenInstance[];
+  permanent?: TokenInstance[];
 }
 
 /** 토큰 상쇄 결과 */

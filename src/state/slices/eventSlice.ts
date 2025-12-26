@@ -53,7 +53,7 @@ export const createEventActions: SliceCreator = (set) => ({
       let newOwnedCards = [...(state.characterBuild?.ownedCards || [])];
 
       if (choice.rewards) {
-        const result = grantRewards(choice.rewards, resources);
+        const result = grantRewards(choice.rewards as any, resources as any);
         resources = result.next;
         rewards = result.applied;
 

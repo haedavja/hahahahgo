@@ -1024,13 +1024,13 @@ export const OBSTACLE_TEMPLATES = {
 /**
  * 연결 정보 생성 헬퍼
  */
-function createConnection(targetId, type = CONNECTION_TYPES.OPEN, requirements = null) {
+function createConnection(targetId: any, type = CONNECTION_TYPES.OPEN, requirements = null) {
   return {
     targetId,
     type,
     requirements,  // { stat: 'strength', value: 3 } 또는 { item: 'key' }
     unlocked: type === CONNECTION_TYPES.OPEN,
-  };
+  } as any;
 }
 
 /**
@@ -1039,12 +1039,12 @@ function createConnection(targetId, type = CONNECTION_TYPES.OPEN, requirements =
  * - 스탯/아이템 관문
  * - 숏컷 문
  */
-export function generateDungeonGraph(dungeonId, config = {}) {
+export function generateDungeonGraph(dungeonId, config: any = {}) {
   const {
     mainPathLength = 6,         // 메인 경로 길이
     branchCount = 2,            // 분기 경로 수
     difficulty = 1,
-  } = config;
+  } = config as any;
 
   const nodes = [];
   const connections = {};  // nodeId -> Connection[]
@@ -1181,8 +1181,8 @@ export function generateDungeonGraph(dungeonId, config = {}) {
 /**
  * 스탯에 맞는 장애물 템플릿 반환
  */
-function getObstacleForStat(stat) {
-  const mapping = {
+function getObstacleForStat(stat: any) {
+  const mapping: any = {
     strength: 'cliff',
     agility: 'unstableBridge',
     insight: 'mysteriousStatue',
@@ -1375,8 +1375,8 @@ export function getAvailableConnections(dungeonState, playerStats, playerItems =
   });
 }
 
-function getStatName(stat) {
-  const names = { strength: '힘', agility: '민첩', insight: '통찰' };
+function getStatName(stat: any) {
+  const names: any = { strength: '힘', agility: '민첩', insight: '통찰' };
   return names[stat] || stat;
 }
 

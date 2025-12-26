@@ -31,7 +31,7 @@ const availableCards = CARDS.map((card, index) => ({
   type: card.type,
   speed: card.speedCost,
   ap: card.actionCost,
-  desc: `${card.damage ? `공격력 ${card.damage}${card.hits ? ` x${card.hits}` : ''}` : ''}${card.block ? `방어력 ${card.block}` : ''}${card.counter !== undefined ? ` 반격 ${card.counter}` : ''}`,
+  desc: `${card.damage ? `공격력 ${card.damage}${card.hits ? ` x${card.hits}` : ''}` : ''}${card.block ? `방어력 ${card.block}` : ''}${(card as any).counter !== undefined ? ` 반격 ${(card as any).counter}` : ''}`,
   traits: card.traits || [],
   description: card.description,
 }));

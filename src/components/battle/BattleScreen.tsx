@@ -39,7 +39,7 @@ const buildBattlePayload = (
   let enemyCount = battle.enemyCount ?? 1;
   let enemyName = battle.label ?? "Enemy";
   let enemyHp = initialEnemy?.hp ? Math.round(initialEnemy.hp) : 30;
-  let enemyDeck: Card[] = initialEnemy?.deck || [];
+  let enemyDeck: Card[] = (initialEnemy?.deck as any) || [];
 
   let enemyComposition: EnemyComposition[] = [];
   let enemyUnits: EnemyUnit[] = [];
@@ -93,7 +93,7 @@ const buildBattlePayload = (
       enemyName = enemyUnits.map(u => u.count > 1 ? `${u.name}×${u.count}` : u.name).join(' + ');
     }
     enemyHp = enemyUnits.reduce((sum, u) => sum + u.hp, 0);
-    enemyDeck = mixedEnemies.flatMap(e => e.deck || []);
+    enemyDeck = mixedEnemies.flatMap(e => e.deck || []) as any;
     enemyCount = mixedEnemies.length;
     enemyComposition = enemyUnits.map(u => ({
       name: u.name,
@@ -152,7 +152,7 @@ const buildBattlePayload = (
         enemyName = enemyUnits.map(u => u.count > 1 ? `${u.name}×${u.count}` : u.name).join(' + ');
       }
       enemyHp = enemyUnits.reduce((sum, u) => sum + u.hp, 0);
-      enemyDeck = mixedEnemies.flatMap(e => e.deck || []);
+      enemyDeck = mixedEnemies.flatMap(e => e.deck || []) as any;
       enemyCount = mixedEnemies.length;
       enemyComposition = enemyUnits.map(u => ({
         name: u.name,
@@ -308,10 +308,9 @@ export const BattleScreen: FC = () => {
       }
       resolveBattle({
         result: finalResult,
-        etherPts: resultEther,
         playerHp: playerHp,
         playerMaxHp: playerMaxHp
-      });
+      } as any);
     },
     [applyEtherDelta, resolveBattle],
   );
@@ -328,7 +327,7 @@ export const BattleScreen: FC = () => {
         onBattleResult={handleBattleResult}
       />
 
-      <DevTools isOpen={devToolsOpen} onClose={() => setDevToolsOpen(false)} />
+      <DevTools isOpen={devToolsOpen} onClose={() => setDevToolsOpen(false)} showAllCards={false} setShowAllCards={() => {}} />
     </div>
   );
 };

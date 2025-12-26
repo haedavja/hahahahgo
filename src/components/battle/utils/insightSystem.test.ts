@@ -133,7 +133,7 @@ describe('insightSystem', () => {
         { unitId: 1, tokens: { usage: [], turn: [{ id: 'veil', stacks: 2 }], permanent: [] } }
       ];
 
-      const result = getInsightRevealLevel(2, enemyActions, units);
+      const result = getInsightRevealLevel(2, enemyActions, units as any);
 
       // 첫 번째 유닛: veil 0, 유효 통찰 2 → 카드 공개
       // 두 번째 유닛: veil 2, 유효 통찰 0 → 숨김

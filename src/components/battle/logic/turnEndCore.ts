@@ -60,38 +60,39 @@ export function finishTurnCore(params: FinishTurnCoreParams): FinishTurnResult {
   escapeUsedThisTurnRef.current = new Set();
 
   // 다음 턴 효과 처리
-  const newNextTurnEffects = processCardTraitEffects(selected, addLog);
+  const newNextTurnEffects = processCardTraitEffects(selected as never, addLog);
 
   // 상징 턴 종료 효과
-  const turnEndRelicEffects = applyTurnEndEffects(relics, {
+  const relicIds = relics.map((r: { id?: string }) => (typeof r === 'string' ? r : r.id || ''));
+  const turnEndRelicEffects = applyTurnEndEffects(relicIds, {
     cardsPlayedThisTurn: battle.selected.length,
     player,
     enemy,
   });
 
   playTurnEndRelicAnimations({
-    relics,
-    RELICS,
+    relics: relicIds,
+    RELICS: RELICS as never,
     cardsPlayedThisTurn: battle.selected.length,
     player,
     enemy,
-    playSound,
-    actions
+    playSound: playSound as never,
+    actions: actions as never
   });
 
   const updatedNextTurnEffects = applyTurnEndRelicEffectsToNextTurn({
     turnEndRelicEffects,
-    nextTurnEffects: newNextTurnEffects,
+    nextTurnEffects: newNextTurnEffects as never,
     player,
     addLog,
-    actions
+    actions: actions as never
   });
 
   actions.setNextTurnEffects(updatedNextTurnEffects);
 
   // 조합 감지
-  const pComboEnd = detectPokerCombo(selected);
-  const eComboEnd = detectPokerCombo(enemyPlan.actions);
+  const pComboEnd = detectPokerCombo(selected as never);
+  const eComboEnd = detectPokerCombo(enemyPlan.actions as never);
 
   // 에테르 최종 계산
   const latestPlayer = battleRef.current?.player || player;
@@ -120,7 +121,11 @@ export function finishTurnCore(params: FinishTurnCoreParams): FinishTurnResult {
 
   if (enemyFinalEther > 0) {
     addLog(formatEnemyEtherLog(enemyEther, enemyTurnEtherAccumulated));
-    startEnemyEtherAnimation({ enemyFinalEther, enemyEther, actions });
+    startEnemyEtherAnimation({
+      enemyFinalEther,
+      enemyEther,
+      actions: actions as never
+    });
   }
 
   actions.setEnemyEtherFinalValue(enemyFinalEther);
@@ -140,10 +145,10 @@ export function finishTurnCore(params: FinishTurnCoreParams): FinishTurnResult {
     curPlayerPts,
     curEnemyPts,
     enemyHp: enemy.hp,
-    calculateEtherTransfer,
+    calculateEtherTransfer: calculateEtherTransfer as never,
     addLog,
-    playSound,
-    actions
+    playSound: playSound as never,
+    actions: actions as never
   });
 
   // 조합 사용 카운트 업데이트
@@ -181,7 +186,7 @@ export function finishTurnCore(params: FinishTurnCoreParams): FinishTurnResult {
     player,
     nextEnemyPtsSnapshot: nextPts,
     checkVictoryCondition,
-    actions
+    actions: actions as never
   });
 
   if (transitionResult.shouldReturn) {

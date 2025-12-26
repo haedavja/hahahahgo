@@ -13,6 +13,7 @@ import type {
   Card,
   Relic,
   TokenInstance as Token,
+  TokenState,
   ReducerPlayerState as PlayerState,
   ReducerEnemyState as EnemyState,
   ReducerEnemyUnitState as EnemyUnitState,
@@ -20,8 +21,11 @@ import type {
   PreviewDamage,
   InsightBadge,
   EnemyPlan,
-  RespondSnapshot
+  RespondSnapshot,
+  PostCombatOptions,
+  BattleEvent
 } from '../../../types';
+import type { HandCard } from '../../../lib/speedQueue';
 
 /** 액션 타입 상수 */
 export const ACTIONS = {
@@ -200,7 +204,7 @@ export type ActionValue = typeof ACTIONS[ActionType];
 /** 전투 페이즈 */
 export type BattlePhase =
   | 'select' | 'confirm' | 'resolve' | 'execution'
-  | 'turnEnd' | 'etherCalc' | 'victory' | 'defeat';
+  | 'turnEnd' | 'etherCalc' | 'victory' | 'defeat' | 'respond';
 
 /** 정렬 타입 */
 export type SortType = 'speed' | 'cost' | 'order' | 'energy' | 'value' | 'type';
@@ -255,8 +259,8 @@ type DeckAction =
 /** 적 계획/큐 액션 */
 type QueueAction =
   | { type: typeof ACTIONS.SET_ENEMY_PLAN; payload: EnemyPlan }
-  | { type: typeof ACTIONS.SET_FIXED_ORDER; payload: unknown[] | null }
-  | { type: typeof ACTIONS.SET_QUEUE; payload: unknown[] }
+  | { type: typeof ACTIONS.SET_FIXED_ORDER; payload: HandCard[] | null }
+  | { type: typeof ACTIONS.SET_QUEUE; payload: HandCard[] }
   | { type: typeof ACTIONS.SET_Q_INDEX; payload: number }
   | { type: typeof ACTIONS.INCREMENT_Q_INDEX };
 
@@ -264,7 +268,7 @@ type QueueAction =
 type LogAction =
   | { type: typeof ACTIONS.ADD_LOG; payload: string }
   | { type: typeof ACTIONS.SET_LOG; payload: string[] }
-  | { type: typeof ACTIONS.SET_ACTION_EVENTS; payload: Record<string, unknown> };
+  | { type: typeof ACTIONS.SET_ACTION_EVENTS; payload: Record<string, BattleEvent[]> };
 
 /** 턴 액션 */
 type TurnAction =
@@ -315,7 +319,7 @@ type UIAction =
   | { type: typeof ACTIONS.SET_INSIGHT_ANIM_LEVEL; payload: number }
   | { type: typeof ACTIONS.SET_INSIGHT_ANIM_PULSE_KEY; payload: number }
   | { type: typeof ACTIONS.SET_SHOW_INSIGHT_TOOLTIP; payload: boolean }
-  | { type: typeof ACTIONS.SET_HOVERED_ENEMY_ACTION; payload: unknown | null };
+  | { type: typeof ACTIONS.SET_HOVERED_ENEMY_ACTION; payload: Card | null };
 
 /** 상징 액션 */
 type RelicAction =
@@ -346,7 +350,7 @@ type ProgressAction =
 
 /** 기타 액션 */
 type MiscAction =
-  | { type: typeof ACTIONS.SET_POST_COMBAT_OPTIONS; payload: unknown | null }
+  | { type: typeof ACTIONS.SET_POST_COMBAT_OPTIONS; payload: PostCombatOptions | null }
   | { type: typeof ACTIONS.SET_NEXT_TURN_EFFECTS; payload: NextTurnEffects }
   | { type: typeof ACTIONS.UPDATE_NEXT_TURN_EFFECTS; payload: Partial<NextTurnEffects> }
   | { type: typeof ACTIONS.SET_REFLECTION_STATE; payload: unknown };
@@ -362,8 +366,8 @@ type DistributionAction =
 
 /** 토큰 액션 */
 type TokenAction =
-  | { type: typeof ACTIONS.UPDATE_PLAYER_TOKENS; payload: Token[] }
-  | { type: typeof ACTIONS.UPDATE_ENEMY_TOKENS; payload: Token[] };
+  | { type: typeof ACTIONS.UPDATE_PLAYER_TOKENS; payload: TokenState }
+  | { type: typeof ACTIONS.UPDATE_ENEMY_TOKENS; payload: TokenState };
 
 /** 복합 액션 */
 type ComplexAction =

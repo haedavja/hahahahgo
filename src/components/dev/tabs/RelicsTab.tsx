@@ -5,7 +5,7 @@
 
 import { useState, ChangeEvent } from 'react';
 import { getAllRelics, RELIC_RARITIES } from '../../../data/relics';
-import type { RelicData as Relic } from '../../../types';
+import type { DevRelicData as Relic } from '../../../types';
 
 interface RelicsTabProps {
   relics: string[];

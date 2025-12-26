@@ -34,4 +34,7 @@ globalThis.AudioContext = class AudioContext {
   }
   get destination() { return {}; }
   get currentTime() { return 0; }
+} as any as {
+  new (contextOptions?: AudioContextOptions): AudioContext;
+  prototype: AudioContext;
 };

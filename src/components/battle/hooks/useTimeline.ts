@@ -26,12 +26,12 @@ import { useState, useEffect, useRef, useCallback } from 'react';
  * @param {Function} options.onProgress - 진행 시 콜백
  * @returns {TimelineState} 타임라인 상태 및 제어 함수
  */
-export function useTimeline(queue = [], currentIndex = 0, options = {}) {
+export function useTimeline(queue = [], currentIndex = 0, options: any = {}) {
   const {
     speed = 100,
     auto = false,
     onProgress = null
-  } = options;
+  } = options as any;
 
   const [progress, setProgress] = useState(0);
   const [isPlaying, setIsPlaying] = useState(auto);

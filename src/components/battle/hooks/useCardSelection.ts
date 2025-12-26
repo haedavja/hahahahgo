@@ -112,7 +112,7 @@ export function useCardSelection({
       }
       const combo = detectPokerCombo(next);
       const enhanced = applyPokerBonus(next, combo);
-      const withSp = createFixedOrder(enhanced, enemyPlanActions, effectiveAgility);
+      const withSp = createFixedOrder(enhanced as any, enemyPlanActions, effectiveAgility);
       actions.setFixedOrder(withSp);
       actions.setSelected(next);
       return;
@@ -161,7 +161,7 @@ export function useCardSelection({
 
       const combo = detectPokerCombo(n);
       const enhanced = applyPokerBonus(n, combo);
-      const withSp = createFixedOrder(enhanced, enemyPlanActions, effectiveAgility);
+      const withSp = createFixedOrder(enhanced as any, enemyPlanActions, effectiveAgility);
       actions.setFixedOrder(withSp);
       actions.setSelected(n);
     } else {
@@ -180,7 +180,7 @@ export function useCardSelection({
 
       const combo = detectPokerCombo(n);
       const enhanced = applyPokerBonus(n, combo);
-      const withSp = createFixedOrder(enhanced, enemyPlanActions, effectiveAgility);
+      const withSp = createFixedOrder(enhanced as any, enemyPlanActions, effectiveAgility);
       actions.setFixedOrder(withSp);
       actions.setSelected(n);
     } else {

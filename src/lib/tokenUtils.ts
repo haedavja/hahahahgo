@@ -411,5 +411,5 @@ export function createEmptyTokens(): TokenState {
     [TOKEN_TYPES.USAGE]: [],
     [TOKEN_TYPES.TURN]: [],
     [TOKEN_TYPES.PERMANENT]: []
-  };
+  } as any;
 }

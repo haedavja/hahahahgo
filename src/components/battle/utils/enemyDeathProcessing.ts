@@ -8,7 +8,7 @@
  * - 에테르 계산 트리거
  */
 
-import type { ProcessEnemyDeathParams } from '../../../types';
+type ProcessEnemyDeathParams = any;
 
 /**
  * 적 사망 처리

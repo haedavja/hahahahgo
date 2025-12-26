@@ -241,7 +241,7 @@ export const EnemyUnitsDisplay: FC<EnemyUnitsDisplayProps> = ({
 
               {/* 토큰 표시 */}
               <div style={{ marginTop: '6px', minHeight: '24px' }}>
-                <TokenDisplay entity={unit} position="enemy" />
+                <TokenDisplay entity={unit as any} position="enemy" />
               </div>
 
               {/* 타겟 선택 UI */}
@@ -252,7 +252,7 @@ export const EnemyUnitsDisplay: FC<EnemyUnitsDisplayProps> = ({
                     marginTop: '8px',
                   }}>
                     <button
-                      onClick={(e: MouseEvent<HTMLButtonElement>) => {
+                      onClick={(e: any) => {
                         e.stopPropagation();
                         onUpdateDistribution?.(unit.unitId, !isTargeted);
                       }}

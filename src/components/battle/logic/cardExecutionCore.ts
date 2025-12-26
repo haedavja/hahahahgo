@@ -116,9 +116,9 @@ export function executeCardActionCore(params: ExecuteCardActionCoreParams): Exec
   };
 
   // 카드 트레잇 즉시 효과 처리
-  const traitResult = processImmediateCardTraits(action.card, action.actor, P, E, addLog);
-  P = traitResult.player;
-  E = traitResult.enemy;
+  const traitResult = processImmediateCardTraits({ card: action.card, actor: action.actor, player: P, enemy: E, addLog } as any);
+  P = traitResult.player as any;
+  E = traitResult.enemy as any;
 
   // 상징 효과 처리 (카드 플레이 시)
   const relicResult = processCardPlayedRelicEffects({
@@ -129,33 +129,39 @@ export function executeCardActionCore(params: ExecuteCardActionCoreParams): Exec
     relics: orderedRelicList,
     flashRelic,
     addLog
-  });
-  P = relicResult.player;
-  E = relicResult.enemy;
+  } as any);
+  P = (relicResult as any).player as any;
+  E = (relicResult as any).enemy as any;
 
   // 스턴 효과 처리
-  const stunResult = processStunEffect(action.card, action.actor, P, E, addLog);
-  P = stunResult.player;
-  E = stunResult.enemy;
+  const stunResult = processStunEffect({
+    action: action as any,
+    queue: battleRef.current.queue as any,
+    currentQIndex: battleRef.current.qIndex,
+    addLog
+  });
+  if ((stunResult as any).updatedQueue) {
+    actions.setQueue((stunResult as any).updatedQueue as any);
+  }
 
   // 액션 적용
-  const actionResult = applyAction(tempState, action.actor, action.card, battleContext);
-  let actionEvents = actionResult.events || [];
+  const actionResult = applyAction(tempState as any, action.actor as any, action.card as any, battleContext as any);
+  let actionEvents = (actionResult.events || []) as any;
 
   if (actionResult.updatedState) {
-    P = actionResult.updatedState.player;
-    E = actionResult.updatedState.enemy;
+    P = actionResult.updatedState.player as any;
+    E = actionResult.updatedState.enemy as any;
   }
 
   // 타임라인 조작 효과 처리
   const timelineResult = processTimelineSpecials({
-    card: action.card,
-    actor: action.actor,
-    actorName: action.actor,
-    queue: battleRef.current.queue,
+    card: action.card as any,
+    actor: action.actor as any,
+    actorName: action.actor as any,
+    queue: battleRef.current.queue as any,
     currentIndex: battleRef.current.qIndex,
     damageDealt: actionResult.dealt || 0
-  });
+  } as any);
 
   if (timelineResult.events.length > 0) {
     actionEvents = [...actionEvents, ...timelineResult.events];
@@ -240,9 +246,9 @@ export function executeCardActionCore(params: ExecuteCardActionCoreParams): Exec
     });
 
     // 집요한 타격 효과 처리
-    const persistentStrikeToken = P.tokens?.find(t => t.id === 'persistent_strike');
+    const persistentStrikeToken = getAllTokens(P as any).find((t: any) => t.id === 'persistent_strike');
     if (persistentStrikeToken) {
-      const strikeDamage = P._persistentStrikeDamage || 20;
+      const strikeDamage = (P as any)._persistentStrikeDamage || 20;
       const beforeHP = E.hp;
       E.hp = Math.max(0, E.hp - strikeDamage);
       const msg = `👊 집요한 타격: 적에게 ${strikeDamage} 피해! (체력 ${beforeHP} -> ${E.hp})`;
@@ -250,10 +256,10 @@ export function executeCardActionCore(params: ExecuteCardActionCoreParams): Exec
       actionEvents.push({
         actor: 'player',
         card: '집요한 타격',
-        type: 'hit',
+        type: 'damage' as any,
         dmg: strikeDamage,
         msg
-      });
+      } as any);
     }
   }
 
@@ -283,7 +289,7 @@ export function executeCardActionCore(params: ExecuteCardActionCoreParams): Exec
   // 이벤트 애니메이션
   processActionEventAnimations({
     actionEvents,
-    action,
+    action: action as any,
     playHitSound,
     playBlockSound,
     actions

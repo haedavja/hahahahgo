@@ -47,9 +47,9 @@ describe('agilityUtils', () => {
 
   describe('applyAgilityToCards', () => {
     const createCards = () => [
-      { id: 'a', name: 'A', speedCost: 10 },
-      { id: 'b', name: 'B', speedCost: 5 },
-      { id: 'c', name: 'C', speedCost: 15 }
+      { id: 'a', name: 'A', speedCost: 10 } as any,
+      { id: 'b', name: 'B', speedCost: 5 } as any,
+      { id: 'c', name: 'C', speedCost: 15 } as any
     ];
 
     it('민첩성 0이면 원본 카드를 반환해야 함', () => {
@@ -63,12 +63,12 @@ describe('agilityUtils', () => {
     });
 
     it('빈 배열은 그대로 반환해야 함', () => {
-      expect(applyAgilityToCards([], 5)).toEqual([]);
+      expect(applyAgilityToCards([] as any, 5)).toEqual([]);
     });
 
     it('유효하지 않은 입력은 그대로 반환해야 함', () => {
-      expect(applyAgilityToCards(null, 5)).toBe(null);
-      expect(applyAgilityToCards(undefined, 5)).toBe(undefined);
+      expect(applyAgilityToCards(null as any, 5)).toBe(null);
+      expect(applyAgilityToCards(undefined as any, 5)).toBe(undefined);
     });
 
     it('양수 민첩성은 모든 카드 속도를 감소시켜야 함', () => {
@@ -108,7 +108,7 @@ describe('agilityUtils', () => {
     });
 
     it('이미 originalSpeedCost가 있으면 유지해야 함', () => {
-      const cards = [{ id: 'a', speedCost: 7, originalSpeedCost: 10 }];
+      const cards = [{ id: 'a', speedCost: 7, originalSpeedCost: 10 } as any];
       const result = applyAgilityToCards(cards, 2);
 
       expect(result[0].originalSpeedCost).toBe(10);

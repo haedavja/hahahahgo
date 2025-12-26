@@ -56,7 +56,7 @@ describe('useBattleState', () => {
     it('setPlayer로 플레이어 전체가 교체되어야 함', () => {
       const { result } = renderHook(() => useBattleState());
 
-      const newPlayer = { hp: 75, maxHp: 100, block: 5, tokens: { usage: [], turn: [], permanent: [] } };
+      const newPlayer = { hp: 75, maxHp: 100, block: 5, tokens: { usage: [], turn: [], permanent: [] } } as any;
       act(() => {
         result.current.actions.setPlayer(newPlayer);
       });
@@ -66,10 +66,10 @@ describe('useBattleState', () => {
     });
 
     it('updatePlayer로 플레이어 일부만 업데이트되어야 함', () => {
-      const { result } = renderHook(() => useBattleState({ player: { hp: 100, maxHp: 100, block: 0 } }));
+      const { result } = renderHook(() => useBattleState({ player: { hp: 100, maxHp: 100, block: 0 } } as any));
 
       act(() => {
-        result.current.actions.updatePlayer({ hp: 80 });
+        result.current.actions.updatePlayer({ hp: 80 } as any);
       });
 
       expect(result.current.battle.player.hp).toBe(80);
@@ -81,7 +81,7 @@ describe('useBattleState', () => {
     it('setEnemy로 적 전체가 교체되어야 함', () => {
       const { result } = renderHook(() => useBattleState());
 
-      const newEnemy = { hp: 50, maxHp: 100, block: 10, tokens: { usage: [], turn: [], permanent: [] } };
+      const newEnemy = { hp: 50, maxHp: 100, block: 10, tokens: { usage: [], turn: [], permanent: [] } } as any;
       act(() => {
         result.current.actions.setEnemy(newEnemy);
       });
@@ -91,10 +91,10 @@ describe('useBattleState', () => {
     });
 
     it('updateEnemy로 적 일부만 업데이트되어야 함', () => {
-      const { result } = renderHook(() => useBattleState({ enemy: { hp: 100, maxHp: 100, block: 0 } }));
+      const { result } = renderHook(() => useBattleState({ enemy: { hp: 100, maxHp: 100, block: 0 } } as any));
 
       act(() => {
-        result.current.actions.updateEnemy({ hp: 60, block: 15 });
+        result.current.actions.updateEnemy({ hp: 60, block: 15 } as any);
       });
 
       expect(result.current.battle.enemy.hp).toBe(60);
@@ -109,7 +109,7 @@ describe('useBattleState', () => {
       const hand = [
         { id: 'strike', name: '타격', damage: 6 },
         { id: 'defend', name: '수비', block: 5 }
-      ];
+      ] as any;
       act(() => {
         result.current.actions.setHand(hand);
       });
@@ -121,7 +121,7 @@ describe('useBattleState', () => {
     it('setSelected로 선택된 카드가 설정되어야 함', () => {
       const { result } = renderHook(() => useBattleState());
 
-      const selected = [{ id: 'strike', name: '타격', damage: 6 }];
+      const selected = [{ id: 'strike', name: '타격', damage: 6 }] as any;
       act(() => {
         result.current.actions.setSelected(selected);
       });
@@ -133,13 +133,13 @@ describe('useBattleState', () => {
       const { result } = renderHook(() => useBattleState());
 
       act(() => {
-        result.current.actions.addSelected({ id: 'strike', name: '타격' });
+        result.current.actions.addSelected({ id: 'strike', name: '타격' } as any);
       });
 
       expect(result.current.battle.selected).toHaveLength(1);
 
       act(() => {
-        result.current.actions.addSelected({ id: 'defend', name: '수비' });
+        result.current.actions.addSelected({ id: 'defend', name: '수비' } as any);
       });
 
       expect(result.current.battle.selected).toHaveLength(2);
@@ -152,7 +152,7 @@ describe('useBattleState', () => {
         result.current.actions.setSelected([
           { id: 'strike', name: '타격' },
           { id: 'defend', name: '수비' }
-        ]);
+        ] as any);
       });
 
       act(() => {
@@ -179,7 +179,7 @@ describe('useBattleState', () => {
       const { result } = renderHook(() => useBattleState());
 
       act(() => {
-        result.current.actions.setLog(['새 로그']);
+        (result.current.actions as any).setLog(['새 로그']);
       });
 
       expect(result.current.battle.log).toEqual(['새 로그']);
@@ -193,7 +193,7 @@ describe('useBattleState', () => {
       const queue = [
         { type: 'player', card: { id: 'strike' } },
         { type: 'enemy', card: { id: 'attack' } }
-      ];
+      ] as any;
       act(() => {
         result.current.actions.setQueue(queue);
       });
@@ -205,7 +205,7 @@ describe('useBattleState', () => {
       const { result } = renderHook(() => useBattleState());
 
       act(() => {
-        result.current.actions.setQIndex(5);
+        (result.current.actions as any).setQIndex(5);
       });
 
       expect(result.current.battle.qIndex).toBe(5);
@@ -215,11 +215,11 @@ describe('useBattleState', () => {
       const { result } = renderHook(() => useBattleState());
 
       act(() => {
-        result.current.actions.setQIndex(3);
+        (result.current.actions as any).setQIndex(3);
       });
 
       act(() => {
-        result.current.actions.incrementQIndex();
+        (result.current.actions as any).incrementQIndex();
       });
 
       expect(result.current.battle.qIndex).toBe(4);
@@ -263,7 +263,7 @@ describe('useBattleState', () => {
       const { result } = renderHook(() => useBattleState());
 
       act(() => {
-        result.current.actions.setTurnNumber(5);
+        (result.current.actions as any).setTurnNumber(5);
       });
 
       expect(result.current.battle.turnNumber).toBe(5);
@@ -273,11 +273,11 @@ describe('useBattleState', () => {
       const { result } = renderHook(() => useBattleState());
 
       act(() => {
-        result.current.actions.setTurnNumber(1);
+        (result.current.actions as any).setTurnNumber(1);
       });
 
       act(() => {
-        result.current.actions.incrementTurn();
+        (result.current.actions as any).incrementTurn();
       });
 
       expect(result.current.battle.turnNumber).toBe(2);
@@ -288,9 +288,9 @@ describe('useBattleState', () => {
     it('setDeck으로 덱이 설정되어야 함', () => {
       const { result } = renderHook(() => useBattleState());
 
-      const deck = [{ id: 'card1' }, { id: 'card2' }];
+      const deck = [{ id: 'card1' }, { id: 'card2' }] as any;
       act(() => {
-        result.current.actions.setDeck(deck);
+        (result.current.actions as any).setDeck(deck);
       });
 
       expect(result.current.battle.deck).toHaveLength(2);
@@ -299,9 +299,9 @@ describe('useBattleState', () => {
     it('setDiscardPile로 무덤이 설정되어야 함', () => {
       const { result } = renderHook(() => useBattleState());
 
-      const discardPile = [{ id: 'card1' }];
+      const discardPile = [{ id: 'card1' }] as any;
       act(() => {
-        result.current.actions.setDiscardPile(discardPile);
+        (result.current.actions as any).setDiscardPile(discardPile);
       });
 
       expect(result.current.battle.discardPile).toHaveLength(1);
@@ -335,7 +335,7 @@ describe('useBattleState', () => {
       const { result } = renderHook(() => useBattleState());
 
       act(() => {
-        result.current.actions.setDistributionMode('multi');
+        (result.current.actions as any).setDistributionMode('multi');
       });
 
       expect(result.current.battle.distributionMode).toBe('multi');
@@ -344,9 +344,9 @@ describe('useBattleState', () => {
     it('setDamageDistribution으로 피해 분배가 설정되어야 함', () => {
       const { result } = renderHook(() => useBattleState());
 
-      const distribution = { unit1: 10, unit2: 15 };
+      const distribution = { unit1: 10, unit2: 15 } as any;
       act(() => {
-        result.current.actions.setDamageDistribution(distribution);
+        (result.current.actions as any).setDamageDistribution(distribution);
       });
 
       expect(result.current.battle.damageDistribution).toEqual(distribution);

@@ -246,7 +246,7 @@ export const TimelineDisplay: FC<TimelineDisplayProps> = ({
                   const offset = sameCount * 28;
                   const strengthBonus = player.strength || 0;
                   // growingDefense 특성 (방어자세): 타임라인 진행에 따라 방어력 실시간 증가
-                  const hasGrowingDef = hasSpecial(a.card, 'growingDefense');
+                  const hasGrowingDef = hasSpecial(a.card as any, 'growingDefense');
                   const currentTimelineSp = battle.phase === 'resolve'
                     ? Math.floor((timelineProgress / 100) * playerMax)
                     : 0;

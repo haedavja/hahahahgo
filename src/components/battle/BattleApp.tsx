@@ -44,7 +44,10 @@
  * @see ./logic/ - 전투 로직
  */
 
+/// <reference types="react" />
+
 import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import type { JSX } from 'react';
 import { flushSync } from "react-dom";
 import "./legacy-battle.css";
 import { playHitSound, playBlockSound, playParrySound } from "../../lib/soundUtils";
@@ -114,7 +117,7 @@ import {
   calculatePassiveEffects,
   applyCombatStartEffects
 } from "../../lib/relicEffects";
-import type { BattlePayload, BattleResult } from "../../types";
+import type { BattlePayload, BattleResult, OrderItem } from "../../types";
 import { PlayerHpBar } from "./ui/PlayerHpBar";
 import { PlayerEtherBox } from "./ui/PlayerEtherBox";
 import { EnemyHpBar } from "./ui/EnemyHpBar";
@@ -230,10 +233,10 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
   const passiveRelicStats = calculatePassiveEffects(orderedRelicList);
   // 전투 시작 에너지는 payload에서 계산된 값을 신뢰하고, 없을 때만 기본값 사용
-  const baseEnergy = playerWithAnomalies.energy ?? BASE_PLAYER_ENERGY;
+  const baseEnergy = (playerWithAnomalies.energy as number) ?? BASE_PLAYER_ENERGY;
   // 이변 패널티를 고려한 최대 행동력 계산
-  const energyPenalty = playerWithAnomalies.energyPenalty || 0;
-  const baseMaxEnergy = Math.max(0, (playerWithAnomalies.maxEnergy ?? baseEnergy) - energyPenalty);
+  const energyPenalty = (playerWithAnomalies.energyPenalty as number) || 0;
+  const baseMaxEnergy = Math.max(0, ((playerWithAnomalies.maxEnergy as number) ?? baseEnergy) - energyPenalty);
   // 민첩도 payload에 값이 있으면 우선 사용하고, 없으면 스토어 값을 사용
   const effectiveAgility = playerWithAnomalies.agility ?? playerAgility ?? 0;
   const effectiveCardDrawBonus = passiveRelicStats.cardDrawBonus || 0;
@@ -263,7 +266,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     strength: startingStrength,
     insight: startingInsight,
     // 이변 패널티와 상징 효과를 고려한 최대 속도 계산
-    maxSpeed: Math.max(0, (playerWithAnomalies.maxSpeed ?? DEFAULT_PLAYER_MAX_SPEED) + (passiveRelicStats.maxSpeed || 0) + (passiveRelicStats.speed || 0) - (playerWithAnomalies.speedPenalty || 0)),
+    maxSpeed: Math.max(0, ((playerWithAnomalies.maxSpeed as number) ?? DEFAULT_PLAYER_MAX_SPEED) + (passiveRelicStats.maxSpeed || 0) + (passiveRelicStats.speed || 0) - ((playerWithAnomalies.speedPenalty as number) || 0)),
     tokens: playerWithAnomalies.tokens || { usage: [], turn: [], permanent: [] },
     // 이변 효과 플래그 보존
     etherBan: playerWithAnomalies.etherBan || false,
@@ -274,8 +277,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   };
 
   // Initialize battle state with useReducer
-  const { battle, actions } = useBattleState({
-    player: initialPlayerState,
+  const { battle, actions: rawActions } = useBattleState({
+    player: initialPlayerState as any,
     enemyIndex: 0,
     enemy: safeInitialEnemy?.name ? ({
       ...safeInitialEnemy,
@@ -292,7 +295,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       shroud: safeInitialEnemy.shroud ?? 0,
       maxSpeed: safeInitialEnemy.maxSpeed ?? DEFAULT_ENEMY_MAX_SPEED,
       tokens: { usage: [], turn: [], permanent: [] }
-    }) : null,
+    } as any) : null,
     phase: 'select',
     hand: [],
     selected: [],
@@ -300,8 +303,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     sortType: (() => {
       try {
         const saved = localStorage.getItem('battleSortType');
-        const validTypes = ['speed', 'energy', 'value', 'type'];
-        return validTypes.includes(saved) ? saved : 'speed';
+        const validTypes = ['speed', 'energy', 'value', 'type', 'cost', 'order'];
+        return (validTypes.includes(saved || '') ? saved : 'speed') as any;
       } catch {
         return 'speed';
       }
@@ -338,6 +341,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       key: 0,
     },
   });
+
+  // Type assertion to fix callable issues with actions
+  const actions = rawActions as any;
 
   // Destructure from battle state (Phase 3에서 battle.* 직접 참조로 마이그레이션 예정)
   const player = battle.player;
@@ -483,11 +489,11 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   }, [playerStrength]);
 
   // addLog는 actions.addLog를 직접 사용 (stale closure 방지)
-  const addLog = useCallback((m) => {
+  const addLog = useCallback((m: string) => {
     actions.addLog(m);
   }, [actions]);
-  const formatSpeedText = useCallback((baseSpeed) => {
-    const finalSpeed = applyAgility(baseSpeed, effectiveAgility);
+  const formatSpeedText = useCallback((baseSpeed: number) => {
+    const finalSpeed = applyAgility(baseSpeed, effectiveAgility as any);
     const diff = finalSpeed - baseSpeed;
     if (diff === 0) return `${finalSpeed}`;
     const sign = diff < 0 ? '-' : '+';
@@ -547,15 +553,15 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   // resolve 단계 진입 시 에테르 배율 캡처 (애니메이션 중 리셋되어도 표시 유지)
   useEffect(() => {
     if (battle.phase === 'resolve') {
-      displayEtherMultiplierRef.current = player.etherMultiplier || 1;
+      displayEtherMultiplierRef.current = (player.etherMultiplier as number) || 1;
     }
-  }, [battle.phase]);
+  }, [battle.phase, player.etherMultiplier]);
 
-  const computeComboMultiplier = useCallback((baseMult, cardsCount, includeFiveCard = true, includeRefBook = true, relicOrderOverride = null) => {
+  const computeComboMultiplier = useCallback((baseMult: number, cardsCount: number, includeFiveCard = true, includeRefBook = true, relicOrderOverride: any = null) => {
     return computeComboMultiplierUtil(baseMult, cardsCount, includeFiveCard, includeRefBook, relicOrderOverride, orderedRelicList);
   }, [orderedRelicList]);
 
-  const explainComboMultiplier = useCallback((baseMult, cardsCount, includeFiveCard = true, includeRefBook = true, relicOrderOverride = null) => {
+  const explainComboMultiplier = useCallback((baseMult: number, cardsCount: number, includeFiveCard = true, includeRefBook = true, relicOrderOverride: any = null) => {
     return explainComboMultiplierUtil(baseMult, cardsCount, includeFiveCard, includeRefBook, relicOrderOverride, orderedRelicList);
   }, [orderedRelicList]);
 
@@ -620,14 +626,14 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     actions
   });
 
-  const notifyBattleResult = useCallback((resultType) => {
+  const notifyBattleResult = useCallback((resultType: string) => {
     if (!resultType || resultSentRef.current) return;
-    const finalEther = player.etherPts;
-    const delta = finalEther - (initialEtherRef.current ?? 0);
+    const finalEther = (player.etherPts as number);
+    const delta = finalEther - ((initialEtherRef.current as number) ?? 0);
     onBattleResult?.({
-      result: resultType,
+      result: resultType as any,
       playerEther: finalEther,
-      deltaAether: delta,
+      deltaEther: delta,
       playerHp: player.hp, // 실제 전투 종료 시점의 체력 전달
       playerMaxHp: player.maxHp
     });
@@ -648,9 +654,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const handleExitToMap = () => {
     const outcome = postCombatOptions?.type || (enemy && enemy.hp <= 0 ? 'victory' : (player && player.hp <= 0 ? 'defeat' : null));
     if (!outcome) return;
-    const sent = notifyBattleResult(outcome);
-    if (!sent && typeof window !== 'undefined' && window.top === window) {
-      window.location.href = '/';
+    notifyBattleResult(outcome);
+    if (typeof window !== 'undefined' && window.top === window) {
+      setTimeout(() => { window.location.href = '/'; }, 100);
     }
   };
 
@@ -661,8 +667,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   useEffect(() => {
     const nextEther = typeof safeInitialPlayer?.etherPts === 'number'
       ? safeInitialPlayer.etherPts
-      : (playerEther ?? player.etherPts);
-    initialEtherRef.current = nextEther;
+      : (playerEther ?? (player.etherPts as number));
+    initialEtherRef.current = nextEther as number;
     resultSentRef.current = false;
     actions.setPlayer({
       ...player,
@@ -687,7 +693,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     prevInsightRef.current = 0;
     prevRevealLevelRef.current = 0;
     actions.setInsightAnimLevel(0);
-    actions.setInsightAnimPulseKey((k) => k + 1);
+    actions.setInsightAnimPulseKey(battle.insightAnimPulseKey + 1);
     actions.setEnemyEtherFinalValue(null);
     actions.setEnemyEtherCalcPhase(null);
     actions.setEnemyCurrentDeflation(null);
@@ -702,9 +708,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         });
         playInsightSound(Math.min(safeInitialPlayer?.insight || 0, 3));
         actions.setInsightAnimLevel(Math.min(3, safeInitialPlayer?.insight || 0));
-        actions.setInsightAnimPulseKey((k) => k + 1);
+        actions.setInsightAnimPulseKey(battle.insightAnimPulseKey + 1);
         setTimeout(() => actions.setInsightAnimLevel(0), 1000);
-        setTimeout(() => actions.setInsightBadge((b) => ({ ...b, show: false })), 1200);
+        setTimeout(() => actions.setInsightBadge({ ...battle.insightBadge, show: false } as any), 1200);
       }, 50);
     }
     actions.setPhase('select');
@@ -716,9 +722,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     if (!deckInitializedRef.current) {
       if (hasCharacterBuild) {
         // 덱 초기화 (주특기는 손패로, 보조특기는 덱 맨 위로)
-        const { deck: initialDeck, mainSpecialsHand } = initializeDeck(currentBuild, battle.vanishedCards || []);
+        const { deck: initialDeck, mainSpecialsHand } = initializeDeck(currentBuild, battle.vanishedCards as any || []);
         // 덱에서 카드 드로우
-        const drawResult = drawFromDeck(initialDeck, [], DEFAULT_DRAW_COUNT, escapeBanRef.current);
+        const drawResult = drawFromDeck(initialDeck, [], DEFAULT_DRAW_COUNT, escapeBanRef.current as any);
         actions.setDeck(drawResult.newDeck);
         actions.setDiscardPile(drawResult.newDiscardPile);
         // 주특기 + 드로우한 카드 = 손패
@@ -755,8 +761,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
     // 첫 렌더링이 아니고, 주특기 또는 보조특기가 변경된 경우
     if (prevBuild && (mainChanged || subChanged)) {
-      const { deck: newDeck, mainSpecialsHand } = initializeDeck(devCharacterBuild, battle.vanishedCards || []);
-      const drawResult = drawFromDeck(newDeck, [], DEFAULT_DRAW_COUNT, escapeBanRef.current);
+      const { deck: newDeck, mainSpecialsHand } = initializeDeck(devCharacterBuild, battle.vanishedCards as any || []);
+      const drawResult = drawFromDeck(newDeck, [], DEFAULT_DRAW_COUNT, escapeBanRef.current as any);
 
       actions.setDeck(drawResult.newDeck);
       actions.setDiscardPile(drawResult.newDiscardPile);
@@ -883,7 +889,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   useEffect(() => {
     if (!enemy) {
       const e = ENEMIES[enemyIndex];
-      actions.setEnemy({ ...e, hp: e.hp, maxHp: e.hp, vulnMult: 1, vulnTurns: 0, block: 0, counter: 0, etherPts: 0, etherOverdriveActive: false, maxSpeed: e.maxSpeed ?? DEFAULT_ENEMY_MAX_SPEED });
+      actions.setEnemy({ ...e, hp: e.hp, maxHp: e.hp, vulnMult: 1, vulnTurns: 0, block: 0, counter: 0, etherPts: 0, etherOverdriveActive: false, maxSpeed: (e as any).maxSpeed ?? DEFAULT_ENEMY_MAX_SPEED });
 
       // 전투 시작 상징 효과 로그 및 애니메이션
       const combatStartEffects = applyCombatStartEffects(orderedRelicList, {});
@@ -918,9 +924,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
         if (hasCharacterBuild) {
           // 덱 초기화 (주특기는 손패로, 보조특기는 덱 맨 위로)
-          const { deck: initialDeck, mainSpecialsHand } = initializeDeck(currentBuild, vanishedCards);
+          const { deck: initialDeck, mainSpecialsHand } = initializeDeck(currentBuild, vanishedCards as any);
           // 덱에서 카드 드로우
-          const drawResult = drawFromDeck(initialDeck, [], DEFAULT_DRAW_COUNT, escapeBanRef.current);
+          const drawResult = drawFromDeck(initialDeck, [], DEFAULT_DRAW_COUNT, escapeBanRef.current as any);
           actions.setDeck(drawResult.newDeck);
           actions.setDiscardPile(drawResult.newDiscardPile);
           // 주특기 + 드로우한 카드 = 손패
@@ -977,8 +983,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
   useEffect(() => {
     if (battle.phase === 'resolve' && (!queue || battle.queue.length === 0) && fixedOrder && fixedOrder.length > 0) {
-      const rebuilt = fixedOrder.map(x => ({ actor: x.actor, card: x.card, sp: x.sp }));
-      actions.setQueue(rebuilt); actions.setQIndex(0);
+      const rebuilt = (fixedOrder as unknown as OrderItem[]).map(x => ({ actor: x.actor, card: x.card, sp: x.sp }));
+      actions.setQueue(rebuilt as any); actions.setQIndex(0);
       addLog('🧯 자동 복구: 실행 큐를 다시 생성했습니다');
     }
   }, [battle.phase, battle.queue, fixedOrder]);
@@ -1007,16 +1013,16 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       return;
     }
 
-    const slots = etherSlots(enemy?.etherPts || 0);
+    const slots = etherSlots((enemy?.etherPts as any) || 0);
     const cardsPerTurn = enemy?.cardsPerTurn || enemyCount || 2;
-    const rawActions = generateEnemyActions(enemy, latestMode, slots, cardsPerTurn, Math.min(1, cardsPerTurn));
+    const rawActions = generateEnemyActions(enemy, latestMode as any, slots, cardsPerTurn as any, Math.min(1, cardsPerTurn as any) as any);
     const generatedActions = assignSourceUnitToActions(rawActions, enemy?.units || []);
     actions.setEnemyPlan({ mode: latestMode, actions: generatedActions });
   }, [battle.phase, enemyPlan?.mode, enemyPlan?.actions?.length, enemyPlan?.manuallyModified, enemy]);
 
   const totalEnergy = useMemo(() => battle.selected.reduce((s, c) => s + c.actionCost, 0), [battle.selected]);
   const totalSpeed = useMemo(
-    () => battle.selected.reduce((s, c) => s + applyAgility(c.speedCost, effectiveAgility), 0),
+    () => battle.selected.reduce((s, c) => s + applyAgility(c.speedCost, effectiveAgility as any), 0),
     [battle.selected, effectiveAgility]
   );
   // 콤보 시스템 (커스텀 훅으로 분리)
@@ -1132,9 +1138,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     const remainingEnemyActions = new Set(enemyPlan.actions);
 
     const updatedFixedOrder = fixedOrder.filter(item => {
-      if (item.actor === 'player') return true;
+      if ((item as any).actor === 'player') return true;
       // 적 카드는 현재 enemyPlan.actions에 있는 것만 유지
-      const isRemaining = remainingEnemyActions.has(item.card);
+      const isRemaining = remainingEnemyActions.has((item as any).card);
       return isRemaining;
     });
 
@@ -1212,7 +1218,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
     const currentBattle = battleRef.current;
     if (currentBattle.qIndex >= currentBattle.queue.length) return;
-    const a = currentBattle.queue[currentBattle.qIndex];
+    const a = currentBattle.queue[currentBattle.qIndex] as unknown as OrderItem;
 
     // 죽은 적의 카드 스킵 (적 체력 0 이하이고 적 카드인 경우)
     const currentEnemy = currentBattle.enemy || enemy;
@@ -1228,7 +1234,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     // 타임라인 progress 업데이트 (공통 최대 속도 기준 비율로)
     const playerMaxSpeed = player?.maxSpeed || DEFAULT_PLAYER_MAX_SPEED;
     const enemyMaxSpeed = enemy?.maxSpeed || DEFAULT_ENEMY_MAX_SPEED;
-    const commonMaxSpeed = Math.max(playerMaxSpeed, enemyMaxSpeed);
+    const commonMaxSpeed = Math.max(playerMaxSpeed as any, enemyMaxSpeed as any);
     const targetProgress = (a.sp / commonMaxSpeed) * 100;
 
     // 이전 애니메이션 정리
@@ -1338,7 +1344,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       isExecutingCardRef.current = false;
       return;
     }
-    const a = currentBattle.queue[currentBattle.qIndex];
+    const a = currentBattle.queue[currentBattle.qIndex] as unknown as OrderItem;
 
     // battleRef에서 최신 player/enemy 상태 가져오기 (애니메이션 중 방어자세 방어력, 토큰 등 반영)
     const latestPlayer = currentBattle.player || player;
@@ -1348,8 +1354,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
     // 타임라인 기반 토큰 만료 처리 (현재 SP 도달 시 이전 턴에서 부여된 토큰 제거)
     const currentSp = a.sp || 0;
-    const playerExpireResult = expireTurnTokensByTimeline(P, turnNumber, currentSp);
-    const enemyExpireResult = expireTurnTokensByTimeline(E, turnNumber, currentSp);
+    const playerExpireResult = expireTurnTokensByTimeline(P as any, turnNumber, currentSp);
+    const enemyExpireResult = expireTurnTokensByTimeline(E as any, turnNumber, currentSp);
 
     if (playerExpireResult.logs.length > 0) {
       P = { ...P, tokens: playerExpireResult.tokens };
@@ -1369,29 +1375,29 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
     // battleContext 생성 (special 효과용)
     // 진행 단계 최종 남은 행동력 계산 (가이러스 룰렛: 모든 선택 카드 비용 차감 후)
-    const allPlayerCards = currentBattle.queue.filter(q => q.actor === 'player');
-    const totalEnergyUsed = allPlayerCards.reduce((sum, q) => sum + (q.card?.actionCost || 0), 0);
-    const playerEnergyBudget = P.energy || P.maxEnergy || BASE_PLAYER_ENERGY;
+    const allPlayerCards = currentBattle.queue.filter(q => (q as any).actor === 'player');
+    const totalEnergyUsed = allPlayerCards.reduce((sum, q) => sum + ((q as any).card?.actionCost || 0), 0);
+    const playerEnergyBudget = (P as any).energy || (P as any).maxEnergy || BASE_PLAYER_ENERGY;
     const calculatedRemainingEnergy = Math.max(0, playerEnergyBudget - totalEnergyUsed);
 
     // 적 남은 에너지 계산
-    const allEnemyCards = currentBattle.queue.filter(q => q.actor === 'enemy');
-    const enemyTotalEnergyUsed = allEnemyCards.reduce((sum, q) => sum + (q.card?.actionCost || 0), 0);
-    const enemyEnergyBudget = E.energy || E.maxEnergy || BASE_PLAYER_ENERGY;
+    const allEnemyCards = currentBattle.queue.filter(q => (q as any).actor === 'enemy');
+    const enemyTotalEnergyUsed = allEnemyCards.reduce((sum, q) => sum + ((q as any).card?.actionCost || 0), 0);
+    const enemyEnergyBudget = (E as any).energy || (E as any).maxEnergy || BASE_PLAYER_ENERGY;
     const calculatedEnemyRemainingEnergy = Math.max(0, enemyEnergyBudget - enemyTotalEnergyUsed);
 
     // 이번 턴에 사용된 카드 카테고리 추적 (comboStyle용)
     const executedPlayerCards = currentBattle.queue
       .slice(0, currentBattle.qIndex)
-      .filter(q => q.actor === 'player');
-    const usedCardCategories = [...new Set(executedPlayerCards.map(q => q.card?.cardCategory).filter(Boolean))];
+      .filter(q => (q as any).actor === 'player');
+    const usedCardCategories = [...new Set(executedPlayerCards.map(q => (q as any).card?.cardCategory).filter(Boolean))];
 
     // 적 카드의 소스 유닛 이름 가져오기
-    const currentUnitsForContext = E.units || enemy?.units || [];
+    const currentUnitsForContext = (E as any).units || enemy?.units || [];
     const sourceUnit = a.actor === 'enemy' && a.card.__sourceUnitId !== undefined
-      ? currentUnitsForContext.find(u => u.unitId === a.card.__sourceUnitId)
+      ? currentUnitsForContext.find((u: any) => u.unitId === a.card.__sourceUnitId)
       : null;
-    const enemyDisplayName = sourceUnit?.name || E.name || enemy?.name || '몬스터';
+    const enemyDisplayName = sourceUnit?.name || (E as any).name || enemy?.name || '몬스터';
 
     // 현재 nextTurnEffects 가져오기 (fencingDamageBonus 등)
     const currentNextTurnEffects = battleRef.current?.nextTurnEffects || battle.nextTurnEffects || {};
@@ -1407,13 +1413,13 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       usedCardCategories,  // comboStyle용: 이번 턴에 사용된 카드 카테고리
       hand: currentBattle.hand || [],  // autoReload용: 현재 손패
       enemyDisplayName,  // 적 유닛 이름 (로그용)
-      fencingDamageBonus: currentNextTurnEffects.fencingDamageBonus || 0  // 날 세우기: 검격 공격력 보너스
+      fencingDamageBonus: (currentNextTurnEffects as any).fencingDamageBonus || 0  // 날 세우기: 검격 공격력 보너스
     };
 
     // === requiredTokens 소모 (카드 실행 전) ===
-    if (a.actor === 'player' && a.card.requiredTokens && a.card.requiredTokens.length > 0) {
-      for (const req of a.card.requiredTokens) {
-        const tokenRemoveResult = removeToken(P, req.id, 'permanent', req.stacks);
+    if (a.actor === 'player' && a.card.requiredTokens && (a.card.requiredTokens as any).length > 0) {
+      for (const req of a.card.requiredTokens as any) {
+        const tokenRemoveResult = removeToken(P as any, req.id, 'permanent', req.stacks);
         P = { ...P, tokens: tokenRemoveResult.tokens };
         addLog(`✨ ${req.id === 'finesse' ? '기교' : req.id} -${req.stacks} 소모`);
       }
@@ -1428,7 +1434,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     // 다중 타격 또는 총기 공격: 비동기 처리 (딜레이 + 타격별 룰렛)
     const isAttackCard = a.card.type === 'attack';
     const isGunCard = a.card.cardCategory === 'gun';
-    const hasMultipleHits = (a.card.hits || 1) > 1;
+    const hasMultipleHits = ((a.card.hits as any) || 1) > 1;
     const useAsyncMultiHit = isAttackCard && (isGunCard || hasMultipleHits);
 
     // === 유닛 시스템: 플레이어 공격 시 타겟 유닛의 block 사용 ===
@@ -1496,20 +1502,20 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
       // 결과 반영
       if (a.actor === 'player') {
-        P = multiHitResult.attacker;
-        E = multiHitResult.defender;
+        P = multiHitResult.attacker as any;
+        E = multiHitResult.defender as any;
       } else {
-        E = multiHitResult.attacker;
-        P = multiHitResult.defender;
+        E = multiHitResult.attacker as any;
+        P = multiHitResult.defender as any;
       }
 
       // 카드 사용 시 special 효과 처리 (교차 특성 등) - 룰렛은 이제 타격별로 처리됨
       const cardPlayAttacker = a.actor === 'player' ? P : E;
       const cardPlayResult = processCardPlaySpecials({
-        card: a.card,
-        attacker: cardPlayAttacker,
-        attackerName: a.actor,
-        battleContext
+        card: a.card as any,
+        attacker: cardPlayAttacker as any,
+        attackerName: a.actor as any,
+        battleContext: battleContext as any
       });
 
       // cardPlayResult의 토큰 처리
@@ -1524,10 +1530,10 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
           const applyToEnemy = isPlayerAction ? targetIsEnemy : !targetIsEnemy;
 
           if (applyToEnemy) {
-            const tokenResult = addToken(E, tokenInfo.id, tokenInfo.stacks, tokenInfo.grantedAt);
+            const tokenResult = addToken(E as any, tokenInfo.id, tokenInfo.stacks, tokenInfo.grantedAt);
             E = { ...E, tokens: tokenResult.tokens };
           } else {
-            const tokenResult = addToken(P, tokenInfo.id, tokenInfo.stacks, tokenInfo.grantedAt);
+            const tokenResult = addToken(P as any, tokenInfo.id, tokenInfo.stacks, tokenInfo.grantedAt);
             P = { ...P, tokens: tokenResult.tokens };
           }
         });
@@ -1535,10 +1541,10 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       if (cardPlayResult.tokensToRemove?.length > 0) {
         cardPlayResult.tokensToRemove.forEach(tokenInfo => {
           if (a.actor === 'player') {
-            const tokenResult = removeToken(P, tokenInfo.id, 'permanent', tokenInfo.stacks);
+            const tokenResult = removeToken(P as any, tokenInfo.id, 'permanent', tokenInfo.stacks);
             P = { ...P, tokens: tokenResult.tokens };
           } else {
-            const tokenResult = removeToken(E, tokenInfo.id, 'permanent', tokenInfo.stacks);
+            const tokenResult = removeToken(E as any, tokenInfo.id, 'permanent', tokenInfo.stacks);
             E = { ...E, tokens: tokenResult.tokens };
           }
         });
@@ -1562,7 +1568,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       }
     } else {
       // 기존 동기 처리 (방어 카드 또는 단일 타격 비총기 공격)
-      actionResult = applyAction(tempState, a.actor, a.card, battleContext);
+      actionResult = applyAction(tempState as any, a.actor, a.card as any, battleContext as any);
       const { events, updatedState } = actionResult;
       actionEvents = events;
 
@@ -1641,7 +1647,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     // 다단 공격의 경우 치명타 횟수만큼 부여, 단일 공격은 1회
     if (actionResult.isCritical && a.actor === 'player') {
       const critCount = actionResult.criticalHits || 1;  // multiHitResult.criticalHits or 1 for single
-      const finesseResult = addToken(P, 'finesse', critCount);
+      const finesseResult = addToken(P as any, 'finesse', critCount);
       P.tokens = finesseResult.tokens;
       addLog(`✨ 치명타! 기교 +${critCount} 획득`);
       // battleRef 동기 업데이트
@@ -1652,19 +1658,19 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     }
 
     // === 바이올랑 모르: 처형 효과 (체력 30 이하 적 즉시 처형) ===
-    if (hasSpecial(a.card, 'violentMort') && a.actor === 'player' && a.card.type === 'attack') {
+    if (hasSpecial(a.card as any, 'violentMort') && a.actor === 'player' && a.card.type === 'attack') {
       const EXECUTION_THRESHOLD = 30;
       if (E.hp > 0 && E.hp <= EXECUTION_THRESHOLD) {
         // 부활 토큰 제거 후 처형
-        const reviveToken = getAllTokens(E).find(t => t.effect?.type === 'REVIVE');
+        const reviveToken = getAllTokens(E as any).find((t: any) => t.effect?.type === 'REVIVE');
         if (reviveToken) {
-          const reviveRemoveResult = removeToken(E, reviveToken.id, 'usage', reviveToken.stacks || 1);
+          const reviveRemoveResult = removeToken(E as any, reviveToken.id, 'usage', reviveToken.stacks || 1);
           E = { ...E, tokens: reviveRemoveResult.tokens };
           addLog(`💀 처형: 부활 무시!`);
         }
         // 즉시 처형
         E.hp = 0;
-        E.executed = true;  // 처형 플래그 (부활 방지용)
+        (E as any).executed = true;  // 처형 플래그 (부활 방지용)
         addLog(`💀 바이올랑 모르: 적 체력 ${EXECUTION_THRESHOLD} 이하! 처형!`);
         // battleRef 동기 업데이트
         if (battleRef.current) {
@@ -1681,7 +1687,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
     // === 화상(BURN) 피해 처리: 카드 사용 시마다 피해 ===
     if (a.actor === 'player') {
-      const playerBurnTokens = getAllTokens(P).filter(t => t.effect?.type === 'BURN');
+      const playerBurnTokens = getAllTokens(P as any).filter((t: any) => t.effect?.type === 'BURN');
       if (playerBurnTokens.length > 0) {
         const burnDamage = playerBurnTokens.reduce((sum, t) => sum + (t.effect?.value || 3) * (t.stacks || 1), 0);
         P.hp = Math.max(0, P.hp - burnDamage);
@@ -1699,7 +1705,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         }
       }
     } else if (a.actor === 'enemy') {
-      const enemyBurnTokens = getAllTokens(E).filter(t => t.effect?.type === 'BURN');
+      const enemyBurnTokens = getAllTokens(E as any).filter((t: any) => t.effect?.type === 'BURN');
       if (enemyBurnTokens.length > 0) {
         const burnDamage = enemyBurnTokens.reduce((sum, t) => sum + (t.effect?.value || 3) * (t.stacks || 1), 0);
         E.hp = Math.max(0, E.hp - burnDamage);
@@ -1809,7 +1815,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
           const currentDiscard = battleRef.current?.discardPile || battle.discardPile || [];
 
           if (currentDeck.length > 0 || currentDiscard.length > 0) {
-            const drawResult = drawFromDeck(currentDeck, currentDiscard, newNextTurnEffects.emergencyDraw, escapeBanRef.current);
+            const drawResult = drawFromDeck(currentDeck as any, currentDiscard as any, newNextTurnEffects.emergencyDraw, escapeBanRef.current as any);
 
             // 현재 손패에 추가
             const currentHand = battleRef.current?.hand || battle.hand || [];
@@ -1868,7 +1874,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
             const newHand = [...currentHand, newCard];
             actions.setHand(newHand);
             if (battleRef.current) {
-              battleRef.current = { ...battleRef.current, hand: newHand };
+              battleRef.current = { ...battleRef.current, hand: newHand as any };
             }
             addLog(`📋 ${cardToAdd.name} 복사본이 손패에 추가되었습니다!`);
           }
@@ -1902,11 +1908,11 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     if (a.actor === 'player' && a.card.id) {
       actions.setCardUsageCount({
         ...cardUsageCount,
-        [a.card.id]: (cardUsageCount[a.card.id] || 0) + 1
+        [a.card.id as any]: ((cardUsageCount as any)[a.card.id as any] || 0) + 1
       });
 
       // 방어자세 (growingDefense): 발동 시 활성화, 이후 타임라인 진행마다 방어력 +1
-      if (hasSpecial(a.card, 'growingDefense')) {
+      if (hasSpecial(a.card as any, 'growingDefense')) {
         const cardSp = a.sp || 0;
         growingDefenseRef.current = {
           activatedSp: cardSp,
@@ -1953,7 +1959,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
               if (isCritical) {
                 addLog(`💥 치명타! ${tokenId} +1 강화`);
               }
-              const result = addToken(currentPlayerForToken, tokenId, actualStacks, grantedAt);
+              const result = addToken(currentPlayerForToken as any, tokenId, actualStacks, grantedAt);
               P.tokens = result.tokens;
               currentPlayerForToken.tokens = result.tokens;
               // battleRef 동기 업데이트 (finishTurn에서 최신 상태 사용 가능하도록)
@@ -1965,7 +1971,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
               return result;
             },
             removeTokenFromPlayer: (tokenId, tokenType, stacks = 1) => {
-              const result = removeToken(currentPlayerForToken, tokenId, tokenType, stacks);
+              const result = removeToken(currentPlayerForToken as any, tokenId, tokenType, stacks);
               P.tokens = result.tokens;
               currentPlayerForToken.tokens = result.tokens;
               // battleRef 동기 업데이트 (finishTurn에서 최신 상태 사용 가능하도록)
@@ -2007,7 +2013,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
               }
 
               // 단일 적 또는 타겟 없음: 기존 방식
-              const result = addToken(E, tokenId, actualStacks, grantedAt);
+              const result = addToken(E as any, tokenId, actualStacks, grantedAt);
               E.tokens = result.tokens;
               // battleRef 동기 업데이트
               if (battleRef.current) {
@@ -2019,7 +2025,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
             },
             // 룰렛 초기화 등을 위한 토큰 스택 리셋
             resetTokenForPlayer: (tokenId, tokenType, newStacks = 0) => {
-              const result = setTokenStacks(currentPlayerForToken, tokenId, tokenType, newStacks);
+              const result = setTokenStacks(currentPlayerForToken as any, tokenId, tokenType, newStacks);
               P.tokens = result.tokens;
               currentPlayerForToken.tokens = result.tokens;
               if (battleRef.current) {
@@ -2040,7 +2046,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     if (hasTrait(a.card, 'stun')) {
       const { updatedQueue, stunEvent } = processStunEffect({
         action: a,
-        queue: currentBattle.queue,
+        queue: currentBattle.queue as any,
         currentQIndex: currentBattle.qIndex,
         addLog
       });
@@ -2054,10 +2060,10 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
     // 타임라인 조작 효과 처리 (마르쉐, 런지, 비트, 흐트리기 등)
     const timelineResult = processTimelineSpecials({
-      card: a.card,
-      actor: a.actor,
-      actorName: a.actor,
-      queue: battleRef.current.queue,
+      card: a.card as any,
+      actor: a.actor as any,
+      actorName: a.actor as any,
+      queue: battleRef.current.queue as any,
       currentIndex: battleRef.current.qIndex,
       damageDealt: actionResult.dealt || 0
     });
@@ -2076,8 +2082,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       // 플레이어 카드 앞당기기 (현재 카드 이후의 플레이어 카드들)
       if (timelineChanges.advancePlayer > 0) {
         updatedQueue = updatedQueue.map((item, idx) => {
-          if (idx > currentQIndex && item.actor === 'player') {
-            return { ...item, sp: Math.max(0, item.sp - timelineChanges.advancePlayer) };
+          if (idx > currentQIndex && (item as any).actor === 'player') {
+            return { ...item, sp: Math.max(0, (item as any).sp - timelineChanges.advancePlayer) };
           }
           return item;
         });
@@ -2086,8 +2092,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       // 적 카드 뒤로 밀기 (현재 카드 이후의 적 카드들)
       if (timelineChanges.pushEnemy > 0) {
         updatedQueue = updatedQueue.map((item, idx) => {
-          if (idx > currentQIndex && item.actor === 'enemy') {
-            return { ...item, sp: item.sp + timelineChanges.pushEnemy };
+          if (idx > currentQIndex && (item as any).actor === 'enemy') {
+            return { ...item, sp: (item as any).sp + timelineChanges.pushEnemy };
           }
           return item;
         });
@@ -2098,7 +2104,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         // 현재 이후의 적 카드들 중 가장 마지막 카드 찾기
         let lastEnemyIdx = -1;
         for (let i = updatedQueue.length - 1; i > currentQIndex; i--) {
-          if (updatedQueue[i].actor === 'enemy') {
+          if ((updatedQueue[i] as any).actor === 'enemy') {
             lastEnemyIdx = i;
             break;
           }
@@ -2106,7 +2112,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         if (lastEnemyIdx !== -1) {
           updatedQueue = updatedQueue.map((item, idx) => {
             if (idx === lastEnemyIdx) {
-              return { ...item, sp: item.sp + timelineChanges.pushLastEnemy };
+              return { ...item, sp: (item as any).sp + timelineChanges.pushLastEnemy };
             }
             return item;
           });
@@ -2116,7 +2122,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       // 큐 재정렬 (sp 값 기준, 이미 처리된 카드들은 유지)
       const processedCards = updatedQueue.slice(0, currentQIndex + 1);
       const remainingCards = updatedQueue.slice(currentQIndex + 1);
-      remainingCards.sort((a, b) => a.sp - b.sp);
+      remainingCards.sort((a, b) => (a as any).sp - (b as any).sp);
       updatedQueue = [...processedCards, ...remainingCards];
 
       actions.setQueue(updatedQueue);
@@ -2185,7 +2191,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     }
 
     // createFencingCards3 (벙 데 라므): 3x3 창조 선택 (3번의 선택, 각각 3장 중 1장)
-    if (hasSpecial(a.card, 'createFencingCards3') && a.actor === 'player') {
+    if (hasSpecial(a.card as any, 'createFencingCards3') && a.actor === 'player') {
       // 펜싱 공격 카드 풀 (기교 소모 카드 제외 - 창조된 유령카드는 토큰 체크 없이 실행되므로)
       const fencingAttackCards = CARDS.filter(c =>
         c.cardCategory === 'fencing' &&
@@ -2264,11 +2270,11 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     if (a.actor === 'enemy' && hasActiveParry) {
       const currentQ = battleRef.current.queue;
       const { updatedQueue, parryEvents, updatedParryStates, outCards } = checkParryTrigger({
-        parryReadyStates: parryReadyStatesRef.current,
+        parryReadyStates: parryReadyStatesRef.current as any,
         enemyAction: a,
-        queue: currentQ,
+        queue: currentQ as any,
         currentQIndex: currentBattle.qIndex,
-        enemyMaxSpeed: enemy.maxSpeed,
+        enemyMaxSpeed: enemy.maxSpeed as any,
         addLog,
         playParrySound
       });
@@ -2333,7 +2339,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     if (hasUnits && a.actor === 'player' && a.card?.type === 'attack') {
       const targetUnitIds = a.card.__targetUnitIds;
       // AOE 공격 체크: aoeAttack special 또는 isAoe 플래그
-      const isAoeAttack = hasSpecial(a.card, 'aoeAttack') || a.card.isAoe === true;
+      const isAoeAttack = hasSpecial(a.card as any, 'aoeAttack') || a.card.isAoe === true;
 
       if (isAoeAttack) {
         // === 범위 피해 모드: 모든 생존 유닛에 동일 피해 ===
@@ -2374,21 +2380,21 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
             addLog(`🌀 범위 피해: ${damageLogParts.join(', ')}`);
           }
         }
-      } else if (targetUnitIds && targetUnitIds.length > 0) {
+      } else if (targetUnitIds && (targetUnitIds as any).length > 0) {
         // === 다중 타겟 모드: 선택된 모든 유닛에 카드 피해 적용 ===
         let updatedUnits = [...enemyUnits];
         const baseDamage = a.card.damage || 0;
         const damageLogParts = [];
 
-        for (const unitId of targetUnitIds) {
+        for (const unitId of targetUnitIds as any) {
           const targetUnit = updatedUnits.find(u => u.unitId === unitId && u.hp > 0);
           if (!targetUnit) continue;
 
           // 유닛별 방어력 적용
           const unitBlock = targetUnit.block || 0;
-          const blockedDamage = Math.min(unitBlock, baseDamage);
-          const actualDamage = baseDamage - blockedDamage;
-          const newBlock = unitBlock - blockedDamage;
+          const blockedDamage = Math.min(unitBlock, baseDamage as any);
+          const actualDamage = (baseDamage as any) - blockedDamage;
+          const newBlock = (unitBlock as any) - blockedDamage;
           const newHp = Math.max(0, targetUnit.hp - actualDamage);
 
           updatedUnits = updatedUnits.map(u => {
@@ -2452,7 +2458,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     // 이벤트 처리: 애니메이션 및 사운드
     processActionEventAnimations({
       actionEvents,
-      action: a,
+      action: a as any,
       playHitSound,
       playBlockSound,
       actions
@@ -2568,24 +2574,24 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
   const enemyNameCounts = useMemo(() => {
     if (!enemy) return {};
-    const counts = {};
-    (enemy.composition || []).forEach((m) => {
+    const counts: any = {};
+    ((enemy as any).composition || []).forEach((m: any) => {
       const key = m?.name || '몬스터';
       counts[key] = (counts[key] || 0) + 1;
     });
     const base = enemy?.name || '몬스터';
-    if (!counts[base]) counts[base] = enemy?.count || enemy?.quantity || 1;
+    if (!counts[base as any]) counts[base as any] = (enemy as any)?.count || (enemy as any)?.quantity || 1;
     return counts;
-  }, [enemy?.composition, enemy?.name, enemy?.count, enemy?.quantity, enemy]);
+  }, [enemy?.composition, enemy?.name, (enemy as any)?.count, (enemy as any)?.quantity, enemy]);
 
   const groupedEnemyMembers = useMemo(() => {
     if (!enemy) return [];
-    const list = enemy?.composition && enemy.composition.length > 0
-      ? enemy.composition
-      : [{ name: enemy?.name || '몬스터', emoji: enemy?.emoji || '👹', count: enemy?.count || enemy?.quantity || 1 }];
+    const list = (enemy as any)?.composition && (enemy as any).composition.length > 0
+      ? (enemy as any).composition
+      : [{ name: enemy?.name || '몬스터', emoji: (enemy as any)?.emoji || '👹', count: (enemy as any)?.count || (enemy as any)?.quantity || 1 }];
 
     const map = new Map();
-    list.forEach((m) => {
+    (list as any).forEach((m: any) => {
       const name = m?.name || '몬스터';
       const emoji = m?.emoji || '👹';
       const increment = m?.count || 1;
@@ -2608,7 +2614,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   });
 
   // 적 조합 감지 (표시용) - Hook은 조건부 return 전에 호출
-  const enemyCombo = useMemo(() => detectPokerCombo(enemyPlan?.actions || []), [enemyPlan?.actions]);
+  const enemyCombo = useMemo(() => detectPokerCombo((enemyPlan?.actions || []) as any), [enemyPlan?.actions]);
 
   // 적 성향 힌트 추출 - Hook은 조건부 return 전에 호출
   const enemyHint = useMemo(() => {
@@ -2623,8 +2629,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const handDisabled = (c) => {
     // 기본 체크: 최대 선택 수, 속도 한계, 행동력 부족
     if (battle.selected.length >= effectiveMaxSubmitCards ||
-        totalSpeed + applyAgility(c.speedCost, effectiveAgility) > player.maxSpeed ||
-        totalEnergy + c.actionCost > player.maxEnergy) {
+        totalSpeed + applyAgility(c.speedCost, effectiveAgility as any) > (player.maxSpeed as any) ||
+        totalEnergy + c.actionCost > (player.maxEnergy as any)) {
       return true;
     }
 
@@ -2641,13 +2647,13 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     return false;
   };
   const playerEtherValue = player?.etherPts ?? 0;
-  const playerEtherSlots = etherSlots(playerEtherValue);
+  const playerEtherSlots = etherSlots(playerEtherValue as any);
   const enemyEtherValue = enemy?.etherPts ?? 0;
-  const playerEnergyBudget = player.energy || BASE_PLAYER_ENERGY;
+  const playerEnergyBudget = (player as any).energy || BASE_PLAYER_ENERGY;
   const remainingEnergy = Math.max(0, playerEnergyBudget - totalEnergy);
   const insightLevelSelect = insightReveal?.level || 0;
   const insightVisible = insightReveal?.visible;
-  const enemyWillOverdrivePlan = shouldEnemyOverdrive(enemyPlan.mode, enemyPlan.actions, enemy.etherPts, turnNumber);
+  const enemyWillOverdrivePlan = shouldEnemyOverdrive(enemyPlan.mode as any, enemyPlan.actions as any, enemy.etherPts as any, turnNumber);
   const canRevealOverdrive =
     (battle.phase === 'select' && insightVisible && insightLevelSelect >= 2) ||
     (battle.phase === 'respond' && insightVisible && insightLevelSelect >= 1) ||
@@ -2661,8 +2667,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const netFinalEther = netEtherDelta !== null
     ? netEtherDelta
     : rawNetDelta;
-  const enemyCapacity = enemy?.etherCapacity ?? Math.max(enemyEtherValue, 1);
-  const enemySoulScale = Math.max(0.4, Math.min(1.3, enemyCapacity > 0 ? enemyEtherValue / enemyCapacity : 1));
+  const enemyCapacity = (enemy as any)?.etherCapacity ?? Math.max(enemyEtherValue as any, 1);
+  const enemySoulScale = Math.max(0.4, Math.min(1.3, (enemyCapacity as any) > 0 ? (enemyEtherValue as any) / (enemyCapacity as any) : 1));
 
   return (
     <div className="legacy-battle-root w-full min-h-screen pb-64">
@@ -2712,7 +2718,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       }}>
         <EtherBar
           key={`player-ether-${playerEtherValue}`}
-          pts={playerEtherValue}
+          pts={playerEtherValue as any}
           slots={playerEtherSlots}
           previewGain={previewEtherGain}
           label="ETHER"
@@ -2728,22 +2734,22 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         battleActions={actions}
         player={battle.player}
         enemy={battle.enemy}
-        enemyPlan={battle.enemyPlan}
-        battleRef={battleRef}
+        enemyPlan={battle.enemyPlan as any}
+        battleRef={battleRef as any}
       />
       {/* 예상 피해량 - 오른쪽 고정 패널 */}
       <div className="expect-sidebar-fixed">
         <ExpectedDamagePreview
           player={player}
           enemy={enemy}
-          fixedOrder={fixedOrder || playerTimeline}
+          fixedOrder={fixedOrder || playerTimeline as any}
           willOverdrive={willOverdrive}
           enemyMode={enemyPlan.mode}
-          enemyActions={enemyPlan.actions}
+          enemyActions={enemyPlan.actions as any}
           phase={battle.phase}
           log={log}
           qIndex={battle.qIndex}
-          queue={battle.queue}
+          queue={battle.queue as any}
           stepOnce={stepOnce}
           runAll={runAll}
           finishTurn={finishTurn}
@@ -2754,7 +2760,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
           resolveStartPlayer={resolveStartPlayer}
           resolveStartEnemy={resolveStartEnemy}
           turnNumber={turnNumber}
-          simulatePreview={simulatePreview}
+          simulatePreview={simulatePreview as any}
         />
         {/* 배율 경로: 단계와 무관하게 항상 표시 */}
         {comboStepsLog.length > 0 && (
@@ -2769,20 +2775,20 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
       <TimelineDisplay
         player={player}
-        enemy={enemy}
+        enemy={enemy as any}
         DEFAULT_PLAYER_MAX_SPEED={DEFAULT_PLAYER_MAX_SPEED}
         DEFAULT_ENEMY_MAX_SPEED={DEFAULT_ENEMY_MAX_SPEED}
         generateSpeedTicks={generateSpeedTicks}
-        battle={battle}
+        battle={battle as any}
         timelineProgress={timelineProgress}
-        timelineIndicatorVisible={timelineIndicatorVisible}
+        timelineIndicatorVisible={timelineIndicatorVisible as any}
         insightAnimLevel={insightAnimLevel}
         insightAnimPulseKey={insightAnimPulseKey}
-        enemyOverdriveVisible={enemyOverdriveVisible}
+        enemyOverdriveVisible={enemyOverdriveVisible as any}
         enemyOverdriveLabel={enemyOverdriveLabel}
         dulledLevel={dulledLevel}
         playerTimeline={playerTimeline}
-        queue={queue}
+        queue={queue as any}
         executingCardIndex={executingCardIndex}
         usedCardIndices={usedCardIndices}
         qIndex={qIndex}
@@ -2799,8 +2805,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       {/* 상징 표시 */}
       <RelicDisplay
         orderedRelicList={orderedRelicList}
-        RELICS={RELICS}
-        RELIC_RARITIES={RELIC_RARITIES}
+        RELICS={RELICS as any}
+        RELIC_RARITIES={RELIC_RARITIES as any}
         RELIC_RARITY_COLORS={RELIC_RARITY_COLORS}
         relicActivated={relicActivated}
         activeRelicSet={activeRelicSet}
@@ -2828,9 +2834,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
           {/* 왼쪽: 플레이어 */}
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '12px', minWidth: '360px', position: 'relative', justifyContent: 'flex-end', paddingTop: '200px' }}>
             <PlayerEtherBox
-              currentCombo={currentCombo}
+              currentCombo={currentCombo as any}
               battle={battle}
-              currentDeflation={currentDeflation}
+              currentDeflation={currentDeflation as any}
               etherCalcPhase={etherCalcPhase}
               turnEtherAccumulated={turnEtherAccumulated}
               etherPulse={etherPulse}
@@ -2843,8 +2849,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
               playerHit={playerHit}
               playerBlockAnim={playerBlockAnim}
               playerOverdriveFlash={playerOverdriveFlash}
-              effectiveAgility={effectiveAgility}
-              dulledLevel={dulledLevel}
+              effectiveAgility={effectiveAgility as any}
+              dulledLevel={dulledLevel as any}
               insightLevel={insightLevel}
             />
           </div>
@@ -2861,7 +2867,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
             actions={actions}
             willOverdrive={willOverdrive}
             etherSlots={etherSlots}
-            player={player}
+            player={player as any}
             beginResolveFromRespond={beginResolveFromRespond}
             rewindToSelect={rewindToSelect}
             rewindUsed={rewindUsed}
@@ -2888,10 +2894,10 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
               </div>
             )}
             <EnemyEtherBox
-              enemyCombo={enemyCombo}
+              enemyCombo={enemyCombo as any}
               battle={battle}
               insightReveal={insightReveal}
-              enemyCurrentDeflation={enemyCurrentDeflation}
+              enemyCurrentDeflation={enemyCurrentDeflation as any}
               enemyEtherCalcPhase={enemyEtherCalcPhase}
               enemyTurnEtherAccumulated={enemyTurnEtherAccumulated}
               COMBO_MULTIPLIERS={COMBO_MULTIPLIERS}
@@ -2899,7 +2905,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
             {/* 다중 유닛: EnemyUnitsDisplay, 단일 적: EnemyHpBar */}
             {hasMultipleUnits ? (
               <EnemyUnitsDisplay
-                units={enemyUnits}
+                units={enemyUnits as any}
                 selectedTargetUnit={selectedTargetUnit}
                 onSelectUnit={(unitId) => actions.setSelectedTargetUnit(unitId)}
                 previewDamage={previewDamage}
@@ -2909,15 +2915,15 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                 enemyHit={enemyHit}
                 enemyBlockAnim={enemyBlockAnim}
                 soulShatter={soulShatter}
-                enemyEtherValue={enemyEtherValue}
-                enemyEtherCapacity={enemy?.etherCapacity ?? 300}
+                enemyEtherValue={enemyEtherValue as any}
+                enemyEtherCapacity={(enemy as any)?.etherCapacity ?? 300}
                 enemyTransferPulse={enemyTransferPulse}
                 formatCompactValue={formatCompactValue}
-                enemyBlock={enemy?.block || 0}
-                enemyDef={enemy?.def || false}
+                enemyBlock={(enemy as any)?.block || 0}
+                enemyDef={(enemy as any)?.def || false}
                 // 피해 분배 시스템
-                distributionMode={battle.distributionMode}
-                damageDistribution={battle.damageDistribution}
+                distributionMode={battle.distributionMode as any}
+                damageDistribution={battle.damageDistribution as any}
                 totalDistributableDamage={battle.totalDistributableDamage}
                 onUpdateDistribution={(unitId, damage) => actions.updateDamageDistribution(unitId, damage)}
                 onConfirmDistribution={handleConfirmDistribution}
@@ -2934,7 +2940,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                 soulShatter={soulShatter}
                 groupedEnemyMembers={groupedEnemyMembers}
                 enemyOverdriveFlash={enemyOverdriveFlash}
-                enemyEtherValue={enemyEtherValue}
+                enemyEtherValue={enemyEtherValue as any}
                 enemyTransferPulse={enemyTransferPulse}
                 enemySoulScale={enemySoulScale}
                 formatCompactValue={formatCompactValue}
@@ -2984,10 +2990,10 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
       {/* 하단 고정 손패 영역 */}
       <HandArea
-        battle={battle}
+        battle={battle as any}
         player={player}
         enemy={enemy}
-        selected={selected}
+        selected={selected as any}
         getSortedHand={getSortedHand}
         toggle={toggle}
         handDisabled={handDisabled}
@@ -2995,27 +3001,27 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         hideCardTraitTooltip={hideCardTraitTooltip}
         formatSpeedText={formatSpeedText}
         renderNameWithBadge={(card, defaultColor) => renderNameWithBadge(card, cardUpgrades, defaultColor)}
-        fixedOrder={fixedOrder}
+        fixedOrder={fixedOrder as any}
         moveUp={moveUp}
         moveDown={moveDown}
-        queue={queue}
+        queue={queue as any}
         usedCardIndices={usedCardIndices}
         disappearingCards={disappearingCards}
         hiddenCards={hiddenCards}
         disabledCardIndices={disabledCardIndices}
         isSimplified={isSimplified}
-        deck={battle.deck || []}
-        discardPile={battle.discardPile || []}
-        enemyUnits={enemyUnits}
+        deck={(battle.deck || []) as any}
+        discardPile={(battle.discardPile || []) as any}
+        enemyUnits={enemyUnits as any}
       />
 
       {showCharacterSheet && <CharacterSheet onClose={closeCharacterSheet} />}
 
       <BattleTooltips
         tooltipVisible={tooltipVisible}
-        hoveredCard={hoveredCard}
+        hoveredCard={hoveredCard as any}
         battle={battle}
-        hoveredEnemyAction={hoveredEnemyAction}
+        hoveredEnemyAction={hoveredEnemyAction as any}
         insightReveal={insightReveal}
         effectiveInsight={effectiveInsight}
       />

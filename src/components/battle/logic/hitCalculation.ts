@@ -56,7 +56,7 @@ export function applyCounter(
   return {
     attacker: updatedAttacker,
     damage: actualCounterDmg,
-    events: [event],
+    events: [event as any],
     logs: [log]
   };
 }
@@ -155,7 +155,7 @@ export function calculateSingleHit(
     attackerConsumedTokens = [];
   } else {
     const preAttackResult = processPreAttackSpecials({
-      card,
+      card: card as any,
       attacker,
       defender,
       attackerName,

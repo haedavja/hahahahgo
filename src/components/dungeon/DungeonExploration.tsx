@@ -73,8 +73,8 @@ export function DungeonExploration() {
 
   // 던전 데이터
   const mazeData = activeDungeon?.dungeonData || null;
-  const grid = mazeData?.grid || {};
-  const startKey = mazeData?.startKey || '2,4';
+  const grid = (mazeData as any)?.grid || {};
+  const startKey = (mazeData as any)?.startKey || '2,4';
   const currentRoomKey = activeDungeon?.currentRoomKey || startKey;
   const dungeonDeltas = activeDungeon?.dungeonDeltas || { gold: 0, intel: 0, loot: 0, material: 0 };
   const initialResources = activeDungeon?.initialResources || resources;
@@ -92,7 +92,7 @@ export function DungeonExploration() {
   } = dungeon;
 
   // 현재 방
-  const segment = grid[currentRoomKey];
+  const segment = grid[currentRoomKey] as any;
   const playerY = CONFIG.FLOOR_Y - CONFIG.PLAYER.height;
 
   // Refs
@@ -192,8 +192,8 @@ export function DungeonExploration() {
 
     // 문 상호작용
     for (const [dir, zone] of Object.entries(doorZones)) {
-      if (playerX >= zone.minX && playerX <= zone.maxX && segment.exits[dir]) {
-        if (segment.roomType === 'exit') {
+      if (playerX >= zone.minX && playerX <= zone.maxX && (segment as any).exits?.[dir]) {
+        if ((segment as any).roomType === 'exit') {
           handleCompleteDungeon();
           return;
         }
@@ -202,7 +202,7 @@ export function DungeonExploration() {
     }
 
     // 오브젝트 상호작용
-    for (const obj of segment.objects || []) {
+    for (const obj of (segment as any).objects || []) {
       if (Math.abs(playerX - obj.x) < 80) {
         const objType = OBJECT_TYPES[obj.typeId.toUpperCase()];
         if (obj.used && !objType?.canReuse) continue;
@@ -227,15 +227,15 @@ export function DungeonExploration() {
     }
 
     // 출구 방에서 완료
-    if (segment.roomType === 'exit') {
+    if ((segment as any).roomType === 'exit') {
       handleCompleteDungeon();
       return;
     }
 
     // 가이드 메시지
-    const availableDirs = Object.entries(segment.exits)
+    const availableDirs = Object.entries((segment as any).exits || {})
       .filter(([, exit]) => exit)
-      .map(([dir]) => ({ north: '북', south: '남', east: '동', west: '서' }[dir]));
+      .map(([dir]) => ({ north: '북', south: '남', east: '동', west: '서' }[dir as any]));
 
     if (availableDirs.length > 0) {
       actions.setMessage(`이동 가능: ${availableDirs.join(', ')} (해당 방향의 문 앞에서 W)`);
@@ -472,13 +472,13 @@ export function DungeonExploration() {
         textAlign: "center",
       }}>
         <div>
-          {segment?.roomType === 'entrance' ? '🏠 입구' :
-           segment?.roomType === 'exit' ? '🚪 출구' :
-           segment?.roomType === 'hidden' ? '✨ 비밀의 방' :
-           segment?.isDeadEnd ? '⚠️ 막다른 방' : '📍 미로'}
+          {(segment as any)?.roomType === 'entrance' ? '🏠 입구' :
+           (segment as any)?.roomType === 'exit' ? '🚪 출구' :
+           (segment as any)?.roomType === 'hidden' ? '✨ 비밀의 방' :
+           (segment as any)?.isDeadEnd ? '⚠️ 막다른 방' : '📍 미로'}
         </div>
         <div style={{ fontSize: "12px", marginTop: "4px", color: "#94a3b8" }}>
-          좌표: ({segment?.x}, {segment?.y})
+          좌표: ({(segment as any)?.x}, {(segment as any)?.y})
         </div>
         <div style={{ fontSize: "12px", marginTop: "4px" }}>
           W: 상호작용/이동 | A/D: 좌우 | C: 캐릭터

@@ -294,8 +294,8 @@ export const CharacterSheet: FC<CharacterSheetProps> = ({ onClose, showAllCards 
       {showOwnedCards && (
         <CardManagementModal
           onClose={() => setShowOwnedCards(false)}
-          specialMode={specialMode}
-          setSpecialMode={setSpecialMode}
+          specialMode={specialMode as any}
+          setSpecialMode={setSpecialMode as any}
           mainSpecials={mainSpecials}
           subSpecials={subSpecials}
           maxMainSlots={maxMainSlots}

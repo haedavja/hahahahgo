@@ -29,14 +29,14 @@ describe('eventAnimationProcessing', () => {
         remove: vi.fn()
       }
     };
-    vi.spyOn(document, 'getElementById').mockReturnValue(mockRoot);
+    vi.spyOn(document, 'getElementById').mockReturnValue(mockRoot as any);
     vi.spyOn(document, 'createElement').mockReturnValue({
       className: '',
       textContent: '',
-      style: {},
+      style: {} as any,
       remove: vi.fn()
-    });
-    vi.spyOn(document.body, 'appendChild').mockImplementation(() => {});
+    } as any);
+    vi.spyOn(document.body, 'appendChild').mockImplementation((() => {}) as any);
   });
 
   afterEach(() => {
@@ -52,8 +52,8 @@ describe('eventAnimationProcessing', () => {
         ];
 
         processActionEventAnimations({
-          actionEvents,
-          action: { actor: 'player' },
+          actionEvents: actionEvents as any,
+          action: { actor: 'player', card: {} as any },
           playHitSound,
           playBlockSound,
           actions
@@ -72,8 +72,8 @@ describe('eventAnimationProcessing', () => {
         ];
 
         processActionEventAnimations({
-          actionEvents,
-          action: { actor: 'enemy' },
+          actionEvents: actionEvents as any,
+          action: { actor: 'enemy', card: {} as any },
           playHitSound,
           playBlockSound,
           actions
@@ -92,8 +92,8 @@ describe('eventAnimationProcessing', () => {
         ];
 
         processActionEventAnimations({
-          actionEvents,
-          action: { actor: 'player' },
+          actionEvents: actionEvents as any,
+          action: { actor: 'player', card: {} as any },
           playHitSound,
           playBlockSound,
           actions
@@ -109,8 +109,8 @@ describe('eventAnimationProcessing', () => {
         ];
 
         processActionEventAnimations({
-          actionEvents,
-          action: { actor: 'player' },
+          actionEvents: actionEvents as any,
+          action: { actor: 'player', card: {} as any },
           playHitSound,
           playBlockSound,
           actions
@@ -128,8 +128,8 @@ describe('eventAnimationProcessing', () => {
         ];
 
         processActionEventAnimations({
-          actionEvents,
-          action: { actor: 'player' },
+          actionEvents: actionEvents as any,
+          action: { actor: 'player', card: {} as any },
           playHitSound,
           playBlockSound,
           actions
@@ -148,8 +148,8 @@ describe('eventAnimationProcessing', () => {
         ];
 
         processActionEventAnimations({
-          actionEvents,
-          action: { actor: 'enemy' },
+          actionEvents: actionEvents as any,
+          action: { actor: 'enemy', card: {} as any },
           playHitSound,
           playBlockSound,
           actions
@@ -170,8 +170,8 @@ describe('eventAnimationProcessing', () => {
         ];
 
         processActionEventAnimations({
-          actionEvents,
-          action: { actor: 'player' },
+          actionEvents: actionEvents as any,
+          action: { actor: 'player', card: {} as any },
           playHitSound,
           playBlockSound,
           actions
@@ -187,8 +187,8 @@ describe('eventAnimationProcessing', () => {
         ];
 
         processActionEventAnimations({
-          actionEvents,
-          action: { actor: 'enemy' },
+          actionEvents: actionEvents as any,
+          action: { actor: 'enemy', card: {} as any },
           playHitSound,
           playBlockSound,
           actions
@@ -207,8 +207,8 @@ describe('eventAnimationProcessing', () => {
         ];
 
         processActionEventAnimations({
-          actionEvents,
-          action: { actor: 'player' },
+          actionEvents: actionEvents as any,
+          action: { actor: 'player', card: {} as any },
           playHitSound,
           playBlockSound,
           actions

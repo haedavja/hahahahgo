@@ -118,7 +118,7 @@ export const EnemyHpBar: FC<EnemyHpBarProps> = ({
                 </div>
                 {/* 토큰 표시 - HP바 아래, 고정 높이 컨테이너 */}
                 <div style={{ minHeight: '40px' }}>
-                  <TokenDisplay entity={enemy} position="enemy" />
+                  <TokenDisplay entity={enemy as any} position="enemy" />
                 </div>
                 {/* 빙결 상태이상 표시 */}
                 {frozenOrder > 0 && (

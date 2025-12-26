@@ -62,7 +62,7 @@ export function DungeonMinimap({ dungeonState, onNodeClick, playerStats }) {
     const offsetX = -bounds.minX;
     const offsetY = -bounds.minY;
 
-    Object.entries(connections).forEach(([fromId, conns]) => {
+    Object.entries(connections as any).forEach(([fromId, conns]: [string, any]) => {
       const fromNode = nodes.find(n => n.id === fromId);
       if (!fromNode || fromNode.x === undefined) return;
       if (fromNode.hidden && !discoveredHidden?.includes(fromId)) return;
@@ -252,12 +252,12 @@ export function DungeonMinimap({ dungeonState, onNodeClick, playerStats }) {
         marginTop: '8px',
         flexWrap: 'wrap',
       }}>
-        <LegendItem color="#22c55e" label="입구" />
-        <LegendItem color="#eab308" label="출구" />
-        <LegendItem color="#f59e0b" label="보물" />
-        <LegendItem color="#f59e0b" dashed label="관문" />
-        <LegendItem color="#06b6d4" label="숏컷" />
-        <LegendItem color="#ef4444" dashed label="잠김" />
+        <LegendItem color="#22c55e" label="입구" dashed={false} />
+        <LegendItem color="#eab308" label="출구" dashed={false} />
+        <LegendItem color="#f59e0b" label="보물" dashed={false} />
+        <LegendItem color="#f59e0b" dashed={true} label="관문" />
+        <LegendItem color="#06b6d4" label="숏컷" dashed={false} />
+        <LegendItem color="#ef4444" dashed={true} label="잠김" />
       </div>
     </div>
   );

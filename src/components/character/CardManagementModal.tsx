@@ -83,7 +83,7 @@ const SelectedCards: FC<SelectedCardsProps> = ({ cards, specialMode, onCardRemov
                   <Icon size={50} className="text-white opacity-80" />
                 </div>
                 <div className="card-footer">
-                  {card.traits && card.traits.length > 0 && <TraitBadgeList traits={card.traits} />}
+                  {card.traits && card.traits.length > 0 && <TraitBadgeList traits={card.traits as any} />}
                   <span className="card-description">{card.description || ''}</span>
                 </div>
               </div>
@@ -182,7 +182,7 @@ const CardItem: FC<CardItemProps> = ({ card, displayKey, cardType, onCardClick }
           <Icon size={50} className="text-white opacity-80" />
         </div>
         <div className="card-footer">
-          {card.traits && card.traits.length > 0 && <TraitBadgeList traits={card.traits} />}
+          {card.traits && card.traits.length > 0 && <TraitBadgeList traits={card.traits as any} />}
           <span className="card-description">{card.description || ''}</span>
         </div>
       </div>

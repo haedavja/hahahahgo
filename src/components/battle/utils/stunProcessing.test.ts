@@ -39,14 +39,14 @@ describe('stunProcessing', () => {
         card: { name: 'Stun Card' },
         sp: 5,
         actor: 'player'
-      };
+      } as any;
 
       const result = processStunEffect({
         action,
         queue: createQueue(),
         currentQIndex: 0,
         addLog
-      });
+      } as any);
 
       // 범위: 5~10, Enemy Attack(7), Enemy Skill(9)가 범위 내
       expect(result.updatedQueue).toHaveLength(3);
@@ -61,14 +61,14 @@ describe('stunProcessing', () => {
         card: { name: 'Stun Card' },
         sp: 5,
         actor: 'player'
-      };
+      } as any;
 
       const result = processStunEffect({
         action,
         queue: createQueue(),
         currentQIndex: 0,
         addLog
-      });
+      } as any);
 
       expect(result.stunEvent).not.toBeNull();
       expect(result.stunEvent.type).toBe('stun');
@@ -78,7 +78,7 @@ describe('stunProcessing', () => {
 
     it('범위 내 적이 없으면 stunEvent가 null이어야 함', () => {
       const addLog = vi.fn();
-      const queue = [
+      const queue: any = [
         { actor: 'player', card: { name: 'Stun' }, sp: 5 },
         { actor: 'enemy', card: { name: 'Far Enemy' }, sp: 20 }
       ];
@@ -88,7 +88,7 @@ describe('stunProcessing', () => {
         queue,
         currentQIndex: 0,
         addLog
-      });
+      } as any);
 
       expect(result.stunEvent).toBeNull();
       expect(result.updatedQueue).toHaveLength(2);
@@ -96,7 +96,7 @@ describe('stunProcessing', () => {
 
     it('아군 카드는 제거하지 않아야 함', () => {
       const addLog = vi.fn();
-      const queue = [
+      const queue: any = [
         { actor: 'player', card: { name: 'Stun' }, sp: 5 },
         { actor: 'player', card: { name: 'Ally Card' }, sp: 7 },
         { actor: 'enemy', card: { name: 'Enemy Card' }, sp: 8 }
@@ -107,7 +107,7 @@ describe('stunProcessing', () => {
         queue,
         currentQIndex: 0,
         addLog
-      });
+      } as any);
 
       expect(result.updatedQueue.some(q => q.card.name === 'Ally Card')).toBe(true);
       expect(result.updatedQueue.some(q => q.card.name === 'Enemy Card')).toBe(false);
@@ -115,7 +115,7 @@ describe('stunProcessing', () => {
 
     it('현재 인덱스 이전 카드는 영향받지 않아야 함', () => {
       const addLog = vi.fn();
-      const queue = [
+      const queue: any = [
         { actor: 'enemy', card: { name: 'Past Enemy' }, sp: 3 },
         { actor: 'player', card: { name: 'Stun' }, sp: 5 },
         { actor: 'enemy', card: { name: 'Future Enemy' }, sp: 7 }
@@ -126,7 +126,7 @@ describe('stunProcessing', () => {
         queue,
         currentQIndex: 1,
         addLog
-      });
+      } as any);
 
       expect(result.updatedQueue.some(q => q.card.name === 'Past Enemy')).toBe(true);
       expect(result.updatedQueue.some(q => q.card.name === 'Future Enemy')).toBe(false);
@@ -134,7 +134,7 @@ describe('stunProcessing', () => {
 
     it('sp가 정확히 centerSp일 때도 범위에 포함되어야 함', () => {
       const addLog = vi.fn();
-      const queue = [
+      const queue: any = [
         { actor: 'player', card: { name: 'Stun' }, sp: 5 },
         { actor: 'enemy', card: { name: 'Same SP Enemy' }, sp: 5 }
       ];
@@ -144,7 +144,7 @@ describe('stunProcessing', () => {
         queue,
         currentQIndex: 0,
         addLog
-      });
+      } as any);
 
       expect(result.updatedQueue.some(q => q.card.name === 'Same SP Enemy')).toBe(false);
       expect(result.stunEvent).not.toBeNull();
@@ -152,7 +152,7 @@ describe('stunProcessing', () => {
 
     it('sp가 정확히 centerSp + STUN_RANGE일 때도 범위에 포함되어야 함', () => {
       const addLog = vi.fn();
-      const queue = [
+      const queue: any = [
         { actor: 'player', card: { name: 'Stun' }, sp: 5 },
         { actor: 'enemy', card: { name: 'Edge Enemy' }, sp: 10 } // 5 + 5 = 10
       ];
@@ -162,14 +162,14 @@ describe('stunProcessing', () => {
         queue,
         currentQIndex: 0,
         addLog
-      });
+      } as any);
 
       expect(result.updatedQueue.some(q => q.card.name === 'Edge Enemy')).toBe(false);
     });
 
     it('sp가 centerSp + STUN_RANGE 초과면 범위 밖이어야 함', () => {
       const addLog = vi.fn();
-      const queue = [
+      const queue: any = [
         { actor: 'player', card: { name: 'Stun' }, sp: 5 },
         { actor: 'enemy', card: { name: 'Outside Enemy' }, sp: 11 } // 5 + 5 + 1 = 11
       ];
@@ -179,7 +179,7 @@ describe('stunProcessing', () => {
         queue,
         currentQIndex: 0,
         addLog
-      });
+      } as any);
 
       expect(result.updatedQueue.some(q => q.card.name === 'Outside Enemy')).toBe(true);
       expect(result.stunEvent).toBeNull();
@@ -187,7 +187,7 @@ describe('stunProcessing', () => {
 
     it('addLog가 기절 정보와 함께 호출되어야 함', () => {
       const addLog = vi.fn();
-      const queue = [
+      const queue: any = [
         { actor: 'player', card: { name: 'Stun Attack' }, sp: 5 },
         { actor: 'enemy', card: { name: 'Target Card' }, sp: 7 }
       ];
@@ -197,7 +197,7 @@ describe('stunProcessing', () => {
         queue,
         currentQIndex: 0,
         addLog
-      });
+      } as any);
 
       expect(addLog).toHaveBeenCalledWith(expect.stringContaining('기절'));
       expect(addLog).toHaveBeenCalledWith(expect.stringContaining('Target Card'));
@@ -205,7 +205,7 @@ describe('stunProcessing', () => {
 
     it('여러 적 카드를 동시에 제거해야 함', () => {
       const addLog = vi.fn();
-      const queue = [
+      const queue: any = [
         { actor: 'player', card: { name: 'Stun' }, sp: 5 },
         { actor: 'enemy', card: { name: 'Enemy 1' }, sp: 6 },
         { actor: 'enemy', card: { name: 'Enemy 2' }, sp: 7 },
@@ -217,7 +217,7 @@ describe('stunProcessing', () => {
         queue,
         currentQIndex: 0,
         addLog
-      });
+      } as any);
 
       expect(result.updatedQueue).toHaveLength(1); // Stun 카드만 남음
       expect(result.stunEvent.msg).toContain('3장');
@@ -225,7 +225,7 @@ describe('stunProcessing', () => {
 
     it('sp가 없는 action은 0으로 처리해야 함', () => {
       const addLog = vi.fn();
-      const queue = [
+      const queue: any = [
         { actor: 'player', card: { name: 'Stun' } },
         { actor: 'enemy', card: { name: 'Enemy' }, sp: 3 }
       ];
@@ -235,7 +235,7 @@ describe('stunProcessing', () => {
         queue,
         currentQIndex: 0,
         addLog
-      });
+      } as any);
 
       // 범위: 0~5, Enemy(3)는 범위 내
       expect(result.updatedQueue.some(q => q.card.name === 'Enemy')).toBe(false);
@@ -243,7 +243,7 @@ describe('stunProcessing', () => {
 
     it('sp가 숫자가 아닌 항목은 필터링해야 함', () => {
       const addLog = vi.fn();
-      const queue = [
+      const queue: any = [
         { actor: 'player', card: { name: 'Stun' }, sp: 5 },
         { actor: 'enemy', card: { name: 'No SP Enemy' } }, // sp 없음
         { actor: 'enemy', card: { name: 'Valid Enemy' }, sp: 7 }
@@ -254,7 +254,7 @@ describe('stunProcessing', () => {
         queue,
         currentQIndex: 0,
         addLog
-      });
+      } as any);
 
       // sp가 없는 적은 범위 체크에서 제외
       expect(result.updatedQueue.some(q => q.card.name === 'No SP Enemy')).toBe(true);
@@ -263,7 +263,7 @@ describe('stunProcessing', () => {
 
     it('적이 player 쪽에서 기절을 사용할 수 있어야 함', () => {
       const addLog = vi.fn();
-      const queue = [
+      const queue: any = [
         { actor: 'enemy', card: { name: 'Enemy Stun' }, sp: 5 },
         { actor: 'player', card: { name: 'Player Card' }, sp: 7 }
       ];
@@ -273,7 +273,7 @@ describe('stunProcessing', () => {
         queue,
         currentQIndex: 0,
         addLog
-      });
+      } as any);
 
       expect(result.updatedQueue.some(q => q.card.name === 'Player Card')).toBe(false);
       expect(result.stunEvent.actor).toBe('enemy');
@@ -281,7 +281,7 @@ describe('stunProcessing', () => {
 
     it('null 항목은 무시해야 함', () => {
       const addLog = vi.fn();
-      const queue = [
+      const queue: any = [
         { actor: 'player', card: { name: 'Stun' }, sp: 5 },
         null,
         { actor: 'enemy', card: { name: 'Enemy' }, sp: 7 }
@@ -292,7 +292,7 @@ describe('stunProcessing', () => {
         queue,
         currentQIndex: 0,
         addLog
-      });
+      } as any);
 
       expect(result.updatedQueue.some(q => q?.card?.name === 'Enemy')).toBe(false);
     });

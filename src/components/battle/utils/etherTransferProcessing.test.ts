@@ -55,7 +55,7 @@ describe('etherTransferProcessing', () => {
     });
 
     it('적 처치 시 잔여 에테르 회수 로그를 남겨야 함', () => {
-      const addLog = vi.fn();
+      const addLog: any = vi.fn();
       const calculateEtherTransfer = vi.fn(() => ({
         nextPlayerPts: 20,
         nextEnemyPts: 0,
@@ -79,7 +79,7 @@ describe('etherTransferProcessing', () => {
     });
 
     it('적이 살아있으면 회수 로그를 남기지 않아야 함', () => {
-      const addLog = vi.fn();
+      const addLog: any = vi.fn();
       const calculateEtherTransfer = vi.fn(() => ({
         nextPlayerPts: 15,
         nextEnemyPts: 10,
@@ -223,7 +223,7 @@ describe('etherTransferProcessing', () => {
     it('이동량이 0이면 펄스/사운드/로그가 없어야 함', () => {
       const actions = createMockActions();
       const playSound = vi.fn();
-      const addLog = vi.fn();
+      const addLog: any = vi.fn();
       const calculateEtherTransfer = vi.fn(() => ({
         nextPlayerPts: 10,
         nextEnemyPts: 10,
@@ -248,7 +248,7 @@ describe('etherTransferProcessing', () => {
     });
 
     it('에테르 이동 로그를 남겨야 함', () => {
-      const addLog = vi.fn();
+      const addLog: any = vi.fn();
       const calculateEtherTransfer = vi.fn(() => ({
         nextPlayerPts: 15,
         nextEnemyPts: 10,

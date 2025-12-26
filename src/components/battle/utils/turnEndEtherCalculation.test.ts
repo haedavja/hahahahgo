@@ -28,7 +28,7 @@ describe('turnEndEtherCalculation', () => {
   describe('calculateTurnEndEther', () => {
     beforeEach(() => {
       vi.clearAllMocks();
-      getAllTokens.mockReturnValue([]);
+      (getAllTokens as any).mockReturnValue([]);
     });
 
     it('기본 에테르 계산을 해야 함', () => {
@@ -38,9 +38,9 @@ describe('turnEndEtherCalculation', () => {
         turnEtherAccumulated: 10,
         enemyTurnEtherAccumulated: 8,
         finalComboMultiplier: 1,
-        player: { comboUsageCount: {} },
-        enemy: { comboUsageCount: {} }
-      });
+        player: { comboUsageCount: {} } as any,
+        enemy: { comboUsageCount: {} } as any
+      } as any);
 
       expect(result.player.finalEther).toBe(10);
       expect(result.enemy.finalEther).toBe(8);
@@ -48,14 +48,14 @@ describe('turnEndEtherCalculation', () => {
 
     it('플레이어 콤보 배율을 적용해야 함', () => {
       const result = calculateTurnEndEther({
-        playerCombo: { name: '올인' }, // 1.2 배율
+        playerCombo: { name: '올인' } as any, // 1.2 배율
         enemyCombo: null,
         turnEtherAccumulated: 10,
         enemyTurnEtherAccumulated: 5,
         finalComboMultiplier: 1.5, // 상징 포함 배율
-        player: { comboUsageCount: {} },
-        enemy: { comboUsageCount: {} }
-      });
+        player: { comboUsageCount: {} } as any,
+        enemy: { comboUsageCount: {} } as any
+      } as any);
 
       expect(result.player.finalComboMult).toBe(1.5);
       expect(result.player.beforeDeflation).toBe(15); // 10 * 1.5
@@ -68,9 +68,9 @@ describe('turnEndEtherCalculation', () => {
         turnEtherAccumulated: 10,
         enemyTurnEtherAccumulated: 5,
         finalComboMultiplier: 1,
-        player: { etherMultiplier: 2, comboUsageCount: {} },
-        enemy: { comboUsageCount: {} }
-      });
+        player: { etherMultiplier: 2, comboUsageCount: {} } as any,
+        enemy: { comboUsageCount: {} } as any
+      } as any);
 
       expect(result.player.etherAmplifierMult).toBe(2);
       expect(result.player.beforeDeflation).toBe(20); // 10 * 1 * 2
@@ -79,20 +79,20 @@ describe('turnEndEtherCalculation', () => {
     it('적 콤보 배율을 적용해야 함', () => {
       const result = calculateTurnEndEther({
         playerCombo: null,
-        enemyCombo: { name: '페어' },
+        enemyCombo: { name: '페어' } as any,
         turnEtherAccumulated: 10,
         enemyTurnEtherAccumulated: 10,
         finalComboMultiplier: 1,
-        player: { comboUsageCount: {} },
-        enemy: { comboUsageCount: {} }
-      });
+        player: { comboUsageCount: {} } as any,
+        enemy: { comboUsageCount: {} } as any
+      } as any);
 
       expect(result.enemy.comboMult).toBe(2); // 페어 배율
       expect(result.enemy.beforeDeflation).toBe(20);
     });
 
     it('half_ether 토큰이 있으면 적 에테르를 반감해야 함', () => {
-      getAllTokens.mockReturnValue([{ id: 'half_ether' }]);
+      (getAllTokens as any).mockReturnValue([{ id: 'half_ether' } as any]);
 
       const result = calculateTurnEndEther({
         playerCombo: null,
@@ -100,9 +100,9 @@ describe('turnEndEtherCalculation', () => {
         turnEtherAccumulated: 10,
         enemyTurnEtherAccumulated: 20,
         finalComboMultiplier: 1,
-        player: { comboUsageCount: {} },
-        enemy: { comboUsageCount: {} }
-      });
+        player: { comboUsageCount: {} } as any,
+        enemy: { comboUsageCount: {} } as any
+      } as any);
 
       expect(result.enemy.halfEtherMult).toBe(0.5);
       expect(result.enemy.finalEther).toBe(10); // 20 * 0.5
@@ -110,14 +110,14 @@ describe('turnEndEtherCalculation', () => {
 
     it('상징 배율 보너스를 계산해야 함', () => {
       const result = calculateTurnEndEther({
-        playerCombo: { name: '페어' }, // 기본 2
+        playerCombo: { name: '페어' } as any, // 기본 2
         enemyCombo: null,
         turnEtherAccumulated: 10,
         enemyTurnEtherAccumulated: 0,
         finalComboMultiplier: 2.5, // 상징 포함
-        player: { comboUsageCount: {} },
-        enemy: { comboUsageCount: {} }
-      });
+        player: { comboUsageCount: {} } as any,
+        enemy: { comboUsageCount: {} } as any
+      } as any);
 
       expect(result.player.baseComboMult).toBe(2);
       expect(result.player.finalComboMult).toBe(2.5);
@@ -126,14 +126,14 @@ describe('turnEndEtherCalculation', () => {
 
     it('디플레이션을 적용해야 함', () => {
       const result = calculateTurnEndEther({
-        playerCombo: { name: '페어' },
+        playerCombo: { name: '페어' } as any,
         enemyCombo: null,
         turnEtherAccumulated: 100,
         enemyTurnEtherAccumulated: 0,
         finalComboMultiplier: 2,
-        player: { comboUsageCount: { '페어': 5 } }, // 5회 사용으로 디플레이션
-        enemy: { comboUsageCount: {} }
-      });
+        player: { comboUsageCount: { '페어': 5 } } as any, // 5회 사용으로 디플레이션
+        enemy: { comboUsageCount: {} } as any
+      } as any);
 
       // 디플레이션 적용됨
       expect(result.player.deflation.usageCount).toBe(5);
@@ -147,9 +147,9 @@ describe('turnEndEtherCalculation', () => {
         turnEtherAccumulated: 50,
         enemyTurnEtherAccumulated: 30,
         finalComboMultiplier: 1,
-        player: { comboUsageCount: {} },
-        enemy: { comboUsageCount: {} }
-      });
+        player: { comboUsageCount: {} } as any,
+        enemy: { comboUsageCount: {} } as any
+      } as any);
 
       expect(result.player.deflation.multiplier).toBe(1);
       expect(result.player.deflation.usageCount).toBe(0);
@@ -162,9 +162,9 @@ describe('turnEndEtherCalculation', () => {
         turnEtherAccumulated: 10,
         enemyTurnEtherAccumulated: 5,
         finalComboMultiplier: 1,
-        player: { comboUsageCount: {} },
-        enemy: { comboUsageCount: {} }
-      });
+        player: { comboUsageCount: {} } as any,
+        enemy: { comboUsageCount: {} } as any
+      } as any);
 
       // 플레이어 결과 구조
       expect(result.player).toHaveProperty('baseComboMult');
@@ -195,7 +195,7 @@ describe('turnEndEtherCalculation', () => {
         appliedEther: 15,
         relicMultBonus: 0,
         etherAmplifierMult: 1
-      };
+      } as any;
 
       const log = formatPlayerEtherLog(result, 10);
 
@@ -212,7 +212,7 @@ describe('turnEndEtherCalculation', () => {
         appliedEther: 16,
         relicMultBonus: 0,
         etherAmplifierMult: 1
-      };
+      } as any;
 
       const log = formatPlayerEtherLog(result, 10);
 
@@ -229,7 +229,7 @@ describe('turnEndEtherCalculation', () => {
         appliedEther: 15,
         relicMultBonus: 0.3,
         etherAmplifierMult: 1
-      };
+      } as any;
 
       const log = formatPlayerEtherLog(result, 10);
 
@@ -245,7 +245,7 @@ describe('turnEndEtherCalculation', () => {
         appliedEther: 20,
         relicMultBonus: 0,
         etherAmplifierMult: 2
-      };
+      } as any;
 
       const log = formatPlayerEtherLog(result, 10);
 
@@ -261,7 +261,7 @@ describe('turnEndEtherCalculation', () => {
         appliedEther: 0,
         relicMultBonus: 0,
         etherAmplifierMult: 1
-      };
+      } as any;
 
       const log = formatPlayerEtherLog(result, 0);
 
@@ -278,7 +278,7 @@ describe('turnEndEtherCalculation', () => {
         finalEther: 12,
         appliedEther: 12,
         halfEtherMult: 1
-      };
+      } as any;
 
       const log = formatEnemyEtherLog(result, 10);
 
@@ -295,7 +295,7 @@ describe('turnEndEtherCalculation', () => {
         finalEther: 8,
         appliedEther: 8,
         halfEtherMult: 1
-      };
+      } as any;
 
       const log = formatEnemyEtherLog(result, 10);
 
@@ -311,7 +311,7 @@ describe('turnEndEtherCalculation', () => {
         finalEther: 5,
         appliedEther: 5,
         halfEtherMult: 0.5
-      };
+      } as any;
 
       const log = formatEnemyEtherLog(result, 10);
 
@@ -327,7 +327,7 @@ describe('turnEndEtherCalculation', () => {
         finalEther: 10,
         appliedEther: 10
         // halfEtherMult 없음
-      };
+      } as any;
 
       const log = formatEnemyEtherLog(result, 10);
 

@@ -20,8 +20,8 @@ import type {
 export interface SimpleBattleState {
   playerHp: number;
   enemyHp: number;
-  playerTokens: Token[];
-  enemyTokens: Token[];
+  playerTokens: TokenState;
+  enemyTokens: TokenState;
   timeline: number;
   turn: number;
 }
@@ -42,7 +42,7 @@ export interface Combatant {
   hp: number;
   maxHp: number;
   block: number;
-  tokens: Token[] | TokenState;
+  tokens: TokenState;
   strength?: number;
   agility?: number;
   insight?: number;
@@ -100,6 +100,8 @@ export interface EnemyUnit extends Combatant {
   deck?: string[];
   units?: EnemyUnit[];
   enemyCount?: number;
+  maxSpeed?: number;
+  ether?: number;
 }
 
 /** 적 의도 표시 */
@@ -389,7 +391,6 @@ export interface SpecialActor extends Combatant {
   etherOverdriveActive?: boolean;
   vulnMult?: number;
   _persistentStrikeDamage?: number;
-  tokens?: Record<string, unknown> | Token[];
   [key: string]: unknown;
 }
 
@@ -581,7 +582,6 @@ export interface ExecuteCardActionResult {
 /** 전투 행동자 (확장) */
 export interface CombatActor extends Combatant {
   def?: boolean;
-  tokens?: Record<string, unknown>;
   etherOverdriveActive?: boolean;
   vulnMult?: number;
   [key: string]: unknown;
@@ -591,7 +591,7 @@ export interface CombatActor extends Combatant {
 export interface CombatCard extends Card {
   isGhost?: boolean;
   hits?: number;
-  cardCategory?: string;
+  cardCategory?: any;
   [key: string]: unknown;
 }
 
@@ -687,7 +687,6 @@ export interface DefenseCard extends Card {
 /** 방어용 행동자 */
 export interface DefenseActor extends Combatant {
   def?: boolean;
-  tokens?: Record<string, unknown>;
   [key: string]: unknown;
 }
 

@@ -3,7 +3,10 @@
  * @description 전투 시스템 유틸리티 함수
  */
 
-import type { CardRarity, BattleCard, TraitContext } from '../../../types';
+import type { CardRarity } from '../../../types';
+
+type BattleCard = any;
+type TraitContext = any;
 
 /**
  * 배열에서 랜덤으로 하나 선택

@@ -68,21 +68,21 @@ describe('handGeneration', () => {
 
   describe('initializeDeck', () => {
     it('null characterBuild는 빈 결과를 반환해야 함', () => {
-      const result = initializeDeck(null);
+      const result = initializeDeck(null as any);
 
       expect(result.deck).toEqual([]);
       expect(result.mainSpecialsHand).toEqual([]);
     });
 
     it('undefined characterBuild는 빈 결과를 반환해야 함', () => {
-      const result = initializeDeck(undefined);
+      const result = initializeDeck(undefined as any);
 
       expect(result.deck).toEqual([]);
       expect(result.mainSpecialsHand).toEqual([]);
     });
 
     it('빈 characterBuild는 빈 결과를 반환해야 함', () => {
-      const result = initializeDeck({});
+      const result = initializeDeck({} as any);
 
       expect(result.deck).toEqual([]);
       expect(result.mainSpecialsHand).toEqual([]);
@@ -93,7 +93,7 @@ describe('handGeneration', () => {
         mainSpecials: [],
         subSpecials: [],
         ownedCards: []
-      });
+      } as any);
 
       expect(result).toHaveProperty('deck');
       expect(result).toHaveProperty('mainSpecialsHand');
@@ -114,9 +114,9 @@ describe('handGeneration', () => {
 
     it('덱에서 지정된 수만큼 드로우해야 함', () => {
       const deck = [
-        { id: 'card1', __handUid: 'uid1' },
-        { id: 'card2', __handUid: 'uid2' },
-        { id: 'card3', __handUid: 'uid3' }
+        { id: 'card1', __handUid: 'uid1' } as any,
+        { id: 'card2', __handUid: 'uid2' } as any,
+        { id: 'card3', __handUid: 'uid3' } as any
       ];
 
       const result = drawFromDeck(deck, [], 2);
@@ -127,9 +127,9 @@ describe('handGeneration', () => {
 
     it('드로우 후 남은 덱이 올바라야 함', () => {
       const deck = [
-        { id: 'card1', __handUid: 'uid1' },
-        { id: 'card2', __handUid: 'uid2' },
-        { id: 'card3', __handUid: 'uid3' }
+        { id: 'card1', __handUid: 'uid1' } as any,
+        { id: 'card2', __handUid: 'uid2' } as any,
+        { id: 'card3', __handUid: 'uid3' } as any
       ];
 
       const result = drawFromDeck(deck, [], 2);
@@ -138,10 +138,10 @@ describe('handGeneration', () => {
     });
 
     it('덱이 부족하면 무덤을 섞어서 덱에 추가해야 함', () => {
-      const deck = [{ id: 'card1', __handUid: 'uid1' }];
+      const deck = [{ id: 'card1', __handUid: 'uid1' } as any];
       const discardPile = [
-        { id: 'card2', __handUid: 'uid2' },
-        { id: 'card3', __handUid: 'uid3' }
+        { id: 'card2', __handUid: 'uid2' } as any,
+        { id: 'card3', __handUid: 'uid3' } as any
       ];
 
       const result = drawFromDeck(deck, discardPile, 3);
@@ -151,10 +151,10 @@ describe('handGeneration', () => {
     });
 
     it('주특기 카드는 무덤에서 직접 손패로 이동해야 함', () => {
-      const deck = [];
+      const deck: any[] = [];
       const discardPile = [
-        { id: 'main1', __handUid: 'uid1', __isMainSpecial: true },
-        { id: 'normal1', __handUid: 'uid2' }
+        { id: 'main1', __handUid: 'uid1', __isMainSpecial: true } as any,
+        { id: 'normal1', __handUid: 'uid2' } as any
       ];
 
       const result = drawFromDeck(deck, discardPile, 2);
@@ -164,11 +164,11 @@ describe('handGeneration', () => {
     });
 
     it('보조특기는 셔플 시 덱 위로 배치되어야 함', () => {
-      const deck = [];
+      const deck: any[] = [];
       const discardPile = [
-        { id: 'sub1', __handUid: 'uid1', __isSubSpecial: true },
-        { id: 'normal1', __handUid: 'uid2' },
-        { id: 'normal2', __handUid: 'uid3' }
+        { id: 'sub1', __handUid: 'uid1', __isSubSpecial: true } as any,
+        { id: 'normal1', __handUid: 'uid2' } as any,
+        { id: 'normal2', __handUid: 'uid3' } as any
       ];
 
       const result = drawFromDeck(deck, discardPile, 3);
@@ -178,8 +178,8 @@ describe('handGeneration', () => {
 
     it('escape 특성 카드가 escapeBan에 있으면 무덤으로 이동해야 함', () => {
       const deck = [
-        { id: 'escape1', __handUid: 'uid1', traits: ['escape'] },
-        { id: 'normal1', __handUid: 'uid2' }
+        { id: 'escape1', __handUid: 'uid1', traits: ['escape'] } as any,
+        { id: 'normal1', __handUid: 'uid2' } as any
       ];
       const escapeBan = new Set(['escape1']);
 
@@ -206,13 +206,13 @@ describe('handGeneration', () => {
 
   describe('drawCharacterBuildHand', () => {
     it('null characterBuild는 빈 배열을 반환해야 함', () => {
-      const result = drawCharacterBuildHand(null);
+      const result = drawCharacterBuildHand(null as any);
 
       expect(result).toEqual([]);
     });
 
     it('빈 characterBuild는 빈 배열을 반환해야 함', () => {
-      const result = drawCharacterBuildHand({});
+      const result = drawCharacterBuildHand({} as any);
 
       expect(result).toEqual([]);
     });
@@ -222,7 +222,7 @@ describe('handGeneration', () => {
         mainSpecials: [],
         subSpecials: [],
         ownedCards: []
-      });
+      } as any);
 
       // 빈 빌드이므로 빈 배열 반환
       expect(result).toEqual([]);
@@ -230,9 +230,9 @@ describe('handGeneration', () => {
 
     it('vanishedCards는 필터링되어야 함', () => {
       const result = drawCharacterBuildHand(
-        { mainSpecials: ['card1'], subSpecials: [], ownedCards: [] },
-        {},
-        [],
+        { mainSpecials: ['card1'], subSpecials: [], ownedCards: [] } as any,
+        {} as any,
+        [] as any,
         0,
         new Set(),
         ['card1']

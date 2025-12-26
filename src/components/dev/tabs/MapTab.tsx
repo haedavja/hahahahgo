@@ -56,7 +56,7 @@ export function MapTab({ map, mapRisk, setMapRisk, selectNode, devClearAllNodes,
       }}>
         <div style={{ fontSize: '0.875rem', color: '#94a3b8', marginBottom: '4px' }}>현재 노드:</div>
         <div style={{ color: '#fbbf24', fontWeight: 'bold' }}>
-          {currentNode ? `${currentNode.id} (${currentNode.displayLabel})` : '없음'}
+          {currentNode ? `${currentNode.id} (${(currentNode as any).displayLabel})` : '없음'}
         </div>
       </div>
 
@@ -143,9 +143,9 @@ export function MapTab({ map, mapRisk, setMapRisk, selectNode, devClearAllNodes,
             }}
           >
             <option value="">노드 선택...</option>
-            {Object.entries(nodesByLayer).sort(([a], [b]) => parseInt(a) - parseInt(b)).map(([layer, nodes]) => (
+            {Object.entries(nodesByLayer).sort(([a], [b]) => parseInt(a) - parseInt(b)).map(([layer, nodes]: [string, any]) => (
               <optgroup key={layer} label={`Layer ${layer}`}>
-                {nodes.map(node => (
+                {nodes.map((node: any) => (
                   <option key={node.id} value={node.id}>
                     {nodeEmojis[node.type] || '📍'} {node.id} - {node.displayLabel || node.type}
                     {node.cleared ? ' ✓' : ''}
@@ -202,7 +202,7 @@ export function MapTab({ map, mapRisk, setMapRisk, selectNode, devClearAllNodes,
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
               }}
-              title={`${node.id} - ${node.displayLabel || node.type}`}
+              title={`${node.id} - ${(node as any).displayLabel || node.type}`}
             >
               {nodeEmojis[node.type] || '📍'} {node.id.split('-')[1] || node.id}
             </button>
@@ -236,7 +236,7 @@ export function MapTab({ map, mapRisk, setMapRisk, selectNode, devClearAllNodes,
             alignItems: 'center',
           }}>
             <span style={{ color: '#a78bfa', fontSize: '0.875rem' }}>
-              ✓ {(OBSTACLE_TEMPLATES as Record<string, { name: string }>)[devForcedCrossroad]?.name || devForcedCrossroad}
+              ✓ {(OBSTACLE_TEMPLATES as any)[devForcedCrossroad]?.name || devForcedCrossroad}
             </span>
             <button
               onClick={() => setDevForcedCrossroad(null)}
@@ -263,7 +263,7 @@ export function MapTab({ map, mapRisk, setMapRisk, selectNode, devClearAllNodes,
           maxHeight: '200px',
           overflowY: 'auto',
         }}>
-          {Object.entries(OBSTACLE_TEMPLATES as Record<string, { name: string; choices?: unknown[] }>).map(([key, template]) => (
+          {Object.entries(OBSTACLE_TEMPLATES as any).map(([key, template]: [string, any]) => (
             <button
               key={key}
               onClick={() => setDevForcedCrossroad(key)}

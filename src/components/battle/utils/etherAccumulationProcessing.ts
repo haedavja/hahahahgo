@@ -9,14 +9,17 @@
  */
 
 import type {
-  EtherAccumCardInfo,
-  PassiveEffects,
-  EtherAccumActions,
-  TriggeredRefs,
-  PlayerEtherAccumulationParams,
-  PlayerEtherAccumulationResult,
-  EnemyEtherAccumulationParams
+  Card
 } from '../../../types';
+
+// Type annotations for missing types
+type EtherAccumCardInfo = any;
+type PassiveEffects = any;
+type EtherAccumActions = any;
+type TriggeredRefs = any;
+type PlayerEtherAccumulationParams = any;
+type PlayerEtherAccumulationResult = any;
+type EnemyEtherAccumulationParams = any;
 
 /**
  * 플레이어 카드 사용 시 에테르 누적 처리

@@ -11,6 +11,9 @@ import Phaser from "phaser";
 import { useGameStore } from "../state/gameStore";
 
 export class PlaceholderScene extends Phaser.Scene {
+  unsubscribes: Array<() => void>;
+  riskText: Phaser.GameObjects.Text | null;
+
   constructor() {
     super("PlaceholderScene");
     this.unsubscribes = [];
@@ -39,9 +42,9 @@ export class PlaceholderScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     this.unsubscribes.push(
-      useGameStore.subscribe(
-        (state) => state.mapRisk,
-        (mapRisk) => {
+      (useGameStore.subscribe as any)(
+        (state: any) => state.mapRisk,
+        (mapRisk: number) => {
           if (this.riskText) {
             this.riskText.setText(this.formatRisk(mapRisk));
           }
@@ -50,9 +53,9 @@ export class PlaceholderScene extends Phaser.Scene {
     );
 
     this.unsubscribes.push(
-      useGameStore.subscribe(
-        (state) => state.activeBattle,
-        (battle) => {
+      (useGameStore.subscribe as any)(
+        (state: any) => state.activeBattle,
+        (battle: any) => {
           if (battle) {
             this.scene.start("BattleScene");
           }
@@ -69,7 +72,7 @@ export class PlaceholderScene extends Phaser.Scene {
   }
 
   cleanup() {
-    this.unsubscribes.forEach((fn) => {
+    this.unsubscribes.forEach((fn: () => void) => {
       try {
         fn();
       } catch (_) {
@@ -79,7 +82,7 @@ export class PlaceholderScene extends Phaser.Scene {
     this.unsubscribes = [];
   }
 
-  formatRisk(mapRisk) {
+  formatRisk(mapRisk: number): string {
     return `���赵 ${mapRisk}%`;
   }
 }

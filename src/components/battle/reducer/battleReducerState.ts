@@ -9,8 +9,9 @@
  * - ether: 에테르 시스템
  */
 
-import type { Card, Token, Relic, RespondSnapshot } from '../../../types';
+import type { Card, Token, TokenState, Relic, RespondSnapshot, BattleEvent, PostCombatOptions } from '../../../types';
 import type { BattlePhase, SortType, EtherCalcPhase } from './battleReducerActions';
+import type { HandCard } from '../../../lib/speedQueue';
 
 // ==================== 상태 타입 정의 ====================
 
@@ -19,7 +20,7 @@ export interface PlayerState {
   hp: number;
   maxHp: number;
   block: number;
-  tokens: Token[];
+  tokens: TokenState;
   energy: number;
   maxEnergy: number;
   strength?: number;
@@ -33,7 +34,7 @@ export interface EnemyState {
   hp: number;
   maxHp: number;
   block: number;
-  tokens: Token[];
+  tokens: TokenState;
   units?: EnemyUnitState[];
   [key: string]: unknown;
 }
@@ -44,7 +45,7 @@ export interface EnemyUnitState {
   hp: number;
   maxHp: number;
   block: number;
-  tokens: Token[];
+  tokens: TokenState;
   [key: string]: unknown;
 }
 
@@ -112,13 +113,13 @@ export interface FullBattleState {
   enemyPlan: EnemyPlan;
 
   // 실행 큐 & 순서
-  fixedOrder: unknown[] | null;
-  queue: unknown[];
+  fixedOrder: HandCard[] | null;
+  queue: HandCard[];
   qIndex: number;
 
   // 전투 로그 & 이벤트
   log: string[];
-  actionEvents: Record<string, unknown>;
+  actionEvents: Record<string, BattleEvent[]>;
 
   // 턴 관리
   turnNumber: number;
@@ -159,7 +160,7 @@ export interface FullBattleState {
   orderedRelics: Relic[];
 
   // 전투 종료 후
-  postCombatOptions: unknown | null;
+  postCombatOptions: PostCombatOptions | null;
 
   // 다음 턴 효과
   nextTurnEffects: NextTurnEffects;
@@ -199,7 +200,7 @@ export interface FullBattleState {
   showInsightTooltip: boolean;
 
   // 적 행동 툴팁
-  hoveredEnemyAction: unknown | null;
+  hoveredEnemyAction: Card | null;
 
   // 카드 파괴/빙결 애니메이션
   destroyingEnemyCards: number[];

@@ -117,7 +117,7 @@ describe('cardTraitEffects', () => {
     });
 
     it('addLog 함수가 호출되어야 함', () => {
-      const addLog = vi.fn();
+      const addLog: any = vi.fn();
       const cards = [
         { id: 'card1', name: 'Repeat Card', traits: ['repeat'] }
       ];

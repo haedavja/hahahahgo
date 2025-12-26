@@ -70,7 +70,7 @@ describe('criticalEffects', () => {
           permanent: []
         }
       };
-      const result = calculateCritChance(actor, 0);
+      const result = calculateCritChance(actor as any, 0);
 
       // 5 + (10 * 2) = 25
       expect(result).toBe(25);

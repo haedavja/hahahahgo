@@ -85,23 +85,23 @@ describe('anomalyUtils', () => {
   describe('selectBattleAnomalies', () => {
     it('mapRisk가 50 미만이고 발동 실패하면 빈 배열을 반환해야 함', () => {
       // Math.random() = 0.3, mapRisk = 20 → probability = 0.2 < 0.3 → 실패
-      const result = selectBattleAnomalies(20, false);
+      const result = selectBattleAnomalies(20, false, undefined as any);
       expect(result).toEqual([]);
     });
 
     it('mapRisk가 50 이상이면 항상 이변이 발동해야 함', () => {
-      const result = selectBattleAnomalies(50, false);
+      const result = selectBattleAnomalies(50, false, undefined as any);
       expect(result.length).toBeGreaterThan(0);
     });
 
     it('일반 전투는 1개의 이변만 반환해야 함', () => {
-      const result = selectBattleAnomalies(60, false);
+      const result = selectBattleAnomalies(60, false, undefined as any);
       expect(result).toHaveLength(1);
     });
 
     it('개발자 모드 강제 이변이 적용되어야 함', () => {
       const devForced = [
-        { anomalyId: 'ether_void', level: 3 }
+        { anomalyId: 'ether_void', level: 3 } as any
       ];
       const result = selectBattleAnomalies(10, false, devForced);
 
@@ -113,7 +113,7 @@ describe('anomalyUtils', () => {
 
     it('존재하지 않는 이변 ID는 필터링되어야 함', () => {
       const devForced = [
-        { anomalyId: 'nonexistent_anomaly', level: 1 }
+        { anomalyId: 'nonexistent_anomaly', level: 1 } as any
       ];
       const result = selectBattleAnomalies(10, false, devForced);
       expect(result).toEqual([]);
@@ -122,124 +122,124 @@ describe('anomalyUtils', () => {
 
   describe('applyAnomalyEffects', () => {
     it('빈 이변 배열은 원본 플레이어를 반환해야 함', () => {
-      const player = { hp: 100, maxHp: 100 };
-      const result = applyAnomalyEffects([], player, {});
+      const player = { hp: 100, maxHp: 100 } as any;
+      const result = applyAnomalyEffects([] as any, player, {} as any);
 
       expect(result.player).toEqual(player);
       expect(result.logs).toEqual([]);
     });
 
     it('null 이변 배열은 원본 플레이어를 반환해야 함', () => {
-      const player = { hp: 100, maxHp: 100 };
-      const result = applyAnomalyEffects(null, player, {});
+      const player = { hp: 100, maxHp: 100 } as any;
+      const result = applyAnomalyEffects(null as any, player, {} as any);
 
       expect(result.player).toEqual(player);
       expect(result.logs).toEqual([]);
     });
 
     it('ETHER_BAN 효과가 적용되어야 함', () => {
-      const player = { hp: 100, maxHp: 100 };
+      const player = { hp: 100, maxHp: 100 } as any;
       const anomalies = [{
         anomaly: {
           name: 'Test Anomaly',
           emoji: '🌀',
           getEffect: () => ({ type: 'ETHER_BAN', description: 'No ether' })
-        },
+        } as any,
         level: 1
-      }];
+      } as any];
 
-      const result = applyAnomalyEffects(anomalies, player, {});
+      const result = applyAnomalyEffects(anomalies, player, {} as any);
 
       expect(result.player.etherBan).toBe(true);
       expect(result.logs).toHaveLength(1);
     });
 
     it('ENERGY_REDUCTION 효과가 적용되어야 함', () => {
-      const player = { hp: 100, maxHp: 100 };
+      const player = { hp: 100, maxHp: 100 } as any;
       const anomalies = [{
         anomaly: {
           name: 'Test Anomaly',
           emoji: '🌀',
           getEffect: () => ({ type: 'ENERGY_REDUCTION', value: 2, description: '-2 energy' })
-        },
+        } as any,
         level: 1
-      }];
+      } as any];
 
-      const result = applyAnomalyEffects(anomalies, player, {});
+      const result = applyAnomalyEffects(anomalies, player, {} as any);
 
       expect(result.player.energyPenalty).toBe(2);
     });
 
     it('SPEED_REDUCTION 효과가 적용되어야 함', () => {
-      const player = { hp: 100, maxHp: 100 };
+      const player = { hp: 100, maxHp: 100 } as any;
       const anomalies = [{
         anomaly: {
           name: 'Test Anomaly',
           emoji: '🌀',
           getEffect: () => ({ type: 'SPEED_REDUCTION', value: 3, description: '-3 speed' })
-        },
+        } as any,
         level: 1
-      }];
+      } as any];
 
-      const result = applyAnomalyEffects(anomalies, player, {});
+      const result = applyAnomalyEffects(anomalies, player, {} as any);
 
       expect(result.player.speedPenalty).toBe(3);
     });
 
     it('DRAW_REDUCTION 효과가 적용되어야 함', () => {
-      const player = { hp: 100, maxHp: 100 };
+      const player = { hp: 100, maxHp: 100 } as any;
       const anomalies = [{
         anomaly: {
           name: 'Test Anomaly',
           emoji: '🌀',
           getEffect: () => ({ type: 'DRAW_REDUCTION', value: 0.1, description: '-10% draw' })
-        },
+        } as any,
         level: 1
-      }];
+      } as any];
 
-      const result = applyAnomalyEffects(anomalies, player, {});
+      const result = applyAnomalyEffects(anomalies, player, {} as any);
 
       expect(result.player.drawPenalty).toBe(0.1);
     });
 
     it('INSIGHT_REDUCTION 효과가 적용되어야 함', () => {
-      const player = { hp: 100, maxHp: 100 };
+      const player = { hp: 100, maxHp: 100 } as any;
       const anomalies = [{
         anomaly: {
           name: 'Test Anomaly',
           emoji: '🌀',
           getEffect: () => ({ type: 'INSIGHT_REDUCTION', value: 1, description: '-1 insight' })
-        },
+        } as any,
         level: 1
-      }];
+      } as any];
 
-      const result = applyAnomalyEffects(anomalies, player, {});
+      const result = applyAnomalyEffects(anomalies, player, {} as any);
 
       expect(result.player.insightPenalty).toBe(1);
     });
 
     it('여러 이변 효과가 누적되어야 함', () => {
-      const player = { hp: 100, maxHp: 100 };
+      const player = { hp: 100, maxHp: 100 } as any;
       const anomalies = [
         {
           anomaly: {
             name: 'Anomaly 1',
             emoji: '🌀',
             getEffect: () => ({ type: 'ENERGY_REDUCTION', value: 1, description: '-1 energy' })
-          },
+          } as any,
           level: 1
-        },
+        } as any,
         {
           anomaly: {
             name: 'Anomaly 2',
             emoji: '💫',
             getEffect: () => ({ type: 'ENERGY_REDUCTION', value: 2, description: '-2 energy' })
-          },
+          } as any,
           level: 2
-        }
+        } as any
       ];
 
-      const result = applyAnomalyEffects(anomalies, player, {});
+      const result = applyAnomalyEffects(anomalies, player, {} as any);
 
       expect(result.player.energyPenalty).toBe(3); // 1 + 2
       expect(result.logs).toHaveLength(2);
@@ -255,10 +255,10 @@ describe('anomalyUtils', () => {
           emoji: '🌀',
           color: '#ff0000',
           description: 'Test description',
-          getEffect: (level) => ({ description: `Level ${level} effect` })
-        },
+          getEffect: (level: any) => ({ description: `Level ${level} effect` })
+        } as any,
         level: 2
-      }];
+      } as any];
 
       const result = formatAnomaliesForDisplay(anomalies);
 
@@ -273,14 +273,14 @@ describe('anomalyUtils', () => {
     });
 
     it('빈 배열은 빈 배열을 반환해야 함', () => {
-      const result = formatAnomaliesForDisplay([]);
+      const result = formatAnomaliesForDisplay([] as any);
       expect(result).toEqual([]);
     });
   });
 
   describe('applyAnomalyPenalties', () => {
     it('패널티가 없으면 기본값을 반환해야 함', () => {
-      const player = { hp: 100 };
+      const player = { hp: 100 } as any;
       const result = applyAnomalyPenalties(player, 5, 30, 3);
 
       expect(result.energy).toBe(5);
@@ -294,7 +294,7 @@ describe('anomalyUtils', () => {
         energyPenalty: 2,
         speedPenalty: 10,
         insightPenalty: 1
-      };
+      } as any;
       const result = applyAnomalyPenalties(player, 5, 30, 3);
 
       expect(result.energy).toBe(3);  // 5 - 2
@@ -307,7 +307,7 @@ describe('anomalyUtils', () => {
         hp: 100,
         energyPenalty: 10,
         speedPenalty: 50
-      };
+      } as any;
       const result = applyAnomalyPenalties(player, 5, 30, 3);
 
       expect(result.energy).toBe(0);
@@ -318,7 +318,7 @@ describe('anomalyUtils', () => {
       const player = {
         hp: 100,
         insightPenalty: 5
-      };
+      } as any;
       const result = applyAnomalyPenalties(player, 5, 30, 3);
 
       expect(result.insight).toBe(-2); // 3 - 5
@@ -327,22 +327,22 @@ describe('anomalyUtils', () => {
 
   describe('applyDrawPenalty', () => {
     it('패널티가 없으면 기본 확률을 반환해야 함', () => {
-      const player = { hp: 100 };
+      const player = { hp: 100 } as any;
       expect(applyDrawPenalty(0.8, player)).toBe(0.8);
     });
 
     it('패널티가 적용되어야 함', () => {
-      const player = { hp: 100, drawPenalty: 0.2 };
+      const player = { hp: 100, drawPenalty: 0.2 } as any;
       expect(applyDrawPenalty(0.8, player)).toBeCloseTo(0.6); // 0.8 - 0.2
     });
 
     it('확률은 0 이하로 내려가지 않아야 함', () => {
-      const player = { hp: 100, drawPenalty: 1 };
+      const player = { hp: 100, drawPenalty: 1 } as any;
       expect(applyDrawPenalty(0.5, player)).toBe(0);
     });
 
     it('확률은 1을 초과하지 않아야 함', () => {
-      const player = { hp: 100, drawPenalty: -0.5 }; // 음수 패널티 = 보너스
+      const player = { hp: 100, drawPenalty: -0.5 } as any; // 음수 패널티 = 보너스
       expect(applyDrawPenalty(0.8, player)).toBe(1); // 0.8 + 0.5 = 1.3 → 1
     });
   });

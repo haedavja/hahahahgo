@@ -26,7 +26,7 @@ export function calculateCritChance(
 
   let critBoostFromTokens = 0;
   if (actor.tokens) {
-    const allTokens = getAllTokens(actor) as CriticalToken[];
+    const allTokens = getAllTokens(actor as any) as CriticalToken[];
     allTokens.forEach(token => {
       if (token.effect?.type === 'CRIT_BOOST') {
         critBoostFromTokens += (token.effect.value || 5) * (token.stacks || 1);
@@ -36,7 +36,7 @@ export function calculateCritChance(
 
   let totalChance = baseCritChance + strength + energy + critBoostFromTokens;
 
-  if (card && hasSpecial(card, 'doubleCrit')) {
+  if (card && hasSpecial(card as any, 'doubleCrit')) {
     totalChance *= 2;
   }
 
@@ -78,7 +78,7 @@ export function rollCritical(
  */
 export function getCritKnockback(card: CriticalCard | null, isCritical: boolean): number {
   if (!isCritical || !card) return 0;
-  if (hasSpecial(card, 'critKnockback4')) return 4;
+  if (hasSpecial(card as any, 'critKnockback4')) return 4;
   return 0;
 }
 

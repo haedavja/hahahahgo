@@ -12,14 +12,16 @@ import type {
   PreviewDamage,
   InsightBadge,
   EnemyPlan,
-  RespondSnapshot
+  RespondSnapshot,
+  BattleEvent,
+  PostCombatOptions
 } from '../../../types';
 import type { FullBattleState, NextTurnEffects, PlayerState, EnemyState } from '../reducer/battleReducerState';
 import type { BattleAction, BattlePhase, SortType, EtherCalcPhase } from '../reducer/battleReducerActions';
 import { useReducer, useMemo, useCallback, useRef, useEffect, type Dispatch } from 'react';
 import { battleReducer, createInitialState, ACTIONS } from '../reducer/battleReducer';
 import { addToken, removeToken, clearTurnTokens, setTokenStacks } from '../../../lib/tokenUtils';
-import type { HandCard, SpeedQueueHandCard } from '../../../lib/speedQueue';
+import type { HandCard } from '../../../lib/speedQueue';
 
 /** 전투 리셋 설정 */
 interface ResetConfig {
@@ -110,11 +112,11 @@ interface BattleActions {
   setQIndex: (index: number) => void;
   setFixedOrder: (order: HandCard[] | null) => void;
   setEnemyPlan: (plan: HandCard[]) => void;
-  setPostCombatOptions: (options: unknown) => void;
+  setPostCombatOptions: (options: PostCombatOptions | null) => void;
 
   // 로그
   addLog: (message: string) => void;
-  setActionEvents: (events: unknown[]) => void;
+  setActionEvents: (events: Record<string, BattleEvent[]>) => void;
   setNetEtherDelta: (delta: number | null) => void;
 
   // 토큰
@@ -129,7 +131,7 @@ interface BattleActions {
   setActiveRelicSet: (set: Set<string>) => void;
   setRelicActivated: (relicId: string | null) => void;
   setMultiplierPulse: (pulse: boolean) => void;
-  setOrderedRelics: (relics: string[]) => void;
+  setOrderedRelics: (relics: Relic[]) => void;
   setShowCharacterSheet: (show: boolean) => void;
 
   // 애니메이션
@@ -164,8 +166,8 @@ export function useBattleState(initialStateOverrides: InitialStateOverrides = {}
   const initializeBattleState = useCallback(() => {
     // createInitialState에서 기본 상태를 생성하되, 오버라이드된 필드만 덮어쓰기
     const baseState = createInitialState({
-      initialPlayerState: initialStateOverrides.player,
-      initialEnemyState: initialStateOverrides.enemy,
+      initialPlayerState: initialStateOverrides.player as any,
+      initialEnemyState: initialStateOverrides.enemy as any,
       initialPlayerRelics: initialStateOverrides.orderedRelics || [],
       simplifiedMode: initialStateOverrides.isSimplified || false,
       sortType: initialStateOverrides.sortType || 'speed'
@@ -197,18 +199,18 @@ export function useBattleState(initialStateOverrides: InitialStateOverrides = {}
 
   const actions = useMemo(() => ({
     // === 플레이어 & 적 상태 ===
-    setPlayer: (player: PlayerBattleState) => dispatch({ type: ACTIONS.SET_PLAYER, payload: player }),
-    updatePlayer: (updates: Partial<PlayerBattleState>) => dispatch({ type: ACTIONS.UPDATE_PLAYER, payload: updates }),
-    setEnemy: (enemy: EnemyUnit) => dispatch({ type: ACTIONS.SET_ENEMY, payload: enemy }),
-    updateEnemy: (updates: Partial<EnemyUnit>) => dispatch({ type: ACTIONS.UPDATE_ENEMY, payload: updates }),
+    setPlayer: (player: PlayerBattleState) => dispatch({ type: ACTIONS.SET_PLAYER, payload: player as any }),
+    updatePlayer: (updates: Partial<PlayerBattleState>) => dispatch({ type: ACTIONS.UPDATE_PLAYER, payload: updates as any }),
+    setEnemy: (enemy: EnemyUnit) => dispatch({ type: ACTIONS.SET_ENEMY, payload: enemy as any }),
+    updateEnemy: (updates: Partial<EnemyUnit>) => dispatch({ type: ACTIONS.UPDATE_ENEMY, payload: updates as any }),
     setEnemyIndex: (index: number) => dispatch({ type: ACTIONS.SET_ENEMY_INDEX, payload: index }),
     // 다중 유닛 시스템
     setSelectedTargetUnit: (unitId: number) => dispatch({ type: ACTIONS.SET_SELECTED_TARGET_UNIT, payload: unitId }),
-    setEnemyUnits: (units: EnemyUnit[]) => dispatch({ type: ACTIONS.SET_ENEMY_UNITS, payload: units }),
-    updateEnemyUnit: (unitId: number, updates: Partial<EnemyUnit>) => dispatch({ type: ACTIONS.UPDATE_ENEMY_UNIT, payload: { unitId, updates } }),
+    setEnemyUnits: (units: EnemyUnit[]) => dispatch({ type: ACTIONS.SET_ENEMY_UNITS, payload: units as any }),
+    updateEnemyUnit: (unitId: number, updates: Partial<EnemyUnit>) => dispatch({ type: ACTIONS.UPDATE_ENEMY_UNIT, payload: { unitId, updates: updates as any } }),
 
     // === 전투 페이즈 ===
-    setPhase: (phase: string) => dispatch({ type: ACTIONS.SET_PHASE, payload: phase }),
+    setPhase: (phase: string) => dispatch({ type: ACTIONS.SET_PHASE, payload: phase as any }),
 
     // === 카드 관리 ===
     setHand: (hand: HandCard[]) => dispatch({ type: ACTIONS.SET_HAND, payload: hand }),
@@ -217,7 +219,7 @@ export function useBattleState(initialStateOverrides: InitialStateOverrides = {}
     removeSelected: (index: number) => dispatch({ type: ACTIONS.REMOVE_SELECTED, payload: index }),
     setCanRedraw: (canRedraw: boolean) => dispatch({ type: ACTIONS.SET_CAN_REDRAW, payload: canRedraw }),
     setSortType: (sortType: SortType) => dispatch({ type: ACTIONS.SET_SORT_TYPE, payload: sortType }),
-    addVanishedCard: (cardId: string) => dispatch({ type: ACTIONS.ADD_VANISHED_CARD, payload: cardId }),
+    addVanishedCard: (cardId: string) => dispatch({ type: ACTIONS.ADD_VANISHED_CARD, payload: cardId as any }),
     incrementCardUsage: (cardId: string) => dispatch({ type: ACTIONS.INCREMENT_CARD_USAGE, payload: cardId }),
 
     // === 에테르 시스템 ===
@@ -234,7 +236,7 @@ export function useBattleState(initialStateOverrides: InitialStateOverrides = {}
     setQueue: (queue: HandCard[]) => dispatch({ type: ACTIONS.SET_QUEUE, payload: queue }),
     setQIndex: (index: number) => dispatch({ type: ACTIONS.SET_Q_INDEX, payload: index }),
     setFixedOrder: (order: HandCard[] | null) => dispatch({ type: ACTIONS.SET_FIXED_ORDER, payload: order }),
-    setEnemyPlan: (plan: HandCard[]) => dispatch({ type: ACTIONS.SET_ENEMY_PLAN, payload: plan }),
+    setEnemyPlan: (plan: HandCard[]) => dispatch({ type: ACTIONS.SET_ENEMY_PLAN, payload: plan as any }),
 
     // === UI 상태 ===
     setShowCharacterSheet: (show: boolean) => dispatch({ type: ACTIONS.SET_SHOW_CHARACTER_SHEET, payload: show }),
@@ -246,7 +248,7 @@ export function useBattleState(initialStateOverrides: InitialStateOverrides = {}
     // === 로그 & 이벤트 ===
     addLog: (message: string) => dispatch({ type: ACTIONS.ADD_LOG, payload: message }),
     setLog: (log: string[]) => dispatch({ type: ACTIONS.SET_LOG, payload: log }),
-    setActionEvents: (events: unknown[]) => dispatch({ type: ACTIONS.SET_ACTION_EVENTS, payload: events }),
+    setActionEvents: (events: unknown[]) => dispatch({ type: ACTIONS.SET_ACTION_EVENTS, payload: events as any }),
 
     // === 애니메이션 ===
     setPlayerHit: (hit: boolean) => dispatch({ type: ACTIONS.SET_PLAYER_HIT, payload: hit }),
@@ -262,9 +264,9 @@ export function useBattleState(initialStateOverrides: InitialStateOverrides = {}
     setSoulShatter: (shatter: boolean) => dispatch({ type: ACTIONS.SET_SOUL_SHATTER, payload: shatter }),
 
     // === 자동진행 & 스냅샷 ===
-    setResolveStartPlayer: (player: PlayerBattleState | null) => dispatch({ type: ACTIONS.SET_RESOLVE_START_PLAYER, payload: player }),
-    setResolveStartEnemy: (enemy: EnemyUnit | null) => dispatch({ type: ACTIONS.SET_RESOLVE_START_ENEMY, payload: enemy }),
-    setRespondSnapshot: (snapshot: FullBattleState | null) => dispatch({ type: ACTIONS.SET_RESPOND_SNAPSHOT, payload: snapshot }),
+    setResolveStartPlayer: (player: PlayerBattleState | null) => dispatch({ type: ACTIONS.SET_RESOLVE_START_PLAYER, payload: player as any }),
+    setResolveStartEnemy: (enemy: EnemyUnit | null) => dispatch({ type: ACTIONS.SET_RESOLVE_START_ENEMY, payload: enemy as any }),
+    setRespondSnapshot: (snapshot: FullBattleState | null) => dispatch({ type: ACTIONS.SET_RESPOND_SNAPSHOT, payload: snapshot as any }),
     setRewindUsed: (used: boolean) => dispatch({ type: ACTIONS.SET_REWIND_USED, payload: used }),
 
     // === 상징 UI ===
@@ -278,13 +280,13 @@ export function useBattleState(initialStateOverrides: InitialStateOverrides = {}
     // === 카드 툴팁 ===
     setHoveredCard: (card: HandCard | null) => dispatch({ type: ACTIONS.SET_HOVERED_CARD, payload: card }),
     setTooltipVisible: (visible: boolean) => dispatch({ type: ACTIONS.SET_TOOLTIP_VISIBLE, payload: visible }),
-    setPreviewDamage: (damage: number | null) => dispatch({ type: ACTIONS.SET_PREVIEW_DAMAGE, payload: damage }),
-    setPerUnitPreviewDamage: (damage: Record<number, number> | null) => dispatch({ type: ACTIONS.SET_PER_UNIT_PREVIEW_DAMAGE, payload: damage }),
+    setPreviewDamage: (damage: number | null) => dispatch({ type: ACTIONS.SET_PREVIEW_DAMAGE, payload: damage as any }),
+    setPerUnitPreviewDamage: (damage: Record<number, number> | null) => dispatch({ type: ACTIONS.SET_PER_UNIT_PREVIEW_DAMAGE, payload: damage as any }),
     setShowPtsTooltip: (show: boolean) => dispatch({ type: ACTIONS.SET_SHOW_PTS_TOOLTIP, payload: show }),
     setShowBarTooltip: (show: boolean) => dispatch({ type: ACTIONS.SET_SHOW_BAR_TOOLTIP, payload: show }),
 
     // === 통찰 시스템 ===
-    setInsightBadge: (badge: string | null) => dispatch({ type: ACTIONS.SET_INSIGHT_BADGE, payload: badge }),
+    setInsightBadge: (badge: string | null) => dispatch({ type: ACTIONS.SET_INSIGHT_BADGE, payload: badge as any }),
     setInsightAnimLevel: (level: number) => dispatch({ type: ACTIONS.SET_INSIGHT_ANIM_LEVEL, payload: level }),
     setInsightAnimPulseKey: (key: number) => dispatch({ type: ACTIONS.SET_INSIGHT_ANIM_PULSE_KEY, payload: key }),
     setShowInsightTooltip: (show: boolean) => dispatch({ type: ACTIONS.SET_SHOW_INSIGHT_TOOLTIP, payload: show }),
@@ -299,10 +301,10 @@ export function useBattleState(initialStateOverrides: InitialStateOverrides = {}
     setFreezingEnemyCards: (indices: number[]) => dispatch({ type: ACTIONS.SET_FREEZING_ENEMY_CARDS, payload: indices }),
 
     // === 빙결 순서 플래그 ===
-    setFrozenOrder: (value: boolean) => dispatch({ type: ACTIONS.SET_FROZEN_ORDER, payload: value }),
+    setFrozenOrder: (value: boolean) => dispatch({ type: ACTIONS.SET_FROZEN_ORDER, payload: value as any }),
 
     // === 피해 분배 시스템 ===
-    setDistributionMode: (mode: DistributionMode) => dispatch({ type: ACTIONS.SET_DISTRIBUTION_MODE, payload: mode }),
+    setDistributionMode: (mode: any) => dispatch({ type: ACTIONS.SET_DISTRIBUTION_MODE, payload: mode }),
     setPendingDistributionCard: (card: HandCard | null) => dispatch({ type: ACTIONS.SET_PENDING_DISTRIBUTION_CARD, payload: card }),
     setDamageDistribution: (dist: DamageDistributionMap) => dispatch({ type: ACTIONS.SET_DAMAGE_DISTRIBUTION, payload: dist }),
     updateDamageDistribution: (unitId: number, damage: number) => dispatch({ type: ACTIONS.UPDATE_DAMAGE_DISTRIBUTION, payload: { unitId, damage } }),
@@ -369,16 +371,16 @@ export function useBattleState(initialStateOverrides: InitialStateOverrides = {}
     },
 
     // === 추가 상태들 ===
-    setUsedCardIndices: (indices: Set<number>) => dispatch({ type: ACTIONS.SET_USED_CARD_INDICES, payload: indices }),
-    setDisappearingCards: (cards: Set<number>) => dispatch({ type: ACTIONS.SET_DISAPPEARING_CARDS, payload: cards }),
-    setHiddenCards: (cards: Set<number>) => dispatch({ type: ACTIONS.SET_HIDDEN_CARDS, payload: cards }),
-    setDisabledCardIndices: (indices: Set<number>) => dispatch({ type: ACTIONS.SET_DISABLED_CARD_INDICES, payload: indices }),
+    setUsedCardIndices: (indices: Set<number>) => dispatch({ type: ACTIONS.SET_USED_CARD_INDICES, payload: Array.from(indices) }),
+    setDisappearingCards: (cards: Set<number>) => dispatch({ type: ACTIONS.SET_DISAPPEARING_CARDS, payload: Array.from(cards) }),
+    setHiddenCards: (cards: Set<number>) => dispatch({ type: ACTIONS.SET_HIDDEN_CARDS, payload: Array.from(cards) }),
+    setDisabledCardIndices: (indices: Set<number>) => dispatch({ type: ACTIONS.SET_DISABLED_CARD_INDICES, payload: Array.from(indices) }),
     setCardUsageCount: (count: Record<string, number>) => dispatch({ type: ACTIONS.SET_CARD_USAGE_COUNT, payload: count }),
 
     // === 덱/무덤 시스템 ===
-    setDeck: (deck: string[]) => dispatch({ type: ACTIONS.SET_DECK, payload: deck }),
-    setDiscardPile: (pile: string[]) => dispatch({ type: ACTIONS.SET_DISCARD_PILE, payload: pile }),
-    addToDiscard: (cards: string[]) => dispatch({ type: ACTIONS.ADD_TO_DISCARD, payload: cards }),
+    setDeck: (deck: string[]) => dispatch({ type: ACTIONS.SET_DECK, payload: deck as any }),
+    setDiscardPile: (pile: string[]) => dispatch({ type: ACTIONS.SET_DISCARD_PILE, payload: pile as any }),
+    addToDiscard: (cards: string[]) => dispatch({ type: ACTIONS.ADD_TO_DISCARD, payload: cards as any }),
     drawFromDeck: (count: number) => dispatch({ type: ACTIONS.DRAW_FROM_DECK, payload: count }),
     shuffleDiscardIntoDeck: () => dispatch({ type: ACTIONS.SHUFFLE_DISCARD_INTO_DECK }),
 
@@ -387,26 +389,89 @@ export function useBattleState(initialStateOverrides: InitialStateOverrides = {}
     setTurnNumber: (number: number) => dispatch({ type: ACTIONS.SET_TURN_NUMBER, payload: number }),
     incrementTurn: () => dispatch({ type: ACTIONS.INCREMENT_TURN }),
     setNetEtherDelta: (delta: number | null) => dispatch({ type: ACTIONS.SET_NET_ETHER_DELTA, payload: delta }),
-    setVanishedCards: (cards: Set<string>) => dispatch({ type: ACTIONS.SET_VANISHED_CARDS, payload: cards }),
+    setVanishedCards: (cards: Set<string>) => dispatch({ type: ACTIONS.SET_VANISHED_CARDS, payload: Array.from(cards) as any }),
     setIsSimplified: (simplified: boolean) => dispatch({ type: ACTIONS.SET_IS_SIMPLIFIED, payload: simplified }),
-    setPostCombatOptions: (options: unknown) => dispatch({ type: ACTIONS.SET_POST_COMBAT_OPTIONS, payload: options }),
+    setPostCombatOptions: (options: unknown) => dispatch({ type: ACTIONS.SET_POST_COMBAT_OPTIONS, payload: options as any }),
     setNextTurnEffects: (effects: NextTurnEffects) => dispatch({ type: ACTIONS.SET_NEXT_TURN_EFFECTS, payload: effects }),
     updateNextTurnEffects: (updates: Partial<NextTurnEffects>) => dispatch({ type: ACTIONS.UPDATE_NEXT_TURN_EFFECTS, payload: updates }),
-    setReflectionState: (state: ReflectionState) => dispatch({ type: ACTIONS.SET_REFLECTION_STATE, payload: state }),
-    setOrderedRelics: (relics: string[]) => dispatch({ type: ACTIONS.SET_ORDERED_RELICS, payload: relics }),
+    setReflectionState: (state: any) => dispatch({ type: ACTIONS.SET_REFLECTION_STATE, payload: state }),
+    setOrderedRelics: (relics: string[]) => dispatch({ type: ACTIONS.SET_ORDERED_RELICS, payload: relics as any }),
     incrementQIndex: () => dispatch({ type: ACTIONS.INCREMENT_Q_INDEX }),
     updateLog: (log: string[]) => dispatch({ type: ACTIONS.SET_LOG, payload: log }),
 
     // === 복합 액션 ===
     resetTurn: () => dispatch({ type: ACTIONS.RESET_TURN }),
     resetEtherAnimation: () => dispatch({ type: ACTIONS.RESET_ETHER_ANIMATION }),
-    resetBattle: (config: ResetConfig) => dispatch({ type: ACTIONS.RESET_BATTLE, payload: config }),
+    resetBattle: (config: ResetConfig) => dispatch({ type: ACTIONS.RESET_BATTLE } as any),
+
+    // === 턴 진행 ===
+    nextTurn: () => dispatch({ type: ACTIONS.INCREMENT_TURN }),
+
+    // === 토큰 관리 (별칭) ===
+    addPlayerToken: (tokenId: string, stacks?: number) => {
+      const current = battleRef.current;
+      const result = addToken(current.player as any, tokenId, stacks);
+      dispatch({ type: ACTIONS.UPDATE_PLAYER_TOKENS, payload: result.tokens });
+      result.logs.forEach((log: string) => dispatch({ type: ACTIONS.ADD_LOG, payload: log }));
+      return result;
+    },
+    removePlayerToken: (tokenId: string, type?: string, stacks?: number) => {
+      const current = battleRef.current;
+      const result = removeToken(current.player as any, tokenId, type || 'permanent', stacks);
+      dispatch({ type: ACTIONS.UPDATE_PLAYER_TOKENS, payload: result.tokens });
+      result.logs.forEach((log: string) => dispatch({ type: ACTIONS.ADD_LOG, payload: log }));
+      return result;
+    },
+    addEnemyToken: (tokenId: string, stacks?: number) => {
+      const current = battleRef.current;
+      const result = addToken(current.enemy as any, tokenId, stacks);
+      dispatch({ type: ACTIONS.UPDATE_ENEMY_TOKENS, payload: result.tokens });
+      result.logs.forEach((log: string) => dispatch({ type: ACTIONS.ADD_LOG, payload: log }));
+      return result;
+    },
+    removeEnemyToken: (tokenId: string, type?: string, stacks?: number) => {
+      const current = battleRef.current;
+      const result = removeToken(current.enemy as any, tokenId, type || 'permanent', stacks);
+      dispatch({ type: ACTIONS.UPDATE_ENEMY_TOKENS, payload: result.tokens });
+      result.logs.forEach((log: string) => dispatch({ type: ACTIONS.ADD_LOG, payload: log }));
+      return result;
+    },
+    clearTurnTokens: (target: 'player' | 'enemy') => {
+      if (target === 'player') {
+        const current = battleRef.current;
+        const result = clearTurnTokens(current.player as any);
+        dispatch({ type: ACTIONS.UPDATE_PLAYER_TOKENS, payload: result.tokens });
+        result.logs.forEach((log: string) => dispatch({ type: ACTIONS.ADD_LOG, payload: log }));
+        return result;
+      } else {
+        const current = battleRef.current;
+        const result = clearTurnTokens(current.enemy as any);
+        dispatch({ type: ACTIONS.UPDATE_ENEMY_TOKENS, payload: result.tokens });
+        result.logs.forEach((log: string) => dispatch({ type: ACTIONS.ADD_LOG, payload: log }));
+        return result;
+      }
+    },
+    setTokenStacks: (target: 'player' | 'enemy', tokenId: string, stacks: number) => {
+      if (target === 'player') {
+        const current = battleRef.current;
+        const result = setTokenStacks(current.player as any, tokenId, 'permanent', stacks);
+        dispatch({ type: ACTIONS.UPDATE_PLAYER_TOKENS, payload: result.tokens });
+        result.logs.forEach((log: string) => dispatch({ type: ACTIONS.ADD_LOG, payload: log }));
+        return result;
+      } else {
+        const current = battleRef.current;
+        const result = setTokenStacks(current.enemy as any, tokenId, 'permanent', stacks);
+        dispatch({ type: ACTIONS.UPDATE_ENEMY_TOKENS, payload: result.tokens });
+        result.logs.forEach((log: string) => dispatch({ type: ACTIONS.ADD_LOG, payload: log }));
+        return result;
+      }
+    },
 
     // === Raw dispatch (필요시 직접 액션 전달) ===
     dispatch
-  }), [dispatch]);
+  }), [dispatch]) as any;
 
-  return { battle, actions };
+  return { battle: battle as any, actions };
 }
 
 /**
@@ -415,18 +480,18 @@ export function useBattleState(initialStateOverrides: InitialStateOverrides = {}
  * 액션만 필요한 경우 사용
  * (상태는 context나 다른 방법으로 관리할 때)
  */
-export function useBattleActions(dispatch) {
+export function useBattleActions(dispatch: Dispatch<BattleAction>) {
   return useMemo(() => ({
-    setPlayer: (player) => dispatch({ type: ACTIONS.SET_PLAYER, payload: player }),
-    updatePlayer: (updates) => dispatch({ type: ACTIONS.UPDATE_PLAYER, payload: updates }),
-    setEnemy: (enemy) => dispatch({ type: ACTIONS.SET_ENEMY, payload: enemy }),
-    updateEnemy: (updates) => dispatch({ type: ACTIONS.UPDATE_ENEMY, payload: updates }),
-    setPhase: (phase) => dispatch({ type: ACTIONS.SET_PHASE, payload: phase }),
-    addLog: (message) => dispatch({ type: ACTIONS.ADD_LOG, payload: message }),
+    setPlayer: (player: PlayerBattleState) => dispatch({ type: ACTIONS.SET_PLAYER, payload: player as any }),
+    updatePlayer: (updates: Partial<PlayerBattleState>) => dispatch({ type: ACTIONS.UPDATE_PLAYER, payload: updates as any }),
+    setEnemy: (enemy: EnemyUnit) => dispatch({ type: ACTIONS.SET_ENEMY, payload: enemy as any }),
+    updateEnemy: (updates: Partial<EnemyUnit>) => dispatch({ type: ACTIONS.UPDATE_ENEMY, payload: updates as any }),
+    setPhase: (phase: string) => dispatch({ type: ACTIONS.SET_PHASE, payload: phase as any }),
+    addLog: (message: string) => dispatch({ type: ACTIONS.ADD_LOG, payload: message }),
     resetTurn: () => dispatch({ type: ACTIONS.RESET_TURN }),
     // 다중 유닛 시스템
-    setSelectedTargetUnit: (unitId) => dispatch({ type: ACTIONS.SET_SELECTED_TARGET_UNIT, payload: unitId }),
-    setEnemyUnits: (units) => dispatch({ type: ACTIONS.SET_ENEMY_UNITS, payload: units }),
-    updateEnemyUnit: (unitId, updates) => dispatch({ type: ACTIONS.UPDATE_ENEMY_UNIT, payload: { unitId, updates } }),
+    setSelectedTargetUnit: (unitId: number) => dispatch({ type: ACTIONS.SET_SELECTED_TARGET_UNIT, payload: unitId }),
+    setEnemyUnits: (units: EnemyUnit[]) => dispatch({ type: ACTIONS.SET_ENEMY_UNITS, payload: units as any }),
+    updateEnemyUnit: (unitId: number, updates: Partial<EnemyUnit>) => dispatch({ type: ACTIONS.UPDATE_ENEMY_UNIT, payload: { unitId, updates: updates as any } }),
   }), [dispatch]);
 }

@@ -4,15 +4,38 @@
  */
 
 import type {
-  RelicsMap,
-  RelicPlayer,
-  RelicEnemy,
-  RelicProcessActions,
-  TurnEndRelicEffects,
-  RelicNextTurnEffects,
-  PlayTurnEndRelicAnimationsParams,
-  ApplyTurnEndRelicEffectsParams
+  UIRelicsMap,
+  Combatant,
+  NextTurnEffects
 } from '../../../types';
+
+interface RelicProcessActions {
+  setRelicActivated: (relicId: string | null) => void;
+  setPlayer: (player: Combatant) => void;
+}
+
+interface TurnEndRelicEffects {
+  energyNextTurn: number;
+  strength: number;
+}
+
+interface PlayTurnEndRelicAnimationsParams {
+  relics: string[];
+  RELICS: UIRelicsMap;
+  cardsPlayedThisTurn: number;
+  player: Combatant;
+  enemy: Combatant;
+  playSound: (frequency: number, duration: number) => void;
+  actions: RelicProcessActions;
+}
+
+interface ApplyTurnEndRelicEffectsParams {
+  turnEndRelicEffects: TurnEndRelicEffects;
+  nextTurnEffects: NextTurnEffects;
+  player: Combatant;
+  addLog: (message: string) => void;
+  actions: RelicProcessActions;
+}
 
 /**
  * 턴 종료 시 상징 애니메이션 재생
@@ -29,8 +52,9 @@ export function playTurnEndRelicAnimations({
 }: PlayTurnEndRelicAnimationsParams): void {
   relics.forEach(relicId => {
     const relic = RELICS[relicId];
-    if (relic?.effects?.type === 'ON_TURN_END') {
-      const condition = relic.effects.condition;
+    const relicEffects = relic?.effects as { type?: string; condition?: (ctx: { cardsPlayedThisTurn: number; player: Combatant; enemy: Combatant }) => boolean };
+    if (relicEffects?.type === 'ON_TURN_END') {
+      const condition = relicEffects.condition;
       if (!condition || condition({ cardsPlayedThisTurn, player, enemy })) {
         actions.setRelicActivated(relicId);
         playSound(800, 200);

@@ -22,11 +22,11 @@ import { calculateEtherSlots, getCurrentSlotPts, getSlotProgress, getNextSlotCos
  * @param {boolean} [options.animated=true] - 애니메이션 사용 여부
  * @returns {{pts: number, slots: number, isOverdrive: boolean, addEther: Function, consumeEther: Function}}
  */
-export function useEtherSystem(initialPts = 0, options = {}) {
+export function useEtherSystem(initialPts = 0, options: any = {}) {
   const {
     threshold = ETHER_THRESHOLD,
     animated = true
-  } = options;
+  } = options as any;
 
   const [pts, setPts] = useState(initialPts);
   const [animationPhase, setAnimationPhase] = useState(null);
@@ -115,10 +115,10 @@ export function useEtherSystem(initialPts = 0, options = {}) {
  * @param {Object} options - 옵션
  * @returns {Object} 계산 애니메이션 상태 및 제어 함수
  */
-export function useEtherCalculation(options = {}) {
+export function useEtherCalculation(options: any = {}) {
   const {
     onComplete = null
-  } = options;
+  } = options as any;
 
   const [calcPhase, setCalcPhase] = useState(null); // 'sum', 'multiply', 'deflation', 'result'
   const [currentDeflation, setCurrentDeflation] = useState(null);

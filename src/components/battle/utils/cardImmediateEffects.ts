@@ -4,10 +4,12 @@
  */
 
 import type {
-  ImmediateNextTurnEffects,
-  ProcessImmediateCardTraitsParams,
-  ProcessCardPlayedRelicEffectsParams
 } from '../../../types';
+
+type ImmediateNextTurnEffects = any;
+type ProcessImmediateCardTraitsParams = any;
+type ProcessCardPlayedRelicEffectsParams = any;
+
 import { hasTrait } from "./battleUtils";
 import { applyCardPlayedEffects } from "../../../lib/relicEffects";
 

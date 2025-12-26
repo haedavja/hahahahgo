@@ -207,7 +207,7 @@ export function applyTurnEndEffects(
  */
 export function applyCardPlayedEffects(
   relicIds: string[] = [],
-  _card: Card = {},
+  _card: Card = {} as any,
   _state: object = {}
 ): CardPlayedChanges {
   const changes: CardPlayedChanges = {
@@ -285,7 +285,7 @@ export function applyNodeMoveEther(
 
   relicIds.forEach(relicId => {
     const relic = getRelicById(relicId) as RelicWithEffects | null;
-    if (!relic || relic.effects.type !== 'ON_NODE_MOVE') return;
+    if (!relic || (relic.effects.type as any) !== 'ON_NODE_MOVE') return;
 
     const effects = relic.effects;
 

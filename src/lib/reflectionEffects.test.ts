@@ -251,7 +251,7 @@ describe('processReflections', () => {
 
 describe('initReflectionState', () => {
   it('초기 상태 생성', () => {
-    const state = initReflectionState();
+    const state: any = initReflectionState();
 
     expect(state.reflectionTriggerCounts).toEqual({});
     expect(state.bonusEnergy).toBe(0);
@@ -263,7 +263,7 @@ describe('initReflectionState', () => {
 
 describe('resetTurnReflectionEffects', () => {
   it('턴 효과 초기화', () => {
-    const state = {
+    const state: any = {
       bonusEnergy: 2,
       etherMultiplier: 1.5,
       timelineBonus: 5,
@@ -283,21 +283,21 @@ describe('resetTurnReflectionEffects', () => {
 
 describe('decreaseEnemyFreeze', () => {
   it('동결 턴 감소', () => {
-    const state = { enemyFreezeTurns: 2 };
+    const state: any = { enemyFreezeTurns: 2 };
     const result = decreaseEnemyFreeze(state);
 
     expect(result.enemyFreezeTurns).toBe(1);
   });
 
   it('0이면 그대로', () => {
-    const state = { enemyFreezeTurns: 0 };
+    const state: any = { enemyFreezeTurns: 0 };
     const result = decreaseEnemyFreeze(state);
 
     expect(result.enemyFreezeTurns).toBe(0);
   });
 
   it('없으면 그대로', () => {
-    const state = {};
+    const state: any = {};
     const result = decreaseEnemyFreeze(state);
 
     expect(result.enemyFreezeTurns).toBeUndefined();

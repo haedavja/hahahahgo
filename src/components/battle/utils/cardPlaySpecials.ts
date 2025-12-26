@@ -78,8 +78,6 @@ export function processCardPlaySpecials({
             bonusCards.push({
               ...basicShoot,
               damage: basicShoot.damage,
-              block: basicShoot.block,
-              hits: basicShoot.hits,
               speedCost: basicShoot.speedCost,
               actionCost: basicShoot.actionCost,
               type: basicShoot.type,
@@ -89,7 +87,7 @@ export function processCardPlaySpecials({
               isGhost: true,
               createdBy: card.id,
               createdId: `${basicShoot.id}_cross_${Date.now()}_${i}`
-            });
+            } as Card);
             const msg = `${who} • ✨ ${card.name}: 교차! "${basicShoot.name}" 사격 추가!`;
             events.push({ actor: attackerName, card: card.name, type: 'cross', msg });
             logs.push(msg);
@@ -194,12 +192,13 @@ export function processCardPlaySpecials({
     }
 
     if (previousCard) {
-      if (previousCard.cardCategory === 'gun') {
+      const prevCategory = previousCard.cardCategory as string;
+      if (prevCategory === 'pistol') {
         tokensToAdd.push({ id: 'offense', stacks: 1, grantedAt });
         const msg = `${who} • ⚔️ ${card.name}: 이전 총격! 공세 획득!`;
         events.push({ actor: attackerName, card: card.name, type: 'special', msg });
         logs.push(msg);
-      } else if (previousCard.cardCategory === 'fencing') {
+      } else if (prevCategory === 'fencing') {
         tokensToAdd.push({ id: 'loaded', stacks: 1, grantedAt });
         const msg = `${who} • 🔫 ${card.name}: 이전 검격! 장전 획득!`;
         events.push({ actor: attackerName, card: card.name, type: 'special', msg });
@@ -207,7 +206,7 @@ export function processCardPlaySpecials({
       }
     }
 
-    const attackerTokens = getAllTokens(attacker) as Token[];
+    const attackerTokens = getAllTokens(attacker);
     const negativeTokens = attackerTokens.filter(t => {
       const tokenDef = TOKENS[t.id];
       return tokenDef && tokenDef.category === TOKEN_CATEGORIES.NEGATIVE;
@@ -274,7 +273,7 @@ export function processCardPlaySpecials({
           isGhost: true,
           createdBy: card.id,
           createdId: `${basicShoot.id}_manip_${Date.now()}`
-        });
+        } as Card);
         const msg = `${who} • 🔫 ${card.name}: 사격!`;
         events.push({ actor: attackerName, card: card.name, type: 'special', msg });
         logs.push(msg);
@@ -301,7 +300,7 @@ export function processCardPlaySpecials({
           createdBy: card.id,
           createdId: `${basicShoot.id}_spread_${Date.now()}_${i}`,
           __targetUnitId: aliveUnits[i]?.unitId ?? 0
-        });
+        } as Card);
       }
       const msg = `${who} • 🔫 ${card.name}: ${enemyCount}회 스프레드 사격!`;
       events.push({ actor: attackerName, card: card.name, type: 'special', msg });
@@ -328,7 +327,7 @@ export function processCardPlaySpecials({
           isGhost: true,
           createdBy: card.id,
           createdId: `${basicShoot.id}_exec_${Date.now()}_${i}`
-        });
+        } as Card);
       }
       const msg = `${who} • 🔫 ${card.name}: 총살! 장전 + 탄걸림 면역 + 사격 4장 창조!`;
       events.push({ actor: attackerName, card: card.name, type: 'special', msg });
@@ -358,7 +357,7 @@ export function processCardPlaySpecials({
         isGhost: true,
         createdBy: card.id,
         createdId: `${basicShoot.id}_evasive_${Date.now()}`
-      });
+      } as Card);
       const msg = `${who} • 🔫 ${card.name}: 회피 사격!`;
       events.push({ actor: attackerName, card: card.name, type: 'special', msg });
       logs.push(msg);

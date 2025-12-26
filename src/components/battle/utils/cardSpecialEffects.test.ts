@@ -48,42 +48,42 @@ vi.mock('../../../lib/tokenUtils', () => ({
 
 describe('hasSpecial', () => {
   it('카드에 special이 있으면 true', () => {
-    const card = { special: 'ignoreBlock' };
+    const card = { special: 'ignoreBlock' } as any;
     expect(hasSpecial(card, 'ignoreBlock')).toBe(true);
   });
 
   it('다른 special이면 false', () => {
-    const card = { special: 'ignoreBlock' };
+    const card = { special: 'ignoreBlock' } as any;
     expect(hasSpecial(card, 'clearAllBlock')).toBe(false);
   });
 
   it('special이 없으면 false', () => {
-    const card = { damage: 10 };
+    const card = { damage: 10 } as any;
     expect(hasSpecial(card, 'ignoreBlock')).toBe(false);
   });
 
   it('card가 null이면 false', () => {
-    expect(hasSpecial(null, 'ignoreBlock')).toBe(false);
+    expect(hasSpecial(null as any, 'ignoreBlock')).toBe(false);
   });
 
   it('card가 undefined이면 false', () => {
-    expect(hasSpecial(undefined, 'ignoreBlock')).toBe(false);
+    expect(hasSpecial(undefined as any, 'ignoreBlock')).toBe(false);
   });
 });
 
 describe('shouldIgnoreBlock', () => {
   it('ignoreBlock special이면 true', () => {
-    const card = { special: 'ignoreBlock' };
+    const card = { special: 'ignoreBlock' } as any;
     expect(shouldIgnoreBlock(card)).toBe(true);
   });
 
   it('_ignoreBlock 플래그면 true', () => {
-    const card = { _ignoreBlock: true };
+    const card = { _ignoreBlock: true } as any;
     expect(shouldIgnoreBlock(card)).toBe(true);
   });
 
   it('아무것도 없으면 false', () => {
-    const card = { damage: 10 };
+    const card = { damage: 10 } as any;
     expect(shouldIgnoreBlock(card)).toBe(false);
   });
 });
@@ -92,9 +92,9 @@ describe('processPreAttackSpecials', () => {
   describe('ignoreBlock', () => {
     it('_ignoreBlock 플래그 설정', () => {
       const result = processPreAttackSpecials({
-        card: { special: 'ignoreBlock', damage: 50, name: '로켓펀치' },
-        attacker: { hp: 100 },
-        defender: { hp: 100, block: 20 },
+        card: { special: 'ignoreBlock', damage: 50, name: '로켓펀치' } as any,
+        attacker: { hp: 100 } as any,
+        defender: { hp: 100, block: 20 } as any,
         attackerName: 'player'
       });
       expect(result.modifiedCard._ignoreBlock).toBe(true);
@@ -104,22 +104,22 @@ describe('processPreAttackSpecials', () => {
   describe('clearAllBlock', () => {
     it('양측 방어력 0으로 설정', () => {
       const result = processPreAttackSpecials({
-        card: { special: 'clearAllBlock', damage: 40, name: '필사의 일격' },
-        attacker: { hp: 100, block: 15, def: true },
-        defender: { hp: 100, block: 25, def: true },
+        card: { special: 'clearAllBlock', damage: 40, name: '필사의 일격' } as any,
+        attacker: { hp: 100, block: 15, def: true } as any,
+        defender: { hp: 100, block: 25, def: true } as any,
         attackerName: 'player'
       });
       expect(result.attacker.block).toBe(0);
       expect(result.defender.block).toBe(0);
-      expect(result.attacker.def).toBe(false);
-      expect(result.defender.def).toBe(false);
+      expect((result.attacker as any).def).toBe(false);
+      expect((result.defender as any).def).toBe(false);
     });
 
     it('방어력이 있을 때만 이벤트 발생', () => {
       const result = processPreAttackSpecials({
-        card: { special: 'clearAllBlock', damage: 40, name: '필사의 일격' },
-        attacker: { hp: 100, block: 15 },
-        defender: { hp: 100, block: 25 },
+        card: { special: 'clearAllBlock', damage: 40, name: '필사의 일격' } as any,
+        attacker: { hp: 100, block: 15 } as any,
+        defender: { hp: 100, block: 25 } as any,
         attackerName: 'player'
       });
       expect(result.events.length).toBe(1);
@@ -128,9 +128,9 @@ describe('processPreAttackSpecials', () => {
 
     it('양측 방어력이 0이면 이벤트 없음', () => {
       const result = processPreAttackSpecials({
-        card: { special: 'clearAllBlock', damage: 40, name: '필사의 일격' },
-        attacker: { hp: 100, block: 0 },
-        defender: { hp: 100, block: 0 },
+        card: { special: 'clearAllBlock', damage: 40, name: '필사의 일격' } as any,
+        attacker: { hp: 100, block: 0 } as any,
+        defender: { hp: 100, block: 0 } as any,
         attackerName: 'player'
       });
       expect(result.events.length).toBe(0);
@@ -140,11 +140,11 @@ describe('processPreAttackSpecials', () => {
   describe('doubleDamageIfSolo', () => {
     it('유일한 공격카드면 2배 피해', () => {
       const result = processPreAttackSpecials({
-        card: { special: 'doubleDamageIfSolo', damage: 18, name: '걷어차기' },
-        attacker: { hp: 100 },
-        defender: { hp: 100 },
+        card: { special: 'doubleDamageIfSolo', damage: 18, name: '걷어차기' } as any,
+        attacker: { hp: 100 } as any,
+        defender: { hp: 100 } as any,
         attackerName: 'player',
-        battleContext: { playerAttackCards: [{ id: 'kick' }] }
+        battleContext: { playerAttackCards: [{ id: 'kick' }] as any }
       });
       expect(result.modifiedCard.damage).toBe(36);
       expect(result.events.length).toBe(1);
@@ -152,11 +152,11 @@ describe('processPreAttackSpecials', () => {
 
     it('여러 공격카드면 그대로', () => {
       const result = processPreAttackSpecials({
-        card: { special: 'doubleDamageIfSolo', damage: 18, name: '걷어차기' },
-        attacker: { hp: 100 },
-        defender: { hp: 100 },
+        card: { special: 'doubleDamageIfSolo', damage: 18, name: '걷어차기' } as any,
+        attacker: { hp: 100 } as any,
+        defender: { hp: 100 } as any,
         attackerName: 'player',
-        battleContext: { playerAttackCards: [{ id: 'kick' }, { id: 'stab' }] }
+        battleContext: { playerAttackCards: [{ id: 'kick' } as any, { id: 'stab' }] }
       });
       expect(result.modifiedCard.damage).toBe(18);
       expect(result.events.length).toBe(0);
@@ -164,9 +164,9 @@ describe('processPreAttackSpecials', () => {
 
     it('battleContext 없으면 그대로', () => {
       const result = processPreAttackSpecials({
-        card: { special: 'doubleDamageIfSolo', damage: 18, name: '걷어차기' },
-        attacker: { hp: 100 },
-        defender: { hp: 100 },
+        card: { special: 'doubleDamageIfSolo', damage: 18, name: '걷어차기' } as any,
+        attacker: { hp: 100 } as any,
+        defender: { hp: 100 } as any,
         attackerName: 'player'
       });
       expect(result.modifiedCard.damage).toBe(18);
@@ -176,9 +176,9 @@ describe('processPreAttackSpecials', () => {
   describe('agilityBonus', () => {
     it('민첩당 5 추가 피해', () => {
       const result = processPreAttackSpecials({
-        card: { special: 'agilityBonus', damage: 25, name: '취권' },
-        attacker: { hp: 100, agility: 2 },
-        defender: { hp: 100 },
+        card: { special: 'agilityBonus', damage: 25, name: '취권' } as any,
+        attacker: { hp: 100, agility: 2 } as any,
+        defender: { hp: 100 } as any,
         attackerName: 'player'
       });
       expect(result.modifiedCard.damage).toBe(35); // 25 + (2 * 5)
@@ -186,9 +186,9 @@ describe('processPreAttackSpecials', () => {
 
     it('민첩 3이면 +15', () => {
       const result = processPreAttackSpecials({
-        card: { special: 'agilityBonus', damage: 20, name: '취권' },
-        attacker: { hp: 100, agility: 3 },
-        defender: { hp: 100 },
+        card: { special: 'agilityBonus', damage: 20, name: '취권' } as any,
+        attacker: { hp: 100, agility: 3 } as any,
+        defender: { hp: 100 } as any,
         attackerName: 'player'
       });
       expect(result.modifiedCard.damage).toBe(35); // 20 + 15
@@ -196,9 +196,9 @@ describe('processPreAttackSpecials', () => {
 
     it('민첩 0이면 변화 없음', () => {
       const result = processPreAttackSpecials({
-        card: { special: 'agilityBonus', damage: 25, name: '취권' },
-        attacker: { hp: 100, agility: 0 },
-        defender: { hp: 100 },
+        card: { special: 'agilityBonus', damage: 25, name: '취권' } as any,
+        attacker: { hp: 100, agility: 0 } as any,
+        defender: { hp: 100 } as any,
         attackerName: 'player'
       });
       expect(result.modifiedCard.damage).toBe(25);
@@ -207,9 +207,9 @@ describe('processPreAttackSpecials', () => {
 
     it('민첩 속성 없으면 변화 없음', () => {
       const result = processPreAttackSpecials({
-        card: { special: 'agilityBonus', damage: 25, name: '취권' },
-        attacker: { hp: 100 },
-        defender: { hp: 100 },
+        card: { special: 'agilityBonus', damage: 25, name: '취권' } as any,
+        attacker: { hp: 100 } as any,
+        defender: { hp: 100 } as any,
         attackerName: 'player'
       });
       expect(result.modifiedCard.damage).toBe(25);
@@ -221,9 +221,9 @@ describe('processPostAttackSpecials', () => {
   describe('executeUnder10', () => {
     it('10% 미만이면 즉사', () => {
       const result = processPostAttackSpecials({
-        card: { special: 'executeUnder10', damage: 25, name: '두개골 부수기' },
-        attacker: { hp: 100 },
-        defender: { hp: 8, maxHp: 100 },
+        card: { special: 'executeUnder10', damage: 25, name: '두개골 부수기' } as any,
+        attacker: { hp: 100 } as any,
+        defender: { hp: 8, maxHp: 100 } as any,
         attackerName: 'player',
         damageDealt: 25
       });
@@ -233,9 +233,9 @@ describe('processPostAttackSpecials', () => {
 
     it('정확히 10%면 즉사 안함', () => {
       const result = processPostAttackSpecials({
-        card: { special: 'executeUnder10', damage: 25, name: '두개골 부수기' },
-        attacker: { hp: 100 },
-        defender: { hp: 10, maxHp: 100 },
+        card: { special: 'executeUnder10', damage: 25, name: '두개골 부수기' } as any,
+        attacker: { hp: 100 } as any,
+        defender: { hp: 10, maxHp: 100 } as any,
         attackerName: 'player',
         damageDealt: 25
       });
@@ -244,9 +244,9 @@ describe('processPostAttackSpecials', () => {
 
     it('10% 이상이면 그대로', () => {
       const result = processPostAttackSpecials({
-        card: { special: 'executeUnder10', damage: 25, name: '두개골 부수기' },
-        attacker: { hp: 100 },
-        defender: { hp: 15, maxHp: 100 },
+        card: { special: 'executeUnder10', damage: 25, name: '두개골 부수기' } as any,
+        attacker: { hp: 100 } as any,
+        defender: { hp: 15, maxHp: 100 } as any,
         attackerName: 'player',
         damageDealt: 25
       });
@@ -255,9 +255,9 @@ describe('processPostAttackSpecials', () => {
 
     it('이미 hp가 0이면 이벤트 없음', () => {
       const result = processPostAttackSpecials({
-        card: { special: 'executeUnder10', damage: 25, name: '두개골 부수기' },
-        attacker: { hp: 100 },
-        defender: { hp: 0, maxHp: 100 },
+        card: { special: 'executeUnder10', damage: 25, name: '두개골 부수기' } as any,
+        attacker: { hp: 100 } as any,
+        defender: { hp: 0, maxHp: 100 } as any,
         attackerName: 'player',
         damageDealt: 25
       });
@@ -266,9 +266,9 @@ describe('processPostAttackSpecials', () => {
 
     it('maxHp가 200이면 임계값 20', () => {
       const result = processPostAttackSpecials({
-        card: { special: 'executeUnder10', damage: 25, name: '두개골 부수기' },
-        attacker: { hp: 100 },
-        defender: { hp: 19, maxHp: 200 },
+        card: { special: 'executeUnder10', damage: 25, name: '두개골 부수기' } as any,
+        attacker: { hp: 100 } as any,
+        defender: { hp: 19, maxHp: 200 } as any,
         attackerName: 'player',
         damageDealt: 25
       });
@@ -279,9 +279,9 @@ describe('processPostAttackSpecials', () => {
   describe('vulnIfNoBlock', () => {
     it('방어력 없으면 취약 부여', () => {
       const result = processPostAttackSpecials({
-        card: { special: 'vulnIfNoBlock', damage: 14, name: '검 빙글빙글' },
-        attacker: { hp: 100 },
-        defender: { hp: 100, def: false, block: 0, tokens: {} },
+        card: { special: 'vulnIfNoBlock', damage: 14, name: '검 빙글빙글' } as any,
+        attacker: { hp: 100 } as any,
+        defender: { hp: 100, maxHp: 100, def: false, block: 0, tokens: { usage: [], turn: [], permanent: [] } } as any,
         attackerName: 'player',
         damageDealt: 14
       });
@@ -291,9 +291,9 @@ describe('processPostAttackSpecials', () => {
 
     it('방어력 있으면 취약 부여 안함', () => {
       const result = processPostAttackSpecials({
-        card: { special: 'vulnIfNoBlock', damage: 14, name: '검 빙글빙글' },
-        attacker: { hp: 100 },
-        defender: { hp: 100, def: true, block: 10, tokens: {} },
+        card: { special: 'vulnIfNoBlock', damage: 14, name: '검 빙글빙글' } as any,
+        attacker: { hp: 100 } as any,
+        defender: { hp: 100, maxHp: 100, def: true, block: 10, tokens: { usage: [], turn: [], permanent: [] } } as any,
         attackerName: 'player',
         damageDealt: 14
       });
@@ -304,9 +304,9 @@ describe('processPostAttackSpecials', () => {
   describe('doubleVulnIfNoBlock', () => {
     it('방어력 없으면 2스택 취약 부여', () => {
       const result = processPostAttackSpecials({
-        card: { special: 'doubleVulnIfNoBlock', damage: 10, name: '미늘작살' },
-        attacker: { hp: 100 },
-        defender: { hp: 100, def: false, block: 0, tokens: {} },
+        card: { special: 'doubleVulnIfNoBlock', damage: 10, name: '미늘작살' } as any,
+        attacker: { hp: 100 } as any,
+        defender: { hp: 100, maxHp: 100, def: false, block: 0, tokens: { usage: [], turn: [], permanent: [] } } as any,
         attackerName: 'player',
         damageDealt: 10
       });
@@ -317,9 +317,9 @@ describe('processPostAttackSpecials', () => {
   describe('repeatIfLast', () => {
     it('마지막 카드면 extraHits 1', () => {
       const result = processPostAttackSpecials({
-        card: { special: 'repeatIfLast', damage: 30, name: '후려치기' },
-        attacker: { hp: 100 },
-        defender: { hp: 100 },
+        card: { special: 'repeatIfLast', damage: 30, name: '후려치기' } as any,
+        attacker: { hp: 100 } as any,
+        defender: { hp: 100 } as any,
         attackerName: 'player',
         damageDealt: 30,
         battleContext: { isLastCard: true }
@@ -329,9 +329,9 @@ describe('processPostAttackSpecials', () => {
 
     it('마지막 아니면 extraHits 0', () => {
       const result = processPostAttackSpecials({
-        card: { special: 'repeatIfLast', damage: 30, name: '후려치기' },
-        attacker: { hp: 100 },
-        defender: { hp: 100 },
+        card: { special: 'repeatIfLast', damage: 30, name: '후려치기' } as any,
+        attacker: { hp: 100 } as any,
+        defender: { hp: 100 } as any,
         attackerName: 'player',
         damageDealt: 30,
         battleContext: { isLastCard: false }
@@ -343,9 +343,9 @@ describe('processPostAttackSpecials', () => {
   describe('repeatPerUnusedAttack', () => {
     it('미사용 공격카드 수만큼 extraHits', () => {
       const result = processPostAttackSpecials({
-        card: { special: 'repeatPerUnusedAttack', damage: 15, name: '연쇄기' },
-        attacker: { hp: 100 },
-        defender: { hp: 100 },
+        card: { special: 'repeatPerUnusedAttack', damage: 15, name: '연쇄기' } as any,
+        attacker: { hp: 100 } as any,
+        defender: { hp: 100 } as any,
         attackerName: 'player',
         damageDealt: 15,
         battleContext: { unusedAttackCards: 3 }
@@ -355,9 +355,9 @@ describe('processPostAttackSpecials', () => {
 
     it('미사용 공격카드 없으면 extraHits 0', () => {
       const result = processPostAttackSpecials({
-        card: { special: 'repeatPerUnusedAttack', damage: 15, name: '연쇄기' },
-        attacker: { hp: 100 },
-        defender: { hp: 100 },
+        card: { special: 'repeatPerUnusedAttack', damage: 15, name: '연쇄기' } as any,
+        attacker: { hp: 100 } as any,
+        defender: { hp: 100 } as any,
         attackerName: 'player',
         damageDealt: 15,
         battleContext: { unusedAttackCards: 0 }
@@ -369,9 +369,9 @@ describe('processPostAttackSpecials', () => {
   describe('hitOnEnemyAction', () => {
     it('persistent_strike 토큰 부여', () => {
       const result = processPostAttackSpecials({
-        card: { special: 'hitOnEnemyAction', damage: 20, name: '질긴 놈' },
-        attacker: { hp: 100, tokens: {} },
-        defender: { hp: 100 },
+        card: { special: 'hitOnEnemyAction', damage: 20, name: '질긴 놈' } as any,
+        attacker: { hp: 100, maxHp: 100, block: 0, tokens: { usage: [], turn: [], permanent: [] } } as any,
+        defender: { hp: 100 } as any,
         attackerName: 'player',
         damageDealt: 20
       });
@@ -383,9 +383,9 @@ describe('processPostAttackSpecials', () => {
   describe('halfEnemyEther', () => {
     it('half_ether 토큰 부여', () => {
       const result = processPostAttackSpecials({
-        card: { special: 'halfEnemyEther', damage: 30, name: '에테르 커터' },
-        attacker: { hp: 100 },
-        defender: { hp: 100, tokens: {} },
+        card: { special: 'halfEnemyEther', damage: 30, name: '에테르 커터' } as any,
+        attacker: { hp: 100 } as any,
+        defender: { hp: 100, maxHp: 100, block: 0, tokens: { usage: [], turn: [], permanent: [] } } as any,
         attackerName: 'player',
         damageDealt: 30
       });
@@ -397,9 +397,9 @@ describe('processPostAttackSpecials', () => {
 describe('processQueueCollisions', () => {
   it('충돌 없으면 그대로', () => {
     const queue = [
-      { actor: 'player', card: { name: '타격', damage: 17 }, sp: 7 },
-      { actor: 'enemy', card: { name: '적 공격' }, sp: 10 }
-    ];
+      { actor: 'player', card: { name: '타격', damage: 17 } as any, sp: 7 },
+      { actor: 'enemy', card: { name: '적 공격' } as any, sp: 10 }
+    ] as any;
     const result = processQueueCollisions(queue, () => {});
     expect(result.filteredQueue.length).toBe(2);
     expect(result.destroyedCards.length).toBe(0);
@@ -407,9 +407,9 @@ describe('processQueueCollisions', () => {
 
   it('destroyOnCollision으로 충돌 시 적 카드 제거', () => {
     const queue = [
-      { actor: 'player', card: { name: '박치기', special: 'destroyOnCollision' }, sp: 9 },
-      { actor: 'enemy', card: { name: '적 공격' }, sp: 9 }
-    ];
+      { actor: 'player', card: { name: '박치기', special: 'destroyOnCollision' } as any, sp: 9 },
+      { actor: 'enemy', card: { name: '적 공격' } as any, sp: 9 }
+    ] as any;
     const result = processQueueCollisions(queue, () => {});
     expect(result.filteredQueue.length).toBe(1);
     expect(result.destroyedCards.length).toBe(1);
@@ -418,21 +418,21 @@ describe('processQueueCollisions', () => {
 
   it('destroyOnCollision 없으면 같은 sp라도 유지', () => {
     const queue = [
-      { actor: 'player', card: { name: '타격' }, sp: 9 },
-      { actor: 'enemy', card: { name: '적 공격' }, sp: 9 }
-    ];
+      { actor: 'player', card: { name: '타격' } as any, sp: 9 },
+      { actor: 'enemy', card: { name: '적 공격' } as any, sp: 9 }
+    ] as any;
     const result = processQueueCollisions(queue, () => {});
     expect(result.filteredQueue.length).toBe(2);
   });
 
   it('여러 충돌 처리', () => {
     const queue = [
-      { actor: 'player', card: { name: '박치기1', special: 'destroyOnCollision' }, sp: 5 },
-      { actor: 'player', card: { name: '박치기2', special: 'destroyOnCollision' }, sp: 10 },
-      { actor: 'enemy', card: { name: '적1' }, sp: 5 },
-      { actor: 'enemy', card: { name: '적2' }, sp: 10 },
-      { actor: 'enemy', card: { name: '적3' }, sp: 15 }
-    ];
+      { actor: 'player', card: { name: '박치기1', special: 'destroyOnCollision' } as any, sp: 5 },
+      { actor: 'player', card: { name: '박치기2', special: 'destroyOnCollision' } as any, sp: 10 },
+      { actor: 'enemy', card: { name: '적1' } as any, sp: 5 },
+      { actor: 'enemy', card: { name: '적2' } as any, sp: 10 },
+      { actor: 'enemy', card: { name: '적3' } as any, sp: 15 }
+    ] as any;
     const result = processQueueCollisions(queue, () => {});
     expect(result.filteredQueue.length).toBe(3); // 플레이어 2 + 적3
     expect(result.destroyedCards.length).toBe(2);
@@ -440,10 +440,10 @@ describe('processQueueCollisions', () => {
 
   it('같은 sp에 여러 적 카드면 모두 파괴', () => {
     const queue = [
-      { actor: 'player', card: { name: '박치기', special: 'destroyOnCollision' }, sp: 7 },
-      { actor: 'enemy', card: { name: '적1' }, sp: 7 },
-      { actor: 'enemy', card: { name: '적2' }, sp: 7 }
-    ];
+      { actor: 'player', card: { name: '박치기', special: 'destroyOnCollision' } as any, sp: 7 },
+      { actor: 'enemy', card: { name: '적1' } as any, sp: 7 },
+      { actor: 'enemy', card: { name: '적2' } as any, sp: 7 }
+    ] as any;
     const result = processQueueCollisions(queue, () => {});
     expect(result.filteredQueue.length).toBe(1);
     expect(result.destroyedCards.length).toBe(2);
@@ -452,9 +452,9 @@ describe('processQueueCollisions', () => {
   it('로그 콜백 호출', () => {
     const logs = [];
     const queue = [
-      { actor: 'player', card: { name: '박치기', special: 'destroyOnCollision' }, sp: 9 },
-      { actor: 'enemy', card: { name: '적 공격' }, sp: 9 }
-    ];
+      { actor: 'player', card: { name: '박치기', special: 'destroyOnCollision' } as any, sp: 9 },
+      { actor: 'enemy', card: { name: '적 공격' } as any, sp: 9 }
+    ] as any;
     processQueueCollisions(queue, (msg) => logs.push(msg));
     expect(logs.length).toBe(1);
     expect(logs[0]).toContain('충돌');
@@ -464,8 +464,8 @@ describe('processQueueCollisions', () => {
 describe('processCollisionSpecials', () => {
   it('destroyOnCollision이면 destroyed true', () => {
     const result = processCollisionSpecials({
-      card: { name: '박치기', special: 'destroyOnCollision' },
-      enemyCard: { name: '적 카드' },
+      card: { name: '박치기', special: 'destroyOnCollision' } as any,
+      enemyCard: { name: '적 카드' } as any,
       attackerName: 'player'
     });
     expect(result.destroyed).toBe(true);
@@ -474,8 +474,8 @@ describe('processCollisionSpecials', () => {
 
   it('destroyOnCollision 아니면 destroyed false', () => {
     const result = processCollisionSpecials({
-      card: { name: '타격' },
-      enemyCard: { name: '적 카드' },
+      card: { name: '타격' } as any,
+      enemyCard: { name: '적 카드' } as any,
       attackerName: 'player'
     });
     expect(result.destroyed).toBe(false);
@@ -485,24 +485,24 @@ describe('processCollisionSpecials', () => {
 describe('calculateAgilitySpeedReduction', () => {
   it('민첩당 3 감소', () => {
     const result = calculateAgilitySpeedReduction(
-      { special: 'agilityBonus' },
-      { agility: 2 }
+      { special: 'agilityBonus' } as any,
+      { agility: 2 } as any
     );
     expect(result).toBe(6); // 2 * 3
   });
 
   it('agilityBonus 없으면 0', () => {
     const result = calculateAgilitySpeedReduction(
-      { damage: 10 },
-      { agility: 2 }
+      { damage: 10 } as any,
+      { agility: 2 } as any
     );
     expect(result).toBe(0);
   });
 
   it('민첩 없으면 0', () => {
     const result = calculateAgilitySpeedReduction(
-      { special: 'agilityBonus' },
-      {}
+      { special: 'agilityBonus' } as any,
+      {} as any
     );
     expect(result).toBe(0);
   });

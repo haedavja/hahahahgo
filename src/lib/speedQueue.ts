@@ -51,7 +51,7 @@ export const inflateCards = (ids: string[] = []): InflatedCard[] =>
     .filter(Boolean)
     .map((card) => ({
       ...card,
-      priorityWeight: PRIORITY_WEIGHT[card.priority ?? 'normal'] ?? 1,
+      priorityWeight: PRIORITY_WEIGHT[(card as any).priority ?? 'normal'] ?? 1,
     }));
 
 const attachInstanceId = (cards: InflatedCard[]): HandCard[] =>
@@ -73,9 +73,9 @@ const toAction = (actor: 'player' | 'enemy', card: InflatedCard): TimelineAction
   name: card.name,
   speedCost: card.speedCost ?? 5,
   priorityWeight: card.priorityWeight ?? 1,
-  priority: card.priority ?? "normal",
+  priority: (card as any).priority ?? "normal",
   actionCost: card.actionCost ?? 1,
-  tags: card.tags ?? [],
+  tags: (card as any).tags ?? [],
   roll: Math.random(),
 });
 

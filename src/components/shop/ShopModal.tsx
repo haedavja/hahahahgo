@@ -30,7 +30,7 @@ export function ShopModal({ merchantType = 'shop', onClose }) {
   const addRelic = useGameStore((state) => state.addRelic);
   const addItem = useGameStore((state) => state.addItem);
   const removeItem = useGameStore((state) => state.removeItem);
-  const setPlayerHp = useGameStore((state) => state.setPlayerHp);
+  const setPlayerHp = useGameStore((state: any) => state.setPlayerHp);
   const removeCardFromDeck = useGameStore((state) => state.removeCardFromDeck);
   const addOwnedCard = useGameStore((state) => state.addOwnedCard);
 
@@ -61,7 +61,7 @@ export function ShopModal({ merchantType = 'shop', onClose }) {
     mainSpecials.forEach(cardId => {
       const card = CARDS.find(c => c.id === cardId);
       if (card) {
-        const rarity = cardUpgrades[cardId] || card.rarity || 'common';
+        const rarity = cardUpgrades[cardId] || (card as any).rarity || 'common';
         cards.push({ ...card, isMainSpecial: true, currentRarity: rarity });
       }
     });
@@ -69,7 +69,7 @@ export function ShopModal({ merchantType = 'shop', onClose }) {
     subSpecials.forEach(cardId => {
       const card = CARDS.find(c => c.id === cardId);
       if (card) {
-        const rarity = cardUpgrades[cardId] || card.rarity || 'common';
+        const rarity = cardUpgrades[cardId] || (card as any).rarity || 'common';
         cards.push({ ...card, isMainSpecial: false, currentRarity: rarity });
       }
     });
@@ -95,7 +95,7 @@ export function ShopModal({ merchantType = 'shop', onClose }) {
     addResources({ gold: -price });
     addRelic(relicId);
     setPurchasedRelics((prev) => new Set([...prev, relicId]));
-    showNotification(`${RELICS[relicId]?.name}을(를) 구매했습니다!`, 'success');
+    showNotification(`${(RELICS as any)[relicId]?.name}을(를) 구매했습니다!`, 'success');
   };
 
   const handleBuyItem = (itemId, price) => {
@@ -113,7 +113,7 @@ export function ShopModal({ merchantType = 'shop', onClose }) {
     addResources({ gold: -price });
     addItem(itemId);
     setPurchasedItems((prev) => new Set([...prev, itemId]));
-    showNotification(`${ITEMS[itemId]?.name}을(를) 구매했습니다!`, 'success');
+    showNotification(`${(ITEMS as any)[itemId]?.name}을(를) 구매했습니다!`, 'success');
   };
 
   const handleBuyCard = (cardId, price) => {
@@ -129,14 +129,14 @@ export function ShopModal({ merchantType = 'shop', onClose }) {
     showNotification(`${card?.name || cardId}을(를) 구매했습니다!`, 'success');
   };
 
-  const handleSellItem = (slotIndex) => {
+  const handleSellItem = (slotIndex: any) => {
     const item = items[slotIndex];
     if (!item) return;
 
-    const sellPrice = getItemSellPrice(item, merchantType);
+    const sellPrice = getItemSellPrice(item as any, merchantType);
     addResources({ gold: sellPrice });
     removeItem(slotIndex);
-    showNotification(`${item.name}을(를) ${sellPrice}G에 판매했습니다!`, 'success');
+    showNotification(`${(item as any).name}을(를) ${sellPrice}G에 판매했습니다!`, 'success');
   };
 
   const handleUseService = (service) => {

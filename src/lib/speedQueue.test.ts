@@ -54,17 +54,17 @@ describe('speedQueue', () => {
 
   describe('buildSpeedTimeline', () => {
     it('빈 카드 배열은 빈 타임라인을 반환해야 함', () => {
-      const result = buildSpeedTimeline([], []);
+      const result = buildSpeedTimeline([] as any, [] as any);
       expect(result).toEqual([]);
     });
 
     it('속도 순으로 정렬되어야 함', () => {
       const playerCards = [
-        { id: 'slow', name: 'Slow', speedCost: 10, priorityWeight: 1 },
-        { id: 'fast', name: 'Fast', speedCost: 3, priorityWeight: 1 }
+        { id: 'slow', name: 'Slow', speedCost: 10, priorityWeight: 1 } as any,
+        { id: 'fast', name: 'Fast', speedCost: 3, priorityWeight: 1 } as any
       ];
       const enemyCards = [
-        { id: 'medium', name: 'Medium', speedCost: 5, priorityWeight: 1 }
+        { id: 'medium', name: 'Medium', speedCost: 5, priorityWeight: 1 } as any
       ];
 
       const result = buildSpeedTimeline(playerCards, enemyCards);
@@ -76,10 +76,10 @@ describe('speedQueue', () => {
 
     it('같은 속도면 priorityWeight로 정렬되어야 함', () => {
       const playerCards = [
-        { id: 'quick', name: 'Quick', speedCost: 5, priorityWeight: 2, priority: 'quick' },
-        { id: 'slow', name: 'Slow', speedCost: 5, priorityWeight: 0, priority: 'slow' }
+        { id: 'quick', name: 'Quick', speedCost: 5, priorityWeight: 2, priority: 'quick' } as any,
+        { id: 'slow', name: 'Slow', speedCost: 5, priorityWeight: 0, priority: 'slow' } as any
       ];
-      const enemyCards = [];
+      const enemyCards = [] as any;
 
       const result = buildSpeedTimeline(playerCards, enemyCards);
 
@@ -89,10 +89,10 @@ describe('speedQueue', () => {
 
     it('maxTU를 초과하는 카드는 제외되어야 함', () => {
       const playerCards = [
-        { id: 'fast', name: 'Fast', speedCost: 5, priorityWeight: 1 },
-        { id: 'slow', name: 'Slow', speedCost: 10, priorityWeight: 1 }
+        { id: 'fast', name: 'Fast', speedCost: 5, priorityWeight: 1 } as any,
+        { id: 'slow', name: 'Slow', speedCost: 10, priorityWeight: 1 } as any
       ];
-      const enemyCards = [];
+      const enemyCards = [] as any;
 
       const result = buildSpeedTimeline(playerCards, enemyCards, 10);
 
@@ -103,10 +103,10 @@ describe('speedQueue', () => {
 
     it('order와 tu가 올바르게 계산되어야 함', () => {
       const playerCards = [
-        { id: 'a', name: 'A', speedCost: 3, priorityWeight: 1 },
-        { id: 'b', name: 'B', speedCost: 5, priorityWeight: 1 }
+        { id: 'a', name: 'A', speedCost: 3, priorityWeight: 1 } as any,
+        { id: 'b', name: 'B', speedCost: 5, priorityWeight: 1 } as any
       ];
-      const enemyCards = [];
+      const enemyCards = [] as any;
 
       const result = buildSpeedTimeline(playerCards, enemyCards);
 
@@ -117,8 +117,8 @@ describe('speedQueue', () => {
     });
 
     it('actor가 올바르게 설정되어야 함', () => {
-      const playerCards = [{ id: 'a', name: 'A', speedCost: 3, priorityWeight: 1 }];
-      const enemyCards = [{ id: 'b', name: 'B', speedCost: 5, priorityWeight: 1 }];
+      const playerCards = [{ id: 'a', name: 'A', speedCost: 3, priorityWeight: 1 } as any];
+      const enemyCards = [{ id: 'b', name: 'B', speedCost: 5, priorityWeight: 1 } as any];
 
       const result = buildSpeedTimeline(playerCards, enemyCards);
 
@@ -128,9 +128,9 @@ describe('speedQueue', () => {
 
     it('tags가 보존되어야 함', () => {
       const playerCards = [
-        { id: 'a', name: 'A', speedCost: 3, priorityWeight: 1, tags: ['melee', 'quick'] }
+        { id: 'a', name: 'A', speedCost: 3, priorityWeight: 1, tags: ['melee', 'quick'] } as any
       ];
-      const enemyCards = [];
+      const enemyCards = [] as any;
 
       const result = buildSpeedTimeline(playerCards, enemyCards);
 
@@ -138,8 +138,8 @@ describe('speedQueue', () => {
     });
 
     it('누락된 값에 기본값이 적용되어야 함', () => {
-      const playerCards = [{ id: 'a', name: 'A' }]; // speedCost, priorityWeight 누락
-      const enemyCards = [];
+      const playerCards = [{ id: 'a', name: 'A' } as any]; // speedCost, priorityWeight 누락
+      const enemyCards = [] as any;
 
       const result = buildSpeedTimeline(playerCards, enemyCards);
 

@@ -123,7 +123,10 @@ export function DungeonNode({ dungeon, onNavigate, onExit, onCombat }) {
   }), [playerStrength, playerAgility, playerInsight]);
 
   const playerSpecials = useMemo(() => {
-    return characterBuild?.mainSpecials?.map(s => s.id) || [];
+    const specials = characterBuild?.mainSpecials;
+    if (!specials) return [];
+    // mainSpecials is an array of strings, not objects
+    return Array.isArray(specials) ? specials : [];
   }, [characterBuild]);
 
   const timePenalty = useMemo(() => {
@@ -162,11 +165,11 @@ export function DungeonNode({ dungeon, onNavigate, onExit, onCombat }) {
       if (penalty) {
         setCurrentMessage(penalty.text);
         if (penalty.effect?.damage) {
-          applyDamage(penalty.effect.damage);
+          applyDamage(penalty.effect.damage as number);
         }
         if (penalty.effect?.triggerCombat) {
           setTimeout(() => {
-            onCombat(penalty.effect.triggerCombat);
+            onCombat(penalty.effect.triggerCombat as string);
           }, 1500);
         }
         setChoiceStates(prev => ({
@@ -203,22 +206,24 @@ export function DungeonNode({ dungeon, onNavigate, onExit, onCombat }) {
     // 효과 적용
     if (result.effect) {
       if (result.effect.damage) {
-        applyDamage(result.effect.damage);
+        applyDamage(result.effect.damage as number);
       }
       if (result.effect.reward) {
-        const reward = {};
-        if (result.effect.reward.gold) {
-          const { min, max } = result.effect.reward.gold;
+        const reward: Record<string, number> = {};
+        const rewardData = result.effect.reward as Record<string, unknown>;
+        if (rewardData.gold) {
+          const goldData = rewardData.gold as { min: number; max: number };
+          const { min, max } = goldData;
           reward.gold = min + Math.floor(Math.random() * (max - min + 1));
         }
-        if (result.effect.reward.loot) {
-          reward.loot = result.effect.reward.loot;
+        if (rewardData.loot) {
+          reward.loot = rewardData.loot as number;
         }
         addResources(reward);
       }
       if (result.effect.triggerCombat) {
         setTimeout(() => {
-          onCombat(result.effect.triggerCombat);
+          onCombat(result.effect.triggerCombat as string);
         }, 1500);
       }
       if (result.effect.unlockNode) {

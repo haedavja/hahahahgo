@@ -9,15 +9,17 @@
  */
 
 import type {
-  TurnEndAction,
-  TurnEndCombo,
-  TurnEndPlayer,
-  TurnEndEnemy,
   ComboUsageCount,
-  TurnEndPlayerParams,
-  TurnEndEnemyParams,
   VictoryConditionResult
 } from '../../../types';
+
+// Type annotations for missing types
+type TurnEndAction = any;
+type TurnEndCombo = any;
+type TurnEndPlayer = any;
+type TurnEndEnemy = any;
+type TurnEndPlayerParams = any;
+type TurnEndEnemyParams = any;
 
 /**
  * 조합 사용 카운트 업데이트

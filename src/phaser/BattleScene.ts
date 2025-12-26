@@ -12,6 +12,15 @@ import Phaser from "phaser";
 import { useGameStore } from "../state/gameStore";
 
 export class BattleScene extends Phaser.Scene {
+  private unsubscribes: Array<() => void>;
+  private currentBattle: any;
+  private titleText: Phaser.GameObjects.Text | null;
+  private infoText: Phaser.GameObjects.Text | null;
+  private timelineText: Phaser.GameObjects.Text | null;
+  private handText: Phaser.GameObjects.Text | null;
+  private logText: Phaser.GameObjects.Text | null;
+  private hintText: Phaser.GameObjects.Text | null;
+
   constructor() {
     super("BattleScene");
     this.unsubscribes = [];
@@ -20,6 +29,7 @@ export class BattleScene extends Phaser.Scene {
     this.infoText = null;
     this.timelineText = null;
     this.handText = null;
+    this.logText = null;
     this.hintText = null;
   }
 
@@ -90,8 +100,8 @@ export class BattleScene extends Phaser.Scene {
 
     this.unsubscribes.push(
       useGameStore.subscribe(
-        (state) => state.activeBattle,
-        (battle) => {
+        (state) => {
+          const battle = state.activeBattle;
           this.currentBattle = battle;
           if (!battle) {
             this.scene.start("PlaceholderScene");
@@ -99,7 +109,7 @@ export class BattleScene extends Phaser.Scene {
             this.updateTexts(battle);
           }
         },
-      ),
+      ) as any,
     );
 
     const finishBattle = () => {

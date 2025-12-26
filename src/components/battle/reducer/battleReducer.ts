@@ -10,6 +10,7 @@
 import type { FullBattleState } from './battleReducerState';
 
 // 분리된 모듈에서 import 및 re-export
+import { createInitialState as createInitialStateImpl } from './battleReducerState';
 export { createInitialState } from './battleReducerState';
 export type { FullBattleState } from './battleReducerState';
 export { ACTIONS } from './battleReducerActions';
@@ -27,13 +28,13 @@ export function battleReducer(state: FullBattleState, action: BattleAction): Ful
   switch (action.type) {
     // === 플레이어/적 상태 ===
     case ACTIONS.SET_PLAYER:
-      return { ...state, player: action.payload };
+      return { ...state, player: action.payload as any };
     case ACTIONS.UPDATE_PLAYER:
-      return { ...state, player: { ...state.player, ...action.payload } };
+      return { ...state, player: { ...state.player, ...action.payload } as any };
     case ACTIONS.SET_ENEMY:
-      return { ...state, enemy: action.payload };
+      return { ...state, enemy: action.payload as any };
     case ACTIONS.UPDATE_ENEMY:
-      return { ...state, enemy: { ...state.enemy, ...action.payload } };
+      return { ...state, enemy: { ...state.enemy, ...action.payload } as any };
     case ACTIONS.SET_ENEMY_INDEX:
       return { ...state, enemyIndex: action.payload };
 
@@ -41,12 +42,12 @@ export function battleReducer(state: FullBattleState, action: BattleAction): Ful
     case ACTIONS.SET_SELECTED_TARGET_UNIT:
       return { ...state, selectedTargetUnit: action.payload };
     case ACTIONS.SET_ENEMY_UNITS:
-      return { ...state, enemy: { ...state.enemy, units: action.payload } };
+      return { ...state, enemy: { ...state.enemy, units: action.payload as any } };
     case ACTIONS.UPDATE_ENEMY_UNIT: {
       const { unitId, updates } = action.payload;
       const units = state.enemy.units || [];
-      const newUnits = units.map(u => u.unitId === unitId ? { ...u, ...updates } : u);
-      const totalHp = newUnits.reduce((sum, u) => sum + Math.max(0, u.hp), 0);
+      const newUnits = units.map(u => u.unitId === unitId ? { ...u, ...updates } : u) as any;
+      const totalHp = newUnits.reduce((sum: number, u: any) => sum + Math.max(0, u.hp), 0);
       return { ...state, enemy: { ...state.enemy, units: newUnits, hp: totalHp } };
     }
 
@@ -115,7 +116,7 @@ export function battleReducer(state: FullBattleState, action: BattleAction): Ful
 
     // === 적 계획 ===
     case ACTIONS.SET_ENEMY_PLAN:
-      return { ...state, enemyPlan: action.payload };
+      return { ...state, enemyPlan: action.payload as any };
 
     // === 실행 큐 ===
     case ACTIONS.SET_FIXED_ORDER:
@@ -209,13 +210,13 @@ export function battleReducer(state: FullBattleState, action: BattleAction): Ful
 
     // === 다음 턴 효과 ===
     case ACTIONS.SET_NEXT_TURN_EFFECTS:
-      return { ...state, nextTurnEffects: action.payload };
+      return { ...state, nextTurnEffects: action.payload as any };
     case ACTIONS.UPDATE_NEXT_TURN_EFFECTS:
-      return { ...state, nextTurnEffects: { ...state.nextTurnEffects, ...action.payload } };
+      return { ...state, nextTurnEffects: { ...state.nextTurnEffects, ...action.payload } as any };
 
     // === 성찰 상태 ===
     case ACTIONS.SET_REFLECTION_STATE:
-      return { ...state, reflectionState: action.payload };
+      return { ...(state as any), reflectionState: action.payload };
 
     // === 애니메이션 ===
     case ACTIONS.SET_PLAYER_HIT:
@@ -231,9 +232,9 @@ export function battleReducer(state: FullBattleState, action: BattleAction): Ful
     case ACTIONS.SET_AUTO_PROGRESS:
       return { ...state, autoProgress: action.payload };
     case ACTIONS.SET_RESOLVE_START_PLAYER:
-      return { ...state, resolveStartPlayer: action.payload };
+      return { ...state, resolveStartPlayer: action.payload as any };
     case ACTIONS.SET_RESOLVE_START_ENEMY:
-      return { ...state, resolveStartEnemy: action.payload };
+      return { ...state, resolveStartEnemy: action.payload as any };
     case ACTIONS.SET_RESPOND_SNAPSHOT:
       return { ...state, respondSnapshot: action.payload };
     case ACTIONS.SET_REWIND_USED:
@@ -349,7 +350,7 @@ export function battleReducer(state: FullBattleState, action: BattleAction): Ful
       };
 
     case ACTIONS.RESET_BATTLE:
-      return createInitialState(action.payload);
+      return createInitialStateImpl((action as any).payload);
 
     default:
       return state;

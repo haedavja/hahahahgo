@@ -33,28 +33,28 @@ export async function executeMultiHitAsync(card, attacker, defender, attackerNam
 
   let totalDealt = firstHitResult.damage;
   let totalTaken = firstHitResult.damageTaken || 0;
-  let totalBlockDestroyed = firstHitResult.blockDestroyed || 0;
+  let totalBlockDestroyed: number = (firstHitResult.blockDestroyed as any) || 0;
 
   // 다중 타격 시 개별 데미지 로그 필터링
   const skipEventTypes = hits > 1 ? ['hit', 'blocked', 'pierce'] : [];
-  const filteredEvents = firstHitResult.events.filter(ev => !skipEventTypes.includes(ev.type));
+  const filteredEvents = (firstHitResult.events as any).filter((ev: any) => !skipEventTypes.includes(ev.type));
   const allEvents = [...filteredEvents];
-  const allLogs = [];
+  const allLogs: string[] = [];
 
   // 첫 타격 후 룰렛 체크 (총기 카드)
   if (isGunCard) {
     const rouletteResult = processPerHitRoulette(currentAttacker, card, attackerName, 0, hits);
     currentAttacker = rouletteResult.updatedAttacker;
     if (rouletteResult.jammed) {
-      const finalResult = finalizeMultiHitAttack(modifiedCard, currentAttacker, currentDefender, attackerName, totalDealt, totalBlockDestroyed, { ...battleContext, isCritical: totalCritCount > 0 });
-      const enemyName = battleContext.enemyDisplayName || '몬스터';
+      const finalResult = finalizeMultiHitAttack(modifiedCard, currentAttacker, currentDefender, attackerName, totalDealt as any, totalBlockDestroyed as any, { ...battleContext, isCritical: totalCritCount > 0 });
+      const enemyName = (battleContext as any).enemyDisplayName || '몬스터';
       const who = attackerName === 'player' ? `플레이어 -> ${enemyName}` : `${enemyName} -> 플레이어`;
       const baseDmgJam = modifiedCard.damage || card.damage || 0;
       const critText = firstHitCritical ? ' 💥치명타!' : '';
       const jamMsg = hits > 1
         ? `${who} • 🔫 ${card.name}${ghostLabel}: ${baseDmgJam}x1 = ${totalDealt}${critText} 데미지 (탄걸림! ${hits - 1}회 취소)`
         : `${who} • 🔫 ${card.name}${ghostLabel}: ${totalDealt}${critText} 데미지 (탄걸림!)`;
-      allEvents.push({ actor: attackerName, card: card.name, type: 'multihit', msg: jamMsg, dmg: totalDealt });
+      allEvents.push({ actor: attackerName, card: card.name, type: 'multihit', msg: jamMsg, dmg: totalDealt } as any);
 
       return {
         attacker: finalResult.attacker,
@@ -83,19 +83,19 @@ export async function executeMultiHitAsync(card, attacker, defender, attackerNam
     await new Promise(resolve => setTimeout(resolve, TIMING.MULTI_HIT_DELAY));
 
     // 타격별 치명타 판정
-    const hitCritical = rollCritical(currentAttacker, attackerRemainingEnergy, card, attackerName);
+    const hitCritical = rollCritical(currentAttacker as any, attackerRemainingEnergy, card, attackerName);
     criticalHits.push(hitCritical);
     if (hitCritical) totalCritCount++;
 
     // 타격 실행
-    const hitResult = calculateSingleHit(currentAttacker, currentDefender, card, attackerName, battleContext, hitCritical, preProcessedResult);
+    const hitResult = calculateSingleHit(currentAttacker, currentDefender, card, attackerName, battleContext, hitCritical, preProcessedResult as any);
     currentAttacker = hitResult.attacker;
     currentDefender = hitResult.defender;
-    totalDealt += hitResult.damage;
-    totalTaken += hitResult.damageTaken || 0;
-    totalBlockDestroyed += hitResult.blockDestroyed || 0;
+    totalDealt += hitResult.damage as any;
+    totalTaken += (hitResult.damageTaken as any) || 0;
+    totalBlockDestroyed += (hitResult.blockDestroyed as any) || 0;
 
-    const filteredHitEvents = hitResult.events.filter(ev => !skipEventTypes.includes(ev.type));
+    const filteredHitEvents = (hitResult.events as any).filter((ev: any) => !skipEventTypes.includes(ev.type));
     allEvents.push(...filteredHitEvents);
 
     if (onHitCallback) {
@@ -107,14 +107,14 @@ export async function executeMultiHitAsync(card, attacker, defender, attackerNam
       const rouletteResult = processPerHitRoulette(currentAttacker, card, attackerName, i, hits);
       currentAttacker = rouletteResult.updatedAttacker;
       if (rouletteResult.jammed && i < hits - 1) {
-        const finalResult = finalizeMultiHitAttack(modifiedCard, currentAttacker, currentDefender, attackerName, totalDealt, totalBlockDestroyed, { ...battleContext, isCritical: totalCritCount > 0 });
-        const enemyNameJam = battleContext.enemyDisplayName || '몬스터';
+        const finalResult = finalizeMultiHitAttack(modifiedCard, currentAttacker, currentDefender, attackerName, totalDealt as any, totalBlockDestroyed as any, { ...battleContext, isCritical: totalCritCount > 0 });
+        const enemyNameJam = (battleContext as any).enemyDisplayName || '몬스터';
         const who = attackerName === 'player' ? `플레이어 -> ${enemyNameJam}` : `${enemyNameJam} -> 플레이어`;
         const baseDmgJam2 = modifiedCard.damage || card.damage || 0;
         const actualHits = i + 1;
         const critText = totalCritCount > 0 ? ` 💥치명타x${totalCritCount}!` : '';
         const jamMsg = `${who} • 🔫 ${card.name}${ghostLabel}: ${baseDmgJam2}x${actualHits} = ${totalDealt}${critText} 데미지 (탄걸림! ${hits - actualHits}회 취소)`;
-        allEvents.push({ actor: attackerName, card: card.name, type: 'multihit', msg: jamMsg, dmg: totalDealt });
+        allEvents.push({ actor: attackerName, card: card.name, type: 'multihit', msg: jamMsg, dmg: totalDealt } as any);
 
         return {
           attacker: finalResult.attacker,
@@ -135,7 +135,7 @@ export async function executeMultiHitAsync(card, attacker, defender, attackerNam
   }
 
   // 총합 로그
-  const enemyNameSum = battleContext.enemyDisplayName || '몬스터';
+  const enemyNameSum = (battleContext as any).enemyDisplayName || '몬스터';
   const who = attackerName === 'player' ? `플레이어 -> ${enemyNameSum}` : `${enemyNameSum} -> 플레이어`;
   const baseDmg = modifiedCard.damage || card.damage || 0;
   const totalAttack = baseDmg * hits;
@@ -143,7 +143,7 @@ export async function executeMultiHitAsync(card, attacker, defender, attackerNam
   const icon = isGunCard ? '🔫' : '🔥';
 
   let dmgFormula;
-  if (totalBlockDestroyed > 0) {
+  if ((totalBlockDestroyed) > 0) {
     dmgFormula = `공격력 ${totalAttack} - 방어력 ${totalBlockDestroyed} = ${totalDealt}`;
   } else {
     dmgFormula = `${totalDealt}`;
@@ -151,17 +151,17 @@ export async function executeMultiHitAsync(card, attacker, defender, attackerNam
 
   if (hits > 1) {
     const multiHitMsg = `${who} • ${icon} ${card.name}${ghostLabel}: ${dmgFormula}${critText} 데미지!`;
-    allEvents.push({ actor: attackerName, card: card.name, type: 'multihit', msg: multiHitMsg, dmg: totalDealt });
+    allEvents.push({ actor: attackerName, card: card.name, type: 'multihit', msg: multiHitMsg, dmg: totalDealt } as any);
     allLogs.push(multiHitMsg);
   } else {
     const singleCritText = totalCritCount > 0 ? ' 💥치명타!' : '';
     const singleHitMsg = `${who} • ${icon} ${card.name}${ghostLabel}: ${dmgFormula}${singleCritText} 데미지`;
-    allEvents.push({ actor: attackerName, card: card.name, type: 'hit', msg: singleHitMsg, dmg: totalDealt });
+    allEvents.push({ actor: attackerName, card: card.name, type: 'hit', msg: singleHitMsg, dmg: totalDealt } as any);
     allLogs.push(singleHitMsg);
   }
 
   // 후처리
-  const finalResult = finalizeMultiHitAttack(modifiedCard, currentAttacker, currentDefender, attackerName, totalDealt, totalBlockDestroyed, { ...battleContext, isCritical: totalCritCount > 0 });
+  const finalResult = finalizeMultiHitAttack(modifiedCard, currentAttacker, currentDefender, attackerName, totalDealt as any, totalBlockDestroyed as any, { ...battleContext, isCritical: totalCritCount > 0 });
 
   return {
     attacker: finalResult.attacker,

@@ -8,7 +8,7 @@ import { FC, DragEvent } from 'react';
 import type {
   UIRelicEffect as RelicEffect,
   UIRelic as Relic,
-  RelicsMap,
+  UIRelicsMap as RelicsMap,
   RelicRarities,
   RelicDisplayActions as Actions
 } from '../../../types';

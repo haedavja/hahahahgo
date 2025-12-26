@@ -9,10 +9,11 @@
  */
 
 import type {
-  AnimActionEvent,
-  AnimAction,
-  EventAnimActions
+  SimActionEvent as AnimActionEvent,
+  HandAction as AnimAction,
 } from '../../../types';
+
+type EventAnimActions = any;
 
 /**
  * 화면 흔들림 효과 트리거

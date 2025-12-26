@@ -16,11 +16,6 @@ interface AudioContextConstructor {
   new (): AudioContext;
 }
 
-declare global {
-  interface Window {
-    webkitAudioContext?: AudioContextConstructor;
-  }
-}
 
 /**
  * 사이렌 같은 경고음 재생 (Web Audio API 사용)

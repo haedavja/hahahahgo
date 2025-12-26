@@ -18,6 +18,7 @@ const createInitialState = (): DevSliceState &
   Partial<RestSliceState> => ({
   devDulledLevel: null,
   devForcedCrossroad: null,
+  devForcedAnomalies: null,
   devBattleTokens: [],
   map: { nodes: [], currentNodeId: '' },
   mapRisk: 50,

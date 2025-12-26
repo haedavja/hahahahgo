@@ -36,12 +36,12 @@ export function applyTokenEffectsToCard(
     return { modifiedCard: card, consumedTokens: [] };
   }
 
-  let modifiedCard: ModifiableCard = { ...card };
+  let modifiedCard: ModifiableCard = { ...card } as any;
   const consumedTokens: ConsumedToken[] = [];
-  const allTokens = getAllTokens(entity) as TokenInstanceWithEffect[];
+  const allTokens = getAllTokens(entity) as any as TokenInstanceWithEffect[];
 
   // 빈탄창 체크 (총기 카드는 빈탄창 상태에서 데미지 0)
-  if (cardType === 'attack' && card.cardCategory === 'gun') {
+  if (cardType === 'attack' && (card as any).cardCategory === 'gun') {
     const hasEmptyChamber = allTokens.some(t => t.effect?.type === 'EMPTY_CHAMBER');
     const hasLoaded = allTokens.some(t => t.effect?.type === 'LOADED');
 
@@ -111,7 +111,8 @@ export function applyTokenEffectsToCard(
   }
 
   // 방어력 증가 토큰
-  if (cardType === 'defense' && modifiedCard.block && modifiedCard.block > 0) {
+  const defenseValue = (modifiedCard as any).defense || (modifiedCard as any).block || 0;
+  if (cardType === 'defense' && defenseValue > 0) {
     let blockBoost = 0;
 
     // 턴소모 토큰
@@ -131,12 +132,19 @@ export function applyTokenEffectsToCard(
     }
 
     if (blockBoost > 0) {
-      modifiedCard.block = Math.round(modifiedCard.block * (1 + blockBoost));
+      const boostedValue = Math.round(defenseValue * (1 + blockBoost));
+      if ((modifiedCard as any).defense) {
+        (modifiedCard as any).defense = boostedValue;
+      }
+      if ((modifiedCard as any).block) {
+        (modifiedCard as any).block = boostedValue;
+      }
     }
   }
 
   // 방어력 감소 토큰 (흔들림, 무방비)
-  if (cardType === 'defense' && modifiedCard.block && modifiedCard.block > 0) {
+  const defenseValue2 = (modifiedCard as any).defense || (modifiedCard as any).block || 0;
+  if (cardType === 'defense' && defenseValue2 > 0) {
     let blockPenalty = 0;
 
     // 턴소모 토큰
@@ -156,7 +164,13 @@ export function applyTokenEffectsToCard(
     }
 
     if (blockPenalty > 0) {
-      modifiedCard.block = Math.max(0, Math.round(modifiedCard.block * (1 - blockPenalty)));
+      const penalizedValue = Math.max(0, Math.round(defenseValue2 * (1 - blockPenalty)));
+      if ((modifiedCard as any).defense) {
+        (modifiedCard as any).defense = penalizedValue;
+      }
+      if ((modifiedCard as any).block) {
+        (modifiedCard as any).block = penalizedValue;
+      }
     }
   }
 
@@ -178,7 +192,7 @@ export function applyTokenEffectsOnDamage(
   let finalDamage = damage;
   const consumedTokens: ConsumedToken[] = [];
   const logs: string[] = [];
-  const allTokens = getAllTokens(defender) as TokenInstanceWithEffect[];
+  const allTokens = getAllTokens(defender) as any as TokenInstanceWithEffect[];
 
   // 1. 회피 체크
   const dodgeToken = allTokens.find(t => t.effect.type === 'DODGE');
@@ -240,7 +254,7 @@ export function applyTokenEffectsOnHeal(
     return { healing: 0, consumedTokens: [], logs: [] };
   }
 
-  const allTokens = getAllTokens(entity) as TokenInstanceWithEffect[];
+  const allTokens = getAllTokens(entity) as any as TokenInstanceWithEffect[];
   const consumedTokens: ConsumedToken[] = [];
   const logs: string[] = [];
 
@@ -263,7 +277,7 @@ export function applyTokenEffectsOnEnergy(baseEnergy: number, entity: TokenEntit
     return baseEnergy;
   }
 
-  const allTokens = getAllTokens(entity) as TokenInstanceWithEffect[];
+  const allTokens = getAllTokens(entity) as any as TokenInstanceWithEffect[];
   let energyModifier = 0;
 
   allTokens.forEach(token => {
@@ -288,7 +302,7 @@ export function getTotalStrength(entity: TokenEntity): number {
     return entity.strength || 0;
   }
 
-  const allTokens = getAllTokens(entity) as TokenInstanceWithEffect[];
+  const allTokens = getAllTokens(entity) as any as TokenInstanceWithEffect[];
   let strengthBonus = entity.strength || 0;
 
   allTokens.forEach(token => {
@@ -311,7 +325,7 @@ export function getTotalAgility(entity: TokenEntity): number {
     return entity.agility || 0;
   }
 
-  const allTokens = getAllTokens(entity) as TokenInstanceWithEffect[];
+  const allTokens = getAllTokens(entity) as any as TokenInstanceWithEffect[];
   let agilityBonus = entity.agility || 0;
 
   allTokens.forEach(token => {
@@ -331,7 +345,7 @@ export function checkReviveToken(entity: TokenEntity): ReviveResult {
     return { revived: false, newHp: 0, consumedTokens: [], logs: [] };
   }
 
-  const allTokens = getAllTokens(entity) as TokenInstanceWithEffect[];
+  const allTokens = getAllTokens(entity) as any as TokenInstanceWithEffect[];
   const reviveToken = allTokens.find(t => t.effect.type === 'REVIVE');
 
   if (reviveToken) {

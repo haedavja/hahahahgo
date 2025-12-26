@@ -59,7 +59,7 @@ export const BattleTooltips: FC<BattleTooltipsProps> = ({
             {hoveredCard.card.traits && hoveredCard.card.traits.length > 0 ? '특성 정보' : '토큰 효과'}
           </div>
           {(() => {
-            const baseCard = CARDS.find((c: Card) => c.id === hoveredCard.card.id);
+            const baseCard = (CARDS as any).find((c: Card) => c.id === hoveredCard.card.id) as any;
             const enhancedCard = applyTraitModifiers(baseCard || hoveredCard.card, { usageCount: 0, isInCombo: false });
             const parts: string[] = [];
             if (baseCard?.damage && enhancedCard.damage && enhancedCard.damage !== baseCard.damage) {
@@ -176,7 +176,7 @@ export const BattleTooltips: FC<BattleTooltipsProps> = ({
             #{hoveredEnemyAction.idx + 1} {hoveredEnemyAction.action?.name || '???'}
           </div>
           <div className="insight-tooltip-desc" style={{ marginBottom: '4px' }}>
-            ⏱️ {hoveredEnemyAction.action?.speedCost ?? hoveredEnemyAction.action?.speed ?? '-'}
+            ⏱️ {hoveredEnemyAction.action?.speedCost ?? (hoveredEnemyAction.action as any)?.speed ?? '-'}
           </div>
           {(hoveredEnemyAction.action?.damage || hoveredEnemyAction.action?.block) && (
             <div className="insight-tooltip-desc" style={{ marginBottom: '4px' }}>

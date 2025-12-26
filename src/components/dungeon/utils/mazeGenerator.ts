@@ -76,19 +76,19 @@ export function createRoom(x, y, roomType) {
 }
 
 // ========== 미로 최소 전투 보장 ==========
-export function ensureMazeMinimumCombats(grid, minCount) {
+export function ensureMazeMinimumCombats(grid: any, minCount: any) {
   const rooms = Object.values(grid);
-  const combatCount = rooms.reduce((sum, room) =>
-    sum + room.objects.filter(o => o.typeId === "combat").length, 0
+  const combatCount = rooms.reduce((sum: any, room: any) =>
+    sum + room.objects.filter((o: any) => o.typeId === "combat").length, 0
   );
 
-  let needed = minCount - combatCount;
+  let needed = (minCount as any) - (combatCount as any);
 
   while (needed > 0) {
-    const randomRoom = rooms[Math.floor(Math.random() * rooms.length)];
+    const randomRoom: any = rooms[Math.floor(Math.random() * rooms.length)];
     if (randomRoom.roomType === 'entrance' || randomRoom.roomType === 'exit') continue;
 
-    const nonCombat = randomRoom.objects.filter(o => o.typeId !== "combat" && o.typeId !== "crossroad");
+    const nonCombat = randomRoom.objects.filter((o: any) => o.typeId !== "combat" && o.typeId !== "crossroad");
     if (nonCombat.length > 0) {
       nonCombat[0].typeId = "combat";
       needed--;

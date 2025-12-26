@@ -40,7 +40,7 @@ export function initializeDeck(
   const mainSpecialsHand: HandCard[] = mainSpecials
     .filter(cardId => !vanishedSet.has(cardId))
     .map((cardId, idx) => {
-      const card = CARDS.find((c: HandCard) => c.id === cardId);
+      const card = CARDS.find((c: any) => c.id === cardId);
       if (!card) return null;
       return {
         ...card,
@@ -53,7 +53,7 @@ export function initializeDeck(
   const subSpecialCards: HandCard[] = subSpecials
     .filter(cardId => !vanishedSet.has(cardId))
     .map((cardId, idx) => {
-      const card = CARDS.find((c: HandCard) => c.id === cardId);
+      const card = CARDS.find((c: any) => c.id === cardId);
       if (!card) return null;
       return {
         ...card,
@@ -89,7 +89,7 @@ export function initializeDeck(
       return true;
     })
     .map((cardId, idx) => {
-      const card = CARDS.find((c: HandCard) => c.id === cardId);
+      const card = CARDS.find((c: any) => c.id === cardId);
       if (!card) return null;
       return {
         ...card,
@@ -155,7 +155,7 @@ export function drawFromDeck(
  */
 export function getDefaultStartingHand(): HandCard[] {
   return DEFAULT_STARTING_DECK
-    .map((cardId: string) => CARDS.find((card: HandCard) => card.id === cardId))
+    .map((cardId: string) => CARDS.find((card: any) => card.id === cardId))
     .filter(Boolean) as HandCard[];
 }
 
@@ -180,7 +180,7 @@ export function drawCharacterBuildHand(
   return allCardIds
     .filter(cardId => !vanishedSet.has(cardId))
     .map((cardId, idx) => {
-      const card = CARDS.find((c: HandCard) => c.id === cardId);
+      const card = CARDS.find((c: any) => c.id === cardId);
       if (!card) return null;
       return {
         ...card,
