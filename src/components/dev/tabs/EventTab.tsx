@@ -10,7 +10,8 @@ import type { EventDefinition, EventInfo } from '../../../types';
 
 export function EventTab() {
   const [searchTerm, setSearchTerm] = useState<string>('');
-  const { devTriggerEvent } = useGameStore();
+  // 셀렉터 사용으로 불필요한 리렌더링 방지
+  const devTriggerEvent = useGameStore((state) => state.devTriggerEvent);
 
   // 모든 이벤트를 배열로 변환
   const allEvents: EventInfo[] = Object.entries(NEW_EVENT_LIBRARY as Record<string, EventDefinition>).map(([id, definition]) => ({

@@ -6,6 +6,7 @@
  */
 
 import { useState, useMemo } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { useGameStore } from '../../state/gameStore';
 import { RELICS } from '../../data/relics';
 import { ITEMS } from '../../data/items';
@@ -19,20 +20,31 @@ import {
 import { BuyTab, SellTab, ServiceTab, CardRemovalModal } from './ShopTabs';
 
 export function ShopModal({ merchantType = 'shop', onClose }) {
-  const gold = useGameStore((state) => state.resources?.gold || 0);
-  const relics = useGameStore((state) => state.relics || []);
-  const items = useGameStore((state) => state.items || []);
-  const playerHp = useGameStore((state) => state.playerHp);
-  const maxHp = useGameStore((state) => state.maxHp);
-  const characterBuild = useGameStore((state) => state.characterBuild);
-  const cardUpgrades = useGameStore((state) => state.cardUpgrades || {});
-  const addResources = useGameStore((state) => state.addResources);
-  const addRelic = useGameStore((state) => state.addRelic);
-  const addItem = useGameStore((state) => state.addItem);
-  const removeItem = useGameStore((state) => state.removeItem);
-  const setPlayerHp = useGameStore((state) => state.setPlayerHp);
-  const removeCardFromDeck = useGameStore((state) => state.removeCardFromDeck);
-  const addOwnedCard = useGameStore((state) => state.addOwnedCard);
+  // 상태 셀렉터 (shallow 비교로 최적화)
+  const { gold, relics, items, playerHp, maxHp, characterBuild, cardUpgrades } = useGameStore(
+    useShallow((state) => ({
+      gold: state.resources?.gold || 0,
+      relics: state.relics || [],
+      items: state.items || [],
+      playerHp: state.playerHp,
+      maxHp: state.maxHp,
+      characterBuild: state.characterBuild,
+      cardUpgrades: state.cardUpgrades || {},
+    }))
+  );
+
+  // 액션 셀렉터 (shallow 비교로 최적화)
+  const { addResources, addRelic, addItem, removeItem, setPlayerHp, removeCardFromDeck, addOwnedCard } = useGameStore(
+    useShallow((state) => ({
+      addResources: state.addResources,
+      addRelic: state.addRelic,
+      addItem: state.addItem,
+      removeItem: state.removeItem,
+      setPlayerHp: state.setPlayerHp,
+      removeCardFromDeck: state.removeCardFromDeck,
+      addOwnedCard: state.addOwnedCard,
+    }))
+  );
 
   const merchant = MERCHANT_TYPES[merchantType] || MERCHANT_TYPES.shop;
 

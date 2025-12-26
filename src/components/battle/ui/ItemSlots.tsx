@@ -6,6 +6,7 @@
  */
 
 import { FC, MutableRefObject } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { useGameStore } from "../../../state/gameStore";
 import { playCardDestroySound, playFreezeSound } from "../../../lib/soundUtils";
 import { addToken } from "../../../lib/tokenUtils";
@@ -35,10 +36,19 @@ interface ItemSlotsProps {
 }
 
 export const ItemSlots: FC<ItemSlotsProps> = ({ phase, battleActions, player, enemy, enemyPlan, battleRef }) => {
-  const items = useGameStore((state) => (state as { items?: (Item | null)[] }).items || [null, null, null]);
-  const useItem = useGameStore((state) => (state as { useItem: (idx: number) => void }).useItem);
-  const removeItem = useGameStore((state) => (state as { removeItem: (idx: number) => void }).removeItem);
-  const itemBuffs = useGameStore((state) => (state as { itemBuffs?: Record<string, number> }).itemBuffs || {});
+  // 상태와 액션을 그룹화하여 셀렉터 최적화
+  const { items, itemBuffs } = useGameStore(
+    useShallow((state) => ({
+      items: (state as { items?: (Item | null)[] }).items || [null, null, null],
+      itemBuffs: (state as { itemBuffs?: Record<string, number> }).itemBuffs || {},
+    }))
+  );
+  const { useItem, removeItem } = useGameStore(
+    useShallow((state) => ({
+      useItem: (state as { useItem: (idx: number) => void }).useItem,
+      removeItem: (state as { removeItem: (idx: number) => void }).removeItem,
+    }))
+  );
 
   // 전투용 아이템은 select/respond 단계에서만 사용 가능 (prop 기반, UI 표시용)
   const canUseCombatItem = phase === 'select' || phase === 'respond';
