@@ -9,21 +9,7 @@ import { FC, MouseEvent } from 'react';
 import { CARDS } from "../battle/battleData";
 import { TraitBadgeList } from "../battle/ui/TraitBadge";
 import { Sword, Shield } from "../battle/ui/BattleIcons";
-
-interface Card {
-  id: string;
-  name: string;
-  type: string;
-  actionCost: number;
-  speedCost: number;
-  damage?: number;
-  block?: number;
-  hits?: number;
-  description?: string;
-  traits?: unknown[];
-  _displayKey?: string;
-  _type?: string;
-}
+import type { ModalCard as Card } from '../../types';
 
 interface SelectedCardsProps {
   cards: string[];

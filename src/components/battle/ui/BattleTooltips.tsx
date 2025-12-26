@@ -9,32 +9,13 @@ import { CARDS } from '../battleData';
 import { TRAITS } from '../battleData';
 import { applyTraitModifiers } from '../utils/battleUtils';
 import { TOKENS, TOKEN_CATEGORIES } from '../../../data/tokens';
-import type { HoveredEnemyAction, InsightReveal } from '../../../types';
-
-interface Card {
-  id: string;
-  name?: string;
-  damage?: number;
-  block?: number;
-  traits?: string[];
-  appliedTokens?: Array<{
-    id: string;
-    target: 'player' | 'enemy';
-  }>;
-  speedCost?: number;
-  speed?: number;
-  hits?: number;
-}
-
-interface HoveredCard {
-  card: Card;
-  x: number;
-  y: number;
-}
-
-interface Battle {
-  phase: string;
-}
+import type {
+  HoveredEnemyAction,
+  InsightReveal,
+  TooltipCard as Card,
+  HoveredCard,
+  TooltipBattle as Battle,
+} from '../../../types';
 
 interface BattleTooltipsProps {
   tooltipVisible: boolean;

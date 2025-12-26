@@ -3355,3 +3355,81 @@ export interface EnemyGroup {
   tier: number;
   enemies: string[];
 }
+
+// ==================== CardManagementModal 컴포넌트 타입 ====================
+
+/** 카드 관리 모달 카드 */
+export interface ModalCard {
+  id: string;
+  name: string;
+  type: string;
+  actionCost: number;
+  speedCost: number;
+  damage?: number;
+  block?: number;
+  hits?: number;
+  description?: string;
+  traits?: unknown[];
+  _displayKey?: string;
+  _type?: string;
+}
+
+// ==================== BreachSelectionModal 컴포넌트 타입 ====================
+
+/** 브리치 모달 카드 */
+export interface BreachCard {
+  id?: string;
+  name: string;
+  type: string;
+  actionCost: number;
+  speedCost: number;
+  damage?: number;
+  block?: number;
+  hits?: number;
+  description?: string;
+  icon?: React.FC<{ size?: number; className?: string }>;
+}
+
+/** 브리치 카드 정보 */
+export interface BreachCardInfo {
+  breachSpOffset?: number;
+}
+
+/** 브리치 선택 상태 */
+export interface BreachSelection {
+  cards: BreachCard[];
+  breachSp: number;
+  breachCard: BreachCardInfo | null;
+  sourceCardName: string | null;
+  isLastChain?: boolean;
+}
+
+// ==================== BattleTooltips 컴포넌트 타입 ====================
+
+/** 툴팁 카드 */
+export interface TooltipCard {
+  id: string;
+  name?: string;
+  damage?: number;
+  block?: number;
+  traits?: string[];
+  appliedTokens?: Array<{
+    id: string;
+    target: 'player' | 'enemy';
+  }>;
+  speedCost?: number;
+  speed?: number;
+  hits?: number;
+}
+
+/** 호버된 카드 정보 */
+export interface HoveredCard {
+  card: TooltipCard;
+  x: number;
+  y: number;
+}
+
+/** 툴팁 전투 상태 */
+export interface TooltipBattle {
+  phase: string;
+}

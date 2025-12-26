@@ -6,31 +6,7 @@
 
 import { FC } from 'react';
 import { Sword, Shield } from './BattleIcons';
-
-interface Card {
-  id?: string;
-  name: string;
-  type: string;
-  actionCost: number;
-  speedCost: number;
-  damage?: number;
-  block?: number;
-  hits?: number;
-  description?: string;
-  icon?: FC<{ size?: number; className?: string }>;
-}
-
-interface BreachCard {
-  breachSpOffset?: number;
-}
-
-interface BreachSelection {
-  cards: Card[];
-  breachSp: number;
-  breachCard: BreachCard | null;
-  sourceCardName: string | null;
-  isLastChain?: boolean;
-}
+import type { BreachCard as Card, BreachSelection } from '../../../types';
 
 interface BreachSelectionModalProps {
   breachSelection: BreachSelection | null;
