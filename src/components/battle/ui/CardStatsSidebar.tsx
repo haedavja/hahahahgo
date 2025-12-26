@@ -5,14 +5,7 @@
  */
 
 import { FC } from 'react';
-
-interface Card {
-  damage?: number | null;
-  block?: number | null;
-  counter?: number;
-  speedCost: number;
-  hits?: number;
-}
+import type { SidebarCard as Card } from '../../../types';
 
 interface CardStatsSidebarProps {
   card: Card;

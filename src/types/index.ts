@@ -3609,3 +3609,14 @@ export interface RewardCard {
   description?: string;
   icon?: React.FC<{ size?: number; className?: string }>;
 }
+
+// ==================== CardStatsSidebar 컴포넌트 타입 ====================
+
+/** 스탯 사이드바 카드 */
+export interface SidebarCard {
+  damage?: number | null;
+  block?: number | null;
+  counter?: number;
+  speedCost: number;
+  hits?: number;
+}
