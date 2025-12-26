@@ -70,8 +70,14 @@ interface UseBattleStateResult {
   actions: BattleActions;
 }
 
+/** 토큰 조작 결과 */
+interface TokenResult {
+  tokens: import('../../../types').TokenState;
+  logs: string[];
+}
+
 /** 전투 액션 타입 */
-interface BattleActions {
+export interface BattleActions {
   // 플레이어 & 적 상태
   setPlayer: (player: PlayerBattleState) => void;
   updatePlayer: (updates: Partial<PlayerBattleState>) => void;
@@ -84,18 +90,30 @@ interface BattleActions {
 
   // 전투 페이즈
   setPhase: (phase: string) => void;
-  nextTurn: () => void;
 
-  // 카드 관리
-  setHand: (hand: HandCard[]) => void;
-  setSelected: (selected: HandCard[]) => void;
-  addSelected: (card: HandCard) => void;
+  // 카드 관리 (다양한 카드 타입 허용)
+  setHand: (hand: unknown[]) => void;
+  setSelected: (selected: unknown[]) => void;
+  addSelected: (card: unknown) => void;
   removeSelected: (index: number) => void;
   setCanRedraw: (canRedraw: boolean) => void;
   setSortType: (sortType: SortType) => void;
   addVanishedCard: (cardId: string) => void;
   incrementCardUsage: (cardId: string) => void;
   setIsSimplified: (isSimplified: boolean) => void;
+  setVanishedCards: (cards: Card[]) => void;
+  setUsedCardIndices: (indices: number[] | Set<number>) => void;
+  setDisappearingCards: (cards: number[] | Set<number>) => void;
+  setHiddenCards: (cards: number[] | Set<number>) => void;
+  setDisabledCardIndices: (indices: number[] | Set<number>) => void;
+  setCardUsageCount: (count: Record<string, number>) => void;
+
+  // 덱/무덤 시스템 (다양한 카드 타입 허용)
+  setDeck: (deck: unknown[]) => void;
+  setDiscardPile: (pile: unknown[]) => void;
+  addToDiscard: (card: unknown) => void;
+  drawFromDeck: (count: number) => void;
+  shuffleDiscardIntoDeck: () => void;
 
   // 에테르 시스템
   setTurnEtherAccumulated: (amount: number) => void;
@@ -106,33 +124,58 @@ interface BattleActions {
   setEnemyEtherCalcPhase: (phase: EtherCalcPhase) => void;
   setEnemyCurrentDeflation: (deflation: number | null) => void;
   setEnemyEtherFinalValue: (value: number | null) => void;
+  setEtherAnimationPts: (pts: number) => void;
+  setNetEtherDelta: (delta: number | null) => void;
 
-  // 전투 실행
-  setQueue: (queue: HandCard[]) => void;
+  // 전투 실행 (다양한 카드/큐 타입 허용)
+  setQueue: (queue: unknown[]) => void;
   setQIndex: (index: number) => void;
-  setFixedOrder: (order: HandCard[] | null) => void;
-  setEnemyPlan: (plan: HandCard[]) => void;
+  setFixedOrder: (order: unknown[] | null) => void;
+  setEnemyPlan: (plan: EnemyPlan | unknown[]) => void;
   setPostCombatOptions: (options: PostCombatOptions | null) => void;
+  setExecutingCardIndex: (index: number | null) => void;
+  setResolvedPlayerCards: (count: number) => void;
 
   // 로그
   addLog: (message: string) => void;
+  setLog: (log: string[]) => void;
   setActionEvents: (events: Record<string, BattleEvent[]>) => void;
-  setNetEtherDelta: (delta: number | null) => void;
 
   // 토큰
-  addPlayerToken: (tokenId: string, stacks?: number) => void;
-  removePlayerToken: (tokenId: string, type?: string, stacks?: number) => void;
-  addEnemyToken: (tokenId: string, stacks?: number) => void;
-  removeEnemyToken: (tokenId: string, type?: string, stacks?: number) => void;
-  clearTurnTokens: (target: 'player' | 'enemy') => void;
-  setTokenStacks: (target: 'player' | 'enemy', tokenId: string, stacks: number) => void;
+  addTokenToPlayer: (tokenId: string, stacks?: number) => TokenResult;
+  addTokenToEnemy: (tokenId: string, stacks?: number) => TokenResult;
+  removeTokenFromPlayer: (tokenId: string, tokenType: string, stacks?: number) => TokenResult;
+  removeTokenFromEnemy: (tokenId: string, tokenType: string, stacks?: number) => TokenResult;
+  resetTokenForPlayer: (tokenId: string, tokenType: string, newStacks?: number) => TokenResult;
+  resetTokenForEnemy: (tokenId: string, tokenType: string, newStacks?: number) => TokenResult;
+  clearPlayerTurnTokens: () => TokenResult;
+  clearEnemyTurnTokens: () => TokenResult;
 
   // UI 상태
   setActiveRelicSet: (set: Set<string>) => void;
   setRelicActivated: (relicId: string | null) => void;
   setMultiplierPulse: (pulse: boolean) => void;
-  setOrderedRelics: (relics: Relic[]) => void;
+  setOrderedRelics: (relics: Relic[] | string[]) => void;
   setShowCharacterSheet: (show: boolean) => void;
+  setHoveredRelic: (relicId: string | null) => void;
+  setAutoProgress: (auto: boolean) => void;
+  setTimelineProgress: (progress: number) => void;
+  setTimelineIndicatorVisible: (visible: boolean) => void;
+
+  // 카드 툴팁
+  setHoveredCard: (card: unknown) => void;
+  setTooltipVisible: (visible: boolean) => void;
+  setPreviewDamage: (damage: PreviewDamage) => void;
+  setPerUnitPreviewDamage: (damage: Record<number, PreviewDamage>) => void;
+  setShowPtsTooltip: (show: boolean) => void;
+  setShowBarTooltip: (show: boolean) => void;
+  setHoveredEnemyAction: (action: unknown) => void;
+
+  // 통찰 시스템
+  setInsightBadge: (badge: InsightBadge) => void;
+  setInsightAnimLevel: (level: number) => void;
+  setInsightAnimPulseKey: (key: number) => void;
+  setShowInsightTooltip: (show: boolean) => void;
 
   // 애니메이션
   setPlayerHit: (hit: boolean) => void;
@@ -146,10 +189,35 @@ interface BattleActions {
   setSoulShatter: (shatter: boolean) => void;
   setPlayerTransferPulse: (pulse: boolean) => void;
   setEnemyTransferPulse: (pulse: boolean) => void;
+  setDestroyingEnemyCards: (indices: number[]) => void;
+  setFreezingEnemyCards: (indices: number[]) => void;
+  setFrozenOrder: (value: number) => void;
+
+  // 자동진행 & 스냅샷
+  setResolveStartPlayer: (player: PlayerBattleState | null) => void;
+  setResolveStartEnemy: (enemy: EnemyUnit | null) => void;
+  setRespondSnapshot: (snapshot: RespondSnapshot | null) => void;
+  setRewindUsed: (used: boolean) => void;
+
+  // 피해 분배 시스템
+  setDistributionMode: (mode: boolean) => void;
+  setPendingDistributionCard: (card: unknown) => void;
+  setDamageDistribution: (dist: DamageDistributionMap) => void;
+  updateDamageDistribution: (unitId: number, damage: number) => void;
+  setTotalDistributableDamage: (total: number) => void;
+  resetDistribution: () => void;
+
+  // 턴 관리
+  setTurnNumber: (number: number) => void;
+  incrementTurn: () => void;
+
+  // 다음 턴 효과
+  setNextTurnEffects: (effects: NextTurnEffects) => void;
+  updateNextTurnEffects: (updates: Partial<NextTurnEffects>) => void;
+  setReflectionState: (state: unknown) => void;
 
   // 기타
   dispatch: Dispatch<BattleAction>;
-  [key: string]: unknown;
 }
 
 /**
@@ -371,10 +439,10 @@ export function useBattleState(initialStateOverrides: InitialStateOverrides = {}
     },
 
     // === 추가 상태들 ===
-    setUsedCardIndices: (indices: Set<number>) => dispatch({ type: ACTIONS.SET_USED_CARD_INDICES, payload: Array.from(indices) }),
-    setDisappearingCards: (cards: Set<number>) => dispatch({ type: ACTIONS.SET_DISAPPEARING_CARDS, payload: Array.from(cards) }),
-    setHiddenCards: (cards: Set<number>) => dispatch({ type: ACTIONS.SET_HIDDEN_CARDS, payload: Array.from(cards) }),
-    setDisabledCardIndices: (indices: Set<number>) => dispatch({ type: ACTIONS.SET_DISABLED_CARD_INDICES, payload: Array.from(indices) }),
+    setUsedCardIndices: (indices: number[] | Set<number>) => dispatch({ type: ACTIONS.SET_USED_CARD_INDICES, payload: Array.isArray(indices) ? indices : Array.from(indices) }),
+    setDisappearingCards: (cards: number[] | Set<number>) => dispatch({ type: ACTIONS.SET_DISAPPEARING_CARDS, payload: Array.isArray(cards) ? cards : Array.from(cards) }),
+    setHiddenCards: (cards: number[] | Set<number>) => dispatch({ type: ACTIONS.SET_HIDDEN_CARDS, payload: Array.isArray(cards) ? cards : Array.from(cards) }),
+    setDisabledCardIndices: (indices: number[] | Set<number>) => dispatch({ type: ACTIONS.SET_DISABLED_CARD_INDICES, payload: Array.isArray(indices) ? indices : Array.from(indices) }),
     setCardUsageCount: (count: Record<string, number>) => dispatch({ type: ACTIONS.SET_CARD_USAGE_COUNT, payload: count }),
 
     // === 덱/무덤 시스템 ===

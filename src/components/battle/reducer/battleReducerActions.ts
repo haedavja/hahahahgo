@@ -14,8 +14,8 @@ import type {
   Relic,
   TokenInstance as Token,
   TokenState,
-  ReducerPlayerState as PlayerState,
-  ReducerEnemyState as EnemyState,
+  ReducerPlayerState,
+  ReducerEnemyState,
   ReducerEnemyUnitState as EnemyUnitState,
   ReducerNextTurnEffects as NextTurnEffects,
   PreviewDamage,
@@ -26,6 +26,10 @@ import type {
   BattleEvent
 } from '../../../types';
 import type { HandCard } from '../../../lib/speedQueue';
+
+// Re-export reducer state types
+export type PlayerState = ReducerPlayerState;
+export type EnemyState = ReducerEnemyState;
 
 /** 액션 타입 상수 */
 export const ACTIONS = {
