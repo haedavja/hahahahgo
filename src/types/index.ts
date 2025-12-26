@@ -3569,3 +3569,43 @@ export interface EventInfo {
   description: string;
   multiStage: boolean;
 }
+
+// ==================== DevTools 컴포넌트 타입 ====================
+
+/** DevTools 탭 정보 */
+export interface DevToolsTab {
+  id: string;
+  label: string;
+  icon: string;
+}
+
+// ==================== EtherBar 컴포넌트 타입 ====================
+
+/** 에테르 바 액션 */
+export interface EtherBarActions {
+  setShowBarTooltip: (show: boolean) => void;
+  setShowPtsTooltip: (show: boolean) => void;
+}
+
+// ==================== EtherComparisonBar 컴포넌트 타입 ====================
+
+/** 에테르 비교 바 전투 상태 */
+export interface EtherComparisonBattle {
+  phase: string;
+}
+
+// ==================== CardRewardModal 컴포넌트 타입 ====================
+
+/** 보상 카드 */
+export interface RewardCard {
+  id?: string;
+  name: string;
+  type: string;
+  actionCost: number;
+  speedCost: number;
+  damage?: number;
+  block?: number;
+  hits?: number;
+  description?: string;
+  icon?: React.FC<{ size?: number; className?: string }>;
+}

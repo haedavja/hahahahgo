@@ -9,18 +9,13 @@ import {
   EventTab,
   CardsTab
 } from './DevToolsTabs';
+import type { DevToolsTab as Tab } from '../../types';
 
 interface DevToolsProps {
   isOpen: boolean;
   onClose: () => void;
   showAllCards: boolean;
   setShowAllCards: (show: boolean) => void;
-}
-
-interface Tab {
-  id: string;
-  label: string;
-  icon: string;
 }
 
 /**

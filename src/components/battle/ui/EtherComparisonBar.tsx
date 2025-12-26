@@ -5,10 +5,7 @@
  */
 
 import { FC } from 'react';
-
-interface Battle {
-  phase: string;
-}
+import type { EtherComparisonBattle as Battle } from '../../../types';
 
 interface EtherComparisonBarProps {
   battle: Battle;

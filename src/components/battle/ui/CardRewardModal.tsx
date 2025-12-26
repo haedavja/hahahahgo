@@ -6,19 +6,7 @@
 
 import { FC } from 'react';
 import { Sword, Shield } from './BattleIcons';
-
-interface Card {
-  id?: string;
-  name: string;
-  type: string;
-  actionCost: number;
-  speedCost: number;
-  damage?: number;
-  block?: number;
-  hits?: number;
-  description?: string;
-  icon?: FC<{ size?: number; className?: string }>;
-}
+import type { RewardCard as Card } from '../../../types';
 
 interface CardRewardModalProps {
   rewardCards: Card[] | null;

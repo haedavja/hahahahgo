@@ -8,13 +8,9 @@ import { FC } from 'react';
 import { calculateEtherSlots, getCurrentSlotPts, getSlotProgress, getNextSlotCost } from '../../../lib/etherUtils';
 import { formatCompactValue } from '../utils/formatUtils';
 import { PLAYER_SLOT_COLORS, ENEMY_SLOT_COLORS } from './constants/colors';
+import type { EtherBarActions } from '../../../types';
 
 const etherSlots = (pts: number): number => calculateEtherSlots(pts || 0);
-
-interface EtherBarActions {
-  setShowBarTooltip: (show: boolean) => void;
-  setShowPtsTooltip: (show: boolean) => void;
-}
 
 interface EtherBarProps {
   pts: number;
