@@ -7,6 +7,7 @@
 
 import type { StateCreator } from 'zustand';
 import type { GameStore, BattleSliceActions, BattleCard } from './types';
+import type { ResolverTimelineEntry, ResolverSimulationResult } from '../../types';
 import { ENEMIES, getRandomEnemy } from '../../components/battle/battleData';
 import { drawHand, buildSpeedTimeline } from '../../lib/speedQueue';
 import { simulateBattle, pickOutcome } from '../../lib/battleResolver';
@@ -73,7 +74,7 @@ export const createBattleActions: SliceCreator = (set) => ({
       };
 
       const timeline = buildSpeedTimeline(playerHand, enemyHand, 30);
-      const simulation = simulateBattle(timeline, battleStats);
+      const simulation = simulateBattle(timeline as unknown as ResolverTimelineEntry[], battleStats);
       const preview = { playerHand, enemyHand, timeline, tuLimit: 30 };
 
       const enemyInfo = enemy
@@ -111,7 +112,7 @@ export const createBattleActions: SliceCreator = (set) => ({
     set((state) => {
       if (!state.activeBattle) return state;
       const rewardsDef = state.activeBattle.rewards ?? {};
-      const autoResult = pickOutcome(state.activeBattle.simulation, 'victory');
+      const autoResult = pickOutcome(state.activeBattle.simulation as unknown as ResolverSimulationResult | null, 'victory');
       const resultLabel = outcome.result ?? autoResult;
       const rewards = resultLabel === 'victory'
         ? grantRewards(rewardsDef, state.resources)
@@ -190,7 +191,7 @@ export const createBattleActions: SliceCreator = (set) => ({
       const battle = state.activeBattle;
       if (!battle) return state;
 
-      const drawFromPile = (pile: BattleCard[]) => (!pile.length ? [] : drawHand(pile, Math.min(3, pile.length)));
+      const drawFromPile = (pile: BattleCard[]) => (!pile.length ? [] : drawHand(pile.map(c => c.id), Math.min(3, pile.length)));
       const recyclePile = (pile: BattleCard[], discard: BattleCard[]) => (pile.length > 0 || discard.length === 0 ? pile : [...discard]);
 
       const playerHand = battle.playerHand || [];

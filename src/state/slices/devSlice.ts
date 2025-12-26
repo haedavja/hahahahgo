@@ -7,6 +7,7 @@
 
 import type { StateCreator } from 'zustand';
 import type { GameStore, DevSliceActions } from './types';
+import type { ResolverTimelineEntry } from '../../types';
 import { ENEMIES, ENEMY_GROUPS, CARDS } from '../../components/battle/battleData';
 import { drawHand, buildSpeedTimeline } from '../../lib/speedQueue';
 import { simulateBattle } from '../../lib/battleResolver';
@@ -152,12 +153,12 @@ export const createDevActions: SliceCreator = (set) => ({
       const characterBuild = state.characterBuild;
       const hasCharacterBuild = characterBuild && (characterBuild.mainSpecials?.length > 0 || characterBuild.subSpecials?.length > 0 || characterBuild.ownedCards?.length > 0);
 
-      const playerLibrary = hasCharacterBuild
+      const playerLibrary: string[] = hasCharacterBuild
         ? [...(characterBuild.mainSpecials || []), ...(characterBuild.subSpecials || [])]
-        : [...CARDS];
+        : CARDS.map(c => c.id);
 
-      const playerDrawPile = hasCharacterBuild ? [] : [...playerLibrary];
-      const enemyDrawPile = [...combinedDeck];
+      const playerDrawPile: string[] = hasCharacterBuild ? [] : [...playerLibrary];
+      const enemyDrawPile: string[] = [...combinedDeck];
 
       const playerHand = hasCharacterBuild
         ? drawCharacterBuildHand(characterBuild.mainSpecials, characterBuild.subSpecials, characterBuild.ownedCards)
@@ -171,7 +172,7 @@ export const createDevActions: SliceCreator = (set) => ({
       };
 
       const timeline = buildSpeedTimeline(playerHand, enemyHand, 30);
-      const simulation = simulateBattle(timeline, battleStats);
+      const simulation = simulateBattle(timeline as unknown as ResolverTimelineEntry[], battleStats);
 
       const enemyUnits = group.enemies.map((enemyId, idx) => {
         const enemy = ENEMIES.find((e) => e.id === enemyId);
