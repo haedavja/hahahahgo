@@ -15,7 +15,9 @@
  * @property {Object[]} choices - 선택지
  */
 
-export const NEW_EVENT_LIBRARY = {
+import type { NewEventDefinition } from '../types';
+
+export const NEW_EVENT_LIBRARY: Record<string, NewEventDefinition> = {
   // === 자원 이벤트 - 복합 자원 ===
   "broken-ai": {
     id: "broken-ai",

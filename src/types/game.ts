@@ -231,12 +231,46 @@ export interface EventInfo {
 
 // ==================== 게임 상태 ====================
 
+/** 새 이벤트 선택지 (newEvents.ts용) */
+export interface NewEventChoice {
+  id: string;
+  label: string;
+  nextStage?: string;
+  resultDescription?: string;
+  cost?: Partial<Resources> & { hp?: number; hpPercent?: number; grace?: number };
+  rewards?: Partial<Resources> & { card?: number };
+  statRequirement?: Record<string, number>;
+  nextEvent?: string;
+  openShop?: string;
+}
+
+/** 새 이벤트 단계 */
+export interface NewEventStage {
+  description: string;
+  choices: NewEventChoice[];
+}
+
+/** 새 이벤트 정의 */
+export interface NewEventDefinition {
+  id: string;
+  title?: string;
+  description?: string;
+  difficulty?: string;
+  choices?: NewEventChoice[];
+  stages?: Record<string, NewEventStage>;
+}
+
 /** 활성 이벤트 */
 export interface ActiveEvent {
   id: string;
   step?: string;
   nodeId?: string;
-  [key: string]: unknown;
+  definition?: NewEventDefinition;
+  currentStage?: string | null;
+  resolved?: boolean;
+  outcome?: unknown;
+  risk?: number;
+  friendlyChance?: number;
 }
 
 /** 던전 노드 이벤트 */
