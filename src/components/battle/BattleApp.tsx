@@ -240,7 +240,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const energyPenalty = (playerWithAnomalies.energyPenalty as number) || 0;
   const baseMaxEnergy = Math.max(0, ((playerWithAnomalies.maxEnergy as number) ?? baseEnergy) - energyPenalty);
   // 민첩도 payload에 값이 있으면 우선 사용하고, 없으면 스토어 값을 사용
-  const effectiveAgility = playerWithAnomalies.agility ?? playerAgility ?? 0;
+  const effectiveAgility = Number(playerWithAnomalies.agility ?? playerAgility) || 0;
   const effectiveCardDrawBonus = passiveRelicStats.cardDrawBonus || 0;
   // 슈퍼-장갑 상징: 최대 카드 제출 수 (0이면 기본값 5 사용)
   const baseMaxSubmitCards = passiveRelicStats.maxSubmitCards > 0
@@ -2658,9 +2658,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
     return false;
   };
-  const playerEtherValue = player?.etherPts ?? 0;
-  const playerEtherSlots = etherSlots(Number(playerEtherValue));
-  const enemyEtherValue = enemy?.etherPts ?? 0;
+  const playerEtherValue = Number(player?.etherPts) || 0;
+  const playerEtherSlots = etherSlots(playerEtherValue);
+  const enemyEtherValue = Number(enemy?.etherPts) || 0;
   const playerEnergyBudget = (player as { energy?: number }).energy || BASE_PLAYER_ENERGY;
   const remainingEnergy = Math.max(0, playerEnergyBudget - totalEnergy);
   const insightLevelSelect = insightReveal?.level || 0;
@@ -2730,7 +2730,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       }}>
         <EtherBar
           key={`player-ether-${playerEtherValue}`}
-          pts={playerEtherValue as any}
+          pts={playerEtherValue}
           slots={playerEtherSlots}
           previewGain={previewEtherGain}
           label="ETHER"
@@ -2861,8 +2861,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
               playerHit={playerHit}
               playerBlockAnim={playerBlockAnim}
               playerOverdriveFlash={playerOverdriveFlash}
-              effectiveAgility={effectiveAgility as any}
-              dulledLevel={dulledLevel as any}
+              effectiveAgility={effectiveAgility}
+              dulledLevel={dulledLevel}
               insightLevel={insightLevel}
             />
           </div>
@@ -2952,7 +2952,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                 soulShatter={soulShatter}
                 groupedEnemyMembers={groupedEnemyMembers}
                 enemyOverdriveFlash={enemyOverdriveFlash}
-                enemyEtherValue={enemyEtherValue as any}
+                enemyEtherValue={enemyEtherValue}
                 enemyTransferPulse={enemyTransferPulse}
                 enemySoulScale={enemySoulScale}
                 formatCompactValue={formatCompactValue}
