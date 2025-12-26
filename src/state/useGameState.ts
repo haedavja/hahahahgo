@@ -1,5 +1,5 @@
 /**
- * @file useGameState.js
+ * @file useGameState.ts
  * @description 게임 전역 상태 및 맵 생성 시스템
  *
  * ## 맵 구조
@@ -9,6 +9,55 @@
  */
 
 import { DEFAULT_STARTING_DECK } from '../components/battle/battleData';
+import type { GameItem, PlayerEgo, LastBattleResult, CharacterBuild, ActiveBattle } from './slices/types';
+import type { ActiveEvent, ActiveDungeon } from '../types';
+
+/** 휴식 활성 상태 */
+interface ActiveRest {
+  nodeId: string;
+}
+
+/** 상점 활성 상태 */
+interface ActiveShop {
+  nodeId?: string;
+  merchantType: string;
+}
+
+// ==================== 타입 정의 ====================
+
+/** 던전 데이터 타입 */
+interface DungeonNodeData {
+  size: string;
+  type: string;
+}
+
+/** 맵 노드 타입 (생성 과정에서 사용) */
+interface MapNodeGenerated {
+  id: string;
+  layer: number;
+  column: number;
+  x: number;
+  y: number;
+  type: string;
+  displayLabel: string;
+  connections: string[];
+  cleared?: boolean;
+  selectable?: boolean;
+  isStart?: boolean;
+  dungeonData?: DungeonNodeData;
+}
+
+/** nearestByColumn 결과 타입 */
+interface NearestResult {
+  node: MapNodeGenerated;
+  diff: number;
+}
+
+/** 맵 상태 타입 */
+interface GeneratedMap {
+  nodes: MapNodeGenerated[];
+  currentNodeId: string;
+}
 
 const MAP_COLUMNS = 7;
 const MAP_LAYERS = 11;
@@ -18,10 +67,10 @@ const MAP_WIDTH = 960;
 const V_SPACING = 220;
 const LAYER_TOP_OFFSET = 60;
 
-const columnToX = (column) => (MAP_WIDTH / (MAP_COLUMNS + 1)) * (column + 1);
-const layerToY = (layerIdx) => (MAP_LAYERS - 1 - layerIdx) * V_SPACING + LAYER_TOP_OFFSET;
+const columnToX = (column: number): number => (MAP_WIDTH / (MAP_COLUMNS + 1)) * (column + 1);
+const layerToY = (layerIdx: number): number => (MAP_LAYERS - 1 - layerIdx) * V_SPACING + LAYER_TOP_OFFSET;
 
-const shuffle = (list) => {
+const shuffle = <T>(list: T[]): T[] => {
   const arr = [...list];
   for (let i = arr.length - 1; i > 0; i -= 1) {
     const j = Math.floor(Math.random() * (i + 1));
@@ -30,54 +79,54 @@ const shuffle = (list) => {
   return arr;
 };
 
-const randomInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+const randomInt = (min: number, max: number): number => Math.floor(Math.random() * (max - min + 1)) + min;
 
-const nearestByColumn = (nodes, column) =>
-  nodes.reduce((closest, node) => {
+const nearestByColumn = (nodes: MapNodeGenerated[], column: number): MapNodeGenerated =>
+  nodes.reduce((closest: NearestResult | null, node: MapNodeGenerated) => {
     const diff = Math.abs(node.column - column);
     if (!closest || diff < closest.diff) return { node, diff };
     return closest;
-  }, null).node;
+  }, null as NearestResult | null)!.node;
 
-const generateLayerColumns = (layerIdx) => {
+const generateLayerColumns = (layerIdx: number): number[] => {
   if (layerIdx === 0 || layerIdx === MAP_LAYERS - 1) return [Math.floor(MAP_COLUMNS / 2)];
   const count = randomInt(MAP_MIN_NODES, MAP_MAX_NODES);
   const options = shuffle(Array.from({ length: MAP_COLUMNS }, (_, i) => i));
   return options.slice(0, count).sort((a, b) => a - b);
 };
 
-const assignNodeTypes = (nodes) => {
-  const startNode = nodes.find((n) => n.layer === 0);
-  const bossNode = nodes.find((n) => n.layer === MAP_LAYERS - 1);
+const assignNodeTypes = (nodes: MapNodeGenerated[]): void => {
+  const startNode = nodes.find((n: MapNodeGenerated) => n.layer === 0);
+  const bossNode = nodes.find((n: MapNodeGenerated) => n.layer === MAP_LAYERS - 1);
   if (startNode) {
     startNode.type = "event";
     startNode.isStart = true;
   }
   if (bossNode) bossNode.type = "boss";
 
-  const candidates = nodes.filter((n) => n !== startNode && n !== bossNode);
+  const candidates = nodes.filter((n: MapNodeGenerated) => n !== startNode && n !== bossNode);
   const shuffled = shuffle(candidates);
   const eventTarget = Math.max(1, Math.round(shuffled.length * 0.5));
-  shuffled.slice(0, eventTarget).forEach((node) => {
+  shuffled.slice(0, eventTarget).forEach((node: MapNodeGenerated) => {
     node.type = "event";
   });
 
   const remaining = shuffled.slice(eventTarget);
   const pool = ["battle", "battle", "battle", "rest", "shop", "elite", "dungeon"];
-  remaining.forEach((node) => {
+  remaining.forEach((node: MapNodeGenerated) => {
     node.type = pool[Math.floor(Math.random() * pool.length)];
   });
 
-  let dungeonCandidate = nodes.find((n) => n.type === "dungeon");
+  let dungeonCandidate = nodes.find((n: MapNodeGenerated) => n.type === "dungeon");
   if (!dungeonCandidate) {
-    const selectPool = nodes.filter((n) => !n.isStart && n.type !== "boss");
+    const selectPool = nodes.filter((n: MapNodeGenerated) => !n.isStart && n.type !== "boss");
     if (selectPool.length) {
       dungeonCandidate = selectPool[Math.floor(Math.random() * selectPool.length)];
       dungeonCandidate.type = "dungeon";
     }
   }
 
-  nodes.forEach((node) => {
+  nodes.forEach((node: MapNodeGenerated) => {
     if (node.type === "dungeon") {
       node.dungeonData = {
         size: ["3개의 방", "4개의 방", "5개의 방", "6개의 방", "중앙 복도 2개"][Math.floor(Math.random() * 5)],
@@ -88,11 +137,11 @@ const assignNodeTypes = (nodes) => {
   });
 };
 
-const generateMap = () => {
-  const layers = [];
+const generateMap = (): GeneratedMap => {
+  const layers: MapNodeGenerated[][] = [];
   for (let layer = 0; layer < MAP_LAYERS; layer += 1) {
     const columns = generateLayerColumns(layer);
-    const nodes = columns.map((column, index) => ({
+    const nodes: MapNodeGenerated[] = columns.map((column: number, index: number) => ({
       id: `L${layer}-N${index}`,
       layer,
       column,
@@ -100,7 +149,7 @@ const generateMap = () => {
       y: layerToY(layer),
       type: "battle",
       displayLabel: "BATTLE",
-      connections: [],
+      connections: [] as string[],
     }));
     layers.push(nodes);
   }
@@ -108,13 +157,13 @@ const generateMap = () => {
   for (let layer = 0; layer < MAP_LAYERS - 1; layer += 1) {
     const current = layers[layer];
     const next = layers[layer + 1];
-    current.forEach((node) => {
-      let targets = next.filter((candidate) => Math.abs(candidate.column - node.column) <= 1);
+    current.forEach((node: MapNodeGenerated) => {
+      let targets = next.filter((candidate: MapNodeGenerated) => Math.abs(candidate.column - node.column) <= 1);
       if (!targets.length) targets = [nearestByColumn(next, node.column)];
-      node.connections = targets.map((target) => target.id);
+      node.connections = targets.map((target: MapNodeGenerated) => target.id);
     });
-    next.forEach((node) => {
-      const inbound = current.some((prev) => prev.connections.includes(node.id));
+    next.forEach((node: MapNodeGenerated) => {
+      const inbound = current.some((prev: MapNodeGenerated) => prev.connections.includes(node.id));
       if (!inbound) {
         const fallback = nearestByColumn(current, node.column);
         fallback.connections.push(node.id);
@@ -126,8 +175,8 @@ const generateMap = () => {
   assignNodeTypes(flatNodes);
 
   // 시작 노드(layer 0)는 cleared, layer 1은 selectable
-  const startNode = flatNodes.find((node) => node.layer === 0);
-  flatNodes.forEach((node) => {
+  const startNode = flatNodes.find((node: MapNodeGenerated) => node.layer === 0);
+  flatNodes.forEach((node: MapNodeGenerated) => {
     if (node === startNode) {
       node.cleared = true;
       node.selectable = true;
@@ -142,12 +191,12 @@ const generateMap = () => {
 
   return {
     nodes: flatNodes,
-    currentNodeId: flatNodes.find((node) => node.layer === 0).id,
+    currentNodeId: flatNodes.find((node: MapNodeGenerated) => node.layer === 0)!.id,
   };
 };
 
 export const createInitialState = () => {
-  const initialRelics = []; // 초기 상징 없음
+  const initialRelics: string[] = []; // 초기 상징 없음
 
   // 상징 패시브 효과를 계산하기 위한 import (동적 import 대신 초기값 사용)
   // calculatePassiveEffects는 gameStore에서 사용되므로 여기서는 기본값만 설정
@@ -163,24 +212,24 @@ export const createInitialState = () => {
     playerMaxSpeedBonus: 0, // 열정 각성 등으로 인한 최대 속도 보너스
     extraSubSpecialSlots: 0, // 철저 각성 등으로 인한 보조특기 슬롯 보너스
     playerInsight: 0, // 통찰 (이벤트 선택지, 적 타임라인 정보)
-    playerTraits: [], // 획득한 개성 목록
-    playerEgos: [], // 획득한 자아 목록
-    cardUpgrades: {}, // 카드 업그레이드(카드 ID -> 희귀도)
+    playerTraits: [] as string[], // 획득한 개성 목록
+    playerEgos: [] as PlayerEgo[], // 획득한 자아 목록
+    cardUpgrades: {} as Record<string, string>, // 카드 업그레이드(카드 ID -> 희귀도)
     relics: initialRelics,
-    items: [null, null, null], // 아이템 슬롯 3개 (null = 빈 슬롯)
-    itemBuffs: {}, // 아이템으로 인한 임시 스탯 버프 { strength: 2, agility: 3, insight: 1 }
-    completedEvents: [], // 완료된 이벤트 ID 목록 (중복 방지)
-    pendingNextEvent: null, // 다음에 등장할 연쇄 이벤트 ID (alparius 등)
-    activeEvent: null,
-    activeRest: null,
-    activeDungeon: null,
-    activeBattle: null,
-    activeShop: null,
-    lastBattleResult: null,
+    items: [null, null, null] as (GameItem | null)[], // 아이템 슬롯 3개 (null = 빈 슬롯)
+    itemBuffs: {} as Record<string, number>, // 아이템으로 인한 임시 스탯 버프 { strength: 2, agility: 3, insight: 1 }
+    completedEvents: [] as string[], // 완료된 이벤트 ID 목록 (중복 방지)
+    pendingNextEvent: null as string | null, // 다음에 등장할 연쇄 이벤트 ID (alparius 등)
+    activeEvent: null as ActiveEvent | null,
+    activeRest: null as ActiveRest | null,
+    activeDungeon: null as ActiveDungeon | null,
+    activeBattle: null as ActiveBattle | null,
+    activeShop: null as ActiveShop | null,
+    lastBattleResult: null as LastBattleResult | null,
     characterBuild: {
-      mainSpecials: [],
-      subSpecials: [],
+      mainSpecials: [] as string[],
+      subSpecials: [] as string[],
       ownedCards: [...DEFAULT_STARTING_DECK],  // 기본 시작 덱으로 초기화
-    },
+    } as CharacterBuild,
   };
 };

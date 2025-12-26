@@ -63,11 +63,10 @@ import type { GameStore } from "./slices/types";
 
 // ==================== 스토어 생성 ====================
 
-export const useGameStore = create<GameStore>((...args) => {
-  const [set] = args;
-
+export const useGameStore = create<GameStore>((set, get, store) => {
   // 초기 상태 (상징 효과 적용)
   const initialState = applyInitialRelicEffects(createInitialState());
+  const args = [set, get, store] as const;
 
   // 슬라이스 액션 조합
   const playerActions = createPlayerActions(...args);
@@ -87,9 +86,9 @@ export const useGameStore = create<GameStore>((...args) => {
     ...initialState,
 
     // 개발자 모드 상태 (초기값)
-    devDulledLevel: null,
-    devForcedCrossroad: null,
-    devBattleTokens: [],
+    devDulledLevel: null as number | null,
+    devForcedCrossroad: null as string | null,
+    devBattleTokens: [] as string[],
 
     // 슬라이스 액션
     ...playerActions,
@@ -105,8 +104,8 @@ export const useGameStore = create<GameStore>((...args) => {
     ...devActions,
 
     // 코어 액션 (슬라이스에 포함되지 않은 액션)
-    resetRun: () => set(() => applyInitialRelicEffects(createInitialState())),
-  };
+    resetRun: () => set(() => applyInitialRelicEffects(createInitialState()) as unknown as GameStore),
+  } as unknown as GameStore;
 });
 
 // ==================== 셀렉터 ====================

@@ -1,5 +1,5 @@
 /**
- * @file metaProgress.js
+ * @file metaProgress.ts
  * @description 메타 진행 시스템
  *
  * ## 영구 저장 데이터
@@ -10,10 +10,105 @@
  * localStorage에 저장되어 게임 재시작 후에도 유지됨
  */
 
+// ==================== 타입 정의 ====================
+
+/** 통계 타입 */
+export interface MetaStats {
+  totalRuns: number;
+  completedRuns: number;
+  totalKills: number;
+  totalDamageDealt: number;
+  dungeonClears: number;
+  secretRoomsFound: number;
+  bossKills: number;
+}
+
+/** 언락 콘텐츠 타입 */
+export interface MetaUnlocks {
+  cards: string[];
+  relics: string[];
+  characters: string[];
+  difficulties: string[];
+}
+
+/** 영구 업그레이드 레벨 타입 */
+export interface PermanentUpgradeLevels {
+  startingGold: number;
+  startingHp: number;
+  etherBonus: number;
+  cardSlots: number;
+}
+
+/** 업적 상태 타입 */
+export interface AchievementStatus {
+  unlockedAt: number;
+  claimed: boolean;
+}
+
+/** 메타 진행 상태 타입 */
+export interface MetaProgress {
+  stats: MetaStats;
+  unlocks: MetaUnlocks;
+  achievements: Record<string, AchievementStatus>;
+  permanentUpgrades: PermanentUpgradeLevels;
+  soulFragments: number;
+}
+
+/** 보상 타입 */
+export interface AchievementReward {
+  type: 'card' | 'relic' | 'character' | 'difficulty';
+  id: string;
+}
+
+/** 업적 정의 타입 */
+export interface AchievementDefinition {
+  id: string;
+  name: string;
+  description: string;
+  condition: (stats: MetaStats) => boolean;
+  reward: AchievementReward;
+  soulFragments: number;
+}
+
+/** 영구 업그레이드 정의 타입 */
+export interface PermanentUpgradeDefinition {
+  id: string;
+  name: string;
+  description: string;
+  maxLevel: number;
+  costPerLevel: number[];
+  effectPerLevel: number;
+}
+
+/** 런 통계 타입 */
+export interface RunStats {
+  kills?: number;
+  damage?: number;
+  dungeonClears?: number;
+  secretRooms?: number;
+  bossKills?: number;
+}
+
+/** 통계 업데이트 타입 */
+export type StatsUpdate = Partial<MetaStats>;
+
+/** 런 보너스 타입 */
+export interface RunBonuses {
+  gold: number;
+  hp: number;
+  etherMultiplier: number;
+  cardSlots: number;
+}
+
+/** 업그레이드 구매 결과 타입 */
+export type PurchaseResult =
+  | { success: true; newLevel: number }
+  | { success: false; error: string };
+
 const META_STORAGE_KEY = 'hahahahgo_meta_progress';
 
 // 기본 메타 진행 상태
-const DEFAULT_META = {
+const DEFAULT_META: MetaProgress = {
   // 통계
   stats: {
     totalRuns: 0,
@@ -49,7 +144,7 @@ const DEFAULT_META = {
 };
 
 // 업적 정의
-export const ACHIEVEMENTS = {
+export const ACHIEVEMENTS: Record<string, AchievementDefinition> = {
   // 런 완료 업적
   first_clear: {
     id: 'first_clear',
@@ -118,7 +213,7 @@ export const ACHIEVEMENTS = {
 };
 
 // 영구 업그레이드 정의
-export const PERMANENT_UPGRADES = {
+export const PERMANENT_UPGRADES: Record<keyof PermanentUpgradeLevels, PermanentUpgradeDefinition> = {
   startingGold: {
     id: 'startingGold',
     name: '축적된 부',
@@ -156,7 +251,7 @@ export const PERMANENT_UPGRADES = {
 /**
  * localStorage에서 메타 진행 상황 불러오기
  */
-export function loadMetaProgress() {
+export function loadMetaProgress(): MetaProgress {
   try {
     const saved = localStorage.getItem(META_STORAGE_KEY);
     if (saved) {
@@ -183,7 +278,7 @@ export function loadMetaProgress() {
 /**
  * 메타 진행 상황 저장
  */
-export function saveMetaProgress(meta) {
+export function saveMetaProgress(meta: MetaProgress): void {
   try {
     localStorage.setItem(META_STORAGE_KEY, JSON.stringify(meta));
   } catch (error) {
@@ -194,11 +289,12 @@ export function saveMetaProgress(meta) {
 /**
  * 통계 업데이트
  */
-export function updateStats(updates) {
+export function updateStats(updates: StatsUpdate): MetaProgress {
   const meta = loadMetaProgress();
   Object.entries(updates).forEach(([key, value]) => {
     if (typeof value === 'number') {
-      meta.stats[key] = (meta.stats[key] || 0) + value;
+      const statKey = key as keyof MetaStats;
+      meta.stats[statKey] = (meta.stats[statKey] || 0) + value;
     }
   });
 
@@ -212,8 +308,8 @@ export function updateStats(updates) {
 /**
  * 업적 달성 체크
  */
-export function checkAchievements(meta) {
-  const newAchievements = [];
+export function checkAchievements(meta: MetaProgress): AchievementDefinition[] {
+  const newAchievements: AchievementDefinition[] = [];
 
   Object.values(ACHIEVEMENTS).forEach(achievement => {
     if (!meta.achievements[achievement.id] && achievement.condition(meta.stats)) {
@@ -243,7 +339,7 @@ export function checkAchievements(meta) {
 /**
  * 보상 적용
  */
-function applyReward(meta, reward) {
+function applyReward(meta: MetaProgress, reward: AchievementReward): void {
   switch (reward.type) {
     case 'card':
       if (!meta.unlocks.cards.includes(reward.id)) {
@@ -271,13 +367,13 @@ function applyReward(meta, reward) {
 /**
  * 영구 업그레이드 구매
  */
-export function purchaseUpgrade(upgradeId) {
+export function purchaseUpgrade(upgradeId: keyof PermanentUpgradeLevels): PurchaseResult {
   const meta = loadMetaProgress();
   const upgrade = PERMANENT_UPGRADES[upgradeId];
 
   if (!upgrade) return { success: false, error: 'Invalid upgrade' };
 
-  const currentLevel = meta.permanentUpgrades[upgradeId] || 0;
+  const currentLevel = meta.permanentUpgrades[upgradeId];
   if (currentLevel >= upgrade.maxLevel) {
     return { success: false, error: 'Max level reached' };
   }
@@ -297,7 +393,7 @@ export function purchaseUpgrade(upgradeId) {
 /**
  * 런 완료 시 호출
  */
-export function onRunComplete(isVictory, runStats = {}) {
+export function onRunComplete(isVictory: boolean, runStats: RunStats = {}): MetaProgress {
   return updateStats({
     totalRuns: 1,
     completedRuns: isVictory ? 1 : 0,
@@ -312,9 +408,9 @@ export function onRunComplete(isVictory, runStats = {}) {
 /**
  * 런 시작 시 적용할 보너스 계산
  */
-export function getRunBonuses() {
+export function getRunBonuses(): RunBonuses {
   const meta = loadMetaProgress();
-  const bonuses = {
+  const bonuses: RunBonuses = {
     gold: 0,
     hp: 0,
     etherMultiplier: 1,
@@ -322,7 +418,8 @@ export function getRunBonuses() {
   };
 
   Object.entries(meta.permanentUpgrades).forEach(([id, level]) => {
-    const upgrade = PERMANENT_UPGRADES[id];
+    const upgradeId = id as keyof PermanentUpgradeLevels;
+    const upgrade = PERMANENT_UPGRADES[upgradeId];
     if (upgrade && level > 0) {
       const totalEffect = upgrade.effectPerLevel * level;
       switch (id) {
@@ -348,7 +445,7 @@ export function getRunBonuses() {
 /**
  * 메타 진행 상황 리셋 (디버그용)
  */
-export function resetMetaProgress() {
+export function resetMetaProgress(): MetaProgress {
   localStorage.removeItem(META_STORAGE_KEY);
   return { ...DEFAULT_META };
 }
