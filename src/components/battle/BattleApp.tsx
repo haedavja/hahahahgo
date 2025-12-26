@@ -1,3 +1,49 @@
+/**
+ * @file BattleApp.tsx
+ * @description 전투 시스템 메인 컴포넌트 (오케스트레이션 레이어)
+ *
+ * 이 파일은 전투 시스템의 모든 조각을 조율하는 메인 컴포넌트입니다.
+ * 실제 로직과 UI는 이미 다음과 같이 모듈화되어 있습니다:
+ *
+ * ## 커스텀 훅 (./hooks/)
+ * - useBattleState: 전투 상태 관리 (useReducer 기반)
+ * - useDamagePreview: 데미지 미리보기 계산
+ * - useBattleTimelines: 타임라인 시스템
+ * - useInsightSystem: 통찰 시스템
+ * - useComboSystem: 콤보 감지 및 계산
+ * - useResolveExecution: 전투 진행 실행
+ * - usePhaseTransition: 페이즈 전환
+ * - useHandManagement: 손패 관리
+ * - useCardSelection: 카드 선택
+ * - useEtherPreview: 에테르 미리보기
+ * - useEtherAnimation: 에테르 애니메이션
+ * - useKeyboardShortcuts: 키보드 단축키
+ * - 기타 20+ 훅
+ *
+ * ## UI 컴포넌트 (./ui/)
+ * - PlayerHpBar, EnemyHpBar: HP 표시
+ * - PlayerEtherBox, EnemyEtherBox: 에테르 표시
+ * - HandArea: 손패 영역
+ * - TimelineDisplay: 타임라인
+ * - CentralPhaseDisplay: 중앙 페이즈 표시
+ * - EnemyUnitsDisplay: 다중 유닛 표시
+ * - BattleLog, BattleTooltips: 로그 및 툴팁
+ * - 기타 15+ 컴포넌트
+ *
+ * ## 유틸리티 (./utils/)
+ * - battleSimulation: 전투 시뮬레이션
+ * - combatUtils: 전투 유틸리티
+ * - enemyAI: 적 AI
+ * - comboDetection: 콤보 감지
+ * - etherCalculations: 에테르 계산
+ * - 기타 30+ 유틸리티
+ *
+ * @see ./hooks/ - 커스텀 훅
+ * @see ./ui/ - UI 컴포넌트
+ * @see ./utils/ - 유틸리티 함수
+ * @see ./logic/ - 전투 로직
+ */
+
 import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { flushSync } from "react-dom";
 import "./legacy-battle.css";
