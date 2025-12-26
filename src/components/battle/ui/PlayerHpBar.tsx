@@ -6,7 +6,7 @@
 
 import { useState, FC, ReactNode } from 'react';
 import { TokenDisplay } from './TokenDisplay';
-import type { TokenState, HpBarPlayer as Player, StatInfo } from '../../../types';
+import type { TokenState, TokenEntity, HpBarPlayer as Player, StatInfo } from '../../../types';
 
 interface InsightLevelInfo extends StatInfo {}
 
@@ -215,7 +215,7 @@ export const PlayerHpBar: FC<PlayerHpBarProps> = ({
                 )}
               </div>
               {/* 토큰 표시 */}
-              <TokenDisplay entity={player as any} position="player" />
+              <TokenDisplay entity={player as unknown as TokenEntity} position="player" />
             </div>
           </div>
         </div>

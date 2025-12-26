@@ -16,7 +16,19 @@ import type {
   CombatBattleContext,
   CombatState,
   MultiHitPrepareResult,
-  MultiHitFinalizeResult
+  MultiHitFinalizeResult,
+  CriticalActor,
+  CriticalCard,
+  SpecialCard,
+  SpecialActor,
+  SpecialBattleContext,
+  BattleEvent,
+  PreProcessedResult,
+  CardPlayResult,
+  CardPlaySpecialsResult,
+  DefenseCard,
+  DefenseActor,
+  DefenseBattleContext
 } from '../../../types';
 import { addToken, removeToken } from '../../../lib/tokenUtils';
 import {
@@ -52,8 +64,8 @@ export function applyAttack(
   if (!attacker || !defender || !card) {
     console.error('[applyAttack] Invalid input:', { attacker: !!attacker, defender: !!defender, card: !!card });
     return {
-      attacker: (attacker || {}) as any,
-      defender: (defender || {}) as any,
+      attacker: (attacker || {}) as CombatActor,
+      defender: (defender || {}) as CombatActor,
       dealt: 0,
       taken: 0,
       events: [],
@@ -74,10 +86,10 @@ export function applyAttack(
   const attackerRemainingEnergy = attackerName === 'player'
     ? (battleContext.remainingEnergy || 0)
     : (battleContext.enemyRemainingEnergy || 0);
-  const isCritical = rollCritical(currentAttacker as any, attackerRemainingEnergy, card as any, attackerName);
+  const isCritical = rollCritical(currentAttacker as unknown as CriticalActor, attackerRemainingEnergy, card as unknown as CriticalCard, attackerName);
 
   // 첫 번째 타격
-  const firstHitResult = calculateSingleHit(currentAttacker, currentDefender, card as any, attackerName, battleContext, isCritical, null);
+  const firstHitResult = calculateSingleHit(currentAttacker, currentDefender, card as Card, attackerName, battleContext, isCritical, null);
   currentAttacker = firstHitResult.attacker;
   currentDefender = firstHitResult.defender;
   totalDealt += firstHitResult.damage;
@@ -86,7 +98,7 @@ export function applyAttack(
 
   const preProcessedResult = firstHitResult.preProcessedResult;
   const modifiedCard = preProcessedResult?.modifiedCard || card;
-  const hits = (modifiedCard as any).hits || (card as any).hits || 1;
+  const hits = (modifiedCard as CombatCard).hits || card.hits || 1;
 
   const isGhostCard = card.isGhost === true;
   const ghostLabel = isGhostCard ? ' [👻유령]' : '';
@@ -101,7 +113,7 @@ export function applyAttack(
 
   // 추가 타격 수행
   for (let i = 1; i < hits; i++) {
-    const result = calculateSingleHit(currentAttacker, currentDefender, card as any, attackerName, battleContext, isCritical, preProcessedResult as any);
+    const result = calculateSingleHit(currentAttacker, currentDefender, card as Card, attackerName, battleContext, isCritical, preProcessedResult as PreProcessedResult | null);
     currentAttacker = result.attacker;
     currentDefender = result.defender;
     totalDealt += result.damage;
@@ -136,12 +148,12 @@ export function applyAttack(
 
   // 공격 후 special 효과 처리
   const postAttackResult = processPostAttackSpecials({
-    card: modifiedCard as any,
-    attacker: currentAttacker,
-    defender: currentDefender,
+    card: modifiedCard as unknown as SpecialCard,
+    attacker: currentAttacker as unknown as SpecialActor,
+    defender: currentDefender as unknown as SpecialActor,
     attackerName,
     damageDealt: totalDealt,
-    battleContext: { ...battleContext, blockDestroyed: totalBlockDestroyed, isCritical }
+    battleContext: { ...battleContext, blockDestroyed: totalBlockDestroyed, isCritical } as unknown as SpecialBattleContext
   });
 
   currentAttacker = postAttackResult.attacker;
@@ -152,7 +164,7 @@ export function applyAttack(
   // 추가 타격 처리
   if (postAttackResult.extraHits > 0) {
     for (let i = 0; i < postAttackResult.extraHits; i++) {
-      const result = calculateSingleHit(currentAttacker, currentDefender, card as any, attackerName, battleContext, isCritical);
+      const result = calculateSingleHit(currentAttacker, currentDefender, card as Card, attackerName, battleContext, isCritical);
       currentAttacker = result.attacker;
       currentDefender = result.defender;
       totalDealt += result.damage;
@@ -164,7 +176,7 @@ export function applyAttack(
 
   // 카드 창조 효과 처리
   const cardCreationResult = processCardCreationSpecials({
-    card: card as any,
+    card: card as unknown as SpecialCard,
     actorName: attackerName,
     damageDealt: totalDealt,
     allCards: battleContext.allCards || []
@@ -202,20 +214,20 @@ export function prepareMultiHitAttack(
   const attackerRemainingEnergy = attackerName === 'player'
     ? (battleContext.remainingEnergy || 0)
     : (battleContext.enemyRemainingEnergy || 0);
-  const firstHitCritical = rollCritical(currentAttacker as any, attackerRemainingEnergy, card as any, attackerName);
+  const firstHitCritical = rollCritical(currentAttacker as unknown as CriticalActor, attackerRemainingEnergy, card as unknown as CriticalCard, attackerName);
 
-  const firstHitResult = calculateSingleHit(currentAttacker, currentDefender, card as any, attackerName, battleContext, firstHitCritical, null);
+  const firstHitResult = calculateSingleHit(currentAttacker, currentDefender, card as Card, attackerName, battleContext, firstHitCritical, null);
 
   const preProcessedResult = firstHitResult.preProcessedResult;
   const modifiedCard = preProcessedResult?.modifiedCard || card;
-  const hits = (modifiedCard as any).hits || (card as any).hits || 1;
+  const hits = (modifiedCard as CombatCard).hits || card.hits || 1;
 
   return {
     hits,
     firstHitCritical,
-    preProcessedResult: preProcessedResult as any,
-    modifiedCard: modifiedCard as any,
-    firstHitResult: firstHitResult as any,
+    preProcessedResult: preProcessedResult as unknown as Record<string, unknown> | null,
+    modifiedCard: modifiedCard as CombatCard,
+    firstHitResult: firstHitResult as unknown as MultiHitPrepareResult['firstHitResult'],
     currentAttacker: firstHitResult.attacker,
     currentDefender: firstHitResult.defender,
     attackerRemainingEnergy
@@ -236,16 +248,16 @@ export function finalizeMultiHitAttack(
   battleContext: CombatBattleContext = {}
 ): MultiHitFinalizeResult {
   const postAttackResult = processPostAttackSpecials({
-    card: modifiedCard as any,
-    attacker,
-    defender,
+    card: modifiedCard as unknown as SpecialCard,
+    attacker: attacker as unknown as SpecialActor,
+    defender: defender as unknown as SpecialActor,
     attackerName,
     damageDealt: totalDealt,
-    battleContext: { ...battleContext, blockDestroyed: totalBlockDestroyed }
+    battleContext: { ...battleContext, blockDestroyed: totalBlockDestroyed } as unknown as SpecialBattleContext
   });
 
   const cardCreationResult = processCardCreationSpecials({
-    card: modifiedCard as any,
+    card: modifiedCard as unknown as SpecialCard,
     actorName: attackerName,
     damageDealt: totalDealt,
     allCards: battleContext.allCards || []
@@ -254,7 +266,7 @@ export function finalizeMultiHitAttack(
   return {
     attacker: postAttackResult.attacker,
     defender: postAttackResult.defender,
-    events: [...postAttackResult.events, ...cardCreationResult.events] as any,
+    events: [...postAttackResult.events, ...cardCreationResult.events] as BattleEvent[],
     logs: [...postAttackResult.logs, ...cardCreationResult.logs],
     extraHits: postAttackResult.extraHits || 0,
     createdCards: cardCreationResult.createdCards
@@ -277,15 +289,15 @@ export function applyAction(
   let updatedActor = A;
 
   if (card.type === 'general' || card.type === 'defense') {
-    result = applyDefense(A, card as any, actor, battleContext);
+    result = applyDefense(A as unknown as DefenseActor, card as unknown as DefenseCard, actor, battleContext as unknown as DefenseBattleContext);
     updatedActor = result.actor;
     let updatedOpponent = B;
 
     const cardPlayResult = processCardPlaySpecials({
-      card: card as any,
-      attacker: updatedActor,
+      card: card as unknown as SpecialCard,
+      attacker: updatedActor as unknown as SpecialActor,
       attackerName: actor,
-      battleContext
+      battleContext: battleContext as unknown as SpecialBattleContext
     });
 
     if (cardPlayResult.tokensToAdd && cardPlayResult.tokensToAdd.length > 0) {
@@ -319,20 +331,20 @@ export function applyAction(
       taken: result.taken,
       events: [...result.events, ...cardPlayResult.events],
       updatedState,
-      cardPlaySpecials: cardPlayResult as any
+      cardPlaySpecials: cardPlayResult as unknown as CardPlaySpecialsResult
     };
   }
 
   if (card.type === 'attack') {
-    result = applyAttack(A, B, card as any, actor, battleContext);
+    result = applyAttack(A, B, card, actor, battleContext);
     updatedActor = result.attacker;
     let updatedDefender = result.defender;
 
     const cardPlayResult = processCardPlaySpecials({
-      card: card as any,
-      attacker: updatedActor,
+      card: card as unknown as SpecialCard,
+      attacker: updatedActor as unknown as SpecialActor,
       attackerName: actor,
-      battleContext
+      battleContext: battleContext as unknown as SpecialBattleContext
     });
 
     if (cardPlayResult.tokensToAdd && cardPlayResult.tokensToAdd.length > 0) {
@@ -369,7 +381,7 @@ export function applyAction(
       updatedState,
       isCritical: result.isCritical,
       createdCards: result.createdCards || [],
-      cardPlaySpecials: cardPlayResult as any
+      cardPlaySpecials: cardPlayResult as unknown as CardPlaySpecialsResult
     };
   }
 

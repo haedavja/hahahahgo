@@ -7,7 +7,7 @@
 
 import { FC } from 'react';
 import { TokenDisplay } from './TokenDisplay';
-import type { PreviewDamage, EnemyUnitUI as Unit } from '../../../types';
+import type { PreviewDamage, TokenEntity, EnemyUnitUI as Unit } from '../../../types';
 
 interface UnitPreviewDamage extends PreviewDamage {}
 
@@ -241,7 +241,7 @@ export const EnemyUnitsDisplay: FC<EnemyUnitsDisplayProps> = ({
 
               {/* 토큰 표시 */}
               <div style={{ marginTop: '6px', minHeight: '24px' }}>
-                <TokenDisplay entity={unit as any} position="enemy" />
+                <TokenDisplay entity={unit as unknown as TokenEntity} position="enemy" />
               </div>
 
               {/* 타겟 선택 UI */}

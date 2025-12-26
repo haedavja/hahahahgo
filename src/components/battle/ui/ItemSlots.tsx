@@ -11,6 +11,7 @@ import { playCardDestroySound, playFreezeSound } from "../../../lib/soundUtils";
 import { addToken } from "../../../lib/tokenUtils";
 import type {
   Item,
+  TokenEntity,
   ItemSlotsPlayer as Player,
   ItemSlotsEnemy as Enemy,
   ItemSlotsEnemyPlan as EnemyPlan,
@@ -84,7 +85,7 @@ export const ItemSlots: FC<ItemSlotsProps> = ({ phase, battleActions, player, en
         const tokenLogs: string[] = [];
         if (effect.tokens) {
           for (const tokenGrant of effect.tokens) {
-            const result = addToken(newPlayer as any, tokenGrant.id, tokenGrant.stacks || 1);
+            const result = addToken(newPlayer as unknown as TokenEntity, tokenGrant.id, tokenGrant.stacks || 1);
             newPlayer.tokens = result.tokens;
             tokenLogs.push(...result.logs);
           }

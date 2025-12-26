@@ -12,7 +12,8 @@ import type {
   DefenseCard,
   DefenseActor,
   DefenseBattleContext,
-  DefenseResult
+  DefenseResult,
+  BattleEvent
 } from '../../../types';
 import { applyTokenEffectsToCard, consumeTokens } from '../../../lib/tokenEffects';
 import { calculateGrowingDefense, hasSpecial } from '../utils/cardSpecialEffects';
@@ -137,7 +138,7 @@ export function applyDefense(
     actor: updatedActor,
     dealt: 0,
     taken: 0,
-    events: [event as any],
+    events: [event as BattleEvent],
     log: allLogs.join(' | ')
   };
 }
