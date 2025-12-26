@@ -9,90 +9,20 @@ import { FC, MutableRefObject } from 'react';
 import { useGameStore } from "../../../state/gameStore";
 import { playCardDestroySound, playFreezeSound } from "../../../lib/soundUtils";
 import { addToken } from "../../../lib/tokenUtils";
+import type {
+  Item,
+  ItemSlotsPlayer as Player,
+  ItemSlotsEnemy as Enemy,
+  ItemSlotsEnemyPlan as EnemyPlan,
+  ItemSlotsBattleRef as BattleRef,
+  ItemSlotsBattleActions as BattleActions,
+} from '../../../types';
 
 const STAT_LABELS: Record<string, string> = {
   strength: "힘",
   agility: "민첩",
   insight: "통찰",
 };
-
-interface TokenGrant {
-  id: string;
-  stacks?: number;
-}
-
-interface ItemEffect {
-  type: string;
-  value?: number;
-  tokens?: TokenGrant[];
-}
-
-interface Item {
-  name: string;
-  description: string;
-  icon?: string;
-  usableIn: 'any' | 'combat';
-  effect?: ItemEffect;
-}
-
-interface TokenState {
-  usage: unknown[];
-  turn: unknown[];
-  permanent: unknown[];
-}
-
-interface Player {
-  hp: number;
-  energy?: number;
-  maxEnergy?: number;
-  block?: number;
-  strength?: number;
-  etherPts?: number;
-  etherMultiplier?: number;
-  enemyFrozen?: boolean;
-  tokens?: TokenState;
-}
-
-interface Enemy {
-  hp: number;
-  etherPts?: number;
-}
-
-interface EnemyAction {
-  card?: unknown;
-  [key: string]: unknown;
-}
-
-interface EnemyPlan {
-  mode?: string;
-  actions: EnemyAction[];
-  manuallyModified?: boolean;
-}
-
-interface FixedOrderAction {
-  actor: 'player' | 'enemy';
-  card?: unknown;
-}
-
-interface BattleRef {
-  phase?: string;
-  player?: Player;
-  enemy?: Enemy;
-  enemyPlan?: EnemyPlan;
-  fixedOrder?: FixedOrderAction[];
-  frozenOrder?: number;
-}
-
-interface BattleActions {
-  setPlayer: (player: Player) => void;
-  setEnemy: (enemy: Enemy) => void;
-  addLog: (msg: string) => void;
-  setEnemyPlan: (plan: EnemyPlan) => void;
-  setDestroyingEnemyCards?: (indices: number[]) => void;
-  setFrozenOrder?: (order: number) => void;
-  setFreezingEnemyCards?: (indices: number[]) => void;
-  setFixedOrder?: (order: FixedOrderAction[]) => void;
-}
 
 interface ItemSlotsProps {
   phase: string;

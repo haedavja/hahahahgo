@@ -3000,3 +3000,145 @@ export interface CharacterBuild {
   mainSpecial?: string;
   subSpecial?: string;
 }
+
+// ==================== ItemSlots 컴포넌트 타입 ====================
+
+/** 토큰 부여 정보 */
+export interface TokenGrant {
+  id: string;
+  stacks?: number;
+}
+
+/** 아이템 효과 */
+export interface ItemEffect {
+  type: string;
+  value?: number;
+  tokens?: TokenGrant[];
+}
+
+/** 아이템 */
+export interface Item {
+  name: string;
+  description: string;
+  icon?: string;
+  usableIn: 'any' | 'combat';
+  effect?: ItemEffect;
+}
+
+/** 아이템 슬롯 플레이어 상태 */
+export interface ItemSlotsPlayer {
+  hp: number;
+  energy?: number;
+  maxEnergy?: number;
+  block?: number;
+  strength?: number;
+  etherPts?: number;
+  etherMultiplier?: number;
+  enemyFrozen?: boolean;
+  tokens?: TokenState;
+}
+
+/** 아이템 슬롯 적 상태 */
+export interface ItemSlotsEnemy {
+  hp: number;
+  etherPts?: number;
+}
+
+/** 적 행동 (아이템 슬롯용) */
+export interface ItemSlotsEnemyAction {
+  card?: unknown;
+  [key: string]: unknown;
+}
+
+/** 적 계획 (아이템 슬롯용) */
+export interface ItemSlotsEnemyPlan {
+  mode?: string;
+  actions: ItemSlotsEnemyAction[];
+  manuallyModified?: boolean;
+}
+
+/** 고정 순서 행동 */
+export interface FixedOrderAction {
+  actor: 'player' | 'enemy';
+  card?: unknown;
+}
+
+/** 전투 참조 (아이템 슬롯용) */
+export interface ItemSlotsBattleRef {
+  phase?: string;
+  player?: ItemSlotsPlayer;
+  enemy?: ItemSlotsEnemy;
+  enemyPlan?: ItemSlotsEnemyPlan;
+  fixedOrder?: FixedOrderAction[];
+  frozenOrder?: number;
+}
+
+/** 전투 액션 (아이템 슬롯용) */
+export interface ItemSlotsBattleActions {
+  setPlayer: (player: ItemSlotsPlayer) => void;
+  setEnemy: (enemy: ItemSlotsEnemy) => void;
+  addLog: (msg: string) => void;
+  setEnemyPlan: (plan: ItemSlotsEnemyPlan) => void;
+  setDestroyingEnemyCards?: (indices: number[]) => void;
+  setFrozenOrder?: (order: number) => void;
+  setFreezingEnemyCards?: (indices: number[]) => void;
+  setFixedOrder?: (order: FixedOrderAction[]) => void;
+}
+
+// ==================== ExpectedDamagePreview 컴포넌트 타입 ====================
+
+/** 예상 피해 플레이어 상태 */
+export interface ExpectedDamagePlayer {
+  hp: number;
+  maxHp: number;
+  block: number;
+  [key: string]: unknown;
+}
+
+/** 예상 피해 적 상태 */
+export interface ExpectedDamageEnemy {
+  hp: number;
+  maxHp: number;
+  block: number;
+  [key: string]: unknown;
+}
+
+/** 시뮬레이션 결과 */
+export interface SimulationResult {
+  pDealt: number | string;
+  pTaken: number | string;
+  finalEHp: number;
+  finalPHp: number;
+  lines?: string[];
+}
+
+/** 전투 후 옵션 */
+export interface PostCombatOptions {
+  type: 'victory' | 'defeat';
+}
+
+// ==================== CentralPhaseDisplay 컴포넌트 타입 ====================
+
+/** 중앙 단계 표시 전투 상태 */
+export interface CentralBattle {
+  phase: string;
+  selected: unknown[];
+  queue: unknown[];
+  qIndex: number;
+}
+
+/** 중앙 단계 표시 플레이어 상태 */
+export interface CentralPlayer {
+  etherPts: number;
+}
+
+/** 중앙 단계 표시 적 상태 */
+export interface CentralEnemy {
+  hp: number;
+}
+
+/** 중앙 단계 표시 액션 */
+export interface CentralActions {
+  setWillOverdrive: React.Dispatch<React.SetStateAction<boolean>>;
+  setAutoProgress: (value: boolean) => void;
+}

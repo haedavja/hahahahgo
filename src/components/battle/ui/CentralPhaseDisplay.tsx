@@ -4,27 +4,13 @@
  * 중앙 단계 표시 및 컨트롤 버튼 컴포넌트
  */
 
-import { FC, Dispatch, SetStateAction } from 'react';
-
-interface Battle {
-  phase: string;
-  selected: unknown[];
-  queue: unknown[];
-  qIndex: number;
-}
-
-interface Player {
-  etherPts: number;
-}
-
-interface Enemy {
-  hp: number;
-}
-
-interface Actions {
-  setWillOverdrive: Dispatch<SetStateAction<boolean>>;
-  setAutoProgress: (value: boolean) => void;
-}
+import { FC } from 'react';
+import type {
+  CentralBattle as Battle,
+  CentralPlayer as Player,
+  CentralEnemy as Enemy,
+  CentralActions as Actions,
+} from '../../../types';
 
 interface CentralPhaseDisplayProps {
   battle: Battle;

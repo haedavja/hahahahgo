@@ -4,37 +4,17 @@
  * 예상 피해량 미리보기 패널 컴포넌트
  */
 
-import { FC, useMemo, useRef, useEffect, RefObject } from 'react';
+import { FC, useMemo, useRef, useEffect } from 'react';
 import { BattleLog } from './BattleLog';
-
-interface Player {
-  hp: number;
-  maxHp: number;
-  block: number;
-  [key: string]: unknown;
-}
-
-interface Enemy {
-  hp: number;
-  maxHp: number;
-  block: number;
-  [key: string]: unknown;
-}
+import type {
+  ExpectedDamagePlayer as Player,
+  ExpectedDamageEnemy as Enemy,
+  SimulationResult,
+  PostCombatOptions,
+} from '../../../types';
 
 interface Action {
   [key: string]: unknown;
-}
-
-interface SimulationResult {
-  pDealt: number | string;
-  pTaken: number | string;
-  finalEHp: number;
-  finalPHp: number;
-  lines?: string[];
-}
-
-interface PostCombatOptions {
-  type: 'victory' | 'defeat';
 }
 
 interface ExpectedDamagePreviewProps {
