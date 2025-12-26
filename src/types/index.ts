@@ -2761,12 +2761,7 @@ export interface PhaseBattle {
   phase: string;
 }
 
-/** 아이콘 컴포넌트 Props */
-export interface IconProps {
-  size?: number;
-  className?: string;
-  strokeWidth?: number;
-}
+// IconProps는 line 578에서 이미 정의됨
 
 /** 토큰 상태 (UI용) */
 export interface TokenState {
@@ -3363,11 +3358,7 @@ export interface AnomalyType {
   getEffect: (level: number) => { description: string };
 }
 
-/** 강제 이상현상 */
-export interface ForcedAnomaly {
-  anomalyId: string;
-  level: number;
-}
+// ForcedAnomaly는 line 2384에서 정의됨
 
 /** 활성 전투 */
 export interface ActiveBattle {
