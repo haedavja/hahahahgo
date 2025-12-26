@@ -25,6 +25,7 @@ import { applyAction } from '../logic/combatActions';
 import { getCardEtherGain } from '../utils/etherCalculations';
 import { CARDS, BASE_PLAYER_ENERGY } from '../battleData';
 import { RELICS } from '../../../data/relics';
+import type { UIRelicsMap, CombatBattleContext } from '../../../types';
 
 /**
  * 진행(resolve) 단계 실행 훅
@@ -101,8 +102,8 @@ export function useResolveExecution({
     const newNextTurnEffects = {
       ...traitNextTurnEffects,
       bonusEnergy: (traitNextTurnEffects.bonusEnergy || 0) + (currentNextTurnEffects.bonusEnergy || 0),
-      maxSpeedBonus: ((traitNextTurnEffects as any).maxSpeedBonus || 0) + ((currentNextTurnEffects as any).maxSpeedBonus || 0),
-      extraCardPlay: ((traitNextTurnEffects as any).extraCardPlay || 0) + ((currentNextTurnEffects as any).extraCardPlay || 0)
+      maxSpeedBonus: (traitNextTurnEffects.maxSpeedBonus || 0) + (currentNextTurnEffects.maxSpeedBonus || 0),
+      extraCardPlay: (traitNextTurnEffects.extraCardPlay || 0) + (currentNextTurnEffects.extraCardPlay || 0)
     };
 
     // 상징 턴 종료 효과 적용
@@ -115,7 +116,7 @@ export function useResolveExecution({
     // 턴 종료 상징 발동 애니메이션
     playTurnEndRelicAnimations({
       relics,
-      RELICS: RELICS as any,
+      RELICS: RELICS as unknown as UIRelicsMap,
       cardsPlayedThisTurn: battle.selected.length,
       player,
       enemy,
@@ -305,7 +306,7 @@ export function useResolveExecution({
         fencingDamageBonus: previewNextTurnEffects.fencingDamageBonus || 0
       };
 
-      const { events } = applyAction(tempState, a.actor, a.card, battleContext as any);
+      const { events } = applyAction(tempState, a.actor, a.card, battleContext as CombatBattleContext);
       newEvents[i] = events;
       events.forEach(ev => addLog(ev.msg));
 

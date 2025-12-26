@@ -726,6 +726,8 @@ export interface CardTraitNextTurnEffects {
   etherBlocked: boolean;
   mainSpecialOnly: boolean;
   subSpecialBoost: number;
+  maxSpeedBonus?: number;
+  extraCardPlay?: number;
 }
 
 // ==================== 카드 순서 시스템 ====================

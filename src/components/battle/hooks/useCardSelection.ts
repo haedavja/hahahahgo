@@ -8,6 +8,7 @@ import { useCallback } from 'react';
 import { applyAgility } from '../../../lib/agilityUtils';
 import { detectPokerCombo, applyPokerBonus } from '../utils/comboDetection';
 import { createFixedOrder } from '../utils/cardOrdering';
+import type { OrderingCardInfo } from '../../../types';
 import { getAllTokens } from '../../../lib/tokenUtils';
 
 /**
@@ -112,7 +113,7 @@ export function useCardSelection({
       }
       const combo = detectPokerCombo(next);
       const enhanced = applyPokerBonus(next, combo);
-      const withSp = createFixedOrder(enhanced as any, enemyPlanActions, effectiveAgility);
+      const withSp = createFixedOrder(enhanced as unknown as OrderingCardInfo[], enemyPlanActions, effectiveAgility);
       actions.setFixedOrder(withSp);
       actions.setSelected(next);
       return;
@@ -161,7 +162,7 @@ export function useCardSelection({
 
       const combo = detectPokerCombo(n);
       const enhanced = applyPokerBonus(n, combo);
-      const withSp = createFixedOrder(enhanced as any, enemyPlanActions, effectiveAgility);
+      const withSp = createFixedOrder(enhanced as unknown as OrderingCardInfo[], enemyPlanActions, effectiveAgility);
       actions.setFixedOrder(withSp);
       actions.setSelected(n);
     } else {
@@ -180,7 +181,7 @@ export function useCardSelection({
 
       const combo = detectPokerCombo(n);
       const enhanced = applyPokerBonus(n, combo);
-      const withSp = createFixedOrder(enhanced as any, enemyPlanActions, effectiveAgility);
+      const withSp = createFixedOrder(enhanced as unknown as OrderingCardInfo[], enemyPlanActions, effectiveAgility);
       actions.setFixedOrder(withSp);
       actions.setSelected(n);
     } else {

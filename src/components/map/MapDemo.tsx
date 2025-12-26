@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
+import type { Resources, MapNode } from "../../types";
 import { useMapState } from "./hooks/useMapState";
 import { useGameStore } from "../../state/gameStore";
 import { calculateEtherSlots, getCurrentSlotPts, getSlotProgress, getNextSlotCost } from "../../lib/etherUtils";
@@ -25,7 +26,7 @@ import {
 
 export function MapDemo() {
   const map = useGameStore((state) => state.map);
-  const resources = useGameStore((state) => state.resources || {}) as any;
+  const resources = useGameStore((state) => state.resources || {}) as Resources;
   const prevEtherRef = useRef(resources.etherPts ?? 0);
   const mapRisk = useGameStore((state) => state.mapRisk);
   const activeEvent = useGameStore((state) => state.activeEvent);
@@ -142,7 +143,7 @@ export function MapDemo() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [actions]);
 
-  const nodes = (map?.nodes ?? []) as any[];
+  const nodes = (map?.nodes ?? []) as MapNode[];
   const mapViewRef = useRef(null);
   const riskDisplay = Number.isFinite(mapRisk) ? mapRisk.toFixed(1) : "-";
   const memoryValue = resources.memory ?? 0;
@@ -177,17 +178,17 @@ export function MapDemo() {
 
   const mapHeight = useMemo(() => {
     if (!nodes.length) return 800;
-    const maxY = Math.max(...nodes.map((node: any) => node.y), 0);
+    const maxY = Math.max(...nodes.map((node: MapNode) => node.y ?? 0), 0);
     return maxY + NODE_HEIGHT + 200;
   }, [nodes]);
 
   const edges = useMemo(
     () =>
       nodes
-        .map((node: any) =>
+        .map((node: MapNode) =>
           node.connections
-            .map((targetId: any) => {
-              const target = nodes.find((candidate: any) => candidate.id === targetId);
+            .map((targetId: string) => {
+              const target = nodes.find((candidate: MapNode) => candidate.id === targetId);
               return target ? { from: node, to: target } : null;
             })
             .filter(Boolean),
@@ -198,7 +199,7 @@ export function MapDemo() {
 
   const activeDungeonNode = useMemo(() => {
     if (!activeDungeon) return null;
-    return nodes.find((node: any) => node.id === activeDungeon.nodeId) ?? null;
+    return nodes.find((node: MapNode) => node.id === activeDungeon.nodeId) ?? null;
   }, [activeDungeon, nodes]);
 
   useEffect(() => {
@@ -243,7 +244,7 @@ export function MapDemo() {
     }
   }, [activeDungeon, activeBattle, actions]);
 
-  const handleNodeClick = (node: any) => {
+  const handleNodeClick = (node: MapNode) => {
     if (!node || node.cleared || !node.selectable) return;
     selectNode(node.id);
   };
@@ -279,8 +280,8 @@ export function MapDemo() {
                 nodeId: "test-mixed",
                 kind: "battle",
                 label: "Mixed Mob",
-                simulation: { enemy: { hp: 1 } } as any
-              } as any
+                simulation: { initialState: { enemy: { hp: 1 } } }
+              } as unknown as import('../../state/slices/types').ActiveBattle
             });
           }}
           style={{
@@ -302,12 +303,12 @@ export function MapDemo() {
           <div className="map-view" ref={mapViewRef} style={{ marginLeft: '400px' }}>
             <section className="map" style={{ minHeight: mapHeight, width: MAP_WIDTH, margin: "0 auto", padding: "40px 0 60px" }}>
               <svg className="edge-layer" width={MAP_WIDTH} height={MAP_LAYERS * V_SPACING + 200}>
-                {edges.map(({ from, to }: any) => (
+                {edges.map(({ from, to }: { from: MapNode; to: MapNode }) => (
                   <line key={`${from.id}-${to.id}`} x1={from.x} y1={from.y} x2={to.x} y2={to.y} />
                 ))}
               </svg>
 
-              {nodes.map((node: any) => (
+              {nodes.map((node: MapNode) => (
                 <button
                   key={node.id}
                   data-node-id={node.id}
@@ -355,7 +356,7 @@ export function MapDemo() {
 
       {/* 아이템 슬롯 3개 */}
       <div className="item-slots">
-        {items.map((item: any, idx: number) => {
+        {items.map((item: { usableIn?: string; icon?: string; name?: string; description?: string } | null, idx: number) => {
           const inBattle = !!activeBattle;
           const canUse = item && (item.usableIn === 'any' || (item.usableIn === 'combat' && inBattle));
           return (
@@ -394,9 +395,9 @@ export function MapDemo() {
         {/* 아이템 버프 표시 */}
         {Object.keys(itemBuffs).length > 0 && (
           <div className="item-buffs">
-            {Object.entries(itemBuffs).map(([stat, value]: [string, any]) => (
+            {Object.entries(itemBuffs).map(([stat, value]: [string, number]) => (
               <span key={stat} className="item-buff">
-                {(STAT_LABELS as any)[stat] || stat} +{value}
+                {(STAT_LABELS as Record<string, string>)[stat] || stat} +{value}
               </span>
             ))}
           </div>

@@ -39,7 +39,7 @@ const buildBattlePayload = (
   let enemyCount = battle.enemyCount ?? 1;
   let enemyName = battle.label ?? "Enemy";
   let enemyHp = initialEnemy?.hp ? Math.round(initialEnemy.hp) : 30;
-  let enemyDeck: Card[] = (initialEnemy?.deck as any) || [];
+  let enemyDeck: Card[] = ((initialEnemy as { deck?: Card[] })?.deck) || [];
 
   let enemyComposition: EnemyComposition[] = [];
   let enemyUnits: EnemyUnit[] = [];
@@ -93,7 +93,7 @@ const buildBattlePayload = (
       enemyName = enemyUnits.map(u => u.count > 1 ? `${u.name}×${u.count}` : u.name).join(' + ');
     }
     enemyHp = enemyUnits.reduce((sum, u) => sum + u.hp, 0);
-    enemyDeck = mixedEnemies.flatMap(e => e.deck || []) as any;
+    enemyDeck = mixedEnemies.flatMap(e => (e as { deck?: Card[] }).deck || []);
     enemyCount = mixedEnemies.length;
     enemyComposition = enemyUnits.map(u => ({
       name: u.name,
@@ -152,7 +152,7 @@ const buildBattlePayload = (
         enemyName = enemyUnits.map(u => u.count > 1 ? `${u.name}×${u.count}` : u.name).join(' + ');
       }
       enemyHp = enemyUnits.reduce((sum, u) => sum + u.hp, 0);
-      enemyDeck = mixedEnemies.flatMap(e => e.deck || []) as any;
+      enemyDeck = mixedEnemies.flatMap(e => (e as { deck?: Card[] }).deck || []);
       enemyCount = mixedEnemies.length;
       enemyComposition = enemyUnits.map(u => ({
         name: u.name,
@@ -310,7 +310,7 @@ export const BattleScreen: FC = () => {
         result: finalResult,
         playerHp: playerHp,
         playerMaxHp: playerMaxHp
-      } as any);
+      });
     },
     [applyEtherDelta, resolveBattle],
   );

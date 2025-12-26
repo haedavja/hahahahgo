@@ -26,6 +26,10 @@ export interface MapNode {
   cleared: boolean;
   selectable: boolean;
   connections: string[];
+  displayLabel?: string;
+  x?: number;
+  y?: number;
+  isStart?: boolean;
 }
 
 // ==================== 던전 시스템 ====================

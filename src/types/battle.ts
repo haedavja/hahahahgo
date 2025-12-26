@@ -142,7 +142,7 @@ export interface BattlePayload {
 /** 전투 결과 */
 export interface BattleResult {
   result: 'victory' | 'defeat';
-  playerEther: number;
+  playerEther?: number;
   deltaEther?: number;
   playerHp: number;
   playerMaxHp: number;
