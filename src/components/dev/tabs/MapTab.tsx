@@ -5,19 +5,7 @@
 
 import { useState, useMemo, ChangeEvent } from 'react';
 import { OBSTACLE_TEMPLATES } from '../../../data/dungeonNodes';
-
-interface MapNode {
-  id: string;
-  layer?: number;
-  type: string;
-  displayLabel?: string;
-  cleared?: boolean;
-}
-
-interface GameMap {
-  nodes?: MapNode[];
-  currentNodeId?: string;
-}
+import type { MapNode, GameMap } from '../../../types';
 
 interface MapTabProps {
   map: GameMap | null;

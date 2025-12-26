@@ -5,24 +5,7 @@
 
 import { useState, ChangeEvent } from 'react';
 import { CARDS } from '../../battle/battleData';
-
-interface Card {
-  id: string;
-  name: string;
-  rarity?: string;
-  type: string;
-  actionCost: number;
-  speedCost: number;
-  damage?: number;
-  block?: number;
-  hits?: number;
-}
-
-interface CharacterBuild {
-  mainSpecials?: string[];
-  subSpecials?: string[];
-  ownedCards?: string[];
-}
+import type { CardsTabCard as Card, CardsTabCharacterBuild as CharacterBuild } from '../../../types';
 
 interface CardsTabProps {
   cardUpgrades?: Record<string, string>;

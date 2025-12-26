@@ -3469,3 +3469,56 @@ export interface ReflectionInfo {
   description: string;
   finalProbability: number;
 }
+
+// ==================== MapTab 컴포넌트 타입 ====================
+
+/** 맵 노드 */
+export interface MapNode {
+  id: string;
+  layer?: number;
+  type: string;
+  displayLabel?: string;
+  cleared?: boolean;
+}
+
+/** 게임 맵 */
+export interface GameMap {
+  nodes?: MapNode[];
+  currentNodeId?: string;
+}
+
+// ==================== CardsTab 컴포넌트 타입 ====================
+
+/** 카드 탭 카드 */
+export interface CardsTabCard {
+  id: string;
+  name: string;
+  rarity?: string;
+  type: string;
+  actionCost: number;
+  speedCost: number;
+  damage?: number;
+  block?: number;
+  hits?: number;
+}
+
+/** 카드 탭 캐릭터 빌드 */
+export interface CardsTabCharacterBuild {
+  mainSpecials?: string[];
+  subSpecials?: string[];
+  ownedCards?: string[];
+}
+
+// ==================== EnemyUnitsDisplay 컴포넌트 타입 ====================
+
+/** 적 유닛 (UI용) */
+export interface EnemyUnitUI {
+  unitId: number;
+  name: string;
+  emoji?: string;
+  hp: number;
+  maxHp: number;
+  block?: number;
+  count?: number;
+  tokens?: TokenState;
+}

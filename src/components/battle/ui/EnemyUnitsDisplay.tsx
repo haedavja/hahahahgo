@@ -5,20 +5,9 @@
  * 각 유닛은 개별 HP/방어력을 가지며 클릭으로 타겟 선택 가능
  */
 
-import { FC, MouseEvent } from 'react';
+import { FC } from 'react';
 import { TokenDisplay } from './TokenDisplay';
-import type { TokenState, PreviewDamage } from '../../../types';
-
-interface Unit {
-  unitId: number;
-  name: string;
-  emoji?: string;
-  hp: number;
-  maxHp: number;
-  block?: number;
-  count?: number;
-  tokens?: TokenState;
-}
+import type { PreviewDamage, EnemyUnitUI as Unit } from '../../../types';
 
 interface UnitPreviewDamage extends PreviewDamage {}
 
