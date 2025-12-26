@@ -4,11 +4,11 @@
  */
 
 import type {
-  BattleState,
   PlayerBattleState,
   EnemyUnit,
   BattleInitialStateOverrides as InitialStateOverrides
 } from '../../../types';
+import type { FullBattleState } from '../reducer/battleReducerState';
 import { useReducer, useMemo, useCallback, useRef, useEffect, type Dispatch } from 'react';
 import { battleReducer, createInitialState, ACTIONS } from '../reducer/battleReducer';
 import { addToken, removeToken, clearTurnTokens, setTokenStacks } from '../../../lib/tokenUtils';
@@ -44,23 +44,90 @@ import { addToken, removeToken, clearTurnTokens, setTokenStacks } from '../../..
 
 /** useBattleState 반환 타입 */
 interface UseBattleStateResult {
-  battle: BattleState;
+  battle: FullBattleState;
   actions: BattleActions;
 }
 
 /** 전투 액션 타입 */
 interface BattleActions {
+  // 플레이어 & 적 상태
+  setPlayer: (player: unknown) => void;
+  updatePlayer: (updates: Partial<PlayerBattleState>) => void;
+  setEnemy: (enemy: unknown) => void;
+  updateEnemy: (updates: Partial<EnemyUnit>) => void;
+  setEnemyIndex: (index: number) => void;
+  setSelectedTargetUnit: (unitId: number) => void;
+  setEnemyUnits: (units: unknown[]) => void;
+  updateEnemyUnit: (unitId: number, updates: unknown) => void;
+
+  // 전투 페이즈
   setPhase: (phase: string) => void;
   nextTurn: () => void;
-  updatePlayer: (updates: Partial<PlayerBattleState>) => void;
-  updateEnemy: (updates: Partial<EnemyUnit>) => void;
+
+  // 카드 관리
+  setHand: (hand: unknown[]) => void;
+  setSelected: (selected: unknown[]) => void;
+  addSelected: (card: unknown) => void;
+  removeSelected: (index: number) => void;
+  setCanRedraw: (canRedraw: boolean) => void;
+  setSortType: (sortType: string) => void;
+  addVanishedCard: (cardId: string) => void;
+  incrementCardUsage: (cardId: string) => void;
+  setIsSimplified: (isSimplified: boolean) => void;
+
+  // 에테르 시스템
+  setTurnEtherAccumulated: (amount: number) => void;
+  setEnemyTurnEtherAccumulated: (amount: number) => void;
+  setEtherCalcPhase: (phase: unknown) => void;
+  setCurrentDeflation: (deflation: number | null) => void;
+  setEtherFinalValue: (value: number | null) => void;
+  setEnemyEtherCalcPhase: (phase: unknown) => void;
+  setEnemyCurrentDeflation: (deflation: number | null) => void;
+  setEnemyEtherFinalValue: (value: number | null) => void;
+
+  // 전투 실행
+  setQueue: (queue: unknown[]) => void;
+  setQIndex: (index: number) => void;
+  setFixedOrder: (order: unknown[] | null) => void;
+  setEnemyPlan: (plan: unknown) => void;
+  setPostCombatOptions: (options: unknown) => void;
+
+  // 로그
+  addLog: (message: string) => void;
+  setActionEvents: (events: unknown) => void;
+  setNetEtherDelta: (delta: number | null) => void;
+
+  // 토큰
   addPlayerToken: (tokenId: string, stacks?: number) => void;
   removePlayerToken: (tokenId: string, type?: string, stacks?: number) => void;
   addEnemyToken: (tokenId: string, stacks?: number) => void;
   removeEnemyToken: (tokenId: string, type?: string, stacks?: number) => void;
   clearTurnTokens: (target: 'player' | 'enemy') => void;
   setTokenStacks: (target: 'player' | 'enemy', tokenId: string, stacks: number) => void;
+
+  // UI 상태
+  setActiveRelicSet: (set: Set<string>) => void;
+  setRelicActivated: (relicId: string | null) => void;
+  setMultiplierPulse: (pulse: boolean) => void;
+  setOrderedRelics: (relics: unknown[]) => void;
+  setShowCharacterSheet: (show: boolean) => void;
+
+  // 애니메이션
+  setPlayerHit: (hit: boolean) => void;
+  setEnemyHit: (hit: boolean) => void;
+  setPlayerBlockAnim: (anim: boolean) => void;
+  setEnemyBlockAnim: (anim: boolean) => void;
+  setWillOverdrive: (overdrive: boolean) => void;
+  setEtherPulse: (pulse: boolean) => void;
+  setPlayerOverdriveFlash: (flash: boolean) => void;
+  setEnemyOverdriveFlash: (flash: boolean) => void;
+  setSoulShatter: (shatter: boolean) => void;
+  setPlayerTransferPulse: (pulse: boolean) => void;
+  setEnemyTransferPulse: (pulse: boolean) => void;
+
+  // 기타
   dispatch: Dispatch<unknown>;
+  [key: string]: unknown;
 }
 
 /**

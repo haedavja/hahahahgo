@@ -16,14 +16,25 @@ import type {
 
 // ==================== 전투 기본 타입 ====================
 
-/** 전투 상태 */
-export interface BattleState {
+/** 간단한 전투 상태 (시뮬레이션용) */
+export interface SimpleBattleState {
   playerHp: number;
   enemyHp: number;
   playerTokens: Token[];
   enemyTokens: Token[];
   timeline: number;
   turn: number;
+}
+
+/**
+ * BattleState는 실제로 FullBattleState의 별칭입니다.
+ * 하위 호환성을 위해 유지되며, 실제 전투 상태는 reducer에서 관리됩니다.
+ * @see ../components/battle/reducer/battleReducerState.ts
+ */
+export type BattleState = SimpleBattleState & {
+  // 실제 전투 상태는 reducer에서 정의된 FullBattleState를 사용합니다.
+  // 이 타입은 간단한 시뮬레이션에 사용됩니다.
+  [key: string]: unknown;
 }
 
 /** 전투 참여자 (플레이어/적 공통) */

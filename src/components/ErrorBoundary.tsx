@@ -1,20 +1,30 @@
-import { Component } from 'react';
+import { Component, type ReactNode, type ErrorInfo } from 'react';
 import { handleBoundaryError } from '../lib/errorLogger';
+
+interface ErrorBoundaryProps {
+  children: ReactNode;
+}
+
+interface ErrorBoundaryState {
+  hasError: boolean;
+  error: Error | null;
+  errorId: string | null;
+}
 
 /**
  * ErrorBoundary - 컴포넌트 에러 캐치 및 폴백 UI 표시
  */
-export class ErrorBoundary extends Component {
-  constructor(props) {
+export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  constructor(props: ErrorBoundaryProps) {
     super(props);
     this.state = { hasError: false, error: null, errorId: null };
   }
 
-  static getDerivedStateFromError(error) {
+  static getDerivedStateFromError(error: Error): Partial<ErrorBoundaryState> {
     return { hasError: true, error };
   }
 
-  componentDidCatch(error, errorInfo) {
+  componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
     // 에러 로거로 기록
     const entry = handleBoundaryError(error, errorInfo);
     this.setState({ errorId: entry.id });
