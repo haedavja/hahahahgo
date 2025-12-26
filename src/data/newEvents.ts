@@ -325,7 +325,7 @@ export const NEW_EVENT_LIBRARY: Record<string, NewEventDefinition> = {
       "gratitude": {
         description: "아이가 감사하며 무언가를 건넵니다. \"이건 어머니가 주신 거예요...\"",
         choices: [
-          { id: "accept", label: "받는다", resultDescription: "아이의 손에서 따뜻한 빛이 나는 물건을 받습니다. 특별한 기운이 느껴집니다.", rewards: { insight: 2, card: "blessing" as any } },
+          { id: "accept", label: "받는다", resultDescription: "아이의 손에서 따뜻한 빛이 나는 물건을 받습니다. 특별한 기운이 느껴집니다.", rewards: { insight: 2, card: "blessing" } },
           { id: "refuse", label: "네가 가져라", resultDescription: "\"소중한 건 네가 가지렴.\" 아이가 환하게 웃습니다. 마음이 맑아집니다.", rewards: { insight: 3 } }
         ]
       }
@@ -516,7 +516,7 @@ export const NEW_EVENT_LIBRARY: Record<string, NewEventDefinition> = {
       "purified": {
         description: "제단의 어둠이 걷힙니다. 그 안에서 축복받은 무언가가 나타납니다.",
         choices: [
-          { id: "take", label: "받는다", resultDescription: "정화된 제단에서 축복의 힘이 솟아오릅니다. 빛나는 무언가를 얻었습니다.", rewards: { card: "blessing" as any } }
+          { id: "take", label: "받는다", resultDescription: "정화된 제단에서 축복의 힘이 솟아오릅니다. 빛나는 무언가를 얻었습니다.", rewards: { card: "blessing" } }
         ]
       }
     }
@@ -738,7 +738,7 @@ export const NEW_EVENT_LIBRARY: Record<string, NewEventDefinition> = {
       "offer": {
         description: "\"금 100이면 이 상징을 줄게. 어때?\"",
         choices: [
-          { id: "accept", label: "수락", resultDescription: "금화를 건네자 고물상이 상징을 내밀며 싱긋 웃습니다.", cost: { gold: 100 }, rewards: { relic: "1" as any } },
+          { id: "accept", label: "수락", resultDescription: "금화를 건네자 고물상이 상징을 내밀며 싱긋 웃습니다.", cost: { gold: 100 }, rewards: { relic: "1" } },
           { id: "more", label: "다른 것도 보여줘", statRequirement: { insight: 1 }, nextStage: "more-items" },
           { id: "refuse", label: "거절", resultDescription: "\"에이, 아깝네.\" 고물상이 투덜거립니다." }
         ]
@@ -765,8 +765,8 @@ export const NEW_EVENT_LIBRARY: Record<string, NewEventDefinition> = {
       "dig": {
         description: "파내려면 힘이 들 것 같습니다.",
         choices: [
-          { id: "dig", label: "파낸다", resultDescription: "으으윽... 힘들게 고철을 치우자 빛나는 상징이 모습을 드러냅니다.", cost: { hp: 20 }, rewards: { relic: "1" as any } },
-          { id: "throw", label: "힘으로 치운다", resultDescription: "강한 힘으로 고철을 한번에 치웁니다! 상징이 나타났습니다.", statRequirement: { strength: 2 }, rewards: { relic: "1" as any } },
+          { id: "dig", label: "파낸다", resultDescription: "으으윽... 힘들게 고철을 치우자 빛나는 상징이 모습을 드러냅니다.", cost: { hp: 20 }, rewards: { relic: "1" } },
+          { id: "throw", label: "힘으로 치운다", resultDescription: "강한 힘으로 고철을 한번에 치웁니다! 상징이 나타났습니다.", statRequirement: { strength: 2 }, rewards: { relic: "1" } },
           { id: "leave", label: "포기한다", resultDescription: "너무 힘들어 보입니다. 포기하고 떠납니다." }
         ]
       }
@@ -785,8 +785,8 @@ export const NEW_EVENT_LIBRARY: Record<string, NewEventDefinition> = {
       "attempt": {
         description: "함정이 보입니다. 어떻게 통과하시겠습니까?",
         choices: [
-          { id: "rush", label: "달려간다", resultDescription: "쿵! 챵! 퍽! 상처투성이가 됐지만 상징을 손에 넣었습니다!", cost: { hp: 25 }, rewards: { relic: "1" as any } },
-          { id: "dodge", label: "민첩하게 피한다", resultDescription: "화살이 스쳐 지나갑니다! 날렵하게 상징을 획득했습니다.", statRequirement: { agility: 2 }, rewards: { relic: "1" as any } },
+          { id: "rush", label: "달려간다", resultDescription: "쿵! 챵! 퍽! 상처투성이가 됐지만 상징을 손에 넣었습니다!", cost: { hp: 25 }, rewards: { relic: "1" } },
+          { id: "dodge", label: "민첩하게 피한다", resultDescription: "화살이 스쳐 지나갑니다! 날렵하게 상징을 획득했습니다.", statRequirement: { agility: 2 }, rewards: { relic: "1" } },
           { id: "retreat", label: "물러난다", resultDescription: "역시 위험합니다. 물러나는 게 현명합니다." }
         ]
       }
@@ -825,7 +825,7 @@ export const NEW_EVENT_LIBRARY: Record<string, NewEventDefinition> = {
         description: "하지만 진짜는 숨겨져 있는 것 같군요..",
         choices: [
           { id: "grab-any", label: "아무거나 집는다", resultDescription: "손에 잡히는 대로 집어봅니다...", probability: 0.1, successRewards: { relic: 1 } },
-          { id: "find-real", label: "진짜를 찾는다", resultDescription: "날카로운 눈으로 진짜를 발견했습니다! 다른 것들은 전부 가짜였군요.", statRequirement: { insight: 1 }, rewards: { relic: "1" as any } },
+          { id: "find-real", label: "진짜를 찾는다", resultDescription: "날카로운 눈으로 진짜를 발견했습니다! 다른 것들은 전부 가짜였군요.", statRequirement: { insight: 1 }, rewards: { relic: "1" } },
           { id: "leave", label: "그만둔다", resultDescription: "분별이 안 됩니다. 그냥 나갑니다." }
         ]
       }
@@ -844,9 +844,9 @@ export const NEW_EVENT_LIBRARY: Record<string, NewEventDefinition> = {
       "searching": {
         description: "어디를 뒤지시겠습니까?",
         choices: [
-          { id: "large", label: "큰 잔해", resultDescription: "힘을 써서 큰 잔해를 치웁니다. 그 밑에서 상징을 발견했습니다!", statRequirement: { strength: 2 }, rewards: { relic: "1" as any } },
-          { id: "small", label: "작은 잔해", resultDescription: "작은 잔해를 뒤집니다...", statRequirement: { strength: 1 }, probability: 0.5, successRewards: { relic: "1" as any } },
-          { id: "insight", label: "유력한 장소", resultDescription: "예리한 관찰력으로 숨겨진 상징을 찾아냈습니다!", statRequirement: { insight: 2 }, rewards: { relic: "1" as any } },
+          { id: "large", label: "큰 잔해", resultDescription: "힘을 써서 큰 잔해를 치웁니다. 그 밑에서 상징을 발견했습니다!", statRequirement: { strength: 2 }, rewards: { relic: "1" } },
+          { id: "small", label: "작은 잔해", resultDescription: "작은 잔해를 뒤집니다...", statRequirement: { strength: 1 }, probability: 0.5, successRewards: { relic: "1" } },
+          { id: "insight", label: "유력한 장소", resultDescription: "예리한 관찰력으로 숨겨진 상징을 찾아냈습니다!", statRequirement: { insight: 2 }, rewards: { relic: "1" } },
           { id: "both", label: "확실한 장소", resultDescription: "힘과 지혜를 모두 동원해 최고의 상징을 발굴했습니다!", statRequirement: { strength: 2, insight: 2 }, rewards: { relic: "rare" } },
           { id: "leave", label: "그만둔다", resultDescription: "더 뒤져봐야 의미가 없을 것 같습니다. 떠납니다." }
         ]
@@ -866,15 +866,15 @@ export const NEW_EVENT_LIBRARY: Record<string, NewEventDefinition> = {
       "request": {
         description: "\"가보를 줄 테니 제발 먹을 걸 달라\"고 요청합니다.",
         choices: [
-          { id: "steal", label: "강탈한다", resultDescription: "피난민의 소지품을 빼앗습니다. 저주의 시선이 느껴집니다.", rewards: { relic: "1" as any }, penalties: { card: "curse" as any } },
-          { id: "trade", label: "교환한다", resultDescription: "공정한 거래입니다. 피난민이 가보를 건넵니다.", cost: { material: 2 }, rewards: { relic: "1" as any } },
+          { id: "steal", label: "강탈한다", resultDescription: "피난민의 소지품을 빼앗습니다. 저주의 시선이 느껴집니다.", rewards: { relic: "1" }, penalties: { card: "curse" } },
+          { id: "trade", label: "교환한다", resultDescription: "공정한 거래입니다. 피난민이 가보를 건넵니다.", cost: { material: 2 }, rewards: { relic: "1" } },
           { id: "help", label: "도와준다", cost: { gold: 50 }, nextStage: "gratitude" }
         ]
       },
       "gratitude": {
         description: "피난민이 눈물을 흘리며 감사합니다. \"언젠가 꼭 보답하겠습니다...\"",
         choices: [
-          { id: "accept", label: "가보를 받는다", resultDescription: "\"이건 우리 가문의 가보입니다. 받아주세요.\" 상징과 함께 따뜻함이 전해집니다.", rewards: { relic: "1" as any, insight: 1 } },
+          { id: "accept", label: "가보를 받는다", resultDescription: "\"이건 우리 가문의 가보입니다. 받아주세요.\" 상징과 함께 따뜻함이 전해집니다.", rewards: { relic: "1", insight: 1 } },
           { id: "refuse", label: "가지고 있어라", resultDescription: "\"소중한 건 네가 가지렴.\" 피난민이 감격해 울먹입니다. 마음이 맑아집니다.", rewards: { insight: 2 } }
         ]
       }
@@ -893,8 +893,8 @@ export const NEW_EVENT_LIBRARY: Record<string, NewEventDefinition> = {
       "offer": {
         description: "\"그대가 올 걸 예지받았소. 기도하시오. 그럼 보답받을지니.\"",
         choices: [
-          { id: "pray", label: "기도한다", resultDescription: "은총화를 바치며 기도합니다. 신관이 성물을 건넵니다.", cost: { grace: 1 }, rewards: { relic: "1" as any } },
-          { id: "persuade", label: "설득한다", resultDescription: "\"당신의 말에 진심이 느껴지오.\" 신관이 성물을 건넵니다.", statRequirement: { insight: 2 }, rewards: { relic: "1" as any } },
+          { id: "pray", label: "기도한다", resultDescription: "은총화를 바치며 기도합니다. 신관이 성물을 건넵니다.", cost: { grace: 1 }, rewards: { relic: "1" } },
+          { id: "persuade", label: "설득한다", resultDescription: "\"당신의 말에 진심이 느껴지오.\" 신관이 성물을 건넵니다.", statRequirement: { insight: 2 }, rewards: { relic: "1" } },
           { id: "refuse", label: "거절한다", resultDescription: "\"그대의 선택을 존중하겠소.\" 신관이 물러납니다." }
         ]
       }
@@ -914,7 +914,7 @@ export const NEW_EVENT_LIBRARY: Record<string, NewEventDefinition> = {
         description: "제물이 될 것을 요구합니다. 거절하면 전투가 벌어질 것 같습니다.",
         choices: [
           { id: "sacrifice", label: "체력 50%를 바친다", resultDescription: "피가 제단에 스며듭니다. 고통스럽지만 희귀한 상징이 나타납니다.", hpRequirement: { min: 30 }, cost: { hpPercent: 50 }, rewards: { relic: "rare" } },
-          { id: "fight", label: "거절하고 전투", resultDescription: "\"불경한 자!\" 광신도들이 달려듭니다!", combatTrigger: true, combatRewards: { relic: "1" as any } },
+          { id: "fight", label: "거절하고 전투", resultDescription: "\"불경한 자!\" 광신도들이 달려듭니다!", combatTrigger: true, combatRewards: { relic: "1" } },
           { id: "flee", label: "도망친다", resultDescription: "서둘러 도망칩니다! 하지만 추격당할 위험이 높아졌습니다.", penalties: { mapRisk: 10 } }
         ]
       }
@@ -994,7 +994,7 @@ export const NEW_EVENT_LIBRARY: Record<string, NewEventDefinition> = {
       "letter": {
         description: "그의 손에는 바랜 편지가 쥐어져 있습니다. '이곳에서 기다리겠소...' 누군가는 그를 기다리고 있었을 것입니다.",
         choices: [
-          { id: "remember", label: "기억한다", resultDescription: "당신은 이 병사의 이름을 마음에 새깁니다. 그의 희생은 잊히지 않을 것입니다.", rewards: { insight: 1, card: "blessing" as any } },
+          { id: "remember", label: "기억한다", resultDescription: "당신은 이 병사의 이름을 마음에 새깁니다. 그의 희생은 잊히지 않을 것입니다.", rewards: { insight: 1, card: "blessing" } },
           { id: "forget", label: "잊어버린다", resultDescription: "슬픈 이야기입니다. 하지만 그의 소지품은 챙깁니다.", rewards: { gold: 50 }, penalties: { insight: 1 } },
           { id: "mourn", label: "애도한다", resultDescription: "은총화를 바쳐 명복을 빕니다. 그의 영혼이 평안을 찾은 것 같습니다.", cost: { grace: 1 }, rewards: { memory: 150 } }
         ]

@@ -57,13 +57,18 @@ export const createEventActions: SliceCreator = (set) => ({
         resources = result.next;
         rewards = result.applied;
 
-        if (choice.rewards.card && choice.rewards.card > 0) {
-          const cardCount = resolveAmount(choice.rewards.card);
-          const availableCards = CARDS.filter((c) => !newOwnedCards.includes(c.id));
-          for (let i = 0; i < cardCount && availableCards.length > 0; i++) {
-            const randomIndex = Math.floor(Math.random() * availableCards.length);
-            const selectedCard = availableCards.splice(randomIndex, 1)[0];
-            newOwnedCards.push(selectedCard.id);
+        if (choice.rewards.card) {
+          const cardReward = choice.rewards.card;
+          if (typeof cardReward === 'number' && cardReward > 0) {
+            const cardCount = resolveAmount(cardReward);
+            const availableCards = CARDS.filter((c) => !newOwnedCards.includes(c.id));
+            for (let i = 0; i < cardCount && availableCards.length > 0; i++) {
+              const randomIndex = Math.floor(Math.random() * availableCards.length);
+              const selectedCard = availableCards.splice(randomIndex, 1)[0];
+              newOwnedCards.push(selectedCard.id);
+            }
+          } else if (typeof cardReward === 'string') {
+            newOwnedCards.push(cardReward);
           }
         }
       }

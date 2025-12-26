@@ -10,7 +10,7 @@
 export type CardRarity = 'common' | 'rare' | 'special' | 'legendary';
 
 /** 카드 타입 */
-export type CardType = 'attack' | 'defense' | 'general' | 'support';
+export type CardType = 'attack' | 'defense' | 'general' | 'support' | 'move' | 'reaction';
 
 /** 카드 카테고리 */
 export type CardCategory = 'fencing' | 'pistol' | 'guard' | 'misc' | 'gun';
@@ -19,10 +19,11 @@ export type CardCategory = 'fencing' | 'pistol' | 'guard' | 'misc' | 'gun';
 export type CardTrait =
   | 'advance' | 'knockback' | 'crush' | 'chain' | 'cross' | 'creation'
   | 'repeat' | 'warmup' | 'exhaust' | 'vanish' | 'mistake' | 'protagonist'
-  | 'last' | 'robber' | 'ruin' | 'oblivion' | 'outcast';
+  | 'last' | 'robber' | 'ruin' | 'oblivion' | 'outcast'
+  | 'followup' | 'finisher';
 
 /** 카드 우선순위 */
-export type CardPriority = 'fast' | 'normal' | 'slow';
+export type CardPriority = 'instant' | 'quick' | 'normal' | 'slow';
 
 /** 카드 정의 */
 export interface Card {

@@ -128,8 +128,8 @@ export function processPreAttackSpecials({
   }
 
   // === 후속/마무리 특성 처리 ===
-  const hasFollowupTrait = card.traits && card.traits.includes('followup' as any);
-  const hasFinisherTrait = card.traits && card.traits.includes('finisher' as any);
+  const hasFollowupTrait = card.traits && card.traits.includes('followup');
+  const hasFinisherTrait = card.traits && card.traits.includes('finisher');
   if (hasFollowupTrait || hasFinisherTrait) {
     const { queue = [], currentQIndex = 0 } = battleContext;
     const who = attackerName === 'player' ? '플레이어' : '몬스터';
@@ -212,9 +212,9 @@ export function processPreAttackSpecials({
   // === tempeteDechainee: 기교 스택 x3만큼 추가 타격 후 기교 모두 소모 ===
   if (hasSpecial(card, 'tempeteDechainee')) {
     const finesseStacks = getTokenStacks(modifiedAttacker, 'finesse');
-    const baseHits = (modifiedCard as any).hits || (card as any).hits || 3;
-    const bonusHits = (finesseStacks as any) * 3;
-    (modifiedCard as any).hits = baseHits + bonusHits;
+    const baseHits = modifiedCard.hits || card.hits || 3;
+    const bonusHits = finesseStacks * 3;
+    modifiedCard.hits = baseHits + bonusHits;
 
     if (finesseStacks > 0) {
       const result = removeToken(modifiedAttacker, 'finesse', 'permanent', finesseStacks);

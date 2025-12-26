@@ -231,6 +231,19 @@ export interface EventInfo {
 
 // ==================== 게임 상태 ====================
 
+/** 이벤트 보상 타입 */
+export interface EventRewards extends Partial<Resources> {
+  card?: number | string;
+  insight?: number;
+  relic?: string | number;
+  grace?: number;
+  item?: string;
+  trait?: string;
+  hp?: number;
+  mapRisk?: number;
+  hpRestore?: string | number;
+}
+
 /** 새 이벤트 선택지 (newEvents.ts용) */
 export interface NewEventChoice {
   id: string;
@@ -238,13 +251,15 @@ export interface NewEventChoice {
   nextStage?: string;
   resultDescription?: string;
   cost?: Partial<Resources> & { hp?: number; hpPercent?: number; grace?: number };
-  rewards?: Partial<Resources> & { card?: number; insight?: number; relic?: string; grace?: number; item?: string; trait?: string; hp?: number };
+  rewards?: EventRewards;
+  successRewards?: EventRewards;
+  combatRewards?: EventRewards;
   statRequirement?: Record<string, number>;
   nextEvent?: string;
   openShop?: string;
   probability?: number | string;
   combatTrigger?: string | boolean;
-  penalties?: Record<string, number | string>;
+  penalties?: EventRewards;
   condition?: string;
   hidden?: boolean;
   [key: string]: unknown;
