@@ -2,38 +2,29 @@
  * @file gameStore.ts
  * @description 메인 게임 상태 저장소 (Zustand)
  *
- * ## 주요 상태
- * - player: 플레이어 스탯 (hp, maxHp, gold, material 등)
- * - map: 맵 노드 정보
- * - activeBattle: 현재 전투 정보
- * - characterBuild: 덱 구성 (주특기, 보조특기, 카드)
- * - orderedRelics: 장착된 상징 목록
+ * ## 아키텍처
+ * 이 파일은 현재 활성 구현체입니다. 타입 정의는 ./slices/types.ts에서 관리됩니다.
  *
- * ## 주요 액션
- * - selectNode: 맵 노드 선택
- * - startBattle: 전투 시작
- * - endBattle: 전투 종료
- * - addResources: 자원 추가
- *
- * ## 슬라이스 아키텍처
- * 모듈화된 슬라이스 버전이 ./slices/ 디렉토리에 있습니다:
- * - playerSlice: 플레이어 상태
- * - mapSlice: 맵 네비게이션
- * - dungeonSlice: 던전 탐험
- * - battleSlice: 전투 시스템
- * - eventSlice: 이벤트 시스템
- * - buildSlice: 캐릭터 빌드
- * - relicSlice: 상징 관리
- * - itemSlice: 아이템 관리
- * - restSlice: 휴식/각성
- * - shopSlice: 상점
+ * ## 슬라이스 모듈 (./slices/)
+ * 관심사별로 분리된 슬라이스 구현이 준비되어 있습니다:
+ * - playerSlice: 플레이어 HP, 스탯, 자원
+ * - mapSlice: 맵 네비게이션, 위험도
+ * - dungeonSlice: 던전 탐험 시스템
+ * - battleSlice: 전투 시작/종료/카드 선택
+ * - eventSlice: 이벤트 선택지 처리
+ * - buildSlice: 캐릭터 빌드, 카드 관리
+ * - relicSlice: 상징 추가/제거
+ * - itemSlice: 아이템 사용/관리
+ * - restSlice: 휴식, 각성, 자아 형성
+ * - shopSlice: 상점 열기/닫기
  * - devSlice: 개발자 도구
  *
- * @see ./slices/index.ts
+ * @see ./slices/types.ts - 공유 타입 정의
+ * @see ./slices/index.ts - 슬라이스 barrel export
  */
 
-import { create, type StateCreator } from "zustand";
-import type { Card, Relic, MapNode, Resources, ActiveEvent, ActiveDungeon } from "../types";
+import { create } from "zustand";
+import type { Resources, ActiveEvent, ActiveDungeon } from "../types";
 import { NEW_EVENT_LIBRARY } from "../data/newEvents";
 import { createInitialState } from "./useGameState";
 import { CARDS, ENEMIES, ENEMY_GROUPS, getRandomEnemy } from "../components/battle/battleData";
@@ -67,100 +58,27 @@ import {
   travelToNode,
 } from "./battleHelpers";
 
-// ==================== 상태 타입 정의 ====================
+// ==================== 타입 정의 (slices/types.ts에서 재사용) ====================
+// 공유 타입은 slices/types.ts에 정의되어 있으며, 하위 호환성을 위해 여기서 재export합니다.
 
-/** 플레이어 스탯 */
-export interface PlayerStats {
-  hp: number;
-  maxHp: number;
-  energy: number;
-  maxEnergy: number;
-  handSize: number;
-  strength?: number;
-  agility?: number;
-  insight?: number;
-  etherOverdriveActive?: boolean;
-  [key: string]: unknown;
-}
-
-/** 캐릭터 빌드 */
-export interface CharacterBuild {
-  mainSpecials: string[];
-  subSpecials: string[];
-  cards: Card[];
-  traits: string[];
-  egos: string[];
-  [key: string]: unknown;
-}
-
-/** 맵 상태 */
-export interface MapState {
-  nodes: MapNode[];
-  currentNodeId: string;
-  baseLayer?: number;
-}
-
-/** 활성 전투 */
-export interface ActiveBattle {
-  enemy: unknown;
-  enemyGroup?: unknown;
-  nodeId?: string;
-  [key: string]: unknown;
-}
+export type {
+  PlayerStats,
+  CharacterBuild,
+  MapState,
+  ActiveBattle,
+  GameItem,
+  PlayerEgo,
+  LastBattleResult,
+  GameStoreState,
+  GameStoreActions,
+  GameStore,
+} from "./slices/types";
 
 // ActiveEvent, ActiveDungeon은 types/index.ts에서 import
 export type { ActiveEvent, ActiveDungeon } from "../types";
 
-/** 게임 스토어 상태 */
-export interface GameStoreState {
-  // 플레이어 상태
-  player: PlayerStats;
-  resources: Resources;
-  characterBuild: CharacterBuild;
-  relics: Relic[];
-  orderedRelics: Relic[];
-
-  // 맵 상태
-  map: MapState;
-  mapRisk: number;
-
-  // 활성 상태
-  activeBattle: ActiveBattle | null;
-  activeEvent: ActiveEvent | null;
-  activeDungeon: ActiveDungeon | null;
-  activeRest: { nodeId: string } | null;
-  activeShop: { nodeId: string; merchantType: string } | null;
-
-  // 개발자 옵션
-  devDulledLevel: number | null;
-  devForcedCrossroad: string | null;
-  devBattleTokens: Array<{ id: string; stacks: number; target: string }>;
-
-  // 아이템/버프
-  itemBuffs: Record<string, unknown>;
-  pendingNextEvent: unknown | null;
-}
-
-/** 게임 스토어 액션 */
-export interface GameStoreActions {
-  resetRun: () => void;
-  selectNode: (nodeId: string) => void;
-  confirmDungeon: () => void;
-  enterDungeon: () => void;
-  skipDungeon: () => void;
-  startBattle: (config?: unknown) => void;
-  endBattle: (result: unknown) => void;
-  addResources: (resources: Partial<Resources>) => void;
-  updatePlayer: (updates: Partial<PlayerStats>) => void;
-  addRelic: (relic: Relic) => void;
-  removeRelic: (relicId: string) => void;
-  setActiveEvent: (event: ActiveEvent | null) => void;
-  closeEvent: () => void;
-  [key: string]: unknown;
-}
-
-/** 게임 스토어 전체 타입 */
-export type GameStore = GameStoreState & GameStoreActions;
+// 슬라이스 타입 import (내부 사용)
+import type { GameStore } from "./slices/types";
 
 export const useGameStore = create<GameStore>((set, get) => ({
   ...applyInitialRelicEffects(createInitialState()),
