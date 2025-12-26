@@ -94,7 +94,7 @@ export const CentralPhaseDisplay: FC<CentralPhaseDisplayProps> = ({
           <button onClick={() => { startResolve(); playSound(900, 120); }} disabled={battle.selected.length === 0} className="btn-enhanced btn-primary flex items-center gap-2" style={{ fontSize: '1.25rem', padding: '9.6px 24px', fontWeight: '700', minWidth: '200px' }}>
             ▶️ 제출 <span style={{ fontSize: '1.4rem', fontWeight: '900' }}>(E)</span>
           </button>
-          <button onClick={() => actions.setWillOverdrive(v => !v)}
+          <button onClick={() => actions.setWillOverdrive(!willOverdrive)}
             disabled={etherSlots(player.etherPts) <= 0}
             className={`btn-enhanced ${willOverdrive ? 'btn-primary' : ''} flex items-center gap-2`}
             style={{ fontSize: '1rem', padding: '8px 20px', minWidth: '200px' }}>

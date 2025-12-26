@@ -123,6 +123,8 @@ export interface GameItem {
   description: string;
   usableIn: 'combat' | 'any';
   effect: ItemEffect;
+  icon?: string;
+  tier?: number;
 }
 
 /** 자아 */

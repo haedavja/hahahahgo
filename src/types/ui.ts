@@ -390,7 +390,7 @@ export interface CentralEnemy {
 
 /** 중앙 단계 표시 액션 */
 export interface CentralActions {
-  setWillOverdrive: React.Dispatch<React.SetStateAction<boolean>>;
+  setWillOverdrive: (overdrive: boolean) => void;
   setAutoProgress: (value: boolean) => void;
 }
 
@@ -720,12 +720,12 @@ export interface DevRelicData {
   tags?: string[];
 }
 
-/** 아이템 데이터 (Dev용) */
+/** 아이템 데이터 (Dev용, GameItem과 호환) */
 export interface DevItem {
   id: string;
   name: string;
-  icon: string;
-  tier: number;
+  icon?: string;
+  tier?: number;
   usableIn: 'combat' | 'any';
   description: string;
 }

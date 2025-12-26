@@ -882,6 +882,7 @@ export interface ReducerNextTurnEffects {
   blockNextTurn?: number;
   healNextTurn?: number;
   energyNextTurn?: number;
+  [key: string]: unknown;
 }
 
 /** 피해 미리보기 */

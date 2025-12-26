@@ -332,11 +332,12 @@ export interface ActiveDungeon {
   dungeonDeltas?: { gold?: number; intel?: number; material?: number; loot?: number; etherPts?: number };
 }
 
-/** 활성 전투 */
+/** 활성 전투 (state/slices/types.ts와 호환되도록 optional 속성으로 정의) */
 export interface ActiveBattle {
-  label: string;
-  kind: string;
-  difficulty: string;
+  nodeId?: string;
+  kind?: string;
+  label?: string;
+  difficulty?: number | string;
 }
 
 /** 게임 전체 상태 */
