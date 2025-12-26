@@ -12,22 +12,21 @@
     "jsx": "react-jsx",
 
     /**
-     * 점진적 도입을 위한 느슨한 설정
+     * 점진적 도입을 위한 설정
      *
-     * strict mode 활성화 시 ~3000개 오류 발생
-     * 권장 순서:
-     * 1. noImplicitAny: true (가장 많은 오류)
-     * 2. strictNullChecks: true
-     * 3. strictFunctionTypes: true
-     * 4. strictBindCallApply: true
-     * 5. strictPropertyInitialization: true
-     * 6. noImplicitThis: true
-     * 7. strict: true (전체 활성화)
+     * 현재 상태:
+     * - strictFunctionTypes: ✅ 활성화
+     * - strictBindCallApply: ✅ 활성화
+     * - noImplicitAny: ❌ ~1163 오류
+     * - strictNullChecks: ❌ ~459 오류
+     * - strict: ❌ ~3000 오류
      */
     "strict": false,
     "allowJs": true,
     "checkJs": false,
     "noImplicitAny": false,
+    "strictFunctionTypes": true,
+    "strictBindCallApply": true,
 
     // 경로 설정
     "baseUrl": ".",

@@ -225,9 +225,9 @@ export function prepareMultiHitAttack(
   return {
     hits,
     firstHitCritical,
-    preProcessedResult: preProcessedResult as unknown as Record<string, unknown> | null,
+    preProcessedResult: preProcessedResult ?? null,
     modifiedCard: modifiedCard as CombatCard,
-    firstHitResult: firstHitResult as unknown as MultiHitPrepareResult['firstHitResult'],
+    firstHitResult: firstHitResult,
     currentAttacker: firstHitResult.attacker,
     currentDefender: firstHitResult.defender,
     attackerRemainingEnergy

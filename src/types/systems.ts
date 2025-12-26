@@ -646,6 +646,18 @@ export interface SimQueueStep {
   card: SimCard;
 }
 
+/** 시뮬레이션 로그 엔트리 */
+export interface SimulationLogEntry {
+  order: number;
+  actor: 'player' | 'enemy';
+  name: string;
+  detail?: {
+    type: 'attack' | 'block' | 'support';
+    hpDamage?: number;
+    block?: number;
+  };
+}
+
 /** 시뮬레이션 결과 */
 export interface SimulationResult {
   pDealt: number;
@@ -653,6 +665,7 @@ export interface SimulationResult {
   finalPHp: number;
   finalEHp: number;
   lines: string[];
+  log?: SimulationLogEntry[];
 }
 
 // ==================== 속도 큐 시스템 ====================

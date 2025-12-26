@@ -122,11 +122,13 @@ export interface EnemyIntent {
 
 /** 전투 이벤트 */
 export interface BattleEvent {
-  actor: 'player' | 'enemy' | 'system' | 'counter' | 'relic';
-  type?: 'damage' | 'heal' | 'block' | 'token' | 'ether' | 'card';
+  actor: 'player' | 'enemy' | 'system' | 'counter' | 'relic' | string;
+  type?: 'damage' | 'heal' | 'block' | 'token' | 'ether' | 'card' | 'multihit' | 'hit' | 'blocked' | 'pierce';
   value?: number;
   msg: string;
   targetId?: string;
+  card?: string;
+  dmg?: number;
 }
 
 /** 전투 로그 */
@@ -655,13 +657,24 @@ export interface CombatState {
   [key: string]: unknown;
 }
 
+/** 단일 타격 결과 */
+export interface SingleHitResult {
+  attacker: CombatActor;
+  defender: CombatActor;
+  damage: number;
+  damageTaken?: number;
+  blockDestroyed?: number;
+  events: BattleEvent[];
+  preProcessedResult?: PreProcessedResult | null;
+}
+
 /** 다중 타격 준비 결과 */
 export interface MultiHitPrepareResult {
   hits: number;
   firstHitCritical: boolean;
-  preProcessedResult: Record<string, unknown> | null;
+  preProcessedResult: PreProcessedResult | null;
   modifiedCard: CombatCard;
-  firstHitResult: Record<string, unknown>;
+  firstHitResult: SingleHitResult;
   currentAttacker: CombatActor;
   currentDefender: CombatActor;
   attackerRemainingEnergy: number;
