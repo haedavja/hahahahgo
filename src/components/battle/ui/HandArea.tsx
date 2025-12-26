@@ -16,14 +16,35 @@ import { TRAITS } from '../battleData';
 import { CardListPopup } from './CardPopups';
 import type {
   IconProps,
-  HandCard as Card,
   HandCardTrait as Trait,
   HandUnit as Unit,
   HandBattle as Battle,
   HandPlayer as Player,
   HandEnemy as Enemy,
-  HandAction as Action
+  HandAction as Action,
+  ComboCalculation
 } from '../../../types';
+import type { FC as IconFC } from 'react';
+
+// 손패 카드 타입 (확장 속성 포함)
+interface Card {
+  id: string;
+  name: string;
+  type: string;
+  actionCost: number;
+  speedCost: number;
+  damage?: number;
+  block?: number;
+  description?: string;
+  traits?: string[];
+  icon?: IconFC<IconProps>;
+  __handUid?: string;
+  __uid?: string;
+  __isMainSpecial?: boolean;
+  __isSubSpecial?: boolean;
+  __targetUnitId?: number;
+  [key: string]: unknown;
+}
 
 // X 아이콘 SVG 컴포넌트
 const X: FC<IconProps> = ({ size = 24, className = "", strokeWidth = 2 }) => (
@@ -94,7 +115,7 @@ export const HandArea: FC<HandAreaProps> = ({
   // 타겟 유닛 정보 가져오기 헬퍼
   const getTargetUnit = (targetUnitId: number | undefined): Unit | null => {
     if (targetUnitId === undefined && targetUnitId !== 0) return null;
-    return enemyUnits.find((u: any) => u.unitId === targetUnitId) || null;
+    return enemyUnits.find((u) => u.unitId === targetUnitId) || null;
   };
   const [showDeckPopup, setShowDeckPopup] = useState(false);
   const [showDiscardPopup, setShowDiscardPopup] = useState(false);
@@ -208,10 +229,10 @@ export const HandArea: FC<HandAreaProps> = ({
 
       {battle.phase === 'select' && (() => {
         // 현재 선택된 카드들의 조합 감지
-        const currentCombo = detectPokerCombo(selected);
+        const currentCombo = detectPokerCombo(selected) as ComboCalculation | null;
         const comboCardCosts = new Set<number>();
-        if ((currentCombo as any)?.bonusKeys) {
-          (currentCombo as any).bonusKeys.forEach((cost: number) => comboCardCosts.add(cost));
+        if (currentCombo?.bonusKeys) {
+          currentCombo.bonusKeys.forEach((cost: number) => comboCardCosts.add(cost));
         }
         // 플러쉬는 모든 카드가 조합 대상
         const isFlush = currentCombo?.name === '플러쉬';
@@ -219,19 +240,19 @@ export const HandArea: FC<HandAreaProps> = ({
         return (
           <div className="hand-cards">
             {getSortedHand().map((c, idx) => {
-              const Icon = (c as any).icon || (c.type === 'attack' ? Sword : Shield);
-              const usageCount = (player as any)?.comboUsageCount?.[c.id] || 0;
+              const Icon = c.icon || (c.type === 'attack' ? Sword : Shield);
+              const usageCount = player?.comboUsageCount?.[c.id] || 0;
               // __handUid로 개별 카드 식별 (중복 카드 구별)
-              const cardUid = (c as any).__handUid || (c as any).__uid;
-              const selIndex = selected.findIndex((s: any) => ((s as any).__handUid || (s as any).__uid) === cardUid);
+              const cardUid = c.__handUid || c.__uid;
+              const selIndex = selected.findIndex((s) => (s.__handUid || s.__uid) === cardUid);
               const sel = selIndex !== -1;
               // 카드가 조합에 포함되는지 확인
-              const isInCombo = sel && (isFlush || comboCardCosts.has((c as any).actionCost));
-              const enhancedCard = applyTraitModifiers(c, { usageCount, isInCombo } as any);
+              const isInCombo = sel && (isFlush || comboCardCosts.has(c.actionCost));
+              const enhancedCard = applyTraitModifiers(c, { usageCount, isInCombo });
               const disabled = handDisabled(c) && !sel;
               // 카드 객체의 플래그를 사용 (같은 카드 타입이 주특기/보조특기에 각각 있을 때 구별)
-              const isMainSpecial = (c as any).__isMainSpecial;
-              const isSubSpecial = (c as any).__isSubSpecial;
+              const isMainSpecial = c.__isMainSpecial;
+              const isSubSpecial = c.__isSubSpecial;
               const costColor = isMainSpecial ? '#fcd34d' : isSubSpecial ? '#60a5fa' : '#fff';
               const nameColor = isMainSpecial ? '#fcd34d' : isSubSpecial ? '#7dd3fc' : '#fff';
               // 협동 특성이 있고 조합에 포함된 경우
@@ -239,7 +260,7 @@ export const HandArea: FC<HandAreaProps> = ({
               const cooperationActive = hasCooperation && isInCombo;
               // 공격 카드의 타겟 유닛 정보
               const selectedCard = sel ? selected[selIndex] : null;
-              const targetUnit = (selectedCard as any)?.__targetUnitId != null ? getTargetUnit((selectedCard as any).__targetUnitId) : null;
+              const targetUnit = selectedCard?.__targetUnitId != null ? getTargetUnit(selectedCard.__targetUnitId) : null;
               return (
                 <div
                   key={c.id + idx}
@@ -258,7 +279,7 @@ export const HandArea: FC<HandAreaProps> = ({
                       border: '3px solid #22c55e'
                     } : {}}
                   >
-                    <div className="card-cost-badge-floating" style={{ color: costColor, WebkitTextStroke: '1px #000' }}>{(enhancedCard as any).actionCost || (c as any).actionCost}</div>
+                    <div className="card-cost-badge-floating" style={{ color: costColor, WebkitTextStroke: '1px #000' }}>{enhancedCard.actionCost || c.actionCost}</div>
                     {sel && <div className="selection-number">{selIndex + 1}</div>}
                     {/* 타겟 유닛 표시 (다중 적 유닛일 때 공격 카드) */}
                     {sel && targetUnit && (
@@ -314,21 +335,21 @@ export const HandArea: FC<HandAreaProps> = ({
       {battle.phase === 'respond' && fixedOrder && (
         <div className="hand-cards" style={{ justifyContent: 'center' }}>
           {fixedOrder.filter(a => a.actor === 'player').map((action, idx, arr) => {
-            const c = action.card;
-            const Icon = (c as any).icon || (c.type === 'attack' ? Sword : Shield);
+            const c = action.card as unknown as Card;
+            const Icon = c.icon || (c.type === 'attack' ? Sword : Shield);
             // 카드 객체의 플래그를 사용 (같은 카드 타입이 주특기/보조특기에 각각 있을 때 구별)
-            const isMainSpecial = (c as any).__isMainSpecial;
-            const isSubSpecial = (c as any).__isSubSpecial;
+            const isMainSpecial = c.__isMainSpecial;
+            const isSubSpecial = c.__isSubSpecial;
             const costColor = isMainSpecial ? '#fcd34d' : isSubSpecial ? '#60a5fa' : '#fff';
             const nameColor = isMainSpecial ? '#fcd34d' : isSubSpecial ? '#7dd3fc' : '#fff';
             // 타겟 유닛 정보
-            const targetUnit = (c as any).__targetUnitId != null ? getTargetUnit((c as any).__targetUnitId) : null;
+            const targetUnit = c.__targetUnitId != null ? getTargetUnit(c.__targetUnitId) : null;
             return (
               <div
                 key={idx}
-                onMouseEnter={(e: any) => {
+                onMouseEnter={(e: React.MouseEvent<HTMLDivElement>) => {
                   const cardEl = e.currentTarget.querySelector('.game-card-large');
-                  showCardTraitTooltip(c as any, cardEl as any);
+                  showCardTraitTooltip(c, cardEl);
                 }}
                 onMouseLeave={hideCardTraitTooltip}
                 style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center', position: 'relative', marginLeft: idx === 0 ? '0' : '8px' }}
@@ -360,11 +381,11 @@ export const HandArea: FC<HandAreaProps> = ({
                   </div>
                 )}
                 <div className={`game-card-large respond-phase-card ${getCardTypeClass(c.type)}`}>
-                  <div className="card-cost-badge-floating" style={{ color: costColor, WebkitTextStroke: '1px #000' }}>{(c as any).actionCost}</div>
-                  <CardStatsSidebar card={c as any} strengthBonus={player?.strength || 0} formatSpeedText={formatSpeedText as any} />
+                  <div className="card-cost-badge-floating" style={{ color: costColor, WebkitTextStroke: '1px #000' }}>{c.actionCost}</div>
+                  <CardStatsSidebar card={c} strengthBonus={player?.strength || 0} formatSpeedText={formatSpeedText} />
                   <div className="card-header" style={{ display: 'flex', justifyContent: 'center' }}>
                     <div className="font-black text-sm" style={{ display: 'flex', alignItems: 'center' }}>
-                      {renderNameWithBadge(c as any, nameColor)}
+                      {renderNameWithBadge(c, nameColor)}
                     </div>
                   </div>
                   <div className="card-icon-area">
@@ -395,19 +416,20 @@ export const HandArea: FC<HandAreaProps> = ({
 
       {battle.phase === 'resolve' && queue && battle.queue.length > 0 && (
         <div className="hand-cards" style={{ justifyContent: 'center' }}>
-          {queue.filter((a: any) => a.actor === 'player').map((a: any, i: number) => {
-            const Icon = a.card.icon || (a.card.type === 'attack' ? Sword : Shield);
-            const globalIndex = queue.findIndex((q: any) => q === a);
+          {queue.filter((a) => a.actor === 'player').map((a, i: number) => {
+            const card = a.card as unknown as Card;
+            const Icon = card.icon || (card.type === 'attack' ? Sword : Shield);
+            const globalIndex = queue.findIndex((q) => q === a);
             const isUsed = Array.isArray(usedCardIndices) && usedCardIndices.includes(globalIndex);
             const isDisappearing = Array.isArray(disappearingCards) && disappearingCards.includes(globalIndex);
             const isHidden = Array.isArray(hiddenCards) && hiddenCards.includes(globalIndex);
             const isDisabled = Array.isArray(disabledCardIndices) && disabledCardIndices.includes(globalIndex); // 비활성화된 카드 (몬스터 사망 시)
             // 카드 객체의 플래그를 사용 (같은 카드 타입이 주특기/보조특기에 각각 있을 때 구별)
-            const isMainSpecial = (a.card as any).__isMainSpecial;
-            const isSubSpecial = (a.card as any).__isSubSpecial;
+            const isMainSpecial = card.__isMainSpecial;
+            const isSubSpecial = card.__isSubSpecial;
             const costColor = isMainSpecial ? '#fcd34d' : isSubSpecial ? '#60a5fa' : '#fff';
             // 타겟 유닛 정보
-            const targetUnit = (a.card as any).__targetUnitId != null ? getTargetUnit((a.card as any).__targetUnitId) : null;
+            const targetUnit = card.__targetUnitId != null ? getTargetUnit(card.__targetUnitId) : null;
 
             // 사용된 카드(hidden)는 사라지지 않고 빛만 잃음
             const isDimmed = isHidden || isDisabled;
@@ -417,7 +439,7 @@ export const HandArea: FC<HandAreaProps> = ({
                 key={`resolve-${globalIndex}`}
                 onMouseEnter={(e: MouseEvent<HTMLDivElement>) => {
                   const cardEl = e.currentTarget.querySelector('.game-card-large');
-                  showCardTraitTooltip(a.card, cardEl);
+                  showCardTraitTooltip(card, cardEl);
                 }}
                 onMouseLeave={hideCardTraitTooltip}
                 style={{
@@ -458,20 +480,20 @@ export const HandArea: FC<HandAreaProps> = ({
                     <span>🎯</span>
                   </div>
                 )}
-                <div className={`game-card-large resolve-phase-card ${getCardTypeClass(a.card.type)} ${isUsed ? 'card-used' : ''}`}>
-                  <div className="card-cost-badge-floating" style={{ color: costColor, WebkitTextStroke: '1px #000' }}>{(a.card as any).actionCost}</div>
-                  <CardStatsSidebar card={a.card as any} strengthBonus={player?.strength || 0} showCounter={true} formatSpeedText={formatSpeedText as any} />
+                <div className={`game-card-large resolve-phase-card ${getCardTypeClass(card.type)} ${isUsed ? 'card-used' : ''}`}>
+                  <div className="card-cost-badge-floating" style={{ color: costColor, WebkitTextStroke: '1px #000' }}>{card.actionCost}</div>
+                  <CardStatsSidebar card={card} strengthBonus={player?.strength || 0} showCounter={true} formatSpeedText={formatSpeedText} />
                   <div className="card-header" style={{ display: 'flex', justifyContent: 'center' }}>
                     <div className="text-white font-black text-sm" style={{ display: 'flex', alignItems: 'center' }}>
-                      {renderNameWithBadge(a.card, '#fff')}
+                      {renderNameWithBadge(card, '#fff')}
                     </div>
                   </div>
                   <div className="card-icon-area">
                     <Icon size={60} className="text-white opacity-80" />
                   </div>
                   <div className={`card-footer ${isSimplified ? 'simplified-footer' : ''}`}>
-                    {a.card.traits && a.card.traits.length > 0 ? <TraitBadgeList traits={a.card.traits} /> : null}
-                    <span className="card-description">{a.card.description || ''}</span>
+                    {card.traits && card.traits.length > 0 ? <TraitBadgeList traits={card.traits} /> : null}
+                    <span className="card-description">{card.description || ''}</span>
                   </div>
                 </div>
               </div>
