@@ -117,7 +117,7 @@ import {
   calculatePassiveEffects,
   applyCombatStartEffects
 } from "../../lib/relicEffects";
-import type { BattlePayload, BattleResult, OrderItem, Card, ItemSlotsBattleActions, AIMode, AICard, AIEnemy } from "../../types";
+import type { BattlePayload, BattleResult, OrderItem, Card, ItemSlotsBattleActions, AIMode, AICard, AIEnemy, TokenEntity } from "../../types";
 import type { PlayerState, EnemyState, SortType, BattlePhase } from "./reducer/battleReducerActions";
 import type { BattleActions } from "./hooks/useBattleState";
 import { PlayerHpBar } from "./ui/PlayerHpBar";
@@ -1355,8 +1355,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
     // 타임라인 기반 토큰 만료 처리 (현재 SP 도달 시 이전 턴에서 부여된 토큰 제거)
     const currentSp = a.sp || 0;
-    const playerExpireResult = expireTurnTokensByTimeline(P as any, turnNumber, currentSp);
-    const enemyExpireResult = expireTurnTokensByTimeline(E as any, turnNumber, currentSp);
+    const playerExpireResult = expireTurnTokensByTimeline(P as TokenEntity, turnNumber, currentSp);
+    const enemyExpireResult = expireTurnTokensByTimeline(E as TokenEntity, turnNumber, currentSp);
 
     if (playerExpireResult.logs.length > 0) {
       P = { ...P, tokens: playerExpireResult.tokens };
@@ -1376,29 +1376,32 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
     // battleContext 생성 (special 효과용)
     // 진행 단계 최종 남은 행동력 계산 (가이러스 룰렛: 모든 선택 카드 비용 차감 후)
-    const allPlayerCards = currentBattle.queue.filter(q => (q as any).actor === 'player');
-    const totalEnergyUsed = allPlayerCards.reduce((sum, q) => sum + ((q as any).card?.actionCost || 0), 0);
-    const playerEnergyBudget = (P as any).energy || (P as any).maxEnergy || BASE_PLAYER_ENERGY;
+    type QueueItem = { actor: 'player' | 'enemy'; card: { actionCost?: number; cardCategory?: string } };
+    const typedQueue = currentBattle.queue as unknown as QueueItem[];
+    const allPlayerCards = typedQueue.filter(q => q.actor === 'player');
+    const totalEnergyUsed = allPlayerCards.reduce((sum, q) => sum + (q.card?.actionCost || 0), 0);
+    const playerEnergyBudget = (P as { energy?: number; maxEnergy?: number }).energy || (P as { maxEnergy?: number }).maxEnergy || BASE_PLAYER_ENERGY;
     const calculatedRemainingEnergy = Math.max(0, playerEnergyBudget - totalEnergyUsed);
 
     // 적 남은 에너지 계산
-    const allEnemyCards = currentBattle.queue.filter(q => (q as any).actor === 'enemy');
-    const enemyTotalEnergyUsed = allEnemyCards.reduce((sum, q) => sum + ((q as any).card?.actionCost || 0), 0);
-    const enemyEnergyBudget = (E as any).energy || (E as any).maxEnergy || BASE_PLAYER_ENERGY;
+    const allEnemyCards = typedQueue.filter(q => q.actor === 'enemy');
+    const enemyTotalEnergyUsed = allEnemyCards.reduce((sum, q) => sum + (q.card?.actionCost || 0), 0);
+    const enemyEnergyBudget = (E as { energy?: number; maxEnergy?: number }).energy || (E as { maxEnergy?: number }).maxEnergy || BASE_PLAYER_ENERGY;
     const calculatedEnemyRemainingEnergy = Math.max(0, enemyEnergyBudget - enemyTotalEnergyUsed);
 
     // 이번 턴에 사용된 카드 카테고리 추적 (comboStyle용)
-    const executedPlayerCards = currentBattle.queue
+    const executedPlayerCards = typedQueue
       .slice(0, currentBattle.qIndex)
-      .filter(q => (q as any).actor === 'player');
-    const usedCardCategories = [...new Set(executedPlayerCards.map(q => (q as any).card?.cardCategory).filter(Boolean))];
+      .filter(q => q.actor === 'player');
+    const usedCardCategories = [...new Set(executedPlayerCards.map(q => q.card?.cardCategory).filter(Boolean))];
 
     // 적 카드의 소스 유닛 이름 가져오기
-    const currentUnitsForContext = (E as any).units || enemy?.units || [];
+    type UnitInfo = { unitId: number; name?: string };
+    const currentUnitsForContext = ((E as { units?: UnitInfo[] }).units || enemy?.units || []) as UnitInfo[];
     const sourceUnit = a.actor === 'enemy' && a.card.__sourceUnitId !== undefined
-      ? currentUnitsForContext.find((u: any) => u.unitId === a.card.__sourceUnitId)
+      ? currentUnitsForContext.find(u => u.unitId === a.card.__sourceUnitId)
       : null;
-    const enemyDisplayName = sourceUnit?.name || (E as any).name || enemy?.name || '몬스터';
+    const enemyDisplayName = sourceUnit?.name || (E as { name?: string }).name || enemy?.name || '몬스터';
 
     // 현재 nextTurnEffects 가져오기 (fencingDamageBonus 등)
     const currentNextTurnEffects = battleRef.current?.nextTurnEffects || battle.nextTurnEffects || {};
@@ -1420,7 +1423,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     // === requiredTokens 소모 (카드 실행 전) ===
     if (a.actor === 'player' && a.card.requiredTokens && (a.card.requiredTokens as any).length > 0) {
       for (const req of a.card.requiredTokens as any) {
-        const tokenRemoveResult = removeToken(P as any, req.id, 'permanent', req.stacks);
+        const tokenRemoveResult = removeToken(P as TokenEntity, req.id, 'permanent', req.stacks);
         P = { ...P, tokens: tokenRemoveResult.tokens };
         addLog(`✨ ${req.id === 'finesse' ? '기교' : req.id} -${req.stacks} 소모`);
       }
@@ -1531,10 +1534,10 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
           const applyToEnemy = isPlayerAction ? targetIsEnemy : !targetIsEnemy;
 
           if (applyToEnemy) {
-            const tokenResult = addToken(E as any, tokenInfo.id, tokenInfo.stacks, tokenInfo.grantedAt);
+            const tokenResult = addToken(E as TokenEntity, tokenInfo.id, tokenInfo.stacks, tokenInfo.grantedAt);
             E = { ...E, tokens: tokenResult.tokens };
           } else {
-            const tokenResult = addToken(P as any, tokenInfo.id, tokenInfo.stacks, tokenInfo.grantedAt);
+            const tokenResult = addToken(P as TokenEntity, tokenInfo.id, tokenInfo.stacks, tokenInfo.grantedAt);
             P = { ...P, tokens: tokenResult.tokens };
           }
         });
@@ -1542,10 +1545,10 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       if (cardPlayResult.tokensToRemove?.length > 0) {
         cardPlayResult.tokensToRemove.forEach(tokenInfo => {
           if (a.actor === 'player') {
-            const tokenResult = removeToken(P as any, tokenInfo.id, 'permanent', tokenInfo.stacks);
+            const tokenResult = removeToken(P as TokenEntity, tokenInfo.id, 'permanent', tokenInfo.stacks);
             P = { ...P, tokens: tokenResult.tokens };
           } else {
-            const tokenResult = removeToken(E as any, tokenInfo.id, 'permanent', tokenInfo.stacks);
+            const tokenResult = removeToken(E as TokenEntity, tokenInfo.id, 'permanent', tokenInfo.stacks);
             E = { ...E, tokens: tokenResult.tokens };
           }
         });
@@ -1648,7 +1651,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     // 다단 공격의 경우 치명타 횟수만큼 부여, 단일 공격은 1회
     if (actionResult.isCritical && a.actor === 'player') {
       const critCount = actionResult.criticalHits || 1;  // multiHitResult.criticalHits or 1 for single
-      const finesseResult = addToken(P as any, 'finesse', critCount);
+      const finesseResult = addToken(P as TokenEntity, 'finesse', critCount);
       P.tokens = finesseResult.tokens;
       addLog(`✨ 치명타! 기교 +${critCount} 획득`);
       // battleRef 동기 업데이트
@@ -1663,9 +1666,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       const EXECUTION_THRESHOLD = 30;
       if (E.hp > 0 && E.hp <= EXECUTION_THRESHOLD) {
         // 부활 토큰 제거 후 처형
-        const reviveToken = getAllTokens(E as any).find((t: any) => t.effect?.type === 'REVIVE');
+        const reviveToken = getAllTokens(E as TokenEntity).find((t: any) => t.effect?.type === 'REVIVE');
         if (reviveToken) {
-          const reviveRemoveResult = removeToken(E as any, reviveToken.id, 'usage', reviveToken.stacks || 1);
+          const reviveRemoveResult = removeToken(E as TokenEntity, reviveToken.id, 'usage', reviveToken.stacks || 1);
           E = { ...E, tokens: reviveRemoveResult.tokens };
           addLog(`💀 처형: 부활 무시!`);
         }
@@ -1688,7 +1691,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
     // === 화상(BURN) 피해 처리: 카드 사용 시마다 피해 ===
     if (a.actor === 'player') {
-      const playerBurnTokens = getAllTokens(P as any).filter((t: any) => t.effect?.type === 'BURN');
+      const playerBurnTokens = getAllTokens(P as TokenEntity).filter((t: any) => t.effect?.type === 'BURN');
       if (playerBurnTokens.length > 0) {
         const burnDamage = playerBurnTokens.reduce((sum, t) => sum + (t.effect?.value || 3) * (t.stacks || 1), 0);
         P.hp = Math.max(0, P.hp - burnDamage);
@@ -1706,7 +1709,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         }
       }
     } else if (a.actor === 'enemy') {
-      const enemyBurnTokens = getAllTokens(E as any).filter((t: any) => t.effect?.type === 'BURN');
+      const enemyBurnTokens = getAllTokens(E as TokenEntity).filter((t: any) => t.effect?.type === 'BURN');
       if (enemyBurnTokens.length > 0) {
         const burnDamage = enemyBurnTokens.reduce((sum, t) => sum + (t.effect?.value || 3) * (t.stacks || 1), 0);
         E.hp = Math.max(0, E.hp - burnDamage);
@@ -2014,7 +2017,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
               }
 
               // 단일 적 또는 타겟 없음: 기존 방식
-              const result = addToken(E as any, tokenId, actualStacks, grantedAt);
+              const result = addToken(E as TokenEntity, tokenId, actualStacks, grantedAt);
               E.tokens = result.tokens;
               // battleRef 동기 업데이트
               if (battleRef.current) {
