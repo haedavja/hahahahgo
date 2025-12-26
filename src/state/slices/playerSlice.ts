@@ -1,45 +1,19 @@
 /**
  * @file playerSlice.ts
- * @description 플레이어 상태 슬라이스 (HP, 스탯, 자원)
+ * @description 플레이어 액션 슬라이스 (HP, 스탯, 자원 관리)
+ *
+ * 초기 상태는 gameStore.ts의 createInitialState()에서 제공됩니다.
+ * 이 슬라이스는 액션만 정의합니다.
  */
 
-import type { SliceCreator, PlayerSliceState, PlayerSliceActions } from './types';
+import type { StateCreator } from 'zustand';
+import type { GameStore, PlayerSliceActions } from './types';
 
-export type PlayerSlice = PlayerSliceState & PlayerSliceActions;
+export type PlayerActionsSlice = PlayerSliceActions;
 
-export const createPlayerSlice: SliceCreator<PlayerSlice> = (set, get) => ({
-  // 초기 상태
-  player: {
-    hp: 100,
-    maxHp: 100,
-    energy: 3,
-    maxEnergy: 3,
-    handSize: 5,
-    strength: 0,
-    agility: 0,
-    insight: 0,
-  },
-  playerHp: 100,
-  maxHp: 100,
-  playerStrength: 0,
-  playerAgility: 0,
-  playerInsight: 0,
-  playerTraits: [],
-  playerEgos: [],
-  playerMaxSpeedBonus: 0,
-  playerEnergyBonus: 0,
-  extraSubSpecialSlots: 0,
-  resources: {
-    gold: 50,
-    intel: 0,
-    loot: 0,
-    material: 0,
-    etherPts: 0,
-    memory: 0,
-  },
-  itemBuffs: {},
+type SliceCreator = StateCreator<GameStore, [], [], PlayerActionsSlice>;
 
-  // 액션
+export const createPlayerActions: SliceCreator = (set) => ({
   updatePlayerStrength: (strength) =>
     set((state) => ({
       ...state,
@@ -49,13 +23,13 @@ export const createPlayerSlice: SliceCreator<PlayerSlice> = (set, get) => ({
   updatePlayerAgility: (agility) =>
     set((state) => ({
       ...state,
-      playerAgility: agility, // 음수 허용 (음수면 속도 증가)
+      playerAgility: agility,
     })),
 
   updatePlayerInsight: (insight) =>
     set((state) => ({
       ...state,
-      playerInsight: insight, // 통찰 (이벤트 선택지, 적 타임라인 정보)
+      playerInsight: insight,
     })),
 
   addResources: (resourceDeltas = {}) =>
@@ -91,7 +65,6 @@ export const createPlayerSlice: SliceCreator<PlayerSlice> = (set, get) => ({
     set((state) => {
       const currentHp = state.playerHp || 0;
       const newHp = Math.max(0, currentHp - damage);
-
       return {
         ...state,
         playerHp: newHp,
@@ -104,3 +77,7 @@ export const createPlayerSlice: SliceCreator<PlayerSlice> = (set, get) => ({
       itemBuffs: {},
     })),
 });
+
+// 하위 호환성을 위한 별칭
+export const createPlayerSlice = createPlayerActions;
+export type PlayerSlice = PlayerActionsSlice;

@@ -1,36 +1,34 @@
 /**
  * @file dungeonSlice.ts
- * @description 던전 탐험 슬라이스
+ * @description 던전 탐험 액션 슬라이스
+ *
+ * 초기 상태는 gameStore.ts의 createInitialState()에서 제공됩니다.
  */
 
-import type { SliceCreator, DungeonSliceState, DungeonSliceActions } from './types';
+import type { StateCreator } from 'zustand';
+import type { GameStore, DungeonSliceActions } from './types';
 import { cloneNodes, payCost } from '../gameStoreHelpers';
 import { travelToNode } from '../battleHelpers';
 import { updateStats } from '../metaProgress';
 
-export type DungeonSlice = DungeonSliceState & DungeonSliceActions;
+export type DungeonActionsSlice = DungeonSliceActions;
 
-export const createDungeonSlice: SliceCreator<DungeonSlice> = (set, get) => ({
-  // 초기 상태
-  activeDungeon: null,
+type SliceCreator = StateCreator<GameStore, [], [], DungeonActionsSlice>;
 
-  // 액션
+export const createDungeonActions: SliceCreator = (set) => ({
   confirmDungeon: () =>
     set((state) => {
       if (!state.activeDungeon) return state;
-
-      // 던전 데이터가 없으면 생성 (한 번만)
       if (!state.activeDungeon.dungeonData) {
         return {
           ...state,
           activeDungeon: {
             ...state.activeDungeon,
             confirmed: true,
-            dungeonData: null, // DungeonExploration이 생성하도록 null로 설정
+            dungeonData: null,
           },
         };
       }
-
       return {
         ...state,
         activeDungeon: { ...state.activeDungeon, confirmed: true },
@@ -43,10 +41,7 @@ export const createDungeonSlice: SliceCreator<DungeonSlice> = (set, get) => ({
       if (!state.activeDungeon) return state;
       const result = travelToNode(state, state.activeDungeon.nodeId);
       if (!result) {
-        return {
-          ...state,
-          activeDungeon: null,
-        };
+        return { ...state, activeDungeon: null };
       }
       return {
         ...state,
@@ -54,7 +49,6 @@ export const createDungeonSlice: SliceCreator<DungeonSlice> = (set, get) => ({
         activeEvent: result.event,
         activeBattle: result.battle ?? null,
         activeDungeon: null,
-        // pendingNextEvent가 사용됐으면 초기화
         pendingNextEvent: result.usedPendingEvent ? null : state.pendingNextEvent,
       };
     }),
@@ -68,15 +62,10 @@ export const createDungeonSlice: SliceCreator<DungeonSlice> = (set, get) => ({
 
       if (!dungeonNode) return { ...state, activeDungeon: null };
 
-      // 던전 노드 클리어 (탈출)
       dungeonNode.cleared = true;
-
-      // 다른 노드들 선택 불가로 설정
       nodes.forEach((node) => {
         if (!node.cleared) node.selectable = false;
       });
-
-      // 연결된 다음 노드들 선택 가능하게
       dungeonNode.connections.forEach((id) => {
         const nextNode = nodes.find((n) => n.id === id);
         if (nextNode && !nextNode.cleared) nextNode.selectable = true;
@@ -98,15 +87,10 @@ export const createDungeonSlice: SliceCreator<DungeonSlice> = (set, get) => ({
 
       if (!dungeonNode) return { ...state, activeDungeon: null };
 
-      // 던전 노드 클리어 (지나침)
       dungeonNode.cleared = true;
-
-      // 다른 노드들 선택 불가로 설정
       nodes.forEach((node) => {
         if (!node.cleared) node.selectable = false;
       });
-
-      // 연결된 다음 노드들 선택 가능하게
       dungeonNode.connections.forEach((id) => {
         const nextNode = nodes.find((n) => n.id === id);
         if (nextNode && !nextNode.cleared) nextNode.selectable = true;
@@ -128,18 +112,11 @@ export const createDungeonSlice: SliceCreator<DungeonSlice> = (set, get) => ({
 
       if (!dungeonNode) return { ...state, activeDungeon: null };
 
-      // 메타 진행: 던전 클리어 통계 업데이트
       updateStats({ dungeonClears: 1 });
-
-      // 던전 노드 클리어
       dungeonNode.cleared = true;
-
-      // 다른 노드들 선택 불가로 설정
       nodes.forEach((node) => {
         if (!node.cleared) node.selectable = false;
       });
-
-      // 연결된 다음 노드들 선택 가능하게
       dungeonNode.connections.forEach((id) => {
         const nextNode = nodes.find((n) => n.id === id);
         if (nextNode && !nextNode.cleared) nextNode.selectable = true;
@@ -229,19 +206,14 @@ export const createDungeonSlice: SliceCreator<DungeonSlice> = (set, get) => ({
       if (!state.activeDungeon?.dungeonData) return state;
 
       const dungeon = state.activeDungeon.dungeonData;
-      const currentNode = dungeon.nodes.find((n: { id: string }) => n.id === dungeon.currentNodeId);
-      const targetNode = dungeon.nodes.find((n: { id: string }) => n.id === targetNodeId);
+      const currentNode = dungeon.nodes?.find((n: { id: string }) => n.id === dungeon.currentNodeId);
+      const targetNode = dungeon.nodes?.find((n: { id: string }) => n.id === targetNodeId);
 
       if (!currentNode || !targetNode) return state;
-
-      // 연결된 노드인지 확인
       if (!currentNode.connections.includes(targetNodeId)) return state;
 
-      // 시간 증가
       const newTimeElapsed = (dungeon.timeElapsed || 0) + 1;
-
-      // 노드 방문 처리
-      const updatedNodes = dungeon.nodes.map((n: { id: string }) =>
+      const updatedNodes = dungeon.nodes?.map((n: { id: string }) =>
         n.id === targetNodeId ? { ...n, visited: true } : n
       );
 
@@ -264,7 +236,7 @@ export const createDungeonSlice: SliceCreator<DungeonSlice> = (set, get) => ({
       if (!state.activeDungeon?.dungeonData) return state;
 
       const dungeon = state.activeDungeon.dungeonData;
-      const updatedNodes = dungeon.nodes.map((n: { id: string }) =>
+      const updatedNodes = dungeon.nodes?.map((n: { id: string }) =>
         n.id === nodeId ? { ...n, cleared: true, event: null } : n
       );
 
@@ -272,10 +244,7 @@ export const createDungeonSlice: SliceCreator<DungeonSlice> = (set, get) => ({
         ...state,
         activeDungeon: {
           ...state.activeDungeon,
-          dungeonData: {
-            ...dungeon,
-            nodes: updatedNodes,
-          },
+          dungeonData: { ...dungeon, nodes: updatedNodes },
         },
       };
     }),
@@ -283,7 +252,6 @@ export const createDungeonSlice: SliceCreator<DungeonSlice> = (set, get) => ({
   applyDungeonTimePenalty: (etherDecay) =>
     set((state) => {
       if (etherDecay <= 0) return state;
-
       const currentEther = state.resources?.etherPts || 0;
       return {
         ...state,
@@ -294,3 +262,7 @@ export const createDungeonSlice: SliceCreator<DungeonSlice> = (set, get) => ({
       };
     }),
 });
+
+// 하위 호환성
+export const createDungeonSlice = createDungeonActions;
+export type DungeonSlice = DungeonActionsSlice;

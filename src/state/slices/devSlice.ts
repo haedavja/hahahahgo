@@ -1,9 +1,12 @@
 /**
  * @file devSlice.ts
- * @description 개발자 도구 슬라이스
+ * @description 개발자 도구 액션 슬라이스
+ *
+ * 초기 상태는 gameStore.ts의 createInitialState()에서 제공됩니다.
  */
 
-import type { SliceCreator, DevSliceState, DevSliceActions } from './types';
+import type { StateCreator } from 'zustand';
+import type { GameStore, DevSliceActions } from './types';
 import { ENEMIES, ENEMY_GROUPS, CARDS } from '../../components/battle/battleData';
 import { drawHand, buildSpeedTimeline } from '../../lib/speedQueue';
 import { simulateBattle } from '../../lib/battleResolver';
@@ -11,35 +14,22 @@ import { NEW_EVENT_LIBRARY } from '../../data/newEvents';
 import { cloneNodes, grantRewards, computeFriendlyChance } from '../gameStoreHelpers';
 import { travelToNode, drawCharacterBuildHand } from '../battleHelpers';
 
-export type DevSlice = DevSliceState & DevSliceActions;
+export type DevActionsSlice = DevSliceActions;
 
-export const createDevSlice: SliceCreator<DevSlice> = (set, get) => ({
-  // 초기 상태
-  devDulledLevel: null,
-  devForcedCrossroad: null,
-  devBattleTokens: [],
+type SliceCreator = StateCreator<GameStore, [], [], DevActionsSlice>;
 
-  // 액션
+export const createDevActions: SliceCreator = (set) => ({
   setDevDulledLevel: (level) =>
     set((state) => ({
       ...state,
-      devDulledLevel:
-        level === null || level === undefined
-          ? null
-          : Math.max(0, Math.min(3, Number(level) || 0)),
+      devDulledLevel: level === null || level === undefined ? null : Math.max(0, Math.min(3, Number(level) || 0)),
     })),
 
   setDevForcedCrossroad: (templateId) =>
-    set((state) => ({
-      ...state,
-      devForcedCrossroad: templateId || null,
-    })),
+    set((state) => ({ ...state, devForcedCrossroad: templateId || null })),
 
   setResources: (newResources) =>
-    set((state) => ({
-      ...state,
-      resources: { ...state.resources, ...newResources },
-    })),
+    set((state) => ({ ...state, resources: { ...state.resources, ...newResources } })),
 
   devClearAllNodes: () =>
     set((state) => {
@@ -48,13 +38,7 @@ export const createDevSlice: SliceCreator<DevSlice> = (set, get) => ({
         cleared: true,
         selectable: true,
       }));
-      return {
-        ...state,
-        map: {
-          ...state.map,
-          nodes: updatedNodes,
-        },
-      };
+      return { ...state, map: { ...state.map, nodes: updatedNodes } };
     }),
 
   devTeleportToNode: (nodeId) =>
@@ -65,59 +49,23 @@ export const createDevSlice: SliceCreator<DevSlice> = (set, get) => ({
       const targetNode = nodes.find((n) => n.id === nodeId);
       if (!targetNode) return state;
 
-      // 던전 노드인 경우
       if (targetNode.type === 'dungeon') {
-        return {
-          ...state,
-          activeDungeon: { nodeId: targetNode.id, revealed: false, confirmed: false },
-        };
+        return { ...state, activeDungeon: { nodeId: targetNode.id, revealed: false, confirmed: false } };
       }
-
-      // 상점 노드인 경우
       if (targetNode.type === 'shop') {
-        return {
-          ...state,
-          map: {
-            ...state.map,
-            currentNodeId: nodeId,
-          },
-          activeShop: { nodeId: targetNode.id, merchantType: 'shop' },
-        };
+        return { ...state, map: { ...state.map, currentNodeId: nodeId }, activeShop: { nodeId: targetNode.id, merchantType: 'shop' } };
       }
-
-      // 휴식 노드인 경우
       if (targetNode.type === 'rest') {
-        return {
-          ...state,
-          map: {
-            ...state.map,
-            currentNodeId: nodeId,
-          },
-          activeRest: { nodeId: targetNode.id },
-        };
+        return { ...state, map: { ...state.map, currentNodeId: nodeId }, activeRest: { nodeId: targetNode.id } };
       }
 
-      // 임시로 노드를 selectable하고 cleared=false로 설정
       const tempState = {
         ...state,
-        map: {
-          ...state.map,
-          nodes: state.map.nodes.map((n) =>
-            n.id === nodeId ? { ...n, selectable: true, cleared: false } : n
-          ),
-        },
+        map: { ...state.map, nodes: state.map.nodes.map((n) => (n.id === nodeId ? { ...n, selectable: true, cleared: false } : n)) },
       };
 
       const result = travelToNode(tempState, nodeId);
-      if (!result) {
-        return {
-          ...state,
-          map: {
-            ...state.map,
-            currentNodeId: nodeId,
-          },
-        };
-      }
+      if (!result) return { ...state, map: { ...state.map, currentNodeId: nodeId } };
 
       return {
         ...state,
@@ -138,9 +86,9 @@ export const createDevSlice: SliceCreator<DevSlice> = (set, get) => ({
         resources: rewards.next,
         activeBattle: null,
         lastBattleResult: {
-          nodeId: state.activeBattle.nodeId as string,
-          kind: state.activeBattle.kind as string,
-          label: state.activeBattle.label as string,
+          nodeId: state.activeBattle.nodeId || '',
+          kind: state.activeBattle.kind || '',
+          label: state.activeBattle.label || '',
           result: 'victory',
           log: ['[DEV] 강제 승리'],
           finalState: null,
@@ -157,9 +105,9 @@ export const createDevSlice: SliceCreator<DevSlice> = (set, get) => ({
         ...state,
         activeBattle: null,
         lastBattleResult: {
-          nodeId: state.activeBattle.nodeId as string,
-          kind: state.activeBattle.kind as string,
-          label: state.activeBattle.label as string,
+          nodeId: state.activeBattle.nodeId || '',
+          kind: state.activeBattle.kind || '',
+          label: state.activeBattle.label || '',
           result: 'defeat',
           log: ['[DEV] 강제 패배'],
           finalState: null,
@@ -172,17 +120,11 @@ export const createDevSlice: SliceCreator<DevSlice> = (set, get) => ({
   devAddBattleToken: (tokenId, stacks = 1, target = 'player') =>
     set((state) => ({
       ...state,
-      devBattleTokens: [
-        ...state.devBattleTokens,
-        { id: tokenId, stacks, target, timestamp: Date.now() },
-      ],
+      devBattleTokens: [...state.devBattleTokens, { id: tokenId, stacks, target, timestamp: Date.now() }],
     })),
 
   devClearBattleTokens: () =>
-    set((state) => ({
-      ...state,
-      devBattleTokens: [],
-    })),
+    set((state) => ({ ...state, devBattleTokens: [] })),
 
   devStartBattle: (groupId) =>
     set((state) => {
@@ -208,11 +150,7 @@ export const createDevSlice: SliceCreator<DevSlice> = (set, get) => ({
       });
 
       const characterBuild = state.characterBuild;
-      const hasCharacterBuild =
-        characterBuild &&
-        (characterBuild.mainSpecials?.length > 0 ||
-          characterBuild.subSpecials?.length > 0 ||
-          characterBuild.ownedCards?.length > 0);
+      const hasCharacterBuild = characterBuild && (characterBuild.mainSpecials?.length > 0 || characterBuild.subSpecials?.length > 0 || characterBuild.ownedCards?.length > 0);
 
       const playerLibrary = hasCharacterBuild
         ? [...(characterBuild.mainSpecials || []), ...(characterBuild.subSpecials || [])]
@@ -222,11 +160,7 @@ export const createDevSlice: SliceCreator<DevSlice> = (set, get) => ({
       const enemyDrawPile = [...combinedDeck];
 
       const playerHand = hasCharacterBuild
-        ? drawCharacterBuildHand(
-            characterBuild.mainSpecials,
-            characterBuild.subSpecials,
-            characterBuild.ownedCards
-          )
+        ? drawCharacterBuildHand(characterBuild.mainSpecials, characterBuild.subSpecials, characterBuild.ownedCards)
         : drawHand(playerDrawPile, 3);
 
       const enemyHand = drawHand(enemyDrawPile, Math.min(3, enemyDrawPile.length));
@@ -264,14 +198,7 @@ export const createDevSlice: SliceCreator<DevSlice> = (set, get) => ({
           label: group.name,
           rewards: { gold: { min: 10, max: 20 }, loot: 1 },
           difficulty: group.tier,
-          tier: group.tier,
-          preview: {
-            playerHand,
-            enemyHand,
-            timeline,
-            tuLimit: 30,
-          },
-          enemyStats: { hp: totalEnemyHp, maxHp: totalEnemyHp },
+          preview: { playerHand, enemyHand, timeline, tuLimit: 30 },
           enemyInfo: {
             id: primaryEnemyId,
             name: group.name,
@@ -279,18 +206,12 @@ export const createDevSlice: SliceCreator<DevSlice> = (set, get) => ({
             tier: group.tier,
             isBoss: primaryEnemy?.isBoss || false,
           },
-          enemyUnits,
-          groupId: group.id,
-          devMode: true,
         },
       };
     }),
 
   devOpenRest: () =>
-    set((state) => ({
-      ...state,
-      activeRest: { nodeId: 'DEV-REST' },
-    })),
+    set((state) => ({ ...state, activeRest: { nodeId: 'DEV-REST' } })),
 
   devTriggerEvent: (eventId) =>
     set((state) => {
@@ -312,3 +233,7 @@ export const createDevSlice: SliceCreator<DevSlice> = (set, get) => ({
       };
     }),
 });
+
+// 하위 호환성
+export const createDevSlice = createDevActions;
+export type DevSlice = DevActionsSlice;

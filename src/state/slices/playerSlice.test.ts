@@ -1,15 +1,41 @@
 /**
  * @file playerSlice.test.ts
  * @description 플레이어 슬라이스 테스트
+ *
+ * 슬라이스는 액션만 제공하므로, 테스트 시 초기 상태를 직접 제공합니다.
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import { create } from 'zustand';
-import { createPlayerSlice, type PlayerSlice } from './playerSlice';
+import { createPlayerActions, type PlayerActionsSlice } from './playerSlice';
+import type { PlayerSliceState } from './types';
 
-// 테스트용 스토어 생성
+// 테스트용 초기 상태
+const createInitialState = (): PlayerSliceState => ({
+  player: { hp: 100, maxHp: 100, energy: 3, maxEnergy: 3, handSize: 5 },
+  playerHp: 100,
+  maxHp: 100,
+  playerStrength: 0,
+  playerAgility: 0,
+  playerInsight: 0,
+  playerTraits: [],
+  playerEgos: [],
+  playerMaxSpeedBonus: 0,
+  playerEnergyBonus: 0,
+  extraSubSpecialSlots: 0,
+  resources: { gold: 50, intel: 0, etherPts: 0, loot: 0, material: 0, memory: 0 },
+  itemBuffs: {},
+});
+
+// 테스트용 스토어 타입
+type TestStore = PlayerSliceState & PlayerActionsSlice;
+
+// 테스트용 스토어 생성 (초기 상태 + 액션)
 const createTestStore = () =>
-  create<PlayerSlice>((set, get, api) => createPlayerSlice(set, get, api));
+  create<TestStore>((set, get, api) => ({
+    ...createInitialState(),
+    ...createPlayerActions(set as never, get as never, api as never),
+  }));
 
 describe('playerSlice', () => {
   let store: ReturnType<typeof createTestStore>;

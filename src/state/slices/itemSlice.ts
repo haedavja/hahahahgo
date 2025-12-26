@@ -1,18 +1,19 @@
 /**
  * @file itemSlice.ts
- * @description 아이템 관리 슬라이스
+ * @description 아이템 관리 액션 슬라이스
+ *
+ * 초기 상태는 gameStore.ts의 createInitialState()에서 제공됩니다.
  */
 
-import type { SliceCreator, ItemSliceState, ItemSliceActions } from './types';
+import type { StateCreator } from 'zustand';
+import type { GameStore, ItemSliceActions } from './types';
 import { getItem } from '../../data/items';
 
-export type ItemSlice = ItemSliceState & ItemSliceActions;
+export type ItemActionsSlice = ItemSliceActions;
 
-export const createItemSlice: SliceCreator<ItemSlice> = (set, get) => ({
-  // 초기 상태
-  items: [null, null, null, null], // 4 슬롯
+type SliceCreator = StateCreator<GameStore, [], [], ItemActionsSlice>;
 
-  // 액션
+export const createItemActions: SliceCreator = (set) => ({
   addItem: (itemId) =>
     set((state) => {
       const item = getItem(itemId);
@@ -47,18 +48,15 @@ export const createItemSlice: SliceCreator<ItemSlice> = (set, get) => ({
         return state;
       }
 
-      // 전투 중이면 combat 아이템만, 아니면 any 아이템만 사용 가능
       const inBattle = !!state.activeBattle;
       if (item.usableIn === 'combat' && !inBattle) {
         console.warn('[useItem] Combat item can only be used in battle');
         return state;
       }
 
-      // 아이템 슬롯에서 제거
       const items = [...state.items];
       items[slotIndex] = null;
 
-      // 효과 적용
       const effect = item.effect;
       const updates: Record<string, unknown> = { items };
 
@@ -93,7 +91,6 @@ export const createItemSlice: SliceCreator<ItemSlice> = (set, get) => ({
         case 'maxEnergy':
         case 'cardDestroy':
         case 'cardFreeze': {
-          // 전투용 아이템
           if (state.activeBattle) {
             const battle = { ...state.activeBattle };
             battle.pendingItemEffects = [...(battle.pendingItemEffects || []), effect];
@@ -114,3 +111,7 @@ export const createItemSlice: SliceCreator<ItemSlice> = (set, get) => ({
       return { ...state, items };
     }),
 });
+
+// 하위 호환성
+export const createItemSlice = createItemActions;
+export type ItemSlice = ItemActionsSlice;

@@ -1,26 +1,25 @@
 /**
  * @file relicSlice.ts
- * @description 상징 관리 슬라이스
+ * @description 상징 관리 액션 슬라이스
+ *
+ * 초기 상태는 gameStore.ts의 createInitialState()에서 제공됩니다.
  */
 
-import type { SliceCreator, RelicSliceState, RelicSliceActions } from './types';
+import type { StateCreator } from 'zustand';
+import type { GameStore, RelicSliceActions } from './types';
 import { calculatePassiveEffects } from '../../lib/relicEffects';
 
-export type RelicSlice = RelicSliceState & RelicSliceActions;
+export type RelicActionsSlice = RelicSliceActions;
 
-export const createRelicSlice: SliceCreator<RelicSlice> = (set, get) => ({
-  // 초기 상태
-  relics: [],
-  orderedRelics: [],
+type SliceCreator = StateCreator<GameStore, [], [], RelicActionsSlice>;
 
-  // 액션
+export const createRelicActions: SliceCreator = (set) => ({
   addRelic: (relicId) =>
     set((state) => {
       if (state.relics.includes(relicId)) return state;
       const newRelics = [...state.relics, relicId];
       const newPassiveEffects = calculatePassiveEffects(newRelics);
 
-      // maxHp 증가량 계산
       const oldMaxHpBonus = state.maxHp - 100;
       const maxHpIncrease = newPassiveEffects.maxHp - oldMaxHpBonus;
       const newMaxHp = 100 + newPassiveEffects.maxHp;
@@ -63,3 +62,7 @@ export const createRelicSlice: SliceCreator<RelicSlice> = (set, get) => ({
       };
     }),
 });
+
+// 하위 호환성
+export const createRelicSlice = createRelicActions;
+export type RelicSlice = RelicActionsSlice;

@@ -1,10 +1,13 @@
 /**
  * @file battleSlice.ts
- * @description 전투 시스템 슬라이스
+ * @description 전투 시스템 액션 슬라이스
+ *
+ * 초기 상태는 gameStore.ts의 createInitialState()에서 제공됩니다.
  */
 
-import type { SliceCreator, BattleSliceState, BattleSliceActions } from './types';
-import { CARDS, ENEMIES, getRandomEnemy } from '../../components/battle/battleData';
+import type { StateCreator } from 'zustand';
+import type { GameStore, BattleSliceActions } from './types';
+import { ENEMIES, getRandomEnemy } from '../../components/battle/battleData';
 import { drawHand, buildSpeedTimeline } from '../../lib/speedQueue';
 import { simulateBattle, pickOutcome } from '../../lib/battleResolver';
 import { applyCombatEndEffects } from '../../lib/relicEffects';
@@ -20,15 +23,12 @@ import {
   MAX_PLAYER_SELECTION,
 } from '../gameStoreHelpers';
 
-export type BattleSlice = BattleSliceState & BattleSliceActions;
+export type BattleActionsSlice = BattleSliceActions;
 
-export const createBattleSlice: SliceCreator<BattleSlice> = (set, get) => ({
-  // 초기 상태
-  activeBattle: null,
-  lastBattleResult: null,
+type SliceCreator = StateCreator<GameStore, [], [], BattleActionsSlice>;
 
-  // 액션
-  startBattle: (battleConfig: Record<string, unknown> = {}) =>
+export const createBattleActions: SliceCreator = (set) => ({
+  startBattle: (battleConfig = {}) =>
     set((state) => {
       const characterBuild = state.characterBuild;
       const hasCharacterBuild = characterBuild && (
@@ -41,7 +41,6 @@ export const createBattleSlice: SliceCreator<BattleSlice> = (set, get) => ({
         ? [...characterBuild.mainSpecials, ...characterBuild.subSpecials]
         : [...BATTLE_CARDS];
 
-      // 적 선택
       let enemy = null;
       let enemyDeck: unknown[] = [];
 
@@ -66,7 +65,6 @@ export const createBattleSlice: SliceCreator<BattleSlice> = (set, get) => ({
         : drawHand(playerDrawPile, 3);
 
       const enemyHand = drawHand(enemyDrawPile, Math.min(3, enemyDrawPile.length));
-
       const enemyHp = (battleConfig.enemyHp as number) || enemy?.hp || 30;
 
       const battleStats = {
@@ -76,21 +74,10 @@ export const createBattleSlice: SliceCreator<BattleSlice> = (set, get) => ({
 
       const timeline = buildSpeedTimeline(playerHand, enemyHand, 30);
       const simulation = simulateBattle(timeline, battleStats);
-      const preview = {
-        playerHand,
-        enemyHand,
-        timeline,
-        tuLimit: 30,
-      };
+      const preview = { playerHand, enemyHand, timeline, tuLimit: 30 };
 
       const enemyInfo = enemy
-        ? {
-            id: enemy.id,
-            name: enemy.name,
-            emoji: enemy.emoji,
-            tier: enemy.tier,
-            isBoss: enemy.isBoss || false,
-          }
+        ? { id: enemy.id, name: enemy.name, emoji: enemy.emoji, tier: enemy.tier, isBoss: enemy.isBoss || false }
         : null;
 
       return {
@@ -99,10 +86,7 @@ export const createBattleSlice: SliceCreator<BattleSlice> = (set, get) => ({
           nodeId: (battleConfig.nodeId as string) || 'dungeon-combat',
           kind: (battleConfig.kind as string) || 'combat',
           label: (battleConfig.label as string) || enemy?.name || '던전 몬스터',
-          rewards: (battleConfig.rewards as Record<string, unknown>) || {
-            gold: { min: 5 + (enemy?.tier || 1) * 3, max: 10 + (enemy?.tier || 1) * 5 },
-            loot: 1,
-          },
+          rewards: battleConfig.rewards || { gold: { min: 5 + (enemy?.tier || 1) * 3, max: 10 + (enemy?.tier || 1) * 5 }, loot: 1 },
           difficulty: enemy?.tier || 2,
           enemyInfo,
           playerLibrary,
@@ -123,48 +107,35 @@ export const createBattleSlice: SliceCreator<BattleSlice> = (set, get) => ({
       };
     }),
 
-  resolveBattle: (outcome: Record<string, unknown> = {}) =>
+  resolveBattle: (outcome = {}) =>
     set((state) => {
       if (!state.activeBattle) return state;
       const rewardsDef = state.activeBattle.rewards ?? {};
       const autoResult = pickOutcome(state.activeBattle.simulation, 'victory');
-      const resultLabel = (outcome.result as string) ?? autoResult;
-      const rewards =
-        resultLabel === 'victory'
-          ? grantRewards(rewardsDef, state.resources)
-          : { next: state.resources, applied: {} };
+      const resultLabel = outcome.result ?? autoResult;
+      const rewards = resultLabel === 'victory'
+        ? grantRewards(rewardsDef, state.resources)
+        : { next: state.resources, applied: {} };
 
-      // 메타 진행 통계 업데이트 (승리 시)
       if (resultLabel === 'victory') {
-        const enemyInfo = state.activeBattle.enemyInfo as Record<string, unknown> | null;
+        const enemyInfo = state.activeBattle.enemyInfo;
         const statsUpdate: Record<string, number> = {
           totalKills: 1,
-          totalDamageDealt: (outcome.damageDealt as number) || 0,
+          totalDamageDealt: outcome.damageDealt || 0,
         };
-
         if (enemyInfo?.isBoss || state.activeBattle.kind === 'boss') {
           statsUpdate.bossKills = 1;
         }
-
         updateStats(statsUpdate);
       }
 
-      let finalPlayerHp =
-        (outcome.playerHp as number) ??
-        (state.activeBattle.simulation as Record<string, unknown>)?.finalState?.player?.hp ??
-        state.playerHp;
-      let newMaxHp = (outcome.playerMaxHp as number) ?? state.maxHp;
+      let finalPlayerHp = outcome.playerHp ?? state.activeBattle.simulation?.finalPHp ?? state.playerHp;
+      let newMaxHp = outcome.playerMaxHp ?? state.maxHp;
 
-      // Apply combat end effects from relics
       try {
-        const combatEndEffects = applyCombatEndEffects(state.relics || [], {
-          playerHp: finalPlayerHp,
-          maxHp: state.maxHp,
-        });
-
+        const combatEndEffects = applyCombatEndEffects(state.relics || [], { playerHp: finalPlayerHp, maxHp: state.maxHp });
         const healed = combatEndEffects.heal || 0;
         const maxHpGain = combatEndEffects.maxHp || 0;
-
         newMaxHp = state.maxHp + maxHpGain;
         finalPlayerHp = Math.min(newMaxHp, finalPlayerHp + healed + maxHpGain);
       } catch (error) {
@@ -178,13 +149,13 @@ export const createBattleSlice: SliceCreator<BattleSlice> = (set, get) => ({
         maxHp: newMaxHp,
         activeBattle: null,
         lastBattleResult: {
-          nodeId: state.activeBattle.nodeId as string,
-          kind: state.activeBattle.kind as string,
-          label: state.activeBattle.label as string,
+          nodeId: state.activeBattle.nodeId || '',
+          kind: state.activeBattle.kind || '',
+          label: state.activeBattle.label || '',
           result: resultLabel as 'victory' | 'defeat',
-          log: (state.activeBattle.simulation as Record<string, unknown>)?.log ?? [],
-          finalState: (state.activeBattle.simulation as Record<string, unknown>)?.finalState ?? null,
-          initialState: (state.activeBattle.simulation as Record<string, unknown>)?.initialState ?? null,
+          log: state.activeBattle.simulation?.lines ?? [],
+          finalState: { player: { hp: finalPlayerHp } },
+          initialState: null,
           rewards: rewards.applied,
           enemyInfo: state.activeBattle.enemyInfo,
         },
@@ -198,32 +169,20 @@ export const createBattleSlice: SliceCreator<BattleSlice> = (set, get) => ({
     set((state) => {
       const battle = state.activeBattle;
       if (!battle || !battle.playerHand) return state;
-      const inHand = battle.playerHand.some(
-        (card: { instanceId?: string; id?: string }) =>
-          card.instanceId === cardId || card.id === cardId
-      );
+      const inHand = battle.playerHand.some((card) => card.instanceId === cardId || card.id === cardId);
       if (!inHand) return state;
-      const idKey =
-        battle.playerHand.find(
-          (card: { instanceId?: string; id?: string }) => card.instanceId === cardId
-        )?.instanceId ?? cardId;
+      const idKey = battle.playerHand.find((card) => card.instanceId === cardId)?.instanceId ?? cardId;
       const selectedCardIds = battle.selectedCardIds || [];
       const isSelected = selectedCardIds.includes(idKey);
       let nextSelected = selectedCardIds;
       if (isSelected) {
-        nextSelected = selectedCardIds.filter((id: string) => id !== idKey);
+        nextSelected = selectedCardIds.filter((id) => id !== idKey);
       } else if (selectedCardIds.length < (battle.maxSelection ?? MAX_PLAYER_SELECTION)) {
         nextSelected = [...selectedCardIds, idKey];
       } else {
         return state;
       }
-      return {
-        ...state,
-        activeBattle: {
-          ...battle,
-          selectedCardIds: nextSelected,
-        },
-      };
+      return { ...state, activeBattle: { ...battle, selectedCardIds: nextSelected } };
     }),
 
   commitBattlePlan: () =>
@@ -231,43 +190,21 @@ export const createBattleSlice: SliceCreator<BattleSlice> = (set, get) => ({
       const battle = state.activeBattle;
       if (!battle) return state;
 
-      const drawFromPile = (pile: unknown[]) => {
-        if (!pile.length) return [];
-        return drawHand(pile, Math.min(3, pile.length));
-      };
-
-      const recyclePile = (pile: unknown[], discard: unknown[]) => {
-        if (pile.length > 0 || discard.length === 0) return pile;
-        return [...discard];
-      };
+      const drawFromPile = (pile: unknown[]) => (!pile.length ? [] : drawHand(pile, Math.min(3, pile.length)));
+      const recyclePile = (pile: unknown[], discard: unknown[]) => (pile.length > 0 || discard.length === 0 ? pile : [...discard]);
 
       const playerHand = battle.playerHand || [];
       const selectedCardIds = battle.selectedCardIds || [];
-
-      const selectedCards =
-        selectedCardIds.length > 0
-          ? playerHand.filter((card: { instanceId?: string; id?: string }) =>
-              selectedCardIds.includes(card.instanceId ?? card.id)
-            )
-          : playerHand;
+      const selectedCards = selectedCardIds.length > 0
+        ? playerHand.filter((card) => selectedCardIds.includes(card.instanceId ?? card.id))
+        : playerHand;
 
       const enemyHand = battle.enemyHand || [];
       const enemyDrawPile = battle.enemyDrawPile || [];
       const enemyDiscardPile = battle.enemyDiscardPile || [];
+      const enemyCards = enemyHand.length > 0 ? enemyHand : drawFromPile(enemyDrawPile.length ? enemyDrawPile : recyclePile(enemyDrawPile, enemyDiscardPile));
 
-      const enemyCards =
-        enemyHand.length > 0
-          ? enemyHand
-          : drawFromPile(
-              enemyDrawPile.length ? enemyDrawPile : recyclePile(enemyDrawPile, enemyDiscardPile)
-            );
-
-      const remainingPlayerHand = playerHand.filter(
-        (card: { instanceId?: string }) =>
-          !selectedCards.some(
-            (chosen: { instanceId?: string }) => chosen.instanceId === card.instanceId
-          )
-      );
+      const remainingPlayerHand = playerHand.filter((card) => !selectedCards.some((chosen) => chosen.instanceId === card.instanceId));
 
       const playerDiscardPile = battle.playerDiscardPile || [];
       const playerDiscard = [...playerDiscardPile, ...selectedCards];
@@ -277,46 +214,20 @@ export const createBattleSlice: SliceCreator<BattleSlice> = (set, get) => ({
       let nextPlayerDraw: unknown[];
 
       if (battle.hasCharacterBuild && battle.characterBuild) {
-        newPlayerHand = drawCharacterBuildHand(
-          battle.characterBuild.mainSpecials,
-          battle.characterBuild.subSpecials,
-          battle.characterBuild.ownedCards
-        );
+        newPlayerHand = drawCharacterBuildHand(battle.characterBuild.mainSpecials, battle.characterBuild.subSpecials, battle.characterBuild.ownedCards);
         nextPlayerDraw = [];
       } else {
         const playerDrawPile = battle.playerDrawPile || [];
-        nextPlayerDraw = playerDrawPile.filter(
-          (card: { instanceId?: string }) =>
-            !selectedCards.some(
-              (chosen: { instanceId?: string }) => chosen.instanceId === card.instanceId
-            )
-        );
-        if (nextPlayerDraw.length < 3) {
-          nextPlayerDraw = recyclePile(nextPlayerDraw, playerDiscard);
-        }
-        newPlayerHand = remainingPlayerHand.length
-          ? remainingPlayerHand
-          : drawFromPile(nextPlayerDraw);
+        nextPlayerDraw = playerDrawPile.filter((card) => !selectedCards.some((chosen) => chosen.instanceId === card.instanceId));
+        if (nextPlayerDraw.length < 3) nextPlayerDraw = recyclePile(nextPlayerDraw, playerDiscard);
+        newPlayerHand = remainingPlayerHand.length ? remainingPlayerHand : drawFromPile(nextPlayerDraw);
       }
 
-      let nextEnemyDraw = enemyDrawPile.filter(
-        (card: { instanceId?: string }) =>
-          !enemyCards.some(
-            (chosen: { instanceId?: string }) => chosen.instanceId === card.instanceId
-          )
-      );
-      if (nextEnemyDraw.length < 3) {
-        nextEnemyDraw = recyclePile(nextEnemyDraw, enemyDiscard);
-      }
+      let nextEnemyDraw = enemyDrawPile.filter((card) => !enemyCards.some((chosen) => chosen.instanceId === card.instanceId));
+      if (nextEnemyDraw.length < 3) nextEnemyDraw = recyclePile(nextEnemyDraw, enemyDiscard);
       const newEnemyHand = drawFromPile(nextEnemyDraw);
 
-      const { preview, simulation } = computeBattlePlan(
-        battle.kind as string,
-        selectedCards,
-        enemyCards,
-        state.playerHp,
-        state.maxHp
-      );
+      const { preview, simulation } = computeBattlePlan(battle.kind || '', selectedCards, enemyCards, state.playerHp, state.maxHp);
 
       return {
         ...state,
@@ -338,8 +249,10 @@ export const createBattleSlice: SliceCreator<BattleSlice> = (set, get) => ({
   clearPendingItemEffects: () =>
     set((state) => {
       if (!state.activeBattle) return state;
-      const battle = { ...state.activeBattle };
-      battle.pendingItemEffects = [];
-      return { ...state, activeBattle: battle };
+      return { ...state, activeBattle: { ...state.activeBattle, pendingItemEffects: [] } };
     }),
 });
+
+// 하위 호환성
+export const createBattleSlice = createBattleActions;
+export type BattleSlice = BattleActionsSlice;

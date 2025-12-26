@@ -1,23 +1,21 @@
 /**
  * @file restSlice.ts
- * @description 휴식/각성 시스템 슬라이스
+ * @description 휴식/각성 액션 슬라이스
+ *
+ * 초기 상태는 gameStore.ts의 createInitialState()에서 제공됩니다.
  */
 
-import type { SliceCreator, RestSliceState, RestSliceActions } from './types';
+import type { StateCreator } from 'zustand';
+import type { GameStore, RestSliceActions } from './types';
 import { AWAKEN_COST } from '../gameStoreHelpers';
 
-export type RestSlice = RestSliceState & RestSliceActions;
+export type RestActionsSlice = RestSliceActions;
 
-export const createRestSlice: SliceCreator<RestSlice> = (set, get) => ({
-  // 초기 상태
-  activeRest: null,
+type SliceCreator = StateCreator<GameStore, [], [], RestActionsSlice>;
 
-  // 액션
+export const createRestActions: SliceCreator = (set) => ({
   closeRest: () =>
-    set((state) => ({
-      ...state,
-      activeRest: null,
-    })),
+    set((state) => ({ ...state, activeRest: null })),
 
   healAtRest: (healAmount = 0) =>
     set((state) => {
@@ -25,10 +23,7 @@ export const createRestSlice: SliceCreator<RestSlice> = (set, get) => ({
       const current = state.playerHp ?? 0;
       const heal = Math.max(0, Math.min(maxHp - current, healAmount));
       if (heal <= 0) return state;
-      return {
-        ...state,
-        playerHp: current + heal,
-      };
+      return { ...state, playerHp: current + heal };
     }),
 
   awakenAtRest: (choiceId) =>
@@ -46,14 +41,8 @@ export const createRestSlice: SliceCreator<RestSlice> = (set, get) => ({
           return { maxHp: newMax, playerHp: newHp, trait: '굳건함' };
         },
         cold: (s) => ({ playerInsight: (s.playerInsight || 0) + 1, trait: '냉철함' }),
-        thorough: (s) => ({
-          extraSubSpecialSlots: (s.extraSubSpecialSlots || 0) + 1,
-          trait: '철저함',
-        }),
-        passionate: (s) => ({
-          playerMaxSpeedBonus: (s.playerMaxSpeedBonus || 0) + 5,
-          trait: '열정적',
-        }),
+        thorough: (s) => ({ extraSubSpecialSlots: (s.extraSubSpecialSlots || 0) + 1, trait: '철저함' }),
+        passionate: (s) => ({ playerMaxSpeedBonus: (s.playerMaxSpeedBonus || 0) + 5, trait: '열정적' }),
         lively: (s) => ({ playerEnergyBonus: (s.playerEnergyBonus || 0) + 1, trait: '활력적' }),
         random: (s) => {
           const keys = ['brave', 'sturdy', 'cold', 'thorough', 'passionate', 'lively'];
@@ -80,7 +69,6 @@ export const createRestSlice: SliceCreator<RestSlice> = (set, get) => ({
     set((state) => {
       if (!selectedTraits || selectedTraits.length !== 5) return state;
 
-      // 선택된 개성이 실제로 보유중인지 확인
       const availableTraits = [...(state.playerTraits || [])];
       const traitsToRemove = [...selectedTraits];
       for (const trait of traitsToRemove) {
@@ -89,7 +77,6 @@ export const createRestSlice: SliceCreator<RestSlice> = (set, get) => ({
         availableTraits.splice(idx, 1);
       }
 
-      // 개성별 효과 정의
       const traitEffects: Record<string, Record<string, number>> = {
         용맹함: { playerStrength: 1 },
         굳건함: { maxHp: 10, playerHp: 10 },
@@ -99,7 +86,6 @@ export const createRestSlice: SliceCreator<RestSlice> = (set, get) => ({
         활력적: { playerEnergyBonus: 1 },
       };
 
-      // 자아 규칙
       const egoRules = [
         { ego: '헌신', parts: ['열정적', '용맹함'] },
         { ego: '지략', parts: ['냉철함', '용맹함'] },
@@ -115,16 +101,11 @@ export const createRestSlice: SliceCreator<RestSlice> = (set, get) => ({
         { ego: '지배', parts: ['활력적', '철저함'] },
       ];
 
-      // 선택된 개성 카운트
-      const traitCounts = selectedTraits.reduce(
-        (acc, t) => {
-          acc[t] = (acc[t] || 0) + 1;
-          return acc;
-        },
-        {} as Record<string, number>
-      );
+      const traitCounts = selectedTraits.reduce((acc, t) => {
+        acc[t] = (acc[t] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
 
-      // 자아 이름 결정
       let bestEgo: string | null = null;
       let bestScore = 0;
       for (const { ego, parts } of egoRules) {
@@ -136,7 +117,6 @@ export const createRestSlice: SliceCreator<RestSlice> = (set, get) => ({
       }
       if (!bestEgo) bestEgo = '각성';
 
-      // 소모된 개성들의 효과 합산
       const combinedEffects: Record<string, number> = {};
       for (const trait of selectedTraits) {
         const effects = traitEffects[trait];
@@ -147,19 +127,13 @@ export const createRestSlice: SliceCreator<RestSlice> = (set, get) => ({
         }
       }
 
-      // 새 자아 객체 생성
-      const newEgo = {
-        name: bestEgo,
-        consumedTraits: selectedTraits,
-        effects: combinedEffects,
-      };
-
+      const newEgo = { name: bestEgo, consumedTraits: selectedTraits, effects: combinedEffects };
       const newEgos = [...(state.playerEgos || []), newEgo];
 
-      return {
-        ...state,
-        playerTraits: availableTraits,
-        playerEgos: newEgos,
-      };
+      return { ...state, playerTraits: availableTraits, playerEgos: newEgos };
     }),
 });
+
+// 하위 호환성
+export const createRestSlice = createRestActions;
+export type RestSlice = RestActionsSlice;

@@ -1,14 +1,17 @@
 /**
  * @file mapSlice.test.ts
  * @description 맵 슬라이스 테스트
+ *
+ * 슬라이스는 액션만 제공하므로, 테스트 시 초기 상태를 직접 제공합니다.
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import { create } from 'zustand';
-import { createMapSlice, type MapSlice } from './mapSlice';
+import { createMapActions, type MapActionsSlice } from './mapSlice';
+import type { MapSliceState } from './types';
 
-// 맵 슬라이스 테스트용 확장 스토어 타입
-interface TestStore extends MapSlice {
+// 테스트용 초기 상태
+const createInitialState = (): MapSliceState & {
   activeBattle: null;
   activeDungeon: null;
   activeEvent: null;
@@ -18,21 +21,28 @@ interface TestStore extends MapSlice {
   relics: string[];
   pendingNextEvent: null;
   itemBuffs: Record<string, number>;
-}
+} => ({
+  map: { nodes: [], currentNodeId: '' },
+  mapRisk: 50,
+  activeBattle: null,
+  activeDungeon: null,
+  activeEvent: null,
+  activeRest: null,
+  activeShop: null,
+  resources: { gold: 50, intel: 0, loot: 0, material: 0, etherPts: 0, memory: 0 },
+  relics: [],
+  pendingNextEvent: null,
+  itemBuffs: {},
+});
 
-// 테스트용 스토어 생성
+// 테스트용 스토어 타입
+type TestStore = ReturnType<typeof createInitialState> & MapActionsSlice;
+
+// 테스트용 스토어 생성 (초기 상태 + 액션)
 const createTestStore = () =>
   create<TestStore>((set, get, api) => ({
-    ...createMapSlice(set, get, api),
-    activeBattle: null,
-    activeDungeon: null,
-    activeEvent: null,
-    activeRest: null,
-    activeShop: null,
-    resources: { gold: 50, intel: 0, loot: 0, material: 0, etherPts: 0, memory: 0 },
-    relics: [],
-    pendingNextEvent: null,
-    itemBuffs: {},
+    ...createInitialState(),
+    ...createMapActions(set as never, get as never, api as never),
   }));
 
 describe('mapSlice', () => {

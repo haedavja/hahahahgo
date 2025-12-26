@@ -1,24 +1,21 @@
 /**
  * @file mapSlice.ts
- * @description 맵 네비게이션 슬라이스
+ * @description 맵 네비게이션 액션 슬라이스
+ *
+ * 초기 상태는 gameStore.ts의 createInitialState()에서 제공됩니다.
  */
 
-import type { SliceCreator, MapSliceState, MapSliceActions } from './types';
+import type { StateCreator } from 'zustand';
+import type { GameStore, MapSliceActions } from './types';
 import { applyNodeMoveEther } from '../../lib/relicEffects';
 import { travelToNode } from '../battleHelpers';
 import { MEMORY_GAIN_PER_NODE } from '../gameStoreHelpers';
 
-export type MapSlice = MapSliceState & MapSliceActions;
+export type MapActionsSlice = MapSliceActions;
 
-export const createMapSlice: SliceCreator<MapSlice> = (set, get) => ({
-  // 초기 상태
-  map: {
-    nodes: [],
-    currentNodeId: '',
-  },
-  mapRisk: 50,
+type SliceCreator = StateCreator<GameStore, [], [], MapActionsSlice>;
 
-  // 액션
+export const createMapActions: SliceCreator = (set) => ({
   selectNode: (nodeId) =>
     set((state) => {
       if (state.activeBattle) return state;
@@ -59,9 +56,7 @@ export const createMapSlice: SliceCreator<MapSlice> = (set, get) => ({
         activeRest: result.target?.type === 'rest' ? { nodeId: result.target.id } : null,
         activeShop: result.target?.type === 'shop' ? { nodeId: result.target.id, merchantType: 'shop' } : null,
         resources: updatedResources,
-        // pendingNextEvent가 사용됐으면 초기화
         pendingNextEvent: result.usedPendingEvent ? null : state.pendingNextEvent,
-        // 아이템 버프 초기화 (1노드 지속)
         itemBuffs: {},
       };
     }),
@@ -72,3 +67,7 @@ export const createMapSlice: SliceCreator<MapSlice> = (set, get) => ({
       mapRisk: Math.max(20, Math.min(80, value)),
     })),
 });
+
+// 하위 호환성을 위한 별칭
+export const createMapSlice = createMapActions;
+export type MapSlice = MapActionsSlice;

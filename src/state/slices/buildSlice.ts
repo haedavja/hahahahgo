@@ -1,25 +1,18 @@
 /**
  * @file buildSlice.ts
- * @description 캐릭터 빌드 슬라이스 (카드, 특기)
+ * @description 캐릭터 빌드 액션 슬라이스
+ *
+ * 초기 상태는 gameStore.ts의 createInitialState()에서 제공됩니다.
  */
 
-import type { SliceCreator, BuildSliceState, BuildSliceActions } from './types';
+import type { StateCreator } from 'zustand';
+import type { GameStore, BuildSliceActions } from './types';
 
-export type BuildSlice = BuildSliceState & BuildSliceActions;
+export type BuildActionsSlice = BuildSliceActions;
 
-export const createBuildSlice: SliceCreator<BuildSlice> = (set, get) => ({
-  // 초기 상태
-  characterBuild: {
-    mainSpecials: [],
-    subSpecials: [],
-    cards: [],
-    traits: [],
-    egos: [],
-    ownedCards: [],
-  },
-  cardUpgrades: {},
+type SliceCreator = StateCreator<GameStore, [], [], BuildActionsSlice>;
 
-  // 액션
+export const createBuildActions: SliceCreator = (set) => ({
   updateCharacterBuild: (mainSpecials, subSpecials) =>
     set((state) => ({
       ...state,
@@ -46,22 +39,13 @@ export const createBuildSlice: SliceCreator<BuildSlice> = (set, get) => ({
       const idx = ownedCards.lastIndexOf(cardId);
       if (idx === -1) return state;
       const newOwned = [...ownedCards.slice(0, idx), ...ownedCards.slice(idx + 1)];
-      return {
-        ...state,
-        characterBuild: {
-          ...state.characterBuild,
-          ownedCards: newOwned,
-        },
-      };
+      return { ...state, characterBuild: { ...state.characterBuild, ownedCards: newOwned } };
     }),
 
   clearOwnedCards: () =>
     set((state) => ({
       ...state,
-      characterBuild: {
-        ...state.characterBuild,
-        ownedCards: [],
-      },
+      characterBuild: { ...state.characterBuild, ownedCards: [] },
     })),
 
   removeCardFromDeck: (cardId, isMainSpecial = false) =>
@@ -74,16 +58,10 @@ export const createBuildSlice: SliceCreator<BuildSlice> = (set, get) => ({
 
       if (isMainSpecial) {
         const newMain = mainSpecials.filter((id) => id !== cardId);
-        return {
-          ...state,
-          characterBuild: { ...state.characterBuild, mainSpecials: newMain, subSpecials, ownedCards },
-        };
+        return { ...state, characterBuild: { ...state.characterBuild, mainSpecials: newMain, subSpecials, ownedCards } };
       } else {
         const newSub = subSpecials.filter((id) => id !== cardId);
-        return {
-          ...state,
-          characterBuild: { ...state.characterBuild, mainSpecials, subSpecials: newSub, ownedCards },
-        };
+        return { ...state, characterBuild: { ...state.characterBuild, mainSpecials, subSpecials: newSub, ownedCards } };
       }
     }),
 
@@ -95,12 +73,10 @@ export const createBuildSlice: SliceCreator<BuildSlice> = (set, get) => ({
       const nextIdx = Math.min(order.length - 1, order.indexOf(current) + 1);
       const next = order[nextIdx];
       if (next === current) return state;
-      return {
-        ...state,
-        cardUpgrades: {
-          ...(state.cardUpgrades || {}),
-          [cardId]: next,
-        },
-      };
+      return { ...state, cardUpgrades: { ...(state.cardUpgrades || {}), [cardId]: next } };
     }),
 });
+
+// 하위 호환성
+export const createBuildSlice = createBuildActions;
+export type BuildSlice = BuildActionsSlice;
