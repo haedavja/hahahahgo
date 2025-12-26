@@ -117,7 +117,7 @@ import {
   calculatePassiveEffects,
   applyCombatStartEffects
 } from "../../lib/relicEffects";
-import type { BattlePayload, BattleResult, OrderItem, Card, ItemSlotsBattleActions, AIMode, AICard, AIEnemy, TokenEntity } from "../../types";
+import type { BattlePayload, BattleResult, OrderItem, Card, ItemSlotsBattleActions, AIMode, AICard, AIEnemy, TokenEntity, SpecialCard } from "../../types";
 import type { PlayerState, EnemyState, SortType, BattlePhase } from "./reducer/battleReducerActions";
 import type { BattleActions } from "./hooks/useBattleState";
 import { PlayerHpBar } from "./ui/PlayerHpBar";
@@ -1417,12 +1417,12 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       usedCardCategories,  // comboStyle용: 이번 턴에 사용된 카드 카테고리
       hand: currentBattle.hand || [],  // autoReload용: 현재 손패
       enemyDisplayName,  // 적 유닛 이름 (로그용)
-      fencingDamageBonus: (currentNextTurnEffects as any).fencingDamageBonus || 0  // 날 세우기: 검격 공격력 보너스
+      fencingDamageBonus: (currentNextTurnEffects as { fencingDamageBonus?: number }).fencingDamageBonus || 0  // 날 세우기: 검격 공격력 보너스
     };
 
     // === requiredTokens 소모 (카드 실행 전) ===
-    if (a.actor === 'player' && a.card.requiredTokens && (a.card.requiredTokens as any).length > 0) {
-      for (const req of a.card.requiredTokens as any) {
+    if (a.actor === 'player' && a.card.requiredTokens && Array.isArray(a.card.requiredTokens) && a.card.requiredTokens.length > 0) {
+      for (const req of a.card.requiredTokens as Array<{ id: string; stacks: number }>) {
         const tokenRemoveResult = removeToken(P as TokenEntity, req.id, 'permanent', req.stacks);
         P = { ...P, tokens: tokenRemoveResult.tokens };
         addLog(`✨ ${req.id === 'finesse' ? '기교' : req.id} -${req.stacks} 소모`);
@@ -1438,7 +1438,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     // 다중 타격 또는 총기 공격: 비동기 처리 (딜레이 + 타격별 룰렛)
     const isAttackCard = a.card.type === 'attack';
     const isGunCard = a.card.cardCategory === 'gun';
-    const hasMultipleHits = ((a.card.hits as any) || 1) > 1;
+    const hasMultipleHits = (Number(a.card.hits) || 1) > 1;
     const useAsyncMultiHit = isAttackCard && (isGunCard || hasMultipleHits);
 
     // === 유닛 시스템: 플레이어 공격 시 타겟 유닛의 block 사용 ===
@@ -1662,7 +1662,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     }
 
     // === 바이올랑 모르: 처형 효과 (체력 30 이하 적 즉시 처형) ===
-    if (hasSpecial(a.card as any, 'violentMort') && a.actor === 'player' && a.card.type === 'attack') {
+    if (hasSpecial(a.card as unknown as SpecialCard, 'violentMort') && a.actor === 'player' && a.card.type === 'attack') {
       const EXECUTION_THRESHOLD = 30;
       if (E.hp > 0 && E.hp <= EXECUTION_THRESHOLD) {
         // 부활 토큰 제거 후 처형
@@ -1916,7 +1916,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       });
 
       // 방어자세 (growingDefense): 발동 시 활성화, 이후 타임라인 진행마다 방어력 +1
-      if (hasSpecial(a.card as any, 'growingDefense')) {
+      if (hasSpecial(a.card as unknown as SpecialCard, 'growingDefense')) {
         const cardSp = a.sp || 0;
         growingDefenseRef.current = {
           activatedSp: cardSp,
@@ -2195,7 +2195,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     }
 
     // createFencingCards3 (벙 데 라므): 3x3 창조 선택 (3번의 선택, 각각 3장 중 1장)
-    if (hasSpecial(a.card as any, 'createFencingCards3') && a.actor === 'player') {
+    if (hasSpecial(a.card as unknown as SpecialCard, 'createFencingCards3') && a.actor === 'player') {
       // 펜싱 공격 카드 풀 (기교 소모 카드 제외 - 창조된 유령카드는 토큰 체크 없이 실행되므로)
       const fencingAttackCards = CARDS.filter(c =>
         c.cardCategory === 'fencing' &&
@@ -2343,7 +2343,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     if (hasUnits && a.actor === 'player' && a.card?.type === 'attack') {
       const targetUnitIds = a.card.__targetUnitIds;
       // AOE 공격 체크: aoeAttack special 또는 isAoe 플래그
-      const isAoeAttack = hasSpecial(a.card as any, 'aoeAttack') || a.card.isAoe === true;
+      const isAoeAttack = hasSpecial(a.card as unknown as SpecialCard, 'aoeAttack') || a.card.isAoe === true;
 
       if (isAoeAttack) {
         // === 범위 피해 모드: 모든 생존 유닛에 동일 피해 ===
