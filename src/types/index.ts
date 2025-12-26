@@ -2763,8 +2763,8 @@ export interface PhaseBattle {
 
 // IconProps는 line 578에서 이미 정의됨
 
-/** 토큰 상태 (UI용) */
-export interface TokenState {
+/** UI용 토큰 상태 */
+export interface UITokenState {
   usage: unknown[];
   turn: unknown[];
   permanent: unknown[];
@@ -2781,9 +2781,9 @@ export interface TokenData {
   category: 'positive' | 'negative' | 'neutral';
 }
 
-/** 토큰 엔티티 (UI용) */
-export interface TokenEntity {
-  tokens?: TokenState;
+/** UI용 토큰 엔티티 */
+export interface UITokenEntity {
+  tokens?: UITokenState;
   [key: string]: unknown;
 }
 
@@ -3012,8 +3012,8 @@ export interface PopupCard {
   __uid?: string;
 }
 
-/** 캐릭터 빌드 */
-export interface CharacterBuild {
+/** UI용 캐릭터 빌드 */
+export interface UICharacterBuild {
   mainSpecial?: string;
   subSpecial?: string;
 }
@@ -3120,8 +3120,8 @@ export interface ExpectedDamageEnemy {
   [key: string]: unknown;
 }
 
-/** 시뮬레이션 결과 */
-export interface SimulationResult {
+/** UI용 시뮬레이션 결과 */
+export interface UISimulationResult {
   pDealt: number | string;
   pTaken: number | string;
   finalEHp: number;
@@ -3129,8 +3129,8 @@ export interface SimulationResult {
   lines?: string[];
 }
 
-/** 전투 후 옵션 */
-export interface PostCombatOptions {
+/** UI용 전투 후 옵션 */
+export interface UIPostCombatOptions {
   type: 'victory' | 'defeat';
 }
 
@@ -3555,8 +3555,8 @@ export interface GameResources {
   [key: string]: number;
 }
 
-/** 상징 데이터 (Dev용) */
-export interface RelicData {
+/** Dev용 상징 데이터 */
+export interface DevRelicData {
   id: string;
   name: string;
   description: string;
