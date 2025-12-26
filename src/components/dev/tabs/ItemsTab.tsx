@@ -5,15 +5,7 @@
 
 import { useState } from 'react';
 import { ITEMS } from '../../../data/items';
-
-interface Item {
-  id: string;
-  name: string;
-  icon: string;
-  tier: number;
-  usableIn: 'combat' | 'any';
-  description: string;
-}
+import type { DevItem as Item } from '../../../types';
 
 interface ItemsTabProps {
   items: (Item | null)[];

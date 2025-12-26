@@ -6,19 +6,7 @@
 import { useState, ChangeEvent } from 'react';
 import { useGameStore } from '../../../state/gameStore';
 import { NEW_EVENT_LIBRARY } from '../../../data/newEvents';
-
-interface EventDefinition {
-  title?: string;
-  description?: string;
-  multiStage?: boolean;
-}
-
-interface EventInfo {
-  id: string;
-  title: string;
-  description: string;
-  multiStage: boolean;
-}
+import type { EventDefinition, EventInfo } from '../../../types';
 
 export function EventTab() {
   const [searchTerm, setSearchTerm] = useState<string>('');

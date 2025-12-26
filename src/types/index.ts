@@ -3522,3 +3522,50 @@ export interface EnemyUnitUI {
   count?: number;
   tokens?: TokenState;
 }
+
+// ==================== DevTools 탭 타입 ====================
+
+/** 게임 자원 */
+export interface GameResources {
+  gold: number;
+  intel: number;
+  loot: number;
+  material: number;
+  aether: number;
+  memory: number;
+  [key: string]: number;
+}
+
+/** 상징 데이터 (Dev용) */
+export interface RelicData {
+  id: string;
+  name: string;
+  description: string;
+  rarity: string;
+  tags?: string[];
+}
+
+/** 아이템 데이터 (Dev용) */
+export interface DevItem {
+  id: string;
+  name: string;
+  icon: string;
+  tier: number;
+  usableIn: 'combat' | 'any';
+  description: string;
+}
+
+/** 이벤트 정의 */
+export interface EventDefinition {
+  title?: string;
+  description?: string;
+  multiStage?: boolean;
+}
+
+/** 이벤트 정보 */
+export interface EventInfo {
+  id: string;
+  title: string;
+  description: string;
+  multiStage: boolean;
+}

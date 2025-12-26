@@ -4,16 +4,7 @@
  */
 
 import { useState } from 'react';
-
-interface Resources {
-  gold: number;
-  intel: number;
-  loot: number;
-  material: number;
-  aether: number;
-  memory: number;
-  [key: string]: number;
-}
+import type { GameResources as Resources } from '../../../types';
 
 interface ResourcesTabProps {
   resources: Resources;
