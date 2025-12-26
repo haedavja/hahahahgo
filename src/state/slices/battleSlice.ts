@@ -6,7 +6,7 @@
  */
 
 import type { StateCreator } from 'zustand';
-import type { GameStore, BattleSliceActions } from './types';
+import type { GameStore, BattleSliceActions, BattleCard } from './types';
 import { ENEMIES, getRandomEnemy } from '../../components/battle/battleData';
 import { drawHand, buildSpeedTimeline } from '../../lib/speedQueue';
 import { simulateBattle, pickOutcome } from '../../lib/battleResolver';
@@ -42,7 +42,7 @@ export const createBattleActions: SliceCreator = (set) => ({
         : [...BATTLE_CARDS];
 
       let enemy = null;
-      let enemyDeck: unknown[] = [];
+      let enemyDeck: string[] = [];
 
       if (battleConfig.enemyId) {
         enemy = ENEMIES.find((e) => e.id === battleConfig.enemyId);
@@ -190,8 +190,8 @@ export const createBattleActions: SliceCreator = (set) => ({
       const battle = state.activeBattle;
       if (!battle) return state;
 
-      const drawFromPile = (pile: unknown[]) => (!pile.length ? [] : drawHand(pile, Math.min(3, pile.length)));
-      const recyclePile = (pile: unknown[], discard: unknown[]) => (pile.length > 0 || discard.length === 0 ? pile : [...discard]);
+      const drawFromPile = (pile: BattleCard[]) => (!pile.length ? [] : drawHand(pile, Math.min(3, pile.length)));
+      const recyclePile = (pile: BattleCard[], discard: BattleCard[]) => (pile.length > 0 || discard.length === 0 ? pile : [...discard]);
 
       const playerHand = battle.playerHand || [];
       const selectedCardIds = battle.selectedCardIds || [];
@@ -210,8 +210,8 @@ export const createBattleActions: SliceCreator = (set) => ({
       const playerDiscard = [...playerDiscardPile, ...selectedCards];
       const enemyDiscard = [...enemyDiscardPile, ...enemyCards];
 
-      let newPlayerHand: unknown[];
-      let nextPlayerDraw: unknown[];
+      let newPlayerHand: BattleCard[];
+      let nextPlayerDraw: BattleCard[];
 
       if (battle.hasCharacterBuild && battle.characterBuild) {
         newPlayerHand = drawCharacterBuildHand(battle.characterBuild.mainSpecials, battle.characterBuild.subSpecials, battle.characterBuild.ownedCards);

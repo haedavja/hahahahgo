@@ -4,7 +4,7 @@
  */
 
 import type { StateCreator } from 'zustand';
-import type { Card, Relic, MapNode, Resources, ActiveEvent, ActiveDungeon, SimulationResult } from '../../types';
+import type { Card, Relic, MapNode, Resources, ActiveEvent, ActiveDungeon, SimulationResult, TimelineEntry } from '../../types';
 
 // ==================== 전투 관련 타입 ====================
 
@@ -26,7 +26,7 @@ export interface EnemyInfo {
 export interface BattlePreview {
   playerHand: BattleCard[];
   enemyHand: BattleCard[];
-  timeline: unknown[];
+  timeline: TimelineEntry[];
   tuLimit: number;
 }
 
@@ -192,9 +192,16 @@ export interface DungeonSliceState {
   activeDungeon: ActiveDungeon | null;
 }
 
+/** 던전 노드 이벤트 */
+export interface DungeonNodeEvent {
+  type: string;
+  id?: string;
+  data?: Record<string, unknown>;
+}
+
 /** 던전 데이터 */
 export interface DungeonData {
-  nodes?: Array<{ id: string; connections: string[]; visited?: boolean; cleared?: boolean; event?: unknown }>;
+  nodes?: Array<{ id: string; connections: string[]; visited?: boolean; cleared?: boolean; event?: DungeonNodeEvent | null }>;
   currentNodeId?: string;
   timeElapsed?: number;
   grid?: Record<string, { visited?: boolean; cleared?: boolean }>;
