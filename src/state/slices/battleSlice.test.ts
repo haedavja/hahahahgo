@@ -17,7 +17,7 @@ const createInitialState = (): BattleSliceState &
   lastBattleResult: null,
   playerHp: 100,
   maxHp: 100,
-  resources: { gold: 50, intel: 0, etherPts: 0 },
+  resources: { gold: 50, intel: 0, loot: 0, material: 0, etherPts: 0, memory: 0 },
   characterBuild: {
     mainSpecials: [],
     subSpecials: [],

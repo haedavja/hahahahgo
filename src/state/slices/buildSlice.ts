@@ -50,11 +50,9 @@ export const createBuildActions: SliceCreator = (set) => ({
 
   removeCardFromDeck: (cardId, isMainSpecial = false) =>
     set((state) => {
-      const { mainSpecials, subSpecials, ownedCards } = state.characterBuild || {
-        mainSpecials: [],
-        subSpecials: [],
-        ownedCards: [],
-      };
+      const mainSpecials: string[] = state.characterBuild?.mainSpecials || [];
+      const subSpecials: string[] = state.characterBuild?.subSpecials || [];
+      const ownedCards: string[] = state.characterBuild?.ownedCards || [];
 
       if (isMainSpecial) {
         const newMain = mainSpecials.filter((id) => id !== cardId);

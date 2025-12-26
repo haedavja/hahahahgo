@@ -28,7 +28,7 @@ const createInitialState = (): DevSliceState &
   pendingNextEvent: null,
   playerHp: 100,
   maxHp: 100,
-  resources: { gold: 50, intel: 0, etherPts: 0 },
+  resources: { gold: 50, intel: 0, loot: 0, material: 0, etherPts: 0, memory: 0 },
   characterBuild: { mainSpecials: [], subSpecials: [], cards: [], traits: [], egos: [], ownedCards: [] },
   activeRest: null,
 });
@@ -120,8 +120,8 @@ describe('devSlice', () => {
   describe('devClearAllNodes', () => {
     it('모든 노드를 클리어한다', () => {
       const nodes = [
-        { id: 'node-1', cleared: false, selectable: false, connections: [] },
-        { id: 'node-2', cleared: false, selectable: true, connections: [] },
+        { id: 'node-1', cleared: false, selectable: false, connections: [] as string[] },
+        { id: 'node-2', cleared: false, selectable: true, connections: [] as string[] },
       ];
       store.setState({ ...store.getState(), map: { nodes: nodes as never, currentNodeId: '' } });
       store.getState().devClearAllNodes();

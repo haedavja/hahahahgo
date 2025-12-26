@@ -37,7 +37,8 @@ export const createPlayerActions: SliceCreator = (set) => ({
       const newResources = { ...state.resources };
       Object.entries(resourceDeltas).forEach(([key, amount]) => {
         const numAmount = Number(amount) || 0;
-        newResources[key] = Math.max(0, (newResources[key] ?? 0) + numAmount);
+        const resourceKey = key as keyof typeof newResources;
+        newResources[resourceKey] = Math.max(0, (newResources[resourceKey] ?? 0) + numAmount);
       });
       return {
         ...state,

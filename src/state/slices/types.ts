@@ -4,7 +4,7 @@
  */
 
 import type { StateCreator } from 'zustand';
-import type { Card, Relic, MapNode, Resources, ActiveEvent, ActiveDungeon, SimulationResult, TimelineEntry } from '../../types';
+import type { Card, MapNode, Resources, ActiveEvent, ActiveDungeon, SimulationResult, TimelineEntry, DungeonData, DungeonNodeEvent } from '../../types';
 
 // ==================== 전투 관련 타입 ====================
 
@@ -192,20 +192,8 @@ export interface DungeonSliceState {
   activeDungeon: ActiveDungeon | null;
 }
 
-/** 던전 노드 이벤트 */
-export interface DungeonNodeEvent {
-  type: string;
-  id?: string;
-  data?: Record<string, unknown>;
-}
-
-/** 던전 데이터 */
-export interface DungeonData {
-  nodes?: Array<{ id: string; connections: string[]; visited?: boolean; cleared?: boolean; event?: DungeonNodeEvent | null }>;
-  currentNodeId?: string;
-  timeElapsed?: number;
-  grid?: Record<string, { visited?: boolean; cleared?: boolean }>;
-}
+// DungeonData와 DungeonNodeEvent는 ../../types/game.ts에서 정의됨
+export type { DungeonData, DungeonNodeEvent };
 
 /** 던전 자원 델타 */
 export interface DungeonDeltas {
@@ -303,8 +291,8 @@ export interface BuildSliceActions {
 
 /** 상징 슬라이스 상태 */
 export interface RelicSliceState {
-  relics: Relic[];
-  orderedRelics: Relic[];
+  relics: string[];
+  orderedRelics: string[];
 }
 
 /** 상징 슬라이스 액션 */

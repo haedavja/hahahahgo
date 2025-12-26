@@ -10,7 +10,7 @@ import type { EventSliceState } from './types';
 
 // 테스트용 초기 상태
 const createInitialState = (): EventSliceState & {
-  resources: { gold: number; intel: number; etherPts: number };
+  resources: { gold: number; intel: number; loot: number; material: number; etherPts: number; memory: number };
   playerHp: number;
   maxHp: number;
   playerInsight: number;
@@ -22,7 +22,7 @@ const createInitialState = (): EventSliceState & {
   activeEvent: null,
   completedEvents: [],
   pendingNextEvent: null,
-  resources: { gold: 50, intel: 0, etherPts: 100 },
+  resources: { gold: 50, intel: 0, loot: 0, material: 0, etherPts: 100, memory: 0 },
   playerHp: 100,
   maxHp: 100,
   playerInsight: 0,
@@ -65,7 +65,7 @@ describe('eventSlice', () => {
     it('이벤트를 닫는다', () => {
       store.setState({
         ...store.getState(),
-        activeEvent: { definition: { id: 'test', choices: [] }, currentStage: null, resolved: false, outcome: null },
+        activeEvent: { id: 'test', definition: { id: 'test', choices: [] }, currentStage: null, resolved: false, outcome: null },
       });
       store.getState().closeEvent();
       expect(store.getState().activeEvent).toBeNull();
@@ -80,7 +80,7 @@ describe('eventSlice', () => {
 
   describe('setActiveEvent', () => {
     it('이벤트를 설정한다', () => {
-      const event = { definition: { id: 'test', choices: [] }, currentStage: null, resolved: false, outcome: null };
+      const event = { id: 'test', definition: { id: 'test', choices: [] as { id: string; label: string }[] }, currentStage: null as string | null, resolved: false, outcome: null as unknown };
       store.getState().setActiveEvent(event as never);
       expect(store.getState().activeEvent).toEqual(event);
     });
@@ -88,7 +88,7 @@ describe('eventSlice', () => {
     it('null로 설정할 수 있다', () => {
       store.setState({
         ...store.getState(),
-        activeEvent: { definition: { id: 'test', choices: [] }, currentStage: null, resolved: false, outcome: null },
+        activeEvent: { id: 'test', definition: { id: 'test', choices: [] }, currentStage: null, resolved: false, outcome: null },
       });
       store.getState().setActiveEvent(null);
       expect(store.getState().activeEvent).toBeNull();
@@ -106,6 +106,7 @@ describe('eventSlice', () => {
       store.setState({
         ...store.getState(),
         activeEvent: {
+          id: 'test',
           definition: { id: 'test', choices: [{ id: 'choice1', label: 'Test' }] },
           currentStage: null,
           resolved: true,
@@ -122,7 +123,7 @@ describe('eventSlice', () => {
     it('에테르가 부족하면 상태를 유지한다', () => {
       store.setState({
         ...store.getState(),
-        activeEvent: { definition: { id: 'test', choices: [] }, currentStage: null, resolved: false, outcome: null },
+        activeEvent: { id: 'test', definition: { id: 'test', choices: [] }, currentStage: null, resolved: false, outcome: null },
         resources: { ...store.getState().resources, etherPts: 0 },
       });
       const originalState = store.getState();

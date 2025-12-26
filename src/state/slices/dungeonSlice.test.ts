@@ -86,8 +86,8 @@ describe('dungeonSlice', () => {
     });
 
     it('던전을 건너뛰고 클리어한다', () => {
-      const dungeonNode = { id: 'dungeon-1', type: 'dungeon', cleared: false, selectable: true, connections: ['next-1'] };
-      const nextNode = { id: 'next-1', type: 'event', cleared: false, selectable: false, connections: [] };
+      const dungeonNode = { id: 'dungeon-1', type: 'dungeon', cleared: false, selectable: true, connections: ['next-1'] as string[] };
+      const nextNode = { id: 'next-1', type: 'event', cleared: false, selectable: false, connections: [] as string[] };
       store.setState({
         ...store.getState(),
         activeDungeon: { nodeId: 'dungeon-1', revealed: false, confirmed: true },

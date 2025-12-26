@@ -66,7 +66,7 @@ export const createDungeonActions: SliceCreator = (set) => ({
       nodes.forEach((node) => {
         if (!node.cleared) node.selectable = false;
       });
-      dungeonNode.connections.forEach((id) => {
+      dungeonNode.connections.forEach((id: string) => {
         const nextNode = nodes.find((n) => n.id === id);
         if (nextNode && !nextNode.cleared) nextNode.selectable = true;
       });
@@ -91,7 +91,7 @@ export const createDungeonActions: SliceCreator = (set) => ({
       nodes.forEach((node) => {
         if (!node.cleared) node.selectable = false;
       });
-      dungeonNode.connections.forEach((id) => {
+      dungeonNode.connections.forEach((id: string) => {
         const nextNode = nodes.find((n) => n.id === id);
         if (nextNode && !nextNode.cleared) nextNode.selectable = true;
       });
@@ -117,7 +117,7 @@ export const createDungeonActions: SliceCreator = (set) => ({
       nodes.forEach((node) => {
         if (!node.cleared) node.selectable = false;
       });
-      dungeonNode.connections.forEach((id) => {
+      dungeonNode.connections.forEach((id: string) => {
         const nextNode = nodes.find((n) => n.id === id);
         if (nextNode && !nextNode.cleared) nextNode.selectable = true;
       });
@@ -237,7 +237,7 @@ export const createDungeonActions: SliceCreator = (set) => ({
 
       const dungeon = state.activeDungeon.dungeonData;
       const updatedNodes = dungeon.nodes?.map((n: { id: string }) =>
-        n.id === nodeId ? { ...n, cleared: true, event: null } : n
+        n.id === nodeId ? { ...n, cleared: true, event: null as null } : n
       );
 
       return {

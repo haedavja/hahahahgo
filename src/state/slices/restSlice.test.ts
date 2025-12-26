@@ -20,7 +20,7 @@ const createInitialState = (): RestSliceState & Partial<PlayerSliceState> => ({
   playerMaxSpeedBonus: 0,
   playerEnergyBonus: 0,
   extraSubSpecialSlots: 0,
-  resources: { gold: 50, intel: 0, etherPts: 0, memory: 100 },
+  resources: { gold: 50, intel: 0, loot: 0, material: 0, etherPts: 0, memory: 100 },
 });
 
 type TestStore = ReturnType<typeof createInitialState> & RestActionsSlice;

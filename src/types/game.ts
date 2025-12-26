@@ -239,13 +239,32 @@ export interface ActiveEvent {
   [key: string]: unknown;
 }
 
+/** 던전 노드 이벤트 */
+export interface DungeonNodeEvent {
+  type: string;
+  id?: string;
+  data?: Record<string, unknown>;
+}
+
+/** 던전 데이터 */
+export interface DungeonData {
+  nodes?: Array<{ id: string; connections: string[]; visited?: boolean; cleared?: boolean; event?: DungeonNodeEvent | null }>;
+  currentNodeId?: string;
+  timeElapsed?: number;
+  grid?: Record<string, { visited?: boolean; cleared?: boolean }>;
+}
+
 /** 활성 던전 */
 export interface ActiveDungeon {
   nodeId: string;
   revealed?: boolean;
   confirmed?: boolean;
-  dungeonData?: unknown;
-  [key: string]: unknown;
+  dungeonData?: DungeonData;
+  segmentIndex?: number;
+  playerX?: number;
+  currentRoomKey?: string;
+  initialResources?: Partial<Resources>;
+  dungeonDeltas?: { gold?: number; intel?: number; material?: number; loot?: number; etherPts?: number };
 }
 
 /** 활성 전투 */
