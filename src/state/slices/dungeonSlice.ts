@@ -47,10 +47,10 @@ export const createDungeonActions: SliceCreator = (set) => ({
         ...state,
         map: result.map,
         activeEvent: result.event,
-        activeBattle: result.battle ?? null,
+        activeBattle: result.battle as unknown as GameStore['activeBattle'],
         activeDungeon: null,
         pendingNextEvent: result.usedPendingEvent ? null : state.pendingNextEvent,
-      };
+      } as Partial<GameStore>;
     }),
 
   skipDungeon: () =>
@@ -135,9 +135,9 @@ export const createDungeonActions: SliceCreator = (set) => ({
       if ((state.resources.intel ?? 0) < 2) return state;
       return {
         ...state,
-        resources: payCost({ intel: 2 }, state.resources),
+        resources: payCost({ intel: 2 }, state.resources) as GameStore['resources'],
         activeDungeon: { ...state.activeDungeon, revealed: true },
-      };
+      } as Partial<GameStore>;
     }),
 
   setDungeonData: (dungeonData) =>
@@ -226,9 +226,9 @@ export const createDungeonActions: SliceCreator = (set) => ({
             currentNodeId: targetNodeId,
             timeElapsed: newTimeElapsed,
             nodes: updatedNodes,
-          },
+          } as GameStore['activeDungeon'] extends { dungeonData?: infer T } ? T : never,
         },
-      };
+      } as Partial<GameStore>;
     }),
 
   clearDungeonNode: (nodeId) =>
@@ -246,7 +246,7 @@ export const createDungeonActions: SliceCreator = (set) => ({
           ...state.activeDungeon,
           dungeonData: { ...dungeon, nodes: updatedNodes },
         },
-      };
+      } as Partial<GameStore>;
     }),
 
   applyDungeonTimePenalty: (etherDecay) =>

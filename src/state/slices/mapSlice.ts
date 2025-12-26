@@ -51,14 +51,14 @@ export const createMapActions: SliceCreator = (set) => ({
         ...state,
         map: result.map,
         activeEvent: result.event,
-        activeBattle: result.battle ?? null,
+        activeBattle: result.battle as unknown as GameStore['activeBattle'],
         activeDungeon: null,
         activeRest: result.target?.type === 'rest' ? { nodeId: result.target.id } : null,
         activeShop: result.target?.type === 'shop' ? { nodeId: result.target.id, merchantType: 'shop' } : null,
         resources: updatedResources,
         pendingNextEvent: result.usedPendingEvent ? null : state.pendingNextEvent,
         itemBuffs: {},
-      };
+      } as Partial<GameStore>;
     }),
 
   setMapRisk: (value) =>

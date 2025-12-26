@@ -73,17 +73,17 @@ export const createEventActions: SliceCreator = (set) => ({
       if (choice.nextStage && active.definition?.stages?.[choice.nextStage]) {
         return {
           ...state,
-          resources,
+          resources: resources as GameStore['resources'],
           playerHp: newPlayerHp,
           characterBuild: updatedCharacterBuild,
           activeEvent: { ...active, currentStage: choice.nextStage },
-        };
+        } as Partial<GameStore>;
       }
 
       if (choice.openShop) {
         return {
           ...state,
-          resources,
+          resources: resources as GameStore['resources'],
           playerHp: newPlayerHp,
           characterBuild: updatedCharacterBuild,
           activeShop: { merchantType: choice.openShop },
@@ -92,7 +92,7 @@ export const createEventActions: SliceCreator = (set) => ({
             resolved: true,
             outcome: { choice: choice.label, success: true, resultDescription: choice.resultDescription || null },
           },
-        };
+        } as Partial<GameStore>;
       }
 
       const eventId = active.definition?.id;
@@ -106,7 +106,7 @@ export const createEventActions: SliceCreator = (set) => ({
 
       return {
         ...state,
-        resources,
+        resources: resources as GameStore['resources'],
         playerHp: newPlayerHp,
         characterBuild: updatedCharacterBuild,
         completedEvents: newCompletedEvents,
@@ -122,7 +122,7 @@ export const createEventActions: SliceCreator = (set) => ({
             resultDescription: choice.resultDescription || null,
           },
         },
-      };
+      } as Partial<GameStore>;
     }),
 
   invokePrayer: (cost) =>
@@ -136,7 +136,7 @@ export const createEventActions: SliceCreator = (set) => ({
 
       return {
         ...state,
-        resources: result.next,
+        resources: result.next as GameStore['resources'],
         activeEvent: {
           ...active,
           resolved: true,
@@ -150,7 +150,7 @@ export const createEventActions: SliceCreator = (set) => ({
             probability: 1,
           },
         },
-      };
+      } as Partial<GameStore>;
     }),
 
   closeEvent: () =>

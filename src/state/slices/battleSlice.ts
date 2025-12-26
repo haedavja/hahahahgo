@@ -104,8 +104,8 @@ export const createBattleActions: SliceCreator = (set) => ({
           simulation,
           hasCharacterBuild,
           characterBuild: hasCharacterBuild ? characterBuild : null,
-        },
-      };
+        } as unknown as GameStore['activeBattle'],
+      } as Partial<GameStore>;
     }),
 
   resolveBattle: (outcome = {}) =>
@@ -115,7 +115,7 @@ export const createBattleActions: SliceCreator = (set) => ({
       const autoResult = pickOutcome(state.activeBattle.simulation as unknown as ResolverSimulationResult | null, 'victory');
       const resultLabel = outcome.result ?? autoResult;
       const rewards = resultLabel === 'victory'
-        ? grantRewards(rewardsDef, state.resources)
+        ? grantRewards(rewardsDef as Parameters<typeof grantRewards>[0], state.resources)
         : { next: state.resources, applied: {} };
 
       if (resultLabel === 'victory') {
@@ -145,7 +145,7 @@ export const createBattleActions: SliceCreator = (set) => ({
 
       return {
         ...state,
-        resources: rewards.next,
+        resources: rewards.next as GameStore['resources'],
         playerHp: Math.max(0, finalPlayerHp),
         maxHp: newMaxHp,
         activeBattle: null,
@@ -160,7 +160,7 @@ export const createBattleActions: SliceCreator = (set) => ({
           rewards: rewards.applied,
           enemyInfo: state.activeBattle.enemyInfo,
         },
-      };
+      } as Partial<GameStore>;
     }),
 
   clearBattleResult: () =>
@@ -228,7 +228,7 @@ export const createBattleActions: SliceCreator = (set) => ({
       if (nextEnemyDraw.length < 3) nextEnemyDraw = recyclePile(nextEnemyDraw, enemyDiscard);
       const newEnemyHand = drawFromPile(nextEnemyDraw);
 
-      const { preview, simulation } = computeBattlePlan(battle.kind || '', selectedCards, enemyCards, state.playerHp, state.maxHp);
+      const { preview, simulation } = computeBattlePlan(battle.kind || '', selectedCards as Parameters<typeof computeBattlePlan>[1], enemyCards as Parameters<typeof computeBattlePlan>[2], state.playerHp, state.maxHp);
 
       return {
         ...state,
@@ -243,8 +243,8 @@ export const createBattleActions: SliceCreator = (set) => ({
           enemyDrawPile: nextEnemyDraw,
           enemyDiscardPile: enemyDiscard,
           selectedCardIds: [],
-        },
-      };
+        } as unknown as GameStore['activeBattle'],
+      } as Partial<GameStore>;
     }),
 
   clearPendingItemEffects: () =>

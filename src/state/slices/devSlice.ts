@@ -72,19 +72,19 @@ export const createDevActions: SliceCreator = (set) => ({
         ...state,
         map: result.map,
         activeEvent: result.event,
-        activeBattle: result.battle,
+        activeBattle: result.battle as unknown as GameStore['activeBattle'],
         pendingNextEvent: result.usedPendingEvent ? null : state.pendingNextEvent,
-      };
+      } as Partial<GameStore>;
     }),
 
   devForceWin: () =>
     set((state) => {
       if (!state.activeBattle) return state;
       const rewardsDef = state.activeBattle.rewards ?? {};
-      const rewards = grantRewards(rewardsDef, state.resources);
+      const rewards = grantRewards(rewardsDef as Parameters<typeof grantRewards>[0], state.resources);
       return {
         ...state,
-        resources: rewards.next,
+        resources: rewards.next as GameStore['resources'],
         activeBattle: null,
         lastBattleResult: {
           nodeId: state.activeBattle.nodeId || '',
@@ -96,7 +96,7 @@ export const createDevActions: SliceCreator = (set) => ({
           initialState: null,
           rewards: rewards.applied,
         },
-      };
+      } as Partial<GameStore>;
     }),
 
   devForceLose: () =>
@@ -224,6 +224,7 @@ export const createDevActions: SliceCreator = (set) => ({
       return {
         ...state,
         activeEvent: {
+          id: definition.id,
           definition,
           currentStage: null,
           resolved: false,
@@ -231,7 +232,7 @@ export const createDevActions: SliceCreator = (set) => ({
           risk: state.mapRisk,
           friendlyChance: computeFriendlyChance(state.mapRisk),
         },
-      };
+      } as Partial<GameStore>;
     }),
 });
 
