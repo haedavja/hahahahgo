@@ -238,16 +238,23 @@ export interface NewEventChoice {
   nextStage?: string;
   resultDescription?: string;
   cost?: Partial<Resources> & { hp?: number; hpPercent?: number; grace?: number };
-  rewards?: Partial<Resources> & { card?: number };
+  rewards?: Partial<Resources> & { card?: number; insight?: number; relic?: string; grace?: number; item?: string; trait?: string; hp?: number };
   statRequirement?: Record<string, number>;
   nextEvent?: string;
   openShop?: string;
+  probability?: number | string;
+  combatTrigger?: string | boolean;
+  penalties?: Record<string, number | string>;
+  condition?: string;
+  hidden?: boolean;
+  [key: string]: unknown;
 }
 
 /** 새 이벤트 단계 */
 export interface NewEventStage {
   description: string;
   choices: NewEventChoice[];
+  [key: string]: unknown;
 }
 
 /** 새 이벤트 정의 */
@@ -258,6 +265,11 @@ export interface NewEventDefinition {
   difficulty?: string;
   choices?: NewEventChoice[];
   stages?: Record<string, NewEventStage>;
+  isInitial?: boolean;
+  category?: string;
+  weight?: number;
+  requirements?: Record<string, unknown>;
+  [key: string]: unknown;
 }
 
 /** 활성 이벤트 */
