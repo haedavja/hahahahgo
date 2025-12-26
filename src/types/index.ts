@@ -3269,6 +3269,14 @@ export interface BattlePayload {
     insight: number;
     maxSpeed: number;
     etherPts: number;
+    // 이변 효과 및 추가 속성 (선택적)
+    agility?: number;
+    tokens?: TokenState;
+    energyPenalty?: number;
+    speedPenalty?: number;
+    drawPenalty?: number;
+    insightPenalty?: number;
+    etherBan?: boolean;
   };
   enemy: {
     name: string;
@@ -3284,6 +3292,10 @@ export interface BattlePayload {
     cardsPerTurn: number;
     ether: number;
     units: BattleEnemyUnit[];
+    // 보스 및 추가 속성 (선택적)
+    type?: string;
+    isBoss?: boolean;
+    shroud?: number;
   };
 }
 

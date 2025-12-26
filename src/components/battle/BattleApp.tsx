@@ -165,8 +165,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const [activeAnomalies, setActiveAnomalies] = useState([]);
   const [showAnomalyNotification, setShowAnomalyNotification] = useState(false);
 
-  const safeInitialPlayer = initialPlayer || {};
-  const safeInitialEnemy = initialEnemy || {};
+  const safeInitialPlayer = initialPlayer ?? {} as Partial<BattlePayload['player']>;
+  const safeInitialEnemy = initialEnemy ?? {} as Partial<BattlePayload['enemy']>;
   const enemyCount = safeInitialEnemy.enemyCount ?? 1; // Extract enemy count for multi-enemy battles
 
   // 이변 선택 및 적용 (전투 시작 전)
