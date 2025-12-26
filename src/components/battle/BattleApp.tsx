@@ -117,7 +117,7 @@ import {
   calculatePassiveEffects,
   applyCombatStartEffects
 } from "../../lib/relicEffects";
-import type { BattlePayload, BattleResult, OrderItem, Card, ItemSlotsBattleActions, AIMode, AICard, AIEnemy, TokenEntity, SpecialCard } from "../../types";
+import type { BattlePayload, BattleResult, OrderItem, Card, ItemSlotsBattleActions, AIMode, AICard, AIEnemy, TokenEntity, SpecialCard, HandCard } from "../../types";
 import type { PlayerState, EnemyState, SortType, BattlePhase } from "./reducer/battleReducerActions";
 import type { BattleActions } from "./hooks/useBattleState";
 import { PlayerHpBar } from "./ui/PlayerHpBar";
@@ -1674,7 +1674,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         }
         // 즉시 처형
         E.hp = 0;
-        (E as any).executed = true;  // 처형 플래그 (부활 방지용)
+        (E as { executed?: boolean }).executed = true;  // 처형 플래그 (부활 방지용)
         addLog(`💀 바이올랑 모르: 적 체력 ${EXECUTION_THRESHOLD} 이하! 처형!`);
         // battleRef 동기 업데이트
         if (battleRef.current) {
@@ -1819,7 +1819,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
           const currentDiscard = battleRef.current?.discardPile || battle.discardPile || [];
 
           if (currentDeck.length > 0 || currentDiscard.length > 0) {
-            const drawResult = drawFromDeck(currentDeck as any, currentDiscard as any, newNextTurnEffects.emergencyDraw, escapeBanRef.current as any);
+            const drawResult = drawFromDeck(currentDeck as HandCard[], currentDiscard as HandCard[], newNextTurnEffects.emergencyDraw, escapeBanRef.current as Set<string>);
 
             // 현재 손패에 추가
             const currentHand = battleRef.current?.hand || battle.hand || [];
