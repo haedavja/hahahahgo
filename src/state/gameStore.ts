@@ -46,7 +46,6 @@ import {
   MEMORY_GAIN_PER_NODE,
   AWAKEN_COST,
   MAX_PLAYER_SELECTION,
-  BATTLE_STATS,
 } from "./gameStoreHelpers";
 
 import {
@@ -54,7 +53,6 @@ import {
   resolveEnemyDeck,
   computeBattlePlan,
   drawCharacterBuildHand,
-  createBattlePayload,
   travelToNode,
 } from "./battleHelpers";
 
