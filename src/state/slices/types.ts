@@ -344,14 +344,14 @@ export interface DevSliceState {
   devDulledLevel: number | null;
   devForcedCrossroad: string | null;
   devBattleTokens: Array<{ id: string; stacks: number; target: string; timestamp?: number }>;
-  devForcedAnomalies: string[] | null;
+  devForcedAnomalies: Array<{ anomalyId: string; level: number }> | null;
 }
 
 /** 개발자 슬라이스 액션 */
 export interface DevSliceActions {
   setDevDulledLevel: (level: number | null) => void;
   setDevForcedCrossroad: (templateId: string | null) => void;
-  setDevForcedAnomalies: (anomalyIds: string[] | null) => void;
+  setDevForcedAnomalies: (anomalies: Array<{ anomalyId: string; level: number }> | null) => void;
   devClearAllNodes: () => void;
   devTeleportToNode: (nodeId: string) => void;
   devForceWin: () => void;

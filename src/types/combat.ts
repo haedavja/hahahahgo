@@ -812,6 +812,11 @@ export interface BattleInitialStateOverrides {
   enemy?: Partial<EnemyUnit>;
   orderedRelics?: Relic[];
   isSimplified?: boolean;
-  sortType?: 'speed' | 'order';
+  sortType?: 'speed' | 'cost' | 'order' | 'energy' | 'value' | 'type';
+  phase?: string;
+  hand?: unknown[];
+  selected?: unknown[];
+  canRedraw?: boolean;
+  enemyIndex?: number;
   [key: string]: unknown;
 }

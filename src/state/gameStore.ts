@@ -89,7 +89,7 @@ export const useGameStore = create<GameStore>((set, get, store) => {
     devDulledLevel: null as number | null,
     devForcedCrossroad: null as string | null,
     devBattleTokens: [] as Array<{ id: string; stacks: number; target: string; timestamp?: number }>,
-    devForcedAnomalies: null as string[] | null,
+    devForcedAnomalies: null as Array<{ anomalyId: string; level: number }> | null,
 
     // 슬라이스 액션
     ...playerActions,
