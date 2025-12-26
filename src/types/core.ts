@@ -21,6 +21,9 @@ export type CardTrait =
   | 'repeat' | 'warmup' | 'exhaust' | 'vanish' | 'mistake' | 'protagonist'
   | 'last' | 'robber' | 'ruin' | 'oblivion' | 'outcast';
 
+/** 카드 우선순위 */
+export type CardPriority = 'fast' | 'normal' | 'slow';
+
 /** 카드 정의 */
 export interface Card {
   id: string;
@@ -28,6 +31,7 @@ export interface Card {
   type: CardType;
   damage?: number;
   defense?: number;
+  block?: number;
   speedCost: number;
   actionCost: number;
   iconKey?: string;
@@ -37,6 +41,12 @@ export interface Card {
   special?: string;
   isGhost?: boolean;
   _combo?: string;
+  // 런타임 확장 속성
+  priority?: CardPriority;
+  tags?: string[];
+  hits?: number;
+  counter?: number;
+  rarity?: CardRarity;
 }
 
 /** 카드 특성 정의 */
