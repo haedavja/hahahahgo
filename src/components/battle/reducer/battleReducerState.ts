@@ -9,78 +9,29 @@
  * - ether: 에테르 시스템
  */
 
-import type { Card, Token, TokenState, Relic, RespondSnapshot, BattleEvent, PostCombatOptions } from '../../../types';
+import type {
+  Card,
+  TokenState,
+  Relic,
+  RespondSnapshot,
+  BattleEvent,
+  PostCombatOptions,
+  EnemyPlan,
+  NextTurnEffects,
+  PreviewDamage,
+  InsightBadge,
+  ReducerPlayerState,
+  ReducerEnemyState,
+  ReducerEnemyUnitState
+} from '../../../types';
 import type { BattlePhase, SortType, EtherCalcPhase } from './battleReducerActions';
 import type { HandCard } from '../../../lib/speedQueue';
 
-// ==================== 상태 타입 정의 ====================
-
-/** 플레이어 상태 */
-export interface PlayerState {
-  hp: number;
-  maxHp: number;
-  block: number;
-  tokens: TokenState;
-  energy: number;
-  maxEnergy: number;
-  strength?: number;
-  agility?: number;
-  insight?: number;
-  [key: string]: unknown;
-}
-
-/** 적 상태 */
-export interface EnemyState {
-  hp: number;
-  maxHp: number;
-  block: number;
-  tokens: TokenState;
-  units?: EnemyUnitState[];
-  [key: string]: unknown;
-}
-
-/** 적 유닛 상태 */
-export interface EnemyUnitState {
-  unitId: number;
-  hp: number;
-  maxHp: number;
-  block: number;
-  tokens: TokenState;
-  [key: string]: unknown;
-}
-
-/** 적 계획 */
-export interface EnemyPlan {
-  actions: Card[];
-  mode: string | null;
-  manuallyModified?: boolean;
-}
-
-/** 다음 턴 효과 */
-export interface NextTurnEffects {
-  player: Record<string, unknown>;
-  enemy: Record<string, unknown>;
-  extraCardPlay?: number;
-  bonusEnergy?: number;
-  maxSpeedBonus?: number;
-  guaranteedCards?: string[];
-  [key: string]: unknown;
-}
-
-/** 피해 미리보기 */
-export interface PreviewDamage {
-  value: number;
-  lethal: boolean;
-  overkill: boolean;
-}
-
-/** 통찰 배지 */
-export interface InsightBadge {
-  level: number;
-  dir: 'up' | 'down';
-  show: boolean;
-  key: number;
-}
+// 중앙 타입에서 재export
+export type PlayerState = ReducerPlayerState;
+export type EnemyState = ReducerEnemyState;
+export type EnemyUnitState = ReducerEnemyUnitState;
+export type { EnemyPlan, NextTurnEffects, PreviewDamage, InsightBadge };
 
 /** 전체 전투 상태 */
 export interface FullBattleState {

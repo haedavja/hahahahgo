@@ -53,6 +53,12 @@ export interface Combatant {
   etherOverflow?: number;
   etherOverdriveActive?: boolean;
   maxSpeed?: number;
+  energy?: number;
+  maxEnergy?: number;
+  def?: boolean;
+  _persistentStrikeDamage?: number;
+  comboUsageCount?: Record<string, number>;
+  etherMultiplier?: number;
   [key: string]: unknown;
 }
 
@@ -100,8 +106,8 @@ export interface EnemyUnit extends Combatant {
   deck?: string[];
   units?: EnemyUnit[];
   enemyCount?: number;
-  maxSpeed?: number;
   ether?: number;
+  comboUsageCount?: Record<string, number>;
 }
 
 /** 적 의도 표시 */
@@ -299,7 +305,22 @@ export interface QueueAction {
 export interface BattleContext {
   enemyDisplayName?: string;
   fencingDamageBonus?: number;
-  [key: string]: unknown;
+  hand?: Card[];
+  allCards?: Card[];
+  queue?: SpecialQueueItem[];
+  playerAttackCards?: Card[];
+  currentSp?: number;
+  currentQIndex?: number;
+  currentTurn?: number;
+  remainingEnergy?: number;
+  enemyRemainingEnergy?: number;
+  handSize?: number;
+  isLastCard?: boolean;
+  unusedAttackCards?: number;
+  blockDestroyed?: number;
+  isCritical?: boolean;
+  enemyUnits?: EnemyUnit[];
+  guaranteedCrit?: boolean;
 }
 
 // ==================== 배틀 상태 객체 ====================
@@ -309,7 +330,9 @@ export interface BattleAction {
   actor: 'player' | 'enemy';
   card?: Card | SpecialCard;
   sp?: number;
-  [key: string]: unknown;
+  idx?: number;
+  originalSpeed?: number;
+  finalSpeed?: number;
 }
 
 /** 배틀 참조 객체 */
@@ -319,43 +342,56 @@ export interface BattleRef {
   qIndex?: number;
   usedCardIndices?: number[];
   actionEvents?: Record<number, BattleEvent[]>;
-  [key: string]: unknown;
+  enemy?: EnemyUnit;
+  selected?: Card[];
 }
 
 /** 배틀 상태 (리듀서용) */
 export interface BattleStateObject {
   selected: Card[];
-  [key: string]: unknown;
+  hand?: Card[];
+  queue?: BattleAction[];
+  qIndex?: number;
+  turnNumber?: number;
 }
 
 /** 플레이어 전투 데이터 */
 export interface PlayerCombatData extends Combatant {
-  etherPts?: number;
-  etherOverflow?: number;
   etherMultiplier?: number;
   etherBan?: boolean;
   comboUsageCount?: Record<string, number>;
-  energy?: number;
-  maxEnergy?: number;
-  [key: string]: unknown;
+  hand?: Card[];
+  deck?: Card[];
+  discard?: Card[];
+  exhaust?: Card[];
+  timeline?: number;
+  maxTimeline?: number;
+  ether?: number;
+  energyPenalty?: number;
+  speedPenalty?: number;
+  drawPenalty?: number;
+  insightPenalty?: number;
 }
 
 /** 적 전투 데이터 */
 export interface EnemyCombatData extends Combatant {
-  etherPts?: number;
-  comboUsageCount?: Record<string, number>;
-  energy?: number;
-  maxEnergy?: number;
   units?: EnemyUnit[];
-  [key: string]: unknown;
+  ether?: number;
+  etherCapacity?: number;
+  shroud?: number;
+  deck?: string[];
+  cardsPerTurn?: number;
+  passives?: Record<string, unknown>;
+  isBoss?: boolean;
+  name?: string;
+  emoji?: string;
 }
 
 /** 적 계획 */
 export interface EnemyPlan {
   actions: Card[];
-  mode?: string | null;
+  mode: string | null;
   manuallyModified?: boolean;
-  [key: string]: unknown;
 }
 
 // ==================== 특수 효과 타입 ====================
@@ -381,17 +417,23 @@ export interface SpecialCard extends Card {
   _applyBurn?: boolean;
   _addGunJam?: boolean;
   __targetUnitId?: number;
-  [key: string]: unknown;
+  hits?: number;
+  counter?: number;
+  block?: number;
+  parryRange?: number;
+  parryPushAmount?: number;
+  createdBy?: string;
+  __sourceUnitId?: number;
+  __uid?: string;
+  __handUid?: string;
+  originalSpeedCost?: number;
+  instanceId?: string;
+  priorityWeight?: number;
 }
 
 /** 특수 효과용 행동자 */
 export interface SpecialActor extends Combatant {
-  def?: boolean;
-  agility?: number;
-  etherOverdriveActive?: boolean;
-  vulnMult?: number;
-  _persistentStrikeDamage?: number;
-  [key: string]: unknown;
+  // Combatant already has def, agility, etherOverdriveActive, vulnMult, _persistentStrikeDamage
 }
 
 /** 특수 효과용 큐 아이템 */
@@ -399,7 +441,9 @@ export interface SpecialQueueItem {
   actor: 'player' | 'enemy';
   sp?: number;
   card?: SpecialCard;
-  [key: string]: unknown;
+  idx?: number;
+  originalSpeed?: number;
+  finalSpeed?: number;
 }
 
 /** 특수 효과용 전투 컨텍스트 */
@@ -468,6 +512,10 @@ export interface NextTurnEffects {
   subSpecialBoost?: number;
   player?: Record<string, unknown>;
   enemy?: Record<string, unknown>;
+  blockNextTurn?: number;
+  healNextTurn?: number;
+  energyNextTurn?: number;
+  otherEffect?: unknown;
   [key: string]: unknown;
 }
 
@@ -502,13 +550,17 @@ export interface CriticalActor {
 /** 치명타 시스템용 카드 */
 export interface CriticalCard {
   special?: string | string[];
-  [key: string]: unknown;
+  damage?: number;
+  hits?: number;
+  type?: string;
+  traits?: string[];
 }
 
 /** 치명타 시스템용 전투 컨텍스트 */
 export interface CriticalBattleContext {
   guaranteedCrit?: boolean;
-  [key: string]: unknown;
+  currentSp?: number;
+  handSize?: number;
 }
 
 // ==================== 핵심 로직 타입 ====================
@@ -581,26 +633,18 @@ export interface ExecuteCardActionResult {
 
 /** 전투 행동자 (확장) */
 export interface CombatActor extends Combatant {
-  def?: boolean;
-  etherOverdriveActive?: boolean;
-  vulnMult?: number;
-  [key: string]: unknown;
+  // Combatant already has def, etherOverdriveActive, vulnMult
 }
 
 /** 전투 카드 (확장) */
 export interface CombatCard extends Card {
   isGhost?: boolean;
   hits?: number;
-  cardCategory?: any;
-  [key: string]: unknown;
 }
 
 /** 전투 컨텍스트 (확장) */
 export interface CombatBattleContext extends BattleContext {
-  remainingEnergy?: number;
-  enemyRemainingEnergy?: number;
-  allCards?: Card[];
-  [key: string]: unknown;
+  // BattleContext already has remainingEnergy, enemyRemainingEnergy, allCards
 }
 
 /** 전투 상태 */
@@ -681,20 +725,17 @@ export interface DefenseCard extends Card {
     value?: number;
   };
   counter?: number;
-  [key: string]: unknown;
+  block?: number;
 }
 
 /** 방어용 행동자 */
 export interface DefenseActor extends Combatant {
-  def?: boolean;
-  [key: string]: unknown;
+  // Combatant already has def
 }
 
 /** 방어용 전투 컨텍스트 */
 export interface DefenseBattleContext extends BattleContext {
-  currentSp?: number;
-  queue?: Array<{ actor: string; sp?: number }>;
-  currentQIndex?: number;
+  // queue is inherited from BattleContext
 }
 
 /** 승리 조건 결과 */
@@ -712,13 +753,15 @@ export interface PostCombatOptions {
 /** 승리/패배용 적 */
 export interface VictoryEnemy {
   hp: number;
-  [key: string]: unknown;
+  maxHp?: number;
+  etherPts?: number;
 }
 
 /** 승리/패배용 플레이어 */
 export interface VictoryPlayer {
   hp: number;
-  [key: string]: unknown;
+  maxHp?: number;
+  etherPts?: number;
 }
 
 /** 승리 체크 결과 */
@@ -750,11 +793,26 @@ export interface ReducerPlayerState {
   hp: number;
   maxHp: number;
   block: number;
-  tokens: TokenInstance[];
+  tokens: TokenState;
   energy: number;
   maxEnergy: number;
   strength?: number;
   agility?: number;
+  insight?: number;
+  counter?: number;
+  etherPts?: number;
+  maxSpeed?: number;
+  etherMultiplier?: number;
+  insightPenalty?: number;
+  comboUsageCount?: Record<string, number>;
+  def?: boolean;
+  vulnMult?: number;
+  etherOverdriveActive?: boolean;
+  etherOverflow?: number;
+  etherBan?: boolean;
+  energyPenalty?: number;
+  speedPenalty?: number;
+  drawPenalty?: number;
   [key: string]: unknown;
 }
 
@@ -763,8 +821,27 @@ export interface ReducerEnemyState {
   hp: number;
   maxHp: number;
   block: number;
-  tokens: TokenInstance[];
+  tokens: TokenState;
   units?: ReducerEnemyUnitState[];
+  etherPts?: number;
+  maxSpeed?: number;
+  name?: string;
+  emoji?: string;
+  shroud?: number;
+  cardsPerTurn?: number;
+  composition?: Array<{ count?: number; quantity?: number; name?: string; emoji?: string }>;
+  count?: number;
+  quantity?: number;
+  def?: boolean;
+  counter?: number;
+  vulnMult?: number;
+  etherOverdriveActive?: boolean;
+  deck?: string[];
+  passives?: Record<string, unknown>;
+  isBoss?: boolean;
+  ether?: number;
+  etherCapacity?: number;
+  comboUsageCount?: Record<string, number>;
   [key: string]: unknown;
 }
 
@@ -774,14 +851,24 @@ export interface ReducerEnemyUnitState {
   hp: number;
   maxHp: number;
   block: number;
-  tokens: TokenInstance[];
+  tokens: TokenState;
+  name?: string;
+  emoji?: string;
+  id?: string;
   [key: string]: unknown;
 }
 
 /** 다음 턴 효과 (리듀서) */
 export interface ReducerNextTurnEffects {
-  player: Record<string, unknown>;
-  enemy: Record<string, unknown>;
+  player?: Record<string, unknown>;
+  enemy?: Record<string, unknown>;
+  extraCardPlay?: number;
+  bonusEnergy?: number;
+  maxSpeedBonus?: number;
+  guaranteedCards?: string[];
+  blockNextTurn?: number;
+  healNextTurn?: number;
+  energyNextTurn?: number;
 }
 
 /** 피해 미리보기 */
@@ -813,9 +900,18 @@ export interface BattleInitialStateOverrides {
   isSimplified?: boolean;
   sortType?: 'speed' | 'cost' | 'order' | 'energy' | 'value' | 'type';
   phase?: string;
-  hand?: unknown[];
-  selected?: unknown[];
+  hand?: Card[];
+  selected?: Card[];
   canRedraw?: boolean;
   enemyIndex?: number;
+  deck?: Card[];
+  discardPile?: Card[];
+  enemyPlan?: EnemyPlan;
+  queue?: BattleAction[];
+  fixedOrder?: BattleAction[];
+  postCombatOptions?: PostCombatOptions | null;
+  log?: string[];
+  turnNumber?: number;
+  actionEvents?: Record<string, BattleEvent[]>;
   [key: string]: unknown;
 }

@@ -13,7 +13,7 @@ export type CardRarity = 'common' | 'rare' | 'special' | 'legendary';
 export type CardType = 'attack' | 'defense' | 'general' | 'support';
 
 /** 카드 카테고리 */
-export type CardCategory = 'fencing' | 'pistol' | 'guard' | 'misc';
+export type CardCategory = 'fencing' | 'pistol' | 'guard' | 'misc' | 'gun';
 
 /** 카드 특성 ID */
 export type CardTrait =
@@ -183,7 +183,6 @@ export interface TokenState {
   usage: TokenInstance[];
   turn: TokenInstance[];
   permanent: TokenInstance[];
-  [key: string]: TokenInstance[];
 }
 
 /** 토큰이 있는 엔티티 */
@@ -196,7 +195,9 @@ export interface TokenEntity {
   hp?: number;
   block?: number;
   counter?: number;
-  [key: string]: unknown;
+  energy?: number;
+  maxEnergy?: number;
+  etherPts?: number;
 }
 
 /** 토큰 조작 결과 */

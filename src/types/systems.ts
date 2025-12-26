@@ -336,12 +336,20 @@ export interface TurnEndEtherCombo {
 export interface TurnEndEtherPlayer {
   comboUsageCount?: ComboUsageCount;
   etherMultiplier?: number;
+  tokens?: TokenState;
+  hp?: number;
+  maxHp?: number;
+  block?: number;
   [key: string]: unknown;
 }
 
 /** 턴 종료 에테르용 적 */
 export interface TurnEndEtherEnemy {
   comboUsageCount?: ComboUsageCount;
+  tokens?: TokenState;
+  hp?: number;
+  maxHp?: number;
+  block?: number;
   [key: string]: unknown;
 }
 
