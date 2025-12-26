@@ -1074,7 +1074,7 @@ export interface ComboCard {
 }
 
 /** 콤보 감지 결과 */
-export interface ComboResult {
+export interface ComboDetectionResult {
   name: string;
   bonusKeys: Set<number> | null;
 }
@@ -2663,8 +2663,8 @@ export interface InsightBadge {
   key: number;
 }
 
-/** 적 계획 */
-export interface EnemyPlan {
+/** 적 계획 (모드 포함) */
+export interface EnemyPlanWithMode {
   actions: Card[];
   mode: string | null;
 }
@@ -2747,7 +2747,7 @@ export interface IconProps {
 }
 
 /** 토큰 상태 (UI용) */
-export interface TokenState {
+export interface TokenStateUI {
   usage: unknown[];
   turn: unknown[];
   permanent: unknown[];
@@ -2765,13 +2765,13 @@ export interface TokenData {
 }
 
 /** 토큰 엔티티 (UI용) */
-export interface TokenEntity {
+export interface TokenEntityUI {
   tokens?: TokenState;
   [key: string]: unknown;
 }
 
-/** 타임라인 액션 */
-export interface TimelineAction {
+/** 타임라인 액션 (UI 표시용) */
+export interface TimelineDisplayAction {
   sp: number;
   card: TimelineCard;
   actor?: string;
@@ -2870,8 +2870,8 @@ export interface StatInfo {
   description: string;
 }
 
-/** 손패 카드 */
-export interface HandCard {
+/** 손패 카드 (HandArea UI용) */
+export interface HandAreaCard {
   id: string;
   name: string;
   type: string;
@@ -2959,8 +2959,8 @@ export interface UIRelic {
   effects?: UIRelicEffect;
 }
 
-/** 상징 맵 */
-export interface RelicsMap {
+/** 상징 맵 (UI용) */
+export interface UIRelicsMap {
   [key: string]: UIRelic;
 }
 
@@ -2995,8 +2995,8 @@ export interface PopupCard {
   __uid?: string;
 }
 
-/** 캐릭터 빌드 */
-export interface CharacterBuild {
+/** 캐릭터 빌드 (단순 버전) */
+export interface CharacterBuildSimple {
   mainSpecial?: string;
   subSpecial?: string;
 }
@@ -3103,8 +3103,8 @@ export interface ExpectedDamageEnemy {
   [key: string]: unknown;
 }
 
-/** 시뮬레이션 결과 */
-export interface SimulationResult {
+/** 시뮬레이션 결과 (UI용) */
+export interface SimulationResultUI {
   pDealt: number | string;
   pTaken: number | string;
   finalEHp: number;
@@ -3112,10 +3112,7 @@ export interface SimulationResult {
   lines?: string[];
 }
 
-/** 전투 후 옵션 */
-export interface PostCombatOptions {
-  type: 'victory' | 'defeat';
-}
+// PostCombatOptions는 상단에 이미 정의됨 (라인 1838)
 
 // ==================== CentralPhaseDisplay 컴포넌트 타입 ====================
 
@@ -3472,8 +3469,8 @@ export interface ReflectionInfo {
 
 // ==================== MapTab 컴포넌트 타입 ====================
 
-/** 맵 노드 */
-export interface MapNode {
+/** 맵 노드 (MapTab용) */
+export interface MapTabNode {
   id: string;
   layer?: number;
   type: string;
@@ -3481,9 +3478,9 @@ export interface MapNode {
   cleared?: boolean;
 }
 
-/** 게임 맵 */
+/** 게임 맵 (MapTab용) */
 export interface GameMap {
-  nodes?: MapNode[];
+  nodes?: MapTabNode[];
   currentNodeId?: string;
 }
 
