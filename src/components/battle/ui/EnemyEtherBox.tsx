@@ -6,11 +6,7 @@
 
 import { FC } from 'react';
 import { DeflationBadge } from './DeflationBadge';
-import type { ComboInfo as EnemyCombo, InsightReveal, UIDeflation as Deflation } from '../../../types';
-
-interface Battle {
-  phase: string;
-}
+import type { ComboInfo as EnemyCombo, InsightReveal, UIDeflation as Deflation, PhaseBattle as Battle } from '../../../types';
 
 interface EnemyEtherBoxProps {
   enemyCombo: EnemyCombo | null;

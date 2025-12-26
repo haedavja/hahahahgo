@@ -2739,6 +2739,11 @@ export interface EtherCalcAnimActions {
 
 // ==================== UI 컴포넌트 타입 ====================
 
+/** 페이즈 전투 상태 (UI 컴포넌트용) */
+export interface PhaseBattle {
+  phase: string;
+}
+
 /** 아이콘 컴포넌트 Props */
 export interface IconProps {
   size?: number;

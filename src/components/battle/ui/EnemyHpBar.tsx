@@ -10,12 +10,9 @@ import type {
   PreviewDamage,
   TokenState,
   HpBarEnemy as Enemy,
-  GroupedEnemyMember
+  GroupedEnemyMember,
+  PhaseBattle as Battle
 } from '../../../types';
-
-interface Battle {
-  phase: string;
-}
 
 interface EnemyHpBarProps {
   battle: Battle;
