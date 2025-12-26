@@ -8,19 +8,7 @@
 import { FC, useState, MouseEvent } from "react";
 import { useCharacterSheet } from "./useCharacterSheet";
 import { CardManagementModal } from "./CardManagementModal";
-
-interface Ego {
-  name: string;
-  effects?: Record<string, number>;
-}
-
-interface ReflectionInfo {
-  id: string;
-  name: string;
-  emoji: string;
-  description: string;
-  finalProbability: number;
-}
+import type { CharacterEgo as Ego, ReflectionInfo } from '../../types';
 
 interface CharacterSheetProps {
   onClose: () => void;

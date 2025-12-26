@@ -3433,3 +3433,39 @@ export interface HoveredCard {
 export interface TooltipBattle {
   phase: string;
 }
+
+// ==================== RecallSelectionModal 컴포넌트 타입 ====================
+
+/** 회상 카드 */
+export interface RecallCard {
+  id: string;
+  name: string;
+  type: string;
+  actionCost: number;
+  speedCost: number;
+  damage?: number;
+  block?: number;
+  description?: string;
+}
+
+/** 회상 선택 상태 */
+export interface RecallSelection {
+  availableCards: RecallCard[];
+}
+
+// ==================== CharacterSheet 컴포넌트 타입 ====================
+
+/** 자아 정보 */
+export interface CharacterEgo {
+  name: string;
+  effects?: Record<string, number>;
+}
+
+/** 반영 정보 */
+export interface ReflectionInfo {
+  id: string;
+  name: string;
+  emoji: string;
+  description: string;
+  finalProbability: number;
+}

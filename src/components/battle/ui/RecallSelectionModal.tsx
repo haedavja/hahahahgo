@@ -5,22 +5,8 @@
  * 다음 턴에 가져올 카드를 선택하는 UI
  */
 
-import { FC, MouseEvent } from 'react';
-
-interface Card {
-  id: string;
-  name: string;
-  type: string;
-  actionCost: number;
-  speedCost: number;
-  damage?: number;
-  block?: number;
-  description?: string;
-}
-
-interface RecallSelection {
-  availableCards: Card[];
-}
+import { FC } from 'react';
+import type { RecallCard as Card, RecallSelection } from '../../../types';
 
 interface RecallSelectionModalProps {
   recallSelection: RecallSelection | null;
