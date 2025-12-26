@@ -101,7 +101,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
               에러 ID: {this.state.errorId}
             </p>
           )}
-          {(import.meta as any).env.DEV && this.state.error && (
+          {import.meta.env.DEV && this.state.error && (
             <pre style={{
               marginTop: '24px',
               padding: '16px',

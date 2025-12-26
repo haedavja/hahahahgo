@@ -5,6 +5,14 @@
 import { useMemo } from 'react';
 import { DUNGEON_NODE_TYPES, CONNECTION_TYPES } from '../../data/dungeonNodes';
 
+interface DungeonConnection {
+  targetId: string;
+  type?: string;
+  unlocked?: boolean;
+}
+
+type DungeonConnections = Record<string, DungeonConnection[]>;
+
 // 노드 타입별 색상
 const NODE_COLORS = {
   [DUNGEON_NODE_TYPES.ENTRANCE]: '#22c55e',   // 녹색
@@ -62,7 +70,7 @@ export function DungeonMinimap({ dungeonState, onNodeClick, playerStats }) {
     const offsetX = -bounds.minX;
     const offsetY = -bounds.minY;
 
-    Object.entries(connections as any).forEach(([fromId, conns]: [string, any]) => {
+    Object.entries(connections as DungeonConnections).forEach(([fromId, conns]) => {
       const fromNode = nodes.find(n => n.id === fromId);
       if (!fromNode || fromNode.x === undefined) return;
       if (fromNode.hidden && !discoveredHidden?.includes(fromId)) return;
