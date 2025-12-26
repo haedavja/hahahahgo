@@ -4,7 +4,60 @@
  */
 
 import type { StateCreator } from 'zustand';
-import type { Card, Relic, MapNode, Resources, ActiveEvent, ActiveDungeon } from '../../types';
+import type { Card, Relic, MapNode, Resources, ActiveEvent, ActiveDungeon, SimulationResult } from '../../types';
+
+// ==================== 전투 관련 타입 ====================
+
+/** 전투 카드 (인스턴스 ID 포함) */
+export interface BattleCard extends Card {
+  instanceId?: string;
+}
+
+/** 적 정보 */
+export interface EnemyInfo {
+  id: string;
+  name: string;
+  emoji?: string;
+  tier?: number;
+  isBoss?: boolean;
+}
+
+/** 전투 프리뷰 */
+export interface BattlePreview {
+  playerHand: BattleCard[];
+  enemyHand: BattleCard[];
+  timeline: unknown[];
+  tuLimit: number;
+}
+
+/** 아이템 효과 */
+export interface ItemEffect {
+  type: string;
+  value?: number;
+  stat?: string;
+}
+
+/** 전투 보상 정의 */
+export interface BattleRewards {
+  gold?: number | { min: number; max: number };
+  loot?: number;
+  intel?: number;
+  material?: number;
+  card?: number;
+}
+
+/** 전투 상태 스냅샷 */
+export interface BattleStateSnapshot {
+  player?: {
+    hp: number;
+    maxHp?: number;
+    block?: number;
+  };
+  enemy?: {
+    hp: number;
+    maxHp?: number;
+  };
+}
 
 // ==================== 상태 타입 정의 ====================
 
@@ -19,7 +72,6 @@ export interface PlayerStats {
   agility?: number;
   insight?: number;
   etherOverdriveActive?: boolean;
-  [key: string]: unknown;
 }
 
 /** 캐릭터 빌드 */
@@ -30,7 +82,6 @@ export interface CharacterBuild {
   traits: string[];
   egos: string[];
   ownedCards?: string[];
-  [key: string]: unknown;
 }
 
 /** 맵 상태 */
@@ -42,27 +93,27 @@ export interface MapState {
 
 /** 활성 전투 */
 export interface ActiveBattle {
-  enemy: unknown;
-  enemyGroup?: unknown;
   nodeId?: string;
-  rewards?: Record<string, unknown>;
   kind?: string;
   label?: string;
-  simulation?: unknown;
-  playerHand?: unknown[];
-  enemyHand?: unknown[];
+  difficulty?: number;
+  rewards?: BattleRewards;
+  simulation?: SimulationResult;
+  preview?: BattlePreview;
+  playerHand?: BattleCard[];
+  enemyHand?: BattleCard[];
   selectedCardIds?: string[];
   maxSelection?: number;
-  preview?: unknown;
   hasCharacterBuild?: boolean;
   characterBuild?: CharacterBuild | null;
-  playerDrawPile?: unknown[];
-  playerDiscardPile?: unknown[];
-  enemyDrawPile?: unknown[];
-  enemyDiscardPile?: unknown[];
-  enemyInfo?: unknown;
-  pendingItemEffects?: unknown[];
-  [key: string]: unknown;
+  playerLibrary?: BattleCard[];
+  playerDrawPile?: BattleCard[];
+  playerDiscardPile?: BattleCard[];
+  enemyLibrary?: BattleCard[];
+  enemyDrawPile?: BattleCard[];
+  enemyDiscardPile?: BattleCard[];
+  enemyInfo?: EnemyInfo;
+  pendingItemEffects?: ItemEffect[];
 }
 
 /** 아이템 */
@@ -71,12 +122,7 @@ export interface GameItem {
   name: string;
   description: string;
   usableIn: 'combat' | 'any';
-  effect: {
-    type: string;
-    value?: number;
-    stat?: string;
-    [key: string]: unknown;
-  };
+  effect: ItemEffect;
 }
 
 /** 자아 */
@@ -93,10 +139,10 @@ export interface LastBattleResult {
   label: string;
   result: 'victory' | 'defeat';
   log: string[];
-  finalState: unknown;
-  initialState: unknown;
-  rewards: Record<string, unknown>;
-  enemyInfo?: unknown;
+  finalState: BattleStateSnapshot | null;
+  initialState: BattleStateSnapshot | null;
+  rewards: Record<string, number>;
+  enemyInfo?: EnemyInfo;
 }
 
 // ==================== 슬라이스 상태 타입 ====================
@@ -115,7 +161,7 @@ export interface PlayerSliceState {
   playerEnergyBonus: number;
   extraSubSpecialSlots: number;
   resources: Resources;
-  itemBuffs: Record<string, unknown>;
+  itemBuffs: Record<string, number>;
 }
 
 /** 플레이어 슬라이스 액션 */
@@ -146,6 +192,23 @@ export interface DungeonSliceState {
   activeDungeon: ActiveDungeon | null;
 }
 
+/** 던전 데이터 */
+export interface DungeonData {
+  nodes?: Array<{ id: string; connections: string[]; visited?: boolean; cleared?: boolean; event?: unknown }>;
+  currentNodeId?: string;
+  timeElapsed?: number;
+  grid?: Record<string, { visited?: boolean; cleared?: boolean }>;
+}
+
+/** 던전 자원 델타 */
+export interface DungeonDeltas {
+  gold?: number;
+  intel?: number;
+  material?: number;
+  loot?: number;
+  etherPts?: number;
+}
+
 /** 던전 슬라이스 액션 */
 export interface DungeonSliceActions {
   confirmDungeon: () => void;
@@ -154,15 +217,34 @@ export interface DungeonSliceActions {
   bypassDungeon: () => void;
   completeDungeon: () => void;
   revealDungeonInfo: () => void;
-  setDungeonData: (dungeonData: unknown) => void;
+  setDungeonData: (dungeonData: DungeonData | null) => void;
   setDungeonPosition: (segmentIndex: number, playerX: number) => void;
   setCurrentRoomKey: (roomKey: string) => void;
-  updateMazeRoom: (roomKey: string, updates: unknown) => void;
-  setDungeonInitialResources: (initialResources: unknown) => void;
-  setDungeonDeltas: (dungeonDeltas: unknown) => void;
+  updateMazeRoom: (roomKey: string, updates: Partial<{ visited: boolean; cleared: boolean }>) => void;
+  setDungeonInitialResources: (initialResources: Partial<Resources>) => void;
+  setDungeonDeltas: (dungeonDeltas: DungeonDeltas) => void;
   navigateDungeonNode: (targetNodeId: string) => void;
   clearDungeonNode: (nodeId: string) => void;
   applyDungeonTimePenalty: (etherDecay: number) => void;
+}
+
+/** 전투 설정 */
+export interface BattleConfig {
+  nodeId?: string;
+  kind?: string;
+  label?: string;
+  enemyId?: string;
+  enemyHp?: number;
+  tier?: number;
+  rewards?: BattleRewards;
+}
+
+/** 전투 결과 */
+export interface BattleOutcome {
+  result?: 'victory' | 'defeat';
+  playerHp?: number;
+  playerMaxHp?: number;
+  damageDealt?: number;
 }
 
 /** 전투 슬라이스 상태 */
@@ -173,8 +255,8 @@ export interface BattleSliceState {
 
 /** 전투 슬라이스 액션 */
 export interface BattleSliceActions {
-  startBattle: (config?: unknown) => void;
-  resolveBattle: (outcome?: unknown) => void;
+  startBattle: (config?: BattleConfig) => void;
+  resolveBattle: (outcome?: BattleOutcome) => void;
   clearBattleResult: () => void;
   toggleBattleCard: (cardId: string) => void;
   commitBattlePlan: () => void;
@@ -185,7 +267,7 @@ export interface BattleSliceActions {
 export interface EventSliceState {
   activeEvent: ActiveEvent | null;
   completedEvents: string[];
-  pendingNextEvent: unknown | null;
+  pendingNextEvent: string | null;
 }
 
 /** 이벤트 슬라이스 액션 */
@@ -234,7 +316,7 @@ export interface ItemSliceState {
 export interface ItemSliceActions {
   addItem: (itemId: string) => void;
   removeItem: (slotIndex: number) => void;
-  useItem: (slotIndex: number, battleContext?: unknown) => void;
+  useItem: (slotIndex: number, battleContext?: ActiveBattle | null) => void;
   devSetItems: (itemIds: (string | null)[]) => void;
 }
 
