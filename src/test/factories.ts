@@ -531,3 +531,103 @@ export function cardBuilder(): CardBuilder {
 export function entityBuilder(): EntityBuilder {
   return new EntityBuilder();
 }
+
+// ==================== 전투 컨텍스트 팩토리 ====================
+
+/** 전투 컨텍스트 */
+export interface BattleContext {
+  playerAttackCards?: Card[];
+  enemyAttackCards?: Card[];
+  [key: string]: unknown;
+}
+
+/** 전투 컨텍스트 생성 */
+export function createBattleContext(overrides: Partial<BattleContext> = {}): BattleContext {
+  return {
+    playerAttackCards: [],
+    enemyAttackCards: [],
+    ...overrides,
+  };
+}
+
+/** 공격자/방어자 쌍 생성 */
+export function createCombatPair(
+  attackerOverrides: Partial<TokenEntity> = {},
+  defenderOverrides: Partial<TokenEntity> = {}
+): { attacker: TokenEntity; defender: TokenEntity } {
+  return {
+    attacker: createEntity(attackerOverrides),
+    defender: createEntity(defenderOverrides),
+  };
+}
+
+/** 플레이어/적 쌍 생성 */
+export function createPlayerEnemyPair(
+  playerOverrides: Partial<TokenEntity> = {},
+  enemyOverrides: Partial<TokenEntity> = {}
+): { player: TokenEntity; enemy: TokenEntity } {
+  return {
+    player: createPlayerEntity(playerOverrides),
+    enemy: createEnemyEntity(enemyOverrides),
+  };
+}
+
+// ==================== 특수 카드 팩토리 ====================
+
+/** 스페셜 카드 생성 */
+export function createSpecialCard(special: string, overrides: Partial<Card> = {}): Card {
+  return createCard({
+    special,
+    type: 'attack',
+    damage: 10,
+    ...overrides,
+  });
+}
+
+/** 트레이트 카드 생성 */
+export function createTraitCard(traits: Card['traits'], overrides: Partial<Card> = {}): Card {
+  return createCard({
+    traits,
+    ...overrides,
+  });
+}
+
+// ==================== 타임라인 팩토리 ====================
+
+/** 타임라인 배열 생성 */
+export function createTimeline(
+  entries: Array<{
+    actor?: 'player' | 'enemy';
+    sp?: number;
+    idx?: number;
+    card?: Partial<Card>;
+  }>
+): TimelineEntry[] {
+  return entries.map((entry, index) => {
+    const card = createCard(entry.card || {});
+    return {
+      actor: entry.actor ?? 'player',
+      sp: entry.sp ?? card.speedCost,
+      idx: entry.idx ?? index,
+      card,
+      originalSpeed: card.speedCost,
+      finalSpeed: entry.sp ?? card.speedCost,
+    };
+  });
+}
+
+/** 플레이어 타임라인 엔트리 생성 */
+export function createPlayerTimelineEntry(cardOverrides: Partial<Card> = {}): TimelineEntry {
+  return createTimelineEntry({
+    actor: 'player',
+    card: createCard(cardOverrides),
+  });
+}
+
+/** 적 타임라인 엔트리 생성 */
+export function createEnemyTimelineEntry(cardOverrides: Partial<Card> = {}): TimelineEntry {
+  return createTimelineEntry({
+    actor: 'enemy',
+    card: createCard(cardOverrides),
+  });
+}
