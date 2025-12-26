@@ -437,7 +437,7 @@ export interface ModalCard {
   block?: number;
   hits?: number;
   description?: string;
-  traits?: unknown[];
+  traits?: string[];
   _displayKey?: string;
   _type?: string;
 }

@@ -13,7 +13,8 @@ import type {
   BattleContext,
   CounterShotResult,
   SingleHitResult,
-  PreProcessedResult
+  PreProcessedResult,
+  SpecialCard
 } from '../../../types';
 import { hasTrait } from '../utils/battleUtils';
 import { applyTokenEffectsToCard, applyTokenEffectsOnDamage, consumeTokens } from '../../../lib/tokenEffects';
@@ -50,13 +51,13 @@ export function applyCounter(
   const enemyName = battleContext.enemyDisplayName || '몬스터';
   const cmsg = `${attackerName === 'player' ? `${enemyName} -> 플레이어` : `플레이어 -> ${enemyName}`} • 반격 ${actualCounterDmg} (체력 ${beforeHP} -> ${updatedAttacker.hp})`;
 
-  const event = { actor: 'counter', value: actualCounterDmg, msg: cmsg };
+  const event: BattleEvent = { actor: 'counter', value: actualCounterDmg, msg: cmsg };
   const log = `${attackerName === 'player' ? '👾' : '🔵'} ${cmsg}`;
 
   return {
     attacker: updatedAttacker,
     damage: actualCounterDmg,
-    events: [event as any],
+    events: [event],
     logs: [log]
   };
 }
@@ -155,7 +156,7 @@ export function calculateSingleHit(
     attackerConsumedTokens = [];
   } else {
     const preAttackResult = processPreAttackSpecials({
-      card: card as any,
+      card: card as SpecialCard,
       attacker,
       defender,
       attackerName,
