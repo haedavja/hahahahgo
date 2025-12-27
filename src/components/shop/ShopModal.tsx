@@ -16,10 +16,16 @@ import {
   generateShopInventory,
   getItemSellPrice,
   getServicePrice,
+  type MerchantTypeKey,
 } from '../../data/shop';
 import { BuyTab, SellTab, ServiceTab, CardRemovalModal } from './ShopTabs';
 
-export function ShopModal({ merchantType = 'shop', onClose }: any) {
+interface ShopModalProps {
+  merchantType?: MerchantTypeKey;
+  onClose: () => void;
+}
+
+export function ShopModal({ merchantType = 'shop', onClose }: ShopModalProps) {
   // 상태 셀렉터 (shallow 비교로 최적화)
   const { gold, relics, items, playerHp, maxHp, characterBuild, cardUpgrades } = useGameStore(
     useShallow((state) => ({
@@ -46,14 +52,14 @@ export function ShopModal({ merchantType = 'shop', onClose }: any) {
     }))
   );
 
-  const merchant = (MERCHANT_TYPES as any)[merchantType] || MERCHANT_TYPES.shop;
+  const merchant = MERCHANT_TYPES[merchantType] ?? MERCHANT_TYPES.shop;
 
   const [inventory, setInventory] = useState(() =>
     generateShopInventory(merchantType, relics, CARDS)
   );
-  const [purchasedRelics, setPurchasedRelics] = useState(new Set());
-  const [purchasedItems, setPurchasedItems] = useState(new Set());
-  const [purchasedCards, setPurchasedCards] = useState(new Set());
+  const [purchasedRelics, setPurchasedRelics] = useState<Set<string>>(new Set());
+  const [purchasedItems, setPurchasedItems] = useState<Set<string>>(new Set());
+  const [purchasedCards, setPurchasedCards] = useState<Set<string>>(new Set());
   const [activeTab, setActiveTab] = useState('buy');
   const [notification, setNotification] = useState<{ message: string; type: string } | null>(null);
   const [showCardRemovalModal, setShowCardRemovalModal] = useState(false);
@@ -107,7 +113,7 @@ export function ShopModal({ merchantType = 'shop', onClose }: any) {
     addResources({ gold: -price });
     addRelic(relicId);
     setPurchasedRelics((prev) => new Set([...prev, relicId]));
-    showNotification(`${(RELICS as any)[relicId]?.name}을(를) 구매했습니다!`, 'success');
+    showNotification(`${RELICS[relicId as keyof typeof RELICS]?.name}을(를) 구매했습니다!`, 'success');
   };
 
   const handleBuyItem = (itemId: any, price: any) => {
@@ -125,7 +131,7 @@ export function ShopModal({ merchantType = 'shop', onClose }: any) {
     addResources({ gold: -price });
     addItem(itemId);
     setPurchasedItems((prev) => new Set([...prev, itemId]));
-    showNotification(`${(ITEMS as any)[itemId]?.name}을(를) 구매했습니다!`, 'success');
+    showNotification(`${ITEMS[itemId as keyof typeof ITEMS]?.name}을(를) 구매했습니다!`, 'success');
   };
 
   const handleBuyCard = (cardId: any, price: any) => {
@@ -361,11 +367,11 @@ export function ShopModal({ merchantType = 'shop', onClose }: any) {
           {activeTab === 'buy' && (
             <BuyTab
               inventory={inventory}
-              purchasedRelics={purchasedRelics as any}
-              purchasedItems={purchasedItems as any}
-              purchasedCards={purchasedCards as any}
+              purchasedRelics={purchasedRelics}
+              purchasedItems={purchasedItems}
+              purchasedCards={purchasedCards}
               relics={relics}
-              items={items as any}
+              items={items as (string | null)[]}
               gold={gold}
               onBuyRelic={handleBuyRelic}
               onBuyItem={handleBuyItem}

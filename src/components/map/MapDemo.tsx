@@ -8,6 +8,7 @@ import { CharacterSheet } from "../character/CharacterSheet";
 import { DungeonExploration } from "../dungeon/DungeonExploration";
 import { BattleScreen } from "../battle/BattleScreen";
 import { ShopModal } from "../shop/ShopModal";
+import type { MerchantTypeKey } from "../../data/shop";
 import { EtherBar } from "../battle/ui/EtherBar";
 import { DevTools } from "../dev/DevTools";
 import { RelicsBar, RestModal, EventModal } from "./ui";
@@ -557,7 +558,7 @@ export function MapDemo() {
 
       {showCharacterSheet && <CharacterSheet onClose={() => actions.setShowCharacterSheet(false)} showAllCards={showAllCards} />}
 
-      {activeShop && <ShopModal merchantType={activeShop.merchantType || 'shop'} onClose={closeShop} />}
+      {activeShop && <ShopModal merchantType={(activeShop.merchantType || 'shop') as MerchantTypeKey} onClose={closeShop} />}
 
       {/* 개발자 도구 오버레이 */}
       <DevTools
