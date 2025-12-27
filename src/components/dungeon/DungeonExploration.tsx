@@ -5,7 +5,7 @@
  * 분리된 모듈: renderDungeon, useCrossroadChoice, usePlayerMovement
  */
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useShallow } from 'zustand/react/shallow';
 import type { DungeonObject } from "../../types";
 import { useDungeonState } from "./hooks/useDungeonState";
@@ -30,12 +30,13 @@ import { usePlayerMovement } from "./hooks/usePlayerMovement";
 import { useGameStore } from "../../state/gameStore";
 import { CharacterSheet } from "../character/CharacterSheet";
 import { RELICS, RELIC_RARITIES } from "../../data/relics";
-import { RELIC_RARITY_COLORS } from "../../lib/relics";
+import { RELIC_RARITY_COLORS, type RelicRarity } from "../../lib/relics";
 import { playVictorySound } from "../../lib/soundUtils";
 import "./dungeon.css";
 
 // 분리된 모듈들
 import { CONFIG, OBJECT_TYPES } from "./utils/dungeonConfig";
+import type { GameStore } from "../../state/slices/types";
 import { generateMaze } from "./utils/mazeGenerator";
 import { OBJECT_HANDLERS } from "./utils/dungeonHandlers";
 import { renderDungeonScene } from "./utils/renderDungeon";
@@ -45,7 +46,7 @@ import { RewardModal, DungeonSummaryModal, CrossroadModal } from "./ui/DungeonMo
 export function DungeonExploration() {
   // 상태 셀렉터 (그룹화)
   const { activeDungeon, lastBattleResult, relics, resources, playerHp, maxHp, devForcedCrossroad, playerInsight } = useGameStore(
-    useShallow((s: any) => ({
+    useShallow((s: GameStore) => ({
       activeDungeon: s.activeDungeon,
       lastBattleResult: s.lastBattleResult,
       relics: s.relics,
@@ -63,7 +64,7 @@ export function DungeonExploration() {
     skipDungeon, completeDungeon, startBattle, applyEtherDelta, addResources,
     clearBattleResult, setCurrentRoomKey, updateMazeRoom
   } = useGameStore(
-    useShallow((s: any) => ({
+    useShallow((s: GameStore) => ({
       setDungeonData: s.setDungeonData,
       setDungeonPosition: s.setDungeonPosition,
       setDungeonInitialResources: s.setDungeonInitialResources,
@@ -82,7 +83,7 @@ export function DungeonExploration() {
   // 던전 데이터 생성 (한 번만)
   useEffect(() => {
     if (activeDungeon && !activeDungeon.dungeonData) {
-      const mazeData = generateMaze(devForcedCrossroad as any);
+      const mazeData = generateMaze(devForcedCrossroad);
       setDungeonData(mazeData);
     }
   }, [activeDungeon, setDungeonData, devForcedCrossroad]);
@@ -234,10 +235,12 @@ export function DungeonExploration() {
     // 오브젝트 상호작용
     for (const obj of segment.objects || []) {
       if (Math.abs(playerX - obj.x) < 80) {
-        const objType = (OBJECT_TYPES as any)[obj.typeId.toUpperCase()];
+        const typeKey = obj.typeId.toUpperCase() as keyof typeof OBJECT_TYPES;
+        const objType = OBJECT_TYPES[typeKey];
         if (obj.used && !objType?.canReuse) continue;
 
-        const handler = (OBJECT_HANDLERS as any)[obj.typeId];
+        const handlerKey = obj.typeId as keyof typeof OBJECT_HANDLERS;
+        const handler = OBJECT_HANDLERS[handlerKey];
         if (handler) {
           handler(obj, {
             applyEtherDelta,
@@ -358,17 +361,18 @@ export function DungeonExploration() {
             borderRadius: '12px',
             boxShadow: '0 0 15px rgba(148, 163, 184, 0.3)',
           }}>
-            {relics.map((relicId: any, index: any) => {
-              const relic = (RELICS as any)[relicId];
+            {relics.map((relicId: string, index: number) => {
+              const relic = RELICS[relicId as keyof typeof RELICS];
               if (!relic) return null;
 
               const isHovered = hoveredRelic === relicId;
-              const rarityText = ({
-                [RELIC_RARITIES.COMMON]: '일반',
-                [RELIC_RARITIES.RARE]: '희귀',
-                [RELIC_RARITIES.SPECIAL]: '특별',
-                [RELIC_RARITIES.LEGENDARY]: '전설'
-              } as any)[relic.rarity] || '알 수 없음';
+              const rarityTextMap: Record<string, string> = {
+                [RELIC_RARITIES.COMMON as string]: '일반',
+                [RELIC_RARITIES.RARE as string]: '희귀',
+                [RELIC_RARITIES.SPECIAL as string]: '특별',
+                [RELIC_RARITIES.LEGENDARY as string]: '전설'
+              };
+              const rarityText = rarityTextMap[relic.rarity as string] || '알 수 없음';
 
               return (
                 <div key={index} style={{ position: 'relative' }}>
@@ -388,34 +392,37 @@ export function DungeonExploration() {
                     <span>{relic.emoji}</span>
                   </div>
 
-                  {isHovered && (
-                    <div style={{
-                      position: 'absolute',
-                      top: '100%',
-                      left: '50%',
-                      transform: 'translateX(-50%)',
-                      marginTop: '8px',
-                      background: 'rgba(15, 23, 42, 0.98)',
-                      border: `2px solid ${(RELIC_RARITY_COLORS as any)[relic.rarity]}`,
-                      borderRadius: '8px',
-                      padding: '12px 16px',
-                      minWidth: '220px',
-                      boxShadow: `0 4px 20px ${(RELIC_RARITY_COLORS as any)[relic.rarity]}66`,
-                      zIndex: 1000,
-                      pointerEvents: 'none'
-                    }}>
-                      <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: (RELIC_RARITY_COLORS as any)[relic.rarity], marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <span style={{ fontSize: '1.3rem' }}>{relic.emoji}</span>
-                        {relic.name}
+                  {isHovered && (() => {
+                    const rarityColor = RELIC_RARITY_COLORS[relic.rarity as RelicRarity] || '#94a3b8';
+                    return (
+                      <div style={{
+                        position: 'absolute',
+                        top: '100%',
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                        marginTop: '8px',
+                        background: 'rgba(15, 23, 42, 0.98)',
+                        border: `2px solid ${rarityColor}`,
+                        borderRadius: '8px',
+                        padding: '12px 16px',
+                        minWidth: '220px',
+                        boxShadow: `0 4px 20px ${rarityColor}66`,
+                        zIndex: 1000,
+                        pointerEvents: 'none'
+                      }}>
+                        <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: rarityColor, marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <span style={{ fontSize: '1.3rem' }}>{relic.emoji}</span>
+                          {relic.name}
+                        </div>
+                        <div style={{ fontSize: '0.8rem', color: rarityColor, opacity: 0.8, marginBottom: '8px' }}>
+                          {rarityText}
+                        </div>
+                        <div style={{ fontSize: '0.9rem', color: '#e2e8f0', lineHeight: '1.5' }}>
+                          {relic.description}
+                        </div>
                       </div>
-                      <div style={{ fontSize: '0.8rem', color: (RELIC_RARITY_COLORS as any)[relic.rarity], opacity: 0.8, marginBottom: '8px' }}>
-                        {rarityText}
-                      </div>
-                      <div style={{ fontSize: '0.9rem', color: '#e2e8f0', lineHeight: '1.5' }}>
-                        {relic.description}
-                      </div>
-                    </div>
-                  )}
+                    );
+                  })()}
                 </div>
               );
             })}
@@ -560,7 +567,7 @@ export function DungeonExploration() {
           }}
           onClick={() => actions.setShowCharacter(false)}
         >
-          <div onClick={(e: any) => e.stopPropagation()}>
+          <div onClick={(e: React.MouseEvent) => e.stopPropagation()}>
             <CharacterSheet onClose={() => actions.setShowCharacter(false)} />
           </div>
         </div>

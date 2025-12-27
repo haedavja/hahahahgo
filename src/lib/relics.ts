@@ -14,6 +14,7 @@ import { getRelicById } from '../data/relics';
 export const RELIC_RARITY = {
   COMMON: 'common',
   RARE: 'rare',
+  SPECIAL: 'special',
   LEGENDARY: 'legendary',
   DEV: 'dev',  // 개발자 전용
 } as const;
@@ -115,6 +116,7 @@ export function applyRelicComboMultiplier(
 export const RELIC_RARITY_COLORS: Record<RelicRarity, string> = {
   [RELIC_RARITY.COMMON]: '#94a3b8',     // 회색
   [RELIC_RARITY.RARE]: '#60a5fa',       // 파랑
+  [RELIC_RARITY.SPECIAL]: '#a855f7',    // 보라 (특별)
   [RELIC_RARITY.LEGENDARY]: '#fbbf24',  // 금색
   [RELIC_RARITY.DEV]: '#ef4444',        // 빨강 (개발자용)
 };
