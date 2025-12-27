@@ -4,7 +4,7 @@
  */
 
 import type { ComboExplainResult } from '../../../types';
-import { RELICS } from "../../../data/relics";
+import { getRelicById } from "../../../data/relics";
 import { applyRelicComboMultiplier } from "../../../lib/relics";
 import { calculatePassiveEffects } from "../../../lib/relicEffects";
 
@@ -23,8 +23,8 @@ export function computeComboMultiplier(
   const order = relicOrderOverride || orderedRelicList;
   const passive = calculatePassiveEffects(order);
 
-  order.forEach((rid: any) => {
-    const relic = (RELICS as any)[rid];
+  order.forEach((rid) => {
+    const relic = getRelicById(rid);
     if (!relic?.effects) return;
     if (relic.effects.comboMultiplierPerCard || relic.effects.etherMultiplier) {
       mult = applyRelicComboMultiplier([rid], mult, cardsCount);
@@ -32,8 +32,8 @@ export function computeComboMultiplier(
   });
 
   if (includeRefBook && passive.etherCardMultiplier && cardsCount > 0) {
-    order.forEach((rid: any) => {
-      const relic = (RELICS as any)[rid];
+    order.forEach((rid) => {
+      const relic = getRelicById(rid);
       if (!relic?.effects?.etherCardMultiplier) return;
       mult *= (1 + cardsCount * 0.1);
     });
@@ -41,8 +41,8 @@ export function computeComboMultiplier(
 
   if (includeFiveCard && passive.etherFiveCardBonus > 0 && cardsCount >= 5) {
     // 개별 상징의 etherFiveCardBonus 적용 (각각 다를 수 있음)
-    order.forEach((rid: any) => {
-      const relic = (RELICS as any)[rid];
+    order.forEach((rid) => {
+      const relic = getRelicById(rid);
       if (!relic?.effects?.etherFiveCardBonus) return;
       mult *= relic.effects.etherFiveCardBonus;
     });
@@ -67,8 +67,8 @@ export function explainComboMultiplier(
   const steps: string[] = [`기본: ${mult.toFixed(2)}`];
   const passive = calculatePassiveEffects(order);
 
-  order.forEach((rid: any) => {
-    const relic = (RELICS as any)[rid];
+  order.forEach((rid) => {
+    const relic = getRelicById(rid);
     if (!relic?.effects) return;
     if (relic.effects.comboMultiplierPerCard || relic.effects.etherMultiplier) {
       const prev = mult;
@@ -78,8 +78,8 @@ export function explainComboMultiplier(
   });
 
   if (includeRefBook && passive.etherCardMultiplier && cardsCount > 0) {
-    order.forEach((rid: any) => {
-      const relic = (RELICS as any)[rid];
+    order.forEach((rid) => {
+      const relic = getRelicById(rid);
       if (!relic?.effects?.etherCardMultiplier) return;
       const prev = mult;
       mult *= (1 + cardsCount * 0.1);
@@ -89,8 +89,8 @@ export function explainComboMultiplier(
 
   if (includeFiveCard && passive.etherFiveCardBonus > 0 && cardsCount >= 5) {
     // 개별 상징의 etherFiveCardBonus 적용 (각각 다를 수 있음)
-    order.forEach((rid: any) => {
-      const relic = (RELICS as any)[rid];
+    order.forEach((rid) => {
+      const relic = getRelicById(rid);
       if (!relic?.effects?.etherFiveCardBonus) return;
       const prev = mult;
       mult *= relic.effects.etherFiveCardBonus;
