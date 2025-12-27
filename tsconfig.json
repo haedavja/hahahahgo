@@ -12,22 +12,21 @@
     "jsx": "react-jsx",
 
     /**
-     * 점진적 도입을 위한 설정
+     * TypeScript Strict Mode - 완전 활성화
      *
-     * 현재 상태:
-     * - strictFunctionTypes: ✅ 활성화
-     * - strictBindCallApply: ✅ 활성화
-     * - strictNullChecks: ✅ 활성화
-     * - noImplicitAny: ✅ 활성화
-     * - strict: ❌ ~500 오류 (추정)
+     * 포함 옵션:
+     * - strictFunctionTypes
+     * - strictBindCallApply
+     * - strictNullChecks
+     * - noImplicitAny
+     * - strictPropertyInitialization
+     * - noImplicitThis
+     * - alwaysStrict
+     * - useUnknownInCatchVariables
      */
-    "strict": false,
+    "strict": true,
     "allowJs": true,
     "checkJs": false,
-    "noImplicitAny": true,
-    "strictNullChecks": true,
-    "strictFunctionTypes": true,
-    "strictBindCallApply": true,
 
     // 경로 설정
     "baseUrl": ".",
