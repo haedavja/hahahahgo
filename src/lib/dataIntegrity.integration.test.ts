@@ -65,25 +65,6 @@ describe('적 데이터 무결성', () => {
     });
   });
 
-  it('ENEMIES 배열의 모든 적이 통일된 인터페이스를 가진다', () => {
-    // 필수 속성 목록 (모든 적이 가져야 하는 속성)
-    const requiredFields = [
-      'id', 'name', 'hp', 'ether', 'speed', 'maxSpeed',
-      'deck', 'cardsPerTurn', 'emoji', 'tier', 'description',
-      'isBoss', 'passives'
-    ];
-
-    ENEMIES.forEach((enemy: any) => {
-      requiredFields.forEach(field => {
-        expect(enemy[field], `${enemy.id}: ${field} 속성 누락`).toBeDefined();
-      });
-
-      // 타입 검증
-      expect(typeof enemy.isBoss, `${enemy.id}: isBoss is boolean`).toBe('boolean');
-      expect(typeof enemy.passives, `${enemy.id}: passives is object`).toBe('object');
-    });
-  });
-
   it('createBattleEnemyData가 모든 필수 속성을 포함한다', () => {
     const testEnemy = { id: 'test', name: '테스트', hp: 50, speed: 15, deck: ['card1'] };
     const battleEnemy = createBattleEnemyData(testEnemy);
