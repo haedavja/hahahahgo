@@ -157,18 +157,6 @@ export interface DamageModifier {
   value: number;
 }
 
-/** 단일 타격 결과 */
-export interface SingleHitResult {
-  attacker: Combatant;
-  defender: Combatant;
-  damage: number;
-  damageTaken?: number;
-  blockDestroyed?: number;
-  events: BattleEvent[];
-  logs: string[];
-  preProcessedResult?: PreProcessedResult | null;
-}
-
 /** 사전 처리 결과 */
 export interface PreProcessedResult {
   modifiedCard: Card;
