@@ -972,20 +972,6 @@ export const ENEMY_GROUPS = [
     nodeRange: [4, 7],
     enemies: ["deserter"]
   },
-  {
-    id: "deserter_marauders",
-    name: "탈영병과 약탈자들",
-    tier: 2,
-    nodeRange: [4, 7],
-    enemies: ["deserter", "marauder", "marauder"]
-  },
-  {
-    id: "slurthim_ghouls",
-    name: "오염된 구울들",
-    tier: 2,
-    nodeRange: [4, 10],
-    enemies: ["slurthim", "ghoul", "ghoul"]
-  },
 
   // === 후반 노드 (8-10) ===
   {
@@ -1001,13 +987,6 @@ export const ENEMY_GROUPS = [
     tier: 2,
     nodeRange: [8, 10],
     enemies: ["marauder", "marauder", "marauder", "marauder"]
-  },
-  {
-    id: "deserter_army",
-    name: "탈영병의 부하들",
-    tier: 2,
-    nodeRange: [8, 10],
-    enemies: ["deserter", "marauder", "marauder", "marauder"]
   },
 
   // === 보스급 ===
