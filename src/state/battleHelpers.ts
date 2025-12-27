@@ -108,6 +108,7 @@ export const createBattleEnemyData = (enemy: any): EnemyInfo => ({
   maxHp: enemy?.maxHp || enemy?.hp || 40,
   ether: enemy?.ether || 100,
   speed: enemy?.speed || 10,
+  maxSpeed: enemy?.maxSpeed || enemy?.speed || 10,
   deck: Array.isArray(enemy?.deck) ? enemy.deck : [],
   cardsPerTurn: enemy?.cardsPerTurn || 2,
   passives: enemy?.passives || {},

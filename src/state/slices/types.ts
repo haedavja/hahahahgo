@@ -22,6 +22,7 @@ export interface EnemyInfo {
   maxHp?: number;
   ether?: number;
   speed?: number;
+  maxSpeed?: number;
   deck?: string[];
   cardsPerTurn?: number;
   passives?: Record<string, any>;

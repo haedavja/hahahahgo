@@ -60,6 +60,7 @@ describe('적 데이터 무결성', () => {
     expect(battleEnemy.hp).toBe(50);
     expect(battleEnemy.maxHp).toBe(50);
     expect(battleEnemy.speed).toBe(15);
+    expect(battleEnemy.maxSpeed).toBe(15); // speed를 폴백으로 사용
     expect(battleEnemy.deck).toEqual(['card1']);
     expect(battleEnemy.isBoss).toBe(false);
   });
@@ -70,6 +71,7 @@ describe('적 데이터 무결성', () => {
     expect(battleEnemy.hp).toBe(40);
     expect(battleEnemy.maxHp).toBe(40);
     expect(battleEnemy.speed).toBe(10);
+    expect(battleEnemy.maxSpeed).toBe(10); // 기본 speed와 동일
     expect(Array.isArray(battleEnemy.deck)).toBe(true);
     expect(battleEnemy.isBoss).toBe(false);
   });

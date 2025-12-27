@@ -304,7 +304,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       etherOverdriveActive: false,
       strength: 0,
       shroud: safeInitialEnemy.shroud ?? 0,
-      maxSpeed: safeInitialEnemy.maxSpeed ?? DEFAULT_ENEMY_MAX_SPEED,
+      maxSpeed: safeInitialEnemy.maxSpeed ?? safeInitialEnemy.speed ?? DEFAULT_ENEMY_MAX_SPEED,
       tokens: { usage: [], turn: [], permanent: [] }
     } as unknown as EnemyState) : undefined,
     phase: 'select',
@@ -898,7 +898,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   useEffect(() => {
     if (!enemy) {
       const e = ENEMIES[enemyIndex];
-      actions.setEnemy({ ...e, hp: e.hp, maxHp: e.hp, vulnMult: 1, vulnTurns: 0, block: 0, counter: 0, etherPts: 0, etherOverdriveActive: false, maxSpeed: (e as { maxSpeed?: number }).maxSpeed ?? DEFAULT_ENEMY_MAX_SPEED, tokens: { usage: [], turn: [], permanent: [] } });
+      actions.setEnemy({ ...e, hp: e.hp, maxHp: e.hp, vulnMult: 1, vulnTurns: 0, block: 0, counter: 0, etherPts: 0, etherOverdriveActive: false, maxSpeed: (e as { maxSpeed?: number; speed?: number }).maxSpeed ?? (e as { speed?: number }).speed ?? DEFAULT_ENEMY_MAX_SPEED, tokens: { usage: [], turn: [], permanent: [] } });
 
       // 전투 시작 상징 효과 로그 및 애니메이션
       const combatStartEffects = applyCombatStartEffects(orderedRelicList, {});
