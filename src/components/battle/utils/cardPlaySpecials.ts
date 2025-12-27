@@ -52,7 +52,22 @@ export function processCardPlaySpecials({
   const tokensToRemove: TokenToAdd[] = [];
   let nextTurnEffects: NextTurnEffects | null = null;
 
-  const { hand = [], allCards = [] } = battleContext;
+  const { hand = [], allCards = [], currentTurn, currentSp } = battleContext;
+  const grantedAtBase = currentTurn ? { turn: currentTurn, sp: currentSp || 0 } : null;
+
+  // === appliedTokens: 카드에 정의된 토큰 자동 적용 ===
+  if (card.appliedTokens && Array.isArray(card.appliedTokens)) {
+    const who = attackerName === 'player' ? '플레이어' : '몬스터';
+    for (const tokenInfo of card.appliedTokens) {
+      const targetEnemy = tokenInfo.target === 'enemy';
+      const stacks = tokenInfo.stacks || 1;
+      tokensToAdd.push({ id: tokenInfo.id, stacks, grantedAt: grantedAtBase, targetEnemy });
+
+      const tokenData = TOKENS[tokenInfo.id];
+      const tokenName = tokenData?.name || tokenInfo.id;
+      logs.push(`✨ ${who} (${card.name}): ${tokenName} +${stacks} 획득`);
+    }
+  }
 
   // === 교차 특성: 타임라인에서 적 카드와 겹치면 보너스 효과 ===
   const hasCrossTrait = card.traits && card.traits.includes('cross');
