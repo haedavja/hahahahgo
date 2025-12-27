@@ -25,7 +25,7 @@ import { hasTrait } from './battleUtils';
  * 포커 조합 감지
  */
 export function detectPokerCombo(cards: ComboCard[]): ComboCalculation | null {
-  if (!cards || cards.length === 0) return null;
+  if (!cards || !Array.isArray(cards) || cards.length === 0) return null;
 
   // 소외 (outcast) 특성 카드와 유령카드는 조합 계산에서 제외
   const validCards = cards.filter(c => !hasTrait(c, 'outcast') && !c.isGhost);
