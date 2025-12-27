@@ -68,6 +68,7 @@ import { usePhaseTransition } from "./hooks/usePhaseTransition";
 import { useResolveExecution } from "./hooks/useResolveExecution";
 import { useBreachSelection } from "./hooks/useBreachSelection";
 import { useTurnStartEffects } from "./hooks/useTurnStartEffects";
+import { useBattleInitialization } from "./hooks/useBattleInitialization";
 import {
   MAX_SPEED,
   DEFAULT_PLAYER_MAX_SPEED,
@@ -181,145 +182,57 @@ interface GameProps {
 }
 
 function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, liveInsight }: GameProps): JSX.Element | null {
-  const playerStrength = useGameStore((state) => state.playerStrength || 0);
-  const playerAgility = useGameStore((state) => state.playerAgility || 0);
-  const relics = useGameStore((state) => state.relics || []);
-  const devDulledLevel = useGameStore((state) => state.devDulledLevel ?? null);
-  const devForcedAnomalies = useGameStore((state) => state.devForcedAnomalies ?? null);
-  const mapRisk = useGameStore((state) => state.mapRisk || 0);
+  // 스토어에서 필요한 추가 상태만 가져오기 (초기화 훅에 없는 것들)
   const playerTraits = useGameStore((state) => state.playerTraits || []);
   const playerEgos = useGameStore((state) => state.playerEgos || []);
-  // 개발자 모드: characterBuild 변경 감지
   const devCharacterBuild = useGameStore((state) => state.characterBuild);
-  // 개발자 모드: 전투 중 토큰 추가
   const devBattleTokens = useGameStore((state) => state.devBattleTokens);
   const devClearBattleTokens = useGameStore((state) => state.devClearBattleTokens);
-  const mergeRelicOrder = useCallback((relicList: string[] = [], saved: string[] = []): string[] => {
-    const savedSet = new Set(saved);
-    const merged: string[] = [];
-    // 1) 저장된 순서 중 현재 보유 중인 것만 유지
-    saved.forEach(id => { if (relicList.includes(id)) merged.push(id); });
-    // 2) 새로 생긴 상징은 현재 보유 순서대로 뒤에 추가
-    relicList.forEach(id => { if (!savedSet.has(id)) merged.push(id); });
-    return merged;
-  }, []);
 
-  // Keep orderedRelics with useState for localStorage logic
-  const [orderedRelics, setOrderedRelics] = useState<string[]>(() => {
-    try {
-      const saved = localStorage.getItem('relicOrder');
-      if (saved) {
-        const ids = JSON.parse(saved);
-        if (Array.isArray(ids) && ids.length) return mergeRelicOrder(relics, ids);
-      }
-    } catch { /* ignore */ }
-    return relics || [];
+  // 전투 초기화 훅 사용 - 플레이어/적 초기 상태, 이변, 상징 효과 등 계산
+  const {
+    initialPlayerState,
+    initialEnemyState,
+    activeAnomalies,
+    showAnomalyNotification,
+    setShowAnomalyNotification,
+    orderedRelics,
+    orderedRelicList,
+    setOrderedRelics,
+    passiveRelicStats,
+    effectiveAgility,
+    effectiveCardDrawBonus,
+    effectiveMaxSubmitCards: baseMaxSubmitCards,
+    baseMaxEnergy,
+    startingEther,
+    startingBlock,
+    startingStrength,
+    startingInsight,
+    initialSortType,
+    initialIsSimplified,
+    enemyCount,
+    isBoss,
+  } = useBattleInitialization({
+    initialPlayer,
+    initialEnemy,
+    playerEther,
   });
-  useEffect(() => {
-    try {
-      localStorage.setItem('relicOrder', JSON.stringify(orderedRelics));
-    } catch { /* ignore */ }
-  }, [orderedRelics]);
-  const orderedRelicList = orderedRelics && orderedRelics.length ? orderedRelics : relics;
 
-  // 이변 시스템: 전투 시작 시 이변 선택
-  const [activeAnomalies, setActiveAnomalies] = useState<AnomalyWithLevel[]>([]);
-  const [showAnomalyNotification, setShowAnomalyNotification] = useState(false);
-
+  // 안전한 초기값 (훅 내부에서도 사용되지만 일부 로직에 필요)
   const safeInitialPlayer = initialPlayer ?? {} as Partial<BattlePayload['player']>;
   const safeInitialEnemy = initialEnemy ?? {} as Partial<BattlePayload['enemy']>;
-  const enemyCount = safeInitialEnemy.enemyCount ?? 1; // Extract enemy count for multi-enemy battles
-
-  // 이변 선택 및 적용 (전투 시작 전)
-  const isBoss = safeInitialEnemy.type === 'boss' || safeInitialEnemy.isBoss;
-  const selectedAnomalies = useMemo(() => {
-    return selectBattleAnomalies(mapRisk, isBoss, devForcedAnomalies);
-  }, [mapRisk, isBoss, devForcedAnomalies]);
-
-  // 이변 효과를 초기 플레이어 상태에 적용
-  const playerWithAnomalies = useMemo(() => {
-    if (selectedAnomalies.length === 0) return safeInitialPlayer;
-    const anomalyResult = applyAnomalyEffects(selectedAnomalies, safeInitialPlayer, useGameStore.getState());
-    return anomalyResult.player;
-  }, [selectedAnomalies, safeInitialPlayer]);
-
-  const passiveRelicStats = calculatePassiveEffects(orderedRelicList);
-  // 전투 시작 에너지는 payload에서 계산된 값을 신뢰하고, 없을 때만 기본값 사용
-  const baseEnergy = (playerWithAnomalies.energy as number) ?? BASE_PLAYER_ENERGY;
-  // 이변 패널티를 고려한 최대 행동력 계산
-  const energyPenalty = (playerWithAnomalies.energyPenalty as number) || 0;
-  const baseMaxEnergy = Math.max(0, ((playerWithAnomalies.maxEnergy as number) ?? baseEnergy) - energyPenalty);
-  // 민첩도 payload에 값이 있으면 우선 사용하고, 없으면 스토어 값을 사용
-  const effectiveAgility = Number(playerWithAnomalies.agility ?? playerAgility) || 0;
-  const effectiveCardDrawBonus = passiveRelicStats.cardDrawBonus || 0;
-  // 슈퍼-장갑 상징: 최대 카드 제출 수 (0이면 기본값 5 사용)
-  const baseMaxSubmitCards = passiveRelicStats.maxSubmitCards > 0
-    ? passiveRelicStats.maxSubmitCards
-    : MAX_SUBMIT_CARDS + (passiveRelicStats.extraCardPlay || 0);
-  const startingEther = typeof playerWithAnomalies.etherPts === 'number' ? playerWithAnomalies.etherPts : playerEther;
-  const startingBlock = playerWithAnomalies.block ?? 0; // 상징 효과로 인한 시작 방어력
-  const startingStrength = playerWithAnomalies.strength ?? playerStrength ?? 0; // 전투 시작 힘 (상징 효과 포함)
-  const startingInsight = playerWithAnomalies.insight ?? 0; // 통찰
-
-  const initialPlayerState = {
-    hp: playerWithAnomalies.hp ?? 30,
-    maxHp: playerWithAnomalies.maxHp ?? playerWithAnomalies.hp ?? 30,
-    energy: baseEnergy,
-    maxEnergy: baseMaxEnergy,
-    vulnMult: 1,
-    vulnTurns: 0,
-    block: startingBlock,
-    def: false,
-    counter: 0,
-    etherPts: startingEther ?? 0,
-    etherOverflow: 0,
-    etherOverdriveActive: false,
-    comboUsageCount: {},
-    strength: startingStrength,
-    insight: startingInsight,
-    // 이변 패널티와 상징 효과를 고려한 최대 속도 계산
-    maxSpeed: Math.max(0, ((playerWithAnomalies.maxSpeed as number) ?? DEFAULT_PLAYER_MAX_SPEED) + (passiveRelicStats.maxSpeed || 0) + (passiveRelicStats.speed || 0) - ((playerWithAnomalies.speedPenalty as number) || 0)),
-    tokens: playerWithAnomalies.tokens || { usage: [], turn: [], permanent: [] },
-    // 이변 효과 플래그 보존
-    etherBan: playerWithAnomalies.etherBan || false,
-    energyPenalty: playerWithAnomalies.energyPenalty || 0,
-    speedPenalty: playerWithAnomalies.speedPenalty || 0,
-    drawPenalty: playerWithAnomalies.drawPenalty || 0,
-    insightPenalty: playerWithAnomalies.insightPenalty || 0
-  };
 
   // Initialize battle state with useReducer
   const { battle, actions } = useBattleState({
     player: initialPlayerState as unknown as PlayerState,
     enemyIndex: 0,
-    enemy: safeInitialEnemy?.name
-      ? (createReducerEnemyState({
-          ...safeInitialEnemy,
-          shroud: safeInitialEnemy.shroud ?? 0,
-          strength: 0,
-        } as Parameters<typeof createReducerEnemyState>[0]) as unknown as EnemyState)
-      : undefined,
+    enemy: initialEnemyState as EnemyState | undefined,
     phase: 'select',
     hand: [],
     selected: [],
     canRedraw: true,
-    sortType: (() => {
-      try {
-        const saved = localStorage.getItem('battleSortType');
-        const validTypes: SortType[] = ['speed', 'energy', 'value', 'type', 'cost', 'order'];
-        return (validTypes.includes(saved as SortType) ? saved : 'speed') as SortType;
-      } catch {
-        return 'speed' as SortType;
-      }
-    })(),
-    isSimplified: (() => {
-      try {
-        const saved = localStorage.getItem('battleIsSimplified');
-        return saved === 'true';
-      } catch {
-        return false;
-      }
-    })(),
+    sortType: initialSortType,
+    isSimplified: initialIsSimplified,
     enemyPlan: { actions: [], mode: null },
     fixedOrder: undefined,
     postCombatOptions: null,
@@ -865,20 +778,19 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const anomalyNotificationShownRef = useRef(false);
 
   useEffect(() => {
-    if (enemy && selectedAnomalies.length > 0 && !anomalyNotificationShownRef.current) {
+    // activeAnomalies는 useBattleInitialization 훅에서 제공 (상태 동기화 완료됨)
+    if (enemy && activeAnomalies.length > 0 && !anomalyNotificationShownRef.current) {
 
       // 이변 로그 추가
-      selectedAnomalies.forEach(({ anomaly, level }) => {
+      activeAnomalies.forEach(({ anomaly, level }) => {
         const effect = anomaly.getEffect(level);
         addLog(`⚠️ ${anomaly.emoji} ${anomaly.name} (Lv.${level}): ${effect.description}`);
       });
 
-      // 이변 알림 표시
-      setActiveAnomalies(selectedAnomalies);
-      setShowAnomalyNotification(true);
+      // 이변 알림 표시 (훅에서 이미 setShowAnomalyNotification(true) 호출됨)
       anomalyNotificationShownRef.current = true;
     }
-  }, [enemy, selectedAnomalies]);
+  }, [enemy, activeAnomalies]);
 
   useEffect(() => {
     if (!enemy) {
