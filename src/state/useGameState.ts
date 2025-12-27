@@ -81,12 +81,17 @@ const shuffle = <T>(list: T[]): T[] => {
 
 const randomInt = (min: number, max: number): number => Math.floor(Math.random() * (max - min + 1)) + min;
 
-const nearestByColumn = (nodes: MapNodeGenerated[], column: number): MapNodeGenerated =>
-  nodes.reduce((closest: NearestResult | null, node: MapNodeGenerated) => {
+const nearestByColumn = (nodes: MapNodeGenerated[], column: number): MapNodeGenerated => {
+  if (nodes.length === 0) {
+    throw new Error('nearestByColumn: nodes array is empty');
+  }
+  const result = nodes.reduce((closest: NearestResult | null, node: MapNodeGenerated) => {
     const diff = Math.abs(node.column - column);
     if (!closest || diff < closest.diff) return { node, diff };
     return closest;
-  }, null as NearestResult | null)!.node;
+  }, null as NearestResult | null);
+  return result!.node;
+};
 
 const generateLayerColumns = (layerIdx: number): number[] => {
   if (layerIdx === 0 || layerIdx === MAP_LAYERS - 1) return [Math.floor(MAP_COLUMNS / 2)];
@@ -189,9 +194,10 @@ const generateMap = (): GeneratedMap => {
     }
   });
 
+  // startNode는 이미 위에서 찾았으므로 재사용 (layer 0이 항상 존재함이 보장됨)
   return {
     nodes: flatNodes,
-    currentNodeId: flatNodes.find((node: MapNodeGenerated) => node.layer === 0)!.id,
+    currentNodeId: startNode?.id || flatNodes[0]?.id || 'L0-N0',
   };
 };
 

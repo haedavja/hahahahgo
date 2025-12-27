@@ -139,7 +139,8 @@ export function getPatternAction(enemyId: any, turnNumber: any, enemyHp: any, ma
   }
 
   if (config.type === 'phase') {
-    const hpPercent = (enemyHp / maxHp) * 100;
+    // maxHp가 0이면 100%로 처리 (0으로 나누기 방지)
+    const hpPercent = maxHp > 0 ? (enemyHp / maxHp) * 100 : 100;
     // HP 임계값 이하인 페이즈 중 가장 낮은 것 선택
     const phase = [...config.phases]
       .sort((a, b) => a.hpThreshold - b.hpThreshold)
@@ -248,7 +249,8 @@ export function getCurrentPhase(enemyId: any, enemyHp: any, maxHp: any) {
   const config = (ENEMY_PATTERNS as any)[enemyId];
   if (!config || config.type !== 'phase') return null;
 
-  const hpPercent = (enemyHp / maxHp) * 100;
+  // maxHp가 0이면 100%로 처리 (0으로 나누기 방지)
+  const hpPercent = maxHp > 0 ? (enemyHp / maxHp) * 100 : 100;
   const phase = [...config.phases]
     .sort((a, b) => a.hpThreshold - b.hpThreshold)
     .find(p => hpPercent <= p.hpThreshold);
