@@ -25,3 +25,6 @@ export * from './ui';
 
 // ==================== Enemy Types (통합) ====================
 export * from './enemy';
+
+// ==================== Dungeon Types ====================
+export * from './dungeon';

@@ -7,7 +7,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useShallow } from 'zustand/react/shallow';
-import type { DungeonObject } from "../../types";
+import type { DungeonObject, RenderDungeonSceneParams } from "../../types";
 import { useDungeonState } from "./hooks/useDungeonState";
 
 /** 미로 방 타입 */
@@ -182,6 +182,7 @@ export function DungeonExploration() {
     if (!canvas || !segment) return;
 
     const ctx = canvas.getContext("2d");
+    if (!ctx) return;
     renderDungeonScene({
       ctx,
       segment,
@@ -194,7 +195,7 @@ export function DungeonExploration() {
       resources,
       playerHp,
       maxHp,
-    });
+    } as unknown as RenderDungeonSceneParams);
   }, [segment, playerX, cameraX, playerHp, maxHp, playerY, resources, grid, currentRoomKey, mazeData]);
 
   // 던전 완료

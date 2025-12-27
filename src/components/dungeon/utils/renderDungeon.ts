@@ -1,5 +1,5 @@
 /**
- * @file renderDungeon.js
+ * @file renderDungeon.ts
  * @description 던전 Canvas 렌더링 로직
  *
  * ## 렌더링 레이어
@@ -16,18 +16,46 @@
 
 import { CONFIG, OBJECT_TYPES } from './dungeonConfig';
 import { calculateEtherSlots, getCurrentSlotPts, getSlotProgress, getNextSlotCost } from '../../../lib/etherUtils';
+import type {
+  RoomType,
+  Direction,
+  DungeonExit,
+  RenderDungeonRoom,
+  RenderDungeonGrid,
+  RenderDungeonSegment,
+  RenderDungeonObject,
+  RenderMazeData,
+  DoorPosition,
+  DoorPositions,
+  DungeonResources,
+  RenderDungeonSceneParams,
+  RoomColorMap,
+  DirectionArrows,
+} from '../../../types/dungeon';
+
+// ========== 색상 상수 ==========
+
+const BG_COLORS: RoomColorMap = {
+  entrance: "#1a2a1a",
+  exit: "#2a1a2a",
+  hidden: "#2a2a1a",
+  normal: "#16213e",
+};
+
+const ROOM_LABELS: RoomColorMap = {
+  entrance: "입구",
+  exit: "출구",
+  hidden: "비밀의 방",
+  normal: "",
+};
+
+// ========== 렌더링 함수 ==========
 
 /**
  * 배경 및 바닥 렌더링
  */
-function renderBackground(ctx: any, segment: any) {
-  const bgColors: any = {
-    entrance: "#1a2a1a",
-    exit: "#2a1a2a",
-    hidden: "#2a2a1a",
-    normal: "#16213e",
-  };
-  ctx.fillStyle = bgColors[segment.roomType] || bgColors.normal;
+function renderBackground(ctx: CanvasRenderingContext2D, segment: RenderDungeonSegment): void {
+  ctx.fillStyle = BG_COLORS[segment.roomType] || BG_COLORS.normal;
   ctx.fillRect(0, 0, CONFIG.VIEWPORT.width, CONFIG.VIEWPORT.height);
 
   // 벽 텍스처 (상단)
@@ -42,19 +70,12 @@ function renderBackground(ctx: any, segment: any) {
 /**
  * 방 유형 라벨 렌더링
  */
-function renderRoomLabel(ctx: any, segment: any) {
-  const roomLabels: any = {
-    entrance: "입구",
-    exit: "출구",
-    hidden: "비밀의 방",
-    normal: "",
-  };
-
+function renderRoomLabel(ctx: CanvasRenderingContext2D, segment: RenderDungeonSegment): void {
   if (segment.roomType !== 'normal') {
     ctx.fillStyle = segment.roomType === 'exit' ? "#22c55e" : "#fbbf24";
     ctx.font = "bold 24px Arial";
     ctx.textAlign = "center";
-    ctx.fillText(roomLabels[segment.roomType] || "", CONFIG.VIEWPORT.width / 2, 60);
+    ctx.fillText(ROOM_LABELS[segment.roomType] || "", CONFIG.VIEWPORT.width / 2, 60);
   }
 
   if (segment.isDeadEnd) {
@@ -68,7 +89,14 @@ function renderRoomLabel(ctx: any, segment: any) {
 /**
  * 단일 문 렌더링
  */
-function renderDoor(ctx: any, dir: any, pos: any, exit: any, grid: any, segment: any) {
+function renderDoor(
+  ctx: CanvasRenderingContext2D,
+  dir: Direction,
+  pos: DoorPosition,
+  exit: DungeonExit | null | undefined,
+  grid: RenderDungeonGrid,
+  segment: RenderDungeonSegment
+): void {
   if (!exit) {
     // 문 없음 - 벽 표시
     ctx.fillStyle = "#1e293b";
@@ -85,7 +113,7 @@ function renderDoor(ctx: any, dir: any, pos: any, exit: any, grid: any, segment:
   const isVisited = targetRoom && targetRoom.visited;
 
   // 문 색상 결정
-  let doorColor;
+  let doorColor: string;
   if (isHidden) {
     doorColor = isDiscovered ? "#8b5cf6" : "#4b5563";
   } else if (isVisited) {
@@ -96,7 +124,7 @@ function renderDoor(ctx: any, dir: any, pos: any, exit: any, grid: any, segment:
     doorColor = "#3b82f6";
   }
 
-  const arrows: any = {
+  const arrows: DirectionArrows = {
     north: isVisited ? "↩" : "▲",
     south: isVisited ? "↩" : "▼",
     west: isVisited ? "↩" : "◀",
@@ -138,7 +166,15 @@ function renderDoor(ctx: any, dir: any, pos: any, exit: any, grid: any, segment:
   ctx.shadowBlur = 0;
 }
 
-function renderNorthDoor(ctx: any, pos: any, doorColor: any, isHidden: any, isDiscovered: any, arrow: any, glowSize: any) {
+function renderNorthDoor(
+  ctx: CanvasRenderingContext2D,
+  pos: DoorPosition,
+  doorColor: string,
+  isHidden: boolean,
+  isDiscovered: boolean,
+  arrow: string,
+  glowSize: number
+): void {
   const doorW = 120, doorH = 70;
 
   const gradient = ctx.createRadialGradient(pos.x, pos.y + doorH/2, 0, pos.x, pos.y + doorH/2, doorW);
@@ -163,7 +199,15 @@ function renderNorthDoor(ctx: any, pos: any, doorColor: any, isHidden: any, isDi
   ctx.fillText(arrow, pos.x, pos.y + doorH/2 + 10);
 }
 
-function renderSouthDoor(ctx: any, pos: any, doorColor: any, isHidden: any, isDiscovered: any, arrow: any, glowSize: any) {
+function renderSouthDoor(
+  ctx: CanvasRenderingContext2D,
+  pos: DoorPosition,
+  doorColor: string,
+  isHidden: boolean,
+  isDiscovered: boolean,
+  arrow: string,
+  glowSize: number
+): void {
   const doorW = 120, doorH = 80;
 
   const gradient = ctx.createRadialGradient(pos.x, pos.y + doorH/2, 0, pos.x, pos.y + doorH/2, doorW);
@@ -188,7 +232,16 @@ function renderSouthDoor(ctx: any, pos: any, doorColor: any, isHidden: any, isDi
   ctx.fillText(arrow, pos.x, pos.y + doorH/2 + 10);
 }
 
-function renderSideDoor(ctx: any, dir: any, pos: any, doorColor: any, isHidden: any, isDiscovered: any, arrow: any, glowSize: any) {
+function renderSideDoor(
+  ctx: CanvasRenderingContext2D,
+  dir: Direction,
+  pos: DoorPosition,
+  doorColor: string,
+  isHidden: boolean,
+  isDiscovered: boolean,
+  arrow: string,
+  glowSize: number
+): void {
   const doorW = 80, doorH = 140;
   const doorX = dir === 'west' ? 0 : CONFIG.VIEWPORT.width - doorW;
 
@@ -206,11 +259,7 @@ function renderSideDoor(ctx: any, dir: any, pos: any, doorColor: any, isHidden: 
   ctx.fillRect(doorX, pos.y - doorH/2, doorW, doorH);
 
   ctx.fillStyle = isHidden && !isDiscovered ? "#374151" : "#0f172a";
-  if (dir === 'west') {
-    ctx.fillRect(doorX + 8, pos.y - doorH/2 + 10, doorW - 16, doorH - 20);
-  } else {
-    ctx.fillRect(doorX + 8, pos.y - doorH/2 + 10, doorW - 16, doorH - 20);
-  }
+  ctx.fillRect(doorX + 8, pos.y - doorH/2 + 10, doorW - 16, doorH - 20);
 
   ctx.fillStyle = "#ffffff";
   ctx.font = "bold 28px Arial";
@@ -221,15 +270,15 @@ function renderSideDoor(ctx: any, dir: any, pos: any, doorColor: any, isHidden: 
 /**
  * 4방향 문 렌더링
  */
-function renderDoors(ctx: any, segment: any, grid: any) {
-  const doorPositions: any = {
+function renderDoors(ctx: CanvasRenderingContext2D, segment: RenderDungeonSegment, grid: RenderDungeonGrid): void {
+  const doorPositions: DoorPositions = {
     north: { x: CONFIG.VIEWPORT.width / 2 + 200, y: 100, label: "북쪽" },
     south: { x: CONFIG.VIEWPORT.width / 2 - 200, y: CONFIG.FLOOR_Y - 50, label: "남쪽" },
     west: { x: 80, y: CONFIG.FLOOR_Y / 2 + 80, label: "서쪽" },
     east: { x: CONFIG.VIEWPORT.width - 80, y: CONFIG.FLOOR_Y / 2 + 80, label: "동쪽" },
   };
 
-  Object.entries(doorPositions).forEach(([dir, pos]: any) => {
+  (Object.entries(doorPositions) as [Direction, DoorPosition][]).forEach(([dir, pos]) => {
     const exit = segment.exits[dir];
     renderDoor(ctx, dir, pos, exit, grid, segment);
   });
@@ -238,12 +287,12 @@ function renderDoors(ctx: any, segment: any, grid: any) {
 /**
  * 오브젝트 렌더링
  */
-function renderObjects(ctx: any, segment: any, cameraX: any) {
-  (segment.objects || []).forEach((obj: any) => {
+function renderObjects(ctx: CanvasRenderingContext2D, segment: RenderDungeonSegment, cameraX: number): void {
+  (segment.objects || []).forEach((obj: RenderDungeonObject) => {
     const screenX = obj.x - cameraX;
     if (screenX < -100 || screenX > CONFIG.VIEWPORT.width + 100) return;
 
-    const objType = (OBJECT_TYPES as any)[obj.typeId.toUpperCase()];
+    const objType = (OBJECT_TYPES as Record<string, { canReuse: boolean; render: Function }>)[obj.typeId.toUpperCase()];
     if (!objType) return;
 
     ctx.save();
@@ -268,7 +317,12 @@ function renderObjects(ctx: any, segment: any, cameraX: any) {
 /**
  * 미니맵 렌더링
  */
-function renderMinimap(ctx: any, grid: any, currentRoomKey: any, mazeData: any) {
+function renderMinimap(
+  ctx: CanvasRenderingContext2D,
+  grid: RenderDungeonGrid,
+  currentRoomKey: string,
+  mazeData: RenderMazeData | null
+): void {
   const gridSize = mazeData?.gridSize || CONFIG.MAZE.GRID_SIZE;
   const cellSize = 24;
   const minimapPadding = 15;
@@ -291,7 +345,7 @@ function renderMinimap(ctx: any, grid: any, currentRoomKey: any, mazeData: any) 
   ctx.fillText("미로 지도", minimapX + minimapW / 2, minimapY - 8);
 
   // 연결선 먼저 그리기
-  Object.entries(grid).forEach(([key, room]: any) => {
+  Object.entries(grid).forEach(([_key, room]) => {
     if (!room.visited && !room.discovered) return;
 
     const cellX = minimapX + minimapPadding + room.x * cellSize;
@@ -299,7 +353,7 @@ function renderMinimap(ctx: any, grid: any, currentRoomKey: any, mazeData: any) 
     const centerX = cellX + cellSize / 2;
     const centerY = cellY + cellSize / 2;
 
-    Object.entries(room.exits).forEach(([dir, exit]: any) => {
+    (Object.entries(room.exits) as [Direction, DungeonExit | null][]).forEach(([dir, exit]) => {
       if (!exit) return;
 
       const targetRoom = grid[exit.targetKey];
@@ -330,7 +384,7 @@ function renderMinimap(ctx: any, grid: any, currentRoomKey: any, mazeData: any) 
   });
 
   // 방 그리기
-  Object.entries(grid).forEach(([key, room]: any) => {
+  Object.entries(grid).forEach(([key, room]) => {
     const cellX = minimapX + minimapPadding + room.x * cellSize;
     const cellY = minimapY + minimapPadding + room.y * cellSize;
 
@@ -375,7 +429,7 @@ function renderMinimap(ctx: any, grid: any, currentRoomKey: any, mazeData: any) 
 
   // 탐험률 표시
   const totalRooms = Object.keys(grid).length;
-  const visitedRooms = Object.values(grid).filter((r: any) => r.visited).length;
+  const visitedRooms = Object.values(grid).filter((r) => r.visited).length;
   ctx.fillStyle = "#94a3b8";
   ctx.font = "10px Arial";
   ctx.textAlign = "center";
@@ -385,7 +439,7 @@ function renderMinimap(ctx: any, grid: any, currentRoomKey: any, mazeData: any) 
 /**
  * 플레이어 렌더링
  */
-function renderPlayer(ctx: any, playerX: any, playerY: any, cameraX: any) {
+function renderPlayer(ctx: CanvasRenderingContext2D, playerX: number, playerY: number, cameraX: number): void {
   const playerScreenX = playerX - cameraX;
   ctx.fillStyle = "#3498db";
   ctx.fillRect(
@@ -399,7 +453,15 @@ function renderPlayer(ctx: any, playerX: any, playerY: any, cameraX: any) {
 /**
  * 플레이어 상태 바 렌더링 (에테르, HP)
  */
-function renderPlayerBars(ctx: any, playerX: any, playerY: any, cameraX: any, resources: any, playerHp: any, maxHp: any) {
+function renderPlayerBars(
+  ctx: CanvasRenderingContext2D,
+  playerX: number,
+  playerY: number,
+  cameraX: number,
+  resources: DungeonResources,
+  playerHp: number,
+  maxHp: number
+): void {
   const playerScreenX = playerX - cameraX;
   const etherPts = resources.etherPts || 0;
   const etherSlots = calculateEtherSlots(etherPts);
@@ -457,7 +519,7 @@ export function renderDungeonScene({
   resources,
   playerHp,
   maxHp,
-}: any) {
+}: RenderDungeonSceneParams): void {
   ctx.clearRect(0, 0, CONFIG.VIEWPORT.width, CONFIG.VIEWPORT.height);
 
   renderBackground(ctx, segment);
