@@ -590,13 +590,15 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     }
   }, []);
 
-  const flashRelic = (relicId: any, tone = 800, duration = 500) => {
+  const flashRelic = (relicId: string, tone = 800, duration = 500) => {
     const nextSet = new Set(activeRelicSet);
     nextSet.add(relicId);
     actions.setActiveRelicSet(nextSet);
     actions.setRelicActivated(relicId);
     const relic = RELICS[relicId as keyof typeof RELICS];
-    if (relic?.effects && ((relic.effects as any).comboMultiplierPerCard || (relic.effects as any).etherCardMultiplier || (relic.effects as any).etherMultiplier || (relic.effects as any).etherFiveCardBonus)) {
+    // 에테르 배율 관련 효과가 있는 상징인 경우 배율 펄스 표시
+    const effects = relic?.effects as { comboMultiplierPerCard?: number; etherCardMultiplier?: boolean; etherMultiplier?: number; etherFiveCardBonus?: number } | undefined;
+    if (effects && (effects.comboMultiplierPerCard || effects.etherCardMultiplier || effects.etherMultiplier || effects.etherFiveCardBonus)) {
       actions.setMultiplierPulse(true);
       setTimeout(() => actions.setMultiplierPulse(false), Math.min(400, duration));
     }
@@ -1691,11 +1693,11 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         addLog(`🔥 화상: 플레이어 -${burnDamage} HP`);
         actionEvents.push({
           actor: 'player',
-          card: a.card.name as any,
+          card: String(a.card.name || ''),
           type: 'burn',
           dmg: burnDamage,
           msg: `🔥 화상: 플레이어 -${burnDamage} HP`
-        } as any);
+        });
         // battleRef 동기 업데이트
         if (battleRef.current) {
           battleRef.current = { ...battleRef.current, player: P };
@@ -1709,11 +1711,11 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         addLog(`🔥 화상: 적 -${burnDamage} HP`);
         actionEvents.push({
           actor: 'enemy',
-          card: a.card.name as any,
+          card: String(a.card.name || ''),
           type: 'burn',
           dmg: burnDamage,
           msg: `🔥 화상: 적 -${burnDamage} HP`
-        } as any);
+        });
         // battleRef 동기 업데이트
         if (battleRef.current) {
           battleRef.current = { ...battleRef.current, enemy: E };

@@ -123,7 +123,7 @@ export interface EnemyIntent {
 /** 전투 이벤트 */
 export interface BattleEvent {
   actor: 'player' | 'enemy' | 'system' | 'counter' | 'relic' | string;
-  type?: 'damage' | 'heal' | 'block' | 'token' | 'ether' | 'card' | 'multihit' | 'hit' | 'blocked' | 'pierce';
+  type?: 'damage' | 'heal' | 'block' | 'token' | 'ether' | 'card' | 'multihit' | 'hit' | 'blocked' | 'pierce' | 'burn';
   value?: number;
   msg: string;
   targetId?: string;

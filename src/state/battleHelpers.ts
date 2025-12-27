@@ -103,7 +103,7 @@ export const resolveEnemyDeck = (kind: string): string[] =>
  */
 export const createBattleEnemyData = (enemy: any): EnemyInfo => {
   // 개발 모드에서 누락된 필수 필드 경고
-  if (process.env.NODE_ENV !== 'production') {
+  if (import.meta.env.DEV) {
     if (!enemy?.id) {
       console.warn('[createBattleEnemyData] 적 ID 누락:', enemy);
     }
@@ -150,7 +150,7 @@ export const createReducerEnemyState = (
   _options?: { fromEnemiesArray?: boolean }
 ): ReducerEnemyInit => {
   // 개발 모드에서 누락된 필수 필드 경고
-  if (process.env.NODE_ENV !== 'production') {
+  if (import.meta.env.DEV) {
     if (!enemyData.hp && !enemyData.maxHp) {
       console.warn('[createReducerEnemyState] 적 HP 누락 - 기본값 40 사용:', enemyData.name || 'unknown');
     }
