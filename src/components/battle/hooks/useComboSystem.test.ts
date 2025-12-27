@@ -159,8 +159,9 @@ describe('useComboSystem', () => {
         playerComboUsageCount: { pair: 1 }
       }));
 
+      // 디플레이션 배율 0.8 (20% 감소/회) - applyEtherDeflation과 동일
       expect(mockActions.setCurrentDeflation).toHaveBeenCalledWith({
-        multiplier: 0.5,
+        multiplier: 0.8,
         usageCount: 1
       });
     });

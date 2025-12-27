@@ -78,7 +78,7 @@ export function applyDefense(
 
   const baseBlock = hologramBlock > 0
     ? hologramBlock + strengthBonus + growingDefenseBonus
-    : ((defCard.defense || 0) + strengthBonus + growingDefenseBonus);
+    : ((defCard.block || defCard.defense || 0) + strengthBonus + growingDefenseBonus);
   const added = Math.floor(baseBlock * crossBlockMult);
   const after = prev + added;
 
