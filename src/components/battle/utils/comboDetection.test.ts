@@ -269,3 +269,18 @@ describe('applyPokerBonus', () => {
     expect(result[1]._combo).toBeUndefined();
   });
 });
+
+describe('엣지 케이스 (이전 버그 방지)', () => {
+  it('객체(비배열) 입력이면 null 반환', () => {
+    const notAnArray = { actionCost: 2, type: 'attack' };
+    expect(detectPokerCombo(notAnArray as any)).toBeNull();
+  });
+
+  it('문자열 입력이면 null 반환', () => {
+    expect(detectPokerCombo('not-an-array' as any)).toBeNull();
+  });
+
+  it('숫자 입력이면 null 반환', () => {
+    expect(detectPokerCombo(123 as any)).toBeNull();
+  });
+});

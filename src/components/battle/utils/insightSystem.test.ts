@@ -154,5 +154,28 @@ describe('insightSystem', () => {
       expect(result.actions![2].isFirst).toBe(false);
       expect(result.actions![2].isLast).toBe(true);
     });
+
+    // 엣지 케이스 테스트 (이전 버그 방지)
+    it('적 행동이 객체(비배열)이면 level 0을 반환해야 함', () => {
+      const notAnArray = { card: { name: 'Attack' } };
+      const result = getInsightRevealLevel(3, notAnArray as any);
+
+      expect(result.level).toBe(0);
+      expect(result.visible).toBe(false);
+    });
+
+    it('적 행동이 문자열이면 level 0을 반환해야 함', () => {
+      const result = getInsightRevealLevel(3, 'not-an-array' as any);
+
+      expect(result.level).toBe(0);
+      expect(result.visible).toBe(false);
+    });
+
+    it('적 행동이 undefined이면 level 0을 반환해야 함', () => {
+      const result = getInsightRevealLevel(3, undefined as any);
+
+      expect(result.level).toBe(0);
+      expect(result.visible).toBe(false);
+    });
   });
 });
