@@ -25,6 +25,7 @@ import {
 import type { MapNode, ActiveEvent, Resources, ResolverSimulationResult } from "../types";
 import type { HandCard, InflatedCard, TimelineEntry } from "../lib/speedQueue";
 import type { MapState, CharacterBuild, BattleRewards, EnemyInfo } from "./slices/types";
+import type { EnemyDefinition, EnemyBattleState, EnemyUnitState } from "../types/enemy";
 
 // ==================== 타입 정의 ====================
 
@@ -119,35 +120,16 @@ export const createBattleEnemyData = (enemy: any): EnemyInfo => ({
 /**
  * 리듀서용 적 상태 초기화 (BattleApp에서 사용)
  * 단일/다수 적 모두 동일한 units 배열 구조로 생성
+ *
+ * @deprecated ReducerEnemyInit 대신 EnemyBattleState 사용 권장
  */
-export interface ReducerEnemyInit {
-  hp: number;
-  maxHp: number;
-  maxSpeed: number;
-  vulnMult: number;
-  vulnTurns: number;
-  block: number;
-  counter: number;
-  etherPts: number;
-  etherCapacity: number;
-  etherOverdriveActive: boolean;
-  tokens: { usage: unknown[]; turn: unknown[]; permanent: unknown[] };
-  units: Array<{
-    unitId: number;
-    id?: string;
-    name?: string;
-    emoji?: string;
-    hp: number;
-    maxHp: number;
-    block: number;
-    tokens: { usage: unknown[]; turn: unknown[]; permanent: unknown[] };
-  }>;
-  [key: string]: unknown;
-}
+export type ReducerEnemyInit = EnemyBattleState & {
+  units: EnemyUnitState[];
+};
 
 export const createReducerEnemyState = (
-  enemyData: Partial<EnemyInfo> & { units?: unknown[] },
-  options?: { fromEnemiesArray?: boolean }
+  enemyData: Partial<EnemyDefinition> & Partial<EnemyBattleState> & { units?: unknown[] },
+  _options?: { fromEnemiesArray?: boolean }
 ): ReducerEnemyInit => {
   const hp = enemyData.hp ?? enemyData.maxHp ?? 40;
   const maxHp = enemyData.maxHp ?? hp;
@@ -156,11 +138,11 @@ export const createReducerEnemyState = (
   const ether = enemyData.ether ?? 100;
 
   // units 배열 생성: 기존 units가 있으면 사용, 없으면 단일 유닛으로 생성
-  let units: ReducerEnemyInit['units'];
+  let units: EnemyUnitState[];
 
   if (enemyData.units && Array.isArray(enemyData.units) && enemyData.units.length > 0) {
     // 기존 units 배열 사용 (BattlePayload에서 온 경우)
-    units = enemyData.units as ReducerEnemyInit['units'];
+    units = enemyData.units as EnemyUnitState[];
   } else {
     // 단일 적: units 배열로 감싸기
     units = [{

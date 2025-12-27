@@ -22,3 +22,6 @@ export * from './battle';
 
 // ==================== UI Component Types ====================
 export * from './ui';
+
+// ==================== Enemy Types (통합) ====================
+export * from './enemy';

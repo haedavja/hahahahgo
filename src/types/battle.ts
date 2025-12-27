@@ -51,6 +51,8 @@ export interface BattleEnemyUnit {
   isBoss?: boolean;
   block: number;
   tokens: TokenState;
+  /** 추가 속성 허용 (EnemyUnitState 호환) */
+  [key: string]: unknown;
 }
 
 /** 적 구성 */
