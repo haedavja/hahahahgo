@@ -129,6 +129,7 @@ const buildBattlePayload = (
             individualCardsPerTurn: e.cardsPerTurn || 2,
             passives: e.passives || {},
             tier: e.tier || 1,
+            isBoss: e.isBoss || false,
             unitId: 0,
             block: 0,
             tokens: { permanent: [], turn: [], usage: [] },

@@ -192,6 +192,7 @@ export const createDevActions: SliceCreator = (set) => ({
           cardsPerTurn: enemy?.cardsPerTurn || 1,
           tier: enemy?.tier || 1,
           passives: enemy?.passives || {},
+          isBoss: enemy?.isBoss || false,
         };
       });
 

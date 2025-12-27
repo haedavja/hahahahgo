@@ -96,6 +96,25 @@ export const BATTLE_CARDS: string[] = CARDS.slice(0, 8).map(card => card.id);
 export const resolveEnemyDeck = (kind: string): string[] =>
   (ENEMY_DECKS as Record<string, string[]>)[kind] ?? ENEMY_DECKS.default ?? [];
 
+/**
+ * 적 데이터를 전투용 형식으로 변환 (속성 누락 방지용 헬퍼)
+ * 모든 적 데이터 생성 시 이 함수를 사용하면 속성 누락 버그를 예방할 수 있음
+ */
+export const createBattleEnemyData = (enemy: any): EnemyInfo => ({
+  id: enemy?.id,
+  name: enemy?.name || '적',
+  emoji: enemy?.emoji || '👾',
+  hp: enemy?.hp || 40,
+  maxHp: enemy?.hp || 40,
+  ether: enemy?.ether || 100,
+  speed: enemy?.speed || 10,
+  deck: Array.isArray(enemy?.deck) ? enemy.deck : [],
+  cardsPerTurn: enemy?.cardsPerTurn || 2,
+  passives: enemy?.passives || {},
+  tier: enemy?.tier || 1,
+  isBoss: enemy?.isBoss || false,
+});
+
 export const computeBattlePlan = (
   kind: string,
   playerCards: HandCard[],
@@ -218,20 +237,7 @@ export const createBattlePayload = (
 
   const totalEnemyHp = enemies.reduce((sum: any, e: any) => sum + (e?.hp || 40), 0);
 
-  const mixedEnemies = enemies.map((e: any) => ({
-    id: e?.id,
-    name: e?.name || '적',
-    emoji: e?.emoji || '👾',
-    hp: e?.hp || 40,
-    maxHp: e?.hp || 40,
-    ether: e?.ether || 100,
-    speed: e?.speed || 10,
-    deck: e?.deck || [],
-    cardsPerTurn: e?.cardsPerTurn || 2,
-    passives: e?.passives || {},
-    tier: e?.tier || 1,
-    isBoss: e?.isBoss || false,
-  }));
+  const mixedEnemies = enemies.map((e: any) => createBattleEnemyData(e));
 
   return {
     nodeId: node.id,
