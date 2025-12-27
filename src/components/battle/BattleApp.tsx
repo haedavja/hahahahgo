@@ -825,11 +825,13 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   useEffect(() => {
     if (!initialEnemy) return;
     const hp = initialEnemy.hp ?? initialEnemy.maxHp ?? 30;
+    const speed = (initialEnemy as { speed?: number }).speed ?? 10;
     actions.setEnemy({
       deck: (initialEnemy.deck as string[]) || ENEMIES[0]?.deck || [],
       name: initialEnemy.name ?? '적',
       hp,
       maxHp: initialEnemy.maxHp ?? hp,
+      maxSpeed: (initialEnemy as { maxSpeed?: number }).maxSpeed ?? speed ?? DEFAULT_ENEMY_MAX_SPEED,
       vulnMult: 1,
       vulnTurns: 0,
       block: 0,
