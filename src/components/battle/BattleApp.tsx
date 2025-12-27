@@ -2369,8 +2369,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
             const newTotalHp = updatedUnits.reduce((sum, u) => sum + Math.max(0, u.hp), 0);
             E.hp = newTotalHp;
             E.units = updatedUnits;
-
-            addLog(`🎯 ${targetUnit.name}에게 ${damageDealt} 피해 (${unitHpBefore} → ${newUnitHp})`);
           }
         }
       }

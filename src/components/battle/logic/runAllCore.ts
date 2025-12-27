@@ -146,10 +146,6 @@ export function runAllCore(params: any) {
           E.hp = newTotalHp;
           E.units = updatedUnits;
           tempState = { player: P, enemy: E, log: [] };
-
-          if (targetUnit.name) {
-            addLog(`🎯 ${targetUnit.name}에게 ${damageDealt} 피해 (${unitHpBefore} -> ${newUnitHp})`);
-          }
         }
       }
     }

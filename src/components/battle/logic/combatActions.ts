@@ -126,23 +126,25 @@ export function applyAttack(
   // 다중 타격 총합 로그
   if (hits > 1) {
     const enemyNameMulti = battleContext.enemyDisplayName || '몬스터';
-    const who = attackerName === 'player' ? `플레이어 -> ${enemyNameMulti}` : `${enemyNameMulti} -> 플레이어`;
-    const baseDmg = modifiedCard.damage || card.damage || 0;
-    const totalAttack = baseDmg * hits;
-    const critText = isCritical ? ' 💥치명타!' : '';
-    const isGunCard = card.cardCategory === 'gun';
-    const icon = isGunCard ? '🔫' : '🔥';
     const actorEmoji = attackerName === 'player' ? '🔵' : '👾';
+    const actorName = attackerName === 'player' ? '플레이어' : enemyNameMulti;
+    const targetName = attackerName === 'player' ? enemyNameMulti : '플레이어';
+    const baseDmg = modifiedCard.damage || card.damage || 0;
+    const critText = isCritical ? ' 💥치명타!' : '';
+    const beforeHP = (allEvents.find(e => e.type === 'hit')?.beforeHP) || currentDefender.hp + totalDealt;
+    const afterHP = currentDefender.hp;
 
     let dmgFormula;
     if (totalBlockDestroyed > 0) {
-      dmgFormula = `공격력 ${totalAttack} - 방어력 ${totalBlockDestroyed} = ${totalDealt}`;
+      dmgFormula = `${baseDmg}x${hits} - 방어 ${totalBlockDestroyed} = ${totalDealt}`;
     } else {
-      dmgFormula = `${totalDealt}`;
+      dmgFormula = `${baseDmg}x${hits} = ${totalDealt}`;
     }
 
-    const multiHitMsg = `${actorEmoji} ${who} • ${icon} ${card.name}${ghostLabel}: ${dmgFormula}${critText} 데미지!`;
+    const multiHitMsg = `${actorEmoji} ${actorName} (${card.name}${ghostLabel}) -> ${targetName} • 데미지 ${dmgFormula}${critText} (체력 ${beforeHP} -> ${afterHP})`;
     allEvents.push({ actor: attackerName, card: card.name, type: 'multihit', msg: multiHitMsg, dmg: totalDealt });
+    // 다중 타격의 경우 개별 히트 로그 대신 총합 로그만 사용
+    allLogs.length = 0;
     allLogs.push(multiHitMsg);
   }
 

@@ -98,9 +98,12 @@ export function applyAction(state: SimBattleState, actor: 'player' | 'enemy', ca
         const finalDmg = Math.floor(dmg * vulnMul);
         const beforeHP = B.hp;
         B.hp = Math.max(0, B.hp - finalDmg);
-        const msg = `${actor === 'player' ? '플레이어 -> 몬스터' : '몬스터 -> 플레이어'} • 데미지 ${finalDmg}${boost > 1 ? ' (에테르 폭주×2)' : ''} (체력 ${beforeHP} -> ${B.hp})`;
+        const actorEmoji = actor === 'player' ? '🔵' : '👾';
+        const actorName = actor === 'player' ? '플레이어' : '몬스터';
+        const targetName = actor === 'player' ? '몬스터' : '플레이어';
+        const msg = `${actorEmoji} ${actorName} (${card.name}) -> ${targetName} • 데미지 ${finalDmg}${boost > 1 ? ' (에테르 폭주×2)' : ''} (체력 ${beforeHP} -> ${B.hp})`;
         events.push({ actor, card: card.name, type: 'hit', dmg: finalDmg, beforeHP, afterHP: B.hp, msg });
-        state.log.push(`${actor === 'player' ? '🔵' : '👾'} ${card.name} → ${msg}`);
+        state.log.push(msg);
         if (B.counter && finalDmg > 0) {
           const beforeAHP = A.hp;
           A.hp = Math.max(0, A.hp - B.counter);
