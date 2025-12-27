@@ -101,21 +101,39 @@ export const resolveEnemyDeck = (kind: string): string[] =>
  * 적 데이터를 전투용 형식으로 변환 (속성 누락 방지용 헬퍼)
  * 모든 적 데이터 생성 시 이 함수를 사용하면 속성 누락 버그를 예방할 수 있음
  */
-export const createBattleEnemyData = (enemy: any): EnemyInfo => ({
-  id: enemy?.id,
-  name: enemy?.name || '적',
-  emoji: enemy?.emoji || '👾',
-  hp: enemy?.hp || 40,
-  maxHp: enemy?.maxHp || enemy?.hp || 40,
-  ether: enemy?.ether || 100,
-  speed: enemy?.speed || 10,
-  maxSpeed: enemy?.maxSpeed || enemy?.speed || 10,
-  deck: Array.isArray(enemy?.deck) ? enemy.deck : [],
-  cardsPerTurn: enemy?.cardsPerTurn || 2,
-  passives: enemy?.passives || {},
-  tier: enemy?.tier || 1,
-  isBoss: enemy?.isBoss || false,
-});
+export const createBattleEnemyData = (enemy: any): EnemyInfo => {
+  // 개발 모드에서 누락된 필수 필드 경고
+  if (process.env.NODE_ENV !== 'production') {
+    if (!enemy?.id) {
+      console.warn('[createBattleEnemyData] 적 ID 누락:', enemy);
+    }
+    if (!enemy?.name) {
+      console.warn('[createBattleEnemyData] 적 이름 누락:', enemy);
+    }
+    if (!enemy?.hp) {
+      console.warn('[createBattleEnemyData] 적 HP 누락:', enemy);
+    }
+    if (!enemy?.maxSpeed && !enemy?.speed) {
+      console.warn('[createBattleEnemyData] 적 maxSpeed 누락:', enemy);
+    }
+  }
+
+  return {
+    id: enemy?.id,
+    name: enemy?.name || '적',
+    emoji: enemy?.emoji || '👾',
+    hp: enemy?.hp || 40,
+    maxHp: enemy?.maxHp || enemy?.hp || 40,
+    ether: enemy?.ether || 100,
+    speed: enemy?.speed || 10,
+    maxSpeed: enemy?.maxSpeed || enemy?.speed || 10,
+    deck: Array.isArray(enemy?.deck) ? enemy.deck : [],
+    cardsPerTurn: enemy?.cardsPerTurn || 2,
+    passives: enemy?.passives || {},
+    tier: enemy?.tier || 1,
+    isBoss: enemy?.isBoss || false,
+  };
+};
 
 /**
  * 리듀서용 적 상태 초기화 (BattleApp에서 사용)
@@ -131,6 +149,16 @@ export const createReducerEnemyState = (
   enemyData: Partial<EnemyDefinition> & Partial<EnemyBattleState> & { units?: unknown[] },
   _options?: { fromEnemiesArray?: boolean }
 ): ReducerEnemyInit => {
+  // 개발 모드에서 누락된 필수 필드 경고
+  if (process.env.NODE_ENV !== 'production') {
+    if (!enemyData.hp && !enemyData.maxHp) {
+      console.warn('[createReducerEnemyState] 적 HP 누락 - 기본값 40 사용:', enemyData.name || 'unknown');
+    }
+    if (!enemyData.maxSpeed && !enemyData.speed) {
+      console.warn('[createReducerEnemyState] 적 maxSpeed 누락 - 기본값 사용:', enemyData.name || 'unknown');
+    }
+  }
+
   const hp = enemyData.hp ?? enemyData.maxHp ?? 40;
   const maxHp = enemyData.maxHp ?? hp;
   const speed = enemyData.speed ?? 10;
