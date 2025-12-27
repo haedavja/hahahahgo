@@ -15,6 +15,44 @@ export const MAX_SUBMIT_CARDS = 5;
 export const ETHER_THRESHOLD = 100;
 export const DEFAULT_DRAW_COUNT = 5; // 턴 시작 시 기본 드로우 수
 
+/**
+ * 적 정의 인터페이스
+ * 새 적 추가 시 이 타입을 따라야 함
+ */
+export interface EnemyDefinition {
+  /** 고유 식별자 */
+  id: string;
+  /** 표시 이름 */
+  name: string;
+  /** 체력 */
+  hp: number;
+  /** 에테르 용량 */
+  ether: number;
+  /** 기본 속도 */
+  speed: number;
+  /** 최대 속도 (타임라인 표시용) */
+  maxSpeed: number;
+  /** 사용 가능한 카드 ID 배열 */
+  deck: string[];
+  /** 턴당 사용하는 카드 수 */
+  cardsPerTurn: number;
+  /** 이모지 */
+  emoji: string;
+  /** 난이도 티어 (1: 일반, 2: 엘리트, 3: 보스) */
+  tier: number;
+  /** 설명 */
+  description: string;
+  /** 보스 여부 */
+  isBoss?: boolean;
+  /** 패시브 효과 */
+  passives?: {
+    veilAtStart?: boolean;
+    healPerTurn?: number;
+    strengthPerTurn?: number;
+    [key: string]: unknown;
+  };
+}
+
 // 기본 시작 덱 (게임 시작 시 플레이어가 갖고 시작하는 카드)
 export const DEFAULT_STARTING_DECK = [
   'shoot', 'shoot',           // 사격 2장
@@ -867,7 +905,7 @@ export const ENEMY_CARDS = [
     appliedTokens: [{ id: 'dull', target: 'enemy' }] },
 ];
 
-export const ENEMIES = [
+export const ENEMIES: EnemyDefinition[] = [
   // === 1막 일반 적 ===
   {
     id: "ghoul",

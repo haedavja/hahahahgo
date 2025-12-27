@@ -166,14 +166,17 @@ const buildBattlePayload = (
       }));
     }
   } else {
-    const baseEmoji = "👾";
-    const singleName = battle.label ?? "Enemy";
-    const singleHp = initialEnemy?.hp ?? 40;
-    const singleEther = initialEnemy?.ether ?? 100;
+    // Fallback: ENEMIES 배열의 첫 번째 적 사용 (기본값)
+    const defaultEnemy = ENEMIES[0] || { id: 'ghoul', name: '구울', hp: 40, ether: 100, speed: 10, emoji: '💀', tier: 1, cardsPerTurn: 2, passives: {} };
+    const baseEmoji = defaultEnemy.emoji || "👾";
+    const singleName = battle.label ?? defaultEnemy.name ?? "Enemy";
+    const singleHp = initialEnemy?.hp ?? defaultEnemy.hp ?? 40;
+    const singleEther = initialEnemy?.ether ?? defaultEnemy.ether ?? 100;
+    const singleSpeed = initialEnemy?.speed ?? defaultEnemy.speed ?? 10;
 
     enemyUnits = [{
       unitId: 0,
-      id: 'default',
+      id: defaultEnemy.id || 'default',
       name: singleName,
       emoji: baseEmoji,
       count: enemyCount,
@@ -181,19 +184,21 @@ const buildBattlePayload = (
       maxHp: singleHp * enemyCount,
       ether: singleEther * enemyCount,
       individualHp: singleHp,
+      individualMaxHp: singleHp,
       individualEther: singleEther,
-      speed: initialEnemy?.speed || 10,
-      deck: enemyDeck,
-      cardsPerTurn: 2 * enemyCount,
-      individualCardsPerTurn: 2,
-      passives: {},
-      tier: 1,
+      speed: singleSpeed,
+      deck: enemyDeck.length > 0 ? enemyDeck : (defaultEnemy.deck || []),
+      cardsPerTurn: (defaultEnemy.cardsPerTurn || 2) * enemyCount,
+      individualCardsPerTurn: defaultEnemy.cardsPerTurn || 2,
+      passives: defaultEnemy.passives || {},
+      tier: defaultEnemy.tier || 1,
+      isBoss: defaultEnemy.isBoss || false,
       block: 0,
       tokens: { permanent: [], turn: [], usage: [] },
     }];
 
     enemyName = enemyCount > 1 ? `${singleName} x${enemyCount}` : singleName;
-    enemyComposition = [{ name: singleName, emoji: baseEmoji, hp: singleHp * enemyCount, maxHp: singleHp * enemyCount, ether: singleEther * enemyCount, count: enemyCount }];
+    enemyComposition = [{ name: singleName, emoji: baseEmoji, hp: singleHp * enemyCount, maxHp: singleHp * enemyCount, ether: singleEther * enemyCount, count: enemyCount, passives: defaultEnemy.passives || {} }];
   }
 
   const passiveEffects = calculatePassiveEffects(relics);

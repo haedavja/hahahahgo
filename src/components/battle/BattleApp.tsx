@@ -139,6 +139,7 @@ import { RecallSelectionModal } from "./ui/RecallSelectionModal";
 import { EtherBar } from "./ui/EtherBar";
 import { Sword, Shield, Heart, Zap, Flame, Clock, Skull, X, ChevronUp, ChevronDown, Play, StepForward, RefreshCw, ICON_MAP } from "./ui/BattleIcons";
 import { selectBattleAnomalies, applyAnomalyEffects } from "../../lib/anomalyUtils";
+import { createReducerEnemyState } from "../../state/battleHelpers";
 import { AnomalyDisplay, AnomalyNotification } from "./ui/AnomalyDisplay";
 import { DefeatOverlay } from "./ui/DefeatOverlay";
 import { TIMING, executeMultiHitAsync } from "./logic/battleExecution";
@@ -291,22 +292,13 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const { battle, actions } = useBattleState({
     player: initialPlayerState as unknown as PlayerState,
     enemyIndex: 0,
-    enemy: safeInitialEnemy?.name ? ({
-      ...safeInitialEnemy,
-      hp: safeInitialEnemy.hp ?? safeInitialEnemy.maxHp ?? 30,
-      maxHp: safeInitialEnemy.maxHp ?? safeInitialEnemy.hp ?? 30,
-      vulnMult: 1,
-      vulnTurns: 0,
-      block: 0,
-      counter: 0,
-      etherPts: safeInitialEnemy.etherPts ?? safeInitialEnemy.etherCapacity ?? 300,
-      etherCapacity: safeInitialEnemy.etherCapacity ?? 300,
-      etherOverdriveActive: false,
-      strength: 0,
-      shroud: safeInitialEnemy.shroud ?? 0,
-      maxSpeed: safeInitialEnemy.maxSpeed ?? (safeInitialEnemy as { speed?: number }).speed ?? DEFAULT_ENEMY_MAX_SPEED,
-      tokens: { usage: [], turn: [], permanent: [] }
-    } as unknown as EnemyState) : undefined,
+    enemy: safeInitialEnemy?.name
+      ? (createReducerEnemyState({
+          ...safeInitialEnemy,
+          shroud: safeInitialEnemy.shroud ?? 0,
+          strength: 0,
+        } as Parameters<typeof createReducerEnemyState>[0]) as unknown as EnemyState)
+      : undefined,
     phase: 'select',
     hand: [],
     selected: [],
@@ -824,24 +816,12 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   // Enemy initialization - only run once on mount
   useEffect(() => {
     if (!initialEnemy) return;
-    const hp = initialEnemy.hp ?? initialEnemy.maxHp ?? 30;
-    const speed = (initialEnemy as { speed?: number }).speed ?? 10;
-    actions.setEnemy({
+    const enemyState = createReducerEnemyState({
+      ...initialEnemy,
       deck: (initialEnemy.deck as string[]) || ENEMIES[0]?.deck || [],
       name: initialEnemy.name ?? '적',
-      hp,
-      maxHp: initialEnemy.maxHp ?? hp,
-      maxSpeed: (initialEnemy as { maxSpeed?: number }).maxSpeed ?? speed ?? DEFAULT_ENEMY_MAX_SPEED,
-      vulnMult: 1,
-      vulnTurns: 0,
-      block: 0,
-      counter: 0,
-      etherPts: initialEnemy.etherPts ?? initialEnemy.etherCapacity ?? 300,
-      etherCapacity: initialEnemy.etherCapacity ?? 300,
-      etherOverdriveActive: false,
-      tokens: { usage: [], turn: [], permanent: [] },
-      units: ((initialEnemy as { units?: unknown[] }).units || []) as EnemyState['units']
-    });
+    } as Parameters<typeof createReducerEnemyState>[0]);
+    actions.setEnemy(enemyState as unknown as EnemyState);
     actions.setSelected([]);
     actions.setQueue([]);
     actions.setQIndex(0);
@@ -901,28 +881,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   useEffect(() => {
     if (!enemy) {
       const e = ENEMIES[enemyIndex];
-      const singleUnit = {
-        ...e,
-        unitId: 0,
-        hp: e.hp,
-        maxHp: e.hp,
-        block: 0,
-        tokens: { usage: [], turn: [], permanent: [] }
-      };
-      actions.setEnemy({
-        ...e,
-        hp: e.hp,
-        maxHp: e.hp,
-        vulnMult: 1,
-        vulnTurns: 0,
-        block: 0,
-        counter: 0,
-        etherPts: 0,
-        etherOverdriveActive: false,
-        maxSpeed: (e as { maxSpeed?: number; speed?: number }).maxSpeed ?? (e as { speed?: number }).speed ?? DEFAULT_ENEMY_MAX_SPEED,
-        tokens: { usage: [], turn: [], permanent: [] },
-        units: [singleUnit]
-      });
+      const enemyState = createReducerEnemyState(e as Parameters<typeof createReducerEnemyState>[0]);
+      actions.setEnemy(enemyState as unknown as EnemyState);
 
       // 전투 시작 상징 효과 로그 및 애니메이션
       const combatStartEffects = applyCombatStartEffects(orderedRelicList, {});

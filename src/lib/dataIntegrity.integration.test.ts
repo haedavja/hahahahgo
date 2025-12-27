@@ -18,7 +18,7 @@ import { describe, it, expect } from 'vitest';
 import { ENEMIES, ENEMY_GROUPS, getEnemyGroupDetails, getRandomEnemyGroupByNode } from '../components/battle/battleData';
 import { getRelicById, getAllRelics } from '../data/relics';
 import { TOKENS, TOKEN_TYPES } from '../data/tokens';
-import { createBattleEnemyData } from '../state/battleHelpers';
+import { createBattleEnemyData, createReducerEnemyState } from '../state/battleHelpers';
 import { addToken, removeToken, hasToken, getTokenStacks, getAllTokens, createEmptyTokens } from './tokenUtils';
 import { calculatePassiveEffects } from './relicEffects';
 import { generateEnemyActions, decideEnemyMode } from '../components/battle/utils/enemyAI';
@@ -96,6 +96,63 @@ describe('적 데이터 무결성', () => {
       expect(group).toBeDefined();
       expect(group.id).toBeDefined();
     }
+  });
+});
+
+describe('적 상태 초기화 (units 배열 통일)', () => {
+  it('createReducerEnemyState가 단일 적에도 units 배열을 생성한다', () => {
+    const enemy = ENEMIES[0]; // ghoul
+    const state = createReducerEnemyState(enemy);
+
+    expect(state.units).toBeDefined();
+    expect(Array.isArray(state.units)).toBe(true);
+    expect(state.units.length).toBe(1);
+    expect(state.units[0].unitId).toBe(0);
+    expect(state.units[0].hp).toBe(enemy.hp);
+    expect(state.units[0].maxHp).toBe(enemy.hp);
+  });
+
+  it('createReducerEnemyState가 기존 units 배열을 유지한다', () => {
+    const existingUnits = [
+      { unitId: 0, id: 'ghoul', hp: 40, maxHp: 40, block: 0, tokens: { usage: [], turn: [], permanent: [] } },
+      { unitId: 1, id: 'ghoul', hp: 40, maxHp: 40, block: 0, tokens: { usage: [], turn: [], permanent: [] } }
+    ];
+    const enemy = { ...ENEMIES[0], units: existingUnits };
+    const state = createReducerEnemyState(enemy);
+
+    expect(state.units.length).toBe(2);
+    expect(state.units[0].unitId).toBe(0);
+    expect(state.units[1].unitId).toBe(1);
+  });
+
+  it('createReducerEnemyState가 모든 필수 필드를 포함한다', () => {
+    const enemy = ENEMIES[0];
+    const state = createReducerEnemyState(enemy);
+
+    // 필수 필드 검증
+    expect(state.hp).toBe(enemy.hp);
+    expect(state.maxHp).toBe(enemy.hp);
+    expect(state.maxSpeed).toBe(enemy.maxSpeed);
+    expect(state.vulnMult).toBe(1);
+    expect(state.vulnTurns).toBe(0);
+    expect(state.block).toBe(0);
+    expect(state.counter).toBe(0);
+    expect(state.etherOverdriveActive).toBe(false);
+    expect(state.tokens).toBeDefined();
+    expect(Array.isArray(state.tokens.usage)).toBe(true);
+    expect(Array.isArray(state.tokens.turn)).toBe(true);
+    expect(Array.isArray(state.tokens.permanent)).toBe(true);
+  });
+
+  it('모든 ENEMIES가 createReducerEnemyState를 통해 올바르게 초기화된다', () => {
+    ENEMIES.forEach((enemy) => {
+      const state = createReducerEnemyState(enemy);
+
+      expect(state.units, `${enemy.id}: units 배열 존재`).toBeDefined();
+      expect(state.units.length, `${enemy.id}: units 길이 >= 1`).toBeGreaterThanOrEqual(1);
+      expect(state.maxSpeed, `${enemy.id}: maxSpeed 설정됨`).toBe(enemy.maxSpeed);
+      expect(state.hp, `${enemy.id}: hp 설정됨`).toBe(enemy.hp);
+    });
   });
 });
 
