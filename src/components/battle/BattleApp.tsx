@@ -2542,9 +2542,10 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
   // 적 조합 감지 (표시용) - Hook은 조건부 return 전에 호출
   const enemyCombo = useMemo(() => {
-    const actions = enemyPlan?.actions || [];
+    const rawActions = enemyPlan?.actions;
+    const actions = Array.isArray(rawActions) ? rawActions : [];
     const combo = detectPokerCombo(actions as unknown as ComboCard[]);
-    console.log('[DEBUG] phase:', battle.phase, 'enemyPlan.actions:', actions.length, 'cards, actionCosts:', actions.map((a: any) => a.actionCost), 'enemyCombo:', combo?.name || 'null');
+    console.log('[DEBUG] phase:', battle.phase, 'enemyPlan.actions:', actions.length, 'cards, actionCosts:', actions.map((a: any) => a.actionCost), 'enemyCombo:', combo?.name || 'null', 'rawType:', typeof rawActions, Array.isArray(rawActions));
     return combo;
   }, [enemyPlan?.actions, battle.phase]);
 
