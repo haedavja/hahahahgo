@@ -136,7 +136,7 @@ export const createDevActions: SliceCreator = (set) => ({
 
       const group = ENEMY_GROUPS.find((g) => g.id === groupId);
       if (!group || !Array.isArray(group.enemies) || group.enemies.length === 0) {
-        console.warn(`[DEV] 전투 그룹을 찾을 수 없음: ${groupId}`);
+        if (import.meta.env.DEV) console.warn(`[DEV] 전투 그룹을 찾을 수 없음: ${groupId}`);
         return state;
       }
 
@@ -218,7 +218,7 @@ export const createDevActions: SliceCreator = (set) => ({
     set((state) => {
       const definition = NEW_EVENT_LIBRARY[eventId];
       if (!definition) {
-        console.warn(`[devTriggerEvent] Event not found: ${eventId}`);
+        if (import.meta.env.DEV) console.warn(`[devTriggerEvent] Event not found: ${eventId}`);
         return state;
       }
       return {

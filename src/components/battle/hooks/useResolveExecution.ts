@@ -252,7 +252,7 @@ export function useResolveExecution({
         etherMultiplier: 1
       });
     } catch (err) {
-      console.error('[finishTurn] createTurnEndPlayerState 에러:', err);
+      if (import.meta.env.DEV) console.error('[finishTurn] createTurnEndPlayerState 에러:', err);
       newPlayerState = { ...latestPlayer, etherMultiplier: 1 };
     }
     actions.setPlayer(newPlayerState);

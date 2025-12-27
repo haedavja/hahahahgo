@@ -1497,7 +1497,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
           battleRef.current = { ...battleRef.current, player: P, enemy: E };
         }
       } else {
-        console.error('[executeCardAction] updatedState is undefined!', {
+        if (import.meta.env.DEV) console.error('[executeCardAction] updatedState is undefined!', {
           card: a.card,
           actor: a.actor,
           actionResult
@@ -1955,7 +1955,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
           };
           a.card.onPlay(battle, tokenActions);
         } catch (error) {
-          console.error('[Token onPlay Error]', error);
+          if (import.meta.env.DEV) console.error('[Token onPlay Error]', error);
         }
       }
     }

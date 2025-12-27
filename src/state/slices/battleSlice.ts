@@ -140,7 +140,7 @@ export const createBattleActions: SliceCreator = (set) => ({
         newMaxHp = state.maxHp + maxHpGain;
         finalPlayerHp = Math.min(newMaxHp, finalPlayerHp + healed + maxHpGain);
       } catch (error) {
-        console.error('Error applying combat end effects:', error);
+        if (import.meta.env.DEV) console.error('Error applying combat end effects:', error);
       }
 
       return {

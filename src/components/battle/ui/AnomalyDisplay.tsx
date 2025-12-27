@@ -81,7 +81,7 @@ const playWarningSound = (): void => {
     bassOscillator.stop(currentTime + 1.0);
 
   } catch (error) {
-    console.warn('Warning sound failed to play:', error);
+    if (import.meta.env.DEV) console.warn('Warning sound failed to play:', error);
   }
 };
 

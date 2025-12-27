@@ -40,7 +40,7 @@ export const createMapActions: SliceCreator = (set) => ({
           updatedResources = { ...state.resources, etherPts: newEtherPts };
         }
       } catch (error) {
-        console.error('Error applying node move ether:', error);
+        if (import.meta.env.DEV) console.error('Error applying node move ether:', error);
       }
 
       // 맵 이동 시 기억 획득

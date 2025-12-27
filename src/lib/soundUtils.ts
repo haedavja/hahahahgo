@@ -14,6 +14,13 @@
 
 let audioContext: AudioContext | null = null;
 
+/** 개발 모드에서만 오디오 에러 로깅 */
+function logAudioError(context: string, error: unknown): void {
+  if (import.meta.env.DEV) {
+    console.warn(`Failed to play ${context}:`, error);
+  }
+}
+
 /**
  * AudioContext 초기화 (사용자 상호작용 후 한 번만)
  */
@@ -147,7 +154,7 @@ export function playHitSound(): void {
     const ctx = getAudioContext();
     playOscillator(ctx, { frequency: 140, gain: 0.3, duration: 0.15 });
   } catch (error) {
-    console.warn('Failed to play hit sound:', error);
+    logAudioError('hit sound', error);
   }
 }
 
@@ -164,7 +171,7 @@ export function playBlockSound(): void {
       rampTime: 0.1,
     });
   } catch (error) {
-    console.warn('Failed to play block sound:', error);
+    logAudioError('block sound', error);
   }
 }
 
@@ -174,7 +181,7 @@ export function playCardSubmitSound(): void {
     const ctx = getAudioContext();
     playOscillator(ctx, { frequency: 523, gain: 0.15, duration: 0.1 });
   } catch (error) {
-    console.warn('Failed to play card submit sound:', error);
+    logAudioError('card submit sound', error);
   }
 }
 
@@ -191,7 +198,7 @@ export function playProceedSound(): void {
       rampTime: 0.15,
     });
   } catch (error) {
-    console.warn('Failed to play proceed sound:', error);
+    logAudioError('proceed sound', error);
   }
 }
 
@@ -216,7 +223,7 @@ export function playCardDestroySound(): void {
       duration: 0.2,
     });
   } catch (error) {
-    console.warn('Failed to play card destroy sound:', error);
+    logAudioError('card destroy sound', error);
   }
 }
 
@@ -264,7 +271,7 @@ export function playFreezeSound(): void {
       startDelay: 0.05,
     });
   } catch (error) {
-    console.warn('Failed to play freeze sound:', error);
+    logAudioError('freeze sound', error);
   }
 }
 
@@ -295,7 +302,7 @@ export function playDoorSound(): void {
     osc.start(ctx.currentTime + 0.1);
     osc.stop(ctx.currentTime + 0.3);
   } catch (error) {
-    console.warn('Failed to play door sound:', error);
+    logAudioError('door sound', error);
   }
 }
 
@@ -305,7 +312,7 @@ export function playRewardSound(): void {
     const ctx = getAudioContext();
     playMelody(ctx, [523, 659, 784], 0.08, { duration: 0.3 });
   } catch (error) {
-    console.warn('Failed to play reward sound:', error);
+    logAudioError('reward sound', error);
   }
 }
 
@@ -320,7 +327,7 @@ export function playFootstepSound(): void {
       gain: 0.08,
     });
   } catch (error) {
-    console.warn('Failed to play footstep sound:', error);
+    logAudioError('footstep sound', error);
   }
 }
 
@@ -344,7 +351,7 @@ export function playSecretSound(): void {
       rampTime: 0.4,
     });
   } catch (error) {
-    console.warn('Failed to play secret sound:', error);
+    logAudioError('secret sound', error);
   }
 }
 
@@ -373,7 +380,7 @@ export function playVictorySound(): void {
       osc.stop(startTime + duration);
     });
   } catch (error) {
-    console.warn('Failed to play victory sound:', error);
+    logAudioError('victory sound', error);
   }
 }
 
@@ -399,7 +406,7 @@ export function playDangerSound(): void {
       rampTime: 0.3,
     });
   } catch (error) {
-    console.warn('Failed to play danger sound:', error);
+    logAudioError('danger sound', error);
   }
 }
 
@@ -415,7 +422,7 @@ export function playInteractSound(): void {
       rampTime: 0.08,
     });
   } catch (error) {
-    console.warn('Failed to play interact sound:', error);
+    logAudioError('interact sound', error);
   }
 }
 
@@ -425,7 +432,7 @@ export function playChoiceAppearSound(): void {
     const ctx = getAudioContext();
     playMelody(ctx, [523, 659], 0.1, { gain: 0.1, duration: 0.15 });
   } catch (error) {
-    console.warn('Failed to play choice appear sound:', error);
+    logAudioError('choice appear sound', error);
   }
 }
 
@@ -442,7 +449,7 @@ export function playChoiceSelectSound(): void {
       rampTime: 0.1,
     });
   } catch (error) {
-    console.warn('Failed to play choice select sound:', error);
+    logAudioError('choice select sound', error);
   }
 }
 
@@ -466,6 +473,6 @@ export function playParrySound(): void {
       rampTime: 0.1,
     });
   } catch (error) {
-    console.warn('Failed to play parry sound:', error);
+    logAudioError('parry sound', error);
   }
 }

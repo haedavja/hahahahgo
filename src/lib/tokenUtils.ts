@@ -60,12 +60,12 @@ export function addToken(
   grantedAt: { turn: number; sp: number } | null = null
 ): TokenModificationResult {
   if (!entity) {
-    console.warn('[addToken] Entity is null or undefined');
+    if (import.meta.env.DEV) console.warn('[addToken] Entity is null or undefined');
     return { tokens: { usage: [], turn: [], permanent: [] }, logs: [] };
   }
 
   if (!TOKENS[tokenId]) {
-    console.warn(`Unknown token: ${tokenId}`);
+    if (import.meta.env.DEV) console.warn(`Unknown token: ${tokenId}`);
     return { tokens: entity.tokens || { usage: [], turn: [], permanent: [] }, logs: [] };
   }
 
@@ -205,7 +205,7 @@ export function removeToken(
   stacks: number = 1
 ): TokenModificationResult {
   if (!entity) {
-    console.warn('[removeToken] Entity is null or undefined');
+    if (import.meta.env.DEV) console.warn('[removeToken] Entity is null or undefined');
     return { tokens: { usage: [], turn: [], permanent: [] }, logs: [] };
   }
 

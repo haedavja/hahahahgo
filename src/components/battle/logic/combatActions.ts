@@ -62,7 +62,7 @@ export function applyAttack(
 ): AttackResult {
   // 입력 검증
   if (!attacker || !defender || !card) {
-    console.error('[applyAttack] Invalid input:', { attacker: !!attacker, defender: !!defender, card: !!card });
+    if (import.meta.env.DEV) console.error('[applyAttack] Invalid input:', { attacker: !!attacker, defender: !!defender, card: !!card });
     return {
       attacker: (attacker || {}) as CombatActor,
       defender: (defender || {}) as CombatActor,
