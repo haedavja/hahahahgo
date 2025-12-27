@@ -15,7 +15,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { ENEMY_GROUPS, getEnemyGroupDetails, getRandomEnemyGroupByNode } from '../components/battle/battleData';
+import { ENEMIES, ENEMY_GROUPS, getEnemyGroupDetails, getRandomEnemyGroupByNode } from '../components/battle/battleData';
 import { getRelicById, getAllRelics } from '../data/relics';
 import { TOKENS, TOKEN_TYPES } from '../data/tokens';
 import { createBattleEnemyData } from '../state/battleHelpers';
@@ -44,10 +44,24 @@ describe('적 데이터 무결성', () => {
         expect(typeof enemy.speed, `${group.id}[${idx}]: speed is number`).toBe('number');
         expect(enemy.speed).toBeGreaterThan(0);
 
+        // maxSpeed 속성 검증 (타임라인 표시 버그 방지)
+        expect(typeof enemy.maxSpeed, `${group.id}[${idx}]: maxSpeed is number`).toBe('number');
+        expect(enemy.maxSpeed).toBeGreaterThanOrEqual(enemy.speed);
+
         // deck 속성 검증
         expect(Array.isArray(enemy.deck), `${group.id}[${idx}]: deck is array`).toBe(true);
         expect(enemy.deck.length).toBeGreaterThan(0);
       });
+    });
+  });
+
+  it('ENEMIES 배열의 모든 적이 speed와 maxSpeed를 가진다', () => {
+    // 새 적 추가 시 maxSpeed 누락 방지를 위한 검증
+    ENEMIES.forEach((enemy: any) => {
+      expect(typeof enemy.speed, `${enemy.id}: speed is number`).toBe('number');
+      expect(enemy.speed, `${enemy.id}: speed > 0`).toBeGreaterThan(0);
+      expect(typeof enemy.maxSpeed, `${enemy.id}: maxSpeed is number`).toBe('number');
+      expect(enemy.maxSpeed, `${enemy.id}: maxSpeed >= speed`).toBeGreaterThanOrEqual(enemy.speed);
     });
   });
 
