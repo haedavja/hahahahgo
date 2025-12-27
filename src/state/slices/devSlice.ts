@@ -13,7 +13,7 @@ import { drawHand, buildSpeedTimeline } from '../../lib/speedQueue';
 import { simulateBattle } from '../../lib/battleResolver';
 import { NEW_EVENT_LIBRARY } from '../../data/newEvents';
 import { cloneNodes, grantRewards, computeFriendlyChance } from '../gameStoreHelpers';
-import { travelToNode, drawCharacterBuildHand } from '../battleHelpers';
+import { travelToNode, drawCharacterBuildHand, createBattleEnemyData } from '../battleHelpers';
 
 export type DevActionsSlice = DevSliceActions;
 
@@ -180,38 +180,14 @@ export const createDevActions: SliceCreator = (set) => ({
       const enemyUnits = group.enemies.map((enemyId, idx) => {
         const enemy = ENEMIES.find((e) => e.id === enemyId);
         return {
+          ...createBattleEnemyData(enemy),
           unitId: idx,
-          id: enemyId,
-          name: enemy?.name || enemyId,
-          emoji: enemy?.emoji || '👾',
-          hp: enemy?.hp || 30,
-          maxHp: enemy?.hp || 30,
-          ether: enemy?.ether || 100,
-          speed: enemy?.speed || 10,
-          deck: enemy?.deck || [],
-          cardsPerTurn: enemy?.cardsPerTurn || 1,
-          tier: enemy?.tier || 1,
-          passives: enemy?.passives || {},
-          isBoss: enemy?.isBoss || false,
         };
       });
 
       const mixedEnemies = group.enemies.map((enemyId) => {
         const enemy = ENEMIES.find((e) => e.id === enemyId);
-        return {
-          id: enemyId,
-          name: enemy?.name || enemyId,
-          emoji: enemy?.emoji || '👾',
-          hp: enemy?.hp || 30,
-          maxHp: enemy?.hp || 30,
-          ether: enemy?.ether || 100,
-          speed: enemy?.speed || 10,
-          deck: enemy?.deck || [],
-          cardsPerTurn: enemy?.cardsPerTurn || 1,
-          tier: enemy?.tier || 1,
-          passives: enemy?.passives || {},
-          isBoss: enemy?.isBoss || false,
-        };
+        return createBattleEnemyData(enemy);
       });
 
       return {

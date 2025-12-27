@@ -201,7 +201,7 @@ export const createBattlePayload = (
   if (node.type === 'boss') {
     enemyGroup = getEnemyGroupDetails('slaughterer_solo');
   } else if (node.type === 'elite') {
-    const eliteGroups = ['deserter_solo', 'deserter_marauders'];
+    const eliteGroups = ['deserter_solo', 'marauder_gang'];
     const randomId = eliteGroups[Math.floor(Math.random() * eliteGroups.length)];
     enemyGroup = getEnemyGroupDetails(randomId);
   } else {

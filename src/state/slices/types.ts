@@ -18,6 +18,13 @@ export interface EnemyInfo {
   id: string;
   name: string;
   emoji?: string;
+  hp?: number;
+  maxHp?: number;
+  ether?: number;
+  speed?: number;
+  deck?: string[];
+  cardsPerTurn?: number;
+  passives?: Record<string, any>;
   tier?: number;
   isBoss?: boolean;
 }
