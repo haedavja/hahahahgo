@@ -4,7 +4,7 @@
  * 타임라인 및 타임라인 숫자 오버레이 컴포넌트
  */
 
-import { FC } from 'react';
+import { FC, memo } from 'react';
 import { hasSpecial } from '../utils/cardSpecialEffects';
 import type {
   IconProps,
@@ -62,7 +62,7 @@ interface TimelineDisplayProps {
   parryReadyStates?: ParryState[];
 }
 
-export const TimelineDisplay: FC<TimelineDisplayProps> = ({
+export const TimelineDisplay: FC<TimelineDisplayProps> = memo(({
   player,
   enemy,
   DEFAULT_PLAYER_MAX_SPEED,
@@ -349,4 +349,4 @@ export const TimelineDisplay: FC<TimelineDisplayProps> = ({
       <div style={{ height: '220px' }} />
     </>
   );
-};
+});

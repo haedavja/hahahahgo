@@ -5,7 +5,7 @@
  * 각 유닛은 개별 HP/방어력을 가지며 클릭으로 타겟 선택 가능
  */
 
-import { FC } from 'react';
+import { FC, memo } from 'react';
 import { TokenDisplay } from './TokenDisplay';
 import type { PreviewDamage, TokenEntity, EnemyUnitUI as Unit } from '../../../types';
 
@@ -36,7 +36,7 @@ interface EnemyUnitsDisplayProps {
   onCancelDistribution?: () => void;
 }
 
-export const EnemyUnitsDisplay: FC<EnemyUnitsDisplayProps> = ({
+export const EnemyUnitsDisplay: FC<EnemyUnitsDisplayProps> = memo(({
   units = [],
   selectedTargetUnit,
   onSelectUnit,
@@ -385,4 +385,4 @@ export const EnemyUnitsDisplay: FC<EnemyUnitsDisplayProps> = ({
       </div>
     </>
   );
-};
+});

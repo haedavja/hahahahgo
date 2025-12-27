@@ -46,7 +46,7 @@
 
 /// <reference types="react" />
 
-import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import React, { useState, useEffect, useMemo, useRef, useCallback, lazy, Suspense } from "react";
 import type { JSX } from 'react';
 import { flushSync } from "react-dom";
 import "./legacy-battle.css";
@@ -85,6 +85,7 @@ import {
 import { calculateEtherSlots, MAX_SLOTS } from "../../lib/etherUtils";
 import { CharacterSheet } from "../character/CharacterSheet";
 import { useGameStore } from "../../state/gameStore";
+import { useShallow } from "zustand/react/shallow";
 import { ItemSlots } from "./ui/ItemSlots";
 import { RELICS, RELIC_RARITIES } from "../../data/relics";
 import { RELIC_EFFECT, RELIC_RARITY_COLORS } from "../../lib/relics";
@@ -133,9 +134,10 @@ import { TimelineDisplay } from "./ui/TimelineDisplay";
 import { HandArea } from "./ui/HandArea";
 import { BattleTooltips } from "./ui/BattleTooltips";
 import { ExpectedDamagePreview } from "./ui/ExpectedDamagePreview";
-import { BreachSelectionModal } from "./ui/BreachSelectionModal";
-import { CardRewardModal } from "./ui/CardRewardModal";
-import { RecallSelectionModal } from "./ui/RecallSelectionModal";
+// Lazy loading 모달 컴포넌트 - 번들 크기 최적화
+const BreachSelectionModal = lazy(() => import("./ui/BreachSelectionModal").then(m => ({ default: m.BreachSelectionModal })));
+const CardRewardModal = lazy(() => import("./ui/CardRewardModal").then(m => ({ default: m.CardRewardModal })));
+const RecallSelectionModal = lazy(() => import("./ui/RecallSelectionModal").then(m => ({ default: m.RecallSelectionModal })));
 import { EtherBar } from "./ui/EtherBar";
 import { Sword, Shield, Heart, Zap, Flame, Clock, Skull, X, ChevronUp, ChevronDown, Play, StepForward, RefreshCw, ICON_MAP } from "./ui/BattleIcons";
 import { selectBattleAnomalies, applyAnomalyEffects } from "../../lib/anomalyUtils";
@@ -180,19 +182,36 @@ interface GameProps {
 }
 
 function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, liveInsight }: GameProps): JSX.Element | null {
-  const playerStrength = useGameStore((state) => state.playerStrength || 0);
-  const playerAgility = useGameStore((state) => state.playerAgility || 0);
-  const relics = useGameStore((state) => state.relics || []);
-  const devDulledLevel = useGameStore((state) => state.devDulledLevel ?? null);
-  const devForcedAnomalies = useGameStore((state) => state.devForcedAnomalies ?? null);
-  const mapRisk = useGameStore((state) => state.mapRisk || 0);
-  const playerTraits = useGameStore((state) => state.playerTraits || []);
-  const playerEgos = useGameStore((state) => state.playerEgos || []);
-  // 개발자 모드: characterBuild 변경 감지
-  const devCharacterBuild = useGameStore((state) => state.characterBuild);
-  // 개발자 모드: 전투 중 토큰 추가
-  const devBattleTokens = useGameStore((state) => state.devBattleTokens);
-  const devClearBattleTokens = useGameStore((state) => state.devClearBattleTokens);
+  // useShallow로 여러 상태를 한 번에 구독하여 리렌더링 최적화
+  const {
+    playerStrength,
+    playerAgility,
+    relics,
+    devDulledLevel,
+    devForcedAnomalies,
+    mapRisk,
+    playerTraits,
+    playerEgos,
+    devCharacterBuild,
+    devBattleTokens,
+    devClearBattleTokens,
+  } = useGameStore(
+    useShallow((state) => ({
+      playerStrength: state.playerStrength || 0,
+      playerAgility: state.playerAgility || 0,
+      relics: state.relics || [],
+      devDulledLevel: state.devDulledLevel ?? null,
+      devForcedAnomalies: state.devForcedAnomalies ?? null,
+      mapRisk: state.mapRisk || 0,
+      playerTraits: state.playerTraits || [],
+      playerEgos: state.playerEgos || [],
+      // 개발자 모드: characterBuild 변경 감지
+      devCharacterBuild: state.characterBuild,
+      // 개발자 모드: 전투 중 토큰 추가
+      devBattleTokens: state.devBattleTokens,
+      devClearBattleTokens: state.devClearBattleTokens,
+    }))
+  );
   const mergeRelicOrder = useCallback((relicList = [], saved = []) => {
     const savedSet = new Set(saved);
     const merged = [];
@@ -2704,30 +2723,33 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         />
       )}
 
-      {/* 브리치 카드 선택 모달 */}
-      {breachSelection && (
-        <BreachSelectionModal
-          breachSelection={breachSelection}
-          onSelect={handleBreachSelect}
-          strengthBonus={player.strength || 0}
-        />
-      )}
+      {/* Lazy loading 모달 컴포넌트 */}
+      <Suspense fallback={null}>
+        {/* 브리치 카드 선택 모달 */}
+        {breachSelection && (
+          <BreachSelectionModal
+            breachSelection={breachSelection}
+            onSelect={handleBreachSelect}
+            strengthBonus={player.strength || 0}
+          />
+        )}
 
-      {/* 카드 보상 선택 모달 (승리 후) */}
-      {cardReward && (
-        <CardRewardModal
-          rewardCards={cardReward.cards}
-          onSelect={handleRewardSelect}
-          onSkip={handleRewardSkip}
-        />
-      )}
+        {/* 카드 보상 선택 모달 (승리 후) */}
+        {cardReward && (
+          <CardRewardModal
+            rewardCards={cardReward.cards}
+            onSelect={handleRewardSelect}
+            onSkip={handleRewardSkip}
+          />
+        )}
 
-      {/* 함성 (recallCard) 카드 선택 모달 */}
-      <RecallSelectionModal
-        recallSelection={recallSelection}
-        onSelect={handleRecallSelect}
-        onSkip={handleRecallSkip}
-      />
+        {/* 함성 (recallCard) 카드 선택 모달 */}
+        <RecallSelectionModal
+          recallSelection={recallSelection}
+          onSelect={handleRecallSelect}
+          onSkip={handleRecallSkip}
+        />
+      </Suspense>
 
       {/* 에테르 게이지 - 왼쪽 고정 */}
       <div style={{

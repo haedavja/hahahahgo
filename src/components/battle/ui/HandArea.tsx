@@ -4,7 +4,7 @@
  * 하단 고정 손패 영역 컴포넌트
  */
 
-import { FC, useState, MouseEvent } from 'react';
+import { FC, useState, MouseEvent, memo } from 'react';
 import { createPortal } from 'react-dom';
 import { useGameStore } from '../../../state/gameStore';
 import { hasTrait, applyTraitModifiers } from '../utils/battleUtils';
@@ -87,7 +87,7 @@ interface HandAreaProps {
   enemyUnits?: Unit[];
 }
 
-export const HandArea: FC<HandAreaProps> = ({
+export const HandArea: FC<HandAreaProps> = memo(({
   battle,
   player,
   enemy,
@@ -503,4 +503,4 @@ export const HandArea: FC<HandAreaProps> = ({
       )}
     </div>
   );
-};
+});

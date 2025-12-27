@@ -4,7 +4,7 @@
  * 상단 상징 표시 컴포넌트
  */
 
-import { FC, DragEvent } from 'react';
+import { FC, DragEvent, memo } from 'react';
 import type {
   UIRelicEffect as RelicEffect,
   UIRelic as Relic,
@@ -28,7 +28,7 @@ interface RelicDisplayProps {
   handleRelicDrop: (index: number) => (e: DragEvent<HTMLDivElement>) => void;
 }
 
-export const RelicDisplay: FC<RelicDisplayProps> = ({
+export const RelicDisplay: FC<RelicDisplayProps> = memo(({
   orderedRelicList,
   RELICS,
   RELIC_RARITIES,
@@ -171,4 +171,4 @@ export const RelicDisplay: FC<RelicDisplayProps> = ({
       </div>
     </div>
   );
-};
+});
