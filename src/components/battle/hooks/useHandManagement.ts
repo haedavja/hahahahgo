@@ -8,6 +8,7 @@ import { useCallback } from 'react';
 import { useGameStore } from '../../../state/gameStore';
 import { drawFromDeck } from '../utils/handGeneration';
 import { CARDS as BASE_CARDS, DEFAULT_DRAW_COUNT } from '../battleData';
+import { generateHandUid } from '../../../lib/randomUtils';
 
 /**
  * 패 관리 훅
@@ -55,7 +56,7 @@ export function useHandManagement({
         addLog('🔄 덱이 소진되어 무덤을 섞어 새 덱을 만들었습니다.');
       }
     } else {
-      const rawHand = BASE_CARDS.slice(0, 10).map((card: any, idx: any) => ({ ...card, __handUid: `${card.id}_${idx}_${Math.random().toString(36).slice(2, 8)}` }));
+      const rawHand = BASE_CARDS.slice(0, 10).map((card: any, idx: any) => ({ ...card, __handUid: generateHandUid(card.id, idx) }));
       actions.setHand(rawHand);
     }
 

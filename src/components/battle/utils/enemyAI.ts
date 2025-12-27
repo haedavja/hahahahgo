@@ -17,6 +17,7 @@ import type { AICard, AIEnemy, AIModeWeights, AIMode, AICardStats } from '../../
 import { MAX_SPEED, BASE_PLAYER_ENERGY, ENEMY_CARDS } from "../battleData";
 import { choice } from "./battleUtils";
 import { calculateEtherSlots } from "../../../lib/etherUtils";
+import { generateTimestampUid } from "../../../lib/randomUtils";
 
 /**
  * 몬스터별 AI 모드 가중치
@@ -290,7 +291,7 @@ export function expandActionsWithGhosts(actions: AICard[], units: AIEnemy[]): AI
     const realCard: AICard = {
       ...card,
       __sourceUnitId: primaryUnit.unitId,
-      __uid: `real_${card.id}_${Date.now()}_${Math.random().toString(36).slice(2)}`
+      __uid: generateTimestampUid(`real_${card.id}`)
     };
     expandedActions.push(realCard);
 
@@ -300,7 +301,7 @@ export function expandActionsWithGhosts(actions: AICard[], units: AIEnemy[]): AI
         ...card,
         isGhost: true,
         __sourceUnitId: ghostUnit.unitId,
-        __uid: `ghost_${card.id}_${ghostUnit.unitId}_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+        __uid: generateTimestampUid(`ghost_${card.id}_${ghostUnit.unitId}`),
         createdBy: card.id
       };
       expandedActions.push(ghostCard);

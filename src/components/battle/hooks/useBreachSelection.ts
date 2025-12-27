@@ -11,6 +11,7 @@
 
 import { useCallback, useState, useRef } from 'react';
 import type { BreachSelection } from '../../../types';
+import { generateUid } from '../../../lib/randomUtils';
 
 // 카드 창조 큐 아이템 (런타임 타입 - 다양한 카드 타입 허용)
 export interface CreationQueueItem {
@@ -67,7 +68,7 @@ export function useBreachSelection({
       flecheChainCount: selectedCard.flecheChainCount || 0,
       createdBy: selectedCard.createdBy || breach.breachCard?.id,
       isAoe: breach.isAoe ?? false,
-      __uid: `ghost_${Math.random().toString(36).slice(2)}`
+      __uid: generateUid('ghost')
     };
 
     const ghostAction = {

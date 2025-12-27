@@ -27,6 +27,7 @@ import { drawFromDeck } from '../utils/handGeneration';
 import { decideEnemyMode, generateEnemyActions, expandActionsWithGhosts } from '../utils/enemyAI';
 import { useGameStore } from '../../../state/gameStore';
 import { DEFAULT_PLAYER_MAX_SPEED, DEFAULT_DRAW_COUNT, CARDS } from '../battleData';
+import { generateHandUid } from '../../../lib/randomUtils';
 
 /**
  * 턴 시작 효과 처리 훅
@@ -300,7 +301,7 @@ export function useTurnStartEffects({
           addLog('🔄 덱이 소진되어 무덤을 섞어 새 덱을 만들었습니다.');
         }
       } else {
-        const rawHand = CARDS.slice(0, 10).map((card, idx) => ({ ...card, __handUid: `${card.id}_${idx}_${Math.random().toString(36).slice(2, 8)}` }));
+        const rawHand = CARDS.slice(0, 10).map((card, idx) => ({ ...card, __handUid: generateHandUid(card.id, idx) }));
         actions.setHand(rawHand);
       }
       actions.setSelected([]);

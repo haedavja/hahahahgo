@@ -14,6 +14,8 @@
  * @property {Object[]} effects - 레벨별 효과
  */
 
+import { shuffle } from '../lib/randomUtils';
+
 export const ANOMALY_TYPES = {
   DEFLATION_CURSE: {
     id: 'deflation_curse',
@@ -120,6 +122,6 @@ export function selectRandomAnomaly() {
  */
 export function selectMultipleAnomalies(count: any) {
   // 중복 없이 랜덤 선택
-  const shuffled = [...ALL_ANOMALIES].sort(() => Math.random() - 0.5);
+  const shuffled = shuffle(ALL_ANOMALIES);
   return shuffled.slice(0, Math.min(count, ALL_ANOMALIES.length));
 }

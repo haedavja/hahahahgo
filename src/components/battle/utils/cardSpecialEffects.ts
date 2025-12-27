@@ -29,6 +29,7 @@ import type {
   TokensContainer
 } from '../../../types';
 import { addToken, setTokenStacks } from '../../../lib/tokenUtils';
+import { shuffle } from '../../../lib/randomUtils';
 
 // 분리된 모듈에서 re-export
 export { hasSpecial, processPreAttackSpecials } from './preAttackSpecials';
@@ -315,7 +316,7 @@ export function processCardCreationSpecials({
       (!c.requiredTokens || c.requiredTokens.length === 0)
     );
     if (attackCards.length > 0) {
-      const shuffled = [...attackCards].sort(() => Math.random() - 0.5);
+      const shuffled = shuffle(attackCards);
       const selectedCards: Card[] = [];
       const usedIds = new Set<string>();
       for (const c of shuffled) {

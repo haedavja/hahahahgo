@@ -20,6 +20,7 @@
 
 import { CONFIG, OBJECT_TYPES, DIRECTIONS } from './dungeonConfig';
 import { OBSTACLE_TEMPLATES } from '../../../data/dungeonNodes';
+import { shuffle } from '../../../lib/randomUtils';
 
 // ========== 기로 템플릿 선택 ==========
 export function getRandomCrossroadTemplate(forcedTemplateId: string | null = null) {
@@ -135,7 +136,7 @@ export function generateMaze(forcedCrossroadId: string | null = null) {
     const { x, y } = current;
 
     // 이웃 방향 섞기
-    const directions = Object.keys(DIRECTIONS).sort(() => Math.random() - 0.5);
+    const directions = shuffle(Object.keys(DIRECTIONS));
     let foundNext = false;
 
     for (const dir of directions) {

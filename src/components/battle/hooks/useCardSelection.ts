@@ -6,6 +6,7 @@
 
 import { useCallback } from 'react';
 import { applyAgility } from '../../../lib/agilityUtils';
+import { generateUid } from '../../../lib/randomUtils';
 import { detectPokerCombo, applyPokerBonus } from '../utils/comboDetection';
 import { createFixedOrder } from '../utils/cardOrdering';
 import type { OrderingCardInfo, Card, PlayerBattleState, EnemyUnit } from '../../../types';
@@ -112,7 +113,7 @@ export function useCardSelection({
         if (isMultiTargetCard && hasMultipleUnits && aliveUnitsCount > 1) {
           const cardWithUid = {
             ...card,
-            __uid: card.__handUid || Math.random().toString(36).slice(2),
+            __uid: card.__handUid || generateUid(),
           };
           startDamageDistribution(cardWithUid);
           playSound(600, 80);

@@ -101,6 +101,7 @@ import { playInsightSound } from "./utils/insightSystem";
 import { computeComboMultiplier as computeComboMultiplierUtil, explainComboMultiplier as explainComboMultiplierUtil } from "./utils/comboMultiplier";
 import { calculateEtherTransfer } from "./utils/etherTransfer";
 import { formatCompactValue } from "./utils/formatUtils";
+import { generateHandUid, generateUid, shuffle } from "../../lib/randomUtils";
 import { checkVictoryCondition } from "./utils/turnEndStateUpdate";
 import { processImmediateCardTraits, processCardPlayedRelicEffects } from "./utils/cardImmediateEffects";
 import { collectTriggeredRelics, playRelicActivationSequence } from "./utils/relicActivationAnimation";
@@ -651,7 +652,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         deckInitializedRef.current = true;
       } else {
         // 캐릭터 빌드가 없으면 기존 방식 (테스트용)
-        const rawHand = CARDS.slice(0, 10).map((card, idx) => ({ ...card, __handUid: `${card.id}_${idx}_${Math.random().toString(36).slice(2, 8)}` }));
+        const rawHand = CARDS.slice(0, 10).map((card, idx) => ({ ...card, __handUid: generateHandUid(card.id, idx) }));
         actions.setHand(rawHand);
         actions.setDeck([]);
         actions.setDiscardPile([]);
@@ -846,7 +847,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
           deckInitializedRef.current = true; // 덱 초기화 완료 표시
           addLog(`🎴 시작 손패 ${fullHand.length}장 (주특기 ${mainSpecialsHand.length}장, 덱: ${drawResult.newDeck.length}장)`);
         } else {
-          const rawHand = CARDS.slice(0, 10).map((card, idx) => ({ ...card, __handUid: `${card.id}_${idx}_${Math.random().toString(36).slice(2, 8)}` }));
+          const rawHand = CARDS.slice(0, 10).map((card, idx) => ({ ...card, __handUid: generateHandUid(card.id, idx) }));
           actions.setHand(rawHand);
           actions.setDeck([]);
           actions.setDiscardPile([]);
@@ -1688,7 +1689,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
             special: bonusCard.special,
             traits: bonusCard.traits,
             isGhost: true,
-            __uid: `combo_${Math.random().toString(36).slice(2)}`
+            __uid: generateUid('combo')
           },
           sp: insertSp
         }));
@@ -2063,7 +2064,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         c.id !== 'breach' &&
         (!c.requiredTokens || c.requiredTokens.length === 0)
       );
-      const shuffled = [...cardPool].sort(() => Math.random() - 0.5);
+      const shuffled = shuffle(cardPool);
       const breachCards: typeof CARDS = [];
       const usedIds = new Set();
       for (const card of shuffled) {
@@ -2122,7 +2123,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
       if (fencingAttackCards.length >= 3) {
         // 3번의 선택을 위한 큐 생성 (각각 다른 3장)
-        const allShuffled = [...fencingAttackCards].sort(() => Math.random() - 0.5);
+        const allShuffled = shuffle(fencingAttackCards);
         const usedIds = new Set();
 
         // 창조 선택 큐 초기화

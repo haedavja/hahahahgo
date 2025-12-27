@@ -17,6 +17,7 @@
 
 import { RELICS, RELIC_RARITIES } from './relics';
 import { ITEMS } from './items';
+import { shuffle } from '../lib/randomUtils';
 
 // ==================== 타입 정의 ====================
 
@@ -220,7 +221,7 @@ export function generateShopInventory(
 
   // 아이템 선택
   const availableItems = Object.values(ITEMS);
-  const shuffledItems = [...availableItems].sort(() => Math.random() - 0.5);
+  const shuffledItems = shuffle(availableItems);
 
   for (let i = 0; i < merchant.itemSlots && i < shuffledItems.length; i++) {
     const item = shuffledItems[i];
@@ -257,7 +258,7 @@ export function generateShopInventory(
     }
 
     // 셔플 후 가중치 기반 선택
-    availableCards = availableCards.sort(() => Math.random() - 0.5);
+    availableCards = shuffle(availableCards);
 
     for (let i = 0; i < merchant.cardSlots && availableCards.length > 0; i++) {
       const totalWeight = availableCards.reduce((sum, c) => sum + getCardWeight(c), 0);

@@ -12,6 +12,7 @@
 import { useState, useCallback } from 'react';
 import { useGameStore } from '../../../state/gameStore';
 import type { Card } from '../../../types';
+import { shuffle } from '../../../lib/randomUtils';
 
 /** 카드 보상 상태 타입 */
 export interface CardRewardState {
@@ -90,8 +91,8 @@ export function useRewardSelection({
   // 승리 시 카드 보상 모달 표시
   const showCardRewardModal = useCallback(() => {
     // 공격/범용/특수 카드 중 랜덤 3장 선택
-    const cardPool = CARDS.filter((c: any) => (c.type === 'attack' || c.type === 'general' || c.type === 'special'));
-    const shuffled = [...cardPool].sort(() => Math.random() - 0.5);
+    const cardPool = CARDS.filter((c: any) => (c.type === 'attack' || c.type === 'general' || c.type === 'special')) as Card[];
+    const shuffled = shuffle(cardPool);
     const rewardCards = shuffled.slice(0, 3);
 
     setCardReward({ cards: rewardCards });

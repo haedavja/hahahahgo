@@ -17,6 +17,7 @@ export { ACTIONS } from './battleReducerActions';
 export type { BattleAction, BattlePhase, SortType, EtherCalcPhase } from './battleReducerActions';
 
 import { ACTIONS, type BattleAction } from './battleReducerActions';
+import { shuffle } from '../../../lib/randomUtils';
 
 /**
  * 전투 상태 Reducer
@@ -110,7 +111,7 @@ export function battleReducer(state: FullBattleState, action: BattleAction): Ful
       return { ...state, deck: remainingDeck, hand: [...state.hand, ...drawnCards] };
     }
     case ACTIONS.SHUFFLE_DISCARD_INTO_DECK: {
-      const shuffledDiscard = [...state.discardPile].sort(() => Math.random() - 0.5);
+      const shuffledDiscard = shuffle(state.discardPile);
       return { ...state, deck: [...state.deck, ...shuffledDiscard], discardPile: [] };
     }
 

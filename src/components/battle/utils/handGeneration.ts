@@ -12,6 +12,7 @@ import type {
 } from '../../../types';
 import { CARDS, DEFAULT_STARTING_DECK } from "../battleData";
 import { hasTrait } from "./battleUtils";
+import { generateHandUid } from "../../../lib/randomUtils";
 
 /**
  * Fisher-Yates 셔플 알고리즘
@@ -44,7 +45,7 @@ export function initializeDeck(
       if (!card) return null;
       return {
         ...card,
-        __handUid: `main_${card.id}_${idx}_${Math.random().toString(36).slice(2, 8)}`,
+        __handUid: generateHandUid(card.id, idx, 'main'),
         __isMainSpecial: true
       };
     })
@@ -57,7 +58,7 @@ export function initializeDeck(
       if (!card) return null;
       return {
         ...card,
-        __handUid: `sub_${card.id}_${idx}_${Math.random().toString(36).slice(2, 8)}`,
+        __handUid: generateHandUid(card.id, idx, 'sub'),
         __isSubSpecial: true
       };
     })
@@ -93,7 +94,7 @@ export function initializeDeck(
       if (!card) return null;
       return {
         ...card,
-        __handUid: `owned_${card.id}_${idx}_${Math.random().toString(36).slice(2, 8)}`
+        __handUid: generateHandUid(card.id, idx, 'owned')
       };
     })
     .filter(Boolean) as HandCard[];
@@ -184,7 +185,7 @@ export function drawCharacterBuildHand(
       if (!card) return null;
       return {
         ...card,
-        __handUid: `${card.id}_${idx}_${Math.random().toString(36).slice(2, 8)}`
+        __handUid: generateHandUid(card.id, idx)
       };
     })
     .filter(Boolean) as HandCard[];
