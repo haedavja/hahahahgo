@@ -880,7 +880,9 @@ export const ENEMIES = [
     cardsPerTurn: 2,
     emoji: "💀",
     tier: 1,
-    description: "약함, 초반적. 가끔 때로 등장."
+    description: "약함, 초반적. 가끔 때로 등장.",
+    isBoss: false,
+    passives: {}
   },
   {
     id: "marauder",
@@ -893,7 +895,9 @@ export const ENEMIES = [
     cardsPerTurn: 1,
     emoji: "🗡️",
     tier: 1,
-    description: "지금은 죄악으로 가득한 나날을 보내고 있지만 모든게 멀쩡했던 시절엔 그저 평범한 시민이었습니다."
+    description: "지금은 죄악으로 가득한 나날을 보내고 있지만 모든게 멀쩡했던 시절엔 그저 평범한 시민이었습니다.",
+    isBoss: false,
+    passives: {}
   },
   {
     id: "deserter",
@@ -907,6 +911,7 @@ export const ENEMIES = [
     emoji: "⚔️",
     tier: 2,
     description: "한때 보편국에 충성했던 병사입니다. 그러나 세상이 붕괴한 지금 자기 한몸 사리기 급급해 더 이상 수단과 방법을 가리지 않습니다.",
+    isBoss: false,
     passives: {
       veilAtStart: true,      // 전투 시작 시 장막 (통찰 차단)
       healPerTurn: 4          // 매턴 체력 4 회복
@@ -940,7 +945,9 @@ export const ENEMIES = [
     cardsPerTurn: 1,
     emoji: "🟢",
     tier: 1,
-    description: "슬라임 비슷한 유독성 폐기물로 만들어진 흉물. 디버프만 거는 편."
+    description: "슬라임 비슷한 유독성 폐기물로 만들어진 흉물. 디버프만 거는 편.",
+    isBoss: false,
+    passives: {}
   },
 ];
 
