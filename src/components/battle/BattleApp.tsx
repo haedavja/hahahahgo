@@ -2541,7 +2541,12 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   });
 
   // 적 조합 감지 (표시용) - Hook은 조건부 return 전에 호출
-  const enemyCombo = useMemo(() => detectPokerCombo((enemyPlan?.actions || []) as unknown as ComboCard[]), [enemyPlan?.actions]);
+  const enemyCombo = useMemo(() => {
+    const actions = enemyPlan?.actions || [];
+    const combo = detectPokerCombo(actions as unknown as ComboCard[]);
+    console.log('[DEBUG] phase:', battle.phase, 'enemyPlan.actions:', actions.length, 'cards, actionCosts:', actions.map((a: any) => a.actionCost), 'enemyCombo:', combo?.name || 'null');
+    return combo;
+  }, [enemyPlan?.actions, battle.phase]);
 
   // 적 디플레이션 정보 설정 (선택/대응 단계에서) - 플레이어의 useComboSystem과 동일한 로직
   useEffect(() => {
