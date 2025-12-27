@@ -22,7 +22,7 @@ import { CONFIG, OBJECT_TYPES, DIRECTIONS } from './dungeonConfig';
 import { OBSTACLE_TEMPLATES } from '../../../data/dungeonNodes';
 
 // ========== 기로 템플릿 선택 ==========
-export function getRandomCrossroadTemplate(forcedTemplateId = null) {
+export function getRandomCrossroadTemplate(forcedTemplateId: string | null = null) {
   // 강제 템플릿이 지정된 경우
   if (forcedTemplateId && OBSTACLE_TEMPLATES[forcedTemplateId]) {
     return { ...OBSTACLE_TEMPLATES[forcedTemplateId] };
@@ -34,7 +34,7 @@ export function getRandomCrossroadTemplate(forcedTemplateId = null) {
 
 // ========== 방 생성 ==========
 export function createRoom(x, y, roomType) {
-  const objects = [];
+  const objects: Array<{ id: string; typeId: string; x: number; used: boolean; [key: string]: unknown }> = [];
 
   // 입구/출구가 아닌 경우 오브젝트 생성
   if (roomType !== 'entrance' && roomType !== 'exit') {
@@ -42,7 +42,7 @@ export function createRoom(x, y, roomType) {
 
     for (let i = 0; i < count; i++) {
       const rand = Math.random();
-      let type = null;
+      let type: typeof OBJECT_TYPES.CHEST | typeof OBJECT_TYPES.CURIO | typeof OBJECT_TYPES.COMBAT | null = null;
 
       if (rand < 0.35) {
         type = OBJECT_TYPES.CHEST;
@@ -52,12 +52,14 @@ export function createRoom(x, y, roomType) {
         type = OBJECT_TYPES.COMBAT;
       }
 
-      objects.push({
-        id: `obj_${x}_${y}_${i}`,
-        typeId: type.id,
-        x: 350 + i * 250 + Math.random() * 100,
-        used: false,
-      });
+      if (type) {
+        objects.push({
+          id: `obj_${x}_${y}_${i}`,
+          typeId: type.id,
+          x: 350 + i * 250 + Math.random() * 100,
+          used: false,
+        });
+      }
     }
   }
 
@@ -178,7 +180,7 @@ export function generateMaze(forcedCrossroadId = null) {
   // 출구가 없으면 강제 생성
   if (!grid[getKey(exitX, exitY)]) {
     // 가장 가까운 방에서 출구로 연결
-    let closestRoom = null;
+    let closestRoom: { x: number; y: number; key: string } | null = null;
     let minDist = Infinity;
 
     for (const key of Object.keys(grid)) {
@@ -199,7 +201,7 @@ export function generateMaze(forcedCrossroadId = null) {
         const currentKey = getKey(cx, cy);
         let nextX = cx;
         let nextY = cy;
-        let dir = null;
+        let dir: 'west' | 'east' | 'south' | 'north' | null = null;
 
         if (cx !== exitX) {
           nextX = cx + (exitX > cx ? 1 : -1);
@@ -208,6 +210,8 @@ export function generateMaze(forcedCrossroadId = null) {
           nextY = cy + (exitY > cy ? 1 : -1);
           dir = exitY > cy ? 'south' : 'north';
         }
+
+        if (!dir) continue;
 
         const nextKey = getKey(nextX, nextY);
         const opposite = DIRECTIONS[dir].opposite;
@@ -300,7 +304,7 @@ export function generateMaze(forcedCrossroadId = null) {
 
 // ========== 레거시 던전 생성 ==========
 function createObjects(isRoom, segmentIndex) {
-  const objects = [];
+  const objects: Array<{ id: string; typeId: string; x: number; used: boolean; [key: string]: unknown }> = [];
   const count = 2 + Math.floor(Math.random() * 2); // 2-3개
   const MIN_DISTANCE = 150; // 오브젝트 간 최소 거리
 
@@ -325,7 +329,7 @@ function createObjects(isRoom, segmentIndex) {
     } while (true);
 
     // 확률 기반 타입 선택
-    let type = null;
+    let type: typeof OBJECT_TYPES[keyof typeof OBJECT_TYPES] | null = null;
     let cumProb = 0;
 
     for (const typeKey of Object.keys(OBJECT_TYPES)) {
@@ -372,14 +376,14 @@ function ensureMinimumCombats(segments) {
   }
 }
 
-export function generateDungeon(forcedCrossroadId = null) {
+export function generateDungeon(forcedCrossroadId: string | null = null) {
   const count = CONFIG.SEGMENT_COUNT.min +
     Math.floor(Math.random() * (CONFIG.SEGMENT_COUNT.max - CONFIG.SEGMENT_COUNT.min + 1));
 
-  const segments = [];
+  const segments: Array<{ id: string; index: number; isRoom: boolean; width: number; objects: Array<{ id: string; typeId: string; x: number; used: boolean; [key: string]: unknown }>; exitX: number; isLast: boolean }> = [];
 
   // 기로 배치할 세그먼트 인덱스 (복도 중 1-2개)
-  const corridorIndices = [];
+  const corridorIndices: number[] = [];
   for (let i = 0; i < count; i++) {
     if (i % 2 === 0 && i < count - 1) {  // 복도 세그먼트 (첫 번째 포함)
       corridorIndices.push(i);
@@ -394,7 +398,7 @@ export function generateDungeon(forcedCrossroadId = null) {
   }
 
   // 숏컷 배치할 세그먼트 (후반부 방에 숏컷 문 배치, 초반으로 연결)
-  const shortcutPairs = [];
+  const shortcutPairs: Array<{ from: number; to: number }> = [];
   if (count >= 5) {
     // 세그먼트 4 또는 6 (방)에서 세그먼트 1 (방)로 연결
     const fromIdx = count >= 7 ? 5 : 3;  // 방 세그먼트 (홀수 인덱스)

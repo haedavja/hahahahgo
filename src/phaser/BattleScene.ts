@@ -122,7 +122,7 @@ export class BattleScene extends Phaser.Scene {
 
     this.unsubscribes.push(() => this.input.off("pointerdown", finishBattle));
     if (this.input.keyboard) {
-      this.unsubscribes.push(() => this.input.keyboard.off("keydown-SPACE", finishBattle));
+      this.unsubscribes.push(() => this.input.keyboard?.off("keydown-SPACE", finishBattle));
     }
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.cleanup());
@@ -132,7 +132,7 @@ export class BattleScene extends Phaser.Scene {
   updateTexts(battle: ActiveBattle) {
     if (!battle) return;
     this.titleText?.setText(`전투: ${battle.label}`);
-    this.infoText?.setText(`유형 ${battle.kind.toUpperCase()} | 난이도 ${battle.difficulty}`);
+    this.infoText?.setText(`유형 ${battle.kind?.toUpperCase() ?? 'UNKNOWN'} | 난이도 ${battle.difficulty}`);
     if (battle.preview) {
       const timelineLines = battle.preview.timeline
         .map((entry) => `${entry.order}. [${entry.actor === "player" ? "P" : "E"}] ${entry.name} • ${entry.speedCost}TU (누적 ${entry.tu})`)

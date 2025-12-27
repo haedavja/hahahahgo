@@ -169,7 +169,7 @@ export const createBattlePayload = (
 ): BattlePayload | null => {
   if (!node || !BATTLE_TYPES.has(node.type) || node.isStart) return null;
 
-  const hasCharacterBuild = characterBuild && (characterBuild.mainSpecials?.length > 0 || characterBuild.subSpecials?.length > 0 || characterBuild.ownedCards?.length > 0);
+  const hasCharacterBuild = !!characterBuild && ((characterBuild.mainSpecials?.length ?? 0) > 0 || (characterBuild.subSpecials?.length ?? 0) > 0 || (characterBuild.ownedCards?.length ?? 0) > 0);
 
   const playerLibrary = hasCharacterBuild
     ? [...characterBuild.mainSpecials, ...characterBuild.subSpecials]

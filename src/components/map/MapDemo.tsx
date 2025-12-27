@@ -49,9 +49,9 @@ export function MapDemo() {
       items: state.items || [null, null, null],
     }))
   );
-  const mergeRelicOrder = useCallback((relicList = [], saved = []) => {
+  const mergeRelicOrder = useCallback((relicList: string[] = [], saved: string[] = []) => {
     const savedSet = new Set(saved);
-    const merged = [];
+    const merged: string[] = [];
     saved.forEach(id => { if (relicList?.includes(id)) merged.push(id); });
     (relicList || []).forEach(id => { if (!savedSet.has(id)) merged.push(id); });
     return merged;
@@ -156,7 +156,7 @@ export function MapDemo() {
       agility: effectiveAgility,
     };
     return Object.entries(statRequirement).every(
-      ([stat, required]) => (playerStats[stat] ?? 0) >= required
+      ([stat, required]) => (playerStats[stat as keyof typeof playerStats] ?? 0) >= (required as number)
     );
   }, [effectiveInsight, effectiveStrength, effectiveAgility]);
 
@@ -233,7 +233,7 @@ export function MapDemo() {
 
   useEffect(() => {
     if (!mapViewRef.current || !map?.currentNodeId) return;
-    const container = mapViewRef.current;
+    const container = mapViewRef.current as HTMLDivElement;
     const target = container.querySelector(`[data-node-id="${map.currentNodeId}"]`);
     if (!target) return;
     const containerRect = container.getBoundingClientRect();
@@ -332,9 +332,11 @@ export function MapDemo() {
           <div className="map-view" ref={mapViewRef} style={{ marginLeft: '400px' }}>
             <section className="map" style={{ minHeight: mapHeight, width: MAP_WIDTH, margin: "0 auto", padding: "40px 0 60px" }}>
               <svg className="edge-layer" width={MAP_WIDTH} height={MAP_LAYERS * V_SPACING + 200}>
-                {edges.map(({ from, to }: { from: MapNode; to: MapNode }) => (
-                  <line key={`${from.id}-${to.id}`} x1={from.x} y1={from.y} x2={to.x} y2={to.y} />
-                ))}
+                {edges.map((edge) => {
+                  if (!edge) return null;
+                  const { from, to } = edge;
+                  return <line key={`${from.id}-${to.id}`} x1={from.x} y1={from.y} x2={to.x} y2={to.y} />;
+                })}
               </svg>
 
               {nodes.map((node: MapNode) => (
@@ -352,8 +354,8 @@ export function MapDemo() {
                     .filter(Boolean)
                     .join(" ")}
                   style={{
-                    left: node.x - NODE_WIDTH / 2,
-                    top: node.y - NODE_HEIGHT / 2,
+                    left: (node.x ?? 0) - NODE_WIDTH / 2,
+                    top: (node.y ?? 0) - NODE_HEIGHT / 2,
                   }}
                   onClick={() => handleNodeClick(node)}
                 >

@@ -25,7 +25,7 @@ export const createDungeonActions: SliceCreator = (set) => ({
           activeDungeon: {
             ...state.activeDungeon,
             confirmed: true,
-            dungeonData: null,
+            dungeonData: undefined,
           },
         };
       }
@@ -145,7 +145,7 @@ export const createDungeonActions: SliceCreator = (set) => ({
       if (!state.activeDungeon) return state;
       return {
         ...state,
-        activeDungeon: { ...state.activeDungeon, dungeonData },
+        activeDungeon: { ...state.activeDungeon, dungeonData: dungeonData ?? undefined },
       };
     }),
 

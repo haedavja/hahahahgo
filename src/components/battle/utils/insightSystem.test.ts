@@ -32,10 +32,10 @@ describe('insightSystem', () => {
     });
 
     it('null/undefined 값은 0으로 처리해야 함', () => {
-      expect(calculateEffectiveInsight(null, 0)).toBe(0);
-      expect(calculateEffectiveInsight(3, null)).toBe(3);
-      expect(calculateEffectiveInsight(null, null)).toBe(0);
-      expect(calculateEffectiveInsight(undefined, undefined)).toBe(0);
+      expect(calculateEffectiveInsight(null as any, 0)).toBe(0);
+      expect(calculateEffectiveInsight(3, null as any)).toBe(3);
+      expect(calculateEffectiveInsight(null as any, null as any)).toBe(0);
+      expect(calculateEffectiveInsight(undefined as any, undefined as any)).toBe(0);
     });
 
     it('음수 결과는 0으로 제한되어야 함', () => {
@@ -52,7 +52,7 @@ describe('insightSystem', () => {
     });
 
     it('적 행동이 null이면 level 0을 반환해야 함', () => {
-      const result = getInsightRevealLevel(3, null);
+      const result = getInsightRevealLevel(3, null as any);
 
       expect(result.level).toBe(0);
       expect(result.visible).toBe(false);
@@ -137,8 +137,8 @@ describe('insightSystem', () => {
 
       // 첫 번째 유닛: veil 0, 유효 통찰 2 → 카드 공개
       // 두 번째 유닛: veil 2, 유효 통찰 0 → 숨김
-      expect(result.actions[0].hidden).toBe(false);
-      expect(result.actions[1].hidden).toBe(true);
+      expect(result.actions![0].hidden).toBe(false);
+      expect(result.actions![1].hidden).toBe(true);
     });
 
     it('첫 번째와 마지막 action이 표시되어야 함 (레벨 1)', () => {
@@ -149,10 +149,10 @@ describe('insightSystem', () => {
       ];
       const result = getInsightRevealLevel(1, enemyActions);
 
-      expect(result.actions[0].isFirst).toBe(true);
-      expect(result.actions[0].isLast).toBe(false);
-      expect(result.actions[2].isFirst).toBe(false);
-      expect(result.actions[2].isLast).toBe(true);
+      expect(result.actions![0].isFirst).toBe(true);
+      expect(result.actions![0].isLast).toBe(false);
+      expect(result.actions![2].isFirst).toBe(false);
+      expect(result.actions![2].isLast).toBe(true);
     });
   });
 });

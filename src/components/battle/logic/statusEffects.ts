@@ -281,7 +281,7 @@ export function isVulnerable(actor) {
  * @returns {Array} - [{ name, value, duration }, ...]
  */
 export function getActiveEffects(actor) {
-  const effects = [];
+  const effects: any[] = [];
 
   if (actor.strength && actor.strength !== 0) {
     effects.push({

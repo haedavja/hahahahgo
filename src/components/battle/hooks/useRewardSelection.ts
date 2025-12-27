@@ -30,10 +30,10 @@ export function useRewardSelection({
   actions
 }) {
   // 카드 보상 선택 상태 (승리 후)
-  const [cardReward, setCardReward] = useState(null); // { cards: [] }
+  const [cardReward, setCardReward] = useState<{ cards: typeof CARDS } | null>(null);
 
   // 함성(recallCard) 카드 선택 상태
-  const [recallSelection, setRecallSelection] = useState(null); // { availableCards: [] }
+  const [recallSelection, setRecallSelection] = useState<{ availableCards: typeof CARDS } | null>(null);
 
   // 카드 보상 선택 처리 (승리 후)
   const handleRewardSelect = useCallback((selectedCard, idx) => {

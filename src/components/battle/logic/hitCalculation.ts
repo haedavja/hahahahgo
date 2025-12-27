@@ -75,8 +75,8 @@ export function applyCounterShot(
   attackerName: 'player' | 'enemy',
   battleContext: BattleContext = {}
 ): CounterShotResult {
-  const events = [];
-  const logs = [];
+  const events: BattleEvent[] = [];
+  const logs: string[] = [];
 
   const shootCard = CARDS.find(c => c.id === 'shoot');
   if (!shootCard) {
@@ -105,14 +105,14 @@ export function applyCounterShot(
   events.push({
     actor: 'counterShot',
     card: shootCard.name,
-    type: 'counterShot',
+    type: 'hit' as const,
     dmg: shotDamage,
     msg: cmsg
   });
   logs.push(`${attackerName === 'player' ? '👾' : '🔵'} ${cmsg}`);
 
   const rouletteMsg = `${defenderName} • 🎰 대응사격: 룰렛 ${newRouletteStacks} (${Math.round(newRouletteStacks * 5)}% 위험)`;
-  events.push({ actor: 'counterShot', type: 'roulette', msg: rouletteMsg });
+  events.push({ actor: 'counterShot', type: 'token' as const, msg: rouletteMsg });
   logs.push(`${attackerName === 'player' ? '👾' : '🔵'} ${rouletteMsg}`);
 
   return {

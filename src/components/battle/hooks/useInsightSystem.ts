@@ -45,8 +45,8 @@ export function useInsightSystem({
   actions
 }) {
   const prevInsightRef = useRef(playerInsight || 0);
-  const insightBadgeTimerRef = useRef(null);
-  const insightAnimTimerRef = useRef(null);
+  const insightBadgeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const insightAnimTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const prevRevealLevelRef = useRef(0);
 
   // 유효 통찰 계산

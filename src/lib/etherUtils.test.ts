@@ -58,8 +58,8 @@ describe('etherUtils', () => {
     });
 
     it('null/undefined는 0슬롯을 반환해야 함', () => {
-      expect(calculateEtherSlots(null)).toBe(0);
-      expect(calculateEtherSlots(undefined)).toBe(0);
+      expect(calculateEtherSlots(null as any)).toBe(0);
+      expect(calculateEtherSlots(undefined as any)).toBe(0);
     });
 
     it('99pt는 0슬롯을 반환해야 함', () => {
@@ -93,8 +93,8 @@ describe('etherUtils', () => {
     });
 
     it('null/undefined는 0을 반환해야 함', () => {
-      expect(getCurrentSlotPts(null)).toBe(0);
-      expect(getCurrentSlotPts(undefined)).toBe(0);
+      expect(getCurrentSlotPts(null as any)).toBe(0);
+      expect(getCurrentSlotPts(undefined as any)).toBe(0);
     });
 
     it('50pt는 50을 반환해야 함 (첫 슬롯 미완료)', () => {

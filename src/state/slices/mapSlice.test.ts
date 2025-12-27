@@ -85,7 +85,7 @@ describe('mapSlice', () => {
 
   describe('selectNode', () => {
     it('전투 중에는 노드를 선택할 수 없다', () => {
-      store.setState({ ...store.getState(), activeBattle: {} as TestStore['activeBattle'] });
+      store.setState({ ...store.getState(), activeBattle: {} as unknown as TestStore['activeBattle'] });
       const originalMap = store.getState().map;
       store.getState().selectNode('test-node');
       expect(store.getState().map).toBe(originalMap);

@@ -274,7 +274,7 @@ export function getActiveReflections(traits) {
   if (!traits || traits.length < 2) return [];
 
   const traitSet = new Set(traits);
-  const activeReflections = [];
+  const activeReflections: any[] = [];
 
   for (const reflection of Object.values(REFLECTIONS)) {
     const hasAll = reflection.requires.every(req => traitSet.has(req));
@@ -294,7 +294,7 @@ export function getActiveReflections(traits) {
 export function getReflectionsByEgos(egos) {
   if (!egos || egos.length === 0) return [];
 
-  const activeReflections = [];
+  const activeReflections: any[] = [];
 
   for (const ego of egos) {
     // 자아가 객체인 경우 name 속성 사용, 문자열인 경우 그대로 사용

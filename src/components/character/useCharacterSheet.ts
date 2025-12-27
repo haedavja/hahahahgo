@@ -58,13 +58,13 @@ export function useCharacterSheet({ showAllCards = false }) {
 
   // 활성화된 성찰 및 확률 계산 (획득한 자아 기준)
   const activeReflectionsInfo = useMemo(() => {
-    if (!playerEgos || playerEgos.length === 0) return [];
-    const activeReflections = getReflectionsByEgos(playerEgos);
+    if (!playerEgos || playerEgos.length === 0) return [] as any[];
+    const activeReflections = getReflectionsByEgos(playerEgos) as any[];
     const probabilityBonus = getTraitCountBonus(playerTraits.length);
 
     return activeReflections.map(r => ({
       ...r,
-      finalProbability: Math.min(1, r.probability + probabilityBonus)
+      finalProbability: Math.min(1, (r.probability ?? 0) + probabilityBonus)
     }));
   }, [playerTraits, playerEgos]);
 
@@ -96,8 +96,8 @@ export function useCharacterSheet({ showAllCards = false }) {
   };
 
   const [specialMode, setSpecialMode] = useState<'main' | 'sub'>("main");
-  const [mainSpecials, setMainSpecials] = useState([]);
-  const [subSpecials, setSubSpecials] = useState([]);
+  const [mainSpecials, setMainSpecials] = useState<string[]>([]);
+  const [subSpecials, setSubSpecials] = useState<string[]>([]);
   const [initialized, setInitialized] = useState(false);
   const [showOwnedCards, setShowOwnedCards] = useState(false);
 
@@ -128,7 +128,7 @@ export function useCharacterSheet({ showAllCards = false }) {
     if (showAllCards) {
       return availableCards.map((card, idx) => ({ ...card, _displayKey: `all_${card.id}_${idx}` }));
     }
-    const result = [];
+    const result: any[] = [];
     mainSpecials.forEach((cardId, idx) => {
       const card = CARDS.find(c => c.id === cardId);
       if (card) result.push({ ...card, _displayKey: `main_${cardId}_${idx}`, _type: 'main' });
@@ -137,11 +137,11 @@ export function useCharacterSheet({ showAllCards = false }) {
       const card = CARDS.find(c => c.id === cardId);
       if (card) result.push({ ...card, _displayKey: `sub_${cardId}_${idx}`, _type: 'sub' });
     });
-    const usedCounts = {};
+    const usedCounts: Record<string, number> = {};
     [...mainSpecials, ...subSpecials].forEach(cardId => {
       usedCounts[cardId] = (usedCounts[cardId] || 0) + 1;
     });
-    const shownCounts = {};
+    const shownCounts: Record<string, number> = {};
     ownedCards.forEach((cardId, idx) => {
       shownCounts[cardId] = (shownCounts[cardId] || 0) + 1;
       const used = usedCounts[cardId] || 0;

@@ -20,8 +20,8 @@ import { useRef, useCallback, useEffect } from 'react';
  * @returns {{showCardTraitTooltip: Function, hideCardTraitTooltip: Function}}
  */
 export function useCardTooltip({ hoveredCard, battlePhase, actions }) {
-  const tooltipTimerRef = useRef(null);
-  const hoveredCardRef = useRef(null);
+  const tooltipTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hoveredCardRef = useRef<{ card: any, x: number, y: number } | null>(null);
 
   // hoveredCard 상태를 ref로 유지 (타이머 콜백에서 참조)
   useEffect(() => {

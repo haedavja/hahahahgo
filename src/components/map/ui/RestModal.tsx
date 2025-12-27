@@ -165,7 +165,7 @@ function EgoFormPanel({
     return acc;
   }, {});
 
-  let previewEgo = null;
+  let previewEgo: string | null = null;
   let previewEmoji = '';
   let bestScore = 0;
   for (const { ego, parts, emoji } of EGO_RULES) {
@@ -288,7 +288,7 @@ function EgoFormPanel({
 }
 
 function RestUpgradePanel({ cardUpgrades, onUpgrade }) {
-  const [selectedCard, setSelectedCard] = useState(null);
+  const [selectedCard, setSelectedCard] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
   const cards = CARDS || [];
   const rarityOrder = ['common', 'rare', 'special', 'legendary'];
@@ -321,7 +321,7 @@ function RestUpgradePanel({ cardUpgrades, onUpgrade }) {
   };
 
   const selected = cards.find((c) => c.id === selectedCard);
-  const currentRarity = selected ? (cardUpgrades[selected.id] || (selected as { rarity?: string }).rarity || 'common') : null;
+  const currentRarity = selected ? (cardUpgrades[selected.id] || (selected as { rarity?: string }).rarity || 'common') : 'common';
   const nextRarity = selected ? getNextRarity(selected) : null;
 
   return (
@@ -332,7 +332,7 @@ function RestUpgradePanel({ cardUpgrades, onUpgrade }) {
       </button>
       {selected && (
         <div style={{ fontSize: "13px", color: "#9ca3af" }}>
-          현재 등급: {rarityLabel[currentRarity]} {nextRarity ? `→ 다음: ${rarityLabel[nextRarity]}` : '(최고 등급)'}
+          현재 등급: {rarityLabel[currentRarity as keyof typeof rarityLabel]} {nextRarity ? `→ 다음: ${rarityLabel[nextRarity as keyof typeof rarityLabel]}` : '(최고 등급)'}
         </div>
       )}
       <button

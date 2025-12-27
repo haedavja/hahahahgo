@@ -195,7 +195,7 @@ export function ItemsTab({ items, addItem, removeItem, devSetItems }: ItemsTabPr
                 padding: '10px',
                 marginBottom: '6px',
                 background: hasEmptySlot ? 'rgba(30, 41, 59, 0.5)' : 'rgba(30, 41, 59, 0.2)',
-                border: `1px solid ${tierColors[item.tier]}`,
+                border: `1px solid ${tierColors[item.tier ?? 1]}`,
                 borderRadius: '6px',
                 cursor: hasEmptySlot ? 'pointer' : 'not-allowed',
                 opacity: hasEmptySlot ? 1 : 0.5,
@@ -206,7 +206,7 @@ export function ItemsTab({ items, addItem, removeItem, devSetItems }: ItemsTabPr
                 <div style={{
                   fontWeight: 600,
                   fontSize: '0.875rem',
-                  color: tierColors[item.tier],
+                  color: tierColors[item.tier ?? 1],
                   display: 'flex',
                   alignItems: 'center',
                   gap: '6px',

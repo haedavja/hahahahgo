@@ -17,14 +17,15 @@
      * 현재 상태:
      * - strictFunctionTypes: ✅ 활성화
      * - strictBindCallApply: ✅ 활성화
+     * - strictNullChecks: ✅ 활성화
      * - noImplicitAny: ❌ ~1163 오류
-     * - strictNullChecks: ❌ ~459 오류
-     * - strict: ❌ ~3000 오류
+     * - strict: ❌ ~2000 오류 (추정)
      */
     "strict": false,
     "allowJs": true,
     "checkJs": false,
     "noImplicitAny": false,
+    "strictNullChecks": true,
     "strictFunctionTypes": true,
     "strictBindCallApply": true,
 

@@ -166,7 +166,7 @@ export interface SingleHitResult {
   blockDestroyed?: number;
   events: BattleEvent[];
   logs: string[];
-  preProcessedResult?: PreProcessedResult;
+  preProcessedResult?: PreProcessedResult | null;
 }
 
 /** 사전 처리 결과 */
@@ -665,6 +665,7 @@ export interface SingleHitResult {
   damageTaken?: number;
   blockDestroyed?: number;
   events: BattleEvent[];
+  logs: string[];
   preProcessedResult?: PreProcessedResult | null;
 }
 

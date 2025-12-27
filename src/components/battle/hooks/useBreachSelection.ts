@@ -33,10 +33,10 @@ export function useBreachSelection({
   const creationQueueRef = useRef([]);
 
   const handleBreachSelect = useCallback((selectedCard, idx) => {
-    const breach = breachSelectionRef.current;
+    const breach = breachSelectionRef.current as any;
     if (!breach) return;
 
-    const insertSp = breach.breachSp + (breach.breachCard?.breachSpOffset || 3);
+    const insertSp = (breach.breachSp ?? 0) + (breach.breachCard?.breachSpOffset ?? 3);
 
     addLog(`👻 "${selectedCard.name}" 선택! 타임라인 ${insertSp}에 유령카드로 삽입.`);
 
@@ -57,7 +57,7 @@ export function useBreachSelection({
       isFromFleche: selectedCard.isFromFleche || false,
       flecheChainCount: selectedCard.flecheChainCount || 0,
       createdBy: selectedCard.createdBy || breach.breachCard?.id,
-      isAoe: breach.isAoe || false,
+      isAoe: breach.isAoe ?? false,
       __uid: `ghost_${Math.random().toString(36).slice(2)}`
     };
 
@@ -89,7 +89,8 @@ export function useBreachSelection({
 
     // 창조 다중 선택 큐 확인 (벙 데 라므 등)
     if (creationQueueRef.current.length > 0) {
-      const nextSelection = creationQueueRef.current.shift();
+      const nextSelection = creationQueueRef.current.shift() as any;
+      if (!nextSelection) return;
       const remainingCount = creationQueueRef.current.length;
 
       addLog(`👻 창조 ${3 - remainingCount}/3: 카드를 선택하세요.`);
@@ -101,8 +102,8 @@ export function useBreachSelection({
         isCreationSelection: true,
         isAoe: nextSelection.isAoe
       };
-      breachSelectionRef.current = nextBreachState;
-      setBreachSelection(nextBreachState);
+      breachSelectionRef.current = nextBreachState as any;
+      setBreachSelection(nextBreachState as any);
 
       return;
     }

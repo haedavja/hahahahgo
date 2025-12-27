@@ -310,7 +310,7 @@ describe('processPostAttackSpecials', () => {
         attackerName: 'player',
         damageDealt: 10
       });
-      expect(result.defender.tokens.turn.find(t => t.id === 'vulnerable').stacks).toBe(2);
+      expect(result.defender.tokens.turn.find(t => t.id === 'vulnerable')!.stacks).toBe(2);
     });
   });
 
@@ -450,7 +450,7 @@ describe('processQueueCollisions', () => {
   });
 
   it('로그 콜백 호출', () => {
-    const logs = [];
+    const logs: string[] = [];
     const queue = [
       { actor: 'player', card: { name: '박치기', special: 'destroyOnCollision' } as any, sp: 9 },
       { actor: 'enemy', card: { name: '적 공격' } as any, sp: 9 }

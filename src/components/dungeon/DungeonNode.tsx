@@ -101,9 +101,9 @@ export function DungeonNode({ dungeon, onNavigate, onExit, onCombat }) {
 
   // 선택 상태 (노드별 시도 횟수 등)
   const [choiceStates, setChoiceStates] = useState({});
-  const [currentMessage, setCurrentMessage] = useState(null);
+  const [currentMessage, setCurrentMessage] = useState<string | null>(null);
   const [isShaking, setIsShaking] = useState(false);
-  const [showWarning, setShowWarning] = useState(null);
+  const [showWarning, setShowWarning] = useState<string | null>(null);
 
   const currentNode = useMemo(() => {
     return dungeon?.nodes?.find(n => n.id === dungeon.currentNodeId);
@@ -169,7 +169,7 @@ export function DungeonNode({ dungeon, onNavigate, onExit, onCombat }) {
         }
         if (penalty.effect?.triggerCombat) {
           setTimeout(() => {
-            onCombat(penalty.effect.triggerCombat as string);
+            onCombat(penalty.effect?.triggerCombat as string);
           }, 1500);
         }
         setChoiceStates(prev => ({

@@ -107,14 +107,14 @@ describe('devSlice', () => {
   describe('setResources', () => {
     it('자원을 설정한다', () => {
       store.getState().setResources({ gold: 100, intel: 10 });
-      expect(store.getState().resources.gold).toBe(100);
-      expect(store.getState().resources.intel).toBe(10);
+      expect(store.getState().resources!.gold).toBe(100);
+      expect(store.getState().resources!.intel).toBe(10);
     });
 
     it('일부 자원만 업데이트할 수 있다', () => {
       store.getState().setResources({ gold: 200 });
-      expect(store.getState().resources.gold).toBe(200);
-      expect(store.getState().resources.intel).toBe(0); // 기존 값 유지
+      expect(store.getState().resources!.gold).toBe(200);
+      expect(store.getState().resources!.intel).toBe(0); // 기존 값 유지
     });
   });
 

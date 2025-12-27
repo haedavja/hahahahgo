@@ -43,7 +43,7 @@ export function usePlayerMovement({
   updateMazeRoom,
   interactionRef,
 }) {
-  const animationRef = useRef(null);
+  const animationRef = useRef<number | null>(null);
   const playerXRef = useRef(playerX);
 
   // playerX ref 동기화

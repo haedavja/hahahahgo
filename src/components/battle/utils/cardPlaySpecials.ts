@@ -96,7 +96,7 @@ export function processCardPlaySpecials({
       } else if (bonusType === 'add_tokens') {
         const tokens = card.crossBonus.tokens || [];
         tokens.forEach(tokenInfo => {
-          const grantedAt = battleContext.currentTurn ? { turn: battleContext.currentTurn, sp: battleContext.currentSp || 0 } : null;
+          const grantedAt = battleContext.currentTurn ? { turn: battleContext.currentTurn, sp: battleContext.currentSp || 0 } : undefined;
           if (tokenInfo.target === 'enemy') {
             tokensToAdd.push({ id: tokenInfo.id, stacks: tokenInfo.stacks || 1, grantedAt, targetEnemy: true });
           } else {
@@ -107,7 +107,7 @@ export function processCardPlaySpecials({
           logs.push(msg);
         });
       } else if (bonusType === 'intercept_upgrade') {
-        const grantedAt = battleContext.currentTurn ? { turn: battleContext.currentTurn, sp: battleContext.currentSp || 0 } : null;
+        const grantedAt = battleContext.currentTurn ? { turn: battleContext.currentTurn, sp: battleContext.currentSp || 0 } : undefined;
         tokensToRemove.push({ id: 'dullPlus', stacks: 1, targetEnemy: true });
         tokensToAdd.push({ id: 'dullnessPlus', stacks: 1, grantedAt, targetEnemy: true });
         tokensToRemove.push({ id: 'shakenPlus', stacks: 1, targetEnemy: true });
@@ -116,12 +116,12 @@ export function processCardPlaySpecials({
         events.push({ actor: attackerName, card: card.name, type: 'cross', msg });
         logs.push(msg);
       } else if (bonusType === 'destroy_card') {
-        nextTurnEffects = { ...nextTurnEffects, destroyOverlappingCard: true };
+        nextTurnEffects = { ...(nextTurnEffects ?? {}), destroyOverlappingCard: true };
         const msg = `${who} • ⚡ ${card.name}: 교차! 적 카드 파괴!`;
         events.push({ actor: attackerName, card: card.name, type: 'cross', msg });
         logs.push(msg);
       } else if (bonusType === 'guaranteed_crit') {
-        nextTurnEffects = { ...nextTurnEffects, guaranteedCrit: true };
+        nextTurnEffects = { ...(nextTurnEffects ?? {}), guaranteedCrit: true };
         const msg = `${who} • 💥 ${card.name}: 교차! 확정 치명타!`;
         events.push({ actor: attackerName, card: card.name, type: 'cross', msg });
         logs.push(msg);
@@ -143,7 +143,7 @@ export function processCardPlaySpecials({
 
   // === mentalFocus: 정신집중 토큰 부여 ===
   if (hasSpecial(card, 'mentalFocus')) {
-    const grantedAt = battleContext.currentTurn ? { turn: battleContext.currentTurn, sp: battleContext.currentSp || 0 } : null;
+    const grantedAt = battleContext.currentTurn ? { turn: battleContext.currentTurn, sp: battleContext.currentSp || 0 } : undefined;
     tokensToAdd.push({ id: 'focus', stacks: 1, grantedAt });
     const who = attackerName === 'player' ? '플레이어' : '몬스터';
     const msg = `${who} • 🧘 ${card.name}: 정신집중!`;
@@ -181,7 +181,7 @@ export function processCardPlaySpecials({
   if (hasSpecial(card, 'stance')) {
     const { queue = [], currentQIndex = 0 } = battleContext;
     const who = attackerName === 'player' ? '플레이어' : '몬스터';
-    const grantedAt = battleContext.currentTurn ? { turn: battleContext.currentTurn, sp: battleContext.currentSp || 0 } : null;
+    const grantedAt = battleContext.currentTurn ? { turn: battleContext.currentTurn, sp: battleContext.currentSp || 0 } : undefined;
 
     let previousCard: Card | null = null;
     for (let i = currentQIndex - 1; i >= 0; i--) {
@@ -230,7 +230,7 @@ export function processCardPlaySpecials({
   // === elRapide: 민첩 +2, 아픔 1회 (기교 1 소모시 생략) ===
   if (hasSpecial(card, 'elRapide')) {
     const who = attackerName === 'player' ? '플레이어' : '몬스터';
-    const grantedAt = battleContext.currentTurn ? { turn: battleContext.currentTurn, sp: battleContext.currentSp || 0 } : null;
+    const grantedAt = battleContext.currentTurn ? { turn: battleContext.currentTurn, sp: battleContext.currentSp || 0 } : undefined;
 
     const hasFinesseToken = hasToken(attacker, 'finesse');
     const finesseStacks = getTokenStacks(attacker, 'finesse');
@@ -257,7 +257,7 @@ export function processCardPlaySpecials({
 
     if (hasJam) {
       tokensToRemove.push({ id: 'gun_jam', stacks: 99 });
-      const grantedAt = battleContext.currentTurn ? { turn: battleContext.currentTurn, sp: battleContext.currentSp || 0 } : null;
+      const grantedAt = battleContext.currentTurn ? { turn: battleContext.currentTurn, sp: battleContext.currentSp || 0 } : undefined;
       tokensToAdd.push({ id: 'loaded', stacks: 1, grantedAt });
       const msg = `${who} • 🔧 ${card.name}: 탄걸림 해제! 장전!`;
       events.push({ actor: attackerName, card: card.name, type: 'special', msg });
@@ -311,7 +311,7 @@ export function processCardPlaySpecials({
   // === executionSquad: 장전 + 탄걸림 면역 + 총격카드 4장 창조 ===
   if (hasSpecial(card, 'executionSquad')) {
     const who = attackerName === 'player' ? '플레이어' : '몬스터';
-    const grantedAt = battleContext.currentTurn ? { turn: battleContext.currentTurn, sp: battleContext.currentSp || 0 } : null;
+    const grantedAt = battleContext.currentTurn ? { turn: battleContext.currentTurn, sp: battleContext.currentSp || 0 } : undefined;
 
     tokensToAdd.push({ id: 'loaded', stacks: 1, grantedAt });
     tokensToAdd.push({ id: 'jam_immune', stacks: 1, grantedAt });

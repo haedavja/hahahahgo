@@ -8,7 +8,7 @@ import { addToken, removeToken, hasToken, getTokenStacks, getAllTokens, clearTur
 
 describe('tokenUtils', () => {
   // 기본 엔티티 생성 헬퍼
-  const createEntity = (tokens = { usage: [], turn: [], permanent: [] }) => ({
+  const createEntity = (tokens: any = { usage: [], turn: [], permanent: [] }) => ({
     hp: 100,
     maxHp: 100,
     tokens
@@ -42,7 +42,7 @@ describe('tokenUtils', () => {
       const addedToken = allTokens.find(t => t.id === 'offense');
 
       expect(addedToken).toBeDefined();
-      expect(addedToken.stacks).toBe(2);
+      expect(addedToken!.stacks).toBe(2);
     });
 
     it('기존 토큰에 스택을 추가해야 함', () => {
@@ -57,7 +57,7 @@ describe('tokenUtils', () => {
       const usageTokens = result.tokens.usage;
       const offenseToken = usageTokens.find(t => t.id === 'offense');
 
-      expect(offenseToken.stacks).toBe(3); // 1 + 2
+      expect(offenseToken!.stacks).toBe(3); // 1 + 2
     });
   });
 
@@ -88,7 +88,7 @@ describe('tokenUtils', () => {
       const result = removeToken(entity, 'offense', 'turn', 1);
 
       const offenseToken = result.tokens.turn.find(t => t.id === 'offense');
-      expect(offenseToken.stacks).toBe(2);
+      expect(offenseToken!.stacks).toBe(2);
     });
 
     it('스택이 0 이하가 되면 토큰을 제거해야 함', () => {

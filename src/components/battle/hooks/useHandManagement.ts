@@ -38,7 +38,7 @@ export function useHandManagement({
     if (!canRedraw) return addLog('🔒 이미 이번 턴 리드로우 사용됨');
 
     const currentBuild = useGameStore.getState().characterBuild;
-    const hasCharacterBuild = currentBuild && (currentBuild.mainSpecials?.length > 0 || currentBuild.subSpecials?.length > 0 || currentBuild.ownedCards?.length > 0);
+    const hasCharacterBuild = currentBuild && ((currentBuild.mainSpecials?.length ?? 0) > 0 || (currentBuild.subSpecials?.length ?? 0) > 0 || (currentBuild.ownedCards?.length ?? 0) > 0);
 
     if (hasCharacterBuild) {
       // 현재 손패를 무덤으로 이동하고 새로 드로우

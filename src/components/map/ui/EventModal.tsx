@@ -70,7 +70,7 @@ export function EventModal({
         {activeEvent.resolved && activeEvent.outcome && (
           <div className="event-result">
             {activeEvent.outcome.cost && Object.keys(activeEvent.outcome.cost).length > 0 && (
-              <p>소모: {formatApplied(Object.fromEntries(Object.entries(activeEvent.outcome.cost).map(([k, v]) => [k, -v])))}</p>
+              <p>소모: {formatApplied(Object.fromEntries(Object.entries(activeEvent.outcome.cost).map(([k, v]) => [k, -(v as number)])))}</p>
             )}
             {activeEvent.outcome.rewards && Object.keys(activeEvent.outcome.rewards).length > 0 && (
               <p>획득: {formatApplied(activeEvent.outcome.rewards)}</p>

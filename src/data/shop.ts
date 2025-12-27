@@ -117,9 +117,9 @@ export const MERCHANT_TYPES = {
  * @param {Object[]} allCards - 전체 카드 배열 (CARDS)
  * @returns {Object} { relics: [{id, price}], items: [{id, price}], cards: [{id, price, rarity}] }
  */
-export function generateShopInventory(merchantType = 'shop', ownedRelics = [], allCards = []) {
+export function generateShopInventory(merchantType = 'shop', ownedRelics: string[] = [], allCards: any[] = []) {
   const merchant = MERCHANT_TYPES[merchantType] || MERCHANT_TYPES.shop;
-  const inventory = { relics: [], items: [], cards: [] };
+  const inventory: { relics: Array<{id: string, price: number}>, items: Array<{id: string, price: number}>, cards: Array<{id: any, price: number, rarity: any}> } = { relics: [], items: [], cards: [] };
 
   // 상징 선택
   const availableRelics = Object.values(RELICS).filter(r => {

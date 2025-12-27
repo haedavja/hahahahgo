@@ -103,7 +103,7 @@ export function useTurnStartEffects({
     });
 
     // === 성찰 효과 처리 (자아가 있을 때만) ===
-    let reflectionResult = { updatedPlayer: player, updatedBattleState: battle.reflectionState, effects: [], logs: [] };
+    let reflectionResult: { updatedPlayer: any, updatedBattleState: any, effects: any[], logs: string[] } = { updatedPlayer: player, updatedBattleState: battle.reflectionState, effects: [], logs: [] };
     const hasEgo = playerEgos && playerEgos.length > 0;
     if (hasEgo) {
       const traitIds = convertTraitsToIds(playerTraits);
@@ -262,7 +262,7 @@ export function useTurnStartEffects({
       actions.setSelected([]);
     } else {
       const currentBuild = useGameStore.getState().characterBuild;
-      const hasCharacterBuild = currentBuild && (currentBuild.mainSpecials?.length > 0 || currentBuild.subSpecials?.length > 0 || currentBuild.ownedCards?.length > 0);
+      const hasCharacterBuild = currentBuild && (currentBuild.mainSpecials?.length ?? 0) > 0 || (currentBuild.subSpecials?.length ?? 0) > 0 || (currentBuild.ownedCards?.length ?? 0) > 0;
 
       if (hasCharacterBuild) {
         // 현재 손패를 무덤으로 이동

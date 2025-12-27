@@ -86,7 +86,7 @@ export const ExpectedDamagePreview: FC<ExpectedDamagePreviewProps> = ({
   const phaseLabel = phase === 'select' ? '선택 단계' : phase === 'respond' ? '대응 단계' : '진행 단계';
 
   // 전투 로그 자동 스크롤
-  const logContainerRef = useRef<HTMLDivElement>(null);
+  const logContainerRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
     if (logContainerRef.current && phase === 'resolve' && log && log.length > 0) {
       logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight;

@@ -76,8 +76,8 @@ export function applyAttack(
   let totalDealt = 0;
   let totalTaken = 0;
   let totalBlockDestroyed = 0;
-  const allEvents = [];
-  const allLogs = [];
+  const allEvents: BattleEvent[] = [];
+  const allLogs: string[] = [];
 
   let currentAttacker = { ...attacker };
   let currentDefender = { ...defender };
@@ -105,7 +105,7 @@ export function applyAttack(
 
   // 다중 타격 시 개별 hit 이벤트 필터링
   const skipEventTypes = hits > 1 ? ['hit', 'blocked', 'pierce'] : [];
-  const filteredFirstEvents = firstHitResult.events.filter(ev => !skipEventTypes.includes(ev.type));
+  const filteredFirstEvents = firstHitResult.events.filter(ev => !(ev.type && skipEventTypes.includes(ev.type)));
   allEvents.push(...filteredFirstEvents);
   if (hits === 1) {
     allLogs.push(...firstHitResult.logs);
@@ -119,7 +119,7 @@ export function applyAttack(
     totalDealt += result.damage;
     totalTaken += result.damageTaken || 0;
     totalBlockDestroyed += result.blockDestroyed || 0;
-    const filteredEvents = result.events.filter(ev => !skipEventTypes.includes(ev.type));
+    const filteredEvents = result.events.filter(ev => !(ev.type && skipEventTypes.includes(ev.type)));
     allEvents.push(...filteredEvents);
   }
 
@@ -158,7 +158,7 @@ export function applyAttack(
 
   currentAttacker = postAttackResult.attacker;
   currentDefender = postAttackResult.defender;
-  allEvents.push(...postAttackResult.events);
+  allEvents.push(...(postAttackResult.events as BattleEvent[]));
   allLogs.push(...postAttackResult.logs);
 
   // 추가 타격 처리
@@ -182,7 +182,7 @@ export function applyAttack(
     allCards: battleContext.allCards || []
   });
 
-  allEvents.push(...cardCreationResult.events);
+  allEvents.push(...(cardCreationResult.events as BattleEvent[]));
   allLogs.push(...cardCreationResult.logs);
 
   return {

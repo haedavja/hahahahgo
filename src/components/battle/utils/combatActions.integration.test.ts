@@ -559,7 +559,7 @@ describe('통합 테스트: processQueueCollisions 실제 연동', () => {
       { actor: 'enemy', card: { name: '적3' } as any, sp: 12 }
     ] as any;
 
-    const logs = [];
+    const logs: string[] = [];
     const result = processQueueCollisions(queue, msg => logs.push(msg));
 
     // 박치기(sp:5)가 적1(sp:5) 파괴

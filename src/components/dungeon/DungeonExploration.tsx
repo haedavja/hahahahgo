@@ -82,7 +82,7 @@ export function DungeonExploration() {
   // 던전 데이터 생성 (한 번만)
   useEffect(() => {
     if (activeDungeon && !activeDungeon.dungeonData) {
-      const mazeData = generateMaze(devForcedCrossroad);
+      const mazeData = generateMaze(devForcedCrossroad as any);
       setDungeonData(mazeData);
     }
   }, [activeDungeon, setDungeonData, devForcedCrossroad]);
@@ -126,9 +126,9 @@ export function DungeonExploration() {
   const playerY = CONFIG.FLOOR_Y - CONFIG.PLAYER.height;
 
   // Refs
-  const canvasRef = useRef(null);
-  const preBattleState = useRef(null);
-  const interactionRef = useRef(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const preBattleState = useRef<{ roomKey: string; playerX: number } | null>(null);
+  const interactionRef = useRef<(() => void) | null>(null);
 
   // 위치 정보 저장
   useEffect(() => {
@@ -437,30 +437,30 @@ export function DungeonExploration() {
         border: "1px solid rgba(84, 126, 194, 0.5)",
       }}>
         <div style={{ color: "#ffd700", fontSize: "14px", fontWeight: "600" }}>
-          금: {initialResources.gold}{dungeonDeltas.gold !== 0 && (
-            <span style={{ color: dungeonDeltas.gold > 0 ? "#90EE90" : "#ff6b6b", marginLeft: "4px" }}>
-              ({dungeonDeltas.gold > 0 ? "+" : ""}{dungeonDeltas.gold})
+          금: {initialResources.gold}{(dungeonDeltas.gold ?? 0) !== 0 && (
+            <span style={{ color: (dungeonDeltas.gold ?? 0) > 0 ? "#90EE90" : "#ff6b6b", marginLeft: "4px" }}>
+              ({(dungeonDeltas.gold ?? 0) > 0 ? "+" : ""}{dungeonDeltas.gold ?? 0})
             </span>
           )}
         </div>
         <div style={{ color: "#9da9d6", fontSize: "14px", fontWeight: "600" }}>
-          정보: {initialResources.intel}{dungeonDeltas.intel !== 0 && (
-            <span style={{ color: dungeonDeltas.intel > 0 ? "#90EE90" : "#ff6b6b", marginLeft: "4px" }}>
-              ({dungeonDeltas.intel > 0 ? "+" : ""}{dungeonDeltas.intel})
+          정보: {initialResources.intel}{(dungeonDeltas.intel ?? 0) !== 0 && (
+            <span style={{ color: (dungeonDeltas.intel ?? 0) > 0 ? "#90EE90" : "#ff6b6b", marginLeft: "4px" }}>
+              ({(dungeonDeltas.intel ?? 0) > 0 ? "+" : ""}{dungeonDeltas.intel ?? 0})
             </span>
           )}
         </div>
         <div style={{ color: "#ff6b6b", fontSize: "14px", fontWeight: "600" }}>
-          전리품: {initialResources.loot}{dungeonDeltas.loot !== 0 && (
-            <span style={{ color: dungeonDeltas.loot > 0 ? "#90EE90" : "#ff6b6b", marginLeft: "4px" }}>
-              ({dungeonDeltas.loot > 0 ? "+" : ""}{dungeonDeltas.loot})
+          전리품: {initialResources.loot}{(dungeonDeltas.loot ?? 0) !== 0 && (
+            <span style={{ color: (dungeonDeltas.loot ?? 0) > 0 ? "#90EE90" : "#ff6b6b", marginLeft: "4px" }}>
+              ({(dungeonDeltas.loot ?? 0) > 0 ? "+" : ""}{dungeonDeltas.loot ?? 0})
             </span>
           )}
         </div>
         <div style={{ color: "#a0e9ff", fontSize: "14px", fontWeight: "600" }}>
-          원자재: {initialResources.material}{dungeonDeltas.material !== 0 && (
-            <span style={{ color: dungeonDeltas.material > 0 ? "#90EE90" : "#ff6b6b", marginLeft: "4px" }}>
-              ({dungeonDeltas.material > 0 ? "+" : ""}{dungeonDeltas.material})
+          원자재: {initialResources.material}{(dungeonDeltas.material ?? 0) !== 0 && (
+            <span style={{ color: (dungeonDeltas.material ?? 0) > 0 ? "#90EE90" : "#ff6b6b", marginLeft: "4px" }}>
+              ({(dungeonDeltas.material ?? 0) > 0 ? "+" : ""}{dungeonDeltas.material ?? 0})
             </span>
           )}
         </div>

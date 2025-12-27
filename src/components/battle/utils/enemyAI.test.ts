@@ -349,8 +349,8 @@ describe('expandActionsWithGhosts', () => {
     const result = expandActionsWithGhosts(actions, units);
 
     const ghost = result.find(c => c.isGhost);
-    expect(ghost.damage).toBe(10);
-    expect(ghost.type).toBe('attack');
-    expect(ghost.speedCost).toBe(5);
+    expect(ghost!.damage).toBe(10);
+    expect(ghost!.type).toBe('attack');
+    expect(ghost!.speedCost).toBe(5);
   });
 });

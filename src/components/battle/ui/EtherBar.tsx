@@ -98,7 +98,7 @@ export const EtherBar: FC<EtherBarProps> = ({
           bottom: '3px',
           height: `${ratio * 100}%`,
           borderRadius: '24px',
-          background: slotColors[(safeSlots % slotColors.length + slotColors.length) % slotColors.length],
+          background: slotColors[((safeSlots ?? 0) % slotColors.length + slotColors.length) % slotColors.length],
           transition: 'height 0.8s ease-out'
         }} />
       </div>

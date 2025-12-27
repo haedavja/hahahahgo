@@ -264,8 +264,8 @@ describe('parryProcessing', () => {
         playParrySound: vi.fn()
       });
 
-      const playerCard = result.updatedQueue.find(q => q.card.name === 'Player Future');
-      expect(playerCard.sp).toBe(15); // 변경 없음
+      const playerCard = result.updatedQueue.find(q => q.card!.name === 'Player Future');
+      expect(playerCard!.sp).toBe(15); // 변경 없음
     });
 
     it('maxSpeed 초과 시 아웃 처리해야 함', () => {
@@ -286,7 +286,7 @@ describe('parryProcessing', () => {
       });
 
       expect(result.outCards).toHaveLength(1);
-      expect(result.outCards[0].card.name).toBe('Enemy');
+      expect(result.outCards[0].card!.name).toBe('Enemy');
       expect(addLog).toHaveBeenCalledWith(expect.stringContaining('아웃'));
     });
 
@@ -377,9 +377,9 @@ describe('parryProcessing', () => {
       // 밀린 후: Enemy 1 → 13, Player 2 → 10, Enemy 2 → 17
       // 정렬 후: Player 2(10), Enemy 1(13), Enemy 2(17)
       const afterCurrent = result.updatedQueue.slice(1);
-      expect(afterCurrent[0].card.name).toBe('Player 2');
-      expect(afterCurrent[1].card.name).toBe('Enemy 1');
-      expect(afterCurrent[2].card.name).toBe('Enemy 2');
+      expect(afterCurrent[0].card!.name).toBe('Player 2');
+      expect(afterCurrent[1].card!.name).toBe('Enemy 1');
+      expect(afterCurrent[2].card!.name).toBe('Enemy 2');
     });
   });
 

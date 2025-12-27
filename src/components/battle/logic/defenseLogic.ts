@@ -83,7 +83,7 @@ export function applyDefense(
   const after = prev + added;
 
   // 소모된 토큰 제거
-  let tokenLogs = [];
+  let tokenLogs: string[] = [];
   let updatedTokens = actor.tokens;
   if (consumedTokens.length > 0) {
     const consumeResult = consumeTokens(actor, consumedTokens);

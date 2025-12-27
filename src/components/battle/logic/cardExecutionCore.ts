@@ -151,12 +151,12 @@ export function executeCardActionCore(params: ExecuteCardActionCoreParams): Exec
   // 스턴 효과 처리
   const stunResult = processStunEffect({
     action: action as unknown as StunAction,
-    queue: battleRef.current.queue as unknown as StunQueueItem[],
-    currentQIndex: battleRef.current.qIndex,
+    queue: battleRef.current?.queue as unknown as StunQueueItem[],
+    currentQIndex: battleRef.current?.qIndex ?? 0,
     addLog
   }) as StunProcessingResult;
   if (stunResult.updatedQueue) {
-    actions.setQueue(stunResult.updatedQueue as unknown as typeof battleRef.current.queue);
+    actions.setQueue(stunResult.updatedQueue as any);
   }
 
   // 액션 적용
@@ -174,8 +174,8 @@ export function executeCardActionCore(params: ExecuteCardActionCoreParams): Exec
     card: action.card as unknown as SpecialCard,
     actor: currentActor as unknown as SpecialActor,
     actorName: action.actor as 'player' | 'enemy',
-    queue: battleRef.current.queue as unknown as SpecialQueueItem[],
-    currentIndex: battleRef.current.qIndex,
+    queue: battleRef.current?.queue as unknown as SpecialQueueItem[],
+    currentIndex: battleRef.current?.qIndex ?? 0,
     damageDealt: actionResult.dealt || 0
   });
 
@@ -187,13 +187,13 @@ export function executeCardActionCore(params: ExecuteCardActionCoreParams): Exec
   // 타임라인 변경 적용
   const { timelineChanges } = timelineResult;
   if (timelineChanges.advancePlayer > 0 || timelineChanges.pushEnemy > 0 || timelineChanges.pushLastEnemy > 0) {
-    let updatedQueue = [...battleRef.current.queue];
-    const qIdx = battleRef.current.qIndex;
+    let updatedQueue = [...(battleRef.current?.queue ?? [])];
+    const qIdx = battleRef.current?.qIndex ?? 0;
 
     if (timelineChanges.advancePlayer > 0) {
       updatedQueue = updatedQueue.map((item, idx) => {
         if (idx > qIdx && item.actor === 'player') {
-          return { ...item, sp: Math.max(0, item.sp - timelineChanges.advancePlayer) };
+          return { ...item, sp: Math.max(0, (item.sp ?? 0) - timelineChanges.advancePlayer) };
         }
         return item;
       });
@@ -202,7 +202,7 @@ export function executeCardActionCore(params: ExecuteCardActionCoreParams): Exec
     if (timelineChanges.pushEnemy > 0) {
       updatedQueue = updatedQueue.map((item, idx) => {
         if (idx > qIdx && item.actor === 'enemy') {
-          return { ...item, sp: item.sp + timelineChanges.pushEnemy };
+          return { ...item, sp: (item.sp ?? 0) + timelineChanges.pushEnemy };
         }
         return item;
       });
@@ -219,7 +219,7 @@ export function executeCardActionCore(params: ExecuteCardActionCoreParams): Exec
       if (lastEnemyIdx !== -1) {
         updatedQueue = updatedQueue.map((item, idx) => {
           if (idx === lastEnemyIdx) {
-            return { ...item, sp: item.sp + timelineChanges.pushLastEnemy };
+            return { ...item, sp: (item.sp ?? 0) + timelineChanges.pushLastEnemy };
           }
           return item;
         });
@@ -229,7 +229,7 @@ export function executeCardActionCore(params: ExecuteCardActionCoreParams): Exec
     // 큐 재정렬
     const processedCards = updatedQueue.slice(0, qIdx + 1);
     const remainingCards = updatedQueue.slice(qIdx + 1);
-    remainingCards.sort((a, b) => a.sp - b.sp);
+    remainingCards.sort((a, b) => (a.sp ?? 0) - (b.sp ?? 0));
     updatedQueue = [...processedCards, ...remainingCards];
 
     actions.setQueue(updatedQueue);
@@ -300,14 +300,15 @@ export function executeCardActionCore(params: ExecuteCardActionCoreParams): Exec
     tokens: E.tokens,
     ...(E.units && { units: E.units })
   });
-  actions.setActionEvents({ ...battleRef.current.actionEvents, [battleRef.current.qIndex]: actionEvents });
+  const currentQIndexForEvents = battleRef.current?.qIndex ?? 0;
+  actions.setActionEvents({ ...(battleRef.current?.actionEvents ?? {}), [currentQIndexForEvents]: actionEvents });
 
   // 이벤트 애니메이션
   processActionEventAnimations({
     actionEvents: actionEvents as unknown as SimActionEvent[],
     action: action as unknown as HandAction,
-    playHitSound,
-    playBlockSound,
+    playHitSound: playHitSound ?? (() => {}),
+    playBlockSound: playBlockSound ?? (() => {}),
     actions
   });
 

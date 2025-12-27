@@ -99,7 +99,7 @@ export const formatApplied = (bundle = {}) => {
 export const canAfford = (resources, cost = {}) =>
   Object.entries(cost)
     .filter(([key]) => key !== 'hp' && key !== 'hpPercent')
-    .every(([key, value]) => (resources[key] ?? 0) >= value);
+    .every(([key, value]) => (resources[key] ?? 0) >= (value as number));
 
 export const formatBattleLogEntry = (entry) => {
   if (!entry) return "";

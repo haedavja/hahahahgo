@@ -1065,8 +1065,8 @@ export function generateDungeonGraph(dungeonId: string, config: DungeonGeneratio
     difficulty = 1,
   } = config;
 
-  const nodes = [];
-  const connections = {};  // nodeId -> Connection[]
+  const nodes: any[] = [];
+  const connections: any = {};  // nodeId -> Connection[]
 
   // 1. 입구 노드
   const entranceId = `${dungeonId}_entrance`;
@@ -1217,7 +1217,7 @@ function getObstacleForStat(stat: any) {
  * @param {Array} unlockedShortcuts - 열린 숏컷 배열
  * @returns {Object} { canPass: boolean, reason: string }
  */
-export function canPassConnection(connection, playerStats, playerItems = [], unlockedShortcuts = []) {
+export function canPassConnection(connection, playerStats, playerItems: any[] = [], unlockedShortcuts: any[] = []) {
   const { type, requirements, targetId } = connection;
 
   // 이미 열린 연결

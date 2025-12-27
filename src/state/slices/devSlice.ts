@@ -154,7 +154,7 @@ export const createDevActions: SliceCreator = (set) => ({
       });
 
       const characterBuild = state.characterBuild;
-      const hasCharacterBuild = characterBuild && (characterBuild.mainSpecials?.length > 0 || characterBuild.subSpecials?.length > 0 || characterBuild.ownedCards?.length > 0);
+      const hasCharacterBuild = characterBuild && ((characterBuild.mainSpecials?.length ?? 0) > 0 || (characterBuild.subSpecials?.length ?? 0) > 0 || (characterBuild.ownedCards?.length ?? 0) > 0);
 
       const playerLibrary: string[] = hasCharacterBuild
         ? [...(characterBuild.mainSpecials || []), ...(characterBuild.subSpecials || [])]

@@ -55,7 +55,7 @@ export function ShopModal({ merchantType = 'shop', onClose }) {
   const [purchasedItems, setPurchasedItems] = useState(new Set());
   const [purchasedCards, setPurchasedCards] = useState(new Set());
   const [activeTab, setActiveTab] = useState('buy');
-  const [notification, setNotification] = useState(null);
+  const [notification, setNotification] = useState<{ message: string; type: string } | null>(null);
   const [showCardRemovalModal, setShowCardRemovalModal] = useState(false);
   const [cardRemovalPrice, setCardRemovalPrice] = useState(0);
 
@@ -68,7 +68,7 @@ export function ShopModal({ merchantType = 'shop', onClose }) {
   const allPlayerCards = useMemo(() => {
     const mainSpecials = characterBuild?.mainSpecials || [];
     const subSpecials = characterBuild?.subSpecials || [];
-    const cards = [];
+    const cards: Array<any> = [];
 
     mainSpecials.forEach(cardId => {
       const card = CARDS.find(c => c.id === cardId);

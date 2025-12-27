@@ -2,7 +2,7 @@
  * 던전 미니맵 컴포넌트
  * 메트로배니아 스타일 던전 탐색을 위한 미니맵
  */
-import { useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { DUNGEON_NODE_TYPES, CONNECTION_TYPES } from '../../data/dungeonNodes';
 
 interface DungeonConnection {
@@ -65,7 +65,7 @@ export function DungeonMinimap({ dungeonState, onNodeClick, playerStats }) {
 
   // 연결선 렌더링
   const renderConnections = () => {
-    const lines = [];
+    const lines: React.ReactElement[] = [];
     const cellSize = 50;
     const offsetX = -bounds.minX;
     const offsetY = -bounds.minY;

@@ -67,12 +67,12 @@ describe('relics', () => {
     });
 
     it('null은 기본값을 반환해야 함', () => {
-      const result = applyRelicEffects(null, 'etherGainBonus', 100);
+      const result = applyRelicEffects(null as any, 'etherGainBonus', 100);
       expect(result).toBe(100);
     });
 
     it('undefined는 기본값을 반환해야 함', () => {
-      const result = applyRelicEffects(undefined, 'etherGainBonus', 100);
+      const result = applyRelicEffects(undefined as any, 'etherGainBonus', 100);
       expect(result).toBe(100);
     });
 
@@ -94,12 +94,12 @@ describe('relics', () => {
     });
 
     it('null은 기본 배율을 반환해야 함', () => {
-      const result = applyRelicComboMultiplier(null, 1.5, 3);
+      const result = applyRelicComboMultiplier(null as any, 1.5, 3);
       expect(result).toBe(1.5);
     });
 
     it('undefined는 기본 배율을 반환해야 함', () => {
-      const result = applyRelicComboMultiplier(undefined, 1.5, 3);
+      const result = applyRelicComboMultiplier(undefined as any, 1.5, 3);
       expect(result).toBe(1.5);
     });
 

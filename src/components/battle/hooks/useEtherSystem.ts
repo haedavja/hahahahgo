@@ -34,7 +34,7 @@ export function useEtherSystem(initialPts = 0, options: EtherSystemOptions = {})
   } = options;
 
   const [pts, setPts] = useState(initialPts);
-  const [animationPhase, setAnimationPhase] = useState(null);
+  const [animationPhase, setAnimationPhase] = useState<string | null>(null);
   const [pulse, setPulse] = useState(false);
   const [overdriveFlash, setOverdriveFlash] = useState(false);
 
@@ -129,12 +129,12 @@ export function useEtherCalculation(options: EtherCalculationOptions = {}) {
     onComplete = null
   } = options;
 
-  const [calcPhase, setCalcPhase] = useState(null); // 'sum', 'multiply', 'deflation', 'result'
-  const [currentDeflation, setCurrentDeflation] = useState(null);
-  const [finalValue, setFinalValue] = useState(null);
+  const [calcPhase, setCalcPhase] = useState<string | null>(null); // 'sum', 'multiply', 'deflation', 'result'
+  const [currentDeflation, setCurrentDeflation] = useState<any>(null);
+  const [finalValue, setFinalValue] = useState<number | null>(null);
   const [accumulated, setAccumulated] = useState(0);
 
-  const timeoutRef = useRef(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // 계산 시작
   const startCalculation = useCallback(({
@@ -222,10 +222,10 @@ export function useEtherCalculation(options: EtherCalculationOptions = {}) {
 export function useEtherTransfer() {
   const [playerTransferPulse, setPlayerTransferPulse] = useState(false);
   const [enemyTransferPulse, setEnemyTransferPulse] = useState(false);
-  const [netDelta, setNetDelta] = useState(null);
+  const [netDelta, setNetDelta] = useState<number | null>(null);
 
-  const playerTimeoutRef = useRef(null);
-  const enemyTimeoutRef = useRef(null);
+  const playerTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const enemyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // 플레이어 → 적 이동
   const transferToEnemy = useCallback((amount) => {
@@ -305,7 +305,7 @@ export function useEtherTransfer() {
  */
 export function useSoulShatter(duration = 2000) {
   const [isActive, setIsActive] = useState(false);
-  const timeoutRef = useRef(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const trigger = useCallback(() => {
     setIsActive(true);

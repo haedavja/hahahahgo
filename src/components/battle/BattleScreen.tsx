@@ -327,13 +327,13 @@ export const BattleScreen: FC = () => {
     [applyEtherDelta, resolveBattle],
   );
 
-  if (!activeBattle) return null;
+  if (!activeBattle || !payload) return null;
 
   return (
     <div className="battle-fullscreen">
       <BattleApp
-        initialPlayer={payload?.player}
-        initialEnemy={payload?.enemy}
+        initialPlayer={payload.player}
+        initialEnemy={payload.enemy}
         playerEther={playerEther}
         liveInsight={effectiveInsight}
         onBattleResult={handleBattleResult}

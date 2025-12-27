@@ -196,7 +196,7 @@ function CardsSection({ inventory, purchasedCards, gold, onBuyCard }) {
               <div style={{ fontWeight: 600, color: rarityColors[rarity], marginBottom: '4px' }}>{card.name}</div>
               <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginBottom: '8px' }}>
                 행동력 {card.actionCost} · 속도 {card.speedCost}
-                {card.damage ? ` · 피해 ${card.damage}${card.hits > 1 ? `×${card.hits}` : ''}` : ''}
+                {card.damage ? ` · 피해 ${card.damage}${(card.hits ?? 1) > 1 ? `×${card.hits}` : ''}` : ''}
                 {card.block ? ` · 방어 ${card.block}` : ''}
               </div>
               <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
