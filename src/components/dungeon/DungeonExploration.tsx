@@ -45,7 +45,7 @@ import { RewardModal, DungeonSummaryModal, CrossroadModal } from "./ui/DungeonMo
 export function DungeonExploration() {
   // 상태 셀렉터 (그룹화)
   const { activeDungeon, lastBattleResult, relics, resources, playerHp, maxHp, devForcedCrossroad, playerInsight } = useGameStore(
-    useShallow((s) => ({
+    useShallow((s: any) => ({
       activeDungeon: s.activeDungeon,
       lastBattleResult: s.lastBattleResult,
       relics: s.relics,
@@ -63,7 +63,7 @@ export function DungeonExploration() {
     skipDungeon, completeDungeon, startBattle, applyEtherDelta, addResources,
     clearBattleResult, setCurrentRoomKey, updateMazeRoom
   } = useGameStore(
-    useShallow((s) => ({
+    useShallow((s: any) => ({
       setDungeonData: s.setDungeonData,
       setDungeonPosition: s.setDungeonPosition,
       setDungeonInitialResources: s.setDungeonInitialResources,
@@ -234,10 +234,10 @@ export function DungeonExploration() {
     // 오브젝트 상호작용
     for (const obj of segment.objects || []) {
       if (Math.abs(playerX - obj.x) < 80) {
-        const objType = OBJECT_TYPES[obj.typeId.toUpperCase()];
+        const objType = (OBJECT_TYPES as any)[obj.typeId.toUpperCase()];
         if (obj.used && !objType?.canReuse) continue;
 
-        const handler = OBJECT_HANDLERS[obj.typeId];
+        const handler = (OBJECT_HANDLERS as any)[obj.typeId];
         if (handler) {
           handler(obj, {
             applyEtherDelta,
@@ -358,17 +358,17 @@ export function DungeonExploration() {
             borderRadius: '12px',
             boxShadow: '0 0 15px rgba(148, 163, 184, 0.3)',
           }}>
-            {relics.map((relicId, index) => {
-              const relic = RELICS[relicId];
+            {relics.map((relicId: any, index: any) => {
+              const relic = (RELICS as any)[relicId];
               if (!relic) return null;
 
               const isHovered = hoveredRelic === relicId;
-              const rarityText = {
+              const rarityText = ({
                 [RELIC_RARITIES.COMMON]: '일반',
                 [RELIC_RARITIES.RARE]: '희귀',
                 [RELIC_RARITIES.SPECIAL]: '특별',
                 [RELIC_RARITIES.LEGENDARY]: '전설'
-              }[relic.rarity] || '알 수 없음';
+              } as any)[relic.rarity] || '알 수 없음';
 
               return (
                 <div key={index} style={{ position: 'relative' }}>
@@ -396,19 +396,19 @@ export function DungeonExploration() {
                       transform: 'translateX(-50%)',
                       marginTop: '8px',
                       background: 'rgba(15, 23, 42, 0.98)',
-                      border: `2px solid ${RELIC_RARITY_COLORS[relic.rarity]}`,
+                      border: `2px solid ${(RELIC_RARITY_COLORS as any)[relic.rarity]}`,
                       borderRadius: '8px',
                       padding: '12px 16px',
                       minWidth: '220px',
-                      boxShadow: `0 4px 20px ${RELIC_RARITY_COLORS[relic.rarity]}66`,
+                      boxShadow: `0 4px 20px ${(RELIC_RARITY_COLORS as any)[relic.rarity]}66`,
                       zIndex: 1000,
                       pointerEvents: 'none'
                     }}>
-                      <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: RELIC_RARITY_COLORS[relic.rarity], marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: (RELIC_RARITY_COLORS as any)[relic.rarity], marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                         <span style={{ fontSize: '1.3rem' }}>{relic.emoji}</span>
                         {relic.name}
                       </div>
-                      <div style={{ fontSize: '0.8rem', color: RELIC_RARITY_COLORS[relic.rarity], opacity: 0.8, marginBottom: '8px' }}>
+                      <div style={{ fontSize: '0.8rem', color: (RELIC_RARITY_COLORS as any)[relic.rarity], opacity: 0.8, marginBottom: '8px' }}>
                         {rarityText}
                       </div>
                       <div style={{ fontSize: '0.9rem', color: '#e2e8f0', lineHeight: '1.5' }}>
@@ -560,7 +560,7 @@ export function DungeonExploration() {
           }}
           onClick={() => actions.setShowCharacter(false)}
         >
-          <div onClick={(e) => e.stopPropagation()}>
+          <div onClick={(e: any) => e.stopPropagation()}>
             <CharacterSheet onClose={() => actions.setShowCharacter(false)} />
           </div>
         </div>

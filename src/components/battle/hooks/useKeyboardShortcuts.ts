@@ -42,6 +42,19 @@ export function useKeyboardShortcuts({
   finishTurn,
   cycleSortType,
   playSound
+}: {
+  battle: any,
+  player: any,
+  canRedraw: any,
+  autoProgress: any,
+  etherFinalValue: any,
+  actions: any,
+  startResolve: any,
+  beginResolveFromRespond: any,
+  redrawHand: any,
+  finishTurn: any,
+  cycleSortType: any,
+  playSound: any
 }) {
   // Refs로 최신 함수 참조 유지 (stale closure 방지)
   const callbacksRef = useRef({
@@ -68,20 +81,20 @@ export function useKeyboardShortcuts({
   });
 
   useEffect(() => {
-    const handleKeyPress = (e) => {
+    const handleKeyPress = (e: any) => {
       const { actions, startResolve, beginResolveFromRespond, redrawHand, finishTurn, cycleSortType, playSound } = callbacksRef.current;
 
       // C 키: 캐릭터 창 토글
       if (e.key === "c" || e.key === "C") {
         e.preventDefault();
         e.stopPropagation();
-        actions.setShowCharacterSheet((prev) => !prev);
+        actions.setShowCharacterSheet((prev: any) => !prev);
       }
 
       // Q 키: 간소화 모드 토글 (선택 단계)
       if ((e.key === "q" || e.key === "Q") && battle.phase === 'select') {
         e.preventDefault();
-        actions.setIsSimplified((prev) => {
+        actions.setIsSimplified((prev: any) => {
           const newVal = !prev;
           try { localStorage.setItem('battleIsSimplified', newVal.toString()); } catch { /* ignore */ }
           return newVal;
@@ -112,7 +125,7 @@ export function useKeyboardShortcuts({
         e.preventDefault(); // 스페이스바 기본 동작 방지 (스크롤)
         const etherSlots = calculateEtherSlots(player.etherPts || 0);
         if (etherSlots > 0) {
-          actions.setWillOverdrive(v => !v);
+          actions.setWillOverdrive((v: any) => !v);
         }
       }
 

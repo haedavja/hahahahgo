@@ -34,8 +34,8 @@ import {
 import { createEmptyTokens } from './tokenUtils.js';
 
 // Math.random mock 헬퍼
-let originalRandom;
-function mockRandom(value) {
+let originalRandom: any;
+function mockRandom(value: any) {
   Math.random = () => value;
 }
 function restoreRandom() {

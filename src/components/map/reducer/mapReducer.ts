@@ -40,7 +40,7 @@ export const createInitialState = (overrides = {}) => ({
  * @param {Object} action - 액션 객체
  * @returns {Object} 새로운 상태
  */
-export const mapReducer = (state, action) => {
+export const mapReducer = (state: any, action: any) => {
   switch (action.type) {
     case ACTIONS.SET_SHOW_CHARACTER_SHEET:
       return { ...state, showCharacterSheet: action.payload };

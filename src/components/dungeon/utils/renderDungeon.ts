@@ -243,7 +243,7 @@ function renderObjects(ctx: any, segment: any, cameraX: any) {
     const screenX = obj.x - cameraX;
     if (screenX < -100 || screenX > CONFIG.VIEWPORT.width + 100) return;
 
-    const objType = OBJECT_TYPES[obj.typeId.toUpperCase()];
+    const objType = (OBJECT_TYPES as any)[obj.typeId.toUpperCase()];
     if (!objType) return;
 
     ctx.save();

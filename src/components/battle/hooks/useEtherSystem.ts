@@ -52,7 +52,7 @@ export function useEtherSystem(initialPts = 0, options: EtherSystemOptions = {})
   const isOverdrive = useMemo(() => checkOverdrive(), [checkOverdrive]);
 
   // 에테르 추가 (애니메이션 지원)
-  const addEther = useCallback((amount, withAnimation = animated) => {
+  const addEther = useCallback((amount: any, withAnimation: any = animated) => {
     if (withAnimation) {
       setAnimationPhase('gaining');
       setPulse(true);
@@ -74,7 +74,7 @@ export function useEtherSystem(initialPts = 0, options: EtherSystemOptions = {})
   }, [pts, threshold, animated]);
 
   // 에테르 소모
-  const consumeEther = useCallback((amount) => {
+  const consumeEther = useCallback((amount: any) => {
     setPts(prev => Math.max(0, prev - amount));
   }, []);
 
@@ -87,7 +87,7 @@ export function useEtherSystem(initialPts = 0, options: EtherSystemOptions = {})
   }, []);
 
   // 에테르 설정
-  const setEther = useCallback((value) => {
+  const setEther = useCallback((value: any) => {
     setPts(value);
   }, []);
 
@@ -141,7 +141,7 @@ export function useEtherCalculation(options: EtherCalculationOptions = {}) {
     baseGain,
     comboMult,
     deflationInfo
-  }) => {
+  }: any) => {
     setAccumulated(0);
     setCalcPhase('sum');
 
@@ -228,7 +228,7 @@ export function useEtherTransfer() {
   const enemyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // 플레이어 → 적 이동
-  const transferToEnemy = useCallback((amount) => {
+  const transferToEnemy = useCallback((amount: any) => {
     setNetDelta(-amount);
     setPlayerTransferPulse(true);
 
@@ -247,7 +247,7 @@ export function useEtherTransfer() {
   }, []);
 
   // 적 → 플레이어 이동
-  const transferToPlayer = useCallback((amount) => {
+  const transferToPlayer = useCallback((amount: any) => {
     setNetDelta(amount);
     setEnemyTransferPulse(true);
 

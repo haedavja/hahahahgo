@@ -7,7 +7,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { processVictoryDefeatTransition } from './victoryDefeatTransition';
 
 describe('victoryDefeatTransition', () => {
-  let actions;
+  let actions: any;
 
   beforeEach(() => {
     vi.useFakeTimers();

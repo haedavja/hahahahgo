@@ -45,8 +45,8 @@ export function useEtherAnimation({
   battleRef,
   playSound,
   actions
-}) {
-  const startEtherCalculationAnimation = useCallback((totalEtherPts, actualResolvedCards = null, actualGainedEther = null, skipFinalValueSet = false) => {
+}: any) {
+  const startEtherCalculationAnimation = useCallback((totalEtherPts: any, actualResolvedCards: any = null, actualGainedEther: any = null, skipFinalValueSet: any = false) => {
     const pCombo = detectPokerCombo(selected);
     const basePlayerComboMult = pCombo ? (COMBO_MULTIPLIERS[pCombo.name] || 1) : 1;
     // 몬스터가 죽었을 때는 actualResolvedCards(실제 실행된 카드 수), 아니면 battle.selected.length(전체 선택된 카드 수)

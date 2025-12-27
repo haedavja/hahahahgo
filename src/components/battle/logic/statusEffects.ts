@@ -20,7 +20,7 @@
  * @param {number} duration - 지속 턴 (0 = 영구)
  * @returns {Object} - 업데이트된 actor
  */
-export function applyStrengthBuff(actor, amount, duration = 0) {
+export function applyStrengthBuff(actor: any, amount: any, duration = 0) {
   return {
     ...actor,
     strength: (actor.strength || 0) + amount,
@@ -31,7 +31,7 @@ export function applyStrengthBuff(actor, amount, duration = 0) {
 /**
  * 민첩(Agility) 버프 적용
  */
-export function applyAgilityBuff(actor, amount, duration = 0) {
+export function applyAgilityBuff(actor: any, amount: any, duration = 0) {
   return {
     ...actor,
     agility: (actor.agility || 0) + amount,
@@ -42,7 +42,7 @@ export function applyAgilityBuff(actor, amount, duration = 0) {
 /**
  * 통찰(Insight) 버프 적용
  */
-export function applyInsightBuff(actor, amount, duration = 0) {
+export function applyInsightBuff(actor: any, amount: any, duration = 0) {
   return {
     ...actor,
     insight: (actor.insight || 0) + amount,
@@ -53,7 +53,7 @@ export function applyInsightBuff(actor, amount, duration = 0) {
 /**
  * 재생(Regeneration) 버프 적용
  */
-export function applyRegenerationBuff(actor, amount, duration) {
+export function applyRegenerationBuff(actor: any, amount: any, duration: any) {
   return {
     ...actor,
     regeneration: amount,
@@ -72,7 +72,7 @@ export function applyRegenerationBuff(actor, amount, duration) {
  * @param {number} duration - 지속 턴
  * @returns {Object} - 업데이트된 actor
  */
-export function applyVulnerableDebuff(actor, multiplier, duration) {
+export function applyVulnerableDebuff(actor: any, multiplier: any, duration: any) {
   return {
     ...actor,
     vulnMult: multiplier,
@@ -83,7 +83,7 @@ export function applyVulnerableDebuff(actor, multiplier, duration) {
 /**
  * 약화(Weakness) 디버프 적용
  */
-export function applyWeaknessDebuff(actor, reduction, duration) {
+export function applyWeaknessDebuff(actor: any, reduction: any, duration: any) {
   return {
     ...actor,
     weakness: reduction,
@@ -94,7 +94,7 @@ export function applyWeaknessDebuff(actor, reduction, duration) {
 /**
  * 독(Poison) 디버프 적용
  */
-export function applyPoisonDebuff(actor, damagePerTurn, duration) {
+export function applyPoisonDebuff(actor: any, damagePerTurn: any, duration: any) {
   return {
     ...actor,
     poison: damagePerTurn,
@@ -105,7 +105,7 @@ export function applyPoisonDebuff(actor, damagePerTurn, duration) {
 /**
  * 기절(Stun) 디버프 적용
  */
-export function applyStunDebuff(actor, duration) {
+export function applyStunDebuff(actor: any, duration: any) {
   return {
     ...actor,
     stunned: true,
@@ -116,7 +116,7 @@ export function applyStunDebuff(actor, duration) {
 /**
  * 장막(Shroud) 버프 적용 (적 전용, 통찰 방해)
  */
-export function applyShroudBuff(actor, amount, duration = 0) {
+export function applyShroudBuff(actor: any, amount: any, duration = 0) {
   return {
     ...actor,
     shroud: (actor.shroud || 0) + amount,
@@ -133,7 +133,7 @@ export function applyShroudBuff(actor, amount, duration = 0) {
  * @param {Object} actor - 대상
  * @returns {Object} - 업데이트된 actor
  */
-export function decreaseStatusDurations(actor) {
+export function decreaseStatusDurations(actor: any) {
   const updated = { ...actor };
 
   // 힘
@@ -220,7 +220,7 @@ export function decreaseStatusDurations(actor) {
  * @param {Object} actor - 대상
  * @returns {Object} - { actor: 업데이트된 actor, healed: 회복량, log: 로그 메시지 }
  */
-export function applyRegenerationEffect(actor, actorName) {
+export function applyRegenerationEffect(actor: any, actorName: any) {
   if (!actor.regeneration || actor.regeneration <= 0) {
     return { actor, healed: 0, log: null };
   }
@@ -241,7 +241,7 @@ export function applyRegenerationEffect(actor, actorName) {
  * @param {Object} actor - 대상
  * @returns {Object} - { actor: 업데이트된 actor, damage: 피해량, log: 로그 메시지 }
  */
-export function applyPoisonEffect(actor, actorName) {
+export function applyPoisonEffect(actor: any, actorName: any) {
   if (!actor.poison || actor.poison <= 0) {
     return { actor, damage: 0, log: null };
   }
@@ -264,14 +264,14 @@ export function applyPoisonEffect(actor, actorName) {
 /**
  * 기절 상태 확인
  */
-export function isStunned(actor) {
+export function isStunned(actor: any) {
   return actor.stunned === true && (actor.stunDuration || 0) > 0;
 }
 
 /**
  * 취약 상태 확인
  */
-export function isVulnerable(actor) {
+export function isVulnerable(actor: any) {
   return (actor.vulnMult && actor.vulnMult > 1) && (actor.vulnTurns || 0) > 0;
 }
 
@@ -280,7 +280,7 @@ export function isVulnerable(actor) {
  * @param {Object} actor - 대상
  * @returns {Array} - [{ name, value, duration }, ...]
  */
-export function getActiveEffects(actor) {
+export function getActiveEffects(actor: any) {
   const effects: any[] = [];
 
   if (actor.strength && actor.strength !== 0) {
@@ -374,7 +374,7 @@ export function getActiveEffects(actor) {
 /**
  * 모든 상태 효과 제거
  */
-export function clearAllEffects(actor) {
+export function clearAllEffects(actor: any) {
   return {
     ...actor,
     strength: 0,

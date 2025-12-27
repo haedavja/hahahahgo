@@ -70,6 +70,26 @@ export function usePhaseTransition({
   playSound,
   addLog,
   actions
+}: {
+  battleRef: any;
+  battlePhase: any;
+  battleSelected: any;
+  selected: any;
+  fixedOrder: any;
+  effectiveAgility: any;
+  enemy: any;
+  enemyPlan: any;
+  enemyCount: any;
+  player: any;
+  willOverdrive: any;
+  turnNumber: any;
+  rewindUsed: any;
+  respondSnapshot: any;
+  devilDiceTriggeredRef: any;
+  etherSlots: any;
+  playSound: any;
+  addLog: any;
+  actions: any;
 }) {
   // select → respond 전환
   const startResolve = useCallback(() => {
@@ -99,7 +119,7 @@ export function usePhaseTransition({
 
     const pCombo = detectPokerCombo(selected);
 
-    const traitEnhancedSelected = battleSelected.map(card =>
+    const traitEnhancedSelected = battleSelected.map((card: any) =>
       applyTraitModifiers(card, {
         usageCount: 0,
         isInCombo: pCombo !== null,
@@ -152,13 +172,13 @@ export function usePhaseTransition({
     let effectiveFixedOrder = currentFixedOrder;
     if (currentEnemyPlan?.manuallyModified && currentEnemyPlan?.actions) {
       const remainingActions = new Set(currentEnemyPlan.actions);
-      effectiveFixedOrder = currentFixedOrder.filter(item => {
+      effectiveFixedOrder = currentFixedOrder.filter((item: any) => {
         if (item.actor === 'player') return true;
         return remainingActions.has(item.card);
       });
     }
 
-    const newQ = effectiveFixedOrder.map(x => ({ actor: x.actor, card: x.card, sp: x.sp }));
+    const newQ = effectiveFixedOrder.map((x: any) => ({ actor: x.actor, card: x.card, sp: x.sp }));
     if (newQ.length === 0) {
       addLog('⚠️ 큐 생성 실패: 실행할 항목이 없습니다');
       return;
@@ -167,7 +187,7 @@ export function usePhaseTransition({
     const frozenOrderCount = currentBattle?.frozenOrder || battleRef.current?.frozenOrder || 0;
 
     if (frozenOrderCount <= 0) {
-      newQ.sort((a, b) => {
+      newQ.sort((a: any, b: any) => {
         if (a.sp !== b.sp) return a.sp - b.sp;
         return 0;
       });

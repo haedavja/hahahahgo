@@ -23,8 +23,8 @@ export function computeComboMultiplier(
   const order = relicOrderOverride || orderedRelicList;
   const passive = calculatePassiveEffects(order);
 
-  order.forEach(rid => {
-    const relic = RELICS[rid];
+  order.forEach((rid: any) => {
+    const relic = (RELICS as any)[rid];
     if (!relic?.effects) return;
     if (relic.effects.comboMultiplierPerCard || relic.effects.etherMultiplier) {
       mult = applyRelicComboMultiplier([rid], mult, cardsCount);
@@ -32,16 +32,16 @@ export function computeComboMultiplier(
   });
 
   if (includeRefBook && passive.etherCardMultiplier && cardsCount > 0) {
-    order.forEach(rid => {
-      const relic = RELICS[rid];
+    order.forEach((rid: any) => {
+      const relic = (RELICS as any)[rid];
       if (!relic?.effects?.etherCardMultiplier) return;
       mult *= (1 + cardsCount * 0.1);
     });
   }
 
   if (includeFiveCard && passive.etherFiveCardBonus > 0 && cardsCount >= 5) {
-    order.forEach(rid => {
-      const relic = RELICS[rid];
+    order.forEach((rid: any) => {
+      const relic = (RELICS as any)[rid];
       if (!relic?.effects?.etherFiveCardBonus) return;
       mult *= passive.etherFiveCardBonus;
     });
@@ -66,8 +66,8 @@ export function explainComboMultiplier(
   const steps: string[] = [`기본: ${mult.toFixed(2)}`];
   const passive = calculatePassiveEffects(order);
 
-  order.forEach(rid => {
-    const relic = RELICS[rid];
+  order.forEach((rid: any) => {
+    const relic = (RELICS as any)[rid];
     if (!relic?.effects) return;
     if (relic.effects.comboMultiplierPerCard || relic.effects.etherMultiplier) {
       const prev = mult;
@@ -77,8 +77,8 @@ export function explainComboMultiplier(
   });
 
   if (includeRefBook && passive.etherCardMultiplier && cardsCount > 0) {
-    order.forEach(rid => {
-      const relic = RELICS[rid];
+    order.forEach((rid: any) => {
+      const relic = (RELICS as any)[rid];
       if (!relic?.effects?.etherCardMultiplier) return;
       const prev = mult;
       mult *= (1 + cardsCount * 0.1);
@@ -87,8 +87,8 @@ export function explainComboMultiplier(
   }
 
   if (includeFiveCard && passive.etherFiveCardBonus > 0 && cardsCount >= 5) {
-    order.forEach(rid => {
-      const relic = RELICS[rid];
+    order.forEach((rid: any) => {
+      const relic = (RELICS as any)[rid];
       if (!relic?.effects?.etherFiveCardBonus) return;
       const prev = mult;
       mult *= passive.etherFiveCardBonus;

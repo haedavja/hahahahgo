@@ -118,7 +118,7 @@ export const MERCHANT_TYPES = {
  * @returns {Object} { relics: [{id, price}], items: [{id, price}], cards: [{id, price, rarity}] }
  */
 export function generateShopInventory(merchantType = 'shop', ownedRelics: string[] = [], allCards: any[] = []) {
-  const merchant = MERCHANT_TYPES[merchantType] || MERCHANT_TYPES.shop;
+  const merchant = (MERCHANT_TYPES as any)[merchantType] || MERCHANT_TYPES.shop;
   const inventory: { relics: Array<{id: string, price: number}>, items: Array<{id: string, price: number}>, cards: Array<{id: any, price: number, rarity: any}> } = { relics: [], items: [], cards: [] };
 
   // 상징 선택
@@ -169,7 +169,7 @@ export function generateShopInventory(merchantType = 'shop', ownedRelics: string
 
   for (let i = 0; i < merchant.itemSlots && i < shuffledItems.length; i++) {
     const item = shuffledItems[i];
-    const basePrice = ITEM_PRICES[item.tier] || 30;
+    const basePrice = (ITEM_PRICES as any)[item.tier] || 30;
     inventory.items.push({
       id: item.id,
       price: Math.round(basePrice * merchant.priceMultiplier),
@@ -200,15 +200,15 @@ export function generateShopInventory(merchantType = 'shop', ownedRelics: string
     availableCards = availableCards.sort(() => Math.random() - 0.5);
 
     for (let i = 0; i < merchant.cardSlots && availableCards.length > 0; i++) {
-      const totalWeight = availableCards.reduce((sum, c) => sum + (cardWeights[c.rarity || 'common'] || 1), 0);
+      const totalWeight = availableCards.reduce((sum, c) => sum + ((cardWeights as any)[c.rarity || 'common'] || 1), 0);
       let rand = Math.random() * totalWeight;
 
       for (let j = 0; j < availableCards.length; j++) {
-        rand -= cardWeights[availableCards[j].rarity || 'common'] || 1;
+        rand -= (cardWeights as any)[availableCards[j].rarity || 'common'] || 1;
         if (rand <= 0) {
           const card = availableCards.splice(j, 1)[0];
           const cardRarity = card.rarity || 'common';
-          const basePrice = CARD_PRICES[cardRarity] || CARD_PRICES.common;
+          const basePrice = (CARD_PRICES as any)[cardRarity] || CARD_PRICES.common;
           inventory.cards.push({
             id: card.id,
             price: Math.round(basePrice * merchant.priceMultiplier),
@@ -229,9 +229,9 @@ export function generateShopInventory(merchantType = 'shop', ownedRelics: string
  * @param {string} merchantType - 상인 유형
  * @returns {number} 판매 가격
  */
-export function getItemSellPrice(item, merchantType = 'shop') {
-  const merchant = MERCHANT_TYPES[merchantType] || MERCHANT_TYPES.shop;
-  const basePrice = ITEM_PRICES[item.tier] || 30;
+export function getItemSellPrice(item: any, merchantType = 'shop') {
+  const merchant = (MERCHANT_TYPES as any)[merchantType] || MERCHANT_TYPES.shop;
+  const basePrice = (ITEM_PRICES as any)[item.tier] || 30;
   const sellMultiplier = merchant.sellPriceMultiplier || SELL_PRICE_MULTIPLIER;
   return Math.round(basePrice * sellMultiplier);
 }
@@ -242,8 +242,8 @@ export function getItemSellPrice(item, merchantType = 'shop') {
  * @param {string} merchantType - 상인 유형
  * @returns {number} 판매 가격
  */
-export function getRelicSellPrice(relic, merchantType = 'shop') {
-  const merchant = MERCHANT_TYPES[merchantType] || MERCHANT_TYPES.shop;
+export function getRelicSellPrice(relic: any, merchantType = 'shop') {
+  const merchant = (MERCHANT_TYPES as any)[merchantType] || MERCHANT_TYPES.shop;
   const basePrice = RELIC_PRICES[relic.rarity] || 100;
   const sellMultiplier = merchant.sellPriceMultiplier || SELL_PRICE_MULTIPLIER;
   return Math.round(basePrice * sellMultiplier);
@@ -256,9 +256,9 @@ export function getRelicSellPrice(relic, merchantType = 'shop') {
  * @param {string} merchantType - 상인 유형
  * @returns {number} 판매 가격
  */
-export function getCardSellPrice(card, cardRarity = 'common', merchantType = 'shop') {
-  const merchant = MERCHANT_TYPES[merchantType] || MERCHANT_TYPES.shop;
-  const basePrice = CARD_PRICES[cardRarity] || CARD_PRICES.common;
+export function getCardSellPrice(card: any, cardRarity = 'common', merchantType = 'shop') {
+  const merchant = (MERCHANT_TYPES as any)[merchantType] || MERCHANT_TYPES.shop;
+  const basePrice = (CARD_PRICES as any)[cardRarity] || CARD_PRICES.common;
   const sellMultiplier = merchant.sellPriceMultiplier || SELL_PRICE_MULTIPLIER;
   return Math.round(basePrice * sellMultiplier);
 }
@@ -269,9 +269,9 @@ export function getCardSellPrice(card, cardRarity = 'common', merchantType = 'sh
  * @param {string} merchantType - 상인 유형
  * @returns {number} 서비스 가격
  */
-export function getServicePrice(serviceId, merchantType = 'shop') {
-  const merchant = MERCHANT_TYPES[merchantType] || MERCHANT_TYPES.shop;
-  const basePrice = SERVICE_PRICES[serviceId] || 50;
+export function getServicePrice(serviceId: any, merchantType = 'shop') {
+  const merchant = (MERCHANT_TYPES as any)[merchantType] || MERCHANT_TYPES.shop;
+  const basePrice = (SERVICE_PRICES as any)[serviceId] || 50;
   return Math.round(basePrice * merchant.priceMultiplier);
 }
 

@@ -598,13 +598,13 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     }
   }, []);
 
-  const flashRelic = (relicId, tone = 800, duration = 500) => {
+  const flashRelic = (relicId: any, tone = 800, duration = 500) => {
     const nextSet = new Set(activeRelicSet);
     nextSet.add(relicId);
     actions.setActiveRelicSet(nextSet);
     actions.setRelicActivated(relicId);
-    const relic = RELICS[relicId];
-    if (relic?.effects && (relic.effects.comboMultiplierPerCard || relic.effects.etherCardMultiplier || relic.effects.etherMultiplier || relic.effects.etherFiveCardBonus)) {
+    const relic = RELICS[relicId as keyof typeof RELICS];
+    if (relic?.effects && ((relic.effects as any).comboMultiplierPerCard || (relic.effects as any).etherCardMultiplier || (relic.effects as any).etherMultiplier || (relic.effects as any).etherFiveCardBonus)) {
       actions.setMultiplierPulse(true);
       setTimeout(() => actions.setMultiplierPulse(false), Math.min(400, duration));
     }
@@ -904,8 +904,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       const combatStartEffects = applyCombatStartEffects(orderedRelicList, {});
 
       // 전투 시작 상징 애니메이션
-      orderedRelicList.forEach(relicId => {
-        const relic = RELICS[relicId];
+      orderedRelicList.forEach((relicId: any) => {
+        const relic = RELICS[relicId as keyof typeof RELICS];
         if (relic?.effects?.type === 'ON_COMBAT_START') {
           actions.setRelicActivated(relicId);
           playSound(800, 200);
@@ -1258,7 +1258,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     const animationDuration = TIMING.CARD_EXECUTION_DELAY; // 애니메이션 지속시간
     const startTime = performance.now();
 
-    const animateProgress = (currentTime) => {
+    const animateProgress = (currentTime: any) => {
       const elapsed = currentTime - startTime;
       const progress = Math.min(elapsed / animationDuration, 1);
       // linear 보간 (시곗바늘이 일정 속도로 이동)
@@ -1498,7 +1498,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       const defender = a.actor === 'player' ? E : P;
 
       // 타격별 콜백: 피격 애니메이션 및 사운드
-      const onHitCallback = async (hitResult, hitIndex, totalHits) => {
+      const onHitCallback = async (hitResult: any, hitIndex: any, totalHits: any) => {
         if (hitResult.damage > 0) {
           playHitSound();
           if (a.actor === 'player') {
@@ -1587,8 +1587,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
       // applyAction에서 반환된 updatedState로 P와 E 재할당
       if (updatedState) {
-        P = updatedState.player;
-        E = updatedState.enemy;
+        P = updatedState.player as any;
+        E = updatedState.enemy as any;
         // battleRef 동기 업데이트 (다음 카드 실행 시 최신 상태 사용)
         if (battleRef.current) {
           battleRef.current = { ...battleRef.current, player: P, enemy: E };
@@ -1659,7 +1659,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     // === 치명타 발생 시 기교 토큰 부여 (플레이어만) ===
     // 다단 공격의 경우 치명타 횟수만큼 부여, 단일 공격은 1회
     if (actionResult.isCritical && a.actor === 'player') {
-      const critCount = actionResult.criticalHits || 1;  // multiHitResult.criticalHits or 1 for single
+      const critCount = (actionResult as any).criticalHits || 1;  // multiHitResult.criticalHits or 1 for single
       const finesseResult = addToken(P as TokenEntity, 'finesse', critCount);
       P.tokens = finesseResult.tokens;
       addLog(`✨ 치명타! 기교 +${critCount} 획득`);
@@ -1707,11 +1707,11 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         addLog(`🔥 화상: 플레이어 -${burnDamage} HP`);
         actionEvents.push({
           actor: 'player',
-          card: a.card.name,
+          card: a.card.name as any,
           type: 'burn',
           dmg: burnDamage,
           msg: `🔥 화상: 플레이어 -${burnDamage} HP`
-        });
+        } as any);
         // battleRef 동기 업데이트
         if (battleRef.current) {
           battleRef.current = { ...battleRef.current, player: P };
@@ -1725,11 +1725,11 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         addLog(`🔥 화상: 적 -${burnDamage} HP`);
         actionEvents.push({
           actor: 'enemy',
-          card: a.card.name,
+          card: a.card.name as any,
           type: 'burn',
           dmg: burnDamage,
           msg: `🔥 화상: 적 -${burnDamage} HP`
-        });
+        } as any);
         // battleRef 동기 업데이트
         if (battleRef.current) {
           battleRef.current = { ...battleRef.current, enemy: E };
@@ -1763,7 +1763,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
     // cardPlaySpecials 결과 처리 (comboStyle, mentalFocus 등)
     if (actionResult.cardPlaySpecials && a.actor === 'player') {
-      const { bonusCards, nextTurnEffects: newNextTurnEffects } = actionResult.cardPlaySpecials;
+      const { bonusCards, nextTurnEffects: newNextTurnEffects } = actionResult.cardPlaySpecials as any;
 
       // bonusCards 처리 (comboStyle): 큐에 유령카드로 추가
       if (bonusCards && bonusCards.length > 0) {
@@ -1771,7 +1771,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         const currentQ = battleRef.current.queue;
         const currentQIndex = battleRef.current.qIndex;
 
-        const newActions = bonusCards.map(bonusCard => ({
+        const newActions = bonusCards.map((bonusCard: any) => ({
           actor: 'player',
           card: {
             ...bonusCard,
@@ -1807,7 +1807,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         actions.setQueue(newQueue);
         battleRef.current = { ...battleRef.current, queue: newQueue };
 
-        addLog(`🔄 연계 효과: "${bonusCards.map(c => c.name).join(', ')}" 큐에 추가!`);
+        addLog(`🔄 연계 효과: "${bonusCards.map((c: any) => c.name).join(', ')}" 큐에 추가!`);
       }
 
       // nextTurnEffects 처리 (mentalFocus, emergencyDraw, recallCard, sharpenBlade)
@@ -1968,7 +1968,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
           const grantedAt = battleContext.currentTurn ? { turn: battleContext.currentTurn, sp: battleContext.currentSp || 0 } : null;
           const tokenActions = {
             ...actions,
-            addTokenToPlayer: (tokenId, stacks = 1) => {
+            addTokenToPlayer: (tokenId: any, stacks = 1) => {
               const actualStacks = isCritical ? stacks + 1 : stacks;
               if (isCritical) {
                 addLog(`💥 치명타! ${tokenId} +1 강화`);
@@ -1984,7 +1984,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
               result.logs.forEach(log => addLog(log));
               return result;
             },
-            removeTokenFromPlayer: (tokenId, tokenType, stacks = 1) => {
+            removeTokenFromPlayer: (tokenId: any, tokenType: any, stacks = 1) => {
               const result = removeToken(currentPlayerForToken as TokenEntity, tokenId, tokenType, stacks);
               P.tokens = result.tokens;
               currentPlayerForToken.tokens = result.tokens;
@@ -1996,7 +1996,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
               result.logs.forEach(log => addLog(log));
               return result;
             },
-            addTokenToEnemy: (tokenId, stacks = 1) => {
+            addTokenToEnemy: (tokenId: any, stacks = 1) => {
               const actualStacks = isCritical ? stacks + 1 : stacks;
               if (isCritical) {
                 addLog(`💥 치명타! ${tokenId} +1 강화`);
@@ -2038,7 +2038,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
               return result;
             },
             // 룰렛 초기화 등을 위한 토큰 스택 리셋
-            resetTokenForPlayer: (tokenId, tokenType, newStacks = 0) => {
+            resetTokenForPlayer: (tokenId: any, tokenType: any, newStacks = 0) => {
               const result = setTokenStacks(currentPlayerForToken as TokenEntity, tokenId, tokenType, newStacks);
               P.tokens = result.tokens;
               currentPlayerForToken.tokens = result.tokens;
@@ -2476,7 +2476,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
     // 이벤트 처리: 애니메이션 및 사운드
     processActionEventAnimations({
-      actionEvents,
+      actionEvents: actionEvents as any,
       action: a as unknown as HandAction,
       playHitSound,
       playBlockSound,
@@ -2543,7 +2543,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     }
   }, [battle.phase, battle.qIndex, battle.queue.length, turnEtherAccumulated, etherCalcPhase, resolvedPlayerCards]);
 
-  const removeSelectedAt = (i) => actions.setSelected(battle.selected.filter((_, idx) => idx !== i));
+  const removeSelectedAt = (i: any) => actions.setSelected(battle.selected.filter((_, idx) => idx !== i));
 
   // 키보드 단축키 처리
   useKeyboardShortcuts({
@@ -2650,7 +2650,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
   if (!enemy) return <div className="text-white p-4">로딩…</div>;
 
-  const handDisabled = (c) => {
+  const handDisabled = (c: any) => {
     // 기본 체크: 최대 선택 수, 속도 한계, 행동력 부족
     if (battle.selected.length >= effectiveMaxSubmitCards ||
         totalSpeed + applyAgility(c.speedCost, Number(effectiveAgility)) > Number(player.maxSpeed) ||
@@ -2790,7 +2790,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         {comboStepsLog.length > 0 && (
           <div style={{ marginTop: '16px', padding: '12px', borderTop: '1px solid rgba(148, 163, 184, 0.2)', color: '#e2e8f0', fontSize: '13px', lineHeight: 1.6 }}>
             <div style={{ fontWeight: 800, marginBottom: '6px', color: '#fbbf24' }}>🧮 배율 경로</div>
-            {comboStepsLog.map((step, idx) => (
+            {comboStepsLog.map((step: any, idx: any) => (
               <div key={idx} style={{ color: '#cbd5e1' }}>{idx + 1}. {step}</div>
             ))}
           </div>

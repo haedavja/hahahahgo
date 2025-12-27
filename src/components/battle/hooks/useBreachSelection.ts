@@ -27,12 +27,12 @@ export function useBreachSelection({
   stepOnceRef,
   addLog,
   actions
-}) {
+}: any) {
   const [breachSelection, setBreachSelection] = useState(null);
   const breachSelectionRef = useRef(null);
   const creationQueueRef = useRef([]);
 
-  const handleBreachSelect = useCallback((selectedCard, idx) => {
+  const handleBreachSelect = useCallback((selectedCard: any, idx: any) => {
     const breach = breachSelectionRef.current as any;
     if (!breach) return;
 
@@ -41,7 +41,7 @@ export function useBreachSelection({
     addLog(`👻 "${selectedCard.name}" 선택! 타임라인 ${insertSp}에 유령카드로 삽입.`);
 
     // 유령카드 생성
-    const originalCard = CARDS.find(c => c.id === selectedCard.id) || selectedCard;
+    const originalCard = CARDS.find((c: any) => c.id === selectedCard.id) || selectedCard;
     const ghostCard = {
       ...originalCard,
       damage: originalCard.damage,

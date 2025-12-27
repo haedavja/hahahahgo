@@ -24,16 +24,16 @@ import { OBSTACLE_TEMPLATES } from '../../../data/dungeonNodes';
 // ========== 기로 템플릿 선택 ==========
 export function getRandomCrossroadTemplate(forcedTemplateId: string | null = null) {
   // 강제 템플릿이 지정된 경우
-  if (forcedTemplateId && OBSTACLE_TEMPLATES[forcedTemplateId]) {
-    return { ...OBSTACLE_TEMPLATES[forcedTemplateId] };
+  if (forcedTemplateId && OBSTACLE_TEMPLATES[forcedTemplateId as keyof typeof OBSTACLE_TEMPLATES]) {
+    return { ...OBSTACLE_TEMPLATES[forcedTemplateId as keyof typeof OBSTACLE_TEMPLATES] };
   }
   const templates = Object.keys(OBSTACLE_TEMPLATES);
-  const key = templates[Math.floor(Math.random() * templates.length)];
+  const key = templates[Math.floor(Math.random() * templates.length)] as keyof typeof OBSTACLE_TEMPLATES;
   return { ...OBSTACLE_TEMPLATES[key] };
 }
 
 // ========== 방 생성 ==========
-export function createRoom(x, y, roomType) {
+export function createRoom(x: number, y: number, roomType: string) {
   const objects: Array<{ id: string; typeId: string; x: number; used: boolean; [key: string]: unknown }> = [];
 
   // 입구/출구가 아닌 경우 오브젝트 생성
@@ -111,8 +111,8 @@ export function generateMaze(forcedCrossroadId = null) {
   const { GRID_SIZE, MIN_ROOMS, MAX_ROOMS, DEAD_END_REWARD, HIDDEN_ROOM_CHANCE, LOOP_CHANCE } = CONFIG.MAZE;
 
   // 그리드 초기화
-  const grid = {};
-  const getKey = (x, y) => `${x},${y}`;
+  const grid: Record<string, any> = {};
+  const getKey = (x: number, y: number) => `${x},${y}`;
 
   // 시작 위치 (중앙 하단)
   const startX = Math.floor(GRID_SIZE / 2);
@@ -139,7 +139,7 @@ export function generateMaze(forcedCrossroadId = null) {
     let foundNext = false;
 
     for (const dir of directions) {
-      const { dx, dy, opposite } = DIRECTIONS[dir];
+      const { dx, dy, opposite } = DIRECTIONS[dir as keyof typeof DIRECTIONS];
       const nx = x + dx;
       const ny = y + dy;
       const neighborKey = getKey(nx, ny);
@@ -159,11 +159,11 @@ export function generateMaze(forcedCrossroadId = null) {
 
         // 연결 (숨겨진 방은 hidden_door로 연결)
         if (isHidden) {
-          grid[getKey(x, y)].exits[dir] = { type: 'hidden', targetKey: neighborKey };
-          grid[neighborKey].exits[opposite] = { type: 'hidden', targetKey: getKey(x, y) };
+          grid[getKey(x, y)].exits[dir as any] = { type: 'hidden', targetKey: neighborKey };
+          grid[neighborKey].exits[opposite as any] = { type: 'hidden', targetKey: getKey(x, y) };
         } else {
-          grid[getKey(x, y)].exits[dir] = { type: 'normal', targetKey: neighborKey };
-          grid[neighborKey].exits[opposite] = { type: 'normal', targetKey: getKey(x, y) };
+          grid[getKey(x, y)].exits[dir as any] = { type: 'normal', targetKey: neighborKey };
+          grid[neighborKey].exits[opposite as any] = { type: 'normal', targetKey: getKey(x, y) };
         }
 
         stack.push({ x: nx, y: ny });
@@ -221,8 +221,8 @@ export function generateMaze(forcedCrossroadId = null) {
           grid[nextKey] = createRoom(nextX, nextY, roomType);
         }
 
-        grid[currentKey].exits[dir] = { type: 'normal', targetKey: nextKey };
-        grid[nextKey].exits[opposite] = { type: 'normal', targetKey: currentKey };
+        grid[currentKey].exits[dir as any] = { type: 'normal', targetKey: nextKey };
+        grid[nextKey].exits[opposite as any] = { type: 'normal', targetKey: currentKey };
 
         cx = nextX;
         cy = nextY;
@@ -237,7 +237,7 @@ export function generateMaze(forcedCrossroadId = null) {
     const room = grid[key];
 
     for (const [dir, { dx, dy, opposite }] of Object.entries(DIRECTIONS)) {
-      if (room.exits[dir]) continue; // 이미 연결됨
+      if (room.exits[dir as any]) continue; // 이미 연결됨
 
       const nx = x + dx;
       const ny = y + dy;
@@ -245,8 +245,8 @@ export function generateMaze(forcedCrossroadId = null) {
 
       if (grid[neighborKey] && Math.random() < LOOP_CHANCE) {
         // 루프 연결
-        room.exits[dir] = { type: 'normal', targetKey: neighborKey };
-        grid[neighborKey].exits[opposite] = { type: 'normal', targetKey: key };
+        room.exits[dir as any] = { type: 'normal', targetKey: neighborKey };
+        grid[neighborKey].exits[opposite as any] = { type: 'normal', targetKey: key };
       }
     }
   }
@@ -303,14 +303,14 @@ export function generateMaze(forcedCrossroadId = null) {
 }
 
 // ========== 레거시 던전 생성 ==========
-function createObjects(isRoom, segmentIndex) {
+function createObjects(isRoom: boolean, segmentIndex: number) {
   const objects: Array<{ id: string; typeId: string; x: number; used: boolean; [key: string]: unknown }> = [];
   const count = 2 + Math.floor(Math.random() * 2); // 2-3개
   const MIN_DISTANCE = 150; // 오브젝트 간 최소 거리
 
   for (let i = 0; i < count; i++) {
     const rand = Math.random();
-    let xPos;
+    let xPos: number;
     let attempts = 0;
     const MAX_ATTEMPTS = 50;
 
@@ -333,7 +333,7 @@ function createObjects(isRoom, segmentIndex) {
     let cumProb = 0;
 
     for (const typeKey of Object.keys(OBJECT_TYPES)) {
-      const objType = OBJECT_TYPES[typeKey];
+      const objType = OBJECT_TYPES[typeKey as keyof typeof OBJECT_TYPES];
       const prob = isRoom ? objType.probRoom : objType.probCorridor;
       cumProb += prob;
 
@@ -356,16 +356,16 @@ function createObjects(isRoom, segmentIndex) {
   return objects;
 }
 
-function ensureMinimumCombats(segments) {
-  const combatCount = segments.reduce((sum, seg) =>
-    sum + seg.objects.filter(o => o.typeId === "combat").length, 0
+function ensureMinimumCombats(segments: any[]) {
+  const combatCount = segments.reduce((sum: number, seg: any) =>
+    sum + seg.objects.filter((o: any) => o.typeId === "combat").length, 0
   );
 
   let needed = CONFIG.MIN_COMBAT_COUNT - combatCount;
 
   while (needed > 0) {
     const randomSeg = segments[Math.floor(Math.random() * segments.length)];
-    const nonCombat = randomSeg.objects.filter(o => o.typeId !== "combat");
+    const nonCombat = randomSeg.objects.filter((o: any) => o.typeId !== "combat");
 
     if (nonCombat.length > 0) {
       nonCombat[0].typeId = "combat";

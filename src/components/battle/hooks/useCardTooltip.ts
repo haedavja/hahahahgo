@@ -19,7 +19,7 @@ import { useRef, useCallback, useEffect } from 'react';
  * @param {Object} params.actions - 상태 업데이트 액션
  * @returns {{showCardTraitTooltip: Function, hideCardTraitTooltip: Function}}
  */
-export function useCardTooltip({ hoveredCard, battlePhase, actions }) {
+export function useCardTooltip({ hoveredCard, battlePhase, actions }: any) {
   const tooltipTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hoveredCardRef = useRef<{ card: any, x: number, y: number } | null>(null);
 
@@ -38,7 +38,7 @@ export function useCardTooltip({ hoveredCard, battlePhase, actions }) {
     actions.setTooltipVisible(false);
   }, [battlePhase, actions]);
 
-  const showCardTraitTooltip = useCallback((card, cardElement) => {
+  const showCardTraitTooltip = useCallback((card: any, cardElement: any) => {
     const hasTraits = card?.traits && card.traits.length > 0;
     const hasAppliedTokens = card?.appliedTokens && card.appliedTokens.length > 0;
     if ((!hasTraits && !hasAppliedTokens) || !cardElement) return;

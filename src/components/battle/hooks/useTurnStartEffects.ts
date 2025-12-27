@@ -68,6 +68,25 @@ export function useTurnStartEffects({
   playSound,
   addLog,
   actions
+}: {
+  battle: any,
+  player: any,
+  enemy: any,
+  enemyPlan: any,
+  nextTurnEffects: any,
+  turnNumber: any,
+  baseMaxEnergy: any,
+  orderedRelicList: any,
+  playerEgos: any,
+  playerTraits: any,
+  enemyCount: any,
+  battleRef: any,
+  escapeBanRef: any,
+  turnStartProcessedRef: any,
+  etherSlots: any,
+  playSound: any,
+  addLog: any,
+  actions: any
 }) {
   useEffect(() => {
     if (!enemy || battle.phase !== 'select') {
@@ -93,8 +112,8 @@ export function useTurnStartEffects({
     const turnStartRelicEffects = applyTurnStartEffects(orderedRelicList, nextTurnEffects);
 
     // 턴 시작 상징 발동 애니메이션
-    orderedRelicList.forEach(relicId => {
-      const relic = RELICS[relicId];
+    orderedRelicList.forEach((relicId: any) => {
+      const relic = (RELICS as any)[relicId];
       if (relic?.effects?.type === 'ON_TURN_START') {
         actions.setRelicActivated(relicId);
         playSound(800, 200);

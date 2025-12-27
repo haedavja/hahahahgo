@@ -29,7 +29,7 @@ vi.mock('../../../data/relics', () => ({
 
 describe('relicActivationAnimation', () => {
   describe('collectTriggeredRelics', () => {
-    let triggeredRefs;
+    let triggeredRefs: any;
 
     beforeEach(() => {
       triggeredRefs = {
@@ -171,8 +171,8 @@ describe('relicActivationAnimation', () => {
   });
 
   describe('playRelicActivationSequence', () => {
-    let flashRelic;
-    let setRelicActivated;
+    let flashRelic: any;
+    let setRelicActivated: any;
 
     beforeEach(() => {
       vi.useFakeTimers();

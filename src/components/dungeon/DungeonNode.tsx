@@ -43,7 +43,7 @@ const EVENT_EMOJIS = {
 /**
  * 선택지 버튼 컴포넌트
  */
-function ChoiceButton({ choice, playerStats, choiceState, specials, onSelect, shaking }) {
+function ChoiceButton({ choice, playerStats, choiceState, specials, onSelect, shaking }: { choice: any; playerStats: any; choiceState: any; specials: any; onSelect: any; shaking: any }) {
   const specialOverride = getSpecialOverride(choice, specials);
   const displayInfo = getChoiceDisplayInfo(choice, playerStats, choiceState, specialOverride);
 
@@ -89,7 +89,7 @@ function ChoiceButton({ choice, playerStats, choiceState, specials, onSelect, sh
 /**
  * 던전 노드 메인 컴포넌트
  */
-export function DungeonNode({ dungeon, onNavigate, onExit, onCombat }) {
+export function DungeonNode({ dungeon, onNavigate, onExit, onCombat }: { dungeon: any; onNavigate: any; onExit: any; onCombat: any }) {
   const playerStrength = useGameStore((s) => s.playerStrength || 0);
   const playerAgility = useGameStore((s) => s.playerAgility || 0);
   const playerInsight = useGameStore((s) => s.playerInsight || 0);
@@ -106,13 +106,13 @@ export function DungeonNode({ dungeon, onNavigate, onExit, onCombat }) {
   const [showWarning, setShowWarning] = useState<string | null>(null);
 
   const currentNode = useMemo(() => {
-    return dungeon?.nodes?.find(n => n.id === dungeon.currentNodeId);
+    return dungeon?.nodes?.find((n: any) => n.id === dungeon.currentNodeId);
   }, [dungeon]);
 
   const connectedNodes = useMemo(() => {
     if (!currentNode || !dungeon?.nodes) return [];
     return currentNode.connections
-      .map(id => dungeon.nodes.find(n => n.id === id))
+      .map((id: any) => dungeon.nodes.find((n: any) => n.id === id))
       .filter(Boolean);
   }, [currentNode, dungeon]);
 
@@ -142,7 +142,7 @@ export function DungeonNode({ dungeon, onNavigate, onExit, onCombat }) {
     // 템플릿에서 선택지 가져오기
     if (eventType === DUNGEON_EVENT_TYPES.OBSTACLE) {
       const templateId = currentNode.event.templateId || 'cliff';
-      const template = OBSTACLE_TEMPLATES[templateId];
+      const template = (OBSTACLE_TEMPLATES as any)[templateId];
       return template?.choices || [];
     }
 
@@ -155,9 +155,9 @@ export function DungeonNode({ dungeon, onNavigate, onExit, onCombat }) {
   }, [currentNode]);
 
   // 선택 실행
-  const handleChoiceSelect = useCallback((choice, specialOverride) => {
+  const handleChoiceSelect = useCallback((choice: any, specialOverride: any) => {
     const choiceKey = `${currentNode.id}_${choice.id}`;
-    const currentState = choiceStates[choiceKey] || { attempts: 0 };
+    const currentState = (choiceStates as any)[choiceKey] || { attempts: 0 };
 
     // 과잉 선택 체크
     if (isOverpushing(choice, currentState.attempts + 1)) {
@@ -238,7 +238,7 @@ export function DungeonNode({ dungeon, onNavigate, onExit, onCombat }) {
   }, [currentNode, choiceStates, playerStats, applyDamage, addResources, onCombat]);
 
   // 노드 이동
-  const handleNavigate = useCallback((targetNode) => {
+  const handleNavigate = useCallback((targetNode: any) => {
     setCurrentMessage(null);
     setShowWarning(null);
     onNavigate(targetNode.id);
@@ -355,12 +355,12 @@ export function DungeonNode({ dungeon, onNavigate, onExit, onCombat }) {
           border: '1px solid #475569',
         }}>
           <h3 style={{ margin: '0 0 16px', fontSize: '16px', color: '#94a3b8' }}>선택지</h3>
-          {eventChoices.map(choice => (
+          {eventChoices.map((choice: any) => (
             <ChoiceButton
               key={choice.id}
               choice={choice}
               playerStats={playerStats}
-              choiceState={choiceStates[`${currentNode.id}_${choice.id}`] || {}}
+              choiceState={(choiceStates as any)[`${currentNode.id}_${choice.id}`] || {}}
               specials={playerSpecials}
               onSelect={handleChoiceSelect}
               shaking={isShaking}
@@ -378,7 +378,7 @@ export function DungeonNode({ dungeon, onNavigate, onExit, onCombat }) {
       }}>
         <h3 style={{ margin: '0 0 16px', fontSize: '16px', color: '#94a3b8' }}>이동</h3>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-          {connectedNodes.map(node => (
+          {connectedNodes.map((node: any) => (
             <button
               key={node.id}
               onClick={() => handleNavigate(node)}

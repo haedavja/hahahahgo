@@ -47,7 +47,7 @@ export const createInitialState = (overrides = {}) => ({
   ...overrides
 });
 
-export const dungeonReducer = (state, action) => {
+export const dungeonReducer = (state: any, action: any) => {
   switch (action.type) {
     // === 기본 설정 ===
     case ACTIONS.SET_SEGMENT_INDEX:

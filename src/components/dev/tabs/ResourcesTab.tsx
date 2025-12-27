@@ -41,7 +41,7 @@ export function ResourcesTab({ resources, setResources, devOpenRest, awakenAtRes
       }}>
         <div style={{ fontSize: '0.875rem', color: '#94a3b8', marginBottom: '8px' }}>현재 자원:</div>
         <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-          {Object.entries(resources).map(([key, value]) => (
+          {Object.entries(resources).map(([key, value]: [string, any]) => (
             <div key={key} style={{
               padding: '6px 12px',
               background: '#1e293b',
@@ -56,7 +56,7 @@ export function ResourcesTab({ resources, setResources, devOpenRest, awakenAtRes
       </div>
 
       {/* 입력 폼 */}
-      {Object.keys(resources).map(key => (
+      {Object.keys(resources).map((key: any) => (
         <div key={key} style={{ marginBottom: '12px' }}>
           <label style={{
             display: 'block',
@@ -69,7 +69,7 @@ export function ResourcesTab({ resources, setResources, devOpenRest, awakenAtRes
           </label>
           <input
             type="number"
-            value={inputs[key]}
+            value={(inputs as any)[key]}
             onChange={(e) => setInputs({ ...inputs, [key]: parseInt(e.target.value) || 0 })}
             style={{
               width: '100%',

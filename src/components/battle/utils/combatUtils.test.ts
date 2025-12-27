@@ -181,20 +181,20 @@ describe('combatUtils', () => {
 
   describe('etherSlots', () => {
     it('calculateEtherSlots 함수를 호출해야 함', () => {
-      const mockCalculate = (pts) => Math.floor(pts / 100);
+      const mockCalculate = (pts: any) => Math.floor(pts / 100);
 
       expect(etherSlots(250, mockCalculate)).toBe(2);
       expect(etherSlots(500, mockCalculate)).toBe(5);
     });
 
     it('null pts는 0으로 처리해야 함', () => {
-      const mockCalculate = (pts) => pts;
+      const mockCalculate = (pts: any) => pts;
 
       expect(etherSlots(null as any, mockCalculate)).toBe(0);
     });
 
     it('undefined pts는 0으로 처리해야 함', () => {
-      const mockCalculate = (pts) => pts;
+      const mockCalculate = (pts: any) => pts;
 
       expect(etherSlots(undefined as any, mockCalculate)).toBe(0);
     });

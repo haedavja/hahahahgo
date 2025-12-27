@@ -286,7 +286,7 @@ describe('통합 테스트: Special 효과', () => {
 
       // 취약 토큰 확인
       const enemyTokens = (result.updatedState.enemy as any).tokens;
-      const hasVulnerable = enemyTokens.turn?.some(t => t.id === 'vulnerable');
+      const hasVulnerable = enemyTokens.turn?.some((t: any) => t.id === 'vulnerable');
       expect(hasVulnerable).toBe(true);
     });
 
@@ -297,7 +297,7 @@ describe('통합 테스트: Special 효과', () => {
       const result = applyAction(state, 'player', card);
 
       const enemyTokens = (result.updatedState.enemy as any).tokens;
-      const hasVulnerable = enemyTokens.turn?.some(t => t.id === 'vulnerable');
+      const hasVulnerable = enemyTokens.turn?.some((t: any) => t.id === 'vulnerable');
       expect(hasVulnerable).toBeFalsy();
     });
   });
@@ -310,7 +310,7 @@ describe('통합 테스트: Special 효과', () => {
       const result = applyAction(state, 'player', card);
 
       const enemyTokens = (result.updatedState.enemy as any).tokens;
-      const vulnToken = enemyTokens.turn?.find(t => t.id === 'vulnerable');
+      const vulnToken = enemyTokens.turn?.find((t: any) => t.id === 'vulnerable');
       expect(vulnToken?.stacks).toBe(2);
     });
   });
@@ -323,7 +323,7 @@ describe('통합 테스트: Special 효과', () => {
       const result = applyAction(state, 'player', card);
 
       const playerTokens = (result.updatedState.player as any).tokens;
-      const hasPersistentStrike = playerTokens.turn?.some(t => t.id === 'persistent_strike');
+      const hasPersistentStrike = playerTokens.turn?.some((t: any) => t.id === 'persistent_strike');
       expect(hasPersistentStrike).toBe(true);
     });
   });
@@ -336,7 +336,7 @@ describe('통합 테스트: Special 효과', () => {
       const result = applyAction(state, 'player', card);
 
       const enemyTokens = (result.updatedState.enemy as any).tokens;
-      const hasHalfEther = enemyTokens.turn?.some(t => t.id === 'half_ether');
+      const hasHalfEther = enemyTokens.turn?.some((t: any) => t.id === 'half_ether');
       expect(hasHalfEther).toBe(true);
     });
   });
@@ -467,7 +467,7 @@ describe('통합 테스트: 엣지 케이스', () => {
 });
 
 describe('통합 테스트: 회피 토큰 (Math.random mock)', () => {
-  let originalRandom;
+  let originalRandom: any;
 
   beforeEach(() => {
     originalRandom = Math.random;

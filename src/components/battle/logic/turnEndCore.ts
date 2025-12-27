@@ -63,7 +63,7 @@ export function finishTurnCore(params: FinishTurnCoreParams): FinishTurnResult {
   const newNextTurnEffects = processCardTraitEffects(selected as never, addLog);
 
   // 상징 턴 종료 효과
-  const relicIds = relics.map((r: { id?: string }) => (typeof r === 'string' ? r : r.id || ''));
+  const relicIds = relics.map((r: any) => (typeof r === 'string' ? r : r.id || ''));
   const turnEndRelicEffects = applyTurnEndEffects(relicIds, {
     cardsPlayedThisTurn: battle.selected.length,
     player,
@@ -193,7 +193,7 @@ export function finishTurnCore(params: FinishTurnCoreParams): FinishTurnResult {
     return { shouldReturn: true };
   }
 
-  actions.setTurnNumber(t => t + 1);
+  actions.setTurnNumber((t: any) => t + 1);
   actions.setNetEtherDelta(null);
   actions.setPhase('select');
 

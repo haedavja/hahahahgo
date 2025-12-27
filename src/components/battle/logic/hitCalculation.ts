@@ -145,7 +145,7 @@ export function calculateSingleHit(
 ): SingleHitResult {
   const isGhost = card.isGhost === true;
 
-  let modifiedCard, currentAttacker, currentDefender, specialEvents, specialLogs, attackerConsumedTokens;
+  let modifiedCard: any, currentAttacker: any, currentDefender: any, specialEvents: any, specialLogs: any, attackerConsumedTokens: any;
 
   if (preProcessedResult) {
     modifiedCard = preProcessedResult.modifiedCard;

@@ -12,8 +12,8 @@ export function RelicsBar({
   hoveredRelic,
   relicActivated,
   actions,
-}) {
-  const dragRelicIndexRef = useRef(null);
+}: any) {
+  const dragRelicIndexRef = useRef<any>(null);
 
   if (!orderedRelics || orderedRelics.length === 0) {
     return null;
@@ -38,8 +38,8 @@ export function RelicsBar({
         boxShadow: '0 0 15px rgba(148, 163, 184, 0.3)',
         pointerEvents: 'auto',
       }}>
-        {orderedRelics.map((relicId, index) => {
-          const relic = RELICS[relicId];
+        {orderedRelics.map((relicId: any, index: any) => {
+          const relic = (RELICS as any)[relicId];
           if (!relic) return null;
 
           const isHovered = hoveredRelic === relicId;
@@ -56,7 +56,7 @@ export function RelicsBar({
               key={index}
               style={{ position: 'relative' }}
               draggable
-              onDragStart={(e) => {
+              onDragStart={(e: any) => {
                 dragRelicIndexRef.current = index;
                 actions.setRelicActivated(relicId);
                 e.dataTransfer.effectAllowed = 'move';
@@ -66,11 +66,11 @@ export function RelicsBar({
                   e.dataTransfer.setDragImage(img, 0, 0);
                 } catch { /* ignore */ }
               }}
-              onDragOver={(e) => {
+              onDragOver={(e: any) => {
                 e.preventDefault();
                 e.dataTransfer.dropEffect = 'move';
               }}
-              onDrop={(e) => {
+              onDrop={(e: any) => {
                 e.preventDefault();
                 const from = dragRelicIndexRef.current;
                 dragRelicIndexRef.current = null;
@@ -82,7 +82,7 @@ export function RelicsBar({
                 actions.setOrderedRelics(next);
               }}
               onMouseDown={() => {
-                actions.setRelicActivated(prev => prev === relicId ? null : relicId);
+                actions.setRelicActivated((prev: any) => prev === relicId ? null : relicId);
               }}
             >
               <div
@@ -114,19 +114,19 @@ export function RelicsBar({
                   transform: 'translateX(-50%)',
                   marginTop: '8px',
                   background: 'rgba(15, 23, 42, 0.98)',
-                  border: `2px solid ${RELIC_RARITY_COLORS[relic.rarity]}`,
+                  border: `2px solid ${(RELIC_RARITY_COLORS as any)[relic.rarity]}`,
                   borderRadius: '8px',
                   padding: '12px 16px',
                   minWidth: '220px',
-                  boxShadow: `0 4px 20px ${RELIC_RARITY_COLORS[relic.rarity]}66`,
+                  boxShadow: `0 4px 20px ${(RELIC_RARITY_COLORS as any)[relic.rarity]}66`,
                   zIndex: 1000,
                   pointerEvents: 'none'
                 }}>
-                  <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: RELIC_RARITY_COLORS[relic.rarity], marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: (RELIC_RARITY_COLORS as any)[relic.rarity], marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <span style={{ fontSize: '1.3rem' }}>{relic.emoji}</span>
                     {relic.name}
                   </div>
-                  <div style={{ fontSize: '0.8rem', color: RELIC_RARITY_COLORS[relic.rarity], opacity: 0.8, marginBottom: '8px' }}>
+                  <div style={{ fontSize: '0.8rem', color: (RELIC_RARITY_COLORS as any)[relic.rarity], opacity: 0.8, marginBottom: '8px' }}>
                     {rarityText}
                   </div>
                   <div style={{ fontSize: '0.9rem', color: '#e2e8f0', lineHeight: '1.5' }}>

@@ -36,7 +36,7 @@ const availableCards = CARDS.map((card, index) => ({
   description: card.description,
 }));
 
-export function useCharacterSheet({ showAllCards = false }) {
+export function useCharacterSheet({ showAllCards = false }: any) {
   const characterBuild = useGameStore((state) => state.characterBuild);
   const updateCharacterBuild = useGameStore((state) => state.updateCharacterBuild);
   const playerHp = useGameStore((state) => state.playerHp);
@@ -82,14 +82,14 @@ export function useCharacterSheet({ showAllCards = false }) {
   const maxSubSlots = 2 + passiveEffects.subSpecialSlots + extraSubSpecialSlots;
 
   const traitCounts = useMemo(() => {
-    return (playerTraits || []).reduce((acc, t) => {
+    return (playerTraits || []).reduce((acc: any, t: any) => {
       acc[t] = (acc[t] || 0) + 1;
       return acc;
     }, {});
   }, [playerTraits]);
 
-  const formatTraitEffect = (traitId, count) => {
-    const effect = TRAIT_EFFECTS[traitId];
+  const formatTraitEffect = (traitId: any, count: any) => {
+    const effect = (TRAIT_EFFECTS as any)[traitId];
     if (!effect) return count > 1 ? `${traitId} (x${count})` : traitId;
     const total = effect.value * count;
     return `${traitId} ${count > 1 ? `(x${count})` : ""} (${effect.label} +${total})`;
@@ -118,7 +118,7 @@ export function useCharacterSheet({ showAllCards = false }) {
   }, [mainSpecials, subSpecials, initialized, updateCharacterBuild]);
 
   // 카드 개수 카운트 헬퍼
-  const getCardCount = (cardId, list) => list.filter(id => id === cardId).length;
+  const getCardCount = (cardId: any, list: any) => list.filter((id: any) => id === cardId).length;
 
   // 대기 카드 (상점 구매 등)
   const ownedCards = characterBuild?.ownedCards || [];
@@ -129,24 +129,24 @@ export function useCharacterSheet({ showAllCards = false }) {
       return availableCards.map((card, idx) => ({ ...card, _displayKey: `all_${card.id}_${idx}` }));
     }
     const result: any[] = [];
-    mainSpecials.forEach((cardId, idx) => {
-      const card = CARDS.find(c => c.id === cardId);
+    mainSpecials.forEach((cardId: any, idx: any) => {
+      const card = CARDS.find((c: any) => c.id === cardId);
       if (card) result.push({ ...card, _displayKey: `main_${cardId}_${idx}`, _type: 'main' });
     });
-    subSpecials.forEach((cardId, idx) => {
-      const card = CARDS.find(c => c.id === cardId);
+    subSpecials.forEach((cardId: any, idx: any) => {
+      const card = CARDS.find((c: any) => c.id === cardId);
       if (card) result.push({ ...card, _displayKey: `sub_${cardId}_${idx}`, _type: 'sub' });
     });
     const usedCounts: Record<string, number> = {};
-    [...mainSpecials, ...subSpecials].forEach(cardId => {
+    [...mainSpecials, ...subSpecials].forEach((cardId: any) => {
       usedCounts[cardId] = (usedCounts[cardId] || 0) + 1;
     });
     const shownCounts: Record<string, number> = {};
-    ownedCards.forEach((cardId, idx) => {
+    ownedCards.forEach((cardId: any, idx: any) => {
       shownCounts[cardId] = (shownCounts[cardId] || 0) + 1;
       const used = usedCounts[cardId] || 0;
-      if (shownCounts[cardId] <= (ownedCards.filter(id => id === cardId).length - used)) {
-        const card = CARDS.find(c => c.id === cardId);
+      if (shownCounts[cardId] <= (ownedCards.filter((id: any) => id === cardId).length - used)) {
+        const card = CARDS.find((c: any) => c.id === cardId);
         if (card) result.push({ ...card, _displayKey: `owned_${cardId}_${idx}`, _type: 'owned' });
       }
     });
@@ -154,10 +154,10 @@ export function useCharacterSheet({ showAllCards = false }) {
   }, [showAllCards, mainSpecials, subSpecials, ownedCards]);
 
   // 좌클릭: 추가, 우클릭: 제거
-  const handleCardClick = (cardId, isRightClick = false) => {
-    const ownedCount = ownedCards.filter(id => id === cardId).length;
-    const usedInMain = mainSpecials.filter(id => id === cardId).length;
-    const usedInSub = subSpecials.filter(id => id === cardId).length;
+  const handleCardClick = (cardId: any, isRightClick = false) => {
+    const ownedCount = ownedCards.filter((id: any) => id === cardId).length;
+    const usedInMain = mainSpecials.filter((id: any) => id === cardId).length;
+    const usedInSub = subSpecials.filter((id: any) => id === cardId).length;
     const totalUsed = usedInMain + usedInSub;
 
     if (specialMode === "main") {

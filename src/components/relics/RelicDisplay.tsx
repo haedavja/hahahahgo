@@ -40,7 +40,7 @@ const RARITY_NAMES = {
 /**
  * 단일 상징 아이콘 표시
  */
-export function RelicIcon({ relicId, size = 'medium', onClick, showTooltip = true }) {
+export function RelicIcon({ relicId, size = 'medium', onClick, showTooltip = true }: any) {
   const [hovered, setHovered] = useState(false);
   const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
   const iconRef = useRef(null);
@@ -56,9 +56,9 @@ export function RelicIcon({ relicId, size = 'medium', onClick, showTooltip = tru
     large: { width: 64, height: 64, fontSize: 32 },
   };
 
-  const sizeStyle = sizes[size] || sizes.medium;
+  const sizeStyle = (sizes as any)[size] || sizes.medium;
 
-  const handleMouseEnter = (e) => {
+  const handleMouseEnter = (e: any) => {
     if (!showTooltip) return;
     const rect = e.currentTarget.getBoundingClientRect();
     setTooltipPos({ x: rect.right + 8, y: rect.top });
@@ -132,7 +132,7 @@ export function RelicIcon({ relicId, size = 'medium', onClick, showTooltip = tru
 /**
  * 상징 목록 표시 (가로 나열)
  */
-export function RelicList({ relicIds = [], size = 'medium', onRelicClick }) {
+export function RelicList({ relicIds = [], size = 'medium', onRelicClick }: any) {
   if (!relicIds || relicIds.length === 0) {
     return (
       <div style={{ fontSize: '14px', color: '#64748b', fontStyle: 'italic' }}>
@@ -143,7 +143,7 @@ export function RelicList({ relicIds = [], size = 'medium', onRelicClick }) {
 
   return (
     <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-      {relicIds.map(relicId => (
+      {relicIds.map((relicId: any) => (
         <RelicIcon
           key={relicId}
           relicId={relicId}
@@ -158,7 +158,7 @@ export function RelicList({ relicIds = [], size = 'medium', onRelicClick }) {
 /**
  * 상징 카드 표시 (상세 정보 포함)
  */
-export function RelicCard({ relicId, onClick, selected = false }) {
+export function RelicCard({ relicId, onClick, selected = false }: any) {
   const relic = getRelicById(relicId);
   if (!relic) return null;
 
@@ -195,7 +195,7 @@ export function RelicCard({ relicId, onClick, selected = false }) {
       </div>
       {relic.tags && relic.tags.length > 0 && (
         <div style={{ display: 'flex', gap: '6px', marginTop: '12px', flexWrap: 'wrap' }}>
-          {relic.tags.map(tag => (
+          {relic.tags.map((tag: any) => (
             <span
               key={tag}
               style={{
@@ -219,7 +219,7 @@ export function RelicCard({ relicId, onClick, selected = false }) {
 /**
  * 상징별 이모지 매핑
  */
-function getRelicEmoji(relicId) {
+function getRelicEmoji(relicId: any) {
   const emojiMap = {
     // 일반
     etherCrystal: '💎',
@@ -250,5 +250,5 @@ function getRelicEmoji(relicId) {
     healthCheck: '📋',
   };
 
-  return emojiMap[relicId] || '❓';
+  return (emojiMap as any)[relicId] || '❓';
 }

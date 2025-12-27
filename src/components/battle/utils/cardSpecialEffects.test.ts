@@ -32,10 +32,10 @@ import {
 
 // tokenUtils mock
 vi.mock('../../../lib/tokenUtils', () => ({
-  addToken: vi.fn((entity, tokenId, stacks) => {
+  addToken: vi.fn((entity: any, tokenId: any, stacks: any) => {
     const tokens = entity.tokens ? { ...entity.tokens } : { turn: [], usage: [], permanent: [] };
     const turnTokens = tokens.turn || [];
-    const existing = turnTokens.find(t => t.id === tokenId);
+    const existing = turnTokens.find((t: any) => t.id === tokenId);
     if (existing) {
       existing.stacks = (existing.stacks || 1) + stacks;
     } else {

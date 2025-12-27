@@ -291,10 +291,10 @@ export const ITEMS = {
 export const ITEM_IDS = Object.keys(ITEMS);
 
 // 전투용 아이템만 필터
-export const COMBAT_ITEMS = Object.values(ITEMS).filter(item => item.usableIn === 'combat');
+export const COMBAT_ITEMS = Object.values(ITEMS).filter((item: any) => item.usableIn === 'combat');
 
 // 언제든 사용 가능한 아이템만 필터
-export const ANYTIME_ITEMS = Object.values(ITEMS).filter(item => item.usableIn === 'any');
+export const ANYTIME_ITEMS = Object.values(ITEMS).filter((item: any) => item.usableIn === 'any');
 
 // 아이템 가져오기 헬퍼
-export const getItem = (itemId) => ITEMS[itemId] || null;
+export const getItem = (itemId: any) => (ITEMS as any)[itemId] || null;

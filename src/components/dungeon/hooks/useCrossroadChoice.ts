@@ -42,14 +42,14 @@ export function useCrossroadChoice({
   startBattle,
   segment,
   actions,
-}) {
+}: any) {
   // 플레이어 스탯 가져오기
   const playerStrength = useGameStore((s) => s.playerStrength) || 0;
   const playerAgility = useGameStore((s) => s.playerAgility) || 0;
   const playerInsight = useGameStore((s) => s.playerInsight) || 0;
 
   // 스탯 요구조건 충족 여부 확인
-  const checkRequirement = useCallback((choice, attemptCount = 0) => {
+  const checkRequirement = useCallback((choice: any, attemptCount = 0) => {
     const req = choice.requirements || {};
     const scaling = choice.scalingRequirement;
 
@@ -71,13 +71,13 @@ export function useCrossroadChoice({
   }, [playerStrength, playerAgility, playerInsight]);
 
   // 스탯 여유도 계산 (얼마나 여유있게 충족하는지)
-  const getStatMargin = useCallback((choice, attemptNum) => {
+  const getStatMargin = useCallback((choice: any, attemptNum: any) => {
     if (!choice.scalingRequirement) return Infinity;
 
     const { stat, baseValue, increment } = choice.scalingRequirement;
     const requiredValue = baseValue + (attemptNum * increment);
 
-    const statMap = {
+    const statMap: any = {
       strength: playerStrength,
       agility: playerAgility,
       insight: playerInsight,
@@ -88,13 +88,13 @@ export function useCrossroadChoice({
   }, [playerStrength, playerAgility, playerInsight]);
 
   // 랜덤 적 가져오기 헬퍼
-  const getRandomEnemy = useCallback((tier) => {
+  const getRandomEnemy = useCallback((tier: any) => {
     // 간단한 구현 - 실제로는 enemyData에서 가져와야 함
     return { id: 'goblin', name: '고블린' };
   }, []);
 
   // 선택지 결과 적용
-  const applyChoiceOutcome = useCallback((outcome, obj) => {
+  const applyChoiceOutcome = useCallback((outcome: any, obj: any) => {
     if (!outcome?.effect) return;
 
     const effect = outcome.effect;
@@ -146,7 +146,7 @@ export function useCrossroadChoice({
   }, [dungeonDeltas, setDungeonDeltas, currentRoomKey, startBattle, segment, getRandomEnemy]);
 
   // 선택지 실행
-  const executeChoice = useCallback((choice, choiceState) => {
+  const executeChoice = useCallback((choice: any, choiceState: any) => {
     if (!crossroadModal) return;
 
     playChoiceSelectSound();

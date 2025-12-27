@@ -18,13 +18,13 @@
      * - strictFunctionTypes: ✅ 활성화
      * - strictBindCallApply: ✅ 활성화
      * - strictNullChecks: ✅ 활성화
-     * - noImplicitAny: ❌ ~1163 오류
-     * - strict: ❌ ~2000 오류 (추정)
+     * - noImplicitAny: ✅ 활성화
+     * - strict: ❌ ~500 오류 (추정)
      */
     "strict": false,
     "allowJs": true,
     "checkJs": false,
-    "noImplicitAny": false,
+    "noImplicitAny": true,
     "strictNullChecks": true,
     "strictFunctionTypes": true,
     "strictBindCallApply": true,

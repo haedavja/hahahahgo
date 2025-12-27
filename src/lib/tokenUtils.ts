@@ -59,7 +59,7 @@ export function addToken(
     return { tokens: immunityResult.tokens, logs: [...logs, ...immunityResult.logs] };
   }
 
-  const oppositeTokenId = TOKEN_CANCELLATION_MAP[tokenId];
+  const oppositeTokenId = (TOKEN_CANCELLATION_MAP as any)[tokenId];
   if (oppositeTokenId) {
     const cancelled = cancelTokens(tokens, tokenId, oppositeTokenId, stacks);
     if (cancelled.cancelled > 0) {
@@ -111,7 +111,7 @@ export function addToken(
 
   const tokenType = token.type;
   const typeArray = tokens[tokenType] || [];
-  const existingIndex = typeArray.findIndex(t => t.id === tokenId);
+  const existingIndex = typeArray.findIndex((t: any) => t.id === tokenId);
 
   if (existingIndex !== -1) {
     typeArray[existingIndex] = {
@@ -146,8 +146,8 @@ export function setTokenStacks(
 ): TokenModificationResult {
   const tokens = { ...entity.tokens } as TokenState;
   const logs: string[] = [];
-  const typeArray = [...(tokens[tokenType] || [])];
-  const existingIndex = typeArray.findIndex(t => t.id === tokenId);
+  const typeArray = [...((tokens as any)[tokenType] || [])];
+  const existingIndex = typeArray.findIndex((t: any) => t.id === tokenId);
   const token = TOKENS[tokenId];
 
   if (existingIndex === -1) {
@@ -167,7 +167,7 @@ export function setTokenStacks(
     logs.push(`${token?.name || tokenId} 초기화 (${oldStacks} → ${newStacks})`);
   }
 
-  tokens[tokenType] = typeArray;
+  (tokens as any)[tokenType] = typeArray;
   return { tokens, logs };
 }
 
@@ -187,8 +187,8 @@ export function removeToken(
 
   const tokens = { ...entity.tokens } as TokenState;
   const logs: string[] = [];
-  const typeArray = tokens[tokenType] || [];
-  const existingIndex = typeArray.findIndex(t => t.id === tokenId);
+  const typeArray = (tokens as any)[tokenType] || [];
+  const existingIndex = typeArray.findIndex((t: any) => t.id === tokenId);
 
   if (existingIndex === -1) {
     return { tokens: entity.tokens as TokenState, logs };
@@ -208,7 +208,7 @@ export function removeToken(
     };
   }
 
-  tokens[tokenType] = typeArray;
+  (tokens as any)[tokenType] = typeArray;
   return { tokens, logs };
 }
 
@@ -226,7 +226,7 @@ export function clearTurnTokens(entity: TokenEntity | null | undefined): TokenMo
   const turnTokens = tokens[TOKEN_TYPES.TURN] || [];
   const remainingTokens: TokenInstance[] = [];
 
-  turnTokens.forEach(t => {
+  turnTokens.forEach((t: any) => {
     if (t.grantedAt) {
       remainingTokens.push(t);
     } else {
@@ -255,7 +255,7 @@ export function expireTurnTokensByTimeline(
   const turnTokens = tokens[TOKEN_TYPES.TURN] || [];
   const remainingTokens: TokenInstance[] = [];
 
-  turnTokens.forEach(t => {
+  turnTokens.forEach((t: any) => {
     if (!t.grantedAt) {
       remainingTokens.push(t);
       return;
@@ -298,8 +298,8 @@ function cancelTokens(
   let oppositeIndex = -1;
 
   for (const type of [TOKEN_TYPES.USAGE, TOKEN_TYPES.TURN, TOKEN_TYPES.PERMANENT]) {
-    const typeArray = tokens[type] || [];
-    const index = typeArray.findIndex(t => t.id === oppositeTokenId);
+    const typeArray = (tokens as any)[type] || [];
+    const index = typeArray.findIndex((t: any) => t.id === oppositeTokenId);
     if (index !== -1) {
       oppositeStacks = typeArray[index].stacks;
       oppositeType = type;
@@ -316,7 +316,7 @@ function cancelTokens(
   const remainingNew = stacks - cancelled;
   const remainingOpposite = oppositeStacks - cancelled;
 
-  const typeArray = [...(tokens[oppositeType] || [])];
+  const typeArray = [...((tokens as any)[oppositeType] || [])];
   if (remainingOpposite <= 0) {
     typeArray.splice(oppositeIndex, 1);
   } else {
@@ -327,7 +327,7 @@ function cancelTokens(
   }
 
   const updatedTokens = { ...tokens };
-  updatedTokens[oppositeType] = typeArray;
+  (updatedTokens as any)[oppositeType] = typeArray;
 
   return { cancelled, remaining: remainingNew, tokens: updatedTokens };
 }
@@ -340,7 +340,7 @@ export function hasToken(entity: TokenEntity | null | undefined, tokenId: string
 
   for (const type of [TOKEN_TYPES.USAGE, TOKEN_TYPES.TURN, TOKEN_TYPES.PERMANENT]) {
     const typeArray = entity.tokens[type] || [];
-    if (typeArray.some(t => t.id === tokenId && t.stacks > 0)) {
+    if (typeArray.some((t: any) => t.id === tokenId && t.stacks > 0)) {
       return true;
     }
   }
@@ -355,7 +355,7 @@ export function getTokenStacks(entity: TokenEntity | null | undefined, tokenId: 
 
   for (const type of [TOKEN_TYPES.USAGE, TOKEN_TYPES.TURN, TOKEN_TYPES.PERMANENT]) {
     const typeArray = entity.tokens[type] || [];
-    const token = typeArray.find(t => t.id === tokenId);
+    const token = typeArray.find((t: any) => t.id === tokenId);
     if (token) {
       return token.stacks;
     }
@@ -373,7 +373,7 @@ export function getAllTokens(entity: TokenEntity | null | undefined): TokenDispl
 
   for (const type of [TOKEN_TYPES.PERMANENT, TOKEN_TYPES.USAGE, TOKEN_TYPES.TURN]) {
     const typeArray = entity.tokens[type] || [];
-    typeArray.forEach(t => {
+    typeArray.forEach((t: any) => {
       const tokenData = TOKENS[t.id];
       if (tokenData) {
         allTokens.push({

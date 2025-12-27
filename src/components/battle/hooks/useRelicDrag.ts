@@ -17,10 +17,10 @@ import { useRef, useCallback } from 'react';
  * @param {Object} params.actions - 상태 업데이트 액션
  * @returns {{handleRelicDragStart: Function, handleRelicDragOver: Function, handleRelicDrop: Function, handleRelicDragEnd: Function}}
  */
-export function useRelicDrag({ orderedRelicList, actions }) {
+export function useRelicDrag({ orderedRelicList, actions }: any) {
   const dragRelicIndexRef = useRef(null);
 
-  const handleRelicDragStart = useCallback((idx, relicId) => (e) => {
+  const handleRelicDragStart = useCallback((idx: any, relicId: any) => (e: any) => {
     dragRelicIndexRef.current = idx;
     actions.setRelicActivated(relicId);
     e.dataTransfer.effectAllowed = 'move';
@@ -31,12 +31,12 @@ export function useRelicDrag({ orderedRelicList, actions }) {
     } catch { /* ignore */ }
   }, [actions]);
 
-  const handleRelicDragOver = useCallback((e) => {
+  const handleRelicDragOver = useCallback((e: any) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
   }, []);
 
-  const handleRelicDrop = useCallback((idx) => (e) => {
+  const handleRelicDrop = useCallback((idx: any) => (e: any) => {
     e.preventDefault();
     const from = dragRelicIndexRef.current;
     dragRelicIndexRef.current = null;

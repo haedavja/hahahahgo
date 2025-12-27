@@ -194,7 +194,7 @@ export const createBattlePayload = (
   const enemyCount = enemies.length || 1;
 
   const enemyLibrary: string[] = [];
-  enemies.forEach((enemy: { deck?: string[] }) => {
+  enemies.forEach((enemy: any) => {
     if (enemy?.deck) {
       enemyLibrary.push(...enemy.deck);
     }
@@ -216,9 +216,9 @@ export const createBattlePayload = (
   const enemyHand = drawHand(enemyDrawPile, enemyHandSize);
   const { preview, simulation } = computeBattlePlan(node.type, playerHand, enemyHand, playerHp, maxHp, enemyCount);
 
-  const totalEnemyHp = enemies.reduce((sum, e) => sum + (e?.hp || 40), 0);
+  const totalEnemyHp = enemies.reduce((sum: any, e: any) => sum + (e?.hp || 40), 0);
 
-  const mixedEnemies = enemies.map(e => ({
+  const mixedEnemies = enemies.map((e: any) => ({
     id: e?.id,
     name: e?.name || '적',
     emoji: e?.emoji || '👾',

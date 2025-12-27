@@ -17,7 +17,7 @@ import { describe, it, expect } from 'vitest';
 import { detectPokerCombo, applyPokerBonus } from './comboDetection';
 
 // 테스트용 카드 헬퍼
-function createCard(actionCost, type = 'attack', traits: any[] = []) {
+function createCard(actionCost: any, type = 'attack', traits: any[] = []) {
   return { actionCost, type, traits };
 }
 

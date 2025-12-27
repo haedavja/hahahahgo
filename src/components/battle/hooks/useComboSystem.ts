@@ -31,7 +31,7 @@ export function useComboSystem({
   orderedRelicList,
   selected,
   actions
-}) {
+}: any) {
   // 현재 조합 감지 및 디플레이션 정보 설정
   const currentCombo = useMemo(() => {
     const combo = detectPokerCombo(battleSelected);

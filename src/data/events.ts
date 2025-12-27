@@ -22,7 +22,7 @@ export const eventLibrary = {
 /**
  * 이벤트에서 현재 단계 정보를 가져오는 헬퍼 함수
  */
-export function getEventStep(eventDef, stepId = "start") {
+export function getEventStep(eventDef: any, stepId: any = "start") {
   if (!eventDef) return null;
 
   // 다단계 이벤트 (steps 구조)
@@ -40,6 +40,6 @@ export function getEventStep(eventDef, stepId = "start") {
 /**
  * 이벤트 제목 가져오기
  */
-export function getEventTitle(eventDef) {
+export function getEventTitle(eventDef: any) {
   return eventDef?.title || "알 수 없는 사건";
 }

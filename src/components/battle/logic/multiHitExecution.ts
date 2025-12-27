@@ -19,7 +19,7 @@ import { TIMING } from './battleConstants'; // 순환 의존성 방지: battleEx
 /**
  * 다중 타격 비동기 실행 (딜레이 + 타격별 룰렛 체크 + 타격별 치명타 판정)
  */
-export async function executeMultiHitAsync(card, attacker, defender, attackerName, battleContext, onHitCallback) {
+export async function executeMultiHitAsync(card: any, attacker: any, defender: any, attackerName: any, battleContext: any, onHitCallback: any) {
   const isGunCard = card.cardCategory === 'gun' && card.type === 'attack';
   const ghostLabel = card.isGhost ? ' [👻유령]' : '';
 

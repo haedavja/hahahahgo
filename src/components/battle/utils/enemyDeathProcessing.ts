@@ -27,7 +27,7 @@ export function processEnemyDeath({
   actions.setTimelineIndicatorVisible(false);
   actions.setAutoProgress(false);
 
-  const disabledIndices = queue.slice(newQIndex).map((_, idx) => newQIndex + idx);
+  const disabledIndices = queue.slice(newQIndex).map((_: any, idx: any) => newQIndex + idx);
   actions.setDisabledCardIndices(disabledIndices);
 
   actions.setQIndex(queueLength);

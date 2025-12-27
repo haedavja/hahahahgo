@@ -64,7 +64,7 @@ export const STAT_LABELS = {
 export const PATCH_VERSION_TAG = "12-24-20:48";
 
 // 유틸리티 함수들
-export const describeAmount = (value) => {
+export const describeAmount = (value: any) => {
   if (value == null) return "0";
   if (typeof value === "number") return `${value}`;
   const min = value.min ?? 0;
@@ -72,36 +72,36 @@ export const describeAmount = (value) => {
   return min === max ? `${min}` : `${min}~${max}`;
 };
 
-export const describeBundle = (bundle = {}) => {
+export const describeBundle = (bundle: any = {}) => {
   const entries = Object.entries(bundle || {});
   if (!entries.length) return "없음";
-  return entries.map(([key, amount]) => `${RESOURCE_LABELS[key] ?? key} ${describeAmount(amount)}`).join(", ");
+  return entries.map(([key, amount]: [string, any]) => `${(RESOURCE_LABELS as any)[key] ?? key} ${describeAmount(amount)}`).join(", ");
 };
 
-export const describeCost = (cost = {}) => {
+export const describeCost = (cost: any = {}) => {
   const entries = Object.entries(cost || {});
   if (!entries.length) return "없음";
-  return entries.map(([key, amount]) => `${RESOURCE_LABELS[key] ?? key} ${amount}`).join(", ");
+  return entries.map(([key, amount]: [string, any]) => `${(RESOURCE_LABELS as any)[key] ?? key} ${amount}`).join(", ");
 };
 
-export const formatApplied = (bundle = {}) => {
+export const formatApplied = (bundle: any = {}) => {
   const entries = Object.entries(bundle || {});
   if (!entries.length) return "없음";
   return entries
-    .map(([key, amount]) => {
+    .map(([key, amount]: [string, any]) => {
       const numeric = typeof amount === "number" ? amount : 0;
       const prefix = numeric > 0 ? "+" : "";
-      return `${RESOURCE_LABELS[key] ?? key} ${prefix}${numeric}`;
+      return `${(RESOURCE_LABELS as any)[key] ?? key} ${prefix}${numeric}`;
     })
     .join(", ");
 };
 
-export const canAfford = (resources, cost = {}) =>
+export const canAfford = (resources: any, cost: any = {}) =>
   Object.entries(cost)
-    .filter(([key]) => key !== 'hp' && key !== 'hpPercent')
-    .every(([key, value]) => (resources[key] ?? 0) >= (value as number));
+    .filter(([key]: [string, any]) => key !== 'hp' && key !== 'hpPercent')
+    .every(([key, value]: [string, any]) => (resources[key] ?? 0) >= (value as number));
 
-export const formatBattleLogEntry = (entry) => {
+export const formatBattleLogEntry = (entry: any) => {
   if (!entry) return "";
   if (typeof entry === "string") return entry;
   const actorLabel =
@@ -126,7 +126,7 @@ export const formatBattleLogEntry = (entry) => {
   return `${actorLabel} ${cardLabel}`;
 };
 
-export const friendlyPercent = (chance) => {
+export const friendlyPercent = (chance: any) => {
   if (typeof chance !== "number") return null;
   return `${Math.round(chance * 100)}%`;
 };

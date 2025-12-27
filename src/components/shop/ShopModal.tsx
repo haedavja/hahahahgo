@@ -19,7 +19,7 @@ import {
 } from '../../data/shop';
 import { BuyTab, SellTab, ServiceTab, CardRemovalModal } from './ShopTabs';
 
-export function ShopModal({ merchantType = 'shop', onClose }) {
+export function ShopModal({ merchantType = 'shop', onClose }: any) {
   // 상태 셀렉터 (shallow 비교로 최적화)
   const { gold, relics, items, playerHp, maxHp, characterBuild, cardUpgrades } = useGameStore(
     useShallow((state) => ({
@@ -46,7 +46,7 @@ export function ShopModal({ merchantType = 'shop', onClose }) {
     }))
   );
 
-  const merchant = MERCHANT_TYPES[merchantType] || MERCHANT_TYPES.shop;
+  const merchant = (MERCHANT_TYPES as any)[merchantType] || MERCHANT_TYPES.shop;
 
   const [inventory, setInventory] = useState(() =>
     generateShopInventory(merchantType, relics, CARDS)
@@ -89,12 +89,12 @@ export function ShopModal({ merchantType = 'shop', onClose }) {
     return cards;
   }, [characterBuild?.mainSpecials, characterBuild?.subSpecials, cardUpgrades]);
 
-  const showNotification = (message, type = 'info') => {
+  const showNotification = (message: any, type = 'info') => {
     setNotification({ message, type });
     setTimeout(() => setNotification(null), 2000);
   };
 
-  const handleBuyRelic = (relicId, price) => {
+  const handleBuyRelic = (relicId: any, price: any) => {
     if (gold < price) {
       showNotification('골드가 부족합니다!', 'error');
       return;
@@ -107,10 +107,10 @@ export function ShopModal({ merchantType = 'shop', onClose }) {
     addResources({ gold: -price });
     addRelic(relicId);
     setPurchasedRelics((prev) => new Set([...prev, relicId]));
-    showNotification(`${RELICS[relicId]?.name}을(를) 구매했습니다!`, 'success');
+    showNotification(`${(RELICS as any)[relicId]?.name}을(를) 구매했습니다!`, 'success');
   };
 
-  const handleBuyItem = (itemId, price) => {
+  const handleBuyItem = (itemId: any, price: any) => {
     if (gold < price) {
       showNotification('골드가 부족합니다!', 'error');
       return;
@@ -125,10 +125,10 @@ export function ShopModal({ merchantType = 'shop', onClose }) {
     addResources({ gold: -price });
     addItem(itemId);
     setPurchasedItems((prev) => new Set([...prev, itemId]));
-    showNotification(`${ITEMS[itemId]?.name}을(를) 구매했습니다!`, 'success');
+    showNotification(`${(ITEMS as any)[itemId]?.name}을(를) 구매했습니다!`, 'success');
   };
 
-  const handleBuyCard = (cardId, price) => {
+  const handleBuyCard = (cardId: any, price: any) => {
     if (gold < price) {
       showNotification('골드가 부족합니다!', 'error');
       return;
@@ -151,7 +151,7 @@ export function ShopModal({ merchantType = 'shop', onClose }) {
     showNotification(`${item.name}을(를) ${sellPrice}G에 판매했습니다!`, 'success');
   };
 
-  const handleUseService = (service) => {
+  const handleUseService = (service: any) => {
     const price = getServicePrice(service.id, merchantType);
 
     if (gold < price) {
@@ -205,7 +205,7 @@ export function ShopModal({ merchantType = 'shop', onClose }) {
     }
   };
 
-  const handleRemoveCard = (card) => {
+  const handleRemoveCard = (card: any) => {
     addResources({ gold: -cardRemovalPrice });
     removeCardFromDeck(card.id, card.isMainSpecial);
     setShowCardRemovalModal(false);
@@ -361,11 +361,11 @@ export function ShopModal({ merchantType = 'shop', onClose }) {
           {activeTab === 'buy' && (
             <BuyTab
               inventory={inventory}
-              purchasedRelics={purchasedRelics}
-              purchasedItems={purchasedItems}
-              purchasedCards={purchasedCards}
+              purchasedRelics={purchasedRelics as any}
+              purchasedItems={purchasedItems as any}
+              purchasedCards={purchasedCards as any}
               relics={relics}
-              items={items}
+              items={items as any}
               gold={gold}
               onBuyRelic={handleBuyRelic}
               onBuyItem={handleBuyItem}

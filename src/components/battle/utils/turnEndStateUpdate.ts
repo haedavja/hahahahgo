@@ -37,7 +37,7 @@ export function updateComboUsageCount(
   }
 
   if (actorFilter === 'player') {
-    queue.forEach(action => {
+    queue.forEach((action: any) => {
       if (action.actor === actorFilter && action.card?.id) {
         newUsageCount[action.card.id] = (newUsageCount[action.card.id] || 0) + 1;
       }
@@ -78,7 +78,7 @@ export function createTurnEndEnemyState(
 ): TurnEndEnemy {
   const units = enemy.units || [];
   const resetUnits = units.length > 0
-    ? units.map(u => ({ ...u, block: 0 }))
+    ? units.map((u: any) => ({ ...u, block: 0 }))
     : units;
 
   return {
