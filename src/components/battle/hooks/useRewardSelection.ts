@@ -11,6 +11,12 @@
 
 import { useState, useCallback } from 'react';
 import { useGameStore } from '../../../state/gameStore';
+import type { Card } from '../../../types';
+
+/** 카드 보상 상태 타입 */
+export interface CardRewardState {
+  cards: Card[];
+}
 
 /**
  * 보상 및 함성 카드 선택 훅
@@ -30,7 +36,7 @@ export function useRewardSelection({
   actions
 }: any) {
   // 카드 보상 선택 상태 (승리 후)
-  const [cardReward, setCardReward] = useState<{ cards: typeof CARDS } | null>(null);
+  const [cardReward, setCardReward] = useState<CardRewardState | null>(null);
 
   // 함성(recallCard) 카드 선택 상태
   const [recallSelection, setRecallSelection] = useState<{ availableCards: typeof CARDS } | null>(null);

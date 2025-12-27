@@ -12,7 +12,8 @@
 import { useCallback, useState, useRef } from 'react';
 import type { BreachSelection } from '../../../types';
 
-interface CreationQueueItem {
+// 카드 창조 큐 아이템 (런타임 타입 - 다양한 카드 타입 허용)
+export interface CreationQueueItem {
   cards: unknown[];
   insertSp: number;
   breachCard: unknown;

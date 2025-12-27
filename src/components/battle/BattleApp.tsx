@@ -2136,7 +2136,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
           // 선택된 카드 ID 기록 (다음 선택에서 제외)
           selectionCards.forEach(c => usedIds.add(c.id));
 
-          (creationQueueRef.current as any).push({
+          creationQueueRef.current.push({
             cards: selectionCards,
             insertSp: (a.sp ?? 0) + 1, // +1 속도에 배치
             breachCard: { ...a.card, breachSpOffset: 1 },
@@ -2168,7 +2168,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         });
 
         // 첫 번째 선택 시작
-        const firstSelection = (creationQueueRef.current as any).shift();
+        const firstSelection = creationQueueRef.current.shift();
         if (!firstSelection) return;
         const creationState = {
           cards: firstSelection.cards,
@@ -2176,9 +2176,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
           breachCard: firstSelection.breachCard,
           isCreationSelection: true,
           isAoe: firstSelection.isAoe
-        };
-        breachSelectionRef.current = creationState as any;
-        setBreachSelection(creationState as any);
+        } as BreachSelection;
+        breachSelectionRef.current = creationState;
+        setBreachSelection(creationState);
 
         // 선택 중에는 stepOnce 진행을 멈춤
         isExecutingCardRef.current = false;
@@ -2621,7 +2621,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       {/* 카드 보상 선택 모달 (승리 후) */}
       {cardReward && (
         <CardRewardModal
-          rewardCards={(cardReward as any).cards}
+          rewardCards={cardReward.cards}
           onSelect={handleRewardSelect}
           onSkip={handleRewardSkip}
         />
