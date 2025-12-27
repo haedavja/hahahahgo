@@ -225,6 +225,7 @@ export const createBattlePayload = (
     hp: e?.hp || 40,
     maxHp: e?.hp || 40,
     ether: e?.ether || 100,
+    speed: e?.speed || 10,
     deck: e?.deck || [],
     cardsPerTurn: e?.cardsPerTurn || 2,
     passives: e?.passives || {},
