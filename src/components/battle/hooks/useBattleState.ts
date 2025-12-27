@@ -14,7 +14,8 @@ import type {
   EnemyPlan,
   RespondSnapshot,
   BattleEvent,
-  PostCombatOptions
+  PostCombatOptions,
+  DeflationInfo
 } from '../../../types';
 import type { FullBattleState, NextTurnEffects, PlayerState, EnemyState, EnemyUnitState } from '../reducer/battleReducerState';
 import type { BattleAction, BattlePhase, SortType, EtherCalcPhase } from '../reducer/battleReducerActions';
@@ -119,10 +120,10 @@ export interface BattleActions {
   setTurnEtherAccumulated: (amount: number) => void;
   setEnemyTurnEtherAccumulated: (amount: number) => void;
   setEtherCalcPhase: (phase: EtherCalcPhase) => void;
-  setCurrentDeflation: (deflation: number | null) => void;
+  setCurrentDeflation: (deflation: DeflationInfo | null) => void;
   setEtherFinalValue: (value: number | null) => void;
   setEnemyEtherCalcPhase: (phase: EtherCalcPhase) => void;
-  setEnemyCurrentDeflation: (deflation: number | null) => void;
+  setEnemyCurrentDeflation: (deflation: DeflationInfo | null) => void;
   setEnemyEtherFinalValue: (value: number | null) => void;
   setEtherAnimationPts: (pts: number) => void;
   setNetEtherDelta: (delta: number | null) => void;
@@ -294,10 +295,10 @@ export function useBattleState(initialStateOverrides: InitialStateOverrides = {}
     setTurnEtherAccumulated: (amount: number) => dispatch({ type: ACTIONS.SET_TURN_ETHER_ACCUMULATED, payload: amount }),
     setEnemyTurnEtherAccumulated: (amount: number) => dispatch({ type: ACTIONS.SET_ENEMY_TURN_ETHER_ACCUMULATED, payload: amount }),
     setEtherCalcPhase: (phase: EtherCalcPhase) => dispatch({ type: ACTIONS.SET_ETHER_CALC_PHASE, payload: phase }),
-    setCurrentDeflation: (deflation: number | null) => dispatch({ type: ACTIONS.SET_CURRENT_DEFLATION, payload: deflation }),
+    setCurrentDeflation: (deflation: DeflationInfo | null) => dispatch({ type: ACTIONS.SET_CURRENT_DEFLATION, payload: deflation }),
     setEtherFinalValue: (value: number | null) => dispatch({ type: ACTIONS.SET_ETHER_FINAL_VALUE, payload: value }),
     setEnemyEtherCalcPhase: (phase: EtherCalcPhase) => dispatch({ type: ACTIONS.SET_ENEMY_ETHER_CALC_PHASE, payload: phase }),
-    setEnemyCurrentDeflation: (deflation: number | null) => dispatch({ type: ACTIONS.SET_ENEMY_CURRENT_DEFLATION, payload: deflation }),
+    setEnemyCurrentDeflation: (deflation: DeflationInfo | null) => dispatch({ type: ACTIONS.SET_ENEMY_CURRENT_DEFLATION, payload: deflation }),
     setEnemyEtherFinalValue: (value: number | null) => dispatch({ type: ACTIONS.SET_ENEMY_ETHER_FINAL_VALUE, payload: value }),
 
     // === 전투 실행 ===

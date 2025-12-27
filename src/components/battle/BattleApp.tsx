@@ -2543,6 +2543,15 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   // 적 조합 감지 (표시용) - Hook은 조건부 return 전에 호출
   const enemyCombo = useMemo(() => detectPokerCombo((enemyPlan?.actions || []) as unknown as ComboCard[]), [enemyPlan?.actions]);
 
+  // 적 디플레이션 정보 설정 (선택/대응 단계에서) - 플레이어의 useComboSystem과 동일한 로직
+  useEffect(() => {
+    if (enemyCombo?.name && (battle.phase === 'select' || battle.phase === 'respond')) {
+      const usageCount = (enemy?.comboUsageCount || {})[enemyCombo.name] || 0;
+      const deflationMult = Math.pow(0.8, usageCount);
+      actions.setEnemyCurrentDeflation(usageCount > 0 ? { multiplier: deflationMult, usageCount } : null);
+    }
+  }, [enemyCombo, enemy?.comboUsageCount, battle.phase, actions]);
+
   // 적 성향 힌트 추출 - Hook은 조건부 return 전에 호출
   const enemyHint = useMemo(() => {
     const hintLog = battle.log.find(line => line.includes('적 성향 힌트'));
