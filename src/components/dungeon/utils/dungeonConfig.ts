@@ -13,6 +13,8 @@
  * @property {Function} render - 렌더링 함수
  */
 
+import type { DirectionMap } from '../../../types';
+
 // ========== 설정 ==========
 export const CONFIG = {
   SEGMENT_COUNT: { min: 5, max: 9 },
@@ -316,7 +318,7 @@ export const OBJECT_TYPES = {
 };
 
 // ========== 미로 방향 정의 ==========
-export const DIRECTIONS = {
+export const DIRECTIONS: DirectionMap = {
   north: { dx: 0, dy: -1, opposite: 'south' },
   south: { dx: 0, dy: 1, opposite: 'north' },
   east: { dx: 1, dy: 0, opposite: 'west' },

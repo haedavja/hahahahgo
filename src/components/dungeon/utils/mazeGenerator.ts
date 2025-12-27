@@ -21,6 +21,7 @@
 import { CONFIG, OBJECT_TYPES, DIRECTIONS } from './dungeonConfig';
 import { OBSTACLE_TEMPLATES } from '../../../data/dungeonNodes';
 import { shuffle } from '../../../lib/randomUtils';
+import type { Direction, DungeonExit } from '../../../types';
 
 // ========== 기로 템플릿 선택 ==========
 export function getRandomCrossroadTemplate(forcedTemplateId: string | null = null) {
@@ -78,12 +79,24 @@ export function createRoom(x: number, y: number, roomType: string) {
   };
 }
 
-// ========== 미로 최소 전투 보장 ==========
-interface MazeRoom {
-  roomType: string;
-  objects: Array<{ typeId: string; [key: string]: unknown }>;
+// ========== 미로 타입 정의 ==========
+interface MazeRoomObject {
+  typeId: string;
   [key: string]: unknown;
 }
+
+interface MazeRoom {
+  roomType: string;
+  objects: MazeRoomObject[];
+  exits: Record<Direction, DungeonExit | null>;
+  isDeadEnd: boolean;
+  visited?: boolean;
+  discovered?: boolean;
+  cleared?: boolean;
+  [key: string]: unknown;
+}
+
+type MazeGrid = Record<string, MazeRoom>;
 
 export function ensureMazeMinimumCombats(grid: Record<string, MazeRoom>, minCount: number) {
   const rooms = Object.values(grid);
@@ -112,7 +125,7 @@ export function generateMaze(forcedCrossroadId: string | null = null) {
   const { GRID_SIZE, MIN_ROOMS, MAX_ROOMS, DEAD_END_REWARD, HIDDEN_ROOM_CHANCE, LOOP_CHANCE } = CONFIG.MAZE;
 
   // 그리드 초기화
-  const grid: Record<string, any> = {};
+  const grid: MazeGrid = {};
   const getKey = (x: number, y: number) => `${x},${y}`;
 
   // 시작 위치 (중앙 하단)
@@ -159,12 +172,13 @@ export function generateMaze(forcedCrossroadId: string | null = null) {
         grid[neighborKey] = createRoom(nx, ny, roomType);
 
         // 연결 (숨겨진 방은 hidden_door로 연결)
+        const dirKey = dir as Direction;
         if (isHidden) {
-          grid[getKey(x, y)].exits[dir as any] = { type: 'hidden', targetKey: neighborKey };
-          grid[neighborKey].exits[opposite as any] = { type: 'hidden', targetKey: getKey(x, y) };
+          grid[getKey(x, y)].exits[dirKey] = { type: 'hidden', targetKey: neighborKey };
+          grid[neighborKey].exits[opposite] = { type: 'hidden', targetKey: getKey(x, y) };
         } else {
-          grid[getKey(x, y)].exits[dir as any] = { type: 'normal', targetKey: neighborKey };
-          grid[neighborKey].exits[opposite as any] = { type: 'normal', targetKey: getKey(x, y) };
+          grid[getKey(x, y)].exits[dirKey] = { type: 'normal', targetKey: neighborKey };
+          grid[neighborKey].exits[opposite] = { type: 'normal', targetKey: getKey(x, y) };
         }
 
         stack.push({ x: nx, y: ny });
@@ -222,8 +236,8 @@ export function generateMaze(forcedCrossroadId: string | null = null) {
           grid[nextKey] = createRoom(nextX, nextY, roomType);
         }
 
-        grid[currentKey].exits[dir as any] = { type: 'normal', targetKey: nextKey };
-        grid[nextKey].exits[opposite as any] = { type: 'normal', targetKey: currentKey };
+        grid[currentKey].exits[dir] = { type: 'normal', targetKey: nextKey };
+        grid[nextKey].exits[opposite] = { type: 'normal', targetKey: currentKey };
 
         cx = nextX;
         cy = nextY;
@@ -237,8 +251,9 @@ export function generateMaze(forcedCrossroadId: string | null = null) {
     const [x, y] = key.split(',').map(Number);
     const room = grid[key];
 
-    for (const [dir, { dx, dy, opposite }] of Object.entries(DIRECTIONS)) {
-      if (room.exits[dir as any]) continue; // 이미 연결됨
+    for (const [dirStr, { dx, dy, opposite }] of Object.entries(DIRECTIONS)) {
+      const dir = dirStr as Direction;
+      if (room.exits[dir]) continue; // 이미 연결됨
 
       const nx = x + dx;
       const ny = y + dy;
@@ -246,8 +261,8 @@ export function generateMaze(forcedCrossroadId: string | null = null) {
 
       if (grid[neighborKey] && Math.random() < LOOP_CHANCE) {
         // 루프 연결
-        room.exits[dir as any] = { type: 'normal', targetKey: neighborKey };
-        grid[neighborKey].exits[opposite as any] = { type: 'normal', targetKey: key };
+        room.exits[dir] = { type: 'normal', targetKey: neighborKey };
+        grid[neighborKey].exits[opposite] = { type: 'normal', targetKey: key };
       }
     }
   }

@@ -14,6 +14,16 @@ export type RoomType = 'entrance' | 'exit' | 'hidden' | 'normal';
 /** 방향 */
 export type Direction = 'north' | 'south' | 'west' | 'east';
 
+/** 방향 정보 (dx, dy, 반대 방향) */
+export interface DirectionInfo {
+  dx: number;
+  dy: number;
+  opposite: Direction;
+}
+
+/** 방향 맵 타입 */
+export type DirectionMap = Record<Direction, DirectionInfo>;
+
 // ========== 렌더링용 던전 구조 ==========
 
 /** 출구 정보 */
