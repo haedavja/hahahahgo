@@ -944,7 +944,7 @@ export const ENEMY_GROUPS = [
   // === 초반 노드 (1-3) ===
   {
     id: "ghoul_single",
-    name: "떠도는 구울",
+    name: "구울x1",
     tier: 1,
     nodeRange: [1, 3],
     enemies: ["ghoul"]
@@ -953,21 +953,21 @@ export const ENEMY_GROUPS = [
   // === 중반 노드 (4-7) ===
   {
     id: "ghoul_duo",
-    name: "구울 무리",
+    name: "구울x2",
     tier: 1,
     nodeRange: [4, 7],
     enemies: ["ghoul", "ghoul"]
   },
   {
     id: "marauder_trio",
-    name: "약탈자 패거리",
+    name: "약탈자x3",
     tier: 1,
     nodeRange: [4, 7],
     enemies: ["marauder", "marauder", "marauder"]
   },
   {
     id: "deserter_solo",
-    name: "탈영병",
+    name: "탈영병x1",
     tier: 2,
     nodeRange: [4, 7],
     enemies: ["deserter"]
@@ -976,14 +976,14 @@ export const ENEMY_GROUPS = [
   // === 후반 노드 (8-10) ===
   {
     id: "ghoul_trio",
-    name: "구울 떼",
+    name: "구울x3",
     tier: 2,
     nodeRange: [8, 10],
     enemies: ["ghoul", "ghoul", "ghoul"]
   },
   {
     id: "marauder_gang",
-    name: "약탈자 집단",
+    name: "약탈자x4",
     tier: 2,
     nodeRange: [8, 10],
     enemies: ["marauder", "marauder", "marauder", "marauder"]
@@ -992,7 +992,7 @@ export const ENEMY_GROUPS = [
   // === 보스급 ===
   {
     id: "slaughterer_solo",
-    name: "살육자",
+    name: "살육자x1",
     tier: 3,
     enemies: ["slaughterer"],
     isBoss: true

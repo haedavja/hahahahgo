@@ -187,10 +187,29 @@ export const createDevActions: SliceCreator = (set) => ({
           hp: enemy?.hp || 30,
           maxHp: enemy?.hp || 30,
           ether: enemy?.ether || 100,
+          speed: enemy?.speed || 10,
           deck: enemy?.deck || [],
           cardsPerTurn: enemy?.cardsPerTurn || 1,
           tier: enemy?.tier || 1,
           passives: enemy?.passives || {},
+        };
+      });
+
+      const mixedEnemies = group.enemies.map((enemyId) => {
+        const enemy = ENEMIES.find((e) => e.id === enemyId);
+        return {
+          id: enemyId,
+          name: enemy?.name || enemyId,
+          emoji: enemy?.emoji || '👾',
+          hp: enemy?.hp || 30,
+          maxHp: enemy?.hp || 30,
+          ether: enemy?.ether || 100,
+          speed: enemy?.speed || 10,
+          deck: enemy?.deck || [],
+          cardsPerTurn: enemy?.cardsPerTurn || 1,
+          tier: enemy?.tier || 1,
+          passives: enemy?.passives || {},
+          isBoss: enemy?.isBoss || false,
         };
       });
 
@@ -203,6 +222,7 @@ export const createDevActions: SliceCreator = (set) => ({
           rewards: { gold: { min: 10, max: 20 }, loot: 1 },
           difficulty: group.tier,
           preview: { playerHand, enemyHand, timeline, tuLimit: 30 },
+          mixedEnemies,
           enemyInfo: {
             id: primaryEnemyId,
             name: group.name,
