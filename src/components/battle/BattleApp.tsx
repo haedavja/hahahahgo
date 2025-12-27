@@ -118,7 +118,7 @@ import {
   calculatePassiveEffects,
   applyCombatStartEffects
 } from "../../lib/relicEffects";
-import type { BattlePayload, BattleResult, OrderItem, Card, ItemSlotsBattleActions, AIMode, AICard, AIEnemy, TokenEntity, SpecialCard, HandCard, SpecialActor, SpecialBattleContext, SpecialQueueItem, CombatState, CombatCard, CombatBattleContext, StunQueueItem, ParryQueueItem, ParryReadyState, ComboCard, HandAction, BattleRef, UITimelineAction, UIRelicsMap, RelicRarities, ComboInfo, UIDeflation, EnemyUnitUI, HoveredCard, HoveredEnemyAction, HandBattle, TimelineBattle, TimelineEnemy, CentralPlayer, HandUnit, ItemSlotsEnemyPlan, ItemSlotsBattleRef, SimulationResult, ExpectedDamagePlayer, ExpectedDamageEnemy, AnomalyWithLevel } from "../../types";
+import type { BattlePayload, BattleResult, OrderItem, Card, ItemSlotsBattleActions, AIMode, AICard, AIEnemy, TokenEntity, SpecialCard, HandCard, SpecialActor, SpecialBattleContext, SpecialQueueItem, CombatState, CombatCard, CombatBattleContext, StunQueueItem, ParryQueueItem, ParryReadyState, ComboCard, HandAction, BattleRef, UITimelineAction, UIRelicsMap, RelicRarities, ComboInfo, UIDeflation, EnemyUnitUI, HoveredCard, HoveredEnemyAction, HandBattle, TimelineBattle, TimelineEnemy, CentralPlayer, HandUnit, ItemSlotsEnemyPlan, ItemSlotsBattleRef, SimulationResult, ExpectedDamagePlayer, ExpectedDamageEnemy, AnomalyWithLevel, BreachSelection, RecallSelection } from "../../types";
 import type { PlayerState, EnemyState, SortType, BattlePhase } from "./reducer/battleReducerActions";
 import type { BattleActions } from "./hooks/useBattleState";
 import { PlayerHpBar } from "./ui/PlayerHpBar";
@@ -802,7 +802,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       const combatStartEffects = applyCombatStartEffects(orderedRelicList, {});
 
       // 전투 시작 상징 애니메이션
-      orderedRelicList.forEach((relicId: any) => {
+      orderedRelicList.forEach((relicId: string) => {
         const relic = RELICS[relicId as keyof typeof RELICS];
         if (relic?.effects?.type === 'ON_COMBAT_START') {
           actions.setRelicActivated(relicId);
@@ -1651,8 +1651,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         sourceCardName: sourceName,  // 플레쉬/플레쉬 연쇄/브리치 구분용
         isLastChain  // 마지막 연쇄 여부
       };
-      breachSelectionRef.current = breachState as any;
-      setBreachSelection(breachState as any);
+      breachSelectionRef.current = breachState as BreachSelection;
+      setBreachSelection(breachState as BreachSelection);
 
       // 선택 중에는 stepOnce 진행을 멈춤 (사용자가 선택할 때까지)
       isExecutingCardRef.current = false;
@@ -1763,7 +1763,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
             if (waitingCards.length > 0) {
               // 선택 UI 표시를 위해 상태 저장
-              setRecallSelection({ availableCards: waitingCards } as any);
+              setRecallSelection({ availableCards: waitingCards } as RecallSelection);
               addLog(`📢 함성: 대기 카드 중 1장을 선택하세요!`);
             } else {
               addLog(`📢 함성: 대기 카드가 없습니다.`);
@@ -2098,8 +2098,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         breachSp: a.sp,
         breachCard: a.card
       };
-      breachSelectionRef.current = breachState as any;
-      setBreachSelection(breachState as any);
+      breachSelectionRef.current = breachState as BreachSelection;
+      setBreachSelection(breachState as BreachSelection);
 
       // 브리치 선택 중에는 stepOnce 진행을 멈춤 (사용자가 선택할 때까지)
       isExecutingCardRef.current = false;
