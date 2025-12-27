@@ -305,7 +305,13 @@ export function useBattleState(initialStateOverrides: InitialStateOverrides = {}
     setQueue: (queue: HandCard[]) => dispatch({ type: ACTIONS.SET_QUEUE, payload: queue }),
     setQIndex: (index: number) => dispatch({ type: ACTIONS.SET_Q_INDEX, payload: index }),
     setFixedOrder: (order: HandCard[] | null) => dispatch({ type: ACTIONS.SET_FIXED_ORDER, payload: order }),
-    setEnemyPlan: (plan: HandCard[]) => dispatch({ type: ACTIONS.SET_ENEMY_PLAN, payload: { actions: plan, mode: null } as EnemyPlan }),
+    setEnemyPlan: (plan: EnemyPlan | HandCard[]) => {
+      // EnemyPlan 객체인지 배열인지 확인
+      const payload = Array.isArray(plan)
+        ? { actions: plan, mode: null } as EnemyPlan
+        : plan as EnemyPlan;
+      dispatch({ type: ACTIONS.SET_ENEMY_PLAN, payload });
+    },
 
     // === UI 상태 ===
     setShowCharacterSheet: (show: boolean) => dispatch({ type: ACTIONS.SET_SHOW_CHARACTER_SHEET, payload: show }),

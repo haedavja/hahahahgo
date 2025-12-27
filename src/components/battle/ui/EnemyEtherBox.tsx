@@ -27,8 +27,6 @@ export const EnemyEtherBox: FC<EnemyEtherBoxProps> = ({
   enemyTurnEtherAccumulated,
   COMBO_MULTIPLIERS
 }) => {
-  console.log('[DEBUG EnemyEtherBox] phase:', battle.phase, 'insightLevel:', insightReveal?.level, 'enemyCombo:', enemyCombo?.name || 'null', 'ether:', enemyTurnEtherAccumulated);
-
   // select/respond/resolve 단계에서만 표시
   if (!(battle.phase === 'select' || battle.phase === 'respond' || battle.phase === 'resolve')) {
     return null;
@@ -36,13 +34,11 @@ export const EnemyEtherBox: FC<EnemyEtherBoxProps> = ({
 
   // select 단계에서 insightReveal 없으면 숨김
   if (battle.phase === 'select' && (insightReveal?.level || 0) === 0) {
-    console.log('[DEBUG EnemyEtherBox] Hidden: insight level is 0 in select phase');
     return null;
   }
 
   // 콤보가 없고 에테르도 없으면 표시 안함
   if (!enemyCombo && enemyTurnEtherAccumulated <= 0) {
-    console.log('[DEBUG EnemyEtherBox] Hidden: no combo and no ether');
     return null;
   }
 

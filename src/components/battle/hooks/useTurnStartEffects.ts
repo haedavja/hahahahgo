@@ -90,7 +90,6 @@ export function useTurnStartEffects({
   actions: any
 }) {
   useEffect(() => {
-    console.log('[DEBUG useTurnStartEffects] phase:', battle.phase, 'enemy:', !!enemy, 'turnStartProcessed:', turnStartProcessedRef.current);
     if (!enemy || battle.phase !== 'select') {
       // phase가 select가 아니면 플래그 리셋
       if (battle.phase !== 'select') {
@@ -101,11 +100,9 @@ export function useTurnStartEffects({
 
     // 턴 시작 효과가 이미 처리되었으면 중복 실행 방지
     if (turnStartProcessedRef.current) {
-      console.log('[DEBUG useTurnStartEffects] SKIPPED: already processed');
       return;
     }
     turnStartProcessedRef.current = true;
-    console.log('[DEBUG useTurnStartEffects] RUNNING turn start effects');
 
     actions.setFixedOrder(null);
     actions.setActionEvents({});
@@ -329,7 +326,6 @@ export function useTurnStartEffects({
       const rawActions = generateEnemyActions(enemy, mode, slots, singleEnemyCards, Math.min(1, singleEnemyCards));
       // 다중 몬스터: 실제 카드 + 유령카드로 확장
       const planActions = expandActionsWithGhosts(rawActions, enemy?.units || []);
-      console.log('[DEBUG useTurnStartEffects] enemy:', enemy?.name, 'deck:', enemy?.deck?.length, 'singleEnemyCards:', singleEnemyCards, 'rawActions:', rawActions.length, 'planActions:', planActions.length);
       actions.setEnemyPlan({ mode, actions: planActions });
     }
   }, [battle.phase, enemy, enemyPlan.mode, enemyPlan.manuallyModified, nextTurnEffects]);

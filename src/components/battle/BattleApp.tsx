@@ -2544,10 +2544,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const enemyCombo = useMemo(() => {
     const rawActions = enemyPlan?.actions;
     const actions = Array.isArray(rawActions) ? rawActions : [];
-    const combo = detectPokerCombo(actions as unknown as ComboCard[]);
-    console.log('[DEBUG] phase:', battle.phase, 'enemyPlan.actions:', actions.length, 'cards, actionCosts:', actions.map((a: any) => a.actionCost), 'enemyCombo:', combo?.name || 'null', 'rawType:', typeof rawActions, Array.isArray(rawActions));
-    return combo;
-  }, [enemyPlan?.actions, battle.phase]);
+    return detectPokerCombo(actions as unknown as ComboCard[]);
+  }, [enemyPlan?.actions]);
 
   // 적 디플레이션 정보 설정 (선택/대응 단계에서) - 플레이어의 useComboSystem과 동일한 로직
   useEffect(() => {
