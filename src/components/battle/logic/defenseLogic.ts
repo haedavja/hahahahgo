@@ -121,17 +121,21 @@ export function applyDefense(
     ? (prev === 0
         ? `🛡️ +${added}${hologramText}${growingText}${crossBonusText} = ${after}`
         : `🛡️ ${prev} + ${added}${hologramText}${growingText}${crossBonusText} = ${after}`)
-    : '';
-  const msg = `${who} •${blockMsg ? ' ' + blockMsg : ''}${healText}`.trim();
+    : '🛡️ +0';
+  const msg = `${who} • ${blockMsg}${healText}`.trim();
+
+  // 이벤트 메시지에 카드 이름 포함 (로그에서 직접 출력됨)
+  const actorEmoji = actorName === 'player' ? '🔵' : '👾';
+  const eventMsg = `${actorEmoji} ${card.name} → ${msg}`;
 
   const event: { actor: 'player' | 'enemy'; card?: string; type?: string; msg: string } = {
     actor: actorName,
     card: card.name,
     type: 'defense',
-    msg
+    msg: eventMsg
   };
 
-  const logMsg = `${actorName === 'player' ? '🔵' : '👾'} ${card.name} → ${msg}`;
+  const logMsg = eventMsg;
   const allLogs = tokenLogs.length > 0 ? [logMsg, ...tokenLogs] : [logMsg];
 
   return {

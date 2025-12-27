@@ -100,8 +100,9 @@ export function formatPlayerEtherLog(result: PlayerEtherResult, turnEtherAccumul
 export function formatEnemyEtherLog(result: EnemyEtherResult, enemyTurnEtherAccumulated: number): string {
   const { comboMult, beforeDeflation, deflation, finalEther, appliedEther, halfEtherMult = 1 } = result;
 
+  // 플레이어와 동일한 포맷 (감소율 표시)
   const deflationText = deflation.usageCount > 0
-    ? ` (디플레이션: ${Math.round(deflation.multiplier * 100)}%)`
+    ? ` (디플레이션 -${Math.round((1 - deflation.multiplier) * 100)}%, ${deflation.usageCount}회 사용)`
     : '';
 
   const halfEtherText = halfEtherMult < 1
