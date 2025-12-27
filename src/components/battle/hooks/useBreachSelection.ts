@@ -10,6 +10,14 @@
  */
 
 import { useCallback, useState, useRef } from 'react';
+import type { BreachSelection } from '../../../types';
+
+interface CreationQueueItem {
+  cards: unknown[];
+  insertSp: number;
+  breachCard: unknown;
+  isAoe?: boolean;
+}
 
 /**
  * 브리치/창조 카드 선택 훅
@@ -28,9 +36,9 @@ export function useBreachSelection({
   addLog,
   actions
 }: any) {
-  const [breachSelection, setBreachSelection] = useState(null);
-  const breachSelectionRef = useRef(null);
-  const creationQueueRef = useRef([]);
+  const [breachSelection, setBreachSelection] = useState<BreachSelection | null>(null);
+  const breachSelectionRef = useRef<BreachSelection | null>(null);
+  const creationQueueRef = useRef<CreationQueueItem[]>([]);
 
   const handleBreachSelect = useCallback((selectedCard: any, idx: any) => {
     const breach = breachSelectionRef.current as any;

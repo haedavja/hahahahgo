@@ -107,7 +107,7 @@ export function ensureMazeMinimumCombats(grid: Record<string, MazeRoom>, minCoun
 }
 
 // ========== 미로 생성 알고리즘 ==========
-export function generateMaze(forcedCrossroadId = null) {
+export function generateMaze(forcedCrossroadId: string | null = null) {
   const { GRID_SIZE, MIN_ROOMS, MAX_ROOMS, DEAD_END_REWARD, HIDDEN_ROOM_CHANCE, LOOP_CHANCE } = CONFIG.MAZE;
 
   // 그리드 초기화

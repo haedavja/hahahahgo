@@ -466,8 +466,10 @@ export interface BreachSelection {
   cards: BreachCard[];
   breachSp: number;
   breachCard: BreachCardInfo | null;
-  sourceCardName: string | null;
+  sourceCardName?: string | null;
   isLastChain?: boolean;
+  isCreationSelection?: boolean;
+  isAoe?: boolean;
 }
 
 /** 회상 카드 */

@@ -188,6 +188,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const devCharacterBuild = useGameStore((state) => state.characterBuild);
   const devBattleTokens = useGameStore((state) => state.devBattleTokens);
   const devClearBattleTokens = useGameStore((state) => state.devClearBattleTokens);
+  const relics = useGameStore((state) => state.relics || []);
+  const playerStrength = useGameStore((state) => state.playerStrength || 0);
+  const devDulledLevel = useGameStore((state) => state.devDulledLevel ?? null);
 
   // 전투 초기화 훅 사용 - 플레이어/적 초기 상태, 이변, 상징 효과 등 계산
   const {
@@ -199,6 +202,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     orderedRelics,
     orderedRelicList,
     setOrderedRelics,
+    mergeRelicOrder,
     passiveRelicStats,
     effectiveAgility,
     effectiveCardDrawBonus,
