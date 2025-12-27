@@ -90,7 +90,7 @@ import { ItemSlots } from "./ui/ItemSlots";
 import { RELICS, RELIC_RARITIES } from "../../data/relics";
 import { RELIC_EFFECT, RELIC_RARITY_COLORS } from "../../lib/relics";
 import { applyAgility } from "../../lib/agilityUtils";
-import { hasTrait } from "./utils/battleUtils";
+import { hasTrait, hasEnemyUnits } from "./utils/battleUtils";
 import { detectPokerCombo } from "./utils/comboDetection";
 import { COMBO_MULTIPLIERS, BASE_ETHER_PER_CARD, CARD_ETHER_BY_RARITY, getCardEtherGain } from "./utils/etherCalculations";
 import { generateEnemyActions, shouldEnemyOverdrive, assignSourceUnitToActions } from "./utils/enemyAI";
@@ -271,8 +271,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const selectedTargetUnit = battle.selectedTargetUnit ?? 0;
 
   // 다중 유닛 시스템: 적 유닛 배열
+  // ⚠️ hasEnemyUnits()는 UI 표시와 HP 분배 로직에서 동일하게 사용해야 함
   const enemyUnits = enemy?.units || [];
-  const hasMultipleUnits = enemyUnits.length >= 1; // 유닛이 1개 이상이면 EnemyUnitsDisplay 사용
+  const hasMultipleUnits = hasEnemyUnits(enemyUnits); // battleUtils.hasEnemyUnits 사용
 
   // 현재 타겟 유닛 (살아있는 유닛 중 선택)
   const targetUnit = useMemo(() => {
@@ -2255,8 +2256,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     actions.setPlayer({ ...player, hp: P.hp, def: P.def, block: P.block, counter: P.counter, vulnMult: P.vulnMult || 1, strength: P.strength || 0, tokens: P.tokens });
 
     // === 다중 유닛 데미지 분배 ===
+    // ⚠️ hasEnemyUnits()는 UI 표시(hasMultipleUnits)와 동일한 조건 사용
     const enemyUnits = E.units || enemy.units || [];
-    const hasUnits = enemyUnits.length >= 1;  // 1개 이상이면 유닛 HP 처리 (EnemyUnitsDisplay와 일치)
+    const hasUnits = hasEnemyUnits(enemyUnits);  // battleUtils.hasEnemyUnits 사용
 
     if (hasUnits && a.actor === 'player' && a.card?.type === 'attack') {
       const targetUnitIds = a.card.__targetUnitIds;
