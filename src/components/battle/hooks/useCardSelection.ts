@@ -9,7 +9,7 @@ import { applyAgility } from '../../../lib/agilityUtils';
 import { generateUid } from '../../../lib/randomUtils';
 import { detectPokerCombo, applyPokerBonus } from '../utils/comboDetection';
 import { createFixedOrder } from '../utils/cardOrdering';
-import type { OrderingCardInfo, Card, PlayerBattleState, EnemyUnit } from '../../../types';
+import type { OrderingCardInfo, Card, PlayerBattleState, EnemyUnit, ComboCard, OrderingEnemyAction } from '../../../types';
 import { getAllTokens } from '../../../lib/tokenUtils';
 
 /**
@@ -51,9 +51,9 @@ export function useCardSelection({
   player: PlayerBattleState;
   enemyUnits: EnemyUnit[];
   hasMultipleUnits: boolean;
-  selectedTargetUnit: any;
-  enemyPlanActions: Card[];
-  startDamageDistribution: any;
+  selectedTargetUnit: unknown;
+  enemyPlanActions: unknown[] | null;
+  startDamageDistribution: (card: unknown) => void;
   playSound: any;
   addLog: any;
   actions: any;
@@ -129,9 +129,9 @@ export function useCardSelection({
         next = [...selected, cardWithTarget];
         playSound(800, 80);
       }
-      const combo = detectPokerCombo(next as any);
-      const enhanced = applyPokerBonus(next as any, combo);
-      const withSp = createFixedOrder(enhanced as unknown as OrderingCardInfo[], enemyPlanActions as any, effectiveAgility);
+      const combo = detectPokerCombo(next as unknown as ComboCard[]);
+      const enhanced = applyPokerBonus(next as unknown as ComboCard[], combo);
+      const withSp = createFixedOrder(enhanced as unknown as OrderingCardInfo[], enemyPlanActions as OrderingEnemyAction[], effectiveAgility);
       actions.setFixedOrder(withSp);
       actions.setSelected(next);
       return;
@@ -172,15 +172,15 @@ export function useCardSelection({
   }, [battlePhase, battleSelected, selected, effectiveAgility, effectiveMaxSubmitCards, totalSpeed, totalEnergy, player, enemyUnits, hasMultipleUnits, selectedTargetUnit, enemyPlanActions, startDamageDistribution, playSound, addLog, actions, checkRequiredTokens]);
 
   // 카드 순서 위로 이동
-  const moveUp = useCallback((i: any) => {
+  const moveUp = useCallback((i: number) => {
     if (i === 0) return;
     if (battlePhase === 'respond') {
       const n = [...selected];
       [n[i - 1], n[i]] = [n[i], n[i - 1]];
 
-      const combo = detectPokerCombo(n as any);
-      const enhanced = applyPokerBonus(n as any, combo);
-      const withSp = createFixedOrder(enhanced as unknown as OrderingCardInfo[], enemyPlanActions as any, effectiveAgility);
+      const combo = detectPokerCombo(n as unknown as ComboCard[]);
+      const enhanced = applyPokerBonus(n as unknown as ComboCard[], combo);
+      const withSp = createFixedOrder(enhanced as unknown as OrderingCardInfo[], enemyPlanActions as OrderingEnemyAction[], effectiveAgility);
       actions.setFixedOrder(withSp);
       actions.setSelected(n);
     } else {
@@ -191,15 +191,15 @@ export function useCardSelection({
   }, [battlePhase, selected, enemyPlanActions, effectiveAgility, actions]);
 
   // 카드 순서 아래로 이동
-  const moveDown = useCallback((i: any) => {
+  const moveDown = useCallback((i: number) => {
     if (i === battleSelected.length - 1) return;
     if (battlePhase === 'respond') {
       const n = [...selected];
       [n[i], n[i + 1]] = [n[i + 1], n[i]];
 
-      const combo = detectPokerCombo(n as any);
-      const enhanced = applyPokerBonus(n as any, combo);
-      const withSp = createFixedOrder(enhanced as unknown as OrderingCardInfo[], enemyPlanActions as any, effectiveAgility);
+      const combo = detectPokerCombo(n as unknown as ComboCard[]);
+      const enhanced = applyPokerBonus(n as unknown as ComboCard[], combo);
+      const withSp = createFixedOrder(enhanced as unknown as OrderingCardInfo[], enemyPlanActions as OrderingEnemyAction[], effectiveAgility);
       actions.setFixedOrder(withSp);
       actions.setSelected(n);
     } else {
