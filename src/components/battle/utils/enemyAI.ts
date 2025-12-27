@@ -262,7 +262,9 @@ export function assignSourceUnitToActions(actions: AICard[], units: AIEnemy[]): 
     }
 
     const usageMap = unitCardUsage.get(selectedUnit.unitId!);
-    usageMap!.set(card.id!, (usageMap!.get(card.id!) || 0) + 1);
+    if (usageMap) {
+      usageMap.set(card.id!, (usageMap.get(card.id!) || 0) + 1);
+    }
 
     return { ...card, __sourceUnitId: selectedUnit.unitId };
   });

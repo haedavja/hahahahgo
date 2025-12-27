@@ -40,10 +40,11 @@ export function computeComboMultiplier(
   }
 
   if (includeFiveCard && passive.etherFiveCardBonus > 0 && cardsCount >= 5) {
+    // 개별 상징의 etherFiveCardBonus 적용 (각각 다를 수 있음)
     order.forEach((rid: any) => {
       const relic = (RELICS as any)[rid];
       if (!relic?.effects?.etherFiveCardBonus) return;
-      mult *= passive.etherFiveCardBonus;
+      mult *= relic.effects.etherFiveCardBonus;
     });
   }
 
@@ -87,12 +88,13 @@ export function explainComboMultiplier(
   }
 
   if (includeFiveCard && passive.etherFiveCardBonus > 0 && cardsCount >= 5) {
+    // 개별 상징의 etherFiveCardBonus 적용 (각각 다를 수 있음)
     order.forEach((rid: any) => {
       const relic = (RELICS as any)[rid];
       if (!relic?.effects?.etherFiveCardBonus) return;
       const prev = mult;
-      mult *= passive.etherFiveCardBonus;
-      steps.push(`악마의 주사위: ${prev.toFixed(2)} → ${mult.toFixed(2)}`);
+      mult *= relic.effects.etherFiveCardBonus;
+      steps.push(`${relic.name}: ${prev.toFixed(2)} → ${mult.toFixed(2)}`);
     });
   }
 

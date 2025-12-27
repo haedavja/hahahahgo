@@ -105,7 +105,7 @@ export const createBattleEnemyData = (enemy: any): EnemyInfo => ({
   name: enemy?.name || '적',
   emoji: enemy?.emoji || '👾',
   hp: enemy?.hp || 40,
-  maxHp: enemy?.hp || 40,
+  maxHp: enemy?.maxHp || enemy?.hp || 40,
   ether: enemy?.ether || 100,
   speed: enemy?.speed || 10,
   deck: Array.isArray(enemy?.deck) ? enemy.deck : [],
@@ -231,7 +231,8 @@ export const createBattlePayload = (
     ? drawCharacterBuildHand(characterBuild.mainSpecials, characterBuild.subSpecials, characterBuild.ownedCards)
     : drawHand(playerDrawPile, 3);
 
-  const enemyHandSize = Math.max(enemyCount, Math.min(enemyDrawPile.length, 3 * enemyCount));
+  // 적 카드 수: 최소 enemyCount, 최대 3*enemyCount, 하지만 덱 크기 초과 불가
+  const enemyHandSize = Math.min(enemyDrawPile.length, Math.max(enemyCount, 3 * enemyCount));
   const enemyHand = drawHand(enemyDrawPile, enemyHandSize);
   const { preview, simulation } = computeBattlePlan(node.type, playerHand, enemyHand, playerHp, maxHp, enemyCount);
 
