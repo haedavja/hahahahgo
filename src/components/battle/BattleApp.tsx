@@ -304,7 +304,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       etherOverdriveActive: false,
       strength: 0,
       shroud: safeInitialEnemy.shroud ?? 0,
-      maxSpeed: safeInitialEnemy.maxSpeed ?? safeInitialEnemy.speed ?? DEFAULT_ENEMY_MAX_SPEED,
+      maxSpeed: safeInitialEnemy.maxSpeed ?? (safeInitialEnemy as { speed?: number }).speed ?? DEFAULT_ENEMY_MAX_SPEED,
       tokens: { usage: [], turn: [], permanent: [] }
     } as unknown as EnemyState) : undefined,
     phase: 'select',
@@ -839,7 +839,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       etherPts: initialEnemy.etherPts ?? initialEnemy.etherCapacity ?? 300,
       etherCapacity: initialEnemy.etherCapacity ?? 300,
       etherOverdriveActive: false,
-      tokens: { usage: [], turn: [], permanent: [] }
+      tokens: { usage: [], turn: [], permanent: [] },
+      units: ((initialEnemy as { units?: unknown[] }).units || []) as EnemyState['units']
     });
     actions.setSelected([]);
     actions.setQueue([]);
@@ -900,7 +901,28 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   useEffect(() => {
     if (!enemy) {
       const e = ENEMIES[enemyIndex];
-      actions.setEnemy({ ...e, hp: e.hp, maxHp: e.hp, vulnMult: 1, vulnTurns: 0, block: 0, counter: 0, etherPts: 0, etherOverdriveActive: false, maxSpeed: (e as { maxSpeed?: number; speed?: number }).maxSpeed ?? (e as { speed?: number }).speed ?? DEFAULT_ENEMY_MAX_SPEED, tokens: { usage: [], turn: [], permanent: [] } });
+      const singleUnit = {
+        ...e,
+        unitId: 0,
+        hp: e.hp,
+        maxHp: e.hp,
+        block: 0,
+        tokens: { usage: [], turn: [], permanent: [] }
+      };
+      actions.setEnemy({
+        ...e,
+        hp: e.hp,
+        maxHp: e.hp,
+        vulnMult: 1,
+        vulnTurns: 0,
+        block: 0,
+        counter: 0,
+        etherPts: 0,
+        etherOverdriveActive: false,
+        maxSpeed: (e as { maxSpeed?: number; speed?: number }).maxSpeed ?? (e as { speed?: number }).speed ?? DEFAULT_ENEMY_MAX_SPEED,
+        tokens: { usage: [], turn: [], permanent: [] },
+        units: [singleUnit]
+      });
 
       // 전투 시작 상징 효과 로그 및 애니메이션
       const combatStartEffects = applyCombatStartEffects(orderedRelicList, {});
