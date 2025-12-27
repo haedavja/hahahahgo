@@ -2256,7 +2256,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
     // === 다중 유닛 데미지 분배 ===
     const enemyUnits = E.units || enemy.units || [];
-    const hasUnits = enemyUnits.length > 1;  // 2개 이상일 때만 다중 유닛 처리
+    const hasUnits = enemyUnits.length >= 1;  // 1개 이상이면 유닛 HP 처리 (EnemyUnitsDisplay와 일치)
 
     if (hasUnits && a.actor === 'player' && a.card?.type === 'attack') {
       const targetUnitIds = a.card.__targetUnitIds;
