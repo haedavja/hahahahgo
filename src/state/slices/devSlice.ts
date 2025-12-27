@@ -135,7 +135,7 @@ export const createDevActions: SliceCreator = (set) => ({
       if (state.activeBattle) return state;
 
       const group = ENEMY_GROUPS.find((g) => g.id === groupId);
-      if (!group) {
+      if (!group || !Array.isArray(group.enemies) || group.enemies.length === 0) {
         console.warn(`[DEV] 전투 그룹을 찾을 수 없음: ${groupId}`);
         return state;
       }

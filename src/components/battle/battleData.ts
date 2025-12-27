@@ -1024,10 +1024,11 @@ export const ENEMY_GROUPS = [
 export function getEnemyGroup(groupId: any) {
   const group = ENEMY_GROUPS.find(g => g.id === groupId);
   if (!group) return null;
+  const enemies = Array.isArray(group.enemies) ? group.enemies : [];
   return {
     name: group.name,
-    enemies: group.enemies,
-    enemyCount: group.enemies.length,
+    enemies,
+    enemyCount: enemies.length,
     tier: group.tier,
     isBoss: group.isBoss
   };

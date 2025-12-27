@@ -195,7 +195,7 @@ export const createBattlePayload = (
 
   const enemyLibrary: string[] = [];
   enemies.forEach((enemy: any) => {
-    if (enemy?.deck) {
+    if (Array.isArray(enemy?.deck)) {
       enemyLibrary.push(...enemy.deck);
     }
   });
