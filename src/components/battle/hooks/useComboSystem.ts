@@ -39,7 +39,7 @@ export function useComboSystem({
     // 디플레이션 정보 계산 (선택/대응/진행 단계에서)
     if (combo?.name && (battlePhase === 'select' || battlePhase === 'respond' || battlePhase === 'resolve')) {
       const usageCount = (playerComboUsageCount || {})[combo.name] || 0;
-      const deflationMult = Math.pow(0.5, usageCount);
+      const deflationMult = Math.pow(0.8, usageCount);
       actions.setCurrentDeflation(usageCount > 0 ? { multiplier: deflationMult, usageCount } : null);
     }
 
