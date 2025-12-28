@@ -1818,7 +1818,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
           }
         }
 
-        if (import.meta.env.DEV) console.log('[nextTurnEffects] Setting:', { updatedEffects, cardName: a.card.name });
+        if (import.meta.env.DEV) console.log('[nextTurnEffects] Setting:', { updatedEffects, blockPerCardExecution: updatedEffects.blockPerCardExecution, cardName: a.card.name });
         actions.setNextTurnEffects(updatedEffects);
         // battleRef 동기 업데이트 (finishTurn에서 최신 값 사용)
         if (battleRef.current) {
@@ -1855,6 +1855,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
           // 효과 사용 후 플래그 제거
           const clearedEffects = { ...updatedEffects, repeatMyTimeline: false };
+          if (import.meta.env.DEV) console.log('[repeatMyTimeline] After clear:', { clearedEffects, blockPerCardExecution: clearedEffects.blockPerCardExecution });
           actions.setNextTurnEffects(clearedEffects);
           if (battleRef.current) {
             battleRef.current = { ...battleRef.current, nextTurnEffects: clearedEffects };
