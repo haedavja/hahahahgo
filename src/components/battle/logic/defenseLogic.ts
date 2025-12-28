@@ -114,7 +114,7 @@ export function applyDefense(
   }
 
   const enemyName = battleContext.enemyDisplayName || '몬스터';
-  const who = actorName === 'player' ? '플레이어' : enemyName;
+  const who = actorName === 'player' ? `플레이어(${card.name})` : `${enemyName}(${card.name})`;
   const growingText = growingDefenseBonus > 0 ? ` (+${growingDefenseBonus} 방어자세)` : '';
   const hologramText = hologramBlock > 0 ? ' (최대체력)' : '';
   const blockMsg = added > 0
@@ -124,18 +124,14 @@ export function applyDefense(
     : '🛡️ +0';
   const msg = `${who} • ${blockMsg}${healText}`.trim();
 
-  // 이벤트 메시지에 카드 이름 포함 (로그에서 직접 출력됨)
-  const actorEmoji = actorName === 'player' ? '🔵' : '👾';
-  const eventMsg = `${actorEmoji} ${card.name} → ${msg}`;
-
   const event: { actor: 'player' | 'enemy'; card?: string; type?: string; msg: string } = {
     actor: actorName,
     card: card.name,
     type: 'defense',
-    msg: eventMsg
+    msg
   };
 
-  const logMsg = eventMsg;
+  const logMsg = msg;
   const allLogs = tokenLogs.length > 0 ? [logMsg, ...tokenLogs] : [logMsg];
 
   return {
