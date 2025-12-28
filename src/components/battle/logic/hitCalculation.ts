@@ -358,8 +358,8 @@ export function calculateSingleHit(
         damageTaken += counterShotResult.damage;
       }
 
-      // 비의 눈물 효과
-      if (finalDmg > 0 && hasToken(updatedDefender, 'rain_defense')) {
+      // 비의 눈물 효과 (공격받기만 해도 발동)
+      if (hasToken(updatedDefender, 'rain_defense')) {
         const rainResult = applyRainDefense(updatedDefender, attackerName, battleContext);
         updatedDefender = rainResult.defender;
         events.push(...rainResult.events);
@@ -411,8 +411,8 @@ export function calculateSingleHit(
       damageTaken += counterShotResult.damage;
     }
 
-    // 비의 눈물 효과
-    if (finalDmg > 0 && hasToken(updatedDefender, 'rain_defense')) {
+    // 비의 눈물 효과 (공격받기만 해도 발동)
+    if (hasToken(updatedDefender, 'rain_defense')) {
       const rainResult = applyRainDefense(updatedDefender, attackerName, battleContext);
       updatedDefender = rainResult.defender;
       events.push(...rainResult.events);
