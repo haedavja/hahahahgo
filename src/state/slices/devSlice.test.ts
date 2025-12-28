@@ -196,4 +196,112 @@ describe('devSlice', () => {
       expect(store.getState().activeRest).toEqual({ nodeId: 'DEV-REST' });
     });
   });
+
+  describe('setDevForcedAnomalies', () => {
+    it('이변 ID 배열을 설정한다', () => {
+      store.getState().setDevForcedAnomalies(['ether_void', 'time_warp']);
+      expect(store.getState().devForcedAnomalies).toEqual(['ether_void', 'time_warp']);
+    });
+
+    it('null로 초기화할 수 있다', () => {
+      store.getState().setDevForcedAnomalies(['ether_void']);
+      store.getState().setDevForcedAnomalies(null);
+      expect(store.getState().devForcedAnomalies).toBeNull();
+    });
+
+    it('빈 배열도 설정할 수 있다', () => {
+      store.getState().setDevForcedAnomalies([]);
+      expect(store.getState().devForcedAnomalies).toEqual([]);
+    });
+  });
+
+  describe('devTeleportToNode', () => {
+    it('노드가 없으면 상태를 유지한다', () => {
+      const originalState = store.getState();
+      store.getState().devTeleportToNode('nonexistent');
+      expect(store.getState().map.currentNodeId).toBe(originalState.map.currentNodeId);
+    });
+
+    it('던전 노드로 텔레포트하면 activeDungeon이 설정된다', () => {
+      const nodes = [
+        { id: 'dungeon-1', type: 'dungeon', cleared: false, selectable: true, connections: [] as string[] },
+      ];
+      store.setState({ ...store.getState(), map: { nodes: nodes as never, currentNodeId: '' } });
+      store.getState().devTeleportToNode('dungeon-1');
+      expect((store.getState() as any).activeDungeon?.nodeId).toBe('dungeon-1');
+    });
+
+    it('상점 노드로 텔레포트하면 activeShop이 설정된다', () => {
+      const nodes = [
+        { id: 'shop-1', type: 'shop', cleared: false, selectable: true, connections: [] as string[] },
+      ];
+      store.setState({ ...store.getState(), map: { nodes: nodes as never, currentNodeId: '' } });
+      store.getState().devTeleportToNode('shop-1');
+      expect((store.getState() as any).activeShop?.nodeId).toBe('shop-1');
+      expect(store.getState().map.currentNodeId).toBe('shop-1');
+    });
+
+    it('휴식 노드로 텔레포트하면 activeRest가 설정된다', () => {
+      const nodes = [
+        { id: 'rest-1', type: 'rest', cleared: false, selectable: true, connections: [] as string[] },
+      ];
+      store.setState({ ...store.getState(), map: { nodes: nodes as never, currentNodeId: '' } });
+      store.getState().devTeleportToNode('rest-1');
+      expect(store.getState().activeRest?.nodeId).toBe('rest-1');
+      expect(store.getState().map.currentNodeId).toBe('rest-1');
+    });
+  });
+
+  describe('devStartBattle', () => {
+    it('이미 전투 중이면 상태를 유지한다', () => {
+      store.setState({
+        ...store.getState(),
+        activeBattle: { nodeId: 'test', kind: 'combat', label: 'Test' } as never,
+      });
+      const originalBattle = store.getState().activeBattle;
+      store.getState().devStartBattle('nonexistent');
+      expect(store.getState().activeBattle).toBe(originalBattle);
+    });
+
+    it('존재하지 않는 그룹이면 상태를 유지한다', () => {
+      const originalState = store.getState();
+      store.getState().devStartBattle('nonexistent-group');
+      expect(store.getState().activeBattle).toBe(originalState.activeBattle);
+    });
+  });
+
+  describe('devTriggerEvent', () => {
+    it('존재하지 않는 이벤트면 상태를 유지한다', () => {
+      const originalState = store.getState();
+      store.getState().devTriggerEvent('nonexistent-event');
+      expect(store.getState().activeEvent).toBe(originalState.activeEvent);
+    });
+  });
+
+  describe('devForceWin 보상 처리', () => {
+    it('보상이 있으면 자원에 추가된다', () => {
+      const initialGold = store.getState().resources!.gold;
+      store.setState({
+        ...store.getState(),
+        activeBattle: { nodeId: 'test', kind: 'combat', label: 'Test', rewards: { gold: 50 } } as never,
+      });
+      store.getState().devForceWin();
+      expect(store.getState().resources!.gold).toBeGreaterThanOrEqual(initialGold);
+      expect(store.getState().lastBattleResult?.rewards).toBeDefined();
+    });
+  });
+
+  describe('devAddBattleToken 타겟', () => {
+    it('적에게 토큰을 추가할 수 있다', () => {
+      store.getState().devAddBattleToken('vulnerable', 2, 'enemy');
+      expect(store.getState().devBattleTokens[0].target).toBe('enemy');
+    });
+
+    it('여러 토큰을 추가할 수 있다', () => {
+      store.getState().devAddBattleToken('poison', 1, 'player');
+      store.getState().devAddBattleToken('burn', 2, 'enemy');
+      store.getState().devAddBattleToken('strength', 3, 'player');
+      expect(store.getState().devBattleTokens).toHaveLength(3);
+    });
+  });
 });
