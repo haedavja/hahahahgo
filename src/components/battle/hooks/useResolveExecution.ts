@@ -113,6 +113,10 @@ export function useResolveExecution({
     let latestPlayer = currentBattle.player || battle.player;
     let latestEnemy = currentBattle.enemy || battle.enemy;
 
+    // 경계 토큰 확인 (턴 토큰 제거 전에 확인해야 함)
+    const playerTurnTokens = latestPlayer.tokens?.turn || [];
+    const hasVigilance = playerTurnTokens.some((t: any) => t.id === 'vigilance' && (t.stacks || 1) > 0);
+
     const playerTokenResult = clearTurnTokens(latestPlayer);
     playerTokenResult.logs.forEach(log => addLog(log));
     latestPlayer = { ...latestPlayer, tokens: playerTokenResult.tokens };
@@ -253,7 +257,8 @@ export function useResolveExecution({
         comboUsageCount: newUsageCount,
         etherPts: nextPlayerPts,
         etherOverflow: playerOverflow,
-        etherMultiplier: 1
+        etherMultiplier: 1,
+        hasVigilance  // 경계 토큰으로 방어력 유지 여부
       });
     } catch (err) {
       if (import.meta.env.DEV) console.error('[finishTurn] createTurnEndPlayerState 에러:', err);

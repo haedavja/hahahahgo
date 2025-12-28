@@ -48,24 +48,14 @@ export function updateComboUsageCount(
 }
 
 /**
- * 경계 토큰 보유 여부 확인
- */
-function hasVigilanceToken(player: TurnEndPlayer): boolean {
-  const tokens = player.tokens || {};
-  // turn 타입 토큰에서 vigilance 확인
-  const turnTokens = tokens.turn || [];
-  return turnTokens.some((t: any) => t.id === 'vigilance' && (t.stacks || 1) > 0);
-}
-
-/**
  * 턴 종료 시 플레이어 상태 업데이트 객체 생성
+ * @param hasVigilance - 경계 토큰 보유 여부 (턴 토큰 제거 전에 확인해야 함)
  */
 export function createTurnEndPlayerState(
   player: TurnEndPlayer,
-  { comboUsageCount, etherPts, etherOverflow, etherMultiplier = 1 }: TurnEndPlayerParams
+  { comboUsageCount, etherPts, etherOverflow, etherMultiplier = 1, hasVigilance = false }: TurnEndPlayerParams
 ): TurnEndPlayer {
-  // 경계 토큰이 있으면 방어력 유지
-  const hasVigilance = hasVigilanceToken(player);
+  // 경계 토큰이 있었으면 방어력 유지
   const retainedBlock = hasVigilance ? (player.block || 0) : 0;
 
   return {

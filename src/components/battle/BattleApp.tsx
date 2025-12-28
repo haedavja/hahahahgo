@@ -1514,6 +1514,51 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
           actionResult
         });
       }
+
+      // 방어/일반 카드도 special 효과 처리 (상글로 드 플뤼 등)
+      const cardPlayAttacker = a.actor === 'player' ? P : E;
+      const cardPlayResult = processCardPlaySpecials({
+        card: a.card as unknown as SpecialCard,
+        attacker: cardPlayAttacker as unknown as SpecialActor,
+        attackerName: a.actor as 'player' | 'enemy',
+        battleContext: battleContext as unknown as SpecialBattleContext
+      });
+
+      // cardPlayResult의 토큰 처리
+      if (cardPlayResult.tokensToAdd?.length > 0) {
+        cardPlayResult.tokensToAdd.forEach(tokenInfo => {
+          const isPlayerAction = a.actor === 'player';
+          const targetIsEnemy = tokenInfo.targetEnemy === true;
+          const applyToEnemy = isPlayerAction ? targetIsEnemy : !targetIsEnemy;
+
+          if (applyToEnemy) {
+            const tokenResult = addToken(E as TokenEntity, tokenInfo.id, tokenInfo.stacks, tokenInfo.grantedAt);
+            E = { ...E, tokens: tokenResult.tokens };
+          } else {
+            const tokenResult = addToken(P as TokenEntity, tokenInfo.id, tokenInfo.stacks, tokenInfo.grantedAt);
+            P = { ...P, tokens: tokenResult.tokens };
+          }
+        });
+      }
+      if (cardPlayResult.tokensToRemove?.length > 0) {
+        cardPlayResult.tokensToRemove.forEach(tokenInfo => {
+          if (a.actor === 'player') {
+            const tokenResult = removeToken(P as TokenEntity, tokenInfo.id, 'permanent', tokenInfo.stacks);
+            P = { ...P, tokens: tokenResult.tokens };
+          } else {
+            const tokenResult = removeToken(E as TokenEntity, tokenInfo.id, 'permanent', tokenInfo.stacks);
+            E = { ...E, tokens: tokenResult.tokens };
+          }
+        });
+      }
+
+      // 이벤트 병합
+      actionEvents = [...actionEvents, ...cardPlayResult.events];
+
+      // battleRef 동기 업데이트 (토큰 적용 후)
+      if (battleRef.current) {
+        battleRef.current = { ...battleRef.current, player: P, enemy: E };
+      }
     }
 
     // === 유닛 시스템: 플레이어 공격 후 타겟 유닛의 block 업데이트 ===
