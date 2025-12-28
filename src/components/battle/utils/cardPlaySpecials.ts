@@ -427,7 +427,8 @@ export function processCardPlaySpecials({
 
   // === onHitBlock7Advance3: 상글로 드 플뤼 - 공격당할때마다 방어력+7, 앞당김 3 ===
   if (hasSpecial(card, 'onHitBlock7Advance3')) {
-    tokensToAdd.push({ id: 'rain_defense', stacks: 1 });
+    // grantedAt 설정: 다음 턴 같은 SP까지 유지
+    tokensToAdd.push({ id: 'rain_defense', stacks: 1, grantedAt: grantedAtBase });
     const who = attackerName === 'player' ? '플레이어' : '몬스터';
     const msg = `${who} • 🌧️ ${card.name}: 비의 눈물 발동! 공격당할때마다 방어력 7, 앞당김 3!`;
     events.push({ actor: attackerName, card: card.name, type: 'special', msg });
