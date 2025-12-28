@@ -201,25 +201,9 @@ export function usePhaseTransition({
     }
 
     const collisionResult = processQueueCollisions(newQ, addLog);
-    let finalQ = collisionResult.filteredQueue;
+    const finalQ = collisionResult.filteredQueue;
 
-    // repeatMyTimeline 효과: 플레이어 카드 복제
-    const currentNextTurnEffects = currentBattle?.nextTurnEffects || battleRef.current?.nextTurnEffects;
-    if (currentNextTurnEffects?.repeatMyTimeline) {
-      const playerCards = finalQ.filter((item: any) => item.actor === 'player');
-      if (playerCards.length > 0) {
-        // 플레이어 카드를 복제하여 추가 (동일한 속도로)
-        const duplicatedCards = playerCards.map((item: any) => ({
-          ...item,
-          sp: item.sp + 0.1, // 원본 직후에 실행되도록 약간 늦은 속도로
-          isDuplicate: true
-        }));
-        finalQ = [...finalQ, ...duplicatedCards];
-        // 다시 정렬
-        finalQ.sort((a: any, b: any) => (a.sp ?? 0) - (b.sp ?? 0));
-        addLog(`🔄 노인의 꿈: 타임라인 반복! ${playerCards.length}장 복제됨`);
-      }
-    }
+    // repeatMyTimeline 효과는 BattleApp.tsx에서 카드 실행 시 즉시 처리됨
 
     // 에테르 애니메이션 상태 초기화
     actions.setEtherCalcPhase(null);

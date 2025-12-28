@@ -1721,6 +1721,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         const currentEffects = battleRef.current?.nextTurnEffects || battle.nextTurnEffects;
         const updatedEffects = {
           ...currentEffects,
+          ...newNextTurnEffects,  // 모든 새 효과 병합 (repeatMyTimeline, blockPerCardExecution 등)
           bonusEnergy: (currentEffects.bonusEnergy || 0) + (newNextTurnEffects.bonusEnergy || 0),
           maxSpeedBonus: (currentEffects.maxSpeedBonus || 0) + (newNextTurnEffects.maxSpeedBonus || 0),
           extraCardPlay: (currentEffects.extraCardPlay || 0) + (newNextTurnEffects.extraCardPlay || 0),
@@ -1803,6 +1804,42 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         // battleRef 동기 업데이트 (finishTurn에서 최신 값 사용)
         if (battleRef.current) {
           battleRef.current = { ...battleRef.current, nextTurnEffects: updatedEffects };
+        }
+
+        // === 노인의 꿈 (repeatMyTimeline): 현재 턴 타임라인 즉시 복제 ===
+        if (newNextTurnEffects.repeatMyTimeline) {
+          const currentQ = battleRef.current?.queue || battle.queue || [];
+          const currentCardId = (a.card as { id?: string })?.id;
+
+          // 전체 플레이어 카드 복제 (현재 카드 제외, 이미 실행된 카드 포함)
+          const allPlayerCards = currentQ
+            .filter((item: any) => item.actor === 'player' && (item.card as { id?: string })?.id !== currentCardId && !item.isDuplicate);
+
+          if (allPlayerCards.length > 0) {
+            // 복제 카드 생성 (마지막 카드 sp + 0.1부터 시작)
+            const maxSp = Math.max(...currentQ.map((item: any) => item.sp ?? 0));
+            const duplicatedCards = allPlayerCards.map((item: any, idx: number) => ({
+              ...item,
+              sp: maxSp + 0.1 + (idx * 0.01),
+              isDuplicate: true
+            }));
+
+            const newQueue = [...currentQ, ...duplicatedCards];
+            newQueue.sort((x: any, y: any) => (x.sp ?? 0) - (y.sp ?? 0));
+
+            actions.setQueue(newQueue);
+            if (battleRef.current) {
+              battleRef.current = { ...battleRef.current, queue: newQueue };
+            }
+            addLog(`🔄 노인의 꿈: 타임라인 반복! ${allPlayerCards.length}장 복제됨`);
+          }
+
+          // 효과 사용 후 플래그 제거
+          const clearedEffects = { ...updatedEffects, repeatMyTimeline: false };
+          actions.setNextTurnEffects(clearedEffects);
+          if (battleRef.current) {
+            battleRef.current = { ...battleRef.current, nextTurnEffects: clearedEffects };
+          }
         }
       }
     }
