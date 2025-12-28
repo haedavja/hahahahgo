@@ -62,7 +62,14 @@ export function processCardPlaySpecials({
     for (const tokenInfo of cardWithTokens.appliedTokens) {
       const targetEnemy = tokenInfo.target === 'enemy';
       const stacks = tokenInfo.stacks || 1;
-      tokensToAdd.push({ id: tokenInfo.id, stacks, grantedAt: grantedAtBase, targetEnemy });
+      // vigilance(경계) 토큰은 grantedAt 없이 추가 (턴 종료 시 반드시 제거되어야 함)
+      const shouldSkipGrantedAt = tokenInfo.id === 'vigilance';
+      tokensToAdd.push({
+        id: tokenInfo.id,
+        stacks,
+        grantedAt: shouldSkipGrantedAt ? undefined : grantedAtBase,
+        targetEnemy
+      });
 
       const tokenData = TOKENS[tokenInfo.id];
       const tokenName = tokenData?.name || tokenInfo.id;

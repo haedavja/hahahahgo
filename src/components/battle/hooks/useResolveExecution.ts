@@ -187,6 +187,10 @@ export function useResolveExecution({
     });
 
     actions.setNextTurnEffects(updatedNextTurnEffects);
+    // battleRef도 동기 업데이트 (useEffect에서 이전 값으로 덮어쓰지 않도록)
+    if (battleRef.current) {
+      battleRef.current = { ...battleRef.current, nextTurnEffects: updatedNextTurnEffects };
+    }
 
     // 턴 종료 시 조합 카운트 증가 (Deflation)
     const pComboEnd = detectPokerCombo(selected);
