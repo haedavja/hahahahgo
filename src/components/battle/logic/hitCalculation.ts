@@ -153,7 +153,8 @@ export function applyRainDefense(
   const advanceAmount = 3;
   const updatedDefender = {
     ...defender,
-    block: (defender.block || 0) + blockGain
+    block: (defender.block || 0) + blockGain,
+    def: true  // 방어력이 있으면 def도 true로 설정
   };
 
   const enemyName = battleContext.enemyDisplayName || '몬스터';
