@@ -1608,10 +1608,12 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     if (a.actor === 'player') {
       const latestNextTurnEffects = battleRef.current?.nextTurnEffects || battle.nextTurnEffects || {};
       const blockPerCard = (latestNextTurnEffects as { blockPerCardExecution?: number }).blockPerCardExecution || 0;
+      if (import.meta.env.DEV) console.log('[blockPerCardExecution] Check:', { blockPerCard, latestNextTurnEffects, cardName: a.card.name });
       if (blockPerCard > 0) {
         P.block = (P.block || 0) + blockPerCard;
         P.def = true;
         addLog(`🛡️ 노인의 꿈: 카드 실행 시 방어력 +${blockPerCard}`);
+        if (import.meta.env.DEV) console.log('[blockPerCardExecution] Applied:', { newBlock: P.block });
         // battleRef 동기 업데이트
         if (battleRef.current) {
           battleRef.current = { ...battleRef.current, player: P };
@@ -1815,6 +1817,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
           }
         }
 
+        if (import.meta.env.DEV) console.log('[nextTurnEffects] Setting:', { updatedEffects, cardName: a.card.name });
         actions.setNextTurnEffects(updatedEffects);
         // battleRef 동기 업데이트 (finishTurn에서 최신 값 사용)
         if (battleRef.current) {
