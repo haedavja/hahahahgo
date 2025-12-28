@@ -164,7 +164,8 @@ export function useTurnStartEffects({
       newHp = Math.min(player.maxHp, reflectionHealedHp + turnStartRelicEffects.heal);
     }
     const newBlock = (player.block || 0) + turnStartRelicEffects.block;
-    const newDef = turnStartRelicEffects.block > 0;
+    // 방어력이 있으면 def도 true로 설정 (경계 토큰으로 유지된 방어력 포함)
+    const newDef = newBlock > 0;
     // 성찰 효과로 얻은 토큰 적용
     const newTokens = reflectionResult.updatedPlayer.tokens || player.tokens || { usage: [], turn: [], permanent: [] };
     // 정신집중 토큰 효과 확인
