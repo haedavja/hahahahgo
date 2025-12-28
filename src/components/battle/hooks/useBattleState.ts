@@ -304,7 +304,12 @@ export function useBattleState(initialStateOverrides: InitialStateOverrides = {}
     setQueue: (queue: HandCard[]) => dispatch({ type: ACTIONS.SET_QUEUE, payload: queue }),
     setQIndex: (index: number) => dispatch({ type: ACTIONS.SET_Q_INDEX, payload: index }),
     setFixedOrder: (order: HandCard[] | null) => dispatch({ type: ACTIONS.SET_FIXED_ORDER, payload: order }),
-    setEnemyPlan: (plan: HandCard[]) => dispatch({ type: ACTIONS.SET_ENEMY_PLAN, payload: { actions: plan, mode: null } as EnemyPlan }),
+    setEnemyPlan: (plan: EnemyPlan | HandCard[]) => {
+      const payload = Array.isArray(plan)
+        ? { actions: plan, mode: null }
+        : plan;
+      dispatch({ type: ACTIONS.SET_ENEMY_PLAN, payload: payload as EnemyPlan });
+    },
 
     // === UI 상태 ===
     setShowCharacterSheet: (show: boolean) => dispatch({ type: ACTIONS.SET_SHOW_CHARACTER_SHEET, payload: show }),
