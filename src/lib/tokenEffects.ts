@@ -68,6 +68,15 @@ export function applyTokenEffectsToCard(
       modifiedCard._applyBurn = true;
       consumedTokens.push({ id: 'incendiary', type: 'usage' });
     }
+
+    // 파쇄탄: 피해 +6
+    const fragmentationToken = allTokens.find(
+      t => t.effect?.type === 'FRAGMENTATION' && t.durationType === 'usage'
+    );
+    if (fragmentationToken) {
+      modifiedCard.damage = (modifiedCard.damage || 0) + (fragmentationToken.effect?.value || 6);
+      consumedTokens.push({ id: 'fragmentation', type: 'usage' });
+    }
   }
 
   // 공격력 증가 토큰

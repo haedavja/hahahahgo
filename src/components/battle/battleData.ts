@@ -831,6 +831,64 @@ export const CARDS = [
     cardCategory: "fencing",
     appliedTokens: [{ id: 'finesse', stacks: 1, target: 'player' }]
   },
+  // === 신규 총기 카드 ===
+  {
+    id: "sniper_shot",
+    name: "저격",
+    type: "attack",
+    damage: 20,
+    speedCost: 6,
+    actionCost: 1,
+    iconKey: "flame",
+    description: "기교 1 소모. 공격력 20. 사용 후 탄걸림.",
+    traits: ["finisher"],
+    cardCategory: "gun",
+    requiredTokens: [{ id: 'finesse', stacks: 1 }],
+    special: ["causeJam"]
+  },
+  {
+    id: "fragmentation_load",
+    name: "파쇄탄 장전",
+    type: "general",
+    block: 0,
+    speedCost: 3,
+    actionCost: 2,
+    iconKey: "flame",
+    description: "기교 1 소모. 총격 피해를 6 올리는 파쇄탄을 3발 장전한다.",
+    traits: [],
+    cardCategory: "gun",
+    requiredTokens: [{ id: 'finesse', stacks: 1 }],
+    appliedTokens: [{ id: 'fragmentation', stacks: 3, target: 'player' }]
+  },
+  {
+    id: "suppression_fire",
+    name: "제압사격",
+    type: "attack",
+    damage: 5,
+    hits: 5,
+    speedCost: 8,
+    actionCost: 2,
+    iconKey: "flame",
+    description: "기교 2 소모. 5회 사격 후 탄걸림. 피해 시 넉백 3.",
+    traits: ["chain"],
+    cardCategory: "gun",
+    requiredTokens: [{ id: 'finesse', stacks: 2 }],
+    special: ["causeJam", "knockbackOnHit3"]
+  },
+  {
+    id: "atomic_bomb",
+    name: "원자탄",
+    type: "general",
+    block: 0,
+    speedCost: 5,
+    actionCost: 2,
+    iconKey: "flame",
+    description: "기교 3 소모. 공격력 100의 광역 공격 카드를 창조한다.",
+    traits: [],
+    cardCategory: "gun",
+    requiredTokens: [{ id: 'finesse', stacks: 3 }],
+    special: ["createAtomicBlast"]
+  },
 ];
 
 export const ENEMY_CARDS = [

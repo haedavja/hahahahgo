@@ -458,6 +458,15 @@ export const TOKENS: Record<string, TokenDefinition> = {
     description: '다음 사격 공격이 화상을 입힌다.',
     effect: { type: 'INCENDIARY', value: 1 }
   },
+  fragmentation: {
+    id: 'fragmentation',
+    name: '파쇄탄',
+    type: TOKEN_TYPES.USAGE,
+    category: TOKEN_CATEGORIES.POSITIVE,
+    emoji: '💥',
+    description: '다음 사격 공격의 피해가 6 증가한다.',
+    effect: { type: 'FRAGMENTATION', value: 6 }
+  },
   burn: {
     id: 'burn',
     name: '화상',
