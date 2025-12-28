@@ -652,6 +652,7 @@ export interface SingleHitResult {
   damage: number;
   damageTaken?: number;
   blockDestroyed?: number;
+  timelineAdvance?: number;
   events: BattleEvent[];
   logs: string[];
   preProcessedResult?: PreProcessedResult | null;

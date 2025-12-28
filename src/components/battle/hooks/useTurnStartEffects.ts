@@ -155,7 +155,14 @@ export function useTurnStartEffects({
 
     // 방어력과 체력 회복 적용 (성찰 회복 효과 포함)
     const reflectionHealedHp = reflectionResult.updatedPlayer.hp || player.hp;
-    const newHp = Math.min(player.maxHp, reflectionHealedHp + turnStartRelicEffects.heal);
+    // fullHeal 효과: 체력 최대 회복
+    let newHp: number;
+    if (nextTurnEffects.fullHeal) {
+      newHp = player.maxHp;
+      addLog(`💖 결투: 체력 최대 회복! (${reflectionHealedHp} → ${player.maxHp})`);
+    } else {
+      newHp = Math.min(player.maxHp, reflectionHealedHp + turnStartRelicEffects.heal);
+    }
     const newBlock = (player.block || 0) + turnStartRelicEffects.block;
     const newDef = turnStartRelicEffects.block > 0;
     // 성찰 효과로 얻은 토큰 적용

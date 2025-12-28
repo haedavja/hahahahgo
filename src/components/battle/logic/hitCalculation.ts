@@ -125,6 +125,58 @@ export function applyCounterShot(
 }
 
 /**
+ * 비의 눈물 효과 처리 (공격당할 때 방어력 획득 + 타임라인 앞당김)
+ * @param defender - 비의 눈물 토큰을 가진 방어자
+ * @param attackerName - 공격자 이름
+ * @param battleContext - 전투 컨텍스트
+ */
+export function applyRainDefense(
+  defender: Combatant,
+  attackerName: 'player' | 'enemy',
+  battleContext: BattleContext = {}
+): { defender: Combatant; block: number; advance: number; events: BattleEvent[]; logs: string[] } {
+  const events: BattleEvent[] = [];
+  const logs: string[] = [];
+
+  // rain_defense 토큰 확인 (TURN 타입이므로 소모하지 않음)
+  const allTokens = [
+    ...(defender.tokens?.usage || []),
+    ...(defender.tokens?.turn || []),
+    ...(defender.tokens?.permanent || [])
+  ];
+  const rainToken = allTokens.find(t => t.id === 'rain_defense');
+  if (!rainToken) {
+    return { defender, block: 0, advance: 0, events, logs };
+  }
+
+  const blockGain = 7;
+  const advanceAmount = 3;
+  const updatedDefender = {
+    ...defender,
+    block: (defender.block || 0) + blockGain
+  };
+
+  const enemyName = battleContext.enemyDisplayName || '몬스터';
+  const defenderName = attackerName === 'player' ? '플레이어' : enemyName;
+  const msg = `${defenderName} • 🌧️ 비의 눈물: 방어력 +${blockGain}, 앞당김 ${advanceAmount}`;
+
+  events.push({
+    actor: attackerName === 'player' ? 'enemy' : 'player',
+    type: 'special' as const,
+    msg
+  });
+  logs.push(msg);
+
+  return {
+    defender: updatedDefender,
+    block: blockGain,
+    advance: advanceAmount,
+    events,
+    logs
+  };
+}
+
+/**
  * 단일 타격 계산
  * @param attacker - 공격자
  * @param defender - 방어자
@@ -193,6 +245,7 @@ export function calculateSingleHit(
   let damageDealt = 0;
   let damageTaken = 0;
   let blockDestroyed = 0;
+  let timelineAdvance = 0;
 
   let updatedAttacker = { ...currentAttacker };
   let updatedDefender = { ...currentDefender };
@@ -304,6 +357,15 @@ export function calculateSingleHit(
         logs.push(...counterShotResult.logs);
         damageTaken += counterShotResult.damage;
       }
+
+      // 비의 눈물 효과
+      if (finalDmg > 0 && hasToken(updatedDefender, 'rain_defense')) {
+        const rainResult = applyRainDefense(updatedDefender, attackerName, battleContext);
+        updatedDefender = rainResult.defender;
+        events.push(...rainResult.events);
+        logs.push(...rainResult.logs);
+        timelineAdvance += rainResult.advance;
+      }
     }
   } else {
     const vulnMul = (updatedDefender.vulnMult && updatedDefender.vulnMult > 1) ? updatedDefender.vulnMult : 1;
@@ -348,6 +410,15 @@ export function calculateSingleHit(
       logs.push(...counterShotResult.logs);
       damageTaken += counterShotResult.damage;
     }
+
+    // 비의 눈물 효과
+    if (finalDmg > 0 && hasToken(updatedDefender, 'rain_defense')) {
+      const rainResult = applyRainDefense(updatedDefender, attackerName, battleContext);
+      updatedDefender = rainResult.defender;
+      events.push(...rainResult.events);
+      logs.push(...rainResult.logs);
+      timelineAdvance += rainResult.advance;
+    }
   }
 
   const resultPreProcessed = preProcessedResult || {
@@ -363,6 +434,7 @@ export function calculateSingleHit(
     damage: damageDealt,
     damageTaken,
     blockDestroyed,
+    timelineAdvance,
     events,
     logs,
     preProcessedResult: resultPreProcessed

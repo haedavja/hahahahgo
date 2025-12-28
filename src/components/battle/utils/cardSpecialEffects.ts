@@ -77,7 +77,22 @@ export function processPerHitRoulette(
   const who = attackerName === 'player' ? '플레이어' : '몬스터';
   const hitLabel = totalHits > 1 && !hasSingleRoulette ? ` [${hitIndex + 1}/${totalHits}]` : '';
 
+  // 탄걸림 면역 체크
+  const jamImmunityToken = allAttackerTokens.find(t => t.id === 'jam_immunity');
+  const hasJamImmunity = jamImmunityToken && (jamImmunityToken.stacks || 0) > 0;
+
   if (currentRouletteStacks > 0 && Math.random() < jamChance) {
+    if (hasJamImmunity) {
+      // 면역으로 탄걸림 무효화
+      const msg = `${who} • 🎰 ${card.name}${hitLabel}: 탄걸림 발생했으나 ♾️ 무제한 탄창으로 무효화!`;
+      return {
+        jammed: false,
+        updatedAttacker,
+        event: { actor: attackerName, card: card.name, type: 'roulette', msg },
+        log: msg
+      };
+    }
+
     const jamResult = addToken(updatedAttacker, 'gun_jam', 1);
     updatedAttacker = { ...updatedAttacker, tokens: jamResult.tokens };
 

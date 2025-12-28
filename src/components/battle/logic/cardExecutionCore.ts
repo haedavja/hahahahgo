@@ -237,6 +237,19 @@ export function executeCardActionCore(params: ExecuteCardActionCoreParams): Exec
 
   // 에테르 누적
   if (action.actor === 'player') {
+    // blockPerCardExecution 효과: 카드당 방어력 획득
+    const blockPerCard = nextTurnEffects?.blockPerCardExecution || 0;
+    if (blockPerCard > 0) {
+      P.block = (P.block || 0) + blockPerCard;
+      const msg = `🛡️ 노인의 꿈: 카드 실행 시 방어력 +${blockPerCard}`;
+      addLog(msg);
+      actionEvents.push({
+        actor: 'player',
+        type: 'special',
+        msg
+      } as BattleEvent);
+    }
+
     processPlayerEtherAccumulation({
       card: action.card,
       turnEtherAccumulated,
