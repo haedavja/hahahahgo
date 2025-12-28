@@ -307,7 +307,6 @@ export function applyAction(
     });
 
     if (cardPlayResult.tokensToAdd && cardPlayResult.tokensToAdd.length > 0) {
-      console.log('[combatActions] tokensToAdd:', cardPlayResult.tokensToAdd);
       cardPlayResult.tokensToAdd.forEach((tokenInfo: any) => {
         if (tokenInfo.targetEnemy) {
           const tokenResult = addToken(updatedOpponent, tokenInfo.id, tokenInfo.stacks, tokenInfo.grantedAt);
@@ -315,7 +314,6 @@ export function applyAction(
         } else {
           const tokenResult = addToken(updatedActor, tokenInfo.id, tokenInfo.stacks, tokenInfo.grantedAt);
           updatedActor = { ...updatedActor, tokens: tokenResult.tokens };
-          console.log('[combatActions] 토큰 추가 후 actor tokens:', updatedActor.tokens);
         }
       });
     }
