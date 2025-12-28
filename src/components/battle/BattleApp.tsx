@@ -1423,13 +1423,15 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       .filter(q => q.actor === 'player');
     const usedCardCategories = [...new Set(executedPlayerCards.map(q => q.card?.cardCategory).filter(Boolean))];
 
-    // 적 카드의 소스 유닛 이름 가져오기
+    // 적 카드의 소스 유닛 이름 가져오기 (x1, x2 형식으로 통일)
     type UnitInfo = { unitId: number; name?: string };
     const currentUnitsForContext = ((E as { units?: UnitInfo[] }).units || enemy?.units || []) as UnitInfo[];
     const sourceUnit = a.actor === 'enemy' && a.card.__sourceUnitId !== undefined
       ? currentUnitsForContext.find(u => u.unitId === a.card.__sourceUnitId)
       : null;
-    const enemyDisplayName = sourceUnit?.name || (E as { name?: string }).name || enemy?.name || '몬스터';
+    const baseName = (E as { name?: string }).name || enemy?.name || '몬스터';
+    const unitIndex = sourceUnit ? sourceUnit.unitId + 1 : 1;
+    const enemyDisplayName = `${baseName} x${unitIndex}`;
 
     // 현재 nextTurnEffects 가져오기 (fencingDamageBonus 등)
     const currentNextTurnEffects = battleRef.current?.nextTurnEffects || battle.nextTurnEffects || {};
