@@ -533,6 +533,17 @@ export const TOKENS: Record<string, TokenDefinition> = {
     emoji: '💨',
     description: '공격을 1회 50% 확률로 피한다.',
     effect: { type: 'DODGE', value: 0.5 }
+  },
+
+  // === 방어력 유지 토큰 ===
+  vigilance: {
+    id: 'vigilance',
+    name: '경계',
+    type: TOKEN_TYPES.TURN,
+    category: TOKEN_CATEGORIES.POSITIVE,
+    emoji: '🛡️',
+    description: '이번 턴 종료 시 방어력이 유지된다.',
+    effect: { type: 'BLOCK_RETAIN', value: 1 }
   }
 };
 

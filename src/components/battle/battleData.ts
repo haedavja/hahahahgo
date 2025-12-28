@@ -929,7 +929,8 @@ export const CARDS = [
     traits: ["guard_stance"],
     cardCategory: "fencing",
     requiredTokens: [{ id: 'finesse', stacks: 3 }],
-    special: ["repeatTimeline", "blockPerCard5"]
+    special: ["repeatTimeline", "blockPerCard5"],
+    appliedTokens: [{ id: 'vigilance', target: 'player' }]
   },
   {
     id: "tear_smoke_grenade",
