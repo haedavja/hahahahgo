@@ -312,7 +312,7 @@ describe('cardPlaySpecials', () => {
     });
 
     it('최루-연막탄 appliedTokens가 올바르게 처리되어야 함', () => {
-      // 최루-연막탄 카드 정의: blurPlus(자신), dull(적), shaken(적 3스택)
+      // 최루-연막탄 카드 정의: blurPlus(자신), dull(적 3스택), shaken(적 3스택)
       const result = processCardPlaySpecials({
         card: {
           id: 'tear_smoke_grenade',
@@ -320,7 +320,7 @@ describe('cardPlaySpecials', () => {
           type: 'general',
           appliedTokens: [
             { id: 'blurPlus', stacks: 1, target: 'player' },
-            { id: 'dull', stacks: 1, target: 'enemy' },
+            { id: 'dull', stacks: 3, target: 'enemy' },
             { id: 'shaken', stacks: 3, target: 'enemy' }
           ]
         } as any,
@@ -335,10 +335,11 @@ describe('cardPlaySpecials', () => {
       expect(blurToken).toBeDefined();
       expect(blurToken!.targetEnemy).toBe(false);
 
-      // dull은 적에게
+      // dull은 적에게 3스택
       const dullToken = result.tokensToAdd.find(t => t.id === 'dull');
       expect(dullToken).toBeDefined();
       expect(dullToken!.targetEnemy).toBe(true);
+      expect(dullToken!.stacks).toBe(3);
 
       // shaken은 적에게 3스택
       const shakenToken = result.tokensToAdd.find(t => t.id === 'shaken');

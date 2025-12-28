@@ -47,7 +47,7 @@ describe('combatActions', () => {
         speedCost: 3,
         appliedTokens: [
           { id: 'blurPlus', stacks: 1, target: 'player' },
-          { id: 'dull', stacks: 1, target: 'enemy' },
+          { id: 'dull', stacks: 3, target: 'enemy' },
           { id: 'shaken', stacks: 3, target: 'enemy' }
         ]
       };
@@ -66,7 +66,7 @@ describe('combatActions', () => {
       const shakenToken = enemyTokens.find((t: any) => t.id === 'shaken');
 
       expect(dullToken).toBeDefined();
-      expect(dullToken?.stacks).toBe(1);
+      expect(dullToken?.stacks).toBe(3);
       expect(shakenToken).toBeDefined();
       expect(shakenToken?.stacks).toBe(3);
 

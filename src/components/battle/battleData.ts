@@ -945,7 +945,7 @@ export const CARDS = [
     requiredTokens: [{ id: 'finesse', stacks: 1 }],
     appliedTokens: [
       { id: 'blurPlus', stacks: 1, target: 'player' },
-      { id: 'dull', stacks: 1, target: 'enemy' },
+      { id: 'dull', stacks: 3, target: 'enemy' },
       { id: 'shaken', stacks: 3, target: 'enemy' }
     ]
   },
