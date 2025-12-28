@@ -35,6 +35,7 @@ export async function executeMultiHitAsync(card: any, attacker: any, defender: a
   let totalDealt = firstHitResult.damage;
   let totalTaken = firstHitResult.damageTaken || 0;
   let totalBlockDestroyed: number = Number(firstHitResult.blockDestroyed) || 0;
+  let totalTimelineAdvance = firstHitResult.timelineAdvance || 0;
 
   // 다중 타격 시 개별 데미지 로그 필터링
   const skipEventTypes = hits > 1 ? ['hit', 'blocked', 'pierce'] : [];
@@ -95,6 +96,7 @@ export async function executeMultiHitAsync(card: any, attacker: any, defender: a
     totalDealt += hitResult.damage;
     totalTaken += hitResult.damageTaken || 0;
     totalBlockDestroyed += Number(hitResult.blockDestroyed) || 0;
+    totalTimelineAdvance += hitResult.timelineAdvance || 0;
 
     const filteredHitEvents = (hitResult.events as BattleEvent[]).filter((ev: BattleEvent) => !ev.type || !skipEventTypes.includes(ev.type));
     allEvents.push(...filteredHitEvents);
@@ -129,7 +131,8 @@ export async function executeMultiHitAsync(card: any, attacker: any, defender: a
           jammed: true,
           hitsCompleted: actualHits,
           totalHits: hits,
-          createdCards: finalResult.createdCards
+          createdCards: finalResult.createdCards,
+          defenderTimelineAdvance: totalTimelineAdvance
         };
       }
     }
@@ -172,6 +175,7 @@ export async function executeMultiHitAsync(card: any, attacker: any, defender: a
     jammed: false,
     hitsCompleted: hits,
     totalHits: hits,
-    createdCards: finalResult.createdCards
+    createdCards: finalResult.createdCards,
+    defenderTimelineAdvance: totalTimelineAdvance
   };
 }

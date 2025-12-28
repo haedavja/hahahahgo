@@ -1486,7 +1486,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         criticalHits: multiHitResult.criticalHits,  // 다단 공격 치명타 횟수
         createdCards: multiHitResult.createdCards,
         updatedState: { player: P, enemy: E, log: [] },
-        cardPlaySpecials: cardPlayResult
+        cardPlaySpecials: cardPlayResult,
+        defenderTimelineAdvance: multiHitResult.defenderTimelineAdvance || 0
       };
 
       // battleRef 동기 업데이트
@@ -1515,50 +1516,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         });
       }
 
-      // 방어/일반 카드도 special 효과 처리 (상글로 드 플뤼 등)
-      const cardPlayAttacker = a.actor === 'player' ? P : E;
-      const cardPlayResult = processCardPlaySpecials({
-        card: a.card as unknown as SpecialCard,
-        attacker: cardPlayAttacker as unknown as SpecialActor,
-        attackerName: a.actor as 'player' | 'enemy',
-        battleContext: battleContext as unknown as SpecialBattleContext
-      });
-
-      // cardPlayResult의 토큰 처리
-      if (cardPlayResult.tokensToAdd?.length > 0) {
-        cardPlayResult.tokensToAdd.forEach(tokenInfo => {
-          const isPlayerAction = a.actor === 'player';
-          const targetIsEnemy = tokenInfo.targetEnemy === true;
-          const applyToEnemy = isPlayerAction ? targetIsEnemy : !targetIsEnemy;
-
-          if (applyToEnemy) {
-            const tokenResult = addToken(E as TokenEntity, tokenInfo.id, tokenInfo.stacks, tokenInfo.grantedAt);
-            E = { ...E, tokens: tokenResult.tokens };
-          } else {
-            const tokenResult = addToken(P as TokenEntity, tokenInfo.id, tokenInfo.stacks, tokenInfo.grantedAt);
-            P = { ...P, tokens: tokenResult.tokens };
-          }
-        });
-      }
-      if (cardPlayResult.tokensToRemove?.length > 0) {
-        cardPlayResult.tokensToRemove.forEach(tokenInfo => {
-          if (a.actor === 'player') {
-            const tokenResult = removeToken(P as TokenEntity, tokenInfo.id, 'permanent', tokenInfo.stacks);
-            P = { ...P, tokens: tokenResult.tokens };
-          } else {
-            const tokenResult = removeToken(E as TokenEntity, tokenInfo.id, 'permanent', tokenInfo.stacks);
-            E = { ...E, tokens: tokenResult.tokens };
-          }
-        });
-      }
-
-      // 이벤트 병합
-      actionEvents = [...actionEvents, ...cardPlayResult.events];
-
-      // battleRef 동기 업데이트 (토큰 적용 후)
-      if (battleRef.current) {
-        battleRef.current = { ...battleRef.current, player: P, enemy: E };
-      }
+      // NOTE: processCardPlaySpecials는 applyAction 내부(combatActions.ts)에서 이미 호출됨
+      // 중복 호출 시 로그/토큰이 중복 적용되므로 여기서는 호출하지 않음
     }
 
     // === 유닛 시스템: 플레이어 공격 후 타겟 유닛의 block 업데이트 ===
@@ -1656,6 +1615,29 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     actionEvents.forEach(ev => {
       if (ev.msg) addLog(ev.msg);
     });
+
+    // === 방어자 타임라인 앞당김 (rain_defense 등) ===
+    const defenderAdvance = actionResult.defenderTimelineAdvance || 0;
+    if (defenderAdvance > 0) {
+      const defenderName = a.actor === 'player' ? 'enemy' : 'player';
+      let updatedQueue = [...(battleRef.current?.queue ?? [])];
+      const qIdx = battleRef.current?.qIndex ?? 0;
+
+      updatedQueue = updatedQueue.map((item, idx) => {
+        if (idx > qIdx && item.actor === defenderName) {
+          return { ...item, sp: Math.max(0, (item.sp ?? 0) - defenderAdvance) };
+        }
+        return item;
+      });
+
+      // 큐 재정렬
+      const processedCards = updatedQueue.slice(0, qIdx + 1);
+      const remainingCards = updatedQueue.slice(qIdx + 1);
+      remainingCards.sort((a, b) => (a.sp ?? 0) - (b.sp ?? 0));
+      updatedQueue = [...processedCards, ...remainingCards];
+
+      actions.setQueue(updatedQueue);
+    }
 
     // === blockPerCardExecution: 카드 실행 시 방어력 추가 (노인의 꿈) ===
     // 단, 이 효과를 발동시킨 카드 자체(blockPerCard5 special 보유)는 제외
