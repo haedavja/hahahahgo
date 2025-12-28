@@ -131,7 +131,7 @@ export interface BattleActions {
   setQueue: (queue: unknown[]) => void;
   setQIndex: (index: number) => void;
   setFixedOrder: (order: unknown[] | null) => void;
-  setEnemyPlan: (plan: EnemyPlan | unknown[]) => void;
+  setEnemyPlan: (plan: EnemyPlan) => void;
   setPostCombatOptions: (options: PostCombatOptions | null) => void;
   setExecutingCardIndex: (index: number | null) => void;
   setResolvedPlayerCards: (count: number) => void;
@@ -304,12 +304,7 @@ export function useBattleState(initialStateOverrides: InitialStateOverrides = {}
     setQueue: (queue: HandCard[]) => dispatch({ type: ACTIONS.SET_QUEUE, payload: queue }),
     setQIndex: (index: number) => dispatch({ type: ACTIONS.SET_Q_INDEX, payload: index }),
     setFixedOrder: (order: HandCard[] | null) => dispatch({ type: ACTIONS.SET_FIXED_ORDER, payload: order }),
-    setEnemyPlan: (plan: EnemyPlan | HandCard[]) => {
-      const payload = Array.isArray(plan)
-        ? { actions: plan, mode: null }
-        : plan;
-      dispatch({ type: ACTIONS.SET_ENEMY_PLAN, payload: payload as EnemyPlan });
-    },
+    setEnemyPlan: (plan: EnemyPlan) => dispatch({ type: ACTIONS.SET_ENEMY_PLAN, payload: plan }),
 
     // === UI 상태 ===
     setShowCharacterSheet: (show: boolean) => dispatch({ type: ACTIONS.SET_SHOW_CHARACTER_SHEET, payload: show }),
