@@ -255,14 +255,7 @@ export function processPostAttackSpecials({
     logs.push(msg);
   }
 
-  // === knockbackOnHit3: 피해 시 넉백 3 (제압사격) ===
-  if (hasSpecial(card, 'knockbackOnHit3') && damageDealt > 0) {
-    const who = attackerName === 'player' ? '플레이어' : '몬스터';
-    const msg = `${who} • ⏩ ${card.name}: 피해 성공! 적 타임라인 3 밀림!`;
-    events.push({ actor: attackerName, card: card.name, type: 'timeline', msg });
-    logs.push(msg);
-    // 실제 넉백 처리는 타임라인 시스템에서 수행
-  }
+  // knockbackOnHit3은 processTimelineSpecials에서 처리됨
 
   return {
     attacker: modifiedAttacker,

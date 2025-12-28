@@ -235,6 +235,29 @@ export function executeCardActionCore(params: ExecuteCardActionCoreParams): Exec
     actions.setQueue(updatedQueue);
   }
 
+  // 방어자 타임라인 앞당김 (rain_defense 등)
+  const defenderAdvance = actionResult.defenderTimelineAdvance || 0;
+  if (defenderAdvance > 0) {
+    const defenderName = action.actor === 'player' ? 'enemy' : 'player';
+    let updatedQueue = [...(battleRef.current?.queue ?? [])];
+    const qIdx = battleRef.current?.qIndex ?? 0;
+
+    updatedQueue = updatedQueue.map((item, idx) => {
+      if (idx > qIdx && item.actor === defenderName) {
+        return { ...item, sp: Math.max(0, (item.sp ?? 0) - defenderAdvance) };
+      }
+      return item;
+    });
+
+    // 큐 재정렬
+    const processedCards = updatedQueue.slice(0, qIdx + 1);
+    const remainingCards = updatedQueue.slice(qIdx + 1);
+    remainingCards.sort((a, b) => (a.sp ?? 0) - (b.sp ?? 0));
+    updatedQueue = [...processedCards, ...remainingCards];
+
+    actions.setQueue(updatedQueue);
+  }
+
   // 에테르 누적
   if (action.actor === 'player') {
     // blockPerCardExecution 효과: 카드당 방어력 획득

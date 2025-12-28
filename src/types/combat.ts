@@ -194,6 +194,7 @@ export interface AttackResult {
   logs: string[];
   isCritical?: boolean;
   createdCards?: Card[];
+  defenderTimelineAdvance?: number;
 }
 
 /** 방어 행동 결과 */
@@ -214,6 +215,7 @@ export interface ActionResult {
   isCritical?: boolean;
   createdCards?: Card[];
   cardPlaySpecials?: CardPlaySpecialsResult;
+  defenderTimelineAdvance?: number;
 }
 
 /** 카드 사용 특수 효과 결과 */

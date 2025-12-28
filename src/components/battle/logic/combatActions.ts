@@ -76,6 +76,7 @@ export function applyAttack(
   let totalDealt = 0;
   let totalTaken = 0;
   let totalBlockDestroyed = 0;
+  let totalDefenderTimelineAdvance = 0;
   const allEvents: BattleEvent[] = [];
   const allLogs: string[] = [];
 
@@ -95,6 +96,7 @@ export function applyAttack(
   totalDealt += firstHitResult.damage;
   totalTaken += firstHitResult.damageTaken || 0;
   totalBlockDestroyed += firstHitResult.blockDestroyed || 0;
+  totalDefenderTimelineAdvance += firstHitResult.timelineAdvance || 0;
 
   const preProcessedResult = firstHitResult.preProcessedResult;
   const modifiedCard = preProcessedResult?.modifiedCard || card;
@@ -119,6 +121,7 @@ export function applyAttack(
     totalDealt += result.damage;
     totalTaken += result.damageTaken || 0;
     totalBlockDestroyed += result.blockDestroyed || 0;
+    totalDefenderTimelineAdvance += result.timelineAdvance || 0;
     const filteredEvents = result.events.filter(ev => !(ev.type && skipEventTypes.includes(ev.type)));
     allEvents.push(...filteredEvents);
   }
@@ -195,7 +198,8 @@ export function applyAttack(
     events: allEvents,
     logs: allLogs,
     isCritical,
-    createdCards: cardCreationResult.createdCards
+    createdCards: cardCreationResult.createdCards,
+    defenderTimelineAdvance: totalDefenderTimelineAdvance
   };
 }
 
@@ -383,7 +387,8 @@ export function applyAction(
       updatedState,
       isCritical: result.isCritical,
       createdCards: result.createdCards || [],
-      cardPlaySpecials: cardPlayResult as unknown as CardPlaySpecialsResult
+      cardPlaySpecials: cardPlayResult as unknown as CardPlaySpecialsResult,
+      defenderTimelineAdvance: result.defenderTimelineAdvance || 0
     };
   }
 

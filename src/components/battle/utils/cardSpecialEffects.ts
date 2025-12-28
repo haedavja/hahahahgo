@@ -289,6 +289,16 @@ export function processTimelineSpecials({
     }
   }
 
+  // === knockbackOnHit3: 피해 시 넉백 3 (제압사격) ===
+  if (hasSpecial(card, 'knockbackOnHit3') && damageDealt > 0) {
+    const amount = 3;
+    timelineChanges.pushEnemy = (timelineChanges.pushEnemy || 0) + amount;
+    const who = actorName === 'player' ? '플레이어' : '몬스터';
+    const msg = `${who} • ⏩ ${card.name}: 피해 성공! 적 타임라인 ${amount} 뒤로 밀림!`;
+    events.push({ actor: actorName, card: card.name, type: 'timeline', msg });
+    logs.push(msg);
+  }
+
   return { timelineChanges, events, logs };
 }
 
