@@ -1604,6 +1604,21 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       if (ev.msg) addLog(ev.msg);
     });
 
+    // === blockPerCardExecution: 카드 실행 시 방어력 추가 (노인의 꿈) ===
+    if (a.actor === 'player') {
+      const latestNextTurnEffects = battleRef.current?.nextTurnEffects || battle.nextTurnEffects || {};
+      const blockPerCard = (latestNextTurnEffects as { blockPerCardExecution?: number }).blockPerCardExecution || 0;
+      if (blockPerCard > 0) {
+        P.block = (P.block || 0) + blockPerCard;
+        P.def = true;
+        addLog(`🛡️ 노인의 꿈: 카드 실행 시 방어력 +${blockPerCard}`);
+        // battleRef 동기 업데이트
+        if (battleRef.current) {
+          battleRef.current = { ...battleRef.current, player: P };
+        }
+      }
+    }
+
     // === 화상(BURN) 피해 처리: 카드 사용 시마다 피해 ===
     if (a.actor === 'player') {
       const playerBurnTokens = getAllTokens(P as TokenEntity).filter((t: any) => t.effect?.type === 'BURN');

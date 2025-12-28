@@ -146,9 +146,13 @@ export function useResolveExecution({
     const currentNextTurnEffects = battleRef.current?.nextTurnEffects || battle.nextTurnEffects;
     const newNextTurnEffects = {
       ...traitNextTurnEffects,
+      ...currentNextTurnEffects,  // 모든 현재 효과 유지 (fencingDamageBonus 등)
       bonusEnergy: (traitNextTurnEffects.bonusEnergy || 0) + (currentNextTurnEffects.bonusEnergy || 0),
       maxSpeedBonus: (traitNextTurnEffects.maxSpeedBonus || 0) + (currentNextTurnEffects.maxSpeedBonus || 0),
-      extraCardPlay: (traitNextTurnEffects.extraCardPlay || 0) + (currentNextTurnEffects.extraCardPlay || 0)
+      extraCardPlay: (traitNextTurnEffects.extraCardPlay || 0) + (currentNextTurnEffects.extraCardPlay || 0),
+      // 턴 종료 시 blockPerCardExecution 초기화 (이번 턴만 유효)
+      blockPerCardExecution: 0,
+      repeatMyTimeline: false
     };
 
     // 상징 턴 종료 효과 적용
