@@ -465,8 +465,16 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   useEffect(() => { devForceAllCardsRef.current = devForceAllCards; }, [devForceAllCards]);
 
   // battle 상태가 변경될 때마다 ref 업데이트
+  // nextTurnEffects는 동기적으로 업데이트되므로 기존 값 보존
   useEffect(() => {
-    battleRef.current = battle;
+    const currentNextTurnEffects = battleRef.current?.nextTurnEffects;
+    battleRef.current = {
+      ...battle,
+      // nextTurnEffects가 이미 설정되어 있으면 기존 값 보존 (동기 업데이트된 값)
+      nextTurnEffects: currentNextTurnEffects && Object.keys(currentNextTurnEffects).length > 0
+        ? { ...battle.nextTurnEffects, ...currentNextTurnEffects }
+        : battle.nextTurnEffects
+    };
   }, [battle]);
 
   // resolve 단계 진입 시 에테르 배율 캡처 (애니메이션 중 리셋되어도 표시 유지)
@@ -1608,12 +1616,10 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     if (a.actor === 'player') {
       const latestNextTurnEffects = battleRef.current?.nextTurnEffects || battle.nextTurnEffects || {};
       const blockPerCard = (latestNextTurnEffects as { blockPerCardExecution?: number }).blockPerCardExecution || 0;
-      if (import.meta.env.DEV) console.log('[blockPerCardExecution] Check:', { blockPerCard, latestNextTurnEffects, cardName: a.card.name });
       if (blockPerCard > 0) {
         P.block = (P.block || 0) + blockPerCard;
         P.def = true;
         addLog(`🛡️ 노인의 꿈: 카드 실행 시 방어력 +${blockPerCard}`);
-        if (import.meta.env.DEV) console.log('[blockPerCardExecution] Applied:', { newBlock: P.block });
         // battleRef 동기 업데이트
         if (battleRef.current) {
           battleRef.current = { ...battleRef.current, player: P };
@@ -1818,7 +1824,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
           }
         }
 
-        if (import.meta.env.DEV) console.log('[nextTurnEffects] Setting:', { updatedEffects, blockPerCardExecution: updatedEffects.blockPerCardExecution, cardName: a.card.name });
         actions.setNextTurnEffects(updatedEffects);
         // battleRef 동기 업데이트 (finishTurn에서 최신 값 사용)
         if (battleRef.current) {
@@ -1855,7 +1860,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
           // 효과 사용 후 플래그 제거
           const clearedEffects = { ...updatedEffects, repeatMyTimeline: false };
-          if (import.meta.env.DEV) console.log('[repeatMyTimeline] After clear:', { clearedEffects, blockPerCardExecution: clearedEffects.blockPerCardExecution });
           actions.setNextTurnEffects(clearedEffects);
           if (battleRef.current) {
             battleRef.current = { ...battleRef.current, nextTurnEffects: clearedEffects };
