@@ -1687,6 +1687,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     // cardPlaySpecials 결과 처리 (comboStyle, mentalFocus 등)
     if (actionResult.cardPlaySpecials && a.actor === 'player') {
       const { bonusCards, nextTurnEffects: newNextTurnEffects } = actionResult.cardPlaySpecials as any;
+      if (import.meta.env.DEV) console.log('[cardPlaySpecials] Extracted:', { newNextTurnEffects, bonusCards, cardName: a.card.name, fullResult: actionResult.cardPlaySpecials });
 
       // bonusCards 처리 (comboStyle): 큐에 유령카드로 추가
       if (bonusCards && bonusCards.length > 0) {
