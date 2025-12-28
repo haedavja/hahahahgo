@@ -889,6 +889,80 @@ export const CARDS = [
     requiredTokens: [{ id: 'finesse', stacks: 3 }],
     special: ["createAtomicBlast"]
   },
+  // === 신규 펜싱/유틸 카드 ===
+  {
+    id: "sanglot_de_pluie",
+    name: "상글로 드 플뤼",
+    type: "general",
+    block: 15,
+    speedCost: 6,
+    actionCost: 2,
+    iconKey: "shield",
+    description: "기교 1 소모. 방어력 15. 공격당할때마다 방어력 7, 앞당김 3.",
+    traits: ["followup", "cross"],
+    cardCategory: "fencing",
+    requiredTokens: [{ id: 'finesse', stacks: 1 }],
+    special: ["onHitBlock7Advance3"]
+  },
+  {
+    id: "chant_du_vent_fleuri",
+    name: "샹 뒤 방 플뢰리",
+    type: "general",
+    block: 30,
+    speedCost: 9,
+    actionCost: 1,
+    iconKey: "shield",
+    description: "기교 2 소모. 방어력 30.",
+    traits: ["chain", "followup"],
+    cardCategory: "fencing",
+    requiredTokens: [{ id: 'finesse', stacks: 2 }]
+  },
+  {
+    id: "le_songe_du_vieillard",
+    name: "르 송쥬 뒤 비에야르",
+    type: "general",
+    block: 0,
+    speedCost: 12,
+    actionCost: 3,
+    iconKey: "shield",
+    description: "기교 3 소모. 이 카드를 제외하고 내 타임라인을 1회 반복. 카드 실행마다 방어력 5.",
+    traits: ["guard_stance"],
+    cardCategory: "fencing",
+    requiredTokens: [{ id: 'finesse', stacks: 3 }],
+    special: ["repeatTimeline", "blockPerCard5"]
+  },
+  {
+    id: "tear_smoke_grenade",
+    name: "최루-연막탄",
+    type: "general",
+    block: 0,
+    speedCost: 2,
+    actionCost: 1,
+    iconKey: "shield",
+    description: "기교 1 소모. 나에게 회피+, 상대에게 무딤, 흔들림 3회.",
+    traits: ["followup"],
+    cardCategory: "gun",
+    requiredTokens: [{ id: 'finesse', stacks: 1 }],
+    appliedTokens: [
+      { id: 'blurPlus', stacks: 1, target: 'player' },
+      { id: 'dull', stacks: 1, target: 'enemy' },
+      { id: 'shaken', stacks: 3, target: 'enemy' }
+    ]
+  },
+  {
+    id: "duel",
+    name: "결투",
+    type: "general",
+    block: 0,
+    speedCost: 8,
+    actionCost: 2,
+    iconKey: "flame",
+    description: "기교 2 소모. 체력 최대 회복, 탄걸림 면역 2턴, 대응사격 5회.",
+    traits: ["chain", "followup"],
+    cardCategory: "gun",
+    requiredTokens: [{ id: 'finesse', stacks: 2 }],
+    special: ["fullHeal", "jamImmunity2", "counterShot5"]
+  },
 ];
 
 export const ENEMY_CARDS = [

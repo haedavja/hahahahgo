@@ -485,6 +485,24 @@ export const TOKENS: Record<string, TokenDefinition> = {
     description: '총격 사용 시 스택 x 5% 확률로 탄걸림 발생. 탄걸림 시 제거됨.',
     effect: { type: 'ROULETTE', value: 5 }
   },
+  rain_defense: {
+    id: 'rain_defense',
+    name: '비의 눈물',
+    type: TOKEN_TYPES.TURN,
+    category: TOKEN_CATEGORIES.POSITIVE,
+    emoji: '🌧️',
+    description: '공격당할 때마다 방어력 7 획득, 타임라인 3 앞당김.',
+    effect: { type: 'RAIN_DEFENSE', value: 7, advance: 3 }
+  },
+  jam_immunity: {
+    id: 'jam_immunity',
+    name: '무제한 탄창',
+    type: TOKEN_TYPES.TURN,
+    category: TOKEN_CATEGORIES.POSITIVE,
+    emoji: '♾️',
+    description: '탄걸림이 발생하지 않는다.',
+    effect: { type: 'JAM_IMMUNITY', value: 1 }
+  },
 
   // === 치명타/통찰 관련 토큰 ===
   crit_boost: {

@@ -415,5 +415,50 @@ export function processCardPlaySpecials({
     logs.push(msg);
   }
 
+  // === onHitBlock7Advance3: 상글로 드 플뤼 - 공격당할때마다 방어력+7, 앞당김 3 ===
+  if (hasSpecial(card, 'onHitBlock7Advance3')) {
+    tokensToAdd.push({ id: 'rain_defense', stacks: 1 });
+    const who = attackerName === 'player' ? '플레이어' : '몬스터';
+    const msg = `${who} • 🌧️ ${card.name}: 비의 눈물 발동! 공격당할때마다 방어력 7, 앞당김 3!`;
+    events.push({ actor: attackerName, card: card.name, type: 'special', msg });
+    logs.push(msg);
+  }
+
+  // === repeatTimeline + blockPerCard5: 르 송쥬 뒤 비에야르 ===
+  if (hasSpecial(card, 'repeatTimeline')) {
+    nextTurnEffects = { ...nextTurnEffects, repeatMyTimeline: true, blockPerCardExecution: 5 };
+    const who = attackerName === 'player' ? '플레이어' : '몬스터';
+    const msg = `${who} • 🔄 ${card.name}: 노인의 꿈! 타임라인 반복 준비!`;
+    events.push({ actor: attackerName, card: card.name, type: 'special', msg });
+    logs.push(msg);
+  }
+
+  // === fullHeal: 체력 최대 회복 ===
+  if (hasSpecial(card, 'fullHeal')) {
+    nextTurnEffects = { ...nextTurnEffects, fullHeal: true };
+    const who = attackerName === 'player' ? '플레이어' : '몬스터';
+    const msg = `${who} • ❤️ ${card.name}: 체력 최대 회복!`;
+    events.push({ actor: attackerName, card: card.name, type: 'special', msg });
+    logs.push(msg);
+  }
+
+  // === jamImmunity2: 탄걸림 면역 2턴 ===
+  if (hasSpecial(card, 'jamImmunity2')) {
+    tokensToAdd.push({ id: 'jam_immunity', stacks: 2 });
+    const who = attackerName === 'player' ? '플레이어' : '몬스터';
+    const msg = `${who} • 🛡️ ${card.name}: 탄걸림 면역 2턴!`;
+    events.push({ actor: attackerName, card: card.name, type: 'special', msg });
+    logs.push(msg);
+  }
+
+  // === counterShot5: 대응사격 5회 ===
+  if (hasSpecial(card, 'counterShot5')) {
+    tokensToAdd.push({ id: 'counterShot', stacks: 5 });
+    const who = attackerName === 'player' ? '플레이어' : '몬스터';
+    const msg = `${who} • 🔫 ${card.name}: 대응사격 5회 준비!`;
+    events.push({ actor: attackerName, card: card.name, type: 'special', msg });
+    logs.push(msg);
+  }
+
   return { bonusCards, tokensToAdd, tokensToRemove, nextTurnEffects, events, logs };
 }
