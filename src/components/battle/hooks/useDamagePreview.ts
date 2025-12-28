@@ -51,7 +51,7 @@ export function useDamagePreview({
   selectedTargetUnit,
   actions,
   playSound
-}) {
+}: any) {
   const lethalSoundRef = useRef(false);
   const overkillSoundRef = useRef(false);
   const prevPreviewRef = useRef<{ value: number; lethal: boolean; overkill: boolean } | null>(null);
@@ -82,11 +82,11 @@ export function useDamagePreview({
     const overkill = value > targetMaxHp;
 
     // 유닛별 피해량 계산 (다중 유닛 시스템용)
-    let perUnitPreview = {};
+    let perUnitPreview: any = {};
     if (hasMultipleUnits && enemyUnits.length > 0) {
       const boost = willOverdrive ? 2 : 1;
       const strengthBonus = player.strength || 0;
-      const perUnitDamage = {};
+      const perUnitDamage: any = {};
 
       // 플레이어 공격 카드의 피해량을 타겟 유닛별로 합산
       for (const step of order) {
@@ -106,7 +106,7 @@ export function useDamagePreview({
       // 각 유닛별 치명/과잉 판정
       for (const [unitIdStr, damage] of Object.entries(perUnitDamage)) {
         const unitId = parseInt(unitIdStr, 10);
-        const unit = enemyUnits.find(u => u.unitId === unitId);
+        const unit = enemyUnits.find((u: any) => u.unitId === unitId);
         const damageNum = Number(damage);
         if (unit && damageNum > 0) {
           const unitBlock = unit.block || 0;
@@ -137,9 +137,9 @@ export function useDamagePreview({
   // 피해 미리보기 상태 업데이트 및 사운드 효과
   useEffect(() => {
     const { value, lethal, overkill, perUnitPreview } = previewDamageResult;
-
-    // 값이 실제로 변경됐을 때만 상태 업데이트 (무한 루프 방지)
     const prev = prevPreviewRef.current;
+
+    // 값이 실제로 변경된 경우에만 상태 업데이트 (무한 루프 방지)
     if (!prev || prev.value !== value || prev.lethal !== lethal || prev.overkill !== overkill) {
       prevPreviewRef.current = { value, lethal, overkill };
       actions.setPreviewDamage({ value, lethal, overkill });

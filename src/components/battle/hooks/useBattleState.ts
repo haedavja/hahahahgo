@@ -14,7 +14,8 @@ import type {
   EnemyPlan,
   RespondSnapshot,
   BattleEvent,
-  PostCombatOptions
+  PostCombatOptions,
+  DeflationInfo
 } from '../../../types';
 import type { FullBattleState, NextTurnEffects, PlayerState, EnemyState, EnemyUnitState } from '../reducer/battleReducerState';
 import type { BattleAction, BattlePhase, SortType, EtherCalcPhase } from '../reducer/battleReducerActions';
@@ -119,10 +120,10 @@ export interface BattleActions {
   setTurnEtherAccumulated: (amount: number) => void;
   setEnemyTurnEtherAccumulated: (amount: number) => void;
   setEtherCalcPhase: (phase: EtherCalcPhase) => void;
-  setCurrentDeflation: (deflation: number | null) => void;
+  setCurrentDeflation: (deflation: DeflationInfo | null) => void;
   setEtherFinalValue: (value: number | null) => void;
   setEnemyEtherCalcPhase: (phase: EtherCalcPhase) => void;
-  setEnemyCurrentDeflation: (deflation: number | null) => void;
+  setEnemyCurrentDeflation: (deflation: DeflationInfo | null) => void;
   setEnemyEtherFinalValue: (value: number | null) => void;
   setEtherAnimationPts: (pts: number) => void;
   setNetEtherDelta: (delta: number | null) => void;
@@ -131,7 +132,7 @@ export interface BattleActions {
   setQueue: (queue: unknown[]) => void;
   setQIndex: (index: number) => void;
   setFixedOrder: (order: unknown[] | null) => void;
-  setEnemyPlan: (plan: EnemyPlan) => void;
+  setEnemyPlan: (plan: EnemyPlan | unknown[]) => void;
   setPostCombatOptions: (options: PostCombatOptions | null) => void;
   setExecutingCardIndex: (index: number | null) => void;
   setResolvedPlayerCards: (count: number) => void;
@@ -294,17 +295,23 @@ export function useBattleState(initialStateOverrides: InitialStateOverrides = {}
     setTurnEtherAccumulated: (amount: number) => dispatch({ type: ACTIONS.SET_TURN_ETHER_ACCUMULATED, payload: amount }),
     setEnemyTurnEtherAccumulated: (amount: number) => dispatch({ type: ACTIONS.SET_ENEMY_TURN_ETHER_ACCUMULATED, payload: amount }),
     setEtherCalcPhase: (phase: EtherCalcPhase) => dispatch({ type: ACTIONS.SET_ETHER_CALC_PHASE, payload: phase }),
-    setCurrentDeflation: (deflation: number | null) => dispatch({ type: ACTIONS.SET_CURRENT_DEFLATION, payload: deflation }),
+    setCurrentDeflation: (deflation: DeflationInfo | null) => dispatch({ type: ACTIONS.SET_CURRENT_DEFLATION, payload: deflation }),
     setEtherFinalValue: (value: number | null) => dispatch({ type: ACTIONS.SET_ETHER_FINAL_VALUE, payload: value }),
     setEnemyEtherCalcPhase: (phase: EtherCalcPhase) => dispatch({ type: ACTIONS.SET_ENEMY_ETHER_CALC_PHASE, payload: phase }),
-    setEnemyCurrentDeflation: (deflation: number | null) => dispatch({ type: ACTIONS.SET_ENEMY_CURRENT_DEFLATION, payload: deflation }),
+    setEnemyCurrentDeflation: (deflation: DeflationInfo | null) => dispatch({ type: ACTIONS.SET_ENEMY_CURRENT_DEFLATION, payload: deflation }),
     setEnemyEtherFinalValue: (value: number | null) => dispatch({ type: ACTIONS.SET_ENEMY_ETHER_FINAL_VALUE, payload: value }),
 
     // === 전투 실행 ===
     setQueue: (queue: HandCard[]) => dispatch({ type: ACTIONS.SET_QUEUE, payload: queue }),
     setQIndex: (index: number) => dispatch({ type: ACTIONS.SET_Q_INDEX, payload: index }),
     setFixedOrder: (order: HandCard[] | null) => dispatch({ type: ACTIONS.SET_FIXED_ORDER, payload: order }),
-    setEnemyPlan: (plan: EnemyPlan) => dispatch({ type: ACTIONS.SET_ENEMY_PLAN, payload: plan }),
+    setEnemyPlan: (plan: EnemyPlan | HandCard[]) => {
+      // EnemyPlan 객체인지 배열인지 확인
+      const payload = Array.isArray(plan)
+        ? { actions: plan, mode: null } as EnemyPlan
+        : plan as EnemyPlan;
+      dispatch({ type: ACTIONS.SET_ENEMY_PLAN, payload });
+    },
 
     // === UI 상태 ===
     setShowCharacterSheet: (show: boolean) => dispatch({ type: ACTIONS.SET_SHOW_CHARACTER_SHEET, payload: show }),

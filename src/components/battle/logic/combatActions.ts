@@ -131,7 +131,7 @@ export function applyAttack(
     const targetName = attackerName === 'player' ? enemyNameMulti : '플레이어';
     const baseDmg = modifiedCard.damage || card.damage || 0;
     const critText = isCritical ? ' 💥치명타!' : '';
-    const beforeHP = (allEvents.find(e => e.type === 'hit')?.beforeHP) || currentDefender.hp + totalDealt;
+    const beforeHP = ((allEvents.find(e => e.type === 'hit') as { beforeHP?: number } | undefined)?.beforeHP) || currentDefender.hp + totalDealt;
     const afterHP = currentDefender.hp;
 
     let dmgFormula;

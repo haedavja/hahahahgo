@@ -53,12 +53,13 @@ export function processCardPlaySpecials({
   let nextTurnEffects: NextTurnEffects | null = null;
 
   const { hand = [], allCards = [], currentTurn, currentSp } = battleContext;
-  const grantedAtBase = currentTurn ? { turn: currentTurn, sp: currentSp || 0 } : null;
+  const grantedAtBase = currentTurn ? { turn: currentTurn, sp: currentSp || 0 } : undefined;
 
   // === appliedTokens: 카드에 정의된 토큰 자동 적용 ===
-  if (card.appliedTokens && Array.isArray(card.appliedTokens)) {
+  const cardWithTokens = card as { appliedTokens?: Array<{ id: string; stacks?: number; target?: string }> };
+  if (cardWithTokens.appliedTokens && Array.isArray(cardWithTokens.appliedTokens)) {
     const who = attackerName === 'player' ? '플레이어' : '몬스터';
-    for (const tokenInfo of card.appliedTokens) {
+    for (const tokenInfo of cardWithTokens.appliedTokens) {
       const targetEnemy = tokenInfo.target === 'enemy';
       const stacks = tokenInfo.stacks || 1;
       tokensToAdd.push({ id: tokenInfo.id, stacks, grantedAt: grantedAtBase, targetEnemy });

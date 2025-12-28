@@ -78,12 +78,12 @@ export function applyDefense(
 
   const baseBlock = hologramBlock > 0
     ? hologramBlock + strengthBonus + growingDefenseBonus
-    : ((defCard.block || 0) + strengthBonus + growingDefenseBonus);
+    : ((defCard.block || defCard.defense || 0) + strengthBonus + growingDefenseBonus);
   const added = Math.floor(baseBlock * crossBlockMult);
   const after = prev + added;
 
   // 소모된 토큰 제거
-  let tokenLogs = [];
+  let tokenLogs: string[] = [];
   let updatedTokens = actor.tokens;
   if (consumedTokens.length > 0) {
     const consumeResult = consumeTokens(actor, consumedTokens);
@@ -114,24 +114,28 @@ export function applyDefense(
   }
 
   const enemyName = battleContext.enemyDisplayName || '몬스터';
-  const who = actorName === 'player' ? `플레이어(${card.name})` : `${enemyName}(${card.name})`;
+  const who = actorName === 'player' ? '플레이어' : enemyName;
   const growingText = growingDefenseBonus > 0 ? ` (+${growingDefenseBonus} 방어자세)` : '';
   const hologramText = hologramBlock > 0 ? ' (최대체력)' : '';
   const blockMsg = added > 0
     ? (prev === 0
         ? `🛡️ +${added}${hologramText}${growingText}${crossBonusText} = ${after}`
         : `🛡️ ${prev} + ${added}${hologramText}${growingText}${crossBonusText} = ${after}`)
-    : '';
-  const msg = `${who} •${blockMsg ? ' ' + blockMsg : ''}${healText}`.trim();
+    : '🛡️ +0';
+  const msg = `${who} • ${blockMsg}${healText}`.trim();
+
+  // 이벤트 메시지에 카드 이름 포함 (로그에서 직접 출력됨)
+  const actorEmoji = actorName === 'player' ? '🔵' : '👾';
+  const eventMsg = `${actorEmoji} ${card.name} → ${msg}`;
 
   const event: { actor: 'player' | 'enemy'; card?: string; type?: string; msg: string } = {
     actor: actorName,
     card: card.name,
     type: 'defense',
-    msg
+    msg: eventMsg
   };
 
-  const logMsg = `${actorName === 'player' ? '🔵' : '👾'} ${msg}`;
+  const logMsg = eventMsg;
   const allLogs = tokenLogs.length > 0 ? [logMsg, ...tokenLogs] : [logMsg];
 
   return {
