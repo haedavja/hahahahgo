@@ -66,7 +66,10 @@ export function processCardPlaySpecials({
 
       const tokenData = TOKENS[tokenInfo.id];
       const tokenName = tokenData?.name || tokenInfo.id;
-      logs.push(`✨ ${who} (${card.name}): ${tokenName} +${stacks} 획득`);
+      const targetName = targetEnemy
+        ? (attackerName === 'player' ? '적' : '플레이어')
+        : (attackerName === 'player' ? '플레이어' : '적');
+      logs.push(`✨ ${who} (${card.name}): ${targetName}에게 ${tokenName} +${stacks} 부여`);
     }
   }
 

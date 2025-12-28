@@ -1,0 +1,140 @@
+/**
+ * @file combatActions.test.ts
+ * @description 전투 행동 처리 로직 테스트
+ */
+
+import { describe, it, expect } from 'vitest';
+import { applyAction } from './combatActions';
+
+describe('combatActions', () => {
+  describe('applyAction', () => {
+    const createPlayer = (overrides = {}): any => ({
+      hp: 100,
+      maxHp: 100,
+      block: 0,
+      def: false,
+      counter: 0,
+      vulnMult: 1,
+      strength: 0,
+      tokens: { usage: [], turn: [], permanent: [] },
+      ...overrides
+    });
+
+    const createEnemy = (overrides = {}): any => ({
+      hp: 100,
+      maxHp: 100,
+      block: 0,
+      def: false,
+      counter: 0,
+      vulnMult: 1,
+      tokens: { usage: [], turn: [], permanent: [] },
+      ...overrides
+    });
+
+    const createState = (playerOverrides = {}, enemyOverrides = {}): any => ({
+      player: createPlayer(playerOverrides),
+      enemy: createEnemy(enemyOverrides),
+      log: []
+    });
+
+    it('general 카드의 appliedTokens가 targetEnemy=true인 경우 적에게 토큰을 적용해야 함', () => {
+      const state = createState();
+      const card = {
+        id: 'tear_smoke_grenade',
+        name: '최루-연막탄',
+        type: 'general',
+        block: 0,
+        speedCost: 3,
+        appliedTokens: [
+          { id: 'blurPlus', stacks: 1, target: 'player' },
+          { id: 'dull', stacks: 1, target: 'enemy' },
+          { id: 'shaken', stacks: 3, target: 'enemy' }
+        ]
+      };
+
+      const result = applyAction(state, 'player', card as any);
+
+      // 적(enemy)에게 dull, shaken 토큰이 적용되어야 함
+      const updatedEnemy = result.updatedState.enemy;
+      const enemyTokens = [
+        ...(updatedEnemy.tokens?.usage || []),
+        ...(updatedEnemy.tokens?.turn || []),
+        ...(updatedEnemy.tokens?.permanent || [])
+      ];
+
+      const dullToken = enemyTokens.find((t: any) => t.id === 'dull');
+      const shakenToken = enemyTokens.find((t: any) => t.id === 'shaken');
+
+      expect(dullToken).toBeDefined();
+      expect(dullToken?.stacks).toBe(1);
+      expect(shakenToken).toBeDefined();
+      expect(shakenToken?.stacks).toBe(3);
+
+      // 플레이어에게 blurPlus 토큰이 적용되어야 함
+      const updatedPlayer = result.updatedState.player;
+      const playerTokens = [
+        ...(updatedPlayer.tokens?.usage || []),
+        ...(updatedPlayer.tokens?.turn || []),
+        ...(updatedPlayer.tokens?.permanent || [])
+      ];
+
+      const blurToken = playerTokens.find((t: any) => t.id === 'blurPlus');
+      expect(blurToken).toBeDefined();
+      expect(blurToken?.stacks).toBe(1);
+    });
+
+    it('defense 카드의 appliedTokens가 올바르게 처리되어야 함', () => {
+      const state = createState();
+      const card = {
+        id: 'test_defense',
+        name: '테스트 방어',
+        type: 'defense',
+        block: 10,
+        speedCost: 2,
+        appliedTokens: [
+          { id: 'offense', stacks: 1, target: 'player' }
+        ]
+      };
+
+      const result = applyAction(state, 'player', card as any);
+
+      const updatedPlayer = result.updatedState.player;
+      const playerTokens = [
+        ...(updatedPlayer.tokens?.usage || []),
+        ...(updatedPlayer.tokens?.turn || []),
+        ...(updatedPlayer.tokens?.permanent || [])
+      ];
+
+      const offenseToken = playerTokens.find((t: any) => t.id === 'offense');
+      expect(offenseToken).toBeDefined();
+    });
+
+    it('attack 카드의 appliedTokens가 적에게 올바르게 적용되어야 함', () => {
+      const state = createState();
+      const card = {
+        id: 'test_attack',
+        name: '테스트 공격',
+        type: 'attack',
+        damage: 10,
+        speedCost: 2,
+        cardCategory: 'fencing',  // 비총기 공격
+        appliedTokens: [
+          { id: 'vulnerable', stacks: 2, target: 'enemy' }
+        ]
+      };
+
+      const result = applyAction(state, 'player', card as any);
+
+      const updatedEnemy = result.updatedState.enemy;
+      const enemyTokens = [
+        ...(updatedEnemy.tokens?.usage || []),
+        ...(updatedEnemy.tokens?.turn || []),
+        ...(updatedEnemy.tokens?.permanent || [])
+      ];
+
+      const vulnerableToken = enemyTokens.find((t: any) => t.id === 'vulnerable');
+      expect(vulnerableToken).toBeDefined();
+      expect(vulnerableToken?.stacks).toBe(2);
+    });
+  });
+});

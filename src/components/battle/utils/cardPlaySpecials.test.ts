@@ -265,5 +265,86 @@ describe('cardPlaySpecials', () => {
 
       expect(result.bonusCards).toHaveLength(0);
     });
+
+    // appliedTokens 테스트
+    it('appliedTokens로 자신에게 토큰을 부여해야 함', () => {
+      const result = processCardPlaySpecials({
+        card: {
+          name: 'BuffCard',
+          appliedTokens: [
+            { id: 'offense', stacks: 2, target: 'player' }
+          ]
+        } as any,
+        attacker: createEntity(),
+        attackerName: 'player'
+      });
+
+      expect(result.tokensToAdd).toHaveLength(1);
+      expect(result.tokensToAdd[0].id).toBe('offense');
+      expect(result.tokensToAdd[0].stacks).toBe(2);
+      expect(result.tokensToAdd[0].targetEnemy).toBe(false);
+    });
+
+    it('appliedTokens로 적에게 토큰을 부여해야 함 (targetEnemy=true)', () => {
+      const result = processCardPlaySpecials({
+        card: {
+          name: 'DebuffCard',
+          appliedTokens: [
+            { id: 'dull', stacks: 1, target: 'enemy' },
+            { id: 'shaken', stacks: 3, target: 'enemy' }
+          ]
+        } as any,
+        attacker: createEntity(),
+        attackerName: 'player'
+      });
+
+      expect(result.tokensToAdd).toHaveLength(2);
+
+      const dullToken = result.tokensToAdd.find(t => t.id === 'dull');
+      expect(dullToken).toBeDefined();
+      expect(dullToken!.targetEnemy).toBe(true);
+      expect(dullToken!.stacks).toBe(1);
+
+      const shakenToken = result.tokensToAdd.find(t => t.id === 'shaken');
+      expect(shakenToken).toBeDefined();
+      expect(shakenToken!.targetEnemy).toBe(true);
+      expect(shakenToken!.stacks).toBe(3);
+    });
+
+    it('최루-연막탄 appliedTokens가 올바르게 처리되어야 함', () => {
+      // 최루-연막탄 카드 정의: blurPlus(자신), dull(적), shaken(적 3스택)
+      const result = processCardPlaySpecials({
+        card: {
+          id: 'tear_smoke_grenade',
+          name: '최루-연막탄',
+          type: 'general',
+          appliedTokens: [
+            { id: 'blurPlus', stacks: 1, target: 'player' },
+            { id: 'dull', stacks: 1, target: 'enemy' },
+            { id: 'shaken', stacks: 3, target: 'enemy' }
+          ]
+        } as any,
+        attacker: createEntity(),
+        attackerName: 'player'
+      });
+
+      expect(result.tokensToAdd).toHaveLength(3);
+
+      // blurPlus는 자신에게
+      const blurToken = result.tokensToAdd.find(t => t.id === 'blurPlus');
+      expect(blurToken).toBeDefined();
+      expect(blurToken!.targetEnemy).toBe(false);
+
+      // dull은 적에게
+      const dullToken = result.tokensToAdd.find(t => t.id === 'dull');
+      expect(dullToken).toBeDefined();
+      expect(dullToken!.targetEnemy).toBe(true);
+
+      // shaken은 적에게 3스택
+      const shakenToken = result.tokensToAdd.find(t => t.id === 'shaken');
+      expect(shakenToken).toBeDefined();
+      expect(shakenToken!.targetEnemy).toBe(true);
+      expect(shakenToken!.stacks).toBe(3);
+    });
   });
 });
