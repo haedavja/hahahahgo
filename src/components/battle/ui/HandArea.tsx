@@ -61,6 +61,24 @@ const getCardTypeClass = (type: string): string => {
   return 'general'; // 기본값은 범용(general)
 };
 
+// 레이아웃 상수
+const LAYOUT = {
+  DECK_COUNTER: { left: '120px', bottom: '100px' },
+  DISCARD_COUNTER: { right: '20px', bottom: '20px' },
+} as const;
+
+// 호버 이펙트 생성 함수
+const createHoverHandlers = (shadowColor: string) => ({
+  onMouseEnter: (e: MouseEvent<HTMLDivElement>) => {
+    e.currentTarget.style.transform = 'scale(1.08)';
+    e.currentTarget.style.boxShadow = `0 4px 16px ${shadowColor.replace('0.5', '0.7')}`;
+  },
+  onMouseLeave: (e: MouseEvent<HTMLDivElement>) => {
+    e.currentTarget.style.transform = 'scale(1)';
+    e.currentTarget.style.boxShadow = `0 2px 12px ${shadowColor}`;
+  },
+});
+
 interface HandAreaProps {
   battle: Battle;
   player: Player | null;
@@ -162,8 +180,7 @@ export const HandArea: FC<HandAreaProps> = memo(({
         onClick={() => setShowDeckPopup(true)}
         style={{
           position: 'fixed',
-          left: '120px',
-          bottom: '100px',
+          ...LAYOUT.DECK_COUNTER,
           background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
           padding: '8px 14px',
           borderRadius: '10px',
@@ -179,14 +196,7 @@ export const HandArea: FC<HandAreaProps> = memo(({
           zIndex: 1000,
           pointerEvents: 'auto'
         }}
-        onMouseEnter={(e: MouseEvent<HTMLDivElement>) => {
-          (e.currentTarget as HTMLDivElement).style.transform = 'scale(1.08)';
-          (e.currentTarget as HTMLDivElement).style.boxShadow = '0 4px 16px rgba(59, 130, 246, 0.7)';
-        }}
-        onMouseLeave={(e: MouseEvent<HTMLDivElement>) => {
-          (e.currentTarget as HTMLDivElement).style.transform = 'scale(1)';
-          (e.currentTarget as HTMLDivElement).style.boxShadow = '0 2px 12px rgba(59, 130, 246, 0.5)';
-        }}
+        {...createHoverHandlers('rgba(59, 130, 246, 0.5)')}
       >
         <span>🎴</span>
         <span>덱: {deckCount}</span>
@@ -197,8 +207,7 @@ export const HandArea: FC<HandAreaProps> = memo(({
         onClick={() => setShowDiscardPopup(true)}
         style={{
           position: 'fixed',
-          right: '20px',
-          bottom: '20px',
+          ...LAYOUT.DISCARD_COUNTER,
           background: 'linear-gradient(135deg, #6b7280, #374151)',
           padding: '8px 14px',
           borderRadius: '10px',
@@ -214,14 +223,7 @@ export const HandArea: FC<HandAreaProps> = memo(({
           zIndex: 1000,
           pointerEvents: 'auto'
         }}
-        onMouseEnter={(e: MouseEvent<HTMLDivElement>) => {
-          (e.currentTarget as HTMLDivElement).style.transform = 'scale(1.08)';
-          (e.currentTarget as HTMLDivElement).style.boxShadow = '0 4px 16px rgba(107, 114, 128, 0.7)';
-        }}
-        onMouseLeave={(e: MouseEvent<HTMLDivElement>) => {
-          (e.currentTarget as HTMLDivElement).style.transform = 'scale(1)';
-          (e.currentTarget as HTMLDivElement).style.boxShadow = '0 2px 12px rgba(107, 114, 128, 0.5)';
-        }}
+        {...createHoverHandlers('rgba(107, 114, 128, 0.5)')}
       >
         <span>🪦</span>
         <span>무덤: {discardCount}</span>
