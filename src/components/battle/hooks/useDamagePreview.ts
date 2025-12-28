@@ -54,6 +54,7 @@ export function useDamagePreview({
 }) {
   const lethalSoundRef = useRef(false);
   const overkillSoundRef = useRef(false);
+  const prevPreviewRef = useRef<{ value: number; lethal: boolean; overkill: boolean } | null>(null);
 
   // 예상 피해량 계산 (useMemo로 최적화)
   const previewDamageResult = useMemo(() => {
@@ -136,8 +137,14 @@ export function useDamagePreview({
   // 피해 미리보기 상태 업데이트 및 사운드 효과
   useEffect(() => {
     const { value, lethal, overkill, perUnitPreview } = previewDamageResult;
-    actions.setPreviewDamage({ value, lethal, overkill });
-    actions.setPerUnitPreviewDamage(perUnitPreview);
+
+    // 값이 실제로 변경됐을 때만 상태 업데이트 (무한 루프 방지)
+    const prev = prevPreviewRef.current;
+    if (!prev || prev.value !== value || prev.lethal !== lethal || prev.overkill !== overkill) {
+      prevPreviewRef.current = { value, lethal, overkill };
+      actions.setPreviewDamage({ value, lethal, overkill });
+      actions.setPerUnitPreviewDamage(perUnitPreview);
+    }
 
     if (overkill && !overkillSoundRef.current) {
       playSound(1600, 260);
