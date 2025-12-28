@@ -1495,7 +1495,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       if (updatedState) {
         P = updatedState.player as any;
         E = updatedState.enemy as any;
-        if (import.meta.env.DEV) console.log('[executeCardAction] After applyAction, E.tokens:', E.tokens);
         // battleRef 동기 업데이트 (다음 카드 실행 시 최신 상태 사용)
         if (battleRef.current) {
           battleRef.current = { ...battleRef.current, player: P, enemy: E };
@@ -2377,7 +2376,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       }
     }
 
-    if (import.meta.env.DEV) console.log('[executeCardAction] Final E.tokens before setEnemy:', E.tokens);
     actions.setEnemy({ ...enemy, hp: E.hp, def: E.def, block: E.block, counter: E.counter, vulnMult: E.vulnMult || 1, tokens: E.tokens, ...(E.units && { units: E.units }) });
     actions.setActionEvents({ ...currentBattle.actionEvents, [currentBattle.qIndex]: actionEvents });
 
@@ -2872,6 +2870,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                 onUpdateDistribution={(unitId, isTargeted) => actions.updateDamageDistribution(unitId, isTargeted ? 1 : 0)}
                 onConfirmDistribution={handleConfirmDistribution}
                 onCancelDistribution={handleCancelDistribution}
+                enemy={enemy}
               />
             ) : (
               <EnemyHpBar

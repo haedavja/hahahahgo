@@ -34,6 +34,7 @@ interface EnemyUnitsDisplayProps {
   onUpdateDistribution?: (unitId: number, isTargeted: boolean) => void;
   onConfirmDistribution?: () => void;
   onCancelDistribution?: () => void;
+  enemy?: TokenEntity;  // 적 전체 (토큰 표시용)
 }
 
 export const EnemyUnitsDisplay: FC<EnemyUnitsDisplayProps> = memo(({
@@ -59,6 +60,7 @@ export const EnemyUnitsDisplay: FC<EnemyUnitsDisplayProps> = memo(({
   onUpdateDistribution,
   onConfirmDistribution,
   onCancelDistribution,
+  enemy,
 }) => {
   if (!units || units.length === 0) return null;
 
@@ -349,6 +351,21 @@ export const EnemyUnitsDisplay: FC<EnemyUnitsDisplayProps> = memo(({
                 확인 ✓
               </button>
             </div>
+          </div>
+        )}
+
+        {/* 적 전체 토큰 표시 (다중 유닛 공유 토큰) */}
+        {enemy && (
+          <div style={{
+            padding: '8px 12px',
+            background: 'rgba(30, 41, 59, 0.8)',
+            borderRadius: '8px',
+            border: '1px solid rgba(148, 163, 184, 0.3)',
+          }}>
+            <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginBottom: '4px' }}>
+              전체 상태이상
+            </div>
+            <TokenDisplay entity={enemy} position="enemy" />
           </div>
         )}
       </div>

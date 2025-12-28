@@ -307,15 +307,11 @@ export function applyAction(
     });
 
     if (cardPlayResult.tokensToAdd && cardPlayResult.tokensToAdd.length > 0) {
-      if (import.meta.env.DEV) console.log('[applyAction] tokensToAdd:', cardPlayResult.tokensToAdd);
       cardPlayResult.tokensToAdd.forEach((tokenInfo: any) => {
         if (tokenInfo.targetEnemy) {
-          if (import.meta.env.DEV) console.log(`[applyAction] Adding token to OPPONENT: ${tokenInfo.id} x${tokenInfo.stacks}`);
           const tokenResult = addToken(updatedOpponent, tokenInfo.id, tokenInfo.stacks, tokenInfo.grantedAt);
           updatedOpponent = { ...updatedOpponent, tokens: tokenResult.tokens };
-          if (import.meta.env.DEV) console.log('[applyAction] updatedOpponent.tokens:', updatedOpponent.tokens);
         } else {
-          if (import.meta.env.DEV) console.log(`[applyAction] Adding token to ACTOR: ${tokenInfo.id} x${tokenInfo.stacks}`);
           const tokenResult = addToken(updatedActor, tokenInfo.id, tokenInfo.stacks, tokenInfo.grantedAt);
           updatedActor = { ...updatedActor, tokens: tokenResult.tokens };
         }
