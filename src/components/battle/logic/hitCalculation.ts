@@ -360,8 +360,11 @@ export function calculateSingleHit(
       }
 
       // 비의 눈물 효과 (공격받기만 해도 발동)
+      console.log('[rain_defense] 방어력 있음 분기 - defender tokens:', updatedDefender.tokens);
+      console.log('[rain_defense] hasToken result:', hasToken(updatedDefender, 'rain_defense'));
       if (hasToken(updatedDefender, 'rain_defense')) {
         const rainResult = applyRainDefense(updatedDefender, attackerName, battleContext);
+        console.log('[rain_defense] 효과 발동! block:', rainResult.block, 'advance:', rainResult.advance);
         updatedDefender = rainResult.defender;
         events.push(...rainResult.events);
         logs.push(...rainResult.logs);
@@ -413,8 +416,11 @@ export function calculateSingleHit(
     }
 
     // 비의 눈물 효과 (공격받기만 해도 발동)
+    console.log('[rain_defense] 방어력 없음 분기 - defender tokens:', updatedDefender.tokens);
+    console.log('[rain_defense] hasToken result:', hasToken(updatedDefender, 'rain_defense'));
     if (hasToken(updatedDefender, 'rain_defense')) {
       const rainResult = applyRainDefense(updatedDefender, attackerName, battleContext);
+      console.log('[rain_defense] 효과 발동! block:', rainResult.block, 'advance:', rainResult.advance);
       updatedDefender = rainResult.defender;
       events.push(...rainResult.events);
       logs.push(...rainResult.logs);
