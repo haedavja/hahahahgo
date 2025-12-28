@@ -115,13 +115,42 @@ export type RelicEffectType =
 
 /** 상징 효과 */
 export interface RelicEffect {
+  /** 효과 타입 (PASSIVE, ON_COMBAT_START 등) */
+  type?: string;
+  /** 에테르 배율 */
   etherMultiplier?: number;
+  /** 카드당 에테르 */
   etherPerCard?: number;
+  /** 최대 체력 보너스 */
   maxHpBonus?: number;
+  /** 휴식 시 회복량 */
   healOnRest?: number;
+  /** 시작 골드 */
   startingGold?: number;
+  /** 상점 할인 */
   shopDiscount?: number;
-  // ... 기타 효과
+  /** 카드당 콤보 배율 보너스 */
+  comboMultiplierPerCard?: number;
+  /** 콤보 배율 고정 보너스 */
+  comboMultiplierBonus?: number;
+  /** 카드 수에 따른 에테르 배율 증가 */
+  etherCardMultiplier?: boolean;
+  /** 5장 카드 제출 시 에테르 보너스 배율 */
+  etherFiveCardBonus?: number;
+  /** 최대 행동력 */
+  maxEnergy?: number;
+  /** 카드 드로우 보너스 */
+  cardDrawBonus?: number;
+  /** 최대 속도 보너스 */
+  maxSpeed?: number;
+  /** 속도 보너스 */
+  speed?: number;
+  /** 힘 보너스 */
+  strength?: number;
+  /** 시작 방어력 */
+  startingBlock?: number;
+  /** 추가 속성 허용 */
+  [key: string]: unknown;
 }
 
 /** 상징 정의 */

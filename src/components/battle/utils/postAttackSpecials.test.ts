@@ -105,7 +105,7 @@ describe('postAttackSpecials', () => {
 
       const vulnToken = result.defender.tokens.turn.find(t => t.id === 'vulnerable');
       expect(vulnToken).toBeDefined();
-      expect(vulnToken.stacks).toBe(2);
+      expect(vulnToken!.stacks).toBe(2);
     });
 
     it('repeatIfLast는 마지막 카드일 때 extraHits를 1로 설정해야 함', () => {
@@ -232,7 +232,7 @@ describe('postAttackSpecials', () => {
 
       const burnToken = result.defender.tokens.turn.find(t => t.id === 'burn');
       expect(burnToken).toBeDefined();
-      expect(burnToken.stacks).toBe(3);
+      expect(burnToken!.stacks).toBe(3);
     });
 
     it('special이 없으면 수정 없이 반환해야 함', () => {

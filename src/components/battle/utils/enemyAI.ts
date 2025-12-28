@@ -17,6 +17,7 @@ import type { AICard, AIEnemy, AIModeWeights, AIMode, AICardStats } from '../../
 import { MAX_SPEED, BASE_PLAYER_ENERGY, ENEMY_CARDS } from "../battleData";
 import { choice } from "./battleUtils";
 import { calculateEtherSlots } from "../../../lib/etherUtils";
+import { generateTimestampUid } from "../../../lib/randomUtils";
 
 /**
  * 몬스터별 AI 모드 가중치
@@ -191,8 +192,8 @@ export function generateEnemyActions(
   }
 
   const single = deck
-    .filter(c => c.speedCost <= effectiveMaxSpeed && c.actionCost <= energyBudget)
-    .sort((a, b) => a.speedCost - b.speedCost || a.actionCost - b.actionCost)[0];
+    .filter(c => (c.speedCost ?? 0) <= effectiveMaxSpeed && (c.actionCost ?? 0) <= energyBudget)
+    .sort((a, b) => (a.speedCost ?? 0) - (b.speedCost ?? 0) || (a.actionCost ?? 0) - (b.actionCost ?? 0))[0];
   return single ? [single] : [];
 }
 
@@ -239,7 +240,7 @@ export function assignSourceUnitToActions(actions: AICard[], units: AIEnemy[]): 
   return actions.map(card => {
     const candidateUnits = aliveUnits.filter(u => {
       if (!u.deck) return false;
-      return u.deck.includes(card.id);
+      return u.deck.includes(card.id!);
     });
 
     if (candidateUnits.length === 0) {
@@ -254,7 +255,7 @@ export function assignSourceUnitToActions(actions: AICard[], units: AIEnemy[]): 
     let selectedUnit = candidateUnits[0];
 
     for (const unit of candidateUnits) {
-      const usage = unitCardUsage.get(unit.unitId!)?.get(card.id) || 0;
+      const usage = unitCardUsage.get(unit.unitId!)?.get(card.id!) || 0;
       if (usage < minUsage) {
         minUsage = usage;
         selectedUnit = unit;
@@ -262,7 +263,9 @@ export function assignSourceUnitToActions(actions: AICard[], units: AIEnemy[]): 
     }
 
     const usageMap = unitCardUsage.get(selectedUnit.unitId!);
-    usageMap!.set(card.id, (usageMap!.get(card.id) || 0) + 1);
+    if (usageMap) {
+      usageMap.set(card.id!, (usageMap.get(card.id!) || 0) + 1);
+    }
 
     return { ...card, __sourceUnitId: selectedUnit.unitId };
   });
@@ -288,7 +291,7 @@ export function expandActionsWithGhosts(actions: AICard[], units: AIEnemy[]): AI
     const realCard: AICard = {
       ...card,
       __sourceUnitId: primaryUnit.unitId,
-      __uid: `real_${card.id}_${Date.now()}_${Math.random().toString(36).slice(2)}`
+      __uid: generateTimestampUid(`real_${card.id}`)
     };
     expandedActions.push(realCard);
 
@@ -298,7 +301,7 @@ export function expandActionsWithGhosts(actions: AICard[], units: AIEnemy[]): AI
         ...card,
         isGhost: true,
         __sourceUnitId: ghostUnit.unitId,
-        __uid: `ghost_${card.id}_${ghostUnit.unitId}_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+        __uid: generateTimestampUid(`ghost_${card.id}_${ghostUnit.unitId}`),
         createdBy: card.id
       };
       expandedActions.push(ghostCard);

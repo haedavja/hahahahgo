@@ -31,12 +31,13 @@ export function useComboSystem({
   orderedRelicList,
   selected,
   actions
-}) {
+}: any) {
   // 현재 조합 감지 및 디플레이션 정보 설정
   const currentCombo = useMemo(() => {
     const combo = detectPokerCombo(battleSelected);
 
     // 디플레이션 정보 계산 (선택/대응/진행 단계에서)
+    // 디플레이션 배율은 0.8 (20% 감소) - applyEtherDeflation과 동일해야 함
     if (combo?.name && (battlePhase === 'select' || battlePhase === 'respond' || battlePhase === 'resolve')) {
       const usageCount = (playerComboUsageCount || {})[combo.name] || 0;
       const deflationMult = Math.pow(0.8, usageCount);

@@ -27,6 +27,7 @@ import { drawFromDeck } from '../utils/handGeneration';
 import { decideEnemyMode, generateEnemyActions, expandActionsWithGhosts } from '../utils/enemyAI';
 import { useGameStore } from '../../../state/gameStore';
 import { DEFAULT_PLAYER_MAX_SPEED, DEFAULT_DRAW_COUNT, CARDS } from '../battleData';
+import { generateHandUid } from '../../../lib/randomUtils';
 
 /**
  * 턴 시작 효과 처리 훅
@@ -68,6 +69,25 @@ export function useTurnStartEffects({
   playSound,
   addLog,
   actions
+}: {
+  battle: any,
+  player: any,
+  enemy: any,
+  enemyPlan: any,
+  nextTurnEffects: any,
+  turnNumber: any,
+  baseMaxEnergy: any,
+  orderedRelicList: any,
+  playerEgos: any,
+  playerTraits: any,
+  enemyCount: any,
+  battleRef: any,
+  escapeBanRef: any,
+  turnStartProcessedRef: any,
+  etherSlots: any,
+  playSound: any,
+  addLog: any,
+  actions: any
 }) {
   useEffect(() => {
     if (!enemy || battle.phase !== 'select') {
@@ -93,8 +113,8 @@ export function useTurnStartEffects({
     const turnStartRelicEffects = applyTurnStartEffects(orderedRelicList, nextTurnEffects);
 
     // 턴 시작 상징 발동 애니메이션
-    orderedRelicList.forEach(relicId => {
-      const relic = RELICS[relicId];
+    orderedRelicList.forEach((relicId: any) => {
+      const relic = (RELICS as any)[relicId];
       if (relic?.effects?.type === 'ON_TURN_START') {
         actions.setRelicActivated(relicId);
         playSound(800, 200);
@@ -103,7 +123,7 @@ export function useTurnStartEffects({
     });
 
     // === 성찰 효과 처리 (자아가 있을 때만) ===
-    let reflectionResult = { updatedPlayer: player, updatedBattleState: battle.reflectionState, effects: [], logs: [] };
+    let reflectionResult: { updatedPlayer: any, updatedBattleState: any, effects: any[], logs: string[] } = { updatedPlayer: player, updatedBattleState: battle.reflectionState, effects: [], logs: [] };
     const hasEgo = playerEgos && playerEgos.length > 0;
     if (hasEgo) {
       const traitIds = convertTraitsToIds(playerTraits);
@@ -262,7 +282,7 @@ export function useTurnStartEffects({
       actions.setSelected([]);
     } else {
       const currentBuild = useGameStore.getState().characterBuild;
-      const hasCharacterBuild = currentBuild && (currentBuild.mainSpecials?.length > 0 || currentBuild.subSpecials?.length > 0 || currentBuild.ownedCards?.length > 0);
+      const hasCharacterBuild = currentBuild && (currentBuild.mainSpecials?.length ?? 0) > 0 || (currentBuild.subSpecials?.length ?? 0) > 0 || (currentBuild.ownedCards?.length ?? 0) > 0;
 
       if (hasCharacterBuild) {
         // 현재 손패를 무덤으로 이동
@@ -281,7 +301,7 @@ export function useTurnStartEffects({
           addLog('🔄 덱이 소진되어 무덤을 섞어 새 덱을 만들었습니다.');
         }
       } else {
-        const rawHand = CARDS.slice(0, 10).map((card, idx) => ({ ...card, __handUid: `${card.id}_${idx}_${Math.random().toString(36).slice(2, 8)}` }));
+        const rawHand = CARDS.slice(0, 10).map((card, idx) => ({ ...card, __handUid: generateHandUid(card.id, idx) }));
         actions.setHand(rawHand);
       }
       actions.setSelected([]);

@@ -32,7 +32,7 @@ export function useEtherPreview({
   selected,
   orderedRelicList,
   playerComboUsageCount
-}) {
+}: any) {
   const previewEtherGain = useMemo(() => {
     if (playerTimeline.length === 0) return 0;
 

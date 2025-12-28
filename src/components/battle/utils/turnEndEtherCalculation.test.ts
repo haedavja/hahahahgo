@@ -300,7 +300,7 @@ describe('turnEndEtherCalculation', () => {
       const log = formatEnemyEtherLog(result, 10);
 
       expect(log).toContain('디플레이션');
-      expect(log).toContain('80%');
+      expect(log).toContain('-20%');  // 감소율 표시 (80% 적용 = 20% 감소)
     });
 
     it('에테르 감소 정보를 포함해야 함', () => {

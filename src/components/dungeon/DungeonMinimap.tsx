@@ -2,7 +2,7 @@
  * 던전 미니맵 컴포넌트
  * 메트로배니아 스타일 던전 탐색을 위한 미니맵
  */
-import { useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { DUNGEON_NODE_TYPES, CONNECTION_TYPES } from '../../data/dungeonNodes';
 
 interface DungeonConnection {
@@ -36,7 +36,7 @@ const NODE_ICONS = {
   [DUNGEON_NODE_TYPES.BOSS]: '☠',
 };
 
-export function DungeonMinimap({ dungeonState, onNodeClick, playerStats }) {
+export function DungeonMinimap({ dungeonState, onNodeClick, playerStats }: any) {
   if (!dungeonState?.nodes || !dungeonState?.connections) {
     return null;
   }
@@ -48,7 +48,7 @@ export function DungeonMinimap({ dungeonState, onNodeClick, playerStats }) {
     let minX = Infinity, maxX = -Infinity;
     let minY = Infinity, maxY = -Infinity;
 
-    nodes.forEach(node => {
+    nodes.forEach((node: any) => {
       if (node.hidden && !discoveredHidden?.includes(node.id)) return;
       if (node.x !== undefined) {
         minX = Math.min(minX, node.x);
@@ -65,18 +65,18 @@ export function DungeonMinimap({ dungeonState, onNodeClick, playerStats }) {
 
   // 연결선 렌더링
   const renderConnections = () => {
-    const lines = [];
+    const lines: React.ReactElement[] = [];
     const cellSize = 50;
     const offsetX = -bounds.minX;
     const offsetY = -bounds.minY;
 
-    Object.entries(connections as DungeonConnections).forEach(([fromId, conns]) => {
-      const fromNode = nodes.find(n => n.id === fromId);
+    Object.entries(connections as DungeonConnections).forEach(([fromId, conns]: any) => {
+      const fromNode = nodes.find((n: any) => n.id === fromId);
       if (!fromNode || fromNode.x === undefined) return;
       if (fromNode.hidden && !discoveredHidden?.includes(fromId)) return;
 
-      conns.forEach((conn, idx) => {
-        const toNode = nodes.find(n => n.id === conn.targetId);
+      conns.forEach((conn: any, idx: any) => {
+        const toNode = nodes.find((n: any) => n.id === conn.targetId);
         if (!toNode || toNode.x === undefined) return;
         if (toNode.hidden && !discoveredHidden?.includes(conn.targetId)) return;
 
@@ -138,7 +138,7 @@ export function DungeonMinimap({ dungeonState, onNodeClick, playerStats }) {
     const offsetX = -bounds.minX;
     const offsetY = -bounds.minY;
 
-    return nodes.map(node => {
+    return nodes.map((node: any) => {
       // 숨겨진 노드 체크
       if (node.hidden && !discoveredHidden?.includes(node.id)) {
         return null;
@@ -237,7 +237,7 @@ export function DungeonMinimap({ dungeonState, onNodeClick, playerStats }) {
           던전 지도
         </span>
         <span style={{ color: '#64748b', fontSize: '11px' }}>
-          {nodes.filter(n => n.visited).length}/{nodes.filter(n => !n.hidden || discoveredHidden?.includes(n.id)).length} 탐색
+          {nodes.filter((n: any) => n.visited).length}/{nodes.filter((n: any) => !n.hidden || discoveredHidden?.includes(n.id)).length} 탐색
         </span>
       </div>
 
@@ -271,7 +271,7 @@ export function DungeonMinimap({ dungeonState, onNodeClick, playerStats }) {
   );
 }
 
-function LegendItem({ color, label, dashed }) {
+function LegendItem({ color, label, dashed }: any) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
       <div style={{

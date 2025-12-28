@@ -97,7 +97,7 @@ describe('cardPlaySpecials', () => {
         attackerName: 'player'
       });
 
-      expect(result.nextTurnEffects.recallCard).toBe(true);
+      expect(result.nextTurnEffects!.recallCard).toBe(true);
     });
 
     it('emergencyDraw는 손패가 6장 이하일 때 효과가 발동해야 함', () => {
@@ -108,7 +108,7 @@ describe('cardPlaySpecials', () => {
         battleContext: { handSize: 5 }
       });
 
-      expect(result.nextTurnEffects.emergencyDraw).toBe(3);
+      expect(result.nextTurnEffects!.emergencyDraw).toBe(3);
     });
 
     it('emergencyDraw는 손패가 6장 초과하면 효과가 없어야 함', () => {
@@ -129,7 +129,7 @@ describe('cardPlaySpecials', () => {
         attackerName: 'player'
       });
 
-      expect(result.nextTurnEffects.fencingDamageBonus).toBe(3);
+      expect(result.nextTurnEffects!.fencingDamageBonus).toBe(3);
     });
 
     it('evasiveShot은 shoot 보너스 카드를 추가해야 함', () => {
@@ -217,7 +217,7 @@ describe('cardPlaySpecials', () => {
         attackerName: 'player'
       });
 
-      expect(result.nextTurnEffects.isAoeAttack).toBe(true);
+      expect(result.nextTurnEffects!.isAoeAttack).toBe(true);
     });
 
     it('cross 특성과 gun_attack 보너스는 사격 카드를 추가해야 함', () => {

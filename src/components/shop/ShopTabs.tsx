@@ -27,15 +27,21 @@ const RARITY_NAMES = {
 /**
  * 구매 탭 - 상징 섹션
  */
-function RelicsSection({ inventory, purchasedRelics, relics, gold, onBuyRelic }) {
+function RelicsSection({ inventory, purchasedRelics, relics, gold, onBuyRelic }: {
+  inventory: any;
+  purchasedRelics: Set<string>;
+  relics: string[];
+  gold: number;
+  onBuyRelic: (id: string, price: number) => void;
+}) {
   if (inventory.relics.length === 0) return null;
 
   return (
     <div style={{ marginBottom: '20px' }}>
       <h3 style={{ fontSize: '1rem', color: '#a78bfa', marginBottom: '12px' }}>✨ 상징</h3>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '12px' }}>
-        {inventory.relics.map(({ id, price }) => {
-          const relic = RELICS[id];
+        {inventory.relics.map(({ id, price }: { id: string; price: number }) => {
+          const relic = RELICS[id as keyof typeof RELICS];
           if (!relic) return null;
           const sold = purchasedRelics.has(id) || relics.includes(id);
           const canAfford = gold >= price;
@@ -86,19 +92,25 @@ function RelicsSection({ inventory, purchasedRelics, relics, gold, onBuyRelic })
 /**
  * 구매 탭 - 아이템 섹션
  */
-function ItemsSection({ inventory, purchasedItems, items, gold, onBuyItem }) {
+function ItemsSection({ inventory, purchasedItems, items, gold, onBuyItem }: {
+  inventory: any;
+  purchasedItems: Set<string>;
+  items: (string | null)[];
+  gold: number;
+  onBuyItem: (id: string, price: number) => void;
+}) {
   if (inventory.items.length === 0) return null;
 
   return (
     <div style={{ marginBottom: '20px' }}>
       <h3 style={{ fontSize: '1rem', color: '#60a5fa', marginBottom: '12px' }}>📦 아이템</h3>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '12px' }}>
-        {inventory.items.map(({ id, price }, idx) => {
-          const item = ITEMS[id];
+        {inventory.items.map(({ id, price }: { id: string; price: number }, idx: number) => {
+          const item = ITEMS[id as keyof typeof ITEMS];
           if (!item) return null;
           const sold = purchasedItems.has(id);
           const canAfford = gold >= price;
-          const hasEmptySlot = items.some((slot) => slot === null);
+          const hasEmptySlot = items.some((slot: string | null) => slot === null);
 
           return (
             <div
@@ -143,17 +155,22 @@ function ItemsSection({ inventory, purchasedItems, items, gold, onBuyItem }) {
 /**
  * 구매 탭 - 카드 섹션
  */
-function CardsSection({ inventory, purchasedCards, gold, onBuyCard }) {
+function CardsSection({ inventory, purchasedCards, gold, onBuyCard }: {
+  inventory: any;
+  purchasedCards: Set<string>;
+  gold: number;
+  onBuyCard: (id: string, price: number) => void;
+}) {
   if (!inventory.cards || inventory.cards.length === 0) return null;
 
-  const rarityColors = { common: '#94a3b8', rare: '#60a5fa', special: '#a78bfa', legendary: '#fbbf24' };
-  const rarityNames = { common: '일반', rare: '희귀', special: '특별', legendary: '전설' };
+  const rarityColors: Record<string, string> = { common: '#94a3b8', rare: '#60a5fa', special: '#a78bfa', legendary: '#fbbf24' };
+  const rarityNames: Record<string, string> = { common: '일반', rare: '희귀', special: '특별', legendary: '전설' };
 
   return (
     <div>
       <h3 style={{ fontSize: '1rem', color: '#f59e0b', marginBottom: '12px' }}>🃏 카드</h3>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '12px' }}>
-        {inventory.cards.map(({ id, price, rarity }, idx) => {
+        {inventory.cards.map(({ id, price, rarity }: { id: string; price: number; rarity: string }, idx: number) => {
           const card = CARDS.find(c => c.id === id);
           if (!card) return null;
           const sold = purchasedCards.has(id);
@@ -196,7 +213,7 @@ function CardsSection({ inventory, purchasedCards, gold, onBuyCard }) {
               <div style={{ fontWeight: 600, color: rarityColors[rarity], marginBottom: '4px' }}>{card.name}</div>
               <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginBottom: '8px' }}>
                 행동력 {card.actionCost} · 속도 {card.speedCost}
-                {card.damage ? ` · 피해 ${card.damage}${card.hits > 1 ? `×${card.hits}` : ''}` : ''}
+                {card.damage ? ` · 피해 ${card.damage}${(card.hits ?? 1) > 1 ? `×${card.hits}` : ''}` : ''}
                 {card.block ? ` · 방어 ${card.block}` : ''}
               </div>
               <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
@@ -219,7 +236,18 @@ function CardsSection({ inventory, purchasedCards, gold, onBuyCard }) {
 /**
  * 구매 탭
  */
-export function BuyTab({ inventory, purchasedRelics, purchasedItems, purchasedCards, relics, items, gold, onBuyRelic, onBuyItem, onBuyCard }) {
+export function BuyTab({ inventory, purchasedRelics, purchasedItems, purchasedCards, relics, items, gold, onBuyRelic, onBuyItem, onBuyCard }: {
+  inventory: any;
+  purchasedRelics: Set<string>;
+  purchasedItems: Set<string>;
+  purchasedCards: Set<string>;
+  relics: string[];
+  items: (string | null)[];
+  gold: number;
+  onBuyRelic: (id: string, price: number) => void;
+  onBuyItem: (id: string, price: number) => void;
+  onBuyCard: (id: string, price: number) => void;
+}) {
   return (
     <div>
       <RelicsSection
@@ -249,7 +277,11 @@ export function BuyTab({ inventory, purchasedRelics, purchasedItems, purchasedCa
 /**
  * 판매 탭
  */
-export function SellTab({ sellableItems, merchantType, onSellItem }) {
+export function SellTab({ sellableItems, merchantType, onSellItem }: {
+  sellableItems: Array<{ item: any; slotIndex: number }>;
+  merchantType: string;
+  onSellItem: (slotIndex: number) => void;
+}) {
   return (
     <div>
       <h3 style={{ fontSize: '1rem', color: '#22c55e', marginBottom: '12px' }}>📦 아이템 판매</h3>
@@ -259,7 +291,7 @@ export function SellTab({ sellableItems, merchantType, onSellItem }) {
         </div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '12px', marginBottom: '20px' }}>
-          {sellableItems.map(({ item, slotIndex }) => {
+          {sellableItems.map(({ item, slotIndex }: { item: any; slotIndex: number }) => {
             const sellPrice = getItemSellPrice(item, merchantType);
 
             return (
@@ -299,7 +331,11 @@ export function SellTab({ sellableItems, merchantType, onSellItem }) {
 /**
  * 서비스 탭
  */
-export function ServiceTab({ gold, merchantType, onUseService }) {
+export function ServiceTab({ gold, merchantType, onUseService }: {
+  gold: number;
+  merchantType: string;
+  onUseService: (service: any) => void;
+}) {
   return (
     <div>
       <h3 style={{ fontSize: '1rem', color: '#60a5fa', marginBottom: '12px' }}>🔧 서비스</h3>
@@ -342,7 +378,12 @@ export function ServiceTab({ gold, merchantType, onUseService }) {
 /**
  * 카드 제거 모달
  */
-export function CardRemovalModal({ allPlayerCards, cardRemovalPrice, onRemoveCard, onClose }) {
+export function CardRemovalModal({ allPlayerCards, cardRemovalPrice, onRemoveCard, onClose }: {
+  allPlayerCards: any[];
+  cardRemovalPrice: number;
+  onRemoveCard: (card: any) => void;
+  onClose: () => void;
+}) {
   return (
     <div
       style={{
@@ -385,7 +426,7 @@ export function CardRemovalModal({ allPlayerCards, cardRemovalPrice, onRemoveCar
             </div>
           ) : (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '12px' }}>
-              {allPlayerCards.map((card, idx) => (
+              {allPlayerCards.map((card: any, idx: number) => (
                 <div
                   key={`${card.id}-${idx}`}
                   onClick={() => onRemoveCard(card)}

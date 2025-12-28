@@ -7,8 +7,8 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { startEtherCalculationAnimationSequence } from './etherCalculationAnimation';
 
 describe('etherCalculationAnimation', () => {
-  let actions;
-  let playSound;
+  let actions: any;
+  let playSound: any;
 
   beforeEach(() => {
     vi.useFakeTimers();

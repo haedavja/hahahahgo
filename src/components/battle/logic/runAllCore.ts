@@ -18,7 +18,7 @@ import { getAllTokens } from '../../../lib/tokenUtils';
 /**
  * runAll 핵심 로직
  */
-export function runAllCore(params) {
+export function runAllCore(params: any) {
   const {
     battle,
     player,
@@ -58,13 +58,13 @@ export function runAllCore(params) {
   };
 
   let tempState = { player: P, enemy: E, log: [] };
-  const newEvents = {};
+  const newEvents: any = {};
   let enemyDefeated = false;
   let playerDefeated = false;
   let finalQIndex = qIndex;
 
   // runAll용 battleContext 생성
-  const playerAttackCards = selected.filter(c => c.type === 'attack');
+  const playerAttackCards = selected.filter((c: any) => c.type === 'attack');
   const playerEnergyBudget = P.energy || P.maxEnergy || BASE_PLAYER_ENERGY;
   const enemyEnergyBudget = E.energy || E.maxEnergy || BASE_PLAYER_ENERGY;
 
@@ -77,17 +77,17 @@ export function runAllCore(params) {
 
     // battleContext 생성
     const isLastCard = i >= battle.queue.length - 1;
-    const unusedAttackCards = playerAttackCards.filter(c => {
-      const cardQueueIndex = battle.queue.findIndex(q => q.card?.id === c.id && q.actor === 'player');
+    const unusedAttackCards = playerAttackCards.filter((c: any) => {
+      const cardQueueIndex = battle.queue.findIndex((q: any) => q.card?.id === c.id && q.actor === 'player');
       return cardQueueIndex > i;
     }).length;
 
     // 현재까지 사용된 에너지 계산
-    const executedPlayerCards = battle.queue.slice(0, i).filter(q => q.actor === 'player');
-    const energyUsedSoFar = executedPlayerCards.reduce((sum, q) => sum + (q.card?.actionCost || 0), 0);
+    const executedPlayerCards = battle.queue.slice(0, i).filter((q: any) => q.actor === 'player');
+    const energyUsedSoFar = executedPlayerCards.reduce((sum: any, q: any) => sum + (q.card?.actionCost || 0), 0);
     const calcRemainingEnergy = Math.max(0, playerEnergyBudget - energyUsedSoFar);
-    const executedEnemyCards = battle.queue.slice(0, i).filter(q => q.actor === 'enemy');
-    const enemyEnergyUsedSoFar = executedEnemyCards.reduce((sum, q) => sum + (q.card?.actionCost || 0), 0);
+    const executedEnemyCards = battle.queue.slice(0, i).filter((q: any) => q.actor === 'enemy');
+    const enemyEnergyUsedSoFar = executedEnemyCards.reduce((sum: any, q: any) => sum + (q.card?.actionCost || 0), 0);
     const calcEnemyRemainingEnergy = Math.max(0, enemyEnergyBudget - enemyEnergyUsedSoFar);
 
     const battleContext = {
@@ -125,8 +125,8 @@ export function runAllCore(params) {
 
       if (damageDealt > 0) {
         const currentUnits = E.units || enemyUnits;
-        const aliveUnits = currentUnits.filter(u => u.hp > 0);
-        let targetUnit = aliveUnits.find(u => u.unitId === selectedTargetUnit);
+        const aliveUnits = currentUnits.filter((u: any) => u.hp > 0);
+        let targetUnit = aliveUnits.find((u: any) => u.unitId === selectedTargetUnit);
         if (!targetUnit && aliveUnits.length > 0) {
           targetUnit = aliveUnits[0];
         }
@@ -135,21 +135,17 @@ export function runAllCore(params) {
           const unitHpBefore = targetUnit.hp;
           const newUnitHp = Math.max(0, targetUnit.hp - damageDealt);
 
-          const updatedUnits = currentUnits.map(u => {
+          const updatedUnits = currentUnits.map((u: any) => {
             if (u.unitId === targetUnit.unitId) {
               return { ...u, hp: newUnitHp };
             }
             return u;
           });
 
-          const newTotalHp = updatedUnits.reduce((sum, u) => sum + Math.max(0, u.hp), 0);
+          const newTotalHp = updatedUnits.reduce((sum: any, u: any) => sum + Math.max(0, u.hp), 0);
           E.hp = newTotalHp;
           E.units = updatedUnits;
           tempState = { player: P, enemy: E, log: [] };
-
-          if (targetUnit.name) {
-            addLog(`🎯 ${targetUnit.name}에게 ${damageDealt} 피해 (${unitHpBefore} -> ${newUnitHp})`);
-          }
         }
       }
     }

@@ -8,6 +8,7 @@ import { useCallback } from 'react';
 import { useGameStore } from '../../../state/gameStore';
 import { drawFromDeck } from '../utils/handGeneration';
 import { CARDS as BASE_CARDS, DEFAULT_DRAW_COUNT } from '../battleData';
+import { generateHandUid } from '../../../lib/randomUtils';
 
 /**
  * 패 관리 훅
@@ -32,13 +33,13 @@ export function useHandManagement({
   addLog,
   playSound,
   actions
-}) {
+}: any) {
   // 손패 리드로우
   const redrawHand = useCallback(() => {
     if (!canRedraw) return addLog('🔒 이미 이번 턴 리드로우 사용됨');
 
     const currentBuild = useGameStore.getState().characterBuild;
-    const hasCharacterBuild = currentBuild && (currentBuild.mainSpecials?.length > 0 || currentBuild.subSpecials?.length > 0 || currentBuild.ownedCards?.length > 0);
+    const hasCharacterBuild = currentBuild && ((currentBuild.mainSpecials?.length ?? 0) > 0 || (currentBuild.subSpecials?.length ?? 0) > 0 || (currentBuild.ownedCards?.length ?? 0) > 0);
 
     if (hasCharacterBuild) {
       // 현재 손패를 무덤으로 이동하고 새로 드로우
@@ -55,7 +56,7 @@ export function useHandManagement({
         addLog('🔄 덱이 소진되어 무덤을 섞어 새 덱을 만들었습니다.');
       }
     } else {
-      const rawHand = BASE_CARDS.slice(0, 10).map((card, idx) => ({ ...card, __handUid: `${card.id}_${idx}_${Math.random().toString(36).slice(2, 8)}` }));
+      const rawHand = BASE_CARDS.slice(0, 10).map((card: any, idx: any) => ({ ...card, __handUid: generateHandUid(card.id, idx) }));
       actions.setHand(rawHand);
     }
 
@@ -76,7 +77,7 @@ export function useHandManagement({
       localStorage.setItem('battleSortType', nextSort);
     } catch { /* ignore */ }
 
-    const sortLabels = {
+    const sortLabels: any = {
       speed: '시간 기준 정렬',
       energy: '행동력 기준 정렬',
       value: '밸류 기준 정렬',
@@ -91,18 +92,18 @@ export function useHandManagement({
     const sorted = [...hand];
 
     if (sortType === 'speed') {
-      sorted.sort((a, b) => b.speedCost - a.speedCost);
+      sorted.sort((a: any, b: any) => b.speedCost - a.speedCost);
     } else if (sortType === 'energy') {
-      sorted.sort((a, b) => b.actionCost - a.actionCost);
+      sorted.sort((a: any, b: any) => b.actionCost - a.actionCost);
     } else if (sortType === 'value') {
-      sorted.sort((a, b) => {
+      sorted.sort((a: any, b: any) => {
         const aValue = ((a.damage || 0) * (a.hits || 1)) + (a.block || 0);
         const bValue = ((b.damage || 0) * (b.hits || 1)) + (b.block || 0);
         return bValue - aValue;
       });
     } else if (sortType === 'type') {
-      const typeOrder = { 'attack': 0, 'general': 1, 'special': 2 };
-      sorted.sort((a, b) => {
+      const typeOrder: any = { 'attack': 0, 'general': 1, 'special': 2 };
+      sorted.sort((a: any, b: any) => {
         const aOrder = typeOrder[a.type] ?? 3;
         const bOrder = typeOrder[b.type] ?? 3;
         return aOrder - bOrder;

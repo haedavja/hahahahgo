@@ -13,7 +13,7 @@ import { drawHand, buildSpeedTimeline } from '../../lib/speedQueue';
 import { simulateBattle } from '../../lib/battleResolver';
 import { NEW_EVENT_LIBRARY } from '../../data/newEvents';
 import { cloneNodes, grantRewards, computeFriendlyChance } from '../gameStoreHelpers';
-import { travelToNode, drawCharacterBuildHand } from '../battleHelpers';
+import { travelToNode, drawCharacterBuildHand, createBattleEnemyData } from '../battleHelpers';
 
 export type DevActionsSlice = DevSliceActions;
 
@@ -135,8 +135,8 @@ export const createDevActions: SliceCreator = (set) => ({
       if (state.activeBattle) return state;
 
       const group = ENEMY_GROUPS.find((g) => g.id === groupId);
-      if (!group) {
-        console.warn(`[DEV] 전투 그룹을 찾을 수 없음: ${groupId}`);
+      if (!group || !Array.isArray(group.enemies) || group.enemies.length === 0) {
+        if (import.meta.env.DEV) console.warn(`[DEV] 전투 그룹을 찾을 수 없음: ${groupId}`);
         return state;
       }
 
@@ -154,7 +154,7 @@ export const createDevActions: SliceCreator = (set) => ({
       });
 
       const characterBuild = state.characterBuild;
-      const hasCharacterBuild = characterBuild && (characterBuild.mainSpecials?.length > 0 || characterBuild.subSpecials?.length > 0 || characterBuild.ownedCards?.length > 0);
+      const hasCharacterBuild = characterBuild && ((characterBuild.mainSpecials?.length ?? 0) > 0 || (characterBuild.subSpecials?.length ?? 0) > 0 || (characterBuild.ownedCards?.length ?? 0) > 0);
 
       const playerLibrary: string[] = hasCharacterBuild
         ? [...(characterBuild.mainSpecials || []), ...(characterBuild.subSpecials || [])]
@@ -180,18 +180,14 @@ export const createDevActions: SliceCreator = (set) => ({
       const enemyUnits = group.enemies.map((enemyId, idx) => {
         const enemy = ENEMIES.find((e) => e.id === enemyId);
         return {
+          ...createBattleEnemyData(enemy),
           unitId: idx,
-          id: enemyId,
-          name: enemy?.name || enemyId,
-          emoji: enemy?.emoji || '👾',
-          hp: enemy?.hp || 30,
-          maxHp: enemy?.hp || 30,
-          ether: enemy?.ether || 100,
-          deck: enemy?.deck || [],
-          cardsPerTurn: enemy?.cardsPerTurn || 1,
-          tier: enemy?.tier || 1,
-          passives: enemy?.passives || {},
         };
+      });
+
+      const mixedEnemies = group.enemies.map((enemyId) => {
+        const enemy = ENEMIES.find((e) => e.id === enemyId);
+        return createBattleEnemyData(enemy);
       });
 
       return {
@@ -203,6 +199,7 @@ export const createDevActions: SliceCreator = (set) => ({
           rewards: { gold: { min: 10, max: 20 }, loot: 1 },
           difficulty: group.tier,
           preview: { playerHand, enemyHand, timeline, tuLimit: 30 },
+          mixedEnemies,
           enemyInfo: {
             id: primaryEnemyId,
             name: group.name,
@@ -221,7 +218,7 @@ export const createDevActions: SliceCreator = (set) => ({
     set((state) => {
       const definition = NEW_EVENT_LIBRARY[eventId];
       if (!definition) {
-        console.warn(`[devTriggerEvent] Event not found: ${eventId}`);
+        if (import.meta.env.DEV) console.warn(`[devTriggerEvent] Event not found: ${eventId}`);
         return state;
       }
       return {

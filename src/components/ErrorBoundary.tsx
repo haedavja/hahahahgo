@@ -26,7 +26,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
     // 에러 로거로 기록
-    const entry = handleBoundaryError(error, errorInfo);
+    const entry = handleBoundaryError(error, { componentStack: errorInfo.componentStack ?? undefined });
     this.setState({ errorId: entry.id });
   }
 

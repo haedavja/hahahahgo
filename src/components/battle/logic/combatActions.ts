@@ -62,7 +62,7 @@ export function applyAttack(
 ): AttackResult {
   // 입력 검증
   if (!attacker || !defender || !card) {
-    console.error('[applyAttack] Invalid input:', { attacker: !!attacker, defender: !!defender, card: !!card });
+    if (import.meta.env.DEV) console.error('[applyAttack] Invalid input:', { attacker: !!attacker, defender: !!defender, card: !!card });
     return {
       attacker: (attacker || {}) as CombatActor,
       defender: (defender || {}) as CombatActor,
@@ -76,8 +76,8 @@ export function applyAttack(
   let totalDealt = 0;
   let totalTaken = 0;
   let totalBlockDestroyed = 0;
-  const allEvents = [];
-  const allLogs = [];
+  const allEvents: BattleEvent[] = [];
+  const allLogs: string[] = [];
 
   let currentAttacker = { ...attacker };
   let currentDefender = { ...defender };
@@ -105,7 +105,7 @@ export function applyAttack(
 
   // 다중 타격 시 개별 hit 이벤트 필터링
   const skipEventTypes = hits > 1 ? ['hit', 'blocked', 'pierce'] : [];
-  const filteredFirstEvents = firstHitResult.events.filter(ev => !skipEventTypes.includes(ev.type));
+  const filteredFirstEvents = firstHitResult.events.filter(ev => !(ev.type && skipEventTypes.includes(ev.type)));
   allEvents.push(...filteredFirstEvents);
   if (hits === 1) {
     allLogs.push(...firstHitResult.logs);
@@ -119,30 +119,32 @@ export function applyAttack(
     totalDealt += result.damage;
     totalTaken += result.damageTaken || 0;
     totalBlockDestroyed += result.blockDestroyed || 0;
-    const filteredEvents = result.events.filter(ev => !skipEventTypes.includes(ev.type));
+    const filteredEvents = result.events.filter(ev => !(ev.type && skipEventTypes.includes(ev.type)));
     allEvents.push(...filteredEvents);
   }
 
   // 다중 타격 총합 로그
   if (hits > 1) {
     const enemyNameMulti = battleContext.enemyDisplayName || '몬스터';
-    const who = attackerName === 'player' ? `플레이어 -> ${enemyNameMulti}` : `${enemyNameMulti} -> 플레이어`;
-    const baseDmg = modifiedCard.damage || card.damage || 0;
-    const totalAttack = baseDmg * hits;
-    const critText = isCritical ? ' 💥치명타!' : '';
-    const isGunCard = card.cardCategory === 'gun';
-    const icon = isGunCard ? '🔫' : '🔥';
     const actorEmoji = attackerName === 'player' ? '🔵' : '👾';
+    const actorName = attackerName === 'player' ? '플레이어' : enemyNameMulti;
+    const targetName = attackerName === 'player' ? enemyNameMulti : '플레이어';
+    const baseDmg = modifiedCard.damage || card.damage || 0;
+    const critText = isCritical ? ' 💥치명타!' : '';
+    const beforeHP = (allEvents.find(e => e.type === 'hit')?.beforeHP) || currentDefender.hp + totalDealt;
+    const afterHP = currentDefender.hp;
 
     let dmgFormula;
     if (totalBlockDestroyed > 0) {
-      dmgFormula = `공격력 ${totalAttack} - 방어력 ${totalBlockDestroyed} = ${totalDealt}`;
+      dmgFormula = `${baseDmg}x${hits} - 방어 ${totalBlockDestroyed} = ${totalDealt}`;
     } else {
-      dmgFormula = `${totalDealt}`;
+      dmgFormula = `${baseDmg}x${hits} = ${totalDealt}`;
     }
 
-    const multiHitMsg = `${actorEmoji} ${who} • ${icon} ${card.name}${ghostLabel}: ${dmgFormula}${critText} 데미지!`;
+    const multiHitMsg = `${actorEmoji} ${actorName} (${card.name}${ghostLabel}) -> ${targetName} • 데미지 ${dmgFormula}${critText} (체력 ${beforeHP} -> ${afterHP})`;
     allEvents.push({ actor: attackerName, card: card.name, type: 'multihit', msg: multiHitMsg, dmg: totalDealt });
+    // 다중 타격의 경우 개별 히트 로그 대신 총합 로그만 사용
+    allLogs.length = 0;
     allLogs.push(multiHitMsg);
   }
 
@@ -158,7 +160,7 @@ export function applyAttack(
 
   currentAttacker = postAttackResult.attacker;
   currentDefender = postAttackResult.defender;
-  allEvents.push(...postAttackResult.events);
+  allEvents.push(...(postAttackResult.events as BattleEvent[]));
   allLogs.push(...postAttackResult.logs);
 
   // 추가 타격 처리
@@ -182,7 +184,7 @@ export function applyAttack(
     allCards: battleContext.allCards || []
   });
 
-  allEvents.push(...cardCreationResult.events);
+  allEvents.push(...(cardCreationResult.events as BattleEvent[]));
   allLogs.push(...cardCreationResult.logs);
 
   return {
@@ -301,7 +303,7 @@ export function applyAction(
     });
 
     if (cardPlayResult.tokensToAdd && cardPlayResult.tokensToAdd.length > 0) {
-      cardPlayResult.tokensToAdd.forEach(tokenInfo => {
+      cardPlayResult.tokensToAdd.forEach((tokenInfo: any) => {
         if (tokenInfo.targetEnemy) {
           const tokenResult = addToken(updatedOpponent, tokenInfo.id, tokenInfo.stacks, tokenInfo.grantedAt);
           updatedOpponent = { ...updatedOpponent, tokens: tokenResult.tokens };
@@ -313,7 +315,7 @@ export function applyAction(
     }
 
     if (cardPlayResult.tokensToRemove && cardPlayResult.tokensToRemove.length > 0) {
-      cardPlayResult.tokensToRemove.forEach(tokenInfo => {
+      cardPlayResult.tokensToRemove.forEach((tokenInfo: any) => {
         const tokenResult = removeToken(updatedActor, tokenInfo.id, 'permanent', tokenInfo.stacks);
         updatedActor = { ...updatedActor, tokens: tokenResult.tokens };
       });
@@ -329,7 +331,7 @@ export function applyAction(
     return {
       dealt: result.dealt,
       taken: result.taken,
-      events: [...result.events, ...cardPlayResult.events],
+      events: [...result.events, ...cardPlayResult.events] as BattleEvent[],
       updatedState,
       cardPlaySpecials: cardPlayResult as unknown as CardPlaySpecialsResult
     };
@@ -348,7 +350,7 @@ export function applyAction(
     });
 
     if (cardPlayResult.tokensToAdd && cardPlayResult.tokensToAdd.length > 0) {
-      cardPlayResult.tokensToAdd.forEach(tokenInfo => {
+      cardPlayResult.tokensToAdd.forEach((tokenInfo: any) => {
         if (tokenInfo.targetEnemy) {
           const tokenResult = addToken(updatedDefender, tokenInfo.id, tokenInfo.stacks, tokenInfo.grantedAt);
           updatedDefender = { ...updatedDefender, tokens: tokenResult.tokens };
@@ -360,7 +362,7 @@ export function applyAction(
     }
 
     if (cardPlayResult.tokensToRemove && cardPlayResult.tokensToRemove.length > 0) {
-      cardPlayResult.tokensToRemove.forEach(tokenInfo => {
+      cardPlayResult.tokensToRemove.forEach((tokenInfo: any) => {
         const tokenResult = removeToken(updatedActor, tokenInfo.id, 'permanent', tokenInfo.stacks);
         updatedActor = { ...updatedActor, tokens: tokenResult.tokens };
       });
@@ -377,7 +379,7 @@ export function applyAction(
     return {
       dealt: result.dealt,
       taken: result.taken,
-      events: [...result.events, ...cardPlayResult.events],
+      events: [...result.events, ...cardPlayResult.events] as BattleEvent[],
       updatedState,
       isCritical: result.isCritical,
       createdCards: result.createdCards || [],

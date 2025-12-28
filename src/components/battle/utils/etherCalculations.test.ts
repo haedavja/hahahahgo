@@ -116,7 +116,7 @@ describe('calcCardsEther', () => {
   });
 
   it('null/undefined면 0', () => {
-    expect(calcCardsEther(null)).toBe(0);
+    expect(calcCardsEther(null as any)).toBe(0);
     expect(calcCardsEther(undefined)).toBe(0);
   });
 
@@ -262,7 +262,7 @@ describe('calculateComboEtherGain', () => {
 describe('calculateActionCostBonus', () => {
   it('빈 배열은 보너스 0', () => {
     expect(calculateActionCostBonus([])).toBe(0);
-    expect(calculateActionCostBonus(null)).toBe(0);
+    expect(calculateActionCostBonus(null as any)).toBe(0);
   });
 
   it('1코스트 카드는 보너스 없음', () => {

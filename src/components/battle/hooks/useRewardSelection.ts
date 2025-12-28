@@ -11,6 +11,13 @@
 
 import { useState, useCallback } from 'react';
 import { useGameStore } from '../../../state/gameStore';
+import type { Card } from '../../../types';
+import { shuffle } from '../../../lib/randomUtils';
+
+/** 카드 보상 상태 타입 */
+export interface CardRewardState {
+  cards: Card[];
+}
 
 /**
  * 보상 및 함성 카드 선택 훅
@@ -28,15 +35,15 @@ export function useRewardSelection({
   battleNextTurnEffects,
   addLog,
   actions
-}) {
+}: any) {
   // 카드 보상 선택 상태 (승리 후)
-  const [cardReward, setCardReward] = useState(null); // { cards: [] }
+  const [cardReward, setCardReward] = useState<CardRewardState | null>(null);
 
   // 함성(recallCard) 카드 선택 상태
-  const [recallSelection, setRecallSelection] = useState(null); // { availableCards: [] }
+  const [recallSelection, setRecallSelection] = useState<{ availableCards: typeof CARDS } | null>(null);
 
   // 카드 보상 선택 처리 (승리 후)
-  const handleRewardSelect = useCallback((selectedCard, idx) => {
+  const handleRewardSelect = useCallback((selectedCard: any, idx: any) => {
     addLog(`🎁 "${selectedCard.name}" 획득! (대기 카드에 추가됨)`);
 
     // 선택한 카드를 대기 카드(ownedCards)에 추가 (Zustand 스토어 업데이트)
@@ -57,7 +64,7 @@ export function useRewardSelection({
   }, [addLog, actions]);
 
   // 함성 (recallCard) 카드 선택 처리
-  const handleRecallSelect = useCallback((selectedCard) => {
+  const handleRecallSelect = useCallback((selectedCard: any) => {
     addLog(`📢 함성: "${selectedCard.name}" 선택! 다음 턴에 확정 등장합니다.`);
 
     // 선택한 카드를 nextTurnEffects.guaranteedCards에 추가
@@ -84,8 +91,8 @@ export function useRewardSelection({
   // 승리 시 카드 보상 모달 표시
   const showCardRewardModal = useCallback(() => {
     // 공격/범용/특수 카드 중 랜덤 3장 선택
-    const cardPool = CARDS.filter(c => (c.type === 'attack' || c.type === 'general' || c.type === 'special'));
-    const shuffled = [...cardPool].sort(() => Math.random() - 0.5);
+    const cardPool = CARDS.filter((c: any) => (c.type === 'attack' || c.type === 'general' || c.type === 'special')) as Card[];
+    const shuffled = shuffle(cardPool);
     const rewardCards = shuffled.slice(0, 3);
 
     setCardReward({ cards: rewardCards });

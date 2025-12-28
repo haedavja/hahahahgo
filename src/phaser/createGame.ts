@@ -12,7 +12,7 @@ import Phaser from "phaser";
 import { PlaceholderScene } from "./PlaceholderScene";
 import { BattleScene } from "./BattleScene";
 
-export const createPhaserGame = (parent) => {
+export const createPhaserGame = (parent: any) => {
   const config = {
     type: Phaser.AUTO,
     width: 480,

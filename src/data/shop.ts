@@ -17,9 +17,24 @@
 
 import { RELICS, RELIC_RARITIES } from './relics';
 import { ITEMS } from './items';
+import { shuffle } from '../lib/randomUtils';
+
+// ==================== 타입 정의 ====================
+
+/** 상인 유형 키 */
+export type MerchantTypeKey = 'shop' | 'wanderer' | 'collector' | 'buyer';
+
+/** 아이템 티어 */
+export type ItemTier = 1 | 2;
+
+/** 카드 등급 */
+export type CardRarity = 'common' | 'rare' | 'special' | 'legendary';
+
+/** 서비스 ID */
+export type ServiceId = 'healSmall' | 'healFull' | 'removeCard' | 'upgradeCard' | 'reroll';
 
 // 상징 등급별 가격
-export const RELIC_PRICES = {
+export const RELIC_PRICES: Record<string, number> = {
   [RELIC_RARITIES.COMMON]: 60,
   [RELIC_RARITIES.RARE]: 120,
   [RELIC_RARITIES.SPECIAL]: 200,
@@ -27,13 +42,13 @@ export const RELIC_PRICES = {
 };
 
 // 아이템 티어별 가격
-export const ITEM_PRICES = {
+export const ITEM_PRICES: Record<ItemTier, number> = {
   1: 25,  // 소형 아이템
   2: 50,  // 대형 아이템
 };
 
 // 카드 등급별 가격
-export const CARD_PRICES = {
+export const CARD_PRICES: Record<CardRarity, number> = {
   common: 15,
   rare: 30,
   special: 50,
@@ -41,7 +56,7 @@ export const CARD_PRICES = {
 };
 
 // 서비스 가격
-export const SERVICE_PRICES = {
+export const SERVICE_PRICES: Record<ServiceId, number> = {
   healSmall: 30,      // 체력 25% 회복
   healFull: 80,       // 체력 전체 회복
   removeCard: 50,     // 카드 제거
@@ -52,8 +67,25 @@ export const SERVICE_PRICES = {
 // 전리품 매입 가격 (판매가) - 아이템 원가의 60%
 export const SELL_PRICE_MULTIPLIER = 0.6;
 
+/** 상인 설정 인터페이스 */
+export interface MerchantConfig {
+  id: string;
+  name: string;
+  emoji: string;
+  greeting: string;
+  relicSlots: number;
+  itemSlots: number;
+  cardSlots: number;
+  hasServices: boolean;
+  canSell: boolean;
+  priceMultiplier: number;
+  sellPriceMultiplier?: number;
+  minRarity?: string;
+  minCardRarity?: CardRarity;
+}
+
 // 상인 유형별 설정
-export const MERCHANT_TYPES = {
+export const MERCHANT_TYPES: Record<MerchantTypeKey, MerchantConfig> = {
   // 고정 상점 (던전 노드)
   shop: {
     id: 'shop',
@@ -106,20 +138,44 @@ export const MERCHANT_TYPES = {
     cardSlots: 0,
     hasServices: false,
     canSell: true,
+    priceMultiplier: 1.0,
     sellPriceMultiplier: 1.2,  // 20% 높은 가격에 매입
   },
 };
 
+/** 상인 설정 가져오기 헬퍼 */
+function getMerchant(merchantType: string): MerchantConfig {
+  if (merchantType in MERCHANT_TYPES) {
+    return MERCHANT_TYPES[merchantType as MerchantTypeKey];
+  }
+  return MERCHANT_TYPES.shop;
+}
+
+/** 카드 인터페이스 (상점용) */
+interface ShopCard {
+  id: string;
+  rarity?: CardRarity;
+  [key: string]: unknown;
+}
+
 /**
  * 랜덤 상점 재고 생성
- * @param {string} merchantType - 상인 유형
- * @param {string[]} ownedRelics - 이미 보유한 상징 ID 배열
- * @param {Object[]} allCards - 전체 카드 배열 (CARDS)
- * @returns {Object} { relics: [{id, price}], items: [{id, price}], cards: [{id, price, rarity}] }
+ * @param merchantType - 상인 유형
+ * @param ownedRelics - 이미 보유한 상징 ID 배열
+ * @param allCards - 전체 카드 배열 (CARDS)
+ * @returns { relics, items, cards }
  */
-export function generateShopInventory(merchantType = 'shop', ownedRelics = [], allCards = []) {
-  const merchant = MERCHANT_TYPES[merchantType] || MERCHANT_TYPES.shop;
-  const inventory = { relics: [], items: [], cards: [] };
+export function generateShopInventory(
+  merchantType: string = 'shop',
+  ownedRelics: string[] = [],
+  allCards: ShopCard[] = []
+) {
+  const merchant = getMerchant(merchantType);
+  const inventory: {
+    relics: Array<{ id: string; price: number }>;
+    items: Array<{ id: string; price: number }>;
+    cards: Array<{ id: string; price: number; rarity: CardRarity }>;
+  } = { relics: [], items: [], cards: [] };
 
   // 상징 선택
   const availableRelics = Object.values(RELICS).filter(r => {
@@ -129,7 +185,7 @@ export function generateShopInventory(merchantType = 'shop', ownedRelics = [], a
     if (r.id === 'infiniteShield' || r.id === 'perpetualEngine') return false;
     // 최소 등급 체크
     if (merchant.minRarity) {
-      const rarityOrder = [RELIC_RARITIES.COMMON, RELIC_RARITIES.RARE, RELIC_RARITIES.SPECIAL, RELIC_RARITIES.LEGENDARY];
+      const rarityOrder: string[] = [RELIC_RARITIES.COMMON, RELIC_RARITIES.RARE, RELIC_RARITIES.SPECIAL, RELIC_RARITIES.LEGENDARY];
       const minIdx = rarityOrder.indexOf(merchant.minRarity);
       const relicIdx = rarityOrder.indexOf(r.rarity);
       if (relicIdx < minIdx) return false;
@@ -165,11 +221,12 @@ export function generateShopInventory(merchantType = 'shop', ownedRelics = [], a
 
   // 아이템 선택
   const availableItems = Object.values(ITEMS);
-  const shuffledItems = [...availableItems].sort(() => Math.random() - 0.5);
+  const shuffledItems = shuffle(availableItems);
 
   for (let i = 0; i < merchant.itemSlots && i < shuffledItems.length; i++) {
     const item = shuffledItems[i];
-    const basePrice = ITEM_PRICES[item.tier] || 30;
+    const tier = item.tier as ItemTier;
+    const basePrice = ITEM_PRICES[tier] ?? 30;
     inventory.items.push({
       id: item.id,
       price: Math.round(basePrice * merchant.priceMultiplier),
@@ -178,37 +235,41 @@ export function generateShopInventory(merchantType = 'shop', ownedRelics = [], a
 
   // 카드 선택
   if (merchant.cardSlots > 0 && allCards.length > 0) {
-    const cardRarityOrder = ['common', 'rare', 'special', 'legendary'];
-    const cardWeights = {
+    const cardRarityOrder: CardRarity[] = ['common', 'rare', 'special', 'legendary'];
+    const cardWeights: Record<CardRarity, number> = {
       common: 4,
       rare: 2,
       special: 1,
       legendary: 0.3,
     };
 
+    // 헬퍼 함수: 카드 등급 가져오기
+    const getCardRarity = (card: ShopCard): CardRarity => card.rarity ?? 'common';
+    const getCardWeight = (card: ShopCard): number => cardWeights[getCardRarity(card)] ?? 1;
+
     // 최소 등급 필터링
     let availableCards = [...allCards];
     if (merchant.minCardRarity) {
       const minIdx = cardRarityOrder.indexOf(merchant.minCardRarity);
       availableCards = availableCards.filter(c => {
-        const cardIdx = cardRarityOrder.indexOf(c.rarity || 'common');
+        const cardIdx = cardRarityOrder.indexOf(getCardRarity(c));
         return cardIdx >= minIdx;
       });
     }
 
     // 셔플 후 가중치 기반 선택
-    availableCards = availableCards.sort(() => Math.random() - 0.5);
+    availableCards = shuffle(availableCards);
 
     for (let i = 0; i < merchant.cardSlots && availableCards.length > 0; i++) {
-      const totalWeight = availableCards.reduce((sum, c) => sum + (cardWeights[c.rarity || 'common'] || 1), 0);
+      const totalWeight = availableCards.reduce((sum, c) => sum + getCardWeight(c), 0);
       let rand = Math.random() * totalWeight;
 
       for (let j = 0; j < availableCards.length; j++) {
-        rand -= cardWeights[availableCards[j].rarity || 'common'] || 1;
+        rand -= getCardWeight(availableCards[j]);
         if (rand <= 0) {
           const card = availableCards.splice(j, 1)[0];
-          const cardRarity = card.rarity || 'common';
-          const basePrice = CARD_PRICES[cardRarity] || CARD_PRICES.common;
+          const cardRarity = getCardRarity(card);
+          const basePrice = CARD_PRICES[cardRarity] ?? CARD_PRICES.common;
           inventory.cards.push({
             id: card.id,
             price: Math.round(basePrice * merchant.priceMultiplier),
@@ -223,55 +284,73 @@ export function generateShopInventory(merchantType = 'shop', ownedRelics = [], a
   return inventory;
 }
 
+/** 아이템 인터페이스 (상점용) */
+interface ShopItem {
+  id: string;
+  tier?: number;
+}
+
+/** 상징 인터페이스 (상점용) */
+interface ShopRelic {
+  id: string;
+  rarity: string;
+}
+
 /**
  * 아이템 판매 가격 계산
- * @param {Object} item - 아이템 객체
- * @param {string} merchantType - 상인 유형
- * @returns {number} 판매 가격
+ * @param item - 아이템 객체
+ * @param merchantType - 상인 유형
+ * @returns 판매 가격
  */
-export function getItemSellPrice(item, merchantType = 'shop') {
-  const merchant = MERCHANT_TYPES[merchantType] || MERCHANT_TYPES.shop;
-  const basePrice = ITEM_PRICES[item.tier] || 30;
-  const sellMultiplier = merchant.sellPriceMultiplier || SELL_PRICE_MULTIPLIER;
+export function getItemSellPrice(item: ShopItem, merchantType: string = 'shop'): number {
+  const merchant = getMerchant(merchantType);
+  const tier = (item.tier ?? 1) as ItemTier;
+  const basePrice = ITEM_PRICES[tier] ?? 30;
+  const sellMultiplier = merchant.sellPriceMultiplier ?? SELL_PRICE_MULTIPLIER;
   return Math.round(basePrice * sellMultiplier);
 }
 
 /**
  * 상징 판매 가격 계산 (보유 상징 판매 시)
- * @param {Object} relic - 상징 객체
- * @param {string} merchantType - 상인 유형
- * @returns {number} 판매 가격
+ * @param relic - 상징 객체
+ * @param merchantType - 상인 유형
+ * @returns 판매 가격
  */
-export function getRelicSellPrice(relic, merchantType = 'shop') {
-  const merchant = MERCHANT_TYPES[merchantType] || MERCHANT_TYPES.shop;
-  const basePrice = RELIC_PRICES[relic.rarity] || 100;
-  const sellMultiplier = merchant.sellPriceMultiplier || SELL_PRICE_MULTIPLIER;
+export function getRelicSellPrice(relic: ShopRelic, merchantType: string = 'shop'): number {
+  const merchant = getMerchant(merchantType);
+  const basePrice = RELIC_PRICES[relic.rarity] ?? 100;
+  const sellMultiplier = merchant.sellPriceMultiplier ?? SELL_PRICE_MULTIPLIER;
   return Math.round(basePrice * sellMultiplier);
 }
 
 /**
  * 카드 판매 가격 계산
- * @param {Object} card - 카드 객체
- * @param {string} cardRarity - 카드 등급 (업그레이드된 등급 사용)
- * @param {string} merchantType - 상인 유형
- * @returns {number} 판매 가격
+ * @param _card - 카드 객체 (미사용, 향후 확장용)
+ * @param cardRarity - 카드 등급 (업그레이드된 등급 사용)
+ * @param merchantType - 상인 유형
+ * @returns 판매 가격
  */
-export function getCardSellPrice(card, cardRarity = 'common', merchantType = 'shop') {
-  const merchant = MERCHANT_TYPES[merchantType] || MERCHANT_TYPES.shop;
-  const basePrice = CARD_PRICES[cardRarity] || CARD_PRICES.common;
-  const sellMultiplier = merchant.sellPriceMultiplier || SELL_PRICE_MULTIPLIER;
+export function getCardSellPrice(
+  _card: ShopCard,
+  cardRarity: CardRarity = 'common',
+  merchantType: string = 'shop'
+): number {
+  const merchant = getMerchant(merchantType);
+  const basePrice = CARD_PRICES[cardRarity] ?? CARD_PRICES.common;
+  const sellMultiplier = merchant.sellPriceMultiplier ?? SELL_PRICE_MULTIPLIER;
   return Math.round(basePrice * sellMultiplier);
 }
 
 /**
  * 서비스 가격 조회
- * @param {string} serviceId - 서비스 ID
- * @param {string} merchantType - 상인 유형
- * @returns {number} 서비스 가격
+ * @param serviceId - 서비스 ID
+ * @param merchantType - 상인 유형
+ * @returns 서비스 가격
  */
-export function getServicePrice(serviceId, merchantType = 'shop') {
-  const merchant = MERCHANT_TYPES[merchantType] || MERCHANT_TYPES.shop;
-  const basePrice = SERVICE_PRICES[serviceId] || 50;
+export function getServicePrice(serviceId: string, merchantType: string = 'shop'): number {
+  const merchant = getMerchant(merchantType);
+  const isValidServiceId = serviceId in SERVICE_PRICES;
+  const basePrice = isValidServiceId ? SERVICE_PRICES[serviceId as ServiceId] : 50;
   return Math.round(basePrice * merchant.priceMultiplier);
 }
 

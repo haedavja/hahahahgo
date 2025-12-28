@@ -13,6 +13,8 @@
  * @property {Function} render - 렌더링 함수
  */
 
+import type { DirectionMap } from '../../../types';
+
 // ========== 설정 ==========
 export const CONFIG = {
   SEGMENT_COUNT: { min: 5, max: 9 },
@@ -41,7 +43,7 @@ export const OBJECT_TYPES = {
     canReuse: false,
     probRoom: 0.35,
     probCorridor: 0.30,
-    render: (ctx, x, y, used) => {
+    render: (ctx: CanvasRenderingContext2D, x: number, y: number, used: boolean) => {
       ctx.fillStyle = used ? "#555" : "#f39c12";
       ctx.fillRect(x - 25, y - 25, 50, 40);
     },
@@ -52,7 +54,7 @@ export const OBJECT_TYPES = {
     canReuse: false,
     probRoom: 0.35,
     probCorridor: 0.25,
-    render: (ctx, x, y, used) => {
+    render: (ctx: CanvasRenderingContext2D, x: number, y: number, used: boolean) => {
       ctx.fillStyle = used ? "#666" : "#9b59b6";
       ctx.beginPath();
       ctx.arc(x, y - 25, 20, 0, Math.PI * 2);
@@ -65,7 +67,7 @@ export const OBJECT_TYPES = {
     canReuse: false,
     probRoom: 0.30,
     probCorridor: 0.45,
-    render: (ctx, x, y, used) => {
+    render: (ctx: CanvasRenderingContext2D, x: number, y: number, used: boolean) => {
       ctx.fillStyle = used ? "#888" : "#e74c3c";
       ctx.font = "bold 48px Arial";
       ctx.textAlign = "center";
@@ -78,7 +80,7 @@ export const OBJECT_TYPES = {
     canReuse: true,  // 기로는 선택지를 통해 처리
     probRoom: 0.0,
     probCorridor: 0.0,  // 수동으로 배치
-    render: (ctx, x, y, used) => {
+    render: (ctx: CanvasRenderingContext2D, x: number, y: number, used: boolean) => {
       // 갈림길 표시 (돌 표지판 형태)
       ctx.fillStyle = used ? "#555" : "#7f8c8d";
       // 기둥
@@ -112,7 +114,7 @@ export const OBJECT_TYPES = {
     canReuse: true,
     probRoom: 0.0,
     probCorridor: 0.0,  // 수동으로 배치
-    render: (ctx, x, y, used, unlocked) => {
+    render: (ctx: CanvasRenderingContext2D, x: number, y: number, used: boolean, unlocked: boolean) => {
       // 숏컷 문 (아치형)
       ctx.fillStyle = unlocked ? "#22c55e" : "#475569";
       // 문틀
@@ -143,7 +145,7 @@ export const OBJECT_TYPES = {
     canReuse: true,
     probRoom: 0.0,
     probCorridor: 0.0,
-    render: (ctx, x, y, used, discovered) => {
+    render: (ctx: CanvasRenderingContext2D, x: number, y: number, used: boolean, discovered: boolean) => {
       if (discovered) {
         // 발견된 숨겨진 문
         ctx.fillStyle = "#8b5cf6";
@@ -174,7 +176,7 @@ export const OBJECT_TYPES = {
     canReuse: false,
     probRoom: 0.15,
     probCorridor: 0.10,
-    render: (ctx, x, y, used) => {
+    render: (ctx: CanvasRenderingContext2D, x: number, y: number, used: boolean) => {
       // 바위 형태
       ctx.fillStyle = used ? "#555" : "#78716c";
       ctx.beginPath();
@@ -201,7 +203,7 @@ export const OBJECT_TYPES = {
     canReuse: false,
     probRoom: 0.12,
     probCorridor: 0.08,
-    render: (ctx, x, y, used) => {
+    render: (ctx: CanvasRenderingContext2D, x: number, y: number, used: boolean) => {
       ctx.fillStyle = used ? "#555" : "#fbbf24";
       // 동전 더미
       for (let i = 0; i < 5; i++) {
@@ -223,7 +225,7 @@ export const OBJECT_TYPES = {
     canReuse: false,
     probRoom: 0.15,
     probCorridor: 0.12,
-    render: (ctx, x, y, used) => {
+    render: (ctx: CanvasRenderingContext2D, x: number, y: number, used: boolean) => {
       ctx.fillStyle = used ? "#555" : "#a16207";
       ctx.fillRect(x - 20, y - 30, 40, 30);
       // 나무 무늬
@@ -243,7 +245,7 @@ export const OBJECT_TYPES = {
     canReuse: false,
     probRoom: 0.10,
     probCorridor: 0.05,
-    render: (ctx, x, y, used) => {
+    render: (ctx: CanvasRenderingContext2D, x: number, y: number, used: boolean) => {
       ctx.fillStyle = used ? "#555" : "#a78bfa";
       // 수정 결정 형태
       ctx.beginPath();
@@ -271,7 +273,7 @@ export const OBJECT_TYPES = {
     canReuse: false,
     probRoom: 0.12,
     probCorridor: 0.10,
-    render: (ctx, x, y, used) => {
+    render: (ctx: CanvasRenderingContext2D, x: number, y: number, used: boolean) => {
       // 버섯 줄기
       ctx.fillStyle = used ? "#666" : "#fef3c7";
       ctx.fillRect(x - 6, y - 20, 12, 20);
@@ -297,7 +299,7 @@ export const OBJECT_TYPES = {
     canReuse: false,
     probRoom: 0.08,
     probCorridor: 0.06,
-    render: (ctx, x, y, used) => {
+    render: (ctx: CanvasRenderingContext2D, x: number, y: number, used: boolean) => {
       ctx.fillStyle = used ? "#444" : "#64748b";
       // 누워있는 형태
       ctx.fillRect(x - 25, y - 10, 50, 10);
@@ -316,7 +318,7 @@ export const OBJECT_TYPES = {
 };
 
 // ========== 미로 방향 정의 ==========
-export const DIRECTIONS = {
+export const DIRECTIONS: DirectionMap = {
   north: { dx: 0, dy: -1, opposite: 'south' },
   south: { dx: 0, dy: 1, opposite: 'north' },
   east: { dx: 1, dy: 0, opposite: 'west' },

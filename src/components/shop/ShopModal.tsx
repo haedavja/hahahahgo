@@ -16,10 +16,16 @@ import {
   generateShopInventory,
   getItemSellPrice,
   getServicePrice,
+  type MerchantTypeKey,
 } from '../../data/shop';
 import { BuyTab, SellTab, ServiceTab, CardRemovalModal } from './ShopTabs';
 
-export function ShopModal({ merchantType = 'shop', onClose }) {
+interface ShopModalProps {
+  merchantType?: MerchantTypeKey;
+  onClose: () => void;
+}
+
+export function ShopModal({ merchantType = 'shop', onClose }: ShopModalProps) {
   // 상태 셀렉터 (shallow 비교로 최적화)
   const { gold, relics, items, playerHp, maxHp, characterBuild, cardUpgrades } = useGameStore(
     useShallow((state) => ({
@@ -46,16 +52,16 @@ export function ShopModal({ merchantType = 'shop', onClose }) {
     }))
   );
 
-  const merchant = MERCHANT_TYPES[merchantType] || MERCHANT_TYPES.shop;
+  const merchant = MERCHANT_TYPES[merchantType] ?? MERCHANT_TYPES.shop;
 
   const [inventory, setInventory] = useState(() =>
     generateShopInventory(merchantType, relics, CARDS)
   );
-  const [purchasedRelics, setPurchasedRelics] = useState(new Set());
-  const [purchasedItems, setPurchasedItems] = useState(new Set());
-  const [purchasedCards, setPurchasedCards] = useState(new Set());
+  const [purchasedRelics, setPurchasedRelics] = useState<Set<string>>(new Set());
+  const [purchasedItems, setPurchasedItems] = useState<Set<string>>(new Set());
+  const [purchasedCards, setPurchasedCards] = useState<Set<string>>(new Set());
   const [activeTab, setActiveTab] = useState('buy');
-  const [notification, setNotification] = useState(null);
+  const [notification, setNotification] = useState<{ message: string; type: string } | null>(null);
   const [showCardRemovalModal, setShowCardRemovalModal] = useState(false);
   const [cardRemovalPrice, setCardRemovalPrice] = useState(0);
 
@@ -68,7 +74,7 @@ export function ShopModal({ merchantType = 'shop', onClose }) {
   const allPlayerCards = useMemo(() => {
     const mainSpecials = characterBuild?.mainSpecials || [];
     const subSpecials = characterBuild?.subSpecials || [];
-    const cards = [];
+    const cards: Array<any> = [];
 
     mainSpecials.forEach(cardId => {
       const card = CARDS.find(c => c.id === cardId);
@@ -89,12 +95,12 @@ export function ShopModal({ merchantType = 'shop', onClose }) {
     return cards;
   }, [characterBuild?.mainSpecials, characterBuild?.subSpecials, cardUpgrades]);
 
-  const showNotification = (message, type = 'info') => {
+  const showNotification = (message: any, type = 'info') => {
     setNotification({ message, type });
     setTimeout(() => setNotification(null), 2000);
   };
 
-  const handleBuyRelic = (relicId, price) => {
+  const handleBuyRelic = (relicId: any, price: any) => {
     if (gold < price) {
       showNotification('골드가 부족합니다!', 'error');
       return;
@@ -107,10 +113,10 @@ export function ShopModal({ merchantType = 'shop', onClose }) {
     addResources({ gold: -price });
     addRelic(relicId);
     setPurchasedRelics((prev) => new Set([...prev, relicId]));
-    showNotification(`${RELICS[relicId]?.name}을(를) 구매했습니다!`, 'success');
+    showNotification(`${RELICS[relicId as keyof typeof RELICS]?.name}을(를) 구매했습니다!`, 'success');
   };
 
-  const handleBuyItem = (itemId, price) => {
+  const handleBuyItem = (itemId: any, price: any) => {
     if (gold < price) {
       showNotification('골드가 부족합니다!', 'error');
       return;
@@ -125,10 +131,10 @@ export function ShopModal({ merchantType = 'shop', onClose }) {
     addResources({ gold: -price });
     addItem(itemId);
     setPurchasedItems((prev) => new Set([...prev, itemId]));
-    showNotification(`${ITEMS[itemId]?.name}을(를) 구매했습니다!`, 'success');
+    showNotification(`${ITEMS[itemId as keyof typeof ITEMS]?.name}을(를) 구매했습니다!`, 'success');
   };
 
-  const handleBuyCard = (cardId, price) => {
+  const handleBuyCard = (cardId: any, price: any) => {
     if (gold < price) {
       showNotification('골드가 부족합니다!', 'error');
       return;
@@ -151,7 +157,7 @@ export function ShopModal({ merchantType = 'shop', onClose }) {
     showNotification(`${item.name}을(를) ${sellPrice}G에 판매했습니다!`, 'success');
   };
 
-  const handleUseService = (service) => {
+  const handleUseService = (service: any) => {
     const price = getServicePrice(service.id, merchantType);
 
     if (gold < price) {
@@ -205,7 +211,7 @@ export function ShopModal({ merchantType = 'shop', onClose }) {
     }
   };
 
-  const handleRemoveCard = (card) => {
+  const handleRemoveCard = (card: any) => {
     addResources({ gold: -cardRemovalPrice });
     removeCardFromDeck(card.id, card.isMainSpecial);
     setShowCardRemovalModal(false);
@@ -365,7 +371,7 @@ export function ShopModal({ merchantType = 'shop', onClose }) {
               purchasedItems={purchasedItems}
               purchasedCards={purchasedCards}
               relics={relics}
-              items={items}
+              items={items as (string | null)[]}
               gold={gold}
               onBuyRelic={handleBuyRelic}
               onBuyItem={handleBuyItem}

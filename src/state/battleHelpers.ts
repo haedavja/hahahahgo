@@ -10,7 +10,7 @@
  */
 
 import { ENEMY_DECKS } from "../data/cards";
-import { CARDS, getRandomEnemyGroupByNode, getEnemyGroupDetails } from "../components/battle/battleData";
+import { CARDS, getRandomEnemyGroupByNode, getEnemyGroupDetails, DEFAULT_ENEMY_MAX_SPEED } from "../components/battle/battleData";
 import { drawHand, buildSpeedTimeline } from "../lib/speedQueue";
 import { simulateBattle } from "../lib/battleResolver";
 import {
@@ -25,6 +25,7 @@ import {
 import type { MapNode, ActiveEvent, Resources, ResolverSimulationResult } from "../types";
 import type { HandCard, InflatedCard, TimelineEntry } from "../lib/speedQueue";
 import type { MapState, CharacterBuild, BattleRewards, EnemyInfo } from "./slices/types";
+import type { EnemyDefinition, EnemyBattleState, EnemyUnitState } from "../types/enemy";
 
 // ==================== 타입 정의 ====================
 
@@ -95,6 +96,111 @@ export const BATTLE_CARDS: string[] = CARDS.slice(0, 8).map(card => card.id);
 
 export const resolveEnemyDeck = (kind: string): string[] =>
   (ENEMY_DECKS as Record<string, string[]>)[kind] ?? ENEMY_DECKS.default ?? [];
+
+/**
+ * 적 데이터를 전투용 형식으로 변환 (속성 누락 방지용 헬퍼)
+ * 모든 적 데이터 생성 시 이 함수를 사용하면 속성 누락 버그를 예방할 수 있음
+ */
+export const createBattleEnemyData = (enemy: any): EnemyInfo => {
+  // 개발 모드에서 누락된 필수 필드 경고
+  if (import.meta.env.DEV) {
+    if (!enemy?.id) {
+      console.warn('[createBattleEnemyData] 적 ID 누락:', enemy);
+    }
+    if (!enemy?.name) {
+      console.warn('[createBattleEnemyData] 적 이름 누락:', enemy);
+    }
+    if (!enemy?.hp) {
+      console.warn('[createBattleEnemyData] 적 HP 누락:', enemy);
+    }
+    if (!enemy?.maxSpeed && !enemy?.speed) {
+      console.warn('[createBattleEnemyData] 적 maxSpeed 누락:', enemy);
+    }
+  }
+
+  return {
+    id: enemy?.id,
+    name: enemy?.name || '적',
+    emoji: enemy?.emoji || '👾',
+    hp: enemy?.hp || 40,
+    maxHp: enemy?.maxHp || enemy?.hp || 40,
+    ether: enemy?.ether || 100,
+    speed: enemy?.speed || 10,
+    maxSpeed: enemy?.maxSpeed || enemy?.speed || 10,
+    deck: Array.isArray(enemy?.deck) ? enemy.deck : [],
+    cardsPerTurn: enemy?.cardsPerTurn || 2,
+    passives: enemy?.passives || {},
+    tier: enemy?.tier || 1,
+    isBoss: enemy?.isBoss || false,
+  };
+};
+
+/**
+ * 리듀서용 적 상태 초기화 (BattleApp에서 사용)
+ * 단일/다수 적 모두 동일한 units 배열 구조로 생성
+ *
+ * @deprecated ReducerEnemyInit 대신 EnemyBattleState 사용 권장
+ */
+export type ReducerEnemyInit = EnemyBattleState & {
+  units: EnemyUnitState[];
+};
+
+export const createReducerEnemyState = (
+  enemyData: Partial<EnemyDefinition> & Partial<EnemyBattleState> & { units?: unknown[] },
+  _options?: { fromEnemiesArray?: boolean }
+): ReducerEnemyInit => {
+  // 개발 모드에서 누락된 필수 필드 경고
+  if (import.meta.env.DEV) {
+    if (!enemyData.hp && !enemyData.maxHp) {
+      console.warn('[createReducerEnemyState] 적 HP 누락 - 기본값 40 사용:', enemyData.name || 'unknown');
+    }
+    if (!enemyData.maxSpeed && !enemyData.speed) {
+      console.warn('[createReducerEnemyState] 적 maxSpeed 누락 - 기본값 사용:', enemyData.name || 'unknown');
+    }
+  }
+
+  const hp = enemyData.hp ?? enemyData.maxHp ?? 40;
+  const maxHp = enemyData.maxHp ?? hp;
+  const speed = enemyData.speed ?? 10;
+  const maxSpeed = enemyData.maxSpeed ?? speed ?? DEFAULT_ENEMY_MAX_SPEED;
+  const ether = enemyData.ether ?? 100;
+
+  // units 배열 생성: 기존 units가 있으면 사용, 없으면 단일 유닛으로 생성
+  let units: EnemyUnitState[];
+
+  if (enemyData.units && Array.isArray(enemyData.units) && enemyData.units.length > 0) {
+    // 기존 units 배열 사용 (BattlePayload에서 온 경우)
+    units = enemyData.units as EnemyUnitState[];
+  } else {
+    // 단일 적: units 배열로 감싸기
+    units = [{
+      unitId: 0,
+      id: enemyData.id,
+      name: enemyData.name,
+      emoji: enemyData.emoji,
+      hp,
+      maxHp,
+      block: 0,
+      tokens: { usage: [], turn: [], permanent: [] }
+    }];
+  }
+
+  return {
+    ...enemyData,
+    hp,
+    maxHp,
+    maxSpeed,
+    vulnMult: 1,
+    vulnTurns: 0,
+    block: 0,
+    counter: 0,
+    etherPts: enemyData.ether ?? ether,
+    etherCapacity: ether,
+    etherOverdriveActive: false,
+    tokens: { usage: [], turn: [], permanent: [] },
+    units
+  };
+};
 
 export const computeBattlePlan = (
   kind: string,
@@ -169,7 +275,7 @@ export const createBattlePayload = (
 ): BattlePayload | null => {
   if (!node || !BATTLE_TYPES.has(node.type) || node.isStart) return null;
 
-  const hasCharacterBuild = characterBuild && (characterBuild.mainSpecials?.length > 0 || characterBuild.subSpecials?.length > 0 || characterBuild.ownedCards?.length > 0);
+  const hasCharacterBuild = !!characterBuild && ((characterBuild.mainSpecials?.length ?? 0) > 0 || (characterBuild.subSpecials?.length ?? 0) > 0 || (characterBuild.ownedCards?.length ?? 0) > 0);
 
   const playerLibrary = hasCharacterBuild
     ? [...characterBuild.mainSpecials, ...characterBuild.subSpecials]
@@ -182,7 +288,7 @@ export const createBattlePayload = (
   if (node.type === 'boss') {
     enemyGroup = getEnemyGroupDetails('slaughterer_solo');
   } else if (node.type === 'elite') {
-    const eliteGroups = ['deserter_solo', 'deserter_marauders'];
+    const eliteGroups = ['deserter_solo', 'marauder_gang'];
     const randomId = eliteGroups[Math.floor(Math.random() * eliteGroups.length)];
     enemyGroup = getEnemyGroupDetails(randomId);
   } else {
@@ -194,8 +300,8 @@ export const createBattlePayload = (
   const enemyCount = enemies.length || 1;
 
   const enemyLibrary: string[] = [];
-  enemies.forEach((enemy: { deck?: string[] }) => {
-    if (enemy?.deck) {
+  enemies.forEach((enemy: any) => {
+    if (Array.isArray(enemy?.deck)) {
       enemyLibrary.push(...enemy.deck);
     }
   });
@@ -212,25 +318,14 @@ export const createBattlePayload = (
     ? drawCharacterBuildHand(characterBuild.mainSpecials, characterBuild.subSpecials, characterBuild.ownedCards)
     : drawHand(playerDrawPile, 3);
 
-  const enemyHandSize = Math.max(enemyCount, Math.min(enemyDrawPile.length, 3 * enemyCount));
+  // 적 카드 수: 최소 enemyCount, 최대 3*enemyCount, 하지만 덱 크기 초과 불가
+  const enemyHandSize = Math.min(enemyDrawPile.length, Math.max(enemyCount, 3 * enemyCount));
   const enemyHand = drawHand(enemyDrawPile, enemyHandSize);
   const { preview, simulation } = computeBattlePlan(node.type, playerHand, enemyHand, playerHp, maxHp, enemyCount);
 
-  const totalEnemyHp = enemies.reduce((sum, e) => sum + (e?.hp || 40), 0);
+  const totalEnemyHp = enemies.reduce((sum: any, e: any) => sum + (e?.hp || 40), 0);
 
-  const mixedEnemies = enemies.map(e => ({
-    id: e?.id,
-    name: e?.name || '적',
-    emoji: e?.emoji || '👾',
-    hp: e?.hp || 40,
-    maxHp: e?.hp || 40,
-    ether: e?.ether || 100,
-    deck: e?.deck || [],
-    cardsPerTurn: e?.cardsPerTurn || 2,
-    passives: e?.passives || {},
-    tier: e?.tier || 1,
-    isBoss: e?.isBoss || false,
-  }));
+  const mixedEnemies = enemies.map((e: any) => createBattleEnemyData(e));
 
   return {
     nodeId: node.id,

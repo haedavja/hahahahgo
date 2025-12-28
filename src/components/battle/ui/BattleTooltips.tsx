@@ -77,8 +77,8 @@ export const BattleTooltips: FC<BattleTooltipsProps> = ({
             ) : null;
           })()}
           {/* 특성 섹션 */}
-          {hoveredCard.card.traits && hoveredCard.card.traits.length > 0 && hoveredCard.card.traits.map(traitId => {
-            const trait = TRAITS[traitId];
+          {hoveredCard.card.traits && hoveredCard.card.traits.length > 0 && hoveredCard.card.traits.map((traitId: any) => {
+            const trait = (TRAITS as any)[traitId];
             if (!trait) return null;
             const isPositive = trait.type === 'positive';
             return (
@@ -116,7 +116,7 @@ export const BattleTooltips: FC<BattleTooltipsProps> = ({
                   </div>
                 </div>
               )}
-              {hoveredCard.card.appliedTokens.map((tokenInfo, idx) => {
+              {hoveredCard.card.appliedTokens.map((tokenInfo: any, idx: any) => {
                 const token = TOKENS[tokenInfo.id];
                 if (!token) return null;
                 const isPositive = token.category === TOKEN_CATEGORIES.POSITIVE;

@@ -35,24 +35,24 @@ export const createBattleActions: SliceCreator = (set) => ({
       const hasCharacterBuild = characterBuild && (
         characterBuild.mainSpecials?.length > 0 ||
         characterBuild.subSpecials?.length > 0 ||
-        characterBuild.ownedCards?.length > 0
+        (characterBuild.ownedCards?.length ?? 0) > 0
       );
 
       const playerLibrary = hasCharacterBuild
         ? [...characterBuild.mainSpecials, ...characterBuild.subSpecials]
         : [...BATTLE_CARDS];
 
-      let enemy = null;
+      let enemy: typeof ENEMIES[number] | null = null;
       let enemyDeck: string[] = [];
 
       if (battleConfig.enemyId) {
-        enemy = ENEMIES.find((e) => e.id === battleConfig.enemyId);
+        enemy = ENEMIES.find((e) => e.id === battleConfig.enemyId) || null;
       } else if (battleConfig.tier) {
-        enemy = getRandomEnemy(battleConfig.tier as number);
+        enemy = getRandomEnemy(battleConfig.tier as number) || null;
       }
 
       if (enemy) {
-        enemyDeck = enemy.deck || [];
+        enemyDeck = enemy?.deck || [];
       } else {
         enemyDeck = resolveEnemyDeck('battle');
       }
@@ -140,7 +140,7 @@ export const createBattleActions: SliceCreator = (set) => ({
         newMaxHp = state.maxHp + maxHpGain;
         finalPlayerHp = Math.min(newMaxHp, finalPlayerHp + healed + maxHpGain);
       } catch (error) {
-        console.error('Error applying combat end effects:', error);
+        if (import.meta.env.DEV) console.error('Error applying combat end effects:', error);
       }
 
       return {

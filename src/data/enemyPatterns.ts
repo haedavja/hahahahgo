@@ -129,8 +129,8 @@ export const ENEMY_PATTERNS = {
  * @param {number} maxHp - 최대 HP
  * @returns {string|null} 'attack', 'defense', 또는 특수 행동명. 패턴 없으면 null
  */
-export function getPatternAction(enemyId, turnNumber, enemyHp, maxHp) {
-  const config = ENEMY_PATTERNS[enemyId];
+export function getPatternAction(enemyId: any, turnNumber: any, enemyHp: any, maxHp: any) {
+  const config = (ENEMY_PATTERNS as any)[enemyId];
   if (!config) return null;
 
   if (config.type === 'cycle') {
@@ -139,7 +139,8 @@ export function getPatternAction(enemyId, turnNumber, enemyHp, maxHp) {
   }
 
   if (config.type === 'phase') {
-    const hpPercent = (enemyHp / maxHp) * 100;
+    // maxHp가 0이면 100%로 처리 (0으로 나누기 방지)
+    const hpPercent = maxHp > 0 ? (enemyHp / maxHp) * 100 : 100;
     // HP 임계값 이하인 페이즈 중 가장 낮은 것 선택
     const phase = [...config.phases]
       .sort((a, b) => a.hpThreshold - b.hpThreshold)
@@ -160,7 +161,7 @@ export function getPatternAction(enemyId, turnNumber, enemyHp, maxHp) {
  * @param {Object} config - 몬스터 패턴 설정
  * @returns {Object} { key, prefer, special }
  */
-export function patternActionToMode(action, config) {
+export function patternActionToMode(action: any, config: any) {
   // 특수 행동 확인
   if (config?.specialActions?.[action]) {
     const special = config.specialActions[action];
@@ -194,7 +195,7 @@ export function patternActionToMode(action, config) {
     'debuff_dull': { key: 'balanced', prefer: 'mixed' }
   };
 
-  return actionModes[action] || { key: 'balanced', prefer: 'mixed' };
+  return (actionModes as any)[action] || { key: 'balanced', prefer: 'mixed' };
 }
 
 /**
@@ -205,11 +206,11 @@ export function patternActionToMode(action, config) {
  * @param {number} maxHp - 최대 HP
  * @returns {Object|null} { type, icon, text } 또는 null
  */
-export function getNextTurnIntent(enemyId, turnNumber, enemyHp, maxHp) {
+export function getNextTurnIntent(enemyId: any, turnNumber: any, enemyHp: any, maxHp: any) {
   const nextAction = getPatternAction(enemyId, turnNumber + 1, enemyHp, maxHp);
   if (!nextAction) return null;
 
-  const config = ENEMY_PATTERNS[enemyId];
+  const config = (ENEMY_PATTERNS as any)[enemyId];
   const special = config?.specialActions?.[nextAction];
 
   if (special?.showIntent) {
@@ -234,7 +235,7 @@ export function getNextTurnIntent(enemyId, turnNumber, enemyHp, maxHp) {
     'debuff_dull': { type: 'debuff', icon: '🔽', text: '무딤' }
   };
 
-  return defaultIntents[nextAction] || { type: 'unknown', icon: '❓', text: '???' };
+  return (defaultIntents as any)[nextAction] || { type: 'unknown', icon: '❓', text: '???' };
 }
 
 /**
@@ -244,11 +245,12 @@ export function getNextTurnIntent(enemyId, turnNumber, enemyHp, maxHp) {
  * @param {number} maxHp - 최대 HP
  * @returns {Object|null} { phase, description, hpThreshold }
  */
-export function getCurrentPhase(enemyId, enemyHp, maxHp) {
-  const config = ENEMY_PATTERNS[enemyId];
+export function getCurrentPhase(enemyId: any, enemyHp: any, maxHp: any) {
+  const config = (ENEMY_PATTERNS as any)[enemyId];
   if (!config || config.type !== 'phase') return null;
 
-  const hpPercent = (enemyHp / maxHp) * 100;
+  // maxHp가 0이면 100%로 처리 (0으로 나누기 방지)
+  const hpPercent = maxHp > 0 ? (enemyHp / maxHp) * 100 : 100;
   const phase = [...config.phases]
     .sort((a, b) => a.hpThreshold - b.hpThreshold)
     .find(p => hpPercent <= p.hpThreshold);

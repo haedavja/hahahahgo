@@ -132,7 +132,7 @@ describe('dungeonChoices', () => {
       const result = getSpecialOverride(choice as any, ['lockpick'] as any);
 
       expect(result).not.toBe(null);
-      expect(result.requiredSpecial).toBe('lockpick');
+      expect(result!.requiredSpecial).toBe('lockpick');
     });
 
     it('플레이어가 해당 주특기가 없으면 null을 반환해야 함', () => {
@@ -157,7 +157,7 @@ describe('dungeonChoices', () => {
       };
       const result = getSpecialOverride(choice as any, ['strength', 'lockpick']);
 
-      expect(result.requiredSpecial).toBe('lockpick');
+      expect(result!.requiredSpecial).toBe('lockpick');
     });
   });
 

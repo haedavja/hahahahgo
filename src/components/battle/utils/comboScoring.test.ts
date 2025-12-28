@@ -29,7 +29,7 @@ import {
 } from './comboScoring';
 
 // 테스트용 카드 생성 헬퍼
-function createCard(actionCost, type = 'attack', opts: any = {}) {
+function createCard(actionCost: any, type = 'attack', opts: any = {}) {
   return {
     id: `test_${actionCost}_${type}`,
     actionCost,
@@ -89,7 +89,7 @@ describe('ENEMY_COMBO_TENDENCIES', () => {
 describe('calculateComboScore', () => {
   it('빈 배열은 점수 0', () => {
     expect(calculateComboScore([]).score).toBe(0);
-    expect(calculateComboScore(null).score).toBe(0);
+    expect(calculateComboScore(null as any).score).toBe(0);
   });
 
   it('하이카드 점수 0', () => {
@@ -261,7 +261,7 @@ describe('decideComboStrategy', () => {
 describe('scoreWithCombo', () => {
   it('카드 없으면 점수 0', () => {
     expect(scoreWithCombo({ key: 'aggro' } as any, [])).toBe(0);
-    expect(scoreWithCombo({ key: 'aggro' } as any, null)).toBe(0);
+    expect(scoreWithCombo({ key: 'aggro' } as any, null as any)).toBe(0);
   });
 
   it('공격 모드: 공격 카드 우대', () => {

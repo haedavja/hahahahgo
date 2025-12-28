@@ -9,7 +9,7 @@ import { FC, RefObject } from 'react';
 interface BattleLogProps {
   phase: string;
   log: string[] | null;
-  logContainerRef: RefObject<HTMLDivElement>;
+  logContainerRef: RefObject<HTMLDivElement | null>;
   showAlways?: boolean;
 }
 

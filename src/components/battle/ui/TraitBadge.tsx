@@ -15,7 +15,7 @@ interface TraitBadgeProps {
  * 단일 특성 배지 컴포넌트
  */
 export const TraitBadge: FC<TraitBadgeProps> = ({ traitId }) => {
-  const trait = TRAITS[traitId];
+  const trait = (TRAITS as any)[traitId];
   if (!trait) return null;
 
   const isPositive = trait.type === 'positive';
@@ -49,7 +49,7 @@ export const TraitBadgeList: FC<TraitBadgeListProps> = ({ traits }) => {
 
   return (
     <span style={{ fontWeight: 600, display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-      {traits.map((traitId) => (
+      {traits.map((traitId: any) => (
         <TraitBadge key={traitId} traitId={traitId} />
       ))}
     </span>

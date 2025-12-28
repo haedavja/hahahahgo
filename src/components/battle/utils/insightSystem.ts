@@ -114,7 +114,7 @@ export const getInsightRevealLevel = (
   enemyActions: InsightEnemyAction[],
   units: InsightUnit[] = []
 ): InsightRevealResult => {
-  if (!enemyActions || enemyActions.length === 0) {
+  if (!enemyActions || !Array.isArray(enemyActions) || enemyActions.length === 0) {
     return { level: 0, visible: false };
   }
 

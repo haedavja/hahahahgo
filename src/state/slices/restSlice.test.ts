@@ -74,7 +74,7 @@ describe('restSlice', () => {
 
   describe('awakenAtRest', () => {
     it('기억이 부족하면 각성하지 않는다', () => {
-      store.setState({ ...store.getState(), activeRest: { nodeId: 'test' }, resources: { ...store.getState().resources, memory: 0 } });
+      store.setState({ ...store.getState(), activeRest: { nodeId: 'test' }, resources: { ...store.getState().resources, memory: 0 } as any });
       const originalStrength = store.getState().playerStrength;
       store.getState().awakenAtRest('brave');
       expect(store.getState().playerStrength).toBe(originalStrength);

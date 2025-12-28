@@ -40,8 +40,8 @@ describe('agilityUtils', () => {
     it('유효하지 않은 기본 속도는 1을 반환해야 함', () => {
       expect(applyAgility(0, 0)).toBe(1);
       expect(applyAgility(-5, 0)).toBe(1);
-      expect(applyAgility(null, 0)).toBe(1);
-      expect(applyAgility(undefined, 0)).toBe(1);
+      expect(applyAgility(null as any, 0)).toBe(1);
+      expect(applyAgility(undefined as any, 0)).toBe(1);
     });
   });
 
@@ -122,8 +122,8 @@ describe('agilityUtils', () => {
     });
 
     it('null/undefined면 빈 문자열을 반환해야 함', () => {
-      expect(getAgilityDescription(null)).toBe('');
-      expect(getAgilityDescription(undefined)).toBe('');
+      expect(getAgilityDescription(null as any)).toBe('');
+      expect(getAgilityDescription(undefined as any)).toBe('');
     });
 
     it('양수 민첩성은 속도 감소 설명을 반환해야 함', () => {

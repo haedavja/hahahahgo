@@ -158,20 +158,20 @@ describe('combatUtils', () => {
     });
 
     it('첫 번째 값이 null이면 0으로 처리해야 함', () => {
-      expect(addEther(null, 50)).toBe(50);
+      expect(addEther(null as any, 50)).toBe(50);
     });
 
     it('두 번째 값이 null이면 0으로 처리해야 함', () => {
-      expect(addEther(100, null)).toBe(100);
+      expect(addEther(100, null as any)).toBe(100);
     });
 
     it('두 값 모두 null이면 0을 반환해야 함', () => {
-      expect(addEther(null, null)).toBe(0);
+      expect(addEther(null as any, null as any)).toBe(0);
     });
 
     it('undefined도 0으로 처리해야 함', () => {
-      expect(addEther(undefined, 50)).toBe(50);
-      expect(addEther(100, undefined)).toBe(100);
+      expect(addEther(undefined as any, 50)).toBe(50);
+      expect(addEther(100, undefined as any)).toBe(100);
     });
 
     it('음수 값도 처리해야 함', () => {
@@ -181,22 +181,22 @@ describe('combatUtils', () => {
 
   describe('etherSlots', () => {
     it('calculateEtherSlots 함수를 호출해야 함', () => {
-      const mockCalculate = (pts) => Math.floor(pts / 100);
+      const mockCalculate = (pts: any) => Math.floor(pts / 100);
 
       expect(etherSlots(250, mockCalculate)).toBe(2);
       expect(etherSlots(500, mockCalculate)).toBe(5);
     });
 
     it('null pts는 0으로 처리해야 함', () => {
-      const mockCalculate = (pts) => pts;
+      const mockCalculate = (pts: any) => pts;
 
-      expect(etherSlots(null, mockCalculate)).toBe(0);
+      expect(etherSlots(null as any, mockCalculate)).toBe(0);
     });
 
     it('undefined pts는 0으로 처리해야 함', () => {
-      const mockCalculate = (pts) => pts;
+      const mockCalculate = (pts: any) => pts;
 
-      expect(etherSlots(undefined, mockCalculate)).toBe(0);
+      expect(etherSlots(undefined as any, mockCalculate)).toBe(0);
     });
   });
 });

@@ -51,7 +51,7 @@ export function selectBattleAnomalies(
     return devForcedAnomalies.map(({ anomalyId, level }) => {
       const anomaly = Object.values(ANOMALY_TYPES).find(a => a.id === anomalyId) as Anomaly | undefined;
       if (!anomaly) {
-        console.warn(`[Dev Mode] Anomaly not found: ${anomalyId}`);
+        if (import.meta.env.DEV) console.warn(`[Dev Mode] Anomaly not found: ${anomalyId}`);
         return null;
       }
       return { anomaly, level };
@@ -148,7 +148,7 @@ export function applyAnomalyEffects(
         break;
 
       default:
-        console.warn(`알 수 없는 이변 효과 타입: ${effect.type}`);
+        if (import.meta.env.DEV) console.warn(`알 수 없는 이변 효과 타입: ${effect.type}`);
     }
   });
 

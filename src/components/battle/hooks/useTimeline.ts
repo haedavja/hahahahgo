@@ -41,7 +41,7 @@ export function useTimeline(queue: unknown[] = [], currentIndex = 0, options: Ti
 
   const [progress, setProgress] = useState(0);
   const [isPlaying, setIsPlaying] = useState(auto);
-  const intervalRef = useRef(null);
+  const intervalRef = useRef<number | null>(null);
 
   // 현재 카드 정보
   const currentCard = queue[currentIndex] || null;
@@ -155,7 +155,7 @@ export function useTimelineIndicator(visible = true, progress = 0) {
  */
 export function useCardExecution(executingCardIndex = null, duration = 500) {
   const [isExecuting, setIsExecuting] = useState(false);
-  const timeoutRef = useRef(null);
+  const timeoutRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (executingCardIndex !== null) {
@@ -191,16 +191,16 @@ export function useCardExecution(executingCardIndex = null, duration = 500) {
  * @param {Array} hiddenCards - 완전히 숨겨진 카드 인덱스 배열
  * @returns {Function} isCardVisible - 카드 가시성 확인 함수
  */
-export function useCardDisappearance(disappearingCards = [], hiddenCards = []) {
-  const isCardVisible = useCallback((index) => {
+export function useCardDisappearance(disappearingCards: number[] = [], hiddenCards: number[] = []) {
+  const isCardVisible = useCallback((index: number) => {
     return !hiddenCards.includes(index);
   }, [hiddenCards]);
 
-  const isCardDisappearing = useCallback((index) => {
+  const isCardDisappearing = useCallback((index: number) => {
     return disappearingCards.includes(index);
   }, [disappearingCards]);
 
-  const isCardHidden = useCallback((index) => {
+  const isCardHidden = useCallback((index: number) => {
     return hiddenCards.includes(index);
   }, [hiddenCards]);
 

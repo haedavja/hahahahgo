@@ -10,6 +10,7 @@
  */
 
 import { useCallback } from 'react';
+import type { MutableRefObject, Dispatch, SetStateAction } from 'react';
 import { detectPokerCombo } from '../utils/comboDetection';
 import { clearTurnTokens } from '../../../lib/tokenUtils';
 import { processCardTraitEffects } from '../utils/cardTraitEffects';
@@ -25,7 +26,51 @@ import { applyAction } from '../logic/combatActions';
 import { getCardEtherGain } from '../utils/etherCalculations';
 import { CARDS, BASE_PLAYER_ENERGY } from '../battleData';
 import { RELICS } from '../../../data/relics';
-import type { UIRelicsMap, CombatBattleContext } from '../../../types';
+import type {
+  UIRelicsMap,
+  CombatBattleContext,
+  Card,
+  Relic,
+  ParryReadyState,
+  EnemyPlan,
+  BattleEvent
+} from '../../../types';
+import type { FullBattleState } from '../reducer/battleReducerState';
+import type { PlayerState, EnemyState } from '../reducer/battleReducerActions';
+import type { BattleActions } from './useBattleState';
+import type { HandCard } from '../../../lib/speedQueue';
+
+/**
+ * useResolveExecution 파라미터 인터페이스
+ */
+interface UseResolveExecutionParams {
+  battle: any;
+  player: any;
+  enemy: any;
+  selected: any;
+  queue: any;
+  qIndex: number;
+  turnNumber: number;
+  turnEtherAccumulated: number;
+  enemyTurnEtherAccumulated: number;
+  finalComboMultiplier: number;
+  enemyPlan: any;
+  relics: any;
+  orderedRelicList: any;
+  battleRef: any;
+  parryReadyStatesRef: any;
+  setParryReadyStates: any;
+  growingDefenseRef: any;
+  escapeBanRef: any;
+  escapeUsedThisTurnRef: any;
+  calculateEtherTransfer: any;
+  checkVictoryCondition: any;
+  showCardRewardModal: any;
+  startEtherCalculationAnimation: any;
+  addLog: (message: string) => void;
+  playSound: (frequency?: number, duration?: number) => void;
+  actions: any;
+}
 
 /**
  * 진행(resolve) 단계 실행 훅
@@ -58,9 +103,9 @@ export function useResolveExecution({
   addLog,
   playSound,
   actions
-}) {
+}: UseResolveExecutionParams) {
   // 턴 종료 처리
-  const finishTurn = useCallback((reason) => {
+  const finishTurn = useCallback((reason: string) => {
     addLog(`턴 종료: ${reason || ''}`);
 
     // 턴소모 토큰 제거 - battleRef에서 최신 상태 사용 (stale closure 방지)
@@ -207,7 +252,7 @@ export function useResolveExecution({
         etherMultiplier: 1
       });
     } catch (err) {
-      console.error('[finishTurn] createTurnEndPlayerState 에러:', err);
+      if (import.meta.env.DEV) console.error('[finishTurn] createTurnEndPlayerState 에러:', err);
       newPlayerState = { ...latestPlayer, etherMultiplier: 1 };
     }
     actions.setPlayer(newPlayerState);
@@ -246,7 +291,7 @@ export function useResolveExecution({
     });
     if (transitionResult.shouldReturn) return;
 
-    actions.setTurnNumber(t => t + 1);
+    actions.setTurnNumber((t: number) => t + 1);
     actions.setNetEtherDelta(null);
     actions.setEnemyPlan({ actions: [], mode: enemyPlan.mode, manuallyModified: false });
     actions.setPhase('select');
@@ -267,16 +312,16 @@ export function useResolveExecution({
     let P = { ...player, def: player.def || false, block: player.block || 0, counter: player.counter || 0, vulnMult: player.vulnMult || 1, etherPts: player.etherPts || 0 };
     let E = { ...enemy, def: enemy.def || false, block: enemy.block || 0, counter: enemy.counter || 0, vulnMult: enemy.vulnMult || 1, etherPts: enemy.etherPts || 0 };
     const tempState = { player: P, enemy: E, log: [] };
-    const newEvents = {};
+    const newEvents: Record<string, BattleEvent[]> = {};
     let enemyDefeated = false;
 
     // 진행 단계 최종 남은 행동력 계산
-    const allPlayerCards = battle.queue.filter(q => q.actor === 'player');
-    const totalEnergyUsed = allPlayerCards.reduce((sum, q) => sum + (q.card?.actionCost || 0), 0);
+    const allPlayerCards = battle.queue.filter((q: any) => q.actor === 'player');
+    const totalEnergyUsed = allPlayerCards.reduce((sum: number, q: any) => sum + (q.card?.actionCost || 0), 0);
     const playerEnergyBudget = P.energy || P.maxEnergy || BASE_PLAYER_ENERGY;
     const finalRemainingEnergy = Math.max(0, playerEnergyBudget - totalEnergyUsed);
-    const allEnemyCards = battle.queue.filter(q => q.actor === 'enemy');
-    const enemyTotalEnergyUsed = allEnemyCards.reduce((sum, q) => sum + (q.card?.actionCost || 0), 0);
+    const allEnemyCards = battle.queue.filter((q: any) => q.actor === 'enemy');
+    const enemyTotalEnergyUsed = allEnemyCards.reduce((sum: number, q: any) => sum + (q.card?.actionCost || 0), 0);
     const enemyEnergyBudget = E.energy || E.maxEnergy || BASE_PLAYER_ENERGY;
     const finalEnemyRemainingEnergy = Math.max(0, enemyEnergyBudget - enemyTotalEnergyUsed);
 
@@ -290,8 +335,8 @@ export function useResolveExecution({
         continue;
       }
 
-      const executedPlayerCards = battle.queue.slice(0, i).filter(q => q.actor === 'player');
-      const usedCardCategories = [...new Set(executedPlayerCards.map(q => q.card?.cardCategory).filter(Boolean))];
+      const executedPlayerCards = battle.queue.slice(0, i).filter((q: any) => q.actor === 'player');
+      const usedCardCategories = [...new Set(executedPlayerCards.map((q: any) => q.card?.cardCategory).filter(Boolean))];
       const previewNextTurnEffects = battle.nextTurnEffects || {};
 
       const battleContext = {

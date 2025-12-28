@@ -23,7 +23,8 @@ import type {
   EnemyPlan,
   RespondSnapshot,
   PostCombatOptions,
-  BattleEvent
+  BattleEvent,
+  DeflationInfo
 } from '../../../types';
 import type { HandCard } from '../../../lib/speedQueue';
 
@@ -289,8 +290,8 @@ type EtherAction =
   | { type: typeof ACTIONS.SET_ENEMY_ETHER_FINAL_VALUE; payload: number | null }
   | { type: typeof ACTIONS.SET_ETHER_CALC_PHASE; payload: EtherCalcPhase }
   | { type: typeof ACTIONS.SET_ENEMY_ETHER_CALC_PHASE; payload: EtherCalcPhase }
-  | { type: typeof ACTIONS.SET_CURRENT_DEFLATION; payload: number | null }
-  | { type: typeof ACTIONS.SET_ENEMY_CURRENT_DEFLATION; payload: number | null }
+  | { type: typeof ACTIONS.SET_CURRENT_DEFLATION; payload: DeflationInfo | null }
+  | { type: typeof ACTIONS.SET_ENEMY_CURRENT_DEFLATION; payload: DeflationInfo | null }
   | { type: typeof ACTIONS.SET_ETHER_PULSE; payload: boolean }
   | { type: typeof ACTIONS.SET_PLAYER_TRANSFER_PULSE; payload: boolean }
   | { type: typeof ACTIONS.SET_ENEMY_TRANSFER_PULSE; payload: boolean };

@@ -78,7 +78,7 @@ export function applyTurnEndRelicEffectsToNextTurn({
   const updatedNextTurnEffects = { ...nextTurnEffects };
 
   if (turnEndRelicEffects.energyNextTurn > 0) {
-    updatedNextTurnEffects.bonusEnergy += turnEndRelicEffects.energyNextTurn;
+    updatedNextTurnEffects.bonusEnergy = (updatedNextTurnEffects.bonusEnergy ?? 0) + turnEndRelicEffects.energyNextTurn;
     addLog(`📜 상징 효과: 다음턴 행동력 +${turnEndRelicEffects.energyNextTurn}`);
   }
 

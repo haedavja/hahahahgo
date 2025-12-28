@@ -72,7 +72,7 @@ describe('useCardSelection', () => {
 
   describe('checkRequiredTokens', () => {
     it('토큰 요구사항 없으면 ok 반환', () => {
-      const { result } = renderHook(() => useCardSelection(defaultProps));
+      const { result } = renderHook(() => useCardSelection(defaultProps as any));
       const card = { id: 1, name: 'test' };
 
       const check = result.current.checkRequiredTokens(card, []);
@@ -87,7 +87,7 @@ describe('useCardSelection', () => {
           tokens: [{ id: 'focus', stacks: 3 }]
         }
       };
-      const { result } = renderHook(() => useCardSelection(props));
+      const { result } = renderHook(() => useCardSelection(props as any));
       const card = {
         id: 1,
         requiredTokens: [{ id: 'focus', stacks: 2 }]
@@ -105,7 +105,7 @@ describe('useCardSelection', () => {
           tokens: [{ id: 'focus', stacks: 1 }]
         }
       };
-      const { result } = renderHook(() => useCardSelection(props));
+      const { result } = renderHook(() => useCardSelection(props as any));
       const card = {
         id: 1,
         requiredTokens: [{ id: 'focus', stacks: 2 }]
@@ -124,7 +124,7 @@ describe('useCardSelection', () => {
           tokens: [{ id: 'focus', stacks: 2 }]
         }
       };
-      const { result } = renderHook(() => useCardSelection(props));
+      const { result } = renderHook(() => useCardSelection(props as any));
 
       const alreadySelected = [
         { id: 1, requiredTokens: [{ id: 'focus', stacks: 1 }] }
@@ -142,7 +142,7 @@ describe('useCardSelection', () => {
   describe('toggle', () => {
     it('select 페이즈에서 카드 선택', () => {
       const card = { __handUid: 'card1', speedCost: 2, actionCost: 1 };
-      const { result } = renderHook(() => useCardSelection(defaultProps));
+      const { result } = renderHook(() => useCardSelection(defaultProps as any));
 
       act(() => {
         result.current.toggle(card);
@@ -155,7 +155,7 @@ describe('useCardSelection', () => {
     it('resolve 페이즈에서는 토글 무시', () => {
       const props = { ...defaultProps, battlePhase: 'resolve' };
       const card = { __handUid: 'card1', speedCost: 2, actionCost: 1 };
-      const { result } = renderHook(() => useCardSelection(props));
+      const { result } = renderHook(() => useCardSelection(props as any));
 
       act(() => {
         result.current.toggle(card);
@@ -172,7 +172,7 @@ describe('useCardSelection', () => {
         effectiveMaxSubmitCards: 2
       };
       const card = { __handUid: 'card3', speedCost: 1, actionCost: 1 };
-      const { result } = renderHook(() => useCardSelection(props));
+      const { result } = renderHook(() => useCardSelection(props as any));
 
       act(() => {
         result.current.toggle(card);
@@ -188,7 +188,7 @@ describe('useCardSelection', () => {
         player: { ...defaultProps.player, maxSpeed: 10 }
       };
       const card = { __handUid: 'card1', speedCost: 3, actionCost: 1 };
-      const { result } = renderHook(() => useCardSelection(props));
+      const { result } = renderHook(() => useCardSelection(props as any));
 
       act(() => {
         result.current.toggle(card);
@@ -207,7 +207,7 @@ describe('useCardSelection', () => {
           { __handUid: '2', name: 'second' }
         ]
       };
-      const { result } = renderHook(() => useCardSelection(props));
+      const { result } = renderHook(() => useCardSelection(props as any));
 
       act(() => {
         result.current.moveUp(1);
@@ -224,7 +224,7 @@ describe('useCardSelection', () => {
         ...defaultProps,
         selected: [{ __handUid: '1' }, { __handUid: '2' }]
       };
-      const { result } = renderHook(() => useCardSelection(props));
+      const { result } = renderHook(() => useCardSelection(props as any));
 
       act(() => {
         result.current.moveUp(0);

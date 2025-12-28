@@ -22,7 +22,8 @@ import type {
   InsightBadge,
   ReducerPlayerState,
   ReducerEnemyState,
-  ReducerEnemyUnitState
+  ReducerEnemyUnitState,
+  DeflationInfo
 } from '../../../types';
 import type { BattlePhase, SortType, EtherCalcPhase } from './battleReducerActions';
 import type { HandCard } from '../../../lib/speedQueue';
@@ -84,8 +85,8 @@ export interface FullBattleState {
   enemyEtherFinalValue: number | null;
   etherCalcPhase: EtherCalcPhase;
   enemyEtherCalcPhase: EtherCalcPhase;
-  currentDeflation: number | null;
-  enemyCurrentDeflation: number | null;
+  currentDeflation: DeflationInfo | null;
+  enemyCurrentDeflation: DeflationInfo | null;
   etherPulse: boolean;
   playerTransferPulse: boolean;
   enemyTransferPulse: boolean;

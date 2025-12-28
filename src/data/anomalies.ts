@@ -14,6 +14,8 @@
  * @property {Object[]} effects - 레벨별 효과
  */
 
+import { shuffle } from '../lib/randomUtils';
+
 export const ANOMALY_TYPES = {
   DEFLATION_CURSE: {
     id: 'deflation_curse',
@@ -22,7 +24,7 @@ export const ANOMALY_TYPES = {
     color: '#ef4444',
     description: '에테르 획득이 불가능합니다.',
     // 레벨과 관계없이 동일한 효과
-    getEffect: (level) => ({
+    getEffect: (level: any) => ({
       type: 'ETHER_BAN',
       description: '이 전투에서 에테르를 획득할 수 없습니다.'
     })
@@ -34,7 +36,7 @@ export const ANOMALY_TYPES = {
     emoji: '🔋',
     color: '#f59e0b',
     description: '최대 행동력이 감소합니다.',
-    getEffect: (level) => ({
+    getEffect: (level: any) => ({
       type: 'ENERGY_REDUCTION',
       value: level, // 레벨당 -1, 최대 -4
       description: `최대 행동력 -${level}`
@@ -47,7 +49,7 @@ export const ANOMALY_TYPES = {
     emoji: '⏰',
     color: '#8b5cf6',
     description: '최대 속도가 감소합니다.',
-    getEffect: (level) => ({
+    getEffect: (level: any) => ({
       type: 'SPEED_REDUCTION',
       value: level * 3, // 레벨당 -3, 최대 -12
       description: `최대 속도 -${level * 3}`
@@ -60,7 +62,7 @@ export const ANOMALY_TYPES = {
     emoji: '🎴',
     color: '#06b6d4',
     description: '뽑기 확률이 감소합니다.',
-    getEffect: (level) => ({
+    getEffect: (level: any) => ({
       type: 'DRAW_REDUCTION',
       value: level * 0.1, // 레벨당 -10%, 최대 -40%
       description: `뽑기 확률 -${level * 10}%`
@@ -73,7 +75,7 @@ export const ANOMALY_TYPES = {
     emoji: '🌫️',
     color: '#64748b',
     description: '통찰이 감소합니다.',
-    getEffect: (level) => ({
+    getEffect: (level: any) => ({
       type: 'INSIGHT_REDUCTION',
       value: level, // 레벨당 -1, 최대 -4
       description: `통찰 -${level}`
@@ -86,7 +88,7 @@ export const ANOMALY_TYPES = {
     emoji: '📉',
     color: '#dc2626',
     description: '공격력과 방어력이 감소합니다.',
-    getEffect: (level) => ({
+    getEffect: (level: any) => ({
       type: 'VALUE_DOWN',
       value: level, // 레벨당 공격/방어 -10% 토큰 1개, 최대 4개
       description: `공격력/방어력 감소 토큰 ${level}개`
@@ -102,8 +104,8 @@ export const ALL_ANOMALIES = Object.values(ANOMALY_TYPES);
 /**
  * 이변 ID로 이변 데이터 가져오기
  */
-export function getAnomalyById(id) {
-  return ALL_ANOMALIES.find(anomaly => anomaly.id === id);
+export function getAnomalyById(id: any) {
+  return ALL_ANOMALIES.find((anomaly: any) => anomaly.id === id);
 }
 
 /**
@@ -118,8 +120,8 @@ export function selectRandomAnomaly() {
  * 보스 전투용 여러 이변 선택
  * @param {number} count - 선택할 이변 개수
  */
-export function selectMultipleAnomalies(count) {
+export function selectMultipleAnomalies(count: any) {
   // 중복 없이 랜덤 선택
-  const shuffled = [...ALL_ANOMALIES].sort(() => Math.random() - 0.5);
+  const shuffled = shuffle(ALL_ANOMALIES);
   return shuffled.slice(0, Math.min(count, ALL_ANOMALIES.length));
 }

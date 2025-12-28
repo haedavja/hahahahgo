@@ -1,11 +1,12 @@
 /**
- * @file battleData.js
+ * @file battleData.ts
  * @description 전투 시스템 데이터 정의 (카드, 특성, 적)
- * @typedef {import('../../types').Card} Card
- * @typedef {import('../../types').CardTrait} CardTrait
- * @typedef {import('../../types').TraitDefinition} TraitDefinition
- * @typedef {import('../../types').Enemy} Enemy
  */
+
+import type { EnemyDefinition } from '../../types/enemy';
+
+// Re-export for backwards compatibility
+export type { EnemyDefinition };
 
 export const MAX_SPEED = 30; // 기본 최대 속도 (레거시 호환용)
 export const DEFAULT_PLAYER_MAX_SPEED = 30; // 플레이어 기본 최대 속도
@@ -27,7 +28,7 @@ export const DEFAULT_STARTING_DECK = [
 ];
 
 // 타임라인 틱 생성 함수 (동적)
-export function generateSpeedTicks(maxSpeed) {
+export function generateSpeedTicks(maxSpeed: any) {
   const tickInterval = 5;
   return Array.from(
     { length: Math.floor(maxSpeed / tickInterval) + 1 },
@@ -122,7 +123,7 @@ export const CARDS = [
     special: "advanceTimeline",
     advanceAmount: 4,
     appliedTokens: [{ id: 'blur', target: 'player' }],
-    onPlay: (battle, actions) => {
+    onPlay: (battle: any, actions: any) => {
       actions.addTokenToPlayer('blur', 1);
     }
   },
@@ -179,7 +180,7 @@ export const CARDS = [
     cardCategory: "fencing",
     advanceAmount: 3,
     appliedTokens: [{ id: 'shaken', target: 'enemy' }],
-    onPlay: (battle, actions) => {
+    onPlay: (battle: any, actions: any) => {
       actions.addTokenToEnemy('shaken', 1);
     }
   },
@@ -212,7 +213,7 @@ export const CARDS = [
     cardCategory: "fencing",
     advanceAmount: 3,
     appliedTokens: [{ id: 'evasion', target: 'player' }, { id: 'offense', target: 'player' }],
-    onPlay: (battle, actions) => {
+    onPlay: (battle: any, actions: any) => {
       actions.addTokenToPlayer('evasion', 1);
       actions.addTokenToPlayer('offense', 1);
     }
@@ -260,7 +261,7 @@ export const CARDS = [
     appliedTokens: [
       { id: 'counterShot', stacks: 2, target: 'player' }
     ],
-    onPlay: (battle, actions) => {
+    onPlay: (battle: any, actions: any) => {
       actions.addTokenToPlayer('counterShot', 2);
     },
     crossBonus: { type: 'gun_attack', count: 1 }
@@ -344,7 +345,7 @@ export const CARDS = [
     traits: [],
     cardCategory: "gun",
     appliedTokens: [{ id: 'armor_piercing', target: 'player' }],
-    onPlay: (battle, actions) => {
+    onPlay: (battle: any, actions: any) => {
       // 탄걸림 해제 + 룰렛 0으로 초기화 후 추가 효과 적용
       actions.removeTokenFromPlayer('gun_jam', 'permanent', 99);
       actions.resetTokenForPlayer('roulette', 'permanent', 0); // 룰렛 0으로 초기화
@@ -363,7 +364,7 @@ export const CARDS = [
     traits: [],
     cardCategory: "gun",
     appliedTokens: [{ id: 'incendiary', target: 'player' }],
-    onPlay: (battle, actions) => {
+    onPlay: (battle: any, actions: any) => {
       // 탄걸림 해제 + 룰렛 0으로 초기화 후 추가 효과 적용
       actions.removeTokenFromPlayer('gun_jam', 'permanent', 99);
       actions.resetTokenForPlayer('roulette', 'permanent', 0); // 룰렛 0으로 초기화
@@ -381,7 +382,7 @@ export const CARDS = [
     description: "방어력 5. 탄걸림을 해제하고 룰렛을 초기화한다.",
     traits: [],
     cardCategory: "gun",
-    onPlay: (battle, actions) => {
+    onPlay: (battle: any, actions: any) => {
       // 탄걸림 해제 + 룰렛 0으로 초기화
       actions.removeTokenFromPlayer('gun_jam', 'permanent', 99);
       actions.resetTokenForPlayer('roulette', 'permanent', 0); // 룰렛 0으로 초기화
@@ -398,7 +399,7 @@ export const CARDS = [
     description: "이번 전투 동안 통찰 +1, 치명타율 +5%를 얻는다.",
     traits: [],
     appliedTokens: [{ id: 'insight', target: 'player' }, { id: 'crit_boost', target: 'player' }],
-    onPlay: (battle, actions) => {
+    onPlay: (battle: any, actions: any) => {
       actions.addTokenToPlayer('insight', 1);
       actions.addTokenToPlayer('crit_boost', 1);
     }
@@ -529,7 +530,7 @@ export const CARDS = [
       { id: 'dull', stacks: 1, target: 'enemy' },
       { id: 'shaken', stacks: 1, target: 'enemy' }
     ],
-    onPlay: (battle, actions) => {
+    onPlay: (battle: any, actions: any) => {
       actions.addTokenToEnemy('dull', 1);
       actions.addTokenToEnemy('shaken', 1);
     },
@@ -867,7 +868,7 @@ export const ENEMY_CARDS = [
     appliedTokens: [{ id: 'dull', target: 'enemy' }] },
 ];
 
-export const ENEMIES = [
+export const ENEMIES: EnemyDefinition[] = [
   // === 1막 일반 적 ===
   {
     id: "ghoul",
@@ -875,6 +876,7 @@ export const ENEMIES = [
     hp: 40,
     ether: 100,
     speed: 10,
+    maxSpeed: 10,
     deck: ["ghoul_attack", "ghoul_attack", "ghoul_block", "ghoul_block"],
     cardsPerTurn: 2,
     emoji: "💀",
@@ -887,6 +889,7 @@ export const ENEMIES = [
     hp: 20,
     ether: 80,
     speed: 8,
+    maxSpeed: 8,
     deck: ["marauder_attack", "marauder_block"],
     cardsPerTurn: 1,
     emoji: "🗡️",
@@ -899,6 +902,7 @@ export const ENEMIES = [
     hp: 70,
     ether: 200,
     speed: 15,
+    maxSpeed: 15,
     deck: ["deserter_attack", "deserter_block", "deserter_double", "deserter_offense", "deserter_fortify"],
     cardsPerTurn: 3,
     emoji: "⚔️",
@@ -915,6 +919,7 @@ export const ENEMIES = [
     hp: 150,
     ether: 300,
     speed: 25,
+    maxSpeed: 25,
     deck: ["slaughterer_heavy", "slaughterer_blur_block", "slaughterer_quick", "slaughterer_rest"],
     cardsPerTurn: 2,
     emoji: "🔪",
@@ -931,6 +936,7 @@ export const ENEMIES = [
     hp: 60,
     ether: 150,
     speed: 12,
+    maxSpeed: 12,
     deck: ["slurthim_burn", "slurthim_vulnerable", "slurthim_dull"],
     cardsPerTurn: 1,
     emoji: "🟢",
@@ -944,7 +950,7 @@ export const ENEMY_GROUPS = [
   // === 초반 노드 (1-3) ===
   {
     id: "ghoul_single",
-    name: "떠도는 구울",
+    name: "구울x1",
     tier: 1,
     nodeRange: [1, 3],
     enemies: ["ghoul"]
@@ -953,67 +959,46 @@ export const ENEMY_GROUPS = [
   // === 중반 노드 (4-7) ===
   {
     id: "ghoul_duo",
-    name: "구울 무리",
+    name: "구울x2",
     tier: 1,
     nodeRange: [4, 7],
     enemies: ["ghoul", "ghoul"]
   },
   {
     id: "marauder_trio",
-    name: "약탈자 패거리",
+    name: "약탈자x3",
     tier: 1,
     nodeRange: [4, 7],
     enemies: ["marauder", "marauder", "marauder"]
   },
   {
     id: "deserter_solo",
-    name: "탈영병",
+    name: "탈영병x1",
     tier: 2,
     nodeRange: [4, 7],
     enemies: ["deserter"]
-  },
-  {
-    id: "deserter_marauders",
-    name: "탈영병과 약탈자들",
-    tier: 2,
-    nodeRange: [4, 7],
-    enemies: ["deserter", "marauder", "marauder"]
-  },
-  {
-    id: "slurthim_ghouls",
-    name: "오염된 구울들",
-    tier: 2,
-    nodeRange: [4, 10],
-    enemies: ["slurthim", "ghoul", "ghoul"]
   },
 
   // === 후반 노드 (8-10) ===
   {
     id: "ghoul_trio",
-    name: "구울 떼",
+    name: "구울x3",
     tier: 2,
     nodeRange: [8, 10],
     enemies: ["ghoul", "ghoul", "ghoul"]
   },
   {
     id: "marauder_gang",
-    name: "약탈자 집단",
+    name: "약탈자x4",
     tier: 2,
     nodeRange: [8, 10],
     enemies: ["marauder", "marauder", "marauder", "marauder"]
-  },
-  {
-    id: "deserter_army",
-    name: "탈영병의 부하들",
-    tier: 2,
-    nodeRange: [8, 10],
-    enemies: ["deserter", "marauder", "marauder", "marauder"]
   },
 
   // === 보스급 ===
   {
     id: "slaughterer_solo",
-    name: "살육자",
+    name: "살육자x1",
     tier: 3,
     enemies: ["slaughterer"],
     isBoss: true
@@ -1021,20 +1006,21 @@ export const ENEMY_GROUPS = [
 ];
 
 // 몬스터 그룹 헬퍼 함수
-export function getEnemyGroup(groupId) {
+export function getEnemyGroup(groupId: any) {
   const group = ENEMY_GROUPS.find(g => g.id === groupId);
   if (!group) return null;
+  const enemies = Array.isArray(group.enemies) ? group.enemies : [];
   return {
     name: group.name,
-    enemies: group.enemies,
-    enemyCount: group.enemies.length,
+    enemies,
+    enemyCount: enemies.length,
     tier: group.tier,
     isBoss: group.isBoss
   };
 }
 
 // 티어별 적 가져오기
-export function getEnemiesByTier(tier) {
+export function getEnemiesByTier(tier: any) {
   return ENEMIES.filter(e => e.tier === tier);
 }
 
@@ -1071,7 +1057,7 @@ export function getRandomEnemyGroupByNode(nodeNumber = 1) {
 }
 
 // 그룹의 적 상세 정보 가져오기
-export function getEnemyGroupDetails(groupId) {
+export function getEnemyGroupDetails(groupId: any) {
   const group = ENEMY_GROUPS.find(g => g.id === groupId);
   if (!group) return null;
 

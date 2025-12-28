@@ -22,7 +22,8 @@ import {
   applyTraitModifiers,
   applyStrengthToCard,
   applyStrengthToHand,
-  getCardRarity
+  getCardRarity,
+  hasEnemyUnits
 } from './battleUtils';
 
 describe('battleUtils', () => {
@@ -310,6 +311,34 @@ describe('battleUtils', () => {
     it('null/undefined 카드는 common을 반환해야 함', () => {
       expect(getCardRarity(null)).toBe('common');
       expect(getCardRarity(undefined)).toBe('common');
+    });
+  });
+
+  describe('hasEnemyUnits', () => {
+    /**
+     * 이 함수는 UI 표시(EnemyUnitsDisplay)와 HP 분배 로직에서
+     * 동일하게 사용되어야 합니다. 조건 불일치 시 버그 발생:
+     * - 단일 유닛 적의 HP가 UI에 반영되지 않는 문제
+     */
+    it('1개 이상의 유닛이 있으면 true를 반환해야 함', () => {
+      expect(hasEnemyUnits([{ hp: 100 }])).toBe(true);
+      expect(hasEnemyUnits([{ hp: 50 }, { hp: 50 }])).toBe(true);
+    });
+
+    it('단일 유닛도 true를 반환해야 함 (UI와 HP 분배 일치)', () => {
+      // 중요: 단일 유닛일 때도 true여야 UI에 표시되는 HP와
+      // 내부 HP 분배 로직이 일치함
+      const singleUnit = [{ hp: 35 }];
+      expect(hasEnemyUnits(singleUnit)).toBe(true);
+    });
+
+    it('빈 배열이면 false를 반환해야 함', () => {
+      expect(hasEnemyUnits([])).toBe(false);
+    });
+
+    it('null/undefined면 false를 반환해야 함', () => {
+      expect(hasEnemyUnits(null)).toBe(false);
+      expect(hasEnemyUnits(undefined)).toBe(false);
     });
   });
 });

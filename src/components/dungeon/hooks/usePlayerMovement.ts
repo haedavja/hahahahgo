@@ -42,8 +42,8 @@ export function usePlayerMovement({
   setCurrentRoomKey,
   updateMazeRoom,
   interactionRef,
-}) {
-  const animationRef = useRef(null);
+}: any) {
+  const animationRef = useRef<number | null>(null);
   const playerXRef = useRef(playerX);
 
   // playerX ref 동기화
@@ -53,7 +53,7 @@ export function usePlayerMovement({
 
   // 키 입력 핸들링
   useEffect(() => {
-    const handleKeyDown = (e) => {
+    const handleKeyDown = (e: any) => {
       if (["a", "d", "A", "D"].includes(e.key)) {
         e.preventDefault();
         actions.updateKeys({ [e.key.toLowerCase()]: true });
@@ -68,7 +68,7 @@ export function usePlayerMovement({
       }
     };
 
-    const handleKeyUp = (e) => {
+    const handleKeyUp = (e: any) => {
       if (["a", "d", "A", "D"].includes(e.key)) {
         actions.updateKeys({ [e.key.toLowerCase()]: false });
       }
@@ -124,7 +124,7 @@ export function usePlayerMovement({
   }, [playerX, segment, actions]);
 
   // 미로 이동 함수
-  const moveToRoom = useCallback((direction) => {
+  const moveToRoom = useCallback((direction: any) => {
     if (!segment || !segment.exits) return false;
 
     const exit = segment.exits[direction];

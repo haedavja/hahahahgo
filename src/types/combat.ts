@@ -123,7 +123,7 @@ export interface EnemyIntent {
 /** 전투 이벤트 */
 export interface BattleEvent {
   actor: 'player' | 'enemy' | 'system' | 'counter' | 'relic' | string;
-  type?: 'damage' | 'heal' | 'block' | 'token' | 'ether' | 'card' | 'multihit' | 'hit' | 'blocked' | 'pierce';
+  type?: 'damage' | 'heal' | 'block' | 'token' | 'ether' | 'card' | 'multihit' | 'hit' | 'blocked' | 'pierce' | 'burn';
   value?: number;
   msg: string;
   targetId?: string;
@@ -155,18 +155,6 @@ export interface DamageModifier {
   source: string;
   type: 'multiply' | 'add' | 'flat';
   value: number;
-}
-
-/** 단일 타격 결과 */
-export interface SingleHitResult {
-  attacker: Combatant;
-  defender: Combatant;
-  damage: number;
-  damageTaken?: number;
-  blockDestroyed?: number;
-  events: BattleEvent[];
-  logs: string[];
-  preProcessedResult?: PreProcessedResult;
 }
 
 /** 사전 처리 결과 */
@@ -665,6 +653,7 @@ export interface SingleHitResult {
   damageTaken?: number;
   blockDestroyed?: number;
   events: BattleEvent[];
+  logs: string[];
   preProcessedResult?: PreProcessedResult | null;
 }
 

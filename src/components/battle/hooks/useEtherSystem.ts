@@ -34,7 +34,7 @@ export function useEtherSystem(initialPts = 0, options: EtherSystemOptions = {})
   } = options;
 
   const [pts, setPts] = useState(initialPts);
-  const [animationPhase, setAnimationPhase] = useState(null);
+  const [animationPhase, setAnimationPhase] = useState<string | null>(null);
   const [pulse, setPulse] = useState(false);
   const [overdriveFlash, setOverdriveFlash] = useState(false);
 
@@ -52,7 +52,7 @@ export function useEtherSystem(initialPts = 0, options: EtherSystemOptions = {})
   const isOverdrive = useMemo(() => checkOverdrive(), [checkOverdrive]);
 
   // 에테르 추가 (애니메이션 지원)
-  const addEther = useCallback((amount, withAnimation = animated) => {
+  const addEther = useCallback((amount: any, withAnimation: any = animated) => {
     if (withAnimation) {
       setAnimationPhase('gaining');
       setPulse(true);
@@ -74,7 +74,7 @@ export function useEtherSystem(initialPts = 0, options: EtherSystemOptions = {})
   }, [pts, threshold, animated]);
 
   // 에테르 소모
-  const consumeEther = useCallback((amount) => {
+  const consumeEther = useCallback((amount: any) => {
     setPts(prev => Math.max(0, prev - amount));
   }, []);
 
@@ -87,7 +87,7 @@ export function useEtherSystem(initialPts = 0, options: EtherSystemOptions = {})
   }, []);
 
   // 에테르 설정
-  const setEther = useCallback((value) => {
+  const setEther = useCallback((value: any) => {
     setPts(value);
   }, []);
 
@@ -129,19 +129,19 @@ export function useEtherCalculation(options: EtherCalculationOptions = {}) {
     onComplete = null
   } = options;
 
-  const [calcPhase, setCalcPhase] = useState(null); // 'sum', 'multiply', 'deflation', 'result'
-  const [currentDeflation, setCurrentDeflation] = useState(null);
-  const [finalValue, setFinalValue] = useState(null);
+  const [calcPhase, setCalcPhase] = useState<string | null>(null); // 'sum', 'multiply', 'deflation', 'result'
+  const [currentDeflation, setCurrentDeflation] = useState<any>(null);
+  const [finalValue, setFinalValue] = useState<number | null>(null);
   const [accumulated, setAccumulated] = useState(0);
 
-  const timeoutRef = useRef(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // 계산 시작
   const startCalculation = useCallback(({
     baseGain,
     comboMult,
     deflationInfo
-  }) => {
+  }: any) => {
     setAccumulated(0);
     setCalcPhase('sum');
 
@@ -222,13 +222,13 @@ export function useEtherCalculation(options: EtherCalculationOptions = {}) {
 export function useEtherTransfer() {
   const [playerTransferPulse, setPlayerTransferPulse] = useState(false);
   const [enemyTransferPulse, setEnemyTransferPulse] = useState(false);
-  const [netDelta, setNetDelta] = useState(null);
+  const [netDelta, setNetDelta] = useState<number | null>(null);
 
-  const playerTimeoutRef = useRef(null);
-  const enemyTimeoutRef = useRef(null);
+  const playerTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const enemyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // 플레이어 → 적 이동
-  const transferToEnemy = useCallback((amount) => {
+  const transferToEnemy = useCallback((amount: any) => {
     setNetDelta(-amount);
     setPlayerTransferPulse(true);
 
@@ -247,7 +247,7 @@ export function useEtherTransfer() {
   }, []);
 
   // 적 → 플레이어 이동
-  const transferToPlayer = useCallback((amount) => {
+  const transferToPlayer = useCallback((amount: any) => {
     setNetDelta(amount);
     setEnemyTransferPulse(true);
 
@@ -305,7 +305,7 @@ export function useEtherTransfer() {
  */
 export function useSoulShatter(duration = 2000) {
   const [isActive, setIsActive] = useState(false);
-  const timeoutRef = useRef(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const trigger = useCallback(() => {
     setIsActive(true);

@@ -10,7 +10,7 @@
 /**
  * 전투 보상 모달
  */
-export function RewardModal({ rewardModal, onClose }) {
+export function RewardModal({ rewardModal, onClose }: any) {
   if (!rewardModal) return null;
 
   return (
@@ -65,7 +65,7 @@ export function RewardModal({ rewardModal, onClose }) {
 /**
  * 던전 탈출 요약 모달
  */
-export function DungeonSummaryModal({ dungeonSummary, onClose }) {
+export function DungeonSummaryModal({ dungeonSummary, onClose }: any) {
   if (!dungeonSummary) return null;
 
   return (
@@ -140,7 +140,7 @@ export function DungeonSummaryModal({ dungeonSummary, onClose }) {
 /**
  * 기로 선택지 모달
  */
-export function CrossroadModal({ crossroadModal, screenShake, onSelectChoice, onClose }) {
+export function CrossroadModal({ crossroadModal, screenShake, onSelectChoice, onClose }: any) {
   if (!crossroadModal) return null;
 
   return (
@@ -186,7 +186,7 @@ export function CrossroadModal({ crossroadModal, screenShake, onSelectChoice, on
 
         {/* 선택지 목록 */}
         <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-          {crossroadModal.template?.choices?.map((choice) => {
+          {crossroadModal.template?.choices?.map((choice: any) => {
             const attemptCount = crossroadModal.choiceState[choice.id]?.attempts || 0;
             const canSelect = choice.repeatable || attemptCount === 0;
 

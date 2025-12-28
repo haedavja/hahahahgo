@@ -60,6 +60,19 @@ export function RestModal({
   healAtRest,
   upgradeCardRarity,
   formEgo,
+}: {
+  memoryValue: any;
+  playerHp: any;
+  maxHp: any;
+  canAwaken: any;
+  playerTraits: any;
+  canFormEgo: any;
+  cardUpgrades: any;
+  closeRest: any;
+  awakenAtRest: any;
+  healAtRest: any;
+  upgradeCardRarity: any;
+  formEgo: any;
 }) {
   const [egoFormMode, setEgoFormMode] = useState(false);
   const [selectedTraitsForEgo, setSelectedTraitsForEgo] = useState([]);
@@ -158,14 +171,20 @@ function EgoFormPanel({
   setSelectedTraitsForEgo,
   formEgo,
   setEgoFormMode,
+}: {
+  playerTraits: any;
+  selectedTraitsForEgo: any;
+  setSelectedTraitsForEgo: any;
+  formEgo: any;
+  setEgoFormMode: any;
 }) {
-  const selectedTraitNames = selectedTraitsForEgo.map(idx => playerTraits[idx]);
-  const traitCounts: Record<string, number> = selectedTraitNames.reduce((acc: Record<string, number>, t) => {
+  const selectedTraitNames = selectedTraitsForEgo.map((idx: any) => playerTraits[idx]);
+  const traitCounts: Record<string, number> = selectedTraitNames.reduce((acc: Record<string, number>, t: any) => {
     acc[t] = (acc[t] || 0) + 1;
     return acc;
   }, {});
 
-  let previewEgo = null;
+  let previewEgo: string | null = null;
   let previewEmoji = '';
   let bestScore = 0;
   for (const { ego, parts, emoji } of EGO_RULES) {
@@ -202,7 +221,7 @@ function EgoFormPanel({
         <span style={{ color: "#9ca3af" }}>선택: {selectedTraitsForEgo.length}/5</span>
       </div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginBottom: "12px" }}>
-        {playerTraits.map((trait, idx) => {
+        {playerTraits.map((trait: any, idx: any) => {
           const isSelected = selectedTraitsForEgo.includes(idx);
           const canSelect = !isSelected && selectedTraitsForEgo.length < 5;
           return (
@@ -217,9 +236,9 @@ function EgoFormPanel({
               }}
               onClick={() => {
                 if (isSelected) {
-                  setSelectedTraitsForEgo(prev => prev.filter(i => i !== idx));
+                  setSelectedTraitsForEgo((prev: any) => prev.filter((i: any) => i !== idx));
                 } else if (canSelect) {
-                  setSelectedTraitsForEgo(prev => [...prev, idx]);
+                  setSelectedTraitsForEgo((prev: any) => [...prev, idx]);
                 }
               }}
             >
@@ -248,7 +267,7 @@ function EgoFormPanel({
                 효과: {effectText || '없음'}
               </div>
               <div style={{ fontSize: "13px", color: "#7dd3fc", marginTop: "2px" }}>
-                성찰: 매 턴 확률로 {REFLECTION_DESC[previewEgo]}
+                성찰: 매 턴 확률로 {(REFLECTION_DESC as any)[previewEgo]}
               </div>
             </>
           ) : (
@@ -264,7 +283,7 @@ function EgoFormPanel({
           className="btn"
           disabled={selectedTraitsForEgo.length !== 5}
           onClick={() => {
-            const traitsToConsume = selectedTraitsForEgo.map(idx => playerTraits[idx]);
+            const traitsToConsume = selectedTraitsForEgo.map((idx: any) => playerTraits[idx]);
             formEgo(traitsToConsume);
             setEgoFormMode(false);
             setSelectedTraitsForEgo([]);
@@ -287,8 +306,8 @@ function EgoFormPanel({
   );
 }
 
-function RestUpgradePanel({ cardUpgrades, onUpgrade }) {
-  const [selectedCard, setSelectedCard] = useState(null);
+function RestUpgradePanel({ cardUpgrades, onUpgrade }: { cardUpgrades: any; onUpgrade: any }) {
+  const [selectedCard, setSelectedCard] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
   const cards = CARDS || [];
   const rarityOrder = ['common', 'rare', 'special', 'legendary'];
@@ -305,7 +324,7 @@ function RestUpgradePanel({ cardUpgrades, onUpgrade }) {
     legendary: { color: '#fbbf24', label: '전설' },
   };
 
-  const getNextRarity = (card) => {
+  const getNextRarity = (card: any) => {
     const current = cardUpgrades[card.id] || card.rarity || 'common';
     const idx = rarityOrder.indexOf(current);
     if (idx === -1 || idx >= rarityOrder.length - 1) return null;
@@ -321,7 +340,7 @@ function RestUpgradePanel({ cardUpgrades, onUpgrade }) {
   };
 
   const selected = cards.find((c) => c.id === selectedCard);
-  const currentRarity = selected ? (cardUpgrades[selected.id] || (selected as { rarity?: string }).rarity || 'common') : null;
+  const currentRarity = selected ? (cardUpgrades[selected.id] || (selected as { rarity?: string }).rarity || 'common') : 'common';
   const nextRarity = selected ? getNextRarity(selected) : null;
 
   return (
@@ -332,7 +351,7 @@ function RestUpgradePanel({ cardUpgrades, onUpgrade }) {
       </button>
       {selected && (
         <div style={{ fontSize: "13px", color: "#9ca3af" }}>
-          현재 등급: {rarityLabel[currentRarity]} {nextRarity ? `→ 다음: ${rarityLabel[nextRarity]}` : '(최고 등급)'}
+          현재 등급: {rarityLabel[currentRarity as keyof typeof rarityLabel]} {nextRarity ? `→ 다음: ${rarityLabel[nextRarity as keyof typeof rarityLabel]}` : '(최고 등급)'}
         </div>
       )}
       <button
@@ -352,7 +371,7 @@ function RestUpgradePanel({ cardUpgrades, onUpgrade }) {
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "10px", maxHeight: "400px", overflowY: "auto" }}>
               {cards.map((card) => {
                 const current = cardUpgrades[card.id] || (card as { rarity?: string }).rarity || 'common';
-                const badge = rarityBadge[current];
+                const badge = (rarityBadge as any)[current];
                 return (
                   <button
                     key={card.id}

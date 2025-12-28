@@ -34,8 +34,8 @@ import {
 import { createEmptyTokens } from './tokenUtils.js';
 
 // Math.random mock 헬퍼
-let originalRandom;
-function mockRandom(value) {
+let originalRandom: any;
+function mockRandom(value: any) {
   Math.random = () => value;
 }
 function restoreRandom() {
@@ -64,14 +64,14 @@ function createPlayer(overrides = {}) {
 
 describe('getReflectionsByEgos', () => {
   it('자아로 성찰 활성화', () => {
-    const reflections = getReflectionsByEgos(['헌신']);
+    const reflections: any[] = getReflectionsByEgos(['헌신']);
 
     expect(reflections.length).toBe(1);
     expect(reflections[0].id).toBe('devotion');
   });
 
   it('여러 자아로 여러 성찰 활성화', () => {
-    const reflections = getReflectionsByEgos(['헌신', '지략', '분석']);
+    const reflections: any[] = getReflectionsByEgos(['헌신', '지략', '분석']);
 
     expect(reflections.length).toBe(3);
     const ids = reflections.map(r => r.id);
@@ -81,12 +81,12 @@ describe('getReflectionsByEgos', () => {
   });
 
   it('자아 없으면 성찰 없음', () => {
-    const reflections = getReflectionsByEgos([]);
+    const reflections: any[] = getReflectionsByEgos([]);
     expect(reflections.length).toBe(0);
   });
 
   it('잘못된 자아 이름은 무시', () => {
-    const reflections = getReflectionsByEgos(['없는자아', '헌신']);
+    const reflections: any[] = getReflectionsByEgos(['없는자아', '헌신']);
     expect(reflections.length).toBe(1);
     expect(reflections[0].id).toBe('devotion');
   });
@@ -95,7 +95,7 @@ describe('getReflectionsByEgos', () => {
 describe('getActiveReflections (deprecated)', () => {
   it('개성 2개 조합으로 성찰 활성화', () => {
     const traits = ['passionate', 'valiant'];
-    const reflections = getActiveReflections(traits);
+    const reflections: any[] = getActiveReflections(traits);
 
     expect(reflections.length).toBe(1);
     expect(reflections[0].id).toBe('devotion');
@@ -145,7 +145,7 @@ describe('processReflections', () => {
       expect(result.effects.length).toBe(1);
       expect(result.effects[0].reflectionId).toBe('devotion');
 
-      const hasOffense = result.updatedPlayer.tokens.usage.some(t => t.id === 'offense');
+      const hasOffense = result.updatedPlayer.tokens!.usage.some(t => t.id === 'offense');
       expect(hasOffense).toBe(true);
     });
 

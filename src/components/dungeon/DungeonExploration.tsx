@@ -5,9 +5,9 @@
  * 분리된 모듈: renderDungeon, useCrossroadChoice, usePlayerMovement
  */
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useShallow } from 'zustand/react/shallow';
-import type { DungeonObject } from "../../types";
+import type { DungeonObject, RenderDungeonSceneParams } from "../../types";
 import { useDungeonState } from "./hooks/useDungeonState";
 
 /** 미로 방 타입 */
@@ -30,12 +30,13 @@ import { usePlayerMovement } from "./hooks/usePlayerMovement";
 import { useGameStore } from "../../state/gameStore";
 import { CharacterSheet } from "../character/CharacterSheet";
 import { RELICS, RELIC_RARITIES } from "../../data/relics";
-import { RELIC_RARITY_COLORS } from "../../lib/relics";
+import { RELIC_RARITY_COLORS, type RelicRarity } from "../../lib/relics";
 import { playVictorySound } from "../../lib/soundUtils";
 import "./dungeon.css";
 
 // 분리된 모듈들
 import { CONFIG, OBJECT_TYPES } from "./utils/dungeonConfig";
+import type { GameStore } from "../../state/slices/types";
 import { generateMaze } from "./utils/mazeGenerator";
 import { OBJECT_HANDLERS } from "./utils/dungeonHandlers";
 import { renderDungeonScene } from "./utils/renderDungeon";
@@ -45,7 +46,7 @@ import { RewardModal, DungeonSummaryModal, CrossroadModal } from "./ui/DungeonMo
 export function DungeonExploration() {
   // 상태 셀렉터 (그룹화)
   const { activeDungeon, lastBattleResult, relics, resources, playerHp, maxHp, devForcedCrossroad, playerInsight } = useGameStore(
-    useShallow((s) => ({
+    useShallow((s: GameStore) => ({
       activeDungeon: s.activeDungeon,
       lastBattleResult: s.lastBattleResult,
       relics: s.relics,
@@ -63,7 +64,7 @@ export function DungeonExploration() {
     skipDungeon, completeDungeon, startBattle, applyEtherDelta, addResources,
     clearBattleResult, setCurrentRoomKey, updateMazeRoom
   } = useGameStore(
-    useShallow((s) => ({
+    useShallow((s: GameStore) => ({
       setDungeonData: s.setDungeonData,
       setDungeonPosition: s.setDungeonPosition,
       setDungeonInitialResources: s.setDungeonInitialResources,
@@ -126,9 +127,9 @@ export function DungeonExploration() {
   const playerY = CONFIG.FLOOR_Y - CONFIG.PLAYER.height;
 
   // Refs
-  const canvasRef = useRef(null);
-  const preBattleState = useRef(null);
-  const interactionRef = useRef(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const preBattleState = useRef<{ roomKey: string; playerX: number } | null>(null);
+  const interactionRef = useRef<(() => void) | null>(null);
 
   // 위치 정보 저장
   useEffect(() => {
@@ -181,6 +182,7 @@ export function DungeonExploration() {
     if (!canvas || !segment) return;
 
     const ctx = canvas.getContext("2d");
+    if (!ctx) return;
     renderDungeonScene({
       ctx,
       segment,
@@ -193,7 +195,7 @@ export function DungeonExploration() {
       resources,
       playerHp,
       maxHp,
-    });
+    } as unknown as RenderDungeonSceneParams);
   }, [segment, playerX, cameraX, playerHp, maxHp, playerY, resources, grid, currentRoomKey, mazeData]);
 
   // 던전 완료
@@ -234,10 +236,12 @@ export function DungeonExploration() {
     // 오브젝트 상호작용
     for (const obj of segment.objects || []) {
       if (Math.abs(playerX - obj.x) < 80) {
-        const objType = OBJECT_TYPES[obj.typeId.toUpperCase()];
+        const typeKey = obj.typeId.toUpperCase() as keyof typeof OBJECT_TYPES;
+        const objType = OBJECT_TYPES[typeKey];
         if (obj.used && !objType?.canReuse) continue;
 
-        const handler = OBJECT_HANDLERS[obj.typeId];
+        const handlerKey = obj.typeId as keyof typeof OBJECT_HANDLERS;
+        const handler = OBJECT_HANDLERS[handlerKey];
         if (handler) {
           handler(obj, {
             applyEtherDelta,
@@ -358,17 +362,18 @@ export function DungeonExploration() {
             borderRadius: '12px',
             boxShadow: '0 0 15px rgba(148, 163, 184, 0.3)',
           }}>
-            {relics.map((relicId, index) => {
-              const relic = RELICS[relicId];
+            {relics.map((relicId: string, index: number) => {
+              const relic = RELICS[relicId as keyof typeof RELICS];
               if (!relic) return null;
 
               const isHovered = hoveredRelic === relicId;
-              const rarityText = {
-                [RELIC_RARITIES.COMMON]: '일반',
-                [RELIC_RARITIES.RARE]: '희귀',
-                [RELIC_RARITIES.SPECIAL]: '특별',
-                [RELIC_RARITIES.LEGENDARY]: '전설'
-              }[relic.rarity] || '알 수 없음';
+              const rarityTextMap: Record<string, string> = {
+                [RELIC_RARITIES.COMMON as string]: '일반',
+                [RELIC_RARITIES.RARE as string]: '희귀',
+                [RELIC_RARITIES.SPECIAL as string]: '특별',
+                [RELIC_RARITIES.LEGENDARY as string]: '전설'
+              };
+              const rarityText = rarityTextMap[relic.rarity as string] || '알 수 없음';
 
               return (
                 <div key={index} style={{ position: 'relative' }}>
@@ -388,34 +393,37 @@ export function DungeonExploration() {
                     <span>{relic.emoji}</span>
                   </div>
 
-                  {isHovered && (
-                    <div style={{
-                      position: 'absolute',
-                      top: '100%',
-                      left: '50%',
-                      transform: 'translateX(-50%)',
-                      marginTop: '8px',
-                      background: 'rgba(15, 23, 42, 0.98)',
-                      border: `2px solid ${RELIC_RARITY_COLORS[relic.rarity]}`,
-                      borderRadius: '8px',
-                      padding: '12px 16px',
-                      minWidth: '220px',
-                      boxShadow: `0 4px 20px ${RELIC_RARITY_COLORS[relic.rarity]}66`,
-                      zIndex: 1000,
-                      pointerEvents: 'none'
-                    }}>
-                      <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: RELIC_RARITY_COLORS[relic.rarity], marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <span style={{ fontSize: '1.3rem' }}>{relic.emoji}</span>
-                        {relic.name}
+                  {isHovered && (() => {
+                    const rarityColor = RELIC_RARITY_COLORS[relic.rarity as RelicRarity] || '#94a3b8';
+                    return (
+                      <div style={{
+                        position: 'absolute',
+                        top: '100%',
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                        marginTop: '8px',
+                        background: 'rgba(15, 23, 42, 0.98)',
+                        border: `2px solid ${rarityColor}`,
+                        borderRadius: '8px',
+                        padding: '12px 16px',
+                        minWidth: '220px',
+                        boxShadow: `0 4px 20px ${rarityColor}66`,
+                        zIndex: 1000,
+                        pointerEvents: 'none'
+                      }}>
+                        <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: rarityColor, marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <span style={{ fontSize: '1.3rem' }}>{relic.emoji}</span>
+                          {relic.name}
+                        </div>
+                        <div style={{ fontSize: '0.8rem', color: rarityColor, opacity: 0.8, marginBottom: '8px' }}>
+                          {rarityText}
+                        </div>
+                        <div style={{ fontSize: '0.9rem', color: '#e2e8f0', lineHeight: '1.5' }}>
+                          {relic.description}
+                        </div>
                       </div>
-                      <div style={{ fontSize: '0.8rem', color: RELIC_RARITY_COLORS[relic.rarity], opacity: 0.8, marginBottom: '8px' }}>
-                        {rarityText}
-                      </div>
-                      <div style={{ fontSize: '0.9rem', color: '#e2e8f0', lineHeight: '1.5' }}>
-                        {relic.description}
-                      </div>
-                    </div>
-                  )}
+                    );
+                  })()}
                 </div>
               );
             })}
@@ -437,30 +445,30 @@ export function DungeonExploration() {
         border: "1px solid rgba(84, 126, 194, 0.5)",
       }}>
         <div style={{ color: "#ffd700", fontSize: "14px", fontWeight: "600" }}>
-          금: {initialResources.gold}{dungeonDeltas.gold !== 0 && (
-            <span style={{ color: dungeonDeltas.gold > 0 ? "#90EE90" : "#ff6b6b", marginLeft: "4px" }}>
-              ({dungeonDeltas.gold > 0 ? "+" : ""}{dungeonDeltas.gold})
+          금: {initialResources.gold}{(dungeonDeltas.gold ?? 0) !== 0 && (
+            <span style={{ color: (dungeonDeltas.gold ?? 0) > 0 ? "#90EE90" : "#ff6b6b", marginLeft: "4px" }}>
+              ({(dungeonDeltas.gold ?? 0) > 0 ? "+" : ""}{dungeonDeltas.gold ?? 0})
             </span>
           )}
         </div>
         <div style={{ color: "#9da9d6", fontSize: "14px", fontWeight: "600" }}>
-          정보: {initialResources.intel}{dungeonDeltas.intel !== 0 && (
-            <span style={{ color: dungeonDeltas.intel > 0 ? "#90EE90" : "#ff6b6b", marginLeft: "4px" }}>
-              ({dungeonDeltas.intel > 0 ? "+" : ""}{dungeonDeltas.intel})
+          정보: {initialResources.intel}{(dungeonDeltas.intel ?? 0) !== 0 && (
+            <span style={{ color: (dungeonDeltas.intel ?? 0) > 0 ? "#90EE90" : "#ff6b6b", marginLeft: "4px" }}>
+              ({(dungeonDeltas.intel ?? 0) > 0 ? "+" : ""}{dungeonDeltas.intel ?? 0})
             </span>
           )}
         </div>
         <div style={{ color: "#ff6b6b", fontSize: "14px", fontWeight: "600" }}>
-          전리품: {initialResources.loot}{dungeonDeltas.loot !== 0 && (
-            <span style={{ color: dungeonDeltas.loot > 0 ? "#90EE90" : "#ff6b6b", marginLeft: "4px" }}>
-              ({dungeonDeltas.loot > 0 ? "+" : ""}{dungeonDeltas.loot})
+          전리품: {initialResources.loot}{(dungeonDeltas.loot ?? 0) !== 0 && (
+            <span style={{ color: (dungeonDeltas.loot ?? 0) > 0 ? "#90EE90" : "#ff6b6b", marginLeft: "4px" }}>
+              ({(dungeonDeltas.loot ?? 0) > 0 ? "+" : ""}{dungeonDeltas.loot ?? 0})
             </span>
           )}
         </div>
         <div style={{ color: "#a0e9ff", fontSize: "14px", fontWeight: "600" }}>
-          원자재: {initialResources.material}{dungeonDeltas.material !== 0 && (
-            <span style={{ color: dungeonDeltas.material > 0 ? "#90EE90" : "#ff6b6b", marginLeft: "4px" }}>
-              ({dungeonDeltas.material > 0 ? "+" : ""}{dungeonDeltas.material})
+          원자재: {initialResources.material}{(dungeonDeltas.material ?? 0) !== 0 && (
+            <span style={{ color: (dungeonDeltas.material ?? 0) > 0 ? "#90EE90" : "#ff6b6b", marginLeft: "4px" }}>
+              ({(dungeonDeltas.material ?? 0) > 0 ? "+" : ""}{dungeonDeltas.material ?? 0})
             </span>
           )}
         </div>
@@ -560,7 +568,7 @@ export function DungeonExploration() {
           }}
           onClick={() => actions.setShowCharacter(false)}
         >
-          <div onClick={(e) => e.stopPropagation()}>
+          <div onClick={(e: React.MouseEvent) => e.stopPropagation()}>
             <CharacterSheet onClose={() => actions.setShowCharacter(false)} />
           </div>
         </div>

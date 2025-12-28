@@ -18,13 +18,13 @@ export const createItemActions: SliceCreator = (set) => ({
     set((state) => {
       const item = getItem(itemId);
       if (!item) {
-        console.warn(`[addItem] Item not found: ${itemId}`);
+        if (import.meta.env.DEV) console.warn(`[addItem] Item not found: ${itemId}`);
         return state;
       }
       const items = [...state.items];
       const emptySlot = items.findIndex((slot) => slot === null);
       if (emptySlot === -1) {
-        console.warn('[addItem] No empty slot available');
+        if (import.meta.env.DEV) console.warn('[addItem] No empty slot available');
         return state;
       }
       items[emptySlot] = item;
@@ -44,13 +44,13 @@ export const createItemActions: SliceCreator = (set) => ({
       if (slotIndex < 0 || slotIndex >= state.items.length) return state;
       const item = state.items[slotIndex];
       if (!item) {
-        console.warn('[useItem] No item in slot', slotIndex);
+        if (import.meta.env.DEV) console.warn('[useItem] No item in slot', slotIndex);
         return state;
       }
 
       const inBattle = !!state.activeBattle;
       if (item.usableIn === 'combat' && !inBattle) {
-        console.warn('[useItem] Combat item can only be used in battle');
+        if (import.meta.env.DEV) console.warn('[useItem] Combat item can only be used in battle');
         return state;
       }
 
@@ -99,7 +99,7 @@ export const createItemActions: SliceCreator = (set) => ({
           break;
         }
         default:
-          console.warn(`[useItem] Unknown effect type: ${effect.type}`);
+          if (import.meta.env.DEV) console.warn(`[useItem] Unknown effect type: ${effect.type}`);
       }
 
       return { ...state, ...updates };

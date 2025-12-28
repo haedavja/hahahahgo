@@ -107,3 +107,18 @@ export function applyStrengthToHand(hand: BattleCard[], strength: number = 0): B
  * 카드 희귀도 반환
  */
 export const getCardRarity = (card: BattleCard | null | undefined): CardRarity => (card?.rarity || 'common') as CardRarity;
+
+/**
+ * 적이 유닛 시스템을 사용하는지 확인
+ *
+ * ⚠️ 중요: 이 함수는 UI 표시(EnemyUnitsDisplay)와 HP 분배 로직에서
+ * 동일하게 사용되어야 합니다. 조건이 불일치하면 다음 버그가 발생합니다:
+ * - UI는 units[].hp를 표시하지만
+ * - HP 분배가 안되어 데미지가 반영되지 않음
+ *
+ * @param units - 적 유닛 배열
+ * @returns 유닛 시스템 사용 여부 (1개 이상이면 true)
+ */
+export function hasEnemyUnits(units: { hp: number }[] | undefined | null): boolean {
+  return Array.isArray(units) && units.length >= 1;
+}

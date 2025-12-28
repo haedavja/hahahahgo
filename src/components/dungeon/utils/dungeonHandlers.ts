@@ -23,7 +23,7 @@ import {
 
 // ========== 이벤트 핸들러 ==========
 export const OBJECT_HANDLERS = {
-  chest: (obj, context) => {
+  chest: (obj: any, context: any) => {
     obj.used = true;
     playRewardSound();
     // 특별 보물 (막다른 방)은 보상이 더 좋음
@@ -39,7 +39,7 @@ export const OBJECT_HANDLERS = {
     }
   },
 
-  curio: (obj, context) => {
+  curio: (obj: any, context: any) => {
     obj.used = true;
     const isBad = Math.random() < 0.4; // 40% 나쁜 결과
 
@@ -56,7 +56,7 @@ export const OBJECT_HANDLERS = {
     }
   },
 
-  combat: (obj, context) => {
+  combat: (obj: any, context: any) => {
     obj.used = true;
     playDangerSound();  // 적 조우 사운드
 
@@ -85,7 +85,7 @@ export const OBJECT_HANDLERS = {
   },
 
   // 기로 핸들러 - 선택지 모달 열기
-  crossroad: (obj, context) => {
+  crossroad: (obj: any, context: any) => {
     playChoiceAppearSound();  // 선택지 등장 사운드
     // 기로 모달 열기
     context.actions.setCrossroadModal({
@@ -96,7 +96,7 @@ export const OBJECT_HANDLERS = {
   },
 
   // === 자원 획득 오브젝트 ===
-  ore: (obj, context) => {
+  ore: (obj: any, context: any) => {
     obj.used = true;
     playRewardSound();
     const material = 2 + Math.floor(Math.random() * 3); // 2-4
@@ -104,7 +104,7 @@ export const OBJECT_HANDLERS = {
     context.actions.setMessage(`광맥에서 원자재 ${material}개를 획득했습니다!`);
   },
 
-  gold_pile: (obj, context) => {
+  gold_pile: (obj: any, context: any) => {
     obj.used = true;
     playRewardSound();
     const gold = 15 + Math.floor(Math.random() * 20); // 15-34
@@ -112,7 +112,7 @@ export const OBJECT_HANDLERS = {
     context.actions.setMessage(`금화 더미에서 ${gold} 골드를 획득했습니다!`);
   },
 
-  crate: (obj, context) => {
+  crate: (obj: any, context: any) => {
     obj.used = true;
     playRewardSound();
     const gold = 5 + Math.floor(Math.random() * 10); // 5-14
@@ -124,7 +124,7 @@ export const OBJECT_HANDLERS = {
     context.actions.setMessage(msg);
   },
 
-  crystal: (obj, context) => {
+  crystal: (obj: any, context: any) => {
     obj.used = true;
     playRewardSound();
     const material = 3 + Math.floor(Math.random() * 3); // 3-5
@@ -132,7 +132,7 @@ export const OBJECT_HANDLERS = {
     context.actions.setMessage(`✨ 수정에서 원자재 ${material}개를 획득했습니다!`);
   },
 
-  mushroom: (obj, context) => {
+  mushroom: (obj: any, context: any) => {
     obj.used = true;
     const isBad = Math.random() < 0.3;
     if (isBad) {
@@ -147,7 +147,7 @@ export const OBJECT_HANDLERS = {
     }
   },
 
-  corpse: (obj, context) => {
+  corpse: (obj: any, context: any) => {
     obj.used = true;
     playRewardSound();
     const gold = 8 + Math.floor(Math.random() * 12); // 8-19
@@ -160,7 +160,7 @@ export const OBJECT_HANDLERS = {
   },
 
   // 숏컷 핸들러 - 문 열기 또는 이동
-  shortcut: (obj, context) => {
+  shortcut: (obj: any, context: any) => {
     const { actions, segmentIndex, dungeonData, setDungeonData } = context;
 
     if (!obj.unlocked) {
@@ -169,11 +169,11 @@ export const OBJECT_HANDLERS = {
         actions.setMessage("숏컷을 열었습니다! 이제 양방향으로 이동할 수 있습니다.");
 
         // 양쪽 숏컷 모두 열기
-        const newDungeonData = dungeonData.map((seg, idx) => {
+        const newDungeonData = dungeonData.map((seg: any, idx: any) => {
           if (idx === segmentIndex || idx === obj.targetSegment) {
             return {
               ...seg,
-              objects: seg.objects.map(o => {
+              objects: seg.objects.map((o: any) => {
                 if (o.typeId === 'shortcut' && (o.targetSegment === obj.targetSegment || o.targetSegment === segmentIndex)) {
                   return { ...o, unlocked: true };
                 }
@@ -194,7 +194,7 @@ export const OBJECT_HANDLERS = {
       if (targetSeg) {
         actions.setSegmentIndex(obj.targetSegment);
         // 도착 세그먼트의 숏컷 위치 근처로 이동
-        const targetShortcut = targetSeg.objects.find(o => o.typeId === 'shortcut');
+        const targetShortcut = targetSeg.objects.find((o: any) => o.typeId === 'shortcut');
         actions.setPlayerX(targetShortcut ? targetShortcut.x + 50 : 200);
         actions.setMessage(`숏컷을 통해 이동했습니다!`);
       }

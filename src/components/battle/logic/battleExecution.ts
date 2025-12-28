@@ -28,7 +28,7 @@ export { TIMING };
 // =====================
 // stepOnce 애니메이션 처리
 // =====================
-export function createStepOnceAnimations(params) {
+export function createStepOnceAnimations(params: any) {
   const {
     currentQIndex,
     queueLength,
@@ -79,7 +79,7 @@ export function createStepOnceAnimations(params) {
           const currentHidden = currentBattle.hiddenCards || [];
           const currentDisappearing2 = currentBattle.disappearingCards || [];
           actions.setHiddenCards([...currentHidden, currentQIndex]);
-          actions.setDisappearingCards(currentDisappearing2.filter(i => i !== currentQIndex));
+          actions.setDisappearingCards(currentDisappearing2.filter((i: any) => i !== currentQIndex));
         }, TIMING.CARD_DISAPPEAR_DURATION);
       }, TIMING.CARD_DISAPPEAR_START);
     },

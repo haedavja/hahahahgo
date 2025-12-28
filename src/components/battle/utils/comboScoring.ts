@@ -215,7 +215,7 @@ export function decideComboStrategy(
     etherPriority = false;
   }
 
-  if (enemy?.deck && comboWeight > 0) {
+  if (Array.isArray(enemy?.deck) && comboWeight > 0) {
     const analysis = analyzePotentialCombos(
       enemy.deck.map(id => ({ id, actionCost: 1 }))
     );

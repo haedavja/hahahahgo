@@ -7,9 +7,9 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { processActionEventAnimations } from './eventAnimationProcessing';
 
 describe('eventAnimationProcessing', () => {
-  let actions;
-  let playHitSound;
-  let playBlockSound;
+  let actions: any;
+  let playHitSound: any;
+  let playBlockSound: any;
 
   beforeEach(() => {
     vi.useFakeTimers();

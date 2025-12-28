@@ -22,7 +22,7 @@ export const BattlePane: FC = () => {
         <div>
           <strong>레거시 전투 모드</strong>
           <p>
-            {activeBattle.label} ({activeBattle.kind.toUpperCase()})
+            {activeBattle.label} ({activeBattle.kind?.toUpperCase() ?? 'UNKNOWN'})
           </p>
         </div>
         <button type="button" onClick={openWindow}>

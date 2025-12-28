@@ -49,7 +49,7 @@ export function useBattleTimelines({
   enemyPlanActions,
   insightReveal,
   selected
-}) {
+}: any) {
   // 플레이어 타임라인 계산
   const playerTimeline = useMemo(() => {
     if (battlePhase === 'select') {
@@ -62,7 +62,7 @@ export function useBattleTimelines({
       const isFlush = currentCombo?.name === '플러쉬';
 
       let ps = 0;
-      return battleSelected.map((c, idx) => {
+      return battleSelected.map((c: any, idx: any) => {
         // 카드가 조합에 포함되는지 확인
         const isInCombo = isFlush || comboCardCosts.has(c.actionCost);
         const usageCount = playerComboUsageCount?.[c.id] || 0;
@@ -76,10 +76,10 @@ export function useBattleTimelines({
       });
     }
     if (battlePhase === 'respond' && fixedOrder) {
-      return fixedOrder.filter(x => x.actor === 'player');
+      return fixedOrder.filter((x: any) => x.actor === 'player');
     }
     if (battlePhase === 'resolve') {
-      return battleQueue.filter(x => x.actor === 'player');
+      return battleQueue.filter((x: any) => x.actor === 'player');
     }
     return [];
   }, [battlePhase, battleSelected, fixedOrder, battleQueue, playerComboUsageCount, effectiveAgility, selected]);
@@ -94,16 +94,16 @@ export function useBattleTimelines({
       const level = insightReveal.level || 0;
       const limited = level === 1 ? actions.slice(0, 2) : actions;
       let sp = 0;
-      return limited.map((card, idx) => {
+      return limited.map((card: any, idx: any) => {
         sp += card.speedCost || 0;
         return { actor: 'enemy', card, sp, idx };
       });
     }
     if (battlePhase === 'respond' && fixedOrder) {
-      return fixedOrder.filter(x => x.actor === 'enemy');
+      return fixedOrder.filter((x: any) => x.actor === 'enemy');
     }
     if (battlePhase === 'resolve') {
-      return battleQueue.filter(x => x.actor === 'enemy');
+      return battleQueue.filter((x: any) => x.actor === 'enemy');
     }
     return [];
   }, [battlePhase, fixedOrder, battleQueue, enemyPlanActions, insightReveal]);
