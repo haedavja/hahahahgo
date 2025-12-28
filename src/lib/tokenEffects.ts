@@ -108,11 +108,21 @@ export function applyTokenEffectsToCard(
   if (cardType === 'attack' && modifiedCard.damage && modifiedCard.damage > 0) {
     let damagePenalty = 0;
 
+    // 턴소모 토큰 (dullness 등)
     allTokens.forEach(token => {
       if (token.durationType === 'turn' && token.effect.type === 'ATTACK_PENALTY') {
         damagePenalty += token.effect.value * (token.stacks || 1);
       }
     });
+
+    // 사용소모 토큰 (dull 등)
+    const usagePenaltyToken = allTokens.find(
+      t => t.durationType === 'usage' && t.effect.type === 'ATTACK_PENALTY'
+    );
+    if (usagePenaltyToken) {
+      damagePenalty += usagePenaltyToken.effect.value;
+      consumedTokens.push({ id: usagePenaltyToken.id, type: 'usage' });
+    }
 
     if (damagePenalty > 0) {
       modifiedCard.damage = Math.max(0, Math.round(modifiedCard.damage * (1 - damagePenalty)));
