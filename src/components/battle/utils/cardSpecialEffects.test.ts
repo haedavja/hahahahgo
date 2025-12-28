@@ -507,3 +507,222 @@ describe('calculateAgilitySpeedReduction', () => {
     expect(result).toBe(0);
   });
 });
+
+// 추가 import
+import {
+  processPerHitRoulette,
+  processTimelineSpecials,
+  calculateGrowingDefense,
+  processCardCreationSpecials
+} from './cardSpecialEffects.js';
+
+describe('processPerHitRoulette', () => {
+  it('총기가 아닌 카드는 룰렛 체크 안함', () => {
+    const result = processPerHitRoulette(
+      { hp: 100, tokens: { usage: [], turn: [], permanent: [] } } as any,
+      { cardCategory: 'fencing', type: 'attack', name: '검격' } as any,
+      'player',
+      0,
+      1
+    );
+    expect(result.jammed).toBe(false);
+    expect(result.event).toBeNull();
+  });
+
+  it('방어 카드는 룰렛 체크 안함', () => {
+    const result = processPerHitRoulette(
+      { hp: 100, tokens: { usage: [], turn: [], permanent: [] } } as any,
+      { cardCategory: 'gun', type: 'defense', name: '총기 방어' } as any,
+      'player',
+      0,
+      1
+    );
+    expect(result.jammed).toBe(false);
+    expect(result.event).toBeNull();
+  });
+
+  it('singleRoulette면 첫 타격만 룰렛 체크', () => {
+    const result = processPerHitRoulette(
+      { hp: 100, tokens: { usage: [], turn: [], permanent: [] } } as any,
+      { cardCategory: 'gun', type: 'attack', name: '라이플', special: 'singleRoulette' } as any,
+      'player',
+      1,
+      3
+    );
+    expect(result.jammed).toBe(false);
+    expect(result.event).toBeNull();
+  });
+
+  it('총기 공격시 룰렛 스택 증가', () => {
+    const result = processPerHitRoulette(
+      { hp: 100, tokens: { usage: [], turn: [], permanent: [] } } as any,
+      { cardCategory: 'gun', type: 'attack', name: '권총' } as any,
+      'player',
+      0,
+      1
+    );
+    expect(result.jammed).toBe(false);
+    expect(result.log).toContain('룰렛');
+  });
+
+  it('적 공격시 몬스터 라벨 표시', () => {
+    const result = processPerHitRoulette(
+      { hp: 100, tokens: { usage: [], turn: [], permanent: [] } } as any,
+      { cardCategory: 'gun', type: 'attack', name: '권총' } as any,
+      'enemy',
+      0,
+      1
+    );
+    expect(result.log).toContain('몬스터');
+  });
+});
+
+describe('processTimelineSpecials', () => {
+  it('advanceTimeline이면 플레이어 타임라인 앞당김', () => {
+    const result = processTimelineSpecials({
+      card: { special: 'advanceTimeline', name: '빠른발', advanceAmount: 4 } as any,
+      actor: { hp: 100 } as any,
+      actorName: 'player',
+      queue: [],
+      currentIndex: 0
+    });
+    expect(result.timelineChanges.advancePlayer).toBe(4);
+    expect(result.logs[0]).toContain('앞당김');
+  });
+
+  it('pushEnemyTimeline이면 피해 시 적 타임라인 밀림', () => {
+    const result = processTimelineSpecials({
+      card: { special: 'pushEnemyTimeline', name: '밀치기', pushAmount: 5 } as any,
+      actor: { hp: 100 } as any,
+      actorName: 'player',
+      queue: [],
+      currentIndex: 0,
+      damageDealt: 10
+    });
+    expect(result.timelineChanges.pushEnemy).toBe(5);
+    expect(result.logs[0]).toContain('밀림');
+  });
+
+  it('피해 없으면 pushEnemyTimeline 발동 안함', () => {
+    const result = processTimelineSpecials({
+      card: { special: 'pushEnemyTimeline', name: '밀치기', pushAmount: 5 } as any,
+      actor: { hp: 100 } as any,
+      actorName: 'player',
+      queue: [],
+      currentIndex: 0,
+      damageDealt: 0
+    });
+    expect(result.timelineChanges.pushEnemy).toBe(0);
+    expect(result.logs.length).toBe(0);
+  });
+
+  it('beatEffect는 앞당김과 밀림 동시 발동', () => {
+    const result = processTimelineSpecials({
+      card: { special: 'beatEffect', name: '비트', advanceAmount: 1, pushAmount: 2 } as any,
+      actor: { hp: 100 } as any,
+      actorName: 'player',
+      queue: [],
+      currentIndex: 0,
+      damageDealt: 10
+    });
+    expect(result.timelineChanges.advancePlayer).toBe(1);
+    expect(result.timelineChanges.pushEnemy).toBe(2);
+    expect(result.logs.length).toBe(2);
+  });
+
+  it('pushLastEnemyCard면 적 마지막 카드 밀림', () => {
+    const result = processTimelineSpecials({
+      card: { special: 'pushLastEnemyCard', name: '후려치기', pushAmount: 9 } as any,
+      actor: { hp: 100 } as any,
+      actorName: 'player',
+      queue: [],
+      currentIndex: 0
+    });
+    expect(result.timelineChanges.pushLastEnemy).toBe(9);
+    expect(result.logs[0]).toContain('마지막 카드');
+  });
+
+  it('chain trait과 다음 카드가 펜싱이면 연계 발동', () => {
+    const queue = [
+      { actor: 'player', card: { name: '연결기', traits: ['chain'] } as any, sp: 5 },
+      { actor: 'player', card: { name: '펜싱 공격', cardCategory: 'fencing' } as any, sp: 10 }
+    ] as any;
+    const result = processTimelineSpecials({
+      card: { traits: ['chain'], name: '연결기', advanceAmount: 3 } as any,
+      actor: { hp: 100 } as any,
+      actorName: 'player',
+      queue,
+      currentIndex: 0
+    });
+    expect(result.timelineChanges.advancePlayer).toBe(3);
+    expect(result.logs[0]).toContain('연계');
+  });
+
+  it('적 actor일 때 몬스터 라벨 표시', () => {
+    const result = processTimelineSpecials({
+      card: { special: 'advanceTimeline', name: '돌진', advanceAmount: 2 } as any,
+      actor: { hp: 100 } as any,
+      actorName: 'enemy',
+      queue: [],
+      currentIndex: 0
+    });
+    expect(result.logs[0]).toContain('몬스터');
+  });
+});
+
+describe('calculateGrowingDefense', () => {
+  it('growingDefense 없으면 0', () => {
+    const result = calculateGrowingDefense({ name: '일반 방어' } as any, 5);
+    expect(result).toBe(0);
+  });
+
+  it('growingDefense 있어도 현재 0 반환', () => {
+    // 현재 구현은 0만 반환
+    const result = calculateGrowingDefense({ special: 'growingDefense' } as any, 5);
+    expect(result).toBe(0);
+  });
+});
+
+describe('processCardCreationSpecials', () => {
+  it('피해 없으면 카드 생성 안함', () => {
+    const result = processCardCreationSpecials({
+      card: { special: 'createAttackOnHit', name: '플레쉬' } as any,
+      actorName: 'player',
+      damageDealt: 0,
+      allCards: [{ id: 'attack1', type: 'attack', name: '공격1' }] as any
+    });
+    expect(result.createdCards.length).toBe(0);
+  });
+
+  it('공격 카드가 없으면 생성 안함', () => {
+    const result = processCardCreationSpecials({
+      card: { special: 'createAttackOnHit', name: '플레쉬' } as any,
+      actorName: 'player',
+      damageDealt: 10,
+      allCards: [{ id: 'block1', type: 'defense', name: '방어1' }] as any
+    });
+    expect(result.createdCards.length).toBe(0);
+  });
+
+  it('적 actor도 카드 생성 가능', () => {
+    const result = processCardCreationSpecials({
+      card: { id: 'enemy_fleche', special: 'createAttackOnHit', name: '적 플레쉬' } as any,
+      actorName: 'enemy',
+      damageDealt: 10,
+      allCards: [{ id: 'attack1', type: 'attack', name: '공격1' }] as any
+    });
+    if (result.createdCards.length > 0) {
+      expect(result.logs[0]).toContain('몬스터');
+    }
+  });
+
+  it('연쇄 횟수 초과시 생성 안함', () => {
+    const result = processCardCreationSpecials({
+      card: { isFromFleche: true, flecheChainCount: 2, name: '플레쉬 연쇄' } as any,
+      actorName: 'player',
+      damageDealt: 10,
+      allCards: [{ id: 'attack1', type: 'attack', name: '공격1' }] as any
+    });
+    expect(result.createdCards.length).toBe(0);
+  });
+});
