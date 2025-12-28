@@ -48,6 +48,9 @@ export const EnemyHpBar: FC<EnemyHpBarProps> = ({
   formatCompactValue,
   frozenOrder
 }) => {
+  // Debug: enemy tokens
+  if (import.meta.env.DEV) console.log('[EnemyHpBar] enemy.tokens:', enemy?.tokens);
+
   return (
     <div style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginRight: '0', paddingRight: '0', gap: '40px', background: 'transparent', border: 'none', boxShadow: 'none' }}>
       <div style={{
