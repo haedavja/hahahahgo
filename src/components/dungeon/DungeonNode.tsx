@@ -142,8 +142,9 @@ export function DungeonNode({ dungeon, onNavigate, onExit, onCombat }: { dungeon
     // 템플릿에서 선택지 가져오기
     if (eventType === DUNGEON_EVENT_TYPES.OBSTACLE) {
       const templateId = currentNode.event.templateId || 'cliff';
-      const template = (OBSTACLE_TEMPLATES as any)[templateId];
-      return template?.choices || [];
+      const templatesRecord = OBSTACLE_TEMPLATES as Record<string, { choices?: unknown[] }>;
+      const template = templatesRecord[templateId];
+      return (template?.choices || []) as typeof OBSTACLE_TEMPLATES.cliff.choices;
     }
 
     if (eventType === DUNGEON_EVENT_TYPES.CHEST) {
@@ -157,7 +158,8 @@ export function DungeonNode({ dungeon, onNavigate, onExit, onCombat }: { dungeon
   // 선택 실행
   const handleChoiceSelect = useCallback((choice: any, specialOverride: any) => {
     const choiceKey = `${currentNode.id}_${choice.id}`;
-    const currentState = (choiceStates as any)[choiceKey] || { attempts: 0 };
+    const statesRecord = choiceStates as Record<string, { attempts: number; completed?: boolean }>;
+    const currentState = statesRecord[choiceKey] || { attempts: 0 };
 
     // 과잉 선택 체크
     if (isOverpushing(choice, currentState.attempts + 1)) {

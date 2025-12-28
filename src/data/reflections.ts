@@ -16,7 +16,7 @@
  */
 
 // 한국어 개성 이름 → 영어 ID 매핑
-export const TRAIT_NAME_TO_ID = {
+export const TRAIT_NAME_TO_ID: Record<string, string> = {
   '용맹함': 'valiant',
   '열정적': 'passionate',
   '냉철함': 'calm',
@@ -26,7 +26,7 @@ export const TRAIT_NAME_TO_ID = {
 };
 
 // 한국어 자아 이름 → 성찰 ID 매핑
-export const EGO_NAME_TO_REFLECTION_ID = {
+export const EGO_NAME_TO_REFLECTION_ID: Record<string, string> = {
   '헌신': 'devotion',
   '지략': 'strategy',
   '추격': 'pursuit',
@@ -46,11 +46,11 @@ export const EGO_NAME_TO_REFLECTION_ID = {
  * @param {string[]} koreanTraits - 한국어 개성 이름 배열
  * @returns {string[]} 영어 개성 ID 배열
  */
-export function convertTraitsToIds(koreanTraits: any) {
+export function convertTraitsToIds(koreanTraits: string[] | null | undefined): string[] {
   if (!koreanTraits || !Array.isArray(koreanTraits)) return [];
   return koreanTraits
-    .map((trait: any) => (TRAIT_NAME_TO_ID as any)[trait])
-    .filter((id: any) => id); // 매핑되지 않은 값 제외
+    .map((trait: string) => TRAIT_NAME_TO_ID[trait])
+    .filter((id): id is string => !!id); // 매핑되지 않은 값 제외
 }
 
 // 기본 개성 정의
@@ -291,17 +291,21 @@ export function getActiveReflections(traits: any) {
  * @param {(string|Object)[]} egos - 자아 배열 (문자열 또는 { name, consumedTraits, effects } 객체)
  * @returns {Object[]} 활성화된 성찰 목록
  */
-export function getReflectionsByEgos(egos: any) {
+type Ego = string | { name: string; consumedTraits?: string[]; effects?: unknown };
+type Reflection = typeof REFLECTIONS[keyof typeof REFLECTIONS];
+
+export function getReflectionsByEgos(egos: Ego[] | null | undefined): Reflection[] {
   if (!egos || egos.length === 0) return [];
 
-  const activeReflections: any[] = [];
+  const activeReflections: Reflection[] = [];
+  const reflectionsRecord = REFLECTIONS as Record<string, Reflection>;
 
   for (const ego of egos) {
     // 자아가 객체인 경우 name 속성 사용, 문자열인 경우 그대로 사용
     const egoName = typeof ego === 'object' ? ego.name : ego;
-    const reflectionId = (EGO_NAME_TO_REFLECTION_ID as any)[egoName];
-    if (reflectionId && (REFLECTIONS as any)[reflectionId]) {
-      activeReflections.push((REFLECTIONS as any)[reflectionId]);
+    const reflectionId = EGO_NAME_TO_REFLECTION_ID[egoName];
+    if (reflectionId && reflectionsRecord[reflectionId]) {
+      activeReflections.push(reflectionsRecord[reflectionId]);
     }
   }
 

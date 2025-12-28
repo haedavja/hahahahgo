@@ -129,8 +129,25 @@ export const ENEMY_PATTERNS = {
  * @param {number} maxHp - 최대 HP
  * @returns {string|null} 'attack', 'defense', 또는 특수 행동명. 패턴 없으면 null
  */
-export function getPatternAction(enemyId: any, turnNumber: any, enemyHp: any, maxHp: any) {
-  const config = (ENEMY_PATTERNS as any)[enemyId];
+// 패턴 타입 정의
+interface CyclePattern {
+  type: 'cycle';
+  pattern: string[];
+  description: string;
+}
+
+interface PhasePattern {
+  type: 'phase';
+  phases: { hpThreshold: number; pattern: string[]; description: string }[];
+  specialActions?: Record<string, { mode: string; showIntent?: string; useCard?: string; damage?: number; heal?: number; ignoreBlock?: boolean }>;
+  description: string;
+}
+
+type EnemyPattern = CyclePattern | PhasePattern;
+const patternsRecord = ENEMY_PATTERNS as Record<string, EnemyPattern>;
+
+export function getPatternAction(enemyId: string, turnNumber: number, enemyHp: number, maxHp: number): string | null {
+  const config = patternsRecord[enemyId];
   if (!config) return null;
 
   if (config.type === 'cycle') {
@@ -161,10 +178,13 @@ export function getPatternAction(enemyId: any, turnNumber: any, enemyHp: any, ma
  * @param {Object} config - 몬스터 패턴 설정
  * @returns {Object} { key, prefer, special }
  */
-export function patternActionToMode(action: any, config: any) {
+type ActionMode = { key: string; prefer: string; special?: string; intent?: string; useCard?: string };
+
+export function patternActionToMode(action: string, config: EnemyPattern | null): ActionMode {
   // 특수 행동 확인
-  if (config?.specialActions?.[action]) {
-    const special = config.specialActions[action];
+  const phaseConfig = config as { specialActions?: Record<string, { mode: string; showIntent?: string; useCard?: string }> } | null;
+  if (phaseConfig?.specialActions?.[action]) {
+    const special = phaseConfig.specialActions[action];
     return {
       key: special.mode === 'aggro' ? 'aggro' : 'turtle',
       prefer: special.mode === 'aggro' ? 'attack' : 'defense',
@@ -175,7 +195,7 @@ export function patternActionToMode(action: any, config: any) {
   }
 
   // 기본 행동 매핑
-  const actionModes = {
+  const actionModes: Record<string, { key: string; prefer: string }> = {
     // 공격 계열
     'attack': { key: 'aggro', prefer: 'attack' },
     'big_attack': { key: 'aggro', prefer: 'attack' },
@@ -195,7 +215,7 @@ export function patternActionToMode(action: any, config: any) {
     'debuff_dull': { key: 'balanced', prefer: 'mixed' }
   };
 
-  return (actionModes as any)[action] || { key: 'balanced', prefer: 'mixed' };
+  return actionModes[action] || { key: 'balanced', prefer: 'mixed' };
 }
 
 /**
@@ -206,12 +226,15 @@ export function patternActionToMode(action: any, config: any) {
  * @param {number} maxHp - 최대 HP
  * @returns {Object|null} { type, icon, text } 또는 null
  */
-export function getNextTurnIntent(enemyId: any, turnNumber: any, enemyHp: any, maxHp: any) {
+type Intent = { type: string; icon: string; text: string };
+
+export function getNextTurnIntent(enemyId: string, turnNumber: number, enemyHp: number, maxHp: number): Intent | null {
   const nextAction = getPatternAction(enemyId, turnNumber + 1, enemyHp, maxHp);
   if (!nextAction) return null;
 
-  const config = (ENEMY_PATTERNS as any)[enemyId];
-  const special = config?.specialActions?.[nextAction];
+  const config = patternsRecord[enemyId];
+  const phaseConfig = config as { specialActions?: Record<string, { showIntent?: string }> } | undefined;
+  const special = phaseConfig?.specialActions?.[nextAction];
 
   if (special?.showIntent) {
     return {
@@ -222,7 +245,7 @@ export function getNextTurnIntent(enemyId: any, turnNumber: any, enemyHp: any, m
   }
 
   // 기본 의도 아이콘
-  const defaultIntents = {
+  const defaultIntents: Record<string, Intent> = {
     'attack': { type: 'attack', icon: '⚔️', text: '공격' },
     'defense': { type: 'defense', icon: '🛡️', text: '방어' },
     'charging': { type: 'charging', icon: '⚡', text: '충전' },
@@ -235,7 +258,7 @@ export function getNextTurnIntent(enemyId: any, turnNumber: any, enemyHp: any, m
     'debuff_dull': { type: 'debuff', icon: '🔽', text: '무딤' }
   };
 
-  return (defaultIntents as any)[nextAction] || { type: 'unknown', icon: '❓', text: '???' };
+  return defaultIntents[nextAction] || { type: 'unknown', icon: '❓', text: '???' };
 }
 
 /**
@@ -245,20 +268,23 @@ export function getNextTurnIntent(enemyId: any, turnNumber: any, enemyHp: any, m
  * @param {number} maxHp - 최대 HP
  * @returns {Object|null} { phase, description, hpThreshold }
  */
-export function getCurrentPhase(enemyId: any, enemyHp: any, maxHp: any) {
-  const config = (ENEMY_PATTERNS as any)[enemyId];
+type PhaseInfo = { phase: number; description: string; hpThreshold: number; pattern: string[] };
+
+export function getCurrentPhase(enemyId: string, enemyHp: number, maxHp: number): PhaseInfo | null {
+  const config = patternsRecord[enemyId];
   if (!config || config.type !== 'phase') return null;
+  const phaseConfig = config as PhasePattern;
 
   // maxHp가 0이면 100%로 처리 (0으로 나누기 방지)
   const hpPercent = maxHp > 0 ? (enemyHp / maxHp) * 100 : 100;
-  const phase = [...config.phases]
+  const phase = [...phaseConfig.phases]
     .sort((a, b) => a.hpThreshold - b.hpThreshold)
     .find(p => hpPercent <= p.hpThreshold);
 
   if (!phase) return null;
 
   return {
-    phase: config.phases.indexOf(phase) + 1,
+    phase: phaseConfig.phases.indexOf(phase) + 1,
     description: phase.description,
     hpThreshold: phase.hpThreshold,
     pattern: phase.pattern

@@ -50,13 +50,13 @@ export function RelicIcon({ relicId, size = 'medium', onClick, showTooltip = tru
 
   const colors = RARITY_COLORS[relic.rarity];
 
-  const sizes = {
+  const sizes: Record<string, { width: number; height: number; fontSize: number }> = {
     small: { width: 32, height: 32, fontSize: 18 },
     medium: { width: 48, height: 48, fontSize: 24 },
     large: { width: 64, height: 64, fontSize: 32 },
   };
 
-  const sizeStyle = (sizes as any)[size] || sizes.medium;
+  const sizeStyle = sizes[size] || sizes.medium;
 
   const handleMouseEnter = (e: any) => {
     if (!showTooltip) return;
@@ -250,5 +250,6 @@ function getRelicEmoji(relicId: any) {
     healthCheck: '📋',
   };
 
-  return (emojiMap as any)[relicId] || '❓';
+  const emojiRecord = emojiMap as Record<string, string>;
+  return emojiRecord[relicId] || '❓';
 }

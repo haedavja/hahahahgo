@@ -72,26 +72,28 @@ export const describeAmount = (value: any) => {
   return min === max ? `${min}` : `${min}~${max}`;
 };
 
-export const describeBundle = (bundle: any = {}) => {
+const resourceLabelsRecord = RESOURCE_LABELS as Record<string, string>;
+
+export const describeBundle = (bundle: Record<string, unknown> = {}) => {
   const entries = Object.entries(bundle || {});
   if (!entries.length) return "없음";
-  return entries.map(([key, amount]: [string, any]) => `${(RESOURCE_LABELS as any)[key] ?? key} ${describeAmount(amount)}`).join(", ");
+  return entries.map(([key, amount]) => `${resourceLabelsRecord[key] ?? key} ${describeAmount(amount)}`).join(", ");
 };
 
-export const describeCost = (cost: any = {}) => {
+export const describeCost = (cost: Record<string, number> = {}) => {
   const entries = Object.entries(cost || {});
   if (!entries.length) return "없음";
-  return entries.map(([key, amount]: [string, any]) => `${(RESOURCE_LABELS as any)[key] ?? key} ${amount}`).join(", ");
+  return entries.map(([key, amount]) => `${resourceLabelsRecord[key] ?? key} ${amount}`).join(", ");
 };
 
-export const formatApplied = (bundle: any = {}) => {
+export const formatApplied = (bundle: Record<string, unknown> = {}) => {
   const entries = Object.entries(bundle || {});
   if (!entries.length) return "없음";
   return entries
-    .map(([key, amount]: [string, any]) => {
+    .map(([key, amount]) => {
       const numeric = typeof amount === "number" ? amount : 0;
       const prefix = numeric > 0 ? "+" : "";
-      return `${(RESOURCE_LABELS as any)[key] ?? key} ${prefix}${numeric}`;
+      return `${resourceLabelsRecord[key] ?? key} ${prefix}${numeric}`;
     })
     .join(", ");
 };

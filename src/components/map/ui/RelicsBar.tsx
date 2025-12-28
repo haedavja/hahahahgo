@@ -7,6 +7,10 @@ import { useRef } from 'react';
 import { RELICS, RELIC_RARITIES } from '../../../data/relics';
 import { RELIC_RARITY_COLORS } from '../../../lib/relics';
 
+type Relic = typeof RELICS[keyof typeof RELICS];
+const relicsRecord = RELICS as Record<string, Relic>;
+const rarityColorsRecord = RELIC_RARITY_COLORS as Record<string, string>;
+
 export function RelicsBar({
   orderedRelics,
   hoveredRelic,
@@ -38,8 +42,8 @@ export function RelicsBar({
         boxShadow: '0 0 15px rgba(148, 163, 184, 0.3)',
         pointerEvents: 'auto',
       }}>
-        {orderedRelics.map((relicId: any, index: any) => {
-          const relic = (RELICS as any)[relicId];
+        {orderedRelics.map((relicId: string, index: number) => {
+          const relic = relicsRecord[relicId];
           if (!relic) return null;
 
           const isHovered = hoveredRelic === relicId;
@@ -114,19 +118,19 @@ export function RelicsBar({
                   transform: 'translateX(-50%)',
                   marginTop: '8px',
                   background: 'rgba(15, 23, 42, 0.98)',
-                  border: `2px solid ${(RELIC_RARITY_COLORS as any)[relic.rarity]}`,
+                  border: `2px solid ${rarityColorsRecord[relic.rarity]}`,
                   borderRadius: '8px',
                   padding: '12px 16px',
                   minWidth: '220px',
-                  boxShadow: `0 4px 20px ${(RELIC_RARITY_COLORS as any)[relic.rarity]}66`,
+                  boxShadow: `0 4px 20px ${rarityColorsRecord[relic.rarity]}66`,
                   zIndex: 1000,
                   pointerEvents: 'none'
                 }}>
-                  <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: (RELIC_RARITY_COLORS as any)[relic.rarity], marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: rarityColorsRecord[relic.rarity], marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <span style={{ fontSize: '1.3rem' }}>{relic.emoji}</span>
                     {relic.name}
                   </div>
-                  <div style={{ fontSize: '0.8rem', color: (RELIC_RARITY_COLORS as any)[relic.rarity], opacity: 0.8, marginBottom: '8px' }}>
+                  <div style={{ fontSize: '0.8rem', color: rarityColorsRecord[relic.rarity], opacity: 0.8, marginBottom: '8px' }}>
                     {rarityText}
                   </div>
                   <div style={{ fontSize: '0.9rem', color: '#e2e8f0', lineHeight: '1.5' }}>

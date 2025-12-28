@@ -656,8 +656,11 @@ export function getRelicsByTag(tag: any) {
 /**
  * 상징 ID로 상징 데이터 가져오기
  */
-export function getRelicById(id: any) {
-  return (RELICS as any)[id] || null;
+type Relic = typeof RELICS[keyof typeof RELICS];
+const relicsRecord = RELICS as Record<string, Relic>;
+
+export function getRelicById(id: string): Relic | null {
+  return relicsRecord[id] || null;
 }
 
 /**

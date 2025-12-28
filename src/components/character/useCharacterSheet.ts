@@ -14,7 +14,7 @@ import { CARDS } from "../battle/battleData";
 import { calculatePassiveEffects } from "../../lib/relicEffects";
 import { getReflectionsByEgos, getTraitCountBonus } from "../../data/reflections";
 
-const TRAIT_EFFECTS = {
+const TRAIT_EFFECTS: Record<string, { label: string; value: number }> = {
   용맹함: { label: "힘", value: 1 },
   굳건함: { label: "최대 체력", value: 10 },
   냉철함: { label: "통찰", value: 1 },
@@ -58,8 +58,8 @@ export function useCharacterSheet({ showAllCards = false }: any) {
 
   // 활성화된 성찰 및 확률 계산 (획득한 자아 기준)
   const activeReflectionsInfo = useMemo(() => {
-    if (!playerEgos || playerEgos.length === 0) return [] as any[];
-    const activeReflections = getReflectionsByEgos(playerEgos) as any[];
+    if (!playerEgos || playerEgos.length === 0) return [];
+    const activeReflections = getReflectionsByEgos(playerEgos);
     const probabilityBonus = getTraitCountBonus(playerTraits.length);
 
     return activeReflections.map(r => ({
@@ -88,8 +88,8 @@ export function useCharacterSheet({ showAllCards = false }: any) {
     }, {});
   }, [playerTraits]);
 
-  const formatTraitEffect = (traitId: any, count: any) => {
-    const effect = (TRAIT_EFFECTS as any)[traitId];
+  const formatTraitEffect = (traitId: string, count: number): string => {
+    const effect = TRAIT_EFFECTS[traitId];
     if (!effect) return count > 1 ? `${traitId} (x${count})` : traitId;
     const total = effect.value * count;
     return `${traitId} ${count > 1 ? `(x${count})` : ""} (${effect.label} +${total})`;
