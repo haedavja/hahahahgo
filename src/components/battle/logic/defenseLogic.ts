@@ -114,7 +114,7 @@ export function applyDefense(
   }
 
   const enemyName = battleContext.enemyDisplayName || '몬스터';
-  const who = actorName === 'player' ? '플레이어' : enemyName;
+  const who = actorName === 'player' ? `플레이어(${card.name})` : `${enemyName}(${card.name})`;
   const growingText = growingDefenseBonus > 0 ? ` (+${growingDefenseBonus} 방어자세)` : '';
   const hologramText = hologramBlock > 0 ? ' (최대체력)' : '';
   const blockMsg = added > 0
@@ -131,7 +131,7 @@ export function applyDefense(
     msg
   };
 
-  const logMsg = `${actorName === 'player' ? '🔵' : '👾'} ${card.name} → ${msg}`;
+  const logMsg = `${actorName === 'player' ? '🔵' : '👾'} ${msg}`;
   const allLogs = tokenLogs.length > 0 ? [logMsg, ...tokenLogs] : [logMsg];
 
   return {

@@ -247,11 +247,11 @@ export function calculateSingleHit(
 
       const crushText = crushMultiplier > 1 ? ' [분쇄×2]' : '';
       const enemyName = battleContext.enemyDisplayName || '몬스터';
-      const formula = `(방어력 ${beforeBlock} - 공격력 ${base}${boost > 1 ? '×2' : ''}${critText}${crushText} = ${remaining})`;
-      const msg = `${attackerName === 'player' ? `플레이어 -> ${enemyName}` : `${enemyName} -> 플레이어`} • 차단 성공${critText}${ghostText} ${formula}`;
+      const formula = `공격력 ${base}${boost > 1 ? '×2' : ''}${critText}${crushText} - 방어력 ${beforeBlock} = 차단 (잔여 방어력 ${remaining})`;
+      const msg = `${attackerName === 'player' ? `플레이어(${card.name}) -> ${enemyName}` : `${enemyName}(${card.name}) -> 플레이어`} • ${formula}${ghostText}`;
 
       events.push({ actor: attackerName, card: card.name, type: 'blocked', msg });
-      logs.push(`${attackerName === 'player' ? '🔵' : '👾'} ${card.name}${ghostText} → ${msg}`);
+      logs.push(msg);
     } else {
       const blocked = beforeBlock;
       const remained = Math.max(0, effectiveDmg - blocked);
@@ -265,8 +265,10 @@ export function calculateSingleHit(
 
       const crushText = crushMultiplier > 1 ? ' [분쇄×2]' : '';
       const enemyNamePierce = battleContext.enemyDisplayName || '몬스터';
-      const formula = `(방어력 ${blocked} - 공격력 ${base}${boost > 1 ? '×2' : ''}${critText}${crushText} = 0)`;
-      const msg = `${attackerName === 'player' ? `플레이어 -> ${enemyNamePierce}` : `${enemyNamePierce} -> 플레이어`} • 차단 ${blocked}${critText}${ghostText} ${formula}, 관통 ${finalDmg} (체력 ${beforeHP} -> ${updatedDefender.hp})`;
+      const formula = blocked > 0
+        ? `공격력 ${base}${boost > 1 ? '×2' : ''}${critText}${crushText} - 방어력 ${blocked} = ${finalDmg} 데미지`
+        : `${finalDmg} 데미지${critText}${crushText}`;
+      const msg = `${attackerName === 'player' ? `플레이어(${card.name}) -> ${enemyNamePierce}` : `${enemyNamePierce}(${card.name}) -> 플레이어`} • ${formula} (체력 ${beforeHP} -> ${updatedDefender.hp})${ghostText}`;
 
       events.push({
         actor: attackerName,
@@ -277,7 +279,7 @@ export function calculateSingleHit(
         afterHP: updatedDefender.hp,
         msg
       });
-      logs.push(`${attackerName === 'player' ? '🔵' : '👾'} ${card.name}${ghostText} → ${msg}`);
+      logs.push(msg);
 
       damageDealt += finalDmg;
 
@@ -307,7 +309,8 @@ export function calculateSingleHit(
 
     const ignoreBlockText = ignoreBlock && (updatedDefender.block || 0) > 0 ? ' [방어 무시]' : '';
     const enemyNameHit = battleContext.enemyDisplayName || '몬스터';
-    const msg = `${attackerName === 'player' ? `플레이어 -> ${enemyNameHit}` : `${enemyNameHit} -> 플레이어`} • 데미지 ${finalDmg}${critText}${ghostText}${boost > 1 ? ' (에테르 폭주×2)' : ''}${ignoreBlockText} (체력 ${beforeHP} -> ${updatedDefender.hp})`;
+    const boostText = boost > 1 ? ' (에테르 폭주×2)' : '';
+    const msg = `${attackerName === 'player' ? `플레이어(${card.name}) -> ${enemyNameHit}` : `${enemyNameHit}(${card.name}) -> 플레이어`} • ${finalDmg} 데미지${critText}${boostText}${ignoreBlockText} (체력 ${beforeHP} -> ${updatedDefender.hp})${ghostText}`;
 
     events.push({
       actor: attackerName,
@@ -318,7 +321,7 @@ export function calculateSingleHit(
       afterHP: updatedDefender.hp,
       msg
     });
-    logs.push(`${attackerName === 'player' ? '🔵' : '👾'} ${card.name}${ghostText} → ${msg}`);
+    logs.push(msg);
 
     damageDealt += finalDmg;
 

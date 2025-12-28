@@ -150,15 +150,11 @@ export async function executeMultiHitAsync(card, attacker, defender, attackerNam
     dmgFormula = `${totalDealt}`;
   }
 
+  // 다중 타격 시에만 총합 로그 추가 (단일 타격은 hitCalculation에서 이미 처리됨)
   if (hits > 1) {
-    const multiHitMsg = `${who} • ${icon} ${card.name}${ghostLabel}: ${dmgFormula}${critText} 데미지!`;
+    const multiHitMsg = `${attackerName === 'player' ? `플레이어(${card.name})` : `${enemyNameSum}(${card.name})`} -> ${attackerName === 'player' ? enemyNameSum : '플레이어'} • ${icon} ${dmgFormula}${critText} 데미지!${ghostLabel}`;
     allEvents.push({ actor: attackerName, card: card.name, type: 'multihit', msg: multiHitMsg, dmg: totalDealt } as BattleEvent);
     allLogs.push(multiHitMsg);
-  } else {
-    const singleCritText = totalCritCount > 0 ? ' 💥치명타!' : '';
-    const singleHitMsg = `${who} • ${icon} ${card.name}${ghostLabel}: ${dmgFormula}${singleCritText} 데미지`;
-    allEvents.push({ actor: attackerName, card: card.name, type: 'hit', msg: singleHitMsg, dmg: totalDealt } as BattleEvent);
-    allLogs.push(singleHitMsg);
   }
 
   // 후처리
