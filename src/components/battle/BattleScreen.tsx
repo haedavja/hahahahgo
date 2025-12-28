@@ -40,7 +40,7 @@ const buildBattlePayload = (
   let enemyCount = battle.enemyCount ?? 1;
   let enemyName = battle.label ?? "Enemy";
   let enemyHp = initialEnemy?.hp ? Math.round(initialEnemy.hp) : 30;
-  let enemyDeck: Card[] = ((initialEnemy as { deck?: Card[] })?.deck) || [];
+  let enemyDeck: Card[] = (initialEnemy?.deck as Card[]) || [];
 
   let enemyComposition: EnemyComposition[] = [];
   let enemyUnits: EnemyUnit[] = [];
@@ -75,12 +75,14 @@ const buildBattlePayload = (
           tokens: { permanent: [], turn: [], usage: [] },
         });
       }
-      const unit = unitMap.get(key)!;
-      unit.count += 1;
-      unit.hp += e.hp || 40;
-      unit.maxHp += e.maxHp || e.hp || 40;
-      unit.ether += e.ether || 100;
-      unit.cardsPerTurn += e.cardsPerTurn || 2;
+      const unit = unitMap.get(key);
+      if (unit) {
+        unit.count += 1;
+        unit.hp += e.hp || 40;
+        unit.maxHp += e.maxHp || e.hp || 40;
+        unit.ether += e.ether || 100;
+        unit.cardsPerTurn += e.cardsPerTurn || 2;
+      }
     });
 
     enemyUnits = Array.from(unitMap.values()).map((unit, idx) => ({
@@ -94,7 +96,7 @@ const buildBattlePayload = (
       enemyName = enemyUnits.map(u => u.count > 1 ? `${u.name}×${u.count}` : u.name).join(' + ');
     }
     enemyHp = enemyUnits.reduce((sum, u) => sum + u.hp, 0);
-    enemyDeck = mixedEnemies.flatMap(e => (e as { deck?: Card[] }).deck || []);
+    enemyDeck = mixedEnemies.flatMap(e => (e.deck as Card[]) || []);
     enemyCount = mixedEnemies.length;
     enemyComposition = enemyUnits.map(u => ({
       name: u.name,
@@ -134,12 +136,14 @@ const buildBattlePayload = (
             tokens: { permanent: [], turn: [], usage: [] },
           });
         }
-        const unit = unitMap.get(key)!;
-        unit.count += 1;
-        unit.hp += e.hp || 40;
-        unit.maxHp += e.hp || 40;
-        unit.ether += e.ether || 100;
-        unit.cardsPerTurn += e.cardsPerTurn || 2;
+        const unit = unitMap.get(key);
+        if (unit) {
+          unit.count += 1;
+          unit.hp += e.hp || 40;
+          unit.maxHp += e.hp || 40;
+          unit.ether += e.ether || 100;
+          unit.cardsPerTurn += e.cardsPerTurn || 2;
+        }
       });
 
       enemyUnits = Array.from(unitMap.values()).map((unit, idx) => ({
@@ -153,7 +157,7 @@ const buildBattlePayload = (
         enemyName = enemyUnits.map(u => u.count > 1 ? `${u.name}×${u.count}` : u.name).join(' + ');
       }
       enemyHp = enemyUnits.reduce((sum, u) => sum + u.hp, 0);
-      enemyDeck = mixedEnemies.flatMap(e => (e as { deck?: Card[] }).deck || []);
+      enemyDeck = mixedEnemies.flatMap(e => (e.deck as Card[]) || []);
       enemyCount = mixedEnemies.length;
       enemyComposition = enemyUnits.map(u => ({
         name: u.name,

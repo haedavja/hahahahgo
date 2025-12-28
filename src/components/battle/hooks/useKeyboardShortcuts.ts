@@ -12,6 +12,7 @@
 
 import { useEffect, useRef } from 'react';
 import { calculateEtherSlots } from '../../../lib/etherUtils';
+import { setStorageString } from '../../../lib/storageUtils';
 
 /**
  * 전투 키보드 단축키 훅
@@ -83,7 +84,7 @@ export function useKeyboardShortcuts({
         e.preventDefault();
         actions.setIsSimplified((prev) => {
           const newVal = !prev;
-          try { localStorage.setItem('battleIsSimplified', newVal.toString()); } catch { /* ignore */ }
+          setStorageString('battleIsSimplified', newVal.toString());
           return newVal;
         });
       }

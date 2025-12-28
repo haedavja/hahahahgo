@@ -45,6 +45,9 @@ interface DungeonConnection {
   unlocked: boolean;
 }
 
+// 플레이어 스탯 타입
+type PlayerStat = 'strength' | 'agility' | 'insight';
+
 // 던전 생성 설정 인터페이스
 interface DungeonGenerationConfig {
   mainPathLength?: number;
@@ -1114,7 +1117,7 @@ export function generateDungeonGraph(dungeonId: string, config: DungeonGeneratio
 
   // 3. 분기 경로 추가 (스탯 관문)
   const branchPoints = [2, 4];  // 메인 경로에서 분기할 위치
-  const stats = ['strength', 'agility', 'insight'];
+  const stats: PlayerStat[] = ['strength', 'agility', 'insight'];
 
   branchPoints.forEach((branchIdx, i) => {
     if (branchIdx >= mainPath.length) return;
@@ -1200,8 +1203,8 @@ export function generateDungeonGraph(dungeonId: string, config: DungeonGeneratio
 /**
  * 스탯에 맞는 장애물 템플릿 반환
  */
-function getObstacleForStat(stat: any) {
-  const mapping: any = {
+function getObstacleForStat(stat: PlayerStat): string {
+  const mapping: Record<PlayerStat, string> = {
     strength: 'cliff',
     agility: 'unstableBridge',
     insight: 'mysteriousStatue',
@@ -1394,8 +1397,8 @@ export function getAvailableConnections(dungeonState, playerStats, playerItems =
   });
 }
 
-function getStatName(stat: any) {
-  const names: any = { strength: '힘', agility: '민첩', insight: '통찰' };
+function getStatName(stat: PlayerStat): string {
+  const names: Record<PlayerStat, string> = { strength: '힘', agility: '민첩', insight: '통찰' };
   return names[stat] || stat;
 }
 

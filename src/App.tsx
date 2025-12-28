@@ -1,6 +1,6 @@
 import "./App.css";
 import { lazy, Suspense, FC } from "react";
-import { useGameStore, type ActiveBattle } from "./state/gameStore";
+import { useGameStore } from "./state/gameStore";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 
 // 동적 import로 코드 스플리팅
@@ -25,7 +25,7 @@ const LoadingFallback: FC = () => {
 };
 
 const App: FC = () => {
-  const activeBattle = useGameStore((state) => (state as { activeBattle?: ActiveBattle }).activeBattle);
+  const activeBattle = useGameStore((state) => state.activeBattle);
 
   return (
     <ErrorBoundary>
