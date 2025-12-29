@@ -120,7 +120,7 @@ export function processPreAttackSpecials({
       const originalDamage = modifiedCard.damage || 0;
       modifiedCard.damage = originalDamage * multiplier;
       const who = attackerName === 'player' ? '플레이어' : '몬스터';
-      const msg = `${who} • ✨ ${card.name}: 교차! 피해 ${multiplier}배 (${originalDamage}→${modifiedCard.damage})`;
+      const msg = `${who} • ✨ ${card.name}: 겹친 적 있음! 피해 ${multiplier}배 (${originalDamage}→${modifiedCard.damage})`;
       events.push({ actor: attackerName, card: card.name, type: 'cross', msg });
       logs.push(msg);
     }
@@ -208,7 +208,7 @@ export function processPreAttackSpecials({
           // 밀어낸 만큼 방어력 획득
           blockToAdd += pushAmount;
           const enemyCardName = targetCard.card?.name || '적 카드';
-          const msg = `${who} • 🔗 ${card.name}: 교차! ${enemyCardName}를 ${pushAmount}만큼 밀어내고 방어력 +${pushAmount}`;
+          const msg = `${who} • 🔗 ${card.name}: 겹친 적 있음! ${enemyCardName}를 ${pushAmount}만큼 밀어내고 방어력 +${pushAmount}`;
           events.push({ actor: attackerName, card: card.name, type: 'cross', msg });
           logs.push(msg);
           if (import.meta.env.DEV) {
