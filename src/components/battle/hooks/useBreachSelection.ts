@@ -19,6 +19,8 @@ export interface CreationQueueItem {
   insertSp: number;
   breachCard: unknown;
   isAoe?: boolean;
+  totalSelections?: number;  // 총 선택 횟수 (진행 상황 표시용)
+  currentSelection?: number; // 현재 선택 번호
 }
 
 /**
@@ -97,13 +99,15 @@ export function useBreachSelection({
 
     battleRef.current = { ...battleRef.current, queue: newQueue };
 
-    // 창조 다중 선택 큐 확인 (벙 데 라므 등)
+    // 창조 다중 선택 큐 확인 (벙 데 라므, 총살 등)
     if (creationQueueRef.current.length > 0) {
       const nextSelection = creationQueueRef.current.shift() as any;
       if (!nextSelection) return;
-      const remainingCount = creationQueueRef.current.length;
 
-      addLog(`👻 창조 ${3 - remainingCount}/3: 카드를 선택하세요.`);
+      // 진행 상황 표시 (totalSelections가 있으면 사용, 없으면 기본값 3)
+      const total = nextSelection.totalSelections || 3;
+      const current = nextSelection.currentSelection || (total - creationQueueRef.current.length);
+      addLog(`👻 창조 ${current}/${total}: 카드를 선택하세요.`);
 
       const nextBreachState = {
         cards: nextSelection.cards,

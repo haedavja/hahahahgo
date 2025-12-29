@@ -195,7 +195,7 @@ describe('cardPlaySpecials', () => {
       expect(result.bonusCards).toHaveLength(3);
     });
 
-    it('executionSquad는 장전, 면역, 사격 4장을 추가해야 함', () => {
+    it('executionSquad는 장전, 탄걸림 면역 토큰을 추가해야 함', () => {
       const result = processCardPlaySpecials({
         card: { name: 'Execution', special: 'executionSquad' } as any,
         attacker: createEntity(),
@@ -206,8 +206,8 @@ describe('cardPlaySpecials', () => {
       });
 
       expect(result.tokensToAdd.some(t => t.id === 'loaded')).toBe(true);
-      expect(result.tokensToAdd.some(t => t.id === 'jam_immune')).toBe(true);
-      expect(result.bonusCards).toHaveLength(4);
+      expect(result.tokensToAdd.some(t => t.id === 'jam_immunity')).toBe(true);
+      // 총격카드 4장 창조는 BattleApp에서 UI 선택으로 처리됨
     });
 
     it('aoeAttack은 nextTurnEffects에 isAoeAttack을 설정해야 함', () => {

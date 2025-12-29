@@ -334,31 +334,18 @@ export function processCardPlaySpecials({
     }
   }
 
-  // === executionSquad: 장전 + 탄걸림 면역 + 총격카드 4장 창조 ===
+  // === executionSquad: 장전 + 탄걸림 면역 (총격카드 4장 창조는 BattleApp에서 처리) ===
   if (hasSpecial(card, 'executionSquad')) {
     const who = attackerName === 'player' ? '플레이어' : '몬스터';
     const grantedAt = battleContext.currentTurn ? { turn: battleContext.currentTurn, sp: battleContext.currentSp || 0 } : undefined;
 
     tokensToAdd.push({ id: 'loaded', stacks: 1, grantedAt });
-    tokensToAdd.push({ id: 'jam_immune', stacks: 1, grantedAt });
+    // jam_immunity는 grantedAt 없이 추가 (턴 종료 시 자동 제거)
+    tokensToAdd.push({ id: 'jam_immunity', stacks: 1 });
 
-    const basicShoot = allCards.find(c => c.id === 'shoot');
-    if (basicShoot) {
-      for (let i = 0; i < 4; i++) {
-        bonusCards.push({
-          ...basicShoot,
-          damage: basicShoot.damage,
-          speedCost: 1,
-          actionCost: 0,
-          isGhost: true,
-          createdBy: card.id,
-          createdId: `${basicShoot.id}_exec_${Date.now()}_${i}`
-        } as Card);
-      }
-      const msg = `${who} • 🔫 ${card.name}: 총살! 장전 + 탄걸림 면역 + 사격 4장 창조!`;
-      events.push({ actor: attackerName, card: card.name, type: 'special', msg });
-      logs.push(msg);
-    }
+    const msg = `${who} • 🔫 ${card.name}: 총살! 장전 + 탄걸림 면역!`;
+    events.push({ actor: attackerName, card: card.name, type: 'special', msg });
+    logs.push(msg);
   }
 
   // === sharpenBlade: 이번 전투 모든 검격 카드 공격력 +3 ===

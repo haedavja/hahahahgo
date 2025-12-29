@@ -2235,11 +2235,91 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
             cards: selectionCards,
             insertSp: (a.sp ?? 0) + 1, // +1 속도에 배치
             breachCard: { ...a.card, breachSpOffset: 1 },
-            isAoe: true // 범위 피해 플래그
+            isAoe: true, // 범위 피해 플래그
+            totalSelections: 3,
+            currentSelection: selectionIdx + 1 // 1, 2, 3
           });
         }
 
         addLog(`👻 "${a.card.name}" 발동! 검격 카드 창조 1/3: 카드를 선택하세요.`);
+
+        // 에테르 누적 (return 전에 처리)
+        processPlayerEtherAccumulation({
+          card: a.card,
+          turnEtherAccumulated,
+          orderedRelicList,
+          cardUpgrades,
+          resolvedPlayerCards,
+          playerTimeline,
+          relics,
+          triggeredRefs: {
+            referenceBookTriggered: referenceBookTriggeredRef,
+            devilDiceTriggered: devilDiceTriggeredRef
+          },
+          calculatePassiveEffects,
+          getCardEtherGain,
+          collectTriggeredRelics,
+          playRelicActivationSequence,
+          flashRelic,
+          actions
+        });
+
+        // 첫 번째 선택 시작
+        const firstSelection = creationQueueRef.current.shift();
+        if (!firstSelection) return;
+        const creationState = {
+          cards: firstSelection.cards,
+          breachSp: firstSelection.insertSp,
+          breachCard: firstSelection.breachCard,
+          isCreationSelection: true,
+          isAoe: firstSelection.isAoe
+        } as BreachSelection;
+        breachSelectionRef.current = creationState;
+        setBreachSelection(creationState);
+
+        // 선택 중에는 stepOnce 진행을 멈춤
+        isExecutingCardRef.current = false;
+        return;
+      }
+    }
+
+    // executionSquad (총살): 4x3 총격카드 창조 선택 (4번의 선택, 각각 3장 중 1장)
+    if (hasSpecial(a.card as unknown as SpecialCard, 'executionSquad') && a.actor === 'player') {
+      // 총기 공격 카드 풀 (기교 소모 카드 제외)
+      const gunAttackCards = CARDS.filter(c =>
+        c.cardCategory === 'gun' &&
+        c.type === 'attack' &&
+        c.id !== a.card.id &&
+        (!c.requiredTokens || c.requiredTokens.length === 0)
+      );
+
+      if (gunAttackCards.length >= 3) {
+        // 4번의 선택을 위한 큐 생성 (각각 다른 3장)
+        const allShuffled = shuffle(gunAttackCards);
+        const usedIds = new Set();
+
+        // 창조 선택 큐 초기화
+        creationQueueRef.current = [];
+
+        for (let selectionIdx = 0; selectionIdx < 4; selectionIdx++) {
+          // 이 선택을 위한 3장 선택 (이전 선택에서 쓰인 카드 제외)
+          const availableCards = allShuffled.filter(c => !usedIds.has(c.id));
+          const selectionCards = availableCards.slice(0, 3);
+
+          // 선택된 카드 ID 기록 (다음 선택에서 제외)
+          selectionCards.forEach(c => usedIds.add(c.id));
+
+          creationQueueRef.current.push({
+            cards: selectionCards,
+            insertSp: (a.sp ?? 0) + 1, // +1 속도에 배치
+            breachCard: { ...a.card, breachSpOffset: 1 },
+            isAoe: false,
+            totalSelections: 4,
+            currentSelection: selectionIdx + 1 // 1, 2, 3, 4
+          });
+        }
+
+        addLog(`👻 "${a.card.name}" 발동! 총격 카드 창조 1/4: 카드를 선택하세요.`);
 
         // 에테르 누적 (return 전에 처리)
         processPlayerEtherAccumulation({
