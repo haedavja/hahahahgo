@@ -179,8 +179,14 @@ export function processPreAttackSpecials({
       // 내 다음 카드 찾기
       let myNextCardSp = Infinity;
       for (let i = currentQIndex + 1; i < queue.length; i++) {
+        if (import.meta.env.DEV) {
+          console.log('[바인딩 디버그] 다음카드 검색 i:', i, 'actor:', queue[i]?.actor, 'sp:', queue[i]?.sp, 'attackerName:', attackerName);
+        }
         if (queue[i]?.actor === attackerName) {
           myNextCardSp = queue[i].sp || Infinity;
+          if (import.meta.env.DEV) {
+            console.log('[바인딩 디버그] 다음 플레이어 카드 발견! sp:', myNextCardSp);
+          }
           break;
         }
       }
