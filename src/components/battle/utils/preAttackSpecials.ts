@@ -240,12 +240,26 @@ export function processPreAttackSpecials({
       const prevHasChain = previousCard.traits && previousCard.traits.includes('chain');
       const prevHasFollowup = previousCard.traits && previousCard.traits.includes('followup');
 
-      if (hasFollowupTrait && prevHasChain && modifiedCard.damage) {
-        const originalDamage = modifiedCard.damage;
-        modifiedCard.damage = Math.ceil(originalDamage * 1.5);
-        const msg = `${who} • ⚡ ${card.name}: 후속! 피해 50% 증가 (${originalDamage}→${modifiedCard.damage})`;
-        events.push({ actor: attackerName, card: card.name, type: 'special', msg });
-        logs.push(msg);
+      if (hasFollowupTrait && prevHasChain) {
+        const bonusMessages: string[] = [];
+
+        if (modifiedCard.damage) {
+          const originalDamage = modifiedCard.damage;
+          modifiedCard.damage = Math.ceil(originalDamage * 1.5);
+          bonusMessages.push(`피해 ${originalDamage}→${modifiedCard.damage}`);
+        }
+
+        if (modifiedCard.block) {
+          const originalBlock = modifiedCard.block;
+          modifiedCard.block = Math.ceil(originalBlock * 1.5);
+          bonusMessages.push(`방어 ${originalBlock}→${modifiedCard.block}`);
+        }
+
+        if (bonusMessages.length > 0) {
+          const msg = `${who} • ⚡ ${card.name}: 후속! 50% 증가 (${bonusMessages.join(', ')})`;
+          events.push({ actor: attackerName, card: card.name, type: 'special', msg });
+          logs.push(msg);
+        }
       }
 
       if (hasFinisherTrait) {
