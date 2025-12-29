@@ -129,9 +129,9 @@ export function useCardSelection({
         next = [...selected, cardWithTarget];
         playSound(800, 80);
       }
-      const combo = detectPokerCombo(next as unknown as ComboCard[]);
-      const enhanced = applyPokerBonus(next as unknown as ComboCard[], combo);
-      const withSp = createFixedOrder(enhanced as unknown as OrderingCardInfo[], enemyPlanActions as OrderingEnemyAction[], effectiveAgility);
+      const combo = detectPokerCombo(next);
+      const enhanced = applyPokerBonus(next, combo);
+      const withSp = createFixedOrder(enhanced, enemyPlanActions, effectiveAgility);
       actions.setFixedOrder(withSp);
       actions.setSelected(next);
       return;
@@ -178,9 +178,9 @@ export function useCardSelection({
       const n = [...selected];
       [n[i - 1], n[i]] = [n[i], n[i - 1]];
 
-      const combo = detectPokerCombo(n as unknown as ComboCard[]);
-      const enhanced = applyPokerBonus(n as unknown as ComboCard[], combo);
-      const withSp = createFixedOrder(enhanced as unknown as OrderingCardInfo[], enemyPlanActions as OrderingEnemyAction[], effectiveAgility);
+      const combo = detectPokerCombo(n);
+      const enhanced = applyPokerBonus(n, combo);
+      const withSp = createFixedOrder(enhanced, enemyPlanActions, effectiveAgility);
       actions.setFixedOrder(withSp);
       actions.setSelected(n);
     } else {
@@ -197,9 +197,9 @@ export function useCardSelection({
       const n = [...selected];
       [n[i], n[i + 1]] = [n[i + 1], n[i]];
 
-      const combo = detectPokerCombo(n as unknown as ComboCard[]);
-      const enhanced = applyPokerBonus(n as unknown as ComboCard[], combo);
-      const withSp = createFixedOrder(enhanced as unknown as OrderingCardInfo[], enemyPlanActions as OrderingEnemyAction[], effectiveAgility);
+      const combo = detectPokerCombo(n);
+      const enhanced = applyPokerBonus(n, combo);
+      const withSp = createFixedOrder(enhanced, enemyPlanActions, effectiveAgility);
       actions.setFixedOrder(withSp);
       actions.setSelected(n);
     } else {

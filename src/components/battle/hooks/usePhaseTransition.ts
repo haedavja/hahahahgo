@@ -130,8 +130,8 @@ export function usePhaseTransition({
 
     const currentPlayer = currentBattle.player;
     const q = currentPlayer.enemyFrozen
-      ? createFixedOrder(enhancedSelected as unknown as OrderingCardInfo[], generatedActions, effectiveAgility)
-      : sortCombinedOrderStablePF(enhancedSelected as unknown as OrderingCardInfo[], generatedActions, effectiveAgility, 0);
+      ? createFixedOrder(enhancedSelected, generatedActions, effectiveAgility)
+      : sortCombinedOrderStablePF(enhancedSelected, generatedActions, effectiveAgility, 0);
     actions.setFixedOrder(q);
 
     if (currentPlayer.enemyFrozen) {

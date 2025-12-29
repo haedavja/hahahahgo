@@ -39,14 +39,11 @@ export interface DetectedCombo {
   description: string;
 }
 
-/** 콤보 감지용 카드 */
-export interface ComboCard {
-  actionCost: number;
-  type?: string;
-  traits?: string[];
-  isGhost?: boolean;
-  [key: string]: unknown;
-}
+/**
+ * 콤보 감지용 카드 - Card와 동일 (하위 호환용 별칭)
+ * @deprecated Card를 직접 사용하세요.
+ */
+export type ComboCard = Card;
 
 /** 콤보 계산 결과 */
 export interface ComboCalculation {
@@ -745,17 +742,17 @@ export interface CardTraitNextTurnEffects {
 
 // ==================== 카드 순서 시스템 ====================
 
-/** 순서 계산용 카드 정보 */
-export interface OrderingCardInfo {
-  speedCost: number;
-  [key: string]: unknown;
-}
+/**
+ * 순서 계산용 카드 정보 - Card와 동일 (하위 호환용 별칭)
+ * @deprecated Card를 직접 사용하세요.
+ */
+export type OrderingCardInfo = Card;
 
-/** 순서 계산용 적 행동 */
-export interface OrderingEnemyAction {
-  speedCost: number;
-  [key: string]: unknown;
-}
+/**
+ * 순서 계산용 적 행동 - Card와 동일 (하위 호환용 별칭)
+ * @deprecated Card를 직접 사용하세요.
+ */
+export type OrderingEnemyAction = Card;
 
 /** 순서 항목 */
 export interface OrderItem {
