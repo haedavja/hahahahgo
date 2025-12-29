@@ -1498,7 +1498,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       }
     } else {
       // 기존 동기 처리 (방어 카드 또는 단일 타격 비총기 공격)
-      actionResult = applyAction(tempState as unknown as CombatState, a.actor, a.card as unknown as CombatCard, battleContext as unknown as CombatBattleContext);
+      actionResult = applyAction(tempState, a.actor, a.card, battleContext);
       const { events, updatedState } = actionResult;
       actionEvents = events;
 
@@ -2762,7 +2762,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const enemyCombo = useMemo(() => {
     const rawActions = enemyPlan?.actions;
     const actions = Array.isArray(rawActions) ? rawActions : [];
-    return detectPokerCombo(actions as unknown as ComboCard[]);
+    return detectPokerCombo(actions);
   }, [enemyPlan?.actions]);
 
   // 적 디플레이션 정보 설정 (선택/대응 단계에서) - 플레이어의 useComboSystem과 동일한 로직
