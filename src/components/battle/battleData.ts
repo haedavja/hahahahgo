@@ -295,15 +295,14 @@ export const CARDS = [
     id: "binding",
     name: "바인딩",
     type: "attack",
-    damage: 16,
-    speedCost: 12,
-    actionCost: 2,
+    damage: 4,
+    speedCost: 2,
+    actionCost: 1,
     iconKey: "sword",
-    description: "공격력 16. 공격 시 상대 방어력을 없앤 만큼 내 방어력으로 획득.",
-    traits: ["chain"],
+    description: "공격력 4. 교차 시 교차된 카드를 다음 카드까지 최대 8만큼 밀어냄. 밀어낸 만큼 방어력 획득.",
+    traits: ["cross", "followup"],
     cardCategory: "fencing",
-    special: "stealBlock",
-    advanceAmount: 3
+    crossBonus: { type: 'push_gain_block', maxPush: 8 }
   },
 
   // === 총기 카드 ===
