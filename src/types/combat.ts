@@ -395,6 +395,8 @@ export interface SpecialCard extends Card {
     type?: string;
     value?: number;
     count?: number;
+    maxPush?: number;
+    multiplier?: number;
     tokens?: Array<{
       id: string;
       stacks?: number;

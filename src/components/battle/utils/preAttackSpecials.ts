@@ -135,18 +135,30 @@ export function processPreAttackSpecials({
     const oppositeActor = attackerName === 'player' ? 'enemy' : 'player';
     const who = attackerName === 'player' ? '플레이어' : '몬스터';
 
+    if (import.meta.env.DEV) {
+      console.log('[바인딩 디버그] queue:', queue.map(q => ({ actor: q.actor, sp: q.sp, card: q.card?.name })));
+      console.log('[바인딩 디버그] currentSp:', currentSp, 'currentQIndex:', currentQIndex);
+    }
+
     // 교차된 적 카드 찾기 (인덱스도 필요)
     let overlappingIdx = -1;
     const overlappingCard = queue.find((q, idx) => {
       if (q.actor !== oppositeActor) return false;
       if (idx <= currentQIndex) return false;
       const spDiff = Math.abs((q.sp || 0) - currentSp);
+      if (import.meta.env.DEV) {
+        console.log('[바인딩 디버그] 검사:', { idx, actor: q.actor, sp: q.sp, spDiff });
+      }
       if (spDiff < 1) {
         overlappingIdx = idx;
         return true;
       }
       return false;
     });
+
+    if (import.meta.env.DEV) {
+      console.log('[바인딩 디버그] overlappingCard:', overlappingCard?.card?.name, 'overlappingIdx:', overlappingIdx);
+    }
 
     if (overlappingCard && overlappingIdx !== -1) {
       // 내 다음 카드 찾기
