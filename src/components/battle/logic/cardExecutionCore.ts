@@ -163,6 +163,10 @@ export function executeCardActionCore(params: ExecuteCardActionCoreParams): Exec
   const actionResult = applyAction(tempState as unknown as CombatState, action.actor, action.card as unknown as CombatCard, battleContext as unknown as CombatBattleContext);
   let actionEvents = (actionResult.events || []) as BattleEvent[];
 
+  if (import.meta.env.DEV && actionResult.queueModifications) {
+    console.log('[cardExecutionCore] queueModifications 수신:', actionResult.queueModifications);
+  }
+
   if (actionResult.updatedState) {
     P = actionResult.updatedState.player as typeof P;
     E = actionResult.updatedState.enemy as typeof E;
@@ -172,6 +176,11 @@ export function executeCardActionCore(params: ExecuteCardActionCoreParams): Exec
   if (actionResult.queueModifications && actionResult.queueModifications.length > 0) {
     let updatedQueue = [...(battleRef.current?.queue ?? [])];
     const qIdx = battleRef.current?.qIndex ?? 0;
+
+    if (import.meta.env.DEV) {
+      console.log('[cardExecutionCore] queueMods 적용 전:', updatedQueue.map(q => ({ actor: q.actor, sp: q.sp, card: (q as any).card?.name })));
+      console.log('[cardExecutionCore] qIdx:', qIdx, 'mods:', actionResult.queueModifications);
+    }
 
     actionResult.queueModifications.forEach(mod => {
       if (mod.index > qIdx && updatedQueue[mod.index]) {
@@ -184,6 +193,10 @@ export function executeCardActionCore(params: ExecuteCardActionCoreParams): Exec
     const remainingCards = updatedQueue.slice(qIdx + 1);
     remainingCards.sort((a, b) => (a.sp ?? 0) - (b.sp ?? 0));
     updatedQueue = [...processedCards, ...remainingCards];
+
+    if (import.meta.env.DEV) {
+      console.log('[cardExecutionCore] queueMods 적용 후:', updatedQueue.map(q => ({ actor: q.actor, sp: q.sp, card: (q as any).card?.name })));
+    }
 
     actions.setQueue(updatedQueue);
   }
