@@ -160,6 +160,21 @@ export function processPreAttackSpecials({
       console.log('[바인딩 디버그] overlappingCard:', overlappingCard?.card?.name, 'overlappingIdx:', overlappingIdx);
     }
 
+    // 이미 실행된 교차 카드 확인 (알림용)
+    if (!overlappingCard) {
+      const alreadyExecutedCross = queue.find((q, idx) => {
+        if (q.actor !== oppositeActor) return false;
+        if (idx > currentQIndex) return false; // 아직 실행 안된 카드는 제외
+        const spDiff = Math.abs((q.sp || 0) - currentSp);
+        return spDiff < 1;
+      });
+      if (alreadyExecutedCross) {
+        const msg = `${who} • 🔗 ${card.name}: 교차 카드(${alreadyExecutedCross.card?.name})가 이미 실행됨`;
+        events.push({ actor: attackerName, card: card.name, type: 'special', msg });
+        logs.push(msg);
+      }
+    }
+
     if (overlappingCard && overlappingIdx !== -1) {
       // 내 다음 카드 찾기
       let myNextCardSp = Infinity;
