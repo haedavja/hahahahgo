@@ -32,12 +32,16 @@ export function applyDefense(
   actorName: 'player' | 'enemy',
   battleContext: DefenseBattleContext = {}
 ): DefenseResult {
-  // 유령카드나 ignoreStatus 특성이 있으면 토큰 효과 미적용
+  // ignoreStatus 특성이 있으면 토큰 효과 미적용
+  // 유령카드도 토큰 효과 적용 (수세 등), 단 토큰 소모는 안 함
   const isGhost = card.isGhost === true;
-  const skipTokenEffects = isGhost || card.ignoreStatus === true;
-  const { modifiedCard, consumedTokens } = skipTokenEffects
+  const skipTokenEffects = card.ignoreStatus === true;
+  const tokenResult = skipTokenEffects
     ? { modifiedCard: card as DefenseCard, consumedTokens: [] }
     : applyTokenEffectsToCard(card, actor, 'defense');
+  const modifiedCard = tokenResult.modifiedCard;
+  // 유령카드는 토큰 소모 안 함 (원본 카드에서만 소모)
+  const consumedTokens = isGhost ? [] : tokenResult.consumedTokens;
 
   const prev = actor.block || 0;
   // ignoreStrength 특성이 있으면 힘 보너스 무시 (방어자세)
