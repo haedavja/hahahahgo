@@ -192,6 +192,10 @@ export function processPreAttackSpecials({
       const distanceToNext = myNextCardSp - overlappedSp;
       const pushAmount = Math.min(Math.max(0, distanceToNext), maxPush);
 
+      if (import.meta.env.DEV) {
+        console.log('[바인딩 디버그] myNextCardSp:', myNextCardSp, 'overlappedSp:', overlappedSp, 'distanceToNext:', distanceToNext, 'pushAmount:', pushAmount);
+      }
+
       if (pushAmount > 0) {
         // 밀어내기 정보 추가 (호출하는 쪽에서 적용)
         queueModifications.push({ index: overlappingIdx, newSp: overlappedSp + pushAmount });
@@ -201,6 +205,13 @@ export function processPreAttackSpecials({
         const msg = `${who} • 🔗 ${card.name}: 교차! ${enemyCardName}를 ${pushAmount}만큼 밀어내고 방어력 +${pushAmount}`;
         events.push({ actor: attackerName, card: card.name, type: 'cross', msg });
         logs.push(msg);
+        if (import.meta.env.DEV) {
+          console.log('[바인딩 디버그] 효과 적용! blockToAdd:', blockToAdd, 'queueMods:', queueModifications);
+        }
+      } else {
+        if (import.meta.env.DEV) {
+          console.log('[바인딩 디버그] pushAmount가 0이라 효과 미적용');
+        }
       }
     }
   }
