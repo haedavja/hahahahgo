@@ -168,6 +168,26 @@ export function executeCardActionCore(params: ExecuteCardActionCoreParams): Exec
     E = actionResult.updatedState.enemy as typeof E;
   }
 
+  // queueModifications 적용 (교차 밀어내기 등)
+  if (actionResult.queueModifications && actionResult.queueModifications.length > 0) {
+    let updatedQueue = [...(battleRef.current?.queue ?? [])];
+    const qIdx = battleRef.current?.qIndex ?? 0;
+
+    actionResult.queueModifications.forEach(mod => {
+      if (mod.index > qIdx && updatedQueue[mod.index]) {
+        updatedQueue[mod.index] = { ...updatedQueue[mod.index], sp: mod.newSp };
+      }
+    });
+
+    // 큐 재정렬
+    const processedCards = updatedQueue.slice(0, qIdx + 1);
+    const remainingCards = updatedQueue.slice(qIdx + 1);
+    remainingCards.sort((a, b) => (a.sp ?? 0) - (b.sp ?? 0));
+    updatedQueue = [...processedCards, ...remainingCards];
+
+    actions.setQueue(updatedQueue);
+  }
+
   // 타임라인 조작 효과 처리
   const currentActor = action.actor === 'player' ? P : E;
   const timelineResult = processTimelineSpecials({

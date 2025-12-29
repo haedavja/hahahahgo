@@ -98,6 +98,9 @@ export function applyAttack(
   totalBlockDestroyed += firstHitResult.blockDestroyed || 0;
   totalDefenderTimelineAdvance += firstHitResult.timelineAdvance || 0;
 
+  // queue 수정 정보 저장 (첫 번째 hit에서만)
+  const queueModifications = firstHitResult.queueModifications;
+
   const preProcessedResult = firstHitResult.preProcessedResult;
   const modifiedCard = preProcessedResult?.modifiedCard || card;
   const hits = (modifiedCard as CombatCard).hits || card.hits || 1;
@@ -199,7 +202,8 @@ export function applyAttack(
     logs: allLogs,
     isCritical,
     createdCards: cardCreationResult.createdCards,
-    defenderTimelineAdvance: totalDefenderTimelineAdvance
+    defenderTimelineAdvance: totalDefenderTimelineAdvance,
+    queueModifications
   };
 }
 
@@ -388,7 +392,8 @@ export function applyAction(
       isCritical: result.isCritical,
       createdCards: result.createdCards || [],
       cardPlaySpecials: cardPlayResult as unknown as CardPlaySpecialsResult,
-      defenderTimelineAdvance: result.defenderTimelineAdvance || 0
+      defenderTimelineAdvance: result.defenderTimelineAdvance || 0,
+      queueModifications: result.queueModifications
     };
   }
 

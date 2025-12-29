@@ -52,6 +52,8 @@ export function processPreAttackSpecials({
   const events: SpecialEvent[] = [];
   const logs: string[] = [];
   const skipNormalDamage = false;
+  const queueModifications: Array<{ index: number; newSp: number }> = [];
+  let blockToAdd = 0;
 
   // === ignoreBlock: 방어력 무시 ===
   if (hasSpecial(card, 'ignoreBlock')) {
@@ -127,21 +129,26 @@ export function processPreAttackSpecials({
     }
   }
 
-  // === 교차 특성: push_gain_block (교차 시 방어력 획득) ===
+  // === 교차 특성: push_gain_block (교차 시 밀어내고 방어력 획득) ===
   if (hasCrossTrait && card.crossBonus?.type === 'push_gain_block') {
     const { queue = [], currentSp = 0, currentQIndex = 0 } = battleContext;
     const oppositeActor = attackerName === 'player' ? 'enemy' : 'player';
     const who = attackerName === 'player' ? '플레이어' : '몬스터';
 
-    // 교차된 적 카드 찾기
+    // 교차된 적 카드 찾기 (인덱스도 필요)
+    let overlappingIdx = -1;
     const overlappingCard = queue.find((q, idx) => {
       if (q.actor !== oppositeActor) return false;
       if (idx <= currentQIndex) return false;
       const spDiff = Math.abs((q.sp || 0) - currentSp);
-      return spDiff < 1;
+      if (spDiff < 1) {
+        overlappingIdx = idx;
+        return true;
+      }
+      return false;
     });
 
-    if (overlappingCard) {
+    if (overlappingCard && overlappingIdx !== -1) {
       // 내 다음 카드 찾기
       let myNextCardSp = Infinity;
       for (let i = currentQIndex + 1; i < queue.length; i++) {
@@ -156,11 +163,15 @@ export function processPreAttackSpecials({
 
       // 다음 카드까지의 거리 (최대 maxPush)
       const distanceToNext = myNextCardSp - overlappedSp;
-      const blockGain = Math.min(Math.max(0, distanceToNext), maxPush);
+      const pushAmount = Math.min(Math.max(0, distanceToNext), maxPush);
 
-      if (blockGain > 0) {
-        blockToAdd += blockGain;
-        const msg = `${who} • 🔗 ${card.name}: 교차! 방어력 +${blockGain}`;
+      if (pushAmount > 0) {
+        // 밀어내기 정보 추가 (호출하는 쪽에서 적용)
+        queueModifications.push({ index: overlappingIdx, newSp: overlappedSp + pushAmount });
+        // 밀어낸 만큼 방어력 획득
+        blockToAdd += pushAmount;
+        const enemyCardName = overlappingCard.card?.name || '적 카드';
+        const msg = `${who} • 🔗 ${card.name}: 교차! ${enemyCardName}를 ${pushAmount}만큼 밀어내고 방어력 +${pushAmount}`;
         events.push({ actor: attackerName, card: card.name, type: 'cross', msg });
         logs.push(msg);
       }
@@ -269,12 +280,18 @@ export function processPreAttackSpecials({
     logs.push(msg);
   }
 
+  // 방어력 추가 적용
+  if (blockToAdd > 0) {
+    modifiedAttacker.block = (modifiedAttacker.block || 0) + blockToAdd;
+  }
+
   return {
     modifiedCard,
     attacker: modifiedAttacker,
     defender: modifiedDefender,
     events,
     logs,
-    skipNormalDamage
+    skipNormalDamage,
+    queueModifications: queueModifications.length > 0 ? queueModifications : undefined
   };
 }

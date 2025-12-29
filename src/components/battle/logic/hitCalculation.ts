@@ -199,6 +199,7 @@ export function calculateSingleHit(
   const isGhost = card.isGhost === true;
 
   let modifiedCard: any, currentAttacker: any, currentDefender: any, specialEvents: any, specialLogs: any, attackerConsumedTokens: any;
+  let queueModifications: Array<{ index: number; newSp: number }> | undefined;
 
   if (preProcessedResult) {
     modifiedCard = preProcessedResult.modifiedCard;
@@ -227,6 +228,8 @@ export function calculateSingleHit(
     specialLogs = preAttackResult.logs;
     // 유령카드는 토큰 소모 안 함
     attackerConsumedTokens = isGhost ? [] : tokenResult.consumedTokens;
+    // queue 수정 정보 저장
+    queueModifications = preAttackResult.queueModifications;
   }
 
   const base = modifiedCard.damage || 0;
@@ -439,6 +442,7 @@ export function calculateSingleHit(
     timelineAdvance,
     events,
     logs,
-    preProcessedResult: resultPreProcessed
+    preProcessedResult: resultPreProcessed,
+    queueModifications
   };
 }

@@ -216,6 +216,7 @@ export interface ActionResult {
   createdCards?: Card[];
   cardPlaySpecials?: CardPlaySpecialsResult;
   defenderTimelineAdvance?: number;
+  queueModifications?: Array<{ index: number; newSp: number }>;
 }
 
 /** 카드 사용 특수 효과 결과 */
@@ -473,6 +474,7 @@ export interface PreAttackResult {
   events: SpecialEvent[];
   logs: string[];
   skipNormalDamage: boolean;
+  queueModifications?: Array<{ index: number; newSp: number }>;
 }
 
 /** 공격 후 특수 효과 결과 */
@@ -658,6 +660,7 @@ export interface SingleHitResult {
   events: BattleEvent[];
   logs: string[];
   preProcessedResult?: PreProcessedResult | null;
+  queueModifications?: Array<{ index: number; newSp: number }>;
 }
 
 /** 다중 타격 준비 결과 */
