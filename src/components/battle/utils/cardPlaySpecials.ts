@@ -351,8 +351,11 @@ export function processCardPlaySpecials({
   // === sharpenBlade: 이번 전투 모든 검격 카드 공격력 +3 ===
   if (hasSpecial(card, 'sharpenBlade')) {
     const who = attackerName === 'player' ? '플레이어' : '몬스터';
+    // 날 세우기 토큰 추가 (영구, 3스택 = +3 공격력)
+    tokensToAdd.push({ id: 'sharpened_blade', stacks: 3 });
+    // 실제 데미지 계산용 (hitCalculation.ts에서 사용)
     nextTurnEffects = { ...nextTurnEffects, fencingDamageBonus: 3 };
-    const msg = `${who} • ⚔️ ${card.name}: 날 세우기! 이번 전투 모든 검격 공격력 +3!`;
+    const msg = `${who} • 🗡️ ${card.name}: 날 세우기! 이번 전투 모든 검격 공격력 +3!`;
     events.push({ actor: attackerName, card: card.name, type: 'special', msg });
     logs.push(msg);
   }

@@ -4,7 +4,7 @@
  * 하단 고정 손패 영역 컴포넌트
  */
 
-import { FC, useState, MouseEvent, memo } from 'react';
+import { FC, useState, MouseEvent, memo, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useGameStore } from '../../../state/gameStore';
 import { hasTrait, applyTraitModifiers } from '../utils/battleUtils';
@@ -13,6 +13,7 @@ import { TraitBadgeList } from './TraitBadge';
 import { CardStatsSidebar } from './CardStatsSidebar';
 import { Sword, Shield } from './BattleIcons';
 import { TRAITS } from '../battleData';
+import { getTokenStacks } from '../../../lib/tokenUtils';
 import { CardListPopup } from './CardPopups';
 import type {
   IconProps,
@@ -135,6 +136,13 @@ export const HandArea: FC<HandAreaProps> = memo(({
     if (targetUnitId === undefined && targetUnitId !== 0) return null;
     return enemyUnits.find((u) => u.unitId === targetUnitId) || null;
   };
+
+  // 날 세우기 보너스 (sharpened_blade 토큰 스택)
+  const fencingBonus = useMemo(() => {
+    if (!player) return 0;
+    return getTokenStacks(player as any, 'sharpened_blade');
+  }, [player]);
+
   const [showDeckPopup, setShowDeckPopup] = useState(false);
   const [showDiscardPopup, setShowDiscardPopup] = useState(false);
 
@@ -308,7 +316,7 @@ export const HandArea: FC<HandAreaProps> = memo(({
                         <span>🎯</span>
                       </div>
                     )}
-                    <CardStatsSidebar card={enhancedCard} strengthBonus={player?.strength || 0} formatSpeedText={formatSpeedText} />
+                    <CardStatsSidebar card={enhancedCard} strengthBonus={player?.strength || 0} fencingBonus={fencingBonus} formatSpeedText={formatSpeedText} />
                     <div className="card-header" style={{ display: 'flex', justifyContent: 'center' }}>
                       <div className="font-black text-sm" style={{ display: 'flex', alignItems: 'center' }}>
                         {renderNameWithBadge(c, nameColor)}
@@ -384,7 +392,7 @@ export const HandArea: FC<HandAreaProps> = memo(({
                 )}
                 <div className={`game-card-large respond-phase-card ${getCardTypeClass(c.type)}`}>
                   <div className="card-cost-badge-floating" style={{ color: costColor, WebkitTextStroke: '1px #000' }}>{c.actionCost}</div>
-                  <CardStatsSidebar card={c} strengthBonus={player?.strength || 0} formatSpeedText={formatSpeedText} />
+                  <CardStatsSidebar card={c} strengthBonus={player?.strength || 0} fencingBonus={fencingBonus} formatSpeedText={formatSpeedText} />
                   <div className="card-header" style={{ display: 'flex', justifyContent: 'center' }}>
                     <div className="font-black text-sm" style={{ display: 'flex', alignItems: 'center' }}>
                       {renderNameWithBadge(c, nameColor)}
@@ -484,7 +492,7 @@ export const HandArea: FC<HandAreaProps> = memo(({
                 )}
                 <div className={`game-card-large resolve-phase-card ${getCardTypeClass(card.type)} ${isUsed ? 'card-used' : ''}`}>
                   <div className="card-cost-badge-floating" style={{ color: costColor, WebkitTextStroke: '1px #000' }}>{card.actionCost}</div>
-                  <CardStatsSidebar card={card} strengthBonus={player?.strength || 0} showCounter={true} formatSpeedText={formatSpeedText} />
+                  <CardStatsSidebar card={card} strengthBonus={player?.strength || 0} fencingBonus={fencingBonus} showCounter={true} formatSpeedText={formatSpeedText} />
                   <div className="card-header" style={{ display: 'flex', justifyContent: 'center' }}>
                     <div className="text-white font-black text-sm" style={{ display: 'flex', alignItems: 'center' }}>
                       {renderNameWithBadge(card, '#fff')}

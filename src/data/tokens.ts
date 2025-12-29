@@ -230,6 +230,15 @@ export const TOKENS: Record<string, TokenDefinition> = {
     description: '공격력과 방어력을 1 증가시킨다.',
     effect: { type: 'STRENGTH', value: 1 }
   },
+  sharpened_blade: {
+    id: 'sharpened_blade',
+    name: '날 세우기',
+    type: TOKEN_TYPES.PERMANENT,
+    category: TOKEN_CATEGORIES.POSITIVE,
+    emoji: '🗡️',
+    description: '검격 카드의 공격력이 스택당 1 증가한다.',
+    effect: { type: 'FENCING_DAMAGE_BONUS', value: 1 }
+  },
   agility: {
     id: 'agility',
     name: '민첩',

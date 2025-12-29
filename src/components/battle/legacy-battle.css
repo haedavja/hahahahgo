@@ -1318,6 +1318,23 @@ body {
   color: #93c5fd; /* 鍮④컯 ???뚮옉 */
 }
 
+/* 날 세우기 보너스가 적용된 검격 카드 */
+.card-stat-item.attack.fencing-boosted {
+  color: #fcd34d;
+  animation: fencing-glow 1.5s ease-in-out infinite;
+}
+
+.card-stat-item.attack.fencing-boosted .bonus-indicator {
+  color: #22c55e;
+  font-size: 0.85em;
+  margin-left: 2px;
+}
+
+@keyframes fencing-glow {
+  0%, 100% { text-shadow: 0 0 4px rgba(252, 211, 77, 0.6); }
+  50% { text-shadow: 0 0 8px rgba(252, 211, 77, 0.9); }
+}
+
 .card-stat-item.defense {
   color: #93c5fd;
 }
