@@ -827,7 +827,7 @@ export const CARDS = [
     actionCost: 1,
     iconKey: "flame",
     description: "기교 1 획득.",
-    traits: [],
+    traits: ["vanish"],
     cardCategory: "fencing",
     appliedTokens: [{ id: 'finesse', stacks: 1, target: 'player' }]
   },
