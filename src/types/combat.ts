@@ -571,26 +571,28 @@ export interface ExecuteCardActionResult {
 
 // ==================== 다중 타격 타입 ====================
 
-/** 전투 행동자 (확장) */
-export interface CombatActor extends Combatant {
-  // Combatant already has def, etherOverdriveActive, vulnMult
-}
+/**
+ * 전투 행동자 - Combatant와 동일 (하위 호환용 별칭)
+ * @deprecated Combatant를 직접 사용하세요.
+ */
+export type CombatActor = Combatant;
 
-/** 전투 카드 (확장) */
-export interface CombatCard extends Card {
-  isGhost?: boolean;
-  hits?: number;
-}
+/**
+ * 전투 카드 - Card와 동일 (하위 호환용 별칭)
+ * @deprecated Card를 직접 사용하세요.
+ */
+export type CombatCard = Card;
 
-/** 전투 컨텍스트 (확장) */
-export interface CombatBattleContext extends BattleContext {
-  // BattleContext already has remainingEnergy, enemyRemainingEnergy, allCards
-}
+/**
+ * 전투 컨텍스트 - BattleContext와 동일 (하위 호환용 별칭)
+ * @deprecated BattleContext를 직접 사용하세요.
+ */
+export type CombatBattleContext = BattleContext;
 
 /** 전투 상태 */
 export interface CombatState {
-  player: CombatActor;
-  enemy: CombatActor;
+  player: Combatant;
+  enemy: Combatant;
   log: string[];
   [key: string]: unknown;
 }

@@ -18,9 +18,6 @@ import type {
   StunAction,
   StunQueueItem,
   StunProcessingResult,
-  CombatState,
-  CombatCard,
-  CombatBattleContext,
   Card,
   Combatant,
   BattleAction,
@@ -169,7 +166,7 @@ export function executeCardActionCore(params: ExecuteCardActionCoreParams): Exec
   }
 
   // 액션 적용
-  const actionResult = applyAction(tempState as unknown as CombatState, action.actor, action.card as unknown as CombatCard, battleContext as unknown as CombatBattleContext);
+  const actionResult = applyAction(tempState, action.actor, action.card, battleContext);
   let actionEvents = (actionResult.events || []) as BattleEvent[];
 
   if (actionResult.updatedState) {
