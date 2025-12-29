@@ -831,6 +831,23 @@ export const CARDS = [
     cardCategory: "fencing",
     appliedTokens: [{ id: 'finesse', stacks: 1, target: 'player' }]
   },
+  {
+    id: "rapid_link",
+    name: "속사 연계",
+    type: "general",
+    block: 0,
+    speedCost: 1,
+    actionCost: 1,
+    iconKey: "flame",
+    description: "기교 1 소모. 대상에게 허약 1회, 흔들림 1회 부여.",
+    traits: [],
+    cardCategory: "gun",
+    requiredTokens: [{ id: 'finesse', stacks: 1 }],
+    appliedTokens: [
+      { id: 'vulnerable', stacks: 1, target: 'enemy' },
+      { id: 'shaken', stacks: 1, target: 'enemy' }
+    ]
+  },
   // === 신규 총기 카드 ===
   {
     id: "sniper_shot",
