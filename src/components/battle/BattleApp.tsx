@@ -1519,6 +1519,33 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
       // NOTE: processCardPlaySpecials는 applyAction 내부(combatActions.ts)에서 이미 호출됨
       // 중복 호출 시 로그/토큰이 중복 적용되므로 여기서는 호출하지 않음
+
+      // queueModifications 적용 (교차 밀어내기 등)
+      if (actionResult.queueModifications && actionResult.queueModifications.length > 0) {
+        let updatedQueue = [...(battleRef.current?.queue ?? [])];
+        const qIdx = battleRef.current?.qIndex ?? 0;
+
+        if (import.meta.env.DEV) {
+          console.log('[BattleApp] queueMods 적용:', actionResult.queueModifications);
+        }
+
+        actionResult.queueModifications.forEach((mod: { index: number; newSp: number }) => {
+          if (mod.index > qIdx && updatedQueue[mod.index]) {
+            updatedQueue[mod.index] = { ...updatedQueue[mod.index], sp: mod.newSp };
+          }
+        });
+
+        // 큐 재정렬
+        const processedCards = updatedQueue.slice(0, qIdx + 1);
+        const remainingCards = updatedQueue.slice(qIdx + 1);
+        remainingCards.sort((x, y) => ((x as any).sp ?? 0) - ((y as any).sp ?? 0));
+        updatedQueue = [...processedCards, ...remainingCards];
+
+        actions.setQueue(updatedQueue);
+        if (battleRef.current) {
+          battleRef.current = { ...battleRef.current, queue: updatedQueue };
+        }
+      }
     }
 
     // === 유닛 시스템: 플레이어 공격 후 타겟 유닛의 block 업데이트 ===
