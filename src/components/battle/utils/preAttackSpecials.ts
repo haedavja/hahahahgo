@@ -191,10 +191,10 @@ export function processPreAttackSpecials({
       const overlappedSp = overlappingCard.sp || 0;
       const maxPush = card.crossBonus.maxPush || 8;
 
-      // 다음 적 카드 직전까지 밀어내기 (최대 maxPush)
+      // 다음 적 카드 너머까지 밀어내기 (최대 maxPush)
       const distanceToNext = nextEnemyCardSp - overlappedSp;
-      // 다음 카드와 겹치지 않도록 0.01 빼기, 하지만 정수로 표시를 위해 floor 처리
-      const rawPush = distanceToNext < Infinity ? Math.floor(distanceToNext - 0.01) : maxPush;
+      // 다음 카드를 넘어가도록 +0.01 (다음 카드가 없으면 maxPush)
+      const rawPush = distanceToNext < Infinity ? Math.ceil(distanceToNext + 0.01) : maxPush;
       const pushAmount = Math.min(Math.max(0, rawPush), maxPush);
 
       if (import.meta.env.DEV) {
