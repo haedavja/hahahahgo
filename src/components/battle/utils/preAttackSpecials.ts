@@ -176,16 +176,13 @@ export function processPreAttackSpecials({
     }
 
     if (overlappingCard && overlappingIdx !== -1) {
-      // 내 다음 카드 찾기
-      let myNextCardSp = Infinity;
-      for (let i = currentQIndex + 1; i < queue.length; i++) {
-        if (import.meta.env.DEV) {
-          console.log('[바인딩 디버그] 다음카드 검색 i:', i, 'actor:', queue[i]?.actor, 'sp:', queue[i]?.sp, 'attackerName:', attackerName);
-        }
-        if (queue[i]?.actor === attackerName) {
-          myNextCardSp = queue[i].sp || Infinity;
+      // 적의 다음 카드 찾기 (밀려난 카드가 다음 적 카드를 넘어가지 않도록)
+      let nextEnemyCardSp = Infinity;
+      for (let i = overlappingIdx + 1; i < queue.length; i++) {
+        if (queue[i]?.actor === oppositeActor) {
+          nextEnemyCardSp = queue[i].sp || Infinity;
           if (import.meta.env.DEV) {
-            console.log('[바인딩 디버그] 다음 플레이어 카드 발견! sp:', myNextCardSp);
+            console.log('[바인딩 디버그] 다음 적 카드 발견! idx:', i, 'sp:', nextEnemyCardSp);
           }
           break;
         }
@@ -194,12 +191,14 @@ export function processPreAttackSpecials({
       const overlappedSp = overlappingCard.sp || 0;
       const maxPush = card.crossBonus.maxPush || 8;
 
-      // 다음 카드까지의 거리 (최대 maxPush)
-      const distanceToNext = myNextCardSp - overlappedSp;
-      const pushAmount = Math.min(Math.max(0, distanceToNext), maxPush);
+      // 다음 적 카드 직전까지 밀어내기 (최대 maxPush)
+      const distanceToNext = nextEnemyCardSp - overlappedSp;
+      // 다음 카드와 겹치지 않도록 0.01 빼기, 하지만 정수로 표시를 위해 floor 처리
+      const rawPush = distanceToNext < Infinity ? Math.floor(distanceToNext - 0.01) : maxPush;
+      const pushAmount = Math.min(Math.max(0, rawPush), maxPush);
 
       if (import.meta.env.DEV) {
-        console.log('[바인딩 디버그] myNextCardSp:', myNextCardSp, 'overlappedSp:', overlappedSp, 'distanceToNext:', distanceToNext, 'pushAmount:', pushAmount);
+        console.log('[바인딩 디버그] nextEnemyCardSp:', nextEnemyCardSp, 'overlappedSp:', overlappedSp, 'distanceToNext:', distanceToNext, 'pushAmount:', pushAmount);
       }
 
       if (pushAmount > 0) {
