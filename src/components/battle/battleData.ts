@@ -878,16 +878,16 @@ export const CARDS = [
   {
     id: "atomic_bomb",
     name: "원자탄",
-    type: "general",
-    block: 0,
+    type: "attack",
+    damage: 100,
     speedCost: 5,
     actionCost: 2,
     iconKey: "flame",
-    description: "기교 3 소모. 공격력 100의 광역 공격 카드를 창조한다.",
+    description: "기교 3 소모. 100 피해 광역 공격.",
     traits: [],
     cardCategory: "gun",
     requiredTokens: [{ id: 'finesse', stacks: 3 }],
-    special: ["createAtomicBlast"]
+    special: ["aoeAttack"]
   },
   // === 신규 펜싱/유틸 카드 ===
   {

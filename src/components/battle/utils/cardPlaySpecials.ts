@@ -400,31 +400,6 @@ export function processCardPlaySpecials({
     nextTurnEffects = { ...nextTurnEffects, isAoeAttack: true };
   }
 
-  // === createAtomicBlast: 원자탄 - 100 피해 광역 공격 카드 창조 ===
-  if (hasSpecial(card, 'createAtomicBlast')) {
-    const who = attackerName === 'player' ? '플레이어' : '몬스터';
-    const atomicBlast: Card = {
-      id: 'atomic_blast',
-      name: '원자 폭발',
-      type: 'attack',
-      damage: 100,
-      speedCost: 0,
-      actionCost: 0,
-      iconKey: 'flame',
-      description: '광역 100 피해.',
-      traits: [],
-      cardCategory: 'gun',
-      isGhost: true,
-      createdBy: card.id,
-      createdId: `atomic_blast_${Date.now()}`,
-      special: ['aoeAttack']
-    };
-    bonusCards.push(atomicBlast);
-    const msg = `${who} • ☢️ ${card.name}: 원자 폭발 카드 창조!`;
-    events.push({ actor: attackerName, card: card.name, type: 'create', msg });
-    logs.push(msg);
-  }
-
   // === onHitBlock7Advance3: 상글로 드 플뤼 - 공격당할때마다 방어력+7, 앞당김 3 ===
   if (hasSpecial(card, 'onHitBlock7Advance3')) {
     // grantedAt 없이 추가: 턴 종료 시 자동 제거
