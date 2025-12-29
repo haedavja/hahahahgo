@@ -12,9 +12,8 @@
 import type {
   Card,
   Token,
-  SpecialCard,
-  SpecialActor,
-  SpecialBattleContext,
+  Combatant,
+  BattleContext,
   SpecialEvent,
   TokenToAdd,
   NextTurnEffects,
@@ -24,10 +23,15 @@ import { getAllTokens, getTokenStacks } from '../../../lib/tokenUtils';
 import { TOKENS, TOKEN_CATEGORIES } from '../../../data/tokens';
 import { hasSpecial } from './preAttackSpecials';
 
+// 하위 호환용 타입 별칭
+type SpecialCard = Card;
+type SpecialActor = Combatant;
+type SpecialBattleContext = BattleContext;
+
 /**
  * 토큰 존재 여부 확인
  */
-function hasToken(entity: SpecialActor, tokenId: string): boolean {
+function hasToken(entity: Combatant, tokenId: string): boolean {
   return getTokenStacks(entity, tokenId) > 0;
 }
 

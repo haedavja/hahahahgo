@@ -10,19 +10,25 @@
  */
 
 import type {
-  SpecialCard,
-  SpecialActor,
-  SpecialQueueItem,
-  SpecialBattleContext,
+  Card,
+  Combatant,
+  BattleAction,
+  BattleContext,
   SpecialEvent,
   PreAttackResult
 } from '../../../types';
 import { addToken, removeToken, setTokenStacks, getTokenStacks } from '../../../lib/tokenUtils';
 
+// 하위 호환용 타입 별칭
+type SpecialCard = Card;
+type SpecialActor = Combatant;
+type SpecialQueueItem = BattleAction;
+type SpecialBattleContext = BattleContext;
+
 /**
  * 카드의 special 효과 존재 여부 확인 (배열 지원)
  */
-export function hasSpecial(card: SpecialCard | null | undefined, specialName: string): boolean {
+export function hasSpecial(card: Card | null | undefined, specialName: string): boolean {
   if (!card?.special) return false;
   if (Array.isArray(card.special)) {
     return card.special.includes(specialName);

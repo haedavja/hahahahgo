@@ -9,9 +9,10 @@
  */
 
 import type {
+  Card,
+  Combatant,
+  BattleContext,
   DefenseCard,
-  DefenseActor,
-  DefenseBattleContext,
   DefenseResult,
   BattleEvent
 } from '../../../types';
@@ -27,10 +28,10 @@ import { calculateGrowingDefense, hasSpecial } from '../utils/cardSpecialEffects
  * @returns { actor: 업데이트된 actor, events: 이벤트 배열, log: 로그 메시지 }
  */
 export function applyDefense(
-  actor: DefenseActor,
-  card: DefenseCard,
+  actor: Combatant,
+  card: Card | DefenseCard,
   actorName: 'player' | 'enemy',
-  battleContext: DefenseBattleContext = {}
+  battleContext: BattleContext = {}
 ): DefenseResult {
   // ignoreStatus 특성이 있으면 토큰 효과 미적용
   // 유령카드도 토큰 효과 적용 (수세 등), 단 토큰 소모는 안 함
@@ -45,19 +46,17 @@ export function applyDefense(
 
   const prev = actor.block || 0;
   // ignoreStrength 특성이 있으면 힘 보너스 무시 (방어자세)
-  const defCard = modifiedCard as DefenseCard;
-  const strengthBonus = defCard.ignoreStrength ? 0 : (actor.strength || 0);
+  const strengthBonus = modifiedCard.ignoreStrength ? 0 : (actor.strength || 0);
 
   // growingDefense 특성: 타임라인이 지날수록 방어력 증가
   const currentSp = battleContext.currentSp || 0;
-  const specialCard = defCard as unknown as { special?: string };
-  const growingDefenseBonus = calculateGrowingDefense(specialCard as never, currentSp);
+  const growingDefenseBonus = calculateGrowingDefense(modifiedCard, currentSp);
 
   // 교차 특성: block_mult 타입일 경우 방어력 배수 적용
   let crossBlockMult = 1;
   let crossBonusText = '';
-  const hasCrossTrait = defCard.traits && defCard.traits.includes('cross');
-  if (hasCrossTrait && defCard.crossBonus?.type === 'block_mult') {
+  const hasCrossTrait = modifiedCard.traits && modifiedCard.traits.includes('cross');
+  if (hasCrossTrait && modifiedCard.crossBonus?.type === 'block_mult') {
     const { queue = [], currentQIndex = 0 } = battleContext;
     const oppositeActor = actorName === 'player' ? 'enemy' : 'player';
 
@@ -69,20 +68,20 @@ export function applyDefense(
     });
 
     if (isOverlapping) {
-      crossBlockMult = defCard.crossBonus.value || 2;
+      crossBlockMult = modifiedCard.crossBonus.value || 2;
       crossBonusText = ` (교차 ${crossBlockMult}배!)`;
     }
   }
 
   // hologram 특수 효과: 최대 체력만큼 방어력 획득
   let hologramBlock = 0;
-  if (hasSpecial(specialCard as never, 'hologram')) {
+  if (hasSpecial(modifiedCard, 'hologram')) {
     hologramBlock = actor.maxHp || actor.hp || 0;
   }
 
   const baseBlock = hologramBlock > 0
     ? hologramBlock + strengthBonus + growingDefenseBonus
-    : ((defCard.block || defCard.defense || 0) + strengthBonus + growingDefenseBonus);
+    : ((modifiedCard.block || modifiedCard.defense || 0) + strengthBonus + growingDefenseBonus);
   const added = Math.floor(baseBlock * crossBlockMult);
   const after = prev + added;
 
@@ -105,7 +104,7 @@ export function applyDefense(
 
   // heal5 특수 효과: 체력 5 회복
   let healText = '';
-  if (hasSpecial(specialCard as never, 'heal5')) {
+  if (hasSpecial(modifiedCard, 'heal5')) {
     const maxHp = actor.maxHp || actor.hp;
     const healAmount = 5;
     const beforeHp = updatedActor.hp;

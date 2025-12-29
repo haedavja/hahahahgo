@@ -21,14 +21,18 @@ import type {
   CombatState,
   CombatCard,
   CombatBattleContext,
-  SpecialCard,
-  SpecialQueueItem,
-  TokenEntity,
+  Card,
+  Combatant,
+  BattleAction,
   HandAction,
-  SpecialActor,
   SimActionEvent
 } from '../../../types';
 import { hasTrait, markCrossedCards } from '../utils/battleUtils';
+
+// 하위 호환용 타입 별칭
+type SpecialCard = Card;
+type SpecialQueueItem = BattleAction;
+type SpecialActor = Combatant;
 import { getCardEtherGain } from '../utils/etherCalculations';
 import { BASE_PLAYER_ENERGY } from '../battleData';
 import { applyAction } from './combatActions';
@@ -199,10 +203,10 @@ export function executeCardActionCore(params: ExecuteCardActionCoreParams): Exec
   // 타임라인 조작 효과 처리
   const currentActor = action.actor === 'player' ? P : E;
   const timelineResult = processTimelineSpecials({
-    card: action.card as unknown as SpecialCard,
-    actor: currentActor as unknown as SpecialActor,
+    card: action.card,
+    actor: currentActor,
     actorName: action.actor as 'player' | 'enemy',
-    queue: battleRef.current?.queue as unknown as SpecialQueueItem[],
+    queue: battleRef.current?.queue,
     currentIndex: battleRef.current?.qIndex ?? 0,
     damageDealt: actionResult.dealt || 0
   });
@@ -332,7 +336,7 @@ export function executeCardActionCore(params: ExecuteCardActionCoreParams): Exec
     });
 
     // 집요한 타격 효과 처리
-    const persistentStrikeToken = getAllTokens(P as unknown as TokenEntity).find((t: { id: string }) => t.id === 'persistent_strike');
+    const persistentStrikeToken = getAllTokens(P).find((t: { id: string }) => t.id === 'persistent_strike');
     if (persistentStrikeToken) {
       const strikeDamage = (P as { _persistentStrikeDamage?: number })._persistentStrikeDamage || 20;
       const beforeHP = E.hp;

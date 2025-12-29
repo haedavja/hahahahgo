@@ -4,23 +4,26 @@
  */
 
 import type {
-  CriticalToken,
-  CriticalActor,
-  CriticalCard,
-  CriticalBattleContext,
-  TokenEntity,
-  SpecialCard
+  Card,
+  Combatant,
+  BattleContext,
+  CriticalToken
 } from '../../../types';
 import { getAllTokens } from '../../../lib/tokenUtils';
 import { hasSpecial } from './preAttackSpecials';
+
+// 하위 호환용 타입 별칭
+type CriticalActor = Combatant;
+type CriticalCard = Card;
+type CriticalBattleContext = BattleContext;
 
 /**
  * 치명타 확률 계산
  */
 export function calculateCritChance(
-  actor: CriticalActor,
+  actor: Combatant,
   remainingEnergy: number = 0,
-  card: CriticalCard | null = null
+  card: Card | null = null
 ): number {
   const baseCritChance = 5;
   const strength = actor.strength || 0;
@@ -28,7 +31,7 @@ export function calculateCritChance(
 
   let critBoostFromTokens = 0;
   if (actor.tokens) {
-    const allTokens = getAllTokens(actor as unknown as TokenEntity) as CriticalToken[];
+    const allTokens = getAllTokens(actor) as CriticalToken[];
     allTokens.forEach(token => {
       if (token.effect?.type === 'CRIT_BOOST') {
         critBoostFromTokens += (token.effect.value || 5) * (token.stacks || 1);
@@ -38,7 +41,7 @@ export function calculateCritChance(
 
   let totalChance = baseCritChance + strength + energy + critBoostFromTokens;
 
-  if (card && hasSpecial(card as unknown as SpecialCard, 'doubleCrit')) {
+  if (card && hasSpecial(card, 'doubleCrit')) {
     totalChance *= 2;
   }
 
@@ -49,11 +52,11 @@ export function calculateCritChance(
  * 치명타 판정
  */
 export function rollCritical(
-  actor: CriticalActor,
+  actor: Combatant,
   remainingEnergy: number = 0,
-  card: CriticalCard | null = null,
+  card: Card | null = null,
   attackerName: 'player' | 'enemy' = 'player',
-  battleContext: CriticalBattleContext = {}
+  battleContext: BattleContext = {}
 ): boolean {
   if (attackerName === 'enemy') {
     return false;
@@ -78,9 +81,9 @@ export function rollCritical(
 /**
  * 치명타 넉백 효과 처리
  */
-export function getCritKnockback(card: CriticalCard | null, isCritical: boolean): number {
+export function getCritKnockback(card: Card | null, isCritical: boolean): number {
   if (!isCritical || !card) return 0;
-  if (hasSpecial(card as unknown as SpecialCard, 'critKnockback4')) return 4;
+  if (hasSpecial(card, 'critKnockback4')) return 4;
   return 0;
 }
 

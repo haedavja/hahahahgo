@@ -11,7 +11,7 @@
  * - 총기 카드 탄걸림 처리
  */
 
-import type { BattleEvent, CriticalActor, CriticalCard, PreProcessedResult, CombatBattleContext } from '../../../types';
+import type { BattleEvent, PreProcessedResult, CombatBattleContext } from '../../../types';
 import { prepareMultiHitAttack, calculateSingleHit, finalizeMultiHitAttack, rollCritical } from './combatActions';
 import { processPerHitRoulette } from '../utils/cardSpecialEffects';
 import { TIMING } from './battleConstants'; // 순환 의존성 방지: battleExecution 대신 직접 import
@@ -85,7 +85,7 @@ export async function executeMultiHitAsync(card: any, attacker: any, defender: a
     await new Promise(resolve => setTimeout(resolve, TIMING.MULTI_HIT_DELAY));
 
     // 타격별 치명타 판정
-    const hitCritical = rollCritical(currentAttacker as unknown as CriticalActor, attackerRemainingEnergy, card as unknown as CriticalCard, attackerName);
+    const hitCritical = rollCritical(currentAttacker, attackerRemainingEnergy, card, attackerName);
     criticalHits.push(hitCritical);
     if (hitCritical) totalCritCount++;
 

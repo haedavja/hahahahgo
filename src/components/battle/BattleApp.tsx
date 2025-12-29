@@ -1441,10 +1441,10 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       // 카드 사용 시 special 효과 처리 (교차 특성 등) - 룰렛은 이제 타격별로 처리됨
       const cardPlayAttacker = a.actor === 'player' ? P : E;
       const cardPlayResult = processCardPlaySpecials({
-        card: a.card as unknown as SpecialCard,
-        attacker: cardPlayAttacker as unknown as SpecialActor,
+        card: a.card,
+        attacker: cardPlayAttacker,
         attackerName: a.actor as 'player' | 'enemy',
-        battleContext: battleContext as unknown as SpecialBattleContext
+        battleContext: battleContext
       });
 
       // cardPlayResult의 토큰 처리
@@ -1621,7 +1621,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     }
 
     // === 바이올랑 모르: 처형 효과 (체력 30 이하 적 즉시 처형) ===
-    if (hasSpecial(a.card as unknown as SpecialCard, 'violentMort') && a.actor === 'player' && a.card.type === 'attack') {
+    if (hasSpecial(a.card, 'violentMort') && a.actor === 'player' && a.card.type === 'attack') {
       const EXECUTION_THRESHOLD = 30;
       if (E.hp > 0 && E.hp <= EXECUTION_THRESHOLD) {
         // 부활 토큰 제거 후 처형
@@ -1963,7 +1963,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       });
 
       // 방어자세 (growingDefense): 발동 시 활성화, 이후 타임라인 진행마다 방어력 +1
-      if (hasSpecial(a.card as unknown as SpecialCard, 'growingDefense')) {
+      if (hasSpecial(a.card, 'growingDefense')) {
         const cardSp = a.sp || 0;
         growingDefenseRef.current = {
           activatedSp: cardSp,
@@ -2112,10 +2112,10 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
     // 타임라인 조작 효과 처리 (마르쉐, 런지, 비트, 흐트리기 등)
     const timelineResult = processTimelineSpecials({
-      card: a.card as unknown as SpecialCard,
-      actor: (a.actor === 'player' ? P : E) as unknown as SpecialActor,
+      card: a.card,
+      actor: (a.actor === 'player' ? P : E),
       actorName: a.actor as 'player' | 'enemy',
-      queue: battleRef.current.queue as unknown as SpecialQueueItem[],
+      queue: battleRef.current.queue,
       currentIndex: battleRef.current.qIndex,
       damageDealt: actionResult.dealt || 0
     });
@@ -2250,7 +2250,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     }
 
     // createFencingCards3 (벙 데 라므): 3x3 창조 선택 (3번의 선택, 각각 3장 중 1장)
-    if (hasSpecial(a.card as unknown as SpecialCard, 'createFencingCards3') && a.actor === 'player') {
+    if (hasSpecial(a.card, 'createFencingCards3') && a.actor === 'player') {
       // 펜싱 공격 카드 풀 (기교 소모 카드 제외 - 창조된 유령카드는 토큰 체크 없이 실행되므로)
       const fencingAttackCards = CARDS.filter(c =>
         c.cardCategory === 'fencing' &&
@@ -2328,7 +2328,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     }
 
     // executionSquad (총살): 4x3 총격카드 창조 선택 (4번의 선택, 각각 3장 중 1장)
-    if (hasSpecial(a.card as unknown as SpecialCard, 'executionSquad') && a.actor === 'player') {
+    if (hasSpecial(a.card, 'executionSquad') && a.actor === 'player') {
       // 총기 공격 카드 풀 (기교 소모 카드 제외)
       const gunAttackCards = CARDS.filter(c =>
         c.cardCategory === 'gun' &&
@@ -2481,7 +2481,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     if (hasUnits && a.actor === 'player' && a.card?.type === 'attack') {
       const targetUnitIds = a.card.__targetUnitIds;
       // AOE 공격 체크: aoeAttack special 또는 isAoe 플래그
-      const isAoeAttack = hasSpecial(a.card as unknown as SpecialCard, 'aoeAttack') || a.card.isAoe === true;
+      const isAoeAttack = hasSpecial(a.card, 'aoeAttack') || a.card.isAoe === true;
 
       if (isAoeAttack) {
         // === 범위 피해 모드: 모든 생존 유닛에 동일 피해 ===

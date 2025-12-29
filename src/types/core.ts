@@ -25,6 +25,20 @@ export type CardTrait =
 /** 카드 우선순위 */
 export type CardPriority = 'instant' | 'quick' | 'normal' | 'slow';
 
+/** 교차 보너스 정의 */
+export interface CrossBonus {
+  type?: string;
+  value?: number;
+  count?: number;
+  maxPush?: number;
+  multiplier?: number;
+  tokens?: Array<{
+    id: string;
+    stacks?: number;
+    target?: string;
+  }>;
+}
+
 /** 카드 정의 */
 export interface Card {
   id: string;
@@ -39,8 +53,10 @@ export interface Card {
   description: string;
   traits?: CardTrait[];
   cardCategory?: CardCategory;
-  special?: string;
+  special?: string | string[];
   isGhost?: boolean;
+  ignoreStatus?: boolean;
+  ignoreStrength?: boolean;
   _combo?: string;
   // 런타임 확장 속성
   priority?: CardPriority;
@@ -55,11 +71,24 @@ export interface Card {
   createdId?: string;
   isFromFleche?: boolean;
   flecheChainCount?: number;
+  // 특수 효과 관련 (SpecialCard 통합)
+  crossBonus?: CrossBonus;
+  advanceAmount?: number;
+  pushAmount?: number;
+  parryRange?: number;
+  parryPushAmount?: number;
+  originalSpeedCost?: number;
+  instanceId?: string;
+  priorityWeight?: number;
   // 특수 효과 플래그
   _applyBurn?: boolean;
-  crossBonus?: { value?: number };
+  _ignoreBlock?: boolean;
+  _addGunJam?: boolean;
   // 내부 마킹
   __targetUnitId?: string | number;
+  __sourceUnitId?: number;
+  __uid?: string;
+  __handUid?: string;
   __isSubSpecial?: boolean;
   __isMainSpecial?: boolean;
 }

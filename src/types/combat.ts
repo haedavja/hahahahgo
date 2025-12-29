@@ -10,6 +10,7 @@ import type {
   TokenState,
   TokenInstance,
   TokenEffectPayload,
+  TokenEntity,
   Relic,
   LogFunction
 } from './core';
@@ -37,24 +38,17 @@ export type BattleState = SimpleBattleState & {
   [key: string]: unknown;
 }
 
-/** 전투 참여자 (플레이어/적 공통) */
-export interface Combatant {
+/** 전투 참여자 (플레이어/적 공통) - TokenEntity 확장으로 토큰 함수와 호환 */
+export interface Combatant extends TokenEntity {
   hp: number;
   maxHp: number;
   block: number;
   tokens: TokenState;
-  strength?: number;
-  agility?: number;
-  insight?: number;
-  counter?: number;
   vulnMult?: number;
   vulnTurns?: number;
-  etherPts?: number;
   etherOverflow?: number;
   etherOverdriveActive?: boolean;
   maxSpeed?: number;
-  energy?: number;
-  maxEnergy?: number;
   def?: boolean;
   _persistentStrikeDamage?: number;
   comboUsageCount?: Record<string, number>;
@@ -318,10 +312,10 @@ export interface BattleContext {
 
 // ==================== 배틀 상태 객체 ====================
 
-/** 배틀 액션 */
+/** 배틀 액션 (큐 아이템) */
 export interface BattleAction {
   actor: 'player' | 'enemy';
-  card?: Card | SpecialCard;
+  card?: Card;
   sp?: number;
   idx?: number;
   originalSpeed?: number;
@@ -390,77 +384,29 @@ export interface EnemyPlan {
 
 // ==================== 특수 효과 타입 ====================
 
-/** 특수 효과용 카드 (확장) */
-export interface SpecialCard extends Card {
-  crossBonus?: {
-    type?: string;
-    value?: number;
-    count?: number;
-    maxPush?: number;
-    multiplier?: number;
-    tokens?: Array<{
-      id: string;
-      stacks?: number;
-      target?: string;
-    }>;
-  };
-  advanceAmount?: number;
-  pushAmount?: number;
-  isFromFleche?: boolean;
-  flecheChainCount?: number;
-  requiredTokens?: string[];
-  _ignoreBlock?: boolean;
-  _applyBurn?: boolean;
-  _addGunJam?: boolean;
-  __targetUnitId?: number;
-  hits?: number;
-  counter?: number;
-  block?: number;
-  parryRange?: number;
-  parryPushAmount?: number;
-  createdBy?: string;
-  __sourceUnitId?: number;
-  __uid?: string;
-  __handUid?: string;
-  originalSpeedCost?: number;
-  instanceId?: string;
-  priorityWeight?: number;
-}
+/**
+ * 특수 효과용 카드 - Card와 동일 (하위 호환용 별칭)
+ * @deprecated Card를 직접 사용하세요. 모든 특수 효과 필드가 Card에 통합되었습니다.
+ */
+export type SpecialCard = Card;
 
-/** 특수 효과용 행동자 */
-export interface SpecialActor extends Combatant {
-  // Combatant already has def, agility, etherOverdriveActive, vulnMult, _persistentStrikeDamage
-}
+/**
+ * 특수 효과용 행동자 - Combatant와 동일 (하위 호환용 별칭)
+ * @deprecated Combatant를 직접 사용하세요.
+ */
+export type SpecialActor = Combatant;
 
-/** 특수 효과용 큐 아이템 */
-export interface SpecialQueueItem {
-  actor: 'player' | 'enemy';
-  sp?: number;
-  card?: SpecialCard;
-  idx?: number;
-  originalSpeed?: number;
-  finalSpeed?: number;
-  hasCrossed?: boolean;
-}
+/**
+ * 특수 효과용 큐 아이템 - BattleAction과 동일 (하위 호환용 별칭)
+ * @deprecated BattleAction을 직접 사용하세요.
+ */
+export type SpecialQueueItem = BattleAction;
 
-/** 특수 효과용 전투 컨텍스트 */
-export interface SpecialBattleContext extends BattleContext {
-  hand?: Card[];
-  allCards?: Card[];
-  queue?: SpecialQueueItem[];
-  playerAttackCards?: Card[];
-  currentSp?: number;
-  currentQIndex?: number;
-  currentTurn?: number;
-  remainingEnergy?: number;
-  enemyRemainingEnergy?: number;
-  handSize?: number;
-  isLastCard?: boolean;
-  unusedAttackCards?: number;
-  blockDestroyed?: number;
-  isCritical?: boolean;
-  enemyUnits?: EnemyUnit[];
-}
+/**
+ * 특수 효과용 전투 컨텍스트 - BattleContext와 동일 (하위 호환용 별칭)
+ * @deprecated BattleContext를 직접 사용하세요.
+ */
+export type SpecialBattleContext = BattleContext;
 
 /** 특수 효과 이벤트 */
 export interface SpecialEvent {
@@ -529,7 +475,7 @@ export interface CardPlayResult {
 
 // ==================== 치명타 시스템 타입 ====================
 
-/** 치명타 시스템용 토큰 */
+/** 치명타 시스템용 토큰 (getAllTokens 반환 타입) */
 export interface CriticalToken {
   id?: string;
   stacks?: number;
@@ -539,27 +485,23 @@ export interface CriticalToken {
   };
 }
 
-/** 치명타 시스템용 행동자 */
-export interface CriticalActor {
-  strength?: number;
-  tokens?: CriticalToken[];
-}
+/**
+ * 치명타 시스템용 행동자 - Combatant와 동일 (하위 호환용 별칭)
+ * @deprecated Combatant를 직접 사용하세요.
+ */
+export type CriticalActor = Combatant;
 
-/** 치명타 시스템용 카드 */
-export interface CriticalCard {
-  special?: string | string[];
-  damage?: number;
-  hits?: number;
-  type?: string;
-  traits?: string[];
-}
+/**
+ * 치명타 시스템용 카드 - Card와 동일 (하위 호환용 별칭)
+ * @deprecated Card를 직접 사용하세요.
+ */
+export type CriticalCard = Card;
 
-/** 치명타 시스템용 전투 컨텍스트 */
-export interface CriticalBattleContext {
-  guaranteedCrit?: boolean;
-  currentSp?: number;
-  handSize?: number;
-}
+/**
+ * 치명타 시스템용 전투 컨텍스트 - BattleContext와 동일 (하위 호환용 별칭)
+ * @deprecated BattleContext를 직접 사용하세요.
+ */
+export type CriticalBattleContext = BattleContext;
 
 // ==================== 핵심 로직 타입 ====================
 
@@ -740,15 +682,17 @@ export interface DefenseCard extends Card {
   block?: number;
 }
 
-/** 방어용 행동자 */
-export interface DefenseActor extends Combatant {
-  // Combatant already has def
-}
+/**
+ * 방어용 행동자 - Combatant와 동일 (하위 호환용 별칭)
+ * @deprecated Combatant를 직접 사용하세요.
+ */
+export type DefenseActor = Combatant;
 
-/** 방어용 전투 컨텍스트 */
-export interface DefenseBattleContext extends BattleContext {
-  // queue is inherited from BattleContext
-}
+/**
+ * 방어용 전투 컨텍스트 - BattleContext와 동일 (하위 호환용 별칭)
+ * @deprecated BattleContext를 직접 사용하세요.
+ */
+export type DefenseBattleContext = BattleContext;
 
 /** 승리 조건 결과 */
 export interface VictoryConditionResult {
