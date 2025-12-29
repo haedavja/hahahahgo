@@ -101,22 +101,26 @@ export function executeCardActionCore(params: ExecuteCardActionCoreParams): Exec
   const playerAttackCards = selected.filter(c => c.type === 'attack');
   // 이 카드가 타임라인상 마지막인지
   const isLastCard = currentQIndex >= queue.length - 1;
-  // 이번 턴 사용하지 않은 공격 카드 수
-  const usedCardIndices = battleRef.current?.usedCardIndices || [];
-  const unusedAttackCards = playerAttackCards.filter((c, idx) => {
-    const cardQueueIndex = queue.findIndex(q => q.card?.id === c.id && q.actor === 'player');
-    return cardQueueIndex > currentQIndex;
-  }).length;
 
-  // 진행 단계 최종 남은 행동력 계산
-  const allPlayerCards = queue.filter(q => q.actor === 'player');
-  const totalEnergyUsed = allPlayerCards.reduce((sum, q) => sum + (q.card?.actionCost || 0), 0);
+  // 단일 순회로 에너지 계산 + 미사용 공격카드 수 계산 (O(n) 최적화)
+  let totalEnergyUsed = 0;
+  let enemyTotalEnergyUsed = 0;
+  let unusedAttackCards = 0;
+  for (let i = 0; i < queue.length; i++) {
+    const q = queue[i];
+    if (q.actor === 'player') {
+      totalEnergyUsed += q.card?.actionCost || 0;
+      // 현재 인덱스보다 뒤에 있는 공격 카드 수
+      if (i > currentQIndex && q.card?.type === 'attack') {
+        unusedAttackCards++;
+      }
+    } else if (q.actor === 'enemy') {
+      enemyTotalEnergyUsed += q.card?.actionCost || 0;
+    }
+  }
+
   const playerEnergyBudget = P.energy || P.maxEnergy || BASE_PLAYER_ENERGY;
   const remainingEnergy = Math.max(0, playerEnergyBudget - totalEnergyUsed);
-
-  // 적 남은 에너지 계산
-  const allEnemyCards = queue.filter(q => q.actor === 'enemy');
-  const enemyTotalEnergyUsed = allEnemyCards.reduce((sum, q) => sum + (q.card?.actionCost || 0), 0);
   const enemyEnergyBudget = E.energy || E.maxEnergy || BASE_PLAYER_ENERGY;
   const enemyRemainingEnergy = Math.max(0, enemyEnergyBudget - enemyTotalEnergyUsed);
 
@@ -164,10 +168,6 @@ export function executeCardActionCore(params: ExecuteCardActionCoreParams): Exec
   const actionResult = applyAction(tempState as unknown as CombatState, action.actor, action.card as unknown as CombatCard, battleContext as unknown as CombatBattleContext);
   let actionEvents = (actionResult.events || []) as BattleEvent[];
 
-  if (import.meta.env.DEV && actionResult.queueModifications) {
-    console.log('[cardExecutionCore] queueModifications 수신:', actionResult.queueModifications);
-  }
-
   if (actionResult.updatedState) {
     P = actionResult.updatedState.player as typeof P;
     E = actionResult.updatedState.enemy as typeof E;
@@ -177,11 +177,6 @@ export function executeCardActionCore(params: ExecuteCardActionCoreParams): Exec
   if (actionResult.queueModifications && actionResult.queueModifications.length > 0) {
     let updatedQueue = [...(battleRef.current?.queue ?? [])];
     const qIdx = battleRef.current?.qIndex ?? 0;
-
-    if (import.meta.env.DEV) {
-      console.log('[cardExecutionCore] queueMods 적용 전:', updatedQueue.map(q => ({ actor: q.actor, sp: q.sp, card: (q as any).card?.name })));
-      console.log('[cardExecutionCore] qIdx:', qIdx, 'mods:', actionResult.queueModifications);
-    }
 
     actionResult.queueModifications.forEach(mod => {
       if (mod.index > qIdx && updatedQueue[mod.index]) {
@@ -197,10 +192,6 @@ export function executeCardActionCore(params: ExecuteCardActionCoreParams): Exec
 
     // 겹침 체크
     updatedQueue = markCrossedCards(updatedQueue);
-
-    if (import.meta.env.DEV) {
-      console.log('[cardExecutionCore] queueMods 적용 후:', updatedQueue.map(q => ({ actor: q.actor, sp: q.sp, card: (q as any).card?.name })));
-    }
 
     actions.setQueue(updatedQueue);
   }

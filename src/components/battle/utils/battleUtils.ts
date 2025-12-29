@@ -143,33 +143,35 @@ interface CrossCheckQueueItem {
  * @returns 교차 마킹이 적용된 새 큐
  */
 export function markCrossedCards<T extends CrossCheckQueueItem>(queue: T[]): T[] {
-  // SP 기준으로 그룹화
-  const spGroups = new Map<number, T[]>();
+  // SP별 플레이어/적 존재 여부만 추적 (O(n) 단일 순회)
+  const spFlags = new Map<number, { hasPlayer: boolean; hasEnemy: boolean }>();
 
-  queue.forEach(item => {
-    const sp = Math.floor(item.sp || 0); // 정수로 비교
-    if (!spGroups.has(sp)) {
-      spGroups.set(sp, []);
+  for (const item of queue) {
+    const sp = Math.floor(item.sp || 0);
+    let flags = spFlags.get(sp);
+    if (!flags) {
+      flags = { hasPlayer: false, hasEnemy: false };
+      spFlags.set(sp, flags);
     }
-    spGroups.get(sp)!.push(item);
-  });
+    if (item.actor === 'player') flags.hasPlayer = true;
+    else if (item.actor === 'enemy') flags.hasEnemy = true;
+  }
 
-  // 각 SP 그룹에서 플레이어와 적이 모두 있으면 교차로 마킹
-  return queue.map(item => {
-    // 이미 교차된 카드는 유지
+  // 교차 여부 마킹 (변경 필요한 것만 복사)
+  let hasChanges = false;
+  const result = queue.map(item => {
     if (item.hasCrossed) return item;
 
     const sp = Math.floor(item.sp || 0);
-    const group = spGroups.get(sp) || [];
+    const flags = spFlags.get(sp);
 
-    const hasPlayer = group.some(g => g.actor === 'player');
-    const hasEnemy = group.some(g => g.actor === 'enemy');
-
-    // 플레이어와 적이 모두 있으면 교차
-    if (hasPlayer && hasEnemy) {
+    if (flags?.hasPlayer && flags?.hasEnemy) {
+      hasChanges = true;
       return { ...item, hasCrossed: true };
     }
-
     return item;
   });
+
+  // 변경 없으면 원본 반환 (불필요한 리렌더링 방지)
+  return hasChanges ? result : queue;
 }

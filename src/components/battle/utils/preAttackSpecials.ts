@@ -137,11 +137,6 @@ export function processPreAttackSpecials({
     const currentQueueItem = queue[currentQIndex];
     const hasCrossedFlag = currentQueueItem?.hasCrossed === true;
 
-    if (import.meta.env.DEV) {
-      console.log('[바인딩 디버그] queue:', queue.map(q => ({ actor: q.actor, sp: q.sp, hasCrossed: q.hasCrossed, card: q.card?.name })));
-      console.log('[바인딩 디버그] currentSp:', currentSp, 'currentQIndex:', currentQIndex, 'hasCrossedFlag:', hasCrossedFlag);
-    }
-
     // hasCrossed가 true이면 교차 조건 충족
     if (hasCrossedFlag) {
       // 밀어낼 대상: 현재 겹치는 적 카드 또는 가장 가까운 다음 적 카드
@@ -172,19 +167,12 @@ export function processPreAttackSpecials({
         }
       }
 
-      if (import.meta.env.DEV) {
-        console.log('[바인딩 디버그] targetCard:', targetCard?.card?.name, 'targetIdx:', targetIdx);
-      }
-
       if (targetCard && targetIdx !== -1) {
         // 적의 다음 카드 찾기 (밀려난 카드가 다음 적 카드를 넘어가도록)
         let nextEnemyCardSp = Infinity;
         for (let i = targetIdx + 1; i < queue.length; i++) {
           if (queue[i]?.actor === oppositeActor) {
             nextEnemyCardSp = queue[i].sp || Infinity;
-            if (import.meta.env.DEV) {
-              console.log('[바인딩 디버그] 다음 적 카드 발견! idx:', i, 'sp:', nextEnemyCardSp);
-            }
             break;
           }
         }
@@ -194,30 +182,16 @@ export function processPreAttackSpecials({
 
         // 다음 적 카드 너머까지 밀어내기 (최대 maxPush)
         const distanceToNext = nextEnemyCardSp - targetSp;
-        // 다음 카드를 넘어가도록 +0.01 (다음 카드가 없으면 maxPush)
         const rawPush = distanceToNext < Infinity ? Math.ceil(distanceToNext + 0.01) : maxPush;
         const pushAmount = Math.min(Math.max(0, rawPush), maxPush);
 
-        if (import.meta.env.DEV) {
-          console.log('[바인딩 디버그] nextEnemyCardSp:', nextEnemyCardSp, 'targetSp:', targetSp, 'distanceToNext:', distanceToNext, 'pushAmount:', pushAmount);
-        }
-
         if (pushAmount > 0) {
-          // 밀어내기 정보 추가 (호출하는 쪽에서 적용)
           queueModifications.push({ index: targetIdx, newSp: targetSp + pushAmount });
-          // 밀어낸 만큼 방어력 획득
           blockToAdd += pushAmount;
           const enemyCardName = targetCard.card?.name || '적 카드';
           const msg = `${who} • 🔗 ${card.name}: 겹친 적 있음! ${enemyCardName}를 ${pushAmount}만큼 밀어내고 방어력 +${pushAmount}`;
           events.push({ actor: attackerName, card: card.name, type: 'cross', msg });
           logs.push(msg);
-          if (import.meta.env.DEV) {
-            console.log('[바인딩 디버그] 효과 적용! blockToAdd:', blockToAdd, 'queueMods:', queueModifications);
-          }
-        } else {
-          if (import.meta.env.DEV) {
-            console.log('[바인딩 디버그] pushAmount가 0이라 효과 미적용');
-          }
         }
       }
     }
