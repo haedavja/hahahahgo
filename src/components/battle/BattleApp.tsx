@@ -90,7 +90,7 @@ import { ItemSlots } from "./ui/ItemSlots";
 import { RELICS, RELIC_RARITIES } from "../../data/relics";
 import { RELIC_EFFECT, RELIC_RARITY_COLORS } from "../../lib/relics";
 import { applyAgility } from "../../lib/agilityUtils";
-import { hasTrait, hasEnemyUnits } from "./utils/battleUtils";
+import { hasTrait, hasEnemyUnits, markCrossedCards } from "./utils/battleUtils";
 import { detectPokerCombo } from "./utils/comboDetection";
 import { COMBO_MULTIPLIERS, BASE_ETHER_PER_CARD, CARD_ETHER_BY_RARITY, getCardEtherGain } from "./utils/etherCalculations";
 import { generateEnemyActions, shouldEnemyOverdrive, assignSourceUnitToActions } from "./utils/enemyAI";
@@ -905,7 +905,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   useEffect(() => {
     if (battle.phase === 'resolve' && (!queue || battle.queue.length === 0) && fixedOrder && fixedOrder.length > 0) {
       const rebuilt = (fixedOrder as unknown as OrderItem[]).map(x => ({ actor: x.actor, card: x.card, sp: x.sp }));
-      actions.setQueue(rebuilt as unknown as OrderItem[]); actions.setQIndex(0);
+      const markedRebuilt = markCrossedCards(rebuilt);
+      actions.setQueue(markedRebuilt as unknown as OrderItem[]); actions.setQIndex(0);
       addLog('🧯 자동 복구: 실행 큐를 다시 생성했습니다');
     }
   }, [battle.phase, battle.queue, fixedOrder]);
@@ -1541,6 +1542,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         remainingCards.sort((x, y) => ((x as any).sp ?? 0) - ((y as any).sp ?? 0));
         updatedQueue = [...processedCards, ...remainingCards];
 
+        // 겹침 체크
+        updatedQueue = markCrossedCards(updatedQueue);
+
         actions.setQueue(updatedQueue);
         if (battleRef.current) {
           battleRef.current = { ...battleRef.current, queue: updatedQueue };
@@ -1663,6 +1667,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       const remainingCards = updatedQueue.slice(qIdx + 1);
       remainingCards.sort((a, b) => (a.sp ?? 0) - (b.sp ?? 0));
       updatedQueue = [...processedCards, ...remainingCards];
+
+      // 겹침 체크
+      updatedQueue = markCrossedCards(updatedQueue);
 
       actions.setQueue(updatedQueue);
     }
@@ -1792,8 +1799,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         });
 
         const newQueue = [...beforeCurrent, ...afterCurrent];
-        actions.setQueue(newQueue);
-        battleRef.current = { ...battleRef.current, queue: newQueue };
+        const markedNewQueue = markCrossedCards(newQueue);
+        actions.setQueue(markedNewQueue);
+        battleRef.current = { ...battleRef.current, queue: markedNewQueue };
 
         addLog(`🔄 연계 효과: "${bonusCards.map((c: any) => c.name).join(', ')}" 큐에 추가!`);
       }
@@ -1912,9 +1920,10 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
             const newQueue = [...currentQ, ...duplicatedCards];
             newQueue.sort((x: any, y: any) => (x.sp ?? 0) - (y.sp ?? 0));
 
-            actions.setQueue(newQueue);
+            const markedQueue = markCrossedCards(newQueue);
+            actions.setQueue(markedQueue);
             if (battleRef.current) {
-              battleRef.current = { ...battleRef.current, queue: newQueue };
+              battleRef.current = { ...battleRef.current, queue: markedQueue };
             }
             addLog(`🔄 노인의 꿈: 타임라인 반복! ${allPlayerCards.length}장 복제됨`);
           }
@@ -2093,7 +2102,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         addLog
       });
       if (updatedQueue !== currentBattle.queue) {
-        actions.setQueue(updatedQueue);
+        const markedStunQueue = markCrossedCards(updatedQueue as any);
+        actions.setQueue(markedStunQueue);
       }
       if (stunEvent) {
         actionEvents = [...actionEvents, stunEvent];
@@ -2170,6 +2180,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       const remainingCards = updatedQueue.slice(currentQIndex + 1);
       remainingCards.sort((a, b) => ((a as unknown as QueueItemWithSp).sp || 0) - ((b as unknown as QueueItemWithSp).sp || 0));
       updatedQueue = [...processedCards, ...remainingCards];
+
+      // 겹침 체크
+      updatedQueue = markCrossedCards(updatedQueue);
 
       actions.setQueue(updatedQueue);
     }
@@ -2408,7 +2421,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       parryReadyStatesRef.current = updatedParryStates;
       setParryReadyStates(updatedParryStates);
       if (updatedQueue !== currentQ) {
-        actions.setQueue(updatedQueue);
+        const markedParryQueue = markCrossedCards(updatedQueue as any);
+        actions.setQueue(markedParryQueue);
       }
       if (parryEvents && parryEvents.length > 0) {
         actionEvents = [...actionEvents, ...parryEvents];

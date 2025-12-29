@@ -106,17 +106,14 @@ export function processPreAttackSpecials({
   }
 
   // === 교차 특성: 타임라인 겹침 시 피해 배율 적용 ===
+  // 한 번이라도 겹친 적이 있으면 hasCrossed 플래그가 true
   const hasCrossTrait = card.traits && card.traits.includes('cross');
   if (hasCrossTrait && card.crossBonus?.type === 'damage_mult') {
-    const { queue = [], currentSp = 0, currentQIndex = 0 } = battleContext;
-    const oppositeActor = attackerName === 'player' ? 'enemy' : 'player';
+    const { queue = [], currentQIndex = 0 } = battleContext;
 
-    const isOverlapping = queue.some((q, idx) => {
-      if (q.actor !== oppositeActor) return false;
-      if (idx <= currentQIndex) return false;
-      const spDiff = Math.abs((q.sp || 0) - currentSp);
-      return spDiff < 1;
-    });
+    // 현재 큐 아이템의 hasCrossed 확인
+    const currentQueueItem = queue[currentQIndex];
+    const isOverlapping = currentQueueItem?.hasCrossed === true;
 
     if (isOverlapping) {
       const multiplier = card.crossBonus.value || 2;
@@ -130,92 +127,97 @@ export function processPreAttackSpecials({
   }
 
   // === 교차 특성: push_gain_block (교차 시 밀어내고 방어력 획득) ===
+  // 한 번이라도 겹친 적이 있으면 hasCrossed 플래그가 true
   if (hasCrossTrait && card.crossBonus?.type === 'push_gain_block') {
     const { queue = [], currentSp = 0, currentQIndex = 0 } = battleContext;
     const oppositeActor = attackerName === 'player' ? 'enemy' : 'player';
     const who = attackerName === 'player' ? '플레이어' : '몬스터';
 
-    if (import.meta.env.DEV) {
-      console.log('[바인딩 디버그] queue:', queue.map(q => ({ actor: q.actor, sp: q.sp, card: q.card?.name })));
-      console.log('[바인딩 디버그] currentSp:', currentSp, 'currentQIndex:', currentQIndex);
-    }
-
-    // 교차된 적 카드 찾기 (인덱스도 필요)
-    let overlappingIdx = -1;
-    const overlappingCard = queue.find((q, idx) => {
-      if (q.actor !== oppositeActor) return false;
-      if (idx <= currentQIndex) return false;
-      const spDiff = Math.abs((q.sp || 0) - currentSp);
-      if (import.meta.env.DEV) {
-        console.log('[바인딩 디버그] 검사:', { idx, actor: q.actor, sp: q.sp, spDiff });
-      }
-      if (spDiff < 1) {
-        overlappingIdx = idx;
-        return true;
-      }
-      return false;
-    });
+    // 현재 큐 아이템의 hasCrossed 확인
+    const currentQueueItem = queue[currentQIndex];
+    const hasCrossedFlag = currentQueueItem?.hasCrossed === true;
 
     if (import.meta.env.DEV) {
-      console.log('[바인딩 디버그] overlappingCard:', overlappingCard?.card?.name, 'overlappingIdx:', overlappingIdx);
+      console.log('[바인딩 디버그] queue:', queue.map(q => ({ actor: q.actor, sp: q.sp, hasCrossed: q.hasCrossed, card: q.card?.name })));
+      console.log('[바인딩 디버그] currentSp:', currentSp, 'currentQIndex:', currentQIndex, 'hasCrossedFlag:', hasCrossedFlag);
     }
 
-    // 이미 실행된 교차 카드 확인 (알림용)
-    if (!overlappingCard) {
-      const alreadyExecutedCross = queue.find((q, idx) => {
-        if (q.actor !== oppositeActor) return false;
-        if (idx > currentQIndex) return false; // 아직 실행 안된 카드는 제외
+    // hasCrossed가 true이면 교차 조건 충족
+    if (hasCrossedFlag) {
+      // 밀어낼 대상: 현재 겹치는 적 카드 또는 가장 가까운 다음 적 카드
+      let targetIdx = -1;
+      let targetCard: SpecialQueueItem | null = null;
+
+      // 먼저 현재 SP에 겹치는 적 카드 찾기
+      for (let idx = currentQIndex + 1; idx < queue.length; idx++) {
+        const q = queue[idx];
+        if (q.actor !== oppositeActor) continue;
         const spDiff = Math.abs((q.sp || 0) - currentSp);
-        return spDiff < 1;
-      });
-      if (alreadyExecutedCross) {
-        const msg = `${who} • 🔗 ${card.name}: 교차 카드(${alreadyExecutedCross.card?.name})가 이미 실행됨`;
-        events.push({ actor: attackerName, card: card.name, type: 'special', msg });
-        logs.push(msg);
-      }
-    }
-
-    if (overlappingCard && overlappingIdx !== -1) {
-      // 적의 다음 카드 찾기 (밀려난 카드가 다음 적 카드를 넘어가지 않도록)
-      let nextEnemyCardSp = Infinity;
-      for (let i = overlappingIdx + 1; i < queue.length; i++) {
-        if (queue[i]?.actor === oppositeActor) {
-          nextEnemyCardSp = queue[i].sp || Infinity;
-          if (import.meta.env.DEV) {
-            console.log('[바인딩 디버그] 다음 적 카드 발견! idx:', i, 'sp:', nextEnemyCardSp);
-          }
+        if (spDiff < 1) {
+          targetIdx = idx;
+          targetCard = q;
           break;
         }
       }
 
-      const overlappedSp = overlappingCard.sp || 0;
-      const maxPush = card.crossBonus.maxPush || 8;
-
-      // 다음 적 카드 너머까지 밀어내기 (최대 maxPush)
-      const distanceToNext = nextEnemyCardSp - overlappedSp;
-      // 다음 카드를 넘어가도록 +0.01 (다음 카드가 없으면 maxPush)
-      const rawPush = distanceToNext < Infinity ? Math.ceil(distanceToNext + 0.01) : maxPush;
-      const pushAmount = Math.min(Math.max(0, rawPush), maxPush);
-
-      if (import.meta.env.DEV) {
-        console.log('[바인딩 디버그] nextEnemyCardSp:', nextEnemyCardSp, 'overlappedSp:', overlappedSp, 'distanceToNext:', distanceToNext, 'pushAmount:', pushAmount);
+      // 겹치는 카드가 없으면 가장 가까운 다음 적 카드 찾기
+      if (!targetCard) {
+        for (let idx = currentQIndex + 1; idx < queue.length; idx++) {
+          const q = queue[idx];
+          if (q.actor === oppositeActor) {
+            targetIdx = idx;
+            targetCard = q;
+            break;
+          }
+        }
       }
 
-      if (pushAmount > 0) {
-        // 밀어내기 정보 추가 (호출하는 쪽에서 적용)
-        queueModifications.push({ index: overlappingIdx, newSp: overlappedSp + pushAmount });
-        // 밀어낸 만큼 방어력 획득
-        blockToAdd += pushAmount;
-        const enemyCardName = overlappingCard.card?.name || '적 카드';
-        const msg = `${who} • 🔗 ${card.name}: 교차! ${enemyCardName}를 ${pushAmount}만큼 밀어내고 방어력 +${pushAmount}`;
-        events.push({ actor: attackerName, card: card.name, type: 'cross', msg });
-        logs.push(msg);
-        if (import.meta.env.DEV) {
-          console.log('[바인딩 디버그] 효과 적용! blockToAdd:', blockToAdd, 'queueMods:', queueModifications);
+      if (import.meta.env.DEV) {
+        console.log('[바인딩 디버그] targetCard:', targetCard?.card?.name, 'targetIdx:', targetIdx);
+      }
+
+      if (targetCard && targetIdx !== -1) {
+        // 적의 다음 카드 찾기 (밀려난 카드가 다음 적 카드를 넘어가도록)
+        let nextEnemyCardSp = Infinity;
+        for (let i = targetIdx + 1; i < queue.length; i++) {
+          if (queue[i]?.actor === oppositeActor) {
+            nextEnemyCardSp = queue[i].sp || Infinity;
+            if (import.meta.env.DEV) {
+              console.log('[바인딩 디버그] 다음 적 카드 발견! idx:', i, 'sp:', nextEnemyCardSp);
+            }
+            break;
+          }
         }
-      } else {
+
+        const targetSp = targetCard.sp || 0;
+        const maxPush = card.crossBonus.maxPush || 8;
+
+        // 다음 적 카드 너머까지 밀어내기 (최대 maxPush)
+        const distanceToNext = nextEnemyCardSp - targetSp;
+        // 다음 카드를 넘어가도록 +0.01 (다음 카드가 없으면 maxPush)
+        const rawPush = distanceToNext < Infinity ? Math.ceil(distanceToNext + 0.01) : maxPush;
+        const pushAmount = Math.min(Math.max(0, rawPush), maxPush);
+
         if (import.meta.env.DEV) {
-          console.log('[바인딩 디버그] pushAmount가 0이라 효과 미적용');
+          console.log('[바인딩 디버그] nextEnemyCardSp:', nextEnemyCardSp, 'targetSp:', targetSp, 'distanceToNext:', distanceToNext, 'pushAmount:', pushAmount);
+        }
+
+        if (pushAmount > 0) {
+          // 밀어내기 정보 추가 (호출하는 쪽에서 적용)
+          queueModifications.push({ index: targetIdx, newSp: targetSp + pushAmount });
+          // 밀어낸 만큼 방어력 획득
+          blockToAdd += pushAmount;
+          const enemyCardName = targetCard.card?.name || '적 카드';
+          const msg = `${who} • 🔗 ${card.name}: 교차! ${enemyCardName}를 ${pushAmount}만큼 밀어내고 방어력 +${pushAmount}`;
+          events.push({ actor: attackerName, card: card.name, type: 'cross', msg });
+          logs.push(msg);
+          if (import.meta.env.DEV) {
+            console.log('[바인딩 디버그] 효과 적용! blockToAdd:', blockToAdd, 'queueMods:', queueModifications);
+          }
+        } else {
+          if (import.meta.env.DEV) {
+            console.log('[바인딩 디버그] pushAmount가 0이라 효과 미적용');
+          }
         }
       }
     }

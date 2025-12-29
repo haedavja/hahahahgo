@@ -24,7 +24,7 @@ import { createFixedOrder } from '../utils/cardOrdering';
 import { sortCombinedOrderStablePF } from '../utils/combatUtils';
 import type { OrderingCardInfo } from '../../../types';
 import { generateEnemyActions, shouldEnemyOverdrive, assignSourceUnitToActions } from '../utils/enemyAI';
-import { applyTraitModifiers } from '../utils/battleUtils';
+import { applyTraitModifiers, markCrossedCards } from '../utils/battleUtils';
 import { processQueueCollisions } from '../utils/cardSpecialEffects';
 import { playCardSubmitSound, playProceedSound } from '../../../lib/soundUtils';
 import { ETHER_THRESHOLD } from '../battleData';
@@ -231,7 +231,9 @@ export function usePhaseTransition({
     }
 
     playProceedSound();
-    actions.setQueue(finalQ);
+    // 교차 체크: 같은 SP에 플레이어/적 카드가 있으면 hasCrossed 마킹
+    const markedQueue = markCrossedCards(finalQ);
+    actions.setQueue(markedQueue);
     actions.setQIndex(0);
     actions.setPhase('resolve');
     addLog('▶ 진행 시작');

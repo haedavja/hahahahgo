@@ -326,6 +326,7 @@ export interface BattleAction {
   idx?: number;
   originalSpeed?: number;
   finalSpeed?: number;
+  hasCrossed?: boolean;
 }
 
 /** 배틀 참조 객체 */
@@ -439,6 +440,7 @@ export interface SpecialQueueItem {
   idx?: number;
   originalSpeed?: number;
   finalSpeed?: number;
+  hasCrossed?: boolean;
 }
 
 /** 특수 효과용 전투 컨텍스트 */

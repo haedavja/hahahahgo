@@ -122,3 +122,54 @@ export const getCardRarity = (card: BattleCard | null | undefined): CardRarity =
 export function hasEnemyUnits(units: { hp: number }[] | undefined | null): boolean {
   return Array.isArray(units) && units.length >= 1;
 }
+
+/**
+ * 큐 아이템 타입 (교차 체크용)
+ */
+interface CrossCheckQueueItem {
+  actor: 'player' | 'enemy';
+  sp?: number;
+  hasCrossed?: boolean;
+  card?: { traits?: string[] };
+}
+
+/**
+ * 큐에서 교차된 카드들을 마킹
+ *
+ * 같은 SP에 플레이어와 적 카드가 있으면 둘 다 hasCrossed = true로 마킹
+ * 기존에 hasCrossed가 true인 카드는 그대로 유지 (한 번 겹치면 계속 유지)
+ *
+ * @param queue - 현재 큐
+ * @returns 교차 마킹이 적용된 새 큐
+ */
+export function markCrossedCards<T extends CrossCheckQueueItem>(queue: T[]): T[] {
+  // SP 기준으로 그룹화
+  const spGroups = new Map<number, T[]>();
+
+  queue.forEach(item => {
+    const sp = Math.floor(item.sp || 0); // 정수로 비교
+    if (!spGroups.has(sp)) {
+      spGroups.set(sp, []);
+    }
+    spGroups.get(sp)!.push(item);
+  });
+
+  // 각 SP 그룹에서 플레이어와 적이 모두 있으면 교차로 마킹
+  return queue.map(item => {
+    // 이미 교차된 카드는 유지
+    if (item.hasCrossed) return item;
+
+    const sp = Math.floor(item.sp || 0);
+    const group = spGroups.get(sp) || [];
+
+    const hasPlayer = group.some(g => g.actor === 'player');
+    const hasEnemy = group.some(g => g.actor === 'enemy');
+
+    // 플레이어와 적이 모두 있으면 교차
+    if (hasPlayer && hasEnemy) {
+      return { ...item, hasCrossed: true };
+    }
+
+    return item;
+  });
+}

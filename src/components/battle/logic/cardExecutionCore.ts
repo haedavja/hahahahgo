@@ -28,7 +28,7 @@ import type {
   SpecialActor,
   SimActionEvent
 } from '../../../types';
-import { hasTrait } from '../utils/battleUtils';
+import { hasTrait, markCrossedCards } from '../utils/battleUtils';
 import { getCardEtherGain } from '../utils/etherCalculations';
 import { BASE_PLAYER_ENERGY } from '../battleData';
 import { applyAction } from './combatActions';
@@ -156,7 +156,8 @@ export function executeCardActionCore(params: ExecuteCardActionCoreParams): Exec
     addLog
   }) as StunProcessingResult;
   if (stunResult.updatedQueue) {
-    actions.setQueue(stunResult.updatedQueue as any);
+    const markedStunQueue = markCrossedCards(stunResult.updatedQueue as any);
+    actions.setQueue(markedStunQueue as any);
   }
 
   // 액션 적용
@@ -193,6 +194,9 @@ export function executeCardActionCore(params: ExecuteCardActionCoreParams): Exec
     const remainingCards = updatedQueue.slice(qIdx + 1);
     remainingCards.sort((a, b) => (a.sp ?? 0) - (b.sp ?? 0));
     updatedQueue = [...processedCards, ...remainingCards];
+
+    // 겹침 체크
+    updatedQueue = markCrossedCards(updatedQueue);
 
     if (import.meta.env.DEV) {
       console.log('[cardExecutionCore] queueMods 적용 후:', updatedQueue.map(q => ({ actor: q.actor, sp: q.sp, card: (q as any).card?.name })));
@@ -265,6 +269,9 @@ export function executeCardActionCore(params: ExecuteCardActionCoreParams): Exec
     remainingCards.sort((a, b) => (a.sp ?? 0) - (b.sp ?? 0));
     updatedQueue = [...processedCards, ...remainingCards];
 
+    // 겹침 체크
+    updatedQueue = markCrossedCards(updatedQueue);
+
     actions.setQueue(updatedQueue);
   }
 
@@ -287,6 +294,9 @@ export function executeCardActionCore(params: ExecuteCardActionCoreParams): Exec
     const remainingCards = updatedQueue.slice(qIdx + 1);
     remainingCards.sort((a, b) => (a.sp ?? 0) - (b.sp ?? 0));
     updatedQueue = [...processedCards, ...remainingCards];
+
+    // 겹침 체크
+    updatedQueue = markCrossedCards(updatedQueue);
 
     actions.setQueue(updatedQueue);
   }
