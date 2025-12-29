@@ -216,16 +216,17 @@ export function calculateSingleHit(
       battleContext
     });
 
-    const tokenResult = isGhost
-      ? { modifiedCard: preAttackResult.modifiedCard, consumedTokens: [] }
-      : applyTokenEffectsToCard(preAttackResult.modifiedCard, preAttackResult.attacker, 'attack');
+    // 유령카드도 토큰 효과 적용 (파쇄탄, 철갑탄, 소이탄 등)
+    // 단, 유령카드는 토큰을 소모하지 않음 (원본 카드에서만 소모)
+    const tokenResult = applyTokenEffectsToCard(preAttackResult.modifiedCard, preAttackResult.attacker, 'attack');
 
     modifiedCard = tokenResult.modifiedCard;
     currentAttacker = preAttackResult.attacker;
     currentDefender = preAttackResult.defender;
     specialEvents = preAttackResult.events;
     specialLogs = preAttackResult.logs;
-    attackerConsumedTokens = tokenResult.consumedTokens;
+    // 유령카드는 토큰 소모 안 함
+    attackerConsumedTokens = isGhost ? [] : tokenResult.consumedTokens;
   }
 
   const base = modifiedCard.damage || 0;
