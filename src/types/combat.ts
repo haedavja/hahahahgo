@@ -599,8 +599,8 @@ export interface CombatState {
 
 /** 단일 타격 결과 */
 export interface SingleHitResult {
-  attacker: CombatActor;
-  defender: CombatActor;
+  attacker: Combatant;
+  defender: Combatant;
   damage: number;
   damageTaken?: number;
   blockDestroyed?: number;
@@ -616,17 +616,17 @@ export interface MultiHitPrepareResult {
   hits: number;
   firstHitCritical: boolean;
   preProcessedResult: PreProcessedResult | null;
-  modifiedCard: CombatCard;
+  modifiedCard: Card;
   firstHitResult: SingleHitResult;
-  currentAttacker: CombatActor;
-  currentDefender: CombatActor;
+  currentAttacker: Combatant;
+  currentDefender: Combatant;
   attackerRemainingEnergy: number;
 }
 
 /** 다중 타격 마무리 결과 */
 export interface MultiHitFinalizeResult {
-  attacker: CombatActor;
-  defender: CombatActor;
+  attacker: Combatant;
+  defender: Combatant;
   events: BattleEvent[];
   logs: string[];
   extraHits: number;

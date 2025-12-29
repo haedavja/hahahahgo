@@ -13,9 +13,6 @@ import type {
   BattleContext,
   AttackResult,
   ActionResult,
-  CombatActor,
-  CombatCard,
-  CombatBattleContext,
   CombatState,
   MultiHitPrepareResult,
   MultiHitFinalizeResult,
@@ -48,18 +45,18 @@ import { calculateSingleHit } from './hitCalculation';
  * @returns 공격 결과
  */
 export function applyAttack(
-  attacker: CombatActor,
-  defender: CombatActor,
-  card: CombatCard,
+  attacker: Combatant,
+  defender: Combatant,
+  card: Card,
   attackerName: 'player' | 'enemy',
-  battleContext: CombatBattleContext = {}
+  battleContext: BattleContext = {}
 ): AttackResult {
   // 입력 검증
   if (!attacker || !defender || !card) {
     if (import.meta.env.DEV) console.error('[applyAttack] Invalid input:', { attacker: !!attacker, defender: !!defender, card: !!card });
     return {
-      attacker: (attacker || {}) as CombatActor,
-      defender: (defender || {}) as CombatActor,
+      attacker: (attacker || {}) as Combatant,
+      defender: (defender || {}) as Combatant,
       dealt: 0,
       taken: 0,
       events: [],
@@ -97,7 +94,7 @@ export function applyAttack(
 
   const preProcessedResult = firstHitResult.preProcessedResult;
   const modifiedCard = preProcessedResult?.modifiedCard || card;
-  const hits = (modifiedCard as CombatCard).hits || card.hits || 1;
+  const hits = (modifiedCard as Card).hits || card.hits || 1;
 
   const isGhostCard = card.isGhost === true;
   const ghostLabel = isGhostCard ? ' [👻유령]' : '';
@@ -206,11 +203,11 @@ export function applyAttack(
  * 다중 타격 공격 준비 (비동기 처리용)
  */
 export function prepareMultiHitAttack(
-  attacker: CombatActor,
-  defender: CombatActor,
-  card: CombatCard,
+  attacker: Combatant,
+  defender: Combatant,
+  card: Card,
   attackerName: 'player' | 'enemy',
-  battleContext: CombatBattleContext = {}
+  battleContext: BattleContext = {}
 ): MultiHitPrepareResult {
   const currentAttacker = { ...attacker };
   const currentDefender = { ...defender };
@@ -224,13 +221,13 @@ export function prepareMultiHitAttack(
 
   const preProcessedResult = firstHitResult.preProcessedResult;
   const modifiedCard = preProcessedResult?.modifiedCard || card;
-  const hits = (modifiedCard as CombatCard).hits || card.hits || 1;
+  const hits = (modifiedCard as Card).hits || card.hits || 1;
 
   return {
     hits,
     firstHitCritical,
     preProcessedResult: preProcessedResult ?? null,
-    modifiedCard: modifiedCard as CombatCard,
+    modifiedCard: modifiedCard as Card,
     firstHitResult: firstHitResult,
     currentAttacker: firstHitResult.attacker,
     currentDefender: firstHitResult.defender,
@@ -243,13 +240,13 @@ export function prepareMultiHitAttack(
  * 공격 후 special 효과 처리 (외부 호출용)
  */
 export function finalizeMultiHitAttack(
-  modifiedCard: CombatCard,
-  attacker: CombatActor,
-  defender: CombatActor,
+  modifiedCard: Card,
+  attacker: Combatant,
+  defender: Combatant,
   attackerName: 'player' | 'enemy',
   totalDealt: number,
   totalBlockDestroyed: number,
-  battleContext: CombatBattleContext = {}
+  battleContext: BattleContext = {}
 ): MultiHitFinalizeResult {
   const postAttackResult = processPostAttackSpecials({
     card: modifiedCard,
@@ -283,8 +280,8 @@ export function finalizeMultiHitAttack(
 export function applyAction(
   state: CombatState,
   actor: 'player' | 'enemy',
-  card: CombatCard,
-  battleContext: CombatBattleContext = {}
+  card: Card,
+  battleContext: BattleContext = {}
 ): ActionResult {
   const A = actor === 'player' ? state.player : state.enemy;
   const B = actor === 'player' ? state.enemy : state.player;
