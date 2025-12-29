@@ -832,14 +832,14 @@ export const CARDS = [
   },
   {
     id: "rapid_link",
-    name: "속사 연계",
+    name: "속사",
     type: "general",
     block: 0,
     speedCost: 1,
     actionCost: 1,
     iconKey: "flame",
     description: "기교 1 소모. 대상에게 허약 1회, 흔들림 1회 부여.",
-    traits: [],
+    traits: ["chain"],
     cardCategory: "gun",
     requiredTokens: [{ id: 'finesse', stacks: 1 }],
     appliedTokens: [
