@@ -12,7 +12,7 @@
 import { useCallback } from 'react';
 import type { MutableRefObject, Dispatch, SetStateAction } from 'react';
 import { detectPokerCombo } from '../utils/comboDetection';
-import { clearTurnTokens } from '../../../lib/tokenUtils';
+import { clearTurnTokens, getTokenStacks, removeToken, setTokenStacks } from '../../../lib/tokenUtils';
 import { processCardTraitEffects } from '../utils/cardTraitEffects';
 import { applyTurnEndEffects, calculatePassiveEffects } from '../../../lib/relicEffects';
 import { playTurnEndRelicAnimations, applyTurnEndRelicEffectsToNextTurn } from '../utils/turnEndRelicEffectsProcessing';
@@ -126,6 +126,25 @@ export function useResolveExecution({
     enemyTokenResult.logs.forEach(log => addLog(log));
     latestEnemy = { ...latestEnemy, tokens: enemyTokenResult.tokens };
     actions.setEnemy(latestEnemy);
+
+    // 다중 턴 토큰 스택 감소 처리 (jam_immunity 등)
+    // jam_immunity: 스택이 남은 턴 수를 나타냄, 턴 종료 시 1 감소
+    const playerJamImmunityStacks = getTokenStacks(latestPlayer, 'jam_immunity');
+    if (playerJamImmunityStacks > 0) {
+      if (playerJamImmunityStacks === 1) {
+        // 마지막 스택: 토큰 완전 제거
+        const removeResult = removeToken(latestPlayer, 'jam_immunity', 'turn', 1);
+        latestPlayer = { ...latestPlayer, tokens: removeResult.tokens };
+        addLog('♾️ 탄걸림 면역 효과 종료');
+      } else {
+        // 스택 1 감소
+        const newStacks = playerJamImmunityStacks - 1;
+        const decrementResult = setTokenStacks(latestPlayer, 'jam_immunity', 'turn', newStacks);
+        latestPlayer = { ...latestPlayer, tokens: decrementResult.tokens };
+        addLog(`♾️ 탄걸림 면역 ${newStacks}턴 남음`);
+      }
+      actions.setPlayer(latestPlayer);
+    }
 
     // battleRef 동기 업데이트
     if (battleRef.current) {

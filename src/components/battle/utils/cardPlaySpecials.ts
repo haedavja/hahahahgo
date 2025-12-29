@@ -455,7 +455,8 @@ export function processCardPlaySpecials({
 
   // === jamImmunity2: 탄걸림 면역 2턴 ===
   if (hasSpecial(card, 'jamImmunity2')) {
-    tokensToAdd.push({ id: 'jam_immunity', stacks: 2 });
+    // grantedAt 추가로 clearTurnTokens에서 자동 제거 방지 (턴 종료 시 스택 감소 로직 별도 처리)
+    tokensToAdd.push({ id: 'jam_immunity', stacks: 2, grantedAt: grantedAtBase });
     const who = attackerName === 'player' ? '플레이어' : '몬스터';
     const msg = `${who} • 🛡️ ${card.name}: 탄걸림 면역 2턴!`;
     events.push({ actor: attackerName, card: card.name, type: 'special', msg });
