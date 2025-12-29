@@ -996,6 +996,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     battleHand: battle.hand,
     battleDeck: battle.deck,
     battleDiscardPile: battle.discardPile,
+    battleVanishedCards: battle.vanishedCards,
     sortType,
     hand,
     escapeBanRef,
@@ -1789,7 +1790,10 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
           const currentDiscard = battleRef.current?.discardPile || battle.discardPile || [];
 
           if (currentDeck.length > 0 || currentDiscard.length > 0) {
-            const drawResult = drawFromDeck(currentDeck as HandCard[], currentDiscard as HandCard[], newNextTurnEffects.emergencyDraw, escapeBanRef.current as Set<string>);
+            // 소멸된 카드 ID 목록
+            const currentVanished = battleRef.current?.vanishedCards || battle.vanishedCards || [];
+            const vanishedCardIds = (currentVanished as any[]).map((c: any) => typeof c === 'string' ? c : c.id);
+            const drawResult = drawFromDeck(currentDeck as HandCard[], currentDiscard as HandCard[], newNextTurnEffects.emergencyDraw, escapeBanRef.current as Set<string>, vanishedCardIds);
 
             // 현재 손패에 추가
             const currentHand = battleRef.current?.hand || battle.hand || [];

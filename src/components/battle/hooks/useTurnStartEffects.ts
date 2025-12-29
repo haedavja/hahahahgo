@@ -298,8 +298,9 @@ export function useTurnStartEffects({
         let currentDeck = battle.deck || [];
         let currentDiscard = [...(battle.discardPile || []), ...currentHand];
 
-        // 덱에서 카드 드로우
-        const drawResult = drawFromDeck(currentDeck, currentDiscard, DEFAULT_DRAW_COUNT, escapeBanRef.current);
+        // 덱에서 카드 드로우 (소멸된 카드는 제외)
+        const vanishedCardIds = ((battle.vanishedCards || []) as any[]).map((c: any) => typeof c === 'string' ? c : c.id);
+        const drawResult = drawFromDeck(currentDeck, currentDiscard, DEFAULT_DRAW_COUNT, escapeBanRef.current, vanishedCardIds);
 
         actions.setDeck(drawResult.newDeck);
         actions.setDiscardPile(drawResult.newDiscardPile);

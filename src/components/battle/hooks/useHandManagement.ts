@@ -19,6 +19,7 @@ import { generateHandUid } from '../../../lib/randomUtils';
  * @param {Card[]} params.battleHand - 현재 손패
  * @param {Card[]} params.battleDeck - 덱
  * @param {Card[]} params.battleDiscardPile - 무덤
+ * @param {Card[]} params.battleVanishedCards - 소멸된 카드
  * @param {string} params.sortType - 정렬 타입
  * @returns {{redrawHand: Function, handleSort: Function}}
  */
@@ -27,6 +28,7 @@ export function useHandManagement({
   battleHand,
   battleDeck,
   battleDiscardPile,
+  battleVanishedCards,
   sortType,
   hand,
   escapeBanRef,
@@ -47,7 +49,9 @@ export function useHandManagement({
       const currentDeck = battleDeck || [];
       const currentDiscard = [...(battleDiscardPile || []), ...currentHand];
 
-      const drawResult = drawFromDeck(currentDeck, currentDiscard, DEFAULT_DRAW_COUNT, escapeBanRef.current);
+      // 소멸된 카드 ID 목록
+      const vanishedCardIds = ((battleVanishedCards || []) as any[]).map((c: any) => typeof c === 'string' ? c : c.id);
+      const drawResult = drawFromDeck(currentDeck, currentDiscard, DEFAULT_DRAW_COUNT, escapeBanRef.current, vanishedCardIds);
       actions.setDeck(drawResult.newDeck);
       actions.setDiscardPile(drawResult.newDiscardPile);
       actions.setHand(drawResult.drawnCards);
@@ -64,7 +68,7 @@ export function useHandManagement({
     actions.setCanRedraw(false);
     addLog('🔄 손패 리드로우 사용');
     playSound(700, 90);
-  }, [canRedraw, battleHand, battleDeck, battleDiscardPile, escapeBanRef, addLog, playSound, actions]);
+  }, [canRedraw, battleHand, battleDeck, battleDiscardPile, battleVanishedCards, escapeBanRef, addLog, playSound, actions]);
 
   // 정렬 방식 순환
   const cycleSortType = useCallback(() => {

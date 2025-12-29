@@ -112,13 +112,18 @@ export function drawFromDeck(
   deck: HandCard[],
   discardPile: HandCard[],
   count: number,
-  escapeBan: Set<string> = new Set()
+  escapeBan: Set<string> = new Set(),
+  vanishedCards: string[] = []
 ): DrawResult {
   let currentDeck = [...deck];
   let currentDiscard = [...discardPile];
   let reshuffled = false;
+  const vanishedSet = new Set(vanishedCards);
 
-  const mainSpecialsFromDiscard = currentDiscard.filter(card => card.__isMainSpecial);
+  // 주특기 카드를 무덤에서 꺼내되, 소멸된 카드는 제외
+  const mainSpecialsFromDiscard = currentDiscard.filter(card =>
+    card.__isMainSpecial && !vanishedSet.has(card.id)
+  );
   currentDiscard = currentDiscard.filter(card => !card.__isMainSpecial);
 
   if (currentDeck.length < count && currentDiscard.length > 0) {
