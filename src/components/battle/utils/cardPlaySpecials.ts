@@ -23,11 +23,6 @@ import { getAllTokens, getTokenStacks } from '../../../lib/tokenUtils';
 import { TOKENS, TOKEN_CATEGORIES } from '../../../data/tokens';
 import { hasSpecial } from './preAttackSpecials';
 
-// 하위 호환용 타입 별칭
-type SpecialCard = Card;
-type SpecialActor = Combatant;
-type SpecialBattleContext = BattleContext;
-
 /**
  * 토큰 존재 여부 확인
  */
@@ -44,10 +39,10 @@ export function processCardPlaySpecials({
   attackerName,
   battleContext = {}
 }: {
-  card: SpecialCard;
-  attacker: SpecialActor;
+  card: Card;
+  attacker: Combatant;
   attackerName: 'player' | 'enemy';
-  battleContext?: SpecialBattleContext;
+  battleContext?: BattleContext;
 }): CardPlayResult {
   const events: SpecialEvent[] = [];
   const logs: string[] = [];

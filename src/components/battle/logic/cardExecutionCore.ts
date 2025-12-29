@@ -26,10 +26,6 @@ import type {
 } from '../../../types';
 import { hasTrait, markCrossedCards } from '../utils/battleUtils';
 
-// 하위 호환용 타입 별칭
-type SpecialCard = Card;
-type SpecialQueueItem = BattleAction;
-type SpecialActor = Combatant;
 import { getCardEtherGain } from '../utils/etherCalculations';
 import { BASE_PLAYER_ENERGY } from '../battleData';
 import { applyAction } from './combatActions';

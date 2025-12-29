@@ -19,12 +19,6 @@ import type {
 } from '../../../types';
 import { addToken, removeToken, setTokenStacks, getTokenStacks } from '../../../lib/tokenUtils';
 
-// 하위 호환용 타입 별칭
-type SpecialCard = Card;
-type SpecialActor = Combatant;
-type SpecialQueueItem = BattleAction;
-type SpecialBattleContext = BattleContext;
-
 /**
  * 카드의 special 효과 존재 여부 확인 (배열 지원)
  */
@@ -46,15 +40,15 @@ export function processPreAttackSpecials({
   attackerName,
   battleContext = {}
 }: {
-  card: SpecialCard;
-  attacker: SpecialActor;
-  defender: SpecialActor;
+  card: Card;
+  attacker: Combatant;
+  defender: Combatant;
   attackerName: 'player' | 'enemy';
-  battleContext?: SpecialBattleContext;
+  battleContext?: BattleContext;
 }): PreAttackResult {
-  let modifiedCard: SpecialCard = { ...card };
-  let modifiedAttacker: SpecialActor = { ...attacker };
-  let modifiedDefender: SpecialActor = { ...defender };
+  let modifiedCard: Card = { ...card };
+  let modifiedAttacker: Combatant = { ...attacker };
+  let modifiedDefender: Combatant = { ...defender };
   const events: SpecialEvent[] = [];
   const logs: string[] = [];
   const skipNormalDamage = false;
@@ -147,7 +141,7 @@ export function processPreAttackSpecials({
     if (hasCrossedFlag) {
       // 밀어낼 대상: 현재 겹치는 적 카드 또는 가장 가까운 다음 적 카드
       let targetIdx = -1;
-      let targetCard: SpecialQueueItem | null = null;
+      let targetCard: BattleAction | null = null;
 
       // 먼저 현재 SP에 겹치는 적 카드 찾기
       for (let idx = currentQIndex + 1; idx < queue.length; idx++) {

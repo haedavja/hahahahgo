@@ -12,11 +12,6 @@ import type {
 import { getAllTokens } from '../../../lib/tokenUtils';
 import { hasSpecial } from './preAttackSpecials';
 
-// 하위 호환용 타입 별칭
-type CriticalActor = Combatant;
-type CriticalCard = Card;
-type CriticalBattleContext = BattleContext;
-
 /**
  * 치명타 확률 계산
  */
