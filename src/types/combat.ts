@@ -345,6 +345,11 @@ export interface BattleRef {
   actionEvents?: Record<number, BattleEvent[]>;
   enemy?: EnemyUnit;
   selected?: Card[];
+  hand?: Card[];
+  deck?: Card[];
+  discardPile?: Card[];
+  nextTurnEffects?: NextTurnEffects | null;
+  [key: string]: unknown;
 }
 
 /** 배틀 상태 (리듀서용) */
@@ -766,10 +771,9 @@ export interface VictoryDefeatProcessResult {
 export type ReducerPlayerState = PlayerBattleState;
 
 /**
- * 리듀서 적 상태 - EnemyUnit과 동일 (하위 호환용 별칭)
- * @deprecated EnemyUnit을 직접 사용하세요.
+ * 리듀서 적 상태 - EnemyUnit 또는 EnemyBattleState와 호환
  */
-export type ReducerEnemyState = EnemyUnit;
+export type ReducerEnemyState = EnemyUnit & { [key: string]: unknown };
 
 /**
  * 리듀서 적 유닛 상태 - EnemyUnit과 동일 (하위 호환용 별칭)

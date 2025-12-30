@@ -51,7 +51,7 @@ export const createMapActions: SliceCreator = (set) => ({
         ...state,
         map: result.map,
         activeEvent: result.event,
-        activeBattle: result.battle as unknown as GameStore['activeBattle'],
+        activeBattle: result.battle,
         activeDungeon: null,
         activeRest: result.target?.type === 'rest' ? { nodeId: result.target.id } : null,
         activeShop: result.target?.type === 'shop' ? { nodeId: result.target.id, merchantType: 'shop' } : null,

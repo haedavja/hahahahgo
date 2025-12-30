@@ -16,9 +16,9 @@ import type { BattleState } from './combat';
 // ==================== 맵 시스템 ====================
 
 /** 맵 노드 타입 */
-export type MapNodeType = 'combat' | 'event' | 'shop' | 'rest' | 'dungeon' | 'boss';
+export type MapNodeType = 'combat' | 'event' | 'shop' | 'rest' | 'dungeon' | 'boss' | 'battle' | 'elite' | string;
 
-/** 맵 노드 */
+/** 맵 노드 - BattleNode와 호환 */
 export interface MapNode {
   id: string;
   type: MapNodeType;
@@ -30,6 +30,8 @@ export interface MapNode {
   x?: number;
   y?: number;
   isStart?: boolean;
+  eventKey?: string;
+  [key: string]: unknown;
 }
 
 // ==================== 던전 시스템 ====================

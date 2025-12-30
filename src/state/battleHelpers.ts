@@ -138,15 +138,14 @@ export const createBattleEnemyData = (enemy: any): EnemyInfo => {
 /**
  * 리듀서용 적 상태 초기화 (BattleApp에서 사용)
  * 단일/다수 적 모두 동일한 units 배열 구조로 생성
- *
- * @deprecated ReducerEnemyInit 대신 EnemyBattleState 사용 권장
  */
 export type ReducerEnemyInit = EnemyBattleState & {
   units: EnemyUnitState[];
+  [key: string]: unknown;
 };
 
 export const createReducerEnemyState = (
-  enemyData: Partial<EnemyDefinition> & Partial<EnemyBattleState> & { units?: unknown[] },
+  enemyData: Partial<EnemyDefinition> & Partial<EnemyBattleState> & { units?: unknown[]; [key: string]: unknown },
   _options?: { fromEnemiesArray?: boolean }
 ): ReducerEnemyInit => {
   // 개발 모드에서 누락된 필수 필드 경고
@@ -368,14 +367,14 @@ export const travelToNode = (state: PartialGameState, nodeId: string): TravelRes
   });
 
   const { payload: event, usedPendingEvent } = createEventPayload(
-    target as unknown as MapNode & { eventKey?: string; isStart?: boolean },
+    target,
     state.mapRisk ?? 0,
     state.completedEvents || [],
     state.pendingNextEvent ?? null
   );
 
   return {
-    map: { ...state.map, nodes: nodes as unknown as MapNode[], currentNodeId: target.id },
+    map: { ...state.map, nodes, currentNodeId: target.id },
     event,
     battle: createBattlePayload(target, state.characterBuild ?? null, state.playerHp ?? null, state.maxHp ?? null),
     target,

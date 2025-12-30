@@ -106,8 +106,8 @@ export const useGameStore = create<GameStore>()(subscribeWithSelector((set, get,
     ...devActions,
 
     // 코어 액션 (슬라이스에 포함되지 않은 액션)
-    resetRun: () => set(() => applyInitialRelicEffects(createInitialState()) as unknown as GameStore),
-  } as unknown as GameStore;
+    resetRun: () => set(() => applyInitialRelicEffects(createInitialState())),
+  };
 }));
 
 // ==================== 셀렉터 ====================

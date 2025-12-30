@@ -311,7 +311,7 @@ export function MapDemo() {
                 kind: "battle",
                 label: "Mixed Mob",
                 simulation: { initialState: { enemy: { hp: 1 } } }
-              } as unknown as import('../../state/slices/types').ActiveBattle
+              }
             });
           }}
           style={{

@@ -75,7 +75,7 @@ export const createDevActions: SliceCreator = (set) => ({
         ...state,
         map: result.map,
         activeEvent: result.event,
-        activeBattle: result.battle as unknown as GameStore['activeBattle'],
+        activeBattle: result.battle,
         pendingNextEvent: result.usedPendingEvent ? null : state.pendingNextEvent,
       } as Partial<GameStore>;
     }),

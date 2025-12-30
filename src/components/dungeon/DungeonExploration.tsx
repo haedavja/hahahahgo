@@ -195,7 +195,7 @@ export function DungeonExploration() {
       resources,
       playerHp,
       maxHp,
-    } as unknown as RenderDungeonSceneParams);
+    });
   }, [segment, playerX, cameraX, playerHp, maxHp, playerY, resources, grid, currentRoomKey, mazeData]);
 
   // 던전 완료

@@ -99,7 +99,7 @@ export interface MapState {
   baseLayer?: number;
 }
 
-/** 활성 전투 */
+/** 활성 전투 - BattlePayload와 호환 */
 export interface ActiveBattle {
   nodeId?: string;
   kind?: string;
@@ -122,6 +122,7 @@ export interface ActiveBattle {
   enemyDiscardPile?: BattleCard[];
   enemyInfo?: EnemyInfo;
   pendingItemEffects?: ItemEffect[];
+  [key: string]: unknown;
 }
 
 /** 아이템 */
@@ -159,7 +160,6 @@ export interface LastBattleResult {
 
 /** 플레이어 슬라이스 상태 */
 export interface PlayerSliceState {
-  player: PlayerStats;
   playerHp: number;
   maxHp: number;
   playerStrength: number;
@@ -172,6 +172,7 @@ export interface PlayerSliceState {
   extraSubSpecialSlots: number;
   resources: Resources;
   itemBuffs: Record<string, number>;
+  metaBonuses?: { hp: number; gold: number };
 }
 
 /** 플레이어 슬라이스 액션 */
@@ -407,7 +408,7 @@ export type GameStoreActions =
   & { resetRun: () => void };
 
 /** 게임 스토어 전체 타입 */
-export type GameStore = GameStoreState & GameStoreActions;
+export type GameStore = GameStoreState & GameStoreActions & { [key: string]: unknown };
 
 /** 슬라이스 생성자 타입 */
 export type SliceCreator<T> = StateCreator<GameStore, [], [], T>;

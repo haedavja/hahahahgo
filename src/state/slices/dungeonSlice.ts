@@ -47,7 +47,7 @@ export const createDungeonActions: SliceCreator = (set) => ({
         ...state,
         map: result.map,
         activeEvent: result.event,
-        activeBattle: result.battle as unknown as GameStore['activeBattle'],
+        activeBattle: result.battle,
         activeDungeon: null,
         pendingNextEvent: result.usedPendingEvent ? null : state.pendingNextEvent,
       } as Partial<GameStore>;

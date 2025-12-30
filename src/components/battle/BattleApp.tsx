@@ -1053,10 +1053,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     const remainingEnemyActions = new Set(enemyPlan.actions);
 
     const updatedFixedOrder = fixedOrder.filter(item => {
-      const orderItem = item as unknown as { actor: 'player' | 'enemy'; card: unknown };
-      if (orderItem.actor === 'player') return true;
+      if (item.actor === 'player') return true;
       // 적 카드는 현재 enemyPlan.actions에 있는 것만 유지
-      const isRemaining = remainingEnemyActions.has(orderItem.card as Card);
+      const isRemaining = remainingEnemyActions.has(item.card as Card);
       return isRemaining;
     });
 
@@ -1877,7 +1876,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
             const newHand = [...currentHand, newCard];
             actions.setHand(newHand);
             if (battleRef.current) {
-              battleRef.current = { ...battleRef.current, hand: newHand as unknown as Card[] };
+              battleRef.current = { ...battleRef.current, hand: newHand };
             }
             addLog(`📋 ${cardToAdd.name} 복사본이 손패에 추가되었습니다!`);
           }

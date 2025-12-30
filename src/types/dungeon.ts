@@ -36,11 +36,12 @@ export interface DungeonExit {
 export interface RenderDungeonRoom {
   x: number;
   y: number;
-  roomType: RoomType;
-  isDeadEnd: boolean;
-  visited: boolean;
-  discovered: boolean;
-  exits: Partial<Record<Direction, DungeonExit | null>>;
+  roomType?: RoomType;
+  isDeadEnd?: boolean;
+  visited?: boolean;
+  discovered?: boolean;
+  exits?: Partial<Record<Direction, DungeonExit | null>> | Record<string, boolean>;
+  [key: string]: unknown;
 }
 
 /** 렌더링용 던전 그리드 */
@@ -58,15 +59,19 @@ export interface RenderDungeonObject {
 
 /** 렌더링용 던전 세그먼트 (현재 방 정보) */
 export interface RenderDungeonSegment {
-  roomType: RoomType;
-  isDeadEnd: boolean;
-  exits: Partial<Record<Direction, DungeonExit | null>>;
-  objects: RenderDungeonObject[];
+  roomType?: RoomType | 'entrance' | 'exit' | 'hidden' | 'normal';
+  isDeadEnd?: boolean;
+  exits?: Partial<Record<Direction, DungeonExit | null>> | Record<string, boolean>;
+  objects?: RenderDungeonObject[];
+  [key: string]: unknown;
 }
 
 /** 렌더링용 미로 데이터 */
 export interface RenderMazeData {
-  gridSize: number;
+  gridSize?: number;
+  grid?: Record<string, unknown>;
+  startKey?: string;
+  [key: string]: unknown;
 }
 
 // ========== 렌더링 관련 ==========
