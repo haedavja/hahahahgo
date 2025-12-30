@@ -6,16 +6,24 @@
  * - 적 유닛 관련 파생 상태
  * - 타겟 유닛 계산
  * - 카드 제출 수 제한 계산
+ * - 선택된 카드 총 에너지/속도 계산
  */
 
 import { useMemo } from 'react';
 import { hasEnemyUnits } from '../utils/battleUtils';
 import { getAllTokens } from '../../../lib/tokenUtils';
+import { applyAgility } from '../../../lib/agilityUtils';
 import type { Token } from '../../../types/core';
 
 interface EnemyUnit {
   unitId: number;
   hp: number;
+  [key: string]: unknown;
+}
+
+interface SelectedCard {
+  actionCost: number;
+  speedCost: number;
   [key: string]: unknown;
 }
 
@@ -40,6 +48,8 @@ interface UseDerivedBattleStateParams {
   selectedTargetUnit: number;
   baseMaxSubmitCards: number;
   nextTurnEffects: NextTurnEffects | null;
+  battleSelected: SelectedCard[];
+  effectiveAgility: number;
 }
 
 interface DerivedBattleState {
@@ -47,13 +57,15 @@ interface DerivedBattleState {
   hasMultipleUnits: boolean;
   targetUnit: EnemyUnit | null;
   effectiveMaxSubmitCards: number;
+  totalEnergy: number;
+  totalSpeed: number;
 }
 
 /**
  * 파생 전투 상태 훅
  */
 export function useDerivedBattleState(params: UseDerivedBattleStateParams): DerivedBattleState {
-  const { enemy, player, selectedTargetUnit, baseMaxSubmitCards, nextTurnEffects } = params;
+  const { enemy, player, selectedTargetUnit, baseMaxSubmitCards, nextTurnEffects, battleSelected, effectiveAgility } = params;
 
   // 적 유닛 관련 상태
   const enemyUnits = enemy?.units || [];
@@ -79,10 +91,24 @@ export function useDerivedBattleState(params: UseDerivedBattleStateParams): Deri
     return baseMaxSubmitCards + (nextTurnEffects?.extraCardPlay || 0) + focusExtraCardPlayBonus;
   }, [player?.tokens, baseMaxSubmitCards, nextTurnEffects?.extraCardPlay]);
 
+  // 선택된 카드 총 에너지
+  const totalEnergy = useMemo(
+    () => battleSelected.reduce((s, c) => s + c.actionCost, 0),
+    [battleSelected]
+  );
+
+  // 선택된 카드 총 속도 (민첩성 적용)
+  const totalSpeed = useMemo(
+    () => battleSelected.reduce((s, c) => s + applyAgility(c.speedCost, Number(effectiveAgility)), 0),
+    [battleSelected, effectiveAgility]
+  );
+
   return {
     enemyUnits,
     hasMultipleUnits,
     targetUnit,
-    effectiveMaxSubmitCards
+    effectiveMaxSubmitCards,
+    totalEnergy,
+    totalSpeed
   };
 }

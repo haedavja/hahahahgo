@@ -294,13 +294,15 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const enemyIndex = battle.enemyIndex;
   const selectedTargetUnit = battle.selectedTargetUnit ?? 0;
 
-  // 파생 전투 상태 (적 유닛, 타겟 유닛, 카드 제출 수 제한)
-  const { enemyUnits, hasMultipleUnits, targetUnit, effectiveMaxSubmitCards } = useDerivedBattleState({
+  // 파생 전투 상태 (적 유닛, 타겟 유닛, 카드 제출 수 제한, 총 에너지/속도)
+  const { enemyUnits, hasMultipleUnits, targetUnit, effectiveMaxSubmitCards, totalEnergy, totalSpeed } = useDerivedBattleState({
     enemy: enemy as { units?: { unitId: number; hp: number }[] } | null,
     player: player as { tokens?: import('../../../types/core').Token[] },
     selectedTargetUnit,
     baseMaxSubmitCards,
-    nextTurnEffects: battle.nextTurnEffects
+    nextTurnEffects: battle.nextTurnEffects,
+    battleSelected: battle.selected as { actionCost: number; speedCost: number }[],
+    effectiveAgility
   });
 
   // 카드 관리
@@ -682,11 +684,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     }
   });
 
-  const totalEnergy = useMemo(() => battle.selected.reduce((s, c) => s + c.actionCost, 0), [battle.selected]);
-  const totalSpeed = useMemo(
-    () => battle.selected.reduce((s, c) => s + applyAgility(c.speedCost, Number(effectiveAgility)), 0),
-    [battle.selected, effectiveAgility]
-  );
   // 콤보 시스템 (커스텀 훅으로 분리)
   const { currentCombo, finalComboMultiplier, comboPreviewInfo, comboStepsLog } = useComboSystem({
     battleSelected: battle.selected,
