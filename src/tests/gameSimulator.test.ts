@@ -413,3 +413,15 @@ describe('종합 리포트', () => {
     expect(typeof runFullReport).toBe('function');
   });
 });
+
+describe('전투 리플레이 및 분석', () => {
+  it('runBattleReplay 함수가 존재한다', async () => {
+    const { runBattleReplay } = await import('./gameSimulator');
+    expect(typeof runBattleReplay).toBe('function');
+  });
+
+  it('runEnemyAnalysis 함수가 존재한다', async () => {
+    const { runEnemyAnalysis } = await import('./gameSimulator');
+    expect(typeof runEnemyAnalysis).toBe('function');
+  });
+});

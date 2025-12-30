@@ -13,6 +13,8 @@
  *   npx tsx scripts/runSimulator.ts anomaly [battles]     # 이변 효과 비교
  *   npx tsx scripts/runSimulator.ts card [battles]        # 카드 효율 분석
  *   npx tsx scripts/runSimulator.ts report [battles]      # 종합 리포트
+ *   npx tsx scripts/runSimulator.ts replay [enemyId]      # 전투 리플레이
+ *   npx tsx scripts/runSimulator.ts analyze [enemyId] [battles] # 적 분석
  *
  * 예시:
  *   npx tsx scripts/runSimulator.ts 100
@@ -25,9 +27,11 @@
  *   npx tsx scripts/runSimulator.ts anomaly 50
  *   npx tsx scripts/runSimulator.ts card 30
  *   npx tsx scripts/runSimulator.ts report 20
+ *   npx tsx scripts/runSimulator.ts replay deserter
+ *   npx tsx scripts/runSimulator.ts analyze slaughterer 30
  */
 
-import { runSimulation, printStats, SimulationConfig, runBalanceAnalysis, runTierSimulation, runFullSimulation, runRelicComparison, runDeckComparison, runAnomalyComparison, runCardEfficiencyAnalysis, runFullReport, TIER_1_ENEMIES, TIER_2_ENEMIES, TIER_3_ENEMIES } from '../src/tests/gameSimulator';
+import { runSimulation, printStats, SimulationConfig, runBalanceAnalysis, runTierSimulation, runFullSimulation, runRelicComparison, runDeckComparison, runAnomalyComparison, runCardEfficiencyAnalysis, runFullReport, runBattleReplay, runEnemyAnalysis, TIER_1_ENEMIES, TIER_2_ENEMIES, TIER_3_ENEMIES } from '../src/tests/gameSimulator';
 import { ENEMIES } from '../src/components/battle/battleData';
 
 // 커맨드 라인 인자 파싱
@@ -91,6 +95,21 @@ if (command === 'report') {
   const battles = parseInt(args[1]) || 20;
   console.log('🎮 종합 리포트 생성 모드\n');
   runFullReport(battles);
+  process.exit(0);
+}
+
+if (command === 'replay') {
+  const enemyId = args[1] || 'ghoul';
+  console.log('🎮 전투 리플레이 모드\n');
+  runBattleReplay(enemyId);
+  process.exit(0);
+}
+
+if (command === 'analyze') {
+  const enemyId = args[1] || 'ghoul';
+  const battles = parseInt(args[2]) || 20;
+  console.log('🎮 적 분석 모드\n');
+  runEnemyAnalysis(enemyId, battles);
   process.exit(0);
 }
 

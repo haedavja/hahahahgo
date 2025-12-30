@@ -2391,6 +2391,143 @@ export function runFullReport(battles: number = 30): void {
   console.log('╚════════════════════════════════════════╝\n');
 }
 
+/**
+ * 전투 리플레이 - 단일 전투를 상세하게 출력
+ * 턴별 행동과 결과를 시각적으로 보여줌
+ */
+export function runBattleReplay(enemyId: string = 'ghoul', deckOverride?: string[]): void {
+  console.log('\n╔════════════════════════════════════════╗');
+  console.log('║           전투 리플레이                  ║');
+  console.log('╚════════════════════════════════════════╝\n');
+
+  const enemy = ENEMIES.find(e => e.id === enemyId);
+  if (!enemy) {
+    console.log(`❌ 적 '${enemyId}'을(를) 찾을 수 없습니다.`);
+    console.log(`사용 가능한 적: ${ALL_ENEMIES.join(', ')}`);
+    return;
+  }
+
+  console.log(`🎯 대상 적: ${enemy.name} (Tier ${enemy.tier}, HP ${enemy.hp})`);
+  console.log(`📦 덱: ${deckOverride ? deckOverride.join(', ') : '기본 덱'}`);
+  console.log('\n' + '═'.repeat(50) + '\n');
+
+  const config: SimulationConfig = {
+    battles: 1,
+    maxTurns: 30,
+    enemyIds: [enemyId],
+    playerDeck: deckOverride,
+    verbose: true,
+  };
+
+  const result = runBattle(enemyId, config);
+
+  // 전투 로그 출력
+  console.log('📜 전투 로그:');
+  console.log('─'.repeat(50));
+  for (const line of result.log) {
+    console.log(`  ${line}`);
+  }
+
+  console.log('\n' + '═'.repeat(50));
+  console.log('\n📊 전투 결과:');
+  console.log('─'.repeat(50));
+
+  const winnerEmoji = result.winner === 'player' ? '🏆' : result.winner === 'enemy' ? '💀' : '🤝';
+  const winnerText = result.winner === 'player' ? '플레이어 승리!' :
+                     result.winner === 'enemy' ? '플레이어 패배...' : '무승부';
+
+  console.log(`  ${winnerEmoji} 결과: ${winnerText}`);
+  console.log(`  ⏱️  턴 수: ${result.turns}`);
+  console.log(`  ⚔️  총 피해량: ${result.playerDamageDealt}`);
+  console.log(`  💔 받은 피해: ${result.enemyDamageDealt}`);
+  console.log(`  ❤️  남은 체력: ${result.playerFinalHp}`);
+  console.log(`  👾 적 남은 체력: ${result.enemyFinalHp}`);
+
+  // 콤보 정보
+  if (Object.keys(result.combosFormed).length > 0) {
+    console.log('\n🃏 발동된 콤보:');
+    for (const [combo, count] of Object.entries(result.combosFormed)) {
+      console.log(`    - ${combo}: ${count}회`);
+    }
+  }
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
+/**
+ * 특정 적과의 연속 전투 분석
+ * 여러 번 전투하고 각 전투의 결과를 요약
+ */
+export function runEnemyAnalysis(enemyId: string, battles: number = 20): void {
+  console.log('\n╔════════════════════════════════════════╗');
+  console.log('║           적 분석 리포트                 ║');
+  console.log('╚════════════════════════════════════════╝\n');
+
+  const enemy = ENEMIES.find(e => e.id === enemyId);
+  if (!enemy) {
+    console.log(`❌ 적 '${enemyId}'을(를) 찾을 수 없습니다.`);
+    return;
+  }
+
+  console.log(`🎯 분석 대상: ${enemy.name}`);
+  console.log(`📊 전투 횟수: ${battles}회`);
+  console.log('─'.repeat(50));
+
+  const config: SimulationConfig = {
+    battles,
+    maxTurns: 30,
+    enemyIds: [enemyId],
+    verbose: false,
+  };
+
+  const stats = runSimulation(config);
+
+  // 각 전투 결과 수집을 위해 추가 시뮬레이션
+  const turnDistribution: Record<number, number> = {};
+  const damageDistribution: number[] = [];
+  let quickWins = 0;  // 3턴 이하
+  let longBattles = 0;  // 10턴 이상
+
+  for (let i = 0; i < battles; i++) {
+    const result = runBattle(enemyId, config);
+    turnDistribution[result.turns] = (turnDistribution[result.turns] || 0) + 1;
+    if (result.winner === 'player') {
+      damageDistribution.push(result.playerDamageDealt);
+      if (result.turns <= 3) quickWins++;
+      if (result.turns >= 10) longBattles++;
+    }
+  }
+
+  // 기본 통계
+  console.log('\n📈 전투 통계:');
+  console.log(`  승률: ${(stats.winRate * 100).toFixed(1)}%`);
+  console.log(`  평균 턴: ${stats.avgTurns.toFixed(1)}`);
+  console.log(`  평균 피해량: ${stats.avgPlayerDamageDealt.toFixed(0)}`);
+
+  // 턴 분포
+  console.log('\n⏱️  턴 수 분포:');
+  const sortedTurns = Object.entries(turnDistribution).sort((a, b) => parseInt(a[0]) - parseInt(b[0]));
+  for (const [turn, count] of sortedTurns) {
+    const bar = '█'.repeat(Math.ceil(count / battles * 20));
+    console.log(`  ${turn}턴: ${bar} (${count}회)`);
+  }
+
+  // 승리 패턴
+  console.log('\n🏆 승리 패턴:');
+  console.log(`  빠른 승리 (≤3턴): ${quickWins}회 (${(quickWins / battles * 100).toFixed(1)}%)`);
+  console.log(`  긴 전투 (≥10턴): ${longBattles}회 (${(longBattles / battles * 100).toFixed(1)}%)`);
+
+  // 난이도 평가
+  const difficultyRating = stats.winRate > 0.9 ? '⭐ 매우 쉬움' :
+                           stats.winRate > 0.7 ? '⭐⭐ 쉬움' :
+                           stats.winRate > 0.5 ? '⭐⭐⭐ 보통' :
+                           stats.winRate > 0.3 ? '⭐⭐⭐⭐ 어려움' :
+                           '⭐⭐⭐⭐⭐ 매우 어려움';
+
+  console.log(`\n🎮 난이도 평가: ${difficultyRating}`);
+  console.log('─'.repeat(50) + '\n');
+}
+
 // CLI에서 직접 실행 시
 if (typeof process !== 'undefined' && process.argv?.[1]?.includes('gameSimulator')) {
   runQuickTest();
