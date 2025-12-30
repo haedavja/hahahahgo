@@ -12,7 +12,8 @@ import { markCrossedCards } from './battleUtils';
 import { duplicatePlayerCards, insertCardsIntoQueue } from './timelineQueueUtils';
 import { drawFromDeck } from './handGeneration';
 import { generateUid } from '../../../lib/randomUtils';
-import type { Card, HandCard } from '../../../types/core';
+import type { Card } from '../../../types/core';
+import type { HandCard } from '../../../types/systems';
 import type { CardPlaySpecialsResult } from '../../../types/combat';
 import type { OrderItem } from '../../../types';
 

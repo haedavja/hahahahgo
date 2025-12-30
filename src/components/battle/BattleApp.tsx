@@ -72,6 +72,8 @@ import { useTurnStartEffects } from "./hooks/useTurnStartEffects";
 import { useBattleInitialization } from "./hooks/useBattleInitialization";
 import { useBattleRefs } from "./hooks/useBattleRefs";
 import { useDevModeEffects } from "./hooks/useDevModeEffects";
+import { usePhaseEffects } from "./hooks/usePhaseEffects";
+import { useResolveProgressEffects } from "./hooks/useResolveProgressEffects";
 import {
   MAX_SPEED,
   DEFAULT_PLAYER_MAX_SPEED,
@@ -649,18 +651,18 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     enemy,
     playerStrength,
     devCharacterBuild,
-    devBattleTokens,
+    devBattleTokens: devBattleTokens as { id: string; stacks: number; target: 'player' | 'enemy' }[] | null,
     devClearBattleTokens,
     vanishedCards: battle.vanishedCards || [],
-    escapeBanRef: escapeBanRef as unknown as import("react").MutableRefObject<Set<string>>,
-    battleRef: battleRef as unknown as import("react").MutableRefObject<{ player?: unknown; enemy?: unknown }>,
+    escapeBanRef: escapeBanRef as MutableRefObject<Set<string>>,
+    battleRef: battleRef as MutableRefObject<{ player?: { strength?: number; tokens?: unknown }; enemy?: { tokens?: unknown } }>,
     addLog,
-    actions: actions as unknown as {
-      setPlayer: (p: unknown) => void;
-      setEnemy: (e: unknown) => void;
-      setDeck: (d: unknown) => void;
-      setDiscardPile: (p: unknown) => void;
-      setHand: (h: unknown) => void;
+    actions: {
+      setPlayer: actions.setPlayer as (p: unknown) => void,
+      setEnemy: actions.setEnemy as (e: unknown) => void,
+      setDeck: actions.setDeck as (d: unknown) => void,
+      setDiscardPile: actions.setDiscardPile as (p: unknown) => void,
+      setHand: actions.setHand as (h: unknown) => void
     }
   });
 
@@ -698,17 +700,21 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     }
   }, [postCombatOptions, notifyBattleResult]);
 
-  // 페이즈 변경 시 카드 애니메이션 상태 초기화
-  useEffect(() => {
-    if (battle.phase !== 'resolve') {
-      actions.setDisappearingCards([]);
-      actions.setHiddenCards([]);
+  // 페이즈 변경 관련 효과 통합 (커스텀 훅으로 분리)
+  usePhaseEffects({
+    phase: battle.phase,
+    fixedOrder,
+    enemyPlanActions: enemyPlan.actions,
+    enemyPlanManuallyModified: enemyPlan.manuallyModified,
+    devilDiceTriggeredRef,
+    referenceBookTriggeredRef,
+    actions: {
+      setDisappearingCards: actions.setDisappearingCards,
+      setHiddenCards: actions.setHiddenCards,
+      setUsedCardIndices: actions.setUsedCardIndices,
+      setFixedOrder: actions.setFixedOrder
     }
-    // resolve 단계 진입 시 usedCardIndices 초기화
-    if (battle.phase === 'resolve') {
-      actions.setUsedCardIndices([]);
-    }
-  }, [battle.phase]);
+  });
 
   // 이변 알림 표시 (전투 시작 시 한 번만)
   const anomalyNotificationShownRef = useRef(false);
@@ -790,17 +796,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       actions.setCanRedraw(true);
     }
   }, []);
-
-  // 단계 변경 시 트리거 리셋
-  useEffect(() => {
-    if (battle.phase === 'select' || battle.phase === 'respond') {
-      devilDiceTriggeredRef.current = false;
-      referenceBookTriggeredRef.current = false;
-    }
-    if (battle.phase === 'resolve') {
-      referenceBookTriggeredRef.current = false;
-    }
-  }, [battle.phase]);
 
   // 턴 시작 효과 처리 (커스텀 훅으로 분리)
   useTurnStartEffects({
@@ -950,49 +945,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     addLog,
     actions: actions as unknown as never
   });
-
-  useEffect(() => {
-    // respond 단계에서 자동 정렬 제거 (수동 조작 방해 방지)
-    // 필요한 경우 각 조작 함수(toggle, moveUp, moveDown)에서 setFixedOrder를 직접 호출하여 순서를 제어함
-    /*
-    if (battle.phase === 'respond' && enemyPlan.actions && enemyPlan.actions.length > 0) {
-      const combo = detectPokerCombo(selected);
-
-      // 특성 효과 적용
-      const traitEnhancedSelected = battle.selected.map(card =>
-        applyTraitModifiers(card, {
-          usageCount: 0,
-          isInCombo: combo !== null,
-        })
-      );
-
-      const enhancedSelected = applyPokerBonus(traitEnhancedSelected, combo);
-      const q = sortCombinedOrderStablePF(enhancedSelected, enemyPlan.actions, effectiveAgility, 0);
-      actions.setFixedOrder(q);
-    }
-    */
-  }, [battle.selected, battle.phase, enemyPlan.actions]);
-
-  // respond 단계에서 적 카드 파괴 시 fixedOrder 업데이트
-  useEffect(() => {
-    if (battle.phase !== 'respond') return;
-    if (!enemyPlan.manuallyModified) return;
-    if (!fixedOrder) return;
-
-    // fixedOrder에서 파괴된 적 카드 제거 (enemyPlan.actions에 없는 적 카드)
-    const remainingEnemyActions = new Set(enemyPlan.actions);
-
-    const updatedFixedOrder = fixedOrder.filter(item => {
-      if (item.actor === 'player') return true;
-      // 적 카드는 현재 enemyPlan.actions에 있는 것만 유지
-      const isRemaining = remainingEnemyActions.has(item.card as Card);
-      return isRemaining;
-    });
-
-    if (updatedFixedOrder.length !== fixedOrder.length) {
-      actions.setFixedOrder(updatedFixedOrder);
-    }
-  }, [battle.phase, enemyPlan.actions, enemyPlan.manuallyModified, fixedOrder]);
 
   // 에테르 계산 애니메이션 (커스텀 훅으로 분리)
   const { startEtherCalculationAnimation } = useEtherAnimation({
@@ -2063,35 +2015,19 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     isExecutingCardRef.current = false;
   };
 
-  // 자동진행 기능 (stepOnceRef 사용으로 중복 실행 방지)
-  useEffect(() => {
-    if (autoProgress && battle.phase === 'resolve' && battle.qIndex < battle.queue.length) {
-      const timer = setTimeout(() => {
-        stepOnceRef.current?.();
-      }, TIMING.AUTO_PROGRESS_DELAY);
-      return () => clearTimeout(timer);
-    }
-  }, [autoProgress, battle.phase, battle.qIndex, battle.queue.length]);
-
-  // 타임라인 애니메이션 cleanup (페이즈 변경 또는 언마운트 시)
-  useEffect(() => {
-    return () => {
-      if (timelineAnimationRef.current) {
-        cancelAnimationFrame(timelineAnimationRef.current);
-        timelineAnimationRef.current = null;
-      }
-    };
-  }, [battle.phase]);
-
-  // 타임라인 완료 후 에테르 계산 애니메이션 실행
-  // useEffect를 사용하여 turnEtherAccumulated 상태가 최신 값일 때 실행
-  useEffect(() => {
-    if (battle.phase === 'resolve' && battle.qIndex >= battle.queue.length && battle.queue.length > 0 && turnEtherAccumulated > 0 && etherCalcPhase === null) {
-      // 모든 카드가 실행되고 에테르가 누적된 상태에서, 애니메이션이 아직 시작되지 않았을 때만 실행
-      // resolvedPlayerCards를 전달하여 몬스터 사망 시에도 정확한 카드 수 사용
-      setTimeout(() => startEtherCalculationAnimation(turnEtherAccumulated, resolvedPlayerCards as unknown as number), TIMING.ETHER_CALC_START_DELAY);
-    }
-  }, [battle.phase, battle.qIndex, battle.queue.length, turnEtherAccumulated, etherCalcPhase, resolvedPlayerCards]);
+  // resolve 단계 진행 관련 효과 통합 (커스텀 훅으로 분리)
+  useResolveProgressEffects({
+    phase: battle.phase,
+    qIndex: battle.qIndex,
+    queueLength: battle.queue.length,
+    autoProgress,
+    turnEtherAccumulated,
+    etherCalcPhase,
+    resolvedPlayerCards,
+    stepOnceRef,
+    timelineAnimationRef,
+    startEtherCalculationAnimation
+  });
 
   const removeSelectedAt = (i: number) => actions.setSelected(battle.selected.filter((_, idx) => idx !== i));
 
