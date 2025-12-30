@@ -74,6 +74,9 @@ import { useBattleRefs } from "./hooks/useBattleRefs";
 import { useDevModeEffects } from "./hooks/useDevModeEffects";
 import { usePhaseEffects } from "./hooks/usePhaseEffects";
 import { useResolveProgressEffects } from "./hooks/useResolveProgressEffects";
+import { useEnemyPlanGeneration } from "./hooks/useEnemyPlanGeneration";
+import { useQueueRecovery } from "./hooks/useQueueRecovery";
+import { useAnomalyNotification } from "./hooks/useAnomalyNotification";
 import {
   MAX_SPEED,
   DEFAULT_PLAYER_MAX_SPEED,
@@ -716,23 +719,12 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     }
   });
 
-  // 이변 알림 표시 (전투 시작 시 한 번만)
-  const anomalyNotificationShownRef = useRef(false);
-
-  useEffect(() => {
-    // activeAnomalies는 useBattleInitialization 훅에서 제공 (상태 동기화 완료됨)
-    if (enemy && activeAnomalies.length > 0 && !anomalyNotificationShownRef.current) {
-
-      // 이변 로그 추가
-      activeAnomalies.forEach(({ anomaly, level }) => {
-        const effect = anomaly.getEffect(level);
-        addLog(`⚠️ ${anomaly.emoji} ${anomaly.name} (Lv.${level}): ${effect.description}`);
-      });
-
-      // 이변 알림 표시 (훅에서 이미 setShowAnomalyNotification(true) 호출됨)
-      anomalyNotificationShownRef.current = true;
-    }
-  }, [enemy, activeAnomalies]);
+  // 이변 알림 표시 (커스텀 훅으로 분리)
+  useAnomalyNotification({
+    enemy,
+    activeAnomalies: activeAnomalies as { anomaly: { emoji: string; name: string; getEffect: (level: number) => { description: string } }; level: number }[],
+    addLog
+  });
 
   useEffect(() => {
     if (!enemy) {
@@ -819,45 +811,30 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     actions: actions as unknown as never
   });
 
-  useEffect(() => {
-    if (battle.phase === 'resolve' && (!queue || battle.queue.length === 0) && fixedOrder && fixedOrder.length > 0) {
-      const rebuilt = fixedOrder.map(x => ({ actor: x.actor, card: x.card, sp: x.sp, originalIndex: x.originalIndex }));
-      const markedRebuilt = markCrossedCards(rebuilt);
-      actions.setQueue(markedRebuilt); actions.setQIndex(0);
-      addLog('🧯 자동 복구: 실행 큐를 다시 생성했습니다');
+  // 실행 큐 자동 복구 (커스텀 훅으로 분리)
+  useQueueRecovery({
+    phase: battle.phase,
+    queue: battle.queue,
+    fixedOrder,
+    addLog,
+    actions: {
+      setQueue: actions.setQueue,
+      setQIndex: actions.setQIndex
     }
-  }, [battle.phase, battle.queue, fixedOrder]);
+  });
 
-  // 선택 단계 진입 시 적 행동을 미리 계산해 통찰 UI가 바로 보이도록 함
-  // 주의: 카드 파괴 후 재생성 방지를 위해 battleRef에서 최신 상태 확인
-  useEffect(() => {
-    // battleRef에서 최신 상태 확인 (closure는 stale할 수 있음)
-    const currentEnemyPlan = battleRef.current?.enemyPlan;
-
-    if (battle.phase !== 'select') {
-      return;
+  // 선택 단계 적 행동 계획 생성 (커스텀 훅으로 분리)
+  useEnemyPlanGeneration({
+    phase: battle.phase,
+    enemy: enemy as { etherPts?: number; cardsPerTurn?: number; units?: { unitId: number }[] },
+    enemyPlan: enemyPlan as { actions: Card[]; mode: AIMode | null; manuallyModified?: boolean },
+    enemyCount,
+    battleRef: battleRef as MutableRefObject<{ enemyPlan?: { actions?: Card[]; mode?: AIMode | null; manuallyModified?: boolean } }>,
+    etherSlots,
+    actions: {
+      setEnemyPlan: actions.setEnemyPlan as (plan: { mode: AIMode | null; actions: Card[] }) => void
     }
-
-    // battleRef에서 최신 manuallyModified 확인
-    const latestManuallyModified = currentEnemyPlan?.manuallyModified || enemyPlan?.manuallyModified;
-    const latestActions = currentEnemyPlan?.actions || enemyPlan?.actions;
-    const latestMode = currentEnemyPlan?.mode || enemyPlan?.mode;
-
-    if (!latestMode) {
-      return;
-    }
-
-    // manuallyModified가 true면 재생성하지 않음 (카드 파괴 등으로 수동 변경된 경우)
-    if ((latestActions && latestActions.length > 0) || latestManuallyModified) {
-      return;
-    }
-
-    const slots = etherSlots(Number(enemy?.etherPts ?? 0));
-    const cardsPerTurn = enemy?.cardsPerTurn || enemyCount || 2;
-    const rawActions = generateEnemyActions(enemy, latestMode, slots, cardsPerTurn, Math.min(1, cardsPerTurn));
-    const generatedActions = assignSourceUnitToActions(rawActions as AICard[], enemy?.units || []);
-    actions.setEnemyPlan({ mode: latestMode, actions: generatedActions as unknown as Card[] });
-  }, [battle.phase, enemyPlan?.mode, enemyPlan?.actions?.length, enemyPlan?.manuallyModified, enemy]);
+  });
 
   const totalEnergy = useMemo(() => battle.selected.reduce((s, c) => s + c.actionCost, 0), [battle.selected]);
   const totalSpeed = useMemo(
