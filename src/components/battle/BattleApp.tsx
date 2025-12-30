@@ -156,6 +156,7 @@ import { generateBreachCards, generateFencingCards, generateExecutionSquadCards,
 import { processViolentMortExecution } from "./utils/executionEffects";
 import { processTokenExpiration } from "./utils/tokenExpirationProcessing";
 import { resolveAttackTarget, resolveDefenseSource, updateAttackTargetBlock, applyDefenseToUnit } from "./utils/unitTargetingUtils";
+import { applyTimelineChanges, duplicatePlayerCards, insertCardsIntoQueue } from "./utils/timelineQueueUtils";
 
 // HandArea용 로컬 Card 타입 - 제거됨 (Card 타입 직접 사용)
 
@@ -1825,29 +1826,25 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         if (newEffectsTyped.repeatMyTimeline) {
           const currentQ = battleRef.current?.queue || battle.queue || [];
           const currentCardId = (a.card as { id?: string })?.id;
+          const maxSp = Math.max(...currentQ.map((item: OrderItem) => item.sp ?? 0));
 
-          // 전체 플레이어 카드 복제 (현재 카드 제외, 이미 실행된 카드 포함)
-          const allPlayerCards = currentQ
-            .filter((item: OrderItem) => item.actor === 'player' && (item.card as { id?: string })?.id !== currentCardId && !(item as { isDuplicate?: boolean }).isDuplicate);
+          const { duplicatedCards, count } = duplicatePlayerCards({
+            queue: currentQ,
+            currentCardId,
+            maxSp
+          });
 
-          if (allPlayerCards.length > 0) {
-            // 복제 카드 생성 (마지막 카드 sp + 0.1부터 시작)
-            const maxSp = Math.max(...currentQ.map((item: OrderItem) => item.sp ?? 0));
-            const duplicatedCards = allPlayerCards.map((item: OrderItem, idx: number) => ({
-              ...item,
-              sp: maxSp + 0.1 + (idx * 0.01),
-              isDuplicate: true
-            }));
-
-            const newQueue = [...currentQ, ...duplicatedCards];
-            newQueue.sort((x: OrderItem, y: OrderItem) => (x.sp ?? 0) - (y.sp ?? 0));
-
-            const markedQueue = markCrossedCards(newQueue);
+          if (count > 0) {
+            const markedQueue = insertCardsIntoQueue({
+              queue: currentQ,
+              cardsToInsert: duplicatedCards,
+              afterIndex: currentQ.length - 1
+            }) as OrderItem[];
             actions.setQueue(markedQueue);
             if (battleRef.current) {
               battleRef.current = { ...battleRef.current, queue: markedQueue };
             }
-            addLog(`🔄 노인의 꿈: 타임라인 반복! ${allPlayerCards.length}장 복제됨`);
+            addLog(`🔄 노인의 꿈: 타임라인 반복! ${count}장 복제됨`);
           }
 
           // 효과 사용 후 플래그 제거
@@ -2050,58 +2047,11 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     // 타임라인 변경 적용
     const { timelineChanges } = timelineResult;
     if (timelineChanges.advancePlayer > 0 || timelineChanges.pushEnemy > 0 || timelineChanges.pushLastEnemy > 0) {
-      let updatedQueue = [...battleRef.current.queue];
-      const currentQIndex = battleRef.current.qIndex;
-
-      // 플레이어 카드 앞당기기 (현재 카드 이후의 플레이어 카드들)
-      if (timelineChanges.advancePlayer > 0) {
-        updatedQueue = updatedQueue.map((item, idx) => {
-          if (idx > currentQIndex && item.actor === 'player') {
-            return { ...item, sp: Math.max(0, (item.sp || 0) - timelineChanges.advancePlayer) };
-          }
-          return item;
-        });
-      }
-
-      // 적 카드 뒤로 밀기 (현재 카드 이후의 적 카드들)
-      if (timelineChanges.pushEnemy > 0) {
-        updatedQueue = updatedQueue.map((item, idx) => {
-          if (idx > currentQIndex && item.actor === 'enemy') {
-            return { ...item, sp: (item.sp || 0) + timelineChanges.pushEnemy };
-          }
-          return item;
-        });
-      }
-
-      // 적의 마지막 카드만 밀기
-      if (timelineChanges.pushLastEnemy > 0) {
-        // 현재 이후의 적 카드들 중 가장 마지막 카드 찾기
-        let lastEnemyIdx = -1;
-        for (let i = updatedQueue.length - 1; i > currentQIndex; i--) {
-          if (updatedQueue[i].actor === 'enemy') {
-            lastEnemyIdx = i;
-            break;
-          }
-        }
-        if (lastEnemyIdx !== -1) {
-          updatedQueue = updatedQueue.map((item, idx) => {
-            if (idx === lastEnemyIdx) {
-              return { ...item, sp: (item.sp || 0) + timelineChanges.pushLastEnemy };
-            }
-            return item;
-          });
-        }
-      }
-
-      // 큐 재정렬 (sp 값 기준, 이미 처리된 카드들은 유지)
-      const processedCards = updatedQueue.slice(0, currentQIndex + 1);
-      const remainingCards = updatedQueue.slice(currentQIndex + 1);
-      remainingCards.sort((a, b) => (a.sp || 0) - (b.sp || 0));
-      updatedQueue = [...processedCards, ...remainingCards];
-
-      // 겹침 체크
-      updatedQueue = markCrossedCards(updatedQueue);
-
+      const updatedQueue = applyTimelineChanges({
+        queue: battleRef.current.queue,
+        currentIndex: battleRef.current.qIndex,
+        timelineChanges
+      });
       actions.setQueue(updatedQueue);
     }
 
