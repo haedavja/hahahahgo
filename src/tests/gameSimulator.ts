@@ -7,7 +7,7 @@
  * - 승률, 평균 피해량, 턴 수 등 통계 수집
  * - 카드별 효율 분석
  *
- * ## 신뢰성 v4
+ * ## 신뢰성 v5
  * - 실제 combatActions 로직 사용
  * - 토큰 시스템 통합 (공세, 방어, 회피, 취약, 무딤 등)
  * - 적 패시브 효과 적용
@@ -20,6 +20,10 @@
  * - 연계(chain)/후속(followup) 효과
  * - 교차(cross) 보너스
  * - 누적 타임라인 계산
+ * - 기절(stun) 효과: 범위 내 적 카드 파괴
+ * - 넉백(knockback)/앞당김(advance) 타임라인 조작
+ * - 상징(relic) 효과 지원
+ * - 도살(slaughter)/파괴자(destroyer) 특성
  */
 
 import type { Card, TokenState } from '../types/core';
@@ -31,7 +35,10 @@ import { getPatternAction, patternActionToMode, ENEMY_PATTERNS } from '../data/e
 import { createEmptyTokenState } from '../test/factories';
 import { addToken, removeToken, hasToken, getTokenStacks, clearTurnTokens } from '../lib/tokenUtils';
 import { TOKENS } from '../data/tokens';
-// 사용하지 않는 import 제거됨 - 시뮬레이터 내부에서 간소화된 버전 사용
+import { RELICS } from '../data/relics';
+
+// 기절 범위 상수
+const STUN_RANGE = 5;
 
 // ==================== 타입 정의 ====================
 
@@ -54,6 +61,7 @@ export interface SimPlayerState extends SimEntity {
   discard: string[];
   energy: number;
   maxEnergy: number;
+  relics: string[];  // 보유 상징 ID 목록
 }
 
 export interface SimEnemyState extends SimEntity {
@@ -94,6 +102,7 @@ export interface SimulationConfig {
   enemyIds?: string[];
   playerDeck?: string[];
   playerHp?: number;
+  playerRelics?: string[];  // 상징 ID 목록
   verbose?: boolean;
 }
 
@@ -131,18 +140,36 @@ function drawCards(player: SimPlayerState, count: number): void {
 
 function createPlayer(config: SimulationConfig): SimPlayerState {
   const deckIds = config.playerDeck || DEFAULT_STARTING_DECK;
+  const relics = config.playerRelics || [];
+
+  // 상징 효과 적용
+  let maxEnergy = 6;
+  let maxHp = config.playerHp || 100;
+  let strength = 0;
+
+  for (const relicId of relics) {
+    const relic = RELICS[relicId as keyof typeof RELICS];
+    if (relic?.effects) {
+      const effects = relic.effects as Record<string, unknown>;
+      if (effects.maxEnergy) maxEnergy += effects.maxEnergy as number;
+      if (effects.maxHp) maxHp += effects.maxHp as number;
+      if (effects.strength) strength += effects.strength as number;
+    }
+  }
+
   return {
-    hp: config.playerHp || 100,
-    maxHp: config.playerHp || 100,
+    hp: maxHp,
+    maxHp: maxHp,
     block: 0,
-    strength: 0,
+    strength: strength,
     etherPts: 0,
     tokens: createEmptyTokenState(),
     deck: shuffle([...deckIds]),
     hand: [],
     discard: [],
-    energy: 6,
-    maxEnergy: 6,
+    energy: maxEnergy,
+    maxEnergy: maxEnergy,
+    relics: relics,
   };
 }
 
@@ -430,6 +457,148 @@ function rollDodge(defender: SimEntity): boolean {
   return false;
 }
 
+/**
+ * 기절(stun) 특성 체크
+ */
+function hasStunTrait(card: Card | AICard): boolean {
+  const c = card as Card;
+  if (!c.traits) return false;
+  return Array.isArray(c.traits) ? c.traits.includes('stun') : c.traits === 'stun';
+}
+
+/**
+ * 넉백(knockback) 특성 체크
+ */
+function hasKnockbackTrait(card: Card | AICard): boolean {
+  const c = card as Card;
+  if (!c.traits) return false;
+  return Array.isArray(c.traits) ? c.traits.includes('knockback') : c.traits === 'knockback';
+}
+
+/**
+ * 앞당김(advance) 특성 체크
+ */
+function hasAdvanceTrait(card: Card | AICard): boolean {
+  const c = card as Card;
+  if (!c.traits) return false;
+  return Array.isArray(c.traits) ? c.traits.includes('advance') : c.traits === 'advance';
+}
+
+/**
+ * 도살(slaughter) 특성 체크 - 피해 75% 증가
+ */
+function hasSlaughterTrait(card: Card | AICard): boolean {
+  const c = card as Card;
+  if (!c.traits) return false;
+  return Array.isArray(c.traits) ? c.traits.includes('slaughter') : c.traits === 'slaughter';
+}
+
+/**
+ * 파괴자(destroyer) 특성 체크 - 피해 50% 증가
+ */
+function hasDestroyerTrait(card: Card | AICard): boolean {
+  const c = card as Card;
+  if (!c.traits) return false;
+  return Array.isArray(c.traits) ? c.traits.includes('destroyer') : c.traits === 'destroyer';
+}
+
+/**
+ * 기절 효과 처리 - 범위 내 적 카드 제거
+ */
+interface TimelineStep {
+  actor: 'player' | 'enemy';
+  card: Card | AICard;
+  sp: number;
+  hasCrossed?: boolean;
+  removed?: boolean;
+}
+
+function processStun(
+  timeline: TimelineStep[],
+  stepIndex: number,
+  attackerActor: 'player' | 'enemy',
+  log: string[]
+): void {
+  const currentStep = timeline[stepIndex];
+  const centerSp = currentStep.sp;
+  const oppositeActor = attackerActor === 'player' ? 'enemy' : 'player';
+
+  let removedCount = 0;
+  for (let i = stepIndex + 1; i < timeline.length; i++) {
+    const target = timeline[i];
+    if (target.actor !== oppositeActor || target.removed) continue;
+
+    if (target.sp >= centerSp && target.sp <= centerSp + STUN_RANGE) {
+      target.removed = true;
+      removedCount++;
+    }
+  }
+
+  if (removedCount > 0) {
+    log.push(`😵 기절! ${currentStep.card.name}: 적 카드 ${removedCount}장 파괴`);
+  }
+}
+
+/**
+ * 넉백 효과 처리 - 적 카드 sp 증가
+ */
+function processKnockback(
+  timeline: TimelineStep[],
+  stepIndex: number,
+  attackerActor: 'player' | 'enemy',
+  knockbackAmount: number,
+  log: string[]
+): void {
+  const oppositeActor = attackerActor === 'player' ? 'enemy' : 'player';
+
+  for (let i = stepIndex + 1; i < timeline.length; i++) {
+    const target = timeline[i];
+    if (target.actor === oppositeActor && !target.removed) {
+      target.sp += knockbackAmount;
+    }
+  }
+
+  // 재정렬
+  const processed = timeline.slice(0, stepIndex + 1);
+  const remaining = timeline.slice(stepIndex + 1).filter(t => !t.removed);
+  remaining.sort((a, b) => a.sp - b.sp);
+
+  // 원본 배열 수정
+  timeline.length = 0;
+  timeline.push(...processed, ...remaining);
+
+  log.push(`↗️ 넉백! 적 카드 ${knockbackAmount}sp 밀어냄`);
+}
+
+/**
+ * 앞당김 효과 처리 - 내 카드 sp 감소
+ */
+function processAdvance(
+  timeline: TimelineStep[],
+  stepIndex: number,
+  attackerActor: 'player' | 'enemy',
+  advanceAmount: number,
+  log: string[]
+): void {
+  for (let i = stepIndex + 1; i < timeline.length; i++) {
+    const target = timeline[i];
+    if (target.actor === attackerActor && !target.removed) {
+      target.sp = Math.max(0, target.sp - advanceAmount);
+    }
+  }
+
+  // 재정렬
+  const processed = timeline.slice(0, stepIndex + 1);
+  const remaining = timeline.slice(stepIndex + 1).filter(t => !t.removed);
+  remaining.sort((a, b) => a.sp - b.sp);
+
+  // 원본 배열 수정
+  timeline.length = 0;
+  timeline.push(...processed, ...remaining);
+
+  log.push(`↙️ 앞당김! 내 카드 ${advanceAmount}sp 앞당김`);
+}
+
 function applyCardTokenEffects(card: Card | AICard, actor: SimEntity, target: SimEntity): void {
   // 카드에 정의된 토큰 적용
   const appliedTokens = (card as any).appliedTokens;
@@ -468,14 +637,7 @@ function simulateTurn(
   const playerSelection = selectPlayerActions(player);
   const enemyActions = selectEnemyActions(enemy, turnNumber);
 
-  // 4. 타임라인 생성 (속도순 정렬)
-  interface TimelineStep {
-    actor: 'player' | 'enemy';
-    card: Card | AICard;
-    sp: number;
-    hasCrossed?: boolean;  // 교차 여부
-  }
-
+  // 4. 타임라인 생성 (속도순 정렬) - 전역 TimelineStep 인터페이스 사용
   const timeline: TimelineStep[] = [];
   let cumulativeSp = 0;
 
@@ -552,6 +714,11 @@ function simulateTurn(
   for (let stepIndex = 0; stepIndex < timeline.length; stepIndex++) {
     const step = timeline[stepIndex];
     if (combatState.player.hp <= 0 || combatState.enemy.hp <= 0) break;
+
+    // 기절로 제거된 카드 건너뛰기
+    if (step.removed) {
+      continue;
+    }
 
     const attacker = step.actor === 'player' ? combatState.player : combatState.enemy;
     const defender = step.actor === 'player' ? combatState.enemy : combatState.player;
@@ -631,6 +798,24 @@ function simulateTurn(
       }
     }
 
+    // 도살(slaughter) 특성: 피해 75% 증가
+    if (isAttack && hasSlaughterTrait(step.card)) {
+      if (modifiedCard.damage) {
+        const slaughterBonus = Math.floor(modifiedCard.damage * 0.75);
+        modifiedCard.damage += slaughterBonus;
+        log.push(`🩸 도살! ${step.card.name}: 피해 +${slaughterBonus} (75%)`);
+      }
+    }
+
+    // 파괴자(destroyer) 특성: 피해 50% 증가
+    if (isAttack && hasDestroyerTrait(step.card)) {
+      if (modifiedCard.damage) {
+        const destroyerBonus = Math.floor(modifiedCard.damage * 0.5);
+        modifiedCard.damage += destroyerBonus;
+        log.push(`💀 파괴자! ${step.card.name}: 피해 +${destroyerBonus} (50%)`);
+      }
+    }
+
     // 치명타 판정 (플레이어만, 공격 카드만)
     let isCritical = false;
     if (isAttack && isPlayer) {
@@ -699,6 +884,23 @@ function simulateTurn(
       // 다중 타격 (hits > 1) 로그 - applyAction에서 이미 처리됨
       if (hits > 1 && isAttack) {
         log.push(`🎯 ${step.card.name}: ${hits}회 타격!`);
+      }
+
+      // 기절(stun) 효과 처리
+      if (isAttack && hasStunTrait(step.card) && finalDealt > 0) {
+        processStun(timeline, stepIndex, step.actor, log);
+      }
+
+      // 넉백(knockback) 효과 처리
+      if (isAttack && hasKnockbackTrait(step.card) && finalDealt > 0) {
+        const knockbackAmount = (step.card as Card).knockbackAmount || 3;
+        processKnockback(timeline, stepIndex, step.actor, knockbackAmount, log);
+      }
+
+      // 앞당김(advance) 효과 처리
+      if (isAttack && hasAdvanceTrait(step.card) && finalDealt > 0) {
+        const advanceAmount = (step.card as Card).advanceAmount || 3;
+        processAdvance(timeline, stepIndex, step.actor, advanceAmount, log);
       }
 
     } catch (e) {
