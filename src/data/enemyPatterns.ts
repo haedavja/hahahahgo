@@ -118,6 +118,95 @@ export const ENEMY_PATTERNS = {
       }
     },
     description: 'HP에 따라 페이즈 변경: 일반→충전→광폭화'
+  },
+
+  // =====================
+  // 1막 신규 몬스터
+  // =====================
+
+  // 들쥐 - 빠르고 약함, 떼공격 위주
+  // 패턴: 🐀 🐀 🐀 🛡️ (물기 물기 떼공격 도주)
+  // 플레이어 전략: 광역기로 빠르게 정리
+  'wildrat': {
+    type: 'cycle',
+    pattern: ['attack', 'attack', 'swarm', 'defense'],
+    description: '연속 공격 후 도주'
+  },
+
+  // 폭주자 - 공격적, 버프 후 강공격
+  // 패턴: 🔥 ⚔️ ⚔️ (분노 돌진 내려찍기)
+  // 플레이어 전략: 분노턴에 강하게 공격, 이후 방어
+  'berserker': {
+    type: 'cycle',
+    pattern: ['buff', 'attack', 'attack'],
+    description: '분노로 강화 후 연속 공격'
+  },
+
+  // 오염체 - 독 뿌리다 자폭
+  // 패턴: ☠️ ☠️ 🛡️ 💥 (독침 독침 독안개 자폭)
+  // 플레이어 전략: 자폭 전에 처치하거나 방어 준비
+  'polluted': {
+    type: 'cycle',
+    pattern: ['debuff_poison', 'debuff_poison', 'defense', 'explode'],
+    description: '독 축적 후 자폭'
+  },
+
+  // 현상금 사냥꾼 - 전술적, 조준 후 처형
+  // 패턴: 🛡️ 🎯 ⚔️ 💥 (덫 조준 사격 처형사격)
+  // 플레이어 전략: 조준턴에 공격, 처형 전 방어
+  'hunter': {
+    type: 'cycle',
+    pattern: ['defense', 'buff', 'attack', 'big_attack'],
+    description: '덫 설치 → 조준 → 사격 → 처형'
+  },
+
+  // 탈영병 대장 - HP 페이즈 시스템 보스
+  // Phase 1 (100-60%): 일반 공격
+  // Phase 2 (60-30%): 지휘로 버프, 소환
+  // Phase 3 (30% 이하): 군법처형 연발
+  'captain': {
+    type: 'phase',
+    phases: [
+      {
+        hpThreshold: 100,
+        pattern: ['attack', 'attack', 'defense'],
+        description: '일반 공세'
+      },
+      {
+        hpThreshold: 60,
+        pattern: ['command', 'attack', 'rally', 'defense'],
+        description: '지휘 및 소환'
+      },
+      {
+        hpThreshold: 30,
+        pattern: ['execution', 'execution', 'fortify'],
+        description: '광폭화 - 군법처형 연발'
+      }
+    ],
+    specialActions: {
+      'command': {
+        mode: 'turtle',
+        showIntent: '📢 지휘!',
+        useCard: 'captain_command'
+      },
+      'rally': {
+        mode: 'turtle',
+        showIntent: '🎺 집결!',
+        useCard: 'captain_rally'
+      },
+      'execution': {
+        mode: 'aggro',
+        ignoreBlock: true,
+        showIntent: '⚔️ 군법처형!',
+        useCard: 'captain_execution'
+      },
+      'fortify': {
+        mode: 'turtle',
+        showIntent: '🛡️ 방어태세',
+        useCard: 'captain_fortify'
+      }
+    },
+    description: 'HP에 따라 페이즈 변경: 일반→지휘→광폭화'
   }
 };
 

@@ -1016,6 +1016,50 @@ export const ENEMY_CARDS = [
     appliedTokens: [{ id: 'vulnerable', target: 'enemy' }] },
   { id: "slurthim_dull", name: "점액", type: "general", block: 0, speedCost: 3, actionCost: 1, iconKey: "skull",
     appliedTokens: [{ id: 'dull', target: 'enemy' }] },
+
+  // === 1막 신규 - 들쥐 카드 ===
+  { id: "wildrat_bite", name: "물기", type: "attack", damage: 2, speedCost: 1, actionCost: 1, iconKey: "sword" },
+  { id: "wildrat_swarm", name: "떼공격", type: "attack", damage: 1, hits: 3, speedCost: 3, actionCost: 1, iconKey: "sword" },
+  { id: "wildrat_flee", name: "도주", type: "general", block: 3, speedCost: 1, actionCost: 1, iconKey: "shield",
+    appliedTokens: [{ id: 'evasion', target: 'self' }] },
+
+  // === 1막 신규 - 폭주자 카드 ===
+  { id: "berserker_slam", name: "내려찍기", type: "attack", damage: 8, speedCost: 5, actionCost: 1, iconKey: "flame" },
+  { id: "berserker_rage", name: "분노", type: "general", block: 0, speedCost: 2, actionCost: 1, iconKey: "flame",
+    appliedTokens: [{ id: 'offense', stacks: 2, target: 'self' }] },
+  { id: "berserker_charge", name: "돌진", type: "attack", damage: 6, speedCost: 4, actionCost: 1, iconKey: "sword",
+    special: "pushEnemyTimeline", pushAmount: 3 },
+  { id: "berserker_roar", name: "포효", type: "general", block: 0, speedCost: 3, actionCost: 1, iconKey: "skull",
+    appliedTokens: [{ id: 'shaken', target: 'enemy' }] },
+
+  // === 1막 신규 - 오염체 카드 ===
+  { id: "polluted_spit", name: "독침", type: "attack", damage: 3, speedCost: 3, actionCost: 1, iconKey: "skull",
+    appliedTokens: [{ id: 'poison', target: 'enemy' }] },
+  { id: "polluted_cloud", name: "독안개", type: "general", block: 4, speedCost: 4, actionCost: 1, iconKey: "shield",
+    appliedTokens: [{ id: 'blur', target: 'self' }, { id: 'poison', target: 'enemy' }] },
+  { id: "polluted_explode", name: "자폭", type: "attack", damage: 12, speedCost: 6, actionCost: 1, iconKey: "flame",
+    special: "selfDamage3" },  // 자해 3
+
+  // === 1막 신규 - 현상금 사냥꾼 카드 (엘리트) ===
+  { id: "hunter_shoot", name: "조준사격", type: "attack", damage: 6, speedCost: 4, actionCost: 1, iconKey: "flame" },
+  { id: "hunter_trap", name: "덫 설치", type: "general", block: 5, speedCost: 3, actionCost: 1, iconKey: "shield",
+    appliedTokens: [{ id: 'counterShot', stacks: 1, target: 'self' }] },
+  { id: "hunter_aim", name: "조준", type: "general", block: 0, speedCost: 2, actionCost: 1, iconKey: "flame",
+    appliedTokens: [{ id: 'crit_boost', target: 'self' }] },
+  { id: "hunter_execute", name: "처형사격", type: "attack", damage: 10, speedCost: 6, actionCost: 1, iconKey: "flame",
+    special: "guaranteedCrit" },
+
+  // === 1막 보스 - 탈영병 대장 카드 ===
+  { id: "captain_slash", name: "장교검", type: "attack", damage: 9, speedCost: 5, actionCost: 1, iconKey: "sword" },
+  { id: "captain_command", name: "지휘", type: "general", block: 8, speedCost: 4, actionCost: 1, iconKey: "shield",
+    appliedTokens: [{ id: 'offense', target: 'self' }],
+    special: "buffAllies" },  // 아군 강화
+  { id: "captain_rally", name: "집결", type: "general", block: 0, speedCost: 3, actionCost: 1, iconKey: "flame",
+    special: "summonDeserter" },  // 탈영병 소환
+  { id: "captain_execution", name: "군법처형", type: "attack", damage: 18, speedCost: 8, actionCost: 1, iconKey: "flame",
+    special: "piercing" },  // 방어력 무시
+  { id: "captain_fortify", name: "방어태세", type: "general", block: 15, speedCost: 5, actionCost: 1, iconKey: "shield",
+    appliedTokens: [{ id: 'blur', target: 'self' }] },
 ];
 
 export const ENEMIES: EnemyDefinition[] = [
@@ -1093,6 +1137,89 @@ export const ENEMIES: EnemyDefinition[] = [
     tier: 1,
     description: "슬라임 비슷한 유독성 폐기물로 만들어진 흉물. 디버프만 거는 편."
   },
+
+  // === 1막 신규 일반 적 ===
+  {
+    id: "wildrat",
+    name: "들쥐",
+    hp: 12,
+    ether: 40,
+    speed: 6,
+    maxSpeed: 6,
+    deck: ["wildrat_bite", "wildrat_bite", "wildrat_swarm", "wildrat_flee"],
+    cardsPerTurn: 2,
+    emoji: "🐀",
+    tier: 1,
+    description: "빠르고 약한 적. 떼로 나타나면 성가시다."
+  },
+  {
+    id: "berserker",
+    name: "폭주자",
+    hp: 55,
+    ether: 120,
+    speed: 12,
+    maxSpeed: 12,
+    deck: ["berserker_slam", "berserker_rage", "berserker_charge", "berserker_roar"],
+    cardsPerTurn: 2,
+    emoji: "🔥",
+    tier: 1,
+    description: "정신이 붕괴한 생존자. 이성 없이 덤벼든다.",
+    passives: {
+      strengthPerTurn: 1  // 광폭화: 매턴 힘 1 증가
+    }
+  },
+  {
+    id: "polluted",
+    name: "오염체",
+    hp: 35,
+    ether: 100,
+    speed: 10,
+    maxSpeed: 10,
+    deck: ["polluted_spit", "polluted_spit", "polluted_cloud", "polluted_explode"],
+    cardsPerTurn: 1,
+    emoji: "☠️",
+    tier: 1,
+    description: "방사능에 오염된 괴생명체. 독을 뿌리며 최후엔 자폭한다."
+  },
+
+  // === 1막 엘리트 적 ===
+  {
+    id: "hunter",
+    name: "현상금 사냥꾼",
+    hp: 85,
+    ether: 180,
+    speed: 14,
+    maxSpeed: 14,
+    deck: ["hunter_shoot", "hunter_shoot", "hunter_trap", "hunter_aim", "hunter_execute"],
+    cardsPerTurn: 2,
+    emoji: "🎯",
+    tier: 2,
+    description: "숙련된 사냥꾼. 함정을 설치하고 치명적인 사격을 가한다.",
+    passives: {
+      critBoostAtStart: 5  // 전투 시작 시 치명타율 +5%
+    }
+  },
+
+  // === 1막 보스 ===
+  {
+    id: "captain",
+    name: "탈영병 대장",
+    hp: 180,
+    ether: 350,
+    speed: 18,
+    maxSpeed: 18,
+    deck: ["captain_slash", "captain_slash", "captain_command", "captain_rally", "captain_execution", "captain_fortify"],
+    cardsPerTurn: 3,
+    emoji: "⚔️",
+    tier: 3,
+    description: "탈영병들을 이끄는 전직 장교. 부하를 소환하고 강력한 공격을 가한다.",
+    isBoss: true,
+    passives: {
+      veilAtStart: true,     // 전투 시작 시 장막
+      healPerTurn: 5,        // 매턴 체력 5 회복
+      summonOnHalfHp: true   // 50% HP에서 탈영병 소환
+    }
+  },
 ];
 
 // 몬스터 그룹 (여러 적 동시 등장)
@@ -1151,6 +1278,99 @@ export const ENEMY_GROUPS = [
     name: "살육자x1",
     tier: 3,
     enemies: ["slaughterer"],
+    isBoss: true
+  },
+
+  // === 1막 신규 그룹 ===
+  // 초반 노드 (1-3)
+  {
+    id: "wildrat_swarm",
+    name: "들쥐 떼",
+    tier: 1,
+    nodeRange: [1, 3],
+    enemies: ["wildrat", "wildrat", "wildrat", "wildrat"]
+  },
+  {
+    id: "polluted_single",
+    name: "오염체x1",
+    tier: 1,
+    nodeRange: [1, 3],
+    enemies: ["polluted"]
+  },
+
+  // 중반 노드 (4-7)
+  {
+    id: "berserker_solo",
+    name: "폭주자x1",
+    tier: 1,
+    nodeRange: [4, 7],
+    enemies: ["berserker"]
+  },
+  {
+    id: "wildrat_horde",
+    name: "들쥐 대군",
+    tier: 1,
+    nodeRange: [4, 7],
+    enemies: ["wildrat", "wildrat", "wildrat", "wildrat", "wildrat", "wildrat"]
+  },
+  {
+    id: "polluted_duo",
+    name: "오염체x2",
+    tier: 1,
+    nodeRange: [4, 7],
+    enemies: ["polluted", "polluted"]
+  },
+  {
+    id: "hunter_solo",
+    name: "현상금 사냥꾼",
+    tier: 2,
+    nodeRange: [4, 7],
+    enemies: ["hunter"]
+  },
+  {
+    id: "mixed_patrol",
+    name: "순찰대",
+    tier: 2,
+    nodeRange: [4, 7],
+    enemies: ["deserter", "marauder", "marauder"]
+  },
+
+  // 후반 노드 (8-10)
+  {
+    id: "berserker_duo",
+    name: "폭주자x2",
+    tier: 2,
+    nodeRange: [8, 10],
+    enemies: ["berserker", "berserker"]
+  },
+  {
+    id: "hunter_duo",
+    name: "사냥꾼 콤비",
+    tier: 2,
+    nodeRange: [8, 10],
+    enemies: ["hunter", "hunter"]
+  },
+  {
+    id: "ambush_squad",
+    name: "매복조",
+    tier: 2,
+    nodeRange: [8, 10],
+    enemies: ["hunter", "deserter", "deserter"]
+  },
+
+  // 1막 보스
+  {
+    id: "captain_solo",
+    name: "탈영병 대장",
+    tier: 3,
+    enemies: ["captain"],
+    isBoss: true
+  },
+  {
+    id: "captain_escort",
+    name: "탈영병 대장 + 호위",
+    tier: 3,
+    enemies: ["captain", "deserter", "deserter"],
     isBoss: true
   },
 ];
