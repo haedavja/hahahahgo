@@ -897,8 +897,8 @@ export function generateEnhancedDescription(
       description += ` (${additions.join(', ')})`;
     }
 
-    // 특수 효과를 설명에 추가 (extraBlur, counterOnHit 제외 - 위에서 처리됨)
-    const handledEffects = new Set(['extraBlur', 'counterOnHit', 'addTrait', 'removeTrait', 'upgradeTrait']);
+    // 특수 효과를 설명에 추가 (counterOnHit 제외 - 위에서 처리됨, 특성 관련도 제외)
+    const handledEffects = new Set(['counterOnHit', 'addTrait', 'removeTrait', 'upgradeTrait']);
     const specialEffectDescriptions: string[] = [];
     for (const effect of enhancedStats.specialEffects) {
       if (handledEffects.has(effect.type)) continue;
