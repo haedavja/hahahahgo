@@ -19,7 +19,9 @@ import {
   getAllEnhancementLevels,
   getEnhancementColor,
   getEnhancementLabel,
+  generateEnhancedDescription,
   type BaseCard,
+  type EnhancedCardStats,
 } from './cardEnhancementUtils';
 
 describe('cardEnhancementData', () => {
@@ -474,6 +476,227 @@ describe('강화 시스템 엣지 케이스', () => {
         const enhanced = getEnhancedCard(baseCard, 3);
         expect(enhanced.traits).not.toContain('recoil');
       }
+    });
+  });
+});
+
+describe('generateEnhancedDescription', () => {
+  // 기본 스탯 생성 헬퍼
+  function createDefaultStats(): EnhancedCardStats {
+    return {
+      damageBonus: 0,
+      blockBonus: 0,
+      speedCostReduction: 0,
+      actionCostReduction: 0,
+      hitsBonus: 0,
+      pushAmountBonus: 0,
+      advanceAmountBonus: 0,
+      burnStacksBonus: 0,
+      debuffStacksBonus: 0,
+      counterShotBonus: 0,
+      critBoostBonus: 0,
+      finesseGainBonus: 0,
+      drawCountBonus: 0,
+      createCountBonus: 0,
+      buffAmountBonus: 0,
+      agilityGainBonus: 0,
+      executeThresholdBonus: 0,
+      parryRangeBonus: 0,
+      onHitBlockBonus: 0,
+      perCardBlockBonus: 0,
+      maxSpeedBoostBonus: 0,
+      fragStacksBonus: 0,
+      growthPerTickBonus: 0,
+      durationTurnsBonus: 0,
+      specialEffects: [],
+      addedTraits: [],
+      removedTraits: [],
+    };
+  }
+
+  describe('피해량 패턴 교체', () => {
+    it('"공격력 X" 패턴을 교체해야 함', () => {
+      const card: BaseCard = { id: 'test', name: 'Test', type: 'attack', damage: 15, speedCost: 5, actionCost: 1 };
+      const result = generateEnhancedDescription(card, '공격력 10의 일격');
+      expect(result).toBe('공격력 15의 일격');
+    });
+
+    it('"피해 X" 패턴을 교체해야 함', () => {
+      const card: BaseCard = { id: 'test', name: 'Test', type: 'attack', damage: 20, speedCost: 5, actionCost: 1 };
+      const result = generateEnhancedDescription(card, '피해 10을 입힌다');
+      expect(result).toBe('피해 20을 입힌다');
+    });
+
+    it('"X 피해" 패턴을 교체해야 함', () => {
+      const card: BaseCard = { id: 'test', name: 'Test', type: 'attack', damage: 12, speedCost: 5, actionCost: 1 };
+      const result = generateEnhancedDescription(card, '8 피해를 가한다');
+      expect(result).toBe('12 피해를 가한다');
+    });
+  });
+
+  describe('방어력 패턴 교체', () => {
+    it('"방어력 X" 패턴을 교체해야 함', () => {
+      const card: BaseCard = { id: 'test', name: 'Test', type: 'defense', block: 12, speedCost: 4, actionCost: 1 };
+      const result = generateEnhancedDescription(card, '방어력 8을 얻는다');
+      expect(result).toBe('방어력 12을 얻는다');
+    });
+
+    it('"방어 X" 패턴을 교체해야 함', () => {
+      const card: BaseCard = { id: 'test', name: 'Test', type: 'defense', block: 15, speedCost: 4, actionCost: 1 };
+      const result = generateEnhancedDescription(card, '방어 10 획득');
+      expect(result).toBe('방어 15 획득');
+    });
+  });
+
+  describe('기타 스탯 패턴 교체', () => {
+    it('"넉백 X" 패턴을 교체해야 함', () => {
+      const card: BaseCard = { id: 'test', name: 'Test', type: 'attack', damage: 5, pushAmount: 3, speedCost: 5, actionCost: 1 };
+      const result = generateEnhancedDescription(card, '넉백 2');
+      expect(result).toBe('넉백 3');
+    });
+
+    it('"앞당김 X" 패턴을 교체해야 함', () => {
+      const card: BaseCard = { id: 'test', name: 'Test', type: 'attack', damage: 5, advanceAmount: 4, speedCost: 5, actionCost: 1 };
+      const result = generateEnhancedDescription(card, '앞당김 2');
+      expect(result).toBe('앞당김 4');
+    });
+
+    it('"X번 공격" 패턴을 교체해야 함', () => {
+      const card: BaseCard = { id: 'test', name: 'Test', type: 'attack', damage: 3, hits: 5, speedCost: 6, actionCost: 2 };
+      const result = generateEnhancedDescription(card, '3번 공격');
+      expect(result).toBe('5번 공격');
+    });
+
+    it('"패링 X" 패턴을 교체해야 함', () => {
+      const card: BaseCard = { id: 'test', name: 'Test', type: 'defense', block: 5, parryRange: 4, speedCost: 4, actionCost: 1 };
+      const result = generateEnhancedDescription(card, '패링 2');
+      expect(result).toBe('패링 4');
+    });
+  });
+
+  describe('강화 효과 추가 표시', () => {
+    it('화상 보너스를 표시해야 함', () => {
+      const card: BaseCard = { id: 'test', name: 'Test', type: 'attack', damage: 10, speedCost: 5, actionCost: 1 };
+      const stats = { ...createDefaultStats(), burnStacksBonus: 2 };
+      const result = generateEnhancedDescription(card, '공격', stats);
+      expect(result).toContain('화상 +2');
+    });
+
+    it('치명타 보너스를 표시해야 함', () => {
+      const card: BaseCard = { id: 'test', name: 'Test', type: 'attack', damage: 10, speedCost: 5, actionCost: 1 };
+      const stats = { ...createDefaultStats(), critBoostBonus: 15 };
+      const result = generateEnhancedDescription(card, '공격', stats);
+      expect(result).toContain('치명타 +15%');
+    });
+
+    it('반격탄 보너스를 표시해야 함', () => {
+      const card: BaseCard = { id: 'test', name: 'Test', type: 'attack', damage: 10, speedCost: 5, actionCost: 1 };
+      const stats = { ...createDefaultStats(), counterShotBonus: 1 };
+      const result = generateEnhancedDescription(card, '공격', stats);
+      expect(result).toContain('반격탄 +1');
+    });
+
+    it('처형 보너스를 표시해야 함', () => {
+      const card: BaseCard = { id: 'test', name: 'Test', type: 'attack', damage: 10, speedCost: 5, actionCost: 1 };
+      const stats = { ...createDefaultStats(), executeThresholdBonus: 10 };
+      const result = generateEnhancedDescription(card, '공격', stats);
+      expect(result).toContain('처형 +10%');
+    });
+
+    it('기교 보너스를 표시해야 함', () => {
+      const card: BaseCard = { id: 'test', name: 'Test', type: 'attack', damage: 10, speedCost: 5, actionCost: 1 };
+      const stats = { ...createDefaultStats(), finesseGainBonus: 3 };
+      const result = generateEnhancedDescription(card, '공격', stats);
+      expect(result).toContain('기교 +3');
+    });
+
+    it('드로우 보너스를 표시해야 함', () => {
+      const card: BaseCard = { id: 'test', name: 'Test', type: 'support', speedCost: 3, actionCost: 1 };
+      const stats = { ...createDefaultStats(), drawCountBonus: 1 };
+      const result = generateEnhancedDescription(card, '카드 드로우', stats);
+      expect(result).toContain('드로우 +1');
+    });
+
+    it('민첩 보너스를 표시해야 함', () => {
+      const card: BaseCard = { id: 'test', name: 'Test', type: 'support', speedCost: 3, actionCost: 1 };
+      const stats = { ...createDefaultStats(), agilityGainBonus: 2 };
+      const result = generateEnhancedDescription(card, '민첩 부여', stats);
+      expect(result).toContain('민첩 +2');
+    });
+  });
+
+  describe('특성 변경 표시', () => {
+    it('추가된 특성을 표시해야 함', () => {
+      const card: BaseCard = { id: 'test', name: 'Test', type: 'attack', damage: 10, speedCost: 5, actionCost: 1 };
+      const stats = { ...createDefaultStats(), addedTraits: ['swift', 'exposed'] };
+      const result = generateEnhancedDescription(card, '공격', stats);
+      expect(result).toContain('[swift, exposed] 추가');
+    });
+
+    it('제거된 특성을 표시해야 함', () => {
+      const card: BaseCard = { id: 'test', name: 'Test', type: 'attack', damage: 10, speedCost: 5, actionCost: 1 };
+      const stats = { ...createDefaultStats(), removedTraits: ['recoil'] };
+      const result = generateEnhancedDescription(card, '공격', stats);
+      expect(result).toContain('[recoil] 제거');
+    });
+
+    it('추가와 제거된 특성을 모두 표시해야 함', () => {
+      const card: BaseCard = { id: 'test', name: 'Test', type: 'attack', damage: 10, speedCost: 5, actionCost: 1 };
+      const stats = { ...createDefaultStats(), addedTraits: ['swift'], removedTraits: ['heavy'] };
+      const result = generateEnhancedDescription(card, '공격', stats);
+      expect(result).toContain('[swift] 추가');
+      expect(result).toContain('[heavy] 제거');
+    });
+  });
+
+  describe('복합 효과', () => {
+    it('여러 보너스를 함께 표시해야 함', () => {
+      const card: BaseCard = { id: 'test', name: 'Test', type: 'attack', damage: 15, speedCost: 5, actionCost: 1 };
+      const stats = {
+        ...createDefaultStats(),
+        burnStacksBonus: 1,
+        critBoostBonus: 10,
+        finesseGainBonus: 2
+      };
+      const result = generateEnhancedDescription(card, '공격력 10', stats);
+      expect(result).toContain('공격력 15');
+      expect(result).toContain('화상 +1');
+      expect(result).toContain('치명타 +10%');
+      expect(result).toContain('기교 +2');
+    });
+
+    it('enhancedStats가 없으면 기본 패턴만 교체해야 함', () => {
+      const card: BaseCard = { id: 'test', name: 'Test', type: 'attack', damage: 20, speedCost: 5, actionCost: 1 };
+      const result = generateEnhancedDescription(card, '공격력 10을 가한다');
+      expect(result).toBe('공격력 20을 가한다');
+      expect(result).not.toContain('(');
+    });
+
+    it('보너스가 0이면 표시하지 않아야 함', () => {
+      const card: BaseCard = { id: 'test', name: 'Test', type: 'attack', damage: 10, speedCost: 5, actionCost: 1 };
+      const stats = createDefaultStats(); // 모든 보너스가 0
+      const result = generateEnhancedDescription(card, '공격', stats);
+      expect(result).toBe('공격');
+    });
+  });
+
+  describe('엣지 케이스', () => {
+    it('damage가 undefined면 피해 패턴을 교체하지 않아야 함', () => {
+      const card: BaseCard = { id: 'test', name: 'Test', type: 'defense', speedCost: 4, actionCost: 1 };
+      const result = generateEnhancedDescription(card, '공격력 10');
+      expect(result).toBe('공격력 10');
+    });
+
+    it('hits가 1이면 타격 횟수를 교체하지 않아야 함', () => {
+      const card: BaseCard = { id: 'test', name: 'Test', type: 'attack', damage: 10, hits: 1, speedCost: 5, actionCost: 1 };
+      const result = generateEnhancedDescription(card, '3번 공격');
+      expect(result).toBe('3번 공격');
+    });
+
+    it('빈 설명은 그대로 반환해야 함', () => {
+      const card: BaseCard = { id: 'test', name: 'Test', type: 'attack', damage: 10, speedCost: 5, actionCost: 1 };
+      const result = generateEnhancedDescription(card, '');
+      expect(result).toBe('');
     });
   });
 });
