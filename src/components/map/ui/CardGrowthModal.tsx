@@ -742,6 +742,11 @@ function GameCardDisplay({
   const action = Math.max(0, card.actionCost - (stats?.actionCostReduction || 0));
   const hits = (card.hits || 1) + (stats?.hitsBonus || 0);
 
+  // 강화 레벨에 따른 설명 텍스트
+  const description = enhancementLevel > 0
+    ? getEnhancedCard(card as Parameters<typeof getEnhancedCard>[0], enhancementLevel).description || card.description
+    : card.description;
+
   return (
     <div
       className={`game-card-large no-hover ${card.type === 'attack' ? 'attack' : 'defense'}`}
@@ -821,7 +826,7 @@ function GameCardDisplay({
         {growth.traits && growth.traits.length > 0 && (
           <TraitBadgeList traits={growth.traits} />
         )}
-        <span className="card-description">{card.description || ''}</span>
+        <span className="card-description">{description || ''}</span>
       </div>
     </div>
   );
