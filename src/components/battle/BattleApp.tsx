@@ -88,6 +88,7 @@ import { useGameStoreSelectors } from "./hooks/useGameStoreSelectors";
 import { useComboMultiplierCallbacks } from "./hooks/useComboMultiplierCallbacks";
 import { useBattleResultCallbacks } from "./hooks/useBattleResultCallbacks";
 import { useBattleUtilityCallbacks } from "./hooks/useBattleUtilityCallbacks";
+import { useDerivedBattleState } from "./hooks/useDerivedBattleState";
 import {
   MAX_SPEED,
   DEFAULT_PLAYER_MAX_SPEED,
@@ -293,33 +294,14 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const enemyIndex = battle.enemyIndex;
   const selectedTargetUnit = battle.selectedTargetUnit ?? 0;
 
-  // 다중 유닛 시스템: 적 유닛 배열
-  // ⚠️ hasEnemyUnits()는 UI 표시와 HP 분배 로직에서 동일하게 사용해야 함
-  const enemyUnits = enemy?.units || [];
-  const hasMultipleUnits = hasEnemyUnits(enemyUnits); // battleUtils.hasEnemyUnits 사용
-
-  // 현재 타겟 유닛 (살아있는 유닛 중 선택)
-  const targetUnit = useMemo(() => {
-    if (!enemyUnits || enemyUnits.length === 0) return null;
-    const alive = enemyUnits.filter(u => u.hp > 0);
-    if (alive.length === 0) return null;
-    // 선택된 유닛이 살아있으면 그대로, 아니면 첫 번째 살아있는 유닛
-    const selected = alive.find(u => u.unitId === selectedTargetUnit);
-    return selected || alive[0];
-  }, [enemyUnits, selectedTargetUnit]);
-
-  // 선택된 유닛 자동 전환은 useBattleSyncEffects에서 처리
-
-  // 정신집중 토큰에서 추가 카드 사용 수 계산
-  const playerTokensForCardPlay = player?.tokens ? getAllTokens({ tokens: player.tokens }) : [];
-  const focusTokenForCardPlay = playerTokensForCardPlay.find(t => t.effect?.type === 'FOCUS');
-  const focusExtraCardPlayBonus = focusTokenForCardPlay ? 2 * (focusTokenForCardPlay.stacks || 1) : 0;
-
-  // 동적 최대 카드 제출 수 (상징 효과 + nextTurnEffects.extraCardPlay + 정신집중 토큰)
-  const effectiveMaxSubmitCards = baseMaxSubmitCards + (battle.nextTurnEffects?.extraCardPlay || 0) + focusExtraCardPlayBonus;
-
-  // 전투용 아이템 효과 처리 - useItem 시 바로 처리하도록 변경
-  // (무한 루프 방지를 위해 useEffect 대신 직접 호출 방식 사용)
+  // 파생 전투 상태 (적 유닛, 타겟 유닛, 카드 제출 수 제한)
+  const { enemyUnits, hasMultipleUnits, targetUnit, effectiveMaxSubmitCards } = useDerivedBattleState({
+    enemy: enemy as { units?: { unitId: number; hp: number }[] } | null,
+    player: player as { tokens?: import('../../../types/core').Token[] },
+    selectedTargetUnit,
+    baseMaxSubmitCards,
+    nextTurnEffects: battle.nextTurnEffects
+  });
 
   // 카드 관리
   const hand = battle.hand;
