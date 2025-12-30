@@ -511,29 +511,32 @@ export function CardGrowthModal({
                 </div>
               </div>
 
-              {/* 카드 비교 (전투 스타일) */}
+              {/* 카드 비교 (전투 화면 스타일) */}
               <div style={{
                 display: 'grid',
                 gridTemplateColumns: '1fr auto 1fr',
-                gap: '20px',
-                alignItems: 'center',
+                gap: '24px',
+                alignItems: 'start',
               }}>
                 {/* 현재 카드 */}
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-                  <div style={{ fontSize: '0.875rem', color: '#94a3b8' }}>현재</div>
-                  <BattleStyleCard
+                  <div style={{ fontSize: '0.875rem', color: '#94a3b8' }}>
+                    현재 {currentLevel > 0 ? `(+${currentLevel})` : ''}
+                  </div>
+                  <GameCardDisplay
                     card={selectedCard}
                     growth={selectedGrowth!}
                     stats={currentStats}
-                    label={currentLevel > 0 ? `+${currentLevel}` : undefined}
+                    enhancementLevel={currentLevel}
                   />
                 </div>
 
                 {/* 화살표 */}
                 <div style={{
-                  fontSize: '2rem',
+                  fontSize: '2.5rem',
                   color: previewLevel ? '#60a5fa' : '#475569',
                   transition: 'color 0.2s',
+                  marginTop: '100px',
                 }}>
                   →
                 </div>
@@ -544,17 +547,17 @@ export function CardGrowthModal({
                     {previewLevel ? `+${previewLevel} 강화 시` : '레벨 선택'}
                   </div>
                   {previewLevel ? (
-                    <BattleStyleCard
+                    <GameCardDisplay
                       card={selectedCard}
                       growth={selectedGrowth!}
                       stats={previewStats}
-                      label={`+${previewLevel}`}
+                      enhancementLevel={previewLevel}
                       isPreview
                     />
                   ) : (
                     <div style={{
-                      width: '160px',
-                      height: '220px',
+                      width: '155px',
+                      height: '200px',
                       background: 'rgba(30, 41, 59, 0.5)',
                       borderRadius: '12px',
                       border: '2px dashed #475569',
@@ -572,51 +575,20 @@ export function CardGrowthModal({
                 </div>
               </div>
 
-              {/* 카드 설명 + 강화 효과 설명 */}
-              <div style={{
-                padding: '12px 16px',
-                background: 'rgba(15, 23, 42, 0.6)',
-                borderRadius: '10px',
-                border: '1px solid #334155',
-              }}>
-                {/* 기본 카드 설명 */}
-                {selectedCard.description && (
-                  <div style={{ marginBottom: previewLevel ? '12px' : 0 }}>
-                    <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px' }}>카드 설명</div>
-                    <div style={{ color: '#e2e8f0', fontSize: '0.9rem', lineHeight: 1.4 }}>
-                      {selectedCard.description}
-                    </div>
-                  </div>
-                )}
-                {/* 강화 효과 설명 */}
-                {previewLevel && allLevels[previewLevel - 1] && (
-                  <div style={{
-                    paddingTop: selectedCard.description ? '12px' : 0,
-                    borderTop: selectedCard.description ? '1px solid #334155' : 'none',
-                  }}>
-                    <div style={{ fontSize: '0.8rem', color: '#60a5fa', marginBottom: '4px' }}>
-                      +{previewLevel} 강화 효과
-                    </div>
-                    <div style={{ color: '#93c5fd', fontSize: '0.9rem', lineHeight: 1.4 }}>
-                      {allLevels[previewLevel - 1].description}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* 변경 사항 요약 */}
-              {previewLevel && previewStats && (
+              {/* 강화 효과 설명 */}
+              {previewLevel && allLevels[previewLevel - 1] && (
                 <div style={{
                   padding: '14px 18px',
                   background: 'rgba(96, 165, 250, 0.15)',
                   borderRadius: '10px',
                   border: '1px solid rgba(96, 165, 250, 0.3)',
+                  textAlign: 'center',
                 }}>
-                  <div style={{ fontSize: '0.875rem', color: '#60a5fa', marginBottom: '8px', fontWeight: 600 }}>
-                    📊 변경 사항
+                  <div style={{ fontSize: '0.9rem', color: '#60a5fa', marginBottom: '6px', fontWeight: 600 }}>
+                    +{previewLevel} 강화 효과
                   </div>
-                  <div style={{ color: '#e2e8f0', fontSize: '1rem' }}>
-                    {getChangeSummary(selectedCard, currentStats, previewStats)}
+                  <div style={{ color: '#93c5fd', fontSize: '1rem' }}>
+                    {allLevels[previewLevel - 1].description}
                   </div>
                 </div>
               )}
@@ -748,18 +720,18 @@ export function CardGrowthModal({
   );
 }
 
-/** 전투 스타일 카드 컴포넌트 */
-function BattleStyleCard({
+/** 전투 화면 스타일 카드 디스플레이 (game-card-large CSS 사용) */
+function GameCardDisplay({
   card,
   growth,
   stats,
-  label,
+  enhancementLevel,
   isPreview = false,
 }: {
   card: CardData;
   growth: CardGrowthState;
   stats: ReturnType<typeof calculateEnhancedStats> | null;
-  label?: string;
+  enhancementLevel: number;
   isPreview?: boolean;
 }) {
   const Icon = card.icon || (card.type === 'attack' ? Sword : Shield);
@@ -769,217 +741,88 @@ function BattleStyleCard({
   const action = Math.max(0, card.actionCost - (stats?.actionCostReduction || 0));
   const hits = (card.hits || 1) + (stats?.hitsBonus || 0);
 
-  // 카드 타입에 따른 색상
-  const typeColors: Record<string, { bg: string; border: string }> = {
-    attack: { bg: 'linear-gradient(135deg, #991b1b 0%, #7f1d1d 100%)', border: '#dc2626' },
-    special: { bg: 'linear-gradient(135deg, #4c1d95 0%, #3b0764 100%)', border: '#8b5cf6' },
-    general: { bg: 'linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%)', border: '#3b82f6' },
-  };
-  const colors = typeColors[card.type || 'general'] || typeColors.general;
-
   return (
-    <div style={{
-      width: '160px',
-      background: colors.bg,
-      borderRadius: '12px',
-      border: `2px solid ${isPreview ? '#60a5fa' : colors.border}`,
-      boxShadow: isPreview
-        ? '0 0 20px rgba(96, 165, 250, 0.4)'
-        : '0 4px 16px rgba(0, 0, 0, 0.4)',
-      position: 'relative',
-      overflow: 'hidden',
-    }}>
+    <div
+      className={`game-card-large no-hover ${card.type === 'attack' ? 'attack' : 'defense'}`}
+      style={{
+        boxShadow: isPreview
+          ? '0 0 20px rgba(96, 165, 250, 0.5)'
+          : '0 2px 12px rgba(0, 0, 0, 0.4)',
+        border: isPreview
+          ? '3px solid #60a5fa'
+          : '2px solid #334155',
+        transition: 'all 0.15s',
+      }}
+    >
       {/* 행동력 배지 */}
-      <div style={{
-        position: 'absolute',
-        top: '-8px',
-        left: '-8px',
-        width: '40px',
-        height: '40px',
-        background: 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)',
-        borderRadius: '50%',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontSize: '1.2rem',
-        fontWeight: 800,
-        color: '#0f172a',
-        boxShadow: '0 2px 8px rgba(251, 191, 36, 0.5)',
-        border: '2px solid #fcd34d',
-        zIndex: 10,
+      <div className="card-cost-badge-floating" style={{
+        color: '#fff',
+        WebkitTextStroke: '1px #000'
       }}>
         {action}
       </div>
 
-      {/* 강화 레벨 */}
-      {label && (
+      {/* 강화 레벨 배지 */}
+      {enhancementLevel > 0 && (
         <div style={{
           position: 'absolute',
           top: '4px',
           right: '8px',
           padding: '2px 8px',
-          background: getEnhancementColor(parseInt(label.replace('+', '')) || 0),
+          background: getEnhancementColor(enhancementLevel),
           borderRadius: '6px',
-          fontSize: '12px',
+          fontSize: '11px',
           fontWeight: 700,
           color: '#0f172a',
           zIndex: 10,
         }}>
-          {label}
+          {getEnhancementLabel(enhancementLevel)}
         </div>
       )}
 
-      {/* 카드 내용 */}
-      <div style={{ padding: '12px', paddingTop: '20px' }}>
-        {/* 이름 */}
-        <div style={{
-          textAlign: 'center',
-          color: '#fff',
-          fontWeight: 700,
-          fontSize: '0.95rem',
-          marginBottom: '8px',
-        }}>
-          {card.name}
-        </div>
-
-        {/* 아이콘 */}
-        <div style={{
-          display: 'flex',
-          justifyContent: 'center',
-          marginBottom: '10px',
-          opacity: 0.9,
-        }}>
-          <Icon size={48} className="text-white" />
-        </div>
-
-        {/* 스탯 */}
-        <div style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '4px',
-          fontSize: '0.85rem',
-        }}>
-          {card.damage !== undefined && card.damage > 0 && (
-            <div style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              padding: '4px 8px',
-              background: 'rgba(0, 0, 0, 0.3)',
-              borderRadius: '4px',
-            }}>
-              <span>⚔️ 피해</span>
-              <span style={{
-                color: stats?.damageBonus ? '#f87171' : '#fff',
-                fontWeight: 700,
-              }}>
-                {damage}{hits > 1 ? ` ×${hits}` : ''}
-              </span>
-            </div>
-          )}
-          {card.block !== undefined && card.block > 0 && (
-            <div style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              padding: '4px 8px',
-              background: 'rgba(0, 0, 0, 0.3)',
-              borderRadius: '4px',
-            }}>
-              <span>🛡️ 방어</span>
-              <span style={{
-                color: stats?.blockBonus ? '#60a5fa' : '#fff',
-                fontWeight: 700,
-              }}>
-                {block}
-              </span>
-            </div>
-          )}
-          <div style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            padding: '4px 8px',
-            background: 'rgba(0, 0, 0, 0.3)',
-            borderRadius: '4px',
+      {/* 스탯 사이드바 */}
+      <div className="card-stats-sidebar">
+        {card.damage != null && card.damage > 0 && (
+          <div className="card-stat-item attack" style={{
+            color: stats?.damageBonus ? '#fca5a5' : undefined,
           }}>
-            <span>⏱️ 속도</span>
-            <span style={{
-              color: stats?.speedCostReduction ? '#4ade80' : '#fff',
-              fontWeight: 700,
-            }}>
-              {speed}
-            </span>
-          </div>
-        </div>
-
-        {/* 특성 */}
-        {growth.traits.length > 0 && (
-          <div style={{
-            marginTop: '8px',
-            display: 'flex',
-            flexWrap: 'wrap',
-            gap: '4px',
-            justifyContent: 'center',
-          }}>
-            {growth.traits.slice(0, 3).map(tid => {
-              const t = TRAITS[tid as keyof typeof TRAITS];
-              if (!t) return null;
-              return (
-                <span
-                  key={tid}
-                  style={{
-                    fontSize: '10px',
-                    padding: '2px 6px',
-                    borderRadius: '4px',
-                    background: t.type === 'positive' ? 'rgba(134, 239, 172, 0.3)' : 'rgba(248, 113, 113, 0.3)',
-                    color: t.type === 'positive' ? '#86efac' : '#f87171',
-                  }}
-                >
-                  {t.name}
-                </span>
-              );
-            })}
-            {growth.traits.length > 3 && (
-              <span style={{ fontSize: '10px', color: '#94a3b8' }}>+{growth.traits.length - 3}</span>
-            )}
+            ⚔️{damage}{hits > 1 ? `×${hits}` : ''}
           </div>
         )}
+        {card.block != null && card.block > 0 && (
+          <div className="card-stat-item defense" style={{
+            color: stats?.blockBonus ? '#93c5fd' : undefined,
+          }}>
+            🛡️{block}
+          </div>
+        )}
+        <div className="card-stat-item speed" style={{
+          color: stats?.speedCostReduction ? '#86efac' : undefined,
+        }}>
+          ⏱️{speed}
+        </div>
+      </div>
+
+      {/* 카드 헤더 */}
+      <div className="card-header" style={{ display: 'flex', justifyContent: 'center' }}>
+        <div className="font-black text-sm" style={{ color: '#fff' }}>
+          {card.name}
+        </div>
+      </div>
+
+      {/* 아이콘 영역 */}
+      <div className="card-icon-area">
+        <Icon size={50} className="text-white opacity-80" />
+      </div>
+
+      {/* 푸터 영역 */}
+      <div className="card-footer">
+        {growth.traits && growth.traits.length > 0 && (
+          <TraitBadgeList traits={growth.traits} />
+        )}
+        <span className="card-description">{card.description || ''}</span>
       </div>
     </div>
   );
 }
 
-/** 변경 사항 요약 */
-function getChangeSummary(
-  card: CardData,
-  current: ReturnType<typeof calculateEnhancedStats> | null,
-  preview: ReturnType<typeof calculateEnhancedStats> | null
-): string {
-  if (!preview) return '';
-
-  const changes: string[] = [];
-  const currDamage = current?.damageBonus || 0;
-  const currBlock = current?.blockBonus || 0;
-  const currSpeed = current?.speedCostReduction || 0;
-  const currAction = current?.actionCostReduction || 0;
-  const currHits = current?.hitsBonus || 0;
-
-  if (card.damage && preview.damageBonus > currDamage) {
-    changes.push(`피해 ${(card.damage || 0) + currDamage} → ${(card.damage || 0) + preview.damageBonus} (+${preview.damageBonus - currDamage})`);
-  }
-  if (card.block && preview.blockBonus > currBlock) {
-    changes.push(`방어 ${(card.block || 0) + currBlock} → ${(card.block || 0) + preview.blockBonus} (+${preview.blockBonus - currBlock})`);
-  }
-  if (preview.speedCostReduction > currSpeed) {
-    changes.push(`속도 ${card.speedCost - currSpeed} → ${card.speedCost - preview.speedCostReduction} (-${preview.speedCostReduction - currSpeed})`);
-  }
-  if (preview.actionCostReduction > currAction) {
-    changes.push(`행동력 ${card.actionCost - currAction} → ${card.actionCost - preview.actionCostReduction} (-${preview.actionCostReduction - currAction})`);
-  }
-  if (preview.hitsBonus > currHits) {
-    changes.push(`타격 횟수 +${preview.hitsBonus - currHits}`);
-  }
-
-  return changes.length > 0 ? changes.join(' • ') : '변경 없음';
-}
