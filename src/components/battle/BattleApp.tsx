@@ -103,7 +103,7 @@ import { playInsightSound } from "./utils/insightSystem";
 import { computeComboMultiplier as computeComboMultiplierUtil, explainComboMultiplier as explainComboMultiplierUtil } from "./utils/comboMultiplier";
 import { calculateEtherTransfer } from "./utils/etherTransfer";
 import { formatCompactValue } from "./utils/formatUtils";
-import { generateHandUid, generateUid, shuffle } from "../../lib/randomUtils";
+import { generateHandUid, generateUid } from "../../lib/randomUtils";
 import { checkVictoryCondition } from "./utils/turnEndStateUpdate";
 import { processImmediateCardTraits, processCardPlayedRelicEffects } from "./utils/cardImmediateEffects";
 import { collectTriggeredRelics, playRelicActivationSequence } from "./utils/relicActivationAnimation";
@@ -2064,21 +2064,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
     // 브리치(breach) 효과 처리: 랜덤 카드 3장 생성 후 선택 대기
     if (a.card.special === 'breach' && a.actor === 'player') {
-      // 공격/범용/특수 카드 중 랜덤 3장 선택 (중복 ID 방지, 기교 소모 카드 제외 - 유령카드는 토큰 체크 없이 실행되므로)
-      const cardPool = CARDS.filter(c =>
-        (c.type === 'attack' || c.type === 'general' || c.type === 'special') &&
-        c.id !== 'breach' &&
-        (!c.requiredTokens || c.requiredTokens.length === 0)
-      );
-      const shuffled = shuffle(cardPool);
-      const breachCards: typeof CARDS = [];
-      const usedIds = new Set();
-      for (const card of shuffled) {
-        if (!usedIds.has(card.id) && breachCards.length < 3) {
-          breachCards.push(card);
-          usedIds.add(card.id);
-        }
-      }
+      const { breachCards, breachState } = generateBreachCards(a.sp ?? 0, a.card);
 
       addLog(`👻 "${a.card.name}" 발동! 카드를 선택하세요.`);
 
@@ -2103,56 +2089,19 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         actions
       });
 
-      // 브리치 선택 상태 설정 (게임 일시정지)
-      const breachState = {
-        cards: breachCards,
-        breachSp: a.sp,
-        breachCard: a.card
-      };
       breachSelectionRef.current = breachState as BreachSelection;
       setBreachSelection(breachState as BreachSelection);
 
-      // 브리치 선택 중에는 stepOnce 진행을 멈춤 (사용자가 선택할 때까지)
       isExecutingCardRef.current = false;
       return;
     }
 
     // createFencingCards3 (벙 데 라므): 3x3 창조 선택 (3번의 선택, 각각 3장 중 1장)
     if (hasSpecial(a.card, 'createFencingCards3') && a.actor === 'player') {
-      // 펜싱 공격 카드 풀 (기교 소모 카드 제외 - 창조된 유령카드는 토큰 체크 없이 실행되므로)
-      const fencingAttackCards = CARDS.filter(c =>
-        c.cardCategory === 'fencing' &&
-        c.type === 'attack' &&
-        c.id !== a.card.id &&
-        (!c.requiredTokens || c.requiredTokens.length === 0) // 기교 소모 카드 제외
-      );
+      const { creationQueue, firstSelection, success } = generateFencingCards(a.sp ?? 0, a.card);
 
-      if (fencingAttackCards.length >= 3) {
-        // 3번의 선택을 위한 큐 생성 (각각 다른 3장)
-        const allShuffled = shuffle(fencingAttackCards);
-        const usedIds = new Set();
-
-        // 창조 선택 큐 초기화
-        creationQueueRef.current = [];
-
-        for (let selectionIdx = 0; selectionIdx < 3; selectionIdx++) {
-          // 이 선택을 위한 3장 선택 (이전 선택에서 쓰인 카드 제외)
-          const availableCards = allShuffled.filter(c => !usedIds.has(c.id));
-          const selectionCards = availableCards.slice(0, 3);
-
-          // 선택된 카드 ID 기록 (다음 선택에서 제외)
-          selectionCards.forEach(c => usedIds.add(c.id));
-
-          creationQueueRef.current.push({
-            cards: selectionCards as unknown as Card[],
-            insertSp: (a.sp ?? 0) + 1, // +1 속도에 배치
-            breachCard: { ...(a.card as unknown as Record<string, unknown>), breachSpOffset: 1 } as unknown as Card,
-            isAoe: true, // 범위 피해 플래그
-            totalSelections: 3,
-            currentSelection: selectionIdx + 1 // 1, 2, 3
-          });
-        }
-
+      if (success && firstSelection) {
+        creationQueueRef.current = creationQueue;
         addLog(`👻 "${a.card.name}" 발동! 검격 카드 창조 1/3: 카드를 선택하세요.`);
 
         // 에테르 누적 (return 전에 처리)
@@ -2176,20 +2125,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
           actions
         });
 
-        // 첫 번째 선택 시작
-        const firstSelection = creationQueueRef.current.shift();
-        if (!firstSelection) return;
-        const creationState = {
-          cards: firstSelection.cards,
-          breachSp: firstSelection.insertSp,
-          breachCard: firstSelection.breachCard,
-          isCreationSelection: true,
-          isAoe: firstSelection.isAoe
-        } as BreachSelection;
-        breachSelectionRef.current = creationState;
-        setBreachSelection(creationState);
+        breachSelectionRef.current = firstSelection as BreachSelection;
+        setBreachSelection(firstSelection as BreachSelection);
 
-        // 선택 중에는 stepOnce 진행을 멈춤
         isExecutingCardRef.current = false;
         return;
       }
@@ -2197,40 +2135,10 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
     // executionSquad (총살): 4x3 총격카드 창조 선택 (4번의 선택, 각각 3장 중 1장)
     if (hasSpecial(a.card, 'executionSquad') && a.actor === 'player') {
-      // 총기 공격 카드 풀 (기교 소모 카드 제외)
-      const gunAttackCards = CARDS.filter(c =>
-        c.cardCategory === 'gun' &&
-        c.type === 'attack' &&
-        c.id !== a.card.id &&
-        (!c.requiredTokens || c.requiredTokens.length === 0)
-      );
+      const { creationQueue, firstSelection, success } = generateExecutionSquadCards(a.sp ?? 0, a.card);
 
-      if (gunAttackCards.length >= 3) {
-        // 4번의 선택을 위한 큐 생성 (각각 다른 3장)
-        const allShuffled = shuffle(gunAttackCards);
-        const usedIds = new Set();
-
-        // 창조 선택 큐 초기화
-        creationQueueRef.current = [];
-
-        for (let selectionIdx = 0; selectionIdx < 4; selectionIdx++) {
-          // 이 선택을 위한 3장 선택 (이전 선택에서 쓰인 카드 제외)
-          const availableCards = allShuffled.filter(c => !usedIds.has(c.id));
-          const selectionCards = availableCards.slice(0, 3);
-
-          // 선택된 카드 ID 기록 (다음 선택에서 제외)
-          selectionCards.forEach(c => usedIds.add(c.id));
-
-          creationQueueRef.current.push({
-            cards: selectionCards as unknown as Card[],
-            insertSp: (a.sp ?? 0) + 1, // +1 속도에 배치
-            breachCard: { ...(a.card as unknown as Record<string, unknown>), breachSpOffset: 1 } as unknown as Card,
-            isAoe: false,
-            totalSelections: 4,
-            currentSelection: selectionIdx + 1 // 1, 2, 3, 4
-          });
-        }
-
+      if (success && firstSelection) {
+        creationQueueRef.current = creationQueue;
         addLog(`👻 "${a.card.name}" 발동! 총격 카드 창조 1/4: 카드를 선택하세요.`);
 
         // 에테르 누적 (return 전에 처리)
@@ -2254,20 +2162,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
           actions
         });
 
-        // 첫 번째 선택 시작
-        const firstSelection = creationQueueRef.current.shift();
-        if (!firstSelection) return;
-        const creationState = {
-          cards: firstSelection.cards,
-          breachSp: firstSelection.insertSp,
-          breachCard: firstSelection.breachCard,
-          isCreationSelection: true,
-          isAoe: firstSelection.isAoe
-        } as BreachSelection;
-        breachSelectionRef.current = creationState;
-        setBreachSelection(creationState);
+        breachSelectionRef.current = firstSelection as BreachSelection;
+        setBreachSelection(firstSelection as BreachSelection);
 
-        // 선택 중에는 stepOnce 진행을 멈춤
         isExecutingCardRef.current = false;
         return;
       }
