@@ -119,7 +119,7 @@ import {
   calculatePassiveEffects,
   applyCombatStartEffects
 } from "../../lib/relicEffects";
-import type { BattlePayload, BattleResult, OrderItem, Card, ItemSlotsBattleActions, AIMode, AICard, AIEnemy, TokenEntity, SpecialCard, HandCard, SpecialActor, SpecialBattleContext, SpecialQueueItem, CombatState, CombatCard, CombatBattleContext, StunQueueItem, ParryQueueItem, ParryReadyState, ComboCard, HandAction, BattleRef, UITimelineAction, UIRelicsMap, RelicRarities, ComboInfo, UIDeflation, EnemyUnitUI, HoveredCard, HoveredEnemyAction, HandBattle, TimelineBattle, TimelineEnemy, CentralPlayer, HandUnit, ItemSlotsEnemyPlan, ItemSlotsBattleRef, SimulationResult, ExpectedDamagePlayer, ExpectedDamageEnemy, AnomalyWithLevel, BreachSelection, RecallSelection } from "../../types";
+import type { BattlePayload, BattleResult, OrderItem, Card, ItemSlotsBattleActions, AIMode, AICard, AIEnemy, TokenEntity, SpecialCard, HandCard, SpecialActor, SpecialBattleContext, SpecialQueueItem, CombatState, CombatCard, CombatBattleContext, ParryReadyState, ComboCard, HandAction, BattleRef, UITimelineAction, UIRelicsMap, RelicRarities, ComboInfo, UIDeflation, EnemyUnitUI, HoveredCard, HoveredEnemyAction, HandBattle, TimelineBattle, TimelineEnemy, CentralPlayer, HandUnit, ItemSlotsEnemyPlan, ItemSlotsBattleRef, SimulationResult, ExpectedDamagePlayer, ExpectedDamageEnemy, AnomalyWithLevel, BreachSelection, RecallSelection } from "../../types";
 import type { PlayerState, EnemyState, SortType, BattlePhase } from "./reducer/battleReducerActions";
 import type { BattleActions } from "./hooks/useBattleState";
 import { PlayerHpBar } from "./ui/PlayerHpBar";
@@ -2095,7 +2095,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     if (hasTrait(a.card, 'stun')) {
       const { updatedQueue, stunEvent } = processStunEffect({
         action: a,
-        queue: currentBattle.queue as unknown as StunQueueItem[],
+        queue: currentBattle.queue,
         currentQIndex: currentBattle.qIndex,
         addLog
       });
@@ -2406,7 +2406,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       const { updatedQueue, parryEvents, updatedParryStates, outCards } = checkParryTrigger({
         parryReadyStates: parryReadyStatesRef.current as ParryReadyState[],
         enemyAction: a,
-        queue: currentQ as unknown as ParryQueueItem[],
+        queue: currentQ,
         currentQIndex: currentBattle.qIndex,
         enemyMaxSpeed: Number(enemy.maxSpeed) || 0,
         addLog,
@@ -2927,7 +2927,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
       <TimelineDisplay
         player={player}
-        enemy={enemy as unknown as TimelineEnemy}
+        enemy={enemy}
         DEFAULT_PLAYER_MAX_SPEED={DEFAULT_PLAYER_MAX_SPEED}
         DEFAULT_ENEMY_MAX_SPEED={DEFAULT_ENEMY_MAX_SPEED}
         generateSpeedTicks={generateSpeedTicks}
@@ -3019,7 +3019,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
             actions={actions}
             willOverdrive={willOverdrive}
             etherSlots={etherSlots}
-            player={player as unknown as CentralPlayer}
+            player={player}
             beginResolveFromRespond={beginResolveFromRespond}
             rewindToSelect={rewindToSelect}
             rewindUsed={rewindUsed}

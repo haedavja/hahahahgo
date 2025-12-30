@@ -13,7 +13,8 @@ import type {
   TokenEffectPayload
 } from './core';
 import type { BattlePassives, BattleEnemyUnit } from './battle';
-import type { DeflationResult } from './systems';
+import type { EnemyUnit, PlayerBattleState } from './combat';
+import type { DeflationResult, OrderItem } from './systems';
 
 // ==================== 기본 UI Props ====================
 
@@ -137,10 +138,11 @@ export interface TimelinePlayer {
   strength?: number;
 }
 
-/** 타임라인 적 */
-export interface TimelineEnemy {
-  maxSpeed?: number;
-}
+/**
+ * 타임라인 적 - EnemyUnit에서 파생
+ * maxSpeed만 필요한 UI 컴포넌트용
+ */
+export type TimelineEnemy = Pick<EnemyUnit, 'maxSpeed'>;
 
 /** 타임라인 전투 상태 */
 export interface TimelineBattle {
@@ -378,10 +380,11 @@ export interface CentralBattle {
   qIndex: number;
 }
 
-/** 중앙 단계 표시 플레이어 상태 */
-export interface CentralPlayer {
-  etherPts: number;
-}
+/**
+ * 중앙 단계 표시 플레이어 상태 - PlayerBattleState에서 파생
+ * etherPts만 필요한 UI 컴포넌트용
+ */
+export type CentralPlayer = Pick<PlayerBattleState, 'etherPts'>;
 
 /** 중앙 단계 표시 적 상태 */
 export interface CentralEnemy {
@@ -699,10 +702,13 @@ export interface CardsTabCharacterBuild {
 
 // ==================== 적 유닛 UI 타입 ====================
 
-/** 적 유닛 (UI용) */
+/**
+ * 적 유닛 (UI용)
+ * EnemyUnit의 서브셋이지만 unitId 등 일부 필드는 필수
+ */
 export interface EnemyUnitUI {
   unitId: number;
-  name: string;
+  name?: string;
   emoji?: string;
   hp: number;
   maxHp: number;

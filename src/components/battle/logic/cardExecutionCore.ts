@@ -16,7 +16,6 @@ import type {
   ExecuteCardActionResult,
   BattleEvent,
   StunAction,
-  StunQueueItem,
   StunProcessingResult,
   Card,
   Combatant,
@@ -152,7 +151,7 @@ export function executeCardActionCore(params: ExecuteCardActionCoreParams): Exec
   // 스턴 효과 처리
   const stunResult = processStunEffect({
     action: action as unknown as StunAction,
-    queue: battleRef.current?.queue as unknown as StunQueueItem[],
+    queue: battleRef.current?.queue ?? [],
     currentQIndex: battleRef.current?.qIndex ?? 0,
     addLog
   }) as StunProcessingResult;

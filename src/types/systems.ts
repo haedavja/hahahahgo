@@ -470,14 +470,11 @@ export interface AnomalyType {
 
 // ==================== 패리(쳐내기) 시스템 ====================
 
-/** 패리용 카드 정보 */
-export interface ParryCardInfo {
-  name?: string;
-  type?: string;
-  parryRange?: number;
-  parryPushAmount?: number;
-  [key: string]: unknown;
-}
+/**
+ * 패리용 카드 정보 - Card와 동일 (하위 호환용 별칭)
+ * @deprecated Card를 직접 사용하세요.
+ */
+export type ParryCardInfo = Card;
 
 /** 패리용 액션 */
 export interface ParryAction {
@@ -486,12 +483,11 @@ export interface ParryAction {
   actor: 'player' | 'enemy';
 }
 
-/** 패리용 큐 아이템 */
-export interface ParryQueueItem {
-  card?: ParryCardInfo;
-  sp?: number;
-  actor?: 'player' | 'enemy';
-}
+/**
+ * 패리용 큐 아이템 - OrderItem과 동일 (하위 호환용 별칭)
+ * @deprecated OrderItem을 직접 사용하세요.
+ */
+export type ParryQueueItem = OrderItem;
 
 /** 패리 대기 상태 */
 export interface ParryReadyState {
@@ -541,11 +537,11 @@ export interface CheckParryTriggerParams {
 
 // ==================== 기절 처리 시스템 ====================
 
-/** 기절 처리용 카드 정보 */
-export interface StunCardInfo {
-  name?: string;
-  [key: string]: unknown;
-}
+/**
+ * 기절 처리용 카드 정보 - Card와 동일 (하위 호환용 별칭)
+ * @deprecated Card를 직접 사용하세요.
+ */
+export type StunCardInfo = Card;
 
 /** 기절 처리용 액션 */
 export interface StunAction {
@@ -554,12 +550,11 @@ export interface StunAction {
   actor: 'player' | 'enemy';
 }
 
-/** 기절 처리용 큐 아이템 */
-export interface StunQueueItem {
-  card?: StunCardInfo;
-  sp?: number;
-  actor?: 'player' | 'enemy';
-}
+/**
+ * 기절 처리용 큐 아이템 - OrderItem과 동일 (하위 호환용 별칭)
+ * @deprecated OrderItem을 직접 사용하세요.
+ */
+export type StunQueueItem = OrderItem;
 
 /** 기절 이벤트 */
 export interface StunEvent {
