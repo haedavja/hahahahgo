@@ -243,7 +243,7 @@ export const computeBattlePlan = (
       timeline,
       tuLimit: 30,
     },
-    simulation: simulateBattle(timeline as unknown as Parameters<typeof simulateBattle>[0], finalStats),
+    simulation: simulateBattle(timeline, finalStats),
     enemyCount,
   };
 };
