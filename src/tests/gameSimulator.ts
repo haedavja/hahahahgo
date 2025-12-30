@@ -39,6 +39,8 @@
  * - 포커 콤보 감지 및 로깅 (파이브카드~페어)
  * - AI 콤보 인식: 카드 선택 시 포커 조합 고려
  * - 콤보 통계: 전투별/전체 콤보 발동 횟수 추적
+ * - 티어별 시뮬레이션: 모든 적 지원 (Tier 1-3)
+ * - 밸런스 분석: 적별/티어별 승률 비교
  */
 
 import type { Card, TokenState } from '../types/core';
@@ -1782,11 +1784,17 @@ export function printStats(stats: SimulationStats): void {
 
 // ==================== 테스트용 함수 ====================
 
+// 티어별 적 목록
+export const TIER_1_ENEMIES = ['ghoul', 'marauder', 'wildrat', 'berserker', 'polluted', 'slurthim'];
+export const TIER_2_ENEMIES = ['deserter', 'hunter'];
+export const TIER_3_ENEMIES = ['slaughterer', 'captain'];
+export const ALL_ENEMIES = [...TIER_1_ENEMIES, ...TIER_2_ENEMIES, ...TIER_3_ENEMIES];
+
 export function runQuickTest(): SimulationStats {
   const config: SimulationConfig = {
     battles: 100,
     maxTurns: 30,
-    enemyIds: ['ghoul', 'marauder', 'wildrat', 'berserker', 'deserter'],
+    enemyIds: TIER_1_ENEMIES,
     verbose: false,
   };
 
@@ -1794,6 +1802,125 @@ export function runQuickTest(): SimulationStats {
   printStats(stats);
 
   return stats;
+}
+
+/**
+ * 티어별 시뮬레이션 실행
+ */
+export function runTierSimulation(tier: 1 | 2 | 3, battles: number = 100): SimulationStats {
+  const enemyIds = tier === 1 ? TIER_1_ENEMIES :
+                   tier === 2 ? TIER_2_ENEMIES :
+                   TIER_3_ENEMIES;
+
+  const config: SimulationConfig = {
+    battles,
+    maxTurns: tier === 3 ? 50 : 30,  // 보스는 더 긴 턴 허용
+    enemyIds,
+    verbose: false,
+  };
+
+  console.log(`\n🎮 Tier ${tier} 적 시뮬레이션 (${battles}회)`);
+  const stats = runSimulation(config);
+  printStats(stats);
+
+  return stats;
+}
+
+/**
+ * 전체 적 시뮬레이션 (모든 티어)
+ */
+export function runFullSimulation(battlesPerEnemy: number = 50): SimulationStats {
+  const config: SimulationConfig = {
+    battles: battlesPerEnemy * ALL_ENEMIES.length,
+    maxTurns: 50,
+    enemyIds: ALL_ENEMIES,
+    verbose: false,
+  };
+
+  console.log(`\n🎮 전체 적 시뮬레이션 (${ALL_ENEMIES.length}종, 각 ${battlesPerEnemy}회)`);
+  const stats = runSimulation(config);
+  printStats(stats);
+
+  return stats;
+}
+
+/**
+ * 밸런스 분석 - 티어별 승률 비교
+ */
+export function runBalanceAnalysis(battles: number = 100): void {
+  console.log('\n========================================');
+  console.log('         밸런스 분석 리포트             ');
+  console.log('========================================\n');
+
+  const tierStats: Record<number, SimulationStats> = {};
+
+  for (const tier of [1, 2, 3] as const) {
+    const enemyIds = tier === 1 ? TIER_1_ENEMIES :
+                     tier === 2 ? TIER_2_ENEMIES :
+                     TIER_3_ENEMIES;
+
+    const config: SimulationConfig = {
+      battles,
+      maxTurns: tier === 3 ? 50 : 30,
+      enemyIds,
+      verbose: false,
+    };
+
+    tierStats[tier] = runSimulation(config);
+  }
+
+  console.log('\n📊 티어별 승률 요약:');
+  console.log('─────────────────────────────────────────');
+  for (const tier of [1, 2, 3]) {
+    const stats = tierStats[tier];
+    const rating = stats.winRate > 0.8 ? '✅ 쉬움' :
+                   stats.winRate > 0.6 ? '⚖️ 적당' :
+                   stats.winRate > 0.4 ? '⚠️ 어려움' :
+                   '❌ 매우 어려움';
+    console.log(`  Tier ${tier}: ${(stats.winRate * 100).toFixed(1)}% 승률 | ${stats.avgTurns.toFixed(1)}턴 | ${rating}`);
+  }
+
+  console.log('\n👾 적별 상세 승률:');
+  console.log('─────────────────────────────────────────');
+
+  const allEnemyStats: Array<{ id: string; tier: number; winRate: number }> = [];
+  for (const tier of [1, 2, 3]) {
+    const stats = tierStats[tier];
+    for (const [enemyId, enemyStat] of Object.entries(stats.enemyStats)) {
+      allEnemyStats.push({ id: enemyId, tier, winRate: enemyStat.winRate });
+    }
+  }
+
+  allEnemyStats.sort((a, b) => a.winRate - b.winRate);
+  for (const stat of allEnemyStats) {
+    const enemy = ENEMIES.find(e => e.id === stat.id);
+    const name = enemy?.name || stat.id;
+    const difficulty = stat.winRate > 0.8 ? '⭐' :
+                       stat.winRate > 0.6 ? '⭐⭐' :
+                       stat.winRate > 0.4 ? '⭐⭐⭐' :
+                       stat.winRate > 0.2 ? '⭐⭐⭐⭐' :
+                       '⭐⭐⭐⭐⭐';
+    console.log(`  ${name} (T${stat.tier}): ${(stat.winRate * 100).toFixed(1)}% | ${difficulty}`);
+  }
+
+  console.log('\n🃏 전체 콤보 통계:');
+  console.log('─────────────────────────────────────────');
+  const totalCombos: Record<string, number> = {};
+  let totalBattles = 0;
+  for (const tier of [1, 2, 3]) {
+    const stats = tierStats[tier];
+    totalBattles += stats.totalBattles;
+    for (const [comboName, comboStat] of Object.entries(stats.comboStats)) {
+      totalCombos[comboName] = (totalCombos[comboName] || 0) + comboStat.count;
+    }
+  }
+
+  const sortedCombos = Object.entries(totalCombos).sort((a, b) => b[1] - a[1]);
+  for (const [comboName, count] of sortedCombos) {
+    console.log(`  ${comboName}: ${count}회 (전투당 ${(count / totalBattles).toFixed(2)})`);
+  }
+
+  console.log('\n========================================\n');
 }
 
 // CLI에서 직접 실행 시
