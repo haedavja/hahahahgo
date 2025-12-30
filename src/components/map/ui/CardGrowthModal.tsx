@@ -141,12 +141,8 @@ export function CardGrowthModal({
     if (growth.enhancementLevel >= 5) return;
 
     onEnhance(selectedCardId);
-    showNotification(`${selectedCard?.name} +${(growth.enhancementLevel || 0) + 1} 강화 완료!`, 'enhance');
-
-    // 완료 후 모달 닫기 (휴식 노드에서 1회만 승급 가능)
-    setTimeout(() => {
-      handleClose();
-    }, 1200);
+    // 바로 모달 닫기 (휴식 노드에서 1회만 승급 가능)
+    handleClose();
   };
 
   // 특화 실행
@@ -155,14 +151,8 @@ export function CardGrowthModal({
 
     const traitIds = selectedSpecOption.traits.map(t => t.id);
     onSpecialize(selectedCardId, traitIds);
-
-    const traitNames = selectedSpecOption.traits.map(t => t.name).join(', ');
-    showNotification(`${selectedCard?.name} 특화 완료! [${traitNames}]`, 'specialize');
-
-    // 완료 후 모달 닫기 (휴식 노드에서 1회만 승급 가능)
-    setTimeout(() => {
-      handleClose();
-    }, 1200);
+    // 바로 모달 닫기 (휴식 노드에서 1회만 승급 가능)
+    handleClose();
   };
 
   // 모달 닫기 핸들러
@@ -881,7 +871,9 @@ function GameCardDisplay({
       {/* 푸터 영역 */}
       <div className="card-footer">
         {displayTraits && displayTraits.length > 0 && (
-          <TraitBadgeList traits={displayTraits} />
+          <div style={{ pointerEvents: 'auto' }}>
+            <TraitBadgeList traits={displayTraits} />
+          </div>
         )}
         <span className="card-description">{description || ''}</span>
       </div>

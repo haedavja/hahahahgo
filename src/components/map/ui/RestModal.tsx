@@ -116,6 +116,7 @@ export function RestModal({
   const [egoFormMode, setEgoFormMode] = useState(false);
   const [selectedTraitsForEgo, setSelectedTraitsForEgo] = useState<number[]>([]);
   const [showCardGrowthModal, setShowCardGrowthModal] = useState(false);
+  const [cardGrowthUsed, setCardGrowthUsed] = useState(false);
 
   return (
     <div className="event-modal-overlay" onClick={closeRest}>
@@ -169,12 +170,16 @@ export function RestModal({
               <button
                 className="btn"
                 onClick={() => setShowCardGrowthModal(true)}
+                disabled={cardGrowthUsed}
                 style={{
-                  background: 'linear-gradient(135deg, rgba(96, 165, 250, 0.2), rgba(134, 239, 172, 0.2))',
-                  border: '1px solid rgba(96, 165, 250, 0.4)',
+                  background: cardGrowthUsed
+                    ? 'rgba(71, 85, 105, 0.3)'
+                    : 'linear-gradient(135deg, rgba(96, 165, 250, 0.2), rgba(134, 239, 172, 0.2))',
+                  border: cardGrowthUsed ? '1px solid rgba(71, 85, 105, 0.3)' : '1px solid rgba(96, 165, 250, 0.4)',
+                  opacity: cardGrowthUsed ? 0.5 : 1,
                 }}
               >
-                🎴 카드 승급 (강화/특화)
+                {cardGrowthUsed ? '✓ 카드 승급 완료' : '🎴 카드 승급 (강화/특화)'}
               </button>
             </div>
           </div>
@@ -216,8 +221,14 @@ export function RestModal({
         isOpen={showCardGrowthModal}
         onClose={() => setShowCardGrowthModal(false)}
         cardGrowth={cardGrowth}
-        onEnhance={enhanceCard}
-        onSpecialize={specializeCard}
+        onEnhance={(cardId) => {
+          enhanceCard(cardId);
+          setCardGrowthUsed(true);
+        }}
+        onSpecialize={(cardId, traits) => {
+          specializeCard(cardId, traits);
+          setCardGrowthUsed(true);
+        }}
         ownedCards={ownedCards}
       />
     </div>
