@@ -44,7 +44,9 @@ export function useCardTooltip({ hoveredCard, battlePhase, actions }: UseCardToo
     const hasTraits = card?.traits && card.traits.length > 0;
     const cardWithTokens = card as Card & { appliedTokens?: Array<{ id: string; stacks?: number; target?: string }> };
     const hasAppliedTokens = cardWithTokens?.appliedTokens && cardWithTokens.appliedTokens.length > 0;
-    if ((!hasTraits && !hasAppliedTokens) || !cardElement) return;
+    const cardWithEnhancement = card as Card & { enhancementLevel?: number };
+    const hasEnhancement = cardWithEnhancement?.enhancementLevel && cardWithEnhancement.enhancementLevel > 0;
+    if ((!hasTraits && !hasAppliedTokens && !hasEnhancement) || !cardElement) return;
 
     const updatePos = () => {
       // 요소가 DOM에 있고 보이는지 확인

@@ -62,6 +62,17 @@ const REFLECTION_DESC = {
   '지배': '적 동결',
 };
 
+// 강화/특화 비용 (레벨별)
+const ENHANCEMENT_COST: Record<number, number> = {
+  1: 10,  // 0→1강
+  2: 15,  // 1→2강
+  3: 25,  // 2→3강 (마일스톤)
+  4: 35,  // 3→4강
+  5: 50,  // 4→5강 (마일스톤)
+};
+
+const SPECIALIZATION_COST = 20; // 특화 비용 (고정)
+
 export function RestModal({
   memoryValue,
   playerHp,
@@ -71,6 +82,7 @@ export function RestModal({
   canFormEgo,
   cardUpgrades,
   cardGrowth,
+  gold,
   closeRest,
   awakenAtRest,
   healAtRest,
@@ -78,6 +90,7 @@ export function RestModal({
   enhanceCard,
   specializeCard,
   formEgo,
+  spendGold,
 }: {
   memoryValue: number;
   playerHp: number;
@@ -87,6 +100,7 @@ export function RestModal({
   canFormEgo: boolean;
   cardUpgrades: Record<string, string>;
   cardGrowth: Record<string, CardGrowthState>;
+  gold: number;
   closeRest: () => void;
   awakenAtRest: (type: string) => void;
   healAtRest: (amount: number) => void;
@@ -94,6 +108,7 @@ export function RestModal({
   enhanceCard: (cardId: string) => void;
   specializeCard: (cardId: string, selectedTraits: string[]) => void;
   formEgo: (traits: string[]) => void;
+  spendGold: (amount: number) => void;
 }) {
   const [egoFormMode, setEgoFormMode] = useState(false);
   const [selectedTraitsForEgo, setSelectedTraitsForEgo] = useState<number[]>([]);
@@ -149,8 +164,10 @@ export function RestModal({
               </button>
               <CardGrowthPanel
                 cardGrowth={cardGrowth}
+                gold={gold}
                 onEnhance={enhanceCard}
                 onSpecialize={specializeCard}
+                spendGold={spendGold}
               />
             </div>
           </div>
@@ -331,21 +348,194 @@ function EgoFormPanel({
   );
 }
 
+/** 카드 성장 통계 계산 */
+function calculateGrowthStats(cardGrowth: Record<string, CardGrowthState>) {
+  const stats = {
+    totalCards: 0,
+    enhancedCards: 0,
+    specializedCards: 0,
+    totalEnhancementLevels: 0,
+    totalSpecializations: 0,
+    totalTraits: 0,
+    rarityBreakdown: { common: 0, rare: 0, special: 0, legendary: 0 } as Record<string, number>,
+    maxEnhancementLevel: 0,
+  };
+
+  for (const [_cardId, growth] of Object.entries(cardGrowth)) {
+    stats.totalCards++;
+
+    if (growth.enhancementLevel && growth.enhancementLevel > 0) {
+      stats.enhancedCards++;
+      stats.totalEnhancementLevels += growth.enhancementLevel;
+      stats.maxEnhancementLevel = Math.max(stats.maxEnhancementLevel, growth.enhancementLevel);
+    }
+
+    if (growth.specializationCount && growth.specializationCount > 0) {
+      stats.specializedCards++;
+      stats.totalSpecializations += growth.specializationCount;
+    }
+
+    if (growth.traits) {
+      stats.totalTraits += growth.traits.length;
+    }
+
+    stats.rarityBreakdown[growth.rarity || 'common']++;
+  }
+
+  return stats;
+}
+
+/** 카드 성장 통계 패널 */
+function GrowthStatsPanel({ cardGrowth }: { cardGrowth: Record<string, CardGrowthState> }) {
+  const [expanded, setExpanded] = useState(false);
+  const stats = calculateGrowthStats(cardGrowth);
+
+  if (stats.totalCards === 0) {
+    return null;
+  }
+
+  return (
+    <div style={{
+      marginBottom: "10px",
+      padding: "8px 10px",
+      background: "rgba(96, 165, 250, 0.08)",
+      borderRadius: "6px",
+      border: "1px solid rgba(96, 165, 250, 0.2)",
+    }}>
+      <button
+        onClick={() => setExpanded(!expanded)}
+        style={{
+          width: "100%",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          background: "none",
+          border: "none",
+          padding: 0,
+          cursor: "pointer",
+          color: "#e2e8f0",
+        }}
+      >
+        <span style={{ fontSize: "12px", fontWeight: 600, color: "#60a5fa" }}>
+          📊 성장 현황
+        </span>
+        <span style={{ fontSize: "11px", color: "#9ca3af" }}>
+          {expanded ? "▲" : "▼"}
+        </span>
+      </button>
+
+      {/* 요약 (항상 표시) */}
+      <div style={{
+        display: "flex",
+        gap: "12px",
+        marginTop: "6px",
+        fontSize: "11px",
+        color: "#9ca3af",
+      }}>
+        <span>강화 <span style={{ color: "#60a5fa", fontWeight: 600 }}>{stats.enhancedCards}</span>장</span>
+        <span>특화 <span style={{ color: "#86efac", fontWeight: 600 }}>{stats.specializedCards}</span>장</span>
+        {stats.rarityBreakdown.legendary > 0 && (
+          <span style={{ color: "#fbbf24" }}>★ 전설 {stats.rarityBreakdown.legendary}</span>
+        )}
+      </div>
+
+      {/* 상세 정보 (확장 시) */}
+      {expanded && (
+        <div style={{
+          marginTop: "10px",
+          paddingTop: "10px",
+          borderTop: "1px solid rgba(96, 165, 250, 0.15)",
+        }}>
+          {/* 강화 통계 */}
+          <div style={{ marginBottom: "8px" }}>
+            <div style={{ fontSize: "11px", color: "#60a5fa", fontWeight: 600, marginBottom: "4px" }}>
+              ⚔️ 강화
+            </div>
+            <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+              <StatMini label="총 강화" value={`+${stats.totalEnhancementLevels}`} color="#60a5fa" />
+              <StatMini label="최고 레벨" value={`+${stats.maxEnhancementLevel}`} color="#a78bfa" />
+            </div>
+          </div>
+
+          {/* 특화 통계 */}
+          <div style={{ marginBottom: "8px" }}>
+            <div style={{ fontSize: "11px", color: "#86efac", fontWeight: 600, marginBottom: "4px" }}>
+              ✨ 특화
+            </div>
+            <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+              <StatMini label="총 특화" value={`${stats.totalSpecializations}회`} color="#86efac" />
+              <StatMini label="부여 특성" value={`${stats.totalTraits}개`} color="#34d399" />
+            </div>
+          </div>
+
+          {/* 등급 분포 */}
+          <div>
+            <div style={{ fontSize: "11px", color: "#fbbf24", fontWeight: 600, marginBottom: "4px" }}>
+              🏆 등급 분포
+            </div>
+            <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+              {stats.rarityBreakdown.legendary > 0 && (
+                <StatMini label="전설" value={stats.rarityBreakdown.legendary.toString()} color="#fbbf24" />
+              )}
+              {stats.rarityBreakdown.special > 0 && (
+                <StatMini label="특별" value={stats.rarityBreakdown.special.toString()} color="#34d399" />
+              )}
+              {stats.rarityBreakdown.rare > 0 && (
+                <StatMini label="희귀" value={stats.rarityBreakdown.rare.toString()} color="#60a5fa" />
+              )}
+              <StatMini label="일반" value={stats.rarityBreakdown.common.toString()} color="#9ca3af" />
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** 미니 스탯 표시 컴포넌트 */
+function StatMini({ label, value, color }: { label: string; value: string; color: string }) {
+  return (
+    <span style={{
+      fontSize: "10px",
+      padding: "2px 6px",
+      borderRadius: "4px",
+      background: `${color}15`,
+      color: color,
+      border: `1px solid ${color}30`,
+    }}>
+      {label}: <span style={{ fontWeight: 700 }}>{value}</span>
+    </span>
+  );
+}
+
+/** 성공 알림 타입 */
+interface GrowthNotification {
+  message: string;
+  type: 'enhance' | 'specialize' | 'promotion';
+  cardName: string;
+}
+
 /** 카드 성장 패널 (강화/특화) */
 function CardGrowthPanel({
   cardGrowth,
+  gold,
   onEnhance,
   onSpecialize,
+  spendGold,
 }: {
   cardGrowth: Record<string, CardGrowthState>;
+  gold: number;
   onEnhance: (cardId: string) => void;
   onSpecialize: (cardId: string, selectedTraits: string[]) => void;
+  spendGold: (amount: number) => void;
 }) {
   const [selectedCard, setSelectedCard] = useState<string | null>(null);
   const [showCardModal, setShowCardModal] = useState(false);
   const [growthMode, setGrowthMode] = useState<'select' | 'enhance' | 'specialize'>('select');
   const [specOptions, setSpecOptions] = useState<SpecializationOption[]>([]);
   const [selectedOption, setSelectedOption] = useState<SpecializationOption | null>(null);
+  const [notification, setNotification] = useState<GrowthNotification | null>(null);
+  const [animateCard, setAnimateCard] = useState(false);
 
   const cards = CARDS || [];
 
@@ -391,16 +581,64 @@ function CardGrowthPanel({
     setGrowthMode('specialize');
   };
 
+  // 현재 선택된 카드의 강화 비용 계산
+  const getEnhancementCost = (cardId: string): number => {
+    const growth = getCardGrowthState(cardId);
+    const nextLevel = (growth.enhancementLevel || 0) + 1;
+    return ENHANCEMENT_COST[nextLevel] || 0;
+  };
+
+  // 알림 표시 헬퍼
+  const showNotification = (notif: GrowthNotification) => {
+    setNotification(notif);
+    setAnimateCard(true);
+    // 3초 후 알림 숨김
+    setTimeout(() => {
+      setNotification(null);
+      setAnimateCard(false);
+    }, 3000);
+  };
+
   const handleConfirmEnhance = () => {
     if (!selectedCard) return;
+    const cost = getEnhancementCost(selectedCard);
+    if (gold < cost) return; // 골드 부족
+
+    const cardName = cards.find(c => c.id === selectedCard)?.name || selectedCard;
+    const currentLevel = getCardGrowthState(selectedCard).enhancementLevel || 0;
+    const newLevel = currentLevel + 1;
+
+    spendGold(cost);
     onEnhance(selectedCard);
+
+    // 성공 알림
+    showNotification({
+      message: `+${newLevel} 강화 성공!`,
+      type: 'enhance',
+      cardName,
+    });
+
     setGrowthMode('select');
   };
 
   const handleConfirmSpecialize = () => {
     if (!selectedCard || !selectedOption) return;
+    if (gold < SPECIALIZATION_COST) return; // 골드 부족
+
+    const cardName = cards.find(c => c.id === selectedCard)?.name || selectedCard;
+    const traitNames = selectedOption.traits.map(t => t.name).join(', ');
+
+    spendGold(SPECIALIZATION_COST);
     const traitIds = selectedOption.traits.map(t => t.id);
     onSpecialize(selectedCard, traitIds);
+
+    // 성공 알림
+    showNotification({
+      message: `특화 성공! [${traitNames}]`,
+      type: 'specialize',
+      cardName,
+    });
+
     setGrowthMode('select');
     setSelectedOption(null);
   };
@@ -412,6 +650,47 @@ function CardGrowthPanel({
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
       <div style={{ fontWeight: 700 }}>카드 성장</div>
+
+      {/* 성공 알림 */}
+      {notification && (
+        <div
+          style={{
+            padding: '10px 14px',
+            borderRadius: '8px',
+            background: notification.type === 'enhance'
+              ? 'rgba(96, 165, 250, 0.2)'
+              : notification.type === 'specialize'
+                ? 'rgba(134, 239, 172, 0.2)'
+                : 'rgba(251, 191, 36, 0.2)',
+            border: `1px solid ${
+              notification.type === 'enhance'
+                ? '#60a5fa'
+                : notification.type === 'specialize'
+                  ? '#86efac'
+                  : '#fbbf24'
+            }`,
+            color: notification.type === 'enhance'
+              ? '#93c5fd'
+              : notification.type === 'specialize'
+                ? '#86efac'
+                : '#fde68a',
+            fontWeight: 600,
+            textAlign: 'center',
+            animation: 'fadeInScale 0.3s ease-out',
+          }}
+        >
+          <div style={{ fontSize: '14px', marginBottom: '2px' }}>
+            {notification.type === 'enhance' ? '⚔️' : notification.type === 'specialize' ? '✨' : '🏆'} {notification.cardName}
+          </div>
+          <div style={{ fontSize: '16px', fontWeight: 700 }}>
+            {notification.message}
+          </div>
+        </div>
+      )}
+
+      {/* 성장 통계 패널 */}
+      <GrowthStatsPanel cardGrowth={cardGrowth} />
+
       <button className="btn" onClick={() => setShowCardModal(true)}>
         카드 선택
       </button>
@@ -452,6 +731,8 @@ function CardGrowthPanel({
           cardId={selected.id}
           cardName={selected.name}
           currentLevel={selectedGrowth.enhancementLevel || 0}
+          gold={gold}
+          cost={getEnhancementCost(selected.id)}
           onConfirm={handleConfirmEnhance}
           onCancel={() => setGrowthMode('select')}
         />
@@ -497,14 +778,39 @@ function CardGrowthPanel({
               </button>
             ))}
           </div>
-          <div style={{ display: "flex", gap: "8px", marginTop: "10px" }}>
+          {/* 특화 비용 표시 */}
+          <div style={{
+            marginTop: "10px",
+            marginBottom: "10px",
+            padding: "8px",
+            background: gold >= SPECIALIZATION_COST ? "rgba(251, 191, 36, 0.1)" : "rgba(239, 68, 68, 0.1)",
+            borderRadius: "6px",
+            border: gold >= SPECIALIZATION_COST ? "1px solid rgba(251, 191, 36, 0.3)" : "1px solid rgba(239, 68, 68, 0.3)",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center"
+          }}>
+            <span style={{ fontSize: "13px", color: "#9ca3af" }}>특화 비용:</span>
+            <span style={{
+              fontSize: "14px",
+              fontWeight: 700,
+              color: gold >= SPECIALIZATION_COST ? "#fbbf24" : "#ef4444"
+            }}>
+              💰 {SPECIALIZATION_COST} (보유: {gold})
+            </span>
+          </div>
+
+          <div style={{ display: "flex", gap: "8px" }}>
             <button
               className="btn"
               onClick={handleConfirmSpecialize}
-              disabled={!selectedOption}
-              style={{ background: selectedOption ? "rgba(134, 239, 172, 0.2)" : undefined }}
+              disabled={!selectedOption || gold < SPECIALIZATION_COST}
+              style={{
+                background: selectedOption && gold >= SPECIALIZATION_COST ? "rgba(134, 239, 172, 0.2)" : undefined,
+                opacity: gold < SPECIALIZATION_COST ? 0.5 : 1
+              }}
             >
-              특화 확정
+              {gold >= SPECIALIZATION_COST ? "특화 확정" : "골드 부족"}
             </button>
             <button className="btn" onClick={() => setGrowthMode('select')}>취소</button>
           </div>
@@ -604,18 +910,23 @@ function EnhancePreviewPanel({
   cardId,
   cardName,
   currentLevel,
+  gold,
+  cost,
   onConfirm,
   onCancel,
 }: {
   cardId: string;
   cardName: string;
   currentLevel: number;
+  gold: number;
+  cost: number;
   onConfirm: () => void;
   onCancel: () => void;
 }) {
   const nextPreview = getNextEnhancementPreview(cardId, currentLevel);
   const allLevels = getAllEnhancementLevels(cardId);
   const canEnhance = isEnhanceable(cardId) && currentLevel < 5;
+  const canAfford = gold >= cost;
 
   // 현재 누적 스탯
   const currentStats = currentLevel > 0 ? calculateEnhancedStats(cardId, currentLevel) : null;
@@ -753,14 +1064,40 @@ function EnhancePreviewPanel({
         </div>
       ) : null}
 
+      {/* 비용 표시 */}
+      {canEnhance && (
+        <div style={{
+          marginBottom: "10px",
+          padding: "8px",
+          background: canAfford ? "rgba(251, 191, 36, 0.1)" : "rgba(239, 68, 68, 0.1)",
+          borderRadius: "6px",
+          border: canAfford ? "1px solid rgba(251, 191, 36, 0.3)" : "1px solid rgba(239, 68, 68, 0.3)",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center"
+        }}>
+          <span style={{ fontSize: "13px", color: "#9ca3af" }}>강화 비용:</span>
+          <span style={{
+            fontSize: "14px",
+            fontWeight: 700,
+            color: canAfford ? "#fbbf24" : "#ef4444"
+          }}>
+            💰 {cost} (보유: {gold})
+          </span>
+        </div>
+      )}
+
       <div style={{ display: "flex", gap: "8px" }}>
         <button
           className="btn"
           onClick={onConfirm}
-          disabled={!canEnhance}
-          style={{ background: canEnhance ? "rgba(96, 165, 250, 0.2)" : undefined }}
+          disabled={!canEnhance || !canAfford}
+          style={{
+            background: canEnhance && canAfford ? "rgba(96, 165, 250, 0.2)" : undefined,
+            opacity: !canAfford ? 0.5 : 1
+          }}
         >
-          강화 확정
+          {canAfford ? "강화 확정" : "골드 부족"}
         </button>
         <button className="btn" onClick={onCancel}>취소</button>
       </div>

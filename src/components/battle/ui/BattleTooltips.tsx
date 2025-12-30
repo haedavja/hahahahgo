@@ -9,6 +9,7 @@ import { CARDS } from '../battleData';
 import { TRAITS } from '../battleData';
 import { applyTraitModifiers } from '../utils/battleUtils';
 import { TOKENS, TOKEN_CATEGORIES } from '../../../data/tokens';
+import { getEnhancementColor, getEnhancementLabel } from '../../../lib/cardEnhancementUtils';
 import type {
   HoveredEnemyAction,
   InsightReveal,
@@ -16,6 +17,7 @@ import type {
   HoveredCard,
   TooltipBattle as Battle,
 } from '../../../types';
+import type { EnhancedCardStats } from '../../../lib/cardEnhancementUtils';
 
 interface BattleTooltipsProps {
   tooltipVisible: boolean;
@@ -36,8 +38,8 @@ export const BattleTooltips: FC<BattleTooltipsProps> = ({
 }) => {
   return (
     <>
-      {/* 특성/토큰 툴팁 */}
-      {tooltipVisible && hoveredCard && ((hoveredCard.card.traits && hoveredCard.card.traits.length > 0) || (hoveredCard.card.appliedTokens && hoveredCard.card.appliedTokens.length > 0)) && (
+      {/* 특성/토큰/강화 툴팁 */}
+      {tooltipVisible && hoveredCard && ((hoveredCard.card.traits && hoveredCard.card.traits.length > 0) || (hoveredCard.card.appliedTokens && hoveredCard.card.appliedTokens.length > 0) || (hoveredCard.card as Card & { enhancementLevel?: number }).enhancementLevel) && (
         <div
           className={`trait-tooltip ${tooltipVisible ? 'tooltip-visible' : ''}`}
           style={{
@@ -56,8 +58,85 @@ export const BattleTooltips: FC<BattleTooltipsProps> = ({
           }}
         >
           <div style={{ fontSize: '21px', fontWeight: 700, color: '#fbbf24', marginBottom: '12px' }}>
-            {hoveredCard.card.traits && hoveredCard.card.traits.length > 0 ? '특성 정보' : '토큰 효과'}
+            {(hoveredCard.card as Card & { enhancementLevel?: number }).enhancementLevel
+              ? '강화 정보'
+              : hoveredCard.card.traits && hoveredCard.card.traits.length > 0
+                ? '특성 정보'
+                : '토큰 효과'}
           </div>
+
+          {/* 강화 효과 섹션 */}
+          {(() => {
+            const enhancedCard = hoveredCard.card as Card & {
+              enhancementLevel?: number;
+              enhancedStats?: EnhancedCardStats;
+            };
+            if (!enhancedCard.enhancementLevel || enhancedCard.enhancementLevel <= 0) return null;
+
+            const level = enhancedCard.enhancementLevel;
+            const stats = enhancedCard.enhancedStats;
+            const color = getEnhancementColor(level);
+
+            return (
+              <div style={{
+                marginBottom: '14px',
+                padding: '10px',
+                background: `${color}15`,
+                borderRadius: '8px',
+                border: `1px solid ${color}40`,
+              }}>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  marginBottom: '8px'
+                }}>
+                  <span style={{ fontSize: '16px' }}>⚔️</span>
+                  <span style={{
+                    fontSize: '17px',
+                    fontWeight: 700,
+                    color: color,
+                  }}>
+                    강화 {getEnhancementLabel(level)}
+                  </span>
+                </div>
+                {stats && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    {stats.damageBonus > 0 && (
+                      <div style={{ fontSize: '14px', color: '#f87171' }}>
+                        💥 피해 +{stats.damageBonus}
+                      </div>
+                    )}
+                    {stats.blockBonus > 0 && (
+                      <div style={{ fontSize: '14px', color: '#60a5fa' }}>
+                        🛡️ 방어 +{stats.blockBonus}
+                      </div>
+                    )}
+                    {stats.speedCostReduction > 0 && (
+                      <div style={{ fontSize: '14px', color: '#4ade80' }}>
+                        ⏱️ 속도 -{stats.speedCostReduction}
+                      </div>
+                    )}
+                    {stats.actionCostReduction > 0 && (
+                      <div style={{ fontSize: '14px', color: '#fbbf24' }}>
+                        ⚡ 행동력 -{stats.actionCostReduction}
+                      </div>
+                    )}
+                    {stats.hitsBonus > 0 && (
+                      <div style={{ fontSize: '14px', color: '#f472b6' }}>
+                        🎯 타격 +{stats.hitsBonus}
+                      </div>
+                    )}
+                    {stats.specialEffects && stats.specialEffects.length > 0 && (
+                      <div style={{ fontSize: '13px', color: '#a78bfa', marginTop: '4px' }}>
+                        ✨ {stats.specialEffects.map((e: { type: string }) => e.type).join(', ')}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
           {(() => {
             const baseCard = CARDS.find(c => c.id === hoveredCard.card.id);
             const enhancedCard = applyTraitModifiers((baseCard || hoveredCard.card) as any, { usageCount: 0, isInCombo: false });

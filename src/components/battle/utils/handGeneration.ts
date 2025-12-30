@@ -36,36 +36,52 @@ export function shuffleArray<T>(array: T[]): T[] {
 }
 
 /**
- * 카드에 강화 효과 적용
+ * 카드에 강화 및 특화 효과 적용
  */
 function applyEnhancementToCard(card: HandCard, cardGrowth?: CardGrowthMap): HandCard {
   if (!cardGrowth) return card;
 
   const growth = cardGrowth[card.id];
-  if (!growth || !growth.enhancementLevel || growth.enhancementLevel <= 0) {
-    return card;
-  }
+  if (!growth) return card;
+
+  // 강화도 없고 특화도 없으면 원본 반환
+  const hasEnhancement = growth.enhancementLevel && growth.enhancementLevel > 0;
+  const hasSpecialization = growth.traits && growth.traits.length > 0;
+  if (!hasEnhancement && !hasSpecialization) return card;
+
+  // 기본 결과 객체
+  let result: HandCard = { ...card };
 
   // 강화 효과 적용
-  const enhanced = getEnhancedCard(card as Parameters<typeof getEnhancedCard>[0], growth.enhancementLevel);
+  if (hasEnhancement) {
+    const enhanced = getEnhancedCard(card as Parameters<typeof getEnhancedCard>[0], growth.enhancementLevel!);
 
-  // 원본 카드에 강화 스탯만 덮어쓰기 (타입 호환성 유지)
-  const result: HandCard = {
-    ...card,
-    speedCost: enhanced.speedCost,
-    actionCost: enhanced.actionCost,
-    enhancementLevel: enhanced.enhancementLevel,
-    enhancedStats: enhanced.enhancedStats,
-  };
+    result = {
+      ...result,
+      speedCost: enhanced.speedCost,
+      actionCost: enhanced.actionCost,
+      enhancementLevel: enhanced.enhancementLevel,
+      enhancedStats: enhanced.enhancedStats,
+    };
 
-  // 선택적 필드들 적용
-  if (enhanced.damage !== undefined) result.damage = enhanced.damage;
-  if (enhanced.block !== undefined) result.block = enhanced.block;
-  if (enhanced.hits !== undefined) result.hits = enhanced.hits;
-  if (enhanced.pushAmount !== undefined) result.pushAmount = enhanced.pushAmount;
-  if (enhanced.advanceAmount !== undefined) result.advanceAmount = enhanced.advanceAmount;
-  if (enhanced.parryRange !== undefined) result.parryRange = enhanced.parryRange;
-  if (enhanced.traits !== undefined) result.traits = enhanced.traits as typeof result.traits;
+    // 선택적 필드들 적용
+    if (enhanced.damage !== undefined) result.damage = enhanced.damage;
+    if (enhanced.block !== undefined) result.block = enhanced.block;
+    if (enhanced.hits !== undefined) result.hits = enhanced.hits;
+    if (enhanced.pushAmount !== undefined) result.pushAmount = enhanced.pushAmount;
+    if (enhanced.advanceAmount !== undefined) result.advanceAmount = enhanced.advanceAmount;
+    if (enhanced.parryRange !== undefined) result.parryRange = enhanced.parryRange;
+    if (enhanced.traits !== undefined) result.traits = enhanced.traits as typeof result.traits;
+  }
+
+  // 특화 특성 병합 (기존 특성 + 특화 특성)
+  if (hasSpecialization) {
+    const existingTraits = (result.traits || []) as string[];
+    const specializationTraits = growth.traits!;
+    // 중복 제거하며 병합
+    const mergedTraits = [...new Set([...existingTraits, ...specializationTraits])];
+    result.traits = mergedTraits as typeof result.traits;
+  }
 
   return result;
 }

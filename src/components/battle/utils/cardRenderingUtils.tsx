@@ -5,6 +5,7 @@
  */
 
 import { ReactElement } from 'react';
+import { getEnhancementColor, getEnhancementLabel } from '../../../lib/cardEnhancementUtils';
 
 interface RarityBadge {
   color: string;
@@ -15,6 +16,7 @@ interface Card {
   id: string;
   name: string;
   rarity?: string;
+  enhancementLevel?: number;
 }
 
 type CardUpgrades = Record<string, string>;
@@ -68,6 +70,34 @@ export function renderRarityBadge(card: Card, cardUpgrades: CardUpgrades): React
 }
 
 /**
+ * 강화 레벨 배지 렌더링
+ * @param enhancementLevel - 강화 레벨 (0이면 null 반환)
+ * @returns 강화 배지 컴포넌트
+ */
+export function renderEnhancementBadge(enhancementLevel: number | undefined): ReactElement | null {
+  if (!enhancementLevel || enhancementLevel <= 0) return null;
+  const color = getEnhancementColor(enhancementLevel);
+  const label = getEnhancementLabel(enhancementLevel);
+  return (
+    <span
+      title={`강화 ${label}`}
+      style={{
+        fontSize: '10px',
+        padding: '1px 5px',
+        borderRadius: '4px',
+        background: color,
+        color: '#0f172a',
+        fontWeight: 700,
+        marginLeft: '4px',
+        boxShadow: `0 0 6px ${color}`,
+      }}
+    >
+      {label}
+    </span>
+  );
+}
+
+/**
  * 카드 이름과 배지를 함께 렌더링
  * @param card - 카드 객체
  * @param cardUpgrades - 카드 업그레이드 정보
@@ -76,11 +106,18 @@ export function renderRarityBadge(card: Card, cardUpgrades: CardUpgrades): React
  */
 export function renderNameWithBadge(card: Card, cardUpgrades: CardUpgrades, defaultColor: string): ReactElement {
   const badge = RARITY_BADGES[getCardDisplayRarity(card, cardUpgrades)];
+  const enhancementBadge = renderEnhancementBadge(card.enhancementLevel);
+
   if (!badge) {
-    return <span style={{ color: defaultColor }}>{card.name}</span>;
+    return (
+      <span style={{ display: 'inline-flex', alignItems: 'center', color: defaultColor }}>
+        {card.name}
+        {enhancementBadge}
+      </span>
+    );
   }
   return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
       <span
         style={{
           color: '#0f172a',
@@ -93,6 +130,7 @@ export function renderNameWithBadge(card: Card, cardUpgrades: CardUpgrades, defa
       >
         {card.name}
       </span>
+      {enhancementBadge}
     </span>
   );
 }
