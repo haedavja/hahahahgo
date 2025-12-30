@@ -489,30 +489,82 @@ export function generateEnhancedDescription(
     description = description.replace(/패링\s*(\d+)/g, `패링 ${card.parryRange}`);
   }
 
-  // 강화로 추가된 효과 표시
+  // 강화로 추가된 효과 - 설명 내 숫자 직접 교체
   if (enhancedStats) {
+    // 디버프 스택: "효과명, 효과명 X회" or "효과명 X회" (공격 관련 제외)
+    if (enhancedStats.debuffStacksBonus > 0) {
+      description = description.replace(
+        /([가-힣]+(?:\s*,\s*[가-힣]+)*)\s+(\d+)회(?!\s*(?:공격|타격))/g,
+        (_, effectNames, num) => {
+          const newNum = parseInt(num) + enhancedStats.debuffStacksBonus;
+          return `${effectNames} ${newNum}회`;
+        }
+      );
+    }
+
+    // 화상 스택: "화상 X" or "X 화상"
+    if (enhancedStats.burnStacksBonus > 0) {
+      description = description.replace(/화상\s*(\d+)/g, (_, num) => {
+        const newNum = parseInt(num) + enhancedStats.burnStacksBonus;
+        return `화상 ${newNum}`;
+      });
+      description = description.replace(/(\d+)\s*화상/g, (_, num) => {
+        const newNum = parseInt(num) + enhancedStats.burnStacksBonus;
+        return `${newNum} 화상`;
+      });
+    }
+
+    // 기교 획득: "기교 X" or "X 기교"
+    if (enhancedStats.finesseGainBonus > 0) {
+      description = description.replace(/기교\s*(\d+)/g, (_, num) => {
+        const newNum = parseInt(num) + enhancedStats.finesseGainBonus;
+        return `기교 ${newNum}`;
+      });
+      description = description.replace(/(\d+)\s*기교/g, (_, num) => {
+        const newNum = parseInt(num) + enhancedStats.finesseGainBonus;
+        return `${newNum} 기교`;
+      });
+    }
+
+    // 드로우: "X장 드로우" or "드로우 X"
+    if (enhancedStats.drawCountBonus > 0) {
+      description = description.replace(/(\d+)장\s*드로우/g, (_, num) => {
+        const newNum = parseInt(num) + enhancedStats.drawCountBonus;
+        return `${newNum}장 드로우`;
+      });
+      description = description.replace(/드로우\s*(\d+)/g, (_, num) => {
+        const newNum = parseInt(num) + enhancedStats.drawCountBonus;
+        return `드로우 ${newNum}`;
+      });
+    }
+
+    // 민첩 획득: "민첩 X" or "X 민첩"
+    if (enhancedStats.agilityGainBonus > 0) {
+      description = description.replace(/민첩\s*(\d+)/g, (_, num) => {
+        const newNum = parseInt(num) + enhancedStats.agilityGainBonus;
+        return `민첩 ${newNum}`;
+      });
+      description = description.replace(/(\d+)\s*민첩/g, (_, num) => {
+        const newNum = parseInt(num) + enhancedStats.agilityGainBonus;
+        return `${newNum} 민첩`;
+      });
+    }
+
+    // 치명타 확률: "치명타 X%" or "치명타율 X%"
+    if (enhancedStats.critBoostBonus > 0) {
+      description = description.replace(/치명타\s*(\d+)%/g, (_, num) => {
+        const newNum = parseInt(num) + enhancedStats.critBoostBonus;
+        return `치명타 ${newNum}%`;
+      });
+      description = description.replace(/치명타율\s*(\d+)%/g, (_, num) => {
+        const newNum = parseInt(num) + enhancedStats.critBoostBonus;
+        return `치명타율 ${newNum}%`;
+      });
+    }
+
+    // 추가된 특성만 표시 (숫자 관련 보너스는 이미 본문에 반영됨)
     const additions: string[] = [];
 
-    if (enhancedStats.burnStacksBonus > 0) {
-      additions.push(`화상 +${enhancedStats.burnStacksBonus}`);
-    }
-    if (enhancedStats.debuffStacksBonus > 0) {
-      additions.push(`디버프 +${enhancedStats.debuffStacksBonus}`);
-    }
-    if (enhancedStats.critBoostBonus > 0) {
-      additions.push(`치명타 +${enhancedStats.critBoostBonus}%`);
-    }
-    if (enhancedStats.finesseGainBonus > 0) {
-      additions.push(`기교 +${enhancedStats.finesseGainBonus}`);
-    }
-    if (enhancedStats.drawCountBonus > 0) {
-      additions.push(`드로우 +${enhancedStats.drawCountBonus}`);
-    }
-    if (enhancedStats.agilityGainBonus > 0) {
-      additions.push(`민첩 +${enhancedStats.agilityGainBonus}`);
-    }
-
-    // 추가된 특성
     if (enhancedStats.addedTraits.length > 0) {
       additions.push(`[${enhancedStats.addedTraits.join(', ')}] 추가`);
     }
