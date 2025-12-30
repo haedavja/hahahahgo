@@ -7,11 +7,11 @@
  * - 승률, 평균 피해량, 턴 수 등 통계 수집
  * - 카드별 효율 분석
  *
- * ## 신뢰성 v5
+ * ## 신뢰성 v7
  * - 실제 combatActions 로직 사용
  * - 토큰 시스템 통합 (공세, 방어, 회피, 취약, 무딤 등)
  * - 적 패시브 효과 적용
- * - 치명타 시스템 (5% + strength + energy)
+ * - 치명타 시스템 (5% + strength + energy + crit_boost)
  * - 반격 시스템
  * - 카드 특수 효과 (crush, chain, cross)
  * - 다중 적 전투 지원
@@ -24,6 +24,18 @@
  * - 넉백(knockback)/앞당김(advance) 타임라인 조작
  * - 상징(relic) 효과 지원
  * - 도살(slaughter)/파괴자(destroyer) 특성
+ * - 강골(strongbone) 특성: 피해/방어 25% 증가
+ * - 정점(pinnacle) 특성: 피해 2.5배
+ * - 단련(training) 특성: 사용 후 힘 +1
+ * - 흡수(absorb) 토큰: 피해의 50% 체력 회복
+ * - 대응사격(counterShot) 토큰: 공격받을 때 사격 반격
+ * - 기교(finesse) 토큰: 치명타 시 획득
+ * - 취약+/아픔+ 토큰: 100% 추가 피해
+ * - 치명타 집중(crit_boost) 토큰: 스택당 5% 치명타 증가
+ * - 이변(anomaly) 시스템: 다양한 전투 제한 효과
+ * - 10% 미만 즉사 (executeUnder10) 특성
+ * - 방어력 없으면 취약 부여 (vulnIfNoBlock) 특성
+ * - 마지막 카드 추가 타격 (repeatIfLast) 특성
  */
 
 import type { Card, TokenState } from '../types/core';
@@ -36,6 +48,7 @@ import { createEmptyTokenState } from '../test/factories';
 import { addToken, removeToken, hasToken, getTokenStacks, clearTurnTokens } from '../lib/tokenUtils';
 import { TOKENS } from '../data/tokens';
 import { RELICS } from '../data/relics';
+import { ANOMALY_TYPES, Anomaly, AnomalyEffect, selectRandomAnomaly } from '../data/anomalies';
 
 // 기절 범위 상수
 const STUN_RANGE = 5;
@@ -103,7 +116,24 @@ export interface SimulationConfig {
   playerDeck?: string[];
   playerHp?: number;
   playerRelics?: string[];  // 상징 ID 목록
+  anomalyLevel?: number;    // 이변 레벨 (1-4)
+  anomalyIds?: string[];    // 활성화할 이변 ID 목록
   verbose?: boolean;
+}
+
+/** 이변 상태 (전투 중 활성화된 이변) */
+interface AnomalyState {
+  active: AnomalyEffect[];
+  etherBanned: boolean;
+  energyReduction: number;
+  speedReduction: number;
+  valueDown: number;
+  defenseBackfire: number;
+  speedInstability: number;
+  vulnerabilityIncrease: number;
+  traitSilence: number;
+  chainIsolation: number;
+  finesseBlock: number;
 }
 
 // ==================== 헬퍼 함수 ====================
@@ -138,23 +168,234 @@ function drawCards(player: SimPlayerState, count: number): void {
   }
 }
 
-function createPlayer(config: SimulationConfig): SimPlayerState {
+/** 상징 조건 평가용 상태 */
+interface RelicConditionState {
+  cardsPlayedThisTurn?: number;
+  playerHp?: number;
+  maxHp?: number;
+  allCardsDefense?: boolean;
+  allCardsLowCost?: boolean;
+  timesAttackedThisTurn?: number;
+}
+
+/**
+ * 상징 효과 적용 (타이밍별)
+ */
+function applyRelicEffects(
+  player: SimPlayerState,
+  timing: 'ON_COMBAT_START' | 'ON_TURN_START' | 'ON_TURN_END' | 'ON_COMBAT_END' | 'ON_CARD_PLAYED',
+  log: string[],
+  context?: RelicConditionState
+): void {
+  for (const relicId of player.relics) {
+    const relic = RELICS[relicId as keyof typeof RELICS];
+    if (!relic?.effects) continue;
+
+    const effects = relic.effects as Record<string, unknown>;
+    if (effects.type !== timing) continue;
+
+    // 조건 체크 (있으면)
+    if (effects.condition && typeof effects.condition === 'function') {
+      const conditionFn = effects.condition as (state: RelicConditionState) => boolean;
+      if (!conditionFn(context || {})) continue;
+    }
+
+    // ON_TURN_START 효과
+    if (timing === 'ON_TURN_START') {
+      if (effects.block) {
+        player.block += effects.block as number;
+        log.push(`🛡️ ${relic.name}: 방어력 +${effects.block}`);
+      }
+    }
+
+    // ON_TURN_END 효과
+    if (timing === 'ON_TURN_END') {
+      if (effects.strength) {
+        player.strength += effects.strength as number;
+        log.push(`💪 ${relic.name}: 힘 +${effects.strength}`);
+      }
+      if (effects.energyNextTurn) {
+        // 다음 턴 행동력 보너스 (간단히 처리)
+        log.push(`⚡ ${relic.name}: 다음 턴 행동력 +${effects.energyNextTurn}`);
+      }
+      if (effects.grantDefensiveNextTurn) {
+        const defResult = addToken(player as any, 'guard', effects.grantDefensiveNextTurn as number);
+        player.tokens = defResult.tokens;
+        log.push(`🛡️ ${relic.name}: 수세 ${effects.grantDefensiveNextTurn}회 획득`);
+      }
+    }
+
+    // ON_COMBAT_START 효과
+    if (timing === 'ON_COMBAT_START') {
+      if (effects.damage) {
+        player.hp = Math.max(1, player.hp - (effects.damage as number));
+        log.push(`⚡ ${relic.name}: 체력 -${effects.damage}`);
+      }
+      if (effects.strength) {
+        player.strength += effects.strength as number;
+        log.push(`💪 ${relic.name}: 힘 +${effects.strength}`);
+      }
+      if (effects.grantImmunity) {
+        const immunityResult = addToken(player as any, 'immunity', effects.grantImmunity as number);
+        player.tokens = immunityResult.tokens;
+        log.push(`🛡️ ${relic.name}: 면역 ${effects.grantImmunity}회 획득`);
+      }
+    }
+
+    // ON_COMBAT_END 효과
+    if (timing === 'ON_COMBAT_END') {
+      if (effects.heal) {
+        const healAmount = effects.heal as number;
+        player.hp = Math.min(player.maxHp, player.hp + healAmount);
+        log.push(`❤️ ${relic.name}: 체력 +${healAmount}`);
+      }
+      // healthCheck 상징: 체력 최대치면 최대체력+2, 아니면 회복+3
+      if (effects.maxHpIfFull && player.hp === player.maxHp) {
+        player.maxHp += effects.maxHpIfFull as number;
+        player.hp = player.maxHp;
+        log.push(`💖 ${relic.name}: 최대 체력 +${effects.maxHpIfFull}`);
+      } else if (effects.healIfDamaged && player.hp < player.maxHp) {
+        const healAmount = effects.healIfDamaged as number;
+        player.hp = Math.min(player.maxHp, player.hp + healAmount);
+        log.push(`❤️ ${relic.name}: 체력 +${healAmount}`);
+      }
+    }
+
+    // ON_CARD_PLAYED 효과
+    if (timing === 'ON_CARD_PLAYED') {
+      if (effects.heal) {
+        const healAmount = effects.heal as number;
+        player.hp = Math.min(player.maxHp, player.hp + healAmount);
+        // 로그는 카드마다 출력되면 너무 많아지므로 생략
+      }
+    }
+  }
+}
+
+/**
+ * 이변 상태 생성
+ */
+function createAnomalyState(config: SimulationConfig, log: string[]): AnomalyState {
+  const state: AnomalyState = {
+    active: [],
+    etherBanned: false,
+    energyReduction: 0,
+    speedReduction: 0,
+    valueDown: 0,
+    defenseBackfire: 0,
+    speedInstability: 0,
+    vulnerabilityIncrease: 0,
+    traitSilence: 0,
+    chainIsolation: 0,
+    finesseBlock: 0,
+  };
+
+  const level = config.anomalyLevel || 0;
+  if (level <= 0) return state;
+
+  // 특정 이변 ID가 지정된 경우
+  if (config.anomalyIds && config.anomalyIds.length > 0) {
+    for (const anomalyId of config.anomalyIds) {
+      const anomaly = Object.values(ANOMALY_TYPES).find(a => a.id === anomalyId);
+      if (anomaly) {
+        const effect = anomaly.getEffect(level);
+        state.active.push(effect);
+        applyAnomalyEffectToState(state, effect, log, anomaly.name);
+      }
+    }
+  } else {
+    // 랜덤 이변 1개 선택
+    const randomAnomaly = selectRandomAnomaly();
+    const effect = randomAnomaly.getEffect(level);
+    state.active.push(effect);
+    applyAnomalyEffectToState(state, effect, log, randomAnomaly.name);
+  }
+
+  return state;
+}
+
+/**
+ * 이변 효과를 상태에 적용
+ */
+function applyAnomalyEffectToState(
+  state: AnomalyState,
+  effect: AnomalyEffect,
+  log: string[],
+  name: string
+): void {
+  switch (effect.type) {
+    case 'ETHER_BAN':
+      state.etherBanned = true;
+      log.push(`⚠️ 이변 [${name}]: ${effect.description}`);
+      break;
+    case 'ENERGY_REDUCTION':
+      state.energyReduction = effect.value || 0;
+      log.push(`⚠️ 이변 [${name}]: ${effect.description}`);
+      break;
+    case 'SPEED_REDUCTION':
+      state.speedReduction = effect.value || 0;
+      log.push(`⚠️ 이변 [${name}]: ${effect.description}`);
+      break;
+    case 'VALUE_DOWN':
+      state.valueDown = effect.value || 0;
+      log.push(`⚠️ 이변 [${name}]: ${effect.description}`);
+      break;
+    case 'DEFENSE_BACKFIRE':
+      state.defenseBackfire = effect.value || 0;
+      log.push(`⚠️ 이변 [${name}]: ${effect.description}`);
+      break;
+    case 'SPEED_INSTABILITY':
+      state.speedInstability = effect.value || 0;
+      log.push(`⚠️ 이변 [${name}]: ${effect.description}`);
+      break;
+    case 'VULNERABILITY':
+      state.vulnerabilityIncrease = effect.value || 0;
+      log.push(`⚠️ 이변 [${name}]: ${effect.description}`);
+      break;
+    case 'TRAIT_SILENCE':
+      state.traitSilence = effect.value || 0;
+      log.push(`⚠️ 이변 [${name}]: ${effect.description}`);
+      break;
+    case 'CHAIN_ISOLATION':
+      state.chainIsolation = effect.value || 0;
+      log.push(`⚠️ 이변 [${name}]: ${effect.description}`);
+      break;
+    case 'FINESSE_BLOCK':
+      state.finesseBlock = effect.value || 0;
+      log.push(`⚠️ 이변 [${name}]: ${effect.description}`);
+      break;
+  }
+}
+
+function createPlayer(config: SimulationConfig, anomalyState?: AnomalyState): SimPlayerState {
   const deckIds = config.playerDeck || DEFAULT_STARTING_DECK;
   const relics = config.playerRelics || [];
 
-  // 상징 효과 적용
+  // 상징 PASSIVE 효과 적용
   let maxEnergy = 6;
   let maxHp = config.playerHp || 100;
   let strength = 0;
+  let agility = 0;
 
   for (const relicId of relics) {
     const relic = RELICS[relicId as keyof typeof RELICS];
     if (relic?.effects) {
       const effects = relic.effects as Record<string, unknown>;
-      if (effects.maxEnergy) maxEnergy += effects.maxEnergy as number;
-      if (effects.maxHp) maxHp += effects.maxHp as number;
-      if (effects.strength) strength += effects.strength as number;
+      if (effects.type === 'PASSIVE') {
+        if (effects.maxEnergy) maxEnergy += effects.maxEnergy as number;
+        if (effects.maxHp) maxHp += effects.maxHp as number;
+        if (effects.strength) strength += effects.strength as number;
+        if (effects.agility) agility += effects.agility as number;
+      }
     }
+  }
+
+  // 이변 효과 적용
+  if (anomalyState) {
+    // 행동력 감소
+    maxEnergy = Math.max(1, maxEnergy - anomalyState.energyReduction);
+    // 가치 하락 토큰 (dull 토큰으로 표현)
+    // valueDown은 simulateTurn에서 적용
   }
 
   return {
@@ -386,9 +627,17 @@ function getVulnerabilityMult(entity: SimEntity): number {
   if (hasToken(entity as any, 'vulnerable')) {
     mult += 0.5;
   }
+  // vulnerablePlus 토큰: 100% 추가 피해
+  if (hasToken(entity as any, 'vulnerablePlus')) {
+    mult += 1.0;
+  }
   // pain 토큰: 50% 추가 피해
   if (hasToken(entity as any, 'pain')) {
     mult += 0.5;
+  }
+  // painPlus 토큰: 100% 추가 피해
+  if (hasToken(entity as any, 'painPlus')) {
+    mult += 1.0;
   }
   return mult;
 }
@@ -413,12 +662,16 @@ function rollCriticalSim(entity: SimEntity, remainingEnergy: number, card: Card 
     return true;
   }
 
-  // 기본 5% + strength + energy
+  // 기본 5% + strength + energy + crit_boost 토큰
   const baseCrit = 5;
   const strength = entity.strength || 0;
   const energy = remainingEnergy || 0;
 
-  const critChance = baseCrit + strength + energy;
+  // crit_boost 토큰: 스택당 5% 증가
+  const critBoostStacks = getTokenStacks(entity as any, 'crit_boost');
+  const critBoostBonus = critBoostStacks * 5;
+
+  const critChance = baseCrit + strength + energy + critBoostBonus;
   return Math.random() * 100 < critChance;
 }
 
@@ -500,6 +753,148 @@ function hasDestroyerTrait(card: Card | AICard): boolean {
   const c = card as Card;
   if (!c.traits) return false;
   return Array.isArray(c.traits) ? c.traits.includes('destroyer') : c.traits === 'destroyer';
+}
+
+/**
+ * 강골(strongbone) 특성 체크 - 피해/방어 25% 증가
+ */
+function hasStrongboneTrait(card: Card | AICard): boolean {
+  const c = card as Card;
+  if (!c.traits) return false;
+  return Array.isArray(c.traits) ? c.traits.includes('strongbone') : c.traits === 'strongbone';
+}
+
+/**
+ * 단련(training) 특성 체크 - 사용 후 힘 +1
+ */
+function hasTrainingTrait(card: Card | AICard): boolean {
+  const c = card as Card;
+  if (!c.traits) return false;
+  return Array.isArray(c.traits) ? c.traits.includes('training') : c.traits === 'training';
+}
+
+/**
+ * 정점(pinnacle) 특성 체크 - 피해 2.5배
+ */
+function hasPinnacleTrait(card: Card | AICard): boolean {
+  const c = card as Card;
+  if (!c.traits) return false;
+  return Array.isArray(c.traits) ? c.traits.includes('pinnacle') : c.traits === 'pinnacle';
+}
+
+/**
+ * 방어무시(ignoreBlock) 특수 효과 체크
+ */
+function hasIgnoreBlockSpecial(card: Card | AICard): boolean {
+  const c = card as Card;
+  if (!c.special) return false;
+  const specials = Array.isArray(c.special) ? c.special : [c.special];
+  return specials.includes('ignoreBlock') || specials.includes('piercing');
+}
+
+/**
+ * 10% 미만 즉사 (executeUnder10) 특수 효과 체크
+ */
+function hasExecuteUnder10(card: Card | AICard): boolean {
+  const c = card as Card;
+  if (!c.special) return false;
+  const specials = Array.isArray(c.special) ? c.special : [c.special];
+  return specials.includes('executeUnder10');
+}
+
+/**
+ * 방어력 없으면 취약 부여 (vulnIfNoBlock) 특수 효과 체크
+ */
+function hasVulnIfNoBlock(card: Card | AICard): boolean {
+  const c = card as Card;
+  if (!c.special) return false;
+  const specials = Array.isArray(c.special) ? c.special : [c.special];
+  return specials.includes('vulnIfNoBlock');
+}
+
+/**
+ * 마지막 카드면 추가 타격 (repeatIfLast) 특수 효과 체크
+ */
+function hasRepeatIfLast(card: Card | AICard): boolean {
+  const c = card as Card;
+  if (!c.special) return false;
+  const specials = Array.isArray(c.special) ? c.special : [c.special];
+  return specials.includes('repeatIfLast');
+}
+
+/**
+ * 10% 미만 즉사 처리
+ */
+function processExecuteUnder10(
+  defender: Combatant,
+  card: Card | AICard,
+  log: string[]
+): boolean {
+  const maxHp = defender.maxHp || 100;
+  const threshold = Math.floor(maxHp * 0.1);
+
+  if (defender.hp > 0 && defender.hp < threshold) {
+    const beforeHp = defender.hp;
+    defender.hp = 0;
+    log.push(`💀 ${card.name}: 즉사 발동! (체력 ${beforeHp} < ${threshold})`);
+    return true;
+  }
+  return false;
+}
+
+/**
+ * 방어력 없으면 취약 부여 처리
+ */
+function processVulnIfNoBlock(
+  defender: SimEntity,
+  card: Card | AICard,
+  log: string[]
+): void {
+  const hadNoBlock = (defender.block || 0) <= 0;
+  if (hadNoBlock) {
+    const result = addToken(defender as any, 'vulnerable', 1);
+    defender.tokens = result.tokens;
+    log.push(`🔻 ${card.name}: 취약 부여! (방어력 없음)`);
+  }
+}
+
+/**
+ * 흡수(absorb) 효과 처리 - 피해의 50% 회복
+ */
+function processAbsorb(attacker: SimEntity, damageDealt: number, log: string[]): void {
+  if (hasToken(attacker as any, 'absorb')) {
+    const healAmount = Math.floor(damageDealt * 0.5);
+    attacker.hp = Math.min(attacker.maxHp, attacker.hp + healAmount);
+    removeToken(attacker as any, 'absorb', 'usage', 1);
+    log.push(`🩸 흡수! ${healAmount} 체력 회복`);
+  }
+}
+
+/**
+ * 대응사격(counterShot) 효과 처리
+ */
+function processCounterShot(defender: SimEntity, attacker: SimEntity, log: string[]): number {
+  let counterDamage = 0;
+  if (hasToken(defender as any, 'counterShot')) {
+    const stacks = getTokenStacks(defender as any, 'counterShot');
+    counterDamage = 5 * stacks; // 기본 사격 피해 5 x 스택
+    removeToken(defender as any, 'counterShot', 'usage', 1);
+
+    // 방어력 적용
+    const effectiveDamage = Math.max(0, counterDamage - (attacker.block || 0));
+    attacker.block = Math.max(0, (attacker.block || 0) - counterDamage);
+    attacker.hp = Math.max(0, attacker.hp - effectiveDamage);
+
+    log.push(`🔫 대응사격! ${counterDamage} 피해 (실제 ${effectiveDamage})`);
+  }
+  return counterDamage;
+}
+
+/**
+ * 철갑탄(armor_piercing) 체크
+ */
+function hasArmorPiercing(entity: SimEntity): boolean {
+  return hasToken(entity as any, 'armor_piercing');
 }
 
 /**
@@ -618,10 +1013,22 @@ function simulateTurn(
   enemy: SimEnemyState,
   turnNumber: number,
   log: string[],
-  enemyDef: { passives?: { healPerTurn?: number; strengthPerTurn?: number } } | null
-): { playerDamage: number; enemyDamage: number; ended: boolean; winner?: 'player' | 'enemy' } {
+  enemyDef: { passives?: { healPerTurn?: number; strengthPerTurn?: number } } | null,
+  anomalyState?: AnomalyState
+): { playerDamage: number; enemyDamage: number; ended: boolean; winner?: 'player' | 'enemy'; cardsPlayed?: number; timesAttacked?: number } {
   // 1. 턴 시작 - 카드 드로우
   drawCards(player, 5 - player.hand.length);
+
+  // 1.5. 턴 시작 상징 효과 (sturdyArmor 등)
+  applyRelicEffects(player, 'ON_TURN_START', log);
+
+  // 1.6. 이변 효과: 가치 하락 (dull 토큰 적용)
+  if (anomalyState && anomalyState.valueDown > 0) {
+    for (let i = 0; i < anomalyState.valueDown; i++) {
+      const dullResult = addToken(player as any, 'dull', 1);
+      player.tokens = dullResult.tokens;
+    }
+  }
 
   // 2. 적 패시브 효과
   if (enemyDef?.passives) {
@@ -641,8 +1048,17 @@ function simulateTurn(
   const timeline: TimelineStep[] = [];
   let cumulativeSp = 0;
 
+  // 이변: 속도 불안정 - 속도에 랜덤 변동
+  const speedInstabilityRange = anomalyState?.speedInstability || 0;
+
   for (const card of playerSelection.cards) {
-    cumulativeSp += card.speedCost || 5;
+    let speedCost = card.speedCost || 5;
+    // 속도 불안정 적용
+    if (speedInstabilityRange > 0) {
+      const variation = Math.floor(Math.random() * (speedInstabilityRange * 2 + 1)) - speedInstabilityRange;
+      speedCost = Math.max(1, speedCost + variation);
+    }
+    cumulativeSp += speedCost;
     timeline.push({ actor: 'player', card, sp: cumulativeSp });
   }
 
@@ -766,10 +1182,15 @@ function simulateTurn(
     }
 
     // 연계(chain) 효과: 이전 카드가 chain 특성이고 현재 카드가 검격이면 보너스
+    // 이변: 고립 - 연계/후속 무효화
+    const chainIsolation = anomalyState?.chainIsolation || 0;
+    const canUseChain = chainIsolation < 1 || chainIsolation === 2; // 1: 연계만 무효, 2: 후속만 무효, 3+: 둘 다 무효
+    const canUseFollowup = chainIsolation < 2 || chainIsolation === 1; // 1: 연계만 무효, 2: 후속만 무효, 3+: 둘 다 무효
+
     if (isPlayer && previousPlayerCard && isAttack) {
       const prevCard = previousPlayerCard as Card;
       const currCard = step.card as Card;
-      if (prevCard.traits?.includes('chain') && currCard.cardCategory === 'fencing') {
+      if (canUseChain && prevCard.traits?.includes('chain') && currCard.cardCategory === 'fencing') {
         // 연계 시 피해 증가
         if (modifiedCard.damage) {
           const chainBonus = Math.floor(modifiedCard.damage * 0.5);
@@ -778,12 +1199,20 @@ function simulateTurn(
         }
       }
       // 후속(followup) 효과
-      if (prevCard.traits?.includes('followup') && currCard.traits?.includes('finisher')) {
+      if (canUseFollowup && prevCard.traits?.includes('followup') && currCard.traits?.includes('finisher')) {
         if (modifiedCard.damage) {
           modifiedCard.damage = Math.floor(modifiedCard.damage * 1.5);
           log.push(`⚔️ 후속 -> 마무리! ${currCard.name}: 피해 50% 증가`);
         }
       }
+    }
+
+    // 이변: 방어 역류 - 방어 카드 사용 시 자해 피해
+    if (isPlayer && step.card.type === 'defense' && anomalyState?.defenseBackfire && anomalyState.defenseBackfire > 0) {
+      const backfireDamage = anomalyState.defenseBackfire;
+      combatState.player.hp = Math.max(0, combatState.player.hp - backfireDamage);
+      log.push(`💢 역류! 방어 카드 사용 - ${backfireDamage} 자해 피해`);
+      enemyDamage += backfireDamage;
     }
 
     // 교차(cross) 보너스
@@ -813,6 +1242,28 @@ function simulateTurn(
         const destroyerBonus = Math.floor(modifiedCard.damage * 0.5);
         modifiedCard.damage += destroyerBonus;
         log.push(`💀 파괴자! ${step.card.name}: 피해 +${destroyerBonus} (50%)`);
+      }
+    }
+
+    // 강골(strongbone) 특성: 피해/방어 25% 증가
+    if (hasStrongboneTrait(step.card)) {
+      if (modifiedCard.damage) {
+        const strongboneBonus = Math.floor(modifiedCard.damage * 0.25);
+        modifiedCard.damage += strongboneBonus;
+        log.push(`💪 강골! ${step.card.name}: 피해 +${strongboneBonus} (25%)`);
+      }
+      if (modifiedCard.block) {
+        const blockBonus = Math.floor(modifiedCard.block * 0.25);
+        modifiedCard.block += blockBonus;
+        log.push(`💪 강골! ${step.card.name}: 방어 +${blockBonus} (25%)`);
+      }
+    }
+
+    // 정점(pinnacle) 특성: 피해 2.5배
+    if (isAttack && hasPinnacleTrait(step.card)) {
+      if (modifiedCard.damage) {
+        modifiedCard.damage = Math.floor(modifiedCard.damage * 2.5);
+        log.push(`⭐ 정점! ${step.card.name}: 피해 2.5배`);
       }
     }
 
@@ -874,6 +1325,8 @@ function simulateTurn(
 
       if (step.actor === 'player') {
         playerDamage += finalDealt;
+        // 카드 사용 상징 효과 (immortalMask 등)
+        applyRelicEffects(player, 'ON_CARD_PLAYED', log);
       } else {
         enemyDamage += finalDealt;
       }
@@ -901,6 +1354,64 @@ function simulateTurn(
       if (isAttack && hasAdvanceTrait(step.card) && finalDealt > 0) {
         const advanceAmount = (step.card as Card).advanceAmount || 3;
         processAdvance(timeline, stepIndex, step.actor, advanceAmount, log);
+      }
+
+      // 흡수(absorb) 효과: 피해의 50% 회복
+      if (isAttack && finalDealt > 0) {
+        processAbsorb(attacker as SimEntity, finalDealt, log);
+      }
+
+      // 대응사격(counterShot) 효과: 공격받을 때 사격으로 반격
+      if (isAttack && finalDealt > 0) {
+        const counterShotDmg = processCounterShot(defender as SimEntity, attacker as SimEntity, log);
+        if (counterShotDmg > 0) {
+          if (step.actor === 'player') {
+            enemyDamage += counterShotDmg;
+          } else {
+            playerDamage += counterShotDmg;
+          }
+        }
+      }
+
+      // 단련(training) 특성: 사용 후 힘 +1
+      if (hasTrainingTrait(step.card)) {
+        attacker.strength = (attacker.strength || 0) + 1;
+        log.push(`📈 단련! 힘 +1 (현재 ${attacker.strength})`);
+      }
+
+      // 치명타 시 기교(finesse) 획득 (플레이어만)
+      // 이변: 광기 - 기교 획득 불가/감소
+      const finesseBlock = anomalyState?.finesseBlock || 0;
+      if (isPlayer && isCritical && isAttack) {
+        if (finesseBlock < 3) {
+          // 레벨 1-2: 획득량 감소 (25% * level), 레벨 3+: 완전 차단
+          const finesseAmount = finesseBlock > 0 ? Math.max(0, 1 - Math.floor(finesseBlock * 0.25)) : 1;
+          if (finesseAmount > 0) {
+            const finesseResult = addToken(attacker as any, 'finesse', finesseAmount);
+            (attacker as SimEntity).tokens = finesseResult.tokens;
+            log.push(`✨ 기교 획득! (치명타)`);
+          }
+        }
+      }
+
+      // 이변: 취약 - 플레이어가 받는 피해 증가
+      if (!isPlayer && finalDealt > 0 && anomalyState?.vulnerabilityIncrease && anomalyState.vulnerabilityIncrease > 0) {
+        const extraDamage = Math.floor(finalDealt * (anomalyState.vulnerabilityIncrease / 100));
+        combatState.player.hp = Math.max(0, combatState.player.hp - extraDamage);
+        if (extraDamage > 0) {
+          log.push(`💔 취약! 추가 피해 ${extraDamage}`);
+          enemyDamage += extraDamage;
+        }
+      }
+
+      // 10% 미만 즉사 효과
+      if (isAttack && finalDealt > 0 && hasExecuteUnder10(step.card)) {
+        processExecuteUnder10(defender, step.card, log);
+      }
+
+      // 방어력 없으면 취약 부여 효과
+      if (isAttack && finalDealt > 0 && hasVulnIfNoBlock(step.card)) {
+        processVulnIfNoBlock(defender as SimEntity, step.card, log);
       }
 
     } catch (e) {
@@ -949,40 +1460,62 @@ function simulateTurn(
   // 6. 상태 업데이트
   player.hp = combatState.player.hp;
   player.tokens = combatState.player.tokens;
+  player.strength = combatState.player.strength || player.strength;
   enemy.hp = combatState.enemy.hp;
   enemy.tokens = combatState.enemy.tokens;
 
-  // 7. 턴 종료 - 손패 버리기, 블록 초기화, 턴 토큰 정리
+  // 7. 턴 종료 - 손패 버리기, 블록 초기화
   for (const idx of playerSelection.indices.sort((a, b) => b - a)) {
     const cardId = player.hand.splice(idx, 1)[0];
     player.discard.push(cardId);
   }
 
+  // 8. 턴 종료 상징 효과 (coin, contract, bulletproofVest 등)
+  const cardsPlayedThisTurn = playerSelection.cards.length;
+  const allCardsDefense = playerSelection.cards.every(c => c.type === 'defense');
+  const allCardsLowCost = playerSelection.cards.every(c => (c.actionCost || 1) <= 2);
+  const timesAttackedThisTurn = enemyActions.filter(a => a.type === 'attack').length;
+
+  const turnEndContext: RelicConditionState = {
+    cardsPlayedThisTurn,
+    playerHp: player.hp,
+    maxHp: player.maxHp,
+    allCardsDefense,
+    allCardsLowCost,
+    timesAttackedThisTurn,
+  };
+  applyRelicEffects(player, 'ON_TURN_END', log, turnEndContext);
+
   player.block = 0;
   enemy.block = 0;
 
-  // 턴 종료 토큰 정리
+  // 9. 턴 종료 토큰 정리
   const playerTokenResult = clearTurnTokens(player as any);
   player.tokens = playerTokenResult.tokens;
   const enemyTokenResult = clearTurnTokens(enemy as any);
   enemy.tokens = enemyTokenResult.tokens;
 
-  // 8. 로그 기록
+  // 10. 로그 기록
   log.push(`턴 ${turnNumber}: 플레이어 HP ${player.hp}/${player.maxHp}, 적 HP ${enemy.hp}/${enemy.maxHp}`);
 
-  // 9. 승패 확인
+  // 11. 승패 확인
   if (player.hp <= 0) {
-    return { playerDamage, enemyDamage, ended: true, winner: 'enemy' };
+    return { playerDamage, enemyDamage, ended: true, winner: 'enemy', cardsPlayed: cardsPlayedThisTurn, timesAttacked: timesAttackedThisTurn };
   }
   if (enemy.hp <= 0) {
-    return { playerDamage, enemyDamage, ended: true, winner: 'player' };
+    return { playerDamage, enemyDamage, ended: true, winner: 'player', cardsPlayed: cardsPlayedThisTurn, timesAttacked: timesAttackedThisTurn };
   }
 
-  return { playerDamage, enemyDamage, ended: false };
+  return { playerDamage, enemyDamage, ended: false, cardsPlayed: cardsPlayedThisTurn, timesAttacked: timesAttackedThisTurn };
 }
 
 export function runBattle(enemyId: string, config: SimulationConfig): BattleResult {
-  const player = createPlayer(config);
+  const log: string[] = [];
+
+  // 이변 상태 생성
+  const anomalyState = createAnomalyState(config, log);
+
+  const player = createPlayer(config, anomalyState);
   const enemy = createEnemy(enemyId);
 
   // 적 정의 가져오기 (패시브 효과용)
@@ -992,18 +1525,27 @@ export function runBattle(enemyId: string, config: SimulationConfig): BattleResu
   let totalPlayerDamage = 0;
   let totalEnemyDamage = 0;
   const cardUsage: Record<string, number> = {};
-  const log: string[] = [];
 
   log.push(`전투 시작: ${enemy.name} (HP: ${enemy.hp})`);
+
+  // 전투 시작 상징 효과 (bloodShackles, tonic 등)
+  applyRelicEffects(player, 'ON_COMBAT_START', log);
 
   while (turn < config.maxTurns) {
     turn++;
 
-    const result = simulateTurn(player, enemy, turn, log, enemyDef);
+    const result = simulateTurn(player, enemy, turn, log, enemyDef, anomalyState);
     totalPlayerDamage += result.playerDamage;
     totalEnemyDamage += result.enemyDamage;
 
     if (result.ended) {
+      // 전투 종료 상징 효과 (redHerb, goldenHerb, healthCheck 등)
+      const combatEndContext: RelicConditionState = {
+        playerHp: player.hp,
+        maxHp: player.maxHp,
+      };
+      applyRelicEffects(player, 'ON_COMBAT_END', log, combatEndContext);
+
       log.push(`전투 종료: ${result.winner === 'player' ? '플레이어 승리' : '적 승리'} (${turn}턴)`);
 
       return {
@@ -1019,7 +1561,13 @@ export function runBattle(enemyId: string, config: SimulationConfig): BattleResu
     }
   }
 
-  // 최대 턴 초과 - 무승부
+  // 최대 턴 초과 - 무승부 (전투 종료 상징 효과 적용)
+  const combatEndContext: RelicConditionState = {
+    playerHp: player.hp,
+    maxHp: player.maxHp,
+  };
+  applyRelicEffects(player, 'ON_COMBAT_END', log, combatEndContext);
+
   log.push(`전투 종료: 무승부 (최대 턴 초과)`);
 
   return {
