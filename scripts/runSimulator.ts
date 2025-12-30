@@ -17,6 +17,9 @@
  *   npx tsx scripts/runSimulator.ts analyze [enemyId] [battles] # 적 분석
  *   npx tsx scripts/runSimulator.ts synergy [battles]     # 카드 시너지 분석
  *   npx tsx scripts/runSimulator.ts scaling [battles]     # 난이도 스케일링 분석
+ *   npx tsx scripts/runSimulator.ts wincond [battles]     # 승리 요인 분석
+ *   npx tsx scripts/runSimulator.ts export [battles] [filename] # 결과 내보내기
+ *   npx tsx scripts/runSimulator.ts token [battles]       # 토큰 효율 분석
  *
  * 예시:
  *   npx tsx scripts/runSimulator.ts 100
@@ -33,9 +36,12 @@
  *   npx tsx scripts/runSimulator.ts analyze slaughterer 30
  *   npx tsx scripts/runSimulator.ts synergy 30
  *   npx tsx scripts/runSimulator.ts scaling 50
+ *   npx tsx scripts/runSimulator.ts wincond 50
+ *   npx tsx scripts/runSimulator.ts export 30 results.json
+ *   npx tsx scripts/runSimulator.ts token 30
  */
 
-import { runSimulation, printStats, SimulationConfig, runBalanceAnalysis, runTierSimulation, runFullSimulation, runRelicComparison, runDeckComparison, runAnomalyComparison, runCardEfficiencyAnalysis, runFullReport, runBattleReplay, runEnemyAnalysis, runSynergyAnalysis, runDifficultyScalingAnalysis, TIER_1_ENEMIES, TIER_2_ENEMIES, TIER_3_ENEMIES } from '../src/tests/gameSimulator';
+import { runSimulation, printStats, SimulationConfig, runBalanceAnalysis, runTierSimulation, runFullSimulation, runRelicComparison, runDeckComparison, runAnomalyComparison, runCardEfficiencyAnalysis, runFullReport, runBattleReplay, runEnemyAnalysis, runSynergyAnalysis, runDifficultyScalingAnalysis, runWinConditionAnalysis, exportSimulationResults, runTokenEfficiencyAnalysis, TIER_1_ENEMIES, TIER_2_ENEMIES, TIER_3_ENEMIES } from '../src/tests/gameSimulator';
 import { ENEMIES } from '../src/components/battle/battleData';
 
 // 커맨드 라인 인자 파싱
@@ -128,6 +134,28 @@ if (command === 'scaling') {
   const battles = parseInt(args[1]) || 30;
   console.log('🎮 난이도 스케일링 분석 모드\n');
   runDifficultyScalingAnalysis(battles);
+  process.exit(0);
+}
+
+if (command === 'wincond') {
+  const battles = parseInt(args[1]) || 50;
+  console.log('🎮 승리 요인 분석 모드\n');
+  runWinConditionAnalysis(battles);
+  process.exit(0);
+}
+
+if (command === 'export') {
+  const battles = parseInt(args[1]) || 30;
+  const filename = args[2] || 'simulation_results.json';
+  console.log('🎮 결과 내보내기 모드\n');
+  exportSimulationResults(battles, filename);
+  process.exit(0);
+}
+
+if (command === 'token') {
+  const battles = parseInt(args[1]) || 30;
+  console.log('🎮 토큰 효율 분석 모드\n');
+  runTokenEfficiencyAnalysis(battles);
   process.exit(0);
 }
 

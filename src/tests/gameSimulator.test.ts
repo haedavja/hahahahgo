@@ -439,3 +439,33 @@ describe('난이도 스케일링 분석', () => {
     expect(typeof runDifficultyScalingAnalysis).toBe('function');
   });
 });
+
+describe('승리 요인 분석', () => {
+  it('runWinConditionAnalysis 함수가 존재한다', async () => {
+    const { runWinConditionAnalysis } = await import('./gameSimulator');
+    expect(typeof runWinConditionAnalysis).toBe('function');
+  });
+});
+
+describe('결과 내보내기', () => {
+  it('exportSimulationResults 함수가 존재한다', async () => {
+    const { exportSimulationResults } = await import('./gameSimulator');
+    expect(typeof exportSimulationResults).toBe('function');
+  });
+
+  it('결과 객체를 반환한다', async () => {
+    const { exportSimulationResults } = await import('./gameSimulator');
+    const result = exportSimulationResults(5);
+    expect(result).toHaveProperty('summary');
+    expect(result).toHaveProperty('enemies');
+    expect(result.summary).toHaveProperty('winRate');
+    expect(Array.isArray(result.enemies)).toBe(true);
+  });
+});
+
+describe('토큰 효율 분석', () => {
+  it('runTokenEfficiencyAnalysis 함수가 존재한다', async () => {
+    const { runTokenEfficiencyAnalysis } = await import('./gameSimulator');
+    expect(typeof runTokenEfficiencyAnalysis).toBe('function');
+  });
+});

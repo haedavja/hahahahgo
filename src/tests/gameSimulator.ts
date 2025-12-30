@@ -2708,6 +2708,238 @@ export function runDifficultyScalingAnalysis(battles: number = 30): void {
   console.log('\n' + '═'.repeat(50) + '\n');
 }
 
+/**
+ * 승리 요인 분석
+ * 승리/패배 전투의 특성을 비교 분석
+ */
+export function runWinConditionAnalysis(battles: number = 50): void {
+  console.log('\n╔════════════════════════════════════════╗');
+  console.log('║           승리 요인 분석                ║');
+  console.log('╚════════════════════════════════════════╝\n');
+
+  const config: SimulationConfig = {
+    battles,
+    maxTurns: 30,
+    enemyIds: TIER_1_ENEMIES.slice(0, 4),
+    verbose: false,
+  };
+
+  // 전투 결과 수집
+  const winBattles: BattleResult[] = [];
+  const lossBattles: BattleResult[] = [];
+
+  for (const enemyId of config.enemyIds || []) {
+    for (let i = 0; i < battles; i++) {
+      const result = runBattle(enemyId, config);
+      if (result.winner === 'player') {
+        winBattles.push(result);
+      } else if (result.winner === 'enemy') {
+        lossBattles.push(result);
+      }
+    }
+  }
+
+  // 분석
+  console.log(`📊 전투 데이터: 승리 ${winBattles.length}회, 패배 ${lossBattles.length}회\n`);
+  console.log('─'.repeat(50));
+
+  // 평균 턴 수 비교
+  const avgWinTurns = winBattles.reduce((s, b) => s + b.turns, 0) / winBattles.length || 0;
+  const avgLossTurns = lossBattles.reduce((s, b) => s + b.turns, 0) / lossBattles.length || 0;
+  console.log(`\n⏱️ 평균 전투 시간:`);
+  console.log(`  승리 시: ${avgWinTurns.toFixed(1)}턴`);
+  console.log(`  패배 시: ${avgLossTurns.toFixed(1)}턴`);
+
+  // 평균 피해량 비교
+  const avgWinDamage = winBattles.reduce((s, b) => s + b.playerDamageDealt, 0) / winBattles.length || 0;
+  const avgLossDamage = lossBattles.reduce((s, b) => s + b.playerDamageDealt, 0) / lossBattles.length || 0;
+  console.log(`\n⚔️ 평균 피해량:`);
+  console.log(`  승리 시: ${avgWinDamage.toFixed(1)}`);
+  console.log(`  패배 시: ${avgLossDamage.toFixed(1)}`);
+
+  // 콤보 빈도 비교
+  const countCombos = (battles: BattleResult[]) => {
+    let total = 0;
+    battles.forEach(b => {
+      if (b.combosFormed) {
+        Object.values(b.combosFormed).forEach(c => total += c);
+      }
+    });
+    return total / battles.length || 0;
+  };
+
+  const avgWinCombos = countCombos(winBattles);
+  const avgLossCombos = countCombos(lossBattles);
+  console.log(`\n🃏 평균 콤보 횟수:`);
+  console.log(`  승리 시: ${avgWinCombos.toFixed(2)}회`);
+  console.log(`  패배 시: ${avgLossCombos.toFixed(2)}회`);
+
+  // 최종 HP 비교
+  const avgWinFinalHp = winBattles.reduce((s, b) => s + b.playerFinalHp, 0) / winBattles.length || 0;
+  console.log(`\n❤️ 승리 시 평균 잔여 HP: ${avgWinFinalHp.toFixed(1)}`);
+
+  // 결론
+  console.log('\n💡 인사이트:');
+  console.log('─'.repeat(50));
+  if (avgWinTurns < avgLossTurns) {
+    console.log('  • 빠른 전투가 승리 확률을 높입니다.');
+  } else {
+    console.log('  • 장기전도 승리 가능성이 있습니다.');
+  }
+  if (avgWinCombos > avgLossCombos * 1.2) {
+    console.log('  • 콤보 활용이 승리에 큰 영향을 줍니다.');
+  }
+  if (avgWinDamage > avgLossDamage * 1.3) {
+    console.log('  • 공격적인 플레이가 유리합니다.');
+  }
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
+/**
+ * 시뮬레이션 결과를 JSON 파일로 내보내기
+ */
+export function exportSimulationResults(
+  battles: number = 30,
+  filename?: string
+): { summary: Record<string, unknown>; enemies: Record<string, unknown>[] } {
+  console.log('\n╔════════════════════════════════════════╗');
+  console.log('║        시뮬레이션 결과 내보내기          ║');
+  console.log('╚════════════════════════════════════════╝\n');
+
+  const config: SimulationConfig = {
+    battles,
+    maxTurns: 30,
+    enemyIds: [...TIER_1_ENEMIES, ...TIER_2_ENEMIES],
+    verbose: false,
+  };
+
+  const stats = runSimulation(config);
+
+  // 결과 데이터 구성
+  const result = {
+    metadata: {
+      timestamp: new Date().toISOString(),
+      battles,
+      maxTurns: config.maxTurns,
+    },
+    summary: {
+      totalBattles: stats.totalBattles,
+      winRate: stats.winRate,
+      avgTurns: stats.avgTurns,
+      avgPlayerDamage: stats.avgPlayerDamageDealt,
+      avgEnemyDamage: stats.avgEnemyDamageDealt,
+      avgPlayerFinalHp: stats.avgPlayerFinalHp,
+    },
+    enemies: Object.entries(stats.enemyStats).map(([id, stat]) => ({
+      id,
+      winRate: stat.winRate,
+      battles: stat.battles,
+      wins: stat.wins,
+      avgTurns: stat.avgTurns,
+    })),
+    combos: Object.entries(stats.comboStats).map(([name, stat]) => ({
+      name,
+      count: stat.count,
+      avgPerBattle: stat.avgPerBattle,
+    })),
+  };
+
+  console.log('📊 요약:');
+  console.log(`  총 전투: ${result.summary.totalBattles}`);
+  console.log(`  승률: ${(result.summary.winRate * 100).toFixed(1)}%`);
+  console.log(`  평균 턴: ${result.summary.avgTurns.toFixed(1)}`);
+  console.log(`\n📁 결과 데이터 생성 완료`);
+
+  // 파일 저장 (Node.js 환경에서만)
+  if (typeof process !== 'undefined' && filename) {
+    try {
+      const fs = require('fs');
+      const path = require('path');
+      const outputPath = path.join(process.cwd(), filename);
+      fs.writeFileSync(outputPath, JSON.stringify(result, null, 2));
+      console.log(`  저장 위치: ${outputPath}`);
+    } catch {
+      console.log('  (파일 저장 실패 - 브라우저 환경)');
+    }
+  }
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+  return result;
+}
+
+/**
+ * 토큰 효율 분석
+ * 각 토큰이 승률에 미치는 영향 분석
+ */
+export function runTokenEfficiencyAnalysis(battles: number = 30): void {
+  console.log('\n╔════════════════════════════════════════╗');
+  console.log('║           토큰 효율 분석                ║');
+  console.log('╚════════════════════════════════════════╝\n');
+
+  // 토큰 부여 상징으로 테스트
+  const relicTokenPairs: Array<{ relic: string; token: string; description: string }> = [
+    { relic: 'sturdyArmor', token: 'defense', description: '방어 토큰 (sturdyArmor)' },
+    { relic: 'trainingBoots', token: 'offense', description: '공세 토큰 (trainingBoots)' },
+    { relic: 'oldCompass', token: 'dodge', description: '회피 토큰 (oldCompass)' },
+    { relic: 'raggedCloak', token: 'absorb', description: '흡수 토큰 (raggedCloak)' },
+  ];
+
+  // 기준 승률 (상징 없음)
+  const baseConfig: SimulationConfig = {
+    battles,
+    maxTurns: 30,
+    enemyIds: TIER_1_ENEMIES.slice(0, 3),
+    playerRelics: [],
+    verbose: false,
+  };
+  const baseStats = runSimulation(baseConfig);
+  const baseWinRate = baseStats.winRate;
+
+  console.log(`📊 기준 승률 (상징 없음): ${(baseWinRate * 100).toFixed(1)}%\n`);
+  console.log('─'.repeat(50));
+
+  const results: Array<{ description: string; winRate: number; diff: number }> = [];
+
+  for (const pair of relicTokenPairs) {
+    const config: SimulationConfig = {
+      battles,
+      maxTurns: 30,
+      enemyIds: TIER_1_ENEMIES.slice(0, 3),
+      playerRelics: [pair.relic],
+      verbose: false,
+    };
+
+    const stats = runSimulation(config);
+    const diff = stats.winRate - baseWinRate;
+    results.push({ description: pair.description, winRate: stats.winRate, diff });
+  }
+
+  // 효과순 정렬
+  results.sort((a, b) => b.diff - a.diff);
+
+  console.log('\n🏅 토큰 효율 순위:\n');
+  results.forEach((r, idx) => {
+    const sign = r.diff >= 0 ? '+' : '';
+    const bar = r.diff >= 0
+      ? '▲'.repeat(Math.min(10, Math.ceil(r.diff * 50)))
+      : '▼'.repeat(Math.min(10, Math.ceil(Math.abs(r.diff) * 50)));
+    console.log(`  ${idx + 1}. ${r.description}`);
+    console.log(`     승률: ${(r.winRate * 100).toFixed(1)}% (${sign}${(r.diff * 100).toFixed(1)}%) ${bar}`);
+  });
+
+  console.log('\n💡 분석:');
+  console.log('─'.repeat(50));
+  const best = results[0];
+  const worst = results[results.length - 1];
+  console.log(`  가장 효과적: ${best.description} (+${(best.diff * 100).toFixed(1)}%)`);
+  if (worst.diff < 0) {
+    console.log(`  가장 비효과적: ${worst.description} (${(worst.diff * 100).toFixed(1)}%)`);
+  }
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
 // CLI에서 직접 실행 시
 if (typeof process !== 'undefined' && process.argv?.[1]?.includes('gameSimulator')) {
   runQuickTest();
