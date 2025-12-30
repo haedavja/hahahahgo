@@ -399,3 +399,17 @@ describe('이변 효과 시뮬레이션', () => {
     expect(typeof runAnomalyComparison).toBe('function');
   });
 });
+
+describe('카드 효율 분석', () => {
+  it('runCardEfficiencyAnalysis 함수가 존재한다', async () => {
+    const { runCardEfficiencyAnalysis } = await import('./gameSimulator');
+    expect(typeof runCardEfficiencyAnalysis).toBe('function');
+  });
+});
+
+describe('종합 리포트', () => {
+  it('runFullReport 함수가 존재한다', async () => {
+    const { runFullReport } = await import('./gameSimulator');
+    expect(typeof runFullReport).toBe('function');
+  });
+});

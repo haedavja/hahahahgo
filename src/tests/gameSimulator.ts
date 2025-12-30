@@ -2231,6 +2231,166 @@ export function runAnomalyComparison(battles: number = 50): void {
   console.log('\n========================================\n');
 }
 
+/**
+ * 카드 효율 분석
+ * 각 카드를 덱에 추가했을 때의 승률 변화를 측정
+ */
+export function runCardEfficiencyAnalysis(battles: number = 30): void {
+  console.log('\n========================================');
+  console.log('         카드 효율 분석                  ');
+  console.log('========================================\n');
+
+  // 테스트할 카드 목록 (공격/방어 카드 위주)
+  const cardsToTest = [
+    // 공격 카드
+    'strike', 'lunge', 'fleche', 'flank', 'thrust', 'beat', 'feint',
+    'grind', 'shoot', 'hawks_eye', 'gun_headshot', 'sniper_shot',
+    // 방어 카드
+    'deflect', 'octave', 'quarte', 'septime', 'intercept', 'breach',
+    // 특수 카드
+    'marche', 'disrupt', 'redoublement', 'violent_mort', 'tempete_dechainee',
+  ];
+
+  // 기본 덱으로 기준치 측정
+  const baseDeck = ['strike', 'strike', 'lunge', 'shoot', 'deflect', 'deflect'];
+  const baseConfig: SimulationConfig = {
+    battles,
+    maxTurns: 30,
+    enemyIds: TIER_1_ENEMIES,
+    playerDeck: baseDeck,
+    verbose: false,
+  };
+  const baseStats = runSimulation(baseConfig);
+  console.log(`📊 기준 덱: ${baseDeck.join(', ')}`);
+  console.log(`   승률: ${(baseStats.winRate * 100).toFixed(1)}%\n`);
+
+  const results: Array<{
+    cardId: string;
+    cardName: string;
+    winRate: number;
+    diff: number;
+    avgTurns: number;
+    avgDamage: number;
+    type: string;
+  }> = [];
+
+  for (const cardId of cardsToTest) {
+    const card = CARDS.find(c => c.id === cardId);
+    if (!card) continue;
+
+    // 기본 덱에 이 카드를 추가한 덱
+    const testDeck = [...baseDeck, cardId];
+
+    const config: SimulationConfig = {
+      battles,
+      maxTurns: 30,
+      enemyIds: TIER_1_ENEMIES,
+      playerDeck: testDeck,
+      verbose: false,
+    };
+
+    const stats = runSimulation(config);
+    const diff = stats.winRate - baseStats.winRate;
+
+    results.push({
+      cardId,
+      cardName: card.name,
+      winRate: stats.winRate,
+      diff,
+      avgTurns: stats.avgTurns,
+      avgDamage: stats.avgPlayerDamageDealt,
+      type: card.type || 'unknown',
+    });
+  }
+
+  // 효과 순으로 정렬
+  results.sort((a, b) => b.diff - a.diff);
+
+  console.log('🃏 카드별 승률 기여도:');
+  console.log('─────────────────────────────────────────');
+
+  // 상위 10개
+  console.log('\n⬆️ 상위 10개 (가장 효과적인 카드):');
+  for (let i = 0; i < Math.min(10, results.length); i++) {
+    const r = results[i];
+    const diffStr = r.diff >= 0 ? `+${(r.diff * 100).toFixed(1)}` : `${(r.diff * 100).toFixed(1)}`;
+    const typeEmoji = r.type === 'attack' ? '⚔️' : r.type === 'defense' ? '🛡️' : '✨';
+    console.log(`  ${i + 1}. ${typeEmoji} ${r.cardName}: ${(r.winRate * 100).toFixed(1)}% (${diffStr}%)`);
+  }
+
+  // 하위 5개
+  console.log('\n⬇️ 하위 5개 (효과가 낮은 카드):');
+  const bottom = results.slice(-5).reverse();
+  for (let i = 0; i < bottom.length; i++) {
+    const r = bottom[i];
+    const diffStr = r.diff >= 0 ? `+${(r.diff * 100).toFixed(1)}` : `${(r.diff * 100).toFixed(1)}`;
+    const typeEmoji = r.type === 'attack' ? '⚔️' : r.type === 'defense' ? '🛡️' : '✨';
+    console.log(`  ${i + 1}. ${typeEmoji} ${r.cardName}: ${(r.winRate * 100).toFixed(1)}% (${diffStr}%)`);
+  }
+
+  // 타입별 평균
+  console.log('\n📈 카드 타입별 평균 효과:');
+  console.log('─────────────────────────────────────────');
+
+  const byType: Record<string, { count: number; totalDiff: number }> = {};
+  for (const r of results) {
+    if (!byType[r.type]) byType[r.type] = { count: 0, totalDiff: 0 };
+    byType[r.type].count++;
+    byType[r.type].totalDiff += r.diff;
+  }
+
+  for (const [type, data] of Object.entries(byType)) {
+    const avgDiff = data.totalDiff / data.count;
+    const typeEmoji = type === 'attack' ? '⚔️' : type === 'defense' ? '🛡️' : '✨';
+    const diffStr = avgDiff >= 0 ? `+${(avgDiff * 100).toFixed(1)}` : `${(avgDiff * 100).toFixed(1)}`;
+    console.log(`  ${typeEmoji} ${type}: 평균 ${diffStr}% (${data.count}개 카드)`);
+  }
+
+  console.log('\n========================================\n');
+}
+
+/**
+ * 종합 리포트 생성
+ * 모든 분석을 한 번에 실행하고 결과를 종합
+ */
+export function runFullReport(battles: number = 30): void {
+  console.log('\n╔════════════════════════════════════════╗');
+  console.log('║        게임 시뮬레이터 종합 리포트        ║');
+  console.log('╚════════════════════════════════════════╝\n');
+
+  const startTime = Date.now();
+
+  // 1. 기본 밸런스 분석
+  console.log('📊 1. 기본 밸런스 분석');
+  console.log('═'.repeat(45));
+  runBalanceAnalysis(battles);
+
+  // 2. 덱 비교
+  console.log('\n🃏 2. 덱 전략 비교');
+  console.log('═'.repeat(45));
+  runDeckComparison(battles);
+
+  // 3. 상징 효과
+  console.log('\n🏆 3. 상징 효과 분석');
+  console.log('═'.repeat(45));
+  runRelicComparison(battles);
+
+  // 4. 이변 효과
+  console.log('\n💀 4. 이변 효과 분석');
+  console.log('═'.repeat(45));
+  runAnomalyComparison(battles);
+
+  // 5. 카드 효율
+  console.log('\n⚔️ 5. 카드 효율 분석');
+  console.log('═'.repeat(45));
+  runCardEfficiencyAnalysis(battles);
+
+  const elapsed = Date.now() - startTime;
+  console.log('\n╔════════════════════════════════════════╗');
+  console.log(`║  총 소요 시간: ${(elapsed / 1000).toFixed(1)}초                     ║`);
+  console.log('╚════════════════════════════════════════╝\n');
+}
+
 // CLI에서 직접 실행 시
 if (typeof process !== 'undefined' && process.argv?.[1]?.includes('gameSimulator')) {
   runQuickTest();
