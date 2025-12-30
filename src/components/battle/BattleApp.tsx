@@ -904,9 +904,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
   useEffect(() => {
     if (battle.phase === 'resolve' && (!queue || battle.queue.length === 0) && fixedOrder && fixedOrder.length > 0) {
-      const rebuilt = (fixedOrder as unknown as OrderItem[]).map(x => ({ actor: x.actor, card: x.card, sp: x.sp }));
+      const rebuilt = fixedOrder.map(x => ({ actor: x.actor, card: x.card, sp: x.sp, originalIndex: x.originalIndex }));
       const markedRebuilt = markCrossedCards(rebuilt);
-      actions.setQueue(markedRebuilt as unknown as OrderItem[]); actions.setQIndex(0);
+      actions.setQueue(markedRebuilt); actions.setQIndex(0);
       addLog('🧯 자동 복구: 실행 큐를 다시 생성했습니다');
     }
   }, [battle.phase, battle.queue, fixedOrder]);
@@ -1142,7 +1142,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
     const currentBattle = battleRef.current;
     if (currentBattle.qIndex >= currentBattle.queue.length) return;
-    const a = currentBattle.queue[currentBattle.qIndex] as unknown as OrderItem;
+    const a = currentBattle.queue[currentBattle.qIndex];
 
     // 죽은 적의 카드 스킵 (적 체력 0 이하이고 적 카드인 경우)
     const currentEnemy = currentBattle.enemy || enemy;
@@ -1268,7 +1268,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       isExecutingCardRef.current = false;
       return;
     }
-    const a = currentBattle.queue[currentBattle.qIndex] as unknown as OrderItem;
+    const a = currentBattle.queue[currentBattle.qIndex];
 
     // battleRef에서 최신 player/enemy 상태 가져오기 (애니메이션 중 방어자세 방어력, 토큰 등 반영)
     const latestPlayer = currentBattle.player || player;
@@ -1299,21 +1299,19 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
     // battleContext 생성 (special 효과용)
     // 진행 단계 최종 남은 행동력 계산 (가이러스 룰렛: 모든 선택 카드 비용 차감 후)
-    type QueueItem = { actor: 'player' | 'enemy'; card: { actionCost?: number; cardCategory?: string } };
-    const typedQueue = currentBattle.queue as unknown as QueueItem[];
-    const allPlayerCards = typedQueue.filter(q => q.actor === 'player');
+    const allPlayerCards = currentBattle.queue.filter(q => q.actor === 'player');
     const totalEnergyUsed = allPlayerCards.reduce((sum, q) => sum + (q.card?.actionCost || 0), 0);
     const playerEnergyBudget = (P as { energy?: number; maxEnergy?: number }).energy || (P as { maxEnergy?: number }).maxEnergy || BASE_PLAYER_ENERGY;
     const calculatedRemainingEnergy = Math.max(0, playerEnergyBudget - totalEnergyUsed);
 
     // 적 남은 에너지 계산
-    const allEnemyCards = typedQueue.filter(q => q.actor === 'enemy');
+    const allEnemyCards = currentBattle.queue.filter(q => q.actor === 'enemy');
     const enemyTotalEnergyUsed = allEnemyCards.reduce((sum, q) => sum + (q.card?.actionCost || 0), 0);
     const enemyEnergyBudget = (E as { energy?: number; maxEnergy?: number }).energy || (E as { maxEnergy?: number }).maxEnergy || BASE_PLAYER_ENERGY;
     const calculatedEnemyRemainingEnergy = Math.max(0, enemyEnergyBudget - enemyTotalEnergyUsed);
 
     // 이번 턴에 사용된 카드 카테고리 추적 (comboStyle용)
-    const executedPlayerCards = typedQueue
+    const executedPlayerCards = currentBattle.queue
       .slice(0, currentBattle.qIndex)
       .filter(q => q.actor === 'player');
     const usedCardCategories = [...new Set(executedPlayerCards.map(q => q.card?.cardCategory).filter(Boolean))];

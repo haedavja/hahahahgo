@@ -24,9 +24,9 @@ import type {
   RespondSnapshot,
   PostCombatOptions,
   BattleEvent,
-  DeflationInfo
+  DeflationInfo,
+  OrderItem
 } from '../../../types';
-import type { HandCard } from '../../../lib/speedQueue';
 
 // Re-export reducer state types
 export type PlayerState = ReducerPlayerState;
@@ -264,8 +264,8 @@ type DeckAction =
 /** 적 계획/큐 액션 */
 type QueueAction =
   | { type: typeof ACTIONS.SET_ENEMY_PLAN; payload: EnemyPlan }
-  | { type: typeof ACTIONS.SET_FIXED_ORDER; payload: HandCard[] | null }
-  | { type: typeof ACTIONS.SET_QUEUE; payload: HandCard[] }
+  | { type: typeof ACTIONS.SET_FIXED_ORDER; payload: OrderItem[] | null }
+  | { type: typeof ACTIONS.SET_QUEUE; payload: OrderItem[] }
   | { type: typeof ACTIONS.SET_Q_INDEX; payload: number }
   | { type: typeof ACTIONS.INCREMENT_Q_INDEX };
 

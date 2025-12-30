@@ -23,10 +23,10 @@ import type {
   ReducerPlayerState,
   ReducerEnemyState,
   ReducerEnemyUnitState,
-  DeflationInfo
+  DeflationInfo,
+  OrderItem
 } from '../../../types';
 import type { BattlePhase, SortType, EtherCalcPhase } from './battleReducerActions';
-import type { HandCard } from '../../../lib/speedQueue';
 
 // 중앙 타입에서 재export
 export type PlayerState = ReducerPlayerState;
@@ -65,8 +65,8 @@ export interface FullBattleState {
   enemyPlan: EnemyPlan;
 
   // 실행 큐 & 순서
-  fixedOrder: HandCard[] | null;
-  queue: HandCard[];
+  fixedOrder: OrderItem[] | null;
+  queue: OrderItem[];
   qIndex: number;
 
   // 전투 로그 & 이벤트
