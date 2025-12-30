@@ -790,8 +790,19 @@ function GameCardDisplay({
     ? getEnhancedCard(card as Parameters<typeof getEnhancedCard>[0], enhancementLevel).description || card.description
     : card.description;
 
-  // 특성: overrideTraits가 있으면 그것을 사용, 없으면 growth.traits 사용
-  const displayTraits = overrideTraits ?? growth.traits;
+  // 특성: overrideTraits가 있으면 그것을 사용, 없으면 강화에 의한 특성 변경 반영
+  let displayTraits: string[];
+  if (overrideTraits) {
+    displayTraits = overrideTraits;
+  } else {
+    // 기본 특성에서 시작
+    const baseTraits = [...(growth.traits || [])];
+    // 강화로 제거되는 특성 제외
+    const afterRemoval = baseTraits.filter(t => !stats?.removedTraits?.includes(t));
+    // 강화로 추가되는 특성 추가 (중복 방지)
+    const addedTraits = stats?.addedTraits || [];
+    displayTraits = [...afterRemoval, ...addedTraits.filter(t => !afterRemoval.includes(t))];
+  }
   const borderColor = previewBorderColor || '#60a5fa';
 
   return (

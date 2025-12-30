@@ -9,13 +9,6 @@ import {
   type EnhancementEffect,
   type SpecialEffect,
 } from './cardEnhancementData';
-import { TRAITS } from '../components/battle/battleData';
-
-/** 특성 ID를 한국어 이름으로 변환 */
-function getTraitName(traitId: string): string {
-  const trait = TRAITS[traitId as keyof typeof TRAITS];
-  return trait ? trait.name : traitId;
-}
 
 // 카드 기본 타입 (battleData.ts의 카드 구조와 호환)
 export interface BaseCard {
@@ -640,17 +633,7 @@ export function generateEnhancedDescription(
       additions.push(`지속 +${enhancedStats.durationTurnsBonus}턴`);
     }
 
-    // 추가된 특성 (ID를 한국어 이름으로 변환)
-    if (enhancedStats.addedTraits.length > 0) {
-      const traitNames = enhancedStats.addedTraits.map(getTraitName);
-      additions.push(`[${traitNames.join(', ')}] 추가`);
-    }
-
-    // 제거된 특성 (ID를 한국어 이름으로 변환)
-    if (enhancedStats.removedTraits.length > 0) {
-      const traitNames = enhancedStats.removedTraits.map(getTraitName);
-      additions.push(`[${traitNames.join(', ')}] 제거`);
-    }
+    // 추가/제거된 특성은 카드 UI에 직접 표시되므로 설명에서 제외
 
     if (additions.length > 0) {
       description += ` (${additions.join(', ')})`;
