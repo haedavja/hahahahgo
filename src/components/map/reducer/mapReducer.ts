@@ -10,8 +10,6 @@
  * - hoveredRelic/orderedRelics: 상징 관련
  */
 
-import type { Relic } from '../../../types';
-
 // ========== 타입 정의 ==========
 
 /** Map 상태 */
@@ -20,18 +18,18 @@ export interface MapState {
   isDungeonExploring: boolean;
   devToolsOpen: boolean;
   hoveredRelic: string | null;
-  orderedRelics: Relic[];
+  orderedRelics: string[];
   relicActivated: string | null;
 }
 
 /** Map 액션 */
 export type MapAction =
-  | { type: 'SET_SHOW_CHARACTER_SHEET'; payload: boolean }
+  | { type: 'SET_SHOW_CHARACTER_SHEET'; payload: boolean | ((prev: boolean) => boolean) }
   | { type: 'SET_IS_DUNGEON_EXPLORING'; payload: boolean }
-  | { type: 'SET_DEV_TOOLS_OPEN'; payload: boolean }
+  | { type: 'SET_DEV_TOOLS_OPEN'; payload: boolean | ((prev: boolean) => boolean) }
   | { type: 'SET_HOVERED_RELIC'; payload: string | null }
-  | { type: 'SET_ORDERED_RELICS'; payload: Relic[] | ((prev: Relic[]) => Relic[]) }
-  | { type: 'SET_RELIC_ACTIVATED'; payload: string | null };
+  | { type: 'SET_ORDERED_RELICS'; payload: string[] | ((prev: string[]) => string[]) }
+  | { type: 'SET_RELIC_ACTIVATED'; payload: string | null | ((prev: string | null) => string | null) };
 
 export const ACTIONS = {
   SET_SHOW_CHARACTER_SHEET: 'SET_SHOW_CHARACTER_SHEET',
@@ -40,7 +38,7 @@ export const ACTIONS = {
   SET_HOVERED_RELIC: 'SET_HOVERED_RELIC',
   SET_ORDERED_RELICS: 'SET_ORDERED_RELICS',
   SET_RELIC_ACTIVATED: 'SET_RELIC_ACTIVATED',
-};
+} as const;
 
 /**
  * 초기 상태 생성 함수
@@ -65,19 +63,29 @@ export const createInitialState = (overrides: Partial<MapState> = {}): MapState 
  */
 export const mapReducer = (state: MapState, action: MapAction): MapState => {
   switch (action.type) {
-    case ACTIONS.SET_SHOW_CHARACTER_SHEET:
-      return { ...state, showCharacterSheet: action.payload };
+    case 'SET_SHOW_CHARACTER_SHEET':
+      return {
+        ...state,
+        showCharacterSheet: typeof action.payload === 'function'
+          ? action.payload(state.showCharacterSheet)
+          : action.payload
+      };
 
-    case ACTIONS.SET_IS_DUNGEON_EXPLORING:
+    case 'SET_IS_DUNGEON_EXPLORING':
       return { ...state, isDungeonExploring: action.payload };
 
-    case ACTIONS.SET_DEV_TOOLS_OPEN:
-      return { ...state, devToolsOpen: action.payload };
+    case 'SET_DEV_TOOLS_OPEN':
+      return {
+        ...state,
+        devToolsOpen: typeof action.payload === 'function'
+          ? action.payload(state.devToolsOpen)
+          : action.payload
+      };
 
-    case ACTIONS.SET_HOVERED_RELIC:
+    case 'SET_HOVERED_RELIC':
       return { ...state, hoveredRelic: action.payload };
 
-    case ACTIONS.SET_ORDERED_RELICS:
+    case 'SET_ORDERED_RELICS':
       // 함수형 업데이트 지원: payload가 함수면 현재 상태를 전달하여 호출
       return {
         ...state,
@@ -86,8 +94,13 @@ export const mapReducer = (state: MapState, action: MapAction): MapState => {
           : action.payload
       };
 
-    case ACTIONS.SET_RELIC_ACTIVATED:
-      return { ...state, relicActivated: action.payload };
+    case 'SET_RELIC_ACTIVATED':
+      return {
+        ...state,
+        relicActivated: typeof action.payload === 'function'
+          ? action.payload(state.relicActivated)
+          : action.payload
+      };
 
     default:
       return state;

@@ -22,10 +22,15 @@ import {
   grantRewards,
   MAX_PLAYER_SELECTION,
 } from '../gameStoreHelpers';
+import { CARD_LIBRARY } from '../../data/cards';
 
 export type BattleActionsSlice = BattleSliceActions;
 
 type SliceCreator = StateCreator<GameStore, [], [], BattleActionsSlice>;
+
+/** Convert card IDs to BattleCard objects */
+const toBattleCards = (cardIds: string[]): BattleCard[] =>
+  cardIds.map(id => CARD_LIBRARY[id]).filter(Boolean);
 
 export const createBattleActions: SliceCreator = (set) => ({
   startBattle: (battleConfig = {}) =>
@@ -78,7 +83,17 @@ export const createBattleActions: SliceCreator = (set) => ({
 
       const enemyInfo = enemy
         ? { id: enemy.id, name: enemy.name, emoji: enemy.emoji, tier: enemy.tier, isBoss: enemy.isBoss || false }
-        : null;
+        : undefined;
+
+      // Convert ResolverSimulationResult to SimulationResult format
+      const simulationResult = simulation ? {
+        pDealt: 0,
+        pTaken: 0,
+        finalPHp: simulation.finalState.player.hp,
+        finalEHp: simulation.finalState.enemy.hp,
+        lines: simulation.log.map(entry => `${entry.actor}: ${entry.name || entry.cardId}`),
+        winner: simulation.winner,
+      } : undefined;
 
       const activeBattle: GameStore['activeBattle'] = {
         nodeId: (battleConfig.nodeId as string) || 'dungeon-combat',
@@ -87,18 +102,18 @@ export const createBattleActions: SliceCreator = (set) => ({
         rewards: (battleConfig.rewards as BattleRewards) || { gold: { min: 5 + (enemy?.tier || 1) * 3, max: 10 + (enemy?.tier || 1) * 5 }, loot: 1 },
         difficulty: enemy?.tier || 2,
         enemyInfo,
-        playerLibrary,
-        playerDrawPile,
+        playerLibrary: toBattleCards(playerLibrary),
+        playerDrawPile: toBattleCards(playerDrawPile),
         playerDiscardPile: [],
-        enemyLibrary,
-        enemyDrawPile,
+        enemyLibrary: toBattleCards(enemyLibrary),
+        enemyDrawPile: toBattleCards(enemyDrawPile),
         enemyDiscardPile: [],
         playerHand,
         enemyHand,
         selectedCardIds: [],
         maxSelection: MAX_PLAYER_SELECTION,
         preview,
-        simulation,
+        simulation: simulationResult,
         hasCharacterBuild,
         characterBuild: hasCharacterBuild ? characterBuild : null,
       };
@@ -109,7 +124,7 @@ export const createBattleActions: SliceCreator = (set) => ({
     set((state) => {
       if (!state.activeBattle) return state;
       const rewardsDef = state.activeBattle.rewards ?? {};
-      const autoResult = pickOutcome(state.activeBattle.simulation ?? null, 'victory');
+      const autoResult = pickOutcome(state.activeBattle.simulation as unknown as Parameters<typeof pickOutcome>[0], 'victory');
       const resultLabel = outcome.result ?? autoResult;
       const rewards = resultLabel === 'victory'
         ? grantRewards(rewardsDef as Parameters<typeof grantRewards>[0], state.resources)
@@ -227,10 +242,20 @@ export const createBattleActions: SliceCreator = (set) => ({
 
       const { preview, simulation } = computeBattlePlan(battle.kind || '', selectedCards as Parameters<typeof computeBattlePlan>[1], enemyCards as Parameters<typeof computeBattlePlan>[2], state.playerHp, state.maxHp);
 
+      // Convert ResolverSimulationResult to SimulationResult format
+      const simulationResult = simulation ? {
+        pDealt: 0,
+        pTaken: 0,
+        finalPHp: simulation.finalState.player.hp,
+        finalEHp: simulation.finalState.enemy.hp,
+        lines: simulation.log.map(entry => `${entry.actor}: ${entry.name || entry.cardId}`),
+        winner: simulation.winner,
+      } : undefined;
+
       const updatedBattle: GameStore['activeBattle'] = {
         ...battle,
         preview,
-        simulation,
+        simulation: simulationResult,
         playerHand: newPlayerHand,
         enemyHand: newEnemyHand,
         playerDrawPile: nextPlayerDraw,

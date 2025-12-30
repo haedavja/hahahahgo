@@ -119,7 +119,7 @@ export const createBattleEnemyData = (enemy: Partial<EnemyDefinition> | null | u
   }
 
   return {
-    id: enemy?.id,
+    id: enemy?.id || 'unknown',
     name: enemy?.name || '적',
     emoji: enemy?.emoji || '👾',
     hp: enemy?.hp || 40,
@@ -281,7 +281,7 @@ export const createBattlePayload = (
     : [...BATTLE_CARDS];
 
   // 노드 레이어 번호를 기반으로 적 그룹 선택
-  const nodeNumber = node.layer ?? 1;
+  const nodeNumber = typeof node.layer === 'number' ? node.layer : 1;
   let enemyGroup;
 
   if (node.type === 'boss') {
@@ -292,14 +292,15 @@ export const createBattlePayload = (
     enemyGroup = getEnemyGroupDetails(randomId);
   } else {
     const group = getRandomEnemyGroupByNode(nodeNumber);
-    enemyGroup = getEnemyGroupDetails(group.id);
+    enemyGroup = getEnemyGroupDetails(group?.id ?? 'default');
   }
 
-  const enemies = enemyGroup?.enemies || [];
+  const rawEnemies = enemyGroup?.enemies || [];
+  const enemies = rawEnemies.filter((e): e is Exclude<typeof e, null> => e !== null);
   const enemyCount = enemies.length || 1;
 
   const enemyLibrary: string[] = [];
-  enemies.forEach((enemy: Partial<EnemyDefinition>) => {
+  enemies.forEach((enemy) => {
     if (Array.isArray(enemy?.deck)) {
       enemyLibrary.push(...enemy.deck);
     }
@@ -322,12 +323,12 @@ export const createBattlePayload = (
   const enemyHand = drawHand(enemyDrawPile, enemyHandSize);
   const { preview, simulation } = computeBattlePlan(node.type, playerHand, enemyHand, playerHp, maxHp, enemyCount);
 
-  const totalEnemyHp = enemies.reduce((sum: number, e: Partial<EnemyDefinition>) => sum + (e?.hp || 40), 0);
+  const totalEnemyHp: number = enemies.reduce((sum, e) => sum + (e?.hp || 40), 0);
 
-  const mixedEnemies = enemies.map((e: Partial<EnemyDefinition>) => createBattleEnemyData(e));
+  const mixedEnemies = enemies.map((e) => createBattleEnemyData(e));
 
   return {
-    nodeId: node.id,
+    nodeId: String(node.id),
     kind: node.type,
     label: enemyGroup?.name || node.displayLabel || (BATTLE_LABEL as Record<string, string>)[node.type] || node.type.toUpperCase(),
     enemyCount,
@@ -361,20 +362,22 @@ export const travelToNode = (state: PartialGameState, nodeId: string): TravelRes
     if (!node.cleared) node.selectable = false;
   });
   target.cleared = true;
-  target.connections.forEach((id: string) => {
+  const connections = Array.isArray(target.connections) ? target.connections : [];
+  connections.forEach((id: string) => {
     const nextNode = nodes.find((n) => n.id === id);
     if (nextNode && !nextNode.cleared) nextNode.selectable = true;
   });
 
+  // target을 EventNode로 타입 단언 (BattleNode는 MapNode를 확장하므로 호환됨)
   const { payload: event, usedPendingEvent } = createEventPayload(
-    target,
+    target as MapNode,
     state.mapRisk ?? 0,
     state.completedEvents || [],
     state.pendingNextEvent ?? null
   );
 
   return {
-    map: { ...state.map, nodes, currentNodeId: target.id },
+    map: { ...state.map, nodes: nodes as MapNode[], currentNodeId: String(target.id) },
     event,
     battle: createBattlePayload(target, state.characterBuild ?? null, state.playerHp ?? null, state.maxHp ?? null),
     target,

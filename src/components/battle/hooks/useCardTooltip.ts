@@ -27,7 +27,7 @@ export function useCardTooltip({ hoveredCard, battlePhase, actions }: UseCardToo
 
   // hoveredCard 상태를 ref로 유지 (타이머 콜백에서 참조)
   useEffect(() => {
-    hoveredCardRef.current = hoveredCard;
+    hoveredCardRef.current = hoveredCard as { card: Card, x: number, y: number } | null;
   }, [hoveredCard]);
 
   // 페이즈 변경 시 툴팁 정리 (카드가 사라질 때 툴팁이 남는 문제 방지)
@@ -42,7 +42,8 @@ export function useCardTooltip({ hoveredCard, battlePhase, actions }: UseCardToo
 
   const showCardTraitTooltip = useCallback((card: Card, cardElement: HTMLElement) => {
     const hasTraits = card?.traits && card.traits.length > 0;
-    const hasAppliedTokens = card?.appliedTokens && card.appliedTokens.length > 0;
+    const cardWithTokens = card as Card & { appliedTokens?: Array<{ id: string; stacks?: number; target?: string }> };
+    const hasAppliedTokens = cardWithTokens?.appliedTokens && cardWithTokens.appliedTokens.length > 0;
     if ((!hasTraits && !hasAppliedTokens) || !cardElement) return;
 
     const updatePos = () => {

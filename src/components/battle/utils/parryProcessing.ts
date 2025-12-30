@@ -15,7 +15,8 @@ import type {
   ParryEvent,
   ParryTriggerResult,
   SetupParryReadyParams,
-  CheckParryTriggerParams
+  CheckParryTriggerParams,
+  OrderItem
 } from '../../../types';
 
 /**

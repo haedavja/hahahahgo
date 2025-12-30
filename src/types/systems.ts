@@ -6,6 +6,7 @@
 
 import type {
   Card,
+  CardType,
   TokenState,
   TokenInstance,
   TokenEffectPayload,
@@ -58,13 +59,15 @@ export interface ComboExplainResult {
 }
 
 /** 콤보 점수용 카드 */
-export interface ComboScoringCard extends ComboCard {
-  id?: string;
-  type?: 'attack' | 'defense' | 'general' | 'support';
+export interface ComboScoringCard {
+  id: string;
+  type?: CardType;
   speedCost?: number;
+  actionCost: number;
   damage?: number;
   hits?: number;
   block?: number;
+  [key: string]: unknown;
 }
 
 /** 콤보 점수용 적 */
@@ -300,7 +303,7 @@ export interface ComboEtherGainResult {
 
 /** 콤보 에테르 획득 계산 파라미터 */
 export interface CalculateComboEtherGainParams {
-  cards?: (EtherCard | EtherCardEntry)[];
+  cards?: Array<EtherCard | EtherCardEntry | Card>;
   cardCount?: number;
   comboName?: string | null;
   comboUsageCount?: ComboUsageCount;
@@ -671,6 +674,7 @@ export interface SimulationResult {
   finalEHp: number;
   lines: string[];
   log?: SimulationLogEntry[];
+  winner?: 'player' | 'enemy' | 'draw';
 }
 
 // ==================== 속도 큐 시스템 ====================

@@ -77,7 +77,7 @@ const resourceLabelsRecord = RESOURCE_LABELS as Record<string, string>;
 export const describeBundle = (bundle: Record<string, unknown> = {}) => {
   const entries = Object.entries(bundle || {});
   if (!entries.length) return "없음";
-  return entries.map(([key, amount]) => `${resourceLabelsRecord[key] ?? key} ${describeAmount(amount)}`).join(", ");
+  return entries.map(([key, amount]) => `${resourceLabelsRecord[key] ?? key} ${describeAmount(amount as number | { min: number; max: number } | null | undefined)}`).join(", ");
 };
 
 export const describeCost = (cost: Record<string, number> = {}) => {
@@ -103,7 +103,7 @@ export const canAfford = (resources: Record<string, number>, cost: Record<string
     .filter(([key]: [string, number]) => key !== 'hp' && key !== 'hpPercent')
     .every(([key, value]: [string, number]) => (resources[key] ?? 0) >= value);
 
-export const formatBattleLogEntry = (entry: string | Record<string, unknown>) => {
+export const formatBattleLogEntry = (entry: string | Record<string, unknown>): string => {
   if (!entry) return "";
   if (typeof entry === "string") return entry;
   const actorLabel =

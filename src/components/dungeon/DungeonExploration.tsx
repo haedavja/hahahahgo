@@ -7,24 +7,8 @@
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useShallow } from 'zustand/react/shallow';
-import type { DungeonObject, RenderDungeonSceneParams } from "../../types";
+import type { DungeonObject, RenderDungeonSceneParams, RenderDungeonSegment, RenderDungeonGrid, RenderMazeData, RenderDungeonRoom, Direction } from "../../types";
 import { useDungeonState } from "./hooks/useDungeonState";
-
-/** 미로 방 타입 */
-interface MazeRoom {
-  x: number;
-  y: number;
-  roomType?: 'entrance' | 'exit' | 'hidden' | 'normal';
-  isDeadEnd?: boolean;
-  objects?: DungeonObject[];
-  exits?: Record<string, boolean>;
-}
-
-/** 미로 데이터 타입 */
-interface MazeData {
-  grid: Record<string, MazeRoom>;
-  startKey: string;
-}
 import { useCrossroadChoice } from "./hooks/useCrossroadChoice";
 import { usePlayerMovement } from "./hooks/usePlayerMovement";
 import { useGameStore } from "../../state/gameStore";
@@ -103,8 +87,8 @@ export function DungeonExploration() {
   }, [activeDungeon, setDungeonDeltas]);
 
   // 던전 데이터
-  const mazeData = activeDungeon?.dungeonData as MazeData | null;
-  const grid = mazeData?.grid || {};
+  const mazeData = activeDungeon?.dungeonData as RenderMazeData | null;
+  const grid = (mazeData?.grid || {}) as RenderDungeonGrid;
   const startKey = mazeData?.startKey || '2,4';
   const currentRoomKey = activeDungeon?.currentRoomKey || startKey;
   const dungeonDeltas = activeDungeon?.dungeonDeltas || { gold: 0, intel: 0, loot: 0, material: 0 };
@@ -123,7 +107,7 @@ export function DungeonExploration() {
   } = dungeon;
 
   // 현재 방
-  const segment: MazeRoom | undefined = grid[currentRoomKey];
+  const segment: RenderDungeonSegment | undefined = grid[currentRoomKey];
   const playerY = CONFIG.FLOOR_Y - CONFIG.PLAYER.height;
 
   // Refs
@@ -138,7 +122,7 @@ export function DungeonExploration() {
 
   // 플레이어 이동 훅
   const { moveToRoom } = usePlayerMovement({
-    segment,
+    segment: segment || null,
     grid,
     keys,
     playerX,
@@ -146,7 +130,7 @@ export function DungeonExploration() {
     actions,
     showCharacter,
     setCurrentRoomKey,
-    updateMazeRoom,
+    updateMazeRoom: (key: string, updates: Partial<RenderDungeonRoom>) => updateMazeRoom(key, updates),
     interactionRef,
   });
 
@@ -157,7 +141,7 @@ export function DungeonExploration() {
     setDungeonDeltas,
     currentRoomKey,
     startBattle,
-    segment,
+    segment: segment as RenderDungeonSegment | undefined,
     actions,
   });
 
@@ -202,10 +186,10 @@ export function DungeonExploration() {
   const handleCompleteDungeon = useCallback(() => {
     playVictorySound();
     actions.setDungeonSummary({
-      gold: dungeonDeltas.gold,
-      intel: dungeonDeltas.intel,
-      loot: dungeonDeltas.loot,
-      material: dungeonDeltas.material,
+      gold: dungeonDeltas.gold ?? 0,
+      intel: dungeonDeltas.intel ?? 0,
+      loot: dungeonDeltas.loot ?? 0,
+      material: dungeonDeltas.material ?? 0,
       isComplete: true,
     });
   }, [dungeonDeltas, actions]);
@@ -224,12 +208,13 @@ export function DungeonExploration() {
 
     // 문 상호작용
     for (const [dir, zone] of Object.entries(doorZones)) {
-      if (playerX >= zone.minX && playerX <= zone.maxX && segment.exits?.[dir]) {
+      const exitValue = segment.exits?.[dir as Direction];
+      if (playerX >= zone.minX && playerX <= zone.maxX && exitValue) {
         if (segment.roomType === 'exit') {
           handleCompleteDungeon();
           return;
         }
-        if (moveToRoom(dir)) return;
+        if (moveToRoom(dir as Direction)) return;
       }
     }
 
@@ -243,17 +228,17 @@ export function DungeonExploration() {
         const handlerKey = obj.typeId as keyof typeof OBJECT_HANDLERS;
         const handler = OBJECT_HANDLERS[handlerKey];
         if (handler) {
-          handler(obj, {
+          handler(obj as DungeonObject, {
             applyEtherDelta,
             addResources,
-            actions,
+            actions: actions as any,
             startBattle,
             segmentIndex: 0,
             preBattleState,
             playerX,
             currentRoomKey,
-            grid,
-            setDungeonData,
+            grid: grid as any,
+            setDungeonData: (data) => setDungeonData(data as any),
           });
         }
         return;
@@ -284,11 +269,11 @@ export function DungeonExploration() {
 
   // 보상 모달 닫기
   const closeRewardModal = () => {
-    if (rewardModal.gold > 0 || rewardModal.loot > 0) {
+    if (rewardModal && (rewardModal.gold > 0 || rewardModal.loot > 0)) {
       setDungeonDeltas({
         ...dungeonDeltas,
-        gold: dungeonDeltas.gold + rewardModal.gold,
-        loot: dungeonDeltas.loot + rewardModal.loot,
+        gold: (dungeonDeltas.gold ?? 0) + rewardModal.gold,
+        loot: (dungeonDeltas.loot ?? 0) + rewardModal.loot,
       });
     }
 
@@ -306,10 +291,10 @@ export function DungeonExploration() {
   // 던전 탈출
   const handleSkipDungeon = () => {
     actions.setDungeonSummary({
-      gold: dungeonDeltas.gold,
-      intel: dungeonDeltas.intel,
-      loot: dungeonDeltas.loot,
-      material: dungeonDeltas.material,
+      gold: dungeonDeltas.gold ?? 0,
+      intel: dungeonDeltas.intel ?? 0,
+      loot: dungeonDeltas.loot ?? 0,
+      material: dungeonDeltas.material ?? 0,
       isComplete: false,
     });
   };
@@ -517,7 +502,7 @@ export function DungeonExploration() {
            segment?.isDeadEnd ? '⚠️ 막다른 방' : '📍 미로'}
         </div>
         <div style={{ fontSize: "12px", marginTop: "4px", color: "#94a3b8" }}>
-          좌표: ({segment?.x}, {segment?.y})
+          좌표: ({(segment as any)?.x}, {(segment as any)?.y})
         </div>
         <div style={{ fontSize: "12px", marginTop: "4px" }}>
           W: 상호작용/이동 | A/D: 좌우 | C: 캐릭터

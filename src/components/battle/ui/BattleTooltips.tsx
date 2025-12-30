@@ -60,7 +60,7 @@ export const BattleTooltips: FC<BattleTooltipsProps> = ({
           </div>
           {(() => {
             const baseCard = CARDS.find(c => c.id === hoveredCard.card.id);
-            const enhancedCard = applyTraitModifiers(baseCard || hoveredCard.card, { usageCount: 0, isInCombo: false });
+            const enhancedCard = applyTraitModifiers((baseCard || hoveredCard.card) as any, { usageCount: 0, isInCombo: false });
             const parts: string[] = [];
             if (baseCard?.damage && enhancedCard.damage && enhancedCard.damage !== baseCard.damage) {
               const mult = (enhancedCard.damage / baseCard.damage).toFixed(2);

@@ -839,6 +839,7 @@ export interface SidebarCard {
   counter?: number;
   speedCost: number;
   hits?: number;
+  cardCategory?: string;
 }
 
 // ==================== 확장 카드 UI 타입 ====================

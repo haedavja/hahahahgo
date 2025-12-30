@@ -199,12 +199,12 @@ describe('devSlice', () => {
 
   describe('setDevForcedAnomalies', () => {
     it('이변 ID 배열을 설정한다', () => {
-      store.getState().setDevForcedAnomalies(['ether_void', 'time_warp']);
+      store.getState().setDevForcedAnomalies(['ether_void', 'time_warp'] as any);
       expect(store.getState().devForcedAnomalies).toEqual(['ether_void', 'time_warp']);
     });
 
     it('null로 초기화할 수 있다', () => {
-      store.getState().setDevForcedAnomalies(['ether_void']);
+      store.getState().setDevForcedAnomalies(['ether_void'] as any);
       store.getState().setDevForcedAnomalies(null);
       expect(store.getState().devForcedAnomalies).toBeNull();
     });

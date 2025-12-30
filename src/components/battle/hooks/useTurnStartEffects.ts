@@ -35,7 +35,8 @@ import type {
   NextTurnEffects,
   BattleRefValue,
   ProcessReflectionsResult,
-  Relic
+  Relic,
+  EnemyUnit
 } from '../../../types';
 import type { FullBattleState } from '../reducer/battleReducerState';
 
@@ -82,7 +83,7 @@ export function useTurnStartEffects({
 }: {
   battle: FullBattleState;
   player: Combatant;
-  enemy: Combatant;
+  enemy: EnemyUnit;
   enemyPlan: EnemyPlan;
   nextTurnEffects: NextTurnEffects;
   turnNumber: number;
@@ -124,8 +125,8 @@ export function useTurnStartEffects({
 
     // 턴 시작 상징 발동 애니메이션
     orderedRelicList.forEach((relicId: string) => {
-      const relic = (RELICS as Record<string, Relic>)[relicId];
-      if (relic?.effects?.type === 'ON_TURN_START') {
+      const relic = RELICS[relicId as keyof typeof RELICS];
+      if (relic && 'effects' in relic && (relic.effects as { type?: string })?.type === 'ON_TURN_START') {
         actions.setRelicActivated(relicId);
         playSound(800, 200);
         setTimeout(() => actions.setRelicActivated(null), 500);
@@ -242,7 +243,7 @@ export function useTurnStartEffects({
 
     // === 적 패시브 효과 처리 ===
     let updatedEnemy = { ...enemy };
-    const enemyPassives = enemy.passives || {};
+    const enemyPassives = enemy.passives || ({} as Record<string, unknown>);
 
     // 첫 턴: 장막(veil) 부여 (통찰 차단) - 유닛별로 처리
     if (turnNumber === 1) {
@@ -274,8 +275,9 @@ export function useTurnStartEffects({
     }
 
     // 매턴 체력 회복
-    if (enemyPassives.healPerTurn && enemyPassives.healPerTurn > 0) {
-      const healAmount = enemyPassives.healPerTurn;
+    const healPerTurn = enemyPassives.healPerTurn as number | undefined;
+    if (healPerTurn && healPerTurn > 0) {
+      const healAmount = healPerTurn;
       const newEnemyHp = Math.min(enemy.maxHp || enemy.hp, updatedEnemy.hp + healAmount);
       const actualHeal = newEnemyHp - updatedEnemy.hp;
       if (actualHeal > 0) {
@@ -285,8 +287,9 @@ export function useTurnStartEffects({
     }
 
     // 매턴 힘 증가
-    if (enemyPassives.strengthPerTurn && enemyPassives.strengthPerTurn > 0) {
-      const strengthGain = enemyPassives.strengthPerTurn;
+    const strengthPerTurn = enemyPassives.strengthPerTurn as number | undefined;
+    if (strengthPerTurn && strengthPerTurn > 0) {
+      const strengthGain = strengthPerTurn;
       updatedEnemy.strength = (updatedEnemy.strength || 0) + strengthGain;
       addLog(`💪 ${enemy.name}: 힘 +${strengthGain} 증가 (현재: ${updatedEnemy.strength})`);
     }
@@ -310,8 +313,8 @@ export function useTurnStartEffects({
       if (hasCharacterBuild) {
         // 현재 손패를 무덤으로 이동
         const currentHand = battle.hand || [];
-        let currentDeck = battle.deck || [];
-        let currentDiscard = [...(battle.discardPile || []), ...currentHand];
+        let currentDeck = (battle.deck || []) as import('../../../types').HandCard[];
+        let currentDiscard = [...((battle.discardPile || []) as import('../../../types').HandCard[]), ...(currentHand as import('../../../types').HandCard[])];
 
         // 덱에서 카드 드로우 (소멸된 카드는 제외)
         const vanishedCardIds = (battle.vanishedCards || []).map((c) => typeof c === 'string' ? c : c.id);
@@ -334,22 +337,23 @@ export function useTurnStartEffects({
     // 적 성향/행동을 턴 시작에 즉시 결정 (몬스터별 가중치 적용)
     const mode = battle.enemyPlan.mode || decideEnemyMode(enemy);
     if (!battle.enemyPlan.mode) {
-      addLog(`🤖 적 성향 힌트: ${mode.name}`);
+      const modeName = typeof mode === 'string' ? mode : (mode as import('../../../types').AIMode).name;
+      addLog(`🤖 적 성향 힌트: ${modeName}`);
     }
 
-    const refEnemyPlan = battleRef.current?.enemyPlan;
+    const refEnemyPlan = battleRef.current?.enemyPlan as EnemyPlan | undefined;
     const latestManuallyModified = battle.enemyPlan.manuallyModified || refEnemyPlan?.manuallyModified;
 
     if (latestManuallyModified) {
       const currentActions = refEnemyPlan?.actions || battle.enemyPlan.actions;
       actions.setEnemyPlan({ mode, actions: currentActions, manuallyModified: true });
     } else {
-      const slots = etherSlots(enemy?.etherPts || 0);
+      const slots = etherSlots((enemy?.etherPts as number | undefined) || 0);
       // 단일 몬스터 기준 카드 수 (다중 몬스터는 유령카드로 확장)
       const singleEnemyCards = enemy?.cardsPerTurn || 1;
       const rawActions = generateEnemyActions(enemy, mode, slots, singleEnemyCards, Math.min(1, singleEnemyCards));
       // 다중 몬스터: 실제 카드 + 유령카드로 확장
-      const planActions = expandActionsWithGhosts(rawActions, enemy?.units || []);
+      const planActions = expandActionsWithGhosts(rawActions, (enemy?.units as EnemyUnit[] | undefined) || []);
       actions.setEnemyPlan({ mode, actions: planActions });
     }
   }, [battle.phase, enemy, enemyPlan.mode, enemyPlan.manuallyModified, nextTurnEffects]);

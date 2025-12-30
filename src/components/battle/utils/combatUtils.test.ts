@@ -29,7 +29,7 @@ describe('combatUtils', () => {
       const playerCards = [
         { speedCost: 5 },
         { speedCost: 3 }
-      ];
+      ] as any[];
 
       const result = sortCombinedOrderStablePF(playerCards, [], 0, 0);
 
@@ -42,7 +42,7 @@ describe('combatUtils', () => {
       const enemyCards = [
         { speedCost: 4 },
         { speedCost: 2 }
-      ];
+      ] as any[];
 
       const result = sortCombinedOrderStablePF([], enemyCards, 0, 0);
 
@@ -52,8 +52,8 @@ describe('combatUtils', () => {
     });
 
     it('플레이어와 적 카드를 sp 순으로 정렬해야 함', () => {
-      const playerCards = [{ speedCost: 5 }];
-      const enemyCards = [{ speedCost: 3 }];
+      const playerCards = [{ speedCost: 5 }] as any[];
+      const enemyCards = [{ speedCost: 3 }] as any[];
 
       const result = sortCombinedOrderStablePF(playerCards, enemyCards, 0, 0);
 
@@ -65,8 +65,8 @@ describe('combatUtils', () => {
     });
 
     it('같은 sp일 때 플레이어가 우선되어야 함', () => {
-      const playerCards = [{ speedCost: 5 }];
-      const enemyCards = [{ speedCost: 5 }];
+      const playerCards = [{ speedCost: 5 }] as any[];
+      const enemyCards = [{ speedCost: 5 }] as any[];
 
       const result = sortCombinedOrderStablePF(playerCards, enemyCards, 0, 0);
 
@@ -78,7 +78,7 @@ describe('combatUtils', () => {
       const playerCards = [
         { speedCost: 3 },
         { speedCost: 2 }
-      ];
+      ] as any[];
 
       const result = sortCombinedOrderStablePF(playerCards, [], 0, 0);
 
@@ -90,7 +90,7 @@ describe('combatUtils', () => {
     });
 
     it('플레이어 민첩이 적용되어야 함', () => {
-      const playerCards = [{ speedCost: 10 }];
+      const playerCards = [{ speedCost: 10 }] as any[];
       const playerAgility = 3;
 
       const result = sortCombinedOrderStablePF(playerCards, [], playerAgility, 0);
@@ -102,7 +102,7 @@ describe('combatUtils', () => {
     });
 
     it('적 민첩이 적용되어야 함', () => {
-      const enemyCards = [{ speedCost: 10 }];
+      const enemyCards = [{ speedCost: 10 }] as any[];
       const enemyAgility = 2;
 
       const result = sortCombinedOrderStablePF([], enemyCards, 0, enemyAgility);
@@ -122,11 +122,11 @@ describe('combatUtils', () => {
       const playerCards = [
         { speedCost: 6 },  // sp=6
         { speedCost: 4 }   // sp=10
-      ];
+      ] as any[];
       const enemyCards = [
         { speedCost: 8 },  // sp=8
         { speedCost: 2 }   // sp=10
-      ];
+      ] as any[];
 
       const result = sortCombinedOrderStablePF(playerCards, enemyCards, 0, 0);
 
@@ -143,7 +143,7 @@ describe('combatUtils', () => {
     });
 
     it('카드 데이터가 결과에 보존되어야 함', () => {
-      const playerCards = [{ speedCost: 5, damage: 10, name: 'Slash' }];
+      const playerCards = [{ speedCost: 5, damage: 10, name: 'Slash' }] as any[];
 
       const result = sortCombinedOrderStablePF(playerCards, [], 0, 0);
 

@@ -8,7 +8,7 @@ import { useGameStore } from '../../../state/gameStore';
 import { drawFromDeck } from '../utils/handGeneration';
 import { CARDS as BASE_CARDS, DEFAULT_DRAW_COUNT } from '../battleData';
 import { generateHandUid } from '../../../lib/randomUtils';
-import type { Card } from '../../../types/core';
+import type { Card, HandCard } from '../../../types';
 
 /** 손패 관리 훅 파라미터 */
 interface UseHandManagementParams {
@@ -64,7 +64,7 @@ export function useHandManagement({
 
       // 소멸된 카드 ID 목록
       const vanishedCardIds = (battleVanishedCards || []).map((c: Card | string) => typeof c === 'string' ? c : c.id);
-      const drawResult = drawFromDeck(currentDeck, currentDiscard, DEFAULT_DRAW_COUNT, escapeBanRef.current, vanishedCardIds);
+      const drawResult = drawFromDeck(currentDeck as HandCard[], currentDiscard as HandCard[], DEFAULT_DRAW_COUNT, escapeBanRef.current, vanishedCardIds);
       actions.setDeck(drawResult.newDeck);
       actions.setDiscardPile(drawResult.newDiscardPile);
       actions.setHand(drawResult.drawnCards);
@@ -73,7 +73,7 @@ export function useHandManagement({
         addLog('🔄 덱이 소진되어 무덤을 섞어 새 덱을 만들었습니다.');
       }
     } else {
-      const rawHand = BASE_CARDS.slice(0, 10).map((card: Card, idx: number) => ({ ...card, __handUid: generateHandUid(card.id, idx) }));
+      const rawHand = BASE_CARDS.slice(0, 10).map((card, idx: number) => ({ ...card, __handUid: generateHandUid(card.id, idx) } as HandCard));
       actions.setHand(rawHand);
     }
 

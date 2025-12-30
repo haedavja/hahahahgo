@@ -16,6 +16,51 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { processPlayerEtherAccumulation, processEnemyEtherAccumulation } from './etherAccumulationProcessing';
+import type { Card, Relic, PassiveStats, RelicTrigger } from '../../../types';
+import type { RelicTriggeredRefs } from '../../../types/ui';
+
+// Mock 객체 생성 헬퍼
+const createMockCard = (overrides: Partial<Card> = {}): Card => ({
+  id: 'test-card',
+  name: 'Test Card',
+  type: 'attack',
+  speedCost: 5,
+  actionCost: 1,
+  description: 'Test description',
+  ...overrides
+});
+
+const createMockRelic = (overrides: Partial<Relic> = {}): Relic => ({
+  id: 'test-relic',
+  name: 'Test Relic',
+  icon: '🔮',
+  rarity: 'common',
+  description: 'Test relic description',
+  ...overrides
+});
+
+const createMockTriggeredRefs = (): RelicTriggeredRefs => ({
+  referenceBookTriggered: { current: false },
+  devilDiceTriggered: { current: false }
+});
+
+const createMockPassiveStats = (overrides: Partial<PassiveStats> = {}): PassiveStats => ({
+  maxEnergy: 3,
+  maxHp: 100,
+  maxSpeed: 100,
+  speed: 0,
+  strength: 0,
+  agility: 0,
+  subSpecialSlots: 0,
+  mainSpecialSlots: 0,
+  cardDrawBonus: 0,
+  etherMultiplier: 1,
+  etherFiveCardBonus: 0,
+  etherCardMultiplier: false,
+  maxSubmitCards: 5,
+  extraCardPlay: 0,
+  ...overrides
+});
 
 describe('etherAccumulationProcessing', () => {
   describe('processPlayerEtherAccumulation', () => {
@@ -23,7 +68,8 @@ describe('etherAccumulationProcessing', () => {
       setTurnEtherAccumulated: vi.fn(),
       setEtherPulse: vi.fn(),
       setResolvedPlayerCards: vi.fn(),
-      setRelicActivated: vi.fn()
+      setRelicActivated: vi.fn(),
+      setEnemyTurnEtherAccumulated: vi.fn()
     });
 
     beforeEach(() => {
@@ -36,7 +82,7 @@ describe('etherAccumulationProcessing', () => {
 
     it('유령 카드는 에테르를 획득하지 않아야 함', () => {
       const actions = createMockActions();
-      const card = { isGhost: true, name: 'Ghost' };
+      const card = createMockCard({ isGhost: true, name: 'Ghost' });
 
       const result = processPlayerEtherAccumulation({
         card,
@@ -46,10 +92,10 @@ describe('etherAccumulationProcessing', () => {
         resolvedPlayerCards: 0,
         playerTimeline: [],
         relics: [],
-        triggeredRefs: { current: {} },
-        calculatePassiveEffects: vi.fn(),
+        triggeredRefs: createMockTriggeredRefs(),
+        calculatePassiveEffects: vi.fn(() => createMockPassiveStats()),
         getCardEtherGain: vi.fn(),
-        collectTriggeredRelics: vi.fn(),
+        collectTriggeredRelics: vi.fn(() => []),
         playRelicActivationSequence: vi.fn(),
         flashRelic: vi.fn(),
         actions
@@ -62,7 +108,7 @@ describe('etherAccumulationProcessing', () => {
 
     it('카드 에테르를 누적해야 함', () => {
       const actions = createMockActions();
-      const card = { id: 'card1', rarity: 'common' };
+      const card = createMockCard({ id: 'card1', name: 'Common Card' });
 
       const result = processPlayerEtherAccumulation({
         card,
@@ -72,8 +118,8 @@ describe('etherAccumulationProcessing', () => {
         resolvedPlayerCards: 0,
         playerTimeline: [],
         relics: [],
-        triggeredRefs: { current: {} },
-        calculatePassiveEffects: vi.fn(() => ({ etherMultiplier: 1 })),
+        triggeredRefs: createMockTriggeredRefs(),
+        calculatePassiveEffects: vi.fn(() => createMockPassiveStats({ etherMultiplier: 1 })),
         getCardEtherGain: vi.fn(() => 5),
         collectTriggeredRelics: vi.fn(() => []),
         playRelicActivationSequence: vi.fn(),
@@ -87,7 +133,7 @@ describe('etherAccumulationProcessing', () => {
 
     it('에테르 배율을 적용해야 함', () => {
       const actions = createMockActions();
-      const card = { id: 'card1', rarity: 'common' };
+      const card = createMockCard({ id: 'card1', name: 'Common Card' });
 
       const result = processPlayerEtherAccumulation({
         card,
@@ -97,8 +143,8 @@ describe('etherAccumulationProcessing', () => {
         resolvedPlayerCards: 0,
         playerTimeline: [],
         relics: [],
-        triggeredRefs: { current: {} },
-        calculatePassiveEffects: vi.fn(() => ({ etherMultiplier: 2 })),
+        triggeredRefs: createMockTriggeredRefs(),
+        calculatePassiveEffects: vi.fn(() => createMockPassiveStats({ etherMultiplier: 2 })),
         getCardEtherGain: vi.fn(() => 5),
         collectTriggeredRelics: vi.fn(() => []),
         playRelicActivationSequence: vi.fn(),
@@ -111,7 +157,7 @@ describe('etherAccumulationProcessing', () => {
 
     it('업그레이드된 카드 레어리티를 사용해야 함', () => {
       const actions = createMockActions();
-      const card = { id: 'card1', rarity: 'common' };
+      const card = createMockCard({ id: 'card1', name: 'Common Card' });
       const getCardEtherGain = vi.fn(() => 10);
 
       processPlayerEtherAccumulation({
@@ -122,8 +168,8 @@ describe('etherAccumulationProcessing', () => {
         resolvedPlayerCards: 0,
         playerTimeline: [],
         relics: [],
-        triggeredRefs: { current: {} },
-        calculatePassiveEffects: vi.fn(() => ({ etherMultiplier: 1 })),
+        triggeredRefs: createMockTriggeredRefs(),
+        calculatePassiveEffects: vi.fn(() => createMockPassiveStats({ etherMultiplier: 1 })),
         getCardEtherGain,
         collectTriggeredRelics: vi.fn(() => []),
         playRelicActivationSequence: vi.fn(),
@@ -137,7 +183,7 @@ describe('etherAccumulationProcessing', () => {
 
     it('에테르 펄스 애니메이션을 활성화해야 함', () => {
       const actions = createMockActions();
-      const card = { id: 'card1' };
+      const card = createMockCard({ id: 'card1' });
 
       processPlayerEtherAccumulation({
         card,
@@ -147,8 +193,8 @@ describe('etherAccumulationProcessing', () => {
         resolvedPlayerCards: 0,
         playerTimeline: [],
         relics: [],
-        triggeredRefs: { current: {} },
-        calculatePassiveEffects: vi.fn(() => ({ etherMultiplier: 1 })),
+        triggeredRefs: createMockTriggeredRefs(),
+        calculatePassiveEffects: vi.fn(() => createMockPassiveStats({ etherMultiplier: 1 })),
         getCardEtherGain: vi.fn(() => 5),
         collectTriggeredRelics: vi.fn(() => []),
         playRelicActivationSequence: vi.fn(),
@@ -165,8 +211,9 @@ describe('etherAccumulationProcessing', () => {
 
     it('상징이 있으면 발동 상징을 수집해야 함', () => {
       const actions = createMockActions();
-      const card = { id: 'card1' };
-      const collectTriggeredRelics = vi.fn(() => ['relic1']);
+      const card = createMockCard({ id: 'card1' });
+      const mockRelicTrigger: RelicTrigger = { id: 'relic1', tone: 1, duration: 300 };
+      const collectTriggeredRelics = vi.fn(() => [mockRelicTrigger]);
       const playRelicActivationSequence = vi.fn();
 
       processPlayerEtherAccumulation({
@@ -176,9 +223,9 @@ describe('etherAccumulationProcessing', () => {
         cardUpgrades: {},
         resolvedPlayerCards: 0,
         playerTimeline: [],
-        relics: ['relic1'],
-        triggeredRefs: { current: {} },
-        calculatePassiveEffects: vi.fn(() => ({ etherMultiplier: 1 })),
+        relics: [createMockRelic({ id: 'relic1' })],
+        triggeredRefs: createMockTriggeredRefs(),
+        calculatePassiveEffects: vi.fn(() => createMockPassiveStats({ etherMultiplier: 1 })),
         getCardEtherGain: vi.fn(() => 5),
         collectTriggeredRelics,
         playRelicActivationSequence,
@@ -192,7 +239,7 @@ describe('etherAccumulationProcessing', () => {
 
     it('해결된 카드 수를 증가시켜야 함', () => {
       const actions = createMockActions();
-      const card = { id: 'card1' };
+      const card = createMockCard({ id: 'card1' });
 
       const result = processPlayerEtherAccumulation({
         card,
@@ -202,8 +249,8 @@ describe('etherAccumulationProcessing', () => {
         resolvedPlayerCards: 3,
         playerTimeline: [],
         relics: [],
-        triggeredRefs: { current: {} },
-        calculatePassiveEffects: vi.fn(() => ({ etherMultiplier: 1 })),
+        triggeredRefs: createMockTriggeredRefs(),
+        calculatePassiveEffects: vi.fn(() => createMockPassiveStats({ etherMultiplier: 1 })),
         getCardEtherGain: vi.fn(() => 5),
         collectTriggeredRelics: vi.fn(() => []),
         playRelicActivationSequence: vi.fn(),
@@ -223,7 +270,7 @@ describe('etherAccumulationProcessing', () => {
 
     it('유령 카드는 에테르를 획득하지 않아야 함', () => {
       const actions = createMockActions();
-      const card = { isGhost: true };
+      const card = createMockCard({ isGhost: true });
 
       const result = processEnemyEtherAccumulation({
         card,
@@ -238,7 +285,7 @@ describe('etherAccumulationProcessing', () => {
 
     it('카드 에테르를 누적해야 함', () => {
       const actions = createMockActions();
-      const card = { id: 'enemy_card', rarity: 'common' };
+      const card = createMockCard({ id: 'enemy_card', name: 'Enemy Card' });
 
       const result = processEnemyEtherAccumulation({
         card,
@@ -253,7 +300,7 @@ describe('etherAccumulationProcessing', () => {
 
     it('0에서 시작해도 정상 동작해야 함', () => {
       const actions = createMockActions();
-      const card = { id: 'enemy_card' };
+      const card = createMockCard({ id: 'enemy_card' });
 
       const result = processEnemyEtherAccumulation({
         card,

@@ -60,8 +60,9 @@ export function useEtherAnimation({
 
 
     // 디플레이션 적용
+    const playerComboUsageCount = (player as { comboUsageCount?: Record<string, number> })?.comboUsageCount || {};
     const playerDeflation = pCombo?.name
-      ? applyEtherDeflation(playerBeforeDeflation, pCombo.name, player.comboUsageCount || {})
+      ? applyEtherDeflation(playerBeforeDeflation, pCombo.name, playerComboUsageCount)
       : { gain: playerBeforeDeflation, multiplier: 1, usageCount: 0 };
 
     // actualGainedEther가 전달되면 그 값을 사용, 아니면 디플레이션까지만 적용한 값 사용
@@ -82,8 +83,9 @@ export function useEtherAnimation({
     let enemyBeforeDeflation = Math.round(enemyTurnEtherAccumulated * baseEnemyComboMult);
 
     // 적 디플레이션 적용
+    const enemyComboUsageCount = (enemy as { comboUsageCount?: Record<string, number> })?.comboUsageCount || {};
     const enemyDeflation = eCombo?.name
-      ? applyEtherDeflation(enemyBeforeDeflation, eCombo.name, enemy.comboUsageCount || {})
+      ? applyEtherDeflation(enemyBeforeDeflation, eCombo.name, enemyComboUsageCount)
       : { gain: enemyBeforeDeflation, multiplier: 1, usageCount: 0 };
 
     const enemyFinalEther = enemyDeflation.gain;
@@ -105,9 +107,11 @@ export function useEtherAnimation({
       // 에테르 증폭 배율이 적용되었으면 상태에서 제거 (배율 갱신 시점)
       if (etherAmplifierMult > 1) {
         const currentPlayer = battleRef.current?.player || player;
-        const updatedPlayer = { ...currentPlayer, etherMultiplier: 1 };
+        const updatedPlayer = { ...(currentPlayer as object), etherMultiplier: 1 };
         actions.setPlayer(updatedPlayer);
-        battleRef.current.player = updatedPlayer;
+        if (battleRef.current) {
+          battleRef.current.player = updatedPlayer;
+        }
       }
       playSound(800, 100);
       setTimeout(() => {

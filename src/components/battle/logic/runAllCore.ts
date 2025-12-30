@@ -23,6 +23,7 @@ import type {
   PostCombatOptions,
 } from '../../../types/combat';
 import type { Card, Relic } from '../../../types/core';
+import type { EtherCard } from '../../../types/systems';
 
 /**
  * runAll 핵심 로직 파라미터
@@ -69,10 +70,13 @@ export function runAllCore(params: RunAllCoreParams) {
     actions,
   } = params;
 
-  if (battle.qIndex >= battle.queue.length) return { completed: false };
+  if (!battle.queue || battle.qIndex === undefined || battle.qIndex >= battle.queue.length) {
+    return { completed: false };
+  }
 
   playSound(1000, 150);
-  const passiveRelicEffects = calculatePassiveEffects(orderedRelicList);
+  const relicIds = orderedRelicList.map(r => r.id);
+  const passiveRelicEffects = calculatePassiveEffects(relicIds);
 
   let P = {
     ...player,
@@ -103,26 +107,27 @@ export function runAllCore(params: RunAllCoreParams) {
   const playerAttackCards = selected.filter((c: Card) => c.type === 'attack');
   const playerEnergyBudget = P.energy || P.maxEnergy || BASE_PLAYER_ENERGY;
   const enemyEnergyBudget = E.energy || E.maxEnergy || BASE_PLAYER_ENERGY;
+  const queue = battle.queue; // Type narrowing for loop
 
-  for (let i = qIndex; i < battle.queue.length; i++) {
-    const a = battle.queue[i];
+  for (let i = qIndex; i < queue.length; i++) {
+    const a = queue[i];
 
     if (enemyDefeated && a.actor === 'enemy') {
       continue;
     }
 
     // battleContext 생성
-    const isLastCard = i >= battle.queue.length - 1;
+    const isLastCard = i >= queue.length - 1;
     const unusedAttackCards = playerAttackCards.filter((c: Card) => {
-      const cardQueueIndex = battle.queue.findIndex((q: BattleAction) => q.card?.id === c.id && q.actor === 'player');
+      const cardQueueIndex = queue.findIndex((q: BattleAction) => q.card?.id === c.id && q.actor === 'player');
       return cardQueueIndex > i;
     }).length;
 
     // 현재까지 사용된 에너지 계산
-    const executedPlayerCards = battle.queue.slice(0, i).filter((q: BattleAction) => q.actor === 'player');
+    const executedPlayerCards = queue.slice(0, i).filter((q: BattleAction) => q.actor === 'player');
     const energyUsedSoFar = executedPlayerCards.reduce((sum: number, q: BattleAction) => sum + (q.card?.actionCost || 0), 0);
     const calcRemainingEnergy = Math.max(0, playerEnergyBudget - energyUsedSoFar);
-    const executedEnemyCards = battle.queue.slice(0, i).filter((q: BattleAction) => q.actor === 'enemy');
+    const executedEnemyCards = queue.slice(0, i).filter((q: BattleAction) => q.actor === 'enemy');
     const enemyEnergyUsedSoFar = executedEnemyCards.reduce((sum: number, q: BattleAction) => sum + (q.card?.actionCost || 0), 0);
     const calcEnemyRemainingEnergy = Math.max(0, enemyEnergyBudget - enemyEnergyUsedSoFar);
 
@@ -130,7 +135,7 @@ export function runAllCore(params: RunAllCoreParams) {
       playerAttackCards,
       isLastCard,
       unusedAttackCards,
-      queue: battle.queue,
+      queue,
       currentQIndex: i,
       currentSp: a.sp || 0,
       remainingEnergy: calcRemainingEnergy,
@@ -143,15 +148,17 @@ export function runAllCore(params: RunAllCoreParams) {
     const enemyUnits = E.units || enemy.units || [];
     const hasUnits = enemyUnits.length > 0;
 
+    if (!a.card) continue;
+
     const actionResult = applyAction(tempState, a.actor, a.card, battleContext);
     const { events, updatedState } = actionResult;
     newEvents[i] = events;
     events.forEach(ev => addLog(ev.msg));
 
     // 상태 업데이트
-    if (updatedState) {
-      P = updatedState.player;
-      E = updatedState.enemy;
+    if (updatedState && updatedState.player && updatedState.enemy) {
+      P = { ...P, ...(updatedState.player as PlayerBattleState) };
+      E = { ...E, ...(updatedState.enemy as EnemyUnit) };
       tempState = { player: P, enemy: E, log: [] };
     }
 
@@ -205,11 +212,11 @@ export function runAllCore(params: RunAllCoreParams) {
       }
     }
 
-    if (a.actor === 'player') {
-      const gain = Math.floor(getCardEtherGain(a.card) * passiveRelicEffects.etherMultiplier);
+    if (a.actor === 'player' && a.card) {
+      const gain = Math.floor(getCardEtherGain(a.card as unknown as EtherCard) * passiveRelicEffects.etherMultiplier);
       actions.setTurnEtherAccumulated(turnEtherAccumulated + gain);
-    } else if (a.actor === 'enemy') {
-      actions.setEnemyTurnEtherAccumulated(enemyTurnEtherAccumulated + getCardEtherGain(a.card));
+    } else if (a.actor === 'enemy' && a.card) {
+      actions.setEnemyTurnEtherAccumulated(enemyTurnEtherAccumulated + getCardEtherGain(a.card as unknown as EtherCard));
     }
 
     if (P.hp <= 0) {
@@ -255,7 +262,7 @@ export function runAllCore(params: RunAllCoreParams) {
     return { completed: true, result: 'defeat' };
   }
 
-  actions.setQIndex(battle.queue.length);
+  actions.setQIndex(queue.length);
 
   return {
     completed: true,

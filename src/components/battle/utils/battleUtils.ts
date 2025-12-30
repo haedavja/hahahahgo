@@ -3,7 +3,8 @@
  * @description 전투 시스템 유틸리티 함수
  */
 
-import type { Card, CardRarity } from '../../../types';
+import type { Card, CardRarity, CardTrait } from '../../../types';
+import type { BattleCard } from '../../../state/slices/types';
 
 interface TraitContext {
   [key: string]: unknown;
@@ -17,7 +18,7 @@ export const choice = <T>(arr: T[]): T => arr[Math.floor(Math.random() * arr.len
 /**
  * 카드가 특정 특성을 가지고 있는지 확인
  */
-export function hasTrait(card: Card, traitId: string): boolean {
+export function hasTrait(card: { traits?: string[] }, traitId: CardTrait): boolean {
   return !!(card.traits && card.traits.includes(traitId));
 }
 
@@ -62,11 +63,11 @@ export function applyTraitModifiers(card: Card, context: TraitContext = {}): Car
     modifiedCard.speedCost = Math.ceil(modifiedCard.speedCost * 1.33);
   }
 
-  if (hasTrait(card, 'mastery') && context.usageCount) {
+  if (hasTrait(card, 'mastery') && typeof context.usageCount === 'number') {
     modifiedCard.speedCost = Math.max(1, modifiedCard.speedCost - (context.usageCount * 2));
   }
 
-  if (hasTrait(card, 'boredom') && context.usageCount) {
+  if (hasTrait(card, 'boredom') && typeof context.usageCount === 'number') {
     modifiedCard.speedCost = modifiedCard.speedCost + (context.usageCount * 2);
   }
 

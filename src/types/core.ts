@@ -21,8 +21,11 @@ export type CardCategory = 'fencing' | 'pistol' | 'guard' | 'misc' | 'gun';
 export type CardTrait =
   | 'advance' | 'knockback' | 'crush' | 'chain' | 'cross' | 'creation'
   | 'repeat' | 'warmup' | 'exhaust' | 'vanish' | 'mistake' | 'protagonist'
-  | 'last' | 'robber' | 'ruin' | 'oblivion' | 'outcast'
-  | 'followup' | 'finisher';
+  | 'last' | 'robber' | 'ruin' | 'oblivion' | 'outcast' | 'general'
+  | 'followup' | 'finisher' | 'multiTarget'
+  | 'strongbone' | 'weakbone' | 'destroyer' | 'slaughter' | 'pinnacle'
+  | 'cooperation' | 'swift' | 'slow' | 'mastery' | 'boredom'
+  | 'escape' | 'double_edge' | 'training';
 
 /** 카드 우선순위 */
 export type CardPriority = 'instant' | 'quick' | 'normal' | 'slow';
@@ -39,6 +42,21 @@ export interface CrossBonus {
     stacks?: number;
     target?: string;
   }>;
+}
+
+/** 토큰 결과 */
+export interface TokenResult {
+  success: boolean;
+}
+
+/** 배틀 토큰 액션 (카드 onPlay용) */
+export interface BattleTokenActions {
+  addTokenToPlayer: (tokenId: string, stacks?: number) => TokenResult;
+  addTokenToEnemy: (tokenId: string, stacks?: number) => TokenResult;
+  removeTokenFromPlayer: (tokenId: string, tokenType: string, stacks?: number) => TokenResult;
+  removeTokenFromEnemy: (tokenId: string, tokenType: string, stacks?: number) => TokenResult;
+  resetTokenForPlayer: (tokenId: string, tokenType: string, newStacks?: number) => TokenResult;
+  resetTokenForEnemy: (tokenId: string, tokenType: string, newStacks?: number) => TokenResult;
 }
 
 /** 카드 정의 */
@@ -96,7 +114,7 @@ export interface Card {
   __isMainSpecial?: boolean;
   isAoe?: boolean;
   // 카드 효과 함수
-  onPlay?: (battle: unknown, tokenActions: unknown) => void;
+  onPlay?: (battle: unknown, tokenActions: BattleTokenActions) => void;
   // UI 확장 속성
   icon?: React.FC<{ size?: number; className?: string; strokeWidth?: number }>;
 }
@@ -245,6 +263,7 @@ export interface TokenDefinition {
 export interface TokenEffectPayload {
   type: string;
   value: number;
+  advance?: number;
 }
 
 /** 토큰 효과 타입 ID */

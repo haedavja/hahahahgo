@@ -20,6 +20,7 @@
 import { useMemo, useEffect, useRef } from 'react';
 import { calculateEffectiveInsight, getInsightRevealLevel, playInsightSound } from '../utils/insightSystem';
 import type { UseInsightSystemParams } from '../../../types/hooks';
+import type { InsightUnit } from '../../../types';
 
 /**
  * 통찰 시스템 훅
@@ -73,7 +74,7 @@ export function useInsightSystem({
   // 통찰 공개 정보
   const insightReveal = useMemo(() => {
     if (battlePhase !== 'select') return { level: 0, visible: false };
-    const units = enemyUnits || [];
+    const units = (enemyUnits || []) as InsightUnit[];
     return getInsightRevealLevel(effectiveInsight, enemyPlanActions, units);
   }, [effectiveInsight, enemyPlanActions, battlePhase, enemyUnits]);
 

@@ -25,7 +25,9 @@ import type {
   PostCombatOptions,
   BattleEvent,
   DeflationInfo,
-  OrderItem
+  OrderItem,
+  HoveredCard,
+  HoveredEnemyAction
 } from '../../../types';
 
 // Re-export reducer state types
@@ -316,7 +318,7 @@ type UIAction =
   | { type: typeof ACTIONS.TOGGLE_CHARACTER_SHEET }
   | { type: typeof ACTIONS.SET_SHOW_PTS_TOOLTIP; payload: boolean }
   | { type: typeof ACTIONS.SET_SHOW_BAR_TOOLTIP; payload: boolean }
-  | { type: typeof ACTIONS.SET_HOVERED_CARD; payload: Card | null }
+  | { type: typeof ACTIONS.SET_HOVERED_CARD; payload: HoveredCard | null }
   | { type: typeof ACTIONS.SET_TOOLTIP_VISIBLE; payload: boolean }
   | { type: typeof ACTIONS.SET_PREVIEW_DAMAGE; payload: PreviewDamage }
   | { type: typeof ACTIONS.SET_PER_UNIT_PREVIEW_DAMAGE; payload: Record<number, PreviewDamage> }
@@ -324,7 +326,7 @@ type UIAction =
   | { type: typeof ACTIONS.SET_INSIGHT_ANIM_LEVEL; payload: number }
   | { type: typeof ACTIONS.SET_INSIGHT_ANIM_PULSE_KEY; payload: number }
   | { type: typeof ACTIONS.SET_SHOW_INSIGHT_TOOLTIP; payload: boolean }
-  | { type: typeof ACTIONS.SET_HOVERED_ENEMY_ACTION; payload: Card | null };
+  | { type: typeof ACTIONS.SET_HOVERED_ENEMY_ACTION; payload: HoveredEnemyAction | null };
 
 /** 상징 액션 */
 type RelicAction =

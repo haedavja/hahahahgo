@@ -14,7 +14,7 @@ import { getAllTokens } from '../../../lib/tokenUtils';
 
 /** 카드 선택 액션 인터페이스 */
 interface CardSelectionActions {
-  setFixedOrder: (order: Array<OrderingCardInfo | OrderingEnemyAction>) => void;
+  setFixedOrder: (order: unknown[] | null) => void;
   setSelected: (cards: Card[]) => void;
 }
 
@@ -111,7 +111,7 @@ export function useCardSelection({
         if (totalSpeed + cardSpeed > (player.maxSpeed ?? 30)) { addLog('⚠️ 속도 초과'); return; }
         if (totalEnergy + card.actionCost > player.maxEnergy) { addLog('⚠️ 행동력 부족'); return; }
         const tokenCheck = checkRequiredTokens(card, selected);
-        if (!tokenCheck.ok) { addLog(tokenCheck.message); return; }
+        if (!tokenCheck.ok) { addLog(tokenCheck.message ?? ''); return; }
 
         // 다중 타겟 카드 (multiTarget 특성): 타겟 선택 모드 진입
         const aliveUnitsCount = enemyUnits.filter((u: EnemyUnit) => u.hp > 0).length;
@@ -127,10 +127,10 @@ export function useCardSelection({
         }
 
         // 공격 카드인 경우 현재 선택된 타겟 유닛 ID 저장
-        const cardWithTarget = {
+        const cardWithTarget: Card = {
           ...card,
           __uid: card.__handUid || Math.random().toString(36).slice(2),
-          __targetUnitId: card.type === 'attack' && hasMultipleUnits ? selectedTargetUnit : null
+          __targetUnitId: card.type === 'attack' && hasMultipleUnits ? selectedTargetUnit ?? undefined : undefined
         };
         next = [...selected, cardWithTarget];
         playSound(800, 80);
@@ -152,7 +152,7 @@ export function useCardSelection({
     if (totalSpeed + cardSpeed > (player.maxSpeed ?? 30)) return addLog('⚠️ 속도 초과');
     if (totalEnergy + card.actionCost > player.maxEnergy) return addLog('⚠️ 행동력 부족');
     const tokenCheck = checkRequiredTokens(card, selected);
-    if (!tokenCheck.ok) return addLog(tokenCheck.message);
+    if (!tokenCheck.ok) return addLog(tokenCheck.message ?? '');
 
     // 다중 타겟 카드 (multiTarget 특성): 타겟 선택 모드 진입
     const aliveUnitsCount = enemyUnits.filter((u: EnemyUnit) => u.hp > 0).length;
@@ -168,10 +168,10 @@ export function useCardSelection({
     }
 
     // 공격 카드인 경우 현재 선택된 타겟 유닛 ID 저장
-    const cardWithTarget = {
+    const cardWithTarget: Card = {
       ...card,
       __uid: card.__handUid || Math.random().toString(36).slice(2),
-      __targetUnitId: card.type === 'attack' && hasMultipleUnits ? selectedTargetUnit : null
+      __targetUnitId: card.type === 'attack' && hasMultipleUnits ? selectedTargetUnit ?? undefined : undefined
     };
     actions.setSelected([...selected, cardWithTarget]);
     playSound(800, 80);
@@ -181,7 +181,7 @@ export function useCardSelection({
   const moveUp = useCallback((i: number) => {
     if (i === 0) return;
     if (battlePhase === 'respond') {
-      const n = [...selected];
+      const n: Card[] = [...selected];
       [n[i - 1], n[i]] = [n[i], n[i - 1]];
 
       const combo = detectPokerCombo(n);
@@ -190,7 +190,7 @@ export function useCardSelection({
       actions.setFixedOrder(withSp);
       actions.setSelected(n);
     } else {
-      const n = [...selected];
+      const n: Card[] = [...selected];
       [n[i - 1], n[i]] = [n[i], n[i - 1]];
       actions.setSelected(n);
     }
@@ -200,7 +200,7 @@ export function useCardSelection({
   const moveDown = useCallback((i: number) => {
     if (i === battleSelected.length - 1) return;
     if (battlePhase === 'respond') {
-      const n = [...selected];
+      const n: Card[] = [...selected];
       [n[i], n[i + 1]] = [n[i + 1], n[i]];
 
       const combo = detectPokerCombo(n);
@@ -209,7 +209,7 @@ export function useCardSelection({
       actions.setFixedOrder(withSp);
       actions.setSelected(n);
     } else {
-      const n = [...selected];
+      const n: Card[] = [...selected];
       [n[i], n[i + 1]] = [n[i + 1], n[i]];
       actions.setSelected(n);
     }

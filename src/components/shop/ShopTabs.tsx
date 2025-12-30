@@ -462,7 +462,7 @@ export function CardRemovalModal({ allPlayerCards, cardRemovalPrice, onRemoveCar
                   style={{
                     padding: '12px',
                     background: 'rgba(30, 41, 59, 0.8)',
-                    border: `2px solid ${card.isMainSpecial ? '#fbbf24' : '#60a5fa'}`,
+                    border: `2px solid ${card.__isMainSpecial ? '#fbbf24' : '#60a5fa'}`,
                     borderRadius: '10px',
                     cursor: 'pointer',
                     transition: 'all 0.2s',
@@ -473,10 +473,10 @@ export function CardRemovalModal({ allPlayerCards, cardRemovalPrice, onRemoveCar
                       fontSize: '0.7rem',
                       padding: '2px 6px',
                       borderRadius: '4px',
-                      background: card.isMainSpecial ? 'rgba(251, 191, 36, 0.2)' : 'rgba(96, 165, 250, 0.2)',
-                      color: card.isMainSpecial ? '#fbbf24' : '#60a5fa',
+                      background: card.__isMainSpecial ? 'rgba(251, 191, 36, 0.2)' : 'rgba(96, 165, 250, 0.2)',
+                      color: card.__isMainSpecial ? '#fbbf24' : '#60a5fa',
                     }}>
-                      {card.isMainSpecial ? '⭐주특기' : '💠보조'}
+                      {card.__isMainSpecial ? '⭐주특기' : '💠보조'}
                     </span>
                   </div>
                   <div style={{ fontWeight: 600, color: '#e2e8f0', marginBottom: '4px' }}>{card.name}</div>

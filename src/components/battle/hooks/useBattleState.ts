@@ -15,7 +15,8 @@ import type {
   RespondSnapshot,
   BattleEvent,
   PostCombatOptions,
-  DeflationInfo
+  DeflationInfo,
+  OrderItem
 } from '../../../types';
 import type { FullBattleState, NextTurnEffects, PlayerState, EnemyState, EnemyUnitState } from '../reducer/battleReducerState';
 import type { BattleAction, BattlePhase, SortType, EtherCalcPhase } from '../reducer/battleReducerActions';
@@ -233,10 +234,46 @@ export interface BattleActions {
 export function useBattleState(initialStateOverrides: InitialStateOverrides = {}): UseBattleStateResult {
   // Lazy initializer function for useReducer
   const initializeBattleState = useCallback(() => {
+    // Default player and enemy states
+    const defaultPlayer = {
+      name: 'Player',
+      hp: 100,
+      maxHp: 100,
+      energy: 6,
+      maxEnergy: 6,
+      block: 0,
+      ether: 0,
+      maxSpeed: 30,
+      tokens: {},
+      deck: []
+    };
+
+    const defaultEnemy = {
+      name: 'Enemy',
+      hp: 100,
+      maxHp: 100,
+      block: 0,
+      ether: 0,
+      maxSpeed: 30,
+      tokens: {},
+      units: []
+    };
+
+    // Merge overrides with defaults
+    const playerState = {
+      ...defaultPlayer,
+      ...initialStateOverrides.player
+    };
+
+    const enemyState = {
+      ...defaultEnemy,
+      ...initialStateOverrides.enemy
+    };
+
     // createInitialState에서 기본 상태를 생성하되, 오버라이드된 필드만 덮어쓰기
     const baseState = createInitialState({
-      initialPlayerState: initialStateOverrides.player,
-      initialEnemyState: initialStateOverrides.enemy,
+      initialPlayerState: playerState as unknown as PlayerState,
+      initialEnemyState: enemyState as unknown as EnemyState,
       initialPlayerRelics: initialStateOverrides.orderedRelics || [],
       simplifiedMode: initialStateOverrides.isSimplified || false,
       sortType: initialStateOverrides.sortType || 'speed'
@@ -302,9 +339,9 @@ export function useBattleState(initialStateOverrides: InitialStateOverrides = {}
     setEnemyEtherFinalValue: (value: number | null) => dispatch({ type: ACTIONS.SET_ENEMY_ETHER_FINAL_VALUE, payload: value }),
 
     // === 전투 실행 ===
-    setQueue: (queue: HandCard[]) => dispatch({ type: ACTIONS.SET_QUEUE, payload: queue }),
+    setQueue: (queue: OrderItem[]) => dispatch({ type: ACTIONS.SET_QUEUE, payload: queue }),
     setQIndex: (index: number) => dispatch({ type: ACTIONS.SET_Q_INDEX, payload: index }),
-    setFixedOrder: (order: HandCard[] | null) => dispatch({ type: ACTIONS.SET_FIXED_ORDER, payload: order }),
+    setFixedOrder: (order: OrderItem[] | null) => dispatch({ type: ACTIONS.SET_FIXED_ORDER, payload: order }),
     setEnemyPlan: (plan: EnemyPlan | HandCard[]) => {
       // EnemyPlan 객체인지 배열인지 확인
       const payload = Array.isArray(plan)
@@ -353,7 +390,7 @@ export function useBattleState(initialStateOverrides: InitialStateOverrides = {}
     setResolvedPlayerCards: (count: number) => dispatch({ type: ACTIONS.SET_RESOLVED_PLAYER_CARDS, payload: count }),
 
     // === 카드 툴팁 ===
-    setHoveredCard: (card: HandCard | null) => dispatch({ type: ACTIONS.SET_HOVERED_CARD, payload: card }),
+    setHoveredCard: (card: unknown) => dispatch({ type: ACTIONS.SET_HOVERED_CARD, payload: card as any }),
     setTooltipVisible: (visible: boolean) => dispatch({ type: ACTIONS.SET_TOOLTIP_VISIBLE, payload: visible }),
     setPreviewDamage: (damage: PreviewDamage) => dispatch({ type: ACTIONS.SET_PREVIEW_DAMAGE, payload: damage }),
     setPerUnitPreviewDamage: (damage: Record<number, PreviewDamage>) => dispatch({ type: ACTIONS.SET_PER_UNIT_PREVIEW_DAMAGE, payload: damage }),
@@ -367,7 +404,7 @@ export function useBattleState(initialStateOverrides: InitialStateOverrides = {}
     setShowInsightTooltip: (show: boolean) => dispatch({ type: ACTIONS.SET_SHOW_INSIGHT_TOOLTIP, payload: show }),
 
     // === 적 행동 툴팁 ===
-    setHoveredEnemyAction: (action: HandCard | null) => dispatch({ type: ACTIONS.SET_HOVERED_ENEMY_ACTION, payload: action }),
+    setHoveredEnemyAction: (action: unknown) => dispatch({ type: ACTIONS.SET_HOVERED_ENEMY_ACTION, payload: action as any }),
 
     // === 카드 파괴 애니메이션 ===
     setDestroyingEnemyCards: (indices: number[]) => dispatch({ type: ACTIONS.SET_DESTROYING_ENEMY_CARDS, payload: indices }),

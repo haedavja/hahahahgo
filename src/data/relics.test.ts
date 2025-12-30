@@ -155,7 +155,7 @@ describe('relics data', () => {
     });
 
     it('존재하지 않는 등급은 빈 배열을 반환한다', () => {
-      const relics = getRelicsByRarity('nonexistent');
+      const relics = getRelicsByRarity('nonexistent' as any);
       expect(relics).toHaveLength(0);
     });
 

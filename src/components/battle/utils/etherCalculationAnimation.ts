@@ -39,7 +39,7 @@ export function startEtherCalculationAnimationSequence({
 }): void {
   if (turnEtherAccumulated <= 0) return;
 
-  const pCombo = detectPokerCombo(selected);
+  const pCombo = detectPokerCombo(selected as unknown as import('../../../types').Card[]);
   const playerComboMult = pCombo ? (COMBO_MULTIPLIERS[pCombo.name] || 1) : 1;
   const etherAmplifierMult = player.etherMultiplier || 1;
   const totalPlayerMult = playerComboMult * etherAmplifierMult;

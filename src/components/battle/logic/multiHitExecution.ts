@@ -11,17 +11,34 @@
  * - 총기 카드 탄걸림 처리
  */
 
-import type { BattleEvent, PreProcessedResult, CombatBattleContext, Card, Combatant, MultiHitResult } from '../../../types';
+import type { BattleEvent, PreProcessedResult, CombatBattleContext, Card, Combatant } from '../../../types';
 import { prepareMultiHitAttack, calculateSingleHit, finalizeMultiHitAttack, rollCritical } from './combatActions';
 import { processPerHitRoulette } from '../utils/cardSpecialEffects';
 import { TIMING } from './battleConstants'; // 순환 의존성 방지: battleExecution 대신 직접 import
 
 type HitCallback = (hitIndex: number, totalHits: number, hitResult: { damage: number; events: BattleEvent[] }) => void;
 
+/** 다중 타격 결과 타입 */
+interface MultiHitResult {
+  attacker: Combatant;
+  defender: Combatant;
+  dealt: number;
+  taken: number;
+  events: BattleEvent[];
+  logs: string[];
+  isCritical: boolean;
+  criticalHits: number;
+  jammed: boolean;
+  hitsCompleted: number;
+  totalHits: number;
+  createdCards?: Card[];
+  defenderTimelineAdvance?: number;
+}
+
 /**
  * 다중 타격 비동기 실행 (딜레이 + 타격별 룰렛 체크 + 타격별 치명타 판정)
  */
-export async function executeMultiHitAsync(card: Card, attacker: Combatant, defender: Combatant, attackerName: string, battleContext: CombatBattleContext, onHitCallback: HitCallback): Promise<MultiHitResult> {
+export async function executeMultiHitAsync(card: Card, attacker: Combatant, defender: Combatant, attackerName: 'player' | 'enemy', battleContext: CombatBattleContext, onHitCallback: HitCallback): Promise<MultiHitResult> {
   const isGunCard = card.cardCategory === 'gun' && card.type === 'attack';
   const ghostLabel = card.isGhost ? ' [👻유령]' : '';
 
@@ -79,7 +96,7 @@ export async function executeMultiHitAsync(card: Card, attacker: Combatant, defe
 
   // 첫 타격 콜백
   if (onHitCallback) {
-    await onHitCallback(firstHitResult, 0, hits);
+    await onHitCallback(0, hits, { damage: firstHitResult.damage, events: firstHitResult.events });
   }
 
   // 후속 타격
@@ -104,7 +121,7 @@ export async function executeMultiHitAsync(card: Card, attacker: Combatant, defe
     allEvents.push(...filteredHitEvents);
 
     if (onHitCallback) {
-      await onHitCallback(hitResult, i, hits);
+      await onHitCallback(i, hits, { damage: hitResult.damage, events: hitResult.events });
     }
 
     // 룰렛 체크 (총기 카드)

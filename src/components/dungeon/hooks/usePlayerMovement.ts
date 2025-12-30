@@ -104,8 +104,9 @@ export function usePlayerMovement({
 
     const hasWestDoor = segment.exits?.west != null;
     const hasEastDoor = segment.exits?.east != null;
+    const segmentWidth = segment.width as number;
     const minX = hasWestDoor ? 50 : 150;
-    const maxX = hasEastDoor ? segment.width - 50 : segment.width - 150;
+    const maxX = hasEastDoor ? segmentWidth - 50 : segmentWidth - 150;
 
     const moveLoop = () => {
       let newX = playerXRef.current;
@@ -134,7 +135,7 @@ export function usePlayerMovement({
   useEffect(() => {
     if (!segment) return;
     const target = playerX - CONFIG.VIEWPORT.width / 2;
-    const maxCamera = segment.width - CONFIG.VIEWPORT.width;
+    const maxCamera = (segment.width as number) - CONFIG.VIEWPORT.width;
     actions.setCameraX(Math.max(0, Math.min(maxCamera, target)));
   }, [playerX, segment, actions]);
 
@@ -144,6 +145,12 @@ export function usePlayerMovement({
 
     const exit = segment.exits[direction];
     if (!exit) {
+      actions.setMessage("그 방향에는 문이 없습니다.");
+      return false;
+    }
+
+    // Type guard: ensure exit is a DungeonExit object
+    if (typeof exit !== 'object' || exit === null || !('targetKey' in exit)) {
       actions.setMessage("그 방향에는 문이 없습니다.");
       return false;
     }

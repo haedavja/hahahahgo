@@ -4,6 +4,7 @@
  */
 
 import type { EnemyDefinition } from '../../types/enemy';
+import type { BattleTokenActions } from '../../types/core';
 
 // Re-export for backwards compatibility
 export type { EnemyDefinition };
@@ -123,7 +124,7 @@ export const CARDS = [
     special: "advanceTimeline",
     advanceAmount: 4,
     appliedTokens: [{ id: 'blur', target: 'player' }],
-    onPlay: (battle: unknown, actions: unknown) => {
+    onPlay: (battle: unknown, actions: BattleTokenActions) => {
       actions.addTokenToPlayer('blur', 1);
     }
   },
@@ -180,7 +181,7 @@ export const CARDS = [
     cardCategory: "fencing",
     advanceAmount: 3,
     appliedTokens: [{ id: 'shaken', target: 'enemy' }],
-    onPlay: (battle: unknown, actions: unknown) => {
+    onPlay: (battle: unknown, actions: BattleTokenActions) => {
       actions.addTokenToEnemy('shaken', 1);
     }
   },
@@ -213,7 +214,7 @@ export const CARDS = [
     cardCategory: "fencing",
     advanceAmount: 3,
     appliedTokens: [{ id: 'evasion', target: 'player' }, { id: 'offense', target: 'player' }],
-    onPlay: (battle: unknown, actions: unknown) => {
+    onPlay: (battle: unknown, actions: BattleTokenActions) => {
       actions.addTokenToPlayer('evasion', 1);
       actions.addTokenToPlayer('offense', 1);
     }
@@ -261,7 +262,7 @@ export const CARDS = [
     appliedTokens: [
       { id: 'counterShot', stacks: 2, target: 'player' }
     ],
-    onPlay: (battle: unknown, actions: unknown) => {
+    onPlay: (battle: unknown, actions: BattleTokenActions) => {
       actions.addTokenToPlayer('counterShot', 2);
     },
     crossBonus: { type: 'gun_attack', count: 1 }
@@ -344,7 +345,7 @@ export const CARDS = [
     traits: [],
     cardCategory: "gun",
     appliedTokens: [{ id: 'armor_piercing', target: 'player' }],
-    onPlay: (battle: unknown, actions: unknown) => {
+    onPlay: (battle: unknown, actions: BattleTokenActions) => {
       // 탄걸림 해제 + 룰렛 0으로 초기화 후 추가 효과 적용
       actions.removeTokenFromPlayer('gun_jam', 'permanent', 99);
       actions.resetTokenForPlayer('roulette', 'permanent', 0); // 룰렛 0으로 초기화
@@ -363,7 +364,7 @@ export const CARDS = [
     traits: [],
     cardCategory: "gun",
     appliedTokens: [{ id: 'incendiary', target: 'player' }],
-    onPlay: (battle: unknown, actions: unknown) => {
+    onPlay: (battle: unknown, actions: BattleTokenActions) => {
       // 탄걸림 해제 + 룰렛 0으로 초기화 후 추가 효과 적용
       actions.removeTokenFromPlayer('gun_jam', 'permanent', 99);
       actions.resetTokenForPlayer('roulette', 'permanent', 0); // 룰렛 0으로 초기화
@@ -381,7 +382,7 @@ export const CARDS = [
     description: "방어력 5. 탄걸림을 해제하고 룰렛을 초기화한다.",
     traits: [],
     cardCategory: "gun",
-    onPlay: (battle: unknown, actions: unknown) => {
+    onPlay: (battle: unknown, actions: BattleTokenActions) => {
       // 탄걸림 해제 + 룰렛 0으로 초기화
       actions.removeTokenFromPlayer('gun_jam', 'permanent', 99);
       actions.resetTokenForPlayer('roulette', 'permanent', 0); // 룰렛 0으로 초기화
@@ -398,7 +399,7 @@ export const CARDS = [
     description: "이번 전투 동안 통찰 +1, 치명타율 +5%를 얻는다.",
     traits: [],
     appliedTokens: [{ id: 'insight', target: 'player' }, { id: 'crit_boost', target: 'player' }],
-    onPlay: (battle: unknown, actions: unknown) => {
+    onPlay: (battle: unknown, actions: BattleTokenActions) => {
       actions.addTokenToPlayer('insight', 1);
       actions.addTokenToPlayer('crit_boost', 1);
     }
@@ -529,7 +530,7 @@ export const CARDS = [
       { id: 'dull', stacks: 1, target: 'enemy' },
       { id: 'shaken', stacks: 1, target: 'enemy' }
     ],
-    onPlay: (battle: unknown, actions: unknown) => {
+    onPlay: (battle: unknown, actions: BattleTokenActions) => {
       actions.addTokenToEnemy('dull', 1);
       actions.addTokenToEnemy('shaken', 1);
     },

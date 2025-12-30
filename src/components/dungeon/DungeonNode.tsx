@@ -26,6 +26,11 @@ import type {
   DungeonSpecialOverride,
 } from '../../types/game';
 
+// 확장된 선택지 타입 (실제 데이터에는 id가 포함됨)
+interface DungeonChoiceWithId extends DungeonChoice {
+  id: string;
+}
+
 // dungeonNodes.ts에서 정의된 타입들
 interface DungeonNode {
   id: string;
@@ -83,11 +88,11 @@ const EVENT_EMOJIS = {
  * 선택지 버튼 컴포넌트
  */
 interface ChoiceButtonProps {
-  choice: DungeonChoice;
+  choice: DungeonChoiceWithId;
   playerStats: DungeonPlayerStats;
   choiceState: DungeonChoiceState;
   specials: string[];
-  onSelect: (choice: DungeonChoice, specialOverride: DungeonSpecialOverride | null) => void;
+  onSelect: (choice: DungeonChoiceWithId, specialOverride: DungeonSpecialOverride | null) => void;
   shaking: boolean;
 }
 
@@ -189,7 +194,7 @@ export function DungeonNode({ dungeon, onNavigate, onExit, onCombat }: DungeonNo
   }, [dungeon]);
 
   // 이벤트에 따른 선택지 가져오기
-  const eventChoices = useMemo(() => {
+  const eventChoices = useMemo((): DungeonChoiceWithId[] => {
     if (!currentNode?.event) return [];
 
     const eventType = currentNode.event.type;
@@ -199,19 +204,21 @@ export function DungeonNode({ dungeon, onNavigate, onExit, onCombat }: DungeonNo
       const templateId = currentNode.event.templateId || 'cliff';
       const templatesRecord = OBSTACLE_TEMPLATES as Record<string, { choices?: unknown[] }>;
       const template = templatesRecord[templateId];
-      return (template?.choices || []) as typeof OBSTACLE_TEMPLATES.cliff.choices;
+      return (template?.choices || []) as DungeonChoiceWithId[];
     }
 
     if (eventType === DUNGEON_EVENT_TYPES.CHEST) {
       const template = OBSTACLE_TEMPLATES.lockedChest;
-      return template?.choices || [];
+      return (template?.choices || []) as DungeonChoiceWithId[];
     }
 
     return [];
   }, [currentNode]);
 
   // 선택 실행
-  const handleChoiceSelect = useCallback((choice: DungeonChoice, specialOverride: DungeonSpecialOverride | null) => {
+  const handleChoiceSelect = useCallback((choice: DungeonChoiceWithId, specialOverride: DungeonSpecialOverride | null) => {
+    if (!currentNode) return;
+
     const choiceKey = `${currentNode.id}_${choice.id}`;
     const statesRecord = choiceStates as Record<string, { attempts: number; completed?: boolean }>;
     const currentState = statesRecord[choiceKey] || { attempts: 0 };

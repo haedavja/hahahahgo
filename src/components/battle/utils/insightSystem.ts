@@ -13,6 +13,7 @@
  */
 
 import type {
+  Card,
   InsightCardInfo,
   InsightEnemyAction,
   InsightUnit,
@@ -51,17 +52,21 @@ const getUnitVeil = (unit: InsightUnit | undefined): number => {
  * @returns 공개할 action 정보
  */
 const getActionRevealInfo = (
-  action: InsightEnemyAction,
+  action: InsightEnemyAction | Card,
   idx: number,
   insightForAction: number,
   totalActions: number
 ): InsightActionRevealInfo => {
+  // Card를 직접 받는 경우와 InsightEnemyAction을 받는 경우 모두 처리
+  const card = 'card' in action && action.card ? action.card : action as Card;
+  const speed = 'speed' in action ? action.speed : undefined;
+
   if (insightForAction <= 0) {
     // 레벨 0: 정보 없음 (카드 존재는 알지만 내용 비공개)
     return {
       index: idx,
       hidden: true,
-      sourceUnitId: action.card?.__sourceUnitId,
+      sourceUnitId: card?.__sourceUnitId,
     };
   }
 
@@ -73,7 +78,7 @@ const getActionRevealInfo = (
       isLast: idx === totalActions - 1,
       hidden: false,
       revealLevel: 1,
-      sourceUnitId: action.card?.__sourceUnitId,
+      sourceUnitId: card?.__sourceUnitId,
     };
   }
 
@@ -81,24 +86,24 @@ const getActionRevealInfo = (
     // 레벨 2: 카드 이름과 속도
     return {
       index: idx,
-      card: action.card,
-      speed: action.speed,
+      card: card as InsightCardInfo,
+      speed: speed,
       hidden: false,
       revealLevel: 2,
-      sourceUnitId: action.card?.__sourceUnitId,
+      sourceUnitId: card?.__sourceUnitId,
     };
   }
 
   // 레벨 3+: 모든 정보
   return {
     index: idx,
-    card: action.card,
-    speed: action.speed,
-    effects: action.card?.effects,
-    traits: action.card?.traits,
+    card: card as InsightCardInfo,
+    speed: speed,
+    effects: (card as InsightCardInfo)?.effects,
+    traits: card?.traits,
     hidden: false,
     revealLevel: 3,
-    sourceUnitId: action.card?.__sourceUnitId,
+    sourceUnitId: card?.__sourceUnitId,
   };
 };
 
@@ -111,7 +116,7 @@ const getActionRevealInfo = (
  */
 export const getInsightRevealLevel = (
   baseInsight: number,
-  enemyActions: InsightEnemyAction[],
+  enemyActions: Array<InsightEnemyAction | Card>,
   units: InsightUnit[] = []
 ): InsightRevealResult => {
   if (!enemyActions || !Array.isArray(enemyActions) || enemyActions.length === 0) {
@@ -120,7 +125,9 @@ export const getInsightRevealLevel = (
 
   // 각 action에 대해 해당 유닛의 veil을 적용한 유효 통찰 계산
   const actionsWithReveal = enemyActions.map((action, idx) => {
-    const sourceUnitId = action.card?.__sourceUnitId;
+    // Card를 직접 받는 경우와 InsightEnemyAction을 받는 경우 모두 처리
+    const card = 'card' in action && action.card ? action.card : action as Card;
+    const sourceUnitId = card?.__sourceUnitId;
     const sourceUnit = units.find(u => u.unitId === sourceUnitId);
     const unitVeil = getUnitVeil(sourceUnit);
     const insightForAction = Math.max(0, baseInsight - unitVeil);

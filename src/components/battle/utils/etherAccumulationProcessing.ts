@@ -101,7 +101,7 @@ export function processPlayerEtherAccumulation({
 
   const passiveRelicEffects = calculatePassiveEffects(orderedRelicList);
   const upgradedRarity = cardUpgrades[card.id || ''];
-  const cardForEther = upgradedRarity ? { ...card, rarity: upgradedRarity } : card;
+  const cardForEther = upgradedRarity ? { ...card, rarity: upgradedRarity as import('../../../types').CardRarity } : card;
   const etherPerCard = Math.floor(getCardEtherGain(cardForEther) * passiveRelicEffects.etherMultiplier);
 
   const newTurnEther = turnEtherAccumulated + etherPerCard;

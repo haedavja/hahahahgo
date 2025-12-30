@@ -28,7 +28,8 @@ import type {
   BattleAction,
   PlayerBattleState,
   EnemyUnit,
-  EnemyPlan
+  EnemyPlan,
+  AICard
 } from '../../../types';
 import type { BattleRefValue } from '../../../types/hooks';
 import { generateEnemyActions, shouldEnemyOverdrive, assignSourceUnitToActions } from '../utils/enemyAI';
@@ -132,7 +133,7 @@ export function usePhaseTransition({
   // select → respond 전환
   const startResolve = useCallback(() => {
     const currentBattle = battleRef.current;
-    const currentEnemyPlan = currentBattle.enemyPlan;
+    const currentEnemyPlan = currentBattle.enemyPlan as EnemyPlan;
 
     if (currentBattle.phase !== 'select') return;
 
@@ -141,10 +142,10 @@ export function usePhaseTransition({
     const willRegenerate = !(hasActions || currentEnemyPlan.manuallyModified);
 
     const cardsPerTurn = enemy?.cardsPerTurn || enemyCount || 2;
-    let generatedActions;
+    let generatedActions: Card[];
     if (willRegenerate) {
-      const rawActions = generateEnemyActions(enemy, currentEnemyPlan.mode, etherSlots(enemy.etherPts), cardsPerTurn, Math.min(1, cardsPerTurn));
-      generatedActions = assignSourceUnitToActions(rawActions, enemy?.units || []);
+      const rawActions = generateEnemyActions(enemy, currentEnemyPlan.mode, etherSlots(enemy.etherPts ?? 0), cardsPerTurn, Math.min(1, cardsPerTurn));
+      generatedActions = assignSourceUnitToActions(rawActions, enemy?.units || []) as unknown as Card[];
     } else {
       generatedActions = currentEnemyPlan.actions;
     }
@@ -166,7 +167,7 @@ export function usePhaseTransition({
 
     const enhancedSelected = applyPokerBonus(traitEnhancedSelected, pCombo);
 
-    const currentPlayer = currentBattle.player;
+    const currentPlayer = currentBattle.player as PlayerBattleState;
     const q = currentPlayer.enemyFrozen
       ? createFixedOrder(enhancedSelected, generatedActions, effectiveAgility)
       : sortCombinedOrderStablePF(enhancedSelected, generatedActions, effectiveAgility, 0);
@@ -196,8 +197,8 @@ export function usePhaseTransition({
   // respond → resolve 전환
   const beginResolveFromRespond = useCallback(() => {
     const currentBattle = battleRef.current;
-    const currentEnemyPlan = currentBattle?.enemyPlan;
-    const currentFixedOrder = currentBattle?.fixedOrder || fixedOrder;
+    const currentEnemyPlan = currentBattle?.enemyPlan as EnemyPlan | undefined;
+    const currentFixedOrder = (currentBattle?.fixedOrder as BattleAction[] | null) || fixedOrder;
 
     if (currentBattle?.phase !== 'respond') return;
     if (!currentFixedOrder) return addLog('오류: 고정된 순서가 없습니다');
@@ -210,13 +211,13 @@ export function usePhaseTransition({
     let effectiveFixedOrder = currentFixedOrder;
     if (currentEnemyPlan?.manuallyModified && currentEnemyPlan?.actions) {
       const remainingActions = new Set(currentEnemyPlan.actions);
-      effectiveFixedOrder = currentFixedOrder.filter((item) => {
+      effectiveFixedOrder = currentFixedOrder.filter((item: BattleAction) => {
         if (item.actor === 'player') return true;
-        return remainingActions.has(item.card);
+        return item.card && remainingActions.has(item.card);
       });
     }
 
-    const newQ = effectiveFixedOrder.map((x) => ({ actor: x.actor, card: x.card, sp: x.sp }));
+    const newQ = effectiveFixedOrder.map((x: BattleAction) => ({ actor: x.actor, card: x.card, sp: x.sp }));
     if (newQ.length === 0) {
       addLog('⚠️ 큐 생성 실패: 실행할 항목이 없습니다');
       return;
@@ -225,8 +226,10 @@ export function usePhaseTransition({
     const frozenOrderCount = currentBattle?.frozenOrder || battleRef.current?.frozenOrder || 0;
 
     if (frozenOrderCount <= 0) {
-      newQ.sort((a, b) => {
-        if (a.sp !== b.sp) return a.sp - b.sp;
+      newQ.sort((a: BattleAction, b: BattleAction) => {
+        const aSp = a.sp ?? 0;
+        const bSp = b.sp ?? 0;
+        if (aSp !== bSp) return aSp - bSp;
         return 0;
       });
     } else {
@@ -252,16 +255,16 @@ export function usePhaseTransition({
     actions.setEnemyCurrentDeflation(null);
 
     // 에테르 폭주 체크
-    const enemyWillOD = shouldEnemyOverdrive(enemyPlan.mode, enemyPlan.actions, enemy.etherPts, turnNumber) && etherSlots(enemy.etherPts) > 0;
-    if (willOverdrive && etherSlots(player.etherPts) > 0) {
-      actions.setPlayer({ ...player, etherPts: player.etherPts - ETHER_THRESHOLD, etherOverdriveActive: true });
+    const enemyWillOD = shouldEnemyOverdrive(enemyPlan.mode, enemyPlan.actions as unknown as AICard[], enemy.etherPts ?? 0, turnNumber) && etherSlots(enemy.etherPts ?? 0) > 0;
+    if (willOverdrive && etherSlots(player.etherPts ?? 0) > 0) {
+      actions.setPlayer({ ...player, etherPts: (player.etherPts ?? 0) - ETHER_THRESHOLD, etherOverdriveActive: true });
       actions.setPlayerOverdriveFlash(true);
       playSound(1400, 220);
       setTimeout(() => actions.setPlayerOverdriveFlash(false), 650);
       addLog('✴️ 에테르 폭주 발동! (이 턴 전체 유지)');
     }
     if (enemyWillOD) {
-      actions.setEnemy({ ...enemy, etherPts: enemy.etherPts - ETHER_THRESHOLD, etherOverdriveActive: true });
+      actions.setEnemy({ ...enemy, etherPts: (enemy.etherPts ?? 0) - ETHER_THRESHOLD, etherOverdriveActive: true });
       actions.setEnemyOverdriveFlash(true);
       playSound(900, 220);
       setTimeout(() => actions.setEnemyOverdriveFlash(false), 650);

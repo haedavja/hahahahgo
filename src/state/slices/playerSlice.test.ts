@@ -12,7 +12,6 @@ import type { PlayerSliceState } from './types';
 
 // 테스트용 초기 상태
 const createInitialState = (): PlayerSliceState => ({
-  player: { hp: 100, maxHp: 100, energy: 3, maxEnergy: 3, handSize: 5 },
   playerHp: 100,
   maxHp: 100,
   playerStrength: 0,

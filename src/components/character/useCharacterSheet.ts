@@ -140,16 +140,20 @@ export function useCharacterSheet({ showAllCards = false }: UseCharacterSheetPro
   // 표시할 카드 목록
   const displayedCards = useMemo(() => {
     if (showAllCards) {
-      return availableCards.map((card, idx) => ({ ...card, _displayKey: `all_${card.id}_${idx}` }));
+      return availableCards.map((card, idx) => ({ ...card, speedCost: card.speed, actionCost: card.ap, _displayKey: `all_${card.id}_${idx}` }));
     }
     const result: DisplayCard[] = [];
     mainSpecials.forEach((cardId: string, idx: number) => {
-      const card = CARDS.find((c: Card) => c.id === cardId);
-      if (card) result.push({ ...card, _displayKey: `main_${cardId}_${idx}`, _type: 'main' as const });
+      const card = CARDS.find((c) => c.id === cardId);
+      if (card) {
+        result.push({ ...card, _displayKey: `main_${cardId}_${idx}`, _type: 'main' as const } as DisplayCard);
+      }
     });
     subSpecials.forEach((cardId: string, idx: number) => {
-      const card = CARDS.find((c: Card) => c.id === cardId);
-      if (card) result.push({ ...card, _displayKey: `sub_${cardId}_${idx}`, _type: 'sub' as const });
+      const card = CARDS.find((c) => c.id === cardId);
+      if (card) {
+        result.push({ ...card, _displayKey: `sub_${cardId}_${idx}`, _type: 'sub' as const } as DisplayCard);
+      }
     });
     const usedCounts: Record<string, number> = {};
     [...mainSpecials, ...subSpecials].forEach((cardId: string) => {
@@ -160,8 +164,10 @@ export function useCharacterSheet({ showAllCards = false }: UseCharacterSheetPro
       shownCounts[cardId] = (shownCounts[cardId] || 0) + 1;
       const used = usedCounts[cardId] || 0;
       if (shownCounts[cardId] <= (ownedCards.filter((id: string) => id === cardId).length - used)) {
-        const card = CARDS.find((c: Card) => c.id === cardId);
-        if (card) result.push({ ...card, _displayKey: `owned_${cardId}_${idx}`, _type: 'owned' as const });
+        const card = CARDS.find((c) => c.id === cardId);
+        if (card) {
+          result.push({ ...card, _displayKey: `owned_${cardId}_${idx}`, _type: 'owned' as const } as DisplayCard);
+        }
       }
     });
     return result;

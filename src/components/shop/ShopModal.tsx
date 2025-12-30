@@ -19,16 +19,9 @@ import {
   type MerchantTypeKey,
 } from '../../data/shop';
 import { BuyTab, SellTab, ServiceTab, CardRemovalModal, type ShopService } from './ShopTabs';
+import type { BattleCard, GameItem } from '../../state/slices/types';
 
-// 플레이어 카드 타입 (덱 관리용)
-interface PlayerCard {
-  id: string;
-  name: string;
-  isMainSpecial: boolean;
-  currentRarity: string;
-  actionCost: number;
-  speedCost: number;
-}
+// 플레이어 카드는 BattleCard 타입 사용 (CardRemovalModal과 호환)
 
 interface ShopModalProps {
   merchantType?: MerchantTypeKey;
@@ -78,19 +71,19 @@ export function ShopModal({ merchantType = 'shop', onClose }: ShopModalProps) {
   const sellableItems = useMemo(() => {
     return items
       .map((item, index) => ({ item, slotIndex: index }))
-      .filter(({ item }) => item !== null);
+      .filter((entry): entry is { item: GameItem; slotIndex: number } => entry.item !== null);
   }, [items]);
 
   const allPlayerCards = useMemo(() => {
     const mainSpecials = characterBuild?.mainSpecials || [];
     const subSpecials = characterBuild?.subSpecials || [];
-    const cards: PlayerCard[] = [];
+    const cards: BattleCard[] = [];
 
     mainSpecials.forEach(cardId => {
       const card = CARDS.find(c => c.id === cardId);
       if (card) {
         const rarity = cardUpgrades[cardId] || (card as { rarity?: string }).rarity || 'common';
-        cards.push({ ...card, isMainSpecial: true, currentRarity: rarity } as PlayerCard);
+        cards.push({ ...card, __isMainSpecial: true, rarity } as BattleCard);
       }
     });
 
@@ -98,7 +91,7 @@ export function ShopModal({ merchantType = 'shop', onClose }: ShopModalProps) {
       const card = CARDS.find(c => c.id === cardId);
       if (card) {
         const rarity = cardUpgrades[cardId] || (card as { rarity?: string }).rarity || 'common';
-        cards.push({ ...card, isMainSpecial: false, currentRarity: rarity } as PlayerCard);
+        cards.push({ ...card, __isMainSpecial: false, rarity } as BattleCard);
       }
     });
 
@@ -221,9 +214,9 @@ export function ShopModal({ merchantType = 'shop', onClose }: ShopModalProps) {
     }
   };
 
-  const handleRemoveCard = (card: PlayerCard) => {
+  const handleRemoveCard = (card: BattleCard) => {
     addResources({ gold: -cardRemovalPrice });
-    removeCardFromDeck(card.id, card.isMainSpecial);
+    removeCardFromDeck(card.id, card.__isMainSpecial);
     setShowCardRemovalModal(false);
     showNotification(`${card.name} 카드를 제거했습니다!`, 'success');
   };

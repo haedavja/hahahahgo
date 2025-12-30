@@ -362,7 +362,7 @@ describe('dungeonSlice', () => {
           confirmed: true,
           dungeonData: {
             nodes: [
-              { id: 'node-1', cleared: false, event: { type: 'combat' } }
+              { id: 'node-1', connections: [], cleared: false, event: { type: 'combat' } }
             ],
             currentNodeId: 'node-1'
           }

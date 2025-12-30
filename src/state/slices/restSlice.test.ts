@@ -134,21 +134,21 @@ describe('restSlice', () => {
       store.setState({ ...store.getState(), activeRest: { nodeId: 'test' } });
       store.getState().awakenAtRest('random');
       const validTraits = ['용맹함', '굳건함', '냉철함', '철저함', '열정적', '활력적'];
-      expect(store.getState().playerTraits.some((t: string) => validTraits.includes(t))).toBe(true);
+      expect(store.getState().playerTraits?.some((t: string) => validTraits.includes(t))).toBe(true);
     });
 
     it('각성 시 기억을 소비한다', () => {
-      const initialMemory = store.getState().resources.memory;
+      const initialMemory = store.getState().resources?.memory ?? 0;
       store.setState({ ...store.getState(), activeRest: { nodeId: 'test' } });
       store.getState().awakenAtRest('brave');
-      expect(store.getState().resources.memory).toBeLessThan(initialMemory!);
+      expect(store.getState().resources?.memory ?? 0).toBeLessThan(initialMemory);
     });
 
     it('존재하지 않는 선택지는 랜덤으로 처리된다', () => {
       store.setState({ ...store.getState(), activeRest: { nodeId: 'test' } });
       store.getState().awakenAtRest('nonexistent');
       const validTraits = ['용맹함', '굳건함', '냉철함', '철저함', '열정적', '활력적'];
-      expect(store.getState().playerTraits.some((t: string) => validTraits.includes(t))).toBe(true);
+      expect(store.getState().playerTraits?.some((t: string) => validTraits.includes(t))).toBe(true);
     });
   });
 
@@ -177,7 +177,7 @@ describe('restSlice', () => {
         playerTraits: ['용맹함', '굳건함', '냉철함', '철저함', '열정적', '활력적']
       });
       store.getState().formEgo(['용맹함', '굳건함', '냉철함', '철저함', '열정적']);
-      expect(store.getState().playerEgos.length).toBe(1);
+      expect(store.getState().playerEgos?.length).toBe(1);
       expect(store.getState().playerTraits).toEqual(['활력적']);
     });
 
@@ -196,9 +196,9 @@ describe('restSlice', () => {
         playerTraits: ['열정적', '열정적', '용맹함', '용맹함', '용맹함']
       });
       store.getState().formEgo(['열정적', '열정적', '용맹함', '용맹함', '용맹함']);
-      const ego = store.getState().playerEgos[0];
+      const ego = store.getState().playerEgos?.[0];
       expect(ego).toBeDefined();
-      expect(ego.name).toBe('헌신'); // 열정적 + 용맹함 = 헌신
+      expect(ego?.name).toBe('헌신'); // 열정적 + 용맹함 = 헌신
     });
 
     it('자아 효과가 올바르게 계산된다', () => {
@@ -207,11 +207,11 @@ describe('restSlice', () => {
         playerTraits: ['용맹함', '용맹함', '굳건함', '냉철함', '철저함']
       });
       store.getState().formEgo(['용맹함', '용맹함', '굳건함', '냉철함', '철저함']);
-      const ego = store.getState().playerEgos[0];
-      expect(ego.effects.playerStrength).toBe(2); // 용맹함 x2
-      expect(ego.effects.maxHp).toBe(10); // 굳건함 x1
-      expect(ego.effects.playerInsight).toBe(1); // 냉철함 x1
-      expect(ego.effects.extraSubSpecialSlots).toBe(1); // 철저함 x1
+      const ego = store.getState().playerEgos?.[0];
+      expect(ego?.effects.playerStrength).toBe(2); // 용맹함 x2
+      expect(ego?.effects.maxHp).toBe(10); // 굳건함 x1
+      expect(ego?.effects.playerInsight).toBe(1); // 냉철함 x1
+      expect(ego?.effects.extraSubSpecialSlots).toBe(1); // 철저함 x1
     });
 
     it('중복 특성을 올바르게 소비한다', () => {
@@ -220,7 +220,7 @@ describe('restSlice', () => {
         playerTraits: ['용맹함', '용맹함', '용맹함', '용맹함', '용맹함', '용맹함']
       });
       store.getState().formEgo(['용맹함', '용맹함', '용맹함', '용맹함', '용맹함']);
-      expect(store.getState().playerEgos.length).toBe(1);
+      expect(store.getState().playerEgos?.length).toBe(1);
       expect(store.getState().playerTraits).toEqual(['용맹함']);
     });
   });

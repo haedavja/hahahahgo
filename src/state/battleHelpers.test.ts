@@ -126,14 +126,14 @@ describe('createBattleEnemyData', () => {
         deck: 'not-an-array', // 잘못된 타입
       };
 
-      const result = createBattleEnemyData(invalid);
+      const result = createBattleEnemyData(invalid as any);
 
       expect(Array.isArray(result.deck)).toBe(true);
       expect(result.deck).toEqual([]);
     });
 
     it('deck이 null인 경우 빈 배열로 변환해야 함', () => {
-      const result = createBattleEnemyData({ deck: null });
+      const result = createBattleEnemyData({ deck: null } as any);
 
       expect(result.deck).toEqual([]);
     });
@@ -292,8 +292,8 @@ describe('createReducerEnemyState', () => {
 
 describe('computeBattlePlan', () => {
   it('유효한 전투 계획을 반환해야 함', () => {
-    const playerCards = [{ id: 'card1', cardId: 'strike', speed: 5, owner: 'player' as const }];
-    const enemyCards = [{ id: 'card2', cardId: 'attack', speed: 4, owner: 'enemy' as const }];
+    const playerCards = [{ id: 'card1', cardId: 'strike', speed: 5, owner: 'player' as const }] as any;
+    const enemyCards = [{ id: 'card2', cardId: 'attack', speed: 4, owner: 'enemy' as const }] as any;
 
     const result = computeBattlePlan('battle', playerCards, enemyCards);
 
@@ -304,8 +304,8 @@ describe('computeBattlePlan', () => {
   });
 
   it('preview에 timeline이 포함되어야 함', () => {
-    const playerCards = [{ id: 'card1', cardId: 'strike', speed: 5, owner: 'player' as const }];
-    const enemyCards = [{ id: 'card2', cardId: 'attack', speed: 4, owner: 'enemy' as const }];
+    const playerCards = [{ id: 'card1', cardId: 'strike', speed: 5, owner: 'player' as const }] as any;
+    const enemyCards = [{ id: 'card2', cardId: 'attack', speed: 4, owner: 'enemy' as const }] as any;
 
     const result = computeBattlePlan('battle', playerCards, enemyCards);
 
@@ -315,8 +315,8 @@ describe('computeBattlePlan', () => {
   });
 
   it('플레이어 HP가 주어지면 적용되어야 함', () => {
-    const playerCards = [{ id: 'card1', cardId: 'strike', speed: 5, owner: 'player' as const }];
-    const enemyCards = [{ id: 'card2', cardId: 'attack', speed: 4, owner: 'enemy' as const }];
+    const playerCards = [{ id: 'card1', cardId: 'strike', speed: 5, owner: 'player' as const }] as any;
+    const enemyCards = [{ id: 'card2', cardId: 'attack', speed: 4, owner: 'enemy' as const }] as any;
 
     const result = computeBattlePlan('battle', playerCards, enemyCards, 50, 100);
 
@@ -324,8 +324,8 @@ describe('computeBattlePlan', () => {
   });
 
   it('다수 적 전투 시 enemyCount가 증가해야 함', () => {
-    const playerCards = [{ id: 'card1', cardId: 'strike', speed: 5, owner: 'player' as const }];
-    const enemyCards = [{ id: 'card2', cardId: 'attack', speed: 4, owner: 'enemy' as const }];
+    const playerCards = [{ id: 'card1', cardId: 'strike', speed: 5, owner: 'player' as const }] as any;
+    const enemyCards = [{ id: 'card2', cardId: 'attack', speed: 4, owner: 'enemy' as const }] as any;
 
     const result = computeBattlePlan('battle', playerCards, enemyCards, null, null, 3);
 

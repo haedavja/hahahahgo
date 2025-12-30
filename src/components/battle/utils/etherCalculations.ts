@@ -17,6 +17,7 @@
  */
 
 import type {
+  Card,
   EtherCard,
   EtherCardEntry,
   ComboUsageCount,
@@ -24,6 +25,7 @@ import type {
   ComboEtherGainResult,
   CalculateComboEtherGainParams
 } from '../../../types';
+import type { BattleCard } from '../../../state/slices/types';
 import { getCardRarity, hasTrait } from './battleUtils';
 
 /** 조합별 에테르 배율 */
@@ -92,13 +94,13 @@ export function applyEtherDeflation(
  * 카드의 에테르 획득량 반환
  */
 export const getCardEtherGain = (card: EtherCard): number =>
-  CARD_ETHER_BY_RARITY[getCardRarity(card)] || CARD_ETHER_BY_RARITY.common;
+  CARD_ETHER_BY_RARITY[getCardRarity(card as unknown as BattleCard)] || CARD_ETHER_BY_RARITY.common;
 
 /**
  * 카드 배열의 총 에테르 계산
  * 유령카드(isGhost)는 에테르 획득에서 제외
  */
-export const calcCardsEther = (cards: (EtherCard | EtherCardEntry)[] = [], multiplier: number = 1): number =>
+export const calcCardsEther = (cards: Array<EtherCard | EtherCardEntry | Card> = [], multiplier: number = 1): number =>
   (cards || []).reduce((sum, entry) => {
     const cardObj = (entry as EtherCardEntry).card || entry as EtherCard;
     // 유령카드는 에테르 획득 제외
@@ -124,12 +126,12 @@ export function calculateComboEtherGain({
 }: CalculateComboEtherGainParams): ComboEtherGainResult {
   // 1단계: 기본 에테르 계산 (카드 희귀도 기반)
   const baseGain = cards.length > 0
-    ? calcCardsEther(cards)
+    ? calcCardsEther(cards as Array<EtherCard | EtherCardEntry>)
     : Math.round(cardCount * BASE_ETHER_PER_CARD);
 
   // 2단계: 조합 배율 + 액션코스트 보너스
   const baseComboMult = comboName ? (COMBO_MULTIPLIERS[comboName] || 1) : 1;
-  const actionCostBonus = calculateActionCostBonus(cards);
+  const actionCostBonus = calculateActionCostBonus(cards as Array<EtherCard | EtherCardEntry>);
   const comboMult = baseComboMult + actionCostBonus;
 
   // 3단계: 배율 적용

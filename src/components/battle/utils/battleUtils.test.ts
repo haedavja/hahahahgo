@@ -25,6 +25,29 @@ import {
   getCardRarity,
   hasEnemyUnits
 } from './battleUtils';
+import type { Card } from '../../../types/core';
+import type { BattleCard } from '../../../state/slices/types';
+
+// Mock 객체 생성 헬퍼
+const createMockCard = (overrides: Partial<Card> = {}): Card => ({
+  id: 'test-card',
+  name: 'Test Card',
+  type: 'attack',
+  speedCost: 5,
+  actionCost: 1,
+  description: 'Test description',
+  ...overrides
+});
+
+const createMockBattleCard = (overrides: Partial<BattleCard> = {}): BattleCard => ({
+  id: 'test-card',
+  name: 'Test Card',
+  type: 'attack',
+  speedCost: 5,
+  actionCost: 1,
+  description: 'Test description',
+  ...overrides
+});
 
 describe('battleUtils', () => {
   describe('choice', () => {
@@ -82,7 +105,7 @@ describe('battleUtils', () => {
 
   describe('applyTraitModifiers', () => {
     it('특성이 없으면 원본 카드를 반환해야 함', () => {
-      const card = { damage: 10, block: 5, speedCost: 3 };
+      const card = createMockCard({ damage: 10, block: 5, speedCost: 3 });
       const result = applyTraitModifiers(card);
 
       expect(result.damage).toBe(10);
@@ -91,7 +114,7 @@ describe('battleUtils', () => {
     });
 
     it('strongbone은 피해/방어를 25% 증가시켜야 함', () => {
-      const card = { damage: 10, block: 8, traits: ['strongbone'] };
+      const card = createMockCard({ damage: 10, block: 8, traits: ['strongbone'] });
       const result = applyTraitModifiers(card);
 
       expect(result.damage).toBe(13); // ceil(10 * 1.25) = 13
@@ -99,7 +122,7 @@ describe('battleUtils', () => {
     });
 
     it('weakbone은 피해/방어를 20% 감소시켜야 함', () => {
-      const card = { damage: 10, block: 10, traits: ['weakbone'] };
+      const card = createMockCard({ damage: 10, block: 10, traits: ['weakbone'] });
       const result = applyTraitModifiers(card);
 
       expect(result.damage).toBe(8); // ceil(10 * 0.8) = 8
@@ -107,28 +130,28 @@ describe('battleUtils', () => {
     });
 
     it('destroyer는 피해를 50% 증가시켜야 함', () => {
-      const card = { damage: 10, traits: ['destroyer'] };
+      const card = createMockCard({ damage: 10, traits: ['destroyer'] });
       const result = applyTraitModifiers(card);
 
       expect(result.damage).toBe(15); // ceil(10 * 1.5) = 15
     });
 
     it('slaughter는 피해를 75% 증가시켜야 함', () => {
-      const card = { damage: 10, traits: ['slaughter'] };
+      const card = createMockCard({ damage: 10, traits: ['slaughter'] });
       const result = applyTraitModifiers(card);
 
       expect(result.damage).toBe(18); // ceil(10 * 1.75) = 18
     });
 
     it('pinnacle은 피해를 2.5배 증가시켜야 함', () => {
-      const card = { damage: 10, traits: ['pinnacle'] };
+      const card = createMockCard({ damage: 10, traits: ['pinnacle'] });
       const result = applyTraitModifiers(card);
 
       expect(result.damage).toBe(25); // ceil(10 * 2.5) = 25
     });
 
     it('cooperation은 조합일 때만 50% 증가시켜야 함', () => {
-      const card = { damage: 10, block: 10, traits: ['cooperation'] };
+      const card = createMockCard({ damage: 10, block: 10, traits: ['cooperation'] });
 
       // 조합이 아닐 때
       const result1 = applyTraitModifiers(card, { isInCombo: false });
@@ -141,28 +164,28 @@ describe('battleUtils', () => {
     });
 
     it('swift는 속도 코스트를 25% 감소시켜야 함', () => {
-      const card = { speedCost: 8, traits: ['swift'] };
+      const card = createMockCard({ speedCost: 8, traits: ['swift'] });
       const result = applyTraitModifiers(card);
 
       expect(result.speedCost).toBe(6); // ceil(8 * 0.75) = 6
     });
 
     it('swift는 최소 1의 속도 코스트를 유지해야 함', () => {
-      const card = { speedCost: 1, traits: ['swift'] };
+      const card = createMockCard({ speedCost: 1, traits: ['swift'] });
       const result = applyTraitModifiers(card);
 
       expect(result.speedCost).toBe(1);
     });
 
     it('slow는 속도 코스트를 33% 증가시켜야 함', () => {
-      const card = { speedCost: 6, traits: ['slow'] };
+      const card = createMockCard({ speedCost: 6, traits: ['slow'] });
       const result = applyTraitModifiers(card);
 
       expect(result.speedCost).toBe(8); // ceil(6 * 1.33) = 8
     });
 
     it('mastery는 사용 횟수에 따라 속도 코스트를 감소시켜야 함', () => {
-      const card = { speedCost: 10, traits: ['mastery'] };
+      const card = createMockCard({ speedCost: 10, traits: ['mastery'] });
 
       const result1 = applyTraitModifiers(card, { usageCount: 1 });
       expect(result1.speedCost).toBe(8); // 10 - (1 * 2) = 8
@@ -172,35 +195,35 @@ describe('battleUtils', () => {
     });
 
     it('mastery는 최소 1의 속도 코스트를 유지해야 함', () => {
-      const card = { speedCost: 5, traits: ['mastery'] };
+      const card = createMockCard({ speedCost: 5, traits: ['mastery'] });
       const result = applyTraitModifiers(card, { usageCount: 10 });
 
       expect(result.speedCost).toBe(1);
     });
 
     it('boredom은 사용 횟수에 따라 속도 코스트를 증가시켜야 함', () => {
-      const card = { speedCost: 5, traits: ['boredom'] };
+      const card = createMockCard({ speedCost: 5, traits: ['boredom'] });
 
       const result = applyTraitModifiers(card, { usageCount: 2 });
       expect(result.speedCost).toBe(9); // 5 + (2 * 2) = 9
     });
 
     it('outcast는 행동력을 1 감소시켜야 함', () => {
-      const card = { actionCost: 3, traits: ['outcast'] };
+      const card = createMockCard({ actionCost: 3, traits: ['outcast'] });
       const result = applyTraitModifiers(card);
 
       expect(result.actionCost).toBe(2);
     });
 
     it('outcast는 행동력을 0 미만으로 감소시키지 않아야 함', () => {
-      const card = { actionCost: 0, traits: ['outcast'] };
+      const card = createMockCard({ actionCost: 0, traits: ['outcast'] });
       const result = applyTraitModifiers(card);
 
       expect(result.actionCost).toBe(0);
     });
 
     it('여러 특성이 동시에 적용되어야 함', () => {
-      const card = { damage: 10, speedCost: 8, traits: ['destroyer', 'swift'] };
+      const card = createMockCard({ damage: 10, speedCost: 8, traits: ['destroyer', 'swift'] });
       const result = applyTraitModifiers(card);
 
       expect(result.damage).toBe(15); // ceil(10 * 1.5) = 15
@@ -210,56 +233,56 @@ describe('battleUtils', () => {
 
   describe('applyStrengthToCard', () => {
     it('힘이 0이면 원본 카드를 반환해야 함', () => {
-      const card = { damage: 10, type: 'attack' };
+      const card = createMockBattleCard({ damage: 10, type: 'attack' });
       const result = applyStrengthToCard(card, 0);
 
       expect(result.damage).toBe(10);
     });
 
     it('플레이어 카드가 아니면 원본을 반환해야 함', () => {
-      const card = { damage: 10, type: 'attack' };
+      const card = createMockBattleCard({ damage: 10, type: 'attack' });
       const result = applyStrengthToCard(card, 5, false);
 
       expect(result.damage).toBe(10);
     });
 
     it('공격 카드에 힘이 적용되어야 함', () => {
-      const card = { damage: 10, type: 'attack' };
+      const card = createMockBattleCard({ damage: 10, type: 'attack' });
       const result = applyStrengthToCard(card, 5);
 
       expect(result.damage).toBe(15);
     });
 
     it('음수 힘이 적용되어야 함', () => {
-      const card = { damage: 10, type: 'attack' };
+      const card = createMockBattleCard({ damage: 10, type: 'attack' });
       const result = applyStrengthToCard(card, -3);
 
       expect(result.damage).toBe(7);
     });
 
     it('피해량은 0 미만으로 감소하지 않아야 함', () => {
-      const card = { damage: 5, type: 'attack' };
+      const card = createMockBattleCard({ damage: 5, type: 'attack' });
       const result = applyStrengthToCard(card, -10);
 
       expect(result.damage).toBe(0);
     });
 
     it('방어 카드에 힘이 적용되어야 함', () => {
-      const card = { block: 10, type: 'defense' };
+      const card = createMockBattleCard({ block: 10, type: 'defense' });
       const result = applyStrengthToCard(card, 3);
 
       expect(result.block).toBe(13);
     });
 
     it('general 타입 카드에 방어력 힘이 적용되어야 함', () => {
-      const card = { block: 10, type: 'general' };
+      const card = createMockBattleCard({ block: 10, type: 'general' });
       const result = applyStrengthToCard(card, 2);
 
       expect(result.block).toBe(12);
     });
 
     it('방어력은 0 미만으로 감소하지 않아야 함', () => {
-      const card = { block: 5, type: 'defense' };
+      const card = createMockBattleCard({ block: 5, type: 'defense' });
       const result = applyStrengthToCard(card, -10);
 
       expect(result.block).toBe(0);
@@ -269,8 +292,8 @@ describe('battleUtils', () => {
   describe('applyStrengthToHand', () => {
     it('힘이 0이면 원본 손패를 반환해야 함', () => {
       const hand = [
-        { damage: 10, type: 'attack' },
-        { block: 5, type: 'defense' }
+        createMockBattleCard({ damage: 10, type: 'attack' }),
+        createMockBattleCard({ block: 5, type: 'defense' })
       ];
       const result = applyStrengthToHand(hand, 0);
 
@@ -279,9 +302,9 @@ describe('battleUtils', () => {
 
     it('손패의 모든 카드에 힘이 적용되어야 함', () => {
       const hand = [
-        { damage: 10, type: 'attack' },
-        { damage: 8, type: 'attack' },
-        { block: 5, type: 'defense' }
+        createMockBattleCard({ damage: 10, type: 'attack' }),
+        createMockBattleCard({ damage: 8, type: 'attack' }),
+        createMockBattleCard({ block: 5, type: 'defense' })
       ];
       const result = applyStrengthToHand(hand, 3);
 
@@ -299,13 +322,13 @@ describe('battleUtils', () => {
 
   describe('getCardRarity', () => {
     it('카드의 희귀도를 반환해야 함', () => {
-      expect(getCardRarity({ rarity: 'rare' })).toBe('rare');
-      expect(getCardRarity({ rarity: 'legendary' })).toBe('legendary');
+      expect(getCardRarity(createMockBattleCard({ rarity: 'rare' }))).toBe('rare');
+      expect(getCardRarity(createMockBattleCard({ rarity: 'legendary' }))).toBe('legendary');
     });
 
     it('희귀도가 없으면 common을 반환해야 함', () => {
-      expect(getCardRarity({})).toBe('common');
-      expect(getCardRarity({ name: 'Test' })).toBe('common');
+      expect(getCardRarity(createMockBattleCard({}))).toBe('common');
+      expect(getCardRarity(createMockBattleCard({ name: 'Test' }))).toBe('common');
     });
 
     it('null/undefined 카드는 common을 반환해야 함', () => {

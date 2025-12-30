@@ -131,30 +131,43 @@ export function executeCardActionCore(params: ExecuteCardActionCoreParams): Exec
     enemyRemainingEnergy
   };
 
+  // 카드가 없으면 early return (타입 가드)
+  if (!action.card) {
+    return { P, E, actionEvents: [] };
+  }
+
   // 카드 트레잇 즉시 효과 처리
-  const traitResult = processImmediateCardTraits({ card: action.card, actor: action.actor, player: P, enemy: E, addLog });
-  P = traitResult.player as typeof P;
-  E = traitResult.enemy as typeof E;
+  processImmediateCardTraits({
+    card: action.card,
+    playerState: P,
+    nextTurnEffects: nextTurnEffects || {},
+    addLog
+  });
+  // P는 함수 내부에서 직접 수정됨
 
   // 상징 효과 처리 (카드 플레이 시) - P, E는 in-place로 수정됨
   processCardPlayedRelicEffects({
+    relics: orderedRelicList.map(r => r.id),
     card: action.card,
-    actor: action.actor,
-    player: P,
-    enemy: E,
-    relics: orderedRelicList,
-    flashRelic,
-    addLog
+    playerState: P,
+    enemyState: E,
+    safeInitialPlayer,
+    addLog,
+    setRelicActivated: (id: string | null) => {
+      if (id) {
+        flashRelic(id);
+      }
+    }
   });
   // P, E는 함수 내부에서 직접 수정됨 (playerState.hp = healed 등)
 
   // 스턴 효과 처리
   const stunResult = processStunEffect({
-    action,
-    queue: battleRef.current?.queue ?? [],
+    action: action as StunAction,
+    queue: (battleRef.current?.queue ?? []) as any[],
     currentQIndex: battleRef.current?.qIndex ?? 0,
     addLog
-  }) as StunProcessingResult;
+  });
   if (stunResult.updatedQueue) {
     const markedStunQueue = markCrossedCards(stunResult.updatedQueue as any);
     actions.setQueue(markedStunQueue as any);
@@ -195,10 +208,10 @@ export function executeCardActionCore(params: ExecuteCardActionCoreParams): Exec
   // 타임라인 조작 효과 처리
   const currentActor = action.actor === 'player' ? P : E;
   const timelineResult = processTimelineSpecials({
-    card: action.card,
-    actor: currentActor,
+    card: action.card as any,
+    actor: currentActor as any,
     actorName: action.actor as 'player' | 'enemy',
-    queue: battleRef.current?.queue,
+    queue: (battleRef.current?.queue ?? []) as any[],
     currentIndex: battleRef.current?.qIndex ?? 0,
     damageDealt: actionResult.dealt || 0
   });
@@ -291,7 +304,7 @@ export function executeCardActionCore(params: ExecuteCardActionCoreParams): Exec
   // 에테르 누적
   if (action.actor === 'player') {
     // blockPerCardExecution 효과: 카드당 방어력 획득
-    const blockPerCard = nextTurnEffects?.blockPerCardExecution || 0;
+    const blockPerCard = (nextTurnEffects?.blockPerCardExecution as number | undefined) || 0;
     if (blockPerCard > 0) {
       P.block = (P.block || 0) + blockPerCard;
       const msg = `🛡️ 노인의 꿈: 카드 실행 시 방어력 +${blockPerCard}`;
@@ -300,31 +313,31 @@ export function executeCardActionCore(params: ExecuteCardActionCoreParams): Exec
         actor: 'player',
         type: 'special',
         msg
-      } as BattleEvent);
+      } as unknown as BattleEvent);
     }
 
     processPlayerEtherAccumulation({
       card: action.card,
       turnEtherAccumulated,
-      orderedRelicList,
+      orderedRelicList: orderedRelicList.map(r => r.id),
       cardUpgrades,
-      resolvedPlayerCards,
+      resolvedPlayerCards: resolvedPlayerCards.length,
       playerTimeline,
       relics,
-      triggeredRefs,
-      calculatePassiveEffects: calcPassive,
-      getCardEtherGain,
-      collectTriggeredRelics,
-      playRelicActivationSequence,
+      triggeredRefs: triggeredRefs as any,
+      calculatePassiveEffects: calcPassive as any,
+      getCardEtherGain: getCardEtherGain as any,
+      collectTriggeredRelics: collectTriggeredRelics as any,
+      playRelicActivationSequence: playRelicActivationSequence as any,
       flashRelic,
-      actions
+      actions: actions as any
     });
   } else if (action.actor === 'enemy') {
     processEnemyEtherAccumulation({
       card: action.card,
       enemyTurnEtherAccumulated,
-      getCardEtherGain,
-      actions
+      getCardEtherGain: getCardEtherGain as any,
+      actions: actions as any
     });
 
     // 집요한 타격 효과 처리
@@ -371,11 +384,11 @@ export function executeCardActionCore(params: ExecuteCardActionCoreParams): Exec
 
   // 이벤트 애니메이션
   processActionEventAnimations({
-    actionEvents,
-    action,
+    actionEvents: actionEvents as any[],
+    action: action as any,
     playHitSound: playHitSound ?? (() => {}),
     playBlockSound: playBlockSound ?? (() => {}),
-    actions
+    actions: actions as any
   });
 
   return { P, E, actionEvents };

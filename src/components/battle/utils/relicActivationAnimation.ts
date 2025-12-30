@@ -40,7 +40,7 @@ export function collectTriggeredRelics({
     effects?: {
       type?: string;
       comboMultiplierPerCard?: number;
-      etherCardMultiplier?: number;
+      etherCardMultiplier?: number | boolean;
       etherMultiplier?: number;
       etherFiveCardBonus?: number;
       [key: string]: unknown;

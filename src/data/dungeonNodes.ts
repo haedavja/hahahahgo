@@ -41,7 +41,7 @@ export const CONNECTION_TYPES = {
 interface DungeonConnection {
   targetId: string;
   type: string;
-  requirements: { stat?: string; value?: number; item?: string } | null;
+  requirements: { stat?: string; value?: number; item?: string; consume?: string; itemName?: string } | null;
   unlocked: boolean;
 }
 
@@ -1285,15 +1285,15 @@ export function canPassConnection(
       return { canPass: true, reason: null };
 
     case CONNECTION_TYPES.STAT_GATE:
-      if (!requirements) return { canPass: true, reason: null };
-      const statValue = playerStats[requirements.stat] || 0;
+      if (!requirements || !requirements.stat) return { canPass: true, reason: null };
+      const statValue = playerStats[requirements.stat as PlayerStat] || 0;
       const needed = requirements.value || 0;
       if (statValue >= needed) {
         return { canPass: true, reason: null };
       }
       return {
         canPass: false,
-        reason: `${getStatName(requirements.stat)} ${needed} 필요 (현재: ${statValue})`,
+        reason: `${getStatName(requirements.stat as PlayerStat)} ${needed} 필요 (현재: ${statValue})`,
       };
 
     case CONNECTION_TYPES.ITEM_GATE:
@@ -1394,7 +1394,7 @@ export function moveToNode(
   );
 
   if (!checkResult.canPass) {
-    return { success: false, message: checkResult.reason };
+    return { success: false, message: checkResult.reason ?? undefined };
   }
 
   // 상태 업데이트

@@ -10,7 +10,7 @@
 
 import type {
   ComboUsageCount,
-  VictoryConditionResult
+  VictoryCheckResult
 } from '../../../types';
 import type { Card } from '../../../types/core';
 import type {
@@ -38,7 +38,7 @@ interface TurnEndEnemyParams {
  */
 export function updateComboUsageCount(
   currentUsageCount: ComboUsageCount | null | undefined,
-  combo: Card | null | undefined,
+  combo: { name?: string } | null | undefined,
   queue: BattleAction[] = [],
   actorFilter: 'player' | 'enemy' = 'player'
 ): ComboUsageCount {
@@ -114,7 +114,7 @@ export function createTurnEndEnemyState(
 /**
  * 승리 조건 확인
  */
-export function checkVictoryCondition(enemy: EnemyUnit, enemyEtherPts: number): VictoryConditionResult {
+export function checkVictoryCondition(enemy: { hp: number }, enemyEtherPts: number): VictoryCheckResult {
   const isEtherVictory = enemyEtherPts <= 0;
   const isHpVictory = enemy.hp <= 0;
   const isVictory = isHpVictory || isEtherVictory;

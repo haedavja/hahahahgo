@@ -38,8 +38,8 @@ describe('useInsightSystem', () => {
     playerInsight: 2,
     playerInsightPenalty: 0,
     enemyShroud: 0,
-    enemyUnits: [{ id: 'enemy1' }],
-    enemyPlanActions: [{ id: 'action1' }, { id: 'action2' }],
+    enemyUnits: [{ id: 'enemy1' }] as any,
+    enemyPlanActions: [{ id: 'action1' }, { id: 'action2' }] as any,
     battlePhase: 'select',
     devDulledLevel: 0,
     actions: mockActions
@@ -56,7 +56,7 @@ describe('useInsightSystem', () => {
 
   describe('effectiveInsight 계산', () => {
     it('playerInsight가 그대로 적용되어야 함 (shroud 0)', () => {
-      const { result } = renderHook(() => useInsightSystem(defaultProps));
+      const { result } = renderHook(() => useInsightSystem(defaultProps as any));
 
       expect(result.current.effectiveInsight).toBe(2);
     });
@@ -66,7 +66,7 @@ describe('useInsightSystem', () => {
         ...defaultProps,
         playerInsight: 3,
         enemyShroud: 1
-      }));
+      } as any));
 
       expect(result.current.effectiveInsight).toBe(2);
     });
@@ -76,7 +76,7 @@ describe('useInsightSystem', () => {
         ...defaultProps,
         playerInsight: 1,
         enemyShroud: 5
-      }));
+      } as any));
 
       expect(result.current.effectiveInsight).toBe(0);
     });
@@ -87,7 +87,7 @@ describe('useInsightSystem', () => {
       const { result } = renderHook(() => useInsightSystem({
         ...defaultProps,
         playerInsight: 0
-      }));
+      } as any));
 
       expect(result.current.effectiveInsight).toBe(0);
     });
@@ -96,7 +96,7 @@ describe('useInsightSystem', () => {
       const { result } = renderHook(() => useInsightSystem({
         ...defaultProps,
         playerInsight: 1
-      }));
+      } as any));
 
       expect(result.current.effectiveInsight).toBe(1);
     });
@@ -105,7 +105,7 @@ describe('useInsightSystem', () => {
       const { result } = renderHook(() => useInsightSystem({
         ...defaultProps,
         playerInsight: 3
-      }));
+      } as any));
 
       expect(result.current.effectiveInsight).toBe(3);
     });
@@ -115,12 +115,12 @@ describe('useInsightSystem', () => {
     it('playerInsight 변경 시 effectiveInsight 재계산', () => {
       const { result, rerender } = renderHook(
         (props) => useInsightSystem(props),
-        { initialProps: defaultProps }
+        { initialProps: defaultProps as any }
       );
 
       expect(result.current.effectiveInsight).toBe(2);
 
-      rerender({ ...defaultProps, playerInsight: 5 });
+      rerender({ ...defaultProps, playerInsight: 5 } as any);
 
       expect(result.current.effectiveInsight).toBe(5);
     });
@@ -128,12 +128,12 @@ describe('useInsightSystem', () => {
     it('enemyShroud 변경 시 effectiveInsight 재계산', () => {
       const { result, rerender } = renderHook(
         (props) => useInsightSystem(props),
-        { initialProps: defaultProps }
+        { initialProps: defaultProps as any }
       );
 
       expect(result.current.effectiveInsight).toBe(2);
 
-      rerender({ ...defaultProps, enemyShroud: 1 });
+      rerender({ ...defaultProps, enemyShroud: 1 } as any);
 
       expect(result.current.effectiveInsight).toBe(1);
     });

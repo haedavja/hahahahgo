@@ -205,7 +205,7 @@ export function useBattleInitialization({
       ...safeInitialEnemy,
       shroud: safeInitialEnemy.shroud ?? 0,
       strength: 0,
-    });
+    } as Parameters<typeof createReducerEnemyState>[0]);
   }, [safeInitialEnemy]);
 
   // 초기 설정값 (localStorage에서 로드)

@@ -128,13 +128,15 @@ export interface EnemyIntent {
 
 /** 전투 이벤트 */
 export interface BattleEvent {
-  actor: 'player' | 'enemy' | 'system' | 'counter' | 'relic' | string;
-  type?: 'damage' | 'heal' | 'block' | 'token' | 'ether' | 'card' | 'multihit' | 'hit' | 'blocked' | 'pierce' | 'burn';
+  actor: 'player' | 'enemy' | 'system' | 'counter' | 'relic' | 'counterShot' | string;
+  type?: 'damage' | 'heal' | 'block' | 'token' | 'ether' | 'card' | 'multihit' | 'hit' | 'blocked' | 'pierce' | 'burn' | 'special' | 'dodge' | 'cross';
   value?: number;
   msg: string;
   targetId?: string;
   card?: string;
   dmg?: number;
+  beforeHP?: number;
+  afterHP?: number;
 }
 
 /** 전투 로그 */
@@ -168,7 +170,7 @@ export interface PreProcessedResult {
   modifiedCard: Card;
   attacker: Combatant;
   defender: Combatant;
-  consumedTokens: string[];
+  consumedTokens: ConsumedToken[];
 }
 
 /** 대응사격 결과 */
@@ -201,6 +203,7 @@ export interface AttackResult {
   isCritical?: boolean;
   createdCards?: Card[];
   defenderTimelineAdvance?: number;
+  queueModifications?: Array<{ index: number; newSp: number }>;
 }
 
 /** 방어 행동 결과 */
@@ -229,6 +232,8 @@ export interface ActionResult {
 export interface CardPlaySpecialsResult {
   tokensToAdd?: TokenToAdd[];
   tokensToRemove?: TokenToRemove[];
+  bonusCards?: Card[];
+  nextTurnEffects?: NextTurnEffects;
   events: BattleEvent[];
   logs: string[];
   [key: string]: unknown;
@@ -426,12 +431,17 @@ export type SpecialQueueItem = BattleAction;
  */
 export type SpecialBattleContext = BattleContext;
 
-/** 특수 효과 이벤트 */
+/** 특수 효과 이벤트 - BattleEvent와 호환 */
 export interface SpecialEvent {
-  actor: string;
-  card: string;
-  type: string;
+  actor: 'player' | 'enemy' | 'system' | 'counter' | 'relic' | 'counterShot' | string;
+  card?: string;
+  type?: string;
   msg: string;
+  value?: number;
+  targetId?: string;
+  dmg?: number;
+  beforeHP?: number;
+  afterHP?: number;
 }
 
 /** 공격 전 특수 효과 결과 */

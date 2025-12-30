@@ -156,7 +156,7 @@ export function finishTurnCore(params: FinishTurnCoreParams): FinishTurnResult {
   const newEnemyUsageCount = updateComboUsageCount(enemy.comboUsageCount, eComboEnd, [], 'enemy');
 
   // 상태 업데이트
-  actions.setPlayer(createTurnEndPlayerState(player, {
+  actions.setPlayer(createTurnEndPlayerState(player as never, {
     comboUsageCount: newUsageCount,
     etherPts: nextPlayerPts,
     etherOverflow: playerOverflow,

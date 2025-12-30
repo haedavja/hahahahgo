@@ -57,7 +57,7 @@ export const ACTIONS = {
   UPDATE_KEYS: 'UPDATE_KEYS',
   RESET_DUNGEON: 'RESET_DUNGEON',
   MOVE_TO_NEXT_SEGMENT: 'MOVE_TO_NEXT_SEGMENT',
-};
+} as const;
 
 export const createInitialState = (overrides: Partial<DungeonState> = {}): DungeonState => ({
   segmentIndex: 0,
@@ -77,50 +77,50 @@ export const createInitialState = (overrides: Partial<DungeonState> = {}): Dunge
 export const dungeonReducer = (state: DungeonState, action: DungeonAction): DungeonState => {
   switch (action.type) {
     // === 기본 설정 ===
-    case ACTIONS.SET_SEGMENT_INDEX:
+    case 'SET_SEGMENT_INDEX':
       return { ...state, segmentIndex: action.payload };
 
-    case ACTIONS.SET_PLAYER_X:
+    case 'SET_PLAYER_X':
       return { ...state, playerX: action.payload };
 
-    case ACTIONS.SET_CAMERA_X:
+    case 'SET_CAMERA_X':
       return { ...state, cameraX: action.payload };
 
-    case ACTIONS.SET_KEYS:
+    case 'SET_KEYS':
       return { ...state, keys: action.payload };
 
-    case ACTIONS.SET_MESSAGE:
+    case 'SET_MESSAGE':
       return { ...state, message: action.payload };
 
-    case ACTIONS.SET_REWARD_MODAL:
+    case 'SET_REWARD_MODAL':
       return { ...state, rewardModal: action.payload };
 
-    case ACTIONS.SET_SHOW_CHARACTER:
+    case 'SET_SHOW_CHARACTER':
       return { ...state, showCharacter: action.payload };
 
-    case ACTIONS.SET_DUNGEON_SUMMARY:
+    case 'SET_DUNGEON_SUMMARY':
       return { ...state, dungeonSummary: action.payload };
 
-    case ACTIONS.SET_HOVERED_RELIC:
+    case 'SET_HOVERED_RELIC':
       return { ...state, hoveredRelic: action.payload };
 
-    case ACTIONS.SET_CROSSROAD_MODAL:
+    case 'SET_CROSSROAD_MODAL':
       return { ...state, crossroadModal: action.payload };
 
-    case ACTIONS.SET_SCREEN_SHAKE:
+    case 'SET_SCREEN_SHAKE':
       return { ...state, screenShake: action.payload };
 
     // === 복합 액션 ===
-    case ACTIONS.UPDATE_KEYS:
+    case 'UPDATE_KEYS':
       return {
         ...state,
-        keys: { ...state.keys, ...action.payload }
+        keys: { ...state.keys, ...action.payload } as KeysState
       };
 
-    case ACTIONS.RESET_DUNGEON:
+    case 'RESET_DUNGEON':
       return createInitialState(action.payload);
 
-    case ACTIONS.MOVE_TO_NEXT_SEGMENT:
+    case 'MOVE_TO_NEXT_SEGMENT':
       return {
         ...state,
         segmentIndex: state.segmentIndex + 1,

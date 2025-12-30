@@ -32,7 +32,11 @@ describe('enemyDeathProcessing', () => {
 
       processEnemyDeath({
         newQIndex: 2,
-        queue: [{ actor: 'player' }, { actor: 'enemy' }, { actor: 'enemy' }],
+        queue: [
+          { actor: 'player', card: {} as any, originalIndex: 0 },
+          { actor: 'enemy', card: {} as any, originalIndex: 1 },
+          { actor: 'enemy', card: {} as any, originalIndex: 2 }
+        ],
         queueLength: 3,
         turnEtherAccumulated: 10,
         playSound: vi.fn(),
@@ -47,7 +51,7 @@ describe('enemyDeathProcessing', () => {
 
       processEnemyDeath({
         newQIndex: 1,
-        queue: [{ actor: 'player' }],
+        queue: [{ actor: 'player', card: {} as any, originalIndex: 0 }],
         queueLength: 1,
         turnEtherAccumulated: 10,
         playSound,
@@ -90,10 +94,10 @@ describe('enemyDeathProcessing', () => {
     it('남은 카드를 비활성화해야 함', () => {
       const actions = createMockActions();
       const queue = [
-        { actor: 'player', card: { name: 'Done' } },
-        { actor: 'player', card: { name: 'Done' } },
-        { actor: 'enemy', card: { name: 'Remaining 1' } },
-        { actor: 'enemy', card: { name: 'Remaining 2' } }
+        { actor: 'player' as const, card: { name: 'Done' } as any, originalIndex: 0 },
+        { actor: 'player' as const, card: { name: 'Done' } as any, originalIndex: 1 },
+        { actor: 'enemy' as const, card: { name: 'Remaining 1' } as any, originalIndex: 2 },
+        { actor: 'enemy' as const, card: { name: 'Remaining 2' } as any, originalIndex: 3 }
       ];
 
       processEnemyDeath({
@@ -129,7 +133,13 @@ describe('enemyDeathProcessing', () => {
 
       processEnemyDeath({
         newQIndex: 2,
-        queue: [1, 2, 3, 4, 5],
+        queue: [
+          { actor: 'player', card: {} as any, originalIndex: 0 },
+          { actor: 'player', card: {} as any, originalIndex: 1 },
+          { actor: 'player', card: {} as any, originalIndex: 2 },
+          { actor: 'player', card: {} as any, originalIndex: 3 },
+          { actor: 'player', card: {} as any, originalIndex: 4 }
+        ],
         queueLength: 5,
         turnEtherAccumulated: 10,
         playSound: vi.fn(),

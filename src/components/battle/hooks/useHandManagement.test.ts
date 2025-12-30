@@ -27,13 +27,14 @@ describe('useHandManagement', () => {
   };
   const mockAddLog = vi.fn();
   const mockPlaySound = vi.fn();
-  const mockEscapeBanRef = { current: [] };
+  const mockEscapeBanRef = { current: new Set<string>() };
 
-  const defaultProps = {
+  const defaultProps: any = {
     canRedraw: true,
     battleHand: [],
     battleDeck: [],
     battleDiscardPile: [],
+    battleVanishedCards: [],
     sortType: 'speed',
     hand: [],
     escapeBanRef: mockEscapeBanRef,
@@ -48,10 +49,10 @@ describe('useHandManagement', () => {
 
   describe('getSortedHand', () => {
     it('speed 기준으로 정렬해야 함 (내림차순)', () => {
-      const hand = [
-        { id: 'a', name: 'A', speedCost: 10, actionCost: 1 },
-        { id: 'b', name: 'B', speedCost: 30, actionCost: 2 },
-        { id: 'c', name: 'C', speedCost: 20, actionCost: 1 }
+      const hand: any[] = [
+        { id: 'a', name: 'A', type: 'attack', speedCost: 10, actionCost: 1, description: 'Test' },
+        { id: 'b', name: 'B', type: 'attack', speedCost: 30, actionCost: 2, description: 'Test' },
+        { id: 'c', name: 'C', type: 'attack', speedCost: 20, actionCost: 1, description: 'Test' }
       ];
 
       const { result } = renderHook(() => useHandManagement({
@@ -68,10 +69,10 @@ describe('useHandManagement', () => {
     });
 
     it('energy 기준으로 정렬해야 함 (내림차순)', () => {
-      const hand = [
-        { id: 'a', name: 'A', speedCost: 10, actionCost: 1 },
-        { id: 'b', name: 'B', speedCost: 10, actionCost: 3 },
-        { id: 'c', name: 'C', speedCost: 10, actionCost: 2 }
+      const hand: any[] = [
+        { id: 'a', name: 'A', type: 'attack', speedCost: 10, actionCost: 1, description: 'Test' },
+        { id: 'b', name: 'B', type: 'attack', speedCost: 10, actionCost: 3, description: 'Test' },
+        { id: 'c', name: 'C', type: 'attack', speedCost: 10, actionCost: 2, description: 'Test' }
       ];
 
       const { result } = renderHook(() => useHandManagement({
@@ -88,10 +89,10 @@ describe('useHandManagement', () => {
     });
 
     it('value 기준으로 정렬해야 함 (damage*hits + block, 내림차순)', () => {
-      const hand = [
-        { id: 'a', name: 'A', damage: 5, hits: 1, block: 0 },  // value: 5
-        { id: 'b', name: 'B', damage: 3, hits: 3, block: 0 },  // value: 9
-        { id: 'c', name: 'C', damage: 0, hits: 1, block: 10 }  // value: 10
+      const hand: any[] = [
+        { id: 'a', name: 'A', type: 'attack', speedCost: 0, actionCost: 0, description: 'Test', damage: 5, hits: 1, block: 0 },  // value: 5
+        { id: 'b', name: 'B', type: 'attack', speedCost: 0, actionCost: 0, description: 'Test', damage: 3, hits: 3, block: 0 },  // value: 9
+        { id: 'c', name: 'C', type: 'defense', speedCost: 0, actionCost: 0, description: 'Test', damage: 0, hits: 1, block: 10 }  // value: 10
       ];
 
       const { result } = renderHook(() => useHandManagement({
@@ -108,10 +109,10 @@ describe('useHandManagement', () => {
     });
 
     it('type 기준으로 정렬해야 함 (attack -> general -> special)', () => {
-      const hand = [
-        { id: 'a', name: 'A', type: 'special' },
-        { id: 'b', name: 'B', type: 'attack' },
-        { id: 'c', name: 'C', type: 'general' }
+      const hand: any[] = [
+        { id: 'a', name: 'A', type: 'support', speedCost: 0, actionCost: 0, description: 'Test' },
+        { id: 'b', name: 'B', type: 'attack', speedCost: 0, actionCost: 0, description: 'Test' },
+        { id: 'c', name: 'C', type: 'general', speedCost: 0, actionCost: 0, description: 'Test' }
       ];
 
       const { result } = renderHook(() => useHandManagement({
@@ -124,7 +125,7 @@ describe('useHandManagement', () => {
 
       expect(sorted[0].id).toBe('b'); // attack
       expect(sorted[1].id).toBe('c'); // general
-      expect(sorted[2].id).toBe('a'); // special
+      expect(sorted[2].id).toBe('a'); // support
     });
 
     it('빈 손패를 처리해야 함', () => {
@@ -140,10 +141,10 @@ describe('useHandManagement', () => {
     });
 
     it('정렬 시 원본 배열을 수정하지 않아야 함', () => {
-      const hand = [
-        { id: 'a', name: 'A', speedCost: 10 },
-        { id: 'b', name: 'B', speedCost: 30 },
-        { id: 'c', name: 'C', speedCost: 20 }
+      const hand: any[] = [
+        { id: 'a', name: 'A', type: 'attack', speedCost: 10, actionCost: 0, description: 'Test' },
+        { id: 'b', name: 'B', type: 'attack', speedCost: 30, actionCost: 0, description: 'Test' },
+        { id: 'c', name: 'C', type: 'attack', speedCost: 20, actionCost: 0, description: 'Test' }
       ];
 
       const { result } = renderHook(() => useHandManagement({

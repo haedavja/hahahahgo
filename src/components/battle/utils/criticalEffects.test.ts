@@ -25,17 +25,41 @@ import {
   applyCriticalStacks
 } from './criticalEffects';
 
+// 테스트용 Combatant 헬퍼
+function createCombatant(overrides: any = {}): any {
+  return {
+    hp: 100,
+    maxHp: 100,
+    block: 0,
+    tokens: { usage: [], turn: [], permanent: [] },
+    ...overrides
+  };
+}
+
+// 테스트용 Card 헬퍼
+function createCard(overrides: any = {}): any {
+  return {
+    id: 'test-card',
+    name: 'Test Card',
+    type: 'attack',
+    speedCost: 0,
+    actionCost: 0,
+    description: 'Test card',
+    ...overrides
+  };
+}
+
 describe('criticalEffects', () => {
   describe('calculateCritChance', () => {
     it('기본 치명타 확률은 5%이어야 함', () => {
-      const actor = {};
+      const actor = createCombatant();
       const result = calculateCritChance(actor, 0);
 
       expect(result).toBe(5);
     });
 
     it('힘이 치명타 확률에 반영되어야 함', () => {
-      const actor = { strength: 10 };
+      const actor = createCombatant({ strength: 10 });
       const result = calculateCritChance(actor, 0);
 
       // 5 + 10 = 15
@@ -43,7 +67,7 @@ describe('criticalEffects', () => {
     });
 
     it('남은 행동력이 치명타 확률에 반영되어야 함', () => {
-      const actor = {};
+      const actor = createCombatant();
       const result = calculateCritChance(actor, 5);
 
       // 5 + 5 = 10
@@ -51,7 +75,7 @@ describe('criticalEffects', () => {
     });
 
     it('힘과 행동력이 함께 적용되어야 함', () => {
-      const actor = { strength: 3 };
+      const actor = createCombatant({ strength: 3 });
       const result = calculateCritChance(actor, 2);
 
       // 5 + 3 + 2 = 10
@@ -59,7 +83,7 @@ describe('criticalEffects', () => {
     });
 
     it('CRIT_BOOST 토큰이 적용되어야 함', () => {
-      const actor = {
+      const actor = createCombatant({
         tokens: {
           usage: [],
           turn: [{
@@ -69,16 +93,16 @@ describe('criticalEffects', () => {
           }],
           permanent: []
         }
-      };
-      const result = calculateCritChance(actor as any, 0);
+      });
+      const result = calculateCritChance(actor, 0);
 
       // 5 + (10 * 2) = 25
       expect(result).toBe(25);
     });
 
     it('doubleCrit special이 있으면 확률이 2배가 되어야 함', () => {
-      const actor = { strength: 5 };
-      const card = { special: 'doubleCrit' };
+      const actor = createCombatant({ strength: 5 });
+      const card = createCard({ special: 'doubleCrit' });
       const result = calculateCritChance(actor, 0, card);
 
       // (5 + 5) * 2 = 20
@@ -86,8 +110,8 @@ describe('criticalEffects', () => {
     });
 
     it('doubleCrit이 배열로 주어져도 작동해야 함', () => {
-      const actor = {};
-      const card = { special: ['doubleCrit', 'other'] };
+      const actor = createCombatant();
+      const card = createCard({ special: ['doubleCrit', 'other'] });
       const result = calculateCritChance(actor, 0, card);
 
       // 5 * 2 = 10
@@ -105,7 +129,7 @@ describe('criticalEffects', () => {
     });
 
     it('적은 치명타가 발생하지 않아야 함', () => {
-      const actor = { strength: 100 };
+      const actor = createCombatant({ strength: 100 });
       const result = rollCritical(actor, 0, null, 'enemy');
 
       expect(result).toBe(false);
@@ -113,8 +137,8 @@ describe('criticalEffects', () => {
 
     it('guaranteedCrit special이 있으면 항상 치명타가 발생해야 함', () => {
       vi.spyOn(Math, 'random').mockReturnValue(0.99);
-      const actor = {};
-      const card = { special: 'guaranteedCrit' };
+      const actor = createCombatant();
+      const card = createCard({ special: 'guaranteedCrit' });
       const result = rollCritical(actor, 0, card, 'player');
 
       expect(result).toBe(true);
@@ -122,8 +146,8 @@ describe('criticalEffects', () => {
 
     it('guaranteedCrit이 배열로 주어져도 작동해야 함', () => {
       vi.spyOn(Math, 'random').mockReturnValue(0.99);
-      const actor = {};
-      const card = { special: ['guaranteedCrit'] };
+      const actor = createCombatant();
+      const card = createCard({ special: ['guaranteedCrit'] });
       const result = rollCritical(actor, 0, card, 'player');
 
       expect(result).toBe(true);
@@ -131,7 +155,7 @@ describe('criticalEffects', () => {
 
     it('battleContext.guaranteedCrit이 true이면 항상 치명타가 발생해야 함', () => {
       vi.spyOn(Math, 'random').mockReturnValue(0.99);
-      const actor = {};
+      const actor = createCombatant();
       const result = rollCritical(actor, 0, null, 'player', { guaranteedCrit: true });
 
       expect(result).toBe(true);
@@ -139,7 +163,7 @@ describe('criticalEffects', () => {
 
     it('확률에 따라 치명타가 발생해야 함', () => {
       vi.spyOn(Math, 'random').mockReturnValue(0.01); // 1% (5% 미만이므로 치명타)
-      const actor = {};
+      const actor = createCombatant();
       const result = rollCritical(actor, 0, null, 'player');
 
       expect(result).toBe(true);
@@ -147,7 +171,7 @@ describe('criticalEffects', () => {
 
     it('확률을 초과하면 치명타가 발생하지 않아야 함', () => {
       vi.spyOn(Math, 'random').mockReturnValue(0.10); // 10% (5% 이상이므로 치명타 아님)
-      const actor = {};
+      const actor = createCombatant();
       const result = rollCritical(actor, 0, null, 'player');
 
       expect(result).toBe(false);
@@ -156,7 +180,7 @@ describe('criticalEffects', () => {
 
   describe('getCritKnockback', () => {
     it('치명타가 아니면 0을 반환해야 함', () => {
-      const card = { special: 'critKnockback4' };
+      const card = createCard({ special: 'critKnockback4' });
       const result = getCritKnockback(card, false);
 
       expect(result).toBe(0);
@@ -169,14 +193,14 @@ describe('criticalEffects', () => {
     });
 
     it('critKnockback4 special이 있으면 4를 반환해야 함', () => {
-      const card = { special: ['critKnockback4'] };
+      const card = createCard({ special: ['critKnockback4'] });
       const result = getCritKnockback(card, true);
 
       expect(result).toBe(4);
     });
 
     it('넉백 special이 없으면 0을 반환해야 함', () => {
-      const card = { special: ['other'] };
+      const card = createCard({ special: ['other'] });
       const result = getCritKnockback(card, true);
 
       expect(result).toBe(0);

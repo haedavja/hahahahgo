@@ -46,7 +46,7 @@
 
 /// <reference types="react" />
 
-import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import React, { useState, useEffect, useMemo, useRef, useCallback, type MutableRefObject } from "react";
 import type { JSX } from 'react';
 import { flushSync } from "react-dom";
 import "./legacy-battle.css";
@@ -119,7 +119,7 @@ import {
   calculatePassiveEffects,
   applyCombatStartEffects
 } from "../../lib/relicEffects";
-import type { BattlePayload, BattleResult, OrderItem, Card, ItemSlotsBattleActions, AIMode, AICard, AIEnemy, TokenEntity, SpecialCard, HandCard, SpecialActor, SpecialBattleContext, SpecialQueueItem, CombatState, CombatCard, CombatBattleContext, ParryReadyState, ComboCard, HandAction, BattleRef, UITimelineAction, UIRelicsMap, RelicRarities, HoveredCard, HoveredEnemyAction, TimelineBattle, TimelineEnemy, CentralPlayer, ItemSlotsEnemyPlan, ItemSlotsBattleRef, SimulationResult, ExpectedDamagePlayer, ExpectedDamageEnemy, AnomalyWithLevel, BreachSelection, RecallSelection } from "../../types";
+import type { BattlePayload, BattleResult, OrderItem, Card, ItemSlotsBattleActions, AIMode, AICard, AIEnemy, TokenEntity, SpecialCard, HandCard, SpecialActor, SpecialBattleContext, SpecialQueueItem, CombatState, CombatCard, CombatBattleContext, ParryReadyState, ComboCard, HandAction, BattleRef, UITimelineAction, UIRelicsMap, RelicRarities, HoveredCard, HoveredEnemyAction, TimelineBattle, TimelineEnemy, CentralPlayer, ItemSlotsEnemyPlan, ItemSlotsBattleRef, SimulationResult, ExpectedDamagePlayer, ExpectedDamageEnemy, AnomalyWithLevel, BreachSelection, RecallSelection, BattleRefType, EscapeBanRefType, CommonBattleActions } from "../../types";
 import type { Relic, TokenType, TokenInstance, TokenEffect } from "../../types/core";
 import type { BattleEvent, SingleHitResult, PlayerCombatData, EnemyCombatData, CardPlaySpecialsResult } from "../../types/combat";
 import type { PlayerState, EnemyState, SortType, BattlePhase } from "./reducer/battleReducerActions";
@@ -285,7 +285,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     const aliveUnits = enemyUnits.filter(u => u.hp > 0);
     if (aliveUnits.length === 0) return;
     const currentTarget = aliveUnits.find(u => u.unitId === selectedTargetUnit);
-    if (!currentTarget) {
+    if (!currentTarget && aliveUnits[0]?.unitId !== undefined) {
       // 현재 타겟이 사망했으므로 첫 번째 살아있는 유닛으로 전환
       actions.setSelectedTargetUnit(aliveUnits[0].unitId);
     }
@@ -444,11 +444,11 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     creationQueueRef,
     handleBreachSelect
   } = useBreachSelection({
-    CARDS,
-    battleRef,
+    CARDS: CARDS as Card[],
+    battleRef: battleRef as unknown as MutableRefObject<BattleRef>,
     stepOnceRef,
     addLog,
-    actions
+    actions: actions as unknown as CommonBattleActions
   });
   const timelineAnimationRef = useRef<number | null>(null); // 타임라인 진행 애니메이션 ref
   const isExecutingCardRef = useRef(false); // executeCardAction 중복 실행 방지
@@ -479,11 +479,13 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   }, [battle.phase, player.etherMultiplier]);
 
   const computeComboMultiplier = useCallback((baseMult: number, cardsCount: number, includeFiveCard = true, includeRefBook = true, relicOrderOverride: Relic[] | null = null) => {
-    return computeComboMultiplierUtil(baseMult, cardsCount, includeFiveCard, includeRefBook, relicOrderOverride, orderedRelicList);
+    const relicIds = relicOrderOverride ? relicOrderOverride.map(r => r.id) : null;
+    return computeComboMultiplierUtil(baseMult, cardsCount, includeFiveCard, includeRefBook, relicIds, orderedRelicList);
   }, [orderedRelicList]);
 
   const explainComboMultiplier = useCallback((baseMult: number, cardsCount: number, includeFiveCard = true, includeRefBook = true, relicOrderOverride: Relic[] | null = null) => {
-    return explainComboMultiplierUtil(baseMult, cardsCount, includeFiveCard, includeRefBook, relicOrderOverride, orderedRelicList);
+    const relicIds = relicOrderOverride ? relicOrderOverride.map(r => r.id) : null;
+    return explainComboMultiplierUtil(baseMult, cardsCount, includeFiveCard, includeRefBook, relicIds, orderedRelicList);
   }, [orderedRelicList]);
 
   // 효과음 재생 함수 (useCallback으로 안정적인 참조 유지)
@@ -534,19 +536,19 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   // 상징 드래그 앤 드롭 (커스텀 훅으로 분리)
   const { handleRelicDragStart, handleRelicDragOver, handleRelicDrop } = useRelicDrag({
     orderedRelicList,
-    actions
+    actions: actions as unknown as { setRelicActivated: (relicId: string | null) => void; setOrderedRelics: (relics: string[]) => void }
   });
 
   // 통찰 시스템 (커스텀 훅으로 분리)
   const { effectiveInsight, insightLevel, dulledLevel, insightReveal } = useInsightSystem({
-    playerInsight: player.insight,
-    playerInsightPenalty: player.insightPenalty,
-    enemyShroud: enemy?.shroud,
-    enemyUnits: enemy?.units,
+    playerInsight: player.insight ?? 0,
+    playerInsightPenalty: player.insightPenalty ?? 0,
+    enemyShroud: enemy?.shroud ?? 0,
+    enemyUnits: enemy?.units ?? [],
     enemyPlanActions: enemyPlan.actions,
     battlePhase: battle.phase,
     devDulledLevel,
-    actions
+    actions: actions as unknown as { setInsightBadge: (badge: unknown) => void; setInsightAnimLevel: (level: number) => void; setInsightAnimPulseKey: (fn: (k: number) => number) => void; setHoveredEnemyAction: (action: unknown) => void }
   });
 
   const notifyBattleResult = useCallback((resultType: string) => {
@@ -571,7 +573,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const { showCardTraitTooltip, hideCardTraitTooltip } = useCardTooltip({
     hoveredCard,
     battlePhase: battle.phase,
-    actions
+    actions: actions as unknown as { setHoveredCard: (card: unknown) => void; setTooltipVisible: (visible: boolean) => void }
   });
 
   const handleExitToMap = () => {
@@ -884,16 +886,16 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     turnNumber,
     baseMaxEnergy,
     orderedRelicList,
-    playerEgos,
+    playerEgos: playerEgos.map(e => typeof e === 'string' ? e : e.name),
     playerTraits,
     enemyCount,
-    battleRef,
-    escapeBanRef,
+    battleRef: battleRef as unknown as MutableRefObject<BattleRef>,
+    escapeBanRef: escapeBanRef as unknown as MutableRefObject<Set<string>>,
     turnStartProcessedRef,
     etherSlots,
     playSound,
     addLog,
-    actions
+    actions: actions as unknown as never
   });
 
   useEffect(() => {
@@ -932,8 +934,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     const slots = etherSlots(Number(enemy?.etherPts ?? 0));
     const cardsPerTurn = enemy?.cardsPerTurn || enemyCount || 2;
     const rawActions = generateEnemyActions(enemy, latestMode, slots, cardsPerTurn, Math.min(1, cardsPerTurn));
-    const generatedActions = assignSourceUnitToActions(rawActions, enemy?.units || []);
-    actions.setEnemyPlan({ mode: latestMode, actions: generatedActions });
+    const generatedActions = assignSourceUnitToActions(rawActions as AICard[], enemy?.units || []);
+    actions.setEnemyPlan({ mode: latestMode, actions: generatedActions as unknown as Card[] });
   }, [battle.phase, enemyPlan?.mode, enemyPlan?.actions?.length, enemyPlan?.manuallyModified, enemy]);
 
   const totalEnergy = useMemo(() => battle.selected.reduce((s, c) => s + c.actionCost, 0), [battle.selected]);
@@ -945,24 +947,24 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const { currentCombo, finalComboMultiplier, comboPreviewInfo, comboStepsLog } = useComboSystem({
     battleSelected: battle.selected,
     battlePhase: battle.phase,
-    playerComboUsageCount: player.comboUsageCount,
+    playerComboUsageCount: player.comboUsageCount ?? {},
     resolvedPlayerCards,
     battleQIndex: battle.qIndex,
     battleQueueLength: battle.queue.length,
     computeComboMultiplier,
-    explainComboMultiplier,
+    explainComboMultiplier: explainComboMultiplier as unknown as (baseMultiplier: number, cardsCount: number, allowSymbols: boolean, allowRefBook: boolean, orderedRelicList: string[]) => { steps: string[] },
     orderedRelicList,
     selected,
-    actions
+    actions: actions as unknown as { setCurrentDeflation: (deflation: { multiplier: number; usageCount: number } | null) => void; setMultiplierPulse: (pulse: boolean) => void }
   });
 
   // 다중 타겟 선택 시스템 (커스텀 훅으로 분리) - useCardSelection보다 먼저 정의
   const { handleConfirmDistribution, handleCancelDistribution, startDamageDistribution } = useMultiTargetSelection({
     battlePendingDistributionCard: battle.pendingDistributionCard,
-    battleDamageDistribution: battle.damageDistribution,
-    enemyUnits,
+    battleDamageDistribution: battle.damageDistribution as unknown as Record<string, boolean>,
+    enemyUnits: enemyUnits as Array<{ hp: number; unitId: number; name?: string; [key: string]: unknown }>,
     addLog,
-    actions
+    actions: actions as unknown as { addSelected: (card: Card) => void; resetDistribution: () => void; setPendingDistributionCard: (card: Card | null) => void; setDamageDistribution: (dist: Record<string, boolean>) => void; setDistributionMode: (mode: boolean) => void }
   });
 
   // 카드 선택 (커스텀 훅으로 분리)
@@ -992,17 +994,17 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     battleDeck: battle.deck,
     battleDiscardPile: battle.discardPile,
     battleVanishedCards: battle.vanishedCards,
-    sortType,
+    sortType: sortType as "type" | "speed" | "energy" | "value",
     hand,
-    escapeBanRef,
+    escapeBanRef: escapeBanRef as unknown as MutableRefObject<Set<string>>,
     addLog,
     playSound,
-    actions
+    actions: actions as unknown as { setDeck: (deck: Card[]) => void; setDiscardPile: (pile: Card[]) => void; setHand: (hand: Card[]) => void; setSelected: (selected: Card[]) => void; setCanRedraw: (canRedraw: boolean) => void; setSortType: (sortType: string) => void }
   });
 
   // 페이즈 전환 (커스텀 훅으로 분리)
   const { startResolve, beginResolveFromRespond, rewindToSelect } = usePhaseTransition({
-    battleRef,
+    battleRef: battleRef as unknown as MutableRefObject<import("../../types").BattleRefValue>,
     battlePhase: battle.phase,
     battleSelected: battle.selected,
     selected,
@@ -1015,12 +1017,12 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     willOverdrive,
     turnNumber,
     rewindUsed,
-    respondSnapshot,
+    respondSnapshot: respondSnapshot as unknown as { selectedSnapshot: Card[]; enemyActions: Card[] } | null,
     devilDiceTriggeredRef,
     etherSlots,
     playSound,
     addLog,
-    actions
+    actions: actions as unknown as never
   });
 
   useEffect(() => {
@@ -1076,9 +1078,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     enemy,
     enemyPlan,
     enemyTurnEtherAccumulated,
-    battleRef,
+    battleRef: battleRef as unknown as MutableRefObject<BattleRef>,
     playSound,
-    actions
+    actions: actions as unknown as never
   });
 
   // 보상 및 함성 선택 (커스텀 훅으로 분리) - useResolveExecution보다 먼저 정의
@@ -1092,11 +1094,11 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     handleRecallSkip,
     showCardRewardModal
   } = useRewardSelection({
-    CARDS,
-    battleRef,
+    CARDS: CARDS as Card[],
+    battleRef: battleRef as unknown as MutableRefObject<BattleRef>,
     battleNextTurnEffects: battle.nextTurnEffects,
     addLog,
-    actions
+    actions: actions as unknown as { setPostCombatOptions: (options: unknown) => void; setPhase: (phase: string) => void; setNextTurnEffects: (effects: unknown) => void }
   });
 
   // 진행 단계 실행 (커스텀 훅으로 분리)
@@ -1112,18 +1114,18 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     enemyTurnEtherAccumulated,
     finalComboMultiplier,
     enemyPlan,
-    relics,
-    orderedRelicList,
-    battleRef,
+    relics: orderedRelicList as unknown as UIRelicsMap,
+    orderedRelicList: orderedRelicList as unknown as Relic[],
+    battleRef: battleRef as unknown as MutableRefObject<BattleRef | null>,
     parryReadyStatesRef,
     setParryReadyStates,
-    growingDefenseRef,
-    escapeBanRef,
-    escapeUsedThisTurnRef,
-    calculateEtherTransfer,
-    checkVictoryCondition,
+    growingDefenseRef: growingDefenseRef as unknown as MutableRefObject<number | null>,
+    escapeBanRef: escapeBanRef as unknown as MutableRefObject<Set<string>>,
+    escapeUsedThisTurnRef: escapeUsedThisTurnRef as unknown as MutableRefObject<Set<string>>,
+    calculateEtherTransfer: calculateEtherTransfer as unknown as (playerAppliedEther: number, enemyAppliedEther: number, curPlayerPts: number, curEnemyPts: number, enemyHp: number) => { nextPlayerPts: number; nextEnemyPts: number; movedPts: number },
+    checkVictoryCondition: checkVictoryCondition as unknown as (enemy: import("../../types").VictoryEnemy, pts: number) => import("../../types").VictoryCheckResult,
     showCardRewardModal,
-    startEtherCalculationAnimation,
+    startEtherCalculationAnimation: startEtherCalculationAnimation as unknown as () => void,
     addLog,
     playSound,
     actions
@@ -1225,7 +1227,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
       // 카드 소멸 이펙트는 플레이어만 적용
       if (a.actor === 'player') {
-        if (hasTrait(a.card, 'escape')) {
+        if (hasTrait(a.card, 'escape' as unknown as import("../../types/core").CardTrait)) {
           escapeUsedThisTurnRef.current = new Set([...escapeUsedThisTurnRef.current, a.card.id]);
         }
         setTimeout(() => {
@@ -1322,15 +1324,14 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     // 현재 nextTurnEffects 가져오기 (fencingDamageBonus 등)
     const currentNextTurnEffects = battleRef.current?.nextTurnEffects || battle.nextTurnEffects || {};
 
-    const battleContext = {
+    const battleContext: import("../../types/combat").BattleContext = {
       currentSp: a.sp || 0,  // 현재 카드의 타임라인 위치 (growingDefense용)
       currentTurn: turnNumber,  // 현재 턴 번호 (토큰 grantedAt용)
       queue: currentBattle.queue,
       currentQIndex: currentBattle.qIndex,
       remainingEnergy: calculatedRemainingEnergy,  // 플레이어 치명타 확률용 남은 에너지
       enemyRemainingEnergy: calculatedEnemyRemainingEnergy,  // 적 치명타 확률용 남은 에너지
-      allCards: CARDS,  // 카드 창조용 전체 카드 풀
-      usedCardCategories,  // comboStyle용: 이번 턴에 사용된 카드 카테고리
+      allCards: CARDS as Card[],  // 카드 창조용 전체 카드 풀
       hand: currentBattle.hand || [],  // autoReload용: 현재 손패
       enemyDisplayName,  // 적 유닛 이름 (로그용)
       fencingDamageBonus: (currentNextTurnEffects as { fencingDamageBonus?: number }).fencingDamageBonus || 0  // 날 세우기: 검격 공격력 보너스
@@ -1371,7 +1372,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         targetUnit = aliveUnitsForAttack[0];
       }
 
-      if (targetUnit) {
+      if (targetUnit && targetUnit.unitId !== undefined) {
         targetUnitIdForAttack = targetUnit.unitId;
         // 타겟 유닛의 block을 E.block으로 사용 (공유 block 대신)
         E.block = targetUnit.block || 0;
@@ -1418,7 +1419,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         }
       };
 
-      const multiHitResult = await executeMultiHitAsync(a.card, attacker, defender, a.actor, battleContext, onHitCallback);
+      const multiHitResult = await executeMultiHitAsync(a.card, attacker, defender, a.actor, battleContext, onHitCallback as unknown as (hitIndex: number, totalHits: number, hitResult: { damage: number; events: import("../../types/combat").BattleEvent[] }) => void);
 
       // 결과 반영
       if (a.actor === 'player') {
@@ -1439,7 +1440,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       });
 
       // cardPlayResult의 토큰 처리
-      if (cardPlayResult.tokensToAdd?.length > 0) {
+      if (cardPlayResult.tokensToAdd && cardPlayResult.tokensToAdd.length > 0) {
         cardPlayResult.tokensToAdd.forEach(tokenInfo => {
           // targetEnemy 플래그에 따라 대상 결정
           const isPlayerAction = a.actor === 'player';
@@ -1458,7 +1459,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
           }
         });
       }
-      if (cardPlayResult.tokensToRemove?.length > 0) {
+      if (cardPlayResult.tokensToRemove && cardPlayResult.tokensToRemove.length > 0) {
         cardPlayResult.tokensToRemove.forEach(tokenInfo => {
           if (a.actor === 'player') {
             const tokenResult = removeToken(P as TokenEntity, tokenInfo.id, 'permanent', tokenInfo.stacks);
@@ -1495,8 +1496,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
       // applyAction에서 반환된 updatedState로 P와 E 재할당
       if (updatedState) {
-        P = updatedState.player as PlayerCombatData;
-        E = updatedState.enemy as EnemyCombatData;
+        P = updatedState.player as typeof P;
+        E = updatedState.enemy as typeof E;
         // battleRef 동기 업데이트 (다음 카드 실행 시 최신 상태 사용)
         if (battleRef.current) {
           battleRef.current = { ...battleRef.current, player: P, enemy: E };
@@ -1616,7 +1617,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       const EXECUTION_THRESHOLD = 30;
       if (E.hp > 0 && E.hp <= EXECUTION_THRESHOLD) {
         // 부활 토큰 제거 후 처형
-        const reviveToken = getAllTokens(E as TokenEntity).find((t: TokenInstance & { effect?: TokenEffect }) => t.effect?.type === 'REVIVE');
+        const reviveToken = (getAllTokens(E as unknown as TokenEntity) as unknown as Array<TokenInstance & { effect?: TokenEffect }>).find((t: TokenInstance & { effect?: TokenEffect }) => t.effect?.type === 'REVIVE');
         if (reviveToken) {
           const reviveRemoveResult = removeToken(E as TokenEntity, reviveToken.id, 'usage', reviveToken.stacks || 1);
           E = { ...E, tokens: reviveRemoveResult.tokens };
@@ -1685,7 +1686,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
     // === 화상(BURN) 피해 처리: 카드 사용 시마다 피해 ===
     if (a.actor === 'player') {
-      const playerBurnTokens = getAllTokens(P as TokenEntity).filter((t: TokenInstance & { effect?: TokenEffect }) => t.effect?.type === 'BURN');
+      const playerBurnTokens = (getAllTokens(P as unknown as TokenEntity) as unknown as Array<TokenInstance & { effect?: TokenEffect }>).filter((t: TokenInstance & { effect?: TokenEffect }) => t.effect?.type === 'BURN');
       if (playerBurnTokens.length > 0) {
         const burnDamage = playerBurnTokens.reduce((sum, t) => sum + (t.effect?.value || 3) * (t.stacks || 1), 0);
         P.hp = Math.max(0, P.hp - burnDamage);
@@ -1703,7 +1704,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         }
       }
     } else if (a.actor === 'enemy') {
-      const enemyBurnTokens = getAllTokens(E as TokenEntity).filter((t: TokenInstance & { effect?: TokenEffect }) => t.effect?.type === 'BURN');
+      const enemyBurnTokens = (getAllTokens(E as unknown as TokenEntity) as unknown as Array<TokenInstance & { effect?: TokenEffect }>).filter((t: TokenInstance & { effect?: TokenEffect }) => t.effect?.type === 'BURN');
       if (enemyBurnTokens.length > 0) {
         const burnDamage = enemyBurnTokens.reduce((sum, t) => sum + (t.effect?.value || 3) * (t.stacks || 1), 0);
         E.hp = Math.max(0, E.hp - burnDamage);
@@ -1752,12 +1753,12 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       if (import.meta.env.DEV) console.log('[cardPlaySpecials] Extracted:', { newNextTurnEffects, bonusCards, cardName: a.card.name, fullResult: actionResult.cardPlaySpecials });
 
       // bonusCards 처리 (comboStyle): 큐에 유령카드로 추가
-      if (bonusCards && bonusCards.length > 0) {
+      if (bonusCards && (bonusCards as Card[]).length > 0) {
         const insertSp = (a.sp || 0) + 1;  // 현재 카드 +1 sp에 삽입
         const currentQ = battleRef.current.queue;
         const currentQIndex = battleRef.current.qIndex;
 
-        const newActions = bonusCards.map((bonusCard: Card) => ({
+        const newActions = (bonusCards as Card[]).map((bonusCard: Card) => ({
           actor: 'player',
           card: {
             ...bonusCard,
@@ -1790,28 +1791,29 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         });
 
         const newQueue = [...beforeCurrent, ...afterCurrent];
-        const markedNewQueue = markCrossedCards(newQueue);
-        actions.setQueue(markedNewQueue);
-        battleRef.current = { ...battleRef.current, queue: markedNewQueue };
+        const markedNewQueue = markCrossedCards(newQueue as unknown as never);
+        actions.setQueue(markedNewQueue as unknown as OrderItem[]);
+        battleRef.current = { ...battleRef.current, queue: markedNewQueue as unknown as OrderItem[] };
 
-        addLog(`🔄 연계 효과: "${bonusCards.map((c: Card) => c.name).join(', ')}" 큐에 추가!`);
+        addLog(`🔄 연계 효과: "${(bonusCards as Card[]).map((c: Card) => c.name).join(', ')}" 큐에 추가!`);
       }
 
       // nextTurnEffects 처리 (mentalFocus, emergencyDraw, recallCard, sharpenBlade)
       if (newNextTurnEffects) {
-        const currentEffects = battleRef.current?.nextTurnEffects || battle.nextTurnEffects;
+        const currentEffects = (battleRef.current?.nextTurnEffects || battle.nextTurnEffects) as Record<string, unknown>;
         const updatedEffects = {
           ...currentEffects,
           ...newNextTurnEffects,  // 모든 새 효과 병합 (repeatMyTimeline, blockPerCardExecution 등)
-          bonusEnergy: (currentEffects.bonusEnergy || 0) + (newNextTurnEffects.bonusEnergy || 0),
-          maxSpeedBonus: (currentEffects.maxSpeedBonus || 0) + (newNextTurnEffects.maxSpeedBonus || 0),
-          extraCardPlay: (currentEffects.extraCardPlay || 0) + (newNextTurnEffects.extraCardPlay || 0),
+          bonusEnergy: ((currentEffects.bonusEnergy as number) || 0) + ((newNextTurnEffects as Record<string, unknown>).bonusEnergy as number || 0),
+          maxSpeedBonus: ((currentEffects.maxSpeedBonus as number) || 0) + ((newNextTurnEffects as Record<string, unknown>).maxSpeedBonus as number || 0),
+          extraCardPlay: ((currentEffects.extraCardPlay as number) || 0) + ((newNextTurnEffects as Record<string, unknown>).extraCardPlay as number || 0),
           // 날 세우기: 이번 전투 검격 공격력 보너스 (누적)
-          fencingDamageBonus: (currentEffects.fencingDamageBonus || 0) + (newNextTurnEffects.fencingDamageBonus || 0)
+          fencingDamageBonus: ((currentEffects.fencingDamageBonus as number) || 0) + ((newNextTurnEffects as Record<string, unknown>).fencingDamageBonus as number || 0)
         };
 
         // === 비상대응 (emergencyDraw): 즉시 덱에서 카드 뽑기 ===
-        if (newNextTurnEffects.emergencyDraw && newNextTurnEffects.emergencyDraw > 0) {
+        const newEffectsTyped = newNextTurnEffects as Record<string, unknown>;
+        if (newEffectsTyped.emergencyDraw && (newEffectsTyped.emergencyDraw as number) > 0) {
           const currentDeck = battleRef.current?.deck || battle.deck || [];
           const currentDiscard = battleRef.current?.discardPile || battle.discardPile || [];
 
@@ -1819,7 +1821,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
             // 소멸된 카드 ID 목록
             const currentVanished = battleRef.current?.vanishedCards || battle.vanishedCards || [];
             const vanishedCardIds = (currentVanished as Array<string | Card>).map((c: string | Card) => typeof c === 'string' ? c : c.id);
-            const drawResult = drawFromDeck(currentDeck as HandCard[], currentDiscard as HandCard[], newNextTurnEffects.emergencyDraw, escapeBanRef.current as Set<string>, vanishedCardIds);
+            const drawResult = drawFromDeck(currentDeck as HandCard[], currentDiscard as HandCard[], newEffectsTyped.emergencyDraw as number, escapeBanRef.current as Set<string>, vanishedCardIds);
 
             // 현재 손패에 추가
             const currentHand = battleRef.current?.hand || battle.hand || [];
@@ -1843,7 +1845,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         }
 
         // === 함성 (recallCard): 다음 턴에 대기 카드 선택 UI 표시 ===
-        if (newNextTurnEffects.recallCard) {
+        if (newEffectsTyped.recallCard) {
           const currentBuild = useGameStore.getState().characterBuild;
           if (currentBuild) {
             const { mainSpecials = [], subSpecials = [], ownedCards = [] } = currentBuild;
@@ -1856,7 +1858,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
             if (waitingCards.length > 0) {
               // 선택 UI 표시를 위해 상태 저장
-              setRecallSelection({ availableCards: waitingCards } as RecallSelection);
+              setRecallSelection({ availableCards: waitingCards } as unknown as { availableCards: Card[] });
               addLog(`📢 함성: 대기 카드 중 1장을 선택하세요!`);
             } else {
               addLog(`📢 함성: 대기 카드가 없습니다.`);
@@ -1866,8 +1868,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         }
 
         // === 엘 라피드 (addCardToHand): 즉시 손패에 카드 추가 ===
-        if (newNextTurnEffects.addCardToHand) {
-          const cardId = newNextTurnEffects.addCardToHand;
+        if (newEffectsTyped.addCardToHand) {
+          const cardId = newEffectsTyped.addCardToHand as string;
           const cardToAdd = CARDS.find(c => c.id === cardId);
           if (cardToAdd) {
             const currentHand = battleRef.current?.hand || battle.hand || [];
@@ -1875,7 +1877,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
               ...cardToAdd,
               _instanceId: `${cardId}_copy_${Date.now()}`
             };
-            const newHand = [...currentHand, newCard];
+            const newHand = [...currentHand, newCard] as Card[];
             actions.setHand(newHand);
             if (battleRef.current) {
               battleRef.current = { ...battleRef.current, hand: newHand };
@@ -1891,13 +1893,13 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         }
 
         // === 노인의 꿈 (repeatMyTimeline): 현재 턴 타임라인 즉시 복제 ===
-        if (newNextTurnEffects.repeatMyTimeline) {
+        if (newEffectsTyped.repeatMyTimeline) {
           const currentQ = battleRef.current?.queue || battle.queue || [];
           const currentCardId = (a.card as { id?: string })?.id;
 
           // 전체 플레이어 카드 복제 (현재 카드 제외, 이미 실행된 카드 포함)
           const allPlayerCards = currentQ
-            .filter((item: OrderItem) => item.actor === 'player' && (item.card as { id?: string })?.id !== currentCardId && !item.isDuplicate);
+            .filter((item: OrderItem) => item.actor === 'player' && (item.card as { id?: string })?.id !== currentCardId && !(item as { isDuplicate?: boolean }).isDuplicate);
 
           if (allPlayerCards.length > 0) {
             // 복제 카드 생성 (마지막 카드 sp + 0.1부터 시작)
@@ -2078,16 +2080,16 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
               return result;
             }
           };
-          a.card.onPlay(battle, tokenActions);
+          a.card.onPlay(battle, tokenActions as unknown as import("../../types").BattleTokenActions);
         } catch (error) {
           if (import.meta.env.DEV) console.error('[Token onPlay Error]', error);
         }
       }
     }
 
-    if (hasTrait(a.card, 'stun')) {
+    if (hasTrait(a.card, 'stun' as unknown as import("../../types/core").CardTrait)) {
       const { updatedQueue, stunEvent } = processStunEffect({
-        action: a,
+        action: a as unknown as never,
         queue: currentBattle.queue,
         currentQIndex: currentBattle.qIndex,
         addLog
@@ -2206,17 +2208,17 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         card: a.card,
         turnEtherAccumulated,
         orderedRelicList,
-        cardUpgrades,
+        cardUpgrades: cardUpgrades as unknown as Record<string, unknown>,
         resolvedPlayerCards,
-        playerTimeline,
-        relics,
+        playerTimeline: playerTimeline as unknown as Card[],
+        relics: orderedRelicList as unknown as Relic[],
         triggeredRefs: {
           referenceBookTriggered: referenceBookTriggeredRef,
           devilDiceTriggered: devilDiceTriggeredRef
         },
         calculatePassiveEffects,
-        getCardEtherGain,
-        collectTriggeredRelics,
+        getCardEtherGain: getCardEtherGain as unknown as (card: Card | Partial<Card>) => number,
+        collectTriggeredRelics: collectTriggeredRelics as unknown as (params: { orderedRelicList: string[]; resolvedPlayerCards: number; playerTimeline: Card[]; triggeredRefs: import("../../types").RelicTriggeredRefs }) => import("../../types").RelicTrigger[],
         playRelicActivationSequence,
         flashRelic,
         actions
@@ -2263,9 +2265,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
           selectionCards.forEach(c => usedIds.add(c.id));
 
           creationQueueRef.current.push({
-            cards: selectionCards,
+            cards: selectionCards as unknown as Card[],
             insertSp: (a.sp ?? 0) + 1, // +1 속도에 배치
-            breachCard: { ...a.card, breachSpOffset: 1 },
+            breachCard: { ...(a.card as unknown as Record<string, unknown>), breachSpOffset: 1 } as unknown as Card,
             isAoe: true, // 범위 피해 플래그
             totalSelections: 3,
             currentSelection: selectionIdx + 1 // 1, 2, 3
@@ -2279,17 +2281,17 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
           card: a.card,
           turnEtherAccumulated,
           orderedRelicList,
-          cardUpgrades,
+          cardUpgrades: cardUpgrades as unknown as Record<string, unknown>,
           resolvedPlayerCards,
-          playerTimeline,
-          relics,
+          playerTimeline: playerTimeline as unknown as Card[],
+          relics: orderedRelicList as unknown as Relic[],
           triggeredRefs: {
             referenceBookTriggered: referenceBookTriggeredRef,
             devilDiceTriggered: devilDiceTriggeredRef
           },
           calculatePassiveEffects,
-          getCardEtherGain,
-          collectTriggeredRelics,
+          getCardEtherGain: getCardEtherGain as unknown as (card: Card | Partial<Card>) => number,
+          collectTriggeredRelics: collectTriggeredRelics as unknown as (params: { orderedRelicList: string[]; resolvedPlayerCards: number; playerTimeline: Card[]; triggeredRefs: import("../../types").RelicTriggeredRefs }) => import("../../types").RelicTrigger[],
           playRelicActivationSequence,
           flashRelic,
           actions
@@ -2341,9 +2343,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
           selectionCards.forEach(c => usedIds.add(c.id));
 
           creationQueueRef.current.push({
-            cards: selectionCards,
+            cards: selectionCards as unknown as Card[],
             insertSp: (a.sp ?? 0) + 1, // +1 속도에 배치
-            breachCard: { ...a.card, breachSpOffset: 1 },
+            breachCard: { ...(a.card as unknown as Record<string, unknown>), breachSpOffset: 1 } as unknown as Card,
             isAoe: false,
             totalSelections: 4,
             currentSelection: selectionIdx + 1 // 1, 2, 3, 4
@@ -2357,17 +2359,17 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
           card: a.card,
           turnEtherAccumulated,
           orderedRelicList,
-          cardUpgrades,
+          cardUpgrades: cardUpgrades as unknown as Record<string, unknown>,
           resolvedPlayerCards,
-          playerTimeline,
-          relics,
+          playerTimeline: playerTimeline as unknown as Card[],
+          relics: orderedRelicList as unknown as Relic[],
           triggeredRefs: {
             referenceBookTriggered: referenceBookTriggeredRef,
             devilDiceTriggered: devilDiceTriggeredRef
           },
           calculatePassiveEffects,
-          getCardEtherGain,
-          collectTriggeredRelics,
+          getCardEtherGain: getCardEtherGain as unknown as (card: Card | Partial<Card>) => number,
+          collectTriggeredRelics: collectTriggeredRelics as unknown as (params: { orderedRelicList: string[]; resolvedPlayerCards: number; playerTimeline: Card[]; triggeredRefs: import("../../types").RelicTriggeredRefs }) => import("../../types").RelicTrigger[],
           playRelicActivationSequence,
           flashRelic,
           actions
@@ -2434,17 +2436,17 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         card: a.card,
         turnEtherAccumulated,
         orderedRelicList,
-        cardUpgrades,
+        cardUpgrades: cardUpgrades as unknown as Record<string, unknown>,
         resolvedPlayerCards,
-        playerTimeline,
-        relics,
+        playerTimeline: playerTimeline as unknown as Card[],
+        relics: orderedRelicList as unknown as Relic[],
         triggeredRefs: {
           referenceBookTriggered: referenceBookTriggeredRef,
           devilDiceTriggered: devilDiceTriggeredRef
         },
         calculatePassiveEffects,
-        getCardEtherGain,
-        collectTriggeredRelics,
+        getCardEtherGain: getCardEtherGain as unknown as (card: Card | Partial<Card>) => number,
+        collectTriggeredRelics: collectTriggeredRelics as unknown as (params: { orderedRelicList: string[]; resolvedPlayerCards: number; playerTimeline: Card[]; triggeredRefs: import("../../types").RelicTriggeredRefs }) => import("../../types").RelicTrigger[],
         playRelicActivationSequence,
         flashRelic,
         actions
@@ -2453,7 +2455,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       processEnemyEtherAccumulation({
         card: a.card,
         enemyTurnEtherAccumulated,
-        getCardEtherGain,
+        getCardEtherGain: getCardEtherGain as unknown as (card: Card | Partial<Card>) => number,
         actions
       });
     }
@@ -2584,8 +2586,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
     // 이벤트 처리: 애니메이션 및 사운드
     processActionEventAnimations({
-      actionEvents: actionEvents,
-      action: a,
+      actionEvents: actionEvents as unknown as import("../../types").SimActionEvent[],
+      action: a as unknown as HandAction,
       playHitSound,
       playBlockSound,
       actions
@@ -2647,7 +2649,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     if (battle.phase === 'resolve' && battle.qIndex >= battle.queue.length && battle.queue.length > 0 && turnEtherAccumulated > 0 && etherCalcPhase === null) {
       // 모든 카드가 실행되고 에테르가 누적된 상태에서, 애니메이션이 아직 시작되지 않았을 때만 실행
       // resolvedPlayerCards를 전달하여 몬스터 사망 시에도 정확한 카드 수 사용
-      setTimeout(() => startEtherCalculationAnimation(turnEtherAccumulated, resolvedPlayerCards as Card[]), TIMING.ETHER_CALC_START_DELAY);
+      setTimeout(() => startEtherCalculationAnimation(turnEtherAccumulated, resolvedPlayerCards as unknown as number), TIMING.ETHER_CALC_START_DELAY);
     }
   }, [battle.phase, battle.qIndex, battle.queue.length, turnEtherAccumulated, etherCalcPhase, resolvedPlayerCards]);
 
@@ -2660,7 +2662,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     canRedraw,
     autoProgress,
     etherFinalValue,
-    actions,
+    actions: actions as unknown as never,
     startResolve,
     beginResolveFromRespond,
     redrawHand,
@@ -2675,7 +2677,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     battleSelected: battle.selected,
     fixedOrder,
     battleQueue: battle.queue,
-    playerComboUsageCount: player.comboUsageCount,
+    playerComboUsageCount: player.comboUsageCount as unknown as Record<string, number>,
     effectiveAgility,
     enemyPlanActions: enemyPlan.actions,
     insightReveal,
@@ -2693,9 +2695,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     enemyPlan,
     targetUnit,
     hasMultipleUnits,
-    enemyUnits,
-    selectedTargetUnit,
-    actions,
+    enemyUnits: enemyUnits as unknown as { [key: string]: unknown; hp: number; maxHp: number; block?: number | undefined; unitId: number }[],
+    selectedTargetUnit: selectedTargetUnit as unknown as number,
+    actions: actions as unknown as { setPreviewDamage: (damage: { value: number; lethal: boolean; overkill: boolean }) => void; setPerUnitPreviewDamage: (preview: Record<number, unknown>) => void },
     playSound
   });
 
@@ -2798,7 +2800,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const remainingEnergy = Math.max(0, playerEnergyBudget - totalEnergy);
   const insightLevelSelect = insightReveal?.level || 0;
   const insightVisible = insightReveal?.visible;
-  const enemyWillOverdrivePlan = shouldEnemyOverdrive(enemyPlan.mode, enemyPlan.actions, Number(enemy.etherPts), turnNumber);
+  const enemyWillOverdrivePlan = shouldEnemyOverdrive(enemyPlan.mode, enemyPlan.actions as unknown as import("../../types").AICard[], Number(enemy.etherPts), turnNumber);
   const canRevealOverdrive =
     (battle.phase === 'select' && insightVisible && insightLevelSelect >= 2) ||
     (battle.phase === 'respond' && insightVisible && insightLevelSelect >= 1) ||
@@ -2832,7 +2834,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       {breachSelection && (
         <BreachSelectionModal
           breachSelection={breachSelection}
-          onSelect={handleBreachSelect}
+          onSelect={handleBreachSelect as unknown as (card: import("../../types").BreachCard, idx: number) => void}
           strengthBonus={player.strength || 0}
         />
       )}
@@ -2841,7 +2843,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       {cardReward && (
         <CardRewardModal
           rewardCards={cardReward.cards}
-          onSelect={handleRewardSelect}
+          onSelect={handleRewardSelect as unknown as (card: import("../../types").RewardCard, idx: number) => void}
           onSkip={handleRewardSkip}
         />
       )}
@@ -2849,7 +2851,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       {/* 함성 (recallCard) 카드 선택 모달 */}
       <RecallSelectionModal
         recallSelection={recallSelection}
-        onSelect={handleRecallSelect}
+        onSelect={handleRecallSelect as unknown as (card: import("../../types").RecallCard) => void}
         onSkip={handleRecallSkip}
       />
 
@@ -2876,25 +2878,25 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       {/* 아이템 슬롯 - 왼쪽 상단 고정 */}
       <ItemSlots
         phase={battle.phase}
-        battleActions={actions}
+        battleActions={actions as unknown as ItemSlotsBattleActions}
         player={battle.player}
         enemy={battle.enemy}
-        enemyPlan={battle.enemyPlan}
-        battleRef={battleRef}
+        enemyPlan={battle.enemyPlan as unknown as ItemSlotsEnemyPlan}
+        battleRef={battleRef as unknown as import("react").RefObject<ItemSlotsBattleRef | null>}
       />
       {/* 예상 피해량 - 오른쪽 고정 패널 */}
       <div className="expect-sidebar-fixed">
         <ExpectedDamagePreview
           player={player}
           enemy={enemy}
-          fixedOrder={fixedOrder || playerTimeline}
+          fixedOrder={(fixedOrder || playerTimeline) as unknown as import("../../types").UITimelineAction[] | null}
           willOverdrive={willOverdrive}
           enemyMode={(enemyPlan.mode ?? null) as string}
-          enemyActions={enemyPlan.actions ?? []}
+          enemyActions={(enemyPlan.actions ?? []) as unknown as UITimelineAction[]}
           phase={battle.phase}
           log={log}
           qIndex={battle.qIndex}
-          queue={battle.queue}
+          queue={battle.queue as unknown as UITimelineAction[]}
           stepOnce={stepOnce}
           runAll={runAll}
           finishTurn={finishTurn}
@@ -2905,7 +2907,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
           resolveStartPlayer={resolveStartPlayer}
           resolveStartEnemy={resolveStartEnemy}
           turnNumber={turnNumber}
-          simulatePreview={simulatePreview}
+          simulatePreview={simulatePreview as unknown as (params: { player: ExpectedDamagePlayer; enemy: ExpectedDamageEnemy; fixedOrder: UITimelineAction[] | null; willOverdrive: boolean; enemyMode: string; enemyActions: UITimelineAction[]; turnNumber: number }) => SimulationResult}
         />
         {/* 배율 경로: 단계와 무관하게 항상 표시 */}
         {comboStepsLog.length > 0 && (
@@ -2932,12 +2934,12 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         enemyOverdriveVisible={Boolean(enemyOverdriveVisible)}
         enemyOverdriveLabel={enemyOverdriveLabel}
         dulledLevel={dulledLevel}
-        playerTimeline={playerTimeline}
+        playerTimeline={playerTimeline as unknown as import("../../types").UITimelineAction[]}
         queue={queue}
         executingCardIndex={(executingCardIndex ?? null) as number}
         usedCardIndices={usedCardIndices}
         qIndex={qIndex}
-        enemyTimeline={enemyTimeline}
+        enemyTimeline={enemyTimeline as unknown as import("../../types").UITimelineAction[]}
         effectiveInsight={effectiveInsight}
         insightReveal={insightReveal}
         actions={actions}
@@ -2950,8 +2952,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       {/* 상징 표시 */}
       <RelicDisplay
         orderedRelicList={orderedRelicList}
-        RELICS={RELICS}
-        RELIC_RARITIES={RELIC_RARITIES}
+        RELICS={RELICS as unknown as UIRelicsMap}
+        RELIC_RARITIES={RELIC_RARITIES as unknown as RelicRarities}
         RELIC_RARITY_COLORS={RELIC_RARITY_COLORS}
         relicActivated={relicActivated}
         activeRelicSet={activeRelicSet}
@@ -3050,7 +3052,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
             {/* 다중 유닛: EnemyUnitsDisplay, 단일 적: EnemyHpBar */}
             {hasMultipleUnits ? (
               <EnemyUnitsDisplay
-                units={enemyUnits}
+                units={enemyUnits as unknown as import("../../types").EnemyUnitState[]}
                 selectedTargetUnit={selectedTargetUnit}
                 onSelectUnit={(unitId) => actions.setSelectedTargetUnit(unitId)}
                 previewDamage={previewDamage}
@@ -3136,21 +3138,21 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
       {/* 하단 고정 손패 영역 */}
       <HandArea
-        battle={battle}
+        battle={battle as unknown as import("../../types").HandBattle}
         player={player}
         enemy={enemy}
         selected={selected}
         getSortedHand={getSortedHand}
         toggle={toggle}
         handDisabled={handDisabled}
-        showCardTraitTooltip={showCardTraitTooltip}
+        showCardTraitTooltip={showCardTraitTooltip as unknown as (card: Card, element: Element | null) => void}
         hideCardTraitTooltip={hideCardTraitTooltip}
         formatSpeedText={formatSpeedText}
         renderNameWithBadge={(card, defaultColor) => renderNameWithBadge(card, cardUpgrades, defaultColor)}
-        fixedOrder={fixedOrder ?? undefined}
+        fixedOrder={(fixedOrder ?? undefined) as unknown as HandAction[] | undefined}
         moveUp={moveUp}
         moveDown={moveDown}
-        queue={queue ?? undefined}
+        queue={(queue ?? undefined) as unknown as HandAction[] | undefined}
         usedCardIndices={usedCardIndices}
         disappearingCards={disappearingCards}
         hiddenCards={hiddenCards}

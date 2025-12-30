@@ -291,7 +291,11 @@ export function MapDemo() {
         orderedRelics={orderedRelics}
         hoveredRelic={hoveredRelic}
         relicActivated={relicActivated}
-        actions={actions}
+        actions={{
+          setHoveredRelic: actions.setHoveredRelic,
+          setRelicActivated: actions.setRelicActivated,
+          setOrderedRelics: actions.setOrderedRelics,
+        }}
       />
 
       <div className="legend">
@@ -309,8 +313,7 @@ export function MapDemo() {
               activeBattle: {
                 nodeId: "test-mixed",
                 kind: "battle",
-                label: "Mixed Mob",
-                simulation: { initialState: { enemy: { hp: 1 } } }
+                label: "Mixed Mob"
               }
             });
           }}

@@ -74,7 +74,7 @@ describe('useComboSystem', () => {
       const cards = [
         { id: 1, value: 5 },
         { id: 2, value: 5 }
-      ];
+      ] as any;
       const { result } = renderHook(() => useComboSystem({
         ...defaultProps,
         battleSelected: cards
@@ -88,7 +88,7 @@ describe('useComboSystem', () => {
         { id: 1, value: 7 },
         { id: 2, value: 7 },
         { id: 3, value: 7 }
-      ];
+      ] as any;
       const { result } = renderHook(() => useComboSystem({
         ...defaultProps,
         battleSelected: cards
@@ -109,7 +109,7 @@ describe('useComboSystem', () => {
       const cards = [
         { id: 1, value: 5 },
         { id: 2, value: 5 }
-      ];
+      ] as any;
       const { result } = renderHook(() => useComboSystem({
         ...defaultProps,
         battleSelected: cards
@@ -123,7 +123,7 @@ describe('useComboSystem', () => {
         { id: 1, value: 7 },
         { id: 2, value: 7 },
         { id: 3, value: 7 }
-      ];
+      ] as any;
       const { result } = renderHook(() => useComboSystem({
         ...defaultProps,
         battleSelected: cards
@@ -138,7 +138,7 @@ describe('useComboSystem', () => {
       const cards = [
         { id: 1, value: 5 },
         { id: 2, value: 5 }
-      ];
+      ] as any;
       renderHook(() => useComboSystem({
         ...defaultProps,
         battleSelected: cards,
@@ -152,7 +152,7 @@ describe('useComboSystem', () => {
       const cards = [
         { id: 1, value: 5 },
         { id: 2, value: 5 }
-      ];
+      ] as any;
       renderHook(() => useComboSystem({
         ...defaultProps,
         battleSelected: cards,
@@ -178,7 +178,7 @@ describe('useComboSystem', () => {
       const cards = [
         { id: 1, value: 5 },
         { id: 2, value: 5 }
-      ];
+      ] as any;
       const { result } = renderHook(() => useComboSystem({
         ...defaultProps,
         battleSelected: cards,

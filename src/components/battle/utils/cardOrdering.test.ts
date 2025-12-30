@@ -28,7 +28,7 @@ describe('cardOrdering', () => {
       const playerCards = [
         { speedCost: 5 },
         { speedCost: 3 }
-      ];
+      ] as any[];
 
       const result = createFixedOrder(playerCards, [], 0);
 
@@ -43,7 +43,7 @@ describe('cardOrdering', () => {
       const enemyActions = [
         { speedCost: 4 },
         { speedCost: 6 }
-      ];
+      ] as any[];
 
       const result = createFixedOrder([], enemyActions, 0);
 
@@ -55,8 +55,8 @@ describe('cardOrdering', () => {
     });
 
     it('플레이어 카드가 먼저, 적 카드가 나중에 배치되어야 함', () => {
-      const playerCards = [{ speedCost: 5 }];
-      const enemyActions = [{ speedCost: 3 }];
+      const playerCards = [{ speedCost: 5 }] as any[];
+      const enemyActions = [{ speedCost: 3 }] as any[];
 
       const result = createFixedOrder(playerCards, enemyActions, 0);
 
@@ -70,7 +70,7 @@ describe('cardOrdering', () => {
         { speedCost: 5 },
         { speedCost: 3 },
         { speedCost: 4 }
-      ];
+      ] as any[];
 
       const result = createFixedOrder(playerCards, [], 0);
 
@@ -80,8 +80,8 @@ describe('cardOrdering', () => {
     });
 
     it('민첩이 플레이어 카드에만 적용되어야 함', () => {
-      const playerCards = [{ speedCost: 10 }];
-      const enemyActions = [{ speedCost: 10 }];
+      const playerCards = [{ speedCost: 10 }] as any[];
+      const enemyActions = [{ speedCost: 10 }] as any[];
       const effectiveAgility = 2; // 속도 20% 감소
 
       const result = createFixedOrder(playerCards, enemyActions, effectiveAgility);
@@ -98,11 +98,11 @@ describe('cardOrdering', () => {
       const playerCards = [
         { speedCost: 5 },
         { speedCost: 3 }
-      ];
+      ] as any[];
       const enemyActions = [
         { speedCost: 4 },
         { speedCost: 2 }
-      ];
+      ] as any[];
 
       const result = createFixedOrder(playerCards, enemyActions, 0);
 
@@ -115,7 +115,7 @@ describe('cardOrdering', () => {
     });
 
     it('null 적 액션 배열은 빈 배열로 처리되어야 함', () => {
-      const playerCards = [{ speedCost: 5 }];
+      const playerCards = [{ speedCost: 5 }] as any[];
 
       const result = createFixedOrder(playerCards, null, 0);
 
@@ -126,7 +126,7 @@ describe('cardOrdering', () => {
     it('카드 데이터가 결과에 포함되어야 함', () => {
       const playerCards = [
         { speedCost: 5, damage: 10, name: 'Attack' }
-      ];
+      ] as any[];
 
       const result = createFixedOrder(playerCards, [], 0);
 
@@ -138,7 +138,7 @@ describe('cardOrdering', () => {
       const playerCards = [
         { speedCost: 10 },
         { speedCost: 8 }
-      ];
+      ] as any[];
       const effectiveAgility = 3;
 
       const result = createFixedOrder(playerCards, [], effectiveAgility);

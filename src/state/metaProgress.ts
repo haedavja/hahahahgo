@@ -270,7 +270,9 @@ export function loadMetaProgress(): MetaProgress {
       };
     }
   } catch (error) {
-    console.warn('Failed to load meta progress:', error);
+    if (import.meta.env.DEV) {
+      console.warn('Failed to load meta progress:', error);
+    }
   }
   return { ...DEFAULT_META };
 }
@@ -282,7 +284,9 @@ export function saveMetaProgress(meta: MetaProgress): void {
   try {
     localStorage.setItem(META_STORAGE_KEY, JSON.stringify(meta));
   } catch (error) {
-    console.warn('Failed to save meta progress:', error);
+    if (import.meta.env.DEV) {
+      console.warn('Failed to save meta progress:', error);
+    }
   }
 }
 

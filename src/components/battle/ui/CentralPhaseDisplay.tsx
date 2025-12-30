@@ -95,7 +95,7 @@ export const CentralPhaseDisplay: FC<CentralPhaseDisplayProps> = ({
             ▶️ 제출 <span style={{ fontSize: '1.4rem', fontWeight: '900' }}>(E)</span>
           </button>
           <button onClick={() => actions.setWillOverdrive(!willOverdrive)}
-            disabled={etherSlots(player.etherPts) <= 0}
+            disabled={etherSlots(player.etherPts ?? 0) <= 0}
             className={`btn-enhanced ${willOverdrive ? 'btn-primary' : ''} flex items-center gap-2`}
             style={{ fontSize: '1rem', padding: '8px 20px', minWidth: '200px' }}>
             ✨ 기원 {willOverdrive ? 'ON' : 'OFF'} (Space)

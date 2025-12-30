@@ -125,7 +125,9 @@ export function useBreachSelection({
       const nextBreachState: BreachSelection = {
         cards: nextSelection.cards,
         breachSp: nextSelection.insertSp,
-        breachCard: nextSelection.breachCard,
+        breachCard: {
+          breachSpOffset: (nextSelection.breachCard as Card & { breachSpOffset?: number })?.breachSpOffset
+        },
         isCreationSelection: true,
         isAoe: nextSelection.isAoe
       };
@@ -148,7 +150,7 @@ export function useBreachSelection({
 
     // 자동 진행을 위해 다음 stepOnce 호출 예약
     setTimeout(() => {
-      if (battleRef.current.qIndex < battleRef.current.queue.length) {
+      if ((battleRef.current.qIndex ?? 0) < (battleRef.current.queue?.length ?? 0)) {
         stepOnceRef.current?.();
       }
     }, 100);

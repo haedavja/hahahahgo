@@ -18,7 +18,7 @@ interface RelicsBarProps {
   actions: {
     setHoveredRelic: (relicId: string | null) => void;
     setRelicActivated: (relicId: string | null | ((prev: string | null) => string | null)) => void;
-    setOrderedRelics: (relics: string[]) => void;
+    setOrderedRelics: (relics: string[] | ((prev: string[]) => string[])) => void;
   };
 }
 

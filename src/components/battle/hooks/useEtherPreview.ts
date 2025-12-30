@@ -18,6 +18,7 @@ import { detectPokerCombo } from '../utils/comboDetection';
 import { COMBO_MULTIPLIERS, applyEtherDeflation, calcCardsEther } from '../utils/etherCalculations';
 import { calculatePassiveEffects } from '../../../lib/relicEffects';
 import type { UseEtherPreviewParams } from '../../../types/hooks';
+import type { Card, EtherCard, EtherCardEntry } from '../../../types';
 
 /**
  * 에테르 획득량 미리보기 훅
@@ -39,7 +40,7 @@ export function useEtherPreview({
 
     // 희귀한 조약돌 효과 적용된 카드당 에테르
     const passiveRelicEffects = calculatePassiveEffects(orderedRelicList);
-    const totalEtherPts = calcCardsEther(playerTimeline, passiveRelicEffects.etherMultiplier);
+    const totalEtherPts = calcCardsEther(playerTimeline as Array<Card | EtherCard | EtherCardEntry>, passiveRelicEffects.etherMultiplier);
 
     // 조합 배율 계산 (selected 기준으로 조합 감지) - 미리보기는 순수 콤보만
     const pCombo = detectPokerCombo(selected);

@@ -225,7 +225,7 @@ export function calculateSingleHit(
     modifiedCard = tokenResult.modifiedCard;
     currentAttacker = preAttackResult.attacker;
     currentDefender = preAttackResult.defender;
-    specialEvents = preAttackResult.events;
+    specialEvents = preAttackResult.events as BattleEvent[];
     specialLogs = preAttackResult.logs;
     // 유령카드는 토큰 소모 안 함
     attackerConsumedTokens = isGhost ? [] : tokenResult.consumedTokens;

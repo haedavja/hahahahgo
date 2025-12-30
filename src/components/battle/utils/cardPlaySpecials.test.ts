@@ -48,9 +48,9 @@ describe('cardPlaySpecials', () => {
         attackerName: 'player'
       });
 
-      expect(result.bonusCards).toHaveLength(0);
-      expect(result.tokensToAdd).toHaveLength(0);
-      expect(result.tokensToRemove).toHaveLength(0);
+      expect(result.bonusCards!).toHaveLength(0);
+      expect(result.tokensToAdd!).toHaveLength(0);
+      expect(result.tokensToRemove!).toHaveLength(0);
       expect(result.events).toHaveLength(0);
     });
 
@@ -64,7 +64,7 @@ describe('cardPlaySpecials', () => {
         }
       });
 
-      expect(result.tokensToAdd.some(t => t.id === 'loaded')).toBe(true);
+      expect(result.tokensToAdd!!.some(t => t.id === 'loaded')).toBe(true);
     });
 
     it('autoReload는 손패에 장전 카드가 없으면 효과가 없어야 함', () => {
@@ -77,7 +77,7 @@ describe('cardPlaySpecials', () => {
         }
       });
 
-      expect(result.tokensToAdd.some(t => t.id === 'loaded')).toBe(false);
+      expect(result.tokensToAdd!!.some(t => t.id === 'loaded')).toBe(false);
     });
 
     it('mentalFocus는 focus 토큰을 추가해야 함', () => {
@@ -87,7 +87,7 @@ describe('cardPlaySpecials', () => {
         attackerName: 'player'
       });
 
-      expect(result.tokensToAdd.some(t => t.id === 'focus')).toBe(true);
+      expect(result.tokensToAdd!!.some(t => t.id === 'focus')).toBe(true);
     });
 
     it('recallCard는 nextTurnEffects에 recallCard를 설정해야 함', () => {
@@ -142,8 +142,8 @@ describe('cardPlaySpecials', () => {
         }
       });
 
-      expect(result.bonusCards.length).toBeGreaterThan(0);
-      expect((result.bonusCards[0] as any).createdBy).toBe('evasive_shot');
+      expect(result.bonusCards!.length).toBeGreaterThan(0);
+      expect((result.bonusCards![0] as any).createdBy).toBe('evasive_shot');
     });
 
     it('manipulation은 탄걸림이 있으면 해제하고 장전해야 함', () => {
@@ -160,8 +160,8 @@ describe('cardPlaySpecials', () => {
         battleContext: { allCards: [] as any }
       });
 
-      expect(result.tokensToRemove.some(t => t.id === 'gun_jam')).toBe(true);
-      expect(result.tokensToAdd.some(t => t.id === 'loaded')).toBe(true);
+      expect(result.tokensToRemove!.some(t => t.id === 'gun_jam')).toBe(true);
+      expect(result.tokensToAdd!.some(t => t.id === 'loaded')).toBe(true);
     });
 
     it('manipulation은 탄걸림이 없으면 사격 카드를 추가해야 함', () => {
@@ -174,7 +174,7 @@ describe('cardPlaySpecials', () => {
         }
       });
 
-      expect(result.bonusCards.length).toBeGreaterThan(0);
+      expect(result.bonusCards!.length).toBeGreaterThan(0);
     });
 
     it('spreadShot은 적 유닛 수만큼 사격을 추가해야 함', () => {
@@ -192,7 +192,7 @@ describe('cardPlaySpecials', () => {
         }
       });
 
-      expect(result.bonusCards).toHaveLength(3);
+      expect(result.bonusCards!).toHaveLength(3);
     });
 
     it('executionSquad는 장전, 탄걸림 면역 토큰을 추가해야 함', () => {
@@ -205,8 +205,8 @@ describe('cardPlaySpecials', () => {
         }
       });
 
-      expect(result.tokensToAdd.some(t => t.id === 'loaded')).toBe(true);
-      expect(result.tokensToAdd.some(t => t.id === 'jam_immunity')).toBe(true);
+      expect(result.tokensToAdd!.some(t => t.id === 'loaded')).toBe(true);
+      expect(result.tokensToAdd!.some(t => t.id === 'jam_immunity')).toBe(true);
       // 총격카드 4장 창조는 BattleApp에서 UI 선택으로 처리됨
     });
 
@@ -240,7 +240,7 @@ describe('cardPlaySpecials', () => {
         }
       });
 
-      expect(result.bonusCards).toHaveLength(2);
+      expect(result.bonusCards!).toHaveLength(2);
     });
 
     it('cross 특성이지만 겹치지 않으면 효과가 없어야 함', () => {
@@ -263,7 +263,7 @@ describe('cardPlaySpecials', () => {
         }
       });
 
-      expect(result.bonusCards).toHaveLength(0);
+      expect(result.bonusCards!).toHaveLength(0);
     });
 
     // appliedTokens 테스트
@@ -279,10 +279,10 @@ describe('cardPlaySpecials', () => {
         attackerName: 'player'
       });
 
-      expect(result.tokensToAdd).toHaveLength(1);
-      expect(result.tokensToAdd[0].id).toBe('offense');
-      expect(result.tokensToAdd[0].stacks).toBe(2);
-      expect(result.tokensToAdd[0].targetEnemy).toBe(false);
+      expect(result.tokensToAdd!).toHaveLength(1);
+      expect(result.tokensToAdd![0].id).toBe('offense');
+      expect(result.tokensToAdd![0].stacks).toBe(2);
+      expect(result.tokensToAdd![0].targetEnemy).toBe(false);
     });
 
     it('appliedTokens로 적에게 토큰을 부여해야 함 (targetEnemy=true)', () => {
@@ -298,14 +298,14 @@ describe('cardPlaySpecials', () => {
         attackerName: 'player'
       });
 
-      expect(result.tokensToAdd).toHaveLength(2);
+      expect(result.tokensToAdd!).toHaveLength(2);
 
-      const dullToken = result.tokensToAdd.find(t => t.id === 'dull');
+      const dullToken = result.tokensToAdd!.find(t => t.id === 'dull');
       expect(dullToken).toBeDefined();
       expect(dullToken!.targetEnemy).toBe(true);
       expect(dullToken!.stacks).toBe(1);
 
-      const shakenToken = result.tokensToAdd.find(t => t.id === 'shaken');
+      const shakenToken = result.tokensToAdd!.find(t => t.id === 'shaken');
       expect(shakenToken).toBeDefined();
       expect(shakenToken!.targetEnemy).toBe(true);
       expect(shakenToken!.stacks).toBe(3);
@@ -328,21 +328,21 @@ describe('cardPlaySpecials', () => {
         attackerName: 'player'
       });
 
-      expect(result.tokensToAdd).toHaveLength(3);
+      expect(result.tokensToAdd!).toHaveLength(3);
 
       // blurPlus는 자신에게
-      const blurToken = result.tokensToAdd.find(t => t.id === 'blurPlus');
+      const blurToken = result.tokensToAdd!.find(t => t.id === 'blurPlus');
       expect(blurToken).toBeDefined();
       expect(blurToken!.targetEnemy).toBe(false);
 
       // dull은 적에게 3스택
-      const dullToken = result.tokensToAdd.find(t => t.id === 'dull');
+      const dullToken = result.tokensToAdd!.find(t => t.id === 'dull');
       expect(dullToken).toBeDefined();
       expect(dullToken!.targetEnemy).toBe(true);
       expect(dullToken!.stacks).toBe(3);
 
       // shaken은 적에게 3스택
-      const shakenToken = result.tokensToAdd.find(t => t.id === 'shaken');
+      const shakenToken = result.tokensToAdd!.find(t => t.id === 'shaken');
       expect(shakenToken).toBeDefined();
       expect(shakenToken!.targetEnemy).toBe(true);
       expect(shakenToken!.stacks).toBe(3);

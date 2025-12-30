@@ -125,10 +125,10 @@ export function useCrossroadChoice({
         const gold = typeof effect.reward.gold === 'object'
           ? effect.reward.gold.min + Math.floor(Math.random() * (effect.reward.gold.max - effect.reward.gold.min + 1))
           : effect.reward.gold;
-        newDeltas.gold += gold;
+        newDeltas.gold = (newDeltas.gold ?? 0) + gold;
       }
       if (effect.reward.loot) {
-        newDeltas.loot += effect.reward.loot;
+        newDeltas.loot = (newDeltas.loot ?? 0) + effect.reward.loot;
       }
       setDungeonDeltas(newDeltas);
     }
@@ -144,7 +144,7 @@ export function useCrossroadChoice({
           rewards: {},
         });
       } else {
-        const tier = Math.min(3, Math.max(1, Math.floor((segment?.depth || 0) / 2) + 1));
+        const tier = Math.min(3, Math.max(1, Math.floor((Number(segment?.depth) || 0) / 2) + 1));
         const enemy = getRandomEnemy(tier);
         startBattle({
           nodeId: `dungeon-crossroad-${currentRoomKey}`,
@@ -260,7 +260,7 @@ export function useCrossroadChoice({
     } else {
       // 일회성 선택지
       const hasSuccessRate = choice.successRate !== undefined;
-      const isSuccess = hasSuccessRate ? (Math.random() < choice.successRate) : true;
+      const isSuccess = hasSuccessRate ? (Math.random() < (choice.successRate ?? 0.5)) : true;
       const outcome = isSuccess ? choice.outcomes.success : choice.outcomes.failure;
 
       applyChoiceOutcome(outcome, obj);

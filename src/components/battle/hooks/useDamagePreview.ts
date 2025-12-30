@@ -19,6 +19,7 @@
 import { useMemo, useEffect, useRef } from 'react';
 import { simulatePreview } from '../utils/battleSimulation';
 import type { UseDamagePreviewParams } from '../../../types/hooks';
+import type { SimActor, SimQueueStep, SimCard, AIMode } from '../../../types/systems';
 
 /**
  * 피해 미리보기 계산 훅
@@ -67,18 +68,20 @@ export function useDamagePreview({
       return { value: 0, lethal: false, overkill: false, perUnitPreview: {} };
     }
     const sim = simulatePreview({
-      player,
-      enemy,
-      fixedOrder: order,
+      player: player as SimActor,
+      enemy: enemy as SimActor,
+      fixedOrder: order as SimQueueStep[],
       willOverdrive,
-      enemyMode: enemyPlan.mode,
-      enemyActions: enemyPlan.actions,
+      enemyMode: enemyPlan.mode as AIMode | null | undefined,
+      enemyActions: enemyPlan.actions as SimCard[],
     }) || { pDealt: 0 };
     const value = sim.pDealt || 0;
 
     // 다중 유닛: 타겟 유닛의 HP로 치명/과잉 판정
-    const targetHp = targetUnit ? targetUnit.hp : enemy.hp;
-    const targetMaxHp = targetUnit ? targetUnit.maxHp : enemy.maxHp;
+    const targetActor = targetUnit as SimActor | null;
+    const enemyActor = enemy as SimActor;
+    const targetHp = targetActor ? targetActor.hp : enemyActor.hp;
+    const targetMaxHp = targetActor ? (targetActor as { maxHp?: number }).maxHp ?? enemyActor.hp : (enemyActor as { maxHp?: number }).maxHp ?? enemyActor.hp;
     const lethal = value > targetHp;
     const overkill = value > targetMaxHp;
 
@@ -86,14 +89,15 @@ export function useDamagePreview({
     let perUnitPreview: Record<number, { value: number; effectiveDamage: number; lethal: boolean; overkill: boolean }> = {};
     if (hasMultipleUnits && enemyUnits.length > 0) {
       const boost = willOverdrive ? 2 : 1;
-      const strengthBonus = (player as { strength?: number }).strength || 0;
+      const strengthBonus = (player as SimActor).strength || 0;
       const perUnitDamage: Record<number, number> = {};
 
       // 플레이어 공격 카드의 피해량을 타겟 유닛별로 합산
-      for (const step of order) {
+      const typedOrder = order as SimQueueStep[];
+      for (const step of typedOrder) {
         if (step.actor === 'player' && step.card.type === 'attack') {
           const card = step.card;
-          const targetId = card.__targetUnitId ?? selectedTargetUnit ?? 0;
+          const targetId = (card.__targetUnitId as number | undefined) ?? selectedTargetUnit ?? 0;
           const hits = card.hits || 1;
           const baseDamage = ((card.damage || 0) + strengthBonus) * boost * hits;
 
@@ -125,12 +129,18 @@ export function useDamagePreview({
     return { value, lethal, overkill, perUnitPreview };
   }, [
     battlePhase,
-    player?.strength, player?.hp, player?.block, player?.tokens,
-    enemy?.hp, enemy?.maxHp, enemy?.block,
+    (player as SimActor | undefined)?.strength,
+    (player as SimActor | undefined)?.hp,
+    (player as SimActor | undefined)?.block,
+    (player as { tokens?: unknown })?.tokens,
+    (enemy as SimActor | undefined)?.hp,
+    (enemy as { maxHp?: number } | undefined)?.maxHp,
+    (enemy as SimActor | undefined)?.block,
     fixedOrder, playerTimeline,
     willOverdrive,
     enemyPlan?.mode, enemyPlan?.actions,
-    targetUnit?.hp, targetUnit?.maxHp,
+    (targetUnit as SimActor | undefined)?.hp,
+    (targetUnit as { maxHp?: number } | undefined)?.maxHp,
     hasMultipleUnits, enemyUnits,
     selectedTargetUnit
   ]);

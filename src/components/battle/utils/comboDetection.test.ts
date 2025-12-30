@@ -17,8 +17,16 @@ import { describe, it, expect } from 'vitest';
 import { detectPokerCombo, applyPokerBonus } from './comboDetection';
 
 // 테스트용 카드 헬퍼
-function createCard(actionCost: any, type = 'attack', traits: any[] = []) {
-  return { actionCost, type, traits };
+function createCard(actionCost: any, type = 'attack', traits: any[] = []): any {
+  return {
+    id: `card-${actionCost}`,
+    name: `Test Card ${actionCost}`,
+    type,
+    actionCost,
+    speedCost: 0,
+    description: 'Test card',
+    traits
+  };
 }
 
 describe('detectPokerCombo', () => {
@@ -189,9 +197,9 @@ describe('detectPokerCombo', () => {
   describe('유령카드 처리', () => {
     it('유령카드는 조합 계산에서 제외', () => {
       const cards: any[] = [
-        { actionCost: 2, type: 'attack', isGhost: true },
-        { actionCost: 2, type: 'attack' },
-        { actionCost: 3, type: 'attack' }
+        { ...createCard(2, 'attack'), isGhost: true },
+        createCard(2, 'attack'),
+        createCard(3, 'attack')
       ];
       const result = detectPokerCombo(cards);
       // 유령 제외 후 카드 2장 (2, 3)이므로 하이카드
@@ -200,9 +208,9 @@ describe('detectPokerCombo', () => {
 
     it('유령카드 제외 후 페어 감지', () => {
       const cards: any[] = [
-        { actionCost: 2, type: 'attack', isGhost: true },
-        { actionCost: 2, type: 'attack' },
-        { actionCost: 2, type: 'attack' }
+        { ...createCard(2, 'attack'), isGhost: true },
+        createCard(2, 'attack'),
+        createCard(2, 'attack')
       ];
       const result = detectPokerCombo(cards);
       // 유령 제외 후 2장 페어
@@ -211,18 +219,18 @@ describe('detectPokerCombo', () => {
 
     it('모든 카드가 유령이면 null 반환', () => {
       const cards: any[] = [
-        { actionCost: 2, type: 'attack', isGhost: true },
-        { actionCost: 2, type: 'attack', isGhost: true }
+        { ...createCard(2, 'attack'), isGhost: true },
+        { ...createCard(2, 'attack'), isGhost: true }
       ];
       expect(detectPokerCombo(cards)).toBeNull();
     });
 
     it('유령카드 3장 + 실제카드 1장 = 하이카드', () => {
       const cards: any[] = [
-        { actionCost: 1, type: 'attack', isGhost: true },
-        { actionCost: 1, type: 'attack', isGhost: true },
-        { actionCost: 1, type: 'attack', isGhost: true },
-        { actionCost: 1, type: 'attack' }
+        { ...createCard(1, 'attack'), isGhost: true },
+        { ...createCard(1, 'attack'), isGhost: true },
+        { ...createCard(1, 'attack'), isGhost: true },
+        createCard(1, 'attack')
       ];
       const result = detectPokerCombo(cards);
       // 실제 카드 1장만 = 하이카드

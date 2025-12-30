@@ -11,7 +11,7 @@
 
 import { useState, useCallback } from 'react';
 import { useGameStore } from '../../../state/gameStore';
-import type { Card } from '../../../types';
+import type { Card, NextTurnEffects } from '../../../types';
 import type { UseRewardSelectionParams } from '../../../types/hooks';
 import { shuffle } from '../../../lib/randomUtils';
 
@@ -69,10 +69,10 @@ export function useRewardSelection({
     addLog(`📢 함성: "${selectedCard.name}" 선택! 다음 턴에 확정 등장합니다.`);
 
     // 선택한 카드를 nextTurnEffects.guaranteedCards에 추가
-    const currentEffects = battleRef.current?.nextTurnEffects || battleNextTurnEffects;
-    const updatedEffects = {
+    const currentEffects = (battleRef.current?.nextTurnEffects || battleNextTurnEffects) as NextTurnEffects | undefined;
+    const updatedEffects: NextTurnEffects = {
       ...currentEffects,
-      guaranteedCards: [...(currentEffects.guaranteedCards || []), selectedCard.id]
+      guaranteedCards: [...((currentEffects?.guaranteedCards as string[] | undefined) || []), selectedCard.id]
     };
     actions.setNextTurnEffects(updatedEffects);
     if (battleRef.current) {
@@ -91,8 +91,8 @@ export function useRewardSelection({
 
   // 승리 시 카드 보상 모달 표시
   const showCardRewardModal = useCallback(() => {
-    // 공격/범용/특수 카드 중 랜덤 3장 선택
-    const cardPool = CARDS.filter(c => (c.type === 'attack' || c.type === 'general' || c.type === 'special')) as Card[];
+    // 공격/범용 카드 중 랜덤 3장 선택
+    const cardPool = CARDS.filter(c => (c.type === 'attack' || c.type === 'general')) as Card[];
     const shuffled = shuffle(cardPool);
     const rewardCards = shuffled.slice(0, 3);
 

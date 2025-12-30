@@ -242,7 +242,7 @@ export function assignSourceUnitToActions(actions: AICard[], units: AIEnemy[]): 
   if (!actions || actions.length === 0) return actions;
   if (!units || units.length === 0) return actions;
 
-  const aliveUnits = units.filter(u => u.hp > 0);
+  const aliveUnits = units.filter(u => (u.hp ?? 0) > 0);
   if (aliveUnits.length === 0) return actions;
 
   const unitCardUsage = new Map<number, Map<string, number>>();
@@ -289,7 +289,7 @@ export function expandActionsWithGhosts(actions: AICard[], units: AIEnemy[]): AI
   if (!actions || actions.length === 0) return actions;
   if (!units || units.length === 0) return actions;
 
-  const aliveUnits = units.filter(u => u.hp > 0);
+  const aliveUnits = units.filter(u => (u.hp ?? 0) > 0);
   if (aliveUnits.length <= 1) {
     return assignSourceUnitToActions(actions, units);
   }

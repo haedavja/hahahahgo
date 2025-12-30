@@ -37,7 +37,7 @@ const createMockLocalStorage = () => ({
 
 let mockLocalStorage = createMockLocalStorage();
 
-Object.defineProperty(global, 'localStorage', {
+Object.defineProperty(globalThis, 'localStorage', {
   get: () => mockLocalStorage,
   configurable: true,
 });

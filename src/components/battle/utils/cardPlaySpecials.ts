@@ -14,10 +14,10 @@ import type {
   Token,
   Combatant,
   BattleContext,
-  SpecialEvent,
+  BattleEvent,
   TokenToAdd,
   NextTurnEffects,
-  CardPlayResult
+  CardPlaySpecialsResult
 } from '../../../types';
 import { getAllTokens, getTokenStacks } from '../../../lib/tokenUtils';
 import { TOKENS, TOKEN_CATEGORIES } from '../../../data/tokens';
@@ -43,13 +43,13 @@ export function processCardPlaySpecials({
   attacker: Combatant;
   attackerName: 'player' | 'enemy';
   battleContext?: BattleContext;
-}): CardPlayResult {
-  const events: SpecialEvent[] = [];
+}): CardPlaySpecialsResult {
+  const events: BattleEvent[] = [];
   const logs: string[] = [];
   const bonusCards: Card[] = [];
   const tokensToAdd: TokenToAdd[] = [];
   const tokensToRemove: TokenToAdd[] = [];
-  let nextTurnEffects: NextTurnEffects | null = null;
+  let nextTurnEffects: NextTurnEffects | undefined = undefined;
 
   const { hand = [], allCards = [], currentTurn, currentSp } = battleContext;
   const grantedAtBase = currentTurn ? { turn: currentTurn, sp: currentSp || 0 } : undefined;

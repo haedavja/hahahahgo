@@ -39,7 +39,11 @@ import type {
   PlayerBattleState,
   EnemyUnit,
   OrderItem,
-  TokenInstance
+  TokenInstance,
+  TraitEffectCard,
+  VictoryEnemy,
+  EtherCard,
+  EtherAnimCard
 } from '../../../types';
 import type { FullBattleState } from '../reducer/battleReducerState';
 import type { PlayerState, EnemyState } from '../reducer/battleReducerActions';
@@ -69,8 +73,8 @@ interface UseResolveExecutionParams {
   growingDefenseRef: MutableRefObject<number | null>;
   escapeBanRef: MutableRefObject<Set<string>>;
   escapeUsedThisTurnRef: MutableRefObject<Set<string>>;
-  calculateEtherTransfer: (amount: number, currentPts: number) => number;
-  checkVictoryCondition: (enemy: EnemyUnit, player: PlayerBattleState, nextEnemyPts: number) => VictoryCheckResult;
+  calculateEtherTransfer: (playerAppliedEther: number, enemyAppliedEther: number, curPlayerPts: number, curEnemyPts: number, enemyHp: number) => { nextPlayerPts: number; nextEnemyPts: number; movedPts: number };
+  checkVictoryCondition: (enemy: VictoryEnemy, pts: number) => VictoryCheckResult;
   showCardRewardModal: () => void;
   startEtherCalculationAnimation: () => void;
   addLog: (message: string) => void;
@@ -126,7 +130,7 @@ export function useResolveExecution({
     const playerTokenResult = clearTurnTokens(latestPlayer);
     playerTokenResult.logs.forEach(log => addLog(log));
     latestPlayer = { ...latestPlayer, tokens: playerTokenResult.tokens };
-    actions.setPlayer(latestPlayer);
+    actions.setPlayer(latestPlayer as PlayerBattleState);
 
     const enemyTokenResult = clearTurnTokens(latestEnemy);
     enemyTokenResult.logs.forEach(log => addLog(log));
@@ -149,7 +153,7 @@ export function useResolveExecution({
         latestPlayer = { ...latestPlayer, tokens: decrementResult.tokens };
         addLog(`♾️ 탄걸림 면역 ${newStacks}턴 남음`);
       }
-      actions.setPlayer(latestPlayer);
+      actions.setPlayer(latestPlayer as PlayerBattleState);
     }
 
     // battleRef 동기 업데이트
@@ -169,7 +173,7 @@ export function useResolveExecution({
     escapeUsedThisTurnRef.current = new Set();
 
     // 다음 턴 효과 처리 (특성 기반)
-    const traitNextTurnEffects = processCardTraitEffects(selected, addLog);
+    const traitNextTurnEffects = processCardTraitEffects(selected as unknown as TraitEffectCard[], addLog);
 
     // 카드 플레이 중 설정된 효과 병합
     const currentNextTurnEffects = battleRef.current?.nextTurnEffects || battle.nextTurnEffects;
@@ -185,7 +189,8 @@ export function useResolveExecution({
     };
 
     // 상징 턴 종료 효과 적용
-    const turnEndRelicEffects = applyTurnEndEffects(relics, {
+    const relicIds = Object.keys(relics);
+    const turnEndRelicEffects = applyTurnEndEffects(relicIds, {
       cardsPlayedThisTurn: battle.selected.length,
       player,
       enemy,
@@ -193,13 +198,16 @@ export function useResolveExecution({
 
     // 턴 종료 상징 발동 애니메이션
     playTurnEndRelicAnimations({
-      relics,
-      RELICS,
+      relics: relicIds,
+      RELICS: RELICS as unknown as UIRelicsMap,
       cardsPlayedThisTurn: battle.selected.length,
       player,
       enemy,
       playSound,
-      actions
+      actions: {
+        setRelicActivated: actions.setRelicActivated,
+        setPlayer: actions.setPlayer as (player: import('../../../types').Combatant) => void
+      }
     });
 
     // 턴 종료 상징 효과를 다음 턴 효과에 적용
@@ -208,7 +216,10 @@ export function useResolveExecution({
       nextTurnEffects: newNextTurnEffects,
       player,
       addLog,
-      actions
+      actions: {
+        setRelicActivated: actions.setRelicActivated,
+        setPlayer: actions.setPlayer as (player: import('../../../types').Combatant) => void
+      }
     });
 
     actions.setNextTurnEffects(updatedNextTurnEffects);
@@ -248,7 +259,14 @@ export function useResolveExecution({
     // 적 에테르 획득 처리
     if (enemyFinalEther > 0) {
       addLog(formatEnemyEtherLog(enemyEther, enemyTurnEtherAccumulated));
-      startEnemyEtherAnimation({ enemyFinalEther, enemyEther, actions });
+      startEnemyEtherAnimation({
+        enemyFinalEther,
+        enemyEther,
+        actions: {
+          setEnemyEtherCalcPhase: actions.setEnemyEtherCalcPhase as (phase: import('../../../types').AnimEtherCalcPhase) => void,
+          setEnemyCurrentDeflation: actions.setEnemyCurrentDeflation
+        }
+      });
     }
 
     actions.setEnemyEtherFinalValue(enemyFinalEther);
@@ -272,17 +290,21 @@ export function useResolveExecution({
       calculateEtherTransfer,
       addLog,
       playSound,
-      actions
+      actions: {
+        setNetEtherDelta: actions.setNetEtherDelta,
+        setPlayerTransferPulse: actions.setPlayerTransferPulse,
+        setEnemyTransferPulse: actions.setEnemyTransferPulse
+      }
     });
 
     // 조합 사용 카운트 업데이트
-    const newUsageCount = updateComboUsageCount(player.comboUsageCount, pComboEnd, queue, 'player');
-    const newEnemyUsageCount = updateComboUsageCount(enemy.comboUsageCount, eComboEnd, [], 'enemy');
+    const newUsageCount = updateComboUsageCount(player.comboUsageCount, pComboEnd as Card | null, queue, 'player');
+    const newEnemyUsageCount = updateComboUsageCount(enemy.comboUsageCount, eComboEnd as Card | null, [], 'enemy');
 
     // 턴 종료 상태 업데이트
     let newPlayerState;
     try {
-      newPlayerState = createTurnEndPlayerState(latestPlayer, {
+      newPlayerState = createTurnEndPlayerState(latestPlayer as PlayerBattleState, {
         comboUsageCount: newUsageCount,
         etherPts: nextPlayerPts,
         etherOverflow: playerOverflow,
@@ -291,9 +313,9 @@ export function useResolveExecution({
       });
     } catch (err) {
       if (import.meta.env.DEV) console.error('[finishTurn] createTurnEndPlayerState 에러:', err);
-      newPlayerState = { ...latestPlayer, etherMultiplier: 1 };
+      newPlayerState = { ...latestPlayer, etherMultiplier: 1 } as PlayerBattleState;
     }
-    actions.setPlayer(newPlayerState);
+    actions.setPlayer(newPlayerState as PlayerBattleState);
 
     if (battleRef.current) {
       battleRef.current.player = newPlayerState;
@@ -320,16 +342,21 @@ export function useResolveExecution({
 
     // 턴 종료 시 승리/패배 체크
     const transitionResult = processVictoryDefeatTransition({
-      enemy,
+      enemy: enemy as VictoryEnemy,
       player,
       nextEnemyPtsSnapshot,
       checkVictoryCondition,
-      actions,
+      actions: {
+        setSoulShatter: actions.setSoulShatter,
+        setNetEtherDelta: actions.setNetEtherDelta,
+        setPostCombatOptions: actions.setPostCombatOptions,
+        setPhase: actions.setPhase
+      },
       onVictory: showCardRewardModal
     });
     if (transitionResult.shouldReturn) return;
 
-    actions.setTurnNumber((t: number) => t + 1);
+    actions.setTurnNumber(turnNumber + 1);
     actions.setNetEtherDelta(null);
     actions.setEnemyPlan({ actions: [], mode: enemyPlan.mode, manuallyModified: false });
     actions.setPhase('select');
@@ -346,7 +373,7 @@ export function useResolveExecution({
   const runAll = useCallback(() => {
     if (battle.qIndex >= battle.queue.length) return;
     playSound(1000, 150);
-    const passiveRelicEffects = calculatePassiveEffects(orderedRelicList);
+    const passiveRelicEffects = calculatePassiveEffects(orderedRelicList.map(r => r.id));
     let P = { ...player, def: player.def || false, block: player.block || 0, counter: player.counter || 0, vulnMult: player.vulnMult || 1, etherPts: player.etherPts || 0 };
     let E = { ...enemy, def: enemy.def || false, block: enemy.block || 0, counter: enemy.counter || 0, vulnMult: enemy.vulnMult || 1, etherPts: enemy.etherPts || 0 };
     const tempState = { player: P, enemy: E, log: [] };
@@ -394,10 +421,10 @@ export function useResolveExecution({
       events.forEach(ev => addLog(ev.msg));
 
       if (a.actor === 'player') {
-        const gain = Math.floor(getCardEtherGain(a.card) * passiveRelicEffects.etherMultiplier);
+        const gain = Math.floor(getCardEtherGain(a.card as unknown as EtherCard) * passiveRelicEffects.etherMultiplier);
         localTurnEther += gain;
       } else if (a.actor === 'enemy') {
-        localEnemyTurnEther += getCardEtherGain(a.card);
+        localEnemyTurnEther += getCardEtherGain(a.card as unknown as EtherCard);
       }
 
       if (P.hp <= 0) {
@@ -428,15 +455,19 @@ export function useResolveExecution({
     const latestPlayerForAnim = battleRef.current?.player || player;
     startEtherCalculationAnimationSequence({
       turnEtherAccumulated: localTurnEther,
-      selected,
+      selected: selected as unknown as EtherAnimCard[],
       player: latestPlayerForAnim,
       playSound,
-      actions,
+      actions: {
+        setEtherCalcPhase: actions.setEtherCalcPhase as (phase: import('../../../types').AnimEtherCalcPhase) => void
+      },
       onMultiplierConsumed: () => {
         const currentPlayer = battleRef.current?.player || player;
         const updatedPlayer = { ...currentPlayer, etherMultiplier: 1 };
-        actions.setPlayer(updatedPlayer);
-        battleRef.current.player = updatedPlayer;
+        actions.setPlayer(updatedPlayer as PlayerBattleState);
+        if (battleRef.current) {
+          battleRef.current.player = updatedPlayer;
+        }
       }
     });
   }, [

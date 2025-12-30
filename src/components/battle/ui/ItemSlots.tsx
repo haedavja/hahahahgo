@@ -18,6 +18,7 @@ import type {
   ItemSlotsEnemyPlan,
   ItemSlotsBattleRef,
   ItemSlotsBattleActions,
+  FixedOrderAction,
 } from '../../../types';
 
 const STAT_LABELS: Record<string, string> = {
@@ -151,7 +152,7 @@ export const ItemSlots: FC<ItemSlotsProps> = ({ phase, battleActions, player, en
         playCardDestroySound();
 
         // battleRef에서 최신 enemyPlan 가져오기 (prop은 stale할 수 있음)
-        const currentEnemyPlan = battleRef?.current?.enemyPlan || enemyPlan;
+        const currentEnemyPlan = (battleRef?.current?.enemyPlan || enemyPlan) as EnemyPlan;
         const currentActions = currentEnemyPlan.actions || [];
 
         // 즉시 카드 제거 (manuallyModified로 재생성 방지)
@@ -208,7 +209,7 @@ export const ItemSlots: FC<ItemSlotsProps> = ({ phase, battleActions, player, en
         }
 
         // 모든 적 카드에 빙결 애니메이션 적용
-        const currentEnemyPlan = battleRef?.current?.enemyPlan || enemyPlan;
+        const currentEnemyPlan = (battleRef?.current?.enemyPlan || enemyPlan) as EnemyPlan | null;
         const enemyCardCount = currentEnemyPlan?.actions?.length || 0;
         if (enemyCardCount > 0 && battleActions.setFreezingEnemyCards) {
           const allEnemyIndices = Array.from({ length: enemyCardCount }, (_, i) => i);
@@ -223,10 +224,10 @@ export const ItemSlots: FC<ItemSlotsProps> = ({ phase, battleActions, player, en
         // respond 단계에서 사용 시 fixedOrder를 즉시 재정렬
         const latestPhase = getLatestPhase();
         if (latestPhase === 'respond' && battleRef?.current?.fixedOrder && battleActions.setFixedOrder) {
-          const currentFixedOrder = battleRef.current.fixedOrder;
+          const currentFixedOrder = battleRef.current.fixedOrder as FixedOrderAction[];
           // 플레이어 카드를 먼저, 적 카드를 나중에
-          const playerCards = currentFixedOrder.filter(x => x.actor === 'player');
-          const enemyCards = currentFixedOrder.filter(x => x.actor === 'enemy');
+          const playerCards = currentFixedOrder.filter((x: FixedOrderAction) => x.actor === 'player');
+          const enemyCards = currentFixedOrder.filter((x: FixedOrderAction) => x.actor === 'enemy');
           const frozenOrder = [...playerCards, ...enemyCards];
 
           battleActions.setFixedOrder(frozenOrder);

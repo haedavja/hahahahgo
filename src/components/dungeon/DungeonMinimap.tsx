@@ -104,16 +104,19 @@ export function DungeonMinimap({ dungeonState, onNodeClick, playerStats }: Dunge
 
     Object.entries(connections as DungeonConnections).forEach(([fromId, conns]: [string, DungeonConnection[]]) => {
       const fromNode = nodes.find((n: DungeonNode) => n.id === fromId);
-      if (!fromNode || fromNode.x === undefined) return;
+      if (!fromNode || fromNode.x === undefined || fromNode.y === undefined) return;
       if (fromNode.hidden && !discoveredHidden?.includes(fromId)) return;
+
+      const fromX = fromNode.x;
+      const fromY = fromNode.y;
 
       conns.forEach((conn: DungeonConnection, idx: number) => {
         const toNode = nodes.find((n: DungeonNode) => n.id === conn.targetId);
-        if (!toNode || toNode.x === undefined) return;
+        if (!toNode || toNode.x === undefined || toNode.y === undefined) return;
         if (toNode.hidden && !discoveredHidden?.includes(conn.targetId)) return;
 
-        const x1 = (fromNode.x + offsetX) * cellSize + cellSize / 2;
-        const y1 = (fromNode.y + offsetY) * cellSize + cellSize / 2;
+        const x1 = (fromX + offsetX) * cellSize + cellSize / 2;
+        const y1 = (fromY + offsetY) * cellSize + cellSize / 2;
         const x2 = (toNode.x + offsetX) * cellSize + cellSize / 2;
         const y2 = (toNode.y + offsetY) * cellSize + cellSize / 2;
 

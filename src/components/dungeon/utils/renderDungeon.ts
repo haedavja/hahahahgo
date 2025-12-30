@@ -55,7 +55,7 @@ const ROOM_LABELS: RoomColorMap = {
  * 배경 및 바닥 렌더링
  */
 function renderBackground(ctx: CanvasRenderingContext2D, segment: RenderDungeonSegment): void {
-  ctx.fillStyle = BG_COLORS[segment.roomType] || BG_COLORS.normal;
+  ctx.fillStyle = segment.roomType ? BG_COLORS[segment.roomType] : BG_COLORS.normal;
   ctx.fillRect(0, 0, CONFIG.VIEWPORT.width, CONFIG.VIEWPORT.height);
 
   // 벽 텍스처 (상단)
@@ -71,7 +71,7 @@ function renderBackground(ctx: CanvasRenderingContext2D, segment: RenderDungeonS
  * 방 유형 라벨 렌더링
  */
 function renderRoomLabel(ctx: CanvasRenderingContext2D, segment: RenderDungeonSegment): void {
-  if (segment.roomType !== 'normal') {
+  if (segment.roomType && segment.roomType !== 'normal') {
     ctx.fillStyle = segment.roomType === 'exit' ? "#22c55e" : "#fbbf24";
     ctx.font = "bold 24px Arial";
     ctx.textAlign = "center";
@@ -109,8 +109,8 @@ function renderDoor(
 
   const isHidden = exit.type === 'hidden';
   const targetRoom = grid[exit.targetKey];
-  const isDiscovered = !isHidden || (targetRoom && targetRoom.discovered);
-  const isVisited = targetRoom && targetRoom.visited;
+  const isDiscovered = !isHidden || (targetRoom?.discovered ?? false);
+  const isVisited = targetRoom?.visited ?? false;
 
   // 문 색상 결정
   let doorColor: string;
@@ -278,8 +278,12 @@ function renderDoors(ctx: CanvasRenderingContext2D, segment: RenderDungeonSegmen
     east: { x: CONFIG.VIEWPORT.width - 80, y: CONFIG.FLOOR_Y / 2 + 80, label: "동쪽" },
   };
 
+  if (!segment.exits) return;
+
+  const exits = segment.exits as Partial<Record<Direction, DungeonExit | null>>;
+
   (Object.entries(doorPositions) as [Direction, DoorPosition][]).forEach(([dir, pos]) => {
-    const exit = segment.exits[dir];
+    const exit = exits[dir];
     renderDoor(ctx, dir, pos, exit, grid, segment);
   });
 }
@@ -352,6 +356,8 @@ function renderMinimap(
     const cellY = minimapY + minimapPadding + room.y * cellSize;
     const centerX = cellX + cellSize / 2;
     const centerY = cellY + cellSize / 2;
+
+    if (!room.exits) return;
 
     (Object.entries(room.exits) as [Direction, DungeonExit | null][]).forEach(([dir, exit]) => {
       if (!exit) return;
