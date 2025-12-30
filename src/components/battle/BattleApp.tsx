@@ -157,6 +157,8 @@ import { processViolentMortExecution } from "./utils/executionEffects";
 import { processTokenExpiration } from "./utils/tokenExpirationProcessing";
 import { resolveAttackTarget, resolveDefenseSource, updateAttackTargetBlock, applyDefenseToUnit } from "./utils/unitTargetingUtils";
 import { applyTimelineChanges, duplicatePlayerCards, insertCardsIntoQueue } from "./utils/timelineQueueUtils";
+import { processAllNextTurnEffects } from "./utils/cardPlaySpecialsProcessing";
+import { createTokenActions } from "./utils/tokenActionHandlers";
 
 // HandArea용 로컬 Card 타입 - 제거됨 (Card 타입 직접 사용)
 
@@ -1702,179 +1704,59 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
     // cardPlaySpecials 결과 처리 (comboStyle, mentalFocus 등)
     if (actionResult.cardPlaySpecials && a.actor === 'player') {
-      const { bonusCards, nextTurnEffects: newNextTurnEffects } = actionResult.cardPlaySpecials as CardPlaySpecialsResult;
-      if (import.meta.env.DEV) console.log('[cardPlaySpecials] Extracted:', { newNextTurnEffects, bonusCards, cardName: a.card.name, fullResult: actionResult.cardPlaySpecials });
+      if (import.meta.env.DEV) console.log('[cardPlaySpecials] Extracted:', { cardName: a.card.name, fullResult: actionResult.cardPlaySpecials });
 
-      // bonusCards 처리 (comboStyle): 큐에 유령카드로 추가
-      if (bonusCards && (bonusCards as Card[]).length > 0) {
-        const insertSp = (a.sp || 0) + 1;  // 현재 카드 +1 sp에 삽입
-        const currentQ = battleRef.current.queue;
-        const currentQIndex = battleRef.current.qIndex;
+      // 소멸된 카드 ID 목록
+      const currentVanished = battleRef.current?.vanishedCards || battle.vanishedCards || [];
+      const vanishedCardIds = (currentVanished as Array<string | Card>).map((c: string | Card) => typeof c === 'string' ? c : c.id);
 
-        const newActions = (bonusCards as Card[]).map((bonusCard: Card) => ({
-          actor: 'player',
-          card: {
-            ...bonusCard,
-            // 카드 핵심 속성 명시적 복사 (손실 방지)
-            damage: bonusCard.damage,
-            block: bonusCard.block,
-            hits: bonusCard.hits,
-            speedCost: bonusCard.speedCost,
-            actionCost: bonusCard.actionCost,
-            type: bonusCard.type,
-            cardCategory: bonusCard.cardCategory,
-            special: bonusCard.special,
-            traits: bonusCard.traits,
-            isGhost: true,
-            __uid: generateUid('combo')
-          },
-          sp: insertSp
-        }));
+      const effectsResult = processAllNextTurnEffects({
+        cardPlaySpecials: actionResult.cardPlaySpecials as CardPlaySpecialsResult,
+        currentSp: a.sp || 0,
+        currentQueue: battleRef.current.queue,
+        currentQIndex: battleRef.current.qIndex,
+        currentDeck: (battleRef.current?.deck || battle.deck || []) as HandCard[],
+        currentDiscard: (battleRef.current?.discardPile || battle.discardPile || []) as HandCard[],
+        currentHand: (battleRef.current?.hand || battle.hand || []) as HandCard[],
+        vanishedCardIds,
+        escapeBan: escapeBanRef.current as Set<string>,
+        allCards: CARDS as Card[],
+        currentNextTurnEffects: (battleRef.current?.nextTurnEffects || battle.nextTurnEffects) as Record<string, unknown>,
+        currentCardId: (a.card as { id?: string })?.id,
+        addLog
+      });
 
-        // 현재 인덱스 이후에 삽입
-        const beforeCurrent = currentQ.slice(0, currentQIndex + 1);
-        const afterCurrent = [...currentQ.slice(currentQIndex + 1), ...newActions];
-
-        // sp 기준으로 정렬
-        afterCurrent.sort((x, y) => {
-          if ((x.sp ?? 0) !== (y.sp ?? 0)) return (x.sp ?? 0) - (y.sp ?? 0);
-          if (x.card?.isGhost && !y.card?.isGhost) return -1;
-          if (!x.card?.isGhost && y.card?.isGhost) return 1;
-          return 0;
-        });
-
-        const newQueue = [...beforeCurrent, ...afterCurrent];
-        const markedNewQueue = markCrossedCards(newQueue as unknown as never);
-        actions.setQueue(markedNewQueue as unknown as OrderItem[]);
-        battleRef.current = { ...battleRef.current, queue: markedNewQueue as unknown as OrderItem[] };
-
-        addLog(`🔄 연계 효과: "${(bonusCards as Card[]).map((c: Card) => c.name).join(', ')}" 큐에 추가!`);
+      // 상태 업데이트 적용
+      if (effectsResult.hasQueueChanges) {
+        actions.setQueue(effectsResult.updatedQueue);
+        battleRef.current = { ...battleRef.current, queue: effectsResult.updatedQueue };
       }
+      if (effectsResult.hasDeckChanges) {
+        actions.setDeck(effectsResult.updatedDeck);
+        actions.setDiscardPile(effectsResult.updatedDiscardPile);
+        battleRef.current = { ...battleRef.current, deck: effectsResult.updatedDeck, discardPile: effectsResult.updatedDiscardPile };
+      }
+      if (effectsResult.hasHandChanges) {
+        actions.setHand(effectsResult.updatedHand);
+        battleRef.current = { ...battleRef.current, hand: effectsResult.updatedHand };
+      }
+      actions.setNextTurnEffects(effectsResult.updatedEffects);
+      battleRef.current = { ...battleRef.current, nextTurnEffects: effectsResult.updatedEffects };
 
-      // nextTurnEffects 처리 (mentalFocus, emergencyDraw, recallCard, sharpenBlade)
-      if (newNextTurnEffects) {
-        const currentEffects = (battleRef.current?.nextTurnEffects || battle.nextTurnEffects) as Record<string, unknown>;
-        const updatedEffects = {
-          ...currentEffects,
-          ...newNextTurnEffects,  // 모든 새 효과 병합 (repeatMyTimeline, blockPerCardExecution 등)
-          bonusEnergy: ((currentEffects.bonusEnergy as number) || 0) + ((newNextTurnEffects as Record<string, unknown>).bonusEnergy as number || 0),
-          maxSpeedBonus: ((currentEffects.maxSpeedBonus as number) || 0) + ((newNextTurnEffects as Record<string, unknown>).maxSpeedBonus as number || 0),
-          extraCardPlay: ((currentEffects.extraCardPlay as number) || 0) + ((newNextTurnEffects as Record<string, unknown>).extraCardPlay as number || 0),
-          // 날 세우기: 이번 전투 검격 공격력 보너스 (누적)
-          fencingDamageBonus: ((currentEffects.fencingDamageBonus as number) || 0) + ((newNextTurnEffects as Record<string, unknown>).fencingDamageBonus as number || 0)
-        };
+      // === 함성 (recallCard): 대기 카드 선택 UI 표시 (React 상태 사용) ===
+      if (effectsResult.recallTriggered) {
+        const currentBuild = useGameStore.getState().characterBuild;
+        if (currentBuild) {
+          const { mainSpecials = [], subSpecials = [], ownedCards = [] } = currentBuild;
+          const usedCardIds = new Set([...mainSpecials, ...subSpecials]);
+          const waitingCardIds = ownedCards.filter(id => !usedCardIds.has(id));
+          const waitingCards = waitingCardIds.map(id => CARDS.find(c => c.id === id)).filter(Boolean);
 
-        // === 비상대응 (emergencyDraw): 즉시 덱에서 카드 뽑기 ===
-        const newEffectsTyped = newNextTurnEffects as Record<string, unknown>;
-        if (newEffectsTyped.emergencyDraw && (newEffectsTyped.emergencyDraw as number) > 0) {
-          const currentDeck = battleRef.current?.deck || battle.deck || [];
-          const currentDiscard = battleRef.current?.discardPile || battle.discardPile || [];
-
-          if (currentDeck.length > 0 || currentDiscard.length > 0) {
-            // 소멸된 카드 ID 목록
-            const currentVanished = battleRef.current?.vanishedCards || battle.vanishedCards || [];
-            const vanishedCardIds = (currentVanished as Array<string | Card>).map((c: string | Card) => typeof c === 'string' ? c : c.id);
-            const drawResult = drawFromDeck(currentDeck as HandCard[], currentDiscard as HandCard[], newEffectsTyped.emergencyDraw as number, escapeBanRef.current as Set<string>, vanishedCardIds);
-
-            // 현재 손패에 추가
-            const currentHand = battleRef.current?.hand || battle.hand || [];
-            const newHand = [...currentHand, ...drawResult.drawnCards];
-
-            actions.setDeck(drawResult.newDeck);
-            actions.setDiscardPile(drawResult.newDiscardPile);
-            actions.setHand(newHand);
-
-            if (battleRef.current) {
-              battleRef.current = { ...battleRef.current, hand: newHand, deck: drawResult.newDeck, discardPile: drawResult.newDiscardPile };
-            }
-
-            if (drawResult.reshuffled) {
-              addLog('🔄 덱이 소진되어 무덤을 섞어 새 덱을 만들었습니다.');
-            }
-            addLog(`🚨 비상대응: ${drawResult.drawnCards.map(c => c.name).join(', ')} 즉시 손패에 추가!`);
+          if (waitingCards.length > 0) {
+            setRecallSelection({ availableCards: waitingCards } as unknown as { availableCards: Card[] });
+            addLog(`📢 함성: 대기 카드 중 1장을 선택하세요!`);
           } else {
-            addLog(`🚨 비상대응: 덱과 무덤에 카드가 없습니다.`);
-          }
-        }
-
-        // === 함성 (recallCard): 다음 턴에 대기 카드 선택 UI 표시 ===
-        if (newEffectsTyped.recallCard) {
-          const currentBuild = useGameStore.getState().characterBuild;
-          if (currentBuild) {
-            const { mainSpecials = [], subSpecials = [], ownedCards = [] } = currentBuild;
-            const usedCardIds = new Set([...mainSpecials, ...subSpecials]);
-            // 대기 카드: ownedCards 중 주특기/보조특기가 아닌 카드
-            const waitingCardIds = ownedCards.filter(id => !usedCardIds.has(id));
-            const waitingCards = waitingCardIds
-              .map(id => CARDS.find(c => c.id === id))
-              .filter(Boolean);
-
-            if (waitingCards.length > 0) {
-              // 선택 UI 표시를 위해 상태 저장
-              setRecallSelection({ availableCards: waitingCards } as unknown as { availableCards: Card[] });
-              addLog(`📢 함성: 대기 카드 중 1장을 선택하세요!`);
-            } else {
-              addLog(`📢 함성: 대기 카드가 없습니다.`);
-            }
-          }
-          // recallCard 플래그는 다음 턴에 사용되지 않으므로 효과에서 제외
-        }
-
-        // === 엘 라피드 (addCardToHand): 즉시 손패에 카드 추가 ===
-        if (newEffectsTyped.addCardToHand) {
-          const cardId = newEffectsTyped.addCardToHand as string;
-          const cardToAdd = CARDS.find(c => c.id === cardId);
-          if (cardToAdd) {
-            const currentHand = battleRef.current?.hand || battle.hand || [];
-            const newCard = {
-              ...cardToAdd,
-              _instanceId: `${cardId}_copy_${Date.now()}`
-            };
-            const newHand = [...currentHand, newCard] as Card[];
-            actions.setHand(newHand);
-            if (battleRef.current) {
-              battleRef.current = { ...battleRef.current, hand: newHand };
-            }
-            addLog(`📋 ${cardToAdd.name} 복사본이 손패에 추가되었습니다!`);
-          }
-        }
-
-        actions.setNextTurnEffects(updatedEffects);
-        // battleRef 동기 업데이트 (finishTurn에서 최신 값 사용)
-        if (battleRef.current) {
-          battleRef.current = { ...battleRef.current, nextTurnEffects: updatedEffects };
-        }
-
-        // === 노인의 꿈 (repeatMyTimeline): 현재 턴 타임라인 즉시 복제 ===
-        if (newEffectsTyped.repeatMyTimeline) {
-          const currentQ = battleRef.current?.queue || battle.queue || [];
-          const currentCardId = (a.card as { id?: string })?.id;
-          const maxSp = Math.max(...currentQ.map((item: OrderItem) => item.sp ?? 0));
-
-          const { duplicatedCards, count } = duplicatePlayerCards({
-            queue: currentQ,
-            currentCardId,
-            maxSp
-          });
-
-          if (count > 0) {
-            const markedQueue = insertCardsIntoQueue({
-              queue: currentQ,
-              cardsToInsert: duplicatedCards,
-              afterIndex: currentQ.length - 1
-            }) as OrderItem[];
-            actions.setQueue(markedQueue);
-            if (battleRef.current) {
-              battleRef.current = { ...battleRef.current, queue: markedQueue };
-            }
-            addLog(`🔄 노인의 꿈: 타임라인 반복! ${count}장 복제됨`);
-          }
-
-          // 효과 사용 후 플래그 제거
-          const clearedEffects = { ...updatedEffects, repeatMyTimeline: false };
-          actions.setNextTurnEffects(clearedEffects);
-          if (battleRef.current) {
-            battleRef.current = { ...battleRef.current, nextTurnEffects: clearedEffects };
+            addLog(`📢 함성: 대기 카드가 없습니다.`);
           }
         }
       }
