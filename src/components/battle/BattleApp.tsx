@@ -155,6 +155,7 @@ import { processRequiredTokenConsumption, processBurnDamage, processBlockPerCard
 import { generateBreachCards, generateFencingCards, generateExecutionSquadCards, type CreationQueueItem } from "./utils/cardCreationProcessing";
 import { processViolentMortExecution } from "./utils/executionEffects";
 import { processTokenExpiration } from "./utils/tokenExpirationProcessing";
+import { resolveAttackTarget, resolveDefenseSource, updateAttackTargetBlock, applyDefenseToUnit } from "./utils/unitTargetingUtils";
 
 // HandArea용 로컬 Card 타입 - 제거됨 (Card 타입 직접 사용)
 
@@ -1347,42 +1348,33 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     const useAsyncMultiHit = isAttackCard && (isGunCard || hasMultipleHits);
 
     // === 유닛 시스템: 플레이어 공격 시 타겟 유닛의 block 사용 ===
-    let targetUnitIdForAttack: number | null = null;
-    let originalEnemyBlock = E.block;  // 원래 공유 블록 저장
-    const currentUnitsForAttack = E.units || enemy?.units || [];
-    const hasUnitsForAttack = currentUnitsForAttack.length > 0;
-
-    if (a.actor === 'player' && isAttackCard && hasUnitsForAttack) {
-      const cardTargetUnitId = a.card.__targetUnitId ?? battle.selectedTargetUnit ?? 0;
-      const aliveUnitsForAttack = currentUnitsForAttack.filter(u => u.hp > 0);
-      let targetUnit = aliveUnitsForAttack.find(u => u.unitId === cardTargetUnitId);
-      if (!targetUnit && aliveUnitsForAttack.length > 0) {
-        targetUnit = aliveUnitsForAttack[0];
-      }
-
-      if (targetUnit && targetUnit.unitId !== undefined) {
-        targetUnitIdForAttack = targetUnit.unitId;
-        // 타겟 유닛의 block을 E.block으로 사용 (공유 block 대신)
-        E.block = targetUnit.block || 0;
-        E.def = E.block > 0;
-        tempState.enemy = E;
-      }
+    const attackTargetResult = resolveAttackTarget({
+      actor: a.actor,
+      card: a.card,
+      enemyState: { ...E, units: E.units || enemy?.units || [] },
+      selectedTargetUnit: battle.selectedTargetUnit ?? 0,
+      isAttackCard
+    });
+    const targetUnitIdForAttack = attackTargetResult.targetUnitIdForAttack;
+    if (targetUnitIdForAttack !== null) {
+      E.block = attackTargetResult.modifiedEnemyState.block;
+      E.def = attackTargetResult.modifiedEnemyState.def ?? false;
+      tempState.enemy = E;
     }
 
     // === 유닛 시스템: 적 방어 시 소스 유닛의 기존 block 사용 (누적값 표시용) ===
-    let sourceUnitIdForDefense: number | null = null;
-    if (a.actor === 'enemy' && (a.card.type === 'defense' || a.card.type === 'general') && hasUnitsForAttack) {
-      const cardSourceUnitId = a.card.__sourceUnitId;
-      if (cardSourceUnitId !== undefined && cardSourceUnitId !== null) {
-        const sourceUnitForDefense = currentUnitsForAttack.find(u => u.unitId === cardSourceUnitId);
-        if (sourceUnitForDefense) {
-          sourceUnitIdForDefense = cardSourceUnitId as number;
-          // 소스 유닛의 기존 block을 E.block으로 사용 (누적값 계산용)
-          E.block = sourceUnitForDefense.block || 0;
-          E.def = E.block > 0;
-          tempState.enemy = E;
-        }
-      }
+    const defenseSourceResult = resolveDefenseSource({
+      actor: a.actor,
+      card: a.card,
+      enemyState: { ...E, units: E.units || enemy?.units || [] },
+      selectedTargetUnit: 0,
+      isAttackCard: false
+    });
+    const sourceUnitIdForDefense = defenseSourceResult.sourceUnitIdForDefense;
+    if (sourceUnitIdForDefense !== null) {
+      E.block = defenseSourceResult.modifiedEnemyState.block;
+      E.def = defenseSourceResult.modifiedEnemyState.def ?? false;
+      tempState.enemy = E;
     }
 
     let actionResult;
@@ -1533,56 +1525,36 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     }
 
     // === 유닛 시스템: 플레이어 공격 후 타겟 유닛의 block 업데이트 ===
-    if (a.actor === 'player' && isAttackCard && hasUnitsForAttack && targetUnitIdForAttack !== null) {
-      const remainingBlock = E.block || 0;  // 공격 후 남은 방어력
-      const unitsAfterAttack = E.units || currentUnitsForAttack;
-
-      // 타겟 유닛의 block 업데이트
-      const updatedUnitsAfterAttack = unitsAfterAttack.map(u => {
-        if (u.unitId === targetUnitIdForAttack) {
-          return { ...u, block: remainingBlock };
-        }
-        return u;
-      });
-
-      E.units = updatedUnitsAfterAttack;
-      E.block = 0;  // 공유 block 리셋 (개별 유닛이 가짐)
-      E.def = false;  // 공유 def 리셋
-
-      // battleRef 동기 업데이트
+    const attackBlockUpdateResult = updateAttackTargetBlock({
+      actor: a.actor,
+      card: a.card,
+      enemyState: { ...E, units: E.units || enemy?.units || [] },
+      targetUnitIdForAttack,
+      isAttackCard
+    });
+    if (attackBlockUpdateResult.updated) {
+      E.units = attackBlockUpdateResult.modifiedEnemyState.units;
+      E.block = attackBlockUpdateResult.modifiedEnemyState.block;
+      E.def = attackBlockUpdateResult.modifiedEnemyState.def ?? false;
       if (battleRef.current) {
         battleRef.current = { ...battleRef.current, enemy: E };
       }
     }
 
     // === 적 방어 카드: 개별 유닛에 방어력 적용 ===
-    // 유닛 시스템 사용 시 소스 유닛에게만 방어력 부여 (공유 block 대신)
-    if (a.actor === 'enemy' && (a.card.type === 'defense' || a.card.type === 'general') && E.block > 0) {
-      const currentUnits = E.units || enemy?.units || [];
-      const sourceUnitId = a.card.__sourceUnitId;
-
-      // 유닛이 있고 sourceUnitId가 설정되어 있으면 해당 유닛에 블록 전송
-      if (currentUnits.length > 0 && sourceUnitId !== undefined && sourceUnitId !== null) {
-        // E.block은 이미 누적값 (기존 + 새로 추가된 값)
-        const totalBlock = E.block;
-
-        // 소스 유닛의 블록을 누적값으로 설정
-        const updatedUnits = currentUnits.map(u => {
-          if (u.unitId === sourceUnitId) {
-            return { ...u, block: totalBlock, def: true };
-          }
-          return u;
-        });
-
-        // 공유 블록은 리셋하고 유닛별 블록 사용
-        E.units = updatedUnits;
-        E.block = 0;  // 공유 블록 리셋
-        E.def = false;  // 공유 def도 리셋 (개별 유닛이 가짐)
-
-        // battleRef 동기 업데이트
-        if (battleRef.current) {
-          battleRef.current = { ...battleRef.current, enemy: E };
-        }
+    const defenseBlockResult = applyDefenseToUnit({
+      actor: a.actor,
+      card: a.card,
+      enemyState: { ...E, units: E.units || enemy?.units || [] },
+      targetUnitIdForAttack: null,
+      isAttackCard: false
+    });
+    if (defenseBlockResult.updated) {
+      E.units = defenseBlockResult.modifiedEnemyState.units;
+      E.block = defenseBlockResult.modifiedEnemyState.block;
+      E.def = defenseBlockResult.modifiedEnemyState.def ?? false;
+      if (battleRef.current) {
+        battleRef.current = { ...battleRef.current, enemy: E };
       }
     }
 
