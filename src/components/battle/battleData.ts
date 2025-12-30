@@ -40,7 +40,7 @@ export function generateSpeedTicks(maxSpeed: number) {
 // 특성(Trait) 정의
 export const TRAITS = {
   // 긍정 특성 (★)
-  swift: { id: "swift", name: "신속함", type: "positive", weight: 1, description: "성능대비 시간 소모가 적음" },
+  swift: { id: "swift", name: "신속함", type: "positive", weight: 1, description: "속도 -2" },
   repeat: { id: "repeat", name: "반복", type: "positive", weight: 1, description: "다음턴에도 손패에 확정적으로 등장" },
   strongbone: { id: "strongbone", name: "강골", type: "positive", weight: 1, description: "피해량/방어력 25% 증가" },
   crush: { id: "crush", name: "분쇄", type: "positive", weight: 1, description: "상대방 방어력에 2배 피해" },
@@ -53,8 +53,8 @@ export const TRAITS = {
 
   // 긍정 특성 (★★)
   general: { id: "general", name: "장군", type: "positive", weight: 2, description: "다음턴 보조특기 등장률 25% 증가" },
-  knockback: { id: "knockback", name: "넉백", type: "positive", weight: 2, description: "상대 타임라인을 뒤로 민다" },
-  advance: { id: "advance", name: "앞당김", type: "positive", weight: 2, description: "내 타임라인을 앞당긴다" },
+  knockback: { id: "knockback", name: "넉백", type: "positive", weight: 2, description: "상대 타임라인 3 뒤로 밀기" },
+  advance: { id: "advance", name: "앞당김", type: "positive", weight: 2, description: "내 타임라인 3 앞당김" },
   cross: { id: "cross", name: "교차", type: "positive", weight: 2, description: "타임라인 상 한 번이라도 적 카드와 겹친 적 있으면 효과 발동/증폭" },
   destroyer: { id: "destroyer", name: "파괴자", type: "positive", weight: 2, description: "공격력 50% 증가" },
   warmup: { id: "warmup", name: "몸풀기", type: "positive", weight: 2, description: "다음턴 행동력 +2" },
@@ -70,7 +70,7 @@ export const TRAITS = {
   outcast: { id: "outcast", name: "소외", type: "negative", weight: 1, description: "조합 제외, 행동력 -1" },
   double_edge: { id: "double_edge", name: "양날의 검", type: "negative", weight: 1, description: "사용시 1 피해" },
   weakbone: { id: "weakbone", name: "약골", type: "negative", weight: 1, description: "피해량/방어력 20% 감소" },
-  slow: { id: "slow", name: "굼뜸", type: "negative", weight: 1, description: "속도가 느려짐" },
+  slow: { id: "slow", name: "굼뜸", type: "negative", weight: 1, description: "속도 +3" },
   escape: { id: "escape", name: "탈주", type: "negative", weight: 1, description: "다음턴 손패에 미등장" },
   stubborn: { id: "stubborn", name: "고집", type: "negative", weight: 1, description: "대응단계 순서변경 불가" },
   boredom: { id: "boredom", name: "싫증", type: "negative", weight: 1, description: "사용시마다 시간 +2" },
