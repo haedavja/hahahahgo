@@ -469,3 +469,24 @@ describe('토큰 효율 분석', () => {
     expect(typeof runTokenEfficiencyAnalysis).toBe('function');
   });
 });
+
+describe('매치업 분석', () => {
+  it('runMatchupAnalysis 함수가 존재한다', async () => {
+    const { runMatchupAnalysis } = await import('./gameSimulator');
+    expect(typeof runMatchupAnalysis).toBe('function');
+  });
+});
+
+describe('속도 분석', () => {
+  it('runSpeedAnalysis 함수가 존재한다', async () => {
+    const { runSpeedAnalysis } = await import('./gameSimulator');
+    expect(typeof runSpeedAnalysis).toBe('function');
+  });
+});
+
+describe('특성 시너지 분석', () => {
+  it('runTraitSynergyAnalysis 함수가 존재한다', async () => {
+    const { runTraitSynergyAnalysis } = await import('./gameSimulator');
+    expect(typeof runTraitSynergyAnalysis).toBe('function');
+  });
+});

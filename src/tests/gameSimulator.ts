@@ -2940,6 +2940,210 @@ export function runTokenEfficiencyAnalysis(battles: number = 30): void {
   console.log('\n' + '═'.repeat(50) + '\n');
 }
 
+/**
+ * 매치업 분석
+ * 특정 덱 vs 특정 적 조합의 상세 분석
+ */
+export function runMatchupAnalysis(
+  deckName: string = 'balanced',
+  enemyId: string = 'ghoul',
+  battles: number = 50
+): void {
+  console.log('\n╔════════════════════════════════════════╗');
+  console.log('║            매치업 분석                  ║');
+  console.log('╚════════════════════════════════════════╝\n');
+
+  const deck = DECK_PRESETS[deckName];
+  if (!deck) {
+    console.log(`❌ 덱 "${deckName}" 을(를) 찾을 수 없습니다.`);
+    console.log(`사용 가능한 덱: ${Object.keys(DECK_PRESETS).join(', ')}`);
+    return;
+  }
+
+  const enemy = ENEMIES.find(e => e.id === enemyId);
+  if (!enemy) {
+    console.log(`❌ 적 "${enemyId}" 을(를) 찾을 수 없습니다.`);
+    return;
+  }
+
+  console.log(`📊 ${deck.name} vs ${enemy.name}`);
+  console.log(`   ${deck.description}`);
+  console.log(`   적 HP: ${enemy.hp}, 티어: ${enemy.tier}`);
+  console.log('─'.repeat(50));
+
+  const config: SimulationConfig = {
+    battles,
+    maxTurns: 30,
+    enemyIds: [enemyId],
+    playerDeck: deck.cards,
+    verbose: false,
+  };
+
+  // 전투 수집
+  const results: BattleResult[] = [];
+  for (let i = 0; i < battles; i++) {
+    results.push(runBattle(enemyId, config));
+  }
+
+  // 통계
+  const wins = results.filter(r => r.winner === 'player').length;
+  const winRate = wins / battles;
+  const avgTurns = results.reduce((s, r) => s + r.turns, 0) / battles;
+  const avgDamage = results.reduce((s, r) => s + r.playerDamageDealt, 0) / battles;
+  const avgPlayerHp = results.reduce((s, r) => s + r.playerFinalHp, 0) / battles;
+
+  console.log(`\n📈 결과:`);
+  console.log(`  승률: ${(winRate * 100).toFixed(1)}% (${wins}/${battles})`);
+  console.log(`  평균 턴: ${avgTurns.toFixed(1)}`);
+  console.log(`  평균 피해량: ${avgDamage.toFixed(1)}`);
+  console.log(`  평균 잔여 HP: ${avgPlayerHp.toFixed(1)}`);
+
+  // 매치업 평가
+  const rating = winRate > 0.8 ? '매우 유리' :
+    winRate > 0.6 ? '유리' :
+    winRate > 0.4 ? '균형' :
+    winRate > 0.2 ? '불리' : '매우 불리';
+  console.log(`\n🎯 매치업 평가: ${rating}`);
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
+/**
+ * 속도 분석
+ * 카드 속도가 승률에 미치는 영향 분석
+ */
+export function runSpeedAnalysis(battles: number = 30): void {
+  console.log('\n╔════════════════════════════════════════╗');
+  console.log('║            속도 분석                    ║');
+  console.log('╚════════════════════════════════════════╝\n');
+
+  // 속도별 덱 구성
+  const speedDecks: Array<{ name: string; cards: string[] }> = [
+    { name: '느린 덱 (속도 8+)', cards: ['violent_mort', 'tempete_dechainee', 'griffe_du_dragon', 'execution_squad', 'execution_squad', 'guard', 'guard', 'deflect'] },
+    { name: '보통 덱 (속도 4-7)', cards: ['strike', 'strike', 'lunge', 'shoot', 'deflect', 'octave', 'quarte', 'guard'] },
+    { name: '빠른 덱 (속도 1-3)', cards: ['marche', 'fleche', 'flank', 'thrust', 'el_rapide', 'sabre_eclair', 'shoot', 'shoot'] },
+  ];
+
+  console.log('📊 속도별 승률 비교:\n');
+  console.log('─'.repeat(50));
+
+  const results: Array<{ name: string; winRate: number; avgTurns: number }> = [];
+
+  for (const speedDeck of speedDecks) {
+    const config: SimulationConfig = {
+      battles,
+      maxTurns: 30,
+      enemyIds: TIER_1_ENEMIES.slice(0, 4),
+      playerDeck: speedDeck.cards,
+      verbose: false,
+    };
+
+    const stats = runSimulation(config);
+    results.push({ name: speedDeck.name, winRate: stats.winRate, avgTurns: stats.avgTurns });
+
+    const bar = '█'.repeat(Math.ceil(stats.winRate * 30));
+    console.log(`  ${speedDeck.name}:`);
+    console.log(`    ${bar} ${(stats.winRate * 100).toFixed(1)}%`);
+    console.log(`    평균 턴: ${stats.avgTurns.toFixed(1)}`);
+  }
+
+  // 분석
+  console.log('\n💡 분석:');
+  console.log('─'.repeat(50));
+
+  const best = results.reduce((a, b) => a.winRate > b.winRate ? a : b);
+  const fastest = results.reduce((a, b) => a.avgTurns < b.avgTurns ? a : b);
+
+  console.log(`  최고 승률: ${best.name} (${(best.winRate * 100).toFixed(1)}%)`);
+  console.log(`  최단 전투: ${fastest.name} (${fastest.avgTurns.toFixed(1)}턴)`);
+
+  if (best.name.includes('빠른')) {
+    console.log('\n  → 빠른 공격이 효과적입니다. 선제공격 전략을 추천합니다.');
+  } else if (best.name.includes('느린')) {
+    console.log('\n  → 고위력 카드가 효과적입니다. 한방 전략을 추천합니다.');
+  } else {
+    console.log('\n  → 균형 잡힌 속도가 효과적입니다.');
+  }
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
+/**
+ * 특성 시너지 분석
+ * 카드 특성 조합의 효과 분석
+ */
+export function runTraitSynergyAnalysis(battles: number = 30): void {
+  console.log('\n╔════════════════════════════════════════╗');
+  console.log('║          특성 시너지 분석               ║');
+  console.log('╚════════════════════════════════════════╝\n');
+
+  // 특성별 덱 구성
+  const traitDecks: Array<{ name: string; description: string; cards: string[] }> = [
+    {
+      name: '연계 덱',
+      description: '연계(chain) 효과 중심',
+      cards: ['strike', 'lunge', 'fleche', 'flank', 'marche', 'strike', 'strike', 'lunge'],
+    },
+    {
+      name: '후속 덱',
+      description: '후속(followup) 효과 중심',
+      cards: ['shoot', 'shoot', 'reload', 'hawks_eye', 'sniper_shot', 'ap_load', 'shoot', 'shoot'],
+    },
+    {
+      name: '교차 덱',
+      description: '교차(cross) 보너스 중심',
+      cards: ['strike', 'deflect', 'lunge', 'octave', 'fleche', 'quarte', 'strike', 'deflect'],
+    },
+    {
+      name: '분쇄 덱',
+      description: '분쇄(crush) 효과 중심',
+      cards: ['violent_mort', 'griffe_du_dragon', 'tempete_dechainee', 'strike', 'strike', 'deflect', 'deflect', 'guard'],
+    },
+  ];
+
+  console.log('📊 특성별 덱 승률 비교:\n');
+  console.log('─'.repeat(50));
+
+  const results: Array<{ name: string; winRate: number; avgTurns: number; avgDamage: number }> = [];
+
+  for (const traitDeck of traitDecks) {
+    const config: SimulationConfig = {
+      battles,
+      maxTurns: 30,
+      enemyIds: TIER_1_ENEMIES.slice(0, 4),
+      playerDeck: traitDeck.cards,
+      verbose: false,
+    };
+
+    const stats = runSimulation(config);
+    results.push({
+      name: traitDeck.name,
+      winRate: stats.winRate,
+      avgTurns: stats.avgTurns,
+      avgDamage: stats.avgPlayerDamageDealt,
+    });
+
+    console.log(`  ${traitDeck.name} (${traitDeck.description}):`);
+    const bar = '█'.repeat(Math.ceil(stats.winRate * 25));
+    console.log(`    승률: ${bar} ${(stats.winRate * 100).toFixed(1)}%`);
+    console.log(`    평균 피해: ${stats.avgPlayerDamageDealt.toFixed(1)}`);
+  }
+
+  // 분석
+  console.log('\n💡 특성 효율 순위:');
+  console.log('─'.repeat(50));
+
+  results.sort((a, b) => b.winRate - a.winRate);
+  results.forEach((r, idx) => {
+    console.log(`  ${idx + 1}. ${r.name}: ${(r.winRate * 100).toFixed(1)}%`);
+  });
+
+  const best = results[0];
+  console.log(`\n  → 가장 효과적인 특성: ${best.name}`);
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
 // CLI에서 직접 실행 시
 if (typeof process !== 'undefined' && process.argv?.[1]?.includes('gameSimulator')) {
   runQuickTest();

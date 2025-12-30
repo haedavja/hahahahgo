@@ -20,6 +20,9 @@
  *   npx tsx scripts/runSimulator.ts wincond [battles]     # 승리 요인 분석
  *   npx tsx scripts/runSimulator.ts export [battles] [filename] # 결과 내보내기
  *   npx tsx scripts/runSimulator.ts token [battles]       # 토큰 효율 분석
+ *   npx tsx scripts/runSimulator.ts matchup [deck] [enemy] [battles] # 매치업 분석
+ *   npx tsx scripts/runSimulator.ts speed [battles]       # 속도 분석
+ *   npx tsx scripts/runSimulator.ts trait [battles]       # 특성 시너지 분석
  *
  * 예시:
  *   npx tsx scripts/runSimulator.ts 100
@@ -39,9 +42,12 @@
  *   npx tsx scripts/runSimulator.ts wincond 50
  *   npx tsx scripts/runSimulator.ts export 30 results.json
  *   npx tsx scripts/runSimulator.ts token 30
+ *   npx tsx scripts/runSimulator.ts matchup aggressive deserter 50
+ *   npx tsx scripts/runSimulator.ts speed 30
+ *   npx tsx scripts/runSimulator.ts trait 30
  */
 
-import { runSimulation, printStats, SimulationConfig, runBalanceAnalysis, runTierSimulation, runFullSimulation, runRelicComparison, runDeckComparison, runAnomalyComparison, runCardEfficiencyAnalysis, runFullReport, runBattleReplay, runEnemyAnalysis, runSynergyAnalysis, runDifficultyScalingAnalysis, runWinConditionAnalysis, exportSimulationResults, runTokenEfficiencyAnalysis, TIER_1_ENEMIES, TIER_2_ENEMIES, TIER_3_ENEMIES } from '../src/tests/gameSimulator';
+import { runSimulation, printStats, SimulationConfig, runBalanceAnalysis, runTierSimulation, runFullSimulation, runRelicComparison, runDeckComparison, runAnomalyComparison, runCardEfficiencyAnalysis, runFullReport, runBattleReplay, runEnemyAnalysis, runSynergyAnalysis, runDifficultyScalingAnalysis, runWinConditionAnalysis, exportSimulationResults, runTokenEfficiencyAnalysis, runMatchupAnalysis, runSpeedAnalysis, runTraitSynergyAnalysis, TIER_1_ENEMIES, TIER_2_ENEMIES, TIER_3_ENEMIES } from '../src/tests/gameSimulator';
 import { ENEMIES } from '../src/components/battle/battleData';
 
 // 커맨드 라인 인자 파싱
@@ -156,6 +162,29 @@ if (command === 'token') {
   const battles = parseInt(args[1]) || 30;
   console.log('🎮 토큰 효율 분석 모드\n');
   runTokenEfficiencyAnalysis(battles);
+  process.exit(0);
+}
+
+if (command === 'matchup') {
+  const deckName = args[1] || 'balanced';
+  const enemyId = args[2] || 'ghoul';
+  const battles = parseInt(args[3]) || 50;
+  console.log('🎮 매치업 분석 모드\n');
+  runMatchupAnalysis(deckName, enemyId, battles);
+  process.exit(0);
+}
+
+if (command === 'speed') {
+  const battles = parseInt(args[1]) || 30;
+  console.log('🎮 속도 분석 모드\n');
+  runSpeedAnalysis(battles);
+  process.exit(0);
+}
+
+if (command === 'trait') {
+  const battles = parseInt(args[1]) || 30;
+  console.log('🎮 특성 시너지 분석 모드\n');
+  runTraitSynergyAnalysis(battles);
   process.exit(0);
 }
 
