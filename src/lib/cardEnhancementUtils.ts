@@ -398,7 +398,7 @@ export function getAllEnhancementLevels(cardId: string): {
 export function getEnhancementDifference(cardId: string, fromLevel: number, toLevel: number): string {
   if (fromLevel >= toLevel) return '';
 
-  const fromStats = fromLevel > 0 ? calculateEnhancedStats(cardId, fromLevel) : createEmptyStats();
+  const fromStats = fromLevel > 0 ? calculateEnhancedStats(cardId, fromLevel) : createDefaultEnhancedStats();
   const toStats = calculateEnhancedStats(cardId, toLevel);
 
   const differences: string[] = [];
