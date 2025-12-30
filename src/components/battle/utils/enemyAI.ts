@@ -28,12 +28,17 @@ export const ENEMY_MODE_WEIGHTS: Record<string, AIModeWeights> = {
   'ghoul': { aggro: 60, turtle: 10, balanced: 30 },
   'marauder': { aggro: 40, turtle: 20, balanced: 40 },
   'slurthim': { aggro: 30, turtle: 30, balanced: 40 },
+  'wildrat': { aggro: 70, turtle: 5, balanced: 25 },      // 빠르고 공격적
+  'berserker': { aggro: 85, turtle: 0, balanced: 15 },    // 극도로 공격적
+  'polluted': { aggro: 40, turtle: 30, balanced: 30 },    // 독과 자폭 전략
 
   // Tier 2 - 중급 몬스터
   'deserter': { aggro: 50, turtle: 25, balanced: 25 },
+  'hunter': { aggro: 55, turtle: 20, balanced: 25 },      // 조준 후 처형
 
   // Tier 3 - 보스 몬스터
   'slaughterer': { aggro: 80, turtle: 5, balanced: 15 },
+  'captain': { aggro: 45, turtle: 30, balanced: 25 },     // 지휘관 스타일
 
   // 기본값 (알 수 없는 몬스터)
   'default': { aggro: 33, turtle: 33, balanced: 34 }

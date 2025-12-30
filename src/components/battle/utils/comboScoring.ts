@@ -48,7 +48,13 @@ export const ENEMY_COMBO_TENDENCIES: Record<string, number> = {
   'marauder': 0.5,
   'slurthim': 0,
   'deserter': 0.8,
-  'slaughterer': 0.5
+  'slaughterer': 0.5,
+  // 1막 신규 적
+  'wildrat': 0.2,      // 단순 공격, 콤보 미인식
+  'berserker': 0.1,    // 폭주하므로 콤보 무시
+  'polluted': 0.3,     // 독 전략에 집중
+  'hunter': 0.7,       // 전략적 사냥꾼
+  'captain': 0.9       // 지휘관, 콤보 적극 활용
 };
 
 /**
