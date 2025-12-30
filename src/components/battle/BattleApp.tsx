@@ -423,6 +423,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     return `${finalSpeed} (${baseSpeed} ${sign} ${abs})`;
   }, [effectiveAgility]);
   const cardUpgrades = useGameStore((state) => state.cardUpgrades || {}); // 카드 업그레이드(희귀도)
+  const cardGrowth = useGameStore((state) => state.cardGrowth || {}); // 카드 성장 상태 (강화 효과 적용)
 
   // 전투 ref 통합 관리 (useBattleRefs 커스텀 훅)
   const {
@@ -635,7 +636,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     if (!deckInitializedRef.current) {
       if (hasCharacterBuild) {
         // 덱 초기화 (주특기는 손패로, 보조특기는 덱 맨 위로)
-        const { deck: initialDeck, mainSpecialsHand } = initializeDeck(currentBuild, (battle.vanishedCards || []).map(c => c.id));
+        const cardGrowthState = useGameStore.getState().cardGrowth || {};
+        const { deck: initialDeck, mainSpecialsHand } = initializeDeck(currentBuild, (battle.vanishedCards || []).map(c => c.id), cardGrowthState);
         // 덱에서 카드 드로우
         const drawResult = drawFromDeck(initialDeck, [], DEFAULT_DRAW_COUNT, escapeBanRef.current as Set<string>);
         actions.setDeck(drawResult.newDeck);
@@ -674,7 +676,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
     // 첫 렌더링이 아니고, 주특기 또는 보조특기가 변경된 경우
     if (prevBuild && (mainChanged || subChanged)) {
-      const { deck: newDeck, mainSpecialsHand } = initializeDeck(devCharacterBuild, (battle.vanishedCards || []).map(c => c.id));
+      const cardGrowthState = useGameStore.getState().cardGrowth || {};
+      const { deck: newDeck, mainSpecialsHand } = initializeDeck(devCharacterBuild, (battle.vanishedCards || []).map(c => c.id), cardGrowthState);
       const drawResult = drawFromDeck(newDeck, [], DEFAULT_DRAW_COUNT, escapeBanRef.current as Set<string>);
 
       actions.setDeck(drawResult.newDeck);
@@ -829,7 +832,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
         if (hasCharacterBuild) {
           // 덱 초기화 (주특기는 손패로, 보조특기는 덱 맨 위로)
-          const { deck: initialDeck, mainSpecialsHand } = initializeDeck(currentBuild, (vanishedCards || []).map(c => c.id));
+          const cardGrowthState = useGameStore.getState().cardGrowth || {};
+          const { deck: initialDeck, mainSpecialsHand } = initializeDeck(currentBuild, (vanishedCards || []).map(c => c.id), cardGrowthState);
           // 덱에서 카드 드로우
           const drawResult = drawFromDeck(initialDeck, [], DEFAULT_DRAW_COUNT, escapeBanRef.current as Set<string>);
           actions.setDeck(drawResult.newDeck);

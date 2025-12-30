@@ -13,6 +13,14 @@ import { CARDS, TRAITS } from '../../battle/battleData';
 import { CARD_ETHER_BY_RARITY } from '../../battle/utils/etherCalculations';
 import { generateSpecializationOptions, type SpecializationOption } from '../../../lib/specializationUtils';
 import type { CardGrowthState } from '../../../state/slices/types';
+import {
+  getNextEnhancementPreview,
+  getAllEnhancementLevels,
+  getEnhancementColor,
+  getEnhancementLabel,
+  isEnhanceable,
+  calculateEnhancedStats,
+} from '../../../lib/cardEnhancementUtils';
 
 // 자아 형성 규칙
 const EGO_RULES = [
@@ -356,7 +364,7 @@ function CardGrowthPanel({
   };
 
   const getCardGrowthState = (cardId: string): CardGrowthState => {
-    return cardGrowth[cardId] || { rarity: 'common', growthCount: 0, traits: [] };
+    return cardGrowth[cardId] || { rarity: 'common', growthCount: 0, enhancementLevel: 0, specializationCount: 0, traits: [] };
   };
 
   const getNextPromotionInfo = (growth: CardGrowthState) => {
@@ -439,19 +447,14 @@ function CardGrowthPanel({
       )}
 
       {/* 강화 확인 */}
-      {growthMode === 'enhance' && selected && (
-        <div style={{ padding: "10px", background: "rgba(96, 165, 250, 0.1)", borderRadius: "8px", border: "1px solid rgba(96, 165, 250, 0.3)" }}>
-          <div style={{ fontWeight: 700, color: "#60a5fa", marginBottom: "8px" }}>⚔️ 강화</div>
-          <div style={{ fontSize: "13px", color: "#e2e8f0", marginBottom: "8px" }}>
-            카드의 기본 스탯(데미지, 방어력, 속도 등)이 향상됩니다.
-          </div>
-          <div style={{ display: "flex", gap: "8px" }}>
-            <button className="btn" onClick={handleConfirmEnhance} style={{ background: "rgba(96, 165, 250, 0.2)" }}>
-              강화 확정
-            </button>
-            <button className="btn" onClick={() => setGrowthMode('select')}>취소</button>
-          </div>
-        </div>
+      {growthMode === 'enhance' && selected && selectedGrowth && (
+        <EnhancePreviewPanel
+          cardId={selected.id}
+          cardName={selected.name}
+          currentLevel={selectedGrowth.enhancementLevel || 0}
+          onConfirm={handleConfirmEnhance}
+          onCancel={() => setGrowthMode('select')}
+        />
       )}
 
       {/* 특화 선택 */}
@@ -535,7 +538,21 @@ function CardGrowthPanel({
                     onClick={() => handleSelectCard(card.id)}
                   >
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <strong>{card.name}</strong>
+                      <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                        <strong>{card.name}</strong>
+                        {(growth.enhancementLevel || 0) > 0 && (
+                          <span style={{
+                            fontSize: "10px",
+                            padding: "1px 4px",
+                            borderRadius: "3px",
+                            background: getEnhancementColor(growth.enhancementLevel || 0),
+                            color: "#0f172a",
+                            fontWeight: 700,
+                          }}>
+                            {getEnhancementLabel(growth.enhancementLevel || 0)}
+                          </span>
+                        )}
+                      </div>
                       <div style={{ display: "flex", gap: "4px", alignItems: "center" }}>
                         <span style={{ fontSize: "11px", color: "#9ca3af" }}>
                           {growth.growthCount}/5
@@ -579,5 +596,190 @@ function CardGrowthPanel({
         </div>
       )}
     </div>
+  );
+}
+
+/** 강화 미리보기 패널 */
+function EnhancePreviewPanel({
+  cardId,
+  cardName,
+  currentLevel,
+  onConfirm,
+  onCancel,
+}: {
+  cardId: string;
+  cardName: string;
+  currentLevel: number;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  const nextPreview = getNextEnhancementPreview(cardId, currentLevel);
+  const allLevels = getAllEnhancementLevels(cardId);
+  const canEnhance = isEnhanceable(cardId) && currentLevel < 5;
+
+  // 현재 누적 스탯
+  const currentStats = currentLevel > 0 ? calculateEnhancedStats(cardId, currentLevel) : null;
+  // 다음 레벨 누적 스탯
+  const nextStats = canEnhance ? calculateEnhancedStats(cardId, currentLevel + 1) : null;
+
+  return (
+    <div style={{ padding: "12px", background: "rgba(96, 165, 250, 0.1)", borderRadius: "8px", border: "1px solid rgba(96, 165, 250, 0.3)" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
+        <div style={{ fontWeight: 700, color: "#60a5fa" }}>⚔️ 강화</div>
+        {currentLevel > 0 && (
+          <span style={{
+            fontSize: "12px",
+            padding: "2px 8px",
+            borderRadius: "4px",
+            background: getEnhancementColor(currentLevel),
+            color: "#0f172a",
+            fontWeight: 700,
+          }}>
+            현재 {getEnhancementLabel(currentLevel)}
+          </span>
+        )}
+      </div>
+
+      {/* 카드가 강화 가능한 경우 */}
+      {canEnhance && nextPreview ? (
+        <>
+          {/* 다음 강화 효과 */}
+          <div style={{
+            padding: "10px",
+            background: "rgba(15, 23, 42, 0.8)",
+            borderRadius: "6px",
+            marginBottom: "10px",
+            border: nextPreview.isMilestone ? "1px solid rgba(251, 191, 36, 0.5)" : "1px solid rgba(71, 85, 105, 0.5)"
+          }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+              <span style={{ fontSize: "13px", color: "#9ca3af" }}>
+                {cardName} → {getEnhancementLabel(nextPreview.level)}
+              </span>
+              {nextPreview.isMilestone && (
+                <span style={{
+                  fontSize: "11px",
+                  padding: "2px 6px",
+                  borderRadius: "4px",
+                  background: "rgba(251, 191, 36, 0.2)",
+                  color: "#fbbf24",
+                  border: "1px solid rgba(251, 191, 36, 0.4)"
+                }}>
+                  ★ 마일스톤
+                </span>
+              )}
+            </div>
+            <div style={{
+              fontSize: "14px",
+              color: getEnhancementColor(nextPreview.level),
+              fontWeight: 600
+            }}>
+              {nextPreview.description}
+            </div>
+          </div>
+
+          {/* 누적 스탯 변화 미리보기 */}
+          {nextStats && (
+            <div style={{ marginBottom: "10px" }}>
+              <div style={{ fontSize: "12px", color: "#9ca3af", marginBottom: "6px" }}>총 누적 효과:</div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+                {nextStats.damageBonus > 0 && (
+                  <StatBadge label="피해" value={`+${nextStats.damageBonus}`} color="#f87171" />
+                )}
+                {nextStats.blockBonus > 0 && (
+                  <StatBadge label="방어" value={`+${nextStats.blockBonus}`} color="#60a5fa" />
+                )}
+                {nextStats.speedCostReduction > 0 && (
+                  <StatBadge label="속도" value={`-${nextStats.speedCostReduction}`} color="#4ade80" />
+                )}
+                {nextStats.actionCostReduction > 0 && (
+                  <StatBadge label="행동력" value={`-${nextStats.actionCostReduction}`} color="#fbbf24" />
+                )}
+                {nextStats.hitsBonus > 0 && (
+                  <StatBadge label="타격" value={`+${nextStats.hitsBonus}`} color="#f472b6" />
+                )}
+                {nextStats.specialEffects.length > 0 && (
+                  <span style={{
+                    fontSize: "11px",
+                    padding: "2px 6px",
+                    borderRadius: "4px",
+                    background: "rgba(167, 139, 250, 0.2)",
+                    color: "#a78bfa",
+                    border: "1px solid rgba(167, 139, 250, 0.4)"
+                  }}>
+                    ✨ 특수효과 {nextStats.specialEffects.length}개
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* 전체 강화 단계 표시 */}
+          <div style={{ marginBottom: "12px" }}>
+            <div style={{ fontSize: "12px", color: "#9ca3af", marginBottom: "6px" }}>강화 진행:</div>
+            <div style={{ display: "flex", gap: "4px" }}>
+              {allLevels.map((level) => (
+                <div
+                  key={level.level}
+                  style={{
+                    width: "28px",
+                    height: "28px",
+                    borderRadius: "4px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: "12px",
+                    fontWeight: 700,
+                    background: level.level <= currentLevel
+                      ? getEnhancementColor(level.level)
+                      : level.level === currentLevel + 1
+                        ? "rgba(96, 165, 250, 0.3)"
+                        : "rgba(71, 85, 105, 0.3)",
+                    color: level.level <= currentLevel ? "#0f172a" : "#9ca3af",
+                    border: level.isMilestone
+                      ? "2px solid rgba(251, 191, 36, 0.6)"
+                      : "1px solid rgba(71, 85, 105, 0.5)",
+                  }}
+                  title={level.description}
+                >
+                  {level.level}
+                </div>
+              ))}
+            </div>
+          </div>
+        </>
+      ) : !canEnhance ? (
+        <div style={{ fontSize: "13px", color: "#9ca3af", marginBottom: "10px" }}>
+          {currentLevel >= 5 ? "최대 강화에 도달했습니다." : "이 카드는 강화할 수 없습니다."}
+        </div>
+      ) : null}
+
+      <div style={{ display: "flex", gap: "8px" }}>
+        <button
+          className="btn"
+          onClick={onConfirm}
+          disabled={!canEnhance}
+          style={{ background: canEnhance ? "rgba(96, 165, 250, 0.2)" : undefined }}
+        >
+          강화 확정
+        </button>
+        <button className="btn" onClick={onCancel}>취소</button>
+      </div>
+    </div>
+  );
+}
+
+/** 스탯 뱃지 컴포넌트 */
+function StatBadge({ label, value, color }: { label: string; value: string; color: string }) {
+  return (
+    <span style={{
+      fontSize: "11px",
+      padding: "2px 6px",
+      borderRadius: "4px",
+      background: `${color}20`,
+      color: color,
+      border: `1px solid ${color}40`
+    }}>
+      {label} {value}
+    </span>
   );
 }

@@ -1120,9 +1120,12 @@ export function getCardEnhancement(cardId: string): CardEnhancement | undefined 
 }
 
 // 특정 카드의 특정 레벨 강화 데이터 조회
-export function getEnhancementLevel(cardId: string, level: 1 | 2 | 3 | 4 | 5): EnhancementLevel | undefined {
+export function getEnhancementLevel(cardId: string, level: number): EnhancementLevel | undefined {
+  if (level < 1 || level > 5) {
+    return undefined;
+  }
   const enhancement = getCardEnhancement(cardId);
-  return enhancement?.levels[level];
+  return enhancement?.levels[level as 1 | 2 | 3 | 4 | 5];
 }
 
 // 누적 강화 효과 계산 (1강부터 현재 레벨까지)

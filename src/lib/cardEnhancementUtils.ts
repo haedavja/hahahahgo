@@ -14,7 +14,7 @@ import {
 export interface BaseCard {
   id: string;
   name: string;
-  type: 'attack' | 'general' | 'defense';
+  type: 'attack' | 'general' | 'defense' | 'support' | string;
   damage?: number;
   block?: number;
   speedCost: number;
