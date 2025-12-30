@@ -19,6 +19,7 @@ import {
   getEnhancementLabel,
   isEnhanceable,
   calculateEnhancedStats,
+  getEnhancedCard,
 } from '../../../lib/cardEnhancementUtils';
 import { TraitBadgeList } from '../../battle/ui/TraitBadge';
 import { Sword, Shield } from '../../battle/ui/BattleIcons';
