@@ -11,7 +11,7 @@
 
 import { useState, useMemo } from 'react';
 import { CARDS, TRAITS } from '../../battle/battleData';
-import { generateSpecializationOptions, type SpecializationOption } from '../../../lib/specializationUtils';
+import { generateSpecializationOptions, type SpecializationOption, type CardType } from '../../../lib/specializationUtils';
 import type { CardGrowthState } from '../../../state/slices/types';
 import {
   getAllEnhancementLevels,
@@ -129,9 +129,12 @@ export function CardGrowthModal({
 
   // 특화 모드 진입
   const enterSpecializeMode = () => {
-    if (!selectedCardId) return;
+    if (!selectedCardId || !selectedCard) return;
     const growth = getCardGrowthState(selectedCardId);
-    const options = generateSpecializationOptions(growth.traits);
+    // 카드 타입 결정 (attack, defense, general)
+    const cardType: CardType = selectedCard.type === 'attack' ? 'attack' :
+                               selectedCard.type === 'defense' ? 'defense' : 'general';
+    const options = generateSpecializationOptions(growth.traits, cardType);
     setSpecOptions(options);
     setSelectedSpecOption(null);
     setMode('specialize');
