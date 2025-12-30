@@ -572,21 +572,37 @@ export function CardGrowthModal({
                 </div>
               </div>
 
-              {/* 카드 설명 */}
-              {selectedCard.description && (
-                <div style={{
-                  padding: '12px 16px',
-                  background: 'rgba(15, 23, 42, 0.6)',
-                  borderRadius: '10px',
-                  border: '1px solid #334155',
-                  textAlign: 'center',
-                }}>
-                  <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginBottom: '6px' }}>카드 설명</div>
-                  <div style={{ color: '#e2e8f0', fontSize: '0.95rem', lineHeight: 1.4 }}>
-                    {selectedCard.description}
+              {/* 카드 설명 + 강화 효과 설명 */}
+              <div style={{
+                padding: '12px 16px',
+                background: 'rgba(15, 23, 42, 0.6)',
+                borderRadius: '10px',
+                border: '1px solid #334155',
+              }}>
+                {/* 기본 카드 설명 */}
+                {selectedCard.description && (
+                  <div style={{ marginBottom: previewLevel ? '12px' : 0 }}>
+                    <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px' }}>카드 설명</div>
+                    <div style={{ color: '#e2e8f0', fontSize: '0.9rem', lineHeight: 1.4 }}>
+                      {selectedCard.description}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
+                {/* 강화 효과 설명 */}
+                {previewLevel && allLevels[previewLevel - 1] && (
+                  <div style={{
+                    paddingTop: selectedCard.description ? '12px' : 0,
+                    borderTop: selectedCard.description ? '1px solid #334155' : 'none',
+                  }}>
+                    <div style={{ fontSize: '0.8rem', color: '#60a5fa', marginBottom: '4px' }}>
+                      +{previewLevel} 강화 효과
+                    </div>
+                    <div style={{ color: '#93c5fd', fontSize: '0.9rem', lineHeight: 1.4 }}>
+                      {allLevels[previewLevel - 1].description}
+                    </div>
+                  </div>
+                )}
+              </div>
 
               {/* 변경 사항 요약 */}
               {previewLevel && previewStats && (
