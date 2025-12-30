@@ -20,6 +20,7 @@ import {
   isEnhanceable,
   calculateEnhancedStats,
   getEnhancedCard,
+  getEnhancementDifference,
 } from '../../../lib/cardEnhancementUtils';
 import { TraitBadgeList } from '../../battle/ui/TraitBadge';
 import { Sword, Shield } from '../../battle/ui/BattleIcons';
@@ -579,8 +580,8 @@ export function CardGrowthModal({
                 </div>
               </div>
 
-              {/* 강화 효과 설명 */}
-              {previewLevel && allLevels[previewLevel - 1] && (
+              {/* 강화 효과 설명 (현재 레벨과 미리보기 레벨 사이의 총 변화) */}
+              {previewLevel && selectedCardId && (
                 <div style={{
                   padding: '14px 18px',
                   background: 'rgba(96, 165, 250, 0.15)',
@@ -589,10 +590,10 @@ export function CardGrowthModal({
                   textAlign: 'center',
                 }}>
                   <div style={{ fontSize: '0.9rem', color: '#60a5fa', marginBottom: '6px', fontWeight: 600 }}>
-                    +{previewLevel} 강화 효과
+                    {currentLevel > 0 ? `+${currentLevel} → +${previewLevel}` : `+${previewLevel}`} 강화 효과
                   </div>
                   <div style={{ color: '#93c5fd', fontSize: '1rem' }}>
-                    {allLevels[previewLevel - 1].description}
+                    {getEnhancementDifference(selectedCardId, currentLevel, previewLevel) || '변경 없음'}
                   </div>
                 </div>
               )}

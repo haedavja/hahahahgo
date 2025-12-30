@@ -389,6 +389,117 @@ export function getAllEnhancementLevels(cardId: string): {
 }
 
 /**
+ * 두 강화 레벨 사이의 스탯 차이 계산
+ * @param cardId 카드 ID
+ * @param fromLevel 시작 레벨 (현재 레벨)
+ * @param toLevel 목표 레벨 (미리보기 레벨)
+ * @returns 차이 설명 문자열
+ */
+export function getEnhancementDifference(cardId: string, fromLevel: number, toLevel: number): string {
+  if (fromLevel >= toLevel) return '';
+
+  const fromStats = fromLevel > 0 ? calculateEnhancedStats(cardId, fromLevel) : createEmptyStats();
+  const toStats = calculateEnhancedStats(cardId, toLevel);
+
+  const differences: string[] = [];
+
+  // 기본 스탯 차이
+  const damageDiff = toStats.damageBonus - fromStats.damageBonus;
+  if (damageDiff > 0) differences.push(`피해 +${damageDiff}`);
+
+  const blockDiff = toStats.blockBonus - fromStats.blockBonus;
+  if (blockDiff > 0) differences.push(`방어 +${blockDiff}`);
+
+  const speedDiff = toStats.speedCostReduction - fromStats.speedCostReduction;
+  if (speedDiff > 0) differences.push(`속도 -${speedDiff}`);
+
+  const actionDiff = toStats.actionCostReduction - fromStats.actionCostReduction;
+  if (actionDiff > 0) differences.push(`행동력 -${actionDiff}`);
+
+  const hitsDiff = toStats.hitsBonus - fromStats.hitsBonus;
+  if (hitsDiff > 0) differences.push(`타격 +${hitsDiff}`);
+
+  // 밀치기/앞당김
+  const pushDiff = toStats.pushAmountBonus - fromStats.pushAmountBonus;
+  if (pushDiff > 0) differences.push(`밀치기 +${pushDiff}`);
+
+  const advanceDiff = toStats.advanceAmountBonus - fromStats.advanceAmountBonus;
+  if (advanceDiff > 0) differences.push(`앞당김 +${advanceDiff}`);
+
+  // 효과 스택
+  const burnDiff = toStats.burnStacksBonus - fromStats.burnStacksBonus;
+  if (burnDiff > 0) differences.push(`화상 +${burnDiff}`);
+
+  const debuffDiff = toStats.debuffStacksBonus - fromStats.debuffStacksBonus;
+  if (debuffDiff > 0) differences.push(`디버프 +${debuffDiff}회`);
+
+  const counterShotDiff = toStats.counterShotBonus - fromStats.counterShotBonus;
+  if (counterShotDiff > 0) differences.push(`대응사격 +${counterShotDiff}`);
+
+  const critDiff = toStats.critBoostBonus - fromStats.critBoostBonus;
+  if (critDiff > 0) differences.push(`치명타 +${critDiff}%`);
+
+  const finesseDiff = toStats.finesseGainBonus - fromStats.finesseGainBonus;
+  if (finesseDiff > 0) differences.push(`기교 +${finesseDiff}`);
+
+  const drawDiff = toStats.drawCountBonus - fromStats.drawCountBonus;
+  if (drawDiff > 0) differences.push(`드로우 +${drawDiff}`);
+
+  const createDiff = toStats.createCountBonus - fromStats.createCountBonus;
+  if (createDiff > 0) differences.push(`창조 +${createDiff}`);
+
+  const buffDiff = toStats.buffAmountBonus - fromStats.buffAmountBonus;
+  if (buffDiff > 0) differences.push(`버프 +${buffDiff}`);
+
+  const agilityDiff = toStats.agilityGainBonus - fromStats.agilityGainBonus;
+  if (agilityDiff > 0) differences.push(`민첩 +${agilityDiff}`);
+
+  const executeDiff = toStats.executeThresholdBonus - fromStats.executeThresholdBonus;
+  if (executeDiff > 0) differences.push(`처형 +${executeDiff}%`);
+
+  const parryDiff = toStats.parryRangeBonus - fromStats.parryRangeBonus;
+  if (parryDiff > 0) differences.push(`패링 +${parryDiff}`);
+
+  const onHitBlockDiff = toStats.onHitBlockBonus - fromStats.onHitBlockBonus;
+  if (onHitBlockDiff > 0) differences.push(`피격 방어 +${onHitBlockDiff}`);
+
+  const perCardBlockDiff = toStats.perCardBlockBonus - fromStats.perCardBlockBonus;
+  if (perCardBlockDiff > 0) differences.push(`카드당 방어 +${perCardBlockDiff}`);
+
+  const maxSpeedDiff = toStats.maxSpeedBoostBonus - fromStats.maxSpeedBoostBonus;
+  if (maxSpeedDiff > 0) differences.push(`최대속도 +${maxSpeedDiff}`);
+
+  const fragDiff = toStats.fragStacksBonus - fromStats.fragStacksBonus;
+  if (fragDiff > 0) differences.push(`파쇄탄 +${fragDiff}`);
+
+  const growthDiff = toStats.growthPerTickBonus - fromStats.growthPerTickBonus;
+  if (growthDiff > 0) differences.push(`성장 +${growthDiff}`);
+
+  const durationDiff = toStats.durationTurnsBonus - fromStats.durationTurnsBonus;
+  if (durationDiff > 0) differences.push(`지속 +${durationDiff}턴`);
+
+  // 특성 변화 (새로 추가되는 것만)
+  const newTraits = toStats.addedTraits.filter(t => !fromStats.addedTraits.includes(t));
+  if (newTraits.length > 0) differences.push(`특성 추가`);
+
+  const newRemovals = toStats.removedTraits.filter(t => !fromStats.removedTraits.includes(t));
+  if (newRemovals.length > 0) differences.push(`특성 제거`);
+
+  // 특수 효과 (새로 추가되는 것만)
+  const fromEffectTypes = new Set(fromStats.specialEffects.map(e => e.type));
+  const newEffects = toStats.specialEffects.filter(e => !fromEffectTypes.has(e.type));
+  for (const effect of newEffects) {
+    if (effect.type === 'counterOnHit' && typeof effect.value === 'number') {
+      differences.push(`반격 ${effect.value}회 부여`);
+    } else if (effect.type === 'extraBlur' && typeof effect.value === 'number') {
+      differences.push(`흐릿함 +${effect.value}`);
+    }
+  }
+
+  return differences.join(', ');
+}
+
+/**
  * 특정 특수 효과가 있는지 확인
  * @param stats 강화된 스탯
  * @param effectType 확인할 효과 타입
