@@ -116,8 +116,10 @@ export function CardGrowthModal({
   // 강화 모드 진입
   const enterEnhanceMode = () => {
     if (!selectedCardId) return;
+    const growth = getCardGrowthState(selectedCardId);
     setMode('enhance');
-    setPreviewLevel(null);
+    // 자동으로 다음 강화 단계 미리보기 표시
+    setPreviewLevel(Math.min((growth.enhancementLevel || 0) + 1, 5));
   };
 
   // 특화 모드 진입
@@ -565,6 +567,22 @@ export function CardGrowthModal({
                   )}
                 </div>
               </div>
+
+              {/* 카드 설명 */}
+              {selectedCard.description && (
+                <div style={{
+                  padding: '12px 16px',
+                  background: 'rgba(15, 23, 42, 0.6)',
+                  borderRadius: '10px',
+                  border: '1px solid #334155',
+                  textAlign: 'center',
+                }}>
+                  <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginBottom: '6px' }}>카드 설명</div>
+                  <div style={{ color: '#e2e8f0', fontSize: '0.95rem', lineHeight: 1.4 }}>
+                    {selectedCard.description}
+                  </div>
+                </div>
+              )}
 
               {/* 변경 사항 요약 */}
               {previewLevel && previewStats && (

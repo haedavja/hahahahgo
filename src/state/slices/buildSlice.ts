@@ -149,12 +149,16 @@ export const createBuildActions: SliceCreator = (set, get) => ({
       const newSpecializationCount = currentGrowth.specializationCount + 1;
       const newRarity = calculateRarity(newGrowthCount);
 
+      // 중복 특성 필터링 (기존에 없는 특성만 추가)
+      const existingTraitSet = new Set(currentGrowth.traits);
+      const uniqueNewTraits = selectedTraits.filter(t => !existingTraitSet.has(t));
+
       const newGrowthState: CardGrowthState = {
         ...currentGrowth,
         growthCount: newGrowthCount,
         specializationCount: newSpecializationCount,
         rarity: newRarity,
-        traits: [...currentGrowth.traits, ...selectedTraits],
+        traits: [...currentGrowth.traits, ...uniqueNewTraits],
       };
 
       // 레거시 cardUpgrades도 동기화

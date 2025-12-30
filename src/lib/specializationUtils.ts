@@ -222,9 +222,14 @@ function createSynergyOption(existingTraits: string[]): SpecializationOption | n
  */
 export function generateSpecializationOptions(existingTraits: string[] = []): SpecializationOption[] {
   const options: SpecializationOption[] = [];
-  const usedTraitIds = new Set<string>();
+  const usedTraitIds = new Set<string>(existingTraits); // 기존 특성도 제외 대상에 포함
   const MAX_ATTEMPTS = 20; // 무한 루프 방지
   let attempts = 0;
+
+  // 특성이 기존에 없는지 체크하는 헬퍼
+  const hasNoExistingTraits = (option: SpecializationOption): boolean => {
+    return !option.traits.some(t => existingTraits.includes(t.id));
+  };
 
   // 1. 연관 특성 선택지 (기존 특성이 있으면 1~2개)
   if (existingTraits.length > 0) {
@@ -232,7 +237,7 @@ export function generateSpecializationOptions(existingTraits: string[] = []): Sp
     for (let i = 0; i < synergyCount && attempts < MAX_ATTEMPTS; i++) {
       attempts++;
       const synergyOption = createSynergyOption(existingTraits);
-      if (synergyOption && !synergyOption.traits.some(t => usedTraitIds.has(t.id))) {
+      if (synergyOption && hasNoExistingTraits(synergyOption) && !synergyOption.traits.some(t => usedTraitIds.has(t.id))) {
         options.push(synergyOption);
         synergyOption.traits.forEach(t => usedTraitIds.add(t.id));
       }
@@ -244,7 +249,7 @@ export function generateSpecializationOptions(existingTraits: string[] = []): Sp
   for (let i = 0; i < mixedCount && options.length < 4 && attempts < MAX_ATTEMPTS; i++) {
     attempts++;
     const mixedOption = createMixedOption();
-    if (mixedOption && !mixedOption.traits.some(t => usedTraitIds.has(t.id))) {
+    if (mixedOption && hasNoExistingTraits(mixedOption) && !mixedOption.traits.some(t => usedTraitIds.has(t.id))) {
       options.push(mixedOption);
       mixedOption.traits.forEach(t => usedTraitIds.add(t.id));
     }
@@ -256,17 +261,19 @@ export function generateSpecializationOptions(existingTraits: string[] = []): Sp
     const singleOption = createSinglePositiveOption();
     if (!singleOption) break; // 더 이상 생성 불가
 
-    if (!usedTraitIds.has(singleOption.traits[0].id)) {
+    if (hasNoExistingTraits(singleOption) && !usedTraitIds.has(singleOption.traits[0].id)) {
       options.push(singleOption);
       usedTraitIds.add(singleOption.traits[0].id);
     }
   }
 
-  // 옵션이 부족하면 중복 허용하여 채움
+  // 옵션이 부족하면 중복 허용하여 채움 (기존 특성과는 여전히 중복 불가)
   while (options.length < 5) {
     const fallbackOption = createSinglePositiveOption();
     if (!fallbackOption) break;
-    options.push(fallbackOption);
+    if (hasNoExistingTraits(fallbackOption)) {
+      options.push(fallbackOption);
+    }
   }
 
   // 랜덤하게 섞기
