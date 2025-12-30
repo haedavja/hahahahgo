@@ -272,13 +272,19 @@ export function calculateSingleHit(
   }
 
   if (tokenDamageResult.dodged) {
+    // 회피 시에도 공격 로그 생성 (빗나감 표시)
+    const enemyNameDodge = battleContext.enemyDisplayName || '몬스터';
+    const actorNameDodge = attackerName === 'player' ? `플레이어(${card.name})` : `${enemyNameDodge}(${card.name})`;
+    const targetNameDodge = attackerName === 'player' ? enemyNameDodge : '플레이어';
+    const dodgeMsg = `${actorNameDodge}${ghostText} -> ${targetNameDodge} • 빗나감! (회피)`;
+
     events.push({
       actor: attackerName,
       card: card.name,
       type: 'dodge',
-      msg: tokenDamageResult.logs.join(', ')
+      msg: dodgeMsg
     });
-    logs.push(...tokenDamageResult.logs);
+    logs.push(dodgeMsg);
     return {
       attacker: updatedAttacker,
       defender: updatedDefender,
