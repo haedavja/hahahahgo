@@ -223,7 +223,7 @@ export function CardGrowthModal({
             </h2>
             <p style={{ margin: '4px 0 0', color: '#94a3b8', fontSize: '0.875rem' }}>
               {mode === 'select'
-                ? '카드를 선택하고 강화 또는 특화를 진행하세요'
+                ? '강화 또는 특화 중 1회만 선택 가능'
                 : mode === 'enhance'
                   ? `${selectedCard?.name} 강화 (현재 +${currentLevel})`
                   : `${selectedCard?.name} 특화`}
