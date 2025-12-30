@@ -14,8 +14,8 @@ import {
 
 describe('anomalies', () => {
   describe('ANOMALY_TYPES', () => {
-    it('6개의 이변 타입이 정의되어 있다', () => {
-      expect(Object.keys(ANOMALY_TYPES)).toHaveLength(6);
+    it('12개의 이변 타입이 정의되어 있다', () => {
+      expect(Object.keys(ANOMALY_TYPES)).toHaveLength(12);
     });
 
     it('모든 이변 타입이 필수 속성을 가진다', () => {
@@ -95,11 +95,77 @@ describe('anomalies', () => {
         expect(effect1.type).toBe('VALUE_DOWN');
       });
     });
+
+    // ==================== 신규 이변 테스트 ====================
+
+    describe('BACKFLOW', () => {
+      it('레벨당 2씩 자해 피해가 증가한다', () => {
+        const effect1 = ANOMALY_TYPES.BACKFLOW.getEffect(1);
+        const effect4 = ANOMALY_TYPES.BACKFLOW.getEffect(4);
+        expect(effect1.value).toBe(2);
+        expect(effect4.value).toBe(8);
+        expect(effect1.type).toBe('DEFENSE_BACKFIRE');
+      });
+    });
+
+    describe('INSTABILITY', () => {
+      it('레벨에 따라 속도 변동폭이 증가한다', () => {
+        const effect1 = ANOMALY_TYPES.INSTABILITY.getEffect(1);
+        const effect4 = ANOMALY_TYPES.INSTABILITY.getEffect(4);
+        expect(effect1.value).toBe(1);
+        expect(effect4.value).toBe(4);
+        expect(effect1.type).toBe('SPEED_INSTABILITY');
+      });
+    });
+
+    describe('VULNERABILITY', () => {
+      it('레벨당 10%씩 받는 피해가 증가한다', () => {
+        const effect1 = ANOMALY_TYPES.VULNERABILITY.getEffect(1);
+        const effect4 = ANOMALY_TYPES.VULNERABILITY.getEffect(4);
+        expect(effect1.value).toBe(10);
+        expect(effect4.value).toBe(40);
+        expect(effect1.type).toBe('VULNERABILITY');
+      });
+    });
+
+    describe('SILENCE', () => {
+      it('레벨에 따라 비활성화 특성 범위가 증가한다', () => {
+        const effect1 = ANOMALY_TYPES.SILENCE.getEffect(1);
+        const effect4 = ANOMALY_TYPES.SILENCE.getEffect(4);
+        expect(effect1.value).toBe(1);
+        expect(effect4.value).toBe(4);
+        expect(effect1.type).toBe('TRAIT_SILENCE');
+        expect(effect4.description).toContain('모든 특성');
+      });
+    });
+
+    describe('ISOLATION', () => {
+      it('레벨에 따라 무효화 범위가 증가한다', () => {
+        const effect1 = ANOMALY_TYPES.ISOLATION.getEffect(1);
+        const effect3 = ANOMALY_TYPES.ISOLATION.getEffect(3);
+        expect(effect1.value).toBe(1);
+        expect(effect3.value).toBe(3);
+        expect(effect1.type).toBe('CHAIN_ISOLATION');
+        expect(effect3.description).toContain('완전 무효화');
+      });
+    });
+
+    describe('MADNESS', () => {
+      it('레벨 3 이상에서 기교 획득이 불가능하다', () => {
+        const effect2 = ANOMALY_TYPES.MADNESS.getEffect(2);
+        const effect3 = ANOMALY_TYPES.MADNESS.getEffect(3);
+        expect(effect2.value).toBe(2);
+        expect(effect3.value).toBe(3);
+        expect(effect2.type).toBe('FINESSE_BLOCK');
+        expect(effect2.description).toContain('-50%');
+        expect(effect3.description).toContain('불가');
+      });
+    });
   });
 
   describe('ALL_ANOMALIES', () => {
     it('모든 이변이 배열에 포함되어 있다', () => {
-      expect(ALL_ANOMALIES).toHaveLength(6);
+      expect(ALL_ANOMALIES).toHaveLength(12);
     });
 
     it('ANOMALY_TYPES의 모든 값을 포함한다', () => {
@@ -123,7 +189,12 @@ describe('anomalies', () => {
     });
 
     it('모든 이변을 ID로 찾을 수 있다', () => {
-      const ids = ['deflation_curse', 'energy_drain', 'time_distortion', 'draw_interference', 'cognitive_fog', 'value_down'];
+      const ids = [
+        'deflation_curse', 'energy_drain', 'time_distortion',
+        'draw_interference', 'cognitive_fog', 'value_down',
+        'backflow', 'instability', 'vulnerability',
+        'silence', 'isolation', 'madness'
+      ];
       ids.forEach((id) => {
         const anomaly = getAnomalyById(id);
         expect(anomaly).toBeDefined();

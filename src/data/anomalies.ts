@@ -20,7 +20,13 @@ export type AnomalyEffectType =
   | 'SPEED_REDUCTION'
   | 'DRAW_REDUCTION'
   | 'INSIGHT_REDUCTION'
-  | 'VALUE_DOWN';
+  | 'VALUE_DOWN'
+  | 'DEFENSE_BACKFIRE'    // 역류: 방어카드 자해
+  | 'SPEED_INSTABILITY'   // 불안정: 속도 ±랜덤
+  | 'VULNERABILITY'       // 취약: 받는 피해 증가
+  | 'TRAIT_SILENCE'       // 침묵: 특성 비활성화
+  | 'CHAIN_ISOLATION'     // 고립: 연계/후속 무효화
+  | 'FINESSE_BLOCK';      // 광기: 기교 획득 불가
 
 /**
  * 이변 효과 인터페이스
@@ -119,6 +125,92 @@ export const ANOMALY_TYPES = {
       type: 'VALUE_DOWN',
       value: level, // 레벨당 공격/방어 -10% 토큰 1개, 최대 4개
       description: `공격력/방어력 감소 토큰 ${level}개`
+    })
+  },
+
+  // ==================== 신규 이변 ====================
+
+  BACKFLOW: {
+    id: 'backflow',
+    name: '역류',
+    emoji: '🔄',
+    color: '#be185d',
+    description: '방어 카드 사용 시 자해 피해를 입습니다.',
+    getEffect: (level: number): AnomalyEffect => ({
+      type: 'DEFENSE_BACKFIRE',
+      value: level * 2, // 레벨당 2 자해, 최대 8
+      description: `방어 카드 사용 시 ${level * 2} 자해 피해`
+    })
+  },
+
+  INSTABILITY: {
+    id: 'instability',
+    name: '불안정',
+    emoji: '🎲',
+    color: '#7c3aed',
+    description: '모든 카드의 속도가 무작위로 변동됩니다.',
+    getEffect: (level: number): AnomalyEffect => ({
+      type: 'SPEED_INSTABILITY',
+      value: level, // 레벨당 ±1, 최대 ±4
+      description: `카드 속도 ±${level} 랜덤 변동`
+    })
+  },
+
+  VULNERABILITY: {
+    id: 'vulnerability',
+    name: '취약',
+    emoji: '💔',
+    color: '#e11d48',
+    description: '받는 모든 피해가 증가합니다.',
+    getEffect: (level: number): AnomalyEffect => ({
+      type: 'VULNERABILITY',
+      value: level * 10, // 레벨당 +10%, 최대 +40%
+      description: `받는 피해 +${level * 10}%`
+    })
+  },
+
+  SILENCE: {
+    id: 'silence',
+    name: '침묵',
+    emoji: '🤐',
+    color: '#475569',
+    description: '카드의 특성 효과가 비활성화됩니다.',
+    getEffect: (level: number): AnomalyEffect => ({
+      type: 'TRAIT_SILENCE',
+      value: level, // 레벨에 따라 비활성화 특성 수 증가 (1: 부정만, 2: 1성, 3: 2성, 4: 전부)
+      description: level >= 4
+        ? '모든 특성 비활성화'
+        : `${level}성 이하 특성 비활성화`
+    })
+  },
+
+  ISOLATION: {
+    id: 'isolation',
+    name: '고립',
+    emoji: '🚫',
+    color: '#0891b2',
+    description: '연계와 후속 효과가 무효화됩니다.',
+    getEffect: (level: number): AnomalyEffect => ({
+      type: 'CHAIN_ISOLATION',
+      value: level, // 레벨에 따라 효과 강도 (1: 연계만, 2: 후속만, 3: 둘 다, 4: 앞당김도)
+      description: level >= 3
+        ? '연계/후속 효과 완전 무효화'
+        : level === 2 ? '후속 효과 무효화' : '연계 효과 무효화'
+    })
+  },
+
+  MADNESS: {
+    id: 'madness',
+    name: '광기',
+    emoji: '🌀',
+    color: '#c026d3',
+    description: '기교를 획득할 수 없습니다.',
+    getEffect: (level: number): AnomalyEffect => ({
+      type: 'FINESSE_BLOCK',
+      value: level, // 레벨 1-2: 획득량 감소, 3-4: 완전 차단
+      description: level >= 3
+        ? '기교 획득 불가'
+        : `기교 획득량 -${level * 25}%`
     })
   }
 } as const satisfies Record<string, Anomaly>;
