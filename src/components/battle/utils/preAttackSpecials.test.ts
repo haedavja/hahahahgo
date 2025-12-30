@@ -159,7 +159,7 @@ describe('preAttackSpecials', () => {
         attackerName: 'player',
         battleContext: {
           queue: [
-            { actor: 'player', sp: 5 } as any,
+            { actor: 'player', sp: 5, hasCrossed: true } as any,
             { actor: 'enemy', sp: 5 } as any
           ],
           currentSp: 5,
