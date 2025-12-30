@@ -9,7 +9,7 @@
  * - 적 디플레이션 정보 설정
  */
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import type { BattlePhase } from '../reducer/battleReducerActions';
 
 interface PlayerState {
@@ -82,12 +82,17 @@ export function useBattleSyncEffects(params: UseBattleSyncEffectsParams): void {
     actions
   } = params;
 
+  // actions를 ref로 저장하여 의존성 배열에서 제외
+  // (actions 객체가 매 렌더링마다 새로 생성되어 무한 루프 발생 방지)
+  const actionsRef = useRef(actions);
+  actionsRef.current = actions;
+
   // 전투 중 통찰 값 실시간 반영 (payload 재생성 없이)
   useEffect(() => {
     if (typeof liveInsight !== 'number') return;
     if (player.insight === liveInsight) return;
-    actions.setPlayer({ ...player, insight: liveInsight });
-  }, [liveInsight, player, actions]);
+    actionsRef.current.setPlayer({ ...player, insight: liveInsight });
+  }, [liveInsight, player]);
 
   // 승리 시에만 자동으로 결과 전송 (패배 시에는 사용자가 버튼 클릭 후 나감)
   useEffect(() => {
@@ -104,16 +109,16 @@ export function useBattleSyncEffects(params: UseBattleSyncEffectsParams): void {
     const currentTarget = aliveUnits.find(u => u.unitId === selectedTargetUnit);
     if (!currentTarget && aliveUnits[0]?.unitId !== undefined) {
       // 현재 타겟이 사망했으므로 첫 번째 살아있는 유닛으로 전환
-      actions.setSelectedTargetUnit(aliveUnits[0].unitId);
+      actionsRef.current.setSelectedTargetUnit(aliveUnits[0].unitId);
     }
-  }, [enemyUnits, selectedTargetUnit, hasMultipleUnits, actions]);
+  }, [enemyUnits, selectedTargetUnit, hasMultipleUnits]);
 
   // 적 디플레이션 정보 설정 (선택/대응 단계에서)
   useEffect(() => {
     if (enemyCombo?.name && (phase === 'select' || phase === 'respond')) {
       const usageCount = (enemy?.comboUsageCount || {})[enemyCombo.name] || 0;
       const deflationMult = Math.pow(0.8, usageCount);
-      actions.setEnemyCurrentDeflation(usageCount > 0 ? { multiplier: deflationMult, usageCount } : null);
+      actionsRef.current.setEnemyCurrentDeflation(usageCount > 0 ? { multiplier: deflationMult, usageCount } : null);
     }
-  }, [enemyCombo, enemy?.comboUsageCount, phase, actions]);
+  }, [enemyCombo, enemy?.comboUsageCount, phase]);
 }
