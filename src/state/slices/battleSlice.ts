@@ -74,7 +74,7 @@ export const createBattleActions: SliceCreator = (set) => ({
       };
 
       const timeline = buildSpeedTimeline(playerHand, enemyHand, 30);
-      const simulation = simulateBattle(timeline as unknown as ResolverTimelineEntry[], battleStats);
+      const simulation = simulateBattle(timeline, battleStats);
       const preview = { playerHand, enemyHand, timeline, tuLimit: 30 };
 
       const enemyInfo = enemy

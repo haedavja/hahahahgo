@@ -985,14 +985,11 @@ export interface ResolverCard {
   tags?: string[];
 }
 
-/** 전투 해결기 타임라인 항목 */
-export interface ResolverTimelineEntry {
-  order: number;
-  actor: 'player' | 'enemy';
-  cardId: string;
-  speedCost: number;
-  [key: string]: unknown;
-}
+/**
+ * 전투 해결기 타임라인 항목 - TimelineEntry와 동일 (하위 호환용 별칭)
+ * @deprecated TimelineEntry를 직접 사용하세요.
+ */
+export type ResolverTimelineEntry = TimelineEntry;
 
 /** 공격 결과 (해결기) */
 export interface ResolverAttackResult {

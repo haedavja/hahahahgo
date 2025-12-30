@@ -175,7 +175,7 @@ export const createDevActions: SliceCreator = (set) => ({
       };
 
       const timeline = buildSpeedTimeline(playerHand, enemyHand, 30);
-      const simulation = simulateBattle(timeline as unknown as ResolverTimelineEntry[], battleStats);
+      const simulation = simulateBattle(timeline, battleStats);
 
       const enemyUnits = group.enemies.map((enemyId, idx) => {
         const enemy = ENEMIES.find((e) => e.id === enemyId);
