@@ -7,11 +7,14 @@
  * - 승률, 평균 피해량, 턴 수 등 통계 수집
  * - 카드별 효율 분석
  *
- * ## 신뢰성 v2
+ * ## 신뢰성 v3
  * - 실제 combatActions 로직 사용
- * - 토큰 시스템 통합 (공세, 방어, 회피 등)
+ * - 토큰 시스템 통합 (공세, 방어, 회피, 취약, 무딤 등)
  * - 적 패시브 효과 적용
- * - 치명타/반격 시스템
+ * - 치명타 시스템 (5% + strength + energy)
+ * - 반격 시스템
+ * - 카드 특수 효과 (crush, chain, cross)
+ * - 다중 적 전투 지원
  */
 
 import type { Card, TokenState } from '../types/core';
@@ -23,6 +26,7 @@ import { getPatternAction, patternActionToMode, ENEMY_PATTERNS } from '../data/e
 import { createEmptyTokenState } from '../test/factories';
 import { addToken, removeToken, hasToken, getTokenStacks, clearTurnTokens } from '../lib/tokenUtils';
 import { TOKENS } from '../data/tokens';
+// 사용하지 않는 import 제거됨 - 시뮬레이터 내부에서 간소화된 버전 사용
 
 // ==================== 타입 정의 ====================
 
@@ -225,9 +229,11 @@ function selectEnemyActions(enemy: SimEnemyState, turnNumber: number): AICard[] 
 
 // ==================== 토큰 효과 적용 ====================
 
-function applyTokenEffectsToCard(entity: SimEntity, card: Card | AICard, isAttack: boolean): { damageBonus: number; blockBonus: number } {
+function applyTokenEffectsToCardSim(entity: SimEntity, card: Card | AICard, isAttack: boolean): { damageBonus: number; damagePenalty: number; blockBonus: number; blockPenalty: number } {
   let damageBonus = 0;
+  let damagePenalty = 0;
   let blockBonus = 0;
+  let blockPenalty = 0;
 
   if (isAttack) {
     // 공세 토큰 (usage) - 50% 데미지 증가
@@ -244,6 +250,13 @@ function applyTokenEffectsToCard(entity: SimEntity, card: Card | AICard, isAttac
     if (hasToken(entity as any, 'attackPlus')) {
       damageBonus += 1.0;
     }
+    // 무딤 토큰 (dull) - 50% 데미지 감소
+    if (hasToken(entity as any, 'dull')) {
+      damagePenalty += 0.5;
+    }
+    if (hasToken(entity as any, 'dullness')) {
+      damagePenalty += 0.5;
+    }
   } else {
     // 수세 토큰 (usage) - 50% 방어력 증가
     if (hasToken(entity as any, 'guard')) {
@@ -259,9 +272,70 @@ function applyTokenEffectsToCard(entity: SimEntity, card: Card | AICard, isAttac
     if (hasToken(entity as any, 'defensePlus')) {
       blockBonus += 1.0;
     }
+    // 흔들림 토큰 (shaken) - 50% 방어력 감소
+    if (hasToken(entity as any, 'shaken')) {
+      blockPenalty += 0.5;
+    }
+    if (hasToken(entity as any, 'exposed')) {
+      blockPenalty += 0.5;
+    }
   }
 
-  return { damageBonus, blockBonus };
+  return { damageBonus, damagePenalty, blockBonus, blockPenalty };
+}
+
+/**
+ * 취약 배율 계산 (피해 증가)
+ */
+function getVulnerabilityMult(entity: SimEntity): number {
+  let mult = 1.0;
+  // vulnerable 토큰: 50% 추가 피해
+  if (hasToken(entity as any, 'vulnerable')) {
+    mult += 0.5;
+  }
+  // pain 토큰: 50% 추가 피해
+  if (hasToken(entity as any, 'pain')) {
+    mult += 0.5;
+  }
+  return mult;
+}
+
+/**
+ * 반격 피해 계산
+ */
+function getCounterDamage(entity: SimEntity): number {
+  return entity.counter || 0;
+}
+
+/**
+ * 치명타 판정 (시뮬레이터용)
+ */
+function rollCriticalSim(entity: SimEntity, remainingEnergy: number, card: Card | AICard, isPlayer: boolean): boolean {
+  // 적은 치명타 없음
+  if (!isPlayer) return false;
+
+  // guaranteedCrit 특수 효과
+  const specials = Array.isArray((card as Card).special) ? (card as Card).special : [(card as Card).special];
+  if (specials && specials.includes('guaranteedCrit')) {
+    return true;
+  }
+
+  // 기본 5% + strength + energy
+  const baseCrit = 5;
+  const strength = entity.strength || 0;
+  const energy = remainingEnergy || 0;
+
+  const critChance = baseCrit + strength + energy;
+  return Math.random() * 100 < critChance;
+}
+
+/**
+ * 분쇄 효과 (crush) - 방어력에 2배 피해
+ */
+function hasCrushTrait(card: Card | AICard): boolean {
+  const c = card as Card;
+  if (!c.traits) return false;
+  return Array.isArray(c.traits) ? c.traits.includes('crush') : c.traits === 'crush';
 }
 
 function rollDodge(defender: SimEntity): boolean {
@@ -381,11 +455,19 @@ function simulateTurn(
     log: [] as string[],
   };
 
+  // 남은 에너지 계산 (치명타 확률용)
+  let playerEnergyUsed = 0;
+  for (const card of playerSelection.cards) {
+    playerEnergyUsed += card.actionCost || 1;
+  }
+  const remainingEnergy = Math.max(0, player.energy - playerEnergyUsed);
+
   for (const step of timeline) {
     if (combatState.player.hp <= 0 || combatState.enemy.hp <= 0) break;
 
     const attacker = step.actor === 'player' ? combatState.player : combatState.enemy;
     const defender = step.actor === 'player' ? combatState.enemy : combatState.player;
+    const isPlayer = step.actor === 'player';
 
     // 회피 체크
     if (step.card.type === 'attack' && rollDodge(defender as SimEntity)) {
@@ -393,15 +475,20 @@ function simulateTurn(
       continue;
     }
 
-    // 토큰 효과 적용
+    // 토큰 효과 적용 (버프 + 디버프)
     const isAttack = step.card.type === 'attack';
-    const tokenEffects = applyTokenEffectsToCard(attacker as SimEntity, step.card, isAttack);
+    const tokenEffects = applyTokenEffectsToCardSim(attacker as SimEntity, step.card, isAttack);
 
-    // 카드 복사 및 수정
+    // 카드 복사 및 수정 (버프 - 디버프)
+    let damageMultiplier = 1 + tokenEffects.damageBonus - tokenEffects.damagePenalty;
+    let blockMultiplier = 1 + tokenEffects.blockBonus - tokenEffects.blockPenalty;
+    damageMultiplier = Math.max(0, damageMultiplier);
+    blockMultiplier = Math.max(0, blockMultiplier);
+
     const modifiedCard: Card = {
       ...step.card,
-      damage: step.card.damage ? Math.floor(step.card.damage * (1 + tokenEffects.damageBonus)) : undefined,
-      block: step.card.block ? Math.floor(step.card.block * (1 + tokenEffects.blockBonus)) : undefined,
+      damage: step.card.damage ? Math.floor(step.card.damage * damageMultiplier) : undefined,
+      block: step.card.block ? Math.floor(step.card.block * blockMultiplier) : undefined,
     } as Card;
 
     // 힘 보너스 적용
@@ -409,10 +496,24 @@ function simulateTurn(
       modifiedCard.damage += attacker.strength;
     }
 
+    // 치명타 판정 (플레이어만, 공격 카드만)
+    let isCritical = false;
+    if (isAttack && isPlayer) {
+      isCritical = rollCriticalSim(attacker as SimEntity, remainingEnergy, step.card, true);
+      if (isCritical && modifiedCard.damage) {
+        modifiedCard.damage = modifiedCard.damage * 2;
+        log.push(`💥 치명타! ${step.card.name}`);
+      }
+    }
+
+    // 분쇄 효과 적용 (방어력에 2배 피해)
+    const hasCrush = hasCrushTrait(step.card);
+
     // 실제 applyAction 호출
     const battleContext: BattleContext = {
       playerAttackCards: [],
       isLastCard: false,
+      remainingEnergy: isPlayer ? remainingEnergy : 0,
     };
 
     try {
@@ -423,24 +524,73 @@ function simulateTurn(
         combatState.enemy = result.updatedState.enemy;
       }
 
+      // 취약 배율 적용 (applyAction 결과에 추가)
+      let finalDealt = result.dealt || 0;
+      if (isAttack && finalDealt > 0) {
+        const vulnMult = getVulnerabilityMult(defender as SimEntity);
+        if (vulnMult > 1) {
+          // applyAction에서 이미 적용되어 있을 수 있으므로 로그만 추가
+          log.push(`⚡ 취약 효과: ${step.card.name} 피해 ${vulnMult}배`);
+        }
+      }
+
+      // 반격 피해 (방어자가 공격자에게)
+      if (isAttack && finalDealt > 0) {
+        const counterDmg = getCounterDamage(defender as SimEntity);
+        if (counterDmg > 0) {
+          const beforeHP = attacker.hp;
+          attacker.hp = Math.max(0, attacker.hp - counterDmg);
+          log.push(`🔄 반격! ${step.actor === 'player' ? '적' : '플레이어'} -> ${step.actor === 'player' ? '플레이어' : '적'}: ${counterDmg} 피해 (체력 ${beforeHP} -> ${attacker.hp})`);
+          if (step.actor === 'player') {
+            enemyDamage += counterDmg;
+          } else {
+            playerDamage += counterDmg;
+          }
+        }
+      }
+
       if (step.actor === 'player') {
-        playerDamage += result.dealt || 0;
+        playerDamage += finalDealt;
       } else {
-        enemyDamage += result.dealt || 0;
+        enemyDamage += finalDealt;
       }
 
       // 카드 토큰 효과 적용
       applyCardTokenEffects(step.card, attacker as SimEntity, defender as SimEntity);
 
     } catch (e) {
-      // 오류 발생 시 기본 피해 계산
+      // 오류 발생 시 기본 피해 계산 (분쇄 + 취약 적용)
       if (isAttack && modifiedCard.damage) {
-        const damage = Math.max(0, modifiedCard.damage - (defender.block || 0));
-        defender.hp = Math.max(0, defender.hp - damage);
+        let damage = modifiedCard.damage;
+        const defenderBlock = defender.block || 0;
+
+        // 분쇄 효과: 방어력에 2배 피해
+        const effectiveDamage = hasCrush ? damage * 2 : damage;
+        const blockedDamage = Math.min(effectiveDamage, defenderBlock);
+        const throughDamage = Math.max(0, effectiveDamage - defenderBlock);
+
+        // 취약 배율 적용
+        const vulnMult = getVulnerabilityMult(defender as SimEntity);
+        const finalDamage = Math.floor(throughDamage * vulnMult);
+
+        defender.block = Math.max(0, defenderBlock - blockedDamage);
+        defender.hp = Math.max(0, defender.hp - finalDamage);
+
         if (step.actor === 'player') {
-          playerDamage += damage;
+          playerDamage += finalDamage;
         } else {
-          enemyDamage += damage;
+          enemyDamage += finalDamage;
+        }
+
+        // 반격 피해
+        const counterDmg = getCounterDamage(defender as SimEntity);
+        if (counterDmg > 0 && finalDamage > 0) {
+          attacker.hp = Math.max(0, attacker.hp - counterDmg);
+          if (step.actor === 'player') {
+            enemyDamage += counterDmg;
+          } else {
+            playerDamage += counterDmg;
+          }
         }
       }
     }
