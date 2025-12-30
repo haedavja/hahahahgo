@@ -32,6 +32,7 @@ interface CardGrowthModalProps {
   onEnhance: (cardId: string) => void;
   onSpecialize: (cardId: string, selectedTraits: string[]) => void;
   ownedCards?: string[];
+  isRestNode?: boolean; // true면 1회 제한 메시지 표시
 }
 
 interface CardData {
@@ -71,6 +72,7 @@ export function CardGrowthModal({
   onEnhance,
   onSpecialize,
   ownedCards = [],
+  isRestNode = false,
 }: CardGrowthModalProps) {
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
   const [mode, setMode] = useState<Mode>('select');
@@ -223,7 +225,9 @@ export function CardGrowthModal({
             </h2>
             <p style={{ margin: '4px 0 0', color: '#94a3b8', fontSize: '0.875rem' }}>
               {mode === 'select'
-                ? '강화 또는 특화 중 1회만 선택 가능'
+                ? isRestNode
+                  ? '강화 또는 특화 중 1회만 선택 가능'
+                  : '카드를 선택하고 강화 또는 특화를 진행하세요'
                 : mode === 'enhance'
                   ? `${selectedCard?.name} 강화 (현재 +${currentLevel})`
                   : `${selectedCard?.name} 특화`}

@@ -230,6 +230,7 @@ export function RestModal({
           setCardGrowthUsed(true);
         }}
         ownedCards={ownedCards}
+        isRestNode={true}
       />
     </div>
   );
