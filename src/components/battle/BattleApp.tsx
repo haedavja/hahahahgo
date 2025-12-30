@@ -79,6 +79,8 @@ import { useQueueRecovery } from "./hooks/useQueueRecovery";
 import { useAnomalyNotification } from "./hooks/useAnomalyNotification";
 import { useCombatStartSetup } from "./hooks/useCombatStartSetup";
 import { usePlayerInitialization } from "./hooks/usePlayerInitialization";
+import { useEnemyInitialization } from "./hooks/useEnemyInitialization";
+import { useBattleSyncEffects } from "./hooks/useBattleSyncEffects";
 import {
   MAX_SPEED,
   DEFAULT_PLAYER_MAX_SPEED,
@@ -299,17 +301,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     return selected || alive[0];
   }, [enemyUnits, selectedTargetUnit]);
 
-  // 선택된 유닛이 사망하면 다음 살아있는 유닛으로 자동 전환
-  useEffect(() => {
-    if (!hasMultipleUnits) return;
-    const aliveUnits = enemyUnits.filter(u => u.hp > 0);
-    if (aliveUnits.length === 0) return;
-    const currentTarget = aliveUnits.find(u => u.unitId === selectedTargetUnit);
-    if (!currentTarget && aliveUnits[0]?.unitId !== undefined) {
-      // 현재 타겟이 사망했으므로 첫 번째 살아있는 유닛으로 전환
-      actions.setSelectedTargetUnit(aliveUnits[0].unitId);
-    }
-  }, [enemyUnits, selectedTargetUnit, hasMultipleUnits]);
+  // 선택된 유닛 자동 전환은 useBattleSyncEffects에서 처리
 
   // 정신집중 토큰에서 추가 카드 사용 수 계산
   const playerTokensForCardPlay = player?.tokens ? getAllTokens({ tokens: player.tokens }) : [];
@@ -630,39 +622,19 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     }
   });
 
-  // Enemy initialization - only run once on mount
-  useEffect(() => {
-    if (!initialEnemy) return;
-    const enemyState = createReducerEnemyState({
-      ...initialEnemy,
-      deck: (initialEnemy.deck as string[]) || ENEMIES[0]?.deck || [],
-      name: initialEnemy.name ?? '적',
-    } as Parameters<typeof createReducerEnemyState>[0]);
-    actions.setEnemy(enemyState);
-    actions.setSelected([]);
-    actions.setQueue([]);
-    actions.setQIndex(0);
-    actions.setFixedOrder(null);
-    // 참고: turnStartProcessedRef는 player init에서 이미 리셋됨
-    // 여기서 다시 리셋하면 턴 시작 효과가 두 번 발동됨
-    prevRevealLevelRef.current = 0;
-    actions.setPhase('select');
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // 전투 중 통찰 값 실시간 반영 (payload 재생성 없이)
-  useEffect(() => {
-    if (typeof liveInsight !== 'number') return;
-    if (player.insight === liveInsight) return;
-    actions.setPlayer({ ...player, insight: liveInsight });
-  }, [liveInsight, player, actions]);
-
-  useEffect(() => {
-    // 승리 시에만 자동으로 결과 전송 (패배 시에는 사용자가 버튼 클릭 후 나감)
-    if (postCombatOptions?.type === 'victory') {
-      notifyBattleResult(postCombatOptions.type);
+  // 적 초기화 (커스텀 훅으로 분리)
+  useEnemyInitialization({
+    initialEnemy: initialEnemy as { deck?: string[]; name?: string },
+    prevRevealLevelRef,
+    actions: {
+      setEnemy: actions.setEnemy as (enemy: unknown) => void,
+      setSelected: actions.setSelected as (selected: unknown[]) => void,
+      setQueue: actions.setQueue as (queue: unknown[]) => void,
+      setQIndex: actions.setQIndex,
+      setFixedOrder: actions.setFixedOrder as (order: unknown) => void,
+      setPhase: actions.setPhase
     }
-  }, [postCombatOptions, notifyBattleResult]);
+  });
 
   // 페이즈 변경 관련 효과 통합 (커스텀 훅으로 분리)
   usePhaseEffects({
@@ -2006,14 +1978,24 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     return detectPokerCombo(actions);
   }, [enemyPlan?.actions]);
 
-  // 적 디플레이션 정보 설정 (선택/대응 단계에서) - 플레이어의 useComboSystem과 동일한 로직
-  useEffect(() => {
-    if (enemyCombo?.name && (battle.phase === 'select' || battle.phase === 'respond')) {
-      const usageCount = (enemy?.comboUsageCount || {})[enemyCombo.name] || 0;
-      const deflationMult = Math.pow(0.8, usageCount);
-      actions.setEnemyCurrentDeflation(usageCount > 0 ? { multiplier: deflationMult, usageCount } : null);
+  // 전투 동기화 효과 (커스텀 훅으로 분리)
+  useBattleSyncEffects({
+    liveInsight,
+    player: player as { insight?: number },
+    postCombatOptions: postCombatOptions as { type?: 'victory' | 'defeat' } | null,
+    notifyBattleResult,
+    hasMultipleUnits,
+    enemyUnits: enemyUnits as { unitId: number; hp: number }[],
+    selectedTargetUnit,
+    phase: battle.phase,
+    enemy: enemy as { comboUsageCount?: Record<string, number> } | null,
+    enemyCombo: enemyCombo as { name?: string } | null,
+    actions: {
+      setPlayer: actions.setPlayer as (player: unknown) => void,
+      setSelectedTargetUnit: actions.setSelectedTargetUnit,
+      setEnemyCurrentDeflation: actions.setEnemyCurrentDeflation as (deflation: { multiplier: number; usageCount: number } | null) => void
     }
-  }, [enemyCombo, enemy?.comboUsageCount, battle.phase, actions]);
+  });
 
   // 적 성향 힌트 추출 - Hook은 조건부 return 전에 호출
   const enemyHint = useMemo(() => {
