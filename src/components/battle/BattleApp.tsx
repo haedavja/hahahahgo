@@ -71,6 +71,7 @@ import { useBreachSelection } from "./hooks/useBreachSelection";
 import { useTurnStartEffects } from "./hooks/useTurnStartEffects";
 import { useBattleInitialization } from "./hooks/useBattleInitialization";
 import { useBattleRefs } from "./hooks/useBattleRefs";
+import { useDevModeEffects } from "./hooks/useDevModeEffects";
 import {
   MAX_SPEED,
   DEFAULT_PLAYER_MAX_SPEED,
@@ -404,15 +405,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     actions.setOrderedRelics(mergeRelicOrder(relics, orderedRelicList));
   }, [relics, mergeRelicOrder, battle.phase, orderedRelicList]);
 
-  // 개발자 모드에서 힘이 변경될 때 실시간 반영
-  useEffect(() => {
-    if (battle.phase === 'resolve') return;
-    const currentStrength = player.strength || 0;
-    if (currentStrength !== playerStrength) {
-      actions.setPlayer({ ...player, strength: playerStrength });
-    }
-  }, [playerStrength]);
-
   // addLog는 actions.addLog를 직접 사용 (stale closure 방지)
   const addLog = useCallback((m: string) => {
     actions.addLog(m);
@@ -650,75 +642,27 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // [DEV] 개발자 모드에서 주특기/보조특기 변경 시 덱 재구성
-  const prevDevBuildRef = useRef<{ mainSpecials: string[]; subSpecials: string[] } | null>(null);
-  useEffect(() => {
-    if (!devCharacterBuild) return;
-
-    const prevBuild = prevDevBuildRef.current;
-    const currentMainSpecials = devCharacterBuild.mainSpecials || [];
-    const currentSubSpecials = devCharacterBuild.subSpecials || [];
-
-    // 이전 값과 비교
-    const prevMainSpecials = prevBuild?.mainSpecials || [];
-    const prevSubSpecials = prevBuild?.subSpecials || [];
-
-    const mainChanged = JSON.stringify(currentMainSpecials) !== JSON.stringify(prevMainSpecials);
-    const subChanged = JSON.stringify(currentSubSpecials) !== JSON.stringify(prevSubSpecials);
-
-    // 첫 렌더링이 아니고, 주특기 또는 보조특기가 변경된 경우
-    if (prevBuild && (mainChanged || subChanged)) {
-      const { deck: newDeck, mainSpecialsHand } = initializeDeck(devCharacterBuild, (battle.vanishedCards || []).map(c => c.id));
-      const drawResult = drawFromDeck(newDeck, [], DEFAULT_DRAW_COUNT, escapeBanRef.current as Set<string>);
-
-      actions.setDeck(drawResult.newDeck);
-      actions.setDiscardPile(drawResult.newDiscardPile);
-      actions.setHand([...mainSpecialsHand, ...drawResult.drawnCards]);
+  // 개발자 모드 효과 (힘 변경, 덱 재구성, 토큰 추가)
+  useDevModeEffects({
+    battlePhase: battle.phase,
+    player,
+    enemy,
+    playerStrength,
+    devCharacterBuild,
+    devBattleTokens,
+    devClearBattleTokens,
+    vanishedCards: battle.vanishedCards || [],
+    escapeBanRef: escapeBanRef as unknown as import("react").MutableRefObject<Set<string>>,
+    battleRef: battleRef as unknown as import("react").MutableRefObject<{ player?: unknown; enemy?: unknown }>,
+    addLog,
+    actions: actions as unknown as {
+      setPlayer: (p: unknown) => void;
+      setEnemy: (e: unknown) => void;
+      setDeck: (d: unknown) => void;
+      setDiscardPile: (p: unknown) => void;
+      setHand: (h: unknown) => void;
     }
-
-    prevDevBuildRef.current = { ...devCharacterBuild, mainSpecials: [...currentMainSpecials], subSpecials: [...currentSubSpecials] };
-  }, [devCharacterBuild, battle.vanishedCards, actions]);
-
-  // 개발자 모드: 전투 중 토큰 즉시 추가
-  useEffect(() => {
-    if (!devBattleTokens || devBattleTokens.length === 0) return;
-
-    // 새 토큰들 처리
-    devBattleTokens.forEach(tokenInfo => {
-      const { id: tokenId, stacks, target } = tokenInfo;
-
-      if (target === 'player') {
-        const currentPlayer = battleRef.current?.player || player;
-        const tokenResult = addToken(currentPlayer, tokenId, stacks);
-        const updatedPlayer = { ...currentPlayer, tokens: tokenResult.tokens };
-
-        actions.setPlayer(updatedPlayer);
-        if (battleRef.current) {
-          battleRef.current = { ...battleRef.current, player: updatedPlayer };
-        }
-
-        const tokenName = TOKENS[tokenId]?.name || tokenId;
-        addLog(`[DEV] 🎁 ${tokenName} +${stacks} 부여`);
-      } else if (target === 'enemy') {
-        const currentEnemy = battleRef.current?.enemy || enemy;
-        const tokenResult = addToken(currentEnemy, tokenId, stacks);
-        const updatedEnemy = { ...currentEnemy, tokens: tokenResult.tokens };
-
-        actions.setEnemy(updatedEnemy);
-        if (battleRef.current) {
-          battleRef.current = { ...battleRef.current, enemy: updatedEnemy };
-        }
-
-        const tokenName = TOKENS[tokenId]?.name || tokenId;
-        addLog(`[DEV] 🎁 적에게 ${tokenName} +${stacks} 부여`);
-      }
-    });
-
-    // 처리 후 클리어
-    if (devClearBattleTokens) {
-      devClearBattleTokens();
-    }
-  }, [devBattleTokens, devClearBattleTokens, player, enemy, actions, addLog]);
+  });
 
   // Enemy initialization - only run once on mount
   useEffect(() => {
