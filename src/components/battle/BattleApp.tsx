@@ -119,7 +119,7 @@ import {
   calculatePassiveEffects,
   applyCombatStartEffects
 } from "../../lib/relicEffects";
-import type { BattlePayload, BattleResult, OrderItem, Card, ItemSlotsBattleActions, AIMode, AICard, AIEnemy, TokenEntity, SpecialCard, HandCard, SpecialActor, SpecialBattleContext, SpecialQueueItem, CombatState, CombatCard, CombatBattleContext, ParryReadyState, ComboCard, HandAction, BattleRef, UITimelineAction, UIRelicsMap, RelicRarities, EnemyUnitUI, HoveredCard, HoveredEnemyAction, HandBattle, TimelineBattle, TimelineEnemy, CentralPlayer, HandUnit, ItemSlotsEnemyPlan, ItemSlotsBattleRef, SimulationResult, ExpectedDamagePlayer, ExpectedDamageEnemy, AnomalyWithLevel, BreachSelection, RecallSelection } from "../../types";
+import type { BattlePayload, BattleResult, OrderItem, Card, ItemSlotsBattleActions, AIMode, AICard, AIEnemy, TokenEntity, SpecialCard, HandCard, SpecialActor, SpecialBattleContext, SpecialQueueItem, CombatState, CombatCard, CombatBattleContext, ParryReadyState, ComboCard, HandAction, BattleRef, UITimelineAction, UIRelicsMap, RelicRarities, HoveredCard, HoveredEnemyAction, TimelineBattle, TimelineEnemy, CentralPlayer, ItemSlotsEnemyPlan, ItemSlotsBattleRef, SimulationResult, ExpectedDamagePlayer, ExpectedDamageEnemy, AnomalyWithLevel, BreachSelection, RecallSelection } from "../../types";
 import type { PlayerState, EnemyState, SortType, BattlePhase } from "./reducer/battleReducerActions";
 import type { BattleActions } from "./hooks/useBattleState";
 import { PlayerHpBar } from "./ui/PlayerHpBar";
@@ -929,9 +929,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
     const slots = etherSlots(Number(enemy?.etherPts ?? 0));
     const cardsPerTurn = enemy?.cardsPerTurn || enemyCount || 2;
-    const rawActions = generateEnemyActions(enemy as unknown as AIEnemy | null, latestMode as unknown as AIMode | null, slots, cardsPerTurn, Math.min(1, cardsPerTurn));
+    const rawActions = generateEnemyActions(enemy, latestMode, slots, cardsPerTurn, Math.min(1, cardsPerTurn));
     const generatedActions = assignSourceUnitToActions(rawActions, enemy?.units || []);
-    actions.setEnemyPlan({ mode: latestMode, actions: generatedActions as unknown as Card[] });
+    actions.setEnemyPlan({ mode: latestMode, actions: generatedActions });
   }, [battle.phase, enemyPlan?.mode, enemyPlan?.actions?.length, enemyPlan?.manuallyModified, enemy]);
 
   const totalEnergy = useMemo(() => battle.selected.reduce((s, c) => s + c.actionCost, 0), [battle.selected]);
@@ -2797,7 +2797,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   const remainingEnergy = Math.max(0, playerEnergyBudget - totalEnergy);
   const insightLevelSelect = insightReveal?.level || 0;
   const insightVisible = insightReveal?.visible;
-  const enemyWillOverdrivePlan = shouldEnemyOverdrive(enemyPlan.mode as unknown as AIMode | null, enemyPlan.actions as unknown as AICard[] | null, Number(enemy.etherPts), turnNumber);
+  const enemyWillOverdrivePlan = shouldEnemyOverdrive(enemyPlan.mode, enemyPlan.actions, Number(enemy.etherPts), turnNumber);
   const canRevealOverdrive =
     (battle.phase === 'select' && insightVisible && insightLevelSelect >= 2) ||
     (battle.phase === 'respond' && insightVisible && insightLevelSelect >= 1) ||
@@ -2875,11 +2875,11 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       {/* 아이템 슬롯 - 왼쪽 상단 고정 */}
       <ItemSlots
         phase={battle.phase}
-        battleActions={actions as unknown as ItemSlotsBattleActions}
+        battleActions={actions}
         player={battle.player}
         enemy={battle.enemy}
-        enemyPlan={battle.enemyPlan as unknown as ItemSlotsEnemyPlan | null}
-        battleRef={battleRef as unknown as React.MutableRefObject<ItemSlotsBattleRef | null>}
+        enemyPlan={battle.enemyPlan}
+        battleRef={battleRef}
       />
       {/* 예상 피해량 - 오른쪽 고정 패널 */}
       <div className="expect-sidebar-fixed">
@@ -2923,7 +2923,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         DEFAULT_PLAYER_MAX_SPEED={DEFAULT_PLAYER_MAX_SPEED}
         DEFAULT_ENEMY_MAX_SPEED={DEFAULT_ENEMY_MAX_SPEED}
         generateSpeedTicks={generateSpeedTicks}
-        battle={battle as unknown as TimelineBattle}
+        battle={battle}
         timelineProgress={timelineProgress}
         timelineIndicatorVisible={Boolean(timelineIndicatorVisible)}
         insightAnimLevel={insightAnimLevel}
@@ -2932,7 +2932,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         enemyOverdriveLabel={enemyOverdriveLabel}
         dulledLevel={dulledLevel}
         playerTimeline={playerTimeline}
-        queue={queue as unknown as UITimelineAction[] | null}
+        queue={queue}
         executingCardIndex={(executingCardIndex ?? null) as number}
         usedCardIndices={usedCardIndices}
         qIndex={qIndex}
@@ -2949,8 +2949,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       {/* 상징 표시 */}
       <RelicDisplay
         orderedRelicList={orderedRelicList}
-        RELICS={RELICS as unknown as UIRelicsMap}
-        RELIC_RARITIES={RELIC_RARITIES as unknown as RelicRarities}
+        RELICS={RELICS}
+        RELIC_RARITIES={RELIC_RARITIES}
         RELIC_RARITY_COLORS={RELIC_RARITY_COLORS}
         relicActivated={relicActivated}
         activeRelicSet={activeRelicSet}
@@ -3049,7 +3049,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
             {/* 다중 유닛: EnemyUnitsDisplay, 단일 적: EnemyHpBar */}
             {hasMultipleUnits ? (
               <EnemyUnitsDisplay
-                units={enemyUnits as unknown as EnemyUnitUI[]}
+                units={enemyUnits}
                 selectedTargetUnit={selectedTargetUnit}
                 onSelectUnit={(unitId) => actions.setSelectedTargetUnit(unitId)}
                 previewDamage={previewDamage}
@@ -3067,7 +3067,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                 enemyDef={(enemy as { def?: boolean })?.def || false}
                 // 피해 분배 시스템
                 distributionMode={battle.distributionMode}
-                damageDistribution={battle.damageDistribution as unknown as Record<number, boolean>}
+                damageDistribution={battle.damageDistribution}
                 totalDistributableDamage={battle.totalDistributableDamage}
                 onUpdateDistribution={(unitId, isTargeted) => actions.updateDamageDistribution(unitId, isTargeted ? 1 : 0)}
                 onConfirmDistribution={handleConfirmDistribution}
@@ -3135,7 +3135,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
       {/* 하단 고정 손패 영역 */}
       <HandArea
-        battle={battle as unknown as HandBattle}
+        battle={battle}
         player={player}
         enemy={enemy}
         selected={selected}
@@ -3157,7 +3157,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         isSimplified={isSimplified}
         deck={battle.deck || []}
         discardPile={battle.discardPile || []}
-        enemyUnits={enemyUnits as unknown as HandUnit[]}
+        enemyUnits={enemyUnits}
       />
 
       {showCharacterSheet && <CharacterSheet onClose={closeCharacterSheet} />}

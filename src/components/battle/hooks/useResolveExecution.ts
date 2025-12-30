@@ -188,7 +188,7 @@ export function useResolveExecution({
     // 턴 종료 상징 발동 애니메이션
     playTurnEndRelicAnimations({
       relics,
-      RELICS: RELICS as unknown as UIRelicsMap,
+      RELICS,
       cardsPlayedThisTurn: battle.selected.length,
       player,
       enemy,

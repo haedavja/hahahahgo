@@ -146,7 +146,10 @@ export interface InitializeDeckResult {
 
 // ==================== 적 AI 시스템 ====================
 
-/** AI용 카드 */
+/**
+ * AI용 카드 - Card와 호환
+ * Card의 서브셋이며, 모든 Card는 AICard로 사용 가능
+ */
 export interface AICard {
   id?: string;
   name?: string;
@@ -164,12 +167,17 @@ export interface AICard {
   [key: string]: unknown;
 }
 
-/** AI용 적 */
+/**
+ * AI용 적 - EnemyUnit과 호환
+ * hp가 optional이므로 모든 적 타입과 호환됨
+ */
 export interface AIEnemy {
   id?: string;
-  hp: number;
+  hp?: number;
   deck?: string[];
   unitId?: number;
+  units?: unknown[];
+  cardsPerTurn?: number;
   [key: string]: unknown;
 }
 
@@ -180,11 +188,14 @@ export interface AIModeWeights {
   balanced: number;
 }
 
-/** AI 모드 */
+/**
+ * AI 모드 - 문자열 또는 객체 형태 허용
+ */
 export interface AIMode {
-  name: string;
-  key: 'aggro' | 'turtle' | 'balanced';
-  prefer: string;
+  name?: string;
+  key?: 'aggro' | 'turtle' | 'balanced' | string;
+  prefer?: string;
+  [key: string]: unknown;
 }
 
 /** AI 카드 통계 */

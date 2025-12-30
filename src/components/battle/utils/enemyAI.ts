@@ -98,10 +98,11 @@ function combosUpToN(arr: AICard[], maxCards: number = 3): AICard[][] {
 
 /**
  * 적의 행동 생성
+ * enemy는 EnemyUnit/AIEnemy 호환, mode는 AIMode 객체 또는 문자열 허용
  */
 export function generateEnemyActions(
   enemy: AIEnemy | null,
-  mode: AIMode | null,
+  mode: AIMode | string | null,
   enemyEtherSlots: number = 0,
   maxCards: number = 3,
   minCards: number = 1
@@ -147,20 +148,29 @@ export function generateEnemyActions(
     return { atk, def, dmg, blk, sp, en };
   }
 
-  function satisfies(m: AIMode | null, list: AICard[]): boolean {
+  // mode 키 추출 (객체면 key, 문자열이면 그대로)
+  const getModeKey = (m: AIMode | string | null): string | undefined => {
+    if (!m) return undefined;
+    if (typeof m === 'string') return m;
+    return m.key;
+  };
+
+  function satisfies(m: AIMode | string | null, list: AICard[]): boolean {
     const baseThreshold = Math.ceil((BASE_PLAYER_ENERGY + (enemyEtherSlots || 0)) / 2);
     const s = stat(list);
-    if (m?.key === 'aggro') return s.atk >= baseThreshold;
-    if (m?.key === 'turtle') return s.def >= baseThreshold;
-    if (m?.key === 'balanced') return s.atk === s.def;
+    const key = getModeKey(m);
+    if (key === 'aggro') return s.atk >= baseThreshold;
+    if (key === 'turtle') return s.def >= baseThreshold;
+    if (key === 'balanced') return s.atk === s.def;
     return true;
   }
 
-  function score(m: AIMode | null, list: AICard[]): number {
+  function score(m: AIMode | string | null, list: AICard[]): number {
     const s = stat(list);
     let base = 0;
-    if (m?.key === 'aggro') base = s.atk * 100 + s.dmg * 10 - s.sp;
-    else if (m?.key === 'turtle') base = s.def * 100 + s.blk * 10 - s.sp;
+    const key = getModeKey(m);
+    if (key === 'aggro') base = s.atk * 100 + s.dmg * 10 - s.sp;
+    else if (key === 'turtle') base = s.def * 100 + s.blk * 10 - s.sp;
     else base = (s.dmg + s.blk) * 10 - s.sp;
 
     base += list.length * 10000;
@@ -201,7 +211,7 @@ export function generateEnemyActions(
  * 적이 폭주(Overdrive)할지 결정
  */
 function shouldEnemyOverdriveWithTurn(
-  mode: AIMode | null,
+  mode: AIMode | string | null,
   actions: AICard[] | null,
   etherPts: number,
   turnNumber: number = 1
@@ -214,9 +224,10 @@ function shouldEnemyOverdriveWithTurn(
 
 /**
  * 적이 폭주할지 결정 (Wrapper)
+ * mode는 AIMode 객체 또는 문자열 허용
  */
 export function shouldEnemyOverdrive(
-  mode: AIMode | null,
+  mode: AIMode | string | null,
   actions: AICard[] | null,
   etherPts: number,
   turnNumber: number = 1

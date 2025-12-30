@@ -10,6 +10,7 @@ import type {
   IconProps,
   Card,
   UITimelineAction,
+  OrderItem,
   TimelineCard,
   ParryState,
   HoveredEnemyAction,
@@ -33,6 +34,9 @@ const Shield: FC<IconProps> = ({ size = 24, className = "" }) => (
   </svg>
 );
 
+/** 타임라인 액션 타입 (UITimelineAction 또는 OrderItem) */
+type TimelineAction = UITimelineAction | OrderItem;
+
 interface TimelineDisplayProps {
   player: Player;
   enemy: Enemy;
@@ -47,12 +51,12 @@ interface TimelineDisplayProps {
   enemyOverdriveVisible: boolean;
   enemyOverdriveLabel: string;
   dulledLevel: number;
-  playerTimeline: UITimelineAction[];
-  queue: UITimelineAction[] | null;
+  playerTimeline: TimelineAction[];
+  queue: TimelineAction[] | null;
   executingCardIndex: number;
   usedCardIndices: number[];
   qIndex: number;
-  enemyTimeline: UITimelineAction[];
+  enemyTimeline: TimelineAction[];
   effectiveInsight: number | null;
   insightReveal: InsightReveal | null;
   actions: Actions;

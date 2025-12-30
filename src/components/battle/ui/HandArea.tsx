@@ -18,7 +18,7 @@ import { CardListPopup } from './CardPopups';
 import type {
   IconProps,
   HandCardTrait as Trait,
-  HandUnit as Unit,
+  EnemyUnit as Unit,
   HandBattle as Battle,
   HandPlayer as Player,
   HandEnemy as Enemy,

@@ -7,7 +7,7 @@
 
 import { FC, memo } from 'react';
 import { TokenDisplay } from './TokenDisplay';
-import type { PreviewDamage, TokenEntity, EnemyUnitUI as Unit } from '../../../types';
+import type { PreviewDamage, TokenEntity, EnemyUnitState as Unit } from '../../../types';
 
 interface UnitPreviewDamage extends PreviewDamage {}
 
@@ -29,7 +29,7 @@ interface EnemyUnitsDisplayProps {
   enemyBlock?: number;
   enemyDef?: boolean;
   distributionMode?: boolean;
-  damageDistribution?: Record<number, boolean>;
+  damageDistribution?: Record<number, number>;
   totalDistributableDamage?: number;
   onUpdateDistribution?: (unitId: number, isTargeted: boolean) => void;
   onConfirmDistribution?: () => void;
@@ -73,7 +73,7 @@ export const EnemyUnitsDisplay: FC<EnemyUnitsDisplayProps> = memo(({
   const showTargeting = aliveUnits.length > 1;
 
   // 선택된 타겟 수
-  const selectedTargetCount = Object.values(damageDistribution).filter(v => v === true).length;
+  const selectedTargetCount = Object.values(damageDistribution).filter(v => v > 0).length;
 
   // 에테르 스케일 계산
   const enemySoulScale = Math.max(0.4, Math.min(1.3, enemyEtherCapacity > 0 ? enemyEtherValue / enemyEtherCapacity : 1));
@@ -239,7 +239,7 @@ export const EnemyUnitsDisplay: FC<EnemyUnitsDisplayProps> = memo(({
 
               {/* 타겟 선택 UI */}
               {distributionMode && (() => {
-                const isTargeted = damageDistribution[unit.unitId] === true;
+                const isTargeted = (damageDistribution[unit.unitId] ?? 0) > 0;
                 return (
                   <div style={{
                     marginTop: '8px',

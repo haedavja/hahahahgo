@@ -95,11 +95,17 @@ export interface TimelineCard {
   icon?: React.FC<IconProps>;
 }
 
-/** UI용 타임라인 액션 */
+/**
+ * UI용 타임라인 액션 - OrderItem과 호환
+ * useBattleTimelines 출력 및 battle.queue와 호환됨
+ */
 export interface UITimelineAction {
-  sp: number;
-  card: TimelineCard;
-  actor?: string;
+  actor: 'player' | 'enemy';
+  card: TimelineCard | Card;
+  sp?: number;
+  idx?: number;
+  originalIndex?: number;
+  finalSpeed?: number;
 }
 
 /** 패리 상태 */
@@ -141,10 +147,12 @@ export interface TimelinePlayer {
  */
 export type TimelineEnemy = Pick<EnemyUnit, 'maxSpeed'>;
 
-/** 타임라인 전투 상태 */
+/**
+ * 타임라인 전투 상태 - OrderItem[]과 호환
+ */
 export interface TimelineBattle {
   phase: string;
-  queue?: UITimelineAction[];
+  queue?: UITimelineAction[] | OrderItem[];
 }
 
 // ==================== HP 바 UI 타입 ====================
@@ -212,10 +220,10 @@ export interface HandCardTrait {
   description?: string;
 }
 
-/** 손패 유닛 */
+/** 손패 유닛 - EnemyUnitState와 호환 */
 export interface HandUnit {
   unitId: number;
-  name: string;
+  name?: string;
   emoji?: string;
   hp: number;
   maxHp: number;
@@ -342,26 +350,36 @@ export interface UIRelicEffect {
   etherMultiplier?: number;
 }
 
-/** 상징 (UI용) */
+/**
+ * 상징 (UI용) - Relic 데이터와 호환
+ */
 export interface UIRelic {
   emoji: string;
   name: string;
   description: string;
   rarity: string;
   effects?: UIRelicEffect;
+  id?: string;
+  tags?: string[];
+  [key: string]: unknown;
 }
 
-/** UI용 상징 맵 */
+/**
+ * UI용 상징 맵 - RELICS 객체와 호환
+ */
 export interface UIRelicsMap {
   [key: string]: UIRelic;
 }
 
-/** 상징 희귀도 상수 */
+/**
+ * 상징 희귀도 상수 - RELIC_RARITIES와 호환
+ */
 export interface RelicRarities {
   COMMON: string;
   RARE: string;
   SPECIAL: string;
   LEGENDARY: string;
+  [key: string]: string;
 }
 
 /** 상징 표시 액션 */
@@ -621,11 +639,14 @@ export interface ItemSlotsEnemyAction {
   [key: string]: unknown;
 }
 
-/** 적 계획 (아이템 슬롯용) */
+/**
+ * 적 계획 (아이템 슬롯용) - EnemyPlan과 호환
+ */
 export interface ItemSlotsEnemyPlan {
   mode?: string;
-  actions: ItemSlotsEnemyAction[];
+  actions: ItemSlotsEnemyAction[] | unknown[];
   manuallyModified?: boolean;
+  [key: string]: unknown;
 }
 
 /** 고정 순서 행동 */
@@ -634,26 +655,32 @@ export interface FixedOrderAction {
   card?: unknown;
 }
 
-/** 전투 참조 (아이템 슬롯용) */
+/**
+ * 전투 참조 (아이템 슬롯용) - BattleState와 호환
+ */
 export interface ItemSlotsBattleRef {
   phase?: string;
-  player?: ItemSlotsPlayer;
-  enemy?: ItemSlotsEnemy;
-  enemyPlan?: ItemSlotsEnemyPlan;
-  fixedOrder?: FixedOrderAction[];
+  player?: ItemSlotsPlayer | unknown;
+  enemy?: ItemSlotsEnemy | unknown;
+  enemyPlan?: ItemSlotsEnemyPlan | unknown;
+  fixedOrder?: FixedOrderAction[] | unknown[];
   frozenOrder?: number;
+  [key: string]: unknown;
 }
 
-/** 전투 액션 (아이템 슬롯용) */
+/**
+ * 전투 액션 (아이템 슬롯용) - BattleActions와 호환
+ * unknown 타입을 사용하여 다양한 상태 객체와 호환됨
+ */
 export interface ItemSlotsBattleActions {
-  setPlayer: (player: ItemSlotsPlayer) => void;
-  setEnemy: (enemy: ItemSlotsEnemy) => void;
+  setPlayer: (player: ItemSlotsPlayer | unknown) => void;
+  setEnemy: (enemy: ItemSlotsEnemy | unknown) => void;
   addLog: (msg: string) => void;
-  setEnemyPlan: (plan: ItemSlotsEnemyPlan) => void;
+  setEnemyPlan: (plan: ItemSlotsEnemyPlan | unknown) => void;
   setDestroyingEnemyCards?: (indices: number[]) => void;
   setFrozenOrder?: (order: number) => void;
   setFreezingEnemyCards?: (indices: number[]) => void;
-  setFixedOrder?: (order: FixedOrderAction[]) => void;
+  setFixedOrder?: (order: FixedOrderAction[] | unknown) => void;
 }
 
 // ==================== 캐릭터 시트 UI 타입 ====================

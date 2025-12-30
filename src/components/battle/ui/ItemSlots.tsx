@@ -13,11 +13,11 @@ import { addToken } from "../../../lib/tokenUtils";
 import type {
   Item,
   TokenEntity,
-  ItemSlotsPlayer as Player,
-  ItemSlotsEnemy as Enemy,
-  ItemSlotsEnemyPlan as EnemyPlan,
-  ItemSlotsBattleRef as BattleRef,
-  ItemSlotsBattleActions as BattleActions,
+  ItemSlotsPlayer,
+  ItemSlotsEnemy,
+  ItemSlotsEnemyPlan,
+  ItemSlotsBattleRef,
+  ItemSlotsBattleActions,
 } from '../../../types';
 
 const STAT_LABELS: Record<string, string> = {
@@ -25,6 +25,21 @@ const STAT_LABELS: Record<string, string> = {
   agility: "민첩",
   insight: "통찰",
 };
+
+/** 플레이어 호환 타입 - ItemSlotsPlayer 필드를 포함하는 모든 타입 */
+type Player = ItemSlotsPlayer & { [key: string]: unknown };
+
+/** 적 호환 타입 - ItemSlotsEnemy 필드를 포함하는 모든 타입 */
+type Enemy = ItemSlotsEnemy & { [key: string]: unknown };
+
+/** 적 계획 호환 타입 */
+type EnemyPlan = ItemSlotsEnemyPlan;
+
+/** 전투 참조 호환 타입 */
+type BattleRef = ItemSlotsBattleRef;
+
+/** 전투 액션 호환 타입 */
+type BattleActions = ItemSlotsBattleActions;
 
 interface ItemSlotsProps {
   phase: string;
