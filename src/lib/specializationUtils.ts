@@ -88,32 +88,30 @@ const TRAIT_SYNERGIES: Record<string, string[]> = {
 };
 
 /**
- * 랜덤 요소 선택
- */
-function pickRandom<T>(arr: T[], count: number = 1): T[] {
-  const shuffled = [...arr].sort(() => Math.random() - 0.5);
-  return shuffled.slice(0, count);
-}
-
-/**
  * weight 기반 가중치 랜덤 선택
  * 낮은 weight(희귀한 특성)일수록 등장 확률 낮음
+ * @returns 빈 배열이 아님을 보장하지 않음 - 호출자가 체크해야 함
  */
 function weightedPickRandom<T extends { weight: number }>(arr: T[], count: number = 1): T[] {
+  if (arr.length === 0) return [];
   // weight의 역수로 확률 계산 (weight 1 = 5점, weight 5 = 1점)
   const weighted = arr.map(item => ({
     item,
     score: Math.random() * (6 - item.weight), // 낮은 weight가 낮은 점수
   }));
   weighted.sort((a, b) => b.score - a.score);
-  return weighted.slice(0, count).map(w => w.item);
+  return weighted.slice(0, Math.min(count, arr.length)).map(w => w.item);
 }
 
 /**
  * 단일 긍정 특성 선택지 생성
+ * @returns null if no positive traits available
  */
-function createSinglePositiveOption(): SpecializationOption {
-  const trait = weightedPickRandom(POSITIVE_TRAITS, 1)[0];
+function createSinglePositiveOption(): SpecializationOption | null {
+  const traits = weightedPickRandom(POSITIVE_TRAITS, 1);
+  if (traits.length === 0) return null;
+
+  const trait = traits[0];
   return {
     id: `single_${trait.id}`,
     traits: [trait],
@@ -124,11 +122,14 @@ function createSinglePositiveOption(): SpecializationOption {
 
 /**
  * 긍정 + 부정 혼합 선택지 생성 (밸런스 맞춤)
+ * @returns null if no positive traits available
  */
-function createMixedOption(): SpecializationOption {
+function createMixedOption(): SpecializationOption | null {
   // 긍정 특성 1~2개 선택 (weight 합 3~5)
   const positiveCount = Math.random() > 0.5 ? 2 : 1;
   const positives = weightedPickRandom(POSITIVE_TRAITS, positiveCount);
+  if (positives.length === 0) return null;
+
   const positiveWeight = positives.reduce((sum, t) => sum + t.weight, 0);
 
   // 부정 특성으로 밸런스 맞춤 (긍정 weight의 50~80% 정도)
@@ -149,13 +150,13 @@ function createMixedOption(): SpecializationOption {
   const netWeight = positiveWeight - negativeWeight;
 
   const posDesc = positives.map(t => `+${t.name}`).join(', ');
-  const negDesc = negatives.map(t => `-${t.name}`).join(', ');
+  const negDesc = negatives.length > 0 ? negatives.map(t => `-${t.name}`).join(', ') : '';
 
   return {
     id: `mixed_${positives.map(t => t.id).join('_')}`,
     traits: allTraits,
     totalWeight: netWeight,
-    description: `[${posDesc}] [${negDesc}]`,
+    description: negDesc ? `[${posDesc}] [${negDesc}]` : `[${posDesc}]`,
   };
 }
 
@@ -196,10 +197,15 @@ function createSynergyOption(existingTraits: string[]): SpecializationOption | n
     };
   } else {
     // 부정 연관 특성은 강한 긍정 특성과 함께
-    const strongPositive = weightedPickRandom(
+    const strongPositives = weightedPickRandom(
       POSITIVE_TRAITS.filter(t => t.weight >= 2),
       1
-    )[0];
+    );
+    // weight >= 2 특성이 없으면 일반 긍정 특성 사용
+    const positivePool = strongPositives.length > 0 ? strongPositives : weightedPickRandom(POSITIVE_TRAITS, 1);
+    if (positivePool.length === 0) return null;
+
+    const strongPositive = positivePool[0];
     return {
       id: `synergy_mixed_${strongPositive.id}_${trait.id}`,
       traits: [strongPositive, trait],
@@ -212,16 +218,19 @@ function createSynergyOption(existingTraits: string[]): SpecializationOption | n
 /**
  * 특화 선택지 5개 생성
  * @param existingTraits 카드가 이미 보유한 특성 ID 배열
- * @returns 5개의 특화 선택지
+ * @returns 최대 5개의 특화 선택지 (특성이 부족하면 더 적을 수 있음)
  */
 export function generateSpecializationOptions(existingTraits: string[] = []): SpecializationOption[] {
   const options: SpecializationOption[] = [];
   const usedTraitIds = new Set<string>();
+  const MAX_ATTEMPTS = 20; // 무한 루프 방지
+  let attempts = 0;
 
   // 1. 연관 특성 선택지 (기존 특성이 있으면 1~2개)
   if (existingTraits.length > 0) {
     const synergyCount = Math.min(2, existingTraits.length);
-    for (let i = 0; i < synergyCount; i++) {
+    for (let i = 0; i < synergyCount && attempts < MAX_ATTEMPTS; i++) {
+      attempts++;
       const synergyOption = createSynergyOption(existingTraits);
       if (synergyOption && !synergyOption.traits.some(t => usedTraitIds.has(t.id))) {
         options.push(synergyOption);
@@ -232,21 +241,32 @@ export function generateSpecializationOptions(existingTraits: string[] = []): Sp
 
   // 2. 혼합 선택지 (1~2개)
   const mixedCount = Math.floor(Math.random() * 2) + 1;
-  for (let i = 0; i < mixedCount && options.length < 4; i++) {
+  for (let i = 0; i < mixedCount && options.length < 4 && attempts < MAX_ATTEMPTS; i++) {
+    attempts++;
     const mixedOption = createMixedOption();
-    if (!mixedOption.traits.some(t => usedTraitIds.has(t.id))) {
+    if (mixedOption && !mixedOption.traits.some(t => usedTraitIds.has(t.id))) {
       options.push(mixedOption);
       mixedOption.traits.forEach(t => usedTraitIds.add(t.id));
     }
   }
 
-  // 3. 나머지는 단일 긍정 특성 선택지로 채움
-  while (options.length < 5) {
+  // 3. 나머지는 단일 긍정 특성 선택지로 채움 (무한 루프 방지)
+  while (options.length < 5 && attempts < MAX_ATTEMPTS) {
+    attempts++;
     const singleOption = createSinglePositiveOption();
+    if (!singleOption) break; // 더 이상 생성 불가
+
     if (!usedTraitIds.has(singleOption.traits[0].id)) {
       options.push(singleOption);
       usedTraitIds.add(singleOption.traits[0].id);
     }
+  }
+
+  // 옵션이 부족하면 중복 허용하여 채움
+  while (options.length < 5) {
+    const fallbackOption = createSinglePositiveOption();
+    if (!fallbackOption) break;
+    options.push(fallbackOption);
   }
 
   // 랜덤하게 섞기
