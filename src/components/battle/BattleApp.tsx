@@ -86,6 +86,7 @@ import { useEnemyDisplayData } from "./hooks/useEnemyDisplayData";
 import { useRenderComputations } from "./hooks/useRenderComputations";
 import { useGameStoreSelectors } from "./hooks/useGameStoreSelectors";
 import { useComboMultiplierCallbacks } from "./hooks/useComboMultiplierCallbacks";
+import { useBattleResultCallbacks } from "./hooks/useBattleResultCallbacks";
 import {
   MAX_SPEED,
   DEFAULT_PLAYER_MAX_SPEED,
@@ -513,23 +514,16 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     actions: actions as unknown as { setInsightBadge: (badge: unknown) => void; setInsightAnimLevel: (level: number) => void; setInsightAnimPulseKey: (fn: (k: number) => number) => void; setHoveredEnemyAction: (action: unknown) => void }
   });
 
-  const notifyBattleResult = useCallback((resultType: string) => {
-    if (!resultType || resultSentRef.current) return;
-    const finalEther = (player.etherPts as number);
-    const delta = finalEther - ((initialEtherRef.current as number) ?? 0);
-    onBattleResult?.({
-      result: resultType as BattleResult['result'],
-      playerEther: finalEther,
-      deltaEther: delta,
-      playerHp: player.hp, // 실제 전투 종료 시점의 체력 전달
-      playerMaxHp: player.maxHp
-    });
-    resultSentRef.current = true;
-  }, [player.etherPts, player.hp, player.maxHp, onBattleResult]);
-
-  const closeCharacterSheet = useCallback(() => {
-    actions.setShowCharacterSheet(false);
-  }, []);
+  // 전투 결과 콜백 훅
+  const { notifyBattleResult, closeCharacterSheet, handleExitToMap } = useBattleResultCallbacks({
+    player: player as { etherPts?: number; hp?: number; maxHp?: number },
+    enemy: enemy as { hp?: number } | null,
+    postCombatOptions,
+    initialEtherRef: initialEtherRef as MutableRefObject<number>,
+    resultSentRef,
+    onBattleResult,
+    actions: { setShowCharacterSheet: actions.setShowCharacterSheet }
+  });
 
   // 카드 툴팁 (커스텀 훅으로 분리)
   const { showCardTraitTooltip, hideCardTraitTooltip } = useCardTooltip({
@@ -537,15 +531,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     battlePhase: battle.phase,
     actions: actions as unknown as { setHoveredCard: (card: unknown) => void; setTooltipVisible: (visible: boolean) => void }
   });
-
-  const handleExitToMap = () => {
-    const outcome = postCombatOptions?.type || (enemy && enemy.hp <= 0 ? 'victory' : (player && player.hp <= 0 ? 'defeat' : null));
-    if (!outcome) return;
-    notifyBattleResult(outcome);
-    if (typeof window !== 'undefined' && window.top === window) {
-      setTimeout(() => { window.location.href = '/'; }, 100);
-    }
-  };
 
   useEffect(() => {
     logEndRef.current?.scrollIntoView({ behavior: 'smooth' });
