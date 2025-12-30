@@ -6,15 +6,23 @@
  * - 다수의 전투 자동 시뮬레이션
  * - 승률, 평균 피해량, 턴 수 등 통계 수집
  * - 카드별 효율 분석
+ *
+ * ## 신뢰성 v2
+ * - 실제 combatActions 로직 사용
+ * - 토큰 시스템 통합 (공세, 방어, 회피 등)
+ * - 적 패시브 효과 적용
+ * - 치명타/반격 시스템
  */
 
 import type { Card, TokenState } from '../types/core';
-import type { AICard, AIMode } from '../types';
+import type { AICard, AIMode, Combatant, BattleContext } from '../types';
 import { CARDS, ENEMY_CARDS, ENEMIES, DEFAULT_STARTING_DECK } from '../components/battle/battleData';
-import { applyAction, simulatePreview } from '../components/battle/utils/battleSimulation';
+import { applyAction } from '../components/battle/logic/combatActions';
 import { decideEnemyMode, generateEnemyActions } from '../components/battle/utils/enemyAI';
 import { getPatternAction, patternActionToMode, ENEMY_PATTERNS } from '../data/enemyPatterns';
 import { createEmptyTokenState } from '../test/factories';
+import { addToken, removeToken, hasToken, getTokenStacks, clearTurnTokens } from '../lib/tokenUtils';
+import { TOKENS } from '../data/tokens';
 
 // ==================== 타입 정의 ====================
 
@@ -215,22 +223,112 @@ function selectEnemyActions(enemy: SimEnemyState, turnNumber: number): AICard[] 
   return actions;
 }
 
+// ==================== 토큰 효과 적용 ====================
+
+function applyTokenEffectsToCard(entity: SimEntity, card: Card | AICard, isAttack: boolean): { damageBonus: number; blockBonus: number } {
+  let damageBonus = 0;
+  let blockBonus = 0;
+
+  if (isAttack) {
+    // 공세 토큰 (usage) - 50% 데미지 증가
+    if (hasToken(entity as any, 'offense')) {
+      damageBonus += 0.5;
+    }
+    if (hasToken(entity as any, 'offensePlus')) {
+      damageBonus += 1.0;
+    }
+    // 공격 토큰 (turn) - 50% 데미지 증가
+    if (hasToken(entity as any, 'attack')) {
+      damageBonus += 0.5;
+    }
+    if (hasToken(entity as any, 'attackPlus')) {
+      damageBonus += 1.0;
+    }
+  } else {
+    // 수세 토큰 (usage) - 50% 방어력 증가
+    if (hasToken(entity as any, 'guard')) {
+      blockBonus += 0.5;
+    }
+    if (hasToken(entity as any, 'guardPlus')) {
+      blockBonus += 1.0;
+    }
+    // 방어 토큰 (turn) - 50% 방어력 증가
+    if (hasToken(entity as any, 'defense')) {
+      blockBonus += 0.5;
+    }
+    if (hasToken(entity as any, 'defensePlus')) {
+      blockBonus += 1.0;
+    }
+  }
+
+  return { damageBonus, blockBonus };
+}
+
+function rollDodge(defender: SimEntity): boolean {
+  // 흐릿함 토큰 - 50% 회피
+  if (hasToken(defender as any, 'blur')) {
+    if (Math.random() < 0.5) {
+      removeToken(defender as any, 'blur', 'usage', 1);
+      return true;
+    }
+    removeToken(defender as any, 'blur', 'usage', 1);
+  }
+  // 흐릿함+ 토큰 - 75% 회피
+  if (hasToken(defender as any, 'blurPlus')) {
+    if (Math.random() < 0.75) {
+      removeToken(defender as any, 'blurPlus', 'usage', 1);
+      return true;
+    }
+    removeToken(defender as any, 'blurPlus', 'usage', 1);
+  }
+  // 회피 토큰 (turn) - 50% 회피
+  if (hasToken(defender as any, 'dodge')) {
+    if (Math.random() < 0.5) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function applyCardTokenEffects(card: Card | AICard, actor: SimEntity, target: SimEntity): void {
+  // 카드에 정의된 토큰 적용
+  const appliedTokens = (card as any).appliedTokens;
+  if (appliedTokens && Array.isArray(appliedTokens)) {
+    for (const tokenInfo of appliedTokens) {
+      const targetEntity = tokenInfo.target === 'enemy' ? target : actor;
+      const result = addToken(targetEntity as any, tokenInfo.id, tokenInfo.stacks || 1);
+      targetEntity.tokens = result.tokens;
+    }
+  }
+}
+
 // ==================== 전투 시뮬레이션 ====================
 
 function simulateTurn(
   player: SimPlayerState,
   enemy: SimEnemyState,
   turnNumber: number,
-  log: string[]
+  log: string[],
+  enemyDef: { passives?: { healPerTurn?: number; strengthPerTurn?: number } } | null
 ): { playerDamage: number; enemyDamage: number; ended: boolean; winner?: 'player' | 'enemy' } {
   // 1. 턴 시작 - 카드 드로우
   drawCards(player, 5 - player.hand.length);
 
-  // 2. 카드 선택
+  // 2. 적 패시브 효과
+  if (enemyDef?.passives) {
+    if (enemyDef.passives.healPerTurn && enemyDef.passives.healPerTurn > 0) {
+      enemy.hp = Math.min(enemy.maxHp, enemy.hp + enemyDef.passives.healPerTurn);
+    }
+    if (enemyDef.passives.strengthPerTurn && enemyDef.passives.strengthPerTurn > 0) {
+      enemy.strength += enemyDef.passives.strengthPerTurn;
+    }
+  }
+
+  // 3. 카드 선택
   const playerSelection = selectPlayerActions(player);
   const enemyActions = selectEnemyActions(enemy, turnNumber);
 
-  // 3. 타임라인 생성 (속도순 정렬)
+  // 4. 타임라인 생성 (속도순 정렬)
   interface TimelineStep {
     actor: 'player' | 'enemy';
     card: Card | AICard;
@@ -250,59 +348,111 @@ function simulateTurn(
   // 속도순 정렬 (낮은 것이 먼저)
   timeline.sort((a, b) => a.sp - b.sp);
 
-  // 4. 타임라인 실행
+  // 5. 타임라인 실행 (실제 combatActions 사용)
   let playerDamage = 0;
   let enemyDamage = 0;
 
-  const simState = {
-    player: {
-      hp: player.hp,
-      block: player.block,
-      strength: player.strength,
-      def: false,
-      counter: 0,
-      etherOverdriveActive: false,
-    },
-    enemy: {
-      hp: enemy.hp,
-      block: enemy.block,
-      strength: enemy.strength,
-      def: false,
-      counter: 0,
-      etherOverdriveActive: false,
-    },
+  // Combatant 상태 생성
+  const playerCombatant: Combatant = {
+    hp: player.hp,
+    maxHp: player.maxHp,
+    block: player.block,
+    strength: player.strength,
+    def: false,
+    counter: 0,
+    vulnMult: 1,
+    tokens: player.tokens,
+  };
+
+  const enemyCombatant: Combatant = {
+    hp: enemy.hp,
+    maxHp: enemy.maxHp,
+    block: enemy.block,
+    strength: enemy.strength,
+    def: false,
+    counter: 0,
+    vulnMult: 1,
+    tokens: enemy.tokens,
+  };
+
+  const combatState = {
+    player: playerCombatant,
+    enemy: enemyCombatant,
     log: [] as string[],
   };
 
   for (const step of timeline) {
-    if (simState.player.hp <= 0 || simState.enemy.hp <= 0) break;
+    if (combatState.player.hp <= 0 || combatState.enemy.hp <= 0) break;
 
-    const simCard = {
-      id: step.card.id,
-      name: step.card.name || step.card.id,
-      type: step.card.type,
-      damage: step.card.damage,
-      block: step.card.block,
-      speedCost: step.card.speedCost,
-      hits: step.card.hits,
-      counter: step.card.counter,
-      traits: step.card.traits,
+    const attacker = step.actor === 'player' ? combatState.player : combatState.enemy;
+    const defender = step.actor === 'player' ? combatState.enemy : combatState.player;
+
+    // 회피 체크
+    if (step.card.type === 'attack' && rollDodge(defender as SimEntity)) {
+      log.push(`${step.actor === 'player' ? '적' : '플레이어'}이 ${step.card.name}을(를) 회피!`);
+      continue;
+    }
+
+    // 토큰 효과 적용
+    const isAttack = step.card.type === 'attack';
+    const tokenEffects = applyTokenEffectsToCard(attacker as SimEntity, step.card, isAttack);
+
+    // 카드 복사 및 수정
+    const modifiedCard: Card = {
+      ...step.card,
+      damage: step.card.damage ? Math.floor(step.card.damage * (1 + tokenEffects.damageBonus)) : undefined,
+      block: step.card.block ? Math.floor(step.card.block * (1 + tokenEffects.blockBonus)) : undefined,
+    } as Card;
+
+    // 힘 보너스 적용
+    if (modifiedCard.damage && attacker.strength) {
+      modifiedCard.damage += attacker.strength;
+    }
+
+    // 실제 applyAction 호출
+    const battleContext: BattleContext = {
+      playerAttackCards: [],
+      isLastCard: false,
     };
 
-    const result = applyAction(simState, step.actor, simCard);
+    try {
+      const result = applyAction(combatState, step.actor, modifiedCard, battleContext);
 
-    if (step.actor === 'player') {
-      playerDamage += result.dealt;
-    } else {
-      enemyDamage += result.dealt;
+      if (result.updatedState) {
+        combatState.player = result.updatedState.player;
+        combatState.enemy = result.updatedState.enemy;
+      }
+
+      if (step.actor === 'player') {
+        playerDamage += result.dealt || 0;
+      } else {
+        enemyDamage += result.dealt || 0;
+      }
+
+      // 카드 토큰 효과 적용
+      applyCardTokenEffects(step.card, attacker as SimEntity, defender as SimEntity);
+
+    } catch (e) {
+      // 오류 발생 시 기본 피해 계산
+      if (isAttack && modifiedCard.damage) {
+        const damage = Math.max(0, modifiedCard.damage - (defender.block || 0));
+        defender.hp = Math.max(0, defender.hp - damage);
+        if (step.actor === 'player') {
+          playerDamage += damage;
+        } else {
+          enemyDamage += damage;
+        }
+      }
     }
   }
 
-  // 상태 업데이트
-  player.hp = simState.player.hp;
-  enemy.hp = simState.enemy.hp;
+  // 6. 상태 업데이트
+  player.hp = combatState.player.hp;
+  player.tokens = combatState.player.tokens;
+  enemy.hp = combatState.enemy.hp;
+  enemy.tokens = combatState.enemy.tokens;
 
-  // 5. 턴 종료 - 손패 버리기, 블록 초기화
+  // 7. 턴 종료 - 손패 버리기, 블록 초기화, 턴 토큰 정리
   for (const idx of playerSelection.indices.sort((a, b) => b - a)) {
     const cardId = player.hand.splice(idx, 1)[0];
     player.discard.push(cardId);
@@ -311,10 +461,16 @@ function simulateTurn(
   player.block = 0;
   enemy.block = 0;
 
-  // 6. 로그 기록
+  // 턴 종료 토큰 정리
+  const playerTokenResult = clearTurnTokens(player as any);
+  player.tokens = playerTokenResult.tokens;
+  const enemyTokenResult = clearTurnTokens(enemy as any);
+  enemy.tokens = enemyTokenResult.tokens;
+
+  // 8. 로그 기록
   log.push(`턴 ${turnNumber}: 플레이어 HP ${player.hp}/${player.maxHp}, 적 HP ${enemy.hp}/${enemy.maxHp}`);
 
-  // 7. 승패 확인
+  // 9. 승패 확인
   if (player.hp <= 0) {
     return { playerDamage, enemyDamage, ended: true, winner: 'enemy' };
   }
@@ -329,6 +485,9 @@ export function runBattle(enemyId: string, config: SimulationConfig): BattleResu
   const player = createPlayer(config);
   const enemy = createEnemy(enemyId);
 
+  // 적 정의 가져오기 (패시브 효과용)
+  const enemyDef = ENEMIES.find(e => e.id === enemyId) || null;
+
   let turn = 0;
   let totalPlayerDamage = 0;
   let totalEnemyDamage = 0;
@@ -340,7 +499,7 @@ export function runBattle(enemyId: string, config: SimulationConfig): BattleResu
   while (turn < config.maxTurns) {
     turn++;
 
-    const result = simulateTurn(player, enemy, turn, log);
+    const result = simulateTurn(player, enemy, turn, log, enemyDef);
     totalPlayerDamage += result.playerDamage;
     totalEnemyDamage += result.enemyDamage;
 
