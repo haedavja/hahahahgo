@@ -36,6 +36,8 @@
  * - 10% 미만 즉사 (executeUnder10) 특성
  * - 방어력 없으면 취약 부여 (vulnIfNoBlock) 특성
  * - 마지막 카드 추가 타격 (repeatIfLast) 특성
+ * - 포커 콤보 감지 및 로깅 (파이브카드~페어)
+ * - AI 콤보 인식: 카드 선택 시 포커 조합 고려
  */
 
 import type { Card, TokenState } from '../types/core';
@@ -49,6 +51,8 @@ import { addToken, removeToken, hasToken, getTokenStacks, clearTurnTokens } from
 import { TOKENS } from '../data/tokens';
 import { RELICS } from '../data/relics';
 import { ANOMALY_TYPES, Anomaly, AnomalyEffect, selectRandomAnomaly } from '../data/anomalies';
+import { detectPokerCombo } from '../components/battle/utils/comboDetection';
+import type { ComboCard } from '../types';
 
 // 기절 범위 상수
 const STUN_RANGE = 5;
@@ -435,7 +439,7 @@ function createEnemy(enemyId: string): SimEnemyState {
 // ==================== AI 시스템 ====================
 
 function selectPlayerActions(player: SimPlayerState): { cards: (Card | AICard)[]; indices: number[] } {
-  // 개선된 AI: 시너지와 상황을 고려한 카드 선택
+  // 개선된 AI: 시너지, 상황, 콤보를 고려한 카드 선택
   const cards: (Card | AICard)[] = [];
   const indices: number[] = [];
   let energy = player.energy;
@@ -446,6 +450,34 @@ function selectPlayerActions(player: SimPlayerState): { cards: (Card | AICard)[]
   const handCards = player.hand
     .map((id, idx) => ({ card: getCardById(id), idx }))
     .filter((item): item is { card: Card | AICard; idx: number } => item.card !== undefined);
+
+  // 포커 콤보 점수 계산 (선택된 카드 + 새 카드 조합으로 콤보 확인)
+  const calculateComboBonus = (selectedCards: (Card | AICard)[], newCard: Card | AICard): number => {
+    const testCards: ComboCard[] = [...selectedCards, newCard].map(c => ({
+      id: c.id,
+      actionCost: c.actionCost || 1,
+      type: c.type || 'attack',
+      traits: (c as Card).traits || [],
+      isGhost: false,
+    }));
+
+    const combo = detectPokerCombo(testCards);
+    if (!combo) return 0;
+
+    // 콤보별 보너스
+    const comboScores: Record<string, number> = {
+      '파이브카드': 100,
+      '포카드': 80,
+      '풀하우스': 60,
+      '플러쉬': 50,
+      '트리플': 35,
+      '투페어': 25,
+      '페어': 15,
+      '하이카드': 0,
+    };
+
+    return comboScores[combo.name] || 0;
+  };
 
   // 카드 점수 계산 (높을수록 좋음)
   const scoreCard = (card: Card | AICard, selectedCards: (Card | AICard)[]): number => {
@@ -495,6 +527,9 @@ function selectPlayerActions(player: SimPlayerState): { cards: (Card | AICard)[]
     // 에너지 효율 (낮은 비용 선호)
     const cost = c.actionCost || 1;
     score += (6 - cost) * 2;
+
+    // 포커 콤보 보너스
+    score += calculateComboBonus(selectedCards, card);
 
     return score;
   };
@@ -1044,6 +1079,21 @@ function simulateTurn(
   const playerSelection = selectPlayerActions(player);
   const enemyActions = selectEnemyActions(enemy, turnNumber);
 
+  // 3.5. 콤보 감지 (포커 패)
+  if (playerSelection.cards.length > 0) {
+    const comboCards: ComboCard[] = playerSelection.cards.map(c => ({
+      id: c.id,
+      actionCost: c.actionCost || 1,
+      type: c.type || 'attack',
+      traits: (c as Card).traits || [],
+      isGhost: false,
+    }));
+    const combo = detectPokerCombo(comboCards);
+    if (combo && combo.name !== '하이카드') {
+      log.push(`🃏 콤보! [${combo.name}]`);
+    }
+  }
+
   // 4. 타임라인 생성 (속도순 정렬) - 전역 TimelineStep 인터페이스 사용
   const timeline: TimelineStep[] = [];
   let cumulativeSp = 0;
@@ -1151,6 +1201,22 @@ function simulateTurn(
       } else {
         playerDamage += burnDamage;
       }
+    }
+
+    // 독 피해 (카드 사용 시) - poison 토큰
+    const poisonStacks = getTokenStacks(attacker as any, 'poison');
+    if (poisonStacks > 0) {
+      const poisonDamage = poisonStacks * 2; // 스택당 2 피해
+      const beforeHP = attacker.hp;
+      attacker.hp = Math.max(0, attacker.hp - poisonDamage);
+      log.push(`☠️ 독! ${isPlayer ? '플레이어' : '적'}: ${poisonDamage} 피해 (체력 ${beforeHP} -> ${attacker.hp})`);
+      if (isPlayer) {
+        enemyDamage += poisonDamage;
+      } else {
+        playerDamage += poisonDamage;
+      }
+      // 독 스택 1 감소
+      removeToken(attacker as any, 'poison', 'usage', 1);
     }
 
     // 회피 체크
