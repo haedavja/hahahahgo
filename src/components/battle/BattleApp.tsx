@@ -85,6 +85,7 @@ import { useBattleRefSync } from "./hooks/useBattleRefSync";
 import { useEnemyDisplayData } from "./hooks/useEnemyDisplayData";
 import { useRenderComputations } from "./hooks/useRenderComputations";
 import { useGameStoreSelectors } from "./hooks/useGameStoreSelectors";
+import { useComboMultiplierCallbacks } from "./hooks/useComboMultiplierCallbacks";
 import {
   MAX_SPEED,
   DEFAULT_PLAYER_MAX_SPEED,
@@ -113,7 +114,6 @@ import { simulatePreview } from "./utils/battleSimulation";
 import { applyAction } from "./logic/combatActions";
 import { initializeDeck, drawFromDeck } from "./utils/handGeneration";
 import { playInsightSound } from "./utils/insightSystem";
-import { computeComboMultiplier as computeComboMultiplierUtil, explainComboMultiplier as explainComboMultiplierUtil } from "./utils/comboMultiplier";
 import { calculateEtherTransfer } from "./utils/etherTransfer";
 import { formatCompactValue } from "./utils/formatUtils";
 import { generateHandUid, generateUid } from "../../lib/randomUtils";
@@ -479,15 +479,10 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     }
   });
 
-  const computeComboMultiplier = useCallback((baseMult: number, cardsCount: number, includeFiveCard = true, includeRefBook = true, relicOrderOverride: Relic[] | null = null) => {
-    const relicIds = relicOrderOverride ? relicOrderOverride.map(r => r.id) : null;
-    return computeComboMultiplierUtil(baseMult, cardsCount, includeFiveCard, includeRefBook, relicIds, orderedRelicList);
-  }, [orderedRelicList]);
-
-  const explainComboMultiplier = useCallback((baseMult: number, cardsCount: number, includeFiveCard = true, includeRefBook = true, relicOrderOverride: Relic[] | null = null) => {
-    const relicIds = relicOrderOverride ? relicOrderOverride.map(r => r.id) : null;
-    return explainComboMultiplierUtil(baseMult, cardsCount, includeFiveCard, includeRefBook, relicIds, orderedRelicList);
-  }, [orderedRelicList]);
+  // 콤보 배율 계산 콜백 (커스텀 훅으로 분리)
+  const { computeComboMultiplier, explainComboMultiplier } = useComboMultiplierCallbacks({
+    orderedRelicList
+  });
 
   // 상징 발동 애니메이션 (커스텀 훅으로 분리)
   const { flashRelic } = useFlashRelic({
