@@ -95,7 +95,7 @@ export const ItemSlots: FC<ItemSlotsProps> = ({ phase, battleActions, player, en
         const tokenLogs: string[] = [];
         if (effect.tokens) {
           for (const tokenGrant of effect.tokens) {
-            const result = addToken(newPlayer as unknown as TokenEntity, tokenGrant.id, tokenGrant.stacks || 1);
+            const result = addToken(newPlayer, tokenGrant.id, tokenGrant.stacks || 1);
             newPlayer.tokens = result.tokens;
             tokenLogs.push(...result.logs);
           }

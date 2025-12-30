@@ -234,7 +234,7 @@ export const EnemyUnitsDisplay: FC<EnemyUnitsDisplayProps> = memo(({
 
               {/* 토큰 표시 */}
               <div style={{ marginTop: '6px', minHeight: '24px' }}>
-                <TokenDisplay entity={unit as unknown as TokenEntity} position="enemy" />
+                <TokenDisplay entity={unit} position="enemy" />
               </div>
 
               {/* 타겟 선택 UI */}

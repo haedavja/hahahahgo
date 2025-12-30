@@ -215,7 +215,7 @@ export const PlayerHpBar: FC<PlayerHpBarProps> = ({
                 )}
               </div>
               {/* 토큰 표시 */}
-              <TokenDisplay entity={player as unknown as TokenEntity} position="player" />
+              <TokenDisplay entity={player} position="player" />
             </div>
           </div>
         </div>

@@ -39,7 +39,7 @@ export const calculateEffectiveInsight = (playerInsight: number, enemyShroud: nu
  */
 const getUnitVeil = (unit: InsightUnit | undefined): number => {
   if (!unit) return 0;
-  return getTokenStacks(unit as unknown as TokenEntity, 'veil') || 0;
+  return getTokenStacks(unit, 'veil') || 0;
 };
 
 /**

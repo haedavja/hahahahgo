@@ -216,7 +216,7 @@ export interface InsightEnemyAction {
 /** 통찰 시스템용 유닛 정보 */
 export interface InsightUnit {
   unitId: number;
-  tokens?: unknown[];
+  tokens?: TokenState;
 }
 
 /** 통찰 액션 공개 정보 */
