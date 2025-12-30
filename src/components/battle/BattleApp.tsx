@@ -77,6 +77,7 @@ import { useResolveProgressEffects } from "./hooks/useResolveProgressEffects";
 import { useEnemyPlanGeneration } from "./hooks/useEnemyPlanGeneration";
 import { useQueueRecovery } from "./hooks/useQueueRecovery";
 import { useAnomalyNotification } from "./hooks/useAnomalyNotification";
+import { useCombatStartSetup } from "./hooks/useCombatStartSetup";
 import {
   MAX_SPEED,
   DEFAULT_PLAYER_MAX_SPEED,
@@ -726,68 +727,27 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     addLog
   });
 
-  useEffect(() => {
-    if (!enemy) {
-      const e = ENEMIES[enemyIndex];
-      const enemyState = createReducerEnemyState(e as Parameters<typeof createReducerEnemyState>[0]);
-      actions.setEnemy(enemyState);
-
-      // 전투 시작 상징 효과 로그 및 애니메이션
-      const combatStartEffects = applyCombatStartEffects(orderedRelicList, {});
-
-      // 전투 시작 상징 애니메이션
-      orderedRelicList.forEach((relicId: string) => {
-        const relic = RELICS[relicId as keyof typeof RELICS];
-        if (relic?.effects?.type === 'ON_COMBAT_START') {
-          actions.setRelicActivated(relicId);
-          playSound(800, 200);
-          setTimeout(() => actions.setRelicActivated(null), 500);
-        }
-      });
-
-      if (combatStartEffects.damage > 0) {
-        addLog(`⛓️ 상징 효과: 체력 -${combatStartEffects.damage} (피의 족쇄)`);
-      }
-      if (combatStartEffects.strength > 0) {
-        addLog(`💪 상징 효과: 힘 +${combatStartEffects.strength}`);
-      }
-      if (combatStartEffects.block > 0) {
-        addLog(`🛡️ 상징 효과: 방어력 +${combatStartEffects.block}`);
-      }
-      if (combatStartEffects.heal > 0) {
-        addLog(`💚 상징 효과: 체력 +${combatStartEffects.heal}`);
-      }
-
-      // 덱/무덤 시스템 초기화 (이미 초기화되었으면 스킵)
-      if (!deckInitializedRef.current) {
-        const currentBuild = useGameStore.getState().characterBuild;
-        const hasCharacterBuild = currentBuild && ((currentBuild.mainSpecials?.length ?? 0) > 0 || (currentBuild.subSpecials?.length ?? 0) > 0 || (currentBuild.ownedCards?.length ?? 0) > 0);
-
-        if (hasCharacterBuild) {
-          // 덱 초기화 (주특기는 손패로, 보조특기는 덱 맨 위로)
-          const { deck: initialDeck, mainSpecialsHand } = initializeDeck(currentBuild, (vanishedCards || []).map(c => c.id));
-          // 덱에서 카드 드로우
-          const drawResult = drawFromDeck(initialDeck, [], DEFAULT_DRAW_COUNT, escapeBanRef.current as Set<string>);
-          actions.setDeck(drawResult.newDeck);
-          actions.setDiscardPile(drawResult.newDiscardPile);
-          // 주특기 + 드로우한 카드 = 손패
-          const fullHand = [...mainSpecialsHand, ...drawResult.drawnCards];
-          actions.setHand(fullHand);
-          deckInitializedRef.current = true; // 덱 초기화 완료 표시
-          addLog(`🎴 시작 손패 ${fullHand.length}장 (주특기 ${mainSpecialsHand.length}장, 덱: ${drawResult.newDeck.length}장)`);
-        } else {
-          const rawHand = CARDS.slice(0, 10).map((card, idx) => ({ ...card, __handUid: generateHandUid(card.id, idx) }));
-          actions.setHand(rawHand);
-          actions.setDeck([]);
-          actions.setDiscardPile([]);
-          deckInitializedRef.current = true; // 덱 초기화 완료 표시
-          addLog(`🎴 시작 손패 ${rawHand.length}장`);
-        }
-      }
-      actions.setSelected([]);
-      actions.setCanRedraw(true);
+  // 전투 시작 설정 (커스텀 훅으로 분리)
+  useCombatStartSetup({
+    enemy,
+    enemyIndex,
+    orderedRelicList,
+    vanishedCards,
+    allCards: CARDS as Card[],
+    deckInitializedRef,
+    escapeBanRef: escapeBanRef as MutableRefObject<Set<string>>,
+    playSound,
+    addLog,
+    actions: {
+      setEnemy: actions.setEnemy as (e: unknown) => void,
+      setRelicActivated: actions.setRelicActivated,
+      setDeck: actions.setDeck as (d: Card[]) => void,
+      setDiscardPile: actions.setDiscardPile as (p: Card[]) => void,
+      setHand: actions.setHand as (h: Card[]) => void,
+      setSelected: actions.setSelected as (s: Card[]) => void,
+      setCanRedraw: actions.setCanRedraw
     }
-  }, []);
+  });
 
   // 턴 시작 효과 처리 (커스텀 훅으로 분리)
   useTurnStartEffects({
