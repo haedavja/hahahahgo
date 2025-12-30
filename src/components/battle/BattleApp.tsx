@@ -78,6 +78,7 @@ import { useEnemyPlanGeneration } from "./hooks/useEnemyPlanGeneration";
 import { useQueueRecovery } from "./hooks/useQueueRecovery";
 import { useAnomalyNotification } from "./hooks/useAnomalyNotification";
 import { useCombatStartSetup } from "./hooks/useCombatStartSetup";
+import { usePlayerInitialization } from "./hooks/usePlayerInitialization";
 import {
   MAX_SPEED,
   DEFAULT_PLAYER_MAX_SPEED,
@@ -569,84 +570,43 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     logEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [battle.log]);
 
-  useEffect(() => {
-    const nextEther = typeof safeInitialPlayer?.etherPts === 'number'
-      ? safeInitialPlayer.etherPts
-      : (playerEther ?? (player.etherPts as number));
-    initialEtherRef.current = nextEther as number;
-    resultSentRef.current = false;
-    actions.setPlayer({
-      ...player,
-      hp: safeInitialPlayer?.hp ?? player.hp,
-      maxHp: safeInitialPlayer?.maxHp ?? player.maxHp,
-      energy: safeInitialPlayer?.energy ?? player.energy,
-      maxEnergy: safeInitialPlayer?.energy ?? player.maxEnergy,
-      etherPts: nextEther,
-      // Strength를 0으로 리셋하지 않고 초기 계산값/이전 값 보존
-      strength: Number(safeInitialPlayer?.strength || player.strength || startingStrength || 0),
-      insight: Number(safeInitialPlayer?.insight || player.insight || startingInsight || 0)
-    });
-    actions.setSelected([]);
-    actions.setQueue([]);
-    actions.setQIndex(0);
-    actions.setFixedOrder(null);
-    actions.setPostCombatOptions(null);
-    actions.setEnemyPlan({ actions: [], mode: null });
-    // 새로운 전투/턴 초기화 시 턴 시작 플래그도 리셋
-    turnStartProcessedRef.current = false;
-    // 통찰/연출 관련 초기화
-    prevInsightRef.current = 0;
-    prevRevealLevelRef.current = 0;
-    actions.setInsightAnimLevel(0);
-    actions.setInsightAnimPulseKey(battle.insightAnimPulseKey + 1);
-    actions.setEnemyEtherFinalValue(null);
-    actions.setEnemyEtherCalcPhase(null);
-    actions.setEnemyCurrentDeflation(null);
-    if ((safeInitialPlayer?.insight || 0) > 0) {
-      // 전투 시작 시에도 통찰 연출 1회 재생
-      setTimeout(() => {
-        actions.setInsightBadge({
-          level: safeInitialPlayer?.insight || 0,
-          dir: 'up',
-          show: true,
-          key: Date.now(),
-        });
-        playInsightSound(Math.min(safeInitialPlayer?.insight || 0, 3));
-        actions.setInsightAnimLevel(Math.min(3, safeInitialPlayer?.insight || 0));
-        actions.setInsightAnimPulseKey(battle.insightAnimPulseKey + 1);
-        setTimeout(() => actions.setInsightAnimLevel(0), 1000);
-        setTimeout(() => actions.setInsightBadge({ ...battle.insightBadge, show: false }), 1200);
-      }, 50);
+  // 플레이어 초기화 훅
+  usePlayerInitialization({
+    player: player as { hp?: number; maxHp?: number; energy?: number; etherPts?: number; strength?: number; insight?: number; [key: string]: unknown },
+    safeInitialPlayer: safeInitialPlayer as Partial<{ hp?: number; maxHp?: number; energy?: number; etherPts?: number; strength?: number; insight?: number }>,
+    playerEther: playerEther ?? 0,
+    startingStrength: startingStrength ?? 0,
+    startingInsight: startingInsight ?? 0,
+    battle: { insightAnimPulseKey: battle.insightAnimPulseKey, insightBadge: battle.insightBadge, vanishedCards: battle.vanishedCards },
+    allCards: CARDS as unknown as Card[],
+    initialEtherRef: initialEtherRef as MutableRefObject<number>,
+    resultSentRef,
+    turnStartProcessedRef,
+    prevInsightRef,
+    prevRevealLevelRef,
+    deckInitializedRef,
+    escapeBanRef: escapeBanRef as MutableRefObject<Set<string>>,
+    actions: {
+      setPlayer: actions.setPlayer as (player: unknown) => void,
+      setSelected: actions.setSelected as (selected: unknown[]) => void,
+      setQueue: actions.setQueue as (queue: unknown[]) => void,
+      setQIndex: actions.setQIndex,
+      setFixedOrder: actions.setFixedOrder as (order: unknown) => void,
+      setPostCombatOptions: actions.setPostCombatOptions as (options: unknown) => void,
+      setEnemyPlan: actions.setEnemyPlan as (plan: { actions: unknown[]; mode: unknown }) => void,
+      setInsightAnimLevel: actions.setInsightAnimLevel,
+      setInsightAnimPulseKey: actions.setInsightAnimPulseKey,
+      setEnemyEtherFinalValue: actions.setEnemyEtherFinalValue as (value: unknown) => void,
+      setEnemyEtherCalcPhase: actions.setEnemyEtherCalcPhase as (phase: unknown) => void,
+      setEnemyCurrentDeflation: actions.setEnemyCurrentDeflation as (deflation: unknown) => void,
+      setInsightBadge: actions.setInsightBadge as (badge: unknown) => void,
+      setPhase: actions.setPhase,
+      setDeck: actions.setDeck,
+      setDiscardPile: actions.setDiscardPile,
+      setHand: actions.setHand,
+      setCanRedraw: actions.setCanRedraw
     }
-    actions.setPhase('select');
-    // 덱/무덤 시스템 초기화
-    const currentBuild = useGameStore.getState().characterBuild;
-    const hasCharacterBuild = currentBuild && ((currentBuild.mainSpecials?.length ?? 0) > 0 || (currentBuild.subSpecials?.length ?? 0) > 0 || (currentBuild.ownedCards?.length ?? 0) > 0);
-
-    // 덱이 이미 초기화되었으면 스킵 (두 번째 useEffect에서 처리)
-    if (!deckInitializedRef.current) {
-      if (hasCharacterBuild) {
-        // 덱 초기화 (주특기는 손패로, 보조특기는 덱 맨 위로)
-        const { deck: initialDeck, mainSpecialsHand } = initializeDeck(currentBuild, (battle.vanishedCards || []).map(c => c.id));
-        // 덱에서 카드 드로우
-        const drawResult = drawFromDeck(initialDeck, [], DEFAULT_DRAW_COUNT, escapeBanRef.current as Set<string>);
-        actions.setDeck(drawResult.newDeck);
-        actions.setDiscardPile(drawResult.newDiscardPile);
-        // 주특기 + 드로우한 카드 = 손패
-        actions.setHand([...mainSpecialsHand, ...drawResult.drawnCards]);
-        deckInitializedRef.current = true;
-      } else {
-        // 캐릭터 빌드가 없으면 기존 방식 (테스트용)
-        const rawHand = CARDS.slice(0, 10).map((card, idx) => ({ ...card, __handUid: generateHandUid(card.id, idx) }));
-        actions.setHand(rawHand);
-        actions.setDeck([]);
-        actions.setDiscardPile([]);
-        deckInitializedRef.current = true;
-      }
-    }
-    actions.setCanRedraw(true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  });
 
   // 개발자 모드 효과 (힘 변경, 덱 재구성, 토큰 추가)
   useDevModeEffects({
