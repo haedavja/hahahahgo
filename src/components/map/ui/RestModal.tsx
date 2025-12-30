@@ -84,6 +84,7 @@ export function RestModal({
   cardUpgrades,
   cardGrowth,
   gold,
+  ownedCards,
   closeRest,
   awakenAtRest,
   healAtRest,
@@ -98,6 +99,7 @@ export function RestModal({
   maxHp: number;
   canAwaken: boolean;
   playerTraits: string[];
+  ownedCards: string[];
   canFormEgo: boolean;
   cardUpgrades: Record<string, string>;
   cardGrowth: Record<string, CardGrowthState>;
@@ -172,7 +174,7 @@ export function RestModal({
                   border: '1px solid rgba(96, 165, 250, 0.4)',
                 }}
               >
-                ⚔️ 카드 성장 (강화/특화)
+                🎴 카드 승급 (강화/특화)
               </button>
             </div>
           </div>
@@ -209,13 +211,14 @@ export function RestModal({
         </div>
       </div>
 
-      {/* 카드 성장 모달 */}
+      {/* 카드 승급 모달 */}
       <CardGrowthModal
         isOpen={showCardGrowthModal}
         onClose={() => setShowCardGrowthModal(false)}
         cardGrowth={cardGrowth}
         onEnhance={enhanceCard}
         onSpecialize={specializeCard}
+        ownedCards={ownedCards}
       />
     </div>
   );

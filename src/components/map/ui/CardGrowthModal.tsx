@@ -1,9 +1,9 @@
 /**
  * CardGrowthModal.tsx
- * 카드 성장 전용 모달
+ * 카드 승급 전용 모달
  *
  * UI 흐름:
- * 1. 카드 선택 + 강화/특화 버튼 선택
+ * 1. 보유 카드 중 선택 + 강화/특화 버튼 선택
  * 2. 선택한 모드로 진입 (취소 불가)
  * 3. 강화: 전투 화면 스타일 카드로 현재/미리보기 표시
  * 4. 특화: 5개 옵션 중 선택
@@ -29,6 +29,7 @@ interface CardGrowthModalProps {
   cardGrowth: Record<string, CardGrowthState>;
   onEnhance: (cardId: string) => void;
   onSpecialize: (cardId: string, selectedTraits: string[]) => void;
+  ownedCards?: string[];
 }
 
 interface CardData {
@@ -67,29 +68,36 @@ export function CardGrowthModal({
   cardGrowth,
   onEnhance,
   onSpecialize,
+  ownedCards = [],
 }: CardGrowthModalProps) {
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
   const [mode, setMode] = useState<Mode>('select');
   const [previewLevel, setPreviewLevel] = useState<number | null>(null);
   const [specOptions, setSpecOptions] = useState<SpecializationOption[]>([]);
   const [selectedSpecOption, setSelectedSpecOption] = useState<SpecializationOption | null>(null);
   const [notification, setNotification] = useState<{ message: string; type: string } | null>(null);
 
-  const cards = CARDS || [];
+  // 보유 카드만 표시 (중복 제거)
+  const uniqueOwnedCardIds = useMemo(() => {
+    return [...new Set(ownedCards)];
+  }, [ownedCards]);
 
-  const filteredCards = useMemo(() => {
-    return (cards as CardData[]).filter(c =>
-      c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      c.id.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  }, [cards, searchTerm]);
+  const displayedCards = useMemo((): CardData[] => {
+    const result: CardData[] = [];
+    for (const cardId of uniqueOwnedCardIds) {
+      const card = CARDS.find((c: { id: string }) => c.id === cardId);
+      if (card) {
+        result.push(card as CardData);
+      }
+    }
+    return result;
+  }, [uniqueOwnedCardIds]);
 
   const getCardGrowthState = (cardId: string): CardGrowthState => {
     return cardGrowth[cardId] || { rarity: 'common', growthCount: 0, enhancementLevel: 0, specializationCount: 0, traits: [] };
   };
 
-  const selectedCard = cards.find((c: { id: string }) => c.id === selectedCardId) as CardData | undefined;
+  const selectedCard = CARDS.find((c: { id: string }) => c.id === selectedCardId) as CardData | undefined;
   const selectedGrowth = selectedCardId ? getCardGrowthState(selectedCardId) : null;
   const currentLevel = selectedGrowth?.enhancementLevel || 0;
 
@@ -189,15 +197,15 @@ export function CardGrowthModal({
     >
       <div
         style={{
-          width: mode === 'select' ? '500px' : '900px',
+          width: mode === 'select' ? '900px' : '900px',
           maxHeight: '90vh',
           background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
           borderRadius: '16px',
-          border: '2px solid #334155',
+          border: '2px solid #fbbf24',
+          boxShadow: '0 0 40px rgba(251, 191, 36, 0.3)',
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
-          transition: 'width 0.3s ease',
         }}
         onClick={e => e.stopPropagation()}
       >
@@ -220,11 +228,11 @@ export function CardGrowthModal({
               color: mode === 'enhance' ? '#60a5fa' : mode === 'specialize' ? '#86efac' : '#fbbf24',
               fontSize: '1.5rem'
             }}>
-              {mode === 'select' ? '카드 성장' : mode === 'enhance' ? '⚔️ 강화' : '✨ 특화'}
+              {mode === 'select' ? '🎴 카드 승급' : mode === 'enhance' ? '⚔️ 강화' : '✨ 특화'}
             </h2>
             <p style={{ margin: '4px 0 0', color: '#94a3b8', fontSize: '0.875rem' }}>
               {mode === 'select'
-                ? '카드를 선택하고 강화 또는 특화를 선택하세요'
+                ? '카드를 선택하고 강화 또는 특화를 진행하세요'
                 : mode === 'enhance'
                   ? `${selectedCard?.name} 강화 (현재 +${currentLevel})`
                   : `${selectedCard?.name} 특화`}
@@ -260,150 +268,187 @@ export function CardGrowthModal({
         )}
 
         {/* 메인 컨텐츠 */}
-        <div style={{ flex: 1, overflow: 'auto', padding: '16px' }}>
+        <div style={{ flex: 1, overflow: 'auto', padding: '20px' }}>
 
           {/* 선택 모드 */}
           {mode === 'select' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              {/* 카드 검색 */}
-              <input
-                type="text"
-                placeholder="카드 검색..."
-                value={searchTerm}
-                onChange={e => setSearchTerm(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '12px 16px',
-                  background: '#1e293b',
-                  border: '1px solid #334155',
-                  borderRadius: '8px',
-                  color: '#e2e8f0',
-                  fontSize: '1rem',
-                }}
-              />
-
-              {/* 카드 목록 */}
-              <div style={{
-                maxHeight: '300px',
-                overflowY: 'auto',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '8px',
-              }}>
-                {filteredCards.map((card) => {
-                  const growth = getCardGrowthState(card.id);
-                  const isSelected = card.id === selectedCardId;
-                  const isMaxed = growth.rarity === 'legendary' && growth.enhancementLevel >= 5;
-
-                  return (
-                    <div
-                      key={card.id}
-                      onClick={() => !isMaxed && handleSelectCard(card.id)}
-                      style={{
-                        padding: '12px 16px',
-                        background: isSelected ? 'rgba(251, 191, 36, 0.15)' : 'rgba(30, 41, 59, 0.6)',
-                        border: isSelected ? '2px solid #fbbf24' : '1px solid #334155',
-                        borderRadius: '10px',
-                        cursor: isMaxed ? 'not-allowed' : 'pointer',
-                        opacity: isMaxed ? 0.5 : 1,
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                      }}
-                    >
-                      <div>
-                        <span style={{ color: '#e2e8f0', fontWeight: 600, fontSize: '1rem' }}>{card.name}</span>
-                        {growth.traits.length > 0 && (
-                          <div style={{ fontSize: '12px', color: '#86efac', marginTop: '4px' }}>
-                            특성: {growth.traits.slice(0, 3).map(tid => {
-                              const t = TRAITS[tid as keyof typeof TRAITS];
-                              return t?.name || tid;
-                            }).join(', ')}{growth.traits.length > 3 ? ` +${growth.traits.length - 3}` : ''}
-                          </div>
-                        )}
-                      </div>
-                      <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                        {(growth.enhancementLevel || 0) > 0 && (
-                          <span style={{
-                            fontSize: '11px',
-                            padding: '3px 8px',
-                            borderRadius: '6px',
-                            background: getEnhancementColor(growth.enhancementLevel || 0),
-                            color: '#0f172a',
-                            fontWeight: 700,
-                          }}>
-                            {getEnhancementLabel(growth.enhancementLevel || 0)}
-                          </span>
-                        )}
-                        <span style={{
-                          fontSize: '11px',
-                          padding: '3px 8px',
-                          borderRadius: '6px',
-                          background: rarityColors[growth.rarity],
-                          color: '#0f172a',
-                          fontWeight: 700,
-                        }}>
-                          {rarityLabels[growth.rarity]}
-                        </span>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* 강화/특화 버튼 */}
-              {selectedCard && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              {/* 보유 카드 없음 */}
+              {displayedCards.length === 0 ? (
                 <div style={{
-                  display: 'flex',
-                  gap: '12px',
-                  marginTop: '8px',
+                  textAlign: 'center',
+                  padding: '60px 20px',
+                  color: '#64748b',
                 }}>
-                  <button
-                    onClick={enterEnhanceMode}
-                    disabled={!canEnhance}
-                    style={{
-                      flex: 1,
-                      padding: '16px',
-                      background: canEnhance
-                        ? 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)'
-                        : '#334155',
-                      border: 'none',
-                      borderRadius: '10px',
-                      color: '#fff',
-                      fontSize: '1.1rem',
-                      fontWeight: 700,
-                      cursor: canEnhance ? 'pointer' : 'not-allowed',
-                      opacity: canEnhance ? 1 : 0.5,
-                    }}
-                  >
-                    ⚔️ 강화
-                    {canEnhance && <span style={{ display: 'block', fontSize: '0.8rem', marginTop: '4px', opacity: 0.8 }}>
-                      +{currentLevel} → +{currentLevel + 1}
-                    </span>}
-                    {!canEnhance && currentLevel >= 5 && <span style={{ display: 'block', fontSize: '0.8rem', marginTop: '4px' }}>최대 레벨</span>}
-                  </button>
-                  <button
-                    onClick={enterSpecializeMode}
-                    disabled={!canSpecialize}
-                    style={{
-                      flex: 1,
-                      padding: '16px',
-                      background: canSpecialize
-                        ? 'linear-gradient(135deg, #22c55e 0%, #15803d 100%)'
-                        : '#334155',
-                      border: 'none',
-                      borderRadius: '10px',
-                      color: '#fff',
-                      fontSize: '1.1rem',
-                      fontWeight: 700,
-                      cursor: canSpecialize ? 'pointer' : 'not-allowed',
-                      opacity: canSpecialize ? 1 : 0.5,
-                    }}
-                  >
-                    ✨ 특화
-                    {!canSpecialize && <span style={{ display: 'block', fontSize: '0.8rem', marginTop: '4px' }}>전설 등급</span>}
-                  </button>
+                  <div style={{ fontSize: '3rem', marginBottom: '16px' }}>🃏</div>
+                  <div style={{ fontSize: '1.1rem' }}>보유한 카드가 없습니다</div>
                 </div>
+              ) : (
+                <>
+                  {/* 카드 목록 (캐릭터창 스타일) */}
+                  <div style={{
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    gap: '12px',
+                    justifyContent: 'center',
+                  }}>
+                    {displayedCards.map((card) => {
+                      const growth = getCardGrowthState(card.id);
+                      const isSelected = card.id === selectedCardId;
+                      const isMaxed = growth.rarity === 'legendary' && growth.enhancementLevel >= 5;
+                      const Icon = card.icon || (card.type === 'attack' ? Sword : Shield);
+
+                      return (
+                        <div
+                          key={card.id}
+                          onClick={() => !isMaxed && handleSelectCard(card.id)}
+                          style={{
+                            transform: 'scale(1)',
+                            cursor: isMaxed ? 'not-allowed' : 'pointer',
+                            opacity: isMaxed ? 0.5 : 1,
+                          }}
+                        >
+                          <div
+                            className={`game-card-large no-hover ${card.type === 'attack' ? 'attack' : 'defense'}`}
+                            style={{
+                              boxShadow: isSelected
+                                ? '0 0 20px rgba(251, 191, 36, 0.6)'
+                                : '0 2px 12px rgba(0, 0, 0, 0.4)',
+                              border: isSelected
+                                ? '3px solid #fbbf24'
+                                : '2px solid #334155',
+                              transition: 'all 0.15s',
+                            }}
+                          >
+                            <div className="card-cost-badge-floating" style={{
+                              color: '#fff',
+                              WebkitTextStroke: '1px #000'
+                            }}>
+                              {card.actionCost}
+                            </div>
+                            {/* 강화 레벨 배지 */}
+                            {(growth.enhancementLevel || 0) > 0 && (
+                              <div style={{
+                                position: 'absolute',
+                                top: '4px',
+                                right: '8px',
+                                padding: '2px 8px',
+                                background: getEnhancementColor(growth.enhancementLevel || 0),
+                                borderRadius: '6px',
+                                fontSize: '11px',
+                                fontWeight: 700,
+                                color: '#0f172a',
+                                zIndex: 10,
+                              }}>
+                                {getEnhancementLabel(growth.enhancementLevel || 0)}
+                              </div>
+                            )}
+                            {/* 희귀도 배지 */}
+                            {growth.rarity !== 'common' && (
+                              <div style={{
+                                position: 'absolute',
+                                bottom: '4px',
+                                right: '4px',
+                                padding: '2px 6px',
+                                background: rarityColors[growth.rarity],
+                                borderRadius: '4px',
+                                fontSize: '10px',
+                                fontWeight: 700,
+                                color: '#0f172a',
+                                zIndex: 10,
+                              }}>
+                                {rarityLabels[growth.rarity]}
+                              </div>
+                            )}
+                            <div className="card-stats-sidebar">
+                              {card.damage != null && card.damage > 0 && (
+                                <div className="card-stat-item attack">
+                                  ⚔️{card.damage}{card.hits ? `×${card.hits}` : ''}
+                                </div>
+                              )}
+                              {card.block != null && card.block > 0 && (
+                                <div className="card-stat-item defense">🛡️{card.block}</div>
+                              )}
+                              <div className="card-stat-item speed">⏱️{card.speedCost}</div>
+                            </div>
+                            <div className="card-header" style={{ display: 'flex', justifyContent: 'center' }}>
+                              <div className="font-black text-sm" style={{ color: '#fff' }}>
+                                {card.name}
+                              </div>
+                            </div>
+                            <div className="card-icon-area">
+                              <Icon size={50} className="text-white opacity-80" />
+                            </div>
+                            <div className="card-footer">
+                              {growth.traits && growth.traits.length > 0 && (
+                                <TraitBadgeList traits={growth.traits} />
+                              )}
+                              <span className="card-description">{card.description || ''}</span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* 강화/특화 버튼 */}
+                  {selectedCard && (
+                    <div style={{
+                      display: 'flex',
+                      gap: '16px',
+                      padding: '16px',
+                      background: 'rgba(15, 23, 42, 0.6)',
+                      borderRadius: '12px',
+                      border: '1px solid #334155',
+                    }}>
+                      <button
+                        onClick={enterEnhanceMode}
+                        disabled={!canEnhance}
+                        style={{
+                          flex: 1,
+                          padding: '18px',
+                          background: canEnhance
+                            ? 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)'
+                            : '#334155',
+                          border: 'none',
+                          borderRadius: '10px',
+                          color: '#fff',
+                          fontSize: '1.1rem',
+                          fontWeight: 700,
+                          cursor: canEnhance ? 'pointer' : 'not-allowed',
+                          opacity: canEnhance ? 1 : 0.5,
+                        }}
+                      >
+                        ⚔️ 강화
+                        {canEnhance && <span style={{ display: 'block', fontSize: '0.85rem', marginTop: '4px', opacity: 0.8 }}>
+                          +{currentLevel} → +{currentLevel + 1}
+                        </span>}
+                        {!canEnhance && currentLevel >= 5 && <span style={{ display: 'block', fontSize: '0.85rem', marginTop: '4px' }}>최대 레벨</span>}
+                      </button>
+                      <button
+                        onClick={enterSpecializeMode}
+                        disabled={!canSpecialize}
+                        style={{
+                          flex: 1,
+                          padding: '18px',
+                          background: canSpecialize
+                            ? 'linear-gradient(135deg, #22c55e 0%, #15803d 100%)'
+                            : '#334155',
+                          border: 'none',
+                          borderRadius: '10px',
+                          color: '#fff',
+                          fontSize: '1.1rem',
+                          fontWeight: 700,
+                          cursor: canSpecialize ? 'pointer' : 'not-allowed',
+                          opacity: canSpecialize ? 1 : 0.5,
+                        }}
+                      >
+                        ✨ 특화
+                        {!canSpecialize && <span style={{ display: 'block', fontSize: '0.85rem', marginTop: '4px' }}>전설 등급</span>}
+                      </button>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           )}

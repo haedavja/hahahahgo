@@ -105,7 +105,7 @@ export function MapDemo() {
   }, [orderedRelics]);
 
   // 플레이어 스탯 셀렉터 (그룹화)
-  const { playerHp, maxHp, playerStrength, playerAgility, playerInsight, playerTraits, cardUpgrades, cardGrowth, itemBuffs } = useGameStore(
+  const { playerHp, maxHp, playerStrength, playerAgility, playerInsight, playerTraits, cardUpgrades, cardGrowth, itemBuffs, characterBuild } = useGameStore(
     useShallow((state) => ({
       playerHp: state.playerHp,
       maxHp: state.maxHp,
@@ -116,8 +116,10 @@ export function MapDemo() {
       cardUpgrades: state.cardUpgrades || {},
       cardGrowth: state.cardGrowth || {},
       itemBuffs: state.itemBuffs || {},
+      characterBuild: state.characterBuild,
     }))
   );
+  const ownedCards = characterBuild?.ownedCards || [];
 
   // 액션 셀렉터 (그룹화)
   const {
@@ -482,6 +484,7 @@ export function MapDemo() {
           cardUpgrades={cardUpgrades}
           cardGrowth={cardGrowth}
           gold={resources.gold ?? 0}
+          ownedCards={ownedCards}
           closeRest={closeRest}
           awakenAtRest={awakenAtRest}
           healAtRest={healAtRest}

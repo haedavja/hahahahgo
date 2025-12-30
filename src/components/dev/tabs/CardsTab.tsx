@@ -431,7 +431,7 @@ export function CardsTab({ cardUpgrades, upgradeCardRarity, characterBuild, upda
         marginTop: '16px',
         border: '1px solid rgba(96, 165, 250, 0.3)',
       }}>
-        <h4 style={{ color: '#60a5fa', fontSize: '0.875rem', marginBottom: '8px', marginTop: 0 }}>⚔️ 카드 성장 (강화/특화)</h4>
+        <h4 style={{ color: '#60a5fa', fontSize: '0.875rem', marginBottom: '8px', marginTop: 0 }}>🎴 카드 승급 (강화/특화)</h4>
         <p style={{ fontSize: '0.75rem', color: '#94a3b8', marginBottom: '12px' }}>
           강화로 카드 스탯을 높이고, 특화로 특성을 부여하세요.
         </p>
@@ -449,17 +449,18 @@ export function CardsTab({ cardUpgrades, upgradeCardRarity, characterBuild, upda
             cursor: 'pointer',
           }}
         >
-          ⚔️ 카드 성장 창 열기
+          🎴 카드 승급 창 열기
         </button>
       </div>
 
-      {/* 카드 성장 모달 */}
+      {/* 카드 승급 모달 */}
       <CardGrowthModal
         isOpen={showCardGrowthModal}
         onClose={() => setShowCardGrowthModal(false)}
         cardGrowth={cardGrowth}
         onEnhance={enhanceCard}
         onSpecialize={specializeCard}
+        ownedCards={ownedCards}
       />
     </div>
   );
