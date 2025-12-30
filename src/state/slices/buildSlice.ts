@@ -33,6 +33,8 @@ function getDefaultGrowthState(): CardGrowthState {
   return {
     rarity: 'common',
     growthCount: 0,
+    enhancementLevel: 0,
+    specializationCount: 0,
     traits: [],
   };
 }
@@ -112,11 +114,13 @@ export const createBuildActions: SliceCreator = (set, get) => ({
       if (currentGrowth.rarity === 'legendary') return state;
 
       const newGrowthCount = currentGrowth.growthCount + 1;
+      const newEnhancementLevel = currentGrowth.enhancementLevel + 1;
       const newRarity = calculateRarity(newGrowthCount);
 
       const newGrowthState: CardGrowthState = {
         ...currentGrowth,
         growthCount: newGrowthCount,
+        enhancementLevel: newEnhancementLevel,
         rarity: newRarity,
       };
 
@@ -142,11 +146,13 @@ export const createBuildActions: SliceCreator = (set, get) => ({
       if (currentGrowth.rarity === 'legendary') return state;
 
       const newGrowthCount = currentGrowth.growthCount + 1;
+      const newSpecializationCount = currentGrowth.specializationCount + 1;
       const newRarity = calculateRarity(newGrowthCount);
 
       const newGrowthState: CardGrowthState = {
         ...currentGrowth,
         growthCount: newGrowthCount,
+        specializationCount: newSpecializationCount,
         rarity: newRarity,
         traits: [...currentGrowth.traits, ...selectedTraits],
       };

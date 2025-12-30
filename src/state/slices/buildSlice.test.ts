@@ -19,6 +19,7 @@ const createInitialState = (): BuildSliceState => ({
     ownedCards: [],
   },
   cardUpgrades: {},
+  cardGrowth: {},
 });
 
 type TestStore = BuildSliceState & BuildActionsSlice;
@@ -143,6 +144,84 @@ describe('buildSlice', () => {
       store.getState().upgradeCardRarity('strike');
       store.getState().upgradeCardRarity('strike'); // legendary에서 더 이상 업그레이드 안됨
       expect(store.getState().cardUpgrades['strike']).toBe('legendary');
+    });
+  });
+
+  describe('enhanceCard (강화)', () => {
+    it('카드를 강화하면 enhancementLevel이 증가한다', () => {
+      store.getState().enhanceCard('strike');
+      const growth = store.getState().getCardGrowth('strike');
+      expect(growth.enhancementLevel).toBe(1);
+      expect(growth.growthCount).toBe(1);
+    });
+
+    it('강화하면 희귀도가 상승한다 (1회 → rare)', () => {
+      store.getState().enhanceCard('strike');
+      const growth = store.getState().getCardGrowth('strike');
+      expect(growth.rarity).toBe('rare');
+    });
+
+    it('3회 성장 시 special 등급이 된다', () => {
+      store.getState().enhanceCard('strike');
+      store.getState().enhanceCard('strike');
+      store.getState().enhanceCard('strike');
+      const growth = store.getState().getCardGrowth('strike');
+      expect(growth.rarity).toBe('special');
+      expect(growth.enhancementLevel).toBe(3);
+    });
+
+    it('5회 성장 시 legendary 등급이 되고 더 이상 성장 불가', () => {
+      for (let i = 0; i < 5; i++) {
+        store.getState().enhanceCard('strike');
+      }
+      const growth = store.getState().getCardGrowth('strike');
+      expect(growth.rarity).toBe('legendary');
+      expect(growth.enhancementLevel).toBe(5);
+
+      // 추가 강화 시도
+      store.getState().enhanceCard('strike');
+      expect(store.getState().getCardGrowth('strike').enhancementLevel).toBe(5);
+    });
+  });
+
+  describe('specializeCard (특화)', () => {
+    it('카드를 특화하면 특성이 부여된다', () => {
+      store.getState().specializeCard('strike', ['swift', 'strongbone']);
+      const growth = store.getState().getCardGrowth('strike');
+      expect(growth.traits).toContain('swift');
+      expect(growth.traits).toContain('strongbone');
+      expect(growth.specializationCount).toBe(1);
+    });
+
+    it('특화도 성장 횟수에 포함된다', () => {
+      store.getState().specializeCard('strike', ['swift']);
+      const growth = store.getState().getCardGrowth('strike');
+      expect(growth.growthCount).toBe(1);
+      expect(growth.rarity).toBe('rare');
+    });
+
+    it('강화와 특화를 섞어서 사용할 수 있다', () => {
+      store.getState().enhanceCard('strike');      // growthCount: 1, enhancementLevel: 1
+      store.getState().specializeCard('strike', ['swift']); // growthCount: 2, specializationCount: 1
+      store.getState().enhanceCard('strike');      // growthCount: 3, enhancementLevel: 2
+
+      const growth = store.getState().getCardGrowth('strike');
+      expect(growth.growthCount).toBe(3);
+      expect(growth.enhancementLevel).toBe(2);
+      expect(growth.specializationCount).toBe(1);
+      expect(growth.rarity).toBe('special');
+      expect(growth.traits).toContain('swift');
+    });
+  });
+
+  describe('getCardGrowth', () => {
+    it('성장하지 않은 카드는 기본 상태를 반환한다', () => {
+      const growth = store.getState().getCardGrowth('unknown_card');
+      expect(growth.rarity).toBe('common');
+      expect(growth.growthCount).toBe(0);
+      expect(growth.enhancementLevel).toBe(0);
+      expect(growth.specializationCount).toBe(0);
+      expect(growth.traits).toEqual([]);
     });
   });
 });

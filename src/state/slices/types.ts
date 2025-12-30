@@ -288,8 +288,10 @@ export interface EventSliceActions {
 /** 카드 성장 상태 */
 export interface CardGrowthState {
   rarity: 'common' | 'rare' | 'special' | 'legendary';
-  growthCount: number;  // 강화 + 특화 총 횟수
-  traits: string[];     // 특화로 부여된 특성들
+  growthCount: number;        // 강화 + 특화 총 횟수 (승격 판정용)
+  enhancementLevel: number;   // 강화 횟수 (1~5, 스탯 강화 적용용)
+  specializationCount: number; // 특화 횟수
+  traits: string[];           // 특화로 부여된 특성들
 }
 
 /** 빌드 슬라이스 상태 */
