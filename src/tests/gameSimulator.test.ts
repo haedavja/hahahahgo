@@ -284,3 +284,52 @@ describe('티어별 적 목록', () => {
     );
   });
 });
+
+describe('상징 효과 시뮬레이션', () => {
+  it('상징을 장착한 시뮬레이션을 실행할 수 있다', () => {
+    const config: SimulationConfig = {
+      battles: 10,
+      maxTurns: 30,
+      enemyIds: ['ghoul'],
+      playerRelics: ['sturdyArmor'],
+    };
+
+    const stats: SimulationStats = runSimulation(config);
+
+    expect(stats.totalBattles).toBe(10);
+    // sturdyArmor는 방어력을 제공하므로 승률에 긍정적 영향
+    expect(stats.winRate).toBeGreaterThanOrEqual(0);
+  });
+
+  it('여러 상징을 장착한 시뮬레이션을 실행할 수 있다', () => {
+    const config: SimulationConfig = {
+      battles: 10,
+      maxTurns: 30,
+      enemyIds: ['ghoul'],
+      playerRelics: ['sturdyArmor', 'trainingBoots'],
+    };
+
+    const stats: SimulationStats = runSimulation(config);
+
+    expect(stats.totalBattles).toBe(10);
+    expect(stats.avgPlayerFinalHp).toBeGreaterThanOrEqual(0);
+  });
+
+  it('상징 없이 시뮬레이션을 실행할 수 있다', () => {
+    const config: SimulationConfig = {
+      battles: 10,
+      maxTurns: 30,
+      enemyIds: ['ghoul'],
+      playerRelics: [],
+    };
+
+    const stats: SimulationStats = runSimulation(config);
+
+    expect(stats.totalBattles).toBe(10);
+  });
+
+  it('runRelicComparison 함수가 존재한다', async () => {
+    const { runRelicComparison } = await import('./gameSimulator');
+    expect(typeof runRelicComparison).toBe('function');
+  });
+});

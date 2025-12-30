@@ -1923,6 +1923,83 @@ export function runBalanceAnalysis(battles: number = 100): void {
   console.log('\n========================================\n');
 }
 
+/**
+ * 상징 효과 비교 시뮬레이션
+ * 각 상징을 착용했을 때의 승률 비교
+ */
+export function runRelicComparison(battles: number = 50): void {
+  console.log('\n========================================');
+  console.log('         상징 효과 비교 분석             ');
+  console.log('========================================\n');
+
+  // 테스트할 상징 목록
+  const relicsToTest = [
+    'etherCrystal',    // 최대 행동력 +1
+    'sturdyArmor',     // 턴 시작 방어력 +8
+    'trainingBoots',   // 최대 체력 +10
+    'redHerb',         // 전투 종료 시 체력 +5
+    'bloodShackles',   // 전투 시작 시 체력 -5, 힘 +2
+    'coin',            // 턴 종료 힘 +1
+    'goldenHerb',      // 전투 종료 시 체력 +10
+    'immortalMask',    // 카드 사용 시 체력 +1
+    'ironRing',        // 최대 행동력 +2
+  ];
+
+  // 기준치 (상징 없음)
+  const baseConfig: SimulationConfig = {
+    battles,
+    maxTurns: 30,
+    enemyIds: TIER_1_ENEMIES,
+    playerRelics: [],
+    verbose: false,
+  };
+  const baseStats = runSimulation(baseConfig);
+  console.log(`📊 기준치 (상징 없음): ${(baseStats.winRate * 100).toFixed(1)}% 승률\n`);
+
+  // 각 상징별 테스트
+  const results: Array<{ id: string; name: string; winRate: number; diff: number }> = [];
+
+  for (const relicId of relicsToTest) {
+    const relic = RELICS[relicId as keyof typeof RELICS];
+    if (!relic) continue;
+
+    const config: SimulationConfig = {
+      battles,
+      maxTurns: 30,
+      enemyIds: TIER_1_ENEMIES,
+      playerRelics: [relicId],
+      verbose: false,
+    };
+
+    const stats = runSimulation(config);
+    const diff = stats.winRate - baseStats.winRate;
+
+    results.push({
+      id: relicId,
+      name: relic.name,
+      winRate: stats.winRate,
+      diff,
+    });
+  }
+
+  // 효과가 큰 순서로 정렬
+  results.sort((a, b) => b.diff - a.diff);
+
+  console.log('🏆 상징별 승률 변화 (효과 순):');
+  console.log('─────────────────────────────────────────');
+  for (const result of results) {
+    const diffStr = result.diff >= 0 ? `+${(result.diff * 100).toFixed(1)}` : `${(result.diff * 100).toFixed(1)}`;
+    const rating = result.diff > 0.1 ? '⭐⭐⭐ 강력' :
+                   result.diff > 0.05 ? '⭐⭐ 좋음' :
+                   result.diff > 0 ? '⭐ 약간' :
+                   result.diff < -0.05 ? '❌ 부정적' :
+                   '➖ 중립';
+    console.log(`  ${result.name}: ${(result.winRate * 100).toFixed(1)}% (${diffStr}%) | ${rating}`);
+  }
+
+  console.log('\n========================================\n');
+}
+
 // CLI에서 직접 실행 시
 if (typeof process !== 'undefined' && process.argv?.[1]?.includes('gameSimulator')) {
   runQuickTest();
