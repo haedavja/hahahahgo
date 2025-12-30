@@ -476,3 +476,31 @@ export function playParrySound(): void {
     logAudioError('parry sound', error);
   }
 }
+
+/**
+ * 범용 사운드 재생 함수 (주파수, 지속시간 커스텀 가능)
+ * @param frequency - 사운드 주파수 (기본: 800Hz)
+ * @param duration - 사운드 지속시간 밀리초 (기본: 100ms)
+ */
+export function playSound(frequency = 800, duration = 100): void {
+  try {
+    const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    const audioContext = new AudioContextClass();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+
+    oscillator.frequency.value = frequency;
+    oscillator.type = 'sine';
+
+    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration / 1000);
+
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + duration / 1000);
+  } catch (e) {
+    logAudioError('custom sound', e);
+  }
+}

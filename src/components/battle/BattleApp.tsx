@@ -50,7 +50,7 @@ import React, { useState, useEffect, useMemo, useRef, useCallback, type MutableR
 import type { JSX } from 'react';
 import { flushSync } from "react-dom";
 import "./legacy-battle.css";
-import { playHitSound, playBlockSound, playParrySound } from "../../lib/soundUtils";
+import { playHitSound, playBlockSound, playParrySound, playSound } from "../../lib/soundUtils";
 import { useBattleState } from "./hooks/useBattleState";
 import { useDamagePreview } from "./hooks/useDamagePreview";
 import { useBattleTimelines } from "./hooks/useBattleTimelines";
@@ -69,6 +69,7 @@ import { useResolveExecution } from "./hooks/useResolveExecution";
 import { useBreachSelection } from "./hooks/useBreachSelection";
 import { useTurnStartEffects } from "./hooks/useTurnStartEffects";
 import { useBattleInitialization } from "./hooks/useBattleInitialization";
+import { useBattleRefs } from "./hooks/useBattleRefs";
 import {
   MAX_SPEED,
   DEFAULT_PLAYER_MAX_SPEED,
@@ -92,6 +93,7 @@ import { RELIC_EFFECT, RELIC_RARITY_COLORS } from "../../lib/relics";
 import { applyAgility } from "../../lib/agilityUtils";
 import { hasTrait, hasEnemyUnits, markCrossedCards } from "./utils/battleUtils";
 import { detectPokerCombo } from "./utils/comboDetection";
+import { getEnemyNameCounts, getGroupedEnemyMembers } from "./utils/enemyDisplayUtils";
 import { COMBO_MULTIPLIERS, BASE_ETHER_PER_CARD, CARD_ETHER_BY_RARITY, getCardEtherGain } from "./utils/etherCalculations";
 import { generateEnemyActions, shouldEnemyOverdrive, assignSourceUnitToActions } from "./utils/enemyAI";
 import { simulatePreview } from "./utils/battleSimulation";
@@ -148,6 +150,11 @@ import { AnomalyDisplay, AnomalyNotification } from "./ui/AnomalyDisplay";
 import { DefeatOverlay } from "./ui/DefeatOverlay";
 import { TIMING, executeMultiHitAsync } from "./logic/battleExecution";
 import { processTimelineSpecials, hasSpecial, processCardPlaySpecials } from "./utils/cardSpecialEffects";
+import { distributeUnitDamage, type EnemyUnit } from "./utils/unitDamageDistribution";
+import { processRequiredTokenConsumption, processBurnDamage, processBlockPerCardExecution } from "./utils/tokenConsumptionProcessing";
+import { generateBreachCards, generateFencingCards, generateExecutionSquadCards, type CreationQueueItem } from "./utils/cardCreationProcessing";
+import { processViolentMortExecution } from "./utils/executionEffects";
+import { processTokenExpiration } from "./utils/tokenExpirationProcessing";
 
 // HandArea용 로컬 Card 타입 - 제거됨 (Card 타입 직접 사용)
 
@@ -415,24 +422,30 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   }, [effectiveAgility]);
   const cardUpgrades = useGameStore((state) => state.cardUpgrades || {}); // 카드 업그레이드(희귀도)
 
-  // Keep refs as they are
-  // 탈주 카드는 사용된 다음 턴에만 등장 금지
-  const escapeBanRef = useRef(new Set());
-  const escapeUsedThisTurnRef = useRef(new Set());
-  const logEndRef = useRef<HTMLDivElement | null>(null);
-  const devilDiceTriggeredRef = useRef(false); // 턴 내 악마의 주사위 발동 여부
-  const referenceBookTriggeredRef = useRef(false); // 턴 내 참고서 발동 여부
-  const initialEtherRef = useRef(typeof safeInitialPlayer.etherPts === 'number' ? safeInitialPlayer.etherPts : (playerEther ?? 0));
-  const resultSentRef = useRef(false);
-  const turnStartProcessedRef = useRef(false); // 턴 시작 효과 중복 실행 방지
-  const prevInsightRef = useRef(0); // 통찰 값 변화 추적용
-  const prevRevealLevelRef = useRef(0); // 통찰 공개 레벨 추적용
-  const deckInitializedRef = useRef(false); // 덱이 초기화되었는지 추적 (첫 턴 중복 드로우 방지)
-    const battleRef = useRef(battle); // battle 상태를 ref로 유지 (setTimeout closure 문제 해결)
-  const displayEtherMultiplierRef = useRef(1); // 애니메이션 표시용 에테르 배율 (리셋되어도 유지)
+  // 전투 ref 통합 관리 (useBattleRefs 커스텀 훅)
+  const {
+    escapeBanRef,
+    escapeUsedThisTurnRef,
+    devilDiceTriggeredRef,
+    referenceBookTriggeredRef,
+    turnStartProcessedRef,
+    deckInitializedRef,
+    timelineAnimationRef,
+    isExecutingCardRef,
+    parryReadyStatesRef,
+    growingDefenseRef,
+    prevInsightRef,
+    prevRevealLevelRef,
+    displayEtherMultiplierRef,
+    initialEtherRef,
+    logEndRef,
+    resultSentRef,
+  } = useBattleRefs({
+    initialEther: typeof safeInitialPlayer.etherPts === 'number' ? safeInitialPlayer.etherPts : (playerEther ?? 0)
+  });
+
+  const battleRef = useRef(battle); // battle 상태를 ref로 유지 (setTimeout closure 문제 해결)
   const [parryReadyStates, setParryReadyStates] = useState<ParryReadyState[]>([]); // 쳐내기 패리 대기 상태 배열 (렌더링용)
-  const parryReadyStatesRef = useRef<ParryReadyState[]>([]); // 쳐내기 패리 대기 상태 배열 (setTimeout용)
-  const growingDefenseRef = useRef<{ activatedSp: number; totalDefenseApplied: number } | null>(null); // 방어자세: { activatedSp, lastProcessedSp }
 
   const stepOnceRef = useRef<(() => void) | null>(null); // stepOnce 함수 참조 (브리치 선택 후 진행 재개용)
 
@@ -450,8 +463,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     addLog,
     actions: actions as unknown as CommonBattleActions
   });
-  const timelineAnimationRef = useRef<number | null>(null); // 타임라인 진행 애니메이션 ref
-  const isExecutingCardRef = useRef(false); // executeCardAction 중복 실행 방지
 
   // 개발자 모드: 모든 보유 카드 100% 등장
   const [devForceAllCards, setDevForceAllCards] = useState(false);
@@ -487,31 +498,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     const relicIds = relicOrderOverride ? relicOrderOverride.map(r => r.id) : null;
     return explainComboMultiplierUtil(baseMult, cardsCount, includeFiveCard, includeRefBook, relicIds, orderedRelicList);
   }, [orderedRelicList]);
-
-  // 효과음 재생 함수 (useCallback으로 안정적인 참조 유지)
-  const playSound = useCallback((frequency = 800, duration = 100) => {
-    try {
-       
-      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-      const audioContext = new AudioContextClass();
-      const oscillator = audioContext.createOscillator();
-      const gainNode = audioContext.createGain();
-
-      oscillator.connect(gainNode);
-      gainNode.connect(audioContext.destination);
-
-      oscillator.frequency.value = frequency;
-      oscillator.type = 'sine';
-
-      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration / 1000);
-
-      oscillator.start(audioContext.currentTime);
-      oscillator.stop(audioContext.currentTime + duration / 1000);
-    } catch (e) {
-      // 효과음 재생 실패 시 무시
-    }
-  }, []);
 
   const flashRelic = (relicId: string, tone = 800, duration = 500) => {
     const nextSet = new Set(activeRelicSet);
@@ -1273,21 +1259,21 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
     // 타임라인 기반 토큰 만료 처리 (현재 SP 도달 시 이전 턴에서 부여된 토큰 제거)
     const currentSp = a.sp || 0;
-    const playerExpireResult = expireTurnTokensByTimeline(P as TokenEntity, turnNumber, currentSp);
-    const enemyExpireResult = expireTurnTokensByTimeline(E as TokenEntity, turnNumber, currentSp);
+    const tokenExpirationResult = processTokenExpiration({
+      playerState: P as TokenEntity,
+      enemyState: E as TokenEntity,
+      turnNumber,
+      currentSp,
+      addLog
+    });
 
-    if (playerExpireResult.logs.length > 0) {
-      P = { ...P, tokens: playerExpireResult.tokens };
-      playerExpireResult.logs.forEach(log => addLog(log));
-    }
-    if (enemyExpireResult.logs.length > 0) {
-      E = { ...E, tokens: enemyExpireResult.tokens };
-      enemyExpireResult.logs.forEach(log => addLog(log));
-    }
-
-    // battleRef 동기 업데이트 (토큰 만료 반영)
-    if (battleRef.current && (playerExpireResult.logs.length > 0 || enemyExpireResult.logs.length > 0)) {
-      battleRef.current = { ...battleRef.current, player: P, enemy: E };
+    if (tokenExpirationResult.hasChanges) {
+      P = { ...P, tokens: tokenExpirationResult.playerState.tokens || P.tokens };
+      E = { ...E, tokens: tokenExpirationResult.enemyState.tokens || E.tokens };
+      // battleRef 동기 업데이트 (토큰 만료 반영)
+      if (battleRef.current) {
+        battleRef.current = { ...battleRef.current, player: P, enemy: E };
+      }
     }
 
     const tempState = { player: P, enemy: E, log: [] };
@@ -1338,13 +1324,15 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     };
 
     // === requiredTokens 소모 (카드 실행 전) ===
-    if (a.actor === 'player' && a.card.requiredTokens && Array.isArray(a.card.requiredTokens) && a.card.requiredTokens.length > 0) {
-      for (const req of a.card.requiredTokens as Array<{ id: string; stacks: number }>) {
-        const tokenRemoveResult = removeToken(P as TokenEntity, req.id, 'permanent', req.stacks);
-        P = { ...P, tokens: tokenRemoveResult.tokens };
-        addLog(`✨ ${req.id === 'finesse' ? '기교' : req.id} -${req.stacks} 소모`);
-      }
-      // tempState, battleRef 동기 업데이트
+    const tokenConsumptionResult = processRequiredTokenConsumption({
+      actor: a.actor,
+      card: a.card,
+      playerState: P as TokenEntity & { hp: number },
+      enemyState: E as TokenEntity & { hp: number },
+      addLog
+    });
+    if (tokenConsumptionResult.updatedTokens) {
+      P = { ...P, tokens: tokenConsumptionResult.playerState.tokens || P.tokens };
       tempState.player = P;
       if (battleRef.current) {
         battleRef.current = { ...battleRef.current, player: P };
@@ -1613,26 +1601,18 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     }
 
     // === 바이올랑 모르: 처형 효과 (체력 30 이하 적 즉시 처형) ===
-    if (hasSpecial(a.card, 'violentMort') && a.actor === 'player' && a.card.type === 'attack') {
-      const EXECUTION_THRESHOLD = 30;
-      if (E.hp > 0 && E.hp <= EXECUTION_THRESHOLD) {
-        // 부활 토큰 제거 후 처형
-        const reviveToken = (getAllTokens(E as unknown as TokenEntity) as unknown as Array<TokenInstance & { effect?: TokenEffect }>).find((t: TokenInstance & { effect?: TokenEffect }) => t.effect?.type === 'REVIVE');
-        if (reviveToken) {
-          const reviveRemoveResult = removeToken(E as TokenEntity, reviveToken.id, 'usage', reviveToken.stacks || 1);
-          E = { ...E, tokens: reviveRemoveResult.tokens };
-          addLog(`💀 처형: 부활 무시!`);
-        }
-        // 즉시 처형
-        E.hp = 0;
-        (E as { executed?: boolean }).executed = true;  // 처형 플래그 (부활 방지용)
-        addLog(`💀 바이올랑 모르: 적 체력 ${EXECUTION_THRESHOLD} 이하! 처형!`);
-        // battleRef 동기 업데이트
-        if (battleRef.current) {
-          battleRef.current = { ...battleRef.current, enemy: E };
-        }
-        actions.setEnemy({ ...E });
+    const executionResult = processViolentMortExecution({
+      card: a.card,
+      actor: a.actor,
+      enemyState: E as TokenEntity & { hp: number; executed?: boolean },
+      addLog
+    });
+    if (executionResult.executed) {
+      E = { ...E, ...executionResult.enemyState };
+      if (battleRef.current) {
+        battleRef.current = { ...battleRef.current, enemy: E };
       }
+      actions.setEnemy({ ...E });
     }
 
     // 이벤트 로그 출력
@@ -1667,59 +1647,36 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     }
 
     // === blockPerCardExecution: 카드 실행 시 방어력 추가 (노인의 꿈) ===
-    // 단, 이 효과를 발동시킨 카드 자체(blockPerCard5 special 보유)는 제외
-    if (a.actor === 'player') {
-      const latestNextTurnEffects = battleRef.current?.nextTurnEffects || battle.nextTurnEffects || {};
-      const blockPerCard = (latestNextTurnEffects as { blockPerCardExecution?: number }).blockPerCardExecution || 0;
-      const cardSpecials = Array.isArray(a.card.special) ? a.card.special : (a.card.special ? [a.card.special] : []);
-      const isBlockPerCardTrigger = cardSpecials.some((s: string) => s.startsWith('blockPerCard'));
-      if (blockPerCard > 0 && !isBlockPerCardTrigger) {
-        P.block = (P.block || 0) + blockPerCard;
-        P.def = true;
-        addLog(`🛡️ 노인의 꿈: 카드 실행 시 방어력 +${blockPerCard}`);
-        // battleRef 동기 업데이트
-        if (battleRef.current) {
-          battleRef.current = { ...battleRef.current, player: P };
-        }
+    const latestNextTurnEffects = battleRef.current?.nextTurnEffects || battle.nextTurnEffects || {};
+    const blockPerCardResult = processBlockPerCardExecution({
+      actor: a.actor,
+      card: a.card,
+      playerState: P,
+      nextTurnEffects: latestNextTurnEffects as { blockPerCardExecution?: number },
+      addLog
+    });
+    if (blockPerCardResult.applied) {
+      P.block = blockPerCardResult.playerState.block ?? 0;
+      P.def = blockPerCardResult.playerState.def ?? false;
+      if (battleRef.current) {
+        battleRef.current = { ...battleRef.current, player: P };
       }
     }
 
     // === 화상(BURN) 피해 처리: 카드 사용 시마다 피해 ===
-    if (a.actor === 'player') {
-      const playerBurnTokens = (getAllTokens(P as unknown as TokenEntity) as unknown as Array<TokenInstance & { effect?: TokenEffect }>).filter((t: TokenInstance & { effect?: TokenEffect }) => t.effect?.type === 'BURN');
-      if (playerBurnTokens.length > 0) {
-        const burnDamage = playerBurnTokens.reduce((sum, t) => sum + (t.effect?.value || 3) * (t.stacks || 1), 0);
-        P.hp = Math.max(0, P.hp - burnDamage);
-        addLog(`🔥 화상: 플레이어 -${burnDamage} HP`);
-        actionEvents.push({
-          actor: 'player',
-          card: String(a.card.name || ''),
-          type: 'burn',
-          dmg: burnDamage,
-          msg: `🔥 화상: 플레이어 -${burnDamage} HP`
-        });
-        // battleRef 동기 업데이트
-        if (battleRef.current) {
-          battleRef.current = { ...battleRef.current, player: P };
-        }
-      }
-    } else if (a.actor === 'enemy') {
-      const enemyBurnTokens = (getAllTokens(E as unknown as TokenEntity) as unknown as Array<TokenInstance & { effect?: TokenEffect }>).filter((t: TokenInstance & { effect?: TokenEffect }) => t.effect?.type === 'BURN');
-      if (enemyBurnTokens.length > 0) {
-        const burnDamage = enemyBurnTokens.reduce((sum, t) => sum + (t.effect?.value || 3) * (t.stacks || 1), 0);
-        E.hp = Math.max(0, E.hp - burnDamage);
-        addLog(`🔥 화상: 적 -${burnDamage} HP`);
-        actionEvents.push({
-          actor: 'enemy',
-          card: String(a.card.name || ''),
-          type: 'burn',
-          dmg: burnDamage,
-          msg: `🔥 화상: 적 -${burnDamage} HP`
-        });
-        // battleRef 동기 업데이트
-        if (battleRef.current) {
-          battleRef.current = { ...battleRef.current, enemy: E };
-        }
+    const burnDamageResult = processBurnDamage({
+      actor: a.actor,
+      card: a.card,
+      playerState: P as TokenEntity & { hp: number },
+      enemyState: E as TokenEntity & { hp: number },
+      addLog
+    });
+    if (burnDamageResult.burnEvents.length > 0) {
+      P.hp = burnDamageResult.playerState.hp;
+      E.hp = burnDamageResult.enemyState.hp;
+      actionEvents.push(...burnDamageResult.burnEvents.map(evt => ({ ...evt, type: 'burn' as const })));
+      if (battleRef.current) {
+        battleRef.current = { ...battleRef.current, player: P, enemy: E };
       }
     }
 
@@ -2465,119 +2422,20 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     // === 다중 유닛 데미지 분배 ===
     // ⚠️ hasEnemyUnits()는 UI 표시(hasMultipleUnits)와 동일한 조건 사용
     const enemyUnits = E.units || enemy.units || [];
-    const hasUnits = hasEnemyUnits(enemyUnits);  // battleUtils.hasEnemyUnits 사용
+    const hasUnits = hasEnemyUnits(enemyUnits);
 
     if (hasUnits && a.actor === 'player' && a.card?.type === 'attack') {
-      const targetUnitIds = a.card.__targetUnitIds;
-      // AOE 공격 체크: aoeAttack special 또는 isAoe 플래그
-      const isAoeAttack = hasSpecial(a.card, 'aoeAttack') || a.card.isAoe === true;
+      const damageDistributionResult = distributeUnitDamage({
+        card: a.card as Card & { __targetUnitId?: number; __targetUnitIds?: number[]; isAoe?: boolean; damage?: number },
+        enemyUnits: enemyUnits as unknown as EnemyUnit[],
+        damageDealt: actionResult.dealt || 0,
+        selectedTargetUnit: battle.selectedTargetUnit ?? 0
+      });
 
-      if (isAoeAttack) {
-        // === 범위 피해 모드: 모든 생존 유닛에 동일 피해 ===
-        let updatedUnits = [...enemyUnits];
-        const damageDealt = actionResult.dealt || 0;
-        const damageLogParts: string[] = [];
-
-        if (damageDealt > 0) {
-          const aliveUnits = updatedUnits.filter(u => u.hp > 0);
-
-          for (const targetUnit of aliveUnits) {
-            // 유닛별 방어력 적용
-            const unitBlock = targetUnit.block || 0;
-            const blockedDamage = Math.min(unitBlock, damageDealt);
-            const actualDamage = damageDealt - blockedDamage;
-            const newBlock = unitBlock - blockedDamage;
-            const newHp = Math.max(0, targetUnit.hp - actualDamage);
-
-            updatedUnits = updatedUnits.map(u => {
-              if (u.unitId === targetUnit.unitId) {
-                return { ...u, hp: newHp, block: newBlock };
-              }
-              return u;
-            });
-
-            if (blockedDamage > 0) {
-              damageLogParts.push(`${targetUnit.name}: ${actualDamage} (방어 ${blockedDamage})`);
-            } else {
-              damageLogParts.push(`${targetUnit.name}: ${actualDamage}`);
-            }
-          }
-
-          const newTotalHp = updatedUnits.reduce((sum, u) => sum + Math.max(0, u.hp), 0);
-          E.hp = newTotalHp;
-          E.units = updatedUnits;
-
-          if (damageLogParts.length > 0) {
-            addLog(`🌀 범위 피해: ${damageLogParts.join(', ')}`);
-          }
-        }
-      } else if (Array.isArray(targetUnitIds) && targetUnitIds.length > 0) {
-        // === 다중 타겟 모드: 선택된 모든 유닛에 카드 피해 적용 ===
-        let updatedUnits = [...enemyUnits];
-        const baseDamage = Number((a.card as { damage?: number }).damage) || 0;
-        const damageLogParts: string[] = [];
-
-        for (const unitId of targetUnitIds) {
-          const targetUnit = updatedUnits.find(u => u.unitId === unitId && u.hp > 0);
-          if (!targetUnit) continue;
-
-          // 유닛별 방어력 적용
-          const unitBlock = targetUnit.block || 0;
-          const blockedDamage = Math.min(unitBlock, baseDamage);
-          const actualDamage = baseDamage - blockedDamage;
-          const newBlock = unitBlock - blockedDamage;
-          const newHp = Math.max(0, targetUnit.hp - actualDamage);
-
-          updatedUnits = updatedUnits.map(u => {
-            if (u.unitId === unitId) {
-              return { ...u, hp: newHp, block: newBlock };
-            }
-            return u;
-          });
-
-          if (blockedDamage > 0) {
-            damageLogParts.push(`${targetUnit.name}: 공격력 ${baseDamage} - 방어력 ${blockedDamage} = ${actualDamage}`);
-          } else {
-            damageLogParts.push(`${targetUnit.name}: ${actualDamage}`);
-          }
-        }
-
-        const newTotalHp = updatedUnits.reduce((sum, u) => sum + Math.max(0, u.hp), 0);
-        E.hp = newTotalHp;
-        E.units = updatedUnits;
-
-        if (damageLogParts.length > 0) {
-          addLog(`⚔️ 다중 타겟: ${damageLogParts.join(', ')}`);
-        }
-      } else {
-        // === 기존 단일 타겟 모드 ===
-        const damageDealt = actionResult.dealt || 0;
-
-        if (damageDealt > 0) {
-          // 카드에 지정된 타겟 유닛 ID 사용 (없으면 전역 선택 타겟 사용)
-          const cardTargetUnitId = a.card.__targetUnitId ?? battle.selectedTargetUnit ?? 0;
-          const aliveUnits = enemyUnits.filter(u => u.hp > 0);
-          let targetUnit = aliveUnits.find(u => u.unitId === cardTargetUnitId);
-          if (!targetUnit && aliveUnits.length > 0) {
-            targetUnit = aliveUnits[0];
-          }
-
-          if (targetUnit) {
-            const unitHpBefore = targetUnit.hp;
-            const newUnitHp = Math.max(0, targetUnit.hp - damageDealt);
-
-            const updatedUnits = enemyUnits.map(u => {
-              if (u.unitId === targetUnit.unitId) {
-                return { ...u, hp: newUnitHp };
-              }
-              return u;
-            });
-
-            const newTotalHp = updatedUnits.reduce((sum, u) => sum + Math.max(0, u.hp), 0);
-            E.hp = newTotalHp;
-            E.units = updatedUnits;
-          }
-        }
+      if (damageDistributionResult) {
+        E.hp = damageDistributionResult.newTotalHp;
+        E.units = damageDistributionResult.updatedUnits as typeof E.units;
+        damageDistributionResult.logs.forEach(log => addLog(log));
       }
     }
 
@@ -2701,43 +2559,22 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     playSound
   });
 
-  const enemyNameCounts = useMemo(() => {
-    if (!enemy) return {};
-    const counts: Record<string, number> = {};
-    const extEnemy = enemy as { composition?: Array<{ name?: string }>; count?: number; quantity?: number };
-    (extEnemy.composition || []).forEach((m) => {
-      const key = m?.name || '몬스터';
-      counts[key] = (counts[key] || 0) + 1;
-    });
-    const base = enemy?.name || '몬스터';
-    if (!counts[base]) counts[base] = extEnemy?.count || extEnemy?.quantity || 1;
-    return counts;
-  }, [enemy?.composition, enemy?.name, (enemy as { count?: number })?.count, (enemy as { quantity?: number })?.quantity, enemy]);
+  const enemyNameCounts = useMemo(() => getEnemyNameCounts(enemy), [
+    enemy?.composition,
+    enemy?.name,
+    (enemy as { count?: number })?.count,
+    (enemy as { quantity?: number })?.quantity,
+    enemy
+  ]);
 
-  const groupedEnemyMembers = useMemo(() => {
-    if (!enemy) return [];
-    type EnemyMember = { name?: string; emoji?: string; count?: number };
-    const extEnemy = enemy as { composition?: EnemyMember[]; emoji?: string; count?: number; quantity?: number };
-    const list: EnemyMember[] = extEnemy?.composition && extEnemy.composition.length > 0
-      ? extEnemy.composition
-      : [{ name: enemy?.name || '몬스터', emoji: extEnemy?.emoji || '👹', count: extEnemy?.count || extEnemy?.quantity || 1 }];
-
-    const map = new Map<string, { name: string; emoji: string; count: number }>();
-    list.forEach((m) => {
-      const name = m?.name || '몬스터';
-      const emoji = m?.emoji || '👹';
-      const increment = m?.count || 1;
-      if (!map.has(name)) {
-        map.set(name, { name, emoji, count: increment });
-      } else {
-        const cur = map.get(name);
-        if (cur) {
-          map.set(name, { ...cur, count: cur.count + increment });
-        }
-      }
-    });
-    return Array.from(map.values());
-  }, [enemy?.composition, enemy?.name, enemy?.emoji, enemy?.count, enemy?.quantity, enemy]);
+  const groupedEnemyMembers = useMemo(() => getGroupedEnemyMembers(enemy), [
+    enemy?.composition,
+    enemy?.name,
+    enemy?.emoji,
+    enemy?.count,
+    enemy?.quantity,
+    enemy
+  ]);
 
   // 에테르 획득량 미리보기 (커스텀 훅으로 분리) - Hook은 조건부 return 전에 호출
   const previewEtherGain = useEtherPreview({
