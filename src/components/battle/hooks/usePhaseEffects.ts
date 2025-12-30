@@ -8,7 +8,7 @@
  * - respond 단계에서 적 카드 파괴 시 fixedOrder 업데이트
  */
 
-import { useEffect, type MutableRefObject } from 'react';
+import { useEffect, useRef, type MutableRefObject } from 'react';
 import type { Card } from '../../../types/core';
 import type { BattlePhase } from '../reducer/battleReducerActions';
 import type { OrderItem } from '../../../types';
@@ -43,17 +43,22 @@ export function usePhaseEffects(params: UsePhaseEffectsParams): void {
     actions
   } = params;
 
+  // actions를 ref로 저장하여 의존성 배열에서 제외
+  // (actions 객체가 매 렌더링마다 새로 생성되어 무한 루프 발생 방지)
+  const actionsRef = useRef(actions);
+  actionsRef.current = actions;
+
   // 페이즈 변경 시 카드 애니메이션 상태 초기화
   useEffect(() => {
     if (phase !== 'resolve') {
-      actions.setDisappearingCards([]);
-      actions.setHiddenCards([]);
+      actionsRef.current.setDisappearingCards([]);
+      actionsRef.current.setHiddenCards([]);
     }
     // resolve 단계 진입 시 usedCardIndices 초기화
     if (phase === 'resolve') {
-      actions.setUsedCardIndices([]);
+      actionsRef.current.setUsedCardIndices([]);
     }
-  }, [phase, actions]);
+  }, [phase]);
 
   // 단계 변경 시 트리거 리셋
   useEffect(() => {
@@ -83,7 +88,7 @@ export function usePhaseEffects(params: UsePhaseEffectsParams): void {
     });
 
     if (updatedFixedOrder.length !== fixedOrder.length) {
-      actions.setFixedOrder(updatedFixedOrder);
+      actionsRef.current.setFixedOrder(updatedFixedOrder);
     }
-  }, [phase, enemyPlanActions, enemyPlanManuallyModified, fixedOrder, actions]);
+  }, [phase, enemyPlanActions, enemyPlanManuallyModified, fixedOrder]);
 }
