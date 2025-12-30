@@ -51,7 +51,25 @@ function setTokenArray(tokens: TokenState, tokenType: string, array: TokenInstan
 
 /**
  * 엔티티에 토큰 추가
- * 상쇄 규칙 적용
+ *
+ * 지정된 엔티티에 토큰을 추가합니다. 토큰 정의에 따라 적절한
+ * 타입(usage/turn/permanent)에 배치되며, 상쇄 규칙이 자동으로 적용됩니다.
+ *
+ * ## 상쇄 규칙
+ * - 공세(offense) ↔ 약화(weaken)
+ * - 공격(attack) ↔ 약화(weaken)
+ * - 면역(immunity) 토큰이 있으면 부정 효과 차단
+ *
+ * @param entity - 토큰을 받을 엔티티
+ * @param tokenId - 추가할 토큰 ID (TOKENS에 정의된 ID)
+ * @param stacks - 추가할 스택 수 (기본: 1)
+ * @param grantedAt - 토큰 부여 시점 (타임라인 기반 만료용)
+ * @returns 수정된 토큰 상태와 로그
+ *
+ * @example
+ * const result = addToken(player, 'attack', 2);
+ * player.tokens = result.tokens;
+ * // player는 이제 공격 토큰 2스택 보유
  */
 export function addToken(
   entity: TokenEntity | null | undefined,
@@ -358,6 +376,18 @@ function cancelTokens(
 
 /**
  * 특정 토큰 보유 여부 확인
+ *
+ * 엔티티가 특정 토큰을 1스택 이상 보유하고 있는지 확인합니다.
+ * 모든 토큰 타입(usage, turn, permanent)을 검사합니다.
+ *
+ * @param entity - 토큰을 검사할 엔티티 (플레이어/적)
+ * @param tokenId - 확인할 토큰 ID
+ * @returns 토큰 보유 여부
+ *
+ * @example
+ * const player = { tokens: { turn: [{ id: 'attack', stacks: 2 }], usage: [], permanent: [] } };
+ * hasToken(player, 'attack'); // true
+ * hasToken(player, 'defense'); // false
  */
 export function hasToken(entity: TokenEntity | null | undefined, tokenId: string): boolean {
   if (!entity || !entity.tokens) return false;
