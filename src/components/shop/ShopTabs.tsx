@@ -1,14 +1,43 @@
 /**
- * ShopTabs.jsx
+ * ShopTabs.tsx
  *
  * 상점 탭 컴포넌트들
- * ShopModal.jsx에서 분리됨
+ * ShopModal.tsx에서 분리됨
  */
 
+import React from 'react';
 import { RELICS, RELIC_RARITIES } from '../../data/relics';
 import { ITEMS } from '../../data/items';
 import { CARDS } from '../battle/battleData';
-import { getItemSellPrice, getServicePrice, SHOP_SERVICES } from '../../data/shop';
+import { getItemSellPrice, getServicePrice, SHOP_SERVICES, type CardRarity } from '../../data/shop';
+import type { GameItem, BattleCard } from '../../state/slices/types';
+
+// ==================== 타입 정의 ====================
+
+/** 상점 재고 타입 */
+export interface ShopInventory {
+  relics: Array<{ id: string; price: number }>;
+  items: Array<{ id: string; price: number }>;
+  cards: Array<{ id: string; price: number; rarity: CardRarity }>;
+}
+
+/** 서비스 타입 */
+export interface ShopService {
+  id: string;
+  name: string;
+  emoji: string;
+  description: string;
+  effect: {
+    type: string;
+    value?: number;
+  };
+}
+
+/** 판매 가능한 아이템 */
+export interface SellableItem {
+  item: GameItem;
+  slotIndex: number;
+}
 
 const RARITY_COLORS = {
   [RELIC_RARITIES.COMMON]: '#94a3b8',
@@ -28,7 +57,7 @@ const RARITY_NAMES = {
  * 구매 탭 - 상징 섹션
  */
 function RelicsSection({ inventory, purchasedRelics, relics, gold, onBuyRelic }: {
-  inventory: any;
+  inventory: ShopInventory;
   purchasedRelics: Set<string>;
   relics: string[];
   gold: number;
@@ -93,7 +122,7 @@ function RelicsSection({ inventory, purchasedRelics, relics, gold, onBuyRelic }:
  * 구매 탭 - 아이템 섹션
  */
 function ItemsSection({ inventory, purchasedItems, items, gold, onBuyItem }: {
-  inventory: any;
+  inventory: ShopInventory;
   purchasedItems: Set<string>;
   items: (string | null)[];
   gold: number;
@@ -156,7 +185,7 @@ function ItemsSection({ inventory, purchasedItems, items, gold, onBuyItem }: {
  * 구매 탭 - 카드 섹션
  */
 function CardsSection({ inventory, purchasedCards, gold, onBuyCard }: {
-  inventory: any;
+  inventory: ShopInventory;
   purchasedCards: Set<string>;
   gold: number;
   onBuyCard: (id: string, price: number) => void;
@@ -237,7 +266,7 @@ function CardsSection({ inventory, purchasedCards, gold, onBuyCard }: {
  * 구매 탭
  */
 export function BuyTab({ inventory, purchasedRelics, purchasedItems, purchasedCards, relics, items, gold, onBuyRelic, onBuyItem, onBuyCard }: {
-  inventory: any;
+  inventory: ShopInventory;
   purchasedRelics: Set<string>;
   purchasedItems: Set<string>;
   purchasedCards: Set<string>;
@@ -278,7 +307,7 @@ export function BuyTab({ inventory, purchasedRelics, purchasedItems, purchasedCa
  * 판매 탭
  */
 export function SellTab({ sellableItems, merchantType, onSellItem }: {
-  sellableItems: Array<{ item: any; slotIndex: number }>;
+  sellableItems: SellableItem[];
   merchantType: string;
   onSellItem: (slotIndex: number) => void;
 }) {
@@ -291,7 +320,7 @@ export function SellTab({ sellableItems, merchantType, onSellItem }: {
         </div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '12px', marginBottom: '20px' }}>
-          {sellableItems.map(({ item, slotIndex }: { item: any; slotIndex: number }) => {
+          {sellableItems.map(({ item, slotIndex }) => {
             const sellPrice = getItemSellPrice(item, merchantType);
 
             return (
@@ -334,7 +363,7 @@ export function SellTab({ sellableItems, merchantType, onSellItem }: {
 export function ServiceTab({ gold, merchantType, onUseService }: {
   gold: number;
   merchantType: string;
-  onUseService: (service: any) => void;
+  onUseService: (service: ShopService) => void;
 }) {
   return (
     <div>
@@ -379,9 +408,9 @@ export function ServiceTab({ gold, merchantType, onUseService }: {
  * 카드 제거 모달
  */
 export function CardRemovalModal({ allPlayerCards, cardRemovalPrice, onRemoveCard, onClose }: {
-  allPlayerCards: any[];
+  allPlayerCards: BattleCard[];
   cardRemovalPrice: number;
-  onRemoveCard: (card: any) => void;
+  onRemoveCard: (card: BattleCard) => void;
   onClose: () => void;
 }) {
   return (
@@ -401,7 +430,7 @@ export function CardRemovalModal({ allPlayerCards, cardRemovalPrice, onRemoveCar
       onClick={onClose}
     >
       <div
-        onClick={(e) => e.stopPropagation()}
+        onClick={(e: React.MouseEvent) => e.stopPropagation()}
         style={{
           width: '600px',
           maxHeight: '70vh',
@@ -426,7 +455,7 @@ export function CardRemovalModal({ allPlayerCards, cardRemovalPrice, onRemoveCar
             </div>
           ) : (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '12px' }}>
-              {allPlayerCards.map((card: any, idx: number) => (
+              {allPlayerCards.map((card, idx) => (
                 <div
                   key={`${card.id}-${idx}`}
                   onClick={() => onRemoveCard(card)}

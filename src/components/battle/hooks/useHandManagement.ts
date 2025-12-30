@@ -1,7 +1,6 @@
 /**
- * @file useHandManagement.js
+ * @file useHandManagement.ts
  * @description 패 관리 훅 (리드로우, 정렬)
- * @typedef {import('../../../types').Card} Card
  */
 
 import { useCallback } from 'react';
@@ -9,19 +8,33 @@ import { useGameStore } from '../../../state/gameStore';
 import { drawFromDeck } from '../utils/handGeneration';
 import { CARDS as BASE_CARDS, DEFAULT_DRAW_COUNT } from '../battleData';
 import { generateHandUid } from '../../../lib/randomUtils';
+import type { Card } from '../../../types/core';
+
+/** 손패 관리 훅 파라미터 */
+interface UseHandManagementParams {
+  canRedraw: boolean;
+  battleHand: Card[];
+  battleDeck: Card[];
+  battleDiscardPile: Card[];
+  battleVanishedCards: Card[];
+  sortType: 'speed' | 'energy' | 'value' | 'type';
+  hand: Card[];
+  escapeBanRef: React.MutableRefObject<Set<string>>;
+  addLog: (msg: string) => void;
+  playSound: (frequency: number, duration: number) => void;
+  actions: {
+    setDeck: (deck: Card[]) => void;
+    setDiscardPile: (pile: Card[]) => void;
+    setHand: (hand: Card[]) => void;
+    setSelected: (selected: Card[]) => void;
+    setCanRedraw: (canRedraw: boolean) => void;
+    setSortType: (sortType: string) => void;
+  };
+}
 
 /**
  * 패 관리 훅
  * 리드로우, 정렬 기능 제공
- *
- * @param {Object} params
- * @param {boolean} params.canRedraw - 리드로우 가능 여부
- * @param {Card[]} params.battleHand - 현재 손패
- * @param {Card[]} params.battleDeck - 덱
- * @param {Card[]} params.battleDiscardPile - 무덤
- * @param {Card[]} params.battleVanishedCards - 소멸된 카드
- * @param {string} params.sortType - 정렬 타입
- * @returns {{redrawHand: Function, handleSort: Function}}
  */
 export function useHandManagement({
   canRedraw,
@@ -35,7 +48,7 @@ export function useHandManagement({
   addLog,
   playSound,
   actions
-}: any) {
+}: UseHandManagementParams) {
   // 손패 리드로우
   const redrawHand = useCallback(() => {
     if (!canRedraw) return addLog('🔒 이미 이번 턴 리드로우 사용됨');
@@ -50,7 +63,7 @@ export function useHandManagement({
       const currentDiscard = [...(battleDiscardPile || []), ...currentHand];
 
       // 소멸된 카드 ID 목록
-      const vanishedCardIds = ((battleVanishedCards || []) as any[]).map((c: any) => typeof c === 'string' ? c : c.id);
+      const vanishedCardIds = (battleVanishedCards || []).map((c: Card | string) => typeof c === 'string' ? c : c.id);
       const drawResult = drawFromDeck(currentDeck, currentDiscard, DEFAULT_DRAW_COUNT, escapeBanRef.current, vanishedCardIds);
       actions.setDeck(drawResult.newDeck);
       actions.setDiscardPile(drawResult.newDiscardPile);
@@ -60,7 +73,7 @@ export function useHandManagement({
         addLog('🔄 덱이 소진되어 무덤을 섞어 새 덱을 만들었습니다.');
       }
     } else {
-      const rawHand = BASE_CARDS.slice(0, 10).map((card: any, idx: any) => ({ ...card, __handUid: generateHandUid(card.id, idx) }));
+      const rawHand = BASE_CARDS.slice(0, 10).map((card: Card, idx: number) => ({ ...card, __handUid: generateHandUid(card.id, idx) }));
       actions.setHand(rawHand);
     }
 
@@ -81,7 +94,7 @@ export function useHandManagement({
       localStorage.setItem('battleSortType', nextSort);
     } catch { /* ignore */ }
 
-    const sortLabels: any = {
+    const sortLabels: Record<string, string> = {
       speed: '시간 기준 정렬',
       energy: '행동력 기준 정렬',
       value: '밸류 기준 정렬',
@@ -96,18 +109,18 @@ export function useHandManagement({
     const sorted = [...hand];
 
     if (sortType === 'speed') {
-      sorted.sort((a: any, b: any) => b.speedCost - a.speedCost);
+      sorted.sort((a: Card, b: Card) => b.speedCost - a.speedCost);
     } else if (sortType === 'energy') {
-      sorted.sort((a: any, b: any) => b.actionCost - a.actionCost);
+      sorted.sort((a: Card, b: Card) => b.actionCost - a.actionCost);
     } else if (sortType === 'value') {
-      sorted.sort((a: any, b: any) => {
+      sorted.sort((a: Card, b: Card) => {
         const aValue = ((a.damage || 0) * (a.hits || 1)) + (a.block || 0);
         const bValue = ((b.damage || 0) * (b.hits || 1)) + (b.block || 0);
         return bValue - aValue;
       });
     } else if (sortType === 'type') {
-      const typeOrder: any = { 'attack': 0, 'general': 1, 'special': 2 };
-      sorted.sort((a: any, b: any) => {
+      const typeOrder: Record<string, number> = { 'attack': 0, 'general': 1, 'special': 2 };
+      sorted.sort((a: Card, b: Card) => {
         const aOrder = typeOrder[a.type] ?? 3;
         const bOrder = typeOrder[b.type] ?? 3;
         return aOrder - bOrder;

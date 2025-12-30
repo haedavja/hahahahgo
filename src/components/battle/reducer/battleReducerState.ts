@@ -26,7 +26,8 @@ import type {
   DeflationInfo,
   OrderItem,
   HoveredCard,
-  HoveredEnemyAction
+  HoveredEnemyAction,
+  ReflectionBattleState
 } from '../../../types';
 import type { BattlePhase, SortType, EtherCalcPhase } from './battleReducerActions';
 
@@ -166,6 +167,9 @@ export interface FullBattleState {
   pendingDistributionCard: Card | null;
   damageDistribution: Record<number, number>;
   totalDistributableDamage: number;
+
+  // 성찰 시스템
+  reflectionState?: ReflectionBattleState;
 }
 
 /** 초기 상태 생성 옵션 */

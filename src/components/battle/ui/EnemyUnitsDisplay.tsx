@@ -245,7 +245,7 @@ export const EnemyUnitsDisplay: FC<EnemyUnitsDisplayProps> = memo(({
                     marginTop: '8px',
                   }}>
                     <button
-                      onClick={(e: any) => {
+                      onClick={(e: React.MouseEvent) => {
                         e.stopPropagation();
                         onUpdateDistribution?.(unit.unitId, !isTargeted);
                       }}

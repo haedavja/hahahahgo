@@ -7,6 +7,16 @@
 
 import type { RelicRarity } from '../types';
 
+/** 상징 조건 평가용 상태 */
+interface RelicConditionState {
+  cardsPlayedThisTurn?: number;
+  playerHp?: number;
+  maxHp?: number;
+  allCardsDefense?: boolean;
+  allCardsLowCost?: boolean;
+  timesAttackedThisTurn?: number;
+}
+
 /** 상징 희귀도 상수 */
 export const RELIC_RARITIES: Record<string, RelicRarity | 'dev'> = {
   COMMON: 'common',
@@ -131,7 +141,7 @@ export const RELICS = {
     description: '카드를 4장이상 내면 다음턴에 행동력 2를 얻습니다.',
     effects: {
       type: 'ON_TURN_END',
-      condition: (state: any) => state.cardsPlayedThisTurn >= 4,
+      condition: (state: RelicConditionState) => (state.cardsPlayedThisTurn ?? 0) >= 4,
       energyNextTurn: 2,
     },
   },
@@ -358,7 +368,7 @@ export const RELICS = {
     description: '전투종료시 체력이 최대치면 최대체력 +2, 체력이 다쳤으면 회복 +3',
     effects: {
       type: 'ON_COMBAT_END',
-      condition: (state: any) => state.playerHp === state.maxHp,
+      condition: (state: RelicConditionState) => state.playerHp === state.maxHp,
       maxHpIfFull: 2,
       healIfDamaged: 3,
     },
@@ -480,7 +490,7 @@ export const RELICS = {
     description: '방어카드만 냈다면 상대의 타임라인을 동결합니다.',
     effects: {
       type: 'ON_TURN_END',
-      condition: (state: any) => state.cardsPlayedThisTurn > 0 && state.allCardsDefense,
+      condition: (state: RelicConditionState) => (state.cardsPlayedThisTurn ?? 0) > 0 && state.allCardsDefense,
       freezeEnemyTimeline: true,
     },
   },
@@ -494,7 +504,7 @@ export const RELICS = {
     description: '행동력 2 이하의 카드만 냈다면 상대의 타임라인을 동결합니다.',
     effects: {
       type: 'ON_TURN_END',
-      condition: (state: any) => state.cardsPlayedThisTurn > 0 && state.allCardsLowCost,
+      condition: (state: RelicConditionState) => (state.cardsPlayedThisTurn ?? 0) > 0 && state.allCardsLowCost,
       freezeEnemyTimeline: true,
     },
   },
@@ -508,7 +518,7 @@ export const RELICS = {
     description: '낸 카드가 3장 이하면 카드의 시간소모 5 감소.',
     effects: {
       type: 'ON_TURN_END',
-      condition: (state: any) => state.cardsPlayedThisTurn <= 3,
+      condition: (state: RelicConditionState) => (state.cardsPlayedThisTurn ?? 0) <= 3,
       speedCostReduction: 5,
     },
   },
@@ -563,7 +573,7 @@ export const RELICS = {
     description: '한 턴에 공격을 2번 이상 받으면 다음 턴 시작시 수세 1회 획득.',
     effects: {
       type: 'ON_TURN_END',
-      condition: (state: any) => state.timesAttackedThisTurn >= 2,
+      condition: (state: RelicConditionState) => (state.timesAttackedThisTurn ?? 0) >= 2,
       grantDefensiveNextTurn: 1,
     },
   },
@@ -577,7 +587,7 @@ export const RELICS = {
     description: '투페어 이상 내면 공세+ 1회 획득.',
     effects: {
       type: 'ON_COMBO',
-      condition: (comboRank: any) => comboRank >= 3, // 투페어 이상
+      condition: (comboRank: number) => comboRank >= 3, // 투페어 이상
       grantOffensePlus: 1,
     },
   },
@@ -617,7 +627,7 @@ export const RELICS = {
     description: '하이카드일 경우 5배수를 더합니다.',
     effects: {
       type: 'ON_COMBO',
-      condition: (comboRank: any) => comboRank === 1, // 하이카드
+      condition: (comboRank: number) => comboRank === 1, // 하이카드
       comboMultiplierBonus: 5,
     },
   },
@@ -642,15 +652,15 @@ export const RELICS = {
 /**
  * 등급별 상징 목록 가져오기
  */
-export function getRelicsByRarity(rarity: any) {
-  return Object.values(RELICS).filter((relic: any) => relic.rarity === rarity);
+export function getRelicsByRarity(rarity: RelicRarity | 'dev') {
+  return Object.values(RELICS).filter((relic) => relic.rarity === rarity);
 }
 
 /**
  * 태그별 상징 목록 가져오기
  */
-export function getRelicsByTag(tag: any) {
-  return Object.values(RELICS).filter((relic: any) => relic.tags.includes(tag));
+export function getRelicsByTag(tag: string) {
+  return Object.values(RELICS).filter((relic) => relic.tags.includes(tag));
 }
 
 /**

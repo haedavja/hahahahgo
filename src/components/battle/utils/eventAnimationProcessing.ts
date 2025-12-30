@@ -13,7 +13,12 @@ import type {
   HandAction as AnimAction,
 } from '../../../types';
 
-type EventAnimActions = any;
+interface EventAnimActions {
+  setEnemyHit: (hit: boolean) => void;
+  setPlayerHit: (hit: boolean) => void;
+  setPlayerBlockAnim: (anim: boolean) => void;
+  setEnemyBlockAnim: (anim: boolean) => void;
+}
 
 /**
  * 화면 흔들림 효과 트리거

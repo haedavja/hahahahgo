@@ -7,6 +7,7 @@
 import { useMemo, useEffect } from 'react';
 import { detectPokerCombo } from '../utils/comboDetection';
 import { COMBO_MULTIPLIERS, calculateComboEtherGain } from '../utils/etherCalculations';
+import type { UseComboSystemParams } from '../../../types/hooks';
 
 /**
  * 콤보 시스템 훅
@@ -31,7 +32,7 @@ export function useComboSystem({
   orderedRelicList,
   selected,
   actions
-}: any) {
+}: UseComboSystemParams) {
   // 현재 조합 감지 및 디플레이션 정보 설정
   const currentCombo = useMemo(() => {
     const combo = detectPokerCombo(battleSelected);

@@ -19,7 +19,9 @@ import type {
   BattleEvent,
   PreProcessedResult,
   CardPlayResult,
-  CardPlaySpecialsResult
+  CardPlaySpecialsResult,
+  TokenToAdd,
+  TokenToRemove
 } from '../../../types';
 import { addToken, removeToken } from '../../../lib/tokenUtils';
 import {
@@ -302,7 +304,7 @@ export function applyAction(
     });
 
     if (cardPlayResult.tokensToAdd && cardPlayResult.tokensToAdd.length > 0) {
-      cardPlayResult.tokensToAdd.forEach((tokenInfo: any) => {
+      cardPlayResult.tokensToAdd.forEach((tokenInfo: TokenToAdd) => {
         if (tokenInfo.targetEnemy) {
           const tokenResult = addToken(updatedOpponent, tokenInfo.id, tokenInfo.stacks, tokenInfo.grantedAt);
           updatedOpponent = { ...updatedOpponent, tokens: tokenResult.tokens };
@@ -314,7 +316,7 @@ export function applyAction(
     }
 
     if (cardPlayResult.tokensToRemove && cardPlayResult.tokensToRemove.length > 0) {
-      cardPlayResult.tokensToRemove.forEach((tokenInfo: any) => {
+      cardPlayResult.tokensToRemove.forEach((tokenInfo: TokenToRemove) => {
         const tokenResult = removeToken(updatedActor, tokenInfo.id, 'permanent', tokenInfo.stacks);
         updatedActor = { ...updatedActor, tokens: tokenResult.tokens };
       });
@@ -349,7 +351,7 @@ export function applyAction(
     });
 
     if (cardPlayResult.tokensToAdd && cardPlayResult.tokensToAdd.length > 0) {
-      cardPlayResult.tokensToAdd.forEach((tokenInfo: any) => {
+      cardPlayResult.tokensToAdd.forEach((tokenInfo: TokenToAdd) => {
         if (tokenInfo.targetEnemy) {
           const tokenResult = addToken(updatedDefender, tokenInfo.id, tokenInfo.stacks, tokenInfo.grantedAt);
           updatedDefender = { ...updatedDefender, tokens: tokenResult.tokens };
@@ -361,7 +363,7 @@ export function applyAction(
     }
 
     if (cardPlayResult.tokensToRemove && cardPlayResult.tokensToRemove.length > 0) {
-      cardPlayResult.tokensToRemove.forEach((tokenInfo: any) => {
+      cardPlayResult.tokensToRemove.forEach((tokenInfo: TokenToRemove) => {
         const tokenResult = removeToken(updatedActor, tokenInfo.id, 'permanent', tokenInfo.stacks);
         updatedActor = { ...updatedActor, tokens: tokenResult.tokens };
       });

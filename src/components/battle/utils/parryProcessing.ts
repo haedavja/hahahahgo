@@ -113,7 +113,7 @@ export function checkParryTrigger({
     };
   });
 
-  const outCards: any[] = [];
+  const outCards: OrderItem[] = [];
 
   // 패리가 발동됐으면 사운드 재생 및 큐 업데이트
   if (totalPushAmount > 0) {
@@ -135,7 +135,7 @@ export function checkParryTrigger({
 
     // 아웃 처리: enemyMaxSpeed를 초과한 적 카드 제거
     const maxSpeed = enemyMaxSpeed || 30;
-    const filteredQueue: any[] = [];
+    const filteredQueue: OrderItem[] = [];
     for (const item of currentQueue) {
       if (item && item.actor !== 'player' && (item.sp ?? 0) > maxSpeed) {
         outCards.push(item);

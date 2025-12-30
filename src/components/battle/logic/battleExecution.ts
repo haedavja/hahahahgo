@@ -15,6 +15,10 @@
 
 import { hasTrait } from '../utils/battleUtils';
 import { TIMING } from './battleConstants';
+import type { OrderItem } from '../../../types';
+import type { FullBattleState } from '../reducer/battleReducerState';
+import type { BattleActions } from '../hooks/useBattleState';
+import type { MutableRefObject } from 'react';
 
 // 분리된 모듈 re-export
 export { executeCardActionCore } from './cardExecutionCore';
@@ -26,9 +30,21 @@ export { executeMultiHitAsync } from './multiHitExecution';
 export { TIMING };
 
 // =====================
+// stepOnce 애니메이션 처리 타입
+// =====================
+interface StepOnceAnimationsParams {
+  currentQIndex: number;
+  queueLength: number;
+  action: OrderItem;
+  battleRef: MutableRefObject<FullBattleState>;
+  actions: BattleActions;
+  escapeUsedThisTurnRef: MutableRefObject<Set<string>>;
+}
+
+// =====================
 // stepOnce 애니메이션 처리
 // =====================
-export function createStepOnceAnimations(params: any) {
+export function createStepOnceAnimations(params: StepOnceAnimationsParams) {
   const {
     currentQIndex,
     queueLength,
@@ -79,7 +95,7 @@ export function createStepOnceAnimations(params: any) {
           const currentHidden = currentBattle.hiddenCards || [];
           const currentDisappearing2 = currentBattle.disappearingCards || [];
           actions.setHiddenCards([...currentHidden, currentQIndex]);
-          actions.setDisappearingCards(currentDisappearing2.filter((i: any) => i !== currentQIndex));
+          actions.setDisappearingCards(currentDisappearing2.filter((i: number) => i !== currentQIndex));
         }, TIMING.CARD_DISAPPEAR_DURATION);
       }, TIMING.CARD_DISAPPEAR_START);
     },

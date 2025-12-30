@@ -1,19 +1,11 @@
 /**
- * @file dungeonHandlers.js
+ * @file dungeonHandlers.ts
  * @description 던전 오브젝트 상호작용 핸들러
- * @typedef {import('../../../types').DungeonObject} DungeonObject
- * @typedef {import('../../../types').ResourceReward} ResourceReward
- *
- * @typedef {Object} HandlerContext
- * @property {Function} applyEtherDelta - 에테르 변경 함수
- * @property {Function} addResources - 자원 추가 함수 (gold, material)
- * @property {Object} actions - UI 액션 객체
- * @property {Function} startBattle - 전투 시작 함수
- * @property {number} segmentIndex - 현재 세그먼트 인덱스
- * @property {string} currentRoomKey - 현재 방 키
- * @property {Object} preBattleState - 전투 전 상태 참조
  */
 
+import type { DungeonObject } from '../../../types/game';
+import type { BattleConfig } from '../../../state/slices/types';
+import type { Resources } from '../../../types';
 import { getRandomEnemy } from '../../battle/battleData';
 import {
   playRewardSound,
@@ -21,9 +13,57 @@ import {
   playChoiceAppearSound,
 } from '../../../lib/soundUtils';
 
+// ========== 타입 정의 ==========
+
+/** 던전 방 (미로용) */
+interface MazeRoom {
+  x: number;
+  y: number;
+  roomType?: 'entrance' | 'exit' | 'hidden' | 'normal';
+  isDeadEnd?: boolean;
+  objects?: DungeonHandlerObject[];
+  exits?: Record<string, boolean>;
+}
+
+/** 미로 데이터 */
+interface MazeData {
+  grid: Record<string, MazeRoom>;
+  startKey: string;
+}
+
+/** 던전 핸들러용 오브젝트 (DungeonObject 확장) */
+interface DungeonHandlerObject extends DungeonObject {
+  unlocked?: boolean;
+  isOrigin?: boolean;
+  targetSegment?: number;
+}
+
+/** 던전 액션 인터페이스 */
+interface DungeonActions {
+  setMessage: (message: string | null) => void;
+  setCrossroadModal: (modal: { obj: DungeonHandlerObject; template?: object; choiceState?: object } | null) => void;
+  setSegmentIndex: (index: number) => void;
+  setPlayerX: (x: number) => void;
+}
+
+/** 핸들러 컨텍스트 */
+interface HandlerContext {
+  applyEtherDelta: (delta: number) => void;
+  addResources: (resources: Partial<Resources>) => void;
+  actions: DungeonActions;
+  startBattle: (config: BattleConfig) => void;
+  segmentIndex: number;
+  currentRoomKey: string;
+  preBattleState: React.MutableRefObject<{ roomKey: string; segmentIndex?: number; playerX: number } | null>;
+  playerX?: number;
+  grid?: Record<string, MazeRoom>;
+  dungeonData?: MazeRoom[];
+  setDungeonData?: (data: MazeRoom[] | MazeData) => void;
+}
+
 // ========== 이벤트 핸들러 ==========
 export const OBJECT_HANDLERS = {
-  chest: (obj: any, context: any) => {
+  chest: (obj: DungeonHandlerObject, context: HandlerContext) => {
     obj.used = true;
     playRewardSound();
     // 특별 보물 (막다른 방)은 보상이 더 좋음
@@ -39,7 +79,7 @@ export const OBJECT_HANDLERS = {
     }
   },
 
-  curio: (obj: any, context: any) => {
+  curio: (obj: DungeonHandlerObject, context: HandlerContext) => {
     obj.used = true;
     const isBad = Math.random() < 0.4; // 40% 나쁜 결과
 
@@ -56,7 +96,7 @@ export const OBJECT_HANDLERS = {
     }
   },
 
-  combat: (obj: any, context: any) => {
+  combat: (obj: DungeonHandlerObject, context: HandlerContext) => {
     obj.used = true;
     playDangerSound();  // 적 조우 사운드
 
@@ -85,18 +125,18 @@ export const OBJECT_HANDLERS = {
   },
 
   // 기로 핸들러 - 선택지 모달 열기
-  crossroad: (obj: any, context: any) => {
+  crossroad: (obj: DungeonHandlerObject, context: HandlerContext) => {
     playChoiceAppearSound();  // 선택지 등장 사운드
     // 기로 모달 열기
     context.actions.setCrossroadModal({
       obj,
       template: obj.template,
-      choiceState: obj.choiceState || {},
+      choiceState: obj.choiceState,
     });
   },
 
   // === 자원 획득 오브젝트 ===
-  ore: (obj: any, context: any) => {
+  ore: (obj: DungeonHandlerObject, context: HandlerContext) => {
     obj.used = true;
     playRewardSound();
     const material = 2 + Math.floor(Math.random() * 3); // 2-4
@@ -104,7 +144,7 @@ export const OBJECT_HANDLERS = {
     context.actions.setMessage(`광맥에서 원자재 ${material}개를 획득했습니다!`);
   },
 
-  gold_pile: (obj: any, context: any) => {
+  gold_pile: (obj: DungeonHandlerObject, context: HandlerContext) => {
     obj.used = true;
     playRewardSound();
     const gold = 15 + Math.floor(Math.random() * 20); // 15-34
@@ -112,7 +152,7 @@ export const OBJECT_HANDLERS = {
     context.actions.setMessage(`금화 더미에서 ${gold} 골드를 획득했습니다!`);
   },
 
-  crate: (obj: any, context: any) => {
+  crate: (obj: DungeonHandlerObject, context: HandlerContext) => {
     obj.used = true;
     playRewardSound();
     const gold = 5 + Math.floor(Math.random() * 10); // 5-14
@@ -124,7 +164,7 @@ export const OBJECT_HANDLERS = {
     context.actions.setMessage(msg);
   },
 
-  crystal: (obj: any, context: any) => {
+  crystal: (obj: DungeonHandlerObject, context: HandlerContext) => {
     obj.used = true;
     playRewardSound();
     const material = 3 + Math.floor(Math.random() * 3); // 3-5
@@ -132,7 +172,7 @@ export const OBJECT_HANDLERS = {
     context.actions.setMessage(`✨ 수정에서 원자재 ${material}개를 획득했습니다!`);
   },
 
-  mushroom: (obj: any, context: any) => {
+  mushroom: (obj: DungeonHandlerObject, context: HandlerContext) => {
     obj.used = true;
     const isBad = Math.random() < 0.3;
     if (isBad) {
@@ -147,7 +187,7 @@ export const OBJECT_HANDLERS = {
     }
   },
 
-  corpse: (obj: any, context: any) => {
+  corpse: (obj: DungeonHandlerObject, context: HandlerContext) => {
     obj.used = true;
     playRewardSound();
     const gold = 8 + Math.floor(Math.random() * 12); // 8-19
@@ -160,8 +200,13 @@ export const OBJECT_HANDLERS = {
   },
 
   // 숏컷 핸들러 - 문 열기 또는 이동
-  shortcut: (obj: any, context: any) => {
+  shortcut: (obj: DungeonHandlerObject, context: HandlerContext) => {
     const { actions, segmentIndex, dungeonData, setDungeonData } = context;
+
+    if (!dungeonData || !setDungeonData) {
+      actions.setMessage("숏컷을 사용할 수 없습니다.");
+      return;
+    }
 
     if (!obj.unlocked) {
       if (obj.isOrigin) {
@@ -169,11 +214,11 @@ export const OBJECT_HANDLERS = {
         actions.setMessage("숏컷을 열었습니다! 이제 양방향으로 이동할 수 있습니다.");
 
         // 양쪽 숏컷 모두 열기
-        const newDungeonData = dungeonData.map((seg: any, idx: any) => {
+        const newDungeonData = dungeonData.map((seg: MazeRoom, idx: number) => {
           if (idx === segmentIndex || idx === obj.targetSegment) {
             return {
               ...seg,
-              objects: seg.objects.map((o: any) => {
+              objects: seg.objects?.map((o: DungeonHandlerObject) => {
                 if (o.typeId === 'shortcut' && (o.targetSegment === obj.targetSegment || o.targetSegment === segmentIndex)) {
                   return { ...o, unlocked: true };
                 }
@@ -190,11 +235,12 @@ export const OBJECT_HANDLERS = {
       }
     } else {
       // 열린 숏컷으로 이동
-      const targetSeg = dungeonData[obj.targetSegment];
+      const targetSegment = obj.targetSegment ?? 0;
+      const targetSeg = dungeonData[targetSegment];
       if (targetSeg) {
-        actions.setSegmentIndex(obj.targetSegment);
+        actions.setSegmentIndex(targetSegment);
         // 도착 세그먼트의 숏컷 위치 근처로 이동
-        const targetShortcut = targetSeg.objects.find((o: any) => o.typeId === 'shortcut');
+        const targetShortcut = targetSeg.objects?.find((o: DungeonHandlerObject) => o.typeId === 'shortcut');
         actions.setPlayerX(targetShortcut ? targetShortcut.x + 50 : 200);
         actions.setMessage(`숏컷을 통해 이동했습니다!`);
       }

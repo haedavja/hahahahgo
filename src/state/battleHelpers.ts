@@ -101,7 +101,7 @@ export const resolveEnemyDeck = (kind: string): string[] =>
  * 적 데이터를 전투용 형식으로 변환 (속성 누락 방지용 헬퍼)
  * 모든 적 데이터 생성 시 이 함수를 사용하면 속성 누락 버그를 예방할 수 있음
  */
-export const createBattleEnemyData = (enemy: any): EnemyInfo => {
+export const createBattleEnemyData = (enemy: Partial<EnemyDefinition> | null | undefined): EnemyInfo => {
   // 개발 모드에서 누락된 필수 필드 경고
   if (import.meta.env.DEV) {
     if (!enemy?.id) {
@@ -299,7 +299,7 @@ export const createBattlePayload = (
   const enemyCount = enemies.length || 1;
 
   const enemyLibrary: string[] = [];
-  enemies.forEach((enemy: any) => {
+  enemies.forEach((enemy: Partial<EnemyDefinition>) => {
     if (Array.isArray(enemy?.deck)) {
       enemyLibrary.push(...enemy.deck);
     }
@@ -322,9 +322,9 @@ export const createBattlePayload = (
   const enemyHand = drawHand(enemyDrawPile, enemyHandSize);
   const { preview, simulation } = computeBattlePlan(node.type, playerHand, enemyHand, playerHp, maxHp, enemyCount);
 
-  const totalEnemyHp = enemies.reduce((sum: any, e: any) => sum + (e?.hp || 40), 0);
+  const totalEnemyHp = enemies.reduce((sum: number, e: Partial<EnemyDefinition>) => sum + (e?.hp || 40), 0);
 
-  const mixedEnemies = enemies.map((e: any) => createBattleEnemyData(e));
+  const mixedEnemies = enemies.map((e: Partial<EnemyDefinition>) => createBattleEnemyData(e));
 
   return {
     nodeId: node.id,

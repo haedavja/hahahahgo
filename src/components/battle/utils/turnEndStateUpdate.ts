@@ -12,22 +12,34 @@ import type {
   ComboUsageCount,
   VictoryConditionResult
 } from '../../../types';
+import type { Card } from '../../../types/core';
+import type {
+  BattleAction,
+  PlayerBattleState,
+  EnemyUnit
+} from '../../../types/combat';
 
-// Type annotations for missing types
-type TurnEndAction = any;
-type TurnEndCombo = any;
-type TurnEndPlayer = any;
-type TurnEndEnemy = any;
-type TurnEndPlayerParams = any;
-type TurnEndEnemyParams = any;
+// Parameter types for turn end state updates
+interface TurnEndPlayerParams {
+  comboUsageCount: ComboUsageCount;
+  etherPts: number;
+  etherOverflow?: number;
+  etherMultiplier?: number;
+  hasVigilance?: boolean;
+}
+
+interface TurnEndEnemyParams {
+  comboUsageCount: ComboUsageCount;
+  etherPts: number;
+}
 
 /**
  * 조합 사용 카운트 업데이트
  */
 export function updateComboUsageCount(
   currentUsageCount: ComboUsageCount | null | undefined,
-  combo: TurnEndCombo | null | undefined,
-  queue: TurnEndAction[] = [],
+  combo: Card | null | undefined,
+  queue: BattleAction[] = [],
   actorFilter: 'player' | 'enemy' = 'player'
 ): ComboUsageCount {
   const newUsageCount: ComboUsageCount = { ...(currentUsageCount || {}) };
@@ -37,7 +49,7 @@ export function updateComboUsageCount(
   }
 
   if (actorFilter === 'player') {
-    queue.forEach((action: any) => {
+    queue.forEach((action: BattleAction) => {
       if (action.actor === actorFilter && action.card?.id) {
         newUsageCount[action.card.id] = (newUsageCount[action.card.id] || 0) + 1;
       }
@@ -52,9 +64,9 @@ export function updateComboUsageCount(
  * @param hasVigilance - 경계 토큰 보유 여부 (턴 토큰 제거 전에 확인해야 함)
  */
 export function createTurnEndPlayerState(
-  player: TurnEndPlayer,
+  player: PlayerBattleState,
   { comboUsageCount, etherPts, etherOverflow, etherMultiplier = 1, hasVigilance = false }: TurnEndPlayerParams
-): TurnEndPlayer {
+): PlayerBattleState {
   // 경계 토큰이 있었으면 방어력 유지
   const retainedBlock = hasVigilance ? (player.block || 0) : 0;
 
@@ -77,12 +89,12 @@ export function createTurnEndPlayerState(
  * 턴 종료 시 적 상태 업데이트 객체 생성
  */
 export function createTurnEndEnemyState(
-  enemy: TurnEndEnemy,
+  enemy: EnemyUnit,
   { comboUsageCount, etherPts }: TurnEndEnemyParams
-): TurnEndEnemy {
+): EnemyUnit {
   const units = enemy.units || [];
   const resetUnits = units.length > 0
-    ? units.map((u: any) => ({ ...u, block: 0 }))
+    ? units.map((u: EnemyUnit) => ({ ...u, block: 0 }))
     : units;
 
   return {
@@ -102,7 +114,7 @@ export function createTurnEndEnemyState(
 /**
  * 승리 조건 확인
  */
-export function checkVictoryCondition(enemy: TurnEndEnemy, enemyEtherPts: number): VictoryConditionResult {
+export function checkVictoryCondition(enemy: EnemyUnit, enemyEtherPts: number): VictoryConditionResult {
   const isEtherVictory = enemyEtherPts <= 0;
   const isHpVictory = enemy.hp <= 0;
   const isVictory = isHpVictory || isEtherVictory;

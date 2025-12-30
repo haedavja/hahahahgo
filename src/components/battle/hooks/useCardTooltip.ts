@@ -10,6 +10,8 @@
  */
 
 import { useRef, useCallback, useEffect } from 'react';
+import type { UseCardTooltipParams } from '../../../types/hooks';
+import type { Card } from '../../../types';
 
 /**
  * 카드 툴팁 관리 훅
@@ -19,9 +21,9 @@ import { useRef, useCallback, useEffect } from 'react';
  * @param {Object} params.actions - 상태 업데이트 액션
  * @returns {{showCardTraitTooltip: Function, hideCardTraitTooltip: Function}}
  */
-export function useCardTooltip({ hoveredCard, battlePhase, actions }: any) {
+export function useCardTooltip({ hoveredCard, battlePhase, actions }: UseCardTooltipParams) {
   const tooltipTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const hoveredCardRef = useRef<{ card: any, x: number, y: number } | null>(null);
+  const hoveredCardRef = useRef<{ card: Card, x: number, y: number } | null>(null);
 
   // hoveredCard 상태를 ref로 유지 (타이머 콜백에서 참조)
   useEffect(() => {
@@ -38,7 +40,7 @@ export function useCardTooltip({ hoveredCard, battlePhase, actions }: any) {
     actions.setTooltipVisible(false);
   }, [battlePhase, actions]);
 
-  const showCardTraitTooltip = useCallback((card: any, cardElement: any) => {
+  const showCardTraitTooltip = useCallback((card: Card, cardElement: HTMLElement) => {
     const hasTraits = card?.traits && card.traits.length > 0;
     const hasAppliedTokens = card?.appliedTokens && card.appliedTokens.length > 0;
     if ((!hasTraits && !hasAppliedTokens) || !cardElement) return;

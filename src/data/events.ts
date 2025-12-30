@@ -19,27 +19,29 @@ export const eventLibrary = {
   // 새 이벤트를 여기에 추가
 };
 
+import type { NewEventDefinition, NewEventStage } from '../types';
+
 /**
  * 이벤트에서 현재 단계 정보를 가져오는 헬퍼 함수
  */
-export function getEventStep(eventDef: any, stepId: any = "start") {
+export function getEventStep(eventDef: NewEventDefinition | null | undefined, stepId: string = "start"): NewEventStage | null {
   if (!eventDef) return null;
 
-  // 다단계 이벤트 (steps 구조)
-  if (eventDef.steps) {
-    return eventDef.steps[stepId] || eventDef.steps.start;
+  // 다단계 이벤트 (stages 구조)
+  if (eventDef.stages) {
+    return eventDef.stages[stepId] || eventDef.stages.start || null;
   }
 
   // 단일 단계 이벤트 (기존 방식 호환)
   return {
-    description: eventDef.description,
-    choices: eventDef.choices,
+    description: eventDef.description || "",
+    choices: eventDef.choices || [],
   };
 }
 
 /**
  * 이벤트 제목 가져오기
  */
-export function getEventTitle(eventDef: any) {
+export function getEventTitle(eventDef: NewEventDefinition | null | undefined): string {
   return eventDef?.title || "알 수 없는 사건";
 }

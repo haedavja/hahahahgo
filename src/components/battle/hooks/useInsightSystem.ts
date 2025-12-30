@@ -19,6 +19,7 @@
 
 import { useMemo, useEffect, useRef } from 'react';
 import { calculateEffectiveInsight, getInsightRevealLevel, playInsightSound } from '../utils/insightSystem';
+import type { UseInsightSystemParams } from '../../../types/hooks';
 
 /**
  * 통찰 시스템 훅
@@ -43,7 +44,7 @@ export function useInsightSystem({
   battlePhase,
   devDulledLevel,
   actions
-}: any) {
+}: UseInsightSystemParams) {
   const prevInsightRef = useRef(playerInsight || 0);
   const insightBadgeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const insightAnimTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -92,7 +93,7 @@ export function useInsightSystem({
     });
     playInsightSound(curr > 0 ? Math.min(curr, 3) : 1);
     insightBadgeTimerRef.current = setTimeout(() => {
-      actions.setInsightBadge((b: any) => ({ ...b, show: false }));
+      actions.setInsightBadge((b: { level: number; dir: string; show: boolean; key: number }) => ({ ...b, show: false }));
     }, 1400);
   }, [playerInsight, actions]);
 
@@ -110,7 +111,7 @@ export function useInsightSystem({
     if (insightAnimTimerRef.current) clearTimeout(insightAnimTimerRef.current);
     if (lvl > 0) {
       actions.setInsightAnimLevel(lvl);
-      actions.setInsightAnimPulseKey((k: any) => k + 1);
+      actions.setInsightAnimPulseKey((k: number) => k + 1);
       playInsightSound(Math.min(lvl, 3));
       insightAnimTimerRef.current = setTimeout(() => actions.setInsightAnimLevel(0), 1200);
     } else {

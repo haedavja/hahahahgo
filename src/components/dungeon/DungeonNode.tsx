@@ -19,6 +19,45 @@ import {
   isOverpushing,
   getOverpushPenalty,
 } from '../../lib/dungeonChoices';
+import type {
+  DungeonChoice,
+  DungeonPlayerStats,
+  DungeonChoiceState,
+  DungeonSpecialOverride,
+} from '../../types/game';
+
+// dungeonNodes.ts에서 정의된 타입들
+interface DungeonNode {
+  id: string;
+  type: string;
+  name: string;
+  description: string;
+  x: number;
+  y: number;
+  event: DungeonEvent | null;
+  connections: string[];
+  visited: boolean;
+  cleared: boolean;
+  hidden?: boolean;
+}
+
+interface DungeonEvent {
+  type: string;
+  templateId?: string;
+  quality?: string;
+  difficulty?: number;
+}
+
+interface DungeonState {
+  id: string;
+  nodes: DungeonNode[];
+  connections: Record<string, unknown[]>;
+  currentNodeId: string;
+  unlockedShortcuts: string[];
+  discoveredHidden: string[];
+  timeElapsed: number;
+  maxTime: number;
+}
 
 // 노드 타입별 이모지
 const NODE_EMOJIS = {
@@ -43,7 +82,16 @@ const EVENT_EMOJIS = {
 /**
  * 선택지 버튼 컴포넌트
  */
-function ChoiceButton({ choice, playerStats, choiceState, specials, onSelect, shaking }: { choice: any; playerStats: any; choiceState: any; specials: any; onSelect: any; shaking: any }) {
+interface ChoiceButtonProps {
+  choice: DungeonChoice;
+  playerStats: DungeonPlayerStats;
+  choiceState: DungeonChoiceState;
+  specials: string[];
+  onSelect: (choice: DungeonChoice, specialOverride: DungeonSpecialOverride | null) => void;
+  shaking: boolean;
+}
+
+function ChoiceButton({ choice, playerStats, choiceState, specials, onSelect, shaking }: ChoiceButtonProps) {
   const specialOverride = getSpecialOverride(choice, specials);
   const displayInfo = getChoiceDisplayInfo(choice, playerStats, choiceState, specialOverride);
 
@@ -89,7 +137,14 @@ function ChoiceButton({ choice, playerStats, choiceState, specials, onSelect, sh
 /**
  * 던전 노드 메인 컴포넌트
  */
-export function DungeonNode({ dungeon, onNavigate, onExit, onCombat }: { dungeon: any; onNavigate: any; onExit: any; onCombat: any }) {
+interface DungeonNodeProps {
+  dungeon: DungeonState;
+  onNavigate: (nodeId: string) => void;
+  onExit: () => void;
+  onCombat: (combatId: string) => void;
+}
+
+export function DungeonNode({ dungeon, onNavigate, onExit, onCombat }: DungeonNodeProps) {
   const playerStrength = useGameStore((s) => s.playerStrength || 0);
   const playerAgility = useGameStore((s) => s.playerAgility || 0);
   const playerInsight = useGameStore((s) => s.playerInsight || 0);
@@ -106,14 +161,14 @@ export function DungeonNode({ dungeon, onNavigate, onExit, onCombat }: { dungeon
   const [showWarning, setShowWarning] = useState<string | null>(null);
 
   const currentNode = useMemo(() => {
-    return dungeon?.nodes?.find((n: any) => n.id === dungeon.currentNodeId);
+    return dungeon?.nodes?.find((n) => n.id === dungeon.currentNodeId);
   }, [dungeon]);
 
   const connectedNodes = useMemo(() => {
     if (!currentNode || !dungeon?.nodes) return [];
     return currentNode.connections
-      .map((id: any) => dungeon.nodes.find((n: any) => n.id === id))
-      .filter(Boolean);
+      .map((id) => dungeon.nodes.find((n) => n.id === id))
+      .filter((node): node is DungeonNode => node !== undefined);
   }, [currentNode, dungeon]);
 
   const playerStats = useMemo(() => ({
@@ -156,7 +211,7 @@ export function DungeonNode({ dungeon, onNavigate, onExit, onCombat }: { dungeon
   }, [currentNode]);
 
   // 선택 실행
-  const handleChoiceSelect = useCallback((choice: any, specialOverride: any) => {
+  const handleChoiceSelect = useCallback((choice: DungeonChoice, specialOverride: DungeonSpecialOverride | null) => {
     const choiceKey = `${currentNode.id}_${choice.id}`;
     const statesRecord = choiceStates as Record<string, { attempts: number; completed?: boolean }>;
     const currentState = statesRecord[choiceKey] || { attempts: 0 };
@@ -240,7 +295,7 @@ export function DungeonNode({ dungeon, onNavigate, onExit, onCombat }: { dungeon
   }, [currentNode, choiceStates, playerStats, applyDamage, addResources, onCombat]);
 
   // 노드 이동
-  const handleNavigate = useCallback((targetNode: any) => {
+  const handleNavigate = useCallback((targetNode: DungeonNode) => {
     setCurrentMessage(null);
     setShowWarning(null);
     onNavigate(targetNode.id);
@@ -357,12 +412,12 @@ export function DungeonNode({ dungeon, onNavigate, onExit, onCombat }: { dungeon
           border: '1px solid #475569',
         }}>
           <h3 style={{ margin: '0 0 16px', fontSize: '16px', color: '#94a3b8' }}>선택지</h3>
-          {eventChoices.map((choice: any) => (
+          {eventChoices.map((choice) => (
             <ChoiceButton
               key={choice.id}
               choice={choice}
               playerStats={playerStats}
-              choiceState={(choiceStates as any)[`${currentNode.id}_${choice.id}`] || {}}
+              choiceState={(choiceStates as Record<string, DungeonChoiceState>)[`${currentNode.id}_${choice.id}`] || {}}
               specials={playerSpecials}
               onSelect={handleChoiceSelect}
               shaking={isShaking}
@@ -380,7 +435,7 @@ export function DungeonNode({ dungeon, onNavigate, onExit, onCombat }: { dungeon
       }}>
         <h3 style={{ margin: '0 0 16px', fontSize: '16px', color: '#94a3b8' }}>이동</h3>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-          {connectedNodes.map((node: any) => (
+          {connectedNodes.map((node) => (
             <button
               key={node.id}
               onClick={() => handleNavigate(node)}

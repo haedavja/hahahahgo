@@ -8,7 +8,26 @@
  * - 에테르 계산 트리거
  */
 
-type ProcessEnemyDeathParams = any;
+import type { OrderItem } from '../../../types';
+import type { PlaySoundFn } from '../../../types/hooks';
+
+interface ProcessEnemyDeathActions {
+  setEnemyHit: (hit: boolean) => void;
+  setTimelineIndicatorVisible: (visible: boolean) => void;
+  setAutoProgress: (auto: boolean) => void;
+  setDisabledCardIndices: (indices: number[]) => void;
+  setQIndex: (index: number) => void;
+  setEtherFinalValue: (value: number) => void;
+}
+
+interface ProcessEnemyDeathParams {
+  newQIndex: number;
+  queue: OrderItem[];
+  queueLength: number;
+  turnEtherAccumulated: number;
+  playSound: PlaySoundFn;
+  actions: ProcessEnemyDeathActions;
+}
 
 /**
  * 적 사망 처리
@@ -27,7 +46,7 @@ export function processEnemyDeath({
   actions.setTimelineIndicatorVisible(false);
   actions.setAutoProgress(false);
 
-  const disabledIndices = queue.slice(newQIndex).map((_: any, idx: any) => newQIndex + idx);
+  const disabledIndices = queue.slice(newQIndex).map((_item, idx) => newQIndex + idx);
   actions.setDisabledCardIndices(disabledIndices);
 
   actions.setQIndex(queueLength);

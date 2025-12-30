@@ -36,7 +36,7 @@ export function getRandomCrossroadTemplate(forcedTemplateId: string | null = nul
 
 // ========== 방 생성 ==========
 export function createRoom(x: number, y: number, roomType: string) {
-  const objects: Array<{ id: string; typeId: string; x: number; used: boolean; [key: string]: unknown }> = [];
+  const objects: MazeRoomObject[] = [];
 
   // 입구/출구가 아닌 경우 오브젝트 생성
   if (roomType !== 'entrance' && roomType !== 'exit') {
@@ -97,6 +97,25 @@ interface MazeRoom {
 }
 
 type MazeGrid = Record<string, MazeRoom>;
+
+// ========== 레거시 던전 타입 정의 ==========
+interface DungeonObject {
+  id: string;
+  typeId: string;
+  x: number;
+  used: boolean;
+  [key: string]: unknown;
+}
+
+interface DungeonSegment {
+  id: string;
+  index: number;
+  isRoom: boolean;
+  width: number;
+  objects: DungeonObject[];
+  exitX: number;
+  isLast: boolean;
+}
 
 export function ensureMazeMinimumCombats(grid: Record<string, MazeRoom>, minCount: number) {
   const rooms = Object.values(grid);
@@ -319,8 +338,8 @@ export function generateMaze(forcedCrossroadId: string | null = null) {
 }
 
 // ========== 레거시 던전 생성 ==========
-function createObjects(isRoom: boolean, segmentIndex: number) {
-  const objects: Array<{ id: string; typeId: string; x: number; used: boolean; [key: string]: unknown }> = [];
+function createObjects(isRoom: boolean, segmentIndex: number): DungeonObject[] {
+  const objects: DungeonObject[] = [];
   const count = 2 + Math.floor(Math.random() * 2); // 2-3개
   const MIN_DISTANCE = 150; // 오브젝트 간 최소 거리
 
@@ -372,16 +391,16 @@ function createObjects(isRoom: boolean, segmentIndex: number) {
   return objects;
 }
 
-function ensureMinimumCombats(segments: any[]) {
-  const combatCount = segments.reduce((sum: number, seg: any) =>
-    sum + seg.objects.filter((o: any) => o.typeId === "combat").length, 0
+function ensureMinimumCombats(segments: DungeonSegment[]) {
+  const combatCount = segments.reduce((sum: number, seg: DungeonSegment) =>
+    sum + seg.objects.filter((o: DungeonObject) => o.typeId === "combat").length, 0
   );
 
   let needed = CONFIG.MIN_COMBAT_COUNT - combatCount;
 
   while (needed > 0) {
     const randomSeg = segments[Math.floor(Math.random() * segments.length)];
-    const nonCombat = randomSeg.objects.filter((o: any) => o.typeId !== "combat");
+    const nonCombat = randomSeg.objects.filter((o: DungeonObject) => o.typeId !== "combat");
 
     if (nonCombat.length > 0) {
       nonCombat[0].typeId = "combat";
@@ -396,7 +415,7 @@ export function generateDungeon(forcedCrossroadId: string | null = null) {
   const count = CONFIG.SEGMENT_COUNT.min +
     Math.floor(Math.random() * (CONFIG.SEGMENT_COUNT.max - CONFIG.SEGMENT_COUNT.min + 1));
 
-  const segments: Array<{ id: string; index: number; isRoom: boolean; width: number; objects: Array<{ id: string; typeId: string; x: number; used: boolean; [key: string]: unknown }>; exitX: number; isLast: boolean }> = [];
+  const segments: DungeonSegment[] = [];
 
   // 기로 배치할 세그먼트 인덱스 (복도 중 1-2개)
   const corridorIndices: number[] = [];

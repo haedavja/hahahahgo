@@ -14,22 +14,37 @@
  * - 비밀통로는 발견 후 이동 가능
  */
 
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, MutableRefObject } from 'react';
 import { CONFIG } from '../utils/dungeonConfig';
 import { playDoorSound, playSecretSound } from '../../../lib/soundUtils';
 import { updateStats } from '../../../state/metaProgress';
+import type {
+  RenderDungeonSegment,
+  RenderDungeonGrid,
+  RenderDungeonRoom,
+  Direction,
+} from '../../../types';
+import type { DungeonActions, KeysState } from './useDungeonState';
+
+/**
+ * usePlayerMovement 훅 파라미터
+ */
+interface UsePlayerMovementParams {
+  segment: RenderDungeonSegment | null;
+  grid: RenderDungeonGrid;
+  keys: KeysState;
+  playerX: number;
+  playerInsight: number;
+  actions: DungeonActions;
+  showCharacter: boolean;
+  setCurrentRoomKey: (key: string) => void;
+  updateMazeRoom: (key: string, updates: Partial<RenderDungeonRoom>) => void;
+  interactionRef: MutableRefObject<(() => void) | null>;
+}
 
 /**
  * 플레이어 이동 및 카메라 훅
- * @param {Object} params
- * @param {Object} params.segment - 현재 던전 세그먼트
- * @param {number[][]} params.grid - 던전 그리드
- * @param {Object} params.keys - 키 입력 상태
- * @param {number} params.playerX - 플레이어 X 좌표
- * @param {number} params.playerY - 플레이어 Y 좌표
- * @param {Function} params.setPlayerX - X 좌표 설정
- * @param {Function} params.setPlayerY - Y 좌표 설정
- * @param {Object} params.actions - 상태 업데이트 액션
+ * @param params - 훅 파라미터
  */
 export function usePlayerMovement({
   segment,
@@ -42,7 +57,7 @@ export function usePlayerMovement({
   setCurrentRoomKey,
   updateMazeRoom,
   interactionRef,
-}: any) {
+}: UsePlayerMovementParams) {
   const animationRef = useRef<number | null>(null);
   const playerXRef = useRef(playerX);
 
@@ -53,7 +68,7 @@ export function usePlayerMovement({
 
   // 키 입력 핸들링
   useEffect(() => {
-    const handleKeyDown = (e: any) => {
+    const handleKeyDown = (e: KeyboardEvent) => {
       if (["a", "d", "A", "D"].includes(e.key)) {
         e.preventDefault();
         actions.updateKeys({ [e.key.toLowerCase()]: true });
@@ -68,7 +83,7 @@ export function usePlayerMovement({
       }
     };
 
-    const handleKeyUp = (e: any) => {
+    const handleKeyUp = (e: KeyboardEvent) => {
       if (["a", "d", "A", "D"].includes(e.key)) {
         actions.updateKeys({ [e.key.toLowerCase()]: false });
       }
@@ -124,7 +139,7 @@ export function usePlayerMovement({
   }, [playerX, segment, actions]);
 
   // 미로 이동 함수
-  const moveToRoom = useCallback((direction: any) => {
+  const moveToRoom = useCallback((direction: Direction) => {
     if (!segment || !segment.exits) return false;
 
     const exit = segment.exits[direction];

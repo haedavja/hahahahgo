@@ -53,8 +53,8 @@ export function MapDemo() {
   const mergeRelicOrder = useCallback((relicList: string[] = [], saved: string[] = []) => {
     const savedSet = new Set(saved);
     const merged: string[] = [];
-    saved.forEach((id: any) => { if (relicList?.includes(id)) merged.push(id); });
-    (relicList || []).forEach((id: any) => { if (!savedSet.has(id)) merged.push(id); });
+    saved.forEach((id: string) => { if (relicList?.includes(id)) merged.push(id); });
+    (relicList || []).forEach((id: string) => { if (!savedSet.has(id)) merged.push(id); });
     return merged;
   }, []);
 
@@ -94,7 +94,7 @@ export function MapDemo() {
   });
   useEffect(() => {
     // 새 상징 추가/제거 시 순서를 유지하면서 병합
-    actions.setOrderedRelics((prev: any) => {
+    actions.setOrderedRelics((prev: string[]) => {
       return mergeRelicOrder(relics || [], prev);
     });
   }, [relics, mergeRelicOrder, actions]);
@@ -149,7 +149,7 @@ export function MapDemo() {
   const effectiveInsight = playerInsight + (itemBuffs.insight || 0);
 
   // 스탯 요구사항 충족 여부 체크 (아이템 버프 포함)
-  const meetsStatRequirement = useCallback((statRequirement: any) => {
+  const meetsStatRequirement = useCallback((statRequirement: Record<string, number> | undefined) => {
     if (!statRequirement) return true;
     const playerStats = {
       insight: effectiveInsight,
@@ -163,10 +163,10 @@ export function MapDemo() {
 
   // Alt+D 핫키로 DevTools 토글
   useEffect(() => {
-    const handleKeyDown = (e: any) => {
+    const handleKeyDown = (e: KeyboardEvent) => {
       if (e.altKey && (e.key === 'd' || e.key === 'D')) {
         e.preventDefault();
-        actions.setDevToolsOpen((prev: any) => !prev);
+        actions.setDevToolsOpen((prev: boolean) => !prev);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -250,9 +250,9 @@ export function MapDemo() {
 
   // C 키로 캐릭터 창 열기
   useEffect(() => {
-    const handleKeyPress = (e: any) => {
+    const handleKeyPress = (e: KeyboardEvent) => {
       if (e.key === "c" || e.key === "C") {
-        actions.setShowCharacterSheet((prev: any) => !prev);
+        actions.setShowCharacterSheet((prev: boolean) => !prev);
       }
     };
     window.addEventListener("keydown", handleKeyPress);
@@ -295,7 +295,7 @@ export function MapDemo() {
       />
 
       <div className="legend">
-        {LEGEND.map((item: any) => (
+        {LEGEND.map((item: { icon: string; label: string }) => (
           <span key={item.label}>
             {item.icon} {item.label}
           </span>
@@ -333,7 +333,7 @@ export function MapDemo() {
           <div className="map-view" ref={mapViewRef} style={{ marginLeft: '400px' }}>
             <section className="map" style={{ minHeight: mapHeight, width: MAP_WIDTH, margin: "0 auto", padding: "40px 0 60px" }}>
               <svg className="edge-layer" width={MAP_WIDTH} height={MAP_LAYERS * V_SPACING + 200}>
-                {edges.map((edge: any) => {
+                {edges.map((edge: { from: MapNode; to: MapNode } | null) => {
                   if (!edge) return null;
                   const { from, to } = edge;
                   return <line key={`${from.id}-${to.id}`} x1={from.x} y1={from.y} x2={to.x} y2={to.y} />;
@@ -543,7 +543,7 @@ export function MapDemo() {
               <div className="timeline-preview">
                 <strong>로그</strong>
                 <ul>
-                  {lastBattleResult.log.slice(0, 6).map((entry: any, index: any) => (
+                  {lastBattleResult.log.slice(0, 6).map((entry: string, index: number) => (
                     <li key={`log-${index}`}>{formatBattleLogEntry(entry)}</li>
                   ))}
                 </ul>

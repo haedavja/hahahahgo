@@ -64,7 +64,7 @@ export const STAT_LABELS = {
 export const PATCH_VERSION_TAG = "12-28-11:16";
 
 // 유틸리티 함수들
-export const describeAmount = (value: any) => {
+export const describeAmount = (value: number | { min: number; max: number } | null | undefined) => {
   if (value == null) return "0";
   if (typeof value === "number") return `${value}`;
   const min = value.min ?? 0;
@@ -98,18 +98,18 @@ export const formatApplied = (bundle: Record<string, unknown> = {}) => {
     .join(", ");
 };
 
-export const canAfford = (resources: any, cost: any = {}) =>
+export const canAfford = (resources: Record<string, number>, cost: Record<string, number> = {}) =>
   Object.entries(cost)
-    .filter(([key]: [string, any]) => key !== 'hp' && key !== 'hpPercent')
-    .every(([key, value]: [string, any]) => (resources[key] ?? 0) >= (value as number));
+    .filter(([key]: [string, number]) => key !== 'hp' && key !== 'hpPercent')
+    .every(([key, value]: [string, number]) => (resources[key] ?? 0) >= value);
 
-export const formatBattleLogEntry = (entry: any) => {
+export const formatBattleLogEntry = (entry: string | Record<string, unknown>) => {
   if (!entry) return "";
   if (typeof entry === "string") return entry;
   const actorLabel =
     entry.actor === "player" ? "플레이어" : entry.actor === "enemy" ? "적" : entry.actor ?? "";
   const cardLabel = entry.name ?? entry.cardId ?? "행동";
-  const detail = entry.detail ?? {};
+  const detail = (entry.detail ?? {}) as Record<string, unknown>;
 
   if (detail.type === "attack") {
     const dmg = detail.hpDamage ?? 0;
@@ -128,7 +128,7 @@ export const formatBattleLogEntry = (entry: any) => {
   return `${actorLabel} ${cardLabel}`;
 };
 
-export const friendlyPercent = (chance: any) => {
+export const friendlyPercent = (chance: number | null | undefined) => {
   if (typeof chance !== "number") return null;
   return `${Math.round(chance * 100)}%`;
 };

@@ -67,7 +67,7 @@ export interface Card {
   counter?: number;
   rarity?: CardRarity;
   // 토큰 요구사항
-  requiredTokens?: string[];
+  requiredTokens?: Array<{ id: string; stacks: number }>;
   // 카드 생성 관련
   createdBy?: string;
   createdId?: string;

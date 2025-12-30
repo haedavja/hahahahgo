@@ -117,8 +117,8 @@ export const PopupCard: FC<PopupCardProps> = ({ card, count, currentBuild }) => 
           <div style={{ fontWeight: 'bold', color: '#fff', marginBottom: '10px', fontSize: '18px' }}>
             특성
           </div>
-          {card.traits.map((traitId: any) => {
-            const trait = (TRAITS as any)[traitId];
+          {card.traits.map((traitId: string) => {
+            const trait = TRAITS[traitId as keyof typeof TRAITS];
             if (!trait) return null;
             const isPositive = trait.type === 'positive';
             const color = isPositive ? '#22c55e' : '#ef4444';

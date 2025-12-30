@@ -36,8 +36,20 @@ export function collectTriggeredRelics({
   const isLastPlayerCard = playerTimeline?.length && playerTimeline.length > 0 && newCount === playerTimeline.length;
   const triggered: RelicTrigger[] = [];
 
-  orderedRelicList.forEach((relicId: any) => {
-    const relic = (RELICS as any)[relicId];
+  const relicsRecord = RELICS as Record<string, {
+    effects?: {
+      type?: string;
+      comboMultiplierPerCard?: number;
+      etherCardMultiplier?: number;
+      etherMultiplier?: number;
+      etherFiveCardBonus?: number;
+      [key: string]: unknown;
+    };
+    [key: string]: unknown;
+  }>;
+
+  orderedRelicList.forEach((relicId: string) => {
+    const relic = relicsRecord[relicId];
 
     // 에테르 결정: 카드마다 콤보 배율 증가 (comboMultiplierPerCard)
     if (relic?.effects?.type === 'PASSIVE' && relic?.effects?.comboMultiplierPerCard) {
@@ -76,7 +88,7 @@ export function playRelicActivationSequence(
 ): void {
   if (triggered.length === 0) return;
 
-  const playSeq = (idx: any = 0): void => {
+  const playSeq = (idx: number = 0): void => {
     if (idx >= triggered.length) {
       setRelicActivated(null);
       return;

@@ -10,6 +10,8 @@
  */
 
 import { useCallback } from 'react';
+import type { UseMultiTargetSelectionParams } from '../../../types/hooks';
+import type { Card } from '../../../types';
 
 /**
  * 다중 타겟 선택 훅
@@ -27,7 +29,7 @@ export function useMultiTargetSelection({
   enemyUnits,
   addLog,
   actions
-}: any) {
+}: UseMultiTargetSelectionParams) {
   // 타겟 선택 확정: 카드에 선택된 타겟 목록을 저장하고 선택에 추가
   const handleConfirmDistribution = useCallback(() => {
     const pendingCard = battlePendingDistributionCard;
@@ -36,8 +38,8 @@ export function useMultiTargetSelection({
     const targetSelection = battleDamageDistribution;
     // 선택된 타겟 목록 추출
     const selectedTargets = Object.entries(targetSelection)
-      .filter(([_]: any, isSelected: any) => isSelected === true)
-      .map(([unitId]: any) => parseInt(unitId, 10));
+      .filter(([_, isSelected]) => isSelected === true)
+      .map(([unitId]) => parseInt(unitId, 10));
 
     if (selectedTargets.length === 0) {
       actions.resetDistribution();
@@ -55,7 +57,7 @@ export function useMultiTargetSelection({
     actions.resetDistribution();
 
     const targetNames = selectedTargets.map(id => {
-      const unit = enemyUnits.find((u: any) => u.unitId === id);
+      const unit = enemyUnits.find(u => u.unitId === id);
       return unit?.name || `유닛${id}`;
     });
     addLog(`🎯 다중 타겟: ${targetNames.join(', ')}`);
@@ -67,7 +69,7 @@ export function useMultiTargetSelection({
   }, [actions]);
 
   // 타겟 선택 모드 시작 (공격 카드 선택 시)
-  const startDamageDistribution = useCallback((card: any) => {
+  const startDamageDistribution = useCallback((card: Card) => {
     actions.setPendingDistributionCard(card);
     actions.setDamageDistribution({});
     actions.setDistributionMode(true);

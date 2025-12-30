@@ -18,6 +18,7 @@
 
 import { useMemo, useEffect, useRef } from 'react';
 import { simulatePreview } from '../utils/battleSimulation';
+import type { UseDamagePreviewParams } from '../../../types/hooks';
 
 /**
  * 피해 미리보기 계산 훅
@@ -51,7 +52,7 @@ export function useDamagePreview({
   selectedTargetUnit,
   actions,
   playSound
-}: any) {
+}: UseDamagePreviewParams) {
   const lethalSoundRef = useRef(false);
   const overkillSoundRef = useRef(false);
   const prevPreviewRef = useRef<{ value: number; lethal: boolean; overkill: boolean } | null>(null);
@@ -82,11 +83,11 @@ export function useDamagePreview({
     const overkill = value > targetMaxHp;
 
     // 유닛별 피해량 계산 (다중 유닛 시스템용)
-    let perUnitPreview: any = {};
+    let perUnitPreview: Record<number, { value: number; effectiveDamage: number; lethal: boolean; overkill: boolean }> = {};
     if (hasMultipleUnits && enemyUnits.length > 0) {
       const boost = willOverdrive ? 2 : 1;
-      const strengthBonus = player.strength || 0;
-      const perUnitDamage: any = {};
+      const strengthBonus = (player as { strength?: number }).strength || 0;
+      const perUnitDamage: Record<number, number> = {};
 
       // 플레이어 공격 카드의 피해량을 타겟 유닛별로 합산
       for (const step of order) {
@@ -106,7 +107,7 @@ export function useDamagePreview({
       // 각 유닛별 치명/과잉 판정
       for (const [unitIdStr, damage] of Object.entries(perUnitDamage)) {
         const unitId = parseInt(unitIdStr, 10);
-        const unit = enemyUnits.find((u: any) => u.unitId === unitId);
+        const unit = enemyUnits.find(u => u.unitId === unitId);
         const damageNum = Number(damage);
         if (unit && damageNum > 0) {
           const unitBlock = unit.block || 0;

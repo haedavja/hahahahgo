@@ -14,11 +14,47 @@ import { BASE_PLAYER_ENERGY } from '../battleData';
 import { applyAction } from './combatActions';
 import { calculatePassiveEffects } from '../../../lib/relicEffects';
 import { getAllTokens } from '../../../lib/tokenUtils';
+import type {
+  BattleAction,
+  BattleEvent,
+  BattleRef,
+  PlayerBattleState,
+  EnemyUnit,
+  PostCombatOptions,
+} from '../../../types/combat';
+import type { Card, Relic } from '../../../types/core';
+
+/**
+ * runAll 핵심 로직 파라미터
+ */
+interface RunAllCoreParams {
+  battle: BattleRef;
+  player: PlayerBattleState;
+  enemy: EnemyUnit;
+  qIndex: number;
+  turnEtherAccumulated: number;
+  enemyTurnEtherAccumulated: number;
+  orderedRelicList: Relic[];
+  selected: Card[];
+  addLog: (msg: string) => void;
+  playSound: (frequency: number, duration: number) => void;
+  actions: {
+    setTurnEtherAccumulated: (value: number) => void;
+    setEnemyTurnEtherAccumulated: (value: number) => void;
+    setPlayer: (player: PlayerBattleState) => void;
+    setEnemy: (enemy: EnemyUnit) => void;
+    setActionEvents: (events: Record<number, BattleEvent[]>) => void;
+    setQIndex: (index: number) => void;
+    setPostCombatOptions: (options: PostCombatOptions) => void;
+    setPhase: (phase: string) => void;
+    setEnemyHit: (hit: boolean) => void;
+  };
+}
 
 /**
  * runAll 핵심 로직
  */
-export function runAllCore(params: any) {
+export function runAllCore(params: RunAllCoreParams) {
   const {
     battle,
     player,
@@ -58,13 +94,13 @@ export function runAllCore(params: any) {
   };
 
   let tempState = { player: P, enemy: E, log: [] };
-  const newEvents: any = {};
+  const newEvents: Record<number, BattleEvent[]> = {};
   let enemyDefeated = false;
   let playerDefeated = false;
   let finalQIndex = qIndex;
 
   // runAll용 battleContext 생성
-  const playerAttackCards = selected.filter((c: any) => c.type === 'attack');
+  const playerAttackCards = selected.filter((c: Card) => c.type === 'attack');
   const playerEnergyBudget = P.energy || P.maxEnergy || BASE_PLAYER_ENERGY;
   const enemyEnergyBudget = E.energy || E.maxEnergy || BASE_PLAYER_ENERGY;
 
@@ -77,17 +113,17 @@ export function runAllCore(params: any) {
 
     // battleContext 생성
     const isLastCard = i >= battle.queue.length - 1;
-    const unusedAttackCards = playerAttackCards.filter((c: any) => {
-      const cardQueueIndex = battle.queue.findIndex((q: any) => q.card?.id === c.id && q.actor === 'player');
+    const unusedAttackCards = playerAttackCards.filter((c: Card) => {
+      const cardQueueIndex = battle.queue.findIndex((q: BattleAction) => q.card?.id === c.id && q.actor === 'player');
       return cardQueueIndex > i;
     }).length;
 
     // 현재까지 사용된 에너지 계산
-    const executedPlayerCards = battle.queue.slice(0, i).filter((q: any) => q.actor === 'player');
-    const energyUsedSoFar = executedPlayerCards.reduce((sum: any, q: any) => sum + (q.card?.actionCost || 0), 0);
+    const executedPlayerCards = battle.queue.slice(0, i).filter((q: BattleAction) => q.actor === 'player');
+    const energyUsedSoFar = executedPlayerCards.reduce((sum: number, q: BattleAction) => sum + (q.card?.actionCost || 0), 0);
     const calcRemainingEnergy = Math.max(0, playerEnergyBudget - energyUsedSoFar);
-    const executedEnemyCards = battle.queue.slice(0, i).filter((q: any) => q.actor === 'enemy');
-    const enemyEnergyUsedSoFar = executedEnemyCards.reduce((sum: any, q: any) => sum + (q.card?.actionCost || 0), 0);
+    const executedEnemyCards = battle.queue.slice(0, i).filter((q: BattleAction) => q.actor === 'enemy');
+    const enemyEnergyUsedSoFar = executedEnemyCards.reduce((sum: number, q: BattleAction) => sum + (q.card?.actionCost || 0), 0);
     const calcEnemyRemainingEnergy = Math.max(0, enemyEnergyBudget - enemyEnergyUsedSoFar);
 
     const battleContext = {
@@ -125,8 +161,8 @@ export function runAllCore(params: any) {
 
       if (damageDealt > 0) {
         const currentUnits = E.units || enemyUnits;
-        const aliveUnits = currentUnits.filter((u: any) => u.hp > 0);
-        let targetUnit = aliveUnits.find((u: any) => u.unitId === selectedTargetUnit);
+        const aliveUnits = currentUnits.filter((u: EnemyUnit) => u.hp > 0);
+        let targetUnit = aliveUnits.find((u: EnemyUnit) => u.unitId === selectedTargetUnit);
         if (!targetUnit && aliveUnits.length > 0) {
           targetUnit = aliveUnits[0];
         }
@@ -135,14 +171,14 @@ export function runAllCore(params: any) {
           const unitHpBefore = targetUnit.hp;
           const newUnitHp = Math.max(0, targetUnit.hp - damageDealt);
 
-          const updatedUnits = currentUnits.map((u: any) => {
+          const updatedUnits = currentUnits.map((u: EnemyUnit) => {
             if (u.unitId === targetUnit.unitId) {
               return { ...u, hp: newUnitHp };
             }
             return u;
           });
 
-          const newTotalHp = updatedUnits.reduce((sum: any, u: any) => sum + Math.max(0, u.hp), 0);
+          const newTotalHp = updatedUnits.reduce((sum: number, u: EnemyUnit) => sum + Math.max(0, u.hp), 0);
           E.hp = newTotalHp;
           E.units = updatedUnits;
           tempState = { player: P, enemy: E, log: [] };

@@ -17,6 +17,7 @@ import { useMemo } from 'react';
 import { detectPokerCombo } from '../utils/comboDetection';
 import { COMBO_MULTIPLIERS, applyEtherDeflation, calcCardsEther } from '../utils/etherCalculations';
 import { calculatePassiveEffects } from '../../../lib/relicEffects';
+import type { UseEtherPreviewParams } from '../../../types/hooks';
 
 /**
  * 에테르 획득량 미리보기 훅
@@ -32,7 +33,7 @@ export function useEtherPreview({
   selected,
   orderedRelicList,
   playerComboUsageCount
-}: any) {
+}: UseEtherPreviewParams) {
   const previewEtherGain = useMemo(() => {
     if (playerTimeline.length === 0) return 0;
 

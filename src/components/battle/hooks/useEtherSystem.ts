@@ -52,7 +52,7 @@ export function useEtherSystem(initialPts = 0, options: EtherSystemOptions = {})
   const isOverdrive = useMemo(() => checkOverdrive(), [checkOverdrive]);
 
   // 에테르 추가 (애니메이션 지원)
-  const addEther = useCallback((amount: any, withAnimation: any = animated) => {
+  const addEther = useCallback((amount: number, withAnimation: boolean = animated) => {
     if (withAnimation) {
       setAnimationPhase('gaining');
       setPulse(true);
@@ -74,7 +74,7 @@ export function useEtherSystem(initialPts = 0, options: EtherSystemOptions = {})
   }, [pts, threshold, animated]);
 
   // 에테르 소모
-  const consumeEther = useCallback((amount: any) => {
+  const consumeEther = useCallback((amount: number) => {
     setPts(prev => Math.max(0, prev - amount));
   }, []);
 
@@ -87,7 +87,7 @@ export function useEtherSystem(initialPts = 0, options: EtherSystemOptions = {})
   }, []);
 
   // 에테르 설정
-  const setEther = useCallback((value: any) => {
+  const setEther = useCallback((value: number) => {
     setPts(value);
   }, []);
 
@@ -120,6 +120,17 @@ export function useEtherSystem(initialPts = 0, options: EtherSystemOptions = {})
  * @param {Object} options - 옵션
  * @returns {Object} 계산 애니메이션 상태 및 제어 함수
  */
+interface DeflationInfo {
+  multiplier?: number;
+  [key: string]: unknown;
+}
+
+interface CalculationParams {
+  baseGain: number;
+  comboMult: number;
+  deflationInfo: DeflationInfo;
+}
+
 interface EtherCalculationOptions {
   onComplete?: ((finalValue: number) => void) | null;
 }
@@ -130,7 +141,7 @@ export function useEtherCalculation(options: EtherCalculationOptions = {}) {
   } = options;
 
   const [calcPhase, setCalcPhase] = useState<string | null>(null); // 'sum', 'multiply', 'deflation', 'result'
-  const [currentDeflation, setCurrentDeflation] = useState<any>(null);
+  const [currentDeflation, setCurrentDeflation] = useState<DeflationInfo | null>(null);
   const [finalValue, setFinalValue] = useState<number | null>(null);
   const [accumulated, setAccumulated] = useState(0);
 
@@ -141,7 +152,7 @@ export function useEtherCalculation(options: EtherCalculationOptions = {}) {
     baseGain,
     comboMult,
     deflationInfo
-  }: any) => {
+  }: CalculationParams) => {
     setAccumulated(0);
     setCalcPhase('sum');
 
@@ -228,7 +239,7 @@ export function useEtherTransfer() {
   const enemyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // 플레이어 → 적 이동
-  const transferToEnemy = useCallback((amount: any) => {
+  const transferToEnemy = useCallback((amount: number) => {
     setNetDelta(-amount);
     setPlayerTransferPulse(true);
 
@@ -247,7 +258,7 @@ export function useEtherTransfer() {
   }, []);
 
   // 적 → 플레이어 이동
-  const transferToPlayer = useCallback((amount: any) => {
+  const transferToPlayer = useCallback((amount: number) => {
     setNetDelta(amount);
     setEnemyTransferPulse(true);
 

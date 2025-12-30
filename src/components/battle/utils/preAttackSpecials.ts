@@ -204,7 +204,7 @@ export function processPreAttackSpecials({
     const { queue = [], currentQIndex = 0 } = battleContext;
     const who = attackerName === 'player' ? '플레이어' : '몬스터';
 
-    let previousCard: any = null;
+    let previousCard: Card | null = null;
     for (let i = currentQIndex - 1; i >= 0; i--) {
       if (queue[i]?.actor === attackerName) {
         previousCard = queue[i].card || null;

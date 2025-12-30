@@ -1,5 +1,5 @@
 /**
- * @file items.js
+ * @file items.ts
  * @description 소모성 아이템 데이터
  *
  * ## 사용 시점
@@ -9,17 +9,41 @@
  * ## 지속시간
  * - instant: 즉시 효과
  * - node: 1노드 지속
- *
- * @typedef {Object} Item
- * @property {string} id - 아이템 ID
- * @property {string} name - 이름
- * @property {string} icon - 아이콘
- * @property {number} tier - 티어 (1-2)
- * @property {'combat'|'any'} usableIn - 사용 시점
- * @property {Object} effect - 효과
  */
 
-export const ITEMS = {
+/** 아이템 사용 시점 */
+export type ItemUsableIn = 'combat' | 'any';
+
+/** 아이템 지속 시간 */
+export type ItemDuration = 'instant' | 'node';
+
+/** 아이템 효과 타입 */
+export type ItemEffect =
+  | { type: 'etherMultiplier'; value: number }
+  | { type: 'etherSteal'; value: number }
+  | { type: 'damage'; value: number }
+  | { type: 'defense'; value: number }
+  | { type: 'grantTokens'; tokens: Array<{ id: string; stacks: number }> }
+  | { type: 'turnEnergy'; value: number }
+  | { type: 'maxEnergy'; value: number }
+  | { type: 'cardDestroy'; value: number }
+  | { type: 'cardFreeze'; value: number }
+  | { type: 'healPercent'; value: number }
+  | { type: 'statBoost'; stat: 'strength' | 'agility' | 'insight'; value: number };
+
+/** 아이템 정의 */
+export interface Item {
+  id: string;
+  name: string;
+  icon: string;
+  description: string;
+  tier: number;
+  usableIn: ItemUsableIn;
+  duration?: ItemDuration;
+  effect: ItemEffect;
+}
+
+export const ITEMS: Record<string, Item> = {
   // === 에테르 증폭제 (에테르 획득량 배율 증가) ===
   'ether-amplifier-small': {
     id: 'ether-amplifier-small',
@@ -291,10 +315,10 @@ export const ITEMS = {
 export const ITEM_IDS = Object.keys(ITEMS);
 
 // 전투용 아이템만 필터
-export const COMBAT_ITEMS = Object.values(ITEMS).filter((item: any) => item.usableIn === 'combat');
+export const COMBAT_ITEMS = Object.values(ITEMS).filter((item: Item) => item.usableIn === 'combat');
 
 // 언제든 사용 가능한 아이템만 필터
-export const ANYTIME_ITEMS = Object.values(ITEMS).filter((item: any) => item.usableIn === 'any');
+export const ANYTIME_ITEMS = Object.values(ITEMS).filter((item: Item) => item.usableIn === 'any');
 
 // 아이템 가져오기 헬퍼
-export const getItem = (itemId: any) => (ITEMS as any)[itemId] || null;
+export const getItem = (itemId: string): Item | null => ITEMS[itemId] || null;

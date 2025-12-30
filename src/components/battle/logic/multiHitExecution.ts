@@ -11,15 +11,17 @@
  * - 총기 카드 탄걸림 처리
  */
 
-import type { BattleEvent, PreProcessedResult, CombatBattleContext } from '../../../types';
+import type { BattleEvent, PreProcessedResult, CombatBattleContext, Card, Combatant, MultiHitResult } from '../../../types';
 import { prepareMultiHitAttack, calculateSingleHit, finalizeMultiHitAttack, rollCritical } from './combatActions';
 import { processPerHitRoulette } from '../utils/cardSpecialEffects';
 import { TIMING } from './battleConstants'; // 순환 의존성 방지: battleExecution 대신 직접 import
 
+type HitCallback = (hitIndex: number, totalHits: number, hitResult: { damage: number; events: BattleEvent[] }) => void;
+
 /**
  * 다중 타격 비동기 실행 (딜레이 + 타격별 룰렛 체크 + 타격별 치명타 판정)
  */
-export async function executeMultiHitAsync(card: any, attacker: any, defender: any, attackerName: any, battleContext: any, onHitCallback: any) {
+export async function executeMultiHitAsync(card: Card, attacker: Combatant, defender: Combatant, attackerName: string, battleContext: CombatBattleContext, onHitCallback: HitCallback): Promise<MultiHitResult> {
   const isGunCard = card.cardCategory === 'gun' && card.type === 'attack';
   const ghostLabel = card.isGhost ? ' [👻유령]' : '';
 

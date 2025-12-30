@@ -30,7 +30,7 @@ export function processStunEffect({
   addLog
 }: StunProcessingParams): StunProcessingResult {
   const centerSp = action.sp ?? 0;
-  const stunnedActions: Array<{ item: any; idx: number }> = [];
+  const stunnedActions: Array<{ item: OrderItem; idx: number }> = [];
 
   const targets = queue
     .map((item, idx) => ({ item, idx }))

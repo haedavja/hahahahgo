@@ -9,8 +9,14 @@ import { applyAgility } from '../../../lib/agilityUtils';
 import { generateUid } from '../../../lib/randomUtils';
 import { detectPokerCombo, applyPokerBonus } from '../utils/comboDetection';
 import { createFixedOrder } from '../utils/cardOrdering';
-import type { OrderingCardInfo, Card, PlayerBattleState, EnemyUnit, ComboCard, OrderingEnemyAction } from '../../../types';
+import type { OrderingCardInfo, Card, PlayerBattleState, EnemyUnit, ComboCard, OrderingEnemyAction, LogFunction, TokenDisplayData } from '../../../types';
 import { getAllTokens } from '../../../lib/tokenUtils';
+
+/** 카드 선택 액션 인터페이스 */
+interface CardSelectionActions {
+  setFixedOrder: (order: Array<OrderingCardInfo | OrderingEnemyAction>) => void;
+  setSelected: (cards: Card[]) => void;
+}
 
 /**
  * 카드 선택 훅
@@ -51,29 +57,29 @@ export function useCardSelection({
   player: PlayerBattleState;
   enemyUnits: EnemyUnit[];
   hasMultipleUnits: boolean;
-  selectedTargetUnit: unknown;
-  enemyPlanActions: unknown[] | null;
-  startDamageDistribution: (card: unknown) => void;
-  playSound: any;
-  addLog: any;
-  actions: any;
+  selectedTargetUnit: number | null;
+  enemyPlanActions: OrderingEnemyAction[] | null;
+  startDamageDistribution: (card: Card) => void;
+  playSound: (frequency: number, duration: number) => void;
+  addLog: LogFunction;
+  actions: CardSelectionActions;
 }) {
   // 카드의 requiredTokens 요구사항 체크
-  const checkRequiredTokens = useCallback((card: any, currentSelected: any) => {
+  const checkRequiredTokens = useCallback((card: Card, currentSelected: Card[]) => {
     if (!card.requiredTokens || card.requiredTokens.length === 0) return { ok: true };
 
-    const playerTokens = getAllTokens(player);
+    const playerTokens: TokenDisplayData[] = getAllTokens(player);
 
     for (const req of card.requiredTokens) {
       // 이미 선택된 카드들이 소모하는 해당 토큰 수 계산
-      const alreadyReserved = currentSelected.reduce((sum: any, c: any) => {
+      const alreadyReserved = currentSelected.reduce((sum: number, c: Card) => {
         if (!c.requiredTokens) return sum;
-        const sameReq = c.requiredTokens.find((r: any) => r.id === req.id);
+        const sameReq = c.requiredTokens.find(r => r.id === req.id);
         return sum + (sameReq ? sameReq.stacks : 0);
       }, 0);
 
       // 플레이어가 보유한 해당 토큰 수
-      const playerToken = playerTokens.find((t: any) => t.id === req.id);
+      const playerToken = playerTokens.find(t => t.id === req.id);
       const playerStacks = playerToken?.stacks || 0;
 
       // 사용 가능한 토큰 수 = 보유량 - 이미 선택된 카드가 요구하는 양
@@ -88,16 +94,16 @@ export function useCardSelection({
   }, [player]);
 
   // 카드 선택/해제 토글
-  const toggle = useCallback((card: any) => {
+  const toggle = useCallback((card: Card) => {
     if (battlePhase !== 'select' && battlePhase !== 'respond') return;
     // __handUid 또는 __uid로 개별 카드 식별
     const cardUid = card.__handUid || card.__uid;
-    const exists = selected.some((s: any) => (s.__handUid || s.__uid) === cardUid);
+    const exists = selected.some((s: Card) => (s.__handUid || s.__uid) === cardUid);
     if (battlePhase === 'respond') {
       let next;
       const cardSpeed = applyAgility(card.speedCost, effectiveAgility);
       if (exists) {
-        next = selected.filter((s: any) => (s.__handUid || s.__uid) !== cardUid);
+        next = selected.filter((s: Card) => (s.__handUid || s.__uid) !== cardUid);
         playSound(400, 80);
       }
       else {
@@ -108,7 +114,7 @@ export function useCardSelection({
         if (!tokenCheck.ok) { addLog(tokenCheck.message); return; }
 
         // 다중 타겟 카드 (multiTarget 특성): 타겟 선택 모드 진입
-        const aliveUnitsCount = enemyUnits.filter((u: any) => u.hp > 0).length;
+        const aliveUnitsCount = enemyUnits.filter((u: EnemyUnit) => u.hp > 0).length;
         const isMultiTargetCard = card.traits?.includes('multiTarget');
         if (isMultiTargetCard && hasMultipleUnits && aliveUnitsCount > 1) {
           const cardWithUid = {
@@ -138,7 +144,7 @@ export function useCardSelection({
     }
     const cardSpeed = applyAgility(card.speedCost, effectiveAgility);
     if (exists) {
-      actions.setSelected(battleSelected.filter((s: any) => (s.__handUid || s.__uid) !== cardUid));
+      actions.setSelected(battleSelected.filter((s: Card) => (s.__handUid || s.__uid) !== cardUid));
       playSound(400, 80);
       return;
     }
@@ -149,7 +155,7 @@ export function useCardSelection({
     if (!tokenCheck.ok) return addLog(tokenCheck.message);
 
     // 다중 타겟 카드 (multiTarget 특성): 타겟 선택 모드 진입
-    const aliveUnitsCount = enemyUnits.filter((u: any) => u.hp > 0).length;
+    const aliveUnitsCount = enemyUnits.filter((u: EnemyUnit) => u.hp > 0).length;
     const isMultiTargetCard = card.traits?.includes('multiTarget');
     if (isMultiTargetCard && hasMultipleUnits && aliveUnitsCount > 1) {
       const cardWithUid = {

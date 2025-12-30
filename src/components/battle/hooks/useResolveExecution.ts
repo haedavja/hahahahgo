@@ -33,7 +33,13 @@ import type {
   Relic,
   ParryReadyState,
   EnemyPlan,
-  BattleEvent
+  BattleEvent,
+  BattleRef,
+  VictoryCheckResult,
+  PlayerBattleState,
+  EnemyUnit,
+  OrderItem,
+  TokenInstance
 } from '../../../types';
 import type { FullBattleState } from '../reducer/battleReducerState';
 import type { PlayerState, EnemyState } from '../reducer/battleReducerActions';
@@ -44,32 +50,32 @@ import type { HandCard } from '../../../lib/speedQueue';
  * useResolveExecution 파라미터 인터페이스
  */
 interface UseResolveExecutionParams {
-  battle: any;
-  player: any;
-  enemy: any;
-  selected: any;
-  queue: any;
+  battle: FullBattleState;
+  player: PlayerState;
+  enemy: EnemyState;
+  selected: Card[];
+  queue: OrderItem[];
   qIndex: number;
   turnNumber: number;
   turnEtherAccumulated: number;
   enemyTurnEtherAccumulated: number;
   finalComboMultiplier: number;
-  enemyPlan: any;
-  relics: any;
-  orderedRelicList: any;
-  battleRef: any;
-  parryReadyStatesRef: any;
-  setParryReadyStates: any;
-  growingDefenseRef: any;
-  escapeBanRef: any;
-  escapeUsedThisTurnRef: any;
-  calculateEtherTransfer: any;
-  checkVictoryCondition: any;
-  showCardRewardModal: any;
-  startEtherCalculationAnimation: any;
+  enemyPlan: EnemyPlan;
+  relics: UIRelicsMap;
+  orderedRelicList: Relic[];
+  battleRef: MutableRefObject<BattleRef | null>;
+  parryReadyStatesRef: MutableRefObject<ParryReadyState[]>;
+  setParryReadyStates: Dispatch<SetStateAction<ParryReadyState[]>>;
+  growingDefenseRef: MutableRefObject<number | null>;
+  escapeBanRef: MutableRefObject<Set<string>>;
+  escapeUsedThisTurnRef: MutableRefObject<Set<string>>;
+  calculateEtherTransfer: (amount: number, currentPts: number) => number;
+  checkVictoryCondition: (enemy: EnemyUnit, player: PlayerBattleState, nextEnemyPts: number) => VictoryCheckResult;
+  showCardRewardModal: () => void;
+  startEtherCalculationAnimation: () => void;
   addLog: (message: string) => void;
   playSound: (frequency?: number, duration?: number) => void;
-  actions: any;
+  actions: BattleActions;
 }
 
 /**
@@ -115,7 +121,7 @@ export function useResolveExecution({
 
     // 경계 토큰 확인 (턴 토큰 제거 전에 확인해야 함)
     const playerTurnTokens = latestPlayer.tokens?.turn || [];
-    const hasVigilance = playerTurnTokens.some((t: any) => t.id === 'vigilance' && (t.stacks || 1) > 0);
+    const hasVigilance = playerTurnTokens.some((t: TokenInstance) => t.id === 'vigilance' && (t.stacks || 1) > 0);
 
     const playerTokenResult = clearTurnTokens(latestPlayer);
     playerTokenResult.logs.forEach(log => addLog(log));
@@ -348,12 +354,12 @@ export function useResolveExecution({
     let enemyDefeated = false;
 
     // 진행 단계 최종 남은 행동력 계산
-    const allPlayerCards = battle.queue.filter((q: any) => q.actor === 'player');
-    const totalEnergyUsed = allPlayerCards.reduce((sum: number, q: any) => sum + (q.card?.actionCost || 0), 0);
+    const allPlayerCards = battle.queue.filter((q: OrderItem) => q.actor === 'player');
+    const totalEnergyUsed = allPlayerCards.reduce((sum: number, q: OrderItem) => sum + (q.card?.actionCost || 0), 0);
     const playerEnergyBudget = P.energy || P.maxEnergy || BASE_PLAYER_ENERGY;
     const finalRemainingEnergy = Math.max(0, playerEnergyBudget - totalEnergyUsed);
-    const allEnemyCards = battle.queue.filter((q: any) => q.actor === 'enemy');
-    const enemyTotalEnergyUsed = allEnemyCards.reduce((sum: number, q: any) => sum + (q.card?.actionCost || 0), 0);
+    const allEnemyCards = battle.queue.filter((q: OrderItem) => q.actor === 'enemy');
+    const enemyTotalEnergyUsed = allEnemyCards.reduce((sum: number, q: OrderItem) => sum + (q.card?.actionCost || 0), 0);
     const enemyEnergyBudget = E.energy || E.maxEnergy || BASE_PLAYER_ENERGY;
     const finalEnemyRemainingEnergy = Math.max(0, enemyEnergyBudget - enemyTotalEnergyUsed);
 
@@ -367,8 +373,8 @@ export function useResolveExecution({
         continue;
       }
 
-      const executedPlayerCards = battle.queue.slice(0, i).filter((q: any) => q.actor === 'player');
-      const usedCardCategories = [...new Set(executedPlayerCards.map((q: any) => q.card?.cardCategory).filter(Boolean))];
+      const executedPlayerCards = battle.queue.slice(0, i).filter((q: OrderItem) => q.actor === 'player');
+      const usedCardCategories = [...new Set(executedPlayerCards.map((q: OrderItem) => q.card?.cardCategory).filter(Boolean))];
       const previewNextTurnEffects = battle.nextTurnEffects || {};
 
       const battleContext = {

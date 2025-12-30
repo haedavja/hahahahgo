@@ -21,18 +21,31 @@
 import { useCallback } from 'react';
 import { useGameStore } from '../../../state/gameStore';
 import { playChoiceSelectSound, playDangerSound } from '../../../lib/soundUtils';
+import type { DungeonObject } from '../../../types/game';
+import type { RenderDungeonSegment } from '../../../types/dungeon';
+import type { DungeonDeltas, BattleConfig } from '../../../state/slices/types';
+import type {
+  CrossroadModal,
+  CrossroadChoice,
+  CrossroadOutcome,
+  DungeonActions,
+} from './useDungeonState';
+
+/**
+ * 기로 선택지 훅 파라미터
+ */
+interface UseCrossroadChoiceParams {
+  crossroadModal: CrossroadModal | null;
+  dungeonDeltas: DungeonDeltas;
+  setDungeonDeltas: (dungeonDeltas: DungeonDeltas) => void;
+  currentRoomKey: string;
+  startBattle: (config?: BattleConfig) => void;
+  segment: RenderDungeonSegment | undefined;
+  actions: DungeonActions;
+}
 
 /**
  * 기로 선택지 훅
- * @param {Object} params
- * @param {Object|null} params.crossroadModal - 기로 모달 상태
- * @param {Object} params.dungeonDeltas - 던전 델타값
- * @param {Function} params.setDungeonDeltas - 델타 설정
- * @param {string} params.currentRoomKey - 현재 방 키
- * @param {Function} params.startBattle - 전투 시작 함수
- * @param {Object} params.segment - 현재 세그먼트
- * @param {Object} params.actions - 상태 업데이트 액션
- * @returns {{checkRequirement: Function, executeChoice: Function, closeCrossroadModal: Function}}
  */
 export function useCrossroadChoice({
   crossroadModal,
@@ -42,14 +55,14 @@ export function useCrossroadChoice({
   startBattle,
   segment,
   actions,
-}: any) {
+}: UseCrossroadChoiceParams) {
   // 플레이어 스탯 가져오기
   const playerStrength = useGameStore((s) => s.playerStrength) || 0;
   const playerAgility = useGameStore((s) => s.playerAgility) || 0;
   const playerInsight = useGameStore((s) => s.playerInsight) || 0;
 
   // 스탯 요구조건 충족 여부 확인
-  const checkRequirement = useCallback((choice: any, attemptCount = 0) => {
+  const checkRequirement = useCallback((choice: CrossroadChoice, attemptCount = 0) => {
     const req = choice.requirements || {};
     const scaling = choice.scalingRequirement;
 
@@ -71,13 +84,13 @@ export function useCrossroadChoice({
   }, [playerStrength, playerAgility, playerInsight]);
 
   // 스탯 여유도 계산 (얼마나 여유있게 충족하는지)
-  const getStatMargin = useCallback((choice: any, attemptNum: any) => {
+  const getStatMargin = useCallback((choice: CrossroadChoice, attemptNum: number) => {
     if (!choice.scalingRequirement) return Infinity;
 
     const { stat, baseValue, increment } = choice.scalingRequirement;
     const requiredValue = baseValue + (attemptNum * increment);
 
-    const statMap: any = {
+    const statMap: Record<string, number> = {
       strength: playerStrength,
       agility: playerAgility,
       insight: playerInsight,
@@ -88,13 +101,13 @@ export function useCrossroadChoice({
   }, [playerStrength, playerAgility, playerInsight]);
 
   // 랜덤 적 가져오기 헬퍼
-  const getRandomEnemy = useCallback((tier: any) => {
+  const getRandomEnemy = useCallback((tier: number) => {
     // 간단한 구현 - 실제로는 enemyData에서 가져와야 함
     return { id: 'goblin', name: '고블린' };
   }, []);
 
   // 선택지 결과 적용
-  const applyChoiceOutcome = useCallback((outcome: any, obj: any) => {
+  const applyChoiceOutcome = useCallback((outcome: CrossroadOutcome, obj: DungeonObject) => {
     if (!outcome?.effect) return;
 
     const effect = outcome.effect;
@@ -146,7 +159,7 @@ export function useCrossroadChoice({
   }, [dungeonDeltas, setDungeonDeltas, currentRoomKey, startBattle, segment, getRandomEnemy]);
 
   // 선택지 실행
-  const executeChoice = useCallback((choice: any, choiceState: any) => {
+  const executeChoice = useCallback((choice: CrossroadChoice, choiceState: Record<string, { attempts: number }>) => {
     if (!crossroadModal) return;
 
     playChoiceSelectSound();

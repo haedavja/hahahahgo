@@ -28,7 +28,7 @@ export const DEFAULT_STARTING_DECK = [
 ];
 
 // 타임라인 틱 생성 함수 (동적)
-export function generateSpeedTicks(maxSpeed: any) {
+export function generateSpeedTicks(maxSpeed: number) {
   const tickInterval = 5;
   return Array.from(
     { length: Math.floor(maxSpeed / tickInterval) + 1 },
@@ -123,7 +123,7 @@ export const CARDS = [
     special: "advanceTimeline",
     advanceAmount: 4,
     appliedTokens: [{ id: 'blur', target: 'player' }],
-    onPlay: (battle: any, actions: any) => {
+    onPlay: (battle: unknown, actions: unknown) => {
       actions.addTokenToPlayer('blur', 1);
     }
   },
@@ -180,7 +180,7 @@ export const CARDS = [
     cardCategory: "fencing",
     advanceAmount: 3,
     appliedTokens: [{ id: 'shaken', target: 'enemy' }],
-    onPlay: (battle: any, actions: any) => {
+    onPlay: (battle: unknown, actions: unknown) => {
       actions.addTokenToEnemy('shaken', 1);
     }
   },
@@ -213,7 +213,7 @@ export const CARDS = [
     cardCategory: "fencing",
     advanceAmount: 3,
     appliedTokens: [{ id: 'evasion', target: 'player' }, { id: 'offense', target: 'player' }],
-    onPlay: (battle: any, actions: any) => {
+    onPlay: (battle: unknown, actions: unknown) => {
       actions.addTokenToPlayer('evasion', 1);
       actions.addTokenToPlayer('offense', 1);
     }
@@ -261,7 +261,7 @@ export const CARDS = [
     appliedTokens: [
       { id: 'counterShot', stacks: 2, target: 'player' }
     ],
-    onPlay: (battle: any, actions: any) => {
+    onPlay: (battle: unknown, actions: unknown) => {
       actions.addTokenToPlayer('counterShot', 2);
     },
     crossBonus: { type: 'gun_attack', count: 1 }
@@ -344,7 +344,7 @@ export const CARDS = [
     traits: [],
     cardCategory: "gun",
     appliedTokens: [{ id: 'armor_piercing', target: 'player' }],
-    onPlay: (battle: any, actions: any) => {
+    onPlay: (battle: unknown, actions: unknown) => {
       // 탄걸림 해제 + 룰렛 0으로 초기화 후 추가 효과 적용
       actions.removeTokenFromPlayer('gun_jam', 'permanent', 99);
       actions.resetTokenForPlayer('roulette', 'permanent', 0); // 룰렛 0으로 초기화
@@ -363,7 +363,7 @@ export const CARDS = [
     traits: [],
     cardCategory: "gun",
     appliedTokens: [{ id: 'incendiary', target: 'player' }],
-    onPlay: (battle: any, actions: any) => {
+    onPlay: (battle: unknown, actions: unknown) => {
       // 탄걸림 해제 + 룰렛 0으로 초기화 후 추가 효과 적용
       actions.removeTokenFromPlayer('gun_jam', 'permanent', 99);
       actions.resetTokenForPlayer('roulette', 'permanent', 0); // 룰렛 0으로 초기화
@@ -381,7 +381,7 @@ export const CARDS = [
     description: "방어력 5. 탄걸림을 해제하고 룰렛을 초기화한다.",
     traits: [],
     cardCategory: "gun",
-    onPlay: (battle: any, actions: any) => {
+    onPlay: (battle: unknown, actions: unknown) => {
       // 탄걸림 해제 + 룰렛 0으로 초기화
       actions.removeTokenFromPlayer('gun_jam', 'permanent', 99);
       actions.resetTokenForPlayer('roulette', 'permanent', 0); // 룰렛 0으로 초기화
@@ -398,7 +398,7 @@ export const CARDS = [
     description: "이번 전투 동안 통찰 +1, 치명타율 +5%를 얻는다.",
     traits: [],
     appliedTokens: [{ id: 'insight', target: 'player' }, { id: 'crit_boost', target: 'player' }],
-    onPlay: (battle: any, actions: any) => {
+    onPlay: (battle: unknown, actions: unknown) => {
       actions.addTokenToPlayer('insight', 1);
       actions.addTokenToPlayer('crit_boost', 1);
     }
@@ -529,7 +529,7 @@ export const CARDS = [
       { id: 'dull', stacks: 1, target: 'enemy' },
       { id: 'shaken', stacks: 1, target: 'enemy' }
     ],
-    onPlay: (battle: any, actions: any) => {
+    onPlay: (battle: unknown, actions: unknown) => {
       actions.addTokenToEnemy('dull', 1);
       actions.addTokenToEnemy('shaken', 1);
     },
@@ -1155,7 +1155,7 @@ export const ENEMY_GROUPS = [
 ];
 
 // 몬스터 그룹 헬퍼 함수
-export function getEnemyGroup(groupId: any) {
+export function getEnemyGroup(groupId: string) {
   const group = ENEMY_GROUPS.find(g => g.id === groupId);
   if (!group) return null;
   const enemies = Array.isArray(group.enemies) ? group.enemies : [];
@@ -1169,7 +1169,7 @@ export function getEnemyGroup(groupId: any) {
 }
 
 // 티어별 적 가져오기
-export function getEnemiesByTier(tier: any) {
+export function getEnemiesByTier(tier: number) {
   return ENEMIES.filter(e => e.tier === tier);
 }
 
@@ -1206,7 +1206,7 @@ export function getRandomEnemyGroupByNode(nodeNumber = 1) {
 }
 
 // 그룹의 적 상세 정보 가져오기
-export function getEnemyGroupDetails(groupId: any) {
+export function getEnemyGroupDetails(groupId: string) {
   const group = ENEMY_GROUPS.find(g => g.id === groupId);
   if (!group) return null;
 

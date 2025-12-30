@@ -56,7 +56,7 @@ export function ResourcesTab({ resources, setResources, devOpenRest, awakenAtRes
       </div>
 
       {/* 입력 폼 */}
-      {Object.keys(resources).map((key: any) => (
+      {Object.keys(resources).map((key: string) => (
         <div key={key} style={{ marginBottom: '12px' }}>
           <label style={{
             display: 'block',

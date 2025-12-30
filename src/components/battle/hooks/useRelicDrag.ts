@@ -9,6 +9,7 @@
  */
 
 import { useRef, useCallback } from 'react';
+import type { UseRelicDragParams } from '../../../types/hooks';
 
 /**
  * 상징 드래그 앤 드롭 훅
@@ -17,10 +18,10 @@ import { useRef, useCallback } from 'react';
  * @param {Object} params.actions - 상태 업데이트 액션
  * @returns {{handleRelicDragStart: Function, handleRelicDragOver: Function, handleRelicDrop: Function, handleRelicDragEnd: Function}}
  */
-export function useRelicDrag({ orderedRelicList, actions }: any) {
-  const dragRelicIndexRef = useRef(null);
+export function useRelicDrag({ orderedRelicList, actions }: UseRelicDragParams) {
+  const dragRelicIndexRef = useRef<number | null>(null);
 
-  const handleRelicDragStart = useCallback((idx: any, relicId: any) => (e: any) => {
+  const handleRelicDragStart = useCallback((idx: number, relicId: string) => (e: React.DragEvent) => {
     dragRelicIndexRef.current = idx;
     actions.setRelicActivated(relicId);
     e.dataTransfer.effectAllowed = 'move';
@@ -31,12 +32,12 @@ export function useRelicDrag({ orderedRelicList, actions }: any) {
     } catch { /* ignore */ }
   }, [actions]);
 
-  const handleRelicDragOver = useCallback((e: any) => {
+  const handleRelicDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
   }, []);
 
-  const handleRelicDrop = useCallback((idx: any) => (e: any) => {
+  const handleRelicDrop = useCallback((idx: number) => (e: React.DragEvent) => {
     e.preventDefault();
     const from = dragRelicIndexRef.current;
     dragRelicIndexRef.current = null;

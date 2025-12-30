@@ -14,7 +14,8 @@ import type {
   CounterShotResult,
   SingleHitResult,
   PreProcessedResult,
-  SpecialCard
+  SpecialCard,
+  ConsumedToken
 } from '../../../types';
 import { hasTrait } from '../utils/battleUtils';
 import { applyTokenEffectsToCard, applyTokenEffectsOnDamage, consumeTokens } from '../../../lib/tokenEffects';
@@ -198,7 +199,7 @@ export function calculateSingleHit(
 ): SingleHitResult {
   const isGhost = card.isGhost === true;
 
-  let modifiedCard: any, currentAttacker: any, currentDefender: any, specialEvents: any, specialLogs: any, attackerConsumedTokens: any;
+  let modifiedCard: Card, currentAttacker: Combatant, currentDefender: Combatant, specialEvents: BattleEvent[], specialLogs: string[], attackerConsumedTokens: ConsumedToken[];
   let queueModifications: Array<{ index: number; newSp: number }> | undefined;
 
   if (preProcessedResult) {

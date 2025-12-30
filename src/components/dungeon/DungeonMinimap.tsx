@@ -13,6 +13,38 @@ interface DungeonConnection {
 
 type DungeonConnections = Record<string, DungeonConnection[]>;
 
+interface DungeonNode {
+  id: string;
+  type: string;
+  name: string;
+  description: string;
+  x?: number;
+  y?: number;
+  visited: boolean;
+  cleared: boolean;
+  hidden?: boolean;
+}
+
+interface DungeonState {
+  nodes: DungeonNode[];
+  connections: Record<string, DungeonConnection[]>;
+  currentNodeId: string;
+  unlockedShortcuts?: string[];
+  discoveredHidden?: string[];
+}
+
+interface DungeonMinimapProps {
+  dungeonState: DungeonState;
+  onNodeClick?: (nodeId: string) => void;
+  playerStats?: unknown;
+}
+
+interface LegendItemProps {
+  color: string;
+  label: string;
+  dashed: boolean;
+}
+
 // 노드 타입별 색상
 const NODE_COLORS = {
   [DUNGEON_NODE_TYPES.ENTRANCE]: '#22c55e',   // 녹색
@@ -36,7 +68,7 @@ const NODE_ICONS = {
   [DUNGEON_NODE_TYPES.BOSS]: '☠',
 };
 
-export function DungeonMinimap({ dungeonState, onNodeClick, playerStats }: any) {
+export function DungeonMinimap({ dungeonState, onNodeClick, playerStats }: DungeonMinimapProps) {
   if (!dungeonState?.nodes || !dungeonState?.connections) {
     return null;
   }
@@ -48,7 +80,7 @@ export function DungeonMinimap({ dungeonState, onNodeClick, playerStats }: any) 
     let minX = Infinity, maxX = -Infinity;
     let minY = Infinity, maxY = -Infinity;
 
-    nodes.forEach((node: any) => {
+    nodes.forEach((node: DungeonNode) => {
       if (node.hidden && !discoveredHidden?.includes(node.id)) return;
       if (node.x !== undefined) {
         minX = Math.min(minX, node.x);
@@ -70,13 +102,13 @@ export function DungeonMinimap({ dungeonState, onNodeClick, playerStats }: any) 
     const offsetX = -bounds.minX;
     const offsetY = -bounds.minY;
 
-    Object.entries(connections as DungeonConnections).forEach(([fromId, conns]: any) => {
-      const fromNode = nodes.find((n: any) => n.id === fromId);
+    Object.entries(connections as DungeonConnections).forEach(([fromId, conns]: [string, DungeonConnection[]]) => {
+      const fromNode = nodes.find((n: DungeonNode) => n.id === fromId);
       if (!fromNode || fromNode.x === undefined) return;
       if (fromNode.hidden && !discoveredHidden?.includes(fromId)) return;
 
-      conns.forEach((conn: any, idx: any) => {
-        const toNode = nodes.find((n: any) => n.id === conn.targetId);
+      conns.forEach((conn: DungeonConnection, idx: number) => {
+        const toNode = nodes.find((n: DungeonNode) => n.id === conn.targetId);
         if (!toNode || toNode.x === undefined) return;
         if (toNode.hidden && !discoveredHidden?.includes(conn.targetId)) return;
 
@@ -138,7 +170,7 @@ export function DungeonMinimap({ dungeonState, onNodeClick, playerStats }: any) 
     const offsetX = -bounds.minX;
     const offsetY = -bounds.minY;
 
-    return nodes.map((node: any) => {
+    return nodes.map((node: DungeonNode) => {
       // 숨겨진 노드 체크
       if (node.hidden && !discoveredHidden?.includes(node.id)) {
         return null;
@@ -237,7 +269,7 @@ export function DungeonMinimap({ dungeonState, onNodeClick, playerStats }: any) 
           던전 지도
         </span>
         <span style={{ color: '#64748b', fontSize: '11px' }}>
-          {nodes.filter((n: any) => n.visited).length}/{nodes.filter((n: any) => !n.hidden || discoveredHidden?.includes(n.id)).length} 탐색
+          {nodes.filter((n: DungeonNode) => n.visited).length}/{nodes.filter((n: DungeonNode) => !n.hidden || discoveredHidden?.includes(n.id)).length} 탐색
         </span>
       </div>
 
@@ -271,7 +303,7 @@ export function DungeonMinimap({ dungeonState, onNodeClick, playerStats }: any) 
   );
 }
 
-function LegendItem({ color, label, dashed }: any) {
+function LegendItem({ color, label, dashed }: LegendItemProps) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
       <div style={{

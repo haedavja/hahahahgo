@@ -24,6 +24,7 @@ import { useMemo } from 'react';
 import { detectPokerCombo } from '../utils/comboDetection';
 import { applyTraitModifiers } from '../utils/battleUtils';
 import { applyAgility } from '../../../lib/agilityUtils';
+import type { UseBattleTimelinesParams } from '../../../types/hooks';
 
 /**
  * 전투 타임라인 계산 훅
@@ -49,7 +50,7 @@ export function useBattleTimelines({
   enemyPlanActions,
   insightReveal,
   selected
-}: any) {
+}: UseBattleTimelinesParams) {
   // 플레이어 타임라인 계산
   const playerTimeline = useMemo(() => {
     if (battlePhase === 'select') {
@@ -62,7 +63,7 @@ export function useBattleTimelines({
       const isFlush = currentCombo?.name === '플러쉬';
 
       let ps = 0;
-      return battleSelected.map((c: any, idx: any) => {
+      return battleSelected.map((c, idx) => {
         // 카드가 조합에 포함되는지 확인
         const isInCombo = isFlush || comboCardCosts.has(c.actionCost);
         const usageCount = playerComboUsageCount?.[c.id] || 0;
@@ -76,10 +77,10 @@ export function useBattleTimelines({
       });
     }
     if (battlePhase === 'respond' && fixedOrder) {
-      return fixedOrder.filter((x: any) => x.actor === 'player');
+      return fixedOrder.filter((x: { actor: string }) => x.actor === 'player');
     }
     if (battlePhase === 'resolve') {
-      return battleQueue.filter((x: any) => x.actor === 'player');
+      return battleQueue.filter((x: { actor: string }) => x.actor === 'player');
     }
     return [];
   }, [battlePhase, battleSelected, fixedOrder, battleQueue, playerComboUsageCount, effectiveAgility, selected]);
@@ -94,16 +95,16 @@ export function useBattleTimelines({
       const level = insightReveal.level || 0;
       const limited = level === 1 ? actions.slice(0, 2) : actions;
       let sp = 0;
-      return limited.map((card: any, idx: any) => {
+      return limited.map((card, idx) => {
         sp += card.speedCost || 0;
         return { actor: 'enemy', card, sp, idx };
       });
     }
     if (battlePhase === 'respond' && fixedOrder) {
-      return fixedOrder.filter((x: any) => x.actor === 'enemy');
+      return fixedOrder.filter((x: { actor: string }) => x.actor === 'enemy');
     }
     if (battlePhase === 'resolve') {
-      return battleQueue.filter((x: any) => x.actor === 'enemy');
+      return battleQueue.filter((x: { actor: string }) => x.actor === 'enemy');
     }
     return [];
   }, [battlePhase, fixedOrder, battleQueue, enemyPlanActions, insightReveal]);

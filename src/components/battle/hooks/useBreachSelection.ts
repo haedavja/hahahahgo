@@ -11,27 +11,40 @@
 
 import { useCallback, useState, useRef } from 'react';
 import type { BreachSelection } from '../../../types';
+import type { Card, LogFunction } from '../../../types/core';
+import type { BattleRef, BattleAction } from '../../../types/combat';
 import { generateUid } from '../../../lib/randomUtils';
 
-// 카드 창조 큐 아이템 (런타임 타입 - 다양한 카드 타입 허용)
+// 카드 창조 큐 아이템
 export interface CreationQueueItem {
-  cards: unknown[];
+  cards: Card[];
   insertSp: number;
-  breachCard: unknown;
+  breachCard: Card;
   isAoe?: boolean;
   totalSelections?: number;  // 총 선택 횟수 (진행 상황 표시용)
   currentSelection?: number; // 현재 선택 번호
 }
 
+// useBreachSelection 훅 파라미터 타입
+export interface UseBreachSelectionParams {
+  CARDS: Card[];
+  battleRef: React.MutableRefObject<BattleRef>;
+  stepOnceRef: React.MutableRefObject<(() => void) | null>;
+  addLog: LogFunction;
+  actions: {
+    setQueue: (queue: BattleAction[]) => void;
+    setQIndex: (index: number) => void;
+  };
+}
+
 /**
  * 브리치/창조 카드 선택 훅
- * @param {Object} params
- * @param {Card[]} params.CARDS - 전체 카드 목록
- * @param {React.MutableRefObject<Object>} params.battleRef - 전투 상태 ref
- * @param {React.MutableRefObject<Function>} params.stepOnceRef - stepOnce 함수 ref
- * @param {Function} params.addLog - 로그 추가
- * @param {Object} params.actions - 상태 업데이트 액션
- * @returns {{breachSelection: Object|null, handleBreachSelect: Function}}
+ * @param params - 훅 파라미터
+ * @param params.CARDS - 전체 카드 목록
+ * @param params.battleRef - 전투 상태 ref
+ * @param params.stepOnceRef - stepOnce 함수 ref
+ * @param params.addLog - 로그 추가 함수
+ * @param params.actions - 상태 업데이트 액션
  */
 export function useBreachSelection({
   CARDS,
@@ -39,22 +52,22 @@ export function useBreachSelection({
   stepOnceRef,
   addLog,
   actions
-}: any) {
+}: UseBreachSelectionParams) {
   const [breachSelection, setBreachSelection] = useState<BreachSelection | null>(null);
   const breachSelectionRef = useRef<BreachSelection | null>(null);
   const creationQueueRef = useRef<CreationQueueItem[]>([]);
 
-  const handleBreachSelect = useCallback((selectedCard: any, idx: any) => {
-    const breach = breachSelectionRef.current as any;
+  const handleBreachSelect = useCallback((selectedCard: Card, idx?: number) => {
+    const breach = breachSelectionRef.current;
     if (!breach) return;
 
-    const insertSp = (breach.breachSp ?? 0) + (breach.breachCard?.breachSpOffset ?? 3);
+    const insertSp = (breach.breachSp ?? 0) + ((breach.breachCard as Card & { breachSpOffset?: number })?.breachSpOffset ?? 3);
 
     addLog(`👻 "${selectedCard.name}" 선택! 타임라인 ${insertSp}에 유령카드로 삽입.`);
 
     // 유령카드 생성
-    const originalCard = CARDS.find((c: any) => c.id === selectedCard.id) || selectedCard;
-    const ghostCard = {
+    const originalCard = CARDS.find((c) => c.id === selectedCard.id) || selectedCard;
+    const ghostCard: Card = {
       ...originalCard,
       damage: originalCard.damage,
       block: originalCard.block,
@@ -68,20 +81,20 @@ export function useBreachSelection({
       isGhost: true,
       isFromFleche: selectedCard.isFromFleche || false,
       flecheChainCount: selectedCard.flecheChainCount || 0,
-      createdBy: selectedCard.createdBy || breach.breachCard?.id,
+      createdBy: selectedCard.createdBy || (breach.breachCard as Card)?.id,
       isAoe: breach.isAoe ?? false,
       __uid: generateUid('ghost')
     };
 
-    const ghostAction = {
+    const ghostAction: BattleAction = {
       actor: 'player',
       card: ghostCard,
       sp: insertSp
     };
 
     // 현재 큐에 유령카드 삽입
-    const currentQ = battleRef.current.queue;
-    const currentQIndex = battleRef.current.qIndex;
+    const currentQ = battleRef.current.queue ?? [];
+    const currentQIndex = battleRef.current.qIndex ?? 0;
 
     const beforeCurrent = currentQ.slice(0, currentQIndex + 1);
     const afterCurrent = [...currentQ.slice(currentQIndex + 1), ghostAction];
@@ -101,7 +114,7 @@ export function useBreachSelection({
 
     // 창조 다중 선택 큐 확인 (벙 데 라므, 총살 등)
     if (creationQueueRef.current.length > 0) {
-      const nextSelection = creationQueueRef.current.shift() as any;
+      const nextSelection = creationQueueRef.current.shift();
       if (!nextSelection) return;
 
       // 진행 상황 표시 (totalSelections가 있으면 사용, 없으면 기본값 3)
@@ -109,15 +122,15 @@ export function useBreachSelection({
       const current = nextSelection.currentSelection || (total - creationQueueRef.current.length);
       addLog(`👻 창조 ${current}/${total}: 카드를 선택하세요.`);
 
-      const nextBreachState = {
+      const nextBreachState: BreachSelection = {
         cards: nextSelection.cards,
         breachSp: nextSelection.insertSp,
         breachCard: nextSelection.breachCard,
         isCreationSelection: true,
         isAoe: nextSelection.isAoe
       };
-      breachSelectionRef.current = nextBreachState as any;
-      setBreachSelection(nextBreachState as any);
+      breachSelectionRef.current = nextBreachState;
+      setBreachSelection(nextBreachState);
 
       return;
     }

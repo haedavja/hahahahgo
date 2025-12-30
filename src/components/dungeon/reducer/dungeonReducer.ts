@@ -1,5 +1,5 @@
 /**
- * @file dungeonReducer.js
+ * @file dungeonReducer.ts
  * @description 던전 탐험 상태 관리 Reducer
  * @typedef {import('../../../types').DungeonObject} DungeonObject
  *
@@ -12,6 +12,33 @@
  * - message: 화면 메시지
  * - rewardModal/crossroadModal: 모달 상태
  */
+
+// Forward declaration of types (defined in useDungeonState.ts)
+import type {
+  DungeonState,
+  KeysState,
+  RewardModal,
+  DungeonSummary,
+  CrossroadModal
+} from '../hooks/useDungeonState';
+
+// ========== 액션 타입 정의 ==========
+
+export type DungeonAction =
+  | { type: 'SET_SEGMENT_INDEX'; payload: number }
+  | { type: 'SET_PLAYER_X'; payload: number }
+  | { type: 'SET_CAMERA_X'; payload: number }
+  | { type: 'SET_KEYS'; payload: KeysState }
+  | { type: 'SET_MESSAGE'; payload: string }
+  | { type: 'SET_REWARD_MODAL'; payload: RewardModal | null }
+  | { type: 'SET_SHOW_CHARACTER'; payload: boolean }
+  | { type: 'SET_DUNGEON_SUMMARY'; payload: DungeonSummary | null }
+  | { type: 'SET_HOVERED_RELIC'; payload: string | null }
+  | { type: 'SET_CROSSROAD_MODAL'; payload: CrossroadModal | null }
+  | { type: 'SET_SCREEN_SHAKE'; payload: boolean }
+  | { type: 'UPDATE_KEYS'; payload: Partial<KeysState> }
+  | { type: 'RESET_DUNGEON'; payload?: Partial<DungeonState> }
+  | { type: 'MOVE_TO_NEXT_SEGMENT' };
 
 export const ACTIONS = {
   SET_SEGMENT_INDEX: 'SET_SEGMENT_INDEX',
@@ -32,7 +59,7 @@ export const ACTIONS = {
   MOVE_TO_NEXT_SEGMENT: 'MOVE_TO_NEXT_SEGMENT',
 };
 
-export const createInitialState = (overrides = {}) => ({
+export const createInitialState = (overrides: Partial<DungeonState> = {}): DungeonState => ({
   segmentIndex: 0,
   playerX: 100,
   cameraX: 0,
@@ -47,7 +74,7 @@ export const createInitialState = (overrides = {}) => ({
   ...overrides
 });
 
-export const dungeonReducer = (state: any, action: any) => {
+export const dungeonReducer = (state: DungeonState, action: DungeonAction): DungeonState => {
   switch (action.type) {
     // === 기본 설정 ===
     case ACTIONS.SET_SEGMENT_INDEX:

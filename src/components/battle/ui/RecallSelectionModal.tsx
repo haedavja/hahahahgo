@@ -5,7 +5,7 @@
  * 다음 턴에 가져올 카드를 선택하는 UI
  */
 
-import { FC } from 'react';
+import { FC, MouseEvent } from 'react';
 import type { RecallCard as Card, RecallSelection } from '../../../types';
 
 interface RecallSelectionModalProps {
@@ -61,13 +61,13 @@ export const RecallSelectionModal: FC<RecallSelectionModalProps> = ({ recallSele
                 height: '180px',
                 transition: 'transform 0.2s, box-shadow 0.2s',
               }}
-              onMouseEnter={(e: any) => {
-                (e.currentTarget as HTMLDivElement).style.transform = 'scale(1.05)';
-                (e.currentTarget as HTMLDivElement).style.boxShadow = '0 0 20px rgba(251, 191, 36, 0.6)';
+              onMouseEnter={(e: MouseEvent<HTMLDivElement>) => {
+                e.currentTarget.style.transform = 'scale(1.05)';
+                e.currentTarget.style.boxShadow = '0 0 20px rgba(251, 191, 36, 0.6)';
               }}
-              onMouseLeave={(e: any) => {
-                (e.currentTarget as HTMLDivElement).style.transform = 'scale(1)';
-                (e.currentTarget as HTMLDivElement).style.boxShadow = 'none';
+              onMouseLeave={(e: MouseEvent<HTMLDivElement>) => {
+                e.currentTarget.style.transform = 'scale(1)';
+                e.currentTarget.style.boxShadow = 'none';
               }}
             >
               <div className="card-cost-badge-floating">{card.actionCost}</div>

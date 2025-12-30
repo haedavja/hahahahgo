@@ -1,5 +1,5 @@
 /**
- * @file anomalies.js
+ * @file anomalies.ts
  * @description 이변(異變) 시스템 데이터
  *
  * ## 이변 시스템
@@ -7,14 +7,41 @@
  * - 강도: Math.floor(mapRisk / 25), 최대 4레벨
  * - 일반 전투: 1개 발동
  * - 보스 전투: 여러 개 발동
- *
- * @typedef {Object} Anomaly
- * @property {string} id - 이변 ID
- * @property {string} name - 이름
- * @property {Object[]} effects - 레벨별 효과
  */
 
 import { shuffle } from '../lib/randomUtils';
+
+/**
+ * 이변 효과 타입
+ */
+export type AnomalyEffectType =
+  | 'ETHER_BAN'
+  | 'ENERGY_REDUCTION'
+  | 'SPEED_REDUCTION'
+  | 'DRAW_REDUCTION'
+  | 'INSIGHT_REDUCTION'
+  | 'VALUE_DOWN';
+
+/**
+ * 이변 효과 인터페이스
+ */
+export interface AnomalyEffect {
+  type: AnomalyEffectType;
+  description: string;
+  value?: number;
+}
+
+/**
+ * 이변 인터페이스
+ */
+export interface Anomaly {
+  id: string;
+  name: string;
+  emoji: string;
+  color: string;
+  description: string;
+  getEffect: (level: number) => AnomalyEffect;
+}
 
 export const ANOMALY_TYPES = {
   DEFLATION_CURSE: {
@@ -24,7 +51,7 @@ export const ANOMALY_TYPES = {
     color: '#ef4444',
     description: '에테르 획득이 불가능합니다.',
     // 레벨과 관계없이 동일한 효과
-    getEffect: (level: any) => ({
+    getEffect: (level: number): AnomalyEffect => ({
       type: 'ETHER_BAN',
       description: '이 전투에서 에테르를 획득할 수 없습니다.'
     })
@@ -36,7 +63,7 @@ export const ANOMALY_TYPES = {
     emoji: '🔋',
     color: '#f59e0b',
     description: '최대 행동력이 감소합니다.',
-    getEffect: (level: any) => ({
+    getEffect: (level: number): AnomalyEffect => ({
       type: 'ENERGY_REDUCTION',
       value: level, // 레벨당 -1, 최대 -4
       description: `최대 행동력 -${level}`
@@ -49,7 +76,7 @@ export const ANOMALY_TYPES = {
     emoji: '⏰',
     color: '#8b5cf6',
     description: '최대 속도가 감소합니다.',
-    getEffect: (level: any) => ({
+    getEffect: (level: number): AnomalyEffect => ({
       type: 'SPEED_REDUCTION',
       value: level * 3, // 레벨당 -3, 최대 -12
       description: `최대 속도 -${level * 3}`
@@ -62,7 +89,7 @@ export const ANOMALY_TYPES = {
     emoji: '🎴',
     color: '#06b6d4',
     description: '뽑기 확률이 감소합니다.',
-    getEffect: (level: any) => ({
+    getEffect: (level: number): AnomalyEffect => ({
       type: 'DRAW_REDUCTION',
       value: level * 0.1, // 레벨당 -10%, 최대 -40%
       description: `뽑기 확률 -${level * 10}%`
@@ -75,7 +102,7 @@ export const ANOMALY_TYPES = {
     emoji: '🌫️',
     color: '#64748b',
     description: '통찰이 감소합니다.',
-    getEffect: (level: any) => ({
+    getEffect: (level: number): AnomalyEffect => ({
       type: 'INSIGHT_REDUCTION',
       value: level, // 레벨당 -1, 최대 -4
       description: `통찰 -${level}`
@@ -88,39 +115,39 @@ export const ANOMALY_TYPES = {
     emoji: '📉',
     color: '#dc2626',
     description: '공격력과 방어력이 감소합니다.',
-    getEffect: (level: any) => ({
+    getEffect: (level: number): AnomalyEffect => ({
       type: 'VALUE_DOWN',
       value: level, // 레벨당 공격/방어 -10% 토큰 1개, 최대 4개
       description: `공격력/방어력 감소 토큰 ${level}개`
     })
   }
-};
+} as const satisfies Record<string, Anomaly>;
 
 /**
  * 모든 이변 타입 배열
  */
-export const ALL_ANOMALIES = Object.values(ANOMALY_TYPES);
+export const ALL_ANOMALIES: Anomaly[] = Object.values(ANOMALY_TYPES);
 
 /**
  * 이변 ID로 이변 데이터 가져오기
  */
-export function getAnomalyById(id: any) {
-  return ALL_ANOMALIES.find((anomaly: any) => anomaly.id === id);
+export function getAnomalyById(id: string): Anomaly | undefined {
+  return ALL_ANOMALIES.find((anomaly: Anomaly) => anomaly.id === id);
 }
 
 /**
  * 랜덤 이변 선택
  */
-export function selectRandomAnomaly() {
+export function selectRandomAnomaly(): Anomaly {
   const index = Math.floor(Math.random() * ALL_ANOMALIES.length);
   return ALL_ANOMALIES[index];
 }
 
 /**
  * 보스 전투용 여러 이변 선택
- * @param {number} count - 선택할 이변 개수
+ * @param count - 선택할 이변 개수
  */
-export function selectMultipleAnomalies(count: any) {
+export function selectMultipleAnomalies(count: number): Anomaly[] {
   // 중복 없이 랜덤 선택
   const shuffled = shuffle(ALL_ANOMALIES);
   return shuffled.slice(0, Math.min(count, ALL_ANOMALIES.length));

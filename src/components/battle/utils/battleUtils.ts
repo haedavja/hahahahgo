@@ -3,10 +3,11 @@
  * @description 전투 시스템 유틸리티 함수
  */
 
-import type { CardRarity } from '../../../types';
+import type { Card, CardRarity } from '../../../types';
 
-type BattleCard = any;
-type TraitContext = any;
+interface TraitContext {
+  [key: string]: unknown;
+}
 
 /**
  * 배열에서 랜덤으로 하나 선택
@@ -16,14 +17,14 @@ export const choice = <T>(arr: T[]): T => arr[Math.floor(Math.random() * arr.len
 /**
  * 카드가 특정 특성을 가지고 있는지 확인
  */
-export function hasTrait(card: BattleCard, traitId: string): boolean {
+export function hasTrait(card: Card, traitId: string): boolean {
   return !!(card.traits && card.traits.includes(traitId));
 }
 
 /**
  * 특성 효과를 카드에 적용
  */
-export function applyTraitModifiers(card: BattleCard, context: TraitContext = {}): BattleCard {
+export function applyTraitModifiers(card: Card, context: TraitContext = {}): Card {
   const modifiedCard = { ...card };
 
   if (hasTrait(card, 'strongbone')) {

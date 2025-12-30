@@ -18,6 +18,7 @@
  */
 
 import { useEffect } from 'react';
+import type { MutableRefObject } from 'react';
 import { RELICS } from '../../../data/relics';
 import { applyTurnStartEffects, calculatePassiveEffects } from '../../../lib/relicEffects';
 import { processReflections } from '../../../lib/reflectionEffects';
@@ -28,6 +29,15 @@ import { decideEnemyMode, generateEnemyActions, expandActionsWithGhosts } from '
 import { useGameStore } from '../../../state/gameStore';
 import { DEFAULT_PLAYER_MAX_SPEED, DEFAULT_DRAW_COUNT, CARDS } from '../battleData';
 import { generateHandUid } from '../../../lib/randomUtils';
+import type {
+  Combatant,
+  EnemyPlan,
+  NextTurnEffects,
+  BattleRefValue,
+  ProcessReflectionsResult,
+  Relic
+} from '../../../types';
+import type { FullBattleState } from '../reducer/battleReducerState';
 
 /**
  * 턴 시작 효과 처리 훅
@@ -70,24 +80,24 @@ export function useTurnStartEffects({
   addLog,
   actions
 }: {
-  battle: any,
-  player: any,
-  enemy: any,
-  enemyPlan: any,
-  nextTurnEffects: any,
-  turnNumber: any,
-  baseMaxEnergy: any,
-  orderedRelicList: any,
-  playerEgos: any,
-  playerTraits: any,
-  enemyCount: any,
-  battleRef: any,
-  escapeBanRef: any,
-  turnStartProcessedRef: any,
-  etherSlots: any,
-  playSound: any,
-  addLog: any,
-  actions: any
+  battle: FullBattleState;
+  player: Combatant;
+  enemy: Combatant;
+  enemyPlan: EnemyPlan;
+  nextTurnEffects: NextTurnEffects;
+  turnNumber: number;
+  baseMaxEnergy: number;
+  orderedRelicList: string[];
+  playerEgos: string[];
+  playerTraits: string[];
+  enemyCount: number;
+  battleRef: MutableRefObject<BattleRefValue | null>;
+  escapeBanRef: MutableRefObject<Set<string>>;
+  turnStartProcessedRef: MutableRefObject<boolean>;
+  etherSlots: (etherPts: number) => number;
+  playSound: (frequency: number, duration: number) => void;
+  addLog: (message: string) => void;
+  actions: Record<string, (...args: unknown[]) => void>;
 }) {
   useEffect(() => {
     if (!enemy || battle.phase !== 'select') {
@@ -113,8 +123,8 @@ export function useTurnStartEffects({
     const turnStartRelicEffects = applyTurnStartEffects(orderedRelicList, nextTurnEffects);
 
     // 턴 시작 상징 발동 애니메이션
-    orderedRelicList.forEach((relicId: any) => {
-      const relic = (RELICS as any)[relicId];
+    orderedRelicList.forEach((relicId: string) => {
+      const relic = (RELICS as Record<string, Relic>)[relicId];
       if (relic?.effects?.type === 'ON_TURN_START') {
         actions.setRelicActivated(relicId);
         playSound(800, 200);
@@ -123,7 +133,12 @@ export function useTurnStartEffects({
     });
 
     // === 성찰 효과 처리 (자아가 있을 때만) ===
-    let reflectionResult: { updatedPlayer: any, updatedBattleState: any, effects: any[], logs: string[] } = { updatedPlayer: player, updatedBattleState: battle.reflectionState, effects: [], logs: [] };
+    let reflectionResult: ProcessReflectionsResult = {
+      updatedPlayer: player,
+      updatedBattleState: battle.reflectionState || {},
+      effects: [],
+      logs: []
+    };
     const hasEgo = playerEgos && playerEgos.length > 0;
     if (hasEgo) {
       const traitIds = convertTraitsToIds(playerTraits);
@@ -299,7 +314,7 @@ export function useTurnStartEffects({
         let currentDiscard = [...(battle.discardPile || []), ...currentHand];
 
         // 덱에서 카드 드로우 (소멸된 카드는 제외)
-        const vanishedCardIds = ((battle.vanishedCards || []) as any[]).map((c: any) => typeof c === 'string' ? c : c.id);
+        const vanishedCardIds = (battle.vanishedCards || []).map((c) => typeof c === 'string' ? c : c.id);
         const drawResult = drawFromDeck(currentDeck, currentDiscard, DEFAULT_DRAW_COUNT, escapeBanRef.current, vanishedCardIds);
 
         actions.setDeck(drawResult.newDeck);

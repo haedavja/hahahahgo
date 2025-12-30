@@ -49,7 +49,7 @@ export const TraitBadgeList: FC<TraitBadgeListProps> = ({ traits }) => {
 
   return (
     <span style={{ fontWeight: 600, display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-      {traits.map((traitId: any) => (
+      {traits.map((traitId: string) => (
         <TraitBadge key={traitId} traitId={traitId} />
       ))}
     </span>

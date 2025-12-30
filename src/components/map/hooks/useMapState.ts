@@ -21,12 +21,12 @@ export function useMapState(initialStateOverrides = {}) {
   );
 
   const actions = useMemo(() => ({
-    setShowCharacterSheet: (show: any) => dispatch({ type: ACTIONS.SET_SHOW_CHARACTER_SHEET, payload: show }),
-    setIsDungeonExploring: (exploring: any) => dispatch({ type: ACTIONS.SET_IS_DUNGEON_EXPLORING, payload: exploring }),
-    setDevToolsOpen: (open: any) => dispatch({ type: ACTIONS.SET_DEV_TOOLS_OPEN, payload: open }),
-    setHoveredRelic: (relicId: any) => dispatch({ type: ACTIONS.SET_HOVERED_RELIC, payload: relicId }),
-    setOrderedRelics: (relics: any) => dispatch({ type: ACTIONS.SET_ORDERED_RELICS, payload: relics }),
-    setRelicActivated: (relicId: any) => dispatch({ type: ACTIONS.SET_RELIC_ACTIVATED, payload: relicId }),
+    setShowCharacterSheet: (show: boolean) => dispatch({ type: ACTIONS.SET_SHOW_CHARACTER_SHEET, payload: show }),
+    setIsDungeonExploring: (exploring: boolean) => dispatch({ type: ACTIONS.SET_IS_DUNGEON_EXPLORING, payload: exploring }),
+    setDevToolsOpen: (open: boolean) => dispatch({ type: ACTIONS.SET_DEV_TOOLS_OPEN, payload: open }),
+    setHoveredRelic: (relicId: string | null) => dispatch({ type: ACTIONS.SET_HOVERED_RELIC, payload: relicId }),
+    setOrderedRelics: (relics: string[]) => dispatch({ type: ACTIONS.SET_ORDERED_RELICS, payload: relics }),
+    setRelicActivated: (relicId: string | null | ((prev: string | null) => string | null)) => dispatch({ type: ACTIONS.SET_RELIC_ACTIVATED, payload: relicId }),
 
     // Raw dispatch (필요시 직접 액션 전달)
     dispatch

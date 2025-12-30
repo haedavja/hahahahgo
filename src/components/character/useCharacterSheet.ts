@@ -13,6 +13,20 @@ import { useGameStore } from "../../state/gameStore";
 import { CARDS } from "../battle/battleData";
 import { calculatePassiveEffects } from "../../lib/relicEffects";
 import { getReflectionsByEgos, getTraitCountBonus } from "../../data/reflections";
+import type { Card } from "../../types/core";
+import type { PlayerEgo } from "../../state/slices/types";
+import type { ReflectionInfo } from "../../types/ui";
+
+/** 훅 파라미터 타입 */
+interface UseCharacterSheetProps {
+  showAllCards?: boolean;
+}
+
+/** 표시용 카드 (UI 확장 속성 포함) */
+interface DisplayCard extends Card {
+  _displayKey: string;
+  _type?: 'main' | 'sub' | 'owned';
+}
 
 const TRAIT_EFFECTS: Record<string, { label: string; value: number }> = {
   용맹함: { label: "힘", value: 1 },
@@ -36,7 +50,7 @@ const availableCards = CARDS.map((card, index) => ({
   description: card.description,
 }));
 
-export function useCharacterSheet({ showAllCards = false }: any) {
+export function useCharacterSheet({ showAllCards = false }: UseCharacterSheetProps) {
   const characterBuild = useGameStore((state) => state.characterBuild);
   const updateCharacterBuild = useGameStore((state) => state.updateCharacterBuild);
   const playerHp = useGameStore((state) => state.playerHp);
@@ -82,7 +96,7 @@ export function useCharacterSheet({ showAllCards = false }: any) {
   const maxSubSlots = 2 + passiveEffects.subSpecialSlots + extraSubSpecialSlots;
 
   const traitCounts = useMemo(() => {
-    return (playerTraits || []).reduce((acc: any, t: any) => {
+    return (playerTraits || []).reduce((acc: Record<string, number>, t: string) => {
       acc[t] = (acc[t] || 0) + 1;
       return acc;
     }, {});
@@ -118,7 +132,7 @@ export function useCharacterSheet({ showAllCards = false }: any) {
   }, [mainSpecials, subSpecials, initialized, updateCharacterBuild]);
 
   // 카드 개수 카운트 헬퍼
-  const getCardCount = (cardId: any, list: any) => list.filter((id: any) => id === cardId).length;
+  const getCardCount = (cardId: string, list: string[]) => list.filter((id: string) => id === cardId).length;
 
   // 대기 카드 (상점 구매 등)
   const ownedCards = characterBuild?.ownedCards || [];
@@ -128,36 +142,36 @@ export function useCharacterSheet({ showAllCards = false }: any) {
     if (showAllCards) {
       return availableCards.map((card, idx) => ({ ...card, _displayKey: `all_${card.id}_${idx}` }));
     }
-    const result: any[] = [];
-    mainSpecials.forEach((cardId: any, idx: any) => {
-      const card = CARDS.find((c: any) => c.id === cardId);
-      if (card) result.push({ ...card, _displayKey: `main_${cardId}_${idx}`, _type: 'main' });
+    const result: DisplayCard[] = [];
+    mainSpecials.forEach((cardId: string, idx: number) => {
+      const card = CARDS.find((c: Card) => c.id === cardId);
+      if (card) result.push({ ...card, _displayKey: `main_${cardId}_${idx}`, _type: 'main' as const });
     });
-    subSpecials.forEach((cardId: any, idx: any) => {
-      const card = CARDS.find((c: any) => c.id === cardId);
-      if (card) result.push({ ...card, _displayKey: `sub_${cardId}_${idx}`, _type: 'sub' });
+    subSpecials.forEach((cardId: string, idx: number) => {
+      const card = CARDS.find((c: Card) => c.id === cardId);
+      if (card) result.push({ ...card, _displayKey: `sub_${cardId}_${idx}`, _type: 'sub' as const });
     });
     const usedCounts: Record<string, number> = {};
-    [...mainSpecials, ...subSpecials].forEach((cardId: any) => {
+    [...mainSpecials, ...subSpecials].forEach((cardId: string) => {
       usedCounts[cardId] = (usedCounts[cardId] || 0) + 1;
     });
     const shownCounts: Record<string, number> = {};
-    ownedCards.forEach((cardId: any, idx: any) => {
+    ownedCards.forEach((cardId: string, idx: number) => {
       shownCounts[cardId] = (shownCounts[cardId] || 0) + 1;
       const used = usedCounts[cardId] || 0;
-      if (shownCounts[cardId] <= (ownedCards.filter((id: any) => id === cardId).length - used)) {
-        const card = CARDS.find((c: any) => c.id === cardId);
-        if (card) result.push({ ...card, _displayKey: `owned_${cardId}_${idx}`, _type: 'owned' });
+      if (shownCounts[cardId] <= (ownedCards.filter((id: string) => id === cardId).length - used)) {
+        const card = CARDS.find((c: Card) => c.id === cardId);
+        if (card) result.push({ ...card, _displayKey: `owned_${cardId}_${idx}`, _type: 'owned' as const });
       }
     });
     return result;
   }, [showAllCards, mainSpecials, subSpecials, ownedCards]);
 
   // 좌클릭: 추가, 우클릭: 제거
-  const handleCardClick = (cardId: any, isRightClick = false) => {
-    const ownedCount = ownedCards.filter((id: any) => id === cardId).length;
-    const usedInMain = mainSpecials.filter((id: any) => id === cardId).length;
-    const usedInSub = subSpecials.filter((id: any) => id === cardId).length;
+  const handleCardClick = (cardId: string, isRightClick = false) => {
+    const ownedCount = ownedCards.filter((id: string) => id === cardId).length;
+    const usedInMain = mainSpecials.filter((id: string) => id === cardId).length;
+    const usedInSub = subSpecials.filter((id: string) => id === cardId).length;
     const totalUsed = usedInMain + usedInSub;
 
     if (specialMode === "main") {

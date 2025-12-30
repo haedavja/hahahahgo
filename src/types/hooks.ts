@@ -73,14 +73,6 @@ export interface UseBreachSelectionParams {
   actions: CommonBattleActions;
 }
 
-/** useRewardSelection 파라미터 */
-export interface UseRewardSelectionParams {
-  CARDS: Card[];
-  battleRef: BattleRefType;
-  battleNextTurnEffects: unknown;
-  addLog: AddLogFn;
-  actions: CommonBattleActions;
-}
 
 /** useHandManagement 파라미터 */
 export interface UseHandManagementParams {
@@ -115,12 +107,13 @@ export interface UseComboSystemParams {
   resolvedPlayerCards: number;
   battleQIndex: number;
   battleQueueLength: number;
-  computeComboMultiplier: (combo: unknown, usage: unknown, relics: unknown) => number;
-  explainComboMultiplier: (combo: unknown, usage: unknown, relics: unknown) => string;
+  computeComboMultiplier: (baseMultiplier: number, cardsCount: number, allowSymbols: boolean, allowRefBook: boolean) => number;
+  explainComboMultiplier: (baseMultiplier: number, cardsCount: number, allowSymbols: boolean, allowRefBook: boolean, orderedRelicList: string[]) => { steps: string[] };
   orderedRelicList: string[];
   selected: Card[];
   actions: {
-    setComboExplanation: (explanation: string) => void;
+    setCurrentDeflation: (deflation: { multiplier: number; usageCount: number } | null) => void;
+    setMultiplierPulse: (pulse: boolean) => void;
     [key: string]: unknown;
   };
 }
@@ -133,13 +126,14 @@ export interface UseDamagePreviewParams {
   fixedOrder: unknown[] | null;
   playerTimeline: unknown[];
   willOverdrive: boolean;
-  enemyPlan: unknown;
+  enemyPlan: { mode: string | null; actions: unknown[] };
   targetUnit: unknown;
   hasMultipleUnits: boolean;
-  enemyUnits: unknown[];
-  selectedTargetUnit: unknown;
+  enemyUnits: Array<{ hp: number; maxHp: number; block?: number; unitId: number; [key: string]: unknown }>;
+  selectedTargetUnit: number;
   actions: {
-    setDamageDistribution: (dist: unknown) => void;
+    setPreviewDamage: (damage: { value: number; lethal: boolean; overkill: boolean }) => void;
+    setPerUnitPreviewDamage: (preview: Record<number, unknown>) => void;
     [key: string]: unknown;
   };
   playSound: PlaySoundFn;
@@ -147,64 +141,104 @@ export interface UseDamagePreviewParams {
 
 /** useEtherPreview 파라미터 */
 export interface UseEtherPreviewParams {
-  battleSelected: Card[];
-  player: { etherPts?: number; [key: string]: unknown };
-  enemy: { ether?: number; [key: string]: unknown };
-  comboRank: string | null;
-  comboMultiplier: number;
+  playerTimeline: unknown[];
+  selected: Card[];
+  orderedRelicList: string[];
+  playerComboUsageCount: Record<string, number>;
 }
 
-/** useEtherAnimation 파라미터 */
-export interface UseEtherAnimationParams {
-  player: unknown;
-  battleRef: BattleRefType;
+
+/** useInsightSystem 파라미터 */
+export interface UseInsightSystemParams {
+  playerInsight: number;
+  playerInsightPenalty: number;
+  enemyShroud: number;
+  enemyUnits: unknown[];
+  enemyPlanActions: Card[];
+  battlePhase: string;
+  devDulledLevel: number | null;
   actions: {
-    setPlayer: (player: unknown) => void;
+    setInsightBadge: (badge: unknown) => void;
+    setInsightAnimLevel: (level: number) => void;
+    setInsightAnimPulseKey: (fn: (k: number) => number) => void;
+    setHoveredEnemyAction: (action: unknown) => void;
     [key: string]: unknown;
   };
 }
 
-/** useEtherSystem 파라미터 */
-export interface UseEtherSystemParams {
-  battlePhase: string;
-  playerEtherPts: number;
-  enemyEther: number;
-  totalSpeed: number;
-  battleSelected: Card[];
-  comboRank: string | null;
-  comboMultiplier: number;
-}
-
-/** useInsightSystem 파라미터 */
-export interface UseInsightSystemParams {
-  battlePhase: string;
-  battleTurnNumber: number;
-  insightGaugeRef: MutableRefObject<number>;
-  playSound: PlaySoundFn;
-  addLog: AddLogFn;
-}
-
 /** useMultiTargetSelection 파라미터 */
 export interface UseMultiTargetSelectionParams {
-  enemyUnits: Array<{ hp: number; unitId: string; [key: string]: unknown }>;
-  battleSelected: Card[];
+  battlePendingDistributionCard: Card | null;
+  battleDamageDistribution: Record<string, boolean>;
+  enemyUnits: Array<{ hp: number; unitId: number; name?: string; [key: string]: unknown }>;
   addLog: AddLogFn;
-  playSound: PlaySoundFn;
-  actions: CommonBattleActions;
+  actions: {
+    addSelected: (card: Card) => void;
+    resetDistribution: () => void;
+    setPendingDistributionCard: (card: Card | null) => void;
+    setDamageDistribution: (dist: Record<string, boolean>) => void;
+    setDistributionMode: (mode: boolean) => void;
+    [key: string]: unknown;
+  };
 }
 
 /** useRelicDrag 파라미터 */
 export interface UseRelicDragParams {
-  orderedRelics: string[];
-  setOrderedRelics: (relics: string[]) => void;
+  orderedRelicList: string[];
+  actions: {
+    setRelicActivated: (relicId: string | null) => void;
+    setOrderedRelics: (relics: string[]) => void;
+    [key: string]: unknown;
+  };
 }
 
 /** useBattleTimelines 파라미터 */
 export interface UseBattleTimelinesParams {
   battlePhase: string;
+  battleSelected: Card[];
+  fixedOrder: unknown[] | null;
   battleQueue: unknown[];
-  battleQIndex: number;
-  battleFixedOrder: unknown[] | null;
-  player: { maxSpeed?: number; [key: string]: unknown };
+  playerComboUsageCount: Record<string, number>;
   effectiveAgility: number;
+  enemyPlanActions: Card[];
+  insightReveal: { visible: boolean; level: number } | null;
+  selected: Card[];
+}
+
+/** useEtherAnimation 파라미터 */
+export interface UseEtherAnimationParams {
+  selected: Card[];
+  battleSelected: Card[];
+  finalComboMultiplier: number | null;
+  displayEtherMultiplierRef: MutableRefObject<number>;
+  player: unknown;
+  enemy: unknown;
+  enemyPlan: { actions: Card[] };
+  enemyTurnEtherAccumulated: number;
+  battleRef: BattleRefType;
+  playSound: PlaySoundFn;
+  actions: {
+    setCurrentDeflation: (deflation: unknown) => void;
+    setEnemyCurrentDeflation: (deflation: unknown) => void;
+    setEtherCalcPhase: (phase: string) => void;
+    setEnemyEtherCalcPhase: (phase: string) => void;
+    setEtherFinalValue: (value: number) => void;
+    setEnemyEtherFinalValue: (value: number) => void;
+    setPlayer: (player: unknown) => void;
+    [key: string]: unknown;
+  };
+}
+
+/** useRewardSelection 파라미터 */
+export interface UseRewardSelectionParams {
+  CARDS: Card[];
+  battleRef: BattleRefType;
+  battleNextTurnEffects: unknown;
+  addLog: AddLogFn;
+  actions: {
+    setPostCombatOptions: (options: unknown) => void;
+    setPhase: (phase: string) => void;
+    setNextTurnEffects: (effects: unknown) => void;
+    [key: string]: unknown;
+  };
 }

@@ -1,5 +1,5 @@
 /**
- * @file mapReducer.js
+ * @file mapReducer.ts
  * @description MapDemo 컴포넌트의 상태 관리 Reducer
  * @typedef {import('../../../types').Relic} Relic
  *
@@ -9,6 +9,29 @@
  * - devToolsOpen: 개발자 도구 열림
  * - hoveredRelic/orderedRelics: 상징 관련
  */
+
+import type { Relic } from '../../../types';
+
+// ========== 타입 정의 ==========
+
+/** Map 상태 */
+export interface MapState {
+  showCharacterSheet: boolean;
+  isDungeonExploring: boolean;
+  devToolsOpen: boolean;
+  hoveredRelic: string | null;
+  orderedRelics: Relic[];
+  relicActivated: string | null;
+}
+
+/** Map 액션 */
+export type MapAction =
+  | { type: 'SET_SHOW_CHARACTER_SHEET'; payload: boolean }
+  | { type: 'SET_IS_DUNGEON_EXPLORING'; payload: boolean }
+  | { type: 'SET_DEV_TOOLS_OPEN'; payload: boolean }
+  | { type: 'SET_HOVERED_RELIC'; payload: string | null }
+  | { type: 'SET_ORDERED_RELICS'; payload: Relic[] | ((prev: Relic[]) => Relic[]) }
+  | { type: 'SET_RELIC_ACTIVATED'; payload: string | null };
 
 export const ACTIONS = {
   SET_SHOW_CHARACTER_SHEET: 'SET_SHOW_CHARACTER_SHEET',
@@ -24,7 +47,7 @@ export const ACTIONS = {
  * @param {Object} overrides - 초기 상태 오버라이드
  * @returns {Object} 초기 상태
  */
-export const createInitialState = (overrides = {}) => ({
+export const createInitialState = (overrides: Partial<MapState> = {}): MapState => ({
   showCharacterSheet: false,
   isDungeonExploring: false,
   devToolsOpen: false,
@@ -40,7 +63,7 @@ export const createInitialState = (overrides = {}) => ({
  * @param {Object} action - 액션 객체
  * @returns {Object} 새로운 상태
  */
-export const mapReducer = (state: any, action: any) => {
+export const mapReducer = (state: MapState, action: MapAction): MapState => {
   switch (action.type) {
     case ACTIONS.SET_SHOW_CHARACTER_SHEET:
       return { ...state, showCharacterSheet: action.payload };

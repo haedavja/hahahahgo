@@ -3,7 +3,26 @@
  * 이벤트 모달 컴포넌트
  */
 
+import type { ActiveEvent, EventRewards } from '../../../types/game';
+import type { Resources } from '../../../types/core';
 import { STAT_LABELS, describeCost, describeBundle, formatApplied, canAfford } from '../utils/mapConfig';
+
+interface EventOutcome {
+  choice?: string;
+  success?: boolean;
+  resultDescription?: string;
+  cost?: Record<string, number>;
+  rewards?: EventRewards;
+  text?: string;
+}
+
+interface EventModalProps {
+  activeEvent: ActiveEvent | null;
+  resources: Resources;
+  meetsStatRequirement: (req: Record<string, number> | undefined) => boolean;
+  chooseEvent: (choiceId: string) => void;
+  closeEvent: () => void;
+}
 
 export function EventModal({
   activeEvent,
@@ -11,7 +30,7 @@ export function EventModal({
   meetsStatRequirement,
   chooseEvent,
   closeEvent,
-}: any) {
+}: EventModalProps) {
   if (!activeEvent) return null;
 
   // 현재 스테이지에 맞는 description과 choices 가져오기
@@ -21,8 +40,9 @@ export function EventModal({
   const currentChoices = stageData?.choices ?? activeEvent.definition?.choices ?? [];
 
   // 표시할 텍스트: resolved면 resultDescription, 아니면 currentDescription
-  const displayText = activeEvent.resolved && activeEvent.outcome?.resultDescription
-    ? activeEvent.outcome.resultDescription
+  const outcome = activeEvent.outcome as EventOutcome | undefined;
+  const displayText = activeEvent.resolved && outcome?.resultDescription
+    ? outcome.resultDescription
     : currentDescription;
 
   return (
@@ -35,7 +55,7 @@ export function EventModal({
 
         {!activeEvent.resolved && (
           <div className="event-choices">
-            {currentChoices.map((choice: any) => {
+            {currentChoices.map((choice) => {
               const affordable = canAfford(resources, choice.cost || {});
               const hasRequiredStats = meetsStatRequirement(choice.statRequirement);
               const canSelect = affordable && hasRequiredStats;
@@ -54,7 +74,7 @@ export function EventModal({
                   )}
                   {choice.statRequirement && (
                     <small style={{ color: hasRequiredStats ? "#4ade80" : "#ef4444" }}>
-                      요구: {Object.entries(choice.statRequirement).map(([k, v]: [string, any]) => `${(STAT_LABELS as any)[k] ?? k} ${v}`).join(", ")}
+                      요구: {Object.entries(choice.statRequirement).map(([k, v]: [string, number]) => `${(STAT_LABELS as Record<string, string>)[k] ?? k} ${v}`).join(", ")}
                       {!hasRequiredStats && " (부족)"}
                     </small>
                   )}
@@ -67,13 +87,13 @@ export function EventModal({
           </div>
         )}
 
-        {activeEvent.resolved && activeEvent.outcome && (
+        {activeEvent.resolved && outcome && (
           <div className="event-result">
-            {activeEvent.outcome.cost && Object.keys(activeEvent.outcome.cost).length > 0 && (
-              <p>소모: {formatApplied(Object.fromEntries(Object.entries(activeEvent.outcome.cost).map(([k, v]: [string, any]) => [k, -(v as number)])))}</p>
+            {outcome.cost && Object.keys(outcome.cost).length > 0 && (
+              <p>소모: {formatApplied(Object.fromEntries(Object.entries(outcome.cost).map(([k, v]: [string, number]) => [k, -v])))}</p>
             )}
-            {activeEvent.outcome.rewards && Object.keys(activeEvent.outcome.rewards).length > 0 && (
-              <p>획득: {formatApplied(activeEvent.outcome.rewards)}</p>
+            {outcome.rewards && Object.keys(outcome.rewards).length > 0 && (
+              <p>획득: {formatApplied(outcome.rewards)}</p>
             )}
             <button type="button" className="close-btn" onClick={closeEvent}>
               확인

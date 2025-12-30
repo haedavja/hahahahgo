@@ -3,7 +3,7 @@
  * 상징(Relics) 표시 UI 컴포넌트
  */
 
-import { useRef } from 'react';
+import { useRef, type DragEvent } from 'react';
 import { RELICS, RELIC_RARITIES } from '../../../data/relics';
 import { RELIC_RARITY_COLORS } from '../../../lib/relics';
 
@@ -11,13 +11,24 @@ type Relic = typeof RELICS[keyof typeof RELICS];
 const relicsRecord = RELICS as Record<string, Relic>;
 const rarityColorsRecord = RELIC_RARITY_COLORS as Record<string, string>;
 
+interface RelicsBarProps {
+  orderedRelics: string[];
+  hoveredRelic: string | null;
+  relicActivated: string | null;
+  actions: {
+    setHoveredRelic: (relicId: string | null) => void;
+    setRelicActivated: (relicId: string | null | ((prev: string | null) => string | null)) => void;
+    setOrderedRelics: (relics: string[]) => void;
+  };
+}
+
 export function RelicsBar({
   orderedRelics,
   hoveredRelic,
   relicActivated,
   actions,
-}: any) {
-  const dragRelicIndexRef = useRef<any>(null);
+}: RelicsBarProps) {
+  const dragRelicIndexRef = useRef<number | null>(null);
 
   if (!orderedRelics || orderedRelics.length === 0) {
     return null;
@@ -60,7 +71,7 @@ export function RelicsBar({
               key={index}
               style={{ position: 'relative' }}
               draggable
-              onDragStart={(e: any) => {
+              onDragStart={(e: DragEvent<HTMLDivElement>) => {
                 dragRelicIndexRef.current = index;
                 actions.setRelicActivated(relicId);
                 e.dataTransfer.effectAllowed = 'move';
@@ -70,11 +81,11 @@ export function RelicsBar({
                   e.dataTransfer.setDragImage(img, 0, 0);
                 } catch { /* ignore */ }
               }}
-              onDragOver={(e: any) => {
+              onDragOver={(e: DragEvent<HTMLDivElement>) => {
                 e.preventDefault();
                 e.dataTransfer.dropEffect = 'move';
               }}
-              onDrop={(e: any) => {
+              onDrop={(e: DragEvent<HTMLDivElement>) => {
                 e.preventDefault();
                 const from = dragRelicIndexRef.current;
                 dragRelicIndexRef.current = null;
@@ -86,7 +97,7 @@ export function RelicsBar({
                 actions.setOrderedRelics(next);
               }}
               onMouseDown={() => {
-                actions.setRelicActivated((prev: any) => prev === relicId ? null : relicId);
+                actions.setRelicActivated((prev: string | null) => prev === relicId ? null : relicId);
               }}
             >
               <div

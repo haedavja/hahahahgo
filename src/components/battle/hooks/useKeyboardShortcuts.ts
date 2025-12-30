@@ -1,5 +1,5 @@
 /**
- * @file useKeyboardShortcuts.js
+ * @file useKeyboardShortcuts.ts
  * @description 전투 화면 키보드 단축키 처리 훅
  *
  * ## 지원 단축키
@@ -13,22 +13,44 @@
 import { useEffect, useRef } from 'react';
 import { calculateEtherSlots } from '../../../lib/etherUtils';
 import { setStorageString } from '../../../lib/storageUtils';
+import type { Card, PlayerBattleState, OrderItem } from '../../../types';
+import type { BattlePhase } from '../reducer/battleReducerActions';
+
+/**
+ * 키보드 단축키 훅 파라미터에서 사용되는 전투 상태 일부
+ */
+interface KeyboardShortcutsBattleState {
+  phase: BattlePhase;
+  selected: Card[];
+  qIndex: number;
+  queue: OrderItem[];
+}
+
+/**
+ * 키보드 단축키 훅에서 사용되는 액션 함수들
+ */
+interface KeyboardShortcutsActions {
+  setShowCharacterSheet: (value: boolean | ((prev: boolean) => boolean)) => void;
+  setIsSimplified: (value: boolean | ((prev: boolean) => boolean)) => void;
+  setWillOverdrive: (value: boolean | ((prev: boolean) => boolean)) => void;
+  setAutoProgress: (value: boolean) => void;
+}
 
 /**
  * 전투 키보드 단축키 훅
- * @param {Object} params
- * @param {Object} params.battle - 전투 상태
- * @param {Object} params.player - 플레이어 상태
- * @param {boolean} params.canRedraw - 리드로우 가능 여부
- * @param {boolean} params.autoProgress - 자동 진행 여부
- * @param {number|null} params.etherFinalValue - 에테르 최종값
- * @param {Object} params.actions - 상태 업데이트 함수 모음
- * @param {Function} params.startResolve - 진행 시작 함수
- * @param {Function} params.beginResolveFromRespond - 대응에서 진행 시작 함수
- * @param {Function} params.redrawHand - 손패 리드로우 함수
- * @param {Function} params.finishTurn - 턴 종료 함수
- * @param {Function} params.cycleSortType - 정렬 타입 순환 함수
- * @param {Function} params.playSound - 사운드 재생 함수
+ * @param params - 키보드 단축키 설정 파라미터
+ * @param params.battle - 전투 상태
+ * @param params.player - 플레이어 상태
+ * @param params.canRedraw - 리드로우 가능 여부
+ * @param params.autoProgress - 자동 진행 여부
+ * @param params.etherFinalValue - 에테르 최종값
+ * @param params.actions - 상태 업데이트 함수 모음
+ * @param params.startResolve - 진행 시작 함수
+ * @param params.beginResolveFromRespond - 대응에서 진행 시작 함수
+ * @param params.redrawHand - 손패 리드로우 함수
+ * @param params.finishTurn - 턴 종료 함수
+ * @param params.cycleSortType - 정렬 타입 순환 함수
+ * @param params.playSound - 사운드 재생 함수
  */
 export function useKeyboardShortcuts({
   battle,
@@ -44,18 +66,18 @@ export function useKeyboardShortcuts({
   cycleSortType,
   playSound
 }: {
-  battle: any,
-  player: any,
-  canRedraw: any,
-  autoProgress: any,
-  etherFinalValue: any,
-  actions: any,
-  startResolve: any,
-  beginResolveFromRespond: any,
-  redrawHand: any,
-  finishTurn: any,
-  cycleSortType: any,
-  playSound: any
+  battle: KeyboardShortcutsBattleState;
+  player: PlayerBattleState;
+  canRedraw: boolean;
+  autoProgress: boolean;
+  etherFinalValue: number | null;
+  actions: KeyboardShortcutsActions;
+  startResolve: () => void;
+  beginResolveFromRespond: () => void;
+  redrawHand: () => void;
+  finishTurn: (reason: string) => void;
+  cycleSortType: () => void;
+  playSound: (frequency: number, duration: number) => void;
 }) {
   // Refs로 최신 함수 참조 유지 (stale closure 방지)
   const callbacksRef = useRef({
@@ -82,20 +104,20 @@ export function useKeyboardShortcuts({
   });
 
   useEffect(() => {
-    const handleKeyPress = (e: any) => {
+    const handleKeyPress = (e: KeyboardEvent) => {
       const { actions, startResolve, beginResolveFromRespond, redrawHand, finishTurn, cycleSortType, playSound } = callbacksRef.current;
 
       // C 키: 캐릭터 창 토글
       if (e.key === "c" || e.key === "C") {
         e.preventDefault();
         e.stopPropagation();
-        actions.setShowCharacterSheet((prev: any) => !prev);
+        actions.setShowCharacterSheet((prev: boolean) => !prev);
       }
 
       // Q 키: 간소화 모드 토글 (선택 단계)
       if ((e.key === "q" || e.key === "Q") && battle.phase === 'select') {
         e.preventDefault();
-        actions.setIsSimplified((prev: any) => {
+        actions.setIsSimplified((prev: boolean) => {
           const newVal = !prev;
           setStorageString('battleIsSimplified', newVal.toString());
           return newVal;
@@ -126,7 +148,7 @@ export function useKeyboardShortcuts({
         e.preventDefault(); // 스페이스바 기본 동작 방지 (스크롤)
         const etherSlots = calculateEtherSlots(player.etherPts || 0);
         if (etherSlots > 0) {
-          actions.setWillOverdrive((v: any) => !v);
+          actions.setWillOverdrive((v: boolean) => !v);
         }
       }
 
@@ -151,7 +173,7 @@ export function useKeyboardShortcuts({
 
     window.addEventListener("keydown", handleKeyPress);
     return () => window.removeEventListener("keydown", handleKeyPress);
-     
+
   }, [
     battle.phase,
     battle.selected,

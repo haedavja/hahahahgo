@@ -270,14 +270,14 @@ export const REFLECTIONS = {
  * @returns {Object[]} 활성화된 성찰 목록
  * @deprecated 자아 기반 성찰 시스템으로 변경됨. getReflectionsByEgos 사용 권장
  */
-export function getActiveReflections(traits: any) {
+export function getActiveReflections(traits: string[]) {
   if (!traits || traits.length < 2) return [];
 
   const traitSet = new Set(traits);
-  const activeReflections: any[] = [];
+  const activeReflections: Reflection[] = [];
 
   for (const reflection of Object.values(REFLECTIONS)) {
-    const hasAll = reflection.requires.every((req: any) => traitSet.has(req));
+    const hasAll = reflection.requires.every((req: string) => traitSet.has(req));
     if (hasAll) {
       activeReflections.push(reflection);
     }
@@ -317,7 +317,7 @@ export function getReflectionsByEgos(egos: Ego[] | null | undefined): Reflection
  * @param {number} traitCount - 개성 개수
  * @returns {number} 추가 확률 (0 ~ 0.25)
  */
-export function getTraitCountBonus(traitCount: any) {
+export function getTraitCountBonus(traitCount: number) {
   // 5개 초과 시 개당 5% 추가
   if (traitCount <= 5) return 0;
   return (traitCount - 5) * 0.05;

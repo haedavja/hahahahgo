@@ -19,36 +19,94 @@
  */
 
 import { useCallback } from 'react';
+import type { MutableRefObject } from 'react';
 import { detectPokerCombo, applyPokerBonus } from '../utils/comboDetection';
 import { createFixedOrder } from '../utils/cardOrdering';
 import { sortCombinedOrderStablePF } from '../utils/combatUtils';
-import type { OrderingCardInfo } from '../../../types';
+import type {
+  Card,
+  BattleAction,
+  PlayerBattleState,
+  EnemyUnit,
+  EnemyPlan
+} from '../../../types';
+import type { BattleRefValue } from '../../../types/hooks';
 import { generateEnemyActions, shouldEnemyOverdrive, assignSourceUnitToActions } from '../utils/enemyAI';
 import { applyTraitModifiers, markCrossedCards } from '../utils/battleUtils';
 import { processQueueCollisions } from '../utils/cardSpecialEffects';
 import { playCardSubmitSound, playProceedSound } from '../../../lib/soundUtils';
 import { ETHER_THRESHOLD } from '../battleData';
 
+/** 되감기 스냅샷 */
+interface RespondSnapshot {
+  selectedSnapshot: Card[];
+  enemyActions: Card[];
+}
+
+/** 페이즈 전환 액션 */
+interface PhaseTransitionActions {
+  setEnemyPlan: (plan: EnemyPlan) => void;
+  setFixedOrder: (order: BattleAction[] | null) => void;
+  setPlayer: (player: PlayerBattleState) => void;
+  setFrozenOrder: (count: number) => void;
+  setRespondSnapshot: (snapshot: RespondSnapshot) => void;
+  setPhase: (phase: string) => void;
+  setQueue: (queue: BattleAction[]) => void;
+  setQIndex: (index: number) => void;
+  setEtherCalcPhase: (phase: string | null) => void;
+  setEtherFinalValue: (value: number | null) => void;
+  setEnemyEtherFinalValue: (value: number | null) => void;
+  setCurrentDeflation: (value: number | null) => void;
+  setEnemyEtherCalcPhase: (phase: string | null) => void;
+  setEnemyCurrentDeflation: (value: number | null) => void;
+  setEnemy: (enemy: EnemyUnit) => void;
+  setPlayerOverdriveFlash: (flash: boolean) => void;
+  setEnemyOverdriveFlash: (flash: boolean) => void;
+  setResolveStartPlayer: (player: PlayerBattleState) => void;
+  setResolveStartEnemy: (enemy: EnemyUnit) => void;
+  setResolvedPlayerCards: (count: number) => void;
+  setTimelineProgress: (progress: number) => void;
+  setTimelineIndicatorVisible: (visible: boolean) => void;
+  setNetEtherDelta: (delta: number | null) => void;
+  setAutoProgress: (auto: boolean) => void;
+  setRewindUsed: (used: boolean) => void;
+  setSelected: (cards: Card[]) => void;
+}
+
+/** 페이즈 전환 훅 파라미터 */
+interface UsePhaseTransitionParams {
+  battleRef: MutableRefObject<BattleRefValue>;
+  battlePhase: string;
+  battleSelected: Card[];
+  selected: Card[];
+  fixedOrder: BattleAction[] | null;
+  effectiveAgility: number;
+  enemy: EnemyUnit;
+  enemyPlan: EnemyPlan;
+  enemyCount: number;
+  player: PlayerBattleState;
+  willOverdrive: boolean;
+  turnNumber: number;
+  rewindUsed: boolean;
+  respondSnapshot: RespondSnapshot | null;
+  devilDiceTriggeredRef: MutableRefObject<boolean>;
+  etherSlots: (etherPts: number) => number;
+  playSound: (frequency: number, duration: number) => void;
+  addLog: (message: string) => void;
+  actions: PhaseTransitionActions;
+}
+
+/** 페이즈 전환 훅 반환 타입 */
+interface UsePhaseTransitionReturn {
+  startResolve: () => void;
+  beginResolveFromRespond: () => void;
+  rewindToSelect: () => void;
+}
+
 /**
  * 페이즈 전환 훅
- * @param {Object} params
- * @param {React.MutableRefObject<Object>} params.battleRef - 전투 상태 ref
- * @param {string} params.battlePhase - 현재 페이즈
- * @param {Card[]} params.battleSelected - 전투 선택 카드
- * @param {Card[]} params.selected - 선택된 카드
- * @param {Object[]} params.fixedOrder - 고정 실행 순서
- * @param {number} params.effectiveAgility - 유효 민첩
- * @param {Object} params.enemy - 적 상태
- * @param {Object} params.enemyPlan - 적 행동 계획
- * @param {Object} params.player - 플레이어 상태
- * @param {boolean} params.willOverdrive - 폭주 예정 여부
- * @param {number} params.turnNumber - 현재 턴
- * @param {boolean} params.rewindUsed - 되감기 사용 여부
- * @param {Function} params.etherSlots - 에테르 슬롯 계산
- * @param {Function} params.playSound - 사운드 재생
- * @param {Function} params.addLog - 로그 추가
- * @param {Object} params.actions - 상태 업데이트 액션
- * @returns {{startResolve: Function, beginResolveFromRespond: Function, rewindToSelect: Function}}
+ * @param params - 훅 파라미터
+ * @returns 페이즈 전환 함수들
  */
 export function usePhaseTransition({
   battleRef,
@@ -70,27 +128,7 @@ export function usePhaseTransition({
   playSound,
   addLog,
   actions
-}: {
-  battleRef: any;
-  battlePhase: any;
-  battleSelected: any;
-  selected: any;
-  fixedOrder: any;
-  effectiveAgility: any;
-  enemy: any;
-  enemyPlan: any;
-  enemyCount: any;
-  player: any;
-  willOverdrive: any;
-  turnNumber: any;
-  rewindUsed: any;
-  respondSnapshot: any;
-  devilDiceTriggeredRef: any;
-  etherSlots: any;
-  playSound: any;
-  addLog: any;
-  actions: any;
-}) {
+}: UsePhaseTransitionParams): UsePhaseTransitionReturn {
   // select → respond 전환
   const startResolve = useCallback(() => {
     const currentBattle = battleRef.current;
@@ -119,7 +157,7 @@ export function usePhaseTransition({
 
     const pCombo = detectPokerCombo(selected);
 
-    const traitEnhancedSelected = battleSelected.map((card: any) =>
+    const traitEnhancedSelected = battleSelected.map((card) =>
       applyTraitModifiers(card, {
         usageCount: 0,
         isInCombo: pCombo !== null,
@@ -172,13 +210,13 @@ export function usePhaseTransition({
     let effectiveFixedOrder = currentFixedOrder;
     if (currentEnemyPlan?.manuallyModified && currentEnemyPlan?.actions) {
       const remainingActions = new Set(currentEnemyPlan.actions);
-      effectiveFixedOrder = currentFixedOrder.filter((item: any) => {
+      effectiveFixedOrder = currentFixedOrder.filter((item) => {
         if (item.actor === 'player') return true;
         return remainingActions.has(item.card);
       });
     }
 
-    const newQ = effectiveFixedOrder.map((x: any) => ({ actor: x.actor, card: x.card, sp: x.sp }));
+    const newQ = effectiveFixedOrder.map((x) => ({ actor: x.actor, card: x.card, sp: x.sp }));
     if (newQ.length === 0) {
       addLog('⚠️ 큐 생성 실패: 실행할 항목이 없습니다');
       return;
@@ -187,7 +225,7 @@ export function usePhaseTransition({
     const frozenOrderCount = currentBattle?.frozenOrder || battleRef.current?.frozenOrder || 0;
 
     if (frozenOrderCount <= 0) {
-      newQ.sort((a: any, b: any) => {
+      newQ.sort((a, b) => {
         if (a.sp !== b.sp) return a.sp - b.sp;
         return 0;
       });

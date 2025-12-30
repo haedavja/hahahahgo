@@ -1,5 +1,5 @@
 /**
- * @file statusEffects.js
+ * @file statusEffects.ts
  * @description 상태 효과 관리 (버프/디버프)
  *
  * ## 스탯 버프 시스템
@@ -9,18 +9,70 @@
  * - 재생(Regeneration): 매 턴 체력 회복
  */
 
+import type { Combatant } from '../../../types/combat';
+
+// =====================
+// 타입 정의
+// =====================
+
+/** 상태 효과 대상 (버프/디버프 필드 포함) */
+export interface StatusEffectTarget extends Combatant {
+  strength?: number;
+  strengthDuration?: number;
+  agility?: number;
+  agilityDuration?: number;
+  insight?: number;
+  insightDuration?: number;
+  regeneration?: number;
+  regenerationDuration?: number;
+  weakness?: number;
+  weaknessDuration?: number;
+  poison?: number;
+  poisonDuration?: number;
+  stunned?: boolean;
+  stunDuration?: number;
+  shroud?: number;
+  shroudDuration?: number;
+}
+
+/** 활성 상태 효과 정보 */
+export interface ActiveEffect {
+  name: string;
+  value: number | string | null;
+  duration: number;
+  type: 'buff' | 'debuff';
+}
+
+/** 재생 효과 결과 */
+export interface RegenerationEffectResult {
+  actor: StatusEffectTarget;
+  healed: number;
+  log: string | null;
+}
+
+/** 독 효과 결과 */
+export interface PoisonEffectResult {
+  actor: StatusEffectTarget;
+  damage: number;
+  log: string | null;
+}
+
 // =====================
 // 버프 적용
 // =====================
 
 /**
  * 힘(Strength) 버프 적용
- * @param {Object} actor - 대상
- * @param {number} amount - 힘 수치
- * @param {number} duration - 지속 턴 (0 = 영구)
- * @returns {Object} - 업데이트된 actor
+ * @param actor - 대상
+ * @param amount - 힘 수치
+ * @param duration - 지속 턴 (0 = 영구)
+ * @returns 업데이트된 actor
  */
-export function applyStrengthBuff(actor: any, amount: any, duration = 0) {
+export function applyStrengthBuff(
+  actor: StatusEffectTarget,
+  amount: number,
+  duration = 0
+): StatusEffectTarget {
   return {
     ...actor,
     strength: (actor.strength || 0) + amount,
@@ -31,7 +83,11 @@ export function applyStrengthBuff(actor: any, amount: any, duration = 0) {
 /**
  * 민첩(Agility) 버프 적용
  */
-export function applyAgilityBuff(actor: any, amount: any, duration = 0) {
+export function applyAgilityBuff(
+  actor: StatusEffectTarget,
+  amount: number,
+  duration = 0
+): StatusEffectTarget {
   return {
     ...actor,
     agility: (actor.agility || 0) + amount,
@@ -42,7 +98,11 @@ export function applyAgilityBuff(actor: any, amount: any, duration = 0) {
 /**
  * 통찰(Insight) 버프 적용
  */
-export function applyInsightBuff(actor: any, amount: any, duration = 0) {
+export function applyInsightBuff(
+  actor: StatusEffectTarget,
+  amount: number,
+  duration = 0
+): StatusEffectTarget {
   return {
     ...actor,
     insight: (actor.insight || 0) + amount,
@@ -53,7 +113,11 @@ export function applyInsightBuff(actor: any, amount: any, duration = 0) {
 /**
  * 재생(Regeneration) 버프 적용
  */
-export function applyRegenerationBuff(actor: any, amount: any, duration: any) {
+export function applyRegenerationBuff(
+  actor: StatusEffectTarget,
+  amount: number,
+  duration: number
+): StatusEffectTarget {
   return {
     ...actor,
     regeneration: amount,
@@ -67,12 +131,16 @@ export function applyRegenerationBuff(actor: any, amount: any, duration: any) {
 
 /**
  * 취약(Vulnerable) 디버프 적용
- * @param {Object} actor - 대상
- * @param {number} multiplier - 피해 배율 (1.5 = 50% 증가)
- * @param {number} duration - 지속 턴
- * @returns {Object} - 업데이트된 actor
+ * @param actor - 대상
+ * @param multiplier - 피해 배율 (1.5 = 50% 증가)
+ * @param duration - 지속 턴
+ * @returns 업데이트된 actor
  */
-export function applyVulnerableDebuff(actor: any, multiplier: any, duration: any) {
+export function applyVulnerableDebuff(
+  actor: StatusEffectTarget,
+  multiplier: number,
+  duration: number
+): StatusEffectTarget {
   return {
     ...actor,
     vulnMult: multiplier,
@@ -83,7 +151,11 @@ export function applyVulnerableDebuff(actor: any, multiplier: any, duration: any
 /**
  * 약화(Weakness) 디버프 적용
  */
-export function applyWeaknessDebuff(actor: any, reduction: any, duration: any) {
+export function applyWeaknessDebuff(
+  actor: StatusEffectTarget,
+  reduction: number,
+  duration: number
+): StatusEffectTarget {
   return {
     ...actor,
     weakness: reduction,
@@ -94,7 +166,11 @@ export function applyWeaknessDebuff(actor: any, reduction: any, duration: any) {
 /**
  * 독(Poison) 디버프 적용
  */
-export function applyPoisonDebuff(actor: any, damagePerTurn: any, duration: any) {
+export function applyPoisonDebuff(
+  actor: StatusEffectTarget,
+  damagePerTurn: number,
+  duration: number
+): StatusEffectTarget {
   return {
     ...actor,
     poison: damagePerTurn,
@@ -105,7 +181,10 @@ export function applyPoisonDebuff(actor: any, damagePerTurn: any, duration: any)
 /**
  * 기절(Stun) 디버프 적용
  */
-export function applyStunDebuff(actor: any, duration: any) {
+export function applyStunDebuff(
+  actor: StatusEffectTarget,
+  duration: number
+): StatusEffectTarget {
   return {
     ...actor,
     stunned: true,
@@ -116,7 +195,11 @@ export function applyStunDebuff(actor: any, duration: any) {
 /**
  * 장막(Shroud) 버프 적용 (적 전용, 통찰 방해)
  */
-export function applyShroudBuff(actor: any, amount: any, duration = 0) {
+export function applyShroudBuff(
+  actor: StatusEffectTarget,
+  amount: number,
+  duration = 0
+): StatusEffectTarget {
   return {
     ...actor,
     shroud: (actor.shroud || 0) + amount,
@@ -130,14 +213,16 @@ export function applyShroudBuff(actor: any, amount: any, duration = 0) {
 
 /**
  * 모든 상태 효과의 지속 시간 감소
- * @param {Object} actor - 대상
- * @returns {Object} - 업데이트된 actor
+ * @param actor - 대상
+ * @returns 업데이트된 actor
  */
-export function decreaseStatusDurations(actor: any) {
+export function decreaseStatusDurations(
+  actor: StatusEffectTarget
+): StatusEffectTarget {
   const updated = { ...actor };
 
   // 힘
-  if (updated.strengthDuration > 0) {
+  if (updated.strengthDuration && updated.strengthDuration > 0) {
     updated.strengthDuration--;
     if (updated.strengthDuration === 0) {
       updated.strength = 0;
@@ -145,7 +230,7 @@ export function decreaseStatusDurations(actor: any) {
   }
 
   // 민첩
-  if (updated.agilityDuration > 0) {
+  if (updated.agilityDuration && updated.agilityDuration > 0) {
     updated.agilityDuration--;
     if (updated.agilityDuration === 0) {
       updated.agility = 0;
@@ -153,7 +238,7 @@ export function decreaseStatusDurations(actor: any) {
   }
 
   // 통찰
-  if (updated.insightDuration > 0) {
+  if (updated.insightDuration && updated.insightDuration > 0) {
     updated.insightDuration--;
     if (updated.insightDuration === 0) {
       updated.insight = 0;
@@ -161,7 +246,7 @@ export function decreaseStatusDurations(actor: any) {
   }
 
   // 재생
-  if (updated.regenerationDuration > 0) {
+  if (updated.regenerationDuration && updated.regenerationDuration > 0) {
     updated.regenerationDuration--;
     if (updated.regenerationDuration === 0) {
       updated.regeneration = 0;
@@ -169,7 +254,7 @@ export function decreaseStatusDurations(actor: any) {
   }
 
   // 취약
-  if (updated.vulnTurns > 0) {
+  if (updated.vulnTurns && updated.vulnTurns > 0) {
     updated.vulnTurns--;
     if (updated.vulnTurns === 0) {
       updated.vulnMult = 1;
@@ -177,7 +262,7 @@ export function decreaseStatusDurations(actor: any) {
   }
 
   // 약화
-  if (updated.weaknessDuration > 0) {
+  if (updated.weaknessDuration && updated.weaknessDuration > 0) {
     updated.weaknessDuration--;
     if (updated.weaknessDuration === 0) {
       updated.weakness = 0;
@@ -185,7 +270,7 @@ export function decreaseStatusDurations(actor: any) {
   }
 
   // 독
-  if (updated.poisonDuration > 0) {
+  if (updated.poisonDuration && updated.poisonDuration > 0) {
     updated.poisonDuration--;
     if (updated.poisonDuration === 0) {
       updated.poison = 0;
@@ -193,7 +278,7 @@ export function decreaseStatusDurations(actor: any) {
   }
 
   // 기절
-  if (updated.stunDuration > 0) {
+  if (updated.stunDuration && updated.stunDuration > 0) {
     updated.stunDuration--;
     if (updated.stunDuration === 0) {
       updated.stunned = false;
@@ -201,7 +286,7 @@ export function decreaseStatusDurations(actor: any) {
   }
 
   // 장막
-  if (updated.shroudDuration > 0) {
+  if (updated.shroudDuration && updated.shroudDuration > 0) {
     updated.shroudDuration--;
     if (updated.shroudDuration === 0) {
       updated.shroud = 0;
@@ -217,16 +302,20 @@ export function decreaseStatusDurations(actor: any) {
 
 /**
  * 재생 효과 발동
- * @param {Object} actor - 대상
- * @returns {Object} - { actor: 업데이트된 actor, healed: 회복량, log: 로그 메시지 }
+ * @param actor - 대상
+ * @param actorName - 대상 이름 ('player' 또는 'enemy')
+ * @returns 재생 효과 결과
  */
-export function applyRegenerationEffect(actor: any, actorName: any) {
+export function applyRegenerationEffect(
+  actor: StatusEffectTarget,
+  actorName: 'player' | 'enemy'
+): RegenerationEffectResult {
   if (!actor.regeneration || actor.regeneration <= 0) {
     return { actor, healed: 0, log: null };
   }
 
   const healed = Math.min(actor.regeneration, actor.maxHp - actor.hp);
-  const updatedActor = {
+  const updatedActor: StatusEffectTarget = {
     ...actor,
     hp: Math.min(actor.maxHp, actor.hp + healed)
   };
@@ -238,16 +327,20 @@ export function applyRegenerationEffect(actor: any, actorName: any) {
 
 /**
  * 독 효과 발동
- * @param {Object} actor - 대상
- * @returns {Object} - { actor: 업데이트된 actor, damage: 피해량, log: 로그 메시지 }
+ * @param actor - 대상
+ * @param actorName - 대상 이름 ('player' 또는 'enemy')
+ * @returns 독 효과 결과
  */
-export function applyPoisonEffect(actor: any, actorName: any) {
+export function applyPoisonEffect(
+  actor: StatusEffectTarget,
+  actorName: 'player' | 'enemy'
+): PoisonEffectResult {
   if (!actor.poison || actor.poison <= 0) {
     return { actor, damage: 0, log: null };
   }
 
   const damage = actor.poison;
-  const updatedActor = {
+  const updatedActor: StatusEffectTarget = {
     ...actor,
     hp: Math.max(0, actor.hp - damage)
   };
@@ -264,24 +357,24 @@ export function applyPoisonEffect(actor: any, actorName: any) {
 /**
  * 기절 상태 확인
  */
-export function isStunned(actor: any) {
+export function isStunned(actor: StatusEffectTarget): boolean {
   return actor.stunned === true && (actor.stunDuration || 0) > 0;
 }
 
 /**
  * 취약 상태 확인
  */
-export function isVulnerable(actor: any) {
-  return (actor.vulnMult && actor.vulnMult > 1) && (actor.vulnTurns || 0) > 0;
+export function isVulnerable(actor: StatusEffectTarget): boolean {
+  return (actor.vulnMult !== undefined && actor.vulnMult > 1) && (actor.vulnTurns || 0) > 0;
 }
 
 /**
  * 활성 버프/디버프 목록 반환
- * @param {Object} actor - 대상
- * @returns {Array} - [{ name, value, duration }, ...]
+ * @param actor - 대상
+ * @returns 활성 효과 배열
  */
-export function getActiveEffects(actor: any) {
-  const effects: any[] = [];
+export function getActiveEffects(actor: StatusEffectTarget): ActiveEffect[] {
+  const effects: ActiveEffect[] = [];
 
   if (actor.strength && actor.strength !== 0) {
     effects.push({
@@ -322,8 +415,8 @@ export function getActiveEffects(actor: any) {
   if (isVulnerable(actor)) {
     effects.push({
       name: '취약',
-      value: `×${actor.vulnMult.toFixed(1)}`,
-      duration: actor.vulnTurns,
+      value: `×${actor.vulnMult!.toFixed(1)}`,
+      duration: actor.vulnTurns!,
       type: 'debuff'
     });
   }
@@ -350,7 +443,7 @@ export function getActiveEffects(actor: any) {
     effects.push({
       name: '기절',
       value: null,
-      duration: actor.stunDuration,
+      duration: actor.stunDuration!,
       type: 'debuff'
     });
   }
@@ -374,7 +467,7 @@ export function getActiveEffects(actor: any) {
 /**
  * 모든 상태 효과 제거
  */
-export function clearAllEffects(actor: any) {
+export function clearAllEffects(actor: StatusEffectTarget): StatusEffectTarget {
   return {
     ...actor,
     strength: 0,

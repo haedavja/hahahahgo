@@ -16,6 +16,7 @@
 import { useCallback } from 'react';
 import { detectPokerCombo } from '../utils/comboDetection';
 import { COMBO_MULTIPLIERS, applyEtherDeflation } from '../utils/etherCalculations';
+import type { UseEtherAnimationParams } from '../../../types/hooks';
 
 /**
  * 에테르 계산 애니메이션 훅
@@ -45,8 +46,8 @@ export function useEtherAnimation({
   battleRef,
   playSound,
   actions
-}: any) {
-  const startEtherCalculationAnimation = useCallback((totalEtherPts: any, actualResolvedCards: any = null, actualGainedEther: any = null, skipFinalValueSet: any = false) => {
+}: UseEtherAnimationParams) {
+  const startEtherCalculationAnimation = useCallback((totalEtherPts: number, actualResolvedCards: number | null = null, actualGainedEther: number | null = null, skipFinalValueSet: boolean = false) => {
     const pCombo = detectPokerCombo(selected);
     const basePlayerComboMult = pCombo ? (COMBO_MULTIPLIERS[pCombo.name] || 1) : 1;
     // 몬스터가 죽었을 때는 actualResolvedCards(실제 실행된 카드 수), 아니면 battle.selected.length(전체 선택된 카드 수)

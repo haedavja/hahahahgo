@@ -18,7 +18,17 @@ import {
   getServicePrice,
   type MerchantTypeKey,
 } from '../../data/shop';
-import { BuyTab, SellTab, ServiceTab, CardRemovalModal } from './ShopTabs';
+import { BuyTab, SellTab, ServiceTab, CardRemovalModal, type ShopService } from './ShopTabs';
+
+// 플레이어 카드 타입 (덱 관리용)
+interface PlayerCard {
+  id: string;
+  name: string;
+  isMainSpecial: boolean;
+  currentRarity: string;
+  actionCost: number;
+  speedCost: number;
+}
 
 interface ShopModalProps {
   merchantType?: MerchantTypeKey;
@@ -74,13 +84,13 @@ export function ShopModal({ merchantType = 'shop', onClose }: ShopModalProps) {
   const allPlayerCards = useMemo(() => {
     const mainSpecials = characterBuild?.mainSpecials || [];
     const subSpecials = characterBuild?.subSpecials || [];
-    const cards: Array<any> = [];
+    const cards: PlayerCard[] = [];
 
     mainSpecials.forEach(cardId => {
       const card = CARDS.find(c => c.id === cardId);
       if (card) {
         const rarity = cardUpgrades[cardId] || (card as { rarity?: string }).rarity || 'common';
-        cards.push({ ...card, isMainSpecial: true, currentRarity: rarity });
+        cards.push({ ...card, isMainSpecial: true, currentRarity: rarity } as PlayerCard);
       }
     });
 
@@ -88,19 +98,19 @@ export function ShopModal({ merchantType = 'shop', onClose }: ShopModalProps) {
       const card = CARDS.find(c => c.id === cardId);
       if (card) {
         const rarity = cardUpgrades[cardId] || (card as { rarity?: string }).rarity || 'common';
-        cards.push({ ...card, isMainSpecial: false, currentRarity: rarity });
+        cards.push({ ...card, isMainSpecial: false, currentRarity: rarity } as PlayerCard);
       }
     });
 
     return cards;
   }, [characterBuild?.mainSpecials, characterBuild?.subSpecials, cardUpgrades]);
 
-  const showNotification = (message: any, type = 'info') => {
+  const showNotification = (message: string, type = 'info') => {
     setNotification({ message, type });
     setTimeout(() => setNotification(null), 2000);
   };
 
-  const handleBuyRelic = (relicId: any, price: any) => {
+  const handleBuyRelic = (relicId: string, price: number) => {
     if (gold < price) {
       showNotification('골드가 부족합니다!', 'error');
       return;
@@ -116,7 +126,7 @@ export function ShopModal({ merchantType = 'shop', onClose }: ShopModalProps) {
     showNotification(`${RELICS[relicId as keyof typeof RELICS]?.name}을(를) 구매했습니다!`, 'success');
   };
 
-  const handleBuyItem = (itemId: any, price: any) => {
+  const handleBuyItem = (itemId: string, price: number) => {
     if (gold < price) {
       showNotification('골드가 부족합니다!', 'error');
       return;
@@ -134,7 +144,7 @@ export function ShopModal({ merchantType = 'shop', onClose }: ShopModalProps) {
     showNotification(`${ITEMS[itemId as keyof typeof ITEMS]?.name}을(를) 구매했습니다!`, 'success');
   };
 
-  const handleBuyCard = (cardId: any, price: any) => {
+  const handleBuyCard = (cardId: string, price: number) => {
     if (gold < price) {
       showNotification('골드가 부족합니다!', 'error');
       return;
@@ -157,7 +167,7 @@ export function ShopModal({ merchantType = 'shop', onClose }: ShopModalProps) {
     showNotification(`${item.name}을(를) ${sellPrice}G에 판매했습니다!`, 'success');
   };
 
-  const handleUseService = (service: any) => {
+  const handleUseService = (service: ShopService) => {
     const price = getServicePrice(service.id, merchantType);
 
     if (gold < price) {
@@ -167,7 +177,7 @@ export function ShopModal({ merchantType = 'shop', onClose }: ShopModalProps) {
 
     switch (service.effect.type) {
       case 'healPercent': {
-        const healAmount = Math.floor(maxHp * (service.effect.value / 100));
+        const healAmount = Math.floor(maxHp * ((service.effect.value ?? 0) / 100));
         const newHp = Math.min(maxHp, playerHp + healAmount);
         if (newHp === playerHp) {
           showNotification('이미 체력이 가득 찼습니다!', 'error');
@@ -211,7 +221,7 @@ export function ShopModal({ merchantType = 'shop', onClose }: ShopModalProps) {
     }
   };
 
-  const handleRemoveCard = (card: any) => {
+  const handleRemoveCard = (card: PlayerCard) => {
     addResources({ gold: -cardRemovalPrice });
     removeCardFromDeck(card.id, card.isMainSpecial);
     setShowCardRemovalModal(false);

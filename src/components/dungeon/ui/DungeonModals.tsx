@@ -7,10 +7,29 @@
  * - CrossroadModal: 기로 선택지 모달
  */
 
+import type { RewardModal as RewardModalType, DungeonSummary, CrossroadModal as CrossroadModalType, CrossroadChoice } from '../hooks/useDungeonState';
+
+interface RewardModalProps {
+  rewardModal: RewardModalType | null;
+  onClose: () => void;
+}
+
+interface DungeonSummaryModalProps {
+  dungeonSummary: DungeonSummary | null;
+  onClose: () => void;
+}
+
+interface CrossroadModalProps {
+  crossroadModal: CrossroadModalType | null;
+  screenShake: boolean;
+  onSelectChoice: (choice: CrossroadChoice, choiceState: Record<string, { attempts: number }>) => void;
+  onClose: () => void;
+}
+
 /**
  * 전투 보상 모달
  */
-export function RewardModal({ rewardModal, onClose }: any) {
+export function RewardModal({ rewardModal, onClose }: RewardModalProps) {
   if (!rewardModal) return null;
 
   return (
@@ -65,7 +84,7 @@ export function RewardModal({ rewardModal, onClose }: any) {
 /**
  * 던전 탈출 요약 모달
  */
-export function DungeonSummaryModal({ dungeonSummary, onClose }: any) {
+export function DungeonSummaryModal({ dungeonSummary, onClose }: DungeonSummaryModalProps) {
   if (!dungeonSummary) return null;
 
   return (
@@ -140,7 +159,7 @@ export function DungeonSummaryModal({ dungeonSummary, onClose }: any) {
 /**
  * 기로 선택지 모달
  */
-export function CrossroadModal({ crossroadModal, screenShake, onSelectChoice, onClose }: any) {
+export function CrossroadModal({ crossroadModal, screenShake, onSelectChoice, onClose }: CrossroadModalProps) {
   if (!crossroadModal) return null;
 
   return (
@@ -186,7 +205,7 @@ export function CrossroadModal({ crossroadModal, screenShake, onSelectChoice, on
 
         {/* 선택지 목록 */}
         <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-          {crossroadModal.template?.choices?.map((choice: any) => {
+          {crossroadModal.template?.choices?.map((choice: CrossroadChoice) => {
             const attemptCount = crossroadModal.choiceState[choice.id]?.attempts || 0;
             const canSelect = choice.repeatable || attemptCount === 0;
 

@@ -48,6 +48,53 @@ interface DungeonConnection {
 // 플레이어 스탯 타입
 type PlayerStat = 'strength' | 'agility' | 'insight';
 
+// 플레이어 스탯 객체
+interface PlayerStats {
+  strength: number;
+  agility: number;
+  insight: number;
+}
+
+// 플레이어 아이템
+interface PlayerItem {
+  id: string;
+  [key: string]: unknown;
+}
+
+// 던전 노드 인터페이스
+interface DungeonNode {
+  id: string;
+  type: string;
+  name: string;
+  description: string;
+  x: number;
+  y: number;
+  event: DungeonEvent | null;
+  visited: boolean;
+  cleared: boolean;
+  hidden?: boolean;
+}
+
+// 던전 이벤트
+interface DungeonEvent {
+  type: string;
+  templateId?: string;
+  quality?: string;
+  difficulty?: number;
+}
+
+// 던전 상태
+interface DungeonState {
+  id: string;
+  nodes: DungeonNode[];
+  connections: Record<string, DungeonConnection[]>;
+  currentNodeId: string;
+  unlockedShortcuts: string[];
+  discoveredHidden: string[];
+  timeElapsed: number;
+  maxTime: number;
+}
+
 // 던전 생성 설정 인터페이스
 interface DungeonGenerationConfig {
   mainPathLength?: number;
@@ -1061,15 +1108,15 @@ function createConnection(
  * - 스탯/아이템 관문
  * - 숏컷 문
  */
-export function generateDungeonGraph(dungeonId: string, config: DungeonGenerationConfig = {}) {
+export function generateDungeonGraph(dungeonId: string, config: DungeonGenerationConfig = {}): DungeonState {
   const {
     mainPathLength = 6,         // 메인 경로 길이
     branchCount = 2,            // 분기 경로 수
     difficulty = 1,
   } = config;
 
-  const nodes: any[] = [];
-  const connections: any = {};  // nodeId -> Connection[]
+  const nodes: DungeonNode[] = [];
+  const connections: Record<string, DungeonConnection[]> = {};  // nodeId -> Connection[]
 
   // 1. 입구 노드
   const entranceId = `${dungeonId}_entrance`;
@@ -1220,7 +1267,12 @@ function getObstacleForStat(stat: PlayerStat): string {
  * @param {Array} unlockedShortcuts - 열린 숏컷 배열
  * @returns {Object} { canPass: boolean, reason: string }
  */
-export function canPassConnection(connection: any, playerStats: any, playerItems: any[] = [], unlockedShortcuts: any[] = []) {
+export function canPassConnection(
+  connection: DungeonConnection,
+  playerStats: PlayerStats,
+  playerItems: PlayerItem[] = [],
+  unlockedShortcuts: string[] = []
+): { canPass: boolean; reason: string | null; consumeItem?: string; isOneWay?: boolean; isLocked?: boolean } {
   const { type, requirements, targetId } = connection;
 
   // 이미 열린 연결
@@ -1282,7 +1334,7 @@ export function canPassConnection(connection: any, playerStats: any, playerItems
  * @param {string} toNodeId - 대상 노드 ID
  * @returns {Object} 업데이트된 던전 상태
  */
-export function unlockShortcut(dungeonState: any, fromNodeId: any, toNodeId: any) {
+export function unlockShortcut(dungeonState: DungeonState, fromNodeId: string, toNodeId: string): DungeonState {
   const newState = { ...dungeonState };
 
   // 숏컷 목록에 추가
@@ -1298,7 +1350,7 @@ export function unlockShortcut(dungeonState: any, fromNodeId: any, toNodeId: any
 
   // 반대편 LOCKED 연결을 unlocked로 변경
   if (connections[toNodeId]) {
-    connections[toNodeId] = connections[toNodeId].map((conn: any) => {
+    connections[toNodeId] = connections[toNodeId].map((conn: DungeonConnection) => {
       if (conn.targetId === fromNodeId && conn.type === CONNECTION_TYPES.LOCKED) {
         return { ...conn, unlocked: true };
       }
@@ -1318,12 +1370,17 @@ export function unlockShortcut(dungeonState: any, fromNodeId: any, toNodeId: any
  * @param {Array} playerItems - 플레이어 아이템
  * @returns {Object} { success, newState, message, consumedItem }
  */
-export function moveToNode(dungeonState: any, targetNodeId: any, playerStats: any, playerItems: any = []) {
+export function moveToNode(
+  dungeonState: DungeonState,
+  targetNodeId: string,
+  playerStats: PlayerStats,
+  playerItems: PlayerItem[] = []
+): { success: boolean; newState?: DungeonState; message?: string; consumedItem?: string } {
   const currentNodeId = dungeonState.currentNodeId;
   const connections = dungeonState.connections[currentNodeId] || [];
 
   // 연결 찾기
-  const connection = connections.find((c: any) => c.targetId === targetNodeId);
+  const connection = connections.find((c: DungeonConnection) => c.targetId === targetNodeId);
   if (!connection) {
     return { success: false, message: '연결되지 않은 장소입니다.' };
   }
@@ -1353,7 +1410,7 @@ export function moveToNode(dungeonState: any, targetNodeId: any, playerStats: an
   newState.timeElapsed += 1;
 
   // 방문 처리
-  const nodeIdx = newState.nodes.findIndex((n: any) => n.id === targetNodeId);
+  const nodeIdx = newState.nodes.findIndex((n: DungeonNode) => n.id === targetNodeId);
   if (nodeIdx >= 0) {
     newState.nodes = [...newState.nodes];
     newState.nodes[nodeIdx] = { ...newState.nodes[nodeIdx], visited: true };
@@ -1374,12 +1431,16 @@ export function moveToNode(dungeonState: any, targetNodeId: any, playerStats: an
 /**
  * 현재 노드에서 갈 수 있는 연결 목록
  */
-export function getAvailableConnections(dungeonState: any, playerStats: any, playerItems: any = []) {
+export function getAvailableConnections(
+  dungeonState: DungeonState,
+  playerStats: PlayerStats,
+  playerItems: PlayerItem[] = []
+): Array<DungeonConnection & { targetNode?: DungeonNode; canPass: boolean; reason: string | null; isLocked?: boolean }> {
   const currentNodeId = dungeonState.currentNodeId;
   const connections = dungeonState.connections[currentNodeId] || [];
 
-  return connections.map((conn: any) => {
-    const targetNode = dungeonState.nodes.find((n: any) => n.id === conn.targetId);
+  return connections.map((conn: DungeonConnection) => {
+    const targetNode = dungeonState.nodes.find((n: DungeonNode) => n.id === conn.targetId);
     const checkResult = canPassConnection(
       conn,
       playerStats,
@@ -1402,7 +1463,7 @@ function getStatName(stat: PlayerStat): string {
   return names[stat] || stat;
 }
 
-function getNodeName(type: any, index: any) {
+function getNodeName(type: string, index: number): string {
   const names = {
     [DUNGEON_NODE_TYPES.ROOM]: ['낡은 방', '어두운 방', '습한 방', '넓은 방'],
     [DUNGEON_NODE_TYPES.CORRIDOR]: ['좁은 복도', '긴 복도', '어두운 통로', '구불구불한 길'],
@@ -1412,7 +1473,7 @@ function getNodeName(type: any, index: any) {
   return options[index % options.length];
 }
 
-function getNodeDescription(type: any) {
+function getNodeDescription(type: string): string {
   const descriptions = {
     [DUNGEON_NODE_TYPES.ROOM]: '사방이 벽으로 둘러싸인 공간입니다.',
     [DUNGEON_NODE_TYPES.CORRIDOR]: '좁고 어두운 통로입니다.',
@@ -1421,7 +1482,7 @@ function getNodeDescription(type: any) {
   return descriptions[type] || '';
 }
 
-function generateEvent(nodeType: any, difficulty: any) {
+function generateEvent(nodeType: string, difficulty: number): DungeonEvent {
   const rand = Math.random();
 
   if (nodeType === DUNGEON_NODE_TYPES.CORRIDOR) {
@@ -1448,11 +1509,11 @@ function generateEvent(nodeType: any, difficulty: any) {
   return { type: DUNGEON_EVENT_TYPES.NONE };
 }
 
-function ensureMinCombats(nodes: any, minCombats: any) {
-  const combatCount = nodes.filter((n: any) => n.event?.type === DUNGEON_EVENT_TYPES.COMBAT).length;
+function ensureMinCombats(nodes: DungeonNode[], minCombats: number): void {
+  const combatCount = nodes.filter((n: DungeonNode) => n.event?.type === DUNGEON_EVENT_TYPES.COMBAT).length;
   let needed = minCombats - combatCount;
 
-  const eligibleNodes = nodes.filter((n: any) =>
+  const eligibleNodes = nodes.filter((n: DungeonNode) =>
     n.type !== DUNGEON_NODE_TYPES.ENTRANCE &&
     n.type !== DUNGEON_NODE_TYPES.EXIT &&
     (!n.event || n.event.type === DUNGEON_EVENT_TYPES.NONE)
@@ -1472,7 +1533,12 @@ function ensureMinCombats(nodes: any, minCombats: any) {
  * @param {number} maxTime - 최대 시간
  * @returns {Object} 페널티 정보
  */
-export function calculateTimePenalty(timeElapsed: any, maxTime: any) {
+export function calculateTimePenalty(timeElapsed: number, maxTime: number): {
+  level: number;
+  description: string;
+  etherDecay: number;
+  ambushChance: number;
+} {
   const ratio = timeElapsed / maxTime;
 
   if (ratio < 0.5) {
