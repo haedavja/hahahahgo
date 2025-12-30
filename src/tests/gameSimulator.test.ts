@@ -220,3 +220,67 @@ describe('밸런스 분석 (스냅샷)', () => {
     expect(stats.winRate).toBeLessThanOrEqual(1);
   });
 });
+
+describe('콤보 통계', () => {
+  it('시뮬레이션에서 콤보 통계가 수집된다', () => {
+    const config: SimulationConfig = {
+      battles: 30,
+      maxTurns: 30,
+      enemyIds: ['ghoul'],
+    };
+
+    const stats: SimulationStats = runSimulation(config);
+
+    // comboStats가 존재해야 함
+    expect(stats.comboStats).toBeDefined();
+
+    // 콤보가 발생했다면 통계가 있어야 함
+    const comboCount = Object.keys(stats.comboStats).length;
+    if (comboCount > 0) {
+      const firstCombo = Object.values(stats.comboStats)[0];
+      expect(firstCombo.count).toBeGreaterThan(0);
+      expect(firstCombo.avgPerBattle).toBeGreaterThan(0);
+    }
+  });
+
+  it('단일 전투에서 콤보가 기록된다', () => {
+    const config: SimulationConfig = {
+      battles: 1,
+      maxTurns: 30,
+    };
+
+    const result = runBattle('ghoul', config);
+
+    // combosFormed가 존재해야 함
+    expect(result.combosFormed).toBeDefined();
+    expect(typeof result.combosFormed).toBe('object');
+  });
+});
+
+describe('티어별 적 목록', () => {
+  it('TIER_1_ENEMIES에 올바른 적이 포함되어 있다', async () => {
+    const { TIER_1_ENEMIES } = await import('./gameSimulator');
+    expect(TIER_1_ENEMIES).toContain('ghoul');
+    expect(TIER_1_ENEMIES).toContain('wildrat');
+    expect(TIER_1_ENEMIES.length).toBeGreaterThanOrEqual(4);
+  });
+
+  it('TIER_2_ENEMIES에 올바른 적이 포함되어 있다', async () => {
+    const { TIER_2_ENEMIES } = await import('./gameSimulator');
+    expect(TIER_2_ENEMIES).toContain('deserter');
+    expect(TIER_2_ENEMIES).toContain('hunter');
+  });
+
+  it('TIER_3_ENEMIES에 보스 적이 포함되어 있다', async () => {
+    const { TIER_3_ENEMIES } = await import('./gameSimulator');
+    expect(TIER_3_ENEMIES).toContain('slaughterer');
+    expect(TIER_3_ENEMIES).toContain('captain');
+  });
+
+  it('ALL_ENEMIES에 모든 티어가 포함되어 있다', async () => {
+    const { ALL_ENEMIES, TIER_1_ENEMIES, TIER_2_ENEMIES, TIER_3_ENEMIES } = await import('./gameSimulator');
+    expect(ALL_ENEMIES.length).toBe(
+      TIER_1_ENEMIES.length + TIER_2_ENEMIES.length + TIER_3_ENEMIES.length
+    );
+  });
+});
