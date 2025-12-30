@@ -490,3 +490,17 @@ describe('특성 시너지 분석', () => {
     expect(typeof runTraitSynergyAnalysis).toBe('function');
   });
 });
+
+describe('전략 추천', () => {
+  it('runStrategyRecommendation 함수가 존재한다', async () => {
+    const { runStrategyRecommendation } = await import('./gameSimulator');
+    expect(typeof runStrategyRecommendation).toBe('function');
+  });
+});
+
+describe('도움말', () => {
+  it('printHelp 함수가 존재한다', async () => {
+    const { printHelp } = await import('./gameSimulator');
+    expect(typeof printHelp).toBe('function');
+  });
+});

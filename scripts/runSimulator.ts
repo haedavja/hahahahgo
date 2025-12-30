@@ -23,6 +23,8 @@
  *   npx tsx scripts/runSimulator.ts matchup [deck] [enemy] [battles] # 매치업 분석
  *   npx tsx scripts/runSimulator.ts speed [battles]       # 속도 분석
  *   npx tsx scripts/runSimulator.ts trait [battles]       # 특성 시너지 분석
+ *   npx tsx scripts/runSimulator.ts recommend [enemyId] [battles] # 전략 추천
+ *   npx tsx scripts/runSimulator.ts help                  # 도움말
  *
  * 예시:
  *   npx tsx scripts/runSimulator.ts 100
@@ -47,7 +49,7 @@
  *   npx tsx scripts/runSimulator.ts trait 30
  */
 
-import { runSimulation, printStats, SimulationConfig, runBalanceAnalysis, runTierSimulation, runFullSimulation, runRelicComparison, runDeckComparison, runAnomalyComparison, runCardEfficiencyAnalysis, runFullReport, runBattleReplay, runEnemyAnalysis, runSynergyAnalysis, runDifficultyScalingAnalysis, runWinConditionAnalysis, exportSimulationResults, runTokenEfficiencyAnalysis, runMatchupAnalysis, runSpeedAnalysis, runTraitSynergyAnalysis, TIER_1_ENEMIES, TIER_2_ENEMIES, TIER_3_ENEMIES } from '../src/tests/gameSimulator';
+import { runSimulation, printStats, SimulationConfig, runBalanceAnalysis, runTierSimulation, runFullSimulation, runRelicComparison, runDeckComparison, runAnomalyComparison, runCardEfficiencyAnalysis, runFullReport, runBattleReplay, runEnemyAnalysis, runSynergyAnalysis, runDifficultyScalingAnalysis, runWinConditionAnalysis, exportSimulationResults, runTokenEfficiencyAnalysis, runMatchupAnalysis, runSpeedAnalysis, runTraitSynergyAnalysis, runStrategyRecommendation, printHelp, TIER_1_ENEMIES, TIER_2_ENEMIES, TIER_3_ENEMIES } from '../src/tests/gameSimulator';
 import { ENEMIES } from '../src/components/battle/battleData';
 
 // 커맨드 라인 인자 파싱
@@ -185,6 +187,19 @@ if (command === 'trait') {
   const battles = parseInt(args[1]) || 30;
   console.log('🎮 특성 시너지 분석 모드\n');
   runTraitSynergyAnalysis(battles);
+  process.exit(0);
+}
+
+if (command === 'recommend') {
+  const enemyId = args[1] || 'ghoul';
+  const battles = parseInt(args[2]) || 30;
+  console.log('🎮 전략 추천 모드\n');
+  runStrategyRecommendation(enemyId, battles);
+  process.exit(0);
+}
+
+if (command === 'help' || command === '-h' || command === '--help') {
+  printHelp();
   process.exit(0);
 }
 

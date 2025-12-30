@@ -3144,6 +3144,152 @@ export function runTraitSynergyAnalysis(battles: number = 30): void {
   console.log('\n' + '═'.repeat(50) + '\n');
 }
 
+/**
+ * 전략 추천
+ * 특정 적에 대한 최적 덱/상징 추천
+ */
+export function runStrategyRecommendation(enemyId: string = 'ghoul', battles: number = 30): void {
+  console.log('\n╔════════════════════════════════════════╗');
+  console.log('║            전략 추천                    ║');
+  console.log('╚════════════════════════════════════════╝\n');
+
+  const enemy = ENEMIES.find(e => e.id === enemyId);
+  if (!enemy) {
+    console.log(`❌ 적 "${enemyId}" 을(를) 찾을 수 없습니다.`);
+    return;
+  }
+
+  console.log(`🎯 대상: ${enemy.name} (Tier ${enemy.tier}, HP ${enemy.hp})\n`);
+  console.log('─'.repeat(50));
+
+  // 덱별 승률 테스트
+  console.log('\n📊 덱별 승률 테스트...\n');
+  const deckResults: Array<{ name: string; winRate: number; avgTurns: number }> = [];
+
+  for (const [deckId, deck] of Object.entries(DECK_PRESETS)) {
+    const config: SimulationConfig = {
+      battles,
+      maxTurns: 30,
+      enemyIds: [enemyId],
+      playerDeck: deck.cards,
+      verbose: false,
+    };
+
+    const stats = runSimulation(config);
+    deckResults.push({ name: deck.name, winRate: stats.winRate, avgTurns: stats.avgTurns });
+  }
+
+  // 덱 순위
+  deckResults.sort((a, b) => b.winRate - a.winRate);
+  console.log('🏆 추천 덱 순위:');
+  deckResults.slice(0, 3).forEach((r, idx) => {
+    const bar = '█'.repeat(Math.ceil(r.winRate * 20));
+    console.log(`  ${idx + 1}. ${r.name}: ${bar} ${(r.winRate * 100).toFixed(1)}%`);
+  });
+
+  // 상징별 효과 테스트
+  console.log('\n📊 상징별 효과 테스트...\n');
+  const relicResults: Array<{ name: string; relic: string; winRate: number; diff: number }> = [];
+
+  // 기준 (상징 없음)
+  const baseConfig: SimulationConfig = {
+    battles,
+    maxTurns: 30,
+    enemyIds: [enemyId],
+    playerRelics: [],
+    verbose: false,
+  };
+  const baseStats = runSimulation(baseConfig);
+  const baseWinRate = baseStats.winRate;
+
+  const testRelics = ['sturdyArmor', 'trainingBoots', 'oldCompass', 'raggedCloak', 'ironWill'];
+  for (const relicId of testRelics) {
+    const relic = RELICS.find(r => r.id === relicId);
+    if (!relic) continue;
+
+    const config: SimulationConfig = {
+      battles,
+      maxTurns: 30,
+      enemyIds: [enemyId],
+      playerRelics: [relicId],
+      verbose: false,
+    };
+
+    const stats = runSimulation(config);
+    relicResults.push({
+      name: relic.name,
+      relic: relicId,
+      winRate: stats.winRate,
+      diff: stats.winRate - baseWinRate,
+    });
+  }
+
+  // 상징 순위
+  relicResults.sort((a, b) => b.diff - a.diff);
+  console.log('🏆 추천 상징 순위:');
+  relicResults.slice(0, 3).forEach((r, idx) => {
+    const sign = r.diff >= 0 ? '+' : '';
+    console.log(`  ${idx + 1}. ${r.name}: ${sign}${(r.diff * 100).toFixed(1)}%`);
+  });
+
+  // 최종 추천
+  console.log('\n💡 최종 추천:');
+  console.log('─'.repeat(50));
+  console.log(`  덱: ${deckResults[0].name}`);
+  if (relicResults[0].diff > 0) {
+    console.log(`  상징: ${relicResults[0].name}`);
+  }
+  console.log(`  예상 승률: ${(deckResults[0].winRate * 100).toFixed(1)}%`);
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
+/**
+ * 도움말 출력
+ */
+export function printHelp(): void {
+  console.log('\n╔════════════════════════════════════════╗');
+  console.log('║        게임 시뮬레이터 도움말            ║');
+  console.log('╚════════════════════════════════════════╝\n');
+
+  console.log('📋 사용 가능한 명령어:\n');
+
+  const commands = [
+    { cmd: '[battles] [enemies...]', desc: '기본 시뮬레이션' },
+    { cmd: 'balance [battles]', desc: '밸런스 분석' },
+    { cmd: 'tier [1|2|3] [battles]', desc: '티어별 시뮬레이션' },
+    { cmd: 'full [battles]', desc: '전체 시뮬레이션' },
+    { cmd: 'relic [battles]', desc: '상징 효과 비교' },
+    { cmd: 'deck [battles]', desc: '덱 전략 비교' },
+    { cmd: 'anomaly [battles]', desc: '이변 효과 비교' },
+    { cmd: 'card [battles]', desc: '카드 효율 분석' },
+    { cmd: 'report [battles]', desc: '종합 리포트' },
+    { cmd: 'replay [enemyId]', desc: '전투 리플레이' },
+    { cmd: 'analyze [enemyId] [battles]', desc: '적 분석' },
+    { cmd: 'synergy [battles]', desc: '카드 시너지 분석' },
+    { cmd: 'scaling [battles]', desc: '난이도 스케일링 분석' },
+    { cmd: 'wincond [battles]', desc: '승리 요인 분석' },
+    { cmd: 'export [battles] [filename]', desc: '결과 내보내기' },
+    { cmd: 'token [battles]', desc: '토큰 효율 분석' },
+    { cmd: 'matchup [deck] [enemy] [battles]', desc: '매치업 분석' },
+    { cmd: 'speed [battles]', desc: '속도 분석' },
+    { cmd: 'trait [battles]', desc: '특성 시너지 분석' },
+    { cmd: 'recommend [enemyId] [battles]', desc: '전략 추천' },
+    { cmd: 'help', desc: '도움말 출력' },
+  ];
+
+  for (const c of commands) {
+    console.log(`  ${c.cmd.padEnd(35)} ${c.desc}`);
+  }
+
+  console.log('\n📖 사용 예시:');
+  console.log('  npx tsx scripts/runSimulator.ts 100');
+  console.log('  npx tsx scripts/runSimulator.ts balance 50');
+  console.log('  npx tsx scripts/runSimulator.ts recommend deserter 30');
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
 // CLI에서 직접 실행 시
 if (typeof process !== 'undefined' && process.argv?.[1]?.includes('gameSimulator')) {
   runQuickTest();
