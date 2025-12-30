@@ -493,22 +493,32 @@ export function generateEnhancedDescription(
 
   // 강화로 추가된 효과 - 설명 내 숫자 직접 교체
   if (enhancedStats) {
-    // 디버프 스택: "효과명, 효과명 X회" or "효과명 X회" (공격 관련 제외)
+    // 디버프 스택: 특정 디버프명 + X회 패턴만 매칭
+    // 무딤, 흔들림, 무방비, 허약, 속박, 둔화, 취약 등
     if (enhancedStats.debuffStacksBonus > 0) {
+      // 패턴 1: "무딤, 흔들림 X회" (쉼표로 구분된 디버프들)
       description = description.replace(
-        /([가-힣]+(?:\s*,\s*[가-힣]+)*)\s+(\d+)회(?!\s*(?:공격|타격))/g,
+        /((?:무딤|흔들림|무방비|허약|속박|둔화|취약)(?:\s*,\s*(?:무딤|흔들림|무방비|허약|속박|둔화|취약))*)\s+(\d+)회/g,
         (_, effectNames, num) => {
           const newNum = parseInt(num) + enhancedStats.debuffStacksBonus;
           return `${effectNames} ${newNum}회`;
         }
       );
+      // 패턴 2: "허약 1회, 흔들림 1회" (각각 카운트가 별도인 경우)
+      description = description.replace(
+        /(무딤|흔들림|무방비|허약|속박|둔화|취약)\s+(\d+)회/g,
+        (_, effectName, num) => {
+          const newNum = parseInt(num) + enhancedStats.debuffStacksBonus;
+          return `${effectName} ${newNum}회`;
+        }
+      );
     }
 
-    // 화상 스택: "화상 X" or "X 화상"
+    // 화상 스택: "화상 X회" or "X 화상"
     if (enhancedStats.burnStacksBonus > 0) {
-      description = description.replace(/화상\s*(\d+)/g, (_, num) => {
+      description = description.replace(/화상\s*(\d+)회?/g, (match, num) => {
         const newNum = parseInt(num) + enhancedStats.burnStacksBonus;
-        return `화상 ${newNum}`;
+        return match.endsWith('회') ? `화상 ${newNum}회` : `화상 ${newNum}`;
       });
       description = description.replace(/(\d+)\s*화상/g, (_, num) => {
         const newNum = parseInt(num) + enhancedStats.burnStacksBonus;
@@ -564,13 +574,25 @@ export function generateEnhancedDescription(
       });
     }
 
+    // 대응사격: "대응사격 X회"
+    if (enhancedStats.counterShotBonus > 0) {
+      description = description.replace(/대응사격\s*(\d+)회?/g, (match, num) => {
+        const newNum = parseInt(num) + enhancedStats.counterShotBonus;
+        return match.endsWith('회') ? `대응사격 ${newNum}회` : `대응사격 ${newNum}`;
+      });
+    }
+
+    // 흐릿함: "흐릿함 X회"
+    const extraBlur = enhancedStats.specialEffects.find(e => e.type === 'extraBlur');
+    if (extraBlur && typeof extraBlur.value === 'number') {
+      description = description.replace(/흐릿함\s*(\d+)회?/g, (match, num) => {
+        const newNum = parseInt(num) + extraBlur.value;
+        return match.endsWith('회') ? `흐릿함 ${newNum}회` : `흐릿함 ${newNum}`;
+      });
+    }
+
     // 텍스트에서 직접 교체 불가능한 효과만 표시
     const additions: string[] = [];
-
-    // 공격 관련 (텍스트 교체 불가)
-    if (enhancedStats.counterShotBonus > 0) {
-      additions.push(`반격탄 +${enhancedStats.counterShotBonus}`);
-    }
     if (enhancedStats.executeThresholdBonus > 0) {
       additions.push(`처형 +${enhancedStats.executeThresholdBonus}%`);
     }
