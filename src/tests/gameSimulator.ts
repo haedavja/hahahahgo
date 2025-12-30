@@ -7,7 +7,7 @@
  * - 승률, 평균 피해량, 턴 수 등 통계 수집
  * - 카드별 효율 분석
  *
- * ## 신뢰성 v3
+ * ## 신뢰성 v4
  * - 실제 combatActions 로직 사용
  * - 토큰 시스템 통합 (공세, 방어, 회피, 취약, 무딤 등)
  * - 적 패시브 효과 적용
@@ -15,6 +15,11 @@
  * - 반격 시스템
  * - 카드 특수 효과 (crush, chain, cross)
  * - 다중 적 전투 지원
+ * - 다중 타격 (hits) 지원
+ * - 화상 지속 피해
+ * - 연계(chain)/후속(followup) 효과
+ * - 교차(cross) 보너스
+ * - 누적 타임라인 계산
  */
 
 import type { Card, TokenState } from '../types/core';
@@ -162,8 +167,7 @@ function createEnemy(enemyId: string): SimEnemyState {
 // ==================== AI 시스템 ====================
 
 function selectPlayerActions(player: SimPlayerState): { cards: (Card | AICard)[]; indices: number[] } {
-  // 간단한 AI: 손패에서 에너지가 허용하는 한 카드 선택
-  // 우선순위: 공격 > 방어 > 기타
+  // 개선된 AI: 시너지와 상황을 고려한 카드 선택
   const cards: (Card | AICard)[] = [];
   const indices: number[] = [];
   let energy = player.energy;
@@ -175,25 +179,87 @@ function selectPlayerActions(player: SimPlayerState): { cards: (Card | AICard)[]
     .map((id, idx) => ({ card: getCardById(id), idx }))
     .filter((item): item is { card: Card | AICard; idx: number } => item.card !== undefined);
 
-  // 공격 카드 우선 선택
-  const attacks = handCards.filter(h => h.card.type === 'attack');
-  const defenses = handCards.filter(h => h.card.type === 'defense' || h.card.type === 'general');
-  const others = handCards.filter(h => h.card.type !== 'attack' && h.card.type !== 'defense' && h.card.type !== 'general');
+  // 카드 점수 계산 (높을수록 좋음)
+  const scoreCard = (card: Card | AICard, selectedCards: (Card | AICard)[]): number => {
+    let score = 0;
+    const c = card as Card;
 
-  const sorted = [...attacks, ...defenses, ...others];
+    // 기본 점수: 피해/방어 기준
+    if (c.damage) score += c.damage * 2;
+    if (c.block) score += c.block;
 
-  for (const { card, idx } of sorted) {
-    const cost = card.actionCost || 1;
-    const spCost = card.speedCost || 5;
+    // 다중 타격 보너스
+    if (c.hits && c.hits > 1) score += c.damage! * (c.hits - 1);
 
-    if (energy >= cost && speed + spCost <= maxSpeed && !indices.includes(idx)) {
-      cards.push(card);
-      indices.push(idx);
-      energy -= cost;
-      speed += spCost;
-
-      if (cards.length >= 3) break; // 최대 3장
+    // 연계 보너스: 이전에 chain 카드가 있고 현재가 fencing이면 높은 점수
+    const prevChainCard = selectedCards.find(sc => (sc as Card).traits?.includes('chain'));
+    if (prevChainCard && c.cardCategory === 'fencing') {
+      score += 20;
     }
+
+    // chain 특성 보너스: 뒤에 fencing 카드가 있으면 먼저 선택
+    if (c.traits?.includes('chain')) {
+      const hasFencingInHand = handCards.some(h => (h.card as Card).cardCategory === 'fencing');
+      if (hasFencingInHand) score += 15;
+    }
+
+    // 후속(followup) -> 마무리(finisher) 콤보
+    const prevFollowupCard = selectedCards.find(sc => (sc as Card).traits?.includes('followup'));
+    if (prevFollowupCard && c.traits?.includes('finisher')) {
+      score += 25;
+    }
+
+    // 교차(cross) 특성 보너스
+    if (c.traits?.includes('cross')) {
+      score += 10;
+    }
+
+    // 분쇄(crush) 특성 보너스
+    if (c.traits?.includes('crush')) {
+      score += 8;
+    }
+
+    // 체력이 낮으면 방어 카드 우선
+    if (player.hp < player.maxHp * 0.3 && c.type === 'defense') {
+      score += 30;
+    }
+
+    // 에너지 효율 (낮은 비용 선호)
+    const cost = c.actionCost || 1;
+    score += (6 - cost) * 2;
+
+    return score;
+  };
+
+  // 그리디 알고리즘: 매번 최고 점수 카드 선택
+  const availableCards = [...handCards];
+
+  while (cards.length < 3 && availableCards.length > 0) {
+    let bestIdx = -1;
+    let bestScore = -Infinity;
+
+    for (let i = 0; i < availableCards.length; i++) {
+      const { card, idx } = availableCards[i];
+      const cost = card.actionCost || 1;
+      const spCost = card.speedCost || 5;
+
+      if (energy >= cost && speed + spCost <= maxSpeed && !indices.includes(idx)) {
+        const score = scoreCard(card, cards);
+        if (score > bestScore) {
+          bestScore = score;
+          bestIdx = i;
+        }
+      }
+    }
+
+    if (bestIdx === -1) break;
+
+    const selected = availableCards[bestIdx];
+    cards.push(selected.card);
+    indices.push(selected.idx);
+    energy -= selected.card.actionCost || 1;
+    speed += selected.card.speedCost || 5;
+    availableCards.splice(bestIdx, 1);
   }
 
   return { cards, indices };
@@ -407,20 +473,38 @@ function simulateTurn(
     actor: 'player' | 'enemy';
     card: Card | AICard;
     sp: number;
+    hasCrossed?: boolean;  // 교차 여부
   }
 
   const timeline: TimelineStep[] = [];
+  let cumulativeSp = 0;
 
   for (const card of playerSelection.cards) {
-    timeline.push({ actor: 'player', card, sp: card.speedCost || 5 });
+    cumulativeSp += card.speedCost || 5;
+    timeline.push({ actor: 'player', card, sp: cumulativeSp });
   }
 
+  let enemyCumulativeSp = 0;
   for (const card of enemyActions) {
-    timeline.push({ actor: 'enemy', card, sp: card.speedCost || 5 });
+    enemyCumulativeSp += card.speedCost || 5;
+    timeline.push({ actor: 'enemy', card, sp: enemyCumulativeSp });
   }
 
   // 속도순 정렬 (낮은 것이 먼저)
   timeline.sort((a, b) => a.sp - b.sp);
+
+  // 교차 판정 (같은 sp에 적과 플레이어 카드가 있으면 교차)
+  for (let i = 0; i < timeline.length; i++) {
+    const current = timeline[i];
+    for (let j = 0; j < timeline.length; j++) {
+      if (i === j) continue;
+      const other = timeline[j];
+      if (current.actor !== other.actor && current.sp === other.sp) {
+        current.hasCrossed = true;
+        break;
+      }
+    }
+  }
 
   // 5. 타임라인 실행 (실제 combatActions 사용)
   let playerDamage = 0;
@@ -462,16 +546,34 @@ function simulateTurn(
   }
   const remainingEnergy = Math.max(0, player.energy - playerEnergyUsed);
 
-  for (const step of timeline) {
+  // 이전 카드 추적 (연계 효과용)
+  let previousPlayerCard: Card | AICard | null = null;
+
+  for (let stepIndex = 0; stepIndex < timeline.length; stepIndex++) {
+    const step = timeline[stepIndex];
     if (combatState.player.hp <= 0 || combatState.enemy.hp <= 0) break;
 
     const attacker = step.actor === 'player' ? combatState.player : combatState.enemy;
     const defender = step.actor === 'player' ? combatState.enemy : combatState.player;
     const isPlayer = step.actor === 'player';
 
+    // 화상 피해 (카드 사용 시)
+    if (hasToken(attacker as any, 'burn')) {
+      const burnDamage = 3;
+      const beforeHP = attacker.hp;
+      attacker.hp = Math.max(0, attacker.hp - burnDamage);
+      log.push(`🔥 화상! ${isPlayer ? '플레이어' : '적'}: ${burnDamage} 피해 (체력 ${beforeHP} -> ${attacker.hp})`);
+      if (isPlayer) {
+        enemyDamage += burnDamage;
+      } else {
+        playerDamage += burnDamage;
+      }
+    }
+
     // 회피 체크
     if (step.card.type === 'attack' && rollDodge(defender as SimEntity)) {
       log.push(`${step.actor === 'player' ? '적' : '플레이어'}이 ${step.card.name}을(를) 회피!`);
+      if (isPlayer) previousPlayerCard = step.card;
       continue;
     }
 
@@ -496,6 +598,39 @@ function simulateTurn(
       modifiedCard.damage += attacker.strength;
     }
 
+    // 연계(chain) 효과: 이전 카드가 chain 특성이고 현재 카드가 검격이면 보너스
+    if (isPlayer && previousPlayerCard && isAttack) {
+      const prevCard = previousPlayerCard as Card;
+      const currCard = step.card as Card;
+      if (prevCard.traits?.includes('chain') && currCard.cardCategory === 'fencing') {
+        // 연계 시 피해 증가
+        if (modifiedCard.damage) {
+          const chainBonus = Math.floor(modifiedCard.damage * 0.5);
+          modifiedCard.damage += chainBonus;
+          log.push(`⛓️ 연계! ${prevCard.name} -> ${currCard.name}: 피해 +${chainBonus}`);
+        }
+      }
+      // 후속(followup) 효과
+      if (prevCard.traits?.includes('followup') && currCard.traits?.includes('finisher')) {
+        if (modifiedCard.damage) {
+          modifiedCard.damage = Math.floor(modifiedCard.damage * 1.5);
+          log.push(`⚔️ 후속 -> 마무리! ${currCard.name}: 피해 50% 증가`);
+        }
+      }
+    }
+
+    // 교차(cross) 보너스
+    if (step.hasCrossed) {
+      const cardWithCross = step.card as Card;
+      if (cardWithCross.traits?.includes('cross') && cardWithCross.crossBonus?.type === 'damage_mult') {
+        const crossMult = cardWithCross.crossBonus.value || 2;
+        if (modifiedCard.damage) {
+          modifiedCard.damage = Math.floor(modifiedCard.damage * crossMult);
+          log.push(`✨ 교차! ${cardWithCross.name}: 피해 ${crossMult}배`);
+        }
+      }
+    }
+
     // 치명타 판정 (플레이어만, 공격 카드만)
     let isCritical = false;
     if (isAttack && isPlayer) {
@@ -505,6 +640,9 @@ function simulateTurn(
         log.push(`💥 치명타! ${step.card.name}`);
       }
     }
+
+    // 다중 타격 (hits)
+    const hits = (step.card as Card).hits || 1;
 
     // 분쇄 효과 적용 (방어력에 2배 피해)
     const hasCrush = hasCrushTrait(step.card);
@@ -558,6 +696,11 @@ function simulateTurn(
       // 카드 토큰 효과 적용
       applyCardTokenEffects(step.card, attacker as SimEntity, defender as SimEntity);
 
+      // 다중 타격 (hits > 1) 로그 - applyAction에서 이미 처리됨
+      if (hits > 1 && isAttack) {
+        log.push(`🎯 ${step.card.name}: ${hits}회 타격!`);
+      }
+
     } catch (e) {
       // 오류 발생 시 기본 피해 계산 (분쇄 + 취약 적용)
       if (isAttack && modifiedCard.damage) {
@@ -593,6 +736,11 @@ function simulateTurn(
           }
         }
       }
+    }
+
+    // 이전 카드 추적 (연계 효과용)
+    if (isPlayer) {
+      previousPlayerCard = step.card;
     }
   }
 
