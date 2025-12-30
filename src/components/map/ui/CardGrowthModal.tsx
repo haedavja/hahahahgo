@@ -5,11 +5,9 @@
 
 import { useState, useMemo } from 'react';
 import { CARDS, TRAITS } from '../../battle/battleData';
-import { CARD_ETHER_BY_RARITY } from '../../battle/utils/etherCalculations';
 import { generateSpecializationOptions, type SpecializationOption } from '../../../lib/specializationUtils';
 import type { CardGrowthState } from '../../../state/slices/types';
 import {
-  getNextEnhancementPreview,
   getAllEnhancementLevels,
   getEnhancementColor,
   getEnhancementLabel,
@@ -23,6 +21,18 @@ interface CardGrowthModalProps {
   cardGrowth: Record<string, CardGrowthState>;
   onEnhance: (cardId: string) => void;
   onSpecialize: (cardId: string, selectedTraits: string[]) => void;
+}
+
+interface CardData {
+  id: string;
+  name: string;
+  description?: string;
+  type?: string;
+  damage?: number;
+  block?: number;
+  speedCost: number;
+  actionCost: number;
+  hits?: number;
 }
 
 const rarityColors: Record<string, string> = {
@@ -48,6 +58,8 @@ export function CardGrowthModal({
 }: CardGrowthModalProps) {
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [previewLevel, setPreviewLevel] = useState<number | null>(null);
+  const [showSpecOptions, setShowSpecOptions] = useState(false);
   const [specOptions, setSpecOptions] = useState<SpecializationOption[]>([]);
   const [selectedSpecOption, setSelectedSpecOption] = useState<SpecializationOption | null>(null);
   const [notification, setNotification] = useState<{ message: string; type: string } | null>(null);
@@ -56,7 +68,7 @@ export function CardGrowthModal({
 
   // 검색 필터링
   const filteredCards = useMemo(() => {
-    return (cards as { id: string; name: string; description?: string; type?: string }[]).filter(c =>
+    return (cards as CardData[]).filter(c =>
       c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       c.id.toLowerCase().includes(searchTerm.toLowerCase())
     );
@@ -66,15 +78,15 @@ export function CardGrowthModal({
     return cardGrowth[cardId] || { rarity: 'common', growthCount: 0, enhancementLevel: 0, specializationCount: 0, traits: [] };
   };
 
-  const selectedCard = cards.find((c: { id: string }) => c.id === selectedCardId) as { id: string; name: string; description?: string; type?: string; damage?: number; block?: number; speedCost: number; actionCost: number } | undefined;
+  const selectedCard = cards.find((c: { id: string }) => c.id === selectedCardId) as CardData | undefined;
   const selectedGrowth = selectedCardId ? getCardGrowthState(selectedCardId) : null;
+  const currentLevel = selectedGrowth?.enhancementLevel || 0;
 
-  // 카드 선택 시 특화 옵션 생성
+  // 카드 선택 시
   const handleSelectCard = (cardId: string) => {
     setSelectedCardId(cardId);
-    const growth = getCardGrowthState(cardId);
-    const options = generateSpecializationOptions(growth.traits);
-    setSpecOptions(options);
+    setPreviewLevel(null);
+    setShowSpecOptions(false);
     setSelectedSpecOption(null);
   };
 
@@ -92,10 +104,17 @@ export function CardGrowthModal({
 
     onEnhance(selectedCardId);
     showNotification(`${selectedCard?.name} +${(growth.enhancementLevel || 0) + 1} 강화 성공!`, 'enhance');
+    setPreviewLevel(null);
+  };
 
-    // 특화 옵션 새로고침
-    const newGrowth = { ...growth, enhancementLevel: (growth.enhancementLevel || 0) + 1 };
-    setSpecOptions(generateSpecializationOptions(newGrowth.traits));
+  // 특화 버튼 클릭
+  const handleOpenSpecialize = () => {
+    if (!selectedCardId) return;
+    const growth = getCardGrowthState(selectedCardId);
+    const options = generateSpecializationOptions(growth.traits);
+    setSpecOptions(options);
+    setShowSpecOptions(true);
+    setSelectedSpecOption(null);
   };
 
   // 특화 실행
@@ -108,20 +127,19 @@ export function CardGrowthModal({
     const traitNames = selectedSpecOption.traits.map(t => t.name).join(', ');
     showNotification(`${selectedCard?.name} 특화 성공! [${traitNames}]`, 'specialize');
 
-    // 특화 옵션 새로고침
-    const growth = getCardGrowthState(selectedCardId);
-    const newTraits = [...(growth.traits || []), ...traitIds];
-    setSpecOptions(generateSpecializationOptions(newTraits));
+    setShowSpecOptions(false);
     setSelectedSpecOption(null);
   };
 
   if (!isOpen) return null;
 
-  const canEnhance = selectedCardId && isEnhanceable(selectedCardId) && (selectedGrowth?.enhancementLevel || 0) < 5;
+  const canEnhance = selectedCardId && isEnhanceable(selectedCardId) && currentLevel < 5;
   const canSpecialize = selectedCardId && selectedGrowth?.rarity !== 'legendary';
-  const nextEnhancement = selectedCardId ? getNextEnhancementPreview(selectedCardId, selectedGrowth?.enhancementLevel || 0) : null;
   const allLevels = selectedCardId ? getAllEnhancementLevels(selectedCardId) : [];
-  const nextStats = selectedCardId && canEnhance ? calculateEnhancedStats(selectedCardId, (selectedGrowth?.enhancementLevel || 0) + 1) : null;
+
+  // 현재 스탯과 미리보기 스탯
+  const currentStats = selectedCardId && currentLevel > 0 ? calculateEnhancedStats(selectedCardId, currentLevel) : null;
+  const previewStats = selectedCardId && previewLevel ? calculateEnhancedStats(selectedCardId, previewLevel) : null;
 
   return (
     <div
@@ -159,7 +177,7 @@ export function CardGrowthModal({
           alignItems: 'center',
         }}>
           <div>
-            <h2 style={{ margin: 0, color: '#fbbf24', fontSize: '1.5rem' }}>⚔️ 카드 성장</h2>
+            <h2 style={{ margin: 0, color: '#fbbf24', fontSize: '1.5rem' }}>카드 성장</h2>
             <p style={{ margin: '4px 0 0', color: '#94a3b8', fontSize: '0.875rem' }}>
               카드를 선택하여 강화 또는 특화를 진행하세요 (무료)
             </p>
@@ -296,8 +314,9 @@ export function CardGrowthModal({
             padding: '16px',
             display: 'flex',
             flexDirection: 'column',
+            overflow: 'auto',
           }}>
-            <h3 style={{ color: '#60a5fa', margin: '0 0 16px', fontSize: '1.125rem' }}>⚔️ 강화</h3>
+            <h3 style={{ color: '#60a5fa', margin: '0 0 16px', fontSize: '1.125rem' }}>강화</h3>
 
             {!selectedCard ? (
               <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
@@ -305,117 +324,137 @@ export function CardGrowthModal({
               </div>
             ) : !canEnhance ? (
               <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
-                {(selectedGrowth?.enhancementLevel || 0) >= 5 ? '최대 강화 레벨입니다' : '이 카드는 강화할 수 없습니다'}
+                {currentLevel >= 5 ? '최대 강화 레벨입니다' : '이 카드는 강화할 수 없습니다'}
               </div>
             ) : (
               <>
-                {/* 현재 카드 정보 */}
+                {/* 강화 단계 버튼 */}
+                <div style={{ marginBottom: '16px' }}>
+                  <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginBottom: '8px' }}>강화 단계 (클릭하여 미리보기)</div>
+                  <div style={{ display: 'flex', gap: '6px' }}>
+                    {allLevels.map((level) => {
+                      const isCompleted = level.level <= currentLevel;
+                      const isNext = level.level === currentLevel + 1;
+                      const isPreviewing = previewLevel === level.level;
+
+                      return (
+                        <button
+                          key={level.level}
+                          onClick={() => setPreviewLevel(isPreviewing ? null : level.level)}
+                          style={{
+                            flex: 1,
+                            height: '40px',
+                            borderRadius: '6px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '0.875rem',
+                            fontWeight: 700,
+                            background: isCompleted
+                              ? getEnhancementColor(level.level)
+                              : isPreviewing
+                                ? 'rgba(96, 165, 250, 0.4)'
+                                : isNext
+                                  ? 'rgba(96, 165, 250, 0.2)'
+                                  : 'rgba(71, 85, 105, 0.3)',
+                            color: isCompleted ? '#0f172a' : isPreviewing ? '#fff' : '#9ca3af',
+                            border: level.isMilestone
+                              ? '2px solid rgba(251, 191, 36, 0.7)'
+                              : isPreviewing
+                                ? '2px solid #60a5fa'
+                                : '1px solid rgba(71, 85, 105, 0.5)',
+                            cursor: 'pointer',
+                            transition: 'all 0.15s',
+                          }}
+                        >
+                          {level.level}{level.isMilestone ? '★' : ''}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* 현재 vs 미리보기 비교 */}
                 <div style={{
-                  padding: '12px',
-                  background: 'rgba(15, 23, 42, 0.6)',
-                  borderRadius: '8px',
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 1fr',
+                  gap: '12px',
                   marginBottom: '16px',
                 }}>
-                  <div style={{ fontSize: '1.125rem', color: '#e2e8f0', fontWeight: 700, marginBottom: '4px' }}>
-                    {selectedCard.name}
-                    {(selectedGrowth?.enhancementLevel || 0) > 0 && (
-                      <span style={{
-                        marginLeft: '8px',
-                        fontSize: '0.875rem',
-                        padding: '2px 8px',
-                        borderRadius: '4px',
-                        background: getEnhancementColor(selectedGrowth?.enhancementLevel || 0),
-                        color: '#0f172a',
-                      }}>
-                        {getEnhancementLabel(selectedGrowth?.enhancementLevel || 0)}
-                      </span>
-                    )}
-                  </div>
-                  <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
-                    {selectedCard.description}
-                  </div>
-                </div>
-
-                {/* 강화 진행률 */}
-                <div style={{ marginBottom: '16px' }}>
-                  <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginBottom: '8px' }}>강화 진행</div>
-                  <div style={{ display: 'flex', gap: '6px' }}>
-                    {allLevels.map((level) => (
-                      <div
-                        key={level.level}
-                        style={{
-                          flex: 1,
-                          height: '36px',
-                          borderRadius: '6px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontSize: '0.875rem',
-                          fontWeight: 700,
-                          background: level.level <= (selectedGrowth?.enhancementLevel || 0)
-                            ? getEnhancementColor(level.level)
-                            : level.level === (selectedGrowth?.enhancementLevel || 0) + 1
-                              ? 'rgba(96, 165, 250, 0.3)'
-                              : 'rgba(71, 85, 105, 0.3)',
-                          color: level.level <= (selectedGrowth?.enhancementLevel || 0) ? '#0f172a' : '#9ca3af',
-                          border: level.isMilestone
-                            ? '2px solid rgba(251, 191, 36, 0.7)'
-                            : '1px solid rgba(71, 85, 105, 0.5)',
-                        }}
-                        title={level.description}
-                      >
-                        {level.level}{level.isMilestone ? '★' : ''}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* 다음 강화 효과 */}
-                {nextEnhancement && (
+                  {/* 현재 상태 */}
                   <div style={{
                     padding: '12px',
-                    background: nextEnhancement.isMilestone ? 'rgba(251, 191, 36, 0.1)' : 'rgba(96, 165, 250, 0.1)',
+                    background: 'rgba(15, 23, 42, 0.6)',
                     borderRadius: '8px',
-                    border: nextEnhancement.isMilestone ? '1px solid rgba(251, 191, 36, 0.3)' : '1px solid rgba(96, 165, 250, 0.2)',
-                    marginBottom: '16px',
+                    border: '1px solid #334155',
                   }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                      <span style={{ fontSize: '0.875rem', color: '#94a3b8' }}>
-                        다음: {getEnhancementLabel(nextEnhancement.level)}
-                      </span>
-                      {nextEnhancement.isMilestone && (
+                    <div style={{ fontSize: '0.7rem', color: '#64748b', marginBottom: '6px' }}>현재</div>
+                    <div style={{ fontSize: '1rem', color: '#e2e8f0', fontWeight: 600, marginBottom: '8px' }}>
+                      {selectedCard.name}
+                      {currentLevel > 0 && (
                         <span style={{
+                          marginLeft: '6px',
                           fontSize: '0.75rem',
-                          padding: '2px 8px',
+                          padding: '2px 6px',
                           borderRadius: '4px',
-                          background: 'rgba(251, 191, 36, 0.2)',
-                          color: '#fbbf24',
+                          background: getEnhancementColor(currentLevel),
+                          color: '#0f172a',
                         }}>
-                          ★ 마일스톤
+                          {getEnhancementLabel(currentLevel)}
                         </span>
                       )}
                     </div>
-                    <div style={{
-                      fontSize: '1rem',
-                      color: getEnhancementColor(nextEnhancement.level),
-                      fontWeight: 600,
-                    }}>
-                      {nextEnhancement.description}
-                    </div>
+                    <CardStatDisplay card={selectedCard} stats={currentStats} />
                   </div>
-                )}
 
-                {/* 누적 스탯 */}
-                {nextStats && (
-                  <div style={{ marginBottom: '16px' }}>
-                    <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginBottom: '8px' }}>누적 효과</div>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                      {nextStats.damageBonus > 0 && <StatBadge label="피해" value={`+${nextStats.damageBonus}`} color="#f87171" />}
-                      {nextStats.blockBonus > 0 && <StatBadge label="방어" value={`+${nextStats.blockBonus}`} color="#60a5fa" />}
-                      {nextStats.speedCostReduction > 0 && <StatBadge label="속도" value={`-${nextStats.speedCostReduction}`} color="#4ade80" />}
-                      {nextStats.actionCostReduction > 0 && <StatBadge label="행동력" value={`-${nextStats.actionCostReduction}`} color="#fbbf24" />}
-                      {nextStats.hitsBonus > 0 && <StatBadge label="타격" value={`+${nextStats.hitsBonus}`} color="#f472b6" />}
+                  {/* 미리보기 상태 */}
+                  <div style={{
+                    padding: '12px',
+                    background: previewLevel ? 'rgba(96, 165, 250, 0.1)' : 'rgba(15, 23, 42, 0.3)',
+                    borderRadius: '8px',
+                    border: previewLevel ? '1px solid rgba(96, 165, 250, 0.3)' : '1px solid #334155',
+                  }}>
+                    <div style={{ fontSize: '0.7rem', color: previewLevel ? '#60a5fa' : '#64748b', marginBottom: '6px' }}>
+                      {previewLevel ? `+${previewLevel} 강화 시` : '미리보기'}
                     </div>
+                    {previewLevel ? (
+                      <>
+                        <div style={{ fontSize: '1rem', color: '#e2e8f0', fontWeight: 600, marginBottom: '8px' }}>
+                          {selectedCard.name}
+                          <span style={{
+                            marginLeft: '6px',
+                            fontSize: '0.75rem',
+                            padding: '2px 6px',
+                            borderRadius: '4px',
+                            background: getEnhancementColor(previewLevel),
+                            color: '#0f172a',
+                          }}>
+                            {getEnhancementLabel(previewLevel)}
+                          </span>
+                        </div>
+                        <CardStatDisplay card={selectedCard} stats={previewStats} />
+                      </>
+                    ) : (
+                      <div style={{ color: '#64748b', fontSize: '0.875rem' }}>
+                        위 버튼을 클릭하세요
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* 변경 사항 요약 */}
+                {previewLevel && previewStats && (
+                  <div style={{
+                    padding: '10px 12px',
+                    background: 'rgba(96, 165, 250, 0.1)',
+                    borderRadius: '6px',
+                    marginBottom: '16px',
+                    fontSize: '0.8rem',
+                  }}>
+                    <span style={{ color: '#94a3b8' }}>변경: </span>
+                    <span style={{ color: '#60a5fa' }}>
+                      {getChangeSummary(currentStats, previewStats)}
+                    </span>
                   </div>
                 )}
 
@@ -435,7 +474,7 @@ export function CardGrowthModal({
                       cursor: 'pointer',
                     }}
                   >
-                    ⚔️ 강화하기 (무료)
+                    +{currentLevel + 1} 강화하기 (무료)
                   </button>
                 </div>
               </>
@@ -450,8 +489,9 @@ export function CardGrowthModal({
             padding: '16px',
             display: 'flex',
             flexDirection: 'column',
+            overflow: 'auto',
           }}>
-            <h3 style={{ color: '#86efac', margin: '0 0 16px', fontSize: '1.125rem' }}>✨ 특화</h3>
+            <h3 style={{ color: '#86efac', margin: '0 0 16px', fontSize: '1.125rem' }}>특화</h3>
 
             {!selectedCard ? (
               <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
@@ -461,17 +501,18 @@ export function CardGrowthModal({
               <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
                 전설 등급은 더 이상 특화할 수 없습니다
               </div>
-            ) : (
-              <>
+            ) : !showSpecOptions ? (
+              /* 특화 버튼만 표시 */
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
                 {/* 현재 특성 */}
                 {selectedGrowth && selectedGrowth.traits.length > 0 && (
                   <div style={{
-                    padding: '10px',
+                    padding: '12px',
                     background: 'rgba(15, 23, 42, 0.6)',
                     borderRadius: '8px',
-                    marginBottom: '12px',
+                    marginBottom: '16px',
                   }}>
-                    <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginBottom: '6px' }}>보유 특성</div>
+                    <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginBottom: '8px' }}>현재 보유 특성</div>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                       {selectedGrowth.traits.map(tid => {
                         const t = TRAITS[tid as keyof typeof TRAITS];
@@ -480,9 +521,9 @@ export function CardGrowthModal({
                           <span
                             key={tid}
                             style={{
-                              fontSize: '0.75rem',
-                              padding: '3px 8px',
-                              borderRadius: '4px',
+                              fontSize: '0.8rem',
+                              padding: '4px 10px',
+                              borderRadius: '6px',
                               background: t.type === 'positive' ? 'rgba(134, 239, 172, 0.2)' : 'rgba(248, 113, 113, 0.2)',
                               color: t.type === 'positive' ? '#86efac' : '#f87171',
                             }}
@@ -495,15 +536,42 @@ export function CardGrowthModal({
                   </div>
                 )}
 
-                {/* 특화 옵션 */}
-                <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginBottom: '8px' }}>특성 선택 (5개 중 1개)</div>
+                <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ color: '#94a3b8', fontSize: '0.875rem', marginBottom: '12px' }}>
+                      랜덤 특성 5개 중 1개를 선택하여 부여합니다
+                    </div>
+                    <button
+                      onClick={handleOpenSpecialize}
+                      style={{
+                        padding: '14px 32px',
+                        background: 'linear-gradient(135deg, #22c55e 0%, #15803d 100%)',
+                        border: 'none',
+                        borderRadius: '8px',
+                        color: '#fff',
+                        fontSize: '1rem',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      특화 진행하기
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              /* 특화 옵션 표시 */
+              <>
+                <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginBottom: '12px' }}>
+                  5개 중 1개 선택
+                </div>
                 <div style={{ flex: 1, overflowY: 'auto', marginBottom: '12px' }}>
                   {specOptions.map((option) => (
                     <div
                       key={option.id}
                       onClick={() => setSelectedSpecOption(option)}
                       style={{
-                        padding: '10px 12px',
+                        padding: '12px',
                         marginBottom: '8px',
                         background: selectedSpecOption?.id === option.id ? 'rgba(134, 239, 172, 0.15)' : 'rgba(30, 41, 59, 0.6)',
                         border: selectedSpecOption?.id === option.id ? '2px solid #86efac' : '1px solid #334155',
@@ -511,51 +579,72 @@ export function CardGrowthModal({
                         cursor: 'pointer',
                       }}
                     >
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '6px' }}>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '8px' }}>
                         {option.traits.map(trait => (
                           <span
                             key={trait.id}
                             style={{
-                              fontSize: '0.75rem',
-                              padding: '3px 8px',
-                              borderRadius: '4px',
+                              fontSize: '0.85rem',
+                              padding: '4px 10px',
+                              borderRadius: '6px',
                               background: trait.type === 'positive' ? 'rgba(134, 239, 172, 0.2)' : 'rgba(248, 113, 113, 0.2)',
                               color: trait.type === 'positive' ? '#86efac' : '#f87171',
                               border: `1px solid ${trait.type === 'positive' ? 'rgba(134, 239, 172, 0.4)' : 'rgba(248, 113, 113, 0.4)'}`,
+                              fontWeight: 600,
                             }}
                           >
-                            {trait.type === 'positive' ? '+' : '-'}{trait.name} ({'★'.repeat(trait.weight)})
+                            {trait.type === 'positive' ? '+' : '-'}{trait.name}
                           </span>
                         ))}
                       </div>
-                      <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>
+                      <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
                         {option.traits.map(t => t.description).join(' / ')}
                       </div>
                     </div>
                   ))}
                 </div>
 
-                {/* 특화 버튼 */}
-                <button
-                  onClick={handleSpecialize}
-                  disabled={!selectedSpecOption}
-                  style={{
-                    width: '100%',
-                    padding: '14px',
-                    background: selectedSpecOption
-                      ? 'linear-gradient(135deg, #22c55e 0%, #15803d 100%)'
-                      : '#334155',
-                    border: 'none',
-                    borderRadius: '8px',
-                    color: '#fff',
-                    fontSize: '1rem',
-                    fontWeight: 700,
-                    cursor: selectedSpecOption ? 'pointer' : 'not-allowed',
-                    opacity: selectedSpecOption ? 1 : 0.5,
-                  }}
-                >
-                  ✨ 특화하기 (무료)
-                </button>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button
+                    onClick={() => {
+                      setShowSpecOptions(false);
+                      setSelectedSpecOption(null);
+                    }}
+                    style={{
+                      flex: 1,
+                      padding: '12px',
+                      background: '#334155',
+                      border: 'none',
+                      borderRadius: '8px',
+                      color: '#94a3b8',
+                      fontSize: '0.875rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    취소
+                  </button>
+                  <button
+                    onClick={handleSpecialize}
+                    disabled={!selectedSpecOption}
+                    style={{
+                      flex: 2,
+                      padding: '12px',
+                      background: selectedSpecOption
+                        ? 'linear-gradient(135deg, #22c55e 0%, #15803d 100%)'
+                        : '#334155',
+                      border: 'none',
+                      borderRadius: '8px',
+                      color: '#fff',
+                      fontSize: '0.875rem',
+                      fontWeight: 700,
+                      cursor: selectedSpecOption ? 'pointer' : 'not-allowed',
+                      opacity: selectedSpecOption ? 1 : 0.5,
+                    }}
+                  >
+                    특화 적용
+                  </button>
+                </div>
               </>
             )}
           </div>
@@ -565,19 +654,61 @@ export function CardGrowthModal({
   );
 }
 
-/** 스탯 뱃지 */
-function StatBadge({ label, value, color }: { label: string; value: string; color: string }) {
+/** 카드 스탯 표시 컴포넌트 */
+function CardStatDisplay({ card, stats }: { card: CardData; stats: ReturnType<typeof calculateEnhancedStats> | null }) {
+  const damage = (card.damage || 0) + (stats?.damageBonus || 0);
+  const block = (card.block || 0) + (stats?.blockBonus || 0);
+  const speed = Math.max(0, card.speedCost - (stats?.speedCostReduction || 0));
+  const action = Math.max(0, card.actionCost - (stats?.actionCostReduction || 0));
+  const hits = (card.hits || 1) + (stats?.hitsBonus || 0);
+
   return (
-    <span style={{
-      fontSize: '0.75rem',
-      padding: '4px 10px',
-      borderRadius: '6px',
-      background: `${color}20`,
-      color: color,
-      border: `1px solid ${color}40`,
-      fontWeight: 600,
-    }}>
-      {label}: {value}
-    </span>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '0.8rem' }}>
+      {card.damage !== undefined && card.damage > 0 && (
+        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+          <span style={{ color: '#94a3b8' }}>피해</span>
+          <span style={{ color: stats?.damageBonus ? '#f87171' : '#e2e8f0', fontWeight: 600 }}>
+            {damage}{hits > 1 ? ` x${hits}` : ''}
+          </span>
+        </div>
+      )}
+      {card.block !== undefined && card.block > 0 && (
+        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+          <span style={{ color: '#94a3b8' }}>방어</span>
+          <span style={{ color: stats?.blockBonus ? '#60a5fa' : '#e2e8f0', fontWeight: 600 }}>{block}</span>
+        </div>
+      )}
+      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+        <span style={{ color: '#94a3b8' }}>속도</span>
+        <span style={{ color: stats?.speedCostReduction ? '#4ade80' : '#e2e8f0', fontWeight: 600 }}>{speed}</span>
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+        <span style={{ color: '#94a3b8' }}>행동력</span>
+        <span style={{ color: stats?.actionCostReduction ? '#fbbf24' : '#e2e8f0', fontWeight: 600 }}>{action}</span>
+      </div>
+    </div>
   );
+}
+
+/** 변경 사항 요약 생성 */
+function getChangeSummary(
+  current: ReturnType<typeof calculateEnhancedStats> | null,
+  preview: ReturnType<typeof calculateEnhancedStats> | null
+): string {
+  if (!preview) return '';
+
+  const changes: string[] = [];
+  const currDamage = current?.damageBonus || 0;
+  const currBlock = current?.blockBonus || 0;
+  const currSpeed = current?.speedCostReduction || 0;
+  const currAction = current?.actionCostReduction || 0;
+  const currHits = current?.hitsBonus || 0;
+
+  if (preview.damageBonus > currDamage) changes.push(`피해 +${preview.damageBonus - currDamage}`);
+  if (preview.blockBonus > currBlock) changes.push(`방어 +${preview.blockBonus - currBlock}`);
+  if (preview.speedCostReduction > currSpeed) changes.push(`속도 -${preview.speedCostReduction - currSpeed}`);
+  if (preview.actionCostReduction > currAction) changes.push(`행동력 -${preview.actionCostReduction - currAction}`);
+  if (preview.hitsBonus > currHits) changes.push(`타격 +${preview.hitsBonus - currHits}`);
+
+  return changes.length > 0 ? changes.join(', ') : '변경 없음';
 }
