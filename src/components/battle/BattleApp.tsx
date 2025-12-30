@@ -119,7 +119,7 @@ import {
   calculatePassiveEffects,
   applyCombatStartEffects
 } from "../../lib/relicEffects";
-import type { BattlePayload, BattleResult, OrderItem, Card, ItemSlotsBattleActions, AIMode, AICard, AIEnemy, TokenEntity, SpecialCard, HandCard, SpecialActor, SpecialBattleContext, SpecialQueueItem, CombatState, CombatCard, CombatBattleContext, ParryReadyState, ComboCard, HandAction, BattleRef, UITimelineAction, UIRelicsMap, RelicRarities, ComboInfo, UIDeflation, EnemyUnitUI, HoveredCard, HoveredEnemyAction, HandBattle, TimelineBattle, TimelineEnemy, CentralPlayer, HandUnit, ItemSlotsEnemyPlan, ItemSlotsBattleRef, SimulationResult, ExpectedDamagePlayer, ExpectedDamageEnemy, AnomalyWithLevel, BreachSelection, RecallSelection } from "../../types";
+import type { BattlePayload, BattleResult, OrderItem, Card, ItemSlotsBattleActions, AIMode, AICard, AIEnemy, TokenEntity, SpecialCard, HandCard, SpecialActor, SpecialBattleContext, SpecialQueueItem, CombatState, CombatCard, CombatBattleContext, ParryReadyState, ComboCard, HandAction, BattleRef, UITimelineAction, UIRelicsMap, RelicRarities, EnemyUnitUI, HoveredCard, HoveredEnemyAction, HandBattle, TimelineBattle, TimelineEnemy, CentralPlayer, HandUnit, ItemSlotsEnemyPlan, ItemSlotsBattleRef, SimulationResult, ExpectedDamagePlayer, ExpectedDamageEnemy, AnomalyWithLevel, BreachSelection, RecallSelection } from "../../types";
 import type { PlayerState, EnemyState, SortType, BattlePhase } from "./reducer/battleReducerActions";
 import type { BattleActions } from "./hooks/useBattleState";
 import { PlayerHpBar } from "./ui/PlayerHpBar";
@@ -147,15 +147,7 @@ import { DefeatOverlay } from "./ui/DefeatOverlay";
 import { TIMING, executeMultiHitAsync } from "./logic/battleExecution";
 import { processTimelineSpecials, hasSpecial, processCardPlaySpecials } from "./utils/cardSpecialEffects";
 
-// HandArea용 로컬 Card 타입 (HandArea.tsx의 로컬 Card와 호환)
-type HandAreaCard = {
-  id: string;
-  name: string;
-  type: string;
-  actionCost: number;
-  speedCost: number;
-  [key: string]: unknown;
-};
+// HandArea용 로컬 Card 타입 - 제거됨 (Card 타입 직접 사용)
 
 const CARDS = BASE_PLAYER_CARDS.map(card => ({
   ...card,
@@ -2592,7 +2584,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     // 이벤트 처리: 애니메이션 및 사운드
     processActionEventAnimations({
       actionEvents: actionEvents as any,
-      action: a as unknown as HandAction,
+      action: a,
       playHitSound,
       playBlockSound,
       actions
@@ -2986,9 +2978,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
           {/* 왼쪽: 플레이어 */}
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '12px', minWidth: '360px', position: 'relative', justifyContent: 'flex-end', paddingTop: '200px' }}>
             <PlayerEtherBox
-              currentCombo={currentCombo as unknown as ComboInfo | null}
+              currentCombo={currentCombo}
               battle={battle}
-              currentDeflation={currentDeflation as unknown as UIDeflation | null}
+              currentDeflation={currentDeflation}
               etherCalcPhase={(etherCalcPhase ?? null) as string}
               turnEtherAccumulated={turnEtherAccumulated}
               etherPulse={etherPulse}
@@ -3046,10 +3038,10 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
               </div>
             )}
             <EnemyEtherBox
-              enemyCombo={enemyCombo as unknown as ComboInfo | null}
+              enemyCombo={enemyCombo}
               battle={battle}
               insightReveal={insightReveal}
-              enemyCurrentDeflation={enemyCurrentDeflation as unknown as UIDeflation | null}
+              enemyCurrentDeflation={enemyCurrentDeflation}
               enemyEtherCalcPhase={(enemyEtherCalcPhase ?? null) as string}
               enemyTurnEtherAccumulated={enemyTurnEtherAccumulated}
               COMBO_MULTIPLIERS={COMBO_MULTIPLIERS}
@@ -3146,7 +3138,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         battle={battle as unknown as HandBattle}
         player={player}
         enemy={enemy}
-        selected={selected as unknown as HandAreaCard[]}
+        selected={selected}
         getSortedHand={getSortedHand}
         toggle={toggle}
         handDisabled={handDisabled}
@@ -3154,17 +3146,17 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         hideCardTraitTooltip={hideCardTraitTooltip}
         formatSpeedText={formatSpeedText}
         renderNameWithBadge={(card, defaultColor) => renderNameWithBadge(card, cardUpgrades, defaultColor)}
-        fixedOrder={fixedOrder as unknown as HandAction[]}
+        fixedOrder={fixedOrder ?? undefined}
         moveUp={moveUp}
         moveDown={moveDown}
-        queue={queue as unknown as HandAction[]}
+        queue={queue ?? undefined}
         usedCardIndices={usedCardIndices}
         disappearingCards={disappearingCards}
         hiddenCards={hiddenCards}
         disabledCardIndices={disabledCardIndices}
         isSimplified={isSimplified}
-        deck={(battle.deck || []) as unknown as HandAreaCard[]}
-        discardPile={(battle.discardPile || []) as unknown as HandAreaCard[]}
+        deck={battle.deck || []}
+        discardPile={battle.discardPile || []}
         enemyUnits={enemyUnits as unknown as HandUnit[]}
       />
 

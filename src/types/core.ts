@@ -4,6 +4,8 @@
  * 카드, 자원, 상징, 토큰 등 기본 타입
  */
 
+import type React from 'react';
+
 // ==================== 카드 시스템 ====================
 
 /** 카드 희귀도 */
@@ -85,12 +87,18 @@ export interface Card {
   _ignoreBlock?: boolean;
   _addGunJam?: boolean;
   // 내부 마킹
-  __targetUnitId?: string | number;
+  __targetUnitId?: number;
+  __targetUnitIds?: number[];
   __sourceUnitId?: number;
   __uid?: string;
   __handUid?: string;
   __isSubSpecial?: boolean;
   __isMainSpecial?: boolean;
+  isAoe?: boolean;
+  // 카드 효과 함수
+  onPlay?: (battle: unknown, tokenActions: unknown) => void;
+  // UI 확장 속성
+  icon?: React.FC<{ size?: number; className?: string; strokeWidth?: number }>;
 }
 
 /** 카드 특성 정의 */

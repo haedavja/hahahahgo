@@ -10,11 +10,12 @@ import type {
   TokenState,
   TokenInstance,
   TokenDefinition,
-  TokenEffectPayload
+  TokenEffectPayload,
+  TokenDisplayData
 } from './core';
 import type { BattlePassives, BattleEnemyUnit } from './battle';
 import type { EnemyUnit, PlayerBattleState } from './combat';
-import type { DeflationResult, OrderItem } from './systems';
+import type { DeflationResult, OrderItem, ComboCalculation } from './systems';
 
 // ==================== 기본 UI Props ====================
 
@@ -66,15 +67,11 @@ export interface UITokenEntity {
   [key: string]: unknown;
 }
 
-/** 토큰 인스턴스 (표시용, 효과 포함) */
-export interface TokenInstanceWithEffect {
-  id: string;
-  stacks: number;
-  durationType: string;
-  effect: TokenEffectPayload;
-  name: string;
-  [key: string]: unknown;
-}
+/**
+ * 토큰 인스턴스 (표시용, 효과 포함) - TokenDisplayData와 동일
+ * @deprecated TokenDisplayData를 직접 사용하세요.
+ */
+export type TokenInstanceWithEffect = TokenDisplayData;
 
 /** 토큰 소모 결과 */
 export interface TokenConsumeResult {
@@ -244,25 +241,32 @@ export interface HandEnemy {
   hp: number;
 }
 
-/** 손패 액션 */
+/**
+ * 손패 액션 - OrderItem과 호환
+ * actor, card만 필수, 나머지는 선택적
+ */
 export interface HandAction {
   actor: 'player' | 'enemy';
   card: Card;
   speed?: number;
+  sp?: number;
+  originalIndex?: number;
+  finalSpeed?: number;
 }
 
-/** 콤보 정보 */
-export interface ComboInfo {
-  name: string;
-  bonusKeys?: number[];
-}
+/**
+ * 콤보 정보 - ComboCalculation과 동일
+ * @deprecated ComboCalculation을 직접 사용하세요.
+ */
+export type ComboInfo = ComboCalculation;
 
 // ==================== 에테르 UI 타입 ====================
 
-/** 디플레이션 (UI용) */
-export interface UIDeflation {
-  multiplier: number;
-}
+/**
+ * 디플레이션 (UI용) - DeflationInfo에서 파생
+ * multiplier만 필요한 UI 컴포넌트용
+ */
+export type UIDeflation = Pick<DeflationInfo, 'multiplier'>;
 
 /** 에테르 계산 페이즈 (애니메이션) */
 export type AnimEtherCalcPhase = 'sum' | 'multiply' | 'deflation' | 'result';

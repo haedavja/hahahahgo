@@ -23,29 +23,9 @@ import type {
   HandPlayer as Player,
   HandEnemy as Enemy,
   HandAction as Action,
-  ComboCalculation
+  ComboCalculation,
+  Card
 } from '../../../types';
-import type { FC as IconFC } from 'react';
-
-// 손패 카드 타입 (확장 속성 포함)
-interface Card {
-  id: string;
-  name: string;
-  type: string;
-  actionCost: number;
-  speedCost: number;
-  damage?: number;
-  block?: number;
-  description?: string;
-  traits?: string[];
-  icon?: IconFC<IconProps>;
-  __handUid?: string;
-  __uid?: string;
-  __isMainSpecial?: boolean;
-  __isSubSpecial?: boolean;
-  __targetUnitId?: number;
-  [key: string]: unknown;
-}
 
 // X 아이콘 SVG 컴포넌트
 const X: FC<IconProps> = ({ size = 24, className = "", strokeWidth = 2 }) => (

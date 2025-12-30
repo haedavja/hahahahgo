@@ -18,8 +18,6 @@ import type {
   DamageEffectResult,
   HealEffectResult,
   ReviveResult,
-  TokenEffectPayload,
-  TokenInstanceWithEffect,
   ModifiableCard,
   TokenConsumeResult as ConsumeResult
 } from '../types';
@@ -38,7 +36,7 @@ export function applyTokenEffectsToCard(
 
   let modifiedCard: ModifiableCard = { ...card };
   const consumedTokens: ConsumedToken[] = [];
-  const allTokens = getAllTokens(entity) as unknown as TokenInstanceWithEffect[];
+  const allTokens = getAllTokens(entity);
 
   // 빈탄창 체크 (총기 카드는 빈탄창 상태에서 데미지 0)
   if (cardType === 'attack' && card.cardCategory === 'gun') {
@@ -211,7 +209,7 @@ export function applyTokenEffectsOnDamage(
   let finalDamage = damage;
   const consumedTokens: ConsumedToken[] = [];
   const logs: string[] = [];
-  const allTokens = getAllTokens(defender) as unknown as TokenInstanceWithEffect[];
+  const allTokens = getAllTokens(defender);
 
   // 1. 회피 체크
   const dodgeToken = allTokens.find(t => t.effect.type === 'DODGE');
@@ -273,7 +271,7 @@ export function applyTokenEffectsOnHeal(
     return { healing: 0, consumedTokens: [], logs: [] };
   }
 
-  const allTokens = getAllTokens(entity) as unknown as TokenInstanceWithEffect[];
+  const allTokens = getAllTokens(entity);
   const consumedTokens: ConsumedToken[] = [];
   const logs: string[] = [];
 
@@ -296,7 +294,7 @@ export function applyTokenEffectsOnEnergy(baseEnergy: number, entity: TokenEntit
     return baseEnergy;
   }
 
-  const allTokens = getAllTokens(entity) as unknown as TokenInstanceWithEffect[];
+  const allTokens = getAllTokens(entity);
   let energyModifier = 0;
 
   allTokens.forEach(token => {
@@ -321,7 +319,7 @@ export function getTotalStrength(entity: TokenEntity): number {
     return entity.strength || 0;
   }
 
-  const allTokens = getAllTokens(entity) as unknown as TokenInstanceWithEffect[];
+  const allTokens = getAllTokens(entity);
   let strengthBonus = entity.strength || 0;
 
   allTokens.forEach(token => {
@@ -344,7 +342,7 @@ export function getTotalAgility(entity: TokenEntity): number {
     return entity.agility || 0;
   }
 
-  const allTokens = getAllTokens(entity) as unknown as TokenInstanceWithEffect[];
+  const allTokens = getAllTokens(entity);
   let agilityBonus = entity.agility || 0;
 
   allTokens.forEach(token => {
@@ -364,7 +362,7 @@ export function checkReviveToken(entity: TokenEntity): ReviveResult {
     return { revived: false, newHp: 0, consumedTokens: [], logs: [] };
   }
 
-  const allTokens = getAllTokens(entity) as unknown as TokenInstanceWithEffect[];
+  const allTokens = getAllTokens(entity);
   const reviveToken = allTokens.find(t => t.effect.type === 'REVIVE');
 
   if (reviveToken) {
