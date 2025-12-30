@@ -38,6 +38,7 @@
  * - 마지막 카드 추가 타격 (repeatIfLast) 특성
  * - 포커 콤보 감지 및 로깅 (파이브카드~페어)
  * - AI 콤보 인식: 카드 선택 시 포커 조합 고려
+ * - 콤보 통계: 전투별/전체 콤보 발동 횟수 추적
  */
 
 import type { Card, TokenState } from '../types/core';
@@ -96,6 +97,7 @@ export interface BattleResult {
   playerFinalHp: number;
   enemyFinalHp: number;
   cardUsage: Record<string, number>;
+  combosFormed: Record<string, number>;  // 콤보별 발동 횟수
   log: string[];
 }
 
@@ -111,6 +113,7 @@ export interface SimulationStats {
   avgPlayerFinalHp: number;
   cardEfficiency: Record<string, { uses: number; avgDamage: number }>;
   enemyStats: Record<string, { battles: number; winRate: number }>;
+  comboStats: Record<string, { count: number; avgPerBattle: number }>;  // 콤보 통계
 }
 
 export interface SimulationConfig {
@@ -1050,7 +1053,7 @@ function simulateTurn(
   log: string[],
   enemyDef: { passives?: { healPerTurn?: number; strengthPerTurn?: number } } | null,
   anomalyState?: AnomalyState
-): { playerDamage: number; enemyDamage: number; ended: boolean; winner?: 'player' | 'enemy'; cardsPlayed?: number; timesAttacked?: number } {
+): { playerDamage: number; enemyDamage: number; ended: boolean; winner?: 'player' | 'enemy'; cardsPlayed?: number; timesAttacked?: number; comboFormed?: string } {
   // 1. 턴 시작 - 카드 드로우
   drawCards(player, 5 - player.hand.length);
 
@@ -1080,6 +1083,7 @@ function simulateTurn(
   const enemyActions = selectEnemyActions(enemy, turnNumber);
 
   // 3.5. 콤보 감지 (포커 패)
+  let turnCombo: string | undefined;
   if (playerSelection.cards.length > 0) {
     const comboCards: ComboCard[] = playerSelection.cards.map(c => ({
       id: c.id,
@@ -1091,6 +1095,7 @@ function simulateTurn(
     const combo = detectPokerCombo(comboCards);
     if (combo && combo.name !== '하이카드') {
       log.push(`🃏 콤보! [${combo.name}]`);
+      turnCombo = combo.name;
     }
   }
 
@@ -1566,13 +1571,13 @@ function simulateTurn(
 
   // 11. 승패 확인
   if (player.hp <= 0) {
-    return { playerDamage, enemyDamage, ended: true, winner: 'enemy', cardsPlayed: cardsPlayedThisTurn, timesAttacked: timesAttackedThisTurn };
+    return { playerDamage, enemyDamage, ended: true, winner: 'enemy', cardsPlayed: cardsPlayedThisTurn, timesAttacked: timesAttackedThisTurn, comboFormed: turnCombo };
   }
   if (enemy.hp <= 0) {
-    return { playerDamage, enemyDamage, ended: true, winner: 'player', cardsPlayed: cardsPlayedThisTurn, timesAttacked: timesAttackedThisTurn };
+    return { playerDamage, enemyDamage, ended: true, winner: 'player', cardsPlayed: cardsPlayedThisTurn, timesAttacked: timesAttackedThisTurn, comboFormed: turnCombo };
   }
 
-  return { playerDamage, enemyDamage, ended: false, cardsPlayed: cardsPlayedThisTurn, timesAttacked: timesAttackedThisTurn };
+  return { playerDamage, enemyDamage, ended: false, cardsPlayed: cardsPlayedThisTurn, timesAttacked: timesAttackedThisTurn, comboFormed: turnCombo };
 }
 
 export function runBattle(enemyId: string, config: SimulationConfig): BattleResult {
@@ -1591,6 +1596,7 @@ export function runBattle(enemyId: string, config: SimulationConfig): BattleResu
   let totalPlayerDamage = 0;
   let totalEnemyDamage = 0;
   const cardUsage: Record<string, number> = {};
+  const combosFormed: Record<string, number> = {};
 
   log.push(`전투 시작: ${enemy.name} (HP: ${enemy.hp})`);
 
@@ -1603,6 +1609,11 @@ export function runBattle(enemyId: string, config: SimulationConfig): BattleResu
     const result = simulateTurn(player, enemy, turn, log, enemyDef, anomalyState);
     totalPlayerDamage += result.playerDamage;
     totalEnemyDamage += result.enemyDamage;
+
+    // 콤보 기록
+    if (result.comboFormed) {
+      combosFormed[result.comboFormed] = (combosFormed[result.comboFormed] || 0) + 1;
+    }
 
     if (result.ended) {
       // 전투 종료 상징 효과 (redHerb, goldenHerb, healthCheck 등)
@@ -1622,6 +1633,7 @@ export function runBattle(enemyId: string, config: SimulationConfig): BattleResu
         playerFinalHp: player.hp,
         enemyFinalHp: enemy.hp,
         cardUsage,
+        combosFormed,
         log,
       };
     }
@@ -1644,6 +1656,7 @@ export function runBattle(enemyId: string, config: SimulationConfig): BattleResu
     playerFinalHp: player.hp,
     enemyFinalHp: enemy.hp,
     cardUsage,
+    combosFormed,
     log,
   };
 }
@@ -1697,6 +1710,22 @@ export function runSimulation(config: SimulationConfig): SimulationStats {
     };
   }
 
+  // 콤보 통계 집계
+  const comboTotals: Record<string, number> = {};
+  for (const result of results) {
+    for (const [comboName, count] of Object.entries(result.combosFormed)) {
+      comboTotals[comboName] = (comboTotals[comboName] || 0) + count;
+    }
+  }
+
+  const comboStats: Record<string, { count: number; avgPerBattle: number }> = {};
+  for (const [comboName, count] of Object.entries(comboTotals)) {
+    comboStats[comboName] = {
+      count,
+      avgPerBattle: count / totalBattles,
+    };
+  }
+
   return {
     totalBattles,
     playerWins,
@@ -1709,6 +1738,7 @@ export function runSimulation(config: SimulationConfig): SimulationStats {
     avgPlayerFinalHp,
     cardEfficiency: {},
     enemyStats: enemyStatsFormatted,
+    comboStats,
   };
 }
 
@@ -1735,6 +1765,16 @@ export function printStats(stats: SimulationStats): void {
     const enemy = ENEMIES.find(e => e.id === enemyId);
     const name = enemy?.name || enemyId;
     console.log(`   - ${name}: ${(enemyStat.winRate * 100).toFixed(1)}% (${enemyStat.battles}전)`);
+  }
+
+  // 콤보 통계 출력
+  if (Object.keys(stats.comboStats).length > 0) {
+    console.log('\n🃏 콤보 통계:');
+    const sortedCombos = Object.entries(stats.comboStats)
+      .sort((a, b) => b[1].count - a[1].count);
+    for (const [comboName, comboStat] of sortedCombos) {
+      console.log(`   - ${comboName}: ${comboStat.count}회 (전투당 평균 ${comboStat.avgPerBattle.toFixed(2)}회)`);
+    }
   }
 
   console.log('\n========================================\n');
