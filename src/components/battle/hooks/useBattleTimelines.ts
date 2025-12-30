@@ -77,10 +77,10 @@ export function useBattleTimelines({
       });
     }
     if (battlePhase === 'respond' && fixedOrder) {
-      return fixedOrder.filter((x: any) => x.actor === 'player');
+      return fixedOrder.filter((x) => x.actor === 'player');
     }
     if (battlePhase === 'resolve') {
-      return battleQueue.filter((x: any) => x.actor === 'player');
+      return battleQueue.filter((x) => x.actor === 'player');
     }
     return [];
   }, [battlePhase, battleSelected, fixedOrder, battleQueue, playerComboUsageCount, effectiveAgility, selected]);
@@ -101,10 +101,10 @@ export function useBattleTimelines({
       });
     }
     if (battlePhase === 'respond' && fixedOrder) {
-      return fixedOrder.filter((x: any) => x.actor === 'enemy');
+      return fixedOrder.filter((x) => x.actor === 'enemy');
     }
     if (battlePhase === 'resolve') {
-      return battleQueue.filter((x: any) => x.actor === 'enemy');
+      return battleQueue.filter((x) => x.actor === 'enemy');
     }
     return [];
   }, [battlePhase, fixedOrder, battleQueue, enemyPlanActions, insightReveal]);

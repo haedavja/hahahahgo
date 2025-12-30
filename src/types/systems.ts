@@ -773,6 +773,7 @@ export interface OrderItem {
   originalIndex: number;
   sp?: number;
   finalSpeed?: number;
+  [key: string]: unknown;
 }
 
 /** 정렬된 큐 아이템 */

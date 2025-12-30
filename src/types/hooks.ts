@@ -196,8 +196,8 @@ export interface UseRelicDragParams {
 export interface UseBattleTimelinesParams {
   battlePhase: string;
   battleSelected: Card[];
-  fixedOrder: unknown[] | null;
-  battleQueue: unknown[];
+  fixedOrder: Array<{ actor: 'player' | 'enemy'; [key: string]: unknown }> | null;
+  battleQueue: Array<{ actor: 'player' | 'enemy'; [key: string]: unknown }>;
   playerComboUsageCount: Record<string, number>;
   effectiveAgility: number;
   enemyPlanActions: Card[];
