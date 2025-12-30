@@ -76,11 +76,15 @@ function applyEnhancementToCard(card: HandCard, cardGrowth?: CardGrowthMap): Han
   }
 
   // 특화 특성 병합 (기존 특성 + 특화 특성)
+  // 단, 강화로 제거된 특성은 특화로 다시 추가하지 않음
   if (hasSpecialization) {
     const existingTraits = (result.traits || []) as string[];
     const specializationTraits = growth.traits!;
-    // 중복 제거하며 병합
-    const mergedTraits = [...new Set([...existingTraits, ...specializationTraits])];
+    // 강화로 제거된 특성 목록
+    const removedByEnhancement = result.enhancedStats?.removedTraits || [];
+    // 제거된 특성을 제외하고 병합
+    const filteredSpecTraits = specializationTraits.filter(t => !removedByEnhancement.includes(t));
+    const mergedTraits = [...new Set([...existingTraits, ...filteredSpecTraits])];
     result.traits = mergedTraits as typeof result.traits;
   }
 

@@ -288,8 +288,10 @@ export function getEnhancedCard<T extends BaseCard>(baseCard: T, enhancementLeve
   }
 
   // 특성 적용 (추가/제거)
-  if (baseCard.traits) {
-    const newTraits = [...baseCard.traits];
+  // traits가 없는 카드도 강화로 특성을 얻을 수 있음
+  const hasTraitChanges = enhancedStats.addedTraits.length > 0 || enhancedStats.removedTraits.length > 0;
+  if (baseCard.traits || hasTraitChanges) {
+    const newTraits = [...(baseCard.traits || [])];
 
     // 특성 추가
     for (const trait of enhancedStats.addedTraits) {
@@ -562,11 +564,55 @@ export function generateEnhancedDescription(
       });
     }
 
-    // 추가된 특성만 표시 (숫자 관련 보너스는 이미 본문에 반영됨)
+    // 텍스트에서 직접 교체 불가능한 효과만 표시
     const additions: string[] = [];
 
+    // 공격 관련 (텍스트 교체 불가)
+    if (enhancedStats.counterShotBonus > 0) {
+      additions.push(`반격탄 +${enhancedStats.counterShotBonus}`);
+    }
+    if (enhancedStats.executeThresholdBonus > 0) {
+      additions.push(`처형 +${enhancedStats.executeThresholdBonus}%`);
+    }
+    if (enhancedStats.fragStacksBonus > 0) {
+      additions.push(`파쇄탄 +${enhancedStats.fragStacksBonus}`);
+    }
+
+    // 방어 관련 (텍스트 교체 불가)
+    if (enhancedStats.onHitBlockBonus > 0) {
+      additions.push(`피격 방어 +${enhancedStats.onHitBlockBonus}`);
+    }
+    if (enhancedStats.perCardBlockBonus > 0) {
+      additions.push(`카드당 방어 +${enhancedStats.perCardBlockBonus}`);
+    }
+
+    // 유틸리티 (텍스트 교체 불가)
+    if (enhancedStats.createCountBonus > 0) {
+      additions.push(`창조 +${enhancedStats.createCountBonus}`);
+    }
+    if (enhancedStats.buffAmountBonus > 0) {
+      additions.push(`버프 +${enhancedStats.buffAmountBonus}`);
+    }
+    if (enhancedStats.maxSpeedBoostBonus > 0) {
+      additions.push(`속도 +${enhancedStats.maxSpeedBoostBonus}`);
+    }
+
+    // 지속 효과 (텍스트 교체 불가)
+    if (enhancedStats.growthPerTickBonus > 0) {
+      additions.push(`성장 +${enhancedStats.growthPerTickBonus}`);
+    }
+    if (enhancedStats.durationTurnsBonus > 0) {
+      additions.push(`지속 +${enhancedStats.durationTurnsBonus}턴`);
+    }
+
+    // 추가된 특성
     if (enhancedStats.addedTraits.length > 0) {
       additions.push(`[${enhancedStats.addedTraits.join(', ')}] 추가`);
+    }
+
+    // 제거된 특성
+    if (enhancedStats.removedTraits.length > 0) {
+      additions.push(`[${enhancedStats.removedTraits.join(', ')}] 제거`);
     }
 
     if (additions.length > 0) {
