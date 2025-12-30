@@ -489,14 +489,161 @@ export function getEnhancementDifference(cardId: string, fromLevel: number, toLe
   const fromEffectTypes = new Set(fromStats.specialEffects.map(e => e.type));
   const newEffects = toStats.specialEffects.filter(e => !fromEffectTypes.has(e.type));
   for (const effect of newEffects) {
-    if (effect.type === 'counterOnHit' && typeof effect.value === 'number') {
-      differences.push(`반격 ${effect.value}회 부여`);
-    } else if (effect.type === 'extraBlur' && typeof effect.value === 'number') {
-      differences.push(`흐릿함 +${effect.value}`);
+    const effectDesc = getSpecialEffectDescription(effect);
+    if (effectDesc) {
+      differences.push(effectDesc);
     }
   }
 
   return differences.join(', ');
+}
+
+/**
+ * 특수 효과를 한국어 설명으로 변환
+ */
+function getSpecialEffectDescription(effect: SpecialEffect): string | null {
+  switch (effect.type) {
+    // 공격 관련
+    case 'extraShot':
+      return typeof effect.value === 'number' ? `추가 사격 ${effect.value}회` : '추가 사격';
+    case 'critExtraShot':
+      return typeof effect.value === 'number' ? `치명타 시 추가 사격 ${effect.value}회` : '치명타 시 추가 사격';
+    case 'extraOffense':
+      return typeof effect.value === 'number' ? `공세 ${effect.value}회` : '공세 추가';
+    case 'crushMultiplier':
+      return typeof effect.value === 'number' ? `분쇄 ${effect.value}배` : '분쇄 증가';
+    case 'crossMultiplier':
+      return typeof effect.value === 'number' ? `교차 ${effect.value}배` : '교차 배율 증가';
+    case 'strengthDoubleApply':
+      return '힘 스택 2배 적용';
+    case 'perHitKnockback':
+      return typeof effect.value === 'number' ? `피해마다 넉백 ${effect.value}` : '피해마다 넉백';
+    case 'aoeKnockback':
+      return '모든 적 카드 넉백';
+
+    // 방어/회피 관련
+    case 'extraEvasion':
+      return typeof effect.value === 'number' ? `회피 +${effect.value}` : '회피 추가';
+    case 'extraBlur':
+      return typeof effect.value === 'number' ? `흐릿함 +${effect.value}` : '흐릿함 추가';
+    case 'parryCounterDamage':
+      return typeof effect.value === 'number' ? `패링 시 반격 ${effect.value}` : '패링 반격';
+    case 'onHitCounterDamage':
+      return typeof effect.value === 'number' ? `피격 시 반격 ${effect.value}` : '피격 반격';
+    case 'counterOnHit':
+      return typeof effect.value === 'number' ? `반격 ${effect.value}회 부여` : '반격 부여';
+    case 'blockRetainPercent':
+      return typeof effect.value === 'number' ? `방어력 ${effect.value}% 유지` : '방어력 유지';
+
+    // 관통/무시 효과
+    case 'armorPiercePercent':
+      return typeof effect.value === 'number' ? `방어력 ${effect.value}% 무시` : '방어력 무시';
+    case 'armorPierceCount':
+      return typeof effect.value === 'number' ? `방어 무시 ${effect.value}회` : '방어 무시';
+    case 'removeJamPenalty':
+      return '탄걸림 제거';
+    case 'removeEmptyPenalty':
+      return '빈탄창 패널티 제거';
+    case 'removePainPenalty':
+      return '아픔 제거';
+
+    // 연계/이동 관련
+    case 'chainAdvance':
+      return typeof effect.value === 'number' ? `연계 시 앞당김 ${effect.value}` : '연계 앞당김';
+    case 'chainNextSpeedReduce':
+      return typeof effect.value === 'number' ? `연계 시 다음 카드 속도 -${effect.value}` : '연계 속도 감소';
+    case 'onHitAdvance':
+      return typeof effect.value === 'number' ? `피해 성공 시 앞당김 ${effect.value}` : '피해 앞당김';
+    case 'advanceNextSpeedReduce':
+      return typeof effect.value === 'number' ? `앞당김 시 다음 속도 -${effect.value}` : '앞당김 속도 감소';
+
+    // 장전/총 관련
+    case 'alwaysReload':
+      return '무조건 장전';
+    case 'reloadFinesseGain':
+      return typeof effect.value === 'number' ? `장전 시 기교 +${effect.value}` : '장전 시 기교 획득';
+    case 'nextShotDamageBoost':
+      return typeof effect.value === 'number' ? `다음 사격 피해 +${effect.value}` : '다음 사격 피해 증가';
+    case 'autoReloadBlock':
+      return typeof effect.value === 'number' ? `자동장전 시 방어 +${effect.value}` : '자동장전 방어';
+    case 'autoReloadAlways':
+      return '항상 자동장전';
+    case 'counterShotDamageBoost':
+      return typeof effect.value === 'number' ? `대응사격 피해 +${effect.value}` : '대응사격 피해 증가';
+    case 'jamImmunityTurns':
+      return typeof effect.value === 'number' ? `탄걸림 면역 ${effect.value}턴` : '탄걸림 면역';
+
+    // 화상 관련
+    case 'burnReduceBlock':
+      return '화상이 방어력도 감소';
+    case 'burnIgnoreBlock':
+      return '화상 방어력 무시';
+    case 'burnReduceStrength':
+      return '화상이 힘 감소';
+    case 'burnInstantTrigger':
+      return '화상 즉시 발동';
+
+    // 기교/효과 관련
+    case 'finesseReduce':
+      return typeof effect.value === 'number' ? `기교 소모 -${effect.value}` : '기교 소모 감소';
+    case 'gyrusChanceBoost':
+      return typeof effect.value === 'number' ? `가이러스 확률 ${effect.value}%` : '가이러스 확률 증가';
+    case 'insightBoost':
+      return typeof effect.value === 'number' ? `통찰 +${effect.value}` : '통찰 증가';
+
+    // 처형/효과 관련
+    case 'executeEffect':
+      return typeof effect.value === 'number' ? `HP ${effect.value} 이하 처형` : '처형 효과';
+    case 'onExecuteHeal':
+      return typeof effect.value === 'number' ? `처형 시 체력 ${effect.value} 회복` : '처형 회복';
+    case 'crossStun':
+      return '교차 시 기절';
+
+    // 밀치기/넉백 관련
+    case 'pushStrengthGain':
+      return typeof effect.value === 'number' ? `밀어낸 양의 ${effect.value}% 힘 획득` : '밀어내기 힘 획득';
+    case 'pushDisableCard':
+      return '밀어낸 카드 비활성화';
+
+    // 창조/드로우 관련
+    case 'createdCardDamageBoost':
+      return typeof effect.value === 'number'
+        ? (effect.value > 0 ? `창조 카드 피해 +${effect.value}` : `창조 카드 속도 ${effect.value}`)
+        : '창조 카드 강화';
+    case 'createdCardFinesseGain':
+      return typeof effect.value === 'number' ? `창조 카드 기교 +${effect.value}` : '창조 카드 기교 획득';
+    case 'fragPierce':
+      return '파쇄탄 관통';
+    case 'extraRecall':
+      return typeof effect.value === 'number' ? `${effect.value + 1}장 회수 가능` : '추가 회수';
+    case 'handLimitIncrease':
+      return typeof effect.value === 'number' ? `손패 제한 +${effect.value}` : '손패 제한 증가';
+    case 'drawnCardSpeedReduce':
+      return typeof effect.value === 'number' ? `뽑은 카드 속도 -${effect.value}` : '뽑은 카드 속도 감소';
+
+    // 버프/상태 관련
+    case 'gainPositiveToken':
+      return '긍정 토큰 획득';
+    case 'repeatPreviousEffect':
+      return typeof effect.value === 'number' ? `이전 효과 ${effect.value}% 재발동` : '이전 효과 재발동';
+    case 'excessBlockToStrength':
+      return '초과 방어력 힘 전환';
+    case 'nextTurnActionBoost':
+      return typeof effect.value === 'number' ? `다음 턴 행동력 +${effect.value}` : '다음 턴 행동력 증가';
+    case 'defenseToStrength':
+      return typeof effect.value === 'number' ? `방어력의 ${effect.value}% 힘 전환` : '방어력 힘 전환';
+    case 'debuffDurationBoost':
+      return typeof effect.value === 'number' ? `디버프 지속 +${effect.value}턴` : '디버프 지속 증가';
+    case 'repeatCardBoost':
+      return typeof effect.value === 'number' ? `반복 카드 효과 +${effect.value}%` : '반복 카드 강화';
+    case 'applyToGunCards':
+      return typeof effect.value === 'number' ? `총격 카드에도 +${effect.value}` : '총격 카드 적용';
+    case 'agilityToStrength':
+      return '민첩이 힘에도 적용';
+
+    default:
+      return null;
+  }
 }
 
 /**

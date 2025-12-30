@@ -580,7 +580,7 @@ export function CardGrowthModal({
                 </div>
               </div>
 
-              {/* 강화 효과 설명 (이전 단계 대비 향상치) */}
+              {/* 강화 효과 설명 (현재 레벨 대비 향상치) */}
               {previewLevel && selectedCardId && (
                 <div style={{
                   padding: '14px 18px',
@@ -590,10 +590,10 @@ export function CardGrowthModal({
                   textAlign: 'center',
                 }}>
                   <div style={{ fontSize: '0.9rem', color: '#60a5fa', marginBottom: '6px', fontWeight: 600 }}>
-                    +{previewLevel} 강화 효과 {previewLevel > 1 ? `(+${previewLevel - 1} 대비)` : ''}
+                    {currentLevel > 0 ? `+${currentLevel} → +${previewLevel}` : `+${previewLevel}`} 강화 효과
                   </div>
                   <div style={{ color: '#93c5fd', fontSize: '1rem' }}>
-                    {getEnhancementDifference(selectedCardId, previewLevel - 1, previewLevel) || '변경 없음'}
+                    {getEnhancementDifference(selectedCardId, currentLevel, previewLevel) || '변경 없음'}
                   </div>
                 </div>
               )}
