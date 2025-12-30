@@ -81,6 +81,7 @@ import { useCombatStartSetup } from "./hooks/useCombatStartSetup";
 import { usePlayerInitialization } from "./hooks/usePlayerInitialization";
 import { useEnemyInitialization } from "./hooks/useEnemyInitialization";
 import { useBattleSyncEffects } from "./hooks/useBattleSyncEffects";
+import { useBattleRefSync } from "./hooks/useBattleRefSync";
 import {
   MAX_SPEED,
   DEFAULT_PLAYER_MAX_SPEED,
@@ -397,12 +398,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   // orderedRelics는 아직 useState로 관리 (localStorage 로직 때문에)
   const hoveredRelic = battle.hoveredRelic;
 
-  // 새 상징 추가/제거 시 기존 순서를 유지하면서 병합
-  // 진행 단계에서는 동기화/변경을 막아 일관성 유지
-  useEffect(() => {
-    if (battle.phase === 'resolve') return;
-    actions.setOrderedRelics(mergeRelicOrder(relics, orderedRelicList));
-  }, [relics, mergeRelicOrder, battle.phase, orderedRelicList]);
+  // 상징 순서 병합은 useBattleRefSync에서 처리
 
   // addLog는 actions.addLog를 직접 사용 (stale closure 방지)
   const addLog = useCallback((m: string) => {
@@ -463,27 +459,22 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   // 개발자 모드: 모든 보유 카드 100% 등장
   const [devForceAllCards, setDevForceAllCards] = useState(false);
   const devForceAllCardsRef = useRef(false);
-  useEffect(() => { devForceAllCardsRef.current = devForceAllCards; }, [devForceAllCards]);
 
-  // battle 상태가 변경될 때마다 ref 업데이트
-  // nextTurnEffects는 동기적으로 업데이트되므로 기존 값 보존
-  useEffect(() => {
-    const currentNextTurnEffects = battleRef.current?.nextTurnEffects;
-    battleRef.current = {
-      ...battle,
-      // nextTurnEffects가 이미 설정되어 있으면 기존 값 보존 (동기 업데이트된 값)
-      nextTurnEffects: currentNextTurnEffects && Object.keys(currentNextTurnEffects).length > 0
-        ? { ...battle.nextTurnEffects, ...currentNextTurnEffects }
-        : battle.nextTurnEffects
-    };
-  }, [battle]);
-
-  // resolve 단계 진입 시 에테르 배율 캡처 (애니메이션 중 리셋되어도 표시 유지)
-  useEffect(() => {
-    if (battle.phase === 'resolve') {
-      displayEtherMultiplierRef.current = (player.etherMultiplier as number) || 1;
+  // 전투 상태 ref 동기화 (커스텀 훅으로 분리)
+  useBattleRefSync({
+    battle: battle as { phase: import('./reducer/battleReducerActions').BattlePhase; nextTurnEffects?: Record<string, unknown> },
+    battleRef: battleRef as MutableRefObject<{ phase: import('./reducer/battleReducerActions').BattlePhase; nextTurnEffects?: Record<string, unknown> }>,
+    player: player as { etherMultiplier?: number },
+    displayEtherMultiplierRef,
+    devForceAllCards,
+    devForceAllCardsRef,
+    relics,
+    orderedRelicList,
+    mergeRelicOrder,
+    actions: {
+      setOrderedRelics: actions.setOrderedRelics
     }
-  }, [battle.phase, player.etherMultiplier]);
+  });
 
   const computeComboMultiplier = useCallback((baseMult: number, cardsCount: number, includeFiveCard = true, includeRefBook = true, relicOrderOverride: Relic[] | null = null) => {
     const relicIds = relicOrderOverride ? relicOrderOverride.map(r => r.id) : null;
