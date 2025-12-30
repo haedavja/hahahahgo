@@ -591,6 +591,12 @@ export function generateEnhancedDescription(
       });
     }
 
+    // 특수 효과: 반격 부여 (counterOnHit)
+    const counterOnHit = enhancedStats.specialEffects.find(e => e.type === 'counterOnHit');
+    if (counterOnHit && typeof counterOnHit.value === 'number') {
+      description += ` 반격 ${counterOnHit.value}회 부여.`;
+    }
+
     // 텍스트에서 직접 교체 불가능한 효과만 표시
     const additions: string[] = [];
     if (enhancedStats.executeThresholdBonus > 0) {
