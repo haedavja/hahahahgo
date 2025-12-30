@@ -82,6 +82,7 @@ import { usePlayerInitialization } from "./hooks/usePlayerInitialization";
 import { useEnemyInitialization } from "./hooks/useEnemyInitialization";
 import { useBattleSyncEffects } from "./hooks/useBattleSyncEffects";
 import { useBattleRefSync } from "./hooks/useBattleRefSync";
+import { useEnemyDisplayData } from "./hooks/useEnemyDisplayData";
 import {
   MAX_SPEED,
   DEFAULT_PLAYER_MAX_SPEED,
@@ -104,8 +105,6 @@ import { RELICS, RELIC_RARITIES } from "../../data/relics";
 import { RELIC_EFFECT, RELIC_RARITY_COLORS } from "../../lib/relics";
 import { applyAgility } from "../../lib/agilityUtils";
 import { hasTrait, hasEnemyUnits, markCrossedCards } from "./utils/battleUtils";
-import { detectPokerCombo } from "./utils/comboDetection";
-import { getEnemyNameCounts, getGroupedEnemyMembers } from "./utils/enemyDisplayUtils";
 import { COMBO_MULTIPLIERS, BASE_ETHER_PER_CARD, CARD_ETHER_BY_RARITY, getCardEtherGain } from "./utils/etherCalculations";
 import { generateEnemyActions, shouldEnemyOverdrive, assignSourceUnitToActions } from "./utils/enemyAI";
 import { simulatePreview } from "./utils/battleSimulation";
@@ -1937,22 +1936,12 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     playSound
   });
 
-  const enemyNameCounts = useMemo(() => getEnemyNameCounts(enemy), [
-    enemy?.composition,
-    enemy?.name,
-    (enemy as { count?: number })?.count,
-    (enemy as { quantity?: number })?.quantity,
-    enemy
-  ]);
-
-  const groupedEnemyMembers = useMemo(() => getGroupedEnemyMembers(enemy), [
-    enemy?.composition,
-    enemy?.name,
-    enemy?.emoji,
-    enemy?.count,
-    enemy?.quantity,
-    enemy
-  ]);
+  // 적 표시 데이터 (커스텀 훅으로 분리)
+  const { enemyNameCounts, groupedEnemyMembers, enemyCombo, enemyHint } = useEnemyDisplayData({
+    enemy: enemy as { composition?: unknown[]; name?: string; count?: number; quantity?: number; emoji?: string } | null,
+    enemyPlan: enemyPlan as { actions?: unknown[]; mode?: unknown } | null,
+    battleLog: battle.log
+  });
 
   // 에테르 획득량 미리보기 (커스텀 훅으로 분리) - Hook은 조건부 return 전에 호출
   const previewEtherGain = useEtherPreview({
@@ -1961,13 +1950,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     orderedRelicList,
     playerComboUsageCount: player?.comboUsageCount || {}
   });
-
-  // 적 조합 감지 (표시용) - Hook은 조건부 return 전에 호출
-  const enemyCombo = useMemo(() => {
-    const rawActions = enemyPlan?.actions;
-    const actions = Array.isArray(rawActions) ? rawActions : [];
-    return detectPokerCombo(actions);
-  }, [enemyPlan?.actions]);
 
   // 전투 동기화 효과 (커스텀 훅으로 분리)
   useBattleSyncEffects({
@@ -1987,14 +1969,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       setEnemyCurrentDeflation: actions.setEnemyCurrentDeflation as (deflation: { multiplier: number; usageCount: number } | null) => void
     }
   });
-
-  // 적 성향 힌트 추출 - Hook은 조건부 return 전에 호출
-  const enemyHint = useMemo(() => {
-    const hintLog = battle.log.find(line => line.includes('적 성향 힌트'));
-    if (!hintLog) return null;
-    const match = hintLog.match(/적 성향 힌트[:\s]*(.+)/);
-    return match ? match[1].trim() : null;
-  }, [battle.log]);
 
   if (!enemy) return <div className="text-white p-4">로딩…</div>;
 
