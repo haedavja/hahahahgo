@@ -23,6 +23,68 @@ import type {
   BattleResult,
 } from '../../types';
 
+/**
+ * 적 데이터를 유닛 맵으로 처리하는 헬퍼 함수
+ * 중복 코드 제거를 위해 추출됨
+ */
+const processEnemyDataToUnits = (
+  enemies: EnemyData[],
+  includeMaxHpSeparate: boolean = true
+): { unitMap: Map<string, EnemyUnit>; deck: Card[] } => {
+  const unitMap = new Map<string, EnemyUnit>();
+
+  enemies.forEach(e => {
+    const key = e.id || e.name;
+    if (!unitMap.has(key)) {
+      unitMap.set(key, {
+        id: e.id,
+        name: e.name,
+        emoji: e.emoji || "👾",
+        count: 0,
+        hp: 0,
+        maxHp: 0,
+        individualHp: e.hp || 40,
+        individualMaxHp: e.maxHp || e.hp || 40,
+        ether: 0,
+        individualEther: e.ether || 100,
+        speed: e.speed || 10,
+        deck: e.deck || [],
+        cardsPerTurn: 0,
+        individualCardsPerTurn: e.cardsPerTurn || 2,
+        passives: e.passives || {},
+        tier: e.tier || 1,
+        isBoss: e.isBoss || false,
+        unitId: 0,
+        block: 0,
+        tokens: { permanent: [], turn: [], usage: [] },
+      });
+    }
+    const unit = unitMap.get(key);
+    if (unit) {
+      unit.count += 1;
+      unit.hp += e.hp || 40;
+      unit.maxHp += includeMaxHpSeparate ? (e.maxHp || e.hp || 40) : (e.hp || 40);
+      unit.ether += e.ether || 100;
+      unit.cardsPerTurn += e.cardsPerTurn || 2;
+    }
+  });
+
+  const deck = enemies.flatMap(e => (e.deck as Card[]) || []);
+  return { unitMap, deck };
+};
+
+/**
+ * 유닛 맵을 최종 유닛 배열로 변환
+ */
+const finalizeEnemyUnits = (unitMap: Map<string, EnemyUnit>): EnemyUnit[] => {
+  return Array.from(unitMap.values()).map((unit, idx) => ({
+    ...unit,
+    unitId: idx,
+    block: 0,
+    tokens: { permanent: [], turn: [], usage: [] },
+  }));
+};
+
 const buildBattlePayload = (
   battle: Battle | null,
   etherPts: number,
@@ -46,58 +108,15 @@ const buildBattlePayload = (
   let enemyUnits: EnemyUnit[] = [];
 
   if (battle.mixedEnemies && Array.isArray(battle.mixedEnemies) && battle.mixedEnemies.length > 0) {
-    const mixedEnemies = battle.mixedEnemies;
-
-    const unitMap = new Map<string, EnemyUnit>();
-    mixedEnemies.forEach(e => {
-      const key = e.id || e.name;
-      if (!unitMap.has(key)) {
-        unitMap.set(key, {
-          id: e.id,
-          name: e.name,
-          emoji: e.emoji || "👾",
-          count: 0,
-          hp: 0,
-          maxHp: 0,
-          individualHp: e.hp || 40,
-          individualMaxHp: e.maxHp || e.hp || 40,
-          ether: 0,
-          individualEther: e.ether || 100,
-          speed: e.speed || 10,
-          deck: e.deck || [],
-          cardsPerTurn: 0,
-          individualCardsPerTurn: e.cardsPerTurn || 2,
-          passives: e.passives || {},
-          tier: e.tier || 1,
-          isBoss: e.isBoss || false,
-          unitId: 0,
-          block: 0,
-          tokens: { permanent: [], turn: [], usage: [] },
-        });
-      }
-      const unit = unitMap.get(key);
-      if (unit) {
-        unit.count += 1;
-        unit.hp += e.hp || 40;
-        unit.maxHp += e.maxHp || e.hp || 40;
-        unit.ether += e.ether || 100;
-        unit.cardsPerTurn += e.cardsPerTurn || 2;
-      }
-    });
-
-    enemyUnits = Array.from(unitMap.values()).map((unit, idx) => ({
-      ...unit,
-      unitId: idx,
-      block: 0,
-      tokens: { permanent: [], turn: [], usage: [] },
-    }));
+    const { unitMap, deck } = processEnemyDataToUnits(battle.mixedEnemies, true);
+    enemyUnits = finalizeEnemyUnits(unitMap);
 
     if (!battle.label) {
       enemyName = enemyUnits.map(u => u.count > 1 ? `${u.name}×${u.count}` : u.name).join(' + ');
     }
     enemyHp = enemyUnits.reduce((sum, u) => sum + u.hp, 0);
-    enemyDeck = mixedEnemies.flatMap(e => (e.deck as Card[]) || []);
-    enemyCount = mixedEnemies.length;
+    enemyDeck = deck;
+    enemyCount = battle.mixedEnemies.length;
     enemyComposition = enemyUnits.map(u => ({
       name: u.name,
       emoji: u.emoji,
@@ -109,57 +128,20 @@ const buildBattlePayload = (
       count: u.count,
     }));
   } else if (battle.enemies && Array.isArray(battle.enemies)) {
-    const mixedEnemies = battle.enemies.map(id => ENEMIES.find((e: EnemyData) => e.id === id)).filter(Boolean) as EnemyData[];
-    if (mixedEnemies.length > 0) {
-      const unitMap = new Map<string, EnemyUnit>();
-      mixedEnemies.forEach(e => {
-        const key = e.id || e.name;
-        if (!unitMap.has(key)) {
-          unitMap.set(key, {
-            id: e.id,
-            name: e.name,
-            emoji: e.emoji || "👾",
-            count: 0,
-            hp: 0,
-            maxHp: 0,
-            ether: 0,
-            individualHp: e.hp || 40,
-            individualEther: e.ether || 100,
-            speed: e.speed || 10,
-            deck: e.deck || [],
-            cardsPerTurn: 0,
-            individualCardsPerTurn: e.cardsPerTurn || 2,
-            passives: e.passives || {},
-            tier: e.tier || 1,
-            isBoss: e.isBoss || false,
-            unitId: 0,
-            block: 0,
-            tokens: { permanent: [], turn: [], usage: [] },
-          });
-        }
-        const unit = unitMap.get(key);
-        if (unit) {
-          unit.count += 1;
-          unit.hp += e.hp || 40;
-          unit.maxHp += e.hp || 40;
-          unit.ether += e.ether || 100;
-          unit.cardsPerTurn += e.cardsPerTurn || 2;
-        }
-      });
+    const resolvedEnemies = battle.enemies
+      .map(id => ENEMIES.find((e: EnemyData) => e.id === id))
+      .filter(Boolean) as EnemyData[];
 
-      enemyUnits = Array.from(unitMap.values()).map((unit, idx) => ({
-        ...unit,
-        unitId: idx,
-        block: 0,
-        tokens: { permanent: [], turn: [], usage: [] },
-      }));
+    if (resolvedEnemies.length > 0) {
+      const { unitMap, deck } = processEnemyDataToUnits(resolvedEnemies, false);
+      enemyUnits = finalizeEnemyUnits(unitMap);
 
       if (!battle.label) {
         enemyName = enemyUnits.map(u => u.count > 1 ? `${u.name}×${u.count}` : u.name).join(' + ');
       }
       enemyHp = enemyUnits.reduce((sum, u) => sum + u.hp, 0);
-      enemyDeck = mixedEnemies.flatMap(e => (e.deck as Card[]) || []);
-      enemyCount = mixedEnemies.length;
+      enemyDeck = deck;
+      enemyCount = resolvedEnemies.length;
       enemyComposition = enemyUnits.map(u => ({
         name: u.name,
         emoji: u.emoji,
@@ -304,16 +286,18 @@ export const BattleScreen: FC = () => {
 
   const [devToolsOpen, setDevToolsOpen] = useState(false);
 
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent): void => {
-      if (e.altKey && (e.key === 'd' || e.key === 'D')) {
-        e.preventDefault();
-        setDevToolsOpen((prev) => !prev);
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+  // useCallback으로 이벤트 핸들러 메모이제이션
+  const handleDevToolsKeyDown = useCallback((e: KeyboardEvent): void => {
+    if (e.altKey && (e.key === 'd' || e.key === 'D')) {
+      e.preventDefault();
+      setDevToolsOpen((prev) => !prev);
+    }
   }, []);
+
+  useEffect(() => {
+    window.addEventListener('keydown', handleDevToolsKeyDown);
+    return () => window.removeEventListener('keydown', handleDevToolsKeyDown);
+  }, [handleDevToolsKeyDown]);
 
   const handleBattleResult = useCallback(
     ({ result, playerEther: resultEther, deltaEther, playerHp, playerMaxHp }: BattleResult): void => {

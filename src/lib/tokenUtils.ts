@@ -121,20 +121,30 @@ export function addToken(
     }
 
     if (tokenId === 'gun_jam') {
-      for (const type of [TOKEN_TYPES.USAGE, TOKEN_TYPES.TURN, TOKEN_TYPES.PERMANENT]) {
+      // 최적화: 단일 패스로 gun_jam 존재 체크
+      const tokenTypes = [TOKEN_TYPES.USAGE, TOKEN_TYPES.TURN, TOKEN_TYPES.PERMANENT] as const;
+
+      // gun_jam 이미 존재 체크 (O(n) -> O(1) by early exit)
+      for (const type of tokenTypes) {
         const arr = tokens[type] || [];
         if (arr.some(t => t.id === 'gun_jam')) {
           logs.push(`이미 탄걸림 상태`);
           return { tokens, logs };
         }
       }
-      for (const removeTokenId of GUN_JAM_REMOVES) {
-        for (const type of [TOKEN_TYPES.USAGE, TOKEN_TYPES.TURN, TOKEN_TYPES.PERMANENT]) {
-          const arr = tokens[type] || [];
-          const idx = arr.findIndex(t => t.id === removeTokenId);
-          if (idx !== -1) {
-            arr.splice(idx, 1);
-            logs.push(`탄걸림 발생으로 ${TOKENS[removeTokenId]?.name || removeTokenId} 제거됨`);
+
+      // 최적화: GUN_JAM_REMOVES를 Set으로 변환하여 O(1) 룩업
+      const removeSet = new Set(GUN_JAM_REMOVES);
+
+      // 단일 패스로 모든 타입에서 제거 대상 토큰 처리
+      for (const type of tokenTypes) {
+        const arr = tokens[type] || [];
+        // 뒤에서부터 순회하여 splice 인덱스 문제 방지
+        for (let i = arr.length - 1; i >= 0; i--) {
+          if (removeSet.has(arr[i].id)) {
+            const removedTokenId = arr[i].id;
+            arr.splice(i, 1);
+            logs.push(`탄걸림 발생으로 ${TOKENS[removedTokenId]?.name || removedTokenId} 제거됨`);
           }
         }
       }

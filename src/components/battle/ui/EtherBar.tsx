@@ -2,15 +2,23 @@
  * EtherBar.tsx
  *
  * 에테르 게이지 바 컴포넌트
+ * 최적화: 헬퍼 함수 추출, memo 적용
  */
 
-import { FC } from 'react';
+import { FC, memo } from 'react';
 import { calculateEtherSlots, getCurrentSlotPts, getSlotProgress, getNextSlotCost } from '../../../lib/etherUtils';
 import { formatCompactValue } from '../utils/formatUtils';
 import { PLAYER_SLOT_COLORS, ENEMY_SLOT_COLORS } from './constants/colors';
 import type { EtherBarActions } from '../../../types';
 
 const etherSlots = (pts: number): number => calculateEtherSlots(pts || 0);
+
+/**
+ * 숫자가 유효한지 검증하고 기본값 반환
+ * 반복되는 Number.isFinite 검증을 단일 헬퍼로 추출
+ */
+const ensureFinite = (value: number | undefined, fallback: number): number =>
+  Number.isFinite(value) ? value! : fallback;
 
 interface EtherBarProps {
   pts: number;
@@ -24,7 +32,7 @@ interface EtherBarProps {
   actions?: EtherBarActions;
 }
 
-export const EtherBar: FC<EtherBarProps> = ({
+export const EtherBar: FC<EtherBarProps> = memo(({
   pts,
   slots,
   previewGain = 0,
@@ -35,10 +43,12 @@ export const EtherBar: FC<EtherBarProps> = ({
   showPtsTooltip = false,
   actions
 }) => {
-  const safePts = Number.isFinite(pts) ? pts : 0;
-  const derivedSlots = Number.isFinite(slots) ? slots : etherSlots(safePts);
-  const safeSlots = Number.isFinite(derivedSlots) ? derivedSlots : 0;
-  const safePreview = Number.isFinite(previewGain) ? previewGain : 0;
+  // 헬퍼 함수로 중복 검증 제거
+  const safePts = ensureFinite(pts, 0);
+  const derivedSlots = ensureFinite(slots, etherSlots(safePts));
+  const safeSlots = ensureFinite(derivedSlots, 0);
+  const safePreview = ensureFinite(previewGain, 0);
+  const slotColorIndex = safeSlots % PLAYER_SLOT_COLORS.length;
 
   // 현재 슬롯 내의 pt (각 슬롯 도달시마다 0으로 리셋)
   const currentPts = getCurrentSlotPts(safePts);
@@ -98,7 +108,7 @@ export const EtherBar: FC<EtherBarProps> = ({
           bottom: '3px',
           height: `${ratio * 100}%`,
           borderRadius: '24px',
-          background: slotColors[((safeSlots ?? 0) % slotColors.length + slotColors.length) % slotColors.length],
+          background: slotColors[slotColorIndex],
           transition: 'height 0.8s ease-out'
         }} />
       </div>
@@ -136,4 +146,4 @@ export const EtherBar: FC<EtherBarProps> = ({
       </div>
     </div>
   );
-};
+});
