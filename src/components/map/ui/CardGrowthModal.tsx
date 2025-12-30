@@ -500,7 +500,11 @@ export function CardGrowthModal({
                         }}
                       >
                         <span>+{level.level}</span>
-                        {level.isMilestone && <span style={{ fontSize: '10px' }}>★ 마일스톤</span>}
+                        {level.isMilestone && (
+                          <span style={{ fontSize: '10px' }}>
+                            {level.level === 3 ? '특별' : level.level === 5 ? '전설' : ''}
+                          </span>
+                        )}
                       </button>
                     );
                   })}

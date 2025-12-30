@@ -988,11 +988,11 @@ function EnhancePreviewPanel({
                   fontSize: "11px",
                   padding: "2px 6px",
                   borderRadius: "4px",
-                  background: "rgba(251, 191, 36, 0.2)",
-                  color: "#fbbf24",
-                  border: "1px solid rgba(251, 191, 36, 0.4)"
+                  background: nextPreview.level === 5 ? "rgba(251, 191, 36, 0.2)" : "rgba(167, 139, 250, 0.2)",
+                  color: nextPreview.level === 5 ? "#fbbf24" : "#a78bfa",
+                  border: nextPreview.level === 5 ? "1px solid rgba(251, 191, 36, 0.4)" : "1px solid rgba(167, 139, 250, 0.4)"
                 }}>
-                  ★ 마일스톤
+                  {nextPreview.level === 3 ? '특별 등급' : nextPreview.level === 5 ? '전설 등급' : ''}
                 </span>
               )}
             </div>
