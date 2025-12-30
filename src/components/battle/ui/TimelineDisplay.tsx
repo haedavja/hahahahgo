@@ -176,7 +176,7 @@ export const TimelineDisplay: FC<TimelineDisplayProps> = memo(({
                   <span role="img" aria-label="overdrive">✨</span> {enemyOverdriveLabel}
                 </div>
               )}
-              <div className="timeline-lane player-lane" style={{ width: `${playerRatio * 100}%` }}>
+              <div className="timeline-lane player-lane" style={{ width: `${playerRatio * 100}%`, overflow: 'hidden' }}>
                 {Array.from({ length: playerMax + 1 }).map((_, i) => (
                   <div key={`p-grid-${i}`} className="timeline-gridline" style={{ left: `${(i / playerMax) * 100}%` }} />
                 ))}
@@ -275,7 +275,7 @@ export const TimelineDisplay: FC<TimelineDisplayProps> = memo(({
                   const globalIndex = battle.phase === 'resolve' && queue ? queue.findIndex(q => q === a) : -1;
                   const isExecuting = executingCardIndex === globalIndex;
                   const isUsed = Array.isArray(usedCardIndices) && usedCardIndices.includes(globalIndex) && globalIndex < qIndex;
-                  const normalizedPosition = ((a.sp ?? 0) / playerMax) * 100;
+                  const normalizedPosition = Math.min(((a.sp ?? 0) / playerMax) * 100, 100);
                   return (
                     <div key={idx}
                       className={`timeline-marker marker-player ${isExecuting ? 'timeline-active' : ''} ${isUsed ? 'timeline-used' : ''}`}
@@ -287,7 +287,7 @@ export const TimelineDisplay: FC<TimelineDisplayProps> = memo(({
                 })}
               </div>
 
-              <div className="timeline-lane enemy-lane" style={{ width: `${enemyRatio * 100}%` }}>
+              <div className="timeline-lane enemy-lane" style={{ width: `${enemyRatio * 100}%`, overflow: 'hidden' }}>
                 {!hideEnemyTimeline && (
                   <>
                     {Array.from({ length: enemyMax + 1 }).map((_, i) => (
@@ -304,7 +304,7 @@ export const TimelineDisplay: FC<TimelineDisplayProps> = memo(({
                       const isDestroying = destroyingEnemyCards.includes(idx);
                       const isFreezing = freezingEnemyCards.includes(idx);
                       const isFrozen = frozenOrder > 0 && !isFreezing; // 빙결 상태 지속 (애니메이션 중이 아닐 때)
-                      const normalizedPosition = ((a.sp ?? 0) / enemyMax) * 100;
+                      const normalizedPosition = Math.min(((a.sp ?? 0) / enemyMax) * 100, 100);
                       const levelForTooltip = battle.phase === 'select' ? (insightReveal?.level || 0) : (effectiveInsight || 0);
                       const canShowTooltip = levelForTooltip >= 3;
                       const markerCls = [
