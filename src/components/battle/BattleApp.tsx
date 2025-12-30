@@ -87,6 +87,7 @@ import { useRenderComputations } from "./hooks/useRenderComputations";
 import { useGameStoreSelectors } from "./hooks/useGameStoreSelectors";
 import { useComboMultiplierCallbacks } from "./hooks/useComboMultiplierCallbacks";
 import { useBattleResultCallbacks } from "./hooks/useBattleResultCallbacks";
+import { useBattleUtilityCallbacks } from "./hooks/useBattleUtilityCallbacks";
 import {
   MAX_SPEED,
   DEFAULT_PLAYER_MAX_SPEED,
@@ -405,18 +406,11 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
   // 상징 순서 병합은 useBattleRefSync에서 처리
 
-  // addLog는 actions.addLog를 직접 사용 (stale closure 방지)
-  const addLog = useCallback((m: string) => {
-    actions.addLog(m);
-  }, [actions]);
-  const formatSpeedText = useCallback((baseSpeed: number) => {
-    const finalSpeed = applyAgility(baseSpeed, Number(effectiveAgility));
-    const diff = finalSpeed - baseSpeed;
-    if (diff === 0) return `${finalSpeed}`;
-    const sign = diff < 0 ? '-' : '+';
-    const abs = Math.abs(diff);
-    return `${finalSpeed} (${baseSpeed} ${sign} ${abs})`;
-  }, [effectiveAgility]);
+  // 유틸리티 콜백 훅 (addLog, formatSpeedText)
+  const { addLog, formatSpeedText } = useBattleUtilityCallbacks({
+    effectiveAgility,
+    actions: { addLog: actions.addLog }
+  });
 
   // 전투 ref 통합 관리 (useBattleRefs 커스텀 훅)
   const {
