@@ -80,6 +80,7 @@ export function CardGrowthModal({
   const [specOptions, setSpecOptions] = useState<SpecializationOption[]>([]);
   const [selectedSpecOption, setSelectedSpecOption] = useState<SpecializationOption | null>(null);
   const [notification, setNotification] = useState<{ message: string; type: string } | null>(null);
+  const [hoveredTrait, setHoveredTrait] = useState<{ traitId: string; x: number; y: number } | null>(null);
 
   // 보유 카드만 표시 (중복 제거)
   const uniqueOwnedCardIds = useMemo(() => {
@@ -524,6 +525,7 @@ export function CardGrowthModal({
                     growth={selectedGrowth!}
                     stats={currentStats}
                     enhancementLevel={currentLevel}
+                    onTraitHover={(traitId, x, y) => setHoveredTrait(traitId ? { traitId, x, y } : null)}
                   />
                 </div>
 
@@ -549,6 +551,7 @@ export function CardGrowthModal({
                       stats={previewStats}
                       enhancementLevel={previewLevel}
                       isPreview
+                      onTraitHover={(traitId, x, y) => setHoveredTrait(traitId ? { traitId, x, y } : null)}
                     />
                   ) : (
                     <div style={{
@@ -628,6 +631,7 @@ export function CardGrowthModal({
                     growth={selectedGrowth!}
                     stats={currentStats}
                     enhancementLevel={currentLevel}
+                    onTraitHover={(traitId, x, y) => setHoveredTrait(traitId ? { traitId, x, y } : null)}
                   />
                 </div>
 
@@ -658,6 +662,7 @@ export function CardGrowthModal({
                         ...selectedSpecOption.traits.map(t => t.id)
                       ]}
                       previewBorderColor="#86efac"
+                      onTraitHover={(traitId, x, y) => setHoveredTrait(traitId ? { traitId, x, y } : null)}
                     />
                   ) : (
                     <div style={{
@@ -748,6 +753,53 @@ export function CardGrowthModal({
           )}
         </div>
       </div>
+
+      {/* 특성 툴팁 (고정 위치) */}
+      {hoveredTrait && (() => {
+        const trait = TRAITS[hoveredTrait.traitId as keyof typeof TRAITS];
+        if (!trait) return null;
+        const isPositive = trait.type === 'positive';
+        return (
+          <div
+            style={{
+              position: 'fixed',
+              left: `${hoveredTrait.x}px`,
+              top: `${hoveredTrait.y - 10}px`,
+              transform: 'translate(-50%, -100%)',
+              background: 'rgba(0, 0, 0, 0.95)',
+              border: `2px solid ${isPositive ? '#22c55e' : '#ef4444'}`,
+              borderRadius: '10px',
+              padding: '12px 16px',
+              boxShadow: '0 8px 24px rgba(0, 0, 0, 0.9)',
+              zIndex: 99999,
+              pointerEvents: 'none',
+              minWidth: '200px',
+              maxWidth: '300px',
+            }}
+          >
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              marginBottom: '6px'
+            }}>
+              <span style={{
+                fontSize: '1.1rem',
+                fontWeight: 700,
+                color: isPositive ? '#22c55e' : '#ef4444'
+              }}>
+                {trait.name}
+              </span>
+              <span style={{ fontSize: '0.9rem', color: '#fbbf24' }}>
+                {"★".repeat(trait.weight)}
+              </span>
+            </div>
+            <div style={{ fontSize: '0.95rem', color: '#cbd5e1', lineHeight: 1.5 }}>
+              {trait.description}
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
@@ -761,6 +813,7 @@ function GameCardDisplay({
   isPreview = false,
   overrideTraits,
   previewBorderColor,
+  onTraitHover,
 }: {
   card: CardData;
   growth: CardGrowthState;
@@ -769,6 +822,7 @@ function GameCardDisplay({
   isPreview?: boolean;
   overrideTraits?: string[];
   previewBorderColor?: string;
+  onTraitHover?: (traitId: string | null, x: number, y: number) => void;
 }) {
   const Icon = card.icon || (card.type === 'attack' ? Sword : Shield);
   const damage = (card.damage || 0) + (stats?.damageBonus || 0);
@@ -875,8 +929,40 @@ function GameCardDisplay({
       {/* 푸터 영역 */}
       <div className="card-footer">
         {displayTraits && displayTraits.length > 0 && (
-          <div style={{ pointerEvents: 'auto' }}>
-            <TraitBadgeList traits={displayTraits} />
+          <div style={{ pointerEvents: 'auto', display: 'flex', gap: '4px', flexWrap: 'wrap', fontWeight: 600 }}>
+            {displayTraits.map((traitId: string) => {
+              const trait = TRAITS[traitId as keyof typeof TRAITS];
+              if (!trait) return null;
+              const isPositive = trait.type === 'positive';
+              const color = isPositive ? '#22c55e' : '#ef4444';
+              const background = isPositive ? 'rgba(34, 197, 94, 0.2)' : 'rgba(239, 68, 68, 0.2)';
+              return (
+                <span
+                  key={traitId}
+                  onMouseEnter={(e) => {
+                    if (onTraitHover) {
+                      const rect = e.currentTarget.getBoundingClientRect();
+                      onTraitHover(traitId, rect.left + rect.width / 2, rect.top);
+                    }
+                  }}
+                  onMouseLeave={() => {
+                    if (onTraitHover) {
+                      onTraitHover(null, 0, 0);
+                    }
+                  }}
+                  style={{
+                    color,
+                    background,
+                    padding: '2px 6px',
+                    borderRadius: '4px',
+                    border: `1px solid ${color}`,
+                    cursor: 'pointer',
+                  }}
+                >
+                  {trait.name}
+                </span>
+              );
+            })}
           </div>
         )}
         <span className="card-description">{description || ''}</span>
