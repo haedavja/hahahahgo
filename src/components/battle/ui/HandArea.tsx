@@ -325,7 +325,7 @@ export const HandArea: FC<HandAreaProps> = memo(({
       {battle.phase === 'respond' && fixedOrder && (
         <div className="hand-cards" style={{ justifyContent: 'center' }}>
           {fixedOrder.filter(a => a.actor === 'player').map((action, idx, arr) => {
-            const c = action.card as unknown as Card;
+            const c = action.card;
             const Icon = c.icon || (c.type === 'attack' ? Sword : Shield);
             // 카드 객체의 플래그를 사용 (같은 카드 타입이 주특기/보조특기에 각각 있을 때 구별)
             const isMainSpecial = c.__isMainSpecial;
@@ -407,7 +407,7 @@ export const HandArea: FC<HandAreaProps> = memo(({
       {battle.phase === 'resolve' && queue && battle.queue.length > 0 && (
         <div className="hand-cards" style={{ justifyContent: 'center' }}>
           {queue.filter((a) => a.actor === 'player').map((a, i: number) => {
-            const card = a.card as unknown as Card;
+            const card = a.card;
             const Icon = card.icon || (card.type === 'attack' ? Sword : Shield);
             const globalIndex = queue.findIndex((q) => q === a);
             const isUsed = Array.isArray(usedCardIndices) && usedCardIndices.includes(globalIndex);

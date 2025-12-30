@@ -332,7 +332,7 @@ export function applyAction(
       taken: result.taken,
       events: [...result.events, ...cardPlayResult.events] as BattleEvent[],
       updatedState,
-      cardPlaySpecials: cardPlayResult as unknown as CardPlaySpecialsResult
+      cardPlaySpecials: cardPlayResult
     };
   }
 
@@ -382,7 +382,7 @@ export function applyAction(
       updatedState,
       isCritical: result.isCritical,
       createdCards: result.createdCards || [],
-      cardPlaySpecials: cardPlayResult as unknown as CardPlaySpecialsResult,
+      cardPlaySpecials: cardPlayResult,
       defenderTimelineAdvance: result.defenderTimelineAdvance || 0,
       queueModifications: result.queueModifications
     };

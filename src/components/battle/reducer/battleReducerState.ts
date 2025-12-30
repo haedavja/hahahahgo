@@ -24,7 +24,9 @@ import type {
   ReducerEnemyState,
   ReducerEnemyUnitState,
   DeflationInfo,
-  OrderItem
+  OrderItem,
+  HoveredCard,
+  HoveredEnemyAction
 } from '../../../types';
 import type { BattlePhase, SortType, EtherCalcPhase } from './battleReducerActions';
 
@@ -140,7 +142,7 @@ export interface FullBattleState {
   resolvedPlayerCards: number;
 
   // 카드 툴팁
-  hoveredCard: Card | null;
+  hoveredCard: HoveredCard | null;
   tooltipVisible: boolean;
   previewDamage: PreviewDamage;
   perUnitPreviewDamage: Record<number, PreviewDamage>;
@@ -152,7 +154,7 @@ export interface FullBattleState {
   showInsightTooltip: boolean;
 
   // 적 행동 툴팁
-  hoveredEnemyAction: Card | null;
+  hoveredEnemyAction: HoveredEnemyAction | null;
 
   // 카드 파괴/빙결 애니메이션
   destroyingEnemyCards: number[];

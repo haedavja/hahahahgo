@@ -225,12 +225,13 @@ export interface ActionResult {
   queueModifications?: Array<{ index: number; newSp: number }>;
 }
 
-/** 카드 사용 특수 효과 결과 */
+/** 카드 사용 특수 효과 결과 - CardPlayResult와 호환 */
 export interface CardPlaySpecialsResult {
   tokensToAdd?: TokenToAdd[];
   tokensToRemove?: TokenToRemove[];
   events: BattleEvent[];
   logs: string[];
+  [key: string]: unknown;
 }
 
 /** 추가할 토큰 정보 */

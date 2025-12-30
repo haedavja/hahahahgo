@@ -98,6 +98,7 @@ export interface TimelineCard {
 /**
  * UI용 타임라인 액션 - OrderItem과 호환
  * useBattleTimelines 출력 및 battle.queue와 호환됨
+ * ExpectedDamagePreview, TimelineDisplay 등에서 사용
  */
 export interface UITimelineAction {
   actor: 'player' | 'enemy';
@@ -106,6 +107,7 @@ export interface UITimelineAction {
   idx?: number;
   originalIndex?: number;
   finalSpeed?: number;
+  [key: string]: unknown;
 }
 
 /** 패리 상태 */
@@ -250,7 +252,7 @@ export interface HandEnemy {
 }
 
 /**
- * 손패 액션 - OrderItem과 호환
+ * 손패 액션 - OrderItem, BattleAction과 호환
  * actor, card만 필수, 나머지는 선택적
  */
 export interface HandAction {
@@ -260,6 +262,7 @@ export interface HandAction {
   sp?: number;
   originalIndex?: number;
   finalSpeed?: number;
+  [key: string]: unknown;
 }
 
 /**

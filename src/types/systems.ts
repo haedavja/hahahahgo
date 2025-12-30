@@ -554,11 +554,12 @@ export interface CheckParryTriggerParams {
  */
 export type StunCardInfo = Card;
 
-/** 기절 처리용 액션 */
+/** 기절 처리용 액션 - BattleAction과 호환 */
 export interface StunAction {
   card: StunCardInfo;
   sp?: number;
   actor: 'player' | 'enemy';
+  [key: string]: unknown;
 }
 
 /**
@@ -623,17 +624,18 @@ export interface SimBattleState {
   log: string[];
 }
 
-/** 시뮬레이션 액션 이벤트 */
+/** 시뮬레이션 액션 이벤트 - BattleEvent와 호환 */
 export interface SimActionEvent {
   actor: string;
-  card: string;
-  type: string;
+  card?: string;
+  type?: string;
   msg: string;
   dmg?: number;
   beforeHP?: number;
   afterHP?: number;
   block?: number;
   value?: number;
+  [key: string]: unknown;
 }
 
 /** 시뮬레이션 액션 결과 */

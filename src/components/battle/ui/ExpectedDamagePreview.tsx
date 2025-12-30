@@ -11,23 +11,20 @@ import type {
   ExpectedDamageEnemy as Enemy,
   SimulationResult,
   PostCombatOptions,
+  UITimelineAction,
 } from '../../../types';
-
-interface Action {
-  [key: string]: unknown;
-}
 
 interface ExpectedDamagePreviewProps {
   player: Player;
   enemy: Enemy;
-  fixedOrder: Action[] | null;
+  fixedOrder: UITimelineAction[] | null;
   willOverdrive: boolean;
   enemyMode: string;
-  enemyActions: Action[];
+  enemyActions: UITimelineAction[];
   phase: string;
   log: string[] | null;
   qIndex: number;
-  queue: Action[] | null;
+  queue: UITimelineAction[] | null;
   stepOnce: () => void;
   runAll: () => void;
   finishTurn: (reason: string) => void;
@@ -41,10 +38,10 @@ interface ExpectedDamagePreviewProps {
   simulatePreview: (params: {
     player: Player;
     enemy: Enemy;
-    fixedOrder: Action[] | null;
+    fixedOrder: UITimelineAction[] | null;
     willOverdrive: boolean;
     enemyMode: string;
-    enemyActions: Action[];
+    enemyActions: UITimelineAction[];
     turnNumber: number;
   }) => SimulationResult;
 }

@@ -2886,14 +2886,14 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         <ExpectedDamagePreview
           player={player}
           enemy={enemy}
-          fixedOrder={(fixedOrder || playerTimeline) as unknown as { [key: string]: unknown }[] | null}
+          fixedOrder={fixedOrder || playerTimeline}
           willOverdrive={willOverdrive}
           enemyMode={(enemyPlan.mode ?? null) as string}
-          enemyActions={(enemyPlan.actions ?? []) as unknown as { [key: string]: unknown }[]}
+          enemyActions={enemyPlan.actions ?? []}
           phase={battle.phase}
           log={log}
           qIndex={battle.qIndex}
-          queue={battle.queue as unknown as { [key: string]: unknown }[] | null}
+          queue={battle.queue}
           stepOnce={stepOnce}
           runAll={runAll}
           finishTurn={finishTurn}
@@ -2904,7 +2904,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
           resolveStartPlayer={resolveStartPlayer}
           resolveStartEnemy={resolveStartEnemy}
           turnNumber={turnNumber}
-          simulatePreview={simulatePreview as unknown as (params: { player: ExpectedDamagePlayer; enemy: ExpectedDamageEnemy; fixedOrder: { [key: string]: unknown }[] | null; willOverdrive: boolean; enemyMode: string; enemyActions: { [key: string]: unknown }[]; turnNumber: number }) => SimulationResult}
+          simulatePreview={simulatePreview}
         />
         {/* 배율 경로: 단계와 무관하게 항상 표시 */}
         {comboStepsLog.length > 0 && (
@@ -3164,9 +3164,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
       <BattleTooltips
         tooltipVisible={tooltipVisible}
-        hoveredCard={hoveredCard as unknown as HoveredCard | null}
+        hoveredCard={hoveredCard}
         battle={battle}
-        hoveredEnemyAction={hoveredEnemyAction as unknown as HoveredEnemyAction | null}
+        hoveredEnemyAction={hoveredEnemyAction}
         insightReveal={insightReveal}
         effectiveInsight={effectiveInsight}
       />

@@ -132,7 +132,7 @@ export function executeCardActionCore(params: ExecuteCardActionCoreParams): Exec
   };
 
   // 카드 트레잇 즉시 효과 처리
-  const traitResult = processImmediateCardTraits({ card: action.card, actor: action.actor, player: P, enemy: E, addLog } as unknown as Parameters<typeof processImmediateCardTraits>[0]);
+  const traitResult = processImmediateCardTraits({ card: action.card, actor: action.actor, player: P, enemy: E, addLog });
   P = traitResult.player as typeof P;
   E = traitResult.enemy as typeof E;
 
@@ -145,12 +145,12 @@ export function executeCardActionCore(params: ExecuteCardActionCoreParams): Exec
     relics: orderedRelicList,
     flashRelic,
     addLog
-  } as unknown as Parameters<typeof processCardPlayedRelicEffects>[0]);
+  });
   // P, E는 함수 내부에서 직접 수정됨 (playerState.hp = healed 등)
 
   // 스턴 효과 처리
   const stunResult = processStunEffect({
-    action: action as unknown as StunAction,
+    action,
     queue: battleRef.current?.queue ?? [],
     currentQIndex: battleRef.current?.qIndex ?? 0,
     addLog
@@ -371,8 +371,8 @@ export function executeCardActionCore(params: ExecuteCardActionCoreParams): Exec
 
   // 이벤트 애니메이션
   processActionEventAnimations({
-    actionEvents: actionEvents as unknown as SimActionEvent[],
-    action: action as unknown as HandAction,
+    actionEvents,
+    action,
     playHitSound: playHitSound ?? (() => {}),
     playBlockSound: playBlockSound ?? (() => {}),
     actions
