@@ -6,7 +6,7 @@
  */
 
 import type { StateCreator } from 'zustand';
-import type { GameStore, BattleSliceActions, BattleCard } from './types';
+import type { GameStore, BattleSliceActions, BattleCard, BattleRewards } from './types';
 import { ENEMIES, getRandomEnemy } from '../../components/battle/battleData';
 import { drawHand, buildSpeedTimeline } from '../../lib/speedQueue';
 import { simulateBattle, pickOutcome } from '../../lib/battleResolver';
@@ -80,31 +80,29 @@ export const createBattleActions: SliceCreator = (set) => ({
         ? { id: enemy.id, name: enemy.name, emoji: enemy.emoji, tier: enemy.tier, isBoss: enemy.isBoss || false }
         : null;
 
-      return {
-        ...state,
-        activeBattle: {
-          nodeId: (battleConfig.nodeId as string) || 'dungeon-combat',
-          kind: (battleConfig.kind as string) || 'combat',
-          label: (battleConfig.label as string) || enemy?.name || '던전 몬스터',
-          rewards: battleConfig.rewards || { gold: { min: 5 + (enemy?.tier || 1) * 3, max: 10 + (enemy?.tier || 1) * 5 }, loot: 1 },
-          difficulty: enemy?.tier || 2,
-          enemyInfo,
-          playerLibrary,
-          playerDrawPile,
-          playerDiscardPile: [],
-          enemyLibrary,
-          enemyDrawPile,
-          enemyDiscardPile: [],
-          playerHand,
-          enemyHand,
-          selectedCardIds: [],
-          maxSelection: MAX_PLAYER_SELECTION,
-          preview,
-          simulation,
-          hasCharacterBuild,
-          characterBuild: hasCharacterBuild ? characterBuild : null,
-        } as unknown as GameStore['activeBattle'],
-      } as Partial<GameStore>;
+      const activeBattle: GameStore['activeBattle'] = {
+        nodeId: (battleConfig.nodeId as string) || 'dungeon-combat',
+        kind: (battleConfig.kind as string) || 'combat',
+        label: (battleConfig.label as string) || enemy?.name || '던전 몬스터',
+        rewards: (battleConfig.rewards as BattleRewards) || { gold: { min: 5 + (enemy?.tier || 1) * 3, max: 10 + (enemy?.tier || 1) * 5 }, loot: 1 },
+        difficulty: enemy?.tier || 2,
+        enemyInfo,
+        playerLibrary,
+        playerDrawPile,
+        playerDiscardPile: [],
+        enemyLibrary,
+        enemyDrawPile,
+        enemyDiscardPile: [],
+        playerHand,
+        enemyHand,
+        selectedCardIds: [],
+        maxSelection: MAX_PLAYER_SELECTION,
+        preview,
+        simulation,
+        hasCharacterBuild,
+        characterBuild: hasCharacterBuild ? characterBuild : null,
+      };
+      return { ...state, activeBattle };
     }),
 
   resolveBattle: (outcome = {}) =>
@@ -229,21 +227,19 @@ export const createBattleActions: SliceCreator = (set) => ({
 
       const { preview, simulation } = computeBattlePlan(battle.kind || '', selectedCards as Parameters<typeof computeBattlePlan>[1], enemyCards as Parameters<typeof computeBattlePlan>[2], state.playerHp, state.maxHp);
 
-      return {
-        ...state,
-        activeBattle: {
-          ...battle,
-          preview,
-          simulation,
-          playerHand: newPlayerHand,
-          enemyHand: newEnemyHand,
-          playerDrawPile: nextPlayerDraw,
-          playerDiscardPile: playerDiscard,
-          enemyDrawPile: nextEnemyDraw,
-          enemyDiscardPile: enemyDiscard,
-          selectedCardIds: [],
-        } as unknown as GameStore['activeBattle'],
-      } as Partial<GameStore>;
+      const updatedBattle: GameStore['activeBattle'] = {
+        ...battle,
+        preview,
+        simulation,
+        playerHand: newPlayerHand,
+        enemyHand: newEnemyHand,
+        playerDrawPile: nextPlayerDraw,
+        playerDiscardPile: playerDiscard,
+        enemyDrawPile: nextEnemyDraw,
+        enemyDiscardPile: enemyDiscard,
+        selectedCardIds: [],
+      };
+      return { ...state, activeBattle: updatedBattle };
     }),
 
   clearPendingItemEffects: () =>
