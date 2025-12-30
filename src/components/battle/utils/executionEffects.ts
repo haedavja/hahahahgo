@@ -5,8 +5,14 @@
 
 import { getAllTokens, removeToken } from '../../../lib/tokenUtils';
 import { hasSpecial } from './cardSpecialEffects';
+import { adjustFinesseGain } from '../../../lib/anomalyEffectUtils';
 import type { TokenEntity, TokenInstance, TokenState } from '../../../types';
 import type { Card } from '../../../types/core';
+
+interface AnomalyPlayerState {
+  finesseBlockLevel?: number;
+  [key: string]: unknown;
+}
 
 interface TokenEffect {
   type: string;
@@ -62,6 +68,7 @@ interface CriticalFinesseParams {
   criticalHits?: number;
   actor: 'player' | 'enemy';
   playerState: TokenEntity;
+  playerAnomalyState?: AnomalyPlayerState;
   addLog: (msg: string) => void;
   addToken: (entity: TokenEntity, tokenId: string, stacks: number) => { tokens: Record<string, unknown> };
 }
@@ -76,16 +83,25 @@ interface CriticalFinesseResult {
  * 다단 공격의 경우 치명타 횟수만큼 부여, 단일 공격은 1회
  */
 export function processCriticalFinesseGain(params: CriticalFinesseParams): CriticalFinesseResult {
-  const { isCritical, criticalHits, actor, playerState, addLog, addToken } = params;
+  const { isCritical, criticalHits, actor, playerState, playerAnomalyState, addLog, addToken } = params;
   let P = { ...playerState };
   let finesseGained = 0;
 
   if (isCritical && actor === 'player') {
     const critCount = (typeof criticalHits === 'number') ? criticalHits : 1;
-    const finesseResult = addToken(P as TokenEntity, 'finesse', critCount);
-    P.tokens = finesseResult.tokens as unknown as TokenState;
-    finesseGained = critCount;
-    addLog(`✨ 치명타! 기교 +${critCount} 획득`);
+    // 이변: 광기 (FINESSE_BLOCK) - 기교 획득량 조정
+    const adjustedFinesse = playerAnomalyState
+      ? adjustFinesseGain(critCount, playerAnomalyState)
+      : critCount;
+
+    if (adjustedFinesse > 0) {
+      const finesseResult = addToken(P as TokenEntity, 'finesse', adjustedFinesse);
+      P.tokens = finesseResult.tokens as unknown as TokenState;
+      finesseGained = adjustedFinesse;
+      addLog(`✨ 치명타! 기교 +${adjustedFinesse} 획득`);
+    } else {
+      addLog(`🌀 이변 "광기" - 기교 획득 차단됨`);
+    }
   }
 
   return { playerState: P, finesseGained };

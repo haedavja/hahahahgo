@@ -26,6 +26,7 @@ import {
   shouldIgnoreBlock,
   applyCriticalDamage
 } from '../utils/cardSpecialEffects';
+import { getVulnerabilityMultiplier } from '../../../lib/anomalyEffectUtils';
 
 /**
  * 반격 처리
@@ -319,7 +320,10 @@ export function calculateSingleHit(
       updatedDefender.block = 0;
       blockDestroyed = blocked;
 
-      const vulnMul = (updatedDefender.vulnMult && updatedDefender.vulnMult > 1) ? updatedDefender.vulnMult : 1;
+      // 취약 배율: 토큰 효과 + 이변 효과
+      const tokenVuln = (updatedDefender.vulnMult && updatedDefender.vulnMult > 1) ? updatedDefender.vulnMult : 1;
+      const anomalyVuln = getVulnerabilityMultiplier(updatedDefender);
+      const vulnMul = tokenVuln * anomalyVuln;
       const finalDmg = Math.floor(remained * vulnMul);
       const beforeHP = updatedDefender.hp;
       updatedDefender.hp = Math.max(0, updatedDefender.hp - finalDmg);
@@ -374,7 +378,10 @@ export function calculateSingleHit(
       }
     }
   } else {
-    const vulnMul = (updatedDefender.vulnMult && updatedDefender.vulnMult > 1) ? updatedDefender.vulnMult : 1;
+    // 취약 배율: 토큰 효과 + 이변 효과
+    const tokenVuln = (updatedDefender.vulnMult && updatedDefender.vulnMult > 1) ? updatedDefender.vulnMult : 1;
+    const anomalyVuln = getVulnerabilityMultiplier(updatedDefender);
+    const vulnMul = tokenVuln * anomalyVuln;
     const finalDmg = Math.floor(dmg * vulnMul);
     const beforeHP = updatedDefender.hp;
     updatedDefender.hp = Math.max(0, updatedDefender.hp - finalDmg);

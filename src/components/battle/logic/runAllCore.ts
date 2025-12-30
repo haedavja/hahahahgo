@@ -10,10 +10,11 @@
  */
 
 import { getCardEtherGain } from '../utils/etherCalculations';
-import { BASE_PLAYER_ENERGY } from '../battleData';
+import { BASE_PLAYER_ENERGY, ENEMIES } from '../battleData';
 import { applyAction } from './combatActions';
 import { calculatePassiveEffects } from '../../../lib/relicEffects';
 import { getAllTokens } from '../../../lib/tokenUtils';
+import { createBattleEnemyData } from '../../../state/battleHelpers';
 import type {
   BattleAction,
   BattleEvent,
@@ -189,6 +190,32 @@ export function runAllCore(params: RunAllCoreParams) {
           E.hp = newTotalHp;
           E.units = updatedUnits;
           tempState = { player: P, enemy: E, log: [] };
+
+          // === summonOnHalfHp 패시브 체크 ===
+          // 체력이 50% 이하로 떨어지면 소환 (한 번만 발동)
+          const targetPassives = targetUnit.passives || ({} as Record<string, unknown>);
+          if (targetPassives.summonOnHalfHp && !targetUnit.hasSummoned) {
+            const maxHp = targetUnit.maxHp || targetUnit.hp || 100;
+            const halfHp = maxHp / 2;
+            if (newUnitHp <= halfHp && newUnitHp > 0) {
+              // 소환 발동: 탈영병 2기 추가
+              const deserterDef = ENEMIES.find(e => e.id === 'deserter');
+              if (deserterDef) {
+                const currentMaxId = Math.max(...E.units.map((u: EnemyUnit) => u.unitId || 0));
+                const newUnit1 = { ...createBattleEnemyData(deserterDef), unitId: currentMaxId + 1 } as EnemyUnit;
+                const newUnit2 = { ...createBattleEnemyData(deserterDef), unitId: currentMaxId + 2 } as EnemyUnit;
+
+                // hasSummoned 플래그 설정
+                const unitsWithFlag = E.units.map((u: EnemyUnit) =>
+                  u.unitId === targetUnit.unitId ? { ...u, hasSummoned: true } : u
+                );
+                E.units = [...unitsWithFlag, newUnit1, newUnit2];
+                E.hp = E.units.reduce((sum: number, u: EnemyUnit) => sum + Math.max(0, u.hp), 0);
+                tempState = { player: P, enemy: E, log: [] };
+                addLog(`⚔️ ${targetUnit.name}: 부하 소환! 탈영병 2기 등장!`);
+              }
+            }
+          }
         }
       }
     }

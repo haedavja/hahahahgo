@@ -147,6 +147,38 @@ export function applyAnomalyEffects(
         }
         break;
 
+      // ==================== 신규 이변 효과 ====================
+
+      case 'DEFENSE_BACKFIRE':
+        // 역류: 방어 카드 사용 시 자해
+        player.defenseBackfire = effect.value || 0;
+        break;
+
+      case 'SPEED_INSTABILITY':
+        // 불안정: 속도 ±랜덤 변동
+        player.speedInstability = effect.value || 0;
+        break;
+
+      case 'VULNERABILITY':
+        // 취약: 받는 피해 증가 (%)
+        player.vulnerabilityPercent = (player.vulnerabilityPercent || 0) + (effect.value || 0);
+        break;
+
+      case 'TRAIT_SILENCE':
+        // 침묵: 특성 비활성화 레벨 (1: 부정, 2: 1성, 3: 2성, 4: 전체)
+        player.traitSilenceLevel = Math.max(player.traitSilenceLevel || 0, effect.value || 0);
+        break;
+
+      case 'CHAIN_ISOLATION':
+        // 고립: 연계/후속 무효화 레벨 (1: 연계, 2: 후속, 3: 둘 다, 4: 앞당김도)
+        player.chainIsolationLevel = Math.max(player.chainIsolationLevel || 0, effect.value || 0);
+        break;
+
+      case 'FINESSE_BLOCK':
+        // 광기: 기교 획득 제한 (1-2: 감소, 3-4: 차단)
+        player.finesseBlockLevel = Math.max(player.finesseBlockLevel || 0, effect.value || 0);
+        break;
+
       default:
         if (import.meta.env.DEV) console.warn(`알 수 없는 이변 효과 타입: ${effect.type}`);
     }

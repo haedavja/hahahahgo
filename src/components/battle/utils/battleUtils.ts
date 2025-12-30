@@ -5,8 +5,14 @@
 
 import type { Card, CardRarity, CardTrait } from '../../../types';
 import type { BattleCard } from '../../../state/slices/types';
+import { isTraitSilenced } from '../../../lib/anomalyEffectUtils';
 
 interface TraitContext {
+  [key: string]: unknown;
+}
+
+interface AnomalyPlayerState {
+  traitSilenceLevel?: number;
   [key: string]: unknown;
 }
 
@@ -20,6 +26,33 @@ export const choice = <T>(arr: T[]): T => arr[Math.floor(Math.random() * arr.len
  */
 export function hasTrait(card: { traits?: string[] }, traitId: CardTrait): boolean {
   return !!(card.traits && card.traits.includes(traitId));
+}
+
+/**
+ * 카드가 특정 특성을 가지고 있는지 확인 (이변 침묵 효과 적용)
+ * @param card - 카드
+ * @param traitId - 특성 ID
+ * @param playerState - 이변 효과가 포함된 플레이어 상태 (선택)
+ * @returns 특성이 활성화되어 있으면 true, 침묵되었거나 없으면 false
+ */
+export function hasTraitWithAnomaly(
+  card: { traits?: string[] },
+  traitId: CardTrait,
+  playerState?: AnomalyPlayerState
+): boolean {
+  // 특성이 없으면 false
+  if (!card.traits || !card.traits.includes(traitId)) {
+    return false;
+  }
+
+  // 플레이어 상태가 있고 침묵 레벨이 있으면 침묵 여부 확인
+  if (playerState && playerState.traitSilenceLevel && playerState.traitSilenceLevel > 0) {
+    if (isTraitSilenced(traitId, playerState)) {
+      return false;
+    }
+  }
+
+  return true;
 }
 
 /**

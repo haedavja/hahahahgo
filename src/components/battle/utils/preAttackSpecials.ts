@@ -18,6 +18,7 @@ import type {
   PreAttackResult
 } from '../../../types';
 import { addToken, removeToken, setTokenStacks, getTokenStacks } from '../../../lib/tokenUtils';
+import { getChainIsolationEffect, adjustFinesseGain } from '../../../lib/anomalyEffectUtils';
 
 /**
  * 카드의 special 효과 존재 여부 확인 (배열 지원)
@@ -201,58 +202,81 @@ export function processPreAttackSpecials({
   const hasFollowupTrait = card.traits && card.traits.includes('followup');
   const hasFinisherTrait = card.traits && card.traits.includes('finisher');
   if (hasFollowupTrait || hasFinisherTrait) {
-    const { queue = [], currentQIndex = 0 } = battleContext;
+    const { queue = [], currentQIndex = 0, playerState } = battleContext;
     const who = attackerName === 'player' ? '플레이어' : '몬스터';
 
-    let previousCard: Card | null = null;
-    for (let i = currentQIndex - 1; i >= 0; i--) {
-      if (queue[i]?.actor === attackerName) {
-        previousCard = queue[i].card || null;
-        break;
-      }
-    }
+    // 이변: 고립 (CHAIN_ISOLATION) - 연계/후속 효과 무효화 체크
+    const chainIsolation = playerState ? getChainIsolationEffect(playerState) : { blockChain: false, blockFollowup: false, blockAdvance: false };
+    const isIsolated = attackerName === 'player' && (chainIsolation.blockChain || chainIsolation.blockFollowup);
 
-    if (previousCard) {
-      const prevHasChain = previousCard.traits && previousCard.traits.includes('chain');
-      const prevHasFollowup = previousCard.traits && previousCard.traits.includes('followup');
-
-      if (hasFollowupTrait && prevHasChain) {
-        const bonusMessages: string[] = [];
-
-        if (modifiedCard.damage) {
-          const originalDamage = modifiedCard.damage;
-          modifiedCard.damage = Math.ceil(originalDamage * 1.5);
-          bonusMessages.push(`피해 ${originalDamage}→${modifiedCard.damage}`);
-        }
-
-        if (modifiedCard.block) {
-          const originalBlock = modifiedCard.block;
-          modifiedCard.block = Math.ceil(originalBlock * 1.5);
-          bonusMessages.push(`방어 ${originalBlock}→${modifiedCard.block}`);
-        }
-
-        if (bonusMessages.length > 0) {
-          const msg = `${who} • ⚡ ${card.name}: 후속! 50% 증가 (${bonusMessages.join(', ')})`;
-          events.push({ actor: attackerName, card: card.name, type: 'special', msg });
-          logs.push(msg);
+    if (isIsolated) {
+      const msg = `🌀 이변 "고립" - 연계/후속 효과 무효화됨`;
+      logs.push(msg);
+    } else {
+      let previousCard: Card | null = null;
+      for (let i = currentQIndex - 1; i >= 0; i--) {
+        if (queue[i]?.actor === attackerName) {
+          previousCard = queue[i].card || null;
+          break;
         }
       }
 
-      if (hasFinisherTrait) {
-        if (prevHasChain && modifiedCard.damage) {
-          const originalDamage = modifiedCard.damage;
-          modifiedCard.damage = Math.ceil(originalDamage * 1.5);
-          const msg = `${who} • ⚡ ${card.name}: 마무리(연계)! 피해 50% 증가 (${originalDamage}→${modifiedCard.damage})`;
-          events.push({ actor: attackerName, card: card.name, type: 'special', msg });
-          logs.push(msg);
+      if (previousCard) {
+        const prevHasChain = previousCard.traits && previousCard.traits.includes('chain');
+        const prevHasFollowup = previousCard.traits && previousCard.traits.includes('followup');
+
+        // 연계 무효화 체크
+        const chainBlocked = attackerName === 'player' && chainIsolation.blockChain;
+        // 후속 무효화 체크
+        const followupBlocked = attackerName === 'player' && chainIsolation.blockFollowup;
+
+        if (hasFollowupTrait && prevHasChain && !chainBlocked) {
+          const bonusMessages: string[] = [];
+
+          if (modifiedCard.damage) {
+            const originalDamage = modifiedCard.damage;
+            modifiedCard.damage = Math.ceil(originalDamage * 1.5);
+            bonusMessages.push(`피해 ${originalDamage}→${modifiedCard.damage}`);
+          }
+
+          if (modifiedCard.block) {
+            const originalBlock = modifiedCard.block;
+            modifiedCard.block = Math.ceil(originalBlock * 1.5);
+            bonusMessages.push(`방어 ${originalBlock}→${modifiedCard.block}`);
+          }
+
+          if (bonusMessages.length > 0) {
+            const msg = `${who} • ⚡ ${card.name}: 후속! 50% 증가 (${bonusMessages.join(', ')})`;
+            events.push({ actor: attackerName, card: card.name, type: 'special', msg });
+            logs.push(msg);
+          }
         }
-        if (prevHasFollowup) {
-          const grantedAt = battleContext.currentTurn ? { turn: battleContext.currentTurn, sp: battleContext.currentSp || 0 } : null;
-          const finesseResult = addToken(modifiedAttacker, 'finesse', 1, grantedAt);
-          modifiedAttacker.tokens = finesseResult.tokens;
-          const msg = `${who} • ✨ ${card.name}: 마무리(후속)! 기교 획득!`;
-          events.push({ actor: attackerName, card: card.name, type: 'special', msg });
-          logs.push(msg);
+
+        if (hasFinisherTrait) {
+          if (prevHasChain && !chainBlocked && modifiedCard.damage) {
+            const originalDamage = modifiedCard.damage;
+            modifiedCard.damage = Math.ceil(originalDamage * 1.5);
+            const msg = `${who} • ⚡ ${card.name}: 마무리(연계)! 피해 50% 증가 (${originalDamage}→${modifiedCard.damage})`;
+            events.push({ actor: attackerName, card: card.name, type: 'special', msg });
+            logs.push(msg);
+          }
+          if (prevHasFollowup && !followupBlocked) {
+            const grantedAt = battleContext.currentTurn ? { turn: battleContext.currentTurn, sp: battleContext.currentSp || 0 } : null;
+            // 이변: 광기 (FINESSE_BLOCK) - 기교 획득량 조정
+            const adjustedFinesse = attackerName === 'player' && playerState
+              ? adjustFinesseGain(1, playerState)
+              : 1;
+            if (adjustedFinesse > 0) {
+              const finesseResult = addToken(modifiedAttacker, 'finesse', adjustedFinesse, grantedAt);
+              modifiedAttacker.tokens = finesseResult.tokens;
+              const msg = `${who} • ✨ ${card.name}: 마무리(후속)! 기교 획득!`;
+              events.push({ actor: attackerName, card: card.name, type: 'special', msg });
+              logs.push(msg);
+            } else {
+              const msg = `🌀 이변 "광기" - 기교 획득 차단됨`;
+              logs.push(msg);
+            }
+          }
         }
       }
     }
