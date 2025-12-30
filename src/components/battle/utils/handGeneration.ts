@@ -72,6 +72,7 @@ function applyEnhancementToCard(card: HandCard, cardGrowth?: CardGrowthMap): Han
     if (enhanced.advanceAmount !== undefined) result.advanceAmount = enhanced.advanceAmount;
     if (enhanced.parryRange !== undefined) result.parryRange = enhanced.parryRange;
     if (enhanced.traits !== undefined) result.traits = enhanced.traits as typeof result.traits;
+    if (enhanced.description !== undefined) result.description = enhanced.description;
   }
 
   // 특화 특성 병합 (기존 특성 + 특화 특성)

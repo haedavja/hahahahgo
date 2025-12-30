@@ -15,6 +15,7 @@ import {
   getEnhancementLabel,
   isEnhanceable,
   calculateEnhancedStats,
+  getEnhancedCard,
 } from '../../../lib/cardEnhancementUtils';
 
 interface CardGrowthModalProps {
@@ -332,7 +333,14 @@ export function CardGrowthModal({
                     )}
                   </div>
                   <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
-                    {selectedCard.description}
+                    {(() => {
+                      const enhLevel = selectedGrowth?.enhancementLevel || 0;
+                      if (enhLevel > 0) {
+                        const enhanced = getEnhancedCard(selectedCard as Parameters<typeof getEnhancedCard>[0], enhLevel);
+                        return enhanced.description || selectedCard.description;
+                      }
+                      return selectedCard.description;
+                    })()}
                   </div>
                 </div>
 

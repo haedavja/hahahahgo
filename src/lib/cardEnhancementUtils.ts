@@ -15,6 +15,7 @@ export interface BaseCard {
   id: string;
   name: string;
   type: 'attack' | 'general' | 'defense' | 'support' | string;
+  description?: string;
   damage?: number;
   block?: number;
   speedCost: number;
@@ -301,6 +302,15 @@ export function getEnhancedCard<T extends BaseCard>(baseCard: T, enhancementLeve
     enhancedCard.traits = newTraits.filter(t => !enhancedStats.removedTraits.includes(t));
   }
 
+  // 설명 업데이트 (강화 효과 반영)
+  if (baseCard.description && enhancementLevel > 0) {
+    enhancedCard.description = generateEnhancedDescription(
+      enhancedCard,
+      baseCard.description,
+      enhancedStats
+    );
+  }
+
   return enhancedCard;
 }
 
@@ -427,4 +437,90 @@ export function getEnhancementColor(level: number): string {
 export function getEnhancementLabel(level: number): string {
   if (level <= 0) return '';
   return `+${level}`;
+}
+
+/**
+ * 강화된 카드의 동적 설명 생성
+ * 원본 설명의 숫자를 강화된 스탯으로 교체
+ * @param card 카드 데이터 (강화 적용 후)
+ * @param originalDescription 원본 설명
+ * @param enhancedStats 강화 스탯 (선택)
+ * @returns 업데이트된 설명
+ */
+export function generateEnhancedDescription(
+  card: BaseCard,
+  originalDescription: string,
+  enhancedStats?: EnhancedCardStats
+): string {
+  let description = originalDescription;
+
+  // 공격력/피해 패턴: "공격력 X", "피해 X", "X 피해"
+  if (card.damage !== undefined) {
+    description = description.replace(/공격력\s*(\d+)/g, `공격력 ${card.damage}`);
+    description = description.replace(/피해\s*(\d+)/g, `피해 ${card.damage}`);
+    description = description.replace(/(\d+)\s*피해/g, `${card.damage} 피해`);
+  }
+
+  // 방어력 패턴: "방어력 X", "방어 X"
+  if (card.block !== undefined) {
+    description = description.replace(/방어력\s*(\d+)/g, `방어력 ${card.block}`);
+    description = description.replace(/방어\s*(\d+)/g, `방어 ${card.block}`);
+  }
+
+  // 넉백 패턴: "넉백 X"
+  if (card.pushAmount !== undefined) {
+    description = description.replace(/넉백\s*(\d+)/g, `넉백 ${card.pushAmount}`);
+  }
+
+  // 앞당김 패턴: "앞당김 X"
+  if (card.advanceAmount !== undefined) {
+    description = description.replace(/앞당김\s*(\d+)/g, `앞당김 ${card.advanceAmount}`);
+  }
+
+  // 타격 횟수 패턴: "X번 공격", "X회 공격", "X타"
+  if (card.hits !== undefined && card.hits > 1) {
+    description = description.replace(/(\d+)번\s*공격/g, `${card.hits}번 공격`);
+    description = description.replace(/(\d+)회\s*공격/g, `${card.hits}회 공격`);
+    description = description.replace(/(\d+)타/g, `${card.hits}타`);
+  }
+
+  // 패링 범위 패턴: "패링 X", "X 범위"
+  if (card.parryRange !== undefined) {
+    description = description.replace(/패링\s*(\d+)/g, `패링 ${card.parryRange}`);
+  }
+
+  // 강화로 추가된 효과 표시
+  if (enhancedStats) {
+    const additions: string[] = [];
+
+    if (enhancedStats.burnStacksBonus > 0) {
+      additions.push(`화상 +${enhancedStats.burnStacksBonus}`);
+    }
+    if (enhancedStats.debuffStacksBonus > 0) {
+      additions.push(`디버프 +${enhancedStats.debuffStacksBonus}`);
+    }
+    if (enhancedStats.critBoostBonus > 0) {
+      additions.push(`치명타 +${enhancedStats.critBoostBonus}%`);
+    }
+    if (enhancedStats.finesseGainBonus > 0) {
+      additions.push(`기교 +${enhancedStats.finesseGainBonus}`);
+    }
+    if (enhancedStats.drawCountBonus > 0) {
+      additions.push(`드로우 +${enhancedStats.drawCountBonus}`);
+    }
+    if (enhancedStats.agilityGainBonus > 0) {
+      additions.push(`민첩 +${enhancedStats.agilityGainBonus}`);
+    }
+
+    // 추가된 특성
+    if (enhancedStats.addedTraits.length > 0) {
+      additions.push(`[${enhancedStats.addedTraits.join(', ')}] 추가`);
+    }
+
+    if (additions.length > 0) {
+      description += ` (${additions.join(', ')})`;
+    }
+  }
+
+  return description;
 }
