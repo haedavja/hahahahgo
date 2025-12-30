@@ -7,7 +7,6 @@
 
 import type { StateCreator } from 'zustand';
 import type { GameStore, BattleSliceActions, BattleCard } from './types';
-import type { ResolverTimelineEntry, ResolverSimulationResult } from '../../types';
 import { ENEMIES, getRandomEnemy } from '../../components/battle/battleData';
 import { drawHand, buildSpeedTimeline } from '../../lib/speedQueue';
 import { simulateBattle, pickOutcome } from '../../lib/battleResolver';
@@ -112,7 +111,7 @@ export const createBattleActions: SliceCreator = (set) => ({
     set((state) => {
       if (!state.activeBattle) return state;
       const rewardsDef = state.activeBattle.rewards ?? {};
-      const autoResult = pickOutcome(state.activeBattle.simulation as unknown as ResolverSimulationResult | null, 'victory');
+      const autoResult = pickOutcome(state.activeBattle.simulation ?? null, 'victory');
       const resultLabel = outcome.result ?? autoResult;
       const rewards = resultLabel === 'victory'
         ? grantRewards(rewardsDef as Parameters<typeof grantRewards>[0], state.resources)
