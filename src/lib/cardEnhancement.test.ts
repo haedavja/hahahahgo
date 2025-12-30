@@ -574,95 +574,95 @@ describe('generateEnhancedDescription', () => {
     });
   });
 
-  describe('강화 효과 추가 표시', () => {
-    it('화상 보너스를 표시해야 함', () => {
+  describe('강화 효과 인라인 교체', () => {
+    it('화상 보너스가 설명 내 숫자를 교체해야 함', () => {
       const card: BaseCard = { id: 'test', name: 'Test', type: 'attack', damage: 10, speedCost: 5, actionCost: 1 };
       const stats = { ...createDefaultStats(), burnStacksBonus: 2 };
-      const result = generateEnhancedDescription(card, '공격', stats);
-      expect(result).toContain('화상 +2');
+      const result = generateEnhancedDescription(card, '화상 1회 부여', stats);
+      expect(result).toBe('화상 3회 부여');
     });
 
-    it('치명타 보너스를 표시해야 함', () => {
+    it('치명타 보너스가 설명 내 숫자를 교체해야 함', () => {
       const card: BaseCard = { id: 'test', name: 'Test', type: 'attack', damage: 10, speedCost: 5, actionCost: 1 };
       const stats = { ...createDefaultStats(), critBoostBonus: 15 };
-      const result = generateEnhancedDescription(card, '공격', stats);
-      expect(result).toContain('치명타 +15%');
+      const result = generateEnhancedDescription(card, '치명타 10% 확률', stats);
+      expect(result).toBe('치명타 25% 확률');
     });
 
-    it('반격탄 보너스를 표시해야 함', () => {
+    it('대응사격 보너스가 설명 내 숫자를 교체해야 함', () => {
       const card: BaseCard = { id: 'test', name: 'Test', type: 'attack', damage: 10, speedCost: 5, actionCost: 1 };
       const stats = { ...createDefaultStats(), counterShotBonus: 1 };
-      const result = generateEnhancedDescription(card, '공격', stats);
-      expect(result).toContain('반격탄 +1');
+      const result = generateEnhancedDescription(card, '대응사격 2회', stats);
+      expect(result).toBe('대응사격 3회');
     });
 
-    it('처형 보너스를 표시해야 함', () => {
+    it('처형 보너스는 괄호 안에 표시해야 함', () => {
       const card: BaseCard = { id: 'test', name: 'Test', type: 'attack', damage: 10, speedCost: 5, actionCost: 1 };
       const stats = { ...createDefaultStats(), executeThresholdBonus: 10 };
       const result = generateEnhancedDescription(card, '공격', stats);
       expect(result).toContain('처형 +10%');
     });
 
-    it('기교 보너스를 표시해야 함', () => {
+    it('기교 보너스가 설명 내 숫자를 교체해야 함', () => {
       const card: BaseCard = { id: 'test', name: 'Test', type: 'attack', damage: 10, speedCost: 5, actionCost: 1 };
       const stats = { ...createDefaultStats(), finesseGainBonus: 3 };
-      const result = generateEnhancedDescription(card, '공격', stats);
-      expect(result).toContain('기교 +3');
+      const result = generateEnhancedDescription(card, '기교 1 획득', stats);
+      expect(result).toBe('기교 4 획득');
     });
 
-    it('드로우 보너스를 표시해야 함', () => {
+    it('드로우 보너스가 설명 내 숫자를 교체해야 함', () => {
       const card: BaseCard = { id: 'test', name: 'Test', type: 'support', speedCost: 3, actionCost: 1 };
       const stats = { ...createDefaultStats(), drawCountBonus: 1 };
-      const result = generateEnhancedDescription(card, '카드 드로우', stats);
-      expect(result).toContain('드로우 +1');
+      const result = generateEnhancedDescription(card, '2장 드로우', stats);
+      expect(result).toBe('3장 드로우');
     });
 
-    it('민첩 보너스를 표시해야 함', () => {
+    it('민첩 보너스가 설명 내 숫자를 교체해야 함', () => {
       const card: BaseCard = { id: 'test', name: 'Test', type: 'support', speedCost: 3, actionCost: 1 };
       const stats = { ...createDefaultStats(), agilityGainBonus: 2 };
-      const result = generateEnhancedDescription(card, '민첩 부여', stats);
-      expect(result).toContain('민첩 +2');
+      const result = generateEnhancedDescription(card, '민첩 1 부여', stats);
+      expect(result).toBe('민첩 3 부여');
     });
   });
 
-  describe('특성 변경 표시', () => {
-    it('추가된 특성을 표시해야 함', () => {
+  describe('괄호 내 추가 효과 표시', () => {
+    it('인라인 교체 불가 효과는 괄호 안에 표시해야 함', () => {
+      const card: BaseCard = { id: 'test', name: 'Test', type: 'attack', damage: 10, speedCost: 5, actionCost: 1 };
+      const stats = {
+        ...createDefaultStats(),
+        executeThresholdBonus: 5,
+        fragStacksBonus: 2,
+        onHitBlockBonus: 3
+      };
+      const result = generateEnhancedDescription(card, '공격', stats);
+      expect(result).toContain('처형 +5%');
+      expect(result).toContain('파쇄탄 +2');
+      expect(result).toContain('피격 방어 +3');
+    });
+
+    it('특성 추가/제거는 카드 UI에서 표시되므로 설명에 포함하지 않아야 함', () => {
       const card: BaseCard = { id: 'test', name: 'Test', type: 'attack', damage: 10, speedCost: 5, actionCost: 1 };
       const stats = { ...createDefaultStats(), addedTraits: ['swift', 'exposed'] };
       const result = generateEnhancedDescription(card, '공격', stats);
-      expect(result).toContain('[swift, exposed] 추가');
-    });
-
-    it('제거된 특성을 표시해야 함', () => {
-      const card: BaseCard = { id: 'test', name: 'Test', type: 'attack', damage: 10, speedCost: 5, actionCost: 1 };
-      const stats = { ...createDefaultStats(), removedTraits: ['recoil'] };
-      const result = generateEnhancedDescription(card, '공격', stats);
-      expect(result).toContain('[recoil] 제거');
-    });
-
-    it('추가와 제거된 특성을 모두 표시해야 함', () => {
-      const card: BaseCard = { id: 'test', name: 'Test', type: 'attack', damage: 10, speedCost: 5, actionCost: 1 };
-      const stats = { ...createDefaultStats(), addedTraits: ['swift'], removedTraits: ['heavy'] };
-      const result = generateEnhancedDescription(card, '공격', stats);
-      expect(result).toContain('[swift] 추가');
-      expect(result).toContain('[heavy] 제거');
+      // 새 동작: 특성 변경은 카드 UI에 직접 표시되므로 설명에서 제외
+      expect(result).toBe('공격');
     });
   });
 
   describe('복합 효과', () => {
-    it('여러 보너스를 함께 표시해야 함', () => {
+    it('인라인 교체와 괄호 효과를 함께 적용해야 함', () => {
       const card: BaseCard = { id: 'test', name: 'Test', type: 'attack', damage: 15, speedCost: 5, actionCost: 1 };
       const stats = {
         ...createDefaultStats(),
         burnStacksBonus: 1,
-        critBoostBonus: 10,
+        executeThresholdBonus: 10,
         finesseGainBonus: 2
       };
-      const result = generateEnhancedDescription(card, '공격력 10', stats);
+      const result = generateEnhancedDescription(card, '공격력 10. 화상 2회. 기교 1 획득', stats);
       expect(result).toContain('공격력 15');
-      expect(result).toContain('화상 +1');
-      expect(result).toContain('치명타 +10%');
-      expect(result).toContain('기교 +2');
+      expect(result).toContain('화상 3회');
+      expect(result).toContain('기교 3 획득');
+      expect(result).toContain('처형 +10%');
     });
 
     it('enhancedStats가 없으면 기본 패턴만 교체해야 함', () => {
