@@ -983,16 +983,16 @@ function EnhancePreviewPanel({
               <span style={{ fontSize: "13px", color: "#9ca3af" }}>
                 {cardName} → {getEnhancementLabel(nextPreview.level)}
               </span>
-              {nextPreview.isMilestone && (
+              {(nextPreview.level === 1 || nextPreview.level === 3 || nextPreview.level === 5) && (
                 <span style={{
                   fontSize: "11px",
                   padding: "2px 6px",
                   borderRadius: "4px",
-                  background: nextPreview.level === 5 ? "rgba(251, 191, 36, 0.2)" : "rgba(167, 139, 250, 0.2)",
-                  color: nextPreview.level === 5 ? "#fbbf24" : "#a78bfa",
-                  border: nextPreview.level === 5 ? "1px solid rgba(251, 191, 36, 0.4)" : "1px solid rgba(167, 139, 250, 0.4)"
+                  background: nextPreview.level === 5 ? "rgba(251, 191, 36, 0.2)" : nextPreview.level === 3 ? "rgba(167, 139, 250, 0.2)" : "rgba(96, 165, 250, 0.2)",
+                  color: nextPreview.level === 5 ? "#fbbf24" : nextPreview.level === 3 ? "#a78bfa" : "#60a5fa",
+                  border: nextPreview.level === 5 ? "1px solid rgba(251, 191, 36, 0.4)" : nextPreview.level === 3 ? "1px solid rgba(167, 139, 250, 0.4)" : "1px solid rgba(96, 165, 250, 0.4)"
                 }}>
-                  {nextPreview.level === 3 ? '특별 등급' : nextPreview.level === 5 ? '전설 등급' : ''}
+                  {nextPreview.level === 1 ? '희귀 등급' : nextPreview.level === 3 ? '특별 등급' : '전설 등급'}
                 </span>
               )}
             </div>
