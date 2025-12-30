@@ -56,6 +56,7 @@ import { useDamagePreview } from "./hooks/useDamagePreview";
 import { useBattleTimelines } from "./hooks/useBattleTimelines";
 import { useInsightSystem } from "./hooks/useInsightSystem";
 import { useRelicDrag } from "./hooks/useRelicDrag";
+import { useFlashRelic } from "./hooks/useFlashRelic";
 import { useCardTooltip } from "./hooks/useCardTooltip";
 import { useEtherPreview } from "./hooks/useEtherPreview";
 import { useComboSystem } from "./hooks/useComboSystem";
@@ -503,26 +504,17 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     return explainComboMultiplierUtil(baseMult, cardsCount, includeFiveCard, includeRefBook, relicIds, orderedRelicList);
   }, [orderedRelicList]);
 
-  const flashRelic = (relicId: string, tone = 800, duration = 500) => {
-    const nextSet = new Set(activeRelicSet);
-    nextSet.add(relicId);
-    actions.setActiveRelicSet(nextSet);
-    actions.setRelicActivated(relicId);
-    const relic = RELICS[relicId as keyof typeof RELICS];
-    // 에테르 배율 관련 효과가 있는 상징인 경우 배율 펄스 표시
-    const effects = relic?.effects as { comboMultiplierPerCard?: number; etherCardMultiplier?: boolean; etherMultiplier?: number; etherFiveCardBonus?: number } | undefined;
-    if (effects && (effects.comboMultiplierPerCard || effects.etherCardMultiplier || effects.etherMultiplier || effects.etherFiveCardBonus)) {
-      actions.setMultiplierPulse(true);
-      setTimeout(() => actions.setMultiplierPulse(false), Math.min(400, duration));
+  // 상징 발동 애니메이션 (커스텀 훅으로 분리)
+  const { flashRelic } = useFlashRelic({
+    activeRelicSet,
+    relicActivated,
+    actions: {
+      setActiveRelicSet: actions.setActiveRelicSet,
+      setRelicActivated: actions.setRelicActivated,
+      setMultiplierPulse: actions.setMultiplierPulse
     }
-    playSound(tone, duration * 0.6);
-    setTimeout(() => {
-      const nextSet = new Set(activeRelicSet);
-      nextSet.delete(relicId);
-      actions.setActiveRelicSet(nextSet);
-      actions.setRelicActivated(relicActivated === relicId ? null : relicActivated);
-    }, duration);
-  };
+  });
+
   // 상징 드래그 앤 드롭 (커스텀 훅으로 분리)
   const { handleRelicDragStart, handleRelicDragOver, handleRelicDrop } = useRelicDrag({
     orderedRelicList,
