@@ -46,7 +46,7 @@
 
 /// <reference types="react" />
 
-import React, { useState, useEffect, useMemo, useRef, useCallback, type MutableRefObject } from "react";
+import React, { useState, useEffect, useRef, type MutableRefObject } from "react";
 import type { JSX } from 'react';
 import { flushSync } from "react-dom";
 import "./legacy-battle.css";
@@ -109,7 +109,6 @@ import { useGameStore } from "../../state/gameStore";
 import { ItemSlots } from "./ui/ItemSlots";
 import { RELICS, RELIC_RARITIES } from "../../data/relics";
 import { RELIC_EFFECT, RELIC_RARITY_COLORS } from "../../lib/relics";
-import { applyAgility } from "../../lib/agilityUtils";
 import { hasTrait, hasEnemyUnits, markCrossedCards } from "./utils/battleUtils";
 import { COMBO_MULTIPLIERS, BASE_ETHER_PER_CARD, CARD_ETHER_BY_RARITY, getCardEtherGain } from "./utils/etherCalculations";
 import { generateEnemyActions, shouldEnemyOverdrive, assignSourceUnitToActions } from "./utils/enemyAI";
