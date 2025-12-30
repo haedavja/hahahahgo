@@ -196,7 +196,7 @@ export function CardGrowthModal({
         justifyContent: 'center',
         zIndex: 9999,
       }}
-      onClick={handleClose}
+      onClick={mode === 'select' ? handleClose : undefined}
     >
       <div
         style={{
@@ -241,18 +241,21 @@ export function CardGrowthModal({
                   : `${selectedCard?.name} 특화`}
             </p>
           </div>
-          <button
-            onClick={handleClose}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: '#94a3b8',
-              fontSize: '1.5rem',
-              cursor: 'pointer',
-            }}
-          >
-            ✕
-          </button>
+          {/* 선택 모드에서만 닫기 버튼 표시 (강화/특화 중에는 빠져나갈 수 없음) */}
+          {mode === 'select' && (
+            <button
+              onClick={handleClose}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#94a3b8',
+                fontSize: '1.5rem',
+                cursor: 'pointer',
+              }}
+            >
+              ✕
+            </button>
+          )}
         </div>
 
         {/* 알림 */}
