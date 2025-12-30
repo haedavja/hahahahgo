@@ -143,11 +143,10 @@ export function CardGrowthModal({
     onEnhance(selectedCardId);
     showNotification(`${selectedCard?.name} +${(growth.enhancementLevel || 0) + 1} 강화 완료!`, 'enhance');
 
-    // 완료 후 선택 모드로
+    // 완료 후 모달 닫기 (휴식 노드에서 1회만 승급 가능)
     setTimeout(() => {
-      setMode('select');
-      setPreviewLevel(null);
-    }, 1000);
+      handleClose();
+    }, 1200);
   };
 
   // 특화 실행
@@ -160,12 +159,10 @@ export function CardGrowthModal({
     const traitNames = selectedSpecOption.traits.map(t => t.name).join(', ');
     showNotification(`${selectedCard?.name} 특화 완료! [${traitNames}]`, 'specialize');
 
-    // 완료 후 선택 모드로
+    // 완료 후 모달 닫기 (휴식 노드에서 1회만 승급 가능)
     setTimeout(() => {
-      setMode('select');
-      setSelectedSpecOption(null);
-      setSpecOptions([]);
-    }, 1000);
+      handleClose();
+    }, 1200);
   };
 
   // 모달 닫기 핸들러
