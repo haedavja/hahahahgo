@@ -229,9 +229,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
   // Initialize battle state with useReducer
   const { battle, actions } = useBattleState({
-    player: initialPlayerState as unknown as PlayerState,
+    player: initialPlayerState,
     enemyIndex: 0,
-    enemy: initialEnemyState as EnemyState | undefined,
+    enemy: initialEnemyState,
     phase: 'select',
     hand: [],
     selected: [],
@@ -750,7 +750,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       deck: (initialEnemy.deck as string[]) || ENEMIES[0]?.deck || [],
       name: initialEnemy.name ?? '적',
     } as Parameters<typeof createReducerEnemyState>[0]);
-    actions.setEnemy(enemyState as unknown as EnemyState);
+    actions.setEnemy(enemyState);
     actions.setSelected([]);
     actions.setQueue([]);
     actions.setQIndex(0);
@@ -810,7 +810,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     if (!enemy) {
       const e = ENEMIES[enemyIndex];
       const enemyState = createReducerEnemyState(e as Parameters<typeof createReducerEnemyState>[0]);
-      actions.setEnemy(enemyState as unknown as EnemyState);
+      actions.setEnemy(enemyState);
 
       // 전투 시작 상징 효과 로그 및 애니메이션
       const combatStartEffects = applyCombatStartEffects(orderedRelicList, {});
@@ -2130,12 +2130,10 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       const currentQIndex = battleRef.current.qIndex;
 
       // 플레이어 카드 앞당기기 (현재 카드 이후의 플레이어 카드들)
-      type QueueItemWithSp = { actor: 'player' | 'enemy'; sp?: number };
       if (timelineChanges.advancePlayer > 0) {
         updatedQueue = updatedQueue.map((item, idx) => {
-          const typedItem = item as unknown as QueueItemWithSp;
-          if (idx > currentQIndex && typedItem.actor === 'player') {
-            return { ...item, sp: Math.max(0, (typedItem.sp || 0) - timelineChanges.advancePlayer) };
+          if (idx > currentQIndex && item.actor === 'player') {
+            return { ...item, sp: Math.max(0, (item.sp || 0) - timelineChanges.advancePlayer) };
           }
           return item;
         });
@@ -2144,9 +2142,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       // 적 카드 뒤로 밀기 (현재 카드 이후의 적 카드들)
       if (timelineChanges.pushEnemy > 0) {
         updatedQueue = updatedQueue.map((item, idx) => {
-          const typedItem = item as unknown as QueueItemWithSp;
-          if (idx > currentQIndex && typedItem.actor === 'enemy') {
-            return { ...item, sp: (typedItem.sp || 0) + timelineChanges.pushEnemy };
+          if (idx > currentQIndex && item.actor === 'enemy') {
+            return { ...item, sp: (item.sp || 0) + timelineChanges.pushEnemy };
           }
           return item;
         });
@@ -2157,7 +2154,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         // 현재 이후의 적 카드들 중 가장 마지막 카드 찾기
         let lastEnemyIdx = -1;
         for (let i = updatedQueue.length - 1; i > currentQIndex; i--) {
-          if ((updatedQueue[i] as unknown as QueueItemWithSp).actor === 'enemy') {
+          if (updatedQueue[i].actor === 'enemy') {
             lastEnemyIdx = i;
             break;
           }
@@ -2165,8 +2162,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         if (lastEnemyIdx !== -1) {
           updatedQueue = updatedQueue.map((item, idx) => {
             if (idx === lastEnemyIdx) {
-              const typedItem = item as unknown as QueueItemWithSp;
-              return { ...item, sp: (typedItem.sp || 0) + timelineChanges.pushLastEnemy };
+              return { ...item, sp: (item.sp || 0) + timelineChanges.pushLastEnemy };
             }
             return item;
           });
@@ -2176,7 +2172,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       // 큐 재정렬 (sp 값 기준, 이미 처리된 카드들은 유지)
       const processedCards = updatedQueue.slice(0, currentQIndex + 1);
       const remainingCards = updatedQueue.slice(currentQIndex + 1);
-      remainingCards.sort((a, b) => ((a as unknown as QueueItemWithSp).sp || 0) - ((b as unknown as QueueItemWithSp).sp || 0));
+      remainingCards.sort((a, b) => (a.sp || 0) - (b.sp || 0));
       updatedQueue = [...processedCards, ...remainingCards];
 
       // 겹침 체크
