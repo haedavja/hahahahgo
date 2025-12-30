@@ -5,18 +5,51 @@
  *
  * 사용법:
  *   npx tsx scripts/runSimulator.ts [battles] [enemies...]
+ *   npx tsx scripts/runSimulator.ts balance [battles]     # 밸런스 분석
+ *   npx tsx scripts/runSimulator.ts tier [1|2|3] [battles] # 티어별 시뮬
+ *   npx tsx scripts/runSimulator.ts full [battles]        # 전체 시뮬
  *
  * 예시:
  *   npx tsx scripts/runSimulator.ts 100
  *   npx tsx scripts/runSimulator.ts 200 ghoul marauder
- *   npx tsx scripts/runSimulator.ts 500 deserter slaughterer
+ *   npx tsx scripts/runSimulator.ts balance 50
+ *   npx tsx scripts/runSimulator.ts tier 2 100
+ *   npx tsx scripts/runSimulator.ts full 30
  */
 
-import { runSimulation, printStats, SimulationConfig } from '../src/tests/gameSimulator';
+import { runSimulation, printStats, SimulationConfig, runBalanceAnalysis, runTierSimulation, runFullSimulation, TIER_1_ENEMIES, TIER_2_ENEMIES, TIER_3_ENEMIES } from '../src/tests/gameSimulator';
 import { ENEMIES } from '../src/components/battle/battleData';
 
 // 커맨드 라인 인자 파싱
 const args = process.argv.slice(2);
+const command = args[0];
+
+// 특수 명령어 처리
+if (command === 'balance') {
+  const battles = parseInt(args[1]) || 100;
+  console.log('🎮 밸런스 분석 모드\n');
+  runBalanceAnalysis(battles);
+  process.exit(0);
+}
+
+if (command === 'tier') {
+  const tier = parseInt(args[1]) as 1 | 2 | 3;
+  const battles = parseInt(args[2]) || 100;
+  if (![1, 2, 3].includes(tier)) {
+    console.error('❌ 티어는 1, 2, 3 중 하나여야 합니다.');
+    process.exit(1);
+  }
+  runTierSimulation(tier, battles);
+  process.exit(0);
+}
+
+if (command === 'full') {
+  const battlesPerEnemy = parseInt(args[1]) || 50;
+  runFullSimulation(battlesPerEnemy);
+  process.exit(0);
+}
+
+// 기본 모드
 const battles = parseInt(args[0]) || 100;
 const enemyIds = args.slice(1).length > 0 ? args.slice(1) : undefined;
 
@@ -86,6 +119,16 @@ const paceRating = stats.avgTurns < 3 ? '매우 빠름 (밸런스 확인 필요)
   stats.avgTurns < 15 ? '느림' :
   '매우 느림';
 console.log(`  전투 페이스: ${paceRating}`);
+
+// 콤보 통계
+if (Object.keys(stats.comboStats).length > 0) {
+  console.log('\n🃏 콤보 발생 빈도:');
+  const sortedCombos = Object.entries(stats.comboStats)
+    .sort((a, b) => b[1].count - a[1].count);
+  for (const [comboName, comboStat] of sortedCombos) {
+    console.log(`  ${comboName}: ${comboStat.count}회 (전투당 ${comboStat.avgPerBattle.toFixed(2)})`);
+  }
+}
 
 // 실행 시간
 console.log(`\n⏱️ 실행 시간: ${elapsed}ms (${(elapsed / battles).toFixed(2)}ms/전투)`);
