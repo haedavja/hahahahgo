@@ -21,6 +21,7 @@ import {
   isEnhanceable,
   calculateEnhancedStats,
 } from '../../../lib/cardEnhancementUtils';
+import { CardGrowthModal } from './CardGrowthModal';
 
 // 자아 형성 규칙
 const EGO_RULES = [
@@ -62,16 +63,16 @@ const REFLECTION_DESC = {
   '지배': '적 동결',
 };
 
-// 강화/특화 비용 (레벨별)
+// 강화/특화 비용 (휴식 노드에서는 무료)
 const ENHANCEMENT_COST: Record<number, number> = {
-  1: 10,  // 0→1강
-  2: 15,  // 1→2강
-  3: 25,  // 2→3강 (마일스톤)
-  4: 35,  // 3→4강
-  5: 50,  // 4→5강 (마일스톤)
+  1: 0,  // 0→1강 (무료)
+  2: 0,  // 1→2강 (무료)
+  3: 0,  // 2→3강 (무료)
+  4: 0,  // 3→4강 (무료)
+  5: 0,  // 4→5강 (무료)
 };
 
-const SPECIALIZATION_COST = 20; // 특화 비용 (고정)
+const SPECIALIZATION_COST = 0; // 특화 비용 (무료)
 
 export function RestModal({
   memoryValue,
@@ -112,6 +113,7 @@ export function RestModal({
 }) {
   const [egoFormMode, setEgoFormMode] = useState(false);
   const [selectedTraitsForEgo, setSelectedTraitsForEgo] = useState<number[]>([]);
+  const [showCardGrowthModal, setShowCardGrowthModal] = useState(false);
 
   return (
     <div className="event-modal-overlay" onClick={closeRest}>
@@ -162,13 +164,16 @@ export function RestModal({
               >
                 체력 회복 (+30% 최대체력)
               </button>
-              <CardGrowthPanel
-                cardGrowth={cardGrowth}
-                gold={gold}
-                onEnhance={enhanceCard}
-                onSpecialize={specializeCard}
-                spendGold={spendGold}
-              />
+              <button
+                className="btn"
+                onClick={() => setShowCardGrowthModal(true)}
+                style={{
+                  background: 'linear-gradient(135deg, rgba(96, 165, 250, 0.2), rgba(134, 239, 172, 0.2))',
+                  border: '1px solid rgba(96, 165, 250, 0.4)',
+                }}
+              >
+                ⚔️ 카드 성장 (강화/특화)
+              </button>
             </div>
           </div>
           <div className="choice-card">
@@ -203,6 +208,15 @@ export function RestModal({
           <button className="btn" onClick={() => { closeRest(); setEgoFormMode(false); setSelectedTraitsForEgo([]); }}>닫기</button>
         </div>
       </div>
+
+      {/* 카드 성장 모달 */}
+      <CardGrowthModal
+        isOpen={showCardGrowthModal}
+        onClose={() => setShowCardGrowthModal(false)}
+        cardGrowth={cardGrowth}
+        onEnhance={enhanceCard}
+        onSpecialize={specializeCard}
+      />
     </div>
   );
 }

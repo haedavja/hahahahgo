@@ -72,6 +72,9 @@ export function DevTools({ isOpen, onClose, showAllCards, setShowAllCards }: Dev
     clearOwnedCards,
     devAddBattleToken,
     devStartBattle,
+    cardGrowth,
+    enhanceCard,
+    specializeCard,
   } = store;
 
   if (!isOpen) return null;
@@ -238,6 +241,9 @@ export function DevTools({ isOpen, onClose, showAllCards, setShowAllCards }: Dev
             clearOwnedCards={clearOwnedCards}
             showAllCards={showAllCards}
             setShowAllCards={setShowAllCards}
+            cardGrowth={cardGrowth || {}}
+            enhanceCard={enhanceCard}
+            specializeCard={specializeCard}
           />
         )}
       </div>

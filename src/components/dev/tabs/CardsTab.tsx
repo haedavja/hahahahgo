@@ -6,6 +6,8 @@
 import { useState, ChangeEvent } from 'react';
 import { CARDS } from '../../battle/battleData';
 import type { CardsTabCard as Card, CardsTabCharacterBuild as CharacterBuild } from '../../../types';
+import type { CardGrowthState } from '../../../state/slices/types';
+import { CardGrowthModal } from '../../map/ui/CardGrowthModal';
 
 interface CardsTabProps {
   cardUpgrades?: Record<string, string>;
@@ -17,12 +19,16 @@ interface CardsTabProps {
   clearOwnedCards: () => void;
   showAllCards: boolean;
   setShowAllCards: (show: boolean) => void;
+  cardGrowth: Record<string, CardGrowthState>;
+  enhanceCard: (cardId: string) => void;
+  specializeCard: (cardId: string, selectedTraits: string[]) => void;
 }
 
-export function CardsTab({ cardUpgrades, upgradeCardRarity, characterBuild, updateCharacterBuild, addOwnedCard, removeOwnedCard, clearOwnedCards, showAllCards, setShowAllCards }: CardsTabProps) {
+export function CardsTab({ cardUpgrades, upgradeCardRarity, characterBuild, updateCharacterBuild, addOwnedCard, removeOwnedCard, clearOwnedCards, showAllCards, setShowAllCards, cardGrowth, enhanceCard, specializeCard }: CardsTabProps) {
   const [selectedCardId, setSelectedCardId] = useState<string>((CARDS as Card[])[0]?.id || '');
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [specialMode, setSpecialMode] = useState<'main' | 'sub' | 'owned'>('main');
+  const [showCardGrowthModal, setShowCardGrowthModal] = useState(false);
 
   const mainSpecials = characterBuild?.mainSpecials || [];
   const subSpecials = characterBuild?.subSpecials || [];
@@ -416,6 +422,45 @@ export function CardsTab({ cardUpgrades, upgradeCardRarity, characterBuild, upda
           등급 올리기
         </button>
       </div>
+
+      {/* 카드 성장 (강화/특화) */}
+      <div style={{
+        padding: '12px',
+        background: '#0f172a',
+        borderRadius: '8px',
+        marginTop: '16px',
+        border: '1px solid rgba(96, 165, 250, 0.3)',
+      }}>
+        <h4 style={{ color: '#60a5fa', fontSize: '0.875rem', marginBottom: '8px', marginTop: 0 }}>⚔️ 카드 성장 (강화/특화)</h4>
+        <p style={{ fontSize: '0.75rem', color: '#94a3b8', marginBottom: '12px' }}>
+          강화로 카드 스탯을 높이고, 특화로 특성을 부여하세요.
+        </p>
+        <button
+          onClick={() => setShowCardGrowthModal(true)}
+          style={{
+            width: '100%',
+            padding: '12px',
+            background: 'linear-gradient(135deg, #3b82f6 0%, #22c55e 100%)',
+            border: 'none',
+            borderRadius: '8px',
+            color: '#fff',
+            fontSize: '0.875rem',
+            fontWeight: 700,
+            cursor: 'pointer',
+          }}
+        >
+          ⚔️ 카드 성장 창 열기
+        </button>
+      </div>
+
+      {/* 카드 성장 모달 */}
+      <CardGrowthModal
+        isOpen={showCardGrowthModal}
+        onClose={() => setShowCardGrowthModal(false)}
+        cardGrowth={cardGrowth}
+        onEnhance={enhanceCard}
+        onSpecialize={specializeCard}
+      />
     </div>
   );
 }
