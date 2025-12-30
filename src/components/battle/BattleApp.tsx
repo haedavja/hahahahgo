@@ -83,6 +83,7 @@ import { useEnemyInitialization } from "./hooks/useEnemyInitialization";
 import { useBattleSyncEffects } from "./hooks/useBattleSyncEffects";
 import { useBattleRefSync } from "./hooks/useBattleRefSync";
 import { useEnemyDisplayData } from "./hooks/useEnemyDisplayData";
+import { useRenderComputations } from "./hooks/useRenderComputations";
 import {
   MAX_SPEED,
   DEFAULT_PLAYER_MAX_SPEED,
@@ -1970,51 +1971,40 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     }
   });
 
+  // 렌더링 전 계산 (커스텀 훅으로 분리)
+  const {
+    handDisabled,
+    playerEtherValue,
+    playerEtherSlots,
+    enemyEtherValue,
+    playerEnergyBudget,
+    remainingEnergy,
+    insightLevelSelect,
+    insightVisible,
+    enemyWillOverdrivePlan,
+    canRevealOverdrive,
+    enemyOverdriveVisible,
+    enemyOverdriveLabel,
+    netFinalEther,
+    enemyCapacity,
+    enemySoulScale
+  } = useRenderComputations({
+    player: player as { etherPts?: number; energy?: number; maxSpeed?: number; maxEnergy?: number },
+    enemy: enemy as { etherPts?: number; etherCapacity?: number; etherOverdriveActive?: boolean } | null,
+    enemyPlan,
+    battle: { phase: battle.phase, selected: battle.selected },
+    totalSpeed,
+    totalEnergy,
+    effectiveMaxSubmitCards,
+    effectiveAgility,
+    insightReveal: insightReveal as { level?: number; visible?: boolean } | null,
+    etherFinalValue,
+    enemyEtherFinalValue,
+    netEtherDelta,
+    turnNumber
+  });
+
   if (!enemy) return <div className="text-white p-4">로딩…</div>;
-
-  const handDisabled = (c: Card) => {
-    // 기본 체크: 최대 선택 수, 속도 한계, 행동력 부족
-    if (battle.selected.length >= effectiveMaxSubmitCards ||
-        totalSpeed + applyAgility(c.speedCost, Number(effectiveAgility)) > Number(player.maxSpeed) ||
-        totalEnergy + c.actionCost > Number(player.maxEnergy)) {
-      return true;
-    }
-
-    // 필요 토큰 체크 (기교 등)
-    if (c.requiredTokens && Array.isArray(c.requiredTokens)) {
-      for (const req of c.requiredTokens) {
-        const currentStacks = getTokenStacks(player, req.id);
-        if (currentStacks < (req.stacks || 1)) {
-          return true;  // 토큰 부족
-        }
-      }
-    }
-
-    return false;
-  };
-  const playerEtherValue = Number(player?.etherPts) || 0;
-  const playerEtherSlots = etherSlots(playerEtherValue);
-  const enemyEtherValue = Number(enemy?.etherPts) || 0;
-  const playerEnergyBudget = (player as { energy?: number }).energy || BASE_PLAYER_ENERGY;
-  const remainingEnergy = Math.max(0, playerEnergyBudget - totalEnergy);
-  const insightLevelSelect = insightReveal?.level || 0;
-  const insightVisible = insightReveal?.visible;
-  const enemyWillOverdrivePlan = shouldEnemyOverdrive(enemyPlan.mode, enemyPlan.actions as unknown as import("../../types").AICard[], Number(enemy.etherPts), turnNumber);
-  const canRevealOverdrive =
-    (battle.phase === 'select' && insightVisible && insightLevelSelect >= 2) ||
-    (battle.phase === 'respond' && insightVisible && insightLevelSelect >= 1) ||
-    battle.phase === 'resolve';
-  const enemyOverdriveVisible = canRevealOverdrive && (enemyWillOverdrivePlan || enemy?.etherOverdriveActive);
-  const enemyOverdriveLabel = enemy?.etherOverdriveActive ? '기원 발동' : '기원 예정';
-  const rawNetDelta = (battle.phase === 'resolve' && etherFinalValue !== null && enemyEtherFinalValue !== null)
-    ? (etherFinalValue - enemyEtherFinalValue)
-    : null;
-
-  const netFinalEther = netEtherDelta !== null
-    ? netEtherDelta
-    : rawNetDelta;
-  const enemyCapacity = (enemy as { etherCapacity?: number })?.etherCapacity ?? Math.max(Number(enemyEtherValue), 1);
-  const enemySoulScale = Math.max(0.4, Math.min(1.3, enemyCapacity > 0 ? Number(enemyEtherValue) / enemyCapacity : 1));
 
   return (
     <div className="legacy-battle-root w-full min-h-screen pb-64">
