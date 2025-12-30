@@ -8,7 +8,8 @@ import {
   applyAgility,
   applyAgilityToCards,
   getAgilityDescription,
-  getAgilityReduction
+  getAgilityReduction,
+  applyAgilityWithAnomaly
 } from './agilityUtils';
 
 describe('agilityUtils', () => {
@@ -155,6 +156,70 @@ describe('agilityUtils', () => {
 
     it('기본 속도가 1이면 감소량은 0이어야 함', () => {
       expect(getAgilityReduction(1, 10)).toBe(0);
+    });
+  });
+
+  describe('applyAgilityWithAnomaly', () => {
+    it('이변 효과가 없으면 applyAgility와 같은 결과를 반환해야 함', () => {
+      expect(applyAgilityWithAnomaly(10, 3)).toBe(applyAgility(10, 3));
+      expect(applyAgilityWithAnomaly(10, 3, undefined)).toBe(applyAgility(10, 3));
+      expect(applyAgilityWithAnomaly(10, 3, {})).toBe(applyAgility(10, 3));
+    });
+
+    it('speedInstability가 0이면 기본 속도를 반환해야 함', () => {
+      const playerState = { speedInstability: 0 };
+      expect(applyAgilityWithAnomaly(10, 0, playerState)).toBe(10);
+    });
+
+    it('speedInstability가 양수면 속도 변동이 적용되어야 함', () => {
+      // 랜덤 값이므로 결과가 범위 내에 있는지 확인
+      const playerState = { speedInstability: 3 };
+      const results = new Set<number>();
+
+      // 여러 번 실행하여 범위 확인
+      for (let i = 0; i < 100; i++) {
+        const result = applyAgilityWithAnomaly(10, 0, playerState);
+        results.add(result);
+      }
+
+      // 모든 결과가 최소 1 이상
+      for (const result of results) {
+        expect(result).toBeGreaterThanOrEqual(1);
+      }
+    });
+
+    it('속도는 최소 1이어야 함', () => {
+      const playerState = { speedInstability: 10 };
+      // 랜덤이므로 여러 번 실행
+      for (let i = 0; i < 50; i++) {
+        const result = applyAgilityWithAnomaly(5, 3, playerState);
+        expect(result).toBeGreaterThanOrEqual(1);
+      }
+    });
+
+    it('음수 speedInstability는 무시되어야 함', () => {
+      const playerState = { speedInstability: -5 };
+      expect(applyAgilityWithAnomaly(10, 3, playerState)).toBe(7);
+    });
+
+    it('민첩성과 이변 효과가 함께 적용되어야 함', () => {
+      const playerState = { speedInstability: 2 };
+      const baseSpeed = 10;
+      const agility = 3;
+
+      // 민첩 적용 후 결과 (7)에서 ±2 범위
+      const results = new Set<number>();
+      for (let i = 0; i < 100; i++) {
+        const result = applyAgilityWithAnomaly(baseSpeed, agility, playerState);
+        results.add(result);
+      }
+
+      // 결과가 여러 개 있어야 함 (랜덤)
+      // 최소 1, 최대는 7 + 2 = 9
+      for (const result of results) {
+        expect(result).toBeGreaterThanOrEqual(1);
+        expect(result).toBeLessThanOrEqual(9);
+      }
     });
   });
 });

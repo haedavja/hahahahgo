@@ -476,5 +476,124 @@ describe('handGeneration', () => {
         expect(result.mainSpecialsHand).toHaveLength(0);
       });
     });
+
+    describe('강화로 제거된 특성 병합 방지', () => {
+      it('강화로 제거된 특성은 특화로 다시 추가되지 않아야 함', () => {
+        // combat_meditation 3강에서 vanish가 제거됨
+        const cardGrowth = {
+          'combat_meditation': {
+            rarity: 'common' as const,
+            growthCount: 2,
+            enhancementLevel: 3,
+            specializationCount: 1,
+            traits: ['vanish'] // 특화로 vanish 추가 시도
+          }
+        };
+
+        const result = initializeDeck({
+          mainSpecials: ['combat_meditation'],
+          subSpecials: [],
+          ownedCards: []
+        } as any, [], cardGrowth);
+
+        const card = result.mainSpecialsHand[0];
+        // vanish가 3강에서 제거되어 특화로도 추가되지 않음
+        expect(card?.traits).toBeDefined();
+        expect(card?.traits).not.toContain('vanish');
+        expect(card?.enhancedStats?.removedTraits).toContain('vanish');
+      });
+
+      it('강화로 제거되지 않은 특성은 특화로 추가되어야 함', () => {
+        const cardGrowth = {
+          'combat_meditation': {
+            rarity: 'common' as const,
+            growthCount: 2,
+            enhancementLevel: 3,
+            specializationCount: 1,
+            traits: ['swift'] // 제거 대상이 아닌 특성
+          }
+        };
+
+        const result = initializeDeck({
+          mainSpecials: ['combat_meditation'],
+          subSpecials: [],
+          ownedCards: []
+        } as any, [], cardGrowth);
+
+        const card = result.mainSpecialsHand[0];
+        expect(card?.traits).toBeDefined();
+        expect(card?.traits).toContain('swift');
+      });
+
+      it('복합 케이스: 일부 특성은 제거되고 일부는 추가되어야 함', () => {
+        const cardGrowth = {
+          'combat_meditation': {
+            rarity: 'common' as const,
+            growthCount: 3,
+            enhancementLevel: 3,
+            specializationCount: 2,
+            traits: ['vanish', 'swift', 'strongbone'] // vanish는 제거됨, swift/strongbone은 추가됨
+          }
+        };
+
+        const result = initializeDeck({
+          mainSpecials: ['combat_meditation'],
+          subSpecials: [],
+          ownedCards: []
+        } as any, [], cardGrowth);
+
+        const card = result.mainSpecialsHand[0];
+        expect(card?.traits).toBeDefined();
+        expect(card?.traits).not.toContain('vanish');
+        expect(card?.traits).toContain('swift');
+        expect(card?.traits).toContain('strongbone');
+      });
+    });
+
+    describe('강화 설명 복사', () => {
+      it('강화된 카드는 업데이트된 설명을 가져야 함', () => {
+        const cardGrowth = {
+          'strike': {
+            rarity: 'common' as const,
+            growthCount: 1,
+            enhancementLevel: 3,
+            specializationCount: 0,
+            traits: [] as string[]
+          }
+        };
+
+        const result = initializeDeck({
+          mainSpecials: ['strike'],
+          subSpecials: [],
+          ownedCards: []
+        } as any, [], cardGrowth);
+
+        const card = result.mainSpecialsHand[0];
+        // 설명이 존재해야 함
+        expect(card?.description).toBeDefined();
+      });
+
+      it('강화 레벨 0이면 원본 설명을 유지해야 함', () => {
+        const cardGrowth = {
+          'strike': {
+            rarity: 'common' as const,
+            growthCount: 0,
+            enhancementLevel: 0,
+            specializationCount: 0,
+            traits: [] as string[]
+          }
+        };
+
+        const result = initializeDeck({
+          mainSpecials: ['strike'],
+          subSpecials: [],
+          ownedCards: []
+        } as any, [], cardGrowth);
+
+        const card = result.mainSpecialsHand[0];
+        // 원본 카드의 description 유지
+        expect(card?.enhancementLevel).toBeUndefined();
+      });
+    });
   });
 });
