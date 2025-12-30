@@ -94,9 +94,8 @@ export function CardGrowthModal({
     onEnhance(selectedCardId);
     showNotification(`${selectedCard?.name} +${(growth.enhancementLevel || 0) + 1} 강화 성공!`, 'enhance');
 
-    // 특화 옵션 새로고침
-    const newGrowth = { ...growth, enhancementLevel: (growth.enhancementLevel || 0) + 1 };
-    setSpecOptions(generateSpecializationOptions(newGrowth.traits));
+    // 강화는 특화 옵션에 영향을 주지 않음 (특성이 바뀌지 않으므로)
+    // 특화 후에만 옵션이 새로고침됨
   };
 
   // 특화 실행
