@@ -75,6 +75,12 @@ export interface PlayerBattleState extends Combatant {
   speedPenalty?: number;
   drawPenalty?: number;
   insightPenalty?: number;
+  // 리듀서 호환 필드
+  strength?: number;
+  agility?: number;
+  insight?: number;
+  counter?: number;
+  etherPts?: number;
 }
 
 /** 적 유닛 */
@@ -102,6 +108,12 @@ export interface EnemyUnit extends Combatant {
   enemyCount?: number;
   ether?: number;
   comboUsageCount?: Record<string, number>;
+  // 리듀서 호환 필드
+  etherPts?: number;
+  count?: number;
+  quantity?: number;
+  counter?: number;
+  composition?: Array<{ count?: number; quantity?: number; name?: string; emoji?: string }>;
 }
 
 /** 적 의도 표시 */
@@ -746,75 +758,23 @@ export interface VictoryDefeatProcessResult {
 
 // ==================== 리듀서 타입 ====================
 
-/** 리듀서 플레이어 상태 */
-export interface ReducerPlayerState {
-  hp: number;
-  maxHp: number;
-  block: number;
-  tokens: TokenState;
-  energy: number;
-  maxEnergy: number;
-  strength?: number;
-  agility?: number;
-  insight?: number;
-  counter?: number;
-  etherPts?: number;
-  maxSpeed?: number;
-  etherMultiplier?: number;
-  insightPenalty?: number;
-  comboUsageCount?: Record<string, number>;
-  def?: boolean;
-  vulnMult?: number;
-  etherOverdriveActive?: boolean;
-  etherOverflow?: number;
-  etherBan?: boolean;
-  energyPenalty?: number;
-  speedPenalty?: number;
-  drawPenalty?: number;
-  [key: string]: unknown;
-}
+/**
+ * 리듀서 플레이어 상태 - PlayerBattleState와 동일 (하위 호환용 별칭)
+ * @deprecated PlayerBattleState를 직접 사용하세요.
+ */
+export type ReducerPlayerState = PlayerBattleState;
 
-/** 리듀서 적 상태 */
-export interface ReducerEnemyState {
-  hp: number;
-  maxHp: number;
-  block: number;
-  tokens: TokenState;
-  units?: ReducerEnemyUnitState[];
-  etherPts?: number;
-  maxSpeed?: number;
-  name?: string;
-  emoji?: string;
-  shroud?: number;
-  cardsPerTurn?: number;
-  composition?: Array<{ count?: number; quantity?: number; name?: string; emoji?: string }>;
-  count?: number;
-  quantity?: number;
-  def?: boolean;
-  counter?: number;
-  vulnMult?: number;
-  etherOverdriveActive?: boolean;
-  deck?: string[];
-  passives?: Record<string, unknown>;
-  isBoss?: boolean;
-  ether?: number;
-  etherCapacity?: number;
-  comboUsageCount?: Record<string, number>;
-  [key: string]: unknown;
-}
+/**
+ * 리듀서 적 상태 - EnemyUnit과 동일 (하위 호환용 별칭)
+ * @deprecated EnemyUnit을 직접 사용하세요.
+ */
+export type ReducerEnemyState = EnemyUnit;
 
-/** 리듀서 적 유닛 상태 */
-export interface ReducerEnemyUnitState {
-  unitId: number;
-  hp: number;
-  maxHp: number;
-  block: number;
-  tokens: TokenState;
-  name?: string;
-  emoji?: string;
-  id?: string;
-  [key: string]: unknown;
-}
+/**
+ * 리듀서 적 유닛 상태 - EnemyUnit과 동일 (하위 호환용 별칭)
+ * @deprecated EnemyUnit을 직접 사용하세요.
+ */
+export type ReducerEnemyUnitState = EnemyUnit;
 
 /** 다음 턴 효과 (리듀서) */
 export interface ReducerNextTurnEffects {

@@ -235,8 +235,8 @@ export function useBattleState(initialStateOverrides: InitialStateOverrides = {}
   const initializeBattleState = useCallback(() => {
     // createInitialState에서 기본 상태를 생성하되, 오버라이드된 필드만 덮어쓰기
     const baseState = createInitialState({
-      initialPlayerState: initialStateOverrides.player as PlayerState,
-      initialEnemyState: initialStateOverrides.enemy as EnemyState,
+      initialPlayerState: initialStateOverrides.player,
+      initialEnemyState: initialStateOverrides.enemy,
       initialPlayerRelics: initialStateOverrides.orderedRelics || [],
       simplifiedMode: initialStateOverrides.isSimplified || false,
       sortType: initialStateOverrides.sortType || 'speed'
@@ -268,10 +268,10 @@ export function useBattleState(initialStateOverrides: InitialStateOverrides = {}
 
   const actions = useMemo(() => ({
     // === 플레이어 & 적 상태 ===
-    setPlayer: (player: PlayerBattleState) => dispatch({ type: ACTIONS.SET_PLAYER, payload: player as PlayerState }),
-    updatePlayer: (updates: Partial<PlayerBattleState>) => dispatch({ type: ACTIONS.UPDATE_PLAYER, payload: updates as Partial<PlayerState> }),
-    setEnemy: (enemy: EnemyUnit) => dispatch({ type: ACTIONS.SET_ENEMY, payload: enemy as EnemyState }),
-    updateEnemy: (updates: Partial<EnemyUnit>) => dispatch({ type: ACTIONS.UPDATE_ENEMY, payload: updates as Partial<EnemyState> }),
+    setPlayer: (player: PlayerBattleState) => dispatch({ type: ACTIONS.SET_PLAYER, payload: player }),
+    updatePlayer: (updates: Partial<PlayerBattleState>) => dispatch({ type: ACTIONS.UPDATE_PLAYER, payload: updates }),
+    setEnemy: (enemy: EnemyUnit) => dispatch({ type: ACTIONS.SET_ENEMY, payload: enemy }),
+    updateEnemy: (updates: Partial<EnemyUnit>) => dispatch({ type: ACTIONS.UPDATE_ENEMY, payload: updates }),
     setEnemyIndex: (index: number) => dispatch({ type: ACTIONS.SET_ENEMY_INDEX, payload: index }),
     // 다중 유닛 시스템
     setSelectedTargetUnit: (unitId: number) => dispatch({ type: ACTIONS.SET_SELECTED_TARGET_UNIT, payload: unitId }),
@@ -339,8 +339,8 @@ export function useBattleState(initialStateOverrides: InitialStateOverrides = {}
     setSoulShatter: (shatter: boolean) => dispatch({ type: ACTIONS.SET_SOUL_SHATTER, payload: shatter }),
 
     // === 자동진행 & 스냅샷 ===
-    setResolveStartPlayer: (player: PlayerBattleState | null) => dispatch({ type: ACTIONS.SET_RESOLVE_START_PLAYER, payload: player as PlayerState | null }),
-    setResolveStartEnemy: (enemy: EnemyUnit | null) => dispatch({ type: ACTIONS.SET_RESOLVE_START_ENEMY, payload: enemy as EnemyState | null }),
+    setResolveStartPlayer: (player: PlayerBattleState | null) => dispatch({ type: ACTIONS.SET_RESOLVE_START_PLAYER, payload: player }),
+    setResolveStartEnemy: (enemy: EnemyUnit | null) => dispatch({ type: ACTIONS.SET_RESOLVE_START_ENEMY, payload: enemy }),
     setRespondSnapshot: (snapshot: RespondSnapshot | null) => dispatch({ type: ACTIONS.SET_RESPOND_SNAPSHOT, payload: snapshot }),
     setRewindUsed: (used: boolean) => dispatch({ type: ACTIONS.SET_REWIND_USED, payload: used }),
 
@@ -557,10 +557,10 @@ export function useBattleState(initialStateOverrides: InitialStateOverrides = {}
  */
 export function useBattleActions(dispatch: Dispatch<BattleAction>) {
   return useMemo(() => ({
-    setPlayer: (player: PlayerBattleState) => dispatch({ type: ACTIONS.SET_PLAYER, payload: player as PlayerState }),
-    updatePlayer: (updates: Partial<PlayerBattleState>) => dispatch({ type: ACTIONS.UPDATE_PLAYER, payload: updates as Partial<PlayerState> }),
-    setEnemy: (enemy: EnemyUnit) => dispatch({ type: ACTIONS.SET_ENEMY, payload: enemy as EnemyState }),
-    updateEnemy: (updates: Partial<EnemyUnit>) => dispatch({ type: ACTIONS.UPDATE_ENEMY, payload: updates as Partial<EnemyState> }),
+    setPlayer: (player: PlayerBattleState) => dispatch({ type: ACTIONS.SET_PLAYER, payload: player }),
+    updatePlayer: (updates: Partial<PlayerBattleState>) => dispatch({ type: ACTIONS.UPDATE_PLAYER, payload: updates }),
+    setEnemy: (enemy: EnemyUnit) => dispatch({ type: ACTIONS.SET_ENEMY, payload: enemy }),
+    updateEnemy: (updates: Partial<EnemyUnit>) => dispatch({ type: ACTIONS.UPDATE_ENEMY, payload: updates }),
     setPhase: (phase: string) => dispatch({ type: ACTIONS.SET_PHASE, payload: phase as BattlePhase }),
     addLog: (message: string) => dispatch({ type: ACTIONS.ADD_LOG, payload: message }),
     resetTurn: () => dispatch({ type: ACTIONS.RESET_TURN }),
