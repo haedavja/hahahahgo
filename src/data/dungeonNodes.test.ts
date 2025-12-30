@@ -83,7 +83,7 @@ describe('dungeonNodes', () => {
       const cliffChoices = OBSTACLE_TEMPLATES.cliff.choices;
       expect(cliffChoices.length).toBeGreaterThan(0);
 
-      const climbChoice = cliffChoices.find((c: any) => c.id === 'climb');
+      const climbChoice = cliffChoices.find(c => c.id === 'climb');
       expect(climbChoice).toBeDefined();
       expect(climbChoice?.repeatable).toBe(true);
       expect(climbChoice?.maxAttempts).toBe(5);
@@ -95,15 +95,15 @@ describe('dungeonNodes', () => {
     });
 
     it('모든 템플릿에 choices가 있다', () => {
-      Object.values(OBSTACLE_TEMPLATES).forEach((template: any) => {
+      Object.values(OBSTACLE_TEMPLATES).forEach(template => {
         expect(Array.isArray(template.choices)).toBe(true);
         expect(template.choices.length).toBeGreaterThan(0);
       });
     });
 
     it('선택지마다 outcomes가 정의되어 있다', () => {
-      Object.values(OBSTACLE_TEMPLATES).forEach((template: any) => {
-        template.choices.forEach((choice: any) => {
+      Object.values(OBSTACLE_TEMPLATES).forEach(template => {
+        template.choices.forEach(choice => {
           expect(choice.outcomes).toBeDefined();
           // success 또는 failure 중 하나는 있어야 함
           const hasOutcome = choice.outcomes.success || choice.outcomes.failure;
@@ -149,14 +149,14 @@ describe('dungeonNodes', () => {
 
   describe('데이터 무결성', () => {
     it('모든 템플릿 ID가 고유하다', () => {
-      const ids = Object.values(OBSTACLE_TEMPLATES).map((t: any) => t.id);
+      const ids = Object.values(OBSTACLE_TEMPLATES).map(t => t.id);
       const uniqueIds = new Set(ids);
       expect(uniqueIds.size).toBe(ids.length);
     });
 
     it('모든 선택지 ID가 템플릿 내에서 고유하다', () => {
-      Object.values(OBSTACLE_TEMPLATES).forEach((template: any) => {
-        const choiceIds = template.choices.map((c: any) => c.id);
+      Object.values(OBSTACLE_TEMPLATES).forEach(template => {
+        const choiceIds = template.choices.map(c => c.id);
         const uniqueChoiceIds = new Set(choiceIds);
         expect(uniqueChoiceIds.size).toBe(choiceIds.length);
       });
@@ -164,8 +164,8 @@ describe('dungeonNodes', () => {
 
     it('scalingRequirement가 있는 선택지는 유효한 stat을 가진다', () => {
       const validStats = ['strength', 'agility', 'insight'];
-      Object.values(OBSTACLE_TEMPLATES).forEach((template: any) => {
-        template.choices.forEach((choice: any) => {
+      Object.values(OBSTACLE_TEMPLATES).forEach(template => {
+        template.choices.forEach(choice => {
           if (choice.scalingRequirement) {
             expect(validStats).toContain(choice.scalingRequirement.stat);
             expect(typeof choice.scalingRequirement.baseValue).toBe('number');

@@ -7,7 +7,11 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { processVictoryDefeatTransition } from './victoryDefeatTransition';
 
 describe('victoryDefeatTransition', () => {
-  let actions: any;
+  let actions: {
+    setSoulShatter: ReturnType<typeof vi.fn>,
+    setNetEtherDelta: ReturnType<typeof vi.fn>,
+    setPostCombatOptions: ReturnType<typeof vi.fn>
+  };
 
   beforeEach(() => {
     vi.useFakeTimers();

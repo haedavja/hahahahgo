@@ -33,7 +33,7 @@ describe('cardImmediateEffects', () => {
     }) as any;
 
     it('double_edge 특성은 플레이어에게 1 피해를 줘야 함', () => {
-      const addLog: any = vi.fn();
+      const addLog = vi.fn();
       const playerState = createPlayerState({ hp: 50 });
       const card = { name: 'Double Edge', traits: ['double_edge'] } as any;
 
@@ -49,7 +49,7 @@ describe('cardImmediateEffects', () => {
     });
 
     it('double_edge는 HP를 0 미만으로 줄이지 않아야 함', () => {
-      const addLog: any = vi.fn();
+      const addLog = vi.fn();
       const playerState = createPlayerState({ hp: 0 });
       const card = { traits: ['double_edge'] } as any;
 
@@ -64,7 +64,7 @@ describe('cardImmediateEffects', () => {
     });
 
     it('training 특성은 힘을 1 증가시켜야 함', () => {
-      const addLog: any = vi.fn();
+      const addLog = vi.fn();
       const playerState = createPlayerState({ strength: 2 });
       const card = { name: 'Training', traits: ['training'] } as any;
 
@@ -80,7 +80,7 @@ describe('cardImmediateEffects', () => {
     });
 
     it('training은 strength가 없으면 0에서 시작해야 함', () => {
-      const addLog: any = vi.fn();
+      const addLog = vi.fn();
       const playerState = createPlayerState();
       delete playerState.strength;
       const card = { traits: ['training'] } as any;
@@ -96,7 +96,7 @@ describe('cardImmediateEffects', () => {
     });
 
     it('warmup 특성은 다음 턴 보너스 행동력을 추가해야 함', () => {
-      const addLog: any = vi.fn();
+      const addLog = vi.fn();
       const playerState = createPlayerState();
       const card = { name: 'Warmup', traits: ['warmup'] } as any;
 
@@ -112,7 +112,7 @@ describe('cardImmediateEffects', () => {
     });
 
     it('warmup은 기존 보너스 행동력에 누적되어야 함', () => {
-      const addLog: any = vi.fn();
+      const addLog = vi.fn();
       const playerState = createPlayerState();
       const card = { traits: ['warmup'] } as any;
 
@@ -127,7 +127,7 @@ describe('cardImmediateEffects', () => {
     });
 
     it('vanish 특성은 카드를 소멸시켜야 함', () => {
-      const addLog: any = vi.fn();
+      const addLog = vi.fn();
       const addVanishedCard = vi.fn();
       const playerState = createPlayerState();
       const card = { id: 'card1', name: 'Vanish Card', traits: ['vanish'] } as any;
@@ -145,7 +145,7 @@ describe('cardImmediateEffects', () => {
     });
 
     it('vanish는 addVanishedCard 없으면 무시해야 함', () => {
-      const addLog: any = vi.fn();
+      const addLog = vi.fn();
       const playerState = createPlayerState();
       const card = { id: 'card1', name: 'Vanish', traits: ['vanish'] } as any;
 
@@ -162,7 +162,7 @@ describe('cardImmediateEffects', () => {
     });
 
     it('여러 특성이 동시에 적용되어야 함', () => {
-      const addLog: any = vi.fn();
+      const addLog = vi.fn();
       const playerState = createPlayerState({ hp: 50, strength: 1 });
       const card = { traits: ['double_edge', 'training', 'warmup'] } as any;
 
@@ -179,7 +179,7 @@ describe('cardImmediateEffects', () => {
     });
 
     it('특성이 없으면 변경 없이 반환해야 함', () => {
-      const addLog: any = vi.fn();
+      const addLog = vi.fn();
       const playerState = createPlayerState({ hp: 100, strength: 5 });
       const card = { name: 'Normal Card' } as any;
 
@@ -208,7 +208,7 @@ describe('cardImmediateEffects', () => {
     });
 
     it('유령 카드는 상징 효과를 적용하지 않아야 함', () => {
-      const addLog: any = vi.fn();
+      const addLog = vi.fn();
       const setRelicActivated = vi.fn();
       const card = { name: 'Ghost Card', isGhost: true } as any;
 
@@ -228,7 +228,7 @@ describe('cardImmediateEffects', () => {
 
     it('힐 효과가 있으면 체력을 회복해야 함', () => {
       (applyCardPlayedEffects as any).mockReturnValue({ heal: 10 });
-      const addLog: any = vi.fn();
+      const addLog = vi.fn();
       const setRelicActivated = vi.fn();
       const playerState = createPlayerState({ hp: 80, maxHp: 100 });
 
@@ -250,7 +250,7 @@ describe('cardImmediateEffects', () => {
 
     it('최대 체력을 초과하지 않아야 함', () => {
       (applyCardPlayedEffects as any).mockReturnValue({ heal: 50 });
-      const addLog: any = vi.fn();
+      const addLog = vi.fn();
       const setRelicActivated = vi.fn();
       const playerState = createPlayerState({ hp: 90, maxHp: 100 });
 
@@ -269,7 +269,7 @@ describe('cardImmediateEffects', () => {
 
     it('이미 최대 체력이면 힐하지 않아야 함', () => {
       (applyCardPlayedEffects as any).mockReturnValue({ heal: 10 });
-      const addLog: any = vi.fn();
+      const addLog = vi.fn();
       const setRelicActivated = vi.fn();
       const playerState = createPlayerState({ hp: 100, maxHp: 100 });
 
@@ -289,7 +289,7 @@ describe('cardImmediateEffects', () => {
 
     it('힐 효과가 없으면 false를 반환해야 함', () => {
       (applyCardPlayedEffects as any).mockReturnValue({});
-      const addLog: any = vi.fn();
+      const addLog = vi.fn();
       const setRelicActivated = vi.fn();
 
       const result = processCardPlayedRelicEffects({
@@ -307,7 +307,7 @@ describe('cardImmediateEffects', () => {
 
     it('safeInitialPlayer에서 maxHp를 가져올 수 있어야 함', () => {
       (applyCardPlayedEffects as any).mockReturnValue({ heal: 10 });
-      const addLog: any = vi.fn();
+      const addLog = vi.fn();
       const setRelicActivated = vi.fn();
       const playerState = { hp: 80 } as any; // maxHp 없음
 
@@ -326,7 +326,7 @@ describe('cardImmediateEffects', () => {
 
     it('maxHp 기본값 100을 사용해야 함', () => {
       (applyCardPlayedEffects as any).mockReturnValue({ heal: 30 });
-      const addLog: any = vi.fn();
+      const addLog = vi.fn();
       const setRelicActivated = vi.fn();
       const playerState = { hp: 90 } as any; // maxHp 없음
 

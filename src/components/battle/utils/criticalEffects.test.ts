@@ -26,7 +26,7 @@ import {
 } from './criticalEffects';
 
 // 테스트용 Combatant 헬퍼
-function createCombatant(overrides: any = {}): any {
+function createCombatant(overrides = {}) {
   return {
     hp: 100,
     maxHp: 100,
@@ -37,7 +37,7 @@ function createCombatant(overrides: any = {}): any {
 }
 
 // 테스트용 Card 헬퍼
-function createCard(overrides: any = {}): any {
+function createCard(overrides = {}) {
   return {
     id: 'test-card',
     name: 'Test Card',

@@ -14,6 +14,8 @@ import {
   getAllRelics,
 } from './relics';
 
+type Relic = typeof RELICS[keyof typeof RELICS];
+
 describe('relics data', () => {
   describe('RELIC_RARITIES', () => {
     it('모든 희귀도가 정의되어 있다', () => {
@@ -55,7 +57,7 @@ describe('relics data', () => {
     });
 
     it('모든 상징에 필수 속성이 있다', () => {
-      Object.values(RELICS).forEach((relic: any) => {
+      Object.values(RELICS).forEach((relic: Relic) => {
         expect(relic).toHaveProperty('id');
         expect(relic).toHaveProperty('name');
         expect(relic).toHaveProperty('emoji');
@@ -68,18 +70,18 @@ describe('relics data', () => {
 
     it('모든 상징의 ID가 key와 일치한다', () => {
       Object.entries(RELICS).forEach(([key, relic]) => {
-        expect((relic as any).id).toBe(key);
+        expect(relic.id).toBe(key);
       });
     });
 
     it('모든 상징의 tags가 배열이다', () => {
-      Object.values(RELICS).forEach((relic: any) => {
+      Object.values(RELICS).forEach((relic: Relic) => {
         expect(Array.isArray(relic.tags)).toBe(true);
       });
     });
 
     it('모든 상징의 effects가 type 속성을 가진다', () => {
-      Object.values(RELICS).forEach((relic: any) => {
+      Object.values(RELICS).forEach((relic: Relic) => {
         expect(relic.effects).toHaveProperty('type');
       });
     });
@@ -121,7 +123,7 @@ describe('relics data', () => {
 
     it('반환된 배열의 각 요소가 유효한 상징이다', () => {
       const relics = getAllRelics();
-      relics.forEach((relic: any) => {
+      relics.forEach((relic: Relic) => {
         expect(relic).toHaveProperty('id');
         expect(relic).toHaveProperty('name');
         expect(relic).toHaveProperty('rarity');
@@ -133,7 +135,7 @@ describe('relics data', () => {
     it('일반 등급 상징만 반환한다', () => {
       const relics = getRelicsByRarity(RELIC_RARITIES.COMMON);
       expect(relics.length).toBeGreaterThan(0);
-      relics.forEach((relic: any) => {
+      relics.forEach((relic: Relic) => {
         expect(relic.rarity).toBe(RELIC_RARITIES.COMMON);
       });
     });
@@ -141,7 +143,7 @@ describe('relics data', () => {
     it('희귀 등급 상징만 반환한다', () => {
       const relics = getRelicsByRarity(RELIC_RARITIES.RARE);
       expect(relics.length).toBeGreaterThan(0);
-      relics.forEach((relic: any) => {
+      relics.forEach((relic: Relic) => {
         expect(relic.rarity).toBe(RELIC_RARITIES.RARE);
       });
     });
@@ -149,13 +151,14 @@ describe('relics data', () => {
     it('특별 등급 상징만 반환한다', () => {
       const relics = getRelicsByRarity(RELIC_RARITIES.SPECIAL);
       expect(relics.length).toBeGreaterThan(0);
-      relics.forEach((relic: any) => {
+      relics.forEach((relic: Relic) => {
         expect(relic.rarity).toBe(RELIC_RARITIES.SPECIAL);
       });
     });
 
     it('존재하지 않는 등급은 빈 배열을 반환한다', () => {
-      const relics = getRelicsByRarity('nonexistent' as any);
+      // @ts-expect-error Testing invalid rarity
+      const relics = getRelicsByRarity('nonexistent');
       expect(relics).toHaveLength(0);
     });
 
@@ -174,7 +177,7 @@ describe('relics data', () => {
     it('에너지 태그 상징만 반환한다', () => {
       const relics = getRelicsByTag(RELIC_TAGS.ENERGY);
       expect(relics.length).toBeGreaterThan(0);
-      relics.forEach((relic: any) => {
+      relics.forEach((relic: Relic) => {
         expect(relic.tags).toContain(RELIC_TAGS.ENERGY);
       });
     });
@@ -182,7 +185,7 @@ describe('relics data', () => {
     it('방어 태그 상징만 반환한다', () => {
       const relics = getRelicsByTag(RELIC_TAGS.DEFENSE);
       expect(relics.length).toBeGreaterThan(0);
-      relics.forEach((relic: any) => {
+      relics.forEach((relic: Relic) => {
         expect(relic.tags).toContain(RELIC_TAGS.DEFENSE);
       });
     });
@@ -190,7 +193,7 @@ describe('relics data', () => {
     it('에테르 태그 상징만 반환한다', () => {
       const relics = getRelicsByTag(RELIC_TAGS.ETHER);
       expect(relics.length).toBeGreaterThan(0);
-      relics.forEach((relic: any) => {
+      relics.forEach((relic: Relic) => {
         expect(relic.tags).toContain(RELIC_TAGS.ETHER);
       });
     });
@@ -203,27 +206,27 @@ describe('relics data', () => {
 
   describe('데이터 무결성', () => {
     it('모든 상징 ID가 고유하다', () => {
-      const ids = Object.values(RELICS).map((r: any) => r.id);
+      const ids = Object.values(RELICS).map((r: Relic) => r.id);
       const uniqueIds = new Set(ids);
       expect(uniqueIds.size).toBe(ids.length);
     });
 
     it('모든 상징 이름이 존재한다', () => {
-      Object.values(RELICS).forEach((relic: any) => {
+      Object.values(RELICS).forEach((relic: Relic) => {
         expect(typeof relic.name).toBe('string');
         expect(relic.name.length).toBeGreaterThan(0);
       });
     });
 
     it('모든 상징 설명이 존재한다', () => {
-      Object.values(RELICS).forEach((relic: any) => {
+      Object.values(RELICS).forEach((relic: Relic) => {
         expect(typeof relic.description).toBe('string');
         expect(relic.description.length).toBeGreaterThan(0);
       });
     });
 
     it('모든 상징에 최소 1개의 태그가 있다', () => {
-      Object.values(RELICS).forEach((relic: any) => {
+      Object.values(RELICS).forEach((relic: Relic) => {
         expect(relic.tags.length).toBeGreaterThanOrEqual(1);
       });
     });

@@ -187,7 +187,7 @@ describe('turnEndRelicEffectsProcessing', () => {
     });
 
     it('다음 턴 행동력을 추가해야 함', () => {
-      const addLog: any = vi.fn();
+      const addLog = vi.fn();
 
       const result = applyTurnEndRelicEffectsToNextTurn({
         turnEndRelicEffects: { energyNextTurn: 2, strength: 0 },
@@ -203,7 +203,7 @@ describe('turnEndRelicEffectsProcessing', () => {
     });
 
     it('행동력 0이면 로그를 남기지 않아야 함', () => {
-      const addLog: any = vi.fn();
+      const addLog = vi.fn();
 
       applyTurnEndRelicEffectsToNextTurn({
         turnEndRelicEffects: { energyNextTurn: 0, strength: 0 },
@@ -217,7 +217,7 @@ describe('turnEndRelicEffectsProcessing', () => {
     });
 
     it('힘을 즉시 적용해야 함', () => {
-      const addLog: any = vi.fn();
+      const addLog = vi.fn();
       const actions = createMockActions();
       const player = { strength: 2, hp: 100 } as any;
 
@@ -235,7 +235,7 @@ describe('turnEndRelicEffectsProcessing', () => {
     });
 
     it('음수 힘도 적용해야 함', () => {
-      const addLog: any = vi.fn();
+      const addLog = vi.fn();
       const actions = createMockActions();
       const player = { strength: 5 } as any;
 
@@ -252,7 +252,7 @@ describe('turnEndRelicEffectsProcessing', () => {
     });
 
     it('힘이 0이면 적용하지 않아야 함', () => {
-      const addLog: any = vi.fn();
+      const addLog = vi.fn();
       const actions = createMockActions();
 
       applyTurnEndRelicEffectsToNextTurn({
@@ -267,7 +267,7 @@ describe('turnEndRelicEffectsProcessing', () => {
     });
 
     it('strength가 없는 플레이어도 처리해야 함', () => {
-      const addLog: any = vi.fn();
+      const addLog = vi.fn();
       const actions = createMockActions();
       const player = { hp: 100 } as any; // strength 없음
 
@@ -287,7 +287,7 @@ describe('turnEndRelicEffectsProcessing', () => {
         turnEndRelicEffects: { energyNextTurn: 1, strength: 0 },
         nextTurnEffects: { bonusEnergy: 2, otherEffect: true } as any,
         player: {} as any,
-        addLog: vi.fn() as any,
+        addLog: vi.fn(),
         actions: createMockActions()
       } as any);
 

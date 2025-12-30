@@ -110,7 +110,7 @@ describe('relicEffects', () => {
     });
 
     it('이전 턴 예약 효과가 적용되어야 함', () => {
-      const state: any = {
+      const state = {
         blockNextTurn: 5,
         energyNextTurn: 2,
         healNextTurn: 3

@@ -8,7 +8,7 @@ import { applyAction } from './combatActions';
 
 describe('combatActions', () => {
   describe('applyAction', () => {
-    const createPlayer = (overrides = {}): any => ({
+    const createPlayer = (overrides = {}) => ({
       hp: 100,
       maxHp: 100,
       block: 0,
@@ -20,7 +20,7 @@ describe('combatActions', () => {
       ...overrides
     });
 
-    const createEnemy = (overrides = {}): any => ({
+    const createEnemy = (overrides = {}) => ({
       hp: 100,
       maxHp: 100,
       block: 0,
@@ -31,7 +31,7 @@ describe('combatActions', () => {
       ...overrides
     });
 
-    const createState = (playerOverrides = {}, enemyOverrides = {}): any => ({
+    const createState = (playerOverrides = {}, enemyOverrides = {}) => ({
       player: createPlayer(playerOverrides),
       enemy: createEnemy(enemyOverrides),
       log: []
@@ -55,15 +55,15 @@ describe('combatActions', () => {
       const result = applyAction(state, 'player', card as any);
 
       // 적(enemy)에게 dull, shaken 토큰이 적용되어야 함
-      const updatedEnemy = result.updatedState.enemy as any;
+      const updatedEnemy = result.updatedState.enemy;
       const enemyTokens = [
         ...(updatedEnemy.tokens?.usage || []),
         ...(updatedEnemy.tokens?.turn || []),
         ...(updatedEnemy.tokens?.permanent || [])
       ];
 
-      const dullToken = enemyTokens.find((t: any) => t.id === 'dull');
-      const shakenToken = enemyTokens.find((t: any) => t.id === 'shaken');
+      const dullToken = enemyTokens.find(t => t.id === 'dull');
+      const shakenToken = enemyTokens.find(t => t.id === 'shaken');
 
       expect(dullToken).toBeDefined();
       expect(dullToken?.stacks).toBe(3);
@@ -71,14 +71,14 @@ describe('combatActions', () => {
       expect(shakenToken?.stacks).toBe(3);
 
       // 플레이어에게 blurPlus 토큰이 적용되어야 함
-      const updatedPlayer = result.updatedState.player as any;
+      const updatedPlayer = result.updatedState.player;
       const playerTokens = [
         ...(updatedPlayer.tokens?.usage || []),
         ...(updatedPlayer.tokens?.turn || []),
         ...(updatedPlayer.tokens?.permanent || [])
       ];
 
-      const blurToken = playerTokens.find((t: any) => t.id === 'blurPlus');
+      const blurToken = playerTokens.find(t => t.id === 'blurPlus');
       expect(blurToken).toBeDefined();
       expect(blurToken?.stacks).toBe(1);
     });
@@ -98,14 +98,14 @@ describe('combatActions', () => {
 
       const result = applyAction(state, 'player', card as any);
 
-      const updatedPlayer = result.updatedState.player as any;
+      const updatedPlayer = result.updatedState.player;
       const playerTokens = [
         ...(updatedPlayer.tokens?.usage || []),
         ...(updatedPlayer.tokens?.turn || []),
         ...(updatedPlayer.tokens?.permanent || [])
       ];
 
-      const offenseToken = playerTokens.find((t: any) => t.id === 'offense');
+      const offenseToken = playerTokens.find(t => t.id === 'offense');
       expect(offenseToken).toBeDefined();
     });
 
@@ -125,14 +125,14 @@ describe('combatActions', () => {
 
       const result = applyAction(state, 'player', card as any);
 
-      const updatedEnemy = result.updatedState.enemy as any;
+      const updatedEnemy = result.updatedState.enemy;
       const enemyTokens = [
         ...(updatedEnemy.tokens?.usage || []),
         ...(updatedEnemy.tokens?.turn || []),
         ...(updatedEnemy.tokens?.permanent || [])
       ];
 
-      const vulnerableToken = enemyTokens.find((t: any) => t.id === 'vulnerable');
+      const vulnerableToken = enemyTokens.find(t => t.id === 'vulnerable');
       expect(vulnerableToken).toBeDefined();
       expect(vulnerableToken?.stacks).toBe(2);
     });

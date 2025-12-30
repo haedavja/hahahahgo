@@ -15,6 +15,7 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { applyAction, simulatePreview } from './battleSimulation';
+import type { SimBattleState, SimActor, SimCard, SimQueueStep } from '../../../types';
 
 vi.mock('./enemyAI', () => ({
   shouldEnemyOverdrive: vi.fn(() => false)
@@ -24,15 +25,15 @@ import { shouldEnemyOverdrive } from './enemyAI';
 
 describe('battleSimulation', () => {
   describe('applyAction', () => {
-    const createState = (overrides: any = {}) => ({
+    const createState = (overrides: { player?: Partial<SimActor>; enemy?: Partial<SimActor> } = {}): SimBattleState => ({
       player: { hp: 100, block: 0, def: false, strength: 0, ...overrides.player },
       enemy: { hp: 100, block: 0, def: false, strength: 0, ...overrides.enemy },
       log: []
-    } as any);
+    });
 
     describe('방어 카드', () => {
       it('방어 카드는 block을 추가해야 함', () => {
-        const state: any = createState();
+        const state = createState();
         const card = { name: 'Defend', type: 'defense', block: 10 };
 
         const result = applyAction(state, 'player', card);
@@ -44,7 +45,7 @@ describe('battleSimulation', () => {
       });
 
       it('strength가 방어력에 추가되어야 함', () => {
-        const state: any = createState({ player: { strength: 3 } });
+        const state = createState({ player: { strength: 3 } });
         const card = { name: 'Defend', type: 'defense', block: 10 };
 
         applyAction(state, 'player', card);
@@ -53,7 +54,7 @@ describe('battleSimulation', () => {
       });
 
       it('방어력이 누적되어야 함', () => {
-        const state: any = createState({ player: { block: 5, def: true } });
+        const state = createState({ player: { block: 5, def: true } });
         const card = { name: 'Defend', type: 'defense', block: 10 };
 
         applyAction(state, 'player', card);
@@ -62,7 +63,7 @@ describe('battleSimulation', () => {
       });
 
       it('counter 카드는 반격 값을 설정해야 함', () => {
-        const state: any = createState();
+        const state = createState();
         const card = { name: 'Counter', type: 'defense', block: 5, counter: 8 };
 
         applyAction(state, 'player', card);
@@ -71,7 +72,7 @@ describe('battleSimulation', () => {
       });
 
       it('general 타입도 방어로 처리해야 함', () => {
-        const state: any = createState();
+        const state = createState();
         const card = { name: 'General', type: 'general', block: 7 };
 
         applyAction(state, 'player', card);
@@ -83,7 +84,7 @@ describe('battleSimulation', () => {
 
     describe('공격 카드', () => {
       it('기본 공격은 적 HP를 감소시켜야 함', () => {
-        const state: any = createState();
+        const state = createState();
         const card = { name: 'Strike', type: 'attack', damage: 15 };
 
         const result = applyAction(state, 'player', card);
@@ -94,7 +95,7 @@ describe('battleSimulation', () => {
       });
 
       it('strength가 데미지에 추가되어야 함', () => {
-        const state: any = createState({ player: { strength: 5 } });
+        const state = createState({ player: { strength: 5 } });
         const card = { name: 'Strike', type: 'attack', damage: 10 };
 
         const result = applyAction(state, 'player', card);
@@ -104,7 +105,7 @@ describe('battleSimulation', () => {
       });
 
       it('에테르 폭주 시 2배 피해를 줘야 함', () => {
-        const state: any = createState({ player: { etherOverdriveActive: true } });
+        const state = createState({ player: { etherOverdriveActive: true } });
         const card = { name: 'Strike', type: 'attack', damage: 10 };
 
         const result = applyAction(state, 'player', card);
@@ -114,7 +115,7 @@ describe('battleSimulation', () => {
       });
 
       it('다타 공격은 hits만큼 반복해야 함', () => {
-        const state: any = createState();
+        const state = createState();
         const card = { name: 'Multi', type: 'attack', damage: 5, hits: 3 };
 
         const result = applyAction(state, 'player', card);
@@ -124,7 +125,7 @@ describe('battleSimulation', () => {
       });
 
       it('방어력 차단 시 피해가 감소해야 함', () => {
-        const state: any = createState({ enemy: { block: 20, def: true } });
+        const state = createState({ enemy: { block: 20, def: true } });
         const card = { name: 'Strike', type: 'attack', damage: 15 };
 
         const result = applyAction(state, 'player', card);
@@ -136,7 +137,7 @@ describe('battleSimulation', () => {
       });
 
       it('방어력 관통 시 초과 피해를 줘야 함', () => {
-        const state: any = createState({ enemy: { block: 10, def: true } });
+        const state = createState({ enemy: { block: 10, def: true } });
         const card = { name: 'Strike', type: 'attack', damage: 25 };
 
         const result = applyAction(state, 'player', card);
@@ -148,7 +149,7 @@ describe('battleSimulation', () => {
       });
 
       it('crush 특성은 방어력에 2배 피해를 줘야 함', () => {
-        const state: any = createState({ enemy: { block: 30, def: true } });
+        const state = createState({ enemy: { block: 30, def: true } });
         const card = { name: 'Crush', type: 'attack', damage: 10, traits: ['crush'] };
 
         const result = applyAction(state, 'player', card);
@@ -159,7 +160,7 @@ describe('battleSimulation', () => {
       });
 
       it('crush 관통 시 초과 피해를 줘야 함', () => {
-        const state: any = createState({ enemy: { block: 10, def: true } });
+        const state = createState({ enemy: { block: 10, def: true } });
         const card = { name: 'Crush', type: 'attack', damage: 10, traits: ['crush'] };
 
         const result = applyAction(state, 'player', card);
@@ -171,7 +172,7 @@ describe('battleSimulation', () => {
       });
 
       it('취약(vulnMult) 시 추가 피해를 줘야 함', () => {
-        const state: any = createState({ enemy: { vulnMult: 1.5 } });
+        const state = createState({ enemy: { vulnMult: 1.5 } });
         const card = { name: 'Strike', type: 'attack', damage: 10 };
 
         const result = applyAction(state, 'player', card);
@@ -181,7 +182,7 @@ describe('battleSimulation', () => {
       });
 
       it('반격 시 공격자가 피해를 받아야 함', () => {
-        const state: any = createState({ enemy: { counter: 5 } });
+        const state = createState({ enemy: { counter: 5 } });
         const card = { name: 'Strike', type: 'attack', damage: 10 };
 
         const result = applyAction(state, 'player', card);
@@ -191,7 +192,7 @@ describe('battleSimulation', () => {
       });
 
       it('반격은 방어 관통 시에만 발동해야 함', () => {
-        const state: any = createState({ enemy: { block: 50, def: true, counter: 10 } });
+        const state = createState({ enemy: { block: 50, def: true, counter: 10 } });
         const card = { name: 'Strike', type: 'attack', damage: 10 };
 
         const result = applyAction(state, 'player', card);
@@ -201,7 +202,7 @@ describe('battleSimulation', () => {
       });
 
       it('적 HP는 0 미만으로 떨어지지 않아야 함', () => {
-        const state: any = createState({ enemy: { hp: 5 } });
+        const state = createState({ enemy: { hp: 5 } });
         const card = { name: 'Strike', type: 'attack', damage: 100 };
 
         applyAction(state, 'player', card);
@@ -210,7 +211,7 @@ describe('battleSimulation', () => {
       });
 
       it('적도 플레이어를 공격할 수 있어야 함', () => {
-        const state: any = createState();
+        const state = createState();
         const card = { name: 'Enemy Strike', type: 'attack', damage: 20 };
 
         const result = applyAction(state, 'enemy', card);
@@ -222,7 +223,7 @@ describe('battleSimulation', () => {
 
     describe('기타 카드', () => {
       it('알 수 없는 타입은 무시해야 함', () => {
-        const state: any = createState();
+        const state = createState();
         const card = { name: 'Unknown', type: 'special', damage: 10 };
 
         const result = applyAction(state, 'player', card);
@@ -241,13 +242,13 @@ describe('battleSimulation', () => {
 
     it('빈 fixedOrder는 변경 없이 반환해야 함', () => {
       const result = simulatePreview({
-        player: { hp: 100 } as any,
-        enemy: { hp: 100 } as any,
+        player: { hp: 100 },
+        enemy: { hp: 100 },
         fixedOrder: [],
         willOverdrive: false,
-        enemyMode: 'normal' as any,
+        enemyMode: null,
         enemyActions: []
-      } as any);
+      });
 
       expect(result.pDealt).toBe(0);
       expect(result.pTaken).toBe(0);
@@ -257,13 +258,13 @@ describe('battleSimulation', () => {
 
     it('null fixedOrder는 변경 없이 반환해야 함', () => {
       const result = simulatePreview({
-        player: { hp: 100 } as any,
-        enemy: { hp: 100 } as any,
-        fixedOrder: null as any,
+        player: { hp: 100 },
+        enemy: { hp: 100 },
+        fixedOrder: null,
         willOverdrive: false,
-        enemyMode: 'normal' as any,
+        enemyMode: null,
         enemyActions: []
-      } as any);
+      });
 
       expect(result.finalPHp).toBe(100);
       expect(result.finalEHp).toBe(100);
@@ -271,15 +272,15 @@ describe('battleSimulation', () => {
 
     it('플레이어 공격을 시뮬레이션해야 함', () => {
       const result = simulatePreview({
-        player: { hp: 100 } as any,
-        enemy: { hp: 100 } as any,
+        player: { hp: 100 },
+        enemy: { hp: 100 },
         fixedOrder: [
-          { actor: 'player', card: { name: 'Strike', type: 'attack', damage: 20 } } as any
+          { actor: 'player', card: { name: 'Strike', type: 'attack', damage: 20 } }
         ],
         willOverdrive: false,
-        enemyMode: 'normal' as any,
+        enemyMode: null,
         enemyActions: []
-      } as any);
+      });
 
       expect(result.pDealt).toBe(20);
       expect(result.finalEHp).toBe(80);
@@ -287,15 +288,15 @@ describe('battleSimulation', () => {
 
     it('적 공격을 시뮬레이션해야 함', () => {
       const result = simulatePreview({
-        player: { hp: 100 } as any,
-        enemy: { hp: 100 } as any,
+        player: { hp: 100 },
+        enemy: { hp: 100 },
         fixedOrder: [
-          { actor: 'enemy', card: { name: 'Strike', type: 'attack', damage: 15 } } as any
+          { actor: 'enemy', card: { name: 'Strike', type: 'attack', damage: 15 } }
         ],
         willOverdrive: false,
-        enemyMode: 'normal' as any,
+        enemyMode: null,
         enemyActions: []
-      } as any);
+      });
 
       expect(result.pTaken).toBe(15);
       expect(result.finalPHp).toBe(85);
@@ -303,17 +304,17 @@ describe('battleSimulation', () => {
 
     it('연속 액션을 시뮬레이션해야 함', () => {
       const result = simulatePreview({
-        player: { hp: 100 } as any,
-        enemy: { hp: 100 } as any,
+        player: { hp: 100 },
+        enemy: { hp: 100 },
         fixedOrder: [
-          { actor: 'player', card: { name: 'Strike', type: 'attack', damage: 10 } } as any,
-          { actor: 'enemy', card: { name: 'Strike', type: 'attack', damage: 5 } } as any,
-          { actor: 'player', card: { name: 'Strike', type: 'attack', damage: 15 } } as any
+          { actor: 'player', card: { name: 'Strike', type: 'attack', damage: 10 } },
+          { actor: 'enemy', card: { name: 'Strike', type: 'attack', damage: 5 } },
+          { actor: 'player', card: { name: 'Strike', type: 'attack', damage: 15 } }
         ],
         willOverdrive: false,
-        enemyMode: 'normal' as any,
+        enemyMode: null,
         enemyActions: []
-      } as any);
+      });
 
       expect(result.pDealt).toBe(25); // 10 + 15
       expect(result.pTaken).toBe(5);
@@ -323,49 +324,49 @@ describe('battleSimulation', () => {
 
     it('플레이어 에테르 폭주를 적용해야 함', () => {
       const result = simulatePreview({
-        player: { hp: 100 } as any,
-        enemy: { hp: 100 } as any,
+        player: { hp: 100 },
+        enemy: { hp: 100 },
         fixedOrder: [
-          { actor: 'player', card: { name: 'Strike', type: 'attack', damage: 10 } } as any
+          { actor: 'player', card: { name: 'Strike', type: 'attack', damage: 10 } }
         ],
         willOverdrive: true,
-        enemyMode: 'normal' as any,
+        enemyMode: null,
         enemyActions: []
-      } as any);
+      });
 
       expect(result.pDealt).toBe(20); // 10 * 2
     });
 
     it('적 에테르 폭주를 적용해야 함', () => {
-      (shouldEnemyOverdrive as any).mockReturnValue(true);
+      vi.mocked(shouldEnemyOverdrive).mockReturnValue(true);
 
       const result = simulatePreview({
-        player: { hp: 100 } as any,
-        enemy: { hp: 100, etherPts: 10 } as any,
+        player: { hp: 100 },
+        enemy: { hp: 100, etherPts: 10 },
         fixedOrder: [
-          { actor: 'enemy', card: { name: 'Strike', type: 'attack', damage: 10 } } as any
+          { actor: 'enemy', card: { name: 'Strike', type: 'attack', damage: 10 } }
         ],
         willOverdrive: false,
-        enemyMode: 'normal' as any,
+        enemyMode: null,
         enemyActions: [],
         turnNumber: 1
-      } as any);
+      });
 
       expect(result.pTaken).toBe(20); // 10 * 2
     });
 
     it('플레이어 사망 시 시뮬레이션 중단해야 함', () => {
       const result = simulatePreview({
-        player: { hp: 10 } as any,
-        enemy: { hp: 100 } as any,
+        player: { hp: 10 },
+        enemy: { hp: 100 },
         fixedOrder: [
-          { actor: 'enemy', card: { name: 'Big Hit', type: 'attack', damage: 50 } } as any,
-          { actor: 'player', card: { name: 'Strike', type: 'attack', damage: 20 } } as any // 실행 안 됨
+          { actor: 'enemy', card: { name: 'Big Hit', type: 'attack', damage: 50 } },
+          { actor: 'player', card: { name: 'Strike', type: 'attack', damage: 20 } } // 실행 안 됨
         ],
         willOverdrive: false,
-        enemyMode: 'normal' as any,
+        enemyMode: null,
         enemyActions: []
-      } as any);
+      });
 
       expect(result.finalPHp).toBe(0);
       expect(result.pDealt).toBe(0); // 플레이어 공격 실행 안 됨
@@ -374,16 +375,16 @@ describe('battleSimulation', () => {
 
     it('방어와 공격 조합을 시뮬레이션해야 함', () => {
       const result = simulatePreview({
-        player: { hp: 100 } as any,
-        enemy: { hp: 100 } as any,
+        player: { hp: 100 },
+        enemy: { hp: 100 },
         fixedOrder: [
-          { actor: 'player', card: { name: 'Defend', type: 'defense', block: 15 } } as any,
-          { actor: 'enemy', card: { name: 'Strike', type: 'attack', damage: 10 } } as any
+          { actor: 'player', card: { name: 'Defend', type: 'defense', block: 15 } },
+          { actor: 'enemy', card: { name: 'Strike', type: 'attack', damage: 10 } }
         ],
         willOverdrive: false,
-        enemyMode: 'normal' as any,
+        enemyMode: null,
         enemyActions: []
-      } as any);
+      });
 
       expect(result.finalPHp).toBe(100); // 방어 성공
       expect(result.pTaken).toBe(0);
@@ -391,30 +392,30 @@ describe('battleSimulation', () => {
 
     it('strength를 시뮬레이션에 반영해야 함', () => {
       const result = simulatePreview({
-        player: { hp: 100, strength: 5 } as any,
-        enemy: { hp: 100 } as any,
+        player: { hp: 100, strength: 5 },
+        enemy: { hp: 100 },
         fixedOrder: [
-          { actor: 'player', card: { name: 'Strike', type: 'attack', damage: 10 } } as any
+          { actor: 'player', card: { name: 'Strike', type: 'attack', damage: 10 } }
         ],
         willOverdrive: false,
-        enemyMode: 'normal' as any,
+        enemyMode: null,
         enemyActions: []
-      } as any);
+      });
 
       expect(result.pDealt).toBe(15); // 10 + 5
     });
 
     it('lines에 전투 로그를 기록해야 함', () => {
       const result = simulatePreview({
-        player: { hp: 100 } as any,
-        enemy: { hp: 100 } as any,
+        player: { hp: 100 },
+        enemy: { hp: 100 },
         fixedOrder: [
-          { actor: 'player', card: { name: 'Strike', type: 'attack', damage: 10 } } as any
+          { actor: 'player', card: { name: 'Strike', type: 'attack', damage: 10 } }
         ],
         willOverdrive: false,
-        enemyMode: 'normal' as any,
+        enemyMode: null,
         enemyActions: []
-      } as any);
+      });
 
       expect(result.lines.length).toBeGreaterThan(0);
     });

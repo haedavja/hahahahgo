@@ -8,7 +8,7 @@ import { addToken, removeToken, hasToken, getTokenStacks, getAllTokens, clearTur
 
 describe('tokenUtils', () => {
   // 기본 엔티티 생성 헬퍼
-  const createEntity = (tokens: any = { usage: [], turn: [], permanent: [] }) => ({
+  const createEntity = (tokens = { usage: [], turn: [], permanent: [] }) => ({
     hp: 100,
     maxHp: 100,
     tokens

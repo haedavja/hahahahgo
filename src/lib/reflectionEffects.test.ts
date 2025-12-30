@@ -34,8 +34,8 @@ import {
 import { createEmptyTokens } from './tokenUtils.js';
 
 // Math.random mock 헬퍼
-let originalRandom: any;
-function mockRandom(value: any) {
+let originalRandom: () => number;
+function mockRandom(value: number) {
   Math.random = () => value;
 }
 function restoreRandom() {
@@ -64,14 +64,14 @@ function createPlayer(overrides = {}) {
 
 describe('getReflectionsByEgos', () => {
   it('자아로 성찰 활성화', () => {
-    const reflections: any[] = getReflectionsByEgos(['헌신']);
+    const reflections = getReflectionsByEgos(['헌신']);
 
     expect(reflections.length).toBe(1);
     expect(reflections[0].id).toBe('devotion');
   });
 
   it('여러 자아로 여러 성찰 활성화', () => {
-    const reflections: any[] = getReflectionsByEgos(['헌신', '지략', '분석']);
+    const reflections = getReflectionsByEgos(['헌신', '지략', '분석']);
 
     expect(reflections.length).toBe(3);
     const ids = reflections.map(r => r.id);
@@ -81,12 +81,12 @@ describe('getReflectionsByEgos', () => {
   });
 
   it('자아 없으면 성찰 없음', () => {
-    const reflections: any[] = getReflectionsByEgos([]);
+    const reflections = getReflectionsByEgos([]);
     expect(reflections.length).toBe(0);
   });
 
   it('잘못된 자아 이름은 무시', () => {
-    const reflections: any[] = getReflectionsByEgos(['없는자아', '헌신']);
+    const reflections = getReflectionsByEgos(['없는자아', '헌신']);
     expect(reflections.length).toBe(1);
     expect(reflections[0].id).toBe('devotion');
   });
@@ -95,7 +95,7 @@ describe('getReflectionsByEgos', () => {
 describe('getActiveReflections (deprecated)', () => {
   it('개성 2개 조합으로 성찰 활성화', () => {
     const traits = ['passionate', 'valiant'];
-    const reflections: any[] = getActiveReflections(traits);
+    const reflections = getActiveReflections(traits);
 
     expect(reflections.length).toBe(1);
     expect(reflections[0].id).toBe('devotion');
@@ -251,7 +251,7 @@ describe('processReflections', () => {
 
 describe('initReflectionState', () => {
   it('초기 상태 생성', () => {
-    const state: any = initReflectionState();
+    const state = initReflectionState();
 
     expect(state.reflectionTriggerCounts).toEqual({});
     expect(state.bonusEnergy).toBe(0);
@@ -263,7 +263,7 @@ describe('initReflectionState', () => {
 
 describe('resetTurnReflectionEffects', () => {
   it('턴 효과 초기화', () => {
-    const state: any = {
+    const state = {
       bonusEnergy: 2,
       etherMultiplier: 1.5,
       timelineBonus: 5,
@@ -283,21 +283,21 @@ describe('resetTurnReflectionEffects', () => {
 
 describe('decreaseEnemyFreeze', () => {
   it('동결 턴 감소', () => {
-    const state: any = { enemyFreezeTurns: 2 };
+    const state = { enemyFreezeTurns: 2 };
     const result = decreaseEnemyFreeze(state);
 
     expect(result.enemyFreezeTurns).toBe(1);
   });
 
   it('0이면 그대로', () => {
-    const state: any = { enemyFreezeTurns: 0 };
+    const state = { enemyFreezeTurns: 0 };
     const result = decreaseEnemyFreeze(state);
 
     expect(result.enemyFreezeTurns).toBe(0);
   });
 
   it('없으면 그대로', () => {
-    const state: any = {};
+    const state = {};
     const result = decreaseEnemyFreeze(state);
 
     expect(result.enemyFreezeTurns).toBeUndefined();

@@ -7,9 +7,14 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { processActionEventAnimations } from './eventAnimationProcessing';
 
 describe('eventAnimationProcessing', () => {
-  let actions: any;
-  let playHitSound: any;
-  let playBlockSound: any;
+  let actions: {
+    setEnemyHit: ReturnType<typeof vi.fn>,
+    setPlayerHit: ReturnType<typeof vi.fn>,
+    setPlayerBlockAnim: ReturnType<typeof vi.fn>,
+    setEnemyBlockAnim: ReturnType<typeof vi.fn>
+  };
+  let playHitSound: ReturnType<typeof vi.fn>;
+  let playBlockSound: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
     vi.useFakeTimers();

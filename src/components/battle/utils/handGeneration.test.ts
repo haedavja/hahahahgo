@@ -151,7 +151,7 @@ describe('handGeneration', () => {
     });
 
     it('주특기 카드는 무덤에서 직접 손패로 이동해야 함', () => {
-      const deck: any[] = [];
+      const deck = [] as typeof discardPile;
       const discardPile = [
         { id: 'main1', __handUid: 'uid1', __isMainSpecial: true } as any,
         { id: 'normal1', __handUid: 'uid2' } as any
@@ -164,7 +164,7 @@ describe('handGeneration', () => {
     });
 
     it('보조특기는 셔플 시 덱 위로 배치되어야 함', () => {
-      const deck: any[] = [];
+      const deck = [] as typeof discardPile;
       const discardPile = [
         { id: 'sub1', __handUid: 'uid1', __isSubSpecial: true } as any,
         { id: 'normal1', __handUid: 'uid2' } as any,

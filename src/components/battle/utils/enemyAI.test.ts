@@ -27,7 +27,7 @@ import {
 } from './enemyAI';
 
 // 테스트용 카드 헬퍼
-function createEnemyCard(id: any, type: any, actionCost: any, speedCost: any, damage = 0, block = 0) {
+function createEnemyCard(id: string, type: string, actionCost: number, speedCost: number, damage = 0, block = 0) {
   return { id, type, actionCost, speedCost, damage, block, hits: 1 } as any;
 }
 

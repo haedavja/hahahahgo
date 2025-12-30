@@ -29,7 +29,7 @@ describe('combatUtils', () => {
       const playerCards = [
         { speedCost: 5 },
         { speedCost: 3 }
-      ] as any[];
+      ];
 
       const result = sortCombinedOrderStablePF(playerCards, [], 0, 0);
 
@@ -42,7 +42,7 @@ describe('combatUtils', () => {
       const enemyCards = [
         { speedCost: 4 },
         { speedCost: 2 }
-      ] as any[];
+      ];
 
       const result = sortCombinedOrderStablePF([], enemyCards, 0, 0);
 
@@ -181,20 +181,20 @@ describe('combatUtils', () => {
 
   describe('etherSlots', () => {
     it('calculateEtherSlots 함수를 호출해야 함', () => {
-      const mockCalculate = (pts: any) => Math.floor(pts / 100);
+      const mockCalculate = (pts: number) => Math.floor(pts / 100);
 
       expect(etherSlots(250, mockCalculate)).toBe(2);
       expect(etherSlots(500, mockCalculate)).toBe(5);
     });
 
     it('null pts는 0으로 처리해야 함', () => {
-      const mockCalculate = (pts: any) => pts;
+      const mockCalculate = (pts: number) => pts;
 
       expect(etherSlots(null as any, mockCalculate)).toBe(0);
     });
 
     it('undefined pts는 0으로 처리해야 함', () => {
-      const mockCalculate = (pts: any) => pts;
+      const mockCalculate = (pts: number) => pts;
 
       expect(etherSlots(undefined as any, mockCalculate)).toBe(0);
     });

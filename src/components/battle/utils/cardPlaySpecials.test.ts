@@ -18,7 +18,7 @@ import { processCardPlaySpecials } from './cardPlaySpecials';
 
 describe('cardPlaySpecials', () => {
   describe('processCardPlaySpecials', () => {
-    const createEntity = (overrides = {}): any => ({
+    const createEntity = (overrides = {}) => ({
       hp: 100,
       maxHp: 100,
       block: 0,

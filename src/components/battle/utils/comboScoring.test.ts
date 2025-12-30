@@ -29,7 +29,7 @@ import {
 } from './comboScoring';
 
 // 테스트용 카드 생성 헬퍼
-function createCard(actionCost: any, type = 'attack', opts: any = {}) {
+function createCard(actionCost: number, type = 'attack', opts = {} as { damage?: number, block?: number, speedCost?: number, name?: string }) {
   return {
     id: `test_${actionCost}_${type}`,
     actionCost,

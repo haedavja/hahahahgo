@@ -29,12 +29,12 @@ describe('적 데이터 무결성', () => {
   it('모든 적 그룹의 적이 필수 속성을 가진다', () => {
     // ENEMY_GROUPS는 배열이고, enemies는 적 ID 배열
     // getEnemyGroupDetails를 통해 실제 적 객체를 가져옴
-    ENEMY_GROUPS.forEach((group: any) => {
+    ENEMY_GROUPS.forEach(group => {
       const details = getEnemyGroupDetails(group.id);
       expect(details, `${group.id}: details`).not.toBeNull();
       expect(Array.isArray(details!.enemies), `${group.id}: enemies is array`).toBe(true);
 
-      details!.enemies.forEach((enemy: any, idx: number) => {
+      details!.enemies.forEach((enemy, idx: number) => {
         expect(enemy.id, `${group.id}[${idx}]: id`).toBeDefined();
         expect(enemy.name, `${group.id}[${idx}]: name`).toBeDefined();
         expect(typeof enemy.hp, `${group.id}[${idx}]: hp is number`).toBe('number');
@@ -57,7 +57,7 @@ describe('적 데이터 무결성', () => {
 
   it('ENEMIES 배열의 모든 적이 speed와 maxSpeed를 가진다', () => {
     // 새 적 추가 시 maxSpeed 누락 방지를 위한 검증
-    ENEMIES.forEach((enemy: any) => {
+    ENEMIES.forEach(enemy => {
       expect(typeof enemy.speed, `${enemy.id}: speed is number`).toBe('number');
       expect(enemy.speed, `${enemy.id}: speed > 0`).toBeGreaterThan(0);
       expect(typeof enemy.maxSpeed, `${enemy.id}: maxSpeed is number`).toBe('number');
@@ -160,7 +160,7 @@ describe('상징 데이터 무결성', () => {
   it('모든 상징이 필수 속성을 가진다', () => {
     const relics = getAllRelics();
 
-    relics.forEach((relic: any) => {
+    relics.forEach(relic => {
       expect(relic.id, `${relic.name}: id`).toBeDefined();
       expect(relic.name, `${relic.id}: name`).toBeDefined();
       expect(relic.effects, `${relic.id}: effects`).toBeDefined();

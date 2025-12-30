@@ -28,7 +28,7 @@ describe('dungeonChoices', () => {
 
     it('기본 선택지는 선택 가능해야 함', () => {
       const choice = { text: 'Test choice' };
-      const result = canSelectChoice(choice as any, defaultStats);
+      const result = canSelectChoice(choice as any, defaultStats as any);
 
       expect(result.canSelect).toBe(true);
       expect(result.reason).toBe(null);
@@ -36,7 +36,7 @@ describe('dungeonChoices', () => {
 
     it('완료된 선택지는 선택 불가능해야 함', () => {
       const choice = { text: 'Test choice' };
-      const result = canSelectChoice(choice as any, defaultStats, { completed: true });
+      const result = canSelectChoice(choice as any, defaultStats as any, { completed: true });
 
       expect(result.canSelect).toBe(false);
       expect(result.reason).toBe('이미 완료됨');
@@ -164,11 +164,11 @@ describe('dungeonChoices', () => {
   describe('executeChoice', () => {
     it('특수 선택지 사용 시 즉시 완료되어야 함', () => {
       const choice = { text: 'Test choice' };
-      const specialOverride: any = {
+      const specialOverride = {
         outcome: { type: 'success', text: 'Success!', effect: { gold: 10 } }
       };
 
-      const result = executeChoice(choice as any, {}, {}, specialOverride);
+      const result = executeChoice(choice as any, {}, {}, specialOverride as any);
 
       expect(result.result).toBe('success');
       expect(result.effect).toEqual({ gold: 10 });
@@ -310,11 +310,11 @@ describe('dungeonChoices', () => {
 
     it('특수 선택지가 있으면 대체 텍스트를 표시해야 함', () => {
       const choice = { text: 'Normal choice' };
-      const specialOverride: any = {
+      const specialOverride = {
         text: 'Special choice',
         requiredSpecial: 'lockpick'
       };
-      const result = getChoiceDisplayInfo(choice as any, defaultStats, {}, specialOverride as any);
+      const result = getChoiceDisplayInfo(choice as any, defaultStats as any, {}, specialOverride as any);
 
       expect(result.text).toBe('Special choice');
       expect(result.subtext).toBe('[lockpick]');

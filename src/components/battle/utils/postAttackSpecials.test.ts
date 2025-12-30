@@ -18,14 +18,14 @@ import { processPostAttackSpecials } from './postAttackSpecials';
 
 describe('postAttackSpecials', () => {
   describe('processPostAttackSpecials', () => {
-    const createEntity = (overrides: any = {}) => ({
+    const createEntity = (overrides = {}) => ({
       hp: 100,
       maxHp: 100,
       block: 0,
       def: false,
-      tokens: { usage: [], turn: [], permanent: []} as any,
+      tokens: { usage: [], turn: [], permanent: [] },
       ...overrides
-    } as any);
+    });
 
     it('기본 결과 구조를 반환해야 함', () => {
       const result = processPostAttackSpecials({

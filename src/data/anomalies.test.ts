@@ -104,7 +104,7 @@ describe('anomalies', () => {
 
     it('ANOMALY_TYPES의 모든 값을 포함한다', () => {
       const typeIds = Object.values(ANOMALY_TYPES).map((a) => a.id);
-      const allIds = ALL_ANOMALIES.map((a: any) => a.id);
+      const allIds = ALL_ANOMALIES.map(a => a.id);
       expect(allIds.sort()).toEqual(typeIds.sort());
     });
   });
@@ -142,7 +142,7 @@ describe('anomalies', () => {
 
     it('유효한 이변을 반환한다', () => {
       const anomaly = selectRandomAnomaly();
-      const found = ALL_ANOMALIES.find((a: any) => a.id === anomaly.id);
+      const found = ALL_ANOMALIES.find(a => a.id === anomaly.id);
       expect(found).toBeDefined();
     });
 
@@ -161,7 +161,7 @@ describe('anomalies', () => {
 
     it('중복 없이 이변을 선택한다', () => {
       const anomalies = selectMultipleAnomalies(4);
-      const ids = anomalies.map((a: any) => a.id);
+      const ids = anomalies.map(a => a.id);
       const uniqueIds = new Set(ids);
       expect(uniqueIds.size).toBe(ids.length);
     });
@@ -182,7 +182,7 @@ describe('anomalies', () => {
 
     it('모든 반환된 이변이 유효하다', () => {
       const anomalies = selectMultipleAnomalies(5);
-      anomalies.forEach((anomaly: any) => {
+      anomalies.forEach(anomaly => {
         expect(anomaly).toHaveProperty('id');
         expect(anomaly).toHaveProperty('name');
         expect(anomaly).toHaveProperty('getEffect');

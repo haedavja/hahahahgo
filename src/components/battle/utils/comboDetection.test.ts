@@ -17,7 +17,7 @@ import { describe, it, expect } from 'vitest';
 import { detectPokerCombo, applyPokerBonus } from './comboDetection';
 
 // 테스트용 카드 헬퍼
-function createCard(actionCost: any, type = 'attack', traits: any[] = []): any {
+function createCard(actionCost: number, type = 'attack', traits: string[] = []) {
   return {
     id: `card-${actionCost}`,
     name: `Test Card ${actionCost}`,
@@ -175,7 +175,7 @@ describe('detectPokerCombo', () => {
 
   describe('outcast 특성 처리', () => {
     it('outcast 카드는 조합 계산에서 제외', () => {
-      const cards: any[] = [
+      const cards = [
         createCard(2, 'attack', ['outcast']),
         createCard(2, 'attack'),
         createCard(3, 'attack')
@@ -186,7 +186,7 @@ describe('detectPokerCombo', () => {
     });
 
     it('모든 카드가 outcast면 null 반환', () => {
-      const cards: any[] = [
+      const cards = [
         createCard(2, 'attack', ['outcast']),
         createCard(2, 'attack', ['outcast'])
       ];
@@ -196,7 +196,7 @@ describe('detectPokerCombo', () => {
 
   describe('유령카드 처리', () => {
     it('유령카드는 조합 계산에서 제외', () => {
-      const cards: any[] = [
+      const cards = [
         { ...createCard(2, 'attack'), isGhost: true },
         createCard(2, 'attack'),
         createCard(3, 'attack')
@@ -207,7 +207,7 @@ describe('detectPokerCombo', () => {
     });
 
     it('유령카드 제외 후 페어 감지', () => {
-      const cards: any[] = [
+      const cards = [
         { ...createCard(2, 'attack'), isGhost: true },
         createCard(2, 'attack'),
         createCard(2, 'attack')
@@ -218,7 +218,7 @@ describe('detectPokerCombo', () => {
     });
 
     it('모든 카드가 유령이면 null 반환', () => {
-      const cards: any[] = [
+      const cards = [
         { ...createCard(2, 'attack'), isGhost: true },
         { ...createCard(2, 'attack'), isGhost: true }
       ];
@@ -226,7 +226,7 @@ describe('detectPokerCombo', () => {
     });
 
     it('유령카드 3장 + 실제카드 1장 = 하이카드', () => {
-      const cards: any[] = [
+      const cards = [
         { ...createCard(1, 'attack'), isGhost: true },
         { ...createCard(1, 'attack'), isGhost: true },
         { ...createCard(1, 'attack'), isGhost: true },

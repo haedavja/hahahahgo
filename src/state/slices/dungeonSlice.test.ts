@@ -369,7 +369,7 @@ describe('dungeonSlice', () => {
         }
       });
       store.getState().clearDungeonNode('node-1');
-      const node = (store.getState().activeDungeon?.dungeonData as any)?.nodes?.find((n: any) => n.id === 'node-1');
+      const node = (store.getState().activeDungeon?.dungeonData as any)?.nodes?.find(n => n.id === 'node-1');
       expect(node?.cleared).toBe(true);
       expect(node?.event).toBeNull();
     });

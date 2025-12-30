@@ -255,7 +255,7 @@ describe('anomalyUtils', () => {
           emoji: '🌀',
           color: '#ff0000',
           description: 'Test description',
-          getEffect: (level: any) => ({ description: `Level ${level} effect` })
+          getEffect: (level: number) => ({ description: `Level ${level} effect` })
         } as any,
         level: 2
       } as any];
