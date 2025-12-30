@@ -9,7 +9,7 @@
  * - relic order 병합
  */
 
-import { useEffect, type MutableRefObject } from 'react';
+import { useEffect, useRef, type MutableRefObject } from 'react';
 import type { BattlePhase } from '../reducer/battleReducerActions';
 
 interface BattleState {
@@ -62,6 +62,11 @@ export function useBattleRefSync(params: UseBattleRefSyncParams): void {
     actions
   } = params;
 
+  // actions.setOrderedRelics를 ref로 저장하여 의존성 배열에서 actions 제거
+  // (actions 객체가 매 렌더링마다 새로 생성되어 무한 루프 발생 방지)
+  const setOrderedRelicsRef = useRef(actions.setOrderedRelics);
+  setOrderedRelicsRef.current = actions.setOrderedRelics;
+
   // devForceAllCards ref 동기화
   useEffect(() => {
     devForceAllCardsRef.current = devForceAllCards;
@@ -91,6 +96,6 @@ export function useBattleRefSync(params: UseBattleRefSyncParams): void {
   // 진행 단계에서는 동기화/변경을 막아 일관성 유지
   useEffect(() => {
     if (battle.phase === 'resolve') return;
-    actions.setOrderedRelics(mergeRelicOrder(relics, orderedRelicList));
-  }, [relics, mergeRelicOrder, battle.phase, orderedRelicList, actions]);
+    setOrderedRelicsRef.current(mergeRelicOrder(relics, orderedRelicList));
+  }, [relics, mergeRelicOrder, battle.phase, orderedRelicList]);
 }
