@@ -57,7 +57,7 @@ describe('useHandManagement', () => {
 
       const { result } = renderHook(() => useHandManagement({
         ...defaultProps,
-        hand,
+        hand: hand as any,
         sortType: 'speed'
       }));
 
@@ -77,7 +77,7 @@ describe('useHandManagement', () => {
 
       const { result } = renderHook(() => useHandManagement({
         ...defaultProps,
-        hand,
+        hand: hand as any,
         sortType: 'energy'
       }));
 
@@ -97,7 +97,7 @@ describe('useHandManagement', () => {
 
       const { result } = renderHook(() => useHandManagement({
         ...defaultProps,
-        hand,
+        hand: hand as any,
         sortType: 'value'
       }));
 
@@ -117,7 +117,7 @@ describe('useHandManagement', () => {
 
       const { result } = renderHook(() => useHandManagement({
         ...defaultProps,
-        hand,
+        hand: hand as any,
         sortType: 'type'
       }));
 
@@ -149,7 +149,7 @@ describe('useHandManagement', () => {
 
       const { result } = renderHook(() => useHandManagement({
         ...defaultProps,
-        hand,
+        hand: hand as any,
         sortType: 'speed'
       }));
 

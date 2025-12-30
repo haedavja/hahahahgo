@@ -55,7 +55,7 @@ describe('combatActions', () => {
       const result = applyAction(state, 'player', card as any);
 
       // 적(enemy)에게 dull, shaken 토큰이 적용되어야 함
-      const updatedEnemy = result.updatedState.enemy;
+      const updatedEnemy = result.updatedState.enemy as any;
       const enemyTokens = [
         ...(updatedEnemy.tokens?.usage || []),
         ...(updatedEnemy.tokens?.turn || []),
@@ -71,7 +71,7 @@ describe('combatActions', () => {
       expect(shakenToken?.stacks).toBe(3);
 
       // 플레이어에게 blurPlus 토큰이 적용되어야 함
-      const updatedPlayer = result.updatedState.player;
+      const updatedPlayer = result.updatedState.player as any;
       const playerTokens = [
         ...(updatedPlayer.tokens?.usage || []),
         ...(updatedPlayer.tokens?.turn || []),
@@ -98,7 +98,7 @@ describe('combatActions', () => {
 
       const result = applyAction(state, 'player', card as any);
 
-      const updatedPlayer = result.updatedState.player;
+      const updatedPlayer = result.updatedState.player as any;
       const playerTokens = [
         ...(updatedPlayer.tokens?.usage || []),
         ...(updatedPlayer.tokens?.turn || []),
@@ -125,7 +125,7 @@ describe('combatActions', () => {
 
       const result = applyAction(state, 'player', card as any);
 
-      const updatedEnemy = result.updatedState.enemy;
+      const updatedEnemy = result.updatedState.enemy as any;
       const enemyTokens = [
         ...(updatedEnemy.tokens?.usage || []),
         ...(updatedEnemy.tokens?.turn || []),

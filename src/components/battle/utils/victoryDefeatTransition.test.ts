@@ -10,7 +10,8 @@ describe('victoryDefeatTransition', () => {
   let actions: {
     setSoulShatter: ReturnType<typeof vi.fn>,
     setNetEtherDelta: ReturnType<typeof vi.fn>,
-    setPostCombatOptions: ReturnType<typeof vi.fn>
+    setPostCombatOptions: ReturnType<typeof vi.fn>,
+    setPhase: ReturnType<typeof vi.fn>
   };
 
   beforeEach(() => {
@@ -41,7 +42,7 @@ describe('victoryDefeatTransition', () => {
           player: { hp: 50 },
           nextEnemyPtsSnapshot: 100,
           checkVictoryCondition,
-          actions
+          actions: actions as any
         });
 
         expect(result.shouldReturn).toBe(true);
@@ -63,7 +64,7 @@ describe('victoryDefeatTransition', () => {
           player: { hp: 50 },
           nextEnemyPtsSnapshot: 500,
           checkVictoryCondition,
-          actions
+          actions: actions as any
         });
 
         expect(actions.setSoulShatter).toHaveBeenCalledWith(true);
@@ -81,7 +82,7 @@ describe('victoryDefeatTransition', () => {
           player: { hp: 50 },
           nextEnemyPtsSnapshot: 100,
           checkVictoryCondition,
-          actions
+          actions: actions as any
         });
 
         expect(actions.setPostCombatOptions).not.toHaveBeenCalled();
@@ -105,7 +106,7 @@ describe('victoryDefeatTransition', () => {
           player: { hp: 50 },
           nextEnemyPtsSnapshot: 100,
           checkVictoryCondition,
-          actions,
+          actions: actions as any,
           onVictory
         });
 
@@ -128,7 +129,7 @@ describe('victoryDefeatTransition', () => {
           player: { hp: 0 },
           nextEnemyPtsSnapshot: 50,
           checkVictoryCondition,
-          actions
+          actions: actions as any
         });
 
         expect(result.shouldReturn).toBe(true);
@@ -148,7 +149,7 @@ describe('victoryDefeatTransition', () => {
           player: { hp: -5 },
           nextEnemyPtsSnapshot: 50,
           checkVictoryCondition,
-          actions
+          actions: actions as any
         });
 
         expect(actions.setPostCombatOptions).not.toHaveBeenCalled();
@@ -172,7 +173,7 @@ describe('victoryDefeatTransition', () => {
           player: { hp: 50 },
           nextEnemyPtsSnapshot: 50,
           checkVictoryCondition,
-          actions
+          actions: actions as any
         });
 
         expect(result.shouldReturn).toBe(false);

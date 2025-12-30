@@ -22,7 +22,7 @@ import type { ParryAction, OrderItem, ParryReadyState, Card } from '../../../typ
 
 // ==================== Helper Functions ====================
 
-const createMockAddLog = () => vi.fn<[string], void>();
+const createMockAddLog = () => vi.fn() as any;
 
 const createMockParryAction = (overrides: Partial<ParryAction> = {}): ParryAction => ({
   card: { name: 'Parry Card', id: 'test-card', type: 'attack' } as Card,
@@ -142,7 +142,7 @@ describe('parryProcessing', () => {
       }),
       createMockOrderItem({
         actor: 'enemy',
-        card: { name: 'Enemy Skill', id: 'e2', type: 'skill' } as Card,
+        card: { name: 'Enemy Skill', id: 'e2', type: 'skill' } as unknown as Card,
         sp: 12,
         originalIndex: 2
       }),
@@ -179,7 +179,7 @@ describe('parryProcessing', () => {
       const result = checkParryTrigger({
         parryReadyStates: [createMockParryReadyState()],
         enemyAction: createMockParryAction({
-          card: { name: 'Skill', id: 'test', type: 'skill' } as Card,
+          card: { name: 'Skill', id: 'test', type: 'skill' } as unknown as Card,
           sp: 7,
           actor: 'enemy'
         }),

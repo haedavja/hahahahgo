@@ -46,13 +46,13 @@ describe('detectPokerCombo', () => {
 
   describe('하이카드', () => {
     it('카드 1장이면 하이카드', () => {
-      const result = detectPokerCombo([createCard(3)]);
+      const result = detectPokerCombo([createCard(3)] as any);
       expect(result!.name).toBe('하이카드');
       expect(result!.bonusKeys!.has(3)).toBe(true);
     });
 
     it('모두 다른 코스트면 하이카드', () => {
-      const cards = [createCard(1), createCard(2), createCard(3)];
+      const cards = [createCard(1), createCard(2), createCard(3)] as any;
       const result = detectPokerCombo(cards);
       expect(result!.name).toBe('하이카드');
     });
@@ -60,7 +60,7 @@ describe('detectPokerCombo', () => {
 
   describe('페어', () => {
     it('같은 코스트 2장이면 페어', () => {
-      const cards = [createCard(2), createCard(2), createCard(3)];
+      const cards = [createCard(2), createCard(2), createCard(3)] as any;
       const result = detectPokerCombo(cards);
       expect(result!.name).toBe('페어');
       expect(result!.bonusKeys!.has(2)).toBe(true);
@@ -75,7 +75,7 @@ describe('detectPokerCombo', () => {
         createCard(2, 'defense'),
         createCard(3, 'attack'),
         createCard(3, 'defense')
-      ];
+      ] as any;
       const result = detectPokerCombo(cards);
       expect(result!.name).toBe('투페어');
       expect(result!.bonusKeys!.has(2)).toBe(true);
@@ -85,7 +85,7 @@ describe('detectPokerCombo', () => {
 
   describe('트리플', () => {
     it('같은 코스트 3장이면 트리플', () => {
-      const cards = [createCard(2), createCard(2), createCard(2)];
+      const cards = [createCard(2), createCard(2), createCard(2)] as any;
       const result = detectPokerCombo(cards);
       expect(result!.name).toBe('트리플');
       expect(result!.bonusKeys!.has(2)).toBe(true);
@@ -97,7 +97,7 @@ describe('detectPokerCombo', () => {
       const cards = [
         createCard(2), createCard(2), createCard(2),
         createCard(3), createCard(3)
-      ];
+      ] as any;
       const result = detectPokerCombo(cards);
       expect(result!.name).toBe('풀하우스');
       expect(result!.bonusKeys!.has(2)).toBe(true);
@@ -109,7 +109,7 @@ describe('detectPokerCombo', () => {
     it('같은 코스트 4장이면 포카드', () => {
       const cards = [
         createCard(2), createCard(2), createCard(2), createCard(2)
-      ];
+      ] as any;
       const result = detectPokerCombo(cards);
       expect(result!.name).toBe('포카드');
       expect(result!.bonusKeys!.has(2)).toBe(true);
@@ -120,7 +120,7 @@ describe('detectPokerCombo', () => {
     it('같은 코스트 5장이면 파이브카드', () => {
       const cards = [
         createCard(2), createCard(2), createCard(2), createCard(2), createCard(2)
-      ];
+      ] as any;
       const result = detectPokerCombo(cards);
       expect(result!.name).toBe('파이브카드');
       expect(result!.bonusKeys!.has(2)).toBe(true);
@@ -134,7 +134,7 @@ describe('detectPokerCombo', () => {
         createCard(2, 'attack'),
         createCard(3, 'attack'),
         createCard(4, 'attack')
-      ];
+      ] as any;
       const result = detectPokerCombo(cards);
       expect(result!.name).toBe('플러쉬');
     });
@@ -145,7 +145,7 @@ describe('detectPokerCombo', () => {
         createCard(2, 'defense'),
         createCard(3, 'defense'),
         createCard(4, 'defense')
-      ];
+      ] as any;
       const result = detectPokerCombo(cards);
       expect(result!.name).toBe('플러쉬');
     });
@@ -156,7 +156,7 @@ describe('detectPokerCombo', () => {
         createCard(2, 'general'),
         createCard(3, 'general'),
         createCard(4, 'general')
-      ];
+      ] as any;
       const result = detectPokerCombo(cards);
       expect(result!.name).toBe('플러쉬');
     });
@@ -167,7 +167,7 @@ describe('detectPokerCombo', () => {
         createCard(2, 'attack'),
         createCard(3, 'defense'),
         createCard(4, 'attack')
-      ];
+      ] as any;
       const result = detectPokerCombo(cards);
       expect(result!.name).not.toBe('플러쉬');
     });
@@ -179,7 +179,7 @@ describe('detectPokerCombo', () => {
         createCard(2, 'attack', ['outcast']),
         createCard(2, 'attack'),
         createCard(3, 'attack')
-      ];
+      ] as any;
       const result = detectPokerCombo(cards);
       // outcast 제외 후 카드 2장 (2, 3)이므로 하이카드
       expect(result!.name).toBe('하이카드');
@@ -189,7 +189,7 @@ describe('detectPokerCombo', () => {
       const cards = [
         createCard(2, 'attack', ['outcast']),
         createCard(2, 'attack', ['outcast'])
-      ];
+      ] as any;
       expect(detectPokerCombo(cards)).toBeNull();
     });
   });
@@ -200,7 +200,7 @@ describe('detectPokerCombo', () => {
         { ...createCard(2, 'attack'), isGhost: true },
         createCard(2, 'attack'),
         createCard(3, 'attack')
-      ];
+      ] as any;
       const result = detectPokerCombo(cards);
       // 유령 제외 후 카드 2장 (2, 3)이므로 하이카드
       expect(result!.name).toBe('하이카드');
@@ -211,7 +211,7 @@ describe('detectPokerCombo', () => {
         { ...createCard(2, 'attack'), isGhost: true },
         createCard(2, 'attack'),
         createCard(2, 'attack')
-      ];
+      ] as any;
       const result = detectPokerCombo(cards);
       // 유령 제외 후 2장 페어
       expect(result!.name).toBe('페어');
@@ -221,7 +221,7 @@ describe('detectPokerCombo', () => {
       const cards = [
         { ...createCard(2, 'attack'), isGhost: true },
         { ...createCard(2, 'attack'), isGhost: true }
-      ];
+      ] as any;
       expect(detectPokerCombo(cards)).toBeNull();
     });
 
@@ -231,7 +231,7 @@ describe('detectPokerCombo', () => {
         { ...createCard(1, 'attack'), isGhost: true },
         { ...createCard(1, 'attack'), isGhost: true },
         createCard(1, 'attack')
-      ];
+      ] as any;
       const result = detectPokerCombo(cards);
       // 실제 카드 1장만 = 하이카드
       expect(result!.name).toBe('하이카드');
@@ -245,7 +245,7 @@ describe('detectPokerCombo', () => {
         createCard(2, 'attack'),
         createCard(2, 'attack'),
         createCard(2, 'attack')
-      ];
+      ] as any;
       const result = detectPokerCombo(cards);
       expect(result!.name).toBe('포카드');
     });
@@ -254,7 +254,7 @@ describe('detectPokerCombo', () => {
       const cards = [
         createCard(2), createCard(2), createCard(2),
         createCard(3), createCard(3)
-      ];
+      ] as any;
       const result = detectPokerCombo(cards);
       expect(result!.name).toBe('풀하우스');
     });
@@ -263,13 +263,13 @@ describe('detectPokerCombo', () => {
 
 describe('applyPokerBonus', () => {
   it('combo가 null이면 원본 카드 반환', () => {
-    const cards = [createCard(2), createCard(3)];
+    const cards = [createCard(2), createCard(3)] as any;
     const result = applyPokerBonus(cards, null);
     expect(result).toEqual(cards);
   });
 
   it('bonusKeys에 포함된 카드에 _combo 태그 추가', () => {
-    const cards = [createCard(2), createCard(3)];
+    const cards = [createCard(2), createCard(3)] as any;
     const combo = { name: '페어', bonusKeys: new Set([2]) };
     const result = applyPokerBonus(cards, combo);
 

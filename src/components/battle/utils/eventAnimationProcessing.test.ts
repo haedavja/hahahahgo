@@ -8,24 +8,24 @@ import { processActionEventAnimations } from './eventAnimationProcessing';
 
 describe('eventAnimationProcessing', () => {
   let actions: {
-    setEnemyHit: ReturnType<typeof vi.fn>,
-    setPlayerHit: ReturnType<typeof vi.fn>,
-    setPlayerBlockAnim: ReturnType<typeof vi.fn>,
-    setEnemyBlockAnim: ReturnType<typeof vi.fn>
+    setEnemyHit: () => void,
+    setPlayerHit: () => void,
+    setPlayerBlockAnim: () => void,
+    setEnemyBlockAnim: () => void
   };
-  let playHitSound: ReturnType<typeof vi.fn>;
-  let playBlockSound: ReturnType<typeof vi.fn>;
+  let playHitSound: () => void;
+  let playBlockSound: () => void;
 
   beforeEach(() => {
     vi.useFakeTimers();
     actions = {
-      setEnemyHit: vi.fn(),
-      setPlayerHit: vi.fn(),
-      setPlayerBlockAnim: vi.fn(),
-      setEnemyBlockAnim: vi.fn()
+      setEnemyHit: vi.fn() as any,
+      setPlayerHit: vi.fn() as any,
+      setPlayerBlockAnim: vi.fn() as any,
+      setEnemyBlockAnim: vi.fn() as any
     };
-    playHitSound = vi.fn();
-    playBlockSound = vi.fn();
+    playHitSound = vi.fn() as any;
+    playBlockSound = vi.fn() as any;
 
     // DOM 모킹
     const mockRoot = {

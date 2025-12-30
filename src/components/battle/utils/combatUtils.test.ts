@@ -29,7 +29,7 @@ describe('combatUtils', () => {
       const playerCards = [
         { speedCost: 5 },
         { speedCost: 3 }
-      ];
+      ] as any;
 
       const result = sortCombinedOrderStablePF(playerCards, [], 0, 0);
 
@@ -42,7 +42,7 @@ describe('combatUtils', () => {
       const enemyCards = [
         { speedCost: 4 },
         { speedCost: 2 }
-      ];
+      ] as any;
 
       const result = sortCombinedOrderStablePF([], enemyCards, 0, 0);
 

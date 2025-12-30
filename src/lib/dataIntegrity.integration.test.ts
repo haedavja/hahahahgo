@@ -35,6 +35,8 @@ describe('적 데이터 무결성', () => {
       expect(Array.isArray(details!.enemies), `${group.id}: enemies is array`).toBe(true);
 
       details!.enemies.forEach((enemy, idx: number) => {
+        expect(enemy, `${group.id}[${idx}]: enemy not null`).not.toBeNull();
+        if (!enemy) return;
         expect(enemy.id, `${group.id}[${idx}]: id`).toBeDefined();
         expect(enemy.name, `${group.id}[${idx}]: name`).toBeDefined();
         expect(typeof enemy.hp, `${group.id}[${idx}]: hp is number`).toBe('number');

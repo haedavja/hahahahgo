@@ -102,7 +102,7 @@ describe('criticalEffects', () => {
 
     it('doubleCrit special이 있으면 확률이 2배가 되어야 함', () => {
       const actor = createCombatant({ strength: 5 });
-      const card = createCard({ special: 'doubleCrit' });
+      const card = createCard({ special: 'doubleCrit' }) as any;
       const result = calculateCritChance(actor, 0, card);
 
       // (5 + 5) * 2 = 20
@@ -111,7 +111,7 @@ describe('criticalEffects', () => {
 
     it('doubleCrit이 배열로 주어져도 작동해야 함', () => {
       const actor = createCombatant();
-      const card = createCard({ special: ['doubleCrit', 'other'] });
+      const card = createCard({ special: ['doubleCrit', 'other'] }) as any;
       const result = calculateCritChance(actor, 0, card);
 
       // 5 * 2 = 10
@@ -138,7 +138,7 @@ describe('criticalEffects', () => {
     it('guaranteedCrit special이 있으면 항상 치명타가 발생해야 함', () => {
       vi.spyOn(Math, 'random').mockReturnValue(0.99);
       const actor = createCombatant();
-      const card = createCard({ special: 'guaranteedCrit' });
+      const card = createCard({ special: 'guaranteedCrit' }) as any;
       const result = rollCritical(actor, 0, card, 'player');
 
       expect(result).toBe(true);
@@ -147,7 +147,7 @@ describe('criticalEffects', () => {
     it('guaranteedCrit이 배열로 주어져도 작동해야 함', () => {
       vi.spyOn(Math, 'random').mockReturnValue(0.99);
       const actor = createCombatant();
-      const card = createCard({ special: ['guaranteedCrit'] });
+      const card = createCard({ special: ['guaranteedCrit'] }) as any;
       const result = rollCritical(actor, 0, card, 'player');
 
       expect(result).toBe(true);
@@ -180,7 +180,7 @@ describe('criticalEffects', () => {
 
   describe('getCritKnockback', () => {
     it('치명타가 아니면 0을 반환해야 함', () => {
-      const card = createCard({ special: 'critKnockback4' });
+      const card = createCard({ special: 'critKnockback4' }) as any;
       const result = getCritKnockback(card, false);
 
       expect(result).toBe(0);
@@ -193,14 +193,14 @@ describe('criticalEffects', () => {
     });
 
     it('critKnockback4 special이 있으면 4를 반환해야 함', () => {
-      const card = createCard({ special: ['critKnockback4'] });
+      const card = createCard({ special: ['critKnockback4'] }) as any;
       const result = getCritKnockback(card, true);
 
       expect(result).toBe(4);
     });
 
     it('넉백 special이 없으면 0을 반환해야 함', () => {
-      const card = createCard({ special: ['other'] });
+      const card = createCard({ special: ['other'] }) as any;
       const result = getCritKnockback(card, true);
 
       expect(result).toBe(0);

@@ -185,7 +185,7 @@ describe('relicActivationAnimation', () => {
     });
 
     it('빈 목록이면 아무 동작 안함', () => {
-      playRelicActivationSequence([], flashRelic, setRelicActivated);
+      playRelicActivationSequence([], flashRelic as any, setRelicActivated as any);
 
       expect(flashRelic).not.toHaveBeenCalled();
       expect(setRelicActivated).not.toHaveBeenCalled();
@@ -196,7 +196,7 @@ describe('relicActivationAnimation', () => {
         { id: 'etherCrystal', tone: 800, duration: 500 }
       ];
 
-      playRelicActivationSequence(triggered, flashRelic, setRelicActivated);
+      playRelicActivationSequence(triggered, flashRelic as any, setRelicActivated as any);
 
       expect(flashRelic).toHaveBeenCalledWith('etherCrystal', 800, 500);
     });
@@ -207,7 +207,7 @@ describe('relicActivationAnimation', () => {
         { id: 'rareStone', tone: 820, duration: 400 }
       ];
 
-      playRelicActivationSequence(triggered, flashRelic, setRelicActivated);
+      playRelicActivationSequence(triggered, flashRelic as any, setRelicActivated as any);
 
       expect(flashRelic).toHaveBeenCalledWith('etherCrystal', 800, 500);
 
@@ -222,7 +222,7 @@ describe('relicActivationAnimation', () => {
         { id: 'etherCrystal', tone: 800, duration: 500 }
       ];
 
-      playRelicActivationSequence(triggered, flashRelic, setRelicActivated);
+      playRelicActivationSequence(triggered, flashRelic as any, setRelicActivated as any);
 
       // duration * 0.6 = 300ms 후 완료
       vi.advanceTimersByTime(300);
@@ -236,7 +236,7 @@ describe('relicActivationAnimation', () => {
         { id: 'relic2', tone: 820, duration: 400 }
       ];
 
-      playRelicActivationSequence(triggered, flashRelic, setRelicActivated);
+      playRelicActivationSequence(triggered, flashRelic as any, setRelicActivated as any);
 
       expect(flashRelic).toHaveBeenCalledWith('relic1', 800, 100);
 

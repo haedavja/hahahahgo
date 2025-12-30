@@ -7,15 +7,15 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { startEtherCalculationAnimationSequence } from './etherCalculationAnimation';
 
 describe('etherCalculationAnimation', () => {
-  let actions: { setEtherCalcPhase: ReturnType<typeof vi.fn> };
-  let playSound: ReturnType<typeof vi.fn>;
+  let actions: { setEtherCalcPhase: (phase: string) => void };
+  let playSound: (frequency: number, duration: number) => void;
 
   beforeEach(() => {
     vi.useFakeTimers();
     actions = {
-      setEtherCalcPhase: vi.fn()
+      setEtherCalcPhase: vi.fn() as any
     };
-    playSound = vi.fn();
+    playSound = vi.fn() as any;
   });
 
   afterEach(() => {

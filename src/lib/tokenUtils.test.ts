@@ -47,7 +47,7 @@ describe('tokenUtils', () => {
 
     it('기존 토큰에 스택을 추가해야 함', () => {
       const entity = createEntity({
-        usage: [{ id: 'offense', stacks: 1, name: '공세' }],
+        usage: [{ id: 'offense', stacks: 1, name: '공세' }] as any,
         turn: [],
         permanent: []
       });
@@ -81,7 +81,7 @@ describe('tokenUtils', () => {
     it('토큰 스택을 감소시켜야 함', () => {
       const entity = createEntity({
         usage: [],
-        turn: [{ id: 'offense', stacks: 3, name: '공세' }],
+        turn: [{ id: 'offense', stacks: 3, name: '공세' }] as any,
         permanent: []
       });
 
@@ -94,7 +94,7 @@ describe('tokenUtils', () => {
     it('스택이 0 이하가 되면 토큰을 제거해야 함', () => {
       const entity = createEntity({
         usage: [],
-        turn: [{ id: 'offense', stacks: 1, name: '공세' }],
+        turn: [{ id: 'offense', stacks: 1, name: '공세' }] as any,
         permanent: []
       });
 
@@ -110,7 +110,7 @@ describe('tokenUtils', () => {
     it('토큰이 있으면 true를 반환해야 함', () => {
       const entity = createEntity({
         usage: [],
-        turn: [{ id: 'offense', stacks: 1 }],
+        turn: [{ id: 'offense', stacks: 1 }] as any,
         permanent: []
       });
 
@@ -132,7 +132,7 @@ describe('tokenUtils', () => {
     it('토큰 스택 수를 반환해야 함', () => {
       const entity = createEntity({
         usage: [],
-        turn: [{ id: 'offense', stacks: 5 }],
+        turn: [{ id: 'offense', stacks: 5 }] as any,
         permanent: []
       });
 
@@ -154,9 +154,9 @@ describe('tokenUtils', () => {
     it('모든 유형의 토큰을 반환해야 함 (TOKENS에 정의된 토큰만)', () => {
       // 실제 TOKENS에 정의된 토큰 ID 사용
       const entity = createEntity({
-        usage: [{ id: 'offense', stacks: 1 }],      // offense는 TOKENS에 정의됨
-        turn: [{ id: 'attack', stacks: 2 }],         // attack은 TOKENS에 정의됨
-        permanent: [{ id: 'burn', stacks: 3 }]       // burn은 TOKENS에 정의됨
+        usage: [{ id: 'offense', stacks: 1 }] as any,      // offense는 TOKENS에 정의됨
+        turn: [{ id: 'attack', stacks: 2 }] as any,         // attack은 TOKENS에 정의됨
+        permanent: [{ id: 'burn', stacks: 3 }] as any       // burn은 TOKENS에 정의됨
       });
 
       const allTokens = getAllTokens(entity);
@@ -169,7 +169,7 @@ describe('tokenUtils', () => {
 
     it('TOKENS에 정의되지 않은 토큰은 반환하지 않아야 함', () => {
       const entity = createEntity({
-        usage: [{ id: 'unknown_token', stacks: 1 }],
+        usage: [{ id: 'unknown_token', stacks: 1 }] as any,
         turn: [],
         permanent: []
       });
@@ -197,12 +197,12 @@ describe('tokenUtils', () => {
   describe('clearTurnTokens', () => {
     it('턴 토큰을 제거해야 함 (grantedAt 없는 것만)', () => {
       const entity = createEntity({
-        usage: [{ id: 'usage_token', stacks: 1 }],
+        usage: [{ id: 'usage_token', stacks: 1 }] as any,
         turn: [
           { id: 'turn_token1', stacks: 1 },
           { id: 'turn_token2', stacks: 2, grantedAt: { turn: 1, sp: 50 } }
-        ],
-        permanent: [{ id: 'perm_token', stacks: 1 }]
+        ] as any,
+        permanent: [{ id: 'perm_token', stacks: 1 }] as any
       });
 
       const result = clearTurnTokens(entity);

@@ -165,7 +165,7 @@ describe('dungeonNodes', () => {
     it('scalingRequirement가 있는 선택지는 유효한 stat을 가진다', () => {
       const validStats = ['strength', 'agility', 'insight'];
       Object.values(OBSTACLE_TEMPLATES).forEach(template => {
-        template.choices.forEach(choice => {
+        template.choices.forEach((choice: any) => {
           if (choice.scalingRequirement) {
             expect(validStats).toContain(choice.scalingRequirement.stat);
             expect(typeof choice.scalingRequirement.baseValue).toBe('number');
