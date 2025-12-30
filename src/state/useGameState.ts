@@ -220,7 +220,8 @@ export const createInitialState = () => {
     playerInsight: 0, // 통찰 (이벤트 선택지, 적 타임라인 정보)
     playerTraits: [] as string[], // 획득한 개성 목록
     playerEgos: [] as PlayerEgo[], // 획득한 자아 목록
-    cardUpgrades: {} as Record<string, string>, // 카드 업그레이드(카드 ID -> 희귀도)
+    cardUpgrades: {} as Record<string, string>, // 레거시: 카드 업그레이드(카드 ID -> 희귀도)
+    cardGrowth: {} as Record<string, { rarity: string; growthCount: number; traits: string[] }>, // 카드 성장 상태
     relics: initialRelics,
     items: [null, null, null] as (GameItem | null)[], // 아이템 슬롯 3개 (null = 빈 슬롯)
     itemBuffs: {} as Record<string, number>, // 아이템으로 인한 임시 스탯 버프 { strength: 2, agility: 3, insight: 1 }

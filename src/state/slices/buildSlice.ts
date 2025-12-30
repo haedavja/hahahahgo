@@ -3,16 +3,41 @@
  * @description 캐릭터 빌드 액션 슬라이스
  *
  * 초기 상태는 gameStore.ts의 createInitialState()에서 제공됩니다.
+ *
+ * === 카드 승격 시스템 ===
+ * - 강화: 스탯 향상 (데미지, 방어력, 속도 등)
+ * - 특화: 랜덤 5개 특성 중 선택하여 부여
+ * - 승격 조건: 성장 횟수(강화+특화)에 따라 등급 상승
+ *   - 1회 → 희귀(rare)
+ *   - 3회 → 특별(special)
+ *   - 5회 → 전설(legendary) - 최종, 더 이상 성장 불가
  */
 
 import type { StateCreator } from 'zustand';
-import type { GameStore, BuildSliceActions } from './types';
+import type { GameStore, BuildSliceActions, CardGrowthState } from './types';
 
 export type BuildActionsSlice = BuildSliceActions;
 
 type SliceCreator = StateCreator<GameStore, [], [], BuildActionsSlice>;
 
-export const createBuildActions: SliceCreator = (set) => ({
+/** 성장 횟수에 따른 등급 계산 */
+function calculateRarity(growthCount: number): CardGrowthState['rarity'] {
+  if (growthCount >= 5) return 'legendary';
+  if (growthCount >= 3) return 'special';
+  if (growthCount >= 1) return 'rare';
+  return 'common';
+}
+
+/** 기본 카드 성장 상태 */
+function getDefaultGrowthState(): CardGrowthState {
+  return {
+    rarity: 'common',
+    growthCount: 0,
+    traits: [],
+  };
+}
+
+export const createBuildActions: SliceCreator = (set, get) => ({
   updateCharacterBuild: (mainSpecials, subSpecials) =>
     set((state) => ({
       ...state,
@@ -63,6 +88,7 @@ export const createBuildActions: SliceCreator = (set) => ({
       }
     }),
 
+  // 레거시: 기존 upgradeCardRarity 유지
   upgradeCardRarity: (cardId) =>
     set((state) => {
       if (!cardId) return state;
@@ -73,6 +99,74 @@ export const createBuildActions: SliceCreator = (set) => ({
       if (next === current) return state;
       return { ...state, cardUpgrades: { ...(state.cardUpgrades || {}), [cardId]: next } };
     }),
+
+  // 강화: 스탯 향상 + 성장 횟수 증가
+  enhanceCard: (cardId) =>
+    set((state) => {
+      if (!cardId) return state;
+
+      const cardGrowth = state.cardGrowth || {};
+      const currentGrowth = cardGrowth[cardId] || getDefaultGrowthState();
+
+      // 전설 등급은 더 이상 성장 불가
+      if (currentGrowth.rarity === 'legendary') return state;
+
+      const newGrowthCount = currentGrowth.growthCount + 1;
+      const newRarity = calculateRarity(newGrowthCount);
+
+      const newGrowthState: CardGrowthState = {
+        ...currentGrowth,
+        growthCount: newGrowthCount,
+        rarity: newRarity,
+      };
+
+      // 레거시 cardUpgrades도 동기화
+      const newCardUpgrades = { ...(state.cardUpgrades || {}), [cardId]: newRarity };
+
+      return {
+        ...state,
+        cardGrowth: { ...cardGrowth, [cardId]: newGrowthState },
+        cardUpgrades: newCardUpgrades,
+      };
+    }),
+
+  // 특화: 특성 부여 + 성장 횟수 증가
+  specializeCard: (cardId, selectedTraits) =>
+    set((state) => {
+      if (!cardId || !selectedTraits || selectedTraits.length === 0) return state;
+
+      const cardGrowth = state.cardGrowth || {};
+      const currentGrowth = cardGrowth[cardId] || getDefaultGrowthState();
+
+      // 전설 등급은 더 이상 성장 불가
+      if (currentGrowth.rarity === 'legendary') return state;
+
+      const newGrowthCount = currentGrowth.growthCount + 1;
+      const newRarity = calculateRarity(newGrowthCount);
+
+      const newGrowthState: CardGrowthState = {
+        ...currentGrowth,
+        growthCount: newGrowthCount,
+        rarity: newRarity,
+        traits: [...currentGrowth.traits, ...selectedTraits],
+      };
+
+      // 레거시 cardUpgrades도 동기화
+      const newCardUpgrades = { ...(state.cardUpgrades || {}), [cardId]: newRarity };
+
+      return {
+        ...state,
+        cardGrowth: { ...cardGrowth, [cardId]: newGrowthState },
+        cardUpgrades: newCardUpgrades,
+      };
+    }),
+
+  // 카드 성장 상태 조회
+  getCardGrowth: (cardId) => {
+    const state = get();
+    const cardGrowth = state.cardGrowth || {};
+    return cardGrowth[cardId] || getDefaultGrowthState();
+  },
 });
 
 // 하위 호환성

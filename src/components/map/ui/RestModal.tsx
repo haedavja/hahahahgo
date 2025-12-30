@@ -1,11 +1,18 @@
 /**
- * RestModal.jsx
+ * RestModal.tsx
  * 휴식/각성 모달 컴포넌트
+ *
+ * 카드 성장 시스템:
+ * - 강화: 스탯 향상 (데미지, 방어력, 속도 등)
+ * - 특화: 랜덤 5개 특성 중 선택하여 부여
+ * - 승격: 성장 횟수에 따른 등급 상승 (1회→희귀, 3회→특별, 5회→전설)
  */
 
 import { useState } from 'react';
-import { CARDS } from '../../battle/battleData';
+import { CARDS, TRAITS } from '../../battle/battleData';
 import { CARD_ETHER_BY_RARITY } from '../../battle/utils/etherCalculations';
+import { generateSpecializationOptions, type SpecializationOption } from '../../../lib/specializationUtils';
+import type { CardGrowthState } from '../../../state/slices/types';
 
 // 자아 형성 규칙
 const EGO_RULES = [
@@ -55,10 +62,13 @@ export function RestModal({
   playerTraits,
   canFormEgo,
   cardUpgrades,
+  cardGrowth,
   closeRest,
   awakenAtRest,
   healAtRest,
   upgradeCardRarity,
+  enhanceCard,
+  specializeCard,
   formEgo,
 }: {
   memoryValue: number;
@@ -68,10 +78,13 @@ export function RestModal({
   playerTraits: string[];
   canFormEgo: boolean;
   cardUpgrades: Record<string, string>;
+  cardGrowth: Record<string, CardGrowthState>;
   closeRest: () => void;
   awakenAtRest: (type: string) => void;
   healAtRest: (amount: number) => void;
   upgradeCardRarity: (cardId: string) => void;
+  enhanceCard: (cardId: string) => void;
+  specializeCard: (cardId: string, selectedTraits: string[]) => void;
   formEgo: (traits: string[]) => void;
 }) {
   const [egoFormMode, setEgoFormMode] = useState(false);
@@ -82,7 +95,7 @@ export function RestModal({
       <div className="event-modal" onClick={(e) => e.stopPropagation()}>
         <header>
           <h3>휴식 · 각성</h3>
-          <small>기억 100 소모 시 각성, 체력 회복 또는 카드 강화 선택</small>
+          <small>기억 100 소모 시 각성, 체력 회복 또는 카드 성장 선택</small>
         </header>
         <p>기억 보유량: {memoryValue} / 100 · 체력 {playerHp}/{maxHp}</p>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "10px", marginTop: "12px" }}>
@@ -126,7 +139,11 @@ export function RestModal({
               >
                 체력 회복 (+30% 최대체력)
               </button>
-              <RestUpgradePanel cardUpgrades={cardUpgrades} onUpgrade={upgradeCardRarity} />
+              <CardGrowthPanel
+                cardGrowth={cardGrowth}
+                onEnhance={enhanceCard}
+                onSpecialize={specializeCard}
+              />
             </div>
           </div>
           <div className="choice-card">
@@ -306,116 +323,257 @@ function EgoFormPanel({
   );
 }
 
-function RestUpgradePanel({
-  cardUpgrades,
-  onUpgrade
+/** 카드 성장 패널 (강화/특화) */
+function CardGrowthPanel({
+  cardGrowth,
+  onEnhance,
+  onSpecialize,
 }: {
-  cardUpgrades: Record<string, string>;
-  onUpgrade: (cardId: string) => void
+  cardGrowth: Record<string, CardGrowthState>;
+  onEnhance: (cardId: string) => void;
+  onSpecialize: (cardId: string, selectedTraits: string[]) => void;
 }) {
   const [selectedCard, setSelectedCard] = useState<string | null>(null);
-  const [showModal, setShowModal] = useState(false);
+  const [showCardModal, setShowCardModal] = useState(false);
+  const [growthMode, setGrowthMode] = useState<'select' | 'enhance' | 'specialize'>('select');
+  const [specOptions, setSpecOptions] = useState<SpecializationOption[]>([]);
+  const [selectedOption, setSelectedOption] = useState<SpecializationOption | null>(null);
+
   const cards = CARDS || [];
-  const rarityOrder = ['common', 'rare', 'special', 'legendary'];
-  const rarityLabel = {
+
+  const rarityLabel: Record<string, string> = {
     common: '일반',
     rare: '희귀',
     special: '특별',
     legendary: '전설',
   };
-  const rarityBadge = {
+
+  const rarityBadge: Record<string, { color: string; label: string } | null> = {
     common: null,
     rare: { color: '#60a5fa', label: '희귀' },
     special: { color: '#34d399', label: '특별' },
     legendary: { color: '#fbbf24', label: '전설' },
   };
 
-  const getNextRarity = (card: { id: string; rarity?: string }) => {
-    const current = cardUpgrades[card.id] || card.rarity || 'common';
-    const idx = rarityOrder.indexOf(current);
-    if (idx === -1 || idx >= rarityOrder.length - 1) return null;
-    return rarityOrder[idx + 1];
+  const getCardGrowthState = (cardId: string): CardGrowthState => {
+    return cardGrowth[cardId] || { rarity: 'common', growthCount: 0, traits: [] };
   };
 
-  const handleUpgrade = () => {
-    const card = cards.find((c) => c.id === selectedCard);
-    if (!card) return;
-    const next = getNextRarity(card);
-    if (!next) return;
-    onUpgrade(card.id);
+  const getNextPromotionInfo = (growth: CardGrowthState) => {
+    const { growthCount, rarity } = growth;
+    if (rarity === 'legendary') return null;
+    if (growthCount < 1) return { target: '희귀', remaining: 1 - growthCount };
+    if (growthCount < 3) return { target: '특별', remaining: 3 - growthCount };
+    if (growthCount < 5) return { target: '전설', remaining: 5 - growthCount };
+    return null;
+  };
+
+  const handleSelectCard = (cardId: string) => {
+    setSelectedCard(cardId);
+    setShowCardModal(false);
+    setGrowthMode('select');
+  };
+
+  const handleStartSpecialize = () => {
+    if (!selectedCard) return;
+    const growth = getCardGrowthState(selectedCard);
+    const options = generateSpecializationOptions(growth.traits);
+    setSpecOptions(options);
+    setSelectedOption(null);
+    setGrowthMode('specialize');
+  };
+
+  const handleConfirmEnhance = () => {
+    if (!selectedCard) return;
+    onEnhance(selectedCard);
+    setGrowthMode('select');
+  };
+
+  const handleConfirmSpecialize = () => {
+    if (!selectedCard || !selectedOption) return;
+    const traitIds = selectedOption.traits.map(t => t.id);
+    onSpecialize(selectedCard, traitIds);
+    setGrowthMode('select');
+    setSelectedOption(null);
   };
 
   const selected = cards.find((c) => c.id === selectedCard);
-  const currentRarity = selected ? (cardUpgrades[selected.id] || (selected as { rarity?: string }).rarity || 'common') : 'common';
-  const nextRarity = selected ? getNextRarity(selected) : null;
+  const selectedGrowth = selectedCard ? getCardGrowthState(selectedCard) : null;
+  const promotionInfo = selectedGrowth ? getNextPromotionInfo(selectedGrowth) : null;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-      <div style={{ fontWeight: 700 }}>카드 강화</div>
-      <button className="btn" onClick={() => setShowModal(true)}>
+      <div style={{ fontWeight: 700 }}>카드 성장</div>
+      <button className="btn" onClick={() => setShowCardModal(true)}>
         카드 선택
       </button>
-      {selected && (
+
+      {selected && selectedGrowth && (
         <div style={{ fontSize: "13px", color: "#9ca3af" }}>
-          현재 등급: {rarityLabel[currentRarity as keyof typeof rarityLabel]} {nextRarity ? `→ 다음: ${rarityLabel[nextRarity as keyof typeof rarityLabel]}` : '(최고 등급)'}
+          <div>{selected.name} - {rarityLabel[selectedGrowth.rarity]} ({selectedGrowth.growthCount}/5)</div>
+          {promotionInfo && (
+            <div style={{ color: "#86efac" }}>
+              다음 승격: {promotionInfo.target} (성장 {promotionInfo.remaining}회 필요)
+            </div>
+          )}
+          {selectedGrowth.traits.length > 0 && (
+            <div style={{ marginTop: "4px" }}>
+              특성: {selectedGrowth.traits.map(tid => {
+                const t = TRAITS[tid as keyof typeof TRAITS];
+                return t ? `${t.type === 'positive' ? '+' : '-'}${t.name}` : tid;
+              }).join(', ')}
+            </div>
+          )}
         </div>
       )}
-      <button
-        className="btn"
-        onClick={handleUpgrade}
-        disabled={!selected || !nextRarity}
-      >
-        강화하기
-      </button>
 
-      {showModal && (
-        <div className="event-modal-overlay" onClick={() => setShowModal(false)}>
-          <div className="event-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: "640px" }}>
+      {selected && selectedGrowth && selectedGrowth.rarity !== 'legendary' && growthMode === 'select' && (
+        <div style={{ display: "flex", gap: "8px" }}>
+          <button className="btn" onClick={() => setGrowthMode('enhance')}>
+            강화
+          </button>
+          <button className="btn" onClick={handleStartSpecialize}>
+            특화
+          </button>
+        </div>
+      )}
+
+      {/* 강화 확인 */}
+      {growthMode === 'enhance' && selected && (
+        <div style={{ padding: "10px", background: "rgba(96, 165, 250, 0.1)", borderRadius: "8px", border: "1px solid rgba(96, 165, 250, 0.3)" }}>
+          <div style={{ fontWeight: 700, color: "#60a5fa", marginBottom: "8px" }}>⚔️ 강화</div>
+          <div style={{ fontSize: "13px", color: "#e2e8f0", marginBottom: "8px" }}>
+            카드의 기본 스탯(데미지, 방어력, 속도 등)이 향상됩니다.
+          </div>
+          <div style={{ display: "flex", gap: "8px" }}>
+            <button className="btn" onClick={handleConfirmEnhance} style={{ background: "rgba(96, 165, 250, 0.2)" }}>
+              강화 확정
+            </button>
+            <button className="btn" onClick={() => setGrowthMode('select')}>취소</button>
+          </div>
+        </div>
+      )}
+
+      {/* 특화 선택 */}
+      {growthMode === 'specialize' && selected && (
+        <div style={{ padding: "10px", background: "rgba(134, 239, 172, 0.1)", borderRadius: "8px", border: "1px solid rgba(134, 239, 172, 0.3)" }}>
+          <div style={{ fontWeight: 700, color: "#86efac", marginBottom: "8px" }}>✨ 특화 - 특성 선택</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px", maxHeight: "200px", overflowY: "auto" }}>
+            {specOptions.map((option, idx) => (
+              <button
+                key={option.id}
+                className="choice-card"
+                style={{
+                  textAlign: "left",
+                  padding: "8px 12px",
+                  borderColor: selectedOption?.id === option.id ? "#86efac" : "rgba(148,163,184,0.4)",
+                  boxShadow: selectedOption?.id === option.id ? "0 0 8px rgba(134, 239, 172, 0.5)" : "none",
+                }}
+                onClick={() => setSelectedOption(option)}
+              >
+                <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+                  {option.traits.map((trait) => (
+                    <span
+                      key={trait.id}
+                      style={{
+                        fontSize: "12px",
+                        padding: "2px 8px",
+                        borderRadius: "4px",
+                        background: trait.type === 'positive' ? "rgba(134, 239, 172, 0.2)" : "rgba(248, 113, 113, 0.2)",
+                        color: trait.type === 'positive' ? "#86efac" : "#f87171",
+                        border: `1px solid ${trait.type === 'positive' ? "rgba(134, 239, 172, 0.4)" : "rgba(248, 113, 113, 0.4)"}`,
+                      }}
+                    >
+                      {trait.type === 'positive' ? '+' : '-'}{trait.name} ({'★'.repeat(trait.weight)})
+                    </span>
+                  ))}
+                </div>
+                <div style={{ fontSize: "11px", color: "#9ca3af", marginTop: "4px" }}>
+                  {option.traits.map(t => t.description).join(' / ')}
+                </div>
+              </button>
+            ))}
+          </div>
+          <div style={{ display: "flex", gap: "8px", marginTop: "10px" }}>
+            <button
+              className="btn"
+              onClick={handleConfirmSpecialize}
+              disabled={!selectedOption}
+              style={{ background: selectedOption ? "rgba(134, 239, 172, 0.2)" : undefined }}
+            >
+              특화 확정
+            </button>
+            <button className="btn" onClick={() => setGrowthMode('select')}>취소</button>
+          </div>
+        </div>
+      )}
+
+      {/* 카드 선택 모달 */}
+      {showCardModal && (
+        <div className="event-modal-overlay" onClick={() => setShowCardModal(false)}>
+          <div className="event-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: "700px" }}>
             <header>
-              <h3>강화할 카드 선택</h3>
+              <h3>성장시킬 카드 선택</h3>
+              <small>강화: 스탯 향상 / 특화: 특성 부여</small>
             </header>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "10px", maxHeight: "400px", overflowY: "auto" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "10px", maxHeight: "400px", overflowY: "auto" }}>
               {cards.map((card) => {
-                const current = cardUpgrades[card.id] || (card as { rarity?: string }).rarity || 'common';
-                const badge = rarityBadge[current as keyof typeof rarityBadge];
+                const growth = getCardGrowthState(card.id);
+                const badge = rarityBadge[growth.rarity];
+                const isMaxLevel = growth.rarity === 'legendary';
                 return (
                   <button
                     key={card.id}
                     className="choice-card"
+                    disabled={isMaxLevel}
                     style={{
                       textAlign: "left",
                       borderColor: selectedCard === card.id ? "#fbbf24" : "rgba(148,163,184,0.4)",
-                      boxShadow: selectedCard === card.id ? "0 0 10px rgba(251,191,36,0.6)" : "none"
+                      boxShadow: selectedCard === card.id ? "0 0 10px rgba(251,191,36,0.6)" : "none",
+                      opacity: isMaxLevel ? 0.5 : 1,
                     }}
-                    onClick={() => setSelectedCard(card.id)}
+                    onClick={() => handleSelectCard(card.id)}
                   >
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                       <strong>{card.name}</strong>
-                      {badge && (
-                        <span style={{
-                          fontSize: "11px",
-                          padding: "2px 6px",
-                          borderRadius: "6px",
-                          background: badge.color,
-                          color: "#0f172a",
-                          fontWeight: 800
-                        }}>
-                          {badge.label}
+                      <div style={{ display: "flex", gap: "4px", alignItems: "center" }}>
+                        <span style={{ fontSize: "11px", color: "#9ca3af" }}>
+                          {growth.growthCount}/5
                         </span>
-                      )}
+                        {badge && (
+                          <span style={{
+                            fontSize: "11px",
+                            padding: "2px 6px",
+                            borderRadius: "6px",
+                            background: badge.color,
+                            color: "#0f172a",
+                            fontWeight: 800
+                          }}>
+                            {badge.label}
+                          </span>
+                        )}
+                      </div>
                     </div>
                     <div style={{ fontSize: "12px", color: "#9ca3af", marginTop: "4px" }}>
                       {card.description || ''}
                     </div>
-                    <div style={{ fontSize: "12px", color: "#9ca3af", marginTop: "6px" }}>
-                      행동력 {card.actionCost} · 속도 {card.speedCost} · 에테르 {CARD_ETHER_BY_RARITY[current]}
+                    {growth.traits.length > 0 && (
+                      <div style={{ fontSize: "11px", color: "#86efac", marginTop: "4px" }}>
+                        {growth.traits.slice(0, 3).map(tid => {
+                          const t = TRAITS[tid as keyof typeof TRAITS];
+                          return t ? t.name : tid;
+                        }).join(', ')}{growth.traits.length > 3 ? ` +${growth.traits.length - 3}` : ''}
+                      </div>
+                    )}
+                    <div style={{ fontSize: "11px", color: "#64748b", marginTop: "4px" }}>
+                      행동력 {card.actionCost} · 속도 {card.speedCost} · 에테르 {CARD_ETHER_BY_RARITY[growth.rarity]}
                     </div>
                   </button>
                 );
               })}
             </div>
             <div style={{ marginTop: "12px", display: "flex", justifyContent: "flex-end", gap: "8px" }}>
-              <button className="btn" onClick={() => setShowModal(false)}>닫기</button>
+              <button className="btn" onClick={() => setShowCardModal(false)}>닫기</button>
             </div>
           </div>
         </div>

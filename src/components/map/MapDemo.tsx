@@ -105,7 +105,7 @@ export function MapDemo() {
   }, [orderedRelics]);
 
   // 플레이어 스탯 셀렉터 (그룹화)
-  const { playerHp, maxHp, playerStrength, playerAgility, playerInsight, playerTraits, cardUpgrades, itemBuffs } = useGameStore(
+  const { playerHp, maxHp, playerStrength, playerAgility, playerInsight, playerTraits, cardUpgrades, cardGrowth, itemBuffs } = useGameStore(
     useShallow((state) => ({
       playerHp: state.playerHp,
       maxHp: state.maxHp,
@@ -114,6 +114,7 @@ export function MapDemo() {
       playerInsight: state.playerInsight || 0,
       playerTraits: state.playerTraits || [],
       cardUpgrades: state.cardUpgrades || {},
+      cardGrowth: state.cardGrowth || {},
       itemBuffs: state.itemBuffs || {},
     }))
   );
@@ -123,7 +124,7 @@ export function MapDemo() {
     selectNode, chooseEvent, closeEvent, clearBattleResult,
     skipDungeon, confirmDungeon, bypassDungeon,
     awakenAtRest, closeRest, closeShop, healAtRest,
-    formEgo, upgradeCardRarity, useItem
+    formEgo, upgradeCardRarity, enhanceCard, specializeCard, useItem
   } = useGameStore(
     useShallow((state) => ({
       selectNode: state.selectNode,
@@ -139,6 +140,8 @@ export function MapDemo() {
       healAtRest: state.healAtRest,
       formEgo: state.formEgo,
       upgradeCardRarity: state.upgradeCardRarity,
+      enhanceCard: state.enhanceCard,
+      specializeCard: state.specializeCard,
       useItem: state.useItem,
     }))
   );
@@ -468,10 +471,13 @@ export function MapDemo() {
           playerTraits={playerTraits}
           canFormEgo={canFormEgo}
           cardUpgrades={cardUpgrades}
+          cardGrowth={cardGrowth}
           closeRest={closeRest}
           awakenAtRest={awakenAtRest}
           healAtRest={healAtRest}
           upgradeCardRarity={upgradeCardRarity}
+          enhanceCard={enhanceCard}
+          specializeCard={specializeCard}
           formEgo={formEgo}
         />
       )}
