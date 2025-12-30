@@ -285,10 +285,20 @@ export interface EventSliceActions {
   setActiveEvent: (event: ActiveEvent | null) => void;
 }
 
+/** 카드 성장 상태 */
+export interface CardGrowthState {
+  rarity: 'common' | 'rare' | 'special' | 'legendary';
+  growthCount: number;        // 강화 + 특화 총 횟수 (승격 판정용)
+  enhancementLevel: number;   // 강화 횟수 (1~5, 스탯 강화 적용용)
+  specializationCount: number; // 특화 횟수
+  traits: string[];           // 특화로 부여된 특성들
+}
+
 /** 빌드 슬라이스 상태 */
 export interface BuildSliceState {
   characterBuild: CharacterBuild;
-  cardUpgrades: Record<string, string>;
+  cardUpgrades: Record<string, string>;  // 레거시 호환용
+  cardGrowth: Record<string, CardGrowthState>;  // 새로운 성장 시스템
 }
 
 /** 빌드 슬라이스 액션 */
@@ -298,7 +308,11 @@ export interface BuildSliceActions {
   removeOwnedCard: (cardId: string) => void;
   clearOwnedCards: () => void;
   removeCardFromDeck: (cardId: string, isMainSpecial?: boolean) => void;
-  upgradeCardRarity: (cardId: string) => void;
+  upgradeCardRarity: (cardId: string) => void;  // 레거시
+  // 새로운 승격 시스템
+  enhanceCard: (cardId: string) => void;  // 강화: 스탯 향상
+  specializeCard: (cardId: string, selectedTraits: string[]) => void;  // 특화: 특성 부여
+  getCardGrowth: (cardId: string) => CardGrowthState;  // 카드 성장 상태 조회
 }
 
 /** 상징 슬라이스 상태 */

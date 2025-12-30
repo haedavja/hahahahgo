@@ -56,6 +56,7 @@ interface UseDevModeEffectsParams {
   escapeBanRef: MutableRefObject<Set<string>>;
   battleRef: MutableRefObject<BattleRefValue>;
   addLog: (msg: string) => void;
+  cardGrowth: Record<string, unknown>;
   actions: {
     setPlayer: (player: PlayerState) => void;
     setEnemy: (enemy: EnemyState) => void;
@@ -81,6 +82,7 @@ export function useDevModeEffects(params: UseDevModeEffectsParams): void {
     escapeBanRef,
     battleRef,
     addLog,
+    cardGrowth,
     actions
   } = params;
 
@@ -111,7 +113,7 @@ export function useDevModeEffects(params: UseDevModeEffectsParams): void {
 
     if (prevBuild && (mainChanged || subChanged)) {
       const vanishedIds = vanishedCards.map(c => typeof c === 'string' ? c : c.id);
-      const { deck: newDeck, mainSpecialsHand } = initializeDeck(devCharacterBuild, vanishedIds);
+      const { deck: newDeck, mainSpecialsHand } = initializeDeck(devCharacterBuild, vanishedIds, cardGrowth);
       const drawResult = drawFromDeck(newDeck, [], DEFAULT_DRAW_COUNT, escapeBanRef.current);
 
       actions.setDeck(drawResult.newDeck);

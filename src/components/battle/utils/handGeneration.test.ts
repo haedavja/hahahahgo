@@ -242,4 +242,239 @@ describe('handGeneration', () => {
       expect(result.find(c => c?.id === 'card1')).toBeUndefined();
     });
   });
+
+  describe('카드 성장 시스템 통합', () => {
+    // 실제 존재하는 카드 ID 사용: 'marche', 'lunge', 'coupe' 등
+    describe('강화 효과 적용', () => {
+      it('cardGrowth가 없으면 원본 카드가 반환되어야 함', () => {
+        const result = initializeDeck({
+          mainSpecials: ['marche'],
+          subSpecials: [],
+          ownedCards: []
+        } as any, [], undefined);
+
+        // 강화가 적용되지 않음
+        const mainCard = result.mainSpecialsHand[0];
+        expect(mainCard?.enhancementLevel).toBeUndefined();
+      });
+
+      it('강화 레벨이 있으면 카드에 enhancementLevel이 설정되어야 함', () => {
+        const cardGrowth = {
+          'marche': {
+            rarity: 'common' as const,
+            growthCount: 1,
+            enhancementLevel: 2,
+            specializationCount: 0,
+            traits: [] as string[]
+          }
+        };
+
+        const result = initializeDeck({
+          mainSpecials: ['marche'],
+          subSpecials: [],
+          ownedCards: []
+        } as any, [], cardGrowth);
+
+        const mainCard = result.mainSpecialsHand[0];
+        expect(mainCard?.enhancementLevel).toBe(2);
+      });
+
+      it('강화된 카드는 enhancedStats를 포함해야 함', () => {
+        const cardGrowth = {
+          'marche': {
+            rarity: 'common' as const,
+            growthCount: 1,
+            enhancementLevel: 3,
+            specializationCount: 0,
+            traits: [] as string[]
+          }
+        };
+
+        const result = initializeDeck({
+          mainSpecials: ['marche'],
+          subSpecials: [],
+          ownedCards: []
+        } as any, [], cardGrowth);
+
+        const mainCard = result.mainSpecialsHand[0];
+        expect(mainCard?.enhancedStats).toBeDefined();
+      });
+
+      it('강화 레벨 0은 강화되지 않은 것으로 처리되어야 함', () => {
+        const cardGrowth = {
+          'marche': {
+            rarity: 'common' as const,
+            growthCount: 0,
+            enhancementLevel: 0,
+            specializationCount: 0,
+            traits: [] as string[]
+          }
+        };
+
+        const result = initializeDeck({
+          mainSpecials: ['marche'],
+          subSpecials: [],
+          ownedCards: []
+        } as any, [], cardGrowth);
+
+        const mainCard = result.mainSpecialsHand[0];
+        expect(mainCard?.enhancementLevel).toBeUndefined();
+      });
+    });
+
+    describe('특화 특성 병합', () => {
+      it('특화 특성이 카드에 추가되어야 함', () => {
+        const cardGrowth = {
+          'marche': {
+            rarity: 'common' as const,
+            growthCount: 1,
+            enhancementLevel: 0,
+            specializationCount: 1,
+            traits: ['swift']
+          }
+        };
+
+        const result = initializeDeck({
+          mainSpecials: ['marche'],
+          subSpecials: [],
+          ownedCards: []
+        } as any, [], cardGrowth);
+
+        const mainCard = result.mainSpecialsHand[0];
+        expect(mainCard?.traits).toContain('swift');
+      });
+
+      it('기존 특성과 특화 특성이 병합되어야 함', () => {
+        const cardGrowth = {
+          'marche': {
+            rarity: 'common' as const,
+            growthCount: 1,
+            enhancementLevel: 0,
+            specializationCount: 1,
+            traits: ['swift']
+          }
+        };
+
+        const result = initializeDeck({
+          mainSpecials: ['marche'],
+          subSpecials: [],
+          ownedCards: []
+        } as any, [], cardGrowth);
+
+        const mainCard = result.mainSpecialsHand[0];
+        // marche의 기존 특성('advance')과 swift가 함께 있어야 함
+        expect(mainCard?.traits).toBeDefined();
+        expect(mainCard?.traits).toContain('swift');
+        expect(mainCard?.traits).toContain('advance'); // 기존 특성
+      });
+
+      it('중복 특성은 제거되어야 함', () => {
+        const cardGrowth = {
+          'marche': {
+            rarity: 'common' as const,
+            growthCount: 2,
+            enhancementLevel: 0,
+            specializationCount: 2,
+            traits: ['swift', 'swift'] // 중복 특성
+          }
+        };
+
+        const result = initializeDeck({
+          mainSpecials: ['marche'],
+          subSpecials: [],
+          ownedCards: []
+        } as any, [], cardGrowth);
+
+        const mainCard = result.mainSpecialsHand[0];
+        const swiftCount = mainCard?.traits?.filter((t: string) => t === 'swift').length || 0;
+        expect(swiftCount).toBe(1); // 중복 제거됨
+      });
+    });
+
+    describe('강화 + 특화 동시 적용', () => {
+      it('강화와 특화가 모두 적용되어야 함', () => {
+        const cardGrowth = {
+          'marche': {
+            rarity: 'rare' as const,
+            growthCount: 2,
+            enhancementLevel: 2,
+            specializationCount: 1,
+            traits: ['swift']
+          }
+        };
+
+        const result = initializeDeck({
+          mainSpecials: ['marche'],
+          subSpecials: [],
+          ownedCards: []
+        } as any, [], cardGrowth);
+
+        const mainCard = result.mainSpecialsHand[0];
+
+        // 강화 효과 확인
+        expect(mainCard?.enhancementLevel).toBe(2);
+        expect(mainCard?.enhancedStats).toBeDefined();
+
+        // 특화 특성 확인
+        expect(mainCard?.traits).toContain('swift');
+      });
+
+      it('덱과 주특기 모두에 성장이 적용되어야 함', () => {
+        const cardGrowth = {
+          'marche': {
+            rarity: 'common' as const,
+            growthCount: 1,
+            enhancementLevel: 1,
+            specializationCount: 0,
+            traits: [] as string[]
+          },
+          'lunge': {
+            rarity: 'rare' as const,
+            growthCount: 1,
+            enhancementLevel: 3,
+            specializationCount: 1,
+            traits: ['strongbone']
+          }
+        };
+
+        const result = initializeDeck({
+          mainSpecials: ['marche'],
+          subSpecials: ['lunge'],
+          ownedCards: []
+        } as any, [], cardGrowth);
+
+        // 주특기 확인
+        const mainCard = result.mainSpecialsHand[0];
+        expect(mainCard?.enhancementLevel).toBe(1);
+
+        // 보조특기(덱에 포함) 확인
+        const subCard = result.deck.find(c => c.id === 'lunge');
+        expect(subCard?.enhancementLevel).toBe(3);
+        expect(subCard?.traits).toContain('strongbone');
+      });
+    });
+
+    describe('소멸 카드와 성장 상호작용', () => {
+      it('소멸된 카드는 성장 여부와 관계없이 제외되어야 함', () => {
+        const cardGrowth = {
+          'marche': {
+            rarity: 'legendary' as const,
+            growthCount: 5,
+            enhancementLevel: 5,
+            specializationCount: 2,
+            traits: ['swift', 'strongbone']
+          }
+        };
+
+        const result = initializeDeck({
+          mainSpecials: ['marche'],
+          subSpecials: [],
+          ownedCards: []
+        } as any, ['marche'], cardGrowth);
+
+        // 소멸되어 주특기에 포함되지 않음
+        expect(result.mainSpecialsHand).toHaveLength(0);
+      });
+    });
+  });
 });

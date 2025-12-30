@@ -1,0 +1,430 @@
+/**
+ * @file cardEnhancementUtils.ts
+ * @description 강화된 카드의 스탯을 계산하는 유틸리티 함수
+ */
+
+import {
+  getAccumulatedEffects,
+  getCardEnhancement,
+  type EnhancementEffect,
+  type SpecialEffect,
+} from './cardEnhancementData';
+
+// 카드 기본 타입 (battleData.ts의 카드 구조와 호환)
+export interface BaseCard {
+  id: string;
+  name: string;
+  type: 'attack' | 'general' | 'defense' | 'support' | string;
+  damage?: number;
+  block?: number;
+  speedCost: number;
+  actionCost: number;
+  hits?: number;
+  traits?: string[];
+  pushAmount?: number;
+  advanceAmount?: number;
+  parryRange?: number;
+  crossBonus?: {
+    type: string;
+    value?: number;
+    count?: number;
+  };
+  // 기타 필드들...
+  [key: string]: unknown;
+}
+
+// 강화된 카드 스탯
+export interface EnhancedCardStats {
+  // 기본 스탯 변화
+  damageBonus: number;
+  blockBonus: number;
+  speedCostReduction: number;
+  actionCostReduction: number;
+  hitsBonus: number;
+  pushAmountBonus: number;
+  advanceAmountBonus: number;
+
+  // 추가 스탯
+  burnStacksBonus: number;
+  debuffStacksBonus: number;
+  counterShotBonus: number;
+  critBoostBonus: number;
+  finesseGainBonus: number;
+  drawCountBonus: number;
+  createCountBonus: number;
+  buffAmountBonus: number;
+  agilityGainBonus: number;
+  executeThresholdBonus: number;
+  parryRangeBonus: number;
+  onHitBlockBonus: number;
+  perCardBlockBonus: number;
+  maxSpeedBoostBonus: number;
+  fragStacksBonus: number;
+  growthPerTickBonus: number;
+  durationTurnsBonus: number;
+
+  // 특수 효과 목록
+  specialEffects: SpecialEffect[];
+
+  // 추가된 특성
+  addedTraits: string[];
+
+  // 제거된 특성
+  removedTraits: string[];
+}
+
+// 기본 강화 스탯 생성
+function createDefaultEnhancedStats(): EnhancedCardStats {
+  return {
+    damageBonus: 0,
+    blockBonus: 0,
+    speedCostReduction: 0,
+    actionCostReduction: 0,
+    hitsBonus: 0,
+    pushAmountBonus: 0,
+    advanceAmountBonus: 0,
+    burnStacksBonus: 0,
+    debuffStacksBonus: 0,
+    counterShotBonus: 0,
+    critBoostBonus: 0,
+    finesseGainBonus: 0,
+    drawCountBonus: 0,
+    createCountBonus: 0,
+    buffAmountBonus: 0,
+    agilityGainBonus: 0,
+    executeThresholdBonus: 0,
+    parryRangeBonus: 0,
+    onHitBlockBonus: 0,
+    perCardBlockBonus: 0,
+    maxSpeedBoostBonus: 0,
+    fragStacksBonus: 0,
+    growthPerTickBonus: 0,
+    durationTurnsBonus: 0,
+    specialEffects: [],
+    addedTraits: [],
+    removedTraits: [],
+  };
+}
+
+// 강화 효과를 스탯에 적용
+function applyEffect(stats: EnhancedCardStats, effect: EnhancementEffect): void {
+  switch (effect.type) {
+    case 'damage':
+      stats.damageBonus += effect.value;
+      break;
+    case 'block':
+      stats.blockBonus += effect.value;
+      break;
+    case 'speedCost':
+      stats.speedCostReduction += Math.abs(effect.value);
+      break;
+    case 'actionCost':
+      stats.actionCostReduction += Math.abs(effect.value);
+      break;
+    case 'hits':
+      stats.hitsBonus += effect.value;
+      break;
+    case 'pushAmount':
+      stats.pushAmountBonus += effect.value;
+      break;
+    case 'advanceAmount':
+      stats.advanceAmountBonus += effect.value;
+      break;
+    case 'burnStacks':
+      stats.burnStacksBonus += effect.value;
+      break;
+    case 'debuffStacks':
+      stats.debuffStacksBonus += effect.value;
+      break;
+    case 'counterShot':
+      stats.counterShotBonus += effect.value;
+      break;
+    case 'critBoost':
+      stats.critBoostBonus += effect.value;
+      break;
+    case 'finesseGain':
+      stats.finesseGainBonus += effect.value;
+      break;
+    case 'drawCount':
+      stats.drawCountBonus += effect.value;
+      break;
+    case 'createCount':
+      stats.createCountBonus += effect.value;
+      break;
+    case 'buffAmount':
+      stats.buffAmountBonus += effect.value;
+      break;
+    case 'agilityGain':
+      stats.agilityGainBonus += effect.value;
+      break;
+    case 'executeThreshold':
+      stats.executeThresholdBonus += effect.value;
+      break;
+    case 'parryRange':
+      stats.parryRangeBonus += effect.value;
+      break;
+    case 'onHitBlock':
+      stats.onHitBlockBonus += effect.value;
+      break;
+    case 'perCardBlock':
+      stats.perCardBlockBonus += effect.value;
+      break;
+    case 'maxSpeedBoost':
+      stats.maxSpeedBoostBonus += effect.value;
+      break;
+    case 'fragStacks':
+      stats.fragStacksBonus += effect.value;
+      break;
+    case 'growthPerTick':
+      stats.growthPerTickBonus += effect.value;
+      break;
+    case 'durationTurns':
+      stats.durationTurnsBonus += effect.value;
+      break;
+  }
+}
+
+// 특수 효과 처리 (특성 추가/제거)
+function applySpecialEffect(stats: EnhancedCardStats, effect: SpecialEffect): void {
+  switch (effect.type) {
+    case 'addTrait':
+      if (typeof effect.value === 'string' && !stats.addedTraits.includes(effect.value)) {
+        stats.addedTraits.push(effect.value);
+      }
+      break;
+    case 'removeTrait':
+      if (typeof effect.value === 'string' && !stats.removedTraits.includes(effect.value)) {
+        stats.removedTraits.push(effect.value);
+      }
+      break;
+    default:
+      // 다른 특수 효과는 그대로 저장
+      stats.specialEffects.push(effect);
+      break;
+  }
+}
+
+/**
+ * 카드의 강화 레벨에 따른 누적 스탯 변화량 계산
+ * @param cardId 카드 ID
+ * @param enhancementLevel 강화 레벨 (1~5)
+ * @returns 강화로 인한 스탯 변화량
+ */
+export function calculateEnhancedStats(cardId: string, enhancementLevel: number): EnhancedCardStats {
+  const stats = createDefaultEnhancedStats();
+
+  if (enhancementLevel < 1 || enhancementLevel > 5) {
+    return stats;
+  }
+
+  const { effects, specialEffects } = getAccumulatedEffects(cardId, enhancementLevel);
+
+  // 일반 효과 적용
+  for (const effect of effects) {
+    applyEffect(stats, effect);
+  }
+
+  // 특수 효과 적용
+  for (const effect of specialEffects) {
+    applySpecialEffect(stats, effect);
+  }
+
+  return stats;
+}
+
+/**
+ * 강화된 카드의 최종 스탯 계산
+ * @param baseCard 기본 카드 데이터
+ * @param enhancementLevel 강화 레벨 (0이면 강화 없음)
+ * @returns 최종 카드 스탯
+ */
+export function getEnhancedCard<T extends BaseCard>(baseCard: T, enhancementLevel: number): T & { enhancementLevel: number; enhancedStats: EnhancedCardStats } {
+  const enhancedStats = enhancementLevel > 0
+    ? calculateEnhancedStats(baseCard.id, enhancementLevel)
+    : createDefaultEnhancedStats();
+
+  // 기본 스탯에 강화 보너스 적용
+  const enhancedCard = {
+    ...baseCard,
+    enhancementLevel,
+    enhancedStats,
+  };
+
+  // 피해량 적용
+  if (baseCard.damage !== undefined) {
+    enhancedCard.damage = Math.max(0, baseCard.damage + enhancedStats.damageBonus);
+  }
+
+  // 방어력 적용
+  if (baseCard.block !== undefined) {
+    enhancedCard.block = Math.max(0, baseCard.block + enhancedStats.blockBonus);
+  }
+
+  // 속도 적용 (최소 1)
+  enhancedCard.speedCost = Math.max(1, baseCard.speedCost - enhancedStats.speedCostReduction);
+
+  // 행동력 적용 (최소 0)
+  enhancedCard.actionCost = Math.max(0, baseCard.actionCost - enhancedStats.actionCostReduction);
+
+  // 타격 횟수 적용
+  if (baseCard.hits !== undefined) {
+    enhancedCard.hits = baseCard.hits + enhancedStats.hitsBonus;
+  }
+
+  // 넉백량 적용
+  if (baseCard.pushAmount !== undefined) {
+    enhancedCard.pushAmount = baseCard.pushAmount + enhancedStats.pushAmountBonus;
+  }
+
+  // 앞당김량 적용
+  if (baseCard.advanceAmount !== undefined) {
+    enhancedCard.advanceAmount = baseCard.advanceAmount + enhancedStats.advanceAmountBonus;
+  }
+
+  // 패링 범위 적용
+  if (baseCard.parryRange !== undefined) {
+    enhancedCard.parryRange = baseCard.parryRange + enhancedStats.parryRangeBonus;
+  }
+
+  // 특성 적용 (추가/제거)
+  if (baseCard.traits) {
+    const newTraits = [...baseCard.traits];
+
+    // 특성 추가
+    for (const trait of enhancedStats.addedTraits) {
+      if (!newTraits.includes(trait)) {
+        newTraits.push(trait);
+      }
+    }
+
+    // 특성 제거
+    enhancedCard.traits = newTraits.filter(t => !enhancedStats.removedTraits.includes(t));
+  }
+
+  return enhancedCard;
+}
+
+/**
+ * 카드가 강화 가능한지 확인
+ * @param cardId 카드 ID
+ * @returns 강화 가능 여부
+ */
+export function isEnhanceable(cardId: string): boolean {
+  return getCardEnhancement(cardId) !== undefined;
+}
+
+/**
+ * 카드의 최대 강화 레벨 (현재 모든 카드 5)
+ * @param cardId 카드 ID
+ * @returns 최대 강화 레벨
+ */
+export function getMaxEnhancementLevel(cardId: string): number {
+  return isEnhanceable(cardId) ? 5 : 0;
+}
+
+/**
+ * 다음 강화 레벨의 효과 미리보기
+ * @param cardId 카드 ID
+ * @param currentLevel 현재 강화 레벨
+ * @returns 다음 레벨 강화 정보 또는 null
+ */
+export function getNextEnhancementPreview(cardId: string, currentLevel: number): {
+  level: number;
+  description: string;
+  isMilestone: boolean;
+} | null {
+  if (currentLevel >= 5) {
+    return null;
+  }
+
+  const enhancement = getCardEnhancement(cardId);
+  if (!enhancement) {
+    return null;
+  }
+
+  const nextLevel = (currentLevel + 1) as 1 | 2 | 3 | 4 | 5;
+  const levelData = enhancement.levels[nextLevel];
+
+  return {
+    level: nextLevel,
+    description: levelData.description,
+    isMilestone: nextLevel === 3 || nextLevel === 5,
+  };
+}
+
+/**
+ * 카드의 모든 강화 단계 정보 조회
+ * @param cardId 카드 ID
+ * @returns 모든 강화 단계 정보 배열
+ */
+export function getAllEnhancementLevels(cardId: string): {
+  level: number;
+  description: string;
+  isMilestone: boolean;
+  isUnlocked: boolean;
+}[] {
+  const enhancement = getCardEnhancement(cardId);
+  if (!enhancement) {
+    return [];
+  }
+
+  return [1, 2, 3, 4, 5].map(level => ({
+    level,
+    description: enhancement.levels[level as 1 | 2 | 3 | 4 | 5].description,
+    isMilestone: level === 3 || level === 5,
+    isUnlocked: false, // 실제 사용 시 현재 레벨과 비교해서 설정
+  }));
+}
+
+/**
+ * 특정 특수 효과가 있는지 확인
+ * @param stats 강화된 스탯
+ * @param effectType 확인할 효과 타입
+ * @returns 효과 존재 여부
+ */
+export function hasSpecialEffect(stats: EnhancedCardStats, effectType: string): boolean {
+  return stats.specialEffects.some(e => e.type === effectType);
+}
+
+/**
+ * 특정 특수 효과의 값 조회
+ * @param stats 강화된 스탯
+ * @param effectType 조회할 효과 타입
+ * @returns 효과 값 또는 undefined
+ */
+export function getSpecialEffectValue(stats: EnhancedCardStats, effectType: string): number | string | undefined {
+  const effect = stats.specialEffects.find(e => e.type === effectType);
+  return effect?.value;
+}
+
+/**
+ * 강화 레벨에 따른 희귀도 색상 반환
+ * @param level 강화 레벨
+ * @returns CSS 색상 문자열
+ */
+export function getEnhancementColor(level: number): string {
+  switch (level) {
+    case 1:
+      return '#4ade80'; // green-400
+    case 2:
+      return '#22d3ee'; // cyan-400
+    case 3:
+      return '#a78bfa'; // violet-400 (마일스톤)
+    case 4:
+      return '#fb923c'; // orange-400
+    case 5:
+      return '#f472b6'; // pink-400 (마일스톤)
+    default:
+      return '#9ca3af'; // gray-400
+  }
+}
+
+/**
+ * 강화 레벨 표시 텍스트
+ * @param level 강화 레벨
+ * @returns 표시용 텍스트
+ */
+export function getEnhancementLabel(level: number): string {
+  if (level <= 0) return '';
+  return `+${level}`;
+}

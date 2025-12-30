@@ -394,6 +394,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     actions: { addLog: actions.addLog }
   });
 
+  // 카드 성장 상태 (강화 효과 적용)
+  const cardGrowth = useGameStore((state) => state.cardGrowth || {});
+
   // 전투 ref 통합 관리 (useBattleRefs 커스텀 훅)
   const {
     escapeBanRef,
@@ -563,6 +566,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     escapeBanRef: escapeBanRef as MutableRefObject<Set<string>>,
     battleRef: battleRef as MutableRefObject<{ player?: { strength?: number; tokens?: unknown }; enemy?: { tokens?: unknown } }>,
     addLog,
+    cardGrowth,
     actions: {
       setPlayer: actions.setPlayer as (p: unknown) => void,
       setEnemy: actions.setEnemy as (e: unknown) => void,

@@ -105,7 +105,7 @@ export function MapDemo() {
   }, [orderedRelics]);
 
   // 플레이어 스탯 셀렉터 (그룹화)
-  const { playerHp, maxHp, playerStrength, playerAgility, playerInsight, playerTraits, cardUpgrades, itemBuffs } = useGameStore(
+  const { playerHp, maxHp, playerStrength, playerAgility, playerInsight, playerTraits, cardUpgrades, cardGrowth, itemBuffs } = useGameStore(
     useShallow((state) => ({
       playerHp: state.playerHp,
       maxHp: state.maxHp,
@@ -114,6 +114,7 @@ export function MapDemo() {
       playerInsight: state.playerInsight || 0,
       playerTraits: state.playerTraits || [],
       cardUpgrades: state.cardUpgrades || {},
+      cardGrowth: state.cardGrowth || {},
       itemBuffs: state.itemBuffs || {},
     }))
   );
@@ -123,7 +124,7 @@ export function MapDemo() {
     selectNode, chooseEvent, closeEvent, clearBattleResult,
     skipDungeon, confirmDungeon, bypassDungeon,
     awakenAtRest, closeRest, closeShop, healAtRest,
-    formEgo, upgradeCardRarity, useItem
+    formEgo, upgradeCardRarity, enhanceCard, specializeCard, useItem, setResources
   } = useGameStore(
     useShallow((state) => ({
       selectNode: state.selectNode,
@@ -139,9 +140,20 @@ export function MapDemo() {
       healAtRest: state.healAtRest,
       formEgo: state.formEgo,
       upgradeCardRarity: state.upgradeCardRarity,
+      enhanceCard: state.enhanceCard,
+      specializeCard: state.specializeCard,
       useItem: state.useItem,
+      setResources: state.setResources,
     }))
   );
+
+  // 골드 소비 헬퍼
+  const spendGold = useCallback((amount: number) => {
+    const currentGold = resources.gold ?? 0;
+    if (currentGold >= amount) {
+      setResources({ gold: currentGold - amount });
+    }
+  }, [resources.gold, setResources]);
 
   // 아이템 버프를 포함한 유효 스탯 계산
   const effectiveStrength = playerStrength + (itemBuffs.strength || 0);
@@ -468,11 +480,16 @@ export function MapDemo() {
           playerTraits={playerTraits}
           canFormEgo={canFormEgo}
           cardUpgrades={cardUpgrades}
+          cardGrowth={cardGrowth}
+          gold={resources.gold ?? 0}
           closeRest={closeRest}
           awakenAtRest={awakenAtRest}
           healAtRest={healAtRest}
           upgradeCardRarity={upgradeCardRarity}
+          enhanceCard={enhanceCard}
+          specializeCard={specializeCard}
           formEgo={formEgo}
+          spendGold={spendGold}
         />
       )}
 

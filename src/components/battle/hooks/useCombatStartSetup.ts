@@ -95,7 +95,8 @@ export function useCombatStartSetup(params: UseCombatStartSetupParams): void {
 
         if (hasCharacterBuild) {
           // 덱 초기화 (주특기는 손패로, 보조특기는 덱 맨 위로)
-          const { deck: initialDeck, mainSpecialsHand } = initializeDeck(currentBuild, (vanishedCards || []).map(c => c.id));
+          const cardGrowthState = useGameStore.getState().cardGrowth || {};
+          const { deck: initialDeck, mainSpecialsHand } = initializeDeck(currentBuild, (vanishedCards || []).map(c => c.id), cardGrowthState);
           // 덱에서 카드 드로우
           const drawResult = drawFromDeck(initialDeck, [], DEFAULT_DRAW_COUNT, escapeBanRef.current);
           actions.setDeck(drawResult.newDeck);
