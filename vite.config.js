@@ -51,8 +51,23 @@ export default defineConfig({
     fileParallelism: false,
     coverage: {
       provider: 'v8',
-      reporter: ['text', 'html'],
-      exclude: ['node_modules/', '**/*.test.js', 'src/test/'],
+      reporter: ['text', 'html', 'lcov'],
+      exclude: [
+        'node_modules/',
+        '**/*.test.{js,ts,tsx}',
+        '**/test/**',
+        '**/tests/**',
+        '**/*.d.ts',
+        'src/main.tsx',
+        'src/App.tsx',
+      ],
+      // 커버리지 임계값 - CI에서 실패 조건
+      thresholds: {
+        statements: 60,
+        branches: 50,
+        functions: 60,
+        lines: 60,
+      },
     },
   },
 })
