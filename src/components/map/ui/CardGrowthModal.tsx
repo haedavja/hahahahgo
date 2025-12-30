@@ -616,38 +616,74 @@ export function CardGrowthModal({
           {/* 특화 모드 */}
           {mode === 'specialize' && selectedCard && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              {/* 현재 특성 */}
-              {selectedGrowth && selectedGrowth.traits.length > 0 && (
-                <div style={{
-                  padding: '14px',
-                  background: 'rgba(15, 23, 42, 0.6)',
-                  borderRadius: '10px',
-                  border: '1px solid #334155',
-                }}>
-                  <div style={{ fontSize: '0.875rem', color: '#94a3b8', marginBottom: '10px' }}>현재 보유 특성</div>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                    {selectedGrowth.traits.map(tid => {
-                      const t = TRAITS[tid as keyof typeof TRAITS];
-                      if (!t) return null;
-                      return (
-                        <span
-                          key={tid}
-                          style={{
-                            fontSize: '0.9rem',
-                            padding: '6px 12px',
-                            borderRadius: '8px',
-                            background: t.type === 'positive' ? 'rgba(134, 239, 172, 0.2)' : 'rgba(248, 113, 113, 0.2)',
-                            color: t.type === 'positive' ? '#86efac' : '#f87171',
-                            border: `1px solid ${t.type === 'positive' ? 'rgba(134, 239, 172, 0.4)' : 'rgba(248, 113, 113, 0.4)'}`,
-                          }}
-                        >
-                          {t.type === 'positive' ? '+' : '-'}{t.name}
-                        </span>
-                      );
-                    })}
+              {/* 카드 비교 (강화 모드와 유사한 레이아웃) */}
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr auto 1fr',
+                gap: '24px',
+                alignItems: 'start',
+              }}>
+                {/* 현재 카드 */}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+                  <div style={{ fontSize: '0.875rem', color: '#94a3b8' }}>
+                    현재
                   </div>
+                  <GameCardDisplay
+                    card={selectedCard}
+                    growth={selectedGrowth!}
+                    stats={currentStats}
+                    enhancementLevel={currentLevel}
+                  />
                 </div>
-              )}
+
+                {/* 화살표 */}
+                <div style={{
+                  fontSize: '2.5rem',
+                  color: selectedSpecOption ? '#86efac' : '#475569',
+                  transition: 'color 0.2s',
+                  marginTop: '100px',
+                }}>
+                  →
+                </div>
+
+                {/* 미리보기 카드 */}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+                  <div style={{ fontSize: '0.875rem', color: selectedSpecOption ? '#86efac' : '#64748b' }}>
+                    {selectedSpecOption ? '특화 적용 시' : '옵션 선택'}
+                  </div>
+                  {selectedSpecOption ? (
+                    <GameCardDisplay
+                      card={selectedCard}
+                      growth={selectedGrowth!}
+                      stats={currentStats}
+                      enhancementLevel={currentLevel}
+                      isPreview
+                      overrideTraits={[
+                        ...(selectedGrowth?.traits || []),
+                        ...selectedSpecOption.traits.map(t => t.id)
+                      ]}
+                      previewBorderColor="#86efac"
+                    />
+                  ) : (
+                    <div style={{
+                      width: '155px',
+                      height: '200px',
+                      background: 'rgba(30, 41, 59, 0.5)',
+                      borderRadius: '12px',
+                      border: '2px dashed #475569',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: '#64748b',
+                      fontSize: '0.875rem',
+                      textAlign: 'center',
+                      padding: '16px',
+                    }}>
+                      아래에서 특화<br/>옵션을 선택하세요
+                    </div>
+                  )}
+                </div>
+              </div>
 
               {/* 특화 옵션 */}
               <div style={{ fontSize: '0.875rem', color: '#94a3b8', marginBottom: '4px' }}>
@@ -728,12 +764,16 @@ function GameCardDisplay({
   stats,
   enhancementLevel,
   isPreview = false,
+  overrideTraits,
+  previewBorderColor,
 }: {
   card: CardData;
   growth: CardGrowthState;
   stats: ReturnType<typeof calculateEnhancedStats> | null;
   enhancementLevel: number;
   isPreview?: boolean;
+  overrideTraits?: string[];
+  previewBorderColor?: string;
 }) {
   const Icon = card.icon || (card.type === 'attack' ? Sword : Shield);
   const damage = (card.damage || 0) + (stats?.damageBonus || 0);
@@ -747,17 +787,22 @@ function GameCardDisplay({
     ? getEnhancedCard(card as Parameters<typeof getEnhancedCard>[0], enhancementLevel).description || card.description
     : card.description;
 
+  // 특성: overrideTraits가 있으면 그것을 사용, 없으면 growth.traits 사용
+  const displayTraits = overrideTraits ?? growth.traits;
+  const borderColor = previewBorderColor || '#60a5fa';
+
   return (
     <div
       className={`game-card-large no-hover ${card.type === 'attack' ? 'attack' : 'defense'}`}
       style={{
         boxShadow: isPreview
-          ? '0 0 20px rgba(96, 165, 250, 0.5)'
+          ? `0 0 20px ${borderColor}80`
           : '0 2px 12px rgba(0, 0, 0, 0.4)',
         border: isPreview
-          ? '3px solid #60a5fa'
+          ? `3px solid ${borderColor}`
           : '2px solid #334155',
         transition: 'all 0.15s',
+        pointerEvents: 'none',
       }}
     >
       {/* 행동력 배지 */}
@@ -823,8 +868,8 @@ function GameCardDisplay({
 
       {/* 푸터 영역 */}
       <div className="card-footer">
-        {growth.traits && growth.traits.length > 0 && (
-          <TraitBadgeList traits={growth.traits} />
+        {displayTraits && displayTraits.length > 0 && (
+          <TraitBadgeList traits={displayTraits} />
         )}
         <span className="card-description">{description || ''}</span>
       </div>
