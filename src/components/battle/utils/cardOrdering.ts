@@ -23,8 +23,15 @@ export function createFixedOrder(
   enemyActions: OrderingEnemyAction[] | null | undefined,
   effectiveAgility: number
 ): OrderItem[] {
+  // "last" 특성이 있는 카드와 없는 카드 분리
+  const normalCards = enhancedPlayerCards.filter(card => !card.traits?.includes('last'));
+  const lastCards = enhancedPlayerCards.filter(card => card.traits?.includes('last'));
+
+  // last 특성 카드는 플레이어 카드 중 마지막에 배치
+  const orderedPlayerCards = [...normalCards, ...lastCards];
+
   // 플레이어 카드 매핑
-  const playerCards: OrderItem[] = enhancedPlayerCards.map((card, idx) => ({
+  const playerCards: OrderItem[] = orderedPlayerCards.map((card, idx) => ({
     actor: 'player',
     card,
     originalIndex: idx

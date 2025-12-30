@@ -42,44 +42,26 @@ export const TRAITS = {
   // 긍정 특성 (★)
   swift: { id: "swift", name: "신속함", type: "positive", weight: 1, description: "성능대비 시간 소모가 적음" },
   repeat: { id: "repeat", name: "반복", type: "positive", weight: 1, description: "다음턴에도 손패에 확정적으로 등장" },
-  focus: { id: "focus", name: "집중", type: "positive", weight: 1, description: "다음턴 시작때 이번턴 에테르 획득량의 절반 획득" },
   strongbone: { id: "strongbone", name: "강골", type: "positive", weight: 1, description: "피해량/방어력 25% 증가" },
   crush: { id: "crush", name: "분쇄", type: "positive", weight: 1, description: "상대방 방어력에 2배 피해" },
   cooperation: { id: "cooperation", name: "협동", type: "positive", weight: 1, description: "조합에 포함되면 공격력을 50% 추가 획득합니다." },
   mastery: { id: "mastery", name: "숙련", type: "positive", weight: 1, description: "카드 쓸수록 시간 -2, 최소값 1" },
-  burn: { id: "burn", name: "화상", type: "positive", weight: 1, description: "매 턴 고정피해" },
-  poison: { id: "poison", name: "독", type: "positive", weight: 1, description: "대상 카드 시간 +1" },
-  attendance: { id: "attendance", name: "개근", type: "positive", weight: 1, description: "등장확률 25% 증가" },
   training: { id: "training", name: "단련", type: "positive", weight: 1, description: "사용 후 힘 +1" },
-  insurance: { id: "insurance", name: "보험", type: "positive", weight: 1, description: "미등장 시 다음턴 확정 등장" },
-  whetstone: { id: "whetstone", name: "숫돌", type: "positive", weight: 1, description: "다음 공격 피해 +3" },
   chain: { id: "chain", name: "연계", type: "positive", weight: 1, description: "다음 카드가 검격이면 타임라인 3 앞당김" },
   followup: { id: "followup", name: "후속", type: "positive", weight: 1, description: "연계하면 성능 50% 증폭" },
   finisher: { id: "finisher", name: "마무리", type: "positive", weight: 2, description: "연계되면 피해 50% 증가, 후속되면 기교 1 획득" },
-  creation: { id: "creation", name: "창조", type: "positive", weight: 1, description: "조건 충족시 3장의 유령 카드를 만들고 그 중 한 장을 선택한다. 유령카드는 아이템/상징 효과 무시." },
 
   // 긍정 특성 (★★)
-  hero: { id: "hero", name: "용사", type: "positive", weight: 2, description: "다음턴 상대 에테르 획득 방지" },
-  guard_stance: { id: "guard_stance", name: "경계", type: "positive", weight: 2, description: "방어수치 다음턴 유지" },
   general: { id: "general", name: "장군", type: "positive", weight: 2, description: "다음턴 보조특기 등장률 25% 증가" },
-  advisor: { id: "advisor", name: "참모", type: "positive", weight: 2, description: "다음턴 리드로우 1회 부가" },
   knockback: { id: "knockback", name: "넉백", type: "positive", weight: 2, description: "상대 타임라인을 뒤로 민다" },
   advance: { id: "advance", name: "앞당김", type: "positive", weight: 2, description: "내 타임라인을 앞당긴다" },
   cross: { id: "cross", name: "교차", type: "positive", weight: 2, description: "타임라인 상 한 번이라도 적 카드와 겹친 적 있으면 효과 발동/증폭" },
   destroyer: { id: "destroyer", name: "파괴자", type: "positive", weight: 2, description: "공격력 50% 증가" },
   warmup: { id: "warmup", name: "몸풀기", type: "positive", weight: 2, description: "다음턴 행동력 +2" },
-  solidarity: { id: "solidarity", name: "연대", type: "positive", weight: 2, description: "획득 에테르만큼 방어력 즉시 획득" },
 
   // 긍정 특성 (★★★)
-  monarch: { id: "monarch", name: "군주", type: "positive", weight: 3, description: "이후 모든 카드 공격력 2배" },
   stun: { id: "stun", name: "기절", type: "positive", weight: 3, description: "타임라인 5범위내 상대 카드 파괴" },
-  blank_check: { id: "blank_check", name: "백지수표", type: "positive", weight: 3, description: "원하는 타임라인에 배치 가능" },
-  cautious: { id: "cautious", name: "신중함", type: "positive", weight: 3, description: "이번턴 방어력 다음턴까지 유지" },
-  indomitable: { id: "indomitable", name: "불굴", type: "positive", weight: 3, description: "체력만큼 방어력 획득" },
   slaughter: { id: "slaughter", name: "도살", type: "positive", weight: 3, description: "기본피해량 75% 증가" },
-
-  // 긍정 특성 (★★★★)
-  emperor: { id: "emperor", name: "황제", type: "positive", weight: 4, description: "디플레이션 0 초기화, 에테르 3배" },
 
   // 긍정 특성 (★★★★★)
   pinnacle: { id: "pinnacle", name: "정점", type: "positive", weight: 5, description: "피해량 2.5배" },
@@ -90,16 +72,12 @@ export const TRAITS = {
   weakbone: { id: "weakbone", name: "약골", type: "negative", weight: 1, description: "피해량/방어력 20% 감소" },
   slow: { id: "slow", name: "굼뜸", type: "negative", weight: 1, description: "속도가 느려짐" },
   escape: { id: "escape", name: "탈주", type: "negative", weight: 1, description: "다음턴 손패에 미등장" },
-  supporting: { id: "supporting", name: "조연", type: "negative", weight: 1, description: "보조특기일때만 등장" },
-  deserter: { id: "deserter", name: "도피꾼", type: "negative", weight: 1, description: "등장확률 25% 감소" },
   stubborn: { id: "stubborn", name: "고집", type: "negative", weight: 1, description: "대응단계 순서변경 불가" },
   boredom: { id: "boredom", name: "싫증", type: "negative", weight: 1, description: "사용시마다 시간 +2" },
 
   // 부정 특성 (★★)
   exhaust: { id: "exhaust", name: "탈진", type: "negative", weight: 2, description: "다음턴 행동력 -2" },
   vanish: { id: "vanish", name: "소멸", type: "negative", weight: 2, description: "사용 후 게임에서 제외" },
-  mistake: { id: "mistake", name: "실수", type: "negative", weight: 2, description: "대응단계 순서 랜덤화" },
-  protagonist: { id: "protagonist", name: "주인공", type: "negative", weight: 2, description: "주특기일때만 등장" },
   last: { id: "last", name: "마지막", type: "negative", weight: 2, description: "타임라인 마지막에 발동" },
   robber: { id: "robber", name: "날강도", type: "negative", weight: 2, description: "사용시 10골드 소실" },
 

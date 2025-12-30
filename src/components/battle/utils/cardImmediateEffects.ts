@@ -13,6 +13,7 @@ interface PlayerState {
   hp?: number;
   maxHp?: number;
   strength?: number;
+  gold?: number;
   [key: string]: unknown;
 }
 
@@ -69,6 +70,12 @@ export function processImmediateCardTraits({
   if (hasTrait(card, 'vanish') && addVanishedCard && card.id) {
     addVanishedCard(card.id);
     addLog(`💨 "소멸" - "${card.name}" 카드가 소멸되었습니다.`);
+  }
+
+  if (hasTrait(card, 'robber')) {
+    const goldLoss = 10;
+    playerState.gold = Math.max(0, (playerState.gold || 0) - goldLoss);
+    addLog(`💰 "날강도" - ${goldLoss} 골드를 잃었습니다. (현재: ${playerState.gold})`);
   }
 
   return updatedNextTurnEffects;

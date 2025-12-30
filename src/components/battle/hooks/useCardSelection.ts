@@ -180,6 +180,13 @@ export function useCardSelection({
   // 카드 순서 위로 이동
   const moveUp = useCallback((i: number) => {
     if (i === 0) return;
+    // stubborn (고집) 특성: 순서변경 불가
+    const cardToMove = selected[i];
+    const cardAbove = selected[i - 1];
+    if (cardToMove?.traits?.includes('stubborn') || cardAbove?.traits?.includes('stubborn')) {
+      addLog('⚠️ "고집" 특성으로 순서를 변경할 수 없습니다.');
+      return;
+    }
     if (battlePhase === 'respond') {
       const n: Card[] = [...selected];
       [n[i - 1], n[i]] = [n[i], n[i - 1]];
@@ -194,11 +201,18 @@ export function useCardSelection({
       [n[i - 1], n[i]] = [n[i], n[i - 1]];
       actions.setSelected(n);
     }
-  }, [battlePhase, selected, enemyPlanActions, effectiveAgility, actions]);
+  }, [battlePhase, selected, enemyPlanActions, effectiveAgility, actions, addLog]);
 
   // 카드 순서 아래로 이동
   const moveDown = useCallback((i: number) => {
     if (i === battleSelected.length - 1) return;
+    // stubborn (고집) 특성: 순서변경 불가
+    const cardToMove = selected[i];
+    const cardBelow = selected[i + 1];
+    if (cardToMove?.traits?.includes('stubborn') || cardBelow?.traits?.includes('stubborn')) {
+      addLog('⚠️ "고집" 특성으로 순서를 변경할 수 없습니다.');
+      return;
+    }
     if (battlePhase === 'respond') {
       const n: Card[] = [...selected];
       [n[i], n[i + 1]] = [n[i + 1], n[i]];
@@ -213,7 +227,7 @@ export function useCardSelection({
       [n[i], n[i + 1]] = [n[i + 1], n[i]];
       actions.setSelected(n);
     }
-  }, [battlePhase, battleSelected.length, selected, enemyPlanActions, effectiveAgility, actions]);
+  }, [battlePhase, battleSelected.length, selected, enemyPlanActions, effectiveAgility, actions, addLog]);
 
   return {
     toggle,
