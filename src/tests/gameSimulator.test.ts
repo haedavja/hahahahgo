@@ -425,3 +425,17 @@ describe('전투 리플레이 및 분석', () => {
     expect(typeof runEnemyAnalysis).toBe('function');
   });
 });
+
+describe('카드 시너지 분석', () => {
+  it('runSynergyAnalysis 함수가 존재한다', async () => {
+    const { runSynergyAnalysis } = await import('./gameSimulator');
+    expect(typeof runSynergyAnalysis).toBe('function');
+  });
+});
+
+describe('난이도 스케일링 분석', () => {
+  it('runDifficultyScalingAnalysis 함수가 존재한다', async () => {
+    const { runDifficultyScalingAnalysis } = await import('./gameSimulator');
+    expect(typeof runDifficultyScalingAnalysis).toBe('function');
+  });
+});

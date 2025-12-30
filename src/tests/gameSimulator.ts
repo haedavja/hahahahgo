@@ -2528,6 +2528,186 @@ export function runEnemyAnalysis(enemyId: string, battles: number = 20): void {
   console.log('─'.repeat(50) + '\n');
 }
 
+/**
+ * 카드 시너지 분석
+ * 두 카드 조합의 시너지 효과를 측정
+ */
+export function runSynergyAnalysis(battles: number = 20): void {
+  console.log('\n╔════════════════════════════════════════╗');
+  console.log('║           카드 시너지 분석               ║');
+  console.log('╚════════════════════════════════════════╝\n');
+
+  // 테스트할 카드 조합 (공격+공격, 공격+방어, 방어+방어)
+  const cardPairs: Array<{ cards: [string, string]; description: string }> = [
+    // 연계 시너지
+    { cards: ['strike', 'lunge'], description: '검격 연계' },
+    { cards: ['strike', 'fleche'], description: '돌진 연계' },
+    { cards: ['lunge', 'fleche'], description: '공격 연속' },
+    // 공방 균형
+    { cards: ['strike', 'deflect'], description: '공방 균형' },
+    { cards: ['lunge', 'octave'], description: '공격+상단방어' },
+    { cards: ['shoot', 'quarte'], description: '사격+하단방어' },
+    // 방어 조합
+    { cards: ['deflect', 'octave'], description: '이중 방어' },
+    { cards: ['octave', 'quarte'], description: '상하 방어' },
+    { cards: ['septime', 'deflect'], description: '전방위 방어' },
+    // 특수 조합
+    { cards: ['shoot', 'sniper_shot'], description: '사격 특화' },
+    { cards: ['beat', 'grind'], description: '연속 타격' },
+    { cards: ['feint', 'thrust'], description: '속임수 공격' },
+  ];
+
+  // 기본 덱으로 기준치 측정
+  const baseDeck = ['strike', 'lunge', 'deflect', 'deflect'];
+  const baseConfig: SimulationConfig = {
+    battles,
+    maxTurns: 30,
+    enemyIds: TIER_1_ENEMIES,
+    playerDeck: baseDeck,
+    verbose: false,
+  };
+  const baseStats = runSimulation(baseConfig);
+  console.log(`📊 기준 덱 승률: ${(baseStats.winRate * 100).toFixed(1)}%\n`);
+
+  const results: Array<{
+    pair: [string, string];
+    description: string;
+    winRate: number;
+    diff: number;
+    synergy: number; // 개별 카드 효과 합 대비 실제 효과
+  }> = [];
+
+  // 각 조합 테스트
+  for (const { cards, description } of cardPairs) {
+    const testDeck = [...baseDeck, cards[0], cards[1]];
+
+    const config: SimulationConfig = {
+      battles,
+      maxTurns: 30,
+      enemyIds: TIER_1_ENEMIES,
+      playerDeck: testDeck,
+      verbose: false,
+    };
+
+    const stats = runSimulation(config);
+    const diff = stats.winRate - baseStats.winRate;
+
+    // 개별 카드 테스트
+    const config1: SimulationConfig = {
+      battles,
+      maxTurns: 30,
+      enemyIds: TIER_1_ENEMIES,
+      playerDeck: [...baseDeck, cards[0]],
+      verbose: false,
+    };
+    const config2: SimulationConfig = {
+      battles,
+      maxTurns: 30,
+      enemyIds: TIER_1_ENEMIES,
+      playerDeck: [...baseDeck, cards[1]],
+      verbose: false,
+    };
+    const stats1 = runSimulation(config1);
+    const stats2 = runSimulation(config2);
+
+    // 시너지 = 실제 효과 - 예상 효과 (개별 효과의 합)
+    const expectedDiff = (stats1.winRate - baseStats.winRate) + (stats2.winRate - baseStats.winRate);
+    const synergy = diff - expectedDiff;
+
+    results.push({
+      pair: cards,
+      description,
+      winRate: stats.winRate,
+      diff,
+      synergy,
+    });
+  }
+
+  // 시너지 순으로 정렬
+  results.sort((a, b) => b.synergy - a.synergy);
+
+  console.log('🔗 카드 조합별 시너지:');
+  console.log('─'.repeat(50));
+
+  for (const result of results) {
+    const card1 = CARDS.find(c => c.id === result.pair[0])?.name || result.pair[0];
+    const card2 = CARDS.find(c => c.id === result.pair[1])?.name || result.pair[1];
+    const diffStr = result.diff >= 0 ? `+${(result.diff * 100).toFixed(1)}` : `${(result.diff * 100).toFixed(1)}`;
+    const synergyStr = result.synergy >= 0 ? `+${(result.synergy * 100).toFixed(1)}` : `${(result.synergy * 100).toFixed(1)}`;
+
+    const rating = result.synergy > 0.05 ? '🔥 강한 시너지' :
+                   result.synergy > 0 ? '✨ 약한 시너지' :
+                   result.synergy > -0.05 ? '➖ 중립' :
+                   '⚠️ 역시너지';
+
+    console.log(`\n  ${result.description}: ${card1} + ${card2}`);
+    console.log(`    승률: ${(result.winRate * 100).toFixed(1)}% (${diffStr}%) | 시너지: ${synergyStr}% | ${rating}`);
+  }
+
+  // 최고/최저 시너지
+  const bestSynergy = results[0];
+  const worstSynergy = results[results.length - 1];
+
+  console.log('\n📈 요약:');
+  console.log('─'.repeat(50));
+  console.log(`  최고 시너지: ${bestSynergy.description} (+${(bestSynergy.synergy * 100).toFixed(1)}%)`);
+  console.log(`  최저 시너지: ${worstSynergy.description} (${(worstSynergy.synergy * 100).toFixed(1)}%)`);
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
+/**
+ * 난이도 스케일링 분석
+ * 플레이어 HP에 따른 승률 변화 측정
+ */
+export function runDifficultyScalingAnalysis(battles: number = 30): void {
+  console.log('\n╔════════════════════════════════════════╗');
+  console.log('║         난이도 스케일링 분석             ║');
+  console.log('╚════════════════════════════════════════╝\n');
+
+  const hpLevels = [50, 75, 100, 125, 150, 200];
+
+  console.log('📊 HP별 승률 분석:\n');
+  console.log('─'.repeat(50));
+
+  const results: Array<{ hp: number; winRate: number; avgTurns: number }> = [];
+
+  for (const hp of hpLevels) {
+    const config: SimulationConfig = {
+      battles,
+      maxTurns: 30,
+      enemyIds: TIER_1_ENEMIES,
+      playerHp: hp,
+      verbose: false,
+    };
+
+    const stats = runSimulation(config);
+    results.push({ hp, winRate: stats.winRate, avgTurns: stats.avgTurns });
+
+    // 그래프 형태로 출력
+    const bar = '█'.repeat(Math.ceil(stats.winRate * 30));
+    console.log(`  HP ${hp.toString().padStart(3)}: ${bar} ${(stats.winRate * 100).toFixed(1)}%`);
+  }
+
+  console.log('\n📈 분석:');
+  console.log('─'.repeat(50));
+
+  // HP 증가당 승률 변화
+  for (let i = 1; i < results.length; i++) {
+    const hpDiff = results[i].hp - results[i - 1].hp;
+    const winRateDiff = results[i].winRate - results[i - 1].winRate;
+    const efficiency = (winRateDiff * 100 / hpDiff).toFixed(2);
+    console.log(`  HP ${results[i - 1].hp} → ${results[i].hp}: 승률 ${(winRateDiff * 100).toFixed(1)}% 변화 (HP당 ${efficiency}%)`);
+  }
+
+  // 권장 HP 찾기
+  const optimalIdx = results.findIndex(r => r.winRate >= 0.7);
+  const optimalHp = optimalIdx >= 0 ? results[optimalIdx].hp : results[results.length - 1].hp;
+  console.log(`\n💡 권장 HP: ${optimalHp} (70% 이상 승률 확보)`);
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
 // CLI에서 직접 실행 시
 if (typeof process !== 'undefined' && process.argv?.[1]?.includes('gameSimulator')) {
   runQuickTest();

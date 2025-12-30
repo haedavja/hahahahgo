@@ -15,6 +15,8 @@
  *   npx tsx scripts/runSimulator.ts report [battles]      # 종합 리포트
  *   npx tsx scripts/runSimulator.ts replay [enemyId]      # 전투 리플레이
  *   npx tsx scripts/runSimulator.ts analyze [enemyId] [battles] # 적 분석
+ *   npx tsx scripts/runSimulator.ts synergy [battles]     # 카드 시너지 분석
+ *   npx tsx scripts/runSimulator.ts scaling [battles]     # 난이도 스케일링 분석
  *
  * 예시:
  *   npx tsx scripts/runSimulator.ts 100
@@ -29,9 +31,11 @@
  *   npx tsx scripts/runSimulator.ts report 20
  *   npx tsx scripts/runSimulator.ts replay deserter
  *   npx tsx scripts/runSimulator.ts analyze slaughterer 30
+ *   npx tsx scripts/runSimulator.ts synergy 30
+ *   npx tsx scripts/runSimulator.ts scaling 50
  */
 
-import { runSimulation, printStats, SimulationConfig, runBalanceAnalysis, runTierSimulation, runFullSimulation, runRelicComparison, runDeckComparison, runAnomalyComparison, runCardEfficiencyAnalysis, runFullReport, runBattleReplay, runEnemyAnalysis, TIER_1_ENEMIES, TIER_2_ENEMIES, TIER_3_ENEMIES } from '../src/tests/gameSimulator';
+import { runSimulation, printStats, SimulationConfig, runBalanceAnalysis, runTierSimulation, runFullSimulation, runRelicComparison, runDeckComparison, runAnomalyComparison, runCardEfficiencyAnalysis, runFullReport, runBattleReplay, runEnemyAnalysis, runSynergyAnalysis, runDifficultyScalingAnalysis, TIER_1_ENEMIES, TIER_2_ENEMIES, TIER_3_ENEMIES } from '../src/tests/gameSimulator';
 import { ENEMIES } from '../src/components/battle/battleData';
 
 // 커맨드 라인 인자 파싱
@@ -110,6 +114,20 @@ if (command === 'analyze') {
   const battles = parseInt(args[2]) || 20;
   console.log('🎮 적 분석 모드\n');
   runEnemyAnalysis(enemyId, battles);
+  process.exit(0);
+}
+
+if (command === 'synergy') {
+  const battles = parseInt(args[1]) || 20;
+  console.log('🎮 카드 시너지 분석 모드\n');
+  runSynergyAnalysis(battles);
+  process.exit(0);
+}
+
+if (command === 'scaling') {
+  const battles = parseInt(args[1]) || 30;
+  console.log('🎮 난이도 스케일링 분석 모드\n');
+  runDifficultyScalingAnalysis(battles);
   process.exit(0);
 }
 
