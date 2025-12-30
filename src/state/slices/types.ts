@@ -48,7 +48,7 @@ export interface ItemEffect {
 /** 전투 보상 정의 */
 export interface BattleRewards {
   gold?: number | { min: number; max: number };
-  loot?: number;
+  loot?: number | { min: number; max: number };
   intel?: number;
   material?: number;
   card?: number;

@@ -334,7 +334,7 @@ export const createBattlePayload = (
     enemyCount,
     totalEnemyHp,
     mixedEnemies,
-    rewards: (BATTLE_REWARDS as unknown as Record<string, BattleRewards>)[node.type] ?? {},
+    rewards: BATTLE_REWARDS[node.type] ?? {},
     difficulty: node.type === "boss" ? 5 : node.type === "elite" ? 4 : node.type === "dungeon" ? 3 : 2,
     playerLibrary,
     playerDrawPile,

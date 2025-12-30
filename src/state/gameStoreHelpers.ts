@@ -12,6 +12,7 @@ import { NEW_EVENT_LIBRARY, EVENT_KEYS } from "../data/newEvents";
 import { calculatePassiveEffects } from "../lib/relicEffects";
 import { getRunBonuses, updateStats } from "./metaProgress";
 import type { MapNode, Resources, ActiveEvent, NewEventDefinition, ResourceValue, ResourceDelta, EventRewards } from "../types";
+import type { BattleRewards } from "./slices/types";
 
 // ==================== 타입 export ====================
 
@@ -203,7 +204,7 @@ export const MAX_PLAYER_SELECTION = 3;
 
 export const BATTLE_TYPES = new Set(["battle", "elite", "boss", "dungeon"]);
 
-export const BATTLE_REWARDS = {
+export const BATTLE_REWARDS: Record<string, BattleRewards> = {
   battle: { gold: { min: 10, max: 16 }, loot: { min: 1, max: 2 } },
   elite: { gold: { min: 18, max: 26 }, loot: { min: 2, max: 3 }, intel: 1 },
   boss: { gold: { min: 30, max: 40 }, loot: { min: 3, max: 4 }, intel: 2, material: 1 },
