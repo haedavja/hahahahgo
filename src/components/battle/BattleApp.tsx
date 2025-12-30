@@ -1325,6 +1325,29 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       fencingDamageBonus: (currentNextTurnEffects as { fencingDamageBonus?: number }).fencingDamageBonus || 0  // 날 세우기: 검격 공격력 보너스
     };
 
+    // 에테르 누적 헬퍼 함수 (공통 파라미터 캡처)
+    const accumulateEther = (card: Card) => {
+      processPlayerEtherAccumulation({
+        card,
+        turnEtherAccumulated,
+        orderedRelicList,
+        cardUpgrades: cardUpgrades as unknown as Record<string, unknown>,
+        resolvedPlayerCards,
+        playerTimeline: playerTimeline as unknown as Card[],
+        relics: orderedRelicList as unknown as Relic[],
+        triggeredRefs: {
+          referenceBookTriggered: referenceBookTriggeredRef,
+          devilDiceTriggered: devilDiceTriggeredRef
+        },
+        calculatePassiveEffects,
+        getCardEtherGain: getCardEtherGain as unknown as (card: Card | Partial<Card>) => number,
+        collectTriggeredRelics: collectTriggeredRelics as unknown as (params: { orderedRelicList: string[]; resolvedPlayerCards: number; playerTimeline: Card[]; triggeredRefs: import("../../types").RelicTriggeredRefs }) => import("../../types").RelicTrigger[],
+        playRelicActivationSequence,
+        flashRelic,
+        actions
+      });
+    };
+
     // === requiredTokens 소모 (카드 실행 전) ===
     const tokenConsumptionResult = processRequiredTokenConsumption({
       actor: a.actor,
@@ -2067,27 +2090,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       const { breachCards, breachState } = generateBreachCards(a.sp ?? 0, a.card);
 
       addLog(`👻 "${a.card.name}" 발동! 카드를 선택하세요.`);
-
-      // 브리치 카드도 에테르 누적 (return 전에 처리)
-      processPlayerEtherAccumulation({
-        card: a.card,
-        turnEtherAccumulated,
-        orderedRelicList,
-        cardUpgrades: cardUpgrades as unknown as Record<string, unknown>,
-        resolvedPlayerCards,
-        playerTimeline: playerTimeline as unknown as Card[],
-        relics: orderedRelicList as unknown as Relic[],
-        triggeredRefs: {
-          referenceBookTriggered: referenceBookTriggeredRef,
-          devilDiceTriggered: devilDiceTriggeredRef
-        },
-        calculatePassiveEffects,
-        getCardEtherGain: getCardEtherGain as unknown as (card: Card | Partial<Card>) => number,
-        collectTriggeredRelics: collectTriggeredRelics as unknown as (params: { orderedRelicList: string[]; resolvedPlayerCards: number; playerTimeline: Card[]; triggeredRefs: import("../../types").RelicTriggeredRefs }) => import("../../types").RelicTrigger[],
-        playRelicActivationSequence,
-        flashRelic,
-        actions
-      });
+      accumulateEther(a.card);
 
       breachSelectionRef.current = breachState as BreachSelection;
       setBreachSelection(breachState as BreachSelection);
@@ -2103,27 +2106,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       if (success && firstSelection) {
         creationQueueRef.current = creationQueue;
         addLog(`👻 "${a.card.name}" 발동! 검격 카드 창조 1/3: 카드를 선택하세요.`);
-
-        // 에테르 누적 (return 전에 처리)
-        processPlayerEtherAccumulation({
-          card: a.card,
-          turnEtherAccumulated,
-          orderedRelicList,
-          cardUpgrades: cardUpgrades as unknown as Record<string, unknown>,
-          resolvedPlayerCards,
-          playerTimeline: playerTimeline as unknown as Card[],
-          relics: orderedRelicList as unknown as Relic[],
-          triggeredRefs: {
-            referenceBookTriggered: referenceBookTriggeredRef,
-            devilDiceTriggered: devilDiceTriggeredRef
-          },
-          calculatePassiveEffects,
-          getCardEtherGain: getCardEtherGain as unknown as (card: Card | Partial<Card>) => number,
-          collectTriggeredRelics: collectTriggeredRelics as unknown as (params: { orderedRelicList: string[]; resolvedPlayerCards: number; playerTimeline: Card[]; triggeredRefs: import("../../types").RelicTriggeredRefs }) => import("../../types").RelicTrigger[],
-          playRelicActivationSequence,
-          flashRelic,
-          actions
-        });
+        accumulateEther(a.card);
 
         breachSelectionRef.current = firstSelection as BreachSelection;
         setBreachSelection(firstSelection as BreachSelection);
@@ -2140,27 +2123,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       if (success && firstSelection) {
         creationQueueRef.current = creationQueue;
         addLog(`👻 "${a.card.name}" 발동! 총격 카드 창조 1/4: 카드를 선택하세요.`);
-
-        // 에테르 누적 (return 전에 처리)
-        processPlayerEtherAccumulation({
-          card: a.card,
-          turnEtherAccumulated,
-          orderedRelicList,
-          cardUpgrades: cardUpgrades as unknown as Record<string, unknown>,
-          resolvedPlayerCards,
-          playerTimeline: playerTimeline as unknown as Card[],
-          relics: orderedRelicList as unknown as Relic[],
-          triggeredRefs: {
-            referenceBookTriggered: referenceBookTriggeredRef,
-            devilDiceTriggered: devilDiceTriggeredRef
-          },
-          calculatePassiveEffects,
-          getCardEtherGain: getCardEtherGain as unknown as (card: Card | Partial<Card>) => number,
-          collectTriggeredRelics: collectTriggeredRelics as unknown as (params: { orderedRelicList: string[]; resolvedPlayerCards: number; playerTimeline: Card[]; triggeredRefs: import("../../types").RelicTriggeredRefs }) => import("../../types").RelicTrigger[],
-          playRelicActivationSequence,
-          flashRelic,
-          actions
-        });
+        accumulateEther(a.card);
 
         breachSelectionRef.current = firstSelection as BreachSelection;
         setBreachSelection(firstSelection as BreachSelection);
@@ -2208,25 +2171,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     // 카드 사용 시 에테르 누적 (실제 적용은 턴 종료 시)
     // 유령카드는 에테르 누적 및 콤보 배율 카드 수에서 제외
     if (a.actor === 'player' && !a.card.isGhost) {
-      processPlayerEtherAccumulation({
-        card: a.card,
-        turnEtherAccumulated,
-        orderedRelicList,
-        cardUpgrades: cardUpgrades as unknown as Record<string, unknown>,
-        resolvedPlayerCards,
-        playerTimeline: playerTimeline as unknown as Card[],
-        relics: orderedRelicList as unknown as Relic[],
-        triggeredRefs: {
-          referenceBookTriggered: referenceBookTriggeredRef,
-          devilDiceTriggered: devilDiceTriggeredRef
-        },
-        calculatePassiveEffects,
-        getCardEtherGain: getCardEtherGain as unknown as (card: Card | Partial<Card>) => number,
-        collectTriggeredRelics: collectTriggeredRelics as unknown as (params: { orderedRelicList: string[]; resolvedPlayerCards: number; playerTimeline: Card[]; triggeredRefs: import("../../types").RelicTriggeredRefs }) => import("../../types").RelicTrigger[],
-        playRelicActivationSequence,
-        flashRelic,
-        actions
-      });
+      accumulateEther(a.card);
     } else if (a.actor === 'enemy') {
       processEnemyEtherAccumulation({
         card: a.card,
