@@ -597,7 +597,7 @@ const FENCING_DEFENSE_ENHANCEMENTS: CardEnhancement[] = [
       1: { effects: [{ type: 'buffAmount', value: 1 }], description: '버프 +1' },
       2: { effects: [{ type: 'buffAmount', value: 1 }], description: '버프 +1' },
       3: { effects: [{ type: 'speedCost', value: -1 }], description: '속도 -1' },
-      4: { effects: [], description: '없음' },
+      4: { effects: [{ type: 'buffAmount', value: 1 }], description: '버프 +1' },
       5: {
         effects: [],
         specialEffects: [{ type: 'applyToGunCards', value: 2 }],
@@ -609,16 +609,16 @@ const FENCING_DEFENSE_ENHANCEMENTS: CardEnhancement[] = [
     cardId: 'combat_meditation',
     levels: {
       1: { effects: [{ type: 'finesseGain', value: 1 }], description: '기교 +1' },
-      2: { effects: [], description: '없음' },
+      2: { effects: [{ type: 'speedCost', value: -1 }], description: '속도 -1' },
       3: {
         effects: [],
         specialEffects: [{ type: 'removeTrait', value: 'vanish' }],
         description: '[소멸] 제거'
       },
-      4: { effects: [], description: '없음' },
+      4: { effects: [{ type: 'finesseGain', value: 1 }], description: '기교 +1' },
       5: {
         effects: [{ type: 'finesseGain', value: 1 }],
-        description: '기교 3 획득'
+        description: '기교 4 획득'
       },
     }
   },
@@ -845,13 +845,13 @@ const GUN_UTILITY_ENHANCEMENTS: CardEnhancement[] = [
     cardId: 'ap_load',
     levels: {
       1: { effects: [{ type: 'speedCost', value: -1 }], description: '속도 -1' },
-      2: { effects: [], description: '없음' },
+      2: { effects: [{ type: 'damage', value: 1 }], description: '피해 +1' },
       3: {
         effects: [],
         specialEffects: [{ type: 'armorPierceCount', value: 2 }],
         description: '방어 무시 → 2회 적용'
       },
-      4: { effects: [], description: '없음' },
+      4: { effects: [{ type: 'damage', value: 1 }], description: '피해 +1' },
       5: {
         effects: [{ type: 'pushAmount', value: 2 }],
         description: '관통 시 넉백 2'
@@ -862,12 +862,12 @@ const GUN_UTILITY_ENHANCEMENTS: CardEnhancement[] = [
     cardId: 'incendiary_load',
     levels: {
       1: { effects: [{ type: 'speedCost', value: -1 }], description: '속도 -1' },
-      2: { effects: [], description: '없음' },
+      2: { effects: [{ type: 'burnStacks', value: 1 }], description: '화상 +1' },
       3: {
         effects: [{ type: 'burnStacks', value: 1 }],
-        description: '화상 2회로 증가'
+        description: '화상 3회로 증가'
       },
-      4: { effects: [], description: '없음' },
+      4: { effects: [{ type: 'damage', value: 1 }], description: '피해 +1' },
       5: {
         effects: [],
         specialEffects: [{ type: 'burnReduceStrength' }],
@@ -927,7 +927,7 @@ const GUN_UTILITY_ENHANCEMENTS: CardEnhancement[] = [
       1: { effects: [{ type: 'debuffStacks', value: 1 }], description: '디버프 +1' },
       2: { effects: [{ type: 'debuffStacks', value: 1 }], description: '디버프 +1' },
       3: { effects: [{ type: 'speedCost', value: -1 }], description: '속도 -1' },
-      4: { effects: [], description: '없음' },
+      4: { effects: [{ type: 'debuffStacks', value: 1 }], description: '디버프 +1' },
       5: {
         effects: [],
         specialEffects: [{ type: 'addTrait', value: 'chain' }],
@@ -945,7 +945,7 @@ const GUN_UTILITY_ENHANCEMENTS: CardEnhancement[] = [
         specialEffects: [{ type: 'extraShot', value: 1 }],
         description: '탄걸림이면 사격도 추가'
       },
-      4: { effects: [], description: '없음' },
+      4: { effects: [{ type: 'block', value: 2 }], description: '방어 +2' },
       5: {
         effects: [{ type: 'finesseGain', value: 1 }],
         description: '기교 +1 획득'
@@ -976,7 +976,7 @@ const GUN_UTILITY_ENHANCEMENTS: CardEnhancement[] = [
       1: { effects: [{ type: 'debuffStacks', value: 1 }], description: '디버프 +1' },
       2: { effects: [{ type: 'debuffStacks', value: 1 }], description: '디버프 +1' },
       3: { effects: [{ type: 'speedCost', value: -1 }], description: '속도 -1' },
-      4: { effects: [], description: '없음' },
+      4: { effects: [{ type: 'block', value: 2 }], description: '방어 +2' },
       5: {
         effects: [],
         specialEffects: [{ type: 'counterOnHit', value: 3 }],
@@ -988,7 +988,7 @@ const GUN_UTILITY_ENHANCEMENTS: CardEnhancement[] = [
     cardId: 'execution_squad',
     levels: {
       1: { effects: [{ type: 'createCount', value: 1 }], description: '창조 +1' },
-      2: { effects: [], description: '없음' },
+      2: { effects: [{ type: 'speedCost', value: -1 }], description: '속도 -1' },
       3: { effects: [{ type: 'actionCost', value: -1 }], description: '행동력 -1' },
       4: { effects: [{ type: 'createCount', value: 1 }], description: '창조 +1' },
       5: {
@@ -1039,10 +1039,10 @@ const COMMON_ENHANCEMENTS: CardEnhancement[] = [
   {
     cardId: 'shout',
     levels: {
-      1: { effects: [], description: '없음' },
+      1: { effects: [{ type: 'speedCost', value: -1 }], description: '속도 -1' },
       2: { effects: [{ type: 'actionCost', value: -1 }], description: '행동력 -1' },
-      3: { effects: [], description: '없음' },
-      4: { effects: [], description: '없음' },
+      3: { effects: [{ type: 'block', value: 2 }], description: '방어 +2' },
+      4: { effects: [{ type: 'speedCost', value: -1 }], description: '속도 -1' },
       5: {
         effects: [],
         specialEffects: [{ type: 'extraRecall', value: 1 }],
@@ -1054,7 +1054,7 @@ const COMMON_ENHANCEMENTS: CardEnhancement[] = [
     cardId: 'emergency_response',
     levels: {
       1: { effects: [{ type: 'drawCount', value: 1 }], description: '드로우 +1' },
-      2: { effects: [], description: '없음' },
+      2: { effects: [{ type: 'speedCost', value: -1 }], description: '속도 -1' },
       3: {
         effects: [],
         specialEffects: [{ type: 'handLimitIncrease', value: 2 }],
@@ -1072,13 +1072,13 @@ const COMMON_ENHANCEMENTS: CardEnhancement[] = [
     cardId: 'stance',
     levels: {
       1: { effects: [{ type: 'actionCost', value: -1 }], description: '행동력 -1' },
-      2: { effects: [], description: '없음' },
+      2: { effects: [{ type: 'block', value: 2 }], description: '방어 +2' },
       3: {
         effects: [],
         specialEffects: [{ type: 'gainPositiveToken' }],
         description: '긍정 토큰 1개 획득'
       },
-      4: { effects: [], description: '없음' },
+      4: { effects: [{ type: 'speedCost', value: -1 }], description: '속도 -1' },
       5: {
         effects: [],
         specialEffects: [{ type: 'repeatPreviousEffect', value: 50 }],
@@ -1090,9 +1090,9 @@ const COMMON_ENHANCEMENTS: CardEnhancement[] = [
     cardId: 'hologram',
     levels: {
       1: { effects: [{ type: 'durationTurns', value: 1 }], description: '지속 +1턴' },
-      2: { effects: [], description: '없음' },
+      2: { effects: [{ type: 'block', value: 2 }], description: '방어 +2' },
       3: { effects: [{ type: 'actionCost', value: -1 }], description: '행동력 -1' },
-      4: { effects: [], description: '없음' },
+      4: { effects: [{ type: 'durationTurns', value: 1 }], description: '지속 +1턴' },
       5: {
         effects: [],
         specialEffects: [{ type: 'excessBlockToStrength' }],
