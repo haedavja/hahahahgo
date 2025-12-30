@@ -333,3 +333,69 @@ describe('상징 효과 시뮬레이션', () => {
     expect(typeof runRelicComparison).toBe('function');
   });
 });
+
+describe('덱 비교 시뮬레이션', () => {
+  it('DECK_PRESETS에 덱 프리셋이 정의되어 있다', async () => {
+    const { DECK_PRESETS } = await import('./gameSimulator');
+    expect(Object.keys(DECK_PRESETS).length).toBeGreaterThanOrEqual(4);
+    expect(DECK_PRESETS.balanced).toBeDefined();
+    expect(DECK_PRESETS.aggressive).toBeDefined();
+    expect(DECK_PRESETS.defensive).toBeDefined();
+  });
+
+  it('덱 프리셋으로 시뮬레이션을 실행할 수 있다', async () => {
+    const { DECK_PRESETS, runSimulation, SimulationConfig } = await import('./gameSimulator');
+
+    const config: SimulationConfig = {
+      battles: 10,
+      maxTurns: 30,
+      enemyIds: ['ghoul'],
+      playerDeck: DECK_PRESETS.aggressive.cards,
+    };
+
+    const stats = runSimulation(config);
+
+    expect(stats.totalBattles).toBe(10);
+    expect(stats.winRate).toBeGreaterThanOrEqual(0);
+  });
+
+  it('runDeckComparison 함수가 존재한다', async () => {
+    const { runDeckComparison } = await import('./gameSimulator');
+    expect(typeof runDeckComparison).toBe('function');
+  });
+});
+
+describe('이변 효과 시뮬레이션', () => {
+  it('이변을 비활성화한 시뮬레이션을 실행할 수 있다', () => {
+    const config: SimulationConfig = {
+      battles: 10,
+      maxTurns: 30,
+      enemyIds: ['ghoul'],
+      enableAnomalies: false,
+    };
+
+    const stats: SimulationStats = runSimulation(config);
+
+    expect(stats.totalBattles).toBe(10);
+  });
+
+  it('특정 이변을 지정한 시뮬레이션을 실행할 수 있다', () => {
+    const config: SimulationConfig = {
+      battles: 10,
+      maxTurns: 30,
+      enemyIds: ['ghoul'],
+      enableAnomalies: true,
+      fixedAnomaly: 'energy_drain',
+      mapRisk: 50,
+    };
+
+    const stats: SimulationStats = runSimulation(config);
+
+    expect(stats.totalBattles).toBe(10);
+  });
+
+  it('runAnomalyComparison 함수가 존재한다', async () => {
+    const { runAnomalyComparison } = await import('./gameSimulator');
+    expect(typeof runAnomalyComparison).toBe('function');
+  });
+});

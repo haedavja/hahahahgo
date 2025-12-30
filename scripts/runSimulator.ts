@@ -9,6 +9,8 @@
  *   npx tsx scripts/runSimulator.ts tier [1|2|3] [battles] # 티어별 시뮬
  *   npx tsx scripts/runSimulator.ts full [battles]        # 전체 시뮬
  *   npx tsx scripts/runSimulator.ts relic [battles]       # 상징 효과 비교
+ *   npx tsx scripts/runSimulator.ts deck [battles]        # 덱 전략 비교
+ *   npx tsx scripts/runSimulator.ts anomaly [battles]     # 이변 효과 비교
  *
  * 예시:
  *   npx tsx scripts/runSimulator.ts 100
@@ -17,9 +19,11 @@
  *   npx tsx scripts/runSimulator.ts tier 2 100
  *   npx tsx scripts/runSimulator.ts full 30
  *   npx tsx scripts/runSimulator.ts relic 100
+ *   npx tsx scripts/runSimulator.ts deck 50
+ *   npx tsx scripts/runSimulator.ts anomaly 50
  */
 
-import { runSimulation, printStats, SimulationConfig, runBalanceAnalysis, runTierSimulation, runFullSimulation, runRelicComparison, TIER_1_ENEMIES, TIER_2_ENEMIES, TIER_3_ENEMIES } from '../src/tests/gameSimulator';
+import { runSimulation, printStats, SimulationConfig, runBalanceAnalysis, runTierSimulation, runFullSimulation, runRelicComparison, runDeckComparison, runAnomalyComparison, TIER_1_ENEMIES, TIER_2_ENEMIES, TIER_3_ENEMIES } from '../src/tests/gameSimulator';
 import { ENEMIES } from '../src/components/battle/battleData';
 
 // 커맨드 라인 인자 파싱
@@ -55,6 +59,20 @@ if (command === 'relic') {
   const battles = parseInt(args[1]) || 50;
   console.log('🎮 상징 효과 비교 모드\n');
   runRelicComparison(battles);
+  process.exit(0);
+}
+
+if (command === 'deck') {
+  const battles = parseInt(args[1]) || 50;
+  console.log('🎮 덱 전략 비교 모드\n');
+  runDeckComparison(battles);
+  process.exit(0);
+}
+
+if (command === 'anomaly') {
+  const battles = parseInt(args[1]) || 50;
+  console.log('🎮 이변 효과 비교 모드\n');
+  runAnomalyComparison(battles);
   process.exit(0);
 }
 

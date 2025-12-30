@@ -127,6 +127,9 @@ export interface SimulationConfig {
   playerRelics?: string[];  // 상징 ID 목록
   anomalyLevel?: number;    // 이변 레벨 (1-4)
   anomalyIds?: string[];    // 활성화할 이변 ID 목록
+  enableAnomalies?: boolean; // 이변 시스템 활성화 여부
+  fixedAnomaly?: string;    // 특정 이변만 적용 (테스트용)
+  mapRisk?: number;         // 맵 위험도 (이변 레벨 결정)
   verbose?: boolean;
 }
 
@@ -299,8 +302,31 @@ function createAnomalyState(config: SimulationConfig, log: string[]): AnomalySta
     finesseBlock: 0,
   };
 
-  const level = config.anomalyLevel || 0;
+  // enableAnomalies가 명시적으로 false면 이변 비활성화
+  if (config.enableAnomalies === false) {
+    return state;
+  }
+
+  // mapRisk로 레벨 계산 (또는 anomalyLevel 직접 사용)
+  let level = config.anomalyLevel || 0;
+  if (config.mapRisk !== undefined && config.mapRisk > 0) {
+    level = Math.floor(config.mapRisk / 25);
+    if (level < 1) level = 1;
+    if (level > 4) level = 4;
+  }
+
   if (level <= 0) return state;
+
+  // 고정 이변이 지정된 경우 (테스트용)
+  if (config.fixedAnomaly) {
+    const anomaly = Object.values(ANOMALY_TYPES).find(a => a.id === config.fixedAnomaly);
+    if (anomaly) {
+      const effect = anomaly.getEffect(level);
+      state.active.push(effect);
+      applyAnomalyEffectToState(state, effect, log, anomaly.name);
+    }
+    return state;
+  }
 
   // 특정 이변 ID가 지정된 경우
   if (config.anomalyIds && config.anomalyIds.length > 0) {
@@ -312,8 +338,8 @@ function createAnomalyState(config: SimulationConfig, log: string[]): AnomalySta
         applyAnomalyEffectToState(state, effect, log, anomaly.name);
       }
     }
-  } else {
-    // 랜덤 이변 1개 선택
+  } else if (config.enableAnomalies === true) {
+    // enableAnomalies가 true면 랜덤 이변 1개 선택
     const randomAnomaly = selectRandomAnomaly();
     const effect = randomAnomaly.getEffect(level);
     state.active.push(effect);
@@ -1996,6 +2022,211 @@ export function runRelicComparison(battles: number = 50): void {
                    '➖ 중립';
     console.log(`  ${result.name}: ${(result.winRate * 100).toFixed(1)}% (${diffStr}%) | ${rating}`);
   }
+
+  console.log('\n========================================\n');
+}
+
+/**
+ * 덱 프리셋 정의
+ */
+export const DECK_PRESETS: Record<string, { name: string; description: string; cards: string[] }> = {
+  balanced: {
+    name: '균형 덱',
+    description: '공격과 방어가 균형있게 구성된 기본 덱',
+    cards: ['strike', 'strike', 'lunge', 'shoot', 'deflect', 'deflect', 'octave', 'quarte'],
+  },
+  aggressive: {
+    name: '공격 덱',
+    description: '공격에 집중한 덱',
+    cards: ['strike', 'strike', 'lunge', 'lunge', 'fleche', 'shoot', 'shoot', 'thrust'],
+  },
+  defensive: {
+    name: '방어 덱',
+    description: '방어와 생존에 집중한 덱',
+    cards: ['deflect', 'deflect', 'deflect', 'octave', 'octave', 'quarte', 'quarte', 'septime'],
+  },
+  combo: {
+    name: '콤보 덱',
+    description: '연계/후속 효과를 활용하는 덱',
+    cards: ['strike', 'lunge', 'fleche', 'flank', 'beat', 'feint', 'grind', 'rapid_link'],
+  },
+  gunner: {
+    name: '총기 덱',
+    description: '총기 카드 위주의 덱',
+    cards: ['shoot', 'shoot', 'hawks_eye', 'gun_headshot', 'reload', 'sniper_shot', 'ap_load', 'deflect'],
+  },
+  fast: {
+    name: '속공 덱',
+    description: '빠른 카드로 선제 공격하는 덱',
+    cards: ['marche', 'fleche', 'flank', 'thrust', 'el_rapide', 'sabre_eclair', 'shoot', 'shoot'],
+  },
+  counter: {
+    name: '반격 덱',
+    description: '방어와 반격을 활용하는 덱',
+    cards: ['deflect', 'deflect', 'octave', 'quarte', 'septime', 'intercept', 'breach', 'redoublement'],
+  },
+  elite: {
+    name: '엘리트 덱',
+    description: '강력한 고급 카드로 구성된 덱',
+    cards: ['violent_mort', 'tempete_dechainee', 'griffe_du_dragon', 'execution_squad', 'atomic_bomb', 'duel', 'sniper_shot', 'au_bord_du_gouffre'],
+  },
+};
+
+/**
+ * 덱 전략 비교 시뮬레이션
+ */
+export function runDeckComparison(battles: number = 50): void {
+  console.log('\n========================================');
+  console.log('         덱 전략 비교 분석               ');
+  console.log('========================================\n');
+
+  const results: Array<{
+    id: string;
+    name: string;
+    description: string;
+    winRate: number;
+    avgTurns: number;
+    avgDamage: number;
+    comboRate: number;
+  }> = [];
+
+  for (const [deckId, deck] of Object.entries(DECK_PRESETS)) {
+    const config: SimulationConfig = {
+      battles,
+      maxTurns: 30,
+      enemyIds: TIER_1_ENEMIES,
+      playerDeck: deck.cards,
+      verbose: false,
+    };
+
+    const stats = runSimulation(config);
+
+    // 콤보 발생률 계산
+    const totalCombos = Object.values(stats.comboStats).reduce((sum, c) => sum + c.count, 0);
+    const comboRate = totalCombos / stats.totalBattles;
+
+    results.push({
+      id: deckId,
+      name: deck.name,
+      description: deck.description,
+      winRate: stats.winRate,
+      avgTurns: stats.avgTurns,
+      avgDamage: stats.avgPlayerDamageDealt,
+      comboRate,
+    });
+  }
+
+  // 승률 순으로 정렬
+  results.sort((a, b) => b.winRate - a.winRate);
+
+  console.log('🏆 덱별 성능 순위:');
+  console.log('─────────────────────────────────────────');
+
+  let rank = 1;
+  for (const result of results) {
+    const rating = result.winRate > 0.8 ? '⭐⭐⭐ S등급' :
+                   result.winRate > 0.6 ? '⭐⭐ A등급' :
+                   result.winRate > 0.4 ? '⭐ B등급' :
+                   '➖ C등급';
+
+    console.log(`\n${rank}. ${result.name} (${rating})`);
+    console.log(`   ${result.description}`);
+    console.log(`   승률: ${(result.winRate * 100).toFixed(1)}% | 평균 ${result.avgTurns.toFixed(1)}턴 | 피해량 ${result.avgDamage.toFixed(0)} | 콤보 ${result.comboRate.toFixed(2)}/전투`);
+    rank++;
+  }
+
+  // 각 항목별 최고 덱
+  console.log('\n📊 항목별 최고 덱:');
+  console.log('─────────────────────────────────────────');
+
+  const bestWinRate = results.reduce((a, b) => a.winRate > b.winRate ? a : b);
+  const fastestWins = results.reduce((a, b) => a.avgTurns < b.avgTurns ? a : b);
+  const mostDamage = results.reduce((a, b) => a.avgDamage > b.avgDamage ? a : b);
+  const mostCombos = results.reduce((a, b) => a.comboRate > b.comboRate ? a : b);
+
+  console.log(`  최고 승률: ${bestWinRate.name} (${(bestWinRate.winRate * 100).toFixed(1)}%)`);
+  console.log(`  가장 빠른 승리: ${fastestWins.name} (평균 ${fastestWins.avgTurns.toFixed(1)}턴)`);
+  console.log(`  최고 피해량: ${mostDamage.name} (${mostDamage.avgDamage.toFixed(0)})`);
+  console.log(`  최고 콤보율: ${mostCombos.name} (${mostCombos.comboRate.toFixed(2)}/전투)`);
+
+  console.log('\n========================================\n');
+}
+
+/**
+ * 이변 효과 비교 시뮬레이션
+ */
+export function runAnomalyComparison(battles: number = 50): void {
+  console.log('\n========================================');
+  console.log('         이변 효과 비교 분석             ');
+  console.log('========================================\n');
+
+  // 이변 없이 기준치 측정
+  const baseConfig: SimulationConfig = {
+    battles,
+    maxTurns: 30,
+    enemyIds: TIER_1_ENEMIES,
+    enableAnomalies: false,
+    verbose: false,
+  };
+  const baseStats = runSimulation(baseConfig);
+  console.log(`📊 기준치 (이변 없음): ${(baseStats.winRate * 100).toFixed(1)}% 승률\n`);
+
+  // 각 이변 개별 테스트
+  const anomalyIds = Object.keys(ANOMALY_TYPES);
+  const results: Array<{ id: string; name: string; winRate: number; diff: number; emoji: string }> = [];
+
+  for (const anomalyId of anomalyIds) {
+    const anomaly = ANOMALY_TYPES[anomalyId as keyof typeof ANOMALY_TYPES];
+
+    const config: SimulationConfig = {
+      battles,
+      maxTurns: 30,
+      enemyIds: TIER_1_ENEMIES,
+      enableAnomalies: true,
+      fixedAnomaly: anomaly.id,
+      mapRisk: 50, // 레벨 2 이변
+      verbose: false,
+    };
+
+    const stats = runSimulation(config);
+    const diff = stats.winRate - baseStats.winRate;
+
+    results.push({
+      id: anomaly.id,
+      name: anomaly.name,
+      winRate: stats.winRate,
+      diff,
+      emoji: anomaly.emoji,
+    });
+  }
+
+  // 영향도(diff) 순으로 정렬 (가장 큰 패널티부터)
+  results.sort((a, b) => a.diff - b.diff);
+
+  console.log('💀 이변별 영향도 (승률 변화):');
+  console.log('─────────────────────────────────────────');
+
+  for (const result of results) {
+    const diffStr = result.diff >= 0 ? `+${(result.diff * 100).toFixed(1)}` : `${(result.diff * 100).toFixed(1)}`;
+    const severity = result.diff < -0.2 ? '🔴 치명적' :
+                     result.diff < -0.1 ? '🟠 심각' :
+                     result.diff < -0.05 ? '🟡 주의' :
+                     result.diff < 0 ? '🟢 경미' :
+                     '⚪ 무해';
+
+    console.log(`  ${result.emoji} ${result.name}: ${(result.winRate * 100).toFixed(1)}% (${diffStr}%) | ${severity}`);
+  }
+
+  // 통계 요약
+  const avgImpact = results.reduce((sum, r) => sum + r.diff, 0) / results.length;
+  const worstAnomaly = results[0];
+  const leastHarmful = results[results.length - 1];
+
+  console.log('\n📈 요약:');
+  console.log('─────────────────────────────────────────');
+  console.log(`  평균 승률 변화: ${(avgImpact * 100).toFixed(1)}%`);
+  console.log(`  가장 해로운 이변: ${worstAnomaly.emoji} ${worstAnomaly.name} (${(worstAnomaly.diff * 100).toFixed(1)}%)`);
+  console.log(`  가장 덜 해로운 이변: ${leastHarmful.emoji} ${leastHarmful.name} (${(leastHarmful.diff * 100).toFixed(1)}%)`);
 
   console.log('\n========================================\n');
 }
