@@ -19,10 +19,10 @@ export type CardCategory = 'fencing' | 'pistol' | 'guard' | 'misc' | 'gun';
 
 /** 카드 특성 ID */
 export type CardTrait =
-  | 'advance' | 'knockback' | 'crush' | 'chain' | 'cross' | 'creation'
-  | 'repeat' | 'warmup' | 'exhaust' | 'vanish' | 'mistake' | 'protagonist'
+  | 'advance' | 'knockback' | 'crush' | 'chain' | 'cross'
+  | 'repeat' | 'warmup' | 'exhaust' | 'vanish' | 'stubborn'
   | 'last' | 'robber' | 'ruin' | 'oblivion' | 'outcast' | 'general'
-  | 'followup' | 'finisher' | 'multiTarget'
+  | 'followup' | 'finisher' | 'multiTarget' | 'stun'
   | 'strongbone' | 'weakbone' | 'destroyer' | 'slaughter' | 'pinnacle'
   | 'cooperation' | 'swift' | 'slow' | 'mastery' | 'boredom'
   | 'escape' | 'double_edge' | 'training';

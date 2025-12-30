@@ -250,6 +250,7 @@ export function useTurnStartEffects({
       const units = updatedEnemy.units || [];
       let updatedUnits = [...units];
       let anyVeil = false;
+      let anyCritBoost = false;
 
       for (let i = 0; i < updatedUnits.length; i++) {
         const unit = updatedUnits[i];
@@ -260,9 +261,16 @@ export function useTurnStartEffects({
           addLog(`🌫️ ${unit.name}: 장막 - 이 적의 행동을 볼 수 없습니다!`);
           anyVeil = true;
         }
+        // 첫 턴: 치명타 보너스 부여
+        if (unitPassives.critBoostAtStart) {
+          const critBoost = unitPassives.critBoostAtStart as number;
+          updatedUnits[i] = { ...updatedUnits[i], critBonus: (updatedUnits[i].critBonus || 0) + critBoost };
+          addLog(`🎯 ${unit.name}: 치명타율 +${critBoost}%`);
+          anyCritBoost = true;
+        }
       }
 
-      if (anyVeil) {
+      if (anyVeil || anyCritBoost) {
         updatedEnemy = { ...updatedEnemy, units: updatedUnits };
       }
 
@@ -271,6 +279,13 @@ export function useTurnStartEffects({
         const veilResult = addToken(updatedEnemy, 'veil', 1);
         updatedEnemy = { ...updatedEnemy, tokens: veilResult.tokens };
         addLog(`🌫️ ${enemy.name}: 장막 - 적의 행동을 볼 수 없습니다!`);
+      }
+
+      // 레거시 호환: 전체 enemy에 critBoostAtStart가 있는 경우 (유닛이 없는 경우)
+      const critBoostAtStart = enemyPassives.critBoostAtStart as number | undefined;
+      if (critBoostAtStart && units.length === 0) {
+        updatedEnemy = { ...updatedEnemy, critBonus: (updatedEnemy.critBonus || 0) + critBoostAtStart };
+        addLog(`🎯 ${enemy.name}: 치명타율 +${critBoostAtStart}%`);
       }
     }
 

@@ -30,6 +30,12 @@ import type {
 } from '../../../types';
 import { addToken, setTokenStacks } from '../../../lib/tokenUtils';
 import { shuffle } from '../../../lib/randomUtils';
+import { getChainIsolationEffect } from '../../../lib/anomalyEffectUtils';
+
+interface AnomalyPlayerState {
+  chainIsolationLevel?: number;
+  [key: string]: unknown;
+}
 
 // 분리된 모듈에서 re-export
 export { hasSpecial, processPreAttackSpecials } from './preAttackSpecials';
@@ -215,7 +221,8 @@ export function processTimelineSpecials({
   actorName,
   queue,
   currentIndex,
-  damageDealt = 0
+  damageDealt = 0,
+  playerState
 }: {
   card: SpecialCard;
   actor: SpecialActor;
@@ -223,6 +230,7 @@ export function processTimelineSpecials({
   queue: SpecialQueueItem[];
   currentIndex: number;
   damageDealt?: number;
+  playerState?: AnomalyPlayerState;
 }): TimelineResult {
   const events: SpecialEvent[] = [];
   const logs: string[] = [];
@@ -232,13 +240,22 @@ export function processTimelineSpecials({
     pushLastEnemy: 0,
   };
 
+  // 이변: 고립 (CHAIN_ISOLATION) - 앞당김 효과 무효화 체크
+  const chainIsolation = playerState ? getChainIsolationEffect(playerState) : { blockChain: false, blockFollowup: false, blockAdvance: false };
+  const advanceBlocked = actorName === 'player' && chainIsolation.blockAdvance;
+
   if (hasSpecial(card, 'advanceTimeline')) {
-    const amount = card.advanceAmount || 4;
-    timelineChanges.advancePlayer = amount;
-    const who = actorName === 'player' ? '플레이어' : '몬스터';
-    const msg = `${who} • ⏪ ${card.name}: 내 타임라인 ${amount} 앞당김!`;
-    events.push({ actor: actorName, card: card.name, type: 'timeline', msg });
-    logs.push(msg);
+    if (advanceBlocked) {
+      const msg = `🌀 이변 "고립" - 앞당김 효과 무효화됨`;
+      logs.push(msg);
+    } else {
+      const amount = card.advanceAmount || 4;
+      timelineChanges.advancePlayer = amount;
+      const who = actorName === 'player' ? '플레이어' : '몬스터';
+      const msg = `${who} • ⏪ ${card.name}: 내 타임라인 ${amount} 앞당김!`;
+      events.push({ actor: actorName, card: card.name, type: 'timeline', msg });
+      logs.push(msg);
+    }
   }
 
   if (hasSpecial(card, 'pushEnemyTimeline') && damageDealt > 0) {
@@ -251,12 +268,15 @@ export function processTimelineSpecials({
   }
 
   if (hasSpecial(card, 'beatEffect')) {
-    const advanceAmount = card.advanceAmount || 1;
-    timelineChanges.advancePlayer = advanceAmount;
     const who = actorName === 'player' ? '플레이어' : '몬스터';
-    const msg1 = `${who} • ⏪ ${card.name}: 내 타임라인 ${advanceAmount} 앞당김!`;
-    events.push({ actor: actorName, card: card.name, type: 'timeline', msg: msg1 });
-    logs.push(msg1);
+
+    if (!advanceBlocked) {
+      const advanceAmount = card.advanceAmount || 1;
+      timelineChanges.advancePlayer = advanceAmount;
+      const msg1 = `${who} • ⏪ ${card.name}: 내 타임라인 ${advanceAmount} 앞당김!`;
+      events.push({ actor: actorName, card: card.name, type: 'timeline', msg: msg1 });
+      logs.push(msg1);
+    }
 
     if (damageDealt > 0) {
       const pushAmount = card.pushAmount || 2;
@@ -277,7 +297,8 @@ export function processTimelineSpecials({
   }
 
   const hasChainTrait = card.traits && card.traits.includes('chain');
-  if (hasChainTrait || hasSpecial(card, 'advanceIfNextFencing')) {
+  const chainBlocked = actorName === 'player' && chainIsolation.blockChain;
+  if ((hasChainTrait || hasSpecial(card, 'advanceIfNextFencing')) && !chainBlocked && !advanceBlocked) {
     const nextPlayerCard = queue.slice(currentIndex + 1).find(q => q.actor === actorName);
     if (nextPlayerCard && nextPlayerCard.card?.cardCategory === 'fencing') {
       const amount = card.advanceAmount || 3;

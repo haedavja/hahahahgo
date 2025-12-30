@@ -9,6 +9,12 @@
  */
 
 import type { CardWithOriginalSpeed } from '../types';
+import { getSpeedInstabilityModifier } from './anomalyEffectUtils';
+
+interface AnomalyPlayerState {
+  speedInstability?: number;
+  [key: string]: unknown;
+}
 
 /**
  * 민첩성을 적용하여 카드의 실제 속도를 계산합니다.
@@ -65,4 +71,28 @@ export function getAgilityDescription(agility: number): string {
 export function getAgilityReduction(baseSpeed: number, agility: number): number {
   const finalSpeed = applyAgility(baseSpeed, agility);
   return baseSpeed - finalSpeed;
+}
+
+/**
+ * 민첩성과 이변 효과(불안정)를 모두 적용하여 카드의 실제 속도를 계산합니다.
+ *
+ * @param baseSpeed - 카드의 기본 speedCost
+ * @param agility - 캐릭터의 민첩성
+ * @param playerState - 이변 효과가 포함된 플레이어 상태 (선택)
+ * @returns 최종 속도 (최소 1)
+ */
+export function applyAgilityWithAnomaly(
+  baseSpeed: number,
+  agility: number = 0,
+  playerState?: AnomalyPlayerState
+): number {
+  let finalSpeed = applyAgility(baseSpeed, agility);
+
+  // 이변: 불안정 (SPEED_INSTABILITY) - 속도 랜덤 변동
+  if (playerState?.speedInstability && playerState.speedInstability > 0) {
+    const instabilityMod = getSpeedInstabilityModifier(playerState);
+    finalSpeed = Math.max(1, finalSpeed + instabilityMod);
+  }
+
+  return finalSpeed;
 }

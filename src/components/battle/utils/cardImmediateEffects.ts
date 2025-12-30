@@ -8,11 +8,13 @@ import type { AddLogFn } from '../../../types/hooks';
 
 import { hasTrait } from "./battleUtils";
 import { applyCardPlayedEffects } from "../../../lib/relicEffects";
+import { getDefenseBackfireDamage } from '../../../lib/anomalyEffectUtils';
 
 interface PlayerState {
   hp?: number;
   maxHp?: number;
   strength?: number;
+  gold?: number;
   [key: string]: unknown;
 }
 
@@ -69,6 +71,21 @@ export function processImmediateCardTraits({
   if (hasTrait(card, 'vanish') && addVanishedCard && card.id) {
     addVanishedCard(card.id);
     addLog(`💨 "소멸" - "${card.name}" 카드가 소멸되었습니다.`);
+  }
+
+  if (hasTrait(card, 'robber')) {
+    const goldLoss = 10;
+    playerState.gold = Math.max(0, (playerState.gold || 0) - goldLoss);
+    addLog(`💰 "날강도" - ${goldLoss} 골드를 잃었습니다. (현재: ${playerState.gold})`);
+  }
+
+  // 이변: 역류 (DEFENSE_BACKFIRE) - 방어 카드 사용 시 자해
+  if (card.type === 'defense') {
+    const backfireDamage = getDefenseBackfireDamage(playerState);
+    if (backfireDamage > 0) {
+      playerState.hp = Math.max(0, (playerState.hp || 0) - backfireDamage);
+      addLog(`🌀 이변 "역류" - 방어 카드 사용! ${backfireDamage} 피해 (체력: ${playerState.hp})`);
+    }
   }
 
   return updatedNextTurnEffects;

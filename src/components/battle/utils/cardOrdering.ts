@@ -9,22 +9,36 @@
  */
 
 import type { OrderingCardInfo, OrderingEnemyAction, OrderItem } from '../../../types';
-import { applyAgility } from "../../../lib/agilityUtils";
+import { applyAgility, applyAgilityWithAnomaly } from "../../../lib/agilityUtils";
+
+interface AnomalyPlayerState {
+  speedInstability?: number;
+  [key: string]: unknown;
+}
 
 /**
  * 플레이어와 적 카드를 결합하여 수동 순서로 fixedOrder 생성
  * @param enhancedPlayerCards - 강화된 플레이어 카드 배열
  * @param enemyActions - 적의 행동 배열
  * @param effectiveAgility - 플레이어의 유효 민첩성
+ * @param playerState - 이변 효과가 포함된 플레이어 상태 (선택, 속도 불안정 효과 적용용)
  * @returns sp 값이 계산된 fixedOrder 배열
  */
 export function createFixedOrder(
   enhancedPlayerCards: OrderingCardInfo[],
   enemyActions: OrderingEnemyAction[] | null | undefined,
-  effectiveAgility: number
+  effectiveAgility: number,
+  playerState?: AnomalyPlayerState
 ): OrderItem[] {
+  // "last" 특성이 있는 카드와 없는 카드 분리
+  const normalCards = enhancedPlayerCards.filter(card => !card.traits?.includes('last'));
+  const lastCards = enhancedPlayerCards.filter(card => card.traits?.includes('last'));
+
+  // last 특성 카드는 플레이어 카드 중 마지막에 배치
+  const orderedPlayerCards = [...normalCards, ...lastCards];
+
   // 플레이어 카드 매핑
-  const playerCards: OrderItem[] = enhancedPlayerCards.map((card, idx) => ({
+  const playerCards: OrderItem[] = orderedPlayerCards.map((card, idx) => ({
     actor: 'player',
     card,
     originalIndex: idx
@@ -46,7 +60,11 @@ export function createFixedOrder(
   const withSp = manualOrder.map(item => {
     const isPlayer = item.actor === 'player';
     const agility = isPlayer ? effectiveAgility : 0;
-    const finalSpeed = applyAgility(item.card.speedCost, agility);
+
+    // 플레이어 카드에 불안정 이변 효과 적용 (playerState가 있을 때만)
+    const finalSpeed = isPlayer && playerState
+      ? applyAgilityWithAnomaly(item.card.speedCost, agility, playerState)
+      : applyAgility(item.card.speedCost, agility);
 
     if (isPlayer) {
       ps += finalSpeed;
