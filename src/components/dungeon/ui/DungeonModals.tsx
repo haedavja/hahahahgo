@@ -1,13 +1,94 @@
 /**
- * DungeonModals.jsx
+ * DungeonModals.tsx
  *
  * 던전 관련 모달 컴포넌트들
  * - RewardModal: 전투 보상 모달
  * - DungeonSummaryModal: 던전 탈출 요약 모달
  * - CrossroadModal: 기로 선택지 모달
+ *
+ * 최적화: React.memo + 스타일 상수 추출
  */
 
+import { memo } from 'react';
+import type { CSSProperties } from 'react';
 import type { RewardModal as RewardModalType, DungeonSummary, CrossroadModal as CrossroadModalType, CrossroadChoice } from '../hooks/useDungeonState';
+
+// =====================
+// 스타일 상수
+// =====================
+
+const OVERLAY_STYLE: CSSProperties = {
+  position: "fixed",
+  inset: 0,
+  background: "rgba(0,0,0,0.8)",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  zIndex: 200,
+};
+
+const CROSSROAD_OVERLAY_STYLE: CSSProperties = {
+  position: "fixed",
+  inset: 0,
+  background: "rgba(0,0,0,0.85)",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  zIndex: 200,
+};
+
+const MODAL_CONTAINER_STYLE: CSSProperties = {
+  background: "#1e1e2e",
+  padding: "32px",
+  borderRadius: "16px",
+  border: "2px solid #444",
+  textAlign: "center",
+  color: "#fff",
+};
+
+const SUMMARY_MODAL_STYLE: CSSProperties = {
+  ...MODAL_CONTAINER_STYLE,
+  minWidth: "300px",
+};
+
+const CROSSROAD_MODAL_STYLE: CSSProperties = {
+  background: "linear-gradient(145deg, #1e293b, #0f172a)",
+  padding: "32px",
+  borderRadius: "16px",
+  border: "2px solid #475569",
+  boxShadow: "0 20px 60px rgba(0,0,0,0.8)",
+  maxWidth: "500px",
+  width: "90%",
+};
+
+const CONFIRM_BUTTON_STYLE: CSSProperties = {
+  marginTop: "20px",
+  padding: "10px 24px",
+  background: "#3498db",
+  color: "#fff",
+  border: "none",
+  borderRadius: "8px",
+  cursor: "pointer",
+  fontSize: "16px",
+  fontWeight: "600",
+};
+
+const SUMMARY_BUTTON_STYLE: CSSProperties = {
+  ...CONFIRM_BUTTON_STYLE,
+  background: "#27ae60",
+};
+
+const CLOSE_BUTTON_STYLE: CSSProperties = {
+  marginTop: "20px",
+  width: "100%",
+  padding: "12px",
+  background: "#334155",
+  border: "none",
+  borderRadius: "8px",
+  color: "#94a3b8",
+  fontSize: "14px",
+  cursor: "pointer",
+};
 
 interface RewardModalProps {
   rewardModal: RewardModalType | null;
@@ -29,27 +110,12 @@ interface CrossroadModalProps {
 /**
  * 전투 보상 모달
  */
-export function RewardModal({ rewardModal, onClose }: RewardModalProps) {
+export const RewardModal = memo(function RewardModal({ rewardModal, onClose }: RewardModalProps) {
   if (!rewardModal) return null;
 
   return (
-    <div style={{
-      position: "fixed",
-      inset: 0,
-      background: "rgba(0,0,0,0.8)",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      zIndex: 200,
-    }}>
-      <div style={{
-        background: "#1e1e2e",
-        padding: "32px",
-        borderRadius: "16px",
-        border: "2px solid #444",
-        textAlign: "center",
-        color: "#fff",
-      }}>
+    <div style={OVERLAY_STYLE}>
+      <div style={MODAL_CONTAINER_STYLE}>
         <h3 style={{ margin: "0 0 16px", fontSize: "24px" }}>
           {rewardModal.victory ? "승리!" : "패배"}
         </h3>
@@ -60,52 +126,23 @@ export function RewardModal({ rewardModal, onClose }: RewardModalProps) {
           </div>
         )}
         {!rewardModal.victory && <div style={{ fontSize: "14px", color: "#ff6b6b" }}>보상 없음</div>}
-        <button
-          onClick={onClose}
-          style={{
-            marginTop: "20px",
-            padding: "10px 24px",
-            background: "#3498db",
-            color: "#fff",
-            border: "none",
-            borderRadius: "8px",
-            cursor: "pointer",
-            fontSize: "16px",
-            fontWeight: "600",
-          }}
-        >
+        <button onClick={onClose} style={CONFIRM_BUTTON_STYLE}>
           확인
         </button>
       </div>
     </div>
   );
-}
+});
 
 /**
  * 던전 탈출 요약 모달
  */
-export function DungeonSummaryModal({ dungeonSummary, onClose }: DungeonSummaryModalProps) {
+export const DungeonSummaryModal = memo(function DungeonSummaryModal({ dungeonSummary, onClose }: DungeonSummaryModalProps) {
   if (!dungeonSummary) return null;
 
   return (
-    <div style={{
-      position: "fixed",
-      inset: 0,
-      background: "rgba(0,0,0,0.8)",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      zIndex: 200,
-    }}>
-      <div style={{
-        background: "#1e1e2e",
-        padding: "32px",
-        borderRadius: "16px",
-        border: "2px solid #444",
-        textAlign: "center",
-        color: "#fff",
-        minWidth: "300px",
-      }}>
+    <div style={OVERLAY_STYLE}>
+      <div style={SUMMARY_MODAL_STYLE}>
         <h3 style={{ margin: "0 0 24px", fontSize: "24px", color: "#3498db" }}>
           던전 탐험 완료
         </h3>
@@ -135,53 +172,28 @@ export function DungeonSummaryModal({ dungeonSummary, onClose }: DungeonSummaryM
             </span>
           </div>
         </div>
-        <button
-          onClick={onClose}
-          style={{
-            marginTop: "20px",
-            padding: "10px 24px",
-            background: "#27ae60",
-            color: "#fff",
-            border: "none",
-            borderRadius: "8px",
-            cursor: "pointer",
-            fontSize: "16px",
-            fontWeight: "600",
-          }}
-        >
+        <button onClick={onClose} style={SUMMARY_BUTTON_STYLE}>
           확인
         </button>
       </div>
     </div>
   );
-}
+});
 
 /**
  * 기로 선택지 모달
  */
-export function CrossroadModal({ crossroadModal, screenShake, onSelectChoice, onClose }: CrossroadModalProps) {
+export const CrossroadModal = memo(function CrossroadModal({ crossroadModal, screenShake, onSelectChoice, onClose }: CrossroadModalProps) {
   if (!crossroadModal) return null;
 
+  const overlayStyle: CSSProperties = {
+    ...CROSSROAD_OVERLAY_STYLE,
+    animation: screenShake ? "shake 0.2s ease-in-out" : undefined,
+  };
+
   return (
-    <div style={{
-      position: "fixed",
-      inset: 0,
-      background: "rgba(0,0,0,0.85)",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      zIndex: 200,
-      animation: screenShake ? "shake 0.2s ease-in-out" : undefined,
-    }}>
-      <div style={{
-        background: "linear-gradient(145deg, #1e293b, #0f172a)",
-        padding: "32px",
-        borderRadius: "16px",
-        border: "2px solid #475569",
-        boxShadow: "0 20px 60px rgba(0,0,0,0.8)",
-        maxWidth: "500px",
-        width: "90%",
-      }}>
+    <div style={overlayStyle}>
+      <div style={CROSSROAD_MODAL_STYLE}>
         {/* 제목 */}
         <h3 style={{
           margin: "0 0 8px",
@@ -247,23 +259,10 @@ export function CrossroadModal({ crossroadModal, screenShake, onSelectChoice, on
         </div>
 
         {/* 닫기 버튼 */}
-        <button
-          onClick={onClose}
-          style={{
-            marginTop: "20px",
-            width: "100%",
-            padding: "12px",
-            background: "#334155",
-            border: "none",
-            borderRadius: "8px",
-            color: "#94a3b8",
-            fontSize: "14px",
-            cursor: "pointer",
-          }}
-        >
+        <button onClick={onClose} style={CLOSE_BUTTON_STYLE}>
           물러나기
         </button>
       </div>
     </div>
   );
-}
+});
