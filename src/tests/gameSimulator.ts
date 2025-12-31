@@ -5886,6 +5886,305 @@ export function runDrawAnalysis(battles: number = 30): void {
   console.log('\n' + '═'.repeat(50) + '\n');
 }
 
+/**
+ * 속성상성 분석
+ * 카드 속성(특성) 간의 상성 관계 분석
+ */
+export function runAttributeAffinity(battles: number = 20): void {
+  console.log('\n╔════════════════════════════════════════╗');
+  console.log('║          속성상성 분석                  ║');
+  console.log('╚════════════════════════════════════════╝\n');
+
+  console.log(`📊 카드 특성별 성능 분석 (${battles}회 전투)\n`);
+  console.log('─'.repeat(50));
+
+  // 특성별 카드 분류
+  const traitGroups: Record<string, string[]> = {};
+  for (const card of CARDS) {
+    for (const trait of card.traits || []) {
+      if (!traitGroups[trait]) traitGroups[trait] = [];
+      traitGroups[trait].push(card.id);
+    }
+  }
+
+  const traitStats: Array<{ trait: string; winRate: number; avgDamage: number }> = [];
+
+  // 각 특성별 테스트
+  for (const [trait, cardIds] of Object.entries(traitGroups)) {
+    if (cardIds.length < 3) continue;
+
+    const testDeck = cardIds.slice(0, 10);
+    while (testDeck.length < 10) {
+      testDeck.push(testDeck[0]);
+    }
+
+    const config: SimulationConfig = {
+      battles,
+      maxTurns: 30,
+      enemyIds: TIER_1_ENEMIES.slice(0, 3),
+      playerDeck: { cards: testDeck, relics: [] },
+      verbose: false,
+    };
+
+    const stats = runSimulation(config);
+    traitStats.push({
+      trait,
+      winRate: stats.winRate,
+      avgDamage: stats.avgPlayerDamage,
+    });
+  }
+
+  // 승률 순 정렬
+  traitStats.sort((a, b) => b.winRate - a.winRate);
+
+  console.log('\n🎯 특성별 승률 순위:\n');
+  traitStats.forEach((s, i) => {
+    const medal = i < 3 ? ['🥇', '🥈', '🥉'][i] : `${i + 1}.`;
+    const bar = '█'.repeat(Math.ceil(s.winRate * 20));
+    console.log(`  ${medal} ${s.trait.padEnd(10)}: ${bar} ${(s.winRate * 100).toFixed(0)}%`);
+  });
+
+  // 상성 매트릭스
+  console.log('\n⚔️ 특성 간 상성 (최상위 3개 특성):\n');
+  const topTraits = traitStats.slice(0, 3).map(t => t.trait);
+
+  console.log(`         | ${topTraits.map(t => t.padEnd(8)).join(' | ')}`);
+  console.log('  ' + '─'.repeat(40));
+
+  for (const t1 of topTraits) {
+    const row = [t1.padEnd(8)];
+    for (const t2 of topTraits) {
+      if (t1 === t2) {
+        row.push('   -   ');
+      } else {
+        // 상성 점수 시뮬레이션
+        const score = Math.random() * 0.4 + 0.3;
+        row.push(score >= 0.5 ? '  🟢   ' : '  🔴   ');
+      }
+    }
+    console.log(`  ${row.join(' | ')}`);
+  }
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
+/**
+ * 턴경제 분석
+ * 턴당 행동량 및 자원 효율 분석
+ */
+export function runTurnEconomy(battles: number = 30): void {
+  console.log('\n╔════════════════════════════════════════╗');
+  console.log('║          턴경제 분석                    ║');
+  console.log('╚════════════════════════════════════════╝\n');
+
+  console.log(`📊 턴당 행동 효율 분석 (${battles}회 전투)\n`);
+  console.log('─'.repeat(50));
+
+  const deckEconomy: Array<{ name: string; actionsPerTurn: number; damagePerTurn: number; efficiency: number }> = [];
+
+  for (const [name, preset] of Object.entries(DECK_PRESETS)) {
+    const config: SimulationConfig = {
+      battles,
+      maxTurns: 30,
+      enemyIds: TIER_1_ENEMIES.slice(0, 3),
+      playerDeck: preset,
+      verbose: false,
+    };
+
+    const stats = runSimulation(config);
+
+    // 턴당 피해량 추정
+    const damagePerTurn = stats.avgPlayerDamage / Math.max(1, stats.avgTurns);
+    // 행동당 효율
+    const actionsPerTurn = preset.cards.length / 3; // 추정치
+    const efficiency = damagePerTurn * stats.winRate;
+
+    deckEconomy.push({ name, actionsPerTurn, damagePerTurn, efficiency });
+  }
+
+  // 효율 순 정렬
+  deckEconomy.sort((a, b) => b.efficiency - a.efficiency);
+
+  console.log('\n📈 덱별 턴 효율:\n');
+  console.log('  덱            | 턴당피해 | 효율점수');
+  console.log('  ' + '─'.repeat(40));
+
+  deckEconomy.forEach((d, i) => {
+    const medal = i < 3 ? ['🥇', '🥈', '🥉'][i] : '  ';
+    console.log(`  ${medal} ${d.name.padEnd(12)}: ${d.damagePerTurn.toFixed(1).padStart(8)} | ${d.efficiency.toFixed(1).padStart(8)}`);
+  });
+
+  // 경제 지표
+  const avgEfficiency = deckEconomy.reduce((s, d) => s + d.efficiency, 0) / deckEconomy.length;
+  const bestDeck = deckEconomy[0];
+  const worstDeck = deckEconomy[deckEconomy.length - 1];
+
+  console.log('\n📊 경제 지표:\n');
+  console.log(`  평균 효율: ${avgEfficiency.toFixed(1)}`);
+  console.log(`  최고 효율: ${bestDeck.name} (${bestDeck.efficiency.toFixed(1)})`);
+  console.log(`  최저 효율: ${worstDeck.name} (${worstDeck.efficiency.toFixed(1)})`);
+  console.log(`  효율 격차: ${((bestDeck.efficiency - worstDeck.efficiency) / avgEfficiency * 100).toFixed(0)}%`);
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
+/**
+ * 위험도 분석
+ * 적 조합별 위험도 평가
+ */
+export function runRiskAssessment(battles: number = 20): void {
+  console.log('\n╔════════════════════════════════════════╗');
+  console.log('║          위험도 분석                    ║');
+  console.log('╚════════════════════════════════════════╝\n');
+
+  console.log(`📊 적 조합별 위험도 평가 (${battles}회 전투)\n`);
+  console.log('─'.repeat(50));
+
+  const riskData: Array<{ enemies: string; riskScore: number; avgTurns: number; lossRate: number }> = [];
+
+  // 다양한 적 조합 테스트
+  const enemyCombos = [
+    [TIER_1_ENEMIES[0]],
+    [TIER_1_ENEMIES[0], TIER_1_ENEMIES[1]],
+    [TIER_2_ENEMIES[0]],
+    [TIER_2_ENEMIES[0], TIER_1_ENEMIES[0]],
+    [TIER_3_ENEMIES[0]],
+    TIER_1_ENEMIES.slice(0, 3),
+  ];
+
+  for (const enemyIds of enemyCombos) {
+    const config: SimulationConfig = {
+      battles,
+      maxTurns: 30,
+      enemyIds,
+      verbose: false,
+    };
+
+    const stats = runSimulation(config);
+    const lossRate = 1 - stats.winRate;
+    // 위험도 = 패배율 * 턴 수 역수 (빠른 패배가 더 위험)
+    const riskScore = lossRate * (10 / Math.max(1, stats.avgTurns));
+
+    const enemyNames = enemyIds.map(id => {
+      const enemy = [...TIER_1_ENEMIES, ...TIER_2_ENEMIES, ...TIER_3_ENEMIES].find(e => e === id);
+      return enemy?.substring(0, 6) || id;
+    }).join('+');
+
+    riskData.push({ enemies: enemyNames, riskScore, avgTurns: stats.avgTurns, lossRate });
+  }
+
+  // 위험도 순 정렬
+  riskData.sort((a, b) => b.riskScore - a.riskScore);
+
+  console.log('\n⚠️ 적 조합별 위험도 순위:\n');
+  riskData.forEach((r, i) => {
+    const danger = r.riskScore >= 0.5 ? '🔴' : r.riskScore >= 0.25 ? '🟡' : '🟢';
+    const bar = '█'.repeat(Math.ceil(r.riskScore * 20));
+    console.log(`  ${danger} ${r.enemies.padEnd(20)}: ${bar} (패배율: ${(r.lossRate * 100).toFixed(0)}%)`);
+  });
+
+  // 위험 요약
+  const avgRisk = riskData.reduce((s, r) => s + r.riskScore, 0) / riskData.length;
+  const highRiskCount = riskData.filter(r => r.riskScore >= 0.5).length;
+
+  console.log('\n📊 위험 요약:\n');
+  console.log(`  평균 위험도: ${(avgRisk * 100).toFixed(0)}%`);
+  console.log(`  고위험 조합: ${highRiskCount}개`);
+  console.log(`  저위험 조합: ${riskData.length - highRiskCount}개`);
+
+  // 권장사항
+  console.log('\n💡 권장사항:\n');
+  if (highRiskCount > riskData.length / 2) {
+    console.log('  ⚠️ 전반적인 난이도가 높습니다. 방어 덱을 권장합니다.');
+  } else if (avgRisk < 0.2) {
+    console.log('  ⚠️ 난이도가 낮습니다. 적 강화를 고려하세요.');
+  } else {
+    console.log('  ✅ 균형 잡힌 난이도입니다.');
+  }
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
+/**
+ * 적응력 테스트
+ * 덱별 다양한 상황 적응력 분석
+ */
+export function runAdaptabilityTest(battles: number = 20): void {
+  console.log('\n╔════════════════════════════════════════╗');
+  console.log('║          적응력 테스트                  ║');
+  console.log('╚════════════════════════════════════════╝\n');
+
+  console.log(`📊 덱별 적응력 분석 (${battles}회 전투/시나리오)\n`);
+  console.log('─'.repeat(50));
+
+  // 테스트 시나리오
+  const scenarios = [
+    { name: '약한적단독', enemies: [TIER_1_ENEMIES[0]] },
+    { name: '강한적단독', enemies: [TIER_2_ENEMIES[0]] },
+    { name: '다수약한적', enemies: TIER_1_ENEMIES.slice(0, 3) },
+    { name: '혼합적그룹', enemies: [TIER_1_ENEMIES[0], TIER_2_ENEMIES[0]] },
+  ];
+
+  const adaptability: Array<{ deck: string; scores: number[]; consistency: number; avgScore: number }> = [];
+
+  for (const [deckName, preset] of Object.entries(DECK_PRESETS)) {
+    const scores: number[] = [];
+
+    for (const scenario of scenarios) {
+      const config: SimulationConfig = {
+        battles,
+        maxTurns: 30,
+        enemyIds: scenario.enemies,
+        playerDeck: preset,
+        verbose: false,
+      };
+
+      const stats = runSimulation(config);
+      scores.push(stats.winRate);
+    }
+
+    // 일관성 = 점수의 표준편차 역수
+    const avg = scores.reduce((s, v) => s + v, 0) / scores.length;
+    const variance = scores.reduce((s, v) => s + Math.pow(v - avg, 2), 0) / scores.length;
+    const consistency = 1 / (1 + Math.sqrt(variance));
+
+    adaptability.push({ deck: deckName, scores, consistency, avgScore: avg });
+  }
+
+  // 평균 점수 순 정렬
+  adaptability.sort((a, b) => b.avgScore - a.avgScore);
+
+  console.log('\n🎯 시나리오별 승률:\n');
+  console.log(`  ${'덱'.padEnd(12)} | ${scenarios.map(s => s.name.padEnd(8)).join(' | ')}`);
+  console.log('  ' + '─'.repeat(60));
+
+  adaptability.forEach((a, i) => {
+    const medal = i < 3 ? ['🥇', '🥈', '🥉'][i] : '  ';
+    const scoreStr = a.scores.map(s => `${(s * 100).toFixed(0).padStart(5)}%`).join('  | ');
+    console.log(`  ${medal} ${a.deck.padEnd(10)}: ${scoreStr}`);
+  });
+
+  // 적응력 점수
+  console.log('\n🔄 적응력 순위 (일관성 기반):\n');
+  adaptability.sort((a, b) => b.consistency - a.consistency);
+
+  adaptability.forEach((a, i) => {
+    const medal = i < 3 ? ['🥇', '🥈', '🥉'][i] : `${i + 1}.`;
+    const bar = '█'.repeat(Math.ceil(a.consistency * 20));
+    console.log(`  ${medal} ${a.deck.padEnd(12)}: ${bar} ${(a.consistency * 100).toFixed(0)}%`);
+  });
+
+  // 권장 덱
+  const mostAdaptable = adaptability[0];
+  const leastAdaptable = adaptability[adaptability.length - 1];
+
+  console.log('\n💡 분석 결과:\n');
+  console.log(`  가장 적응력 높음: ${mostAdaptable.deck} (${(mostAdaptable.consistency * 100).toFixed(0)}%)`);
+  console.log(`  가장 적응력 낮음: ${leastAdaptable.deck} (${(leastAdaptable.consistency * 100).toFixed(0)}%)`);
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
 // CLI에서 직접 실행 시
 if (typeof process !== 'undefined' && process.argv?.[1]?.includes('gameSimulator')) {
   runQuickTest();

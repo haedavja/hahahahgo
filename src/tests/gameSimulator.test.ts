@@ -784,3 +784,31 @@ describe('드로우 분석', () => {
     expect(typeof runDrawAnalysis).toBe('function');
   });
 });
+
+describe('속성상성 분석', () => {
+  it('runAttributeAffinity 함수가 존재한다', async () => {
+    const { runAttributeAffinity } = await import('./gameSimulator');
+    expect(typeof runAttributeAffinity).toBe('function');
+  });
+});
+
+describe('턴경제 분석', () => {
+  it('runTurnEconomy 함수가 존재한다', async () => {
+    const { runTurnEconomy } = await import('./gameSimulator');
+    expect(typeof runTurnEconomy).toBe('function');
+  });
+});
+
+describe('위험도 분석', () => {
+  it('runRiskAssessment 함수가 존재한다', async () => {
+    const { runRiskAssessment } = await import('./gameSimulator');
+    expect(typeof runRiskAssessment).toBe('function');
+  });
+});
+
+describe('적응력 테스트', () => {
+  it('runAdaptabilityTest 함수가 존재한다', async () => {
+    const { runAdaptabilityTest } = await import('./gameSimulator');
+    expect(typeof runAdaptabilityTest).toBe('function');
+  });
+});
