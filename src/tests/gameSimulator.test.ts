@@ -812,3 +812,31 @@ describe('적응력 테스트', () => {
     expect(typeof runAdaptabilityTest).toBe('function');
   });
 });
+
+describe('토큰 시너지 분석', () => {
+  it('runTokenSynergy 함수가 존재한다', async () => {
+    const { runTokenSynergy } = await import('./gameSimulator');
+    expect(typeof runTokenSynergy).toBe('function');
+  });
+});
+
+describe('카드 편성 분석', () => {
+  it('runCompositionAnalysis 함수가 존재한다', async () => {
+    const { runCompositionAnalysis } = await import('./gameSimulator');
+    expect(typeof runCompositionAnalysis).toBe('function');
+  });
+});
+
+describe('키워드 분석', () => {
+  it('runKeywordAnalysis 함수가 존재한다', async () => {
+    const { runKeywordAnalysis } = await import('./gameSimulator');
+    expect(typeof runKeywordAnalysis).toBe('function');
+  });
+});
+
+describe('최적 전략 분석', () => {
+  it('runOptimalStrategy 함수가 존재한다', async () => {
+    const { runOptimalStrategy } = await import('./gameSimulator');
+    expect(typeof runOptimalStrategy).toBe('function');
+  });
+});

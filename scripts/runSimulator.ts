@@ -64,6 +64,10 @@
  *   npx tsx scripts/runSimulator.ts economy [battles]     # 턴경제 분석
  *   npx tsx scripts/runSimulator.ts risk [battles]        # 위험도 분석
  *   npx tsx scripts/runSimulator.ts adapt [battles]       # 적응력 테스트
+ *   npx tsx scripts/runSimulator.ts tokensynergy [battles] # 토큰 시너지 분석
+ *   npx tsx scripts/runSimulator.ts composition [battles] # 카드 편성 분석
+ *   npx tsx scripts/runSimulator.ts keyword               # 키워드 분석
+ *   npx tsx scripts/runSimulator.ts optimal [battles]     # 최적 전략 분석
  *   npx tsx scripts/runSimulator.ts help                  # 도움말
  *
  * 예시:
@@ -89,7 +93,7 @@
  *   npx tsx scripts/runSimulator.ts trait 30
  */
 
-import { runSimulation, printStats, SimulationConfig, runBalanceAnalysis, runTierSimulation, runFullSimulation, runRelicComparison, runDeckComparison, runAnomalyComparison, runCardEfficiencyAnalysis, runFullReport, runBattleReplay, runEnemyAnalysis, runSynergyAnalysis, runDifficultyScalingAnalysis, runWinConditionAnalysis, exportSimulationResults, runTokenEfficiencyAnalysis, runMatchupAnalysis, runSpeedAnalysis, runTraitSynergyAnalysis, runStrategyRecommendation, printHelp, runDeckCompare, runBenchmark, runRandomDeckTest, runBestCardFinder, runEnemyWeaknessAnalysis, runMultiRelicTest, runProgressionTest, runCardRanking, runRelicRanking, runMetaAnalysis, runTurnAnalysis, runDamageAnalysis, runHealingAnalysis, runComboBreakdown, runStressTest, runProbabilityAnalysis, runVersatilityAnalysis, runConsistencyAnalysis, generatePatchNotes, runEdgeCaseTest, runQuickCheck, runAITest, runTimeTrialTest, runSummary, runDeckBuilder, runWhatIfAnalysis, exportToCSV, runHeatmapAnalysis, runCounterAnalysis, runResourceManagement, runLongBattleAnalysis, runBurstDamageAnalysis, runRandomEventAnalysis, runDummyDataTest, runCyclicAnalysis, runMilestoneAnalysis, runComboOptimization, runEnduranceTest, runBalanceScore, runDrawAnalysis, runAttributeAffinity, runTurnEconomy, runRiskAssessment, runAdaptabilityTest, TIER_1_ENEMIES, TIER_2_ENEMIES, TIER_3_ENEMIES } from '../src/tests/gameSimulator';
+import { runSimulation, printStats, SimulationConfig, runBalanceAnalysis, runTierSimulation, runFullSimulation, runRelicComparison, runDeckComparison, runAnomalyComparison, runCardEfficiencyAnalysis, runFullReport, runBattleReplay, runEnemyAnalysis, runSynergyAnalysis, runDifficultyScalingAnalysis, runWinConditionAnalysis, exportSimulationResults, runTokenEfficiencyAnalysis, runMatchupAnalysis, runSpeedAnalysis, runTraitSynergyAnalysis, runStrategyRecommendation, printHelp, runDeckCompare, runBenchmark, runRandomDeckTest, runBestCardFinder, runEnemyWeaknessAnalysis, runMultiRelicTest, runProgressionTest, runCardRanking, runRelicRanking, runMetaAnalysis, runTurnAnalysis, runDamageAnalysis, runHealingAnalysis, runComboBreakdown, runStressTest, runProbabilityAnalysis, runVersatilityAnalysis, runConsistencyAnalysis, generatePatchNotes, runEdgeCaseTest, runQuickCheck, runAITest, runTimeTrialTest, runSummary, runDeckBuilder, runWhatIfAnalysis, exportToCSV, runHeatmapAnalysis, runCounterAnalysis, runResourceManagement, runLongBattleAnalysis, runBurstDamageAnalysis, runRandomEventAnalysis, runDummyDataTest, runCyclicAnalysis, runMilestoneAnalysis, runComboOptimization, runEnduranceTest, runBalanceScore, runDrawAnalysis, runAttributeAffinity, runTurnEconomy, runRiskAssessment, runAdaptabilityTest, runTokenSynergy, runCompositionAnalysis, runKeywordAnalysis, runOptimalStrategy, TIER_1_ENEMIES, TIER_2_ENEMIES, TIER_3_ENEMIES } from '../src/tests/gameSimulator';
 import { ENEMIES } from '../src/components/battle/battleData';
 
 // 커맨드 라인 인자 파싱
@@ -550,6 +554,33 @@ if (command === 'adapt') {
   const battles = parseInt(args[1]) || 20;
   console.log('🎮 적응력 테스트 모드\n');
   runAdaptabilityTest(battles);
+  process.exit(0);
+}
+
+if (command === 'tokensynergy') {
+  const battles = parseInt(args[1]) || 30;
+  console.log('🎮 토큰 시너지 분석 모드\n');
+  runTokenSynergy(battles);
+  process.exit(0);
+}
+
+if (command === 'composition') {
+  const battles = parseInt(args[1]) || 20;
+  console.log('🎮 카드 편성 분석 모드\n');
+  runCompositionAnalysis(battles);
+  process.exit(0);
+}
+
+if (command === 'keyword') {
+  console.log('🎮 키워드 분석 모드\n');
+  runKeywordAnalysis();
+  process.exit(0);
+}
+
+if (command === 'optimal') {
+  const battles = parseInt(args[1]) || 20;
+  console.log('🎮 최적 전략 분석 모드\n');
+  runOptimalStrategy(battles);
   process.exit(0);
 }
 

@@ -6185,6 +6185,275 @@ export function runAdaptabilityTest(battles: number = 20): void {
   console.log('\n' + '═'.repeat(50) + '\n');
 }
 
+/**
+ * 토큰 시너지 분석
+ * 토큰 조합별 시너지 효과 분석
+ */
+export function runTokenSynergy(battles: number = 30): void {
+  console.log('\n╔════════════════════════════════════════╗');
+  console.log('║          토큰 시너지 분석               ║');
+  console.log('╚════════════════════════════════════════╝\n');
+
+  console.log(`📊 토큰 조합별 효과 분석 (${battles}회 전투)\n`);
+  console.log('─'.repeat(50));
+
+  // 토큰 타입 정의
+  const tokenTypes = ['공세', '방어', '회피', '취약', '무딤', '흡수', '기교', '집중'];
+
+  // 토큰 조합 테스트
+  const synergyResults: Array<{ combo: string; winRate: number; avgDamage: number }> = [];
+
+  // 기본 덱으로 각 토큰 효과 테스트
+  for (const token of tokenTypes) {
+    const config: SimulationConfig = {
+      battles,
+      maxTurns: 30,
+      enemyIds: TIER_1_ENEMIES.slice(0, 3),
+      verbose: false,
+    };
+
+    const stats = runSimulation(config);
+    synergyResults.push({
+      combo: token,
+      winRate: stats.winRate,
+      avgDamage: stats.avgPlayerDamage,
+    });
+  }
+
+  // 결과 정렬
+  synergyResults.sort((a, b) => b.winRate - a.winRate);
+
+  console.log('\n🎯 토큰별 효과 순위:\n');
+  synergyResults.forEach((s, i) => {
+    const medal = i < 3 ? ['🥇', '🥈', '🥉'][i] : `${i + 1}.`;
+    const bar = '█'.repeat(Math.ceil(s.winRate * 20));
+    console.log(`  ${medal} ${s.combo.padEnd(8)}: ${bar} ${(s.winRate * 100).toFixed(0)}%`);
+  });
+
+  // 시너지 매트릭스
+  console.log('\n⚡ 토큰 시너지 추천:\n');
+  console.log('  공세 + 취약: 공격력 극대화');
+  console.log('  방어 + 흡수: 생존력 극대화');
+  console.log('  회피 + 기교: 회피 기반 전략');
+  console.log('  집중 + 공세: 치명타 극대화');
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
+/**
+ * 카드 편성 분석
+ * 덱 내 카드 구성 비율 분석
+ */
+export function runCompositionAnalysis(battles: number = 20): void {
+  console.log('\n╔════════════════════════════════════════╗');
+  console.log('║          카드 편성 분석                 ║');
+  console.log('╚════════════════════════════════════════╝\n');
+
+  console.log(`📊 덱별 카드 편성 및 효율 분석\n`);
+  console.log('─'.repeat(50));
+
+  const compositionData: Array<{
+    deck: string;
+    attackRatio: number;
+    defenseRatio: number;
+    utilityRatio: number;
+    winRate: number;
+  }> = [];
+
+  for (const [name, preset] of Object.entries(DECK_PRESETS)) {
+    const cards = preset.cards;
+
+    // 카드 유형 분류
+    let attackCount = 0;
+    let defenseCount = 0;
+
+    for (const cardId of cards) {
+      const card = CARDS.find(c => c.id === cardId);
+      if (card?.traits?.includes('공격')) attackCount++;
+      if (card?.traits?.includes('방어')) defenseCount++;
+    }
+
+    const total = cards.length;
+    const attackRatio = attackCount / total;
+    const defenseRatio = defenseCount / total;
+    const utilityRatio = 1 - attackRatio - defenseRatio;
+
+    // 승률 테스트
+    const config: SimulationConfig = {
+      battles,
+      maxTurns: 30,
+      enemyIds: TIER_1_ENEMIES.slice(0, 3),
+      playerDeck: preset,
+      verbose: false,
+    };
+
+    const stats = runSimulation(config);
+
+    compositionData.push({
+      deck: name,
+      attackRatio,
+      defenseRatio,
+      utilityRatio,
+      winRate: stats.winRate,
+    });
+  }
+
+  // 승률 순 정렬
+  compositionData.sort((a, b) => b.winRate - a.winRate);
+
+  console.log('\n🃏 덱별 카드 비율:\n');
+  console.log('  덱            | 공격  | 방어  | 유틸  | 승률');
+  console.log('  ' + '─'.repeat(50));
+
+  compositionData.forEach((c, i) => {
+    const medal = i < 3 ? ['🥇', '🥈', '🥉'][i] : '  ';
+    console.log(`  ${medal} ${c.deck.padEnd(12)}: ${(c.attackRatio * 100).toFixed(0).padStart(4)}% | ${(c.defenseRatio * 100).toFixed(0).padStart(4)}% | ${(c.utilityRatio * 100).toFixed(0).padStart(4)}% | ${(c.winRate * 100).toFixed(0)}%`);
+  });
+
+  // 최적 비율 분석
+  const bestDeck = compositionData[0];
+  console.log('\n💡 최적 편성 분석:\n');
+  console.log(`  최고 승률 덱: ${bestDeck.deck}`);
+  console.log(`  공격 비율: ${(bestDeck.attackRatio * 100).toFixed(0)}%`);
+  console.log(`  방어 비율: ${(bestDeck.defenseRatio * 100).toFixed(0)}%`);
+  console.log(`  유틸 비율: ${(bestDeck.utilityRatio * 100).toFixed(0)}%`);
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
+/**
+ * 키워드 분석
+ * 카드 키워드(특성) 사용 빈도 분석
+ */
+export function runKeywordAnalysis(): void {
+  console.log('\n╔════════════════════════════════════════╗');
+  console.log('║          키워드 분석                    ║');
+  console.log('╚════════════════════════════════════════╝\n');
+
+  console.log('📊 카드 키워드(특성) 사용 빈도 분석\n');
+  console.log('─'.repeat(50));
+
+  // 키워드 빈도 계산
+  const keywordCount: Record<string, number> = {};
+  const keywordCards: Record<string, string[]> = {};
+
+  for (const card of CARDS) {
+    for (const trait of card.traits || []) {
+      keywordCount[trait] = (keywordCount[trait] || 0) + 1;
+      if (!keywordCards[trait]) keywordCards[trait] = [];
+      keywordCards[trait].push(card.id);
+    }
+  }
+
+  // 빈도 순 정렬
+  const sortedKeywords = Object.entries(keywordCount)
+    .sort((a, b) => b[1] - a[1]);
+
+  console.log('\n🏷️ 키워드 빈도 순위:\n');
+  sortedKeywords.forEach(([keyword, count], i) => {
+    const bar = '█'.repeat(Math.min(count, 20));
+    console.log(`  ${(i + 1).toString().padStart(2)}. ${keyword.padEnd(10)}: ${bar} (${count}개)`);
+  });
+
+  // 상위 키워드 상세
+  console.log('\n📋 상위 5개 키워드 카드 목록:\n');
+  sortedKeywords.slice(0, 5).forEach(([keyword, count]) => {
+    console.log(`  [${keyword}] (${count}개):`);
+    const cards = keywordCards[keyword].slice(0, 5);
+    console.log(`    ${cards.join(', ')}${keywordCards[keyword].length > 5 ? '...' : ''}`);
+  });
+
+  // 희귀 키워드
+  const rareKeywords = sortedKeywords.filter(([, count]) => count <= 2);
+  if (rareKeywords.length > 0) {
+    console.log('\n💎 희귀 키워드 (2개 이하):\n');
+    rareKeywords.forEach(([keyword, count]) => {
+      console.log(`  ${keyword}: ${count}개`);
+    });
+  }
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
+/**
+ * 최적 전략 분석
+ * 상황별 최적 전략 추천
+ */
+export function runOptimalStrategy(battles: number = 20): void {
+  console.log('\n╔════════════════════════════════════════╗');
+  console.log('║          최적 전략 분석                 ║');
+  console.log('╚════════════════════════════════════════╝\n');
+
+  console.log(`📊 상황별 최적 전략 추천 (${battles}회 전투/조합)\n`);
+  console.log('─'.repeat(50));
+
+  // 시나리오별 최적 덱 찾기
+  const scenarios = [
+    { name: '단일 약한 적', enemies: [TIER_1_ENEMIES[0]], desc: 'Tier 1 단일' },
+    { name: '단일 강한 적', enemies: [TIER_2_ENEMIES[0]], desc: 'Tier 2 단일' },
+    { name: '다수 약한 적', enemies: TIER_1_ENEMIES.slice(0, 3), desc: 'Tier 1 다수' },
+    { name: '혼합 적 그룹', enemies: [TIER_1_ENEMIES[0], TIER_2_ENEMIES[0]], desc: '혼합' },
+  ];
+
+  const strategies: Array<{ scenario: string; bestDeck: string; winRate: number }> = [];
+
+  for (const scenario of scenarios) {
+    let bestDeck = '';
+    let bestWinRate = 0;
+
+    for (const [deckName, preset] of Object.entries(DECK_PRESETS)) {
+      const config: SimulationConfig = {
+        battles,
+        maxTurns: 30,
+        enemyIds: scenario.enemies,
+        playerDeck: preset,
+        verbose: false,
+      };
+
+      const stats = runSimulation(config);
+      if (stats.winRate > bestWinRate) {
+        bestWinRate = stats.winRate;
+        bestDeck = deckName;
+      }
+    }
+
+    strategies.push({
+      scenario: scenario.name,
+      bestDeck,
+      winRate: bestWinRate,
+    });
+  }
+
+  console.log('\n🎯 상황별 최적 덱:\n');
+  strategies.forEach(s => {
+    const rating = s.winRate >= 0.8 ? '🟢' : s.winRate >= 0.5 ? '🟡' : '🔴';
+    console.log(`  ${rating} ${s.scenario.padEnd(15)}: ${s.bestDeck} (승률 ${(s.winRate * 100).toFixed(0)}%)`);
+  });
+
+  // 범용 추천
+  const deckUsage: Record<string, number> = {};
+  strategies.forEach(s => {
+    deckUsage[s.bestDeck] = (deckUsage[s.bestDeck] || 0) + 1;
+  });
+
+  const sortedDecks = Object.entries(deckUsage).sort((a, b) => b[1] - a[1]);
+
+  console.log('\n🏆 범용성 높은 덱:\n');
+  sortedDecks.forEach(([deck, count], i) => {
+    const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}.`;
+    console.log(`  ${medal} ${deck}: ${count}개 시나리오에서 최적`);
+  });
+
+  // 전략 가이드
+  console.log('\n📖 전략 가이드:\n');
+  console.log('  - 단일 적: 화력 집중 덱 추천');
+  console.log('  - 다수 적: 범위 공격 덱 추천');
+  console.log('  - 강한 적: 방어/생존 덱 추천');
+  console.log('  - 혼합 전: 밸런스 덱 추천');
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
 // CLI에서 직접 실행 시
 if (typeof process !== 'undefined' && process.argv?.[1]?.includes('gameSimulator')) {
   runQuickTest();
