@@ -3,9 +3,41 @@
  *
  * 전투 로그 표시 컴포넌트
  * dangerouslySetInnerHTML 제거하고 안전한 텍스트 렌더링 사용
+ * 최적화: React.memo + 스타일 상수 추출
  */
 
 import { FC, RefObject, memo } from 'react';
+import type { CSSProperties } from 'react';
+
+// =====================
+// 스타일 상수
+// =====================
+
+const CONTAINER_STYLE: CSSProperties = {
+  marginTop: '20px',
+  paddingTop: '16px',
+  borderTop: '2px solid rgba(148, 163, 184, 0.3)'
+};
+
+const HEADER_STYLE: CSSProperties = {
+  fontSize: '15px',
+  fontWeight: 'bold',
+  color: '#f8fafc',
+  marginBottom: '12px'
+};
+
+const LOG_CONTAINER_STYLE: CSSProperties = {
+  height: '360px',
+  minHeight: '360px',
+  maxHeight: '360px',
+  overflowY: 'auto'
+};
+
+const LOG_LINE_BASE_STYLE: CSSProperties = {
+  fontSize: '13px',
+  marginBottom: '6px',
+  lineHeight: '1.5'
+};
 
 interface BattleLogProps {
   phase: string;
@@ -55,11 +87,11 @@ export const BattleLog: FC<BattleLogProps> = memo(({ phase, log, logContainerRef
   }
 
   return (
-    <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '2px solid rgba(148, 163, 184, 0.3)' }}>
-      <div style={{ fontSize: '15px', fontWeight: 'bold', color: '#f8fafc', marginBottom: '12px' }}>
+    <div style={CONTAINER_STYLE}>
+      <div style={HEADER_STYLE}>
         🎮 전투 로그
       </div>
-      <div ref={logContainerRef} style={{ height: '360px', minHeight: '360px', maxHeight: '360px', overflowY: 'auto' }}>
+      <div ref={logContainerRef} style={LOG_CONTAINER_STYLE}>
         {log.filter(shouldShowLogLine).map((line, i) => {
           const lineType = classifyLogLine(line);
           const color = getLogColor(lineType);
@@ -67,10 +99,8 @@ export const BattleLog: FC<BattleLogProps> = memo(({ phase, log, logContainerRef
             <div
               key={i}
               style={{
-                fontSize: '13px',
+                ...LOG_LINE_BASE_STYLE,
                 color,
-                marginBottom: '6px',
-                lineHeight: '1.5'
               }}
             >
               {line}
