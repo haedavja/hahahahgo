@@ -711,7 +711,7 @@ export class RunSimulator {
   }
 
   /**
-   * 카드 보상 선택 (게임과 동일: 3장 중 1장 선택)
+   * 카드 보상 선택 (게임과 동일: 3장 중 1장 선택 또는 스킵)
    * @param player 플레이어 상태
    * @param strategy 선택 전략
    * @returns 선택된 카드 ID 또는 null (스킵)
@@ -737,8 +737,54 @@ export class RunSimulator {
 
     if (cardChoices.length === 0) return null;
 
+    // 스킵 여부 결정
+    if (this.shouldSkipCardReward(cardChoices, player, strategy)) {
+      return null;
+    }
+
     // 전략에 따라 최적의 카드 선택
     return this.selectBestCard(cardChoices, strategy);
+  }
+
+  /**
+   * 전투 보상 카드 스킵 여부 결정
+   */
+  private shouldSkipCardReward(
+    cardChoices: string[],
+    player: PlayerRunState,
+    strategy: RunStrategy
+  ): boolean {
+    const deckSize = player.deck.length;
+
+    // 덱이 15장 이상이면 스킵 확률 증가
+    if (deckSize >= 15) {
+      const skipChance = (deckSize - 14) * 0.15; // 15장: 15%, 16장: 30%, ...
+      if (Math.random() < skipChance) return true;
+    }
+
+    // 제시된 카드 품질 평가
+    const hasGoodCard = cardChoices.some(cardId => {
+      const card = this.cardLibrary[cardId];
+      if (!card) return false;
+
+      const category = categorizeCard(card);
+
+      switch (strategy) {
+        case 'aggressive':
+          return category === 'attack' && card.damage && card.damage > 6;
+        case 'defensive':
+          return category === 'defense' && card.block && card.block > 4;
+        case 'speedrun':
+          return card.speedCost !== undefined && card.speedCost < 4;
+        default:
+          return true; // balanced, treasure_hunter는 대부분 수락
+      }
+    });
+
+    // 좋은 카드가 없으면 40% 확률로 스킵
+    if (!hasGoodCard && Math.random() < 0.4) return true;
+
+    return false;
   }
 
   /**
