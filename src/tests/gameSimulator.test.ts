@@ -952,3 +952,31 @@ describe('체력 회복 분석', () => {
     expect(typeof runHealthRecovery).toBe('function');
   });
 });
+
+describe('우선순위 분석', () => {
+  it('runPriorityAnalysis 함수가 존재한다', async () => {
+    const { runPriorityAnalysis } = await import('./gameSimulator');
+    expect(typeof runPriorityAnalysis).toBe('function');
+  });
+});
+
+describe('보상 분석', () => {
+  it('runRewardAnalysis 함수가 존재한다', async () => {
+    const { runRewardAnalysis } = await import('./gameSimulator');
+    expect(typeof runRewardAnalysis).toBe('function');
+  });
+});
+
+describe('전환점 분석', () => {
+  it('runTurningPoint 함수가 존재한다', async () => {
+    const { runTurningPoint } = await import('./gameSimulator');
+    expect(typeof runTurningPoint).toBe('function');
+  });
+});
+
+describe('버스트 타이밍 분석', () => {
+  it('runBurstTiming 함수가 존재한다', async () => {
+    const { runBurstTiming } = await import('./gameSimulator');
+    expect(typeof runBurstTiming).toBe('function');
+  });
+});

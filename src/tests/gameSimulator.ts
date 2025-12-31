@@ -7491,6 +7491,261 @@ export function runHealthRecovery(battles: number = 30): void {
   console.log('\n' + '═'.repeat(50) + '\n');
 }
 
+/**
+ * 우선순위 분석 - 카드 선택 우선순위 분석
+ */
+export function runPriorityAnalysis(battles: number = 30): void {
+  console.log('═'.repeat(50));
+  console.log('🎯 우선순위 분석');
+  console.log('═'.repeat(50));
+
+  const allEnemies = [...TIER_1_ENEMIES, ...TIER_2_ENEMIES];
+  const cardPriority: Record<string, { uses: number; winContribution: number }> = {};
+
+  for (let i = 0; i < battles; i++) {
+    const enemy = allEnemies[Math.floor(Math.random() * allEnemies.length)];
+    const state = initBattleState(enemy, getDeckPreset('balanced'));
+    const battleCards: string[] = [];
+
+    for (let turn = 0; turn < 30 && state.enemy.hp > 0 && state.player.hp > 0; turn++) {
+      const selectedIndices = selectCardsAI(state.hand);
+      selectedIndices.forEach(idx => {
+        const card = state.hand[idx];
+        if (card) {
+          battleCards.push(card.id);
+          if (!cardPriority[card.id]) cardPriority[card.id] = { uses: 0, winContribution: 0 };
+          cardPriority[card.id].uses++;
+        }
+      });
+      processPlayerTurn(state, selectedIndices);
+      if (state.enemy.hp <= 0) break;
+      processEnemyTurn(state);
+    }
+
+    // 승리 기여도 추가
+    if (state.enemy.hp <= 0) {
+      battleCards.forEach(cardId => {
+        if (cardPriority[cardId]) cardPriority[cardId].winContribution++;
+      });
+    }
+  }
+
+  console.log('\n📊 카드 우선순위 (사용빈도순):\n');
+  const sorted = Object.entries(cardPriority)
+    .sort((a, b) => b[1].uses - a[1].uses)
+    .slice(0, 10);
+
+  sorted.forEach(([cardId, data], i) => {
+    const winRate = data.uses > 0 ? ((data.winContribution / data.uses) * 100).toFixed(1) : '0';
+    console.log(`  ${i + 1}. ${cardId.padEnd(12)}: ${data.uses}회 사용 (승리기여 ${winRate}%)`);
+  });
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
+/**
+ * 보상 분석 - 전투 보상 패턴 분석
+ */
+export function runRewardAnalysis(battles: number = 30): void {
+  console.log('═'.repeat(50));
+  console.log('🎁 보상 분석');
+  console.log('═'.repeat(50));
+
+  const rewardStats = {
+    totalGold: 0,
+    avgGoldPerBattle: 0,
+    totalExp: 0,
+    avgExpPerBattle: 0,
+    victoryRewards: 0,
+    lossCount: 0,
+  };
+
+  const allEnemies = [...TIER_1_ENEMIES, ...TIER_2_ENEMIES];
+
+  for (let i = 0; i < battles; i++) {
+    const enemy = allEnemies[Math.floor(Math.random() * allEnemies.length)];
+    const state = initBattleState(enemy, getDeckPreset('balanced'));
+
+    for (let turn = 0; turn < 30 && state.enemy.hp > 0 && state.player.hp > 0; turn++) {
+      const selectedIndices = selectCardsAI(state.hand);
+      processPlayerTurn(state, selectedIndices);
+      if (state.enemy.hp <= 0) break;
+      processEnemyTurn(state);
+    }
+
+    if (state.enemy.hp <= 0) {
+      // 승리 보상 추정
+      const baseGold = 10 + Math.floor(Math.random() * 20);
+      const bonusGold = enemy.tier * 5;
+      rewardStats.totalGold += baseGold + bonusGold;
+      rewardStats.totalExp += 10 * enemy.tier;
+      rewardStats.victoryRewards++;
+    } else {
+      rewardStats.lossCount++;
+    }
+  }
+
+  rewardStats.avgGoldPerBattle = rewardStats.totalGold / battles;
+  rewardStats.avgExpPerBattle = rewardStats.totalExp / battles;
+
+  console.log('\n📊 보상 통계:\n');
+  console.log(`  총 골드 획득: ${rewardStats.totalGold}`);
+  console.log(`  전투당 평균 골드: ${rewardStats.avgGoldPerBattle.toFixed(1)}`);
+  console.log(`  총 경험치: ${rewardStats.totalExp}`);
+  console.log(`  전투당 평균 경험치: ${rewardStats.avgExpPerBattle.toFixed(1)}`);
+  console.log(`  승리 횟수: ${rewardStats.victoryRewards}/${battles}`);
+  console.log(`  패배 횟수: ${rewardStats.lossCount}/${battles}`);
+
+  // 효율 평가
+  const efficiency = rewardStats.avgGoldPerBattle >= 20 ? '높음' :
+    rewardStats.avgGoldPerBattle >= 10 ? '보통' : '낮음';
+  console.log(`\n  💡 보상 효율: ${efficiency}`);
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
+/**
+ * 전환점 분석 - 전투 흐름 전환점 분석
+ */
+export function runTurningPoint(battles: number = 30): void {
+  console.log('═'.repeat(50));
+  console.log('🔄 전환점 분석');
+  console.log('═'.repeat(50));
+
+  const allEnemies = [...TIER_1_ENEMIES, ...TIER_2_ENEMIES];
+  const turningPoints: { turn: number; type: string }[] = [];
+
+  for (let i = 0; i < battles; i++) {
+    const enemy = allEnemies[Math.floor(Math.random() * allEnemies.length)];
+    const state = initBattleState(enemy, getDeckPreset('balanced'));
+    let prevPlayerHpRatio = 1;
+    let prevEnemyHpRatio = 1;
+    const initialEnemyHp = state.enemy.hp;
+    const initialPlayerHp = state.player.hp;
+
+    for (let turn = 0; turn < 30 && state.enemy.hp > 0 && state.player.hp > 0; turn++) {
+      const selectedIndices = selectCardsAI(state.hand);
+      processPlayerTurn(state, selectedIndices);
+
+      const enemyHpRatio = state.enemy.hp / initialEnemyHp;
+      const playerHpRatio = state.player.hp / initialPlayerHp;
+
+      // 큰 변화 감지 (전환점)
+      if (prevEnemyHpRatio - enemyHpRatio > 0.3) {
+        turningPoints.push({ turn, type: 'player_surge' });
+      }
+
+      if (state.enemy.hp <= 0) {
+        turningPoints.push({ turn, type: 'victory' });
+        break;
+      }
+
+      processEnemyTurn(state);
+
+      if (prevPlayerHpRatio - playerHpRatio > 0.25) {
+        turningPoints.push({ turn, type: 'enemy_surge' });
+      }
+
+      prevPlayerHpRatio = playerHpRatio;
+      prevEnemyHpRatio = enemyHpRatio;
+    }
+  }
+
+  // 전환점 분석
+  const turnPointCounts: Record<number, number> = {};
+  const typeCount: Record<string, number> = {};
+
+  turningPoints.forEach(tp => {
+    turnPointCounts[tp.turn] = (turnPointCounts[tp.turn] || 0) + 1;
+    typeCount[tp.type] = (typeCount[tp.type] || 0) + 1;
+  });
+
+  console.log('\n📊 주요 전환점 턴:\n');
+  const sortedTurns = Object.entries(turnPointCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5);
+
+  sortedTurns.forEach(([turn, count]) => {
+    console.log(`  턴 ${turn}: ${count}회`);
+  });
+
+  console.log('\n📊 전환점 유형:\n');
+  Object.entries(typeCount)
+    .sort((a, b) => b[1] - a[1])
+    .forEach(([type, count]) => {
+      const emoji = type === 'victory' ? '🏆' : type === 'player_surge' ? '⚔️' : '💥';
+      const typeName = type === 'victory' ? '승리' : type === 'player_surge' ? '플레이어급상승' : '적급상승';
+      console.log(`  ${emoji} ${typeName}: ${count}회`);
+    });
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
+/**
+ * 버스트 타이밍 분석 - 최적의 버스트 타이밍 분석
+ */
+export function runBurstTiming(battles: number = 30): void {
+  console.log('═'.repeat(50));
+  console.log('💥 버스트 타이밍 분석');
+  console.log('═'.repeat(50));
+
+  const allEnemies = [...TIER_1_ENEMIES, ...TIER_2_ENEMIES];
+  const burstData: { turn: number; damage: number }[] = [];
+
+  for (let i = 0; i < battles; i++) {
+    const enemy = allEnemies[Math.floor(Math.random() * allEnemies.length)];
+    const state = initBattleState(enemy, getDeckPreset('aggressive'));
+    let maxDamageThisBattle = 0;
+    let maxDamageTurn = 0;
+
+    for (let turn = 0; turn < 30 && state.enemy.hp > 0 && state.player.hp > 0; turn++) {
+      const prevHp = state.enemy.hp;
+      const selectedIndices = selectCardsAI(state.hand);
+      processPlayerTurn(state, selectedIndices);
+
+      const damage = prevHp - state.enemy.hp;
+      if (damage > maxDamageThisBattle) {
+        maxDamageThisBattle = damage;
+        maxDamageTurn = turn;
+      }
+
+      if (state.enemy.hp <= 0) break;
+      processEnemyTurn(state);
+    }
+
+    if (maxDamageThisBattle > 0) {
+      burstData.push({ turn: maxDamageTurn, damage: maxDamageThisBattle });
+    }
+  }
+
+  // 버스트 분석
+  const turnBurstAvg: Record<number, { total: number; count: number }> = {};
+  burstData.forEach(b => {
+    if (!turnBurstAvg[b.turn]) turnBurstAvg[b.turn] = { total: 0, count: 0 };
+    turnBurstAvg[b.turn].total += b.damage;
+    turnBurstAvg[b.turn].count++;
+  });
+
+  console.log('\n📊 턴별 최대 버스트 발생:\n');
+  const sortedBurst = Object.entries(turnBurstAvg)
+    .sort((a, b) => b[1].count - a[1].count)
+    .slice(0, 8);
+
+  sortedBurst.forEach(([turn, data]) => {
+    const avgDmg = data.total / data.count;
+    console.log(`  턴 ${String(turn).padStart(2)}: ${data.count}회 발생 (평균 ${avgDmg.toFixed(0)} 피해)`);
+  });
+
+  // 최적 타이밍 분석
+  const optimalTurn = sortedBurst[0]?.[0] || '1';
+  console.log(`\n  💡 최적 버스트 타이밍: 턴 ${optimalTurn}`);
+
+  const avgDamage = burstData.reduce((sum, b) => sum + b.damage, 0) / burstData.length;
+  console.log(`  💡 평균 최대 피해량: ${avgDamage.toFixed(1)}`);
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
 // CLI에서 직접 실행 시
 if (typeof process !== 'undefined' && process.argv?.[1]?.includes('gameSimulator')) {
   runQuickTest();
