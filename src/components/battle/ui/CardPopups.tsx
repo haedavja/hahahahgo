@@ -29,6 +29,9 @@ const POINTER_NONE_STYLE: CSSProperties = {
   pointerEvents: 'none'
 };
 
+// 단순 변환 함수 - 모듈 레벨에서 정의하여 불필요한 useCallback 제거
+const formatSpeedText = (speed: number): string => `${speed}`;
+
 const COUNT_BADGE_STYLE: CSSProperties = {
   position: 'absolute',
   top: '-8px',
@@ -213,8 +216,6 @@ export const PopupCard: FC<PopupCardProps> = memo(({ card, count, currentBuild }
       );
     });
   }, [card.traits]);
-
-  const formatSpeedText = useCallback((speed: number) => `${speed}`, []);
 
   return (
     <div
