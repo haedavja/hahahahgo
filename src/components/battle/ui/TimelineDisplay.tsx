@@ -2,9 +2,11 @@
  * TimelineDisplay.tsx
  *
  * 타임라인 및 타임라인 숫자 오버레이 컴포넌트
+ * 최적화: React.memo + 스타일 상수 추출 + useMemo
  */
 
-import { FC, memo } from 'react';
+import { FC, memo, useMemo, useCallback } from 'react';
+import type { CSSProperties } from 'react';
 import { hasSpecial } from '../utils/cardSpecialEffects';
 import type {
   IconProps,
@@ -20,6 +22,93 @@ import type {
   TimelineEnemy as Enemy,
   TimelineBattle as Battle
 } from '../../../types';
+
+// =====================
+// 스타일 상수
+// =====================
+
+const NUMBER_OVERLAY_STYLE: CSSProperties = {
+  position: 'fixed',
+  top: '155px',
+  left: '240px',
+  right: '360px',
+  width: 'auto',
+  maxWidth: '1400px',
+  zIndex: 3600,
+  pointerEvents: 'none'
+};
+
+const NUMBER_INNER_STYLE: CSSProperties = {
+  position: 'relative',
+  height: '28px',
+  color: '#ffb366',
+  textShadow: '0 0 8px rgba(255, 179, 102, 0.9), 0 0 14px rgba(0, 0, 0, 0.8)',
+  fontWeight: 800,
+  fontSize: '15px'
+};
+
+const TIMELINE_CONTAINER_STYLE: CSSProperties = {
+  marginBottom: '32px',
+  position: 'fixed',
+  top: '70px',
+  left: '240px',
+  right: '360px',
+  width: 'auto',
+  maxWidth: '1400px',
+  zIndex: 3500,
+  background: 'transparent'
+};
+
+const TIMELINE_PANEL_STYLE: CSSProperties = {
+  minHeight: '130px',
+  background: 'transparent',
+  border: 'none',
+  boxShadow: 'none',
+  padding: '0',
+  margin: '0'
+};
+
+const TIMELINE_BODY_STYLE: CSSProperties = {
+  marginTop: '0',
+  padding: '14px 0 0 0',
+  background: 'transparent',
+  borderRadius: '0',
+  border: 'none',
+  boxShadow: 'none',
+  position: 'relative'
+};
+
+const TIMELINE_LANES_STYLE: CSSProperties = {
+  position: 'relative'
+};
+
+const OVERDRIVE_BADGE_STYLE: CSSProperties = {
+  position: 'absolute',
+  right: '12px',
+  top: '-18px',
+  padding: '6px 12px',
+  borderRadius: '10px',
+  background: 'linear-gradient(135deg, rgba(244, 114, 182, 0.15), rgba(99, 102, 241, 0.2))',
+  border: '1.5px solid rgba(147, 197, 253, 0.6)',
+  color: '#c4d4ff',
+  fontWeight: '800',
+  letterSpacing: '0.08em',
+  boxShadow: '0 6px 16px rgba(79, 70, 229, 0.35)',
+  display: 'flex',
+  gap: '8px',
+  alignItems: 'center'
+};
+
+const SPACER_STYLE: CSSProperties = {
+  height: '220px'
+};
+
+// 패리 색상 팔레트
+const PARRY_COLORS = [
+  { start: '#22d3ee', end: '#a855f7', shadow: 'rgba(34, 211, 238, 0.8)' },
+  { start: '#34d399', end: '#fbbf24', shadow: 'rgba(52, 211, 153, 0.8)' },
+  { start: '#f472b6', end: '#60a5fa', shadow: 'rgba(244, 114, 182, 0.8)' }
+];
 
 // Lucide icons as simple SVG components
 const Sword: FC<IconProps> = ({ size = 24, className = "" }) => (
@@ -94,21 +183,52 @@ export const TimelineDisplay: FC<TimelineDisplayProps> = memo(({
   frozenOrder = 0,
   parryReadyStates = []
 }) => {
-  const commonMax = Math.max(player.maxSpeed || DEFAULT_PLAYER_MAX_SPEED, enemy.maxSpeed || DEFAULT_ENEMY_MAX_SPEED);
-  const ticks = generateSpeedTicks(commonMax);
-  const playerMax = player.maxSpeed || DEFAULT_PLAYER_MAX_SPEED;
-  const enemyMax = enemy.maxSpeed || DEFAULT_ENEMY_MAX_SPEED;
-  const playerRatio = playerMax / commonMax;
-  const enemyRatio = enemyMax / commonMax;
-  const hideEnemyTimeline =
+  // 기본 계산값 메모이제이션
+  const { commonMax, ticks, playerMax, enemyMax, playerRatio, enemyRatio } = useMemo(() => {
+    const pMax = player.maxSpeed || DEFAULT_PLAYER_MAX_SPEED;
+    const eMax = enemy.maxSpeed || DEFAULT_ENEMY_MAX_SPEED;
+    const cMax = Math.max(pMax, eMax);
+    return {
+      commonMax: cMax,
+      ticks: generateSpeedTicks(cMax),
+      playerMax: pMax,
+      enemyMax: eMax,
+      playerRatio: pMax / cMax,
+      enemyRatio: eMax / cMax
+    };
+  }, [player.maxSpeed, enemy.maxSpeed, DEFAULT_PLAYER_MAX_SPEED, DEFAULT_ENEMY_MAX_SPEED, generateSpeedTicks]);
+
+  // 적 타임라인 숨김 조건 메모이제이션
+  const hideEnemyTimeline = useMemo(() =>
     (dulledLevel >= 2 && battle.phase === 'resolve') ||
-    (dulledLevel >= 1 && battle.phase === 'respond');
+    (dulledLevel >= 1 && battle.phase === 'respond'),
+    [dulledLevel, battle.phase]
+  );
+
+  // 플레이어 레인 너비 스타일 메모이제이션
+  const playerLaneStyle = useMemo((): CSSProperties => ({
+    width: `${playerRatio * 100}%`,
+    overflow: 'hidden'
+  }), [playerRatio]);
+
+  // 적 레인 너비 스타일 메모이제이션
+  const enemyLaneStyle = useMemo((): CSSProperties => ({
+    width: `${enemyRatio * 100}%`,
+    overflow: 'hidden'
+  }), [enemyRatio]);
+
+  // 진행 인디케이터 스타일 메모이제이션
+  const progressIndicatorStyle = useMemo((): CSSProperties => ({
+    left: `${timelineProgress}%`,
+    opacity: timelineIndicatorVisible ? 1 : 0,
+    transition: 'opacity 0.3s ease-out'
+  }), [timelineProgress, timelineIndicatorVisible]);
 
   return (
     <>
       {/* 타임라인 숫자 오버레이 (고정) */}
-      <div style={{ position: 'fixed', top: '155px', left: '240px', right: '360px', width: 'auto', maxWidth: '1400px', zIndex: 3600, pointerEvents: 'none' }}>
-        <div style={{ position: 'relative', height: '28px', color: '#ffb366', textShadow: '0 0 8px rgba(255, 179, 102, 0.9), 0 0 14px rgba(0, 0, 0, 0.8)', fontWeight: 800, fontSize: '15px' }}>
+      <div style={NUMBER_OVERLAY_STYLE}>
+        <div style={NUMBER_INNER_STYLE}>
           {ticks.map((tick) => {
             const label = tick.toString().split('').join(' ');
             const left = (tick / commonMax) * 100;
@@ -130,21 +250,17 @@ export const TimelineDisplay: FC<TimelineDisplayProps> = memo(({
       </div>
 
       {/* Timeline - 1줄 길게 (화면 가득) */}
-      <div style={{ marginBottom: '32px', position: 'fixed', top: '70px', left: '240px', right: '360px', width: 'auto', maxWidth: '1400px', zIndex: 3500, background: 'transparent' }}>
-        <div className="panel-enhanced timeline-panel" style={{ minHeight: '130px', background: 'transparent', border: 'none', boxShadow: 'none', padding: '0', margin: '0' }}>
-          <div className="timeline-body" style={{ marginTop: '0', padding: '14px 0 0 0', background: 'transparent', borderRadius: '0', border: 'none', boxShadow: 'none', position: 'relative' }}>
+      <div style={TIMELINE_CONTAINER_STYLE}>
+        <div className="panel-enhanced timeline-panel" style={TIMELINE_PANEL_STYLE}>
+          <div className="timeline-body" style={TIMELINE_BODY_STYLE}>
             {/* 타임라인 progress indicator (시곗바늘) */}
             {battle.phase === 'resolve' && (
               <div
                 className="timeline-progress-indicator"
-                style={{
-                  left: `${timelineProgress}%`,
-                  opacity: timelineIndicatorVisible ? 1 : 0,
-                  transition: 'opacity 0.3s ease-out'
-                }}
+                style={progressIndicatorStyle}
               />
             )}
-            <div className="timeline-lanes" style={{ position: 'relative' }}>
+            <div className="timeline-lanes" style={TIMELINE_LANES_STYLE}>
               {insightAnimLevel === 1 && (
                 <div className="insight-overlay insight-glitch" aria-hidden="true" />
               )}
@@ -157,26 +273,11 @@ export const TimelineDisplay: FC<TimelineDisplayProps> = memo(({
                 <div className="insight-overlay insight-beam" aria-hidden="true" key={insightAnimPulseKey} />
               )}
               {enemyOverdriveVisible && (
-                <div style={{
-                  position: 'absolute',
-                  right: '12px',
-                  top: '-18px',
-                  padding: '6px 12px',
-                  borderRadius: '10px',
-                  background: 'linear-gradient(135deg, rgba(244, 114, 182, 0.15), rgba(99, 102, 241, 0.2))',
-                  border: '1.5px solid rgba(147, 197, 253, 0.6)',
-                  color: '#c4d4ff',
-                  fontWeight: '800',
-                  letterSpacing: '0.08em',
-                  boxShadow: '0 6px 16px rgba(79, 70, 229, 0.35)',
-                  display: 'flex',
-                  gap: '8px',
-                  alignItems: 'center'
-                }}>
+                <div style={OVERDRIVE_BADGE_STYLE}>
                   <span role="img" aria-label="overdrive">✨</span> {enemyOverdriveLabel}
                 </div>
               )}
-              <div className="timeline-lane player-lane" style={{ width: `${playerRatio * 100}%`, overflow: 'hidden' }}>
+              <div className="timeline-lane player-lane" style={playerLaneStyle}>
                 {Array.from({ length: playerMax + 1 }).map((_, i) => (
                   <div key={`p-grid-${i}`} className="timeline-gridline" style={{ left: `${(i / playerMax) * 100}%` }} />
                 ))}
@@ -185,13 +286,7 @@ export const TimelineDisplay: FC<TimelineDisplayProps> = memo(({
                   if (!parryState?.active) return null;
                   const parryMaxPercent = (parryState.maxSp / playerMax) * 100;
                   const isExpired = timelineProgress > parryMaxPercent;
-                  // 여러 패리 범위에 다른 색상 적용
-                  const colors = [
-                    { start: '#22d3ee', end: '#a855f7', shadow: 'rgba(34, 211, 238, 0.8)' },
-                    { start: '#34d399', end: '#fbbf24', shadow: 'rgba(52, 211, 153, 0.8)' },
-                    { start: '#f472b6', end: '#60a5fa', shadow: 'rgba(244, 114, 182, 0.8)' }
-                  ];
-                  const color = colors[parryIdx % colors.length];
+                  const color = PARRY_COLORS[parryIdx % PARRY_COLORS.length];
                   return (
                     <div
                       key={`parry-${parryIdx}`}
@@ -287,7 +382,7 @@ export const TimelineDisplay: FC<TimelineDisplayProps> = memo(({
                 })}
               </div>
 
-              <div className="timeline-lane enemy-lane" style={{ width: `${enemyRatio * 100}%`, overflow: 'hidden' }}>
+              <div className="timeline-lane enemy-lane" style={enemyLaneStyle}>
                 {!hideEnemyTimeline && (
                   <>
                     {Array.from({ length: enemyMax + 1 }).map((_, i) => (
@@ -350,7 +445,7 @@ export const TimelineDisplay: FC<TimelineDisplayProps> = memo(({
         </div>
       </div>
       {/* 고정된 타임라인 공간 확보용 여백 */}
-      <div style={{ height: '220px' }} />
+      <div style={SPACER_STYLE} />
     </>
   );
 });
