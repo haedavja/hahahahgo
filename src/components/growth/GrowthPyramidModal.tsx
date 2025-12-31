@@ -223,7 +223,8 @@ function UnifiedPyramidView({
       {/* ===== 5단계 - 상위 에토스 노드 ===== */}
       <TierRow
         tier={5}
-        label="5단계 - 상위 에토스"
+        label="5단계 에토스"
+        requirement="개성 5개 (Lv5) + 1P"
         nodes={tier5Nodes}
         type="ethos"
         growth={growth}
@@ -237,7 +238,8 @@ function UnifiedPyramidView({
       {/* ===== 4단계 - 파토스 노드 ===== */}
       <TierRow
         tier={4}
-        label="4단계 - 파토스 노드"
+        label="4단계 파토스"
+        requirement="개성 4개 (Lv4) + 1P"
         nodes={tier4Nodes}
         type="pathos"
         growth={growth}
@@ -251,7 +253,8 @@ function UnifiedPyramidView({
       {/* ===== 3단계 - 에토스 노드 ===== */}
       <TierRow
         tier={3}
-        label="3단계 - 에토스 노드"
+        label="3단계 에토스"
+        requirement="개성 3개 (Lv3) + 1P"
         nodes={tier3Nodes}
         type="ethos"
         growth={growth}
@@ -265,7 +268,8 @@ function UnifiedPyramidView({
       {/* ===== 2단계 - 기본 파토스 ===== */}
       <BaseItemRow
         tier={2}
-        label="2단계 - 기본 파토스"
+        label="2단계 파토스"
+        requirement="개성 2개 (Lv2) + 1P"
         items={tier2Items}
         type="pathos"
         growth={growth}
@@ -397,6 +401,7 @@ function UnlockedSummary({
 function TierRow({
   tier,
   label,
+  requirement,
   nodes,
   type,
   growth,
@@ -408,6 +413,7 @@ function TierRow({
 }: {
   tier: number;
   label: string;
+  requirement: string;
   nodes: (EthosNode | PathosNode)[];
   type: 'ethos' | 'pathos';
   growth: typeof initialGrowthState;
@@ -432,17 +438,16 @@ function TierRow({
         gap: '6px',
       }}>
         <span style={{ fontWeight: 'bold' }}>{label}</span>
-        {isLocked && (
-          <span style={{
-            fontSize: '9px',
-            padding: '1px 4px',
-            background: 'rgba(239, 68, 68, 0.2)',
-            borderRadius: '3px',
-            color: '#ef4444',
-          }}>
-            🔒 Lv{tier}
-          </span>
-        )}
+        <span style={{
+          fontSize: '9px',
+          padding: '1px 4px',
+          background: isLocked ? 'rgba(239, 68, 68, 0.2)' : 'rgba(71, 85, 105, 0.3)',
+          borderRadius: '3px',
+          color: isLocked ? '#ef4444' : '#9ca3af',
+        }}>
+          {isLocked ? '🔒 ' : '✓ '}{requirement}
+        </span>
+        <span style={{ fontSize: '9px', color: '#6b7280' }}>검⚔ vs 총🔫</span>
       </div>
 
       {/* 노드 가로 그리드 */}
@@ -739,6 +744,7 @@ function TraitEthosSection({
 function BaseItemRow({
   tier,
   label,
+  requirement,
   items,
   type,
   growth,
@@ -748,6 +754,7 @@ function BaseItemRow({
 }: {
   tier: number;
   label: string;
+  requirement: string;
   items: (Ethos | Pathos)[];
   type: 'ethos' | 'pathos';
   growth: typeof initialGrowthState;
@@ -764,8 +771,24 @@ function BaseItemRow({
 
   return (
     <div style={{ marginBottom: '16px', opacity: isLocked ? 0.5 : 1 }}>
-      <div style={{ fontSize: '12px', color: colors.text, marginBottom: '6px' }}>
-        {label} {isLocked && `(Lv${tier} 필요)`} {isFreeBase && !isLocked && '(무료)'}
+      <div style={{
+        fontSize: '11px',
+        color: colors.text,
+        marginBottom: '6px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '6px',
+      }}>
+        <span style={{ fontWeight: 'bold' }}>{label}</span>
+        <span style={{
+          fontSize: '9px',
+          padding: '1px 4px',
+          background: isLocked ? 'rgba(239, 68, 68, 0.2)' : 'rgba(71, 85, 105, 0.3)',
+          borderRadius: '3px',
+          color: isLocked ? '#ef4444' : '#9ca3af',
+        }}>
+          {isLocked ? '🔒 ' : '✓ '}{requirement}
+        </span>
       </div>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', justifyContent: 'center' }}>
         {items.map(item => {
