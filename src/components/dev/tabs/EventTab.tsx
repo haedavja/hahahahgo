@@ -3,33 +3,37 @@
  * 이벤트 관리 탭
  */
 
-import { useState, ChangeEvent } from 'react';
+import { useState, useMemo, useCallback, memo, ChangeEvent } from 'react';
 import { useGameStore } from '../../../state/gameStore';
 import { NEW_EVENT_LIBRARY } from '../../../data/newEvents';
 import type { EventDefinition, EventInfo } from '../../../types';
 
-export function EventTab() {
+export const EventTab = memo(function EventTab() {
   const [searchTerm, setSearchTerm] = useState<string>('');
   // 셀렉터 사용으로 불필요한 리렌더링 방지
   const devTriggerEvent = useGameStore((state) => state.devTriggerEvent);
 
-  // 모든 이벤트를 배열로 변환
-  const allEvents: EventInfo[] = Object.entries(NEW_EVENT_LIBRARY as Record<string, EventDefinition>).map(([id, definition]) => ({
-    id,
-    title: definition.title || id,
-    description: definition.description || '',
-    multiStage: definition.multiStage || false,
-  }));
+  // 모든 이벤트를 배열로 변환 (메모이제이션)
+  const allEvents = useMemo<EventInfo[]>(() =>
+    Object.entries(NEW_EVENT_LIBRARY as Record<string, EventDefinition>).map(([id, definition]) => ({
+      id,
+      title: definition.title || id,
+      description: definition.description || '',
+      multiStage: definition.multiStage || false,
+    })), []);
 
-  // 검색어로 필터링
-  const filteredEvents = allEvents.filter((event) => {
-    const term = searchTerm.toLowerCase();
-    return (
-      event.id.toLowerCase().includes(term) ||
-      event.title.toLowerCase().includes(term) ||
-      event.description.toLowerCase().includes(term)
-    );
-  });
+  // 검색어로 필터링 (메모이제이션)
+  const filteredEvents = useMemo(() =>
+    allEvents.filter((event) => {
+      const term = searchTerm.toLowerCase();
+      return (
+        event.id.toLowerCase().includes(term) ||
+        event.title.toLowerCase().includes(term) ||
+        event.description.toLowerCase().includes(term)
+      );
+    }), [allEvents, searchTerm]);
+
+  const handleSearchChange = useCallback((e: ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value), []);
 
   return (
     <div>
@@ -41,7 +45,7 @@ export function EventTab() {
           type="text"
           placeholder="이벤트 ID 또는 제목으로 검색..."
           value={searchTerm}
-          onChange={(e: ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
+          onChange={handleSearchChange}
           style={{
             width: '100%',
             padding: '10px 12px',
@@ -168,4 +172,4 @@ export function EventTab() {
       </div>
     </div>
   );
-}
+});

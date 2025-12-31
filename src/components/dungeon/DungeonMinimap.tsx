@@ -2,7 +2,7 @@
  * 던전 미니맵 컴포넌트
  * 메트로배니아 스타일 던전 탐색을 위한 미니맵
  */
-import React, { useMemo } from 'react';
+import React, { useMemo, useCallback, memo } from 'react';
 import { DUNGEON_NODE_TYPES, CONNECTION_TYPES } from '../../data/dungeonNodes';
 
 interface DungeonConnection {
@@ -68,7 +68,7 @@ const NODE_ICONS = {
   [DUNGEON_NODE_TYPES.BOSS]: '☠',
 };
 
-export function DungeonMinimap({ dungeonState, onNodeClick, playerStats }: DungeonMinimapProps) {
+export const DungeonMinimap = memo(function DungeonMinimap({ dungeonState, onNodeClick, playerStats }: DungeonMinimapProps) {
   if (!dungeonState?.nodes || !dungeonState?.connections) {
     return null;
   }
@@ -96,7 +96,7 @@ export function DungeonMinimap({ dungeonState, onNodeClick, playerStats }: Dunge
   }, [nodes, discoveredHidden]);
 
   // 연결선 렌더링
-  const renderConnections = () => {
+  const renderConnections = useCallback(() => {
     const lines: React.ReactElement[] = [];
     const cellSize = 50;
     const offsetX = -bounds.minX;
@@ -164,10 +164,10 @@ export function DungeonMinimap({ dungeonState, onNodeClick, playerStats }: Dunge
     });
 
     return lines;
-  };
+  }, [nodes, connections, bounds, discoveredHidden, unlockedShortcuts]);
 
   // 노드 렌더링
-  const renderNodes = () => {
+  const renderNodes = useCallback(() => {
     const cellSize = 50;
     const nodeSize = 32;
     const offsetX = -bounds.minX;
@@ -248,7 +248,7 @@ export function DungeonMinimap({ dungeonState, onNodeClick, playerStats }: Dunge
         </g>
       );
     });
-  };
+  }, [nodes, bounds, currentNodeId, discoveredHidden, onNodeClick]);
 
   // SVG 크기 계산
   const cellSize = 50;
@@ -304,9 +304,9 @@ export function DungeonMinimap({ dungeonState, onNodeClick, playerStats }: Dunge
       </div>
     </div>
   );
-}
+});
 
-function LegendItem({ color, label, dashed }: LegendItemProps) {
+const LegendItem = memo(function LegendItem({ color, label, dashed }: LegendItemProps) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
       <div style={{
@@ -321,6 +321,6 @@ function LegendItem({ color, label, dashed }: LegendItemProps) {
       <span style={{ color: '#94a3b8', fontSize: '10px' }}>{label}</span>
     </div>
   );
-}
+});
 
 export default DungeonMinimap;

@@ -3,7 +3,7 @@
  * 전투 관리 탭
  */
 
-import { useState, useEffect, ChangeEvent } from 'react';
+import { useState, useEffect, useCallback, useMemo, memo, ChangeEvent } from 'react';
 import { ANOMALY_TYPES } from '../../../data/anomalies';
 import { ENEMY_GROUPS, ENEMIES } from '../../battle/battleData';
 import type {
@@ -12,6 +12,17 @@ import type {
   ActiveBattle,
   EnemyGroup,
 } from '../../../types';
+
+// 스타일 상수
+const STYLES = {
+  sectionHeader: { marginTop: 0, color: '#fbbf24', fontSize: '1.125rem' } as const,
+  sectionBox: { padding: '16px', background: '#0f172a', borderRadius: '8px', marginBottom: '20px' } as const,
+  label: { display: 'block', marginBottom: '8px', fontSize: '0.875rem', color: '#cbd5e1' } as const,
+  inputRow: { display: 'flex', gap: '8px', alignItems: 'center' } as const,
+  input: { flex: 1, padding: '8px', background: '#1e293b', border: '1px solid #334155', borderRadius: '6px', color: '#cbd5e1', fontSize: '0.875rem' } as const,
+  button: { padding: '8px 16px', background: '#3b82f6', border: 'none', borderRadius: '6px', color: '#fff', fontSize: '0.875rem', fontWeight: 'bold', cursor: 'pointer' } as const,
+  hint: { fontSize: '0.75rem', color: '#64748b', marginTop: '4px' } as const,
+} as const;
 
 interface Enemy {
   id: string;
@@ -37,7 +48,7 @@ interface BattleTabProps {
   devStartBattle?: (groupId: string) => void;
 }
 
-export function BattleTab({
+export const BattleTab = memo(function BattleTab({
   activeBattle,
   playerStrength,
   playerAgility,
@@ -73,9 +84,29 @@ export function BattleTab({
     setInsightInput(playerInsight || 0);
   }, [playerInsight]);
 
-  const anomalyTypes = ANOMALY_TYPES as Record<string, Anomaly>;
-  const enemyGroups = ENEMY_GROUPS as EnemyGroup[];
-  const enemies = ENEMIES as Enemy[];
+  const anomalyTypes = useMemo(() => ANOMALY_TYPES as Record<string, Anomaly>, []);
+  const enemyGroups = useMemo(() => ENEMY_GROUPS as EnemyGroup[], []);
+  const enemies = useMemo(() => ENEMIES as Enemy[], []);
+
+  // 핸들러 메모이제이션
+  const handleApplyStrength = useCallback(() => updatePlayerStrength(strengthInput), [strengthInput, updatePlayerStrength]);
+  const handleApplyAgility = useCallback(() => updatePlayerAgility(agilityInput), [agilityInput, updatePlayerAgility]);
+  const handleApplyInsight = useCallback(() => updatePlayerInsight(insightInput), [insightInput, updatePlayerInsight]);
+  const handleApplyDulled = useCallback(() => setDevDulledLevel(dulledInput), [dulledInput, setDevDulledLevel]);
+  const handleClearDulled = useCallback(() => { setDevDulledLevel(null); setDulledInput(0); }, [setDevDulledLevel]);
+
+  const handleApplyAnomalies = useCallback(() => {
+    const forcedAnomalies = Object.entries(selectedAnomalies)
+      .filter(([, selected]) => selected)
+      .map(([id]) => ({ anomalyId: id, level: anomalyLevels[id] || 1 }));
+    setDevForcedAnomalies(forcedAnomalies.length > 0 ? forcedAnomalies : null);
+  }, [selectedAnomalies, anomalyLevels, setDevForcedAnomalies]);
+
+  const handleClearAnomalies = useCallback(() => {
+    setDevForcedAnomalies(null);
+    setSelectedAnomalies({});
+    setAnomalyLevels({});
+  }, [setDevForcedAnomalies]);
 
   return (
     <div>
@@ -105,7 +136,7 @@ export function BattleTab({
                 borderRadius: '6px', color: '#cbd5e1', fontSize: '0.875rem',
               }}
             />
-            <button onClick={() => updatePlayerStrength(strengthInput)} style={{
+            <button onClick={handleApplyStrength} style={{
               padding: '8px 16px', background: '#3b82f6', border: 'none', borderRadius: '6px',
               color: '#fff', fontSize: '0.875rem', fontWeight: 'bold', cursor: 'pointer',
             }}>설정</button>
@@ -129,7 +160,7 @@ export function BattleTab({
                 borderRadius: '6px', color: '#cbd5e1', fontSize: '0.875rem',
               }}
             />
-            <button onClick={() => updatePlayerAgility(agilityInput)} style={{
+            <button onClick={handleApplyAgility} style={{
               padding: '8px 16px', background: '#3b82f6', border: 'none', borderRadius: '6px',
               color: '#fff', fontSize: '0.875rem', fontWeight: 'bold', cursor: 'pointer',
             }}>설정</button>
@@ -156,7 +187,7 @@ export function BattleTab({
                 borderRadius: '6px', color: '#cbd5e1', fontSize: '0.875rem',
               }}
             />
-            <button onClick={() => updatePlayerInsight(insightInput)} style={{
+            <button onClick={handleApplyInsight} style={{
               padding: '8px 16px', background: '#3b82f6', border: 'none', borderRadius: '6px',
               color: '#fff', fontSize: '0.875rem', fontWeight: 'bold', cursor: 'pointer',
             }}>설정</button>
@@ -190,11 +221,11 @@ export function BattleTab({
                 borderRadius: '6px', color: '#cbd5e1', fontSize: '0.875rem',
               }}
             />
-            <button onClick={() => setDevDulledLevel(dulledInput)} style={{
+            <button onClick={handleApplyDulled} style={{
               padding: '8px 16px', background: '#a78bfa', border: 'none', borderRadius: '6px',
               color: '#fff', fontSize: '0.875rem', fontWeight: 'bold', cursor: 'pointer',
             }}>적용</button>
-            <button onClick={() => { setDevDulledLevel(null); setDulledInput(0); }} style={{
+            <button onClick={handleClearDulled} style={{
               padding: '8px 16px', background: '#334155', border: 'none', borderRadius: '6px',
               color: '#e2e8f0', fontSize: '0.875rem', fontWeight: 'bold', cursor: 'pointer',
             }}>해제</button>
@@ -300,12 +331,7 @@ export function BattleTab({
 
         <div style={{ display: 'flex', gap: '8px', marginTop: '16px' }}>
           <button
-            onClick={() => {
-              const forcedAnomalies = Object.entries(selectedAnomalies)
-                .filter(([id, selected]) => selected)
-                .map(([id]) => ({ anomalyId: id, level: anomalyLevels[id] || 1 }));
-              setDevForcedAnomalies(forcedAnomalies.length > 0 ? forcedAnomalies : null);
-            }}
+            onClick={handleApplyAnomalies}
             style={{
               flex: 1, padding: '10px', background: '#ef4444', border: 'none', borderRadius: '6px',
               color: '#fff', fontSize: '0.875rem', fontWeight: 'bold', cursor: 'pointer',
@@ -314,7 +340,7 @@ export function BattleTab({
             적용
           </button>
           <button
-            onClick={() => { setDevForcedAnomalies(null); setSelectedAnomalies({}); setAnomalyLevels({}); }}
+            onClick={handleClearAnomalies}
             style={{
               flex: 1, padding: '10px', background: '#334155', border: 'none', borderRadius: '6px',
               color: '#e2e8f0', fontSize: '0.875rem', fontWeight: 'bold', cursor: 'pointer',
@@ -430,4 +456,4 @@ export function BattleTab({
       )}
     </div>
   );
-}
+});

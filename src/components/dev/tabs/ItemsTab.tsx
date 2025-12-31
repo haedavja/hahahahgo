@@ -3,9 +3,13 @@
  * 아이템 관리 탭
  */
 
-import { useState } from 'react';
+import { useState, useMemo, useCallback, memo } from 'react';
 import { ITEMS } from '../../../data/items';
 import type { DevItem as Item } from '../../../types';
+
+// 스타일 상수
+const USABLE_LABELS: Record<string, string> = { 'combat': '전투용', 'any': '범용' };
+const TIER_COLORS: Record<number, string> = { 1: '#94a3b8', 2: '#fbbf24' };
 
 interface ItemsTabProps {
   items: (Item | null)[];
@@ -14,23 +18,23 @@ interface ItemsTabProps {
   devSetItems: (items: (string | null)[]) => void;
 }
 
-export function ItemsTab({ items, addItem, removeItem, devSetItems }: ItemsTabProps) {
+export const ItemsTab = memo(function ItemsTab({ items, addItem, removeItem, devSetItems }: ItemsTabProps) {
   const [selectedTier, setSelectedTier] = useState<string>('all');
 
-  const allItems = Object.values(ITEMS) as Item[];
-  const filteredItems = selectedTier === 'all'
-    ? allItems
-    : allItems.filter(item => item.tier === parseInt(selectedTier));
+  const allItems = useMemo(() => Object.values(ITEMS) as Item[], []);
+  const filteredItems = useMemo(() =>
+    selectedTier === 'all'
+      ? allItems
+      : allItems.filter(item => item.tier === parseInt(selectedTier)),
+    [allItems, selectedTier]);
 
-  const usableLabels: Record<string, string> = {
-    'combat': '전투용',
-    'any': '범용',
-  };
-
-  const tierColors: Record<number, string> = {
-    1: '#94a3b8',
-    2: '#fbbf24',
-  };
+  // 핸들러
+  const handleClearAll = useCallback(() => devSetItems([null, null, null]), [devSetItems]);
+  const handleTestSmall = useCallback(() => devSetItems(['healing-potion-small', 'explosive-small', 'strength-boost-small']), [devSetItems]);
+  const handleTestLarge = useCallback(() => devSetItems(['healing-potion-large', 'explosive-large', 'strength-boost-large']), [devSetItems]);
+  const handleSelectAll = useCallback(() => setSelectedTier('all'), []);
+  const handleSelectTier1 = useCallback(() => setSelectedTier('1'), []);
+  const handleSelectTier2 = useCallback(() => setSelectedTier('2'), []);
 
   return (
     <div>
@@ -81,7 +85,7 @@ export function ItemsTab({ items, addItem, removeItem, devSetItems }: ItemsTabPr
         </div>
         <div style={{ marginTop: '12px', display: 'flex', gap: '8px' }}>
           <button
-            onClick={() => devSetItems([null, null, null])}
+            onClick={handleClearAll}
             style={{
               padding: '8px 12px',
               background: '#ef4444',
@@ -96,7 +100,7 @@ export function ItemsTab({ items, addItem, removeItem, devSetItems }: ItemsTabPr
             전체 제거
           </button>
           <button
-            onClick={() => devSetItems(['healing-potion-small', 'explosive-small', 'strength-boost-small'])}
+            onClick={handleTestSmall}
             style={{
               padding: '8px 12px',
               background: '#3b82f6',
@@ -111,7 +115,7 @@ export function ItemsTab({ items, addItem, removeItem, devSetItems }: ItemsTabPr
             테스트 (소형 3개)
           </button>
           <button
-            onClick={() => devSetItems(['healing-potion-large', 'explosive-large', 'strength-boost-large'])}
+            onClick={handleTestLarge}
             style={{
               padding: '8px 12px',
               background: '#f59e0b',
@@ -131,7 +135,7 @@ export function ItemsTab({ items, addItem, removeItem, devSetItems }: ItemsTabPr
       {/* 등급 필터 */}
       <div style={{ marginBottom: '12px', display: 'flex', gap: '6px' }}>
         <button
-          onClick={() => setSelectedTier('all')}
+          onClick={handleSelectAll}
           style={{
             padding: '6px 12px',
             background: selectedTier === 'all' ? '#3b82f6' : '#1e293b',
@@ -146,13 +150,13 @@ export function ItemsTab({ items, addItem, removeItem, devSetItems }: ItemsTabPr
           전체
         </button>
         <button
-          onClick={() => setSelectedTier('1')}
+          onClick={handleSelectTier1}
           style={{
             padding: '6px 12px',
-            background: selectedTier === '1' ? tierColors[1] : '#1e293b',
-            border: `1px solid ${tierColors[1]}`,
+            background: selectedTier === '1' ? TIER_COLORS[1] : '#1e293b',
+            border: `1px solid ${TIER_COLORS[1]}`,
             borderRadius: '6px',
-            color: selectedTier === '1' ? '#000' : tierColors[1],
+            color: selectedTier === '1' ? '#000' : TIER_COLORS[1],
             fontSize: '0.75rem',
             cursor: 'pointer',
             fontWeight: 600,
@@ -161,13 +165,13 @@ export function ItemsTab({ items, addItem, removeItem, devSetItems }: ItemsTabPr
           소형 (1티어)
         </button>
         <button
-          onClick={() => setSelectedTier('2')}
+          onClick={handleSelectTier2}
           style={{
             padding: '6px 12px',
-            background: selectedTier === '2' ? tierColors[2] : '#1e293b',
-            border: `1px solid ${tierColors[2]}`,
+            background: selectedTier === '2' ? TIER_COLORS[2] : '#1e293b',
+            border: `1px solid ${TIER_COLORS[2]}`,
             borderRadius: '6px',
-            color: selectedTier === '2' ? '#000' : tierColors[2],
+            color: selectedTier === '2' ? '#000' : TIER_COLORS[2],
             fontSize: '0.75rem',
             cursor: 'pointer',
             fontWeight: 600,
@@ -195,7 +199,7 @@ export function ItemsTab({ items, addItem, removeItem, devSetItems }: ItemsTabPr
                 padding: '10px',
                 marginBottom: '6px',
                 background: hasEmptySlot ? 'rgba(30, 41, 59, 0.5)' : 'rgba(30, 41, 59, 0.2)',
-                border: `1px solid ${tierColors[item.tier ?? 1]}`,
+                border: `1px solid ${TIER_COLORS[item.tier ?? 1]}`,
                 borderRadius: '6px',
                 cursor: hasEmptySlot ? 'pointer' : 'not-allowed',
                 opacity: hasEmptySlot ? 1 : 0.5,
@@ -206,7 +210,7 @@ export function ItemsTab({ items, addItem, removeItem, devSetItems }: ItemsTabPr
                 <div style={{
                   fontWeight: 600,
                   fontSize: '0.875rem',
-                  color: tierColors[item.tier ?? 1],
+                  color: TIER_COLORS[item.tier ?? 1],
                   display: 'flex',
                   alignItems: 'center',
                   gap: '6px',
@@ -221,7 +225,7 @@ export function ItemsTab({ items, addItem, removeItem, devSetItems }: ItemsTabPr
                   padding: '2px 6px',
                   borderRadius: '4px',
                 }}>
-                  {usableLabels[item.usableIn]}
+                  {USABLE_LABELS[item.usableIn]}
                 </div>
               </div>
               <div style={{ fontSize: '0.75rem', color: '#94a3b8', lineHeight: 1.4 }}>
@@ -233,4 +237,4 @@ export function ItemsTab({ items, addItem, removeItem, devSetItems }: ItemsTabPr
       </div>
     </div>
   );
-}
+});

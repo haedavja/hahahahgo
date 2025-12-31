@@ -3,9 +3,23 @@
  * 상징 관리 탭
  */
 
-import { useState, ChangeEvent } from 'react';
+import { useState, useMemo, useCallback, memo, ChangeEvent } from 'react';
 import { getAllRelics, RELIC_RARITIES } from '../../../data/relics';
 import type { DevRelicData as Relic } from '../../../types';
+
+// 스타일 상수
+const RARITY_COLORS: Record<string, string> = {
+  [RELIC_RARITIES.COMMON]: '#94a3b8',
+  [RELIC_RARITIES.RARE]: '#60a5fa',
+  [RELIC_RARITIES.SPECIAL]: '#a78bfa',
+  [RELIC_RARITIES.LEGENDARY]: '#fbbf24',
+};
+const RARITY_NAMES: Record<string, string> = {
+  [RELIC_RARITIES.COMMON]: '일반',
+  [RELIC_RARITIES.RARE]: '희귀',
+  [RELIC_RARITIES.SPECIAL]: '특별',
+  [RELIC_RARITIES.LEGENDARY]: '전설',
+};
 
 interface RelicsTabProps {
   relics: string[];
@@ -14,12 +28,12 @@ interface RelicsTabProps {
   setRelics: (relics: string[]) => void;
 }
 
-export function RelicsTab({ relics, addRelic, removeRelic, setRelics }: RelicsTabProps) {
+export const RelicsTab = memo(function RelicsTab({ relics, addRelic, removeRelic, setRelics }: RelicsTabProps) {
   const [selectedRarity, setSelectedRarity] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const allRelics = getAllRelics() as Relic[];
+  const allRelics = useMemo(() => getAllRelics() as Relic[], []);
 
-  const filteredRelics = allRelics.filter(r => {
+  const filteredRelics = useMemo(() => allRelics.filter(r => {
     // 등급 필터
     const matchesRarity = selectedRarity === 'all' || r.rarity === selectedRarity;
     // 검색 필터 (이름, 설명, 태그)
@@ -30,23 +44,18 @@ export function RelicsTab({ relics, addRelic, removeRelic, setRelics }: RelicsTa
       r.id.toLowerCase().includes(query) ||
       (r.tags && r.tags.some(tag => tag.toLowerCase().includes(query)));
     return matchesRarity && matchesSearch;
-  });
+  }), [allRelics, selectedRarity, searchQuery]);
 
-  const hasRelic = (relicId: string): boolean => relics.includes(relicId);
+  const hasRelic = useCallback((relicId: string): boolean => relics.includes(relicId), [relics]);
 
-  const rarityColors: Record<string, string> = {
-    [RELIC_RARITIES.COMMON]: '#94a3b8',
-    [RELIC_RARITIES.RARE]: '#60a5fa',
-    [RELIC_RARITIES.SPECIAL]: '#a78bfa',
-    [RELIC_RARITIES.LEGENDARY]: '#fbbf24',
-  };
-
-  const rarityNames: Record<string, string> = {
-    [RELIC_RARITIES.COMMON]: '일반',
-    [RELIC_RARITIES.RARE]: '희귀',
-    [RELIC_RARITIES.SPECIAL]: '특별',
-    [RELIC_RARITIES.LEGENDARY]: '전설',
-  };
+  // 핸들러
+  const handleClearAll = useCallback(() => setRelics([]), [setRelics]);
+  const handleTestCommon = useCallback(() => {
+    const commonRelics = allRelics.filter(r => r.rarity === RELIC_RARITIES.COMMON).map(r => r.id);
+    setRelics(commonRelics.slice(0, 3));
+  }, [allRelics, setRelics]);
+  const handleSearchChange = useCallback((e: ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value), []);
+  const handleSelectAll = useCallback(() => setSelectedRarity('all'), []);
 
   return (
     <div>
@@ -95,7 +104,7 @@ export function RelicsTab({ relics, addRelic, removeRelic, setRelics }: RelicsTa
         )}
         <div style={{ marginTop: '12px', display: 'flex', gap: '8px' }}>
           <button
-            onClick={() => setRelics([])}
+            onClick={handleClearAll}
             style={{
               padding: '8px 12px',
               background: '#ef4444',
@@ -110,10 +119,7 @@ export function RelicsTab({ relics, addRelic, removeRelic, setRelics }: RelicsTa
             전체 제거
           </button>
           <button
-            onClick={() => {
-              const commonRelics = allRelics.filter(r => r.rarity === RELIC_RARITIES.COMMON).map(r => r.id);
-              setRelics(commonRelics.slice(0, 3));
-            }}
+            onClick={handleTestCommon}
             style={{
               padding: '8px 12px',
               background: '#3b82f6',
@@ -135,7 +141,7 @@ export function RelicsTab({ relics, addRelic, removeRelic, setRelics }: RelicsTa
         <input
           type="text"
           value={searchQuery}
-          onChange={(e: ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
+          onChange={handleSearchChange}
           placeholder="상징 검색 (이름, 설명, 태그, ID)"
           style={{
             width: '100%',
@@ -159,7 +165,7 @@ export function RelicsTab({ relics, addRelic, removeRelic, setRelics }: RelicsTa
       {/* 등급 필터 */}
       <div style={{ marginBottom: '12px', display: 'flex', gap: '6px' }}>
         <button
-          onClick={() => setSelectedRarity('all')}
+          onClick={handleSelectAll}
           style={{
             padding: '6px 12px',
             background: selectedRarity === 'all' ? '#3b82f6' : '#1e293b',
@@ -179,16 +185,16 @@ export function RelicsTab({ relics, addRelic, removeRelic, setRelics }: RelicsTa
             onClick={() => setSelectedRarity(value)}
             style={{
               padding: '6px 12px',
-              background: selectedRarity === value ? rarityColors[value] : '#1e293b',
-              border: `1px solid ${rarityColors[value]}`,
+              background: selectedRarity === value ? RARITY_COLORS[value] : '#1e293b',
+              border: `1px solid ${RARITY_COLORS[value]}`,
               borderRadius: '6px',
-              color: selectedRarity === value ? '#000' : rarityColors[value],
+              color: selectedRarity === value ? '#000' : RARITY_COLORS[value],
               fontSize: '0.75rem',
               cursor: 'pointer',
               fontWeight: 600,
             }}
           >
-            {rarityNames[value]}
+            {RARITY_NAMES[value]}
           </button>
         ))}
       </div>
@@ -211,7 +217,7 @@ export function RelicsTab({ relics, addRelic, removeRelic, setRelics }: RelicsTa
                 padding: '10px',
                 marginBottom: '6px',
                 background: owned ? 'rgba(34, 197, 94, 0.15)' : 'rgba(30, 41, 59, 0.5)',
-                border: `1px solid ${owned ? '#22c55e' : rarityColors[relic.rarity]}`,
+                border: `1px solid ${owned ? '#22c55e' : RARITY_COLORS[relic.rarity]}`,
                 borderRadius: '6px',
                 cursor: 'pointer',
                 transition: 'all 0.15s',
@@ -221,13 +227,13 @@ export function RelicsTab({ relics, addRelic, removeRelic, setRelics }: RelicsTa
                 <div style={{
                   fontWeight: 600,
                   fontSize: '0.875rem',
-                  color: rarityColors[relic.rarity],
+                  color: RARITY_COLORS[relic.rarity],
                 }}>
                   {relic.name}
                   {owned && <span style={{ color: '#22c55e', marginLeft: '6px' }}>✓</span>}
                 </div>
                 <div style={{ fontSize: '0.7rem', color: '#64748b' }}>
-                  {rarityNames[relic.rarity]}
+                  {RARITY_NAMES[relic.rarity]}
                 </div>
               </div>
               <div style={{ fontSize: '0.75rem', color: '#94a3b8', lineHeight: 1.4 }}>
@@ -239,4 +245,4 @@ export function RelicsTab({ relics, addRelic, removeRelic, setRelics }: RelicsTa
       </div>
     </div>
   );
-}
+});

@@ -3,11 +3,20 @@
  * 카드 관리 탭
  */
 
-import { useState, ChangeEvent } from 'react';
+import { useState, useCallback, useMemo, memo, ChangeEvent } from 'react';
 import { CARDS } from '../../battle/battleData';
 import type { CardsTabCard as Card, CardsTabCharacterBuild as CharacterBuild } from '../../../types';
 import type { CardGrowthState } from '../../../state/slices/types';
 import { CardGrowthModal } from '../../map/ui/CardGrowthModal';
+
+// 스타일 상수
+const RARITY_COLORS: Record<string, string> = { common: '#94a3b8', rare: '#60a5fa', special: '#a78bfa', legendary: '#fbbf24' };
+
+const CARD_BADGE_STYLE = {
+  main: { padding: '4px 10px', background: 'rgba(245, 215, 110, 0.15)', border: '1px solid #f5d76e', borderRadius: '6px', color: '#f5d76e', fontSize: '0.75rem', cursor: 'pointer' },
+  sub: { padding: '4px 10px', background: 'rgba(125, 211, 252, 0.15)', border: '1px solid #7dd3fc', borderRadius: '6px', color: '#7dd3fc', fontSize: '0.75rem', cursor: 'pointer' },
+  owned: { padding: '4px 10px', background: 'rgba(167, 139, 250, 0.15)', border: '1px solid #a78bfa', borderRadius: '6px', color: '#a78bfa', fontSize: '0.75rem', cursor: 'pointer' },
+} as const;
 
 interface CardsTabProps {
   cardUpgrades?: Record<string, string>;
@@ -24,18 +33,18 @@ interface CardsTabProps {
   specializeCard: (cardId: string, selectedTraits: string[]) => void;
 }
 
-export function CardsTab({ cardUpgrades, upgradeCardRarity, characterBuild, updateCharacterBuild, addOwnedCard, removeOwnedCard, clearOwnedCards, showAllCards, setShowAllCards, cardGrowth, enhanceCard, specializeCard }: CardsTabProps) {
+export const CardsTab = memo(function CardsTab({ cardUpgrades, upgradeCardRarity, characterBuild, updateCharacterBuild, addOwnedCard, removeOwnedCard, clearOwnedCards, showAllCards, setShowAllCards, cardGrowth, enhanceCard, specializeCard }: CardsTabProps) {
   const [selectedCardId, setSelectedCardId] = useState<string>((CARDS as Card[])[0]?.id || '');
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [specialMode, setSpecialMode] = useState<'main' | 'sub' | 'owned'>('main');
   const [showCardGrowthModal, setShowCardGrowthModal] = useState(false);
 
-  const mainSpecials = characterBuild?.mainSpecials || [];
-  const subSpecials = characterBuild?.subSpecials || [];
-  const ownedCards = characterBuild?.ownedCards || [];
+  const mainSpecials = useMemo(() => characterBuild?.mainSpecials || [], [characterBuild?.mainSpecials]);
+  const subSpecials = useMemo(() => characterBuild?.subSpecials || [], [characterBuild?.subSpecials]);
+  const ownedCards = useMemo(() => characterBuild?.ownedCards || [], [characterBuild?.ownedCards]);
 
   // 카드 추가
-  const addCard = (cardId: string) => {
+  const addCard = useCallback((cardId: string) => {
     if (specialMode === 'main') {
       updateCharacterBuild([...mainSpecials, cardId], subSpecials);
     } else if (specialMode === 'sub') {
@@ -43,10 +52,10 @@ export function CardsTab({ cardUpgrades, upgradeCardRarity, characterBuild, upda
     } else {
       addOwnedCard(cardId);
     }
-  };
+  }, [specialMode, mainSpecials, subSpecials, updateCharacterBuild, addOwnedCard]);
 
   // 카드 제거 (마지막 하나)
-  const removeCard = (cardId: string, fromMain: boolean) => {
+  const removeCard = useCallback((cardId: string, fromMain: boolean) => {
     if (fromMain) {
       const idx = mainSpecials.lastIndexOf(cardId);
       if (idx !== -1) {
@@ -60,10 +69,10 @@ export function CardsTab({ cardUpgrades, upgradeCardRarity, characterBuild, upda
         updateCharacterBuild(mainSpecials, newSub);
       }
     }
-  };
+  }, [mainSpecials, subSpecials, updateCharacterBuild]);
 
   // 전체 초기화
-  const clearAll = () => {
+  const clearAll = useCallback(() => {
     if (specialMode === 'main') {
       updateCharacterBuild([], subSpecials);
     } else if (specialMode === 'sub') {
@@ -71,18 +80,22 @@ export function CardsTab({ cardUpgrades, upgradeCardRarity, characterBuild, upda
     } else {
       clearOwnedCards();
     }
-  };
+  }, [specialMode, mainSpecials, subSpecials, updateCharacterBuild, clearOwnedCards]);
 
   // 검색 필터
-  const filteredCards = (CARDS as Card[]).filter(c =>
-    c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    c.id.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredCards = useMemo(() =>
+    (CARDS as Card[]).filter(c =>
+      c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      c.id.toLowerCase().includes(searchTerm.toLowerCase())
+    ), [searchTerm]);
 
   // 카드 개수 카운트
-  const getCount = (cardId: string, list: string[]): number => list.filter(id => id === cardId).length;
+  const getCount = useCallback((cardId: string, list: string[]): number => list.filter(id => id === cardId).length, []);
 
-  const rarityColors: Record<string, string> = { common: '#94a3b8', rare: '#60a5fa', special: '#a78bfa', legendary: '#fbbf24' };
+  // 핸들러
+  const handleOpenCardGrowthModal = useCallback(() => setShowCardGrowthModal(true), []);
+  const handleCloseCardGrowthModal = useCallback(() => setShowCardGrowthModal(false), []);
+  const handleUpgradeCard = useCallback(() => upgradeCardRarity(selectedCardId), [selectedCardId, upgradeCardRarity]);
 
   return (
     <div>
@@ -304,7 +317,7 @@ export function CardsTab({ cardUpgrades, upgradeCardRarity, characterBuild, upda
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
-                  <span style={{ fontWeight: 600, color: rarityColors[rarity], marginRight: '8px' }}>
+                  <span style={{ fontWeight: 600, color: RARITY_COLORS[rarity], marginRight: '8px' }}>
                     {card.name}
                   </span>
                   <span style={{ fontSize: '0.7rem', color: '#64748b' }}>
@@ -407,7 +420,7 @@ export function CardsTab({ cardUpgrades, upgradeCardRarity, characterBuild, upda
           })}
         </select>
         <button
-          onClick={() => upgradeCardRarity(selectedCardId)}
+          onClick={handleUpgradeCard}
           style={{
             padding: '8px 12px',
             background: '#10b981',
@@ -436,7 +449,7 @@ export function CardsTab({ cardUpgrades, upgradeCardRarity, characterBuild, upda
           강화로 카드 스탯을 높이고, 특화로 특성을 부여하세요.
         </p>
         <button
-          onClick={() => setShowCardGrowthModal(true)}
+          onClick={handleOpenCardGrowthModal}
           style={{
             width: '100%',
             padding: '12px',
@@ -456,7 +469,7 @@ export function CardsTab({ cardUpgrades, upgradeCardRarity, characterBuild, upda
       {/* 카드 승급 모달 */}
       <CardGrowthModal
         isOpen={showCardGrowthModal}
-        onClose={() => setShowCardGrowthModal(false)}
+        onClose={handleCloseCardGrowthModal}
         cardGrowth={cardGrowth}
         onEnhance={enhanceCard}
         onSpecialize={specializeCard}
@@ -464,4 +477,4 @@ export function CardsTab({ cardUpgrades, upgradeCardRarity, characterBuild, upda
       />
     </div>
   );
-}
+});

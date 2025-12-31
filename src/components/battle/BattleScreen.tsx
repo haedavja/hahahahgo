@@ -4,7 +4,7 @@
  * 전투 화면 컴포넌트 - 전투 페이로드 생성 및 BattleApp 렌더링
  */
 
-import { FC, useMemo, useCallback, useState, useEffect } from "react";
+import { FC, useMemo, useCallback, useState, useEffect, memo } from "react";
 import { useShallow } from 'zustand/react/shallow';
 import { useGameStore } from "../../state/gameStore";
 import { BattleApp } from "./BattleApp";
@@ -237,7 +237,7 @@ const buildBattlePayload = (
   };
 };
 
-export const BattleScreen: FC = () => {
+export const BattleScreen: FC = memo(function BattleScreen() {
   // 상태 셀렉터 (그룹화)
   const { activeBattle, playerEther, relics, maxHp, playerInsight, playerEnergyBonus, playerStrength, playerMaxSpeedBonus, itemBuffs } = useGameStore(
     useShallow((state) => ({
@@ -336,4 +336,4 @@ export const BattleScreen: FC = () => {
       <DevTools isOpen={devToolsOpen} onClose={() => setDevToolsOpen(false)} showAllCards={false} setShowAllCards={() => {}} />
     </div>
   );
-};
+});
