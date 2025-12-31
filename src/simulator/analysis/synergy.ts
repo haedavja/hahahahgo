@@ -12,6 +12,9 @@
 import type { SimulationConfig, BattleResult, SimulationSummary } from '../core/types';
 import { loadCards, loadEnemies, loadPresets, type CardData, type EnemyData } from '../data/loader';
 import type { SimulatorInterface } from './balance';
+import { getLogger } from '../core/logger';
+
+const log = getLogger('SynergyAnalyzer');
 
 // ==================== 시너지 타입 ====================
 
@@ -116,7 +119,7 @@ export class SynergyAnalyzer {
   // ==================== 기준선 설정 ====================
 
   async establishBaseline(): Promise<void> {
-    console.log('📊 기준선 승률 측정 중...');
+    log.info('기준선 승률 측정 중...');
 
     for (const cardId of Object.keys(this.cards)) {
       const deck = this.createTestDeck([cardId]);
@@ -161,7 +164,7 @@ export class SynergyAnalyzer {
     const matrix: number[][] = Array(n).fill(null).map(() => Array(n).fill(0));
     const pairs: SynergyPair[] = [];
 
-    console.log(`🔍 ${n}개 카드의 시너지 매트릭스 생성 중...`);
+    log.info('시너지 매트릭스 생성 중...', { cardCount: n });
 
     // 기준선 없으면 설정
     if (this.baselineWinRates.size === 0) {
@@ -181,7 +184,7 @@ export class SynergyAnalyzer {
 
         completed++;
         if (completed % 10 === 0) {
-          console.log(`  진행: ${completed}/${total}`);
+          log.debug('시너지 분석 진행', { completed, total });
         }
       }
     }
@@ -198,7 +201,7 @@ export class SynergyAnalyzer {
     deckSize: number = 8,
     mustInclude: string[] = []
   ): Promise<DeckRecommendation> {
-    console.log(`🎯 최적 덱 탐색 중 (크기: ${deckSize})...`);
+    log.info('최적 덱 탐색 중...', { deckSize });
 
     const allCards = Object.keys(this.cards);
     const deck = [...mustInclude];
@@ -266,7 +269,7 @@ export class SynergyAnalyzer {
     const recommendations: Record<string, DeckRecommendation> = {};
 
     for (const archetype of archetypes) {
-      console.log(`  🎴 ${archetype} 아케타입 분석...`);
+      log.debug('아케타입 분석', { archetype });
       const coreCards = this.getArchetypeCoreCards(archetype);
       const deck = await this.findOptimalDeck(8, coreCards);
       recommendations[archetype] = deck;
@@ -407,7 +410,7 @@ export class SynergyAnalyzer {
   async buildSynergyNetwork(cardIds?: string[]): Promise<SynergyNetwork> {
     const cards = cardIds || Object.keys(this.cards).slice(0, 20);
 
-    console.log(`🕸️ ${cards.length}개 카드의 시너지 네트워크 구축...`);
+    log.info('시너지 네트워크 구축 중...', { cardCount: cards.length });
 
     // 시너지 매트릭스 생성
     const matrix = await this.generateSynergyMatrix(cards);
@@ -452,7 +455,7 @@ export class SynergyAnalyzer {
     const cardIds = Object.keys(this.cards);
     const combos: MultiCardSynergy[] = [];
 
-    console.log(`🔍 ${comboSize}장 조합 탐색 중...`);
+    log.info('다중 카드 조합 탐색 중...', { comboSize });
 
     // 조합 생성 (제한된 수만)
     const maxCombos = 100; // 계산량 제한
@@ -475,7 +478,7 @@ export class SynergyAnalyzer {
           count++;
 
           if (count % 20 === 0) {
-            console.log(`  진행: ${count}/${maxCombos}`);
+            log.debug('조합 분석 진행', { count, maxCombos });
           }
         }
       }

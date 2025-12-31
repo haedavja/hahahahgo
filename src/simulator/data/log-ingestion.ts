@@ -3,6 +3,10 @@
  * @description 서버 로그 연동 프레임워크 - 실제 플레이 데이터 분석
  */
 
+import { getLogger } from '../core/logger';
+
+const log = getLogger('LogIngestion');
+
 // ==================== 타입 정의 ====================
 
 export interface GameLogEntry {
@@ -189,7 +193,7 @@ export class LogParser {
   parseLine(line: string, format: string = 'jsonl'): GameLogEntry | null {
     const parser = this.formats.get(format);
     if (!parser) {
-      console.warn(`Unknown log format: ${format}`);
+      log.warn('Unknown log format', { format });
       return null;
     }
     return parser(line.trim());
@@ -831,7 +835,7 @@ export class LogCollector {
     this.onFlush = options?.onFlush;
 
     this.flushTimer = setInterval(() => this.flush(), this.flushInterval);
-    console.log('📡 로그 수집 시작');
+    log.info('로그 수집 시작');
   }
 
   /**
@@ -843,7 +847,7 @@ export class LogCollector {
       this.flushTimer = null;
     }
     this.flush();
-    console.log('📴 로그 수집 중지');
+    log.info('로그 수집 중지');
   }
 
   /**

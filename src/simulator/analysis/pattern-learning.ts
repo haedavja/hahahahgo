@@ -14,6 +14,9 @@ import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import type { BattleResult, SimEnemyState } from '../core/types';
 import { loadEnemies } from '../data/loader';
+import { getLogger } from '../core/logger';
+
+const log = getLogger('PatternLearner');
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -81,7 +84,7 @@ export class PatternLearner {
           this.patterns.set(enemyId, p);
         }
       } catch {
-        console.warn('패턴 데이터 로드 실패');
+        log.warn('패턴 데이터 로드 실패');
       }
     }
   }

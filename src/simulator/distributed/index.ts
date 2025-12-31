@@ -673,7 +673,7 @@ export class DistributedWorker extends EventEmitter {
       this.manager.heartbeat(this.id);
     }, 5000);
 
-    console.log(`🔧 워커 시작: ${this.id}`);
+    log.info('워커 시작', { workerId: this.id });
 
     // 작업 루프
     while (this.running) {
@@ -690,7 +690,7 @@ export class DistributedWorker extends EventEmitter {
     }
 
     this.manager.unregisterWorker(this.id);
-    console.log(`⏹ 워커 중지: ${this.id}`);
+    log.info('워커 중지', { workerId: this.id });
   }
 
   private async processNextJob(): Promise<void> {
@@ -755,7 +755,7 @@ export class SimulationCluster extends EventEmitter {
     if (this.running) return;
 
     this.running = true;
-    console.log(`🚀 클러스터 시작: ${workerCount} 워커`);
+    log.info('클러스터 시작', { workerCount });
 
     // 워커 생성 및 시작
     for (let i = 0; i < workerCount; i++) {
@@ -775,7 +775,7 @@ export class SimulationCluster extends EventEmitter {
     await Promise.all(this.workers.map(w => w.stop()));
     this.workers = [];
 
-    console.log('⏹ 클러스터 중지');
+    log.info('클러스터 중지');
   }
 
   private startHealthCheck(): void {
@@ -784,7 +784,7 @@ export class SimulationCluster extends EventEmitter {
 
       const offlineWorkers = this.manager.checkWorkerHealth();
       if (offlineWorkers.length > 0) {
-        console.warn(`⚠️ 오프라인 워커: ${offlineWorkers.join(', ')}`);
+        log.warn('오프라인 워커 감지', { offlineWorkers });
       }
 
       this.manager.checkTimeouts();
