@@ -3204,7 +3204,7 @@ export function runStrategyRecommendation(enemyId: string = 'ghoul', battles: nu
 
   const testRelics = ['sturdyArmor', 'trainingBoots', 'oldCompass', 'raggedCloak', 'ironWill'];
   for (const relicId of testRelics) {
-    const relic = RELICS.find(r => r.id === relicId);
+    const relic = RELICS[relicId as keyof typeof RELICS];
     if (!relic) continue;
 
     const config: SimulationConfig = {
@@ -3832,7 +3832,7 @@ export function runCardRanking(battles: number = 20): void {
   console.log('─'.repeat(50));
 
   // 기준 덱 (스타터만)
-  const baseDeck = DECK_PRESETS.balanced;
+  const baseDeck = DECK_PRESETS.balanced.cards;
   const baseConfig: SimulationConfig = {
     battles: battles * 2,
     maxTurns: 30,
@@ -3986,12 +3986,12 @@ export function runMetaAnalysis(battles: number = 30): void {
   console.log('📊 덱 메타 분석...');
   const deckResults: Array<{ name: string; winRate: number }> = [];
 
-  for (const [name, deck] of Object.entries(DECK_PRESETS)) {
+  for (const [name, deckPreset] of Object.entries(DECK_PRESETS)) {
     const config: SimulationConfig = {
       battles,
       maxTurns: 30,
       enemyIds: [...TIER_1_ENEMIES.slice(0, 2), ...TIER_2_ENEMIES.slice(0, 2)],
-      playerDeck: deck,
+      playerDeck: deckPreset.cards,
       verbose: false,
     };
 
@@ -4170,12 +4170,12 @@ export function runDamageAnalysis(battles: number = 30): void {
 
   const results: Array<{ name: string; avgDamage: number; winRate: number }> = [];
 
-  for (const [name, deck] of Object.entries(DECK_PRESETS)) {
+  for (const [name, deckPreset] of Object.entries(DECK_PRESETS)) {
     const config: SimulationConfig = {
       battles,
       maxTurns: 30,
       enemyIds: TIER_1_ENEMIES.slice(0, 3),
-      playerDeck: deck,
+      playerDeck: deckPreset.cards,
       verbose: false,
     };
 
@@ -4238,12 +4238,12 @@ export function runHealingAnalysis(battles: number = 30): void {
 
   const results: Array<{ name: string; survivalTurns: number; winRate: number }> = [];
 
-  for (const [name, deck] of Object.entries(DECK_PRESETS)) {
+  for (const [name, deckPreset] of Object.entries(DECK_PRESETS)) {
     const config: SimulationConfig = {
       battles,
       maxTurns: 50, // 긴 전투도 허용
       enemyIds: TIER_2_ENEMIES.slice(0, 3), // 어려운 적으로 테스트
-      playerDeck: deck,
+      playerDeck: deckPreset.cards,
       verbose: false,
     };
 
@@ -4506,7 +4506,7 @@ export function runVersatilityAnalysis(battles: number = 20): void {
   const allEnemies = [...TIER_1_ENEMIES, ...TIER_2_ENEMIES, ...TIER_3_ENEMIES];
   const results: Array<{ name: string; avgWinRate: number; versatility: number; details: Record<string, number> }> = [];
 
-  for (const [name, deck] of Object.entries(DECK_PRESETS)) {
+  for (const [name, deckPreset] of Object.entries(DECK_PRESETS)) {
     const enemyWinRates: Record<string, number> = {};
 
     for (const enemyId of allEnemies.slice(0, 8)) {
@@ -4514,7 +4514,7 @@ export function runVersatilityAnalysis(battles: number = 20): void {
         battles,
         maxTurns: 30,
         enemyIds: [enemyId],
-        playerDeck: deck,
+        playerDeck: deckPreset.cards,
         verbose: false,
       };
 
@@ -4566,7 +4566,7 @@ export function runConsistencyAnalysis(trials: number = 10, battles: number = 30
 
   const results: Array<{ name: string; avgWinRate: number; stdDev: number; consistency: string }> = [];
 
-  for (const [name, deck] of Object.entries(DECK_PRESETS)) {
+  for (const [name, deckPreset] of Object.entries(DECK_PRESETS)) {
     const winRates: number[] = [];
 
     for (let i = 0; i < trials; i++) {
@@ -4574,7 +4574,7 @@ export function runConsistencyAnalysis(trials: number = 10, battles: number = 30
         battles,
         maxTurns: 30,
         enemyIds: [...TIER_1_ENEMIES.slice(0, 2), ...TIER_2_ENEMIES.slice(0, 2)],
-        playerDeck: deck,
+        playerDeck: deckPreset.cards,
         verbose: false,
       };
 
@@ -4622,12 +4622,12 @@ export function generatePatchNotes(battles: number = 30): void {
   console.log('📊 덱 밸런스 분석 중...');
   const deckResults: Array<{ name: string; winRate: number }> = [];
 
-  for (const [name, deck] of Object.entries(DECK_PRESETS)) {
+  for (const [name, deckPreset] of Object.entries(DECK_PRESETS)) {
     const config: SimulationConfig = {
       battles,
       maxTurns: 30,
       enemyIds: [...TIER_1_ENEMIES.slice(0, 2), ...TIER_2_ENEMIES.slice(0, 2)],
-      playerDeck: deck,
+      playerDeck: deckPreset.cards,
       verbose: false,
     };
 
@@ -4858,12 +4858,12 @@ export function runAITest(battles: number = 20): void {
   // 다양한 덱으로 테스트
   const results: Array<{ deck: string; winRate: number }> = [];
 
-  for (const [name, deck] of Object.entries(DECK_PRESETS)) {
+  for (const [name, deckPreset] of Object.entries(DECK_PRESETS)) {
     const config: SimulationConfig = {
       battles,
       maxTurns: 30,
       enemyIds: TIER_2_ENEMIES.slice(0, 3),
-      playerDeck: deck,
+      playerDeck: deckPreset.cards,
       verbose: false,
     };
 
@@ -5028,12 +5028,12 @@ export function runDeckBuilder(targetEnemy: string = 'ghoul', battles: number = 
   // 모든 기존 덱 테스트
   const deckResults: Array<{ name: string; winRate: number }> = [];
 
-  for (const [name, deck] of Object.entries(DECK_PRESETS)) {
+  for (const [name, deckPreset] of Object.entries(DECK_PRESETS)) {
     const config: SimulationConfig = {
       battles,
       maxTurns: 30,
       enemyIds: [targetEnemy],
-      playerDeck: deck,
+      playerDeck: deckPreset.cards,
       verbose: false,
     };
 
@@ -5150,7 +5150,7 @@ export function exportToCSV(battles: number = 30, filename: string = 'sim_result
         battles: battles / 4,
         maxTurns: 30,
         enemyIds: [enemyId],
-        playerDeck: deck,
+        playerDeck: deck.cards,
         verbose: false,
       };
 
@@ -5241,12 +5241,12 @@ export function runCounterAnalysis(battles: number = 20): void {
 
     const deckResults: Array<{ name: string; winRate: number }> = [];
 
-    for (const [name, deck] of Object.entries(DECK_PRESETS)) {
+    for (const [name, deckPreset] of Object.entries(DECK_PRESETS)) {
       const config: SimulationConfig = {
         battles,
         maxTurns: 30,
         enemyIds: [enemyId],
-        playerDeck: deck,
+        playerDeck: deckPreset.cards,
         verbose: false,
       };
 
@@ -5342,12 +5342,12 @@ export function runLongBattleAnalysis(battles: number = 30): void {
   const results: Array<{ name: string; winRate: number; avgTurns: number }> = [];
 
   // 장기전용 설정 (최대 50턴, 강한 적)
-  for (const [name, deck] of Object.entries(DECK_PRESETS)) {
+  for (const [name, deckPreset] of Object.entries(DECK_PRESETS)) {
     const config: SimulationConfig = {
       battles,
       maxTurns: 50,
       enemyIds: TIER_3_ENEMIES.slice(0, 2), // 보스급 적
-      playerDeck: deck,
+      playerDeck: deckPreset.cards,
       verbose: false,
     };
 
@@ -5401,13 +5401,13 @@ export function runBurstDamageAnalysis(battles: number = 30): void {
 
   const results: Array<{ name: string; burstPotential: number; quickWins: number }> = [];
 
-  for (const [name, deck] of Object.entries(DECK_PRESETS)) {
+  for (const [name, deckPreset] of Object.entries(DECK_PRESETS)) {
     // 약한 적으로 테스트 (빠른 처치 측정)
     const config: SimulationConfig = {
       battles,
       maxTurns: 10, // 짧은 턴 제한
       enemyIds: TIER_1_ENEMIES.slice(0, 2),
-      playerDeck: deck,
+      playerDeck: deckPreset.cards,
       verbose: false,
     };
 
@@ -5650,12 +5650,12 @@ export function runComboOptimization(battles: number = 30): void {
 
   const deckComboStats: Array<{ name: string; comboRate: number; winRate: number }> = [];
 
-  for (const [name, deck] of Object.entries(DECK_PRESETS)) {
+  for (const [name, deckPreset] of Object.entries(DECK_PRESETS)) {
     const config: SimulationConfig = {
       battles,
       maxTurns: 30,
       enemyIds: TIER_1_ENEMIES.slice(0, 3),
-      playerDeck: deck,
+      playerDeck: deckPreset.cards,
       verbose: false,
     };
 
@@ -5714,14 +5714,14 @@ export function runEnduranceTest(battles: number = 50): void {
   // 연속 전투 시뮬레이션 (HP 누적 손실)
   const results: Array<{ name: string; avgHpLoss: number; survivability: number }> = [];
 
-  for (const [name, deck] of Object.entries(DECK_PRESETS)) {
+  for (const [name, deckPreset] of Object.entries(DECK_PRESETS)) {
     let totalHpLoss = 0;
     let wins = 0;
 
     for (let i = 0; i < battles; i++) {
       const result = runBattle(
         TIER_1_ENEMIES[i % TIER_1_ENEMIES.length],
-        { battles: 1, maxTurns: 30, playerDeck: deck, verbose: false }
+        { battles: 1, maxTurns: 30, playerDeck: deckPreset.cards, verbose: false }
       );
 
       if (result.winner === 'player') wins++;
@@ -5780,7 +5780,7 @@ export function runBalanceScore(): void {
       battles: 10,
       maxTurns: 30,
       enemyIds: TIER_1_ENEMIES.slice(0, 2),
-      playerDeck: deck,
+      playerDeck: deck.cards,
       verbose: false,
     };
     const stats = runSimulation(config);
@@ -9376,6 +9376,905 @@ export function runPlaystyleAnalysis(battles: number = 30): void {
   const diversity = styles.filter(([_, c]) => c > totalBattles * 0.1).length;
   const grade = diversity >= 4 ? 'S' : diversity >= 3 ? 'A' : diversity >= 2 ? 'B' : 'C';
   console.log(`\n  💡 스타일 다양성 등급: ${grade}`);
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
+// 모멘텀 분석 - 연속 성공/실패 패턴 분석
+export function runMomentumAnalysis(battles: number = 50): void {
+  console.log('═'.repeat(50));
+  console.log('⚡ 모멘텀 분석');
+  console.log('═'.repeat(50));
+  console.log(`\n📊 전투 횟수: ${battles}회\n`);
+
+  const momentumData = {
+    positiveStreaks: [] as number[],  // 연승 길이들
+    negativeStreaks: [] as number[],  // 연패 길이들
+    momentumShifts: 0,                // 모멘텀 전환 횟수
+    avgMomentum: 0,
+  };
+
+  let currentStreak = 0;
+  let lastWin: boolean | null = null;
+  let totalMomentum = 0;
+
+  for (let i = 0; i < battles; i++) {
+    const preset = DECK_PRESETS[i % DECK_PRESETS.length];
+    const tier = (i % 3) + 1;
+    const enemies = tier === 1 ? TIER_1_ENEMIES : tier === 2 ? TIER_2_ENEMIES : TIER_3_ENEMIES;
+    const enemy = enemies[i % enemies.length];
+
+    const result = simulateBattle(preset.name, enemy.name);
+    const won = result.winner === 'player';
+
+    if (lastWin === null) {
+      currentStreak = 1;
+    } else if (won === lastWin) {
+      currentStreak++;
+    } else {
+      // 모멘텀 전환
+      momentumData.momentumShifts++;
+      if (lastWin) {
+        momentumData.positiveStreaks.push(currentStreak);
+      } else {
+        momentumData.negativeStreaks.push(currentStreak);
+      }
+      currentStreak = 1;
+    }
+
+    totalMomentum += won ? currentStreak : -currentStreak;
+    lastWin = won;
+  }
+
+  // 마지막 스트릭 추가
+  if (lastWin !== null) {
+    if (lastWin) momentumData.positiveStreaks.push(currentStreak);
+    else momentumData.negativeStreaks.push(currentStreak);
+  }
+
+  const avgPositive = momentumData.positiveStreaks.length > 0
+    ? momentumData.positiveStreaks.reduce((a, b) => a + b, 0) / momentumData.positiveStreaks.length : 0;
+  const avgNegative = momentumData.negativeStreaks.length > 0
+    ? momentumData.negativeStreaks.reduce((a, b) => a + b, 0) / momentumData.negativeStreaks.length : 0;
+  const maxPositive = Math.max(...momentumData.positiveStreaks, 0);
+  const maxNegative = Math.max(...momentumData.negativeStreaks, 0);
+
+  console.log('  ⚡ 모멘텀 통계:');
+  console.log(`    • 평균 연승: ${avgPositive.toFixed(2)}회`);
+  console.log(`    • 평균 연패: ${avgNegative.toFixed(2)}회`);
+  console.log(`    • 최대 연승: ${maxPositive}회`);
+  console.log(`    • 최대 연패: ${maxNegative}회`);
+  console.log(`    • 모멘텀 전환: ${momentumData.momentumShifts}회`);
+
+  const stability = battles / (momentumData.momentumShifts + 1);
+  const grade = stability >= 5 ? 'S' : stability >= 3 ? 'A' : stability >= 2 ? 'B' : 'C';
+  console.log(`\n  💡 모멘텀 안정성 등급: ${grade}`);
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
+// 압박 분석 - 적에게 주는 압력 분석
+export function runPressureAnalysis(battles: number = 30): void {
+  console.log('═'.repeat(50));
+  console.log('💪 압박 분석');
+  console.log('═'.repeat(50));
+  console.log(`\n📊 전투 횟수: ${battles}회\n`);
+
+  const pressureData = {
+    highPressure: 0,    // 강한 압박 (적 체력 30% 이하로 빠르게)
+    mediumPressure: 0,  // 중간 압박
+    lowPressure: 0,     // 낮은 압박
+    avgTurnsToHalf: 0,  // 적 체력 절반까지 평균 턴
+  };
+
+  let totalTurnsToHalf = 0;
+  let countsWithHalf = 0;
+
+  for (let i = 0; i < battles; i++) {
+    const preset = DECK_PRESETS[i % DECK_PRESETS.length];
+    const tier = (i % 3) + 1;
+    const enemies = tier === 1 ? TIER_1_ENEMIES : tier === 2 ? TIER_2_ENEMIES : TIER_3_ENEMIES;
+    const enemy = enemies[i % enemies.length];
+
+    const result = simulateBattle(preset.name, enemy.name);
+
+    // 압박 정도 분류
+    const damageDealt = result.totalDamageDealt || 0;
+    const dpt = damageDealt / Math.max(result.turns, 1);
+
+    if (dpt >= 20) pressureData.highPressure++;
+    else if (dpt >= 12) pressureData.mediumPressure++;
+    else pressureData.lowPressure++;
+
+    // 적 체력 절반까지 턴 추정
+    const turnsToHalf = Math.ceil(50 / Math.max(dpt, 1));
+    totalTurnsToHalf += turnsToHalf;
+    countsWithHalf++;
+  }
+
+  pressureData.avgTurnsToHalf = countsWithHalf > 0 ? totalTurnsToHalf / countsWithHalf : 0;
+
+  console.log('  💪 압박 수준 분포:');
+  console.log(`    • 강한 압박: ${pressureData.highPressure}회 (${(pressureData.highPressure / battles * 100).toFixed(1)}%)`);
+  console.log(`    • 중간 압박: ${pressureData.mediumPressure}회 (${(pressureData.mediumPressure / battles * 100).toFixed(1)}%)`);
+  console.log(`    • 낮은 압박: ${pressureData.lowPressure}회 (${(pressureData.lowPressure / battles * 100).toFixed(1)}%)`);
+  console.log(`    • 적 체력 50% 도달 평균: ${pressureData.avgTurnsToHalf.toFixed(1)}턴`);
+
+  const pressureRate = pressureData.highPressure / battles;
+  const grade = pressureRate >= 0.6 ? 'S' : pressureRate >= 0.4 ? 'A' : pressureRate >= 0.2 ? 'B' : 'C';
+  console.log(`\n  💡 압박력 등급: ${grade}`);
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
+// 회피 분석 - 피해 회피 패턴 분석
+export function runEvasionAnalysis(battles: number = 30): void {
+  console.log('═'.repeat(50));
+  console.log('🏃 회피 분석');
+  console.log('═'.repeat(50));
+  console.log(`\n📊 전투 횟수: ${battles}회\n`);
+
+  const evasionData = {
+    perfectEvasion: 0,  // 완벽 회피 (피해 0)
+    highEvasion: 0,     // 높은 회피 (피해 20% 미만)
+    normalEvasion: 0,   // 일반 회피 (피해 20-50%)
+    lowEvasion: 0,      // 낮은 회피 (피해 50% 이상)
+    avgDamageTaken: 0,
+  };
+
+  let totalDamageTaken = 0;
+
+  for (let i = 0; i < battles; i++) {
+    const preset = DECK_PRESETS[i % DECK_PRESETS.length];
+    const tier = (i % 3) + 1;
+    const enemies = tier === 1 ? TIER_1_ENEMIES : tier === 2 ? TIER_2_ENEMIES : TIER_3_ENEMIES;
+    const enemy = enemies[i % enemies.length];
+
+    const result = simulateBattle(preset.name, enemy.name);
+    const damageTaken = 100 - result.playerHealth;
+    totalDamageTaken += damageTaken;
+
+    if (damageTaken === 0) evasionData.perfectEvasion++;
+    else if (damageTaken < 20) evasionData.highEvasion++;
+    else if (damageTaken < 50) evasionData.normalEvasion++;
+    else evasionData.lowEvasion++;
+  }
+
+  evasionData.avgDamageTaken = totalDamageTaken / battles;
+
+  console.log('  🏃 회피 수준 분포:');
+  console.log(`    • 완벽 회피: ${evasionData.perfectEvasion}회 (${(evasionData.perfectEvasion / battles * 100).toFixed(1)}%)`);
+  console.log(`    • 높은 회피: ${evasionData.highEvasion}회 (${(evasionData.highEvasion / battles * 100).toFixed(1)}%)`);
+  console.log(`    • 일반 회피: ${evasionData.normalEvasion}회 (${(evasionData.normalEvasion / battles * 100).toFixed(1)}%)`);
+  console.log(`    • 낮은 회피: ${evasionData.lowEvasion}회 (${(evasionData.lowEvasion / battles * 100).toFixed(1)}%)`);
+  console.log(`    • 평균 피해: ${evasionData.avgDamageTaken.toFixed(1)}`);
+
+  const evasionRate = (evasionData.perfectEvasion + evasionData.highEvasion) / battles;
+  const grade = evasionRate >= 0.6 ? 'S' : evasionRate >= 0.4 ? 'A' : evasionRate >= 0.2 ? 'B' : 'C';
+  console.log(`\n  💡 회피력 등급: ${grade}`);
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
+// 카드 드로우 분석 - 카드 사용 패턴 분석
+export function runCardDrawAnalysis(battles: number = 30): void {
+  console.log('═'.repeat(50));
+  console.log('🃏 카드 드로우 분석');
+  console.log('═'.repeat(50));
+  console.log(`\n📊 전투 횟수: ${battles}회\n`);
+
+  const drawData = {
+    cardsPerTurn: [] as number[],
+    totalCardsUsed: 0,
+    uniqueCards: new Set<string>(),
+    cardUsageMap: new Map<string, number>(),
+  };
+
+  for (let i = 0; i < battles; i++) {
+    const preset = DECK_PRESETS[i % DECK_PRESETS.length];
+    const tier = (i % 3) + 1;
+    const enemies = tier === 1 ? TIER_1_ENEMIES : tier === 2 ? TIER_2_ENEMIES : TIER_3_ENEMIES;
+    const enemy = enemies[i % enemies.length];
+
+    const result = simulateBattle(preset.name, enemy.name);
+
+    // 턴당 카드 사용량 추정
+    const cardsUsed = result.turns * 2; // 가정: 턴당 평균 2장
+    drawData.cardsPerTurn.push(cardsUsed / Math.max(result.turns, 1));
+    drawData.totalCardsUsed += cardsUsed;
+
+    // 프리셋 카드 추적
+    const presetData = DECK_PRESETS.find(p => p.name === preset.name);
+    if (presetData) {
+      presetData.cards.forEach(card => {
+        drawData.uniqueCards.add(card.name);
+        drawData.cardUsageMap.set(card.name, (drawData.cardUsageMap.get(card.name) || 0) + 1);
+      });
+    }
+  }
+
+  const avgCardsPerTurn = drawData.cardsPerTurn.reduce((a, b) => a + b, 0) / drawData.cardsPerTurn.length;
+
+  console.log('  🃏 카드 드로우 통계:');
+  console.log(`    • 총 카드 사용: ${drawData.totalCardsUsed}장`);
+  console.log(`    • 턴당 평균 사용: ${avgCardsPerTurn.toFixed(2)}장`);
+  console.log(`    • 고유 카드 종류: ${drawData.uniqueCards.size}종`);
+
+  // 가장 많이 사용된 카드
+  const topCards = [...drawData.cardUsageMap.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5);
+
+  console.log('\n  📊 가장 많이 사용된 카드:');
+  topCards.forEach(([name, count], idx) => {
+    console.log(`    ${idx + 1}. ${name}: ${count}회`);
+  });
+
+  const efficiency = avgCardsPerTurn >= 2 ? 'S' : avgCardsPerTurn >= 1.5 ? 'A' : avgCardsPerTurn >= 1 ? 'B' : 'C';
+  console.log(`\n  💡 카드 효율 등급: ${efficiency}`);
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
+// 페이즈 분석 - 전투 진행 단계별 분석
+export function runPhaseAnalysis(battles: number = 30): void {
+  console.log('═'.repeat(50));
+  console.log('📊 페이즈 분석');
+  console.log('═'.repeat(50));
+  console.log(`\n📊 전투 횟수: ${battles}회\n`);
+
+  const phaseData = {
+    earlyWins: 0,    // 초반 승리 (5턴 이내)
+    midWins: 0,      // 중반 승리 (6-10턴)
+    lateWins: 0,     // 후반 승리 (11턴 이상)
+    earlyLosses: 0,
+    midLosses: 0,
+    lateLosses: 0,
+  };
+
+  for (let i = 0; i < battles; i++) {
+    const preset = DECK_PRESETS[i % DECK_PRESETS.length];
+    const tier = (i % 3) + 1;
+    const enemies = tier === 1 ? TIER_1_ENEMIES : tier === 2 ? TIER_2_ENEMIES : TIER_3_ENEMIES;
+    const enemy = enemies[i % enemies.length];
+
+    const result = simulateBattle(preset.name, enemy.name);
+    const won = result.winner === 'player';
+
+    if (result.turns <= 5) {
+      if (won) phaseData.earlyWins++;
+      else phaseData.earlyLosses++;
+    } else if (result.turns <= 10) {
+      if (won) phaseData.midWins++;
+      else phaseData.midLosses++;
+    } else {
+      if (won) phaseData.lateWins++;
+      else phaseData.lateLosses++;
+    }
+  }
+
+  console.log('  📊 페이즈별 승패:');
+  console.log(`    • 초반(1-5턴): ${phaseData.earlyWins}승 / ${phaseData.earlyLosses}패`);
+  console.log(`    • 중반(6-10턴): ${phaseData.midWins}승 / ${phaseData.midLosses}패`);
+  console.log(`    • 후반(11+턴): ${phaseData.lateWins}승 / ${phaseData.lateLosses}패`);
+
+  const totalWins = phaseData.earlyWins + phaseData.midWins + phaseData.lateWins;
+  const earlyRate = totalWins > 0 ? (phaseData.earlyWins / totalWins * 100).toFixed(1) : '0';
+  console.log(`\n  📈 초반 승리 비율: ${earlyRate}%`);
+
+  const grade = phaseData.earlyWins >= battles * 0.3 ? 'S' : phaseData.earlyWins >= battles * 0.2 ? 'A' : phaseData.earlyWins >= battles * 0.1 ? 'B' : 'C';
+  console.log(`\n  💡 초반 장악력 등급: ${grade}`);
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
+// 크리티컬 분석 - 결정적 순간 분석
+export function runCriticalMomentAnalysis(battles: number = 30): void {
+  console.log('═'.repeat(50));
+  console.log('⚡ 크리티컬 모멘트 분석');
+  console.log('═'.repeat(50));
+  console.log(`\n📊 전투 횟수: ${battles}회\n`);
+
+  const criticalData = {
+    clutchWins: 0,        // 막판 역전승 (체력 20% 이하에서 승리)
+    dominantWins: 0,      // 압도적 승리 (체력 80% 이상 유지)
+    narrowLosses: 0,      // 아깝게 패배 (적 체력 20% 이하까지)
+    totalCriticalMoments: 0,
+  };
+
+  for (let i = 0; i < battles; i++) {
+    const preset = DECK_PRESETS[i % DECK_PRESETS.length];
+    const tier = (i % 3) + 1;
+    const enemies = tier === 1 ? TIER_1_ENEMIES : tier === 2 ? TIER_2_ENEMIES : TIER_3_ENEMIES;
+    const enemy = enemies[i % enemies.length];
+
+    const result = simulateBattle(preset.name, enemy.name);
+    const won = result.winner === 'player';
+
+    if (won) {
+      if (result.playerHealth <= 20) {
+        criticalData.clutchWins++;
+        criticalData.totalCriticalMoments++;
+      } else if (result.playerHealth >= 80) {
+        criticalData.dominantWins++;
+      }
+    } else {
+      if (result.enemyHealth <= 20) {
+        criticalData.narrowLosses++;
+        criticalData.totalCriticalMoments++;
+      }
+    }
+  }
+
+  console.log('  ⚡ 크리티컬 순간:');
+  console.log(`    • 막판 역전승: ${criticalData.clutchWins}회`);
+  console.log(`    • 압도적 승리: ${criticalData.dominantWins}회`);
+  console.log(`    • 아쉬운 패배: ${criticalData.narrowLosses}회`);
+  console.log(`    • 총 결정적 순간: ${criticalData.totalCriticalMoments}회`);
+
+  const clutchRate = battles > 0 ? (criticalData.clutchWins / battles * 100).toFixed(1) : '0';
+  console.log(`\n  📈 역전승 비율: ${clutchRate}%`);
+
+  const grade = criticalData.clutchWins >= 5 ? 'S' : criticalData.clutchWins >= 3 ? 'A' : criticalData.clutchWins >= 1 ? 'B' : 'C';
+  console.log(`\n  💡 클러치 능력 등급: ${grade}`);
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
+// 안정성 분석 - 결과 일관성 분석
+export function runStabilityAnalysis(battles: number = 50): void {
+  console.log('═'.repeat(50));
+  console.log('🔒 안정성 분석');
+  console.log('═'.repeat(50));
+  console.log(`\n📊 전투 횟수: ${battles}회\n`);
+
+  const results: boolean[] = [];
+  const healthResults: number[] = [];
+
+  for (let i = 0; i < battles; i++) {
+    const preset = DECK_PRESETS[i % DECK_PRESETS.length];
+    const tier = (i % 3) + 1;
+    const enemies = tier === 1 ? TIER_1_ENEMIES : tier === 2 ? TIER_2_ENEMIES : TIER_3_ENEMIES;
+    const enemy = enemies[i % enemies.length];
+
+    const result = simulateBattle(preset.name, enemy.name);
+    results.push(result.winner === 'player');
+    healthResults.push(result.playerHealth);
+  }
+
+  // 승률 계산
+  const winRate = results.filter(r => r).length / battles;
+
+  // 체력 표준편차 계산
+  const avgHealth = healthResults.reduce((a, b) => a + b, 0) / battles;
+  const variance = healthResults.reduce((sum, h) => sum + Math.pow(h - avgHealth, 2), 0) / battles;
+  const stdDev = Math.sqrt(variance);
+
+  // 연속성 계산 (연승/연패 수)
+  let maxStreak = 0;
+  let currentStreak = 0;
+  let lastResult: boolean | null = null;
+  for (const result of results) {
+    if (result === lastResult) {
+      currentStreak++;
+      maxStreak = Math.max(maxStreak, currentStreak);
+    } else {
+      currentStreak = 1;
+    }
+    lastResult = result;
+  }
+
+  console.log('  🔒 안정성 지표:');
+  console.log(`    • 승률: ${(winRate * 100).toFixed(1)}%`);
+  console.log(`    • 평균 체력: ${avgHealth.toFixed(1)}`);
+  console.log(`    • 체력 표준편차: ${stdDev.toFixed(2)}`);
+  console.log(`    • 최대 연속: ${maxStreak}회`);
+
+  const stabilityScore = 100 - stdDev;
+  console.log(`\n  📈 안정성 점수: ${stabilityScore.toFixed(1)}/100`);
+
+  const grade = stabilityScore >= 80 ? 'S' : stabilityScore >= 60 ? 'A' : stabilityScore >= 40 ? 'B' : 'C';
+  console.log(`\n  💡 안정성 등급: ${grade}`);
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
+// 확률 분석 심화 - 승률 예측 및 분포 분석
+export function runProbabilityDeepAnalysis(battles: number = 100): void {
+  console.log('═'.repeat(50));
+  console.log('🎲 확률 심화 분석');
+  console.log('═'.repeat(50));
+  console.log(`\n📊 전투 횟수: ${battles}회\n`);
+
+  const presetStats: Record<string, { wins: number; total: number; healthSum: number }> = {};
+
+  for (let i = 0; i < battles; i++) {
+    const preset = DECK_PRESETS[i % DECK_PRESETS.length];
+    const tier = (i % 3) + 1;
+    const enemies = tier === 1 ? TIER_1_ENEMIES : tier === 2 ? TIER_2_ENEMIES : TIER_3_ENEMIES;
+    const enemy = enemies[i % enemies.length];
+
+    const result = simulateBattle(preset.name, enemy.name);
+
+    if (!presetStats[preset.name]) {
+      presetStats[preset.name] = { wins: 0, total: 0, healthSum: 0 };
+    }
+
+    presetStats[preset.name].total++;
+    if (result.winner === 'player') {
+      presetStats[preset.name].wins++;
+    }
+    presetStats[preset.name].healthSum += result.playerHealth;
+  }
+
+  console.log('  🎲 프리셋별 확률:');
+  const sortedPresets = Object.entries(presetStats)
+    .map(([name, stats]) => ({
+      name,
+      winRate: stats.wins / stats.total,
+      avgHealth: stats.healthSum / stats.total,
+      total: stats.total
+    }))
+    .sort((a, b) => b.winRate - a.winRate);
+
+  sortedPresets.forEach(({ name, winRate, avgHealth, total }) => {
+    const bar = '█'.repeat(Math.floor(winRate * 20)) + '░'.repeat(20 - Math.floor(winRate * 20));
+    console.log(`    ${name}: ${bar} ${(winRate * 100).toFixed(1)}% (n=${total})`);
+  });
+
+  // 전체 승률
+  const totalWins = Object.values(presetStats).reduce((sum, s) => sum + s.wins, 0);
+  const totalGames = Object.values(presetStats).reduce((sum, s) => sum + s.total, 0);
+  const overallWinRate = totalWins / totalGames;
+
+  console.log(`\n  📈 전체 승률: ${(overallWinRate * 100).toFixed(1)}%`);
+  console.log(`  📊 베스트 프리셋: ${sortedPresets[0].name}`);
+  console.log(`  📉 워스트 프리셋: ${sortedPresets[sortedPresets.length - 1].name}`);
+
+  const grade = overallWinRate >= 0.7 ? 'S' : overallWinRate >= 0.5 ? 'A' : overallWinRate >= 0.3 ? 'B' : 'C';
+  console.log(`\n  💡 전체 확률 등급: ${grade}`);
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
+// 상성 심화 분석 - 프리셋 vs 적 매치업 분석
+export function runAffinityDeepAnalysis(battles: number = 30): void {
+  console.log('═'.repeat(50));
+  console.log('🔄 상성 심화 분석');
+  console.log('═'.repeat(50));
+  console.log(`\n📊 전투 횟수: ${battles}회\n`);
+
+  const affinityData: Record<string, Record<string, { wins: number; total: number }>> = {};
+
+  for (let i = 0; i < battles; i++) {
+    const preset = DECK_PRESETS[i % DECK_PRESETS.length];
+    const tier = (i % 3) + 1;
+    const enemies = tier === 1 ? TIER_1_ENEMIES : tier === 2 ? TIER_2_ENEMIES : TIER_3_ENEMIES;
+    const enemy = enemies[i % enemies.length];
+
+    const result = simulateBattle(preset.name, enemy.name);
+
+    if (!affinityData[preset.name]) {
+      affinityData[preset.name] = {};
+    }
+    if (!affinityData[preset.name][enemy.name]) {
+      affinityData[preset.name][enemy.name] = { wins: 0, total: 0 };
+    }
+
+    affinityData[preset.name][enemy.name].total++;
+    if (result.winner === 'player') {
+      affinityData[preset.name][enemy.name].wins++;
+    }
+  }
+
+  console.log('  🔄 상성 매트릭스:');
+  Object.entries(affinityData).forEach(([preset, enemies]) => {
+    console.log(`\n    ${preset}:`);
+    Object.entries(enemies)
+      .sort((a, b) => (b[1].wins / b[1].total) - (a[1].wins / a[1].total))
+      .slice(0, 3)
+      .forEach(([enemy, stats]) => {
+        const winRate = (stats.wins / stats.total * 100).toFixed(0);
+        const icon = stats.wins / stats.total >= 0.7 ? '✅' : stats.wins / stats.total >= 0.3 ? '⚖️' : '❌';
+        console.log(`      ${icon} vs ${enemy}: ${winRate}%`);
+      });
+  });
+
+  const grade = Object.keys(affinityData).length >= 5 ? 'S' : 'A';
+  console.log(`\n  💡 상성 분석 등급: ${grade}`);
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
+// 메타 심화 분석 - 현재 메타 상황 분석
+export function runMetaDeepAnalysis(battles: number = 50): void {
+  console.log('═'.repeat(50));
+  console.log('📈 메타 심화 분석');
+  console.log('═'.repeat(50));
+  console.log(`\n📊 전투 횟수: ${battles}회\n`);
+
+  const metaData = {
+    topPresets: new Map<string, number>(),
+    topEnemies: new Map<string, number>(),
+    avgBattleLength: 0,
+    aggressiveMeta: 0,  // 공격적 메타
+    defensiveMeta: 0,   // 방어적 메타
+  };
+
+  let totalTurns = 0;
+
+  for (let i = 0; i < battles; i++) {
+    const preset = DECK_PRESETS[i % DECK_PRESETS.length];
+    const tier = (i % 3) + 1;
+    const enemies = tier === 1 ? TIER_1_ENEMIES : tier === 2 ? TIER_2_ENEMIES : TIER_3_ENEMIES;
+    const enemy = enemies[i % enemies.length];
+
+    const result = simulateBattle(preset.name, enemy.name);
+    totalTurns += result.turns;
+
+    if (result.winner === 'player') {
+      metaData.topPresets.set(preset.name, (metaData.topPresets.get(preset.name) || 0) + 1);
+    } else {
+      metaData.topEnemies.set(enemy.name, (metaData.topEnemies.get(enemy.name) || 0) + 1);
+    }
+
+    if (result.turns <= 6) metaData.aggressiveMeta++;
+    else if (result.turns >= 10) metaData.defensiveMeta++;
+  }
+
+  metaData.avgBattleLength = totalTurns / battles;
+
+  console.log('  📈 메타 현황:');
+  console.log(`    • 평균 전투 길이: ${metaData.avgBattleLength.toFixed(1)}턴`);
+  console.log(`    • 공격 메타 비율: ${(metaData.aggressiveMeta / battles * 100).toFixed(1)}%`);
+  console.log(`    • 방어 메타 비율: ${(metaData.defensiveMeta / battles * 100).toFixed(1)}%`);
+
+  const sortedPresets = [...metaData.topPresets.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3);
+  console.log('\n  🏆 탑 프리셋:');
+  sortedPresets.forEach(([name, wins], idx) => {
+    console.log(`    ${idx + 1}. ${name}: ${wins}승`);
+  });
+
+  const sortedEnemies = [...metaData.topEnemies.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3);
+  console.log('\n  👹 강적:');
+  sortedEnemies.forEach(([name, wins], idx) => {
+    console.log(`    ${idx + 1}. ${name}: ${wins}승`);
+  });
+
+  const metaType = metaData.aggressiveMeta > metaData.defensiveMeta ? '공격 메타' : '방어 메타';
+  console.log(`\n  📊 현재 메타: ${metaType}`);
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
+// 밴픽 분석 - 최적 밴/픽 전략 분석
+export function runBanPickAnalysis(battles: number = 30): void {
+  console.log('═'.repeat(50));
+  console.log('🚫 밴픽 분석');
+  console.log('═'.repeat(50));
+  console.log(`\n📊 전투 횟수: ${battles}회\n`);
+
+  const banPickData = {
+    mustBans: new Map<string, number>(),    // 밴 추천 적
+    mustPicks: new Map<string, number>(),   // 픽 추천 프리셋
+    counterPicks: new Map<string, string>(), // 카운터픽
+  };
+
+  for (let i = 0; i < battles; i++) {
+    const preset = DECK_PRESETS[i % DECK_PRESETS.length];
+    const tier = (i % 3) + 1;
+    const enemies = tier === 1 ? TIER_1_ENEMIES : tier === 2 ? TIER_2_ENEMIES : TIER_3_ENEMIES;
+    const enemy = enemies[i % enemies.length];
+
+    const result = simulateBattle(preset.name, enemy.name);
+
+    if (result.winner === 'enemy') {
+      // 이긴 적은 밴 후보
+      banPickData.mustBans.set(enemy.name, (banPickData.mustBans.get(enemy.name) || 0) + 1);
+    } else {
+      // 이긴 프리셋은 픽 후보
+      banPickData.mustPicks.set(preset.name, (banPickData.mustPicks.get(preset.name) || 0) + 1);
+      banPickData.counterPicks.set(enemy.name, preset.name);
+    }
+  }
+
+  console.log('  🚫 밴 추천 (강적):');
+  [...banPickData.mustBans.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .forEach(([name, losses], idx) => {
+      console.log(`    ${idx + 1}. ${name}: ${losses}회 패배`);
+    });
+
+  console.log('\n  ✅ 픽 추천 (강력한 프리셋):');
+  [...banPickData.mustPicks.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .forEach(([name, wins], idx) => {
+      console.log(`    ${idx + 1}. ${name}: ${wins}승`);
+    });
+
+  console.log('\n  🔄 카운터픽:');
+  [...banPickData.counterPicks.entries()]
+    .slice(0, 5)
+    .forEach(([enemy, preset]) => {
+      console.log(`    ${enemy} → ${preset}`);
+    });
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
+// 시간 분석 - 전투 시간 패턴 분석
+export function runTimePatternAnalysis(battles: number = 50): void {
+  console.log('═'.repeat(50));
+  console.log('⏱️ 시간 패턴 분석');
+  console.log('═'.repeat(50));
+  console.log(`\n📊 전투 횟수: ${battles}회\n`);
+
+  const timeData = {
+    turnDistribution: new Map<number, number>(),
+    quickBattles: 0,   // 5턴 이하
+    normalBattles: 0,  // 6-10턴
+    longBattles: 0,    // 11턴 이상
+    avgWinTurns: 0,
+    avgLossTurns: 0,
+  };
+
+  let winTurns = 0, winCount = 0;
+  let lossTurns = 0, lossCount = 0;
+
+  for (let i = 0; i < battles; i++) {
+    const preset = DECK_PRESETS[i % DECK_PRESETS.length];
+    const tier = (i % 3) + 1;
+    const enemies = tier === 1 ? TIER_1_ENEMIES : tier === 2 ? TIER_2_ENEMIES : TIER_3_ENEMIES;
+    const enemy = enemies[i % enemies.length];
+
+    const result = simulateBattle(preset.name, enemy.name);
+
+    timeData.turnDistribution.set(result.turns, (timeData.turnDistribution.get(result.turns) || 0) + 1);
+
+    if (result.turns <= 5) timeData.quickBattles++;
+    else if (result.turns <= 10) timeData.normalBattles++;
+    else timeData.longBattles++;
+
+    if (result.winner === 'player') {
+      winTurns += result.turns;
+      winCount++;
+    } else {
+      lossTurns += result.turns;
+      lossCount++;
+    }
+  }
+
+  timeData.avgWinTurns = winCount > 0 ? winTurns / winCount : 0;
+  timeData.avgLossTurns = lossCount > 0 ? lossTurns / lossCount : 0;
+
+  console.log('  ⏱️ 시간 분포:');
+  console.log(`    • 빠른 전투 (1-5턴): ${timeData.quickBattles}회 (${(timeData.quickBattles / battles * 100).toFixed(1)}%)`);
+  console.log(`    • 보통 전투 (6-10턴): ${timeData.normalBattles}회 (${(timeData.normalBattles / battles * 100).toFixed(1)}%)`);
+  console.log(`    • 장기전 (11+턴): ${timeData.longBattles}회 (${(timeData.longBattles / battles * 100).toFixed(1)}%)`);
+
+  console.log('\n  📊 평균 턴:');
+  console.log(`    • 승리시 평균: ${timeData.avgWinTurns.toFixed(1)}턴`);
+  console.log(`    • 패배시 평균: ${timeData.avgLossTurns.toFixed(1)}턴`);
+
+  // 턴 분포 히스토그램
+  console.log('\n  📈 턴 분포:');
+  const maxTurn = Math.max(...timeData.turnDistribution.keys());
+  for (let t = 1; t <= Math.min(maxTurn, 15); t++) {
+    const count = timeData.turnDistribution.get(t) || 0;
+    const bar = '█'.repeat(Math.min(count, 20));
+    console.log(`    ${t.toString().padStart(2)}턴: ${bar} ${count}`);
+  }
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
+// 승률 예측 분석 - 예측 모델 기반 분석
+export function runWinPredictionAnalysis(battles: number = 50): void {
+  console.log('═'.repeat(50));
+  console.log('🔮 승률 예측 분석');
+  console.log('═'.repeat(50));
+  console.log(`\n📊 전투 횟수: ${battles}회\n`);
+
+  const predictionData = {
+    correctPredictions: 0,
+    totalPredictions: 0,
+    predictions: [] as { predicted: boolean; actual: boolean }[],
+  };
+
+  for (let i = 0; i < battles; i++) {
+    const preset = DECK_PRESETS[i % DECK_PRESETS.length];
+    const tier = (i % 3) + 1;
+    const enemies = tier === 1 ? TIER_1_ENEMIES : tier === 2 ? TIER_2_ENEMIES : TIER_3_ENEMIES;
+    const enemy = enemies[i % enemies.length];
+
+    // 간단한 예측 모델: 프리셋 인덱스와 티어 기반
+    const presetStrength = (DECK_PRESETS.indexOf(preset) + 1) / DECK_PRESETS.length;
+    const tierDifficulty = tier / 3;
+    const predicted = presetStrength > tierDifficulty;
+
+    const result = simulateBattle(preset.name, enemy.name);
+    const actual = result.winner === 'player';
+
+    predictionData.predictions.push({ predicted, actual });
+    predictionData.totalPredictions++;
+    if (predicted === actual) {
+      predictionData.correctPredictions++;
+    }
+  }
+
+  const accuracy = predictionData.correctPredictions / predictionData.totalPredictions * 100;
+
+  console.log('  🔮 예측 결과:');
+  console.log(`    • 정확도: ${accuracy.toFixed(1)}%`);
+  console.log(`    • 정확 예측: ${predictionData.correctPredictions}회`);
+  console.log(`    • 오류 예측: ${predictionData.totalPredictions - predictionData.correctPredictions}회`);
+
+  const grade = accuracy >= 70 ? 'S' : accuracy >= 60 ? 'A' : accuracy >= 50 ? 'B' : 'C';
+  console.log(`\n  💡 예측 정확도 등급: ${grade}`);
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
+// 포텐셜 분석 - 성장 가능성 분석
+export function runPotentialAnalysis(battles: number = 30): void {
+  console.log('═'.repeat(50));
+  console.log('📈 포텐셜 분석');
+  console.log('═'.repeat(50));
+  console.log(`\n📊 전투 횟수: ${battles}회\n`);
+
+  const potentialData = {
+    presetPotentials: new Map<string, { current: number; max: number; growth: number }>(),
+    overallPotential: 0,
+  };
+
+  for (let i = 0; i < battles; i++) {
+    const preset = DECK_PRESETS[i % DECK_PRESETS.length];
+    const tier = (i % 3) + 1;
+    const enemies = tier === 1 ? TIER_1_ENEMIES : tier === 2 ? TIER_2_ENEMIES : TIER_3_ENEMIES;
+    const enemy = enemies[i % enemies.length];
+
+    const result = simulateBattle(preset.name, enemy.name);
+
+    if (!potentialData.presetPotentials.has(preset.name)) {
+      potentialData.presetPotentials.set(preset.name, { current: 0, max: 0, growth: 0 });
+    }
+
+    const data = potentialData.presetPotentials.get(preset.name)!;
+    const score = result.winner === 'player' ? result.playerHealth : -result.enemyHealth;
+    data.current++;
+    data.max = Math.max(data.max, score);
+    data.growth += result.winner === 'player' ? 1 : 0;
+  }
+
+  console.log('  📈 프리셋별 포텐셜:');
+  [...potentialData.presetPotentials.entries()]
+    .map(([name, data]) => ({
+      name,
+      potential: (data.growth / data.current) * 100,
+      maxScore: data.max
+    }))
+    .sort((a, b) => b.potential - a.potential)
+    .forEach(({ name, potential, maxScore }) => {
+      const bar = '█'.repeat(Math.floor(potential / 5));
+      console.log(`    ${name}: ${bar} ${potential.toFixed(0)}% (최고점: ${maxScore})`);
+    });
+
+  const avgPotential = [...potentialData.presetPotentials.values()]
+    .reduce((sum, d) => sum + d.growth / d.current, 0) / potentialData.presetPotentials.size * 100;
+
+  console.log(`\n  📊 평균 포텐셜: ${avgPotential.toFixed(1)}%`);
+
+  const grade = avgPotential >= 70 ? 'S' : avgPotential >= 50 ? 'A' : avgPotential >= 30 ? 'B' : 'C';
+  console.log(`\n  💡 성장 가능성 등급: ${grade}`);
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
+// 효율 최적화 분석 - 자원 대비 성과 분석
+export function runEfficiencyOptimization(battles: number = 30): void {
+  console.log('═'.repeat(50));
+  console.log('⚡ 효율 최적화 분석');
+  console.log('═'.repeat(50));
+  console.log(`\n📊 전투 횟수: ${battles}회\n`);
+
+  const efficiencyData = {
+    damagePerTurn: [] as number[],
+    healthEfficiency: [] as number[],
+    turnEfficiency: [] as number[],
+    overallEfficiency: 0,
+  };
+
+  for (let i = 0; i < battles; i++) {
+    const preset = DECK_PRESETS[i % DECK_PRESETS.length];
+    const tier = (i % 3) + 1;
+    const enemies = tier === 1 ? TIER_1_ENEMIES : tier === 2 ? TIER_2_ENEMIES : TIER_3_ENEMIES;
+    const enemy = enemies[i % enemies.length];
+
+    const result = simulateBattle(preset.name, enemy.name);
+
+    const dpt = (result.totalDamageDealt || 0) / Math.max(result.turns, 1);
+    const healthEff = result.playerHealth / 100;
+    const turnEff = result.winner === 'player' ? (20 - result.turns) / 20 : 0;
+
+    efficiencyData.damagePerTurn.push(dpt);
+    efficiencyData.healthEfficiency.push(healthEff);
+    efficiencyData.turnEfficiency.push(turnEff);
+  }
+
+  const avgDpt = efficiencyData.damagePerTurn.reduce((a, b) => a + b, 0) / battles;
+  const avgHealthEff = efficiencyData.healthEfficiency.reduce((a, b) => a + b, 0) / battles * 100;
+  const avgTurnEff = efficiencyData.turnEfficiency.reduce((a, b) => a + b, 0) / battles * 100;
+
+  efficiencyData.overallEfficiency = (avgDpt + avgHealthEff + avgTurnEff) / 3;
+
+  console.log('  ⚡ 효율 지표:');
+  console.log(`    • 턴당 피해: ${avgDpt.toFixed(2)}`);
+  console.log(`    • 체력 효율: ${avgHealthEff.toFixed(1)}%`);
+  console.log(`    • 속도 효율: ${avgTurnEff.toFixed(1)}%`);
+  console.log(`    • 종합 효율: ${efficiencyData.overallEfficiency.toFixed(1)}`);
+
+  const grade = efficiencyData.overallEfficiency >= 50 ? 'S' : efficiencyData.overallEfficiency >= 35 ? 'A' : efficiencyData.overallEfficiency >= 20 ? 'B' : 'C';
+  console.log(`\n  💡 효율 최적화 등급: ${grade}`);
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
+// 상황 인식 분석 - 전투 상황 파악 능력 분석
+export function runSituationAwareness(battles: number = 30): void {
+  console.log('═'.repeat(50));
+  console.log('🧠 상황 인식 분석');
+  console.log('═'.repeat(50));
+  console.log(`\n📊 전투 횟수: ${battles}회\n`);
+
+  const awarenessData = {
+    adaptations: 0,           // 상황 적응 횟수
+    optimalDecisions: 0,      // 최적 결정 횟수
+    missedOpportunities: 0,   // 놓친 기회 횟수
+    situations: {
+      advantage: 0,           // 유리한 상황
+      disadvantage: 0,        // 불리한 상황
+      neutral: 0,             // 중립 상황
+    }
+  };
+
+  for (let i = 0; i < battles; i++) {
+    const preset = DECK_PRESETS[i % DECK_PRESETS.length];
+    const tier = (i % 3) + 1;
+    const enemies = tier === 1 ? TIER_1_ENEMIES : tier === 2 ? TIER_2_ENEMIES : TIER_3_ENEMIES;
+    const enemy = enemies[i % enemies.length];
+
+    const result = simulateBattle(preset.name, enemy.name);
+
+    // 상황 분류
+    const healthDiff = result.playerHealth - result.enemyHealth;
+    if (healthDiff > 30) awarenessData.situations.advantage++;
+    else if (healthDiff < -30) awarenessData.situations.disadvantage++;
+    else awarenessData.situations.neutral++;
+
+    // 적응 및 결정 평가
+    if (result.winner === 'player') {
+      if (result.playerHealth >= 50) awarenessData.optimalDecisions++;
+      else awarenessData.adaptations++;
+    } else {
+      if (result.enemyHealth <= 30) awarenessData.missedOpportunities++;
+    }
+  }
+
+  console.log('  🧠 상황 인식 통계:');
+  console.log(`    • 유리한 상황: ${awarenessData.situations.advantage}회`);
+  console.log(`    • 불리한 상황: ${awarenessData.situations.disadvantage}회`);
+  console.log(`    • 중립 상황: ${awarenessData.situations.neutral}회`);
+  console.log(`    • 상황 적응: ${awarenessData.adaptations}회`);
+  console.log(`    • 최적 결정: ${awarenessData.optimalDecisions}회`);
+  console.log(`    • 놓친 기회: ${awarenessData.missedOpportunities}회`);
+
+  const awarenessScore = (awarenessData.optimalDecisions + awarenessData.adaptations) / battles * 100;
+  console.log(`\n  📊 상황 인식 점수: ${awarenessScore.toFixed(1)}/100`);
+
+  const grade = awarenessScore >= 70 ? 'S' : awarenessScore >= 50 ? 'A' : awarenessScore >= 30 ? 'B' : 'C';
+  console.log(`\n  💡 상황 인식 등급: ${grade}`);
 
   console.log('\n' + '═'.repeat(50) + '\n');
 }

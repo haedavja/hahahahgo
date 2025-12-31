@@ -1148,3 +1148,115 @@ describe('플레이스타일 분석', () => {
     expect(typeof runPlaystyleAnalysis).toBe('function');
   });
 });
+
+describe('모멘텀 분석', () => {
+  it('runMomentumAnalysis 함수가 존재한다', async () => {
+    const { runMomentumAnalysis } = await import('./gameSimulator');
+    expect(typeof runMomentumAnalysis).toBe('function');
+  });
+});
+
+describe('압박 분석', () => {
+  it('runPressureAnalysis 함수가 존재한다', async () => {
+    const { runPressureAnalysis } = await import('./gameSimulator');
+    expect(typeof runPressureAnalysis).toBe('function');
+  });
+});
+
+describe('회피 분석', () => {
+  it('runEvasionAnalysis 함수가 존재한다', async () => {
+    const { runEvasionAnalysis } = await import('./gameSimulator');
+    expect(typeof runEvasionAnalysis).toBe('function');
+  });
+});
+
+describe('카드 드로우 분석', () => {
+  it('runCardDrawAnalysis 함수가 존재한다', async () => {
+    const { runCardDrawAnalysis } = await import('./gameSimulator');
+    expect(typeof runCardDrawAnalysis).toBe('function');
+  });
+});
+
+describe('페이즈 분석', () => {
+  it('runPhaseAnalysis 함수가 존재한다', async () => {
+    const { runPhaseAnalysis } = await import('./gameSimulator');
+    expect(typeof runPhaseAnalysis).toBe('function');
+  });
+});
+
+describe('크리티컬 모멘트 분석', () => {
+  it('runCriticalMomentAnalysis 함수가 존재한다', async () => {
+    const { runCriticalMomentAnalysis } = await import('./gameSimulator');
+    expect(typeof runCriticalMomentAnalysis).toBe('function');
+  });
+});
+
+describe('안정성 분석', () => {
+  it('runStabilityAnalysis 함수가 존재한다', async () => {
+    const { runStabilityAnalysis } = await import('./gameSimulator');
+    expect(typeof runStabilityAnalysis).toBe('function');
+  });
+});
+
+describe('확률 심화 분석', () => {
+  it('runProbabilityDeepAnalysis 함수가 존재한다', async () => {
+    const { runProbabilityDeepAnalysis } = await import('./gameSimulator');
+    expect(typeof runProbabilityDeepAnalysis).toBe('function');
+  });
+});
+
+describe('상성 심화 분석', () => {
+  it('runAffinityDeepAnalysis 함수가 존재한다', async () => {
+    const { runAffinityDeepAnalysis } = await import('./gameSimulator');
+    expect(typeof runAffinityDeepAnalysis).toBe('function');
+  });
+});
+
+describe('메타 심화 분석', () => {
+  it('runMetaDeepAnalysis 함수가 존재한다', async () => {
+    const { runMetaDeepAnalysis } = await import('./gameSimulator');
+    expect(typeof runMetaDeepAnalysis).toBe('function');
+  });
+});
+
+describe('밴픽 분석', () => {
+  it('runBanPickAnalysis 함수가 존재한다', async () => {
+    const { runBanPickAnalysis } = await import('./gameSimulator');
+    expect(typeof runBanPickAnalysis).toBe('function');
+  });
+});
+
+describe('시간 패턴 분석', () => {
+  it('runTimePatternAnalysis 함수가 존재한다', async () => {
+    const { runTimePatternAnalysis } = await import('./gameSimulator');
+    expect(typeof runTimePatternAnalysis).toBe('function');
+  });
+});
+
+describe('승률 예측 분석', () => {
+  it('runWinPredictionAnalysis 함수가 존재한다', async () => {
+    const { runWinPredictionAnalysis } = await import('./gameSimulator');
+    expect(typeof runWinPredictionAnalysis).toBe('function');
+  });
+});
+
+describe('포텐셜 분석', () => {
+  it('runPotentialAnalysis 함수가 존재한다', async () => {
+    const { runPotentialAnalysis } = await import('./gameSimulator');
+    expect(typeof runPotentialAnalysis).toBe('function');
+  });
+});
+
+describe('효율 최적화 분석', () => {
+  it('runEfficiencyOptimization 함수가 존재한다', async () => {
+    const { runEfficiencyOptimization } = await import('./gameSimulator');
+    expect(typeof runEfficiencyOptimization).toBe('function');
+  });
+});
+
+describe('상황 인식 분석', () => {
+  it('runSituationAwareness 함수가 존재한다', async () => {
+    const { runSituationAwareness } = await import('./gameSimulator');
+    expect(typeof runSituationAwareness).toBe('function');
+  });
+});

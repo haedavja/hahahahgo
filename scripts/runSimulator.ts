@@ -121,7 +121,7 @@
  *   npx tsx scripts/runSimulator.ts trait 30
  */
 
-import { runSimulation, printStats, SimulationConfig, runBalanceAnalysis, runTierSimulation, runFullSimulation, runRelicComparison, runDeckComparison, runAnomalyComparison, runCardEfficiencyAnalysis, runFullReport, runBattleReplay, runEnemyAnalysis, runSynergyAnalysis, runDifficultyScalingAnalysis, runWinConditionAnalysis, exportSimulationResults, runTokenEfficiencyAnalysis, runMatchupAnalysis, runSpeedAnalysis, runTraitSynergyAnalysis, runStrategyRecommendation, printHelp, runDeckCompare, runBenchmark, runRandomDeckTest, runBestCardFinder, runEnemyWeaknessAnalysis, runMultiRelicTest, runProgressionTest, runCardRanking, runRelicRanking, runMetaAnalysis, runTurnAnalysis, runDamageAnalysis, runHealingAnalysis, runComboBreakdown, runStressTest, runProbabilityAnalysis, runVersatilityAnalysis, runConsistencyAnalysis, generatePatchNotes, runEdgeCaseTest, runQuickCheck, runAITest, runTimeTrialTest, runSummary, runDeckBuilder, runWhatIfAnalysis, exportToCSV, runHeatmapAnalysis, runCounterAnalysis, runResourceManagement, runLongBattleAnalysis, runBurstDamageAnalysis, runRandomEventAnalysis, runDummyDataTest, runCyclicAnalysis, runMilestoneAnalysis, runComboOptimization, runEnduranceTest, runBalanceScore, runDrawAnalysis, runAttributeAffinity, runTurnEconomy, runRiskAssessment, runAdaptabilityTest, runTokenSynergy, runCompositionAnalysis, runKeywordAnalysis, runOptimalStrategy, runBurstPotential, runStrategyComparison, runDamageAbsorption, runKillChainAnalysis, runSimulationHistory, runScoreAnalysis, runBattleHighlights, runCostAnalysis, runBalanceTuning, runTrendAnalysis, runCardValueAnalysis, runStageAnalysis, runResourceTracking, runStrategyHotspot, runCumulativeDamage, runHealthRecovery, runPriorityAnalysis, runRewardAnalysis, runTurningPoint, runBurstTiming, runStatusEffectAnalysis, runEnergyEfficiency, runTeamSynergy, runComebackPotential, runLossAnalysis, runTargetingAnalysis, runBattleInterpretation, runEndurancePatterns, runWinStreakAnalysis, runDeckOptimization, runEnemyPatternPrediction, runCardSynergyPatterns, runSurvivalAnalysis, runAttackPatternAnalysis, runDefenseStrategyAnalysis, runComboChainAnalysis, runLevelScalingAnalysis, runHotStreakAnalysis, runColdStreakAnalysis, runBattleEfficiencyAnalysis, runTierComparisonAnalysis, runPresetEfficiencyAnalysis, runEnemyWeaknessDeepAnalysis, runPlaystyleAnalysis, TIER_1_ENEMIES, TIER_2_ENEMIES, TIER_3_ENEMIES } from '../src/tests/gameSimulator';
+import { runSimulation, printStats, SimulationConfig, runBalanceAnalysis, runTierSimulation, runFullSimulation, runRelicComparison, runDeckComparison, runAnomalyComparison, runCardEfficiencyAnalysis, runFullReport, runBattleReplay, runEnemyAnalysis, runSynergyAnalysis, runDifficultyScalingAnalysis, runWinConditionAnalysis, exportSimulationResults, runTokenEfficiencyAnalysis, runMatchupAnalysis, runSpeedAnalysis, runTraitSynergyAnalysis, runStrategyRecommendation, printHelp, runDeckCompare, runBenchmark, runRandomDeckTest, runBestCardFinder, runEnemyWeaknessAnalysis, runMultiRelicTest, runProgressionTest, runCardRanking, runRelicRanking, runMetaAnalysis, runTurnAnalysis, runDamageAnalysis, runHealingAnalysis, runComboBreakdown, runStressTest, runProbabilityAnalysis, runVersatilityAnalysis, runConsistencyAnalysis, generatePatchNotes, runEdgeCaseTest, runQuickCheck, runAITest, runTimeTrialTest, runSummary, runDeckBuilder, runWhatIfAnalysis, exportToCSV, runHeatmapAnalysis, runCounterAnalysis, runResourceManagement, runLongBattleAnalysis, runBurstDamageAnalysis, runRandomEventAnalysis, runDummyDataTest, runCyclicAnalysis, runMilestoneAnalysis, runComboOptimization, runEnduranceTest, runBalanceScore, runDrawAnalysis, runAttributeAffinity, runTurnEconomy, runRiskAssessment, runAdaptabilityTest, runTokenSynergy, runCompositionAnalysis, runKeywordAnalysis, runOptimalStrategy, runBurstPotential, runStrategyComparison, runDamageAbsorption, runKillChainAnalysis, runSimulationHistory, runScoreAnalysis, runBattleHighlights, runCostAnalysis, runBalanceTuning, runTrendAnalysis, runCardValueAnalysis, runStageAnalysis, runResourceTracking, runStrategyHotspot, runCumulativeDamage, runHealthRecovery, runPriorityAnalysis, runRewardAnalysis, runTurningPoint, runBurstTiming, runStatusEffectAnalysis, runEnergyEfficiency, runTeamSynergy, runComebackPotential, runLossAnalysis, runTargetingAnalysis, runBattleInterpretation, runEndurancePatterns, runWinStreakAnalysis, runDeckOptimization, runEnemyPatternPrediction, runCardSynergyPatterns, runSurvivalAnalysis, runAttackPatternAnalysis, runDefenseStrategyAnalysis, runComboChainAnalysis, runLevelScalingAnalysis, runHotStreakAnalysis, runColdStreakAnalysis, runBattleEfficiencyAnalysis, runTierComparisonAnalysis, runPresetEfficiencyAnalysis, runEnemyWeaknessDeepAnalysis, runPlaystyleAnalysis, runMomentumAnalysis, runPressureAnalysis, runEvasionAnalysis, runCardDrawAnalysis, runPhaseAnalysis, runCriticalMomentAnalysis, runStabilityAnalysis, runProbabilityDeepAnalysis, runAffinityDeepAnalysis, runMetaDeepAnalysis, runBanPickAnalysis, runTimePatternAnalysis, runWinPredictionAnalysis, runPotentialAnalysis, runEfficiencyOptimization, runSituationAwareness, TIER_1_ENEMIES, TIER_2_ENEMIES, TIER_3_ENEMIES } from '../src/tests/gameSimulator';
 import { ENEMIES } from '../src/components/battle/battleData';
 
 // 커맨드 라인 인자 파싱
@@ -915,6 +915,118 @@ if (command === 'playstyle') {
   const battles = parseInt(args[1]) || 30;
   console.log('🎮 플레이스타일 분석 모드\n');
   runPlaystyleAnalysis(battles);
+  process.exit(0);
+}
+
+if (command === 'momentum') {
+  const battles = parseInt(args[1]) || 50;
+  console.log('🎮 모멘텀 분석 모드\n');
+  runMomentumAnalysis(battles);
+  process.exit(0);
+}
+
+if (command === 'pressure') {
+  const battles = parseInt(args[1]) || 30;
+  console.log('🎮 압박 분석 모드\n');
+  runPressureAnalysis(battles);
+  process.exit(0);
+}
+
+if (command === 'evasion') {
+  const battles = parseInt(args[1]) || 30;
+  console.log('🎮 회피 분석 모드\n');
+  runEvasionAnalysis(battles);
+  process.exit(0);
+}
+
+if (command === 'carddraw') {
+  const battles = parseInt(args[1]) || 30;
+  console.log('🎮 카드 드로우 분석 모드\n');
+  runCardDrawAnalysis(battles);
+  process.exit(0);
+}
+
+if (command === 'phase') {
+  const battles = parseInt(args[1]) || 30;
+  console.log('🎮 페이즈 분석 모드\n');
+  runPhaseAnalysis(battles);
+  process.exit(0);
+}
+
+if (command === 'critical') {
+  const battles = parseInt(args[1]) || 30;
+  console.log('🎮 크리티컬 모멘트 분석 모드\n');
+  runCriticalMomentAnalysis(battles);
+  process.exit(0);
+}
+
+if (command === 'stability') {
+  const battles = parseInt(args[1]) || 50;
+  console.log('🎮 안정성 분석 모드\n');
+  runStabilityAnalysis(battles);
+  process.exit(0);
+}
+
+if (command === 'probdeep') {
+  const battles = parseInt(args[1]) || 100;
+  console.log('🎮 확률 심화 분석 모드\n');
+  runProbabilityDeepAnalysis(battles);
+  process.exit(0);
+}
+
+if (command === 'affinitydeep') {
+  const battles = parseInt(args[1]) || 30;
+  console.log('🎮 상성 심화 분석 모드\n');
+  runAffinityDeepAnalysis(battles);
+  process.exit(0);
+}
+
+if (command === 'metadeep') {
+  const battles = parseInt(args[1]) || 50;
+  console.log('🎮 메타 심화 분석 모드\n');
+  runMetaDeepAnalysis(battles);
+  process.exit(0);
+}
+
+if (command === 'banpick') {
+  const battles = parseInt(args[1]) || 30;
+  console.log('🎮 밴픽 분석 모드\n');
+  runBanPickAnalysis(battles);
+  process.exit(0);
+}
+
+if (command === 'timepattern') {
+  const battles = parseInt(args[1]) || 50;
+  console.log('🎮 시간 패턴 분석 모드\n');
+  runTimePatternAnalysis(battles);
+  process.exit(0);
+}
+
+if (command === 'predict') {
+  const battles = parseInt(args[1]) || 50;
+  console.log('🎮 승률 예측 분석 모드\n');
+  runWinPredictionAnalysis(battles);
+  process.exit(0);
+}
+
+if (command === 'potential') {
+  const battles = parseInt(args[1]) || 30;
+  console.log('🎮 포텐셜 분석 모드\n');
+  runPotentialAnalysis(battles);
+  process.exit(0);
+}
+
+if (command === 'effopt') {
+  const battles = parseInt(args[1]) || 30;
+  console.log('🎮 효율 최적화 분석 모드\n');
+  runEfficiencyOptimization(battles);
+  process.exit(0);
+}
+
+if (command === 'situation') {
+  const battles = parseInt(args[1]) || 30;
+  console.log('🎮 상황 인식 분석 모드\n');
+  runSituationAwareness(battles);
   process.exit(0);
 }
 
