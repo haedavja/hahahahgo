@@ -79,7 +79,7 @@ export const GrowthPyramidModal = memo(function GrowthPyramidModal({
       <div
         className="event-modal"
         onClick={(e) => e.stopPropagation()}
-        style={{ maxWidth: '100%', width: '960px', maxHeight: '95vh', overflow: 'auto' }}
+        style={{ maxWidth: '98vw', width: '1400px', maxHeight: '95vh', overflow: 'auto' }}
       >
         <header>
           <h3>🔺 피라미드 성장</h3>
