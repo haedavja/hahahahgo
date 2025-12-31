@@ -23,9 +23,21 @@ export interface RequiredToken {
 }
 
 export interface CrossBonus {
-  type: 'damage_mult' | 'gun_attack' | 'block_mult' | 'advance';
+  type:
+    | 'damage_mult'      // 피해 배수
+    | 'gun_attack'       // 추가 사격
+    | 'block_mult'       // 방어력 배수
+    | 'advance'          // 타임라인 앞당김
+    | 'push'             // 넉백
+    | 'push_gain_block'  // 밀어내고 방어 획득
+    | 'add_tokens'       // 토큰 추가
+    | 'intercept_upgrade' // 요격 강화
+    | 'destroy_card'     // 카드 파괴
+    | 'guaranteed_crit'; // 확정 치명타
   value?: number;
   count?: number;
+  maxPush?: number;
+  tokens?: { id: string; stacks: number; target: 'player' | 'enemy' }[];
 }
 
 export interface GameCard {
@@ -349,6 +361,7 @@ export interface BattleResult {
   playerFinalHp: number;
   enemyFinalHp: number;
   etherGained: number;
+  goldChange: number;  // 골드 변화량 (날강도 등)
   battleLog: string[];
   events: BattleEvent[];
   cardUsage: Record<string, number>;
