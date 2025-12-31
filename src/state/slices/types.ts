@@ -357,9 +357,14 @@ export interface RestSliceActions {
 export interface GrowthSliceState {
   growth: {
     pyramidLevel: number;
+    skillPoints: number;
     unlockedEthos: string[];
     unlockedPathos: string[];
-    pendingSelection: 'ethos' | 'pathos' | null;
+    unlockedNodes: string[];
+    pendingNodeSelection: {
+      nodeId: string;
+      type: 'ethos' | 'pathos';
+    } | null;
     identities: ('gunslinger' | 'swordsman')[];
     logosLevels: {
       common: number;
@@ -373,6 +378,11 @@ export interface GrowthSliceState {
 /** 성장 슬라이스 액션 */
 export interface GrowthSliceActions {
   updatePyramidLevel: () => void;
+  addSkillPoints: (amount: number) => void;
+  selectBaseEthos: (ethosId: string) => void;
+  selectBasePathos: (pathosId: string) => void;
+  unlockNode: (nodeId: string, type: 'ethos' | 'pathos') => void;
+  selectNodeChoice: (choiceId: string) => void;
   selectEthos: (ethosId: string) => void;
   selectPathos: (pathosId: string) => void;
   selectIdentity: (identity: 'gunslinger' | 'swordsman') => void;
