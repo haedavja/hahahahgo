@@ -112,6 +112,8 @@ export interface BattleEngineConfig {
   enableAnomalies: boolean;
   enableTimeline: boolean;
   verbose: boolean;
+  /** 맵 위험도 (0-4, 이변 레벨 계산용) */
+  mapRisk: number;
 }
 
 const DEFAULT_CONFIG: BattleEngineConfig = {
@@ -123,6 +125,7 @@ const DEFAULT_CONFIG: BattleEngineConfig = {
   enableAnomalies: true,
   enableTimeline: true,
   verbose: false,
+  mapRisk: 0,
 };
 
 // ==================== 타임라인 전투 엔진 ====================
@@ -175,7 +178,8 @@ export class TimelineBattleEngine {
 
       // 게임 데이터 이변 활성화 (mapRisk 기반 레벨 계산)
       clearGameAnomalies();
-      const anomalyLevel = 1; // 기본 레벨 1, 추후 mapRisk로 계산
+      // mapRisk 0-4 → anomalyLevel 1-5
+      const anomalyLevel = Math.min(5, Math.max(1, Math.floor(this.config.mapRisk) + 1));
       activateGameAnomaly(anomalyId, anomalyLevel);
     }
 

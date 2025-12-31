@@ -510,3 +510,113 @@ export const CardRemovalModal = memo(function CardRemovalModal({ allPlayerCards,
     </div>
   );
 });
+
+/**
+ * 카드 업그레이드 모달
+ */
+export const CardUpgradeModal = memo(function CardUpgradeModal({ allPlayerCards, cardUpgradePrice, onUpgradeCard, onClose }: {
+  allPlayerCards: BattleCard[];
+  cardUpgradePrice: number;
+  onUpgradeCard: (card: BattleCard) => void;
+  onClose: () => void;
+}) {
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: 'rgba(0, 0, 0, 0.8)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 10001,
+      }}
+      onClick={onClose}
+    >
+      <div
+        onClick={(e: React.MouseEvent) => e.stopPropagation()}
+        style={{
+          width: '600px',
+          maxHeight: '70vh',
+          background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
+          borderRadius: '16px',
+          border: '2px solid #22c55e',
+          boxShadow: '0 0 30px rgba(34, 197, 94, 0.3)',
+          padding: '20px',
+          display: 'flex',
+          flexDirection: 'column',
+        }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+          <h3 style={{ margin: 0, color: '#22c55e' }}>⬆️ 강화할 카드 선택</h3>
+          <span style={{ color: '#fbbf24', fontWeight: 600 }}>비용: {cardUpgradePrice}G</span>
+        </div>
+
+        <div style={{ fontSize: '0.85rem', color: '#94a3b8', marginBottom: '12px', padding: '8px', background: 'rgba(34, 197, 94, 0.1)', borderRadius: '6px' }}>
+          💡 강화: 카드 스탯이 향상됩니다 (속도 감소, 피해/방어 증가)
+        </div>
+
+        <div style={{ flex: 1, overflowY: 'auto' }}>
+          {allPlayerCards.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '40px', color: '#64748b' }}>
+              강화할 카드가 없습니다.
+            </div>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '12px' }}>
+              {allPlayerCards.map((card, idx) => (
+                <div
+                  key={`${card.id}-${idx}`}
+                  onClick={() => onUpgradeCard(card)}
+                  style={{
+                    padding: '12px',
+                    background: 'rgba(30, 41, 59, 0.8)',
+                    border: `2px solid ${card.__isMainSpecial ? '#fbbf24' : '#60a5fa'}`,
+                    borderRadius: '10px',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
+                    <span style={{
+                      fontSize: '0.7rem',
+                      padding: '2px 6px',
+                      borderRadius: '4px',
+                      background: card.__isMainSpecial ? 'rgba(251, 191, 36, 0.2)' : 'rgba(96, 165, 250, 0.2)',
+                      color: card.__isMainSpecial ? '#fbbf24' : '#60a5fa',
+                    }}>
+                      {card.__isMainSpecial ? '⭐주특기' : '💠보조'}
+                    </span>
+                  </div>
+                  <div style={{ fontWeight: 600, color: '#e2e8f0', marginBottom: '4px' }}>{card.name}</div>
+                  <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                    행동력 {card.actionCost} · 속도 {card.speedCost}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'flex-end' }}>
+          <button
+            onClick={onClose}
+            style={{
+              padding: '10px 20px',
+              background: 'rgba(100, 116, 139, 0.3)',
+              border: '1px solid #64748b',
+              borderRadius: '8px',
+              color: '#94a3b8',
+              cursor: 'pointer',
+              fontWeight: 600,
+            }}
+          >
+            취소
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+});

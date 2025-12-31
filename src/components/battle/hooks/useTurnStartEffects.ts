@@ -339,12 +339,18 @@ export function useTurnStartEffects({
 
         // 덱에서 카드 드로우 (소멸된 카드는 제외)
         const vanishedCardIds = (battle.vanishedCards || []).map((c) => typeof c === 'string' ? c : c.id);
-        const drawResult = drawFromDeck(currentDeck, currentDiscard, DEFAULT_DRAW_COUNT, escapeBanRef.current, vanishedCardIds);
+        const mainSpecialOnly = nextTurnEffects?.mainSpecialOnly ?? false;
+        const drawResult = drawFromDeck(currentDeck, currentDiscard, DEFAULT_DRAW_COUNT, escapeBanRef.current, vanishedCardIds, { mainSpecialOnly });
 
         actions.setDeck(drawResult.newDeck);
         actions.setDiscardPile(drawResult.newDiscardPile);
         actions.setHand(drawResult.drawnCards);
 
+        if (mainSpecialOnly) {
+          addLog('⚠️ 파탄 효과로 주특기 카드만 뽑혔습니다!');
+          // 파탄 효과 사용 후 초기화
+          actions.updateNextTurnEffects({ mainSpecialOnly: false });
+        }
         if (drawResult.reshuffled) {
           addLog('🔄 덱이 소진되어 무덤을 섞어 새 덱을 만들었습니다.');
         }

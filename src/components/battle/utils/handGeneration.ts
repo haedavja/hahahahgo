@@ -179,24 +179,43 @@ export function initializeDeck(
 
 /**
  * 덱에서 카드 드로우
+ * @param deck 현재 덱
+ * @param discardPile 무덤
+ * @param count 드로우 수
+ * @param escapeBan 탈주 금지 카드 ID 세트
+ * @param vanishedCards 소멸된 카드 ID 목록
+ * @param options 드로우 옵션
+ * @param options.mainSpecialOnly 주특기만 드로우 (파탄 특성)
  */
 export function drawFromDeck(
   deck: HandCard[],
   discardPile: HandCard[],
   count: number,
   escapeBan: Set<string> = new Set(),
-  vanishedCards: string[] = []
+  vanishedCards: string[] = [],
+  options: { mainSpecialOnly?: boolean } = {}
 ): DrawResult {
   let currentDeck = [...deck];
   let currentDiscard = [...discardPile];
   let reshuffled = false;
   const vanishedSet = new Set(vanishedCards);
+  const { mainSpecialOnly = false } = options;
 
   // 주특기 카드를 무덤에서 꺼내되, 소멸된 카드는 제외
   const mainSpecialsFromDiscard = currentDiscard.filter(card =>
     card.__isMainSpecial && !vanishedSet.has(card.id)
   );
   currentDiscard = currentDiscard.filter(card => !card.__isMainSpecial);
+
+  // 파탄(ruin) 특성: 주특기만 드로우
+  if (mainSpecialOnly) {
+    return {
+      drawnCards: mainSpecialsFromDiscard,
+      newDeck: currentDeck,
+      newDiscardPile: currentDiscard,
+      reshuffled: false
+    };
+  }
 
   if (currentDeck.length < count && currentDiscard.length > 0) {
     const subSpecialsFromDiscard = currentDiscard.filter(card => card.__isSubSpecial);

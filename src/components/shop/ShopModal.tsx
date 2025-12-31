@@ -20,7 +20,7 @@ import {
   getServicePrice,
   type MerchantTypeKey,
 } from '../../data/shop';
-import { BuyTab, SellTab, ServiceTab, CardRemovalModal, type ShopService } from './ShopTabs';
+import { BuyTab, SellTab, ServiceTab, CardRemovalModal, CardUpgradeModal, type ShopService } from './ShopTabs';
 import type { BattleCard, GameItem } from '../../state/slices/types';
 
 // 플레이어 카드는 BattleCard 타입 사용 (CardRemovalModal과 호환)
@@ -113,7 +113,7 @@ export const ShopModal = memo(function ShopModal({ merchantType = 'shop', onClos
   );
 
   // 액션 셀렉터 (shallow 비교로 최적화)
-  const { addResources, addRelic, addItem, removeItem, setPlayerHp, removeCardFromDeck, addOwnedCard } = useGameStore(
+  const { addResources, addRelic, addItem, removeItem, setPlayerHp, removeCardFromDeck, addOwnedCard, enhanceCard } = useGameStore(
     useShallow((state) => ({
       addResources: state.addResources,
       addRelic: state.addRelic,
@@ -122,6 +122,7 @@ export const ShopModal = memo(function ShopModal({ merchantType = 'shop', onClos
       setPlayerHp: state.setPlayerHp,
       removeCardFromDeck: state.removeCardFromDeck,
       addOwnedCard: state.addOwnedCard,
+      enhanceCard: state.enhanceCard,
     }))
   );
 
@@ -137,6 +138,8 @@ export const ShopModal = memo(function ShopModal({ merchantType = 'shop', onClos
   const [notification, setNotification] = useState<{ message: string; type: string } | null>(null);
   const [showCardRemovalModal, setShowCardRemovalModal] = useState(false);
   const [cardRemovalPrice, setCardRemovalPrice] = useState(0);
+  const [showCardUpgradeModal, setShowCardUpgradeModal] = useState(false);
+  const [cardUpgradePrice, setCardUpgradePrice] = useState(0);
 
   const sellableItems = useMemo(() => {
     return items
@@ -279,6 +282,15 @@ export const ShopModal = memo(function ShopModal({ merchantType = 'shop', onClos
         setShowCardRemovalModal(true);
         break;
       }
+      case 'upgradeCard': {
+        if (allPlayerCards.length === 0) {
+          showNotification('강화할 카드가 없습니다!', 'error');
+          return;
+        }
+        setCardUpgradePrice(price);
+        setShowCardUpgradeModal(true);
+        break;
+      }
       default:
         showNotification('아직 구현되지 않은 서비스입니다.', 'error');
     }
@@ -289,6 +301,13 @@ export const ShopModal = memo(function ShopModal({ merchantType = 'shop', onClos
     removeCardFromDeck(card.id, card.__isMainSpecial);
     setShowCardRemovalModal(false);
     showNotification(`${card.name} 카드를 제거했습니다!`, 'success');
+  };
+
+  const handleUpgradeCard = (card: BattleCard) => {
+    addResources({ gold: -cardUpgradePrice });
+    enhanceCard(card.id);
+    setShowCardUpgradeModal(false);
+    showNotification(`${card.name} 카드를 강화했습니다!`, 'success');
   };
 
   const handleContainerClick = useCallback((e: React.MouseEvent) => e.stopPropagation(), []);
@@ -432,6 +451,16 @@ export const ShopModal = memo(function ShopModal({ merchantType = 'shop', onClos
           cardRemovalPrice={cardRemovalPrice}
           onRemoveCard={handleRemoveCard}
           onClose={() => setShowCardRemovalModal(false)}
+        />
+      )}
+
+      {/* 카드 업그레이드 모달 */}
+      {showCardUpgradeModal && (
+        <CardUpgradeModal
+          allPlayerCards={allPlayerCards}
+          cardUpgradePrice={cardUpgradePrice}
+          onUpgradeCard={handleUpgradeCard}
+          onClose={() => setShowCardUpgradeModal(false)}
         />
       )}
     </div>
