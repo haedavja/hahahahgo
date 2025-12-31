@@ -335,10 +335,11 @@ export class TimelineBattleEngine {
       const card = this.cards[cardId];
       if (!card) continue;
 
-      // 핸드에서 카드 제거
+      // 핸드에서 카드 제거 → 버린 카드 더미로 이동
       const handIndex = state.player.hand.indexOf(cardId);
       if (handIndex >= 0) {
         state.player.hand.splice(handIndex, 1);
+        state.player.discard.push(cardId);
       }
 
       // 타임라인에 추가 (즉발 카드는 position 0, 그 외는 특성 반영)
@@ -475,6 +476,13 @@ export class TimelineBattleEngine {
         crossed: false,
         executed: false,
       });
+
+      // 핸드에서 제거 → 버린 카드 더미로 이동
+      const handIndex = state.player.hand.indexOf(card.id);
+      if (handIndex >= 0) {
+        state.player.hand.splice(handIndex, 1);
+        state.player.discard.push(card.id);
+      }
     }
 
     // 적 카드 배치
