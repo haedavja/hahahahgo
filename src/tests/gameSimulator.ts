@@ -3575,6 +3575,248 @@ export function runBestCardFinder(baseDeckName: string = 'balanced', battles: nu
   console.log('\n' + '═'.repeat(50) + '\n');
 }
 
+/**
+ * 적 약점 분석
+ * 각 적의 약점을 파악하여 최적 전략 제시
+ */
+export function runEnemyWeaknessAnalysis(enemyId: string = 'ghoul', battles: number = 30): void {
+  console.log('\n╔════════════════════════════════════════╗');
+  console.log('║          적 약점 분석                   ║');
+  console.log('╚════════════════════════════════════════╝\n');
+
+  const enemy = ENEMIES.find(e => e.id === enemyId);
+  if (!enemy) {
+    console.log(`❌ 적 "${enemyId}" 을(를) 찾을 수 없습니다.`);
+    return;
+  }
+
+  console.log(`🎯 분석 대상: ${enemy.name} (Tier ${enemy.tier}, HP ${enemy.hp})\n`);
+  console.log('─'.repeat(50));
+
+  // 각 덱 유형으로 테스트
+  const deckResults: Array<{ name: string; winRate: number; avgTurns: number }> = [];
+
+  for (const [deckId, deck] of Object.entries(DECK_PRESETS)) {
+    const config: SimulationConfig = {
+      battles,
+      maxTurns: 30,
+      enemyIds: [enemyId],
+      playerDeck: deck.cards,
+      verbose: false,
+    };
+
+    const stats = runSimulation(config);
+    deckResults.push({ name: deck.name, winRate: stats.winRate, avgTurns: stats.avgTurns });
+  }
+
+  // 결과 정렬 및 출력
+  deckResults.sort((a, b) => b.winRate - a.winRate);
+
+  console.log('\n📊 덱별 승률:\n');
+  deckResults.forEach((r, idx) => {
+    const bar = '█'.repeat(Math.ceil(r.winRate * 20));
+    const status = idx === 0 ? '⭐ 최적' : idx < 3 ? '✓ 효과적' : '';
+    console.log(`  ${r.name.padEnd(12)}: ${bar} ${(r.winRate * 100).toFixed(1)}% ${status}`);
+  });
+
+  // 약점 분석
+  console.log('\n💡 약점 분석:');
+  console.log('─'.repeat(50));
+
+  const bestDeck = deckResults[0];
+  const worstDeck = deckResults[deckResults.length - 1];
+  const avgWinRate = deckResults.reduce((s, r) => s + r.winRate, 0) / deckResults.length;
+
+  if (bestDeck.name.includes('공격') || bestDeck.name.includes('속공')) {
+    console.log(`  • ${enemy.name}은(는) 빠른 공격에 취약합니다.`);
+  } else if (bestDeck.name.includes('방어') || bestDeck.name.includes('반격')) {
+    console.log(`  • ${enemy.name}은(는) 방어적 플레이에 약합니다.`);
+  } else if (bestDeck.name.includes('콤보')) {
+    console.log(`  • ${enemy.name}은(는) 콤보 공격에 취약합니다.`);
+  }
+
+  console.log(`  • 최적 덱: ${bestDeck.name} (${(bestDeck.winRate * 100).toFixed(1)}%)`);
+  console.log(`  • 회피 덱: ${worstDeck.name} (${(worstDeck.winRate * 100).toFixed(1)}%)`);
+  console.log(`  • 평균 난이도: ${avgWinRate > 0.7 ? '쉬움' : avgWinRate > 0.5 ? '보통' : '어려움'}`);
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
+/**
+ * 다중 상징 콤보 테스트
+ * 상징 조합의 시너지 효과 분석
+ */
+export function runMultiRelicTest(battles: number = 30): void {
+  console.log('\n╔════════════════════════════════════════╗');
+  console.log('║        다중 상징 콤보 테스트            ║');
+  console.log('╚════════════════════════════════════════╝\n');
+
+  // 테스트할 상징 조합
+  const relicCombos: Array<{ name: string; relics: string[] }> = [
+    { name: '공격 콤보', relics: ['trainingBoots', 'ironWill'] },
+    { name: '방어 콤보', relics: ['sturdyArmor', 'oldCompass'] },
+    { name: '회복 콤보', relics: ['raggedCloak', 'sturdyArmor'] },
+    { name: '균형 콤보', relics: ['trainingBoots', 'sturdyArmor'] },
+  ];
+
+  // 기준 (상징 없음)
+  const baseConfig: SimulationConfig = {
+    battles,
+    maxTurns: 30,
+    enemyIds: TIER_1_ENEMIES.slice(0, 3),
+    playerRelics: [],
+    verbose: false,
+  };
+  const baseStats = runSimulation(baseConfig);
+  const baseWinRate = baseStats.winRate;
+
+  console.log(`📊 기준 승률 (상징 없음): ${(baseWinRate * 100).toFixed(1)}%\n`);
+  console.log('─'.repeat(50));
+
+  const results: Array<{ name: string; winRate: number; diff: number; synergy: number }> = [];
+
+  for (const combo of relicCombos) {
+    // 개별 상징 효과 계산
+    let individualSum = 0;
+    for (const relicId of combo.relics) {
+      const config: SimulationConfig = {
+        battles,
+        maxTurns: 30,
+        enemyIds: TIER_1_ENEMIES.slice(0, 3),
+        playerRelics: [relicId],
+        verbose: false,
+      };
+      const stats = runSimulation(config);
+      individualSum += stats.winRate - baseWinRate;
+    }
+
+    // 조합 효과 계산
+    const comboConfig: SimulationConfig = {
+      battles,
+      maxTurns: 30,
+      enemyIds: TIER_1_ENEMIES.slice(0, 3),
+      playerRelics: combo.relics,
+      verbose: false,
+    };
+    const comboStats = runSimulation(comboConfig);
+    const comboDiff = comboStats.winRate - baseWinRate;
+
+    // 시너지 = 조합 효과 - 개별 효과 합
+    const synergy = comboDiff - individualSum;
+
+    results.push({
+      name: combo.name,
+      winRate: comboStats.winRate,
+      diff: comboDiff,
+      synergy,
+    });
+  }
+
+  // 시너지순 정렬
+  results.sort((a, b) => b.synergy - a.synergy);
+
+  console.log('\n🏆 상징 조합 시너지 순위:\n');
+  results.forEach((r, idx) => {
+    const sign = r.diff >= 0 ? '+' : '';
+    const synergySign = r.synergy >= 0 ? '+' : '';
+    const synergyIndicator = r.synergy > 0.02 ? '🔥 시너지!' :
+      r.synergy < -0.02 ? '❄️ 역시너지' : '➖ 보통';
+
+    console.log(`  ${idx + 1}. ${r.name}:`);
+    console.log(`     승률: ${(r.winRate * 100).toFixed(1)}% (${sign}${(r.diff * 100).toFixed(1)}%)`);
+    console.log(`     시너지: ${synergySign}${(r.synergy * 100).toFixed(1)}% ${synergyIndicator}`);
+  });
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
+/**
+ * 진행형 난이도 테스트
+ * Tier 1 → 2 → 3 순차 전투 시뮬레이션
+ */
+export function runProgressionTest(runsPerTier: number = 20): void {
+  console.log('\n╔════════════════════════════════════════╗');
+  console.log('║        진행형 난이도 테스트             ║');
+  console.log('╚════════════════════════════════════════╝\n');
+
+  const tiers = [
+    { tier: 1, enemies: TIER_1_ENEMIES, name: 'Tier 1 (초반)' },
+    { tier: 2, enemies: TIER_2_ENEMIES, name: 'Tier 2 (중반)' },
+    { tier: 3, enemies: TIER_3_ENEMIES, name: 'Tier 3 (후반)' },
+  ];
+
+  console.log(`📊 ${runsPerTier}회 시뮬레이션 (티어별)\n`);
+  console.log('─'.repeat(50));
+
+  const results: Array<{ tier: string; winRate: number; avgTurns: number; survivalRate: number }> = [];
+
+  for (const tierInfo of tiers) {
+    // 여러 적과 전투
+    let totalWins = 0;
+    let totalBattles = 0;
+    let totalTurns = 0;
+    let survived = 0;
+
+    for (const enemyId of tierInfo.enemies.slice(0, 4)) {
+      const config: SimulationConfig = {
+        battles: runsPerTier,
+        maxTurns: 30,
+        enemyIds: [enemyId],
+        verbose: false,
+      };
+
+      const stats = runSimulation(config);
+      totalWins += stats.wins;
+      totalBattles += stats.totalBattles;
+      totalTurns += stats.avgTurns * stats.totalBattles;
+
+      if (stats.winRate >= 0.5) survived++;
+    }
+
+    const winRate = totalWins / totalBattles;
+    const avgTurns = totalTurns / totalBattles;
+    const survivalRate = survived / Math.min(4, tierInfo.enemies.length);
+
+    results.push({
+      tier: tierInfo.name,
+      winRate,
+      avgTurns,
+      survivalRate,
+    });
+
+    // 그래프 출력
+    const bar = '█'.repeat(Math.ceil(winRate * 25));
+    console.log(`\n  ${tierInfo.name}:`);
+    console.log(`    승률: ${bar} ${(winRate * 100).toFixed(1)}%`);
+    console.log(`    평균 턴: ${avgTurns.toFixed(1)}`);
+    console.log(`    돌파율: ${(survivalRate * 100).toFixed(0)}%`);
+  }
+
+  // 전체 분석
+  console.log('\n' + '─'.repeat(50));
+  console.log('\n💡 진행 분석:');
+
+  const tier1 = results[0];
+  const tier2 = results[1];
+  const tier3 = results[2];
+
+  if (tier1.winRate > 0.7 && tier2.winRate > 0.5 && tier3.winRate > 0.3) {
+    console.log('  ✓ 밸런스 양호: 점진적 난이도 증가');
+  } else if (tier1.winRate < 0.5) {
+    console.log('  ⚠️ 초반 난이도가 너무 높습니다.');
+  } else if (tier2.winRate < 0.3) {
+    console.log('  ⚠️ 중반 난이도 급증이 있습니다.');
+  } else if (tier3.winRate > 0.6) {
+    console.log('  ⚠️ 후반 난이도가 너무 낮습니다.');
+  }
+
+  // 예상 클리어율
+  const expectedClear = tier1.winRate * tier2.winRate * tier3.winRate;
+  console.log(`  📈 예상 게임 클리어율: ${(expectedClear * 100).toFixed(1)}%`);
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
 // CLI에서 직접 실행 시
 if (typeof process !== 'undefined' && process.argv?.[1]?.includes('gameSimulator')) {
   runQuickTest();

@@ -24,6 +24,9 @@
  *   npx tsx scripts/runSimulator.ts speed [battles]       # 속도 분석
  *   npx tsx scripts/runSimulator.ts trait [battles]       # 특성 시너지 분석
  *   npx tsx scripts/runSimulator.ts recommend [enemyId] [battles] # 전략 추천
+ *   npx tsx scripts/runSimulator.ts weakness [enemyId] [battles] # 적 약점 분석
+ *   npx tsx scripts/runSimulator.ts multirelic [battles]  # 다중 상징 콤보 테스트
+ *   npx tsx scripts/runSimulator.ts progression [runs]    # 진행형 난이도 테스트
  *   npx tsx scripts/runSimulator.ts help                  # 도움말
  *
  * 예시:
@@ -49,7 +52,7 @@
  *   npx tsx scripts/runSimulator.ts trait 30
  */
 
-import { runSimulation, printStats, SimulationConfig, runBalanceAnalysis, runTierSimulation, runFullSimulation, runRelicComparison, runDeckComparison, runAnomalyComparison, runCardEfficiencyAnalysis, runFullReport, runBattleReplay, runEnemyAnalysis, runSynergyAnalysis, runDifficultyScalingAnalysis, runWinConditionAnalysis, exportSimulationResults, runTokenEfficiencyAnalysis, runMatchupAnalysis, runSpeedAnalysis, runTraitSynergyAnalysis, runStrategyRecommendation, printHelp, runDeckCompare, runBenchmark, runRandomDeckTest, runBestCardFinder, TIER_1_ENEMIES, TIER_2_ENEMIES, TIER_3_ENEMIES } from '../src/tests/gameSimulator';
+import { runSimulation, printStats, SimulationConfig, runBalanceAnalysis, runTierSimulation, runFullSimulation, runRelicComparison, runDeckComparison, runAnomalyComparison, runCardEfficiencyAnalysis, runFullReport, runBattleReplay, runEnemyAnalysis, runSynergyAnalysis, runDifficultyScalingAnalysis, runWinConditionAnalysis, exportSimulationResults, runTokenEfficiencyAnalysis, runMatchupAnalysis, runSpeedAnalysis, runTraitSynergyAnalysis, runStrategyRecommendation, printHelp, runDeckCompare, runBenchmark, runRandomDeckTest, runBestCardFinder, runEnemyWeaknessAnalysis, runMultiRelicTest, runProgressionTest, TIER_1_ENEMIES, TIER_2_ENEMIES, TIER_3_ENEMIES } from '../src/tests/gameSimulator';
 import { ENEMIES } from '../src/components/battle/battleData';
 
 // 커맨드 라인 인자 파싱
@@ -232,6 +235,28 @@ if (command === 'bestcard') {
   const battles = parseInt(args[2]) || 20;
   console.log('🎮 최적 카드 찾기 모드\n');
   runBestCardFinder(deckName, battles);
+  process.exit(0);
+}
+
+if (command === 'weakness') {
+  const enemyId = args[1] || 'ghoul';
+  const battles = parseInt(args[2]) || 30;
+  console.log('🎮 적 약점 분석 모드\n');
+  runEnemyWeaknessAnalysis(enemyId, battles);
+  process.exit(0);
+}
+
+if (command === 'multirelic') {
+  const battles = parseInt(args[1]) || 30;
+  console.log('🎮 다중 상징 콤보 테스트 모드\n');
+  runMultiRelicTest(battles);
+  process.exit(0);
+}
+
+if (command === 'progression') {
+  const runs = parseInt(args[1]) || 20;
+  console.log('🎮 진행형 난이도 테스트 모드\n');
+  runProgressionTest(runs);
   process.exit(0);
 }
 

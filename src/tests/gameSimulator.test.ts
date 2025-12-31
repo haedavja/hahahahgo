@@ -532,3 +532,24 @@ describe('최적 카드 찾기', () => {
     expect(typeof runBestCardFinder).toBe('function');
   });
 });
+
+describe('적 약점 분석', () => {
+  it('runEnemyWeaknessAnalysis 함수가 존재한다', async () => {
+    const { runEnemyWeaknessAnalysis } = await import('./gameSimulator');
+    expect(typeof runEnemyWeaknessAnalysis).toBe('function');
+  });
+});
+
+describe('다중 상징 콤보 테스트', () => {
+  it('runMultiRelicTest 함수가 존재한다', async () => {
+    const { runMultiRelicTest } = await import('./gameSimulator');
+    expect(typeof runMultiRelicTest).toBe('function');
+  });
+});
+
+describe('진행형 난이도 테스트', () => {
+  it('runProgressionTest 함수가 존재한다', async () => {
+    const { runProgressionTest } = await import('./gameSimulator');
+    expect(typeof runProgressionTest).toBe('function');
+  });
+});
