@@ -1008,3 +1008,31 @@ describe('역전 가능성 분석', () => {
     expect(typeof runComebackPotential).toBe('function');
   });
 });
+
+describe('손실 분석', () => {
+  it('runLossAnalysis 함수가 존재한다', async () => {
+    const { runLossAnalysis } = await import('./gameSimulator');
+    expect(typeof runLossAnalysis).toBe('function');
+  });
+});
+
+describe('표적화 분석', () => {
+  it('runTargetingAnalysis 함수가 존재한다', async () => {
+    const { runTargetingAnalysis } = await import('./gameSimulator');
+    expect(typeof runTargetingAnalysis).toBe('function');
+  });
+});
+
+describe('전투 해석 분석', () => {
+  it('runBattleInterpretation 함수가 존재한다', async () => {
+    const { runBattleInterpretation } = await import('./gameSimulator');
+    expect(typeof runBattleInterpretation).toBe('function');
+  });
+});
+
+describe('내구력 패턴 분석', () => {
+  it('runEndurancePatterns 함수가 존재한다', async () => {
+    const { runEndurancePatterns } = await import('./gameSimulator');
+    expect(typeof runEndurancePatterns).toBe('function');
+  });
+});

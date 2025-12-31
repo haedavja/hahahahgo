@@ -8001,6 +8001,262 @@ export function runComebackPotential(battles: number = 30): void {
   console.log('\n' + '═'.repeat(50) + '\n');
 }
 
+/**
+ * 손실 분석 - 패배 원인 및 패턴 분석
+ */
+export function runLossAnalysis(battles: number = 30): void {
+  console.log('═'.repeat(50));
+  console.log('📉 손실 분석');
+  console.log('═'.repeat(50));
+
+  const allEnemies = [...TIER_1_ENEMIES, ...TIER_2_ENEMIES, ...TIER_3_ENEMIES];
+  const lossStats = {
+    totalLosses: 0,
+    avgTurnsBeforeLoss: 0,
+    lossesToTier1: 0,
+    lossesToTier2: 0,
+    lossesToTier3: 0,
+    avgRemainingEnemyHp: 0,
+    totalRemainingHp: 0,
+  };
+
+  for (let i = 0; i < battles; i++) {
+    const enemy = allEnemies[Math.floor(Math.random() * allEnemies.length)];
+    const state = initBattleState(enemy, getDeckPreset('balanced'));
+    let turns = 0;
+
+    for (let turn = 0; turn < 30 && state.enemy.hp > 0 && state.player.hp > 0; turn++) {
+      const selectedIndices = selectCardsAI(state.hand);
+      processPlayerTurn(state, selectedIndices);
+      turns++;
+      if (state.enemy.hp <= 0) break;
+      processEnemyTurn(state);
+    }
+
+    if (state.player.hp <= 0 || (state.enemy.hp > 0 && state.player.hp > 0)) {
+      lossStats.totalLosses++;
+      lossStats.avgTurnsBeforeLoss += turns;
+      lossStats.totalRemainingHp += state.enemy.hp;
+
+      if (enemy.tier === 1) lossStats.lossesToTier1++;
+      else if (enemy.tier === 2) lossStats.lossesToTier2++;
+      else lossStats.lossesToTier3++;
+    }
+  }
+
+  if (lossStats.totalLosses > 0) {
+    lossStats.avgTurnsBeforeLoss /= lossStats.totalLosses;
+    lossStats.avgRemainingEnemyHp = lossStats.totalRemainingHp / lossStats.totalLosses;
+  }
+
+  console.log('\n📊 손실 통계:\n');
+  console.log(`  총 패배: ${lossStats.totalLosses}/${battles} (${((lossStats.totalLosses / battles) * 100).toFixed(1)}%)`);
+  console.log(`  평균 패배 턴: ${lossStats.avgTurnsBeforeLoss.toFixed(1)}`);
+  console.log(`  티어별 패배: T1-${lossStats.lossesToTier1} / T2-${lossStats.lossesToTier2} / T3-${lossStats.lossesToTier3}`);
+  console.log(`  평균 남은 적 HP: ${lossStats.avgRemainingEnemyHp.toFixed(0)}`);
+
+  // 개선 포인트
+  const mainIssue = lossStats.lossesToTier3 > lossStats.lossesToTier1 ?
+    'Tier 3 적 대응력 필요' : '기본 전투력 강화 필요';
+  console.log(`\n  💡 개선 포인트: ${mainIssue}`);
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
+/**
+ * 표적화 분석 - 적 선택 우선순위 분석
+ */
+export function runTargetingAnalysis(battles: number = 30): void {
+  console.log('═'.repeat(50));
+  console.log('🎯 표적화 분석');
+  console.log('═'.repeat(50));
+
+  const allEnemies = [...TIER_1_ENEMIES, ...TIER_2_ENEMIES];
+  const targetingStats: Record<string, { encounters: number; wins: number; avgTurns: number }> = {};
+
+  for (let i = 0; i < battles; i++) {
+    const enemy = allEnemies[Math.floor(Math.random() * allEnemies.length)];
+    const state = initBattleState(enemy, getDeckPreset('balanced'));
+    let turns = 0;
+
+    if (!targetingStats[enemy.id]) {
+      targetingStats[enemy.id] = { encounters: 0, wins: 0, avgTurns: 0 };
+    }
+    targetingStats[enemy.id].encounters++;
+
+    for (let turn = 0; turn < 30 && state.enemy.hp > 0 && state.player.hp > 0; turn++) {
+      const selectedIndices = selectCardsAI(state.hand);
+      processPlayerTurn(state, selectedIndices);
+      turns++;
+      if (state.enemy.hp <= 0) break;
+      processEnemyTurn(state);
+    }
+
+    if (state.enemy.hp <= 0) {
+      targetingStats[enemy.id].wins++;
+    }
+    targetingStats[enemy.id].avgTurns += turns;
+  }
+
+  // 평균 계산
+  Object.values(targetingStats).forEach(stat => {
+    if (stat.encounters > 0) {
+      stat.avgTurns /= stat.encounters;
+    }
+  });
+
+  console.log('\n📊 적별 성과:\n');
+  const sorted = Object.entries(targetingStats)
+    .sort((a, b) => (b[1].wins / b[1].encounters) - (a[1].wins / a[1].encounters))
+    .slice(0, 8);
+
+  sorted.forEach(([enemyId, stat]) => {
+    const winRate = (stat.wins / stat.encounters * 100).toFixed(0);
+    const rating = parseInt(winRate) >= 80 ? '✅' : parseInt(winRate) >= 50 ? '⚠️' : '❌';
+    console.log(`  ${rating} ${enemyId.padEnd(12)}: ${winRate}% 승률 (평균 ${stat.avgTurns.toFixed(1)}턴)`);
+  });
+
+  // 우선 타겟 추천
+  const easiest = sorted[0]?.[0] || '없음';
+  const hardest = sorted[sorted.length - 1]?.[0] || '없음';
+  console.log(`\n  💡 쉬운 적: ${easiest}`);
+  console.log(`  💡 어려운 적: ${hardest}`);
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
+/**
+ * 전투 해석 분석 - 전투 진행 패턴 해석
+ */
+export function runBattleInterpretation(battles: number = 20): void {
+  console.log('═'.repeat(50));
+  console.log('📖 전투 해석 분석');
+  console.log('═'.repeat(50));
+
+  const allEnemies = [...TIER_1_ENEMIES, ...TIER_2_ENEMIES];
+  const patterns = {
+    quickWins: 0,    // 5턴 이하
+    normalWins: 0,   // 6-12턴
+    slowWins: 0,     // 13턴 이상
+    closeFights: 0,  // 플레이어 HP 20% 이하로 승리
+    dominantWins: 0, // 플레이어 HP 80% 이상으로 승리
+  };
+
+  for (let i = 0; i < battles; i++) {
+    const enemy = allEnemies[Math.floor(Math.random() * allEnemies.length)];
+    const state = initBattleState(enemy, getDeckPreset('balanced'));
+    const initialPlayerHp = state.player.hp;
+    let turns = 0;
+
+    for (let turn = 0; turn < 30 && state.enemy.hp > 0 && state.player.hp > 0; turn++) {
+      const selectedIndices = selectCardsAI(state.hand);
+      processPlayerTurn(state, selectedIndices);
+      turns++;
+      if (state.enemy.hp <= 0) break;
+      processEnemyTurn(state);
+    }
+
+    if (state.enemy.hp <= 0) {
+      // 턴 기반 분류
+      if (turns <= 5) patterns.quickWins++;
+      else if (turns <= 12) patterns.normalWins++;
+      else patterns.slowWins++;
+
+      // HP 기반 분류
+      const hpRatio = state.player.hp / initialPlayerHp;
+      if (hpRatio <= 0.2) patterns.closeFights++;
+      if (hpRatio >= 0.8) patterns.dominantWins++;
+    }
+  }
+
+  const totalWins = patterns.quickWins + patterns.normalWins + patterns.slowWins;
+
+  console.log('\n📊 전투 패턴 분석:\n');
+  console.log('  📈 속도 분류:');
+  console.log(`    빠른 승리 (≤5턴): ${patterns.quickWins}회 (${((patterns.quickWins / totalWins) * 100 || 0).toFixed(0)}%)`);
+  console.log(`    보통 승리 (6-12턴): ${patterns.normalWins}회 (${((patterns.normalWins / totalWins) * 100 || 0).toFixed(0)}%)`);
+  console.log(`    느린 승리 (≥13턴): ${patterns.slowWins}회 (${((patterns.slowWins / totalWins) * 100 || 0).toFixed(0)}%)`);
+
+  console.log('\n  💪 안정성 분류:');
+  console.log(`    압도적 승리 (HP≥80%): ${patterns.dominantWins}회`);
+  console.log(`    접전 승리 (HP≤20%): ${patterns.closeFights}회`);
+
+  // 전투 스타일 해석
+  const style = patterns.quickWins > patterns.slowWins ? '공격적' :
+    patterns.dominantWins > patterns.closeFights ? '안정적' : '균형적';
+  console.log(`\n  💡 전투 스타일: ${style}`);
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
+/**
+ * 내구력 패턴 분석 - 장기전 지속력 패턴
+ */
+export function runEndurancePatterns(battles: number = 30): void {
+  console.log('═'.repeat(50));
+  console.log('🏃 내구력 패턴 분석');
+  console.log('═'.repeat(50));
+
+  const allEnemies = [...TIER_2_ENEMIES, ...TIER_3_ENEMIES]; // 더 어려운 적 대상
+  const enduranceData = {
+    longBattles: 0,       // 15턴 이상
+    survivedLongBattles: 0,
+    avgHpRetained: 0,
+    totalHpRetained: 0,
+    peakDamageOnLongBattles: 0,
+  };
+
+  for (let i = 0; i < battles; i++) {
+    const enemy = allEnemies[Math.floor(Math.random() * allEnemies.length)];
+    const state = initBattleState(enemy, getDeckPreset('defensive'));
+    const initialPlayerHp = state.player.hp;
+    let turns = 0;
+    let maxDamage = 0;
+
+    for (let turn = 0; turn < 30 && state.enemy.hp > 0 && state.player.hp > 0; turn++) {
+      const prevEnemyHp = state.enemy.hp;
+      const selectedIndices = selectCardsAI(state.hand);
+      processPlayerTurn(state, selectedIndices);
+      turns++;
+
+      const damage = prevEnemyHp - state.enemy.hp;
+      maxDamage = Math.max(maxDamage, damage);
+
+      if (state.enemy.hp <= 0) break;
+      processEnemyTurn(state);
+    }
+
+    if (turns >= 15) {
+      enduranceData.longBattles++;
+      if (state.enemy.hp <= 0) {
+        enduranceData.survivedLongBattles++;
+        enduranceData.totalHpRetained += state.player.hp / initialPlayerHp;
+        enduranceData.peakDamageOnLongBattles = Math.max(enduranceData.peakDamageOnLongBattles, maxDamage);
+      }
+    }
+  }
+
+  if (enduranceData.survivedLongBattles > 0) {
+    enduranceData.avgHpRetained = enduranceData.totalHpRetained / enduranceData.survivedLongBattles;
+  }
+
+  console.log('\n📊 내구력 통계:\n');
+  console.log(`  장기전 발생: ${enduranceData.longBattles}/${battles}회`);
+  console.log(`  장기전 생존율: ${enduranceData.longBattles > 0 ? ((enduranceData.survivedLongBattles / enduranceData.longBattles) * 100).toFixed(0) : 0}%`);
+  console.log(`  생존시 평균 HP 유지율: ${(enduranceData.avgHpRetained * 100).toFixed(0)}%`);
+  console.log(`  장기전 최대 데미지: ${enduranceData.peakDamageOnLongBattles}`);
+
+  // 내구력 등급
+  const survivalRate = enduranceData.longBattles > 0 ?
+    (enduranceData.survivedLongBattles / enduranceData.longBattles) : 0;
+  const grade = survivalRate >= 0.7 ? 'S' :
+    survivalRate >= 0.5 ? 'A' :
+    survivalRate >= 0.3 ? 'B' : 'C';
+  console.log(`\n  💡 내구력 등급: ${grade}`);
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
 // CLI에서 직접 실행 시
 if (typeof process !== 'undefined' && process.argv?.[1]?.includes('gameSimulator')) {
   runQuickTest();
