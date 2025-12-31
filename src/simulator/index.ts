@@ -214,6 +214,20 @@ export {
   type RespondAIConfig,
 } from './ai/respond-ai';
 
+// ==================== Card Effects ====================
+export {
+  executeSpecialEffects,
+  processCrossBonus,
+  checkAndConsumeRequiredTokens,
+  hasSpecialEffect,
+  getFencingDamageBonus,
+  getGunDamageBonus,
+  getSupportedSpecials,
+  findUnsupportedSpecials,
+  type SpecialEffectResult,
+  type CrossBonusResult,
+} from './core/card-effects';
+
 // ==================== Card Synergy Analysis ====================
 export {
   SynergyAnalyzer,

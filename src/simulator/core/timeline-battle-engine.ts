@@ -50,6 +50,14 @@ import { getRelicSystemV2, RelicSystemV2 } from './relic-system-v2';
 import { getAnomalySystem } from './anomaly-system';
 import { getLogger } from './logger';
 import { RespondAI, type ResponseDecision, type TimelineAnalysis } from '../ai/respond-ai';
+import {
+  executeSpecialEffects,
+  processCrossBonus,
+  checkAndConsumeRequiredTokens,
+  hasSpecialEffect,
+  getFencingDamageBonus,
+  getGunDamageBonus,
+} from './card-effects';
 
 const log = getLogger('TimelineBattleEngine');
 
@@ -467,6 +475,16 @@ export class TimelineBattleEngine {
   private executePlayerCard(state: GameBattleState, card: GameCard, timelineCard: TimelineCard): void {
     this.emitEvent('card_execute', state.turn, { cardId: card.id, actor: 'player' });
 
+    // 필요 토큰 확인 및 소모 (기교 등)
+    const tokenCheck = checkAndConsumeRequiredTokens(state, card, 'player');
+    if (!tokenCheck.canPlay) {
+      state.battleLog.push(`  ❌ ${card.name}: 필요 토큰 부족`);
+      return;
+    }
+    if (tokenCheck.consumed.length > 0) {
+      state.battleLog.push(`  🔹 소모: ${tokenCheck.consumed.join(', ')}`);
+    }
+
     // 상징 트리거
     if (this.config.enableRelics) {
       const cardEffects = this.relicSystem.processCardPlayed(state.player, state.enemy, card.id);
@@ -476,14 +494,43 @@ export class TimelineBattleEngine {
     // 특성 처리
     const traitMods = this.processTraits(card, state.player, timelineCard.crossed);
 
+    // 교차 보너스 처리
+    const crossResult = processCrossBonus(state, card, 'player', timelineCard);
+    if (crossResult.success && crossResult.effects.length > 0) {
+      state.battleLog.push(`  ⚡ 교차: ${crossResult.effects.join(', ')}`);
+    }
+
+    // 특수 효과 실행 (공격/방어 전)
+    const specialResults = executeSpecialEffects(state, card, 'player', timelineCard);
+    for (const result of specialResults) {
+      if (result.success && result.effects.length > 0) {
+        state.battleLog.push(`  ✨ ${result.effects.join(', ')}`);
+      }
+    }
+
     // 공격 처리
     if (card.damage && card.damage > 0) {
-      this.processAttack(state, 'player', card, traitMods, timelineCard.crossed);
+      const ignoreBlock = hasSpecialEffect(card, 'ignoreBlock') || hasSpecialEffect(card, 'piercing');
+      const guaranteedCrit = hasSpecialEffect(card, 'guaranteedCrit') || crossResult.guaranteedCrit;
+
+      this.processAttack(state, 'player', card, traitMods, timelineCard.crossed, {
+        ignoreBlock,
+        guaranteedCrit,
+        damageMultiplier: crossResult.damageMultiplier,
+        extraHits: specialResults.reduce((acc, r) => acc + (r.stateChanges.extraHits || 0), 0),
+      });
     }
 
     // 방어 처리
     if (card.block && card.block > 0) {
-      this.processBlock(state, 'player', card, traitMods, timelineCard);
+      const blockMult = crossResult.blockMultiplier || 1;
+      this.processBlock(state, 'player', card, traitMods, timelineCard, blockMult);
+    }
+
+    // 교차 보너스 추가 방어력
+    if (crossResult.extraBlock) {
+      state.player.block += crossResult.extraBlock;
+      state.battleLog.push(`  🛡️ 추가 방어: ${crossResult.extraBlock}`);
     }
 
     // 토큰 적용
@@ -512,20 +559,38 @@ export class TimelineBattleEngine {
 
     const traitMods = this.processTraits(card, state.enemy, timelineCard.crossed);
 
+    // 특수 효과 실행
+    const specialResults = executeSpecialEffects(state, card, 'enemy', timelineCard);
+    for (const result of specialResults) {
+      if (result.success && result.effects.length > 0) {
+        state.battleLog.push(`  ✨ 적: ${result.effects.join(', ')}`);
+      }
+    }
+
     // 공격 처리
     if (card.damage && card.damage > 0) {
-      this.processAttack(state, 'enemy', card, traitMods, timelineCard.crossed);
+      const ignoreBlock = hasSpecialEffect(card, 'ignoreBlock') || hasSpecialEffect(card, 'piercing');
+      const guaranteedCrit = hasSpecialEffect(card, 'guaranteedCrit');
+
+      this.processAttack(state, 'enemy', card, traitMods, timelineCard.crossed, {
+        ignoreBlock,
+        guaranteedCrit,
+        extraHits: specialResults.reduce((acc, r) => acc + (r.stateChanges.extraHits || 0), 0),
+      });
     }
 
     // 방어 처리
     if (card.block && card.block > 0) {
-      this.processBlock(state, 'enemy', card, traitMods, timelineCard);
+      this.processBlock(state, 'enemy', card, traitMods, timelineCard, 1);
     }
 
     // 토큰 적용
     if (card.appliedTokens) {
       for (const token of card.appliedTokens) {
-        if (token.target === 'enemy') {
+        // target이 'self'인 경우 적 자신에게
+        const appliesTo = token.target === 'self' ? 'enemy' : token.target;
+
+        if (appliesTo === 'enemy') {
           state.enemy.tokens = addToken(state.enemy.tokens, token.id, token.stacks || 1);
         } else {
           // 면역 체크
@@ -547,14 +612,21 @@ export class TimelineBattleEngine {
     attacker: 'player' | 'enemy',
     card: GameCard,
     traitMods: TraitModifiers,
-    crossed: boolean
+    crossed: boolean,
+    options: {
+      ignoreBlock?: boolean;
+      guaranteedCrit?: boolean;
+      damageMultiplier?: number;
+      extraHits?: number;
+    } = {}
   ): void {
     const attackerState = attacker === 'player' ? state.player : state.enemy;
     const defenderState = attacker === 'player' ? state.enemy : state.player;
 
-    const hits = card.hits || 1;
+    const baseHits = card.hits || 1;
+    const totalHits = baseHits + (options.extraHits || 0);
 
-    for (let hit = 0; hit < hits; hit++) {
+    for (let hit = 0; hit < totalHits; hit++) {
       if (defenderState.hp <= 0) break;
 
       // 공격 수정자 계산
@@ -565,6 +637,10 @@ export class TimelineBattleEngine {
       // 기본 피해 계산
       let damage = card.damage || 0;
 
+      // 검격/총기 카드 보너스
+      damage += getFencingDamageBonus(attackerState.tokens, card);
+      damage += getGunDamageBonus(attackerState.tokens, card);
+
       // 힘 보너스
       damage += attackMods.damageBonus;
 
@@ -574,15 +650,18 @@ export class TimelineBattleEngine {
       // 특성 배율
       damage = Math.floor(damage * traitMods.damageMultiplier);
 
-      // 교차 보너스
-      if (crossed && card.crossBonus?.type === 'damage_mult') {
-        damage = Math.floor(damage * (card.crossBonus.value || 2));
-        state.battleLog.push(`  ⚡ 교차 발동: 피해 ${card.crossBonus.value || 2}배`);
+      // 교차/옵션 피해 배율
+      const damageMult = options.damageMultiplier || 1;
+      if (damageMult !== 1) {
+        damage = Math.floor(damage * damageMult);
       }
 
       // 치명타 계산
       let isCrit = false;
-      if (this.config.enableCrits) {
+      if (options.guaranteedCrit) {
+        isCrit = true;
+        damage = Math.floor(damage * CRIT_MULTIPLIER);
+      } else if (this.config.enableCrits) {
         const critChance = BASE_CRIT_CHANCE + (attackMods.critBoost / 100);
         isCrit = Math.random() < critChance;
         if (isCrit) {
@@ -608,7 +687,8 @@ export class TimelineBattleEngine {
       let actualDamage = damage;
       let blocked = 0;
 
-      if (!attackMods.ignoreBlock) {
+      const shouldIgnoreBlock = options.ignoreBlock || attackMods.ignoreBlock;
+      if (!shouldIgnoreBlock) {
         blocked = Math.min(defenderState.block, damage);
         actualDamage = damage - blocked;
         defenderState.block -= blocked;
@@ -696,7 +776,8 @@ export class TimelineBattleEngine {
     actor: 'player' | 'enemy',
     card: GameCard,
     traitMods: TraitModifiers,
-    timelineCard: TimelineCard
+    timelineCard: TimelineCard,
+    crossBlockMultiplier: number = 1
   ): void {
     const actorState = actor === 'player' ? state.player : state.enemy;
 
@@ -711,6 +792,11 @@ export class TimelineBattleEngine {
 
     // 방어력 배율
     block = Math.floor(block * defenseMods.defenseMultiplier);
+
+    // 교차 방어력 배율
+    if (crossBlockMultiplier !== 1) {
+      block = Math.floor(block * crossBlockMultiplier);
+    }
 
     // 특성 배율
     block = Math.floor(block * traitMods.blockMultiplier);
