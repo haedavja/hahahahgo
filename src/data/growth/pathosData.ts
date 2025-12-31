@@ -3,8 +3,8 @@
  * @description 파토스 (Pathos) - 액티브 스킬 정의
  *
  * 피라미드 구조:
- * - 2단계: 기본 파토스 (선택지 없음, 바로 획득)
- * - 4단계: 파토스 노드 (2개 선택지 중 1개 선택)
+ * - 2단계: 파토스 노드 (2개 선택지 중 1개 선택, 검 vs 총)
+ * - 4단계: 상위 파토스 노드 (2개 선택지 중 1개 선택, 검 vs 총)
  */
 
 export type PathosType = 'gun' | 'sword' | 'common';
@@ -39,9 +39,19 @@ export interface PathosNode {
 }
 
 // ========================================
-// 2단계 - 기본 파토스 (선택지 없음)
+// 2단계 - 파토스 노드 선택지 (검 vs 총)
 // ========================================
-export const BASE_PATHOS: Record<string, Pathos> = {
+export const TIER2_PATHOS: Record<string, Pathos> = {
+  // 관통 노드: 교차(검) vs 철갑탄(총)
+  cross: {
+    id: 'cross',
+    name: '교차',
+    type: 'sword',
+    description: '이번 턴 모든 검격 카드는 교차시 방어력을 4 얻습니다.',
+    effect: { action: 'onCrossBlock', value: 4, duration: 'turn' },
+    pyramidLevel: 2,
+    nodeId: 'pierce',
+  },
   armorPiercing: {
     id: 'armorPiercing',
     name: '철갑탄',
@@ -50,6 +60,18 @@ export const BASE_PATHOS: Record<string, Pathos> = {
     effect: { action: 'addToken', token: 'armorPiercing', value: 1 },
     cooldown: 2,
     pyramidLevel: 2,
+    nodeId: 'pierce',
+  },
+
+  // 점화 노드: 춤사위(검) vs 소이탄(총)
+  dance: {
+    id: 'dance',
+    name: '춤사위',
+    type: 'sword',
+    description: '연계 이후 후속 혹은 마무리 특성을 쓰면 회피 1회 획득.',
+    effect: { action: 'chainEvade', value: 1 },
+    pyramidLevel: 2,
+    nodeId: 'ignite',
   },
   incendiary: {
     id: 'incendiary',
@@ -59,23 +81,10 @@ export const BASE_PATHOS: Record<string, Pathos> = {
     effect: { action: 'addToken', token: 'incendiary', value: 1 },
     cooldown: 2,
     pyramidLevel: 2,
+    nodeId: 'ignite',
   },
-  cross: {
-    id: 'cross',
-    name: '교차',
-    type: 'sword',
-    description: '이번 턴 모든 검격 카드는 교차시 방어력을 4 얻습니다.',
-    effect: { action: 'onCrossBlock', value: 4, duration: 'turn' },
-    pyramidLevel: 2,
-  },
-  dance: {
-    id: 'dance',
-    name: '춤사위',
-    type: 'sword',
-    description: '연계 이후 후속 혹은 마무리 특성을 쓰면 회피 1회 획득.',
-    effect: { action: 'chainEvade', value: 1 },
-    pyramidLevel: 2,
-  },
+
+  // 방어 노드: 에페(검) vs 엄호(총)
   epee: {
     id: 'epee',
     name: '에페',
@@ -83,6 +92,16 @@ export const BASE_PATHOS: Record<string, Pathos> = {
     description: '검격 카드를 쓸때마다 방어력 5 획득 합니다.',
     effect: { action: 'onSwordBlock', value: 5, duration: 'turn' },
     pyramidLevel: 2,
+    nodeId: 'defense',
+  },
+  cover: {
+    id: 'cover',
+    name: '엄호',
+    type: 'gun',
+    description: '총격 카드를 쓸때마다 방어력 3 획득합니다.',
+    effect: { action: 'onGunBlock', value: 3, duration: 'turn' },
+    pyramidLevel: 2,
+    nodeId: 'defense',
   },
 };
 
@@ -203,6 +222,29 @@ export const TIER4_PATHOS: Record<string, Pathos> = {
 // 파토스 노드 정의
 // ========================================
 export const PATHOS_NODES: Record<string, PathosNode> = {
+  // 2단계 노드 (검 vs 총)
+  pierce: {
+    id: 'pierce',
+    name: '관통',
+    tier: 2,
+    choices: ['cross', 'armorPiercing'],
+    description: '방어 강화 또는 관통탄',
+  },
+  ignite: {
+    id: 'ignite',
+    name: '점화',
+    tier: 2,
+    choices: ['dance', 'incendiary'],
+    description: '회피 획득 또는 화염탄',
+  },
+  defense: {
+    id: 'defense',
+    name: '방어',
+    tier: 2,
+    choices: ['epee', 'cover'],
+    description: '검격 방어 또는 총격 방어',
+  },
+
   // 4단계 노드
   ironman: {
     id: 'ironman',
@@ -236,14 +278,14 @@ export const PATHOS_NODES: Record<string, PathosNode> = {
     id: 'expertise',
     name: '전문',
     tier: 4,
-    choices: ['logicGun', 'creativity'],
+    choices: ['creativity', 'logicGun'],
     description: '창조 강화',
   },
 };
 
 // 전체 파토스 (모든 티어 통합)
 export const PATHOS: Record<string, Pathos> = {
-  ...BASE_PATHOS,
+  ...TIER2_PATHOS,
   ...TIER4_PATHOS,
 };
 
@@ -269,11 +311,6 @@ export function getPathosNodeChoices(nodeId: string): [Pathos, Pathos] | null {
 // 티어별 노드 조회
 export function getPathosNodesForTier(tier: number): PathosNode[] {
   return Object.values(PATHOS_NODES).filter(n => n.tier === tier);
-}
-
-// 기본 파토스 조회 (2단계)
-export function getBasePathos(): Pathos[] {
-  return Object.values(BASE_PATHOS);
 }
 
 // 장착 슬롯 수

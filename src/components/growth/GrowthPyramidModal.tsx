@@ -15,7 +15,7 @@ import { useState, memo } from 'react';
 import { useGameStore } from '../../state/gameStore';
 import { useShallow } from 'zustand/shallow';
 import { ETHOS, ETHOS_NODES, BASE_ETHOS, type Ethos, type EthosNode } from '../../data/growth/ethosData';
-import { PATHOS, PATHOS_NODES, BASE_PATHOS, MAX_EQUIPPED_PATHOS, type Pathos, type PathosNode } from '../../data/growth/pathosData';
+import { PATHOS, PATHOS_NODES, MAX_EQUIPPED_PATHOS, type Pathos, type PathosNode } from '../../data/growth/pathosData';
 import { IDENTITIES, type IdentityType } from '../../data/growth/identityData';
 import { LOGOS, getLogosLevelFromPyramid } from '../../data/growth/logosData';
 import {
@@ -169,8 +169,8 @@ function UnifiedPyramidView({
   const tier4Nodes = Object.values(PATHOS_NODES).filter(n => n.tier === 4);
   // 3단계 에토스 노드
   const tier3Nodes = Object.values(ETHOS_NODES).filter(n => n.tier === 3);
-  // 2단계 기본 파토스
-  const tier2Items = Object.values(BASE_PATHOS);
+  // 2단계 파토스 노드 (검 vs 총)
+  const tier2Nodes = Object.values(PATHOS_NODES).filter(n => n.tier === 2);
   // 1단계 기초 에토스
   const tier1Items = Object.values(BASE_ETHOS);
 
@@ -265,17 +265,19 @@ function UnifiedPyramidView({
         pendingSelection={pendingSelection}
       />
 
-      {/* ===== 2단계 - 기본 파토스 ===== */}
-      <BaseItemRow
+      {/* ===== 2단계 - 파토스 노드 (검 vs 총) ===== */}
+      <TierRow
         tier={2}
         label="2단계 파토스"
         requirement="개성 2개 (Lv2) + 1P"
-        items={tier2Items}
+        nodes={tier2Nodes}
         type="pathos"
         growth={growth}
         skillPoints={skillPoints}
         pyramidLevel={pyramidLevel}
-        onSelect={onSelectBasePathos}
+        onUnlockNode={onUnlockNode}
+        onSelectChoice={onSelectChoice}
+        pendingSelection={pendingSelection}
       />
 
       {/* ===== 기반 - 개성 + 1단계 에토스 (통합) ===== */}
@@ -686,7 +688,9 @@ function TraitEthosSection({
         {tier1Items.map(ethos => {
           // 이 에토스에 해당하는 개성 찾기
           const matchingTrait = Object.entries(TRAIT_TO_ETHOS).find(([, ethosId]) => ethosId === ethos.id)?.[0];
-          const hasTrait = matchingTrait && playerTraits.includes(matchingTrait);
+          // 개성 보유 개수 세기
+          const traitCount = matchingTrait ? playerTraits.filter(t => t === matchingTrait).length : 0;
+          const hasTrait = traitCount > 0;
           const isUnlocked = growth.unlockedEthos.includes(ethos.id);
 
           return (
@@ -712,13 +716,18 @@ function TraitEthosSection({
                 fontSize: '12px',
               }}>
                 {isUnlocked && '✓ '}{ethos.name}
+                {traitCount > 1 && (
+                  <span style={{ color: '#fbbf24', marginLeft: '4px' }}>x{traitCount}</span>
+                )}
               </div>
               <div style={{
                 fontSize: '10px',
                 color: hasTrait ? '#fde68a' : '#6b7280',
                 marginTop: '2px',
               }}>
-                {hasTrait ? `✓ ${matchingTrait} 개성` : `${matchingTrait || '?'} 개성 필요`}
+                {hasTrait
+                  ? `✓ ${matchingTrait} 개성${traitCount > 1 ? ` x${traitCount}` : ''}`
+                  : `${matchingTrait || '?'} 개성 필요`}
               </div>
               {isUnlocked && (
                 <div style={{ fontSize: '9px', color: '#9ca3af', marginTop: '2px' }}>

@@ -311,7 +311,7 @@ export const ETHOS_NODES: Record<string, EthosNode> = {
     id: 'advance',
     name: '전진',
     tier: 3,
-    choices: ['gap', 'smokescreen'],
+    choices: ['smokescreen', 'gap'],
     description: '회피 성공 시 추가 효과',
   },
   constancy: {
@@ -325,7 +325,7 @@ export const ETHOS_NODES: Record<string, EthosNode> = {
     id: 'competence',
     name: '유능',
     tier: 3,
-    choices: ['modernMag', 'quickHands'],
+    choices: ['quickHands', 'modernMag'],
     description: '장전 관련 강화',
   },
   persistence: {
@@ -346,7 +346,7 @@ export const ETHOS_NODES: Record<string, EthosNode> = {
     id: 'confirmation',
     name: '확인',
     tier: 3,
-    choices: ['jackpot', 'gambler'],
+    choices: ['gambler', 'jackpot'],
     description: '확률 누적 보너스',
   },
 

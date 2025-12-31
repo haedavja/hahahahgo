@@ -15,7 +15,7 @@ import type { StateCreator } from 'zustand';
 import type { GameStore } from './types';
 import { getPyramidLevelFromTraits } from '../../data/reflections';
 import { ETHOS, ETHOS_NODES, BASE_ETHOS, type Ethos, type EthosNode } from '../../data/growth/ethosData';
-import { PATHOS, PATHOS_NODES, BASE_PATHOS, MAX_EQUIPPED_PATHOS, type Pathos, type PathosNode } from '../../data/growth/pathosData';
+import { PATHOS, PATHOS_NODES, TIER2_PATHOS, MAX_EQUIPPED_PATHOS, type Pathos, type PathosNode } from '../../data/growth/pathosData';
 import { getLogosLevelFromPyramid } from '../../data/growth/logosData';
 import { IDENTITY_REQUIRED_PYRAMID_LEVEL, type IdentityType } from '../../data/growth/identityData';
 
@@ -184,7 +184,7 @@ export const createGrowthActions: SliceCreator = (set, get) => ({
   selectBasePathos: (pathosId: string) =>
     set((state) => {
       const growth = { ...(state.growth || initialGrowthState) };
-      const pathos = BASE_PATHOS[pathosId];
+      const pathos = TIER2_PATHOS[pathosId];
 
       // 유효성 검사
       if (!pathos) return state;
@@ -346,8 +346,8 @@ export const createGrowthActions: SliceCreator = (set, get) => ({
     set((state) => {
       const growth = { ...(state.growth || initialGrowthState) };
 
-      // 기본 파토스인 경우
-      if (BASE_PATHOS[pathosId]) {
+      // 기본 파토스인 경우 (2단계)
+      if (TIER2_PATHOS[pathosId]) {
         const newState = get();
         newState.selectBasePathos(pathosId);
         return state;
@@ -399,10 +399,10 @@ export function getAvailableBaseEthos(state: GrowthState): Ethos[] {
   );
 }
 
-// 선택 가능한 기본 파토스 (2단계)
+// 선택 가능한 기본 파토스 (2단계) - 노드 구조로 변경됨
 export function getAvailableBasePathos(state: GrowthState): Pathos[] {
   if (state.pyramidLevel < 2) return [];
-  return Object.values(BASE_PATHOS).filter(p =>
+  return Object.values(TIER2_PATHOS).filter(p =>
     !state.unlockedPathos.includes(p.id)
   );
 }
