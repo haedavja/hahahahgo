@@ -487,15 +487,19 @@ function BaseItemRow({
   const isLocked = pyramidLevel < tier;
   const unlockedIds = type === 'ethos' ? growth.unlockedEthos : growth.unlockedPathos;
 
+  // 1단계는 기반이므로 스킬포인트 불필요
+  const isFreeBase = tier === 1;
+
   return (
     <div style={{ marginBottom: '16px', opacity: isLocked ? 0.5 : 1 }}>
       <div style={{ fontSize: '12px', color: colors.text, marginBottom: '6px' }}>
-        {label} {isLocked && `(Lv${tier} 필요)`}
+        {label} {isLocked && `(Lv${tier} 필요)`} {isFreeBase && !isLocked && '(무료)'}
       </div>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', justifyContent: 'center' }}>
         {items.map(item => {
           const isUnlocked = unlockedIds.includes(item.id);
-          const canSelect = !isLocked && !isUnlocked && skillPoints >= 1;
+          // 1단계는 무료, 2단계+ 는 스킬포인트 필요
+          const canSelect = !isLocked && !isUnlocked && (isFreeBase || skillPoints >= 1);
 
           return (
             <div
@@ -513,7 +517,8 @@ function BaseItemRow({
               onClick={() => canSelect && onSelect(item.id)}
             >
               {isUnlocked && '✓ '}{item.name}
-              {canSelect && <span style={{ color: '#60a5fa', marginLeft: '4px' }}>[1P]</span>}
+              {canSelect && !isFreeBase && <span style={{ color: '#60a5fa', marginLeft: '4px' }}>[1P]</span>}
+              {canSelect && isFreeBase && <span style={{ color: '#86efac', marginLeft: '4px' }}>[무료]</span>}
             </div>
           );
         })}

@@ -156,12 +156,11 @@ export const createGrowthActions: SliceCreator = (set, get) => ({
       // 유효성 검사
       if (!ethos) return state;
       if (growth.unlockedEthos.includes(ethosId)) return state;
-      if (growth.skillPoints < 1) return state;
+      // 1단계 기초 에토스는 기반이므로 스킬포인트 불필요, 피라미드 레벨 1 이상만 필요
       if (growth.pyramidLevel < 1) return state;
 
-      // 에토스 해금 및 스킬포인트 소모
+      // 에토스 해금 (기반이므로 스킬포인트 소모 없음)
       growth.unlockedEthos = [...growth.unlockedEthos, ethosId];
-      growth.skillPoints -= 1;
 
       return { ...state, growth };
     }),

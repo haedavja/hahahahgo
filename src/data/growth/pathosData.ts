@@ -255,7 +255,7 @@ export function getPathosForLevel(level: number, type?: PathosType): Pathos[] {
 }
 
 // 노드별 선택지 조회
-export function getNodeChoices(nodeId: string): [Pathos, Pathos] | null {
+export function getPathosNodeChoices(nodeId: string): [Pathos, Pathos] | null {
   const node = PATHOS_NODES[nodeId];
   if (!node) return null;
 
@@ -267,7 +267,7 @@ export function getNodeChoices(nodeId: string): [Pathos, Pathos] | null {
 }
 
 // 티어별 노드 조회
-export function getNodesForTier(tier: number): PathosNode[] {
+export function getPathosNodesForTier(tier: number): PathosNode[] {
   return Object.values(PATHOS_NODES).filter(n => n.tier === tier);
 }
 

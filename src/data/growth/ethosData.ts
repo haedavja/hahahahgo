@@ -396,7 +396,7 @@ export function getEthosForLevel(level: number, type?: EthosType): Ethos[] {
 }
 
 // 노드별 선택지 조회
-export function getNodeChoices(nodeId: string): [Ethos, Ethos] | null {
+export function getEthosNodeChoices(nodeId: string): [Ethos, Ethos] | null {
   const node = ETHOS_NODES[nodeId];
   if (!node) return null;
 
@@ -408,7 +408,7 @@ export function getNodeChoices(nodeId: string): [Ethos, Ethos] | null {
 }
 
 // 티어별 노드 조회
-export function getNodesForTier(tier: number): EthosNode[] {
+export function getEthosNodesForTier(tier: number): EthosNode[] {
   return Object.values(ETHOS_NODES).filter(n => n.tier === tier);
 }
 
