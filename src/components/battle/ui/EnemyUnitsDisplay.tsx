@@ -102,19 +102,6 @@ const DISTRIBUTION_BUTTONS_STYLE: CSSProperties = {
   justifyContent: 'flex-end'
 };
 
-const SHARED_TOKEN_PANEL_STYLE: CSSProperties = {
-  padding: '8px 12px',
-  background: 'rgba(30, 41, 59, 0.8)',
-  borderRadius: '8px',
-  border: '1px solid rgba(148, 163, 184, 0.3)'
-};
-
-const SHARED_TOKEN_LABEL_STYLE: CSSProperties = {
-  fontSize: '0.75rem',
-  color: '#94a3b8',
-  marginBottom: '4px'
-};
-
 const SOUL_ORB_STYLE: CSSProperties = {
   position: 'fixed',
   top: '470px',
