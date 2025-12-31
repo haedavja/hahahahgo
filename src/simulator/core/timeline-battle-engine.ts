@@ -874,6 +874,44 @@ export class TimelineBattleEngine {
         }
       }
 
+      // 치명타 시 기교(finesse) 획득 (플레이어만)
+      if (isCrit && attacker === 'player') {
+        let finesseGain = 1;
+
+        // 이변: 광기(FINESSE_BLOCK) - 기교 획득 차단/감소
+        if (this.config.enableAnomalies) {
+          const finesseBlockLevel = getFinesseBlockLevel();
+          if (finesseBlockLevel >= 3) {
+            // 레벨 3-4: 완전 차단
+            finesseGain = 0;
+          } else if (finesseBlockLevel > 0) {
+            // 레벨 1-2: 25% 감소 per level
+            finesseGain = Math.max(0, Math.floor(1 * (1 - finesseBlockLevel * 0.25)));
+          }
+        }
+
+        if (finesseGain > 0) {
+          state.player.tokens = addToken(state.player.tokens, 'finesse', finesseGain);
+          state.battleLog.push(`  ✨ 기교 +${finesseGain}`);
+        }
+
+        // 치명타시 넉백(critKnockback4) 특수 효과
+        if (hasSpecialEffect(card, 'critKnockback4')) {
+          const knockbackAmount = 4;
+          const targetOwner = attacker === 'player' ? 'enemy' : 'player';
+          let pushedCount = 0;
+          for (const tc of state.timeline) {
+            if (tc.owner === targetOwner && !tc.executed) {
+              tc.position = Math.min(this.config.maxSpeed, tc.position + knockbackAmount);
+              pushedCount++;
+            }
+          }
+          if (pushedCount > 0) {
+            state.battleLog.push(`  ⏩ 치명타 넉백: 상대 카드 ${pushedCount}장 +${knockbackAmount}`);
+          }
+        }
+      }
+
       // 회피 체크
       if (defenseMods.dodgeChance > 0 && Math.random() < defenseMods.dodgeChance) {
         state.battleLog.push(`  ${attacker === 'player' ? '플레이어' : '적'}: ${card.name} → 회피!`);
@@ -901,10 +939,31 @@ export class TimelineBattleEngine {
       let blocked = 0;
 
       const shouldIgnoreBlock = options.ignoreBlock || attackMods.ignoreBlock;
+
+      // 분쇄(crush) 특성: 방어력에 2배 피해
+      const hasCrush = card.traits?.includes('crush');
+      const crushDamageToBlock = hasCrush && defenderState.block > 0;
+
       if (!shouldIgnoreBlock) {
-        blocked = Math.min(defenderState.block, damage);
-        actualDamage = damage - blocked;
-        defenderState.block -= blocked;
+        if (crushDamageToBlock) {
+          // 분쇄: 방어력 깎는 피해가 2배
+          const damageToBlock = Math.min(defenderState.block, damage * 2);
+          defenderState.block -= damageToBlock;
+          blocked = Math.floor(damageToBlock / 2); // 실제 막은 양은 원래 피해 기준
+          actualDamage = damage - blocked;
+          state.battleLog.push(`  🔨 분쇄: 방어력 ${damageToBlock} 파괴`);
+        } else {
+          blocked = Math.min(defenderState.block, damage);
+          actualDamage = damage - blocked;
+          defenderState.block -= blocked;
+        }
+      }
+
+      // 치명타시 장전(critLoad) 특성
+      if (isCrit && hasSpecialEffect(card, 'critLoad') && attacker === 'player') {
+        state.player.tokens = removeToken(state.player.tokens, 'gun_jam', 99);
+        state.player.tokens = removeToken(state.player.tokens, 'roulette', 99);
+        state.battleLog.push(`  🔫 치명타 장전!`);
       }
 
       // 피해 적용

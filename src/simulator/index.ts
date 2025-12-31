@@ -237,8 +237,46 @@ export {
   syncAllRelics,
   syncAllTraits,
   syncAllEnemies,
+  syncAllAnomalies,
+  getAnomaly,
+  getAnomalyStats,
+  calculateAnomalyEffect,
   getGameDataStats,
+  type SimulatorAnomaly,
 } from './data/game-data-sync';
+
+// ==================== Anomaly System ====================
+export {
+  getAnomalySystem,
+  activateGameAnomaly,
+  clearGameAnomalies,
+  isEtherBlocked,
+  getEnergyReduction,
+  getSpeedReduction,
+  getDrawReduction,
+  getVulnerabilityPercent,
+  getDefenseBackfireDamage,
+  getSpeedInstability,
+  getInsightReduction,
+  getValueDownTokens,
+  getTraitSilenceLevel,
+  getChainIsolationLevel,
+  getFinesseBlockLevel,
+} from './core/anomaly-system';
+
+// ==================== Combo Ether System ====================
+export {
+  processTurnEndEther,
+  detectPokerCombo,
+  checkEtherBurst,
+  calculateComboMultiplier,
+  calculateDeflation,
+  COMBO_PRIORITIES,
+  BURST_THRESHOLD,
+  type EtherGainResult,
+  type BurstResult,
+  type ComboType,
+} from './core/combo-ether-system';
 
 // ==================== Respond AI ====================
 export {
