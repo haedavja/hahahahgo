@@ -219,7 +219,8 @@ export const createInitialState = () => {
     extraSubSpecialSlots: 0, // 철저 각성 등으로 인한 보조특기 슬롯 보너스
     playerInsight: 0, // 통찰 (이벤트 선택지, 적 타임라인 정보)
     playerTraits: [] as string[], // 획득한 개성 목록
-    playerEgos: [] as PlayerEgo[], // 획득한 자아 목록
+    playerEgos: [] as PlayerEgo[], // 레거시: 기존 자아 (새 시스템은 growth.identities 사용)
+    growth: null, // 피라미드 성장 시스템 상태 (growthSlice에서 관리)
     cardUpgrades: {} as Record<string, string>, // 레거시: 카드 업그레이드(카드 ID -> 희귀도)
     cardGrowth: {} as Record<string, { rarity: string; growthCount: number; traits: string[] }>, // 카드 성장 상태
     relics: initialRelics,

@@ -5,8 +5,8 @@
  * 최적화: React.memo + 스타일 상수 추출 + useMemo
  */
 
-import { FC, memo, useMemo, useCallback } from 'react';
-import type { CSSProperties } from 'react';
+import { FC, memo, useMemo, useCallback, useState, useRef } from 'react';
+import type { CSSProperties, MouseEvent as ReactMouseEvent } from 'react';
 import { hasSpecial } from '../utils/cardSpecialEffects';
 import type {
   IconProps,
@@ -110,6 +110,29 @@ const PARRY_COLORS = [
   { start: '#f472b6', end: '#60a5fa', shadow: 'rgba(244, 114, 182, 0.8)' }
 ];
 
+// 여유 특성 색상
+const LEISURE_COLOR = {
+  start: '#facc15', // 노란색
+  end: '#f59e0b',   // 주황색
+  shadow: 'rgba(250, 204, 21, 0.6)',
+  bg: 'rgba(250, 204, 21, 0.15)'
+};
+
+// 여유 특성 기본 범위 (4~8)
+const LEISURE_MIN_SPEED = 4;
+const LEISURE_MAX_SPEED = 8;
+
+// 무리 특성 색상
+const STRAIN_COLOR = {
+  start: '#f97316', // 주황색
+  end: '#ef4444',   // 빨간색
+  shadow: 'rgba(249, 115, 22, 0.6)',
+  bg: 'rgba(249, 115, 22, 0.15)'
+};
+
+// 무리 특성 최대 오프셋 (최대 3까지 앞당김)
+const STRAIN_MAX_OFFSET = 3;
+
 // Lucide icons as simple SVG components
 const Sword: FC<IconProps> = ({ size = 24, className = "" }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
@@ -125,6 +148,12 @@ const Shield: FC<IconProps> = ({ size = 24, className = "" }) => (
 
 /** 타임라인 액션 타입 (UITimelineAction 또는 OrderItem) */
 type TimelineAction = UITimelineAction | OrderItem;
+
+/** 카드 성장 상태 타입 */
+interface CardGrowthState {
+  traits?: string[];
+  [key: string]: unknown;
+}
 
 interface TimelineDisplayProps {
   player: Player;
@@ -153,6 +182,7 @@ interface TimelineDisplayProps {
   freezingEnemyCards?: number[];
   frozenOrder?: number;
   parryReadyStates?: ParryState[];
+  cardGrowth?: Record<string, CardGrowthState>;
 }
 
 export const TimelineDisplay: FC<TimelineDisplayProps> = memo(({
@@ -181,8 +211,22 @@ export const TimelineDisplay: FC<TimelineDisplayProps> = memo(({
   destroyingEnemyCards = [],
   freezingEnemyCards = [],
   frozenOrder = 0,
-  parryReadyStates = []
+  parryReadyStates = [],
+  cardGrowth = {}
 }) => {
+  // 카드의 특성 확인 (card.traits + cardGrowth 둘 다 확인)
+  const hasCardTrait = useCallback((card: { id?: string; traits?: string[] }, traitId: string): boolean => {
+    // 1. 카드 자체의 traits 확인
+    if (card.traits?.includes(traitId)) return true;
+    // 2. cardGrowth에서 확인
+    if (card.id && cardGrowth[card.id]?.traits?.includes(traitId)) return true;
+    return false;
+  }, [cardGrowth]);
+
+  // 여유/무리 특성 드래그 상태
+  const [draggingCardUid, setDraggingCardUid] = useState<string | null>(null);
+  const [draggingType, setDraggingType] = useState<'leisure' | 'strain' | null>(null);
+  const playerLaneRef = useRef<HTMLDivElement>(null);
   // 기본 계산값 메모이제이션
   const { commonMax, ticks, playerMax, enemyMax, playerRatio, enemyRatio } = useMemo(() => {
     const pMax = player.maxSpeed || DEFAULT_PLAYER_MAX_SPEED;
@@ -223,6 +267,166 @@ export const TimelineDisplay: FC<TimelineDisplayProps> = memo(({
     opacity: timelineIndicatorVisible ? 1 : 0,
     transition: 'opacity 0.3s ease-out'
   }), [timelineProgress, timelineIndicatorVisible]);
+
+  // sp 오프셋 사전 계산 (O(n) 최적화)
+  const spOffsets = useMemo(() => {
+    const offsets: number[] = [];
+    const spCounts = new Map<number, number>();
+
+    playerTimeline.forEach((a) => {
+      const sp = a.sp ?? 0;
+      const currentCount = spCounts.get(sp) || 0;
+      offsets.push(currentCount);
+      spCounts.set(sp, currentCount + 1);
+    });
+
+    return offsets;
+  }, [playerTimeline]);
+
+  // 적 타임라인 sp 오프셋 사전 계산 (O(n) 최적화)
+  const enemySpOffsets = useMemo(() => {
+    const offsets: number[] = [];
+    const spCounts = new Map<number, number>();
+
+    enemyTimeline.forEach((a) => {
+      const sp = a.sp ?? 0;
+      const currentCount = spCounts.get(sp) || 0;
+      offsets.push(currentCount);
+      spCounts.set(sp, currentCount + 1);
+    });
+
+    return offsets;
+  }, [enemyTimeline]);
+
+  // 여유 특성 카드 범위 계산
+  const leisureCardRanges = useMemo(() => {
+    const ranges: Array<{
+      cardUid: string;
+      cardIdx: number;
+      minSp: number;
+      maxSp: number;
+      currentSp: number;
+      offset: number;
+    }> = [];
+
+    let accumulatedSp = 0;
+    playerTimeline.forEach((a, idx) => {
+      const hasLeisure = hasCardTrait(a.card, 'leisure');
+      const cardUid = (a.card as { __handUid?: string; __uid?: string }).__handUid || (a.card as { __uid?: string }).__uid || `leisure-${idx}`;
+      const offset = spOffsets[idx] * 28;
+
+      if (hasLeisure) {
+        // 여유 특성이 있으면 현재 위치를 기준으로 범위 설정
+        const baseSpeed = a.card.speedCost || LEISURE_MIN_SPEED;
+        const minSp = accumulatedSp + LEISURE_MIN_SPEED;
+        const maxSp = accumulatedSp + LEISURE_MAX_SPEED;
+        ranges.push({
+          cardUid,
+          cardIdx: idx,
+          minSp,
+          maxSp,
+          currentSp: a.sp ?? minSp,
+          offset
+        });
+      }
+      accumulatedSp = a.sp ?? accumulatedSp;
+    });
+
+    return ranges;
+  }, [playerTimeline, hasCardTrait, spOffsets]);
+
+  // 무리 특성 카드 범위 계산
+  const strainCardRanges = useMemo(() => {
+    const ranges: Array<{
+      cardUid: string;
+      cardIdx: number;
+      baseSp: number;  // 오프셋 0일 때의 sp
+      minSp: number;   // 최대 앞당겼을 때 (offset = 3)
+      maxSp: number;   // 원래 위치 (offset = 0)
+      currentOffset: number;
+      offset: number;  // 렌더링 오프셋
+    }> = [];
+
+    playerTimeline.forEach((a, idx) => {
+      const hasStrain = hasCardTrait(a.card, 'strain');
+      if (!hasStrain) return;
+
+      const cardUid = (a.card as { __handUid?: string; __uid?: string }).__handUid || (a.card as { __uid?: string }).__uid || `strain-${idx}`;
+      const offset = spOffsets[idx] * 28;
+      const currentStrainOffset = (a.card as { strainOffset?: number }).strainOffset || 0;
+
+      // 기본 sp (strainOffset이 0일 때)
+      const baseSp = (a.sp ?? 0) + currentStrainOffset;
+
+      ranges.push({
+        cardUid,
+        cardIdx: idx,
+        baseSp,
+        minSp: Math.max(1, baseSp - STRAIN_MAX_OFFSET),  // 최대 3까지 앞당길 수 있음
+        maxSp: baseSp,  // 원래 위치
+        currentOffset: currentStrainOffset,
+        offset
+      });
+    });
+
+    return ranges;
+  }, [playerTimeline, hasCardTrait, spOffsets]);
+
+  // 통합 마우스 이동 핸들러 (여유/무리 공용)
+  const handleMouseMove = useCallback((e: ReactMouseEvent<HTMLDivElement>) => {
+    if (!draggingCardUid || !playerLaneRef.current) return;
+
+    // 여유 특성 드래그 처리
+    if (draggingType === 'leisure' && actions.onLeisurePositionChange) {
+      const rect = playerLaneRef.current.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const percent = (x / rect.width) * 100;
+      const sp = Math.round((percent / 100) * playerMax);
+
+      const range = leisureCardRanges.find(r => r.cardUid === draggingCardUid);
+      if (!range) return;
+
+      const previousCardSp = range.minSp - LEISURE_MIN_SPEED;
+      const clampedPosition = Math.max(LEISURE_MIN_SPEED, Math.min(LEISURE_MAX_SPEED, sp - previousCardSp));
+      actions.onLeisurePositionChange(draggingCardUid, clampedPosition);
+    }
+
+    // 무리 특성 드래그 처리
+    if (draggingType === 'strain' && actions.onStrainOffsetChange) {
+      const rect = playerLaneRef.current.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const percent = (x / rect.width) * 100;
+      const sp = Math.round((percent / 100) * playerMax);
+
+      const range = strainCardRanges.find(r => r.cardUid === draggingCardUid);
+      if (!range) return;
+
+      const newOffset = Math.max(0, Math.min(STRAIN_MAX_OFFSET, range.baseSp - sp));
+      if (newOffset !== range.currentOffset) {
+        actions.onStrainOffsetChange(draggingCardUid, newOffset);
+      }
+    }
+  }, [draggingCardUid, draggingType, playerMax, leisureCardRanges, strainCardRanges, actions]);
+
+  // 여유 드래그 시작
+  const handleLeisureDragStart = useCallback((cardUid: string) => {
+    if (battle.phase !== 'respond') return;
+    setDraggingCardUid(cardUid);
+    setDraggingType('leisure');
+  }, [battle.phase]);
+
+  // 무리 특성 드래그 핸들러
+  const handleStrainDragStart = useCallback((cardUid: string) => {
+    if (battle.phase !== 'respond') return;
+    setDraggingCardUid(cardUid);
+    setDraggingType('strain');
+  }, [battle.phase]);
+
+  // 통합 드래그 종료 핸들러
+  const handleDragEnd = useCallback(() => {
+    setDraggingCardUid(null);
+    setDraggingType(null);
+  }, []);
 
   return (
     <>
@@ -277,10 +481,107 @@ export const TimelineDisplay: FC<TimelineDisplayProps> = memo(({
                   <span role="img" aria-label="overdrive">✨</span> {enemyOverdriveLabel}
                 </div>
               )}
-              <div className="timeline-lane player-lane" style={playerLaneStyle}>
-                {Array.from({ length: playerMax + 1 }).map((_, i) => (
+              <div
+                ref={playerLaneRef}
+                className="timeline-lane player-lane"
+                style={playerLaneStyle}
+                onMouseMove={handleMouseMove}
+                onMouseUp={handleDragEnd}
+                onMouseLeave={handleDragEnd}
+              >
+                {Array.from({ length: playerMax + 1 }, (_, i) => (
                   <div key={`p-grid-${i}`} className="timeline-gridline" style={{ left: `${(i / playerMax) * 100}%` }} />
                 ))}
+                {/* 여유 특성 범위 표시 */}
+                {battle.phase === 'respond' && leisureCardRanges.map((range) => {
+                  const minPercent = (range.minSp / playerMax) * 100;
+                  const maxPercent = (range.maxSp / playerMax) * 100;
+                  const isDragging = draggingCardUid === range.cardUid;
+                  return (
+                    <div
+                      key={`leisure-range-${range.cardUid}`}
+                      className="leisure-range-indicator"
+                      style={{
+                        position: 'absolute',
+                        left: `${minPercent}%`,
+                        width: `${maxPercent - minPercent}%`,
+                        top: `${6 + range.offset}px`,
+                        height: '24px',
+                        background: isDragging
+                          ? `linear-gradient(90deg, ${LEISURE_COLOR.start}40, ${LEISURE_COLOR.end}40)`
+                          : LEISURE_COLOR.bg,
+                        borderRadius: '12px',
+                        border: `2px dashed ${isDragging ? LEISURE_COLOR.start : LEISURE_COLOR.end}`,
+                        boxShadow: isDragging
+                          ? `0 0 12px ${LEISURE_COLOR.shadow}, inset 0 0 8px ${LEISURE_COLOR.shadow}`
+                          : `0 0 6px ${LEISURE_COLOR.shadow}`,
+                        zIndex: 5,
+                        pointerEvents: 'none',
+                        transition: 'box-shadow 0.2s, background 0.2s'
+                      }}
+                    >
+                      {/* 범위 라벨 */}
+                      <div style={{
+                        position: 'absolute',
+                        top: '-18px',
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                        fontSize: '10px',
+                        color: LEISURE_COLOR.start,
+                        fontWeight: 'bold',
+                        whiteSpace: 'nowrap',
+                        textShadow: '0 0 4px rgba(0,0,0,0.8)'
+                      }}>
+                        🎯 여유 ({LEISURE_MIN_SPEED}~{LEISURE_MAX_SPEED})
+                      </div>
+                    </div>
+                  );
+                })}
+                {/* 무리 특성 범위 표시 */}
+                {battle.phase === 'respond' && strainCardRanges.map((range) => {
+                  const minPercent = (range.minSp / playerMax) * 100;
+                  const maxPercent = (range.maxSp / playerMax) * 100;
+                  const isDragging = draggingCardUid === range.cardUid && draggingType === 'strain';
+                  return (
+                    <div
+                      key={`strain-range-${range.cardUid}`}
+                      className="strain-range-indicator"
+                      style={{
+                        position: 'absolute',
+                        left: `${minPercent}%`,
+                        width: `${maxPercent - minPercent}%`,
+                        top: `${6 + range.offset}px`,
+                        height: '24px',
+                        background: isDragging
+                          ? `linear-gradient(90deg, ${STRAIN_COLOR.start}40, ${STRAIN_COLOR.end}40)`
+                          : STRAIN_COLOR.bg,
+                        borderRadius: '12px',
+                        border: `2px dashed ${isDragging ? STRAIN_COLOR.start : STRAIN_COLOR.end}`,
+                        boxShadow: isDragging
+                          ? `0 0 12px ${STRAIN_COLOR.shadow}, inset 0 0 8px ${STRAIN_COLOR.shadow}`
+                          : `0 0 6px ${STRAIN_COLOR.shadow}`,
+                        zIndex: 5,
+                        pointerEvents: 'none',
+                        transition: 'box-shadow 0.2s, background 0.2s'
+                      }}
+                    >
+                      {/* 범위 라벨 */}
+                      <div style={{
+                        position: 'absolute',
+                        top: '-18px',
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                        fontSize: '10px',
+                        color: STRAIN_COLOR.start,
+                        fontWeight: 'bold',
+                        whiteSpace: 'nowrap',
+                        textShadow: '0 0 4px rgba(0,0,0,0.8)'
+                      }}>
+                        ⚡ 무리 (최대 -{STRAIN_MAX_OFFSET})
+                      </div>
+                    </div>
+                  );
+                })}
                 {/* 패리 범위 표시 (여러 개 지원) */}
                 {(Array.isArray(parryReadyStates) ? parryReadyStates : []).map((parryState, parryIdx) => {
                   if (!parryState?.active) return null;
@@ -342,8 +643,7 @@ export const TimelineDisplay: FC<TimelineDisplayProps> = memo(({
                 })}
                 {playerTimeline.map((a, idx) => {
                   const Icon = a.card.icon || (a.card.type === 'attack' ? Sword : Shield);
-                  const sameCount = playerTimeline.filter((q, i) => i < idx && q.sp === a.sp).length;
-                  const offset = sameCount * 28;
+                  const offset = spOffsets[idx] * 28;
                   const strengthBonus = player.strength || 0;
                   // growingDefense 특성 (방어자세): 타임라인 진행에 따라 방어력 실시간 증가
                   const hasGrowingDef = hasSpecial(a.card as Card, 'growingDefense');
@@ -371,12 +671,85 @@ export const TimelineDisplay: FC<TimelineDisplayProps> = memo(({
                   const isExecuting = executingCardIndex === globalIndex;
                   const isUsed = Array.isArray(usedCardIndices) && usedCardIndices.includes(globalIndex) && globalIndex < qIndex;
                   const normalizedPosition = Math.min(((a.sp ?? 0) / playerMax) * 100, 100);
+
+                  // 여유 특성 확인 (speedCost 조건 제거 - 여유 특성만 있으면 드래그 가능)
+                  const hasLeisure = hasCardTrait(a.card, 'leisure');
+                  const cardUid = (a.card as { __handUid?: string; __uid?: string }).__handUid || (a.card as { __uid?: string }).__uid || `leisure-${idx}`;
+                  const isDragging = draggingCardUid === cardUid && draggingType === 'leisure';
+                  const canDrag = hasLeisure && battle.phase === 'respond';
+
+                  // 무리 특성 확인
+                  const hasStrain = hasCardTrait(a.card, 'strain');
+                  const currentStrainOffset = (a.card as { strainOffset?: number }).strainOffset || 0;
+                  const canDragStrain = hasStrain && battle.phase === 'respond';
+                  const isStrainDragging = draggingCardUid === cardUid && draggingType === 'strain';
+
+                  // 드래그 가능 여부 (여유 또는 무리)
+                  const canDragAny = canDrag || canDragStrain;
+
                   return (
-                    <div key={idx}
-                      className={`timeline-marker marker-player ${isExecuting ? 'timeline-active' : ''} ${isUsed ? 'timeline-used' : ''}`}
-                      style={{ left: `${normalizedPosition}%`, top: `${6 + offset}px` }}>
+                    <div
+                      key={idx}
+                      className={`timeline-marker marker-player ${isExecuting ? 'timeline-active' : ''} ${isUsed ? 'timeline-used' : ''} ${hasLeisure ? 'leisure-card' : ''} ${hasStrain ? 'strain-card' : ''}`}
+                      style={{
+                        left: `${normalizedPosition}%`,
+                        top: `${6 + offset}px`,
+                        cursor: canDragAny ? 'grab' : 'default',
+                        ...(hasLeisure && battle.phase === 'respond' ? {
+                          border: `2px solid ${LEISURE_COLOR.start}`,
+                          boxShadow: isDragging
+                            ? `0 0 16px ${LEISURE_COLOR.shadow}, 0 0 32px ${LEISURE_COLOR.shadow}`
+                            : `0 0 8px ${LEISURE_COLOR.shadow}`,
+                          transform: isDragging ? 'scale(1.2)' : 'none',
+                          zIndex: isDragging ? 100 : 20
+                        } : {}),
+                        ...(hasStrain && battle.phase === 'respond' ? {
+                          border: `2px solid ${currentStrainOffset > 0 ? STRAIN_COLOR.end : STRAIN_COLOR.start}`,
+                          boxShadow: isStrainDragging
+                            ? `0 0 16px ${STRAIN_COLOR.shadow}, 0 0 32px ${STRAIN_COLOR.shadow}`
+                            : `0 0 8px ${STRAIN_COLOR.shadow}`,
+                          transform: isStrainDragging ? 'scale(1.2)' : 'none',
+                          zIndex: isStrainDragging ? 100 : 20
+                        } : {})
+                      }}
+                      onMouseDown={
+                        canDrag ? () => handleLeisureDragStart(cardUid) :
+                        canDragStrain ? () => handleStrainDragStart(cardUid) :
+                        undefined
+                      }
+                    >
                       <Icon size={14} className="text-white" />
                       <span className="text-white text-xs font-bold">{num > 0 ? num : ''}</span>
+                      {hasLeisure && battle.phase === 'respond' && (
+                        <span style={{
+                          position: 'absolute',
+                          bottom: '-16px',
+                          left: '50%',
+                          transform: 'translateX(-50%)',
+                          fontSize: '8px',
+                          color: LEISURE_COLOR.start,
+                          fontWeight: 'bold',
+                          whiteSpace: 'nowrap'
+                        }}>
+                          ↔ 드래그
+                        </span>
+                      )}
+                      {hasStrain && battle.phase === 'respond' && (
+                        <span style={{
+                          position: 'absolute',
+                          bottom: '-16px',
+                          left: '50%',
+                          transform: 'translateX(-50%)',
+                          fontSize: '8px',
+                          color: currentStrainOffset >= STRAIN_MAX_OFFSET ? STRAIN_COLOR.end : STRAIN_COLOR.start,
+                          fontWeight: 'bold',
+                          whiteSpace: 'nowrap'
+                        }}>
+                          {currentStrainOffset >= STRAIN_MAX_OFFSET
+                            ? `⚡ 최대 (−${currentStrainOffset})`
+                            : `← 드래그 (−${currentStrainOffset}/${STRAIN_MAX_OFFSET})`}
+                        </span>
+                      )}
                     </div>
                   );
                 })}
@@ -385,13 +758,12 @@ export const TimelineDisplay: FC<TimelineDisplayProps> = memo(({
               <div className="timeline-lane enemy-lane" style={enemyLaneStyle}>
                 {!hideEnemyTimeline && (
                   <>
-                    {Array.from({ length: enemyMax + 1 }).map((_, i) => (
+                    {Array.from({ length: enemyMax + 1 }, (_, i) => (
                       <div key={`e-grid-${i}`} className="timeline-gridline" style={{ left: `${(i / enemyMax) * 100}%` }} />
                     ))}
                     {enemyTimeline.map((a, idx) => {
                       const Icon = a.card.icon || (a.card.type === 'attack' ? Sword : Shield);
-                      const sameCount = enemyTimeline.filter((q, i) => i < idx && q.sp === a.sp).length;
-                      const offset = sameCount * 28;
+                      const offset = enemySpOffsets[idx] * 28;
                       const num = a.card.type === 'attack' ? ((a.card.damage ?? 0) * (a.card.hits || 1)) : (a.card.block || 0);
                       const globalIndex = battle.phase === 'resolve' && queue ? queue.findIndex(q => q === a) : -1;
                       const isExecuting = executingCardIndex === globalIndex;

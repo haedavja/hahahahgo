@@ -153,12 +153,24 @@ export const createBuildActions: SliceCreator = (set, get) => ({
       const existingTraitSet = new Set(currentGrowth.traits);
       const uniqueNewTraits = selectedTraits.filter(t => !existingTraitSet.has(t));
 
+      // 여유/무리 상극 처리: 둘 중 하나만 가질 수 있음
+      let finalTraits = [...currentGrowth.traits, ...uniqueNewTraits];
+      const hasLeisure = uniqueNewTraits.includes('leisure');
+      const hasStrain = uniqueNewTraits.includes('strain');
+      if (hasLeisure) {
+        // 여유를 추가하면 기존 무리 제거
+        finalTraits = finalTraits.filter(t => t !== 'strain');
+      } else if (hasStrain) {
+        // 무리를 추가하면 기존 여유 제거
+        finalTraits = finalTraits.filter(t => t !== 'leisure');
+      }
+
       const newGrowthState: CardGrowthState = {
         ...currentGrowth,
         growthCount: newGrowthCount,
         specializationCount: newSpecializationCount,
         rarity: newRarity,
-        traits: [...currentGrowth.traits, ...uniqueNewTraits],
+        traits: finalTraits,
       };
 
       // 레거시 cardUpgrades도 동기화

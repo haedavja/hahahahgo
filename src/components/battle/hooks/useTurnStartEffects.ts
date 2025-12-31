@@ -21,9 +21,10 @@ import { useEffect } from 'react';
 import type { MutableRefObject } from 'react';
 import { RELICS } from '../../../data/relics';
 import { applyTurnStartEffects, calculatePassiveEffects } from '../../../lib/relicEffects';
-import { processReflections } from '../../../lib/reflectionEffects';
 import { convertTraitsToIds } from '../../../data/reflections';
 import { getAllTokens, addToken } from '../../../lib/tokenUtils';
+import { processEthosAtBattleStart } from '../../../lib/ethosEffects';
+import { initialGrowthState } from '../../../state/slices/growthSlice';
 import { drawFromDeck } from '../utils/handGeneration';
 import { decideEnemyMode, generateEnemyActions, expandActionsWithGhosts } from '../utils/enemyAI';
 import { useGameStore } from '../../../state/gameStore';
@@ -133,32 +134,37 @@ export function useTurnStartEffects({
       }
     });
 
-    // === 성찰 효과 처리 (자아가 있을 때만) ===
-    let reflectionResult: ProcessReflectionsResult = {
-      updatedPlayer: player,
+    // === 에토스 패시브 효과 처리 ===
+    const growth = useGameStore.getState().growth || initialGrowthState;
+    let ethosUpdatedPlayer = { ...player };
+    const ethosLogs: string[] = [];
+
+    // 첫 턴에만 battleStart 트리거 에토스 처리
+    if (turnNumber === 1) {
+      const ethosResult = processEthosAtBattleStart(player, growth);
+      ethosUpdatedPlayer = ethosResult.updatedPlayer;
+
+      // 에토스에서 부여하는 토큰 적용
+      for (const tokenInfo of ethosResult.tokensToAdd) {
+        const tokenResult = addToken(ethosUpdatedPlayer, tokenInfo.id, tokenInfo.stacks);
+        ethosUpdatedPlayer = { ...ethosUpdatedPlayer, tokens: tokenResult.tokens };
+      }
+
+      ethosLogs.push(...ethosResult.logs);
+    }
+
+    // 에토스 로그 출력
+    for (const log of ethosLogs) {
+      addLog(log);
+    }
+
+    // 레거시 호환: reflectionState 유지 (빈 객체)
+    const reflectionResult: ProcessReflectionsResult = {
+      updatedPlayer: ethosUpdatedPlayer,
       updatedBattleState: battle.reflectionState || {},
       effects: [],
-      logs: []
+      logs: ethosLogs
     };
-    const hasEgo = playerEgos && playerEgos.length > 0;
-    if (hasEgo) {
-      const traitIds = convertTraitsToIds(playerTraits);
-      const playerForReflection = {
-        ...player,
-        egos: playerEgos,
-        traits: traitIds,
-        tokens: player.tokens || { usage: [], turn: [], permanent: [] }
-      };
-      reflectionResult = processReflections(playerForReflection, battle.reflectionState, turnNumber);
-
-      // 성찰 발동 시 효과음과 로그
-      if (reflectionResult.effects.length > 0) {
-        playSound(1200, 150);
-        setTimeout(() => playSound(1500, 100), 100);
-      }
-      reflectionResult.logs.forEach(log => addLog(log));
-    }
-    // 성찰 상태 업데이트
     actions.setReflectionState(reflectionResult.updatedBattleState);
 
     // 특성 효과로 인한 에너지 보너스/페널티 적용

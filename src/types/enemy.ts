@@ -12,9 +12,15 @@
  * - 새 적 추가 시: EnemyDefinition 사용
  * - 전투 상태 관리: EnemyBattleState 사용
  * - UI 렌더링: 필요한 필드만 Pick<> 사용
+ *
+ * ## 은총(Grace) 시스템
+ * - 몬스터의 에테르는 "은총"으로 불림
+ * - 영혼 보호 + 기원 발동용
+ * - 플레이어 에테르 뺏기/본인 영혼 회복 불가
  */
 
 import type { TokenState } from './core';
+import type { MonsterGraceState, PrayerType } from '../data/monsterEther';
 
 // ==================== 기본 타입 ====================
 
@@ -71,6 +77,8 @@ export interface EnemyDefinition extends EnemyBase {
   isBoss?: boolean;
   /** 패시브 효과 */
   passives?: EnemyPassives;
+  /** 사용 가능한 기원 목록 */
+  availablePrayers?: PrayerType[];
 }
 
 // ==================== 전투 상태 타입 ====================
@@ -114,12 +122,16 @@ export interface EnemyBattleState {
   // === 속도 & 에테르 ===
   /** 최대 속도 */
   maxSpeed: number;
-  /** 에테르 포인트 */
+  /** 에테르 포인트 (구버전 호환) */
   etherPts?: number;
-  /** 에테르 용량 */
+  /** 에테르 용량 (구버전 호환) */
   etherCapacity?: number;
-  /** 에테르 기원 활성화 */
+  /** 에테르 기원 활성화 (구버전 호환) */
   etherOverdriveActive?: boolean;
+
+  // === 은총 시스템 (신규) ===
+  /** 은총 상태 */
+  grace?: MonsterGraceState;
 
   // === 전투 수치 ===
   /** 취약 배율 */

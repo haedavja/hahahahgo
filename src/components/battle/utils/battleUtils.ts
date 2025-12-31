@@ -6,6 +6,7 @@
 import type { Card, CardRarity, CardTrait } from '../../../types';
 import type { BattleCard } from '../../../state/slices/types';
 import { isTraitSilenced } from '../../../lib/anomalyEffectUtils';
+import { hasExpandedCrossRange } from '../../../lib/logosEffects';
 
 interface TraitContext {
   [key: string]: unknown;
@@ -173,11 +174,15 @@ interface CrossCheckQueueItem {
  *
  * 같은 SP에 플레이어와 적 카드가 있으면 둘 다 hasCrossed = true로 마킹
  * 기존에 hasCrossed가 true인 카드는 그대로 유지 (한 번 겹치면 계속 유지)
+ * 로고스 효과: expandCrossRange가 활성화되면 ±1 SP 범위도 교차로 인정
  *
  * @param queue - 현재 큐
  * @returns 교차 마킹이 적용된 새 큐
  */
 export function markCrossedCards<T extends CrossCheckQueueItem>(queue: T[]): T[] {
+  // 로고스 효과: 교차 범위 확장 여부
+  const expandedRange = hasExpandedCrossRange();
+
   // SP별 플레이어/적 존재 여부만 추적 (O(n) 단일 순회)
   const spFlags = new Map<number, { hasPlayer: boolean; hasEnemy: boolean }>();
 
@@ -192,15 +197,37 @@ export function markCrossedCards<T extends CrossCheckQueueItem>(queue: T[]): T[]
     else if (item.actor === 'enemy') flags.hasEnemy = true;
   }
 
+  // 특정 SP에서 교차 가능한지 확인 (확장 범위 고려)
+  const isCrossedAtSp = (sp: number, actor: 'player' | 'enemy'): boolean => {
+    const oppositeActor = actor === 'player' ? 'hasEnemy' : 'hasPlayer';
+    const myActor = actor === 'player' ? 'hasPlayer' : 'hasEnemy';
+
+    // 같은 SP에서 교차
+    const flagsAtSp = spFlags.get(sp);
+    if (flagsAtSp?.[myActor] && flagsAtSp?.[oppositeActor]) {
+      return true;
+    }
+
+    // 확장 범위: ±1 SP에서 교차 (로고스 효과 활성화 시)
+    if (expandedRange) {
+      const flagsBelow = spFlags.get(sp - 1);
+      const flagsAbove = spFlags.get(sp + 1);
+
+      if (flagsBelow?.[oppositeActor]) return true;
+      if (flagsAbove?.[oppositeActor]) return true;
+    }
+
+    return false;
+  };
+
   // 교차 여부 마킹 (변경 필요한 것만 복사)
   let hasChanges = false;
   const result = queue.map(item => {
     if (item.hasCrossed) return item;
 
     const sp = Math.floor(item.sp || 0);
-    const flags = spFlags.get(sp);
 
-    if (flags?.hasPlayer && flags?.hasEnemy) {
+    if (isCrossedAtSp(sp, item.actor)) {
       hasChanges = true;
       return { ...item, hasCrossed: true };
     }

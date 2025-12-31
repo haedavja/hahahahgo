@@ -41,6 +41,7 @@ import { createItemActions } from "./slices/itemSlice";
 import { createRestActions } from "./slices/restSlice";
 import { createShopActions } from "./slices/shopSlice";
 import { createDevActions } from "./slices/devSlice";
+import { createGrowthActions } from "./slices/growthSlice";
 
 // ==================== 타입 재export (하위 호환성) ====================
 
@@ -81,6 +82,7 @@ export const useGameStore = create<GameStore>()(subscribeWithSelector((set, get,
   const restActions = createRestActions(...args);
   const shopActions = createShopActions(...args);
   const devActions = createDevActions(...args);
+  const growthActions = createGrowthActions(...args);
 
   return {
     // 초기 상태
@@ -104,6 +106,7 @@ export const useGameStore = create<GameStore>()(subscribeWithSelector((set, get,
     ...restActions,
     ...shopActions,
     ...devActions,
+    ...growthActions,
 
     // 코어 액션 (슬라이스에 포함되지 않은 액션)
     resetRun: () => set(() => applyInitialRelicEffects(createInitialState()) as unknown as Partial<GameStore>),

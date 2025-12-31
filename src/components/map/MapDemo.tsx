@@ -209,7 +209,7 @@ function MapDemoComponent() {
     selectNode, chooseEvent, closeEvent, clearBattleResult,
     skipDungeon, confirmDungeon, bypassDungeon,
     awakenAtRest, closeRest, closeShop, healAtRest,
-    formEgo, upgradeCardRarity, enhanceCard, specializeCard, useItem, setResources
+    upgradeCardRarity, enhanceCard, specializeCard, useItem, setResources
   } = useGameStore(
     useShallow((state) => ({
       selectNode: state.selectNode,
@@ -223,7 +223,6 @@ function MapDemoComponent() {
       closeRest: state.closeRest,
       closeShop: state.closeShop,
       healAtRest: state.healAtRest,
-      formEgo: state.formEgo,
       upgradeCardRarity: state.upgradeCardRarity,
       enhanceCard: state.enhanceCard,
       specializeCard: state.specializeCard,
@@ -276,10 +275,7 @@ function MapDemoComponent() {
   const memoryValue = resources.memory ?? 0;
   const canAwaken = memoryValue >= 100;
 
-  // 자아 형성용 상태
-  const [egoFormMode, setEgoFormMode] = useState(false);
-  const [selectedTraitsForEgo, setSelectedTraitsForEgo] = useState([]);
-  const canFormEgo = playerTraits.length >= 5;
+  // 에테르 관련 값
   const aetherValue = resources.etherPts ?? 0;
   const aetherSlots = calculateEtherSlots(aetherValue); // 인플레이션 적용
   const aetherCurrentPts = getCurrentSlotPts(aetherValue); // 현재 슬롯 내의 pt (슬롯마다 0으로 리셋)
@@ -555,7 +551,6 @@ function MapDemoComponent() {
           maxHp={maxHp}
           canAwaken={canAwaken}
           playerTraits={playerTraits}
-          canFormEgo={canFormEgo}
           cardUpgrades={cardUpgrades}
           cardGrowth={cardGrowth}
           gold={resources.gold ?? 0}
@@ -566,7 +561,6 @@ function MapDemoComponent() {
           upgradeCardRarity={upgradeCardRarity}
           enhanceCard={enhanceCard}
           specializeCard={specializeCard}
-          formEgo={formEgo}
           spendGold={spendGold}
         />
       )}

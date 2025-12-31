@@ -4,10 +4,22 @@
  */
 
 import { useState, useCallback, useMemo, memo, ChangeEvent } from 'react';
-import { CARDS } from '../../battle/battleData';
+import { CARDS, TRAITS } from '../../battle/battleData';
 import type { CardsTabCard as Card, CardsTabCharacterBuild as CharacterBuild } from '../../../types';
 import type { CardGrowthState } from '../../../state/slices/types';
 import { CardGrowthModal } from '../../map/ui/CardGrowthModal';
+
+// 특성 목록 (긍정/부정 분리 후 가나다 순 정렬)
+const ALL_TRAITS = Object.entries(TRAITS)
+  .map(([id, trait]) => ({ id, ...trait }))
+  .sort((a, b) => {
+    // 긍정 먼저, 그 다음 가나다 순
+    if (a.type !== b.type) return a.type === 'positive' ? -1 : 1;
+    return a.name.localeCompare(b.name, 'ko');
+  });
+
+// 카드 목록 (가나다 순 정렬)
+const SORTED_CARDS = (CARDS as Card[]).slice().sort((a, b) => a.name.localeCompare(b.name, 'ko'));
 
 // 스타일 상수
 const RARITY_COLORS: Record<string, string> = { common: '#94a3b8', rare: '#60a5fa', special: '#a78bfa', legendary: '#fbbf24' };
@@ -38,6 +50,9 @@ export const CardsTab = memo(function CardsTab({ cardUpgrades, upgradeCardRarity
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [specialMode, setSpecialMode] = useState<'main' | 'sub' | 'owned'>('main');
   const [showCardGrowthModal, setShowCardGrowthModal] = useState(false);
+  // 직접 특성 부여
+  const [traitTargetCardId, setTraitTargetCardId] = useState<string>((CARDS as Card[])[0]?.id || '');
+  const [selectedTraitId, setSelectedTraitId] = useState<string>(ALL_TRAITS[0]?.id || '');
 
   const mainSpecials = useMemo(() => characterBuild?.mainSpecials || [], [characterBuild?.mainSpecials]);
   const subSpecials = useMemo(() => characterBuild?.subSpecials || [], [characterBuild?.subSpecials]);
@@ -94,12 +109,14 @@ export const CardsTab = memo(function CardsTab({ cardUpgrades, upgradeCardRarity
     }
   }, [specialMode, mainSpecials, subSpecials, updateCharacterBuild, clearOwnedCards]);
 
-  // 검색 필터
+  // 검색 필터 (가나다 순 정렬)
   const filteredCards = useMemo(() =>
-    (CARDS as Card[]).filter(c =>
-      c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      c.id.toLowerCase().includes(searchTerm.toLowerCase())
-    ), [searchTerm]);
+    (CARDS as Card[])
+      .filter(c =>
+        c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        c.id.toLowerCase().includes(searchTerm.toLowerCase())
+      )
+      .sort((a, b) => a.name.localeCompare(b.name, 'ko')), [searchTerm]);
 
   // 카드 개수 카운트
   const getCount = useCallback((cardId: string, list: string[]): number => list.filter(id => id === cardId).length, []);
@@ -108,6 +125,40 @@ export const CardsTab = memo(function CardsTab({ cardUpgrades, upgradeCardRarity
   const handleOpenCardGrowthModal = useCallback(() => setShowCardGrowthModal(true), []);
   const handleCloseCardGrowthModal = useCallback(() => setShowCardGrowthModal(false), []);
   const handleUpgradeCard = useCallback(() => upgradeCardRarity(selectedCardId), [selectedCardId, upgradeCardRarity]);
+
+  // 직접 특성 부여 핸들러
+  const handleDirectTraitAssign = useCallback(() => {
+    if (!traitTargetCardId || !selectedTraitId) return;
+    // 기존 특성에 새 특성 추가
+    let currentTraits = cardGrowth[traitTargetCardId]?.traits || [];
+    if (currentTraits.includes(selectedTraitId)) {
+      alert(`이미 '${TRAITS[selectedTraitId as keyof typeof TRAITS]?.name}' 특성이 있습니다.`);
+      return;
+    }
+
+    // 여유/무리 상극 처리: 둘 중 하나만 가질 수 있음
+    if (selectedTraitId === 'leisure' && currentTraits.includes('strain')) {
+      currentTraits = currentTraits.filter(t => t !== 'strain');
+      alert("'무리' 특성이 제거되었습니다. (여유/무리는 상극)");
+    } else if (selectedTraitId === 'strain' && currentTraits.includes('leisure')) {
+      currentTraits = currentTraits.filter(t => t !== 'leisure');
+      alert("'여유' 특성이 제거되었습니다. (여유/무리는 상극)");
+    }
+
+    specializeCard(traitTargetCardId, [...currentTraits, selectedTraitId]);
+  }, [traitTargetCardId, selectedTraitId, cardGrowth, specializeCard]);
+
+  // 특성 제거 핸들러
+  const handleRemoveTrait = useCallback((cardId: string, traitId: string) => {
+    const currentTraits = cardGrowth[cardId]?.traits || [];
+    const newTraits = currentTraits.filter(t => t !== traitId);
+    specializeCard(cardId, newTraits);
+  }, [cardGrowth, specializeCard]);
+
+  // 특성 전체 제거 핸들러
+  const handleClearTraits = useCallback((cardId: string) => {
+    specializeCard(cardId, []);
+  }, [specializeCard]);
 
   return (
     <div>
@@ -398,7 +449,7 @@ export const CardsTab = memo(function CardsTab({ cardUpgrades, upgradeCardRarity
             fontSize: '0.8rem',
           }}
         >
-          {(CARDS as Card[]).map((c) => {
+          {SORTED_CARDS.map((c) => {
             const rarity = cardUpgrades?.[c.id] || c.rarity || 'common';
             return (
               <option key={c.id} value={c.id}>
@@ -451,6 +502,136 @@ export const CardsTab = memo(function CardsTab({ cardUpgrades, upgradeCardRarity
           }}
         >
           🎴 카드 승급 창 열기
+        </button>
+      </div>
+
+      {/* 직접 특성 부여 (개발자 전용) */}
+      <div style={{
+        padding: '12px',
+        background: '#0f172a',
+        borderRadius: '8px',
+        marginTop: '16px',
+        border: '1px solid rgba(249, 115, 22, 0.3)',
+      }}>
+        <h4 style={{ color: '#f97316', fontSize: '0.875rem', marginBottom: '8px', marginTop: 0 }}>🔧 직접 특성 부여 (개발자용)</h4>
+        <p style={{ fontSize: '0.75rem', color: '#94a3b8', marginBottom: '12px' }}>
+          원하는 카드에 원하는 특성을 확정적으로 부여합니다.
+        </p>
+
+        {/* 카드 선택 */}
+        <div style={{ marginBottom: '10px' }}>
+          <label style={{ fontSize: '0.75rem', color: '#64748b', marginBottom: '4px', display: 'block' }}>대상 카드</label>
+          <select
+            value={traitTargetCardId}
+            onChange={(e: ChangeEvent<HTMLSelectElement>) => setTraitTargetCardId(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '8px 10px',
+              background: '#1e293b',
+              border: '1px solid #334155',
+              borderRadius: '6px',
+              color: '#e2e8f0',
+              fontSize: '0.8rem',
+            }}
+          >
+            {SORTED_CARDS.map((c) => {
+              const growth = cardGrowth[c.id];
+              const traits = growth?.traits || [];
+              return (
+                <option key={c.id} value={c.id}>
+                  {c.name} {traits.length > 0 ? `[${traits.map(t => TRAITS[t as keyof typeof TRAITS]?.name || t).join(', ')}]` : ''}
+                </option>
+              );
+            })}
+          </select>
+        </div>
+
+        {/* 현재 특성 표시 및 제거 */}
+        {cardGrowth[traitTargetCardId]?.traits && cardGrowth[traitTargetCardId].traits.length > 0 && (
+          <div style={{ marginBottom: '10px' }}>
+            <label style={{ fontSize: '0.75rem', color: '#64748b', marginBottom: '4px', display: 'block' }}>현재 특성 (클릭하여 제거)</label>
+            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+              {cardGrowth[traitTargetCardId].traits.map(traitId => {
+                const trait = TRAITS[traitId as keyof typeof TRAITS];
+                if (!trait) return null;
+                const isPositive = trait.type === 'positive';
+                return (
+                  <span
+                    key={traitId}
+                    onClick={() => handleRemoveTrait(traitTargetCardId, traitId)}
+                    style={{
+                      padding: '4px 8px',
+                      background: isPositive ? 'rgba(34, 197, 94, 0.2)' : 'rgba(239, 68, 68, 0.2)',
+                      border: `1px solid ${isPositive ? '#22c55e' : '#ef4444'}`,
+                      borderRadius: '6px',
+                      color: isPositive ? '#22c55e' : '#ef4444',
+                      fontSize: '0.75rem',
+                      cursor: 'pointer',
+                    }}
+                    title="클릭하여 제거"
+                  >
+                    {trait.name} ✕
+                  </span>
+                );
+              })}
+              <button
+                onClick={() => handleClearTraits(traitTargetCardId)}
+                style={{
+                  padding: '4px 8px',
+                  background: 'rgba(239, 68, 68, 0.2)',
+                  border: '1px solid #ef4444',
+                  borderRadius: '6px',
+                  color: '#ef4444',
+                  fontSize: '0.75rem',
+                  cursor: 'pointer',
+                }}
+              >
+                전체 제거
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* 특성 선택 */}
+        <div style={{ marginBottom: '10px' }}>
+          <label style={{ fontSize: '0.75rem', color: '#64748b', marginBottom: '4px', display: 'block' }}>부여할 특성</label>
+          <select
+            value={selectedTraitId}
+            onChange={(e: ChangeEvent<HTMLSelectElement>) => setSelectedTraitId(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '8px 10px',
+              background: '#1e293b',
+              border: '1px solid #334155',
+              borderRadius: '6px',
+              color: '#e2e8f0',
+              fontSize: '0.8rem',
+            }}
+          >
+            {ALL_TRAITS.map((trait) => (
+              <option key={trait.id} value={trait.id} style={{ color: trait.type === 'positive' ? '#22c55e' : '#ef4444' }}>
+                {trait.type === 'positive' ? '+' : '-'}{trait.name} (★{trait.weight}) - {trait.description}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* 부여 버튼 */}
+        <button
+          onClick={handleDirectTraitAssign}
+          style={{
+            width: '100%',
+            padding: '10px',
+            background: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)',
+            border: 'none',
+            borderRadius: '6px',
+            color: '#fff',
+            fontSize: '0.875rem',
+            fontWeight: 700,
+            cursor: 'pointer',
+          }}
+        >
+          ✨ 특성 부여
         </button>
       </div>
 

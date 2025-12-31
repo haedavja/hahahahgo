@@ -27,6 +27,15 @@ import {
   applyCriticalDamage
 } from '../utils/cardSpecialEffects';
 import { getVulnerabilityMultiplier } from '../../../lib/anomalyEffectUtils';
+import {
+  shouldCounterShootOnEvade,
+  calculateSwordDamageBonus,
+  calculateAttackDamageBonus,
+  isSwordCard,
+  isGunCard
+} from '../../../lib/ethosEffects';
+import { applyGunCritEthosEffects, applyGunCritReloadEffect } from '../utils/criticalEffects';
+import { shouldShootOnBlock, getArmorPenetration, getCombatTokens, getMinFinesse } from '../../../lib/logosEffects';
 
 /**
  * 반격 처리
@@ -239,7 +248,29 @@ export function calculateSingleHit(
   const strengthBonus = currentAttacker.strength || 0;
   const ghostText = isGhost ? ' [👻유령]' : '';
   const boost = currentAttacker.etherOverdriveActive ? 2 : 1;
-  let dmg = (base + fencingBonus + strengthBonus) * boost;
+
+  // 에토스 피해 보너스 (플레이어 공격 시에만)
+  let ethosBonus = 0;
+  const ethosLogs: string[] = [];
+  if (attackerName === 'player') {
+    // 검술 카드: 검예 에토스 (기교 스택만큼 추가 피해)
+    if (isSwordCard(card)) {
+      const finesseStacks = getTokenStacks(currentAttacker, 'finesse');
+      const swordResult = calculateSwordDamageBonus(finesseStacks);
+      ethosBonus += swordResult.bonus;
+      ethosLogs.push(...swordResult.logs);
+    }
+
+    // 고고학 에토스 (상징 개수만큼 추가 피해)
+    const symbolCount = battleContext.symbolCount || 0;
+    if (symbolCount > 0) {
+      const attackResult = calculateAttackDamageBonus(symbolCount);
+      ethosBonus += attackResult.bonus;
+      ethosLogs.push(...attackResult.logs);
+    }
+  }
+
+  let dmg = (base + fencingBonus + strengthBonus + ethosBonus) * boost;
 
   if (isCritical) {
     dmg = applyCriticalDamage(dmg, true);
@@ -248,7 +279,7 @@ export function calculateSingleHit(
 
   const crushMultiplier = hasTrait(card, 'crush') ? 2 : 1;
   const events = [...specialEvents];
-  const logs = [...specialLogs];
+  const logs = [...specialLogs, ...ethosLogs];
   let damageDealt = 0;
   let damageTaken = 0;
   let blockDestroyed = 0;
@@ -263,7 +294,9 @@ export function calculateSingleHit(
     logs.push(...consumeResult.logs);
   }
 
-  const tokenDamageResult = applyTokenEffectsOnDamage(dmg, currentDefender, currentAttacker);
+  // 파토스 효과: 회피 무시 (플레이어 공격 시에만)
+  const ignoreEvasionChance = attackerName === 'player' ? (battleContext.pathosTurnEffects?.ignoreEvasion || 0) : 0;
+  const tokenDamageResult = applyTokenEffectsOnDamage(dmg, currentDefender, currentAttacker, { ignoreEvasion: ignoreEvasionChance });
 
   if (tokenDamageResult.consumedTokens.length > 0) {
     const consumeResult = consumeTokens(updatedDefender, tokenDamageResult.consumedTokens);
@@ -285,6 +318,36 @@ export function calculateSingleHit(
       msg: dodgeMsg
     });
     logs.push(dodgeMsg);
+
+    // 틈새 에토스: 플레이어가 회피 성공 시 반격 사격
+    if (attackerName === 'enemy') {
+      const evadeShot = shouldCounterShootOnEvade();
+      if (evadeShot.shouldShoot && evadeShot.shots > 0) {
+        const shootCard = CARDS.find(c => c.id === 'shoot');
+        if (shootCard) {
+          const shotDamage = (shootCard.damage || 8) * evadeShot.shots;
+          const beforeHP = updatedAttacker.hp;
+          updatedAttacker = {
+            ...updatedAttacker,
+            hp: Math.max(0, updatedAttacker.hp - shotDamage)
+          };
+
+          // 룰렛 증가
+          const rouletteResult = addToken(updatedDefender, 'roulette', evadeShot.shots);
+          updatedDefender = { ...updatedDefender, tokens: rouletteResult.tokens };
+
+          const shotMsg = `🔫 틈새: 회피 성공! ${enemyNameDodge}에게 ${shotDamage} 피해 (체력 ${beforeHP} -> ${updatedAttacker.hp})`;
+          events.push({
+            actor: 'player',
+            type: 'ethos' as const,
+            dmg: shotDamage,
+            msg: shotMsg
+          } as BattleEvent);
+          logs.push(shotMsg);
+        }
+      }
+    }
+
     return {
       attacker: updatedAttacker,
       defender: updatedDefender,
@@ -311,6 +374,24 @@ export function calculateSingleHit(
       blockDestroyed = effectiveDmg;
       dmg = 0;
 
+      // 로고스 효과: 배틀 왈츠 Lv2 - 검격 방어력 추가 피해
+      let armorPenDmg = 0;
+      if (attackerName === 'player' && isSwordCard(card)) {
+        const armorPen = getArmorPenetration();
+        if (armorPen > 0) {
+          armorPenDmg = Math.floor(effectiveDmg * armorPen / 100);
+          if (armorPenDmg > 0) {
+            const beforeHP = updatedDefender.hp;
+            updatedDefender.hp = Math.max(0, updatedDefender.hp - armorPenDmg);
+            damageDealt += armorPenDmg;
+            const enemyNamePen = battleContext.enemyDisplayName || '몬스터';
+            const penMsg = `⚔️ 배틀 왈츠: 관통 피해 ${armorPenDmg} (${beforeHP} -> ${updatedDefender.hp})`;
+            events.push({ actor: 'player', type: 'logos' as const, dmg: armorPenDmg, msg: penMsg } as BattleEvent);
+            logs.push(penMsg);
+          }
+        }
+      }
+
       const crushText = crushMultiplier > 1 ? ' [분쇄×2]' : '';
       const enemyName = battleContext.enemyDisplayName || '몬스터';
       const actorName = attackerName === 'player' ? `플레이어(${card.name})` : `${enemyName}(${card.name})`;
@@ -320,6 +401,33 @@ export function calculateSingleHit(
 
       events.push({ actor: attackerName, card: card.name, type: 'blocked', msg });
       logs.push(msg);
+
+      // 로고스 효과: 건카타 Lv1 - 방어력으로 막아낼 시 총격
+      if (attackerName === 'enemy' && shouldShootOnBlock() && effectiveDmg > 0) {
+        const shootCard = CARDS.find(c => c.id === 'shoot');
+        if (shootCard) {
+          const shotDamage = shootCard.damage || 8;
+          const enemyBeforeHP = updatedAttacker.hp;
+          updatedAttacker = {
+            ...updatedAttacker,
+            hp: Math.max(0, updatedAttacker.hp - shotDamage)
+          };
+
+          // 룰렛 증가
+          const rouletteResult = addToken(updatedDefender, 'roulette', 1);
+          updatedDefender = { ...updatedDefender, tokens: rouletteResult.tokens };
+
+          const shotMsg = `🔫 건카타: 방어 성공! ${enemyName}에게 ${shotDamage} 피해 (체력 ${enemyBeforeHP} -> ${updatedAttacker.hp})`;
+          events.push({
+            actor: 'player',
+            type: 'logos' as const,
+            dmg: shotDamage,
+            msg: shotMsg
+          } as BattleEvent);
+          logs.push(shotMsg);
+          damageTaken += shotDamage;
+        }
+      }
     } else {
       const blocked = beforeBlock;
       const remained = Math.max(0, effectiveDmg - blocked);
@@ -330,9 +438,26 @@ export function calculateSingleHit(
       const tokenVuln = (updatedDefender.vulnMult && updatedDefender.vulnMult > 1) ? updatedDefender.vulnMult : 1;
       const anomalyVuln = getVulnerabilityMultiplier(updatedDefender);
       const vulnMul = tokenVuln * anomalyVuln;
-      const finalDmg = Math.floor(remained * vulnMul);
+
+      // 로고스 효과: 배틀 왈츠 Lv2 - 검격 방어력 추가 피해
+      let armorPenBonus = 0;
+      if (attackerName === 'player' && isSwordCard(card) && blocked > 0) {
+        const armorPen = getArmorPenetration();
+        if (armorPen > 0) {
+          armorPenBonus = Math.floor(blocked * armorPen / 100);
+        }
+      }
+
+      const finalDmg = Math.floor(remained * vulnMul) + armorPenBonus;
       const beforeHP = updatedDefender.hp;
       updatedDefender.hp = Math.max(0, updatedDefender.hp - finalDmg);
+
+      // 관통 피해 로그 (보너스가 있을 때만)
+      if (armorPenBonus > 0) {
+        const penMsg = `⚔️ 배틀 왈츠: 관통 보너스 +${armorPenBonus}`;
+        events.push({ actor: 'player', type: 'logos' as const, msg: penMsg } as BattleEvent);
+        logs.push(penMsg);
+      }
 
       const crushText = crushMultiplier > 1 ? ' [분쇄×2]' : '';
       const enemyNamePierce = battleContext.enemyDisplayName || '몬스터';
@@ -355,6 +480,59 @@ export function calculateSingleHit(
       logs.push(msg);
 
       damageDealt += finalDmg;
+
+      // 로고스 효과: 건카타 Lv1 - 방어력으로 막아낼 시 총격 (관통당해도 방어력이 피해 흡수한 경우)
+      if (attackerName === 'enemy' && shouldShootOnBlock() && blocked > 0) {
+        const shootCard = CARDS.find(c => c.id === 'shoot');
+        if (shootCard) {
+          const shotDamage = shootCard.damage || 8;
+          const enemyBeforeHP = updatedAttacker.hp;
+          updatedAttacker = {
+            ...updatedAttacker,
+            hp: Math.max(0, updatedAttacker.hp - shotDamage)
+          };
+
+          // 룰렛 증가
+          const rouletteResult = addToken(updatedDefender, 'roulette', 1);
+          updatedDefender = { ...updatedDefender, tokens: rouletteResult.tokens };
+
+          const enemyNameShot = battleContext.enemyDisplayName || '몬스터';
+          const shotMsg = `🔫 건카타: 방어 흡수! ${enemyNameShot}에게 ${shotDamage} 피해 (체력 ${enemyBeforeHP} -> ${updatedAttacker.hp})`;
+          events.push({
+            actor: 'player',
+            type: 'logos' as const,
+            dmg: shotDamage,
+            msg: shotMsg
+          } as BattleEvent);
+          logs.push(shotMsg);
+        }
+      }
+
+      // 총격 치명타 에토스 효과 (불꽃: 화상 부여)
+      if (attackerName === 'player' && isCritical && isGunCard(card)) {
+        const gunCritResult = applyGunCritEthosEffects(card, true, updatedDefender, battleContext);
+        updatedDefender = gunCritResult.defender;
+        events.push(...gunCritResult.events);
+        logs.push(...gunCritResult.logs);
+
+        // 로고스 효과: 건카타 Lv3 - 치명타 시 즉시 장전
+        const reloadResult = applyGunCritReloadEffect(card, true, updatedAttacker);
+        updatedAttacker = reloadResult.attacker;
+        events.push(...reloadResult.events);
+        logs.push(...reloadResult.logs);
+      }
+
+      // 로고스 효과: 배틀 왈츠 Lv3 - 공격 시 흐릿함 토큰 획득
+      if (attackerName === 'player' && isSwordCard(card) && finalDmg > 0) {
+        const combatTokens = getCombatTokens();
+        if (combatTokens.onAttack) {
+          const blurResult = addToken(updatedAttacker, combatTokens.onAttack, 1);
+          updatedAttacker = { ...updatedAttacker, tokens: blurResult.tokens };
+          const tokenMsg = `✨ 배틀 왈츠: 검격 공격! ${combatTokens.onAttack} 획득`;
+          events.push({ actor: 'player', type: 'logos' as const, msg: tokenMsg } as BattleEvent);
+          logs.push(tokenMsg);
+        }
+      }
 
       const totalCounter = (updatedDefender.counter || 0) + (tokenDamageResult.reflected || 0);
       if (totalCounter > 0 && finalDmg > 0) {
@@ -381,6 +559,32 @@ export function calculateSingleHit(
         events.push(...rainResult.events);
         logs.push(...rainResult.logs);
         timelineAdvance += rainResult.advance;
+      }
+
+      // 파토스 효과: counterAttack (플레이어 피격 시 반격 확률)
+      if (attackerName === 'enemy' && finalDmg > 0 && battleContext.pathosTurnEffects?.counterAttack) {
+        const counterChance = battleContext.pathosTurnEffects.counterAttack;
+        const roll = Math.random() * 100;
+        if (roll < counterChance) {
+          const counterCard = CARDS.find(c => c.id === 'slash');
+          const counterDamage = (counterCard?.damage || 8) + (updatedDefender.strength || 0);
+          const beforeHPCounter = updatedAttacker.hp;
+          updatedAttacker = {
+            ...updatedAttacker,
+            hp: Math.max(0, updatedAttacker.hp - counterDamage)
+          };
+
+          const enemyNameCounter = battleContext.enemyDisplayName || '몬스터';
+          const counterMsg = `⚔️ 반격: 피격 반격! ${enemyNameCounter}에게 ${counterDamage} 피해 (체력 ${beforeHPCounter} -> ${updatedAttacker.hp})`;
+          events.push({
+            actor: 'player',
+            type: 'pathos' as const,
+            dmg: counterDamage,
+            msg: counterMsg
+          } as BattleEvent);
+          logs.push(counterMsg);
+          damageTaken += counterDamage;
+        }
       }
     }
   } else {
@@ -412,6 +616,32 @@ export function calculateSingleHit(
 
     damageDealt += finalDmg;
 
+    // 총격 치명타 에토스 효과 (불꽃: 화상 부여)
+    if (attackerName === 'player' && isCritical && isGunCard(card)) {
+      const gunCritResult = applyGunCritEthosEffects(card, true, updatedDefender, battleContext);
+      updatedDefender = gunCritResult.defender;
+      events.push(...gunCritResult.events);
+      logs.push(...gunCritResult.logs);
+
+      // 로고스 효과: 건카타 Lv3 - 치명타 시 즉시 장전
+      const reloadResult = applyGunCritReloadEffect(card, true, updatedAttacker);
+      updatedAttacker = reloadResult.attacker;
+      events.push(...reloadResult.events);
+      logs.push(...reloadResult.logs);
+    }
+
+    // 로고스 효과: 배틀 왈츠 Lv3 - 공격 시 흐릿함 토큰 획득
+    if (attackerName === 'player' && isSwordCard(card) && finalDmg > 0) {
+      const combatTokens = getCombatTokens();
+      if (combatTokens.onAttack) {
+        const blurResult = addToken(updatedAttacker, combatTokens.onAttack, 1);
+        updatedAttacker = { ...updatedAttacker, tokens: blurResult.tokens };
+        const tokenMsg = `✨ 배틀 왈츠: 검격 공격! ${combatTokens.onAttack} 획득`;
+        events.push({ actor: 'player', type: 'logos' as const, msg: tokenMsg } as BattleEvent);
+        logs.push(tokenMsg);
+      }
+    }
+
     const totalCounter = (updatedDefender.counter || 0) + (tokenDamageResult.reflected || 0);
     if (totalCounter > 0 && finalDmg > 0) {
       const counterResult = applyCounter(updatedDefender, updatedAttacker, attackerName, totalCounter, battleContext);
@@ -437,6 +667,85 @@ export function calculateSingleHit(
       events.push(...rainResult.events);
       logs.push(...rainResult.logs);
       timelineAdvance += rainResult.advance;
+    }
+
+    // 파토스 효과: counterAttack (플레이어 피격 시 반격 확률)
+    if (attackerName === 'enemy' && finalDmg > 0 && battleContext.pathosTurnEffects?.counterAttack) {
+      const counterChance = battleContext.pathosTurnEffects.counterAttack;
+      const roll = Math.random() * 100;
+      if (roll < counterChance) {
+        // 기본 반격 피해 (검격 카드 기반)
+        const counterCard = CARDS.find(c => c.id === 'slash');
+        const counterDamage = (counterCard?.damage || 8) + (updatedDefender.strength || 0);
+        const beforeHPCounter = updatedAttacker.hp;
+        updatedAttacker = {
+          ...updatedAttacker,
+          hp: Math.max(0, updatedAttacker.hp - counterDamage)
+        };
+
+        const enemyNameCounter = battleContext.enemyDisplayName || '몬스터';
+        const counterMsg = `⚔️ 반격: 피격 반격! ${enemyNameCounter}에게 ${counterDamage} 피해 (체력 ${beforeHPCounter} -> ${updatedAttacker.hp})`;
+        events.push({
+          actor: 'player',
+          type: 'pathos' as const,
+          dmg: counterDamage,
+          msg: counterMsg
+        } as BattleEvent);
+        logs.push(counterMsg);
+        damageTaken += counterDamage;
+      }
+    }
+
+    // 파토스 효과: gunToMelee (총격 시 추가 타격)
+    if (attackerName === 'player' && isGunCard(card) && battleContext.pathosTurnEffects?.gunToMelee) {
+      const meleeCard = CARDS.find(c => c.id === 'slash');
+      if (meleeCard) {
+        const meleeDamage = (meleeCard.damage || 8) + (updatedAttacker.strength || 0);
+        const beforeHPMelee = updatedDefender.hp;
+        updatedDefender = {
+          ...updatedDefender,
+          hp: Math.max(0, updatedDefender.hp - meleeDamage)
+        };
+        damageDealt += meleeDamage;
+
+        const enemyNameMelee = battleContext.enemyDisplayName || '몬스터';
+        const meleeMsg = `⚔️ 총검술: 추가 타격! ${enemyNameMelee}에게 ${meleeDamage} 피해 (체력 ${beforeHPMelee} -> ${updatedDefender.hp})`;
+        events.push({
+          actor: 'player',
+          type: 'pathos' as const,
+          dmg: meleeDamage,
+          msg: meleeMsg
+        } as BattleEvent);
+        logs.push(meleeMsg);
+      }
+    }
+
+    // 파토스 효과: swordToGun (검격 시 추가 사격)
+    if (attackerName === 'player' && isSwordCard(card) && battleContext.pathosTurnEffects?.swordToGun) {
+      const shootCard = CARDS.find(c => c.id === 'shoot');
+      if (shootCard) {
+        const shotDamage = (shootCard.damage || 8) + (updatedAttacker.strength || 0);
+        const beforeHPShot = updatedDefender.hp;
+        updatedDefender = {
+          ...updatedDefender,
+          hp: Math.max(0, updatedDefender.hp - shotDamage)
+        };
+        damageDealt += shotDamage;
+
+        // 룰렛 증가
+        const rouletteResult = addToken(updatedAttacker, 'roulette', 1);
+        updatedAttacker = { ...updatedAttacker, tokens: rouletteResult.tokens };
+
+        const enemyNameShot = battleContext.enemyDisplayName || '몬스터';
+        const shotMsg = `🔫 검격사격: 추가 사격! ${enemyNameShot}에게 ${shotDamage} 피해 (체력 ${beforeHPShot} -> ${updatedDefender.hp})`;
+        events.push({
+          actor: 'player',
+          type: 'pathos' as const,
+          dmg: shotDamage,
+          msg: shotMsg
+        } as BattleEvent);
+        logs.push(shotMsg);
+      }
     }
   }
 

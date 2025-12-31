@@ -374,17 +374,6 @@ interface AnomalyNotificationProps {
 export const AnomalyNotification: FC<AnomalyNotificationProps> = memo(({ anomalies, onDismiss }) => {
   const [visibleAnomalies, setVisibleAnomalies] = useState<AnomalyWithLevel[]>([]);
 
-  // 버튼 호버 핸들러 메모이제이션
-  const handleButtonMouseEnter = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
-    (e.target as HTMLButtonElement).style.background = 'linear-gradient(135deg, #dc2626, #b91c1c)';
-    (e.target as HTMLButtonElement).style.boxShadow = '0 6px 20px rgba(239, 68, 68, 0.5)';
-  }, []);
-
-  const handleButtonMouseLeave = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
-    (e.target as HTMLButtonElement).style.background = 'linear-gradient(135deg, #ef4444, #dc2626)';
-    (e.target as HTMLButtonElement).style.boxShadow = '0 4px 15px rgba(239, 68, 68, 0.3)';
-  }, []);
-
   useEffect(() => {
     if (!anomalies || anomalies.length === 0) {
       setVisibleAnomalies([]);
@@ -483,8 +472,7 @@ export const AnomalyNotification: FC<AnomalyNotificationProps> = memo(({ anomali
         <button
           onClick={onDismiss}
           style={CONFIRM_BUTTON_STYLE}
-          onMouseEnter={handleButtonMouseEnter}
-          onMouseLeave={handleButtonMouseLeave}
+          className="anomaly-confirm-btn"
         >
           확인
         </button>
@@ -571,6 +559,11 @@ export const AnomalyNotification: FC<AnomalyNotificationProps> = memo(({ anomali
           100% {
             opacity: 1;
           }
+        }
+
+        .anomaly-confirm-btn:hover {
+          background: linear-gradient(135deg, #dc2626, #b91c1c) !important;
+          box-shadow: 0 6px 20px rgba(239, 68, 68, 0.5) !important;
         }
       `}</style>
     </>

@@ -129,7 +129,7 @@ export interface EnemyIntent {
 /** 전투 이벤트 */
 export interface BattleEvent {
   actor: 'player' | 'enemy' | 'system' | 'counter' | 'relic' | 'counterShot' | string;
-  type?: 'damage' | 'heal' | 'block' | 'token' | 'ether' | 'card' | 'multihit' | 'hit' | 'blocked' | 'pierce' | 'burn' | 'special' | 'dodge' | 'cross';
+  type?: 'damage' | 'heal' | 'block' | 'token' | 'ether' | 'card' | 'multihit' | 'hit' | 'blocked' | 'pierce' | 'burn' | 'special' | 'dodge' | 'cross' | 'ethos' | 'logos' | 'pathos';
   value?: number;
   msg: string;
   targetId?: string;
@@ -326,6 +326,26 @@ export interface BattleContext {
   isCritical?: boolean;
   enemyUnits?: EnemyUnit[];
   guaranteedCrit?: boolean;
+  // 파토스 턴 효과
+  pathosTurnEffects?: {
+    gunToMelee?: boolean;      // 총격 시 추가 타격
+    swordToGun?: boolean;      // 검격 시 추가 사격
+    ignoreEvasion?: number;    // 회피 무시 확률 (%)
+    onCrossBlock?: number;     // 교차 시 방어력 획득
+    onSwordBlock?: number;     // 검격 시 방어력 획득
+    forceCross?: boolean;      // 모든 검격 교차 판정
+    chainBonus?: number;       // 연계 효과 증가율
+    chainEvade?: boolean;      // 연계 후 회피 획득
+    counterAttack?: number;    // 피격 시 반격 확률
+  };
+  // 파토스 다음 카드 효과 (일회성)
+  pathosNextCardEffects?: {
+    guaranteeCrit?: boolean;   // 치명타 보장
+    setSpeed?: number;         // 속도 설정
+    aoe?: boolean;             // 전체 공격
+  };
+  // 상징 개수 (고고학 에토스용)
+  symbolCount?: number;
 }
 
 // ==================== 배틀 상태 객체 ====================
@@ -588,6 +608,7 @@ export interface ExecuteCardActionCoreParams {
   playHitSound?: () => void;
   playBlockSound?: () => void;
   actions: Record<string, (...args: unknown[]) => void>;
+  consumeNextCardEffects?: () => void;
 }
 
 /** 카드 실행 결과 */

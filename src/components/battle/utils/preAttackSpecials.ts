@@ -19,6 +19,7 @@ import type {
 } from '../../../types';
 import { addToken, removeToken, setTokenStacks, getTokenStacks } from '../../../lib/tokenUtils';
 import { getChainIsolationEffect, adjustFinesseGain } from '../../../lib/anomalyEffectUtils';
+import { isSwordCard } from '../../../lib/ethosEffects';
 
 /**
  * 카드의 special 효과 존재 여부 확인 (배열 지원)
@@ -108,20 +109,24 @@ export function processPreAttackSpecials({
 
   // === 교차 특성: 타임라인 겹침 시 피해 배율 적용 ===
   // 한 번이라도 겹친 적이 있으면 hasCrossed 플래그가 true
+  // 파토스 효과: forceCross - 검격 카드는 항상 교차 판정
   const hasCrossTrait = card.traits && card.traits.includes('cross');
+  const forceCrossActive = attackerName === 'player' && isSwordCard(card) && battleContext.pathosTurnEffects?.forceCross;
+
   if (hasCrossTrait && card.crossBonus?.type === 'damage_mult') {
     const { queue = [], currentQIndex = 0 } = battleContext;
 
-    // 현재 큐 아이템의 hasCrossed 확인
+    // 현재 큐 아이템의 hasCrossed 확인 (forceCross면 무조건 true)
     const currentQueueItem = queue[currentQIndex];
-    const isOverlapping = currentQueueItem?.hasCrossed === true;
+    const isOverlapping = forceCrossActive || currentQueueItem?.hasCrossed === true;
 
     if (isOverlapping) {
       const multiplier = card.crossBonus.value || 2;
       const originalDamage = modifiedCard.damage || 0;
       modifiedCard.damage = originalDamage * multiplier;
       const who = attackerName === 'player' ? '플레이어' : '몬스터';
-      const msg = `${who} • ✨ ${card.name}: 겹친 적 있음! 피해 ${multiplier}배 (${originalDamage}→${modifiedCard.damage})`;
+      const forceText = forceCrossActive && !currentQueueItem?.hasCrossed ? ' (강제 교차!)' : '';
+      const msg = `${who} • ✨ ${card.name}: 겹친 적 있음!${forceText} 피해 ${multiplier}배 (${originalDamage}→${modifiedCard.damage})`;
       events.push({ actor: attackerName, card: card.name, type: 'cross', msg });
       logs.push(msg);
     }
@@ -134,9 +139,9 @@ export function processPreAttackSpecials({
     const oppositeActor = attackerName === 'player' ? 'enemy' : 'player';
     const who = attackerName === 'player' ? '플레이어' : '몬스터';
 
-    // 현재 큐 아이템의 hasCrossed 확인
+    // 현재 큐 아이템의 hasCrossed 확인 (forceCross면 무조건 true)
     const currentQueueItem = queue[currentQIndex];
-    const hasCrossedFlag = currentQueueItem?.hasCrossed === true;
+    const hasCrossedFlag = forceCrossActive || currentQueueItem?.hasCrossed === true;
 
     // hasCrossed가 true이면 교차 조건 충족
     if (hasCrossedFlag) {
@@ -232,31 +237,50 @@ export function processPreAttackSpecials({
 
         if (hasFollowupTrait && prevHasChain && !chainBlocked) {
           const bonusMessages: string[] = [];
+          // 파토스 효과: chainBonus - 연계 효과 증가율
+          const chainBonusPercent = (attackerName === 'player' && battleContext.pathosTurnEffects?.chainBonus) || 0;
+          const chainMultiplier = 1.5 + (chainBonusPercent / 100);
 
           if (modifiedCard.damage) {
             const originalDamage = modifiedCard.damage;
-            modifiedCard.damage = Math.ceil(originalDamage * 1.5);
+            modifiedCard.damage = Math.ceil(originalDamage * chainMultiplier);
             bonusMessages.push(`피해 ${originalDamage}→${modifiedCard.damage}`);
           }
 
           if (modifiedCard.block) {
             const originalBlock = modifiedCard.block;
-            modifiedCard.block = Math.ceil(originalBlock * 1.5);
+            modifiedCard.block = Math.ceil(originalBlock * chainMultiplier);
             bonusMessages.push(`방어 ${originalBlock}→${modifiedCard.block}`);
           }
 
           if (bonusMessages.length > 0) {
-            const msg = `${who} • ⚡ ${card.name}: 후속! 50% 증가 (${bonusMessages.join(', ')})`;
+            const bonusText = chainBonusPercent > 0 ? `${50 + chainBonusPercent}%` : '50%';
+            const msg = `${who} • ⚡ ${card.name}: 후속! ${bonusText} 증가 (${bonusMessages.join(', ')})`;
             events.push({ actor: attackerName, card: card.name, type: 'special', msg });
             logs.push(msg);
+          }
+
+          // 파토스 효과: chainEvade - 연계 후 회피 획득
+          if (attackerName === 'player' && battleContext.pathosTurnEffects?.chainEvade) {
+            const grantedAt = battleContext.currentTurn ? { turn: battleContext.currentTurn, sp: battleContext.currentSp || 0 } : null;
+            const evadeResult = addToken(modifiedAttacker, 'evade', 1, grantedAt);
+            modifiedAttacker.tokens = evadeResult.tokens;
+            const evadeMsg = `${who} • 💨 연계 회피: 회피 토큰 획득!`;
+            events.push({ actor: attackerName, card: card.name, type: 'pathos', msg: evadeMsg });
+            logs.push(evadeMsg);
           }
         }
 
         if (hasFinisherTrait) {
+          // 파토스 효과: chainBonus - 연계 효과 증가율
+          const chainBonusPercent = (attackerName === 'player' && battleContext.pathosTurnEffects?.chainBonus) || 0;
+          const chainMultiplier = 1.5 + (chainBonusPercent / 100);
+
           if (prevHasChain && !chainBlocked && modifiedCard.damage) {
             const originalDamage = modifiedCard.damage;
-            modifiedCard.damage = Math.ceil(originalDamage * 1.5);
-            const msg = `${who} • ⚡ ${card.name}: 마무리(연계)! 피해 50% 증가 (${originalDamage}→${modifiedCard.damage})`;
+            modifiedCard.damage = Math.ceil(originalDamage * chainMultiplier);
+            const bonusText = chainBonusPercent > 0 ? `${50 + chainBonusPercent}%` : '50%';
+            const msg = `${who} • ⚡ ${card.name}: 마무리(연계)! 피해 ${bonusText} 증가 (${originalDamage}→${modifiedCard.damage})`;
             events.push({ actor: attackerName, card: card.name, type: 'special', msg });
             logs.push(msg);
           }

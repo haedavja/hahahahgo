@@ -93,6 +93,12 @@ export interface TimelineCard {
   ignoreStrength?: boolean;
   traits?: string[];
   icon?: React.FC<IconProps>;
+  /** 여유 특성: 사용자가 선택한 타임라인 위치 */
+  leisurePosition?: number;
+  /** 무리 특성: 행동력 1을 사용해 앞당긴 속도 오프셋 */
+  strainOffset?: number;
+  /** 카드 고유 식별자 */
+  __uid?: string;
 }
 
 /**
@@ -130,6 +136,10 @@ export interface HoveredEnemyAction {
 /** 타임라인 표시 액션 */
 export interface TimelineDisplayActions {
   setHoveredEnemyAction: (action: HoveredEnemyAction | null) => void;
+  /** 여유 특성 카드의 타임라인 위치 변경 */
+  onLeisurePositionChange?: (cardUid: string, newPosition: number) => void;
+  /** 무리 특성 카드의 속도 오프셋 변경 (행동력 소모) */
+  onStrainOffsetChange?: (cardUid: string, newOffset: number) => void;
 }
 
 /** 통찰 공개 정보 */

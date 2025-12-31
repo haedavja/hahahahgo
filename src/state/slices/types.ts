@@ -351,7 +351,44 @@ export interface RestSliceActions {
   closeRest: () => void;
   healAtRest: (healAmount?: number) => void;
   awakenAtRest: (choiceId?: string) => void;
-  formEgo: (selectedTraits: string[]) => void;
+}
+
+/** 성장 슬라이스 상태 */
+export interface GrowthSliceState {
+  growth: {
+    pyramidLevel: number;
+    skillPoints: number;
+    unlockedEthos: string[];
+    unlockedPathos: string[];
+    unlockedNodes: string[];
+    pendingNodeSelection: {
+      nodeId: string;
+      type: 'ethos' | 'pathos';
+    } | null;
+    identities: ('gunslinger' | 'swordsman')[];
+    logosLevels: {
+      common: number;
+      gunkata: number;
+      battleWaltz: number;
+    };
+    equippedPathos: string[];
+  } | null;
+}
+
+/** 성장 슬라이스 액션 */
+export interface GrowthSliceActions {
+  updatePyramidLevel: () => void;
+  addSkillPoints: (amount: number) => void;
+  selectBaseEthos: (ethosId: string) => void;
+  selectBasePathos: (pathosId: string) => void;
+  unlockNode: (nodeId: string, type: 'ethos' | 'pathos') => void;
+  selectNodeChoice: (choiceId: string) => void;
+  selectEthos: (ethosId: string) => void;
+  selectPathos: (pathosId: string) => void;
+  selectIdentity: (identity: 'gunslinger' | 'swordsman') => void;
+  equipPathos: (pathosIds: string[]) => void;
+  usePathos: (pathosId: string) => void;
+  resetGrowth: () => void;
 }
 
 /** 상점 슬라이스 상태 */
@@ -404,7 +441,8 @@ export type GameStoreState =
   & ItemSliceState
   & RestSliceState
   & ShopSliceState
-  & DevSliceState;
+  & DevSliceState
+  & GrowthSliceState;
 
 /** 게임 스토어 전체 액션 */
 export type GameStoreActions =
@@ -419,6 +457,7 @@ export type GameStoreActions =
   & RestSliceActions
   & ShopSliceActions
   & DevSliceActions
+  & GrowthSliceActions
   & { resetRun: () => void };
 
 /** 게임 스토어 전체 타입 */
