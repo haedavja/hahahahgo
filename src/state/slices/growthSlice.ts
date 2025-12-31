@@ -90,6 +90,9 @@ export interface GrowthSliceActions {
   // 자아 선택
   selectIdentity: (identity: IdentityType) => void;
 
+  // 로고스 해금 (스킬포인트 소모)
+  unlockLogos: (logosType: 'common' | 'gunkata' | 'battleWaltz') => void;
+
   // 파토스 장착 (전투 전)
   equipPathos: (pathosIds: string[]) => void;
 
@@ -126,17 +129,7 @@ export const createGrowthActions: SliceCreator = (set, get) => ({
       // 레벨업 시 스킬포인트 획득 (레벨당 1포인트)
       growth.skillPoints += (newLevel - currentLevel);
 
-      // 로고스 레벨 업데이트
-      const logosLevel = getLogosLevelFromPyramid(newLevel);
-      growth.logosLevels.common = logosLevel;
-
-      // 자아별 로고스 레벨
-      if (growth.identities.includes('gunslinger')) {
-        growth.logosLevels.gunkata = logosLevel;
-      }
-      if (growth.identities.includes('swordsman')) {
-        growth.logosLevels.battleWaltz = logosLevel;
-      }
+      // 로고스는 스킬포인트로 직접 해금 (자동 해금 제거)
 
       return { ...state, growth };
     }),
@@ -249,13 +242,39 @@ export const createGrowthActions: SliceCreator = (set, get) => ({
       // 자아 추가 (하이브리드 가능)
       growth.identities = [...growth.identities, identity];
 
-      // 자아별 로고스 레벨 설정
-      const logosLevel = getLogosLevelFromPyramid(growth.pyramidLevel);
-      if (identity === 'gunslinger') {
-        growth.logosLevels.gunkata = logosLevel;
-      } else if (identity === 'swordsman') {
-        growth.logosLevels.battleWaltz = logosLevel;
-      }
+      // 로고스는 스킬포인트로 직접 해금 (자동 해금 제거)
+
+      return { ...state, growth };
+    }),
+
+  unlockLogos: (logosType: 'common' | 'gunkata' | 'battleWaltz') =>
+    set((state) => {
+      const growth = { ...(state.growth || initialGrowthState) };
+
+      // 스킬포인트 체크
+      if (growth.skillPoints < 1) return state;
+
+      // 현재 레벨
+      const currentLevel = growth.logosLevels[logosType];
+
+      // 최대 레벨 체크
+      if (currentLevel >= 3) return state;
+
+      // 피라미드 레벨 요구사항 체크
+      const requiredPyramidLevel = getLogosLevelFromPyramid(growth.pyramidLevel);
+      // 다음 레벨이 해금 가능한지 (피라미드 레벨에 따른 최대 해금 레벨)
+      if (currentLevel >= requiredPyramidLevel) return state;
+
+      // 자아 전용 로고스 체크
+      if (logosType === 'gunkata' && !growth.identities.includes('gunslinger')) return state;
+      if (logosType === 'battleWaltz' && !growth.identities.includes('swordsman')) return state;
+
+      // 로고스 레벨 증가 및 스킬포인트 소모
+      growth.logosLevels = {
+        ...growth.logosLevels,
+        [logosType]: currentLevel + 1,
+      };
+      growth.skillPoints -= 1;
 
       return { ...state, growth };
     }),

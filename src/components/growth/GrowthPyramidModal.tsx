@@ -53,6 +53,7 @@ export const GrowthPyramidModal = memo(function GrowthPyramidModal({
     selectNodeChoice,
     selectIdentity,
     equipPathos,
+    unlockLogos,
   } = useGameStore(
     useShallow((state) => ({
       playerTraits: state.playerTraits || [],
@@ -63,6 +64,7 @@ export const GrowthPyramidModal = memo(function GrowthPyramidModal({
       selectNodeChoice: state.selectNodeChoice,
       selectIdentity: state.selectIdentity,
       equipPathos: state.equipPathos,
+      unlockLogos: state.unlockLogos,
     }))
   );
 
@@ -120,6 +122,7 @@ export const GrowthPyramidModal = memo(function GrowthPyramidModal({
           onSelectBasePathos={selectBasePathos}
           onSelectIdentity={selectIdentity}
           onEquipPathos={equipPathos}
+          onUnlockLogos={unlockLogos}
         />
 
         <div style={{ display: 'flex', gap: '10px', marginTop: '16px' }}>
@@ -144,6 +147,7 @@ function UnifiedPyramidView({
   onSelectBasePathos,
   onSelectIdentity,
   onEquipPathos,
+  onUnlockLogos,
 }: {
   pyramidLevel: number;
   skillPoints: number;
@@ -155,6 +159,7 @@ function UnifiedPyramidView({
   onSelectBasePathos: (pathosId: string) => void;
   onSelectIdentity: (id: IdentityType) => void;
   onEquipPathos: (ids: string[]) => void;
+  onUnlockLogos: (logosType: 'common' | 'gunkata' | 'battleWaltz') => void;
 }) {
   const pendingSelection = growth.pendingNodeSelection;
 
@@ -171,6 +176,14 @@ function UnifiedPyramidView({
 
   return (
     <div>
+      {/* ===== 로고스 (정점 위) ===== */}
+      <LogosDisplay
+        pyramidLevel={pyramidLevel}
+        skillPoints={skillPoints}
+        growth={growth}
+        onUnlockLogos={onUnlockLogos}
+      />
+
       {/* ===== 정점 - 자아 ===== */}
       <div style={{ textAlign: 'center', marginBottom: '20px' }}>
         <div style={{ fontSize: '12px', color: TIER_COLORS.identity.text, marginBottom: '8px' }}>
@@ -206,9 +219,6 @@ function UnifiedPyramidView({
           })}
         </div>
       </div>
-
-      {/* ===== 로고스 (자아 보너스) ===== */}
-      <LogosDisplay pyramidLevel={pyramidLevel} growth={growth} />
 
       {/* ===== 5단계 - 상위 에토스 노드 ===== */}
       <TierRow
@@ -653,17 +663,21 @@ function NodeChoiceSelector({
 // 로고스 표시 컴포넌트
 function LogosDisplay({
   pyramidLevel,
+  skillPoints,
   growth,
+  onUnlockLogos,
 }: {
   pyramidLevel: number;
+  skillPoints: number;
   growth: typeof initialGrowthState;
+  onUnlockLogos: (logosType: 'common' | 'gunkata' | 'battleWaltz') => void;
 }) {
-  const logosLevel = getLogosLevelFromPyramid(pyramidLevel);
+  const maxUnlockableLevel = getLogosLevelFromPyramid(pyramidLevel);
   const hasSwordsman = growth.identities.includes('swordsman');
   const hasGunslinger = growth.identities.includes('gunslinger');
 
-  // 로고스가 없으면 표시 안함
-  if (logosLevel === 0 && !hasSwordsman && !hasGunslinger) {
+  // 피라미드 Lv3 미만이면 로고스 표시 안함
+  if (pyramidLevel < 3) {
     return (
       <div style={{
         padding: '10px',
@@ -674,7 +688,7 @@ function LogosDisplay({
         textAlign: 'center',
       }}>
         <span style={{ color: '#6b7280', fontSize: '12px' }}>
-          로고스: 피라미드 Lv3 이상에서 해금
+          ⬆ 로고스: 피라미드 Lv3 이상에서 해금 가능
         </span>
       </div>
     );
@@ -689,29 +703,41 @@ function LogosDisplay({
       marginBottom: '16px',
     }}>
       <div style={{ fontSize: '12px', color: '#fbbf24', marginBottom: '10px', fontWeight: 'bold' }}>
-        로고스 (Lv{logosLevel})
+        ⬆ 로고스 (최대 해금 가능: Lv{maxUnlockableLevel})
       </div>
 
       <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
         {/* 공용 로고스 */}
         <LogosCard
           logos={LOGOS.common}
-          currentLevel={logosLevel}
+          logosType="common"
+          currentLevel={growth.logosLevels.common}
+          maxUnlockableLevel={maxUnlockableLevel}
+          skillPoints={skillPoints}
           locked={false}
+          onUnlock={onUnlockLogos}
         />
 
         {/* 배틀 왈츠 (검사) */}
         <LogosCard
           logos={LOGOS.battleWaltz}
-          currentLevel={hasSwordsman ? logosLevel : 0}
+          logosType="battleWaltz"
+          currentLevel={growth.logosLevels.battleWaltz}
+          maxUnlockableLevel={maxUnlockableLevel}
+          skillPoints={skillPoints}
           locked={!hasSwordsman}
+          onUnlock={onUnlockLogos}
         />
 
         {/* 건카타 (총잡이) */}
         <LogosCard
           logos={LOGOS.gunkata}
-          currentLevel={hasGunslinger ? logosLevel : 0}
+          logosType="gunkata"
+          currentLevel={growth.logosLevels.gunkata}
+          maxUnlockableLevel={maxUnlockableLevel}
+          skillPoints={skillPoints}
           locked={!hasGunslinger}
+          onUnlock={onUnlockLogos}
         />
       </div>
     </div>
@@ -721,13 +747,24 @@ function LogosDisplay({
 // 개별 로고스 카드
 function LogosCard({
   logos,
+  logosType,
   currentLevel,
+  maxUnlockableLevel,
+  skillPoints,
   locked,
+  onUnlock,
 }: {
   logos: typeof LOGOS.common;
+  logosType: 'common' | 'gunkata' | 'battleWaltz';
   currentLevel: number;
+  maxUnlockableLevel: number;
+  skillPoints: number;
   locked: boolean;
+  onUnlock: (logosType: 'common' | 'gunkata' | 'battleWaltz') => void;
 }) {
+  // 다음 레벨 해금 가능 여부
+  const canUnlockNext = !locked && currentLevel < maxUnlockableLevel && skillPoints >= 1;
+
   return (
     <div style={{
       flex: 1,
@@ -743,30 +780,62 @@ function LogosCard({
         color: locked ? '#6b7280' : '#fbbf24',
         fontSize: '12px',
         marginBottom: '6px',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
       }}>
-        {logos.name}
-        {locked && <span style={{ fontSize: '10px', color: '#6b7280' }}> (자아 필요)</span>}
+        <span>
+          {logos.name} (Lv{currentLevel})
+          {locked && <span style={{ fontSize: '10px', color: '#6b7280' }}> (자아 필요)</span>}
+        </span>
+        {canUnlockNext && (
+          <button
+            onClick={() => onUnlock(logosType)}
+            style={{
+              padding: '2px 6px',
+              background: 'rgba(96, 165, 250, 0.2)',
+              border: '1px solid #60a5fa',
+              borderRadius: '4px',
+              color: '#60a5fa',
+              fontSize: '10px',
+              cursor: 'pointer',
+            }}
+          >
+            +1 [1P]
+          </button>
+        )}
       </div>
 
       {logos.levels.map(level => {
         const isUnlocked = currentLevel >= level.level;
+        const isNextToUnlock = currentLevel + 1 === level.level && canUnlockNext;
         return (
           <div
             key={level.level}
+            onClick={() => isNextToUnlock && onUnlock(logosType)}
             style={{
               padding: '4px 6px',
               marginBottom: '4px',
-              background: isUnlocked ? 'rgba(251, 191, 36, 0.15)' : 'transparent',
+              background: isUnlocked
+                ? 'rgba(251, 191, 36, 0.15)'
+                : isNextToUnlock
+                  ? 'rgba(96, 165, 250, 0.1)'
+                  : 'transparent',
+              border: isNextToUnlock ? '1px dashed #60a5fa' : '1px solid transparent',
               borderRadius: '4px',
               fontSize: '11px',
+              cursor: isNextToUnlock ? 'pointer' : 'default',
             }}
           >
-            <span style={{ color: isUnlocked ? '#86efac' : '#6b7280' }}>
-              {isUnlocked ? '✓' : '○'} Lv{level.level}
+            <span style={{ color: isUnlocked ? '#86efac' : isNextToUnlock ? '#60a5fa' : '#6b7280' }}>
+              {isUnlocked ? '✓' : isNextToUnlock ? '▷' : '○'} Lv{level.level}
             </span>
             <span style={{ color: isUnlocked ? '#e2e8f0' : '#6b7280', marginLeft: '4px' }}>
               {level.name}
             </span>
+            {isNextToUnlock && (
+              <span style={{ color: '#60a5fa', marginLeft: '4px', fontSize: '10px' }}>[1P로 해금]</span>
+            )}
             {isUnlocked && (
               <div style={{ color: '#9ca3af', fontSize: '10px', marginTop: '2px' }}>
                 {level.effect.description}
