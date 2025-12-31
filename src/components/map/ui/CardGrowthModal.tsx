@@ -21,11 +21,11 @@ import {
   getEnhancementLabel,
   isEnhanceable,
   calculateEnhancedStats,
-  getEnhancedCard,
   getEnhancementDifference,
 } from '../../../lib/cardEnhancementUtils';
 import { TraitBadgeList } from '../../battle/ui/TraitBadge';
 import { Sword, Shield } from '../../battle/ui/BattleIcons';
+import { GameCardDisplay, type CardData } from '../../common/card';
 
 interface CardGrowthModalProps {
   isOpen: boolean;
@@ -37,19 +37,7 @@ interface CardGrowthModalProps {
   isRestNode?: boolean; // true면 1회 제한 메시지 표시
 }
 
-interface CardData {
-  id: string;
-  name: string;
-  description?: string;
-  type?: string;
-  damage?: number;
-  block?: number;
-  speedCost: number;
-  actionCost: number;
-  hits?: number;
-  traits?: string[];
-  icon?: React.ComponentType<{ size: number; className?: string }>;
-}
+// CardData는 '../../common/card'에서 import됨
 
 const rarityColors: Record<string, string> = {
   common: '#94a3b8',

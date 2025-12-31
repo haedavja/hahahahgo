@@ -8,3 +8,5 @@ export {
   BattleErrorFallback,
   SectionErrorBoundary,
 } from './ErrorBoundary';
+
+export { GameCardDisplay, type CardData } from './card';
