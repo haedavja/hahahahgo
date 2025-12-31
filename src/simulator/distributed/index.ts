@@ -15,6 +15,10 @@ import { writeFileSync, readFileSync, existsSync, mkdirSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import type { SimulationConfig, SimulationResult, SimulationSummary, BattleResult } from '../core/types';
+import { getLogger } from '../core/logger';
+import { createError, type SimulatorError } from '../core/error-handling';
+
+const log = getLogger('Distributed');
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -65,14 +69,27 @@ export interface WorkerInfo {
   totalDuration: number;
 }
 
-// ==================== 메모리 기반 큐 (Redis 대체) ====================
+// ==================== 큐 인터페이스 ====================
 
-export class InMemoryQueue<T> {
+export interface IQueue<T> {
+  push(item: T, priority?: number): Promise<void>;
+  pop(): Promise<T | null>;
+  peek(): Promise<T | null>;
+  length(): Promise<number>;
+  clear(): Promise<void>;
+  getAll(): Promise<T[]>;
+  isConnected(): boolean;
+}
+
+// ==================== 메모리 기반 큐 ====================
+
+export class InMemoryQueue<T> implements IQueue<T> {
   private items: Array<{ data: T; priority: number }> = [];
   private name: string;
 
   constructor(name: string) {
     this.name = name;
+    log.debug(`InMemoryQueue created: ${name}`);
   }
 
   async push(item: T, priority: number = 0): Promise<void> {
@@ -100,17 +117,252 @@ export class InMemoryQueue<T> {
   async getAll(): Promise<T[]> {
     return this.items.map(i => i.data);
   }
+
+  isConnected(): boolean {
+    return true;
+  }
+}
+
+// ==================== Redis 기반 큐 ====================
+
+export interface RedisConfig {
+  host: string;
+  port: number;
+  password?: string;
+  db?: number;
+  keyPrefix?: string;
+  connectTimeout?: number;
+  retryAttempts?: number;
+}
+
+export class RedisQueue<T> implements IQueue<T> {
+  private client: any = null;
+  private connected: boolean = false;
+  private name: string;
+  private config: RedisConfig;
+  private sortedSetKey: string;
+  private hashKey: string;
+
+  constructor(name: string, config: RedisConfig) {
+    this.name = name;
+    this.config = config;
+    this.sortedSetKey = `${config.keyPrefix || 'sim'}:queue:${name}:priority`;
+    this.hashKey = `${config.keyPrefix || 'sim'}:queue:${name}:data`;
+  }
+
+  async connect(): Promise<boolean> {
+    try {
+      // 동적으로 Redis 라이브러리 로드 (설치되어 있으면)
+      const Redis = await this.loadRedisLibrary();
+      if (!Redis) {
+        log.warn('Redis library not available, falling back to in-memory queue');
+        return false;
+      }
+
+      this.client = new Redis({
+        host: this.config.host,
+        port: this.config.port,
+        password: this.config.password,
+        db: this.config.db || 0,
+        connectTimeout: this.config.connectTimeout || 5000,
+        retryStrategy: (times: number) => {
+          if (times > (this.config.retryAttempts || 3)) {
+            return null;
+          }
+          return Math.min(times * 200, 3000);
+        },
+      });
+
+      // 연결 테스트
+      await this.client.ping();
+      this.connected = true;
+      log.info(`Redis connected: ${this.config.host}:${this.config.port}`);
+      return true;
+    } catch (error) {
+      log.warn('Redis connection failed', error);
+      this.connected = false;
+      return false;
+    }
+  }
+
+  private async loadRedisLibrary(): Promise<any> {
+    try {
+      const { default: Redis } = await import('ioredis');
+      return Redis;
+    } catch {
+      try {
+        const { createClient } = await import('redis');
+        return createClient;
+      } catch {
+        return null;
+      }
+    }
+  }
+
+  async push(item: T, priority: number = 0): Promise<void> {
+    if (!this.connected || !this.client) {
+      throw createError('NETWORK_CONNECTION_FAILED', 'Redis not connected');
+    }
+
+    const id = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const data = JSON.stringify(item);
+
+    // 트랜잭션으로 데이터와 우선순위 저장
+    const multi = this.client.multi();
+    multi.hset(this.hashKey, id, data);
+    multi.zadd(this.sortedSetKey, priority, id);
+    await multi.exec();
+  }
+
+  async pop(): Promise<T | null> {
+    if (!this.connected || !this.client) {
+      return null;
+    }
+
+    try {
+      // 가장 높은 우선순위 항목 가져오기 (ZPOPMAX)
+      const result = await this.client.zpopmax(this.sortedSetKey);
+      if (!result || result.length === 0) {
+        return null;
+      }
+
+      const id = result[0];
+      const data = await this.client.hget(this.hashKey, id);
+      await this.client.hdel(this.hashKey, id);
+
+      return data ? JSON.parse(data) : null;
+    } catch (error) {
+      log.error('Redis pop error', error);
+      return null;
+    }
+  }
+
+  async peek(): Promise<T | null> {
+    if (!this.connected || !this.client) {
+      return null;
+    }
+
+    try {
+      const result = await this.client.zrevrange(this.sortedSetKey, 0, 0);
+      if (!result || result.length === 0) {
+        return null;
+      }
+
+      const id = result[0];
+      const data = await this.client.hget(this.hashKey, id);
+      return data ? JSON.parse(data) : null;
+    } catch {
+      return null;
+    }
+  }
+
+  async length(): Promise<number> {
+    if (!this.connected || !this.client) {
+      return 0;
+    }
+
+    try {
+      return await this.client.zcard(this.sortedSetKey);
+    } catch {
+      return 0;
+    }
+  }
+
+  async clear(): Promise<void> {
+    if (!this.connected || !this.client) {
+      return;
+    }
+
+    try {
+      await this.client.del(this.sortedSetKey);
+      await this.client.del(this.hashKey);
+    } catch (error) {
+      log.error('Redis clear error', error);
+    }
+  }
+
+  async getAll(): Promise<T[]> {
+    if (!this.connected || !this.client) {
+      return [];
+    }
+
+    try {
+      const ids = await this.client.zrevrange(this.sortedSetKey, 0, -1);
+      if (!ids || ids.length === 0) {
+        return [];
+      }
+
+      const data = await this.client.hmget(this.hashKey, ...ids);
+      return data
+        .filter((d: string | null) => d !== null)
+        .map((d: string) => JSON.parse(d));
+    } catch {
+      return [];
+    }
+  }
+
+  isConnected(): boolean {
+    return this.connected;
+  }
+
+  async disconnect(): Promise<void> {
+    if (this.client) {
+      await this.client.quit();
+      this.connected = false;
+      log.info('Redis disconnected');
+    }
+  }
+
+  // Redis Pub/Sub 지원
+  async subscribe(channel: string, handler: (message: string) => void): Promise<void> {
+    if (!this.connected || !this.client) {
+      return;
+    }
+
+    const subscriber = this.client.duplicate();
+    await subscriber.subscribe(channel);
+    subscriber.on('message', (_channel: string, message: string) => {
+      handler(message);
+    });
+  }
+
+  async publish(channel: string, message: string): Promise<void> {
+    if (!this.connected || !this.client) {
+      return;
+    }
+
+    await this.client.publish(channel, message);
+  }
+}
+
+// ==================== 큐 팩토리 ====================
+
+export async function createQueue<T>(
+  name: string,
+  redisConfig?: RedisConfig
+): Promise<IQueue<T>> {
+  if (redisConfig) {
+    const redisQueue = new RedisQueue<T>(name, redisConfig);
+    const connected = await redisQueue.connect();
+    if (connected) {
+      return redisQueue;
+    }
+    log.warn('Redis connection failed, using in-memory queue');
+  }
+
+  return new InMemoryQueue<T>(name);
 }
 
 // ==================== 분산 작업 매니저 ====================
 
 export class DistributedJobManager extends EventEmitter {
   private config: DistributedConfig;
-  private jobQueue: InMemoryQueue<SimulationJob>;
-  private resultQueue: InMemoryQueue<JobResult>;
+  private jobQueue!: IQueue<SimulationJob>;
+  private resultQueue!: IQueue<JobResult>;
   private jobs: Map<string, SimulationJob> = new Map();
   private workers: Map<string, WorkerInfo> = new Map();
   private jobCounter: number = 0;
+  private initialized: boolean = false;
 
   constructor(config: Partial<DistributedConfig> = {}) {
     super();
@@ -124,8 +376,54 @@ export class DistributedJobManager extends EventEmitter {
       retryCount: config.retryCount || 3,
     };
 
+    // 기본 메모리 큐로 시작 (initialize에서 Redis로 교체 가능)
     this.jobQueue = new InMemoryQueue(this.config.queueName);
     this.resultQueue = new InMemoryQueue(this.config.resultQueueName);
+  }
+
+  async initialize(): Promise<void> {
+    if (this.initialized) return;
+
+    if (this.config.redisUrl) {
+      const redisConfig = this.parseRedisUrl(this.config.redisUrl);
+      log.info('Connecting to Redis', { host: redisConfig.host, port: redisConfig.port });
+
+      this.jobQueue = await createQueue<SimulationJob>(this.config.queueName, redisConfig);
+      this.resultQueue = await createQueue<JobResult>(this.config.resultQueueName, redisConfig);
+
+      if (this.jobQueue.isConnected()) {
+        log.info('Distributed job manager initialized with Redis');
+      } else {
+        log.info('Distributed job manager initialized with in-memory queue');
+      }
+    } else {
+      log.info('Distributed job manager initialized with in-memory queue (no Redis URL provided)');
+    }
+
+    this.initialized = true;
+  }
+
+  private parseRedisUrl(url: string): RedisConfig {
+    try {
+      const parsed = new URL(url);
+      return {
+        host: parsed.hostname || 'localhost',
+        port: parseInt(parsed.port) || 6379,
+        password: parsed.password || undefined,
+        db: parseInt(parsed.pathname?.slice(1) || '0'),
+      };
+    } catch {
+      // 단순 호스트:포트 형식
+      const [host, port] = url.split(':');
+      return {
+        host: host || 'localhost',
+        port: parseInt(port) || 6379,
+      };
+    }
+  }
+
+  isUsingRedis(): boolean {
+    return this.jobQueue.isConnected() && this.jobQueue instanceof RedisQueue;
   }
 
   // ==================== 작업 관리 ====================

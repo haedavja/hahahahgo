@@ -600,6 +600,54 @@ export class AnomalySystem {
   }
 
   /**
+   * 블록 수정
+   */
+  modifyBlock(block: number, state: GameState): number {
+    let modified = block;
+
+    for (const active of this.activeAnomalies.values()) {
+      const def = active.definition;
+
+      // 모디파이어 적용
+      for (const mod of def.modifiers) {
+        if (mod.stat !== 'block') continue;
+        if (mod.target !== 'both' && mod.target !== 'player') continue;
+
+        const value = typeof mod.value === 'function' ? mod.value(modified) : mod.value;
+
+        switch (mod.type) {
+          case 'multiply':
+            modified = Math.floor(modified * value * active.stacks);
+            break;
+          case 'add':
+            modified += value * active.stacks;
+            break;
+          case 'set':
+            modified = value;
+            break;
+        }
+      }
+
+      // 규칙 적용
+      for (const rule of def.rules) {
+        const effect = rule.effect(state);
+        if (effect.modifyBlock) {
+          modified = effect.modifyBlock(modified, 'player');
+        }
+      }
+    }
+
+    return Math.max(0, Math.floor(modified));
+  }
+
+  /**
+   * 턴 종료 처리 (alias for onTurnEnd)
+   */
+  processTurnEnd(): string[] {
+    return this.onTurnEnd();
+  }
+
+  /**
    * 적 수정
    */
   modifyEnemyStats(enemy: SimEnemyState): SimEnemyState {
