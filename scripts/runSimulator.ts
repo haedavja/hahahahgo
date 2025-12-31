@@ -49,7 +49,7 @@
  *   npx tsx scripts/runSimulator.ts trait 30
  */
 
-import { runSimulation, printStats, SimulationConfig, runBalanceAnalysis, runTierSimulation, runFullSimulation, runRelicComparison, runDeckComparison, runAnomalyComparison, runCardEfficiencyAnalysis, runFullReport, runBattleReplay, runEnemyAnalysis, runSynergyAnalysis, runDifficultyScalingAnalysis, runWinConditionAnalysis, exportSimulationResults, runTokenEfficiencyAnalysis, runMatchupAnalysis, runSpeedAnalysis, runTraitSynergyAnalysis, runStrategyRecommendation, printHelp, TIER_1_ENEMIES, TIER_2_ENEMIES, TIER_3_ENEMIES } from '../src/tests/gameSimulator';
+import { runSimulation, printStats, SimulationConfig, runBalanceAnalysis, runTierSimulation, runFullSimulation, runRelicComparison, runDeckComparison, runAnomalyComparison, runCardEfficiencyAnalysis, runFullReport, runBattleReplay, runEnemyAnalysis, runSynergyAnalysis, runDifficultyScalingAnalysis, runWinConditionAnalysis, exportSimulationResults, runTokenEfficiencyAnalysis, runMatchupAnalysis, runSpeedAnalysis, runTraitSynergyAnalysis, runStrategyRecommendation, printHelp, runDeckCompare, runBenchmark, runRandomDeckTest, runBestCardFinder, TIER_1_ENEMIES, TIER_2_ENEMIES, TIER_3_ENEMIES } from '../src/tests/gameSimulator';
 import { ENEMIES } from '../src/components/battle/battleData';
 
 // 커맨드 라인 인자 파싱
@@ -200,6 +200,38 @@ if (command === 'recommend') {
 
 if (command === 'help' || command === '-h' || command === '--help') {
   printHelp();
+  process.exit(0);
+}
+
+if (command === 'compare') {
+  const deck1 = args[1] || 'balanced';
+  const deck2 = args[2] || 'aggressive';
+  const battles = parseInt(args[3]) || 50;
+  console.log('🎮 덱 비교 모드\n');
+  runDeckCompare(deck1, deck2, battles);
+  process.exit(0);
+}
+
+if (command === 'benchmark') {
+  const iterations = parseInt(args[1]) || 100;
+  console.log('🎮 벤치마크 모드\n');
+  runBenchmark(iterations);
+  process.exit(0);
+}
+
+if (command === 'random') {
+  const trials = parseInt(args[1]) || 10;
+  const battles = parseInt(args[2]) || 20;
+  console.log('🎮 랜덤 덱 테스터 모드\n');
+  runRandomDeckTest(trials, battles);
+  process.exit(0);
+}
+
+if (command === 'bestcard') {
+  const deckName = args[1] || 'balanced';
+  const battles = parseInt(args[2]) || 20;
+  console.log('🎮 최적 카드 찾기 모드\n');
+  runBestCardFinder(deckName, battles);
   process.exit(0);
 }
 

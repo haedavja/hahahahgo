@@ -3290,6 +3290,291 @@ export function printHelp(): void {
   console.log('\n' + '═'.repeat(50) + '\n');
 }
 
+/**
+ * 두 덱 비교
+ * 두 덱의 성능을 직접 비교
+ */
+export function runDeckCompare(deck1Name: string, deck2Name: string, battles: number = 50): void {
+  console.log('\n╔════════════════════════════════════════╗');
+  console.log('║            덱 비교 분석                 ║');
+  console.log('╚════════════════════════════════════════╝\n');
+
+  const deck1 = DECK_PRESETS[deck1Name];
+  const deck2 = DECK_PRESETS[deck2Name];
+
+  if (!deck1) {
+    console.log(`❌ 덱 "${deck1Name}" 을(를) 찾을 수 없습니다.`);
+    console.log(`사용 가능한 덱: ${Object.keys(DECK_PRESETS).join(', ')}`);
+    return;
+  }
+  if (!deck2) {
+    console.log(`❌ 덱 "${deck2Name}" 을(를) 찾을 수 없습니다.`);
+    console.log(`사용 가능한 덱: ${Object.keys(DECK_PRESETS).join(', ')}`);
+    return;
+  }
+
+  console.log(`⚔️ ${deck1.name} vs ${deck2.name}\n`);
+  console.log('─'.repeat(50));
+
+  // 각 적에 대해 테스트
+  const testEnemies = TIER_1_ENEMIES.slice(0, 4);
+  const results: Array<{ enemy: string; deck1Win: number; deck2Win: number }> = [];
+
+  for (const enemyId of testEnemies) {
+    const enemy = ENEMIES.find(e => e.id === enemyId);
+    if (!enemy) continue;
+
+    // 덱 1 테스트
+    const config1: SimulationConfig = {
+      battles,
+      maxTurns: 30,
+      enemyIds: [enemyId],
+      playerDeck: deck1.cards,
+      verbose: false,
+    };
+    const stats1 = runSimulation(config1);
+
+    // 덱 2 테스트
+    const config2: SimulationConfig = {
+      battles,
+      maxTurns: 30,
+      enemyIds: [enemyId],
+      playerDeck: deck2.cards,
+      verbose: false,
+    };
+    const stats2 = runSimulation(config2);
+
+    results.push({
+      enemy: enemy.name,
+      deck1Win: stats1.winRate,
+      deck2Win: stats2.winRate,
+    });
+
+    // 결과 출력
+    const winner = stats1.winRate > stats2.winRate ? deck1.name :
+      stats1.winRate < stats2.winRate ? deck2.name : '동률';
+    const diff = Math.abs(stats1.winRate - stats2.winRate) * 100;
+
+    console.log(`\n  vs ${enemy.name}:`);
+    console.log(`    ${deck1.name}: ${(stats1.winRate * 100).toFixed(1)}%`);
+    console.log(`    ${deck2.name}: ${(stats2.winRate * 100).toFixed(1)}%`);
+    console.log(`    → ${winner} ${diff > 0 ? `(+${diff.toFixed(1)}%)` : ''}`);
+  }
+
+  // 총합
+  const total1 = results.reduce((s, r) => s + r.deck1Win, 0) / results.length;
+  const total2 = results.reduce((s, r) => s + r.deck2Win, 0) / results.length;
+  const overallWinner = total1 > total2 ? deck1.name : total1 < total2 ? deck2.name : '동률';
+
+  console.log('\n' + '─'.repeat(50));
+  console.log('\n🏆 종합 결과:');
+  console.log(`  ${deck1.name}: 평균 ${(total1 * 100).toFixed(1)}%`);
+  console.log(`  ${deck2.name}: 평균 ${(total2 * 100).toFixed(1)}%`);
+  console.log(`  \n  승자: ${overallWinner}`);
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
+/**
+ * 벤치마크 모드
+ * 시뮬레이션 성능 측정
+ */
+export function runBenchmark(iterations: number = 100): void {
+  console.log('\n╔════════════════════════════════════════╗');
+  console.log('║            성능 벤치마크                ║');
+  console.log('╚════════════════════════════════════════╝\n');
+
+  const tests = [
+    { name: '단일 전투', fn: () => runBattle('ghoul', { battles: 1, maxTurns: 30, verbose: false }) },
+    { name: '10회 시뮬레이션', fn: () => runSimulation({ battles: 10, maxTurns: 30, enemyIds: ['ghoul'], verbose: false }) },
+    { name: '전체 Tier 1 (10회)', fn: () => runSimulation({ battles: 10, maxTurns: 30, enemyIds: TIER_1_ENEMIES, verbose: false }) },
+  ];
+
+  console.log(`📊 ${iterations}회 반복 측정:\n`);
+  console.log('─'.repeat(50));
+
+  for (const test of tests) {
+    const times: number[] = [];
+
+    for (let i = 0; i < iterations; i++) {
+      const start = performance.now();
+      test.fn();
+      times.push(performance.now() - start);
+    }
+
+    const avg = times.reduce((a, b) => a + b) / times.length;
+    const min = Math.min(...times);
+    const max = Math.max(...times);
+
+    console.log(`\n  ${test.name}:`);
+    console.log(`    평균: ${avg.toFixed(2)}ms`);
+    console.log(`    최소: ${min.toFixed(2)}ms`);
+    console.log(`    최대: ${max.toFixed(2)}ms`);
+  }
+
+  // 초당 전투 수 계산
+  const battleStart = performance.now();
+  let battleCount = 0;
+  while (performance.now() - battleStart < 1000) {
+    runBattle('ghoul', { battles: 1, maxTurns: 30, verbose: false });
+    battleCount++;
+  }
+
+  console.log('\n' + '─'.repeat(50));
+  console.log(`\n⚡ 처리량: ${battleCount} 전투/초`);
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
+/**
+ * 랜덤 덱 테스터
+ * 랜덤 덱 조합을 테스트하여 좋은 조합 발견
+ */
+export function runRandomDeckTest(trials: number = 10, battles: number = 20): void {
+  console.log('\n╔════════════════════════════════════════╗');
+  console.log('║          랜덤 덱 테스터                 ║');
+  console.log('╚════════════════════════════════════════╝\n');
+
+  // 사용 가능한 카드 목록
+  const availableCards = CARDS.filter(c => !c.starter).map(c => c.id);
+  const starterCards = CARDS.filter(c => c.starter).map(c => c.id);
+
+  console.log(`📊 ${trials}개 랜덤 덱 테스트 (각 ${battles}회 전투)\n`);
+  console.log('─'.repeat(50));
+
+  const results: Array<{ deck: string[]; winRate: number; avgTurns: number }> = [];
+
+  for (let i = 0; i < trials; i++) {
+    // 랜덤 덱 생성 (스타터 4장 + 랜덤 4장)
+    const deck: string[] = [];
+
+    // 스타터 카드 4장
+    for (let j = 0; j < 4; j++) {
+      deck.push(starterCards[Math.floor(Math.random() * starterCards.length)]);
+    }
+
+    // 랜덤 카드 4장
+    for (let j = 0; j < 4; j++) {
+      deck.push(availableCards[Math.floor(Math.random() * availableCards.length)]);
+    }
+
+    // 테스트
+    const config: SimulationConfig = {
+      battles,
+      maxTurns: 30,
+      enemyIds: TIER_1_ENEMIES.slice(0, 3),
+      playerDeck: deck,
+      verbose: false,
+    };
+
+    const stats = runSimulation(config);
+    results.push({ deck, winRate: stats.winRate, avgTurns: stats.avgTurns });
+
+    // 진행률 표시
+    process.stdout.write(`\r  테스트 진행: ${i + 1}/${trials}`);
+  }
+
+  console.log('\n\n' + '─'.repeat(50));
+
+  // 상위 3개 결과
+  results.sort((a, b) => b.winRate - a.winRate);
+  console.log('\n🏆 상위 3개 덱:\n');
+
+  for (let i = 0; i < Math.min(3, results.length); i++) {
+    const r = results[i];
+    const cardNames = r.deck.map(id => {
+      const card = CARDS.find(c => c.id === id);
+      return card?.name || id;
+    });
+
+    console.log(`  ${i + 1}위: 승률 ${(r.winRate * 100).toFixed(1)}%`);
+    console.log(`     카드: ${cardNames.join(', ')}`);
+  }
+
+  // 평균
+  const avgWinRate = results.reduce((s, r) => s + r.winRate, 0) / results.length;
+  console.log(`\n📈 전체 평균 승률: ${(avgWinRate * 100).toFixed(1)}%`);
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
+/**
+ * 최적 카드 찾기
+ * 기존 덱에 추가할 최적의 카드 탐색
+ */
+export function runBestCardFinder(baseDeckName: string = 'balanced', battles: number = 20): void {
+  console.log('\n╔════════════════════════════════════════╗');
+  console.log('║          최적 카드 찾기                 ║');
+  console.log('╚════════════════════════════════════════╝\n');
+
+  const baseDeck = DECK_PRESETS[baseDeckName];
+  if (!baseDeck) {
+    console.log(`❌ 덱 "${baseDeckName}" 을(를) 찾을 수 없습니다.`);
+    return;
+  }
+
+  console.log(`📊 기본 덱: ${baseDeck.name}`);
+  console.log(`   카드: ${baseDeck.cards.join(', ')}\n`);
+  console.log('─'.repeat(50));
+
+  // 기준 승률
+  const baseConfig: SimulationConfig = {
+    battles,
+    maxTurns: 30,
+    enemyIds: TIER_1_ENEMIES.slice(0, 3),
+    playerDeck: baseDeck.cards,
+    verbose: false,
+  };
+  const baseStats = runSimulation(baseConfig);
+  const baseWinRate = baseStats.winRate;
+
+  console.log(`\n  기준 승률: ${(baseWinRate * 100).toFixed(1)}%\n`);
+
+  // 테스트할 카드들
+  const testCards = CARDS.filter(c => !baseDeck.cards.includes(c.id)).slice(0, 20);
+  const results: Array<{ card: string; name: string; winRate: number; diff: number }> = [];
+
+  for (const card of testCards) {
+    // 덱의 마지막 카드를 교체
+    const testDeck = [...baseDeck.cards.slice(0, -1), card.id];
+
+    const config: SimulationConfig = {
+      battles,
+      maxTurns: 30,
+      enemyIds: TIER_1_ENEMIES.slice(0, 3),
+      playerDeck: testDeck,
+      verbose: false,
+    };
+
+    const stats = runSimulation(config);
+    results.push({
+      card: card.id,
+      name: card.name,
+      winRate: stats.winRate,
+      diff: stats.winRate - baseWinRate,
+    });
+  }
+
+  // 효과순 정렬
+  results.sort((a, b) => b.diff - a.diff);
+
+  console.log('🏆 최적 교체 카드 (상위 5개):\n');
+  results.slice(0, 5).forEach((r, idx) => {
+    const sign = r.diff >= 0 ? '+' : '';
+    const indicator = r.diff > 0 ? '▲' : r.diff < 0 ? '▼' : '─';
+    console.log(`  ${idx + 1}. ${r.name}: ${(r.winRate * 100).toFixed(1)}% (${sign}${(r.diff * 100).toFixed(1)}%) ${indicator}`);
+  });
+
+  console.log('\n💡 추천: ');
+  if (results[0].diff > 0.05) {
+    console.log(`   ${baseDeck.cards[baseDeck.cards.length - 1]}를 ${results[0].name}(으)로 교체하세요.`);
+  } else {
+    console.log(`   현재 덱이 이미 최적화되어 있습니다.`);
+  }
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
 // CLI에서 직접 실행 시
 if (typeof process !== 'undefined' && process.argv?.[1]?.includes('gameSimulator')) {
   runQuickTest();

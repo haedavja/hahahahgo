@@ -504,3 +504,31 @@ describe('도움말', () => {
     expect(typeof printHelp).toBe('function');
   });
 });
+
+describe('덱 비교', () => {
+  it('runDeckCompare 함수가 존재한다', async () => {
+    const { runDeckCompare } = await import('./gameSimulator');
+    expect(typeof runDeckCompare).toBe('function');
+  });
+});
+
+describe('벤치마크', () => {
+  it('runBenchmark 함수가 존재한다', async () => {
+    const { runBenchmark } = await import('./gameSimulator');
+    expect(typeof runBenchmark).toBe('function');
+  });
+});
+
+describe('랜덤 덱 테스터', () => {
+  it('runRandomDeckTest 함수가 존재한다', async () => {
+    const { runRandomDeckTest } = await import('./gameSimulator');
+    expect(typeof runRandomDeckTest).toBe('function');
+  });
+});
+
+describe('최적 카드 찾기', () => {
+  it('runBestCardFinder 함수가 존재한다', async () => {
+    const { runBestCardFinder } = await import('./gameSimulator');
+    expect(typeof runBestCardFinder).toBe('function');
+  });
+});
