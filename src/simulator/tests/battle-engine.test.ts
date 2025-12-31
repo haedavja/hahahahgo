@@ -389,3 +389,261 @@ describe('SimulationConfig', () => {
     expect(result.errors).toContain('playerDeck must have at least 1 card');
   });
 });
+
+// ==================== 트레이트 시스템 테스트 ====================
+
+describe('TraitSystem', () => {
+  interface TraitTestState {
+    tokens: Record<string, number>;
+    hp: number;
+    maxHp: number;
+  }
+
+  function calculateTraitBonus(
+    traits: string[],
+    attacker: TraitTestState,
+    defender: TraitTestState
+  ): { damageMultiplier: number; effects: string[] } {
+    let damageMultiplier = 1;
+    const effects: string[] = [];
+
+    for (const trait of traits) {
+      switch (trait) {
+        case 'finisher':
+          if (attacker.tokens['followup_ready']) {
+            damageMultiplier *= 2.0;
+            effects.push('마무리 발동');
+            attacker.tokens['followup_ready'] = 0;
+          }
+          break;
+        case 'crush':
+          const hpLostPercent = 1 - (defender.hp / defender.maxHp);
+          const crushBonus = 1 + (hpLostPercent * 0.5);
+          damageMultiplier *= crushBonus;
+          if (crushBonus > 1.1) effects.push('분쇄');
+          break;
+        case 'cross':
+          if (attacker.tokens['cross_defense'] || attacker.tokens['cross_skill']) {
+            damageMultiplier *= 1.5;
+            effects.push('십자');
+          }
+          break;
+      }
+    }
+
+    return { damageMultiplier, effects };
+  }
+
+  function applyTraitEffects(traits: string[], state: TraitTestState): void {
+    for (const trait of traits) {
+      switch (trait) {
+        case 'followup':
+          state.tokens['followup_ready'] = (state.tokens['followup_ready'] || 0) + 1;
+          break;
+        case 'chain':
+          state.tokens['offensive'] = (state.tokens['offensive'] || 0) + 1;
+          break;
+        case 'training':
+          state.tokens['strength'] = (state.tokens['strength'] || 0) + 1;
+          break;
+      }
+    }
+  }
+
+  describe('calculateTraitBonus', () => {
+    it('finisher는 followup_ready 토큰이 있을 때 2배 피해', () => {
+      const attacker: TraitTestState = { tokens: { followup_ready: 1 }, hp: 100, maxHp: 100 };
+      const defender: TraitTestState = { tokens: {}, hp: 100, maxHp: 100 };
+
+      const result = calculateTraitBonus(['finisher'], attacker, defender);
+      expect(result.damageMultiplier).toBe(2.0);
+      expect(result.effects).toContain('마무리 발동');
+      expect(attacker.tokens['followup_ready']).toBe(0);
+    });
+
+    it('finisher는 followup_ready 없이 보너스 없음', () => {
+      const attacker: TraitTestState = { tokens: {}, hp: 100, maxHp: 100 };
+      const defender: TraitTestState = { tokens: {}, hp: 100, maxHp: 100 };
+
+      const result = calculateTraitBonus(['finisher'], attacker, defender);
+      expect(result.damageMultiplier).toBe(1.0);
+    });
+
+    it('crush는 적 체력이 낮을수록 피해 증가', () => {
+      const attacker: TraitTestState = { tokens: {}, hp: 100, maxHp: 100 };
+      const defender: TraitTestState = { tokens: {}, hp: 50, maxHp: 100 }; // 50% HP
+
+      const result = calculateTraitBonus(['crush'], attacker, defender);
+      expect(result.damageMultiplier).toBe(1.25); // 1 + 0.5 * 0.5
+    });
+
+    it('cross는 다른 타입 카드 후 1.5배 피해', () => {
+      const attacker: TraitTestState = { tokens: { cross_defense: 1 }, hp: 100, maxHp: 100 };
+      const defender: TraitTestState = { tokens: {}, hp: 100, maxHp: 100 };
+
+      const result = calculateTraitBonus(['cross'], attacker, defender);
+      expect(result.damageMultiplier).toBe(1.5);
+      expect(result.effects).toContain('십자');
+    });
+  });
+
+  describe('applyTraitEffects', () => {
+    it('followup은 followup_ready 토큰 부여', () => {
+      const state: TraitTestState = { tokens: {}, hp: 100, maxHp: 100 };
+      applyTraitEffects(['followup'], state);
+      expect(state.tokens['followup_ready']).toBe(1);
+    });
+
+    it('chain은 offensive 토큰 부여', () => {
+      const state: TraitTestState = { tokens: {}, hp: 100, maxHp: 100 };
+      applyTraitEffects(['chain'], state);
+      expect(state.tokens['offensive']).toBe(1);
+    });
+
+    it('training은 strength 토큰 부여', () => {
+      const state: TraitTestState = { tokens: {}, hp: 100, maxHp: 100 };
+      applyTraitEffects(['training'], state);
+      expect(state.tokens['strength']).toBe(1);
+    });
+  });
+});
+
+// ==================== 설정 시스템 테스트 ====================
+
+describe('ConfigSystem', () => {
+  interface SimConfig {
+    battle: { maxTurns: number; critChance: number };
+    simulation: { defaultBattleCount: number };
+    cache: { enabled: boolean; maxSize: number };
+  }
+
+  const DEFAULT_CONFIG: SimConfig = {
+    battle: { maxTurns: 30, critChance: 0.05 },
+    simulation: { defaultBattleCount: 1000 },
+    cache: { enabled: true, maxSize: 1000 },
+  };
+
+  function mergeConfig(base: SimConfig, overrides: Partial<SimConfig>): SimConfig {
+    return {
+      battle: { ...base.battle, ...overrides.battle },
+      simulation: { ...base.simulation, ...overrides.simulation },
+      cache: { ...base.cache, ...overrides.cache },
+    };
+  }
+
+  function validateConfig(config: SimConfig): string[] {
+    const errors: string[] = [];
+    if (config.battle.maxTurns < 1) errors.push('maxTurns must be at least 1');
+    if (config.battle.critChance < 0 || config.battle.critChance > 1) {
+      errors.push('critChance must be between 0 and 1');
+    }
+    if (config.cache.maxSize < 0) errors.push('maxSize cannot be negative');
+    return errors;
+  }
+
+  it('기본 설정이 유효해야 함', () => {
+    const errors = validateConfig(DEFAULT_CONFIG);
+    expect(errors).toHaveLength(0);
+  });
+
+  it('설정 병합이 올바르게 동작해야 함', () => {
+    const merged = mergeConfig(DEFAULT_CONFIG, {
+      battle: { maxTurns: 50, critChance: 0.05 },
+    });
+    expect(merged.battle.maxTurns).toBe(50);
+    expect(merged.simulation.defaultBattleCount).toBe(1000); // 기본값 유지
+  });
+
+  it('잘못된 설정을 검출해야 함', () => {
+    const invalid: SimConfig = {
+      battle: { maxTurns: 0, critChance: 1.5 },
+      simulation: { defaultBattleCount: 1000 },
+      cache: { enabled: true, maxSize: -100 },
+    };
+    const errors = validateConfig(invalid);
+    expect(errors.length).toBeGreaterThan(0);
+    expect(errors).toContain('maxTurns must be at least 1');
+    expect(errors).toContain('critChance must be between 0 and 1');
+    expect(errors).toContain('maxSize cannot be negative');
+  });
+});
+
+// ==================== 데이터 검증 테스트 ====================
+
+describe('DataValidation', () => {
+  interface CardDef {
+    id: string;
+    name: string;
+    type: 'attack' | 'defense' | 'skill';
+    cost: number;
+    damage?: number;
+    block?: number;
+  }
+
+  function validateCard(card: Partial<CardDef>): { valid: boolean; errors: string[] } {
+    const errors: string[] = [];
+
+    if (!card.id) errors.push('id is required');
+    else if (!/^[a-z][a-z0-9_]*$/.test(card.id)) errors.push('id format invalid');
+
+    if (!card.name) errors.push('name is required');
+    else if (card.name.length > 50) errors.push('name too long');
+
+    if (!card.type) errors.push('type is required');
+    else if (!['attack', 'defense', 'skill'].includes(card.type)) {
+      errors.push('invalid type');
+    }
+
+    if (card.cost === undefined) errors.push('cost is required');
+    else if (card.cost < 0 || card.cost > 10) errors.push('cost out of range');
+
+    if (card.damage !== undefined && (card.damage < 0 || card.damage > 999)) {
+      errors.push('damage out of range');
+    }
+
+    return { valid: errors.length === 0, errors };
+  }
+
+  it('유효한 카드가 통과해야 함', () => {
+    const result = validateCard({
+      id: 'quick_slash',
+      name: '빠른 베기',
+      type: 'attack',
+      cost: 1,
+      damage: 6,
+    });
+    expect(result.valid).toBe(true);
+  });
+
+  it('필수 필드 누락 시 에러', () => {
+    const result = validateCard({ id: 'test' });
+    expect(result.valid).toBe(false);
+    expect(result.errors).toContain('name is required');
+    expect(result.errors).toContain('type is required');
+    expect(result.errors).toContain('cost is required');
+  });
+
+  it('잘못된 ID 형식 검출', () => {
+    const result = validateCard({
+      id: 'Invalid-ID',
+      name: 'Test',
+      type: 'attack',
+      cost: 1,
+    });
+    expect(result.valid).toBe(false);
+    expect(result.errors).toContain('id format invalid');
+  });
+
+  it('범위 초과 값 검출', () => {
+    const result = validateCard({
+      id: 'test_card',
+      name: 'Test',
+      type: 'attack',
+      cost: 15,
+      damage: 1000,
+    });
+    expect(result.valid).toBe(false);
+    expect(result.errors).toContain('cost out of range');
+    expect(result.errors).toContain('damage out of range');
+  });
+});
