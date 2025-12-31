@@ -66,6 +66,13 @@ import {
   checkAndProcessSummonPassive,
   hasVeilEffect,
 } from './enemy-passives';
+import {
+  processTurnEndEther,
+  detectPokerCombo,
+  checkEtherBurst,
+  type EtherGainResult,
+  type BurstResult,
+} from './combo-ether-system';
 
 const log = getLogger('TimelineBattleEngine');
 
@@ -164,6 +171,7 @@ export class TimelineBattleEngine {
       enemyDamageDealt: 0,
       cardUsage: {},
       tokenUsage: {},
+      comboUsageCount: {},
     };
 
     // 전투 시작 트리거
@@ -271,6 +279,42 @@ export class TimelineBattleEngine {
 
     // 5단계: 턴 종료
     state.phase = 'end';
+
+    // 에테르 콤보 처리: 이번 턴에 실행된 플레이어 카드 수집
+    if (this.config.enableCombos) {
+      const playedCards = state.timeline
+        .filter(tc => tc.owner === 'player' && tc.executed)
+        .map(tc => this.cards[tc.cardId])
+        .filter((c): c is GameCard => c !== undefined);
+
+      if (playedCards.length > 0) {
+        const etherResult = processTurnEndEther(state, playedCards);
+
+        // 에테르 획득
+        if (etherResult.etherResult.finalGain > 0) {
+          state.player.ether += etherResult.etherResult.finalGain;
+          state.battleLog.push(`  ⚡ 에테르 +${etherResult.etherResult.finalGain} (${etherResult.etherResult.comboName})`);
+
+          // 버스트 발동 시
+          if (etherResult.burstResult.triggered) {
+            state.battleLog.push(`  ${etherResult.burstResult.message}`);
+
+            // 버스트 보너스 피해 적용
+            if (etherResult.burstResult.bonusDamage > 0) {
+              state.enemy.hp -= etherResult.burstResult.bonusDamage;
+              state.playerDamageDealt = (state.playerDamageDealt || 0) + etherResult.burstResult.bonusDamage;
+              state.battleLog.push(`  💥 버스트 피해: ${etherResult.burstResult.bonusDamage}`);
+            }
+
+            // 에테르 리셋 (버스트 후 남은 양)
+            state.player.ether = 0;
+          }
+        }
+
+        // 콤보 사용 횟수 업데이트 (디플레이션용)
+        state.comboUsageCount = etherResult.newComboUsageCount;
+      }
+    }
 
     // 핸드 버리기 및 드로우
     state.player.discard.push(...state.player.hand);
@@ -1368,7 +1412,7 @@ export class TimelineBattleEngine {
       battleLog: state.battleLog,
       events: this.events,
       cardUsage: state.cardUsage || {},
-      comboStats: {},
+      comboStats: state.comboUsageCount || {},
       tokenStats: state.tokenUsage || {},
       timeline: state.timeline,
     };

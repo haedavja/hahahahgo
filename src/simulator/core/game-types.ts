@@ -284,6 +284,8 @@ export interface GameBattleState {
   // 통계 추적
   cardUsage?: Record<string, number>;         // 카드별 사용 횟수
   tokenUsage?: Record<string, number>;        // 토큰별 적용 횟수
+  // 에테르 콤보 시스템
+  comboUsageCount?: Record<string, number>;   // 콤보별 사용 횟수 (디플레이션용)
 }
 
 // ==================== 타임라인 시스템 ====================
