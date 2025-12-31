@@ -18,7 +18,13 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { processImmediateCardTraits, processCardPlayedRelicEffects } from './cardImmediateEffects';
 
 vi.mock('../../../lib/relicEffects', () => ({
-  applyCardPlayedEffects: vi.fn(() => ({}))
+  applyCardPlayedEffects: vi.fn(() => ({})),
+  calculatePassiveEffects: vi.fn(() => ({
+    maxHp: 0,
+    maxEnergy: 0,
+    mainSpecialSlots: 0,
+    subSpecialSlots: 0,
+  }))
 }));
 
 import { applyCardPlayedEffects } from '../../../lib/relicEffects';
