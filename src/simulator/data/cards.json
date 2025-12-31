@@ -1,0 +1,239 @@
+{
+  "version": "1.0.0",
+  "lastUpdated": "2025-12-31",
+  "cards": {
+    "slash": {
+      "id": "slash",
+      "name": "베기",
+      "type": "attack",
+      "cost": 1,
+      "attack": 6,
+      "defense": 0,
+      "traits": [],
+      "description": "6 피해를 준다"
+    },
+    "defend": {
+      "id": "defend",
+      "name": "방어",
+      "type": "defense",
+      "cost": 1,
+      "attack": 0,
+      "defense": 5,
+      "traits": [],
+      "description": "5 방어를 얻는다"
+    },
+    "bash": {
+      "id": "bash",
+      "name": "강타",
+      "type": "attack",
+      "cost": 2,
+      "attack": 8,
+      "defense": 0,
+      "traits": ["vulnerable"],
+      "effects": {
+        "applyVulnerable": 2
+      },
+      "description": "8 피해를 주고 취약 2를 부여한다"
+    },
+    "strike": {
+      "id": "strike",
+      "name": "타격",
+      "type": "attack",
+      "cost": 1,
+      "attack": 6,
+      "defense": 0,
+      "traits": [],
+      "description": "6 피해를 준다"
+    },
+    "heavyBlow": {
+      "id": "heavyBlow",
+      "name": "강력한 일격",
+      "type": "attack",
+      "cost": 2,
+      "attack": 14,
+      "defense": 0,
+      "traits": ["heavy"],
+      "description": "14 피해를 준다"
+    },
+    "quickSlash": {
+      "id": "quickSlash",
+      "name": "속공",
+      "type": "attack",
+      "cost": 0,
+      "attack": 4,
+      "defense": 0,
+      "traits": ["quick"],
+      "description": "4 피해를 준다"
+    },
+    "ironWall": {
+      "id": "ironWall",
+      "name": "철벽",
+      "type": "defense",
+      "cost": 2,
+      "attack": 0,
+      "defense": 12,
+      "traits": [],
+      "description": "12 방어를 얻는다"
+    },
+    "counterAttack": {
+      "id": "counterAttack",
+      "name": "반격",
+      "type": "skill",
+      "cost": 1,
+      "attack": 0,
+      "defense": 0,
+      "traits": ["counter"],
+      "effects": {
+        "addCounter": 1
+      },
+      "description": "이번 턴 공격받으면 6 피해로 반격한다"
+    },
+    "combo": {
+      "id": "combo",
+      "name": "콤보",
+      "type": "attack",
+      "cost": 1,
+      "attack": 3,
+      "defense": 0,
+      "traits": ["chain"],
+      "effects": {
+        "hits": 2
+      },
+      "description": "3 피해를 2번 준다"
+    },
+    "whirlwind": {
+      "id": "whirlwind",
+      "name": "회오리",
+      "type": "attack",
+      "cost": 2,
+      "attack": 5,
+      "defense": 0,
+      "traits": ["aoe"],
+      "effects": {
+        "hits": 3
+      },
+      "description": "5 피해를 3번 준다"
+    },
+    "shieldBash": {
+      "id": "shieldBash",
+      "name": "방패 강타",
+      "type": "attack",
+      "cost": 1,
+      "attack": 4,
+      "defense": 4,
+      "traits": [],
+      "description": "4 피해를 주고 4 방어를 얻는다"
+    },
+    "rage": {
+      "id": "rage",
+      "name": "분노",
+      "type": "skill",
+      "cost": 1,
+      "attack": 0,
+      "defense": 0,
+      "traits": ["buff"],
+      "effects": {
+        "addStrength": 2
+      },
+      "description": "힘 2를 얻는다"
+    },
+    "pistolShot": {
+      "id": "pistolShot",
+      "name": "권총 사격",
+      "type": "attack",
+      "cost": 1,
+      "attack": 8,
+      "defense": 0,
+      "traits": ["ranged"],
+      "description": "8 피해를 준다"
+    },
+    "rifleShot": {
+      "id": "rifleShot",
+      "name": "소총 사격",
+      "type": "attack",
+      "cost": 2,
+      "attack": 12,
+      "defense": 0,
+      "traits": ["ranged", "piercing"],
+      "description": "12 피해를 준다 (방어 관통)"
+    },
+    "dualWield": {
+      "id": "dualWield",
+      "name": "쌍검술",
+      "type": "attack",
+      "cost": 2,
+      "attack": 5,
+      "defense": 0,
+      "traits": ["chain"],
+      "effects": {
+        "hits": 4
+      },
+      "description": "5 피해를 4번 준다"
+    },
+    "heal": {
+      "id": "heal",
+      "name": "치유",
+      "type": "skill",
+      "cost": 1,
+      "attack": 0,
+      "defense": 0,
+      "traits": ["heal"],
+      "effects": {
+        "heal": 6
+      },
+      "description": "6 체력을 회복한다"
+    },
+    "evasion": {
+      "id": "evasion",
+      "name": "회피",
+      "type": "skill",
+      "cost": 1,
+      "attack": 0,
+      "defense": 0,
+      "traits": ["dodge"],
+      "effects": {
+        "addDodge": 1
+      },
+      "description": "다음 공격을 회피한다"
+    },
+    "charge": {
+      "id": "charge",
+      "name": "돌진",
+      "type": "attack",
+      "cost": 1,
+      "attack": 10,
+      "defense": 0,
+      "traits": ["advance"],
+      "effects": {
+        "advance": 2
+      },
+      "description": "10 피해를 주고 타임라인을 2 앞당긴다"
+    },
+    "retreat": {
+      "id": "retreat",
+      "name": "후퇴",
+      "type": "skill",
+      "cost": 1,
+      "attack": 0,
+      "defense": 3,
+      "traits": ["knockback"],
+      "effects": {
+        "knockback": 2
+      },
+      "description": "3 방어를 얻고 적을 2 밀어낸다"
+    },
+    "execute": {
+      "id": "execute",
+      "name": "처형",
+      "type": "attack",
+      "cost": 2,
+      "attack": 15,
+      "defense": 0,
+      "traits": ["execute"],
+      "effects": {
+        "executeThreshold": 0.2
+      },
+      "description": "15 피해. 적 체력 20% 이하면 즉사"
+    }
+  }
+}
