@@ -17,9 +17,11 @@
  * - attack: 모든 공격 시
  */
 
-import { ETHOS, type Ethos, type EthosEffect } from '../data/growth/ethosData';
+import { ETHOS, type Ethos } from '../data/growth/ethosData';
 import type { GrowthState } from '../state/slices/growthSlice';
-import type { Combatant } from '../types';
+import { initialGrowthState } from '../state/slices/growthSlice';
+import type { Combatant, Card } from '../types';
+import { useGameStore } from '../state/gameStore';
 
 export interface EthosEffectResult {
   updatedPlayer: Combatant;
@@ -215,4 +217,172 @@ export function getSymbolDamageBonus(growth: GrowthState, symbolCount: number): 
   }
 
   return bonus;
+}
+
+// ============== 전투 통합 헬퍼 함수 ==============
+
+/**
+ * 현재 성장 상태 가져오기 (전투 중 사용)
+ */
+export function getGrowthState(): GrowthState {
+  return useGameStore.getState().growth || initialGrowthState;
+}
+
+/**
+ * 카드가 총기 카드인지 확인
+ */
+export function isGunCard(card: Card): boolean {
+  return card.cardCategory === 'gun';
+}
+
+/**
+ * 카드가 검술 카드인지 확인
+ */
+export function isSwordCard(card: Card): boolean {
+  return card.cardCategory === 'fencing' || card.cardCategory === 'sword';
+}
+
+/**
+ * 총격 치명타 시 적용할 효과 반환 (불꽃 에토스)
+ */
+export function getGunCritEffects(): { burnStacks: number; logs: string[] } {
+  const growth = getGrowthState();
+  const effects = getEthosEffectsForTrigger(growth, 'gunCrit');
+  let burnStacks = 0;
+  const logs: string[] = [];
+
+  for (const ethos of effects) {
+    if (ethos.effect.action === 'addToken' && ethos.effect.token === 'burn') {
+      burnStacks += ethos.effect.value || 1;
+      logs.push(`🔥 ${ethos.name}: 화상 +${ethos.effect.value || 1}`);
+    }
+  }
+
+  return { burnStacks, logs };
+}
+
+/**
+ * 회피 성공 시 반격 사격 여부 확인 (틈새 에토스)
+ */
+export function shouldCounterShootOnEvade(): { shouldShoot: boolean; shots: number; logs: string[] } {
+  const growth = getGrowthState();
+  const effects = getEthosEffectsForTrigger(growth, 'evadeSuccess');
+  let shots = 0;
+  const logs: string[] = [];
+
+  for (const ethos of effects) {
+    if (ethos.effect.action === 'shoot') {
+      shots += ethos.effect.value || 1;
+      logs.push(`🔫 ${ethos.name}: 반격 사격 ${ethos.effect.value || 1}회`);
+    }
+  }
+
+  return { shouldShoot: shots > 0, shots, logs };
+}
+
+/**
+ * 검격 피해량 보너스 계산 (검예 에토스 - 기교 스택만큼 추가 피해)
+ */
+export function calculateSwordDamageBonus(finesseStacks: number): { bonus: number; logs: string[] } {
+  const growth = getGrowthState();
+  const effects = getEthosEffectsForTrigger(growth, 'swordAttack');
+  let bonus = 0;
+  const logs: string[] = [];
+
+  for (const ethos of effects) {
+    if (ethos.effect.action === 'damageBonus' && ethos.effect.source === 'finesse') {
+      bonus += finesseStacks;
+      if (finesseStacks > 0) {
+        logs.push(`⚔️ ${ethos.name}: 기교로 +${finesseStacks} 피해`);
+      }
+    }
+  }
+
+  return { bonus, logs };
+}
+
+/**
+ * 총격 교차 시 무딤 부여 확인 (무력화 에토스)
+ */
+export function getGunCrossEffects(): { dullStacks: number; logs: string[] } {
+  const growth = getGrowthState();
+  const effects = getEthosEffectsForTrigger(growth, 'gunCross');
+  let dullStacks = 0;
+  const logs: string[] = [];
+
+  for (const ethos of effects) {
+    if (ethos.effect.action === 'addToken' && ethos.effect.token === 'dull') {
+      dullStacks += ethos.effect.value || 1;
+      logs.push(`🎯 ${ethos.name}: 무딤 +${ethos.effect.value || 1}`);
+    }
+  }
+
+  return { dullStacks, logs };
+}
+
+/**
+ * 공격 시 전체 피해 보너스 계산 (고고학 에토스 - 상징 개수만큼)
+ */
+export function calculateAttackDamageBonus(symbolCount: number): { bonus: number; logs: string[] } {
+  const growth = getGrowthState();
+  const effects = getEthosEffectsForTrigger(growth, 'attack');
+  let bonus = 0;
+  const logs: string[] = [];
+
+  for (const ethos of effects) {
+    if (ethos.effect.action === 'damageBonus' && ethos.effect.source === 'symbol') {
+      bonus += symbolCount;
+      if (symbolCount > 0) {
+        logs.push(`🏛️ ${ethos.name}: 상징으로 +${symbolCount} 피해`);
+      }
+    }
+  }
+
+  return { bonus, logs };
+}
+
+/**
+ * 장전 턴 탄걸림 방지 여부 (최신 탄창 에토스)
+ */
+export function shouldPreventJamOnReload(): boolean {
+  const growth = getGrowthState();
+  return hasPreventJamOnReload(growth);
+}
+
+/**
+ * 유령 사격 룰렛 증가 방지 여부 (흑막 에토스)
+ */
+export function shouldPreventGhostRoulette(): boolean {
+  const growth = getGrowthState();
+  return hasPreventGhostRouletteIncrease(growth);
+}
+
+/**
+ * 총격 회피 무시 확률 (명사수 에토스)
+ */
+export function getGunEvasionIgnorePercent(): number {
+  const growth = getGrowthState();
+  return getGunEvasionIgnore(growth);
+}
+
+/**
+ * 기교 획득 시 추가 기교 확인 (극한 에토스)
+ * @param currentFinesseGainCount 현재 턴에서 획득한 기교 횟수
+ * @returns 추가로 획득해야 할 기교 수
+ */
+export function getExtraFinesseOnGain(currentFinesseGainCount: number): { extra: number; logs: string[] } {
+  const growth = getGrowthState();
+  const logs: string[] = [];
+
+  if (!hasFinesseBonus(growth)) {
+    return { extra: 0, logs };
+  }
+
+  // 3회마다 1 추가
+  const extra = Math.floor(currentFinesseGainCount / 3);
+  if (extra > 0) {
+    logs.push(`⚡ 극한: 기교 3회 획득으로 +${extra} 추가`);
+  }
+
+  return { extra, logs };
 }

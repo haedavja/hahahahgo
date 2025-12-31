@@ -27,6 +27,12 @@ import {
   applyCriticalDamage
 } from '../utils/cardSpecialEffects';
 import { getVulnerabilityMultiplier } from '../../../lib/anomalyEffectUtils';
+import {
+  shouldCounterShootOnEvade,
+  calculateSwordDamageBonus,
+  calculateAttackDamageBonus,
+  isSwordCard
+} from '../../../lib/ethosEffects';
 
 /**
  * 반격 처리
@@ -239,7 +245,29 @@ export function calculateSingleHit(
   const strengthBonus = currentAttacker.strength || 0;
   const ghostText = isGhost ? ' [👻유령]' : '';
   const boost = currentAttacker.etherOverdriveActive ? 2 : 1;
-  let dmg = (base + fencingBonus + strengthBonus) * boost;
+
+  // 에토스 피해 보너스 (플레이어 공격 시에만)
+  let ethosBonus = 0;
+  const ethosLogs: string[] = [];
+  if (attackerName === 'player') {
+    // 검술 카드: 검예 에토스 (기교 스택만큼 추가 피해)
+    if (isSwordCard(card)) {
+      const finesseStacks = getTokenStacks(currentAttacker, 'finesse');
+      const swordResult = calculateSwordDamageBonus(finesseStacks);
+      ethosBonus += swordResult.bonus;
+      ethosLogs.push(...swordResult.logs);
+    }
+
+    // 고고학 에토스 (상징 개수만큼 추가 피해)
+    const symbolCount = battleContext.symbolCount || 0;
+    if (symbolCount > 0) {
+      const attackResult = calculateAttackDamageBonus(symbolCount);
+      ethosBonus += attackResult.bonus;
+      ethosLogs.push(...attackResult.logs);
+    }
+  }
+
+  let dmg = (base + fencingBonus + strengthBonus + ethosBonus) * boost;
 
   if (isCritical) {
     dmg = applyCriticalDamage(dmg, true);
@@ -248,7 +276,7 @@ export function calculateSingleHit(
 
   const crushMultiplier = hasTrait(card, 'crush') ? 2 : 1;
   const events = [...specialEvents];
-  const logs = [...specialLogs];
+  const logs = [...specialLogs, ...ethosLogs];
   let damageDealt = 0;
   let damageTaken = 0;
   let blockDestroyed = 0;
@@ -285,6 +313,36 @@ export function calculateSingleHit(
       msg: dodgeMsg
     });
     logs.push(dodgeMsg);
+
+    // 틈새 에토스: 플레이어가 회피 성공 시 반격 사격
+    if (attackerName === 'enemy') {
+      const evadeShot = shouldCounterShootOnEvade();
+      if (evadeShot.shouldShoot && evadeShot.shots > 0) {
+        const shootCard = CARDS.find(c => c.id === 'shoot');
+        if (shootCard) {
+          const shotDamage = (shootCard.damage || 8) * evadeShot.shots;
+          const beforeHP = updatedAttacker.hp;
+          updatedAttacker = {
+            ...updatedAttacker,
+            hp: Math.max(0, updatedAttacker.hp - shotDamage)
+          };
+
+          // 룰렛 증가
+          const rouletteResult = addToken(updatedDefender, 'roulette', evadeShot.shots);
+          updatedDefender = { ...updatedDefender, tokens: rouletteResult.tokens };
+
+          const shotMsg = `🔫 틈새: 회피 성공! ${enemyNameDodge}에게 ${shotDamage} 피해 (체력 ${beforeHP} -> ${updatedAttacker.hp})`;
+          events.push({
+            actor: 'player',
+            type: 'ethos' as const,
+            dmg: shotDamage,
+            msg: shotMsg
+          } as BattleEvent);
+          logs.push(shotMsg);
+        }
+      }
+    }
+
     return {
       attacker: updatedAttacker,
       defender: updatedDefender,

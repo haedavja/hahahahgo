@@ -13,7 +13,7 @@ export type RestActionsSlice = RestSliceActions;
 
 type SliceCreator = StateCreator<GameStore, [], [], RestActionsSlice>;
 
-export const createRestActions: SliceCreator = (set) => ({
+export const createRestActions: SliceCreator = (set, get) => ({
   closeRest: () =>
     set((state) => ({ ...state, activeRest: null })),
 
@@ -26,7 +26,7 @@ export const createRestActions: SliceCreator = (set) => ({
       return { ...state, playerHp: current + heal };
     }),
 
-  awakenAtRest: (choiceId) =>
+  awakenAtRest: (choiceId) => {
     set((state) => {
       if (!state.activeRest) return state;
       const memory = state.resources.memory ?? 0;
@@ -63,7 +63,11 @@ export const createRestActions: SliceCreator = (set) => ({
         playerTraits: newTraits,
         activeRest: null,
       };
-    }),
+    });
+
+    // 개성 획득 후 피라미드 레벨 업데이트
+    get().updatePyramidLevel();
+  },
 
   // formEgo 제거됨 - 새 성장 시스템(growthSlice)으로 대체
 });

@@ -7,10 +7,12 @@ import type {
   Card,
   Combatant,
   BattleContext,
-  CriticalToken
+  CriticalToken,
+  BattleEvent
 } from '../../../types';
-import { getAllTokens } from '../../../lib/tokenUtils';
+import { getAllTokens, addToken } from '../../../lib/tokenUtils';
 import { hasSpecial } from './preAttackSpecials';
+import { getGunCritEffects, isGunCard } from '../../../lib/ethosEffects';
 
 /**
  * 치명타 확률 계산
@@ -94,4 +96,46 @@ export function applyCriticalDamage(damage: number, isCritical: boolean): number
  */
 export function applyCriticalStacks(stacks: number, isCritical: boolean): number {
   return isCritical ? stacks + 1 : stacks;
+}
+
+/**
+ * 총격 치명타 시 에토스 효과 적용 (불꽃 에토스 - 화상 토큰)
+ * @param card 사용된 카드
+ * @param isCritical 치명타 여부
+ * @param defender 방어자 (토큰을 받을 대상)
+ * @param battleContext 전투 컨텍스트
+ * @returns 업데이트된 방어자와 이벤트/로그
+ */
+export function applyGunCritEthosEffects(
+  card: Card,
+  isCritical: boolean,
+  defender: Combatant,
+  battleContext: BattleContext = {}
+): { defender: Combatant; events: BattleEvent[]; logs: string[] } {
+  const events: BattleEvent[] = [];
+  const logs: string[] = [];
+  let updatedDefender = { ...defender };
+
+  // 총격 카드 + 치명타인 경우에만
+  if (!isCritical || !isGunCard(card)) {
+    return { defender: updatedDefender, events, logs };
+  }
+
+  // 불꽃 에토스 효과 확인
+  const critEffects = getGunCritEffects();
+  if (critEffects.burnStacks > 0) {
+    const tokenResult = addToken(updatedDefender, 'burn', critEffects.burnStacks);
+    updatedDefender = { ...updatedDefender, tokens: tokenResult.tokens };
+
+    const enemyName = battleContext.enemyDisplayName || '몬스터';
+    const msg = `🔥 불꽃: ${enemyName}에게 화상 +${critEffects.burnStacks}`;
+    events.push({
+      actor: 'player',
+      type: 'ethos' as const,
+      msg
+    } as BattleEvent);
+    logs.push(msg);
+  }
+
+  return { defender: updatedDefender, events, logs };
 }
