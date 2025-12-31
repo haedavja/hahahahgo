@@ -51,7 +51,7 @@ describe('etherTransferProcessing', () => {
         actions: createMockActions()
       });
 
-      expect(calculateEtherTransfer).toHaveBeenCalledWith(10, 5, 5, 15, 50);
+      expect(calculateEtherTransfer).toHaveBeenCalledWith(10, 5, 5, 15, 50, undefined);
     });
 
     it('적 처치 시 잔여 에테르 회수 로그를 남겨야 함', () => {
@@ -74,7 +74,7 @@ describe('etherTransferProcessing', () => {
         actions: createMockActions()
       });
 
-      expect(addLog).toHaveBeenCalledWith(expect.stringContaining('잔여 에테르 회수'));
+      expect(addLog).toHaveBeenCalledWith(expect.stringContaining('잔여 영혼 회수'));
       expect(addLog).toHaveBeenCalledWith(expect.stringContaining('10'));
     });
 
@@ -98,7 +98,7 @@ describe('etherTransferProcessing', () => {
         actions: createMockActions()
       });
 
-      expect(addLog).not.toHaveBeenCalledWith(expect.stringContaining('잔여 에테르 회수'));
+      expect(addLog).not.toHaveBeenCalledWith(expect.stringContaining('잔여 영혼 회수'));
     });
 
     it('netEtherDelta를 설정해야 함', () => {

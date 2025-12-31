@@ -11,46 +11,29 @@
  */
 
 import { useState, memo, useCallback, useMemo } from 'react';
-import type { CSSProperties } from 'react';
 import { CARDS, TRAITS } from '../../battle/battleData';
 import { CARD_ETHER_BY_RARITY } from '../../battle/utils/etherCalculations';
 import { generateSpecializationOptions, type SpecializationOption } from '../../../lib/specializationUtils';
 import type { CardGrowthState } from '../../../state/slices/types';
 import {
-  getNextEnhancementPreview,
-  getAllEnhancementLevels,
   getEnhancementColor,
   getEnhancementLabel,
   isEnhanceable,
-  calculateEnhancedStats,
 } from '../../../lib/cardEnhancementUtils';
 import { CardGrowthModal } from './CardGrowthModal';
 import { GrowthPyramidModal } from '../../growth/GrowthPyramidModal';
 
-// 자아 형성 규칙 - 레거시 (새 성장 시스템으로 대체됨)
-// 새 시스템: 개성 → 에토스/파토스 → 자아(총잡이/검잡이) → 로고스
-
-const TRAIT_EFFECT_DESC = {
-  '용맹함': '힘 +1',
-  '굳건함': '체력 +10',
-  '냉철함': '통찰 +1',
-  '철저함': '보조슬롯 +1',
-  '열정적': '속도 +5',
-  '활력적': '행동력 +1',
-};
-
-// REFLECTION_DESC 제거됨 - 새 성장 시스템으로 대체
-
-// 강화/특화 비용 (휴식 노드에서는 무료)
-const ENHANCEMENT_COST: Record<number, number> = {
-  1: 0,  // 0→1강 (무료)
-  2: 0,  // 1→2강 (무료)
-  3: 0,  // 2→3강 (무료)
-  4: 0,  // 3→4강 (무료)
-  5: 0,  // 4→5강 (무료)
-};
-
-const SPECIALIZATION_COST = 0; // 특화 비용 (무료)
+// 분리된 컴포넌트들
+import {
+  TRAIT_EFFECT_DESC,
+  ENHANCEMENT_COST,
+  SPECIALIZATION_COST,
+  RARITY_LABEL,
+  RARITY_BADGE,
+  type GrowthNotification,
+} from './rest/restConstants';
+import { GrowthStatsPanel } from './rest/GrowthStatsPanel';
+import { EnhancePreviewPanel, StatBadge } from './rest/EnhancePreviewPanel';
 
 export function RestModal({
   memoryValue,
@@ -228,189 +211,6 @@ export function RestModal({
 }
 
 // EgoFormPanel 제거됨 - 새 성장 시스템(피라미드)으로 대체
-
-/** 카드 성장 통계 계산 */
-function calculateGrowthStats(cardGrowth: Record<string, CardGrowthState>) {
-  const stats = {
-    totalCards: 0,
-    enhancedCards: 0,
-    specializedCards: 0,
-    totalEnhancementLevels: 0,
-    totalSpecializations: 0,
-    totalTraits: 0,
-    rarityBreakdown: { common: 0, rare: 0, special: 0, legendary: 0 } as Record<string, number>,
-    maxEnhancementLevel: 0,
-  };
-
-  for (const [_cardId, growth] of Object.entries(cardGrowth)) {
-    stats.totalCards++;
-
-    if (growth.enhancementLevel && growth.enhancementLevel > 0) {
-      stats.enhancedCards++;
-      stats.totalEnhancementLevels += growth.enhancementLevel;
-      stats.maxEnhancementLevel = Math.max(stats.maxEnhancementLevel, growth.enhancementLevel);
-    }
-
-    if (growth.specializationCount && growth.specializationCount > 0) {
-      stats.specializedCards++;
-      stats.totalSpecializations += growth.specializationCount;
-    }
-
-    if (growth.traits) {
-      stats.totalTraits += growth.traits.length;
-    }
-
-    stats.rarityBreakdown[growth.rarity || 'common']++;
-  }
-
-  return stats;
-}
-
-/** 카드 성장 통계 패널 */
-const GrowthStatsPanel = memo(function GrowthStatsPanel({ cardGrowth }: { cardGrowth: Record<string, CardGrowthState> }) {
-  const [expanded, setExpanded] = useState(false);
-  const stats = calculateGrowthStats(cardGrowth);
-
-  if (stats.totalCards === 0) {
-    return null;
-  }
-
-  return (
-    <div style={{
-      marginBottom: "10px",
-      padding: "8px 10px",
-      background: "rgba(96, 165, 250, 0.08)",
-      borderRadius: "6px",
-      border: "1px solid rgba(96, 165, 250, 0.2)",
-    }}>
-      <button
-        onClick={() => setExpanded(!expanded)}
-        style={{
-          width: "100%",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          background: "none",
-          border: "none",
-          padding: 0,
-          cursor: "pointer",
-          color: "#e2e8f0",
-        }}
-      >
-        <span style={{ fontSize: "12px", fontWeight: 600, color: "#60a5fa" }}>
-          📊 성장 현황
-        </span>
-        <span style={{ fontSize: "11px", color: "#9ca3af" }}>
-          {expanded ? "▲" : "▼"}
-        </span>
-      </button>
-
-      {/* 요약 (항상 표시) */}
-      <div style={{
-        display: "flex",
-        gap: "12px",
-        marginTop: "6px",
-        fontSize: "11px",
-        color: "#9ca3af",
-      }}>
-        <span>강화 <span style={{ color: "#60a5fa", fontWeight: 600 }}>{stats.enhancedCards}</span>장</span>
-        <span>특화 <span style={{ color: "#86efac", fontWeight: 600 }}>{stats.specializedCards}</span>장</span>
-        {stats.rarityBreakdown.legendary > 0 && (
-          <span style={{ color: "#fbbf24" }}>★ 전설 {stats.rarityBreakdown.legendary}</span>
-        )}
-      </div>
-
-      {/* 상세 정보 (확장 시) */}
-      {expanded && (
-        <div style={{
-          marginTop: "10px",
-          paddingTop: "10px",
-          borderTop: "1px solid rgba(96, 165, 250, 0.15)",
-        }}>
-          {/* 강화 통계 */}
-          <div style={{ marginBottom: "8px" }}>
-            <div style={{ fontSize: "11px", color: "#60a5fa", fontWeight: 600, marginBottom: "4px" }}>
-              ⚔️ 강화
-            </div>
-            <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
-              <StatMini label="총 강화" value={`+${stats.totalEnhancementLevels}`} color="#60a5fa" />
-              <StatMini label="최고 레벨" value={`+${stats.maxEnhancementLevel}`} color="#a78bfa" />
-            </div>
-          </div>
-
-          {/* 특화 통계 */}
-          <div style={{ marginBottom: "8px" }}>
-            <div style={{ fontSize: "11px", color: "#86efac", fontWeight: 600, marginBottom: "4px" }}>
-              ✨ 특화
-            </div>
-            <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
-              <StatMini label="총 특화" value={`${stats.totalSpecializations}회`} color="#86efac" />
-              <StatMini label="부여 특성" value={`${stats.totalTraits}개`} color="#34d399" />
-            </div>
-          </div>
-
-          {/* 등급 분포 */}
-          <div>
-            <div style={{ fontSize: "11px", color: "#fbbf24", fontWeight: 600, marginBottom: "4px" }}>
-              🏆 등급 분포
-            </div>
-            <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
-              {stats.rarityBreakdown.legendary > 0 && (
-                <StatMini label="전설" value={stats.rarityBreakdown.legendary.toString()} color="#fbbf24" />
-              )}
-              {stats.rarityBreakdown.special > 0 && (
-                <StatMini label="특별" value={stats.rarityBreakdown.special.toString()} color="#34d399" />
-              )}
-              {stats.rarityBreakdown.rare > 0 && (
-                <StatMini label="희귀" value={stats.rarityBreakdown.rare.toString()} color="#60a5fa" />
-              )}
-              <StatMini label="일반" value={stats.rarityBreakdown.common.toString()} color="#9ca3af" />
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-});
-
-/** 미니 스탯 표시 컴포넌트 */
-const StatMini = memo(function StatMini({ label, value, color }: { label: string; value: string; color: string }) {
-  const style: CSSProperties = {
-    fontSize: "10px",
-    padding: "2px 6px",
-    borderRadius: "4px",
-    background: `${color}15`,
-    color: color,
-    border: `1px solid ${color}30`,
-  };
-  return (
-    <span style={style}>
-      {label}: <span style={{ fontWeight: 700 }}>{value}</span>
-    </span>
-  );
-});
-
-/** 성공 알림 타입 */
-interface GrowthNotification {
-  message: string;
-  type: 'enhance' | 'specialize' | 'promotion';
-  cardName: string;
-}
-
-// 상수 정의
-const RARITY_LABEL: Record<string, string> = {
-  common: '일반',
-  rare: '희귀',
-  special: '특별',
-  legendary: '전설',
-};
-
-const RARITY_BADGE: Record<string, { color: string; label: string } | null> = {
-  common: null,
-  rare: { color: '#60a5fa', label: '희귀' },
-  special: { color: '#34d399', label: '특별' },
-  legendary: { color: '#fbbf24', label: '전설' },
-};
 
 interface CardGrowthPanelProps {
   cardGrowth: Record<string, CardGrowthState>;
