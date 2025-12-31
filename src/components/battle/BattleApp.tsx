@@ -107,6 +107,8 @@ import { calculateEtherSlots, MAX_SLOTS } from "../../lib/etherUtils";
 import { CharacterSheet } from "../character/CharacterSheet";
 import { useGameStore } from "../../state/gameStore";
 import { ItemSlots } from "./ui/ItemSlots";
+import { PathosSlots } from "./ui/PathosSlots";
+import { PathosCooldowns, PathosUseResult, decreaseCooldowns } from "../../lib/pathosEffects";
 import { RELICS, RELIC_RARITIES } from "../../data/relics";
 import { RELIC_EFFECT, RELIC_RARITY_COLORS } from "../../lib/relics";
 import { hasTrait, hasEnemyUnits, markCrossedCards } from "./utils/battleUtils";
@@ -422,6 +424,36 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
   const battleRef = useRef(battle); // battle 상태를 ref로 유지 (setTimeout closure 문제 해결)
   const [parryReadyStates, setParryReadyStates] = useState<ParryReadyState[]>([]); // 쳐내기 패리 대기 상태 배열 (렌더링용)
+  const [pathosCooldowns, setPathosCooldowns] = useState<PathosCooldowns>({}); // 파토스 쿨다운 상태
+
+  // 파토스 사용 결과 처리
+  const handlePathosUsed = React.useCallback((result: PathosUseResult, newCooldowns: PathosCooldowns) => {
+    // 쿨다운 업데이트
+    setPathosCooldowns(newCooldowns);
+
+    // 플레이어/적 상태 업데이트
+    if (result.updatedPlayer) {
+      actions.setPlayer(result.updatedPlayer as unknown as PlayerState);
+    }
+    if (result.updatedEnemy) {
+      actions.setEnemy(result.updatedEnemy as unknown as EnemyState);
+    }
+
+    // 로그 추가
+    result.logs.forEach(log => actions.addLog(log));
+
+    // turnEffects와 nextCardEffects 처리는 battleContext에 저장 필요
+    // (추후 카드 사용 시 적용)
+  }, [actions]);
+
+  // 파토스 쿨다운 감소 (턴 시작 시)
+  const prevTurnNumberRef = useRef(0);
+  useEffect(() => {
+    if (battle.turnNumber > prevTurnNumberRef.current && battle.phase === 'select') {
+      setPathosCooldowns((prev: PathosCooldowns) => decreaseCooldowns(prev));
+      prevTurnNumberRef.current = battle.turnNumber;
+    }
+  }, [battle.turnNumber, battle.phase]);
 
   const stepOnceRef = useRef<(() => void) | null>(null); // stepOnce 함수 참조 (브리치 선택 후 진행 재개용)
 
@@ -2032,6 +2064,17 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         enemyPlan={battle.enemyPlan as unknown as ItemSlotsEnemyPlan}
         battleRef={battleRef as unknown as import("react").RefObject<ItemSlotsBattleRef | null>}
       />
+
+      {/* 파토스 슬롯 - 아이템 슬롯 아래 */}
+      <PathosSlots
+        phase={battle.phase}
+        player={battle.player}
+        enemy={battle.enemy}
+        cooldowns={pathosCooldowns}
+        onPathosUsed={handlePathosUsed}
+        battleRef={battleRef as unknown as import("react").MutableRefObject<{ phase?: string } | null>}
+      />
+
       {/* 예상 피해량 - 오른쪽 고정 패널 */}
       <div className="expect-sidebar-fixed">
         <ExpectedDamagePreview

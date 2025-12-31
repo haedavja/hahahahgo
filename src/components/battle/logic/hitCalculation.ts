@@ -31,8 +31,11 @@ import {
   shouldCounterShootOnEvade,
   calculateSwordDamageBonus,
   calculateAttackDamageBonus,
-  isSwordCard
+  isSwordCard,
+  isGunCard
 } from '../../../lib/ethosEffects';
+import { applyGunCritEthosEffects } from '../utils/criticalEffects';
+import { shouldShootOnBlock } from '../../../lib/logosEffects';
 
 /**
  * 반격 처리
@@ -378,6 +381,33 @@ export function calculateSingleHit(
 
       events.push({ actor: attackerName, card: card.name, type: 'blocked', msg });
       logs.push(msg);
+
+      // 로고스 효과: 건카타 Lv1 - 방어력으로 막아낼 시 총격
+      if (attackerName === 'enemy' && shouldShootOnBlock() && effectiveDmg > 0) {
+        const shootCard = CARDS.find(c => c.id === 'shoot');
+        if (shootCard) {
+          const shotDamage = shootCard.damage || 8;
+          const enemyBeforeHP = updatedAttacker.hp;
+          updatedAttacker = {
+            ...updatedAttacker,
+            hp: Math.max(0, updatedAttacker.hp - shotDamage)
+          };
+
+          // 룰렛 증가
+          const rouletteResult = addToken(updatedDefender, 'roulette', 1);
+          updatedDefender = { ...updatedDefender, tokens: rouletteResult.tokens };
+
+          const shotMsg = `🔫 건카타: 방어 성공! ${enemyName}에게 ${shotDamage} 피해 (체력 ${enemyBeforeHP} -> ${updatedAttacker.hp})`;
+          events.push({
+            actor: 'player',
+            type: 'logos' as const,
+            dmg: shotDamage,
+            msg: shotMsg
+          } as BattleEvent);
+          logs.push(shotMsg);
+          damageTaken += shotDamage;
+        }
+      }
     } else {
       const blocked = beforeBlock;
       const remained = Math.max(0, effectiveDmg - blocked);
@@ -413,6 +443,41 @@ export function calculateSingleHit(
       logs.push(msg);
 
       damageDealt += finalDmg;
+
+      // 로고스 효과: 건카타 Lv1 - 방어력으로 막아낼 시 총격 (관통당해도 방어력이 피해 흡수한 경우)
+      if (attackerName === 'enemy' && shouldShootOnBlock() && blocked > 0) {
+        const shootCard = CARDS.find(c => c.id === 'shoot');
+        if (shootCard) {
+          const shotDamage = shootCard.damage || 8;
+          const enemyBeforeHP = updatedAttacker.hp;
+          updatedAttacker = {
+            ...updatedAttacker,
+            hp: Math.max(0, updatedAttacker.hp - shotDamage)
+          };
+
+          // 룰렛 증가
+          const rouletteResult = addToken(updatedDefender, 'roulette', 1);
+          updatedDefender = { ...updatedDefender, tokens: rouletteResult.tokens };
+
+          const enemyNameShot = battleContext.enemyDisplayName || '몬스터';
+          const shotMsg = `🔫 건카타: 방어 흡수! ${enemyNameShot}에게 ${shotDamage} 피해 (체력 ${enemyBeforeHP} -> ${updatedAttacker.hp})`;
+          events.push({
+            actor: 'player',
+            type: 'logos' as const,
+            dmg: shotDamage,
+            msg: shotMsg
+          } as BattleEvent);
+          logs.push(shotMsg);
+        }
+      }
+
+      // 총격 치명타 에토스 효과 (불꽃: 화상 부여)
+      if (attackerName === 'player' && isCritical && isGunCard(card)) {
+        const gunCritResult = applyGunCritEthosEffects(card, true, updatedDefender, battleContext);
+        updatedDefender = gunCritResult.defender;
+        events.push(...gunCritResult.events);
+        logs.push(...gunCritResult.logs);
+      }
 
       const totalCounter = (updatedDefender.counter || 0) + (tokenDamageResult.reflected || 0);
       if (totalCounter > 0 && finalDmg > 0) {
@@ -469,6 +534,14 @@ export function calculateSingleHit(
     logs.push(msg);
 
     damageDealt += finalDmg;
+
+    // 총격 치명타 에토스 효과 (불꽃: 화상 부여)
+    if (attackerName === 'player' && isCritical && isGunCard(card)) {
+      const gunCritResult = applyGunCritEthosEffects(card, true, updatedDefender, battleContext);
+      updatedDefender = gunCritResult.defender;
+      events.push(...gunCritResult.events);
+      logs.push(...gunCritResult.logs);
+    }
 
     const totalCounter = (updatedDefender.counter || 0) + (tokenDamageResult.reflected || 0);
     if (totalCounter > 0 && finalDmg > 0) {
