@@ -525,7 +525,7 @@ export class TimelineBattleEngine {
     state.timeline.sort((a, b) => a.position - b.position);
   }
 
-  // ==================== 카드 선택 ====================
+  // ==================== 카드 선택 (개선된 AI) ====================
 
   private selectPlayerCards(state: GameBattleState): GameCard[] {
     const selected: GameCard[] = [];
@@ -533,27 +533,239 @@ export class TimelineBattleEngine {
     let cardsSelected = 0;
     const maxCards = DEFAULT_MAX_SUBMIT_CARDS;
 
-    // 간단한 그리디 선택: 에너지 내에서 가장 효율적인 카드 선택
-    const sortedHand = [...state.player.hand]
+    // 핸드 카드 변환
+    const handCards = state.player.hand
       .map(id => this.cards[id])
-      .filter((c): c is GameCard => c !== undefined)
-      .sort((a, b) => {
-        // 피해 효율로 정렬
-        const effA = (a.damage || 0) / (a.actionCost || 1);
-        const effB = (b.damage || 0) / (b.actionCost || 1);
-        return effB - effA;
-      });
+      .filter((c): c is GameCard => c !== undefined);
 
-    for (const card of sortedHand) {
+    if (handCards.length === 0) return selected;
+
+    // 상황 분석
+    const playerHpRatio = state.player.hp / state.player.maxHp;
+    const enemyHpRatio = state.enemy.hp / state.enemy.maxHp;
+    const isInDanger = playerHpRatio < 0.35;
+    const canKillEnemy = this.estimateDamageOutput(handCards, state) >= state.enemy.hp;
+    const needsDefense = isInDanger && !canKillEnemy;
+
+    // 포커 조합 분석 (카드 값 기준)
+    const comboAnalysis = this.analyzePokerCombos(handCards);
+
+    // 카드 점수 계산
+    const scoredCards = handCards.map(card => {
+      let score = 0;
+
+      // 1. 기본 효율 점수 (피해 + 방어)
+      const hits = card.hits || 1;
+      const totalDamage = (card.damage || 0) * hits;
+      const totalBlock = card.block || 0;
+
+      // 2. 상황별 점수 조정
+      if (needsDefense) {
+        // 위험 상황: 방어 우선
+        score += totalBlock * 3;
+        score += totalDamage * 0.5;
+
+        // 힐 효과 있는 카드 높은 점수
+        if (card.tags?.includes('heal') || card.effects?.some((e: any) => e.type === 'heal')) {
+          score += 50;
+        }
+      } else if (canKillEnemy) {
+        // 킬 가능: 공격 우선
+        score += totalDamage * 2;
+        score += totalBlock * 0.3;
+      } else {
+        // 일반 상황: 균형
+        score += totalDamage * 1.2;
+        score += totalBlock * 0.8;
+      }
+
+      // 3. 속도 점수 (빠른 카드 선호)
+      const speedCost = card.speedCost || 5;
+      score += (10 - Math.min(10, speedCost)) * 2; // 빠를수록 높은 점수
+
+      // 4. 버프/디버프 카드 점수
+      if (card.effects && Array.isArray(card.effects)) {
+        for (const effect of card.effects) {
+          // 적에게 취약 부여
+          if (effect.token === 'vulnerable' || effect.token === 'weak') {
+            score += 15;
+          }
+          // 자신에게 힘 부여
+          if (effect.token === 'strength' && effect.target === 'self') {
+            score += 20;
+          }
+        }
+      }
+
+      // 5. 포커 조합 보너스 (같은 값의 카드)
+      const cardValue = this.getCardValue(card);
+      if (cardValue) {
+        const sameValueCount = comboAnalysis.valueCount[cardValue] || 0;
+        if (sameValueCount >= 2) {
+          score += (sameValueCount - 1) * 15; // 페어, 트리플 등 보너스
+        }
+        // 스트레이트 가능성
+        if (comboAnalysis.straightPossible && comboAnalysis.straightCards.includes(card.id)) {
+          score += 20;
+        }
+      }
+
+      // 6. 특수 효과 점수
+      if (card.type === 'attack') {
+        // 관통 (방어력 무시)
+        if (card.tags?.includes('pierce') || card.ignoreBlock) {
+          score += 15;
+        }
+        // 다중 히트
+        if (hits > 1) {
+          score += hits * 5;
+        }
+      }
+
+      // 7. 에너지 효율 (코스트 대비 효과)
+      const cost = card.actionCost || 1;
+      if (cost > 0) {
+        score = score / Math.sqrt(cost); // 코스트가 높을수록 효율 감소
+      }
+
+      return { card, score, cost };
+    });
+
+    // 점수순 정렬
+    scoredCards.sort((a, b) => b.score - a.score);
+
+    // 에너지 내에서 최적 조합 선택
+    for (const { card, cost } of scoredCards) {
       if (cardsSelected >= maxCards) break;
-      if (card.actionCost <= energyLeft) {
+      if (cost <= energyLeft) {
         selected.push(card);
-        energyLeft -= card.actionCost;
+        energyLeft -= cost;
         cardsSelected++;
       }
     }
 
+    // 최소 1장은 선택 (에너지가 충분하다면)
+    if (selected.length === 0 && handCards.length > 0) {
+      // 가장 저렴한 카드 선택
+      const cheapest = handCards
+        .filter(c => (c.actionCost || 1) <= state.player.energy)
+        .sort((a, b) => (a.actionCost || 1) - (b.actionCost || 1))[0];
+      if (cheapest) {
+        selected.push(cheapest);
+      }
+    }
+
     return selected;
+  }
+
+  /**
+   * 예상 피해량 계산
+   */
+  private estimateDamageOutput(cards: GameCard[], state: GameBattleState): number {
+    let totalDamage = 0;
+    let energy = state.player.energy;
+
+    const attackCards = cards
+      .filter(c => c.damage && c.damage > 0)
+      .sort((a, b) => ((b.damage || 0) * (b.hits || 1)) - ((a.damage || 0) * (a.hits || 1)));
+
+    for (const card of attackCards) {
+      const cost = card.actionCost || 1;
+      if (cost <= energy) {
+        const hits = card.hits || 1;
+        const damage = (card.damage || 0) * hits;
+        // 힘 보정
+        totalDamage += damage + (state.player.strength || 0) * hits;
+        energy -= cost;
+      }
+    }
+
+    return totalDamage;
+  }
+
+  /**
+   * 포커 조합 분석
+   */
+  private analyzePokerCombos(cards: GameCard[]): {
+    valueCount: Record<string, number>;
+    suitCount: Record<string, number>;
+    straightPossible: boolean;
+    straightCards: string[];
+  } {
+    const valueCount: Record<string, number> = {};
+    const suitCount: Record<string, number> = {};
+    const values: number[] = [];
+
+    for (const card of cards) {
+      const cardValue = this.getCardValue(card);
+      if (cardValue) {
+        valueCount[cardValue] = (valueCount[cardValue] || 0) + 1;
+        values.push(parseInt(cardValue) || this.cardValueToNumber(cardValue));
+      }
+
+      const suit = card.suit || 'none';
+      suitCount[suit] = (suitCount[suit] || 0) + 1;
+    }
+
+    // 스트레이트 가능성 체크
+    values.sort((a, b) => a - b);
+    let straightPossible = false;
+    const straightCards: string[] = [];
+
+    if (values.length >= 3) {
+      for (let i = 0; i < values.length - 2; i++) {
+        if (values[i + 1] === values[i] + 1 && values[i + 2] === values[i] + 2) {
+          straightPossible = true;
+          // 해당하는 카드 ID 찾기
+          for (const card of cards) {
+            const v = parseInt(this.getCardValue(card) || '') || this.cardValueToNumber(this.getCardValue(card) || '');
+            if (v >= values[i] && v <= values[i] + 2) {
+              straightCards.push(card.id);
+            }
+          }
+          break;
+        }
+      }
+    }
+
+    return { valueCount, suitCount, straightPossible, straightCards };
+  }
+
+  /**
+   * 카드의 포커 값 가져오기
+   */
+  private getCardValue(card: GameCard): string | null {
+    // 카드의 value 속성이 있으면 사용
+    if ((card as any).value) {
+      return String((card as any).value);
+    }
+
+    // 카드 이름에서 값 추출 (예: "Strike 5" → "5")
+    const match = card.name.match(/(\d+|[JQKA])$/);
+    if (match) {
+      return match[1];
+    }
+
+    // 카드 ID에서 값 추출
+    const idMatch = card.id.match(/_(\d+|[jqka])$/i);
+    if (idMatch) {
+      return idMatch[1].toUpperCase();
+    }
+
+    return null;
+  }
+
+  /**
+   * 카드 값을 숫자로 변환 (스트레이트 계산용)
+   */
+  private cardValueToNumber(value: string): number {
+    switch (value.toUpperCase()) {
+      case 'A': return 14;
+      case 'K': return 13;
+      case 'Q': return 12;
+      case 'J': return 11;
+      default: return parseInt(value) || 0;
+    }
   }
 
   private selectEnemyCards(state: GameBattleState): GameCard[] {
