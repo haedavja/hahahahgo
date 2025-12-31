@@ -992,7 +992,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       // 카드 소멸 이펙트는 플레이어만 적용
       if (a.actor === 'player') {
         if (hasTrait(a.card, 'escape' as unknown as import("../../types/core").CardTrait)) {
-          escapeUsedThisTurnRef.current = new Set([...escapeUsedThisTurnRef.current, a.card.id]);
+          escapeUsedThisTurnRef.current.add(a.card.id);
         }
         setTimeout(() => {
           // 카드가 사용된 후 사라지는 애니메이션 시작

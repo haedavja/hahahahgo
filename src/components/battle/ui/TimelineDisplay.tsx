@@ -268,6 +268,36 @@ export const TimelineDisplay: FC<TimelineDisplayProps> = memo(({
     transition: 'opacity 0.3s ease-out'
   }), [timelineProgress, timelineIndicatorVisible]);
 
+  // sp 오프셋 사전 계산 (O(n) 최적화)
+  const spOffsets = useMemo(() => {
+    const offsets: number[] = [];
+    const spCounts = new Map<number, number>();
+
+    playerTimeline.forEach((a) => {
+      const sp = a.sp ?? 0;
+      const currentCount = spCounts.get(sp) || 0;
+      offsets.push(currentCount);
+      spCounts.set(sp, currentCount + 1);
+    });
+
+    return offsets;
+  }, [playerTimeline]);
+
+  // 적 타임라인 sp 오프셋 사전 계산 (O(n) 최적화)
+  const enemySpOffsets = useMemo(() => {
+    const offsets: number[] = [];
+    const spCounts = new Map<number, number>();
+
+    enemyTimeline.forEach((a) => {
+      const sp = a.sp ?? 0;
+      const currentCount = spCounts.get(sp) || 0;
+      offsets.push(currentCount);
+      spCounts.set(sp, currentCount + 1);
+    });
+
+    return offsets;
+  }, [enemyTimeline]);
+
   // 여유 특성 카드 범위 계산
   const leisureCardRanges = useMemo(() => {
     const ranges: Array<{
@@ -283,8 +313,7 @@ export const TimelineDisplay: FC<TimelineDisplayProps> = memo(({
     playerTimeline.forEach((a, idx) => {
       const hasLeisure = hasCardTrait(a.card, 'leisure');
       const cardUid = (a.card as { __handUid?: string; __uid?: string }).__handUid || (a.card as { __uid?: string }).__uid || `leisure-${idx}`;
-      const sameCount = playerTimeline.filter((q, i) => i < idx && q.sp === a.sp).length;
-      const offset = sameCount * 28;
+      const offset = spOffsets[idx] * 28;
 
       if (hasLeisure) {
         // 여유 특성이 있으면 현재 위치를 기준으로 범위 설정
@@ -304,7 +333,7 @@ export const TimelineDisplay: FC<TimelineDisplayProps> = memo(({
     });
 
     return ranges;
-  }, [playerTimeline, hasCardTrait]);
+  }, [playerTimeline, hasCardTrait, spOffsets]);
 
   // 무리 특성 카드 범위 계산
   const strainCardRanges = useMemo(() => {
@@ -323,8 +352,7 @@ export const TimelineDisplay: FC<TimelineDisplayProps> = memo(({
       if (!hasStrain) return;
 
       const cardUid = (a.card as { __handUid?: string; __uid?: string }).__handUid || (a.card as { __uid?: string }).__uid || `strain-${idx}`;
-      const sameCount = playerTimeline.filter((q, i) => i < idx && q.sp === a.sp).length;
-      const offset = sameCount * 28;
+      const offset = spOffsets[idx] * 28;
       const currentStrainOffset = (a.card as { strainOffset?: number }).strainOffset || 0;
 
       // 기본 sp (strainOffset이 0일 때)
@@ -342,7 +370,7 @@ export const TimelineDisplay: FC<TimelineDisplayProps> = memo(({
     });
 
     return ranges;
-  }, [playerTimeline, hasCardTrait]);
+  }, [playerTimeline, hasCardTrait, spOffsets]);
 
   // 통합 마우스 이동 핸들러 (여유/무리 공용)
   const handleMouseMove = useCallback((e: ReactMouseEvent<HTMLDivElement>) => {
@@ -461,7 +489,7 @@ export const TimelineDisplay: FC<TimelineDisplayProps> = memo(({
                 onMouseUp={handleDragEnd}
                 onMouseLeave={handleDragEnd}
               >
-                {Array.from({ length: playerMax + 1 }).map((_, i) => (
+                {Array.from({ length: playerMax + 1 }, (_, i) => (
                   <div key={`p-grid-${i}`} className="timeline-gridline" style={{ left: `${(i / playerMax) * 100}%` }} />
                 ))}
                 {/* 여유 특성 범위 표시 */}
@@ -615,8 +643,7 @@ export const TimelineDisplay: FC<TimelineDisplayProps> = memo(({
                 })}
                 {playerTimeline.map((a, idx) => {
                   const Icon = a.card.icon || (a.card.type === 'attack' ? Sword : Shield);
-                  const sameCount = playerTimeline.filter((q, i) => i < idx && q.sp === a.sp).length;
-                  const offset = sameCount * 28;
+                  const offset = spOffsets[idx] * 28;
                   const strengthBonus = player.strength || 0;
                   // growingDefense 특성 (방어자세): 타임라인 진행에 따라 방어력 실시간 증가
                   const hasGrowingDef = hasSpecial(a.card as Card, 'growingDefense');
@@ -731,13 +758,12 @@ export const TimelineDisplay: FC<TimelineDisplayProps> = memo(({
               <div className="timeline-lane enemy-lane" style={enemyLaneStyle}>
                 {!hideEnemyTimeline && (
                   <>
-                    {Array.from({ length: enemyMax + 1 }).map((_, i) => (
+                    {Array.from({ length: enemyMax + 1 }, (_, i) => (
                       <div key={`e-grid-${i}`} className="timeline-gridline" style={{ left: `${(i / enemyMax) * 100}%` }} />
                     ))}
                     {enemyTimeline.map((a, idx) => {
                       const Icon = a.card.icon || (a.card.type === 'attack' ? Sword : Shield);
-                      const sameCount = enemyTimeline.filter((q, i) => i < idx && q.sp === a.sp).length;
-                      const offset = sameCount * 28;
+                      const offset = enemySpOffsets[idx] * 28;
                       const num = a.card.type === 'attack' ? ((a.card.damage ?? 0) * (a.card.hits || 1)) : (a.card.block || 0);
                       const globalIndex = battle.phase === 'resolve' && queue ? queue.findIndex(q => q === a) : -1;
                       const isExecuting = executingCardIndex === globalIndex;
