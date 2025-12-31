@@ -3,7 +3,8 @@
  * @description 카드 실행 시 토큰 소모 및 화상 피해 처리 유틸리티
  */
 
-import { removeToken, getAllTokens } from '../../../lib/tokenUtils';
+import { removeToken, getAllTokens, getTokenStacks, setTokenStacks } from '../../../lib/tokenUtils';
+import { getMinFinesse } from '../../../lib/logosEffects';
 import type { TokenEntity, TokenInstance } from '../../../types';
 
 interface TokenEffect {
@@ -39,10 +40,27 @@ export function processRequiredTokenConsumption(params: TokenConsumptionParams):
 
   if (actor === 'player' && card.requiredTokens && Array.isArray(card.requiredTokens) && card.requiredTokens.length > 0) {
     for (const req of card.requiredTokens) {
-      const tokenRemoveResult = removeToken(P as TokenEntity, req.id, 'permanent', req.stacks);
-      P = { ...P, tokens: tokenRemoveResult.tokens };
-      addLog(`✨ ${req.id === 'finesse' ? '기교' : req.id} -${req.stacks} 소모`);
-      updatedTokens = true;
+      // 로고스 효과: 배틀 왈츠 Lv1 - 최소 기교 보장
+      if (req.id === 'finesse') {
+        const minFinesse = getMinFinesse();
+        const currentStacks = getTokenStacks(P as TokenEntity, 'finesse');
+        const targetStacks = Math.max(minFinesse, currentStacks - req.stacks);
+        const actualConsume = currentStacks - targetStacks;
+
+        if (actualConsume > 0) {
+          const tokenRemoveResult = removeToken(P as TokenEntity, req.id, 'permanent', actualConsume);
+          P = { ...P, tokens: tokenRemoveResult.tokens };
+          addLog(`✨ 기교 -${actualConsume} 소모${minFinesse > 0 && actualConsume < req.stacks ? ` (최소 ${minFinesse} 유지)` : ''}`);
+          updatedTokens = true;
+        } else if (minFinesse > 0) {
+          addLog(`✨ 기교: 최소 ${minFinesse} 유지 (소모 없음)`);
+        }
+      } else {
+        const tokenRemoveResult = removeToken(P as TokenEntity, req.id, 'permanent', req.stacks);
+        P = { ...P, tokens: tokenRemoveResult.tokens };
+        addLog(`✨ ${req.id} -${req.stacks} 소모`);
+        updatedTokens = true;
+      }
     }
   }
 

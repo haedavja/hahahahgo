@@ -31,6 +31,7 @@ import type {
 import { addToken, setTokenStacks } from '../../../lib/tokenUtils';
 import { shuffle } from '../../../lib/randomUtils';
 import { getChainIsolationEffect } from '../../../lib/anomalyEffectUtils';
+import { getJamReduction } from '../../../lib/logosEffects';
 
 interface AnomalyPlayerState {
   chainIsolationLevel?: number;
@@ -78,7 +79,11 @@ export function processPerHitRoulette(
   const allAttackerTokens = [...(attackerTokens.usage || []), ...(attackerTokens.turn || []), ...(attackerTokens.permanent || [])];
   const rouletteToken = allAttackerTokens.find(t => t.id === 'roulette');
   const currentRouletteStacks = rouletteToken?.stacks || 0;
-  const jamChance = currentRouletteStacks * 0.05;
+
+  // 로고스 효과: 탄걸림 확률 감소 (건카타 Lv2)
+  const jamReduction = attackerName === 'player' ? getJamReduction() : 0;
+  const baseJamChance = currentRouletteStacks * 0.05;
+  const jamChance = Math.max(0, baseJamChance - (jamReduction / 100));
 
   const who = attackerName === 'player' ? '플레이어' : '몬스터';
   const hitLabel = totalHits > 1 && !hasSingleRoulette ? ` [${hitIndex + 1}/${totalHits}]` : '';

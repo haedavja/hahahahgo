@@ -107,6 +107,8 @@ import { calculateEtherSlots, MAX_SLOTS } from "../../lib/etherUtils";
 import { CharacterSheet } from "../character/CharacterSheet";
 import { useGameStore } from "../../state/gameStore";
 import { ItemSlots } from "./ui/ItemSlots";
+import { PathosSlots } from "./ui/PathosSlots";
+import { PathosCooldowns, PathosUseResult, decreaseCooldowns } from "../../lib/pathosEffects";
 import { RELICS, RELIC_RARITIES } from "../../data/relics";
 import { RELIC_EFFECT, RELIC_RARITY_COLORS } from "../../lib/relics";
 import { hasTrait, hasEnemyUnits, markCrossedCards } from "./utils/battleUtils";
@@ -128,7 +130,7 @@ import { setupParryReady, checkParryTrigger } from "./utils/parryProcessing";
 import { processPlayerEtherAccumulation, processEnemyEtherAccumulation } from "./utils/etherAccumulationProcessing";
 import { processEnemyDeath } from "./utils/enemyDeathProcessing";
 import { renderNameWithBadge } from "./utils/cardRenderingUtils";
-import { initReflectionState } from "../../lib/reflectionEffects";
+// reflectionEffects 제거됨 - 새 성장 시스템(growthSlice)으로 대체
 import { addToken, removeToken, getAllTokens, expireTurnTokensByTimeline, getTokenStacks, setTokenStacks } from "../../lib/tokenUtils";
 import { TOKENS } from "../../data/tokens";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
@@ -278,7 +280,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       subSpecialBoost: 0,
       extraCardPlay: 0,
     },
-    reflectionState: initReflectionState(),
+    reflectionState: {}, // 레거시: 새 성장 시스템으로 대체됨
     insightBadge: {
       level: safeInitialPlayer.insight || 0,
       dir: 'up',
@@ -423,6 +425,57 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
   const battleRef = useRef(battle); // battle 상태를 ref로 유지 (setTimeout closure 문제 해결)
   const [parryReadyStates, setParryReadyStates] = useState<ParryReadyState[]>([]); // 쳐내기 패리 대기 상태 배열 (렌더링용)
+  const [pathosCooldowns, setPathosCooldowns] = useState<PathosCooldowns>({}); // 파토스 쿨다운 상태
+  const [pathosTurnEffects, setPathosTurnEffects] = useState<PathosUseResult['turnEffects']>(undefined); // 파토스 턴 효과
+  const [pathosNextCardEffects, setPathosNextCardEffects] = useState<PathosUseResult['nextCardEffects']>(undefined); // 파토스 다음 카드 효과
+
+  // 파토스 사용 결과 처리
+  const handlePathosUsed = React.useCallback((result: PathosUseResult, newCooldowns: PathosCooldowns) => {
+    // 쿨다운 업데이트
+    setPathosCooldowns(newCooldowns);
+
+    // 플레이어/적 상태 업데이트
+    if (result.updatedPlayer) {
+      actions.setPlayer(result.updatedPlayer as unknown as PlayerState);
+    }
+    if (result.updatedEnemy) {
+      actions.setEnemy(result.updatedEnemy as unknown as EnemyState);
+    }
+
+    // 로그 추가
+    result.logs.forEach(log => actions.addLog(log));
+
+    // turnEffects와 nextCardEffects 저장 (병합)
+    if (result.turnEffects) {
+      setPathosTurnEffects(prev => ({ ...prev, ...result.turnEffects }));
+    }
+    if (result.nextCardEffects) {
+      setPathosNextCardEffects(prev => ({ ...prev, ...result.nextCardEffects }));
+    }
+  }, [actions]);
+
+  // 파토스 쿨다운 감소 및 턴 효과 초기화 (턴 시작 시)
+  const prevTurnNumberRef = useRef(0);
+  useEffect(() => {
+    if (battle.turnNumber > prevTurnNumberRef.current && battle.phase === 'select') {
+      setPathosCooldowns((prev: PathosCooldowns) => decreaseCooldowns(prev));
+      setPathosTurnEffects(undefined); // 턴 효과 초기화
+      prevTurnNumberRef.current = battle.turnNumber;
+    }
+  }, [battle.turnNumber, battle.phase]);
+
+  // battleRef에 파토스 효과 동기화
+  useEffect(() => {
+    if (battleRef.current) {
+      (battleRef.current as { pathosTurnEffects?: typeof pathosTurnEffects }).pathosTurnEffects = pathosTurnEffects;
+      (battleRef.current as { pathosNextCardEffects?: typeof pathosNextCardEffects }).pathosNextCardEffects = pathosNextCardEffects;
+    }
+  }, [pathosTurnEffects, pathosNextCardEffects]);
+
+  // 다음 카드 효과 소모 함수
+  const consumeNextCardEffects = React.useCallback(() => {
+    setPathosNextCardEffects(undefined);
+  }, []);
 
   const stepOnceRef = useRef<(() => void) | null>(null); // stepOnce 함수 참조 (브리치 선택 후 진행 재개용)
 
@@ -763,7 +816,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     etherSlots,
     playSound,
     addLog,
-    actions: actions as unknown as never
+    actions: actions as unknown as never,
+    pathosNextCardEffects,
+    consumeNextCardEffects
   });
 
   // 에테르 계산 애니메이션 (커스텀 훅으로 분리)
@@ -1043,7 +1098,11 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       allCards: CARDS as Card[],  // 카드 창조용 전체 카드 풀
       hand: currentBattle.hand || [],  // autoReload용: 현재 손패
       enemyDisplayName,  // 적 유닛 이름 (로그용)
-      fencingDamageBonus: (currentNextTurnEffects as { fencingDamageBonus?: number }).fencingDamageBonus || 0  // 날 세우기: 검격 공격력 보너스
+      fencingDamageBonus: (currentNextTurnEffects as { fencingDamageBonus?: number }).fencingDamageBonus || 0,  // 날 세우기: 검격 공격력 보너스
+      // 파토스 효과
+      pathosTurnEffects,  // 턴 동안 유지되는 파토스 효과
+      pathosNextCardEffects,  // 다음 카드에만 적용되는 파토스 효과
+      guaranteedCrit: pathosNextCardEffects?.guaranteeCrit  // 다음 카드 치명타 보장
     };
 
     // 에테르 누적 헬퍼 함수 (공통 파라미터 캡처)
@@ -1790,8 +1849,18 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     const hasUnits = hasEnemyUnits(enemyUnits);
 
     if (hasUnits && a.actor === 'player' && a.card?.type === 'attack') {
+      // 파토스 aoe 효과 확인
+      const isPathosAoe = pathosNextCardEffects?.aoe === true;
+      const cardWithAoe = isPathosAoe
+        ? { ...(a.card as Card & { __targetUnitId?: number; __targetUnitIds?: number[]; isAoe?: boolean; damage?: number }), isAoe: true }
+        : (a.card as Card & { __targetUnitId?: number; __targetUnitIds?: number[]; isAoe?: boolean; damage?: number });
+
+      if (isPathosAoe) {
+        addLog('💥 파토스: 전체 공격!');
+      }
+
       const damageDistributionResult = distributeUnitDamage({
-        card: a.card as Card & { __targetUnitId?: number; __targetUnitIds?: number[]; isAoe?: boolean; damage?: number },
+        card: cardWithAoe,
         enemyUnits: enemyUnits as unknown as EnemyUnit[],
         damageDealt: actionResult.dealt || 0,
         selectedTargetUnit: battle.selectedTargetUnit ?? 0
@@ -1815,6 +1884,14 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       playBlockSound,
       actions
     });
+
+    // 파토스 다음 카드 효과 소모 (플레이어 카드 실행 후)
+    if (a.actor === 'player' && pathosNextCardEffects) {
+      if (pathosNextCardEffects.guaranteeCrit || pathosNextCardEffects.setSpeed || pathosNextCardEffects.aoe) {
+        consumeNextCardEffects();
+        addLog('✨ 파토스 다음 카드 효과 소모');
+      }
+    }
 
     const newQIndex = battleRef.current.qIndex + 1;
 
@@ -2098,6 +2175,17 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         enemyPlan={battle.enemyPlan as unknown as ItemSlotsEnemyPlan}
         battleRef={battleRef as unknown as import("react").RefObject<ItemSlotsBattleRef | null>}
       />
+
+      {/* 파토스 슬롯 - 아이템 슬롯 아래 */}
+      <PathosSlots
+        phase={battle.phase}
+        player={battle.player}
+        enemy={battle.enemy}
+        cooldowns={pathosCooldowns}
+        onPathosUsed={handlePathosUsed}
+        battleRef={battleRef as unknown as import("react").MutableRefObject<{ phase?: string } | null>}
+      />
+
       {/* 예상 피해량 - 오른쪽 고정 패널 */}
       <div className="expect-sidebar-fixed">
         <ExpectedDamagePreview

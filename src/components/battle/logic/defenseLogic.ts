@@ -17,7 +17,10 @@ import type {
   BattleEvent
 } from '../../../types';
 import { applyTokenEffectsToCard, consumeTokens } from '../../../lib/tokenEffects';
+import { addToken } from '../../../lib/tokenUtils';
 import { calculateGrowingDefense, hasSpecial } from '../utils/cardSpecialEffects';
+import { getCombatTokens } from '../../../lib/logosEffects';
+import { isSwordCard } from '../../../lib/ethosEffects';
 
 /**
  * 방어 행동 적용
@@ -114,6 +117,42 @@ export function applyDefense(
       updatedActor = { ...updatedActor, hp: newHp };
       healText = ` 💚 +${actualHeal} HP`;
     }
+  }
+
+  // 로고스 효과: 배틀 왈츠 Lv3 - 검격 방어 시 수세 토큰 획득
+  let logosTokenText = '';
+  if (actorName === 'player' && isSwordCard(card)) {
+    const combatTokens = getCombatTokens();
+    if (combatTokens.onDefense) {
+      const tokenResult = addToken(updatedActor, combatTokens.onDefense, 1);
+      updatedActor = { ...updatedActor, tokens: tokenResult.tokens };
+      logosTokenText = ` ✨ ${combatTokens.onDefense} 획득`;
+      tokenLogs.push(`배틀 왈츠: 검격 방어! ${combatTokens.onDefense} 획득`);
+    }
+  }
+
+  // 파토스 효과: onCrossBlock - 교차 시 추가 방어력
+  if (actorName === 'player' && battleContext.pathosTurnEffects?.onCrossBlock) {
+    const { queue = [], currentQIndex = 0 } = battleContext;
+    const isOverlapping = queue.some((q, idx) => {
+      if (q.actor !== 'enemy') return false;
+      if (idx <= currentQIndex) return false;
+      const spDiff = Math.abs((q.sp || 0) - currentSp);
+      return spDiff < 1;
+    });
+
+    if (isOverlapping) {
+      const crossBlockBonus = battleContext.pathosTurnEffects.onCrossBlock;
+      updatedActor = { ...updatedActor, block: (updatedActor.block || 0) + crossBlockBonus };
+      tokenLogs.push(`⚔️ 교차 방어: +${crossBlockBonus} 방어력`);
+    }
+  }
+
+  // 파토스 효과: onSwordBlock - 검격 방어 시 추가 방어력
+  if (actorName === 'player' && isSwordCard(card) && battleContext.pathosTurnEffects?.onSwordBlock) {
+    const swordBlockBonus = battleContext.pathosTurnEffects.onSwordBlock;
+    updatedActor = { ...updatedActor, block: (updatedActor.block || 0) + swordBlockBonus };
+    tokenLogs.push(`⚔️ 검격 방어: +${swordBlockBonus} 방어력`);
   }
 
   const enemyName = battleContext.enemyDisplayName || '몬스터';

@@ -23,12 +23,16 @@ const createInitialState = (): RestSliceState & Partial<PlayerSliceState> => ({
   resources: { gold: 50, intel: 0, loot: 0, material: 0, etherPts: 0, memory: 100 },
 });
 
-type TestStore = ReturnType<typeof createInitialState> & RestActionsSlice;
+type TestStore = ReturnType<typeof createInitialState> & RestActionsSlice & {
+  updatePyramidLevel: () => void;
+};
 
 const createTestStore = () =>
   create<TestStore>((set, get, api) => ({
     ...createInitialState(),
     ...createRestActions(set as never, get as never, api as never),
+    // 피라미드 레벨 업데이트 모킹 (새 성장 시스템)
+    updatePyramidLevel: () => {},
   }));
 
 describe('restSlice', () => {
@@ -152,76 +156,5 @@ describe('restSlice', () => {
     });
   });
 
-  describe('formEgo', () => {
-    it('5개 미만의 개성으로는 자아를 형성하지 않는다', () => {
-      store.setState({ ...store.getState(), playerTraits: ['용맹함', '굳건함', '냉철함'] });
-      store.getState().formEgo(['용맹함', '굳건함']);
-      expect(store.getState().playerEgos).toEqual([]);
-    });
-
-    it('보유하지 않은 개성으로는 자아를 형성하지 않는다', () => {
-      store.setState({ ...store.getState(), playerTraits: ['용맹함', '굳건함'] });
-      store.getState().formEgo(['용맹함', '굳건함', '냉철함', '철저함', '열정적']);
-      expect(store.getState().playerEgos).toEqual([]);
-    });
-
-    it('null 입력은 무시한다', () => {
-      store.setState({ ...store.getState(), playerTraits: ['용맹함', '굳건함', '냉철함', '철저함', '열정적'] });
-      store.getState().formEgo(null as any);
-      expect(store.getState().playerEgos).toEqual([]);
-    });
-
-    it('5개의 개성으로 자아를 형성한다', () => {
-      store.setState({
-        ...store.getState(),
-        playerTraits: ['용맹함', '굳건함', '냉철함', '철저함', '열정적', '활력적']
-      });
-      store.getState().formEgo(['용맹함', '굳건함', '냉철함', '철저함', '열정적']);
-      expect(store.getState().playerEgos?.length).toBe(1);
-      expect(store.getState().playerTraits).toEqual(['활력적']);
-    });
-
-    it('자아 형성 시 소비된 특성이 제거된다', () => {
-      store.setState({
-        ...store.getState(),
-        playerTraits: ['용맹함', '용맹함', '굳건함', '냉철함', '철저함', '열정적']
-      });
-      store.getState().formEgo(['용맹함', '굳건함', '냉철함', '철저함', '열정적']);
-      expect(store.getState().playerTraits).toEqual(['용맹함']);
-    });
-
-    it('자아는 특성 조합에 따라 결정된다', () => {
-      store.setState({
-        ...store.getState(),
-        playerTraits: ['열정적', '열정적', '용맹함', '용맹함', '용맹함']
-      });
-      store.getState().formEgo(['열정적', '열정적', '용맹함', '용맹함', '용맹함']);
-      const ego = store.getState().playerEgos?.[0];
-      expect(ego).toBeDefined();
-      expect(ego?.name).toBe('헌신'); // 열정적 + 용맹함 = 헌신
-    });
-
-    it('자아 효과가 올바르게 계산된다', () => {
-      store.setState({
-        ...store.getState(),
-        playerTraits: ['용맹함', '용맹함', '굳건함', '냉철함', '철저함']
-      });
-      store.getState().formEgo(['용맹함', '용맹함', '굳건함', '냉철함', '철저함']);
-      const ego = store.getState().playerEgos?.[0];
-      expect(ego?.effects.playerStrength).toBe(2); // 용맹함 x2
-      expect(ego?.effects.maxHp).toBe(10); // 굳건함 x1
-      expect(ego?.effects.playerInsight).toBe(1); // 냉철함 x1
-      expect(ego?.effects.extraSubSpecialSlots).toBe(1); // 철저함 x1
-    });
-
-    it('중복 특성을 올바르게 소비한다', () => {
-      store.setState({
-        ...store.getState(),
-        playerTraits: ['용맹함', '용맹함', '용맹함', '용맹함', '용맹함', '용맹함']
-      });
-      store.getState().formEgo(['용맹함', '용맹함', '용맹함', '용맹함', '용맹함']);
-      expect(store.getState().playerEgos?.length).toBe(1);
-      expect(store.getState().playerTraits).toEqual(['용맹함']);
-    });
-  });
+  // formEgo 테스트 제거됨 - 새 성장 시스템(growthSlice)으로 대체
 });

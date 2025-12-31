@@ -13,6 +13,7 @@ import { useGameStore } from "../../state/gameStore";
 import { CARDS } from "../battle/battleData";
 import { calculatePassiveEffects } from "../../lib/relicEffects";
 import { getReflectionsByEgos, getTraitCountBonus } from "../../data/reflections";
+import { getExtraMainSlots, getExtraSubSlots } from "../../lib/logosEffects";
 import type { Card } from "../../types/core";
 import type { PlayerEgo } from "../../state/slices/types";
 import type { ReflectionInfo } from "../../types/ui";
@@ -91,9 +92,11 @@ export function useCharacterSheet({ showAllCards = false }: UseCharacterSheetPro
   const power = playerStrength || 0;
   const agility = playerAgility || 0;
 
-  // 슬롯 제한 (상징 효과 반영)
-  const maxMainSlots = 1 + passiveEffects.mainSpecialSlots;
-  const maxSubSlots = 2 + passiveEffects.subSpecialSlots + extraSubSpecialSlots;
+  // 슬롯 제한 (상징 효과 + 로고스 효과 반영)
+  const logosExtraMain = getExtraMainSlots();
+  const logosExtraSub = getExtraSubSlots();
+  const maxMainSlots = 1 + passiveEffects.mainSpecialSlots + logosExtraMain;
+  const maxSubSlots = 2 + passiveEffects.subSpecialSlots + extraSubSpecialSlots + logosExtraSub;
 
   const traitCounts = useMemo(() => {
     return (playerTraits || []).reduce((acc: Record<string, number>, t: string) => {
