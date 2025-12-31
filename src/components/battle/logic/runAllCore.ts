@@ -170,21 +170,44 @@ export function runAllCore(params: RunAllCoreParams) {
       if (damageDealt > 0) {
         const currentUnits = E.units || enemyUnits;
         const aliveUnits = currentUnits.filter((u: EnemyUnit) => u.hp > 0);
-        let targetUnit = aliveUnits.find((u: EnemyUnit) => u.unitId === selectedTargetUnit);
-        if (!targetUnit && aliveUnits.length > 0) {
-          targetUnit = aliveUnits[0];
-        }
 
-        if (targetUnit) {
-          const unitHpBefore = targetUnit.hp;
-          const newUnitHp = Math.max(0, targetUnit.hp - damageDealt);
+        // 파토스 aoe 효과 확인
+        const pathosNextCardEffects = (battle as { pathosNextCardEffects?: { aoe?: boolean } }).pathosNextCardEffects;
+        const isAoe = pathosNextCardEffects?.aoe === true;
 
+        if (isAoe && aliveUnits.length > 1) {
+          // AOE: 모든 유닛에게 동일 데미지
+          let totalDamage = 0;
           const updatedUnits = currentUnits.map((u: EnemyUnit) => {
-            if (u.unitId === targetUnit.unitId) {
-              return { ...u, hp: newUnitHp };
+            if (u.hp > 0) {
+              const newHp = Math.max(0, u.hp - damageDealt);
+              totalDamage += u.hp - newHp;
+              return { ...u, hp: newHp };
             }
             return u;
           });
+
+          E.units = updatedUnits;
+          E.hp = updatedUnits.reduce((sum: number, u: EnemyUnit) => sum + Math.max(0, u.hp), 0);
+          tempState = { player: P, enemy: E, log: [] };
+          addLog(`💥 전체 공격! 모든 적에게 ${damageDealt} 피해!`);
+        } else {
+          // 단일 타겟
+          let targetUnit = aliveUnits.find((u: EnemyUnit) => u.unitId === selectedTargetUnit);
+          if (!targetUnit && aliveUnits.length > 0) {
+            targetUnit = aliveUnits[0];
+          }
+
+          if (targetUnit) {
+            const unitHpBefore = targetUnit.hp;
+            const newUnitHp = Math.max(0, targetUnit.hp - damageDealt);
+
+            const updatedUnits = currentUnits.map((u: EnemyUnit) => {
+              if (u.unitId === targetUnit.unitId) {
+                return { ...u, hp: newUnitHp };
+              }
+              return u;
+            });
 
           const newTotalHp = updatedUnits.reduce((sum: number, u: EnemyUnit) => sum + Math.max(0, u.hp), 0);
           E.hp = newTotalHp;
@@ -216,9 +239,10 @@ export function runAllCore(params: RunAllCoreParams) {
               }
             }
           }
-        }
-      }
-    }
+          } // if (targetUnit)
+        } // else (단일 타겟)
+      } // if (damageDealt > 0)
+    } // if (hasUnits && player attack)
 
     // 화상(BURN) 피해 처리
     if (a.actor === 'player') {

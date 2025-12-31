@@ -560,6 +560,32 @@ export function calculateSingleHit(
         logs.push(...rainResult.logs);
         timelineAdvance += rainResult.advance;
       }
+
+      // 파토스 효과: counterAttack (플레이어 피격 시 반격 확률)
+      if (attackerName === 'enemy' && finalDmg > 0 && battleContext.pathosTurnEffects?.counterAttack) {
+        const counterChance = battleContext.pathosTurnEffects.counterAttack;
+        const roll = Math.random() * 100;
+        if (roll < counterChance) {
+          const counterCard = CARDS.find(c => c.id === 'slash');
+          const counterDamage = (counterCard?.damage || 8) + (updatedDefender.strength || 0);
+          const beforeHPCounter = updatedAttacker.hp;
+          updatedAttacker = {
+            ...updatedAttacker,
+            hp: Math.max(0, updatedAttacker.hp - counterDamage)
+          };
+
+          const enemyNameCounter = battleContext.enemyDisplayName || '몬스터';
+          const counterMsg = `⚔️ 반격: 피격 반격! ${enemyNameCounter}에게 ${counterDamage} 피해 (체력 ${beforeHPCounter} -> ${updatedAttacker.hp})`;
+          events.push({
+            actor: 'player',
+            type: 'pathos' as const,
+            dmg: counterDamage,
+            msg: counterMsg
+          } as BattleEvent);
+          logs.push(counterMsg);
+          damageTaken += counterDamage;
+        }
+      }
     }
   } else {
     // 취약 배율: 토큰 효과 + 이변 효과
@@ -641,6 +667,33 @@ export function calculateSingleHit(
       events.push(...rainResult.events);
       logs.push(...rainResult.logs);
       timelineAdvance += rainResult.advance;
+    }
+
+    // 파토스 효과: counterAttack (플레이어 피격 시 반격 확률)
+    if (attackerName === 'enemy' && finalDmg > 0 && battleContext.pathosTurnEffects?.counterAttack) {
+      const counterChance = battleContext.pathosTurnEffects.counterAttack;
+      const roll = Math.random() * 100;
+      if (roll < counterChance) {
+        // 기본 반격 피해 (검격 카드 기반)
+        const counterCard = CARDS.find(c => c.id === 'slash');
+        const counterDamage = (counterCard?.damage || 8) + (updatedDefender.strength || 0);
+        const beforeHPCounter = updatedAttacker.hp;
+        updatedAttacker = {
+          ...updatedAttacker,
+          hp: Math.max(0, updatedAttacker.hp - counterDamage)
+        };
+
+        const enemyNameCounter = battleContext.enemyDisplayName || '몬스터';
+        const counterMsg = `⚔️ 반격: 피격 반격! ${enemyNameCounter}에게 ${counterDamage} 피해 (체력 ${beforeHPCounter} -> ${updatedAttacker.hp})`;
+        events.push({
+          actor: 'player',
+          type: 'pathos' as const,
+          dmg: counterDamage,
+          msg: counterMsg
+        } as BattleEvent);
+        logs.push(counterMsg);
+        damageTaken += counterDamage;
+      }
     }
 
     // 파토스 효과: gunToMelee (총격 시 추가 타격)

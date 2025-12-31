@@ -815,7 +815,9 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     etherSlots,
     playSound,
     addLog,
-    actions: actions as unknown as never
+    actions: actions as unknown as never,
+    pathosNextCardEffects,
+    consumeNextCardEffects
   });
 
   // 에테르 계산 애니메이션 (커스텀 훅으로 분리)
@@ -1835,8 +1837,18 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     const hasUnits = hasEnemyUnits(enemyUnits);
 
     if (hasUnits && a.actor === 'player' && a.card?.type === 'attack') {
+      // 파토스 aoe 효과 확인
+      const isPathosAoe = pathosNextCardEffects?.aoe === true;
+      const cardWithAoe = isPathosAoe
+        ? { ...(a.card as Card & { __targetUnitId?: number; __targetUnitIds?: number[]; isAoe?: boolean; damage?: number }), isAoe: true }
+        : (a.card as Card & { __targetUnitId?: number; __targetUnitIds?: number[]; isAoe?: boolean; damage?: number });
+
+      if (isPathosAoe) {
+        addLog('💥 파토스: 전체 공격!');
+      }
+
       const damageDistributionResult = distributeUnitDamage({
-        card: a.card as Card & { __targetUnitId?: number; __targetUnitIds?: number[]; isAoe?: boolean; damage?: number },
+        card: cardWithAoe,
         enemyUnits: enemyUnits as unknown as EnemyUnit[],
         damageDealt: actionResult.dealt || 0,
         selectedTargetUnit: battle.selectedTargetUnit ?? 0

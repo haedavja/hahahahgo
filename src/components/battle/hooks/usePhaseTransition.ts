@@ -74,6 +74,13 @@ interface PhaseTransitionActions {
   setSelected: (cards: Card[]) => void;
 }
 
+/** 파토스 다음 카드 효과 */
+interface PathosNextCardEffects {
+  guaranteeCrit?: boolean;
+  setSpeed?: number;
+  aoe?: boolean;
+}
+
 /** 페이즈 전환 훅 파라미터 */
 interface UsePhaseTransitionParams {
   battleRef: MutableRefObject<BattleRefValue>;
@@ -95,6 +102,8 @@ interface UsePhaseTransitionParams {
   playSound: (frequency: number, duration: number) => void;
   addLog: (message: string) => void;
   actions: PhaseTransitionActions;
+  pathosNextCardEffects?: PathosNextCardEffects;
+  consumeNextCardEffects?: () => void;
 }
 
 /** 페이즈 전환 훅 반환 타입 */
@@ -128,7 +137,9 @@ export function usePhaseTransition({
   etherSlots,
   playSound,
   addLog,
-  actions
+  actions,
+  pathosNextCardEffects,
+  consumeNextCardEffects
 }: UsePhaseTransitionParams): UsePhaseTransitionReturn {
   // select → respond 전환
   const startResolve = useCallback(() => {
@@ -217,10 +228,25 @@ export function usePhaseTransition({
       });
     }
 
-    const newQ = effectiveFixedOrder.map((x: BattleAction) => ({ actor: x.actor, card: x.card, sp: x.sp }));
+    let newQ = effectiveFixedOrder.map((x: BattleAction) => ({ actor: x.actor, card: x.card, sp: x.sp }));
     if (newQ.length === 0) {
       addLog('⚠️ 큐 생성 실패: 실행할 항목이 없습니다');
       return;
+    }
+
+    // 파토스 setSpeed 효과: 첫 번째 플레이어 카드의 속도 변경
+    if (pathosNextCardEffects?.setSpeed !== undefined) {
+      const firstPlayerIdx = newQ.findIndex(item => item.actor === 'player');
+      if (firstPlayerIdx !== -1) {
+        const setSpeedValue = pathosNextCardEffects.setSpeed;
+        newQ = newQ.map((item, idx) => {
+          if (idx === firstPlayerIdx) {
+            return { ...item, sp: setSpeedValue };
+          }
+          return item;
+        });
+        addLog(`⚡ 파토스: 첫 번째 카드 속도 → ${setSpeedValue}`);
+      }
     }
 
     const frozenOrderCount = currentBattle?.frozenOrder || battleRef.current?.frozenOrder || 0;
@@ -290,7 +316,7 @@ export function usePhaseTransition({
     actions.setTimelineIndicatorVisible(true);
     actions.setNetEtherDelta(null);
     actions.setAutoProgress(true);
-  }, [battleRef, fixedOrder, enemyPlan, enemy, player, willOverdrive, turnNumber, etherSlots, playSound, addLog, actions, devilDiceTriggeredRef]);
+  }, [battleRef, fixedOrder, enemyPlan, enemy, player, willOverdrive, turnNumber, etherSlots, playSound, addLog, actions, devilDiceTriggeredRef, pathosNextCardEffects, consumeNextCardEffects]);
 
   // respond → select 되감기
   const rewindToSelect = useCallback(() => {

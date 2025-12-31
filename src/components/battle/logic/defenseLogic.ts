@@ -131,6 +131,30 @@ export function applyDefense(
     }
   }
 
+  // 파토스 효과: onCrossBlock - 교차 시 추가 방어력
+  if (actorName === 'player' && battleContext.pathosTurnEffects?.onCrossBlock) {
+    const { queue = [], currentQIndex = 0 } = battleContext;
+    const isOverlapping = queue.some((q, idx) => {
+      if (q.actor !== 'enemy') return false;
+      if (idx <= currentQIndex) return false;
+      const spDiff = Math.abs((q.sp || 0) - currentSp);
+      return spDiff < 1;
+    });
+
+    if (isOverlapping) {
+      const crossBlockBonus = battleContext.pathosTurnEffects.onCrossBlock;
+      updatedActor = { ...updatedActor, block: (updatedActor.block || 0) + crossBlockBonus };
+      tokenLogs.push(`⚔️ 교차 방어: +${crossBlockBonus} 방어력`);
+    }
+  }
+
+  // 파토스 효과: onSwordBlock - 검격 방어 시 추가 방어력
+  if (actorName === 'player' && isSwordCard(card) && battleContext.pathosTurnEffects?.onSwordBlock) {
+    const swordBlockBonus = battleContext.pathosTurnEffects.onSwordBlock;
+    updatedActor = { ...updatedActor, block: (updatedActor.block || 0) + swordBlockBonus };
+    tokenLogs.push(`⚔️ 검격 방어: +${swordBlockBonus} 방어력`);
+  }
+
   const enemyName = battleContext.enemyDisplayName || '몬스터';
   const who = actorName === 'player' ? `플레이어(${card.name})` : `${enemyName}(${card.name})`;
   const growingText = growingDefenseBonus > 0 ? ` (+${growingDefenseBonus} 방어자세)` : '';
