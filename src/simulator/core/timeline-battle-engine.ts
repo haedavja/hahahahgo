@@ -128,6 +128,15 @@ const DEFAULT_CONFIG: BattleEngineConfig = {
   mapRisk: 0,
 };
 
+// ==================== 특성 수정자 타입 ====================
+
+interface TraitModifiers {
+  damageMultiplier: number;
+  blockMultiplier: number;
+  speedModifier: number;
+  effects: string[];
+}
+
 // ==================== 타임라인 전투 엔진 ====================
 
 export class TimelineBattleEngine {
@@ -1338,13 +1347,6 @@ export class TimelineBattleEngine {
   }
 
   // ==================== 특성 처리 ====================
-
-  interface TraitModifiers {
-    damageMultiplier: number;
-    blockMultiplier: number;
-    speedModifier: number;
-    effects: string[];
-  }
 
   private processTraits(
     card: GameCard,
