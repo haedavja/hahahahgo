@@ -6,6 +6,9 @@
 import { readFileSync, existsSync, writeFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
+import { getLogger } from '../core/logger';
+
+const log = getLogger('DataLoader');
 
 // ESM에서 __dirname 대체
 const __filename = fileURLToPath(import.meta.url);
@@ -89,7 +92,7 @@ export function loadCards(forceReload = false): Record<string, CardData> {
 
   const filePath = join(__dirname, 'cards.json');
   if (!existsSync(filePath)) {
-    console.warn('cards.json not found, using empty data');
+    log.warn('cards.json not found, using empty data');
     return {};
   }
 
@@ -103,7 +106,7 @@ export function loadEnemies(forceReload = false): Record<string, EnemyData> {
 
   const filePath = join(__dirname, 'enemies.json');
   if (!existsSync(filePath)) {
-    console.warn('enemies.json not found, using empty data');
+    log.warn('enemies.json not found, using empty data');
     return {};
   }
 
@@ -118,7 +121,7 @@ export function loadPresets(forceReload = false): Record<string, PresetData> {
 
   const filePath = join(__dirname, 'presets.json');
   if (!existsSync(filePath)) {
-    console.warn('presets.json not found, using empty data');
+    log.warn('presets.json not found, using empty data');
     return {};
   }
 

@@ -5,6 +5,10 @@
 
 import type { MCTSNode, GameState, TimelineCard } from '../core/types';
 import { loadCards, loadEnemies, type CardData, type EnemyData } from '../data/loader';
+import { createError, safeSync, type SimulatorError } from '../core/error-handling';
+import { getLogger } from '../core/logger';
+
+const log = getLogger('MCTS');
 
 // ==================== MCTS 설정 ====================
 
@@ -12,7 +16,11 @@ export interface MCTSOptions {
   explorationConstant: number;  // UCB1 탐색 상수 (기본 1.41)
   maxIterations: number;
   maxSimulationDepth: number;
-  timeLimit: number;  // ms
+  maxTurns: number;            // 최대 턴 수 (기본 30, 설정 가능)
+  timeLimit: number;           // ms
+  parallelSimulations: number; // 병렬 시뮬레이션 수 (기본 1)
+  earlyTermination: boolean;   // 확실한 승리 시 조기 종료
+  pruning: boolean;            // 불리한 가지 가지치기
 }
 
 // ==================== MCTS 노드 ====================
@@ -52,8 +60,8 @@ class TreeNode implements MCTSNode {
     return this.untriedActions.length === 0;
   }
 
-  isTerminal(): boolean {
-    return this.state.player.hp <= 0 || this.state.enemy.hp <= 0 || this.state.turn >= 30;
+  isTerminal(maxTurns: number = 30): boolean {
+    return this.state.player.hp <= 0 || this.state.enemy.hp <= 0 || this.state.turn >= maxTurns;
   }
 
   getUCB1(explorationConstant: number): number {
@@ -77,40 +85,69 @@ export class MCTSEngine {
 
   constructor(options: Partial<MCTSOptions> = {}) {
     this.options = {
-      explorationConstant: options.explorationConstant || Math.sqrt(2),
-      maxIterations: options.maxIterations || 1000,
-      maxSimulationDepth: options.maxSimulationDepth || 20,
-      timeLimit: options.timeLimit || 5000,
+      explorationConstant: options.explorationConstant ?? Math.sqrt(2),
+      maxIterations: options.maxIterations ?? 1000,
+      maxSimulationDepth: options.maxSimulationDepth ?? 20,
+      maxTurns: options.maxTurns ?? 30,
+      timeLimit: options.timeLimit ?? 5000,
+      parallelSimulations: options.parallelSimulations ?? 1,
+      earlyTermination: options.earlyTermination ?? true,
+      pruning: options.pruning ?? true,
     };
 
-    this.cards = loadCards();
-    this.enemies = loadEnemies();
+    log.debug('MCTS Engine initialized', {
+      maxIterations: this.options.maxIterations,
+      maxTurns: this.options.maxTurns,
+      timeLimit: this.options.timeLimit,
+    });
+
+    this.cards = safeSync(() => loadCards(), {}, 'DATA_CARD_NOT_FOUND');
+    this.enemies = safeSync(() => loadEnemies(), {}, 'DATA_ENEMY_NOT_FOUND');
     this.stats = { iterations: 0, avgDepth: 0, bestValue: 0 };
   }
 
   // ==================== 메인 탐색 ====================
 
   findBestAction(state: GameState): MCTSResult {
+    log.time('mcts_search');
     const root = new TreeNode(this.cloneState(state));
     const startTime = Date.now();
+    const { maxTurns, earlyTermination, pruning } = this.options;
 
     let iterations = 0;
     let totalDepth = 0;
+    let earlyTerminationReason: string | null = null;
 
     while (iterations < this.options.maxIterations) {
-      if (Date.now() - startTime > this.options.timeLimit) break;
+      if (Date.now() - startTime > this.options.timeLimit) {
+        log.debug('MCTS search time limit reached');
+        break;
+      }
+
+      // 조기 종료: 확실한 승리/패배
+      if (earlyTermination && iterations > 100) {
+        const bestChild = this.getBestChild(root, 0);
+        if (bestChild) {
+          const winRate = bestChild.value / Math.max(1, bestChild.visits);
+          if (winRate > 0.95 || winRate < -0.95) {
+            earlyTerminationReason = winRate > 0 ? 'certain_win' : 'certain_loss';
+            log.debug(`MCTS early termination: ${earlyTerminationReason}`);
+            break;
+          }
+        }
+      }
 
       // Selection
       let node = root;
       let depth = 0;
 
-      while (!node.isTerminal() && node.isFullyExpanded()) {
-        node = this.selectChild(node);
+      while (!node.isTerminal(maxTurns) && node.isFullyExpanded()) {
+        node = this.selectChild(node, pruning);
         depth++;
       }
 
       // Expansion
-      if (!node.isTerminal() && !node.isFullyExpanded()) {
+      if (!node.isTerminal(maxTurns) && !node.isFullyExpanded()) {
         node = this.expand(node);
         depth++;
       }
@@ -139,6 +176,15 @@ export class MCTSEngine {
       bestValue: bestChild ? bestChild.value / Math.max(1, bestChild.visits) : 0,
     };
 
+    const searchTime = log.timeEnd('mcts_search', 'MCTS search completed');
+    log.debug('MCTS result', {
+      iterations,
+      bestAction: bestChild?.action,
+      confidence: bestChild ? bestChild.visits / iterations : 0,
+      searchTime,
+      earlyTerminationReason,
+    });
+
     return {
       bestAction: bestChild?.action || null,
       confidence: bestChild ? bestChild.visits / iterations : 0,
@@ -149,8 +195,20 @@ export class MCTSEngine {
 
   // ==================== MCTS 단계 ====================
 
-  private selectChild(node: TreeNode): TreeNode {
-    return node.children.reduce((best, child) =>
+  private selectChild(node: TreeNode, pruning: boolean = false): TreeNode {
+    let children = node.children;
+
+    // 가지치기: 확실히 나쁜 노드 제외
+    if (pruning && children.length > 3) {
+      const avgValue = children.reduce((sum, c) => sum + c.value / Math.max(1, c.visits), 0) / children.length;
+      children = children.filter(c => {
+        const nodeValue = c.value / Math.max(1, c.visits);
+        return c.visits < 10 || nodeValue > avgValue - 0.5;
+      });
+      if (children.length === 0) children = node.children;  // 모두 가지치기되면 원복
+    }
+
+    return children.reduce((best, child) =>
       child.getUCB1(this.options.explorationConstant) > best.getUCB1(this.options.explorationConstant)
         ? child
         : best
@@ -168,8 +226,9 @@ export class MCTSEngine {
   private simulate(node: TreeNode): number {
     let state = this.cloneState(node.state);
     let depth = 0;
+    const { maxSimulationDepth, maxTurns } = this.options;
 
-    while (!this.isTerminal(state) && depth < this.options.maxSimulationDepth) {
+    while (!this.isTerminal(state, maxTurns) && depth < maxSimulationDepth) {
       const action = this.getRandomAction(state);
       if (!action) break;
 
@@ -313,8 +372,8 @@ export class MCTSEngine {
     return playable[Math.floor(Math.random() * playable.length)];
   }
 
-  private isTerminal(state: GameState): boolean {
-    return state.player.hp <= 0 || state.enemy.hp <= 0 || state.turn >= 30;
+  private isTerminal(state: GameState, maxTurns?: number): boolean {
+    return state.player.hp <= 0 || state.enemy.hp <= 0 || state.turn >= (maxTurns ?? this.options.maxTurns);
   }
 
   private evaluate(state: GameState): number {
@@ -418,12 +477,17 @@ export class MCTSPlayer {
 
   constructor(options: Partial<MCTSOptions> = {}) {
     this.options = {
-      explorationConstant: options.explorationConstant || Math.sqrt(2),
-      maxIterations: options.maxIterations || 500,
-      maxSimulationDepth: options.maxSimulationDepth || 15,
-      timeLimit: options.timeLimit || 2000,
+      explorationConstant: options.explorationConstant ?? Math.sqrt(2),
+      maxIterations: options.maxIterations ?? 500,
+      maxSimulationDepth: options.maxSimulationDepth ?? 15,
+      maxTurns: options.maxTurns ?? 30,
+      timeLimit: options.timeLimit ?? 2000,
+      parallelSimulations: options.parallelSimulations ?? 1,
+      earlyTermination: options.earlyTermination ?? true,
+      pruning: options.pruning ?? true,
     };
     this.engine = new MCTSEngine(this.options);
+    log.info('MCTSPlayer initialized', { maxTurns: this.options.maxTurns });
   }
 
   async playGame(
@@ -431,10 +495,12 @@ export class MCTSPlayer {
     enemyId: string,
     onTurn?: (turn: number, action: string, state: GameState) => void
   ): Promise<MCTSGameResult> {
+    log.time('mcts_game');
     let state = this.engine.createInitialState(playerDeck, enemyId);
     const actionHistory: string[] = [];
+    const { maxTurns } = this.options;
 
-    while (state.player.hp > 0 && state.enemy.hp > 0 && state.turn < 30) {
+    while (state.player.hp > 0 && state.enemy.hp > 0 && state.turn < maxTurns) {
       // MCTS로 최적 액션 탐색
       const result = this.engine.findBestAction(state);
 
@@ -467,8 +533,18 @@ export class MCTSPlayer {
       }
     }
 
+    const duration = log.timeEnd('mcts_game', 'MCTS game completed');
+    const winner = state.enemy.hp <= 0 ? 'player' : state.player.hp <= 0 ? 'enemy' : 'draw';
+
+    log.info('MCTS game result', {
+      winner,
+      turns: state.turn,
+      actionsPlayed: actionHistory.length,
+      duration,
+    });
+
     return {
-      winner: state.enemy.hp <= 0 ? 'player' : state.player.hp <= 0 ? 'enemy' : 'draw',
+      winner,
       turns: state.turn,
       finalState: state,
       actionHistory,
