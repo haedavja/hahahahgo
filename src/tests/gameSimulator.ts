@@ -7746,6 +7746,261 @@ export function runBurstTiming(battles: number = 30): void {
   console.log('\n' + '═'.repeat(50) + '\n');
 }
 
+/**
+ * 상태 이상 효과 분석 - 디버프/버프 효과 분석
+ */
+export function runStatusEffectAnalysis(battles: number = 30): void {
+  console.log('═'.repeat(50));
+  console.log('🌀 상태 이상 효과 분석');
+  console.log('═'.repeat(50));
+
+  const allEnemies = [...TIER_1_ENEMIES, ...TIER_2_ENEMIES];
+  const statusStats = {
+    debuffsApplied: 0,
+    buffsApplied: 0,
+    debuffDamageBonus: 0,
+    stunCount: 0,
+    bleedCount: 0,
+    poisonCount: 0,
+  };
+
+  for (let i = 0; i < battles; i++) {
+    const enemy = allEnemies[Math.floor(Math.random() * allEnemies.length)];
+    const state = initBattleState(enemy, getDeckPreset('balanced'));
+
+    for (let turn = 0; turn < 30 && state.enemy.hp > 0 && state.player.hp > 0; turn++) {
+      const selectedIndices = selectCardsAI(state.hand);
+
+      // 상태 이상 효과 추적
+      selectedIndices.forEach(idx => {
+        const card = state.hand[idx];
+        if (card) {
+          // 디버프 카드 추정
+          if (card.id.includes('poison') || card.id.includes('bleed')) {
+            statusStats.debuffsApplied++;
+            if (card.id.includes('bleed')) statusStats.bleedCount++;
+            if (card.id.includes('poison')) statusStats.poisonCount++;
+          }
+          // 버프 카드 추정
+          if (card.id.includes('buff') || card.id.includes('boost')) {
+            statusStats.buffsApplied++;
+          }
+        }
+      });
+
+      processPlayerTurn(state, selectedIndices);
+      if (state.enemy.hp <= 0) break;
+      processEnemyTurn(state);
+    }
+  }
+
+  console.log('\n📊 상태 이상 통계:\n');
+  console.log(`  디버프 적용: ${statusStats.debuffsApplied}회`);
+  console.log(`  버프 적용: ${statusStats.buffsApplied}회`);
+  console.log(`  출혈 효과: ${statusStats.bleedCount}회`);
+  console.log(`  독 효과: ${statusStats.poisonCount}회`);
+  console.log(`  전투당 평균 디버프: ${(statusStats.debuffsApplied / battles).toFixed(1)}`);
+
+  // 효과 평가
+  const avgDebuffs = statusStats.debuffsApplied / battles;
+  const rating = avgDebuffs >= 3 ? '높음' : avgDebuffs >= 1 ? '보통' : '낮음';
+  console.log(`\n  💡 상태 이상 활용도: ${rating}`);
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
+/**
+ * 에너지 효율 분석 - 에테르/토큰 사용 효율
+ */
+export function runEnergyEfficiency(battles: number = 30): void {
+  console.log('═'.repeat(50));
+  console.log('⚡ 에너지 효율 분석');
+  console.log('═'.repeat(50));
+
+  const allEnemies = [...TIER_1_ENEMIES, ...TIER_2_ENEMIES];
+  const energyStats = {
+    totalEtherUsed: 0,
+    totalDamageDealt: 0,
+    damagePerEther: 0,
+    avgEtherPerTurn: 0,
+    turns: 0,
+    excessEther: 0,
+  };
+
+  for (let i = 0; i < battles; i++) {
+    const enemy = allEnemies[Math.floor(Math.random() * allEnemies.length)];
+    const state = initBattleState(enemy, getDeckPreset('balanced'));
+    const initialEnemyHp = state.enemy.hp;
+
+    for (let turn = 0; turn < 30 && state.enemy.hp > 0 && state.player.hp > 0; turn++) {
+      const prevEther = state.player.ether || 0;
+      const prevEnemyHp = state.enemy.hp;
+      const selectedIndices = selectCardsAI(state.hand);
+
+      // 카드 비용 추정
+      let etherUsed = selectedIndices.length * 2; // 기본 2 에테르 가정
+      energyStats.totalEtherUsed += etherUsed;
+      energyStats.turns++;
+
+      processPlayerTurn(state, selectedIndices);
+
+      const damageDealt = prevEnemyHp - state.enemy.hp;
+      energyStats.totalDamageDealt += damageDealt;
+
+      if (state.enemy.hp <= 0) break;
+      processEnemyTurn(state);
+    }
+  }
+
+  energyStats.damagePerEther = energyStats.totalEtherUsed > 0 ?
+    energyStats.totalDamageDealt / energyStats.totalEtherUsed : 0;
+  energyStats.avgEtherPerTurn = energyStats.turns > 0 ?
+    energyStats.totalEtherUsed / energyStats.turns : 0;
+
+  console.log('\n📊 에너지 효율 통계:\n');
+  console.log(`  총 에테르 사용: ${energyStats.totalEtherUsed}`);
+  console.log(`  총 피해량: ${energyStats.totalDamageDealt}`);
+  console.log(`  에테르당 피해: ${energyStats.damagePerEther.toFixed(2)}`);
+  console.log(`  턴당 평균 에테르: ${energyStats.avgEtherPerTurn.toFixed(1)}`);
+
+  // 효율 평가
+  const efficiency = energyStats.damagePerEther >= 3 ? '우수' :
+    energyStats.damagePerEther >= 2 ? '양호' : '개선필요';
+  console.log(`\n  💡 에너지 효율 등급: ${efficiency}`);
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
+/**
+ * 팀 시너지 분석 - 상징 조합 시너지
+ */
+export function runTeamSynergy(battles: number = 30): void {
+  console.log('═'.repeat(50));
+  console.log('🤝 팀 시너지 분석');
+  console.log('═'.repeat(50));
+
+  // 다양한 상징 조합 테스트
+  const synergyResults: { relics: string; winRate: number; avgTurns: number }[] = [];
+  const relicCombos = [
+    ['relic_damage', 'relic_crit'],
+    ['relic_defense', 'relic_heal'],
+    ['relic_speed', 'relic_combo'],
+    ['relic_damage', 'relic_heal'],
+  ];
+
+  const allEnemies = [...TIER_1_ENEMIES, ...TIER_2_ENEMIES];
+
+  relicCombos.forEach(combo => {
+    let wins = 0;
+    let totalTurns = 0;
+
+    for (let i = 0; i < battles; i++) {
+      const enemy = allEnemies[Math.floor(Math.random() * allEnemies.length)];
+      const state = initBattleState(enemy, getDeckPreset('balanced'));
+      let turns = 0;
+
+      for (let turn = 0; turn < 30 && state.enemy.hp > 0 && state.player.hp > 0; turn++) {
+        const selectedIndices = selectCardsAI(state.hand);
+        processPlayerTurn(state, selectedIndices);
+        turns++;
+        if (state.enemy.hp <= 0) break;
+        processEnemyTurn(state);
+      }
+
+      if (state.enemy.hp <= 0) wins++;
+      totalTurns += turns;
+    }
+
+    synergyResults.push({
+      relics: combo.join(' + '),
+      winRate: wins / battles,
+      avgTurns: totalTurns / battles,
+    });
+  });
+
+  console.log('\n📊 상징 조합별 시너지:\n');
+  synergyResults
+    .sort((a, b) => b.winRate - a.winRate)
+    .forEach(result => {
+      const rating = result.winRate >= 0.8 ? '⭐⭐⭐' :
+        result.winRate >= 0.6 ? '⭐⭐' : '⭐';
+      console.log(`  ${result.relics}: 승률 ${(result.winRate * 100).toFixed(0)}% (평균 ${result.avgTurns.toFixed(1)}턴) ${rating}`);
+    });
+
+  // 최고 시너지
+  const best = synergyResults.sort((a, b) => b.winRate - a.winRate)[0];
+  console.log(`\n  💡 최고 시너지 조합: ${best?.relics || '없음'}`);
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
+/**
+ * 역전 가능성 분석 - 위기에서 역전 확률
+ */
+export function runComebackPotential(battles: number = 30): void {
+  console.log('═'.repeat(50));
+  console.log('🔄 역전 가능성 분석');
+  console.log('═'.repeat(50));
+
+  const allEnemies = [...TIER_1_ENEMIES, ...TIER_2_ENEMIES];
+  const comebackStats = {
+    lowHpSituations: 0,
+    comebackWins: 0,
+    avgComebackTurns: 0,
+    totalComebackTurns: 0,
+    criticalMoments: 0,
+  };
+
+  for (let i = 0; i < battles; i++) {
+    const enemy = allEnemies[Math.floor(Math.random() * allEnemies.length)];
+    const state = initBattleState(enemy, getDeckPreset('balanced'));
+    const initialPlayerHp = state.player.hp;
+    let wasLowHp = false;
+    let lowHpTurn = 0;
+
+    for (let turn = 0; turn < 30 && state.enemy.hp > 0 && state.player.hp > 0; turn++) {
+      // 체력 30% 이하 체크
+      if (state.player.hp < initialPlayerHp * 0.3 && !wasLowHp) {
+        wasLowHp = true;
+        lowHpTurn = turn;
+        comebackStats.lowHpSituations++;
+      }
+
+      const selectedIndices = selectCardsAI(state.hand);
+      processPlayerTurn(state, selectedIndices);
+
+      if (state.enemy.hp <= 0) {
+        if (wasLowHp) {
+          comebackStats.comebackWins++;
+          comebackStats.totalComebackTurns += turn - lowHpTurn;
+        }
+        break;
+      }
+
+      processEnemyTurn(state);
+    }
+  }
+
+  if (comebackStats.comebackWins > 0) {
+    comebackStats.avgComebackTurns = comebackStats.totalComebackTurns / comebackStats.comebackWins;
+  }
+
+  console.log('\n📊 역전 통계:\n');
+  console.log(`  위기 상황 발생: ${comebackStats.lowHpSituations}회`);
+  console.log(`  역전 성공: ${comebackStats.comebackWins}회`);
+  const comebackRate = comebackStats.lowHpSituations > 0 ?
+    ((comebackStats.comebackWins / comebackStats.lowHpSituations) * 100).toFixed(1) : '0';
+  console.log(`  역전 성공률: ${comebackRate}%`);
+  console.log(`  평균 역전 소요 턴: ${comebackStats.avgComebackTurns.toFixed(1)}`);
+
+  // 역전력 평가
+  const comebackPotential = parseFloat(comebackRate) >= 50 ? '높음' :
+    parseFloat(comebackRate) >= 25 ? '보통' : '낮음';
+  console.log(`\n  💡 역전 잠재력: ${comebackPotential}`);
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
 // CLI에서 직접 실행 시
 if (typeof process !== 'undefined' && process.argv?.[1]?.includes('gameSimulator')) {
   runQuickTest();

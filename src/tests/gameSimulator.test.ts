@@ -980,3 +980,31 @@ describe('버스트 타이밍 분석', () => {
     expect(typeof runBurstTiming).toBe('function');
   });
 });
+
+describe('상태 이상 분석', () => {
+  it('runStatusEffectAnalysis 함수가 존재한다', async () => {
+    const { runStatusEffectAnalysis } = await import('./gameSimulator');
+    expect(typeof runStatusEffectAnalysis).toBe('function');
+  });
+});
+
+describe('에너지 효율 분석', () => {
+  it('runEnergyEfficiency 함수가 존재한다', async () => {
+    const { runEnergyEfficiency } = await import('./gameSimulator');
+    expect(typeof runEnergyEfficiency).toBe('function');
+  });
+});
+
+describe('팀 시너지 분석', () => {
+  it('runTeamSynergy 함수가 존재한다', async () => {
+    const { runTeamSynergy } = await import('./gameSimulator');
+    expect(typeof runTeamSynergy).toBe('function');
+  });
+});
+
+describe('역전 가능성 분석', () => {
+  it('runComebackPotential 함수가 존재한다', async () => {
+    const { runComebackPotential } = await import('./gameSimulator');
+    expect(typeof runComebackPotential).toBe('function');
+  });
+});
