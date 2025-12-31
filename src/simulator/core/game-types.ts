@@ -232,6 +232,10 @@ export interface PlayerState extends CombatantState {
   etherBlocked?: boolean;         // 에테르 획득 불가 (망각)
   mainSpecialtyOnly?: boolean;    // 다음 턴 주특기만 등장 (파탄)
   supportSpecialtyBonus?: number; // 보조특기 등장률 보너스 (장군)
+  // 특수 효과 시스템
+  repeatTimelineNext?: boolean;   // 다음 턴 타임라인 반복 (르 송쥬)
+  blockPerCardExecution?: number; // 카드 실행마다 방어력 획득
+  repeatTimelineCards?: string[]; // 반복할 카드 ID 목록
 }
 
 // ==================== 다중 적 유닛 타입 ====================

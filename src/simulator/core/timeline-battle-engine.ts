@@ -308,6 +308,27 @@ export class TimelineBattleEngine {
     // 2단계: 타임라인 배치
     this.placeCardsOnTimeline(state, playerCards, enemyCards);
 
+    // 타임라인 반복 처리 (르 송쥬 뒤 비에야르)
+    if (state.player.repeatTimelineCards && state.player.repeatTimelineCards.length > 0) {
+      for (const cardId of state.player.repeatTimelineCards) {
+        const card = this.cards[cardId];
+        if (card) {
+          const position = this.calculateCardPosition(card, state.player.tokens);
+          state.timeline.push({
+            cardId: card.id,
+            owner: 'player',
+            position,
+            crossed: false,
+            executed: false,
+          });
+        }
+      }
+      state.timeline.sort((a, b) => a.position - b.position);
+      this.checkCrossings(state);
+      state.battleLog.push(`  🔄 타임라인 반복: ${state.player.repeatTimelineCards.length}장 추가`);
+      state.player.repeatTimelineCards = undefined;
+    }
+
     // 3단계: 대응 단계 (선택적)
     state.phase = 'respond';
     this.executeRespondPhase(state)
@@ -362,6 +383,20 @@ export class TimelineBattleEngine {
     } else if (etherBlockedByAnomaly) {
       state.battleLog.push(`  ❌ 이변: 에테르 획득 불가`);
     }
+
+    // 타임라인 반복 저장 (르 송쥬 뒤 비에야르)
+    if (state.player.repeatTimelineNext) {
+      state.player.repeatTimelineCards = state.timeline
+        .filter(tc => tc.owner === 'player' && tc.executed)
+        .map(tc => tc.cardId);
+      state.player.repeatTimelineNext = false;
+      if (state.player.repeatTimelineCards.length > 0) {
+        state.battleLog.push(`  🔄 타임라인 ${state.player.repeatTimelineCards.length}장 저장`);
+      }
+    }
+
+    // 카드 실행당 방어력 초기화
+    state.player.blockPerCardExecution = undefined;
 
     // 핸드 버리기 및 드로우
     state.player.discard.push(...state.player.hand);
@@ -673,6 +708,12 @@ export class TimelineBattleEngine {
     state.cardUsage = state.cardUsage || {};
     state.cardUsage[card.id] = (state.cardUsage[card.id] || 0) + 1;
 
+    // 카드 실행당 방어력 (르 송쥬 뒤 비에야르)
+    if (state.player.blockPerCardExecution && state.player.blockPerCardExecution > 0) {
+      state.player.block += state.player.blockPerCardExecution;
+      state.battleLog.push(`  🛡️ 카드 실행 방어: +${state.player.blockPerCardExecution}`);
+    }
+
     // 상징 트리거
     if (this.config.enableRelics) {
       const cardEffects = this.relicSystem.processCardPlayed(state.player, state.enemy, card.id);
@@ -719,6 +760,19 @@ export class TimelineBattleEngine {
     if (crossResult.extraBlock) {
       state.player.block += crossResult.extraBlock;
       state.battleLog.push(`  🛡️ 추가 방어: ${crossResult.extraBlock}`);
+    }
+
+    // 교차 보너스 추가 사격 (gun_attack)
+    if (crossResult.gunAttackHits && crossResult.gunAttackHits > 0) {
+      const shootDamage = 5; // 기본 사격 피해
+      for (let i = 0; i < crossResult.gunAttackHits; i++) {
+        const blocked = Math.min(state.enemy.block, shootDamage);
+        const actualDamage = shootDamage - blocked;
+        state.enemy.block -= blocked;
+        state.enemy.hp -= actualDamage;
+        state.playerDamageDealt = (state.playerDamageDealt || 0) + actualDamage;
+        state.battleLog.push(`  🔫 사격 추가: ${actualDamage} 피해${blocked > 0 ? ` (${blocked} 방어)` : ''}`);
+      }
     }
 
     // 토큰 적용
@@ -1171,7 +1225,7 @@ export class TimelineBattleEngine {
           break;
 
         case 'crush':
-          // 분쇄: 방어력에 2배 피해 (별도 처리 필요)
+          // 분쇄: 방어력에 2배 피해 (processAttack에서 처리)
           break;
 
         case 'destroyer':

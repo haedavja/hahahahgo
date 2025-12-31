@@ -180,8 +180,8 @@ const SPECIAL_EFFECTS: Record<string, SpecialEffectHandler> = {
     };
   },
 
-  critLoad: (state, _card, actor) => {
-    // 치명타시 장전 - processAttack에서 별도 처리 필요
+  critLoad: (_state, _card, _actor) => {
+    // 치명타시 장전 - processAttack에서 처리됨
     return {
       success: true,
       effects: ['치명타시 장전'],
@@ -381,12 +381,16 @@ const SPECIAL_EFFECTS: Record<string, SpecialEffectHandler> = {
 
   // ==================== 타임라인 반복 ====================
 
-  repeatTimeline: () => {
-    // 내 타임라인 반복 - 별도 처리 필요
+  repeatTimeline: (state, _card, actor) => {
+    // 내 타임라인 반복 (르 송쥬 뒤 비에야르)
+    if (actor === 'player') {
+      state.player.repeatTimelineNext = true;
+      state.player.blockPerCardExecution = 5;
+    }
     return {
       success: true,
-      effects: ['타임라인 1회 반복'],
-      stateChanges: {},
+      effects: ['다음 턴 타임라인 반복, 카드당 방어 5'],
+      stateChanges: { repeatTimelineNext: true, blockPerCardExecution: 5 },
     };
   },
 
@@ -789,6 +793,7 @@ export interface CrossBonusResult {
   guaranteedCrit?: boolean;
   tokens?: { id: string; stacks: number; target: 'player' | 'enemy' }[];
   pushAmount?: number;
+  gunAttackHits?: number; // 추가 사격 횟수
 }
 
 /**
@@ -819,9 +824,10 @@ export function processCrossBonus(
       break;
 
     case 'gun_attack':
-      // 사격 추가 - 별도 처리 필요
-      const count = bonus.count || 1;
-      result.effects.push(`사격 ${count}회 추가`);
+      // 사격 추가 - 교차 시 기본 사격 피해 추가
+      const gunCount = bonus.count || 1;
+      result.gunAttackHits = gunCount;
+      result.effects.push(`사격 ${gunCount}회 추가`);
       break;
 
     case 'guaranteed_crit':
