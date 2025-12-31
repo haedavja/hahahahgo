@@ -72,6 +72,10 @@
  *   npx tsx scripts/runSimulator.ts stratcmp [battles]    # 전략 비교 분석
  *   npx tsx scripts/runSimulator.ts absorb [battles]      # 피해 흡수 분석
  *   npx tsx scripts/runSimulator.ts killchain [battles]   # 연속 킬 분석
+ *   npx tsx scripts/runSimulator.ts simhistory [battles]  # 시뮬레이션 기록
+ *   npx tsx scripts/runSimulator.ts score [battles]       # 득점 분석
+ *   npx tsx scripts/runSimulator.ts highlight [battles]   # 전투 하이라이트
+ *   npx tsx scripts/runSimulator.ts cost                  # 코스트 분석
  *   npx tsx scripts/runSimulator.ts help                  # 도움말
  *
  * 예시:
@@ -97,7 +101,7 @@
  *   npx tsx scripts/runSimulator.ts trait 30
  */
 
-import { runSimulation, printStats, SimulationConfig, runBalanceAnalysis, runTierSimulation, runFullSimulation, runRelicComparison, runDeckComparison, runAnomalyComparison, runCardEfficiencyAnalysis, runFullReport, runBattleReplay, runEnemyAnalysis, runSynergyAnalysis, runDifficultyScalingAnalysis, runWinConditionAnalysis, exportSimulationResults, runTokenEfficiencyAnalysis, runMatchupAnalysis, runSpeedAnalysis, runTraitSynergyAnalysis, runStrategyRecommendation, printHelp, runDeckCompare, runBenchmark, runRandomDeckTest, runBestCardFinder, runEnemyWeaknessAnalysis, runMultiRelicTest, runProgressionTest, runCardRanking, runRelicRanking, runMetaAnalysis, runTurnAnalysis, runDamageAnalysis, runHealingAnalysis, runComboBreakdown, runStressTest, runProbabilityAnalysis, runVersatilityAnalysis, runConsistencyAnalysis, generatePatchNotes, runEdgeCaseTest, runQuickCheck, runAITest, runTimeTrialTest, runSummary, runDeckBuilder, runWhatIfAnalysis, exportToCSV, runHeatmapAnalysis, runCounterAnalysis, runResourceManagement, runLongBattleAnalysis, runBurstDamageAnalysis, runRandomEventAnalysis, runDummyDataTest, runCyclicAnalysis, runMilestoneAnalysis, runComboOptimization, runEnduranceTest, runBalanceScore, runDrawAnalysis, runAttributeAffinity, runTurnEconomy, runRiskAssessment, runAdaptabilityTest, runTokenSynergy, runCompositionAnalysis, runKeywordAnalysis, runOptimalStrategy, runBurstPotential, runStrategyComparison, runDamageAbsorption, runKillChainAnalysis, TIER_1_ENEMIES, TIER_2_ENEMIES, TIER_3_ENEMIES } from '../src/tests/gameSimulator';
+import { runSimulation, printStats, SimulationConfig, runBalanceAnalysis, runTierSimulation, runFullSimulation, runRelicComparison, runDeckComparison, runAnomalyComparison, runCardEfficiencyAnalysis, runFullReport, runBattleReplay, runEnemyAnalysis, runSynergyAnalysis, runDifficultyScalingAnalysis, runWinConditionAnalysis, exportSimulationResults, runTokenEfficiencyAnalysis, runMatchupAnalysis, runSpeedAnalysis, runTraitSynergyAnalysis, runStrategyRecommendation, printHelp, runDeckCompare, runBenchmark, runRandomDeckTest, runBestCardFinder, runEnemyWeaknessAnalysis, runMultiRelicTest, runProgressionTest, runCardRanking, runRelicRanking, runMetaAnalysis, runTurnAnalysis, runDamageAnalysis, runHealingAnalysis, runComboBreakdown, runStressTest, runProbabilityAnalysis, runVersatilityAnalysis, runConsistencyAnalysis, generatePatchNotes, runEdgeCaseTest, runQuickCheck, runAITest, runTimeTrialTest, runSummary, runDeckBuilder, runWhatIfAnalysis, exportToCSV, runHeatmapAnalysis, runCounterAnalysis, runResourceManagement, runLongBattleAnalysis, runBurstDamageAnalysis, runRandomEventAnalysis, runDummyDataTest, runCyclicAnalysis, runMilestoneAnalysis, runComboOptimization, runEnduranceTest, runBalanceScore, runDrawAnalysis, runAttributeAffinity, runTurnEconomy, runRiskAssessment, runAdaptabilityTest, runTokenSynergy, runCompositionAnalysis, runKeywordAnalysis, runOptimalStrategy, runBurstPotential, runStrategyComparison, runDamageAbsorption, runKillChainAnalysis, runSimulationHistory, runScoreAnalysis, runBattleHighlights, runCostAnalysis, TIER_1_ENEMIES, TIER_2_ENEMIES, TIER_3_ENEMIES } from '../src/tests/gameSimulator';
 import { ENEMIES } from '../src/components/battle/battleData';
 
 // 커맨드 라인 인자 파싱
@@ -613,6 +617,33 @@ if (command === 'killchain') {
   const battles = parseInt(args[1]) || 30;
   console.log('🎮 연속 킬 분석 모드\n');
   runKillChainAnalysis(battles);
+  process.exit(0);
+}
+
+if (command === 'simhistory') {
+  const battles = parseInt(args[1]) || 30;
+  console.log('🎮 시뮬레이션 기록 모드\n');
+  runSimulationHistory(battles);
+  process.exit(0);
+}
+
+if (command === 'score') {
+  const battles = parseInt(args[1]) || 30;
+  console.log('🎮 득점 분석 모드\n');
+  runScoreAnalysis(battles);
+  process.exit(0);
+}
+
+if (command === 'highlight') {
+  const battles = parseInt(args[1]) || 20;
+  console.log('🎮 전투 하이라이트 모드\n');
+  runBattleHighlights(battles);
+  process.exit(0);
+}
+
+if (command === 'cost') {
+  console.log('🎮 코스트 분석 모드\n');
+  runCostAnalysis();
   process.exit(0);
 }
 

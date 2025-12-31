@@ -6721,6 +6721,262 @@ export function runKillChainAnalysis(battles: number = 30): void {
   console.log('\n' + '═'.repeat(50) + '\n');
 }
 
+/**
+ * 시뮬레이션 기록
+ * 시뮬레이션 결과 기록 및 추적
+ */
+export function runSimulationHistory(battles: number = 30): void {
+  console.log('\n╔════════════════════════════════════════╗');
+  console.log('║          시뮬레이션 기록                ║');
+  console.log('╚════════════════════════════════════════╝\n');
+
+  console.log(`📊 시뮬레이션 기록 분석 (${battles}회 전투)\n`);
+  console.log('─'.repeat(50));
+
+  // 여러 시뮬레이션 실행
+  const history: Array<{
+    id: number;
+    deck: string;
+    enemies: string;
+    winRate: number;
+    avgTurns: number;
+  }> = [];
+
+  const deckNames = Object.keys(DECK_PRESETS);
+  const testDecks = deckNames.slice(0, 4);
+
+  let id = 1;
+  for (const deckName of testDecks) {
+    const preset = DECK_PRESETS[deckName as keyof typeof DECK_PRESETS];
+
+    const config: SimulationConfig = {
+      battles,
+      maxTurns: 30,
+      enemyIds: TIER_1_ENEMIES.slice(0, 2),
+      playerDeck: preset,
+      verbose: false,
+    };
+
+    const stats = runSimulation(config);
+    history.push({
+      id,
+      deck: deckName,
+      enemies: 'T1x2',
+      winRate: stats.winRate,
+      avgTurns: stats.avgTurns,
+    });
+    id++;
+  }
+
+  console.log('\n📜 기록:\n');
+  console.log('  ID | 덱           | 적     | 승률   | 평균턴');
+  console.log('  ' + '─'.repeat(50));
+
+  history.forEach(h => {
+    console.log(`  ${h.id.toString().padStart(2)} | ${h.deck.padEnd(12)} | ${h.enemies.padEnd(6)} | ${(h.winRate * 100).toFixed(0).padStart(4)}%  | ${h.avgTurns.toFixed(1)}`);
+  });
+
+  // 통계
+  const avgWinRate = history.reduce((s, h) => s + h.winRate, 0) / history.length;
+  console.log('\n📈 기록 통계:\n');
+  console.log(`  총 시뮬레이션: ${history.length}회`);
+  console.log(`  평균 승률: ${(avgWinRate * 100).toFixed(0)}%`);
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
+/**
+ * 득점 분석
+ * 전투별 득점 패턴 분석
+ */
+export function runScoreAnalysis(battles: number = 30): void {
+  console.log('\n╔════════════════════════════════════════╗');
+  console.log('║          득점 분석                      ║');
+  console.log('╚════════════════════════════════════════╝\n');
+
+  console.log(`📊 덱별 득점 패턴 분석 (${battles}회 전투)\n`);
+  console.log('─'.repeat(50));
+
+  const scoreData: Array<{
+    deck: string;
+    avgScore: number;
+    maxScore: number;
+    consistency: number;
+  }> = [];
+
+  for (const [name, preset] of Object.entries(DECK_PRESETS)) {
+    const config: SimulationConfig = {
+      battles,
+      maxTurns: 30,
+      enemyIds: TIER_1_ENEMIES.slice(0, 3),
+      playerDeck: preset,
+      verbose: false,
+    };
+
+    const stats = runSimulation(config);
+
+    // 득점 = 피해량 * 승률
+    const avgScore = stats.avgPlayerDamage * stats.winRate;
+    const maxScore = stats.avgPlayerDamage * 1.5;
+    const consistency = 1 / (1 + Math.abs(stats.winRate - 0.7));
+
+    scoreData.push({
+      deck: name,
+      avgScore,
+      maxScore,
+      consistency,
+    });
+  }
+
+  // 점수 순 정렬
+  scoreData.sort((a, b) => b.avgScore - a.avgScore);
+
+  console.log('\n🏅 득점 순위:\n');
+  scoreData.forEach((s, i) => {
+    const medal = i < 3 ? ['🥇', '🥈', '🥉'][i] : `${i + 1}.`;
+    const bar = '█'.repeat(Math.ceil(s.avgScore / 10));
+    console.log(`  ${medal} ${s.deck.padEnd(12)}: ${bar} (${s.avgScore.toFixed(0)}점)`);
+  });
+
+  // 일관성 분석
+  console.log('\n📊 일관성 순위:\n');
+  scoreData.sort((a, b) => b.consistency - a.consistency);
+  scoreData.slice(0, 5).forEach((s, i) => {
+    console.log(`  ${i + 1}. ${s.deck}: 일관성 ${(s.consistency * 100).toFixed(0)}%`);
+  });
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
+/**
+ * 전투 하이라이트
+ * 주요 전투 순간 분석
+ */
+export function runBattleHighlights(battles: number = 20): void {
+  console.log('\n╔════════════════════════════════════════╗');
+  console.log('║          전투 하이라이트                ║');
+  console.log('╚════════════════════════════════════════╝\n');
+
+  console.log(`📊 주요 전투 순간 분석 (${battles}회 전투)\n`);
+  console.log('─'.repeat(50));
+
+  const highlights: Array<{
+    type: string;
+    deck: string;
+    value: number;
+    description: string;
+  }> = [];
+
+  // 각 덱별 하이라이트 수집
+  for (const [name, preset] of Object.entries(DECK_PRESETS)) {
+    const config: SimulationConfig = {
+      battles,
+      maxTurns: 30,
+      enemyIds: TIER_1_ENEMIES.slice(0, 2),
+      playerDeck: preset,
+      verbose: false,
+    };
+
+    const stats = runSimulation(config);
+
+    // 최고 피해
+    if (stats.avgPlayerDamage > 80) {
+      highlights.push({
+        type: '최고피해',
+        deck: name,
+        value: stats.avgPlayerDamage,
+        description: `${name}이(가) 평균 ${stats.avgPlayerDamage.toFixed(0)} 피해`,
+      });
+    }
+
+    // 완승
+    if (stats.winRate >= 0.9) {
+      highlights.push({
+        type: '완승',
+        deck: name,
+        value: stats.winRate,
+        description: `${name}이(가) ${(stats.winRate * 100).toFixed(0)}% 승률 달성`,
+      });
+    }
+
+    // 속전속결
+    if (stats.avgTurns < 4 && stats.winRate > 0.5) {
+      highlights.push({
+        type: '속전속결',
+        deck: name,
+        value: stats.avgTurns,
+        description: `${name}이(가) 평균 ${stats.avgTurns.toFixed(1)}턴 전투`,
+      });
+    }
+  }
+
+  console.log('\n🌟 하이라이트:\n');
+  if (highlights.length > 0) {
+    highlights.forEach((h, i) => {
+      const emoji = h.type === '최고피해' ? '💥' : h.type === '완승' ? '🏆' : '⚡';
+      console.log(`  ${i + 1}. ${emoji} [${h.type}] ${h.description}`);
+    });
+  } else {
+    console.log('  특별한 하이라이트가 없습니다.');
+  }
+
+  // 기록
+  console.log('\n📜 기록 보드:\n');
+  console.log('  🏆 최다 승리: ' + (highlights.find(h => h.type === '완승')?.deck || 'N/A'));
+  console.log('  💥 최고 피해: ' + (highlights.find(h => h.type === '최고피해')?.deck || 'N/A'));
+  console.log('  ⚡ 가장 빠름: ' + (highlights.find(h => h.type === '속전속결')?.deck || 'N/A'));
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
+/**
+ * 코스트 분석
+ * 카드 코스트 효율 분석
+ */
+export function runCostAnalysis(): void {
+  console.log('\n╔════════════════════════════════════════╗');
+  console.log('║          코스트 분석                    ║');
+  console.log('╚════════════════════════════════════════╝\n');
+
+  console.log('📊 카드 코스트 효율 분석\n');
+  console.log('─'.repeat(50));
+
+  // 코스트별 카드 분류
+  const costGroups: Record<number, typeof CARDS> = {};
+
+  for (const card of CARDS) {
+    const cost = card.sp || 0;
+    if (!costGroups[cost]) costGroups[cost] = [];
+    costGroups[cost].push(card);
+  }
+
+  console.log('\n💰 코스트별 카드 수:\n');
+  const sortedCosts = Object.keys(costGroups).map(Number).sort((a, b) => a - b);
+
+  sortedCosts.forEach(cost => {
+    const count = costGroups[cost].length;
+    const bar = '█'.repeat(Math.min(count, 20));
+    console.log(`  SP ${cost}: ${bar} (${count}개)`);
+  });
+
+  // 코스트별 평균 피해
+  console.log('\n📈 코스트별 평균 피해:\n');
+  sortedCosts.forEach(cost => {
+    const cards = costGroups[cost];
+    const avgDamage = cards.reduce((s, c) => s + (c.damage || 0), 0) / cards.length;
+    const efficiency = avgDamage / Math.max(1, cost);
+    console.log(`  SP ${cost}: 평균 피해 ${avgDamage.toFixed(1)}, 효율 ${efficiency.toFixed(2)}`);
+  });
+
+  // 최적 코스트
+  console.log('\n💡 코스트 가이드:\n');
+  console.log('  - SP 0: 무료 카드, 기본 행동');
+  console.log('  - SP 1-2: 저코스트, 효율적');
+  console.log('  - SP 3+: 고코스트, 강력한 효과');
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
 // CLI에서 직접 실행 시
 if (typeof process !== 'undefined' && process.argv?.[1]?.includes('gameSimulator')) {
   runQuickTest();

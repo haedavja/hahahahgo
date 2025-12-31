@@ -868,3 +868,31 @@ describe('연속 킬 분석', () => {
     expect(typeof runKillChainAnalysis).toBe('function');
   });
 });
+
+describe('시뮬레이션 기록', () => {
+  it('runSimulationHistory 함수가 존재한다', async () => {
+    const { runSimulationHistory } = await import('./gameSimulator');
+    expect(typeof runSimulationHistory).toBe('function');
+  });
+});
+
+describe('득점 분석', () => {
+  it('runScoreAnalysis 함수가 존재한다', async () => {
+    const { runScoreAnalysis } = await import('./gameSimulator');
+    expect(typeof runScoreAnalysis).toBe('function');
+  });
+});
+
+describe('전투 하이라이트', () => {
+  it('runBattleHighlights 함수가 존재한다', async () => {
+    const { runBattleHighlights } = await import('./gameSimulator');
+    expect(typeof runBattleHighlights).toBe('function');
+  });
+});
+
+describe('코스트 분석', () => {
+  it('runCostAnalysis 함수가 존재한다', async () => {
+    const { runCostAnalysis } = await import('./gameSimulator');
+    expect(typeof runCostAnalysis).toBe('function');
+  });
+});
