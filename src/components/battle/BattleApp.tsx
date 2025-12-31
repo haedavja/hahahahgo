@@ -1084,7 +1084,11 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       allCards: CARDS as Card[],  // 카드 창조용 전체 카드 풀
       hand: currentBattle.hand || [],  // autoReload용: 현재 손패
       enemyDisplayName,  // 적 유닛 이름 (로그용)
-      fencingDamageBonus: (currentNextTurnEffects as { fencingDamageBonus?: number }).fencingDamageBonus || 0  // 날 세우기: 검격 공격력 보너스
+      fencingDamageBonus: (currentNextTurnEffects as { fencingDamageBonus?: number }).fencingDamageBonus || 0,  // 날 세우기: 검격 공격력 보너스
+      // 파토스 효과
+      pathosTurnEffects,  // 턴 동안 유지되는 파토스 효과
+      pathosNextCardEffects,  // 다음 카드에만 적용되는 파토스 효과
+      guaranteedCrit: pathosNextCardEffects?.guaranteeCrit  // 다음 카드 치명타 보장
     };
 
     // 에테르 누적 헬퍼 함수 (공통 파라미터 캡처)
@@ -1856,6 +1860,14 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       playBlockSound,
       actions
     });
+
+    // 파토스 다음 카드 효과 소모 (플레이어 카드 실행 후)
+    if (a.actor === 'player' && pathosNextCardEffects) {
+      if (pathosNextCardEffects.guaranteeCrit || pathosNextCardEffects.setSpeed || pathosNextCardEffects.aoe) {
+        consumeNextCardEffects();
+        addLog('✨ 파토스 다음 카드 효과 소모');
+      }
+    }
 
     const newQIndex = battleRef.current.qIndex + 1;
 

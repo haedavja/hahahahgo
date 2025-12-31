@@ -196,11 +196,13 @@ export function applyTokenEffectsToCard(
 
 /**
  * 피해를 받을 때 토큰 효과 적용
+ * @param options.ignoreEvasion - 회피 무시 확률 (0-100, 파토스 효과)
  */
 export function applyTokenEffectsOnDamage(
   damage: number,
   defender: TokenEntity,
-  attacker: TokenEntity | null
+  attacker: TokenEntity | null,
+  options: { ignoreEvasion?: number } = {}
 ): DamageEffectResult {
   if (!defender || !defender.tokens) {
     return { finalDamage: damage, dodged: false, reflected: 0, consumedTokens: [], logs: [] };
@@ -214,17 +216,26 @@ export function applyTokenEffectsOnDamage(
   // 1. 회피 체크
   const dodgeToken = allTokens.find(t => t.effect.type === 'DODGE');
   if (dodgeToken) {
-    const dodgeChance = dodgeToken.effect.value;
-    if (Math.random() < dodgeChance) {
-      logs.push(`${dodgeToken.name} 발동! 공격 회피!`);
+    // 파토스 효과: 회피 무시
+    const ignoreEvasionChance = options.ignoreEvasion || 0;
+    if (ignoreEvasionChance >= 100 || (ignoreEvasionChance > 0 && Math.random() * 100 < ignoreEvasionChance)) {
+      logs.push(`🎯 회피 무시! (${ignoreEvasionChance}% 확률)`);
       if (dodgeToken.durationType === 'usage') {
         consumedTokens.push({ id: dodgeToken.id, type: 'usage' });
       }
-      return { finalDamage: 0, dodged: true, reflected: 0, consumedTokens, logs };
     } else {
-      logs.push(`${dodgeToken.name} 발동 실패 (${Math.round(dodgeChance * 100)}% 확률)`);
-      if (dodgeToken.durationType === 'usage') {
-        consumedTokens.push({ id: dodgeToken.id, type: 'usage' });
+      const dodgeChance = dodgeToken.effect.value;
+      if (Math.random() < dodgeChance) {
+        logs.push(`${dodgeToken.name} 발동! 공격 회피!`);
+        if (dodgeToken.durationType === 'usage') {
+          consumedTokens.push({ id: dodgeToken.id, type: 'usage' });
+        }
+        return { finalDamage: 0, dodged: true, reflected: 0, consumedTokens, logs };
+      } else {
+        logs.push(`${dodgeToken.name} 발동 실패 (${Math.round(dodgeChance * 100)}% 확률)`);
+        if (dodgeToken.durationType === 'usage') {
+          consumedTokens.push({ id: dodgeToken.id, type: 'usage' });
+        }
       }
     }
   }

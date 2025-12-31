@@ -294,7 +294,9 @@ export function calculateSingleHit(
     logs.push(...consumeResult.logs);
   }
 
-  const tokenDamageResult = applyTokenEffectsOnDamage(dmg, currentDefender, currentAttacker);
+  // 파토스 효과: 회피 무시 (플레이어 공격 시에만)
+  const ignoreEvasionChance = attackerName === 'player' ? (battleContext.pathosTurnEffects?.ignoreEvasion || 0) : 0;
+  const tokenDamageResult = applyTokenEffectsOnDamage(dmg, currentDefender, currentAttacker, { ignoreEvasion: ignoreEvasionChance });
 
   if (tokenDamageResult.consumedTokens.length > 0) {
     const consumeResult = consumeTokens(updatedDefender, tokenDamageResult.consumedTokens);
@@ -639,6 +641,58 @@ export function calculateSingleHit(
       events.push(...rainResult.events);
       logs.push(...rainResult.logs);
       timelineAdvance += rainResult.advance;
+    }
+
+    // 파토스 효과: gunToMelee (총격 시 추가 타격)
+    if (attackerName === 'player' && isGunCard(card) && battleContext.pathosTurnEffects?.gunToMelee) {
+      const meleeCard = CARDS.find(c => c.id === 'slash');
+      if (meleeCard) {
+        const meleeDamage = (meleeCard.damage || 8) + (updatedAttacker.strength || 0);
+        const beforeHPMelee = updatedDefender.hp;
+        updatedDefender = {
+          ...updatedDefender,
+          hp: Math.max(0, updatedDefender.hp - meleeDamage)
+        };
+        damageDealt += meleeDamage;
+
+        const enemyNameMelee = battleContext.enemyDisplayName || '몬스터';
+        const meleeMsg = `⚔️ 총검술: 추가 타격! ${enemyNameMelee}에게 ${meleeDamage} 피해 (체력 ${beforeHPMelee} -> ${updatedDefender.hp})`;
+        events.push({
+          actor: 'player',
+          type: 'pathos' as const,
+          dmg: meleeDamage,
+          msg: meleeMsg
+        } as BattleEvent);
+        logs.push(meleeMsg);
+      }
+    }
+
+    // 파토스 효과: swordToGun (검격 시 추가 사격)
+    if (attackerName === 'player' && isSwordCard(card) && battleContext.pathosTurnEffects?.swordToGun) {
+      const shootCard = CARDS.find(c => c.id === 'shoot');
+      if (shootCard) {
+        const shotDamage = (shootCard.damage || 8) + (updatedAttacker.strength || 0);
+        const beforeHPShot = updatedDefender.hp;
+        updatedDefender = {
+          ...updatedDefender,
+          hp: Math.max(0, updatedDefender.hp - shotDamage)
+        };
+        damageDealt += shotDamage;
+
+        // 룰렛 증가
+        const rouletteResult = addToken(updatedAttacker, 'roulette', 1);
+        updatedAttacker = { ...updatedAttacker, tokens: rouletteResult.tokens };
+
+        const enemyNameShot = battleContext.enemyDisplayName || '몬스터';
+        const shotMsg = `🔫 검격사격: 추가 사격! ${enemyNameShot}에게 ${shotDamage} 피해 (체력 ${beforeHPShot} -> ${updatedDefender.hp})`;
+        events.push({
+          actor: 'player',
+          type: 'pathos' as const,
+          dmg: shotDamage,
+          msg: shotMsg
+        } as BattleEvent);
+        logs.push(shotMsg);
+      }
     }
   }
 

@@ -65,6 +65,7 @@ export function executeCardActionCore(params: ExecuteCardActionCoreParams): Exec
     playHitSound,
     playBlockSound,
     actions,
+    consumeNextCardEffects,
   } = params;
 
   // 초기 상태 설정
@@ -120,6 +121,26 @@ export function executeCardActionCore(params: ExecuteCardActionCoreParams): Exec
   const enemyEnergyBudget = E.energy || E.maxEnergy || BASE_PLAYER_ENERGY;
   const enemyRemainingEnergy = Math.max(0, enemyEnergyBudget - enemyTotalEnergyUsed);
 
+  // 파토스 효과 가져오기 (battleRef에서 동기화됨)
+  type PathosTurnEffects = {
+    gunToMelee?: boolean;
+    swordToGun?: boolean;
+    ignoreEvasion?: number;
+    onCrossBlock?: number;
+    onSwordBlock?: number;
+    forceCross?: boolean;
+    chainBonus?: number;
+    chainEvade?: boolean;
+    counterAttack?: number;
+  };
+  type PathosNextCardEffects = {
+    guaranteeCrit?: boolean;
+    setSpeed?: number;
+    aoe?: boolean;
+  };
+  const pathosTurnEffects = (battleRef.current as { pathosTurnEffects?: PathosTurnEffects })?.pathosTurnEffects;
+  const pathosNextCardEffects = (battleRef.current as { pathosNextCardEffects?: PathosNextCardEffects })?.pathosNextCardEffects;
+
   const battleContext = {
     playerAttackCards,
     isLastCard,
@@ -128,7 +149,12 @@ export function executeCardActionCore(params: ExecuteCardActionCoreParams): Exec
     currentQIndex,
     currentSp: action.sp || 0,
     remainingEnergy,
-    enemyRemainingEnergy
+    enemyRemainingEnergy,
+    // 파토스 효과 전달
+    pathosTurnEffects,
+    pathosNextCardEffects,
+    // 다음 카드 치명타 보장 효과
+    guaranteedCrit: pathosNextCardEffects?.guaranteeCrit
   };
 
   // 카드가 없으면 early return (타입 가드)
@@ -390,6 +416,15 @@ export function executeCardActionCore(params: ExecuteCardActionCoreParams): Exec
     playBlockSound: playBlockSound ?? (() => {}),
     actions: actions as any
   });
+
+  // 파토스 다음 카드 효과 소모 (플레이어 카드 실행 후)
+  if (action.actor === 'player' && pathosNextCardEffects && consumeNextCardEffects) {
+    // 효과가 사용되었으면 소모
+    if (pathosNextCardEffects.guaranteeCrit || pathosNextCardEffects.setSpeed || pathosNextCardEffects.aoe) {
+      consumeNextCardEffects();
+      addLog('✨ 파토스 다음 카드 효과 소모');
+    }
+  }
 
   return { P, E, actionEvents };
 }
