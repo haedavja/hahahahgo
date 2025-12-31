@@ -551,13 +551,84 @@ export class TimelineBattleEngine {
     const selected: GameCard[] = [];
     const cardsToPlay = state.enemy.cardsPerTurn;
 
-    // 덱에서 카드 선택
-    for (let i = 0; i < cardsToPlay && state.enemy.deck.length > 0; i++) {
-      const cardId = state.enemy.deck[i % state.enemy.deck.length];
+    // 가용 카드 목록 생성
+    const availableCards: GameCard[] = [];
+    for (const cardId of state.enemy.deck) {
       const card = this.cards[cardId];
       if (card) {
-        selected.push(card);
+        availableCards.push(card);
       }
+    }
+
+    if (availableCards.length === 0) {
+      return selected;
+    }
+
+    // AI 카드 선택 로직
+    const enemyHpRatio = state.enemy.hp / state.enemy.maxHp;
+    const playerHpRatio = state.player.hp / state.player.maxHp;
+
+    // 카드 점수 계산
+    const scoredCards = availableCards.map(card => {
+      let score = 0;
+
+      // 공격 카드 점수
+      if (card.damage && card.damage > 0) {
+        const hits = card.hits || 1;
+        const totalDamage = card.damage * hits;
+
+        // 플레이어 체력이 낮으면 공격 우선
+        if (playerHpRatio < 0.3) {
+          score += totalDamage * 2;
+        } else {
+          score += totalDamage;
+        }
+
+        // 플레이어 방어력이 낮으면 공격 효과적
+        if (state.player.block < totalDamage) {
+          score += 10;
+        }
+      }
+
+      // 방어 카드 점수
+      if (card.block && card.block > 0) {
+        // 적 체력이 낮으면 방어 우선
+        if (enemyHpRatio < 0.4) {
+          score += card.block * 1.5;
+        } else {
+          score += card.block * 0.5;
+        }
+      }
+
+      // 토큰 부여 카드 보너스
+      if (card.appliedTokens && card.appliedTokens.length > 0) {
+        score += 5;
+      }
+
+      // 특수 효과 카드 보너스
+      if (card.special) {
+        score += 8;
+      }
+
+      // 속도가 빠른 카드 약간 선호
+      const speed = card.speedCost || 5;
+      score += (15 - speed) * 0.5;
+
+      return { card, score };
+    });
+
+    // 점수순 정렬 후 상위 카드 선택
+    scoredCards.sort((a, b) => b.score - a.score);
+
+    // 다양성을 위해 약간의 랜덤성 추가
+    for (let i = 0; i < Math.min(cardsToPlay, scoredCards.length); i++) {
+      // 30% 확률로 차순위 카드 선택 (다양성)
+      if (i > 0 && Math.random() < 0.3 && scoredCards.length > i + 1) {
+        const temp = scoredCards[i];
+        scoredCards[i] = scoredCards[i + 1];
+        scoredCards[i + 1] = temp;
+      }
+      selected.push(scoredCards[i].card);
     }
 
     return selected;
