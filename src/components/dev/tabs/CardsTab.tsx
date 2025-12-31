@@ -9,14 +9,17 @@ import type { CardsTabCard as Card, CardsTabCharacterBuild as CharacterBuild } f
 import type { CardGrowthState } from '../../../state/slices/types';
 import { CardGrowthModal } from '../../map/ui/CardGrowthModal';
 
-// 특성 목록 (정렬)
+// 특성 목록 (긍정/부정 분리 후 가나다 순 정렬)
 const ALL_TRAITS = Object.entries(TRAITS)
   .map(([id, trait]) => ({ id, ...trait }))
   .sort((a, b) => {
-    // 긍정 먼저, 그 다음 weight 순
+    // 긍정 먼저, 그 다음 가나다 순
     if (a.type !== b.type) return a.type === 'positive' ? -1 : 1;
-    return a.weight - b.weight;
+    return a.name.localeCompare(b.name, 'ko');
   });
+
+// 카드 목록 (가나다 순 정렬)
+const SORTED_CARDS = (CARDS as Card[]).slice().sort((a, b) => a.name.localeCompare(b.name, 'ko'));
 
 // 스타일 상수
 const RARITY_COLORS: Record<string, string> = { common: '#94a3b8', rare: '#60a5fa', special: '#a78bfa', legendary: '#fbbf24' };
@@ -127,11 +130,21 @@ export const CardsTab = memo(function CardsTab({ cardUpgrades, upgradeCardRarity
   const handleDirectTraitAssign = useCallback(() => {
     if (!traitTargetCardId || !selectedTraitId) return;
     // 기존 특성에 새 특성 추가
-    const currentTraits = cardGrowth[traitTargetCardId]?.traits || [];
+    let currentTraits = cardGrowth[traitTargetCardId]?.traits || [];
     if (currentTraits.includes(selectedTraitId)) {
       alert(`이미 '${TRAITS[selectedTraitId as keyof typeof TRAITS]?.name}' 특성이 있습니다.`);
       return;
     }
+
+    // 여유/무리 상극 처리: 둘 중 하나만 가질 수 있음
+    if (selectedTraitId === 'leisure' && currentTraits.includes('strain')) {
+      currentTraits = currentTraits.filter(t => t !== 'strain');
+      alert("'무리' 특성이 제거되었습니다. (여유/무리는 상극)");
+    } else if (selectedTraitId === 'strain' && currentTraits.includes('leisure')) {
+      currentTraits = currentTraits.filter(t => t !== 'leisure');
+      alert("'여유' 특성이 제거되었습니다. (여유/무리는 상극)");
+    }
+
     specializeCard(traitTargetCardId, [...currentTraits, selectedTraitId]);
   }, [traitTargetCardId, selectedTraitId, cardGrowth, specializeCard]);
 
@@ -436,7 +449,7 @@ export const CardsTab = memo(function CardsTab({ cardUpgrades, upgradeCardRarity
             fontSize: '0.8rem',
           }}
         >
-          {(CARDS as Card[]).map((c) => {
+          {SORTED_CARDS.map((c) => {
             const rarity = cardUpgrades?.[c.id] || c.rarity || 'common';
             return (
               <option key={c.id} value={c.id}>
@@ -521,7 +534,7 @@ export const CardsTab = memo(function CardsTab({ cardUpgrades, upgradeCardRarity
               fontSize: '0.8rem',
             }}
           >
-            {(CARDS as Card[]).map((c) => {
+            {SORTED_CARDS.map((c) => {
               const growth = cardGrowth[c.id];
               const traits = growth?.traits || [];
               return (

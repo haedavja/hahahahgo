@@ -206,8 +206,9 @@ export const TimelineDisplay: FC<TimelineDisplayProps> = memo(({
   frozenOrder = 0,
   parryReadyStates = []
 }) => {
-  // 여유 특성 드래그 상태
+  // 여유/무리 특성 드래그 상태
   const [draggingCardUid, setDraggingCardUid] = useState<string | null>(null);
+  const [draggingType, setDraggingType] = useState<'leisure' | 'strain' | null>(null);
   const playerLaneRef = useRef<HTMLDivElement>(null);
   // 기본 계산값 메모이제이션
   const { commonMax, ticks, playerMax, enemyMax, playerRatio, enemyRatio } = useMemo(() => {
@@ -286,44 +287,99 @@ export const TimelineDisplay: FC<TimelineDisplayProps> = memo(({
     return ranges;
   }, [playerTimeline]);
 
-  // 여유 카드 드래그 핸들러
+  // 통합 마우스 이동 핸들러 (여유/무리 공용)
+  const handleMouseMove = useCallback((e: ReactMouseEvent<HTMLDivElement>) => {
+    if (!draggingCardUid || !playerLaneRef.current) return;
+
+    // 여유 특성 드래그 처리
+    if (draggingType === 'leisure' && actions.onLeisurePositionChange) {
+      const rect = playerLaneRef.current.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const percent = (x / rect.width) * 100;
+      const sp = Math.round((percent / 100) * playerMax);
+
+      const range = leisureCardRanges.find(r => r.cardUid === draggingCardUid);
+      if (!range) return;
+
+      const previousCardSp = range.minSp - LEISURE_MIN_SPEED;
+      const clampedPosition = Math.max(LEISURE_MIN_SPEED, Math.min(LEISURE_MAX_SPEED, sp - previousCardSp));
+      actions.onLeisurePositionChange(draggingCardUid, clampedPosition);
+    }
+
+    // 무리 특성 드래그 처리
+    if (draggingType === 'strain' && actions.onStrainOffsetChange) {
+      const rect = playerLaneRef.current.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const percent = (x / rect.width) * 100;
+      const sp = Math.round((percent / 100) * playerMax);
+
+      const range = strainCardRanges.find(r => r.cardUid === draggingCardUid);
+      if (!range) return;
+
+      const newOffset = Math.max(0, Math.min(STRAIN_MAX_OFFSET, range.baseSp - sp));
+      if (newOffset !== range.currentOffset) {
+        actions.onStrainOffsetChange(draggingCardUid, newOffset);
+      }
+    }
+  }, [draggingCardUid, draggingType, playerMax, leisureCardRanges, strainCardRanges, actions]);
+
+  // 여유 드래그 시작
   const handleLeisureDragStart = useCallback((cardUid: string) => {
     if (battle.phase !== 'respond') return;
     setDraggingCardUid(cardUid);
+    setDraggingType('leisure');
   }, [battle.phase]);
 
-  const handleLeisureDragEnd = useCallback(() => {
+  // 무리 특성 카드 범위 계산
+  const strainCardRanges = useMemo(() => {
+    const ranges: Array<{
+      cardUid: string;
+      cardIdx: number;
+      baseSp: number;  // 오프셋 0일 때의 sp
+      minSp: number;   // 최대 앞당겼을 때 (offset = 3)
+      maxSp: number;   // 원래 위치 (offset = 0)
+      currentOffset: number;
+      offset: number;  // 렌더링 오프셋
+    }> = [];
+
+    playerTimeline.forEach((a, idx) => {
+      const hasStrain = a.card.traits?.includes('strain');
+      if (!hasStrain) return;
+
+      const cardUid = (a.card as { __uid?: string }).__uid || `strain-${idx}`;
+      const sameCount = playerTimeline.filter((q, i) => i < idx && q.sp === a.sp).length;
+      const offset = sameCount * 28;
+      const currentStrainOffset = (a.card as { strainOffset?: number }).strainOffset || 0;
+
+      // 기본 sp (strainOffset이 0일 때)
+      const baseSp = (a.sp ?? 0) + currentStrainOffset;
+
+      ranges.push({
+        cardUid,
+        cardIdx: idx,
+        baseSp,
+        minSp: Math.max(1, baseSp - STRAIN_MAX_OFFSET),  // 최대 3까지 앞당길 수 있음
+        maxSp: baseSp,  // 원래 위치
+        currentOffset: currentStrainOffset,
+        offset
+      });
+    });
+
+    return ranges;
+  }, [playerTimeline]);
+
+  // 무리 특성 드래그 핸들러
+  const handleStrainDragStart = useCallback((cardUid: string) => {
+    if (battle.phase !== 'respond') return;
+    setDraggingCardUid(cardUid);
+    setDraggingType('strain');
+  }, [battle.phase]);
+
+  // 통합 드래그 종료 핸들러
+  const handleDragEnd = useCallback(() => {
     setDraggingCardUid(null);
+    setDraggingType(null);
   }, []);
-
-  const handleLeisureMouseMove = useCallback((e: ReactMouseEvent<HTMLDivElement>) => {
-    if (!draggingCardUid || !playerLaneRef.current || !actions.onLeisurePositionChange) return;
-
-    const rect = playerLaneRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const percent = (x / rect.width) * 100;
-    const sp = Math.round((percent / 100) * playerMax);
-
-    // 해당 카드의 범위 찾기
-    const range = leisureCardRanges.find(r => r.cardUid === draggingCardUid);
-    if (!range) return;
-
-    // 범위 내로 제한
-    const previousCardSp = range.minSp - LEISURE_MIN_SPEED;
-    const clampedPosition = Math.max(LEISURE_MIN_SPEED, Math.min(LEISURE_MAX_SPEED, sp - previousCardSp));
-
-    actions.onLeisurePositionChange(draggingCardUid, clampedPosition);
-  }, [draggingCardUid, playerMax, leisureCardRanges, actions]);
-
-  // 무리 특성 클릭 핸들러
-  const handleStrainClick = useCallback((cardUid: string, currentOffset: number) => {
-    if (battle.phase !== 'respond' || !actions.onStrainOffsetChange) return;
-
-    // 현재 오프셋이 최대치 미만이면 1 증가
-    if (currentOffset < STRAIN_MAX_OFFSET) {
-      actions.onStrainOffsetChange(cardUid, currentOffset + 1);
-    }
-  }, [battle.phase, actions]);
 
   return (
     <>
@@ -382,9 +438,9 @@ export const TimelineDisplay: FC<TimelineDisplayProps> = memo(({
                 ref={playerLaneRef}
                 className="timeline-lane player-lane"
                 style={playerLaneStyle}
-                onMouseMove={handleLeisureMouseMove}
-                onMouseUp={handleLeisureDragEnd}
-                onMouseLeave={handleLeisureDragEnd}
+                onMouseMove={handleMouseMove}
+                onMouseUp={handleDragEnd}
+                onMouseLeave={handleDragEnd}
               >
                 {Array.from({ length: playerMax + 1 }).map((_, i) => (
                   <div key={`p-grid-${i}`} className="timeline-gridline" style={{ left: `${(i / playerMax) * 100}%` }} />
@@ -430,6 +486,51 @@ export const TimelineDisplay: FC<TimelineDisplayProps> = memo(({
                         textShadow: '0 0 4px rgba(0,0,0,0.8)'
                       }}>
                         🎯 여유 ({LEISURE_MIN_SPEED}~{LEISURE_MAX_SPEED})
+                      </div>
+                    </div>
+                  );
+                })}
+                {/* 무리 특성 범위 표시 */}
+                {battle.phase === 'respond' && strainCardRanges.map((range) => {
+                  const minPercent = (range.minSp / playerMax) * 100;
+                  const maxPercent = (range.maxSp / playerMax) * 100;
+                  const isDragging = draggingCardUid === range.cardUid && draggingType === 'strain';
+                  return (
+                    <div
+                      key={`strain-range-${range.cardUid}`}
+                      className="strain-range-indicator"
+                      style={{
+                        position: 'absolute',
+                        left: `${minPercent}%`,
+                        width: `${maxPercent - minPercent}%`,
+                        top: `${6 + range.offset}px`,
+                        height: '24px',
+                        background: isDragging
+                          ? `linear-gradient(90deg, ${STRAIN_COLOR.start}40, ${STRAIN_COLOR.end}40)`
+                          : STRAIN_COLOR.bg,
+                        borderRadius: '12px',
+                        border: `2px dashed ${isDragging ? STRAIN_COLOR.start : STRAIN_COLOR.end}`,
+                        boxShadow: isDragging
+                          ? `0 0 12px ${STRAIN_COLOR.shadow}, inset 0 0 8px ${STRAIN_COLOR.shadow}`
+                          : `0 0 6px ${STRAIN_COLOR.shadow}`,
+                        zIndex: 5,
+                        pointerEvents: 'none',
+                        transition: 'box-shadow 0.2s, background 0.2s'
+                      }}
+                    >
+                      {/* 범위 라벨 */}
+                      <div style={{
+                        position: 'absolute',
+                        top: '-18px',
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                        fontSize: '10px',
+                        color: STRAIN_COLOR.start,
+                        fontWeight: 'bold',
+                        whiteSpace: 'nowrap',
+                        textShadow: '0 0 4px rgba(0,0,0,0.8)'
+                      }}>
+                        ⚡ 무리 (최대 -{STRAIN_MAX_OFFSET})
                       </div>
                     </div>
                   );
@@ -534,7 +635,11 @@ export const TimelineDisplay: FC<TimelineDisplayProps> = memo(({
                   // 무리 특성 확인
                   const hasStrain = a.card.traits?.includes('strain');
                   const currentStrainOffset = (a.card as { strainOffset?: number }).strainOffset || 0;
-                  const canClickStrain = hasStrain && battle.phase === 'respond' && currentStrainOffset < STRAIN_MAX_OFFSET;
+                  const canDragStrain = hasStrain && battle.phase === 'respond';
+                  const isStrainDragging = draggingCardUid === cardUid && draggingType === 'strain';
+
+                  // 드래그 가능 여부 (여유 또는 무리)
+                  const canDragAny = canDrag || canDragStrain;
 
                   return (
                     <div
@@ -543,7 +648,7 @@ export const TimelineDisplay: FC<TimelineDisplayProps> = memo(({
                       style={{
                         left: `${normalizedPosition}%`,
                         top: `${6 + offset}px`,
-                        cursor: canDrag ? 'grab' : canClickStrain ? 'pointer' : 'default',
+                        cursor: canDragAny ? 'grab' : 'default',
                         ...(hasLeisure && battle.phase === 'respond' ? {
                           border: `2px solid ${LEISURE_COLOR.start}`,
                           boxShadow: isDragging
@@ -554,12 +659,18 @@ export const TimelineDisplay: FC<TimelineDisplayProps> = memo(({
                         } : {}),
                         ...(hasStrain && battle.phase === 'respond' ? {
                           border: `2px solid ${currentStrainOffset > 0 ? STRAIN_COLOR.end : STRAIN_COLOR.start}`,
-                          boxShadow: `0 0 8px ${STRAIN_COLOR.shadow}`,
-                          zIndex: 20
+                          boxShadow: isStrainDragging
+                            ? `0 0 16px ${STRAIN_COLOR.shadow}, 0 0 32px ${STRAIN_COLOR.shadow}`
+                            : `0 0 8px ${STRAIN_COLOR.shadow}`,
+                          transform: isStrainDragging ? 'scale(1.2)' : 'none',
+                          zIndex: isStrainDragging ? 100 : 20
                         } : {})
                       }}
-                      onMouseDown={canDrag ? () => handleLeisureDragStart(cardUid) : undefined}
-                      onClick={canClickStrain ? () => handleStrainClick(cardUid, currentStrainOffset) : undefined}
+                      onMouseDown={
+                        canDrag ? () => handleLeisureDragStart(cardUid) :
+                        canDragStrain ? () => handleStrainDragStart(cardUid) :
+                        undefined
+                      }
                     >
                       <Icon size={14} className="text-white" />
                       <span className="text-white text-xs font-bold">{num > 0 ? num : ''}</span>
@@ -590,7 +701,7 @@ export const TimelineDisplay: FC<TimelineDisplayProps> = memo(({
                         }}>
                           {currentStrainOffset >= STRAIN_MAX_OFFSET
                             ? `⚡ 최대 (−${currentStrainOffset})`
-                            : `⚡ 클릭 (−${currentStrainOffset}/${STRAIN_MAX_OFFSET})`}
+                            : `← 드래그 (−${currentStrainOffset}/${STRAIN_MAX_OFFSET})`}
                         </span>
                       )}
                     </div>
