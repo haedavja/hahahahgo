@@ -4794,6 +4794,225 @@ export function runEdgeCaseTest(): void {
   console.log('\n' + '═'.repeat(50) + '\n');
 }
 
+/**
+ * 빠른 상태 체크
+ * 게임 밸런스 빠른 진단
+ */
+export function runQuickCheck(): void {
+  console.log('\n╔════════════════════════════════════════╗');
+  console.log('║          빠른 상태 체크                 ║');
+  console.log('╚════════════════════════════════════════╝\n');
+
+  const battles = 20;
+
+  // 전체 승률
+  const config: SimulationConfig = {
+    battles,
+    maxTurns: 30,
+    enemyIds: [...TIER_1_ENEMIES.slice(0, 2), ...TIER_2_ENEMIES.slice(0, 2)],
+    verbose: false,
+  };
+
+  const stats = runSimulation(config);
+
+  // 상태 표시
+  console.log('📊 현재 상태:\n');
+
+  const overallStatus = stats.winRate > 0.7 ? '🟢' :
+    stats.winRate > 0.4 ? '🟡' : '🔴';
+
+  console.log(`  전체 승률: ${overallStatus} ${(stats.winRate * 100).toFixed(0)}%`);
+  console.log(`  평균 턴: ${stats.avgTurns.toFixed(1)}`);
+
+  // 콤보 상태
+  const totalCombos = Object.values(stats.comboStats).reduce((s, c) => s + c.count, 0);
+  const comboStatus = totalCombos > battles * 2 ? '🟢 활발' : totalCombos > battles ? '🟡 보통' : '🔴 저조';
+  console.log(`  콤보 활성도: ${comboStatus}`);
+
+  // 추천
+  console.log('\n💡 추천:');
+
+  if (stats.winRate > 0.8) {
+    console.log('  • 난이도 상향 필요');
+  } else if (stats.winRate < 0.4) {
+    console.log('  • 플레이어 강화 또는 적 약화 필요');
+  } else {
+    console.log('  • 현재 밸런스 양호');
+  }
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
+/**
+ * AI 테스트
+ * AI 카드 선택 로직 테스트
+ */
+export function runAITest(battles: number = 20): void {
+  console.log('\n╔════════════════════════════════════════╗');
+  console.log('║            AI 테스트                    ║');
+  console.log('╚════════════════════════════════════════╝\n');
+
+  console.log(`📊 AI 카드 선택 성능 테스트 (${battles}회)\n`);
+  console.log('─'.repeat(50));
+
+  // 다양한 덱으로 테스트
+  const results: Array<{ deck: string; winRate: number }> = [];
+
+  for (const [name, deck] of Object.entries(DECK_PRESETS)) {
+    const config: SimulationConfig = {
+      battles,
+      maxTurns: 30,
+      enemyIds: TIER_2_ENEMIES.slice(0, 3),
+      playerDeck: deck,
+      verbose: false,
+    };
+
+    const stats = runSimulation(config);
+    results.push({ deck: name, winRate: stats.winRate });
+  }
+
+  // 결과 출력
+  console.log('\n🤖 AI 성능 (덱별):\n');
+  results.sort((a, b) => b.winRate - a.winRate);
+
+  results.forEach((r, idx) => {
+    const bar = '█'.repeat(Math.ceil(r.winRate * 20));
+    console.log(`  ${idx + 1}. ${r.deck}: ${bar} ${(r.winRate * 100).toFixed(0)}%`);
+  });
+
+  // 분석
+  const avgWinRate = results.reduce((s, r) => s + r.winRate, 0) / results.length;
+  console.log(`\n  AI 평균 성능: ${(avgWinRate * 100).toFixed(0)}%`);
+
+  if (avgWinRate > 0.6) {
+    console.log('  💡 AI가 효과적으로 카드를 선택하고 있습니다.');
+  } else if (avgWinRate > 0.4) {
+    console.log('  💡 AI 카드 선택 로직 개선 여지가 있습니다.');
+  } else {
+    console.log('  ⚠️ AI 카드 선택 로직 검토가 필요합니다.');
+  }
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
+/**
+ * 시간 기록 테스트
+ * 전투 시간 분포 분석
+ */
+export function runTimeTrialTest(battles: number = 50): void {
+  console.log('\n╔════════════════════════════════════════╗');
+  console.log('║          시간 기록 테스트               ║');
+  console.log('╚════════════════════════════════════════╝\n');
+
+  console.log(`📊 ${battles}회 전투 시간 분석\n`);
+  console.log('─'.repeat(50));
+
+  const times: number[] = [];
+
+  for (let i = 0; i < battles; i++) {
+    const start = performance.now();
+
+    const config: SimulationConfig = {
+      battles: 1,
+      maxTurns: 30,
+      enemyIds: TIER_1_ENEMIES.slice(0, 3),
+      verbose: false,
+    };
+
+    runSimulation(config);
+    times.push(performance.now() - start);
+  }
+
+  // 통계
+  times.sort((a, b) => a - b);
+  const avg = times.reduce((s, t) => s + t, 0) / battles;
+  const median = times[Math.floor(battles / 2)];
+  const p95 = times[Math.floor(battles * 0.95)];
+  const min = times[0];
+  const max = times[battles - 1];
+
+  console.log('\n⏱️ 시간 통계:\n');
+  console.log(`  평균: ${avg.toFixed(2)}ms`);
+  console.log(`  중앙값: ${median.toFixed(2)}ms`);
+  console.log(`  P95: ${p95.toFixed(2)}ms`);
+  console.log(`  최소: ${min.toFixed(2)}ms`);
+  console.log(`  최대: ${max.toFixed(2)}ms`);
+
+  // 분포 히스토그램
+  console.log('\n📊 시간 분포:');
+  const buckets = [0, 0, 0, 0, 0]; // <1ms, 1-2ms, 2-5ms, 5-10ms, >10ms
+
+  times.forEach(t => {
+    if (t < 1) buckets[0]++;
+    else if (t < 2) buckets[1]++;
+    else if (t < 5) buckets[2]++;
+    else if (t < 10) buckets[3]++;
+    else buckets[4]++;
+  });
+
+  const labels = ['<1ms', '1-2ms', '2-5ms', '5-10ms', '>10ms'];
+  labels.forEach((label, i) => {
+    const bar = '█'.repeat(Math.ceil(buckets[i] / battles * 50));
+    console.log(`  ${label.padEnd(7)}: ${bar} ${buckets[i]}`);
+  });
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
+/**
+ * 전체 요약
+ * 모든 분석 결과 요약
+ */
+export function runSummary(): void {
+  console.log('\n╔════════════════════════════════════════════════════════════╗');
+  console.log('║                    게임 시뮬레이터 요약                      ║');
+  console.log('╚════════════════════════════════════════════════════════════╝\n');
+
+  const battles = 20;
+
+  // 기본 통계
+  const config: SimulationConfig = {
+    battles,
+    maxTurns: 30,
+    enemyIds: [...TIER_1_ENEMIES.slice(0, 2), ...TIER_2_ENEMIES.slice(0, 2)],
+    verbose: false,
+  };
+
+  const stats = runSimulation(config);
+
+  console.log('📊 기본 통계:\n');
+  console.log(`  승률: ${(stats.winRate * 100).toFixed(0)}%`);
+  console.log(`  평균 턴: ${stats.avgTurns.toFixed(1)}`);
+  console.log(`  총 전투: ${stats.totalBattles}`);
+
+  // 티어별 현황
+  console.log('\n📈 티어별 승률:');
+
+  for (const [idx, enemies] of [TIER_1_ENEMIES, TIER_2_ENEMIES, TIER_3_ENEMIES].entries()) {
+    const tierConfig: SimulationConfig = {
+      battles: 10,
+      maxTurns: 30,
+      enemyIds: enemies.slice(0, 2),
+      verbose: false,
+    };
+
+    const tierStats = runSimulation(tierConfig);
+    const bar = '█'.repeat(Math.ceil(tierStats.winRate * 20));
+    console.log(`  Tier ${idx + 1}: ${bar} ${(tierStats.winRate * 100).toFixed(0)}%`);
+  }
+
+  // 가용 명령어
+  console.log('\n📋 사용 가능한 분석 명령어:');
+  console.log('  balance, tier, full, relic, deck, anomaly, card');
+  console.log('  synergy, scaling, wincond, export, token, matchup');
+  console.log('  speed, trait, recommend, weakness, multirelic, progression');
+  console.log('  cardrank, relicrank, meta, turn, damage, healing, combobreak');
+  console.log('  stress, prob, versatility, consistency, patchnotes, edge');
+  console.log('  quickcheck, aitest, timetrial, summary, help');
+
+  console.log('\n' + '═'.repeat(65) + '\n');
+}
+
 // CLI에서 직접 실행 시
 if (typeof process !== 'undefined' && process.argv?.[1]?.includes('gameSimulator')) {
   runQuickTest();

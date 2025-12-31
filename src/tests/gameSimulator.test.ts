@@ -644,3 +644,31 @@ describe('에지 케이스 테스트', () => {
     expect(typeof runEdgeCaseTest).toBe('function');
   });
 });
+
+describe('빠른 상태 체크', () => {
+  it('runQuickCheck 함수가 존재한다', async () => {
+    const { runQuickCheck } = await import('./gameSimulator');
+    expect(typeof runQuickCheck).toBe('function');
+  });
+});
+
+describe('AI 테스트', () => {
+  it('runAITest 함수가 존재한다', async () => {
+    const { runAITest } = await import('./gameSimulator');
+    expect(typeof runAITest).toBe('function');
+  });
+});
+
+describe('시간 기록 테스트', () => {
+  it('runTimeTrialTest 함수가 존재한다', async () => {
+    const { runTimeTrialTest } = await import('./gameSimulator');
+    expect(typeof runTimeTrialTest).toBe('function');
+  });
+});
+
+describe('전체 요약', () => {
+  it('runSummary 함수가 존재한다', async () => {
+    const { runSummary } = await import('./gameSimulator');
+    expect(typeof runSummary).toBe('function');
+  });
+});
