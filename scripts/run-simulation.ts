@@ -1,7 +1,7 @@
 /**
  * 게임 시뮬레이터 실행 스크립트
  */
-import { GameSimulator, createDefaultPlayer, RunSimulator } from '../src/simulator/game';
+import { GameSimulator, createDefaultPlayer, RunSimulator } from '../src/simulator/game/index.js';
 
 async function runSimulation() {
   console.log('='.repeat(60));
@@ -9,6 +9,7 @@ async function runSimulation() {
   console.log('='.repeat(60));
 
   const simulator = new GameSimulator();
+  await simulator.initialize(); // 게임 데이터 로드
 
   // 1. 단일 런 시뮬레이션
   console.log('\n📊 [1] 단일 런 시뮬레이션 (11레이어, balanced 전략)');
@@ -80,6 +81,7 @@ async function runSimulation() {
   console.log('-'.repeat(50));
 
   const runSim = new RunSimulator();
+  await runSim.loadGameData(); // 게임 데이터 로드
   const strategies = ['aggressive', 'defensive', 'balanced', 'speedrun', 'treasure_hunter'] as const;
 
   console.log('  전략           | 성공률  | 평균 레이어');

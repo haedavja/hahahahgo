@@ -324,6 +324,23 @@ export class ShopSimulator {
       const canAfford = (availableGold - totalSpent) >= decision.item.price;
 
       if (canAfford) {
+        // 카드는 덱에 같은 카드가 2장 미만일 때만 구매 (게임과 동일)
+        if (decision.item.type === 'card') {
+          const cardCount = player.deck.filter(c => c === decision.item.id).length;
+          if (cardCount >= 2) {
+            skippedItems.push(decision.item);
+            continue; // 이미 2장 보유 시 스킵
+          }
+        }
+
+        // 상징은 중복 불가
+        if (decision.item.type === 'relic') {
+          if (player.relics.includes(decision.item.id)) {
+            skippedItems.push(decision.item);
+            continue; // 이미 보유 시 스킵
+          }
+        }
+
         purchases.push(decision.item);
         totalSpent += decision.item.price;
         decision.item.sold = true;

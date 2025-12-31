@@ -18,8 +18,18 @@ import { RestSimulator, RestResult, RestNodeConfig } from './rest-simulator';
 import { DungeonSimulator, DungeonState, DungeonExplorationResult, DungeonSimulationConfig } from './dungeon-simulator';
 import { TimelineBattleEngine } from '../core/timeline-battle-engine';
 import type { BattleResult, EnemyState } from '../core/game-types';
+import type { Card } from '../../types';
 
 const log = getLogger('RunSimulator');
+
+// 카드 타입 분류 (전략별 선택용)
+type CardCategory = 'attack' | 'defense' | 'utility';
+
+function categorizeCard(card: Card): CardCategory {
+  if (card.type === 'attack') return 'attack';
+  if (card.type === 'defense' || card.type === 'reaction') return 'defense';
+  return 'utility';
+}
 
 // 시작 덱 (게임과 동일 - battleData.ts의 DEFAULT_STARTING_DECK)
 const DEFAULT_STARTING_DECK = [
@@ -147,6 +157,7 @@ export class RunSimulator {
   private restSimulator: RestSimulator;
   private dungeonSimulator: DungeonSimulator;
   private battleEngine: TimelineBattleEngine;
+  private cardLibrary: Record<string, Card> = {};
 
   constructor() {
     this.mapSimulator = new MapSimulator();
@@ -170,6 +181,7 @@ export class RunSimulator {
       // 카드 데이터 로드 (CARD_LIBRARY 사용)
       const { CARD_LIBRARY } = await import('../../data/cards');
       this.shopSimulator.loadCardData(CARD_LIBRARY as any);
+      this.cardLibrary = CARD_LIBRARY as Record<string, Card>;
 
       // 상징 데이터 로드
       const { RELICS } = await import('../../data/relics');
@@ -271,10 +283,21 @@ export class RunSimulator {
       // 다음 노드 선택
       currentNode.cleared = true;
       const nextNodeId = this.selectNextNode(map, currentNode, config.strategy);
-      if (!nextNodeId) break;
+      if (!nextNodeId) {
+        // 다음 노드가 없으면 경로 막힘으로 처리
+        if (!result.success && !result.deathCause) {
+          result.deathCause = '경로 막힘';
+        }
+        break;
+      }
 
       currentNodeId = nextNodeId;
       result.totalTurns++;
+    }
+
+    // HP가 0 이하이면 사망 처리
+    if (player.hp <= 0 && !result.deathCause) {
+      result.deathCause = '체력 소진';
     }
 
     result.finalPlayerState = player;
@@ -410,19 +433,13 @@ export class RunSimulator {
       const goldReward = Math.floor(15 + difficulty * 10 + (isElite ? 20 : 0) + (isBoss ? 50 : 0));
       player.gold += goldReward;
 
-      // 카드 획득 기회 (실제 카드 풀에서 선택, 중복 방지)
-      if (Math.random() < 0.7) {
-        // 플레이어가 아직 가지지 않은 카드 필터링
-        const availableCards = COMBAT_REWARD_CARDS.filter(cardId => {
-          // 덱에 같은 카드가 2장 미만일 때만 획득 가능
-          const count = player.deck.filter(c => c === cardId).length;
-          return count < 2;
-        });
-
-        if (availableCards.length > 0) {
-          const newCard = availableCards[Math.floor(Math.random() * availableCards.length)];
-          player.deck.push(newCard);
-          result.cardsGained.push(newCard);
+      // 카드 보상: 3장 중 1장 선택 (게임과 동일)
+      // 덱 크기가 20장 미만일 때만 카드 획득
+      if (player.deck.length < 20) {
+        const selectedCard = this.selectCardReward(player, config.strategy);
+        if (selectedCard) {
+          player.deck.push(selectedCard);
+          result.cardsGained.push(selectedCard);
         }
       }
 
@@ -511,6 +528,15 @@ export class RunSimulator {
   ): void {
     const inventory = this.shopSimulator.generateShopInventory('shop');
 
+    // 덱 크기가 20장 이상이면 카드 구매 스킵
+    const shouldBuyCards = player.deck.length < 20;
+
+    // 카드 구매 스킵: 인벤토리에서 카드 제거
+    const filteredInventory = shouldBuyCards ? inventory : {
+      ...inventory,
+      cards: [], // 덱이 충분히 크면 카드 구매 안 함
+    };
+
     const shopConfig: ShopSimulationConfig = {
       player: {
         gold: player.gold,
@@ -522,9 +548,10 @@ export class RunSimulator {
       },
       strategy: config.strategy === 'aggressive' ? 'value' : 'survival',
       reserveGold: 30,
+      maxPurchases: 3, // 한 번의 상점 방문에서 최대 3개 구매 (게임과 유사)
     };
 
-    const shopResult = this.shopSimulator.simulateShopVisit(inventory, shopConfig);
+    const shopResult = this.shopSimulator.simulateShopVisit(filteredInventory, shopConfig);
 
     player.gold = shopResult.remainingGold;
     player.deck = shopResult.finalPlayerState.deck;
@@ -623,16 +650,126 @@ export class RunSimulator {
   }
 
   /**
+   * 카드 보상 선택 (게임과 동일: 3장 중 1장 선택)
+   * @param player 플레이어 상태
+   * @param strategy 선택 전략
+   * @returns 선택된 카드 ID 또는 null (스킵)
+   */
+  private selectCardReward(
+    player: PlayerRunState,
+    strategy: RunStrategy
+  ): string | null {
+    // 획득 가능한 카드 필터링 (덱에 2장 미만)
+    const availableCards = COMBAT_REWARD_CARDS.filter(cardId => {
+      const count = player.deck.filter(c => c === cardId).length;
+      return count < 2;
+    });
+
+    if (availableCards.length === 0) return null;
+
+    // 3장의 카드 제시 (중복 없이)
+    const cardChoices: string[] = [];
+    const shuffled = [...availableCards].sort(() => Math.random() - 0.5);
+    for (let i = 0; i < Math.min(3, shuffled.length); i++) {
+      cardChoices.push(shuffled[i]);
+    }
+
+    if (cardChoices.length === 0) return null;
+
+    // 전략에 따라 최적의 카드 선택
+    return this.selectBestCard(cardChoices, strategy);
+  }
+
+  /**
+   * 전략에 따른 최적 카드 선택
+   */
+  private selectBestCard(cardChoices: string[], strategy: RunStrategy): string {
+    // 카드 라이브러리가 없으면 랜덤 선택
+    if (Object.keys(this.cardLibrary).length === 0) {
+      return cardChoices[Math.floor(Math.random() * cardChoices.length)];
+    }
+
+    // 각 카드에 점수 부여
+    const scoredCards = cardChoices.map(cardId => {
+      const card = this.cardLibrary[cardId];
+      let score = 50; // 기본 점수
+
+      if (!card) return { cardId, score };
+
+      const category = categorizeCard(card);
+
+      // 전략별 점수 조정
+      switch (strategy) {
+        case 'aggressive':
+          // 공격 카드 선호
+          if (category === 'attack') score += 30;
+          if (card.damage && card.damage > 8) score += 15; // 높은 데미지
+          if (card.speedCost && card.speedCost < 5) score += 10; // 빠른 카드
+          break;
+
+        case 'defensive':
+          // 방어 카드 선호
+          if (category === 'defense') score += 30;
+          if (card.block && card.block > 5) score += 15; // 높은 방어력
+          break;
+
+        case 'balanced':
+          // 균형 잡힌 선택
+          if (category === 'attack') score += 15;
+          if (category === 'defense') score += 15;
+          if (category === 'utility') score += 10;
+          break;
+
+        case 'speedrun':
+          // 빠른 카드 선호
+          if (card.speedCost && card.speedCost < 4) score += 30;
+          if (card.priority === 'quick' || card.priority === 'instant') score += 20;
+          break;
+
+        case 'treasure_hunter':
+          // 유틸리티 및 특수 효과 선호
+          if (category === 'utility') score += 20;
+          if (card.tags?.includes('buff') || card.tags?.includes('debuff')) score += 15;
+          break;
+      }
+
+      // 랜덤 요소 추가 (10%)
+      score += Math.random() * 10;
+
+      return { cardId, score };
+    });
+
+    // 가장 높은 점수의 카드 선택
+    scoredCards.sort((a, b) => b.score - a.score);
+    return scoredCards[0].cardId;
+  }
+
+  /**
    * 다음 노드 선택
+   * 레이어 기반 진행: 현재 레이어보다 높은 레이어의 노드로만 이동
    */
   private selectNextNode(
     map: MapState,
     currentNode: MapNode,
     strategy: RunStrategy
   ): string | null {
-    const availableNodes = currentNode.connections
+    // 연결된 노드 중 다음 레이어 노드만 선택 (레이어 기반 진행)
+    const nextLayerNodes = currentNode.connections
       .map(id => map.nodes.find(n => n.id === id))
-      .filter((n): n is MapNode => n !== undefined && !n.cleared);
+      .filter((n): n is MapNode => n !== undefined && n.layer > currentNode.layer);
+
+    // 다음 레이어에 노드가 없으면 같은 레이어에서 아직 방문하지 않은 노드 시도
+    let availableNodes = nextLayerNodes.length > 0 ? nextLayerNodes :
+      currentNode.connections
+        .map(id => map.nodes.find(n => n.id === id))
+        .filter((n): n is MapNode => n !== undefined && !n.cleared);
+
+    if (availableNodes.length === 0) {
+      // 마지막 시도: 맵에서 현재보다 높은 레이어의 아무 노드
+      availableNodes = map.nodes.filter(n =>
+        n.layer > currentNode.layer && !n.cleared
+      );
+    }
 
     if (availableNodes.length === 0) return null;
 
@@ -659,16 +796,15 @@ export class RunSimulator {
 
       case 'speedrun':
         // 가장 빠른 경로 (보스 방향)
-        const bossDistance = (nodeId: string): number => {
-          const node = map.nodes.find(n => n.id === nodeId);
-          return node ? map.nodes.length - node.layer : 999;
-        };
-        availableNodes.sort((a, b) => bossDistance(a.id) - bossDistance(b.id));
+        availableNodes.sort((a, b) => b.layer - a.layer);
         return availableNodes[0]?.id || null;
     }
 
-    // 기본: 랜덤
-    return availableNodes[Math.floor(Math.random() * availableNodes.length)].id;
+    // 기본: 가장 높은 레이어 우선, 그 다음 랜덤
+    availableNodes.sort((a, b) => b.layer - a.layer);
+    const highestLayer = availableNodes[0].layer;
+    const topLayerNodes = availableNodes.filter(n => n.layer === highestLayer);
+    return topLayerNodes[Math.floor(Math.random() * topLayerNodes.length)].id;
   }
 
   // ==================== 통계 ====================
