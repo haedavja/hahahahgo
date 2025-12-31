@@ -1,0 +1,39 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "lib": ["DOM", "DOM.Iterable", "ESNext"],
+    "module": "ESNext",
+    "skipLibCheck": true,
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "jsx": "react-jsx",
+
+    /**
+     * TypeScript Strict Mode - 완전 활성화
+     *
+     * 포함 옵션:
+     * - strictFunctionTypes
+     * - strictBindCallApply
+     * - strictNullChecks
+     * - noImplicitAny
+     * - strictPropertyInitialization
+     * - noImplicitThis
+     * - alwaysStrict
+     * - useUnknownInCatchVariables
+     */
+    "strict": true,
+    "allowJs": true,
+    "checkJs": false,
+
+    // 경로 설정
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"]
+    }
+  },
+  "include": ["src/**/*", "src/types/**/*"],
+  "exclude": ["node_modules", "build", "dist"]
+}
