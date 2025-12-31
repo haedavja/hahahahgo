@@ -556,9 +556,9 @@ export async function createShopSimulator(): Promise<ShopSimulator> {
   const simulator = new ShopSimulator();
 
   try {
-    // 카드 데이터 로드
-    const { CARDS } = await import('../../data/cards');
-    simulator.loadCardData(CARDS as Record<string, { id: string; rarity?: string }>);
+    // 카드 데이터 로드 (CARD_LIBRARY 사용)
+    const { CARD_LIBRARY } = await import('../../data/cards');
+    simulator.loadCardData(CARD_LIBRARY as Record<string, { id: string; rarity?: string }>);
 
     // 상징 데이터 로드
     const { RELICS } = await import('../../data/relics');

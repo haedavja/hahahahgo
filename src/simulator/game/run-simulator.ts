@@ -21,6 +21,17 @@ import type { BattleResult, EnemyState } from '../core/game-types';
 
 const log = getLogger('RunSimulator');
 
+// 카드 풀 (전투 보상용)
+const COMBAT_REWARD_CARDS = [
+  'quick_slash', 'guard', 'heavy_strike', 'dash', 'counter_stance',
+  'charge', 'sweep', 'reinforce', 'venom_shot', 'bone_crush'
+];
+
+// 상징 풀 (엘리트/보스 보상용)
+const REWARD_RELICS = [
+  'etherCrystal', 'etherGem', 'longCoat', 'sturdyArmor'
+];
+
 // ==================== 타입 정의 ====================
 
 export interface PlayerRunState {
@@ -140,9 +151,9 @@ export class RunSimulator {
       const { NEW_EVENT_LIBRARY } = await import('../../data/newEvents');
       this.eventSimulator.loadEvents(NEW_EVENT_LIBRARY as any);
 
-      // 카드 데이터 로드
-      const { CARDS } = await import('../../data/cards');
-      this.shopSimulator.loadCardData(CARDS as any);
+      // 카드 데이터 로드 (CARD_LIBRARY 사용)
+      const { CARD_LIBRARY } = await import('../../data/cards');
+      this.shopSimulator.loadCardData(CARD_LIBRARY as any);
 
       // 상징 데이터 로드
       const { RELICS } = await import('../../data/relics');
@@ -337,10 +348,41 @@ export class RunSimulator {
       passives: {},
     };
 
-    // 전투 시뮬레이션 (간소화)
-    const playerPower = player.deck.length * 5 + player.strength * 10 + player.relics.length * 20;
-    const enemyPower = enemyHp + difficulty * 10;
-    const winChance = Math.min(0.95, Math.max(0.1, 0.5 + (playerPower - enemyPower) * 0.01));
+    // 전투 시뮬레이션 (개선된 승률 공식)
+    // 기본 승률: 일반 80%, 엘리트 65%, 보스 50%
+    let baseWinRate = isBoss ? 0.50 : isElite ? 0.65 : 0.80;
+
+    // 난이도 보정 (-5% per difficulty level above 1)
+    const difficultyPenalty = (difficulty - 1) * 0.05;
+    baseWinRate -= difficultyPenalty;
+
+    // 덱 품질 보정 (7-15장이 최적, 그 외 페널티)
+    const deckSize = player.deck.length;
+    let deckBonus = 0;
+    if (deckSize >= 7 && deckSize <= 15) {
+      deckBonus = 0.05; // 최적 덱 크기
+    } else if (deckSize < 5) {
+      deckBonus = -0.05; // 너무 작은 덱 (경미한 페널티)
+    } else if (deckSize > 25) {
+      deckBonus = -0.1; // 너무 큰 덱
+    }
+    baseWinRate += deckBonus;
+
+    // 상징 보정 (+3% per relic)
+    const relicBonus = player.relics.length * 0.03;
+    baseWinRate += relicBonus;
+
+    // 스탯 보정
+    const statBonus = (player.strength + player.agility + player.insight - 3) * 0.02;
+    baseWinRate += statBonus;
+
+    // 체력 보정 (50% 이하면 페널티)
+    if (player.hp < player.maxHp * 0.5) {
+      baseWinRate -= 0.1;
+    }
+
+    // 최종 승률 제한 (10% ~ 90%)
+    const winChance = Math.min(0.90, Math.max(0.10, baseWinRate));
 
     const won = Math.random() < winChance;
 
@@ -352,18 +394,31 @@ export class RunSimulator {
       const goldReward = Math.floor(15 + difficulty * 10 + (isElite ? 20 : 0) + (isBoss ? 50 : 0));
       player.gold += goldReward;
 
-      // 카드 획득 기회
+      // 카드 획득 기회 (실제 카드 풀에서 선택, 중복 방지)
       if (Math.random() < 0.7) {
-        const newCard = `card_${Date.now()}`;
-        player.deck.push(newCard);
-        result.cardsGained.push(newCard);
+        // 플레이어가 아직 가지지 않은 카드 필터링
+        const availableCards = COMBAT_REWARD_CARDS.filter(cardId => {
+          // 덱에 같은 카드가 2장 미만일 때만 획득 가능
+          const count = player.deck.filter(c => c === cardId).length;
+          return count < 2;
+        });
+
+        if (availableCards.length > 0) {
+          const newCard = availableCards[Math.floor(Math.random() * availableCards.length)];
+          player.deck.push(newCard);
+          result.cardsGained.push(newCard);
+        }
       }
 
-      // 엘리트/보스 상징 획득
+      // 엘리트/보스 상징 획득 (실제 상징 풀에서 선택, 중복 방지)
       if ((isElite || isBoss) && Math.random() < 0.5) {
-        const newRelic = `relic_${Date.now()}`;
-        player.relics.push(newRelic);
-        result.relicsGained.push(newRelic);
+        const availableRelics = REWARD_RELICS.filter(relicId => !player.relics.includes(relicId));
+
+        if (availableRelics.length > 0) {
+          const newRelic = availableRelics[Math.floor(Math.random() * availableRelics.length)];
+          player.relics.push(newRelic);
+          result.relicsGained.push(newRelic);
+        }
       }
 
       // 피해 (승리해도 약간)
@@ -373,8 +428,8 @@ export class RunSimulator {
       result.success = false;
       result.details = `전투 패배 (난이도 ${difficulty})`;
 
-      // 패배 시 큰 피해
-      const damageReceived = Math.floor(20 + difficulty * 10);
+      // 패배 시 피해 (적절하게 조정)
+      const damageReceived = Math.floor(15 + difficulty * 5);
       player.hp -= damageReceived;
     }
 
