@@ -79,7 +79,7 @@ export const GrowthPyramidModal = memo(function GrowthPyramidModal({
       <div
         className="event-modal"
         onClick={(e) => e.stopPropagation()}
-        style={{ maxWidth: '900px', maxHeight: '90vh', overflow: 'auto' }}
+        style={{ maxWidth: '100%', width: '960px', maxHeight: '95vh', overflow: 'auto' }}
       >
         <header>
           <h3>🔺 피라미드 성장</h3>
@@ -393,7 +393,7 @@ function UnlockedSummary({
   );
 }
 
-// 노드 행 컴포넌트 - 스킬트리 시각화
+// 노드 행 컴포넌트 - 가로 피라미드 구조
 function TierRow({
   tier,
   label,
@@ -419,53 +419,38 @@ function TierRow({
 }) {
   const colors = TIER_COLORS[tier as keyof typeof TIER_COLORS];
   const isLocked = pyramidLevel < tier;
-  const [expandedNode, setExpandedNode] = useState<string | null>(null);
 
   return (
-    <div style={{ marginBottom: '20px', opacity: isLocked ? 0.5 : 1 }}>
+    <div style={{ marginBottom: '16px', opacity: isLocked ? 0.5 : 1 }}>
       {/* 티어 헤더 */}
       <div style={{
-        fontSize: '12px',
+        fontSize: '11px',
         color: colors.text,
-        marginBottom: '8px',
+        marginBottom: '6px',
         display: 'flex',
         alignItems: 'center',
-        gap: '8px',
+        gap: '6px',
       }}>
         <span style={{ fontWeight: 'bold' }}>{label}</span>
         {isLocked && (
           <span style={{
-            fontSize: '10px',
-            padding: '2px 6px',
+            fontSize: '9px',
+            padding: '1px 4px',
             background: 'rgba(239, 68, 68, 0.2)',
-            border: '1px solid rgba(239, 68, 68, 0.3)',
-            borderRadius: '4px',
+            borderRadius: '3px',
             color: '#ef4444',
           }}>
-            🔒 피라미드 Lv{tier} 필요
-          </span>
-        )}
-        {!isLocked && skillPoints < 1 && (
-          <span style={{
-            fontSize: '10px',
-            padding: '2px 6px',
-            background: 'rgba(251, 191, 36, 0.2)',
-            border: '1px solid rgba(251, 191, 36, 0.3)',
-            borderRadius: '4px',
-            color: '#fbbf24',
-          }}>
-            스킬포인트 필요
+            🔒 Lv{tier}
           </span>
         )}
       </div>
 
-      {/* 노드 그리드 */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+      {/* 노드 가로 그리드 */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', justifyContent: 'center' }}>
         {nodes.map(node => {
           const isUnlocked = growth.unlockedNodes.includes(node.id);
           const isPending = pendingSelection?.nodeId === node.id;
           const canUnlock = !isLocked && !isUnlocked && skillPoints >= 1;
-          const isExpanded = expandedNode === node.id || isPending;
 
           // 선택된 선택지 찾기
           const selectedChoice = isUnlocked
@@ -481,129 +466,92 @@ function TierRow({
           const [choice1, choice2] = choices || [null, null];
 
           return (
-            <div key={node.id}>
+            <div
+              key={node.id}
+              style={{
+                width: 'calc(50% - 4px)',
+                minWidth: '280px',
+                maxWidth: '450px',
+                padding: '8px 10px',
+                background: isPending
+                  ? 'rgba(251, 191, 36, 0.15)'
+                  : isUnlocked
+                    ? colors.bg
+                    : 'rgba(71, 85, 105, 0.1)',
+                border: isPending
+                  ? '2px solid #fbbf24'
+                  : isUnlocked
+                    ? `1px solid ${colors.border}`
+                    : '1px solid #475569',
+                borderRadius: '6px',
+              }}
+            >
               {/* 노드 헤더 */}
-              <div
-                style={{
-                  padding: '10px 14px',
-                  background: isPending
-                    ? 'rgba(251, 191, 36, 0.2)'
-                    : isUnlocked
-                      ? colors.bg
-                      : 'rgba(71, 85, 105, 0.15)',
-                  border: isPending
-                    ? '2px solid #fbbf24'
-                    : isUnlocked
-                      ? `1px solid ${colors.border}`
-                      : '1px solid #475569',
-                  borderRadius: '8px',
-                  cursor: (canUnlock || (!isUnlocked && !isPending)) ? 'pointer' : 'default',
-                }}
-                onClick={() => {
-                  if (canUnlock) {
-                    onUnlockNode(node.id, type);
-                  } else if (!isUnlocked && !isPending) {
-                    setExpandedNode(isExpanded ? null : node.id);
-                  }
-                }}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <div>
-                    {/* 노드 이름 + 설명 */}
-                    <div style={{
-                      fontWeight: 'bold',
-                      color: isUnlocked ? colors.text : '#e2e8f0',
-                      fontSize: '13px',
-                      marginBottom: '2px',
-                    }}>
-                      {isUnlocked && '✓ '}{node.name}
-                      <span style={{ fontWeight: 'normal', color: '#9ca3af', marginLeft: '8px', fontSize: '11px' }}>
-                        {node.description}
-                      </span>
-                    </div>
-
-                    {/* 선택지 미리보기 - 항상 표시 */}
-                    {choice1 && choice2 && (
-                      <div style={{
-                        display: 'flex',
-                        gap: '12px',
-                        marginTop: '6px',
-                        fontSize: '11px',
-                      }}>
-                        <ChoicePreview
-                          choice={choice1}
-                          isSelected={selectedChoice === choice1.id}
-                          isAlternative={selectedChoice === choice2.id}
-                          showDetails={isExpanded || isPending}
-                        />
-                        <span style={{ color: '#475569' }}>vs</span>
-                        <ChoicePreview
-                          choice={choice2}
-                          isSelected={selectedChoice === choice2.id}
-                          isAlternative={selectedChoice === choice1.id}
-                          showDetails={isExpanded || isPending}
-                        />
-                      </div>
-                    )}
-                  </div>
-
-                  {/* 상태 뱃지 */}
-                  <div style={{ textAlign: 'right', minWidth: '80px' }}>
-                    {selectedChoice && (
-                      <div style={{
-                        fontSize: '10px',
-                        padding: '2px 6px',
-                        background: 'rgba(134, 239, 172, 0.2)',
-                        border: '1px solid rgba(134, 239, 172, 0.3)',
-                        borderRadius: '4px',
-                        color: '#86efac',
-                      }}>
-                        선택 완료
-                      </div>
-                    )}
-                    {isPending && (
-                      <div style={{
-                        fontSize: '10px',
-                        padding: '2px 6px',
-                        background: 'rgba(251, 191, 36, 0.2)',
-                        border: '1px solid rgba(251, 191, 36, 0.3)',
-                        borderRadius: '4px',
-                        color: '#fbbf24',
-                      }}>
-                        선택 대기 중
-                      </div>
-                    )}
-                    {canUnlock && (
-                      <div style={{
-                        fontSize: '10px',
-                        padding: '2px 6px',
-                        background: 'rgba(96, 165, 250, 0.2)',
-                        border: '1px solid rgba(96, 165, 250, 0.3)',
-                        borderRadius: '4px',
-                        color: '#60a5fa',
-                      }}>
-                        1P로 해금
-                      </div>
-                    )}
-                    {!isUnlocked && !isPending && !canUnlock && !isLocked && (
-                      <div style={{
-                        fontSize: '10px',
-                        color: '#6b7280',
-                      }}>
-                        {isExpanded ? '접기 ▲' : '상세보기 ▼'}
-                      </div>
-                    )}
-                  </div>
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '6px',
+              }}>
+                <div style={{
+                  fontWeight: 'bold',
+                  color: isUnlocked ? colors.text : '#e2e8f0',
+                  fontSize: '12px',
+                }}>
+                  {isUnlocked && '✓ '}{node.name}
+                  <span style={{ fontWeight: 'normal', color: '#6b7280', marginLeft: '6px', fontSize: '10px' }}>
+                    {node.description}
+                  </span>
                 </div>
+
+                {/* 상태 뱃지 */}
+                {canUnlock && (
+                  <button
+                    onClick={() => onUnlockNode(node.id, type)}
+                    style={{
+                      padding: '2px 6px',
+                      background: 'rgba(96, 165, 250, 0.2)',
+                      border: '1px solid #60a5fa',
+                      borderRadius: '4px',
+                      color: '#60a5fa',
+                      fontSize: '9px',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    1P 해금
+                  </button>
+                )}
+                {selectedChoice && (
+                  <span style={{
+                    fontSize: '9px',
+                    padding: '2px 4px',
+                    background: 'rgba(134, 239, 172, 0.2)',
+                    borderRadius: '3px',
+                    color: '#86efac',
+                  }}>
+                    완료
+                  </span>
+                )}
               </div>
 
-              {/* 선택 대기 중인 경우 선택 UI */}
-              {isPending && (
-                <NodeChoiceSelector
-                  nodeId={node.id}
-                  type={type}
-                  onSelectChoice={onSelectChoice}
-                />
+              {/* 선택지 2개 - 클릭으로 직접 선택 */}
+              {choice1 && choice2 && (
+                <div style={{ display: 'flex', gap: '4px' }}>
+                  <ChoiceBadge
+                    choice={choice1}
+                    isSelected={selectedChoice === choice1.id}
+                    isAlternative={selectedChoice === choice2.id}
+                    canSelect={isPending}
+                    onSelect={() => isPending && onSelectChoice(choice1.id)}
+                  />
+                  <ChoiceBadge
+                    choice={choice2}
+                    isSelected={selectedChoice === choice2.id}
+                    isAlternative={selectedChoice === choice1.id}
+                    canSelect={isPending}
+                    onSelect={() => isPending && onSelectChoice(choice2.id)}
+                  />
+                </div>
               )}
             </div>
           );
@@ -613,65 +561,87 @@ function TierRow({
   );
 }
 
-// 선택지 미리보기 컴포넌트
-function ChoicePreview({
+// 선택지 뱃지 - 클릭으로 직접 선택
+function ChoiceBadge({
   choice,
   isSelected,
   isAlternative,
-  showDetails,
+  canSelect,
+  onSelect,
 }: {
   choice: Ethos | Pathos;
   isSelected: boolean;
   isAlternative: boolean;
-  showDetails: boolean;
+  canSelect: boolean;
+  onSelect: () => void;
 }) {
   const typeColor = choice.type === 'sword' ? '#60a5fa' : choice.type === 'gun' ? '#f472b6' : '#9ca3af';
-  const typeLabel = choice.type === 'sword' ? '검술' : choice.type === 'gun' ? '총기' : '공용';
+  const typeLabel = choice.type === 'sword' ? '검' : choice.type === 'gun' ? '총' : '공';
 
   return (
-    <div style={{
-      flex: 1,
-      padding: showDetails ? '8px' : '4px 6px',
-      background: isSelected
-        ? 'rgba(134, 239, 172, 0.15)'
-        : isAlternative
-          ? 'rgba(107, 114, 128, 0.15)'
-          : 'rgba(30, 41, 59, 0.5)',
-      border: isSelected
-        ? '1px solid rgba(134, 239, 172, 0.4)'
-        : '1px solid rgba(71, 85, 105, 0.3)',
-      borderRadius: '4px',
-      opacity: isAlternative ? 0.5 : 1,
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-        {isSelected && <span style={{ color: '#86efac' }}>✓</span>}
+    <div
+      onClick={(e) => {
+        e.stopPropagation();
+        if (canSelect) onSelect();
+      }}
+      title={choice.description}
+      style={{
+        flex: 1,
+        padding: '6px 8px',
+        background: isSelected
+          ? 'rgba(134, 239, 172, 0.2)'
+          : canSelect
+            ? 'rgba(251, 191, 36, 0.15)'
+            : isAlternative
+              ? 'rgba(71, 85, 105, 0.1)'
+              : 'rgba(30, 41, 59, 0.4)',
+        border: isSelected
+          ? '2px solid #86efac'
+          : canSelect
+            ? '2px solid #fbbf24'
+            : '1px solid rgba(71, 85, 105, 0.3)',
+        borderRadius: '4px',
+        opacity: isAlternative ? 0.4 : 1,
+        cursor: canSelect ? 'pointer' : 'default',
+        transition: 'all 0.15s',
+      }}
+    >
+      {/* 이름 + 타입 */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '2px' }}>
+        {isSelected && <span style={{ color: '#86efac', fontSize: '10px' }}>✓</span>}
         <span style={{
           fontWeight: isSelected ? 'bold' : 'normal',
-          color: isSelected ? '#86efac' : isAlternative ? '#6b7280' : '#e2e8f0',
+          fontSize: '11px',
+          color: isSelected ? '#86efac' : canSelect ? '#fbbf24' : isAlternative ? '#6b7280' : '#e2e8f0',
         }}>
           {choice.name}
         </span>
         <span style={{
-          fontSize: '9px',
-          padding: '1px 4px',
+          fontSize: '8px',
+          padding: '0px 3px',
           background: `${typeColor}20`,
-          border: `1px solid ${typeColor}40`,
-          borderRadius: '3px',
+          borderRadius: '2px',
           color: typeColor,
         }}>
           {typeLabel}
         </span>
+        {canSelect && (
+          <span style={{ fontSize: '9px', color: '#fbbf24', marginLeft: 'auto' }}>클릭!</span>
+        )}
       </div>
-      {showDetails && (
-        <div style={{
-          marginTop: '4px',
-          fontSize: '10px',
-          color: isAlternative ? '#6b7280' : '#9ca3af',
-          lineHeight: '1.4',
-        }}>
-          {choice.description}
-        </div>
-      )}
+      {/* 설명 */}
+      <div style={{
+        fontSize: '9px',
+        color: isAlternative ? '#4b5563' : '#9ca3af',
+        lineHeight: '1.3',
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+        display: '-webkit-box',
+        WebkitLineClamp: 2,
+        WebkitBoxOrient: 'vertical' as const,
+      }}>
+        {choice.description}
+      </div>
     </div>
   );
 }
@@ -824,67 +794,6 @@ function BaseItemRow({
             </div>
           );
         })}
-      </div>
-    </div>
-  );
-}
-
-// 노드 선택지 선택 UI
-function NodeChoiceSelector({
-  nodeId,
-  type,
-  onSelectChoice,
-}: {
-  nodeId: string;
-  type: 'ethos' | 'pathos';
-  onSelectChoice: (choiceId: string) => void;
-}) {
-  const choices = getNodeChoices(nodeId, type);
-  if (!choices) return null;
-
-  const [choice1, choice2] = choices;
-
-  return (
-    <div style={{
-      marginTop: '12px',
-      padding: '12px',
-      background: 'rgba(251, 191, 36, 0.1)',
-      border: '1px solid rgba(251, 191, 36, 0.3)',
-      borderRadius: '8px',
-    }}>
-      <div style={{ fontSize: '12px', color: '#fbbf24', marginBottom: '8px', fontWeight: 'bold' }}>
-        선택지 중 하나를 골라주세요:
-      </div>
-      <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-        {[choice1, choice2].map(choice => (
-          <div
-            key={choice.id}
-            onClick={() => onSelectChoice(choice.id)}
-            style={{
-              flex: 1,
-              minWidth: '200px',
-              padding: '10px',
-              background: 'rgba(30, 41, 59, 0.8)',
-              border: '2px solid rgba(251, 191, 36, 0.5)',
-              borderRadius: '6px',
-              cursor: 'pointer',
-            }}
-          >
-            <div style={{ fontWeight: 'bold', color: '#e2e8f0', marginBottom: '4px' }}>
-              {choice.name}
-              <span style={{
-                marginLeft: '8px',
-                fontSize: '10px',
-                color: choice.type === 'sword' ? '#60a5fa' : choice.type === 'gun' ? '#f472b6' : '#9ca3af',
-              }}>
-                {choice.type === 'sword' ? '검술' : choice.type === 'gun' ? '총기' : '공용'}
-              </span>
-            </div>
-            <div style={{ fontSize: '12px', color: '#9ca3af' }}>
-              {choice.description}
-            </div>
-          </div>
-        ))}
       </div>
     </div>
   );
