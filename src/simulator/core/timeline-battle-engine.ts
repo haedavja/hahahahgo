@@ -1075,9 +1075,27 @@ export class TimelineBattleEngine {
 
     if (!card.traits) return mods;
 
+    // 이변: 침묵 - 특성 비활성화 체크
+    const silenceLevel = this.config.enableAnomalies ? getTraitSilenceLevel() : 0;
+
     for (const traitId of card.traits) {
       const trait = this.traits[traitId];
       if (!trait) continue;
+
+      // 침묵 레벨에 따라 특성 비활성화
+      // 1: 부정 특성만, 2: 1성 이하, 3: 2성 이하, 4: 모든 특성
+      if (silenceLevel >= 4) {
+        continue; // 모든 특성 무시
+      }
+      if (silenceLevel >= 3 && trait.weight <= 2) {
+        continue; // 2성 이하 무시
+      }
+      if (silenceLevel >= 2 && trait.weight <= 1) {
+        continue; // 1성 이하 무시
+      }
+      if (silenceLevel >= 1 && trait.type === 'negative') {
+        continue; // 부정 특성 무시
+      }
 
       switch (traitId) {
         case 'swift':
@@ -1130,12 +1148,23 @@ export class TimelineBattleEngine {
 
         case 'chain':
           // 연계: 다음 카드 앞당김
+          // 이변: 고립 - 연계 효과 무효화 (레벨 1 이상 또는 레벨 3 이상)
+          const chainIsolation = this.config.enableAnomalies ? getChainIsolationLevel() : 0;
+          if (chainIsolation >= 1 && chainIsolation !== 2) {
+            // 레벨 1 = 연계만 무효, 레벨 2 = 후속만 무효, 레벨 3+ = 둘 다 무효
+            break; // 연계 효과 무시
+          }
           actorState.tokens = addToken(actorState.tokens, 'chain_ready', 1);
           mods.effects.push('연계 준비');
           break;
 
         case 'followup':
           // 후속: 연계되면 50% 증폭
+          // 이변: 고립 - 후속 효과 무효화 (레벨 2 이상)
+          const followupIsolation = this.config.enableAnomalies ? getChainIsolationLevel() : 0;
+          if (followupIsolation >= 2) {
+            break; // 후속 효과 무시
+          }
           if (hasToken(actorState.tokens, 'chain_ready')) {
             mods.damageMultiplier *= 1.5;
             mods.blockMultiplier *= 1.5;
