@@ -88,6 +88,28 @@ export const BattleTab = memo(function BattleTab({
   const enemyGroups = useMemo(() => ENEMY_GROUPS as EnemyGroup[], []);
   const enemies = useMemo(() => ENEMIES as Enemy[], []);
 
+  // 티어별 그룹 및 적 정보 메모이제이션
+  const enemyMap = useMemo(() => {
+    const map = new Map<string, Enemy>();
+    enemies.forEach(e => map.set(e.id, e));
+    return map;
+  }, [enemies]);
+
+  const groupsByTier = useMemo(() => {
+    const result: Record<number, Array<EnemyGroup & { enemyInfos: (Enemy | undefined)[]; totalHp: number; emojis: string }>> = {};
+    [1, 2, 3].forEach(tier => {
+      result[tier] = enemyGroups
+        .filter(g => g.tier === tier)
+        .map(group => {
+          const enemyInfos = group.enemies.map(eid => enemyMap.get(eid));
+          const totalHp = enemyInfos.reduce((sum, e) => sum + (e?.hp || 0), 0);
+          const emojis = [...new Set(enemyInfos.map(e => e?.emoji || '👾'))].join('');
+          return { ...group, enemyInfos, totalHp, emojis };
+        });
+    });
+    return result;
+  }, [enemyGroups, enemyMap]);
+
   // 핸들러 메모이제이션
   const handleApplyStrength = useCallback(() => updatePlayerStrength(strengthInput), [strengthInput, updatePlayerStrength]);
   const handleApplyAgility = useCallback(() => updatePlayerAgility(agilityInput), [agilityInput, updatePlayerAgility]);
@@ -376,8 +398,8 @@ export const BattleTab = memo(function BattleTab({
         </div>
 
         {[1, 2, 3].map(tier => {
-          const tierGroups = enemyGroups.filter(g => g.tier === tier);
-          if (tierGroups.length === 0) return null;
+          const tierGroups = groupsByTier[tier];
+          if (!tierGroups || tierGroups.length === 0) return null;
 
           return (
             <div key={tier} style={{ marginBottom: '16px' }}>
@@ -390,32 +412,26 @@ export const BattleTab = memo(function BattleTab({
                 {tier === 1 ? '⭐ Tier 1 (초급)' : tier === 2 ? '⭐⭐ Tier 2 (중급)' : '⭐⭐⭐ Tier 3 (보스)'}
               </div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                {tierGroups.map(group => {
-                  const enemyInfos = group.enemies.map(eid => enemies.find(e => e.id === eid));
-                  const totalHp = enemyInfos.reduce((sum, e) => sum + (e?.hp || 0), 0);
-                  const emojis = [...new Set(enemyInfos.map(e => e?.emoji || '👾'))].join('');
-
-                  return (
-                    <button
-                      key={group.id}
-                      onClick={() => devStartBattle && devStartBattle(group.id)}
-                      disabled={!!activeBattle}
-                      style={{
-                        padding: '10px 14px',
-                        background: activeBattle ? '#334155' : tier === 1 ? '#166534' : tier === 2 ? '#92400e' : '#991b1b',
-                        border: 'none', borderRadius: '8px', color: '#fff', fontSize: '0.8rem', fontWeight: 'bold',
-                        cursor: activeBattle ? 'not-allowed' : 'pointer', opacity: activeBattle ? 0.5 : 1,
-                        textAlign: 'left', minWidth: '140px',
-                      }}
-                      title={`${group.name}\n적: ${group.enemies.join(', ')}\nHP: ${totalHp}`}
-                    >
-                      <div style={{ marginBottom: '4px' }}>{emojis} {group.name}</div>
-                      <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.7)' }}>
-                        HP: {totalHp} | {group.enemies.length}마리
-                      </div>
-                    </button>
-                  );
-                })}
+                {tierGroups.map(group => (
+                  <button
+                    key={group.id}
+                    onClick={() => devStartBattle && devStartBattle(group.id)}
+                    disabled={!!activeBattle}
+                    style={{
+                      padding: '10px 14px',
+                      background: activeBattle ? '#334155' : tier === 1 ? '#166534' : tier === 2 ? '#92400e' : '#991b1b',
+                      border: 'none', borderRadius: '8px', color: '#fff', fontSize: '0.8rem', fontWeight: 'bold',
+                      cursor: activeBattle ? 'not-allowed' : 'pointer', opacity: activeBattle ? 0.5 : 1,
+                      textAlign: 'left', minWidth: '140px',
+                    }}
+                    title={`${group.name}\n적: ${group.enemies.join(', ')}\nHP: ${group.totalHp}`}
+                  >
+                    <div style={{ marginBottom: '4px' }}>{group.emojis} {group.name}</div>
+                    <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.7)' }}>
+                      HP: {group.totalHp} | {group.enemies.length}마리
+                    </div>
+                  </button>
+                ))}
               </div>
             </div>
           );

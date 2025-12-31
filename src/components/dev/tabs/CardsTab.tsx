@@ -43,6 +43,18 @@ export const CardsTab = memo(function CardsTab({ cardUpgrades, upgradeCardRarity
   const subSpecials = useMemo(() => characterBuild?.subSpecials || [], [characterBuild?.subSpecials]);
   const ownedCards = useMemo(() => characterBuild?.ownedCards || [], [characterBuild?.ownedCards]);
 
+  // 카드 맵 메모이제이션 (빠른 lookup)
+  const cardMap = useMemo(() => {
+    const map = new Map<string, Card>();
+    (CARDS as Card[]).forEach(c => map.set(c.id, c));
+    return map;
+  }, []);
+
+  // 고유 카드 목록 메모이제이션
+  const uniqueMainSpecials = useMemo(() => [...new Set(mainSpecials)], [mainSpecials]);
+  const uniqueSubSpecials = useMemo(() => [...new Set(subSpecials)], [subSpecials]);
+  const uniqueOwnedCards = useMemo(() => [...new Set(ownedCards)], [ownedCards]);
+
   // 카드 추가
   const addCard = useCallback((cardId: string) => {
     if (specialMode === 'main') {
@@ -115,22 +127,14 @@ export const CardsTab = memo(function CardsTab({ cardUpgrades, upgradeCardRarity
           {mainSpecials.length === 0 ? (
             <span style={{ color: '#64748b', fontSize: '0.75rem' }}>없음</span>
           ) : (
-            [...new Set(mainSpecials)].map(cardId => {
-              const card = (CARDS as Card[]).find(c => c.id === cardId);
+            uniqueMainSpecials.map(cardId => {
+              const card = cardMap.get(cardId);
               const count = getCount(cardId, mainSpecials);
               return (
                 <div
                   key={cardId}
                   onClick={() => removeCard(cardId, true)}
-                  style={{
-                    padding: '4px 10px',
-                    background: 'rgba(245, 215, 110, 0.15)',
-                    border: '1px solid #f5d76e',
-                    borderRadius: '6px',
-                    color: '#f5d76e',
-                    fontSize: '0.75rem',
-                    cursor: 'pointer',
-                  }}
+                  style={CARD_BADGE_STYLE.main}
                   title="클릭하여 제거"
                 >
                   {card?.name || cardId}{count > 1 ? ` x${count}` : ''} ✕
@@ -147,22 +151,14 @@ export const CardsTab = memo(function CardsTab({ cardUpgrades, upgradeCardRarity
           {subSpecials.length === 0 ? (
             <span style={{ color: '#64748b', fontSize: '0.75rem' }}>없음</span>
           ) : (
-            [...new Set(subSpecials)].map(cardId => {
-              const card = (CARDS as Card[]).find(c => c.id === cardId);
+            uniqueSubSpecials.map(cardId => {
+              const card = cardMap.get(cardId);
               const count = getCount(cardId, subSpecials);
               return (
                 <div
                   key={cardId}
                   onClick={() => removeCard(cardId, false)}
-                  style={{
-                    padding: '4px 10px',
-                    background: 'rgba(125, 211, 252, 0.15)',
-                    border: '1px solid #7dd3fc',
-                    borderRadius: '6px',
-                    color: '#7dd3fc',
-                    fontSize: '0.75rem',
-                    cursor: 'pointer',
-                  }}
+                  style={CARD_BADGE_STYLE.sub}
                   title="클릭하여 제거"
                 >
                   {card?.name || cardId}{count > 1 ? ` x${count}` : ''} ✕
@@ -179,22 +175,14 @@ export const CardsTab = memo(function CardsTab({ cardUpgrades, upgradeCardRarity
           {ownedCards.length === 0 ? (
             <span style={{ color: '#64748b', fontSize: '0.75rem' }}>없음</span>
           ) : (
-            [...new Set(ownedCards)].map(cardId => {
-              const card = (CARDS as Card[]).find(c => c.id === cardId);
+            uniqueOwnedCards.map(cardId => {
+              const card = cardMap.get(cardId);
               const count = getCount(cardId, ownedCards);
               return (
                 <div
                   key={cardId}
                   onClick={() => removeOwnedCard(cardId)}
-                  style={{
-                    padding: '4px 10px',
-                    background: 'rgba(167, 139, 250, 0.15)',
-                    border: '1px solid #a78bfa',
-                    borderRadius: '6px',
-                    color: '#a78bfa',
-                    fontSize: '0.75rem',
-                    cursor: 'pointer',
-                  }}
+                  style={CARD_BADGE_STYLE.owned}
                   title="클릭하여 제거"
                 >
                   {card?.name || cardId}{count > 1 ? ` x${count}` : ''} ✕

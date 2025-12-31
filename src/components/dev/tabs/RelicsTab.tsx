@@ -33,6 +33,18 @@ export const RelicsTab = memo(function RelicsTab({ relics, addRelic, removeRelic
   const [searchQuery, setSearchQuery] = useState<string>('');
   const allRelics = useMemo(() => getAllRelics() as Relic[], []);
 
+  // 상징 맵 (빠른 lookup)
+  const relicMap = useMemo(() => {
+    const map = new Map<string, Relic>();
+    allRelics.forEach(r => map.set(r.id, r));
+    return map;
+  }, [allRelics]);
+
+  // 보유 상징 데이터 (메모이제이션)
+  const ownedRelicsData = useMemo(() =>
+    relics.map(id => relicMap.get(id)).filter((r): r is Relic => r !== undefined),
+    [relics, relicMap]);
+
   const filteredRelics = useMemo(() => allRelics.filter(r => {
     // 등급 필터
     const matchesRarity = selectedRarity === 'all' || r.rarity === selectedRarity;
@@ -71,31 +83,27 @@ export const RelicsTab = memo(function RelicsTab({ relics, addRelic, removeRelic
         <div style={{ fontSize: '0.875rem', color: '#94a3b8', marginBottom: '8px' }}>
           보유 상징 ({relics.length}개)
         </div>
-        {relics.length > 0 ? (
+        {ownedRelicsData.length > 0 ? (
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-            {relics.map(relicId => {
-              const relic = allRelics.find(r => r.id === relicId);
-              if (!relic) return null;
-              return (
-                <div
-                  key={relicId}
-                  onClick={() => removeRelic(relicId)}
-                  style={{
-                    padding: '6px 12px',
-                    background: 'rgba(239, 68, 68, 0.2)',
-                    border: '1px solid #ef4444',
-                    borderRadius: '6px',
-                    color: '#fca5a5',
-                    fontSize: '0.75rem',
-                    cursor: 'pointer',
-                    transition: 'all 0.15s',
-                  }}
-                  title="클릭하여 제거"
-                >
-                  {relic.name} ✕
-                </div>
-              );
-            })}
+            {ownedRelicsData.map(relic => (
+              <div
+                key={relic.id}
+                onClick={() => removeRelic(relic.id)}
+                style={{
+                  padding: '6px 12px',
+                  background: 'rgba(239, 68, 68, 0.2)',
+                  border: '1px solid #ef4444',
+                  borderRadius: '6px',
+                  color: '#fca5a5',
+                  fontSize: '0.75rem',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s',
+                }}
+                title="클릭하여 제거"
+              >
+                {relic.name} ✕
+              </div>
+            ))}
           </div>
         ) : (
           <div style={{ fontSize: '0.75rem', color: '#64748b', fontStyle: 'italic' }}>

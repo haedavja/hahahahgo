@@ -45,6 +45,11 @@ export const MapTab = memo(function MapTab({ map, mapRisk, setMapRisk, selectNod
     return grouped;
   }, [map?.nodes]);
 
+  // 정렬된 레이어 엔트리 (메모이제이션)
+  const sortedLayerEntries = useMemo(() =>
+    Object.entries(nodesByLayer).sort(([a], [b]) => parseInt(a) - parseInt(b)) as [string, MapNode[]][],
+    [nodesByLayer]);
+
   return (
     <div>
       <h3 style={{ marginTop: 0, color: '#fbbf24', fontSize: '1.125rem' }}>맵 제어</h3>
@@ -145,7 +150,7 @@ export const MapTab = memo(function MapTab({ map, mapRisk, setMapRisk, selectNod
             }}
           >
             <option value="">노드 선택...</option>
-            {Object.entries(nodesByLayer).sort(([a], [b]) => parseInt(a) - parseInt(b)).map(([layer, nodes]: [string, MapNode[]]) => (
+            {sortedLayerEntries.map(([layer, nodes]) => (
               <optgroup key={layer} label={`Layer ${layer}`}>
                 {nodes.map((node: MapNode) => (
                   <option key={node.id} value={node.id}>
