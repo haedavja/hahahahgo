@@ -154,8 +154,32 @@ export {
   DEFAULT_HAND_SIZE,
   BASE_CRIT_CHANCE,
   CRIT_MULTIPLIER,
+  // Multi-enemy support
+  initializeEnemyUnits,
+  selectTargetUnit,
+  distributeUnitDamage,
+  syncEnemyTotalHp,
+  checkSummonTrigger,
+  spawnDeserters,
+  getAliveUnitCount,
+  distributeAoeDamage,
   type BattleEngineConfig,
 } from './core/timeline-battle-engine';
+
+// ==================== Card Creation System ====================
+export {
+  CardCreationSystem,
+  createBreachCards,
+  createAttackOnHit,
+  createFencingCards,
+  createExecutionSquadCards,
+  generateCreationPool,
+  selectBestCard,
+  insertCreatedCardToTimeline,
+  insertMultipleCreatedCards,
+  type CardCreationResult,
+  type CreationPoolOptions,
+} from './core/card-creation';
 
 // ==================== Token System (Full 56 Tokens) ====================
 export {

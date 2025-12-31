@@ -37,6 +37,10 @@ export interface SpecialEffectResult {
     extraHits?: number;
     guaranteedCrit?: boolean;
     ignoreBlock?: boolean;
+    /** 카드 창조 효과 마커 */
+    creationEffect?: string;
+    /** 소환된 유닛 ID 목록 */
+    summoned?: string[];
   };
 }
 
@@ -551,21 +555,28 @@ const SPECIAL_EFFECTS: Record<string, SpecialEffectHandler> = {
     };
   },
 
-  // ==================== 소환/생성 (시뮬레이터에서는 단순화) ====================
+  // ==================== 소환/생성 ====================
+
+  // 카드 창조 효과들 - 실제 처리는 CardCreationSystem에서 담당
+  // 여기서는 마커만 반환하고, timeline-battle-engine에서 후처리
 
   createAttackOnHit: () => {
     return {
       success: true,
-      effects: ['공격 카드 창조 (시뮬레이터 미지원)'],
-      stateChanges: {},
+      effects: ['피해시 공격 카드 창조'],
+      stateChanges: { creationEffect: 'createAttackOnHit' },
     };
   },
 
-  breach: () => {
+  breach: (state, card, actor) => {
+    // 방어력 부여는 여기서 처리
+    if (card.block && actor === 'player') {
+      state.player.block += card.block;
+    }
     return {
       success: true,
-      effects: ['카드 창조 선택 (시뮬레이터 미지원)'],
-      stateChanges: {},
+      effects: ['카드 창조 (브리치)'],
+      stateChanges: { creationEffect: 'breach' },
     };
   },
 
@@ -577,22 +588,48 @@ const SPECIAL_EFFECTS: Record<string, SpecialEffectHandler> = {
     return {
       success: true,
       effects: ['장전 + 탄걸림 면역 + 총격 창조'],
+      stateChanges: { creationEffect: 'executionSquad' },
+    };
+  },
+
+  recallCard: (state, _card, actor) => {
+    // 마지막 사용 카드 회수 - 버린 카드에서 랜덤 1장 회수
+    if (actor === 'player' && state.player.discard.length > 0) {
+      const idx = Math.floor(Math.random() * state.player.discard.length);
+      const recalled = state.player.discard.splice(idx, 1)[0];
+      state.player.hand.push(recalled);
+      return {
+        success: true,
+        effects: [`카드 회수: ${recalled}`],
+        stateChanges: {},
+      };
+    }
+    return {
+      success: false,
+      effects: [],
       stateChanges: {},
     };
   },
 
-  recallCard: () => {
+  emergencyDraw: (state, _card, actor) => {
+    // 즉시 카드 2장 드로우
+    if (actor === 'player') {
+      const drawCount = Math.min(2, state.player.deck.length);
+      for (let i = 0; i < drawCount; i++) {
+        if (state.player.deck.length > 0) {
+          const drawn = state.player.deck.shift();
+          if (drawn) state.player.hand.push(drawn);
+        }
+      }
+      return {
+        success: true,
+        effects: [`${drawCount}장 드로우`],
+        stateChanges: {},
+      };
+    }
     return {
-      success: true,
-      effects: ['카드 회수 (시뮬레이터 미지원)'],
-      stateChanges: {},
-    };
-  },
-
-  emergencyDraw: () => {
-    return {
-      success: true,
-      effects: ['비상 드로우 (시뮬레이터 미지원)'],
+      success: false,
+      effects: [],
       stateChanges: {},
     };
   },
@@ -600,23 +637,104 @@ const SPECIAL_EFFECTS: Record<string, SpecialEffectHandler> = {
   createFencingCards3: () => {
     return {
       success: true,
-      effects: ['검격 카드 창조 (시뮬레이터 미지원)'],
+      effects: ['검격 카드 3장 창조'],
+      stateChanges: { creationEffect: 'createFencingCards3' },
+    };
+  },
+
+  buffAllies: (state, _card, actor) => {
+    // 아군 강화: 모든 유닛에게 공격+ 버프
+    if (actor === 'enemy' && state.enemy.units) {
+      for (const unit of state.enemy.units) {
+        if (unit.hp > 0) {
+          unit.tokens = addToken(unit.tokens, 'offense', 1);
+        }
+      }
+      return {
+        success: true,
+        effects: ['모든 아군에게 공격+ 부여'],
+        stateChanges: {},
+      };
+    }
+    return {
+      success: false,
+      effects: [],
       stateChanges: {},
     };
   },
 
-  buffAllies: () => {
+  summonDeserter: (state) => {
+    // 탈영병 소환: 적 유닛 추가
+    if (!state.enemy.units) {
+      state.enemy.units = [{
+        unitId: 0,
+        id: state.enemy.id,
+        name: state.enemy.name,
+        hp: state.enemy.hp,
+        maxHp: state.enemy.maxHp,
+        block: state.enemy.block,
+        tokens: { ...state.enemy.tokens },
+        deck: [...state.enemy.deck],
+        cardsPerTurn: state.enemy.cardsPerTurn,
+      }];
+    }
+
+    const maxUnitId = Math.max(...state.enemy.units.map(u => u.unitId), 0);
+
+    // 탈영병 2기 추가
+    const deserter1: typeof state.enemy.units[0] = {
+      unitId: maxUnitId + 1,
+      id: 'deserter',
+      name: '탈영병',
+      hp: 15,
+      maxHp: 15,
+      block: 0,
+      tokens: {},
+      deck: ['enemy_slash', 'enemy_guard'],
+      cardsPerTurn: 1,
+      emoji: '🏃',
+    };
+
+    const deserter2: typeof state.enemy.units[0] = {
+      unitId: maxUnitId + 2,
+      id: 'deserter',
+      name: '탈영병',
+      hp: 15,
+      maxHp: 15,
+      block: 0,
+      tokens: {},
+      deck: ['enemy_slash', 'enemy_guard'],
+      cardsPerTurn: 1,
+      emoji: '🏃',
+    };
+
+    state.enemy.units.push(deserter1, deserter2);
+
+    // 총 체력 갱신
+    state.enemy.hp = state.enemy.units.reduce((sum, u) => sum + Math.max(0, u.hp), 0);
+    state.enemy.maxHp = state.enemy.units.reduce((sum, u) => sum + u.maxHp, 0);
+
     return {
       success: true,
-      effects: ['아군 강화 (시뮬레이터 미지원)'],
-      stateChanges: {},
+      effects: ['탈영병 2기 소환'],
+      stateChanges: { summoned: ['deserter', 'deserter'] },
     };
   },
 
-  summonDeserter: () => {
+  // 50% HP에서 소환 패시브 (턴 시작시 체크)
+  summonOnHalfHp: (state) => {
+    if (state.enemy.passives?.summonOnHalfHp && !state.enemy.hasSummoned) {
+      const halfHp = state.enemy.maxHp / 2;
+      if (state.enemy.hp <= halfHp && state.enemy.hp > 0) {
+        // summonDeserter 호출
+        const result = SPECIAL_EFFECTS.summonDeserter(state, {} as GameCard, 'enemy', {} as TimelineCard);
+        state.enemy.hasSummoned = true;
+        return result;
+      }
+    }
     return {
-      success: true,
-      effects: ['탈영병 소환 (시뮬레이터 미지원)'],
+      success: false,
+      effects: [],
       stateChanges: {},
     };
   },

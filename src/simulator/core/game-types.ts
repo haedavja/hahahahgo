@@ -207,12 +207,43 @@ export interface PlayerState extends CombatantState {
   insight: number;
 }
 
+// ==================== 다중 적 유닛 타입 ====================
+
+export interface EnemyUnit {
+  unitId: number;
+  id: string;
+  name: string;
+  hp: number;
+  maxHp: number;
+  block: number;
+  tokens: TokenState;
+  deck: string[];
+  cardsPerTurn: number;
+  emoji?: string;
+  passives?: EnemyPassives;
+  hasSummoned?: boolean;
+}
+
+export interface EnemyPassives {
+  veilAtStart?: boolean;
+  healPerTurn?: number;
+  summonOnHalfHp?: boolean;
+  counterOnHit?: boolean;
+  reflectDamage?: number;
+}
+
 export interface EnemyState extends CombatantState {
   id: string;
   name: string;
   cardsPerTurn: number;
   deck: string[];
   pattern?: string;
+  /** 다중 유닛 지원 */
+  units?: EnemyUnit[];
+  /** 패시브 효과 */
+  passives?: EnemyPassives;
+  /** 소환 발동 여부 */
+  hasSummoned?: boolean;
 }
 
 export interface GameBattleState {
