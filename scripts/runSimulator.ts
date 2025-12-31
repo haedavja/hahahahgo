@@ -48,6 +48,10 @@
  *   npx tsx scripts/runSimulator.ts whatif                # What-If 분석
  *   npx tsx scripts/runSimulator.ts csv [battles] [filename] # CSV 내보내기
  *   npx tsx scripts/runSimulator.ts heatmap [battles]     # 히트맵 분석
+ *   npx tsx scripts/runSimulator.ts counter [battles]     # 카운터 전략 분석
+ *   npx tsx scripts/runSimulator.ts resource [battles]    # 자원 관리 분석
+ *   npx tsx scripts/runSimulator.ts longbattle [battles]  # 장기전 분석
+ *   npx tsx scripts/runSimulator.ts burst [battles]       # 순간 폭딜 분석
  *   npx tsx scripts/runSimulator.ts help                  # 도움말
  *
  * 예시:
@@ -73,7 +77,7 @@
  *   npx tsx scripts/runSimulator.ts trait 30
  */
 
-import { runSimulation, printStats, SimulationConfig, runBalanceAnalysis, runTierSimulation, runFullSimulation, runRelicComparison, runDeckComparison, runAnomalyComparison, runCardEfficiencyAnalysis, runFullReport, runBattleReplay, runEnemyAnalysis, runSynergyAnalysis, runDifficultyScalingAnalysis, runWinConditionAnalysis, exportSimulationResults, runTokenEfficiencyAnalysis, runMatchupAnalysis, runSpeedAnalysis, runTraitSynergyAnalysis, runStrategyRecommendation, printHelp, runDeckCompare, runBenchmark, runRandomDeckTest, runBestCardFinder, runEnemyWeaknessAnalysis, runMultiRelicTest, runProgressionTest, runCardRanking, runRelicRanking, runMetaAnalysis, runTurnAnalysis, runDamageAnalysis, runHealingAnalysis, runComboBreakdown, runStressTest, runProbabilityAnalysis, runVersatilityAnalysis, runConsistencyAnalysis, generatePatchNotes, runEdgeCaseTest, runQuickCheck, runAITest, runTimeTrialTest, runSummary, runDeckBuilder, runWhatIfAnalysis, exportToCSV, runHeatmapAnalysis, TIER_1_ENEMIES, TIER_2_ENEMIES, TIER_3_ENEMIES } from '../src/tests/gameSimulator';
+import { runSimulation, printStats, SimulationConfig, runBalanceAnalysis, runTierSimulation, runFullSimulation, runRelicComparison, runDeckComparison, runAnomalyComparison, runCardEfficiencyAnalysis, runFullReport, runBattleReplay, runEnemyAnalysis, runSynergyAnalysis, runDifficultyScalingAnalysis, runWinConditionAnalysis, exportSimulationResults, runTokenEfficiencyAnalysis, runMatchupAnalysis, runSpeedAnalysis, runTraitSynergyAnalysis, runStrategyRecommendation, printHelp, runDeckCompare, runBenchmark, runRandomDeckTest, runBestCardFinder, runEnemyWeaknessAnalysis, runMultiRelicTest, runProgressionTest, runCardRanking, runRelicRanking, runMetaAnalysis, runTurnAnalysis, runDamageAnalysis, runHealingAnalysis, runComboBreakdown, runStressTest, runProbabilityAnalysis, runVersatilityAnalysis, runConsistencyAnalysis, generatePatchNotes, runEdgeCaseTest, runQuickCheck, runAITest, runTimeTrialTest, runSummary, runDeckBuilder, runWhatIfAnalysis, exportToCSV, runHeatmapAnalysis, runCounterAnalysis, runResourceManagement, runLongBattleAnalysis, runBurstDamageAnalysis, TIER_1_ENEMIES, TIER_2_ENEMIES, TIER_3_ENEMIES } from '../src/tests/gameSimulator';
 import { ENEMIES } from '../src/components/battle/battleData';
 
 // 커맨드 라인 인자 파싱
@@ -423,6 +427,34 @@ if (command === 'heatmap') {
   const battles = parseInt(args[1]) || 15;
   console.log('🎮 히트맵 분석 모드\n');
   runHeatmapAnalysis(battles);
+  process.exit(0);
+}
+
+if (command === 'counter') {
+  const battles = parseInt(args[1]) || 20;
+  console.log('🎮 카운터 전략 분석 모드\n');
+  runCounterAnalysis(battles);
+  process.exit(0);
+}
+
+if (command === 'resource') {
+  const battles = parseInt(args[1]) || 30;
+  console.log('🎮 자원 관리 분석 모드\n');
+  runResourceManagement(battles);
+  process.exit(0);
+}
+
+if (command === 'longbattle') {
+  const battles = parseInt(args[1]) || 30;
+  console.log('🎮 장기전 분석 모드\n');
+  runLongBattleAnalysis(battles);
+  process.exit(0);
+}
+
+if (command === 'burst') {
+  const battles = parseInt(args[1]) || 30;
+  console.log('🎮 순간 폭딜 분석 모드\n');
+  runBurstDamageAnalysis(battles);
   process.exit(0);
 }
 

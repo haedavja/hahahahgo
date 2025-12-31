@@ -5221,6 +5221,231 @@ export function runHeatmapAnalysis(battles: number = 15): void {
   console.log('\n' + '═'.repeat(65) + '\n');
 }
 
+/**
+ * 카운터 전략 분석
+ * 적별 최적 카운터 덱 찾기
+ */
+export function runCounterAnalysis(battles: number = 20): void {
+  console.log('\n╔════════════════════════════════════════╗');
+  console.log('║          카운터 전략 분석               ║');
+  console.log('╚════════════════════════════════════════╝\n');
+
+  console.log(`📊 적별 카운터 덱 분석 (${battles}회 전투)\n`);
+  console.log('─'.repeat(50));
+
+  const testEnemies = [...TIER_1_ENEMIES.slice(0, 3), ...TIER_2_ENEMIES.slice(0, 2)];
+
+  for (const enemyId of testEnemies) {
+    const enemy = ENEMIES.find(e => e.id === enemyId);
+    if (!enemy) continue;
+
+    const deckResults: Array<{ name: string; winRate: number }> = [];
+
+    for (const [name, deck] of Object.entries(DECK_PRESETS)) {
+      const config: SimulationConfig = {
+        battles,
+        maxTurns: 30,
+        enemyIds: [enemyId],
+        playerDeck: deck,
+        verbose: false,
+      };
+
+      const stats = runSimulation(config);
+      deckResults.push({ name, winRate: stats.winRate });
+    }
+
+    deckResults.sort((a, b) => b.winRate - a.winRate);
+    const best = deckResults[0];
+    const worst = deckResults[deckResults.length - 1];
+
+    console.log(`\n  ${enemy.name}:`);
+    console.log(`    🏆 베스트: ${best.name} (${(best.winRate * 100).toFixed(0)}%)`);
+    console.log(`    ⚠️ 비추천: ${worst.name} (${(worst.winRate * 100).toFixed(0)}%)`);
+  }
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
+/**
+ * 자원 관리 분석
+ * 에테르 사용 효율 분석
+ */
+export function runResourceManagement(battles: number = 30): void {
+  console.log('\n╔════════════════════════════════════════╗');
+  console.log('║          자원 관리 분석                 ║');
+  console.log('╚════════════════════════════════════════╝\n');
+
+  console.log(`📊 덱별 에테르 효율 분석\n`);
+  console.log('─'.repeat(50));
+
+  // 덱 비용 분석
+  console.log('\n💎 덱별 평균 에테르 비용:\n');
+
+  for (const [name, preset] of Object.entries(DECK_PRESETS)) {
+    const totalCost = preset.cards.reduce((sum, cardId) => {
+      const card = CARDS.find(c => c.id === cardId);
+      return sum + (card?.etherCost || 0);
+    }, 0);
+
+    const avgCost = totalCost / preset.cards.length;
+    const bar = '█'.repeat(Math.ceil(avgCost * 3));
+
+    console.log(`  ${name.padEnd(12)}: ${bar} ${avgCost.toFixed(1)}`);
+  }
+
+  // 효율성 테스트
+  console.log('\n📈 에테르당 승률 효율:\n');
+
+  const efficiencyResults: Array<{ name: string; efficiency: number }> = [];
+
+  for (const [name, preset] of Object.entries(DECK_PRESETS)) {
+    const config: SimulationConfig = {
+      battles,
+      maxTurns: 30,
+      enemyIds: TIER_1_ENEMIES.slice(0, 3),
+      playerDeck: preset,
+      verbose: false,
+    };
+
+    const stats = runSimulation(config);
+    const totalCost = preset.cards.reduce((sum, cardId) => {
+      const card = CARDS.find(c => c.id === cardId);
+      return sum + (card?.etherCost || 0);
+    }, 0);
+
+    const efficiency = stats.winRate / Math.max(totalCost, 1);
+    efficiencyResults.push({ name, efficiency });
+  }
+
+  efficiencyResults.sort((a, b) => b.efficiency - a.efficiency);
+
+  efficiencyResults.forEach((r, i) => {
+    const medal = i < 3 ? ['🥇', '🥈', '🥉'][i] : '  ';
+    console.log(`  ${medal} ${r.name}: ${(r.efficiency * 100).toFixed(2)} 효율점`);
+  });
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
+/**
+ * 장기전 분석
+ * 장기전 성능 분석
+ */
+export function runLongBattleAnalysis(battles: number = 30): void {
+  console.log('\n╔════════════════════════════════════════╗');
+  console.log('║          장기전 분석                    ║');
+  console.log('╚════════════════════════════════════════╝\n');
+
+  console.log(`📊 장기전 (50턴) 성능 분석\n`);
+  console.log('─'.repeat(50));
+
+  const results: Array<{ name: string; winRate: number; avgTurns: number }> = [];
+
+  // 장기전용 설정 (최대 50턴, 강한 적)
+  for (const [name, deck] of Object.entries(DECK_PRESETS)) {
+    const config: SimulationConfig = {
+      battles,
+      maxTurns: 50,
+      enemyIds: TIER_3_ENEMIES.slice(0, 2), // 보스급 적
+      playerDeck: deck,
+      verbose: false,
+    };
+
+    const stats = runSimulation(config);
+    results.push({
+      name,
+      winRate: stats.winRate,
+      avgTurns: stats.avgTurns,
+    });
+  }
+
+  results.sort((a, b) => b.winRate - a.winRate);
+
+  console.log('\n⚔️ 장기전 덱 순위:\n');
+  results.forEach((r, i) => {
+    const rating = r.winRate > 0.5 ? '🌟' :
+      r.winRate > 0.3 ? '⭐' :
+      r.winRate > 0.1 ? '✦' : '○';
+
+    console.log(`  ${i + 1}. ${r.name.padEnd(12)}: ${rating} ${(r.winRate * 100).toFixed(0)}% (${r.avgTurns.toFixed(1)}턴)`);
+  });
+
+  // 분석
+  console.log('\n' + '─'.repeat(50));
+  console.log('\n💡 장기전 특성:');
+
+  const bestLong = results[0];
+  const worstLong = results[results.length - 1];
+
+  console.log(`  🏆 장기전 강자: ${bestLong.name}`);
+  console.log(`  ⚠️ 장기전 취약: ${worstLong.name}`);
+
+  if (bestLong.avgTurns > 20) {
+    console.log(`  📌 ${bestLong.name}은(는) 지구전형 덱`);
+  }
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
+/**
+ * 순간 폭딜 분석
+ * 버스트 데미지 잠재력 분석
+ */
+export function runBurstDamageAnalysis(battles: number = 30): void {
+  console.log('\n╔════════════════════════════════════════╗');
+  console.log('║          순간 폭딜 분석                 ║');
+  console.log('╚════════════════════════════════════════╝\n');
+
+  console.log(`📊 덱별 버스트 데미지 잠재력 분석\n`);
+  console.log('─'.repeat(50));
+
+  const results: Array<{ name: string; burstPotential: number; quickWins: number }> = [];
+
+  for (const [name, deck] of Object.entries(DECK_PRESETS)) {
+    // 약한 적으로 테스트 (빠른 처치 측정)
+    const config: SimulationConfig = {
+      battles,
+      maxTurns: 10, // 짧은 턴 제한
+      enemyIds: TIER_1_ENEMIES.slice(0, 2),
+      playerDeck: deck,
+      verbose: false,
+    };
+
+    const stats = runSimulation(config);
+
+    // 빠른 승리 = 버스트 잠재력
+    const quickWinRatio = stats.winRate;
+    const burstScore = quickWinRatio * (10 - stats.avgTurns);
+
+    results.push({
+      name,
+      burstPotential: burstScore,
+      quickWins: quickWinRatio,
+    });
+  }
+
+  results.sort((a, b) => b.burstPotential - a.burstPotential);
+
+  console.log('\n💥 버스트 데미지 순위:\n');
+  results.forEach((r, i) => {
+    const bar = '█'.repeat(Math.ceil(r.burstPotential));
+    const medal = i < 3 ? ['🥇', '🥈', '🥉'][i] : `${i + 1}.`;
+
+    console.log(`  ${medal} ${r.name.padEnd(12)}: ${bar} (${r.burstPotential.toFixed(1)}점)`);
+    console.log(`     빠른 승리율: ${(r.quickWins * 100).toFixed(0)}%`);
+  });
+
+  // 분석
+  console.log('\n' + '─'.repeat(50));
+  console.log('\n💡 폭딜 분석:');
+
+  const topBurst = results[0];
+  console.log(`  🔥 최고 폭딜덱: ${topBurst.name}`);
+  console.log(`  ⚡ 평균 처치 속도: ${(10 - topBurst.burstPotential / topBurst.quickWins).toFixed(1)}턴`);
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
 // CLI에서 직접 실행 시
 if (typeof process !== 'undefined' && process.argv?.[1]?.includes('gameSimulator')) {
   runQuickTest();

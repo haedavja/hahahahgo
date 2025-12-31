@@ -700,3 +700,31 @@ describe('히트맵 분석', () => {
     expect(typeof runHeatmapAnalysis).toBe('function');
   });
 });
+
+describe('카운터 전략 분석', () => {
+  it('runCounterAnalysis 함수가 존재한다', async () => {
+    const { runCounterAnalysis } = await import('./gameSimulator');
+    expect(typeof runCounterAnalysis).toBe('function');
+  });
+});
+
+describe('자원 관리 분석', () => {
+  it('runResourceManagement 함수가 존재한다', async () => {
+    const { runResourceManagement } = await import('./gameSimulator');
+    expect(typeof runResourceManagement).toBe('function');
+  });
+});
+
+describe('장기전 분석', () => {
+  it('runLongBattleAnalysis 함수가 존재한다', async () => {
+    const { runLongBattleAnalysis } = await import('./gameSimulator');
+    expect(typeof runLongBattleAnalysis).toBe('function');
+  });
+});
+
+describe('순간 폭딜 분석', () => {
+  it('runBurstDamageAnalysis 함수가 존재한다', async () => {
+    const { runBurstDamageAnalysis } = await import('./gameSimulator');
+    expect(typeof runBurstDamageAnalysis).toBe('function');
+  });
+});
