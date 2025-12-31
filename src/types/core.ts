@@ -25,7 +25,7 @@ export type CardTrait =
   | 'followup' | 'finisher' | 'multiTarget' | 'stun'
   | 'strongbone' | 'weakbone' | 'destroyer' | 'slaughter' | 'pinnacle'
   | 'cooperation' | 'swift' | 'slow' | 'mastery' | 'boredom'
-  | 'escape' | 'double_edge' | 'training';
+  | 'escape' | 'double_edge' | 'training' | 'leisure';
 
 /** 카드 우선순위 */
 export type CardPriority = 'instant' | 'quick' | 'normal' | 'slow';
@@ -100,6 +100,8 @@ export interface Card {
   originalSpeedCost?: number;
   instanceId?: string;
   priorityWeight?: number;
+  /** 여유 특성: 사용자가 선택한 타임라인 위치 (4~8 범위) */
+  leisurePosition?: number;
   // 특수 효과 플래그
   _applyBurn?: boolean;
   _ignoreBlock?: boolean;

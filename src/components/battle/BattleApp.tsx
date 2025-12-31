@@ -46,7 +46,7 @@
 
 /// <reference types="react" />
 
-import React, { useState, useEffect, useRef, memo, type MutableRefObject } from "react";
+import React, { useState, useEffect, useRef, memo, useCallback, type MutableRefObject } from "react";
 import type { JSX } from 'react';
 import { flushSync } from "react-dom";
 import "./legacy-battle.css";
@@ -1850,6 +1850,18 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
   const removeSelectedAt = (i: number) => actions.setSelected(battle.selected.filter((_, idx) => idx !== i));
 
+  // 여유 특성 카드 위치 변경 핸들러
+  const handleLeisurePositionChange = useCallback((cardUid: string, newPosition: number) => {
+    const updatedSelected = battle.selected.map(card => {
+      const uid = (card as { __uid?: string }).__uid;
+      if (uid === cardUid) {
+        return { ...card, leisurePosition: newPosition };
+      }
+      return card;
+    });
+    actions.setSelected(updatedSelected);
+  }, [battle.selected, actions]);
+
   // 키보드 단축키 처리
   useKeyboardShortcuts({
     battle,
@@ -2090,7 +2102,10 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         enemyTimeline={enemyTimeline as unknown as import("../../types").UITimelineAction[]}
         effectiveInsight={effectiveInsight}
         insightReveal={insightReveal}
-        actions={actions}
+        actions={{
+          ...actions,
+          onLeisurePositionChange: handleLeisurePositionChange
+        }}
         destroyingEnemyCards={battle.destroyingEnemyCards}
         freezingEnemyCards={battle.freezingEnemyCards}
         frozenOrder={battle.frozenOrder}

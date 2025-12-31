@@ -93,6 +93,10 @@ export interface TimelineCard {
   ignoreStrength?: boolean;
   traits?: string[];
   icon?: React.FC<IconProps>;
+  /** 여유 특성: 사용자가 선택한 타임라인 위치 */
+  leisurePosition?: number;
+  /** 카드 고유 식별자 */
+  __uid?: string;
 }
 
 /**
@@ -130,6 +134,8 @@ export interface HoveredEnemyAction {
 /** 타임라인 표시 액션 */
 export interface TimelineDisplayActions {
   setHoveredEnemyAction: (action: HoveredEnemyAction | null) => void;
+  /** 여유 특성 카드의 타임라인 위치 변경 */
+  onLeisurePositionChange?: (cardUid: string, newPosition: number) => void;
 }
 
 /** 통찰 공개 정보 */

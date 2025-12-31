@@ -61,10 +61,16 @@ export function createFixedOrder(
     const isPlayer = item.actor === 'player';
     const agility = isPlayer ? effectiveAgility : 0;
 
+    // 여유 특성 처리: leisurePosition이 설정된 경우 해당 값을 속도로 사용
+    const hasLeisure = isPlayer && item.card.traits?.includes('leisure');
+    const baseSpeed = hasLeisure && item.card.leisurePosition !== undefined
+      ? item.card.leisurePosition
+      : item.card.speedCost;
+
     // 플레이어 카드에 불안정 이변 효과 적용 (playerState가 있을 때만)
     const finalSpeed = isPlayer && playerState
-      ? applyAgilityWithAnomaly(item.card.speedCost, agility, playerState)
-      : applyAgility(item.card.speedCost, agility);
+      ? applyAgilityWithAnomaly(baseSpeed, agility, playerState)
+      : applyAgility(baseSpeed, agility);
 
     if (isPlayer) {
       ps += finalSpeed;

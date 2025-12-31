@@ -5,8 +5,8 @@
  * 최적화: React.memo + 스타일 상수 추출 + useMemo
  */
 
-import { FC, memo, useMemo, useCallback } from 'react';
-import type { CSSProperties } from 'react';
+import { FC, memo, useMemo, useCallback, useState, useRef } from 'react';
+import type { CSSProperties, MouseEvent as ReactMouseEvent } from 'react';
 import { hasSpecial } from '../utils/cardSpecialEffects';
 import type {
   IconProps,
@@ -110,6 +110,18 @@ const PARRY_COLORS = [
   { start: '#f472b6', end: '#60a5fa', shadow: 'rgba(244, 114, 182, 0.8)' }
 ];
 
+// 여유 특성 색상
+const LEISURE_COLOR = {
+  start: '#facc15', // 노란색
+  end: '#f59e0b',   // 주황색
+  shadow: 'rgba(250, 204, 21, 0.6)',
+  bg: 'rgba(250, 204, 21, 0.15)'
+};
+
+// 여유 특성 기본 범위 (4~8)
+const LEISURE_MIN_SPEED = 4;
+const LEISURE_MAX_SPEED = 8;
+
 // Lucide icons as simple SVG components
 const Sword: FC<IconProps> = ({ size = 24, className = "" }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
@@ -183,6 +195,9 @@ export const TimelineDisplay: FC<TimelineDisplayProps> = memo(({
   frozenOrder = 0,
   parryReadyStates = []
 }) => {
+  // 여유 특성 드래그 상태
+  const [draggingCardUid, setDraggingCardUid] = useState<string | null>(null);
+  const playerLaneRef = useRef<HTMLDivElement>(null);
   // 기본 계산값 메모이제이션
   const { commonMax, ticks, playerMax, enemyMax, playerRatio, enemyRatio } = useMemo(() => {
     const pMax = player.maxSpeed || DEFAULT_PLAYER_MAX_SPEED;
@@ -223,6 +238,71 @@ export const TimelineDisplay: FC<TimelineDisplayProps> = memo(({
     opacity: timelineIndicatorVisible ? 1 : 0,
     transition: 'opacity 0.3s ease-out'
   }), [timelineProgress, timelineIndicatorVisible]);
+
+  // 여유 특성 카드 범위 계산
+  const leisureCardRanges = useMemo(() => {
+    const ranges: Array<{
+      cardUid: string;
+      cardIdx: number;
+      minSp: number;
+      maxSp: number;
+      currentSp: number;
+      offset: number;
+    }> = [];
+
+    let accumulatedSp = 0;
+    playerTimeline.forEach((a, idx) => {
+      const hasLeisure = a.card.traits?.includes('leisure');
+      const cardUid = (a.card as { __uid?: string }).__uid || `leisure-${idx}`;
+      const sameCount = playerTimeline.filter((q, i) => i < idx && q.sp === a.sp).length;
+      const offset = sameCount * 28;
+
+      if (hasLeisure && a.card.speedCost === LEISURE_MIN_SPEED) {
+        const minSp = accumulatedSp + LEISURE_MIN_SPEED;
+        const maxSp = accumulatedSp + LEISURE_MAX_SPEED;
+        ranges.push({
+          cardUid,
+          cardIdx: idx,
+          minSp,
+          maxSp,
+          currentSp: a.sp ?? minSp,
+          offset
+        });
+      }
+      accumulatedSp = a.sp ?? accumulatedSp;
+    });
+
+    return ranges;
+  }, [playerTimeline]);
+
+  // 여유 카드 드래그 핸들러
+  const handleLeisureDragStart = useCallback((cardUid: string) => {
+    if (battle.phase !== 'respond') return;
+    setDraggingCardUid(cardUid);
+  }, [battle.phase]);
+
+  const handleLeisureDragEnd = useCallback(() => {
+    setDraggingCardUid(null);
+  }, []);
+
+  const handleLeisureMouseMove = useCallback((e: ReactMouseEvent<HTMLDivElement>) => {
+    if (!draggingCardUid || !playerLaneRef.current || !actions.onLeisurePositionChange) return;
+
+    const rect = playerLaneRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const percent = (x / rect.width) * 100;
+    const sp = Math.round((percent / 100) * playerMax);
+
+    // 해당 카드의 범위 찾기
+    const range = leisureCardRanges.find(r => r.cardUid === draggingCardUid);
+    if (!range) return;
+
+    // 범위 내로 제한
+    const previousCardSp = range.minSp - LEISURE_MIN_SPEED;
+    const clampedPosition = Math.max(LEISURE_MIN_SPEED, Math.min(LEISURE_MAX_SPEED, sp - previousCardSp));
+
+    actions.onLeisurePositionChange(draggingCardUid, clampedPosition);
+  }, [draggingCardUid, playerMax, leisureCardRanges, actions]);
 
   return (
     <>
@@ -277,10 +357,62 @@ export const TimelineDisplay: FC<TimelineDisplayProps> = memo(({
                   <span role="img" aria-label="overdrive">✨</span> {enemyOverdriveLabel}
                 </div>
               )}
-              <div className="timeline-lane player-lane" style={playerLaneStyle}>
+              <div
+                ref={playerLaneRef}
+                className="timeline-lane player-lane"
+                style={playerLaneStyle}
+                onMouseMove={handleLeisureMouseMove}
+                onMouseUp={handleLeisureDragEnd}
+                onMouseLeave={handleLeisureDragEnd}
+              >
                 {Array.from({ length: playerMax + 1 }).map((_, i) => (
                   <div key={`p-grid-${i}`} className="timeline-gridline" style={{ left: `${(i / playerMax) * 100}%` }} />
                 ))}
+                {/* 여유 특성 범위 표시 */}
+                {battle.phase === 'respond' && leisureCardRanges.map((range) => {
+                  const minPercent = (range.minSp / playerMax) * 100;
+                  const maxPercent = (range.maxSp / playerMax) * 100;
+                  const isDragging = draggingCardUid === range.cardUid;
+                  return (
+                    <div
+                      key={`leisure-range-${range.cardUid}`}
+                      className="leisure-range-indicator"
+                      style={{
+                        position: 'absolute',
+                        left: `${minPercent}%`,
+                        width: `${maxPercent - minPercent}%`,
+                        top: `${6 + range.offset}px`,
+                        height: '24px',
+                        background: isDragging
+                          ? `linear-gradient(90deg, ${LEISURE_COLOR.start}40, ${LEISURE_COLOR.end}40)`
+                          : LEISURE_COLOR.bg,
+                        borderRadius: '12px',
+                        border: `2px dashed ${isDragging ? LEISURE_COLOR.start : LEISURE_COLOR.end}`,
+                        boxShadow: isDragging
+                          ? `0 0 12px ${LEISURE_COLOR.shadow}, inset 0 0 8px ${LEISURE_COLOR.shadow}`
+                          : `0 0 6px ${LEISURE_COLOR.shadow}`,
+                        zIndex: 5,
+                        pointerEvents: 'none',
+                        transition: 'box-shadow 0.2s, background 0.2s'
+                      }}
+                    >
+                      {/* 범위 라벨 */}
+                      <div style={{
+                        position: 'absolute',
+                        top: '-18px',
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                        fontSize: '10px',
+                        color: LEISURE_COLOR.start,
+                        fontWeight: 'bold',
+                        whiteSpace: 'nowrap',
+                        textShadow: '0 0 4px rgba(0,0,0,0.8)'
+                      }}>
+                        🎯 여유 ({LEISURE_MIN_SPEED}~{LEISURE_MAX_SPEED})
+                      </div>
+                    </div>
+                  );
+                })}
                 {/* 패리 범위 표시 (여러 개 지원) */}
                 {(Array.isArray(parryReadyStates) ? parryReadyStates : []).map((parryState, parryIdx) => {
                   if (!parryState?.active) return null;
@@ -371,12 +503,48 @@ export const TimelineDisplay: FC<TimelineDisplayProps> = memo(({
                   const isExecuting = executingCardIndex === globalIndex;
                   const isUsed = Array.isArray(usedCardIndices) && usedCardIndices.includes(globalIndex) && globalIndex < qIndex;
                   const normalizedPosition = Math.min(((a.sp ?? 0) / playerMax) * 100, 100);
+
+                  // 여유 특성 확인
+                  const hasLeisure = a.card.traits?.includes('leisure') && a.card.speedCost === LEISURE_MIN_SPEED;
+                  const cardUid = (a.card as { __uid?: string }).__uid || `leisure-${idx}`;
+                  const isDragging = draggingCardUid === cardUid;
+                  const canDrag = hasLeisure && battle.phase === 'respond';
+
                   return (
-                    <div key={idx}
-                      className={`timeline-marker marker-player ${isExecuting ? 'timeline-active' : ''} ${isUsed ? 'timeline-used' : ''}`}
-                      style={{ left: `${normalizedPosition}%`, top: `${6 + offset}px` }}>
+                    <div
+                      key={idx}
+                      className={`timeline-marker marker-player ${isExecuting ? 'timeline-active' : ''} ${isUsed ? 'timeline-used' : ''} ${hasLeisure ? 'leisure-card' : ''}`}
+                      style={{
+                        left: `${normalizedPosition}%`,
+                        top: `${6 + offset}px`,
+                        cursor: canDrag ? 'grab' : 'default',
+                        ...(hasLeisure && battle.phase === 'respond' ? {
+                          border: `2px solid ${LEISURE_COLOR.start}`,
+                          boxShadow: isDragging
+                            ? `0 0 16px ${LEISURE_COLOR.shadow}, 0 0 32px ${LEISURE_COLOR.shadow}`
+                            : `0 0 8px ${LEISURE_COLOR.shadow}`,
+                          transform: isDragging ? 'scale(1.2)' : 'none',
+                          zIndex: isDragging ? 100 : 20
+                        } : {})
+                      }}
+                      onMouseDown={canDrag ? () => handleLeisureDragStart(cardUid) : undefined}
+                    >
                       <Icon size={14} className="text-white" />
                       <span className="text-white text-xs font-bold">{num > 0 ? num : ''}</span>
+                      {hasLeisure && battle.phase === 'respond' && (
+                        <span style={{
+                          position: 'absolute',
+                          bottom: '-16px',
+                          left: '50%',
+                          transform: 'translateX(-50%)',
+                          fontSize: '8px',
+                          color: LEISURE_COLOR.start,
+                          fontWeight: 'bold',
+                          whiteSpace: 'nowrap'
+                        }}>
+                          ↔ 드래그
+                        </span>
+                      )}
                     </div>
                   );
                 })}

@@ -83,7 +83,10 @@ export const TRAITS = {
 
   // 부정 특성 (★★★)
   ruin: { id: "ruin", name: "파탄", type: "negative", weight: 3, description: "다음턴 주특기만 등장" },
-  oblivion: { id: "oblivion", name: "망각", type: "negative", weight: 3, description: "이후 에테르 획득 불가" }
+  oblivion: { id: "oblivion", name: "망각", type: "negative", weight: 3, description: "이후 에테르 획득 불가" },
+
+  // 중립/특수 특성
+  leisure: { id: "leisure", name: "여유", type: "positive", weight: 1, description: "속도 4인 카드를 4~8 범위 내 원하는 위치에 배치" }
 };
 
 export const CARDS = [
