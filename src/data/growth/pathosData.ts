@@ -103,6 +103,69 @@ export const TIER2_PATHOS: Record<string, Pathos> = {
     pyramidLevel: 2,
     nodeId: 'defense',
   },
+
+  // 집중 노드: 일섬(검) vs 조준(총)
+  flash: {
+    id: 'flash',
+    name: '일섬',
+    type: 'sword',
+    description: '다음 검격 카드의 피해량이 5 증가합니다.',
+    effect: { action: 'nextSwordDamage', value: 5, duration: 'next' },
+    cooldown: 2,
+    pyramidLevel: 2,
+    nodeId: 'focus',
+  },
+  aim: {
+    id: 'aim',
+    name: '조준',
+    type: 'gun',
+    description: '다음 총격 카드가 반드시 치명타로 적중합니다.',
+    effect: { action: 'nextGunCrit', duration: 'next' },
+    cooldown: 3,
+    pyramidLevel: 2,
+    nodeId: 'focus',
+  },
+
+  // 연쇄 노드: 연환(검) vs 연발(총)
+  chainSlash: {
+    id: 'chainSlash',
+    name: '연환',
+    type: 'sword',
+    description: '이번 턴 연계 성공 시 카드 1장을 드로우합니다.',
+    effect: { action: 'chainDraw', value: 1, duration: 'turn' },
+    pyramidLevel: 2,
+    nodeId: 'chain',
+  },
+  burst: {
+    id: 'burst',
+    name: '연발',
+    type: 'gun',
+    description: '이번 턴 연계 성공 시 총알 1발을 자동 장전합니다.',
+    effect: { action: 'chainReload', value: 1, duration: 'turn' },
+    pyramidLevel: 2,
+    nodeId: 'chain',
+  },
+
+  // 회복 노드: 참선(검) vs 정비(총)
+  meditation: {
+    id: 'meditation',
+    name: '참선',
+    type: 'sword',
+    description: '이번 턴 피해를 입지 않으면 턴 종료 시 체력 5 회복.',
+    effect: { action: 'noDamageHeal', value: 5, duration: 'turn' },
+    pyramidLevel: 2,
+    nodeId: 'recovery',
+  },
+  maintenance: {
+    id: 'maintenance',
+    name: '정비',
+    type: 'gun',
+    description: '장전된 총알 1발당 체력 1 회복합니다. (최대 3)',
+    effect: { action: 'ammoHeal', value: 1, target: 'self' },
+    cooldown: 2,
+    pyramidLevel: 2,
+    nodeId: 'recovery',
+  },
 };
 
 // ========================================
@@ -243,6 +306,27 @@ export const PATHOS_NODES: Record<string, PathosNode> = {
     tier: 2,
     choices: ['epee', 'cover'],
     description: '검격 방어 또는 총격 방어',
+  },
+  focus: {
+    id: 'focus',
+    name: '집중',
+    tier: 2,
+    choices: ['flash', 'aim'],
+    description: '다음 공격 강화',
+  },
+  chain: {
+    id: 'chain',
+    name: '연쇄',
+    tier: 2,
+    choices: ['chainSlash', 'burst'],
+    description: '연계 시 보너스',
+  },
+  recovery: {
+    id: 'recovery',
+    name: '회복',
+    tier: 2,
+    choices: ['meditation', 'maintenance'],
+    description: '체력 회복',
   },
 
   // 4단계 노드
