@@ -528,13 +528,12 @@ export class RunSimulator {
   ): void {
     const inventory = this.shopSimulator.generateShopInventory('shop');
 
-    // 덱 크기가 20장 이상이면 카드 구매 스킵
-    const shouldBuyCards = player.deck.length < 20;
+    // 전략 기반 카드 필터링
+    const filteredCards = this.filterShopCards(inventory.cards, player, config.strategy);
 
-    // 카드 구매 스킵: 인벤토리에서 카드 제거
-    const filteredInventory = shouldBuyCards ? inventory : {
+    const filteredInventory = {
       ...inventory,
-      cards: [], // 덱이 충분히 크면 카드 구매 안 함
+      cards: filteredCards,
     };
 
     const shopConfig: ShopSimulationConfig = {
@@ -548,7 +547,7 @@ export class RunSimulator {
       },
       strategy: config.strategy === 'aggressive' ? 'value' : 'survival',
       reserveGold: 30,
-      maxPurchases: 3, // 한 번의 상점 방문에서 최대 3개 구매 (게임과 유사)
+      maxPurchases: 2, // 한 번의 상점 방문에서 최대 2개 구매 (더 제한적으로)
     };
 
     const shopResult = this.shopSimulator.simulateShopVisit(filteredInventory, shopConfig);
@@ -563,6 +562,68 @@ export class RunSimulator {
     result.cardsGained = shopResult.purchases.filter(p => p.type === 'card').map(p => p.id);
     result.relicsGained = shopResult.purchases.filter(p => p.type === 'relic').map(p => p.id);
     result.details = `상점: ${shopResult.purchases.length}개 구매, ${shopResult.totalSpent}골드 사용`;
+  }
+
+  /**
+   * 전략에 따른 상점 카드 필터링
+   */
+  private filterShopCards(
+    cards: import('./shop-simulator').ShopItem[],
+    player: PlayerRunState,
+    strategy: RunStrategy
+  ): import('./shop-simulator').ShopItem[] {
+    // 덱 크기가 18장 이상이면 카드 구매 안 함
+    if (player.deck.length >= 18) return [];
+
+    // 덱 균형 분석
+    const attackCount = player.deck.filter(cardId => {
+      const card = this.cardLibrary[cardId];
+      return card && card.type === 'attack';
+    }).length;
+    const defenseCount = player.deck.filter(cardId => {
+      const card = this.cardLibrary[cardId];
+      return card && (card.type === 'defense' || card.type === 'reaction');
+    }).length;
+    const attackRatio = attackCount / player.deck.length;
+
+    // 전략별 필터링
+    return cards.filter(shopItem => {
+      const card = this.cardLibrary[shopItem.id];
+      if (!card) return Math.random() < 0.3; // 카드 정보 없으면 30% 확률
+
+      const category = categorizeCard(card);
+
+      switch (strategy) {
+        case 'aggressive':
+          // 공격 카드 선호, 방어 카드 50% 스킵
+          if (category === 'defense') return Math.random() < 0.5;
+          return true;
+
+        case 'defensive':
+          // 방어 카드 선호, 공격 카드 50% 스킵
+          if (category === 'attack') return Math.random() < 0.5;
+          return true;
+
+        case 'balanced':
+          // 덱 균형 고려: 공격 비율이 높으면 방어 카드, 낮으면 공격 카드
+          if (attackRatio > 0.6 && category === 'attack') return Math.random() < 0.3;
+          if (attackRatio < 0.4 && category === 'defense') return Math.random() < 0.3;
+          return Math.random() < 0.7; // 기본 70% 확률
+
+        case 'speedrun':
+          // 빠른 카드만 구매
+          if (card.speedCost && card.speedCost > 5) return false;
+          return Math.random() < 0.5;
+
+        case 'treasure_hunter':
+          // 유틸리티 카드 선호
+          if (category === 'utility') return true;
+          return Math.random() < 0.4;
+
+        default:
+          return Math.random() < 0.5;
+      }
+    });
   }
 
   /**
