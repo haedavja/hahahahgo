@@ -7,9 +7,11 @@
  * 2. 선택한 모드로 진입 (취소 불가)
  * 3. 강화: 전투 화면 스타일 카드로 현재/미리보기 표시
  * 4. 특화: 5개 옵션 중 선택
+ *
+ * 최적화: React.memo + useCallback
  */
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, memo, useCallback } from 'react';
 import { CARDS, TRAITS } from '../../battle/battleData';
 import { generateSpecializationOptions, type SpecializationOption, type CardType } from '../../../lib/specializationUtils';
 import type { CardGrowthState } from '../../../state/slices/types';
@@ -65,7 +67,7 @@ const rarityLabels: Record<string, string> = {
 
 type Mode = 'select' | 'enhance' | 'specialize';
 
-export function CardGrowthModal({
+export const CardGrowthModal = memo(function CardGrowthModal({
   isOpen,
   onClose,
   cardGrowth,
@@ -107,16 +109,16 @@ export function CardGrowthModal({
   const currentLevel = selectedGrowth?.enhancementLevel || 0;
 
   // 카드 선택
-  const handleSelectCard = (cardId: string) => {
+  const handleSelectCard = useCallback((cardId: string) => {
     setSelectedCardId(cardId);
     setPreviewLevel(null);
-  };
+  }, []);
 
   // 알림
-  const showNotification = (message: string, type: string) => {
+  const showNotification = useCallback((message: string, type: string) => {
     setNotification({ message, type });
     setTimeout(() => setNotification(null), 2500);
-  };
+  }, []);
 
   // 강화 모드 진입
   const enterEnhanceMode = () => {
@@ -805,10 +807,10 @@ export function CardGrowthModal({
       })()}
     </div>
   );
-}
+});
 
 /** 전투 화면 스타일 카드 디스플레이 (game-card-large CSS 사용) */
-function GameCardDisplay({
+const GameCardDisplay = memo(function GameCardDisplay({
   card,
   growth,
   stats,
@@ -972,5 +974,5 @@ function GameCardDisplay({
       </div>
     </div>
   );
-}
+});
 
