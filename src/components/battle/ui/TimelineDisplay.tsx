@@ -306,6 +306,44 @@ export const TimelineDisplay: FC<TimelineDisplayProps> = memo(({
     return ranges;
   }, [playerTimeline, hasCardTrait]);
 
+  // 무리 특성 카드 범위 계산
+  const strainCardRanges = useMemo(() => {
+    const ranges: Array<{
+      cardUid: string;
+      cardIdx: number;
+      baseSp: number;  // 오프셋 0일 때의 sp
+      minSp: number;   // 최대 앞당겼을 때 (offset = 3)
+      maxSp: number;   // 원래 위치 (offset = 0)
+      currentOffset: number;
+      offset: number;  // 렌더링 오프셋
+    }> = [];
+
+    playerTimeline.forEach((a, idx) => {
+      const hasStrain = hasCardTrait(a.card, 'strain');
+      if (!hasStrain) return;
+
+      const cardUid = (a.card as { __handUid?: string; __uid?: string }).__handUid || (a.card as { __uid?: string }).__uid || `strain-${idx}`;
+      const sameCount = playerTimeline.filter((q, i) => i < idx && q.sp === a.sp).length;
+      const offset = sameCount * 28;
+      const currentStrainOffset = (a.card as { strainOffset?: number }).strainOffset || 0;
+
+      // 기본 sp (strainOffset이 0일 때)
+      const baseSp = (a.sp ?? 0) + currentStrainOffset;
+
+      ranges.push({
+        cardUid,
+        cardIdx: idx,
+        baseSp,
+        minSp: Math.max(1, baseSp - STRAIN_MAX_OFFSET),  // 최대 3까지 앞당길 수 있음
+        maxSp: baseSp,  // 원래 위치
+        currentOffset: currentStrainOffset,
+        offset
+      });
+    });
+
+    return ranges;
+  }, [playerTimeline, hasCardTrait]);
+
   // 통합 마우스 이동 핸들러 (여유/무리 공용)
   const handleMouseMove = useCallback((e: ReactMouseEvent<HTMLDivElement>) => {
     if (!draggingCardUid || !playerLaneRef.current) return;
@@ -348,44 +386,6 @@ export const TimelineDisplay: FC<TimelineDisplayProps> = memo(({
     setDraggingCardUid(cardUid);
     setDraggingType('leisure');
   }, [battle.phase]);
-
-  // 무리 특성 카드 범위 계산
-  const strainCardRanges = useMemo(() => {
-    const ranges: Array<{
-      cardUid: string;
-      cardIdx: number;
-      baseSp: number;  // 오프셋 0일 때의 sp
-      minSp: number;   // 최대 앞당겼을 때 (offset = 3)
-      maxSp: number;   // 원래 위치 (offset = 0)
-      currentOffset: number;
-      offset: number;  // 렌더링 오프셋
-    }> = [];
-
-    playerTimeline.forEach((a, idx) => {
-      const hasStrain = hasCardTrait(a.card, 'strain');
-      if (!hasStrain) return;
-
-      const cardUid = (a.card as { __handUid?: string; __uid?: string }).__handUid || (a.card as { __uid?: string }).__uid || `strain-${idx}`;
-      const sameCount = playerTimeline.filter((q, i) => i < idx && q.sp === a.sp).length;
-      const offset = sameCount * 28;
-      const currentStrainOffset = (a.card as { strainOffset?: number }).strainOffset || 0;
-
-      // 기본 sp (strainOffset이 0일 때)
-      const baseSp = (a.sp ?? 0) + currentStrainOffset;
-
-      ranges.push({
-        cardUid,
-        cardIdx: idx,
-        baseSp,
-        minSp: Math.max(1, baseSp - STRAIN_MAX_OFFSET),  // 최대 3까지 앞당길 수 있음
-        maxSp: baseSp,  // 원래 위치
-        currentOffset: currentStrainOffset,
-        offset
-      });
-    });
-
-    return ranges;
-  }, [playerTimeline, hasCardTrait]);
 
   // 무리 특성 드래그 핸들러
   const handleStrainDragStart = useCallback((cardUid: string) => {
