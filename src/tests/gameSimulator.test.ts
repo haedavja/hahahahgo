@@ -672,3 +672,31 @@ describe('전체 요약', () => {
     expect(typeof runSummary).toBe('function');
   });
 });
+
+describe('AI 덱 빌더', () => {
+  it('runDeckBuilder 함수가 존재한다', async () => {
+    const { runDeckBuilder } = await import('./gameSimulator');
+    expect(typeof runDeckBuilder).toBe('function');
+  });
+});
+
+describe('What-If 분석', () => {
+  it('runWhatIfAnalysis 함수가 존재한다', async () => {
+    const { runWhatIfAnalysis } = await import('./gameSimulator');
+    expect(typeof runWhatIfAnalysis).toBe('function');
+  });
+});
+
+describe('CSV 내보내기', () => {
+  it('exportToCSV 함수가 존재한다', async () => {
+    const { exportToCSV } = await import('./gameSimulator');
+    expect(typeof exportToCSV).toBe('function');
+  });
+});
+
+describe('히트맵 분석', () => {
+  it('runHeatmapAnalysis 함수가 존재한다', async () => {
+    const { runHeatmapAnalysis } = await import('./gameSimulator');
+    expect(typeof runHeatmapAnalysis).toBe('function');
+  });
+});

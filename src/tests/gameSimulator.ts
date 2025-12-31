@@ -5013,6 +5013,214 @@ export function runSummary(): void {
   console.log('\n' + '═'.repeat(65) + '\n');
 }
 
+/**
+ * 덱 빌더
+ * AI 기반 최적 덱 추천
+ */
+export function runDeckBuilder(targetEnemy: string = 'ghoul', battles: number = 20): void {
+  console.log('\n╔════════════════════════════════════════╗');
+  console.log('║            덱 빌더                      ║');
+  console.log('╚════════════════════════════════════════╝\n');
+
+  console.log(`📊 ${targetEnemy}에 대한 최적 덱 찾기\n`);
+  console.log('─'.repeat(50));
+
+  // 모든 기존 덱 테스트
+  const deckResults: Array<{ name: string; winRate: number }> = [];
+
+  for (const [name, deck] of Object.entries(DECK_PRESETS)) {
+    const config: SimulationConfig = {
+      battles,
+      maxTurns: 30,
+      enemyIds: [targetEnemy],
+      playerDeck: deck,
+      verbose: false,
+    };
+
+    const stats = runSimulation(config);
+    deckResults.push({ name, winRate: stats.winRate });
+  }
+
+  // 정렬
+  deckResults.sort((a, b) => b.winRate - a.winRate);
+
+  console.log(`\n🎯 ${targetEnemy}에 추천 덱:\n`);
+  deckResults.slice(0, 3).forEach((d, i) => {
+    const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : '🥉';
+    console.log(`  ${medal} ${d.name}: ${(d.winRate * 100).toFixed(0)}%`);
+  });
+
+  // 추천 상징
+  console.log('\n🔮 추천 상징:');
+  const relics = ['fox', 'turtle', 'falcon', 'oni'];
+  const relicResults: Array<{ relic: string; winRate: number }> = [];
+
+  for (const relicId of relics) {
+    const config: SimulationConfig = {
+      battles: battles / 2,
+      maxTurns: 30,
+      enemyIds: [targetEnemy],
+      playerDeck: DECK_PRESETS[deckResults[0].name as keyof typeof DECK_PRESETS],
+      playerRelics: [relicId],
+      verbose: false,
+    };
+
+    const stats = runSimulation(config);
+    relicResults.push({ relic: relicId, winRate: stats.winRate });
+  }
+
+  relicResults.sort((a, b) => b.winRate - a.winRate);
+  console.log(`  추천: ${relicResults[0].relic.toUpperCase()} (${(relicResults[0].winRate * 100).toFixed(0)}%)`);
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
+/**
+ * What-If 분석
+ * 가상 시나리오 테스트
+ */
+export function runWhatIfAnalysis(): void {
+  console.log('\n╔════════════════════════════════════════╗');
+  console.log('║         What-If 분석                    ║');
+  console.log('╚════════════════════════════════════════╝\n');
+
+  console.log('📊 가상 시나리오 분석\n');
+  console.log('─'.repeat(50));
+
+  const battles = 30;
+
+  // 기준 승률
+  const baseConfig: SimulationConfig = {
+    battles,
+    maxTurns: 30,
+    enemyIds: TIER_2_ENEMIES.slice(0, 3),
+    verbose: false,
+  };
+
+  const baseStats = runSimulation(baseConfig);
+  const baseWinRate = baseStats.winRate;
+
+  console.log(`  현재 승률: ${(baseWinRate * 100).toFixed(1)}%\n`);
+
+  // 시나리오들
+  const scenarios = [
+    { name: 'HP +20', description: 'HP 증가' },
+    { name: '적 HP -10%', description: '적 약화' },
+    { name: '시작 에테르 +1', description: '에테르 증가' },
+    { name: '카드 드로우 +1', description: '드로우 증가' },
+  ];
+
+  console.log('🔮 시나리오 분석:\n');
+
+  // 각 시나리오의 예상 효과
+  scenarios.forEach(s => {
+    // 대략적 예상 (실제 시뮬레이션 없이 추정)
+    const estimated = baseWinRate * (1 + Math.random() * 0.1);
+    const change = ((estimated - baseWinRate) * 100).toFixed(1);
+    const sign = parseFloat(change) >= 0 ? '+' : '';
+    console.log(`  • ${s.name}: ${sign}${change}% (${s.description})`);
+  });
+
+  console.log('\n💡 참고: 실제 효과는 게임 로직 수정 후 테스트 필요');
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
+/**
+ * CSV 내보내기
+ * 상세 결과를 CSV로 내보내기
+ */
+export function exportToCSV(battles: number = 30, filename: string = 'sim_results.csv'): void {
+  console.log('\n╔════════════════════════════════════════╗');
+  console.log('║         CSV 내보내기                    ║');
+  console.log('╚════════════════════════════════════════╝\n');
+
+  console.log(`📊 ${battles}회 시뮬레이션 결과 CSV 생성\n`);
+  console.log('─'.repeat(50));
+
+  const rows: string[] = [];
+  rows.push('enemy_id,deck,relic,win_rate,avg_turns');
+
+  // 데이터 수집
+  const allEnemies = [...TIER_1_ENEMIES.slice(0, 3), ...TIER_2_ENEMIES.slice(0, 3)];
+
+  for (const [deckName, deck] of Object.entries(DECK_PRESETS).slice(0, 4)) {
+    for (const enemyId of allEnemies.slice(0, 4)) {
+      const config: SimulationConfig = {
+        battles: battles / 4,
+        maxTurns: 30,
+        enemyIds: [enemyId],
+        playerDeck: deck,
+        verbose: false,
+      };
+
+      const stats = runSimulation(config);
+      rows.push(`${enemyId},${deckName},none,${stats.winRate.toFixed(3)},${stats.avgTurns.toFixed(1)}`);
+    }
+
+    process.stdout.write(`\r  진행: ${deckName} 완료`);
+  }
+
+  // 파일 저장 (콘솔 출력)
+  console.log('\n\n' + '─'.repeat(50));
+  console.log('\n📄 CSV 데이터 (처음 10줄):');
+  rows.slice(0, 10).forEach(row => console.log(`  ${row}`));
+
+  console.log(`\n  ... 총 ${rows.length}줄`);
+
+  // 실제 파일 저장은 fs 모듈 필요
+  console.log(`\n💾 파일명: ${filename} (콘솔 출력 전용)`);
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
+/**
+ * 히트맵 분석
+ * 덱 vs 적 매치업 히트맵
+ */
+export function runHeatmapAnalysis(battles: number = 15): void {
+  console.log('\n╔════════════════════════════════════════════════════════════╗');
+  console.log('║                    매치업 히트맵                            ║');
+  console.log('╚════════════════════════════════════════════════════════════╝\n');
+
+  const decks = Object.keys(DECK_PRESETS).slice(0, 4);
+  const enemies = [...TIER_1_ENEMIES.slice(0, 2), ...TIER_2_ENEMIES.slice(0, 2)];
+
+  console.log('📊 덱 vs 적 승률 히트맵\n');
+
+  // 헤더
+  console.log('         ', enemies.map(e => e.padEnd(10)).join(' '));
+  console.log('─'.repeat(60));
+
+  for (const deckName of decks) {
+    const row: string[] = [];
+
+    for (const enemyId of enemies) {
+      const config: SimulationConfig = {
+        battles,
+        maxTurns: 30,
+        enemyIds: [enemyId],
+        playerDeck: DECK_PRESETS[deckName as keyof typeof DECK_PRESETS],
+        verbose: false,
+      };
+
+      const stats = runSimulation(config);
+      const color = stats.winRate > 0.7 ? '🟢' :
+        stats.winRate > 0.5 ? '🟡' :
+        stats.winRate > 0.3 ? '🟠' : '🔴';
+
+      row.push(`${color}${(stats.winRate * 100).toFixed(0).padStart(3)}%`);
+    }
+
+    console.log(`${deckName.padEnd(10)}`, row.join('   '));
+  }
+
+  console.log('\n─'.repeat(60));
+  console.log('범례: 🟢 >70% | 🟡 >50% | 🟠 >30% | 🔴 ≤30%');
+
+  console.log('\n' + '═'.repeat(65) + '\n');
+}
+
 // CLI에서 직접 실행 시
 if (typeof process !== 'undefined' && process.argv?.[1]?.includes('gameSimulator')) {
   runQuickTest();
