@@ -135,6 +135,121 @@ export {
   type BalanceCheckConfig,
 } from './ci/balance-check';
 
+// ==================== Battle Engine ====================
+export {
+  BattleEngine,
+  DamageCalculator,
+  ComboDetector,
+  TokenManager,
+} from './core/battle-engine';
+
+// ==================== Card Synergy Analysis ====================
+export {
+  SynergyAnalyzer,
+  generateSynergyReport,
+  printSynergyMatrix,
+  printDeckRecommendation,
+  type SynergyPair,
+  type DeckSynergy,
+  type SynergyMatrix,
+  type DeckRecommendation,
+} from './analysis/synergy';
+
+// ==================== Enemy AI Pattern Learning ====================
+export {
+  PatternLearner,
+  printEnemyAnalysis,
+  printPrediction,
+  type ActionPattern,
+  type EnemyPattern,
+  type PredictionResult,
+  type EnemyAnalysis,
+} from './analysis/pattern-learning';
+
+// ==================== Simulation Replay ====================
+export {
+  ReplayRecorder,
+  ReplayPlayer,
+  generateReplayViewer,
+  type ReplayFrame,
+  type ReplayData,
+} from './analysis/replay';
+
+// ==================== Meta Trend Analysis ====================
+export {
+  TrendAnalyzer,
+  printTrendAnalysis,
+  type TrendPoint,
+  type TrendAnalysis,
+  type CardTrend,
+  type PatchImpact,
+} from './analysis/trends';
+
+// ==================== Caching Layer ====================
+export {
+  MemoryCache,
+  DiskCache,
+  TieredCache,
+  SimulationCacheManager,
+  getDefaultCache,
+  formatCacheStats,
+  withCache,
+  type CacheAdapter,
+  type CacheStats,
+  type CacheConfig,
+} from './cache';
+
+// ==================== Enhanced CLI ====================
+export {
+  ProgressBar,
+  OutputFormatter,
+  ResultFilter,
+  ProfileManager,
+  BatchRunner,
+  InteractiveCLI,
+  parseArgs,
+  runEnhancedCLI,
+  type CLIOptions,
+  type FilterOptions,
+  type SimulationProfile,
+  type BatchJob,
+  type BatchResult,
+} from './cli/enhanced-cli';
+
+// ==================== Reinforcement Learning AI ====================
+export {
+  QLearningAgent,
+  DQNAgent,
+  SimpleNeuralNetwork,
+  ReplayBuffer,
+  QTable,
+  StateEncoder,
+  RewardCalculator,
+  TrainingManager,
+  createDefaultAgent,
+  type GameState,
+  type Action,
+  type Experience,
+  type QLearningConfig,
+  type TrainingConfig,
+  type TrainingResult,
+} from './ai/reinforcement-learning';
+
+// ==================== Distributed Simulation ====================
+export {
+  DistributedJobManager,
+  DistributedWorker,
+  SimulationCluster,
+  ResultAggregator,
+  InMemoryQueue,
+  splitConfig,
+  printClusterStats,
+  type DistributedConfig,
+  type SimulationJob,
+  type JobResult,
+  type WorkerInfo,
+} from './distributed';
+
 // ==================== Quick Start Helpers ====================
 
 import { loadCards, loadEnemies, loadPresets, getEnemiesByTier } from './data/loader';
@@ -196,24 +311,37 @@ export const CLI_COMMANDS = {
   // 기본 시뮬레이션
   simulate: '기본 시뮬레이션 실행',
   parallel: '병렬 시뮬레이션 (빠름)',
+  distributed: '분산 시뮬레이션 (클러스터)',
 
   // 분석
   balance: '밸런스 분석',
   abtest: 'A/B 테스트',
   mcts: 'MCTS AI 플레이',
+  synergy: '카드 시너지 분석',
+  patterns: '적 AI 패턴 분석',
+  trends: '메타 트렌드 분석',
+
+  // AI
+  train: '강화학습 AI 훈련',
+  play: 'AI vs 적 대전',
 
   // 리포트
   report: 'HTML 리포트 생성',
+  replay: '전투 리플레이 생성',
 
   // 데이터
   history: '히스토리 조회',
   baseline: '기준선 업데이트',
+  cache: '캐시 관리',
 
   // 서버
   dashboard: '대시보드 서버 시작',
 
   // CI/CD
   check: 'CI/CD 밸런스 체크',
+
+  // 대화형
+  interactive: '대화형 CLI 모드',
 };
 
 console.log('🎮 시뮬레이터 모듈 로드 완료');
