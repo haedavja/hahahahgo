@@ -1862,6 +1862,29 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     actions.setSelected(updatedSelected);
   }, [battle.selected, actions]);
 
+  // 무리 특성 카드 오프셋 변경 핸들러 (행동력 1 소모)
+  const handleStrainOffsetChange = useCallback((cardUid: string, newOffset: number) => {
+    // 행동력이 충분한지 확인
+    if ((player.energy ?? 0) < 1) {
+      actions.addLog('⚠️ 행동력이 부족합니다!');
+      return;
+    }
+
+    // 행동력 1 소모
+    actions.setPlayer({ ...player, energy: (player.energy ?? 0) - 1 });
+
+    // 카드 strainOffset 업데이트
+    const updatedSelected = battle.selected.map(card => {
+      const uid = (card as { __uid?: string }).__uid;
+      if (uid === cardUid) {
+        return { ...card, strainOffset: newOffset };
+      }
+      return card;
+    });
+    actions.setSelected(updatedSelected);
+    actions.addLog(`⚡ 무리: 속도 ${newOffset} 앞당김 (행동력 -1)`);
+  }, [battle.selected, player, actions]);
+
   // 키보드 단축키 처리
   useKeyboardShortcuts({
     battle,
@@ -2104,7 +2127,8 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         insightReveal={insightReveal}
         actions={{
           ...actions,
-          onLeisurePositionChange: handleLeisurePositionChange
+          onLeisurePositionChange: handleLeisurePositionChange,
+          onStrainOffsetChange: handleStrainOffsetChange
         }}
         destroyingEnemyCards={battle.destroyingEnemyCards}
         freezingEnemyCards={battle.freezingEnemyCards}

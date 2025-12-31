@@ -67,10 +67,17 @@ export function createFixedOrder(
       ? item.card.leisurePosition
       : item.card.speedCost;
 
+    // 무리 특성 처리: strainOffset만큼 속도 감소 (타임라인 앞당김)
+    const hasStrain = isPlayer && item.card.traits?.includes('strain');
+    const strainOffset = hasStrain && item.card.strainOffset !== undefined
+      ? item.card.strainOffset
+      : 0;
+    const adjustedSpeed = Math.max(1, baseSpeed - strainOffset);
+
     // 플레이어 카드에 불안정 이변 효과 적용 (playerState가 있을 때만)
     const finalSpeed = isPlayer && playerState
-      ? applyAgilityWithAnomaly(baseSpeed, agility, playerState)
-      : applyAgility(baseSpeed, agility);
+      ? applyAgilityWithAnomaly(adjustedSpeed, agility, playerState)
+      : applyAgility(adjustedSpeed, agility);
 
     if (isPlayer) {
       ps += finalSpeed;

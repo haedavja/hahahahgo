@@ -122,6 +122,17 @@ const LEISURE_COLOR = {
 const LEISURE_MIN_SPEED = 4;
 const LEISURE_MAX_SPEED = 8;
 
+// 무리 특성 색상
+const STRAIN_COLOR = {
+  start: '#f97316', // 주황색
+  end: '#ef4444',   // 빨간색
+  shadow: 'rgba(249, 115, 22, 0.6)',
+  bg: 'rgba(249, 115, 22, 0.15)'
+};
+
+// 무리 특성 최대 오프셋 (최대 3까지 앞당김)
+const STRAIN_MAX_OFFSET = 3;
+
 // Lucide icons as simple SVG components
 const Sword: FC<IconProps> = ({ size = 24, className = "" }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
@@ -303,6 +314,16 @@ export const TimelineDisplay: FC<TimelineDisplayProps> = memo(({
 
     actions.onLeisurePositionChange(draggingCardUid, clampedPosition);
   }, [draggingCardUid, playerMax, leisureCardRanges, actions]);
+
+  // 무리 특성 클릭 핸들러
+  const handleStrainClick = useCallback((cardUid: string, currentOffset: number) => {
+    if (battle.phase !== 'respond' || !actions.onStrainOffsetChange) return;
+
+    // 현재 오프셋이 최대치 미만이면 1 증가
+    if (currentOffset < STRAIN_MAX_OFFSET) {
+      actions.onStrainOffsetChange(cardUid, currentOffset + 1);
+    }
+  }, [battle.phase, actions]);
 
   return (
     <>
@@ -510,14 +531,19 @@ export const TimelineDisplay: FC<TimelineDisplayProps> = memo(({
                   const isDragging = draggingCardUid === cardUid;
                   const canDrag = hasLeisure && battle.phase === 'respond';
 
+                  // 무리 특성 확인
+                  const hasStrain = a.card.traits?.includes('strain');
+                  const currentStrainOffset = (a.card as { strainOffset?: number }).strainOffset || 0;
+                  const canClickStrain = hasStrain && battle.phase === 'respond' && currentStrainOffset < STRAIN_MAX_OFFSET;
+
                   return (
                     <div
                       key={idx}
-                      className={`timeline-marker marker-player ${isExecuting ? 'timeline-active' : ''} ${isUsed ? 'timeline-used' : ''} ${hasLeisure ? 'leisure-card' : ''}`}
+                      className={`timeline-marker marker-player ${isExecuting ? 'timeline-active' : ''} ${isUsed ? 'timeline-used' : ''} ${hasLeisure ? 'leisure-card' : ''} ${hasStrain ? 'strain-card' : ''}`}
                       style={{
                         left: `${normalizedPosition}%`,
                         top: `${6 + offset}px`,
-                        cursor: canDrag ? 'grab' : 'default',
+                        cursor: canDrag ? 'grab' : canClickStrain ? 'pointer' : 'default',
                         ...(hasLeisure && battle.phase === 'respond' ? {
                           border: `2px solid ${LEISURE_COLOR.start}`,
                           boxShadow: isDragging
@@ -525,9 +551,15 @@ export const TimelineDisplay: FC<TimelineDisplayProps> = memo(({
                             : `0 0 8px ${LEISURE_COLOR.shadow}`,
                           transform: isDragging ? 'scale(1.2)' : 'none',
                           zIndex: isDragging ? 100 : 20
+                        } : {}),
+                        ...(hasStrain && battle.phase === 'respond' ? {
+                          border: `2px solid ${currentStrainOffset > 0 ? STRAIN_COLOR.end : STRAIN_COLOR.start}`,
+                          boxShadow: `0 0 8px ${STRAIN_COLOR.shadow}`,
+                          zIndex: 20
                         } : {})
                       }}
                       onMouseDown={canDrag ? () => handleLeisureDragStart(cardUid) : undefined}
+                      onClick={canClickStrain ? () => handleStrainClick(cardUid, currentStrainOffset) : undefined}
                     >
                       <Icon size={14} className="text-white" />
                       <span className="text-white text-xs font-bold">{num > 0 ? num : ''}</span>
@@ -543,6 +575,22 @@ export const TimelineDisplay: FC<TimelineDisplayProps> = memo(({
                           whiteSpace: 'nowrap'
                         }}>
                           ↔ 드래그
+                        </span>
+                      )}
+                      {hasStrain && battle.phase === 'respond' && (
+                        <span style={{
+                          position: 'absolute',
+                          bottom: '-16px',
+                          left: '50%',
+                          transform: 'translateX(-50%)',
+                          fontSize: '8px',
+                          color: currentStrainOffset >= STRAIN_MAX_OFFSET ? STRAIN_COLOR.end : STRAIN_COLOR.start,
+                          fontWeight: 'bold',
+                          whiteSpace: 'nowrap'
+                        }}>
+                          {currentStrainOffset >= STRAIN_MAX_OFFSET
+                            ? `⚡ 최대 (−${currentStrainOffset})`
+                            : `⚡ 클릭 (−${currentStrainOffset}/${STRAIN_MAX_OFFSET})`}
                         </span>
                       )}
                     </div>
