@@ -1064,3 +1064,31 @@ describe('카드 시너지 패턴 분석', () => {
     expect(typeof runCardSynergyPatterns).toBe('function');
   });
 });
+
+describe('생존 분석', () => {
+  it('runSurvivalAnalysis 함수가 존재한다', async () => {
+    const { runSurvivalAnalysis } = await import('./gameSimulator');
+    expect(typeof runSurvivalAnalysis).toBe('function');
+  });
+});
+
+describe('공격 패턴 분석', () => {
+  it('runAttackPatternAnalysis 함수가 존재한다', async () => {
+    const { runAttackPatternAnalysis } = await import('./gameSimulator');
+    expect(typeof runAttackPatternAnalysis).toBe('function');
+  });
+});
+
+describe('방어 전략 분석', () => {
+  it('runDefenseStrategyAnalysis 함수가 존재한다', async () => {
+    const { runDefenseStrategyAnalysis } = await import('./gameSimulator');
+    expect(typeof runDefenseStrategyAnalysis).toBe('function');
+  });
+});
+
+describe('콤보 체인 분석', () => {
+  it('runComboChainAnalysis 함수가 존재한다', async () => {
+    const { runComboChainAnalysis } = await import('./gameSimulator');
+    expect(typeof runComboChainAnalysis).toBe('function');
+  });
+});

@@ -8584,6 +8584,286 @@ export function runCardSynergyPatterns(battles: number = 30): void {
   console.log('\n' + '═'.repeat(50) + '\n');
 }
 
+// 생존 분석
+export function runSurvivalAnalysis(battles: number = 30): void {
+  console.log('═'.repeat(50));
+  console.log('💚 생존 분석');
+  console.log('═'.repeat(50));
+  console.log(`\n📊 전투 횟수: ${battles}회\n`);
+
+  const survivalData: Record<string, {
+    totalBattles: number;
+    survived: number;
+    avgHealthRemaining: number;
+    totalHealthRemaining: number;
+    closeCallCount: number;  // 체력 20% 이하로 생존
+  }> = {};
+
+  for (const preset of DECK_PRESETS) {
+    survivalData[preset.name] = {
+      totalBattles: 0,
+      survived: 0,
+      avgHealthRemaining: 0,
+      totalHealthRemaining: 0,
+      closeCallCount: 0
+    };
+
+    for (let i = 0; i < battles; i++) {
+      const enemies = [...TIER_1_ENEMIES, ...TIER_2_ENEMIES, ...TIER_3_ENEMIES];
+      const enemy = enemies[i % enemies.length];
+
+      const result = simulateBattle(preset.name, enemy.name);
+      survivalData[preset.name].totalBattles++;
+
+      if (result.winner === 'player') {
+        survivalData[preset.name].survived++;
+        survivalData[preset.name].totalHealthRemaining += result.playerHealth;
+
+        // 가까스로 생존 (20% 이하)
+        if (result.playerHealth <= 20) {
+          survivalData[preset.name].closeCallCount++;
+        }
+      }
+    }
+
+    const survivedCount = survivalData[preset.name].survived;
+    survivalData[preset.name].avgHealthRemaining = survivedCount > 0 ?
+      survivalData[preset.name].totalHealthRemaining / survivedCount : 0;
+  }
+
+  console.log('  🛡️ 프리셋별 생존율:');
+  const sortedPresets = Object.entries(survivalData)
+    .sort((a, b) => (b[1].survived / b[1].totalBattles) - (a[1].survived / a[1].totalBattles));
+
+  sortedPresets.forEach(([name, data]) => {
+    const survivalRate = (data.survived / data.totalBattles) * 100;
+    console.log(`    • ${name}: ${survivalRate.toFixed(1)}% (평균 남은 체력: ${data.avgHealthRemaining.toFixed(1)})`);
+    if (data.closeCallCount > 0) {
+      console.log(`      ⚠️ 위기 생존: ${data.closeCallCount}회`);
+    }
+  });
+
+  const avgSurvivalRate = Object.values(survivalData).reduce((sum, d) =>
+    sum + (d.survived / d.totalBattles), 0) / Object.keys(survivalData).length;
+  const grade = avgSurvivalRate >= 0.8 ? 'S' :
+    avgSurvivalRate >= 0.6 ? 'A' :
+    avgSurvivalRate >= 0.4 ? 'B' : 'C';
+  console.log(`\n  💡 생존 등급: ${grade}`);
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
+// 공격 패턴 분석
+export function runAttackPatternAnalysis(battles: number = 30): void {
+  console.log('═'.repeat(50));
+  console.log('⚔️ 공격 패턴 분석');
+  console.log('═'.repeat(50));
+  console.log(`\n📊 전투 횟수: ${battles}회\n`);
+
+  const patternData = {
+    singleAttacks: 0,
+    burstAttacks: 0,
+    consistentDamage: 0,
+    spikeDamage: 0,
+    totalTurns: 0,
+    turnDamages: [] as number[]
+  };
+
+  for (let i = 0; i < battles; i++) {
+    const preset = DECK_PRESETS[i % DECK_PRESETS.length];
+    const tier = (i % 3) + 1;
+    const enemies = tier === 1 ? TIER_1_ENEMIES : tier === 2 ? TIER_2_ENEMIES : TIER_3_ENEMIES;
+    const enemy = enemies[i % enemies.length];
+
+    const result = simulateBattle(preset.name, enemy.name);
+    patternData.totalTurns += result.turns;
+
+    let turnDamage = 0;
+    for (const log of result.battleLog) {
+      const dmgMatch = log.match(/(\d+) 피해/);
+      if (dmgMatch && log.includes('플레이어')) {
+        const damage = parseInt(dmgMatch[1]);
+        turnDamage += damage;
+        patternData.turnDamages.push(damage);
+
+        if (damage >= 50) {
+          patternData.spikeDamage++;
+        }
+        if (damage >= 30 && damage < 50) {
+          patternData.burstAttacks++;
+        }
+        if (damage < 30 && damage > 0) {
+          patternData.consistentDamage++;
+        }
+      }
+    }
+  }
+
+  console.log('  ⚡ 공격 패턴 분포:');
+  const total = patternData.turnDamages.length || 1;
+  console.log(`    • 스파이크 공격 (50+): ${patternData.spikeDamage}회 (${((patternData.spikeDamage / total) * 100).toFixed(1)}%)`);
+  console.log(`    • 버스트 공격 (30-49): ${patternData.burstAttacks}회 (${((patternData.burstAttacks / total) * 100).toFixed(1)}%)`);
+  console.log(`    • 일반 공격 (<30): ${patternData.consistentDamage}회 (${((patternData.consistentDamage / total) * 100).toFixed(1)}%)`);
+
+  const avgDamage = patternData.turnDamages.length > 0 ?
+    patternData.turnDamages.reduce((a, b) => a + b, 0) / patternData.turnDamages.length : 0;
+  console.log(`\n  📊 평균 공격 피해: ${avgDamage.toFixed(1)}`);
+
+  const spikeRatio = patternData.spikeDamage / total;
+  const grade = spikeRatio >= 0.3 ? 'S' :
+    spikeRatio >= 0.2 ? 'A' :
+    spikeRatio >= 0.1 ? 'B' : 'C';
+  console.log(`\n  💡 공격 등급: ${grade}`);
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
+// 방어 전략 분석
+export function runDefenseStrategyAnalysis(battles: number = 30): void {
+  console.log('═'.repeat(50));
+  console.log('🛡️ 방어 전략 분석');
+  console.log('═'.repeat(50));
+  console.log(`\n📊 전투 횟수: ${battles}회\n`);
+
+  const defenseData = {
+    totalDamageTaken: 0,
+    totalHealing: 0,
+    shieldBlocks: 0,
+    damageReductions: 0,
+    battlesSurvived: 0,
+    totalBattles: 0
+  };
+
+  for (let i = 0; i < battles; i++) {
+    const preset = DECK_PRESETS[i % DECK_PRESETS.length];
+    const tier = (i % 3) + 1;
+    const enemies = tier === 1 ? TIER_1_ENEMIES : tier === 2 ? TIER_2_ENEMIES : TIER_3_ENEMIES;
+    const enemy = enemies[i % enemies.length];
+
+    const result = simulateBattle(preset.name, enemy.name);
+    defenseData.totalBattles++;
+
+    if (result.winner === 'player') {
+      defenseData.battlesSurvived++;
+    }
+
+    for (const log of result.battleLog) {
+      if (log.includes('적') && log.includes('피해')) {
+        const dmgMatch = log.match(/(\d+) 피해/);
+        if (dmgMatch) {
+          defenseData.totalDamageTaken += parseInt(dmgMatch[1]);
+        }
+      }
+      if (log.includes('회복')) {
+        const healMatch = log.match(/(\d+) 회복/);
+        if (healMatch) {
+          defenseData.totalHealing += parseInt(healMatch[1]);
+        }
+      }
+      if (log.includes('방어') || log.includes('막')) {
+        defenseData.shieldBlocks++;
+      }
+    }
+  }
+
+  console.log('  🛡️ 방어 통계:');
+  console.log(`    • 총 받은 피해: ${defenseData.totalDamageTaken}`);
+  console.log(`    • 총 회복량: ${defenseData.totalHealing}`);
+  console.log(`    • 방어 횟수: ${defenseData.shieldBlocks}`);
+  console.log(`    • 생존율: ${((defenseData.battlesSurvived / defenseData.totalBattles) * 100).toFixed(1)}%`);
+
+  const avgDamageTaken = defenseData.totalDamageTaken / defenseData.totalBattles;
+  console.log(`\n  📊 전투당 평균 피해: ${avgDamageTaken.toFixed(1)}`);
+
+  const defenseScore = defenseData.battlesSurvived / defenseData.totalBattles;
+  const grade = defenseScore >= 0.8 ? 'S' :
+    defenseScore >= 0.6 ? 'A' :
+    defenseScore >= 0.4 ? 'B' : 'C';
+  console.log(`\n  💡 방어 등급: ${grade}`);
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
+// 콤보 체인 분석
+export function runComboChainAnalysis(battles: number = 30): void {
+  console.log('═'.repeat(50));
+  console.log('🔗 콤보 체인 분석');
+  console.log('═'.repeat(50));
+  console.log(`\n📊 전투 횟수: ${battles}회\n`);
+
+  const chainData: Record<string, {
+    occurrences: number;
+    totalDamage: number;
+    avgLength: number;
+    lengths: number[];
+  }> = {};
+
+  for (let i = 0; i < battles; i++) {
+    const preset = DECK_PRESETS[i % DECK_PRESETS.length];
+    const tier = (i % 3) + 1;
+    const enemies = tier === 1 ? TIER_1_ENEMIES : tier === 2 ? TIER_2_ENEMIES : TIER_3_ENEMIES;
+    const enemy = enemies[i % enemies.length];
+
+    const result = simulateBattle(preset.name, enemy.name);
+
+    // 콤보 체인 추출
+    let currentChain: string[] = [];
+    for (const log of result.battleLog) {
+      if (log.includes('콤보:')) {
+        const comboMatch = log.match(/콤보: (\S+)/);
+        if (comboMatch) {
+          currentChain.push(comboMatch[1]);
+        }
+      } else if (currentChain.length > 0) {
+        // 체인 종료
+        if (currentChain.length >= 2) {
+          const chainKey = currentChain.join(' → ');
+          if (!chainData[chainKey]) {
+            chainData[chainKey] = {
+              occurrences: 0,
+              totalDamage: 0,
+              avgLength: 0,
+              lengths: []
+            };
+          }
+          chainData[chainKey].occurrences++;
+          chainData[chainKey].lengths.push(currentChain.length);
+        }
+        currentChain = [];
+      }
+    }
+  }
+
+  // 통계 계산
+  Object.values(chainData).forEach(data => {
+    data.avgLength = data.lengths.length > 0 ?
+      data.lengths.reduce((a, b) => a + b, 0) / data.lengths.length : 0;
+  });
+
+  console.log('  🔗 상위 콤보 체인:');
+  const topChains = Object.entries(chainData)
+    .sort((a, b) => b[1].occurrences - a[1].occurrences)
+    .slice(0, 10);
+
+  topChains.forEach(([chain, data], idx) => {
+    console.log(`    ${idx + 1}. ${chain}`);
+    console.log(`       발생: ${data.occurrences}회, 평균 길이: ${data.avgLength.toFixed(1)}`);
+  });
+
+  if (topChains.length === 0) {
+    console.log('    (충분한 데이터 없음)');
+  }
+
+  const avgChainLength = topChains.length > 0 ?
+    topChains.reduce((sum, [_, d]) => sum + d.avgLength, 0) / topChains.length : 0;
+  const grade = avgChainLength >= 4 ? 'S' :
+    avgChainLength >= 3 ? 'A' :
+    avgChainLength >= 2 ? 'B' : 'C';
+  console.log(`\n  💡 콤보 체인 등급: ${grade}`);
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
 // CLI에서 직접 실행 시
 if (typeof process !== 'undefined' && process.argv?.[1]?.includes('gameSimulator')) {
   runQuickTest();
