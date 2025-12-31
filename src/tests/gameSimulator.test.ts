@@ -896,3 +896,31 @@ describe('코스트 분석', () => {
     expect(typeof runCostAnalysis).toBe('function');
   });
 });
+
+describe('밸런스 튜닝 분석', () => {
+  it('runBalanceTuning 함수가 존재한다', async () => {
+    const { runBalanceTuning } = await import('./gameSimulator');
+    expect(typeof runBalanceTuning).toBe('function');
+  });
+});
+
+describe('트렌드 분석', () => {
+  it('runTrendAnalysis 함수가 존재한다', async () => {
+    const { runTrendAnalysis } = await import('./gameSimulator');
+    expect(typeof runTrendAnalysis).toBe('function');
+  });
+});
+
+describe('카드 가치 분석', () => {
+  it('runCardValueAnalysis 함수가 존재한다', async () => {
+    const { runCardValueAnalysis } = await import('./gameSimulator');
+    expect(typeof runCardValueAnalysis).toBe('function');
+  });
+});
+
+describe('스테이지 분석', () => {
+  it('runStageAnalysis 함수가 존재한다', async () => {
+    const { runStageAnalysis } = await import('./gameSimulator');
+    expect(typeof runStageAnalysis).toBe('function');
+  });
+});

@@ -6977,6 +6977,259 @@ export function runCostAnalysis(): void {
   console.log('\n' + '═'.repeat(50) + '\n');
 }
 
+/**
+ * 밸런스 튜닝 분석
+ * 밸런스 조정 권장사항 제시
+ */
+export function runBalanceTuning(battles: number = 30): void {
+  console.log('\n╔════════════════════════════════════════╗');
+  console.log('║          밸런스 튜닝 분석               ║');
+  console.log('╚════════════════════════════════════════╝\n');
+
+  console.log(`📊 밸런스 조정 권장사항 (${battles}회 전투)\n`);
+  console.log('─'.repeat(50));
+
+  // 현재 밸런스 상태 확인
+  const stats = runSimulation({
+    battles,
+    maxTurns: 30,
+    enemyIds: [...TIER_1_ENEMIES.slice(0, 2), TIER_2_ENEMIES[0]],
+    verbose: false,
+  });
+
+  console.log('\n📈 현재 밸런스 상태:\n');
+  console.log(`  플레이어 승률: ${(stats.winRate * 100).toFixed(0)}%`);
+  console.log(`  평균 전투 턴: ${stats.avgTurns.toFixed(1)}`);
+  console.log(`  평균 피해량: ${stats.avgPlayerDamage.toFixed(0)}`);
+
+  // 권장사항 생성
+  console.log('\n🔧 밸런스 튜닝 권장사항:\n');
+
+  if (stats.winRate > 0.8) {
+    console.log('  ⚠️ 플레이어가 너무 강합니다.');
+    console.log('    → 적 HP 10-20% 증가 권장');
+    console.log('    → 적 피해량 5-10% 증가 권장');
+  } else if (stats.winRate < 0.4) {
+    console.log('  ⚠️ 플레이어가 너무 약합니다.');
+    console.log('    → 플레이어 기본 카드 강화 권장');
+    console.log('    → 적 HP 10-20% 감소 권장');
+  } else {
+    console.log('  ✅ 밸런스가 적절합니다.');
+  }
+
+  if (stats.avgTurns < 3) {
+    console.log('  ⚠️ 전투가 너무 빠릅니다.');
+    console.log('    → 체력 증가 또는 피해 감소 권장');
+  } else if (stats.avgTurns > 12) {
+    console.log('  ⚠️ 전투가 너무 깁니다.');
+    console.log('    → 피해량 증가 권장');
+  }
+
+  // 덱별 밸런스
+  console.log('\n🃏 덱별 밸런스:\n');
+  const deckBalance: Array<{ name: string; winRate: number; status: string }> = [];
+
+  for (const [name, preset] of Object.entries(DECK_PRESETS)) {
+    const config: SimulationConfig = {
+      battles: Math.floor(battles / 2),
+      maxTurns: 30,
+      enemyIds: TIER_1_ENEMIES.slice(0, 2),
+      playerDeck: preset,
+      verbose: false,
+    };
+
+    const deckStats = runSimulation(config);
+    const status = deckStats.winRate > 0.8 ? '⬆️ 너프필요' :
+      deckStats.winRate < 0.4 ? '⬇️ 버프필요' : '✅ 적절';
+
+    deckBalance.push({ name, winRate: deckStats.winRate, status });
+  }
+
+  deckBalance.forEach(d => {
+    console.log(`  ${d.status} ${d.name}: ${(d.winRate * 100).toFixed(0)}%`);
+  });
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
+/**
+ * 트렌드 분석
+ * 시뮬레이션 결과 트렌드 분석
+ */
+export function runTrendAnalysis(trials: number = 5): void {
+  console.log('\n╔════════════════════════════════════════╗');
+  console.log('║          트렌드 분석                    ║');
+  console.log('╚════════════════════════════════════════╝\n');
+
+  console.log(`📊 시뮬레이션 트렌드 분석 (${trials}회 반복)\n`);
+  console.log('─'.repeat(50));
+
+  const trends: Array<{ trial: number; winRate: number; avgDamage: number }> = [];
+
+  for (let i = 0; i < trials; i++) {
+    const stats = runSimulation({
+      battles: 20,
+      maxTurns: 30,
+      enemyIds: TIER_1_ENEMIES.slice(0, 2),
+      verbose: false,
+    });
+
+    trends.push({
+      trial: i + 1,
+      winRate: stats.winRate,
+      avgDamage: stats.avgPlayerDamage,
+    });
+  }
+
+  console.log('\n📈 트렌드 데이터:\n');
+  console.log('  회차 | 승률   | 평균피해');
+  console.log('  ' + '─'.repeat(30));
+
+  trends.forEach(t => {
+    const winBar = '█'.repeat(Math.ceil(t.winRate * 10));
+    console.log(`  ${t.trial.toString().padStart(3)} | ${(t.winRate * 100).toFixed(0).padStart(4)}% | ${t.avgDamage.toFixed(0).padStart(6)}`);
+  });
+
+  // 트렌드 분석
+  const avgWinRate = trends.reduce((s, t) => s + t.winRate, 0) / trials;
+  const variance = trends.reduce((s, t) => s + Math.pow(t.winRate - avgWinRate, 2), 0) / trials;
+  const consistency = 1 - Math.sqrt(variance);
+
+  console.log('\n📊 트렌드 요약:\n');
+  console.log(`  평균 승률: ${(avgWinRate * 100).toFixed(0)}%`);
+  console.log(`  일관성: ${(consistency * 100).toFixed(0)}%`);
+  console.log(`  분산: ${(variance * 100).toFixed(2)}%`);
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
+/**
+ * 카드 가치 분석
+ * 카드별 가치 평가
+ */
+export function runCardValueAnalysis(): void {
+  console.log('\n╔════════════════════════════════════════╗');
+  console.log('║          카드 가치 분석                 ║');
+  console.log('╚════════════════════════════════════════╝\n');
+
+  console.log('📊 카드별 가치 평가\n');
+  console.log('─'.repeat(50));
+
+  // 카드 가치 계산
+  const cardValues: Array<{
+    id: string;
+    name: string;
+    value: number;
+    costEfficiency: number;
+  }> = [];
+
+  for (const card of CARDS) {
+    const damage = card.damage || 0;
+    const block = card.block || 0;
+    const cost = card.sp || 1;
+
+    // 가치 = (피해 + 방어) / 코스트
+    const value = damage + block;
+    const costEfficiency = value / cost;
+
+    cardValues.push({
+      id: card.id,
+      name: card.id,
+      value,
+      costEfficiency,
+    });
+  }
+
+  // 가치 순 정렬
+  cardValues.sort((a, b) => b.costEfficiency - a.costEfficiency);
+
+  console.log('\n💎 최고 가치 카드 (상위 10개):\n');
+  cardValues.slice(0, 10).forEach((c, i) => {
+    const medal = i < 3 ? ['🥇', '🥈', '🥉'][i] : `${i + 1}.`;
+    console.log(`  ${medal} ${c.name.padEnd(15)}: 가치 ${c.value}, 효율 ${c.costEfficiency.toFixed(2)}`);
+  });
+
+  // 저가치 카드
+  console.log('\n⚠️ 저가치 카드 (하위 5개):\n');
+  cardValues.slice(-5).reverse().forEach((c, i) => {
+    console.log(`  ${i + 1}. ${c.name.padEnd(15)}: 가치 ${c.value}, 효율 ${c.costEfficiency.toFixed(2)}`);
+  });
+
+  // 통계
+  const avgValue = cardValues.reduce((s, c) => s + c.value, 0) / cardValues.length;
+  console.log('\n📊 카드 가치 통계:\n');
+  console.log(`  총 카드 수: ${cardValues.length}`);
+  console.log(`  평균 가치: ${avgValue.toFixed(1)}`);
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
+/**
+ * 스테이지 분석
+ * 티어별 스테이지 진행 분석
+ */
+export function runStageAnalysis(battles: number = 20): void {
+  console.log('\n╔════════════════════════════════════════╗');
+  console.log('║          스테이지 분석                  ║');
+  console.log('╚════════════════════════════════════════╝\n');
+
+  console.log(`📊 티어별 스테이지 진행 분석 (${battles}회 전투)\n`);
+  console.log('─'.repeat(50));
+
+  const stages = [
+    { name: 'Stage 1', tier: 1, enemies: TIER_1_ENEMIES.slice(0, 2) },
+    { name: 'Stage 2', tier: 1, enemies: TIER_1_ENEMIES.slice(1, 3) },
+    { name: 'Stage 3', tier: 2, enemies: [TIER_2_ENEMIES[0]] },
+    { name: 'Stage 4', tier: 2, enemies: TIER_2_ENEMIES.slice(0, 2) },
+    { name: 'Boss', tier: 3, enemies: [TIER_3_ENEMIES[0]] },
+  ];
+
+  const stageResults: Array<{
+    name: string;
+    tier: number;
+    winRate: number;
+    difficulty: string;
+  }> = [];
+
+  for (const stage of stages) {
+    const config: SimulationConfig = {
+      battles,
+      maxTurns: 30,
+      enemyIds: stage.enemies,
+      verbose: false,
+    };
+
+    const stats = runSimulation(config);
+    const difficulty = stats.winRate >= 0.8 ? '쉬움' :
+      stats.winRate >= 0.6 ? '보통' :
+      stats.winRate >= 0.4 ? '어려움' : '매우어려움';
+
+    stageResults.push({
+      name: stage.name,
+      tier: stage.tier,
+      winRate: stats.winRate,
+      difficulty,
+    });
+  }
+
+  console.log('\n🎮 스테이지별 진행:\n');
+  stageResults.forEach((s, i) => {
+    const emoji = s.difficulty === '쉬움' ? '🟢' :
+      s.difficulty === '보통' ? '🟡' :
+      s.difficulty === '어려움' ? '🟠' : '🔴';
+
+    console.log(`  ${i + 1}. ${s.name.padEnd(10)} [Tier ${s.tier}]: ${emoji} ${s.difficulty} (승률 ${(s.winRate * 100).toFixed(0)}%)`);
+  });
+
+  // 진행률 분석
+  const clearable = stageResults.filter(s => s.winRate >= 0.5).length;
+  console.log('\n📊 진행률 분석:\n');
+  console.log(`  클리어 가능 스테이지: ${clearable}/${stageResults.length}`);
+  console.log(`  권장 시작 티어: Tier ${stageResults.find(s => s.winRate >= 0.6)?.tier || 1}`);
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
 // CLI에서 직접 실행 시
 if (typeof process !== 'undefined' && process.argv?.[1]?.includes('gameSimulator')) {
   runQuickTest();
