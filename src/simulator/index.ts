@@ -181,6 +181,19 @@ export {
   type CreationPoolOptions,
 } from './core/card-creation';
 
+// ==================== Enemy Passives System ====================
+export {
+  processEnemyBattleStartPassives,
+  processEnemyTurnStartPassives,
+  processEnemyDamagePassives,
+  checkAndProcessSummonPassive,
+  checkUnitSummonPassives,
+  hasVeilEffect,
+  applyVeilInsightReduction,
+  getEnemyPassivesSummary,
+  type PassiveEffectResult,
+} from './core/enemy-passives';
+
 // ==================== Token System (Full 56 Tokens) ====================
 export {
   addToken,

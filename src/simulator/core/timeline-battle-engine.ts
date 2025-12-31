@@ -60,6 +60,12 @@ import {
   getGunDamageBonus,
 } from './card-effects';
 import { CardCreationSystem } from './card-creation';
+import {
+  processEnemyBattleStartPassives,
+  processEnemyTurnStartPassives,
+  checkAndProcessSummonPassive,
+  hasVeilEffect,
+} from './enemy-passives';
 
 const log = getLogger('TimelineBattleEngine');
 
@@ -163,12 +169,22 @@ export class TimelineBattleEngine {
       this.applyRelicEffects(state, startEffects);
     }
 
+    // 적 전투 시작 패시브
+    const enemyStartPassives = processEnemyBattleStartPassives(state);
+    for (const result of enemyStartPassives) {
+      if (result.triggered) {
+        for (const effect of result.effects) {
+          state.battleLog.push(`👹 적 패시브: ${effect}`);
+        }
+      }
+    }
+
     // 덱 셔플
     this.shuffle(state.player.deck);
     this.shuffle(state.enemy.deck);
 
     // 초기 핸드 드로우
-    this.drawCards(state.player, DEFAULT_HAND_SIZE);
+    this.drawCards(state.player, DEFAULT_HAND_SIZE, state);
 
     // 전투 루프
     while (state.turn < this.config.maxTurns && state.player.hp > 0 && state.enemy.hp > 0) {
@@ -206,6 +222,24 @@ export class TimelineBattleEngine {
       this.applyRelicEffects(state, turnStartEffects);
     }
 
+    // 적 턴 시작 패시브 (회복, 힘 증가 등)
+    const enemyTurnPassives = processEnemyTurnStartPassives(state);
+    for (const result of enemyTurnPassives) {
+      if (result.triggered) {
+        for (const effect of result.effects) {
+          state.battleLog.push(`👹 ${effect}`);
+        }
+      }
+    }
+
+    // 50% HP 소환 패시브 체크
+    const summonResult = checkAndProcessSummonPassive(state);
+    if (summonResult.triggered) {
+      for (const effect of summonResult.effects) {
+        state.battleLog.push(`⚔️ ${effect}`);
+      }
+    }
+
     // 화상 피해
     const burnResult = processBurn(state.player.tokens);
     if (burnResult.damage > 0) {
@@ -237,7 +271,7 @@ export class TimelineBattleEngine {
     // 핸드 버리기 및 드로우
     state.player.discard.push(...state.player.hand);
     state.player.hand = [];
-    this.drawCards(state.player, DEFAULT_HAND_SIZE);
+    this.drawCards(state.player, DEFAULT_HAND_SIZE, state);
 
     // 턴 종료 토큰 처리
     state.player.tokens = processTurnEnd(state.player.tokens);
@@ -303,8 +337,10 @@ export class TimelineBattleEngine {
         state.player.hand.splice(handIndex, 1);
       }
 
-      // 타임라인에 추가 (즉발 카드는 position 0)
-      const position = card.priority === 'instant' ? 0 : (card.speedCost || 5);
+      // 타임라인에 추가 (즉발 카드는 position 0, 그 외는 특성 반영)
+      const position = card.priority === 'instant'
+        ? 0
+        : this.calculateCardPosition(card, state.player.tokens);
 
       state.timeline.push({
         cardId: card.id,
@@ -327,7 +363,9 @@ export class TimelineBattleEngine {
       const card = this.cards[cardId];
       if (!card) continue;
 
-      const position = card.priority === 'instant' ? 0 : (card.speedCost || 5);
+      const position = card.priority === 'instant'
+        ? 0
+        : this.calculateCardPosition(card, state.enemy.tokens);
 
       state.timeline.push({
         cardId: card.id,
@@ -392,13 +430,40 @@ export class TimelineBattleEngine {
 
   // ==================== 타임라인 배치 ====================
 
+  private calculateCardPosition(card: GameCard, tokens: TokenState): number {
+    let position = card.speedCost || 5;
+
+    // 토큰에 의한 속도 수정
+    const speedMod = calculateSpeedModifier(tokens);
+    position += speedMod;
+
+    // 특성에 의한 속도 수정
+    if (card.traits) {
+      for (const traitId of card.traits) {
+        switch (traitId) {
+          case 'swift':
+            position -= 2;
+            break;
+          case 'slow':
+            position += 3;
+            break;
+          case 'last':
+            // 마지막 특성: 최대 속도 위치에 배치
+            position = this.config.maxSpeed;
+            break;
+        }
+      }
+    }
+
+    return Math.max(1, Math.min(position, this.config.maxSpeed));
+  }
+
   private placeCardsOnTimeline(state: GameBattleState, playerCards: GameCard[], enemyCards: GameCard[]): void {
     state.timeline = [];
 
     // 플레이어 카드 배치
     for (const card of playerCards) {
-      const speedMod = calculateSpeedModifier(state.player.tokens);
-      const position = Math.max(1, (card.speedCost || 5) + speedMod);
+      const position = this.calculateCardPosition(card, state.player.tokens);
       state.timeline.push({
         cardId: card.id,
         owner: 'player',
@@ -410,8 +475,7 @@ export class TimelineBattleEngine {
 
     // 적 카드 배치
     for (const card of enemyCards) {
-      const speedMod = calculateSpeedModifier(state.enemy.tokens);
-      const position = Math.max(1, (card.speedCost || 5) + speedMod);
+      const position = this.calculateCardPosition(card, state.enemy.tokens);
       state.timeline.push({
         cardId: card.id,
         owner: 'enemy',
@@ -496,7 +560,7 @@ export class TimelineBattleEngine {
     }
 
     // 특성 처리
-    const traitMods = this.processTraits(card, state.player, timelineCard.crossed);
+    const traitMods = this.processTraits(card, state.player, timelineCard.crossed, state, 'player');
 
     // 교차 보너스 처리
     const crossResult = processCrossBonus(state, card, 'player', timelineCard);
@@ -578,7 +642,7 @@ export class TimelineBattleEngine {
   private executeEnemyCard(state: GameBattleState, card: GameCard, timelineCard: TimelineCard): void {
     this.emitEvent('card_execute', state.turn, { cardId: card.id, actor: 'enemy' });
 
-    const traitMods = this.processTraits(card, state.enemy, timelineCard.crossed);
+    const traitMods = this.processTraits(card, state.enemy, timelineCard.crossed, state, 'enemy');
 
     // 특수 효과 실행
     const specialResults = executeSpecialEffects(state, card, 'enemy', timelineCard);
@@ -853,7 +917,13 @@ export class TimelineBattleEngine {
     effects: string[];
   }
 
-  private processTraits(card: GameCard, actorState: PlayerState | EnemyState, crossed: boolean): TraitModifiers {
+  private processTraits(
+    card: GameCard,
+    actorState: PlayerState | EnemyState,
+    crossed: boolean,
+    state?: GameBattleState,
+    actor?: 'player' | 'enemy'
+  ): TraitModifiers {
     const mods: TraitModifiers = {
       damageMultiplier: 1,
       blockMultiplier: 1,
@@ -976,6 +1046,150 @@ export class TimelineBattleEngine {
         case 'robber':
           // 날강도: 10 골드 소실 (골드 시스템 필요)
           break;
+
+        case 'repeat':
+          // 반복: 다음 턴에도 손패에 확정적으로 등장
+          if (state && actor === 'player') {
+            state.player.repeatCards = state.player.repeatCards || [];
+            if (!state.player.repeatCards.includes(card.id)) {
+              state.player.repeatCards.push(card.id);
+            }
+            mods.effects.push('반복: 다음 턴 등장 확정');
+          }
+          break;
+
+        case 'mastery':
+          // 숙련: 카드 쓸수록 시간 -2, 최소값 1
+          if (state) {
+            state.masteryUseCount = state.masteryUseCount || {};
+            const useCount = state.masteryUseCount[card.id] || 0;
+            const speedReduction = useCount * 2;
+            mods.speedModifier -= speedReduction;
+            state.masteryUseCount[card.id] = useCount + 1;
+            if (speedReduction > 0) {
+              mods.effects.push(`숙련: 속도 -${speedReduction}`);
+            }
+          }
+          break;
+
+        case 'stun':
+          // 기절: 타임라인 5범위 내 상대 카드 파괴
+          if (state) {
+            const position = state.timeline.find(tc => tc.cardId === card.id)?.position ?? 0;
+            const targetOwner = actor === 'player' ? 'enemy' : 'player';
+            let destroyed = 0;
+            state.timeline = state.timeline.filter(tc => {
+              if (tc.owner === targetOwner &&
+                  Math.abs(tc.position - position) <= 5 &&
+                  !tc.executed) {
+                destroyed++;
+                return false;
+              }
+              return true;
+            });
+            if (destroyed > 0) {
+              mods.effects.push(`기절: 상대 카드 ${destroyed}개 파괴`);
+            }
+          }
+          break;
+
+        case 'general':
+          // 장군: 다음 턴 보조특기 등장률 25% 증가
+          if (state && actor === 'player') {
+            state.player.supportSpecialtyBonus = (state.player.supportSpecialtyBonus || 0) + 25;
+            mods.effects.push('장군: 보조특기 +25%');
+          }
+          break;
+
+        case 'knockback':
+          // 넉백: 상대 타임라인 3 뒤로 밀기
+          if (state) {
+            const targetOwner = actor === 'player' ? 'enemy' : 'player';
+            state.timeline.forEach(tc => {
+              if (tc.owner === targetOwner && !tc.executed) {
+                tc.position = Math.min(tc.position + 3, this.config.maxSpeed);
+              }
+            });
+            mods.effects.push('넉백: 상대 카드 +3');
+          }
+          break;
+
+        case 'advance':
+          // 앞당김: 내 타임라인 3 앞당김
+          if (state) {
+            state.timeline.forEach(tc => {
+              if (tc.owner === actor && !tc.executed) {
+                tc.position = Math.max(tc.position - 3, 1);
+              }
+            });
+            mods.effects.push('앞당김: 내 카드 -3');
+          }
+          break;
+
+        case 'escape':
+          // 탈주: 다음 턴 손패에 미등장
+          if (state && actor === 'player') {
+            state.player.escapeCards = state.player.escapeCards || [];
+            if (!state.player.escapeCards.includes(card.id)) {
+              state.player.escapeCards.push(card.id);
+            }
+            mods.effects.push('탈주: 다음 턴 미등장');
+          }
+          break;
+
+        case 'stubborn':
+          // 고집: 대응단계 순서변경 불가 (UI 레벨에서 처리, 마킹만)
+          mods.effects.push('고집: 순서변경 불가');
+          break;
+
+        case 'boredom':
+          // 싫증: 사용시마다 시간 +2
+          if (state) {
+            state.masteryUseCount = state.masteryUseCount || {};
+            const useCount = state.masteryUseCount[`boredom_${card.id}`] || 0;
+            const speedIncrease = (useCount + 1) * 2;
+            mods.speedModifier += speedIncrease;
+            state.masteryUseCount[`boredom_${card.id}`] = useCount + 1;
+            mods.effects.push(`싫증: 속도 +${speedIncrease}`);
+          }
+          break;
+
+        case 'vanish':
+          // 소멸: 사용 후 게임에서 제외
+          if (state) {
+            state.vanishedCards = state.vanishedCards || [];
+            if (!state.vanishedCards.includes(card.id)) {
+              state.vanishedCards.push(card.id);
+            }
+            // 덱과 버린 카드 더미에서 제거
+            if (actor === 'player') {
+              state.player.deck = state.player.deck.filter(id => id !== card.id);
+              state.player.discard = state.player.discard.filter(id => id !== card.id);
+            }
+            mods.effects.push('소멸: 게임에서 제외');
+          }
+          break;
+
+        case 'last':
+          // 마지막: 타임라인 마지막에 발동 (배치 시 처리 필요, 마킹만)
+          mods.effects.push('마지막: 최후 발동');
+          break;
+
+        case 'ruin':
+          // 파탄: 다음 턴 주특기만 등장
+          if (state && actor === 'player') {
+            state.player.mainSpecialtyOnly = true;
+            mods.effects.push('파탄: 다음 턴 주특기만');
+          }
+          break;
+
+        case 'oblivion':
+          // 망각: 이후 에테르 획득 불가
+          if (state && actor === 'player') {
+            state.player.etherBlocked = true;
+            mods.effects.push('망각: 에테르 획득 불가');
+          }
+          break;
       }
     }
 
@@ -1040,22 +1254,58 @@ export class TimelineBattleEngine {
     }
   }
 
-  private drawCards(player: PlayerState, count: number): void {
+  private drawCards(player: PlayerState, count: number, state?: GameBattleState): void {
+    // 반복 특성: repeatCards를 먼저 손패에 추가
+    if (player.repeatCards && player.repeatCards.length > 0) {
+      for (const cardId of player.repeatCards) {
+        if (!player.hand.includes(cardId)) {
+          player.hand.push(cardId);
+          state?.battleLog.push(`  🔄 반복: ${cardId} 손패에 확정 등장`);
+        }
+      }
+      // 반복 특성 초기화
+      player.repeatCards = [];
+    }
+
+    // 탈주 카드 필터링
+    const escapeCards = new Set(player.escapeCards || []);
+
     for (let i = 0; i < count; i++) {
       if (player.deck.length === 0) {
-        // 버린 더미 셔플
-        player.deck = [...player.discard];
+        // 버린 더미 셔플 (소멸된 카드 제외)
+        const vanished = new Set(state?.vanishedCards || []);
+        player.deck = player.discard.filter(id => !vanished.has(id));
         player.discard = [];
         this.shuffle(player.deck);
       }
 
       if (player.deck.length > 0) {
-        const card = player.deck.pop();
+        // 탈주 카드는 건너뛰기
+        let card: string | undefined;
+        let attempts = 0;
+        const maxAttempts = player.deck.length;
+
+        while (attempts < maxAttempts) {
+          const idx = player.deck.length - 1 - attempts;
+          if (idx < 0) break;
+
+          const candidate = player.deck[idx];
+          if (candidate && !escapeCards.has(candidate)) {
+            card = candidate;
+            player.deck.splice(idx, 1);
+            break;
+          }
+          attempts++;
+        }
+
         if (card) {
           player.hand.push(card);
         }
       }
     }
+
+    // 탈주 특성 초기화
+    player.escapeCards = [];
   }
 
   private shuffle<T>(array: T[]): void {

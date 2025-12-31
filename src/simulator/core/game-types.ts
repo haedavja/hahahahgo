@@ -156,20 +156,41 @@ export interface EnemyPattern {
   description: string;
 }
 
+export interface GameEnemyPassives {
+  /** 전투 시작 시 장막 (통찰 차단) */
+  veilAtStart?: boolean;
+  /** 매턴 체력 회복량 */
+  healPerTurn?: number;
+  /** 매턴 힘 증가량 */
+  strengthPerTurn?: number;
+  /** 전투 시작 시 치명타율 증가 */
+  critBoostAtStart?: number;
+  /** 50% HP에서 소환 */
+  summonOnHalfHp?: boolean;
+  /** 피격시 반격 */
+  counterOnHit?: boolean;
+  /** 피해 반사 */
+  reflectDamage?: number;
+}
+
 export interface GameEnemy {
   id: string;
   name: string;
   tier: number;
   hp: number;
+  maxHp: number;
   maxSpeed: number;
   cardsPerTurn: number;
   deck: string[];
   patterns?: EnemyPattern[];
-  passive?: {
-    type: string;
-    effect: string;
-  };
+  passives?: GameEnemyPassives;
   description?: string;
+  emoji?: string;
+  isBoss?: boolean;
+  ether?: number;
+  speed?: number;
+  block?: number;
+  tokens?: TokenState;
 }
 
 // ==================== 전투 상태 타입 ====================
@@ -205,6 +226,12 @@ export interface PlayerState extends CombatantState {
   discard: string[];
   relics: string[];
   insight: number;
+  // 특성 시스템 관련
+  repeatCards?: string[];         // 다음 턴 손패 확정 등장
+  escapeCards?: string[];         // 다음 턴 손패 제외
+  etherBlocked?: boolean;         // 에테르 획득 불가 (망각)
+  mainSpecialtyOnly?: boolean;    // 다음 턴 주특기만 등장 (파탄)
+  supportSpecialtyBonus?: number; // 보조특기 등장률 보너스 (장군)
 }
 
 // ==================== 다중 적 유닛 타입 ====================
@@ -224,13 +251,7 @@ export interface EnemyUnit {
   hasSummoned?: boolean;
 }
 
-export interface EnemyPassives {
-  veilAtStart?: boolean;
-  healPerTurn?: number;
-  summonOnHalfHp?: boolean;
-  counterOnHit?: boolean;
-  reflectDamage?: number;
-}
+export interface EnemyPassives extends GameEnemyPassives {}
 
 export interface EnemyState extends CombatantState {
   id: string;
@@ -254,6 +275,9 @@ export interface GameBattleState {
   timeline: TimelineCard[];
   anomalyId?: string;
   battleLog: string[];
+  // 특성 시스템 관련
+  masteryUseCount?: Record<string, number>;  // 카드별 숙련 사용 횟수
+  vanishedCards?: string[];                   // 게임에서 제외된 카드 (소멸)
 }
 
 // ==================== 타임라인 시스템 ====================
