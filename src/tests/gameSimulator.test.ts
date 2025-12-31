@@ -616,3 +616,31 @@ describe('확률 분석', () => {
     expect(typeof runProbabilityAnalysis).toBe('function');
   });
 });
+
+describe('다양성 분석', () => {
+  it('runVersatilityAnalysis 함수가 존재한다', async () => {
+    const { runVersatilityAnalysis } = await import('./gameSimulator');
+    expect(typeof runVersatilityAnalysis).toBe('function');
+  });
+});
+
+describe('일관성 분석', () => {
+  it('runConsistencyAnalysis 함수가 존재한다', async () => {
+    const { runConsistencyAnalysis } = await import('./gameSimulator');
+    expect(typeof runConsistencyAnalysis).toBe('function');
+  });
+});
+
+describe('패치 노트 생성', () => {
+  it('generatePatchNotes 함수가 존재한다', async () => {
+    const { generatePatchNotes } = await import('./gameSimulator');
+    expect(typeof generatePatchNotes).toBe('function');
+  });
+});
+
+describe('에지 케이스 테스트', () => {
+  it('runEdgeCaseTest 함수가 존재한다', async () => {
+    const { runEdgeCaseTest } = await import('./gameSimulator');
+    expect(typeof runEdgeCaseTest).toBe('function');
+  });
+});

@@ -4491,6 +4491,309 @@ export function runProbabilityAnalysis(): void {
   console.log('\n' + '═'.repeat(50) + '\n');
 }
 
+/**
+ * 다양성 분석
+ * 덱/카드가 다양한 적에게 얼마나 효과적인지
+ */
+export function runVersatilityAnalysis(battles: number = 20): void {
+  console.log('\n╔════════════════════════════════════════╗');
+  console.log('║           다양성 분석                   ║');
+  console.log('╚════════════════════════════════════════╝\n');
+
+  console.log(`📊 덱별 다양성 분석 (${battles}회/적)\n`);
+  console.log('─'.repeat(50));
+
+  const allEnemies = [...TIER_1_ENEMIES, ...TIER_2_ENEMIES, ...TIER_3_ENEMIES];
+  const results: Array<{ name: string; avgWinRate: number; versatility: number; details: Record<string, number> }> = [];
+
+  for (const [name, deck] of Object.entries(DECK_PRESETS)) {
+    const enemyWinRates: Record<string, number> = {};
+
+    for (const enemyId of allEnemies.slice(0, 8)) {
+      const config: SimulationConfig = {
+        battles,
+        maxTurns: 30,
+        enemyIds: [enemyId],
+        playerDeck: deck,
+        verbose: false,
+      };
+
+      const stats = runSimulation(config);
+      enemyWinRates[enemyId] = stats.winRate;
+    }
+
+    const winRates = Object.values(enemyWinRates);
+    const avgWinRate = winRates.reduce((s, r) => s + r, 0) / winRates.length;
+    const variance = winRates.reduce((s, r) => s + Math.pow(r - avgWinRate, 2), 0) / winRates.length;
+    const versatility = 1 - Math.sqrt(variance); // 높을수록 일관적
+
+    results.push({
+      name,
+      avgWinRate,
+      versatility,
+      details: enemyWinRates,
+    });
+  }
+
+  // 다양성순 정렬
+  results.sort((a, b) => b.versatility - a.versatility);
+
+  console.log('\n🎯 덱별 다양성 순위:\n');
+  results.forEach((r, idx) => {
+    const rating = r.versatility > 0.8 ? '🟢 매우 다양' :
+      r.versatility > 0.6 ? '🟡 다양' :
+      r.versatility > 0.4 ? '🟠 보통' : '🔴 특화';
+
+    console.log(`  ${idx + 1}. ${r.name}:`);
+    console.log(`     평균 승률: ${(r.avgWinRate * 100).toFixed(1)}%`);
+    console.log(`     다양성: ${(r.versatility * 100).toFixed(0)}% ${rating}`);
+  });
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
+/**
+ * 일관성 분석
+ * 승률의 일관성 및 분산 분석
+ */
+export function runConsistencyAnalysis(trials: number = 10, battles: number = 30): void {
+  console.log('\n╔════════════════════════════════════════╗');
+  console.log('║           일관성 분석                   ║');
+  console.log('╚════════════════════════════════════════╝\n');
+
+  console.log(`📊 ${trials}회 반복 시뮬레이션 (각 ${battles}회 전투)\n`);
+  console.log('─'.repeat(50));
+
+  const results: Array<{ name: string; avgWinRate: number; stdDev: number; consistency: string }> = [];
+
+  for (const [name, deck] of Object.entries(DECK_PRESETS)) {
+    const winRates: number[] = [];
+
+    for (let i = 0; i < trials; i++) {
+      const config: SimulationConfig = {
+        battles,
+        maxTurns: 30,
+        enemyIds: [...TIER_1_ENEMIES.slice(0, 2), ...TIER_2_ENEMIES.slice(0, 2)],
+        playerDeck: deck,
+        verbose: false,
+      };
+
+      const stats = runSimulation(config);
+      winRates.push(stats.winRate);
+    }
+
+    const avgWinRate = winRates.reduce((s, r) => s + r, 0) / trials;
+    const variance = winRates.reduce((s, r) => s + Math.pow(r - avgWinRate, 2), 0) / trials;
+    const stdDev = Math.sqrt(variance);
+
+    const consistency = stdDev < 0.05 ? '🟢 매우 안정' :
+      stdDev < 0.1 ? '🟡 안정' :
+      stdDev < 0.15 ? '🟠 변동' : '🔴 불안정';
+
+    results.push({ name, avgWinRate, stdDev, consistency });
+  }
+
+  // 안정성순 정렬
+  results.sort((a, b) => a.stdDev - b.stdDev);
+
+  console.log('\n📈 덱별 일관성:\n');
+  results.forEach((r, idx) => {
+    console.log(`  ${idx + 1}. ${r.name}:`);
+    console.log(`     평균 승률: ${(r.avgWinRate * 100).toFixed(1)}%`);
+    console.log(`     표준편차: ±${(r.stdDev * 100).toFixed(1)}%`);
+    console.log(`     ${r.consistency}`);
+  });
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
+/**
+ * 패치 노트 생성
+ * 시뮬레이션 기반 밸런스 제안
+ */
+export function generatePatchNotes(battles: number = 30): void {
+  console.log('\n╔════════════════════════════════════════════════════╗');
+  console.log('║              자동 패치 노트 생성                    ║');
+  console.log('╚════════════════════════════════════════════════════╝\n');
+
+  const suggestions: { type: string; priority: string; content: string }[] = [];
+
+  // 1. 덱 밸런스 분석
+  console.log('📊 덱 밸런스 분석 중...');
+  const deckResults: Array<{ name: string; winRate: number }> = [];
+
+  for (const [name, deck] of Object.entries(DECK_PRESETS)) {
+    const config: SimulationConfig = {
+      battles,
+      maxTurns: 30,
+      enemyIds: [...TIER_1_ENEMIES.slice(0, 2), ...TIER_2_ENEMIES.slice(0, 2)],
+      playerDeck: deck,
+      verbose: false,
+    };
+
+    const stats = runSimulation(config);
+    deckResults.push({ name, winRate: stats.winRate });
+  }
+
+  deckResults.sort((a, b) => b.winRate - a.winRate);
+
+  const topDeck = deckResults[0];
+  const bottomDeck = deckResults[deckResults.length - 1];
+
+  if (topDeck.winRate > 0.8) {
+    suggestions.push({
+      type: '덱 너프',
+      priority: '높음',
+      content: `${topDeck.name} 덱 승률 ${(topDeck.winRate * 100).toFixed(0)}% - 핵심 카드 약화 필요`,
+    });
+  }
+
+  if (bottomDeck.winRate < 0.3) {
+    suggestions.push({
+      type: '덱 버프',
+      priority: '높음',
+      content: `${bottomDeck.name} 덱 승률 ${(bottomDeck.winRate * 100).toFixed(0)}% - 핵심 카드 강화 필요`,
+    });
+  }
+
+  // 2. 티어 밸런스
+  console.log('📊 티어 밸런스 분석 중...');
+  const tierRates: number[] = [];
+
+  for (const enemies of [TIER_1_ENEMIES, TIER_2_ENEMIES, TIER_3_ENEMIES]) {
+    const config: SimulationConfig = {
+      battles: battles / 2,
+      maxTurns: 30,
+      enemyIds: enemies.slice(0, 3),
+      verbose: false,
+    };
+
+    const stats = runSimulation(config);
+    tierRates.push(stats.winRate);
+  }
+
+  if (tierRates[0] < 0.6) {
+    suggestions.push({
+      type: '난이도 조정',
+      priority: '중간',
+      content: 'Tier 1 적 HP 또는 공격력 10% 감소 권장',
+    });
+  }
+
+  if (tierRates[2] > 0.5) {
+    suggestions.push({
+      type: '난이도 조정',
+      priority: '중간',
+      content: 'Tier 3 적 HP 또는 공격력 15% 증가 권장',
+    });
+  }
+
+  // 3. 패치 노트 출력
+  console.log('\n' + '═'.repeat(50));
+  console.log('\n📋 자동 생성 패치 노트:\n');
+  console.log('━'.repeat(50));
+
+  if (suggestions.length === 0) {
+    console.log('  ✓ 현재 밸런스 양호 - 패치 불필요');
+  } else {
+    suggestions.sort((a, b) => {
+      const priorityOrder = { '높음': 0, '중간': 1, '낮음': 2 };
+      return priorityOrder[a.priority as keyof typeof priorityOrder] - priorityOrder[b.priority as keyof typeof priorityOrder];
+    });
+
+    suggestions.forEach((s, i) => {
+      const icon = s.priority === '높음' ? '🔴' : s.priority === '중간' ? '🟡' : '🟢';
+      console.log(`  ${i + 1}. ${icon} [${s.type}] ${s.content}`);
+    });
+  }
+
+  // 요약
+  console.log('\n━'.repeat(50));
+  console.log('\n📈 현재 상태 요약:');
+  console.log(`  • 최강 덱: ${topDeck.name} (${(topDeck.winRate * 100).toFixed(0)}%)`);
+  console.log(`  • 최약 덱: ${bottomDeck.name} (${(bottomDeck.winRate * 100).toFixed(0)}%)`);
+  console.log(`  • Tier 1 평균 승률: ${(tierRates[0] * 100).toFixed(0)}%`);
+  console.log(`  • Tier 2 평균 승률: ${(tierRates[1] * 100).toFixed(0)}%`);
+  console.log(`  • Tier 3 평균 승률: ${(tierRates[2] * 100).toFixed(0)}%`);
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
+/**
+ * 에지 케이스 테스트
+ * 극단적 상황 테스트
+ */
+export function runEdgeCaseTest(): void {
+  console.log('\n╔════════════════════════════════════════╗');
+  console.log('║         에지 케이스 테스트              ║');
+  console.log('╚════════════════════════════════════════╝\n');
+
+  const testCases: Array<{ name: string; config: Partial<SimulationConfig>; expected: string }> = [
+    {
+      name: '최소 전투',
+      config: { battles: 1, maxTurns: 5 },
+      expected: '정상 실행',
+    },
+    {
+      name: '단일 적',
+      config: { battles: 10, enemyIds: ['ghoul'] },
+      expected: '정상 실행',
+    },
+    {
+      name: '모든 적',
+      config: { battles: 5, enemyIds: [...TIER_1_ENEMIES, ...TIER_2_ENEMIES, ...TIER_3_ENEMIES] },
+      expected: '정상 실행',
+    },
+    {
+      name: '긴 턴 제한',
+      config: { battles: 5, maxTurns: 100 },
+      expected: '정상 실행',
+    },
+  ];
+
+  console.log('📊 에지 케이스 테스트 실행\n');
+  console.log('─'.repeat(50));
+
+  let passed = 0;
+  let failed = 0;
+
+  testCases.forEach((tc, i) => {
+    try {
+      const config: SimulationConfig = {
+        battles: 10,
+        maxTurns: 30,
+        enemyIds: TIER_1_ENEMIES.slice(0, 2),
+        verbose: false,
+        ...tc.config,
+      };
+
+      const stats = runSimulation(config);
+
+      if (stats.totalBattles > 0) {
+        console.log(`  ✓ ${tc.name}: 통과`);
+        passed++;
+      } else {
+        console.log(`  ✗ ${tc.name}: 실패 (전투 없음)`);
+        failed++;
+      }
+    } catch (e) {
+      console.log(`  ✗ ${tc.name}: 오류 - ${e}`);
+      failed++;
+    }
+  });
+
+  console.log('\n' + '─'.repeat(50));
+  console.log(`\n결과: ${passed}/${testCases.length} 통과`);
+
+  if (failed === 0) {
+    console.log('  🟢 모든 에지 케이스 통과!');
+  } else {
+    console.log(`  🔴 ${failed}개 실패`);
+  }
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
 // CLI에서 직접 실행 시
 if (typeof process !== 'undefined' && process.argv?.[1]?.includes('gameSimulator')) {
   runQuickTest();
