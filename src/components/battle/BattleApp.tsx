@@ -174,6 +174,7 @@ import { resolveAttackTarget, resolveDefenseSource, updateAttackTargetBlock, app
 import { applyTimelineChanges, duplicatePlayerCards, insertCardsIntoQueue } from "./utils/timelineQueueUtils";
 import { processAllNextTurnEffects } from "./utils/cardPlaySpecialsProcessing";
 import { createTokenActions } from "./utils/tokenActionHandlers";
+import { createFixedOrder } from "./utils/cardOrdering";
 
 // HandArea용 로컬 Card 타입 - 제거됨 (Card 타입 직접 사용)
 
@@ -845,6 +846,17 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       battleRef.current = { ...battleRef.current, qIndex: newQIndex };
       return;
     }
+
+    // 타임라인 밖 적 카드 스킵 (sp > maxSpeed인 경우)
+    const enemyMaxSpeedCheck = currentEnemy.maxSpeed || DEFAULT_ENEMY_MAX_SPEED;
+    if (a.actor === 'enemy' && (a.sp ?? 0) > enemyMaxSpeedCheck) {
+      addLog(`🚫 "${a.card?.name}" 타임라인 범위 초과로 실행 불가 (sp: ${a.sp} > ${enemyMaxSpeedCheck})`);
+      const newQIndex = currentBattle.qIndex + 1;
+      actions.setQIndex(newQIndex);
+      battleRef.current = { ...battleRef.current, qIndex: newQIndex };
+      return;
+    }
+
     const currentQIndex = currentBattle.qIndex; // Capture current qIndex
 
     // 타임라인 progress 업데이트 (공통 최대 속도 기준 비율로)
@@ -1860,7 +1872,16 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       return card;
     });
     actions.setSelected(updatedSelected);
-  }, [battle.selected, actions]);
+
+    // fixedOrder도 다시 계산
+    const newFixedOrder = createFixedOrder(
+      updatedSelected as unknown as import('../../types').OrderingCardInfo[],
+      enemyPlan.actions as unknown as import('../../types').OrderingEnemyAction[],
+      effectiveAgility,
+      player as unknown as { speedInstability?: number }
+    );
+    actions.setFixedOrder(newFixedOrder);
+  }, [battle.selected, enemyPlan.actions, effectiveAgility, player, actions]);
 
   // 무리 특성 카드 오프셋 변경 핸들러 (행동력 1 소모)
   const handleStrainOffsetChange = useCallback((cardUid: string, newOffset: number) => {
@@ -1882,8 +1903,18 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       return card;
     });
     actions.setSelected(updatedSelected);
+
+    // fixedOrder도 다시 계산
+    const newFixedOrder = createFixedOrder(
+      updatedSelected as unknown as import('../../types').OrderingCardInfo[],
+      enemyPlan.actions as unknown as import('../../types').OrderingEnemyAction[],
+      effectiveAgility,
+      player as unknown as { speedInstability?: number }
+    );
+    actions.setFixedOrder(newFixedOrder);
+
     actions.addLog(`⚡ 무리: 속도 ${newOffset} 앞당김 (행동력 -1)`);
-  }, [battle.selected, player, actions]);
+  }, [battle.selected, enemyPlan.actions, effectiveAgility, player, actions]);
 
   // 키보드 단축키 처리
   useKeyboardShortcuts({

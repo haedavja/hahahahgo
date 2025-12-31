@@ -106,12 +106,14 @@ export const CardsTab = memo(function CardsTab({ cardUpgrades, upgradeCardRarity
     }
   }, [specialMode, mainSpecials, subSpecials, updateCharacterBuild, clearOwnedCards]);
 
-  // 검색 필터
+  // 검색 필터 (가나다 순 정렬)
   const filteredCards = useMemo(() =>
-    (CARDS as Card[]).filter(c =>
-      c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      c.id.toLowerCase().includes(searchTerm.toLowerCase())
-    ), [searchTerm]);
+    (CARDS as Card[])
+      .filter(c =>
+        c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        c.id.toLowerCase().includes(searchTerm.toLowerCase())
+      )
+      .sort((a, b) => a.name.localeCompare(b.name, 'ko')), [searchTerm]);
 
   // 카드 개수 카운트
   const getCount = useCallback((cardId: string, list: string[]): number => list.filter(id => id === cardId).length, []);
