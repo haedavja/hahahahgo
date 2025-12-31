@@ -565,7 +565,7 @@ export class TimelineBattleEngine {
 
   // ==================== 타임라인 배치 ====================
 
-  private calculateCardPosition(card: GameCard, tokens: TokenState): number {
+  private calculateCardPosition(card: GameCard, tokens: TokenState, state?: GameBattleState): number {
     let position = card.speedCost || 5;
 
     // 토큰에 의한 속도 수정
@@ -585,6 +585,26 @@ export class TimelineBattleEngine {
           case 'last':
             // 마지막 특성: 최대 속도 위치에 배치
             position = this.config.maxSpeed;
+            break;
+          case 'leisure':
+            // 여유 특성: 4~8 범위 내 최적 위치 선택 (AI)
+            // 적 카드와 교차할 수 있는 위치를 우선
+            if (state && state.timeline.length > 0) {
+              const enemyPositions = state.timeline
+                .filter(tc => tc.owner === 'enemy')
+                .map(tc => tc.position);
+              // 교차 가능한 위치 찾기 (4-8 범위)
+              let bestPos = 6; // 기본값
+              for (let p = 4; p <= 8; p++) {
+                if (enemyPositions.includes(p)) {
+                  bestPos = p;
+                  break;
+                }
+              }
+              position = bestPos;
+            } else {
+              position = 6; // 기본 중간값
+            }
             break;
         }
       }
@@ -606,6 +626,42 @@ export class TimelineBattleEngine {
     return Math.max(1, Math.min(position, effectiveMaxSpeed));
   }
 
+  /**
+   * 무리(strain) 특성 AI 결정: 행동력을 사용해 속도를 앞당길지 결정
+   */
+  private applyStrainTrait(card: GameCard, basePosition: number, state: GameBattleState): number {
+    if (!card.traits?.includes('strain')) return basePosition;
+    if (state.player.energy < 1) return basePosition;
+
+    // 적 카드 위치 분석
+    const enemyPositions = state.timeline
+      .filter(tc => tc.owner === 'enemy')
+      .map(tc => tc.position);
+
+    // 최대 3까지 앞당김 가능
+    const maxAdvance = Math.min(3, state.player.energy);
+
+    // 교차 가능한 위치 찾기
+    for (let advance = 1; advance <= maxAdvance; advance++) {
+      const newPos = basePosition - advance;
+      if (newPos >= 1 && enemyPositions.includes(newPos)) {
+        // 교차할 수 있으면 행동력 소모하고 앞당김
+        state.player.energy -= 1;
+        state.battleLog.push(`  ⚡ 무리: 속도 ${advance} 앞당김 (행동력 -1)`);
+        return newPos;
+      }
+    }
+
+    // 교차 불가능하면 공격 카드일 때만 1 앞당김
+    if (card.type === 'attack' && state.player.energy >= 1) {
+      state.player.energy -= 1;
+      state.battleLog.push(`  ⚡ 무리: 속도 1 앞당김 (행동력 -1)`);
+      return basePosition - 1;
+    }
+
+    return basePosition;
+  }
+
   private placeCardsOnTimeline(state: GameBattleState, playerCards: GameCard[], enemyCards: GameCard[]): void {
     state.timeline = [];
 
@@ -619,9 +675,25 @@ export class TimelineBattleEngine {
       state.currentComboKeys = new Set();
     }
 
-    // 플레이어 카드 배치
+    // 적 카드 먼저 배치 (여유/무리 특성 AI가 적 위치를 참고하기 위해)
+    for (const card of enemyCards) {
+      const position = this.calculateCardPosition(card, state.enemy.tokens);
+      state.timeline.push({
+        cardId: card.id,
+        owner: 'enemy',
+        position,
+        crossed: false,
+        executed: false,
+      });
+    }
+
+    // 플레이어 카드 배치 (여유/무리 특성 적용)
     for (const card of playerCards) {
-      const position = this.calculateCardPosition(card, state.player.tokens);
+      let position = this.calculateCardPosition(card, state.player.tokens, state);
+
+      // 무리(strain) 특성: 행동력을 사용해 속도 앞당김
+      position = this.applyStrainTrait(card, position, state);
+
       state.timeline.push({
         cardId: card.id,
         owner: 'player',
@@ -636,18 +708,6 @@ export class TimelineBattleEngine {
         state.player.hand.splice(handIndex, 1);
         state.player.discard.push(card.id);
       }
-    }
-
-    // 적 카드 배치
-    for (const card of enemyCards) {
-      const position = this.calculateCardPosition(card, state.enemy.tokens);
-      state.timeline.push({
-        cardId: card.id,
-        owner: 'enemy',
-        position,
-        crossed: false,
-        executed: false,
-      });
     }
 
     // 위치순 정렬
