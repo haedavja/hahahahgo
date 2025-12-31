@@ -1092,3 +1092,31 @@ describe('콤보 체인 분석', () => {
     expect(typeof runComboChainAnalysis).toBe('function');
   });
 });
+
+describe('레벨 스케일링 분석', () => {
+  it('runLevelScalingAnalysis 함수가 존재한다', async () => {
+    const { runLevelScalingAnalysis } = await import('./gameSimulator');
+    expect(typeof runLevelScalingAnalysis).toBe('function');
+  });
+});
+
+describe('핫스트릭 분석', () => {
+  it('runHotStreakAnalysis 함수가 존재한다', async () => {
+    const { runHotStreakAnalysis } = await import('./gameSimulator');
+    expect(typeof runHotStreakAnalysis).toBe('function');
+  });
+});
+
+describe('콜드스트릭 분석', () => {
+  it('runColdStreakAnalysis 함수가 존재한다', async () => {
+    const { runColdStreakAnalysis } = await import('./gameSimulator');
+    expect(typeof runColdStreakAnalysis).toBe('function');
+  });
+});
+
+describe('전투 효율 분석', () => {
+  it('runBattleEfficiencyAnalysis 함수가 존재한다', async () => {
+    const { runBattleEfficiencyAnalysis } = await import('./gameSimulator');
+    expect(typeof runBattleEfficiencyAnalysis).toBe('function');
+  });
+});

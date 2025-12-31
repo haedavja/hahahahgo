@@ -8864,6 +8864,280 @@ export function runComboChainAnalysis(battles: number = 30): void {
   console.log('\n' + '═'.repeat(50) + '\n');
 }
 
+// 레벨 스케일링 분석
+export function runLevelScalingAnalysis(battles: number = 30): void {
+  console.log('═'.repeat(50));
+  console.log('📈 레벨 스케일링 분석');
+  console.log('═'.repeat(50));
+  console.log(`\n📊 전투 횟수: ${battles}회 (티어당)\n`);
+
+  const scalingData: Record<string, {
+    tier: number;
+    winRate: number;
+    avgDamage: number;
+    avgTurns: number;
+    battles: number;
+    wins: number;
+    totalDamage: number;
+    totalTurns: number;
+  }> = {};
+
+  for (let tier = 1; tier <= 3; tier++) {
+    const enemies = tier === 1 ? TIER_1_ENEMIES : tier === 2 ? TIER_2_ENEMIES : TIER_3_ENEMIES;
+    scalingData[`Tier ${tier}`] = {
+      tier,
+      winRate: 0,
+      avgDamage: 0,
+      avgTurns: 0,
+      battles: 0,
+      wins: 0,
+      totalDamage: 0,
+      totalTurns: 0
+    };
+
+    for (let i = 0; i < battles; i++) {
+      const preset = DECK_PRESETS[i % DECK_PRESETS.length];
+      const enemy = enemies[i % enemies.length];
+
+      const result = simulateBattle(preset.name, enemy.name);
+      scalingData[`Tier ${tier}`].battles++;
+      scalingData[`Tier ${tier}`].totalTurns += result.turns;
+      scalingData[`Tier ${tier}`].totalDamage += result.totalDamageDealt || 0;
+
+      if (result.winner === 'player') {
+        scalingData[`Tier ${tier}`].wins++;
+      }
+    }
+
+    const data = scalingData[`Tier ${tier}`];
+    data.winRate = data.wins / data.battles;
+    data.avgDamage = data.totalDamage / data.battles;
+    data.avgTurns = data.totalTurns / data.battles;
+  }
+
+  console.log('  📊 티어별 스케일링:');
+  Object.entries(scalingData).forEach(([name, data]) => {
+    console.log(`    ${name}:`);
+    console.log(`      승률: ${(data.winRate * 100).toFixed(1)}%`);
+    console.log(`      평균 피해: ${data.avgDamage.toFixed(1)}`);
+    console.log(`      평균 턴: ${data.avgTurns.toFixed(1)}`);
+  });
+
+  // 스케일링 균형 점수
+  const tier1WinRate = scalingData['Tier 1'].winRate;
+  const tier3WinRate = scalingData['Tier 3'].winRate;
+  const balance = 1 - Math.abs(tier1WinRate - tier3WinRate - 0.2);  // 이상적인 차이는 20%
+  const grade = balance >= 0.8 ? 'S' :
+    balance >= 0.6 ? 'A' :
+    balance >= 0.4 ? 'B' : 'C';
+  console.log(`\n  💡 스케일링 균형 등급: ${grade}`);
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
+// 핫스트릭 분석 (연속 성공 패턴)
+export function runHotStreakAnalysis(battles: number = 50): void {
+  console.log('═'.repeat(50));
+  console.log('🔥 핫스트릭 분석');
+  console.log('═'.repeat(50));
+  console.log(`\n📊 전투 횟수: ${battles}회\n`);
+
+  const hotStreakData = {
+    streaks: [] as number[],
+    currentStreak: 0,
+    maxStreak: 0,
+    hotMoments: 0,  // 3연승 이상
+    winAfterWin: 0,
+    totalAfterWin: 0,
+    lastResult: false
+  };
+
+  for (let i = 0; i < battles; i++) {
+    const preset = DECK_PRESETS[i % DECK_PRESETS.length];
+    const tier = (i % 3) + 1;
+    const enemies = tier === 1 ? TIER_1_ENEMIES : tier === 2 ? TIER_2_ENEMIES : TIER_3_ENEMIES;
+    const enemy = enemies[i % enemies.length];
+
+    const result = simulateBattle(preset.name, enemy.name);
+    const won = result.winner === 'player';
+
+    if (hotStreakData.lastResult) {
+      hotStreakData.totalAfterWin++;
+      if (won) hotStreakData.winAfterWin++;
+    }
+
+    if (won) {
+      hotStreakData.currentStreak++;
+      if (hotStreakData.currentStreak >= 3) {
+        hotStreakData.hotMoments++;
+      }
+    } else {
+      if (hotStreakData.currentStreak > 0) {
+        hotStreakData.streaks.push(hotStreakData.currentStreak);
+        hotStreakData.maxStreak = Math.max(hotStreakData.maxStreak, hotStreakData.currentStreak);
+      }
+      hotStreakData.currentStreak = 0;
+    }
+
+    hotStreakData.lastResult = won;
+  }
+
+  // 마지막 스트릭 기록
+  if (hotStreakData.currentStreak > 0) {
+    hotStreakData.streaks.push(hotStreakData.currentStreak);
+    hotStreakData.maxStreak = Math.max(hotStreakData.maxStreak, hotStreakData.currentStreak);
+  }
+
+  console.log('  🔥 핫스트릭 통계:');
+  console.log(`    • 최대 연승: ${hotStreakData.maxStreak}회`);
+  console.log(`    • 핫 모먼트 (3연승+): ${hotStreakData.hotMoments}회`);
+  const avgStreak = hotStreakData.streaks.length > 0 ?
+    hotStreakData.streaks.reduce((a, b) => a + b, 0) / hotStreakData.streaks.length : 0;
+  console.log(`    • 평균 연승: ${avgStreak.toFixed(1)}회`);
+
+  console.log('\n  📊 모멘텀 분석:');
+  const momentum = hotStreakData.totalAfterWin > 0 ?
+    hotStreakData.winAfterWin / hotStreakData.totalAfterWin : 0;
+  console.log(`    • 승리 후 승리 확률: ${(momentum * 100).toFixed(1)}%`);
+
+  const grade = hotStreakData.maxStreak >= 7 ? 'S' :
+    hotStreakData.maxStreak >= 5 ? 'A' :
+    hotStreakData.maxStreak >= 3 ? 'B' : 'C';
+  console.log(`\n  💡 핫스트릭 등급: ${grade}`);
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
+// 콜드스트릭 분석 (연속 실패 패턴)
+export function runColdStreakAnalysis(battles: number = 50): void {
+  console.log('═'.repeat(50));
+  console.log('❄️ 콜드스트릭 분석');
+  console.log('═'.repeat(50));
+  console.log(`\n📊 전투 횟수: ${battles}회\n`);
+
+  const coldStreakData = {
+    streaks: [] as number[],
+    currentStreak: 0,
+    maxStreak: 0,
+    coldMoments: 0,  // 3연패 이상
+    lossAfterLoss: 0,
+    totalAfterLoss: 0,
+    lastResult: true
+  };
+
+  for (let i = 0; i < battles; i++) {
+    const preset = DECK_PRESETS[i % DECK_PRESETS.length];
+    const tier = (i % 3) + 1;
+    const enemies = tier === 1 ? TIER_1_ENEMIES : tier === 2 ? TIER_2_ENEMIES : TIER_3_ENEMIES;
+    const enemy = enemies[i % enemies.length];
+
+    const result = simulateBattle(preset.name, enemy.name);
+    const won = result.winner === 'player';
+
+    if (!coldStreakData.lastResult) {
+      coldStreakData.totalAfterLoss++;
+      if (!won) coldStreakData.lossAfterLoss++;
+    }
+
+    if (!won) {
+      coldStreakData.currentStreak++;
+      if (coldStreakData.currentStreak >= 3) {
+        coldStreakData.coldMoments++;
+      }
+    } else {
+      if (coldStreakData.currentStreak > 0) {
+        coldStreakData.streaks.push(coldStreakData.currentStreak);
+        coldStreakData.maxStreak = Math.max(coldStreakData.maxStreak, coldStreakData.currentStreak);
+      }
+      coldStreakData.currentStreak = 0;
+    }
+
+    coldStreakData.lastResult = won;
+  }
+
+  // 마지막 스트릭 기록
+  if (coldStreakData.currentStreak > 0) {
+    coldStreakData.streaks.push(coldStreakData.currentStreak);
+    coldStreakData.maxStreak = Math.max(coldStreakData.maxStreak, coldStreakData.currentStreak);
+  }
+
+  console.log('  ❄️ 콜드스트릭 통계:');
+  console.log(`    • 최대 연패: ${coldStreakData.maxStreak}회`);
+  console.log(`    • 콜드 모먼트 (3연패+): ${coldStreakData.coldMoments}회`);
+  const avgStreak = coldStreakData.streaks.length > 0 ?
+    coldStreakData.streaks.reduce((a, b) => a + b, 0) / coldStreakData.streaks.length : 0;
+  console.log(`    • 평균 연패: ${avgStreak.toFixed(1)}회`);
+
+  console.log('\n  📊 회복력 분석:');
+  const resilience = coldStreakData.totalAfterLoss > 0 ?
+    1 - (coldStreakData.lossAfterLoss / coldStreakData.totalAfterLoss) : 1;
+  console.log(`    • 패배 후 승리 확률: ${(resilience * 100).toFixed(1)}%`);
+
+  // 낮을수록 좋음
+  const grade = coldStreakData.maxStreak <= 2 ? 'S' :
+    coldStreakData.maxStreak <= 4 ? 'A' :
+    coldStreakData.maxStreak <= 6 ? 'B' : 'C';
+  console.log(`\n  💡 회복력 등급: ${grade}`);
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
+// 전투 효율 분석
+export function runBattleEfficiencyAnalysis(battles: number = 30): void {
+  console.log('═'.repeat(50));
+  console.log('⚡ 전투 효율 분석');
+  console.log('═'.repeat(50));
+  console.log(`\n📊 전투 횟수: ${battles}회\n`);
+
+  const efficiencyData = {
+    totalDamageDealt: 0,
+    totalDamageTaken: 0,
+    totalTurns: 0,
+    totalBattles: 0,
+    quickWins: 0,  // 5턴 이내 승리
+    efficientWins: 0,  // 피해 대비 출력 2배 이상
+    perfectWins: 0,  // 무피해 승리
+  };
+
+  for (let i = 0; i < battles; i++) {
+    const preset = DECK_PRESETS[i % DECK_PRESETS.length];
+    const tier = (i % 3) + 1;
+    const enemies = tier === 1 ? TIER_1_ENEMIES : tier === 2 ? TIER_2_ENEMIES : TIER_3_ENEMIES;
+    const enemy = enemies[i % enemies.length];
+
+    const result = simulateBattle(preset.name, enemy.name);
+    efficiencyData.totalBattles++;
+    efficiencyData.totalTurns += result.turns;
+    efficiencyData.totalDamageDealt += result.totalDamageDealt || 0;
+
+    if (result.winner === 'player') {
+      if (result.turns <= 5) {
+        efficiencyData.quickWins++;
+      }
+      if (result.playerHealth >= 80) {
+        efficiencyData.perfectWins++;
+      }
+    }
+  }
+
+  console.log('  ⚡ 효율 통계:');
+  const avgDPT = efficiencyData.totalDamageDealt / efficiencyData.totalTurns;
+  console.log(`    • 턴당 평균 피해: ${avgDPT.toFixed(1)}`);
+  console.log(`    • 퀵윈 (5턴 이내): ${efficiencyData.quickWins}회 (${((efficiencyData.quickWins / efficiencyData.totalBattles) * 100).toFixed(1)}%)`);
+  console.log(`    • 완벽 승리: ${efficiencyData.perfectWins}회 (${((efficiencyData.perfectWins / efficiencyData.totalBattles) * 100).toFixed(1)}%)`);
+
+  const avgTurns = efficiencyData.totalTurns / efficiencyData.totalBattles;
+  console.log(`\n  📊 평균 전투 시간: ${avgTurns.toFixed(1)} 턴`);
+
+  const efficiencyScore = (avgDPT / 10) + (efficiencyData.quickWins / efficiencyData.totalBattles);
+  const grade = efficiencyScore >= 1.5 ? 'S' :
+    efficiencyScore >= 1.0 ? 'A' :
+    efficiencyScore >= 0.5 ? 'B' : 'C';
+  console.log(`\n  💡 전투 효율 등급: ${grade}`);
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
 // CLI에서 직접 실행 시
 if (typeof process !== 'undefined' && process.argv?.[1]?.includes('gameSimulator')) {
   runQuickTest();
