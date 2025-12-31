@@ -274,50 +274,12 @@ function UnifiedPyramidView({
         onSelect={onSelectBasePathos}
       />
 
-      {/* ===== 1단계 - 기초 에토스 (무료) ===== */}
-      <BaseItemRow
-        tier={1}
-        label="1단계 - 기초 에토스"
-        items={tier1Items}
-        type="ethos"
+      {/* ===== 기반 - 개성 + 1단계 에토스 (통합) ===== */}
+      <TraitEthosSection
+        playerTraits={playerTraits}
         growth={growth}
-        skillPoints={skillPoints}
-        pyramidLevel={pyramidLevel}
-        onSelect={onSelectBaseEthos}
+        tier1Items={tier1Items}
       />
-
-      {/* ===== 기반 - 개성 ===== */}
-      <div style={{
-        padding: '12px',
-        background: 'rgba(253, 230, 138, 0.1)',
-        border: '1px solid rgba(253, 230, 138, 0.3)',
-        borderRadius: '6px',
-        marginTop: '16px',
-      }}>
-        <div style={{ color: '#fde68a', fontWeight: 'bold', marginBottom: '8px' }}>
-          ⬇ 기반 - 개성 ({playerTraits.length}개)
-        </div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-          {playerTraits.length === 0 ? (
-            <span style={{ color: '#6b7280', fontSize: '12px' }}>개성이 없습니다. 휴식 노드에서 각성하세요.</span>
-          ) : (
-            playerTraits.map((trait, idx) => (
-              <span
-                key={idx}
-                style={{
-                  padding: '3px 8px',
-                  background: 'rgba(253, 230, 138, 0.2)',
-                  borderRadius: '4px',
-                  fontSize: '11px',
-                  color: '#fde68a',
-                }}
-              >
-                {trait}
-              </span>
-            ))
-          )}
-        </div>
-      </div>
 
       {/* ===== 해금된 에토스/파토스 요약 ===== */}
       <UnlockedSummary growth={growth} onEquipPathos={onEquipPathos} />
@@ -478,6 +440,10 @@ function TierRow({
               )
             : null;
 
+          // 선택지 미리보기
+          const choices = getNodeChoices(node.id, type);
+          const [choice1, choice2] = choices || [null, null];
+
           return (
             <div
               key={node.id}
@@ -494,7 +460,7 @@ function TierRow({
                     ? `1px solid ${colors.border}`
                     : '1px dashed #475569',
                 borderRadius: '6px',
-                minWidth: '100px',
+                minWidth: '140px',
                 textAlign: 'center',
                 cursor: canUnlock ? 'pointer' : 'default',
               }}
@@ -503,6 +469,12 @@ function TierRow({
               <div style={{ fontWeight: 'bold', color: isUnlocked ? colors.text : '#9ca3af', fontSize: '13px' }}>
                 {node.name}
               </div>
+              {/* 선택지 미리보기 (해금 전) */}
+              {!isUnlocked && !isPending && choice1 && choice2 && (
+                <div style={{ fontSize: '10px', color: '#6b7280', marginTop: '4px' }}>
+                  {choice1.name} / {choice2.name}
+                </div>
+              )}
               {selectedChoice && (
                 <div style={{ fontSize: '11px', color: '#86efac', marginTop: '2px' }}>
                   ✓ {type === 'ethos' ? ETHOS[selectedChoice]?.name : PATHOS[selectedChoice]?.name}
@@ -535,7 +507,96 @@ function TierRow({
   );
 }
 
-// 기본 아이템 행 (1, 2단계)
+// 개성 이름 → 1단계 에토스 ID 매핑
+const TRAIT_TO_ETHOS: Record<string, string> = {
+  '용맹함': 'bravery',
+  '굳건함': 'steadfast',
+  '냉철함': 'composure',
+  '철저함': 'thorough',
+  '열정적': 'passion',
+  '활력적': 'vitality',
+};
+
+// 기반 - 개성 + 1단계 에토스 통합 섹션
+function TraitEthosSection({
+  playerTraits,
+  growth,
+  tier1Items,
+}: {
+  playerTraits: string[];
+  growth: typeof initialGrowthState;
+  tier1Items: Ethos[];
+}) {
+  return (
+    <div style={{
+      padding: '12px',
+      background: 'rgba(134, 239, 172, 0.08)',
+      border: '1px solid rgba(134, 239, 172, 0.3)',
+      borderRadius: '6px',
+      marginTop: '8px',
+    }}>
+      <div style={{ color: '#86efac', fontWeight: 'bold', marginBottom: '8px', fontSize: '12px' }}>
+        ⬇ 기반 - 개성 → 1단계 에토스
+      </div>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', justifyContent: 'center' }}>
+        {tier1Items.map(ethos => {
+          // 이 에토스에 해당하는 개성 찾기
+          const matchingTrait = Object.entries(TRAIT_TO_ETHOS).find(([, ethosId]) => ethosId === ethos.id)?.[0];
+          const hasTrait = matchingTrait && playerTraits.includes(matchingTrait);
+          const isUnlocked = growth.unlockedEthos.includes(ethos.id);
+
+          return (
+            <div
+              key={ethos.id}
+              title={ethos.description}
+              style={{
+                padding: '8px 12px',
+                background: isUnlocked
+                  ? 'rgba(134, 239, 172, 0.15)'
+                  : 'rgba(71, 85, 105, 0.2)',
+                border: isUnlocked
+                  ? '1px solid #86efac'
+                  : '1px dashed #475569',
+                borderRadius: '6px',
+                textAlign: 'center',
+                minWidth: '100px',
+              }}
+            >
+              <div style={{
+                fontWeight: 'bold',
+                color: isUnlocked ? '#86efac' : '#6b7280',
+                fontSize: '12px',
+              }}>
+                {isUnlocked && '✓ '}{ethos.name}
+              </div>
+              <div style={{
+                fontSize: '10px',
+                color: hasTrait ? '#fde68a' : '#6b7280',
+                marginTop: '2px',
+              }}>
+                {hasTrait ? `✓ ${matchingTrait} 개성` : `${matchingTrait || '?'} 개성 필요`}
+              </div>
+              {isUnlocked && (
+                <div style={{ fontSize: '9px', color: '#9ca3af', marginTop: '2px' }}>
+                  {ethos.description}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+      {playerTraits.length === 0 && (
+        <div style={{ textAlign: 'center', marginTop: '8px' }}>
+          <span style={{ color: '#6b7280', fontSize: '11px' }}>
+            개성이 없습니다. 휴식 노드에서 각성하세요.
+          </span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// 기본 아이템 행 (2단계 파토스용)
 function BaseItemRow({
   tier,
   label,
@@ -707,17 +768,6 @@ function LogosDisplay({
       </div>
 
       <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-        {/* 공용 로고스 */}
-        <LogosCard
-          logos={LOGOS.common}
-          logosType="common"
-          currentLevel={growth.logosLevels.common}
-          maxUnlockableLevel={maxUnlockableLevel}
-          skillPoints={skillPoints}
-          locked={false}
-          onUnlock={onUnlockLogos}
-        />
-
         {/* 배틀 왈츠 (검사) */}
         <LogosCard
           logos={LOGOS.battleWaltz}
@@ -726,6 +776,17 @@ function LogosDisplay({
           maxUnlockableLevel={maxUnlockableLevel}
           skillPoints={skillPoints}
           locked={!hasSwordsman}
+          onUnlock={onUnlockLogos}
+        />
+
+        {/* 공용 로고스 (중앙) */}
+        <LogosCard
+          logos={LOGOS.common}
+          logosType="common"
+          currentLevel={growth.logosLevels.common}
+          maxUnlockableLevel={maxUnlockableLevel}
+          skillPoints={skillPoints}
+          locked={false}
           onUnlock={onUnlockLogos}
         />
 

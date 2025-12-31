@@ -113,17 +113,40 @@ export type GrowthActionsSlice = GrowthSliceActions;
 
 type SliceCreator = StateCreator<GameStore, [], [], GrowthActionsSlice>;
 
+// 개성 이름 → 1단계 에토스 ID 매핑
+const TRAIT_TO_ETHOS: Record<string, string> = {
+  '용맹함': 'bravery',
+  '굳건함': 'steadfast',
+  '냉철함': 'composure',
+  '철저함': 'thorough',
+  '열정적': 'passion',
+  '활력적': 'vitality',
+};
+
 export const createGrowthActions: SliceCreator = (set, get) => ({
   updatePyramidLevel: () =>
     set((state) => {
-      const traitCount = (state.playerTraits || []).length;
+      const traits = state.playerTraits || [];
+      const traitCount = traits.length;
       const newLevel = getPyramidLevelFromTraits(traitCount);
       const currentLevel = state.growth?.pyramidLevel || 0;
 
-      if (newLevel <= currentLevel) return state;
-
       // 새 레벨 달성
       const growth = { ...(state.growth || initialGrowthState) };
+
+      // 개성에 해당하는 1단계 에토스 자동 해금
+      traits.forEach(trait => {
+        const ethosId = TRAIT_TO_ETHOS[trait];
+        if (ethosId && !growth.unlockedEthos.includes(ethosId)) {
+          growth.unlockedEthos = [...growth.unlockedEthos, ethosId];
+        }
+      });
+
+      if (newLevel <= currentLevel) {
+        // 레벨업은 아니지만 에토스 해금이 있을 수 있음
+        return { ...state, growth };
+      }
+
       growth.pyramidLevel = newLevel;
 
       // 레벨업 시 스킬포인트 획득 (레벨당 1포인트)
