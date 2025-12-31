@@ -447,15 +447,6 @@ export const EnemyUnitsDisplay: FC<EnemyUnitsDisplayProps> = memo(({
           </div>
         )}
 
-        {/* 적 전체 토큰 표시 (다중 유닛 공유 토큰) */}
-        {enemy && (
-          <div style={SHARED_TOKEN_PANEL_STYLE}>
-            <div style={SHARED_TOKEN_LABEL_STYLE}>
-              전체 상태이상
-            </div>
-            <TokenDisplay entity={enemy} position="enemy" />
-          </div>
-        )}
       </div>
 
       {/* 에테르 구슬 (영혼) - 단일 유닛과 같은 위치 */}
