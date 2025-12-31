@@ -1,10 +1,13 @@
 /**
  * @file anomaly-system.ts
  * @description 이변(Anomaly) 시스템 - 전투 규칙 변형, 환경 효과
+ *
+ * 게임 데이터(src/data/anomalies.ts)와 동기화된 이변 시스템
  */
 
 import type { SimPlayerState, SimEnemyState, GameState, TokenState } from './types';
 import { getLogger } from './logger';
+import { syncAllAnomalies, calculateAnomalyEffect, type SimulatorAnomaly } from '../data/game-data-sync';
 
 const log = getLogger('AnomalySystem');
 
@@ -769,4 +772,257 @@ export function getAnomalySystem(): AnomalySystem {
     anomalySystemInstance = new AnomalySystem();
   }
   return anomalySystemInstance;
+}
+
+// ==================== 게임 데이터 이변 처리 ====================
+
+/**
+ * 게임 데이터 이변 효과 적용
+ * src/data/anomalies.ts의 이변 효과를 전투에 적용
+ */
+export interface GameAnomalyResult {
+  anomalyId: string;
+  name: string;
+  effectType: string;
+  value?: number;
+  description: string;
+}
+
+/**
+ * 활성화된 게임 이변 상태
+ */
+export interface ActiveGameAnomaly {
+  anomaly: SimulatorAnomaly;
+  level: number;
+}
+
+let activeGameAnomalies: Map<string, ActiveGameAnomaly> = new Map();
+
+/**
+ * 게임 데이터 이변 활성화
+ */
+export function activateGameAnomaly(anomalyId: string, level: number = 1): boolean {
+  const anomalies = syncAllAnomalies();
+  const anomaly = anomalies[anomalyId];
+
+  if (!anomaly) {
+    log.warn(`Unknown game anomaly: ${anomalyId}`);
+    return false;
+  }
+
+  activeGameAnomalies.set(anomalyId, { anomaly, level });
+  log.info(`Game anomaly activated: ${anomaly.name} (Lv.${level})`);
+  return true;
+}
+
+/**
+ * 게임 데이터 이변 비활성화
+ */
+export function deactivateGameAnomaly(anomalyId: string): boolean {
+  const removed = activeGameAnomalies.delete(anomalyId);
+  if (removed) {
+    log.info(`Game anomaly deactivated: ${anomalyId}`);
+  }
+  return removed;
+}
+
+/**
+ * 모든 게임 이변 초기화
+ */
+export function clearGameAnomalies(): void {
+  activeGameAnomalies.clear();
+}
+
+/**
+ * 활성화된 게임 이변 목록
+ */
+export function getActiveGameAnomalies(): ActiveGameAnomaly[] {
+  return Array.from(activeGameAnomalies.values());
+}
+
+/**
+ * 게임 이변 효과 계산 - 에테르 차단 (ETHER_BAN)
+ */
+export function isEtherBlocked(): boolean {
+  for (const active of activeGameAnomalies.values()) {
+    const effect = active.anomaly.getEffect(active.level);
+    if (effect.type === 'ETHER_BAN') {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * 게임 이변 효과 계산 - 행동력 감소 (ENERGY_REDUCTION)
+ */
+export function getEnergyReduction(): number {
+  let reduction = 0;
+  for (const active of activeGameAnomalies.values()) {
+    const effect = active.anomaly.getEffect(active.level);
+    if (effect.type === 'ENERGY_REDUCTION' && effect.value) {
+      reduction += effect.value;
+    }
+  }
+  return reduction;
+}
+
+/**
+ * 게임 이변 효과 계산 - 속도 감소 (SPEED_REDUCTION)
+ */
+export function getSpeedReduction(): number {
+  let reduction = 0;
+  for (const active of activeGameAnomalies.values()) {
+    const effect = active.anomaly.getEffect(active.level);
+    if (effect.type === 'SPEED_REDUCTION' && effect.value) {
+      reduction += effect.value;
+    }
+  }
+  return reduction;
+}
+
+/**
+ * 게임 이변 효과 계산 - 뽑기 확률 감소 (DRAW_REDUCTION)
+ */
+export function getDrawReduction(): number {
+  let reduction = 0;
+  for (const active of activeGameAnomalies.values()) {
+    const effect = active.anomaly.getEffect(active.level);
+    if (effect.type === 'DRAW_REDUCTION' && effect.value) {
+      reduction += effect.value;
+    }
+  }
+  return reduction;
+}
+
+/**
+ * 게임 이변 효과 계산 - 통찰 감소 (INSIGHT_REDUCTION)
+ */
+export function getInsightReduction(): number {
+  let reduction = 0;
+  for (const active of activeGameAnomalies.values()) {
+    const effect = active.anomaly.getEffect(active.level);
+    if (effect.type === 'INSIGHT_REDUCTION' && effect.value) {
+      reduction += effect.value;
+    }
+  }
+  return reduction;
+}
+
+/**
+ * 게임 이변 효과 계산 - 공격/방어 감소 (VALUE_DOWN)
+ */
+export function getValueDownTokens(): number {
+  let tokens = 0;
+  for (const active of activeGameAnomalies.values()) {
+    const effect = active.anomaly.getEffect(active.level);
+    if (effect.type === 'VALUE_DOWN' && effect.value) {
+      tokens += effect.value;
+    }
+  }
+  return tokens;
+}
+
+/**
+ * 게임 이변 효과 계산 - 방어 카드 자해 (DEFENSE_BACKFIRE)
+ */
+export function getDefenseBackfireDamage(): number {
+  let damage = 0;
+  for (const active of activeGameAnomalies.values()) {
+    const effect = active.anomaly.getEffect(active.level);
+    if (effect.type === 'DEFENSE_BACKFIRE' && effect.value) {
+      damage += effect.value;
+    }
+  }
+  return damage;
+}
+
+/**
+ * 게임 이변 효과 계산 - 속도 불안정 (SPEED_INSTABILITY)
+ */
+export function getSpeedInstability(): number {
+  let instability = 0;
+  for (const active of activeGameAnomalies.values()) {
+    const effect = active.anomaly.getEffect(active.level);
+    if (effect.type === 'SPEED_INSTABILITY' && effect.value) {
+      instability = Math.max(instability, effect.value);
+    }
+  }
+  return instability;
+}
+
+/**
+ * 게임 이변 효과 계산 - 받는 피해 증가 (VULNERABILITY)
+ */
+export function getVulnerabilityPercent(): number {
+  let percent = 0;
+  for (const active of activeGameAnomalies.values()) {
+    const effect = active.anomaly.getEffect(active.level);
+    if (effect.type === 'VULNERABILITY' && effect.value) {
+      percent += effect.value;
+    }
+  }
+  return percent;
+}
+
+/**
+ * 게임 이변 효과 계산 - 특성 침묵 (TRAIT_SILENCE)
+ */
+export function getTraitSilenceLevel(): number {
+  let maxLevel = 0;
+  for (const active of activeGameAnomalies.values()) {
+    const effect = active.anomaly.getEffect(active.level);
+    if (effect.type === 'TRAIT_SILENCE' && effect.value) {
+      maxLevel = Math.max(maxLevel, effect.value);
+    }
+  }
+  return maxLevel;
+}
+
+/**
+ * 게임 이변 효과 계산 - 연계 고립 (CHAIN_ISOLATION)
+ */
+export function getChainIsolationLevel(): number {
+  let maxLevel = 0;
+  for (const active of activeGameAnomalies.values()) {
+    const effect = active.anomaly.getEffect(active.level);
+    if (effect.type === 'CHAIN_ISOLATION' && effect.value) {
+      maxLevel = Math.max(maxLevel, effect.value);
+    }
+  }
+  return maxLevel;
+}
+
+/**
+ * 게임 이변 효과 계산 - 기교 차단 (FINESSE_BLOCK)
+ */
+export function getFinesseBlockLevel(): number {
+  let maxLevel = 0;
+  for (const active of activeGameAnomalies.values()) {
+    const effect = active.anomaly.getEffect(active.level);
+    if (effect.type === 'FINESSE_BLOCK' && effect.value) {
+      maxLevel = Math.max(maxLevel, effect.value);
+    }
+  }
+  return maxLevel;
+}
+
+/**
+ * 모든 게임 이변 효과 요약
+ */
+export function getGameAnomalyEffectsSummary(): GameAnomalyResult[] {
+  const results: GameAnomalyResult[] = [];
+
+  for (const active of activeGameAnomalies.values()) {
+    const effect = active.anomaly.getEffect(active.level);
+    results.push({
+      anomalyId: active.anomaly.id,
+      name: active.anomaly.name,
+      effectType: effect.type,
+      value: effect.value,
+      description: effect.description,
+    });
+  }
+
+  return results;
 }

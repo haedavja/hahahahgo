@@ -221,6 +221,7 @@ export interface PlayerState extends CombatantState {
   strength: number;
   agility: number;
   ether: number;
+  gold: number;                   // 골드 (날강도 특성용)
   hand: string[];
   deck: string[];
   discard: string[];
@@ -232,6 +233,10 @@ export interface PlayerState extends CombatantState {
   etherBlocked?: boolean;         // 에테르 획득 불가 (망각)
   mainSpecialtyOnly?: boolean;    // 다음 턴 주특기만 등장 (파탄)
   supportSpecialtyBonus?: number; // 보조특기 등장률 보너스 (장군)
+  // 특수 효과 시스템
+  repeatTimelineNext?: boolean;   // 다음 턴 타임라인 반복 (르 송쥬)
+  blockPerCardExecution?: number; // 카드 실행마다 방어력 획득
+  repeatTimelineCards?: string[]; // 반복할 카드 ID 목록
 }
 
 // ==================== 다중 적 유닛 타입 ====================
@@ -284,6 +289,10 @@ export interface GameBattleState {
   // 통계 추적
   cardUsage?: Record<string, number>;         // 카드별 사용 횟수
   tokenUsage?: Record<string, number>;        // 토큰별 적용 횟수
+  // 에테르 콤보 시스템
+  comboUsageCount?: Record<string, number>;   // 콤보별 사용 횟수 (디플레이션용)
+  currentComboKeys?: Set<number>;             // 현재 턴 콤보에 포함된 actionCost 값들
+  currentComboRank?: number;                  // 현재 턴 콤보 등급 (0=하이카드)
 }
 
 // ==================== 타임라인 시스템 ====================

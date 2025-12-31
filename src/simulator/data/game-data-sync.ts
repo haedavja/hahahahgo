@@ -24,6 +24,7 @@ import { CARDS as BATTLE_CARDS, ENEMY_CARDS, ENEMIES, TRAITS as BATTLE_TRAITS } 
 import { CARD_LIBRARY } from '../../data/cards';
 import { TOKENS as GAME_TOKENS, TOKEN_TYPES, TOKEN_CATEGORIES } from '../../data/tokens';
 import { RELICS as GAME_RELICS } from '../../data/relics';
+import { ANOMALY_TYPES, ALL_ANOMALIES, type Anomaly, type AnomalyEffect } from '../../data/anomalies';
 
 // ==================== 카드 동기화 ====================
 
@@ -401,6 +402,7 @@ export function getGameDataStats(): {
   relics: ReturnType<typeof getRelicStats>;
   traits: ReturnType<typeof getTraitStats>;
   enemies: ReturnType<typeof getEnemyStats>;
+  anomalies: ReturnType<typeof getAnomalyStats>;
 } {
   return {
     cards: getCardStats(),
@@ -408,5 +410,70 @@ export function getGameDataStats(): {
     relics: getRelicStats(),
     traits: getTraitStats(),
     enemies: getEnemyStats(),
+    anomalies: getAnomalyStats(),
   };
+}
+
+// ==================== 이변 동기화 ====================
+
+export interface SimulatorAnomaly {
+  id: string;
+  name: string;
+  emoji: string;
+  color: string;
+  description: string;
+  effectType: string;
+  getEffect: (level: number) => AnomalyEffect;
+}
+
+/**
+ * 모든 게임 이변을 시뮬레이터 형식으로 변환
+ */
+export function syncAllAnomalies(): Record<string, SimulatorAnomaly> {
+  const anomalies: Record<string, SimulatorAnomaly> = {};
+
+  for (const anomaly of ALL_ANOMALIES) {
+    anomalies[anomaly.id] = {
+      id: anomaly.id,
+      name: anomaly.name,
+      emoji: anomaly.emoji,
+      color: anomaly.color,
+      description: anomaly.description,
+      effectType: anomaly.getEffect(1).type,
+      getEffect: anomaly.getEffect,
+    };
+  }
+
+  return anomalies;
+}
+
+/**
+ * 이변 ID로 이변 정보 조회
+ */
+export function getAnomaly(anomalyId: string): SimulatorAnomaly | undefined {
+  const anomalies = syncAllAnomalies();
+  return anomalies[anomalyId];
+}
+
+/**
+ * 이변 수 통계
+ */
+export function getAnomalyStats(): { total: number; byType: Record<string, number> } {
+  const anomalies = syncAllAnomalies();
+  const byType: Record<string, number> = {};
+
+  for (const anomaly of Object.values(anomalies)) {
+    byType[anomaly.effectType] = (byType[anomaly.effectType] || 0) + 1;
+  }
+
+  return { total: Object.keys(anomalies).length, byType };
+}
+
+/**
+ * 레벨에 따른 이변 효과 계산
+ */
+export function calculateAnomalyEffect(anomalyId: string, level: number): AnomalyEffect | null {
+  const anomaly = getAnomaly(anomalyId);
+  if (!anomaly) return null;
+  return anomaly.getEffect(level);
 }
