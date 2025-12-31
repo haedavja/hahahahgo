@@ -1757,6 +1757,10 @@ export class TimelineBattleEngine {
 
     this.emitEvent('battle_end', state.turn, { winner, playerHp: state.player.hp, enemyHp: state.enemy.hp });
 
+    // 골드 변화량 계산 (초기 골드 100 기준)
+    const initialGold = 100;
+    const goldChange = state.player.gold - initialGold;
+
     return {
       winner,
       turns: state.turn,
@@ -1765,6 +1769,7 @@ export class TimelineBattleEngine {
       playerFinalHp: Math.max(0, state.player.hp),
       enemyFinalHp: Math.max(0, state.enemy.hp),
       etherGained: state.player.ether,
+      goldChange,
       battleLog: state.battleLog,
       events: this.events,
       cardUsage: state.cardUsage || {},

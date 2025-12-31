@@ -349,6 +349,7 @@ export interface BattleResult {
   playerFinalHp: number;
   enemyFinalHp: number;
   etherGained: number;
+  goldChange: number;  // 골드 변화량 (날강도 등)
   battleLog: string[];
   events: BattleEvent[];
   cardUsage: Record<string, number>;
