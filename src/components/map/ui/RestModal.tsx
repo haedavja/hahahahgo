@@ -6,9 +6,12 @@
  * - 강화: 스탯 향상 (데미지, 방어력, 속도 등)
  * - 특화: 랜덤 5개 특성 중 선택하여 부여
  * - 승격: 성장 횟수에 따른 등급 상승 (1회→희귀, 3회→특별, 5회→전설)
+ *
+ * 최적화: React.memo 적용
  */
 
-import { useState } from 'react';
+import { useState, memo, useCallback } from 'react';
+import type { CSSProperties } from 'react';
 import { CARDS, TRAITS } from '../../battle/battleData';
 import { CARD_ETHER_BY_RARITY } from '../../battle/utils/etherCalculations';
 import { generateSpecializationOptions, type SpecializationOption } from '../../../lib/specializationUtils';
@@ -415,7 +418,7 @@ function calculateGrowthStats(cardGrowth: Record<string, CardGrowthState>) {
 }
 
 /** 카드 성장 통계 패널 */
-function GrowthStatsPanel({ cardGrowth }: { cardGrowth: Record<string, CardGrowthState> }) {
+const GrowthStatsPanel = memo(function GrowthStatsPanel({ cardGrowth }: { cardGrowth: Record<string, CardGrowthState> }) {
   const [expanded, setExpanded] = useState(false);
   const stats = calculateGrowthStats(cardGrowth);
 
@@ -519,23 +522,24 @@ function GrowthStatsPanel({ cardGrowth }: { cardGrowth: Record<string, CardGrowt
       )}
     </div>
   );
-}
+});
 
 /** 미니 스탯 표시 컴포넌트 */
-function StatMini({ label, value, color }: { label: string; value: string; color: string }) {
+const StatMini = memo(function StatMini({ label, value, color }: { label: string; value: string; color: string }) {
+  const style: CSSProperties = {
+    fontSize: "10px",
+    padding: "2px 6px",
+    borderRadius: "4px",
+    background: `${color}15`,
+    color: color,
+    border: `1px solid ${color}30`,
+  };
   return (
-    <span style={{
-      fontSize: "10px",
-      padding: "2px 6px",
-      borderRadius: "4px",
-      background: `${color}15`,
-      color: color,
-      border: `1px solid ${color}30`,
-    }}>
+    <span style={style}>
       {label}: <span style={{ fontWeight: 700 }}>{value}</span>
     </span>
   );
-}
+});
 
 /** 성공 알림 타입 */
 interface GrowthNotification {
@@ -1135,17 +1139,18 @@ function EnhancePreviewPanel({
 }
 
 /** 스탯 뱃지 컴포넌트 */
-function StatBadge({ label, value, color }: { label: string; value: string; color: string }) {
+const StatBadge = memo(function StatBadge({ label, value, color }: { label: string; value: string; color: string }) {
+  const style: CSSProperties = {
+    fontSize: "11px",
+    padding: "2px 6px",
+    borderRadius: "4px",
+    background: `${color}20`,
+    color: color,
+    border: `1px solid ${color}40`
+  };
   return (
-    <span style={{
-      fontSize: "11px",
-      padding: "2px 6px",
-      borderRadius: "4px",
-      background: `${color}20`,
-      color: color,
-      border: `1px solid ${color}40`
-    }}>
+    <span style={style}>
       {label} {value}
     </span>
   );
-}
+});

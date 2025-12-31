@@ -3,9 +3,10 @@
  *
  * 상점 탭 컴포넌트들
  * ShopModal.tsx에서 분리됨
+ * 최적화: React.memo 적용
  */
 
-import React from 'react';
+import React, { memo } from 'react';
 import { RELICS, RELIC_RARITIES } from '../../data/relics';
 import { ITEMS } from '../../data/items';
 import { CARDS } from '../battle/battleData';
@@ -56,7 +57,7 @@ const RARITY_NAMES = {
 /**
  * 구매 탭 - 상징 섹션
  */
-function RelicsSection({ inventory, purchasedRelics, relics, gold, onBuyRelic }: {
+const RelicsSection = memo(function RelicsSection({ inventory, purchasedRelics, relics, gold, onBuyRelic }: {
   inventory: ShopInventory;
   purchasedRelics: Set<string>;
   relics: string[];
@@ -116,12 +117,12 @@ function RelicsSection({ inventory, purchasedRelics, relics, gold, onBuyRelic }:
       </div>
     </div>
   );
-}
+});
 
 /**
  * 구매 탭 - 아이템 섹션
  */
-function ItemsSection({ inventory, purchasedItems, items, gold, onBuyItem }: {
+const ItemsSection = memo(function ItemsSection({ inventory, purchasedItems, items, gold, onBuyItem }: {
   inventory: ShopInventory;
   purchasedItems: Set<string>;
   items: (string | null)[];
@@ -179,12 +180,12 @@ function ItemsSection({ inventory, purchasedItems, items, gold, onBuyItem }: {
       </div>
     </div>
   );
-}
+});
 
 /**
  * 구매 탭 - 카드 섹션
  */
-function CardsSection({ inventory, purchasedCards, gold, onBuyCard }: {
+const CardsSection = memo(function CardsSection({ inventory, purchasedCards, gold, onBuyCard }: {
   inventory: ShopInventory;
   purchasedCards: Set<string>;
   gold: number;
@@ -260,12 +261,12 @@ function CardsSection({ inventory, purchasedCards, gold, onBuyCard }: {
       </div>
     </div>
   );
-}
+});
 
 /**
  * 구매 탭
  */
-export function BuyTab({ inventory, purchasedRelics, purchasedItems, purchasedCards, relics, items, gold, onBuyRelic, onBuyItem, onBuyCard }: {
+export const BuyTab = memo(function BuyTab({ inventory, purchasedRelics, purchasedItems, purchasedCards, relics, items, gold, onBuyRelic, onBuyItem, onBuyCard }: {
   inventory: ShopInventory;
   purchasedRelics: Set<string>;
   purchasedItems: Set<string>;
@@ -301,12 +302,12 @@ export function BuyTab({ inventory, purchasedRelics, purchasedItems, purchasedCa
       />
     </div>
   );
-}
+});
 
 /**
  * 판매 탭
  */
-export function SellTab({ sellableItems, merchantType, onSellItem }: {
+export const SellTab = memo(function SellTab({ sellableItems, merchantType, onSellItem }: {
   sellableItems: SellableItem[];
   merchantType: string;
   onSellItem: (slotIndex: number) => void;
@@ -355,12 +356,12 @@ export function SellTab({ sellableItems, merchantType, onSellItem }: {
       )}
     </div>
   );
-}
+});
 
 /**
  * 서비스 탭
  */
-export function ServiceTab({ gold, merchantType, onUseService }: {
+export const ServiceTab = memo(function ServiceTab({ gold, merchantType, onUseService }: {
   gold: number;
   merchantType: string;
   onUseService: (service: ShopService) => void;
@@ -402,12 +403,12 @@ export function ServiceTab({ gold, merchantType, onUseService }: {
       </div>
     </div>
   );
-}
+});
 
 /**
  * 카드 제거 모달
  */
-export function CardRemovalModal({ allPlayerCards, cardRemovalPrice, onRemoveCard, onClose }: {
+export const CardRemovalModal = memo(function CardRemovalModal({ allPlayerCards, cardRemovalPrice, onRemoveCard, onClose }: {
   allPlayerCards: BattleCard[];
   cardRemovalPrice: number;
   onRemoveCard: (card: BattleCard) => void;
@@ -508,4 +509,4 @@ export function CardRemovalModal({ allPlayerCards, cardRemovalPrice, onRemoveCar
       </div>
     </div>
   );
-}
+});
