@@ -54,7 +54,7 @@ export const BreachSelectionModal: FC<BreachSelectionModalProps> = memo(({
         </div>
 
         <div className="breach-card-options">
-          {cards.map((card, idx) => {
+          {breachSelection.cards.map((card, idx) => {
             const Icon = card.icon || (card.type === 'attack' ? Sword : Shield);
             const isAttack = card.type === 'attack';
             const displayDamage = isAttack ? (card.damage || 0) + strengthBonus : 0;
