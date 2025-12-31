@@ -8257,6 +8257,333 @@ export function runEndurancePatterns(battles: number = 30): void {
   console.log('\n' + '═'.repeat(50) + '\n');
 }
 
+// 연승 분석
+export function runWinStreakAnalysis(battles: number = 50): void {
+  console.log('═'.repeat(50));
+  console.log('🔥 연승 분석');
+  console.log('═'.repeat(50));
+  console.log(`\n📊 전투 횟수: ${battles}회\n`);
+
+  const streakData = {
+    maxWinStreak: 0,
+    maxLossStreak: 0,
+    currentStreak: 0,
+    streakType: 'none' as 'win' | 'loss' | 'none',
+    winStreaks: [] as number[],
+    lossStreaks: [] as number[],
+    totalWins: 0,
+    totalLosses: 0
+  };
+
+  for (let i = 0; i < battles; i++) {
+    const preset = DECK_PRESETS[i % DECK_PRESETS.length];
+    const tier = (i % 3) + 1;
+    const enemies = tier === 1 ? TIER_1_ENEMIES : tier === 2 ? TIER_2_ENEMIES : TIER_3_ENEMIES;
+    const enemy = enemies[i % enemies.length];
+
+    const result = simulateBattle(preset.name, enemy.name);
+    const won = result.winner === 'player';
+
+    if (won) {
+      streakData.totalWins++;
+      if (streakData.streakType === 'win') {
+        streakData.currentStreak++;
+      } else {
+        if (streakData.streakType === 'loss' && streakData.currentStreak > 0) {
+          streakData.lossStreaks.push(streakData.currentStreak);
+          streakData.maxLossStreak = Math.max(streakData.maxLossStreak, streakData.currentStreak);
+        }
+        streakData.streakType = 'win';
+        streakData.currentStreak = 1;
+      }
+    } else {
+      streakData.totalLosses++;
+      if (streakData.streakType === 'loss') {
+        streakData.currentStreak++;
+      } else {
+        if (streakData.streakType === 'win' && streakData.currentStreak > 0) {
+          streakData.winStreaks.push(streakData.currentStreak);
+          streakData.maxWinStreak = Math.max(streakData.maxWinStreak, streakData.currentStreak);
+        }
+        streakData.streakType = 'loss';
+        streakData.currentStreak = 1;
+      }
+    }
+  }
+
+  // 마지막 연속 기록
+  if (streakData.streakType === 'win') {
+    streakData.winStreaks.push(streakData.currentStreak);
+    streakData.maxWinStreak = Math.max(streakData.maxWinStreak, streakData.currentStreak);
+  } else if (streakData.streakType === 'loss') {
+    streakData.lossStreaks.push(streakData.currentStreak);
+    streakData.maxLossStreak = Math.max(streakData.maxLossStreak, streakData.currentStreak);
+  }
+
+  console.log('  📈 연승 통계:');
+  console.log(`    • 최대 연승: ${streakData.maxWinStreak}회`);
+  console.log(`    • 최대 연패: ${streakData.maxLossStreak}회`);
+  console.log(`    • 평균 연승: ${streakData.winStreaks.length > 0 ? (streakData.winStreaks.reduce((a, b) => a + b, 0) / streakData.winStreaks.length).toFixed(1) : 0}회`);
+  console.log(`    • 평균 연패: ${streakData.lossStreaks.length > 0 ? (streakData.lossStreaks.reduce((a, b) => a + b, 0) / streakData.lossStreaks.length).toFixed(1) : 0}회`);
+
+  console.log('\n  🏆 승패 분포:');
+  console.log(`    • 총 승리: ${streakData.totalWins}회 (${((streakData.totalWins / battles) * 100).toFixed(1)}%)`);
+  console.log(`    • 총 패배: ${streakData.totalLosses}회 (${((streakData.totalLosses / battles) * 100).toFixed(1)}%)`);
+
+  const streakScore = (streakData.maxWinStreak * 2) - streakData.maxLossStreak;
+  const grade = streakScore >= 10 ? 'S' :
+    streakScore >= 5 ? 'A' :
+    streakScore >= 0 ? 'B' : 'C';
+  console.log(`\n  💡 연승 등급: ${grade}`);
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
+// 덱 최적화 분석
+export function runDeckOptimization(battles: number = 30): void {
+  console.log('═'.repeat(50));
+  console.log('🎴 덱 최적화 분석');
+  console.log('═'.repeat(50));
+  console.log(`\n📊 전투 횟수: ${battles}회 (프리셋당)\n`);
+
+  const optimizationData: Record<string, {
+    wins: number;
+    losses: number;
+    avgDamage: number;
+    avgTurns: number;
+    cardUsage: Record<string, number>;
+  }> = {};
+
+  for (const preset of DECK_PRESETS) {
+    optimizationData[preset.name] = {
+      wins: 0,
+      losses: 0,
+      avgDamage: 0,
+      avgTurns: 0,
+      cardUsage: {}
+    };
+
+    let totalDamage = 0;
+    let totalTurns = 0;
+
+    for (let i = 0; i < battles; i++) {
+      const enemies = [...TIER_1_ENEMIES, ...TIER_2_ENEMIES, ...TIER_3_ENEMIES];
+      const enemy = enemies[i % enemies.length];
+
+      const result = simulateBattle(preset.name, enemy.name);
+
+      if (result.winner === 'player') {
+        optimizationData[preset.name].wins++;
+      } else {
+        optimizationData[preset.name].losses++;
+      }
+
+      totalDamage += result.totalDamageDealt || 0;
+      totalTurns += result.turns;
+
+      // 카드 사용 추적
+      for (const log of result.battleLog) {
+        const cardMatch = log.match(/카드 \[(.*?)\]/);
+        if (cardMatch) {
+          const cardName = cardMatch[1];
+          optimizationData[preset.name].cardUsage[cardName] =
+            (optimizationData[preset.name].cardUsage[cardName] || 0) + 1;
+        }
+      }
+    }
+
+    optimizationData[preset.name].avgDamage = totalDamage / battles;
+    optimizationData[preset.name].avgTurns = totalTurns / battles;
+  }
+
+  console.log('  📊 프리셋별 최적화 점수:');
+  const rankings = Object.entries(optimizationData)
+    .map(([name, data]) => ({
+      name,
+      winRate: data.wins / (data.wins + data.losses),
+      efficiency: data.avgDamage / data.avgTurns,
+      score: (data.wins / (data.wins + data.losses)) * 50 + (data.avgDamage / data.avgTurns) * 0.1
+    }))
+    .sort((a, b) => b.score - a.score);
+
+  rankings.forEach((rank, idx) => {
+    console.log(`    ${idx + 1}. ${rank.name}: 점수 ${rank.score.toFixed(1)} (승률 ${(rank.winRate * 100).toFixed(1)}%)`);
+  });
+
+  console.log('\n  🎯 최적화 제안:');
+  const bestPreset = rankings[0];
+  const worstPreset = rankings[rankings.length - 1];
+  console.log(`    • 최고 성능: ${bestPreset.name} (${(bestPreset.winRate * 100).toFixed(1)}%)`);
+  console.log(`    • 개선 필요: ${worstPreset.name} (${(worstPreset.winRate * 100).toFixed(1)}%)`);
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
+// 적 패턴 예측 분석
+export function runEnemyPatternPrediction(battles: number = 30): void {
+  console.log('═'.repeat(50));
+  console.log('🎯 적 패턴 예측 분석');
+  console.log('═'.repeat(50));
+  console.log(`\n📊 전투 횟수: ${battles}회\n`);
+
+  const patternData: Record<string, {
+    attackPattern: number[];
+    healPattern: number[];
+    specialPattern: number[];
+    avgDamagePerTurn: number;
+    predictability: number;
+  }> = {};
+
+  const allEnemies = [...TIER_1_ENEMIES, ...TIER_2_ENEMIES, ...TIER_3_ENEMIES];
+
+  for (const enemy of allEnemies.slice(0, 10)) {
+    patternData[enemy.name] = {
+      attackPattern: [],
+      healPattern: [],
+      specialPattern: [],
+      avgDamagePerTurn: 0,
+      predictability: 0
+    };
+
+    let totalDamage = 0;
+    let turnCount = 0;
+    const actionSequences: string[] = [];
+
+    for (let i = 0; i < Math.min(battles, 5); i++) {
+      const preset = DECK_PRESETS[i % DECK_PRESETS.length];
+      const result = simulateBattle(preset.name, enemy.name);
+
+      turnCount += result.turns;
+
+      for (const log of result.battleLog) {
+        if (log.includes('적') && log.includes('공격')) {
+          const dmgMatch = log.match(/(\d+) 피해/);
+          if (dmgMatch) {
+            totalDamage += parseInt(dmgMatch[1]);
+            actionSequences.push('attack');
+          }
+        } else if (log.includes('적') && log.includes('회복')) {
+          actionSequences.push('heal');
+        } else if (log.includes('적') && log.includes('특수')) {
+          actionSequences.push('special');
+        }
+      }
+    }
+
+    patternData[enemy.name].avgDamagePerTurn = turnCount > 0 ? totalDamage / turnCount : 0;
+
+    // 패턴 예측 가능성 계산
+    const actionCounts = actionSequences.reduce((acc, action) => {
+      acc[action] = (acc[action] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    const total = actionSequences.length;
+    const dominantAction = Math.max(...Object.values(actionCounts));
+    patternData[enemy.name].predictability = total > 0 ? (dominantAction / total) * 100 : 0;
+  }
+
+  console.log('  🔮 적 패턴 예측:');
+  Object.entries(patternData).forEach(([name, data]) => {
+    console.log(`    • ${name}:`);
+    console.log(`      - 턴당 평균 피해: ${data.avgDamagePerTurn.toFixed(1)}`);
+    console.log(`      - 예측 가능성: ${data.predictability.toFixed(1)}%`);
+  });
+
+  const avgPredictability = Object.values(patternData).reduce((sum, d) => sum + d.predictability, 0) / Object.keys(patternData).length;
+  const grade = avgPredictability >= 70 ? 'S' :
+    avgPredictability >= 50 ? 'A' :
+    avgPredictability >= 30 ? 'B' : 'C';
+  console.log(`\n  💡 전체 예측 가능성 등급: ${grade}`);
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
+// 카드 시너지 패턴 분석
+export function runCardSynergyPatterns(battles: number = 30): void {
+  console.log('═'.repeat(50));
+  console.log('🃏 카드 시너지 패턴 분석');
+  console.log('═'.repeat(50));
+  console.log(`\n📊 전투 횟수: ${battles}회\n`);
+
+  const synergyPatterns: Record<string, {
+    occurrences: number;
+    winRate: number;
+    avgDamage: number;
+    wins: number;
+    totalDamage: number;
+  }> = {};
+
+  for (let i = 0; i < battles; i++) {
+    const preset = DECK_PRESETS[i % DECK_PRESETS.length];
+    const tier = (i % 3) + 1;
+    const enemies = tier === 1 ? TIER_1_ENEMIES : tier === 2 ? TIER_2_ENEMIES : TIER_3_ENEMIES;
+    const enemy = enemies[i % enemies.length];
+
+    const result = simulateBattle(preset.name, enemy.name);
+    const won = result.winner === 'player';
+
+    // 콤보 패턴 추출
+    const combos: string[] = [];
+    for (const log of result.battleLog) {
+      if (log.includes('콤보:')) {
+        const comboMatch = log.match(/콤보: (\S+)/);
+        if (comboMatch) {
+          combos.push(comboMatch[1]);
+        }
+      }
+    }
+
+    // 연속 콤보 패턴 분석
+    for (let j = 0; j < combos.length - 1; j++) {
+      const pattern = `${combos[j]} → ${combos[j + 1]}`;
+      if (!synergyPatterns[pattern]) {
+        synergyPatterns[pattern] = {
+          occurrences: 0,
+          winRate: 0,
+          avgDamage: 0,
+          wins: 0,
+          totalDamage: 0
+        };
+      }
+      synergyPatterns[pattern].occurrences++;
+      if (won) synergyPatterns[pattern].wins++;
+      synergyPatterns[pattern].totalDamage += result.totalDamageDealt || 0;
+    }
+  }
+
+  // 통계 계산
+  Object.values(synergyPatterns).forEach(data => {
+    data.winRate = data.wins / data.occurrences;
+    data.avgDamage = data.totalDamage / data.occurrences;
+  });
+
+  console.log('  🔗 상위 시너지 패턴:');
+  const topPatterns = Object.entries(synergyPatterns)
+    .filter(([_, data]) => data.occurrences >= 2)
+    .sort((a, b) => b[1].winRate - a[1].winRate)
+    .slice(0, 10);
+
+  topPatterns.forEach(([pattern, data], idx) => {
+    console.log(`    ${idx + 1}. ${pattern}`);
+    console.log(`       발생: ${data.occurrences}회, 승률: ${(data.winRate * 100).toFixed(1)}%`);
+  });
+
+  if (topPatterns.length === 0) {
+    console.log('    (충분한 데이터 없음)');
+  }
+
+  console.log('\n  📊 시너지 효율:');
+  const avgWinRate = topPatterns.length > 0 ?
+    topPatterns.reduce((sum, [_, d]) => sum + d.winRate, 0) / topPatterns.length : 0;
+  const grade = avgWinRate >= 0.7 ? 'S' :
+    avgWinRate >= 0.5 ? 'A' :
+    avgWinRate >= 0.3 ? 'B' : 'C';
+  console.log(`  💡 시너지 등급: ${grade}`);
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
 // CLI에서 직접 실행 시
 if (typeof process !== 'undefined' && process.argv?.[1]?.includes('gameSimulator')) {
   runQuickTest();

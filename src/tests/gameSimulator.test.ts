@@ -1036,3 +1036,31 @@ describe('내구력 패턴 분석', () => {
     expect(typeof runEndurancePatterns).toBe('function');
   });
 });
+
+describe('연승 분석', () => {
+  it('runWinStreakAnalysis 함수가 존재한다', async () => {
+    const { runWinStreakAnalysis } = await import('./gameSimulator');
+    expect(typeof runWinStreakAnalysis).toBe('function');
+  });
+});
+
+describe('덱 최적화 분석', () => {
+  it('runDeckOptimization 함수가 존재한다', async () => {
+    const { runDeckOptimization } = await import('./gameSimulator');
+    expect(typeof runDeckOptimization).toBe('function');
+  });
+});
+
+describe('적 패턴 예측 분석', () => {
+  it('runEnemyPatternPrediction 함수가 존재한다', async () => {
+    const { runEnemyPatternPrediction } = await import('./gameSimulator');
+    expect(typeof runEnemyPatternPrediction).toBe('function');
+  });
+});
+
+describe('카드 시너지 패턴 분석', () => {
+  it('runCardSynergyPatterns 함수가 존재한다', async () => {
+    const { runCardSynergyPatterns } = await import('./gameSimulator');
+    expect(typeof runCardSynergyPatterns).toBe('function');
+  });
+});
