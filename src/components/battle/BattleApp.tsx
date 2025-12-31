@@ -1960,16 +1960,28 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     actions.setFixedOrder(newFixedOrder);
   }, [battle.selected, enemyPlan.actions, effectiveAgility, player, actions]);
 
-  // 무리 특성 카드 오프셋 변경 핸들러 (행동력 1 소모)
+  // 무리 특성 카드 오프셋 변경 핸들러 (행동력 1회만 소모)
   const handleStrainOffsetChange = useCallback((cardUid: string, newOffset: number) => {
-    // 행동력이 충분한지 확인
-    if ((player.energy ?? 0) < 1) {
-      actions.addLog('⚠️ 행동력이 부족합니다!');
-      return;
-    }
+    // 현재 카드의 strainOffset 확인
+    const currentCard = battle.selected.find(card => (card as { __uid?: string }).__uid === cardUid);
+    const currentOffset = (currentCard as { strainOffset?: number } | undefined)?.strainOffset || 0;
 
-    // 행동력 1 소모
-    actions.setPlayer({ ...player, energy: (player.energy ?? 0) - 1 });
+    // 오프셋이 변경되지 않으면 아무것도 하지 않음
+    if (currentOffset === newOffset) return;
+
+    // 오프셋이 0에서 처음 변경될 때만 행동력 소모
+    const needsEnergy = currentOffset === 0 && newOffset > 0;
+
+    if (needsEnergy) {
+      // 행동력이 충분한지 확인
+      if ((player.energy ?? 0) < 1) {
+        actions.addLog('⚠️ 행동력이 부족합니다!');
+        return;
+      }
+      // 행동력 1 소모
+      actions.setPlayer({ ...player, energy: (player.energy ?? 0) - 1 });
+      actions.addLog(`⚡ 무리: 속도 앞당김 활성화 (행동력 -1)`);
+    }
 
     // 카드 strainOffset 업데이트
     const updatedSelected = battle.selected.map(card => {
@@ -1989,8 +2001,6 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       player as unknown as { speedInstability?: number }
     );
     actions.setFixedOrder(newFixedOrder);
-
-    actions.addLog(`⚡ 무리: 속도 ${newOffset} 앞당김 (행동력 -1)`);
   }, [battle.selected, enemyPlan.actions, effectiveAgility, player, actions]);
 
   // 키보드 단축키 처리

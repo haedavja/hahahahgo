@@ -269,7 +269,9 @@ export const TimelineDisplay: FC<TimelineDisplayProps> = memo(({
       const sameCount = playerTimeline.filter((q, i) => i < idx && q.sp === a.sp).length;
       const offset = sameCount * 28;
 
-      if (hasLeisure && a.card.speedCost === LEISURE_MIN_SPEED) {
+      if (hasLeisure) {
+        // 여유 특성이 있으면 현재 위치를 기준으로 범위 설정
+        const baseSpeed = a.card.speedCost || LEISURE_MIN_SPEED;
         const minSp = accumulatedSp + LEISURE_MIN_SPEED;
         const maxSp = accumulatedSp + LEISURE_MAX_SPEED;
         ranges.push({
@@ -626,10 +628,10 @@ export const TimelineDisplay: FC<TimelineDisplayProps> = memo(({
                   const isUsed = Array.isArray(usedCardIndices) && usedCardIndices.includes(globalIndex) && globalIndex < qIndex;
                   const normalizedPosition = Math.min(((a.sp ?? 0) / playerMax) * 100, 100);
 
-                  // 여유 특성 확인
-                  const hasLeisure = a.card.traits?.includes('leisure') && a.card.speedCost === LEISURE_MIN_SPEED;
+                  // 여유 특성 확인 (speedCost 조건 제거 - 여유 특성만 있으면 드래그 가능)
+                  const hasLeisure = a.card.traits?.includes('leisure');
                   const cardUid = (a.card as { __uid?: string }).__uid || `leisure-${idx}`;
-                  const isDragging = draggingCardUid === cardUid;
+                  const isDragging = draggingCardUid === cardUid && draggingType === 'leisure';
                   const canDrag = hasLeisure && battle.phase === 'respond';
 
                   // 무리 특성 확인
