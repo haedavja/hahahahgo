@@ -2,9 +2,10 @@
  * BreachSelectionModal.tsx
  *
  * 브리치 카드 발동 시 3장 중 1장을 선택하는 모달
+ * 최적화: React.memo + useMemo
  */
 
-import { FC } from 'react';
+import { FC, memo, useMemo, useCallback } from 'react';
 import { Sword, Shield } from './BattleIcons';
 import type { BreachCard as Card, BreachSelection } from '../../../types';
 
@@ -14,27 +15,34 @@ interface BreachSelectionModalProps {
   strengthBonus?: number;
 }
 
-export const BreachSelectionModal: FC<BreachSelectionModalProps> = ({
+export const BreachSelectionModal: FC<BreachSelectionModalProps> = memo(({
   breachSelection,
   onSelect,
   strengthBonus = 0
 }) => {
+  // 텍스트 콘텐츠 메모이제이션
+  const { title, desc, note, insertSp } = useMemo(() => {
+    if (!breachSelection) return { title: '', desc: '', note: '', insertSp: 0 };
+
+    const { cards, breachSp, breachCard, sourceCardName, isLastChain } = breachSelection;
+    const sp = breachSp + (breachCard?.breachSpOffset || 3);
+    const isFleche = sourceCardName && sourceCardName !== '브리치';
+
+    return {
+      insertSp: sp,
+      title: isFleche ? `⚔️ ${sourceCardName} - 카드 선택` : '👻 브리치 - 카드 선택',
+      desc: isFleche
+        ? `피해 성공! ${cards.length}장 중 1장을 선택하세요. 선택한 카드는 타임라인 ${sp} 위치에 유령카드로 삽입됩니다.`
+        : `아래 3장 중 1장을 선택하세요. 선택한 카드는 타임라인 ${sp} 위치에 유령카드로 삽입됩니다.`,
+      note: isFleche
+        ? isLastChain
+          ? '⚠️ 마지막 연쇄! 이번 카드가 피해를 입혀도 더 이상 창조되지 않습니다.'
+          : '💨 유령카드로 즉시 발동! 피해 성공 시 다시 창조됩니다.'
+        : '💨 유령카드: 힘 보너스만 적용, 콤보/아이템/상징 효과 미적용'
+    };
+  }, [breachSelection]);
+
   if (!breachSelection) return null;
-
-  const { cards, breachSp, breachCard, sourceCardName, isLastChain } = breachSelection;
-  const insertSp = breachSp + (breachCard?.breachSpOffset || 3);
-
-  // 플레쉬 vs 브리치 구분
-  const isFleche = sourceCardName && sourceCardName !== '브리치';
-  const title = isFleche ? `⚔️ ${sourceCardName} - 카드 선택` : '👻 브리치 - 카드 선택';
-  const desc = isFleche
-    ? `피해 성공! ${cards.length}장 중 1장을 선택하세요. 선택한 카드는 타임라인 ${insertSp} 위치에 유령카드로 삽입됩니다.`
-    : `아래 3장 중 1장을 선택하세요. 선택한 카드는 타임라인 ${insertSp} 위치에 유령카드로 삽입됩니다.`;
-  const note = isFleche
-    ? isLastChain
-      ? '⚠️ 마지막 연쇄! 이번 카드가 피해를 입혀도 더 이상 창조되지 않습니다.'
-      : '💨 유령카드로 즉시 발동! 피해 성공 시 다시 창조됩니다.'
-    : '💨 유령카드: 힘 보너스만 적용, 콤보/아이템/상징 효과 미적용';
 
   return (
     <div className="breach-modal-overlay">
@@ -235,4 +243,4 @@ export const BreachSelectionModal: FC<BreachSelectionModalProps> = ({
       `}</style>
     </div>
   );
-};
+});
