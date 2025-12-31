@@ -2072,6 +2072,24 @@ export const DECK_PRESETS: Record<string, { name: string; description: string; c
   },
 };
 
+// DECK_PRESETS를 배열로 변환한 헬퍼 (인덱스 접근용)
+export const DECK_PRESETS_ARRAY = Object.entries(DECK_PRESETS).map(([key, val]) => ({
+  key,
+  ...val,
+}));
+
+// 간편한 전투 시뮬레이션 헬퍼 함수
+export function simulateBattle(deckCards: string[], enemyId: string): BattleResult {
+  const config: SimulationConfig = {
+    battles: 1,
+    maxTurns: 30,
+    enemyIds: [enemyId],
+    playerDeck: deckCards,
+    verbose: false,
+  };
+  return runBattle(enemyId, config);
+}
+
 /**
  * 덱 전략 비교 시뮬레이션
  */
@@ -3345,7 +3363,7 @@ export function runDeckCompare(deck1Name: string, deck2Name: string, battles: nu
     const stats2 = runSimulation(config2);
 
     results.push({
-      enemy: enemy.name,
+      enemy: enemy,
       deck1Win: stats1.winRate,
       deck2Win: stats2.winRate,
     });
@@ -8276,12 +8294,12 @@ export function runWinStreakAnalysis(battles: number = 50): void {
   };
 
   for (let i = 0; i < battles; i++) {
-    const preset = DECK_PRESETS[i % DECK_PRESETS.length];
+    const preset = DECK_PRESETS_ARRAY[i % DECK_PRESETS_ARRAY.length];
     const tier = (i % 3) + 1;
     const enemies = tier === 1 ? TIER_1_ENEMIES : tier === 2 ? TIER_2_ENEMIES : TIER_3_ENEMIES;
     const enemy = enemies[i % enemies.length];
 
-    const result = simulateBattle(preset.name, enemy.name);
+    const result = simulateBattle(preset.cards, enemy);
     const won = result.winner === 'player';
 
     if (won) {
@@ -8370,7 +8388,7 @@ export function runDeckOptimization(battles: number = 30): void {
       const enemies = [...TIER_1_ENEMIES, ...TIER_2_ENEMIES, ...TIER_3_ENEMIES];
       const enemy = enemies[i % enemies.length];
 
-      const result = simulateBattle(preset.name, enemy.name);
+      const result = simulateBattle(preset.cards, enemy);
 
       if (result.winner === 'player') {
         optimizationData[preset.name].wins++;
@@ -8437,7 +8455,7 @@ export function runEnemyPatternPrediction(battles: number = 30): void {
   const allEnemies = [...TIER_1_ENEMIES, ...TIER_2_ENEMIES, ...TIER_3_ENEMIES];
 
   for (const enemy of allEnemies.slice(0, 10)) {
-    patternData[enemy.name] = {
+    patternData[enemy] = {
       attackPattern: [],
       healPattern: [],
       specialPattern: [],
@@ -8450,8 +8468,8 @@ export function runEnemyPatternPrediction(battles: number = 30): void {
     const actionSequences: string[] = [];
 
     for (let i = 0; i < Math.min(battles, 5); i++) {
-      const preset = DECK_PRESETS[i % DECK_PRESETS.length];
-      const result = simulateBattle(preset.name, enemy.name);
+      const preset = DECK_PRESETS_ARRAY[i % DECK_PRESETS_ARRAY.length];
+      const result = simulateBattle(preset.cards, enemy);
 
       turnCount += result.turns;
 
@@ -8470,7 +8488,7 @@ export function runEnemyPatternPrediction(battles: number = 30): void {
       }
     }
 
-    patternData[enemy.name].avgDamagePerTurn = turnCount > 0 ? totalDamage / turnCount : 0;
+    patternData[enemy].avgDamagePerTurn = turnCount > 0 ? totalDamage / turnCount : 0;
 
     // 패턴 예측 가능성 계산
     const actionCounts = actionSequences.reduce((acc, action) => {
@@ -8480,7 +8498,7 @@ export function runEnemyPatternPrediction(battles: number = 30): void {
 
     const total = actionSequences.length;
     const dominantAction = Math.max(...Object.values(actionCounts));
-    patternData[enemy.name].predictability = total > 0 ? (dominantAction / total) * 100 : 0;
+    patternData[enemy].predictability = total > 0 ? (dominantAction / total) * 100 : 0;
   }
 
   console.log('  🔮 적 패턴 예측:');
@@ -8515,12 +8533,12 @@ export function runCardSynergyPatterns(battles: number = 30): void {
   }> = {};
 
   for (let i = 0; i < battles; i++) {
-    const preset = DECK_PRESETS[i % DECK_PRESETS.length];
+    const preset = DECK_PRESETS_ARRAY[i % DECK_PRESETS_ARRAY.length];
     const tier = (i % 3) + 1;
     const enemies = tier === 1 ? TIER_1_ENEMIES : tier === 2 ? TIER_2_ENEMIES : TIER_3_ENEMIES;
     const enemy = enemies[i % enemies.length];
 
-    const result = simulateBattle(preset.name, enemy.name);
+    const result = simulateBattle(preset.cards, enemy);
     const won = result.winner === 'player';
 
     // 콤보 패턴 추출
@@ -8612,7 +8630,7 @@ export function runSurvivalAnalysis(battles: number = 30): void {
       const enemies = [...TIER_1_ENEMIES, ...TIER_2_ENEMIES, ...TIER_3_ENEMIES];
       const enemy = enemies[i % enemies.length];
 
-      const result = simulateBattle(preset.name, enemy.name);
+      const result = simulateBattle(preset.cards, enemy);
       survivalData[preset.name].totalBattles++;
 
       if (result.winner === 'player') {
@@ -8670,12 +8688,12 @@ export function runAttackPatternAnalysis(battles: number = 30): void {
   };
 
   for (let i = 0; i < battles; i++) {
-    const preset = DECK_PRESETS[i % DECK_PRESETS.length];
+    const preset = DECK_PRESETS_ARRAY[i % DECK_PRESETS_ARRAY.length];
     const tier = (i % 3) + 1;
     const enemies = tier === 1 ? TIER_1_ENEMIES : tier === 2 ? TIER_2_ENEMIES : TIER_3_ENEMIES;
     const enemy = enemies[i % enemies.length];
 
-    const result = simulateBattle(preset.name, enemy.name);
+    const result = simulateBattle(preset.cards, enemy);
     patternData.totalTurns += result.turns;
 
     let turnDamage = 0;
@@ -8735,12 +8753,12 @@ export function runDefenseStrategyAnalysis(battles: number = 30): void {
   };
 
   for (let i = 0; i < battles; i++) {
-    const preset = DECK_PRESETS[i % DECK_PRESETS.length];
+    const preset = DECK_PRESETS_ARRAY[i % DECK_PRESETS_ARRAY.length];
     const tier = (i % 3) + 1;
     const enemies = tier === 1 ? TIER_1_ENEMIES : tier === 2 ? TIER_2_ENEMIES : TIER_3_ENEMIES;
     const enemy = enemies[i % enemies.length];
 
-    const result = simulateBattle(preset.name, enemy.name);
+    const result = simulateBattle(preset.cards, enemy);
     defenseData.totalBattles++;
 
     if (result.winner === 'player') {
@@ -8799,12 +8817,12 @@ export function runComboChainAnalysis(battles: number = 30): void {
   }> = {};
 
   for (let i = 0; i < battles; i++) {
-    const preset = DECK_PRESETS[i % DECK_PRESETS.length];
+    const preset = DECK_PRESETS_ARRAY[i % DECK_PRESETS_ARRAY.length];
     const tier = (i % 3) + 1;
     const enemies = tier === 1 ? TIER_1_ENEMIES : tier === 2 ? TIER_2_ENEMIES : TIER_3_ENEMIES;
     const enemy = enemies[i % enemies.length];
 
-    const result = simulateBattle(preset.name, enemy.name);
+    const result = simulateBattle(preset.cards, enemy);
 
     // 콤보 체인 추출
     let currentChain: string[] = [];
@@ -8896,10 +8914,10 @@ export function runLevelScalingAnalysis(battles: number = 30): void {
     };
 
     for (let i = 0; i < battles; i++) {
-      const preset = DECK_PRESETS[i % DECK_PRESETS.length];
+      const preset = DECK_PRESETS_ARRAY[i % DECK_PRESETS_ARRAY.length];
       const enemy = enemies[i % enemies.length];
 
-      const result = simulateBattle(preset.name, enemy.name);
+      const result = simulateBattle(preset.cards, enemy);
       scalingData[`Tier ${tier}`].battles++;
       scalingData[`Tier ${tier}`].totalTurns += result.turns;
       scalingData[`Tier ${tier}`].totalDamage += result.totalDamageDealt || 0;
@@ -8953,12 +8971,12 @@ export function runHotStreakAnalysis(battles: number = 50): void {
   };
 
   for (let i = 0; i < battles; i++) {
-    const preset = DECK_PRESETS[i % DECK_PRESETS.length];
+    const preset = DECK_PRESETS_ARRAY[i % DECK_PRESETS_ARRAY.length];
     const tier = (i % 3) + 1;
     const enemies = tier === 1 ? TIER_1_ENEMIES : tier === 2 ? TIER_2_ENEMIES : TIER_3_ENEMIES;
     const enemy = enemies[i % enemies.length];
 
-    const result = simulateBattle(preset.name, enemy.name);
+    const result = simulateBattle(preset.cards, enemy);
     const won = result.winner === 'player';
 
     if (hotStreakData.lastResult) {
@@ -9026,12 +9044,12 @@ export function runColdStreakAnalysis(battles: number = 50): void {
   };
 
   for (let i = 0; i < battles; i++) {
-    const preset = DECK_PRESETS[i % DECK_PRESETS.length];
+    const preset = DECK_PRESETS_ARRAY[i % DECK_PRESETS_ARRAY.length];
     const tier = (i % 3) + 1;
     const enemies = tier === 1 ? TIER_1_ENEMIES : tier === 2 ? TIER_2_ENEMIES : TIER_3_ENEMIES;
     const enemy = enemies[i % enemies.length];
 
-    const result = simulateBattle(preset.name, enemy.name);
+    const result = simulateBattle(preset.cards, enemy);
     const won = result.winner === 'player';
 
     if (!coldStreakData.lastResult) {
@@ -9100,12 +9118,12 @@ export function runBattleEfficiencyAnalysis(battles: number = 30): void {
   };
 
   for (let i = 0; i < battles; i++) {
-    const preset = DECK_PRESETS[i % DECK_PRESETS.length];
+    const preset = DECK_PRESETS_ARRAY[i % DECK_PRESETS_ARRAY.length];
     const tier = (i % 3) + 1;
     const enemies = tier === 1 ? TIER_1_ENEMIES : tier === 2 ? TIER_2_ENEMIES : TIER_3_ENEMIES;
     const enemy = enemies[i % enemies.length];
 
-    const result = simulateBattle(preset.name, enemy.name);
+    const result = simulateBattle(preset.cards, enemy);
     efficiencyData.totalBattles++;
     efficiencyData.totalTurns += result.turns;
     efficiencyData.totalDamageDealt += result.totalDamageDealt || 0;
@@ -9164,9 +9182,9 @@ export function runTierComparisonAnalysis(battles: number = 30): void {
     const enemies = tier === 1 ? TIER_1_ENEMIES : tier === 2 ? TIER_2_ENEMIES : TIER_3_ENEMIES;
 
     for (let i = 0; i < battles; i++) {
-      const preset = DECK_PRESETS[i % DECK_PRESETS.length];
+      const preset = DECK_PRESETS_ARRAY[i % DECK_PRESETS_ARRAY.length];
       const enemy = enemies[i % enemies.length];
-      const result = simulateBattle(preset.name, enemy.name);
+      const result = simulateBattle(preset.cards, enemy);
 
       tierStats[tier].total++;
       tierStats[tier].totalTurns += result.turns;
@@ -9228,7 +9246,7 @@ export function runPresetEfficiencyAnalysis(battles: number = 30): void {
     for (let i = 0; i < battles; i++) {
       const enemies = [...TIER_1_ENEMIES, ...TIER_2_ENEMIES, ...TIER_3_ENEMIES];
       const enemy = enemies[i % enemies.length];
-      const result = simulateBattle(preset.name, enemy.name);
+      const result = simulateBattle(preset.cards, enemy);
 
       presetStats[preset.name].total++;
       presetStats[preset.name].totalTurns += result.turns;
@@ -9276,7 +9294,7 @@ export function runEnemyWeaknessDeepAnalysis(battles: number = 20): void {
   const allEnemies = [...TIER_1_ENEMIES, ...TIER_2_ENEMIES, ...TIER_3_ENEMIES].slice(0, 10);
 
   for (const enemy of allEnemies) {
-    weaknessData[enemy.name] = {
+    weaknessData[enemy] = {
       weakPresets: [],
       strongPresets: [],
       avgDamageTaken: 0,
@@ -9285,11 +9303,11 @@ export function runEnemyWeaknessDeepAnalysis(battles: number = 20): void {
 
     const presetResults: Record<string, { wins: number; total: number; turns: number }> = {};
 
-    for (const preset of DECK_PRESETS) {
+    for (const preset of DECK_PRESETS_ARRAY) {
       presetResults[preset.name] = { wins: 0, total: 0, turns: 0 };
 
       for (let i = 0; i < Math.min(battles, 5); i++) {
-        const result = simulateBattle(preset.name, enemy.name);
+        const result = simulateBattle(preset.cards, enemy);
         presetResults[preset.name].total++;
         presetResults[preset.name].turns += result.turns;
         if (result.winner === 'player') presetResults[preset.name].wins++;
@@ -9299,8 +9317,8 @@ export function runEnemyWeaknessDeepAnalysis(battles: number = 20): void {
     // 약점/강점 프리셋 찾기
     for (const [name, data] of Object.entries(presetResults)) {
       const winRate = data.wins / data.total;
-      if (winRate >= 0.8) weaknessData[enemy.name].weakPresets.push(name);
-      else if (winRate <= 0.2) weaknessData[enemy.name].strongPresets.push(name);
+      if (winRate >= 0.8) weaknessData[enemy].weakPresets.push(name);
+      else if (winRate <= 0.2) weaknessData[enemy].strongPresets.push(name);
     }
   }
 
@@ -9336,12 +9354,12 @@ export function runPlaystyleAnalysis(battles: number = 30): void {
   let totalBattles = 0;
 
   for (let i = 0; i < battles; i++) {
-    const preset = DECK_PRESETS[i % DECK_PRESETS.length];
+    const preset = DECK_PRESETS_ARRAY[i % DECK_PRESETS_ARRAY.length];
     const tier = (i % 3) + 1;
     const enemies = tier === 1 ? TIER_1_ENEMIES : tier === 2 ? TIER_2_ENEMIES : TIER_3_ENEMIES;
     const enemy = enemies[i % enemies.length];
 
-    const result = simulateBattle(preset.name, enemy.name);
+    const result = simulateBattle(preset.cards, enemy);
     totalBattles++;
 
     // 스타일 분류
@@ -9399,12 +9417,12 @@ export function runMomentumAnalysis(battles: number = 50): void {
   let totalMomentum = 0;
 
   for (let i = 0; i < battles; i++) {
-    const preset = DECK_PRESETS[i % DECK_PRESETS.length];
+    const preset = DECK_PRESETS_ARRAY[i % DECK_PRESETS_ARRAY.length];
     const tier = (i % 3) + 1;
     const enemies = tier === 1 ? TIER_1_ENEMIES : tier === 2 ? TIER_2_ENEMIES : TIER_3_ENEMIES;
     const enemy = enemies[i % enemies.length];
 
-    const result = simulateBattle(preset.name, enemy.name);
+    const result = simulateBattle(preset.cards, enemy);
     const won = result.winner === 'player';
 
     if (lastWin === null) {
@@ -9471,12 +9489,12 @@ export function runPressureAnalysis(battles: number = 30): void {
   let countsWithHalf = 0;
 
   for (let i = 0; i < battles; i++) {
-    const preset = DECK_PRESETS[i % DECK_PRESETS.length];
+    const preset = DECK_PRESETS_ARRAY[i % DECK_PRESETS_ARRAY.length];
     const tier = (i % 3) + 1;
     const enemies = tier === 1 ? TIER_1_ENEMIES : tier === 2 ? TIER_2_ENEMIES : TIER_3_ENEMIES;
     const enemy = enemies[i % enemies.length];
 
-    const result = simulateBattle(preset.name, enemy.name);
+    const result = simulateBattle(preset.cards, enemy);
 
     // 압박 정도 분류
     const damageDealt = result.totalDamageDealt || 0;
@@ -9525,12 +9543,12 @@ export function runEvasionAnalysis(battles: number = 30): void {
   let totalDamageTaken = 0;
 
   for (let i = 0; i < battles; i++) {
-    const preset = DECK_PRESETS[i % DECK_PRESETS.length];
+    const preset = DECK_PRESETS_ARRAY[i % DECK_PRESETS_ARRAY.length];
     const tier = (i % 3) + 1;
     const enemies = tier === 1 ? TIER_1_ENEMIES : tier === 2 ? TIER_2_ENEMIES : TIER_3_ENEMIES;
     const enemy = enemies[i % enemies.length];
 
-    const result = simulateBattle(preset.name, enemy.name);
+    const result = simulateBattle(preset.cards, enemy);
     const damageTaken = 100 - result.playerHealth;
     totalDamageTaken += damageTaken;
 
@@ -9571,12 +9589,12 @@ export function runCardDrawAnalysis(battles: number = 30): void {
   };
 
   for (let i = 0; i < battles; i++) {
-    const preset = DECK_PRESETS[i % DECK_PRESETS.length];
+    const preset = DECK_PRESETS_ARRAY[i % DECK_PRESETS_ARRAY.length];
     const tier = (i % 3) + 1;
     const enemies = tier === 1 ? TIER_1_ENEMIES : tier === 2 ? TIER_2_ENEMIES : TIER_3_ENEMIES;
     const enemy = enemies[i % enemies.length];
 
-    const result = simulateBattle(preset.name, enemy.name);
+    const result = simulateBattle(preset.cards, enemy);
 
     // 턴당 카드 사용량 추정
     const cardsUsed = result.turns * 2; // 가정: 턴당 평균 2장
@@ -9633,12 +9651,12 @@ export function runPhaseAnalysis(battles: number = 30): void {
   };
 
   for (let i = 0; i < battles; i++) {
-    const preset = DECK_PRESETS[i % DECK_PRESETS.length];
+    const preset = DECK_PRESETS_ARRAY[i % DECK_PRESETS_ARRAY.length];
     const tier = (i % 3) + 1;
     const enemies = tier === 1 ? TIER_1_ENEMIES : tier === 2 ? TIER_2_ENEMIES : TIER_3_ENEMIES;
     const enemy = enemies[i % enemies.length];
 
-    const result = simulateBattle(preset.name, enemy.name);
+    const result = simulateBattle(preset.cards, enemy);
     const won = result.winner === 'player';
 
     if (result.turns <= 5) {
@@ -9683,12 +9701,12 @@ export function runCriticalMomentAnalysis(battles: number = 30): void {
   };
 
   for (let i = 0; i < battles; i++) {
-    const preset = DECK_PRESETS[i % DECK_PRESETS.length];
+    const preset = DECK_PRESETS_ARRAY[i % DECK_PRESETS_ARRAY.length];
     const tier = (i % 3) + 1;
     const enemies = tier === 1 ? TIER_1_ENEMIES : tier === 2 ? TIER_2_ENEMIES : TIER_3_ENEMIES;
     const enemy = enemies[i % enemies.length];
 
-    const result = simulateBattle(preset.name, enemy.name);
+    const result = simulateBattle(preset.cards, enemy);
     const won = result.winner === 'player';
 
     if (won) {
@@ -9732,12 +9750,12 @@ export function runStabilityAnalysis(battles: number = 50): void {
   const healthResults: number[] = [];
 
   for (let i = 0; i < battles; i++) {
-    const preset = DECK_PRESETS[i % DECK_PRESETS.length];
+    const preset = DECK_PRESETS_ARRAY[i % DECK_PRESETS_ARRAY.length];
     const tier = (i % 3) + 1;
     const enemies = tier === 1 ? TIER_1_ENEMIES : tier === 2 ? TIER_2_ENEMIES : TIER_3_ENEMIES;
     const enemy = enemies[i % enemies.length];
 
-    const result = simulateBattle(preset.name, enemy.name);
+    const result = simulateBattle(preset.cards, enemy);
     results.push(result.winner === 'player');
     healthResults.push(result.playerHealth);
   }
@@ -9789,12 +9807,12 @@ export function runProbabilityDeepAnalysis(battles: number = 100): void {
   const presetStats: Record<string, { wins: number; total: number; healthSum: number }> = {};
 
   for (let i = 0; i < battles; i++) {
-    const preset = DECK_PRESETS[i % DECK_PRESETS.length];
+    const preset = DECK_PRESETS_ARRAY[i % DECK_PRESETS_ARRAY.length];
     const tier = (i % 3) + 1;
     const enemies = tier === 1 ? TIER_1_ENEMIES : tier === 2 ? TIER_2_ENEMIES : TIER_3_ENEMIES;
     const enemy = enemies[i % enemies.length];
 
-    const result = simulateBattle(preset.name, enemy.name);
+    const result = simulateBattle(preset.cards, enemy);
 
     if (!presetStats[preset.name]) {
       presetStats[preset.name] = { wins: 0, total: 0, healthSum: 0 };
@@ -9847,23 +9865,23 @@ export function runAffinityDeepAnalysis(battles: number = 30): void {
   const affinityData: Record<string, Record<string, { wins: number; total: number }>> = {};
 
   for (let i = 0; i < battles; i++) {
-    const preset = DECK_PRESETS[i % DECK_PRESETS.length];
+    const preset = DECK_PRESETS_ARRAY[i % DECK_PRESETS_ARRAY.length];
     const tier = (i % 3) + 1;
     const enemies = tier === 1 ? TIER_1_ENEMIES : tier === 2 ? TIER_2_ENEMIES : TIER_3_ENEMIES;
     const enemy = enemies[i % enemies.length];
 
-    const result = simulateBattle(preset.name, enemy.name);
+    const result = simulateBattle(preset.cards, enemy);
 
     if (!affinityData[preset.name]) {
       affinityData[preset.name] = {};
     }
-    if (!affinityData[preset.name][enemy.name]) {
-      affinityData[preset.name][enemy.name] = { wins: 0, total: 0 };
+    if (!affinityData[preset.name][enemy]) {
+      affinityData[preset.name][enemy] = { wins: 0, total: 0 };
     }
 
-    affinityData[preset.name][enemy.name].total++;
+    affinityData[preset.name][enemy].total++;
     if (result.winner === 'player') {
-      affinityData[preset.name][enemy.name].wins++;
+      affinityData[preset.name][enemy].wins++;
     }
   }
 
@@ -9904,18 +9922,18 @@ export function runMetaDeepAnalysis(battles: number = 50): void {
   let totalTurns = 0;
 
   for (let i = 0; i < battles; i++) {
-    const preset = DECK_PRESETS[i % DECK_PRESETS.length];
+    const preset = DECK_PRESETS_ARRAY[i % DECK_PRESETS_ARRAY.length];
     const tier = (i % 3) + 1;
     const enemies = tier === 1 ? TIER_1_ENEMIES : tier === 2 ? TIER_2_ENEMIES : TIER_3_ENEMIES;
     const enemy = enemies[i % enemies.length];
 
-    const result = simulateBattle(preset.name, enemy.name);
+    const result = simulateBattle(preset.cards, enemy);
     totalTurns += result.turns;
 
     if (result.winner === 'player') {
       metaData.topPresets.set(preset.name, (metaData.topPresets.get(preset.name) || 0) + 1);
     } else {
-      metaData.topEnemies.set(enemy.name, (metaData.topEnemies.get(enemy.name) || 0) + 1);
+      metaData.topEnemies.set(enemy, (metaData.topEnemies.get(enemy) || 0) + 1);
     }
 
     if (result.turns <= 6) metaData.aggressiveMeta++;
@@ -9961,20 +9979,20 @@ export function runBanPickAnalysis(battles: number = 30): void {
   };
 
   for (let i = 0; i < battles; i++) {
-    const preset = DECK_PRESETS[i % DECK_PRESETS.length];
+    const preset = DECK_PRESETS_ARRAY[i % DECK_PRESETS_ARRAY.length];
     const tier = (i % 3) + 1;
     const enemies = tier === 1 ? TIER_1_ENEMIES : tier === 2 ? TIER_2_ENEMIES : TIER_3_ENEMIES;
     const enemy = enemies[i % enemies.length];
 
-    const result = simulateBattle(preset.name, enemy.name);
+    const result = simulateBattle(preset.cards, enemy);
 
     if (result.winner === 'enemy') {
       // 이긴 적은 밴 후보
-      banPickData.mustBans.set(enemy.name, (banPickData.mustBans.get(enemy.name) || 0) + 1);
+      banPickData.mustBans.set(enemy, (banPickData.mustBans.get(enemy) || 0) + 1);
     } else {
       // 이긴 프리셋은 픽 후보
       banPickData.mustPicks.set(preset.name, (banPickData.mustPicks.get(preset.name) || 0) + 1);
-      banPickData.counterPicks.set(enemy.name, preset.name);
+      banPickData.counterPicks.set(enemy, preset.name);
     }
   }
 
@@ -10024,12 +10042,12 @@ export function runTimePatternAnalysis(battles: number = 50): void {
   let lossTurns = 0, lossCount = 0;
 
   for (let i = 0; i < battles; i++) {
-    const preset = DECK_PRESETS[i % DECK_PRESETS.length];
+    const preset = DECK_PRESETS_ARRAY[i % DECK_PRESETS_ARRAY.length];
     const tier = (i % 3) + 1;
     const enemies = tier === 1 ? TIER_1_ENEMIES : tier === 2 ? TIER_2_ENEMIES : TIER_3_ENEMIES;
     const enemy = enemies[i % enemies.length];
 
-    const result = simulateBattle(preset.name, enemy.name);
+    const result = simulateBattle(preset.cards, enemy);
 
     timeData.turnDistribution.set(result.turns, (timeData.turnDistribution.get(result.turns) || 0) + 1);
 
@@ -10084,17 +10102,17 @@ export function runWinPredictionAnalysis(battles: number = 50): void {
   };
 
   for (let i = 0; i < battles; i++) {
-    const preset = DECK_PRESETS[i % DECK_PRESETS.length];
+    const preset = DECK_PRESETS_ARRAY[i % DECK_PRESETS_ARRAY.length];
     const tier = (i % 3) + 1;
     const enemies = tier === 1 ? TIER_1_ENEMIES : tier === 2 ? TIER_2_ENEMIES : TIER_3_ENEMIES;
     const enemy = enemies[i % enemies.length];
 
     // 간단한 예측 모델: 프리셋 인덱스와 티어 기반
-    const presetStrength = (DECK_PRESETS.indexOf(preset) + 1) / DECK_PRESETS.length;
+    const presetStrength = (DECK_PRESETS_ARRAY.findIndex(p => p.name === preset.name) + 1) / DECK_PRESETS.length;
     const tierDifficulty = tier / 3;
     const predicted = presetStrength > tierDifficulty;
 
-    const result = simulateBattle(preset.name, enemy.name);
+    const result = simulateBattle(preset.cards, enemy);
     const actual = result.winner === 'player';
 
     predictionData.predictions.push({ predicted, actual });
@@ -10130,12 +10148,12 @@ export function runPotentialAnalysis(battles: number = 30): void {
   };
 
   for (let i = 0; i < battles; i++) {
-    const preset = DECK_PRESETS[i % DECK_PRESETS.length];
+    const preset = DECK_PRESETS_ARRAY[i % DECK_PRESETS_ARRAY.length];
     const tier = (i % 3) + 1;
     const enemies = tier === 1 ? TIER_1_ENEMIES : tier === 2 ? TIER_2_ENEMIES : TIER_3_ENEMIES;
     const enemy = enemies[i % enemies.length];
 
-    const result = simulateBattle(preset.name, enemy.name);
+    const result = simulateBattle(preset.cards, enemy);
 
     if (!potentialData.presetPotentials.has(preset.name)) {
       potentialData.presetPotentials.set(preset.name, { current: 0, max: 0, growth: 0 });
@@ -10187,12 +10205,12 @@ export function runEfficiencyOptimization(battles: number = 30): void {
   };
 
   for (let i = 0; i < battles; i++) {
-    const preset = DECK_PRESETS[i % DECK_PRESETS.length];
+    const preset = DECK_PRESETS_ARRAY[i % DECK_PRESETS_ARRAY.length];
     const tier = (i % 3) + 1;
     const enemies = tier === 1 ? TIER_1_ENEMIES : tier === 2 ? TIER_2_ENEMIES : TIER_3_ENEMIES;
     const enemy = enemies[i % enemies.length];
 
-    const result = simulateBattle(preset.name, enemy.name);
+    const result = simulateBattle(preset.cards, enemy);
 
     const dpt = (result.totalDamageDealt || 0) / Math.max(result.turns, 1);
     const healthEff = result.playerHealth / 100;
@@ -10240,12 +10258,12 @@ export function runSituationAwareness(battles: number = 30): void {
   };
 
   for (let i = 0; i < battles; i++) {
-    const preset = DECK_PRESETS[i % DECK_PRESETS.length];
+    const preset = DECK_PRESETS_ARRAY[i % DECK_PRESETS_ARRAY.length];
     const tier = (i % 3) + 1;
     const enemies = tier === 1 ? TIER_1_ENEMIES : tier === 2 ? TIER_2_ENEMIES : TIER_3_ENEMIES;
     const enemy = enemies[i % enemies.length];
 
-    const result = simulateBattle(preset.name, enemy.name);
+    const result = simulateBattle(preset.cards, enemy);
 
     // 상황 분류
     const healthDiff = result.playerHealth - result.enemyHealth;
