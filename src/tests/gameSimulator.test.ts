@@ -1120,3 +1120,31 @@ describe('전투 효율 분석', () => {
     expect(typeof runBattleEfficiencyAnalysis).toBe('function');
   });
 });
+
+describe('티어별 비교 분석', () => {
+  it('runTierComparisonAnalysis 함수가 존재한다', async () => {
+    const { runTierComparisonAnalysis } = await import('./gameSimulator');
+    expect(typeof runTierComparisonAnalysis).toBe('function');
+  });
+});
+
+describe('프리셋 효율 분석', () => {
+  it('runPresetEfficiencyAnalysis 함수가 존재한다', async () => {
+    const { runPresetEfficiencyAnalysis } = await import('./gameSimulator');
+    expect(typeof runPresetEfficiencyAnalysis).toBe('function');
+  });
+});
+
+describe('적 약점 심화 분석', () => {
+  it('runEnemyWeaknessDeepAnalysis 함수가 존재한다', async () => {
+    const { runEnemyWeaknessDeepAnalysis } = await import('./gameSimulator');
+    expect(typeof runEnemyWeaknessDeepAnalysis).toBe('function');
+  });
+});
+
+describe('플레이스타일 분석', () => {
+  it('runPlaystyleAnalysis 함수가 존재한다', async () => {
+    const { runPlaystyleAnalysis } = await import('./gameSimulator');
+    expect(typeof runPlaystyleAnalysis).toBe('function');
+  });
+});

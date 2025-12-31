@@ -9138,6 +9138,248 @@ export function runBattleEfficiencyAnalysis(battles: number = 30): void {
   console.log('\n' + '═'.repeat(50) + '\n');
 }
 
+// 티어별 비교 분석
+export function runTierComparisonAnalysis(battles: number = 30): void {
+  console.log('═'.repeat(50));
+  console.log('📊 티어별 비교 분석');
+  console.log('═'.repeat(50));
+  console.log(`\n📊 전투 횟수: ${battles}회 (티어당)\n`);
+
+  const tierStats: Record<number, {
+    winRate: number;
+    avgDamage: number;
+    avgTurns: number;
+    wins: number;
+    total: number;
+    totalDamage: number;
+    totalTurns: number;
+  }> = {};
+
+  for (let tier = 1; tier <= 3; tier++) {
+    tierStats[tier] = {
+      winRate: 0, avgDamage: 0, avgTurns: 0,
+      wins: 0, total: 0, totalDamage: 0, totalTurns: 0
+    };
+
+    const enemies = tier === 1 ? TIER_1_ENEMIES : tier === 2 ? TIER_2_ENEMIES : TIER_3_ENEMIES;
+
+    for (let i = 0; i < battles; i++) {
+      const preset = DECK_PRESETS[i % DECK_PRESETS.length];
+      const enemy = enemies[i % enemies.length];
+      const result = simulateBattle(preset.name, enemy.name);
+
+      tierStats[tier].total++;
+      tierStats[tier].totalTurns += result.turns;
+      tierStats[tier].totalDamage += result.totalDamageDealt || 0;
+      if (result.winner === 'player') tierStats[tier].wins++;
+    }
+
+    tierStats[tier].winRate = tierStats[tier].wins / tierStats[tier].total;
+    tierStats[tier].avgDamage = tierStats[tier].totalDamage / tierStats[tier].total;
+    tierStats[tier].avgTurns = tierStats[tier].totalTurns / tierStats[tier].total;
+  }
+
+  console.log('  📈 티어별 통계:');
+  for (let tier = 1; tier <= 3; tier++) {
+    const stats = tierStats[tier];
+    console.log(`    Tier ${tier}:`);
+    console.log(`      승률: ${(stats.winRate * 100).toFixed(1)}%`);
+    console.log(`      평균 피해: ${stats.avgDamage.toFixed(1)}`);
+    console.log(`      평균 턴: ${stats.avgTurns.toFixed(1)}`);
+  }
+
+  console.log('\n  🔄 티어간 비교:');
+  const diff12 = (tierStats[1].winRate - tierStats[2].winRate) * 100;
+  const diff23 = (tierStats[2].winRate - tierStats[3].winRate) * 100;
+  console.log(`    • Tier 1 vs 2: ${diff12 > 0 ? '+' : ''}${diff12.toFixed(1)}%`);
+  console.log(`    • Tier 2 vs 3: ${diff23 > 0 ? '+' : ''}${diff23.toFixed(1)}%`);
+
+  const balance = Math.abs(diff12 - diff23);
+  const grade = balance <= 5 ? 'S' : balance <= 10 ? 'A' : balance <= 20 ? 'B' : 'C';
+  console.log(`\n  💡 밸런스 등급: ${grade}`);
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
+// 프리셋 효율 분석
+export function runPresetEfficiencyAnalysis(battles: number = 30): void {
+  console.log('═'.repeat(50));
+  console.log('🎯 프리셋 효율 분석');
+  console.log('═'.repeat(50));
+  console.log(`\n📊 전투 횟수: ${battles}회 (프리셋당)\n`);
+
+  const presetStats: Record<string, {
+    winRate: number;
+    avgDamage: number;
+    avgTurns: number;
+    efficiency: number;
+    wins: number;
+    total: number;
+    totalDamage: number;
+    totalTurns: number;
+  }> = {};
+
+  for (const preset of DECK_PRESETS) {
+    presetStats[preset.name] = {
+      winRate: 0, avgDamage: 0, avgTurns: 0, efficiency: 0,
+      wins: 0, total: 0, totalDamage: 0, totalTurns: 0
+    };
+
+    for (let i = 0; i < battles; i++) {
+      const enemies = [...TIER_1_ENEMIES, ...TIER_2_ENEMIES, ...TIER_3_ENEMIES];
+      const enemy = enemies[i % enemies.length];
+      const result = simulateBattle(preset.name, enemy.name);
+
+      presetStats[preset.name].total++;
+      presetStats[preset.name].totalTurns += result.turns;
+      presetStats[preset.name].totalDamage += result.totalDamageDealt || 0;
+      if (result.winner === 'player') presetStats[preset.name].wins++;
+    }
+
+    const stats = presetStats[preset.name];
+    stats.winRate = stats.wins / stats.total;
+    stats.avgDamage = stats.totalDamage / stats.total;
+    stats.avgTurns = stats.totalTurns / stats.total;
+    stats.efficiency = (stats.winRate * 100) + (stats.avgDamage / stats.avgTurns);
+  }
+
+  console.log('  🏆 프리셋 순위 (효율 점수):');
+  const ranked = Object.entries(presetStats)
+    .sort((a, b) => b[1].efficiency - a[1].efficiency);
+
+  ranked.forEach(([name, stats], idx) => {
+    console.log(`    ${idx + 1}. ${name}: ${stats.efficiency.toFixed(1)}점`);
+    console.log(`       (승률: ${(stats.winRate * 100).toFixed(1)}%, DPT: ${(stats.avgDamage / stats.avgTurns).toFixed(1)})`);
+  });
+
+  const avgEfficiency = ranked.reduce((sum, [_, s]) => sum + s.efficiency, 0) / ranked.length;
+  const grade = avgEfficiency >= 70 ? 'S' : avgEfficiency >= 55 ? 'A' : avgEfficiency >= 40 ? 'B' : 'C';
+  console.log(`\n  💡 전체 효율 등급: ${grade}`);
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
+// 적 약점 심화 분석
+export function runEnemyWeaknessDeepAnalysis(battles: number = 20): void {
+  console.log('═'.repeat(50));
+  console.log('🎯 적 약점 심화 분석');
+  console.log('═'.repeat(50));
+  console.log(`\n📊 전투 횟수: ${battles}회 (적당)\n`);
+
+  const weaknessData: Record<string, {
+    weakPresets: string[];
+    strongPresets: string[];
+    avgDamageTaken: number;
+    avgTurnsToDefeat: number;
+  }> = {};
+
+  const allEnemies = [...TIER_1_ENEMIES, ...TIER_2_ENEMIES, ...TIER_3_ENEMIES].slice(0, 10);
+
+  for (const enemy of allEnemies) {
+    weaknessData[enemy.name] = {
+      weakPresets: [],
+      strongPresets: [],
+      avgDamageTaken: 0,
+      avgTurnsToDefeat: 0
+    };
+
+    const presetResults: Record<string, { wins: number; total: number; turns: number }> = {};
+
+    for (const preset of DECK_PRESETS) {
+      presetResults[preset.name] = { wins: 0, total: 0, turns: 0 };
+
+      for (let i = 0; i < Math.min(battles, 5); i++) {
+        const result = simulateBattle(preset.name, enemy.name);
+        presetResults[preset.name].total++;
+        presetResults[preset.name].turns += result.turns;
+        if (result.winner === 'player') presetResults[preset.name].wins++;
+      }
+    }
+
+    // 약점/강점 프리셋 찾기
+    for (const [name, data] of Object.entries(presetResults)) {
+      const winRate = data.wins / data.total;
+      if (winRate >= 0.8) weaknessData[enemy.name].weakPresets.push(name);
+      else if (winRate <= 0.2) weaknessData[enemy.name].strongPresets.push(name);
+    }
+  }
+
+  console.log('  🎯 적별 약점/강점:');
+  Object.entries(weaknessData).forEach(([name, data]) => {
+    console.log(`    • ${name}:`);
+    console.log(`      약점: ${data.weakPresets.length > 0 ? data.weakPresets.join(', ') : '없음'}`);
+    console.log(`      강점: ${data.strongPresets.length > 0 ? data.strongPresets.join(', ') : '없음'}`);
+  });
+
+  const avgWeaknesses = Object.values(weaknessData).reduce((sum, d) => sum + d.weakPresets.length, 0) / Object.keys(weaknessData).length;
+  const grade = avgWeaknesses >= 3 ? 'S' : avgWeaknesses >= 2 ? 'A' : avgWeaknesses >= 1 ? 'B' : 'C';
+  console.log(`\n  💡 약점 분석 등급: ${grade}`);
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
+// 플레이스타일 분석
+export function runPlaystyleAnalysis(battles: number = 30): void {
+  console.log('═'.repeat(50));
+  console.log('🎮 플레이스타일 분석');
+  console.log('═'.repeat(50));
+  console.log(`\n📊 전투 횟수: ${battles}회\n`);
+
+  const styleData = {
+    aggressive: 0,  // 공격 중심
+    defensive: 0,   // 방어 중심
+    balanced: 0,    // 균형
+    burst: 0,       // 폭발적
+    sustained: 0,   // 지속적
+  };
+
+  let totalBattles = 0;
+
+  for (let i = 0; i < battles; i++) {
+    const preset = DECK_PRESETS[i % DECK_PRESETS.length];
+    const tier = (i % 3) + 1;
+    const enemies = tier === 1 ? TIER_1_ENEMIES : tier === 2 ? TIER_2_ENEMIES : TIER_3_ENEMIES;
+    const enemy = enemies[i % enemies.length];
+
+    const result = simulateBattle(preset.name, enemy.name);
+    totalBattles++;
+
+    // 스타일 분류
+    const dpt = (result.totalDamageDealt || 0) / result.turns;
+    const healthLoss = 100 - result.playerHealth;
+
+    if (dpt >= 20 && healthLoss > 30) styleData.aggressive++;
+    else if (dpt < 15 && healthLoss < 20) styleData.defensive++;
+    else if (result.turns <= 5 && result.winner === 'player') styleData.burst++;
+    else if (result.turns >= 10) styleData.sustained++;
+    else styleData.balanced++;
+  }
+
+  console.log('  🎮 플레이스타일 분포:');
+  const styles = [
+    ['공격적', styleData.aggressive],
+    ['방어적', styleData.defensive],
+    ['균형형', styleData.balanced],
+    ['폭발형', styleData.burst],
+    ['지속형', styleData.sustained]
+  ] as const;
+
+  styles.forEach(([name, count]) => {
+    const percent = (count / totalBattles) * 100;
+    console.log(`    • ${name}: ${count}회 (${percent.toFixed(1)}%)`);
+  });
+
+  // 주요 스타일 결정
+  const dominant = styles.reduce((a, b) => a[1] > b[1] ? a : b);
+  console.log(`\n  📊 주요 스타일: ${dominant[0]}`);
+
+  const diversity = styles.filter(([_, c]) => c > totalBattles * 0.1).length;
+  const grade = diversity >= 4 ? 'S' : diversity >= 3 ? 'A' : diversity >= 2 ? 'B' : 'C';
+  console.log(`\n  💡 스타일 다양성 등급: ${grade}`);
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
 // CLI에서 직접 실행 시
 if (typeof process !== 'undefined' && process.argv?.[1]?.includes('gameSimulator')) {
   runQuickTest();

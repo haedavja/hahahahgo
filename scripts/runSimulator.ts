@@ -121,7 +121,7 @@
  *   npx tsx scripts/runSimulator.ts trait 30
  */
 
-import { runSimulation, printStats, SimulationConfig, runBalanceAnalysis, runTierSimulation, runFullSimulation, runRelicComparison, runDeckComparison, runAnomalyComparison, runCardEfficiencyAnalysis, runFullReport, runBattleReplay, runEnemyAnalysis, runSynergyAnalysis, runDifficultyScalingAnalysis, runWinConditionAnalysis, exportSimulationResults, runTokenEfficiencyAnalysis, runMatchupAnalysis, runSpeedAnalysis, runTraitSynergyAnalysis, runStrategyRecommendation, printHelp, runDeckCompare, runBenchmark, runRandomDeckTest, runBestCardFinder, runEnemyWeaknessAnalysis, runMultiRelicTest, runProgressionTest, runCardRanking, runRelicRanking, runMetaAnalysis, runTurnAnalysis, runDamageAnalysis, runHealingAnalysis, runComboBreakdown, runStressTest, runProbabilityAnalysis, runVersatilityAnalysis, runConsistencyAnalysis, generatePatchNotes, runEdgeCaseTest, runQuickCheck, runAITest, runTimeTrialTest, runSummary, runDeckBuilder, runWhatIfAnalysis, exportToCSV, runHeatmapAnalysis, runCounterAnalysis, runResourceManagement, runLongBattleAnalysis, runBurstDamageAnalysis, runRandomEventAnalysis, runDummyDataTest, runCyclicAnalysis, runMilestoneAnalysis, runComboOptimization, runEnduranceTest, runBalanceScore, runDrawAnalysis, runAttributeAffinity, runTurnEconomy, runRiskAssessment, runAdaptabilityTest, runTokenSynergy, runCompositionAnalysis, runKeywordAnalysis, runOptimalStrategy, runBurstPotential, runStrategyComparison, runDamageAbsorption, runKillChainAnalysis, runSimulationHistory, runScoreAnalysis, runBattleHighlights, runCostAnalysis, runBalanceTuning, runTrendAnalysis, runCardValueAnalysis, runStageAnalysis, runResourceTracking, runStrategyHotspot, runCumulativeDamage, runHealthRecovery, runPriorityAnalysis, runRewardAnalysis, runTurningPoint, runBurstTiming, runStatusEffectAnalysis, runEnergyEfficiency, runTeamSynergy, runComebackPotential, runLossAnalysis, runTargetingAnalysis, runBattleInterpretation, runEndurancePatterns, runWinStreakAnalysis, runDeckOptimization, runEnemyPatternPrediction, runCardSynergyPatterns, runSurvivalAnalysis, runAttackPatternAnalysis, runDefenseStrategyAnalysis, runComboChainAnalysis, runLevelScalingAnalysis, runHotStreakAnalysis, runColdStreakAnalysis, runBattleEfficiencyAnalysis, TIER_1_ENEMIES, TIER_2_ENEMIES, TIER_3_ENEMIES } from '../src/tests/gameSimulator';
+import { runSimulation, printStats, SimulationConfig, runBalanceAnalysis, runTierSimulation, runFullSimulation, runRelicComparison, runDeckComparison, runAnomalyComparison, runCardEfficiencyAnalysis, runFullReport, runBattleReplay, runEnemyAnalysis, runSynergyAnalysis, runDifficultyScalingAnalysis, runWinConditionAnalysis, exportSimulationResults, runTokenEfficiencyAnalysis, runMatchupAnalysis, runSpeedAnalysis, runTraitSynergyAnalysis, runStrategyRecommendation, printHelp, runDeckCompare, runBenchmark, runRandomDeckTest, runBestCardFinder, runEnemyWeaknessAnalysis, runMultiRelicTest, runProgressionTest, runCardRanking, runRelicRanking, runMetaAnalysis, runTurnAnalysis, runDamageAnalysis, runHealingAnalysis, runComboBreakdown, runStressTest, runProbabilityAnalysis, runVersatilityAnalysis, runConsistencyAnalysis, generatePatchNotes, runEdgeCaseTest, runQuickCheck, runAITest, runTimeTrialTest, runSummary, runDeckBuilder, runWhatIfAnalysis, exportToCSV, runHeatmapAnalysis, runCounterAnalysis, runResourceManagement, runLongBattleAnalysis, runBurstDamageAnalysis, runRandomEventAnalysis, runDummyDataTest, runCyclicAnalysis, runMilestoneAnalysis, runComboOptimization, runEnduranceTest, runBalanceScore, runDrawAnalysis, runAttributeAffinity, runTurnEconomy, runRiskAssessment, runAdaptabilityTest, runTokenSynergy, runCompositionAnalysis, runKeywordAnalysis, runOptimalStrategy, runBurstPotential, runStrategyComparison, runDamageAbsorption, runKillChainAnalysis, runSimulationHistory, runScoreAnalysis, runBattleHighlights, runCostAnalysis, runBalanceTuning, runTrendAnalysis, runCardValueAnalysis, runStageAnalysis, runResourceTracking, runStrategyHotspot, runCumulativeDamage, runHealthRecovery, runPriorityAnalysis, runRewardAnalysis, runTurningPoint, runBurstTiming, runStatusEffectAnalysis, runEnergyEfficiency, runTeamSynergy, runComebackPotential, runLossAnalysis, runTargetingAnalysis, runBattleInterpretation, runEndurancePatterns, runWinStreakAnalysis, runDeckOptimization, runEnemyPatternPrediction, runCardSynergyPatterns, runSurvivalAnalysis, runAttackPatternAnalysis, runDefenseStrategyAnalysis, runComboChainAnalysis, runLevelScalingAnalysis, runHotStreakAnalysis, runColdStreakAnalysis, runBattleEfficiencyAnalysis, runTierComparisonAnalysis, runPresetEfficiencyAnalysis, runEnemyWeaknessDeepAnalysis, runPlaystyleAnalysis, TIER_1_ENEMIES, TIER_2_ENEMIES, TIER_3_ENEMIES } from '../src/tests/gameSimulator';
 import { ENEMIES } from '../src/components/battle/battleData';
 
 // 커맨드 라인 인자 파싱
@@ -887,6 +887,34 @@ if (command === 'battleeff') {
   const battles = parseInt(args[1]) || 30;
   console.log('🎮 전투 효율 분석 모드\n');
   runBattleEfficiencyAnalysis(battles);
+  process.exit(0);
+}
+
+if (command === 'tiercomp') {
+  const battles = parseInt(args[1]) || 30;
+  console.log('🎮 티어별 비교 분석 모드\n');
+  runTierComparisonAnalysis(battles);
+  process.exit(0);
+}
+
+if (command === 'preseteff') {
+  const battles = parseInt(args[1]) || 30;
+  console.log('🎮 프리셋 효율 분석 모드\n');
+  runPresetEfficiencyAnalysis(battles);
+  process.exit(0);
+}
+
+if (command === 'weaknessdeep') {
+  const battles = parseInt(args[1]) || 20;
+  console.log('🎮 적 약점 심화 분석 모드\n');
+  runEnemyWeaknessDeepAnalysis(battles);
+  process.exit(0);
+}
+
+if (command === 'playstyle') {
+  const battles = parseInt(args[1]) || 30;
+  console.log('🎮 플레이스타일 분석 모드\n');
+  runPlaystyleAnalysis(battles);
   process.exit(0);
 }
 
