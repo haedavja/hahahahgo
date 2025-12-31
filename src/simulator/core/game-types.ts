@@ -221,6 +221,7 @@ export interface PlayerState extends CombatantState {
   strength: number;
   agility: number;
   ether: number;
+  gold: number;                   // 골드 (날강도 특성용)
   hand: string[];
   deck: string[];
   discard: string[];

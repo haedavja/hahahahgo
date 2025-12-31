@@ -1442,7 +1442,12 @@ export class TimelineBattleEngine {
           break;
 
         case 'robber':
-          // 날강도: 10 골드 소실 (골드 시스템 필요)
+          // 날강도: 10 골드 소실
+          if (state && actor === 'player') {
+            const goldLoss = Math.min(10, state.player.gold);
+            state.player.gold -= goldLoss;
+            mods.effects.push(`날강도: ${goldLoss}G 소실`);
+          }
           break;
 
         case 'repeat':
@@ -1610,6 +1615,7 @@ export class TimelineBattleEngine {
       strength: passives.strength,
       agility: passives.agility,
       ether: 0,
+      gold: 100, // 시뮬레이션 기본 골드
       hand: [],
       deck: [...deck],
       discard: [],
