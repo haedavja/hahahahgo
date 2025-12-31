@@ -21,9 +21,10 @@ import { useEffect } from 'react';
 import type { MutableRefObject } from 'react';
 import { RELICS } from '../../../data/relics';
 import { applyTurnStartEffects, calculatePassiveEffects } from '../../../lib/relicEffects';
-// processReflections 제거됨 - 새 성장 시스템(에토스/파토스)으로 대체 예정
 import { convertTraitsToIds } from '../../../data/reflections';
 import { getAllTokens, addToken } from '../../../lib/tokenUtils';
+import { processEthosAtBattleStart } from '../../../lib/ethosEffects';
+import { initialGrowthState } from '../../../state/slices/growthSlice';
 import { drawFromDeck } from '../utils/handGeneration';
 import { decideEnemyMode, generateEnemyActions, expandActionsWithGhosts } from '../utils/enemyAI';
 import { useGameStore } from '../../../state/gameStore';
@@ -133,13 +134,36 @@ export function useTurnStartEffects({
       }
     });
 
-    // === 성찰 시스템 제거됨 - 새 성장 시스템(에토스/파토스)으로 대체 예정 ===
-    // TODO: 에토스 패시브 효과 처리 구현
+    // === 에토스 패시브 효과 처리 ===
+    const growth = useGameStore.getState().growth || initialGrowthState;
+    let ethosUpdatedPlayer = { ...player };
+    const ethosLogs: string[] = [];
+
+    // 첫 턴에만 battleStart 트리거 에토스 처리
+    if (turnNumber === 1) {
+      const ethosResult = processEthosAtBattleStart(player, growth);
+      ethosUpdatedPlayer = ethosResult.updatedPlayer;
+
+      // 에토스에서 부여하는 토큰 적용
+      for (const tokenInfo of ethosResult.tokensToAdd) {
+        const tokenResult = addToken(ethosUpdatedPlayer, tokenInfo.id, tokenInfo.stacks);
+        ethosUpdatedPlayer = { ...ethosUpdatedPlayer, tokens: tokenResult.tokens };
+      }
+
+      ethosLogs.push(...ethosResult.logs);
+    }
+
+    // 에토스 로그 출력
+    for (const log of ethosLogs) {
+      addLog(log);
+    }
+
+    // 레거시 호환: reflectionState 유지 (빈 객체)
     const reflectionResult: ProcessReflectionsResult = {
-      updatedPlayer: player,
+      updatedPlayer: ethosUpdatedPlayer,
       updatedBattleState: battle.reflectionState || {},
       effects: [],
-      logs: []
+      logs: ethosLogs
     };
     actions.setReflectionState(reflectionResult.updatedBattleState);
 

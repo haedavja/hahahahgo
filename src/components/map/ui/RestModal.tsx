@@ -25,6 +25,7 @@ import {
   calculateEnhancedStats,
 } from '../../../lib/cardEnhancementUtils';
 import { CardGrowthModal } from './CardGrowthModal';
+import { GrowthPyramidModal } from '../../growth/GrowthPyramidModal';
 
 // 자아 형성 규칙 - 레거시 (새 성장 시스템으로 대체됨)
 // 새 시스템: 개성 → 에토스/파토스 → 자아(총잡이/검잡이) → 로고스
@@ -87,6 +88,7 @@ export function RestModal({
   spendGold: (amount: number) => void;
 }) {
   const [showCardGrowthModal, setShowCardGrowthModal] = useState(false);
+  const [showPyramidModal, setShowPyramidModal] = useState(false);
   const [cardGrowthUsed, setCardGrowthUsed] = useState(false);
 
   return (
@@ -162,10 +164,13 @@ export function RestModal({
               </p>
               <button
                 className="btn"
-                disabled={true}
-                style={{ opacity: 0.5 }}
+                onClick={() => setShowPyramidModal(true)}
+                style={{
+                  background: 'linear-gradient(135deg, rgba(251, 191, 36, 0.2), rgba(244, 114, 182, 0.2))',
+                  border: '1px solid rgba(251, 191, 36, 0.4)',
+                }}
               >
-                피라미드 성장 (준비 중)
+                피라미드 성장
               </button>
             </div>
           </div>
@@ -191,6 +196,12 @@ export function RestModal({
         }}
         ownedCards={ownedCards}
         isRestNode={true}
+      />
+
+      {/* 피라미드 성장 모달 */}
+      <GrowthPyramidModal
+        isOpen={showPyramidModal}
+        onClose={() => setShowPyramidModal(false)}
       />
     </div>
   );
