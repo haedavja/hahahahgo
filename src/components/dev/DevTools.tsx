@@ -164,18 +164,7 @@ export const DevTools = memo(function DevTools({ isOpen, onClose, showAllCards, 
     specializeCard,
   } = store;
 
-  if (!isOpen) return null;
-
-  const tabs: Tab[] = [
-    { id: 'resources', label: '💰 자원', icon: '💰' },
-    { id: 'map', label: '🗺️ 맵', icon: '🗺️' },
-    { id: 'battle', label: '⚔️ 전투', icon: '⚔️' },
-    { id: 'relics', label: '💎 상징', icon: '💎' },
-    { id: 'items', label: '🎒 아이템', icon: '🎒' },
-    { id: 'event', label: '🎲 이벤트', icon: '🎲' },
-    { id: 'cards', label: '🃏 카드', icon: '🃏' },
-  ];
-
+  // Hook은 조건문 앞에 있어야 함 (Rules of Hooks)
   const getTabButtonStyle = useCallback((tabId: string): CSSProperties => ({
     padding: '8px 16px',
     background: activeTab === tabId ? '#3b82f6' : 'transparent',
@@ -187,6 +176,18 @@ export const DevTools = memo(function DevTools({ isOpen, onClose, showAllCards, 
     fontWeight: activeTab === tabId ? 'bold' : 'normal',
     transition: 'all 0.2s',
   }), [activeTab]);
+
+  if (!isOpen) return null;
+
+  const tabs: Tab[] = [
+    { id: 'resources', label: '💰 자원', icon: '💰' },
+    { id: 'map', label: '🗺️ 맵', icon: '🗺️' },
+    { id: 'battle', label: '⚔️ 전투', icon: '⚔️' },
+    { id: 'relics', label: '💎 상징', icon: '💎' },
+    { id: 'items', label: '🎒 아이템', icon: '🎒' },
+    { id: 'event', label: '🎲 이벤트', icon: '🎲' },
+    { id: 'cards', label: '🃏 카드', icon: '🃏' },
+  ];
 
   return (
     <div style={CONTAINER_STYLE}>
