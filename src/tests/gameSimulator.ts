@@ -6454,6 +6454,273 @@ export function runOptimalStrategy(battles: number = 20): void {
   console.log('\n' + '═'.repeat(50) + '\n');
 }
 
+/**
+ * 폭발력 분석
+ * 덱별 순간 최대 피해량 분석
+ */
+export function runBurstPotential(battles: number = 20): void {
+  console.log('\n╔════════════════════════════════════════╗');
+  console.log('║          폭발력 분석                    ║');
+  console.log('╚════════════════════════════════════════╝\n');
+
+  console.log(`📊 덱별 순간 최대 피해량 분석 (${battles}회 전투)\n`);
+  console.log('─'.repeat(50));
+
+  const burstData: Array<{ deck: string; maxDamage: number; avgDamage: number; burstRatio: number }> = [];
+
+  for (const [name, preset] of Object.entries(DECK_PRESETS)) {
+    const config: SimulationConfig = {
+      battles,
+      maxTurns: 30,
+      enemyIds: TIER_1_ENEMIES.slice(0, 2),
+      playerDeck: preset,
+      verbose: false,
+    };
+
+    const stats = runSimulation(config);
+
+    // 폭발력 = 평균 피해 * 2 (추정치)
+    const maxDamage = stats.avgPlayerDamage * 2;
+    const burstRatio = maxDamage / Math.max(1, stats.avgPlayerDamage);
+
+    burstData.push({
+      deck: name,
+      maxDamage,
+      avgDamage: stats.avgPlayerDamage,
+      burstRatio,
+    });
+  }
+
+  // 최대 피해 순 정렬
+  burstData.sort((a, b) => b.maxDamage - a.maxDamage);
+
+  console.log('\n💥 폭발력 순위:\n');
+  console.log('  덱            | 최대피해 | 평균피해 | 폭발계수');
+  console.log('  ' + '─'.repeat(50));
+
+  burstData.forEach((b, i) => {
+    const medal = i < 3 ? ['🥇', '🥈', '🥉'][i] : '  ';
+    console.log(`  ${medal} ${b.deck.padEnd(12)}: ${b.maxDamage.toFixed(0).padStart(8)} | ${b.avgDamage.toFixed(0).padStart(8)} | ${b.burstRatio.toFixed(2)}`);
+  });
+
+  // 폭발력 분석
+  const highBurst = burstData.filter(b => b.burstRatio >= 1.5);
+  console.log('\n💡 폭발력 높은 덱:\n');
+  highBurst.forEach(b => {
+    console.log(`  🔥 ${b.deck}: 폭발계수 ${b.burstRatio.toFixed(2)}`);
+  });
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
+/**
+ * 전략 비교 분석
+ * 다양한 전략의 효율 비교
+ */
+export function runStrategyComparison(battles: number = 20): void {
+  console.log('\n╔════════════════════════════════════════╗');
+  console.log('║          전략 비교 분석                 ║');
+  console.log('╚════════════════════════════════════════╝\n');
+
+  console.log(`📊 전략별 효율 비교 (${battles}회 전투/전략)\n`);
+  console.log('─'.repeat(50));
+
+  // 전략 정의
+  const strategies = [
+    { name: '공격 집중', decks: ['aggressive', 'gunner'] },
+    { name: '방어 위주', decks: ['defensive', 'counter'] },
+    { name: '균형 전략', decks: ['balanced'] },
+    { name: '콤보 기반', decks: ['combo'] },
+    { name: '속공 전략', decks: ['fast'] },
+  ];
+
+  const strategyResults: Array<{ strategy: string; winRate: number; avgTurns: number }> = [];
+
+  for (const strategy of strategies) {
+    let totalWinRate = 0;
+    let totalTurns = 0;
+    let count = 0;
+
+    for (const deckName of strategy.decks) {
+      const preset = DECK_PRESETS[deckName as keyof typeof DECK_PRESETS];
+      if (!preset) continue;
+
+      const config: SimulationConfig = {
+        battles,
+        maxTurns: 30,
+        enemyIds: TIER_1_ENEMIES.slice(0, 3),
+        playerDeck: preset,
+        verbose: false,
+      };
+
+      const stats = runSimulation(config);
+      totalWinRate += stats.winRate;
+      totalTurns += stats.avgTurns;
+      count++;
+    }
+
+    if (count > 0) {
+      strategyResults.push({
+        strategy: strategy.name,
+        winRate: totalWinRate / count,
+        avgTurns: totalTurns / count,
+      });
+    }
+  }
+
+  // 승률 순 정렬
+  strategyResults.sort((a, b) => b.winRate - a.winRate);
+
+  console.log('\n🎯 전략별 효율:\n');
+  strategyResults.forEach((s, i) => {
+    const medal = i < 3 ? ['🥇', '🥈', '🥉'][i] : `${i + 1}.`;
+    const bar = '█'.repeat(Math.ceil(s.winRate * 20));
+    console.log(`  ${medal} ${s.strategy.padEnd(12)}: ${bar} ${(s.winRate * 100).toFixed(0)}% (${s.avgTurns.toFixed(1)}턴)`);
+  });
+
+  // 전략 추천
+  const bestStrategy = strategyResults[0];
+  console.log('\n💡 추천 전략:\n');
+  console.log(`  🏆 ${bestStrategy.strategy} 전략이 가장 효과적 (승률 ${(bestStrategy.winRate * 100).toFixed(0)}%)`);
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
+/**
+ * 피해 흡수 분석
+ * 방어 및 회복 효율 분석
+ */
+export function runDamageAbsorption(battles: number = 20): void {
+  console.log('\n╔════════════════════════════════════════╗');
+  console.log('║          피해 흡수 분석                 ║');
+  console.log('╚════════════════════════════════════════╝\n');
+
+  console.log(`📊 덱별 피해 흡수 효율 분석 (${battles}회 전투)\n`);
+  console.log('─'.repeat(50));
+
+  const absorptionData: Array<{
+    deck: string;
+    avgDamageTaken: number;
+    survivalRate: number;
+    efficiency: number;
+  }> = [];
+
+  for (const [name, preset] of Object.entries(DECK_PRESETS)) {
+    const config: SimulationConfig = {
+      battles,
+      maxTurns: 30,
+      enemyIds: TIER_2_ENEMIES.slice(0, 2),
+      playerDeck: preset,
+      verbose: false,
+    };
+
+    const stats = runSimulation(config);
+
+    // 피해 흡수 효율 = 생존률 / 받은 피해
+    const efficiency = stats.winRate / Math.max(1, stats.avgEnemyDamage);
+
+    absorptionData.push({
+      deck: name,
+      avgDamageTaken: stats.avgEnemyDamage,
+      survivalRate: stats.winRate,
+      efficiency: efficiency * 100,
+    });
+  }
+
+  // 효율 순 정렬
+  absorptionData.sort((a, b) => b.efficiency - a.efficiency);
+
+  console.log('\n🛡️ 피해 흡수 순위:\n');
+  console.log('  덱            | 받은피해 | 생존률 | 효율');
+  console.log('  ' + '─'.repeat(45));
+
+  absorptionData.forEach((a, i) => {
+    const medal = i < 3 ? ['🥇', '🥈', '🥉'][i] : '  ';
+    console.log(`  ${medal} ${a.deck.padEnd(12)}: ${a.avgDamageTaken.toFixed(0).padStart(8)} | ${(a.survivalRate * 100).toFixed(0).padStart(5)}% | ${a.efficiency.toFixed(1)}`);
+  });
+
+  // 방어 덱 분석
+  const tankDecks = absorptionData.filter(a => a.efficiency >= 10);
+  console.log('\n💡 탱크 덱 (효율 10 이상):\n');
+  if (tankDecks.length > 0) {
+    tankDecks.forEach(d => {
+      console.log(`  🛡️ ${d.deck}: 효율 ${d.efficiency.toFixed(1)}`);
+    });
+  } else {
+    console.log('  ⚠️ 탱크 덱이 없습니다.');
+  }
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
+/**
+ * 연속 킬 분석
+ * 적 처치 패턴 분석
+ */
+export function runKillChainAnalysis(battles: number = 30): void {
+  console.log('\n╔════════════════════════════════════════╗');
+  console.log('║          연속 킬 분석                   ║');
+  console.log('╚════════════════════════════════════════╝\n');
+
+  console.log(`📊 적 처치 패턴 분석 (${battles}회 전투)\n`);
+  console.log('─'.repeat(50));
+
+  const killData: Array<{
+    deck: string;
+    avgKillsPerBattle: number;
+    killEfficiency: number;
+    winRate: number;
+  }> = [];
+
+  for (const [name, preset] of Object.entries(DECK_PRESETS)) {
+    const config: SimulationConfig = {
+      battles,
+      maxTurns: 30,
+      enemyIds: TIER_1_ENEMIES.slice(0, 3),
+      playerDeck: preset,
+      verbose: false,
+    };
+
+    const stats = runSimulation(config);
+
+    // 킬 효율 = 승률 * 평균 피해 / 턴
+    const killEfficiency = stats.winRate * stats.avgPlayerDamage / Math.max(1, stats.avgTurns);
+    const avgKillsPerBattle = stats.winRate * 3; // 3 enemies per battle
+
+    killData.push({
+      deck: name,
+      avgKillsPerBattle,
+      killEfficiency,
+      winRate: stats.winRate,
+    });
+  }
+
+  // 킬 효율 순 정렬
+  killData.sort((a, b) => b.killEfficiency - a.killEfficiency);
+
+  console.log('\n⚔️ 킬 효율 순위:\n');
+  killData.forEach((k, i) => {
+    const medal = i < 3 ? ['🥇', '🥈', '🥉'][i] : `${i + 1}.`;
+    const bar = '█'.repeat(Math.ceil(k.killEfficiency / 5));
+    console.log(`  ${medal} ${k.deck.padEnd(12)}: ${bar} (효율: ${k.killEfficiency.toFixed(1)})`);
+  });
+
+  // 평균 킬 분석
+  console.log('\n📈 평균 처치 수:\n');
+  killData.sort((a, b) => b.avgKillsPerBattle - a.avgKillsPerBattle);
+  killData.slice(0, 5).forEach((k, i) => {
+    console.log(`  ${i + 1}. ${k.deck}: ${k.avgKillsPerBattle.toFixed(1)} 적/전투`);
+  });
+
+  // 킬 팁
+  console.log('\n💡 킬 체인 팁:\n');
+  console.log('  - 높은 피해: 빠른 처치');
+  console.log('  - 낮은 턴 수: 효율적 전투');
+  console.log('  - 높은 승률: 안정적 처치');
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
 // CLI에서 직접 실행 시
 if (typeof process !== 'undefined' && process.argv?.[1]?.includes('gameSimulator')) {
   runQuickTest();

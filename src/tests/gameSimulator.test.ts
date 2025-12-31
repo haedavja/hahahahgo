@@ -840,3 +840,31 @@ describe('최적 전략 분석', () => {
     expect(typeof runOptimalStrategy).toBe('function');
   });
 });
+
+describe('폭발력 분석', () => {
+  it('runBurstPotential 함수가 존재한다', async () => {
+    const { runBurstPotential } = await import('./gameSimulator');
+    expect(typeof runBurstPotential).toBe('function');
+  });
+});
+
+describe('전략 비교 분석', () => {
+  it('runStrategyComparison 함수가 존재한다', async () => {
+    const { runStrategyComparison } = await import('./gameSimulator');
+    expect(typeof runStrategyComparison).toBe('function');
+  });
+});
+
+describe('피해 흡수 분석', () => {
+  it('runDamageAbsorption 함수가 존재한다', async () => {
+    const { runDamageAbsorption } = await import('./gameSimulator');
+    expect(typeof runDamageAbsorption).toBe('function');
+  });
+});
+
+describe('연속 킬 분석', () => {
+  it('runKillChainAnalysis 함수가 존재한다', async () => {
+    const { runKillChainAnalysis } = await import('./gameSimulator');
+    expect(typeof runKillChainAnalysis).toBe('function');
+  });
+});
