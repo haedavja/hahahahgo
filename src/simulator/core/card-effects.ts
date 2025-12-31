@@ -899,6 +899,17 @@ export function processCrossBonus(
         result.effects.push(`적 카드 ${destroyed}장 파괴`);
       }
       break;
+
+    case 'advance':
+      // 내 타임라인 앞당김
+      const advanceAmount = bonus.value || 3;
+      for (const tc of state.timeline) {
+        if (tc.owner === actor && !tc.executed) {
+          tc.position = Math.max(0, tc.position - advanceAmount);
+        }
+      }
+      result.effects.push(`타임라인 ${advanceAmount} 앞당김`);
+      break;
   }
 
   return result;
