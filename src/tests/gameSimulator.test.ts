@@ -553,3 +553,31 @@ describe('진행형 난이도 테스트', () => {
     expect(typeof runProgressionTest).toBe('function');
   });
 });
+
+describe('카드 랭킹', () => {
+  it('runCardRanking 함수가 존재한다', async () => {
+    const { runCardRanking } = await import('./gameSimulator');
+    expect(typeof runCardRanking).toBe('function');
+  });
+});
+
+describe('상징 랭킹', () => {
+  it('runRelicRanking 함수가 존재한다', async () => {
+    const { runRelicRanking } = await import('./gameSimulator');
+    expect(typeof runRelicRanking).toBe('function');
+  });
+});
+
+describe('메타 분석', () => {
+  it('runMetaAnalysis 함수가 존재한다', async () => {
+    const { runMetaAnalysis } = await import('./gameSimulator');
+    expect(typeof runMetaAnalysis).toBe('function');
+  });
+});
+
+describe('턴 분석', () => {
+  it('runTurnAnalysis 함수가 존재한다', async () => {
+    const { runTurnAnalysis } = await import('./gameSimulator');
+    expect(typeof runTurnAnalysis).toBe('function');
+  });
+});

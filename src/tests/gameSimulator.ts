@@ -3817,6 +3817,345 @@ export function runProgressionTest(runsPerTier: number = 20): void {
   console.log('\n' + '═'.repeat(50) + '\n');
 }
 
+/**
+ * 카드 랭킹
+ * 각 카드의 효율성 순위 산정
+ */
+export function runCardRanking(battles: number = 20): void {
+  console.log('\n╔════════════════════════════════════════╗');
+  console.log('║            카드 랭킹                    ║');
+  console.log('╚════════════════════════════════════════╝\n');
+
+  const testCards = CARDS.filter(c => !c.starter);
+
+  console.log(`📊 ${testCards.length}개 카드 테스트 (각 ${battles}회 전투)\n`);
+  console.log('─'.repeat(50));
+
+  // 기준 덱 (스타터만)
+  const baseDeck = DECK_PRESETS.balanced;
+  const baseConfig: SimulationConfig = {
+    battles: battles * 2,
+    maxTurns: 30,
+    enemyIds: TIER_1_ENEMIES.slice(0, 3),
+    playerDeck: baseDeck,
+    verbose: false,
+  };
+  const baseStats = runSimulation(baseConfig);
+  const baseWinRate = baseStats.winRate;
+
+  console.log(`  기준 덱 승률: ${(baseWinRate * 100).toFixed(1)}%\n`);
+
+  const results: Array<{ card: typeof CARDS[0]; winRate: number; diff: number }> = [];
+
+  for (let i = 0; i < testCards.length; i++) {
+    const card = testCards[i];
+
+    // 카드 추가 테스트
+    const testDeck = [...baseDeck.slice(0, 7), card.id];
+    const testConfig: SimulationConfig = {
+      battles,
+      maxTurns: 30,
+      enemyIds: TIER_1_ENEMIES.slice(0, 3),
+      playerDeck: testDeck,
+      verbose: false,
+    };
+
+    const stats = runSimulation(testConfig);
+    results.push({
+      card,
+      winRate: stats.winRate,
+      diff: stats.winRate - baseWinRate,
+    });
+
+    process.stdout.write(`\r  테스트 진행: ${i + 1}/${testCards.length}`);
+  }
+
+  console.log('\n\n' + '─'.repeat(50));
+
+  // 효율순 정렬
+  results.sort((a, b) => b.diff - a.diff);
+
+  // 상위 10개
+  console.log('\n🏆 카드 효율 TOP 10:\n');
+  for (let i = 0; i < Math.min(10, results.length); i++) {
+    const r = results[i];
+    const sign = r.diff >= 0 ? '+' : '';
+    const tier = r.diff > 0.1 ? 'S' : r.diff > 0.05 ? 'A' : r.diff > 0 ? 'B' : r.diff > -0.05 ? 'C' : 'D';
+
+    console.log(`  ${i + 1}. [${tier}] ${r.card.name} (${r.card.id})`);
+    console.log(`     승률 변화: ${sign}${(r.diff * 100).toFixed(1)}%`);
+  }
+
+  // 하위 5개
+  console.log('\n⚠️ 하위 카드 (밸런스 확인 필요):');
+  for (let i = results.length - 5; i < results.length; i++) {
+    if (i < 0) continue;
+    const r = results[i];
+    const sign = r.diff >= 0 ? '+' : '';
+    console.log(`  • ${r.card.name}: ${sign}${(r.diff * 100).toFixed(1)}%`);
+  }
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
+/**
+ * 상징 랭킹
+ * 각 상징의 효율성 순위 산정
+ */
+export function runRelicRanking(battles: number = 30): void {
+  console.log('\n╔════════════════════════════════════════╗');
+  console.log('║            상징 랭킹                    ║');
+  console.log('╚════════════════════════════════════════╝\n');
+
+  console.log(`📊 상징 효율 테스트 (각 ${battles}회 전투)\n`);
+  console.log('─'.repeat(50));
+
+  // 기준 (상징 없음)
+  const baseConfig: SimulationConfig = {
+    battles: battles * 2,
+    maxTurns: 30,
+    enemyIds: [...TIER_1_ENEMIES.slice(0, 2), ...TIER_2_ENEMIES.slice(0, 2)],
+    verbose: false,
+  };
+  const baseStats = runSimulation(baseConfig);
+  const baseWinRate = baseStats.winRate;
+
+  console.log(`  기준 승률 (상징 없음): ${(baseWinRate * 100).toFixed(1)}%\n`);
+
+  const relics = ['fox', 'turtle', 'falcon', 'oni'];
+  const results: Array<{ relic: string; winRate: number; diff: number }> = [];
+
+  for (const relicId of relics) {
+    const testConfig: SimulationConfig = {
+      battles,
+      maxTurns: 30,
+      enemyIds: [...TIER_1_ENEMIES.slice(0, 2), ...TIER_2_ENEMIES.slice(0, 2)],
+      playerRelics: [relicId],
+      verbose: false,
+    };
+
+    const stats = runSimulation(testConfig);
+    results.push({
+      relic: relicId,
+      winRate: stats.winRate,
+      diff: stats.winRate - baseWinRate,
+    });
+  }
+
+  // 효율순 정렬
+  results.sort((a, b) => b.diff - a.diff);
+
+  console.log('🏆 상징 효율 순위:\n');
+  results.forEach((r, idx) => {
+    const sign = r.diff >= 0 ? '+' : '';
+    const bar = '█'.repeat(Math.ceil(r.winRate * 20));
+
+    console.log(`  ${idx + 1}. ${r.relic.toUpperCase()}`);
+    console.log(`     ${bar} ${(r.winRate * 100).toFixed(1)}%`);
+    console.log(`     효과: ${sign}${(r.diff * 100).toFixed(1)}%\n`);
+  });
+
+  console.log('─'.repeat(50));
+  console.log('\n💡 분석:');
+
+  const best = results[0];
+  const worst = results[results.length - 1];
+
+  if (best.diff - worst.diff > 0.2) {
+    console.log(`  ⚠️ 상징 간 효율 차이가 큽니다 (${((best.diff - worst.diff) * 100).toFixed(1)}%)`);
+  } else {
+    console.log('  ✓ 상징 간 밸런스가 양호합니다.');
+  }
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
+/**
+ * 메타 분석
+ * 전체 게임 메타 분석 및 밸런스 제안
+ */
+export function runMetaAnalysis(battles: number = 30): void {
+  console.log('\n╔════════════════════════════════════════════════╗');
+  console.log('║             메타 분석 리포트                    ║');
+  console.log('╚════════════════════════════════════════════════╝\n');
+
+  const issues: string[] = [];
+  const suggestions: string[] = [];
+
+  // 1. 덱 분석
+  console.log('📊 덱 메타 분석...');
+  const deckResults: Array<{ name: string; winRate: number }> = [];
+
+  for (const [name, deck] of Object.entries(DECK_PRESETS)) {
+    const config: SimulationConfig = {
+      battles,
+      maxTurns: 30,
+      enemyIds: [...TIER_1_ENEMIES.slice(0, 2), ...TIER_2_ENEMIES.slice(0, 2)],
+      playerDeck: deck,
+      verbose: false,
+    };
+
+    const stats = runSimulation(config);
+    deckResults.push({ name, winRate: stats.winRate });
+  }
+
+  deckResults.sort((a, b) => b.winRate - a.winRate);
+
+  console.log('\n  덱 승률 순위:');
+  deckResults.forEach((d, i) => {
+    const bar = '█'.repeat(Math.ceil(d.winRate * 20));
+    console.log(`    ${i + 1}. ${d.name}: ${bar} ${(d.winRate * 100).toFixed(1)}%`);
+  });
+
+  const topDeck = deckResults[0];
+  const bottomDeck = deckResults[deckResults.length - 1];
+
+  if (topDeck.winRate - bottomDeck.winRate > 0.3) {
+    issues.push(`덱 간 승률 격차 큼: ${topDeck.name} vs ${bottomDeck.name} (${((topDeck.winRate - bottomDeck.winRate) * 100).toFixed(1)}%)`);
+    suggestions.push(`${bottomDeck.name} 덱 강화 또는 ${topDeck.name} 덱 약화 필요`);
+  }
+
+  // 2. 티어별 밸런스
+  console.log('\n📊 티어별 밸런스...');
+  const tierWinRates: number[] = [];
+
+  for (const [idx, enemies] of [TIER_1_ENEMIES, TIER_2_ENEMIES, TIER_3_ENEMIES].entries()) {
+    const config: SimulationConfig = {
+      battles,
+      maxTurns: 30,
+      enemyIds: enemies.slice(0, 3),
+      verbose: false,
+    };
+
+    const stats = runSimulation(config);
+    tierWinRates.push(stats.winRate);
+
+    console.log(`    Tier ${idx + 1}: ${(stats.winRate * 100).toFixed(1)}%`);
+  }
+
+  if (tierWinRates[0] < 0.6) {
+    issues.push('Tier 1 난이도가 너무 높음');
+    suggestions.push('Tier 1 적 약화 또는 초반 카드 강화 필요');
+  }
+
+  if (tierWinRates[1] > tierWinRates[0]) {
+    issues.push('Tier 2가 Tier 1보다 쉬움');
+    suggestions.push('Tier 2 적 강화 필요');
+  }
+
+  if (tierWinRates[2] > 0.5) {
+    issues.push('Tier 3 난이도가 너무 낮음');
+    suggestions.push('Tier 3 적 강화 또는 보스 추가 필요');
+  }
+
+  // 3. 상징 밸런스
+  console.log('\n📊 상징 밸런스...');
+  const relics = ['fox', 'turtle', 'falcon', 'oni'];
+  const relicResults: Array<{ relic: string; winRate: number }> = [];
+
+  for (const relicId of relics) {
+    const config: SimulationConfig = {
+      battles: battles / 2,
+      maxTurns: 30,
+      enemyIds: TIER_2_ENEMIES.slice(0, 3),
+      playerRelics: [relicId],
+      verbose: false,
+    };
+
+    const stats = runSimulation(config);
+    relicResults.push({ relic: relicId, winRate: stats.winRate });
+  }
+
+  const maxRelicWin = Math.max(...relicResults.map(r => r.winRate));
+  const minRelicWin = Math.min(...relicResults.map(r => r.winRate));
+
+  if (maxRelicWin - minRelicWin > 0.15) {
+    const best = relicResults.find(r => r.winRate === maxRelicWin)!;
+    const worst = relicResults.find(r => r.winRate === minRelicWin)!;
+    issues.push(`상징 밸런스 불균형: ${best.relic} >> ${worst.relic}`);
+    suggestions.push(`${worst.relic} 상징 효과 강화 또는 ${best.relic} 약화`);
+  }
+
+  // 4. 결론
+  console.log('\n' + '═'.repeat(50));
+  console.log('\n🔍 발견된 이슈:');
+
+  if (issues.length === 0) {
+    console.log('  ✓ 심각한 밸런스 이슈 없음');
+  } else {
+    issues.forEach((issue, i) => {
+      console.log(`  ${i + 1}. ⚠️ ${issue}`);
+    });
+  }
+
+  console.log('\n💡 개선 제안:');
+
+  if (suggestions.length === 0) {
+    console.log('  ✓ 현재 밸런스 양호');
+  } else {
+    suggestions.forEach((sug, i) => {
+      console.log(`  ${i + 1}. ${sug}`);
+    });
+  }
+
+  // 전체 건강도 점수
+  const healthScore = 100 - issues.length * 15;
+  const healthRating = healthScore >= 85 ? '🟢 양호' :
+    healthScore >= 70 ? '🟡 주의' : '🔴 조정 필요';
+
+  console.log(`\n📈 게임 밸런스 건강도: ${healthScore}/100 ${healthRating}`);
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
+/**
+ * 턴 분석
+ * 턴별 행동 패턴 분석
+ */
+export function runTurnAnalysis(battles: number = 30): void {
+  console.log('\n╔════════════════════════════════════════╗');
+  console.log('║            턴 분석                      ║');
+  console.log('╚════════════════════════════════════════╝\n');
+
+  const config: SimulationConfig = {
+    battles,
+    maxTurns: 30,
+    enemyIds: [...TIER_1_ENEMIES.slice(0, 2), ...TIER_2_ENEMIES.slice(0, 2)],
+    verbose: false,
+  };
+
+  const stats = runSimulation(config);
+
+  console.log(`📊 ${battles}회 전투 분석\n`);
+  console.log('─'.repeat(50));
+
+  // 기본 통계
+  console.log('\n📈 기본 통계:');
+  console.log(`  평균 턴: ${stats.avgTurns.toFixed(1)}`);
+  console.log(`  승률: ${(stats.winRate * 100).toFixed(1)}%`);
+
+  // 턴 분포 예측
+  const quickWin = stats.avgTurns < 4 ? '높음' : '보통';
+  const longBattle = stats.avgTurns > 8 ? '높음' : '낮음';
+
+  console.log('\n⏱️ 전투 속도 분석:');
+  console.log(`  속전속결 확률: ${quickWin}`);
+  console.log(`  장기전 확률: ${longBattle}`);
+
+  // 페이스 분석
+  if (stats.avgTurns < 3) {
+    console.log('\n💡 분석: 전투가 너무 빠르게 끝남. 밸런스 확인 필요.');
+  } else if (stats.avgTurns < 6) {
+    console.log('\n💡 분석: 적절한 전투 속도.');
+  } else if (stats.avgTurns < 10) {
+    console.log('\n💡 분석: 약간 긴 전투. 공격력 상향 고려.');
+  } else {
+    console.log('\n💡 분석: 전투가 너무 김. 데미지 밸런스 조정 필요.');
+  }
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
 // CLI에서 직접 실행 시
 if (typeof process !== 'undefined' && process.argv?.[1]?.includes('gameSimulator')) {
   runQuickTest();
