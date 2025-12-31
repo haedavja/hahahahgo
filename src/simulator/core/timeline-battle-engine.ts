@@ -48,7 +48,21 @@ import {
   calculateSpeedModifier,
 } from './token-system';
 import { getRelicSystemV2, RelicSystemV2 } from './relic-system-v2';
-import { getAnomalySystem } from './anomaly-system';
+import {
+  getAnomalySystem,
+  activateGameAnomaly,
+  clearGameAnomalies,
+  isEtherBlocked,
+  getEnergyReduction,
+  getSpeedReduction,
+  getVulnerabilityPercent,
+  getDefenseBackfireDamage,
+  getSpeedInstability,
+  getInsightReduction,
+  getValueDownTokens,
+  getChainIsolationLevel,
+  getTraitSilenceLevel,
+} from './anomaly-system';
 import { getLogger } from './logger';
 import { RespondAI, type ResponseDecision, type TimelineAnalysis } from '../ai/respond-ai';
 import {
@@ -151,11 +165,16 @@ export class TimelineBattleEngine {
       this.applyPassiveRelics(player);
     }
 
-    // 이변 초기화
+    // 이변 초기화 (기존 시뮬레이터 이변)
     if (this.config.enableAnomalies && anomalyId) {
       const anomalySystem = getAnomalySystem();
       anomalySystem.clear();
       anomalySystem.activateAnomaly(anomalyId);
+
+      // 게임 데이터 이변 활성화 (mapRisk 기반 레벨 계산)
+      clearGameAnomalies();
+      const anomalyLevel = 1; // 기본 레벨 1, 추후 mapRisk로 계산
+      activateGameAnomaly(anomalyId, anomalyLevel);
     }
 
     // 전투 상태 초기화
@@ -225,8 +244,26 @@ export class TimelineBattleEngine {
     // 턴 시작 초기화
     state.player.block = 0;
     state.enemy.block = 0;
-    state.player.energy = state.player.maxEnergy + calculateEnergyModifier(state.player.tokens);
+    // 에너지 계산: 기본 + 토큰 수정 - 이변 감소
+    const energyReduction = this.config.enableAnomalies ? getEnergyReduction() : 0;
+    state.player.energy = Math.max(0, state.player.maxEnergy + calculateEnergyModifier(state.player.tokens) - energyReduction);
     state.timeline = [];
+
+    // 이변: 공격/방어 감소 토큰 적용
+    if (this.config.enableAnomalies) {
+      const valueDownTokens = getValueDownTokens();
+      if (valueDownTokens > 0) {
+        state.player.tokens = addToken(state.player.tokens, 'dull', valueDownTokens);
+        state.player.tokens = addToken(state.player.tokens, 'shaken', valueDownTokens);
+        state.battleLog.push(`  ⚠️ 이변: 공격력/방어력 감소 토큰 ${valueDownTokens}개`);
+      }
+
+      // 이변: 통찰 감소
+      const insightReduction = getInsightReduction();
+      if (insightReduction > 0) {
+        state.player.insight = Math.max(-3, state.player.insight - insightReduction);
+      }
+    }
 
     // 턴 시작 상징 트리거
     if (this.config.enableRelics) {
@@ -281,7 +318,13 @@ export class TimelineBattleEngine {
     state.phase = 'end';
 
     // 에테르 콤보 처리: 이번 턴에 실행된 플레이어 카드 수집
-    if (this.config.enableCombos) {
+    // 이변: 디플레이션의 저주로 에테르 획득 불가 체크
+    const etherBlockedByAnomaly = this.config.enableAnomalies && isEtherBlocked();
+    if (etherBlockedByAnomaly) {
+      state.player.etherBlocked = true;
+    }
+
+    if (this.config.enableCombos && !etherBlockedByAnomaly) {
       const playedCards = state.timeline
         .filter(tc => tc.owner === 'player' && tc.executed)
         .map(tc => this.cards[tc.cardId])
@@ -314,6 +357,8 @@ export class TimelineBattleEngine {
         // 콤보 사용 횟수 업데이트 (디플레이션용)
         state.comboUsageCount = etherResult.newComboUsageCount;
       }
+    } else if (etherBlockedByAnomaly) {
+      state.battleLog.push(`  ❌ 이변: 에테르 획득 불가`);
     }
 
     // 핸드 버리기 및 드로우
@@ -504,7 +549,20 @@ export class TimelineBattleEngine {
       }
     }
 
-    return Math.max(1, Math.min(position, this.config.maxSpeed));
+    // 이변: 속도 불안정 (랜덤 변동)
+    if (this.config.enableAnomalies) {
+      const instability = getSpeedInstability();
+      if (instability > 0) {
+        const variation = Math.floor(Math.random() * (instability * 2 + 1)) - instability;
+        position += variation;
+      }
+    }
+
+    // 최대 속도 제한 (이변에 의한 감소 적용)
+    const maxSpeedReduction = this.config.enableAnomalies ? getSpeedReduction() : 0;
+    const effectiveMaxSpeed = Math.max(10, this.config.maxSpeed - maxSpeedReduction);
+
+    return Math.max(1, Math.min(position, effectiveMaxSpeed));
   }
 
   private placeCardsOnTimeline(state: GameBattleState, playerCards: GameCard[], enemyCards: GameCard[]): void {
@@ -828,6 +886,14 @@ export class TimelineBattleEngine {
       // 피해 증폭 (허약 등)
       damage = Math.floor(damage * damageTakenMods.damageMultiplier);
 
+      // 이변: 취약 (받는 피해 증가)
+      if (this.config.enableAnomalies && attacker === 'enemy') {
+        const vulnPercent = getVulnerabilityPercent();
+        if (vulnPercent > 0) {
+          damage = Math.floor(damage * (1 + vulnPercent / 100));
+        }
+      }
+
       // 방어력 처리
       let actualDamage = damage;
       let blocked = 0;
@@ -973,6 +1039,15 @@ export class TimelineBattleEngine {
     }
 
     state.battleLog.push(`  ${actor === 'player' ? '플레이어' : '적'}: ${card.name} → ${block} 방어`);
+
+    // 이변: 역류 (방어 카드 사용 시 자해 피해)
+    if (this.config.enableAnomalies && actor === 'player') {
+      const backfireDamage = getDefenseBackfireDamage();
+      if (backfireDamage > 0) {
+        state.player.hp -= backfireDamage;
+        state.battleLog.push(`  💔 역류: ${backfireDamage} 자해 피해`);
+      }
+    }
   }
 
   // ==================== 특성 처리 ====================
