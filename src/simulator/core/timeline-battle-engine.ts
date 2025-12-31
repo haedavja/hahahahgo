@@ -55,6 +55,7 @@ import {
   isEtherBlocked,
   getEnergyReduction,
   getSpeedReduction,
+  getDrawReduction,
   getVulnerabilityPercent,
   getDefenseBackfireDamage,
   getSpeedInstability,
@@ -62,6 +63,7 @@ import {
   getValueDownTokens,
   getChainIsolationLevel,
   getTraitSilenceLevel,
+  getFinesseBlockLevel,
 } from './anomaly-system';
 import { getLogger } from './logger';
 import { RespondAI, type ResponseDecision, type TimelineAnalysis } from '../ai/respond-ai';
@@ -1426,6 +1428,25 @@ export class TimelineBattleEngine {
   }
 
   private drawCards(player: PlayerState, count: number, state?: GameBattleState): void {
+    // 이변: 뽑기 확률 감소 (각 드로우마다 확률적으로 실패)
+    let effectiveCount = count;
+    if (this.config.enableAnomalies) {
+      const drawReduction = getDrawReduction(); // 0.1 = 10%, 0.4 = 40%
+      if (drawReduction > 0) {
+        // 각 드로우에 대해 확률적으로 실패 처리
+        let reducedCount = 0;
+        for (let i = 0; i < count; i++) {
+          if (Math.random() >= drawReduction) {
+            reducedCount++;
+          }
+        }
+        effectiveCount = Math.max(1, reducedCount); // 최소 1장은 드로우
+        if (effectiveCount < count && state) {
+          state.battleLog.push(`  ⚠️ 이변: 뽑기 방해 (-${count - effectiveCount}장)`);
+        }
+      }
+    }
+
     // 반복 특성: repeatCards를 먼저 손패에 추가
     if (player.repeatCards && player.repeatCards.length > 0) {
       for (const cardId of player.repeatCards) {
@@ -1441,7 +1462,7 @@ export class TimelineBattleEngine {
     // 탈주 카드 필터링
     const escapeCards = new Set(player.escapeCards || []);
 
-    for (let i = 0; i < count; i++) {
+    for (let i = 0; i < effectiveCount; i++) {
       if (player.deck.length === 0) {
         // 버린 더미 셔플 (소멸된 카드 제외)
         const vanished = new Set(state?.vanishedCards || []);
