@@ -1,9 +1,11 @@
 /**
  * 던전 노드 UI 컴포넌트
  * 그래프 기반 던전 탐험을 위한 노드 표시 및 상호작용
+ * 최적화: React.memo + 스타일 상수 추출
  */
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, memo } from 'react';
+import type { CSSProperties } from 'react';
 import { useGameStore } from '../../state/gameStore';
 import {
   DUNGEON_NODE_TYPES,
@@ -84,6 +86,115 @@ const EVENT_EMOJIS = {
   [DUNGEON_EVENT_TYPES.MERCHANT]: '🛒',
 };
 
+// =====================
+// 스타일 상수
+// =====================
+
+const CONTAINER_STYLE: CSSProperties = {
+  padding: '24px',
+  maxWidth: '600px',
+  margin: '0 auto',
+  color: '#e2e8f0'
+};
+
+const HEADER_BASE_STYLE: CSSProperties = {
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  marginBottom: '20px',
+  padding: '12px 16px',
+  background: 'rgba(15, 23, 42, 0.9)',
+  borderRadius: '8px'
+};
+
+const TIME_LABEL_STYLE: CSSProperties = {
+  fontSize: '14px',
+  color: '#94a3b8'
+};
+
+const TIME_VALUE_STYLE: CSSProperties = {
+  fontSize: '18px',
+  fontWeight: 'bold'
+};
+
+const NODE_INFO_STYLE: CSSProperties = {
+  padding: '20px',
+  background: 'rgba(30, 41, 59, 0.9)',
+  borderRadius: '12px',
+  marginBottom: '20px',
+  border: '1px solid #475569'
+};
+
+const NODE_HEADER_STYLE: CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: '12px',
+  marginBottom: '12px'
+};
+
+const MESSAGE_STYLE: CSSProperties = {
+  padding: '16px',
+  background: 'rgba(15, 23, 42, 0.8)',
+  borderRadius: '8px',
+  marginTop: '16px',
+  borderLeft: '4px solid #3b82f6',
+  fontSize: '15px',
+  lineHeight: '1.6'
+};
+
+const WARNING_STYLE: CSSProperties = {
+  padding: '12px 16px',
+  background: 'rgba(234, 179, 8, 0.2)',
+  borderRadius: '8px',
+  marginTop: '12px',
+  border: '1px solid #eab308',
+  color: '#fde047',
+  fontSize: '14px'
+};
+
+const SECTION_STYLE: CSSProperties = {
+  padding: '20px',
+  background: 'rgba(30, 41, 59, 0.9)',
+  borderRadius: '12px',
+  marginBottom: '20px',
+  border: '1px solid #475569'
+};
+
+const SECTION_TITLE_STYLE: CSSProperties = {
+  margin: '0 0 16px',
+  fontSize: '16px',
+  color: '#94a3b8'
+};
+
+const NAV_BUTTONS_STYLE: CSSProperties = {
+  display: 'flex',
+  flexWrap: 'wrap',
+  gap: '8px'
+};
+
+const EXIT_BUTTON_STYLE: CSSProperties = {
+  marginTop: '16px',
+  padding: '14px 24px',
+  width: '100%',
+  background: 'linear-gradient(135deg, #22c55e, #16a34a)',
+  border: 'none',
+  borderRadius: '8px',
+  color: '#fff',
+  fontSize: '16px',
+  fontWeight: '600',
+  cursor: 'pointer'
+};
+
+const CHOICE_SUBTEXT_BASE_STYLE: CSSProperties = {
+  fontSize: '12px',
+  marginTop: '4px'
+};
+
+const LOADING_STYLE: CSSProperties = {
+  color: '#fff',
+  textAlign: 'center'
+};
+
 /**
  * 선택지 버튼 컴포넌트
  */
@@ -96,9 +207,31 @@ interface ChoiceButtonProps {
   shaking: boolean;
 }
 
-function ChoiceButton({ choice, playerStats, choiceState, specials, onSelect, shaking }: ChoiceButtonProps) {
+const ChoiceButton = memo(function ChoiceButton({ choice, playerStats, choiceState, specials, onSelect, shaking }: ChoiceButtonProps) {
   const specialOverride = getSpecialOverride(choice, specials);
   const displayInfo = getChoiceDisplayInfo(choice, playerStats, choiceState, specialOverride);
+
+  const buttonStyle = useMemo((): CSSProperties => ({
+    padding: '12px 20px',
+    margin: '6px 0',
+    width: '100%',
+    textAlign: 'left',
+    background: displayInfo.isSpecial
+      ? 'linear-gradient(135deg, rgba(147, 51, 234, 0.3), rgba(79, 70, 229, 0.3))'
+      : displayInfo.disabled
+        ? 'rgba(30, 41, 59, 0.5)'
+        : 'rgba(30, 41, 59, 0.9)',
+    border: displayInfo.isSpecial
+      ? '2px solid #a78bfa'
+      : displayInfo.disabled
+        ? '1px solid #475569'
+        : '1px solid #64748b',
+    borderRadius: '8px',
+    color: displayInfo.disabled ? '#64748b' : '#e2e8f0',
+    cursor: displayInfo.disabled ? 'not-allowed' : 'pointer',
+    transition: 'all 0.2s ease',
+    fontSize: '15px',
+  }), [displayInfo.isSpecial, displayInfo.disabled]);
 
   if (displayInfo.hidden) return null;
 
@@ -107,37 +240,17 @@ function ChoiceButton({ choice, playerStats, choiceState, specials, onSelect, sh
       className={`dungeon-choice-btn ${displayInfo.disabled ? 'disabled' : ''} ${displayInfo.isSpecial ? 'special' : ''} ${shaking ? 'shake' : ''}`}
       disabled={displayInfo.disabled}
       onClick={() => onSelect(choice, specialOverride)}
-      style={{
-        padding: '12px 20px',
-        margin: '6px 0',
-        width: '100%',
-        textAlign: 'left',
-        background: displayInfo.isSpecial
-          ? 'linear-gradient(135deg, rgba(147, 51, 234, 0.3), rgba(79, 70, 229, 0.3))'
-          : displayInfo.disabled
-            ? 'rgba(30, 41, 59, 0.5)'
-            : 'rgba(30, 41, 59, 0.9)',
-        border: displayInfo.isSpecial
-          ? '2px solid #a78bfa'
-          : displayInfo.disabled
-            ? '1px solid #475569'
-            : '1px solid #64748b',
-        borderRadius: '8px',
-        color: displayInfo.disabled ? '#64748b' : '#e2e8f0',
-        cursor: displayInfo.disabled ? 'not-allowed' : 'pointer',
-        transition: 'all 0.2s ease',
-        fontSize: '15px',
-      }}
+      style={buttonStyle}
     >
       <div>{displayInfo.text}</div>
       {displayInfo.subtext && (
-        <div style={{ fontSize: '12px', color: displayInfo.isSpecial ? '#c4b5fd' : '#94a3b8', marginTop: '4px' }}>
+        <div style={{ ...CHOICE_SUBTEXT_BASE_STYLE, color: displayInfo.isSpecial ? '#c4b5fd' : '#94a3b8' }}>
           {displayInfo.subtext}
         </div>
       )}
     </button>
   );
-}
+});
 
 /**
  * 던전 노드 메인 컴포넌트
@@ -149,7 +262,7 @@ interface DungeonNodeProps {
   onCombat: (combatId: string) => void;
 }
 
-export function DungeonNode({ dungeon, onNavigate, onExit, onCombat }: DungeonNodeProps) {
+function DungeonNodeComponent({ dungeon, onNavigate, onExit, onCombat }: DungeonNodeProps) {
   const playerStrength = useGameStore((s) => s.playerStrength || 0);
   const playerAgility = useGameStore((s) => s.playerAgility || 0);
   const playerInsight = useGameStore((s) => s.playerInsight || 0);
@@ -309,33 +422,22 @@ export function DungeonNode({ dungeon, onNavigate, onExit, onCombat }: DungeonNo
   }, [onNavigate]);
 
   if (!currentNode) {
-    return <div style={{ color: '#fff', textAlign: 'center' }}>던전 로딩 중...</div>;
+    return <div style={LOADING_STYLE}>던전 로딩 중...</div>;
   }
 
   const nodeEmoji = NODE_EMOJIS[currentNode.type] || '❓';
   const eventEmoji = currentNode.event ? EVENT_EMOJIS[currentNode.event.type] : null;
 
   return (
-    <div className={`dungeon-node-container ${isShaking ? 'shake-screen' : ''}`} style={{
-      padding: '24px',
-      maxWidth: '600px',
-      margin: '0 auto',
-      color: '#e2e8f0',
-    }}>
+    <div className={`dungeon-node-container ${isShaking ? 'shake-screen' : ''}`} style={CONTAINER_STYLE}>
       {/* 헤더: 시간 페널티 표시 */}
       <div style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: '20px',
-        padding: '12px 16px',
-        background: 'rgba(15, 23, 42, 0.9)',
-        borderRadius: '8px',
+        ...HEADER_BASE_STYLE,
         border: `1px solid ${timePenalty.level === 0 ? '#22c55e' : timePenalty.level === 1 ? '#eab308' : timePenalty.level === 2 ? '#f97316' : '#ef4444'}`,
       }}>
         <div>
-          <span style={{ fontSize: '14px', color: '#94a3b8' }}>탐험 시간</span>
-          <div style={{ fontSize: '18px', fontWeight: 'bold' }}>
+          <span style={TIME_LABEL_STYLE}>탐험 시간</span>
+          <div style={TIME_VALUE_STYLE}>
             {dungeon.timeElapsed || 0} / {dungeon.maxTime || 30}
           </div>
         </div>
@@ -354,22 +456,16 @@ export function DungeonNode({ dungeon, onNavigate, onExit, onCombat }: DungeonNo
           {timePenalty.description}
         </div>
         <div>
-          <span style={{ fontSize: '14px', color: '#94a3b8' }}>체력</span>
-          <div style={{ fontSize: '18px', fontWeight: 'bold', color: playerHp / maxHp > 0.5 ? '#22c55e' : playerHp / maxHp > 0.25 ? '#eab308' : '#ef4444' }}>
+          <span style={TIME_LABEL_STYLE}>체력</span>
+          <div style={{ ...TIME_VALUE_STYLE, color: playerHp / maxHp > 0.5 ? '#22c55e' : playerHp / maxHp > 0.25 ? '#eab308' : '#ef4444' }}>
             {playerHp} / {maxHp}
           </div>
         </div>
       </div>
 
       {/* 현재 노드 정보 */}
-      <div style={{
-        padding: '20px',
-        background: 'rgba(30, 41, 59, 0.9)',
-        borderRadius: '12px',
-        marginBottom: '20px',
-        border: '1px solid #475569',
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+      <div style={NODE_INFO_STYLE}>
+        <div style={NODE_HEADER_STYLE}>
           <span style={{ fontSize: '32px' }}>{nodeEmoji}</span>
           {eventEmoji && <span style={{ fontSize: '24px' }}>{eventEmoji}</span>}
           <div>
@@ -380,30 +476,14 @@ export function DungeonNode({ dungeon, onNavigate, onExit, onCombat }: DungeonNo
 
         {/* 현재 메시지 */}
         {currentMessage && (
-          <div style={{
-            padding: '16px',
-            background: 'rgba(15, 23, 42, 0.8)',
-            borderRadius: '8px',
-            marginTop: '16px',
-            borderLeft: '4px solid #3b82f6',
-            fontSize: '15px',
-            lineHeight: '1.6',
-          }}>
+          <div style={MESSAGE_STYLE}>
             {currentMessage}
           </div>
         )}
 
         {/* 경고 메시지 */}
         {showWarning && (
-          <div style={{
-            padding: '12px 16px',
-            background: 'rgba(234, 179, 8, 0.2)',
-            borderRadius: '8px',
-            marginTop: '12px',
-            border: '1px solid #eab308',
-            color: '#fde047',
-            fontSize: '14px',
-          }}>
+          <div style={WARNING_STYLE}>
             ⚠️ {showWarning}
           </div>
         )}
@@ -411,14 +491,8 @@ export function DungeonNode({ dungeon, onNavigate, onExit, onCombat }: DungeonNo
 
       {/* 선택지 */}
       {eventChoices.length > 0 && (
-        <div style={{
-          padding: '20px',
-          background: 'rgba(30, 41, 59, 0.9)',
-          borderRadius: '12px',
-          marginBottom: '20px',
-          border: '1px solid #475569',
-        }}>
-          <h3 style={{ margin: '0 0 16px', fontSize: '16px', color: '#94a3b8' }}>선택지</h3>
+        <div style={SECTION_STYLE}>
+          <h3 style={SECTION_TITLE_STYLE}>선택지</h3>
           {eventChoices.map((choice) => (
             <ChoiceButton
               key={choice.id}
@@ -434,14 +508,9 @@ export function DungeonNode({ dungeon, onNavigate, onExit, onCombat }: DungeonNo
       )}
 
       {/* 이동 가능한 노드 */}
-      <div style={{
-        padding: '20px',
-        background: 'rgba(30, 41, 59, 0.9)',
-        borderRadius: '12px',
-        border: '1px solid #475569',
-      }}>
-        <h3 style={{ margin: '0 0 16px', fontSize: '16px', color: '#94a3b8' }}>이동</h3>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+      <div style={{ ...SECTION_STYLE, marginBottom: 0 }}>
+        <h3 style={SECTION_TITLE_STYLE}>이동</h3>
+        <div style={NAV_BUTTONS_STYLE}>
           {connectedNodes.map((node) => (
             <button
               key={node.id}
@@ -470,18 +539,7 @@ export function DungeonNode({ dungeon, onNavigate, onExit, onCombat }: DungeonNo
         {currentNode.type === DUNGEON_NODE_TYPES.EXIT && (
           <button
             onClick={onExit}
-            style={{
-              marginTop: '16px',
-              padding: '14px 24px',
-              width: '100%',
-              background: 'linear-gradient(135deg, #22c55e, #16a34a)',
-              border: 'none',
-              borderRadius: '8px',
-              color: '#fff',
-              fontSize: '16px',
-              fontWeight: '600',
-              cursor: 'pointer',
-            }}
+            style={EXIT_BUTTON_STYLE}
           >
             🌅 던전 탈출
           </button>
@@ -490,3 +548,5 @@ export function DungeonNode({ dungeon, onNavigate, onExit, onCombat }: DungeonNo
     </div>
   );
 }
+
+export const DungeonNode = memo(DungeonNodeComponent);
