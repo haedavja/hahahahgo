@@ -1,18 +1,20 @@
-import { useEffect, useMemo, useRef, useState, useCallback, memo } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback, memo, lazy, Suspense } from "react";
 import type { CSSProperties } from "react";
 import { useShallow } from 'zustand/react/shallow';
 import type { Resources, MapNode } from "../../types";
 import { useMapState } from "./hooks/useMapState";
 import { useGameStore } from "../../state/gameStore";
 import { calculateEtherSlots, getCurrentSlotPts, getSlotProgress, getNextSlotCost } from "../../lib/etherUtils";
-import { CharacterSheet } from "../character/CharacterSheet";
-import { DungeonExploration } from "../dungeon/DungeonExploration";
-import { BattleScreen } from "../battle/BattleScreen";
-import { ShopModal } from "../shop/ShopModal";
 import type { MerchantTypeKey } from "../../data/shop";
 import { EtherBar } from "../battle/ui/EtherBar";
-import { DevTools } from "../dev/DevTools";
 import { RelicsBar, RestModal, EventModal } from "./ui";
+
+// Lazy loading for heavy components
+const CharacterSheet = lazy(() => import("../character/CharacterSheet").then(m => ({ default: m.CharacterSheet })));
+const DungeonExploration = lazy(() => import("../dungeon/DungeonExploration").then(m => ({ default: m.DungeonExploration })));
+const BattleScreen = lazy(() => import("../battle/BattleScreen").then(m => ({ default: m.BattleScreen })));
+const ShopModal = lazy(() => import("../shop/ShopModal").then(m => ({ default: m.ShopModal })));
+const DevTools = lazy(() => import("../dev/DevTools").then(m => ({ default: m.DevTools })));
 import {
   NODE_WIDTH,
   NODE_HEIGHT,
@@ -565,7 +567,11 @@ function MapDemoComponent() {
         />
       )}
 
-      {activeBattle && <BattleScreen />}
+      {activeBattle && (
+        <Suspense fallback={null}>
+          <BattleScreen />
+        </Suspense>
+      )}
 
       {activeDungeon && !activeDungeon.confirmed && (
         <div className="event-modal-overlay">
@@ -599,9 +605,11 @@ function MapDemoComponent() {
       )}
 
       {isDungeonExploring && (
-        <div style={{ display: activeBattle ? 'none' : 'block' }}>
-          <DungeonExploration />
-        </div>
+        <Suspense fallback={null}>
+          <div style={{ display: activeBattle ? 'none' : 'block' }}>
+            <DungeonExploration />
+          </div>
+        </Suspense>
       )}
 
       {lastBattleResult && !lastBattleResult.nodeId.startsWith('dungeon-') && (
@@ -630,22 +638,34 @@ function MapDemoComponent() {
         </div>
       )}
 
-      {showCharacterSheet && <CharacterSheet onClose={() => actions.setShowCharacterSheet(false)} showAllCards={showAllCards} />}
+      {showCharacterSheet && (
+        <Suspense fallback={null}>
+          <CharacterSheet onClose={() => actions.setShowCharacterSheet(false)} showAllCards={showAllCards} />
+        </Suspense>
+      )}
 
-      {activeShop && <ShopModal merchantType={(activeShop.merchantType || 'shop') as MerchantTypeKey} onClose={closeShop} />}
+      {activeShop && (
+        <Suspense fallback={null}>
+          <ShopModal merchantType={(activeShop.merchantType || 'shop') as MerchantTypeKey} onClose={closeShop} />
+        </Suspense>
+      )}
 
       {/* 개발자 도구 오버레이 */}
-      <DevTools
-        isOpen={devToolsOpen}
-        onClose={() => actions.setDevToolsOpen(false)}
-        showAllCards={showAllCards}
-        setShowAllCards={(value) => {
-          setShowAllCards(value);
-          try {
-            localStorage.setItem('showAllCards', value.toString());
-          } catch {}
-        }}
-      />
+      {devToolsOpen && (
+        <Suspense fallback={null}>
+          <DevTools
+            isOpen={devToolsOpen}
+            onClose={() => actions.setDevToolsOpen(false)}
+            showAllCards={showAllCards}
+            setShowAllCards={(value) => {
+              setShowAllCards(value);
+              try {
+                localStorage.setItem('showAllCards', value.toString());
+              } catch {}
+            }}
+          />
+        </Suspense>
+      )}
     </div>
   );
 }

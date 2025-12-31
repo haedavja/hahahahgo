@@ -6,11 +6,13 @@
  * 최적화: React.memo + 스타일 상수 추출 + useCallback
  */
 
-import { FC, useState, MouseEvent, memo, useCallback, useMemo } from "react";
+import { FC, useState, MouseEvent, memo, useCallback, useMemo, lazy, Suspense } from "react";
 import type { CSSProperties } from "react";
 import { useCharacterSheet } from "./useCharacterSheet";
 import { CardManagementModal } from "./CardManagementModal";
-import { GrowthPyramidModal } from "../growth/GrowthPyramidModal";
+
+// Lazy loading for heavy modal
+const GrowthPyramidModal = lazy(() => import("../growth/GrowthPyramidModal").then(m => ({ default: m.GrowthPyramidModal })));
 import { TRAITS } from "../battle/battleData";
 import type { CharacterEgo as Ego, ReflectionInfo } from '../../types';
 
@@ -456,10 +458,14 @@ export const CharacterSheet: FC<CharacterSheetProps> = memo(({ onClose, showAllC
       )}
 
       {/* 성장 모달 */}
-      <GrowthPyramidModal
-        isOpen={showGrowthModal}
-        onClose={handleCloseGrowth}
-      />
+      {showGrowthModal && (
+        <Suspense fallback={null}>
+          <GrowthPyramidModal
+            isOpen={showGrowthModal}
+            onClose={handleCloseGrowth}
+          />
+        </Suspense>
+      )}
     </div>
   );
 });

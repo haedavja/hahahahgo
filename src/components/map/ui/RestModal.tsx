@@ -10,7 +10,7 @@
  * 최적화: React.memo 적용
  */
 
-import { useState, memo, useCallback, useMemo } from 'react';
+import { useState, memo, useCallback, useMemo, lazy, Suspense } from 'react';
 import { CARDS, TRAITS } from '../../battle/battleData';
 import { CARD_ETHER_BY_RARITY } from '../../battle/utils/etherCalculations';
 import { generateSpecializationOptions, type SpecializationOption } from '../../../lib/specializationUtils';
@@ -20,8 +20,9 @@ import {
   getEnhancementLabel,
   isEnhanceable,
 } from '../../../lib/cardEnhancementUtils';
-import { CardGrowthModal } from './CardGrowthModal';
-import { GrowthPyramidModal } from '../../growth/GrowthPyramidModal';
+// Lazy loading for heavy modals
+const CardGrowthModal = lazy(() => import('./CardGrowthModal').then(m => ({ default: m.CardGrowthModal })));
+const GrowthPyramidModal = lazy(() => import('../../growth/GrowthPyramidModal').then(m => ({ default: m.GrowthPyramidModal })));
 
 // 분리된 컴포넌트들
 import {
@@ -191,21 +192,29 @@ export function RestModal({
       </div>
 
       {/* 카드 승급 모달 */}
-      <CardGrowthModal
-        isOpen={showCardGrowthModal}
-        onClose={handleCloseCardGrowthModal}
-        cardGrowth={cardGrowth}
-        onEnhance={handleEnhanceCard}
-        onSpecialize={handleSpecializeCard}
-        ownedCards={ownedCards}
-        isRestNode={true}
-      />
+      {showCardGrowthModal && (
+        <Suspense fallback={null}>
+          <CardGrowthModal
+            isOpen={showCardGrowthModal}
+            onClose={handleCloseCardGrowthModal}
+            cardGrowth={cardGrowth}
+            onEnhance={handleEnhanceCard}
+            onSpecialize={handleSpecializeCard}
+            ownedCards={ownedCards}
+            isRestNode={true}
+          />
+        </Suspense>
+      )}
 
       {/* 피라미드 성장 모달 */}
-      <GrowthPyramidModal
-        isOpen={showPyramidModal}
-        onClose={() => setShowPyramidModal(false)}
-      />
+      {showPyramidModal && (
+        <Suspense fallback={null}>
+          <GrowthPyramidModal
+            isOpen={showPyramidModal}
+            onClose={() => setShowPyramidModal(false)}
+          />
+        </Suspense>
+      )}
     </div>
   );
 }

@@ -3,11 +3,13 @@
  * 카드 관리 탭
  */
 
-import { useState, useCallback, useMemo, memo, ChangeEvent } from 'react';
+import { useState, useCallback, useMemo, memo, ChangeEvent, lazy, Suspense } from 'react';
 import { CARDS, TRAITS } from '../../battle/battleData';
 import type { CardsTabCard as Card, CardsTabCharacterBuild as CharacterBuild } from '../../../types';
 import type { CardGrowthState } from '../../../state/slices/types';
-import { CardGrowthModal } from '../../map/ui/CardGrowthModal';
+
+// Lazy loading for heavy modal
+const CardGrowthModal = lazy(() => import('../../map/ui/CardGrowthModal').then(m => ({ default: m.CardGrowthModal })));
 
 // 특성 목록 (긍정/부정 분리 후 가나다 순 정렬)
 const ALL_TRAITS = Object.entries(TRAITS)
@@ -636,14 +638,18 @@ export const CardsTab = memo(function CardsTab({ cardUpgrades, upgradeCardRarity
       </div>
 
       {/* 카드 승급 모달 */}
-      <CardGrowthModal
-        isOpen={showCardGrowthModal}
-        onClose={handleCloseCardGrowthModal}
-        cardGrowth={cardGrowth}
-        onEnhance={enhanceCard}
-        onSpecialize={specializeCard}
-        ownedCards={ownedCards}
-      />
+      {showCardGrowthModal && (
+        <Suspense fallback={null}>
+          <CardGrowthModal
+            isOpen={showCardGrowthModal}
+            onClose={handleCloseCardGrowthModal}
+            cardGrowth={cardGrowth}
+            onEnhance={enhanceCard}
+            onSpecialize={specializeCard}
+            ownedCards={ownedCards}
+          />
+        </Suspense>
+      )}
     </div>
   );
 });
