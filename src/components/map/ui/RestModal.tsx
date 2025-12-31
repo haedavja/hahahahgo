@@ -11,46 +11,29 @@
  */
 
 import { useState, memo, useCallback, useMemo } from 'react';
-import type { CSSProperties } from 'react';
 import { CARDS, TRAITS } from '../../battle/battleData';
 import { CARD_ETHER_BY_RARITY } from '../../battle/utils/etherCalculations';
 import { generateSpecializationOptions, type SpecializationOption } from '../../../lib/specializationUtils';
 import type { CardGrowthState } from '../../../state/slices/types';
 import {
-  getNextEnhancementPreview,
-  getAllEnhancementLevels,
   getEnhancementColor,
   getEnhancementLabel,
   isEnhanceable,
-  calculateEnhancedStats,
 } from '../../../lib/cardEnhancementUtils';
 import { CardGrowthModal } from './CardGrowthModal';
 import { GrowthPyramidModal } from '../../growth/GrowthPyramidModal';
 
-// 자아 형성 규칙 - 레거시 (새 성장 시스템으로 대체됨)
-// 새 시스템: 개성 → 에토스/파토스 → 자아(총잡이/검잡이) → 로고스
-
-const TRAIT_EFFECT_DESC = {
-  '용맹함': '힘 +1',
-  '굳건함': '체력 +10',
-  '냉철함': '통찰 +1',
-  '철저함': '보조슬롯 +1',
-  '열정적': '속도 +5',
-  '활력적': '행동력 +1',
-};
-
-// REFLECTION_DESC 제거됨 - 새 성장 시스템으로 대체
-
-// 강화/특화 비용 (휴식 노드에서는 무료)
-const ENHANCEMENT_COST: Record<number, number> = {
-  1: 0,  // 0→1강 (무료)
-  2: 0,  // 1→2강 (무료)
-  3: 0,  // 2→3강 (무료)
-  4: 0,  // 3→4강 (무료)
-  5: 0,  // 4→5강 (무료)
-};
-
-const SPECIALIZATION_COST = 0; // 특화 비용 (무료)
+// 분리된 컴포넌트들
+import {
+  TRAIT_EFFECT_DESC,
+  ENHANCEMENT_COST,
+  SPECIALIZATION_COST,
+  RARITY_LABEL,
+  RARITY_BADGE,
+  type GrowthNotification,
+} from './rest/restConstants';
+import { GrowthStatsPanel } from './rest/GrowthStatsPanel';
+import { EnhancePreviewPanel, StatBadge } from './rest/EnhancePreviewPanel';
 
 export function RestModal({
   memoryValue,
