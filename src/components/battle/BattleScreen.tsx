@@ -9,6 +9,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { useGameStore } from "../../state/gameStore";
 import { BattleApp } from "./BattleApp";
 import { DevTools } from "../dev/DevTools";
+import { BattleErrorBoundary } from "./BattleErrorBoundary";
 import { calculatePassiveEffects, applyCombatStartEffects } from "../../lib/relicEffects";
 import { ENEMIES } from "./battleData";
 import type {
@@ -324,16 +325,18 @@ export const BattleScreen: FC = memo(function BattleScreen() {
   if (!activeBattle || !payload) return null;
 
   return (
-    <div className="battle-fullscreen">
-      <BattleApp
-        initialPlayer={payload.player}
-        initialEnemy={payload.enemy}
-        playerEther={playerEther}
-        liveInsight={effectiveInsight}
-        onBattleResult={handleBattleResult}
-      />
+    <BattleErrorBoundary>
+      <div className="battle-fullscreen">
+        <BattleApp
+          initialPlayer={payload.player}
+          initialEnemy={payload.enemy}
+          playerEther={playerEther}
+          liveInsight={effectiveInsight}
+          onBattleResult={handleBattleResult}
+        />
 
-      <DevTools isOpen={devToolsOpen} onClose={() => setDevToolsOpen(false)} showAllCards={false} setShowAllCards={() => {}} />
-    </div>
+        <DevTools isOpen={devToolsOpen} onClose={() => setDevToolsOpen(false)} showAllCards={false} setShowAllCards={() => {}} />
+      </div>
+    </BattleErrorBoundary>
   );
 });

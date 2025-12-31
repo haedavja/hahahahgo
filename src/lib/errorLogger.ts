@@ -130,12 +130,24 @@ export function configureErrorLogger(
  */
 export function handleBoundaryError(
   error: Error,
-  errorInfo: { componentStack?: string }
+  errorInfo: { componentStack?: string; context?: string; severity?: 'error' | 'warning' }
 ): ErrorLogEntry {
+  const contextName = errorInfo.context || 'ErrorBoundary';
+  const severity = errorInfo.severity || 'error';
+
+  // 경고 수준이면 콘솔에만 출력
+  if (severity === 'warning') {
+    logWarning(`[${contextName}] ${error.message}`, {
+      componentName: contextName,
+      additionalInfo: { componentStack: errorInfo.componentStack },
+    });
+  }
+
   return logError(error, {
-    componentName: 'ErrorBoundary',
+    componentName: contextName,
     additionalInfo: {
       componentStack: errorInfo.componentStack,
+      severity,
     },
   });
 }
