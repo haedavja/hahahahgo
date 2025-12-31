@@ -452,8 +452,15 @@ function TierRow({
         <span style={{ fontSize: '9px', color: '#6b7280' }}>검⚔ vs 총🔫</span>
       </div>
 
-      {/* 노드 가로 그리드 */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', justifyContent: 'center' }}>
+      {/* 노드 그리드 - 피라미드 형태 */}
+      <div style={{
+        display: 'flex',
+        flexWrap: 'wrap',
+        gap: '8px',
+        justifyContent: 'center',
+        maxWidth: tier <= 3 ? '100%' : tier === 4 ? '90%' : '80%',
+        margin: '0 auto',
+      }}>
         {nodes.map(node => {
           const isUnlocked = growth.unlockedNodes.includes(node.id);
           const isPending = pendingSelection?.nodeId === node.id;
@@ -472,14 +479,17 @@ function TierRow({
           const choices = getNodeChoices(node.id, type);
           const [choice1, choice2] = choices || [null, null];
 
+          // 노드 개수에 따른 폭 계산
+          const nodeCount = nodes.length;
+          const nodeWidth = nodeCount <= 4 ? '220px' : nodeCount <= 5 ? '200px' : '180px';
+
           return (
             <div
               key={node.id}
               style={{
-                width: 'calc(50% - 4px)',
-                minWidth: '280px',
-                maxWidth: '450px',
-                padding: '8px 10px',
+                width: nodeWidth,
+                flex: `0 0 ${nodeWidth}`,
+                padding: '8px',
                 background: isPending
                   ? 'rgba(251, 191, 36, 0.15)'
                   : isUnlocked
@@ -493,30 +503,27 @@ function TierRow({
                 borderRadius: '6px',
               }}
             >
-              {/* 노드 헤더 */}
+              {/* 노드 헤더 - 간결하게 */}
               <div style={{
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
-                marginBottom: '6px',
+                marginBottom: '4px',
               }}>
-                <div style={{
+                <span style={{
                   fontWeight: 'bold',
                   color: isUnlocked ? colors.text : '#e2e8f0',
-                  fontSize: '12px',
+                  fontSize: '11px',
                 }}>
                   {isUnlocked && '✓ '}{node.name}
-                  <span style={{ fontWeight: 'normal', color: '#6b7280', marginLeft: '6px', fontSize: '10px' }}>
-                    {node.description}
-                  </span>
-                </div>
+                </span>
 
                 {/* 상태 뱃지 */}
                 {canUnlock && (
                   <button
                     onClick={() => onUnlockNode(node.id, type)}
                     style={{
-                      padding: '2px 6px',
+                      padding: '2px 5px',
                       background: 'rgba(96, 165, 250, 0.2)',
                       border: '1px solid #60a5fa',
                       borderRadius: '4px',
@@ -525,25 +532,17 @@ function TierRow({
                       cursor: 'pointer',
                     }}
                   >
-                    1P 해금
+                    1P
                   </button>
                 )}
                 {selectedChoice && (
-                  <span style={{
-                    fontSize: '9px',
-                    padding: '2px 4px',
-                    background: 'rgba(134, 239, 172, 0.2)',
-                    borderRadius: '3px',
-                    color: '#86efac',
-                  }}>
-                    완료
-                  </span>
+                  <span style={{ fontSize: '9px', color: '#86efac' }}>✓</span>
                 )}
               </div>
 
-              {/* 선택지 2개 - 클릭으로 직접 선택 */}
+              {/* 선택지 2개 - 세로 배치, 클릭으로 직접 선택 */}
               {choice1 && choice2 && (
-                <div style={{ display: 'flex', gap: '4px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                   <ChoiceBadge
                     choice={choice1}
                     isSelected={selectedChoice === choice1.id}
@@ -568,7 +567,7 @@ function TierRow({
   );
 }
 
-// 선택지 뱃지 - 클릭으로 직접 선택
+// 선택지 뱃지 - 세로 배치용 컴팩트 디자인
 function ChoiceBadge({
   choice,
   isSelected,
@@ -583,7 +582,7 @@ function ChoiceBadge({
   onSelect: () => void;
 }) {
   const typeColor = choice.type === 'sword' ? '#60a5fa' : choice.type === 'gun' ? '#f472b6' : '#9ca3af';
-  const typeLabel = choice.type === 'sword' ? '검' : choice.type === 'gun' ? '총' : '공';
+  const typeEmoji = choice.type === 'sword' ? '⚔' : choice.type === 'gun' ? '🔫' : '◎';
 
   return (
     <div
@@ -593,8 +592,7 @@ function ChoiceBadge({
       }}
       title={choice.description}
       style={{
-        flex: 1,
-        padding: '6px 8px',
+        padding: '4px 6px',
         background: isSelected
           ? 'rgba(134, 239, 172, 0.2)'
           : canSelect
@@ -613,41 +611,31 @@ function ChoiceBadge({
         transition: 'all 0.15s',
       }}
     >
-      {/* 이름 + 타입 */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '2px' }}>
-        {isSelected && <span style={{ color: '#86efac', fontSize: '10px' }}>✓</span>}
+      {/* 한 줄: 타입 이모지 + 이름 + 설명 */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+        <span style={{ fontSize: '10px', color: typeColor }}>{typeEmoji}</span>
+        {isSelected && <span style={{ color: '#86efac', fontSize: '9px' }}>✓</span>}
         <span style={{
           fontWeight: isSelected ? 'bold' : 'normal',
-          fontSize: '11px',
+          fontSize: '10px',
           color: isSelected ? '#86efac' : canSelect ? '#fbbf24' : isAlternative ? '#6b7280' : '#e2e8f0',
+          whiteSpace: 'nowrap',
         }}>
           {choice.name}
         </span>
         <span style={{
-          fontSize: '8px',
-          padding: '0px 3px',
-          background: `${typeColor}20`,
-          borderRadius: '2px',
-          color: typeColor,
+          fontSize: '9px',
+          color: isAlternative ? '#4b5563' : '#6b7280',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+          flex: 1,
         }}>
-          {typeLabel}
+          - {choice.description}
         </span>
         {canSelect && (
-          <span style={{ fontSize: '9px', color: '#fbbf24', marginLeft: 'auto' }}>클릭!</span>
+          <span style={{ fontSize: '8px', color: '#fbbf24', whiteSpace: 'nowrap' }}>선택</span>
         )}
-      </div>
-      {/* 설명 */}
-      <div style={{
-        fontSize: '9px',
-        color: isAlternative ? '#4b5563' : '#9ca3af',
-        lineHeight: '1.3',
-        overflow: 'hidden',
-        textOverflow: 'ellipsis',
-        display: '-webkit-box',
-        WebkitLineClamp: 2,
-        WebkitBoxOrient: 'vertical' as const,
-      }}>
-        {choice.description}
       </div>
     </div>
   );
