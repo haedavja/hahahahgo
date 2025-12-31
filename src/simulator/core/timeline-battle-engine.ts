@@ -1222,7 +1222,7 @@ export class TimelineBattleEngine {
       const critText = isCrit ? ' 💥치명타!' : '';
       const blockText = blocked > 0 ? ` (${blocked} 방어)` : '';
       state.battleLog.push(
-        `  ${attacker === 'player' ? '플레이어' : '적'}: ${card.name}${hits > 1 ? ` (${hit + 1}/${hits})` : ''} → ${actualDamage} 피해${blockText}${critText}`
+        `  ${attacker === 'player' ? '플레이어' : '적'}: ${card.name}${totalHits > 1 ? ` (${hit + 1}/${totalHits})` : ''} → ${actualDamage} 피해${blockText}${critText}`
       );
 
       // 토큰 소모

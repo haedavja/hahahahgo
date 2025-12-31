@@ -17,8 +17,31 @@ import { ShopSimulator, ShopInventory, ShopResult, ShopSimulationConfig } from '
 import { RestSimulator, RestResult, RestNodeConfig } from './rest-simulator';
 import { DungeonSimulator, DungeonState, DungeonExplorationResult, DungeonSimulationConfig } from './dungeon-simulator';
 import { TimelineBattleEngine } from '../core/timeline-battle-engine';
-import type { BattleResult, EnemyState } from '../core/game-types';
+import type { BattleResult, EnemyState, TokenState } from '../core/game-types';
 import type { Card } from '../../types';
+
+// 적 정의 타입 (battleData.ts에서 가져옴)
+interface EnemyDefinition {
+  id: string;
+  name: string;
+  hp: number;
+  ether?: number;
+  speed?: number;
+  maxSpeed: number;
+  deck: string[];
+  cardsPerTurn: number;
+  emoji?: string;
+  tier: number;
+  description?: string;
+  isBoss?: boolean;
+  passives?: {
+    veilAtStart?: boolean;
+    healPerTurn?: number;
+    strengthPerTurn?: number;
+    critBoostAtStart?: number;
+    summonOnHalfHp?: boolean;
+  };
+}
 
 const log = getLogger('RunSimulator');
 
@@ -158,6 +181,8 @@ export class RunSimulator {
   private dungeonSimulator: DungeonSimulator;
   private battleEngine: TimelineBattleEngine;
   private cardLibrary: Record<string, Card> = {};
+  private enemyLibrary: EnemyDefinition[] = [];
+  private useBattleEngine: boolean = true; // 실제 전투 엔진 사용 여부
 
   constructor() {
     this.mapSimulator = new MapSimulator();
@@ -187,7 +212,15 @@ export class RunSimulator {
       const { RELICS } = await import('../../data/relics');
       this.shopSimulator.loadRelicData(RELICS as any);
 
-      log.info('Game data loaded successfully');
+      // 적 데이터 로드
+      const { ENEMIES } = await import('../../components/battle/battleData');
+      this.enemyLibrary = ENEMIES as EnemyDefinition[];
+
+      log.info('Game data loaded successfully', {
+        events: Object.keys(NEW_EVENT_LIBRARY).length,
+        cards: Object.keys(CARD_LIBRARY).length,
+        enemies: this.enemyLibrary.length
+      });
     } catch (error) {
       log.warn('Failed to load some game data', { error });
     }
@@ -357,7 +390,75 @@ export class RunSimulator {
   }
 
   /**
-   * 전투 노드 처리
+   * 적 선택 (tier 기반)
+   */
+  private selectEnemy(nodeType: MapNodeType, layer: number): EnemyState {
+    // 기본 적 (라이브러리가 없을 때)
+    const defaultEnemy = (): EnemyState => ({
+      id: 'ghoul',
+      name: '구울',
+      hp: 40,
+      maxHp: 40,
+      block: 0,
+      tokens: {},
+      maxSpeed: 10,
+      deck: ['ghoul_attack', 'ghoul_attack', 'ghoul_block', 'ghoul_block'],
+      cardsPerTurn: 2,
+      passives: {},
+    });
+
+    if (this.enemyLibrary.length === 0) {
+      return defaultEnemy();
+    }
+
+    // 노드 타입에 따른 tier 결정
+    let targetTier: number;
+    if (nodeType === 'boss') {
+      targetTier = 3; // 보스
+    } else if (nodeType === 'elite') {
+      targetTier = 2; // 엘리트
+    } else {
+      // 일반 전투: 레이어에 따라 tier 조정
+      if (layer >= 8) {
+        targetTier = Math.random() < 0.3 ? 2 : 1;
+      } else if (layer >= 4) {
+        targetTier = 1;
+      } else {
+        targetTier = 1;
+      }
+    }
+
+    // 해당 tier의 적 필터링
+    const eligibleEnemies = this.enemyLibrary.filter(e => {
+      if (nodeType === 'boss') return e.isBoss === true;
+      if (nodeType === 'elite') return e.tier === 2 && !e.isBoss;
+      return e.tier === targetTier && !e.isBoss;
+    });
+
+    if (eligibleEnemies.length === 0) {
+      return defaultEnemy();
+    }
+
+    // 랜덤 선택
+    const selectedDef = eligibleEnemies[Math.floor(Math.random() * eligibleEnemies.length)];
+
+    // EnemyDefinition을 EnemyState로 변환
+    return {
+      id: selectedDef.id,
+      name: selectedDef.name,
+      hp: selectedDef.hp,
+      maxHp: selectedDef.hp,
+      block: 0,
+      tokens: {},
+      maxSpeed: selectedDef.maxSpeed,
+      deck: [...selectedDef.deck],
+      cardsPerTurn: selectedDef.cardsPerTurn,
+      passives: selectedDef.passives || {},
+    };
+  }
+
+  /**
+   * 전투 노드 처리 (TimelineBattleEngine 통합)
    */
   private processCombatNode(
     node: MapNode,
@@ -369,72 +470,42 @@ export class RunSimulator {
     const isElite = node.type === 'elite';
     const isBoss = node.type === 'boss';
 
-    // 적 생성 (간단한 시뮬레이션)
-    const enemyHp = Math.floor(50 + difficulty * 20 + (isElite ? 30 : 0) + (isBoss ? 100 : 0));
-    const enemy: EnemyState = {
-      id: `enemy_${node.id}`,
-      name: isBoss ? 'Boss' : isElite ? 'Elite' : 'Enemy',
-      hp: enemyHp,
-      maxHp: enemyHp,
-      block: 0,
-      ether: 0,
-      tokens: {
-        offensive: 0, defensive: 0, vulnerable: 0, weak: 0,
-        strength: 0, dexterity: 0, focus: 0, regeneration: 0, poison: 0, burn: 0
-      },
-      deck: ['enemy_attack', 'enemy_defend'],
-      cardsPerTurn: isElite || isBoss ? 3 : 2,
-      passives: {},
-    };
+    // 실제 적 선택
+    const enemy = this.selectEnemy(node.type, node.layer);
 
-    // 전투 시뮬레이션 (개선된 승률 공식)
-    // 기본 승률: 일반 80%, 엘리트 65%, 보스 50%
-    let baseWinRate = isBoss ? 0.50 : isElite ? 0.65 : 0.80;
-
-    // 난이도 보정 (-5% per difficulty level above 1)
-    const difficultyPenalty = (difficulty - 1) * 0.05;
-    baseWinRate -= difficultyPenalty;
-
-    // 덱 품질 보정 (7-15장이 최적, 그 외 페널티)
-    const deckSize = player.deck.length;
-    let deckBonus = 0;
-    if (deckSize >= 7 && deckSize <= 15) {
-      deckBonus = 0.05; // 최적 덱 크기
-    } else if (deckSize < 5) {
-      deckBonus = -0.05; // 너무 작은 덱 (경미한 페널티)
-    } else if (deckSize > 25) {
-      deckBonus = -0.1; // 너무 큰 덱
-    }
-    baseWinRate += deckBonus;
-
-    // 상징 보정 (+3% per relic)
-    const relicBonus = player.relics.length * 0.03;
-    baseWinRate += relicBonus;
-
-    // 스탯 보정
-    const statBonus = (player.strength + player.agility + player.insight - 3) * 0.02;
-    baseWinRate += statBonus;
-
-    // 체력 보정 (50% 이하면 페널티)
-    if (player.hp < player.maxHp * 0.5) {
-      baseWinRate -= 0.1;
+    // 난이도에 따른 적 강화
+    if (difficulty > 1) {
+      const hpMultiplier = 1 + (difficulty - 1) * 0.15; // 난이도당 15% HP 증가
+      enemy.hp = Math.floor(enemy.hp * hpMultiplier);
+      enemy.maxHp = enemy.hp;
     }
 
-    // 최종 승률 제한 (10% ~ 90%)
-    const winChance = Math.min(0.90, Math.max(0.10, baseWinRate));
+    let battleResult: BattleResult;
 
-    const won = Math.random() < winChance;
+    // 실제 전투 엔진 사용 (적 데이터가 있을 때)
+    if (this.useBattleEngine && this.enemyLibrary.length > 0) {
+      battleResult = this.battleEngine.runBattle(
+        player.deck,
+        player.relics,
+        enemy,
+        undefined // 이변 ID (추후 확장)
+      );
+    } else {
+      // 폴백: 확률 기반 시뮬레이션
+      battleResult = this.simulateCombatFallback(player, enemy, isElite, isBoss, difficulty);
+    }
+
+    const won = battleResult.winner === 'player';
 
     if (won) {
       result.success = true;
-      result.details = `전투 승리 (난이도 ${difficulty})`;
+      result.details = `전투 승리 vs ${enemy.name} (${battleResult.turns}턴)`;
 
       // 보상
       const goldReward = Math.floor(15 + difficulty * 10 + (isElite ? 20 : 0) + (isBoss ? 50 : 0));
       player.gold += goldReward;
 
       // 카드 보상: 3장 중 1장 선택 (게임과 동일)
-      // 덱 크기가 20장 미만일 때만 카드 획득
       if (player.deck.length < 20) {
         const selectedCard = this.selectCardReward(player, config.strategy);
         if (selectedCard) {
@@ -443,10 +514,9 @@ export class RunSimulator {
         }
       }
 
-      // 엘리트/보스 상징 획득 (실제 상징 풀에서 선택, 중복 방지)
+      // 엘리트/보스 상징 획득
       if ((isElite || isBoss) && Math.random() < 0.5) {
         const availableRelics = REWARD_RELICS.filter(relicId => !player.relics.includes(relicId));
-
         if (availableRelics.length > 0) {
           const newRelic = availableRelics[Math.floor(Math.random() * availableRelics.length)];
           player.relics.push(newRelic);
@@ -454,19 +524,66 @@ export class RunSimulator {
         }
       }
 
-      // 피해 (승리해도 약간)
-      const damageReceived = Math.floor(Math.random() * (5 + difficulty * 3));
-      player.hp -= damageReceived;
+      // 전투 중 받은 피해 적용
+      const damageReceived = player.maxHp - battleResult.playerFinalHp;
+      player.hp = Math.max(1, battleResult.playerFinalHp);
     } else {
       result.success = false;
-      result.details = `전투 패배 (난이도 ${difficulty})`;
+      result.details = `전투 패배 vs ${enemy.name} (${battleResult.turns}턴)`;
 
-      // 패배 시 피해 (적절하게 조정)
-      const damageReceived = Math.floor(15 + difficulty * 5);
-      player.hp -= damageReceived;
+      // 패배 시 HP 0
+      player.hp = 0;
     }
+  }
 
-    player.hp = Math.max(0, player.hp);
+  /**
+   * 폴백: 확률 기반 전투 시뮬레이션 (전투 엔진을 사용할 수 없을 때)
+   */
+  private simulateCombatFallback(
+    player: PlayerRunState,
+    enemy: EnemyState,
+    isElite: boolean,
+    isBoss: boolean,
+    difficulty: number
+  ): BattleResult {
+    // 기본 승률
+    let baseWinRate = isBoss ? 0.50 : isElite ? 0.65 : 0.80;
+
+    // 난이도 보정
+    baseWinRate -= (difficulty - 1) * 0.05;
+
+    // 덱/상징 보정
+    const deckSize = player.deck.length;
+    if (deckSize >= 7 && deckSize <= 15) baseWinRate += 0.05;
+    else if (deckSize > 25) baseWinRate -= 0.1;
+
+    baseWinRate += player.relics.length * 0.03;
+
+    // 최종 승률 제한
+    const winChance = Math.min(0.90, Math.max(0.10, baseWinRate));
+    const won = Math.random() < winChance;
+
+    const turns = Math.floor(3 + Math.random() * 5);
+    const damageReceived = won
+      ? Math.floor(Math.random() * (10 + difficulty * 3))
+      : player.hp;
+
+    return {
+      winner: won ? 'player' : 'enemy',
+      turns,
+      playerDamageDealt: enemy.maxHp - (won ? 0 : Math.floor(enemy.maxHp * Math.random())),
+      enemyDamageDealt: damageReceived,
+      playerFinalHp: Math.max(0, player.hp - damageReceived),
+      enemyFinalHp: won ? 0 : Math.floor(enemy.maxHp * Math.random()),
+      etherGained: won ? Math.floor(20 + Math.random() * 30) : 0,
+      goldChange: 0,
+      battleLog: [],
+      events: [],
+      cardUsage: {},
+      comboStats: {},
+      tokenStats: {},
+      timeline: [],
+    };
   }
 
   /**
