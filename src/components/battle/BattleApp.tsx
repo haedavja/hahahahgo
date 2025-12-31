@@ -2263,6 +2263,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         freezingEnemyCards={battle.freezingEnemyCards}
         frozenOrder={battle.frozenOrder}
         parryReadyStates={parryReadyStates}
+        cardGrowth={cardGrowth}
       />
 
       {/* 상징 표시 */}

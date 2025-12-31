@@ -149,6 +149,12 @@ const Shield: FC<IconProps> = ({ size = 24, className = "" }) => (
 /** 타임라인 액션 타입 (UITimelineAction 또는 OrderItem) */
 type TimelineAction = UITimelineAction | OrderItem;
 
+/** 카드 성장 상태 타입 */
+interface CardGrowthState {
+  traits?: string[];
+  [key: string]: unknown;
+}
+
 interface TimelineDisplayProps {
   player: Player;
   enemy: Enemy;
@@ -176,6 +182,7 @@ interface TimelineDisplayProps {
   freezingEnemyCards?: number[];
   frozenOrder?: number;
   parryReadyStates?: ParryState[];
+  cardGrowth?: Record<string, CardGrowthState>;
 }
 
 export const TimelineDisplay: FC<TimelineDisplayProps> = memo(({
@@ -204,8 +211,18 @@ export const TimelineDisplay: FC<TimelineDisplayProps> = memo(({
   destroyingEnemyCards = [],
   freezingEnemyCards = [],
   frozenOrder = 0,
-  parryReadyStates = []
+  parryReadyStates = [],
+  cardGrowth = {}
 }) => {
+  // 카드의 특성 확인 (card.traits + cardGrowth 둘 다 확인)
+  const hasCardTrait = useCallback((card: { id?: string; traits?: string[] }, traitId: string): boolean => {
+    // 1. 카드 자체의 traits 확인
+    if (card.traits?.includes(traitId)) return true;
+    // 2. cardGrowth에서 확인
+    if (card.id && cardGrowth[card.id]?.traits?.includes(traitId)) return true;
+    return false;
+  }, [cardGrowth]);
+
   // 여유/무리 특성 드래그 상태
   const [draggingCardUid, setDraggingCardUid] = useState<string | null>(null);
   const [draggingType, setDraggingType] = useState<'leisure' | 'strain' | null>(null);
@@ -264,7 +281,7 @@ export const TimelineDisplay: FC<TimelineDisplayProps> = memo(({
 
     let accumulatedSp = 0;
     playerTimeline.forEach((a, idx) => {
-      const hasLeisure = a.card.traits?.includes('leisure');
+      const hasLeisure = hasCardTrait(a.card, 'leisure');
       const cardUid = (a.card as { __uid?: string }).__uid || `leisure-${idx}`;
       const sameCount = playerTimeline.filter((q, i) => i < idx && q.sp === a.sp).length;
       const offset = sameCount * 28;
@@ -287,7 +304,7 @@ export const TimelineDisplay: FC<TimelineDisplayProps> = memo(({
     });
 
     return ranges;
-  }, [playerTimeline]);
+  }, [playerTimeline, hasCardTrait]);
 
   // 통합 마우스 이동 핸들러 (여유/무리 공용)
   const handleMouseMove = useCallback((e: ReactMouseEvent<HTMLDivElement>) => {
@@ -345,7 +362,7 @@ export const TimelineDisplay: FC<TimelineDisplayProps> = memo(({
     }> = [];
 
     playerTimeline.forEach((a, idx) => {
-      const hasStrain = a.card.traits?.includes('strain');
+      const hasStrain = hasCardTrait(a.card, 'strain');
       if (!hasStrain) return;
 
       const cardUid = (a.card as { __uid?: string }).__uid || `strain-${idx}`;
@@ -368,7 +385,7 @@ export const TimelineDisplay: FC<TimelineDisplayProps> = memo(({
     });
 
     return ranges;
-  }, [playerTimeline]);
+  }, [playerTimeline, hasCardTrait]);
 
   // 무리 특성 드래그 핸들러
   const handleStrainDragStart = useCallback((cardUid: string) => {
@@ -629,13 +646,13 @@ export const TimelineDisplay: FC<TimelineDisplayProps> = memo(({
                   const normalizedPosition = Math.min(((a.sp ?? 0) / playerMax) * 100, 100);
 
                   // 여유 특성 확인 (speedCost 조건 제거 - 여유 특성만 있으면 드래그 가능)
-                  const hasLeisure = a.card.traits?.includes('leisure');
+                  const hasLeisure = hasCardTrait(a.card, 'leisure');
                   const cardUid = (a.card as { __uid?: string }).__uid || `leisure-${idx}`;
                   const isDragging = draggingCardUid === cardUid && draggingType === 'leisure';
                   const canDrag = hasLeisure && battle.phase === 'respond';
 
                   // 무리 특성 확인
-                  const hasStrain = a.card.traits?.includes('strain');
+                  const hasStrain = hasCardTrait(a.card, 'strain');
                   const currentStrainOffset = (a.card as { strainOffset?: number }).strainOffset || 0;
                   const canDragStrain = hasStrain && battle.phase === 'respond';
                   const isStrainDragging = draggingCardUid === cardUid && draggingType === 'strain';
