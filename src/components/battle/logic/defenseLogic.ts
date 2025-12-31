@@ -17,7 +17,10 @@ import type {
   BattleEvent
 } from '../../../types';
 import { applyTokenEffectsToCard, consumeTokens } from '../../../lib/tokenEffects';
+import { addToken } from '../../../lib/tokenUtils';
 import { calculateGrowingDefense, hasSpecial } from '../utils/cardSpecialEffects';
+import { getCombatTokens } from '../../../lib/logosEffects';
+import { isSwordCard } from '../../../lib/ethosEffects';
 
 /**
  * 방어 행동 적용
@@ -113,6 +116,18 @@ export function applyDefense(
     if (actualHeal > 0) {
       updatedActor = { ...updatedActor, hp: newHp };
       healText = ` 💚 +${actualHeal} HP`;
+    }
+  }
+
+  // 로고스 효과: 배틀 왈츠 Lv3 - 검격 방어 시 수세 토큰 획득
+  let logosTokenText = '';
+  if (actorName === 'player' && isSwordCard(card)) {
+    const combatTokens = getCombatTokens();
+    if (combatTokens.onDefense) {
+      const tokenResult = addToken(updatedActor, combatTokens.onDefense, 1);
+      updatedActor = { ...updatedActor, tokens: tokenResult.tokens };
+      logosTokenText = ` ✨ ${combatTokens.onDefense} 획득`;
+      tokenLogs.push(`배틀 왈츠: 검격 방어! ${combatTokens.onDefense} 획득`);
     }
   }
 

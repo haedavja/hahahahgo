@@ -10,9 +10,10 @@ import type {
   CriticalToken,
   BattleEvent
 } from '../../../types';
-import { getAllTokens, addToken } from '../../../lib/tokenUtils';
+import { getAllTokens, addToken, setTokenStacks } from '../../../lib/tokenUtils';
 import { hasSpecial } from './preAttackSpecials';
 import { getGunCritEffects, isGunCard } from '../../../lib/ethosEffects';
+import { getGunCritBonus, shouldReloadOnCrit } from '../../../lib/logosEffects';
 
 /**
  * 치명타 확률 계산
@@ -37,6 +38,11 @@ export function calculateCritChance(
   }
 
   let totalChance = baseCritChance + strength + energy + critBoostFromTokens;
+
+  // 로고스 효과: 건카타 Lv3 - 총격 치명타 확률 증가
+  if (card && isGunCard(card)) {
+    totalChance += getGunCritBonus();
+  }
 
   if (card && hasSpecial(card, 'doubleCrit')) {
     totalChance *= 2;
@@ -138,4 +144,40 @@ export function applyGunCritEthosEffects(
   }
 
   return { defender: updatedDefender, events, logs };
+}
+
+/**
+ * 총격 치명타 시 로고스 장전 효과 (건카타 Lv3)
+ * @param card 사용된 카드
+ * @param isCritical 치명타 여부
+ * @param attacker 공격자
+ * @returns 업데이트된 공격자와 이벤트/로그
+ */
+export function applyGunCritReloadEffect(
+  card: Card,
+  isCritical: boolean,
+  attacker: Combatant
+): { attacker: Combatant; events: BattleEvent[]; logs: string[] } {
+  const events: BattleEvent[] = [];
+  const logs: string[] = [];
+  let updatedAttacker = { ...attacker };
+
+  // 총격 카드 + 치명타 + 로고스 효과 확인
+  if (!isCritical || !isGunCard(card) || !shouldReloadOnCrit()) {
+    return { attacker: updatedAttacker, events, logs };
+  }
+
+  // 룰렛 초기화 (장전)
+  const reloadResult = setTokenStacks(updatedAttacker, 'roulette', 'permanent', 0);
+  updatedAttacker = { ...updatedAttacker, tokens: reloadResult.tokens };
+
+  const msg = '🔄 건카타: 치명타! 즉시 장전!';
+  events.push({
+    actor: 'player',
+    type: 'logos' as const,
+    msg
+  } as BattleEvent);
+  logs.push(msg);
+
+  return { attacker: updatedAttacker, events, logs };
 }

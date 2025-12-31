@@ -34,8 +34,8 @@ import {
   isSwordCard,
   isGunCard
 } from '../../../lib/ethosEffects';
-import { applyGunCritEthosEffects } from '../utils/criticalEffects';
-import { shouldShootOnBlock } from '../../../lib/logosEffects';
+import { applyGunCritEthosEffects, applyGunCritReloadEffect } from '../utils/criticalEffects';
+import { shouldShootOnBlock, getArmorPenetration, getCombatTokens, getMinFinesse } from '../../../lib/logosEffects';
 
 /**
  * 반격 처리
@@ -372,6 +372,24 @@ export function calculateSingleHit(
       blockDestroyed = effectiveDmg;
       dmg = 0;
 
+      // 로고스 효과: 배틀 왈츠 Lv2 - 검격 방어력 추가 피해
+      let armorPenDmg = 0;
+      if (attackerName === 'player' && isSwordCard(card)) {
+        const armorPen = getArmorPenetration();
+        if (armorPen > 0) {
+          armorPenDmg = Math.floor(effectiveDmg * armorPen / 100);
+          if (armorPenDmg > 0) {
+            const beforeHP = updatedDefender.hp;
+            updatedDefender.hp = Math.max(0, updatedDefender.hp - armorPenDmg);
+            damageDealt += armorPenDmg;
+            const enemyNamePen = battleContext.enemyDisplayName || '몬스터';
+            const penMsg = `⚔️ 배틀 왈츠: 관통 피해 ${armorPenDmg} (${beforeHP} -> ${updatedDefender.hp})`;
+            events.push({ actor: 'player', type: 'logos' as const, dmg: armorPenDmg, msg: penMsg } as BattleEvent);
+            logs.push(penMsg);
+          }
+        }
+      }
+
       const crushText = crushMultiplier > 1 ? ' [분쇄×2]' : '';
       const enemyName = battleContext.enemyDisplayName || '몬스터';
       const actorName = attackerName === 'player' ? `플레이어(${card.name})` : `${enemyName}(${card.name})`;
@@ -418,9 +436,26 @@ export function calculateSingleHit(
       const tokenVuln = (updatedDefender.vulnMult && updatedDefender.vulnMult > 1) ? updatedDefender.vulnMult : 1;
       const anomalyVuln = getVulnerabilityMultiplier(updatedDefender);
       const vulnMul = tokenVuln * anomalyVuln;
-      const finalDmg = Math.floor(remained * vulnMul);
+
+      // 로고스 효과: 배틀 왈츠 Lv2 - 검격 방어력 추가 피해
+      let armorPenBonus = 0;
+      if (attackerName === 'player' && isSwordCard(card) && blocked > 0) {
+        const armorPen = getArmorPenetration();
+        if (armorPen > 0) {
+          armorPenBonus = Math.floor(blocked * armorPen / 100);
+        }
+      }
+
+      const finalDmg = Math.floor(remained * vulnMul) + armorPenBonus;
       const beforeHP = updatedDefender.hp;
       updatedDefender.hp = Math.max(0, updatedDefender.hp - finalDmg);
+
+      // 관통 피해 로그 (보너스가 있을 때만)
+      if (armorPenBonus > 0) {
+        const penMsg = `⚔️ 배틀 왈츠: 관통 보너스 +${armorPenBonus}`;
+        events.push({ actor: 'player', type: 'logos' as const, msg: penMsg } as BattleEvent);
+        logs.push(penMsg);
+      }
 
       const crushText = crushMultiplier > 1 ? ' [분쇄×2]' : '';
       const enemyNamePierce = battleContext.enemyDisplayName || '몬스터';
@@ -477,6 +512,24 @@ export function calculateSingleHit(
         updatedDefender = gunCritResult.defender;
         events.push(...gunCritResult.events);
         logs.push(...gunCritResult.logs);
+
+        // 로고스 효과: 건카타 Lv3 - 치명타 시 즉시 장전
+        const reloadResult = applyGunCritReloadEffect(card, true, updatedAttacker);
+        updatedAttacker = reloadResult.attacker;
+        events.push(...reloadResult.events);
+        logs.push(...reloadResult.logs);
+      }
+
+      // 로고스 효과: 배틀 왈츠 Lv3 - 공격 시 흐릿함 토큰 획득
+      if (attackerName === 'player' && isSwordCard(card) && finalDmg > 0) {
+        const combatTokens = getCombatTokens();
+        if (combatTokens.onAttack) {
+          const blurResult = addToken(updatedAttacker, combatTokens.onAttack, 1);
+          updatedAttacker = { ...updatedAttacker, tokens: blurResult.tokens };
+          const tokenMsg = `✨ 배틀 왈츠: 검격 공격! ${combatTokens.onAttack} 획득`;
+          events.push({ actor: 'player', type: 'logos' as const, msg: tokenMsg } as BattleEvent);
+          logs.push(tokenMsg);
+        }
       }
 
       const totalCounter = (updatedDefender.counter || 0) + (tokenDamageResult.reflected || 0);
@@ -541,6 +594,24 @@ export function calculateSingleHit(
       updatedDefender = gunCritResult.defender;
       events.push(...gunCritResult.events);
       logs.push(...gunCritResult.logs);
+
+      // 로고스 효과: 건카타 Lv3 - 치명타 시 즉시 장전
+      const reloadResult = applyGunCritReloadEffect(card, true, updatedAttacker);
+      updatedAttacker = reloadResult.attacker;
+      events.push(...reloadResult.events);
+      logs.push(...reloadResult.logs);
+    }
+
+    // 로고스 효과: 배틀 왈츠 Lv3 - 공격 시 흐릿함 토큰 획득
+    if (attackerName === 'player' && isSwordCard(card) && finalDmg > 0) {
+      const combatTokens = getCombatTokens();
+      if (combatTokens.onAttack) {
+        const blurResult = addToken(updatedAttacker, combatTokens.onAttack, 1);
+        updatedAttacker = { ...updatedAttacker, tokens: blurResult.tokens };
+        const tokenMsg = `✨ 배틀 왈츠: 검격 공격! ${combatTokens.onAttack} 획득`;
+        events.push({ actor: 'player', type: 'logos' as const, msg: tokenMsg } as BattleEvent);
+        logs.push(tokenMsg);
+      }
     }
 
     const totalCounter = (updatedDefender.counter || 0) + (tokenDamageResult.reflected || 0);
