@@ -46,7 +46,7 @@
 
 /// <reference types="react" />
 
-import React, { useState, useEffect, useRef, memo, useCallback, type MutableRefObject } from "react";
+import React, { useState, useEffect, useRef, memo, useCallback, lazy, Suspense, type MutableRefObject } from "react";
 import type { JSX } from 'react';
 import { flushSync } from "react-dom";
 import "./legacy-battle.css";
@@ -156,9 +156,13 @@ import { TimelineDisplay } from "./ui/TimelineDisplay";
 import { HandArea } from "./ui/HandArea";
 import { BattleTooltips } from "./ui/BattleTooltips";
 import { ExpectedDamagePreview } from "./ui/ExpectedDamagePreview";
-import { BreachSelectionModal } from "./ui/BreachSelectionModal";
-import { CardRewardModal } from "./ui/CardRewardModal";
-import { RecallSelectionModal } from "./ui/RecallSelectionModal";
+// Lazy loaded modals for better code splitting
+const BreachSelectionModal = lazy(() => import("./ui/BreachSelectionModal").then(m => ({ default: m.BreachSelectionModal })));
+const CardRewardModal = lazy(() => import("./ui/CardRewardModal").then(m => ({ default: m.CardRewardModal })));
+const RecallSelectionModal = lazy(() => import("./ui/RecallSelectionModal").then(m => ({ default: m.RecallSelectionModal })));
+const TraitRewardModal = lazy(() => import("./ui/TraitRewardModal").then(m => ({ default: m.TraitRewardModal })));
+import { BattleControlButtons } from "./ui/BattleControlButtons";
+import { EnergyDisplayFixed } from "./ui/EnergyDisplayFixed";
 import { EtherBar } from "./ui/EtherBar";
 import { Sword, Shield, Heart, Zap, Flame, Clock, Skull, X, ChevronUp, ChevronDown, Play, StepForward, RefreshCw, ICON_MAP } from "./ui/BattleIcons";
 import { selectBattleAnomalies, applyAnomalyEffects } from "../../lib/anomalyUtils";
@@ -2136,121 +2140,42 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
         />
       )}
 
-      {/* 브리치 카드 선택 모달 */}
-      {breachSelection && (
-        <BreachSelectionModal
-          breachSelection={breachSelection}
-          onSelect={handleBreachSelect as unknown as (card: import("../../types").BreachCard, idx: number) => void}
-          strengthBonus={player.strength || 0}
+      {/* Lazy loaded modals */}
+      <Suspense fallback={null}>
+        {/* 브리치 카드 선택 모달 */}
+        {breachSelection && (
+          <BreachSelectionModal
+            breachSelection={breachSelection}
+            onSelect={handleBreachSelect as unknown as (card: import("../../types").BreachCard, idx: number) => void}
+            strengthBonus={player.strength || 0}
+          />
+        )}
+
+        {/* 특성 보상 선택 모달 (30% 확률) */}
+        {traitReward && (
+          <TraitRewardModal
+            traits={traitReward.traits}
+            onSelect={handleTraitSelect}
+            onSkip={handleTraitSkip}
+          />
+        )}
+
+        {/* 카드 보상 선택 모달 (승리 후) */}
+        {cardReward && (
+          <CardRewardModal
+            rewardCards={cardReward.cards}
+            onSelect={handleRewardSelect as unknown as (card: import("../../types").RewardCard, idx: number) => void}
+            onSkip={handleRewardSkip}
+          />
+        )}
+
+        {/* 함성 (recallCard) 카드 선택 모달 */}
+        <RecallSelectionModal
+          recallSelection={recallSelection}
+          onSelect={handleRecallSelect as unknown as (card: import("../../types").RecallCard) => void}
+          onSkip={handleRecallSkip}
         />
-      )}
-
-      {/* 특성 보상 선택 모달 (30% 확률) */}
-      {traitReward && (
-        <div style={{
-          position: 'fixed',
-          inset: 0,
-          background: 'rgba(0,0,0,0.8)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 9999
-        }}>
-          <div style={{
-            background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
-            border: '2px solid #86efac',
-            borderRadius: '16px',
-            padding: '24px',
-            maxWidth: '500px',
-            width: '90%'
-          }}>
-            <div style={{
-              textAlign: 'center',
-              marginBottom: '20px',
-              color: '#86efac',
-              fontSize: '1.3rem',
-              fontWeight: 700
-            }}>
-              ✨ 특성 보상
-            </div>
-            <div style={{
-              color: '#94a3b8',
-              fontSize: '0.9rem',
-              textAlign: 'center',
-              marginBottom: '16px'
-            }}>
-              카드 특화에 사용할 수 있는 특성을 획득합니다
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {traitReward.traits.map((trait) => (
-                <button
-                  key={trait.id}
-                  onClick={() => handleTraitSelect(trait)}
-                  style={{
-                    padding: '16px',
-                    background: 'rgba(134, 239, 172, 0.1)',
-                    border: '2px solid #86efac',
-                    borderRadius: '10px',
-                    cursor: 'pointer',
-                    textAlign: 'left',
-                    transition: 'all 0.2s'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = 'rgba(134, 239, 172, 0.25)';
-                    e.currentTarget.style.transform = 'scale(1.02)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = 'rgba(134, 239, 172, 0.1)';
-                    e.currentTarget.style.transform = 'scale(1)';
-                  }}
-                >
-                  <div style={{
-                    color: '#86efac',
-                    fontWeight: 700,
-                    marginBottom: '4px'
-                  }}>
-                    +{trait.name}
-                  </div>
-                  <div style={{ color: '#cbd5e1', fontSize: '0.9rem' }}>
-                    {trait.description}
-                  </div>
-                </button>
-              ))}
-            </div>
-            <button
-              onClick={handleTraitSkip}
-              style={{
-                width: '100%',
-                marginTop: '16px',
-                padding: '12px',
-                background: 'transparent',
-                border: '1px solid #475569',
-                borderRadius: '8px',
-                color: '#94a3b8',
-                cursor: 'pointer'
-              }}
-            >
-              건너뛰기
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* 카드 보상 선택 모달 (승리 후) */}
-      {cardReward && (
-        <CardRewardModal
-          rewardCards={cardReward.cards}
-          onSelect={handleRewardSelect as unknown as (card: import("../../types").RewardCard, idx: number) => void}
-          onSkip={handleRewardSkip}
-        />
-      )}
-
-      {/* 함성 (recallCard) 카드 선택 모달 */}
-      <RecallSelectionModal
-        recallSelection={recallSelection}
-        onSelect={handleRecallSelect as unknown as (card: import("../../types").RecallCard) => void}
-        onSkip={handleRecallSkip}
-      />
+      </Suspense>
 
       {/* 에테르 게이지 - 왼쪽 고정 */}
       <div style={{
@@ -2516,34 +2441,19 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
       {/* 독립 활동력 표시 (좌측 하단 고정) */}
       {(battle.phase === 'select' || battle.phase === 'respond' || battle.phase === 'resolve' || (enemy && enemy.hp <= 0) || (player && player.hp <= 0)) && (
-        <div className="energy-display-fixed">
-          <div className="energy-orb-compact">
-            {remainingEnergy}<span style={{ margin: '0 6px' }}>/</span>{player.maxEnergy}
-          </div>
-        </div>
+        <EnergyDisplayFixed remainingEnergy={remainingEnergy} maxEnergy={player.maxEnergy} />
       )}
 
       {/* 간소화/정렬 버튼 (우측 하단 고정) */}
       {battle.phase === 'select' && (
-        <div className="submit-button-fixed" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          <button onClick={() => {
-            const newVal = !isSimplified;
-            try { localStorage.setItem('battleIsSimplified', newVal.toString()); } catch { /* ignore */ }
-            actions.setIsSimplified(newVal);
-            playSound(500, 60);
-          }} className={`btn-enhanced ${isSimplified ? 'btn-primary' : ''} flex items-center gap-2`}>
-            {isSimplified ? '📋' : '📄'} 간소화 (Q)
-          </button>
-          <button onClick={cycleSortType} className="btn-enhanced flex items-center gap-2" style={{ fontSize: '0.9rem' }}>
-            🔀 정렬 ({sortType === 'speed' ? '시간' : sortType === 'energy' ? '행동력' : sortType === 'value' ? '밸류' : '종류'}) (F)
-          </button>
-          <button onClick={() => {
-            setDevForceAllCards(!devForceAllCards);
-            playSound(500, 60);
-          }} className={`btn-enhanced ${devForceAllCards ? 'btn-primary' : ''} flex items-center gap-2`} style={{ fontSize: '0.8rem' }}>
-            🛠️ DEV: 전체카드 {devForceAllCards ? 'ON' : 'OFF'}
-          </button>
-        </div>
+        <BattleControlButtons
+          isSimplified={isSimplified}
+          sortType={sortType}
+          devForceAllCards={devForceAllCards}
+          setIsSimplified={actions.setIsSimplified}
+          cycleSortType={cycleSortType}
+          setDevForceAllCards={setDevForceAllCards}
+        />
       )}
       {/* 패배 시 중앙 오버레이 */}
       {postCombatOptions?.type === 'defeat' && (

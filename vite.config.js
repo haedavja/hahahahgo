@@ -17,16 +17,27 @@ export default defineConfig({
           'vendor-react': ['react', 'react-dom'],
           // Zustand 상태 관리
           'vendor-state': ['zustand'],
-          // 전투 시스템 분리
-          'battle': [
-            './src/components/battle/battleData.js',
-            './src/lib/speedQueue.js',
-            './src/lib/battleResolver.js',
+          // 전투 데이터 분리 (battleData는 크기가 크므로 별도 청크)
+          'battle-data': [
+            './src/components/battle/battleData.ts',
+          ],
+          // 전투 유틸리티 분리
+          'battle-utils': [
+            './src/lib/speedQueue.ts',
+            './src/lib/battleResolver.ts',
+            './src/lib/etherUtils.ts',
+            './src/lib/relicEffects.ts',
+          ],
+          // 게임 데이터 분리
+          'game-data': [
+            './src/data/relics.ts',
+            './src/data/anomalies.ts',
+            './src/data/tokens.ts',
           ],
           // 던전 시스템 분리
           'dungeon': [
-            './src/data/dungeonNodes.js',
-            './src/lib/dungeonChoices.js',
+            './src/data/dungeonNodes.ts',
+            './src/lib/dungeonChoices.ts',
           ],
         },
       },
