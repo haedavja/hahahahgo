@@ -17,6 +17,7 @@ import { useShallow } from 'zustand/shallow';
 import { ETHOS, ETHOS_NODES, BASE_ETHOS, type Ethos, type EthosNode } from '../../data/growth/ethosData';
 import { PATHOS, PATHOS_NODES, BASE_PATHOS, MAX_EQUIPPED_PATHOS, type Pathos, type PathosNode } from '../../data/growth/pathosData';
 import { IDENTITIES, type IdentityType } from '../../data/growth/identityData';
+import { LOGOS, getLogosLevelFromPyramid } from '../../data/growth/logosData';
 import {
   initialGrowthState,
   getNodeChoices,
@@ -205,6 +206,9 @@ function UnifiedPyramidView({
           })}
         </div>
       </div>
+
+      {/* ===== 로고스 (자아 보너스) ===== */}
+      <LogosDisplay pyramidLevel={pyramidLevel} growth={growth} />
 
       {/* ===== 5단계 - 상위 에토스 노드 ===== */}
       <TierRow
@@ -642,6 +646,135 @@ function NodeChoiceSelector({
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+// 로고스 표시 컴포넌트
+function LogosDisplay({
+  pyramidLevel,
+  growth,
+}: {
+  pyramidLevel: number;
+  growth: typeof initialGrowthState;
+}) {
+  const logosLevel = getLogosLevelFromPyramid(pyramidLevel);
+  const hasSwordsman = growth.identities.includes('swordsman');
+  const hasGunslinger = growth.identities.includes('gunslinger');
+
+  // 로고스가 없으면 표시 안함
+  if (logosLevel === 0 && !hasSwordsman && !hasGunslinger) {
+    return (
+      <div style={{
+        padding: '10px',
+        background: 'rgba(71, 85, 105, 0.2)',
+        border: '1px dashed #475569',
+        borderRadius: '6px',
+        marginBottom: '16px',
+        textAlign: 'center',
+      }}>
+        <span style={{ color: '#6b7280', fontSize: '12px' }}>
+          로고스: 피라미드 Lv3 이상에서 해금
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{
+      padding: '12px',
+      background: 'rgba(251, 191, 36, 0.05)',
+      border: '1px solid rgba(251, 191, 36, 0.2)',
+      borderRadius: '8px',
+      marginBottom: '16px',
+    }}>
+      <div style={{ fontSize: '12px', color: '#fbbf24', marginBottom: '10px', fontWeight: 'bold' }}>
+        로고스 (Lv{logosLevel})
+      </div>
+
+      <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+        {/* 공용 로고스 */}
+        <LogosCard
+          logos={LOGOS.common}
+          currentLevel={logosLevel}
+          locked={false}
+        />
+
+        {/* 배틀 왈츠 (검사) */}
+        <LogosCard
+          logos={LOGOS.battleWaltz}
+          currentLevel={hasSwordsman ? logosLevel : 0}
+          locked={!hasSwordsman}
+        />
+
+        {/* 건카타 (총잡이) */}
+        <LogosCard
+          logos={LOGOS.gunkata}
+          currentLevel={hasGunslinger ? logosLevel : 0}
+          locked={!hasGunslinger}
+        />
+      </div>
+    </div>
+  );
+}
+
+// 개별 로고스 카드
+function LogosCard({
+  logos,
+  currentLevel,
+  locked,
+}: {
+  logos: typeof LOGOS.common;
+  currentLevel: number;
+  locked: boolean;
+}) {
+  return (
+    <div style={{
+      flex: 1,
+      minWidth: '150px',
+      padding: '8px',
+      background: locked ? 'rgba(71, 85, 105, 0.2)' : 'rgba(30, 41, 59, 0.5)',
+      border: locked ? '1px dashed #475569' : '1px solid rgba(251, 191, 36, 0.3)',
+      borderRadius: '6px',
+      opacity: locked ? 0.5 : 1,
+    }}>
+      <div style={{
+        fontWeight: 'bold',
+        color: locked ? '#6b7280' : '#fbbf24',
+        fontSize: '12px',
+        marginBottom: '6px',
+      }}>
+        {logos.name}
+        {locked && <span style={{ fontSize: '10px', color: '#6b7280' }}> (자아 필요)</span>}
+      </div>
+
+      {logos.levels.map(level => {
+        const isUnlocked = currentLevel >= level.level;
+        return (
+          <div
+            key={level.level}
+            style={{
+              padding: '4px 6px',
+              marginBottom: '4px',
+              background: isUnlocked ? 'rgba(251, 191, 36, 0.15)' : 'transparent',
+              borderRadius: '4px',
+              fontSize: '11px',
+            }}
+          >
+            <span style={{ color: isUnlocked ? '#86efac' : '#6b7280' }}>
+              {isUnlocked ? '✓' : '○'} Lv{level.level}
+            </span>
+            <span style={{ color: isUnlocked ? '#e2e8f0' : '#6b7280', marginLeft: '4px' }}>
+              {level.name}
+            </span>
+            {isUnlocked && (
+              <div style={{ color: '#9ca3af', fontSize: '10px', marginTop: '2px' }}>
+                {level.effect.description}
+              </div>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }
