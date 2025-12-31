@@ -943,7 +943,7 @@ function LogosCard({
   lockReason?: string;
   onUnlock: (logosType: 'common' | 'gunkata' | 'battleWaltz') => void;
 }) {
-  // 다음 레벨 해금 가능 여부
+  // 다음 레벨 해금 가능 여부 - 잠금 상태면 불가능
   const canUnlockNext = !locked && currentLevel < maxUnlockableLevel && skillPoints >= 1;
 
   return (
@@ -951,14 +951,14 @@ function LogosCard({
       flex: 1,
       minWidth: '150px',
       padding: '8px',
-      background: locked ? 'rgba(71, 85, 105, 0.2)' : 'rgba(30, 41, 59, 0.5)',
-      border: locked ? '1px dashed #475569' : '1px solid rgba(251, 191, 36, 0.3)',
+      background: locked ? 'rgba(71, 85, 105, 0.3)' : 'rgba(30, 41, 59, 0.5)',
+      border: locked ? '1px dashed #6b7280' : '1px solid rgba(251, 191, 36, 0.3)',
       borderRadius: '6px',
-      opacity: locked ? 0.5 : 1,
+      // 잠금 상태에서도 내용은 잘 보이도록 opacity 유지
     }}>
       <div style={{
         fontWeight: 'bold',
-        color: locked ? '#6b7280' : '#fbbf24',
+        color: locked ? '#9ca3af' : '#fbbf24',
         fontSize: '12px',
         marginBottom: '6px',
         display: 'flex',
@@ -967,8 +967,20 @@ function LogosCard({
       }}>
         <span>
           {logos.name} (Lv{currentLevel})
-          {locked && <span style={{ fontSize: '10px', color: '#6b7280' }}> ({lockReason || '자아 필요'})</span>}
         </span>
+        {/* 잠금 상태 표시 */}
+        {locked && (
+          <span style={{
+            fontSize: '10px',
+            color: '#f87171',
+            background: 'rgba(239, 68, 68, 0.15)',
+            padding: '2px 6px',
+            borderRadius: '4px',
+          }}>
+            🔒 {lockReason || '자아 필요'}
+          </span>
+        )}
+        {/* 해금 버튼 - 잠금 해제 상태에서만 표시 */}
         {canUnlockNext && (
           <button
             onClick={() => onUnlock(logosType)}
@@ -989,7 +1001,8 @@ function LogosCard({
 
       {logos.levels.map(level => {
         const isUnlocked = currentLevel >= level.level;
-        const isNextToUnlock = currentLevel + 1 === level.level && canUnlockNext;
+        // 잠금 상태면 다음 해금 불가
+        const isNextToUnlock = !locked && currentLevel + 1 === level.level && canUnlockNext;
         return (
           <div
             key={level.level}
@@ -1008,20 +1021,19 @@ function LogosCard({
               cursor: isNextToUnlock ? 'pointer' : 'default',
             }}
           >
-            <span style={{ color: isUnlocked ? '#86efac' : isNextToUnlock ? '#60a5fa' : '#6b7280' }}>
+            <span style={{ color: isUnlocked ? '#86efac' : isNextToUnlock ? '#60a5fa' : locked ? '#9ca3af' : '#6b7280' }}>
               {isUnlocked ? '✓' : isNextToUnlock ? '▷' : '○'} Lv{level.level}
             </span>
-            <span style={{ color: isUnlocked ? '#e2e8f0' : '#6b7280', marginLeft: '4px' }}>
+            <span style={{ color: isUnlocked ? '#e2e8f0' : locked ? '#cbd5e1' : '#9ca3af', marginLeft: '4px' }}>
               {level.name}
             </span>
             {isNextToUnlock && (
               <span style={{ color: '#60a5fa', marginLeft: '4px', fontSize: '10px' }}>[1P로 해금]</span>
             )}
-            {isUnlocked && (
-              <div style={{ color: '#9ca3af', fontSize: '10px', marginTop: '2px' }}>
-                {level.effect.description}
-              </div>
-            )}
+            {/* 레벨 설명: 잠금 상태여도 항상 표시 */}
+            <div style={{ color: isUnlocked ? '#9ca3af' : locked ? '#94a3b8' : '#6b7280', fontSize: '10px', marginTop: '2px' }}>
+              {level.effect.description}
+            </div>
           </div>
         );
       })}
