@@ -567,7 +567,7 @@ function TierRow({
   );
 }
 
-// 선택지 뱃지 - 세로 배치용 컴팩트 디자인
+// 선택지 뱃지 - 이름 + 설명 두 줄 배치
 function ChoiceBadge({
   choice,
   isSelected,
@@ -590,9 +590,8 @@ function ChoiceBadge({
         e.stopPropagation();
         if (canSelect) onSelect();
       }}
-      title={choice.description}
       style={{
-        padding: '4px 6px',
+        padding: '5px 8px',
         background: isSelected
           ? 'rgba(134, 239, 172, 0.2)'
           : canSelect
@@ -611,31 +610,28 @@ function ChoiceBadge({
         transition: 'all 0.15s',
       }}
     >
-      {/* 한 줄: 타입 이모지 + 이름 + 설명 */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-        <span style={{ fontSize: '10px', color: typeColor }}>{typeEmoji}</span>
-        {isSelected && <span style={{ color: '#86efac', fontSize: '9px' }}>✓</span>}
+      {/* 첫째 줄: 타입 이모지 + 이름 */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '2px' }}>
+        <span style={{ fontSize: '11px', color: typeColor }}>{typeEmoji}</span>
+        {isSelected && <span style={{ color: '#86efac', fontSize: '10px' }}>✓</span>}
         <span style={{
-          fontWeight: isSelected ? 'bold' : 'normal',
-          fontSize: '10px',
+          fontWeight: 'bold',
+          fontSize: '11px',
           color: isSelected ? '#86efac' : canSelect ? '#fbbf24' : isAlternative ? '#6b7280' : '#e2e8f0',
-          whiteSpace: 'nowrap',
         }}>
           {choice.name}
         </span>
-        <span style={{
-          fontSize: '9px',
-          color: isAlternative ? '#4b5563' : '#6b7280',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          whiteSpace: 'nowrap',
-          flex: 1,
-        }}>
-          - {choice.description}
-        </span>
         {canSelect && (
-          <span style={{ fontSize: '8px', color: '#fbbf24', whiteSpace: 'nowrap' }}>선택</span>
+          <span style={{ fontSize: '9px', color: '#fbbf24', marginLeft: 'auto' }}>선택</span>
         )}
+      </div>
+      {/* 둘째 줄: 설명 */}
+      <div style={{
+        fontSize: '9px',
+        color: isAlternative ? '#4b5563' : '#9ca3af',
+        lineHeight: '1.3',
+      }}>
+        {choice.description}
       </div>
     </div>
   );
@@ -651,7 +647,7 @@ const TRAIT_TO_ETHOS: Record<string, string> = {
   '활력적': 'vitality',
 };
 
-// 기반 - 개성 + 1단계 에토스 통합 섹션
+// 1단계 에토스 섹션 - 2단계와 균형 맞는 배치
 function TraitEthosSection({
   playerTraits,
   growth,
@@ -661,22 +657,40 @@ function TraitEthosSection({
   growth: typeof initialGrowthState;
   tier1Items: Ethos[];
 }) {
+  const colors = TIER_COLORS[1];
+
   return (
-    <div style={{
-      padding: '12px',
-      background: 'rgba(134, 239, 172, 0.08)',
-      border: '1px solid rgba(134, 239, 172, 0.3)',
-      borderRadius: '6px',
-      marginTop: '8px',
-    }}>
-      <div style={{ color: '#86efac', fontWeight: 'bold', marginBottom: '8px', fontSize: '12px' }}>
-        ⬇ 기반 - 개성 → 1단계 에토스
+    <div style={{ marginBottom: '16px' }}>
+      {/* 티어 헤더 - 다른 단계와 동일한 스타일 */}
+      <div style={{
+        fontSize: '11px',
+        color: colors.text,
+        marginBottom: '6px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '6px',
+      }}>
+        <span style={{ fontWeight: 'bold' }}>1단계 에토스</span>
+        <span style={{
+          fontSize: '9px',
+          padding: '1px 4px',
+          background: 'rgba(71, 85, 105, 0.3)',
+          borderRadius: '3px',
+          color: '#9ca3af',
+        }}>
+          ✓ 개성 보유 시 자동 해금
+        </span>
       </div>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', justifyContent: 'center' }}>
+
+      {/* 에토스 그리드 - 2단계와 동일한 폭 */}
+      <div style={{
+        display: 'flex',
+        flexWrap: 'wrap',
+        gap: '8px',
+        justifyContent: 'center',
+      }}>
         {tier1Items.map(ethos => {
-          // 이 에토스에 해당하는 개성 찾기
           const matchingTrait = Object.entries(TRAIT_TO_ETHOS).find(([, ethosId]) => ethosId === ethos.id)?.[0];
-          // 개성 보유 개수 세기
           const traitCount = matchingTrait ? playerTraits.filter(t => t === matchingTrait).length : 0;
           const hasTrait = traitCount > 0;
           const isUnlocked = growth.unlockedEthos.includes(ethos.id);
@@ -684,55 +698,60 @@ function TraitEthosSection({
           return (
             <div
               key={ethos.id}
-              title={ethos.description}
               style={{
-                padding: '8px 12px',
+                width: '180px',
+                flex: '0 0 180px',
+                padding: '8px',
                 background: isUnlocked
-                  ? 'rgba(134, 239, 172, 0.15)'
-                  : 'rgba(71, 85, 105, 0.2)',
+                  ? colors.bg
+                  : 'rgba(71, 85, 105, 0.1)',
                 border: isUnlocked
-                  ? '1px solid #86efac'
-                  : '1px dashed #475569',
+                  ? `1px solid ${colors.border}`
+                  : '1px solid #475569',
                 borderRadius: '6px',
-                textAlign: 'center',
-                minWidth: '100px',
               }}
             >
+              {/* 에토스 이름 */}
               <div style={{
-                fontWeight: 'bold',
-                color: isUnlocked ? '#86efac' : '#6b7280',
-                fontSize: '12px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                marginBottom: '4px',
               }}>
-                {isUnlocked && '✓ '}{ethos.name}
+                {isUnlocked && <span style={{ color: '#86efac', fontSize: '10px' }}>✓</span>}
+                <span style={{
+                  fontWeight: 'bold',
+                  fontSize: '11px',
+                  color: isUnlocked ? colors.text : '#6b7280',
+                }}>
+                  {ethos.name}
+                </span>
                 {traitCount > 1 && (
-                  <span style={{ color: '#fbbf24', marginLeft: '4px' }}>x{traitCount}</span>
+                  <span style={{ fontSize: '10px', color: '#fbbf24' }}>x{traitCount}</span>
                 )}
               </div>
+              {/* 개성 조건 */}
               <div style={{
-                fontSize: '10px',
+                fontSize: '9px',
                 color: hasTrait ? '#fde68a' : '#6b7280',
-                marginTop: '2px',
+                marginBottom: '2px',
               }}>
                 {hasTrait
-                  ? `✓ ${matchingTrait} 개성${traitCount > 1 ? ` x${traitCount}` : ''}`
-                  : `${matchingTrait || '?'} 개성 필요`}
+                  ? `✓ ${matchingTrait}${traitCount > 1 ? ` x${traitCount}` : ''}`
+                  : `${matchingTrait || '?'} 필요`}
               </div>
-              {isUnlocked && (
-                <div style={{ fontSize: '9px', color: '#9ca3af', marginTop: '2px' }}>
-                  {ethos.description}
-                </div>
-              )}
+              {/* 설명 */}
+              <div style={{
+                fontSize: '9px',
+                color: isUnlocked ? '#9ca3af' : '#4b5563',
+                lineHeight: '1.3',
+              }}>
+                {ethos.description}
+              </div>
             </div>
           );
         })}
       </div>
-      {playerTraits.length === 0 && (
-        <div style={{ textAlign: 'center', marginTop: '8px' }}>
-          <span style={{ color: '#6b7280', fontSize: '11px' }}>
-            개성이 없습니다. 휴식 노드에서 각성하세요.
-          </span>
-        </div>
-      )}
     </div>
   );
 }
