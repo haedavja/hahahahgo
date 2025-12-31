@@ -756,3 +756,31 @@ describe('마일스톤 분석', () => {
     expect(typeof runMilestoneAnalysis).toBe('function');
   });
 });
+
+describe('콤보 최적화 분석', () => {
+  it('runComboOptimization 함수가 존재한다', async () => {
+    const { runComboOptimization } = await import('./gameSimulator');
+    expect(typeof runComboOptimization).toBe('function');
+  });
+});
+
+describe('내구력 테스트', () => {
+  it('runEnduranceTest 함수가 존재한다', async () => {
+    const { runEnduranceTest } = await import('./gameSimulator');
+    expect(typeof runEnduranceTest).toBe('function');
+  });
+});
+
+describe('밸런스 점수 계산', () => {
+  it('runBalanceScore 함수가 존재한다', async () => {
+    const { runBalanceScore } = await import('./gameSimulator');
+    expect(typeof runBalanceScore).toBe('function');
+  });
+});
+
+describe('드로우 분석', () => {
+  it('runDrawAnalysis 함수가 존재한다', async () => {
+    const { runDrawAnalysis } = await import('./gameSimulator');
+    expect(typeof runDrawAnalysis).toBe('function');
+  });
+});

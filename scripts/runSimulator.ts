@@ -56,6 +56,10 @@
  *   npx tsx scripts/runSimulator.ts dummy [scale]         # 더미 데이터 테스트
  *   npx tsx scripts/runSimulator.ts cyclic [battles]      # 주기 분석
  *   npx tsx scripts/runSimulator.ts milestone [battles]   # 마일스톤 분석
+ *   npx tsx scripts/runSimulator.ts comboopt [battles]    # 콤보 최적화 분석
+ *   npx tsx scripts/runSimulator.ts endurance [battles]   # 내구력 테스트
+ *   npx tsx scripts/runSimulator.ts balscore              # 밸런스 점수 계산
+ *   npx tsx scripts/runSimulator.ts draw [battles]        # 드로우 분석
  *   npx tsx scripts/runSimulator.ts help                  # 도움말
  *
  * 예시:
@@ -81,7 +85,7 @@
  *   npx tsx scripts/runSimulator.ts trait 30
  */
 
-import { runSimulation, printStats, SimulationConfig, runBalanceAnalysis, runTierSimulation, runFullSimulation, runRelicComparison, runDeckComparison, runAnomalyComparison, runCardEfficiencyAnalysis, runFullReport, runBattleReplay, runEnemyAnalysis, runSynergyAnalysis, runDifficultyScalingAnalysis, runWinConditionAnalysis, exportSimulationResults, runTokenEfficiencyAnalysis, runMatchupAnalysis, runSpeedAnalysis, runTraitSynergyAnalysis, runStrategyRecommendation, printHelp, runDeckCompare, runBenchmark, runRandomDeckTest, runBestCardFinder, runEnemyWeaknessAnalysis, runMultiRelicTest, runProgressionTest, runCardRanking, runRelicRanking, runMetaAnalysis, runTurnAnalysis, runDamageAnalysis, runHealingAnalysis, runComboBreakdown, runStressTest, runProbabilityAnalysis, runVersatilityAnalysis, runConsistencyAnalysis, generatePatchNotes, runEdgeCaseTest, runQuickCheck, runAITest, runTimeTrialTest, runSummary, runDeckBuilder, runWhatIfAnalysis, exportToCSV, runHeatmapAnalysis, runCounterAnalysis, runResourceManagement, runLongBattleAnalysis, runBurstDamageAnalysis, runRandomEventAnalysis, runDummyDataTest, runCyclicAnalysis, runMilestoneAnalysis, TIER_1_ENEMIES, TIER_2_ENEMIES, TIER_3_ENEMIES } from '../src/tests/gameSimulator';
+import { runSimulation, printStats, SimulationConfig, runBalanceAnalysis, runTierSimulation, runFullSimulation, runRelicComparison, runDeckComparison, runAnomalyComparison, runCardEfficiencyAnalysis, runFullReport, runBattleReplay, runEnemyAnalysis, runSynergyAnalysis, runDifficultyScalingAnalysis, runWinConditionAnalysis, exportSimulationResults, runTokenEfficiencyAnalysis, runMatchupAnalysis, runSpeedAnalysis, runTraitSynergyAnalysis, runStrategyRecommendation, printHelp, runDeckCompare, runBenchmark, runRandomDeckTest, runBestCardFinder, runEnemyWeaknessAnalysis, runMultiRelicTest, runProgressionTest, runCardRanking, runRelicRanking, runMetaAnalysis, runTurnAnalysis, runDamageAnalysis, runHealingAnalysis, runComboBreakdown, runStressTest, runProbabilityAnalysis, runVersatilityAnalysis, runConsistencyAnalysis, generatePatchNotes, runEdgeCaseTest, runQuickCheck, runAITest, runTimeTrialTest, runSummary, runDeckBuilder, runWhatIfAnalysis, exportToCSV, runHeatmapAnalysis, runCounterAnalysis, runResourceManagement, runLongBattleAnalysis, runBurstDamageAnalysis, runRandomEventAnalysis, runDummyDataTest, runCyclicAnalysis, runMilestoneAnalysis, runComboOptimization, runEnduranceTest, runBalanceScore, runDrawAnalysis, TIER_1_ENEMIES, TIER_2_ENEMIES, TIER_3_ENEMIES } from '../src/tests/gameSimulator';
 import { ENEMIES } from '../src/components/battle/battleData';
 
 // 커맨드 라인 인자 파싱
@@ -487,6 +491,33 @@ if (command === 'milestone') {
   const battles = parseInt(args[1]) || 30;
   console.log('🎮 마일스톤 분석 모드\n');
   runMilestoneAnalysis(battles);
+  process.exit(0);
+}
+
+if (command === 'comboopt') {
+  const battles = parseInt(args[1]) || 30;
+  console.log('🎮 콤보 최적화 분석 모드\n');
+  runComboOptimization(battles);
+  process.exit(0);
+}
+
+if (command === 'endurance') {
+  const battles = parseInt(args[1]) || 50;
+  console.log('🎮 내구력 테스트 모드\n');
+  runEnduranceTest(battles);
+  process.exit(0);
+}
+
+if (command === 'balscore') {
+  console.log('🎮 밸런스 점수 계산 모드\n');
+  runBalanceScore();
+  process.exit(0);
+}
+
+if (command === 'draw') {
+  const battles = parseInt(args[1]) || 30;
+  console.log('🎮 드로우 분석 모드\n');
+  runDrawAnalysis(battles);
   process.exit(0);
 }
 
