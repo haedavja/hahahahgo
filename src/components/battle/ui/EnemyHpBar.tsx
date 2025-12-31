@@ -8,6 +8,8 @@
 import { FC, memo, useMemo } from 'react';
 import type { CSSProperties } from 'react';
 import { TokenDisplay } from './TokenDisplay';
+import { calculateGraceSlots, PRAYERS } from '../../../data/monsterEther';
+import type { MonsterGraceState } from '../../../data/monsterEther';
 import type {
   PreviewDamage,
   TokenState,
@@ -175,6 +177,63 @@ const SOUL_ORB_STYLE: CSSProperties = {
   right: '300px'
 };
 
+const GRACE_ORB_STYLE: CSSProperties = {
+  position: 'fixed',
+  top: '470px',
+  right: '200px',
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  gap: '4px'
+};
+
+const GRACE_ORB_SHELL_STYLE: CSSProperties = {
+  width: '60px',
+  height: '60px',
+  borderRadius: '50%',
+  background: 'radial-gradient(circle at 30% 30%, #fbbf24, #f59e0b, #d97706)',
+  boxShadow: '0 0 20px rgba(251, 191, 36, 0.5), inset 0 0 15px rgba(255, 255, 255, 0.3)',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  transition: 'transform 0.3s ease'
+};
+
+const GRACE_ORB_VALUE_STYLE: CSSProperties = {
+  fontSize: '1.1rem',
+  fontWeight: 'bold',
+  color: '#fff',
+  textShadow: '0 1px 3px rgba(0,0,0,0.5)'
+};
+
+const GRACE_ORB_LABEL_STYLE: CSSProperties = {
+  fontSize: '0.7rem',
+  fontWeight: 600,
+  color: '#fbbf24',
+  textTransform: 'uppercase',
+  letterSpacing: '0.1em'
+};
+
+const GRACE_STATUS_STYLE: CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  gap: '2px',
+  marginTop: '4px'
+};
+
+const GRACE_BADGE_STYLE: CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: '4px',
+  padding: '2px 6px',
+  background: 'rgba(251, 191, 36, 0.2)',
+  border: '1px solid rgba(251, 191, 36, 0.5)',
+  borderRadius: '4px',
+  fontSize: '11px',
+  color: '#fbbf24'
+};
+
 interface EnemyHpBarProps {
   battle: Battle;
   previewDamage: PreviewDamage;
@@ -190,6 +249,7 @@ interface EnemyHpBarProps {
   enemySoulScale: number;
   formatCompactValue: (value: number) => string;
   frozenOrder: number;
+  graceState?: MonsterGraceState;
 }
 
 export const EnemyHpBar: FC<EnemyHpBarProps> = memo(({
@@ -206,7 +266,8 @@ export const EnemyHpBar: FC<EnemyHpBarProps> = memo(({
   enemyTransferPulse,
   enemySoulScale,
   formatCompactValue,
-  frozenOrder
+  frozenOrder,
+  graceState
 }) => {
   // HP 텍스트 계산 메모이제이션
   const { hpText, blockText, showDamage, hideEnemyVitals } = useMemo(() => {
@@ -319,6 +380,30 @@ export const EnemyHpBar: FC<EnemyHpBarProps> = memo(({
           <div className="soul-orb-label">SOUL</div>
         </div>
       </div>
+      {/* 은총 오브 */}
+      {graceState && graceState.gracePts > 0 && (
+        <div style={GRACE_ORB_STYLE}>
+          <div style={GRACE_ORB_SHELL_STYLE}>
+            <span style={GRACE_ORB_VALUE_STYLE}>
+              {dulledLevel >= 3 ? '?' : calculateGraceSlots(graceState.gracePts)}
+            </span>
+          </div>
+          <div style={GRACE_ORB_LABEL_STYLE}>GRACE</div>
+          {/* 상태 표시 */}
+          <div style={GRACE_STATUS_STYLE}>
+            {graceState.soulShield > 0 && (
+              <div style={GRACE_BADGE_STYLE} title="영혼 보호막">
+                🛡️ x{graceState.soulShield}
+              </div>
+            )}
+            {graceState.blessingTurns > 0 && (
+              <div style={GRACE_BADGE_STYLE} title={`가호: ${graceState.blessingBonus}% 추가 은총`}>
+                ✨ {graceState.blessingTurns}턴
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 });

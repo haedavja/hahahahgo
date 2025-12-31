@@ -51,7 +51,7 @@ describe('etherTransferProcessing', () => {
         actions: createMockActions()
       });
 
-      expect(calculateEtherTransfer).toHaveBeenCalledWith(10, 5, 5, 15, 50);
+      expect(calculateEtherTransfer).toHaveBeenCalledWith(10, 5, 5, 15, 50, undefined);
     });
 
     it('적 처치 시 잔여 에테르 회수 로그를 남겨야 함', () => {

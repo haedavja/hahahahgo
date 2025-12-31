@@ -2412,6 +2412,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
                 enemySoulScale={enemySoulScale}
                 formatCompactValue={formatCompactValue}
                 frozenOrder={battle.frozenOrder}
+                graceState={(enemy as unknown as { grace?: import('../../data/monsterEther').MonsterGraceState }).grace}
               />
             )}
           </div>

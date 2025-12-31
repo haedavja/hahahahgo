@@ -140,23 +140,29 @@ export function finishTurnCore(params: FinishTurnCoreParams): FinishTurnResult {
     addLog('⚠️ [디플레이션의 저주] 에테르 획득이 차단되었습니다!');
   }
 
-  const { nextPlayerPts, nextEnemyPts, enemyGraceGain } = processEtherTransfer({
+  // 현재 은총 상태 가져오기
+  const currentGrace = enemy.grace || createInitialGraceState((enemy as unknown as { availablePrayers?: string[] }).availablePrayers as never);
+
+  const { nextPlayerPts, nextEnemyPts, enemyGraceGain, updatedGraceState } = processEtherTransfer({
     playerAppliedEther: effectivePlayerAppliedEther,
     enemyAppliedEther,
     curPlayerPts,
     curEnemyPts,
     enemyHp: enemy.hp,
+    graceState: currentGrace,
     calculateEtherTransfer: calculateEtherTransfer as never,
     addLog,
     playSound: playSound as never,
     actions: actions as never
   });
 
-  // 적 은총 획득 적용 (영혼과 별개로 은총 상태 업데이트)
-  let updatedEnemy = enemy;
+  // 은총 상태 업데이트 (보호막 소모 + 은총 획득)
+  let newGrace = updatedGraceState || currentGrace;
   if (enemyGraceGain > 0) {
-    const currentGrace = enemy.grace || createInitialGraceState((enemy as unknown as { availablePrayers?: string[] }).availablePrayers as never);
-    const newGrace = gainGrace(currentGrace, enemyGraceGain);
+    newGrace = gainGrace(newGrace, enemyGraceGain);
+  }
+  let updatedEnemy = enemy;
+  if (newGrace !== currentGrace || enemyGraceGain > 0) {
     updatedEnemy = { ...enemy, grace: newGrace };
   }
 

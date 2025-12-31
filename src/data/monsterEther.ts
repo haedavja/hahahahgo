@@ -269,3 +269,201 @@ export function checkSoulShield(
 
   return [soulDamage, state];
 }
+
+// ==================== 기원 발동 시스템 ====================
+
+/** 기원 발동 결과 */
+export interface PrayerExecutionResult {
+  /** 업데이트된 은총 상태 */
+  graceState: MonsterGraceState;
+  /** 몬스터 상태 변경 (hp, block, evade 등) */
+  enemyChanges: {
+    healAmount?: number;
+    blockGain?: number;
+    evadeGain?: number;
+    attackGain?: number;
+  };
+  /** 로그 메시지 */
+  log: string;
+}
+
+/**
+ * 기원 발동 실행
+ * @param state 현재 은총 상태
+ * @param prayerType 발동할 기원
+ * @param enemyMaxHp 몬스터 최대 체력 (회복 계산용)
+ */
+export function executePrayer(
+  state: MonsterGraceState,
+  prayerType: PrayerType,
+  enemyMaxHp: number
+): PrayerExecutionResult | null {
+  const prayer = PRAYERS[prayerType];
+  if (!prayer) return null;
+
+  // 발동 가능 여부 체크
+  if (!canUsePrayer(state.gracePts, prayerType)) return null;
+
+  // 이번 턴 이미 사용했으면 불가
+  if (state.usedPrayersThisTurn.includes(prayerType)) return null;
+
+  // 사용 가능한 기원 목록에 없으면 불가
+  if (!state.availablePrayers.includes(prayerType)) return null;
+
+  // 은총 소모
+  const newGracePts = useGracePrayer(state.gracePts, prayerType);
+  let newState: MonsterGraceState = {
+    ...state,
+    gracePts: newGracePts,
+    usedPrayersThisTurn: [...state.usedPrayersThisTurn, prayerType],
+  };
+
+  const enemyChanges: PrayerExecutionResult['enemyChanges'] = {};
+  let log = '';
+
+  // 효과 적용
+  switch (prayer.effect.action) {
+    case 'soulShield':
+      newState = {
+        ...newState,
+        soulShield: newState.soulShield + (prayer.effect.value || 1),
+      };
+      log = `${prayer.emoji} [${prayer.name}] 영혼 보호막 ${prayer.effect.value}회 획득`;
+      break;
+
+    case 'bonusGrace':
+      newState = {
+        ...newState,
+        blessingTurns: prayer.effect.duration || 3,
+        blessingBonus: prayer.effect.value || 50,
+      };
+      log = `${prayer.emoji} [${prayer.name}] ${prayer.effect.duration}턴간 은총 ${prayer.effect.value}% 추가 획득`;
+      break;
+
+    case 'healPercent':
+      const healAmount = Math.floor(enemyMaxHp * (prayer.effect.percent || 35) / 100);
+      enemyChanges.healAmount = healAmount;
+      log = `${prayer.emoji} [${prayer.name}] 체력 ${healAmount} 회복`;
+      break;
+
+    case 'gainAttackOrBlock':
+      // AI가 공격/방어 중 선택 (기본: 방어)
+      enemyChanges.blockGain = prayer.effect.value || 1;
+      log = `${prayer.emoji} [${prayer.name}] 방어 ${prayer.effect.value}회 획득`;
+      break;
+
+    case 'gainEvade':
+      enemyChanges.evadeGain = prayer.effect.value || 1;
+      log = `${prayer.emoji} [${prayer.name}] 회피 ${prayer.effect.value}회 획득`;
+      break;
+  }
+
+  return {
+    graceState: newState,
+    enemyChanges,
+    log,
+  };
+}
+
+// ==================== 기원 AI 시스템 ====================
+
+/** 기원 AI 결정 입력 */
+export interface PrayerAIInput {
+  /** 현재 은총 상태 */
+  graceState: MonsterGraceState;
+  /** 몬스터 현재 체력 */
+  enemyHp: number;
+  /** 몬스터 최대 체력 */
+  enemyMaxHp: number;
+  /** 몬스터 현재 영혼 */
+  enemyEtherPts: number;
+  /** 플레이어 현재 영혼 */
+  playerEtherPts: number;
+  /** 현재 턴 번호 */
+  turnNumber: number;
+}
+
+/**
+ * 기원 AI: 어떤 기원을 발동할지 결정
+ * @returns 발동할 기원 타입 또는 null (발동 안함)
+ */
+export function decidePrayer(input: PrayerAIInput): PrayerType | null {
+  const { graceState, enemyHp, enemyMaxHp, enemyEtherPts, playerEtherPts } = input;
+
+  // 사용 가능한 기원 중 발동 가능한 것 필터
+  const availablePrayers = graceState.availablePrayers.filter(
+    p => canUsePrayer(graceState.gracePts, p) && !graceState.usedPrayersThisTurn.includes(p)
+  );
+
+  if (availablePrayers.length === 0) return null;
+
+  // 우선순위 결정 로직
+  const hpPercent = enemyHp / enemyMaxHp;
+
+  // 1. 체력이 50% 이하면 회복 우선
+  if (hpPercent < 0.5 && availablePrayers.includes('healing')) {
+    return 'healing';
+  }
+
+  // 2. 영혼 위험 (플레이어가 많이 빼앗을 수 있음) → 면역
+  if (enemyEtherPts > 100 && playerEtherPts < enemyEtherPts && availablePrayers.includes('immunity')) {
+    // 보호막이 없을 때만
+    if (graceState.soulShield === 0) {
+      return 'immunity';
+    }
+  }
+
+  // 3. 가호가 없고 사용 가능하면 가호
+  if (graceState.blessingTurns === 0 && availablePrayers.includes('blessing')) {
+    return 'blessing';
+  }
+
+  // 4. 체력이 70% 이하면 장막(회피)
+  if (hpPercent < 0.7 && availablePrayers.includes('veil')) {
+    return 'veil';
+  }
+
+  // 5. 공세 (남은 은총 활용)
+  if (availablePrayers.includes('offense')) {
+    return 'offense';
+  }
+
+  // 6. 은총이 충분하면 아무 기원이나 발동
+  const graceSlots = calculateGraceSlots(graceState.gracePts);
+  if (graceSlots >= 3 && availablePrayers.length > 0) {
+    return availablePrayers[0];
+  }
+
+  return null;
+}
+
+/**
+ * 기원 자동 발동 처리
+ * @returns 발동된 기원 결과 배열
+ */
+export function processAutoPrayers(
+  input: PrayerAIInput
+): PrayerExecutionResult[] {
+  const results: PrayerExecutionResult[] = [];
+  let currentState = input.graceState;
+
+  // 최대 2회까지 기원 발동 (턴당 제한)
+  for (let i = 0; i < 2; i++) {
+    const prayerType = decidePrayer({
+      ...input,
+      graceState: currentState,
+    });
+
+    if (!prayerType) break;
+
+    const result = executePrayer(currentState, prayerType, input.enemyMaxHp);
+    if (result) {
+      results.push(result);
+      currentState = result.graceState;
+    } else {
+      break;
+    }
+  }
+
+  return results;
+}

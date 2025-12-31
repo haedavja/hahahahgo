@@ -30,6 +30,12 @@ import { decideEnemyMode, generateEnemyActions, expandActionsWithGhosts } from '
 import { useGameStore } from '../../../state/gameStore';
 import { DEFAULT_PLAYER_MAX_SPEED, DEFAULT_DRAW_COUNT, CARDS } from '../battleData';
 import { generateHandUid } from '../../../lib/randomUtils';
+import {
+  updateGraceOnTurnStart,
+  processAutoPrayers,
+  createInitialGraceState
+} from '../../../data/monsterEther';
+import type { PrayerType } from '../../../data/monsterEther';
 import type {
   Combatant,
   EnemyPlan,
@@ -314,6 +320,54 @@ export function useTurnStartEffects({
       updatedEnemy.strength = (updatedEnemy.strength || 0) + strengthGain;
       addLog(`💪 ${enemy.name}: 힘 +${strengthGain} 증가 (현재: ${updatedEnemy.strength})`);
     }
+
+    // === 몬스터 기원 시스템 처리 ===
+    // 은총 상태 턴 시작 업데이트 (가호 턴 감소, 사용 기록 초기화)
+    const currentGrace = updatedEnemy.grace || createInitialGraceState(
+      (enemy.availablePrayers as PrayerType[] | undefined)
+    );
+    let newGrace = updateGraceOnTurnStart(currentGrace);
+
+    // 기원 자동 발동 (AI 결정)
+    if (newGrace.gracePts > 0) {
+      const prayerResults = processAutoPrayers({
+        graceState: newGrace,
+        enemyHp: updatedEnemy.hp,
+        enemyMaxHp: updatedEnemy.maxHp || updatedEnemy.hp,
+        enemyEtherPts: updatedEnemy.etherPts || 0,
+        playerEtherPts: player.etherPts || 0,
+        turnNumber
+      });
+
+      // 기원 효과 적용
+      for (const result of prayerResults) {
+        addLog(result.log);
+        newGrace = result.graceState;
+
+        // 몬스터 상태 변경 적용
+        if (result.enemyChanges.healAmount) {
+          const newHp = Math.min(
+            updatedEnemy.maxHp || updatedEnemy.hp,
+            updatedEnemy.hp + result.enemyChanges.healAmount
+          );
+          updatedEnemy = { ...updatedEnemy, hp: newHp };
+        }
+        if (result.enemyChanges.blockGain) {
+          updatedEnemy = {
+            ...updatedEnemy,
+            block: (updatedEnemy.block || 0) + result.enemyChanges.blockGain,
+            def: true
+          };
+        }
+        if (result.enemyChanges.evadeGain) {
+          const evadeResult = addToken(updatedEnemy, 'evade', result.enemyChanges.evadeGain);
+          updatedEnemy = { ...updatedEnemy, tokens: evadeResult.tokens };
+        }
+      }
+    }
+
+    // 은총 상태 업데이트
+    updatedEnemy = { ...updatedEnemy, grace: newGrace };
 
     // 적 상태 업데이트
     if (JSON.stringify(updatedEnemy) !== JSON.stringify(enemy)) {
