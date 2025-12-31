@@ -160,6 +160,8 @@ export class TimelineBattleEngine {
       timeline: [],
       anomalyId,
       battleLog: [],
+      playerDamageDealt: 0,
+      enemyDamageDealt: 0,
     };
 
     // 전투 시작 트리거
@@ -782,6 +784,13 @@ export class TimelineBattleEngine {
       // 피해 적용
       defenderState.hp -= actualDamage;
 
+      // 피해량 추적
+      if (attacker === 'player') {
+        state.playerDamageDealt = (state.playerDamageDealt || 0) + actualDamage;
+      } else {
+        state.enemyDamageDealt = (state.enemyDamageDealt || 0) + actualDamage;
+      }
+
       // 흡혈 처리
       if (attackMods.lifesteal > 0 && actualDamage > 0) {
         const healAmount = Math.floor(actualDamage * attackMods.lifesteal);
@@ -1337,8 +1346,8 @@ export class TimelineBattleEngine {
     return {
       winner,
       turns: state.turn,
-      playerDamageDealt: 0, // TODO: 추적 필요
-      enemyDamageDealt: 0,
+      playerDamageDealt: state.playerDamageDealt || 0,
+      enemyDamageDealt: state.enemyDamageDealt || 0,
       playerFinalHp: Math.max(0, state.player.hp),
       enemyFinalHp: Math.max(0, state.enemy.hp),
       etherGained: state.player.ether,

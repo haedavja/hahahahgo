@@ -278,6 +278,9 @@ export interface GameBattleState {
   // 특성 시스템 관련
   masteryUseCount?: Record<string, number>;  // 카드별 숙련 사용 횟수
   vanishedCards?: string[];                   // 게임에서 제외된 카드 (소멸)
+  // 피해량 추적
+  playerDamageDealt?: number;                 // 플레이어가 가한 피해
+  enemyDamageDealt?: number;                  // 적이 가한 피해
 }
 
 // ==================== 타임라인 시스템 ====================
