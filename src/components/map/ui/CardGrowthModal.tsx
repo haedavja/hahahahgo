@@ -12,11 +12,12 @@
  */
 
 import { useState, useMemo, memo, useCallback } from 'react';
-import { CARDS } from '../../battle/battleData';
+import { CARDS, TRAITS } from '../../battle/battleData';
 import { generateSpecializationOptions, type SpecializationOption, type CardType } from '../../../lib/specializationUtils';
 import type { CardGrowthState } from '../../../state/slices/types';
 import { isEnhanceable } from '../../../lib/cardEnhancementUtils';
 import type { CardData } from '../../common/card';
+import { useGameStore } from '../../../state/gameStore';
 import {
   MODAL_OVERLAY,
   MODAL_CONTAINER,
@@ -55,6 +56,11 @@ export const CardGrowthModal = memo(function CardGrowthModal({
   const [specOptions, setSpecOptions] = useState<SpecializationOption[]>([]);
   const [selectedSpecOption, setSelectedSpecOption] = useState<SpecializationOption | null>(null);
   const [hoveredTrait, setHoveredTrait] = useState<{ traitId: string; x: number; y: number } | null>(null);
+  const [useStoredTraitId, setUseStoredTraitId] = useState<string | null>(null);
+
+  // 보유 특성 조회
+  const storedTraits = useGameStore((state) => state.storedTraits ?? []);
+  const useStoredTraitAction = useGameStore((state) => state.useStoredTrait);
 
   // 보유 카드만 표시 (중복 제거)
   const uniqueOwnedCardIds = useMemo(() => {
@@ -101,10 +107,28 @@ export const CardGrowthModal = memo(function CardGrowthModal({
     const cardType: CardType = selectedCard.type === 'attack' ? 'attack' :
                                selectedCard.type === 'defense' ? 'defense' : 'general';
     const options = generateSpecializationOptions(growth.traits, cardType);
-    setSpecOptions(options);
+
+    // 보유 특성을 선택지 맨 앞에 추가 (이미 카드에 있는 특성은 제외)
+    const storedTraitOptions: SpecializationOption[] = storedTraits
+      .filter(traitId => !growth.traits.includes(traitId))
+      .map(traitId => {
+        const trait = TRAITS[traitId as keyof typeof TRAITS];
+        if (!trait) return null;
+        return {
+          id: `stored_${traitId}`,
+          traits: [trait as { id: string; name: string; type: 'positive' | 'negative'; weight: number; description: string }],
+          totalWeight: trait.weight,
+          description: `[보유] ${trait.name}: ${trait.description}`,
+          isStored: true, // 마커
+        };
+      })
+      .filter((opt): opt is SpecializationOption & { isStored: boolean } => opt !== null);
+
+    setSpecOptions([...storedTraitOptions, ...options].slice(0, 8)); // 최대 8개까지 표시
     setSelectedSpecOption(null);
+    setUseStoredTraitId(null);
     setMode('specialize');
-  }, [selectedCardId, selectedCard, getCardGrowthState]);
+  }, [selectedCardId, selectedCard, getCardGrowthState, storedTraits]);
 
   // 모달 닫기 핸들러
   const handleClose = useCallback(() => {
@@ -129,9 +153,19 @@ export const CardGrowthModal = memo(function CardGrowthModal({
   const handleSpecialize = useCallback(() => {
     if (!selectedCardId || !selectedSpecOption) return;
     const traitIds = selectedSpecOption.traits.map(t => t.id);
+
+    // 보유 특성을 사용한 경우 해당 특성을 소모
+    if (selectedSpecOption.id.startsWith('stored_')) {
+      traitIds.forEach(traitId => {
+        if (storedTraits.includes(traitId)) {
+          useStoredTraitAction(traitId);
+        }
+      });
+    }
+
     onSpecialize(selectedCardId, traitIds);
     handleClose();
-  }, [selectedCardId, selectedSpecOption, onSpecialize, handleClose]);
+  }, [selectedCardId, selectedSpecOption, onSpecialize, handleClose, storedTraits, useStoredTraitAction]);
 
   // 특성 호버 핸들러
   const handleTraitHover = useCallback((traitId: string | null, x: number, y: number) => {

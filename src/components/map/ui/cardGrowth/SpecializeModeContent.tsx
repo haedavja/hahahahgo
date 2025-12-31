@@ -89,30 +89,58 @@ export const SpecializeModeContent: FC<SpecializeModeContentProps> = memo(functi
 
       {/* 특화 옵션 */}
       <div style={{ fontSize: '0.875rem', color: '#94a3b8', marginBottom: '4px' }}>
-        5개 중 1개를 선택하세요
+        {specOptions.length}개 중 1개를 선택하세요
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        {specOptions.map((option) => (
-          <div
-            key={option.id}
-            onClick={() => setSelectedSpecOption(option)}
-            style={SPEC_OPTION_STYLE(selectedSpecOption?.id === option.id)}
-          >
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '10px' }}>
-              {option.traits.map(trait => (
-                <span
-                  key={trait.id}
-                  style={TRAIT_BADGE_STYLE(trait.type === 'positive')}
-                >
-                  {trait.type === 'positive' ? '+' : '-'}{trait.name}
-                </span>
-              ))}
+        {specOptions.map((option) => {
+          const isStoredTrait = option.id.startsWith('stored_');
+          const isSelected = selectedSpecOption?.id === option.id;
+
+          return (
+            <div
+              key={option.id}
+              onClick={() => setSelectedSpecOption(option)}
+              style={{
+                ...SPEC_OPTION_STYLE(isSelected),
+                ...(isStoredTrait && !isSelected ? {
+                  background: 'rgba(134, 239, 172, 0.08)',
+                  borderColor: '#86efac',
+                } : {}),
+              }}
+            >
+              {/* 보유 특성 라벨 */}
+              {isStoredTrait && (
+                <div style={{
+                  fontSize: '0.75rem',
+                  color: '#86efac',
+                  marginBottom: '6px',
+                  fontWeight: 600,
+                }}>
+                  📦 보유 특성 (사용 시 소모됨)
+                </div>
+              )}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '10px' }}>
+                {option.traits.map(trait => (
+                  <span
+                    key={trait.id}
+                    style={{
+                      ...TRAIT_BADGE_STYLE(trait.type === 'positive'),
+                      ...(isStoredTrait && trait.type === 'positive' ? {
+                        background: 'rgba(134, 239, 172, 0.3)',
+                        borderColor: '#86efac',
+                      } : {}),
+                    }}
+                  >
+                    {trait.type === 'positive' ? '+' : '-'}{trait.name}
+                  </span>
+                ))}
+              </div>
+              <div style={{ fontSize: '0.85rem', color: '#94a3b8' }}>
+                {option.traits.map(t => t.description).join(' / ')}
+              </div>
             </div>
-            <div style={{ fontSize: '0.85rem', color: '#94a3b8' }}>
-              {option.traits.map(t => t.description).join(' / ')}
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* 특화 버튼 */}

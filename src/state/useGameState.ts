@@ -223,6 +223,7 @@ export const createInitialState = () => {
     growth: null, // 피라미드 성장 시스템 상태 (growthSlice에서 관리)
     cardUpgrades: {} as Record<string, string>, // 레거시: 카드 업그레이드(카드 ID -> 희귀도)
     cardGrowth: {} as Record<string, { rarity: string; growthCount: number; traits: string[] }>, // 카드 성장 상태
+    storedTraits: [] as string[], // 전투 보상으로 획득한 특성 (특화에 사용 가능)
     relics: initialRelics,
     items: [null, null, null] as (GameItem | null)[], // 아이템 슬롯 3개 (null = 빈 슬롯)
     itemBuffs: {} as Record<string, number>, // 아이템으로 인한 임시 스탯 버프 { strength: 2, agility: 3, insight: 1 }

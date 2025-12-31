@@ -299,6 +299,7 @@ export interface BuildSliceState {
   characterBuild: CharacterBuild;
   cardUpgrades: Record<string, string>;  // 레거시 호환용
   cardGrowth: Record<string, CardGrowthState>;  // 새로운 성장 시스템
+  storedTraits: string[];  // 전투 보상으로 획득한 특성 (특화에 사용 가능)
 }
 
 /** 빌드 슬라이스 액션 */
@@ -313,6 +314,10 @@ export interface BuildSliceActions {
   enhanceCard: (cardId: string) => void;  // 강화: 스탯 향상
   specializeCard: (cardId: string, selectedTraits: string[]) => void;  // 특화: 특성 부여
   getCardGrowth: (cardId: string) => CardGrowthState;  // 카드 성장 상태 조회
+  // 특성 저장 시스템
+  addStoredTrait: (traitId: string) => void;  // 특성 획득
+  removeStoredTrait: (traitId: string) => void;  // 특성 제거
+  useStoredTrait: (traitId: string) => void;  // 특화에 사용 (제거됨)
 }
 
 /** 상징 슬라이스 상태 */

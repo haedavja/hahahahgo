@@ -65,6 +65,7 @@ export function useCharacterSheet({ showAllCards = false }: UseCharacterSheetPro
   const playerTraits = useGameStore((state) => state.playerTraits ?? []);
   const playerEgos = useGameStore((state) => state.playerEgos ?? []);
   const relics = useGameStore((state) => state.relics);
+  const storedTraits = useGameStore((state) => state.storedTraits ?? []);
 
   // 상징 패시브 효과 계산
   const passiveEffects = useMemo(() => {
@@ -218,9 +219,10 @@ export function useCharacterSheet({ showAllCards = false }: UseCharacterSheetPro
     power,
     agility,
     playerInsight,
-    // 개성/자아
+    // 개성/자아/보유 특성
     playerTraits,
     playerEgos,
+    storedTraits,
     traitCounts,
     formatTraitEffect,
     activeReflectionsInfo,

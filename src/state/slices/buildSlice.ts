@@ -189,6 +189,33 @@ export const createBuildActions: SliceCreator = (set, get) => ({
     const cardGrowth = state.cardGrowth || {};
     return cardGrowth[cardId] || getDefaultGrowthState();
   },
+
+  // 특성 획득 (전투 보상으로 획득)
+  addStoredTrait: (traitId) =>
+    set((state) => {
+      if (!traitId) return state;
+      const storedTraits = state.storedTraits || [];
+      // 중복 방지
+      if (storedTraits.includes(traitId)) return state;
+      return { ...state, storedTraits: [...storedTraits, traitId] };
+    }),
+
+  // 특성 제거
+  removeStoredTrait: (traitId) =>
+    set((state) => {
+      if (!traitId) return state;
+      const storedTraits = state.storedTraits || [];
+      return { ...state, storedTraits: storedTraits.filter((t) => t !== traitId) };
+    }),
+
+  // 특화에 특성 사용 (사용 후 제거)
+  useStoredTrait: (traitId) =>
+    set((state) => {
+      if (!traitId) return state;
+      const storedTraits = state.storedTraits || [];
+      if (!storedTraits.includes(traitId)) return state;
+      return { ...state, storedTraits: storedTraits.filter((t) => t !== traitId) };
+    }),
 });
 
 // 하위 호환성

@@ -11,6 +11,7 @@ import type { CSSProperties } from "react";
 import { useCharacterSheet } from "./useCharacterSheet";
 import { CardManagementModal } from "./CardManagementModal";
 import { GrowthPyramidModal } from "../growth/GrowthPyramidModal";
+import { TRAITS } from "../battle/battleData";
 import type { CharacterEgo as Ego, ReflectionInfo } from '../../types';
 
 // =====================
@@ -192,6 +193,7 @@ export const CharacterSheet: FC<CharacterSheetProps> = memo(({ onClose, showAllC
     playerInsight,
     playerTraits,
     playerEgos,
+    storedTraits,
     traitCounts,
     formatTraitEffect,
     activeReflectionsInfo,
@@ -372,6 +374,40 @@ export const CharacterSheet: FC<CharacterSheetProps> = memo(({ onClose, showAllC
             </ul>
           ) : (
             <div style={EMPTY_TEXT_STYLE}>아직 자아가 없습니다.</div>
+          )}
+        </div>
+
+        {/* 보유 특성 (카드 특화에 사용 가능) */}
+        <div style={PANEL_STYLE}>
+          <div style={STAT_ROW_STYLE}>
+            <span style={LABEL_STYLE}>✨ 보유 특성</span>
+            <span style={{ fontSize: '12px', color: '#86efac', opacity: 0.8 }}>
+              카드 특화에 사용 가능
+            </span>
+          </div>
+          {storedTraits && storedTraits.length > 0 ? (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '8px' }}>
+              {storedTraits.map((traitId: string) => {
+                const trait = TRAITS[traitId as keyof typeof TRAITS];
+                return (
+                  <div
+                    key={traitId}
+                    style={{
+                      padding: '6px 12px',
+                      background: 'rgba(134, 239, 172, 0.15)',
+                      border: '1px solid #86efac',
+                      borderRadius: '6px',
+                      fontSize: '13px',
+                    }}
+                    title={trait?.description || ''}
+                  >
+                    <span style={{ color: '#86efac', fontWeight: 600 }}>+{trait?.name || traitId}</span>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div style={EMPTY_TEXT_STYLE}>전투에서 특성을 획득하세요.</div>
           )}
         </div>
 

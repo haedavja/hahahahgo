@@ -839,10 +839,13 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   // 보상 및 함성 선택 (커스텀 훅으로 분리) - useResolveExecution보다 먼저 정의
   const {
     cardReward,
+    traitReward,
     recallSelection,
     setRecallSelection,
     handleRewardSelect,
     handleRewardSkip,
+    handleTraitSelect,
+    handleTraitSkip,
     handleRecallSelect,
     handleRecallSkip,
     showCardRewardModal
@@ -2140,6 +2143,97 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
           onSelect={handleBreachSelect as unknown as (card: import("../../types").BreachCard, idx: number) => void}
           strengthBonus={player.strength || 0}
         />
+      )}
+
+      {/* 특성 보상 선택 모달 (30% 확률) */}
+      {traitReward && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(0,0,0,0.8)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999
+        }}>
+          <div style={{
+            background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
+            border: '2px solid #86efac',
+            borderRadius: '16px',
+            padding: '24px',
+            maxWidth: '500px',
+            width: '90%'
+          }}>
+            <div style={{
+              textAlign: 'center',
+              marginBottom: '20px',
+              color: '#86efac',
+              fontSize: '1.3rem',
+              fontWeight: 700
+            }}>
+              ✨ 특성 보상
+            </div>
+            <div style={{
+              color: '#94a3b8',
+              fontSize: '0.9rem',
+              textAlign: 'center',
+              marginBottom: '16px'
+            }}>
+              카드 특화에 사용할 수 있는 특성을 획득합니다
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {traitReward.traits.map((trait) => (
+                <button
+                  key={trait.id}
+                  onClick={() => handleTraitSelect(trait)}
+                  style={{
+                    padding: '16px',
+                    background: 'rgba(134, 239, 172, 0.1)',
+                    border: '2px solid #86efac',
+                    borderRadius: '10px',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    transition: 'all 0.2s'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'rgba(134, 239, 172, 0.25)';
+                    e.currentTarget.style.transform = 'scale(1.02)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'rgba(134, 239, 172, 0.1)';
+                    e.currentTarget.style.transform = 'scale(1)';
+                  }}
+                >
+                  <div style={{
+                    color: '#86efac',
+                    fontWeight: 700,
+                    marginBottom: '4px'
+                  }}>
+                    +{trait.name}
+                  </div>
+                  <div style={{ color: '#cbd5e1', fontSize: '0.9rem' }}>
+                    {trait.description}
+                  </div>
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={handleTraitSkip}
+              style={{
+                width: '100%',
+                marginTop: '16px',
+                padding: '12px',
+                background: 'transparent',
+                border: '1px solid #475569',
+                borderRadius: '8px',
+                color: '#94a3b8',
+                cursor: 'pointer'
+              }}
+            >
+              건너뛰기
+            </button>
+          </div>
+        </div>
       )}
 
       {/* 카드 보상 선택 모달 (승리 후) */}
