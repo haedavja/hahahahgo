@@ -21,10 +21,26 @@ import type { BattleResult, EnemyState } from '../core/game-types';
 
 const log = getLogger('RunSimulator');
 
-// 카드 풀 (전투 보상용)
+// 시작 덱 (게임과 동일 - battleData.ts의 DEFAULT_STARTING_DECK)
+const DEFAULT_STARTING_DECK = [
+  'shoot', 'shoot',           // 사격 2장
+  'strike', 'strike', 'strike', // 타격 3장
+  'reload',                   // 장전 1장
+  'quarte',                   // 꺄르트 1장
+  'octave',                   // 옥타브 1장
+  'breach',                   // 브리치 1장
+  'deflect'                   // 빠라드 1장
+];
+
+// 카드 획득 풀 (전투 보상용 - battleData.ts의 CARDS에서 발췌)
 const COMBAT_REWARD_CARDS = [
-  'quick_slash', 'guard', 'heavy_strike', 'dash', 'counter_stance',
-  'charge', 'sweep', 'reinforce', 'venom_shot', 'bone_crush'
+  // 펜싱 카드
+  'marche', 'lunge', 'fleche', 'flank', 'thrust', 'beat', 'feint',
+  'defensive_stance', 'disrupt', 'redoublement', 'binding',
+  // 사격 카드
+  'shoot', 'aimed_shot', 'quick_shot', 'fan_the_hammer',
+  // 기본 카드
+  'strike', 'deflect', 'quarte', 'octave', 'breach'
 ];
 
 // 상징 풀 (엘리트/보스 보상용)
@@ -743,7 +759,7 @@ export function createDefaultPlayer(): PlayerRunState {
     strength: 1,
     agility: 1,
     insight: 1,
-    deck: ['strike', 'strike', 'strike', 'defend', 'defend'],
+    deck: [...DEFAULT_STARTING_DECK], // 게임과 동일한 시작 덱 (10장)
     relics: [],
     items: [],
   };
