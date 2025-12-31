@@ -1942,7 +1942,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
   // 여유 특성 카드 위치 변경 핸들러
   const handleLeisurePositionChange = useCallback((cardUid: string, newPosition: number) => {
     const updatedSelected = battle.selected.map(card => {
-      const uid = (card as { __uid?: string }).__uid;
+      const uid = (card as { __handUid?: string; __uid?: string }).__handUid || (card as { __uid?: string }).__uid;
       if (uid === cardUid) {
         return { ...card, leisurePosition: newPosition };
       }
@@ -1955,15 +1955,16 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       updatedSelected as unknown as import('../../types').OrderingCardInfo[],
       enemyPlan.actions as unknown as import('../../types').OrderingEnemyAction[],
       effectiveAgility,
-      player as unknown as { speedInstability?: number }
+      player as unknown as { speedInstability?: number },
+      cardGrowth
     );
     actions.setFixedOrder(newFixedOrder);
-  }, [battle.selected, enemyPlan.actions, effectiveAgility, player, actions]);
+  }, [battle.selected, enemyPlan.actions, effectiveAgility, player, actions, cardGrowth]);
 
   // 무리 특성 카드 오프셋 변경 핸들러 (행동력 1회만 소모)
   const handleStrainOffsetChange = useCallback((cardUid: string, newOffset: number) => {
     // 현재 카드의 strainOffset 확인
-    const currentCard = battle.selected.find(card => (card as { __uid?: string }).__uid === cardUid);
+    const currentCard = battle.selected.find(card => ((card as { __handUid?: string; __uid?: string }).__handUid || (card as { __uid?: string }).__uid) === cardUid);
     const currentOffset = (currentCard as { strainOffset?: number } | undefined)?.strainOffset || 0;
 
     // 오프셋이 변경되지 않으면 아무것도 하지 않음
@@ -1985,7 +1986,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
 
     // 카드 strainOffset 업데이트
     const updatedSelected = battle.selected.map(card => {
-      const uid = (card as { __uid?: string }).__uid;
+      const uid = (card as { __handUid?: string; __uid?: string }).__handUid || (card as { __uid?: string }).__uid;
       if (uid === cardUid) {
         return { ...card, strainOffset: newOffset };
       }
@@ -1998,10 +1999,11 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       updatedSelected as unknown as import('../../types').OrderingCardInfo[],
       enemyPlan.actions as unknown as import('../../types').OrderingEnemyAction[],
       effectiveAgility,
-      player as unknown as { speedInstability?: number }
+      player as unknown as { speedInstability?: number },
+      cardGrowth
     );
     actions.setFixedOrder(newFixedOrder);
-  }, [battle.selected, enemyPlan.actions, effectiveAgility, player, actions]);
+  }, [battle.selected, enemyPlan.actions, effectiveAgility, player, actions, cardGrowth]);
 
   // 키보드 단축키 처리
   useKeyboardShortcuts({

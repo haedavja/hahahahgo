@@ -282,7 +282,7 @@ export const TimelineDisplay: FC<TimelineDisplayProps> = memo(({
     let accumulatedSp = 0;
     playerTimeline.forEach((a, idx) => {
       const hasLeisure = hasCardTrait(a.card, 'leisure');
-      const cardUid = (a.card as { __uid?: string }).__uid || `leisure-${idx}`;
+      const cardUid = (a.card as { __handUid?: string; __uid?: string }).__handUid || (a.card as { __uid?: string }).__uid || `leisure-${idx}`;
       const sameCount = playerTimeline.filter((q, i) => i < idx && q.sp === a.sp).length;
       const offset = sameCount * 28;
 
@@ -365,7 +365,7 @@ export const TimelineDisplay: FC<TimelineDisplayProps> = memo(({
       const hasStrain = hasCardTrait(a.card, 'strain');
       if (!hasStrain) return;
 
-      const cardUid = (a.card as { __uid?: string }).__uid || `strain-${idx}`;
+      const cardUid = (a.card as { __handUid?: string; __uid?: string }).__handUid || (a.card as { __uid?: string }).__uid || `strain-${idx}`;
       const sameCount = playerTimeline.filter((q, i) => i < idx && q.sp === a.sp).length;
       const offset = sameCount * 28;
       const currentStrainOffset = (a.card as { strainOffset?: number }).strainOffset || 0;
@@ -647,7 +647,7 @@ export const TimelineDisplay: FC<TimelineDisplayProps> = memo(({
 
                   // 여유 특성 확인 (speedCost 조건 제거 - 여유 특성만 있으면 드래그 가능)
                   const hasLeisure = hasCardTrait(a.card, 'leisure');
-                  const cardUid = (a.card as { __uid?: string }).__uid || `leisure-${idx}`;
+                  const cardUid = (a.card as { __handUid?: string; __uid?: string }).__handUid || (a.card as { __uid?: string }).__uid || `leisure-${idx}`;
                   const isDragging = draggingCardUid === cardUid && draggingType === 'leisure';
                   const canDrag = hasLeisure && battle.phase === 'respond';
 
