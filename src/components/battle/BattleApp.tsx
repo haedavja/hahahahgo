@@ -128,7 +128,7 @@ import { setupParryReady, checkParryTrigger } from "./utils/parryProcessing";
 import { processPlayerEtherAccumulation, processEnemyEtherAccumulation } from "./utils/etherAccumulationProcessing";
 import { processEnemyDeath } from "./utils/enemyDeathProcessing";
 import { renderNameWithBadge } from "./utils/cardRenderingUtils";
-import { initReflectionState } from "../../lib/reflectionEffects";
+// reflectionEffects 제거됨 - 새 성장 시스템(growthSlice)으로 대체
 import { addToken, removeToken, getAllTokens, expireTurnTokensByTimeline, getTokenStacks, setTokenStacks } from "../../lib/tokenUtils";
 import { TOKENS } from "../../data/tokens";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
@@ -277,7 +277,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
       subSpecialBoost: 0,
       extraCardPlay: 0,
     },
-    reflectionState: initReflectionState(),
+    reflectionState: {}, // 레거시: 새 성장 시스템으로 대체됨
     insightBadge: {
       level: safeInitialPlayer.insight || 0,
       dir: 'up',

@@ -21,7 +21,7 @@ import { useEffect } from 'react';
 import type { MutableRefObject } from 'react';
 import { RELICS } from '../../../data/relics';
 import { applyTurnStartEffects, calculatePassiveEffects } from '../../../lib/relicEffects';
-import { processReflections } from '../../../lib/reflectionEffects';
+// processReflections 제거됨 - 새 성장 시스템(에토스/파토스)으로 대체 예정
 import { convertTraitsToIds } from '../../../data/reflections';
 import { getAllTokens, addToken } from '../../../lib/tokenUtils';
 import { drawFromDeck } from '../utils/handGeneration';
@@ -133,32 +133,14 @@ export function useTurnStartEffects({
       }
     });
 
-    // === 성찰 효과 처리 (자아가 있을 때만) ===
-    let reflectionResult: ProcessReflectionsResult = {
+    // === 성찰 시스템 제거됨 - 새 성장 시스템(에토스/파토스)으로 대체 예정 ===
+    // TODO: 에토스 패시브 효과 처리 구현
+    const reflectionResult: ProcessReflectionsResult = {
       updatedPlayer: player,
       updatedBattleState: battle.reflectionState || {},
       effects: [],
       logs: []
     };
-    const hasEgo = playerEgos && playerEgos.length > 0;
-    if (hasEgo) {
-      const traitIds = convertTraitsToIds(playerTraits);
-      const playerForReflection = {
-        ...player,
-        egos: playerEgos,
-        traits: traitIds,
-        tokens: player.tokens || { usage: [], turn: [], permanent: [] }
-      };
-      reflectionResult = processReflections(playerForReflection, battle.reflectionState, turnNumber);
-
-      // 성찰 발동 시 효과음과 로그
-      if (reflectionResult.effects.length > 0) {
-        playSound(1200, 150);
-        setTimeout(() => playSound(1500, 100), 100);
-      }
-      reflectionResult.logs.forEach(log => addLog(log));
-    }
-    // 성찰 상태 업데이트
     actions.setReflectionState(reflectionResult.updatedBattleState);
 
     // 특성 효과로 인한 에너지 보너스/페널티 적용

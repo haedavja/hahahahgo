@@ -26,21 +26,8 @@ import {
 } from '../../../lib/cardEnhancementUtils';
 import { CardGrowthModal } from './CardGrowthModal';
 
-// 자아 형성 규칙
-const EGO_RULES = [
-  { ego: '헌신', parts: ['열정적', '용맹함'], emoji: '💪' },
-  { ego: '지략', parts: ['냉철함', '용맹함'], emoji: '🧠' },
-  { ego: '추격', parts: ['철저함', '용맹함'], emoji: '💨' },
-  { ego: '역동', parts: ['활력적', '용맹함'], emoji: '🌟' },
-  { ego: '결의', parts: ['굳건함', '냉철함'], emoji: '❤️' },
-  { ego: '추진', parts: ['굳건함', '활력적'], emoji: '💪' },
-  { ego: '신념', parts: ['굳건함', '열정적'], emoji: '✨' },
-  { ego: '완성', parts: ['굳건함', '철저함'], emoji: '💎' },
-  { ego: '분석', parts: ['냉철함', '열정적'], emoji: '👁️' },
-  { ego: '실행', parts: ['냉철함', '철저함'], emoji: '⏱️' },
-  { ego: '정열', parts: ['활력적', '열정적'], emoji: '🔥' },
-  { ego: '지배', parts: ['활력적', '철저함'], emoji: '❄️' },
-];
+// 자아 형성 규칙 - 레거시 (새 성장 시스템으로 대체됨)
+// 새 시스템: 개성 → 에토스/파토스 → 자아(총잡이/검잡이) → 로고스
 
 const TRAIT_EFFECT_DESC = {
   '용맹함': '힘 +1',
@@ -51,20 +38,7 @@ const TRAIT_EFFECT_DESC = {
   '활력적': '행동력 +1',
 };
 
-const REFLECTION_DESC = {
-  '헌신': '공세 획득',
-  '지략': '수세 획득',
-  '추격': '흐릿함 획득',
-  '역동': '행동력 +1',
-  '결의': '체력 2% 회복',
-  '추진': '힘 +1',
-  '신념': '면역 +1',
-  '완성': '에테르 1.5배',
-  '분석': '통찰 +1',
-  '실행': '타임라인 +5',
-  '정열': '민첩 +1',
-  '지배': '적 동결',
-};
+// REFLECTION_DESC 제거됨 - 새 성장 시스템으로 대체
 
 // 강화/특화 비용 (휴식 노드에서는 무료)
 const ENHANCEMENT_COST: Record<number, number> = {
@@ -83,7 +57,6 @@ export function RestModal({
   maxHp,
   canAwaken,
   playerTraits,
-  canFormEgo,
   cardUpgrades,
   cardGrowth,
   gold,
@@ -94,7 +67,6 @@ export function RestModal({
   upgradeCardRarity,
   enhanceCard,
   specializeCard,
-  formEgo,
   spendGold,
 }: {
   memoryValue: number;
@@ -103,7 +75,6 @@ export function RestModal({
   canAwaken: boolean;
   playerTraits: string[];
   ownedCards: string[];
-  canFormEgo: boolean;
   cardUpgrades: Record<string, string>;
   cardGrowth: Record<string, CardGrowthState>;
   gold: number;
@@ -113,11 +84,8 @@ export function RestModal({
   upgradeCardRarity: (cardId: string) => void;
   enhanceCard: (cardId: string) => void;
   specializeCard: (cardId: string, selectedTraits: string[]) => void;
-  formEgo: (traits: string[]) => void;
   spendGold: (amount: number) => void;
 }) {
-  const [egoFormMode, setEgoFormMode] = useState(false);
-  const [selectedTraitsForEgo, setSelectedTraitsForEgo] = useState<number[]>([]);
   const [showCardGrowthModal, setShowCardGrowthModal] = useState(false);
   const [cardGrowthUsed, setCardGrowthUsed] = useState(false);
 
@@ -187,35 +155,24 @@ export function RestModal({
             </div>
           </div>
           <div className="choice-card">
-            <strong>자아 형성</strong>
+            <strong>성장 시스템</strong>
             <div style={{ marginTop: "8px" }}>
+              <p style={{ fontSize: "12px", color: "#888", marginBottom: "8px" }}>
+                개성 보유: {playerTraits.length}개
+              </p>
               <button
                 className="btn"
-                disabled={!canFormEgo}
-                onClick={() => {
-                  setEgoFormMode(true);
-                  setSelectedTraitsForEgo([]);
-                }}
+                disabled={true}
+                style={{ opacity: 0.5 }}
               >
-                {canFormEgo ? `개성 5개 소모 (보유: ${playerTraits.length}개)` : `개성 부족 (${playerTraits.length}/5)`}
+                피라미드 성장 (준비 중)
               </button>
             </div>
           </div>
         </div>
 
-        {/* 자아 형성 모드 */}
-        {egoFormMode && (
-          <EgoFormPanel
-            playerTraits={playerTraits}
-            selectedTraitsForEgo={selectedTraitsForEgo}
-            setSelectedTraitsForEgo={setSelectedTraitsForEgo}
-            formEgo={formEgo}
-            setEgoFormMode={setEgoFormMode}
-          />
-        )}
-
         <div style={{ display: "flex", gap: "10px", marginTop: "12px" }}>
-          <button className="btn" onClick={() => { closeRest(); setEgoFormMode(false); setSelectedTraitsForEgo([]); }}>닫기</button>
+          <button className="btn" onClick={() => closeRest()}>닫기</button>
         </div>
       </div>
 
@@ -239,146 +196,7 @@ export function RestModal({
   );
 }
 
-function EgoFormPanel({
-  playerTraits,
-  selectedTraitsForEgo,
-  setSelectedTraitsForEgo,
-  formEgo,
-  setEgoFormMode,
-}: {
-  playerTraits: string[];
-  selectedTraitsForEgo: number[];
-  setSelectedTraitsForEgo: React.Dispatch<React.SetStateAction<number[]>>;
-  formEgo: (traits: string[]) => void;
-  setEgoFormMode: React.Dispatch<React.SetStateAction<boolean>>;
-}) {
-  const selectedTraitNames = selectedTraitsForEgo.map((idx) => playerTraits[idx]);
-  const traitCounts: Record<string, number> = selectedTraitNames.reduce((acc: Record<string, number>, t) => {
-    acc[t] = (acc[t] || 0) + 1;
-    return acc;
-  }, {});
-
-  let previewEgo: string | null = null;
-  let previewEmoji = '';
-  let bestScore = 0;
-  for (const { ego, parts, emoji } of EGO_RULES) {
-    const score = (traitCounts[parts[0]] || 0) + (traitCounts[parts[1]] || 0);
-    if (score > bestScore) {
-      bestScore = score;
-      previewEgo = ego;
-      previewEmoji = emoji;
-    }
-  }
-
-  // 효과 합산
-  const effectSummary: Record<string, number> = {};
-  for (const trait of selectedTraitNames) {
-    const desc = (TRAIT_EFFECT_DESC as Record<string, string>)[trait];
-    if (desc) {
-      effectSummary[desc] = (effectSummary[desc] || 0) + 1;
-    }
-  }
-  const effectText = Object.entries(effectSummary)
-    .map(([effect, count]) => {
-      const match = effect.match(/(.+?)([+-]?\d+)/);
-      if (match) {
-        return `${match[1]}${parseInt(match[2]) * (count as number) > 0 ? '+' : ''}${parseInt(match[2]) * (count as number)}`;
-      }
-      return `${effect} x${count}`;
-    })
-    .join(', ');
-
-  return (
-    <div style={{ marginTop: "16px", padding: "12px", background: "rgba(253, 230, 138, 0.1)", borderRadius: "8px", border: "1px solid rgba(253, 230, 138, 0.3)" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
-        <strong style={{ color: "#fde68a" }}>✨ 자아 형성 - 개성 5개 선택</strong>
-        <span style={{ color: "#9ca3af" }}>선택: {selectedTraitsForEgo.length}/5</span>
-      </div>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginBottom: "12px" }}>
-        {playerTraits.map((trait, idx) => {
-          const isSelected = selectedTraitsForEgo.includes(idx);
-          const canSelect = !isSelected && selectedTraitsForEgo.length < 5;
-          return (
-            <button
-              key={idx}
-              className="btn"
-              style={{
-                background: isSelected ? "rgba(253, 230, 138, 0.3)" : "rgba(30, 41, 59, 0.8)",
-                border: isSelected ? "2px solid #fde68a" : "1px solid #475569",
-                color: isSelected ? "#fde68a" : "#e2e8f0",
-                opacity: canSelect || isSelected ? 1 : 0.5,
-              }}
-              onClick={() => {
-                if (isSelected) {
-                  setSelectedTraitsForEgo((prev) => prev.filter((i) => i !== idx));
-                } else if (canSelect) {
-                  setSelectedTraitsForEgo((prev) => [...prev, idx]);
-                }
-              }}
-            >
-              {trait}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* 자아 미리보기 */}
-      {selectedTraitsForEgo.length > 0 && (
-        <div style={{
-          marginBottom: "12px",
-          padding: "10px",
-          background: "rgba(15, 23, 42, 0.8)",
-          borderRadius: "6px",
-          border: previewEgo ? "1px solid rgba(134, 239, 172, 0.3)" : "1px solid rgba(100, 116, 139, 0.3)"
-        }}>
-          <div style={{ fontSize: "12px", color: "#9ca3af", marginBottom: "4px" }}>미리보기</div>
-          {previewEgo ? (
-            <>
-              <div style={{ fontSize: "16px", color: "#fde68a", fontWeight: "bold" }}>
-                {previewEmoji} {previewEgo}
-              </div>
-              <div style={{ fontSize: "13px", color: "#86efac", marginTop: "4px" }}>
-                효과: {effectText || '없음'}
-              </div>
-              <div style={{ fontSize: "13px", color: "#7dd3fc", marginTop: "2px" }}>
-                성찰: 매 턴 확률로 {REFLECTION_DESC[previewEgo as keyof typeof REFLECTION_DESC]}
-              </div>
-            </>
-          ) : (
-            <div style={{ fontSize: "14px", color: "#fbbf24" }}>
-              조합에 해당하는 자아 없음 (기본: 각성)
-            </div>
-          )}
-        </div>
-      )}
-
-      <div style={{ display: "flex", gap: "8px" }}>
-        <button
-          className="btn"
-          disabled={selectedTraitsForEgo.length !== 5}
-          onClick={() => {
-            const traitsToConsume = selectedTraitsForEgo.map((idx) => playerTraits[idx]);
-            formEgo(traitsToConsume);
-            setEgoFormMode(false);
-            setSelectedTraitsForEgo([]);
-          }}
-          style={{ background: selectedTraitsForEgo.length === 5 ? "rgba(134, 239, 172, 0.2)" : undefined }}
-        >
-          자아 형성
-        </button>
-        <button
-          className="btn"
-          onClick={() => {
-            setEgoFormMode(false);
-            setSelectedTraitsForEgo([]);
-          }}
-        >
-          취소
-        </button>
-      </div>
-    </div>
-  );
-}
+// EgoFormPanel 제거됨 - 새 성장 시스템(피라미드)으로 대체
 
 /** 카드 성장 통계 계산 */
 function calculateGrowthStats(cardGrowth: Record<string, CardGrowthState>) {
