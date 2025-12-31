@@ -46,6 +46,49 @@ export interface DeckRecommendation {
   description: string;
 }
 
+// ==================== 다중 카드 시너지 (3+) ====================
+
+export interface MultiCardSynergy {
+  cards: string[];
+  synergyScore: number;
+  winRateBoost: number;
+  comboType: 'triple' | 'chain' | 'archetype' | 'custom';
+  description: string;
+  usageStats: {
+    frequency: number;
+    avgWinRate: number;
+    avgTurns: number;
+  };
+}
+
+export interface SynergyNetwork {
+  nodes: Array<{
+    id: string;
+    cardId: string;
+    centrality: number;  // 얼마나 많은 시너지에 참여하는지
+    avgSynergyScore: number;
+  }>;
+  edges: Array<{
+    source: string;
+    target: string;
+    weight: number;
+  }>;
+  clusters: Array<{
+    id: string;
+    cards: string[];
+    archetype: string;
+    cohesion: number;
+  }>;
+}
+
+export interface SynergyChain {
+  sequence: string[];
+  totalBonus: number;
+  chainType: 'damage' | 'defense' | 'utility' | 'mixed';
+  executionOrder: string[];
+  description: string;
+}
+
 // ==================== 시너지 분석기 ====================
 
 export interface SynergyAnalyzerOptions {
@@ -230,6 +273,336 @@ export class SynergyAnalyzer {
     }
 
     return recommendations;
+  }
+
+  // ==================== 3+ 카드 시너지 분석 ====================
+
+  /**
+   * 3장 카드 조합의 시너지 분석
+   */
+  async analyzeTripleSynergy(card1: string, card2: string, card3: string): Promise<MultiCardSynergy> {
+    // 개별 쌍 시너지 합산
+    const pair12 = await this.analyzePairSynergy(card1, card2);
+    const pair13 = await this.analyzePairSynergy(card1, card3);
+    const pair23 = await this.analyzePairSynergy(card2, card3);
+
+    const pairSynergySum = pair12.synergyScore + pair13.synergyScore + pair23.synergyScore;
+
+    // 3장 함께 사용 테스트
+    const tripleDeck = this.createTestDeck([card1, card2, card3]);
+    const actualWinRate = await this.testDeck(tripleDeck);
+
+    // 기대 승률 (개별 + 쌍 시너지 기반)
+    const baseline1 = this.baselineWinRates.get(card1) || 0.5;
+    const baseline2 = this.baselineWinRates.get(card2) || 0.5;
+    const baseline3 = this.baselineWinRates.get(card3) || 0.5;
+    const expectedWinRate = (baseline1 + baseline2 + baseline3) / 3 + pairSynergySum / 3;
+
+    // 트리플 시너지 = 실제 - 예상 (추가적인 시너지)
+    const tripleSynergyBonus = actualWinRate - expectedWinRate;
+    const totalSynergy = pairSynergySum + tripleSynergyBonus;
+
+    return {
+      cards: [card1, card2, card3],
+      synergyScore: totalSynergy,
+      winRateBoost: totalSynergy * 100,
+      comboType: 'triple',
+      description: this.describeTripleSynergy(card1, card2, card3, tripleSynergyBonus),
+      usageStats: {
+        frequency: 0,
+        avgWinRate: actualWinRate,
+        avgTurns: 0,
+      },
+    };
+  }
+
+  /**
+   * 연쇄 시너지 분석 (순서가 중요한 조합)
+   */
+  async analyzeChainSynergy(cardSequence: string[]): Promise<SynergyChain> {
+    if (cardSequence.length < 2) {
+      return {
+        sequence: cardSequence,
+        totalBonus: 0,
+        chainType: 'mixed',
+        executionOrder: cardSequence,
+        description: '연쇄에 최소 2장 필요',
+      };
+    }
+
+    // 순차적 쌍 시너지 계산
+    let totalBonus = 0;
+    for (let i = 0; i < cardSequence.length - 1; i++) {
+      const pair = await this.analyzePairSynergy(cardSequence[i], cardSequence[i + 1]);
+      // 연쇄 보너스: 순서대로 사용하면 추가 보너스
+      totalBonus += pair.synergyScore * (1 + i * 0.1);
+    }
+
+    // 체인 타입 결정
+    const chainType = this.determineChainType(cardSequence);
+
+    return {
+      sequence: cardSequence,
+      totalBonus,
+      chainType,
+      executionOrder: cardSequence,
+      description: this.describeChain(cardSequence, totalBonus, chainType),
+    };
+  }
+
+  /**
+   * N장 카드 조합 분석 (일반화)
+   */
+  async analyzeMultiCardSynergy(cards: string[]): Promise<MultiCardSynergy> {
+    if (cards.length < 3) {
+      throw new Error('다중 카드 시너지는 최소 3장 필요');
+    }
+
+    if (cards.length === 3) {
+      return this.analyzeTripleSynergy(cards[0], cards[1], cards[2]);
+    }
+
+    // N장 분석
+    const deck = this.createTestDeck(cards);
+    const actualWinRate = await this.testDeck(deck);
+
+    // 모든 쌍 시너지 합산
+    let pairSynergySum = 0;
+    let pairCount = 0;
+    for (let i = 0; i < cards.length; i++) {
+      for (let j = i + 1; j < cards.length; j++) {
+        const pair = await this.analyzePairSynergy(cards[i], cards[j]);
+        pairSynergySum += pair.synergyScore;
+        pairCount++;
+      }
+    }
+
+    // 기대 승률
+    let baselineSum = 0;
+    for (const card of cards) {
+      baselineSum += this.baselineWinRates.get(card) || 0.5;
+    }
+    const expectedWinRate = baselineSum / cards.length + pairSynergySum / pairCount;
+
+    const multiSynergyBonus = actualWinRate - expectedWinRate;
+    const totalSynergy = pairSynergySum + multiSynergyBonus;
+
+    return {
+      cards,
+      synergyScore: totalSynergy,
+      winRateBoost: totalSynergy * 100,
+      comboType: cards.length >= 4 ? 'archetype' : 'triple',
+      description: this.describeMultiSynergy(cards, multiSynergyBonus),
+      usageStats: {
+        frequency: 0,
+        avgWinRate: actualWinRate,
+        avgTurns: 0,
+      },
+    };
+  }
+
+  /**
+   * 시너지 네트워크 생성
+   */
+  async buildSynergyNetwork(cardIds?: string[]): Promise<SynergyNetwork> {
+    const cards = cardIds || Object.keys(this.cards).slice(0, 20);
+
+    console.log(`🕸️ ${cards.length}개 카드의 시너지 네트워크 구축...`);
+
+    // 시너지 매트릭스 생성
+    const matrix = await this.generateSynergyMatrix(cards);
+
+    // 노드 생성
+    const nodes = cards.map(cardId => {
+      const cardSynergies = matrix.topPairs.filter(
+        p => p.card1 === cardId || p.card2 === cardId
+      );
+      return {
+        id: cardId,
+        cardId,
+        centrality: cardSynergies.length,
+        avgSynergyScore: cardSynergies.length > 0
+          ? cardSynergies.reduce((sum, p) => sum + p.synergyScore, 0) / cardSynergies.length
+          : 0,
+      };
+    });
+
+    // 엣지 생성 (양수 시너지만)
+    const edges = matrix.topPairs
+      .filter(p => p.synergyScore > 0.01)
+      .map(p => ({
+        source: p.card1,
+        target: p.card2,
+        weight: p.synergyScore,
+      }));
+
+    // 클러스터링 (간단한 구현)
+    const clusters = this.findSynergyClusters(cards, matrix);
+
+    return { nodes, edges, clusters };
+  }
+
+  /**
+   * 최고 다중 카드 조합 찾기
+   */
+  async findTopMultiCardCombos(
+    comboSize: number = 3,
+    topN: number = 10
+  ): Promise<MultiCardSynergy[]> {
+    const cardIds = Object.keys(this.cards);
+    const combos: MultiCardSynergy[] = [];
+
+    console.log(`🔍 ${comboSize}장 조합 탐색 중...`);
+
+    // 조합 생성 (제한된 수만)
+    const maxCombos = 100; // 계산량 제한
+    let count = 0;
+
+    for (let i = 0; i < cardIds.length && count < maxCombos; i++) {
+      for (let j = i + 1; j < cardIds.length && count < maxCombos; j++) {
+        for (let k = j + 1; k < cardIds.length && count < maxCombos; k++) {
+          const cards = [cardIds[i], cardIds[j], cardIds[k]];
+
+          if (comboSize === 3) {
+            const synergy = await this.analyzeTripleSynergy(cards[0], cards[1], cards[2]);
+            combos.push(synergy);
+          } else if (comboSize === 4 && k + 1 < cardIds.length) {
+            const cards4 = [...cards, cardIds[k + 1]];
+            const synergy = await this.analyzeMultiCardSynergy(cards4);
+            combos.push(synergy);
+          }
+
+          count++;
+
+          if (count % 20 === 0) {
+            console.log(`  진행: ${count}/${maxCombos}`);
+          }
+        }
+      }
+    }
+
+    // 시너지 점수로 정렬
+    combos.sort((a, b) => b.synergyScore - a.synergyScore);
+
+    return combos.slice(0, topN);
+  }
+
+  // ==================== 다중 시너지 헬퍼 ====================
+
+  private describeTripleSynergy(card1: string, card2: string, card3: string, bonus: number): string {
+    const c1 = this.cards[card1];
+    const c2 = this.cards[card2];
+    const c3 = this.cards[card3];
+
+    const types = [c1?.type, c2?.type, c3?.type].filter(Boolean);
+    const uniqueTypes = new Set(types);
+
+    if (uniqueTypes.size === 1) {
+      return `${types[0]} 집중 조합 (${bonus > 0 ? '강한' : '약한'} 시너지)`;
+    }
+
+    if (types.filter(t => t === 'attack').length >= 2) {
+      return `공격 중심 조합`;
+    }
+
+    if (types.filter(t => t === 'defense').length >= 2) {
+      return `방어 중심 조합`;
+    }
+
+    return `균형 조합 (${bonus > 0.05 ? '높은' : bonus > 0 ? '보통' : '낮은'} 시너지)`;
+  }
+
+  private describeMultiSynergy(cards: string[], bonus: number): string {
+    const types = cards.map(id => this.cards[id]?.type).filter(Boolean);
+    const attackCount = types.filter(t => t === 'attack').length;
+    const defenseCount = types.filter(t => t === 'defense').length;
+
+    if (attackCount >= cards.length * 0.6) return `공격 아케타입 (${cards.length}장)`;
+    if (defenseCount >= cards.length * 0.6) return `방어 아케타입 (${cards.length}장)`;
+    return `혼합 아케타입 (${cards.length}장, 보너스: ${(bonus * 100).toFixed(1)}%)`;
+  }
+
+  private determineChainType(cards: string[]): 'damage' | 'defense' | 'utility' | 'mixed' {
+    const types = cards.map(id => this.cards[id]?.type).filter(Boolean);
+    const attackCount = types.filter(t => t === 'attack').length;
+    const defenseCount = types.filter(t => t === 'defense').length;
+
+    if (attackCount >= types.length * 0.7) return 'damage';
+    if (defenseCount >= types.length * 0.7) return 'defense';
+    if (attackCount === 0 && defenseCount === 0) return 'utility';
+    return 'mixed';
+  }
+
+  private describeChain(cards: string[], bonus: number, type: string): string {
+    const names = cards.map(id => this.cards[id]?.name || id);
+    return `${names.join(' → ')} (${type}, +${(bonus * 100).toFixed(1)}%)`;
+  }
+
+  private findSynergyClusters(
+    cards: string[],
+    matrix: SynergyMatrix
+  ): Array<{ id: string; cards: string[]; archetype: string; cohesion: number }> {
+    const clusters: Array<{ id: string; cards: string[]; archetype: string; cohesion: number }> = [];
+    const assigned = new Set<string>();
+
+    // 높은 시너지 쌍에서 시작하여 클러스터 확장
+    for (const pair of matrix.topPairs) {
+      if (pair.synergyScore < 0.02) continue;
+      if (assigned.has(pair.card1) && assigned.has(pair.card2)) continue;
+
+      const cluster = new Set<string>();
+      if (!assigned.has(pair.card1)) cluster.add(pair.card1);
+      if (!assigned.has(pair.card2)) cluster.add(pair.card2);
+
+      // 클러스터와 시너지가 높은 카드 추가
+      for (const otherPair of matrix.topPairs) {
+        if (otherPair.synergyScore < 0.02) continue;
+
+        if (cluster.has(otherPair.card1) && !assigned.has(otherPair.card2)) {
+          cluster.add(otherPair.card2);
+        }
+        if (cluster.has(otherPair.card2) && !assigned.has(otherPair.card1)) {
+          cluster.add(otherPair.card1);
+        }
+      }
+
+      if (cluster.size >= 3) {
+        const clusterCards = Array.from(cluster);
+        clusterCards.forEach(c => assigned.add(c));
+
+        const archetype = this.inferArchetype(clusterCards);
+        const cohesion = this.calculateClusterCohesion(clusterCards, matrix);
+
+        clusters.push({
+          id: `cluster_${clusters.length + 1}`,
+          cards: clusterCards,
+          archetype,
+          cohesion,
+        });
+      }
+    }
+
+    return clusters;
+  }
+
+  private calculateClusterCohesion(cards: string[], matrix: SynergyMatrix): number {
+    if (cards.length < 2) return 0;
+
+    let totalSynergy = 0;
+    let pairCount = 0;
+
+    for (let i = 0; i < cards.length; i++) {
+      for (let j = i + 1; j < cards.length; j++) {
+        const idx1 = matrix.cards.indexOf(cards[i]);
+        const idx2 = matrix.cards.indexOf(cards[j]);
+        if (idx1 >= 0 && idx2 >= 0) {
+          totalSynergy += matrix.matrix[idx1][idx2];
+          pairCount++;
+        }
+      }
+    }
+
+    return pairCount > 0 ? totalSynergy / pairCount : 0;
   }
 
   // ==================== 헬퍼 함수 ====================
