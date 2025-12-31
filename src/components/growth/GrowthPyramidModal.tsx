@@ -393,7 +393,7 @@ function UnlockedSummary({
   );
 }
 
-// 노드 행 컴포넌트
+// 노드 행 컴포넌트 - 스킬트리 시각화
 function TierRow({
   tier,
   label,
@@ -419,17 +419,53 @@ function TierRow({
 }) {
   const colors = TIER_COLORS[tier as keyof typeof TIER_COLORS];
   const isLocked = pyramidLevel < tier;
+  const [expandedNode, setExpandedNode] = useState<string | null>(null);
 
   return (
-    <div style={{ marginBottom: '16px', opacity: isLocked ? 0.5 : 1 }}>
-      <div style={{ fontSize: '12px', color: colors.text, marginBottom: '6px' }}>
-        {label} {isLocked && `(Lv${tier} 필요)`}
+    <div style={{ marginBottom: '20px', opacity: isLocked ? 0.5 : 1 }}>
+      {/* 티어 헤더 */}
+      <div style={{
+        fontSize: '12px',
+        color: colors.text,
+        marginBottom: '8px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px',
+      }}>
+        <span style={{ fontWeight: 'bold' }}>{label}</span>
+        {isLocked && (
+          <span style={{
+            fontSize: '10px',
+            padding: '2px 6px',
+            background: 'rgba(239, 68, 68, 0.2)',
+            border: '1px solid rgba(239, 68, 68, 0.3)',
+            borderRadius: '4px',
+            color: '#ef4444',
+          }}>
+            🔒 피라미드 Lv{tier} 필요
+          </span>
+        )}
+        {!isLocked && skillPoints < 1 && (
+          <span style={{
+            fontSize: '10px',
+            padding: '2px 6px',
+            background: 'rgba(251, 191, 36, 0.2)',
+            border: '1px solid rgba(251, 191, 36, 0.3)',
+            borderRadius: '4px',
+            color: '#fbbf24',
+          }}>
+            스킬포인트 필요
+          </span>
+        )}
       </div>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', justifyContent: 'center' }}>
+
+      {/* 노드 그리드 */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
         {nodes.map(node => {
           const isUnlocked = growth.unlockedNodes.includes(node.id);
           const isPending = pendingSelection?.nodeId === node.id;
           const canUnlock = !isLocked && !isUnlocked && skillPoints >= 1;
+          const isExpanded = expandedNode === node.id || isPending;
 
           // 선택된 선택지 찾기
           const selectedChoice = isUnlocked
@@ -440,68 +476,201 @@ function TierRow({
               )
             : null;
 
-          // 선택지 미리보기
+          // 선택지 정보
           const choices = getNodeChoices(node.id, type);
           const [choice1, choice2] = choices || [null, null];
 
           return (
-            <div
-              key={node.id}
-              style={{
-                padding: '8px 12px',
-                background: isPending
-                  ? 'rgba(251, 191, 36, 0.3)'
-                  : isUnlocked
-                    ? colors.bg
-                    : 'rgba(71, 85, 105, 0.2)',
-                border: isPending
-                  ? '2px solid #fbbf24'
-                  : isUnlocked
-                    ? `1px solid ${colors.border}`
-                    : '1px dashed #475569',
-                borderRadius: '6px',
-                minWidth: '140px',
-                textAlign: 'center',
-                cursor: canUnlock ? 'pointer' : 'default',
-              }}
-              onClick={() => canUnlock && onUnlockNode(node.id, type)}
-            >
-              <div style={{ fontWeight: 'bold', color: isUnlocked ? colors.text : '#9ca3af', fontSize: '13px' }}>
-                {node.name}
+            <div key={node.id}>
+              {/* 노드 헤더 */}
+              <div
+                style={{
+                  padding: '10px 14px',
+                  background: isPending
+                    ? 'rgba(251, 191, 36, 0.2)'
+                    : isUnlocked
+                      ? colors.bg
+                      : 'rgba(71, 85, 105, 0.15)',
+                  border: isPending
+                    ? '2px solid #fbbf24'
+                    : isUnlocked
+                      ? `1px solid ${colors.border}`
+                      : '1px solid #475569',
+                  borderRadius: '8px',
+                  cursor: (canUnlock || (!isUnlocked && !isPending)) ? 'pointer' : 'default',
+                }}
+                onClick={() => {
+                  if (canUnlock) {
+                    onUnlockNode(node.id, type);
+                  } else if (!isUnlocked && !isPending) {
+                    setExpandedNode(isExpanded ? null : node.id);
+                  }
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <div>
+                    {/* 노드 이름 + 설명 */}
+                    <div style={{
+                      fontWeight: 'bold',
+                      color: isUnlocked ? colors.text : '#e2e8f0',
+                      fontSize: '13px',
+                      marginBottom: '2px',
+                    }}>
+                      {isUnlocked && '✓ '}{node.name}
+                      <span style={{ fontWeight: 'normal', color: '#9ca3af', marginLeft: '8px', fontSize: '11px' }}>
+                        {node.description}
+                      </span>
+                    </div>
+
+                    {/* 선택지 미리보기 - 항상 표시 */}
+                    {choice1 && choice2 && (
+                      <div style={{
+                        display: 'flex',
+                        gap: '12px',
+                        marginTop: '6px',
+                        fontSize: '11px',
+                      }}>
+                        <ChoicePreview
+                          choice={choice1}
+                          isSelected={selectedChoice === choice1.id}
+                          isAlternative={selectedChoice === choice2.id}
+                          showDetails={isExpanded || isPending}
+                        />
+                        <span style={{ color: '#475569' }}>vs</span>
+                        <ChoicePreview
+                          choice={choice2}
+                          isSelected={selectedChoice === choice2.id}
+                          isAlternative={selectedChoice === choice1.id}
+                          showDetails={isExpanded || isPending}
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* 상태 뱃지 */}
+                  <div style={{ textAlign: 'right', minWidth: '80px' }}>
+                    {selectedChoice && (
+                      <div style={{
+                        fontSize: '10px',
+                        padding: '2px 6px',
+                        background: 'rgba(134, 239, 172, 0.2)',
+                        border: '1px solid rgba(134, 239, 172, 0.3)',
+                        borderRadius: '4px',
+                        color: '#86efac',
+                      }}>
+                        선택 완료
+                      </div>
+                    )}
+                    {isPending && (
+                      <div style={{
+                        fontSize: '10px',
+                        padding: '2px 6px',
+                        background: 'rgba(251, 191, 36, 0.2)',
+                        border: '1px solid rgba(251, 191, 36, 0.3)',
+                        borderRadius: '4px',
+                        color: '#fbbf24',
+                      }}>
+                        선택 대기 중
+                      </div>
+                    )}
+                    {canUnlock && (
+                      <div style={{
+                        fontSize: '10px',
+                        padding: '2px 6px',
+                        background: 'rgba(96, 165, 250, 0.2)',
+                        border: '1px solid rgba(96, 165, 250, 0.3)',
+                        borderRadius: '4px',
+                        color: '#60a5fa',
+                      }}>
+                        1P로 해금
+                      </div>
+                    )}
+                    {!isUnlocked && !isPending && !canUnlock && !isLocked && (
+                      <div style={{
+                        fontSize: '10px',
+                        color: '#6b7280',
+                      }}>
+                        {isExpanded ? '접기 ▲' : '상세보기 ▼'}
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
-              {/* 선택지 미리보기 (해금 전) */}
-              {!isUnlocked && !isPending && choice1 && choice2 && (
-                <div style={{ fontSize: '10px', color: '#6b7280', marginTop: '4px' }}>
-                  {choice1.name} / {choice2.name}
-                </div>
-              )}
-              {selectedChoice && (
-                <div style={{ fontSize: '11px', color: '#86efac', marginTop: '2px' }}>
-                  ✓ {type === 'ethos' ? ETHOS[selectedChoice]?.name : PATHOS[selectedChoice]?.name}
-                </div>
-              )}
+
+              {/* 선택 대기 중인 경우 선택 UI */}
               {isPending && (
-                <div style={{ fontSize: '10px', color: '#fbbf24', marginTop: '4px' }}>
-                  선택지를 고르세요 ↓
-                </div>
-              )}
-              {canUnlock && (
-                <div style={{ fontSize: '10px', color: '#60a5fa', marginTop: '2px' }}>
-                  [1P로 해금]
-                </div>
+                <NodeChoiceSelector
+                  nodeId={node.id}
+                  type={type}
+                  onSelectChoice={onSelectChoice}
+                />
               )}
             </div>
           );
         })}
       </div>
+    </div>
+  );
+}
 
-      {/* 선택 대기 중인 노드의 선택지 표시 */}
-      {pendingSelection?.type === type && nodes.find(n => n.id === pendingSelection.nodeId) && (
-        <NodeChoiceSelector
-          nodeId={pendingSelection.nodeId}
-          type={type}
-          onSelectChoice={onSelectChoice}
-        />
+// 선택지 미리보기 컴포넌트
+function ChoicePreview({
+  choice,
+  isSelected,
+  isAlternative,
+  showDetails,
+}: {
+  choice: Ethos | Pathos;
+  isSelected: boolean;
+  isAlternative: boolean;
+  showDetails: boolean;
+}) {
+  const typeColor = choice.type === 'sword' ? '#60a5fa' : choice.type === 'gun' ? '#f472b6' : '#9ca3af';
+  const typeLabel = choice.type === 'sword' ? '검술' : choice.type === 'gun' ? '총기' : '공용';
+
+  return (
+    <div style={{
+      flex: 1,
+      padding: showDetails ? '8px' : '4px 6px',
+      background: isSelected
+        ? 'rgba(134, 239, 172, 0.15)'
+        : isAlternative
+          ? 'rgba(107, 114, 128, 0.15)'
+          : 'rgba(30, 41, 59, 0.5)',
+      border: isSelected
+        ? '1px solid rgba(134, 239, 172, 0.4)'
+        : '1px solid rgba(71, 85, 105, 0.3)',
+      borderRadius: '4px',
+      opacity: isAlternative ? 0.5 : 1,
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+        {isSelected && <span style={{ color: '#86efac' }}>✓</span>}
+        <span style={{
+          fontWeight: isSelected ? 'bold' : 'normal',
+          color: isSelected ? '#86efac' : isAlternative ? '#6b7280' : '#e2e8f0',
+        }}>
+          {choice.name}
+        </span>
+        <span style={{
+          fontSize: '9px',
+          padding: '1px 4px',
+          background: `${typeColor}20`,
+          border: `1px solid ${typeColor}40`,
+          borderRadius: '3px',
+          color: typeColor,
+        }}>
+          {typeLabel}
+        </span>
+      </div>
+      {showDetails && (
+        <div style={{
+          marginTop: '4px',
+          fontSize: '10px',
+          color: isAlternative ? '#6b7280' : '#9ca3af',
+          lineHeight: '1.4',
+        }}>
+          {choice.description}
+        </div>
       )}
     </div>
   );
@@ -779,14 +948,15 @@ function LogosDisplay({
           onUnlock={onUnlockLogos}
         />
 
-        {/* 공용 로고스 (중앙) */}
+        {/* 공용 로고스 (중앙) - 자아 하나 이상 필요 */}
         <LogosCard
           logos={LOGOS.common}
           logosType="common"
           currentLevel={growth.logosLevels.common}
           maxUnlockableLevel={maxUnlockableLevel}
           skillPoints={skillPoints}
-          locked={false}
+          locked={growth.identities.length === 0}
+          lockReason="자아 1개 이상 필요"
           onUnlock={onUnlockLogos}
         />
 
@@ -813,6 +983,7 @@ function LogosCard({
   maxUnlockableLevel,
   skillPoints,
   locked,
+  lockReason,
   onUnlock,
 }: {
   logos: typeof LOGOS.common;
@@ -821,6 +992,7 @@ function LogosCard({
   maxUnlockableLevel: number;
   skillPoints: number;
   locked: boolean;
+  lockReason?: string;
   onUnlock: (logosType: 'common' | 'gunkata' | 'battleWaltz') => void;
 }) {
   // 다음 레벨 해금 가능 여부
@@ -847,7 +1019,7 @@ function LogosCard({
       }}>
         <span>
           {logos.name} (Lv{currentLevel})
-          {locked && <span style={{ fontSize: '10px', color: '#6b7280' }}> (자아 필요)</span>}
+          {locked && <span style={{ fontSize: '10px', color: '#6b7280' }}> ({lockReason || '자아 필요'})</span>}
         </span>
         {canUnlockNext && (
           <button

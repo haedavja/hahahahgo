@@ -288,6 +288,8 @@ export const createGrowthActions: SliceCreator = (set, get) => ({
       // 다음 레벨이 해금 가능한지 (피라미드 레벨에 따른 최대 해금 레벨)
       if (currentLevel >= requiredPyramidLevel) return state;
 
+      // 공용 로고스는 어떤 자아든 하나 필요
+      if (logosType === 'common' && growth.identities.length === 0) return state;
       // 자아 전용 로고스 체크
       if (logosType === 'gunkata' && !growth.identities.includes('gunslinger')) return state;
       if (logosType === 'battleWaltz' && !growth.identities.includes('swordsman')) return state;
