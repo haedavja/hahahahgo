@@ -853,22 +853,20 @@ function LogosDisplay({
   const maxUnlockableLevel = getLogosLevelFromPyramid(pyramidLevel);
   const hasSwordsman = growth.identities.includes('swordsman');
   const hasGunslinger = growth.identities.includes('gunslinger');
-
-  // 피라미드 Lv3 미만이면 전체 잠금
-  const pyramidLocked = pyramidLevel < 3;
+  const hasAnyIdentity = growth.identities.length > 0;
 
   return (
     <div style={{
       padding: '12px',
-      background: pyramidLocked ? 'rgba(71, 85, 105, 0.15)' : 'rgba(251, 191, 36, 0.05)',
-      border: pyramidLocked ? '1px dashed #6b7280' : '1px solid rgba(251, 191, 36, 0.2)',
+      background: 'rgba(251, 191, 36, 0.05)',
+      border: '1px solid rgba(251, 191, 36, 0.2)',
       borderRadius: '8px',
       marginBottom: '16px',
     }}>
-      <div style={{ fontSize: '12px', color: pyramidLocked ? '#9ca3af' : '#fbbf24', marginBottom: '10px', fontWeight: 'bold' }}>
-        ⬆ 로고스 {pyramidLocked
-          ? <span style={{ color: '#f87171', fontSize: '10px', marginLeft: '8px' }}>🔒 피라미드 Lv3 필요</span>
-          : `(최대 해금 가능: Lv${maxUnlockableLevel})`
+      <div style={{ fontSize: '12px', color: '#fbbf24', marginBottom: '10px', fontWeight: 'bold' }}>
+        ⬆ 로고스 {maxUnlockableLevel > 0
+          ? `(최대 해금 가능: Lv${maxUnlockableLevel})`
+          : <span style={{ color: '#9ca3af', fontSize: '10px', marginLeft: '8px' }}>피라미드 Lv3 이상에서 레벨업 가능</span>
         }
       </div>
 
@@ -880,8 +878,8 @@ function LogosDisplay({
           currentLevel={growth.logosLevels.battleWaltz}
           maxUnlockableLevel={maxUnlockableLevel}
           skillPoints={skillPoints}
-          locked={pyramidLocked || !hasSwordsman}
-          lockReason={pyramidLocked ? 'Lv3 필요' : '검사 자아 필요'}
+          locked={!hasSwordsman}
+          lockReason="검사 자아 필요"
           onUnlock={onUnlockLogos}
         />
 
@@ -892,8 +890,8 @@ function LogosDisplay({
           currentLevel={growth.logosLevels.common}
           maxUnlockableLevel={maxUnlockableLevel}
           skillPoints={skillPoints}
-          locked={pyramidLocked || growth.identities.length === 0}
-          lockReason={pyramidLocked ? 'Lv3 필요' : '자아 1개 이상 필요'}
+          locked={!hasAnyIdentity}
+          lockReason="자아 1개 이상 필요"
           onUnlock={onUnlockLogos}
         />
 
@@ -904,8 +902,8 @@ function LogosDisplay({
           currentLevel={growth.logosLevels.gunkata}
           maxUnlockableLevel={maxUnlockableLevel}
           skillPoints={skillPoints}
-          locked={pyramidLocked || !hasGunslinger}
-          lockReason={pyramidLocked ? 'Lv3 필요' : '총잡이 자아 필요'}
+          locked={!hasGunslinger}
+          lockReason="총잡이 자아 필요"
           onUnlock={onUnlockLogos}
         />
       </div>
