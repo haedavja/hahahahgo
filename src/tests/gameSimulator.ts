@@ -7230,6 +7230,267 @@ export function runStageAnalysis(battles: number = 20): void {
   console.log('\n' + '═'.repeat(50) + '\n');
 }
 
+/**
+ * 리소스 추적 분석 - 전투 중 리소스 사용 패턴 분석
+ */
+export function runResourceTracking(battles: number = 30): void {
+  console.log('═'.repeat(50));
+  console.log('💎 리소스 추적 분석');
+  console.log('═'.repeat(50));
+
+  const allEnemies = [...TIER_1_ENEMIES, ...TIER_2_ENEMIES];
+  const resourceStats = {
+    totalTokensUsed: 0,
+    totalCardsPlayed: 0,
+    avgTokensPerBattle: 0,
+    avgCardsPerBattle: 0,
+    peakTokenUsage: 0,
+    peakCardUsage: 0,
+  };
+
+  for (let i = 0; i < battles; i++) {
+    const enemy = allEnemies[Math.floor(Math.random() * allEnemies.length)];
+    const state = initBattleState(enemy, getDeckPreset('balanced'));
+    let tokensThisBattle = 0;
+    let cardsThisBattle = 0;
+
+    for (let turn = 0; turn < 30 && state.enemy.hp > 0 && state.player.hp > 0; turn++) {
+      const selectedIndices = selectCardsAI(state.hand);
+      cardsThisBattle += selectedIndices.length;
+      tokensThisBattle += selectedIndices.length;
+      processPlayerTurn(state, selectedIndices);
+      if (state.enemy.hp <= 0) break;
+      processEnemyTurn(state);
+    }
+
+    resourceStats.totalTokensUsed += tokensThisBattle;
+    resourceStats.totalCardsPlayed += cardsThisBattle;
+    resourceStats.peakTokenUsage = Math.max(resourceStats.peakTokenUsage, tokensThisBattle);
+    resourceStats.peakCardUsage = Math.max(resourceStats.peakCardUsage, cardsThisBattle);
+  }
+
+  resourceStats.avgTokensPerBattle = resourceStats.totalTokensUsed / battles;
+  resourceStats.avgCardsPerBattle = resourceStats.totalCardsPlayed / battles;
+
+  console.log('\n📊 리소스 사용 통계:\n');
+  console.log(`  총 토큰 사용: ${resourceStats.totalTokensUsed}`);
+  console.log(`  총 카드 플레이: ${resourceStats.totalCardsPlayed}`);
+  console.log(`  전투당 평균 토큰: ${resourceStats.avgTokensPerBattle.toFixed(1)}`);
+  console.log(`  전투당 평균 카드: ${resourceStats.avgCardsPerBattle.toFixed(1)}`);
+  console.log(`  최대 토큰 사용: ${resourceStats.peakTokenUsage}`);
+  console.log(`  최대 카드 사용: ${resourceStats.peakCardUsage}`);
+
+  // 효율성 평가
+  const efficiency = resourceStats.avgCardsPerBattle < 15 ? '높음' :
+    resourceStats.avgCardsPerBattle < 25 ? '보통' : '낮음';
+  console.log(`\n  💡 리소스 효율성: ${efficiency}`);
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
+/**
+ * 전략 핫스팟 분석 - 중요한 전략적 순간 분석
+ */
+export function runStrategyHotspot(battles: number = 20): void {
+  console.log('═'.repeat(50));
+  console.log('🔥 전략 핫스팟 분석');
+  console.log('═'.repeat(50));
+
+  const allEnemies = [...TIER_1_ENEMIES, ...TIER_2_ENEMIES];
+  const hotspots: { turn: number; type: string; impact: number }[] = [];
+
+  for (let i = 0; i < battles; i++) {
+    const enemy = allEnemies[Math.floor(Math.random() * allEnemies.length)];
+    const state = initBattleState(enemy, getDeckPreset('balanced'));
+    let prevPlayerHp = state.player.hp;
+    let prevEnemyHp = state.enemy.hp;
+
+    for (let turn = 0; turn < 30 && state.enemy.hp > 0 && state.player.hp > 0; turn++) {
+      const selectedIndices = selectCardsAI(state.hand);
+      processPlayerTurn(state, selectedIndices);
+
+      // 큰 피해를 입힌 턴
+      const damageDealt = prevEnemyHp - state.enemy.hp;
+      if (damageDealt > 30) {
+        hotspots.push({ turn, type: 'big_damage', impact: damageDealt });
+      }
+
+      if (state.enemy.hp <= 0) {
+        hotspots.push({ turn, type: 'kill', impact: 100 });
+        break;
+      }
+
+      processEnemyTurn(state);
+
+      // 큰 피해를 받은 턴
+      const damageTaken = prevPlayerHp - state.player.hp;
+      if (damageTaken > 20) {
+        hotspots.push({ turn, type: 'big_hit', impact: damageTaken });
+      }
+
+      prevPlayerHp = state.player.hp;
+      prevEnemyHp = state.enemy.hp;
+    }
+  }
+
+  // 핫스팟 집계
+  const turnStats: Record<number, { count: number; types: string[] }> = {};
+  hotspots.forEach(h => {
+    if (!turnStats[h.turn]) turnStats[h.turn] = { count: 0, types: [] };
+    turnStats[h.turn].count++;
+    turnStats[h.turn].types.push(h.type);
+  });
+
+  const sortedTurns = Object.entries(turnStats)
+    .sort((a, b) => b[1].count - a[1].count)
+    .slice(0, 5);
+
+  console.log('\n🎯 주요 핫스팟 턴:\n');
+  sortedTurns.forEach(([turn, data]) => {
+    const types = [...new Set(data.types)].join(', ');
+    console.log(`  턴 ${turn}: ${data.count}회 발생 (${types})`);
+  });
+
+  // 핫스팟 유형 분석
+  const typeCount: Record<string, number> = {};
+  hotspots.forEach(h => {
+    typeCount[h.type] = (typeCount[h.type] || 0) + 1;
+  });
+
+  console.log('\n📊 핫스팟 유형:\n');
+  Object.entries(typeCount)
+    .sort((a, b) => b[1] - a[1])
+    .forEach(([type, count]) => {
+      const emoji = type === 'kill' ? '💀' : type === 'big_damage' ? '⚔️' : '💥';
+      const typeName = type === 'kill' ? '킬' : type === 'big_damage' ? '큰피해' : '큰피격';
+      console.log(`  ${emoji} ${typeName}: ${count}회`);
+    });
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
+/**
+ * 누적 피해 분석 - 전투 중 누적 피해량 패턴
+ */
+export function runCumulativeDamage(battles: number = 30): void {
+  console.log('═'.repeat(50));
+  console.log('📈 누적 피해 분석');
+  console.log('═'.repeat(50));
+
+  const allEnemies = [...TIER_1_ENEMIES, ...TIER_2_ENEMIES];
+  const damageByTurn: Record<number, { dealt: number; taken: number; count: number }> = {};
+
+  for (let i = 0; i < battles; i++) {
+    const enemy = allEnemies[Math.floor(Math.random() * allEnemies.length)];
+    const state = initBattleState(enemy, getDeckPreset('balanced'));
+    let cumulativeDealt = 0;
+    let cumulativeTaken = 0;
+
+    for (let turn = 0; turn < 30 && state.enemy.hp > 0 && state.player.hp > 0; turn++) {
+      const prevEnemyHp = state.enemy.hp;
+      const prevPlayerHp = state.player.hp;
+
+      const selectedIndices = selectCardsAI(state.hand);
+      processPlayerTurn(state, selectedIndices);
+
+      cumulativeDealt += prevEnemyHp - state.enemy.hp;
+
+      if (state.enemy.hp <= 0) break;
+
+      processEnemyTurn(state);
+      cumulativeTaken += prevPlayerHp - state.player.hp;
+
+      if (!damageByTurn[turn]) damageByTurn[turn] = { dealt: 0, taken: 0, count: 0 };
+      damageByTurn[turn].dealt += cumulativeDealt;
+      damageByTurn[turn].taken += cumulativeTaken;
+      damageByTurn[turn].count++;
+    }
+  }
+
+  console.log('\n📊 턴별 평균 누적 피해:\n');
+  const turns = Object.keys(damageByTurn).map(Number).sort((a, b) => a - b);
+  turns.slice(0, 10).forEach(turn => {
+    const data = damageByTurn[turn];
+    const avgDealt = data.dealt / data.count;
+    const avgTaken = data.taken / data.count;
+    const ratio = avgTaken > 0 ? (avgDealt / avgTaken).toFixed(1) : '∞';
+    console.log(`  턴 ${String(turn + 1).padStart(2)}: 가한 ${avgDealt.toFixed(0).padStart(4)} / 받은 ${avgTaken.toFixed(0).padStart(4)} (비율 ${ratio})`);
+  });
+
+  // 피해 효율 분석
+  const finalTurn = turns[turns.length - 1];
+  if (finalTurn && damageByTurn[finalTurn]) {
+    const finalData = damageByTurn[finalTurn];
+    const totalDealt = finalData.dealt / finalData.count;
+    const totalTaken = finalData.taken / finalData.count;
+    const rating = totalDealt / Math.max(totalTaken, 1) > 3 ? '우수' :
+      totalDealt / Math.max(totalTaken, 1) > 1.5 ? '양호' : '개선필요';
+    console.log(`\n  💡 피해 효율 등급: ${rating}`);
+  }
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
+/**
+ * 체력 회복 분석 - 힐링 효과 분석
+ */
+export function runHealthRecovery(battles: number = 30): void {
+  console.log('═'.repeat(50));
+  console.log('💚 체력 회복 분석');
+  console.log('═'.repeat(50));
+
+  const allEnemies = [...TIER_1_ENEMIES, ...TIER_2_ENEMIES];
+  const healStats = {
+    totalHealing: 0,
+    healingInstances: 0,
+    avgHealPerBattle: 0,
+    maxSingleHeal: 0,
+    battlesWithHealing: 0,
+  };
+
+  for (let i = 0; i < battles; i++) {
+    const enemy = allEnemies[Math.floor(Math.random() * allEnemies.length)];
+    const state = initBattleState(enemy, getDeckPreset('defensive'));
+    let battleHealing = 0;
+
+    for (let turn = 0; turn < 30 && state.enemy.hp > 0 && state.player.hp > 0; turn++) {
+      const prevHp = state.player.hp;
+      const selectedIndices = selectCardsAI(state.hand);
+      processPlayerTurn(state, selectedIndices);
+
+      // 힐링 감지 (HP 증가)
+      const hpChange = state.player.hp - prevHp;
+      if (hpChange > 0) {
+        battleHealing += hpChange;
+        healStats.healingInstances++;
+        healStats.maxSingleHeal = Math.max(healStats.maxSingleHeal, hpChange);
+      }
+
+      if (state.enemy.hp <= 0) break;
+      processEnemyTurn(state);
+    }
+
+    healStats.totalHealing += battleHealing;
+    if (battleHealing > 0) healStats.battlesWithHealing++;
+  }
+
+  healStats.avgHealPerBattle = healStats.totalHealing / battles;
+
+  console.log('\n📊 회복 통계:\n');
+  console.log(`  총 회복량: ${healStats.totalHealing}`);
+  console.log(`  회복 발생 횟수: ${healStats.healingInstances}`);
+  console.log(`  전투당 평균 회복: ${healStats.avgHealPerBattle.toFixed(1)}`);
+  console.log(`  최대 단일 회복: ${healStats.maxSingleHeal}`);
+  console.log(`  회복 발생 전투: ${healStats.battlesWithHealing}/${battles} (${((healStats.battlesWithHealing / battles) * 100).toFixed(0)}%)`);
+
+  // 회복 효율 평가
+  const healEfficiency = healStats.avgHealPerBattle >= 10 ? '높음' :
+    healStats.avgHealPerBattle >= 5 ? '보통' : '낮음';
+  console.log(`\n  💡 회복 효율: ${healEfficiency}`);
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
 // CLI에서 직접 실행 시
 if (typeof process !== 'undefined' && process.argv?.[1]?.includes('gameSimulator')) {
   runQuickTest();

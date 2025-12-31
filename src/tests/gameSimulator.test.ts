@@ -924,3 +924,31 @@ describe('스테이지 분석', () => {
     expect(typeof runStageAnalysis).toBe('function');
   });
 });
+
+describe('리소스 추적 분석', () => {
+  it('runResourceTracking 함수가 존재한다', async () => {
+    const { runResourceTracking } = await import('./gameSimulator');
+    expect(typeof runResourceTracking).toBe('function');
+  });
+});
+
+describe('전략 핫스팟 분석', () => {
+  it('runStrategyHotspot 함수가 존재한다', async () => {
+    const { runStrategyHotspot } = await import('./gameSimulator');
+    expect(typeof runStrategyHotspot).toBe('function');
+  });
+});
+
+describe('누적 피해 분석', () => {
+  it('runCumulativeDamage 함수가 존재한다', async () => {
+    const { runCumulativeDamage } = await import('./gameSimulator');
+    expect(typeof runCumulativeDamage).toBe('function');
+  });
+});
+
+describe('체력 회복 분석', () => {
+  it('runHealthRecovery 함수가 존재한다', async () => {
+    const { runHealthRecovery } = await import('./gameSimulator');
+    expect(typeof runHealthRecovery).toBe('function');
+  });
+});
