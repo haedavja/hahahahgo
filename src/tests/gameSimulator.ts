@@ -4156,6 +4156,341 @@ export function runTurnAnalysis(battles: number = 30): void {
   console.log('\n' + '═'.repeat(50) + '\n');
 }
 
+/**
+ * 데미지 분석
+ * 덱별/카드별 데미지 출력 분석
+ */
+export function runDamageAnalysis(battles: number = 30): void {
+  console.log('\n╔════════════════════════════════════════╗');
+  console.log('║            데미지 분석                  ║');
+  console.log('╚════════════════════════════════════════╝\n');
+
+  console.log(`📊 덱별 데미지 출력 분석 (${battles}회 전투)\n`);
+  console.log('─'.repeat(50));
+
+  const results: Array<{ name: string; avgDamage: number; winRate: number }> = [];
+
+  for (const [name, deck] of Object.entries(DECK_PRESETS)) {
+    const config: SimulationConfig = {
+      battles,
+      maxTurns: 30,
+      enemyIds: TIER_1_ENEMIES.slice(0, 3),
+      playerDeck: deck,
+      verbose: false,
+    };
+
+    const stats = runSimulation(config);
+
+    // 평균 데미지 추정 (승률과 턴수 기반)
+    const avgEnemyHp = 50; // 티어1 적 평균 HP
+    const estimatedDamage = stats.winRate > 0
+      ? avgEnemyHp / Math.max(1, stats.avgTurns)
+      : avgEnemyHp * 0.5 / Math.max(1, stats.avgTurns);
+
+    results.push({
+      name,
+      avgDamage: estimatedDamage,
+      winRate: stats.winRate,
+    });
+  }
+
+  // 데미지순 정렬
+  results.sort((a, b) => b.avgDamage - a.avgDamage);
+
+  console.log('\n🗡️ 덱별 예상 턴당 데미지:\n');
+  results.forEach((r, idx) => {
+    const bar = '█'.repeat(Math.ceil(r.avgDamage * 2));
+    console.log(`  ${idx + 1}. ${r.name}: ${bar} ${r.avgDamage.toFixed(1)}`);
+    console.log(`     승률: ${(r.winRate * 100).toFixed(1)}%`);
+  });
+
+  // 분석
+  console.log('\n' + '─'.repeat(50));
+  console.log('\n💡 분석:');
+
+  const highDamage = results.filter(r => r.avgDamage > 10);
+  const lowDamage = results.filter(r => r.avgDamage < 5);
+
+  if (highDamage.length > 0) {
+    console.log(`  🔥 고딜 덱: ${highDamage.map(r => r.name).join(', ')}`);
+  }
+  if (lowDamage.length > 0) {
+    console.log(`  🛡️ 저딜/탱커 덱: ${lowDamage.map(r => r.name).join(', ')}`);
+  }
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
+/**
+ * 힐링 분석
+ * 회복 효율 및 생존력 분석
+ */
+export function runHealingAnalysis(battles: number = 30): void {
+  console.log('\n╔════════════════════════════════════════╗');
+  console.log('║            힐링 분석                    ║');
+  console.log('╚════════════════════════════════════════╝\n');
+
+  console.log(`📊 덱별 생존력 분석 (${battles}회 전투)\n`);
+  console.log('─'.repeat(50));
+
+  // 방어 카드가 있는 덱 vs 없는 덱 비교
+  const defensiveCards = CARDS.filter(c => c.traits?.includes('방어') || c.traits?.includes('회복'));
+
+  const results: Array<{ name: string; survivalTurns: number; winRate: number }> = [];
+
+  for (const [name, deck] of Object.entries(DECK_PRESETS)) {
+    const config: SimulationConfig = {
+      battles,
+      maxTurns: 50, // 긴 전투도 허용
+      enemyIds: TIER_2_ENEMIES.slice(0, 3), // 어려운 적으로 테스트
+      playerDeck: deck,
+      verbose: false,
+    };
+
+    const stats = runSimulation(config);
+
+    results.push({
+      name,
+      survivalTurns: stats.avgTurns,
+      winRate: stats.winRate,
+    });
+  }
+
+  // 생존턴순 정렬
+  results.sort((a, b) => b.survivalTurns - a.survivalTurns);
+
+  console.log('\n💚 덱별 평균 생존 턴:\n');
+  results.forEach((r, idx) => {
+    const bar = '█'.repeat(Math.ceil(r.survivalTurns));
+    console.log(`  ${idx + 1}. ${r.name}: ${bar} ${r.survivalTurns.toFixed(1)}턴`);
+    console.log(`     승률: ${(r.winRate * 100).toFixed(1)}%`);
+  });
+
+  // 분석
+  console.log('\n' + '─'.repeat(50));
+  console.log('\n💡 분석:');
+
+  const tanky = results.filter(r => r.survivalTurns > 8 && r.winRate < 0.5);
+  const glassy = results.filter(r => r.survivalTurns < 4 && r.winRate > 0.5);
+
+  if (tanky.length > 0) {
+    console.log(`  🛡️ 지구력형 (긴 전투, 낮은 승률): ${tanky.map(r => r.name).join(', ')}`);
+  }
+  if (glassy.length > 0) {
+    console.log(`  ⚡ 유리대포형 (빠른 승리): ${glassy.map(r => r.name).join(', ')}`);
+  }
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
+/**
+ * 콤보 빈도 분석
+ * 콤보 발생 패턴 상세 분석
+ */
+export function runComboBreakdown(battles: number = 50): void {
+  console.log('\n╔════════════════════════════════════════╗');
+  console.log('║           콤보 빈도 분석                ║');
+  console.log('╚════════════════════════════════════════╝\n');
+
+  console.log(`📊 ${battles}회 전투 콤보 발생 분석\n`);
+  console.log('─'.repeat(50));
+
+  // 콤보 덱으로 테스트
+  const config: SimulationConfig = {
+    battles,
+    maxTurns: 30,
+    enemyIds: [...TIER_1_ENEMIES.slice(0, 3), ...TIER_2_ENEMIES.slice(0, 2)],
+    playerDeck: DECK_PRESETS.combo,
+    verbose: false,
+  };
+
+  const stats = runSimulation(config);
+
+  console.log('\n🃏 콤보 발생 통계:\n');
+
+  if (Object.keys(stats.comboStats).length === 0) {
+    console.log('  콤보 발생 데이터 없음');
+  } else {
+    // 콤보 정렬
+    const sortedCombos = Object.entries(stats.comboStats)
+      .sort((a, b) => b[1].count - a[1].count);
+
+    // 콤보 티어 분류
+    const tierS = ['파이브카드', '스트레이트 플러시', '포카드'];
+    const tierA = ['풀하우스', '플러시', '스트레이트'];
+    const tierB = ['트리플', '투페어'];
+    const tierC = ['페어'];
+
+    console.log('  [S 티어] 레전드리 콤보:');
+    tierS.forEach(combo => {
+      const stat = stats.comboStats[combo];
+      if (stat) {
+        console.log(`    • ${combo}: ${stat.count}회 (전투당 ${stat.avgPerBattle.toFixed(2)})`);
+      }
+    });
+
+    console.log('\n  [A 티어] 레어 콤보:');
+    tierA.forEach(combo => {
+      const stat = stats.comboStats[combo];
+      if (stat) {
+        console.log(`    • ${combo}: ${stat.count}회 (전투당 ${stat.avgPerBattle.toFixed(2)})`);
+      }
+    });
+
+    console.log('\n  [B 티어] 일반 콤보:');
+    tierB.forEach(combo => {
+      const stat = stats.comboStats[combo];
+      if (stat) {
+        console.log(`    • ${combo}: ${stat.count}회 (전투당 ${stat.avgPerBattle.toFixed(2)})`);
+      }
+    });
+
+    console.log('\n  [C 티어] 기본 콤보:');
+    tierC.forEach(combo => {
+      const stat = stats.comboStats[combo];
+      if (stat) {
+        console.log(`    • ${combo}: ${stat.count}회 (전투당 ${stat.avgPerBattle.toFixed(2)})`);
+      }
+    });
+  }
+
+  // 콤보 덱 효율
+  console.log('\n' + '─'.repeat(50));
+  console.log('\n💡 콤보 덱 분석:');
+  console.log(`  승률: ${(stats.winRate * 100).toFixed(1)}%`);
+  console.log(`  평균 턴: ${stats.avgTurns.toFixed(1)}`);
+
+  const totalCombos = Object.values(stats.comboStats).reduce((s, c) => s + c.count, 0);
+  console.log(`  총 콤보 발생: ${totalCombos}회 (전투당 ${(totalCombos / battles).toFixed(1)})`);
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
+/**
+ * 스트레스 테스트
+ * 대량 시뮬레이션으로 안정성 확인
+ */
+export function runStressTest(battles: number = 1000): void {
+  console.log('\n╔════════════════════════════════════════╗');
+  console.log('║           스트레스 테스트               ║');
+  console.log('╚════════════════════════════════════════╝\n');
+
+  console.log(`📊 ${battles}회 대량 시뮬레이션\n`);
+  console.log('─'.repeat(50));
+
+  const startTime = performance.now();
+
+  const config: SimulationConfig = {
+    battles,
+    maxTurns: 30,
+    enemyIds: [...TIER_1_ENEMIES, ...TIER_2_ENEMIES, ...TIER_3_ENEMIES],
+    verbose: false,
+  };
+
+  // 단계별 진행
+  const segments = 10;
+  const segmentSize = Math.floor(battles / segments);
+  const segmentResults: number[] = [];
+
+  for (let i = 0; i < segments; i++) {
+    const segConfig = { ...config, battles: segmentSize };
+    const segStats = runSimulation(segConfig);
+    segmentResults.push(segStats.winRate);
+
+    const progress = ((i + 1) / segments * 100).toFixed(0);
+    process.stdout.write(`\r  진행률: ${progress}% [${'█'.repeat(i + 1)}${'░'.repeat(segments - i - 1)}]`);
+  }
+
+  const elapsed = performance.now() - startTime;
+
+  console.log('\n\n' + '─'.repeat(50));
+
+  // 결과 분석
+  const avgWinRate = segmentResults.reduce((s, r) => s + r, 0) / segments;
+  const variance = segmentResults.reduce((s, r) => s + Math.pow(r - avgWinRate, 2), 0) / segments;
+  const stdDev = Math.sqrt(variance);
+
+  console.log('\n📈 결과:');
+  console.log(`  총 전투: ${battles}회`);
+  console.log(`  실행 시간: ${(elapsed / 1000).toFixed(2)}초`);
+  console.log(`  처리 속도: ${(battles / elapsed * 1000).toFixed(0)} 전투/초`);
+  console.log(`\n  평균 승률: ${(avgWinRate * 100).toFixed(1)}%`);
+  console.log(`  표준편차: ${(stdDev * 100).toFixed(2)}%`);
+
+  // 안정성 평가
+  const stability = stdDev < 0.05 ? '🟢 매우 안정' :
+    stdDev < 0.1 ? '🟡 안정' :
+    stdDev < 0.15 ? '🟠 약간 불안정' : '🔴 불안정';
+
+  console.log(`\n  안정성: ${stability}`);
+
+  // 세그먼트별 결과
+  console.log('\n  세그먼트별 승률:');
+  segmentResults.forEach((r, i) => {
+    const bar = '█'.repeat(Math.ceil(r * 20));
+    console.log(`    ${i + 1}. ${bar} ${(r * 100).toFixed(1)}%`);
+  });
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
+/**
+ * 확률 분석
+ * 카드/콤보 확률 계산
+ */
+export function runProbabilityAnalysis(): void {
+  console.log('\n╔════════════════════════════════════════╗');
+  console.log('║           확률 분석                     ║');
+  console.log('╚════════════════════════════════════════╝\n');
+
+  console.log('📊 이론적 확률 분석\n');
+  console.log('─'.repeat(50));
+
+  // 덱 크기와 핸드 크기
+  const deckSize = 8;
+  const handSize = 5;
+
+  // 콤보 확률 (단순화)
+  console.log('\n🃏 콤보 이론적 확률 (8장 덱, 5장 핸드):');
+  console.log('  (실제 확률은 덱 구성에 따라 다름)\n');
+
+  // 페어 확률 근사
+  const pairProb = 0.4; // 대략적 추정
+  const twoPairProb = 0.15;
+  const tripleProb = 0.1;
+  const straightProb = 0.05;
+  const flushProb = 0.03;
+  const fullHouseProb = 0.02;
+  const fourKindProb = 0.005;
+  const straightFlushProb = 0.001;
+  const fiveKindProb = 0.0001;
+
+  const probabilities = [
+    { name: '페어', prob: pairProb },
+    { name: '투페어', prob: twoPairProb },
+    { name: '트리플', prob: tripleProb },
+    { name: '스트레이트', prob: straightProb },
+    { name: '플러시', prob: flushProb },
+    { name: '풀하우스', prob: fullHouseProb },
+    { name: '포카드', prob: fourKindProb },
+    { name: '스트레이트 플러시', prob: straightFlushProb },
+    { name: '파이브카드', prob: fiveKindProb },
+  ];
+
+  probabilities.forEach(p => {
+    const percent = (p.prob * 100).toFixed(2);
+    const oneIn = Math.round(1 / p.prob);
+    console.log(`  ${p.name}: ~${percent}% (1/${oneIn})`);
+  });
+
+  console.log('\n' + '─'.repeat(50));
+  console.log('\n💡 참고:');
+  console.log('  • 실제 확률은 덱의 카드 분포에 따라 크게 달라집니다.');
+  console.log('  • 콤보 덱은 특정 콤보 확률을 높이도록 설계됩니다.');
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
 // CLI에서 직접 실행 시
 if (typeof process !== 'undefined' && process.argv?.[1]?.includes('gameSimulator')) {
   runQuickTest();

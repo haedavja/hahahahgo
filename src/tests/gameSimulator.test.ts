@@ -581,3 +581,38 @@ describe('턴 분석', () => {
     expect(typeof runTurnAnalysis).toBe('function');
   });
 });
+
+describe('데미지 분석', () => {
+  it('runDamageAnalysis 함수가 존재한다', async () => {
+    const { runDamageAnalysis } = await import('./gameSimulator');
+    expect(typeof runDamageAnalysis).toBe('function');
+  });
+});
+
+describe('힐링 분석', () => {
+  it('runHealingAnalysis 함수가 존재한다', async () => {
+    const { runHealingAnalysis } = await import('./gameSimulator');
+    expect(typeof runHealingAnalysis).toBe('function');
+  });
+});
+
+describe('콤보 빈도 분석', () => {
+  it('runComboBreakdown 함수가 존재한다', async () => {
+    const { runComboBreakdown } = await import('./gameSimulator');
+    expect(typeof runComboBreakdown).toBe('function');
+  });
+});
+
+describe('스트레스 테스트', () => {
+  it('runStressTest 함수가 존재한다', async () => {
+    const { runStressTest } = await import('./gameSimulator');
+    expect(typeof runStressTest).toBe('function');
+  });
+});
+
+describe('확률 분석', () => {
+  it('runProbabilityAnalysis 함수가 존재한다', async () => {
+    const { runProbabilityAnalysis } = await import('./gameSimulator');
+    expect(typeof runProbabilityAnalysis).toBe('function');
+  });
+});
