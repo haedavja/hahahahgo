@@ -281,6 +281,9 @@ export interface GameBattleState {
   // 피해량 추적
   playerDamageDealt?: number;                 // 플레이어가 가한 피해
   enemyDamageDealt?: number;                  // 적이 가한 피해
+  // 통계 추적
+  cardUsage?: Record<string, number>;         // 카드별 사용 횟수
+  tokenUsage?: Record<string, number>;        // 토큰별 적용 횟수
 }
 
 // ==================== 타임라인 시스템 ====================

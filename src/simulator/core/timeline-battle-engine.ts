@@ -162,6 +162,8 @@ export class TimelineBattleEngine {
       battleLog: [],
       playerDamageDealt: 0,
       enemyDamageDealt: 0,
+      cardUsage: {},
+      tokenUsage: {},
     };
 
     // 전투 시작 트리거
@@ -554,6 +556,10 @@ export class TimelineBattleEngine {
     if (tokenCheck.consumed.length > 0) {
       state.battleLog.push(`  🔹 소모: ${tokenCheck.consumed.join(', ')}`);
     }
+
+    // 카드 사용 통계 추적
+    state.cardUsage = state.cardUsage || {};
+    state.cardUsage[card.id] = (state.cardUsage[card.id] || 0) + 1;
 
     // 상징 트리거
     if (this.config.enableRelics) {
@@ -1353,9 +1359,9 @@ export class TimelineBattleEngine {
       etherGained: state.player.ether,
       battleLog: state.battleLog,
       events: this.events,
-      cardUsage: {},
+      cardUsage: state.cardUsage || {},
       comboStats: {},
-      tokenStats: {},
+      tokenStats: state.tokenUsage || {},
       timeline: state.timeline,
     };
   }
