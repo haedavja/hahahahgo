@@ -605,6 +605,16 @@ export class TimelineBattleEngine {
   private placeCardsOnTimeline(state: GameBattleState, playerCards: GameCard[], enemyCards: GameCard[]): void {
     state.timeline = [];
 
+    // 플레이어 카드 배치 전 콤보 감지 (협동 특성용)
+    if (playerCards.length > 0) {
+      const comboResult = detectPokerCombo(playerCards);
+      state.currentComboRank = comboResult.rank;
+      state.currentComboKeys = comboResult.bonusKeys || new Set();
+    } else {
+      state.currentComboRank = 0;
+      state.currentComboKeys = new Set();
+    }
+
     // 플레이어 카드 배치
     for (const card of playerCards) {
       const position = this.calculateCardPosition(card, state.player.tokens);
@@ -1026,8 +1036,35 @@ export class TimelineBattleEngine {
       // 피해량 추적
       if (attacker === 'player') {
         state.playerDamageDealt = (state.playerDamageDealt || 0) + actualDamage;
+
+        // knockbackOnHit3: 피해 시 넉백 3
+        if (actualDamage > 0 && hasSpecialEffect(card, 'knockbackOnHit3')) {
+          let pushedCount = 0;
+          for (const tc of state.timeline) {
+            if (tc.owner === 'enemy' && !tc.executed) {
+              tc.position = Math.min(this.config.maxSpeed, tc.position + 3);
+              pushedCount++;
+            }
+          }
+          if (pushedCount > 0) {
+            state.battleLog.push(`  ⏩ 피해 넉백: 적 카드 ${pushedCount}장 +3`);
+          }
+        }
       } else {
         state.enemyDamageDealt = (state.enemyDamageDealt || 0) + actualDamage;
+
+        // onHitBlock7Advance3 (rain_defense): 피격시 방어 7, 앞당김 3
+        if (actualDamage > 0 && hasToken(state.player.tokens, 'rain_defense')) {
+          state.player.block += 7;
+          let advancedCount = 0;
+          for (const tc of state.timeline) {
+            if (tc.owner === 'player' && !tc.executed) {
+              tc.position = Math.max(1, tc.position - 3);
+              advancedCount++;
+            }
+          }
+          state.battleLog.push(`  🌧️ 비의 눈물: 방어 +7, 앞당김 ${advancedCount}장`);
+        }
       }
 
       // 흡혈 처리
@@ -1310,7 +1347,18 @@ export class TimelineBattleEngine {
           break;
 
         case 'cooperation':
-          // 협동: 조합에 포함되면 50% 추가 (콤보 체크 필요)
+          // 협동: 조합에 포함되면 50% 추가
+          if (state && actor === 'player') {
+            const comboRank = state.currentComboRank || 0;
+            const comboKeys = state.currentComboKeys || new Set<number>();
+            const cardCost = card.actionCost || 1;
+            // 콤보 등급이 0보다 크고 (하이카드가 아닌) 카드의 actionCost가 콤보에 포함되면
+            if (comboRank > 0 && comboKeys.has(cardCost)) {
+              mods.damageMultiplier *= 1.5;
+              mods.blockMultiplier *= 1.5;
+              mods.effects.push('협동: 콤보 50% 증폭');
+            }
+          }
           break;
 
         case 'outcast':

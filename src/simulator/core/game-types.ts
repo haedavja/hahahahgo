@@ -290,6 +290,8 @@ export interface GameBattleState {
   tokenUsage?: Record<string, number>;        // 토큰별 적용 횟수
   // 에테르 콤보 시스템
   comboUsageCount?: Record<string, number>;   // 콤보별 사용 횟수 (디플레이션용)
+  currentComboKeys?: Set<number>;             // 현재 턴 콤보에 포함된 actionCost 값들
+  currentComboRank?: number;                  // 현재 턴 콤보 등급 (0=하이카드)
 }
 
 // ==================== 타임라인 시스템 ====================
