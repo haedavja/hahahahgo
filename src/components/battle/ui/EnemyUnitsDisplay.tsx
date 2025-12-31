@@ -3,11 +3,190 @@
  *
  * 다중 적 유닛 표시 및 타겟팅 UI
  * 각 유닛은 개별 HP/방어력을 가지며 클릭으로 타겟 선택 가능
+ * 최적화: 스타일 상수 추출
  */
 
-import { FC, memo } from 'react';
+import { FC, memo, useMemo, useCallback } from 'react';
+import type { CSSProperties } from 'react';
 import { TokenDisplay } from './TokenDisplay';
 import type { PreviewDamage, TokenEntity, EnemyUnitState as Unit } from '../../../types';
+
+// =====================
+// 스타일 상수
+// =====================
+
+const CONTAINER_STYLE: CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '12px',
+  position: 'fixed',
+  top: '420px',
+  right: '550px',
+  zIndex: 100,
+  maxWidth: '320px'
+};
+
+const UNIT_INFO_STYLE: CSSProperties = {
+  flex: 1,
+  minWidth: '180px'
+};
+
+const UNIT_HEADER_STYLE: CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  marginBottom: '6px'
+};
+
+const UNIT_NAME_STYLE: CSSProperties = {
+  fontSize: '0.95rem',
+  fontWeight: '600',
+  color: '#e2e8f0'
+};
+
+const TARGET_BADGE_STYLE: CSSProperties = {
+  fontSize: '0.75rem',
+  color: '#ef4444',
+  fontWeight: '700',
+  textTransform: 'uppercase',
+  letterSpacing: '0.5px'
+};
+
+const STATS_ROW_STYLE: CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: '8px',
+  marginBottom: '4px',
+  fontSize: '0.9rem'
+};
+
+const HP_BAR_STYLE: CSSProperties = {
+  width: '100%',
+  height: '10px',
+  position: 'relative',
+  overflow: 'hidden',
+  borderRadius: '5px'
+};
+
+const TOKEN_CONTAINER_STYLE: CSSProperties = {
+  marginTop: '6px',
+  minHeight: '24px'
+};
+
+const HINT_STYLE: CSSProperties = {
+  fontSize: '0.75rem',
+  color: '#94a3b8',
+  textAlign: 'center',
+  padding: '4px 8px',
+  background: 'rgba(30, 41, 59, 0.6)',
+  borderRadius: '6px'
+};
+
+const DISTRIBUTION_PANEL_STYLE: CSSProperties = {
+  padding: '12px',
+  background: 'rgba(30, 41, 59, 0.9)',
+  borderRadius: '8px',
+  border: '1px solid rgba(251, 191, 36, 0.5)'
+};
+
+const DISTRIBUTION_HEADER_STYLE: CSSProperties = {
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  marginBottom: '10px'
+};
+
+const DISTRIBUTION_BUTTONS_STYLE: CSSProperties = {
+  display: 'flex',
+  gap: '8px',
+  justifyContent: 'flex-end'
+};
+
+const SHARED_TOKEN_PANEL_STYLE: CSSProperties = {
+  padding: '8px 12px',
+  background: 'rgba(30, 41, 59, 0.8)',
+  borderRadius: '8px',
+  border: '1px solid rgba(148, 163, 184, 0.3)'
+};
+
+const SHARED_TOKEN_LABEL_STYLE: CSSProperties = {
+  fontSize: '0.75rem',
+  color: '#94a3b8',
+  marginBottom: '4px'
+};
+
+const SOUL_ORB_STYLE: CSSProperties = {
+  position: 'fixed',
+  top: '470px',
+  right: '300px'
+};
+
+const UNIT_EMOJI_STYLE: CSSProperties = {
+  fontSize: '48px'
+};
+
+const DAMAGE_PREVIEW_STYLE: CSSProperties = {
+  color: '#fbbf24',
+  fontWeight: '600'
+};
+
+const BLOCK_STAT_STYLE: CSSProperties = {
+  color: '#60a5fa',
+  fontWeight: '600'
+};
+
+const HP_STAT_STYLE: CSSProperties = {
+  color: '#f87171',
+  fontWeight: '600'
+};
+
+const HP_FILL_BASE_STYLE: CSSProperties = {
+  transition: 'width 0.3s ease'
+};
+
+const DISTRIBUTION_BTN_CONTAINER_STYLE: CSSProperties = {
+  marginTop: '8px'
+};
+
+const DISTRIBUTION_LABEL_STYLE: CSSProperties = {
+  fontSize: '0.9rem',
+  color: '#e2e8f0'
+};
+
+const CANCEL_BTN_STYLE: CSSProperties = {
+  padding: '8px 16px',
+  border: '1px solid #94a3b8',
+  borderRadius: '6px',
+  background: 'rgba(100, 116, 139, 0.3)',
+  color: '#e2e8f0',
+  fontSize: '0.85rem',
+  cursor: 'pointer'
+};
+
+const CONFIRM_BTN_BASE_STYLE: CSSProperties = {
+  padding: '8px 16px',
+  borderRadius: '6px',
+  fontSize: '0.85rem',
+  fontWeight: '600'
+};
+
+const TARGET_BTN_BASE_STYLE: CSSProperties = {
+  width: '100%',
+  padding: '8px 12px',
+  borderRadius: '8px',
+  fontSize: '0.9rem',
+  cursor: 'pointer',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  gap: '6px',
+  transition: 'all 0.2s ease'
+};
+
+const SELECTION_COUNT_BASE_STYLE: CSSProperties = {
+  fontSize: '0.9rem',
+  fontWeight: '700'
+};
 
 interface UnitPreviewDamage extends PreviewDamage {}
 
@@ -78,19 +257,26 @@ export const EnemyUnitsDisplay: FC<EnemyUnitsDisplayProps> = memo(({
   // 에테르 스케일 계산
   const enemySoulScale = Math.max(0.4, Math.min(1.3, enemyEtherCapacity > 0 ? enemyEtherValue / enemyEtherCapacity : 1));
 
+  // 유닛 스타일 생성 함수 메모이제이션
+  const getUnitStyle = useCallback((isSelected: boolean, showTargeting: boolean, isTargetable: boolean, soulShatter: boolean): CSSProperties => ({
+    display: 'flex',
+    alignItems: 'center',
+    gap: '16px',
+    padding: '12px 16px',
+    background: isSelected ? 'rgba(239, 68, 68, 0.2)' : 'rgba(30, 41, 59, 0.8)',
+    border: isSelected ? '2px solid #ef4444' : '1px solid rgba(148, 163, 184, 0.3)',
+    borderRadius: '12px',
+    cursor: showTargeting && isTargetable ? 'pointer' : 'default',
+    transition: 'all 0.2s ease',
+    boxShadow: isSelected ? '0 0 20px rgba(239, 68, 68, 0.3)' : '0 4px 12px rgba(0, 0, 0, 0.3)',
+    transform: soulShatter && isSelected ? 'scale(0.95)' : 'scale(1)',
+    opacity: soulShatter && isSelected ? 0.7 : 1
+  }), []);
+
   return (
     <>
       {/* 유닛 목록 - 에테르 구슬 왼쪽 */}
-      <div className="enemy-units-container" style={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '12px',
-        position: 'fixed',
-        top: '420px',
-        right: '550px',
-        zIndex: 100,
-        maxWidth: '320px',
-      }}>
+      <div className="enemy-units-container" style={CONTAINER_STYLE}>
       {aliveUnits.map((unit, idx) => {
         const isSelected = unit.unitId === selectedTargetUnit;
         const isTargetable = phase === 'select' || phase === 'respond';
@@ -104,32 +290,13 @@ export const EnemyUnitsDisplay: FC<EnemyUnitsDisplayProps> = memo(({
             key={unit.unitId}
             className={`enemy-unit ${isSelected ? 'selected' : ''} ${showTargeting && isTargetable ? 'targetable' : ''}`}
             onClick={() => showTargeting && isTargetable && onSelectUnit(unit.unitId)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '16px',
-              padding: '12px 16px',
-              background: isSelected
-                ? 'rgba(239, 68, 68, 0.2)'
-                : 'rgba(30, 41, 59, 0.8)',
-              border: isSelected
-                ? '2px solid #ef4444'
-                : '1px solid rgba(148, 163, 184, 0.3)',
-              borderRadius: '12px',
-              cursor: showTargeting && isTargetable ? 'pointer' : 'default',
-              transition: 'all 0.2s ease',
-              boxShadow: isSelected
-                ? '0 0 20px rgba(239, 68, 68, 0.3)'
-                : '0 4px 12px rgba(0, 0, 0, 0.3)',
-              transform: soulShatter && isSelected ? 'scale(0.95)' : 'scale(1)',
-              opacity: soulShatter && isSelected ? 0.7 : 1,
-            }}
+            style={getUnitStyle(isSelected, showTargeting, isTargetable, soulShatter)}
           >
             {/* 유닛 이모지 */}
             <div
               className={`unit-emoji ${enemyHit && isSelected ? 'hit-animation' : ''}`}
               style={{
-                fontSize: '48px',
+                ...UNIT_EMOJI_STYLE,
                 filter: unit.hp <= 0 ? 'grayscale(1)' : 'none',
               }}
             >
@@ -137,46 +304,25 @@ export const EnemyUnitsDisplay: FC<EnemyUnitsDisplayProps> = memo(({
             </div>
 
             {/* 유닛 정보 */}
-            <div style={{ flex: 1, minWidth: '180px' }}>
+            <div style={UNIT_INFO_STYLE}>
               {/* 이름 */}
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                marginBottom: '6px',
-              }}>
-                <span style={{
-                  fontSize: '0.95rem',
-                  fontWeight: '600',
-                  color: '#e2e8f0',
-                }}>
+              <div style={UNIT_HEADER_STYLE}>
+                <span style={UNIT_NAME_STYLE}>
                   {unit.name} x{unit.unitId + 1}
                 </span>
                 {isSelected && showTargeting && (
-                  <span style={{
-                    fontSize: '0.75rem',
-                    color: '#ef4444',
-                    fontWeight: '700',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px',
-                  }}>
+                  <span style={TARGET_BADGE_STYLE}>
                     🎯 TARGET
                   </span>
                 )}
               </div>
 
               {/* HP/방어력 텍스트 */}
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                marginBottom: '4px',
-                fontSize: '0.9rem',
-              }}>
+              <div style={STATS_ROW_STYLE}>
                 {showDamage && (
                   <span
                     className={`${unitPreview.lethal ? 'lethal' : ''} ${unitPreview.overkill ? 'overkill' : ''}`}
-                    style={{ color: '#fbbf24', fontWeight: '600' }}
+                    style={DAMAGE_PREVIEW_STYLE}
                   >
                     🗡️-{unitPreview.value}
                     {unitPreview.lethal && (unitPreview.overkill ? '☠️' : '💀')}
@@ -186,32 +332,23 @@ export const EnemyUnitsDisplay: FC<EnemyUnitsDisplayProps> = memo(({
                 {!hideVitals && ((unit.block || 0) > 0 || (showTargeting === false && enemyBlock > 0)) && (
                   <span
                     className={enemyBlockAnim && isSelected ? 'block-animation' : ''}
-                    style={{ color: '#60a5fa', fontWeight: '600' }}
+                    style={BLOCK_STAT_STYLE}
                   >
                     🛡️{showTargeting ? (unit.block || 0) : (unit.block || enemyBlock || 0)}
                   </span>
                 )}
-                <span style={{ color: '#f87171', fontWeight: '600' }}>
+                <span style={HP_STAT_STYLE}>
                   ❤️ {hideVitals ? '??' : `${unit.hp}/${unit.maxHp}`}
                 </span>
               </div>
 
               {/* HP 바 */}
-              <div
-                className="hp-bar-enhanced"
-                style={{
-                  width: '100%',
-                  height: '10px',
-                  position: 'relative',
-                  overflow: 'hidden',
-                  borderRadius: '5px',
-                }}
-              >
+              <div className="hp-bar-enhanced" style={HP_BAR_STYLE}>
                 <div
                   className="hp-fill"
                   style={{
+                    ...HP_FILL_BASE_STYLE,
                     width: hideVitals ? '0%' : `${(unit.hp / unit.maxHp) * 100}%`,
-                    transition: 'width 0.3s ease',
                   }}
                 />
                 {/* 개별 유닛 방어력 표시 (HP바에 오버레이) */}
@@ -233,7 +370,7 @@ export const EnemyUnitsDisplay: FC<EnemyUnitsDisplayProps> = memo(({
               </div>
 
               {/* 토큰 표시 */}
-              <div style={{ marginTop: '6px', minHeight: '24px' }}>
+              <div style={TOKEN_CONTAINER_STYLE}>
                 <TokenDisplay entity={unit} position="enemy" />
               </div>
 
@@ -241,29 +378,18 @@ export const EnemyUnitsDisplay: FC<EnemyUnitsDisplayProps> = memo(({
               {distributionMode && (() => {
                 const isTargeted = (damageDistribution[unit.unitId] ?? 0) > 0;
                 return (
-                  <div style={{
-                    marginTop: '8px',
-                  }}>
+                  <div style={DISTRIBUTION_BTN_CONTAINER_STYLE}>
                     <button
                       onClick={(e: React.MouseEvent) => {
                         e.stopPropagation();
                         onUpdateDistribution?.(unit.unitId, !isTargeted);
                       }}
                       style={{
-                        width: '100%',
-                        padding: '8px 12px',
+                        ...TARGET_BTN_BASE_STYLE,
                         border: isTargeted ? '2px solid #fbbf24' : '1px solid #94a3b8',
-                        borderRadius: '8px',
                         background: isTargeted ? 'rgba(251, 191, 36, 0.2)' : 'rgba(30, 41, 59, 0.8)',
                         color: isTargeted ? '#fbbf24' : '#94a3b8',
-                        fontSize: '0.9rem',
                         fontWeight: isTargeted ? '700' : '500',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '6px',
-                        transition: 'all 0.2s ease',
                       }}
                     >
                       {isTargeted ? '🎯 타겟 지정됨' : '⬜ 타겟 지정'}
@@ -278,59 +404,29 @@ export const EnemyUnitsDisplay: FC<EnemyUnitsDisplayProps> = memo(({
 
         {/* 타겟팅 힌트 */}
         {!distributionMode && showTargeting && (phase === 'select' || phase === 'respond') && (
-          <div style={{
-            fontSize: '0.75rem',
-            color: '#94a3b8',
-            textAlign: 'center',
-            padding: '4px 8px',
-            background: 'rgba(30, 41, 59, 0.6)',
-            borderRadius: '6px',
-          }}>
+          <div style={HINT_STYLE}>
             💡 클릭하여 공격 대상 선택
           </div>
         )}
 
         {/* 타겟 선택 컨트롤 패널 */}
         {distributionMode && (
-          <div style={{
-            padding: '12px',
-            background: 'rgba(30, 41, 59, 0.9)',
-            borderRadius: '8px',
-            border: '1px solid rgba(251, 191, 36, 0.5)',
-          }}>
-            <div style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: '10px',
-            }}>
-              <span style={{ fontSize: '0.9rem', color: '#e2e8f0' }}>
+          <div style={DISTRIBUTION_PANEL_STYLE}>
+            <div style={DISTRIBUTION_HEADER_STYLE}>
+              <span style={DISTRIBUTION_LABEL_STYLE}>
                 🎯 타겟 선택
               </span>
               <span style={{
-                fontSize: '0.9rem',
-                fontWeight: '700',
+                ...SELECTION_COUNT_BASE_STYLE,
                 color: selectedTargetCount > 0 ? '#22c55e' : '#fbbf24',
               }}>
                 선택됨: {selectedTargetCount}개
               </span>
             </div>
-            <div style={{
-              display: 'flex',
-              gap: '8px',
-              justifyContent: 'flex-end',
-            }}>
+            <div style={DISTRIBUTION_BUTTONS_STYLE}>
               <button
                 onClick={onCancelDistribution}
-                style={{
-                  padding: '8px 16px',
-                  border: '1px solid #94a3b8',
-                  borderRadius: '6px',
-                  background: 'rgba(100, 116, 139, 0.3)',
-                  color: '#e2e8f0',
-                  fontSize: '0.85rem',
-                  cursor: 'pointer',
-                }}
+                style={CANCEL_BTN_STYLE}
               >
                 취소
               </button>
@@ -338,13 +434,10 @@ export const EnemyUnitsDisplay: FC<EnemyUnitsDisplayProps> = memo(({
                 onClick={onConfirmDistribution}
                 disabled={selectedTargetCount === 0}
                 style={{
-                  padding: '8px 16px',
+                  ...CONFIRM_BTN_BASE_STYLE,
                   border: '1px solid #22c55e',
-                  borderRadius: '6px',
                   background: selectedTargetCount > 0 ? 'rgba(34, 197, 94, 0.3)' : 'rgba(100, 116, 139, 0.2)',
                   color: selectedTargetCount > 0 ? '#22c55e' : '#64748b',
-                  fontSize: '0.85rem',
-                  fontWeight: '600',
                   cursor: selectedTargetCount > 0 ? 'pointer' : 'not-allowed',
                 }}
               >
@@ -356,13 +449,8 @@ export const EnemyUnitsDisplay: FC<EnemyUnitsDisplayProps> = memo(({
 
         {/* 적 전체 토큰 표시 (다중 유닛 공유 토큰) */}
         {enemy && (
-          <div style={{
-            padding: '8px 12px',
-            background: 'rgba(30, 41, 59, 0.8)',
-            borderRadius: '8px',
-            border: '1px solid rgba(148, 163, 184, 0.3)',
-          }}>
-            <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginBottom: '4px' }}>
+          <div style={SHARED_TOKEN_PANEL_STYLE}>
+            <div style={SHARED_TOKEN_LABEL_STYLE}>
               전체 상태이상
             </div>
             <TokenDisplay entity={enemy} position="enemy" />
@@ -374,11 +462,7 @@ export const EnemyUnitsDisplay: FC<EnemyUnitsDisplayProps> = memo(({
       <div
         className={`soul-orb ${enemyTransferPulse ? 'pulse' : ''} ${soulShatter ? 'shatter' : ''}`}
         title={dulledLevel >= 3 ? '?? / ??' : `${enemyEtherValue.toLocaleString()} / ${enemyEtherCapacity.toLocaleString()}`}
-        style={{
-          position: 'fixed',
-          top: '470px',
-          right: '300px',
-        }}
+        style={SOUL_ORB_STYLE}
       >
         <div
           className={`soul-orb-shell ${enemyTransferPulse ? 'pulse' : ''} ${soulShatter ? 'shatter' : ''}`}
