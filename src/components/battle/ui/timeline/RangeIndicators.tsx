@@ -10,8 +10,6 @@ import {
   LEISURE_COLOR,
   STRAIN_COLOR,
   PARRY_COLORS,
-  LEISURE_MIN_SPEED,
-  LEISURE_MAX_SPEED,
   STRAIN_MAX_OFFSET,
 } from './timelineStyles';
 import type { LeisureCardRange, StrainCardRange } from './useTimelineDrag';
@@ -65,10 +63,14 @@ export const LeisureRangeIndicator: FC<LeisureRangeProps> = memo(function Leisur
     textShadow: '0 0 4px rgba(0,0,0,0.8)'
   };
 
+  // 카드 속도 기반 범위 표시
+  const minSpeed = range.cardBaseSp;
+  const maxSpeed = range.cardBaseSp * 2;
+
   return (
     <div className="leisure-range-indicator" style={style}>
       <div style={labelStyle}>
-        {String.fromCodePoint(0x1F3AF)} 여유 ({LEISURE_MIN_SPEED}~{LEISURE_MAX_SPEED})
+        {String.fromCodePoint(0x1F3AF)} 여유 ({minSpeed}~{maxSpeed})
       </div>
     </div>
   );

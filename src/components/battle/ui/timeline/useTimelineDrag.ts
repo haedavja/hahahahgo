@@ -6,8 +6,6 @@
 import { useState, useCallback, useRef, useMemo } from 'react';
 import type { MouseEvent as ReactMouseEvent, RefObject } from 'react';
 import {
-  LEISURE_MIN_SPEED,
-  LEISURE_MAX_SPEED,
   STRAIN_MAX_OFFSET,
 } from './timelineStyles';
 
@@ -16,6 +14,7 @@ export type DragType = 'leisure' | 'strain' | null;
 export interface LeisureCardRange {
   cardUid: string;
   cardIdx: number;
+  cardBaseSp: number;  // 카드의 원래 속도
   minSp: number;
   maxSp: number;
   currentSp: number;
@@ -77,10 +76,12 @@ export function useTimelineDrag({
       const range = leisureCardRanges.find(r => r.cardUid === draggingCardUid);
       if (!range) return;
 
-      const previousCardSp = range.minSp - LEISURE_MIN_SPEED;
+      // 카드 속도 기반 범위: [원래 속도] ~ [원래 속도 × 2]
+      const cardBaseSp = range.cardBaseSp;
+      const previousCardSp = range.minSp - cardBaseSp;
       const clampedPosition = Math.max(
-        LEISURE_MIN_SPEED,
-        Math.min(LEISURE_MAX_SPEED, sp - previousCardSp)
+        cardBaseSp,
+        Math.min(cardBaseSp * 2, sp - previousCardSp)
       );
       onLeisurePositionChange(draggingCardUid, clampedPosition);
     }
@@ -185,11 +186,15 @@ export function useLeisureRanges({
       const offset = spOffsets[idx] * 28;
 
       if (hasLeisure) {
-        const minSp = accumulatedSp + LEISURE_MIN_SPEED;
-        const maxSp = accumulatedSp + LEISURE_MAX_SPEED;
+        // 카드의 원래 속도 (leisurePosition이 설정되지 않은 경우 기본 속도)
+        const cardBaseSp = a.card.sp ?? 4;
+        // 범위: [원래 속도] ~ [원래 속도 × 2]
+        const minSp = accumulatedSp + cardBaseSp;
+        const maxSp = accumulatedSp + (cardBaseSp * 2);
         ranges.push({
           cardUid,
           cardIdx: idx,
+          cardBaseSp,
           minSp,
           maxSp,
           currentSp: a.sp ?? minSp,

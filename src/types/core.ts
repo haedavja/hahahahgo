@@ -100,7 +100,7 @@ export interface Card {
   originalSpeedCost?: number;
   instanceId?: string;
   priorityWeight?: number;
-  /** 여유 특성: 사용자가 선택한 타임라인 위치 (4~8 범위) */
+  /** 여유 특성: 사용자가 선택한 타임라인 위치 (카드 속도의 1~2배 범위) */
   leisurePosition?: number;
   /** 무리 특성: 행동력 1을 사용해 앞당긴 속도 오프셋 (최대 3) */
   strainOffset?: number;

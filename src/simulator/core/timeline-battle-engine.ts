@@ -667,15 +667,20 @@ export class TimelineBattleEngine {
             position = this.config.maxSpeed;
             break;
           case 'leisure':
-            // 여유 특성: 4~8 범위 내 최적 위치 선택 (AI)
+            // 여유 특성: 카드 속도의 1~2배 범위 내 최적 위치 선택 (AI)
             // 적 카드와 교차할 수 있는 위치를 우선
+            const cardBaseSp = card.speedCost || 5;
+            const leisureMin = cardBaseSp;
+            const leisureMax = cardBaseSp * 2;
+            const leisureDefault = Math.floor((leisureMin + leisureMax) / 2);
+
             if (state && state.timeline.length > 0) {
               const enemyPositions = state.timeline
                 .filter(tc => tc.owner === 'enemy')
                 .map(tc => tc.position);
-              // 교차 가능한 위치 찾기 (4-8 범위)
-              let bestPos = 6; // 기본값
-              for (let p = 4; p <= 8; p++) {
+              // 교차 가능한 위치 찾기 (카드 속도 ~ 2배 범위)
+              let bestPos = leisureDefault;
+              for (let p = leisureMin; p <= leisureMax; p++) {
                 if (enemyPositions.includes(p)) {
                   bestPos = p;
                   break;
@@ -683,7 +688,7 @@ export class TimelineBattleEngine {
               }
               position = bestPos;
             } else {
-              position = 6; // 기본 중간값
+              position = leisureDefault;
             }
             break;
         }
