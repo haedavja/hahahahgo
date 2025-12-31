@@ -43,6 +43,7 @@
 
 // ==================== Core Types ====================
 export * from './core/types';
+export * from './core/game-types';
 
 // ==================== Parallel Processing ====================
 export { WorkerPool, runParallelSimulation, runQuickSimulation, type PoolOptions, type PoolStats } from './parallel/pool';
@@ -142,6 +143,76 @@ export {
   ComboDetector,
   TokenManager,
 } from './core/battle-engine';
+
+// ==================== Timeline Battle Engine (NEW) ====================
+export {
+  TimelineBattleEngine,
+  createTimelineBattleEngine,
+  DEFAULT_MAX_SPEED,
+  DEFAULT_PLAYER_ENERGY,
+  DEFAULT_MAX_SUBMIT_CARDS,
+  DEFAULT_HAND_SIZE,
+  BASE_CRIT_CHANCE,
+  CRIT_MULTIPLIER,
+  type BattleEngineConfig,
+} from './core/timeline-battle-engine';
+
+// ==================== Token System (Full 56 Tokens) ====================
+export {
+  addToken,
+  removeToken,
+  hasToken,
+  getTokenStacks,
+  clearTokens,
+  calculateAttackModifiers,
+  calculateDefenseModifiers,
+  calculateDamageTakenModifiers,
+  consumeAttackTokens,
+  consumeDefenseTokens,
+  consumeDamageTakenTokens,
+  processTurnEnd,
+  processCounter,
+  processCounterShot,
+  checkRoulette,
+  processBurn,
+  checkImmunity,
+  checkRevive,
+  calculateEnergyModifier,
+  calculateSpeedModifier,
+  type AttackModifiers,
+  type DefenseModifiers,
+  type DamageTakenModifiers,
+} from './core/token-system';
+
+// ==================== Relic System V2 (Full 45 Relics) ====================
+export {
+  RelicSystemV2,
+  getRelicSystemV2,
+  createRelicSystemV2,
+  type RelicEffectResult,
+  type PassiveEffects,
+} from './core/relic-system-v2';
+
+// ==================== Game Data Sync ====================
+export {
+  syncAllCards,
+  syncAllTokens,
+  syncAllRelics,
+  syncAllTraits,
+  syncAllEnemies,
+  getGameDataStats,
+} from './data/game-data-sync';
+
+// ==================== Respond AI ====================
+export {
+  RespondAI,
+  createRespondAI,
+  quickRiskCheck,
+  predictCrosses,
+  type TimelineAnalysis,
+  type ResponseDecision,
+  type RespondAIConfig,
+} from './ai/respond-ai';
 
 // ==================== Card Synergy Analysis ====================
 export {

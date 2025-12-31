@@ -1,0 +1,657 @@
+/**
+ * @file token-system.ts
+ * @description 완전한 토큰 시스템 - 56개 토큰 전체 지원
+ *
+ * 토큰 타입:
+ * - usage: 1회 사용 후 소멸
+ * - turn: 해당 턴 동안 지속
+ * - permanent: 전투 중 지속
+ */
+
+import type { TokenState, GameToken, TokenType, TokenCategory } from './game-types';
+import { syncAllTokens } from '../data/game-data-sync';
+import { getLogger } from './logger';
+
+const log = getLogger('TokenSystem');
+
+// ==================== 토큰 정의 캐시 ====================
+
+let tokenCache: Record<string, GameToken> | null = null;
+
+function getTokenDefinitions(): Record<string, GameToken> {
+  if (!tokenCache) {
+    tokenCache = syncAllTokens();
+  }
+  return tokenCache;
+}
+
+// ==================== 토큰 조작 함수 ====================
+
+/**
+ * 토큰 추가
+ */
+export function addToken(tokens: TokenState, tokenId: string, stacks: number = 1): TokenState {
+  const newTokens = { ...tokens };
+  newTokens[tokenId] = (newTokens[tokenId] || 0) + stacks;
+  log.debug('토큰 추가', { tokenId, stacks, total: newTokens[tokenId] });
+  return newTokens;
+}
+
+/**
+ * 토큰 제거
+ */
+export function removeToken(tokens: TokenState, tokenId: string, stacks: number = 1): TokenState {
+  const newTokens = { ...tokens };
+  if (newTokens[tokenId]) {
+    newTokens[tokenId] = Math.max(0, newTokens[tokenId] - stacks);
+    if (newTokens[tokenId] === 0) {
+      delete newTokens[tokenId];
+    }
+    log.debug('토큰 제거', { tokenId, stacks, remaining: newTokens[tokenId] || 0 });
+  }
+  return newTokens;
+}
+
+/**
+ * 토큰 완전 제거
+ */
+export function clearToken(tokens: TokenState, tokenId: string): TokenState {
+  const newTokens = { ...tokens };
+  delete newTokens[tokenId];
+  return newTokens;
+}
+
+/**
+ * 토큰 보유 확인
+ */
+export function hasToken(tokens: TokenState, tokenId: string): boolean {
+  return (tokens[tokenId] || 0) > 0;
+}
+
+/**
+ * 토큰 스택 수 조회
+ */
+export function getTokenStacks(tokens: TokenState, tokenId: string): number {
+  return tokens[tokenId] || 0;
+}
+
+/**
+ * 특정 타입의 모든 토큰 제거
+ */
+export function clearTokensByType(tokens: TokenState, type: TokenType): TokenState {
+  const definitions = getTokenDefinitions();
+  const newTokens = { ...tokens };
+
+  for (const tokenId of Object.keys(newTokens)) {
+    const def = definitions[tokenId];
+    if (def && def.type === type) {
+      delete newTokens[tokenId];
+    }
+  }
+
+  return newTokens;
+}
+
+/**
+ * 특정 카테고리의 모든 토큰 제거
+ */
+export function clearTokensByCategory(tokens: TokenState, category: TokenCategory): TokenState {
+  const definitions = getTokenDefinitions();
+  const newTokens = { ...tokens };
+
+  for (const tokenId of Object.keys(newTokens)) {
+    const def = definitions[tokenId];
+    if (def && def.category === category) {
+      delete newTokens[tokenId];
+    }
+  }
+
+  return newTokens;
+}
+
+// ==================== 토큰 효과 계산 ====================
+
+export interface DamageModifiers {
+  attackMultiplier: number;
+  damageBonus: number;
+  critBoost: number;
+  ignoreBlock: boolean;
+  lifesteal: number;
+}
+
+export interface DefenseModifiers {
+  defenseMultiplier: number;
+  defenseBonus: number;
+  dodgeChance: number;
+}
+
+export interface DamageTakenModifiers {
+  damageMultiplier: number;
+  damageReduction: number;
+}
+
+/**
+ * 공격 수정자 계산
+ */
+export function calculateAttackModifiers(tokens: TokenState): DamageModifiers {
+  const definitions = getTokenDefinitions();
+  let attackMultiplier = 1;
+  let damageBonus = 0;
+  let critBoost = 0;
+  let ignoreBlock = false;
+  let lifesteal = 0;
+
+  // 공세 (offense) - 50% 공격력 증가
+  if (hasToken(tokens, 'offense')) {
+    attackMultiplier *= 1.5;
+  }
+
+  // 공세+ (offensePlus) - 100% 공격력 증가
+  if (hasToken(tokens, 'offensePlus')) {
+    attackMultiplier *= 2.0;
+  }
+
+  // 공격 (attack) - 턴 동안 50% 공격력 증가
+  if (hasToken(tokens, 'attack')) {
+    attackMultiplier *= 1.5;
+  }
+
+  // 공격+ (attackPlus) - 턴 동안 100% 공격력 증가
+  if (hasToken(tokens, 'attackPlus')) {
+    attackMultiplier *= 2.0;
+  }
+
+  // 힘 (strength) - 스택당 공격력 1 증가
+  const strengthStacks = getTokenStacks(tokens, 'strength');
+  if (strengthStacks > 0) {
+    damageBonus += strengthStacks;
+  }
+
+  // 날 세우기 (sharpened_blade) - 검격 카드 보너스 (카드 타입 체크 필요)
+  const sharpenedStacks = getTokenStacks(tokens, 'sharpened_blade');
+  if (sharpenedStacks > 0) {
+    damageBonus += sharpenedStacks;
+  }
+
+  // 무딤 (dull) - 50% 공격력 감소
+  if (hasToken(tokens, 'dull')) {
+    attackMultiplier *= 0.5;
+  }
+
+  // 무딤+ (dullPlus) - 75% 공격력 감소
+  if (hasToken(tokens, 'dullPlus')) {
+    attackMultiplier *= 0.25;
+  }
+
+  // 부러짐 (dullness) - 턴 동안 50% 공격력 감소
+  if (hasToken(tokens, 'dullness')) {
+    attackMultiplier *= 0.5;
+  }
+
+  // 부러짐+ (dullnessPlus) - 턴 동안 75% 공격력 감소
+  if (hasToken(tokens, 'dullnessPlus')) {
+    attackMultiplier *= 0.25;
+  }
+
+  // 집중 (crit_boost) - 치명타 확률 5% 증가
+  const critStacks = getTokenStacks(tokens, 'crit_boost');
+  if (critStacks > 0) {
+    critBoost += critStacks * 5;
+  }
+
+  // 철갑탄 (armor_piercing) - 방어력 무시
+  if (hasToken(tokens, 'armor_piercing')) {
+    ignoreBlock = true;
+  }
+
+  // 파쇄탄 (fragmentation) - 피해 6 증가
+  if (hasToken(tokens, 'fragmentation')) {
+    damageBonus += 6;
+  }
+
+  // 흡수 (absorb) - 50% 흡혈
+  if (hasToken(tokens, 'absorb')) {
+    lifesteal = 0.5;
+  }
+
+  return { attackMultiplier, damageBonus, critBoost, ignoreBlock, lifesteal };
+}
+
+/**
+ * 방어 수정자 계산
+ */
+export function calculateDefenseModifiers(tokens: TokenState): DefenseModifiers {
+  let defenseMultiplier = 1;
+  let defenseBonus = 0;
+  let dodgeChance = 0;
+
+  // 수세 (guard) - 50% 방어력 증가
+  if (hasToken(tokens, 'guard')) {
+    defenseMultiplier *= 1.5;
+  }
+
+  // 수세+ (guardPlus) - 100% 방어력 증가
+  if (hasToken(tokens, 'guardPlus')) {
+    defenseMultiplier *= 2.0;
+  }
+
+  // 방어 (defense) - 턴 동안 50% 방어력 증가
+  if (hasToken(tokens, 'defense')) {
+    defenseMultiplier *= 1.5;
+  }
+
+  // 방어+ (defensePlus) - 턴 동안 100% 방어력 증가
+  if (hasToken(tokens, 'defensePlus')) {
+    defenseMultiplier *= 2.0;
+  }
+
+  // 힘 (strength) - 스택당 방어력 1 증가
+  const strengthStacks = getTokenStacks(tokens, 'strength');
+  if (strengthStacks > 0) {
+    defenseBonus += strengthStacks;
+  }
+
+  // 흔들림 (shaken) - 50% 방어력 감소
+  if (hasToken(tokens, 'shaken')) {
+    defenseMultiplier *= 0.5;
+  }
+
+  // 흔들림+ (shakenPlus) - 100% 방어력 감소
+  if (hasToken(tokens, 'shakenPlus')) {
+    defenseMultiplier *= 0;
+  }
+
+  // 무방비 (exposed) - 턴 동안 50% 방어력 감소
+  if (hasToken(tokens, 'exposed')) {
+    defenseMultiplier *= 0.5;
+  }
+
+  // 무방비+ (exposedPlus) - 턴 동안 100% 방어력 감소
+  if (hasToken(tokens, 'exposedPlus')) {
+    defenseMultiplier *= 0;
+  }
+
+  // 흐릿함 (blur) - 50% 회피
+  if (hasToken(tokens, 'blur')) {
+    dodgeChance = Math.max(dodgeChance, 0.5);
+  }
+
+  // 흐릿함+ (blurPlus) - 75% 회피
+  if (hasToken(tokens, 'blurPlus')) {
+    dodgeChance = Math.max(dodgeChance, 0.75);
+  }
+
+  // 회피 (dodge) - 턴 동안 50% 회피
+  if (hasToken(tokens, 'dodge')) {
+    dodgeChance = Math.max(dodgeChance, 0.5);
+  }
+
+  // 회피+ (dodgePlus) - 턴 동안 75% 회피
+  if (hasToken(tokens, 'dodgePlus')) {
+    dodgeChance = Math.max(dodgeChance, 0.75);
+  }
+
+  // 회피 토큰 (evasion)
+  if (hasToken(tokens, 'evasion')) {
+    dodgeChance = Math.max(dodgeChance, 0.5);
+  }
+
+  return { defenseMultiplier, defenseBonus, dodgeChance };
+}
+
+/**
+ * 받는 피해 수정자 계산
+ */
+export function calculateDamageTakenModifiers(tokens: TokenState): DamageTakenModifiers {
+  let damageMultiplier = 1;
+  let damageReduction = 0;
+
+  // 허약 (vulnerable) - 50% 추가 피해
+  if (hasToken(tokens, 'vulnerable')) {
+    damageMultiplier *= 1.5;
+  }
+
+  // 허약+ (vulnerablePlus) - 100% 추가 피해
+  if (hasToken(tokens, 'vulnerablePlus')) {
+    damageMultiplier *= 2.0;
+  }
+
+  // 아픔 (pain) - 50% 추가 피해
+  if (hasToken(tokens, 'pain')) {
+    damageMultiplier *= 1.5;
+  }
+
+  // 아픔+ (painPlus) - 100% 추가 피해
+  if (hasToken(tokens, 'painPlus')) {
+    damageMultiplier *= 2.0;
+  }
+
+  return { damageMultiplier, damageReduction };
+}
+
+// ==================== 토큰 사용 소모 ====================
+
+/**
+ * usage 타입 토큰 소모
+ */
+export function consumeUsageToken(tokens: TokenState, tokenId: string): TokenState {
+  const definitions = getTokenDefinitions();
+  const def = definitions[tokenId];
+
+  if (def && def.type === 'usage' && hasToken(tokens, tokenId)) {
+    return removeToken(tokens, tokenId, 1);
+  }
+
+  return tokens;
+}
+
+/**
+ * 공격 시 토큰 소모 처리
+ */
+export function consumeAttackTokens(tokens: TokenState): TokenState {
+  let newTokens = { ...tokens };
+
+  // 공세 소모
+  if (hasToken(newTokens, 'offense')) {
+    newTokens = removeToken(newTokens, 'offense', 1);
+  }
+  if (hasToken(newTokens, 'offensePlus')) {
+    newTokens = removeToken(newTokens, 'offensePlus', 1);
+  }
+
+  // 무딤 소모
+  if (hasToken(newTokens, 'dull')) {
+    newTokens = removeToken(newTokens, 'dull', 1);
+  }
+  if (hasToken(newTokens, 'dullPlus')) {
+    newTokens = removeToken(newTokens, 'dullPlus', 1);
+  }
+
+  // 철갑탄 소모
+  if (hasToken(newTokens, 'armor_piercing')) {
+    newTokens = removeToken(newTokens, 'armor_piercing', 1);
+  }
+
+  // 파쇄탄 소모
+  if (hasToken(newTokens, 'fragmentation')) {
+    newTokens = removeToken(newTokens, 'fragmentation', 1);
+  }
+
+  // 흡수 소모
+  if (hasToken(newTokens, 'absorb')) {
+    newTokens = removeToken(newTokens, 'absorb', 1);
+  }
+
+  // 소이탄 소모
+  if (hasToken(newTokens, 'incendiary')) {
+    newTokens = removeToken(newTokens, 'incendiary', 1);
+  }
+
+  return newTokens;
+}
+
+/**
+ * 방어 시 토큰 소모 처리
+ */
+export function consumeDefenseTokens(tokens: TokenState): TokenState {
+  let newTokens = { ...tokens };
+
+  // 수세 소모
+  if (hasToken(newTokens, 'guard')) {
+    newTokens = removeToken(newTokens, 'guard', 1);
+  }
+  if (hasToken(newTokens, 'guardPlus')) {
+    newTokens = removeToken(newTokens, 'guardPlus', 1);
+  }
+
+  // 흔들림 소모
+  if (hasToken(newTokens, 'shaken')) {
+    newTokens = removeToken(newTokens, 'shaken', 1);
+  }
+  if (hasToken(newTokens, 'shakenPlus')) {
+    newTokens = removeToken(newTokens, 'shakenPlus', 1);
+  }
+
+  return newTokens;
+}
+
+/**
+ * 피해 받을 시 토큰 소모 처리
+ */
+export function consumeDamageTakenTokens(tokens: TokenState): TokenState {
+  let newTokens = { ...tokens };
+
+  // 아픔 소모
+  if (hasToken(newTokens, 'pain')) {
+    newTokens = removeToken(newTokens, 'pain', 1);
+  }
+  if (hasToken(newTokens, 'painPlus')) {
+    newTokens = removeToken(newTokens, 'painPlus', 1);
+  }
+
+  // 흐릿함 소모 (회피 성공/실패 시)
+  if (hasToken(newTokens, 'blur')) {
+    newTokens = removeToken(newTokens, 'blur', 1);
+  }
+  if (hasToken(newTokens, 'blurPlus')) {
+    newTokens = removeToken(newTokens, 'blurPlus', 1);
+  }
+
+  // 회피 소모
+  if (hasToken(newTokens, 'evasion')) {
+    newTokens = removeToken(newTokens, 'evasion', 1);
+  }
+
+  return newTokens;
+}
+
+// ==================== 턴 종료 처리 ====================
+
+/**
+ * 턴 종료 시 turn 타입 토큰 제거
+ */
+export function processTurnEnd(tokens: TokenState): TokenState {
+  return clearTokensByType(tokens, 'turn');
+}
+
+// ==================== 특수 토큰 처리 ====================
+
+/**
+ * 반격 처리
+ */
+export function processCounter(
+  attackerTokens: TokenState,
+  defenderTokens: TokenState,
+  baseDamage: number = 5
+): { damage: number; newDefenderTokens: TokenState } {
+  if (!hasToken(defenderTokens, 'counter')) {
+    return { damage: 0, newDefenderTokens: defenderTokens };
+  }
+
+  const strength = getTokenStacks(defenderTokens, 'strength');
+  const damage = baseDamage + strength;
+  const newDefenderTokens = removeToken(defenderTokens, 'counter', 1);
+
+  log.info('반격 발동', { damage, remainingCounter: getTokenStacks(newDefenderTokens, 'counter') });
+
+  return { damage, newDefenderTokens };
+}
+
+/**
+ * 대응사격 처리
+ */
+export function processCounterShot(
+  attackerTokens: TokenState,
+  defenderTokens: TokenState,
+  baseDamage: number = 8
+): { damage: number; newDefenderTokens: TokenState; triggerRoulette: boolean } {
+  if (!hasToken(defenderTokens, 'counterShot')) {
+    return { damage: 0, newDefenderTokens: defenderTokens, triggerRoulette: false };
+  }
+
+  const damage = baseDamage;
+  let newDefenderTokens = removeToken(defenderTokens, 'counterShot', 1);
+
+  // 룰렛 스택 증가
+  newDefenderTokens = addToken(newDefenderTokens, 'roulette', 1);
+
+  log.info('대응사격 발동', { damage, rouletteStacks: getTokenStacks(newDefenderTokens, 'roulette') });
+
+  return { damage, newDefenderTokens, triggerRoulette: true };
+}
+
+/**
+ * 룰렛 탄걸림 체크
+ */
+export function checkRoulette(tokens: TokenState): { jammed: boolean; newTokens: TokenState } {
+  const rouletteStacks = getTokenStacks(tokens, 'roulette');
+  if (rouletteStacks === 0) {
+    return { jammed: false, newTokens: tokens };
+  }
+
+  // 탄걸림 면역 체크
+  if (hasToken(tokens, 'jam_immunity')) {
+    return { jammed: false, newTokens: tokens };
+  }
+
+  const jamChance = rouletteStacks * 0.05; // 스택당 5%
+  const jammed = Math.random() < jamChance;
+
+  if (jammed) {
+    log.info('탄걸림 발생', { rouletteStacks, jamChance });
+    let newTokens = clearToken(tokens, 'roulette');
+    newTokens = addToken(newTokens, 'gun_jam', 1);
+    return { jammed: true, newTokens };
+  }
+
+  return { jammed: false, newTokens: tokens };
+}
+
+/**
+ * 화상 피해 처리
+ */
+export function processBurn(tokens: TokenState): { damage: number; newTokens: TokenState } {
+  const burnStacks = getTokenStacks(tokens, 'burn');
+  if (burnStacks === 0) {
+    return { damage: 0, newTokens: tokens };
+  }
+
+  const damage = burnStacks * 3; // 스택당 3 피해
+  log.debug('화상 피해', { stacks: burnStacks, damage });
+
+  return { damage, newTokens: tokens };
+}
+
+/**
+ * 면역 체크 (부정 토큰 차단)
+ */
+export function checkImmunity(tokens: TokenState, negativeTokenId: string): { blocked: boolean; newTokens: TokenState } {
+  if (!hasToken(tokens, 'immunity')) {
+    return { blocked: false, newTokens: tokens };
+  }
+
+  const definitions = getTokenDefinitions();
+  const def = definitions[negativeTokenId];
+
+  if (def && def.category === 'negative') {
+    log.info('면역으로 부정 토큰 차단', { tokenId: negativeTokenId });
+    const newTokens = removeToken(tokens, 'immunity', 1);
+    return { blocked: true, newTokens };
+  }
+
+  return { blocked: false, newTokens: tokens };
+}
+
+/**
+ * 부활 체크
+ */
+export function checkRevive(tokens: TokenState, maxHp: number): { revived: boolean; newHp: number; newTokens: TokenState } {
+  if (!hasToken(tokens, 'revive')) {
+    return { revived: false, newHp: 0, newTokens: tokens };
+  }
+
+  const newHp = Math.floor(maxHp * 0.5);
+  const newTokens = removeToken(tokens, 'revive', 1);
+
+  log.info('부활 발동', { newHp });
+
+  return { revived: true, newHp, newTokens };
+}
+
+// ==================== 에너지/행동력 수정자 ====================
+
+/**
+ * 에너지 수정자 계산
+ */
+export function calculateEnergyModifier(tokens: TokenState): number {
+  let modifier = 0;
+
+  // 몸풀기 (warmedUp) - 행동력 +2
+  if (hasToken(tokens, 'warmedUp')) {
+    modifier += 2;
+  }
+
+  // 현기증 (dizzy) - 행동력 -2
+  if (hasToken(tokens, 'dizzy')) {
+    modifier -= 2;
+  }
+
+  return modifier;
+}
+
+/**
+ * 속도 수정자 계산
+ */
+export function calculateSpeedModifier(tokens: TokenState): number {
+  let modifier = 0;
+
+  // 민첩 (agility) - 속도 -1
+  const agilityStacks = getTokenStacks(tokens, 'agility');
+  if (agilityStacks > 0) {
+    modifier -= agilityStacks;
+  }
+
+  return modifier;
+}
+
+// ==================== 토큰 상태 요약 ====================
+
+export interface TokenSummary {
+  positive: string[];
+  negative: string[];
+  neutral: string[];
+  total: number;
+}
+
+/**
+ * 토큰 상태 요약
+ */
+export function summarizeTokens(tokens: TokenState): TokenSummary {
+  const definitions = getTokenDefinitions();
+  const summary: TokenSummary = {
+    positive: [],
+    negative: [],
+    neutral: [],
+    total: 0,
+  };
+
+  for (const [tokenId, stacks] of Object.entries(tokens)) {
+    if (stacks <= 0) continue;
+
+    summary.total += stacks;
+    const def = definitions[tokenId];
+
+    if (def) {
+      const entry = `${def.name}(${stacks})`;
+      if (def.category === 'positive') {
+        summary.positive.push(entry);
+      } else if (def.category === 'negative') {
+        summary.negative.push(entry);
+      } else {
+        summary.neutral.push(entry);
+      }
+    }
+  }
+
+  return summary;
+}
