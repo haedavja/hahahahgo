@@ -11,24 +11,17 @@
  * 정점: 자아 (검사/총잡이) + 로고스
  */
 
-import { useState, memo, useCallback, type CSSProperties } from 'react';
+import { useState, memo } from 'react';
 import { useGameStore } from '../../state/gameStore';
 import { useShallow } from 'zustand/shallow';
 import { ETHOS, ETHOS_NODES, BASE_ETHOS, type Ethos, type EthosNode } from '../../data/growth/ethosData';
 import { PATHOS, PATHOS_NODES, BASE_PATHOS, MAX_EQUIPPED_PATHOS, type Pathos, type PathosNode } from '../../data/growth/pathosData';
-import { LOGOS, type LogosType } from '../../data/growth/logosData';
 import { IDENTITIES, type IdentityType } from '../../data/growth/identityData';
-import { getPyramidLevelFromTraits } from '../../data/reflections';
 import {
   initialGrowthState,
-  getAvailableBaseEthos,
-  getAvailableBasePathos,
-  getAvailableEthosNodes,
-  getAvailablePathosNodes,
   getNodeChoices,
   getUnlockedEthos,
   getUnlockedPathos,
-  canSelectIdentity,
 } from '../../state/slices/growthSlice';
 
 interface GrowthPyramidModalProps {
@@ -72,8 +65,6 @@ export const GrowthPyramidModal = memo(function GrowthPyramidModal({
     }))
   );
 
-  const [activeTab, setActiveTab] = useState<'pyramid' | 'ethos' | 'pathos' | 'identity' | 'logos'>('pyramid');
-
   if (!isOpen) return null;
 
   const pyramidLevel = growth.pyramidLevel;
@@ -85,33 +76,12 @@ export const GrowthPyramidModal = memo(function GrowthPyramidModal({
       <div
         className="event-modal"
         onClick={(e) => e.stopPropagation()}
-        style={{ maxWidth: '800px', maxHeight: '85vh', overflow: 'auto' }}
+        style={{ maxWidth: '900px', maxHeight: '90vh', overflow: 'auto' }}
       >
         <header>
           <h3>🔺 피라미드 성장</h3>
           <small>개성으로 스킬포인트를 얻고, 에토스/파토스를 해금하세요</small>
         </header>
-
-        {/* 탭 네비게이션 */}
-        <div style={{ display: 'flex', gap: '4px', marginBottom: '12px', flexWrap: 'wrap' }}>
-          {(['pyramid', 'ethos', 'pathos', 'identity', 'logos'] as const).map((tab) => (
-            <button
-              key={tab}
-              className="btn"
-              onClick={() => setActiveTab(tab)}
-              style={{
-                background: activeTab === tab ? 'rgba(96, 165, 250, 0.3)' : undefined,
-                border: activeTab === tab ? '1px solid rgba(96, 165, 250, 0.5)' : undefined,
-              }}
-            >
-              {tab === 'pyramid' && '피라미드'}
-              {tab === 'ethos' && '에토스'}
-              {tab === 'pathos' && '파토스'}
-              {tab === 'identity' && '자아'}
-              {tab === 'logos' && '로고스'}
-            </button>
-          ))}
-        </div>
 
         {/* 현재 상태 요약 */}
         <div style={{
@@ -137,45 +107,19 @@ export const GrowthPyramidModal = memo(function GrowthPyramidModal({
           )}
         </div>
 
-        {/* 탭 내용 */}
-        {activeTab === 'pyramid' && (
-          <PyramidView
-            pyramidLevel={pyramidLevel}
-            skillPoints={skillPoints}
-            playerTraits={playerTraits}
-            growth={growth}
-            onUnlockNode={unlockNode}
-            onSelectChoice={selectNodeChoice}
-            onSelectBaseEthos={selectBaseEthos}
-            onSelectBasePathos={selectBasePathos}
-          />
-        )}
-        {activeTab === 'ethos' && (
-          <EthosView
-            growth={growth}
-            onSelectBase={selectBaseEthos}
-            onUnlockNode={(nodeId) => unlockNode(nodeId, 'ethos')}
-            onSelectChoice={selectNodeChoice}
-          />
-        )}
-        {activeTab === 'pathos' && (
-          <PathosView
-            growth={growth}
-            onSelectBase={selectBasePathos}
-            onUnlockNode={(nodeId) => unlockNode(nodeId, 'pathos')}
-            onSelectChoice={selectNodeChoice}
-            onEquip={equipPathos}
-          />
-        )}
-        {activeTab === 'identity' && (
-          <IdentityView
-            growth={growth}
-            onSelect={selectIdentity}
-          />
-        )}
-        {activeTab === 'logos' && (
-          <LogosView growth={growth} />
-        )}
+        {/* 통합 피라미드 뷰 */}
+        <UnifiedPyramidView
+          pyramidLevel={pyramidLevel}
+          skillPoints={skillPoints}
+          playerTraits={playerTraits}
+          growth={growth}
+          onUnlockNode={unlockNode}
+          onSelectChoice={selectNodeChoice}
+          onSelectBaseEthos={selectBaseEthos}
+          onSelectBasePathos={selectBasePathos}
+          onSelectIdentity={selectIdentity}
+          onEquipPathos={equipPathos}
+        />
 
         <div style={{ display: 'flex', gap: '10px', marginTop: '16px' }}>
           <button className="btn" onClick={onClose}>닫기</button>
@@ -186,9 +130,9 @@ export const GrowthPyramidModal = memo(function GrowthPyramidModal({
 });
 
 // ========================================
-// 피라미드 뷰 (시각적 피라미드)
+// 통합 피라미드 뷰 (한 화면에 모두 표시)
 // ========================================
-function PyramidView({
+function UnifiedPyramidView({
   pyramidLevel,
   skillPoints,
   playerTraits,
@@ -197,6 +141,8 @@ function PyramidView({
   onSelectChoice,
   onSelectBaseEthos,
   onSelectBasePathos,
+  onSelectIdentity,
+  onEquipPathos,
 }: {
   pyramidLevel: number;
   skillPoints: number;
@@ -206,6 +152,8 @@ function PyramidView({
   onSelectChoice: (choiceId: string) => void;
   onSelectBaseEthos: (ethosId: string) => void;
   onSelectBasePathos: (pathosId: string) => void;
+  onSelectIdentity: (id: IdentityType) => void;
+  onEquipPathos: (ids: string[]) => void;
 }) {
   const pendingSelection = growth.pendingNodeSelection;
 
@@ -222,11 +170,12 @@ function PyramidView({
 
   return (
     <div>
-      <h4 style={{ marginBottom: '12px', color: '#e2e8f0' }}>피라미드 구조</h4>
-
-      {/* 정점 - 자아 */}
-      <div style={{ textAlign: 'center', marginBottom: '16px' }}>
-        <div style={{ display: 'inline-flex', gap: '20px' }}>
+      {/* ===== 정점 - 자아 ===== */}
+      <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+        <div style={{ fontSize: '12px', color: TIER_COLORS.identity.text, marginBottom: '8px' }}>
+          ⬆ 정점 - 자아 {pyramidLevel < 5 && '(Lv5 필요)'}
+        </div>
+        <div style={{ display: 'inline-flex', gap: '16px' }}>
           {(['swordsman', 'gunslinger'] as const).map(id => {
             const identity = IDENTITIES[id];
             const isSelected = growth.identities.includes(id);
@@ -235,29 +184,29 @@ function PyramidView({
             return (
               <div
                 key={id}
+                onClick={() => canSelect && onSelectIdentity(id)}
                 style={{
-                  padding: '10px 20px',
+                  padding: '12px 24px',
                   background: isSelected ? TIER_COLORS.identity.bg : 'rgba(71, 85, 105, 0.3)',
                   border: isSelected ? `2px solid ${TIER_COLORS.identity.border}` : '1px solid #475569',
                   borderRadius: '8px',
                   opacity: pyramidLevel >= 5 ? 1 : 0.5,
                   cursor: canSelect ? 'pointer' : 'default',
+                  transition: 'all 0.2s',
                 }}
               >
-                <span style={{ fontSize: '20px' }}>{identity.emoji}</span>
-                <div style={{ color: isSelected ? TIER_COLORS.identity.text : '#9ca3af', fontWeight: 'bold' }}>
+                <span style={{ fontSize: '24px' }}>{identity.emoji}</span>
+                <div style={{ color: isSelected ? TIER_COLORS.identity.text : '#9ca3af', fontWeight: 'bold', marginTop: '4px' }}>
                   {identity.name}
                 </div>
+                {isSelected && <div style={{ fontSize: '10px', color: '#86efac' }}>✓ 선택됨</div>}
               </div>
             );
           })}
         </div>
-        <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '4px' }}>
-          정점 - 자아 (Lv5+)
-        </div>
       </div>
 
-      {/* 5단계 - 상위 에토스 노드 */}
+      {/* ===== 5단계 - 상위 에토스 노드 ===== */}
       <TierRow
         tier={5}
         label="5단계 - 상위 에토스"
@@ -271,7 +220,7 @@ function PyramidView({
         pendingSelection={pendingSelection}
       />
 
-      {/* 4단계 - 파토스 노드 */}
+      {/* ===== 4단계 - 파토스 노드 ===== */}
       <TierRow
         tier={4}
         label="4단계 - 파토스 노드"
@@ -285,7 +234,7 @@ function PyramidView({
         pendingSelection={pendingSelection}
       />
 
-      {/* 3단계 - 에토스 노드 */}
+      {/* ===== 3단계 - 에토스 노드 ===== */}
       <TierRow
         tier={3}
         label="3단계 - 에토스 노드"
@@ -299,7 +248,7 @@ function PyramidView({
         pendingSelection={pendingSelection}
       />
 
-      {/* 2단계 - 기본 파토스 */}
+      {/* ===== 2단계 - 기본 파토스 ===== */}
       <BaseItemRow
         tier={2}
         label="2단계 - 기본 파토스"
@@ -311,7 +260,7 @@ function PyramidView({
         onSelect={onSelectBasePathos}
       />
 
-      {/* 1단계 - 기초 에토스 */}
+      {/* ===== 1단계 - 기초 에토스 (무료) ===== */}
       <BaseItemRow
         tier={1}
         label="1단계 - 기초 에토스"
@@ -323,7 +272,7 @@ function PyramidView({
         onSelect={onSelectBaseEthos}
       />
 
-      {/* 개성 (기반) */}
+      {/* ===== 기반 - 개성 ===== */}
       <div style={{
         padding: '12px',
         background: 'rgba(253, 230, 138, 0.1)',
@@ -332,7 +281,7 @@ function PyramidView({
         marginTop: '16px',
       }}>
         <div style={{ color: '#fde68a', fontWeight: 'bold', marginBottom: '8px' }}>
-          기반 - 개성 ({playerTraits.length}개)
+          ⬇ 기반 - 개성 ({playerTraits.length}개)
         </div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
           {playerTraits.length === 0 ? (
@@ -355,6 +304,115 @@ function PyramidView({
           )}
         </div>
       </div>
+
+      {/* ===== 해금된 에토스/파토스 요약 ===== */}
+      <UnlockedSummary growth={growth} onEquipPathos={onEquipPathos} />
+    </div>
+  );
+}
+
+// 해금된 에토스/파토스 요약 (하단)
+function UnlockedSummary({
+  growth,
+  onEquipPathos,
+}: {
+  growth: typeof initialGrowthState;
+  onEquipPathos: (ids: string[]) => void;
+}) {
+  const [showDetails, setShowDetails] = useState(false);
+  const unlockedEthos = getUnlockedEthos(growth);
+  const unlockedPathos = getUnlockedPathos(growth);
+
+  if (unlockedEthos.length === 0 && unlockedPathos.length === 0) {
+    return null;
+  }
+
+  return (
+    <div style={{ marginTop: '20px', borderTop: '1px solid #475569', paddingTop: '16px' }}>
+      <div
+        onClick={() => setShowDetails(!showDetails)}
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          cursor: 'pointer',
+          padding: '8px',
+          background: 'rgba(30, 41, 59, 0.5)',
+          borderRadius: '6px',
+        }}
+      >
+        <span style={{ color: '#e2e8f0', fontWeight: 'bold' }}>
+          해금 현황: 에토스 {unlockedEthos.length}개 / 파토스 {unlockedPathos.length}개
+        </span>
+        <span style={{ color: '#9ca3af' }}>{showDetails ? '▲ 접기' : '▼ 펼치기'}</span>
+      </div>
+
+      {showDetails && (
+        <div style={{ marginTop: '12px' }}>
+          {/* 에토스 목록 */}
+          {unlockedEthos.length > 0 && (
+            <div style={{ marginBottom: '12px' }}>
+              <div style={{ fontSize: '12px', color: '#86efac', marginBottom: '6px' }}>에토스 (패시브)</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                {unlockedEthos.map(ethos => (
+                  <span
+                    key={ethos.id}
+                    title={ethos.description}
+                    style={{
+                      padding: '4px 8px',
+                      background: 'rgba(134, 239, 172, 0.15)',
+                      border: '1px solid rgba(134, 239, 172, 0.3)',
+                      borderRadius: '4px',
+                      fontSize: '11px',
+                      color: '#86efac',
+                    }}
+                  >
+                    {ethos.name}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* 파토스 목록 */}
+          {unlockedPathos.length > 0 && (
+            <div>
+              <div style={{ fontSize: '12px', color: '#f472b6', marginBottom: '6px' }}>
+                파토스 (액티브) - 장착: {growth.equippedPathos.length}/{MAX_EQUIPPED_PATHOS}
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                {unlockedPathos.map(pathos => {
+                  const isEquipped = growth.equippedPathos.includes(pathos.id);
+                  return (
+                    <span
+                      key={pathos.id}
+                      title={pathos.description}
+                      onClick={() => {
+                        if (isEquipped) {
+                          onEquipPathos(growth.equippedPathos.filter(id => id !== pathos.id));
+                        } else if (growth.equippedPathos.length < MAX_EQUIPPED_PATHOS) {
+                          onEquipPathos([...growth.equippedPathos, pathos.id]);
+                        }
+                      }}
+                      style={{
+                        padding: '4px 8px',
+                        background: isEquipped ? 'rgba(244, 114, 182, 0.3)' : 'rgba(244, 114, 182, 0.1)',
+                        border: isEquipped ? '2px solid #f472b6' : '1px solid rgba(244, 114, 182, 0.3)',
+                        borderRadius: '4px',
+                        fontSize: '11px',
+                        color: '#f472b6',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {isEquipped && '✓ '}{pathos.name}
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -583,346 +641,6 @@ function NodeChoiceSelector({
             </div>
           </div>
         ))}
-      </div>
-    </div>
-  );
-}
-
-// ========================================
-// 에토스 뷰
-// ========================================
-function EthosView({
-  growth,
-  onSelectBase,
-  onUnlockNode,
-  onSelectChoice,
-}: {
-  growth: typeof initialGrowthState;
-  onSelectBase: (id: string) => void;
-  onUnlockNode: (nodeId: string) => void;
-  onSelectChoice: (choiceId: string) => void;
-}) {
-  const unlockedEthos = getUnlockedEthos(growth);
-  const pendingSelection = growth.pendingNodeSelection;
-
-  return (
-    <div>
-      <h4 style={{ marginBottom: '8px', color: '#86efac' }}>에토스 (패시브 스킬)</h4>
-      <p style={{ fontSize: '12px', color: '#9ca3af', marginBottom: '12px' }}>
-        해금된 에토스는 상시 적용됩니다. 스킬포인트: {growth.skillPoints}P
-      </p>
-
-      {/* 선택 대기 중인 노드 */}
-      {pendingSelection?.type === 'ethos' && (
-        <NodeChoiceSelector
-          nodeId={pendingSelection.nodeId}
-          type="ethos"
-          onSelectChoice={onSelectChoice}
-        />
-      )}
-
-      {/* 해금된 에토스 */}
-      <h5 style={{ marginTop: '16px', marginBottom: '8px', color: '#9ca3af' }}>
-        해금된 에토스 ({unlockedEthos.length})
-      </h5>
-      {unlockedEthos.length === 0 ? (
-        <p style={{ color: '#6b7280', fontSize: '13px' }}>아직 해금된 에토스가 없습니다.</p>
-      ) : (
-        <div style={{ display: 'grid', gap: '8px' }}>
-          {unlockedEthos.map((ethos) => (
-            <EthosCard key={ethos.id} ethos={ethos} />
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function EthosCard({ ethos }: { ethos: Ethos }) {
-  const typeColor = ethos.type === 'gun' ? '#f472b6' : ethos.type === 'sword' ? '#60a5fa' : '#9ca3af';
-  const typeLabel = ethos.type === 'gun' ? '총기' : ethos.type === 'sword' ? '검술' : '공용';
-
-  return (
-    <div style={{
-      padding: '10px',
-      background: 'rgba(30, 41, 59, 0.8)',
-      border: '1px solid rgba(134, 239, 172, 0.3)',
-      borderRadius: '6px',
-    }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span style={{ fontWeight: 'bold', color: '#e2e8f0' }}>{ethos.name}</span>
-        <span style={{ fontSize: '11px', color: typeColor }}>{typeLabel}</span>
-      </div>
-      <p style={{ fontSize: '12px', color: '#9ca3af', marginTop: '4px' }}>{ethos.description}</p>
-    </div>
-  );
-}
-
-// ========================================
-// 파토스 뷰
-// ========================================
-function PathosView({
-  growth,
-  onSelectBase,
-  onUnlockNode,
-  onSelectChoice,
-  onEquip,
-}: {
-  growth: typeof initialGrowthState;
-  onSelectBase: (id: string) => void;
-  onUnlockNode: (nodeId: string) => void;
-  onSelectChoice: (choiceId: string) => void;
-  onEquip: (ids: string[]) => void;
-}) {
-  const [selectedForEquip, setSelectedForEquip] = useState<string[]>(growth.equippedPathos);
-  const unlockedPathos = getUnlockedPathos(growth);
-  const pendingSelection = growth.pendingNodeSelection;
-
-  const handleToggleEquip = (id: string) => {
-    if (selectedForEquip.includes(id)) {
-      setSelectedForEquip(prev => prev.filter(x => x !== id));
-    } else if (selectedForEquip.length < MAX_EQUIPPED_PATHOS) {
-      setSelectedForEquip(prev => [...prev, id]);
-    }
-  };
-
-  const handleSaveEquip = () => {
-    onEquip(selectedForEquip);
-  };
-
-  return (
-    <div>
-      <h4 style={{ marginBottom: '8px', color: '#f472b6' }}>파토스 (액티브 스킬)</h4>
-      <p style={{ fontSize: '12px', color: '#9ca3af', marginBottom: '12px' }}>
-        전투 전 최대 {MAX_EQUIPPED_PATHOS}개를 장착하여 사용할 수 있습니다. 스킬포인트: {growth.skillPoints}P
-      </p>
-
-      {/* 선택 대기 중인 노드 */}
-      {pendingSelection?.type === 'pathos' && (
-        <NodeChoiceSelector
-          nodeId={pendingSelection.nodeId}
-          type="pathos"
-          onSelectChoice={onSelectChoice}
-        />
-      )}
-
-      {/* 해금된 파토스 */}
-      <h5 style={{ marginTop: '16px', marginBottom: '8px', color: '#9ca3af' }}>
-        해금된 파토스 ({unlockedPathos.length}) - 장착: {selectedForEquip.length}/{MAX_EQUIPPED_PATHOS}
-      </h5>
-      {unlockedPathos.length === 0 ? (
-        <p style={{ color: '#6b7280', fontSize: '13px' }}>아직 해금된 파토스가 없습니다.</p>
-      ) : (
-        <>
-          <div style={{ display: 'grid', gap: '8px', marginBottom: '12px' }}>
-            {unlockedPathos.map((pathos) => (
-              <PathosCard
-                key={pathos.id}
-                pathos={pathos}
-                equipped={selectedForEquip.includes(pathos.id)}
-                onToggleEquip={handleToggleEquip}
-              />
-            ))}
-          </div>
-          <button className="btn" onClick={handleSaveEquip}>
-            장착 저장
-          </button>
-        </>
-      )}
-    </div>
-  );
-}
-
-function PathosCard({
-  pathos,
-  equipped,
-  onToggleEquip,
-}: {
-  pathos: Pathos;
-  equipped: boolean;
-  onToggleEquip: (id: string) => void;
-}) {
-  const typeColor = pathos.type === 'gun' ? '#f472b6' : pathos.type === 'sword' ? '#60a5fa' : '#9ca3af';
-  const typeLabel = pathos.type === 'gun' ? '총기' : pathos.type === 'sword' ? '검술' : '공용';
-
-  return (
-    <div
-      onClick={() => onToggleEquip(pathos.id)}
-      style={{
-        padding: '10px',
-        background: equipped ? 'rgba(244, 114, 182, 0.2)' : 'rgba(30, 41, 59, 0.8)',
-        border: equipped ? '2px solid #f472b6' : '1px solid rgba(71, 85, 105, 0.5)',
-        borderRadius: '6px',
-        cursor: 'pointer',
-      }}
-    >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span style={{ fontWeight: 'bold', color: '#e2e8f0' }}>
-          {equipped && '[ 장착 ] '}{pathos.name}
-        </span>
-        <span style={{ fontSize: '11px', color: typeColor }}>
-          {typeLabel} {pathos.cooldown && `(쿨다운 ${pathos.cooldown}턴)`}
-        </span>
-      </div>
-      <p style={{ fontSize: '12px', color: '#9ca3af', marginTop: '4px' }}>{pathos.description}</p>
-    </div>
-  );
-}
-
-// ========================================
-// 자아 뷰
-// ========================================
-function IdentityView({
-  growth,
-  onSelect,
-}: {
-  growth: typeof initialGrowthState;
-  onSelect: (id: IdentityType) => void;
-}) {
-  const canSelect = canSelectIdentity(growth);
-
-  return (
-    <div>
-      <h4 style={{ marginBottom: '8px', color: '#fbbf24' }}>자아 (검사 / 총잡이)</h4>
-      <p style={{ fontSize: '12px', color: '#9ca3af', marginBottom: '12px' }}>
-        피라미드 Lv5 이상에서 자아를 선택할 수 있습니다. 하이브리드 가능!
-      </p>
-
-      {!canSelect && (
-        <p style={{ color: '#f87171', fontSize: '13px', marginBottom: '12px' }}>
-          피라미드 Lv5 이상이 필요합니다. (현재: Lv{growth.pyramidLevel})
-        </p>
-      )}
-
-      <div style={{ display: 'grid', gap: '12px' }}>
-        {(Object.keys(IDENTITIES) as IdentityType[]).map((id) => {
-          const identity = IDENTITIES[id];
-          const isSelected = growth.identities.includes(id);
-
-          return (
-            <div
-              key={id}
-              onClick={() => canSelect && !isSelected && onSelect(id)}
-              style={{
-                padding: '12px',
-                background: isSelected
-                  ? 'rgba(251, 191, 36, 0.2)'
-                  : canSelect
-                    ? 'rgba(30, 41, 59, 0.8)'
-                    : 'rgba(30, 41, 59, 0.5)',
-                border: isSelected
-                  ? '2px solid #fbbf24'
-                  : '1px solid rgba(71, 85, 105, 0.5)',
-                borderRadius: '8px',
-                cursor: canSelect && !isSelected ? 'pointer' : 'default',
-                opacity: canSelect || isSelected ? 1 : 0.6,
-              }}
-            >
-              <div style={{ fontSize: '18px', marginBottom: '4px' }}>
-                {identity.emoji} <strong style={{ color: isSelected ? '#fbbf24' : '#e2e8f0' }}>{identity.name}</strong>
-                {isSelected && <span style={{ marginLeft: '8px', color: '#86efac' }}>선택됨</span>}
-              </div>
-              <p style={{ fontSize: '13px', color: '#9ca3af' }}>{identity.description}</p>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-// ========================================
-// 로고스 뷰
-// ========================================
-function LogosView({ growth }: { growth: typeof initialGrowthState }) {
-  return (
-    <div>
-      <h4 style={{ marginBottom: '12px', color: '#fbbf24' }}>로고스 (피라미드 정점)</h4>
-
-      {/* 공용 로고스 */}
-      <LogosSection
-        title="공용"
-        logos={LOGOS.common}
-        currentLevel={growth.logosLevels.common}
-        available={growth.pyramidLevel >= 3}
-      />
-
-      {/* 건카타 */}
-      <LogosSection
-        title="건카타 (총잡이)"
-        logos={LOGOS.gunkata}
-        currentLevel={growth.logosLevels.gunkata}
-        available={growth.identities.includes('gunslinger')}
-        locked={!growth.identities.includes('gunslinger')}
-      />
-
-      {/* 배틀 왈츠 */}
-      <LogosSection
-        title="배틀 왈츠 (검사)"
-        logos={LOGOS.battleWaltz}
-        currentLevel={growth.logosLevels.battleWaltz}
-        available={growth.identities.includes('swordsman')}
-        locked={!growth.identities.includes('swordsman')}
-      />
-    </div>
-  );
-}
-
-function LogosSection({
-  title,
-  logos,
-  currentLevel,
-  available,
-  locked,
-}: {
-  title: string;
-  logos: typeof LOGOS.common;
-  currentLevel: number;
-  available: boolean;
-  locked?: boolean;
-}) {
-  return (
-    <div style={{ marginBottom: '16px' }}>
-      <h5 style={{
-        marginBottom: '8px',
-        color: locked ? '#6b7280' : '#e2e8f0',
-      }}>
-        {title} {locked && '(자아 선택 필요)'}
-      </h5>
-      <div style={{ display: 'grid', gap: '8px' }}>
-        {logos.levels.map((level) => {
-          const isUnlocked = currentLevel >= level.level;
-
-          return (
-            <div
-              key={level.level}
-              style={{
-                padding: '10px',
-                background: isUnlocked
-                  ? 'rgba(251, 191, 36, 0.2)'
-                  : 'rgba(30, 41, 59, 0.5)',
-                border: isUnlocked
-                  ? '1px solid rgba(251, 191, 36, 0.5)'
-                  : '1px solid rgba(71, 85, 105, 0.3)',
-                borderRadius: '6px',
-                opacity: locked ? 0.5 : 1,
-              }}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{
-                  fontWeight: 'bold',
-                  color: isUnlocked ? '#fbbf24' : '#6b7280',
-                }}>
-                  Lv{level.level} - {level.name}
-                </span>
-                {isUnlocked && <span style={{ fontSize: '11px', color: '#86efac' }}>해금</span>}
-              </div>
-              <p style={{ fontSize: '12px', color: '#9ca3af', marginTop: '4px' }}>
-                {level.effect.description}
-              </p>
-            </div>
-          );
-        })}
       </div>
     </div>
   );
