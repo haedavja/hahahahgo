@@ -13,6 +13,7 @@ import { useCallback } from 'react';
 import type { MutableRefObject, Dispatch, SetStateAction } from 'react';
 import { detectPokerCombo } from '../utils/comboDetection';
 import { clearTurnTokens, getTokenStacks, removeToken, setTokenStacks } from '../../../lib/tokenUtils';
+import { gainGrace, createInitialGraceState } from '../../../data/monsterEther';
 import { processCardTraitEffects } from '../utils/cardTraitEffects';
 import { applyTurnEndEffects, calculatePassiveEffects } from '../../../lib/relicEffects';
 import { playTurnEndRelicAnimations, applyTurnEndRelicEffectsToNextTurn } from '../utils/turnEndRelicEffectsProcessing';
@@ -281,7 +282,7 @@ export function useResolveExecution({
       addLog('⚠️ [디플레이션의 저주] 에테르 획득이 차단되었습니다!');
     }
 
-    const { nextPlayerPts, nextEnemyPts } = processEtherTransfer({
+    const { nextPlayerPts, nextEnemyPts, enemyGraceGain } = processEtherTransfer({
       playerAppliedEther: effectivePlayerAppliedEther,
       enemyAppliedEther,
       curPlayerPts,
@@ -296,6 +297,16 @@ export function useResolveExecution({
         setEnemyTransferPulse: actions.setEnemyTransferPulse
       }
     });
+
+    // 적 은총 획득 적용 (영혼과 별개로 은총 상태 업데이트)
+    if (enemyGraceGain > 0) {
+      const currentGrace = latestEnemy.grace || createInitialGraceState((enemy as unknown as { availablePrayers?: string[] }).availablePrayers as never);
+      const newGrace = gainGrace(currentGrace, enemyGraceGain);
+      latestEnemy = { ...latestEnemy, grace: newGrace };
+      if (battleRef.current) {
+        battleRef.current.enemy = latestEnemy;
+      }
+    }
 
     // 조합 사용 카운트 업데이트
     const newUsageCount = updateComboUsageCount(player.comboUsageCount, pComboEnd as Card | null, queue, 'player');

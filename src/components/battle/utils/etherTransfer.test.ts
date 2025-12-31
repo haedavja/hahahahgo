@@ -40,10 +40,11 @@ describe('etherTransfer', () => {
     it('적이 더 많이 획득하면 플레이어 에테르는 감소하지 않아야 함', () => {
       const result = calculateEtherTransfer(50, 100, 200, 50, 100);
 
-      // 적이 50 더 획득, 하지만 플레이어 에테르는 빼앗기지 않음
+      // 적이 50 더 획득 → 은총으로 전환, 영혼(etherPts) 변화 없음
       expect(result.nextPlayerPts).toBe(200);
-      expect(result.nextEnemyPts).toBe(100); // 50 + 50
+      expect(result.nextEnemyPts).toBe(50); // 영혼은 변화 없음
       expect(result.movedPts).toBe(0);
+      expect(result.enemyGraceGain).toBe(50); // 은총으로 획득
     });
 
     it('적이 죽으면 남은 에테르가 플레이어에게 이전되어야 함', () => {

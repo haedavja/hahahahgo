@@ -74,7 +74,7 @@ describe('etherTransferProcessing', () => {
         actions: createMockActions()
       });
 
-      expect(addLog).toHaveBeenCalledWith(expect.stringContaining('잔여 에테르 회수'));
+      expect(addLog).toHaveBeenCalledWith(expect.stringContaining('잔여 영혼 회수'));
       expect(addLog).toHaveBeenCalledWith(expect.stringContaining('10'));
     });
 
@@ -98,7 +98,7 @@ describe('etherTransferProcessing', () => {
         actions: createMockActions()
       });
 
-      expect(addLog).not.toHaveBeenCalledWith(expect.stringContaining('잔여 에테르 회수'));
+      expect(addLog).not.toHaveBeenCalledWith(expect.stringContaining('잔여 영혼 회수'));
     });
 
     it('netEtherDelta를 설정해야 함', () => {

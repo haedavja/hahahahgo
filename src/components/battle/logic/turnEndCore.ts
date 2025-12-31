@@ -20,6 +20,7 @@ import { playTurnEndRelicAnimations, applyTurnEndRelicEffectsToNextTurn } from '
 import { startEnemyEtherAnimation } from '../utils/enemyEtherAnimation';
 import { processEtherTransfer } from '../utils/etherTransferProcessing';
 import { processVictoryDefeatTransition } from '../utils/victoryDefeatTransition';
+import { gainGrace, createInitialGraceState } from '../../../data/monsterEther';
 import { applyTurnEndEffects } from '../../../lib/relicEffects';
 
 /**
@@ -139,7 +140,7 @@ export function finishTurnCore(params: FinishTurnCoreParams): FinishTurnResult {
     addLog('⚠️ [디플레이션의 저주] 에테르 획득이 차단되었습니다!');
   }
 
-  const { nextPlayerPts, nextEnemyPts } = processEtherTransfer({
+  const { nextPlayerPts, nextEnemyPts, enemyGraceGain } = processEtherTransfer({
     playerAppliedEther: effectivePlayerAppliedEther,
     enemyAppliedEther,
     curPlayerPts,
@@ -151,9 +152,17 @@ export function finishTurnCore(params: FinishTurnCoreParams): FinishTurnResult {
     actions: actions as never
   });
 
+  // 적 은총 획득 적용 (영혼과 별개로 은총 상태 업데이트)
+  let updatedEnemy = enemy;
+  if (enemyGraceGain > 0) {
+    const currentGrace = enemy.grace || createInitialGraceState((enemy as unknown as { availablePrayers?: string[] }).availablePrayers as never);
+    const newGrace = gainGrace(currentGrace, enemyGraceGain);
+    updatedEnemy = { ...enemy, grace: newGrace };
+  }
+
   // 조합 사용 카운트 업데이트
   const newUsageCount = updateComboUsageCount(player.comboUsageCount, pComboEnd, queue, 'player');
-  const newEnemyUsageCount = updateComboUsageCount(enemy.comboUsageCount, eComboEnd, [], 'enemy');
+  const newEnemyUsageCount = updateComboUsageCount(updatedEnemy.comboUsageCount, eComboEnd, [], 'enemy');
 
   // 상태 업데이트
   actions.setPlayer(createTurnEndPlayerState(player as never, {
@@ -164,7 +173,7 @@ export function finishTurnCore(params: FinishTurnCoreParams): FinishTurnResult {
   }));
 
   const nextPts = Math.max(0, nextEnemyPts);
-  actions.setEnemy(createTurnEndEnemyState(enemy, {
+  actions.setEnemy(createTurnEndEnemyState(updatedEnemy, {
     comboUsageCount: newEnemyUsageCount,
     etherPts: nextPts
   }));
