@@ -3,9 +3,14 @@
  * 맵 관리 탭
  */
 
-import { useState, useMemo, ChangeEvent } from 'react';
+import { useState, useMemo, useCallback, memo, ChangeEvent } from 'react';
 import { OBSTACLE_TEMPLATES } from '../../../data/dungeonNodes';
 import type { MapNode, GameMap } from '../../../types';
+
+// 스타일 상수
+const NODE_EMOJIS: Record<string, string> = {
+  battle: '⚔️', rest: '🔥', shop: '🏪', event: '🎲', boss: '👹',
+};
 
 interface MapTabProps {
   map: GameMap | null;
@@ -18,18 +23,15 @@ interface MapTabProps {
   setDevForcedCrossroad: (crossroad: string | null) => void;
 }
 
-export function MapTab({ map, mapRisk, setMapRisk, selectNode, devClearAllNodes, devTeleportToNode, devForcedCrossroad, setDevForcedCrossroad }: MapTabProps) {
-  const currentNode = map?.nodes?.find(n => n.id === map.currentNodeId);
+export const MapTab = memo(function MapTab({ map, mapRisk, setMapRisk, selectNode, devClearAllNodes, devTeleportToNode, devForcedCrossroad, setDevForcedCrossroad }: MapTabProps) {
+  const currentNode = useMemo(() => map?.nodes?.find(n => n.id === map.currentNodeId), [map?.nodes, map?.currentNodeId]);
   const [selectedNodeId, setSelectedNodeId] = useState<string>('');
 
-  // 노드 타입별 이모지
-  const nodeEmojis: Record<string, string> = {
-    battle: '⚔️',
-    rest: '🔥',
-    shop: '🏪',
-    event: '🎲',
-    boss: '👹',
-  };
+  // 핸들러
+  const handleRiskChange = useCallback((e: ChangeEvent<HTMLInputElement>) => setMapRisk(parseInt(e.target.value)), [setMapRisk]);
+  const handleNodeSelect = useCallback((e: ChangeEvent<HTMLSelectElement>) => setSelectedNodeId(e.target.value), []);
+  const handleTeleport = useCallback(() => { if (selectedNodeId) devTeleportToNode(selectedNodeId); }, [selectedNodeId, devTeleportToNode]);
+  const handleClearCrossroad = useCallback(() => setDevForcedCrossroad(null), [setDevForcedCrossroad]);
 
   // 레이어별로 노드 그룹화
   const nodesByLayer = useMemo(() => {
@@ -42,6 +44,11 @@ export function MapTab({ map, mapRisk, setMapRisk, selectNode, devClearAllNodes,
     });
     return grouped;
   }, [map?.nodes]);
+
+  // 정렬된 레이어 엔트리 (메모이제이션)
+  const sortedLayerEntries = useMemo(() =>
+    Object.entries(nodesByLayer).sort(([a], [b]) => parseInt(a) - parseInt(b)) as [string, MapNode[]][],
+    [nodesByLayer]);
 
   return (
     <div>
@@ -75,7 +82,7 @@ export function MapTab({ map, mapRisk, setMapRisk, selectNode, devClearAllNodes,
           min="0"
           max="100"
           value={mapRisk}
-          onChange={(e: ChangeEvent<HTMLInputElement>) => setMapRisk(parseInt(e.target.value))}
+          onChange={handleRiskChange}
           style={{
             width: '100%',
             height: '8px',
@@ -131,7 +138,7 @@ export function MapTab({ map, mapRisk, setMapRisk, selectNode, devClearAllNodes,
         <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
           <select
             value={selectedNodeId}
-            onChange={(e: ChangeEvent<HTMLSelectElement>) => setSelectedNodeId(e.target.value)}
+            onChange={handleNodeSelect}
             style={{
               flex: 1,
               padding: '8px',
@@ -143,11 +150,11 @@ export function MapTab({ map, mapRisk, setMapRisk, selectNode, devClearAllNodes,
             }}
           >
             <option value="">노드 선택...</option>
-            {Object.entries(nodesByLayer).sort(([a], [b]) => parseInt(a) - parseInt(b)).map(([layer, nodes]: [string, MapNode[]]) => (
+            {sortedLayerEntries.map(([layer, nodes]) => (
               <optgroup key={layer} label={`Layer ${layer}`}>
                 {nodes.map((node: MapNode) => (
                   <option key={node.id} value={node.id}>
-                    {nodeEmojis[node.type] || '📍'} {node.id} - {node.displayLabel || node.type}
+                    {NODE_EMOJIS[node.type] || '📍'} {node.id} - {node.displayLabel || node.type}
                     {node.cleared ? ' ✓' : ''}
                   </option>
                 ))}
@@ -155,11 +162,7 @@ export function MapTab({ map, mapRisk, setMapRisk, selectNode, devClearAllNodes,
             ))}
           </select>
           <button
-            onClick={() => {
-              if (selectedNodeId) {
-                devTeleportToNode(selectedNodeId);
-              }
-            }}
+            onClick={handleTeleport}
             disabled={!selectedNodeId}
             style={{
               padding: '8px 16px',
@@ -204,7 +207,7 @@ export function MapTab({ map, mapRisk, setMapRisk, selectNode, devClearAllNodes,
               }}
               title={`${node.id} - ${(node as { displayLabel?: string }).displayLabel || node.type}`}
             >
-              {nodeEmojis[node.type] || '📍'} {node.id.split('-')[1] || node.id}
+              {NODE_EMOJIS[node.type] || '📍'} {node.id.split('-')[1] || node.id}
             </button>
           ))}
         </div>
@@ -239,7 +242,7 @@ export function MapTab({ map, mapRisk, setMapRisk, selectNode, devClearAllNodes,
               ✓ {(OBSTACLE_TEMPLATES as Record<string, { name?: string }>)[devForcedCrossroad]?.name || devForcedCrossroad}
             </span>
             <button
-              onClick={() => setDevForcedCrossroad(null)}
+              onClick={handleClearCrossroad}
               style={{
                 padding: '4px 8px',
                 background: '#334155',
@@ -288,4 +291,4 @@ export function MapTab({ map, mapRisk, setMapRisk, selectNode, devClearAllNodes,
       </div>
     </div>
   );
-}
+});

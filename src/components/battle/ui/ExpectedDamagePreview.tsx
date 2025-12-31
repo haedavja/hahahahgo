@@ -2,9 +2,11 @@
  * ExpectedDamagePreview.tsx
  *
  * 예상 피해량 미리보기 패널 컴포넌트
+ * 최적화: React.memo + 스타일 상수 추출
  */
 
-import { FC, useMemo, useRef, useEffect } from 'react';
+import { FC, memo, useMemo, useRef, useEffect } from 'react';
+import type { CSSProperties } from 'react';
 import { BattleLog } from './BattleLog';
 import type {
   ExpectedDamagePlayer as Player,
@@ -13,6 +15,60 @@ import type {
   PostCombatOptions,
   UITimelineAction,
 } from '../../../types';
+
+// =====================
+// 스타일 상수
+// =====================
+
+const BOARD_STYLE: CSSProperties = {
+  position: 'relative'
+};
+
+const TITLE_CONTAINER_STYLE: CSSProperties = {
+  marginBottom: '16px',
+  paddingBottom: '12px',
+  borderBottom: '2px solid rgba(148, 163, 184, 0.3)'
+};
+
+const TITLE_STYLE: CSSProperties = {
+  fontSize: '18px',
+  fontWeight: 'bold',
+  color: '#f8fafc'
+};
+
+const LOG_SECTION_STYLE: CSSProperties = {
+  marginTop: '20px',
+  paddingTop: '16px',
+  borderTop: '1px solid rgba(148, 163, 184, 0.15)'
+};
+
+const LINE_NUMBER_STYLE: CSSProperties = {
+  color: '#94a3b8',
+  marginRight: '4px'
+};
+
+const CONTROL_SECTION_STYLE: CSSProperties = {
+  marginTop: '20px',
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '8px',
+  justifyContent: 'center',
+  alignItems: 'center',
+  padding: '16px',
+  paddingBottom: '80px',
+  background: 'rgba(7, 11, 30, 0.98)',
+  borderTop: '2px solid rgba(148, 163, 184, 0.3)',
+  position: 'relative'
+};
+
+const VICTORY_TEXT_STYLE: CSSProperties = {
+  fontSize: '48px',
+  fontWeight: 'bold',
+  color: '#22c55e',
+  textShadow: '0 4px 12px rgba(0,0,0,0.8)',
+  marginTop: '16px',
+  marginBottom: '16px'
+};
 
 interface ExpectedDamagePreviewProps {
   player: Player;
@@ -46,7 +102,7 @@ interface ExpectedDamagePreviewProps {
   }) => SimulationResult;
 }
 
-export const ExpectedDamagePreview: FC<ExpectedDamagePreviewProps> = ({
+export const ExpectedDamagePreview: FC<ExpectedDamagePreviewProps> = memo(({
   player,
   enemy,
   fixedOrder,
@@ -91,10 +147,10 @@ export const ExpectedDamagePreview: FC<ExpectedDamagePreviewProps> = ({
   }, [log, phase]);
 
   return (
-    <div className="expect-board expect-board-vertical" style={{ position: 'relative' }}>
+    <div className="expect-board expect-board-vertical" style={BOARD_STYLE}>
       {/* 타이틀 */}
-      <div style={{ marginBottom: '16px', paddingBottom: '12px', borderBottom: '2px solid rgba(148, 163, 184, 0.3)' }}>
-        <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#f8fafc' }}>
+      <div style={TITLE_CONTAINER_STYLE}>
+        <div style={TITLE_STYLE}>
           예상 피해량
         </div>
       </div>
@@ -118,18 +174,14 @@ export const ExpectedDamagePreview: FC<ExpectedDamagePreviewProps> = ({
 
       {/* 진행 단계가 아닐 때만 예상 피해량 로그 표시 */}
       {phase !== 'resolve' && !!res.lines?.length && (
-        <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px solid rgba(148, 163, 184, 0.15)' }}>
+        <div style={LOG_SECTION_STYLE}>
           {res.lines.map((line, idx) => {
-            // 몬스터로 시작하는 텍스트 감지
             const startsWithMonster = line.trim().startsWith('몬스터');
             const isPlayerAction = line.includes('플레이어 ->') || line.includes('플레이어→') || line.includes('플레이어 •');
+            const lineColor = startsWithMonster ? '#fca5a5' : isPlayerAction ? '#60a5fa' : '#cbd5e1';
             return (
-              <div key={idx} style={{
-                fontSize: '13px',
-                color: startsWithMonster ? '#fca5a5' : isPlayerAction ? '#60a5fa' : '#cbd5e1',
-                marginBottom: '6px'
-              }}>
-                <span style={{ color: '#94a3b8', marginRight: '4px' }}>{idx + 1}.</span>
+              <div key={idx} style={{ fontSize: '13px', color: lineColor, marginBottom: '6px' }}>
+                <span style={LINE_NUMBER_STYLE}>{idx + 1}.</span>
                 {line}
               </div>
             );
@@ -142,29 +194,10 @@ export const ExpectedDamagePreview: FC<ExpectedDamagePreviewProps> = ({
 
       {/* 진행 단계 제어 버튼 또는 승리 UI (패배는 중앙 오버레이로 표시) */}
       {(phase === 'resolve' || postCombatOptions?.type === 'victory') && (
-        <div style={{
-          marginTop: '20px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '8px',
-          justifyContent: 'center',
-          alignItems: 'center',
-          padding: '16px',
-          paddingBottom: '80px',
-          background: 'rgba(7, 11, 30, 0.98)',
-          borderTop: '2px solid rgba(148, 163, 184, 0.3)',
-          position: 'relative'
-        }}>
+        <div style={CONTROL_SECTION_STYLE}>
           {postCombatOptions?.type === 'victory' && (
             <>
-              <div style={{
-                fontSize: '48px',
-                fontWeight: 'bold',
-                color: '#22c55e',
-                textShadow: '0 4px 12px rgba(0,0,0,0.8)',
-                marginTop: '16px',
-                marginBottom: '16px'
-              }}>
+              <div style={VICTORY_TEXT_STYLE}>
                 🎉 승리!
               </div>
               <button onClick={handleExitToMap} className="btn-enhanced btn-primary flex items-center gap-2">
@@ -176,4 +209,4 @@ export const ExpectedDamagePreview: FC<ExpectedDamagePreviewProps> = ({
       )}
     </div>
   );
-};
+});

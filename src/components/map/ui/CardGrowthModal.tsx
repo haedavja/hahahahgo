@@ -7,11 +7,13 @@
  * 2. 선택한 모드로 진입 (취소 불가)
  * 3. 강화: 전투 화면 스타일 카드로 현재/미리보기 표시
  * 4. 특화: 5개 옵션 중 선택
+ *
+ * 최적화: React.memo + useCallback
  */
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, memo, useCallback } from 'react';
 import { CARDS, TRAITS } from '../../battle/battleData';
-import { generateSpecializationOptions, type SpecializationOption } from '../../../lib/specializationUtils';
+import { generateSpecializationOptions, type SpecializationOption, type CardType } from '../../../lib/specializationUtils';
 import type { CardGrowthState } from '../../../state/slices/types';
 import {
   getAllEnhancementLevels,
@@ -32,6 +34,7 @@ interface CardGrowthModalProps {
   onEnhance: (cardId: string) => void;
   onSpecialize: (cardId: string, selectedTraits: string[]) => void;
   ownedCards?: string[];
+  isRestNode?: boolean; // true면 1회 제한 메시지 표시
 }
 
 interface CardData {
@@ -64,13 +67,14 @@ const rarityLabels: Record<string, string> = {
 
 type Mode = 'select' | 'enhance' | 'specialize';
 
-export function CardGrowthModal({
+export const CardGrowthModal = memo(function CardGrowthModal({
   isOpen,
   onClose,
   cardGrowth,
   onEnhance,
   onSpecialize,
   ownedCards = [],
+  isRestNode = false,
 }: CardGrowthModalProps) {
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
   const [mode, setMode] = useState<Mode>('select');
@@ -78,6 +82,7 @@ export function CardGrowthModal({
   const [specOptions, setSpecOptions] = useState<SpecializationOption[]>([]);
   const [selectedSpecOption, setSelectedSpecOption] = useState<SpecializationOption | null>(null);
   const [notification, setNotification] = useState<{ message: string; type: string } | null>(null);
+  const [hoveredTrait, setHoveredTrait] = useState<{ traitId: string; x: number; y: number } | null>(null);
 
   // 보유 카드만 표시 (중복 제거)
   const uniqueOwnedCardIds = useMemo(() => {
@@ -104,16 +109,16 @@ export function CardGrowthModal({
   const currentLevel = selectedGrowth?.enhancementLevel || 0;
 
   // 카드 선택
-  const handleSelectCard = (cardId: string) => {
+  const handleSelectCard = useCallback((cardId: string) => {
     setSelectedCardId(cardId);
     setPreviewLevel(null);
-  };
+  }, []);
 
   // 알림
-  const showNotification = (message: string, type: string) => {
+  const showNotification = useCallback((message: string, type: string) => {
     setNotification({ message, type });
     setTimeout(() => setNotification(null), 2500);
-  };
+  }, []);
 
   // 강화 모드 진입
   const enterEnhanceMode = () => {
@@ -126,9 +131,12 @@ export function CardGrowthModal({
 
   // 특화 모드 진입
   const enterSpecializeMode = () => {
-    if (!selectedCardId) return;
+    if (!selectedCardId || !selectedCard) return;
     const growth = getCardGrowthState(selectedCardId);
-    const options = generateSpecializationOptions(growth.traits);
+    // 카드 타입 결정 (attack, defense, general)
+    const cardType: CardType = selectedCard.type === 'attack' ? 'attack' :
+                               selectedCard.type === 'defense' ? 'defense' : 'general';
+    const options = generateSpecializationOptions(growth.traits, cardType);
     setSpecOptions(options);
     setSelectedSpecOption(null);
     setMode('specialize');
@@ -141,13 +149,8 @@ export function CardGrowthModal({
     if (growth.enhancementLevel >= 5) return;
 
     onEnhance(selectedCardId);
-    showNotification(`${selectedCard?.name} +${(growth.enhancementLevel || 0) + 1} 강화 완료!`, 'enhance');
-
-    // 완료 후 선택 모드로
-    setTimeout(() => {
-      setMode('select');
-      setPreviewLevel(null);
-    }, 1000);
+    // 바로 모달 닫기 (휴식 노드에서 1회만 승급 가능)
+    handleClose();
   };
 
   // 특화 실행
@@ -156,16 +159,8 @@ export function CardGrowthModal({
 
     const traitIds = selectedSpecOption.traits.map(t => t.id);
     onSpecialize(selectedCardId, traitIds);
-
-    const traitNames = selectedSpecOption.traits.map(t => t.name).join(', ');
-    showNotification(`${selectedCard?.name} 특화 완료! [${traitNames}]`, 'specialize');
-
-    // 완료 후 선택 모드로
-    setTimeout(() => {
-      setMode('select');
-      setSelectedSpecOption(null);
-      setSpecOptions([]);
-    }, 1000);
+    // 바로 모달 닫기 (휴식 노드에서 1회만 승급 가능)
+    handleClose();
   };
 
   // 모달 닫기 핸들러
@@ -201,7 +196,7 @@ export function CardGrowthModal({
     >
       <div
         style={{
-          width: mode === 'select' ? '900px' : '900px',
+          width: '900px',
           maxHeight: '90vh',
           background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
           borderRadius: '16px',
@@ -236,7 +231,9 @@ export function CardGrowthModal({
             </h2>
             <p style={{ margin: '4px 0 0', color: '#94a3b8', fontSize: '0.875rem' }}>
               {mode === 'select'
-                ? '카드를 선택하고 강화 또는 특화를 진행하세요'
+                ? isRestNode
+                  ? '강화 또는 특화 중 1회만 선택 가능'
+                  : '카드를 선택하고 강화 또는 특화를 진행하세요'
                 : mode === 'enhance'
                   ? `${selectedCard?.name} 강화 (현재 +${currentLevel})`
                   : `${selectedCard?.name} 특화`}
@@ -533,6 +530,7 @@ export function CardGrowthModal({
                     growth={selectedGrowth!}
                     stats={currentStats}
                     enhancementLevel={currentLevel}
+                    onTraitHover={(traitId, x, y) => setHoveredTrait(traitId ? { traitId, x, y } : null)}
                   />
                 </div>
 
@@ -558,6 +556,7 @@ export function CardGrowthModal({
                       stats={previewStats}
                       enhancementLevel={previewLevel}
                       isPreview
+                      onTraitHover={(traitId, x, y) => setHoveredTrait(traitId ? { traitId, x, y } : null)}
                     />
                   ) : (
                     <div style={{
@@ -580,7 +579,7 @@ export function CardGrowthModal({
                 </div>
               </div>
 
-              {/* 강화 효과 설명 (현재 레벨과 미리보기 레벨 사이의 총 변화) */}
+              {/* 강화 효과 설명 (현재 레벨 대비 향상치) */}
               {previewLevel && selectedCardId && (
                 <div style={{
                   padding: '14px 18px',
@@ -637,6 +636,7 @@ export function CardGrowthModal({
                     growth={selectedGrowth!}
                     stats={currentStats}
                     enhancementLevel={currentLevel}
+                    onTraitHover={(traitId, x, y) => setHoveredTrait(traitId ? { traitId, x, y } : null)}
                   />
                 </div>
 
@@ -667,6 +667,7 @@ export function CardGrowthModal({
                         ...selectedSpecOption.traits.map(t => t.id)
                       ]}
                       previewBorderColor="#86efac"
+                      onTraitHover={(traitId, x, y) => setHoveredTrait(traitId ? { traitId, x, y } : null)}
                     />
                   ) : (
                     <div style={{
@@ -757,12 +758,59 @@ export function CardGrowthModal({
           )}
         </div>
       </div>
+
+      {/* 특성 툴팁 (고정 위치) */}
+      {hoveredTrait && (() => {
+        const trait = TRAITS[hoveredTrait.traitId as keyof typeof TRAITS];
+        if (!trait) return null;
+        const isPositive = trait.type === 'positive';
+        return (
+          <div
+            style={{
+              position: 'fixed',
+              left: `${hoveredTrait.x}px`,
+              top: `${hoveredTrait.y - 10}px`,
+              transform: 'translate(-50%, -100%)',
+              background: 'rgba(0, 0, 0, 0.95)',
+              border: `2px solid ${isPositive ? '#22c55e' : '#ef4444'}`,
+              borderRadius: '10px',
+              padding: '12px 16px',
+              boxShadow: '0 8px 24px rgba(0, 0, 0, 0.9)',
+              zIndex: 99999,
+              pointerEvents: 'none',
+              minWidth: '200px',
+              maxWidth: '300px',
+            }}
+          >
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              marginBottom: '6px'
+            }}>
+              <span style={{
+                fontSize: '1.1rem',
+                fontWeight: 700,
+                color: isPositive ? '#22c55e' : '#ef4444'
+              }}>
+                {trait.name}
+              </span>
+              <span style={{ fontSize: '0.9rem', color: '#fbbf24' }}>
+                {"★".repeat(trait.weight)}
+              </span>
+            </div>
+            <div style={{ fontSize: '0.95rem', color: '#cbd5e1', lineHeight: 1.5 }}>
+              {trait.description}
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
-}
+});
 
 /** 전투 화면 스타일 카드 디스플레이 (game-card-large CSS 사용) */
-function GameCardDisplay({
+const GameCardDisplay = memo(function GameCardDisplay({
   card,
   growth,
   stats,
@@ -770,6 +818,7 @@ function GameCardDisplay({
   isPreview = false,
   overrideTraits,
   previewBorderColor,
+  onTraitHover,
 }: {
   card: CardData;
   growth: CardGrowthState;
@@ -778,6 +827,7 @@ function GameCardDisplay({
   isPreview?: boolean;
   overrideTraits?: string[];
   previewBorderColor?: string;
+  onTraitHover?: (traitId: string | null, x: number, y: number) => void;
 }) {
   const Icon = card.icon || (card.type === 'attack' ? Sword : Shield);
   const damage = (card.damage || 0) + (stats?.damageBonus || 0);
@@ -884,11 +934,45 @@ function GameCardDisplay({
       {/* 푸터 영역 */}
       <div className="card-footer">
         {displayTraits && displayTraits.length > 0 && (
-          <TraitBadgeList traits={displayTraits} />
+          <div style={{ pointerEvents: 'auto', display: 'flex', gap: '4px', flexWrap: 'wrap', fontWeight: 600 }}>
+            {displayTraits.map((traitId: string) => {
+              const trait = TRAITS[traitId as keyof typeof TRAITS];
+              if (!trait) return null;
+              const isPositive = trait.type === 'positive';
+              const color = isPositive ? '#22c55e' : '#ef4444';
+              const background = isPositive ? 'rgba(34, 197, 94, 0.2)' : 'rgba(239, 68, 68, 0.2)';
+              return (
+                <span
+                  key={traitId}
+                  onMouseEnter={(e) => {
+                    if (onTraitHover) {
+                      const rect = e.currentTarget.getBoundingClientRect();
+                      onTraitHover(traitId, rect.left + rect.width / 2, rect.top);
+                    }
+                  }}
+                  onMouseLeave={() => {
+                    if (onTraitHover) {
+                      onTraitHover(null, 0, 0);
+                    }
+                  }}
+                  style={{
+                    color,
+                    background,
+                    padding: '2px 6px',
+                    borderRadius: '4px',
+                    border: `1px solid ${color}`,
+                    cursor: 'pointer',
+                  }}
+                >
+                  {trait.name}
+                </span>
+              );
+            })}
+          </div>
         )}
         <span className="card-description">{description || ''}</span>
       </div>
     </div>
   );
-}
+});
 

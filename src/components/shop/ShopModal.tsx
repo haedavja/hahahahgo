@@ -1,11 +1,13 @@
 /**
- * ShopModal.jsx
+ * ShopModal.tsx
  *
  * 상점 UI 컴포넌트
  * 분리된 모듈: ShopTabs
+ * 최적화: React.memo + 스타일 상수 추출 + useCallback
  */
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, memo, useCallback } from 'react';
+import type { CSSProperties } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { useGameStore } from '../../state/gameStore';
 import { RELICS } from '../../data/relics';
@@ -23,12 +25,80 @@ import type { BattleCard, GameItem } from '../../state/slices/types';
 
 // 플레이어 카드는 BattleCard 타입 사용 (CardRemovalModal과 호환)
 
+// =====================
+// 스타일 상수
+// =====================
+
+const OVERLAY_STYLE: CSSProperties = {
+  position: 'fixed',
+  top: 0,
+  left: 0,
+  right: 0,
+  bottom: 0,
+  background: 'rgba(0, 0, 0, 0.85)',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  zIndex: 10000,
+};
+
+const MODAL_CONTAINER_STYLE: CSSProperties = {
+  width: '800px',
+  maxHeight: '85vh',
+  background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
+  borderRadius: '16px',
+  border: '2px solid #fbbf24',
+  boxShadow: '0 0 40px rgba(251, 191, 36, 0.3)',
+  padding: '24px',
+  display: 'flex',
+  flexDirection: 'column',
+  overflow: 'hidden',
+};
+
+const HEADER_STYLE: CSSProperties = {
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  marginBottom: '16px',
+};
+
+const GOLD_DISPLAY_STYLE: CSSProperties = {
+  padding: '8px 16px',
+  background: 'rgba(251, 191, 36, 0.2)',
+  border: '1px solid #fbbf24',
+  borderRadius: '8px',
+  display: 'flex',
+  alignItems: 'center',
+  gap: '8px',
+};
+
+const EXIT_BUTTON_STYLE: CSSProperties = {
+  padding: '8px 16px',
+  background: 'rgba(239, 68, 68, 0.2)',
+  border: '1px solid #ef4444',
+  borderRadius: '8px',
+  color: '#fca5a5',
+  cursor: 'pointer',
+  fontWeight: 600,
+};
+
+const TABS_CONTAINER_STYLE: CSSProperties = {
+  display: 'flex',
+  gap: '8px',
+  marginBottom: '16px',
+};
+
+const CONTENT_STYLE: CSSProperties = {
+  flex: 1,
+  overflowY: 'auto',
+};
+
 interface ShopModalProps {
   merchantType?: MerchantTypeKey;
   onClose: () => void;
 }
 
-export function ShopModal({ merchantType = 'shop', onClose }: ShopModalProps) {
+export const ShopModal = memo(function ShopModal({ merchantType = 'shop', onClose }: ShopModalProps) {
   // 상태 셀렉터 (shallow 비교로 최적화)
   const { gold, relics, items, playerHp, maxHp, characterBuild, cardUpgrades } = useGameStore(
     useShallow((state) => ({
@@ -98,10 +168,10 @@ export function ShopModal({ merchantType = 'shop', onClose }: ShopModalProps) {
     return cards;
   }, [characterBuild?.mainSpecials, characterBuild?.subSpecials, cardUpgrades]);
 
-  const showNotification = (message: string, type = 'info') => {
+  const showNotification = useCallback((message: string, type = 'info') => {
     setNotification({ message, type });
     setTimeout(() => setNotification(null), 2000);
-  };
+  }, []);
 
   const handleBuyRelic = (relicId: string, price: number) => {
     if (gold < price) {
@@ -221,39 +291,13 @@ export function ShopModal({ merchantType = 'shop', onClose }: ShopModalProps) {
     showNotification(`${card.name} 카드를 제거했습니다!`, 'success');
   };
 
+  const handleContainerClick = useCallback((e: React.MouseEvent) => e.stopPropagation(), []);
+
   return (
-    <div
-      style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        background: 'rgba(0, 0, 0, 0.85)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 10000,
-      }}
-      onClick={onClose}
-    >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          width: '800px',
-          maxHeight: '85vh',
-          background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
-          borderRadius: '16px',
-          border: '2px solid #fbbf24',
-          boxShadow: '0 0 40px rgba(251, 191, 36, 0.3)',
-          padding: '24px',
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden',
-        }}
-      >
+    <div style={OVERLAY_STYLE} onClick={onClose}>
+      <div onClick={handleContainerClick} style={MODAL_CONTAINER_STYLE}>
         {/* 헤더 */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+        <div style={HEADER_STYLE}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <span style={{ fontSize: '2rem' }}>{merchant.emoji}</span>
             <div>
@@ -264,30 +308,11 @@ export function ShopModal({ merchantType = 'shop', onClose }: ShopModalProps) {
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <div style={{
-              padding: '8px 16px',
-              background: 'rgba(251, 191, 36, 0.2)',
-              border: '1px solid #fbbf24',
-              borderRadius: '8px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-            }}>
+            <div style={GOLD_DISPLAY_STYLE}>
               <span style={{ fontSize: '1.25rem' }}>💰</span>
               <span style={{ fontSize: '1.25rem', fontWeight: 700, color: '#fbbf24' }}>{gold}G</span>
             </div>
-            <button
-              onClick={onClose}
-              style={{
-                padding: '8px 16px',
-                background: 'rgba(239, 68, 68, 0.2)',
-                border: '1px solid #ef4444',
-                borderRadius: '8px',
-                color: '#fca5a5',
-                cursor: 'pointer',
-                fontWeight: 600,
-              }}
-            >
+            <button onClick={onClose} style={EXIT_BUTTON_STYLE}>
               나가기
             </button>
           </div>
@@ -310,7 +335,7 @@ export function ShopModal({ merchantType = 'shop', onClose }: ShopModalProps) {
         )}
 
         {/* 탭 */}
-        <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+        <div style={TABS_CONTAINER_STYLE}>
           <button
             onClick={() => setActiveTab('buy')}
             style={{
@@ -366,7 +391,7 @@ export function ShopModal({ merchantType = 'shop', onClose }: ShopModalProps) {
         </div>
 
         {/* 콘텐츠 */}
-        <div style={{ flex: 1, overflowY: 'auto' }}>
+        <div style={CONTENT_STYLE}>
           {activeTab === 'buy' && (
             <BuyTab
               inventory={inventory}
@@ -411,6 +436,6 @@ export function ShopModal({ merchantType = 'shop', onClose }: ShopModalProps) {
       )}
     </div>
   );
-}
+});
 
 export default ShopModal;

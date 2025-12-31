@@ -3,9 +3,11 @@
  *
  * 전투 화면용 아이템 슬롯 컴포넌트
  * phase가 'select' 또는 'respond'일 때만 전투용 아이템 사용 가능
+ * 최적화: 스타일 상수 추출, useCallback 적용, memo
  */
 
-import { FC, MutableRefObject } from 'react';
+import { FC, MutableRefObject, memo, useCallback, useMemo } from 'react';
+import type { CSSProperties } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { useGameStore } from "../../../state/gameStore";
 import { playCardDestroySound, playFreezeSound } from "../../../lib/soundUtils";
@@ -20,6 +22,103 @@ import type {
   ItemSlotsBattleActions,
   FixedOrderAction,
 } from '../../../types';
+
+// =====================
+// 스타일 상수
+// =====================
+
+const CONTAINER_STYLE: CSSProperties = {
+  position: 'fixed',
+  left: '20px',
+  top: '20px',
+  display: 'flex',
+  gap: '8px',
+  zIndex: 100,
+};
+
+const SLOT_BASE_STYLE: CSSProperties = {
+  position: 'relative',
+  width: '48px',
+  height: '48px',
+  borderRadius: '8px',
+  background: 'rgba(12, 18, 32, 0.9)',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  transition: 'all 0.2s',
+};
+
+const ICON_STYLE: CSSProperties = {
+  fontSize: '24px'
+};
+
+const EMPTY_ICON_STYLE: CSSProperties = {
+  fontSize: '18px',
+  color: 'rgba(100, 110, 130, 0.6)'
+};
+
+const PAUSE_BADGE_STYLE: CSSProperties = {
+  position: 'absolute',
+  bottom: '2px',
+  right: '2px',
+  fontSize: '10px',
+  color: 'rgba(255, 100, 100, 0.8)',
+};
+
+const TOOLTIP_BASE: CSSProperties = {
+  position: 'absolute',
+  left: '56px',
+  top: '0',
+  minWidth: '180px',
+  padding: '10px 12px',
+  background: 'rgba(15, 23, 42, 0.98)',
+  border: '1px solid rgba(100, 140, 200, 0.5)',
+  borderRadius: '8px',
+  boxShadow: '0 4px 20px rgba(0, 0, 0, 0.6)',
+  opacity: 0,
+  visibility: 'hidden',
+  transition: 'opacity 0.15s, visibility 0.15s',
+  zIndex: 200,
+  pointerEvents: 'none',
+};
+
+const TOOLTIP_TITLE_STYLE: CSSProperties = {
+  fontWeight: 700,
+  fontSize: '13px',
+  color: '#fbbf24',
+  marginBottom: '6px'
+};
+
+const TOOLTIP_DESC_STYLE: CSSProperties = {
+  fontSize: '12px',
+  color: '#cbd5e1',
+  lineHeight: 1.4,
+  marginBottom: '6px'
+};
+
+const BUFF_CONTAINER_STYLE: CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '4px',
+  marginLeft: '8px',
+};
+
+const BUFF_BADGE_STYLE: CSSProperties = {
+  padding: '4px 8px',
+  background: 'rgba(100, 200, 150, 0.2)',
+  border: '1px solid rgba(100, 200, 150, 0.5)',
+  borderRadius: '6px',
+  fontSize: '11px',
+  color: '#86efac',
+  whiteSpace: 'nowrap',
+};
+
+const HOVER_CSS = `
+  .battle-item-slot:hover .battle-item-tooltip {
+    opacity: 1 !important;
+    visibility: visible !important;
+  }
+`;
 
 const STAT_LABELS: Record<string, string> = {
   strength: "힘",
@@ -51,7 +150,7 @@ interface ItemSlotsProps {
   battleRef: MutableRefObject<BattleRef | null>;
 }
 
-export const ItemSlots: FC<ItemSlotsProps> = ({ phase, battleActions, player, enemy, enemyPlan, battleRef }) => {
+export const ItemSlots: FC<ItemSlotsProps> = memo(({ phase, battleActions, player, enemy, enemyPlan, battleRef }) => {
   // 상태와 액션을 그룹화하여 셀렉터 최적화
   const { items, itemBuffs } = useGameStore(
     useShallow((state) => ({
@@ -70,10 +169,10 @@ export const ItemSlots: FC<ItemSlotsProps> = ({ phase, battleActions, player, en
   const canUseCombatItem = phase === 'select' || phase === 'respond';
 
   // 최신 phase를 가져오는 헬퍼 함수 (실제 사용 시 검증용)
-  const getLatestPhase = (): string => battleRef?.current?.phase || phase;
+  const getLatestPhase = useCallback((): string => battleRef?.current?.phase || phase, [battleRef, phase]);
 
   // 전투용 아이템 효과 직접 적용
-  const applyCombatItemEffect = (item: Item, slotIdx: number): void => {
+  const applyCombatItemEffect = useCallback((item: Item, slotIdx: number): void => {
     if (!item.effect || !battleActions) return;
 
     const effect = item.effect;
@@ -168,15 +267,8 @@ export const ItemSlots: FC<ItemSlotsProps> = ({ phase, battleActions, player, en
         battleActions.setEnemyPlan(newEnemyPlan);
 
         // battleRef를 즉시 동기적으로 업데이트 (useEffect 대기하지 않음)
-        // 이렇게 해야 다른 코드가 battleRef.current를 읽을 때 즉시 최신 값을 얻음
         if (battleRef?.current) {
           battleRef.current.enemyPlan = newEnemyPlan;
-        }
-
-        // respond 단계면 fixedOrder에서도 파괴된 적 카드 제거
-        if (phase === 'respond' && battleActions.setFixedOrder) {
-          // fixedOrder 업데이트는 BattleApp에서 enemyPlan.actions 변경을 감지해서 처리
-          // 여기서는 setEnemyPlan 호출로 충분
         }
 
         // 0.6초 후 애니메이션 상태 정리
@@ -259,9 +351,9 @@ export const ItemSlots: FC<ItemSlotsProps> = ({ phase, battleActions, player, en
 
     // 아이템 제거
     removeItem(slotIdx);
-  };
+  }, [player, enemy, enemyPlan, battleActions, battleRef, removeItem, getLatestPhase]);
 
-  const handleUseItem = (idx: number): void => {
+  const handleUseItem = useCallback((idx: number): void => {
     const item = items[idx];
     if (!item) return;
 
@@ -272,7 +364,6 @@ export const ItemSlots: FC<ItemSlotsProps> = ({ phase, battleActions, player, en
     }
 
     // 전투용 아이템: 최신 phase를 확인하여 resolve 단계면 사용 불가
-    // (prop phase는 stale할 수 있으므로 battleRef에서 최신 값을 확인)
     const latestPhase = getLatestPhase();
     const canUseNow = latestPhase === 'select' || latestPhase === 'respond';
 
@@ -281,82 +372,52 @@ export const ItemSlots: FC<ItemSlotsProps> = ({ phase, battleActions, player, en
     } else if (item.usableIn === 'combat' && !canUseNow) {
       battleActions.addLog('⚠️ 진행 중에는 아이템을 사용할 수 없습니다!');
     }
-  };
+  }, [items, useItem, getLatestPhase, applyCombatItemEffect, battleActions]);
 
-  const getItemUsability = (item: Item | null): boolean => {
+  const getItemUsability = useCallback((item: Item | null): boolean => {
     if (!item) return false;
     if (item.usableIn === 'any') return true;
     if (item.usableIn === 'combat') return canUseCombatItem;
     return false;
-  };
+  }, [canUseCombatItem]);
+
+  // 슬롯 스타일 생성 함수 메모이제이션
+  const getSlotStyle = useCallback((canUse: boolean, hasItem: boolean): CSSProperties => ({
+    ...SLOT_BASE_STYLE,
+    border: `2px solid ${canUse ? 'rgba(100, 220, 150, 0.9)' : hasItem ? 'rgba(120, 140, 180, 0.5)' : 'rgba(80, 90, 110, 0.5)'}`,
+    cursor: canUse ? 'pointer' : 'default',
+    boxShadow: canUse ? '0 0 8px rgba(100, 220, 150, 0.4)' : 'none',
+    opacity: hasItem && !canUse ? 0.6 : 1,
+  }), []);
+
+  // 버프 항목 메모이제이션
+  const buffEntries = useMemo(() => Object.entries(itemBuffs), [itemBuffs]);
+  const hasBuffs = buffEntries.length > 0;
 
   return (
-    <div style={{
-      position: 'fixed',
-      left: '20px',
-      top: '20px',
-      display: 'flex',
-      gap: '8px',
-      zIndex: 100,
-    }}>
+    <div style={CONTAINER_STYLE}>
       {items.map((item, idx) => {
         const canUse = getItemUsability(item);
+        const slotStyle = getSlotStyle(canUse, !!item);
         return (
           <div
             key={idx}
             onClick={() => canUse && handleUseItem(idx)}
             className="battle-item-slot"
-            style={{
-              position: 'relative',
-              width: '48px',
-              height: '48px',
-              borderRadius: '8px',
-              border: `2px solid ${canUse ? 'rgba(100, 220, 150, 0.9)' : item ? 'rgba(120, 140, 180, 0.5)' : 'rgba(80, 90, 110, 0.5)'}`,
-              background: 'rgba(12, 18, 32, 0.9)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: canUse ? 'pointer' : 'default',
-              transition: 'all 0.2s',
-              boxShadow: canUse ? '0 0 8px rgba(100, 220, 150, 0.4)' : 'none',
-              opacity: item && !canUse ? 0.6 : 1,
-            }}
+            style={slotStyle}
           >
             {item ? (
               <>
-                <span style={{ fontSize: '24px' }}>{item.icon || '?'}</span>
+                <span style={ICON_STYLE}>{item.icon || '?'}</span>
                 {item.usableIn === 'combat' && !canUseCombatItem && (
-                  <span style={{
-                    position: 'absolute',
-                    bottom: '2px',
-                    right: '2px',
-                    fontSize: '10px',
-                    color: 'rgba(255, 100, 100, 0.8)',
-                  }}>⏸</span>
+                  <span style={PAUSE_BADGE_STYLE}>⏸</span>
                 )}
                 {/* 아이템 툴팁 */}
-                <div style={{
-                  position: 'absolute',
-                  left: '56px',
-                  top: '0',
-                  minWidth: '180px',
-                  padding: '10px 12px',
-                  background: 'rgba(15, 23, 42, 0.98)',
-                  border: '1px solid rgba(100, 140, 200, 0.5)',
-                  borderRadius: '8px',
-                  boxShadow: '0 4px 20px rgba(0, 0, 0, 0.6)',
-                  opacity: 0,
-                  visibility: 'hidden',
-                  transition: 'opacity 0.15s, visibility 0.15s',
-                  zIndex: 200,
-                  pointerEvents: 'none',
-                }}
-                className="battle-item-tooltip"
-                >
-                  <div style={{ fontWeight: 700, fontSize: '13px', color: '#fbbf24', marginBottom: '6px' }}>
+                <div style={TOOLTIP_BASE} className="battle-item-tooltip">
+                  <div style={TOOLTIP_TITLE_STYLE}>
                     {item.name}
                   </div>
-                  <div style={{ fontSize: '12px', color: '#cbd5e1', lineHeight: 1.4, marginBottom: '6px' }}>
+                  <div style={TOOLTIP_DESC_STYLE}>
                     {item.description}
                   </div>
                   <div style={{
@@ -373,42 +434,24 @@ export const ItemSlots: FC<ItemSlotsProps> = ({ phase, battleActions, player, en
                 </div>
               </>
             ) : (
-              <span style={{ fontSize: '18px', color: 'rgba(100, 110, 130, 0.6)' }}>-</span>
+              <span style={EMPTY_ICON_STYLE}>-</span>
             )}
           </div>
         );
       })}
 
       {/* 아이템 버프 표시 */}
-      {Object.keys(itemBuffs).length > 0 && (
-        <div style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '4px',
-          marginLeft: '8px',
-        }}>
-          {Object.entries(itemBuffs).map(([stat, value]) => (
-            <span key={stat} style={{
-              padding: '4px 8px',
-              background: 'rgba(100, 200, 150, 0.2)',
-              border: '1px solid rgba(100, 200, 150, 0.5)',
-              borderRadius: '6px',
-              fontSize: '11px',
-              color: '#86efac',
-              whiteSpace: 'nowrap',
-            }}>
+      {hasBuffs && (
+        <div style={BUFF_CONTAINER_STYLE}>
+          {buffEntries.map(([stat, value]) => (
+            <span key={stat} style={BUFF_BADGE_STYLE}>
               {STAT_LABELS[stat] || stat} +{value}
             </span>
           ))}
         </div>
       )}
 
-      <style>{`
-        .battle-item-slot:hover .battle-item-tooltip {
-          opacity: 1 !important;
-          visibility: visible !important;
-        }
-      `}</style>
+      <style>{HOVER_CSS}</style>
     </div>
   );
-};
+});

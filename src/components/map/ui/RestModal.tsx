@@ -6,9 +6,12 @@
  * - 강화: 스탯 향상 (데미지, 방어력, 속도 등)
  * - 특화: 랜덤 5개 특성 중 선택하여 부여
  * - 승격: 성장 횟수에 따른 등급 상승 (1회→희귀, 3회→특별, 5회→전설)
+ *
+ * 최적화: React.memo 적용
  */
 
-import { useState } from 'react';
+import { useState, memo, useCallback, useMemo } from 'react';
+import type { CSSProperties } from 'react';
 import { CARDS, TRAITS } from '../../battle/battleData';
 import { CARD_ETHER_BY_RARITY } from '../../battle/utils/etherCalculations';
 import { generateSpecializationOptions, type SpecializationOption } from '../../../lib/specializationUtils';
@@ -74,26 +77,7 @@ const ENHANCEMENT_COST: Record<number, number> = {
 
 const SPECIALIZATION_COST = 0; // 특화 비용 (무료)
 
-export function RestModal({
-  memoryValue,
-  playerHp,
-  maxHp,
-  canAwaken,
-  playerTraits,
-  canFormEgo,
-  cardUpgrades,
-  cardGrowth,
-  gold,
-  ownedCards,
-  closeRest,
-  awakenAtRest,
-  healAtRest,
-  upgradeCardRarity,
-  enhanceCard,
-  specializeCard,
-  formEgo,
-  spendGold,
-}: {
+interface RestModalProps {
   memoryValue: number;
   playerHp: number;
   maxHp: number;
@@ -112,14 +96,84 @@ export function RestModal({
   specializeCard: (cardId: string, selectedTraits: string[]) => void;
   formEgo: (traits: string[]) => void;
   spendGold: (amount: number) => void;
-}) {
+}
+
+export const RestModal = memo(function RestModal({
+  memoryValue,
+  playerHp,
+  maxHp,
+  canAwaken,
+  playerTraits,
+  canFormEgo,
+  cardGrowth,
+  ownedCards,
+  closeRest,
+  awakenAtRest,
+  healAtRest,
+  enhanceCard,
+  specializeCard,
+  formEgo,
+}: RestModalProps) {
   const [egoFormMode, setEgoFormMode] = useState(false);
   const [selectedTraitsForEgo, setSelectedTraitsForEgo] = useState<number[]>([]);
   const [showCardGrowthModal, setShowCardGrowthModal] = useState(false);
+  const [cardGrowthUsed, setCardGrowthUsed] = useState(false);
+
+  // 핸들러 메모이제이션
+  const handleStopPropagation = useCallback((e: React.MouseEvent) => e.stopPropagation(), []);
+  const handleAwakenBrave = useCallback(() => awakenAtRest("brave"), [awakenAtRest]);
+  const handleAwakenSturdy = useCallback(() => awakenAtRest("sturdy"), [awakenAtRest]);
+  const handleAwakenCold = useCallback(() => awakenAtRest("cold"), [awakenAtRest]);
+  const handleAwakenThorough = useCallback(() => awakenAtRest("thorough"), [awakenAtRest]);
+  const handleAwakenPassionate = useCallback(() => awakenAtRest("passionate"), [awakenAtRest]);
+  const handleAwakenLively = useCallback(() => awakenAtRest("lively"), [awakenAtRest]);
+  const handleAwakenRandom = useCallback(() => awakenAtRest("random"), [awakenAtRest]);
+
+  const handleHeal = useCallback(() => {
+    const heal = Math.max(1, Math.round((maxHp || 0) * 0.3));
+    healAtRest(heal);
+    closeRest();
+  }, [maxHp, healAtRest, closeRest]);
+
+  const handleOpenCardGrowth = useCallback(() => setShowCardGrowthModal(true), []);
+
+  const handleStartEgoForm = useCallback(() => {
+    setEgoFormMode(true);
+    setSelectedTraitsForEgo([]);
+  }, []);
+
+  const handleClose = useCallback(() => {
+    closeRest();
+    setEgoFormMode(false);
+    setSelectedTraitsForEgo([]);
+  }, [closeRest]);
+
+  const handleCloseCardGrowthModal = useCallback(() => setShowCardGrowthModal(false), []);
+
+  const handleEnhanceCard = useCallback((cardId: string) => {
+    enhanceCard(cardId);
+    setCardGrowthUsed(true);
+  }, [enhanceCard]);
+
+  const handleSpecializeCard = useCallback((cardId: string, traits: string[]) => {
+    specializeCard(cardId, traits);
+    setCardGrowthUsed(true);
+  }, [specializeCard]);
+
+  // 스타일 메모이제이션
+  const cardGrowthBtnStyle = useMemo(() => ({
+    background: cardGrowthUsed
+      ? 'rgba(71, 85, 105, 0.3)'
+      : 'linear-gradient(135deg, rgba(96, 165, 250, 0.2), rgba(134, 239, 172, 0.2))',
+    border: cardGrowthUsed ? '1px solid rgba(71, 85, 105, 0.3)' : '1px solid rgba(96, 165, 250, 0.4)',
+    opacity: cardGrowthUsed ? 0.5 : 1,
+  }), [cardGrowthUsed]);
+
+  const egoButtonText = canFormEgo ? `개성 5개 소모 (보유: ${playerTraits.length}개)` : `개성 부족 (${playerTraits.length}/5)`;
 
   return (
     <div className="event-modal-overlay" onClick={closeRest}>
-      <div className="event-modal" onClick={(e) => e.stopPropagation()}>
+      <div className="event-modal" onClick={handleStopPropagation}>
         <header>
           <h3>휴식 · 각성</h3>
           <small>기억 100 소모 시 각성, 체력 회복 또는 카드 성장 선택</small>
@@ -129,52 +183,43 @@ export function RestModal({
           <div className="choice-card">
             <strong>전사</strong>
             <div style={{ display: "flex", gap: "8px", marginTop: "8px" }}>
-              <button className="btn" disabled={!canAwaken} onClick={() => awakenAtRest("brave")}>용맹(+힘1)</button>
-              <button className="btn" disabled={!canAwaken} onClick={() => awakenAtRest("sturdy")}>굳건(+체력10)</button>
+              <button className="btn" disabled={!canAwaken} onClick={handleAwakenBrave}>용맹(+힘1)</button>
+              <button className="btn" disabled={!canAwaken} onClick={handleAwakenSturdy}>굳건(+체력10)</button>
             </div>
           </div>
           <div className="choice-card">
             <strong>현자</strong>
             <div style={{ display: "flex", gap: "8px", marginTop: "8px" }}>
-              <button className="btn" disabled={!canAwaken} onClick={() => awakenAtRest("cold")}>냉철(+통찰1)</button>
-              <button className="btn" disabled={!canAwaken} onClick={() => awakenAtRest("thorough")}>철저(+보조슬롯1)</button>
+              <button className="btn" disabled={!canAwaken} onClick={handleAwakenCold}>냉철(+통찰1)</button>
+              <button className="btn" disabled={!canAwaken} onClick={handleAwakenThorough}>철저(+보조슬롯1)</button>
             </div>
           </div>
           <div className="choice-card">
             <strong>영웅</strong>
             <div style={{ display: "flex", gap: "8px", marginTop: "8px" }}>
-              <button className="btn" disabled={!canAwaken} onClick={() => awakenAtRest("passionate")}>열정(+속도5)</button>
-              <button className="btn" disabled={!canAwaken} onClick={() => awakenAtRest("lively")}>활력(+행동력1)</button>
+              <button className="btn" disabled={!canAwaken} onClick={handleAwakenPassionate}>열정(+속도5)</button>
+              <button className="btn" disabled={!canAwaken} onClick={handleAwakenLively}>활력(+행동력1)</button>
             </div>
           </div>
           <div className="choice-card">
             <strong>신앙</strong>
             <div style={{ marginTop: "8px" }}>
-              <button className="btn" disabled={!canAwaken} onClick={() => awakenAtRest("random")}>랜덤 개성</button>
+              <button className="btn" disabled={!canAwaken} onClick={handleAwakenRandom}>랜덤 개성</button>
             </div>
           </div>
           <div className="choice-card">
             <strong>휴식</strong>
             <div style={{ marginTop: "8px", display: "flex", flexDirection: "column", gap: "8px" }}>
-              <button
-                className="btn"
-                onClick={() => {
-                  const heal = Math.max(1, Math.round((maxHp || 0) * 0.3));
-                  healAtRest(heal);
-                  closeRest();
-                }}
-              >
+              <button className="btn" onClick={handleHeal}>
                 체력 회복 (+30% 최대체력)
               </button>
               <button
                 className="btn"
-                onClick={() => setShowCardGrowthModal(true)}
-                style={{
-                  background: 'linear-gradient(135deg, rgba(96, 165, 250, 0.2), rgba(134, 239, 172, 0.2))',
-                  border: '1px solid rgba(96, 165, 250, 0.4)',
-                }}
+                onClick={handleOpenCardGrowth}
+                disabled={cardGrowthUsed}
+                style={cardGrowthBtnStyle}
               >
-                🎴 카드 승급 (강화/특화)
+                {cardGrowthUsed ? '✓ 카드 승급 완료' : '🎴 카드 승급 (강화/특화)'}
               </button>
             </div>
           </div>
@@ -184,12 +229,9 @@ export function RestModal({
               <button
                 className="btn"
                 disabled={!canFormEgo}
-                onClick={() => {
-                  setEgoFormMode(true);
-                  setSelectedTraitsForEgo([]);
-                }}
+                onClick={handleStartEgoForm}
               >
-                {canFormEgo ? `개성 5개 소모 (보유: ${playerTraits.length}개)` : `개성 부족 (${playerTraits.length}/5)`}
+                {egoButtonText}
               </button>
             </div>
           </div>
@@ -207,71 +249,105 @@ export function RestModal({
         )}
 
         <div style={{ display: "flex", gap: "10px", marginTop: "12px" }}>
-          <button className="btn" onClick={() => { closeRest(); setEgoFormMode(false); setSelectedTraitsForEgo([]); }}>닫기</button>
+          <button className="btn" onClick={handleClose}>닫기</button>
         </div>
       </div>
 
       {/* 카드 승급 모달 */}
       <CardGrowthModal
         isOpen={showCardGrowthModal}
-        onClose={() => setShowCardGrowthModal(false)}
+        onClose={handleCloseCardGrowthModal}
         cardGrowth={cardGrowth}
-        onEnhance={enhanceCard}
-        onSpecialize={specializeCard}
+        onEnhance={handleEnhanceCard}
+        onSpecialize={handleSpecializeCard}
         ownedCards={ownedCards}
+        isRestNode={true}
       />
     </div>
   );
-}
+});
 
-function EgoFormPanel({
-  playerTraits,
-  selectedTraitsForEgo,
-  setSelectedTraitsForEgo,
-  formEgo,
-  setEgoFormMode,
-}: {
+interface EgoFormPanelProps {
   playerTraits: string[];
   selectedTraitsForEgo: number[];
   setSelectedTraitsForEgo: React.Dispatch<React.SetStateAction<number[]>>;
   formEgo: (traits: string[]) => void;
   setEgoFormMode: React.Dispatch<React.SetStateAction<boolean>>;
-}) {
-  const selectedTraitNames = selectedTraitsForEgo.map((idx) => playerTraits[idx]);
-  const traitCounts: Record<string, number> = selectedTraitNames.reduce((acc: Record<string, number>, t) => {
-    acc[t] = (acc[t] || 0) + 1;
-    return acc;
-  }, {});
+}
 
-  let previewEgo: string | null = null;
-  let previewEmoji = '';
-  let bestScore = 0;
-  for (const { ego, parts, emoji } of EGO_RULES) {
-    const score = (traitCounts[parts[0]] || 0) + (traitCounts[parts[1]] || 0);
-    if (score > bestScore) {
-      bestScore = score;
-      previewEgo = ego;
-      previewEmoji = emoji;
-    }
-  }
+const EgoFormPanel = memo(function EgoFormPanel({
+  playerTraits,
+  selectedTraitsForEgo,
+  setSelectedTraitsForEgo,
+  formEgo,
+  setEgoFormMode,
+}: EgoFormPanelProps) {
+  const selectedTraitNames = useMemo(() =>
+    selectedTraitsForEgo.map((idx) => playerTraits[idx]),
+    [selectedTraitsForEgo, playerTraits]
+  );
 
-  // 효과 합산
-  const effectSummary: Record<string, number> = {};
-  for (const trait of selectedTraitNames) {
-    const desc = (TRAIT_EFFECT_DESC as Record<string, string>)[trait];
-    if (desc) {
-      effectSummary[desc] = (effectSummary[desc] || 0) + 1;
-    }
-  }
-  const effectText = Object.entries(effectSummary)
-    .map(([effect, count]) => {
-      const match = effect.match(/(.+?)([+-]?\d+)/);
-      if (match) {
-        return `${match[1]}${parseInt(match[2]) * (count as number) > 0 ? '+' : ''}${parseInt(match[2]) * (count as number)}`;
+  const traitCounts = useMemo(() =>
+    selectedTraitNames.reduce((acc: Record<string, number>, t) => {
+      acc[t] = (acc[t] || 0) + 1;
+      return acc;
+    }, {}),
+    [selectedTraitNames]
+  );
+
+  const { previewEgo, previewEmoji } = useMemo(() => {
+    let ego: string | null = null;
+    let emoji = '';
+    let bestScore = 0;
+    for (const rule of EGO_RULES) {
+      const score = (traitCounts[rule.parts[0]] || 0) + (traitCounts[rule.parts[1]] || 0);
+      if (score > bestScore) {
+        bestScore = score;
+        ego = rule.ego;
+        emoji = rule.emoji;
       }
-      return `${effect} x${count}`;
-    })
-    .join(', ');
+    }
+    return { previewEgo: ego, previewEmoji: emoji };
+  }, [traitCounts]);
+
+  const effectText = useMemo(() => {
+    const effectSummary: Record<string, number> = {};
+    for (const trait of selectedTraitNames) {
+      const desc = (TRAIT_EFFECT_DESC as Record<string, string>)[trait];
+      if (desc) {
+        effectSummary[desc] = (effectSummary[desc] || 0) + 1;
+      }
+    }
+    return Object.entries(effectSummary)
+      .map(([effect, count]) => {
+        const match = effect.match(/(.+?)([+-]?\d+)/);
+        if (match) {
+          return `${match[1]}${parseInt(match[2]) * count > 0 ? '+' : ''}${parseInt(match[2]) * count}`;
+        }
+        return `${effect} x${count}`;
+      })
+      .join(', ');
+  }, [selectedTraitNames]);
+
+  const handleTraitClick = useCallback((idx: number, isSelected: boolean, canSelect: boolean) => {
+    if (isSelected) {
+      setSelectedTraitsForEgo((prev) => prev.filter((i) => i !== idx));
+    } else if (canSelect) {
+      setSelectedTraitsForEgo((prev) => [...prev, idx]);
+    }
+  }, [setSelectedTraitsForEgo]);
+
+  const handleFormEgo = useCallback(() => {
+    const traitsToConsume = selectedTraitsForEgo.map((idx) => playerTraits[idx]);
+    formEgo(traitsToConsume);
+    setEgoFormMode(false);
+    setSelectedTraitsForEgo([]);
+  }, [selectedTraitsForEgo, playerTraits, formEgo, setEgoFormMode, setSelectedTraitsForEgo]);
+
+  const handleCancel = useCallback(() => {
+    setEgoFormMode(false);
+    setSelectedTraitsForEgo([]);
+  }, [setEgoFormMode, setSelectedTraitsForEgo]);
 
   return (
     <div style={{ marginTop: "16px", padding: "12px", background: "rgba(253, 230, 138, 0.1)", borderRadius: "8px", border: "1px solid rgba(253, 230, 138, 0.3)" }}>
@@ -293,13 +369,7 @@ function EgoFormPanel({
                 color: isSelected ? "#fde68a" : "#e2e8f0",
                 opacity: canSelect || isSelected ? 1 : 0.5,
               }}
-              onClick={() => {
-                if (isSelected) {
-                  setSelectedTraitsForEgo((prev) => prev.filter((i) => i !== idx));
-                } else if (canSelect) {
-                  setSelectedTraitsForEgo((prev) => [...prev, idx]);
-                }
-              }}
+              onClick={() => handleTraitClick(idx, isSelected, canSelect)}
             >
               {trait}
             </button>
@@ -341,29 +411,18 @@ function EgoFormPanel({
         <button
           className="btn"
           disabled={selectedTraitsForEgo.length !== 5}
-          onClick={() => {
-            const traitsToConsume = selectedTraitsForEgo.map((idx) => playerTraits[idx]);
-            formEgo(traitsToConsume);
-            setEgoFormMode(false);
-            setSelectedTraitsForEgo([]);
-          }}
+          onClick={handleFormEgo}
           style={{ background: selectedTraitsForEgo.length === 5 ? "rgba(134, 239, 172, 0.2)" : undefined }}
         >
           자아 형성
         </button>
-        <button
-          className="btn"
-          onClick={() => {
-            setEgoFormMode(false);
-            setSelectedTraitsForEgo([]);
-          }}
-        >
+        <button className="btn" onClick={handleCancel}>
           취소
         </button>
       </div>
     </div>
   );
-}
+});
 
 /** 카드 성장 통계 계산 */
 function calculateGrowthStats(cardGrowth: Record<string, CardGrowthState>) {
@@ -403,7 +462,7 @@ function calculateGrowthStats(cardGrowth: Record<string, CardGrowthState>) {
 }
 
 /** 카드 성장 통계 패널 */
-function GrowthStatsPanel({ cardGrowth }: { cardGrowth: Record<string, CardGrowthState> }) {
+const GrowthStatsPanel = memo(function GrowthStatsPanel({ cardGrowth }: { cardGrowth: Record<string, CardGrowthState> }) {
   const [expanded, setExpanded] = useState(false);
   const stats = calculateGrowthStats(cardGrowth);
 
@@ -507,23 +566,24 @@ function GrowthStatsPanel({ cardGrowth }: { cardGrowth: Record<string, CardGrowt
       )}
     </div>
   );
-}
+});
 
 /** 미니 스탯 표시 컴포넌트 */
-function StatMini({ label, value, color }: { label: string; value: string; color: string }) {
+const StatMini = memo(function StatMini({ label, value, color }: { label: string; value: string; color: string }) {
+  const style: CSSProperties = {
+    fontSize: "10px",
+    padding: "2px 6px",
+    borderRadius: "4px",
+    background: `${color}15`,
+    color: color,
+    border: `1px solid ${color}30`,
+  };
   return (
-    <span style={{
-      fontSize: "10px",
-      padding: "2px 6px",
-      borderRadius: "4px",
-      background: `${color}15`,
-      color: color,
-      border: `1px solid ${color}30`,
-    }}>
+    <span style={style}>
       {label}: <span style={{ fontWeight: 700 }}>{value}</span>
     </span>
   );
-}
+});
 
 /** 성공 알림 타입 */
 interface GrowthNotification {
@@ -532,91 +592,91 @@ interface GrowthNotification {
   cardName: string;
 }
 
-/** 카드 성장 패널 (강화/특화) */
-function CardGrowthPanel({
-  cardGrowth,
-  gold,
-  onEnhance,
-  onSpecialize,
-  spendGold,
-}: {
+// 상수 정의
+const RARITY_LABEL: Record<string, string> = {
+  common: '일반',
+  rare: '희귀',
+  special: '특별',
+  legendary: '전설',
+};
+
+const RARITY_BADGE: Record<string, { color: string; label: string } | null> = {
+  common: null,
+  rare: { color: '#60a5fa', label: '희귀' },
+  special: { color: '#34d399', label: '특별' },
+  legendary: { color: '#fbbf24', label: '전설' },
+};
+
+interface CardGrowthPanelProps {
   cardGrowth: Record<string, CardGrowthState>;
   gold: number;
   onEnhance: (cardId: string) => void;
   onSpecialize: (cardId: string, selectedTraits: string[]) => void;
   spendGold: (amount: number) => void;
-}) {
+}
+
+/** 카드 성장 패널 (강화/특화) */
+const CardGrowthPanel = memo(function CardGrowthPanel({
+  cardGrowth,
+  gold,
+  onEnhance,
+  onSpecialize,
+  spendGold,
+}: CardGrowthPanelProps) {
   const [selectedCard, setSelectedCard] = useState<string | null>(null);
   const [showCardModal, setShowCardModal] = useState(false);
   const [growthMode, setGrowthMode] = useState<'select' | 'enhance' | 'specialize'>('select');
   const [specOptions, setSpecOptions] = useState<SpecializationOption[]>([]);
   const [selectedOption, setSelectedOption] = useState<SpecializationOption | null>(null);
   const [notification, setNotification] = useState<GrowthNotification | null>(null);
-  const [animateCard, setAnimateCard] = useState(false);
 
-  const cards = CARDS || [];
+  const cards = useMemo(() => CARDS || [], []);
 
-  const rarityLabel: Record<string, string> = {
-    common: '일반',
-    rare: '희귀',
-    special: '특별',
-    legendary: '전설',
-  };
-
-  const rarityBadge: Record<string, { color: string; label: string } | null> = {
-    common: null,
-    rare: { color: '#60a5fa', label: '희귀' },
-    special: { color: '#34d399', label: '특별' },
-    legendary: { color: '#fbbf24', label: '전설' },
-  };
-
-  const getCardGrowthState = (cardId: string): CardGrowthState => {
+  const getCardGrowthState = useCallback((cardId: string): CardGrowthState => {
     return cardGrowth[cardId] || { rarity: 'common', growthCount: 0, enhancementLevel: 0, specializationCount: 0, traits: [] };
-  };
+  }, [cardGrowth]);
 
-  const getNextPromotionInfo = (growth: CardGrowthState) => {
+  const getNextPromotionInfo = useCallback((growth: CardGrowthState) => {
     const { growthCount, rarity } = growth;
     if (rarity === 'legendary') return null;
     if (growthCount < 1) return { target: '희귀', remaining: 1 - growthCount };
     if (growthCount < 3) return { target: '특별', remaining: 3 - growthCount };
     if (growthCount < 5) return { target: '전설', remaining: 5 - growthCount };
     return null;
-  };
+  }, []);
 
-  const handleSelectCard = (cardId: string) => {
+  const handleSelectCard = useCallback((cardId: string) => {
     setSelectedCard(cardId);
     setShowCardModal(false);
     setGrowthMode('select');
-  };
+  }, []);
 
-  const handleStartSpecialize = () => {
+  const handleStartSpecialize = useCallback(() => {
     if (!selectedCard) return;
     const growth = getCardGrowthState(selectedCard);
     const options = generateSpecializationOptions(growth.traits);
     setSpecOptions(options);
     setSelectedOption(null);
     setGrowthMode('specialize');
-  };
+  }, [selectedCard, getCardGrowthState]);
 
   // 현재 선택된 카드의 강화 비용 계산
-  const getEnhancementCost = (cardId: string): number => {
+  const getEnhancementCost = useCallback((cardId: string): number => {
     const growth = getCardGrowthState(cardId);
     const nextLevel = (growth.enhancementLevel || 0) + 1;
     return ENHANCEMENT_COST[nextLevel] || 0;
-  };
+  }, [getCardGrowthState]);
 
   // 알림 표시 헬퍼
-  const showNotification = (notif: GrowthNotification) => {
+  const showNotificationHelper = useCallback((notif: GrowthNotification) => {
     setNotification(notif);
-    setAnimateCard(true);
     // 3초 후 알림 숨김
     setTimeout(() => {
       setNotification(null);
-      setAnimateCard(false);
     }, 3000);
-  };
+  }, []);
 
-  const handleConfirmEnhance = () => {
+  const handleConfirmEnhance = useCallback(() => {
     if (!selectedCard) return;
     const cost = getEnhancementCost(selectedCard);
     if (gold < cost) return; // 골드 부족
@@ -629,16 +689,16 @@ function CardGrowthPanel({
     onEnhance(selectedCard);
 
     // 성공 알림
-    showNotification({
+    showNotificationHelper({
       message: `+${newLevel} 강화 성공!`,
       type: 'enhance',
       cardName,
     });
 
     setGrowthMode('select');
-  };
+  }, [selectedCard, getEnhancementCost, gold, cards, getCardGrowthState, spendGold, onEnhance, showNotificationHelper]);
 
-  const handleConfirmSpecialize = () => {
+  const handleConfirmSpecialize = useCallback(() => {
     if (!selectedCard || !selectedOption) return;
     if (gold < SPECIALIZATION_COST) return; // 골드 부족
 
@@ -650,7 +710,7 @@ function CardGrowthPanel({
     onSpecialize(selectedCard, traitIds);
 
     // 성공 알림
-    showNotification({
+    showNotificationHelper({
       message: `특화 성공! [${traitNames}]`,
       type: 'specialize',
       cardName,
@@ -658,11 +718,16 @@ function CardGrowthPanel({
 
     setGrowthMode('select');
     setSelectedOption(null);
-  };
+  }, [selectedCard, selectedOption, gold, cards, spendGold, onSpecialize, showNotificationHelper]);
 
-  const selected = cards.find((c) => c.id === selectedCard);
-  const selectedGrowth = selectedCard ? getCardGrowthState(selectedCard) : null;
-  const promotionInfo = selectedGrowth ? getNextPromotionInfo(selectedGrowth) : null;
+  const selected = useMemo(() => cards.find((c) => c.id === selectedCard), [cards, selectedCard]);
+  const selectedGrowth = useMemo(() => selectedCard ? getCardGrowthState(selectedCard) : null, [selectedCard, getCardGrowthState]);
+  const promotionInfo = useMemo(() => selectedGrowth ? getNextPromotionInfo(selectedGrowth) : null, [selectedGrowth, getNextPromotionInfo]);
+
+  const handleOpenCardModal = useCallback(() => setShowCardModal(true), []);
+  const handleCloseCardModal = useCallback(() => setShowCardModal(false), []);
+  const handleSetGrowthModeEnhance = useCallback(() => setGrowthMode('enhance'), []);
+  const handleSetGrowthModeSelect = useCallback(() => setGrowthMode('select'), []);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
@@ -708,13 +773,13 @@ function CardGrowthPanel({
       {/* 성장 통계 패널 */}
       <GrowthStatsPanel cardGrowth={cardGrowth} />
 
-      <button className="btn" onClick={() => setShowCardModal(true)}>
+      <button className="btn" onClick={handleOpenCardModal}>
         카드 선택
       </button>
 
       {selected && selectedGrowth && (
         <div style={{ fontSize: "13px", color: "#9ca3af" }}>
-          <div>{selected.name} - {rarityLabel[selectedGrowth.rarity]} ({selectedGrowth.growthCount}/5)</div>
+          <div>{selected.name} - {RARITY_LABEL[selectedGrowth.rarity]} ({selectedGrowth.growthCount}/5)</div>
           {promotionInfo && (
             <div style={{ color: "#86efac" }}>
               다음 승격: {promotionInfo.target} (성장 {promotionInfo.remaining}회 필요)
@@ -733,7 +798,7 @@ function CardGrowthPanel({
 
       {selected && selectedGrowth && selectedGrowth.rarity !== 'legendary' && growthMode === 'select' && (
         <div style={{ display: "flex", gap: "8px" }}>
-          <button className="btn" onClick={() => setGrowthMode('enhance')}>
+          <button className="btn" onClick={handleSetGrowthModeEnhance}>
             강화
           </button>
           <button className="btn" onClick={handleStartSpecialize}>
@@ -751,7 +816,7 @@ function CardGrowthPanel({
           gold={gold}
           cost={getEnhancementCost(selected.id)}
           onConfirm={handleConfirmEnhance}
-          onCancel={() => setGrowthMode('select')}
+          onCancel={handleSetGrowthModeSelect}
         />
       )}
 
@@ -829,14 +894,14 @@ function CardGrowthPanel({
             >
               {gold >= SPECIALIZATION_COST ? "특화 확정" : "골드 부족"}
             </button>
-            <button className="btn" onClick={() => setGrowthMode('select')}>취소</button>
+            <button className="btn" onClick={handleSetGrowthModeSelect}>취소</button>
           </div>
         </div>
       )}
 
       {/* 카드 선택 모달 */}
       {showCardModal && (
-        <div className="event-modal-overlay" onClick={() => setShowCardModal(false)}>
+        <div className="event-modal-overlay" onClick={handleCloseCardModal}>
           <div className="event-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: "700px" }}>
             <header>
               <h3>성장시킬 카드 선택</h3>
@@ -845,7 +910,7 @@ function CardGrowthPanel({
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "10px", maxHeight: "400px", overflowY: "auto" }}>
               {cards.map((card) => {
                 const growth = getCardGrowthState(card.id);
-                const badge = rarityBadge[growth.rarity];
+                const badge = RARITY_BADGE[growth.rarity];
                 const isMaxLevel = growth.rarity === 'legendary';
                 return (
                   <button
@@ -913,25 +978,16 @@ function CardGrowthPanel({
               })}
             </div>
             <div style={{ marginTop: "12px", display: "flex", justifyContent: "flex-end", gap: "8px" }}>
-              <button className="btn" onClick={() => setShowCardModal(false)}>닫기</button>
+              <button className="btn" onClick={handleCloseCardModal}>닫기</button>
             </div>
           </div>
         </div>
       )}
     </div>
   );
-}
+});
 
-/** 강화 미리보기 패널 */
-function EnhancePreviewPanel({
-  cardId,
-  cardName,
-  currentLevel,
-  gold,
-  cost,
-  onConfirm,
-  onCancel,
-}: {
+interface EnhancePreviewPanelProps {
   cardId: string;
   cardName: string;
   currentLevel: number;
@@ -939,16 +995,27 @@ function EnhancePreviewPanel({
   cost: number;
   onConfirm: () => void;
   onCancel: () => void;
-}) {
-  const nextPreview = getNextEnhancementPreview(cardId, currentLevel);
-  const allLevels = getAllEnhancementLevels(cardId);
-  const canEnhance = isEnhanceable(cardId) && currentLevel < 5;
+}
+
+/** 강화 미리보기 패널 */
+const EnhancePreviewPanel = memo(function EnhancePreviewPanel({
+  cardId,
+  cardName,
+  currentLevel,
+  gold,
+  cost,
+  onConfirm,
+  onCancel,
+}: EnhancePreviewPanelProps) {
+  const nextPreview = useMemo(() => getNextEnhancementPreview(cardId, currentLevel), [cardId, currentLevel]);
+  const allLevels = useMemo(() => getAllEnhancementLevels(cardId), [cardId]);
+  const canEnhance = useMemo(() => isEnhanceable(cardId) && currentLevel < 5, [cardId, currentLevel]);
   const canAfford = gold >= cost;
 
   // 현재 누적 스탯
-  const currentStats = currentLevel > 0 ? calculateEnhancedStats(cardId, currentLevel) : null;
+  const currentStats = useMemo(() => currentLevel > 0 ? calculateEnhancedStats(cardId, currentLevel) : null, [cardId, currentLevel]);
   // 다음 레벨 누적 스탯
-  const nextStats = canEnhance ? calculateEnhancedStats(cardId, currentLevel + 1) : null;
+  const nextStats = useMemo(() => canEnhance ? calculateEnhancedStats(cardId, currentLevel + 1) : null, [canEnhance, cardId, currentLevel]);
 
   return (
     <div style={{ padding: "12px", background: "rgba(96, 165, 250, 0.1)", borderRadius: "8px", border: "1px solid rgba(96, 165, 250, 0.3)" }}>
@@ -1120,20 +1187,21 @@ function EnhancePreviewPanel({
       </div>
     </div>
   );
-}
+});
 
 /** 스탯 뱃지 컴포넌트 */
-function StatBadge({ label, value, color }: { label: string; value: string; color: string }) {
+const StatBadge = memo(function StatBadge({ label, value, color }: { label: string; value: string; color: string }) {
+  const style: CSSProperties = {
+    fontSize: "11px",
+    padding: "2px 6px",
+    borderRadius: "4px",
+    background: `${color}20`,
+    color: color,
+    border: `1px solid ${color}40`
+  };
   return (
-    <span style={{
-      fontSize: "11px",
-      padding: "2px 6px",
-      borderRadius: "4px",
-      background: `${color}20`,
-      color: color,
-      border: `1px solid ${color}40`
-    }}>
+    <span style={style}>
       {label} {value}
     </span>
   );
-}
+});

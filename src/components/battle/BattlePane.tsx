@@ -4,17 +4,17 @@
  * 레거시 전투 모드 패널 컴포넌트
  */
 
-import { FC } from 'react';
+import { FC, memo, useCallback } from 'react';
 import { useGameStore, type ActiveBattle } from "../../state/gameStore";
 
-export const BattlePane: FC = () => {
+export const BattlePane: FC = memo(function BattlePane() {
   const activeBattle = useGameStore((state) => (state as { activeBattle?: ActiveBattle }).activeBattle);
 
-  if (!activeBattle) return null;
-
-  const openWindow = (): void => {
+  const openWindow = useCallback((): void => {
     window.open("/battle-legacy.html", "_blank", "noopener,noreferrer");
-  };
+  }, []);
+
+  if (!activeBattle) return null;
 
   return (
     <section className="legacy-pane">
@@ -35,4 +35,4 @@ export const BattlePane: FC = () => {
       <iframe title="legacy battle" src="/battle-legacy.html" className="legacy-pane-frame" />
     </section>
   );
-};
+});

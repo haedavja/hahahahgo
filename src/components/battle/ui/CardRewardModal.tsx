@@ -2,9 +2,10 @@
  * CardRewardModal.tsx
  *
  * 전투 승리 후 3장 중 1장을 선택해 덱에 추가하는 모달
+ * 최적화: React.memo
  */
 
-import { FC } from 'react';
+import { FC, memo } from 'react';
 import { Sword, Shield } from './BattleIcons';
 import type { RewardCard as Card } from '../../../types';
 
@@ -14,7 +15,7 @@ interface CardRewardModalProps {
   onSkip: () => void;
 }
 
-export const CardRewardModal: FC<CardRewardModalProps> = ({
+export const CardRewardModal: FC<CardRewardModalProps> = memo(({
   rewardCards,
   onSelect,
   onSkip
@@ -237,4 +238,4 @@ export const CardRewardModal: FC<CardRewardModalProps> = ({
       `}</style>
     </div>
   );
-};
+});

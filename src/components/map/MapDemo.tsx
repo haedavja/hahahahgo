@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useRef, useState, useCallback } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback, memo } from "react";
+import type { CSSProperties } from "react";
 import { useShallow } from 'zustand/react/shallow';
 import type { Resources, MapNode } from "../../types";
 import { useMapState } from "./hooks/useMapState";
@@ -26,7 +27,89 @@ import {
   formatBattleLogEntry,
 } from "./utils/mapConfig";
 
-export function MapDemo() {
+// =====================
+// 스타일 상수
+// =====================
+
+const TEST_BUTTON_CONTAINER_STYLE: CSSProperties = {
+  position: 'absolute',
+  top: 120,
+  left: 20,
+  zIndex: 9999
+};
+
+const TEST_BUTTON_STYLE: CSSProperties = {
+  padding: '8px 12px',
+  background: '#ef4444',
+  color: 'white',
+  borderRadius: '6px',
+  fontWeight: 'bold',
+  boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+  cursor: 'pointer'
+};
+
+const MAP_VIEW_STYLE: CSSProperties = {
+  marginLeft: '400px'
+};
+
+const DUNGEON_MODAL_PARAGRAPH_STYLE: CSSProperties = {
+  marginBottom: '20px',
+  lineHeight: '1.6'
+};
+
+const DUNGEON_BUTTON_CONTAINER_STYLE: CSSProperties = {
+  display: 'flex',
+  gap: '12px',
+  justifyContent: 'center'
+};
+
+const DUNGEON_CONFIRM_BUTTON_STYLE: CSSProperties = {
+  padding: '12px 24px',
+  fontSize: '16px',
+  fontWeight: '600',
+  borderRadius: '8px',
+  border: '2px solid #3498db',
+  background: 'rgba(52, 152, 219, 0.2)',
+  color: '#3498db',
+  cursor: 'pointer'
+};
+
+const DUNGEON_BYPASS_BUTTON_STYLE: CSSProperties = {
+  padding: '12px 24px',
+  fontSize: '16px',
+  fontWeight: '600',
+  borderRadius: '8px',
+  border: '2px solid #95a5a6',
+  background: 'rgba(149, 165, 166, 0.2)',
+  color: '#95a5a6',
+  cursor: 'pointer'
+};
+
+const RESOURCE_GOLD_STYLE: CSSProperties = {
+  color: '#ffd700',
+  fontSize: '13px'
+};
+
+const RESOURCE_INTEL_STYLE: CSSProperties = {
+  color: '#9da9d6',
+  fontSize: '13px'
+};
+
+const RESOURCE_LOOT_STYLE: CSSProperties = {
+  color: '#ff6b6b',
+  fontSize: '13px'
+};
+
+const RESOURCE_MATERIAL_STYLE: CSSProperties = {
+  color: '#a0e9ff',
+  fontSize: '13px'
+};
+
+const USAGE_SUCCESS_STYLE: CSSProperties = {
+  color: '#86efac'
+};
+
+function MapDemoComponent() {
   // 맵 상태 셀렉터 (그룹화)
   const { map, mapRisk, resources } = useGameStore(
     useShallow((state) => ({
@@ -320,7 +403,7 @@ export function MapDemo() {
         ))}
       </div>
 
-      <div style={{ position: 'absolute', top: 120, left: 20, zIndex: 9999 }}>
+      <div style={TEST_BUTTON_CONTAINER_STYLE}>
         <button
           onClick={() => {
             useGameStore.setState({
@@ -331,15 +414,7 @@ export function MapDemo() {
               }
             });
           }}
-          style={{
-            padding: '8px 12px',
-            background: '#ef4444',
-            color: 'white',
-            borderRadius: '6px',
-            fontWeight: 'bold',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
-            cursor: 'pointer'
-          }}
+          style={TEST_BUTTON_STYLE}
         >
           ⚔️ Test Mixed Battle
         </button>
@@ -347,7 +422,7 @@ export function MapDemo() {
 
       <div className="main-layout">
         <div className="map-container">
-          <div className="map-view" ref={mapViewRef} style={{ marginLeft: '400px' }}>
+          <div className="map-view" ref={mapViewRef} style={MAP_VIEW_STYLE}>
             <section className="map" style={{ minHeight: mapHeight, width: MAP_WIDTH, margin: "0 auto", padding: "40px 0 60px" }}>
               <svg className="edge-layer" width={MAP_WIDTH} height={MAP_LAYERS * V_SPACING + 200}>
                 {edges.map((edge: { from: MapNode; to: MapNode } | null) => {
@@ -431,7 +506,7 @@ export function MapDemo() {
                       </div>
                     )}
                     {item.usableIn === 'any' && (
-                      <div className="item-tooltip-usage" style={{ color: '#86efac' }}>✓ 언제든 사용 가능</div>
+                      <div className="item-tooltip-usage" style={USAGE_SUCCESS_STYLE}>✓ 언제든 사용 가능</div>
                     )}
                   </div>
                 </>
@@ -454,10 +529,10 @@ export function MapDemo() {
       </div>
 
       <div className="resources-display">
-        <div style={{ color: "#ffd700", fontSize: "13px" }}>금: {resources.gold}</div>
-        <div style={{ color: "#9da9d6", fontSize: "13px" }}>정보: {resources.intel}</div>
-        <div style={{ color: "#ff6b6b", fontSize: "13px" }}>전리품: {resources.loot}</div>
-        <div style={{ color: "#a0e9ff", fontSize: "13px" }}>원자재: {resources.material}</div>
+        <div style={RESOURCE_GOLD_STYLE}>금: {resources.gold}</div>
+        <div style={RESOURCE_INTEL_STYLE}>정보: {resources.intel}</div>
+        <div style={RESOURCE_LOOT_STYLE}>전리품: {resources.loot}</div>
+        <div style={RESOURCE_MATERIAL_STYLE}>원자재: {resources.material}</div>
         <div style={{ color: canAwaken ? "#fb7185" : "#cbd5e1", fontSize: "13px", fontWeight: 700 }}>
           기억: {memoryValue}{canAwaken ? " · 각성 가능" : ""}
         </div>
@@ -504,41 +579,23 @@ export function MapDemo() {
             <header>
               <h3>⚠️ 던전 진입</h3>
             </header>
-            <p style={{ marginBottom: "20px", lineHeight: "1.6" }}>
+            <p style={DUNGEON_MODAL_PARAGRAPH_STYLE}>
               위험한 던전이 앞에 있습니다. 던전 내부는 위험하지만 보상도 있습니다.
               <br />
               진입하시겠습니까?
             </p>
-            <div style={{ display: "flex", gap: "12px", justifyContent: "center" }}>
+            <div style={DUNGEON_BUTTON_CONTAINER_STYLE}>
               <button
                 type="button"
                 onClick={confirmDungeon}
-                style={{
-                  padding: "12px 24px",
-                  fontSize: "16px",
-                  fontWeight: "600",
-                  borderRadius: "8px",
-                  border: "2px solid #3498db",
-                  background: "rgba(52, 152, 219, 0.2)",
-                  color: "#3498db",
-                  cursor: "pointer",
-                }}
+                style={DUNGEON_CONFIRM_BUTTON_STYLE}
               >
                 진입한다
               </button>
               <button
                 type="button"
                 onClick={bypassDungeon}
-                style={{
-                  padding: "12px 24px",
-                  fontSize: "16px",
-                  fontWeight: "600",
-                  borderRadius: "8px",
-                  border: "2px solid #95a5a6",
-                  background: "rgba(149, 165, 166, 0.2)",
-                  color: "#95a5a6",
-                  cursor: "pointer",
-                }}
+                style={DUNGEON_BYPASS_BUTTON_STYLE}
               >
                 지나친다
               </button>
@@ -598,3 +655,5 @@ export function MapDemo() {
     </div>
   );
 }
+
+export const MapDemo = memo(MapDemoComponent);

@@ -28,9 +28,29 @@ import type {
 } from '../types';
 
 /**
+ * calculatePassiveEffects 결과 캐싱
+ * 동일한 relicIds 배열에 대해 재계산 방지
+ */
+let passiveEffectsCache: { key: string; result: PassiveStats } | null = null;
+
+/**
+ * relicIds 배열을 캐시 키로 변환
+ */
+function getRelicsCacheKey(relicIds: string[]): string {
+  return relicIds.slice().sort().join(',');
+}
+
+/**
  * PASSIVE 효과를 계산하여 스탯 변화를 반환
+ * 메모이제이션 적용: 동일한 relicIds에 대해 캐시된 결과 반환
  */
 export function calculatePassiveEffects(relicIds: string[] = []): PassiveStats {
+  // 캐시 키 생성 및 캐시 히트 체크
+  const cacheKey = getRelicsCacheKey(relicIds);
+  if (passiveEffectsCache && passiveEffectsCache.key === cacheKey) {
+    return passiveEffectsCache.result;
+  }
+
   const stats: PassiveStats = {
     maxEnergy: 0,
     maxHp: 0,
@@ -70,7 +90,17 @@ export function calculatePassiveEffects(relicIds: string[] = []): PassiveStats {
     if (effects.extraCardPlay) stats.extraCardPlay += effects.extraCardPlay;
   });
 
+  // 결과 캐싱
+  passiveEffectsCache = { key: cacheKey, result: stats };
+
   return stats;
+}
+
+/**
+ * 캐시 무효화 (테스트/개발용)
+ */
+export function invalidatePassiveEffectsCache(): void {
+  passiveEffectsCache = null;
 }
 
 /**

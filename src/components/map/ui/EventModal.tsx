@@ -1,11 +1,19 @@
 /**
- * EventModal.jsx
+ * EventModal.tsx
  * 이벤트 모달 컴포넌트
+ * 최적화: React.memo + useCallback
  */
 
+import { memo, useCallback } from 'react';
+import type { CSSProperties } from 'react';
 import type { ActiveEvent, EventRewards } from '../../../types/game';
 import type { Resources } from '../../../types/core';
 import { STAT_LABELS, describeCost, describeBundle, formatApplied, canAfford } from '../utils/mapConfig';
+
+// 스타일 상수
+const DESCRIPTION_STYLE: CSSProperties = { lineHeight: "1.6" };
+const INSUFFICIENT_STYLE: CSSProperties = { color: "#ef4444" };
+const SUFFICIENT_STYLE: CSSProperties = { color: "#4ade80" };
 
 interface EventOutcome {
   choice?: string;
@@ -24,7 +32,7 @@ interface EventModalProps {
   closeEvent: () => void;
 }
 
-export function EventModal({
+export const EventModal = memo(function EventModal({
   activeEvent,
   resources,
   meetsStatRequirement,
@@ -45,13 +53,17 @@ export function EventModal({
     ? outcome.resultDescription
     : currentDescription;
 
+  const handleChooseEvent = useCallback((choiceId: string) => {
+    chooseEvent(choiceId);
+  }, [chooseEvent]);
+
   return (
     <div className="event-modal-overlay">
       <div className="event-modal">
         <header>
           <h3>{activeEvent.definition?.title ?? "미확인 사건"}</h3>
         </header>
-        <p style={{ lineHeight: "1.6" }}>{displayText}</p>
+        <p style={DESCRIPTION_STYLE}>{displayText}</p>
 
         {!activeEvent.resolved && (
           <div className="event-choices">
@@ -64,7 +76,7 @@ export function EventModal({
                 <div key={choice.id} className="choice-card">
                   <strong>{choice.label}</strong>
                   {choice.cost && Object.keys(choice.cost).length > 0 && (
-                    <small style={{ color: affordable ? undefined : "#ef4444" }}>
+                    <small style={affordable ? undefined : INSUFFICIENT_STYLE}>
                       비용: {describeCost(choice.cost)}
                       {!affordable && " (부족)"}
                     </small>
@@ -73,12 +85,12 @@ export function EventModal({
                     <small>보상: {describeBundle(choice.rewards as Record<string, unknown>)}</small>
                   )}
                   {choice.statRequirement && (
-                    <small style={{ color: hasRequiredStats ? "#4ade80" : "#ef4444" }}>
+                    <small style={hasRequiredStats ? SUFFICIENT_STYLE : INSUFFICIENT_STYLE}>
                       요구: {Object.entries(choice.statRequirement).map(([k, v]: [string, unknown]) => `${(STAT_LABELS as Record<string, string>)[k] ?? k} ${v}`).join(", ")}
                       {!hasRequiredStats && " (부족)"}
                     </small>
                   )}
-                  <button type="button" disabled={!canSelect} onClick={() => chooseEvent(choice.id)}>
+                  <button type="button" disabled={!canSelect} onClick={() => handleChooseEvent(choice.id)}>
                     선택
                   </button>
                 </div>
@@ -103,4 +115,4 @@ export function EventModal({
       </div>
     </div>
   );
-}
+});

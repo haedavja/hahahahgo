@@ -46,7 +46,7 @@
 
 /// <reference types="react" />
 
-import React, { useState, useEffect, useRef, type MutableRefObject } from "react";
+import React, { useState, useEffect, useRef, memo, type MutableRefObject } from "react";
 import type { JSX } from 'react';
 import { flushSync } from "react-dom";
 import "./legacy-battle.css";
@@ -2333,14 +2333,16 @@ interface BattleAppProps {
   onBattleResult?: (result: BattleResult) => void;
 }
 
-export const BattleApp: React.FC<BattleAppProps> = ({ initialPlayer, initialEnemy, playerEther, liveInsight, onBattleResult = () => { } }) => (
-  <Game
-    initialPlayer={initialPlayer}
-    initialEnemy={initialEnemy}
-    playerEther={playerEther}
-    liveInsight={liveInsight}
-    onBattleResult={onBattleResult}
-  />
-);
+export const BattleApp: React.FC<BattleAppProps> = memo(function BattleApp({ initialPlayer, initialEnemy, playerEther, liveInsight, onBattleResult = () => { } }) {
+  return (
+    <Game
+      initialPlayer={initialPlayer}
+      initialEnemy={initialEnemy}
+      playerEther={playerEther}
+      liveInsight={liveInsight}
+      onBattleResult={onBattleResult}
+    />
+  );
+});
 
 export default BattleApp;

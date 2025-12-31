@@ -3,9 +3,11 @@
  *
  * 던전 탐험 메인 컴포넌트
  * 분리된 모듈: renderDungeon, useCrossroadChoice, usePlayerMovement
+ * 최적화: React.memo + 스타일 상수 추출
  */
 
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback, memo } from "react";
+import type { CSSProperties } from "react";
 import { useShallow } from 'zustand/react/shallow';
 import type { DungeonObject, RenderDungeonSceneParams, RenderDungeonSegment, RenderDungeonGrid, RenderMazeData, RenderDungeonRoom, Direction } from "../../types";
 import { useDungeonState } from "./hooks/useDungeonState";
@@ -18,6 +20,138 @@ import { RELIC_RARITY_COLORS, type RelicRarity } from "../../lib/relics";
 import { playVictorySound } from "../../lib/soundUtils";
 import "./dungeon.css";
 
+// =====================
+// 스타일 상수
+// =====================
+
+const CONTAINER_STYLE: CSSProperties = {
+  position: "fixed",
+  inset: 0,
+  background: "#000",
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+  justifyContent: "center",
+  zIndex: 100
+};
+
+const CANVAS_STYLE: CSSProperties = {
+  border: "2px solid #444",
+  borderRadius: "8px"
+};
+
+const RELICS_CONTAINER_STYLE: CSSProperties = {
+  position: "absolute",
+  top: "20px",
+  left: "50%",
+  transform: "translateX(-50%)",
+  zIndex: 100
+};
+
+const RELICS_BAR_STYLE: CSSProperties = {
+  display: 'flex',
+  gap: '6px',
+  padding: '8px 12px',
+  background: 'rgba(15, 23, 42, 0.9)',
+  border: '2px solid rgba(148, 163, 184, 0.5)',
+  borderRadius: '12px',
+  boxShadow: '0 0 15px rgba(148, 163, 184, 0.3)'
+};
+
+const RELIC_ICON_BASE_STYLE: CSSProperties = {
+  fontSize: '2rem',
+  padding: '4px',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  cursor: 'pointer',
+  transition: 'all 0.2s ease'
+};
+
+const RESOURCES_BAR_STYLE: CSSProperties = {
+  position: "absolute",
+  top: "200px",
+  left: "50%",
+  transform: "translateX(-50%)",
+  display: "flex",
+  gap: "16px",
+  background: "rgba(0,0,0,0.8)",
+  padding: "10px 20px",
+  borderRadius: "999px",
+  border: "1px solid rgba(84, 126, 194, 0.5)"
+};
+
+const RESOURCE_ITEM_BASE_STYLE: CSSProperties = {
+  fontSize: "14px",
+  fontWeight: "600"
+};
+
+const MESSAGE_STYLE: CSSProperties = {
+  position: "absolute",
+  top: "50%",
+  left: "50%",
+  transform: "translate(-50%, -50%)",
+  color: "#fff",
+  fontSize: "18px",
+  fontWeight: "600",
+  background: "rgba(0,0,0,0.85)",
+  padding: "20px 40px",
+  borderRadius: "12px",
+  border: "2px solid rgba(84, 126, 194, 0.6)",
+  boxShadow: "0 8px 32px rgba(0,0,0,0.6)",
+  textAlign: "center",
+  maxWidth: "600px",
+  zIndex: 150
+};
+
+const UI_INFO_STYLE: CSSProperties = {
+  position: "absolute",
+  top: "260px",
+  left: "50%",
+  transform: "translateX(-50%)",
+  color: "#fff",
+  fontSize: "16px",
+  background: "rgba(0,0,0,0.7)",
+  padding: "12px",
+  borderRadius: "8px",
+  textAlign: "center"
+};
+
+const COORD_TEXT_STYLE: CSSProperties = {
+  fontSize: "12px",
+  marginTop: "4px",
+  color: "#94a3b8"
+};
+
+const CONTROLS_TEXT_STYLE: CSSProperties = {
+  fontSize: "12px",
+  marginTop: "4px"
+};
+
+const ESCAPE_BUTTON_STYLE: CSSProperties = {
+  position: "absolute",
+  bottom: "20px",
+  right: "20px",
+  padding: "10px 20px",
+  background: "#e74c3c",
+  color: "#fff",
+  border: "none",
+  borderRadius: "8px",
+  cursor: "pointer",
+  fontSize: "14px",
+  fontWeight: "600"
+};
+
+const CHARACTER_OVERLAY_STYLE: CSSProperties = {
+  position: "fixed",
+  inset: 0,
+  background: "rgba(0,0,0,0.8)",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  zIndex: 200
+};
+
 // 분리된 모듈들
 import { CONFIG, OBJECT_TYPES } from "./utils/dungeonConfig";
 import type { GameStore } from "../../state/slices/types";
@@ -27,7 +161,7 @@ import { renderDungeonScene } from "./utils/renderDungeon";
 import { RewardModal, DungeonSummaryModal, CrossroadModal } from "./ui/DungeonModals";
 
 // ========== 메인 컴포넌트 ==========
-export function DungeonExploration() {
+function DungeonExplorationComponent() {
   // 상태 셀렉터 (그룹화)
   const { activeDungeon, lastBattleResult, relics, resources, playerHp, maxHp, devForcedCrossroad, playerInsight } = useGameStore(
     useShallow((s: GameStore) => ({
@@ -312,41 +446,18 @@ export function DungeonExploration() {
   };
 
   return (
-    <div style={{
-      position: "fixed",
-      inset: 0,
-      background: "#000",
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "center",
-      justifyContent: "center",
-      zIndex: 100,
-    }}>
+    <div style={CONTAINER_STYLE}>
       <canvas
         ref={canvasRef}
         width={CONFIG.VIEWPORT.width}
         height={CONFIG.VIEWPORT.height}
-        style={{ border: "2px solid #444", borderRadius: "8px" }}
+        style={CANVAS_STYLE}
       />
 
       {/* 상징 표시 */}
       {relics && relics.length > 0 && (
-        <div style={{
-          position: "absolute",
-          top: "20px",
-          left: "50%",
-          transform: "translateX(-50%)",
-          zIndex: 100,
-        }}>
-          <div style={{
-            display: 'flex',
-            gap: '6px',
-            padding: '8px 12px',
-            background: 'rgba(15, 23, 42, 0.9)',
-            border: '2px solid rgba(148, 163, 184, 0.5)',
-            borderRadius: '12px',
-            boxShadow: '0 0 15px rgba(148, 163, 184, 0.3)',
-          }}>
+        <div style={RELICS_CONTAINER_STYLE}>
+          <div style={RELICS_BAR_STYLE}>
             {relics.map((relicId: string, index: number) => {
               const relic = RELICS[relicId as keyof typeof RELICS];
               if (!relic) return null;
@@ -366,13 +477,7 @@ export function DungeonExploration() {
                     onMouseEnter={() => actions.setHoveredRelic(relicId)}
                     onMouseLeave={() => actions.setHoveredRelic(null)}
                     style={{
-                      fontSize: '2rem',
-                      padding: '4px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s ease',
+                      ...RELIC_ICON_BASE_STYLE,
                       transform: isHovered ? 'scale(1.15)' : 'scale(1)',
                     }}>
                     <span>{relic.emoji}</span>
@@ -417,40 +522,29 @@ export function DungeonExploration() {
       )}
 
       {/* 자원 표시 */}
-      <div style={{
-        position: "absolute",
-        top: "200px",
-        left: "50%",
-        transform: "translateX(-50%)",
-        display: "flex",
-        gap: "16px",
-        background: "rgba(0,0,0,0.8)",
-        padding: "10px 20px",
-        borderRadius: "999px",
-        border: "1px solid rgba(84, 126, 194, 0.5)",
-      }}>
-        <div style={{ color: "#ffd700", fontSize: "14px", fontWeight: "600" }}>
+      <div style={RESOURCES_BAR_STYLE}>
+        <div style={{ ...RESOURCE_ITEM_BASE_STYLE, color: "#ffd700" }}>
           금: {initialResources.gold}{(dungeonDeltas.gold ?? 0) !== 0 && (
             <span style={{ color: (dungeonDeltas.gold ?? 0) > 0 ? "#90EE90" : "#ff6b6b", marginLeft: "4px" }}>
               ({(dungeonDeltas.gold ?? 0) > 0 ? "+" : ""}{dungeonDeltas.gold ?? 0})
             </span>
           )}
         </div>
-        <div style={{ color: "#9da9d6", fontSize: "14px", fontWeight: "600" }}>
+        <div style={{ ...RESOURCE_ITEM_BASE_STYLE, color: "#9da9d6" }}>
           정보: {initialResources.intel}{(dungeonDeltas.intel ?? 0) !== 0 && (
             <span style={{ color: (dungeonDeltas.intel ?? 0) > 0 ? "#90EE90" : "#ff6b6b", marginLeft: "4px" }}>
               ({(dungeonDeltas.intel ?? 0) > 0 ? "+" : ""}{dungeonDeltas.intel ?? 0})
             </span>
           )}
         </div>
-        <div style={{ color: "#ff6b6b", fontSize: "14px", fontWeight: "600" }}>
+        <div style={{ ...RESOURCE_ITEM_BASE_STYLE, color: "#ff6b6b" }}>
           전리품: {initialResources.loot}{(dungeonDeltas.loot ?? 0) !== 0 && (
             <span style={{ color: (dungeonDeltas.loot ?? 0) > 0 ? "#90EE90" : "#ff6b6b", marginLeft: "4px" }}>
               ({(dungeonDeltas.loot ?? 0) > 0 ? "+" : ""}{dungeonDeltas.loot ?? 0})
             </span>
           )}
         </div>
-        <div style={{ color: "#a0e9ff", fontSize: "14px", fontWeight: "600" }}>
+        <div style={{ ...RESOURCE_ITEM_BASE_STYLE, color: "#a0e9ff" }}>
           원자재: {initialResources.material}{(dungeonDeltas.material ?? 0) !== 0 && (
             <span style={{ color: (dungeonDeltas.material ?? 0) > 0 ? "#90EE90" : "#ff6b6b", marginLeft: "4px" }}>
               ({(dungeonDeltas.material ?? 0) > 0 ? "+" : ""}{dungeonDeltas.material ?? 0})
@@ -461,50 +555,23 @@ export function DungeonExploration() {
 
       {/* 메시지 */}
       {message && (
-        <div style={{
-          position: "absolute",
-          top: "50%",
-          left: "50%",
-          transform: "translate(-50%, -50%)",
-          color: "#fff",
-          fontSize: "18px",
-          fontWeight: "600",
-          background: "rgba(0,0,0,0.85)",
-          padding: "20px 40px",
-          borderRadius: "12px",
-          border: "2px solid rgba(84, 126, 194, 0.6)",
-          boxShadow: "0 8px 32px rgba(0,0,0,0.6)",
-          textAlign: "center",
-          maxWidth: "600px",
-          zIndex: 150,
-        }}>
+        <div style={MESSAGE_STYLE}>
           {message}
         </div>
       )}
 
       {/* UI 정보 */}
-      <div style={{
-        position: "absolute",
-        top: "260px",
-        left: "50%",
-        transform: "translateX(-50%)",
-        color: "#fff",
-        fontSize: "16px",
-        background: "rgba(0,0,0,0.7)",
-        padding: "12px",
-        borderRadius: "8px",
-        textAlign: "center",
-      }}>
+      <div style={UI_INFO_STYLE}>
         <div>
           {segment?.roomType === 'entrance' ? '🏠 입구' :
            segment?.roomType === 'exit' ? '🚪 출구' :
            segment?.roomType === 'hidden' ? '✨ 비밀의 방' :
            segment?.isDeadEnd ? '⚠️ 막다른 방' : '📍 미로'}
         </div>
-        <div style={{ fontSize: "12px", marginTop: "4px", color: "#94a3b8" }}>
+        <div style={COORD_TEXT_STYLE}>
           좌표: ({(segment as any)?.x}, {(segment as any)?.y})
         </div>
-        <div style={{ fontSize: "12px", marginTop: "4px" }}>
+        <div style={CONTROLS_TEXT_STYLE}>
           W: 상호작용/이동 | A/D: 좌우 | C: 캐릭터
         </div>
       </div>
@@ -512,19 +579,7 @@ export function DungeonExploration() {
       {/* 탈출 버튼 */}
       <button
         onClick={handleSkipDungeon}
-        style={{
-          position: "absolute",
-          bottom: "20px",
-          right: "20px",
-          padding: "10px 20px",
-          background: "#e74c3c",
-          color: "#fff",
-          border: "none",
-          borderRadius: "8px",
-          cursor: "pointer",
-          fontSize: "14px",
-          fontWeight: "600",
-        }}
+        style={ESCAPE_BUTTON_STYLE}
       >
         던전 탈출
       </button>
@@ -542,15 +597,7 @@ export function DungeonExploration() {
       {/* 캐릭터 창 */}
       {showCharacter && (
         <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(0,0,0,0.8)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 200,
-          }}
+          style={CHARACTER_OVERLAY_STYLE}
           onClick={() => actions.setShowCharacter(false)}
         >
           <div onClick={(e: React.MouseEvent) => e.stopPropagation()}>
@@ -561,3 +608,5 @@ export function DungeonExploration() {
     </div>
   );
 }
+
+export const DungeonExploration = memo(DungeonExplorationComponent);

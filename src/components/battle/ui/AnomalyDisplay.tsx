@@ -3,14 +3,162 @@
  *
  * 이변 표시 UI 컴포넌트
  * 전투 화면 상단에 활성화된 이변 정보를 표시
+ * 최적화: React.memo + 스타일 상수 추출 + useCallback
  */
 
-import { useState, useEffect, FC } from 'react';
+import { useState, useEffect, FC, memo, useCallback } from 'react';
+import type { CSSProperties } from 'react';
 import type {
   AnomalyEffect,
   AnomalyDefinition as Anomaly,
   AnomalyWithLevel
 } from '../../../types';
+
+// =====================
+// 스타일 상수
+// =====================
+
+const DISPLAY_CONTAINER_STYLE: CSSProperties = {
+  position: 'fixed',
+  top: '20px',
+  left: '50%',
+  transform: 'translateX(-50%)',
+  zIndex: 5000,
+  display: 'flex',
+  gap: '8px',
+  pointerEvents: 'auto'
+};
+
+const TITLE_HEADER_STYLE: CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: '8px'
+};
+
+const ANOMALY_EMOJI_STYLE: CSSProperties = {
+  fontSize: '1.2rem'
+};
+
+const ANOMALY_LEVEL_STYLE: CSSProperties = {
+  fontSize: '0.75rem',
+  color: '#94a3b8',
+  marginTop: '2px'
+};
+
+const EXPANDED_DESC_STYLE: CSSProperties = {
+  fontSize: '0.85rem',
+  color: '#e2e8f0',
+  lineHeight: '1.5'
+};
+
+const LEVEL_INDICATOR_STYLE: CSSProperties = {
+  position: 'absolute',
+  top: '4px',
+  right: '4px',
+  display: 'flex',
+  gap: '2px'
+};
+
+// 알림 스타일
+const NOTIFICATION_OVERLAY_STYLE: CSSProperties = {
+  position: 'fixed',
+  top: 0,
+  left: 0,
+  width: '100%',
+  height: '100%',
+  zIndex: 9998,
+  background: 'rgba(0, 0, 0, 0.7)',
+  pointerEvents: 'none',
+  animation: 'fade-in 0.3s ease-out'
+};
+
+const FLASH_OVERLAY_STYLE: CSSProperties = {
+  position: 'fixed',
+  top: 0,
+  left: 0,
+  width: '100vw',
+  height: '100vh',
+  zIndex: 9999,
+  background: 'rgba(239, 68, 68, 0.15)',
+  pointerEvents: 'none',
+  animation: 'red-flash 0.6s ease-out'
+};
+
+const NOTIFICATION_CONTAINER_STYLE: CSSProperties = {
+  position: 'fixed',
+  top: '50%',
+  left: '50%',
+  transform: 'translate(-50%, -50%)',
+  zIndex: 10000,
+  background: 'rgba(15, 23, 42, 0.98)',
+  border: '3px solid #ef4444',
+  borderRadius: '16px',
+  padding: '32px',
+  maxWidth: '600px',
+  boxShadow: '0 8px 40px rgba(0, 0, 0, 0.8)',
+  pointerEvents: 'auto',
+  animation: 'anomaly-appear 0.4s ease-out'
+};
+
+const NOTIFICATION_TITLE_STYLE: CSSProperties = {
+  fontSize: '1.8rem',
+  fontWeight: 'bold',
+  color: '#ef4444',
+  marginBottom: '20px',
+  textAlign: 'center',
+  textShadow: '0 0 20px rgba(239, 68, 68, 0.5)',
+  animation: 'title-pulse 1s ease-in-out infinite'
+};
+
+const NOTIFICATION_LIST_STYLE: CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '16px',
+  marginBottom: '24px'
+};
+
+const ANOMALY_CARD_BASE_STYLE: CSSProperties = {
+  background: 'rgba(30, 41, 59, 0.8)',
+  borderRadius: '12px',
+  padding: '16px'
+};
+
+const CARD_HEADER_STYLE: CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: '12px',
+  marginBottom: '8px'
+};
+
+const CARD_EMOJI_STYLE: CSSProperties = {
+  fontSize: '2rem'
+};
+
+const CARD_DESC_STYLE: CSSProperties = {
+  fontSize: '0.9rem',
+  color: '#e2e8f0',
+  marginTop: '4px'
+};
+
+const CARD_SUBDESC_STYLE: CSSProperties = {
+  fontSize: '0.85rem',
+  color: '#94a3b8',
+  paddingLeft: '52px'
+};
+
+const CONFIRM_BUTTON_STYLE: CSSProperties = {
+  width: '100%',
+  padding: '12px',
+  background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+  border: '2px solid #991b1b',
+  borderRadius: '8px',
+  color: '#fff',
+  fontSize: '1.1rem',
+  fontWeight: 'bold',
+  cursor: 'pointer',
+  transition: 'all 0.2s ease',
+  boxShadow: '0 4px 15px rgba(239, 68, 68, 0.3)'
+};
 
 interface AudioContextConstructor {
   new (): AudioContext;
@@ -89,68 +237,79 @@ interface AnomalyDisplayProps {
   anomalies: AnomalyWithLevel[] | null;
 }
 
-export const AnomalyDisplay: FC<AnomalyDisplayProps> = ({ anomalies }) => {
+export const AnomalyDisplay: FC<AnomalyDisplayProps> = memo(({ anomalies }) => {
   const [expandedAnomalyId, setExpandedAnomalyId] = useState<string | null>(null);
+
+  // 핸들러 메모이제이션
+  const handleClick = useCallback((anomalyId: string, isExpanded: boolean) => {
+    setExpandedAnomalyId(isExpanded ? null : anomalyId);
+  }, []);
+
+  const handleMouseEnter = useCallback((anomalyId: string) => {
+    setExpandedAnomalyId(anomalyId);
+  }, []);
+
+  const handleMouseLeave = useCallback(() => {
+    setExpandedAnomalyId(null);
+  }, []);
 
   if (!anomalies || anomalies.length === 0) {
     return null;
   }
 
   return (
-    <div style={{
-      position: 'fixed',
-      top: '20px',
-      left: '50%',
-      transform: 'translateX(-50%)',
-      zIndex: 5000,
-      display: 'flex',
-      gap: '8px',
-      pointerEvents: 'auto'
-    }}>
+    <div style={DISPLAY_CONTAINER_STYLE}>
       {anomalies.map(({ anomaly, level }) => {
         const effect = anomaly.getEffect(level);
         const isExpanded = expandedAnomalyId === anomaly.id;
 
+        // 동적 스타일
+        const cardStyle: CSSProperties = {
+          position: 'relative',
+          background: 'rgba(15, 23, 42, 0.95)',
+          border: `2px solid ${anomaly.color}`,
+          borderRadius: '12px',
+          padding: '8px 12px',
+          minWidth: isExpanded ? '280px' : '160px',
+          boxShadow: `0 4px 20px ${anomaly.color}66`,
+          cursor: 'pointer',
+          transition: 'all 0.3s ease',
+          animation: 'anomaly-pulse 2s ease-in-out infinite'
+        };
+
+        const headerStyle: CSSProperties = {
+          ...TITLE_HEADER_STYLE,
+          marginBottom: isExpanded ? '8px' : '0'
+        };
+
+        const nameStyle: CSSProperties = {
+          fontSize: '0.9rem',
+          fontWeight: 'bold',
+          color: anomaly.color
+        };
+
+        const expandedDescStyle: CSSProperties = {
+          ...EXPANDED_DESC_STYLE,
+          borderTop: `1px solid ${anomaly.color}33`,
+          paddingTop: '8px'
+        };
+
         return (
           <div
             key={anomaly.id}
-            style={{
-              position: 'relative',
-              background: 'rgba(15, 23, 42, 0.95)',
-              border: `2px solid ${anomaly.color}`,
-              borderRadius: '12px',
-              padding: '8px 12px',
-              minWidth: isExpanded ? '280px' : '160px',
-              boxShadow: `0 4px 20px ${anomaly.color}66`,
-              cursor: 'pointer',
-              transition: 'all 0.3s ease',
-              animation: 'anomaly-pulse 2s ease-in-out infinite'
-            }}
-            onClick={() => setExpandedAnomalyId(isExpanded ? null : anomaly.id)}
-            onMouseEnter={() => setExpandedAnomalyId(anomaly.id)}
-            onMouseLeave={() => setExpandedAnomalyId(null)}
+            style={cardStyle}
+            onClick={() => handleClick(anomaly.id, isExpanded)}
+            onMouseEnter={() => handleMouseEnter(anomaly.id)}
+            onMouseLeave={handleMouseLeave}
           >
             {/* 제목 */}
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              marginBottom: isExpanded ? '8px' : '0'
-            }}>
-              <span style={{ fontSize: '1.2rem' }}>{anomaly.emoji}</span>
+            <div style={headerStyle}>
+              <span style={ANOMALY_EMOJI_STYLE}>{anomaly.emoji}</span>
               <div style={{ flex: 1 }}>
-                <div style={{
-                  fontSize: '0.9rem',
-                  fontWeight: 'bold',
-                  color: anomaly.color
-                }}>
+                <div style={nameStyle}>
                   {anomaly.name}
                 </div>
-                <div style={{
-                  fontSize: '0.75rem',
-                  color: '#94a3b8',
-                  marginTop: '2px'
-                }}>
+                <div style={ANOMALY_LEVEL_STYLE}>
                   Lv.{level}
                 </div>
               </div>
@@ -158,13 +317,7 @@ export const AnomalyDisplay: FC<AnomalyDisplayProps> = ({ anomalies }) => {
 
             {/* 확장된 설명 */}
             {isExpanded && (
-              <div style={{
-                fontSize: '0.85rem',
-                color: '#e2e8f0',
-                lineHeight: '1.5',
-                borderTop: `1px solid ${anomaly.color}33`,
-                paddingTop: '8px'
-              }}>
+              <div style={expandedDescStyle}>
                 <div style={{ marginBottom: '4px' }}>
                   {effect.description}
                 </div>
@@ -179,13 +332,7 @@ export const AnomalyDisplay: FC<AnomalyDisplayProps> = ({ anomalies }) => {
             )}
 
             {/* 레벨 인디케이터 */}
-            <div style={{
-              position: 'absolute',
-              top: '4px',
-              right: '4px',
-              display: 'flex',
-              gap: '2px'
-            }}>
+            <div style={LEVEL_INDICATOR_STYLE}>
               {Array.from({ length: 4 }, (_, i) => (
                 <div
                   key={i}
@@ -214,7 +361,7 @@ export const AnomalyDisplay: FC<AnomalyDisplayProps> = ({ anomalies }) => {
       `}</style>
     </div>
   );
-};
+});
 
 interface AnomalyNotificationProps {
   anomalies: AnomalyWithLevel[] | null;
@@ -224,8 +371,19 @@ interface AnomalyNotificationProps {
 /**
  * 이변 알림 배너 (전투 시작 시 표시)
  */
-export const AnomalyNotification: FC<AnomalyNotificationProps> = ({ anomalies, onDismiss }) => {
+export const AnomalyNotification: FC<AnomalyNotificationProps> = memo(({ anomalies, onDismiss }) => {
   const [visibleAnomalies, setVisibleAnomalies] = useState<AnomalyWithLevel[]>([]);
+
+  // 버튼 호버 핸들러 메모이제이션
+  const handleButtonMouseEnter = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
+    (e.target as HTMLButtonElement).style.background = 'linear-gradient(135deg, #dc2626, #b91c1c)';
+    (e.target as HTMLButtonElement).style.boxShadow = '0 6px 20px rgba(239, 68, 68, 0.5)';
+  }, []);
+
+  const handleButtonMouseLeave = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
+    (e.target as HTMLButtonElement).style.background = 'linear-gradient(135deg, #ef4444, #dc2626)';
+    (e.target as HTMLButtonElement).style.boxShadow = '0 4px 15px rgba(239, 68, 68, 0.3)';
+  }, []);
 
   useEffect(() => {
     if (!anomalies || anomalies.length === 0) {
@@ -273,148 +431,64 @@ export const AnomalyNotification: FC<AnomalyNotificationProps> = ({ anomalies, o
   return (
     <>
       {/* 전체 화면 오버레이 (어둡게) */}
-      <div
-        style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          width: '100%',
-          height: '100%',
-          zIndex: 9998,
-          background: 'rgba(0, 0, 0, 0.7)',
-          pointerEvents: 'none',
-          animation: 'fade-in 0.3s ease-out'
-        }}
-      />
+      <div style={NOTIFICATION_OVERLAY_STYLE} />
 
       {/* 붉은 플래시 오버레이 */}
-      <div
-        style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          width: '100vw',
-          height: '100vh',
-          zIndex: 9999,
-          background: 'rgba(239, 68, 68, 0.15)',
-          pointerEvents: 'none',
-          animation: 'red-flash 0.6s ease-out'
-        }}
-      />
+      <div style={FLASH_OVERLAY_STYLE} />
 
-      <div style={{
-        position: 'fixed',
-        top: '50%',
-        left: '50%',
-        transform: 'translate(-50%, -50%)',
-        zIndex: 10000,
-        background: 'rgba(15, 23, 42, 0.98)',
-        border: '3px solid #ef4444',
-        borderRadius: '16px',
-        padding: '32px',
-        maxWidth: '600px',
-        boxShadow: '0 8px 40px rgba(0, 0, 0, 0.8)',
-        pointerEvents: 'auto',
-        animation: 'anomaly-appear 0.4s ease-out'
-      }}>
-      {/* 제목 */}
-      <div style={{
-        fontSize: '1.8rem',
-        fontWeight: 'bold',
-        color: '#ef4444',
-        marginBottom: '20px',
-        textAlign: 'center',
-        textShadow: '0 0 20px rgba(239, 68, 68, 0.5)',
-        animation: 'title-pulse 1s ease-in-out infinite'
-      }}>
-        ⚠️ 이변 발생 ⚠️
-      </div>
+      <div style={NOTIFICATION_CONTAINER_STYLE}>
+        {/* 제목 */}
+        <div style={NOTIFICATION_TITLE_STYLE}>
+          ⚠️ 이변 발생 ⚠️
+        </div>
 
-      {/* 이변 목록 */}
-      <div style={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '16px',
-        marginBottom: '24px'
-      }}>
-        {visibleAnomalies.map(({ anomaly, level }, index) => {
-          const effect = anomaly.getEffect(level);
-          return (
-            <div
-              key={`${anomaly.id}-${index}`}
-              style={{
-                background: 'rgba(30, 41, 59, 0.8)',
-                border: `2px solid ${anomaly.color}`,
-                borderRadius: '12px',
-                padding: '16px',
-                boxShadow: `0 2px 10px ${anomaly.color}33`,
-                animation: `anomaly-card-appear 0.3s ease-out ${index * 0.3}s both, card-flash 0.5s ease-in-out ${index * 0.3 + 0.3}s`
-              }}
-            >
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px',
-                marginBottom: '8px'
-              }}>
-                <span style={{ fontSize: '2rem' }}>{anomaly.emoji}</span>
-                <div style={{ flex: 1 }}>
-                  <div style={{
-                    fontSize: '1.2rem',
-                    fontWeight: 'bold',
-                    color: anomaly.color
-                  }}>
-                    {anomaly.name} (Lv.{level})
-                  </div>
-                  <div style={{
-                    fontSize: '0.9rem',
-                    color: '#e2e8f0',
-                    marginTop: '4px'
-                  }}>
-                    {effect.description}
+        {/* 이변 목록 */}
+        <div style={NOTIFICATION_LIST_STYLE}>
+          {visibleAnomalies.map(({ anomaly, level }, index) => {
+            const effect = anomaly.getEffect(level);
+            const cardStyle: CSSProperties = {
+              ...ANOMALY_CARD_BASE_STYLE,
+              border: `2px solid ${anomaly.color}`,
+              boxShadow: `0 2px 10px ${anomaly.color}33`,
+              animation: `anomaly-card-appear 0.3s ease-out ${index * 0.3}s both, card-flash 0.5s ease-in-out ${index * 0.3 + 0.3}s`
+            };
+            const nameStyle: CSSProperties = {
+              fontSize: '1.2rem',
+              fontWeight: 'bold',
+              color: anomaly.color
+            };
+
+            return (
+              <div key={`${anomaly.id}-${index}`} style={cardStyle}>
+                <div style={CARD_HEADER_STYLE}>
+                  <span style={CARD_EMOJI_STYLE}>{anomaly.emoji}</span>
+                  <div style={{ flex: 1 }}>
+                    <div style={nameStyle}>
+                      {anomaly.name} (Lv.{level})
+                    </div>
+                    <div style={CARD_DESC_STYLE}>
+                      {effect.description}
+                    </div>
                   </div>
                 </div>
+                <div style={CARD_SUBDESC_STYLE}>
+                  {anomaly.description}
+                </div>
               </div>
-              <div style={{
-                fontSize: '0.85rem',
-                color: '#94a3b8',
-                paddingLeft: '52px'
-              }}>
-                {anomaly.description}
-              </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
 
-      {/* 확인 버튼 */}
-      <button
-        onClick={onDismiss}
-        style={{
-          width: '100%',
-          padding: '12px',
-          background: 'linear-gradient(135deg, #ef4444, #dc2626)',
-          border: '2px solid #991b1b',
-          borderRadius: '8px',
-          color: '#fff',
-          fontSize: '1.1rem',
-          fontWeight: 'bold',
-          cursor: 'pointer',
-          transition: 'all 0.2s ease',
-          boxShadow: '0 4px 15px rgba(239, 68, 68, 0.3)'
-        }}
-        onMouseEnter={e => {
-          (e.target as HTMLButtonElement).style.background = 'linear-gradient(135deg, #dc2626, #b91c1c)';
-          (e.target as HTMLButtonElement).style.boxShadow = '0 6px 20px rgba(239, 68, 68, 0.5)';
-        }}
-        onMouseLeave={e => {
-          (e.target as HTMLButtonElement).style.background = 'linear-gradient(135deg, #ef4444, #dc2626)';
-          (e.target as HTMLButtonElement).style.boxShadow = '0 4px 15px rgba(239, 68, 68, 0.3)';
-        }}
-      >
-        확인
-      </button>
-    </div>
+        {/* 확인 버튼 */}
+        <button
+          onClick={onDismiss}
+          style={CONFIRM_BUTTON_STYLE}
+          onMouseEnter={handleButtonMouseEnter}
+          onMouseLeave={handleButtonMouseLeave}
+        >
+          확인
+        </button>
+      </div>
 
       <style>{`
         body.screen-shake-active {
@@ -501,4 +575,4 @@ export const AnomalyNotification: FC<AnomalyNotificationProps> = ({ anomalies, o
       `}</style>
     </>
   );
-};
+});

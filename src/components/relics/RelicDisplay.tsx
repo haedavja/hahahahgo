@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useCallback, memo } from 'react';
 import { getRelicById, RELIC_RARITIES } from '../../data/relics';
 import type { RelicRarity } from '../../types/core';
 
@@ -66,7 +66,14 @@ const RARITY_NAMES = {
 /**
  * 단일 상징 아이콘 표시
  */
-export function RelicIcon({ relicId, size = 'medium', onClick, showTooltip = true }: RelicIconProps) {
+// 사이즈 스타일 상수
+const SIZE_STYLES = {
+  small: { width: 32, height: 32, fontSize: 18 },
+  medium: { width: 48, height: 48, fontSize: 24 },
+  large: { width: 64, height: 64, fontSize: 32 },
+} as const;
+
+export const RelicIcon = memo(function RelicIcon({ relicId, size = 'medium', onClick, showTooltip = true }: RelicIconProps) {
   const [hovered, setHovered] = useState(false);
   const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
   const iconRef = useRef(null);
@@ -75,25 +82,18 @@ export function RelicIcon({ relicId, size = 'medium', onClick, showTooltip = tru
   if (!relic) return null;
 
   const colors = RARITY_COLORS[relic.rarity];
+  const sizeStyle = SIZE_STYLES[size] || SIZE_STYLES.medium;
 
-  const sizes: Record<string, { width: number; height: number; fontSize: number }> = {
-    small: { width: 32, height: 32, fontSize: 18 },
-    medium: { width: 48, height: 48, fontSize: 24 },
-    large: { width: 64, height: 64, fontSize: 32 },
-  };
-
-  const sizeStyle = sizes[size] || sizes.medium;
-
-  const handleMouseEnter = (e: React.MouseEvent<HTMLDivElement>) => {
+  const handleMouseEnter = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     if (!showTooltip) return;
     const rect = e.currentTarget.getBoundingClientRect();
     setTooltipPos({ x: rect.right + 8, y: rect.top });
     setHovered(true);
-  };
+  }, [showTooltip]);
 
-  const handleMouseLeave = () => {
+  const handleMouseLeave = useCallback(() => {
     setHovered(false);
-  };
+  }, []);
 
   return (
     <>
@@ -153,12 +153,12 @@ export function RelicIcon({ relicId, size = 'medium', onClick, showTooltip = tru
       )}
     </>
   );
-}
+});
 
 /**
  * 상징 목록 표시 (가로 나열)
  */
-export function RelicList({ relicIds = [], size = 'medium', onRelicClick }: RelicListProps) {
+export const RelicList = memo(function RelicList({ relicIds = [], size = 'medium', onRelicClick }: RelicListProps) {
   if (!relicIds || relicIds.length === 0) {
     return (
       <div style={{ fontSize: '14px', color: '#64748b', fontStyle: 'italic' }}>
@@ -179,12 +179,12 @@ export function RelicList({ relicIds = [], size = 'medium', onRelicClick }: Reli
       ))}
     </div>
   );
-}
+});
 
 /**
  * 상징 카드 표시 (상세 정보 포함)
  */
-export function RelicCard({ relicId, onClick, selected = false }: RelicCardProps) {
+export const RelicCard = memo(function RelicCard({ relicId, onClick, selected = false }: RelicCardProps) {
   const relic = getRelicById(relicId);
   if (!relic) return null;
 
@@ -240,7 +240,7 @@ export function RelicCard({ relicId, onClick, selected = false }: RelicCardProps
       )}
     </div>
   );
-}
+});
 
 /**
  * 상징별 이모지 매핑

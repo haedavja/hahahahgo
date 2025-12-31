@@ -2,9 +2,11 @@
  * EnemyHpBar.tsx
  *
  * 적 HP 바와 상태 표시 컴포넌트
+ * 최적화: React.memo + 스타일 상수 추출
  */
 
-import { FC } from 'react';
+import { FC, memo, useMemo } from 'react';
+import type { CSSProperties } from 'react';
 import { TokenDisplay } from './TokenDisplay';
 import type {
   PreviewDamage,
@@ -14,6 +16,164 @@ import type {
   GroupedEnemyMember,
   PhaseBattle as Battle
 } from '../../../types';
+
+// =====================
+// 스타일 상수
+// =====================
+
+const CONTAINER_STYLE: CSSProperties = {
+  position: 'relative',
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  marginRight: '0',
+  paddingRight: '0',
+  gap: '40px',
+  background: 'transparent',
+  border: 'none',
+  boxShadow: 'none'
+};
+
+const INNER_CONTAINER_STYLE: CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: '16px',
+  padding: '0',
+  margin: '0',
+  borderRadius: '0',
+  background: 'transparent',
+  border: 'none',
+  boxShadow: 'none',
+  position: 'fixed',
+  top: '530px',
+  right: '640px',
+  pointerEvents: 'none'
+};
+
+const HP_AREA_STYLE: CSSProperties = {
+  textAlign: 'right',
+  position: 'relative',
+  paddingRight: '8px',
+  pointerEvents: 'auto',
+  display: 'flex',
+  alignItems: 'center',
+  gap: '14px'
+};
+
+const HP_COLUMN_STYLE: CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'flex-end',
+  gap: '8px'
+};
+
+const HP_BAR_WRAPPER_STYLE: CSSProperties = {
+  position: 'relative',
+  minWidth: '200px'
+};
+
+const HP_TEXT_BASE: CSSProperties = {
+  position: 'absolute',
+  top: '-30px',
+  right: '0',
+  color: '#f87171',
+  fontSize: '1.25rem',
+  fontWeight: 'bold',
+  textAlign: 'right',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'flex-end',
+  gap: '8px',
+  whiteSpace: 'nowrap'
+};
+
+const HP_BAR_CONTAINER_STYLE: CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '6px',
+  width: '200px',
+  paddingTop: '4px'
+};
+
+const HP_BAR_STYLE: CSSProperties = {
+  width: '200px',
+  height: '12px',
+  position: 'relative',
+  overflow: 'hidden'
+};
+
+const TOKEN_CONTAINER_STYLE: CSSProperties = {
+  minHeight: '40px'
+};
+
+const FROZEN_BADGE_STYLE: CSSProperties = {
+  position: 'relative',
+  display: 'flex',
+  alignItems: 'center',
+  gap: '4px',
+  padding: '2px 8px',
+  background: 'rgba(100, 200, 255, 0.2)',
+  border: '1px solid rgba(100, 200, 255, 0.6)',
+  borderRadius: '4px',
+  fontSize: '12px',
+  color: '#7dd3fc',
+  fontWeight: 600,
+  animation: 'frozenPulse 1.5s ease-in-out infinite',
+  cursor: 'help',
+  width: 'fit-content'
+};
+
+const FROZEN_COUNT_STYLE: CSSProperties = {
+  padding: '0 4px',
+  background: 'rgba(100, 200, 255, 0.3)',
+  borderRadius: '3px',
+  fontSize: '11px'
+};
+
+const FROZEN_TOOLTIP_STYLE: CSSProperties = {
+  position: 'absolute',
+  left: '100%',
+  top: '50%',
+  transform: 'translateY(-50%)',
+  marginLeft: '8px',
+  padding: '12px 16px',
+  background: 'rgba(15, 23, 42, 0.98)',
+  border: '1px solid rgba(100, 200, 255, 0.5)',
+  borderRadius: '6px',
+  fontSize: '15px',
+  color: '#e2e8f0',
+  whiteSpace: 'nowrap',
+  opacity: 0,
+  visibility: 'hidden',
+  transition: 'opacity 0.15s, visibility 0.15s',
+  zIndex: 1000,
+  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.5)'
+};
+
+const ENEMY_MEMBERS_STYLE: CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'flex-end',
+  gap: '8px',
+  marginTop: '-88px'
+};
+
+const ENEMY_NAME_STYLE: CSSProperties = {
+  fontSize: '0.95rem',
+  color: '#e2e8f0',
+  fontWeight: 600,
+  textShadow: '0 2px 4px rgba(0,0,0,0.5)',
+  background: 'rgba(0,0,0,0.3)',
+  padding: '2px 8px',
+  borderRadius: '4px',
+  transform: 'translateX(220px)'
+};
+
+const SOUL_ORB_STYLE: CSSProperties = {
+  position: 'fixed',
+  top: '470px',
+  right: '300px'
+};
 
 interface EnemyHpBarProps {
   battle: Battle;
@@ -32,7 +192,7 @@ interface EnemyHpBarProps {
   frozenOrder: number;
 }
 
-export const EnemyHpBar: FC<EnemyHpBarProps> = ({
+export const EnemyHpBar: FC<EnemyHpBarProps> = memo(({
   battle,
   previewDamage,
   dulledLevel,
@@ -48,126 +208,74 @@ export const EnemyHpBar: FC<EnemyHpBarProps> = ({
   formatCompactValue,
   frozenOrder
 }) => {
+  // HP 텍스트 계산 메모이제이션
+  const { hpText, blockText, showDamage, hideEnemyVitals } = useMemo(() => {
+    const hide = dulledLevel >= 3;
+    return {
+      hideEnemyVitals: hide,
+      hpText: hide ? '??' : `${enemy.hp}/${enemy.maxHp}`,
+      blockText: hide ? '??' : (enemy.block > 0 ? `${enemy.block}` : null),
+      showDamage: (battle.phase === 'select' || battle.phase === 'respond') && previewDamage.value > 0
+    };
+  }, [dulledLevel, enemy.hp, enemy.maxHp, enemy.block, battle.phase, previewDamage.value]);
+
+  // HP 텍스트 스타일
+  const hpTextStyle = useMemo((): CSSProperties => ({
+    ...HP_TEXT_BASE,
+    transition: 'opacity 0.4s ease, transform 0.4s ease',
+    opacity: soulShatter ? 0 : 1,
+    transform: soulShatter ? 'scale(0.9)' : 'scale(1)'
+  }), [soulShatter]);
+
+  // 블록 오버레이 스타일
+  const blockOverlayStyle = useMemo((): CSSProperties => ({
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    height: '100%',
+    width: `${Math.min((enemy.block / enemy.maxHp) * 100, 100)}%`,
+    background: 'linear-gradient(90deg, rgba(96, 165, 250, 0.6), rgba(96, 165, 250, 0.3))',
+    borderRight: '2px solid #60a5fa'
+  }), [enemy.block, enemy.maxHp]);
+
+  const soulOrbTitle = useMemo(() => {
+    return dulledLevel >= 3 ? '?? / ??' : `${(enemyEtherValue || 0).toLocaleString()} / ${((enemy?.etherCapacity ?? enemyEtherValue) || 0).toLocaleString()}`;
+  }, [dulledLevel, enemyEtherValue, enemy?.etherCapacity]);
+
   return (
-    <div style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginRight: '0', paddingRight: '0', gap: '40px', background: 'transparent', border: 'none', boxShadow: 'none' }}>
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '16px',
-        padding: '0',
-        margin: '0',
-        borderRadius: '0',
-        background: 'transparent',
-        border: 'none',
-        boxShadow: 'none',
-        position: 'fixed',
-        top: '530px',
-        right: '640px',
-        pointerEvents: 'none'
-      }}>
-        <div style={{ textAlign: 'right', position: 'relative', paddingRight: '8px', pointerEvents: 'auto', display: 'flex', alignItems: 'center', gap: '14px' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
-            <div style={{ position: 'relative', minWidth: '200px' }}>
-              {/* HP/방어력 텍스트 - HP바 위에 절대 위치 */}
-              {(() => {
-                const hideEnemyVitals = dulledLevel >= 3;
-                const hpText = hideEnemyVitals ? '??' : `${enemy.hp}/${enemy.maxHp}`;
-                const blockText = hideEnemyVitals ? '??' : (enemy.block > 0 ? `${enemy.block}` : null);
-                const showDamage = (battle.phase === 'select' || battle.phase === 'respond') && previewDamage.value > 0;
-                return (
-                  <div className={enemyHit ? 'hit-animation' : ''} style={{
-                    position: 'absolute',
-                    top: '-30px',
-                    right: '0',
-                    color: '#f87171',
-                    fontSize: '1.25rem',
-                    fontWeight: 'bold',
-                    textAlign: 'right',
-                    transition: 'opacity 0.4s ease, transform 0.4s ease',
-                    opacity: soulShatter ? 0 : 1,
-                    transform: soulShatter ? 'scale(0.9)' : 'scale(1)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'flex-end',
-                    gap: '8px',
-                    whiteSpace: 'nowrap'
-                  }}>
-                    {showDamage && (
-                      <span className={`${previewDamage.lethal ? 'lethal' : ''} ${previewDamage.overkill ? 'overkill' : ''}`} style={{ color: '#fbbf24' }}>
-                        🗡️-{previewDamage.value}{previewDamage.lethal && (previewDamage.overkill ? '☠️' : '💀')}
-                      </span>
-                    )}
-                    {blockText && <span className={enemyBlockAnim ? 'block-animation' : ''} style={{ color: '#60a5fa' }}>🛡️{blockText}</span>}
-                    <span>❤️ {hpText}</span>
-                  </div>
-                );
-              })()}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', width: '200px', paddingTop: '4px' }}>
-                <div className="hp-bar-enhanced mb-1" style={{ width: '200px', height: '12px', position: 'relative', overflow: 'hidden' }}>
-                  <div className="hp-fill" style={{ width: `${dulledLevel >= 3 ? 0 : (enemy.hp / enemy.maxHp) * 100}%` }}></div>
-                  {enemy.block > 0 && dulledLevel < 3 && (
-                    <div style={{
-                      position: 'absolute',
-                      left: 0,
-                      top: 0,
-                      height: '100%',
-                      width: `${Math.min((enemy.block / enemy.maxHp) * 100, 100)}%`,
-                      background: 'linear-gradient(90deg, rgba(96, 165, 250, 0.6), rgba(96, 165, 250, 0.3))',
-                      borderRight: '2px solid #60a5fa'
-                    }}></div>
+    <div style={CONTAINER_STYLE}>
+      <div style={INNER_CONTAINER_STYLE}>
+        <div style={HP_AREA_STYLE}>
+          <div style={HP_COLUMN_STYLE}>
+            <div style={HP_BAR_WRAPPER_STYLE}>
+              {/* HP/방어력 텍스트 */}
+              <div className={enemyHit ? 'hit-animation' : ''} style={hpTextStyle}>
+                {showDamage && (
+                  <span className={`${previewDamage.lethal ? 'lethal' : ''} ${previewDamage.overkill ? 'overkill' : ''}`} style={{ color: '#fbbf24' }}>
+                    🗡️-{previewDamage.value}{previewDamage.lethal && (previewDamage.overkill ? '☠️' : '💀')}
+                  </span>
+                )}
+                {blockText && <span className={enemyBlockAnim ? 'block-animation' : ''} style={{ color: '#60a5fa' }}>🛡️{blockText}</span>}
+                <span>❤️ {hpText}</span>
+              </div>
+              <div style={HP_BAR_CONTAINER_STYLE}>
+                <div className="hp-bar-enhanced mb-1" style={HP_BAR_STYLE}>
+                  <div className="hp-fill" style={{ width: `${hideEnemyVitals ? 0 : (enemy.hp / enemy.maxHp) * 100}%` }}></div>
+                  {enemy.block > 0 && !hideEnemyVitals && (
+                    <div style={blockOverlayStyle}></div>
                   )}
                 </div>
-                {/* 토큰 표시 - HP바 아래, 고정 높이 컨테이너 */}
-                <div style={{ minHeight: '40px' }}>
+                {/* 토큰 표시 */}
+                <div style={TOKEN_CONTAINER_STYLE}>
                   <TokenDisplay entity={enemy} position="enemy" />
                 </div>
                 {/* 빙결 상태이상 표시 */}
                 {frozenOrder > 0 && (
-                  <div
-                    className="enemy-status-frozen"
-                    style={{
-                      position: 'relative',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '4px',
-                      padding: '2px 8px',
-                      background: 'rgba(100, 200, 255, 0.2)',
-                      border: '1px solid rgba(100, 200, 255, 0.6)',
-                      borderRadius: '4px',
-                      fontSize: '12px',
-                      color: '#7dd3fc',
-                      fontWeight: '600',
-                      animation: 'frozenPulse 1.5s ease-in-out infinite',
-                      cursor: 'help',
-                      width: 'fit-content'
-                    }}>
+                  <div className="enemy-status-frozen" style={FROZEN_BADGE_STYLE}>
                     <span>❄️</span>
-                    <span style={{
-                      padding: '0 4px',
-                      background: 'rgba(100, 200, 255, 0.3)',
-                      borderRadius: '3px',
-                      fontSize: '11px'
-                    }}>x{frozenOrder}</span>
+                    <span style={FROZEN_COUNT_STYLE}>x{frozenOrder}</span>
                     {/* 툴팁 */}
-                    <div className="status-tooltip" style={{
-                      position: 'absolute',
-                      left: '100%',
-                      top: '50%',
-                      transform: 'translateY(-50%)',
-                      marginLeft: '8px',
-                      padding: '12px 16px',
-                      background: 'rgba(15, 23, 42, 0.98)',
-                      border: '1px solid rgba(100, 200, 255, 0.5)',
-                      borderRadius: '6px',
-                      fontSize: '15px',
-                      color: '#e2e8f0',
-                      whiteSpace: 'nowrap',
-                      opacity: 0,
-                      visibility: 'hidden',
-                      transition: 'opacity 0.15s, visibility 0.15s',
-                      zIndex: 1000,
-                      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.5)'
-                    }}>
+                    <div className="status-tooltip" style={FROZEN_TOOLTIP_STYLE}>
                       <div style={{ fontWeight: 700, color: '#7dd3fc', marginBottom: '8px', fontSize: '16px' }}>❄️ 빙결 (x{frozenOrder})</div>
                       <div style={{ lineHeight: 1.5 }}>{frozenOrder}턴 동안 플레이어 카드가<br/>모두 먼저 발동합니다.</div>
                     </div>
@@ -175,22 +283,13 @@ export const EnemyHpBar: FC<EnemyHpBarProps> = ({
                 )}
               </div>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px', marginTop: '-88px' }}>
+            <div style={ENEMY_MEMBERS_STYLE}>
               {groupedEnemyMembers.map((member, idx) => {
                 const rawName = member.name || '몬스터';
                 const displayName = member.count > 1 ? `${rawName} x${member.count}` : rawName;
                 return (
                   <div key={`${rawName}-${idx}`} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <span style={{
-                      fontSize: '0.95rem',
-                      color: '#e2e8f0',
-                      fontWeight: '600',
-                      textShadow: '0 2px 4px rgba(0,0,0,0.5)',
-                      background: 'rgba(0,0,0,0.3)',
-                      padding: '2px 8px',
-                      borderRadius: '4px',
-                      transform: 'translateX(220px)'
-                    }}>
+                    <span style={ENEMY_NAME_STYLE}>
                       {displayName}
                     </span>
                     <div
@@ -212,8 +311,8 @@ export const EnemyHpBar: FC<EnemyHpBarProps> = ({
       </div>
       <div
         className={`soul-orb ${enemyTransferPulse ? 'pulse' : ''} ${soulShatter ? 'shatter' : ''}`}
-        title={dulledLevel >= 3 ? '?? / ??' : `${(enemyEtherValue || 0).toLocaleString()} / ${((enemy?.etherCapacity ?? enemyEtherValue) || 0).toLocaleString()}`}
-        style={{ position: 'fixed', top: '470px', right: '300px' }}>
+        title={soulOrbTitle}
+        style={SOUL_ORB_STYLE}>
         <div className={`soul-orb-shell ${enemyTransferPulse ? 'pulse' : ''} ${soulShatter ? 'shatter' : ''}`} style={{ transform: `scale(${enemySoulScale})` }} />
         <div className="soul-orb-content">
           <div className="soul-orb-value">{dulledLevel >= 3 ? '??' : formatCompactValue(enemyEtherValue)}</div>
@@ -222,4 +321,4 @@ export const EnemyHpBar: FC<EnemyHpBarProps> = ({
       </div>
     </div>
   );
-};
+});

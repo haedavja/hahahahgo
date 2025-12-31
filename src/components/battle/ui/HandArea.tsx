@@ -2,9 +2,10 @@
  * HandArea.tsx
  *
  * 하단 고정 손패 영역 컴포넌트
+ * 최적화: 인라인 스타일 상수 추출, useCallback 적용
  */
 
-import { FC, useState, MouseEvent, memo, useMemo } from 'react';
+import { FC, useState, MouseEvent, memo, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useGameStore } from '../../../state/gameStore';
 import { hasTrait, applyTraitModifiers } from '../utils/battleUtils';
@@ -26,6 +27,129 @@ import type {
   ComboCalculation,
   Card
 } from '../../../types';
+import type { CSSProperties } from 'react';
+
+// =====================
+// 스타일 상수 (컴포넌트 외부에서 정의하여 재생성 방지)
+// =====================
+
+/** 카드 색상 상수 */
+const CARD_COLORS = {
+  MAIN_SPECIAL: '#fcd34d',
+  SUB_SPECIAL: '#60a5fa',
+  SUB_SPECIAL_NAME: '#7dd3fc',
+  DEFAULT: '#fff',
+} as const;
+
+/** 협동 활성화 스타일 */
+const COOPERATION_ACTIVE_STYLE: CSSProperties = {
+  boxShadow: '0 0 20px 4px rgba(34, 197, 94, 0.8), 0 0 40px 8px rgba(34, 197, 94, 0.4)',
+  border: '3px solid #22c55e'
+};
+
+/** 타겟 유닛 배지 기본 스타일 */
+const TARGET_BADGE_BASE: CSSProperties = {
+  background: 'linear-gradient(135deg, #dc2626, #991b1b)',
+  color: '#fff',
+  borderRadius: '8px',
+  fontSize: '11px',
+  fontWeight: 'bold',
+  display: 'flex',
+  alignItems: 'center',
+  zIndex: 15,
+  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.4)',
+  border: '1px solid #fca5a5',
+};
+
+/** 타겟 유닛 배지 스타일 (select phase) */
+const TARGET_BADGE_SELECT: CSSProperties = {
+  ...TARGET_BADGE_BASE,
+  position: 'absolute',
+  bottom: '-8px',
+  left: '50%',
+  transform: 'translateX(-50%)',
+  padding: '2px 8px',
+  gap: '4px',
+  whiteSpace: 'nowrap',
+};
+
+/** 타겟 유닛 배지 스타일 (respond/resolve phase) */
+const TARGET_BADGE_OTHER: CSSProperties = {
+  ...TARGET_BADGE_BASE,
+  position: 'absolute',
+  top: '-12px',
+  right: '-8px',
+  padding: '2px 6px',
+  gap: '2px',
+};
+
+/** 순서 번호 배지 스타일 */
+const ORDER_BADGE_STYLE: CSSProperties = {
+  position: 'absolute',
+  top: '-12px',
+  left: '50%',
+  transform: 'translateX(-50%)',
+  background: '#3b82f6',
+  color: '#fff',
+  borderRadius: '50%',
+  width: '24px',
+  height: '24px',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  fontWeight: 'bold',
+  fontSize: '14px',
+  zIndex: 10,
+  border: '2px solid #1e40af'
+};
+
+/** 카드 래퍼 기본 스타일 */
+const CARD_WRAPPER_BASE: CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '4px',
+  alignItems: 'center',
+  position: 'relative',
+};
+
+/** 카드 헤더 스타일 */
+const CARD_HEADER_STYLE: CSSProperties = {
+  display: 'flex',
+  justifyContent: 'center'
+};
+
+/** 카드 헤더 내부 스타일 */
+const CARD_HEADER_INNER: CSSProperties = {
+  display: 'flex',
+  alignItems: 'center'
+};
+
+/** 덱/무덤 카운터 공통 스타일 */
+const COUNTER_BASE: CSSProperties = {
+  position: 'fixed',
+  padding: '8px 14px',
+  borderRadius: '10px',
+  color: '#fff',
+  display: 'flex',
+  alignItems: 'center',
+  gap: '8px',
+  cursor: 'pointer',
+  transition: 'transform 0.1s, box-shadow 0.1s',
+  fontSize: '14px',
+  fontWeight: 'bold',
+  zIndex: 1000,
+  pointerEvents: 'auto',
+};
+
+// =====================
+// 헬퍼 함수
+// =====================
+
+/** 카드 색상 결정 */
+const getCardColors = (isMainSpecial?: boolean, isSubSpecial?: boolean) => ({
+  costColor: isMainSpecial ? CARD_COLORS.MAIN_SPECIAL : isSubSpecial ? CARD_COLORS.SUB_SPECIAL : CARD_COLORS.DEFAULT,
+  nameColor: isMainSpecial ? CARD_COLORS.MAIN_SPECIAL : isSubSpecial ? CARD_COLORS.SUB_SPECIAL_NAME : CARD_COLORS.DEFAULT,
+});
 
 // X 아이콘 SVG 컴포넌트
 const X: FC<IconProps> = ({ size = 24, className = "", strokeWidth = 2 }) => (
@@ -39,7 +163,7 @@ const X: FC<IconProps> = ({ size = 24, className = "", strokeWidth = 2 }) => (
 const getCardTypeClass = (type: string): string => {
   if (type === 'attack') return 'attack';
   if (type === 'special') return 'special';
-  return 'general'; // 기본값은 범용(general)
+  return 'general';
 };
 
 // 레이아웃 상수
@@ -111,11 +235,11 @@ export const HandArea: FC<HandAreaProps> = memo(({
   discardPile = [],
   enemyUnits = []
 }) => {
-  // 타겟 유닛 정보 가져오기 헬퍼
-  const getTargetUnit = (targetUnitId: number | undefined): Unit | null => {
+  // 타겟 유닛 정보 가져오기 헬퍼 (useCallback으로 메모이제이션)
+  const getTargetUnit = useCallback((targetUnitId: number | undefined): Unit | null => {
     if (targetUnitId === undefined && targetUnitId !== 0) return null;
     return enemyUnits.find((u) => u.unitId === targetUnitId) || null;
-  };
+  }, [enemyUnits]);
 
   // 날 세우기 보너스 (sharpened_blade 토큰 스택)
   const fencingBonus = useMemo(() => {
@@ -126,10 +250,25 @@ export const HandArea: FC<HandAreaProps> = memo(({
   const [showDeckPopup, setShowDeckPopup] = useState(false);
   const [showDiscardPopup, setShowDiscardPopup] = useState(false);
 
+  // 팝업 토글 핸들러 (useCallback)
+  const openDeckPopup = useCallback(() => setShowDeckPopup(true), []);
+  const closeDeckPopup = useCallback(() => setShowDeckPopup(false), []);
+  const openDiscardPopup = useCallback(() => setShowDiscardPopup(true), []);
+  const closeDiscardPopup = useCallback(() => setShowDiscardPopup(false), []);
+
+  // phase 체크 조건 (useMemo)
+  const shouldShowHand = useMemo(() => (
+    battle.phase === 'select' ||
+    battle.phase === 'respond' ||
+    battle.phase === 'resolve' ||
+    (enemy && enemy.hp <= 0) ||
+    (player && player.hp <= 0)
+  ), [battle.phase, enemy, player]);
+
   const deckCount = deck.length;
   const discardCount = discardPile.length;
 
-  if (!(battle.phase === 'select' || battle.phase === 'respond' || battle.phase === 'resolve' || (enemy && enemy.hp <= 0) || (player && player.hp <= 0))) {
+  if (!shouldShowHand) {
     return null;
   }
 
@@ -146,7 +285,7 @@ export const HandArea: FC<HandAreaProps> = memo(({
         <CardListPopup
           title="남은 덱"
           cards={deck}
-          onClose={() => setShowDeckPopup(false)}
+          onClose={closeDeckPopup}
           icon="🎴"
           bgGradient="linear-gradient(135deg, #3b82f6, #1d4ed8)"
         />,
@@ -156,7 +295,7 @@ export const HandArea: FC<HandAreaProps> = memo(({
         <CardListPopup
           title="무덤"
           cards={discardPile}
-          onClose={() => setShowDiscardPopup(false)}
+          onClose={closeDiscardPopup}
           icon="🪦"
           bgGradient="linear-gradient(135deg, #6b7280, #374151)"
         />,
@@ -165,24 +304,12 @@ export const HandArea: FC<HandAreaProps> = memo(({
 
       {/* 덱 카운터 - 행동력 구슬 아래 (항상 표시) */}
       <div
-        onClick={() => setShowDeckPopup(true)}
+        onClick={openDeckPopup}
         style={{
-          position: 'fixed',
+          ...COUNTER_BASE,
           ...LAYOUT.DECK_COUNTER,
           background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
-          padding: '8px 14px',
-          borderRadius: '10px',
-          color: '#fff',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
           boxShadow: '0 2px 12px rgba(59, 130, 246, 0.5)',
-          cursor: 'pointer',
-          transition: 'transform 0.1s, box-shadow 0.1s',
-          fontSize: '14px',
-          fontWeight: 'bold',
-          zIndex: 1000,
-          pointerEvents: 'auto'
         }}
         {...createHoverHandlers('rgba(59, 130, 246, 0.5)')}
       >
@@ -192,24 +319,12 @@ export const HandArea: FC<HandAreaProps> = memo(({
 
       {/* 무덤 카운터 - 오른쪽 하단 (항상 표시) */}
       <div
-        onClick={() => setShowDiscardPopup(true)}
+        onClick={openDiscardPopup}
         style={{
-          position: 'fixed',
+          ...COUNTER_BASE,
           ...LAYOUT.DISCARD_COUNTER,
           background: 'linear-gradient(135deg, #6b7280, #374151)',
-          padding: '8px 14px',
-          borderRadius: '10px',
-          color: '#fff',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
           boxShadow: '0 2px 12px rgba(107, 114, 128, 0.5)',
-          cursor: 'pointer',
-          transition: 'transform 0.1s, box-shadow 0.1s',
-          fontSize: '14px',
-          fontWeight: 'bold',
-          zIndex: 1000,
-          pointerEvents: 'auto'
         }}
         {...createHoverHandlers('rgba(107, 114, 128, 0.5)')}
       >
@@ -240,11 +355,8 @@ export const HandArea: FC<HandAreaProps> = memo(({
               const isInCombo = sel && (isFlush || comboCardCosts.has(c.actionCost));
               const enhancedCard = applyTraitModifiers(c, { usageCount, isInCombo });
               const disabled = handDisabled(c) && !sel;
-              // 카드 객체의 플래그를 사용 (같은 카드 타입이 주특기/보조특기에 각각 있을 때 구별)
-              const isMainSpecial = c.__isMainSpecial;
-              const isSubSpecial = c.__isSubSpecial;
-              const costColor = isMainSpecial ? '#fcd34d' : isSubSpecial ? '#60a5fa' : '#fff';
-              const nameColor = isMainSpecial ? '#fcd34d' : isSubSpecial ? '#7dd3fc' : '#fff';
+              // 카드 색상 결정 (상수 사용)
+              const { costColor, nameColor } = getCardColors(c.__isMainSpecial, c.__isSubSpecial);
               // 협동 특성이 있고 조합에 포함된 경우
               const hasCooperation = hasTrait(c, 'cooperation');
               const cooperationActive = hasCooperation && isInCombo;
@@ -260,45 +372,24 @@ export const HandArea: FC<HandAreaProps> = memo(({
                     showCardTraitTooltip(c, cardEl);
                   }}
                   onMouseLeave={hideCardTraitTooltip}
-                  style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center', cursor: disabled ? 'not-allowed' : 'pointer', position: 'relative', marginLeft: idx === 0 ? '0' : '-20px' }}
+                  style={{ ...CARD_WRAPPER_BASE, cursor: disabled ? 'not-allowed' : 'pointer', marginLeft: idx === 0 ? '0' : '-20px' }}
                 >
                   <div
                     className={`game-card-large select-phase-card ${getCardTypeClass(c.type)} ${sel ? 'selected' : ''} ${disabled ? 'disabled' : ''}`}
-                    style={cooperationActive ? {
-                      boxShadow: '0 0 20px 4px rgba(34, 197, 94, 0.8), 0 0 40px 8px rgba(34, 197, 94, 0.4)',
-                      border: '3px solid #22c55e'
-                    } : {}}
+                    style={cooperationActive ? COOPERATION_ACTIVE_STYLE : undefined}
                   >
                     <div className="card-cost-badge-floating" style={{ color: costColor, WebkitTextStroke: '1px #000' }}>{enhancedCard.actionCost || c.actionCost}</div>
                     {sel && <div className="selection-number">{selIndex + 1}</div>}
                     {/* 타겟 유닛 표시 (다중 적 유닛일 때 공격 카드) */}
                     {sel && targetUnit && (
-                      <div style={{
-                        position: 'absolute',
-                        bottom: '-8px',
-                        left: '50%',
-                        transform: 'translateX(-50%)',
-                        background: 'linear-gradient(135deg, #dc2626, #991b1b)',
-                        color: '#fff',
-                        borderRadius: '8px',
-                        padding: '2px 8px',
-                        fontSize: '11px',
-                        fontWeight: 'bold',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '4px',
-                        zIndex: 15,
-                        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.4)',
-                        border: '1px solid #fca5a5',
-                        whiteSpace: 'nowrap',
-                      }}>
+                      <div style={TARGET_BADGE_SELECT}>
                         <span>{targetUnit.emoji || '👾'}</span>
                         <span>🎯</span>
                       </div>
                     )}
                     <CardStatsSidebar card={enhancedCard} strengthBonus={player?.strength || 0} fencingBonus={fencingBonus} formatSpeedText={formatSpeedText} />
-                    <div className="card-header" style={{ display: 'flex', justifyContent: 'center' }}>
-                      <div className="font-black text-sm" style={{ display: 'flex', alignItems: 'center' }}>
+                    <div className="card-header" style={CARD_HEADER_STYLE}>
+                      <div className="font-black text-sm" style={CARD_HEADER_INNER}>
                         {renderNameWithBadge(c, nameColor)}
                       </div>
                     </div>
@@ -327,11 +418,8 @@ export const HandArea: FC<HandAreaProps> = memo(({
           {fixedOrder.filter(a => a.actor === 'player').map((action, idx, arr) => {
             const c = action.card;
             const Icon = c.icon || (c.type === 'attack' ? Sword : Shield);
-            // 카드 객체의 플래그를 사용 (같은 카드 타입이 주특기/보조특기에 각각 있을 때 구별)
-            const isMainSpecial = c.__isMainSpecial;
-            const isSubSpecial = c.__isSubSpecial;
-            const costColor = isMainSpecial ? '#fcd34d' : isSubSpecial ? '#60a5fa' : '#fff';
-            const nameColor = isMainSpecial ? '#fcd34d' : isSubSpecial ? '#7dd3fc' : '#fff';
+            // 카드 색상 결정 (상수 사용)
+            const { costColor, nameColor } = getCardColors(c.__isMainSpecial, c.__isSubSpecial);
             // 타겟 유닛 정보
             const targetUnit = c.__targetUnitId != null ? getTargetUnit(c.__targetUnitId) : null;
             return (
@@ -342,30 +430,14 @@ export const HandArea: FC<HandAreaProps> = memo(({
                   showCardTraitTooltip(c, cardEl);
                 }}
                 onMouseLeave={hideCardTraitTooltip}
-                style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center', position: 'relative', marginLeft: idx === 0 ? '0' : '8px' }}
+                style={{ ...CARD_WRAPPER_BASE, marginLeft: idx === 0 ? '0' : '8px' }}
               >
-                <div style={{ position: 'absolute', top: '-12px', left: '50%', transform: 'translateX(-50%)', background: '#3b82f6', color: '#fff', borderRadius: '50%', width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '14px', zIndex: 10, border: '2px solid #1e40af' }}>
+                <div style={ORDER_BADGE_STYLE}>
                   {idx + 1}
                 </div>
                 {/* 타겟 유닛 표시 */}
                 {targetUnit && (
-                  <div style={{
-                    position: 'absolute',
-                    top: '-12px',
-                    right: '-8px',
-                    background: 'linear-gradient(135deg, #dc2626, #991b1b)',
-                    color: '#fff',
-                    borderRadius: '8px',
-                    padding: '2px 6px',
-                    fontSize: '11px',
-                    fontWeight: 'bold',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '2px',
-                    zIndex: 15,
-                    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.4)',
-                    border: '1px solid #fca5a5',
-                  }}>
+                  <div style={TARGET_BADGE_OTHER}>
                     <span>{targetUnit.emoji || '👾'}</span>
                     <span>🎯</span>
                   </div>
@@ -373,8 +445,8 @@ export const HandArea: FC<HandAreaProps> = memo(({
                 <div className={`game-card-large respond-phase-card ${getCardTypeClass(c.type)}`}>
                   <div className="card-cost-badge-floating" style={{ color: costColor, WebkitTextStroke: '1px #000' }}>{c.actionCost}</div>
                   <CardStatsSidebar card={c} strengthBonus={player?.strength || 0} fencingBonus={fencingBonus} formatSpeedText={formatSpeedText} />
-                  <div className="card-header" style={{ display: 'flex', justifyContent: 'center' }}>
-                    <div className="font-black text-sm" style={{ display: 'flex', alignItems: 'center' }}>
+                  <div className="card-header" style={CARD_HEADER_STYLE}>
+                    <div className="font-black text-sm" style={CARD_HEADER_INNER}>
                       {renderNameWithBadge(c, nameColor)}
                     </div>
                   </div>
@@ -413,14 +485,11 @@ export const HandArea: FC<HandAreaProps> = memo(({
             const isUsed = Array.isArray(usedCardIndices) && usedCardIndices.includes(globalIndex);
             const isDisappearing = Array.isArray(disappearingCards) && disappearingCards.includes(globalIndex);
             const isHidden = Array.isArray(hiddenCards) && hiddenCards.includes(globalIndex);
-            const isDisabled = Array.isArray(disabledCardIndices) && disabledCardIndices.includes(globalIndex); // 비활성화된 카드 (몬스터 사망 시)
-            // 카드 객체의 플래그를 사용 (같은 카드 타입이 주특기/보조특기에 각각 있을 때 구별)
-            const isMainSpecial = card.__isMainSpecial;
-            const isSubSpecial = card.__isSubSpecial;
-            const costColor = isMainSpecial ? '#fcd34d' : isSubSpecial ? '#60a5fa' : '#fff';
+            const isDisabled = Array.isArray(disabledCardIndices) && disabledCardIndices.includes(globalIndex);
+            // 카드 색상 결정 (상수 사용)
+            const { costColor } = getCardColors(card.__isMainSpecial, card.__isSubSpecial);
             // 타겟 유닛 정보
             const targetUnit = card.__targetUnitId != null ? getTargetUnit(card.__targetUnitId) : null;
-
             // 사용된 카드(hidden)는 사라지지 않고 빛만 잃음
             const isDimmed = isHidden || isDisabled;
 
@@ -433,39 +502,19 @@ export const HandArea: FC<HandAreaProps> = memo(({
                 }}
                 onMouseLeave={hideCardTraitTooltip}
                 style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '4px',
-                  alignItems: 'center',
-                  position: 'relative',
+                  ...CARD_WRAPPER_BASE,
                   marginLeft: i === 0 ? '0' : '8px',
-                  opacity: isDimmed ? 0.4 : 1, // 사용된/비활성화된 카드는 투명하게
-                  filter: isDimmed ? 'grayscale(0.8) brightness(0.6)' : 'none', // 빛바란 효과
+                  opacity: isDimmed ? 0.4 : 1,
+                  filter: isDimmed ? 'grayscale(0.8) brightness(0.6)' : 'none',
                   transition: 'opacity 0.3s ease, filter 0.3s ease'
                 }}
               >
-                <div style={{ position: 'absolute', top: '-12px', left: '50%', transform: 'translateX(-50%)', background: '#3b82f6', color: '#fff', borderRadius: '50%', width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '14px', zIndex: 10, border: '2px solid #1e40af' }}>
+                <div style={ORDER_BADGE_STYLE}>
                   {i + 1}
                 </div>
                 {/* 타겟 유닛 표시 */}
                 {targetUnit && (
-                  <div style={{
-                    position: 'absolute',
-                    top: '-12px',
-                    right: '-8px',
-                    background: 'linear-gradient(135deg, #dc2626, #991b1b)',
-                    color: '#fff',
-                    borderRadius: '8px',
-                    padding: '2px 6px',
-                    fontSize: '11px',
-                    fontWeight: 'bold',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '2px',
-                    zIndex: 15,
-                    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.4)',
-                    border: '1px solid #fca5a5',
-                  }}>
+                  <div style={TARGET_BADGE_OTHER}>
                     <span>{targetUnit.emoji || '👾'}</span>
                     <span>🎯</span>
                   </div>
@@ -473,9 +522,9 @@ export const HandArea: FC<HandAreaProps> = memo(({
                 <div className={`game-card-large resolve-phase-card ${getCardTypeClass(card.type)} ${isUsed ? 'card-used' : ''}`}>
                   <div className="card-cost-badge-floating" style={{ color: costColor, WebkitTextStroke: '1px #000' }}>{card.actionCost}</div>
                   <CardStatsSidebar card={card} strengthBonus={player?.strength || 0} fencingBonus={fencingBonus} showCounter={true} formatSpeedText={formatSpeedText} />
-                  <div className="card-header" style={{ display: 'flex', justifyContent: 'center' }}>
-                    <div className="text-white font-black text-sm" style={{ display: 'flex', alignItems: 'center' }}>
-                      {renderNameWithBadge(card, '#fff')}
+                  <div className="card-header" style={CARD_HEADER_STYLE}>
+                    <div className="text-white font-black text-sm" style={CARD_HEADER_INNER}>
+                      {renderNameWithBadge(card, CARD_COLORS.DEFAULT)}
                     </div>
                   </div>
                   <div className="card-icon-area">

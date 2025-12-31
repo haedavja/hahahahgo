@@ -2,9 +2,10 @@
  * CardStatsSidebar.tsx
  *
  * 카드 통계 사이드바 컴포넌트 (공격력, 방어력, 속도)
+ * React.memo로 최적화됨
  */
 
-import { FC } from 'react';
+import { FC, memo } from 'react';
 import type { SidebarCard as Card } from '../../../types';
 
 interface CardStatsSidebarProps {
@@ -17,8 +18,9 @@ interface CardStatsSidebarProps {
 
 /**
  * 카드 스탯 사이드바 컴포넌트
+ * React.memo로 불필요한 리렌더링 방지
  */
-export const CardStatsSidebar: FC<CardStatsSidebarProps> = ({ card, strengthBonus = 0, fencingBonus = 0, showCounter = false, formatSpeedText }) => {
+export const CardStatsSidebar: FC<CardStatsSidebarProps> = memo(({ card, strengthBonus = 0, fencingBonus = 0, showCounter = false, formatSpeedText }) => {
   // 검격 카드에만 날 세우기 보너스 적용
   const isFencingCard = card.cardCategory === 'fencing';
   const totalDamageBonus = strengthBonus + (isFencingCard ? fencingBonus : 0);
@@ -47,4 +49,18 @@ export const CardStatsSidebar: FC<CardStatsSidebarProps> = ({ card, strengthBonu
       </div>
     </div>
   );
-};
+}, (prevProps, nextProps) => {
+  // 얕은 비교로 성능 최적화
+  return (
+    prevProps.card.id === nextProps.card.id &&
+    prevProps.card.damage === nextProps.card.damage &&
+    prevProps.card.block === nextProps.card.block &&
+    prevProps.card.speedCost === nextProps.card.speedCost &&
+    prevProps.card.hits === nextProps.card.hits &&
+    prevProps.card.counter === nextProps.card.counter &&
+    prevProps.card.cardCategory === nextProps.card.cardCategory &&
+    prevProps.strengthBonus === nextProps.strengthBonus &&
+    prevProps.fencingBonus === nextProps.fencingBonus &&
+    prevProps.showCounter === nextProps.showCounter
+  );
+});
