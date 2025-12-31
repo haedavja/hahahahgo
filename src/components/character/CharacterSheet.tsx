@@ -10,6 +10,7 @@ import { FC, useState, MouseEvent, memo, useCallback, useMemo } from "react";
 import type { CSSProperties } from "react";
 import { useCharacterSheet } from "./useCharacterSheet";
 import { CardManagementModal } from "./CardManagementModal";
+import { GrowthPyramidModal } from "../growth/GrowthPyramidModal";
 import type { CharacterEgo as Ego, ReflectionInfo } from '../../types';
 
 // =====================
@@ -68,6 +69,17 @@ const OWNED_CARD_BUTTON_STYLE: CSSProperties = {
   border: "1px solid #22c55e",
   background: "rgba(34, 197, 94, 0.2)",
   color: "#22c55e",
+  cursor: "pointer",
+  fontWeight: 600
+};
+
+const GROWTH_BUTTON_STYLE: CSSProperties = {
+  padding: "6px 12px",
+  fontSize: "12px",
+  borderRadius: "8px",
+  border: "1px solid #a78bfa",
+  background: "rgba(167, 139, 250, 0.2)",
+  color: "#a78bfa",
   cursor: "pointer",
   fontWeight: 600
 };
@@ -199,12 +211,17 @@ export const CharacterSheet: FC<CharacterSheetProps> = memo(({ onClose, showAllC
   const [showEgoTooltip, setShowEgoTooltip] = useState(false);
   const [egoTooltipPosition, setEgoTooltipPosition] = useState({ x: 0, y: 0 });
 
+  // 성장 모달 상태
+  const [showGrowthModal, setShowGrowthModal] = useState(false);
+
   // 이벤트 핸들러 메모이제이션
   const handleContainerClick = useCallback((e: MouseEvent<HTMLDivElement>): void => {
     e.stopPropagation();
   }, []);
 
   const handleShowOwnedCards = useCallback(() => setShowOwnedCards(true), [setShowOwnedCards]);
+  const handleShowGrowth = useCallback(() => setShowGrowthModal(true), []);
+  const handleCloseGrowth = useCallback(() => setShowGrowthModal(false), []);
 
   const handleCloseClick = useCallback((e: MouseEvent<HTMLButtonElement>): void => {
     e.stopPropagation();
@@ -265,6 +282,9 @@ export const CharacterSheet: FC<CharacterSheetProps> = memo(({ onClose, showAllC
           <div style={BUTTON_GROUP_STYLE}>
             <button type="button" onClick={handleShowOwnedCards} style={OWNED_CARD_BUTTON_STYLE}>
               🃏 보유 카드
+            </button>
+            <button type="button" onClick={handleShowGrowth} style={GROWTH_BUTTON_STYLE}>
+              🔺 성장
             </button>
             <button type="button" onClick={handleCloseClick} style={CLOSE_BUTTON_STYLE}>
               닫기
@@ -398,6 +418,12 @@ export const CharacterSheet: FC<CharacterSheetProps> = memo(({ onClose, showAllC
           onCardClick={handleCardClick}
         />
       )}
+
+      {/* 성장 모달 */}
+      <GrowthPyramidModal
+        isOpen={showGrowthModal}
+        onClose={handleCloseGrowth}
+      />
     </div>
   );
 });
