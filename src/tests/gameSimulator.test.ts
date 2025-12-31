@@ -728,3 +728,31 @@ describe('순간 폭딜 분석', () => {
     expect(typeof runBurstDamageAnalysis).toBe('function');
   });
 });
+
+describe('랜덤 이벤트 분석', () => {
+  it('runRandomEventAnalysis 함수가 존재한다', async () => {
+    const { runRandomEventAnalysis } = await import('./gameSimulator');
+    expect(typeof runRandomEventAnalysis).toBe('function');
+  });
+});
+
+describe('더미 데이터 테스트', () => {
+  it('runDummyDataTest 함수가 존재한다', async () => {
+    const { runDummyDataTest } = await import('./gameSimulator');
+    expect(typeof runDummyDataTest).toBe('function');
+  });
+});
+
+describe('주기 분석', () => {
+  it('runCyclicAnalysis 함수가 존재한다', async () => {
+    const { runCyclicAnalysis } = await import('./gameSimulator');
+    expect(typeof runCyclicAnalysis).toBe('function');
+  });
+});
+
+describe('마일스톤 분석', () => {
+  it('runMilestoneAnalysis 함수가 존재한다', async () => {
+    const { runMilestoneAnalysis } = await import('./gameSimulator');
+    expect(typeof runMilestoneAnalysis).toBe('function');
+  });
+});

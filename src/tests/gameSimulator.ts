@@ -5446,6 +5446,196 @@ export function runBurstDamageAnalysis(battles: number = 30): void {
   console.log('\n' + '═'.repeat(50) + '\n');
 }
 
+/**
+ * 랜덤 이벤트 분석
+ * 무작위 요소의 영향 분석
+ */
+export function runRandomEventAnalysis(trials: number = 10): void {
+  console.log('\n╔════════════════════════════════════════╗');
+  console.log('║          랜덤 이벤트 분석               ║');
+  console.log('╚════════════════════════════════════════╝\n');
+
+  console.log(`📊 ${trials}회 반복 랜덤 요소 분석\n`);
+  console.log('─'.repeat(50));
+
+  const winRates: number[] = [];
+
+  for (let i = 0; i < trials; i++) {
+    const config: SimulationConfig = {
+      battles: 20,
+      maxTurns: 30,
+      enemyIds: TIER_1_ENEMIES.slice(0, 3),
+      verbose: false,
+    };
+
+    const stats = runSimulation(config);
+    winRates.push(stats.winRate);
+  }
+
+  // 통계 분석
+  const avg = winRates.reduce((s, r) => s + r, 0) / trials;
+  const variance = winRates.reduce((s, r) => s + Math.pow(r - avg, 2), 0) / trials;
+  const stdDev = Math.sqrt(variance);
+  const min = Math.min(...winRates);
+  const max = Math.max(...winRates);
+
+  console.log('\n📈 랜덤 변동성 분석:\n');
+  console.log(`  평균 승률: ${(avg * 100).toFixed(1)}%`);
+  console.log(`  표준편차: ${(stdDev * 100).toFixed(2)}%`);
+  console.log(`  범위: ${(min * 100).toFixed(1)}% ~ ${(max * 100).toFixed(1)}%`);
+  console.log(`  변동폭: ${((max - min) * 100).toFixed(1)}%`);
+
+  // 안정성 평가
+  const stability = stdDev < 0.05 ? '🟢 매우 안정' :
+    stdDev < 0.10 ? '🟡 안정' :
+    stdDev < 0.15 ? '🟠 보통' : '🔴 불안정';
+
+  console.log(`\n💡 안정성 평가: ${stability}`);
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
+/**
+ * 더미 데이터 테스트
+ * 대량 시뮬레이션 성능 테스트
+ */
+export function runDummyDataTest(scale: number = 100): void {
+  console.log('\n╔════════════════════════════════════════╗');
+  console.log('║          더미 데이터 테스트             ║');
+  console.log('╚════════════════════════════════════════╝\n');
+
+  console.log(`📊 ${scale}회 대량 시뮬레이션\n`);
+  console.log('─'.repeat(50));
+
+  const startTime = performance.now();
+
+  const config: SimulationConfig = {
+    battles: scale,
+    maxTurns: 30,
+    enemyIds: ALL_ENEMIES.slice(0, 5),
+    verbose: false,
+  };
+
+  const stats = runSimulation(config);
+  const elapsed = performance.now() - startTime;
+
+  console.log('\n📈 성능 결과:\n');
+  console.log(`  총 전투: ${stats.totalBattles}`);
+  console.log(`  총 시간: ${elapsed.toFixed(0)}ms`);
+  console.log(`  전투당 시간: ${(elapsed / stats.totalBattles).toFixed(2)}ms`);
+  console.log(`  초당 전투: ${(stats.totalBattles / elapsed * 1000).toFixed(0)}`);
+
+  // 메모리 사용량 (대략적)
+  console.log('\n📊 시뮬레이션 통계:');
+  console.log(`  승률: ${(stats.winRate * 100).toFixed(1)}%`);
+  console.log(`  평균 턴: ${stats.avgTurns.toFixed(1)}`);
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
+/**
+ * 주기 분석
+ * 전투 패턴의 주기성 분석
+ */
+export function runCyclicAnalysis(battles: number = 50): void {
+  console.log('\n╔════════════════════════════════════════╗');
+  console.log('║          주기 분석                      ║');
+  console.log('╚════════════════════════════════════════╝\n');
+
+  console.log(`📊 ${battles}회 전투 주기 패턴 분석\n`);
+  console.log('─'.repeat(50));
+
+  // 10회씩 5세트 분석
+  const sets = 5;
+  const perSet = battles / sets;
+  const setResults: number[] = [];
+
+  for (let i = 0; i < sets; i++) {
+    const config: SimulationConfig = {
+      battles: perSet,
+      maxTurns: 30,
+      enemyIds: TIER_1_ENEMIES.slice(0, 3),
+      verbose: false,
+    };
+
+    const stats = runSimulation(config);
+    setResults.push(stats.winRate);
+  }
+
+  console.log('\n📈 세트별 승률 추이:\n');
+  setResults.forEach((rate, i) => {
+    const bar = '█'.repeat(Math.ceil(rate * 20));
+    console.log(`  세트 ${i + 1}: ${bar} ${(rate * 100).toFixed(1)}%`);
+  });
+
+  // 추세 분석
+  const trend = setResults[sets - 1] - setResults[0];
+  const trendDesc = trend > 0.05 ? '📈 상승 추세' :
+    trend < -0.05 ? '📉 하락 추세' : '➡️ 안정';
+
+  console.log(`\n💡 추세: ${trendDesc} (${(trend * 100).toFixed(1)}%)`);
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
+/**
+ * 마일스톤 분석
+ * 게임 진행 마일스톤 달성 분석
+ */
+export function runMilestoneAnalysis(battles: number = 30): void {
+  console.log('\n╔════════════════════════════════════════╗');
+  console.log('║          마일스톤 분석                  ║');
+  console.log('╚════════════════════════════════════════╝\n');
+
+  console.log('📊 진행도 마일스톤 분석\n');
+  console.log('─'.repeat(50));
+
+  // 티어별 마일스톤
+  const milestones = [
+    { name: 'Tier 1 클리어', enemies: TIER_1_ENEMIES.slice(0, 3), target: 0.7 },
+    { name: 'Tier 2 도전', enemies: TIER_2_ENEMIES.slice(0, 2), target: 0.5 },
+    { name: 'Tier 3 보스전', enemies: TIER_3_ENEMIES.slice(0, 1), target: 0.3 },
+  ];
+
+  console.log('\n🎯 마일스톤 달성 현황:\n');
+
+  milestones.forEach(m => {
+    const config: SimulationConfig = {
+      battles,
+      maxTurns: 50,
+      enemyIds: m.enemies,
+      verbose: false,
+    };
+
+    const stats = runSimulation(config);
+    const achieved = stats.winRate >= m.target;
+    const icon = achieved ? '✅' : '❌';
+    const progress = Math.min(100, (stats.winRate / m.target) * 100);
+
+    console.log(`  ${icon} ${m.name}`);
+    console.log(`     목표: ${(m.target * 100).toFixed(0)}% | 현재: ${(stats.winRate * 100).toFixed(0)}%`);
+    console.log(`     진행률: ${'█'.repeat(Math.ceil(progress / 5))} ${progress.toFixed(0)}%`);
+  });
+
+  // 전체 진행도
+  console.log('\n' + '─'.repeat(50));
+  console.log('\n📈 전체 진행도:');
+
+  const tier1Config: SimulationConfig = { battles: 10, maxTurns: 30, enemyIds: TIER_1_ENEMIES, verbose: false };
+  const tier2Config: SimulationConfig = { battles: 10, maxTurns: 30, enemyIds: TIER_2_ENEMIES, verbose: false };
+  const tier3Config: SimulationConfig = { battles: 10, maxTurns: 50, enemyIds: TIER_3_ENEMIES, verbose: false };
+
+  const t1 = runSimulation(tier1Config).winRate;
+  const t2 = runSimulation(tier2Config).winRate;
+  const t3 = runSimulation(tier3Config).winRate;
+
+  const overall = (t1 * 0.3 + t2 * 0.4 + t3 * 0.3) * 100;
+
+  console.log(`  게임 완료도: ${overall.toFixed(0)}%`);
+
+  console.log('\n' + '═'.repeat(50) + '\n');
+}
+
 // CLI에서 직접 실행 시
 if (typeof process !== 'undefined' && process.argv?.[1]?.includes('gameSimulator')) {
   runQuickTest();
