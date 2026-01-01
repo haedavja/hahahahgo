@@ -100,26 +100,52 @@ const KEY_HINT_STYLE: CSSProperties = {
   fontWeight: 900
 };
 
+/**
+ * 중앙 페이즈 디스플레이 컴포넌트 Props
+ *
+ * 화면 중앙에 현재 전투 단계와 관련 UI를 표시합니다.
+ * 선택/대응/진행 단계별로 다른 버튼과 정보가 표시됩니다.
+ */
 interface CentralPhaseDisplayProps {
+  /** 현재 전투 상태 (phase, selected 등) */
   battle: Battle;
+  /** 총 사용 속도 */
   totalSpeed: number;
+  /** 최대 속도 제한 */
   MAX_SPEED: number;
+  /** 최대 제출 카드 수 */
   MAX_SUBMIT_CARDS: number;
+  /** 손패 다시 뽑기 함수 */
   redrawHand: () => void;
+  /** 다시 뽑기 가능 여부 */
   canRedraw: boolean;
+  /** 진행 단계 시작 함수 */
   startResolve: () => void;
+  /** 사운드 재생 함수 */
   playSound: (freq: number, duration: number) => void;
+  /** 전투 관련 액션 함수들 */
   actions: Actions;
+  /** 오버드라이브 예정 여부 */
   willOverdrive: boolean;
+  /** 에테르 슬롯 계산 함수 */
   etherSlots: (pts: number) => number;
+  /** 플레이어 상태 */
   player: Player;
+  /** 대응 단계에서 진행 단계로 전환 함수 */
   beginResolveFromRespond: () => void;
+  /** 선택 단계로 되감기 함수 */
   rewindToSelect: () => void;
+  /** 되감기 사용 여부 */
   rewindUsed: boolean;
+  /** 대응 단계 스냅샷 (되감기용) */
   respondSnapshot: RespondSnapshot | null;
+  /** 자동 진행 모드 활성화 여부 */
   autoProgress: boolean;
+  /** 에테르 최종 값 (계산 완료 후) */
   etherFinalValue: number | null;
+  /** 적 상태 */
   enemy: Enemy;
+  /** 턴 종료 함수 */
   finishTurn: (reason: string) => void;
 }
 

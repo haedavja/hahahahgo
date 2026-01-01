@@ -54,33 +54,66 @@ interface CardGrowthState {
   [key: string]: unknown;
 }
 
+/**
+ * 타임라인 디스플레이 컴포넌트 Props
+ *
+ * 전투 중 플레이어와 적의 카드 실행 순서를 시각적으로 표시합니다.
+ * 시곗바늘이 왼쪽에서 오른쪽으로 이동하며 카드가 순서대로 발동됩니다.
+ */
 interface TimelineDisplayProps {
+  /** 플레이어 상태 (maxSpeed, tokens 등) */
   player: Player;
+  /** 적 상태 (maxSpeed, name 등) */
   enemy: Enemy;
+  /** 플레이어 기본 최대 속도 */
   DEFAULT_PLAYER_MAX_SPEED: number;
+  /** 적 기본 최대 속도 */
   DEFAULT_ENEMY_MAX_SPEED: number;
+  /** 속도 눈금 생성 함수 */
   generateSpeedTicks: (max: number) => number[];
+  /** 현재 전투 상태 (phase, selected 등) */
   battle: Battle;
+  /** 타임라인 진행도 (0-100%) - 시곗바늘 위치 */
   timelineProgress: number;
+  /** 시곗바늘 표시 여부 */
   timelineIndicatorVisible: boolean;
+  /** 통찰 애니메이션 레벨 */
   insightAnimLevel: number;
+  /** 통찰 펄스 애니메이션 키 */
   insightAnimPulseKey: number;
+  /** 적 오버드라이브 표시 여부 */
   enemyOverdriveVisible: boolean;
+  /** 적 오버드라이브 라벨 텍스트 */
   enemyOverdriveLabel: string;
+  /** 둔화 레벨 (적 타임라인 숨김 조건에 사용) */
   dulledLevel: number;
+  /** 플레이어 타임라인 카드 목록 */
   playerTimeline: TimelineAction[];
+  /** 실행 큐 (resolve 단계에서 사용) */
   queue: TimelineAction[] | null;
+  /** 현재 실행 중인 카드 인덱스 (흔들림 애니메이션) */
   executingCardIndex: number;
+  /** 이미 사용된 카드 인덱스 목록 (빛 바래짐 효과) */
   usedCardIndices: number[];
+  /** 현재 큐 인덱스 */
   qIndex: number;
+  /** 적 타임라인 카드 목록 */
   enemyTimeline: TimelineAction[];
+  /** 유효 통찰 레벨 (적 카드 공개 범위 결정) */
   effectiveInsight: number | null;
+  /** 통찰 공개 정보 */
   insightReveal: InsightReveal | null;
+  /** 타임라인 관련 액션 함수들 */
   actions: Actions;
+  /** 파괴 중인 적 카드 인덱스 목록 (애니메이션) */
   destroyingEnemyCards?: number[];
+  /** 빙결 중인 적 카드 인덱스 목록 (애니메이션) */
   freezingEnemyCards?: number[];
+  /** 빙결된 순서 */
   frozenOrder?: number;
+  /** 쳐내기 대기 상태 목록 */
   parryReadyStates?: ParryState[];
+  /** 카드 성장 상태 (특성 적용) */
   cardGrowth?: Record<string, CardGrowthState>;
 }
 

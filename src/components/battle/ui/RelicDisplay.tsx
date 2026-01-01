@@ -94,18 +94,36 @@ const TOOLTIP_DESC_STYLE: CSSProperties = {
 const PERSISTENT_COLOR = { r: 135, g: 206, b: 235 }; // 하늘색
 const ACTIVATED_COLOR = { r: 251, g: 191, b: 36 };   // 황금색
 
+/**
+ * 상징 디스플레이 컴포넌트 Props
+ *
+ * 화면 상단에 플레이어가 보유한 상징(Relic)들을 표시합니다.
+ * 드래그 앤 드롭으로 순서를 변경할 수 있으며, 호버 시 툴팁이 표시됩니다.
+ */
 interface RelicDisplayProps {
+  /** 정렬된 상징 ID 목록 */
   orderedRelicList: string[] | null;
+  /** 전체 상징 데이터 맵 */
   RELICS: RelicsMap;
+  /** 상징 희귀도 정보 */
   RELIC_RARITIES: RelicRarities;
+  /** 희귀도별 색상 맵 */
   RELIC_RARITY_COLORS: Record<string, string>;
+  /** 현재 발동 중인 상징 ID (펄스 애니메이션) */
   relicActivated: string | null;
+  /** 이번 턴에 발동된 상징 Set (발광 효과) */
   activeRelicSet: Set<string>;
+  /** 현재 호버 중인 상징 ID */
   hoveredRelic: string | null;
+  /** 호버 상태 변경 함수 */
   setHoveredRelic: (relicId: string | null) => void;
+  /** 상징 관련 액션 함수들 */
   actions: Actions;
+  /** 드래그 시작 핸들러 (순서 변경용) */
   handleRelicDragStart: (index: number, relicId: string) => (e: DragEvent<HTMLDivElement>) => void;
+  /** 드래그 오버 핸들러 */
   handleRelicDragOver: (e: DragEvent<HTMLDivElement>) => void;
+  /** 드롭 핸들러 (순서 확정) */
   handleRelicDrop: (index: number) => (e: DragEvent<HTMLDivElement>) => void;
 }
 

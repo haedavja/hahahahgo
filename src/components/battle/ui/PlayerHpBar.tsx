@@ -185,13 +185,26 @@ const StatTooltip: FC<StatTooltipProps> = memo(({ stat, children }) => {
   );
 });
 
+/**
+ * 플레이어 HP 바 컴포넌트 Props
+ *
+ * 플레이어의 체력, 방어력, 토큰 상태를 표시합니다.
+ * 피격/방어/오버드라이브 시 애니메이션 효과가 적용됩니다.
+ */
 interface PlayerHpBarProps {
+  /** 플레이어 상태 (hp, maxHp, block, tokens 등) */
   player: Player;
+  /** 피격 애니메이션 활성화 여부 */
   playerHit: boolean;
+  /** 방어 애니메이션 활성화 여부 */
   playerBlockAnim: boolean;
+  /** 오버드라이브 플래시 효과 활성화 여부 */
   playerOverdriveFlash: boolean;
+  /** 유효 민첩성 (상징 효과 적용) */
   effectiveAgility: number;
+  /** 둔화 레벨 (UI 표시에 영향) */
   dulledLevel: number;
+  /** 통찰 레벨 (-3 ~ +3) */
   insightLevel?: number;
 }
 

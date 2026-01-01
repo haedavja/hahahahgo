@@ -234,21 +234,42 @@ const GRACE_BADGE_STYLE: CSSProperties = {
   color: '#fbbf24'
 };
 
+/**
+ * 적 HP 바 컴포넌트 Props
+ *
+ * 적의 체력, 방어력, 에테르, 토큰 상태를 표시합니다.
+ * 피격/방어/소울 쉐터/오버드라이브 시 애니메이션 효과가 적용됩니다.
+ */
 interface EnemyHpBarProps {
+  /** 현재 전투 상태 */
   battle: Battle;
+  /** 데미지 미리보기 정보 */
   previewDamage: PreviewDamage;
+  /** 둔화 레벨 (체력/에테르 숨김 조건) */
   dulledLevel: number;
+  /** 적 상태 (hp, maxHp, block, tokens 등) */
   enemy: Enemy;
+  /** 피격 애니메이션 활성화 여부 */
   enemyHit: boolean;
+  /** 방어 애니메이션 활성화 여부 */
   enemyBlockAnim: boolean;
+  /** 소울 쉐터 효과 활성화 여부 (에테르 탈취) */
   soulShatter: boolean;
+  /** 그룹화된 적 구성원 목록 */
   groupedEnemyMembers: GroupedEnemyMember[];
+  /** 오버드라이브 플래시 효과 활성화 여부 */
   enemyOverdriveFlash: boolean;
+  /** 적 에테르 수치 */
   enemyEtherValue: number;
+  /** 에테르 전송 펄스 효과 활성화 여부 */
   enemyTransferPulse: boolean;
+  /** 소울 이미지 스케일 (크기 변화) */
   enemySoulScale: number;
+  /** 숫자 축약 포맷 함수 (예: 1000 → 1K) */
   formatCompactValue: (value: number) => string;
+  /** 빙결된 순서 */
   frozenOrder: number;
+  /** 몬스터 우아함 상태 (특수 상태) */
   graceState?: MonsterGraceState;
 }
 
