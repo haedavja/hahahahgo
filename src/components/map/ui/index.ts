@@ -4,5 +4,6 @@
  */
 
 export { RelicsBar } from './RelicsBar';
+export { PathosBar } from './PathosBar';
 export { RestModal } from './RestModal';
 export { EventModal } from './EventModal';

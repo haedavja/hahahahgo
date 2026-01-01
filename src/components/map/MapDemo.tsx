@@ -7,7 +7,7 @@ import { useGameStore } from "../../state/gameStore";
 import { calculateEtherSlots, getCurrentSlotPts, getSlotProgress, getNextSlotCost } from "../../lib/etherUtils";
 import type { MerchantTypeKey } from "../../data/shop";
 import { EtherBar } from "../battle/ui/EtherBar";
-import { RelicsBar, RestModal, EventModal } from "./ui";
+import { RelicsBar, PathosBar, RestModal, EventModal } from "./ui";
 
 // Lazy loading for heavy components
 const CharacterSheet = lazy(() => import("../character/CharacterSheet").then(m => ({ default: m.CharacterSheet })));
@@ -392,6 +392,9 @@ function MapDemoComponent() {
           setOrderedRelics: actions.setOrderedRelics,
         }}
       />
+
+      {/* 장착 파토스 표시 */}
+      <PathosBar />
 
       <div className="legend">
         {LEGEND.map((item: { icon: string; label: string }) => (
