@@ -37,6 +37,7 @@ export const COLORS = {
     3: { bg: 'rgba(96, 165, 250, 0.15)', border: '#60a5fa', text: '#60a5fa' },
     4: { bg: 'rgba(251, 146, 60, 0.15)', border: '#fb923c', text: '#fb923c' },
     5: { bg: 'rgba(167, 139, 250, 0.15)', border: '#a78bfa', text: '#a78bfa' },
+    6: { bg: 'rgba(239, 68, 68, 0.15)', border: '#ef4444', text: '#ef4444' },
     identity: { bg: 'rgba(251, 191, 36, 0.15)', border: '#fbbf24', text: '#fbbf24' },
   },
 
@@ -134,4 +135,4 @@ export const COMMON_STYLES = {
 } as const;
 
 // 타입 export
-export type TierNumber = 1 | 2 | 3 | 4 | 5 | 'identity';
+export type TierNumber = 1 | 2 | 3 | 4 | 5 | 6 | 'identity';
