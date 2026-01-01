@@ -29,7 +29,7 @@ export const IdentitySection = memo(function IdentitySection({
         gap: SPACING.md,
         justifyContent: 'flex-start',
         alignItems: 'flex-start',
-        paddingLeft: '480px',
+        paddingLeft: '480px', // 7단계: 6단계(360px) + 120px
       }}>
         {/* 7단계 자아 헤더 */}
         <div style={{

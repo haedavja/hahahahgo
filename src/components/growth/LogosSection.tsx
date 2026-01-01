@@ -27,31 +27,31 @@ export const LogosSection = memo(function LogosSection({
   const hasAnyIdentity = growth.identities.length > 0;
 
   return (
-    <div style={{
-      padding: SPACING.lg,
-      background: 'rgba(251, 191, 36, 0.05)',
-      border: '1px solid rgba(251, 191, 36, 0.2)',
-      borderRadius: BORDER_RADIUS.xl,
-      marginBottom: SPACING.xl,
-      maxWidth: '900px',
-      margin: '0 auto',
-      marginBottom: SPACING.xl,
-    }}>
+    <div style={{ marginBottom: SPACING.xxl }}>
+      {/* 티어 헤더와 카드를 같은 줄에 배치 */}
       <div style={{
-        fontSize: FONT_SIZE.lg,
-        color: COLORS.primary,
-        marginBottom: '10px',
-        fontWeight: 'bold',
+        display: 'flex',
+        flexWrap: 'wrap',
+        gap: SPACING.md,
+        justifyContent: 'flex-start',
+        alignItems: 'flex-start',
+        paddingLeft: '600px', // 8단계: 7단계(480px) + 120px
       }}>
-        ⬆ 로고스 {maxUnlockableLevel > 0
-          ? `(최대 해금 가능: Lv${maxUnlockableLevel})`
-          : <span style={{ color: COLORS.text.secondary, fontSize: FONT_SIZE.sm, marginLeft: SPACING.md }}>
-              피라미드 Lv3 이상에서 레벨업 가능
-            </span>
-        }
-      </div>
+        {/* 8단계 로고스 헤더 */}
+        <div style={{
+          display: 'inline-block',
+          padding: `${SPACING.sm} ${SPACING.md}`,
+          background: maxUnlockableLevel > 0 ? 'rgba(30, 41, 59, 0.8)' : '#141a22',
+          border: `1px solid ${maxUnlockableLevel > 0 ? COLORS.primary : '#334155'}`,
+          borderRadius: BORDER_RADIUS.lg,
+          fontSize: FONT_SIZE.md,
+          color: maxUnlockableLevel > 0 ? COLORS.primary : COLORS.text.muted,
+          fontWeight: 'bold',
+        }}>
+          {maxUnlockableLevel === 0 && '🔒 '}8단계 로고스
+        </div>
 
-      <div style={{ display: 'flex', gap: SPACING.lg, flexWrap: 'wrap' }}>
+        {/* 로고스 카드들 */}
         <LogosCard
           logos={LOGOS.battleWaltz}
           logosType="battleWaltz"
