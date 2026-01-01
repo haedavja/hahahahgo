@@ -46,15 +46,6 @@ export const TraitEthosSection = memo(function TraitEthosSection({
         gap: SPACING.sm,
       }}>
         <span style={{ fontWeight: 'bold' }}>1단계 에토스</span>
-        <span style={{
-          fontSize: FONT_SIZE.xs,
-          padding: `1px ${SPACING.sm}`,
-          background: 'rgba(71, 85, 105, 0.3)',
-          borderRadius: BORDER_RADIUS.sm,
-          color: COLORS.text.secondary,
-        }}>
-          ✓ 개성 보유 시 자동 해금
-        </span>
       </div>
 
       {/* 에토스 그리드 */}
