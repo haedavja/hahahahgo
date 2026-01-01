@@ -228,12 +228,8 @@ export class MultiEnemyBattleEngine {
     anomalyId?: string,
     cardEnhancements?: Record<string, number>
   ): MultiEnemyBattleResult {
-    // 단일 적이면 기본 엔진 사용
-    if (enemies.length === 1) {
-      const baseEngine = new TimelineBattleEngine({ verbose: this.config.verbose });
-      const result = baseEngine.runBattle(playerDeck, playerRelics, enemies[0], anomalyId, cardEnhancements);
-      return this.convertToMultiEnemyResult(result, enemies);
-    }
+    // 단일 적도 동일한 엔진 사용 (에테르/콤보 시스템 통합을 위해)
+    // 기존에는 TimelineBattleEngine으로 위임했지만, 에테르 시스템이 없어 0으로 나왔음
 
     // 카드 강화 초기화
     this.cardEnhancements = cardEnhancements || {};

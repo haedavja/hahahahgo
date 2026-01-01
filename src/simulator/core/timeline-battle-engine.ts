@@ -2012,8 +2012,8 @@ export class TimelineBattleEngine {
     const passives = this.relicSystem.getPassiveEffects();
 
     return {
-      hp: 100 + passives.maxHp,
-      maxHp: 100 + passives.maxHp,
+      hp: 80 + passives.maxHp,
+      maxHp: 80 + passives.maxHp,
       block: 0,
       tokens: {},
       maxSpeed: DEFAULT_MAX_SPEED + passives.maxSpeed,
