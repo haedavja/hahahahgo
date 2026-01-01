@@ -66,7 +66,7 @@ export const GrowthPyramidModal = memo(function GrowthPyramidModal({
       <div
         className="event-modal"
         onClick={(e) => e.stopPropagation()}
-        style={{ maxWidth: '98vw', width: '1400px', maxHeight: '95vh', overflow: 'auto' }}
+        style={{ maxWidth: '100vw', width: '1600px', maxHeight: '95vh', overflow: 'auto' }}
       >
         {/* 헤더 */}
         <header>
@@ -190,9 +190,9 @@ const PyramidView = memo(function PyramidView({
   return (
     <div ref={containerRef} style={{
       position: 'relative',
-      transform: 'scale(1.25)',
+      transform: 'scale(1.2)',
       transformOrigin: 'top center',
-      marginBottom: '25%', // scale로 인한 여백 보정
+      marginBottom: '20%', // scale로 인한 여백 보정
     }}>
       {/* 노드 연결선 SVG */}
       <PyramidConnections
