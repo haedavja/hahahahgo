@@ -210,7 +210,7 @@ const NodeCard = memo(function NodeCard({
       };
       return opaqueColors[node.tier] || '#1e293b';
     }
-    return '#1e293b'; // 기본 슬레이트 배경
+    return '#141a22'; // 해금 안됨: 더 어두운 배경
   };
 
   return (
@@ -227,8 +227,9 @@ const NodeCard = memo(function NodeCard({
         ? `2px solid ${COLORS.primary}`
         : isUnlocked
           ? `1px solid ${colors.border}`
-          : '1px solid #475569',
+          : '1px solid #334155', // 더 어두운 테두리
       borderRadius: BORDER_RADIUS.lg,
+      opacity: isUnlocked || isPending ? 1 : 0.7, // 해금 안됨: 흐리게
     }}>
       {/* 노드 헤더 */}
       <div style={{
@@ -237,7 +238,7 @@ const NodeCard = memo(function NodeCard({
       }}>
         <div style={{
           fontWeight: 'bold',
-          color: isUnlocked ? colors.text : COLORS.text.primary,
+          color: isUnlocked ? colors.text : COLORS.text.muted,
           fontSize: FONT_SIZE.lg,
           marginBottom: SPACING.xs,
         }}>
