@@ -81,19 +81,21 @@ export const GrowthPyramidModal = memo(function GrowthPyramidModal({
           pendingSelection={pendingNodeSelection}
         />
 
-        {/* 피라미드 뷰 */}
-        <PyramidView
-          pyramidLevel={pyramidLevel}
-          skillPoints={skillPoints}
-          playerTraits={playerTraits}
-          growth={growth}
-          pendingSelection={pendingNodeSelection}
-          onUnlockNode={unlockNode}
-          onSelectChoice={selectNodeChoice}
-          onSelectIdentity={selectIdentity}
-          onEquipPathos={equipPathos}
-          onUnlockLogos={unlockLogos}
-        />
+        {/* 피라미드 뷰 - 중앙 정렬 wrapper */}
+        <div style={{ paddingLeft: '120px' }}>
+          <PyramidView
+            pyramidLevel={pyramidLevel}
+            skillPoints={skillPoints}
+            playerTraits={playerTraits}
+            growth={growth}
+            pendingSelection={pendingNodeSelection}
+            onUnlockNode={unlockNode}
+            onSelectChoice={selectNodeChoice}
+            onSelectIdentity={selectIdentity}
+            onEquipPathos={equipPathos}
+            onUnlockLogos={unlockLogos}
+          />
+        </div>
 
         {/* 닫기 버튼 - 하단 중앙 */}
         <div style={{ display: 'flex', justifyContent: 'center', marginTop: SPACING.xl }}>
@@ -191,9 +193,8 @@ const PyramidView = memo(function PyramidView({
     <div ref={containerRef} style={{
       position: 'relative',
       transform: 'scale(1.2)',
-      transformOrigin: 'top center',
+      transformOrigin: 'top left',
       marginBottom: '20%', // scale로 인한 여백 보정
-      paddingLeft: '100px', // scale 확대 시 좌측 잘림 보정
     }}>
       {/* 노드 연결선 SVG */}
       <PyramidConnections
