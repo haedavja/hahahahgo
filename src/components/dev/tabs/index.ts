@@ -11,3 +11,4 @@ export { ItemsTab } from './ItemsTab';
 export { EventTab } from './EventTab';
 export { CardsTab } from './CardsTab';
 export { SimulatorTab } from './SimulatorTab';
+export { BalanceTab } from './BalanceTab';
