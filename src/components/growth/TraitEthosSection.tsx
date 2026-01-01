@@ -113,22 +113,19 @@ const EthosCard = memo(function EthosCard({
       borderRadius: BORDER_RADIUS.lg,
       // transition 제거 - 레이아웃 안정성 우선
     }}>
-      {/* 해금 체크마크 - 절대 위치 */}
-      {isUnlocked && (
-        <span style={{
-          position: 'absolute',
-          top: '8px',
-          left: '8px',
-          color: COLORS.success,
-          fontSize: FONT_SIZE.md,
-        }}>✓</span>
-      )}
-
       {/* 에토스 이름 - 레이아웃 안정화 */}
       <div style={{
         textAlign: 'center',
         marginBottom: SPACING.sm,
       }}>
+        {/* 해금 체크마크 - 이름 옆에 표시 */}
+        {isUnlocked && (
+          <span style={{
+            color: COLORS.success,
+            fontSize: FONT_SIZE.lg,
+            marginRight: '4px',
+          }}>✓</span>
+        )}
         <span style={{
           fontWeight: 'bold',
           fontSize: FONT_SIZE.lg,
