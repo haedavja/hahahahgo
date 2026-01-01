@@ -36,18 +36,16 @@ export const TraitEthosSection = memo(function TraitEthosSection({
       marginBottom: '80px', // 단계별 높이 간격 2배
       position: 'relative',
     }}>
-      {/* 티어 헤더와 에토스를 같은 줄에 배치 */}
+      {/* CSS Grid로 고정 레이아웃 - 리플로우 방지 */}
       <div style={{
-        display: 'flex',
-        flexWrap: 'wrap',
+        display: 'grid',
+        gridTemplateColumns: '120px repeat(6, 200px)', // 헤더 + 6개 카드 고정
         gap: SPACING.md,
-        justifyContent: 'flex-start',
-        alignItems: 'flex-start',
+        alignItems: 'start',
         paddingLeft: '20px',
       }}>
         {/* 티어 헤더 */}
         <div style={{
-          display: 'inline-block',
           padding: `${SPACING.sm} ${SPACING.md}`,
           background: 'rgba(30, 41, 59, 0.8)',
           border: `1px solid ${colors.text}`,
@@ -55,6 +53,7 @@ export const TraitEthosSection = memo(function TraitEthosSection({
           fontSize: FONT_SIZE.md,
           color: colors.text,
           fontWeight: 'bold',
+          textAlign: 'center',
         }}>
           1단계 개성
         </div>
@@ -104,16 +103,13 @@ const EthosCard = memo(function EthosCard({
       style={{
       position: 'relative',
       zIndex: 10,
-      width: '200px',
-      minWidth: '200px',
-      maxWidth: '200px',
-      flex: '0 0 200px',
+      // Grid가 크기 제어하므로 width 속성 불필요
       padding: SPACING.md,
       boxSizing: 'border-box',
       background: isUnlocked ? '#1a2f1f' : '#1e293b', // 불투명 배경
       border: isUnlocked ? `1px solid ${colors.border}` : '1px solid #475569',
       borderRadius: BORDER_RADIUS.lg,
-      transition: 'background 0.2s, border-color 0.2s', // 부드러운 전환
+      // transition 제거 - 레이아웃 안정성 우선
     }}>
       {/* 해금 체크마크 - 절대 위치 */}
       {isUnlocked && (

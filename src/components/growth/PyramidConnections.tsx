@@ -62,6 +62,7 @@ interface PyramidConnectionsProps {
   containerRef: React.RefObject<HTMLDivElement | null>;
   unlockedNodes: string[];
   identities?: string[]; // 선택된 자아
+  logosLevels?: Record<string, number>; // 로고스 해금 레벨
   scale?: number; // 컨테이너 scale 값 (좌표 보정용)
 }
 
@@ -69,6 +70,7 @@ export const PyramidConnections = memo(function PyramidConnections({
   containerRef,
   unlockedNodes,
   identities = [],
+  logosLevels = {},
   scale = 1,
 }: PyramidConnectionsProps) {
   const [positions, setPositions] = useState<Record<string, NodePosition>>({});
@@ -139,15 +141,26 @@ export const PyramidConnections = memo(function PyramidConnections({
     };
   }, [measurePositions, unlockedNodes, identities]);
 
-  // 연결선 색상 결정
-  const getLineColor = (from: string, to: string, tier: number) => {
-    // 자아-로고스 연결선
-    if (from.startsWith('identity-') && to.startsWith('logos-')) {
-      return COLORS.tier.identity?.text || COLORS.primary;
+  // 노드 해금 상태 확인 (자아/로고스 포함)
+  const isNodeUnlocked = (nodeId: string) => {
+    // 자아 노드: identities 배열에 포함되어 있는지 확인
+    if (nodeId.startsWith('identity-')) {
+      const identityId = nodeId.replace('identity-', '');
+      return identities.includes(identityId);
     }
+    // 로고스 노드: logosLevels에서 레벨 > 0인지 확인
+    if (nodeId.startsWith('logos-')) {
+      const logosType = nodeId.replace('logos-', '');
+      return (logosLevels[logosType] || 0) > 0;
+    }
+    // 일반 노드: unlockedNodes 배열 확인
+    return unlockedNodes.includes(nodeId);
+  };
 
-    const fromUnlocked = unlockedNodes.includes(from);
-    const toUnlocked = unlockedNodes.includes(to);
+  // 연결선 색상 결정 (모든 티어 동일 로직)
+  const getLineColor = (from: string, to: string, tier: number) => {
+    const fromUnlocked = isNodeUnlocked(from);
+    const toUnlocked = isNodeUnlocked(to);
 
     if (fromUnlocked && toUnlocked) {
       // 둘 다 해금됨 - 티어 색상
@@ -161,15 +174,10 @@ export const PyramidConnections = memo(function PyramidConnections({
     }
   };
 
-  // 연결선 두께 결정
+  // 연결선 두께 결정 (모든 티어 동일 로직)
   const getLineWidth = (from: string, to: string) => {
-    // 자아-로고스 연결선
-    if (from.startsWith('identity-') && to.startsWith('logos-')) {
-      return 3;
-    }
-
-    const fromUnlocked = unlockedNodes.includes(from);
-    const toUnlocked = unlockedNodes.includes(to);
+    const fromUnlocked = isNodeUnlocked(from);
+    const toUnlocked = isNodeUnlocked(to);
 
     if (fromUnlocked && toUnlocked) return 3;
     if (fromUnlocked) return 2.5;

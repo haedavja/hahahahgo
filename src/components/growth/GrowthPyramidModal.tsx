@@ -334,6 +334,7 @@ const PyramidView = memo(function PyramidView({
         containerRef={containerRef}
         unlockedNodes={growth.unlockedNodes}
         identities={growth.identities}
+        logosLevels={growth.logosLevels}
         scale={1.2}
       />
       {/* 로고스 (정점 위) */}
