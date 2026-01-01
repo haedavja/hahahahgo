@@ -75,6 +75,11 @@ import {
   getFencingDamageBonus,
   getGunDamageBonus,
 } from './card-effects';
+import {
+  getEnhancedCard,
+  calculateEnhancedStats,
+  type EnhancedCardStats,
+} from '../../lib/cardEnhancementUtils';
 import { CardCreationSystem } from './card-creation';
 import {
   processEnemyBattleStartPassives,
@@ -147,6 +152,10 @@ export class TimelineBattleEngine {
   private respondAI: RespondAI;
   private cardCreation: CardCreationSystem;
   private events: BattleEvent[] = [];
+  /** 현재 전투의 강화된 카드 캐시 */
+  private enhancedCards: Record<string, GameCard> = {};
+  /** 현재 전투의 카드 강화 레벨 */
+  private cardEnhancements: Record<string, number> = {};
 
   constructor(config: Partial<BattleEngineConfig> = {}) {
     this.config = { ...DEFAULT_CONFIG, ...config };
@@ -157,18 +166,60 @@ export class TimelineBattleEngine {
     this.cardCreation = new CardCreationSystem(this.cards);
   }
 
+  // ==================== 카드 강화 시스템 ====================
+
+  /**
+   * 강화된 카드 캐시 생성
+   */
+  private buildEnhancedCardCache(): void {
+    for (const [cardId, level] of Object.entries(this.cardEnhancements)) {
+      if (level > 0 && this.cards[cardId]) {
+        const baseCard = this.cards[cardId];
+        const enhanced = getEnhancedCard(baseCard, level);
+        this.enhancedCards[cardId] = enhanced as GameCard;
+      }
+    }
+  }
+
+  /**
+   * 카드 조회 (강화 적용)
+   * @param cardId 카드 ID
+   * @returns 강화가 적용된 카드 또는 기본 카드
+   */
+  private getCard(cardId: string): GameCard | undefined {
+    // 강화된 카드가 있으면 반환
+    if (this.enhancedCards[cardId]) {
+      return this.enhancedCards[cardId];
+    }
+    // 기본 카드 반환
+    return this.cards[cardId];
+  }
+
   // ==================== 메인 전투 실행 ====================
 
   /**
    * 전투 실행
+   * @param playerDeck 플레이어 덱
+   * @param playerRelics 플레이어 상징
+   * @param enemy 적 상태
+   * @param anomalyId 이변 ID
+   * @param cardEnhancements 카드 강화 레벨 (카드ID -> 강화레벨)
    */
   runBattle(
     playerDeck: string[],
     playerRelics: string[],
     enemy: EnemyState,
-    anomalyId?: string
+    anomalyId?: string,
+    cardEnhancements?: Record<string, number>
   ): BattleResult {
     this.events = [];
+
+    // 카드 강화 초기화
+    this.cardEnhancements = cardEnhancements || {};
+    this.enhancedCards = {};
+
+    // 강화된 카드 캐시 생성
+    this.buildEnhancedCardCache();
 
     // 플레이어 초기화
     const player = this.initializePlayer(playerDeck, playerRelics);
@@ -324,7 +375,7 @@ export class TimelineBattleEngine {
     // 타임라인 반복 처리 (르 송쥬 뒤 비에야르)
     if (state.player.repeatTimelineCards && state.player.repeatTimelineCards.length > 0) {
       for (const cardId of state.player.repeatTimelineCards) {
-        const card = this.cards[cardId];
+        const card = this.getCard(cardId);
         if (card) {
           const position = this.calculateCardPosition(card, state.player.tokens);
           state.timeline.push({
@@ -363,7 +414,7 @@ export class TimelineBattleEngine {
     if (this.config.enableCombos && !etherBlockedByAnomaly) {
       const playedCards = state.timeline
         .filter(tc => tc.owner === 'player' && tc.executed)
-        .map(tc => this.cards[tc.cardId])
+        .map(tc => this.getCard(tc.cardId))
         .filter((c): c is GameCard => c !== undefined);
 
       if (playedCards.length > 0) {
@@ -439,9 +490,9 @@ export class TimelineBattleEngine {
       state.battleLog.push(`📊 타임라인 분석: 예상 피해 ${analysis.expectedDamage}, 위험도 ${analysis.riskScore}%`);
     }
 
-    // 플레이어 대응 결정
+    // 플레이어 대응 결정 (강화된 카드 적용)
     const playerHand = state.player.hand
-      .map(id => this.cards[id])
+      .map(id => this.getCard(id))
       .filter((c): c is GameCard => c !== undefined);
 
     const reactionCards = playerHand.filter(card =>
@@ -471,7 +522,7 @@ export class TimelineBattleEngine {
 
   private applyPlayerResponse(state: GameBattleState, decision: ResponseDecision): void {
     for (const cardId of decision.responseCards) {
-      const card = this.cards[cardId];
+      const card = this.getCard(cardId);
       if (!card) continue;
 
       // 핸드에서 카드 제거 → 버린 카드 더미로 이동
@@ -533,9 +584,9 @@ export class TimelineBattleEngine {
     let cardsSelected = 0;
     const maxCards = DEFAULT_MAX_SUBMIT_CARDS;
 
-    // 핸드 카드 변환
+    // 핸드 카드 변환 (강화된 카드 적용)
     const handCards = state.player.hand
-      .map(id => this.cards[id])
+      .map(id => this.getCard(id))
       .filter((c): c is GameCard => c !== undefined);
 
     if (handCards.length === 0) return selected;
@@ -622,7 +673,64 @@ export class TimelineBattleEngine {
         }
       }
 
-      // 7. 에너지 효율 (코스트 대비 효과)
+      // 7. 특성 시너지 점수
+      if (card.traits && card.traits.length > 0) {
+        // 연계(chain) 특성: 후속(followup) 카드가 핸드에 있으면 보너스
+        if (card.traits.includes('chain')) {
+          const hasFollowup = handCards.some(c =>
+            c.traits?.includes('followup') || c.traits?.includes('finisher')
+          );
+          if (hasFollowup) {
+            score += 25; // 연계-후속 시너지
+          }
+        }
+
+        // 후속(followup) 특성: 연계(chain) 카드가 핸드에 있으면 보너스
+        if (card.traits.includes('followup') || card.traits.includes('finisher')) {
+          const hasChain = handCards.some(c => c.traits?.includes('chain'));
+          if (hasChain) {
+            score += 20; // 후속-연계 시너지
+          }
+          // 이미 연계 준비 상태면 더 높은 점수
+          if (hasToken(state.player.tokens, 'chain_ready')) {
+            score += 30; // 연계 발동 보장
+          }
+        }
+
+        // 협동(cooperation) 특성: 같은 actionCost 카드가 많으면 보너스
+        if (card.traits.includes('cooperation')) {
+          const sameActionCost = handCards.filter(c =>
+            c.actionCost === card.actionCost && c.id !== card.id
+          ).length;
+          score += sameActionCost * 10; // 같은 비용 카드 많으면 콤보 가능성
+        }
+
+        // 강골(strongbone), 파괴자(destroyer) 등 공격 증폭 특성
+        if (card.traits.includes('strongbone')) {
+          score += 15; // 25% 증폭
+        }
+        if (card.traits.includes('destroyer')) {
+          score += 20; // 50% 증폭
+        }
+        if (card.traits.includes('slaughter')) {
+          score += 25; // 75% 증폭
+        }
+        if (card.traits.includes('pinnacle')) {
+          score += 35; // 2.5배 증폭
+        }
+
+        // 신속함(swift) - 빠른 공격
+        if (card.traits.includes('swift')) {
+          score += 10;
+        }
+
+        // 단련(training) - 힘 축적
+        if (card.traits.includes('training')) {
+          score += 12;
+        }
+      }
+
+      // 8. 에너지 효율 (코스트 대비 효과)
       const cost = card.actionCost || 1;
       if (cost > 0) {
         score = score / Math.sqrt(cost); // 코스트가 높을수록 효율 감소
@@ -1042,7 +1150,10 @@ export class TimelineBattleEngine {
       if (state.player.hp <= 0 || state.enemy.hp <= 0) break;
       if (timelineCard.executed) continue;
 
-      const card = this.cards[timelineCard.cardId];
+      // 플레이어 카드는 강화 적용, 적 카드는 기본 카드 사용
+      const card = timelineCard.owner === 'player'
+        ? this.getCard(timelineCard.cardId)
+        : this.cards[timelineCard.cardId];
       if (!card) continue;
 
       timelineCard.executed = true;

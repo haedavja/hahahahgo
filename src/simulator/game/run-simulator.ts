@@ -553,16 +553,17 @@ export class RunSimulator {
 
       let battleResult: BattleResult;
 
-      // 강화된 카드 보너스 적용 (덱 복사 후 수정)
-      const enhancedDeck = this.applyCardUpgrades(player.deck, player.upgradedCards);
+      // 카드 강화 정보 생성
+      const cardEnhancements = this.buildCardEnhancements(player.upgradedCards);
 
       // 실제 전투 엔진 사용 (적 데이터가 있을 때)
       if (this.useBattleEngine && this.enemyLibrary.length > 0) {
         battleResult = this.battleEngine.runBattle(
-          enhancedDeck,
+          player.deck,
           player.relics,
           enemy,
-          undefined // 이변 ID (추후 확장)
+          undefined, // 이변 ID (추후 확장)
+          cardEnhancements // 카드 강화 레벨 전달
         );
       } else {
         // 폴백: 확률 기반 시뮬레이션
@@ -623,12 +624,17 @@ export class RunSimulator {
   }
 
   /**
-   * 카드 강화 적용 (강화된 카드에 보너스 부여)
+   * 카드 강화 정보를 Record<string, number>로 변환
+   * @param upgradedCards 강화된 카드 ID 배열
+   * @returns 카드ID -> 강화레벨 맵
    */
-  private applyCardUpgrades(deck: string[], upgradedCards: string[]): string[] {
-    // 현재는 덱을 그대로 반환 (전투 엔진 내부에서 처리되도록 확장 가능)
-    // 추후 강화된 카드에 '+' 접미사를 붙이거나 별도 처리 가능
-    return [...deck];
+  private buildCardEnhancements(upgradedCards: string[]): Record<string, number> {
+    const enhancements: Record<string, number> = {};
+    for (const cardId of upgradedCards) {
+      // 각 강화마다 레벨 1씩 증가 (최대 5)
+      enhancements[cardId] = Math.min(5, (enhancements[cardId] || 0) + 1);
+    }
+    return enhancements;
   }
 
   /**

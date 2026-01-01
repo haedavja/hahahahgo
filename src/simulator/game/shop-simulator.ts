@@ -188,8 +188,34 @@ export class ShopSimulator {
     return rarityValues[relic.rarity || 'common'] || 80;
   }
 
-  private calculateItemValue(item: { tier?: number }): number {
-    return item.tier === 2 ? 60 : 30;
+  private calculateItemValue(item: { id?: string; tier?: number }): number {
+    // 기본 티어 값
+    const baseValue = item.tier === 2 ? 60 : 30;
+
+    // 아이템 타입별 추가 가치
+    const itemId = item.id || '';
+
+    // 힐 아이템은 생존에 중요
+    if (itemId.includes('healing')) {
+      return baseValue * 1.5;
+    }
+
+    // 에테르 관련 아이템
+    if (itemId.includes('ether')) {
+      return baseValue * 1.3;
+    }
+
+    // 에너지 아이템은 전투에서 유용
+    if (itemId.includes('energy')) {
+      return baseValue * 1.2;
+    }
+
+    // 공격/방어 아이템
+    if (itemId.includes('attack') || itemId.includes('defense') || itemId.includes('explosive')) {
+      return baseValue * 1.1;
+    }
+
+    return baseValue;
   }
 
   // ==================== 상점 생성 ====================
@@ -393,30 +419,71 @@ export class ShopSimulator {
     config: ShopSimulationConfig
   ): PurchaseDecision[] {
     const decisions: PurchaseDecision[] = [];
+    const hpRatio = config.player.hp / config.player.maxHp;
+    const itemCount = config.player.items.length;
 
     for (const item of items) {
       let priority = 0;
       let reason = '';
 
+      // 기본 가성비 점수
+      const valueRatio = item.value / item.price;
+
       switch (config.strategy) {
         case 'value':
-          // 가성비 기준
-          priority = (item.value / item.price) * 100;
-          reason = `가성비: ${(item.value / item.price).toFixed(2)}`;
+          priority = valueRatio * 100;
+          reason = `가성비: ${valueRatio.toFixed(2)}`;
+
+          // 아이템 타입 보너스
+          if (item.type === 'item') {
+            // 아이템이 3개 미만이면 우선순위 상승
+            if (itemCount < 3) {
+              priority *= 1.3;
+              reason += ' (아이템 부족)';
+            }
+
+            // 힐 아이템은 HP 낮을 때 가치 상승
+            if (item.id.includes('healing') && hpRatio < 0.5) {
+              priority *= 1.5;
+              reason += ' (HP 부족)';
+            }
+          }
           break;
 
         case 'synergy':
-          // 현재 덱과의 시너지 (간단한 구현)
           priority = item.value;
-          if (item.type === 'relic') priority *= 1.5;
-          reason = '시너지 중심';
+
+          // 상징은 높은 우선순위
+          if (item.type === 'relic') {
+            priority *= 1.5;
+            reason = '상징 우선';
+          }
+
+          // 아이템: 전투 준비용
+          if (item.type === 'item') {
+            // 공격/방어 아이템은 덱 전략에 따라
+            if (item.id.includes('attack') || item.id.includes('explosive')) {
+              priority *= 1.2;
+              reason = '공격 시너지';
+            }
+            if (item.id.includes('defense')) {
+              priority *= 1.1;
+              reason = '방어 시너지';
+            }
+          }
           break;
 
         case 'survival':
-          // 생존 중심 (힐/방어 우선)
-          if (item.type === 'service' && (item.id === 'healSmall' || item.id === 'healFull')) {
+          // 생존 중심 - 힐 아이템 최우선
+          if (item.type === 'item' && item.id.includes('healing')) {
+            priority = 250;
+            reason = '생존 필수 (힐)';
+          } else if (item.type === 'item' && item.id.includes('defense')) {
+            priority = 150;
+            reason = '생존 우선 (방어)';
+          } else if (item.type === 'service' && (item.id === 'healSmall' || item.id === 'healFull')) {
             priority = 200;
-            reason = '생존 우선';
+            reason = '생존 우선 (서비스)';
           } else {
             priority = item.value * 0.5;
             reason = '낮은 우선순위';
@@ -427,6 +494,13 @@ export class ShopSimulator {
         default:
           priority = Math.random() * 100;
           reason = '랜덤 선택';
+      }
+
+      // HP에 따른 전역 조정
+      if (item.type === 'item' && item.id.includes('healing')) {
+        if (hpRatio < 0.3) {
+          priority += 50; // 위급할 때 힐 아이템 추가 점수
+        }
       }
 
       decisions.push({ item, priority, reason });
