@@ -598,4 +598,310 @@ describe('eventSlice', () => {
       expect(store.getState().activeEvent?.resolved).toBe(true);
     });
   });
+
+  describe('카드 보상 처리', () => {
+    it('숫자 카드 보상이 정상 처리된다', () => {
+      store.setState({
+        ...store.getState(),
+        characterBuild: { ownedCards: [] },
+        activeEvent: {
+          id: 'test',
+          definition: {
+            id: 'test',
+            choices: [{ id: 'choice1', label: 'Get cards', rewards: { card: 2 } }],
+          },
+          currentStage: null,
+          resolved: false,
+          outcome: null,
+        },
+      });
+      store.getState().chooseEvent('choice1');
+      // 카드가 최대 2개까지 추가됨 (사용 가능한 카드가 있으면)
+      expect(store.getState().characterBuild.ownedCards.length).toBeLessThanOrEqual(2);
+    });
+
+    it('이미 보유한 카드는 중복 지급되지 않는다', () => {
+      store.setState({
+        ...store.getState(),
+        characterBuild: { ownedCards: ['card1'] },
+        activeEvent: {
+          id: 'test',
+          definition: {
+            id: 'test',
+            choices: [{ id: 'choice1', label: 'Get cards', rewards: { card: 3 } }],
+          },
+          currentStage: null,
+          resolved: false,
+          outcome: null,
+        },
+      });
+      store.getState().chooseEvent('choice1');
+      // card1이 중복되지 않음
+      const ownedCards = store.getState().characterBuild.ownedCards;
+      const card1Count = ownedCards.filter(c => c === 'card1').length;
+      expect(card1Count).toBe(1);
+    });
+
+    it('0개 카드 보상은 무시된다', () => {
+      store.setState({
+        ...store.getState(),
+        characterBuild: { ownedCards: [] },
+        activeEvent: {
+          id: 'test',
+          definition: {
+            id: 'test',
+            choices: [{ id: 'choice1', label: 'No cards', rewards: { card: 0 } }],
+          },
+          currentStage: null,
+          resolved: false,
+          outcome: null,
+        },
+      });
+      store.getState().chooseEvent('choice1');
+      expect(store.getState().characterBuild.ownedCards).toEqual([]);
+    });
+  });
+
+  describe('resultDescription 처리', () => {
+    it('resultDescription이 outcome에 포함된다', () => {
+      store.setState({
+        ...store.getState(),
+        activeEvent: {
+          id: 'test',
+          definition: {
+            id: 'test',
+            choices: [{ id: 'choice1', label: 'Option', resultDescription: '특별한 결과' }],
+          },
+          currentStage: null,
+          resolved: false,
+          outcome: null,
+        },
+      });
+      store.getState().chooseEvent('choice1');
+      expect(store.getState().activeEvent?.outcome?.resultDescription).toBe('특별한 결과');
+    });
+
+    it('resultDescription이 없으면 null이다', () => {
+      store.setState({
+        ...store.getState(),
+        activeEvent: {
+          id: 'test',
+          definition: {
+            id: 'test',
+            choices: [{ id: 'choice1', label: 'Option' }],
+          },
+          currentStage: null,
+          resolved: false,
+          outcome: null,
+        },
+      });
+      store.getState().chooseEvent('choice1');
+      expect(store.getState().activeEvent?.outcome?.resultDescription).toBeNull();
+    });
+  });
+
+  describe('스탯 요구사항 다양한 스탯', () => {
+    it('insight 요구사항을 확인한다', () => {
+      store.setState({
+        ...store.getState(),
+        playerInsight: 0,
+        activeEvent: {
+          id: 'test',
+          definition: {
+            id: 'test',
+            choices: [{
+              id: 'insightful',
+              label: 'Insight Choice',
+              statRequirement: { insight: 5 }
+            }]
+          },
+          currentStage: null,
+          resolved: false,
+          outcome: null,
+        },
+      });
+      const originalState = store.getState();
+      store.getState().chooseEvent('insightful');
+      expect(store.getState()).toBe(originalState);
+    });
+
+    it('agility 요구사항을 확인한다', () => {
+      store.setState({
+        ...store.getState(),
+        playerAgility: 10,
+        activeEvent: {
+          id: 'test',
+          definition: {
+            id: 'test',
+            choices: [{
+              id: 'agile',
+              label: 'Agile Choice',
+              statRequirement: { agility: 5 }
+            }]
+          },
+          currentStage: null,
+          resolved: false,
+          outcome: null,
+        },
+      });
+      store.getState().chooseEvent('agile');
+      expect(store.getState().activeEvent?.resolved).toBe(true);
+    });
+  });
+
+  describe('이벤트 ID 관리', () => {
+    it('동일 이벤트는 completedEvents에 중복 추가되지 않는다', () => {
+      store.setState({
+        ...store.getState(),
+        completedEvents: ['test'],
+        activeEvent: {
+          id: 'test',
+          definition: {
+            id: 'test',
+            choices: [{ id: 'choice1', label: 'Option' }],
+          },
+          currentStage: null,
+          resolved: false,
+          outcome: null,
+        },
+      });
+      store.getState().chooseEvent('choice1');
+      const testCount = store.getState().completedEvents.filter(e => e === 'test').length;
+      expect(testCount).toBe(1);
+    });
+  });
+
+  describe('nextEvent 처리', () => {
+    it('라이브러리에 없는 nextEvent는 무시된다', () => {
+      store.setState({
+        ...store.getState(),
+        pendingNextEvent: null,
+        activeEvent: {
+          id: 'test',
+          definition: {
+            id: 'test',
+            choices: [{ id: 'choice1', label: 'Next', nextEvent: 'non_existent_event' }],
+          },
+          currentStage: null,
+          resolved: false,
+          outcome: null,
+        },
+      });
+      store.getState().chooseEvent('choice1');
+      expect(store.getState().pendingNextEvent).toBeNull();
+    });
+  });
+
+  describe('openShop 결과', () => {
+    it('openShop 시 이벤트가 resolved된다', () => {
+      store.setState({
+        ...store.getState(),
+        activeEvent: {
+          id: 'test',
+          definition: {
+            id: 'test',
+            choices: [{ id: 'shop', label: 'Shop', openShop: 'merchant' }],
+          },
+          currentStage: null,
+          resolved: false,
+          outcome: null,
+        },
+      });
+      store.getState().chooseEvent('shop');
+      expect(store.getState().activeEvent?.resolved).toBe(true);
+    });
+
+    it('openShop 시 outcome.success가 true이다', () => {
+      store.setState({
+        ...store.getState(),
+        activeEvent: {
+          id: 'test',
+          definition: {
+            id: 'test',
+            choices: [{ id: 'shop', label: 'Shop', openShop: 'merchant' }],
+          },
+          currentStage: null,
+          resolved: false,
+          outcome: null,
+        },
+      });
+      store.getState().chooseEvent('shop');
+      expect(store.getState().activeEvent?.outcome?.success).toBe(true);
+    });
+  });
+
+  describe('invokePrayer outcome', () => {
+    it('기도 outcome에 필요한 필드가 있다', () => {
+      store.setState({
+        ...store.getState(),
+        activeEvent: {
+          id: 'test',
+          definition: { id: 'test', choices: [] },
+          currentStage: null,
+          resolved: false,
+          outcome: null,
+        },
+        resources: { ...store.getState().resources, etherPts: 100 },
+      });
+      store.getState().invokePrayer(50);
+
+      const outcome = store.getState().activeEvent?.outcome;
+      expect(outcome).toHaveProperty('choice');
+      expect(outcome).toHaveProperty('success');
+      expect(outcome).toHaveProperty('text');
+      expect(outcome).toHaveProperty('cost');
+      expect(outcome).toHaveProperty('rewards');
+    });
+
+    it('기도 비용이 outcome.cost에 기록된다', () => {
+      store.setState({
+        ...store.getState(),
+        activeEvent: {
+          id: 'test',
+          definition: { id: 'test', choices: [] },
+          currentStage: null,
+          resolved: false,
+          outcome: null,
+        },
+        resources: { ...store.getState().resources, etherPts: 100 },
+      });
+      store.getState().invokePrayer(30);
+
+      expect(store.getState().activeEvent?.outcome?.cost?.etherPts).toBe(30);
+    });
+  });
+
+  describe('definition이 없는 경우', () => {
+    it('definition이 없으면 선택이 실패한다', () => {
+      store.setState({
+        ...store.getState(),
+        activeEvent: {
+          id: 'test',
+          definition: null as any,
+          currentStage: null,
+          resolved: false,
+          outcome: null,
+        },
+      });
+      const originalState = store.getState();
+      store.getState().chooseEvent('choice1');
+      expect(store.getState()).toBe(originalState);
+    });
+
+    it('choices가 없으면 선택이 실패한다', () => {
+      store.setState({
+        ...store.getState(),
+        activeEvent: {
+          id: 'test',
+          definition: { id: 'test' } as any,
+          currentStage: null,
+          resolved: false,
+          outcome: null,
+        },
+      });
+      const originalState = store.getState();
+      store.getState().chooseEvent('choice1');
+      expect(store.getState()).toBe(originalState);
+    });
+  });
 });

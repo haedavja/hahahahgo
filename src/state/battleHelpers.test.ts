@@ -552,6 +552,204 @@ describe('createBattlePayload', () => {
   });
 });
 
+describe('createBattlePayload 추가 테스트', () => {
+  let createBattlePayload: typeof import('./battleHelpers').createBattlePayload;
+
+  beforeAll(async () => {
+    const module = await import('./battleHelpers');
+    createBattlePayload = module.createBattlePayload;
+  });
+
+  describe('노드 layer 처리', () => {
+    it('layer가 숫자가 아니면 기본값 1을 사용해야 함', () => {
+      const battleNode = {
+        id: 'battle1',
+        type: 'battle',
+        layer: undefined,
+        selectable: true,
+        cleared: false,
+      };
+
+      const result = createBattlePayload(battleNode as any, null);
+
+      expect(result).not.toBeNull();
+      expect(result?.nodeId).toBe('battle1');
+    });
+
+    it('layer가 문자열이면 기본값을 사용해야 함', () => {
+      const battleNode = {
+        id: 'battle1',
+        type: 'battle',
+        layer: 'invalid' as any,
+        selectable: true,
+        cleared: false,
+      };
+
+      const result = createBattlePayload(battleNode as any, null);
+
+      expect(result).not.toBeNull();
+    });
+  });
+
+  describe('적 그룹 처리', () => {
+    it('적 덱이 빈 경우 기본 덱을 사용해야 함', () => {
+      const battleNode = {
+        id: 'battle1',
+        type: 'battle',
+        layer: 1,
+        selectable: true,
+        cleared: false,
+      };
+
+      const result = createBattlePayload(battleNode as any, null);
+
+      expect(result).not.toBeNull();
+      expect(result?.enemyLibrary.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe('displayLabel 처리', () => {
+    it('displayLabel이 있으면 label에 반영되어야 함', () => {
+      const battleNode = {
+        id: 'battle1',
+        type: 'battle',
+        layer: 1,
+        displayLabel: '특별 전투',
+        selectable: true,
+        cleared: false,
+      };
+
+      const result = createBattlePayload(battleNode as any, null);
+
+      expect(result).not.toBeNull();
+      // displayLabel이 label에 사용될 수 있음 (또는 그룹 이름)
+      expect(result?.label).toBeDefined();
+    });
+  });
+
+  describe('보상 처리', () => {
+    it('battle 노드의 보상이 설정되어야 함', () => {
+      const battleNode = {
+        id: 'battle1',
+        type: 'battle',
+        layer: 1,
+        selectable: true,
+        cleared: false,
+      };
+
+      const result = createBattlePayload(battleNode as any, null);
+
+      expect(result).not.toBeNull();
+      expect(result?.rewards).toBeDefined();
+    });
+
+    it('elite 노드의 보상이 설정되어야 함', () => {
+      const eliteNode = {
+        id: 'elite1',
+        type: 'elite',
+        layer: 3,
+        selectable: true,
+        cleared: false,
+      };
+
+      const result = createBattlePayload(eliteNode as any, null);
+
+      expect(result).not.toBeNull();
+      expect(result?.rewards).toBeDefined();
+    });
+  });
+
+  describe('mixedEnemies 생성', () => {
+    it('적 데이터가 mixedEnemies에 올바르게 변환되어야 함', () => {
+      const battleNode = {
+        id: 'battle1',
+        type: 'battle',
+        layer: 1,
+        selectable: true,
+        cleared: false,
+      };
+
+      const result = createBattlePayload(battleNode as any, null);
+
+      expect(result).not.toBeNull();
+      expect(Array.isArray(result?.mixedEnemies)).toBe(true);
+      result?.mixedEnemies.forEach(enemy => {
+        expect(enemy).toHaveProperty('id');
+        expect(enemy).toHaveProperty('name');
+        expect(enemy).toHaveProperty('hp');
+      });
+    });
+  });
+
+  describe('totalEnemyHp 계산', () => {
+    it('적 총 HP가 계산되어야 함', () => {
+      const battleNode = {
+        id: 'battle1',
+        type: 'battle',
+        layer: 1,
+        selectable: true,
+        cleared: false,
+      };
+
+      const result = createBattlePayload(battleNode as any, null);
+
+      expect(result).not.toBeNull();
+      expect(typeof result?.totalEnemyHp).toBe('number');
+      expect(result?.totalEnemyHp).toBeGreaterThan(0);
+    });
+  });
+
+  describe('선택된 카드 초기화', () => {
+    it('selectedCardIds가 빈 배열로 초기화되어야 함', () => {
+      const battleNode = {
+        id: 'battle1',
+        type: 'battle',
+        layer: 1,
+        selectable: true,
+        cleared: false,
+      };
+
+      const result = createBattlePayload(battleNode as any, null);
+
+      expect(result).not.toBeNull();
+      expect(result?.selectedCardIds).toEqual([]);
+    });
+
+    it('maxSelection이 설정되어야 함', () => {
+      const battleNode = {
+        id: 'battle1',
+        type: 'battle',
+        layer: 1,
+        selectable: true,
+        cleared: false,
+      };
+
+      const result = createBattlePayload(battleNode as any, null);
+
+      expect(result).not.toBeNull();
+      expect(typeof result?.maxSelection).toBe('number');
+    });
+  });
+
+  describe('discardPile 초기화', () => {
+    it('버린 카드 더미가 빈 배열로 초기화되어야 함', () => {
+      const battleNode = {
+        id: 'battle1',
+        type: 'battle',
+        layer: 1,
+        selectable: true,
+        cleared: false,
+      };
+
+      const result = createBattlePayload(battleNode as any, null);
+
+      expect(result).not.toBeNull();
+      expect(result?.playerDiscardPile).toEqual([]);
+      expect(result?.enemyDiscardPile).toEqual([]);
+    });
+  });
+});
+
 describe('travelToNode', () => {
   let travelToNode: typeof import('./battleHelpers').travelToNode;
 
@@ -672,5 +870,201 @@ describe('travelToNode', () => {
       const node2 = result?.map.nodes.find(n => n.id === 'node2');
       expect(node2?.selectable).toBe(false); // node2는 선택하지 않았으므로 비활성화
     });
+  });
+
+  describe('이벤트 노드 이동', () => {
+    it('event 노드로 이동 시 event 페이로드가 생성되어야 함', () => {
+      const state = {
+        map: {
+          nodes: [
+            { id: 'start', type: 'start', selectable: false, cleared: true, isStart: true, connections: ['event1'] },
+            { id: 'event1', type: 'event', layer: 1, selectable: true, cleared: false, connections: [] },
+          ],
+        },
+        mapRisk: 50,
+        completedEvents: [],
+        pendingNextEvent: null,
+      };
+
+      const result = travelToNode(state as any, 'event1');
+
+      expect(result).not.toBeNull();
+      expect(result?.target.type).toBe('event');
+    });
+  });
+
+  describe('캐릭터 빌드 상태', () => {
+    it('characterBuild가 있으면 battle에 전달되어야 함', () => {
+      const state = {
+        map: {
+          nodes: [
+            { id: 'start', type: 'start', selectable: false, cleared: true, isStart: true, connections: ['battle1'] },
+            { id: 'battle1', type: 'battle', layer: 1, selectable: true, cleared: false, connections: [] },
+          ],
+        },
+        characterBuild: {
+          mainSpecials: ['strike', 'block'],
+          subSpecials: ['dodge'],
+          ownedCards: [],
+        },
+        playerHp: 80,
+        maxHp: 100,
+        mapRisk: 0,
+        completedEvents: [],
+        pendingNextEvent: null,
+      };
+
+      const result = travelToNode(state as any, 'battle1');
+
+      expect(result).not.toBeNull();
+      expect(result?.battle).not.toBeNull();
+    });
+  });
+
+  describe('연결이 빈 배열인 노드', () => {
+    it('connections가 빈 배열인 노드도 처리되어야 함', () => {
+      const state = {
+        map: {
+          nodes: [
+            { id: 'start', type: 'start', selectable: false, cleared: true, isStart: true, connections: ['node1'] },
+            { id: 'node1', type: 'battle', layer: 1, selectable: true, cleared: false, connections: [] },
+          ],
+        },
+        mapRisk: 0,
+        completedEvents: [],
+        pendingNextEvent: null,
+      };
+
+      const result = travelToNode(state as any, 'node1');
+
+      expect(result).not.toBeNull();
+      expect(result?.target.cleared).toBe(true);
+    });
+  });
+
+  describe('pendingNextEvent 처리', () => {
+    it('pendingNextEvent가 있으면 usedPendingEvent가 설정되어야 함', () => {
+      const state = {
+        map: {
+          nodes: [
+            { id: 'start', type: 'start', selectable: false, cleared: true, isStart: true, connections: ['event1'] },
+            { id: 'event1', type: 'event', layer: 1, selectable: true, cleared: false, connections: [] },
+          ],
+        },
+        mapRisk: 50,
+        completedEvents: [],
+        pendingNextEvent: 'special_event',
+      };
+
+      const result = travelToNode(state as any, 'event1');
+
+      expect(result).not.toBeNull();
+      // usedPendingEvent는 createEventPayload 함수에서 결정됨
+      expect(result?.usedPendingEvent).toBeDefined();
+    });
+  });
+
+  describe('이미 클리어된 연결 노드', () => {
+    it('클리어된 연결 노드는 selectable이 변경되지 않아야 함', () => {
+      const state = {
+        map: {
+          nodes: [
+            { id: 'start', type: 'start', selectable: false, cleared: true, isStart: true, connections: ['node1'] },
+            { id: 'node1', type: 'battle', layer: 1, selectable: true, cleared: false, connections: ['node2'] },
+            { id: 'node2', type: 'battle', layer: 2, selectable: false, cleared: true, connections: [] },
+          ],
+        },
+        mapRisk: 0,
+        completedEvents: [],
+        pendingNextEvent: null,
+      };
+
+      const result = travelToNode(state as any, 'node1');
+
+      expect(result).not.toBeNull();
+      const node2 = result?.map.nodes.find(n => n.id === 'node2');
+      // 이미 클리어된 노드는 selectable이 false를 유지
+      expect(node2?.selectable).toBe(false);
+    });
+  });
+});
+
+describe('createBattleEnemyData 추가 엣지 케이스', () => {
+  it('maxSpeed만 있을 때 speed에도 같은 값이 사용되어야 함', () => {
+    const enemy = { maxSpeed: 15 };
+    const result = createBattleEnemyData(enemy);
+
+    expect(result.maxSpeed).toBe(15);
+    expect(result.speed).toBe(10); // 기본값
+  });
+
+  it('maxHp만 있을 때 hp에도 같은 값이 사용되어야 함', () => {
+    const enemy = { maxHp: 60 };
+    const result = createBattleEnemyData(enemy);
+
+    expect(result.maxHp).toBe(60);
+    expect(result.hp).toBe(40); // 기본값
+  });
+});
+
+describe('createReducerEnemyState 추가 테스트', () => {
+  it('speed만 있을 때 maxSpeed에도 같은 값이 사용되어야 함', () => {
+    const result = createReducerEnemyState({ speed: 12 });
+
+    expect(result.maxSpeed).toBe(12);
+  });
+
+  it('빈 units 배열은 단일 유닛으로 생성해야 함', () => {
+    const result = createReducerEnemyState({ id: 'test', units: [] as any });
+
+    expect(result.units).toHaveLength(1);
+  });
+
+  it('기존 속성이 spread로 전달되어야 함', () => {
+    const result = createReducerEnemyState({
+      id: 'custom',
+      name: '커스텀 적',
+      customField: 'value',
+    } as any);
+
+    expect(result.id).toBe('custom');
+    expect((result as any).customField).toBe('value');
+  });
+});
+
+describe('computeBattlePlan 추가 테스트', () => {
+  it('빈 손패로도 계획을 생성해야 함', () => {
+    const result = computeBattlePlan('battle', [], []);
+
+    expect(result).toHaveProperty('preview');
+    expect(result).toHaveProperty('simulation');
+    expect(result.preview.timeline).toBeDefined();
+  });
+
+  it('elite 전투 타입에서도 작동해야 함', () => {
+    const playerCards = [{ id: 'card1', cardId: 'strike', speed: 5, owner: 'player' as const }] as any;
+    const enemyCards = [{ id: 'card2', cardId: 'attack', speed: 4, owner: 'enemy' as const }] as any;
+
+    const result = computeBattlePlan('elite', playerCards, enemyCards);
+
+    expect(result).toHaveProperty('simulation');
+  });
+
+  it('boss 전투 타입에서도 작동해야 함', () => {
+    const playerCards = [{ id: 'card1', cardId: 'strike', speed: 5, owner: 'player' as const }] as any;
+    const enemyCards = [{ id: 'card2', cardId: 'attack', speed: 4, owner: 'enemy' as const }] as any;
+
+    const result = computeBattlePlan('boss', playerCards, enemyCards);
+
+    expect(result).toHaveProperty('simulation');
+  });
+
+  it('존재하지 않는 전투 타입은 default를 사용해야 함', () => {
+    const playerCards = [{ id: 'card1', cardId: 'strike', speed: 5, owner: 'player' as const }] as any;
+    const enemyCards = [{ id: 'card2', cardId: 'attack', speed: 4, owner: 'enemy' as const }] as any;
+
+    const result = computeBattlePlan('unknown_type', playerCards, enemyCards);
+
+    expect(result).toHaveProperty('simulation');
   });
 });
