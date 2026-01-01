@@ -36,20 +36,6 @@ export const LogosSection = memo(function LogosSection({
         justifyContent: 'center',
         alignItems: 'flex-start',
       }}>
-        {/* 8단계 로고스 헤더 */}
-        <div style={{
-          display: 'inline-block',
-          padding: `${SPACING.sm} ${SPACING.md}`,
-          background: maxUnlockableLevel > 0 ? 'rgba(30, 41, 59, 0.8)' : '#141a22',
-          border: `1px solid ${maxUnlockableLevel > 0 ? COLORS.primary : '#334155'}`,
-          borderRadius: BORDER_RADIUS.lg,
-          fontSize: FONT_SIZE.md,
-          color: maxUnlockableLevel > 0 ? COLORS.primary : COLORS.text.muted,
-          fontWeight: 'bold',
-        }}>
-          {maxUnlockableLevel === 0 && '🔒 '}8단계 로고스
-        </div>
-
         {/* 로고스 카드들 */}
         <LogosCard
           logos={LOGOS.battleWaltz}

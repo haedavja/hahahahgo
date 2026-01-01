@@ -22,12 +22,16 @@ export const IdentitySection = memo(function IdentitySection({
 
   return (
     <div style={{ marginBottom: '40px' }}>
-      {/* 티어 헤더 */}
+      {/* 티어 헤더와 자아 카드를 같은 줄에 배치 - 6단계 파토스 위치 맞춤 */}
       <div style={{
         display: 'flex',
-        justifyContent: 'center',
-        marginBottom: SPACING.sm,
+        flexWrap: 'wrap',
+        gap: SPACING.md,
+        justifyContent: 'flex-start',
+        alignItems: 'flex-start',
+        paddingLeft: '360px', // 6단계 파토스와 동일
       }}>
+        {/* 7단계 자아 헤더 */}
         <div style={{
           display: 'inline-block',
           padding: `${SPACING.sm} ${SPACING.md}`,
@@ -40,14 +44,8 @@ export const IdentitySection = memo(function IdentitySection({
         }}>
           {!canAccess && '🔒 '}7단계 자아
         </div>
-      </div>
 
-      {/* 자아 카드들 - 6단계 노드들 사이에 배치되도록 간격 조정 */}
-      <div style={{
-        display: 'flex',
-        justifyContent: 'center',
-        gap: '200px', // 검잡이와 총잡이 사이 간격 (6단계 노드 사이에 맞춤)
-      }}>
+        {/* 자아 카드들 */}
         {(['swordsman', 'gunslinger'] as const).map(id => (
           <IdentityCard
             key={id}
