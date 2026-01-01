@@ -35,7 +35,7 @@ export const TraitEthosSection = memo(function TraitEthosSection({
     <div style={{
       marginBottom: SPACING.xl,
       position: 'relative',
-      zIndex: 1,
+      zIndex: 10,
     }}>
       {/* 티어 헤더 */}
       <div style={{
@@ -108,9 +108,9 @@ const EthosCard = memo(function EthosCard({
       data-node-id={ethos.id}
       style={{
       position: 'relative',
-      zIndex: 1,
-      width: '180px',
-      flex: '0 0 180px',
+      zIndex: 10,
+      width: '200px',
+      flex: '0 0 200px',
       padding: SPACING.md,
       background: isUnlocked ? '#1a2f1f' : '#1e293b', // 불투명 배경
       border: isUnlocked ? `1px solid ${colors.border}` : '1px solid #475569',
@@ -120,21 +120,22 @@ const EthosCard = memo(function EthosCard({
       <div style={{
         display: 'flex',
         alignItems: 'center',
+        justifyContent: 'center',
         gap: SPACING.sm,
         marginBottom: SPACING.sm,
       }}>
         {isUnlocked && (
-          <span style={{ color: COLORS.success, fontSize: FONT_SIZE.sm }}>✓</span>
+          <span style={{ color: COLORS.success, fontSize: FONT_SIZE.md }}>✓</span>
         )}
         <span style={{
           fontWeight: 'bold',
-          fontSize: FONT_SIZE.md,
+          fontSize: FONT_SIZE.lg,
           color: isUnlocked ? colors.text : COLORS.text.muted,
         }}>
           {ethos.name}
         </span>
         {traitCount > 1 && (
-          <span style={{ fontSize: FONT_SIZE.sm, color: COLORS.primary }}>
+          <span style={{ fontSize: FONT_SIZE.md, color: COLORS.primary }}>
             x{traitCount}
           </span>
         )}
@@ -142,9 +143,10 @@ const EthosCard = memo(function EthosCard({
 
       {/* 개성 조건 */}
       <div style={{
-        fontSize: FONT_SIZE.xs,
+        fontSize: FONT_SIZE.sm,
         color: hasTrait ? '#fde68a' : COLORS.text.muted,
         marginBottom: SPACING.xs,
+        textAlign: 'center',
       }}>
         {hasTrait
           ? `✓ ${matchingTrait}${traitCount > 1 ? ` x${traitCount}` : ''}`
@@ -153,9 +155,10 @@ const EthosCard = memo(function EthosCard({
 
       {/* 설명 */}
       <div style={{
-        fontSize: FONT_SIZE.xs,
+        fontSize: FONT_SIZE.sm,
         color: isUnlocked ? COLORS.text.secondary : COLORS.text.disabled,
-        lineHeight: '1.3',
+        lineHeight: '1.4',
+        textAlign: 'center',
       }}>
         {ethos.description}
       </div>
