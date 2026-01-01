@@ -150,16 +150,18 @@ const IdentityCard = memo(function IdentityCard({
         width: '200px',
         flex: '0 0 200px',
         padding: SPACING.md,
-        background: isSelected ? '#2a1f2f' : '#1e293b', // 불투명 배경 (반투명 COLORS 대신 solid hex)
+        background: isSelected ? '#2a1f2f' : '#1e293b', // 불투명 배경
         border: isSelected
           ? `2px solid ${COLORS.tier.identity.border}`
           : '1px solid #475569',
         borderRadius: BORDER_RADIUS.xl,
-        opacity: canAccess ? 1 : 0.5, // 잠금 상태에서 희미하게 표시
+        // opacity 제거 - 배경은 불투명 유지, 콘텐츠만 흐리게
         cursor: canSelect ? 'pointer' : 'default',
         textAlign: 'center',
       }}
     >
+      {/* 콘텐츠 wrapper - 1~6단계와 동일하게 콘텐츠만 opacity 적용 */}
+      <div style={{ opacity: canAccess ? 1 : 0.5 }}>
       <span style={{ fontSize: '24px' }}>{identity.emoji}</span>
       <div style={{
         color: isSelected ? COLORS.tier.identity.text : COLORS.text.secondary,
@@ -183,6 +185,7 @@ const IdentityCard = memo(function IdentityCard({
           ✓ 선택됨
         </div>
       )}
+      </div>
     </div>
   );
 });

@@ -133,9 +133,11 @@ const LogosCard = memo(function LogosCard({
         background: locked ? '#1e293b' : '#1a2f2a', // 불투명 배경
         border: locked ? '1px dashed #6b7280' : '1px solid rgba(251, 191, 36, 0.3)',
         borderRadius: BORDER_RADIUS.lg,
-        opacity: locked ? 0.5 : 1, // 잠금 상태에서 희미하게 표시
+        // opacity 제거 - 배경은 불투명 유지
       }}
     >
+      {/* 콘텐츠 wrapper - 1~6단계와 동일하게 콘텐츠만 opacity 적용 */}
+      <div style={{ opacity: locked ? 0.5 : 1 }}>
       {/* 헤더 */}
       <div style={{
         fontWeight: 'bold',
@@ -189,6 +191,7 @@ const LogosCard = memo(function LogosCard({
           onUnlock={() => onUnlock(logosType)}
         />
       ))}
+      </div>
     </div>
   );
 });
