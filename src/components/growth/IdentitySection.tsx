@@ -21,16 +21,31 @@ export const IdentitySection = memo(function IdentitySection({
   const canAccess = pyramidLevel >= 5;
 
   return (
-    <div style={{ textAlign: 'center', marginBottom: SPACING.xxl }}>
+    <div style={{ marginBottom: SPACING.xxl }}>
+      {/* 티어 헤더와 카드를 같은 줄에 배치 */}
       <div style={{
-        fontSize: FONT_SIZE.lg,
-        color: COLORS.tier.identity.text,
-        marginBottom: SPACING.md,
+        display: 'flex',
+        flexWrap: 'wrap',
+        gap: SPACING.md,
+        justifyContent: 'flex-start',
+        alignItems: 'flex-start',
+        paddingLeft: '480px',
       }}>
-        ⬆ 정점 - 자아 {!canAccess && '(Lv5 필요)'}
-      </div>
+        {/* 7단계 자아 헤더 */}
+        <div style={{
+          display: 'inline-block',
+          padding: `${SPACING.sm} ${SPACING.md}`,
+          background: canAccess ? 'rgba(30, 41, 59, 0.8)' : '#141a22',
+          border: `1px solid ${canAccess ? COLORS.tier.identity.text : '#334155'}`,
+          borderRadius: BORDER_RADIUS.lg,
+          fontSize: FONT_SIZE.md,
+          color: canAccess ? COLORS.tier.identity.text : COLORS.text.muted,
+          fontWeight: 'bold',
+        }}>
+          {!canAccess && '🔒 '}7단계 자아
+        </div>
 
-      <div style={{ display: 'inline-flex', gap: SPACING.xl }}>
+        {/* 자아 카드들 */}
         {(['swordsman', 'gunslinger'] as const).map(id => (
           <IdentityCard
             key={id}
