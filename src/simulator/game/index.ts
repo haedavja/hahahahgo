@@ -98,6 +98,7 @@ export {
 // ==================== 통합 게임 시뮬레이터 ====================
 
 import { RunSimulator, createDefaultPlayer, type RunConfig, type RunStatistics, type PlayerRunState } from './run-simulator';
+import { StatsCollector } from '../analysis/detailed-stats';
 import { getLogger } from '../core/logger';
 
 const log = getLogger('GameSimulator');
@@ -124,6 +125,21 @@ export class GameSimulator {
     await this.runSimulator.loadGameData();
     this.initialized = true;
     log.info('GameSimulator initialized');
+  }
+
+  /**
+   * 상세 통계 수집기 설정
+   * 설정하면 시뮬레이션 중 모든 전투, 이벤트, 상점, 던전 데이터가 자동 기록됨
+   */
+  setStatsCollector(collector: StatsCollector | null): void {
+    this.runSimulator.setStatsCollector(collector);
+  }
+
+  /**
+   * 현재 설정된 통계 수집기 반환
+   */
+  getStatsCollector(): StatsCollector | null {
+    return this.runSimulator.getStatsCollector();
   }
 
   /**

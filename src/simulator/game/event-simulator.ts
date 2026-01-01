@@ -69,12 +69,15 @@ export interface EventOutcome {
   eventId: string;
   choiceId: string;
   choiceLabel: string;
+  choiceName?: string;  // 최종 선택 이름
   success: boolean;
   resourceChanges: Record<string, number>;
   finalResources: PlayerResources;
   nextEventId?: string;
   openedShop?: string;
   description: string;
+  cardsGained?: string[];   // 획득한 카드
+  relicsGained?: string[];  // 획득한 상징
 }
 
 export interface EventAnalysis {
@@ -191,7 +194,7 @@ export class EventSimulator {
   // ==================== 시뮬레이션 실행 ====================
 
   /**
-   * 단일 이벤트 시뮬레이션
+   * 단일 이벤트 시뮬레이션 (다단계 이벤트 완전 처리)
    */
   simulateEvent(
     eventId: string,
@@ -204,38 +207,157 @@ export class EventSimulator {
       return null;
     }
 
-    // 현재 단계의 선택지 가져오기
-    let choices: EventChoice[] = [];
+    // 누적 결과 추적
+    const accumulatedChanges: Record<string, number> = {};
+    const choiceHistory: string[] = [];
+    let currentResources = { ...config.resources };
+    let currentStage = stageId;
+    let finalDescription = '';
+    let lastChoiceId = '';
+    let lastChoiceName = '';
+    let cardsGained: string[] = [];
+    let relicsGained: string[] = [];
+    let maxIterations = 10; // 무한루프 방지
 
-    if (event.stages && event.stages[stageId]) {
-      choices = event.stages[stageId].choices;
-    } else if (event.choices) {
-      choices = event.choices;
-    }
+    while (maxIterations-- > 0) {
+      // 현재 단계의 선택지 가져오기
+      let choices: EventChoice[] = [];
 
-    if (choices.length === 0) {
-      log.warn(`No choices available for event ${eventId} stage ${stageId}`);
-      return null;
-    }
-
-    // 선택 가능한 선택지 필터링
-    const selectableChoices = choices.filter(c =>
-      this.canSelectChoice(c, config.resources, config.stats).canSelect
-    );
-
-    if (selectableChoices.length === 0) {
-      // 선택 불가능하면 첫 번째 선택지 강제 선택 (보통 "떠난다" 류)
-      const fallback = choices.find(c => !c.cost && !c.statRequirement);
-      if (fallback) {
-        return this.executeChoice(fallback, config);
+      if (event.stages && event.stages[currentStage]) {
+        choices = event.stages[currentStage].choices;
+      } else if (currentStage === 'start' && event.choices) {
+        choices = event.choices;
+      } else {
+        break; // 더 이상 단계 없음
       }
-      log.warn(`No selectable choices for event ${eventId}`);
-      return null;
+
+      if (choices.length === 0) {
+        break;
+      }
+
+      // 현재 자원 상태로 선택 가능한 선택지 필터링
+      const currentConfig = { ...config, resources: currentResources };
+      const selectableChoices = choices.filter(c =>
+        this.canSelectChoice(c, currentResources, config.stats).canSelect
+      );
+
+      if (selectableChoices.length === 0) {
+        // 선택 불가능하면 무비용 선택지 찾기
+        const fallback = choices.find(c => !c.cost && !c.statRequirement);
+        if (fallback) {
+          const outcome = this.executeChoiceWithTracking(fallback, currentResources);
+          this.mergeResourceChanges(accumulatedChanges, outcome.resourceChanges);
+          currentResources = outcome.finalResources;
+          if (outcome.description) finalDescription = outcome.description;
+          lastChoiceId = fallback.id;
+          lastChoiceName = fallback.label;
+
+          // 카드/상징 보상 수집
+          if (fallback.rewards?.card) cardsGained.push(String(fallback.rewards.card));
+          if (fallback.rewards?.relic) relicsGained.push(String(fallback.rewards.relic));
+
+          if (fallback.nextStage) {
+            currentStage = fallback.nextStage;
+            continue;
+          }
+        }
+        break;
+      }
+
+      // 전략에 따른 선택
+      const selectedChoice = this.selectByStrategy(selectableChoices, currentConfig);
+      choiceHistory.push(selectedChoice.id);
+
+      // 선택 실행
+      const outcome = this.executeChoiceWithTracking(selectedChoice, currentResources);
+      this.mergeResourceChanges(accumulatedChanges, outcome.resourceChanges);
+      currentResources = outcome.finalResources;
+      if (outcome.description) finalDescription = outcome.description;
+      lastChoiceId = selectedChoice.id;
+      lastChoiceName = selectedChoice.label;
+
+      // 카드/상징 보상 수집
+      if (selectedChoice.rewards?.card) cardsGained.push(String(selectedChoice.rewards.card));
+      if (selectedChoice.rewards?.relic) relicsGained.push(String(selectedChoice.rewards.relic));
+
+      // 다음 단계가 있으면 계속, 없으면 종료
+      if (selectedChoice.nextStage) {
+        currentStage = selectedChoice.nextStage;
+      } else if (selectedChoice.nextEvent) {
+        // 다른 이벤트로 연결되는 경우는 여기서 종료 (별도 처리 필요)
+        break;
+      } else {
+        break; // 이벤트 종료
+      }
     }
 
-    // 전략에 따른 선택
-    const selectedChoice = this.selectByStrategy(selectableChoices, config);
-    return this.executeChoice(selectedChoice, config);
+    return {
+      eventId,
+      choiceId: lastChoiceId,
+      choiceLabel: lastChoiceName,
+      choiceName: lastChoiceName,
+      success: true,
+      resourceChanges: accumulatedChanges,
+      finalResources: currentResources,
+      description: finalDescription,
+      cardsGained,
+      relicsGained,
+    };
+  }
+
+  /**
+   * 자원 변화 누적
+   */
+  private mergeResourceChanges(target: Record<string, number>, source: Record<string, number>): void {
+    for (const [key, value] of Object.entries(source)) {
+      target[key] = (target[key] || 0) + value;
+    }
+  }
+
+  /**
+   * 선택 실행 (자원 추적 포함)
+   */
+  private executeChoiceWithTracking(
+    choice: EventChoice,
+    currentResources: PlayerResources
+  ): { resourceChanges: Record<string, number>; finalResources: PlayerResources; description: string } {
+    const resourceChanges: Record<string, number> = {};
+    const finalResources = { ...currentResources };
+
+    // 비용 적용
+    if (choice.cost) {
+      for (const [resource, amount] of Object.entries(choice.cost)) {
+        resourceChanges[resource] = -(amount as number);
+        (finalResources as Record<string, number>)[resource] -= amount as number;
+      }
+    }
+
+    // 보상 적용
+    if (choice.rewards) {
+      for (const [resource, amount] of Object.entries(choice.rewards)) {
+        if (resource === 'card' || resource === 'relic') continue; // 별도 처리
+        resourceChanges[resource] = (resourceChanges[resource] || 0) + (amount as number);
+        (finalResources as Record<string, number>)[resource] =
+          ((finalResources as Record<string, number>)[resource] || 0) + (amount as number);
+      }
+    }
+
+    // 패널티 적용 (penalties 필드)
+    const penalties = (choice as any).penalties;
+    if (penalties) {
+      for (const [resource, amount] of Object.entries(penalties)) {
+        if (resource === 'card') continue; // 저주 카드 등 별도 처리
+        resourceChanges[resource] = (resourceChanges[resource] || 0) - (amount as number);
+        (finalResources as Record<string, number>)[resource] =
+          ((finalResources as Record<string, number>)[resource] || 0) - (amount as number);
+      }
+    }
+
+    return {
+      resourceChanges,
+      finalResources,
+      description: choice.resultDescription || '',
+    };
   }
 
   /**

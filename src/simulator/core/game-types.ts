@@ -355,6 +355,7 @@ export type BattleEventType =
   | 'counter_shot_triggered'
   | 'cross_triggered'
   | 'chain_triggered'
+  | 'special_triggered'
   | 'turn_end'
   | 'battle_end';
 

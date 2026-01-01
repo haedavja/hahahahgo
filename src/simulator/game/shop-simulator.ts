@@ -65,6 +65,8 @@ export interface ShopSimulationConfig {
 export interface ShopResult {
   merchantType: MerchantType;
   purchases: ShopItem[];
+  /** 구매 결정 (이유 포함) */
+  purchaseDecisions: PurchaseDecision[];
   totalSpent: number;
   remainingGold: number;
   servicesUsed: ShopItem[];
@@ -218,6 +220,34 @@ export class ShopSimulator {
     return baseValue;
   }
 
+  /**
+   * 카드 정보 추론 (카드 ID 패턴 기반)
+   */
+  private getCardInfo(cardId: string): { type: 'attack' | 'defense' | 'skill' } | null {
+    const id = cardId.toLowerCase();
+
+    // 공격 카드 패턴
+    const attackPatterns = [
+      'strike', 'shoot', 'slash', 'cut', 'lunge', 'thrust', 'pierce', 'shot',
+      'attack', 'hit', 'punch', 'kick', 'smash', 'bash', 'crush',
+    ];
+    if (attackPatterns.some(p => id.includes(p))) {
+      return { type: 'attack' };
+    }
+
+    // 방어 카드 패턴
+    const defensePatterns = [
+      'block', 'guard', 'shield', 'defend', 'parry', 'deflect',
+      'quarte', 'octave', 'reload', 'cover',
+    ];
+    if (defensePatterns.some(p => id.includes(p))) {
+      return { type: 'defense' };
+    }
+
+    // 기술 카드 (나머지)
+    return { type: 'skill' };
+  }
+
   // ==================== 상점 생성 ====================
 
   /**
@@ -329,6 +359,7 @@ export class ShopSimulator {
     const maxPurchases = config.maxPurchases || 10;
 
     const purchases: ShopItem[] = [];
+    const purchaseDecisions: PurchaseDecision[] = [];
     const servicesUsed: ShopItem[] = [];
     const skippedItems: ShopItem[] = [];
     let totalSpent = 0;
@@ -368,6 +399,7 @@ export class ShopSimulator {
         }
 
         purchases.push(decision.item);
+        purchaseDecisions.push(decision); // 구매 결정 (이유 포함) 저장
         totalSpent += decision.item.price;
         decision.item.sold = true;
 
@@ -403,6 +435,7 @@ export class ShopSimulator {
     return {
       merchantType: inventory.merchantType,
       purchases,
+      purchaseDecisions,
       totalSpent,
       remainingGold: player.gold,
       servicesUsed,
@@ -474,19 +507,51 @@ export class ShopSimulator {
           break;
 
         case 'survival':
-          // 생존 중심 - 힐 아이템 최우선
-          if (item.type === 'item' && item.id.includes('healing')) {
-            priority = 250;
-            reason = '생존 필수 (힐)';
-          } else if (item.type === 'item' && item.id.includes('defense')) {
-            priority = 150;
-            reason = '생존 우선 (방어)';
-          } else if (item.type === 'service' && (item.id === 'healSmall' || item.id === 'healFull')) {
-            priority = 200;
-            reason = '생존 우선 (서비스)';
+          // 생존 중심 - 타입별 분류
+          if (item.type === 'item') {
+            if (item.id.includes('healing') || item.id.includes('potion')) {
+              priority = 250;
+              reason = '생존 필수 (힐)';
+            } else if (item.id.includes('defense') || item.id.includes('shield')) {
+              priority = 150;
+              reason = '생존 보조 (방어)';
+            } else {
+              priority = item.value * 0.8;
+              reason = `아이템: ${item.name}`;
+            }
+          } else if (item.type === 'service') {
+            if (item.id === 'healSmall' || item.id === 'healFull') {
+              priority = 200;
+              reason = hpRatio < 0.5 ? '체력 회복 필요' : '체력 여유 확보';
+            } else if (item.id === 'removeCard') {
+              priority = 80;
+              reason = '덱 압축';
+            } else if (item.id === 'upgradeCard') {
+              priority = 90;
+              reason = '카드 강화';
+            } else {
+              priority = 50;
+              reason = `서비스: ${item.name}`;
+            }
+          } else if (item.type === 'relic') {
+            priority = item.value * 0.7;
+            reason = `상징 효과: ${item.name}`;
+          } else if (item.type === 'card') {
+            // 카드 타입에 따른 이유
+            const cardInfo = this.getCardInfo(item.id);
+            if (cardInfo?.type === 'attack') {
+              priority = item.value * 0.6;
+              reason = '공격 카드 추가';
+            } else if (cardInfo?.type === 'defense') {
+              priority = item.value * 0.8;
+              reason = '방어 카드 추가';
+            } else {
+              priority = item.value * 0.5;
+              reason = `카드: ${item.name}`;
+            }
           } else {
             priority = item.value * 0.5;
-            reason = '낮은 우선순위';
+            reason = `기타: ${item.name}`;
           }
           break;
 

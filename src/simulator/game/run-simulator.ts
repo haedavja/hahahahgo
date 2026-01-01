@@ -20,6 +20,7 @@ import { TimelineBattleEngine } from '../core/timeline-battle-engine';
 import { EnhancedBattleProcessor, type EnhancedBattleResult } from '../core/enhanced-battle-processor';
 import { GrowthSystem, createGrowthSystem, applyGrowthBonuses, type GrowthState, type GrowthBonuses } from '../core/growth-system';
 import { createComboOptimizer, type ComboOptimizer } from '../ai/combo-optimizer';
+import { StatsCollector } from '../analysis/detailed-stats';
 import type { BattleResult, EnemyState, TokenState, GameCard } from '../core/game-types';
 import type { Card } from '../../types';
 import type { Item, ItemEffect } from '../../data/items';
@@ -213,6 +214,7 @@ export class RunSimulator {
   private itemLibrary: Record<string, Item> = {};
   private useBattleEngine: boolean = true; // 실제 전투 엔진 사용 여부
   private useEnhancedBattle: boolean = true; // 향상된 전투 시스템 사용
+  private statsCollector: StatsCollector | null = null; // 상세 통계 수집기
 
   constructor(options?: { verbose?: boolean; useEnhancedBattle?: boolean }) {
     this.mapSimulator = new MapSimulator();
@@ -231,6 +233,21 @@ export class RunSimulator {
     this.useEnhancedBattle = options?.useEnhancedBattle ?? true;
 
     log.info('RunSimulator initialized with enhanced battle system');
+  }
+
+  /**
+   * 상세 통계 수집기 설정
+   * 설정하면 시뮬레이션 중 모든 전투, 이벤트, 상점, 던전 데이터가 기록됨
+   */
+  setStatsCollector(collector: StatsCollector | null): void {
+    this.statsCollector = collector;
+  }
+
+  /**
+   * 현재 설정된 통계 수집기 반환
+   */
+  getStatsCollector(): StatsCollector | null {
+    return this.statsCollector;
   }
 
   // ==================== 데이터 로드 ====================
@@ -268,6 +285,7 @@ export class RunSimulator {
       // 아이템 데이터 로드
       const { ITEMS } = await import('../../data/items');
       this.itemLibrary = ITEMS as Record<string, Item>;
+      this.shopSimulator.loadItemData(ITEMS as any);
 
       log.info('Game data loaded successfully', {
         events: Object.keys(NEW_EVENT_LIBRARY).length,
@@ -402,6 +420,25 @@ export class RunSimulator {
     }
 
     result.finalPlayerState = player;
+
+    // 런 전체 통계 기록
+    if (this.statsCollector) {
+      this.statsCollector.recordRunExtended({
+        success: result.success,
+        layer: result.finalLayer,
+        battlesWon: result.battlesWon,
+        gold: result.totalGoldEarned,
+        deckSize: player.deck.length,
+        deathCause: result.deathCause,
+        strategy: config.strategy,
+        upgradedCards: player.upgradedCards,
+        shopsVisited: result.shopsVisited,
+        dungeonsCleared: result.dungeonsCleared,
+        growthLevel: player.growth?.level || 0,
+        eventsCompleted: result.eventsCompleted,
+      });
+    }
+
     return result;
   }
 
@@ -559,6 +596,52 @@ export class RunSimulator {
   }
 
   /**
+   * 던전 전투용 적 생성 (난이도 기반)
+   */
+  private createDungeonEnemy(difficulty: number): EnemyState {
+    // 던전에서 등장할 수 있는 적 목록 (난이도별)
+    const dungeonEnemies: { minDiff: number; enemies: string[] }[] = [
+      { minDiff: 1, enemies: ['ghoul', 'skeleton', 'bandit'] },
+      { minDiff: 2, enemies: ['skeleton', 'bandit', 'slime'] },
+      { minDiff: 3, enemies: ['bandit', 'cultist', 'undead_soldier'] },
+    ];
+
+    // 난이도에 맞는 적 풀 선택
+    const pool = dungeonEnemies
+      .filter(p => difficulty >= p.minDiff)
+      .flatMap(p => p.enemies);
+    const selectedId = pool.length > 0
+      ? pool[Math.floor(Math.random() * pool.length)]
+      : 'ghoul';
+
+    // 적 라이브러리에서 찾기
+    const enemyDef = this.enemyLibrary.find(e => e.id === selectedId);
+    if (enemyDef) {
+      const enemy = this.convertToEnemyState(enemyDef);
+      // 난이도에 따른 HP 조정 (던전 몬스터는 약간 약함)
+      const hpMultiplier = 0.8 + (difficulty - 1) * 0.1;
+      enemy.hp = Math.floor(enemy.hp * hpMultiplier);
+      enemy.maxHp = enemy.hp;
+      return enemy;
+    }
+
+    // 기본 던전 적 (폴백)
+    const baseHp = 25 + difficulty * 10;
+    return {
+      id: 'dungeon_mob',
+      name: '던전 몬스터',
+      hp: baseHp,
+      maxHp: baseHp,
+      block: 0,
+      tokens: {},
+      maxSpeed: 8,
+      deck: ['ghoul_attack', 'ghoul_attack', 'ghoul_block'],
+      cardsPerTurn: 1 + Math.floor(difficulty / 2),
+      passives: {},
+    };
+  }
+
+  /**
    * 전투 노드 처리 (TimelineBattleEngine 통합, 다중 적 지원)
    */
   private processCombatNode(
@@ -688,6 +771,19 @@ export class RunSimulator {
       result.details = `전투 패배 vs ${displayName} (${totalBattleResult?.turns || 0}턴)`;
       player.hp = 0;
     }
+
+    // 통계 기록 (각 적별로)
+    if (this.statsCollector && totalBattleResult) {
+      for (const enemy of enemies) {
+        this.statsCollector.recordBattle(totalBattleResult, {
+          id: enemy.id,
+          name: enemy.name,
+          tier: isBoss ? 3 : isElite ? 2 : 1,
+          isBoss,
+          isElite,
+        });
+      }
+    }
   }
 
   /**
@@ -721,7 +817,7 @@ export class RunSimulator {
     if (!shouldUseItems) return;
 
     // 사용할 아이템 선택
-    const itemsToUse: string[] = [];
+    const itemsToUse: { itemId: string; hpHealed?: number; specialEffect?: string }[] = [];
 
     for (const itemId of player.items) {
       const item = this.itemLibrary[itemId];
@@ -729,32 +825,40 @@ export class RunSimulator {
 
       // 힐 아이템: HP가 낮을 때 사용
       if (item.effect.type === 'healPercent' && hpRatio < 0.5) {
-        itemsToUse.push(itemId);
-        // 힐 적용
         const healAmount = Math.floor(player.maxHp * (item.effect.value / 100));
         player.hp = Math.min(player.maxHp, player.hp + healAmount);
+        itemsToUse.push({ itemId, hpHealed: healAmount });
       }
 
       // 방어 아이템: 어려운 전투 전 사용
       if (item.effect.type === 'defense' && isDifficultBattle) {
-        itemsToUse.push(itemId);
-        // 방어 효과는 전투 엔진에서 처리 (여기서는 아이템 소모만)
+        itemsToUse.push({ itemId, specialEffect: 'defense' });
       }
 
       // 공격 강화: 어려운 전투 전 사용
       if (item.effect.type === 'grantTokens' && isDifficultBattle) {
-        itemsToUse.push(itemId);
+        itemsToUse.push({ itemId, specialEffect: 'grantTokens' });
       }
 
       // 최대 2개 아이템 사용
       if (itemsToUse.length >= 2) break;
     }
 
-    // 사용한 아이템 제거
+    // 사용한 아이템 제거 및 통계 기록
     for (const usedItem of itemsToUse) {
-      const idx = player.items.indexOf(usedItem);
+      const idx = player.items.indexOf(usedItem.itemId);
       if (idx !== -1) {
         player.items.splice(idx, 1);
+      }
+
+      // 통계 기록
+      if (this.statsCollector) {
+        this.statsCollector.recordItemUsed({
+          itemId: usedItem.itemId,
+          inBattle: false, // 전투 전 사용
+          hpHealed: usedItem.hpHealed,
+          specialEffect: usedItem.specialEffect,
+        });
       }
     }
   }
@@ -851,9 +955,75 @@ export class RunSimulator {
       result.details = eventResult.description || `이벤트: ${randomEvent.title}`;
 
       // 자원 변경 적용
-      player.gold += eventResult.resourceChanges.gold || 0;
-      player.intel += eventResult.resourceChanges.intel || 0;
-      player.material += eventResult.resourceChanges.material || 0;
+      const goldChange = eventResult.resourceChanges.gold || 0;
+      const hpChange = eventResult.resourceChanges.hp || 0;
+      const intelChange = eventResult.resourceChanges.intel || 0;
+      const insightChange = eventResult.resourceChanges.insight || 0;
+      const materialChange = eventResult.resourceChanges.material || 0;
+      const graceChange = eventResult.resourceChanges.grace || 0;
+
+      player.gold += goldChange;
+      player.intel += intelChange;
+      player.material += materialChange;
+      player.insight += insightChange;
+      if (hpChange !== 0) {
+        player.hp = Math.min(player.maxHp, Math.max(0, player.hp + hpChange));
+      }
+
+      // 카드 획득 적용
+      const cardsGained = eventResult.cardsGained || [];
+      for (const cardId of cardsGained) {
+        if (cardId && cardId !== 'curse' && cardId !== 'blessing') {
+          player.deck.push(cardId);
+          result.cardsGained.push(cardId);
+        }
+      }
+
+      // 상징 획득 적용
+      const relicsGained = eventResult.relicsGained || [];
+      for (const relicId of relicsGained) {
+        if (relicId && !player.relics.includes(relicId)) {
+          player.relics.push(relicId);
+          result.relicsGained.push(relicId);
+        }
+      }
+
+      // 통계 기록
+      if (this.statsCollector) {
+        // 이벤트 기본 기록 (모든 자원 변화 포함)
+        this.statsCollector.recordEvent(
+          randomEvent.id,
+          randomEvent.title || randomEvent.id,
+          eventResult.success,
+          hpChange,
+          goldChange,
+          cardsGained,
+          relicsGained,
+          eventResult.resourceChanges // 모든 자원 변화 전달
+        );
+
+        // 이벤트 선택 상세 기록
+        this.statsCollector.recordEventChoice({
+          eventId: randomEvent.id,
+          eventName: randomEvent.title || randomEvent.id,
+          choiceId: eventResult.choiceId || 'choice_1',
+          choiceName: eventResult.choiceName || eventResult.choiceLabel || '선택',
+          success: eventResult.success,
+          hpChange,
+          goldChange,
+          cardsGained,
+          relicsGained,
+        });
+      }
+    } else {
+      // 이벤트 스킵 기록
+      if (this.statsCollector) {
+        this.statsCollector.recordEventSkipped({
+          eventId: randomEvent.id,
+          eventName: randomEvent.title || randomEvent.id,
+          reason: '조건 미충족',
+        });
+      }
     }
   }
 
@@ -901,7 +1071,69 @@ export class RunSimulator {
     result.success = true;
     result.cardsGained = shopResult.purchases.filter(p => p.type === 'card').map(p => p.id);
     result.relicsGained = shopResult.purchases.filter(p => p.type === 'relic').map(p => p.id);
+    const itemsPurchased = shopResult.purchases.filter(p => p.type === 'item').map(p => p.id);
     result.details = `상점: ${shopResult.purchases.length}개 구매, ${shopResult.totalSpent}골드 사용`;
+
+    // 통계 기록
+    if (this.statsCollector) {
+      // servicesUsed에서 서비스 유형별로 파싱
+      const services = shopResult.servicesUsed || [];
+      const healServices = services.filter(s => s.id === 'healSmall' || s.id === 'healFull');
+      const removeServices = services.filter(s => s.id === 'removeCard');
+      const upgradeServices = services.filter(s => s.id === 'upgradeCard');
+
+      // 구매 기록 변환 (이유 포함)
+      const purchaseRecords = (shopResult.purchaseDecisions || []).map(d => ({
+        itemId: d.item.id,
+        itemName: d.item.name,
+        type: d.item.type as 'card' | 'relic' | 'item',
+        price: d.item.price,
+        reason: d.reason,
+      }));
+
+      this.statsCollector.recordShopVisit({
+        goldSpent: shopResult.totalSpent,
+        cardsPurchased: result.cardsGained,
+        relicsPurchased: result.relicsGained,
+        itemsPurchased,
+        purchaseRecords,
+        cardsRemoved: removeServices.length,
+        cardsUpgraded: upgradeServices.length,
+      });
+
+      // 아이템 획득 기록
+      for (const itemId of itemsPurchased) {
+        this.statsCollector.recordItemAcquired(itemId);
+      }
+
+      // 상점 서비스 상세 기록
+      for (const healService of healServices) {
+        const hpHealed = healService.id === 'healFull'
+          ? player.maxHp - shopConfig.player.hp
+          : Math.min(30, player.maxHp - shopConfig.player.hp);
+        this.statsCollector.recordShopService({
+          type: 'heal',
+          cost: healService.price,
+          hpHealed,
+        });
+      }
+
+      for (const removeService of removeServices) {
+        this.statsCollector.recordShopService({
+          type: 'remove',
+          cost: removeService.price,
+          cardId: removeService.name || 'unknown',
+        });
+      }
+
+      for (const upgradeService of upgradeServices) {
+        this.statsCollector.recordShopService({
+          type: 'upgrade',
+          cost: upgradeService.price,
+          cardId: upgradeService.name || 'unknown',
+        });
+      }
+    }
   }
 
   /**
@@ -1108,25 +1340,73 @@ export class RunSimulator {
       difficulty: node.difficulty || 1,
     });
 
-    const dungeonConfig: DungeonSimulationConfig = {
-      player: {
-        hp: player.hp,
-        maxHp: player.maxHp,
-        gold: player.gold,
-        intel: player.intel,
-        material: player.material,
-        loot: player.loot,
-        strength: player.strength,
-        agility: player.agility,
-        insight: player.insight,
-        items: player.items,
-        deck: player.deck,
-        relics: player.relics,
+    // 던전 플레이어 상태 (참조 복사하여 실시간 반영)
+    const dungeonPlayer = {
+      hp: player.hp,
+      maxHp: player.maxHp,
+      gold: player.gold,
+      intel: player.intel,
+      material: player.material,
+      loot: player.loot,
+      strength: player.strength,
+      agility: player.agility,
+      insight: player.insight,
+      items: [...player.items],
+      deck: [...player.deck],
+      relics: [...player.relics],
+    };
+
+    // 실제 전투 엔진을 사용하는 battleSimulator 생성
+    const battleSimulator = {
+      simulateBattle: (dungeonPlayerState: typeof dungeonPlayer, difficulty: number) => {
+        // 던전 적 생성
+        const enemy = this.createDungeonEnemy(difficulty);
+
+        // 카드 강화 정보
+        const cardEnhancements = this.buildCardEnhancements(player.upgradedCards);
+
+        // 실제 전투 엔진 사용
+        const battleResult = this.battleEngine.runBattle(
+          dungeonPlayerState.deck,
+          dungeonPlayerState.relics,
+          enemy,
+          config.anomalyId,
+          cardEnhancements
+        );
+
+        const won = battleResult.winner === 'player';
+        const hpLost = battleResult.enemyDamageDealt;
+
+        // 통계 기록 (던전 전투도 기록)
+        if (this.statsCollector) {
+          this.statsCollector.recordBattle(battleResult, {
+            id: enemy.id,
+            name: enemy.name,
+            tier: 1,
+            isBoss: false,
+            isElite: false,
+          });
+        }
+
+        return {
+          won,
+          hpLost,
+          rewards: won ? { gold: 20 + difficulty * 10, loot: 1 } : {},
+        };
       },
+    };
+
+    const dungeonConfig: DungeonSimulationConfig = {
+      player: dungeonPlayer,
       strategy: config.strategy === 'speedrun' ? 'speedrun' : 'explore_all',
+      battleSimulator, // 실제 전투 엔진 연결
     };
 
     const dungeonResult = this.dungeonSimulator.simulateDungeonExploration(dungeon, dungeonConfig);
+
+    // 보상 계산
+    const goldReward = dungeonResult.finalPlayerState.gold - player.gold;
+    const damageTaken = player.hp - dungeonResult.finalPlayerState.hp;
 
     // 결과 적용
     player.hp = dungeonResult.finalPlayerState.hp;
@@ -1136,6 +1416,19 @@ export class RunSimulator {
 
     result.success = dungeonResult.exitReached;
     result.details = `던전: ${dungeonResult.nodesVisited}/${dungeonResult.totalNodes} 탐험, ${dungeonResult.combatsWon} 전투 승리`;
+
+    // 통계 기록
+    if (this.statsCollector) {
+      this.statsCollector.recordDungeon({
+        dungeonId: dungeon.id || `dungeon_${node.layer}`,
+        success: dungeonResult.exitReached,
+        turns: dungeonResult.nodesVisited,
+        damageTaken: Math.max(0, damageTaken),
+        goldReward: Math.max(0, goldReward),
+        cardsGained: dungeonResult.cardsGained || [],
+        relicsGained: dungeonResult.relicsGained || [],
+      });
+    }
   }
 
   /**

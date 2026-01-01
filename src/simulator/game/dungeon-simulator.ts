@@ -13,6 +13,21 @@ import { getLogger } from '../core/logger';
 
 const log = getLogger('DungeonSimulator');
 
+// ==================== 던전 보상 풀 ====================
+
+// 던전에서 획득 가능한 카드 풀
+const DUNGEON_CARD_REWARDS = [
+  'strike', 'deflect', 'quarte', 'octave', 'breach',
+  'marche', 'lunge', 'thrust', 'beat', 'feint',
+  'shoot', 'aimed_shot', 'quick_shot',
+  'defensive_stance', 'disrupt'
+];
+
+// 던전에서 획득 가능한 상징 풀 (희귀)
+const DUNGEON_RELIC_REWARDS = [
+  'etherCrystal', 'etherGem', 'longCoat', 'sturdyArmor'
+];
+
 // ==================== 타입 정의 ====================
 
 export type DungeonNodeType = 'entrance' | 'room' | 'corridor' | 'crossroad' | 'exit' | 'treasure' | 'boss' | 'shortcut';
@@ -101,6 +116,10 @@ export interface DungeonExplorationResult {
   finalPlayerState: DungeonPlayerState;
   exitReached: boolean;
   path: string[];
+  /** 획득한 카드 ID 목록 */
+  cardsGained: string[];
+  /** 획득한 상징 ID 목록 */
+  relicsGained: string[];
 }
 
 export interface DungeonAnalysis {
@@ -347,6 +366,8 @@ export class DungeonSimulator {
       finalPlayerState: player,
       exitReached: false,
       path: [state.currentNodeId],
+      cardsGained: [],
+      relicsGained: [],
     };
 
     let turn = 0;
@@ -388,6 +409,14 @@ export class DungeonSimulator {
         for (const [key, value] of Object.entries(interactionResult.rewards)) {
           result.totalRewards[key] = (result.totalRewards[key] || 0) + value;
         }
+
+        // 카드/상징 보상 수집
+        if (interactionResult.cardsGained.length > 0) {
+          result.cardsGained.push(...interactionResult.cardsGained);
+        }
+        if (interactionResult.relicsGained.length > 0) {
+          result.relicsGained.push(...interactionResult.relicsGained);
+        }
       }
 
       currentNode.cleared = true;
@@ -419,15 +448,26 @@ export class DungeonSimulator {
     obj: DungeonObject,
     player: DungeonPlayerState,
     config: DungeonSimulationConfig
-  ): { success: boolean; rewards: Record<string, number> } {
+  ): { success: boolean; rewards: Record<string, number>; cardsGained: string[]; relicsGained: string[] } {
     if (obj.type === 'combat') {
       // 전투 시뮬레이션
       if (config.battleSimulator) {
         const battleResult = config.battleSimulator.simulateBattle(player, obj.difficulty || 1);
         player.hp -= battleResult.hpLost;
+
+        // 전투 승리 시 카드 보상 (50% 확률)
+        const cardsGained: string[] = [];
+        if (battleResult.won && Math.random() < 0.5) {
+          const randomCard = DUNGEON_CARD_REWARDS[Math.floor(Math.random() * DUNGEON_CARD_REWARDS.length)];
+          cardsGained.push(randomCard);
+          player.deck.push(randomCard);
+        }
+
         return {
           success: battleResult.won,
           rewards: battleResult.won ? battleResult.rewards : {},
+          cardsGained,
+          relicsGained: [],
         };
       } else {
         // 간단한 전투 시뮬레이션 (개선된 공식)
@@ -444,15 +484,42 @@ export class DungeonSimulator {
           player.hp -= Math.floor(Math.random() * (3 + difficulty));
         }
 
+        // 전투 승리 시 카드 보상 (50% 확률)
+        const cardsGained: string[] = [];
+        if (won && Math.random() < 0.5) {
+          const randomCard = DUNGEON_CARD_REWARDS[Math.floor(Math.random() * DUNGEON_CARD_REWARDS.length)];
+          cardsGained.push(randomCard);
+          player.deck.push(randomCard);
+        }
+
         return {
           success: won,
           rewards: won ? { gold: 20 + difficulty * 10, loot: 1 } : {},
+          cardsGained,
+          relicsGained: [],
         };
       }
     }
 
     // 비전투 오브젝트
     const rewards = obj.rewards || this.getObjectRewards(obj.type);
+    const cardsGained: string[] = [];
+    const relicsGained: string[] = [];
+
+    // 보물 상자에서 카드/상징 보상
+    if (obj.type === 'chest') {
+      // 보물 상자는 항상 카드 1장 제공
+      const randomCard = DUNGEON_CARD_REWARDS[Math.floor(Math.random() * DUNGEON_CARD_REWARDS.length)];
+      cardsGained.push(randomCard);
+      player.deck.push(randomCard);
+
+      // 희귀 보물 상자는 상징도 제공 (25% 확률)
+      if (obj.quality === 'rare' && Math.random() < 0.25) {
+        const randomRelic = DUNGEON_RELIC_REWARDS[Math.floor(Math.random() * DUNGEON_RELIC_REWARDS.length)];
+        relicsGained.push(randomRelic);
+        player.relics.push(randomRelic);
+      }
+    }
 
     // 보상 적용
     player.gold += rewards.gold || 0;
@@ -461,7 +528,7 @@ export class DungeonSimulator {
     player.loot += rewards.loot || 0;
     player.hp = Math.min(player.maxHp, player.hp + (rewards.hp || 0));
 
-    return { success: true, rewards };
+    return { success: true, rewards, cardsGained, relicsGained };
   }
 
   /**
