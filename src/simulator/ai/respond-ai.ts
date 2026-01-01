@@ -101,6 +101,29 @@ export class RespondAI {
   }
 
   /**
+   * 카드 사용에 필요한 토큰이 있는지 확인
+   * @param card 확인할 카드
+   * @param playerTokens 플레이어가 가진 토큰
+   * @returns 사용 가능 여부
+   */
+  private canUseCard(card: GameCard, playerTokens: TokenState = {}): boolean {
+    // 토큰 요구사항이 없으면 사용 가능
+    if (!card.requiredTokens || card.requiredTokens.length === 0) {
+      return true;
+    }
+
+    // 각 요구 토큰 확인
+    for (const required of card.requiredTokens) {
+      const currentStacks = playerTokens[required.id] || 0;
+      if (currentStacks < required.stacks) {
+        return false; // 토큰이 부족하면 사용 불가
+      }
+    }
+
+    return true;
+  }
+
+  /**
    * 타임라인 분석
    * @param state 현재 전투 상태
    * @returns 분석 결과
@@ -237,17 +260,29 @@ export class RespondAI {
       expectedOutcome: { damagePrevented: 0, damageDealt: 0, blockGained: 0 },
     };
 
+    // 플레이어 토큰 상태 가져오기
+    const playerTokens = state.player.tokens || {};
+
     // 대응 카드 필터링 (reaction 타입, 반격 특성, 즉발 카드)
-    const reactionCards = availableCards.filter(card =>
-      card.type === 'reaction' ||
-      card.priority === 'instant' ||
-      card.traits?.includes('counter') ||
-      card.traits?.includes('counterShot') ||
-      card.parryRange // 패링 카드 포함
-    );
+    // + 토큰 요구사항 확인
+    const reactionCards = availableCards.filter(card => {
+      // 먼저 토큰 요구사항 확인
+      if (!this.canUseCard(card, playerTokens)) {
+        return false;
+      }
+
+      // 대응 가능한 카드 타입 확인
+      return (
+        card.type === 'reaction' ||
+        card.priority === 'instant' ||
+        card.traits?.includes('counter') ||
+        card.traits?.includes('counterShot') ||
+        card.parryRange // 패링 카드 포함
+      );
+    });
 
     if (reactionCards.length === 0) {
-      return { ...noResponse, reason: '대응 카드 없음' };
+      return { ...noResponse, reason: '대응 카드 없음 (토큰 부족 포함)' };
     }
 
     // 위험도에 따른 대응 확률 조정
@@ -610,34 +645,142 @@ export class RespondAI {
    * @returns 적의 대응 결정
    */
   decideEnemyResponse(state: GameBattleState): ResponseDecision {
-    // 적은 단순한 규칙 기반 AI 사용
     const playerCards = state.timeline.filter(tc => tc.owner === 'player');
+    const enemyCards = state.timeline.filter(tc => tc.owner === 'enemy');
 
-    // 플레이어 위협도 계산
-    let playerThreat = 0;
+    // 1. 플레이어 위협도 분석
+    let expectedPlayerDamage = 0;
+    const dangerousPlayerCards: { cardId: string; damage: number; position: number }[] = [];
+
     for (const tc of playerCards) {
       const card = this.cards[tc.cardId];
-      if (card?.damage) {
-        playerThreat += card.damage * (card.hits || 1);
+      if (!card) continue;
+
+      if (card.damage) {
+        const damage = card.damage * (card.hits || 1);
+        expectedPlayerDamage += damage;
+        if (damage >= 8) {
+          dangerousPlayerCards.push({ cardId: tc.cardId, damage, position: tc.position });
+        }
       }
     }
 
-    // 위협이 높으면 방어적 대응 (실제로는 적 덱에 따라 달라짐)
-    if (playerThreat > state.enemy.hp * 0.3) {
+    // 2. 적 생존 위험 평가
+    const hpRatio = state.enemy.hp / (state.enemy.maxHp || state.enemy.hp);
+    const survivalRisk = expectedPlayerDamage >= state.enemy.hp;
+    const highThreat = expectedPlayerDamage >= state.enemy.hp * 0.5;
+
+    // 3. 적의 사용 가능한 대응 카드 확인 (이미 타임라인에 없는 카드)
+    const usedCardIds = new Set(enemyCards.map(tc => tc.cardId));
+    const availableReactionCards: GameCard[] = [];
+
+    // 적 덱에서 reaction 타입 또는 defense 타입 카드 찾기
+    for (const cardId of Object.keys(this.cards)) {
+      const card = this.cards[cardId];
+      if (!card) continue;
+
+      // 적 카드인지 확인 (enemy 태그 또는 적 전용 카드)
+      const isEnemyCard = card.tags?.includes('enemy') ||
+                          cardId.includes('ghoul') ||
+                          cardId.includes('marauder') ||
+                          cardId.includes('slaughterer') ||
+                          cardId.includes('deserter');
+
+      if (!isEnemyCard) continue;
+      if (usedCardIds.has(cardId)) continue;
+
+      // 방어/대응 카드 확인
+      if (card.type === 'defense' || card.type === 'reaction' || card.block) {
+        availableReactionCards.push(card);
+      }
+    }
+
+    // 4. 대응 결정
+    if (availableReactionCards.length === 0) {
       return {
-        shouldRespond: false, // 적은 대응 단계에서 추가 카드 사용 안 함
+        shouldRespond: false,
         responseCards: [],
-        reason: '적 대응 패스',
+        reason: '사용 가능한 대응 카드 없음',
         expectedOutcome: { damagePrevented: 0, damageDealt: 0, blockGained: 0 },
       };
     }
 
+    // 생존 위험이 높거나 고위협 상황에서 대응
+    if (survivalRisk || (highThreat && hpRatio < 0.6)) {
+      // 가장 효과적인 방어 카드 선택
+      const sortedDefense = availableReactionCards.sort((a, b) => {
+        const blockA = a.block || 0;
+        const blockB = b.block || 0;
+        return blockB - blockA;
+      });
+
+      const responseCards: string[] = [];
+      let totalBlockGained = 0;
+      let damagePrevented = 0;
+
+      // 최대 2장까지 대응 카드 선택
+      for (const card of sortedDefense.slice(0, 2)) {
+        responseCards.push(card.id);
+        totalBlockGained += card.block || 0;
+      }
+
+      // 방어로 막을 수 있는 피해량 계산
+      damagePrevented = Math.min(totalBlockGained, expectedPlayerDamage);
+
+      if (responseCards.length > 0) {
+        return {
+          shouldRespond: true,
+          responseCards,
+          reason: survivalRisk ? '생존 위협 - 긴급 방어' : '고위험 - 방어 대응',
+          expectedOutcome: {
+            damagePrevented,
+            damageDealt: 0,
+            blockGained: totalBlockGained,
+          },
+        };
+      }
+    }
+
+    // 낮은 위협 상황에서는 대응 안함 (자원 보존)
     return {
       shouldRespond: false,
       responseCards: [],
-      reason: '적 대응 불필요',
+      reason: '위협도 낮음 - 대응 불필요',
       expectedOutcome: { damagePrevented: 0, damageDealt: 0, blockGained: 0 },
     };
+  }
+
+  // ==================== 적 AI 카드 선택 강화 ====================
+
+  /**
+   * 적 AI의 교차 공격 결정
+   * 플레이어 카드와 같은 위치에 카드 배치하여 교차 효과 활용
+   */
+  decideEnemyCrossAttack(
+    state: GameBattleState,
+    availableCards: GameCard[]
+  ): { cardId: string; position: number } | null {
+    const playerCards = state.timeline.filter(tc => tc.owner === 'player');
+
+    // 플레이어 방어 카드 위치 찾기 (교차로 무력화 가능)
+    for (const tc of playerCards) {
+      const playerCard = this.cards[tc.cardId];
+      if (!playerCard) continue;
+
+      // 방어 카드에 교차 공격
+      if (playerCard.type === 'defense' || playerCard.block) {
+        // 공격 카드 찾기
+        const attackCard = availableCards.find(c =>
+          c.type === 'attack' && c.damage && c.damage >= (playerCard.block || 0)
+        );
+
+        if (attackCard) {
+          return { cardId: attackCard.id, position: tc.position };
+        }
+      }
+    }
+
+    return null;
   }
 }
 
