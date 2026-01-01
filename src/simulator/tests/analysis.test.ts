@@ -140,6 +140,7 @@ describe('TrendAnalyzer', () => {
 
   beforeEach(() => {
     analyzer = new TrendAnalyzer('/tmp/test-trends.json');
+    analyzer.clearHistory();
   });
 
   describe('recordDataPoint', () => {

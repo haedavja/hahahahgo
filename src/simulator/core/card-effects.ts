@@ -152,24 +152,24 @@ const SPECIAL_EFFECTS: Record<string, SpecialEffectHandler> = {
   // ==================== 총기 효과 ====================
 
   causeJam: (state, _card, actor) => {
-    const tokens = actor === 'player'
-      ? (state.player.tokens = addToken(state.player.tokens, 'gun_jam', 1))
-      : (state.enemy.tokens = addToken(state.enemy.tokens, 'gun_jam', 1));
+    const target = actor === 'player' ? state.player : state.enemy;
+    target.tokens = addToken(target.tokens, 'gun_jam', 1);
+    const tokenKey = actor === 'player' ? 'playerTokens' : 'enemyTokens';
     return {
       success: true,
       effects: ['탄걸림 발생'],
-      stateChanges: { playerTokens: [{ id: 'gun_jam', stacks: 1 }] },
+      stateChanges: { [tokenKey]: [{ id: 'gun_jam', stacks: 1 }] },
     };
   },
 
   emptyAfterUse: (state, _card, actor) => {
-    const tokens = actor === 'player'
-      ? (state.player.tokens = addToken(state.player.tokens, 'gun_jam', 1))
-      : (state.enemy.tokens = addToken(state.enemy.tokens, 'gun_jam', 1));
+    const target = actor === 'player' ? state.player : state.enemy;
+    target.tokens = addToken(target.tokens, 'gun_jam', 1);
+    const tokenKey = actor === 'player' ? 'playerTokens' : 'enemyTokens';
     return {
       success: true,
       effects: ['사용 후 탄걸림'],
-      stateChanges: { playerTokens: [{ id: 'gun_jam', stacks: 1 }] },
+      stateChanges: { [tokenKey]: [{ id: 'gun_jam', stacks: 1 }] },
     };
   },
 
@@ -193,10 +193,9 @@ const SPECIAL_EFFECTS: Record<string, SpecialEffectHandler> = {
 
   reloadSpray: (state, _card, actor) => {
     // 장전 후 난사 - 장전 효과 먼저
-    if (actor === 'player') {
-      state.player.tokens = removeToken(state.player.tokens, 'gun_jam', 99);
-      state.player.tokens = removeToken(state.player.tokens, 'roulette', 99);
-    }
+    const target = actor === 'player' ? state.player : state.enemy;
+    target.tokens = removeToken(target.tokens, 'gun_jam', 99);
+    target.tokens = removeToken(target.tokens, 'roulette', 99);
     return {
       success: true,
       effects: ['장전 후 난사'],
@@ -206,11 +205,12 @@ const SPECIAL_EFFECTS: Record<string, SpecialEffectHandler> = {
 
   autoReload: (state, _card, actor) => {
     // 손패에 장전카드 있으면 자동 장전
+    const target = actor === 'player' ? state.player : state.enemy;
     const hand = actor === 'player' ? state.player.hand : state.enemy.deck;
     const hasReload = hand.some(id => id.includes('reload') || id.includes('load'));
-    if (hasReload && actor === 'player') {
-      state.player.tokens = removeToken(state.player.tokens, 'gun_jam', 99);
-      state.player.tokens = removeToken(state.player.tokens, 'roulette', 99);
+    if (hasReload) {
+      target.tokens = removeToken(target.tokens, 'gun_jam', 99);
+      target.tokens = removeToken(target.tokens, 'roulette', 99);
     }
     return {
       success: hasReload,
@@ -235,25 +235,25 @@ const SPECIAL_EFFECTS: Record<string, SpecialEffectHandler> = {
   },
 
   fullHeal: (state, _card, actor) => {
-    if (actor === 'player') {
-      state.player.hp = state.player.maxHp;
-    }
+    const target = actor === 'player' ? state.player : state.enemy;
+    target.hp = target.maxHp;
+    const healKey = actor === 'player' ? 'playerHeal' : 'enemyHeal';
     return {
       success: true,
       effects: ['체력 최대 회복'],
-      stateChanges: { playerHeal: state.player.maxHp },
+      stateChanges: { [healKey]: target.maxHp },
     };
   },
 
   mentalFocus: (state, _card, actor) => {
     // 다음 턴 최대속도 증가, 카드 추가 사용
-    if (actor === 'player') {
-      state.player.tokens = addToken(state.player.tokens, 'mental_focus', 1);
-    }
+    const target = actor === 'player' ? state.player : state.enemy;
+    target.tokens = addToken(target.tokens, 'mental_focus', 1);
+    const tokenKey = actor === 'player' ? 'playerTokens' : 'enemyTokens';
     return {
       success: true,
       effects: ['다음 턴 최대속도 +8, 카드 +2'],
-      stateChanges: { playerTokens: [{ id: 'mental_focus', stacks: 1 }] },
+      stateChanges: { [tokenKey]: [{ id: 'mental_focus', stacks: 1 }] },
     };
   },
 
@@ -351,28 +351,25 @@ const SPECIAL_EFFECTS: Record<string, SpecialEffectHandler> = {
 
   hologram: (state, _card, actor) => {
     // 최대 체력만큼 방어력
-    if (actor === 'player') {
-      state.player.block += state.player.maxHp;
-      state.player.tokens = addToken(state.player.tokens, 'vigilance', 1);
-    }
+    const target = actor === 'player' ? state.player : state.enemy;
+    target.block += target.maxHp;
+    target.tokens = addToken(target.tokens, 'vigilance', 1);
+    const blockKey = actor === 'player' ? 'playerBlock' : 'enemyBlock';
     return {
       success: true,
-      effects: [`최대 체력(${state.player.maxHp})만큼 방어력 획득`],
-      stateChanges: { playerBlock: state.player.maxHp },
+      effects: [`최대 체력(${target.maxHp})만큼 방어력 획득`],
+      stateChanges: { [blockKey]: target.maxHp },
     };
   },
 
   tempeteDechainee: (state, _card, actor) => {
     // 기교 스택만큼 추가 타격
-    const finesseStacks = actor === 'player'
-      ? getTokenStacks(state.player.tokens, 'finesse')
-      : getTokenStacks(state.enemy.tokens, 'finesse');
+    const target = actor === 'player' ? state.player : state.enemy;
+    const finesseStacks = getTokenStacks(target.tokens, 'finesse');
     const extraHits = finesseStacks * 3;
 
     // 기교 모두 소모
-    if (actor === 'player') {
-      state.player.tokens = removeToken(state.player.tokens, 'finesse', finesseStacks);
-    }
+    target.tokens = removeToken(target.tokens, 'finesse', finesseStacks);
 
     return {
       success: true,
@@ -385,10 +382,9 @@ const SPECIAL_EFFECTS: Record<string, SpecialEffectHandler> = {
 
   repeatTimeline: (state, _card, actor) => {
     // 내 타임라인 반복 (르 송쥬 뒤 비에야르)
-    if (actor === 'player') {
-      state.player.repeatTimelineNext = true;
-      state.player.blockPerCardExecution = 5;
-    }
+    const target = actor === 'player' ? state.player : state.enemy;
+    target.repeatTimelineNext = true;
+    target.blockPerCardExecution = 5;
     return {
       success: true,
       effects: ['다음 턴 타임라인 반복, 카드당 방어 5'],
@@ -594,13 +590,15 @@ const SPECIAL_EFFECTS: Record<string, SpecialEffectHandler> = {
     };
   },
 
-  sharpenBlade: (state) => {
+  sharpenBlade: (state, _card, actor) => {
     // 모든 검격 카드 공격력 +3 (전투 중 버프)
-    state.player.tokens = addToken(state.player.tokens, 'sharpened', 1);
+    const target = actor === 'player' ? state.player : state.enemy;
+    target.tokens = addToken(target.tokens, 'sharpened', 1);
+    const tokenKey = actor === 'player' ? 'playerTokens' : 'enemyTokens';
     return {
       success: true,
       effects: ['모든 검격 카드 공격력 +3'],
-      stateChanges: { playerTokens: [{ id: 'sharpened', stacks: 1 }] },
+      stateChanges: { [tokenKey]: [{ id: 'sharpened', stacks: 1 }] },
     };
   },
 
@@ -628,8 +626,9 @@ const SPECIAL_EFFECTS: Record<string, SpecialEffectHandler> = {
 
   breach: (state, card, actor) => {
     // 방어력 부여는 여기서 처리
-    if (card.block && actor === 'player') {
-      state.player.block += card.block;
+    const target = actor === 'player' ? state.player : state.enemy;
+    if (card.block) {
+      target.block += card.block;
     }
     return {
       success: true,
@@ -639,10 +638,9 @@ const SPECIAL_EFFECTS: Record<string, SpecialEffectHandler> = {
   },
 
   executionSquad: (state, _card, actor) => {
-    if (actor === 'player') {
-      state.player.tokens = removeToken(state.player.tokens, 'gun_jam', 99);
-      state.player.tokens = addToken(state.player.tokens, 'jam_immunity', 1);
-    }
+    const target = actor === 'player' ? state.player : state.enemy;
+    target.tokens = removeToken(target.tokens, 'gun_jam', 99);
+    target.tokens = addToken(target.tokens, 'jam_immunity', 1);
     return {
       success: true,
       effects: ['장전 + 탄걸림 면역 + 총격 창조'],
