@@ -8,6 +8,9 @@ import {
   getPlayerGold,
   exitShop,
   bypassDungeon,
+  closeRest,
+  closeEvent,
+  waitForUIStable,
 } from './utils/test-helpers';
 
 /**
@@ -134,15 +137,40 @@ test.describe('전체 런 시나리오', () => {
         // 노드 타입에 따른 처리
         if (nodeType === 'battle' || nodeType === 'elite') {
           const battleScreen = page.locator('[data-testid="battle-screen"]');
-          if (await battleScreen.isVisible({ timeout: 1000 }).catch(() => false)) {
-            await quickAutoBattle(page);
+          if (await battleScreen.isVisible({ timeout: 2000 }).catch(() => false)) {
+            await quickAutoBattle(page, 25);
+            // 전투 후 맵으로 복귀 대기
+            await waitForMap(page).catch(() => {});
           }
         } else if (nodeType === 'shop') {
           await exitShop(page);
         } else if (nodeType === 'dungeon') {
           await bypassDungeon(page);
+        } else if (nodeType === 'rest') {
+          // 휴식 노드: 첫 번째 옵션 선택 후 닫기
+          const restModal = page.locator('[data-testid="rest-modal"]');
+          if (await restModal.isVisible({ timeout: 1000 }).catch(() => false)) {
+            const healBtn = page.locator('[data-testid="rest-btn-heal"]');
+            if (await healBtn.isVisible({ timeout: 500 }).catch(() => false)) {
+              await healBtn.click();
+            }
+            await closeRest(page);
+          }
+        } else if (nodeType === 'event') {
+          // 이벤트 노드: 첫 번째 선택지 선택 후 닫기
+          const eventModal = page.locator('[data-testid="event-modal"]');
+          if (await eventModal.isVisible({ timeout: 1000 }).catch(() => false)) {
+            const firstChoice = page.locator('[data-testid^="event-choice-btn-"]').first();
+            if (await firstChoice.isVisible({ timeout: 500 }).catch(() => false)) {
+              await firstChoice.click();
+            }
+            await closeEvent(page);
+          }
         }
 
+        // 맵으로 복귀 대기
+        await waitForMap(page).catch(() => {});
+        await waitForUIStable(page);
         nodesCleared++;
       }
     }

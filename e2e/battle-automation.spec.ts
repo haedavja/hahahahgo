@@ -9,7 +9,9 @@ import {
   waitForBattleEnd,
   getBattleResult,
   autoPlayBattle,
+  quickAutoBattle,
   getPlayerHp,
+  waitForUIStable,
 } from './utils/test-helpers';
 
 /**
@@ -145,8 +147,8 @@ test.describe('전투 자동화 테스트', () => {
     if (entered) {
       const battleScreen = page.locator('[data-testid="battle-screen"]');
       if (await battleScreen.isVisible()) {
-        // 자동 전투 진행
-        const result = await autoPlayBattle(page, 20);
+        // 자동 전투 진행 (개선된 quickAutoBattle 사용)
+        const result = await quickAutoBattle(page, 25);
 
         console.log('Battle result:', result);
 
@@ -175,8 +177,15 @@ test.describe('전투 자동화 테스트', () => {
         const submitted = await submitCards(page);
 
         if (submitted) {
-          // 턴 진행 대기
-          await page.waitForTimeout(2000);
+          // 턴 진행 대기 (상태 기반)
+          await page.waitForFunction(
+            () => {
+              const phaseEl = document.querySelector('[data-testid="battle-phase"]');
+              return phaseEl?.getAttribute('data-phase') !== 'select';
+            },
+            { timeout: 5000 }
+          ).catch(() => {});
+          await waitForUIStable(page);
 
           // HP 변화 확인
           const afterText = await playerHpText.textContent().catch(() => '');
@@ -269,8 +278,8 @@ test.describe('전투 결과 테스트', () => {
 
       const battleScreen = page.locator('[data-testid="battle-screen"]');
       if (await battleScreen.isVisible()) {
-        // 자동 전투 완료까지 진행
-        const result = await autoPlayBattle(page, 30);
+        // 자동 전투 완료까지 진행 (개선된 quickAutoBattle 사용)
+        const result = await quickAutoBattle(page, 25);
 
         console.log('Final battle result:', result);
 

@@ -442,18 +442,19 @@ export async function selectMapNode(page: Page, nodeType: string): Promise<boole
 
 /**
  * 전투 자동 진행 (단순화된 버전 - 빠른 테스트용)
+ * 개선: 타임아웃 증가, 전투 단계 감지 강화, 턴 종료 처리 추가
  */
-export async function quickAutoBattle(page: Page, maxTurns: number = 15): Promise<'victory' | 'defeat' | 'timeout'> {
-  for (let turn = 0; turn < maxTurns; turn++) {
-    // 전투 결과 확인
+export async function quickAutoBattle(page: Page, maxTurns: number = 20): Promise<'victory' | 'defeat' | 'timeout'> {
+  const checkBattleEnd = async (): Promise<'victory' | 'defeat' | null> => {
+    // 전투 결과 모달 확인
     const resultModal = page.locator('[data-testid="battle-result-modal"], [data-testid="battle-result"]');
-    if (await resultModal.isVisible({ timeout: 200 }).catch(() => false)) {
+    if (await resultModal.isVisible({ timeout: 100 }).catch(() => false)) {
       const resultText = await resultModal.textContent();
-      const result = resultText?.includes('승리') ? 'victory' : 'defeat';
+      const result = resultText?.includes('승리') || resultText?.includes('victory') ? 'victory' : 'defeat';
 
       // 결과 모달 닫기
-      const closeBtn = page.locator('[data-testid="battle-result-close-btn"], button:has-text("확인")');
-      if (await closeBtn.isVisible({ timeout: 500 }).catch(() => false)) {
+      const closeBtn = page.locator('[data-testid="battle-result-close-btn"], button:has-text("확인"), button:has-text("전투 종료")');
+      if (await closeBtn.isVisible({ timeout: 1000 }).catch(() => false)) {
         await closeBtn.click();
       }
       return result;
@@ -464,27 +465,94 @@ export async function quickAutoBattle(page: Page, maxTurns: number = 15): Promis
       return 'defeat';
     }
 
-    // 카드 선택 (첫 번째 카드)
-    const handCards = page.locator('[data-testid^="hand-card-"]');
-    if (await handCards.first().isVisible({ timeout: 300 }).catch(() => false)) {
-      await handCards.first().click().catch(() => {});
+    // 전투 화면이 없으면 종료된 것으로 간주
+    if (!(await page.locator('[data-testid="battle-screen"]').isVisible({ timeout: 100 }).catch(() => false))) {
+      return 'victory'; // 전투 화면이 사라졌으면 승리로 간주
     }
 
-    // 제출 버튼 클릭
-    const submitBtn = page.locator('[data-testid="submit-cards-btn"]');
-    if (await submitBtn.isEnabled({ timeout: 300 }).catch(() => false)) {
-      await submitBtn.click().catch(() => {});
-      // 상태 변화 대기
-      await page.waitForFunction(
-        () => {
-          const timeline = document.querySelector('[data-testid="timeline-container"]');
-          const result = document.querySelector('[data-testid="battle-result"]');
-          return timeline !== null || result !== null;
-        },
-        { timeout: 1000 }
-      ).catch(() => {});
+    return null;
+  };
+
+  for (let turn = 0; turn < maxTurns; turn++) {
+    // 전투 종료 확인
+    const endResult = await checkBattleEnd();
+    if (endResult) return endResult;
+
+    // 현재 전투 단계 확인
+    const phaseEl = page.locator('[data-testid="battle-phase"]');
+    const phase = await phaseEl.getAttribute('data-phase').catch(() => null);
+
+    if (phase === 'select') {
+      // 선택 단계: 카드 선택 후 제출
+      const handCards = page.locator('[data-testid^="hand-card-"]');
+      const cardCount = await handCards.count().catch(() => 0);
+
+      if (cardCount > 0) {
+        // 첫 번째 카드 선택
+        await handCards.first().click().catch(() => {});
+        await page.waitForTimeout(100); // 짧은 대기
+      }
+
+      // 제출 버튼 클릭
+      const submitBtn = page.locator('[data-testid="submit-cards-btn"]');
+      if (await submitBtn.isEnabled({ timeout: 500 }).catch(() => false)) {
+        await submitBtn.click().catch(() => {});
+        // 단계 변화 대기
+        await page.waitForFunction(
+          () => {
+            const el = document.querySelector('[data-testid="battle-phase"]');
+            return el?.getAttribute('data-phase') !== 'select';
+          },
+          { timeout: 3000 }
+        ).catch(() => {});
+      }
+    } else if (phase === 'respond') {
+      // 대응 단계: 진행 버튼 클릭
+      const proceedBtn = page.locator('button:has-text("진행 시작"), button:has-text("▶️ 진행")');
+      if (await proceedBtn.isVisible({ timeout: 500 }).catch(() => false)) {
+        await proceedBtn.click().catch(() => {});
+        await page.waitForFunction(
+          () => {
+            const el = document.querySelector('[data-testid="battle-phase"]');
+            return el?.getAttribute('data-phase') === 'resolve';
+          },
+          { timeout: 3000 }
+        ).catch(() => {});
+      }
+    } else if (phase === 'resolve') {
+      // 진행 단계: 자동 진행 또는 턴 종료
+      const turnEndBtn = page.locator('button:has-text("턴 종료"), button:has-text("전투 종료")');
+      if (await turnEndBtn.isVisible({ timeout: 500 }).catch(() => false)) {
+        await turnEndBtn.click().catch(() => {});
+        // 다음 턴 또는 전투 종료 대기
+        await page.waitForFunction(
+          () => {
+            const phaseEl = document.querySelector('[data-testid="battle-phase"]');
+            const battleScreen = document.querySelector('[data-testid="battle-screen"]');
+            const result = document.querySelector('[data-testid="battle-result"]');
+            return phaseEl?.getAttribute('data-phase') === 'select' || !battleScreen || result;
+          },
+          { timeout: 5000 }
+        ).catch(() => {});
+      } else {
+        // 자동 진행 버튼 클릭
+        const autoBtn = page.locator('button:has-text("▶️ 진행")');
+        if (await autoBtn.isVisible({ timeout: 300 }).catch(() => false)) {
+          await autoBtn.click().catch(() => {});
+        }
+        // 타임라인 진행 대기
+        await page.waitForTimeout(500);
+      }
+    } else {
+      // 단계를 알 수 없는 경우 대기
+      await page.waitForTimeout(300);
     }
+
+    // 턴 후 전투 종료 재확인
+    const postTurnResult = await checkBattleEnd();
+    if (postTurnResult) return postTurnResult;
   }
+
   return 'timeout';
 }
 
