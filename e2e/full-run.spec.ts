@@ -1,9 +1,19 @@
-import { test, expect, Page } from '@playwright/test';
-import { resetGameState } from './utils/test-helpers';
+import { test, expect } from '@playwright/test';
+import {
+  resetGameState,
+  waitForMap,
+  selectMapNode,
+  quickAutoBattle,
+  getPlayerHp,
+  getPlayerGold,
+  exitShop,
+  bypassDungeon,
+} from './utils/test-helpers';
 
 /**
  * 전체 런 시나리오 E2E 테스트
  * 게임 시작부터 보스전까지의 전체 흐름 테스트
+ * 개선: 중앙 헬퍼 함수 사용, waitForTimeout 제거
  */
 
 test.describe('전체 런 시나리오', () => {
@@ -11,107 +21,6 @@ test.describe('전체 런 시나리오', () => {
     await page.goto('/');
     await resetGameState(page);
   });
-
-  /**
-   * 맵 화면 대기 헬퍼
-   */
-  async function waitForMap(page: Page) {
-    await page.waitForSelector('[data-testid="map-container"]', {
-      timeout: 15000,
-    }).catch(async () => {
-      // 시작 버튼이 있으면 클릭
-      const startBtn = page.locator('button:has-text("시작"), button:has-text("Start")');
-      if (await startBtn.isVisible()) {
-        await startBtn.click();
-      }
-    });
-  }
-
-  /**
-   * 노드 선택 헬퍼
-   */
-  async function selectNode(page: Page, nodeType: string) {
-    const node = page.locator(`[data-testid="map-node-${nodeType}"], [data-node-type="${nodeType}"]`).first();
-    if (await node.isVisible()) {
-      await node.click();
-      await page.waitForTimeout(500);
-      return true;
-    }
-    return false;
-  }
-
-  /**
-   * 전투 자동 진행 헬퍼
-   */
-  async function autoBattle(page: Page, maxTurns = 15): Promise<'victory' | 'defeat' | 'timeout'> {
-    for (let turn = 0; turn < maxTurns; turn++) {
-      // 전투 결과 확인
-      const resultModal = page.locator('[data-testid="battle-result-modal"], [data-testid="battle-result"]');
-      if (await resultModal.isVisible()) {
-        const resultText = await resultModal.textContent();
-        const result = resultText?.includes('승리') ? 'victory' : 'defeat';
-
-        // 결과 모달 닫기
-        const closeBtn = page.locator('[data-testid="battle-result-close-btn"], button:has-text("확인")');
-        if (await closeBtn.isVisible()) {
-          await closeBtn.click();
-        }
-        return result;
-      }
-
-      // 패배 플래그 확인
-      const defeatFlag = page.locator('[data-testid="defeat-flag"]');
-      if (await defeatFlag.isVisible()) {
-        return 'defeat';
-      }
-
-      // 카드 선택 (손패에서 첫 번째 카드)
-      const handCards = page.locator('[data-testid="hand-card"], .hand-card');
-      const cardCount = await handCards.count();
-
-      if (cardCount > 0) {
-        await handCards.first().click().catch(() => {});
-        await page.waitForTimeout(100);
-      }
-
-      // 제출 버튼
-      const submitBtn = page.locator('[data-testid="submit-cards-btn"], button:has-text("제출"), button:has-text("확인")');
-      if (await submitBtn.isVisible() && await submitBtn.isEnabled()) {
-        await submitBtn.click().catch(() => {});
-      }
-
-      await page.waitForTimeout(500);
-    }
-    return 'timeout';
-  }
-
-  /**
-   * 현재 HP 확인 헬퍼
-   */
-  async function getPlayerHp(page: Page): Promise<{ current: number; max: number }> {
-    const hpElement = page.locator('[data-testid="player-hp"]');
-    if (await hpElement.isVisible()) {
-      const text = await hpElement.textContent();
-      const match = text?.match(/(\d+)\s*\/\s*(\d+)/);
-      if (match) {
-        return { current: parseInt(match[1]), max: parseInt(match[2]) };
-      }
-    }
-    return { current: 0, max: 0 };
-  }
-
-  /**
-   * 현재 골드 확인 헬퍼
-   */
-  async function getPlayerGold(page: Page): Promise<number> {
-    const goldElement = page.locator('[data-testid="player-gold"]');
-    if (await goldElement.isVisible()) {
-      const text = await goldElement.textContent();
-      const match = text?.match(/(\d+)/);
-      return match ? parseInt(match[1]) : 0;
-    }
-    return 0;
-  }
 
   test('게임 시작 후 맵이 표시됨', async ({ page }) => {
     await waitForMap(page);
@@ -127,21 +36,18 @@ test.describe('전체 런 시나리오', () => {
   test('전투 노드 선택 및 전투 진행', async ({ page }) => {
     await waitForMap(page);
 
-    // 전투 노드 선택
-    const battleSelected = await selectNode(page, 'battle');
+    // 전투 노드 선택 (중앙 헬퍼 사용)
+    const battleSelected = await selectMapNode(page, 'battle');
 
     if (battleSelected) {
-      // 전투 화면 대기
-      await page.waitForSelector('[data-testid="battle-screen"]', { timeout: 5000 }).catch(() => {});
-
       const battleScreen = page.locator('[data-testid="battle-screen"]');
-      if (await battleScreen.isVisible()) {
+      if (await battleScreen.isVisible({ timeout: 3000 }).catch(() => false)) {
         // 핸드 영역 확인
         const handArea = page.locator('[data-testid="hand-area"]');
         await expect(handArea).toBeVisible();
 
-        // 자동 전투 진행
-        const result = await autoBattle(page);
+        // 자동 전투 진행 (중앙 헬퍼 사용)
+        const result = await quickAutoBattle(page);
         expect(['victory', 'defeat', 'timeout']).toContain(result);
       }
     }
@@ -150,14 +56,11 @@ test.describe('전체 런 시나리오', () => {
   test('상점 노드 선택 및 상점 UI 확인', async ({ page }) => {
     await waitForMap(page);
 
-    const shopSelected = await selectNode(page, 'shop');
+    const shopSelected = await selectMapNode(page, 'shop');
 
     if (shopSelected) {
-      // 상점 모달 대기
-      await page.waitForSelector('[data-testid="shop-modal"]', { timeout: 5000 }).catch(() => {});
-
       const shopModal = page.locator('[data-testid="shop-modal"]');
-      if (await shopModal.isVisible()) {
+      if (await shopModal.isVisible({ timeout: 3000 }).catch(() => false)) {
         // 상점 헤더 확인
         const shopHeader = page.locator('[data-testid="shop-header"]');
         await expect(shopHeader).toBeVisible();
@@ -170,9 +73,8 @@ test.describe('전체 런 시나리오', () => {
         const buyTab = page.locator('[data-testid="shop-tab-buy"]');
         await expect(buyTab).toBeVisible();
 
-        // 나가기 버튼으로 상점 종료
-        const exitBtn = page.locator('[data-testid="shop-exit-btn"]');
-        await exitBtn.click();
+        // 상점 종료 (중앙 헬퍼 사용)
+        await exitShop(page);
 
         // 상점이 닫혔는지 확인
         await expect(shopModal).not.toBeVisible({ timeout: 3000 });
@@ -183,24 +85,21 @@ test.describe('전체 런 시나리오', () => {
   test('던전 노드 선택 및 진입 확인', async ({ page }) => {
     await waitForMap(page);
 
-    const dungeonSelected = await selectNode(page, 'dungeon');
+    const dungeonSelected = await selectMapNode(page, 'dungeon');
 
     if (dungeonSelected) {
-      // 던전 진입 모달 대기
-      await page.waitForSelector('[data-testid="dungeon-modal"]', { timeout: 5000 }).catch(() => {});
-
       const dungeonModal = page.locator('[data-testid="dungeon-modal"]');
-      if (await dungeonModal.isVisible()) {
+      if (await dungeonModal.isVisible({ timeout: 3000 }).catch(() => false)) {
         // 진입 버튼 확인
         const confirmBtn = page.locator('[data-testid="dungeon-confirm-btn"]');
         await expect(confirmBtn).toBeVisible();
 
         // 우회 버튼 확인
-        const bypassBtn = page.locator('[data-testid="dungeon-bypass-btn"]');
-        await expect(bypassBtn).toBeVisible();
+        const bypassBtnLocator = page.locator('[data-testid="dungeon-bypass-btn"]');
+        await expect(bypassBtnLocator).toBeVisible();
 
-        // 우회 선택 (안전하게)
-        await bypassBtn.click();
+        // 우회 선택 (중앙 헬퍼 사용)
+        await bypassDungeon(page);
 
         // 모달이 닫혔는지 확인
         await expect(dungeonModal).not.toBeVisible({ timeout: 3000 });
@@ -211,44 +110,40 @@ test.describe('전체 런 시나리오', () => {
   test('다중 노드 진행 (3개 노드)', async ({ page }) => {
     await waitForMap(page);
 
-    const initialHp = await getPlayerHp(page);
-    const initialGold = await getPlayerGold(page);
-
     let nodesCleared = 0;
     const maxNodes = 3;
 
     for (let i = 0; i < maxNodes; i++) {
       // 선택 가능한 노드 찾기
-      const selectableNode = page.locator('.node.selectable, [data-testid^="map-node-"]:not(.cleared)').first();
+      const selectableNode = page.locator('[data-node-selectable="true"]').first();
 
-      if (await selectableNode.isVisible()) {
+      if (await selectableNode.isVisible({ timeout: 2000 }).catch(() => false)) {
         const nodeType = await selectableNode.getAttribute('data-node-type');
         await selectableNode.click();
-        await page.waitForTimeout(500);
+
+        // 노드 클릭 후 상태 변화 대기
+        await page.waitForFunction(
+          () => {
+            const battle = document.querySelector('[data-testid="battle-screen"]');
+            const modal = document.querySelector('[data-testid$="-modal"]');
+            return battle !== null || modal !== null;
+          },
+          { timeout: 3000 }
+        ).catch(() => {});
 
         // 노드 타입에 따른 처리
         if (nodeType === 'battle' || nodeType === 'elite') {
-          await page.waitForSelector('[data-testid="battle-screen"]', { timeout: 5000 }).catch(() => {});
           const battleScreen = page.locator('[data-testid="battle-screen"]');
-          if (await battleScreen.isVisible()) {
-            await autoBattle(page);
+          if (await battleScreen.isVisible({ timeout: 1000 }).catch(() => false)) {
+            await quickAutoBattle(page);
           }
         } else if (nodeType === 'shop') {
-          await page.waitForSelector('[data-testid="shop-modal"]', { timeout: 5000 }).catch(() => {});
-          const exitBtn = page.locator('[data-testid="shop-exit-btn"]');
-          if (await exitBtn.isVisible()) {
-            await exitBtn.click();
-          }
+          await exitShop(page);
         } else if (nodeType === 'dungeon') {
-          await page.waitForSelector('[data-testid="dungeon-modal"]', { timeout: 5000 }).catch(() => {});
-          const bypassBtn = page.locator('[data-testid="dungeon-bypass-btn"]');
-          if (await bypassBtn.isVisible()) {
-            await bypassBtn.click();
-          }
+          await bypassDungeon(page);
         }
 
         nodesCleared++;
-        await page.waitForTimeout(500);
       }
     }
 
@@ -261,15 +156,14 @@ test.describe('전체 런 시나리오', () => {
     const initialHp = await getPlayerHp(page);
     console.log(`Initial HP: ${initialHp.current}/${initialHp.max}`);
 
-    // 전투 노드 선택
-    const battleSelected = await selectNode(page, 'battle');
+    // 전투 노드 선택 (중앙 헬퍼 사용)
+    const battleSelected = await selectMapNode(page, 'battle');
 
     if (battleSelected) {
-      await page.waitForSelector('[data-testid="battle-screen"]', { timeout: 5000 }).catch(() => {});
       const battleScreen = page.locator('[data-testid="battle-screen"]');
 
-      if (await battleScreen.isVisible()) {
-        await autoBattle(page);
+      if (await battleScreen.isVisible({ timeout: 3000 }).catch(() => false)) {
+        await quickAutoBattle(page);
 
         // 전투 후 HP 확인
         await waitForMap(page);
@@ -288,15 +182,14 @@ test.describe('전체 런 시나리오', () => {
     const initialGold = await getPlayerGold(page);
     console.log(`Initial Gold: ${initialGold}`);
 
-    // 전투 노드 선택 (전투 승리 시 골드 획득)
-    const battleSelected = await selectNode(page, 'battle');
+    // 전투 노드 선택 (중앙 헬퍼 사용)
+    const battleSelected = await selectMapNode(page, 'battle');
 
     if (battleSelected) {
-      await page.waitForSelector('[data-testid="battle-screen"]', { timeout: 5000 }).catch(() => {});
       const battleScreen = page.locator('[data-testid="battle-screen"]');
 
-      if (await battleScreen.isVisible()) {
-        const result = await autoBattle(page);
+      if (await battleScreen.isVisible({ timeout: 3000 }).catch(() => false)) {
+        const result = await quickAutoBattle(page);
 
         if (result === 'victory') {
           await waitForMap(page);

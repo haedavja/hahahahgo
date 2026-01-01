@@ -169,11 +169,11 @@ export const CentralPhaseDisplay: FC<CentralPhaseDisplayProps> = memo(({
   const phaseTitle = battle.phase === 'select' ? '선택 단계' : battle.phase === 'respond' ? '대응 단계' : '진행 단계';
 
   return (
-    <div style={CONTAINER_STYLE}>
-      <div style={PHASE_TITLE_STYLE}>
+    <div style={CONTAINER_STYLE} data-testid="central-phase-display">
+      <div style={PHASE_TITLE_STYLE} data-testid="battle-phase" data-phase={battle.phase}>
         {phaseTitle}
       </div>
-      <div style={SPEED_INFO_STYLE}>
+      <div style={SPEED_INFO_STYLE} data-testid="battle-speed-info">
         속도 {totalSpeed}/{MAX_SPEED} · 선택 {battle.selected.length}/{MAX_SUBMIT_CARDS}
       </div>
 
@@ -182,7 +182,7 @@ export const CentralPhaseDisplay: FC<CentralPhaseDisplayProps> = memo(({
           <button onClick={redrawHand} disabled={!canRedraw} className="btn-enhanced flex items-center gap-2" style={BTN_NORMAL_STYLE}>
             🔄 리드로우 (R)
           </button>
-          <button onClick={handleSubmit} disabled={battle.selected.length === 0} className="btn-enhanced btn-primary flex items-center gap-2" style={BTN_PRIMARY_STYLE}>
+          <button onClick={handleSubmit} disabled={battle.selected.length === 0} className="btn-enhanced btn-primary flex items-center gap-2" style={BTN_PRIMARY_STYLE} data-testid="submit-cards-btn">
             ▶️ 제출 <span style={KEY_HINT_STYLE}>(E)</span>
           </button>
           <button onClick={handleOverdriveToggle}

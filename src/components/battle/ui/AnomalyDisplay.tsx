@@ -258,7 +258,7 @@ export const AnomalyDisplay: FC<AnomalyDisplayProps> = memo(({ anomalies }) => {
   }
 
   return (
-    <div style={DISPLAY_CONTAINER_STYLE}>
+    <div style={DISPLAY_CONTAINER_STYLE} data-testid="anomaly-display">
       {anomalies.map(({ anomaly, level }) => {
         const effect = anomaly.getEffect(level);
         const isExpanded = expandedAnomalyId === anomaly.id;
@@ -425,9 +425,9 @@ export const AnomalyNotification: FC<AnomalyNotificationProps> = memo(({ anomali
       {/* 붉은 플래시 오버레이 */}
       <div style={FLASH_OVERLAY_STYLE} />
 
-      <div style={NOTIFICATION_CONTAINER_STYLE}>
+      <div style={NOTIFICATION_CONTAINER_STYLE} data-testid="anomaly-notification">
         {/* 제목 */}
-        <div style={NOTIFICATION_TITLE_STYLE}>
+        <div style={NOTIFICATION_TITLE_STYLE} data-testid="anomaly-notification-title">
           ⚠️ 이변 발생 ⚠️
         </div>
 

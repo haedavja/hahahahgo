@@ -375,6 +375,120 @@ export async function takeDebugScreenshot(page: Page, name: string): Promise<voi
 }
 
 /**
+ * 맵 화면 대기 (게임 시작 자동 처리)
+ */
+export async function waitForMap(page: Page): Promise<void> {
+  try {
+    await page.waitForSelector('[data-testid="map-container"]', { timeout: 10000 });
+  } catch {
+    // 시작 버튼이 있으면 클릭
+    const startBtn = page.locator('button:has-text("시작"), button:has-text("Start")');
+    if (await startBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
+      await startBtn.click();
+      await page.waitForSelector('[data-testid="map-container"]', { timeout: 10000 });
+    }
+  }
+}
+
+/**
+ * UI 안정화 대기 (애니메이션 완료 등)
+ * 상태 기반: 모든 애니메이션/트랜지션 완료 확인
+ */
+export async function waitForUIStable(page: Page, options?: { timeout?: number }): Promise<void> {
+  const timeout = options?.timeout ?? 2000;
+
+  await page.waitForFunction(
+    () => {
+      // 모든 애니메이션이 완료되었는지 확인
+      const animations = document.getAnimations();
+      return animations.every(a => a.playState === 'finished' || a.playState === 'idle');
+    },
+    { timeout }
+  ).catch(() => {});
+
+  // 추가로 네트워크 idle 확인
+  await page.waitForLoadState('networkidle').catch(() => {});
+}
+
+/**
+ * 노드 선택 (맵에서 특정 타입의 노드 클릭)
+ */
+export async function selectMapNode(page: Page, nodeType: string): Promise<boolean> {
+  // 먼저 고유 ID로 시도
+  let node = page.locator(`[data-testid="map-node-${nodeType}"]`).first();
+
+  if (!(await node.isVisible({ timeout: 1000 }).catch(() => false))) {
+    // 타입으로 시도 (선택 가능한 노드만)
+    node = page.locator(`[data-node-type="${nodeType}"][data-node-selectable="true"]`).first();
+  }
+
+  if (await node.isVisible({ timeout: 1000 }).catch(() => false)) {
+    await node.click();
+    // 노드 클릭 후 상태 변화 대기
+    await page.waitForFunction(
+      (type) => {
+        const battleScreen = document.querySelector('[data-testid="battle-screen"]');
+        const modal = document.querySelector('[data-testid$="-modal"]');
+        return battleScreen !== null || modal !== null;
+      },
+      nodeType,
+      { timeout: 3000 }
+    ).catch(() => {});
+    return true;
+  }
+
+  return false;
+}
+
+/**
+ * 전투 자동 진행 (단순화된 버전 - 빠른 테스트용)
+ */
+export async function quickAutoBattle(page: Page, maxTurns: number = 15): Promise<'victory' | 'defeat' | 'timeout'> {
+  for (let turn = 0; turn < maxTurns; turn++) {
+    // 전투 결과 확인
+    const resultModal = page.locator('[data-testid="battle-result-modal"], [data-testid="battle-result"]');
+    if (await resultModal.isVisible({ timeout: 200 }).catch(() => false)) {
+      const resultText = await resultModal.textContent();
+      const result = resultText?.includes('승리') ? 'victory' : 'defeat';
+
+      // 결과 모달 닫기
+      const closeBtn = page.locator('[data-testid="battle-result-close-btn"], button:has-text("확인")');
+      if (await closeBtn.isVisible({ timeout: 500 }).catch(() => false)) {
+        await closeBtn.click();
+      }
+      return result;
+    }
+
+    // 패배 플래그 확인
+    if (await page.locator('[data-testid="defeat-flag"]').isVisible({ timeout: 100 }).catch(() => false)) {
+      return 'defeat';
+    }
+
+    // 카드 선택 (첫 번째 카드)
+    const handCards = page.locator('[data-testid^="hand-card-"]');
+    if (await handCards.first().isVisible({ timeout: 300 }).catch(() => false)) {
+      await handCards.first().click().catch(() => {});
+    }
+
+    // 제출 버튼 클릭
+    const submitBtn = page.locator('[data-testid="submit-cards-btn"]');
+    if (await submitBtn.isEnabled({ timeout: 300 }).catch(() => false)) {
+      await submitBtn.click().catch(() => {});
+      // 상태 변화 대기
+      await page.waitForFunction(
+        () => {
+          const timeline = document.querySelector('[data-testid="timeline-container"]');
+          const result = document.querySelector('[data-testid="battle-result"]');
+          return timeline !== null || result !== null;
+        },
+        { timeout: 1000 }
+      ).catch(() => {});
+    }
+  }
+  return 'timeout';
+}
+
+/**
  * 게임 상태 초기화 (localStorage 클리어)
  */
 export async function resetGameState(page: Page): Promise<void> {
@@ -422,6 +536,7 @@ export async function togglePause(page: Page): Promise<void> {
 
 /**
  * 상태 변화 대기 (특정 요소의 텍스트가 변할 때까지)
+ * 개선: waitForTimeout 대신 waitForFunction 사용
  */
 export async function waitForStateChange(
   page: Page,
@@ -430,20 +545,22 @@ export async function waitForStateChange(
   options?: { timeout?: number }
 ): Promise<boolean> {
   const timeout = options?.timeout ?? 10000;
-  const startTime = Date.now();
 
-  while (Date.now() - startTime < timeout) {
-    const element = page.locator(selector);
-    if (await element.isVisible({ timeout: 100 }).catch(() => false)) {
-      const text = await element.textContent();
-      if (text && expectedPattern.test(text)) {
-        return true;
-      }
-    }
-    await page.waitForTimeout(100); // 짧은 폴링 간격
+  try {
+    await page.waitForFunction(
+      ({ sel, pattern }) => {
+        const el = document.querySelector(sel);
+        if (!el) return false;
+        const text = el.textContent ?? '';
+        return new RegExp(pattern).test(text);
+      },
+      { sel: selector, pattern: expectedPattern.source },
+      { timeout }
+    );
+    return true;
+  } catch {
+    return false;
   }
-
-  return false;
 }
 
 /**
@@ -512,8 +629,15 @@ export async function autoPlayBattle(page: Page, maxTurns: number = 30): Promise
       }
     }
 
-    // 짧은 대기 (전투 애니메이션)
-    await page.waitForTimeout(300);
+    // 전투 애니메이션 상태 변화 대기 (핸드 카드 업데이트 또는 전투 종료)
+    await page.waitForFunction(
+      () => {
+        const handCards = document.querySelector('[data-testid="hand-cards"]');
+        const battleResult = document.querySelector('[data-testid="battle-result"]');
+        return handCards?.children.length !== undefined || battleResult !== null;
+      },
+      { timeout: 1000 }
+    ).catch(() => {});
   }
 
   return 'timeout';

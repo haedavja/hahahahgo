@@ -113,8 +113,8 @@ export const PlayerEtherBox: FC<PlayerEtherBoxProps> = memo(({
   }
 
   return (
-    <div className="player-ether-box" style={CONTAINER_STYLE}>
-      <div className="combo-display" style={COMBO_DISPLAY_STYLE}>
+    <div className="player-ether-box" style={CONTAINER_STYLE} data-testid="player-ether-box">
+      <div className="combo-display" style={COMBO_DISPLAY_STYLE} data-testid="player-combo-display">
         <div style={COMBO_NAME_BASE}>
           <span>{currentCombo.name}</span>
           <DeflationBadge
