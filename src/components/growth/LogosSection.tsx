@@ -130,7 +130,7 @@ const LogosCard = memo(function LogosCard({
         width: '200px',
         flex: '0 0 200px',
         padding: SPACING.md,
-        background: locked ? '#1e293b' : '#1a2f2a', // 불투명 배경
+        background: locked ? '#141a22' : '#1a2f2a', // 1~6단계와 동일 (잠금: #141a22)
         border: locked ? '1px dashed #6b7280' : '1px solid rgba(251, 191, 36, 0.3)',
         borderRadius: BORDER_RADIUS.lg,
         // opacity 제거 - 배경은 불투명 유지

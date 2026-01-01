@@ -150,7 +150,7 @@ const IdentityCard = memo(function IdentityCard({
         width: '200px',
         flex: '0 0 200px',
         padding: SPACING.md,
-        background: isSelected ? '#2a1f2f' : '#1e293b', // 불투명 배경
+        background: isSelected ? '#2a1f2f' : (canAccess ? '#1e293b' : '#141a22'), // 1~6단계와 동일
         border: isSelected
           ? `2px solid ${COLORS.tier.identity.border}`
           : '1px solid #475569',
