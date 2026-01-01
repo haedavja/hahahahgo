@@ -29,8 +29,8 @@ export default defineConfig({
 
   /* 리포터 설정 */
   reporter: [
+    ['./e2e/reporters/stats-reporter.ts'], // 커스텀 통계 리포터
     ['html', { open: 'never' }],
-    ['list'],
   ],
 
   /* 공유 설정 */
