@@ -510,8 +510,34 @@ export async function waitForUIStable(page: Page, options?: { timeout?: number }
 /**
  * 노드 선택 (맵에서 특정 타입의 노드 클릭)
  * @param nodeType - 'battle', 'shop', 'rest', 'event', 'dungeon', 'elite', 'boss', 또는 'any'
+ * @returns { clicked: boolean, reason?: string }
  */
 export async function selectMapNode(page: Page, nodeType: string): Promise<boolean> {
+  // 먼저 선택 가능한 노드 목록 확인
+  const availableTypes = await getSelectableNodeTypes(page);
+
+  if (availableTypes.length === 0) {
+    testLogger.warn('selectMapNode: No selectable nodes on the map');
+    return false;
+  }
+
+  // 요청된 타입이 선택 가능한지 확인
+  if (nodeType !== 'any' && !availableTypes.includes(nodeType)) {
+    testLogger.warn(`selectMapNode: Node type "${nodeType}" not available. Available: ${availableTypes.join(', ')}`);
+    // 요청된 타입이 없지만, 전투 관련 노드를 찾아볼 수 있음
+    const battleTypes = ['battle', 'elite', 'boss'];
+    if (battleTypes.includes(nodeType)) {
+      // 다른 전투 노드가 있는지 확인
+      for (const bt of battleTypes) {
+        if (availableTypes.includes(bt)) {
+          testLogger.info(`selectMapNode: Using alternative battle type "${bt}" instead of "${nodeType}"`);
+          nodeType = bt;
+          break;
+        }
+      }
+    }
+  }
+
   let node;
 
   if (nodeType === 'any') {
@@ -554,7 +580,14 @@ export async function selectMapNode(page: Page, nodeType: string): Promise<boole
   const anyClickable = page.locator('.map-node:not(.cleared):not(.disabled)').first();
   if (await anyClickable.isVisible({ timeout: 1000 }).catch(() => false)) {
     await anyClickable.click();
-    await page.waitForTimeout(1000);
+    await page.waitForFunction(
+      () => {
+        const battleScreen = document.querySelector('[data-testid="battle-screen"]');
+        const modal = document.querySelector('[data-testid$="-modal"]');
+        return battleScreen !== null || modal !== null;
+      },
+      { timeout: 3000 }
+    ).catch(() => {});
     return true;
   }
 
@@ -1216,9 +1249,198 @@ export async function getHitCount(page: Page): Promise<number> {
 // =====================
 
 /**
- * 전투 화면으로 진입 (여러 방법 시도)
- * 1. Test Mixed Battle 버튼 (가장 안정적)
- * 2. 맵에서 전투 노드 클릭
+ * 맵에서 선택 가능한 노드 목록 조회
+ * @returns 선택 가능한 노드들의 타입 배열
+ */
+export async function getSelectableNodeTypes(page: Page): Promise<string[]> {
+  const selectableNodes = page.locator('[data-node-selectable="true"]');
+  const count = await selectableNodes.count().catch(() => 0);
+
+  const types: string[] = [];
+  for (let i = 0; i < count; i++) {
+    const nodeType = await selectableNodes.nth(i).getAttribute('data-node-type');
+    if (nodeType) types.push(nodeType);
+  }
+
+  return types;
+}
+
+/**
+ * 맵에서 특정 타입의 선택 가능한 노드가 있는지 확인
+ */
+export async function hasSelectableNodeOfType(page: Page, nodeType: string): Promise<boolean> {
+  const types = await getSelectableNodeTypes(page);
+  if (nodeType === 'any') return types.length > 0;
+  return types.includes(nodeType);
+}
+
+/**
+ * 전투 노드 타입 목록 (battle, elite, boss)
+ */
+const BATTLE_NODE_TYPES = ['battle', 'elite', 'boss'];
+
+/**
+ * 맵을 탐색하여 전투 노드까지 진행
+ * - 선택 가능한 전투 노드가 있으면 클릭
+ * - 없으면 다른 노드(event, rest 등)를 처리하며 진행
+ * @param maxSteps 최대 탐색 단계 (무한 루프 방지)
+ * @returns 전투 진입 성공 여부
+ */
+export async function enterBattleViaMap(page: Page, maxSteps: number = 10): Promise<boolean> {
+  for (let step = 0; step < maxSteps; step++) {
+    // 이미 전투 화면이면 성공
+    if (await page.locator('[data-testid="battle-screen"]').isVisible({ timeout: 300 }).catch(() => false)) {
+      return true;
+    }
+
+    // 맵 화면 확인
+    if (!(await page.locator('[data-testid="map-container"]').isVisible({ timeout: TIMEOUTS.MEDIUM }).catch(() => false))) {
+      // 맵이 없으면 게임 시작 시도
+      const startBtn = page.locator('button:has-text("시작"), button:has-text("Start")');
+      if (await startBtn.isVisible({ timeout: 500 }).catch(() => false)) {
+        await startBtn.click();
+        await page.waitForSelector('[data-testid="map-container"]', { timeout: TIMEOUTS.LONG }).catch(() => {});
+      }
+    }
+
+    // 선택 가능한 노드 타입 확인
+    const availableTypes = await getSelectableNodeTypes(page);
+    testLogger.debug(`Step ${step + 1}: Available node types: ${availableTypes.join(', ')}`);
+
+    if (availableTypes.length === 0) {
+      testLogger.warn('No selectable nodes available');
+      return false;
+    }
+
+    // 전투 노드 우선 탐색 (battle > elite > boss)
+    let targetType: string | null = null;
+    for (const battleType of BATTLE_NODE_TYPES) {
+      if (availableTypes.includes(battleType)) {
+        targetType = battleType;
+        break;
+      }
+    }
+
+    // 전투 노드가 없으면 진행 가능한 노드 선택 (event 우선, 그 외 아무거나)
+    if (!targetType) {
+      // event는 바로 처리되고 맵으로 돌아오므로 우선 선택
+      targetType = availableTypes.includes('event') ? 'event' : availableTypes[0];
+    }
+
+    // 노드 클릭
+    const nodeSelector = `[data-node-type="${targetType}"][data-node-selectable="true"]`;
+    const node = page.locator(nodeSelector).first();
+
+    if (await node.isVisible({ timeout: TIMEOUTS.SHORT }).catch(() => false)) {
+      await node.scrollIntoViewIfNeeded().catch(() => {});
+      await node.click();
+
+      // 클릭 후 상태 변화 대기
+      await page.waitForFunction(
+        () => {
+          const battleScreen = document.querySelector('[data-testid="battle-screen"]');
+          const modal = document.querySelector('[data-testid$="-modal"]');
+          const mapUpdated = document.querySelectorAll('[data-node-selectable="true"]');
+          return battleScreen !== null || modal !== null || mapUpdated.length > 0;
+        },
+        { timeout: TIMEOUTS.LONG }
+      ).catch(() => {});
+
+      // 전투 화면 진입 확인
+      if (await page.locator('[data-testid="battle-screen"]').isVisible({ timeout: 500 }).catch(() => false)) {
+        return true;
+      }
+
+      // 모달 처리 (event, rest, shop, dungeon)
+      await handleNonBattleModal(page);
+    }
+  }
+
+  return false;
+}
+
+/**
+ * 비전투 모달 처리 (이벤트, 휴식, 상점 등)
+ * 모달을 닫고 맵으로 복귀
+ */
+async function handleNonBattleModal(page: Page): Promise<void> {
+  // 이벤트 모달
+  const eventModal = page.locator('[data-testid="event-modal"]');
+  if (await eventModal.isVisible({ timeout: 300 }).catch(() => false)) {
+    // 첫 번째 선택지 또는 닫기 버튼 클릭
+    const firstChoice = page.locator('[data-testid^="event-choice-btn-"]').first();
+    if (await firstChoice.isVisible({ timeout: 300 }).catch(() => false)) {
+      await firstChoice.click();
+    }
+    // 결과 화면 닫기
+    const closeBtn = page.locator('[data-testid="event-close-btn"], button:has-text("확인"), button:has-text("닫기")').first();
+    if (await closeBtn.isVisible({ timeout: TIMEOUTS.SHORT }).catch(() => false)) {
+      await closeBtn.click();
+    }
+    await page.waitForSelector('[data-testid="event-modal"]', { state: 'hidden', timeout: TIMEOUTS.MEDIUM }).catch(() => {});
+    return;
+  }
+
+  // 휴식 모달
+  const restModal = page.locator('[data-testid="rest-modal"]');
+  if (await restModal.isVisible({ timeout: 300 }).catch(() => false)) {
+    const healBtn = page.locator('[data-testid="rest-btn-heal"], button:has-text("회복")').first();
+    if (await healBtn.isVisible({ timeout: 300 }).catch(() => false)) {
+      await healBtn.click();
+    }
+    const closeBtn = page.locator('[data-testid="rest-close-btn"], button:has-text("나가기")').first();
+    if (await closeBtn.isVisible({ timeout: TIMEOUTS.SHORT }).catch(() => false)) {
+      await closeBtn.click();
+    }
+    await page.waitForSelector('[data-testid="rest-modal"]', { state: 'hidden', timeout: TIMEOUTS.MEDIUM }).catch(() => {});
+    return;
+  }
+
+  // 상점 모달
+  const shopModal = page.locator('[data-testid="shop-modal"]');
+  if (await shopModal.isVisible({ timeout: 300 }).catch(() => false)) {
+    const exitBtn = page.locator('[data-testid="shop-exit-btn"], button:has-text("나가기")').first();
+    if (await exitBtn.isVisible({ timeout: 300 }).catch(() => false)) {
+      await exitBtn.click();
+    }
+    await page.waitForSelector('[data-testid="shop-modal"]', { state: 'hidden', timeout: TIMEOUTS.MEDIUM }).catch(() => {});
+    return;
+  }
+
+  // 던전 모달
+  const dungeonModal = page.locator('[data-testid="dungeon-modal"]');
+  if (await dungeonModal.isVisible({ timeout: 300 }).catch(() => false)) {
+    // 던전 진입 (전투로 이어질 수 있음)
+    const enterBtn = page.locator('[data-testid="dungeon-confirm-btn"], button:has-text("진입")').first();
+    if (await enterBtn.isVisible({ timeout: 300 }).catch(() => false)) {
+      await enterBtn.click();
+    } else {
+      // 우회
+      const bypassBtn = page.locator('[data-testid="dungeon-bypass-btn"], button:has-text("우회")').first();
+      if (await bypassBtn.isVisible({ timeout: 300 }).catch(() => false)) {
+        await bypassBtn.click();
+      }
+    }
+    await page.waitForSelector('[data-testid="dungeon-modal"]', { state: 'hidden', timeout: TIMEOUTS.MEDIUM }).catch(() => {});
+    return;
+  }
+
+  // 보상 모달
+  const rewardModal = page.locator('[data-testid="reward-modal"]');
+  if (await rewardModal.isVisible({ timeout: 300 }).catch(() => false)) {
+    const closeBtn = page.locator('[data-testid="reward-close-btn"], button:has-text("확인"), button:has-text("닫기")').first();
+    if (await closeBtn.isVisible({ timeout: 300 }).catch(() => false)) {
+      await closeBtn.click();
+    }
+    await page.waitForSelector('[data-testid="reward-modal"]', { state: 'hidden', timeout: TIMEOUTS.MEDIUM }).catch(() => {});
+    return;
+  }
+}
+
+/**
+ * 전투 화면으로 진입 (제대로 된 맵 탐색 방식)
+ * 1. 맵에서 전투 노드 탐색 (battle/elite/boss)
+ * 2. 전투 노드가 없으면 다른 노드 처리 후 재탐색
  * @returns 전투 진입 성공 여부
  */
 export async function enterBattle(page: Page): Promise<boolean> {
@@ -1228,36 +1450,15 @@ export async function enterBattle(page: Page): Promise<boolean> {
       return true;
     }
 
-    // 방법 1: Test Mixed Battle 버튼 (개발용, 가장 안정적)
-    const testBattleBtn = page.locator('button:has-text("Test Mixed Battle")');
-    if (await testBattleBtn.isVisible({ timeout: TIMEOUTS.SHORT }).catch(() => false)) {
-      await testBattleBtn.click();
-      await page.waitForSelector('[data-testid="battle-screen"]', { timeout: TIMEOUTS.LONG });
+    // 맵 화면 대기
+    await waitForMap(page);
+
+    // 맵 탐색 방식으로 전투 진입 (최대 10단계)
+    const result = await enterBattleViaMap(page, 10);
+
+    if (result) {
       await waitForUIStable(page);
       return true;
-    }
-
-    // 방법 2: 맵에서 전투 노드 클릭
-    await waitForMap(page);
-    const battleClicked = await selectMapNode(page, 'battle');
-
-    if (battleClicked) {
-      await page.waitForSelector('[data-testid="battle-screen"]', { timeout: TIMEOUTS.LONG }).catch(() => {});
-      await waitForUIStable(page);
-
-      // 전투 화면 로드 확인
-      if (await page.locator('[data-testid="battle-screen"]').isVisible({ timeout: 500 }).catch(() => false)) {
-        return true;
-      }
-    }
-
-    // 방법 3: 아무 선택 가능한 노드 클릭 (elite, boss 등)
-    const anyBattleNode = await selectMapNode(page, 'any');
-    if (anyBattleNode) {
-      await page.waitForSelector('[data-testid="battle-screen"]', { timeout: TIMEOUTS.LONG }).catch(() => {});
-      if (await page.locator('[data-testid="battle-screen"]').isVisible({ timeout: 500 }).catch(() => false)) {
-        return true;
-      }
     }
 
     return false;
