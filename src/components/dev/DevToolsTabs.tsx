@@ -12,5 +12,6 @@ export {
   RelicsTab,
   ItemsTab,
   EventTab,
-  CardsTab
+  CardsTab,
+  SimulatorTab
 } from './tabs';

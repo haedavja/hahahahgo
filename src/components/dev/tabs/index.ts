@@ -10,3 +10,4 @@ export { RelicsTab } from './RelicsTab';
 export { ItemsTab } from './ItemsTab';
 export { EventTab } from './EventTab';
 export { CardsTab } from './CardsTab';
+export { SimulatorTab } from './SimulatorTab';
