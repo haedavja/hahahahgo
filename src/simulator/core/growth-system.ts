@@ -65,6 +65,12 @@ export interface GrowthBonuses {
   chainDamageBonus: number;
   /** 교차 범위 확장 */
   crossRangeBonus: number;
+  /** 에테르 획득량 고정 보너스 */
+  etherGainBonus: number;
+  /** 에테르 획득량 배율 보너스 (0.1 = 10%) */
+  etherGainMultiplier: number;
+  /** 시작 에테르 */
+  startingEther: number;
   /** 특수 효과 목록 */
   specialEffects: string[];
 }
@@ -277,6 +283,9 @@ export class GrowthSystem {
       ammoBonus: 0,
       chainDamageBonus: 0,
       crossRangeBonus: 0,
+      etherGainBonus: 0,
+      etherGainMultiplier: 0,
+      startingEther: 0,
       specialEffects: [],
     };
 
@@ -318,6 +327,15 @@ export class GrowthSystem {
             if (effect.token === 'focus') bonuses.startingFocus += effect.value || 0;
           }
           break;
+        case 'etherBonus':
+          bonuses.etherGainBonus += effect.value || 0;
+          break;
+        case 'etherMultiplier':
+          bonuses.etherGainMultiplier += effect.percent || 0;
+          break;
+        case 'startingEther':
+          bonuses.startingEther += effect.value || 0;
+          break;
         default:
           // 특수 효과로 저장
           bonuses.specialEffects.push(`${ethos.name}: ${ethos.description}`);
@@ -334,14 +352,23 @@ export class GrowthSystem {
     // 로고스 효과 적용
     if (this.state.logosLevels.common >= 1) {
       bonuses.crossRangeBonus += 1;
+      // 공용 로고스: 레벨당 에테르 획득량 5% 증가
+      bonuses.etherGainMultiplier += this.state.logosLevels.common * 0.05;
     }
     if (this.state.logosLevels.gunkata >= 1) {
       bonuses.specialEffects.push('건카타: 방어로 막을 때 총격');
+      // 건카타: 레벨당 시작 에테르 10
+      bonuses.startingEther += this.state.logosLevels.gunkata * 10;
     }
     if (this.state.logosLevels.battleWaltz >= 1) {
       bonuses.startingFinesse += 1;
       bonuses.specialEffects.push('배틀왈츠: 기교 1 이하 유지');
+      // 배틀왈츠: 레벨당 에테르 고정 보너스 3
+      bonuses.etherGainBonus += this.state.logosLevels.battleWaltz * 3;
     }
+
+    // 피라미드 레벨에 따른 기본 에테르 보너스
+    bonuses.etherGainMultiplier += this.state.pyramidLevel * 0.02; // 레벨당 2%
 
     return bonuses;
   }
@@ -539,7 +566,7 @@ export function createGrowthSystem(initialState?: Partial<GrowthState>): GrowthS
  * 성장 보너스를 전투 상태에 적용
  */
 export function applyGrowthBonuses(
-  playerState: { hp: number; maxHp: number; tokens?: Record<string, number> },
+  playerState: { hp: number; maxHp: number; tokens?: Record<string, number>; ether?: number },
   bonuses: GrowthBonuses
 ): void {
   // 최대 HP 보너스
@@ -553,5 +580,10 @@ export function applyGrowthBonuses(
   }
   if (bonuses.startingFocus > 0) {
     playerState.tokens['focus'] = (playerState.tokens['focus'] || 0) + bonuses.startingFocus;
+  }
+
+  // 시작 에테르
+  if (bonuses.startingEther > 0) {
+    playerState.ether = (playerState.ether || 0) + bonuses.startingEther;
   }
 }

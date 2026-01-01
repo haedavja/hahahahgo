@@ -58,6 +58,8 @@ export interface ChainResult {
   bonusBlock: number;
   /** 속도 감소 */
   speedReduction: number;
+  /** 에테르 보너스 */
+  etherBonus: number;
   /** 추가 효과 */
   effects: string[];
   /** 연계 종료 여부 */
@@ -149,6 +151,7 @@ export function processFollowup(
       bonusDamage: 0,
       bonusBlock: 0,
       speedReduction: 0,
+      etherBonus: 0,
       effects: [],
       chainEnded: false,
     };
@@ -178,11 +181,16 @@ export function processFollowup(
 
   effects.push(`후속 보너스: +${bonusDamage} 피해`);
 
+  // 연계 에테르 보너스 (연계 길이에 비례)
+  const etherBonus = newChainLength * 3;
+  effects.push(`연계 에테르: +${etherBonus}`);
+
   return {
     success: true,
     bonusDamage: bonusDamage + chainState.accumulatedBonus.damage,
     bonusBlock: bonusBlock + chainState.accumulatedBonus.block,
     speedReduction: speedReduction + chainState.accumulatedBonus.speedReduction,
+    etherBonus,
     effects,
     chainEnded: false,
   };
@@ -202,6 +210,7 @@ export function processFinisher(
       bonusDamage: 0,
       bonusBlock: 0,
       speedReduction: 0,
+      etherBonus: 0,
       effects: [],
       chainEnded: false,
     };
@@ -228,11 +237,16 @@ export function processFinisher(
   effects.push(`마무리 보너스: +${bonusDamage} 피해 (x${chainMultiplier.toFixed(1)})`);
   effects.push(`연계 ${chainState.chainLength + 1}단 완료!`);
 
+  // 마무리 에테르 보너스 (연계 길이에 비례, 후속보다 높음)
+  const etherBonus = (chainState.chainLength + 1) * 5;
+  effects.push(`마무리 에테르: +${etherBonus}`);
+
   return {
     success: true,
     bonusDamage,
     bonusBlock,
     speedReduction: 0, // 마무리는 속도 감소 없음
+    etherBonus,
     effects,
     chainEnded: true,
   };
@@ -589,6 +603,7 @@ export function processAllCardInteractions(
       bonusDamage: 0,
       bonusBlock: 0,
       speedReduction: card.chainSpeedReduction || 3,
+      etherBonus: 2, // 연계 시작 기본 보너스
       effects: ['연계 시작'],
       chainEnded: false,
     };
@@ -602,6 +617,7 @@ export function processAllCardInteractions(
       bonusDamage: 0,
       bonusBlock: 0,
       speedReduction: 0,
+      etherBonus: 0,
       effects: [],
       chainEnded: chainState.isChaining, // 연계 끊김
     };

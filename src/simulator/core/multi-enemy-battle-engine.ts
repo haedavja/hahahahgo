@@ -23,6 +23,7 @@ import { syncAllCards, syncAllTraits } from '../data/game-data-sync';
 import { createEnemyAI, getPatternForEnemy, type EnemyAI, type EnemyDecision } from '../ai/enemy-patterns';
 import {
   addToken,
+  hasToken,
   getTokenStacks,
   calculateAttackModifiers,
   calculateDefenseModifiers,
@@ -1178,11 +1179,11 @@ export class MultiEnemyBattleEngine {
   }
 
   /**
-   * 타겟 결정
+   * 타겟 결정 (스마트 타겟팅 포함)
    */
   private determineTargets(state: MultiEnemyBattleState, card: GameCard): number[] {
     const aliveEnemies = state.enemies
-      .map((e, i) => ({ index: i, hp: e.hp }))
+      .map((e, i) => ({ index: i, enemy: e, hp: e.hp, maxHp: e.maxHp }))
       .filter(e => e.hp > 0);
 
     if (aliveEnemies.length === 0) return [];
@@ -1206,15 +1207,71 @@ export class MultiEnemyBattleEngine {
       case 'highest_hp':
         return [aliveEnemies.reduce((max, curr) => curr.hp > max.hp ? curr : max).index];
 
+      case 'smart':
+        // 스마트 타겟팅: 최적의 대상 선택
+        return [this.selectSmartTarget(state, card, aliveEnemies)];
+
       case 'single':
       default:
-        // 현재 선택된 타겟, 없으면 첫 번째 생존 적
+        // 현재 선택된 타겟, 없으면 스마트 타겟팅
         if (state.currentTargetIndex < state.enemies.length &&
             state.enemies[state.currentTargetIndex].hp > 0) {
           return [state.currentTargetIndex];
         }
-        return [aliveEnemies[0].index];
+        return [this.selectSmartTarget(state, card, aliveEnemies)];
     }
+  }
+
+  /**
+   * 스마트 타겟 선택 (우선순위 기반)
+   */
+  private selectSmartTarget(
+    state: MultiEnemyBattleState,
+    card: GameCard,
+    aliveEnemies: { index: number; enemy: EnemyState; hp: number; maxHp: number }[]
+  ): number {
+    if (aliveEnemies.length === 1) return aliveEnemies[0].index;
+
+    const cardDamage = (card.damage || 0) * (card.hits || 1);
+
+    // 점수 기반 타겟 선택
+    const scored = aliveEnemies.map(({ index, enemy, hp, maxHp }) => {
+      let score = 0;
+
+      // 1. 처치 가능 우선 (+100점)
+      if (cardDamage >= hp) {
+        score += 100;
+      }
+
+      // 2. 취약 상태 우선 (+30점)
+      if (hasToken(enemy.tokens || {}, 'vulnerable')) {
+        score += 30;
+      }
+
+      // 3. 높은 위협도 우선 (타임라인에 공격 카드가 많은 적)
+      const enemyAttackCards = state.timeline.filter(
+        tc => tc.owner === 'enemy' && tc.enemyIndex === index
+      );
+      const threatScore = enemyAttackCards.reduce((sum, tc) => {
+        const c = this.cards[tc.cardId];
+        return sum + (c?.damage || 0) * (c?.hits || 1);
+      }, 0);
+      score += Math.min(threatScore / 5, 20); // 최대 +20점
+
+      // 4. 낮은 HP 비율 우선 (마무리 가능성)
+      const hpRatio = hp / maxHp;
+      score += (1 - hpRatio) * 15;
+
+      // 5. 디버프 효과 카드는 높은 HP 적 우선
+      if (card.appliedTokens?.some(t => ['vulnerable', 'weak', 'fragile'].includes(t.id))) {
+        score += (hpRatio) * 10;
+      }
+
+      return { index, score };
+    });
+
+    scored.sort((a, b) => b.score - a.score);
+    return scored[0].index;
   }
 
   /**

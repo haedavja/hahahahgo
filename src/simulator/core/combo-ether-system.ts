@@ -408,10 +408,18 @@ export function getCardBaseEther(card: ComboCard): number {
 /**
  * 카드 배열의 총 에테르 계산
  */
+export interface GrowthEtherBonus {
+  /** 고정 에테르 보너스 */
+  etherGainBonus: number;
+  /** 에테르 배율 보너스 (0.1 = 10%) */
+  etherGainMultiplier: number;
+}
+
 export function calculateTotalEther(
   cards: (GameCard | ComboCard)[],
   comboUsageCount: Record<string, number> = {},
-  etherBlocked: boolean = false
+  etherBlocked: boolean = false,
+  growthBonus?: GrowthEtherBonus
 ): EtherGainResult {
   const breakdown: string[] = [];
 
@@ -486,10 +494,22 @@ export function calculateTotalEther(
     breakdown.push(`특성 시너지: +${traitSynergyBonus.toFixed(1)}x (${traitSynergy.synergies.join(', ')})`);
   }
 
-  // 6. 최종 계산
-  // 공식: 기본값 × (조합배율 + 액션코스트보너스 + 특성시너지) × 디플레이션
+  // 6. 성장 시스템 보너스 적용
+  let growthFixedBonus = 0;
+  let growthMultiplier = 1;
+  if (growthBonus) {
+    growthFixedBonus = growthBonus.etherGainBonus || 0;
+    growthMultiplier = 1 + (growthBonus.etherGainMultiplier || 0);
+    if (growthFixedBonus > 0 || growthBonus.etherGainMultiplier > 0) {
+      breakdown.push(`성장 보너스: +${growthFixedBonus} (×${growthMultiplier.toFixed(2)})`);
+    }
+  }
+
+  // 7. 최종 계산
+  // 공식: (기본값 × (조합배율 + 액션코스트보너스 + 특성시너지) × 디플레이션 + 고정보너스) × 성장배율
   const totalMultiplier = (comboMultiplier + actionCostBonus + traitSynergyBonus) * deflationMultiplier;
-  const finalGain = Math.round(baseGain * totalMultiplier);
+  const baseResult = baseGain * totalMultiplier;
+  const finalGain = Math.round((baseResult + growthFixedBonus) * growthMultiplier);
   breakdown.push(`최종 획득: ${finalGain}`);
 
   return {
