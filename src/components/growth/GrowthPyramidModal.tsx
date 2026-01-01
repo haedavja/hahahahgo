@@ -66,7 +66,7 @@ export const GrowthPyramidModal = memo(function GrowthPyramidModal({
       <div
         className="event-modal"
         onClick={(e) => e.stopPropagation()}
-        style={{ maxWidth: '100vw', width: '1600px', maxHeight: '95vh', overflowY: 'auto', overflowX: 'hidden' }}
+        style={{ maxWidth: '100vw', width: '1900px', maxHeight: '95vh', overflowY: 'auto', overflowX: 'hidden' }}
       >
         {/* 헤더 */}
         <header>
@@ -82,7 +82,7 @@ export const GrowthPyramidModal = memo(function GrowthPyramidModal({
         />
 
         {/* 피라미드 뷰 - 중앙 정렬 wrapper */}
-        <div style={{ paddingLeft: '120px' }}>
+        <div style={{ paddingLeft: '80px' }}>
           <PyramidView
             pyramidLevel={pyramidLevel}
             skillPoints={skillPoints}
