@@ -87,7 +87,12 @@ export class RelicSystemV2 {
   resetTurnState(): void {
     this.turnCardsPlayed = 0;
     this.timesAttackedThisTurn = 0;
+    this.attacksThisTurn = 0;
+    this.skillsThisTurn = 0;
   }
+
+  private attacksThisTurn: number = 0;
+  private skillsThisTurn: number = 0;
 
   // ==================== 패시브 효과 ====================
 
@@ -523,6 +528,118 @@ export class RelicSystemV2 {
       byRarity,
       byEffectType,
     };
+  }
+
+  // ==================== 복잡한 상징 커스텀 처리 ====================
+
+  /**
+   * Snecko Eye: 드로우한 카드 비용 랜덤화 (0-3)
+   */
+  processSneckoEye(drawnCards: string[]): Record<string, number> {
+    const costOverrides: Record<string, number> = {};
+    if (this.activeRelics.has('snecko_eye')) {
+      for (const cardId of drawnCards) {
+        costOverrides[cardId] = Math.floor(Math.random() * 4); // 0-3
+      }
+      log.debug('Snecko Eye: 카드 비용 랜덤화', { costs: costOverrides });
+    }
+    return costOverrides;
+  }
+
+  /**
+   * Dead Branch: 카드 소진 시 랜덤 카드 추가
+   */
+  processDeadBranch(exhaustedCards: string[]): string[] {
+    const addedCards: string[] = [];
+    if (this.activeRelics.has('dead_branch')) {
+      const definitions = getRelicDefinitions();
+      // 소진된 카드 수만큼 랜덤 카드 추가
+      for (let i = 0; i < exhaustedCards.length; i++) {
+        // 간단히 기본 공격 카드 중 하나 추가 (실제 구현은 카드 풀에서 선택)
+        addedCards.push('strike'); // 기본 카드 추가
+      }
+      if (addedCards.length > 0) {
+        log.debug('Dead Branch: 카드 추가', { count: addedCards.length });
+      }
+    }
+    return addedCards;
+  }
+
+  /**
+   * Runic Pyramid: 턴 종료 시 손패 유지
+   */
+  shouldRetainHand(): boolean {
+    return this.activeRelics.has('runic_pyramid');
+  }
+
+  /**
+   * Tungsten Rod: HP 손실 1 감소
+   */
+  reduceDamage(damage: number): number {
+    if (this.activeRelics.has('tungsten_rod') && damage > 0) {
+      return Math.max(1, damage - 1);
+    }
+    return damage;
+  }
+
+  /**
+   * Bronze Scales: 피해 받을 때 3 반사
+   */
+  getReflectDamage(): number {
+    if (this.activeRelics.has('bronze_scales')) {
+      return 3;
+    }
+    return 0;
+  }
+
+  /**
+   * Kunai: 턴에 공격 3번 사용 시 민첩 +1
+   */
+  trackAttack(): RelicEffectResult | null {
+    if (!this.activeRelics.has('kunai')) return null;
+
+    this.attacksThisTurn++;
+    if (this.attacksThisTurn === 3) {
+      return {
+        relicId: 'kunai',
+        relicName: '쿠나이',
+        effects: { agility: 1, message: '공격 3회 달성 - 민첩 +1' },
+      };
+    }
+    return null;
+  }
+
+  /**
+   * Letter Opener: 턴에 스킬 3번 사용 시 5 피해
+   */
+  trackSkill(enemy: EnemyState): RelicEffectResult | null {
+    if (!this.activeRelics.has('letter_opener')) return null;
+
+    this.skillsThisTurn++;
+    if (this.skillsThisTurn === 3) {
+      return {
+        relicId: 'letter_opener',
+        relicName: '편지 오프너',
+        effects: { damage: 5, message: '스킬 3회 달성 - 적에게 5 피해' },
+      };
+    }
+    return null;
+  }
+
+  /**
+   * Ornamental Fan: 턴에 카드 3장 사용 시 방어 +8
+   */
+  checkOrnamentalFan(): RelicEffectResult | null {
+    if (!this.activeRelics.has('ornamental_fan')) return null;
+
+    if (this.turnCardsPlayed >= 3) {
+      return {
+        relicId: 'ornamental_fan',
+        relicName: '장식 부채',
+        effects: { block: 8, message: '카드 3장 사용 - 방어 +8' },
+      };
+    }
+    return null;
   }
 }
 
