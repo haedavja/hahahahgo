@@ -307,8 +307,38 @@ interface IndexEntry {
 
 // ==================== SQLite 스토리지 (옵션) ====================
 
+// better-sqlite3 Database 타입
+interface BetterSqliteDatabase {
+  exec(sql: string): void;
+  prepare(sql: string): BetterSqliteStatement;
+  transaction<T>(fn: (items: T[]) => void): (items: T[]) => void;
+  close(): void;
+}
+
+interface BetterSqliteStatement {
+  run(...params: unknown[]): { changes: number };
+  get(...params: unknown[]): DatabaseRow | undefined;
+  all(...params: unknown[]): DatabaseRow[];
+}
+
+interface DatabaseRow {
+  id: string;
+  timestamp: number;
+  config: string;
+  summary: string;
+  tags?: string | null;
+  notes?: string | null;
+}
+
+interface BattleRow {
+  winner: string;
+  turns: number;
+  playerDamageDealt: number;
+  enemyDamageDealt: number;
+}
+
 export class SqliteStorage implements StorageAdapter {
-  private db: any;
+  private db: BetterSqliteDatabase | null = null;
   private dbPath: string;
 
   constructor(dbPath?: string) {
@@ -377,7 +407,7 @@ export class SqliteStorage implements StorageAdapter {
       VALUES (?, ?, ?, ?, ?)
     `);
 
-    const insertBattles = this.db.transaction((battles: any[]) => {
+    const insertBattles = this.db.transaction((battles: BattleRow[]) => {
       for (const battle of battles) {
         battleStmt.run(id, battle.winner, battle.turns, battle.playerDamageDealt, battle.enemyDamageDealt);
       }
@@ -403,8 +433,10 @@ export class SqliteStorage implements StorageAdapter {
   }
 
   async query(options: QueryOptions): Promise<HistoryEntry[]> {
+    if (!this.db) return [];
+
     let sql = 'SELECT * FROM simulations WHERE 1=1';
-    const params: any[] = [];
+    const params: (string | number)[] = [];
 
     if (options.startDate) {
       sql += ' AND timestamp >= ?';
@@ -428,13 +460,13 @@ export class SqliteStorage implements StorageAdapter {
 
     const rows = this.db.prepare(sql).all(...params);
 
-    return rows.map((row: any) => ({
+    return rows.map((row: DatabaseRow) => ({
       id: row.id,
       timestamp: row.timestamp,
       config: JSON.parse(row.config),
       summary: JSON.parse(row.summary),
       tags: row.tags ? JSON.parse(row.tags) : undefined,
-      notes: row.notes,
+      notes: row.notes ?? undefined,
     }));
   }
 

@@ -28,6 +28,22 @@ export interface DashboardServerOptions {
   staticDir?: string;
 }
 
+// WebSocket 메시지 타입
+interface ClientMessage {
+  type: 'subscribe' | 'command' | 'ping';
+  payload?: CommandPayload;
+}
+
+interface CommandPayload {
+  action: string;
+  data?: Record<string, unknown>;
+}
+
+interface ServerMessage {
+  type: 'init' | 'progress' | 'complete' | 'stats' | 'pong';
+  payload?: unknown;
+}
+
 export class DashboardServer extends EventEmitter {
   private httpServer: ReturnType<typeof createServer>;
   private wss: WebSocketServer;
@@ -207,7 +223,7 @@ export class DashboardServer extends EventEmitter {
     });
   }
 
-  private handleClientMessage(ws: WebSocket, message: any): void {
+  private handleClientMessage(ws: WebSocket, message: ClientMessage): void {
     switch (message.type) {
       case 'subscribe':
         // 특정 이벤트 구독
@@ -224,19 +240,21 @@ export class DashboardServer extends EventEmitter {
     }
   }
 
-  private handleCommand(command: any): void {
-    this.emit('command', command);
+  private handleCommand(command: CommandPayload | undefined): void {
+    if (command) {
+      this.emit('command', command);
+    }
   }
 
   // ==================== 브로드캐스트 ====================
 
-  private sendToClient(ws: WebSocket, message: any): void {
+  private sendToClient(ws: WebSocket, message: ServerMessage): void {
     if (ws.readyState === WebSocket.OPEN) {
       ws.send(JSON.stringify(message));
     }
   }
 
-  broadcast(message: any): void {
+  broadcast(message: ServerMessage): void {
     const data = JSON.stringify(message);
     for (const client of this.clients) {
       if (client.readyState === WebSocket.OPEN) {
@@ -298,7 +316,7 @@ export class DashboardServer extends EventEmitter {
     });
   }
 
-  private async getHistory(): Promise<any[]> {
+  private async getHistory(): Promise<import('../core/types').HistoryEntry[]> {
     try {
       const storage = getDefaultStorage();
       return await storage.query({ limit: 50 });

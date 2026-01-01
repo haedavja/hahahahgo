@@ -532,17 +532,17 @@ export class SimulationCacheManager {
 
 // ==================== 데코레이터 패턴 ====================
 
-export function withCache<T extends (...args: any[]) => Promise<any>>(
-  fn: T,
+export function withCache<TArgs extends unknown[], TResult>(
+  fn: (...args: TArgs) => Promise<TResult>,
   cache: CacheAdapter,
-  keyGenerator: (...args: Parameters<T>) => string,
+  keyGenerator: (...args: TArgs) => string,
   ttlMs?: number
-): T {
-  return (async (...args: Parameters<T>): Promise<ReturnType<T>> => {
+): (...args: TArgs) => Promise<TResult> {
+  return async (...args: TArgs): Promise<TResult> => {
     const key = keyGenerator(...args);
 
     // 캐시 확인
-    const cached = await cache.get<ReturnType<T>>(key);
+    const cached = await cache.get<TResult>(key);
     if (cached !== null) {
       return cached;
     }
@@ -554,7 +554,7 @@ export function withCache<T extends (...args: any[]) => Promise<any>>(
     await cache.set(key, result, ttlMs);
 
     return result;
-  }) as T;
+  };
 }
 
 // ==================== 기본 캐시 인스턴스 ====================
