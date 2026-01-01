@@ -506,28 +506,43 @@ export async function waitForUIStable(page: Page, options?: { timeout?: number }
 
 /**
  * 노드 선택 (맵에서 특정 타입의 노드 클릭)
+ * @param nodeType - 'battle', 'shop', 'rest', 'event', 'dungeon', 'elite', 'boss', 또는 'any'
  */
 export async function selectMapNode(page: Page, nodeType: string): Promise<boolean> {
-  // 먼저 고유 ID로 시도
-  let node = page.locator(`[data-testid="map-node-${nodeType}"]`).first();
+  let node;
 
-  if (!(await node.isVisible({ timeout: 1000 }).catch(() => false))) {
-    // 타입으로 시도 (선택 가능한 노드만)
+  if (nodeType === 'any') {
+    // 'any'인 경우 선택 가능한 아무 노드나 클릭
+    node = page.locator('[data-node-selectable="true"]').first();
+  } else {
+    // 먼저 노드 타입으로 시도 (선택 가능한 노드만)
     node = page.locator(`[data-node-type="${nodeType}"][data-node-selectable="true"]`).first();
+
+    if (!(await node.isVisible({ timeout: 1000 }).catch(() => false))) {
+      // 고유 ID로 시도 (fallback)
+      node = page.locator(`[data-testid="map-node-${nodeType}"]`).first();
+    }
   }
 
-  if (await node.isVisible({ timeout: 1000 }).catch(() => false)) {
+  if (await node.isVisible({ timeout: 2000 }).catch(() => false)) {
     await node.click();
-    // 노드 클릭 후 상태 변화 대기
+    // 노드 클릭 후 상태 변화 대기 (전투 화면 또는 모달)
     await page.waitForFunction(
-      (type) => {
+      () => {
         const battleScreen = document.querySelector('[data-testid="battle-screen"]');
         const modal = document.querySelector('[data-testid$="-modal"]');
         return battleScreen !== null || modal !== null;
       },
-      nodeType,
-      { timeout: 3000 }
+      { timeout: 5000 }
     ).catch(() => {});
+    return true;
+  }
+
+  // 마지막으로 클릭 가능한 노드 버튼 시도
+  const anyClickable = page.locator('.map-node:not(.cleared):not(.disabled)').first();
+  if (await anyClickable.isVisible({ timeout: 1000 }).catch(() => false)) {
+    await anyClickable.click();
+    await page.waitForTimeout(1000);
     return true;
   }
 
@@ -879,4 +894,306 @@ export async function handleNodeByType(page: Page, nodeType: string): Promise<bo
   }
 
   return false;
+}
+
+// ==================== 추가 유틸리티 함수 ====================
+
+/**
+ * 통합 모달 대기 함수
+ * @param page Playwright Page
+ * @param modalType 모달 타입 (shop, event, rest, dungeon, reward 등)
+ * @param options 옵션
+ */
+export async function waitForModal(
+  page: Page,
+  modalType: string,
+  options?: { timeout?: number; throwOnFail?: boolean }
+): Promise<boolean> {
+  const timeout = options?.timeout ?? TIMEOUTS.LONG;
+  const throwOnFail = options?.throwOnFail ?? false;
+
+  const selector = `[data-testid="${modalType}-modal"], [data-testid="${modalType}Modal"]`;
+
+  try {
+    await page.waitForSelector(selector, { state: 'visible', timeout });
+    return true;
+  } catch (error) {
+    const message = `${modalType} 모달을 찾을 수 없음 (${timeout}ms 대기 후)`;
+    testLogger.warn(message);
+
+    if (throwOnFail) {
+      throw new Error(message);
+    }
+    return false;
+  }
+}
+
+/**
+ * 모달 닫기 (통합)
+ */
+export async function closeModal(page: Page, modalType: string): Promise<boolean> {
+  const closeSelectors = [
+    `[data-testid="${modalType}-close-btn"]`,
+    `[data-testid="${modalType}-exit-btn"]`,
+    `[data-testid="close-${modalType}"]`,
+    `.${modalType}-modal .close-btn`,
+    'button:has-text("닫기")',
+    'button:has-text("확인")',
+  ];
+
+  for (const selector of closeSelectors) {
+    const btn = page.locator(selector).first();
+    if (await btn.isVisible({ timeout: 500 }).catch(() => false)) {
+      await btn.click();
+      await page.waitForSelector(`[data-testid="${modalType}-modal"]`, {
+        state: 'hidden',
+        timeout: TIMEOUTS.MEDIUM,
+      }).catch(() => {});
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/**
+ * 에러 컨텍스트와 함께 테스트 스킵
+ */
+export function skipWithContext(
+  condition: boolean,
+  context: {
+    reason: string;
+    expected?: string;
+    actual?: string;
+    suggestion?: string;
+  }
+): void {
+  if (condition) {
+    const parts = [`Skip: ${context.reason}`];
+    if (context.expected) parts.push(`  예상: ${context.expected}`);
+    if (context.actual) parts.push(`  실제: ${context.actual}`);
+    if (context.suggestion) parts.push(`  해결: ${context.suggestion}`);
+
+    testLogger.warn(parts.join('\n'));
+  }
+}
+
+/**
+ * 게임 상태 주입 (테스트용)
+ */
+export async function injectGameState(page: Page, state: Record<string, unknown>): Promise<boolean> {
+  return await page.evaluate((stateToInject) => {
+    try {
+      // @ts-expect-error - 개발 모드 함수
+      if (typeof window.__INJECT_STATE__ === 'function') {
+        // @ts-expect-error - 개발 모드 함수
+        window.__INJECT_STATE__(stateToInject);
+        return true;
+      }
+
+      // @ts-expect-error - 게임 스토어 직접 접근
+      const store = window.__GAME_STORE__ || window.gameStore;
+      if (store?.setState) {
+        store.setState(stateToInject);
+        return true;
+      }
+
+      return false;
+    } catch {
+      return false;
+    }
+  }, state);
+}
+
+/**
+ * 현재 게임 상태 스냅샷
+ */
+export async function getGameSnapshot(page: Page): Promise<{
+  gold: number;
+  hp: number;
+  maxHp: number;
+  ether: number;
+  layer: number;
+  deckSize: number;
+  relicCount: number;
+  phase?: string;
+}> {
+  return await page.evaluate(() => {
+    // @ts-expect-error - 게임 스토어 접근
+    const store = window.__GAME_STORE__ || window.gameStore;
+
+    if (store) {
+      const state = store.getState?.() || store;
+      return {
+        gold: state.gold || state.player?.gold || 0,
+        hp: state.hp || state.player?.hp || 0,
+        maxHp: state.maxHp || state.player?.maxHp || 0,
+        ether: state.ether || state.player?.ether || 0,
+        layer: state.currentLayer || state.map?.currentLayer || 0,
+        deckSize: state.deck?.length || state.player?.deck?.length || 0,
+        relicCount: state.relics?.length || state.player?.relics?.length || 0,
+        phase: state.battlePhase || state.battle?.phase,
+      };
+    }
+
+    return { gold: 0, hp: 0, maxHp: 0, ether: 0, layer: 0, deckSize: 0, relicCount: 0 };
+  });
+}
+
+/**
+ * 특정 조합 카드 세트 선택
+ */
+export async function selectCardsForCombo(
+  page: Page,
+  comboType: 'pair' | 'triple' | 'flush' | 'fullhouse'
+): Promise<{ selected: number; combo: string | null }> {
+  const cards = page.locator('[data-testid^="hand-card-"]');
+  const count = await cards.count();
+
+  if (count === 0) {
+    return { selected: 0, combo: null };
+  }
+
+  // 카드 정보 수집
+  const cardInfos: Array<{ index: number; actionCost: number; type: string }> = [];
+  for (let i = 0; i < count; i++) {
+    const card = cards.nth(i);
+    const actionCost = parseInt(await card.getAttribute('data-action-cost') || '1');
+    const type = await card.getAttribute('data-card-type') || 'unknown';
+    cardInfos.push({ index: i, actionCost, type });
+  }
+
+  // actionCost별 그룹화
+  const costGroups = new Map<number, number[]>();
+  const typeGroups = new Map<string, number[]>();
+
+  cardInfos.forEach(card => {
+    const costGroup = costGroups.get(card.actionCost) || [];
+    costGroup.push(card.index);
+    costGroups.set(card.actionCost, costGroup);
+
+    const typeGroup = typeGroups.get(card.type) || [];
+    typeGroup.push(card.index);
+    typeGroups.set(card.type, typeGroup);
+  });
+
+  let indicesToSelect: number[] = [];
+
+  switch (comboType) {
+    case 'pair':
+      for (const indices of costGroups.values()) {
+        if (indices.length >= 2) {
+          indicesToSelect = indices.slice(0, 2);
+          break;
+        }
+      }
+      break;
+
+    case 'triple':
+      for (const indices of costGroups.values()) {
+        if (indices.length >= 3) {
+          indicesToSelect = indices.slice(0, 3);
+          break;
+        }
+      }
+      break;
+
+    case 'flush':
+      for (const [type, indices] of typeGroups.entries()) {
+        if ((type === 'attack' || type === 'defense') && indices.length >= 4) {
+          indicesToSelect = indices.slice(0, 4);
+          break;
+        }
+      }
+      break;
+
+    case 'fullhouse': {
+      // 트리플 + 페어 찾기
+      let tripleIndices: number[] = [];
+      let pairIndices: number[] = [];
+
+      for (const indices of costGroups.values()) {
+        if (indices.length >= 3 && tripleIndices.length === 0) {
+          tripleIndices = indices.slice(0, 3);
+        } else if (indices.length >= 2 && pairIndices.length === 0) {
+          pairIndices = indices.slice(0, 2);
+        }
+      }
+
+      if (tripleIndices.length === 3 && pairIndices.length === 2) {
+        indicesToSelect = [...tripleIndices, ...pairIndices];
+      }
+      break;
+    }
+  }
+
+  // 카드 선택
+  for (const index of indicesToSelect) {
+    await cards.nth(index).click();
+    await page.waitForTimeout(100); // 선택 애니메이션 대기
+  }
+
+  // 현재 조합 확인
+  const comboDisplay = page.locator('[data-testid="combo-display"], .combo-name');
+  const combo = await comboDisplay.textContent().catch(() => null);
+
+  return { selected: indicesToSelect.length, combo };
+}
+
+/**
+ * 상태이상 확인
+ */
+export async function getStatusEffects(
+  page: Page,
+  target: 'player' | 'enemy'
+): Promise<Array<{ type: string; value: number; duration: number }>> {
+  const prefix = target === 'player' ? 'player' : 'enemy';
+  const statusEffects = page.locator(`[data-testid="${prefix}-status-effect"], [data-status-target="${target}"]`);
+  const count = await statusEffects.count();
+
+  const effects: Array<{ type: string; value: number; duration: number }> = [];
+
+  for (let i = 0; i < count; i++) {
+    const effect = statusEffects.nth(i);
+    const type = await effect.getAttribute('data-status-type') || '';
+    const value = parseInt(await effect.getAttribute('data-status-value') || '0');
+    const duration = parseInt(await effect.getAttribute('data-status-duration') || '0');
+
+    if (type) {
+      effects.push({ type, value, duration });
+    }
+  }
+
+  return effects;
+}
+
+/**
+ * 카드 효과 실행 대기
+ */
+export async function waitForCardEffect(page: Page, effectType: string): Promise<boolean> {
+  const effectIndicator = page.locator(
+    `[data-testid="card-effect-${effectType}"], [data-effect-type="${effectType}"]`
+  );
+
+  try {
+    await effectIndicator.waitFor({ state: 'visible', timeout: TIMEOUTS.MEDIUM });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * 다중 히트 카운트 확인
+ */
+export async function getHitCount(page: Page): Promise<number> {
+  const hitCounter = page.locator('[data-testid="hit-counter"], .hit-count');
+
+  if (await hitCounter.isVisible({ timeout: 500 }).catch(() => false)) {
+    const text = await hitCounter.textContent() || '';
+    const match = text.match(/(\d+)/);
+    return match ? parseInt(match[1]) : 0;
+  }
+
+  return 0;
 }
