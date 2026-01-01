@@ -19,6 +19,8 @@ import {
   isCombatant,
   isPlayerBattleState,
   isBattleEvent,
+  isResources,
+  isEnemyUnit,
   getNumber,
   getString,
   getArray,
@@ -27,6 +29,9 @@ import {
   getSpeedCost,
   getLeisurePosition,
   getStrainOffset,
+  isPlayerActor,
+  isEnemyActor,
+  mergeEntityState,
   // TokenEntity 가드
   isTokenEntity,
   asTokenEntity,
@@ -447,5 +452,123 @@ describe('TokenEntity 가드', () => {
       expect(result.tokens).toEqual(newTokens);
       expect(result.hp).toBe(100);
     });
+  });
+});
+
+describe('actor 타입 가드', () => {
+  describe('isPlayerActor', () => {
+    it('player는 true', () => {
+      expect(isPlayerActor('player')).toBe(true);
+    });
+
+    it('enemy는 false', () => {
+      expect(isPlayerActor('enemy')).toBe(false);
+    });
+
+    it('다른 문자열은 false', () => {
+      expect(isPlayerActor('ally')).toBe(false);
+      expect(isPlayerActor('')).toBe(false);
+    });
+  });
+
+  describe('isEnemyActor', () => {
+    it('enemy는 true', () => {
+      expect(isEnemyActor('enemy')).toBe(true);
+    });
+
+    it('player는 false', () => {
+      expect(isEnemyActor('player')).toBe(false);
+    });
+
+    it('다른 문자열은 false', () => {
+      expect(isEnemyActor('ally')).toBe(false);
+      expect(isEnemyActor('')).toBe(false);
+    });
+  });
+});
+
+describe('isResources', () => {
+  it('빈 객체는 true', () => {
+    expect(isResources({})).toBe(true);
+  });
+
+  it('리소스 객체는 true', () => {
+    expect(isResources({ gold: 100, hp: 50 })).toBe(true);
+  });
+
+  it('null은 false', () => {
+    expect(isResources(null)).toBe(false);
+  });
+
+  it('undefined는 false', () => {
+    expect(isResources(undefined)).toBe(false);
+  });
+
+  it('문자열은 false', () => {
+    expect(isResources('resources')).toBe(false);
+  });
+
+  it('배열은 false', () => {
+    expect(isResources([1, 2, 3])).toBe(false);
+  });
+});
+
+describe('isEnemyUnit', () => {
+  const validTokens = {
+    usage: [],
+    turn: [],
+    permanent: [],
+  };
+
+  it('유효한 EnemyUnit은 true', () => {
+    const validEnemy = {
+      hp: 50,
+      maxHp: 50,
+      block: 0,
+      tokens: validTokens,
+      name: 'Goblin',
+    };
+    expect(isEnemyUnit(validEnemy)).toBe(true);
+  });
+
+  it('Combatant 속성이 있으면 true', () => {
+    const combatant = {
+      hp: 30,
+      maxHp: 30,
+      block: 5,
+      tokens: validTokens,
+    };
+    expect(isEnemyUnit(combatant)).toBe(true);
+  });
+
+  it('빈 객체는 false (Combatant가 아님)', () => {
+    expect(isEnemyUnit({})).toBe(false);
+  });
+
+  it('null은 false', () => {
+    expect(isEnemyUnit(null)).toBe(false);
+  });
+});
+
+describe('mergeEntityState', () => {
+  it('두 객체를 병합한다', () => {
+    const current = { hp: 100, gold: 50 };
+    const updates = { hp: 80 };
+    const result = mergeEntityState(current, updates);
+    expect(result).toEqual({ hp: 80, gold: 50 });
+  });
+
+  it('새 속성을 추가한다', () => {
+    const current = { hp: 100 };
+    const updates = { gold: 50 };
+    const result = mergeEntityState(current, updates);
+    expect(result).toEqual({ hp: 100, gold: 50 });
+  });
+
+  it('원본을 변경하지 않는다', () => {
+    const current = { hp: 100 };
+    const updates = { hp: 50 };
+    mergeEntityState(current, updates);
+    expect(current.hp).toBe(100);
   });
 });
