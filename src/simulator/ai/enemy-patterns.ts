@@ -309,10 +309,111 @@ export class EnemyAI {
     const speedCost = card.speedCost || 5;
     score += (10 - speedCost) * 0.5;
 
-    // 5. 패턴별 보너스
+    // 5. 교차 보너스 카드 평가
+    if (card.crossBonus) {
+      const crossValue = this.evaluateCrossBonus(card.crossBonus, config);
+      score += crossValue;
+      if (crossValue > 0) {
+        reasons.push(`교차보너스: ${crossValue.toFixed(1)}`);
+      }
+    }
+
+    // 6. 특성 기반 점수
+    if (card.traits && card.traits.length > 0) {
+      const traitScore = this.evaluateTraits(card.traits, config);
+      score += traitScore;
+      if (traitScore > 0) {
+        reasons.push(`특성: ${traitScore.toFixed(1)}`);
+      }
+    }
+
+    // 7. 패턴별 보너스
     score += this.getPatternBonus(card, reasons);
 
     return { card, score, reasons };
+  }
+
+  /**
+   * 교차 보너스 평가
+   */
+  private evaluateCrossBonus(crossBonus: GameCard['crossBonus'], config: PatternConfig): number {
+    if (!crossBonus) return 0;
+
+    let value = 0;
+    switch (crossBonus.type) {
+      case 'damage_mult':
+        value = (crossBonus.value || 1) * 10 * config.attackWeight;
+        break;
+      case 'gun_attack':
+        value = (crossBonus.count || 1) * 8 * config.attackWeight;
+        break;
+      case 'block_mult':
+        value = (crossBonus.value || 1) * 8 * config.defenseWeight;
+        break;
+      case 'advance':
+        value = (crossBonus.value || 3) * 3;
+        break;
+      case 'push':
+        value = (crossBonus.value || 3) * 3;
+        break;
+      case 'add_tokens':
+        value = (crossBonus.tokens?.length || 0) * 10 * config.specialWeight;
+        break;
+      case 'guaranteed_crit':
+        value = 15 * config.attackWeight;
+        break;
+    }
+    return value;
+  }
+
+  /**
+   * 특성 점수 평가
+   */
+  private evaluateTraits(traits: string[], config: PatternConfig): number {
+    let score = 0;
+
+    for (const trait of traits) {
+      switch (trait) {
+        // 긍정 특성
+        case 'swift':
+          score += 5;  // 빠른 카드
+          break;
+        case 'strongbone':
+          score += 8;  // 강화
+          break;
+        case 'destroyer':
+          score += 10 * config.attackWeight;
+          break;
+        case 'chain':
+          score += 6;  // 연계 준비
+          break;
+        case 'followup':
+        case 'finisher':
+          score += 8;  // 연계 발동
+          break;
+        case 'knockback':
+          score += 7;  // 컨트롤
+          break;
+        case 'stun':
+          score += 12; // 강력한 CC
+          break;
+        // 부정 특성
+        case 'double_edge':
+          score -= 3;  // 자해
+          break;
+        case 'slow':
+          score -= 4;  // 느린 카드
+          break;
+        case 'exhaust':
+          score -= 6;  // 탈진
+          break;
+        case 'vanish':
+          score -= 5;  // 소멸
+          break;
+      }
+    }
+
+    return score;
   }
 
   /**
@@ -485,15 +586,23 @@ export function createEnemyAI(
 export function getPatternForEnemy(enemyId: string): EnemyPattern {
   // 적 이름 기반 패턴 매핑
   const patterns: Record<string, EnemyPattern> = {
+    // 1막 일반 적
     ghoul: 'aggressive',
-    hunter: 'balanced',
-    berserker: 'berserk',
-    deserter: 'defensive',
-    scavenger: 'support',
-    slaughterer: 'aggressive',
-    captain: 'tactical',
-    alchemist: 'support',
     marauder: 'aggressive',
+    deserter: 'defensive',
+    slaughterer: 'berserk',
+    slurthim: 'support',       // 디버프 전문
+    wildrat: 'assassin',       // 빠른 공격
+    berserker: 'berserk',
+    polluted: 'support',       // 독/디버프
+
+    // 1막 엘리트/보스
+    hunter: 'tactical',        // 함정 + 저격
+    captain: 'tactical',       // 지휘관, 소환
+
+    // 2막+ 적 (추가)
+    scavenger: 'support',
+    alchemist: 'support',
     shaman: 'support',
     overlord: 'tactical',
     warlord: 'berserk',
@@ -503,4 +612,59 @@ export function getPatternForEnemy(enemyId: string): EnemyPattern {
   };
 
   return patterns[enemyId] || 'balanced';
+}
+
+/**
+ * 적 패턴에 따른 카드 선택 우선순위 가져오기
+ */
+export function getCardPriorityForPattern(pattern: EnemyPattern): {
+  preferredTypes: string[];
+  avoidTypes: string[];
+} {
+  switch (pattern) {
+    case 'aggressive':
+      return { preferredTypes: ['attack'], avoidTypes: ['defense'] };
+    case 'defensive':
+      return { preferredTypes: ['defense', 'support'], avoidTypes: [] };
+    case 'balanced':
+      return { preferredTypes: ['attack', 'defense'], avoidTypes: [] };
+    case 'tactical':
+      return { preferredTypes: ['support', 'move'], avoidTypes: [] };
+    case 'berserk':
+      return { preferredTypes: ['attack'], avoidTypes: ['defense', 'support'] };
+    case 'support':
+      return { preferredTypes: ['support', 'reaction'], avoidTypes: ['attack'] };
+    case 'assassin':
+      return { preferredTypes: ['attack', 'move'], avoidTypes: ['defense'] };
+    default:
+      return { preferredTypes: [], avoidTypes: [] };
+  }
+}
+
+/**
+ * 적 체력 비율에 따른 패턴 변화 추천
+ */
+export function getPatternModifierByHp(basePattern: EnemyPattern, hpRatio: number): EnemyPattern {
+  // 체력이 낮을 때 패턴 변화
+  if (hpRatio <= 0.2) {
+    // 치명적 상태
+    switch (basePattern) {
+      case 'defensive':
+      case 'support':
+        return 'defensive';  // 더 방어적
+      default:
+        return 'berserk';    // 올인 공격
+    }
+  } else if (hpRatio <= 0.4) {
+    // 위험 상태
+    switch (basePattern) {
+      case 'balanced':
+        return 'aggressive';  // 공격적으로 전환
+      case 'support':
+        return 'defensive';   // 방어적으로 전환
+      default:
+        return basePattern;
+    }
+  }
+  return basePattern;
 }

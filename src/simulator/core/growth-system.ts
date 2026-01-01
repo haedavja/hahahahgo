@@ -71,8 +71,38 @@ export interface GrowthBonuses {
   etherGainMultiplier: number;
   /** 시작 에테르 */
   startingEther: number;
+  /** 로고스 효과 */
+  logosEffects: LogosEffects;
   /** 특수 효과 목록 */
   specialEffects: string[];
+}
+
+/** 로고스 효과 상세 */
+export interface LogosEffects {
+  // 공용 로고스
+  /** 교차 범위 확장 (±1) */
+  expandCrossRange: boolean;
+  /** 보조특기 슬롯 추가 */
+  extraSubSlots: number;
+  /** 주특기 슬롯 추가 */
+  extraMainSlots: number;
+
+  // 건카타 로고스
+  /** 방어로 막을 때 총격 */
+  blockToShoot: boolean;
+  /** 탄걸림 확률 감소 (5% → 3%) */
+  reduceJamChance: boolean;
+  /** 총격 치명타 보너스 및 치명타시 장전 */
+  gunCritBonus: number;
+  gunCritReload: boolean;
+
+  // 배틀왈츠 로고스
+  /** 기교 최소 1 유지 */
+  minFinesse: boolean;
+  /** 검격 방어력에 50% 추가피해 */
+  armorPenetration: number;
+  /** 공격시 흐릿함, 방어시 수세 */
+  combatTokens: boolean;
 }
 
 export interface GrowthSelectionOption {
@@ -286,6 +316,18 @@ export class GrowthSystem {
       etherGainBonus: 0,
       etherGainMultiplier: 0,
       startingEther: 0,
+      logosEffects: {
+        expandCrossRange: false,
+        extraSubSlots: 0,
+        extraMainSlots: 0,
+        blockToShoot: false,
+        reduceJamChance: false,
+        gunCritBonus: 0,
+        gunCritReload: false,
+        minFinesse: false,
+        armorPenetration: 0,
+        combatTokens: false,
+      },
       specialEffects: [],
     };
 
@@ -350,25 +392,61 @@ export class GrowthSystem {
     }
 
     // 로고스 효과 적용
-    if (this.state.logosLevels.common >= 1) {
+    const commonLevel = this.state.logosLevels.common;
+    const gunkataLevel = this.state.logosLevels.gunkata;
+    const battleWaltzLevel = this.state.logosLevels.battleWaltz;
+
+    // 공용 로고스
+    if (commonLevel >= 1) {
       bonuses.crossRangeBonus += 1;
-      // 공용 로고스: 레벨당 에테르 획득량 5% 증가
-      bonuses.etherGainMultiplier += this.state.logosLevels.common * 0.05;
+      bonuses.logosEffects.expandCrossRange = true;
+      bonuses.specialEffects.push('공용 Lv1: 교차 범위 ±1 확장');
     }
-    if (this.state.logosLevels.gunkata >= 1) {
-      bonuses.specialEffects.push('건카타: 방어로 막을 때 총격');
-      // 건카타: 레벨당 시작 에테르 10
-      bonuses.startingEther += this.state.logosLevels.gunkata * 10;
+    if (commonLevel >= 2) {
+      bonuses.logosEffects.extraSubSlots = 2;
+      bonuses.specialEffects.push('공용 Lv2: 보조특기 슬롯 +2');
     }
-    if (this.state.logosLevels.battleWaltz >= 1) {
+    if (commonLevel >= 3) {
+      bonuses.logosEffects.extraMainSlots = 1;
+      bonuses.specialEffects.push('공용 Lv3: 주특기 슬롯 +1');
+    }
+    bonuses.etherGainMultiplier += commonLevel * 0.05;
+
+    // 건카타 로고스
+    if (gunkataLevel >= 1) {
+      bonuses.logosEffects.blockToShoot = true;
+      bonuses.specialEffects.push('건카타 Lv1: 방어로 막을 때 총격');
+    }
+    if (gunkataLevel >= 2) {
+      bonuses.logosEffects.reduceJamChance = true;
+      bonuses.specialEffects.push('건카타 Lv2: 탄걸림 확률 5%→3%');
+    }
+    if (gunkataLevel >= 3) {
+      bonuses.logosEffects.gunCritBonus = 3;
+      bonuses.logosEffects.gunCritReload = true;
+      bonuses.critBonus += 3;
+      bonuses.specialEffects.push('건카타 Lv3: 총격 치명타 +3%, 치명타시 장전');
+    }
+    bonuses.startingEther += gunkataLevel * 10;
+
+    // 배틀왈츠 로고스
+    if (battleWaltzLevel >= 1) {
+      bonuses.logosEffects.minFinesse = true;
       bonuses.startingFinesse += 1;
-      bonuses.specialEffects.push('배틀왈츠: 기교 1 이하 유지');
-      // 배틀왈츠: 레벨당 에테르 고정 보너스 3
-      bonuses.etherGainBonus += this.state.logosLevels.battleWaltz * 3;
+      bonuses.specialEffects.push('배틀왈츠 Lv1: 기교 최소 1 유지');
     }
+    if (battleWaltzLevel >= 2) {
+      bonuses.logosEffects.armorPenetration = 50;
+      bonuses.specialEffects.push('배틀왈츠 Lv2: 검격 방어력에 50% 추가피해');
+    }
+    if (battleWaltzLevel >= 3) {
+      bonuses.logosEffects.combatTokens = true;
+      bonuses.specialEffects.push('배틀왈츠 Lv3: 공격시 흐릿함, 방어시 수세');
+    }
+    bonuses.etherGainBonus += battleWaltzLevel * 3;
 
     // 피라미드 레벨에 따른 기본 에테르 보너스
-    bonuses.etherGainMultiplier += this.state.pyramidLevel * 0.02; // 레벨당 2%
+    bonuses.etherGainMultiplier += this.state.pyramidLevel * 0.02;
 
     return bonuses;
   }

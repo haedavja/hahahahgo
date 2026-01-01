@@ -46,11 +46,13 @@ import {
   checkRevive,
   calculateEnergyModifier,
   calculateSpeedModifier,
+  enforceMinFinesse,
 } from './token-system';
 import { getRelicSystemV2, RelicSystemV2 } from './relic-system-v2';
 import {
   getAnomalySystem,
   activateGameAnomaly,
+  activateMultipleGameAnomalies,
   clearGameAnomalies,
   isEtherBlocked,
   getEnergyReduction,
@@ -64,6 +66,8 @@ import {
   getChainIsolationLevel,
   getTraitSilenceLevel,
   getFinesseBlockLevel,
+  getActiveAnomalyDetailedSummary,
+  getActiveAnomalyCount,
 } from './anomaly-system';
 import { getLogger } from './logger';
 import { RespondAI, type ResponseDecision, type TimelineAnalysis } from '../ai/respond-ai';
@@ -202,14 +206,14 @@ export class TimelineBattleEngine {
    * @param playerDeck 플레이어 덱
    * @param playerRelics 플레이어 상징
    * @param enemy 적 상태
-   * @param anomalyId 이변 ID
+   * @param anomalyId 이변 ID 또는 다중 이변 설정 (보스 전투용)
    * @param cardEnhancements 카드 강화 레벨 (카드ID -> 강화레벨)
    */
   runBattle(
     playerDeck: string[],
     playerRelics: string[],
     enemy: EnemyState,
-    anomalyId?: string,
+    anomalyId?: string | { id: string; level?: number }[],
     cardEnhancements?: Record<string, number>
   ): BattleResult {
     this.events = [];
@@ -231,16 +235,36 @@ export class TimelineBattleEngine {
     }
 
     // 이변 초기화 (기존 시뮬레이터 이변)
+    // mapRisk 0-4 → anomalyLevel 1-5
+    const baseAnomalyLevel = Math.min(5, Math.max(1, Math.floor(this.config.mapRisk) + 1));
+    let primaryAnomalyId: string | undefined;
+
     if (this.config.enableAnomalies && anomalyId) {
       const anomalySystem = getAnomalySystem();
       anomalySystem.clear();
-      anomalySystem.activateAnomaly(anomalyId);
-
-      // 게임 데이터 이변 활성화 (mapRisk 기반 레벨 계산)
       clearGameAnomalies();
-      // mapRisk 0-4 → anomalyLevel 1-5
-      const anomalyLevel = Math.min(5, Math.max(1, Math.floor(this.config.mapRisk) + 1));
-      activateGameAnomaly(anomalyId, anomalyLevel);
+
+      if (typeof anomalyId === 'string') {
+        // 단일 이변 (일반 전투)
+        primaryAnomalyId = anomalyId;
+        anomalySystem.activateAnomaly(anomalyId);
+        activateGameAnomaly(anomalyId, baseAnomalyLevel);
+      } else if (Array.isArray(anomalyId)) {
+        // 다중 이변 (보스 전투)
+        const anomalyConfigs = anomalyId.map(a => ({
+          id: a.id,
+          level: a.level ?? baseAnomalyLevel
+        }));
+
+        // 첫 번째 이변을 기본 시뮬레이터 이변으로 설정
+        if (anomalyConfigs.length > 0) {
+          primaryAnomalyId = anomalyConfigs[0].id;
+          anomalySystem.activateAnomaly(anomalyConfigs[0].id);
+        }
+
+        // 게임 데이터 이변 다중 활성화
+        activateMultipleGameAnomalies(anomalyConfigs);
+      }
     }
 
     // 전투 상태 초기화 (적 상태 필드 보장)
@@ -256,7 +280,7 @@ export class TimelineBattleEngine {
       turn: 0,
       phase: 'select',
       timeline: [],
-      anomalyId,
+      anomalyId: primaryAnomalyId,
       battleLog: [],
       playerDamageDealt: 0,
       enemyDamageDealt: 0,
@@ -264,6 +288,17 @@ export class TimelineBattleEngine {
       tokenUsage: {},
       comboUsageCount: {},
     };
+
+    // 이변 효과 요약 로깅 (전투 시작 시)
+    if (this.config.enableAnomalies) {
+      const anomalyCount = getActiveAnomalyCount();
+      if (anomalyCount > 0) {
+        const anomalySummary = getActiveAnomalyDetailedSummary();
+        for (const line of anomalySummary) {
+          state.battleLog.push(line);
+        }
+      }
+    }
 
     // 전투 시작 트리거
     this.emitEvent('battle_start', 0, { playerHp: player.hp, enemyHp: enemy.hp });
@@ -476,6 +511,11 @@ export class TimelineBattleEngine {
     // 턴 종료 토큰 처리
     state.player.tokens = processTurnEnd(state.player.tokens);
     state.enemy.tokens = processTurnEnd(state.enemy.tokens);
+
+    // 배틀왈츠 Lv1: 기교 최소 1 유지
+    if (state.growthBonuses?.logosEffects?.minFinesse) {
+      state.player.tokens = enforceMinFinesse(state.player.tokens, 1);
+    }
 
     // 턴 종료 상징 트리거
     if (this.config.enableRelics) {
@@ -1140,13 +1180,36 @@ export class TimelineBattleEngine {
       }
     }
 
-    // 같은 위치에 있는 카드들은 교차
+    // 교차 범위 확장 (로고스 효과)
+    const crossRangeBonus = state.growthBonuses?.crossRangeBonus || 0;
+
+    // 같은 위치 또는 확장 범위 내에 있는 카드들은 교차
     for (const card of state.timeline) {
-      if (card.owner === 'player' && enemyPositions.has(card.position)) {
-        card.crossed = true;
+      if (card.owner === 'player') {
+        // 기본: 같은 위치
+        let isCrossed = enemyPositions.has(card.position);
+        // 확장 범위: ±crossRangeBonus
+        if (!isCrossed && crossRangeBonus > 0) {
+          for (let offset = 1; offset <= crossRangeBonus; offset++) {
+            if (enemyPositions.has(card.position + offset) || enemyPositions.has(card.position - offset)) {
+              isCrossed = true;
+              break;
+            }
+          }
+        }
+        card.crossed = isCrossed;
       }
-      if (card.owner === 'enemy' && playerPositions.has(card.position)) {
-        card.crossed = true;
+      if (card.owner === 'enemy') {
+        let isCrossed = playerPositions.has(card.position);
+        if (!isCrossed && crossRangeBonus > 0) {
+          for (let offset = 1; offset <= crossRangeBonus; offset++) {
+            if (playerPositions.has(card.position + offset) || playerPositions.has(card.position - offset)) {
+              isCrossed = true;
+              break;
+            }
+          }
+        }
+        card.crossed = isCrossed;
       }
     }
   }
@@ -1242,6 +1305,18 @@ export class TimelineBattleEngine {
     if (card.block && card.block > 0) {
       const blockMult = crossResult.blockMultiplier || 1;
       this.processBlock(state, 'player', card, traitMods, timelineCard, blockMult);
+
+      // 배틀왈츠 Lv3: 검격 방어시 수세 획득
+      if (state.growthBonuses?.logosEffects?.combatTokens && card.cardCategory === 'fencing') {
+        state.player.tokens = addToken(state.player.tokens, 'guard', 1);
+        state.battleLog.push(`  🛡️ 배틀왈츠: 수세 +1`);
+      }
+    }
+
+    // 배틀왈츠 Lv3: 검격 공격시 흐릿함 획득
+    if (state.growthBonuses?.logosEffects?.combatTokens && card.cardCategory === 'fencing' && card.damage && card.damage > 0) {
+      state.player.tokens = addToken(state.player.tokens, 'blur', 1);
+      state.battleLog.push(`  ✨ 배틀왈츠: 흐릿함 +1`);
     }
 
     // 교차 보너스 추가 방어력
@@ -1499,6 +1574,15 @@ export class TimelineBattleEngine {
           actualDamage = damage - blocked;
           defenderState.block -= blocked;
         }
+
+        // 배틀왈츠 Lv2: 검격이 방어력에 50% 추가피해
+        const armorPen = state.growthBonuses?.logosEffects?.armorPenetration || 0;
+        if (armorPen > 0 && blocked > 0 && attacker === 'player' && card.cardCategory === 'fencing') {
+          const bonusDamage = Math.floor(blocked * (armorPen / 100));
+          defenderState.hp -= bonusDamage;
+          state.playerDamageDealt = (state.playerDamageDealt || 0) + bonusDamage;
+          state.battleLog.push(`  ⚔️ 배틀왈츠: 관통 ${bonusDamage} 추가피해`);
+        }
       }
 
       // 치명타시 장전(critLoad) 특성
@@ -1543,6 +1627,17 @@ export class TimelineBattleEngine {
           }
           state.battleLog.push(`  🌧️ 비의 눈물: 방어 +7, 앞당김 ${advancedCount}장`);
         }
+
+        // 건카타 Lv1: 방어로 막을 때 총격
+        if (blocked > 0 && state.growthBonuses?.logosEffects?.blockToShoot) {
+          const gunkataShootDamage = 4; // 건카타 사격 피해
+          const enemyBlocked = Math.min(state.enemy.block, gunkataShootDamage);
+          const enemyActualDamage = gunkataShootDamage - enemyBlocked;
+          state.enemy.block -= enemyBlocked;
+          state.enemy.hp -= enemyActualDamage;
+          state.playerDamageDealt = (state.playerDamageDealt || 0) + enemyActualDamage;
+          state.battleLog.push(`  🔫 건카타: 반격 사격 ${enemyActualDamage} 피해`);
+        }
       }
 
       // 흡혈 처리
@@ -1586,8 +1681,9 @@ export class TimelineBattleEngine {
           defenderState.tokens = counterShotResult.newDefenderTokens;
           state.battleLog.push(`  🔫 대응사격: ${counterShotResult.damage} 피해`);
 
-          // 룰렛 체크
-          const rouletteResult = checkRoulette(defenderState.tokens);
+          // 룰렛 체크 (건카타 Lv2: 탄걸림 확률 감소)
+          const reduceJam = attacker === 'enemy' && !!state.growthBonuses?.logosEffects?.reduceJamChance;
+          const rouletteResult = checkRoulette(defenderState.tokens, reduceJam);
           if (rouletteResult.jammed) {
             defenderState.tokens = rouletteResult.newTokens;
             state.battleLog.push(`  ⚠️ 탄걸림 발생!`);

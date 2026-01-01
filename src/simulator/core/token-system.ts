@@ -686,8 +686,13 @@ export function processCounterShot(
 
 /**
  * 룰렛 탄걸림 체크
+ * @param tokens 현재 토큰 상태
+ * @param reduceJamChance 건카타 Lv2 효과: true이면 확률 5%→3%로 감소
  */
-export function checkRoulette(tokens: TokenState): { jammed: boolean; newTokens: TokenState } {
+export function checkRoulette(
+  tokens: TokenState,
+  reduceJamChance: boolean = false
+): { jammed: boolean; newTokens: TokenState } {
   const rouletteStacks = getTokenStacks(tokens, 'roulette');
   if (rouletteStacks === 0) {
     return { jammed: false, newTokens: tokens };
@@ -698,11 +703,13 @@ export function checkRoulette(tokens: TokenState): { jammed: boolean; newTokens:
     return { jammed: false, newTokens: tokens };
   }
 
-  const jamChance = rouletteStacks * 0.05; // 스택당 5%
+  // 건카타 Lv2: 탄걸림 확률 감소 (5% → 3%)
+  const jamPerStack = reduceJamChance ? 0.03 : 0.05;
+  const jamChance = rouletteStacks * jamPerStack;
   const jammed = Math.random() < jamChance;
 
   if (jammed) {
-    log.info('탄걸림 발생', { rouletteStacks, jamChance });
+    log.info('탄걸림 발생', { rouletteStacks, jamChance, reduced: reduceJamChance });
     let newTokens = clearToken(tokens, 'roulette');
     newTokens = addToken(newTokens, 'gun_jam', 1);
     return { jammed: true, newTokens };
@@ -838,4 +845,16 @@ export function summarizeTokens(tokens: TokenState): TokenSummary {
   }
 
   return summary;
+}
+
+/**
+ * 최소 기교 유지 (배틀왈츠 Lv1)
+ * 기교가 minValue 미만이면 minValue로 설정
+ */
+export function enforceMinFinesse(tokens: TokenState, minValue: number = 1): TokenState {
+  const currentFinesse = getTokenStacks(tokens, 'finesse');
+  if (currentFinesse < minValue) {
+    return addToken(tokens, 'finesse', minValue - currentFinesse);
+  }
+  return tokens;
 }
