@@ -1,5 +1,5 @@
 import { test, expect, Page } from '@playwright/test';
-import { resetGameState } from './utils/test-helpers';
+import { resetGameState, waitForUIStable } from './utils/test-helpers';
 
 /**
  * 상태 검증 E2E 테스트
@@ -320,21 +320,21 @@ test.describe('상태 검증 - 상점', () => {
       const buyTab = page.locator('[data-testid="shop-tab-buy"]');
       if (await buyTab.isVisible()) {
         await buyTab.click();
-        await page.waitForTimeout(200);
+        await waitForUIStable(page, { timeout: 500 });
       }
 
       // 서비스 탭 클릭 (있으면)
       const serviceTab = page.locator('[data-testid="shop-tab-service"]');
       if (await serviceTab.isVisible()) {
         await serviceTab.click();
-        await page.waitForTimeout(200);
+        await waitForUIStable(page, { timeout: 500 });
       }
 
       // 판매 탭 클릭 (있으면)
       const sellTab = page.locator('[data-testid="shop-tab-sell"]');
       if (await sellTab.isVisible()) {
         await sellTab.click();
-        await page.waitForTimeout(200);
+        await waitForUIStable(page, { timeout: 500 });
       }
     }
   });
