@@ -111,8 +111,8 @@ export const EnemyEtherBox: FC<EnemyEtherBoxProps> = memo(({
   }
 
   return (
-    <div className="enemy-ether-box" style={CONTAINER_STYLE}>
-      <div className="combo-display">
+    <div className="enemy-ether-box" style={CONTAINER_STYLE} data-testid="enemy-ether-box">
+      <div className="combo-display" data-testid="enemy-combo-display">
         {/* 콤보 이름 (콤보가 있을 때만 표시) */}
         {enemyCombo && (
           <div style={COMBO_NAME_BASE}>

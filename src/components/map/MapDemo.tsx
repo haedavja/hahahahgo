@@ -435,7 +435,8 @@ function MapDemoComponent() {
                   key={node.id}
                   data-node-id={node.id}
                   data-node-type={node.type}
-                  data-testid={`map-node-${node.type}`}
+                  data-testid={`map-node-${node.id}`}
+                  data-node-selectable={node.selectable ? 'true' : 'false'}
                   type="button"
                   className={[
                     "node",

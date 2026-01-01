@@ -6,8 +6,8 @@ export default defineConfig({
   plugins: [react()],
   server: {
     host: '0.0.0.0', // 로컬 네트워크(iPad 등)에서 접속 가능하도록 모든 인터페이스 바인드
-    port: 80,        // 포트 없이 http://<PC_IP>/ 로 접근 가능
-    strictPort: true,
+    port: 5173,      // 기본 Vite 포트 (관리자 권한 불필요)
+    strictPort: false, // 포트 사용 중이면 다른 포트 시도
   },
   build: {
     rollupOptions: {

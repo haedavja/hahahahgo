@@ -67,7 +67,7 @@ const RelicsSection = memo(function RelicsSection({ inventory, purchasedRelics, 
   if (inventory.relics.length === 0) return null;
 
   return (
-    <div style={{ marginBottom: '20px' }}>
+    <div style={{ marginBottom: '20px' }} data-testid="shop-relics-section">
       <h3 style={{ fontSize: '1rem', color: '#a78bfa', marginBottom: '12px' }}>✨ 상징</h3>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '12px' }}>
         {inventory.relics.map(({ id, price }: { id: string; price: number }) => {
@@ -80,6 +80,8 @@ const RelicsSection = memo(function RelicsSection({ inventory, purchasedRelics, 
             <div
               key={id}
               onClick={() => !sold && onBuyRelic(id, price)}
+              data-testid={`shop-relic-${id}`}
+              data-relic-sold={sold ? 'true' : 'false'}
               style={{
                 padding: '12px',
                 background: sold ? 'rgba(100, 116, 139, 0.1)' : 'rgba(30, 41, 59, 0.5)',
@@ -132,7 +134,7 @@ const ItemsSection = memo(function ItemsSection({ inventory, purchasedItems, ite
   if (inventory.items.length === 0) return null;
 
   return (
-    <div style={{ marginBottom: '20px' }}>
+    <div style={{ marginBottom: '20px' }} data-testid="shop-items-section">
       <h3 style={{ fontSize: '1rem', color: '#60a5fa', marginBottom: '12px' }}>📦 아이템</h3>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '12px' }}>
         {inventory.items.map(({ id, price }: { id: string; price: number }, idx: number) => {
@@ -146,6 +148,8 @@ const ItemsSection = memo(function ItemsSection({ inventory, purchasedItems, ite
             <div
               key={`${id}-${idx}`}
               onClick={() => !sold && hasEmptySlot && onBuyItem(id, price)}
+              data-testid={`shop-item-${id}`}
+              data-item-sold={sold ? 'true' : 'false'}
               style={{
                 padding: '12px',
                 background: sold ? 'rgba(100, 116, 139, 0.1)' : 'rgba(30, 41, 59, 0.5)',
@@ -197,7 +201,7 @@ const CardsSection = memo(function CardsSection({ inventory, purchasedCards, gol
   const rarityNames: Record<string, string> = { common: '일반', rare: '희귀', special: '특별', legendary: '전설' };
 
   return (
-    <div>
+    <div data-testid="shop-cards-section">
       <h3 style={{ fontSize: '1rem', color: '#f59e0b', marginBottom: '12px' }}>🃏 카드</h3>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '12px' }}>
         {inventory.cards.map(({ id, price, rarity }: { id: string; price: number; rarity: string }, idx: number) => {
@@ -210,6 +214,8 @@ const CardsSection = memo(function CardsSection({ inventory, purchasedCards, gol
             <div
               key={`${id}-${idx}`}
               onClick={() => !sold && onBuyCard(id, price)}
+              data-testid={`shop-card-${id}`}
+              data-card-sold={sold ? 'true' : 'false'}
               style={{
                 padding: '12px',
                 background: sold ? 'rgba(100, 116, 139, 0.1)' : 'rgba(30, 41, 59, 0.5)',
@@ -313,7 +319,7 @@ export const SellTab = memo(function SellTab({ sellableItems, merchantType, onSe
   onSellItem: (slotIndex: number) => void;
 }) {
   return (
-    <div>
+    <div data-testid="shop-sell-section">
       <h3 style={{ fontSize: '1rem', color: '#22c55e', marginBottom: '12px' }}>📦 아이템 판매</h3>
       {sellableItems.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '20px', color: '#64748b', marginBottom: '20px' }}>
@@ -328,6 +334,7 @@ export const SellTab = memo(function SellTab({ sellableItems, merchantType, onSe
               <div
                 key={slotIndex}
                 onClick={() => onSellItem(slotIndex)}
+                data-testid={`shop-sell-item-${slotIndex}`}
                 style={{
                   padding: '12px',
                   background: 'rgba(34, 197, 94, 0.1)',
@@ -367,7 +374,7 @@ export const ServiceTab = memo(function ServiceTab({ gold, merchantType, onUseSe
   onUseService: (service: ShopService) => void;
 }) {
   return (
-    <div>
+    <div data-testid="shop-service-section">
       <h3 style={{ fontSize: '1rem', color: '#60a5fa', marginBottom: '12px' }}>🔧 서비스</h3>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '12px' }}>
         {SHOP_SERVICES.map((service) => {
@@ -378,6 +385,7 @@ export const ServiceTab = memo(function ServiceTab({ gold, merchantType, onUseSe
             <div
               key={service.id}
               onClick={() => onUseService(service)}
+              data-testid={`shop-service-${service.id}`}
               style={{
                 padding: '16px',
                 background: 'rgba(30, 41, 59, 0.5)',
