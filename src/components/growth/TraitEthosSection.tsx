@@ -104,7 +104,7 @@ const EthosCard = memo(function EthosCard({
       data-node-id={ethos.id}
       style={{
       position: 'relative',
-      zIndex: 2,
+      zIndex: 1,
       width: '180px',
       flex: '0 0 180px',
       padding: SPACING.md,

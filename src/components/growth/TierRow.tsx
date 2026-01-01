@@ -189,7 +189,7 @@ const NodeCard = memo(function NodeCard({
       data-node-id={node.id}
       style={{
       position: 'relative',
-      zIndex: 2,
+      zIndex: 1,
       width: nodeWidth,
       flex: `0 0 ${nodeWidth}`,
       padding: SPACING.md,
