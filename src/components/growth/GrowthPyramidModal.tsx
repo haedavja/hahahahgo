@@ -68,18 +68,27 @@ export const GrowthPyramidModal = memo(function GrowthPyramidModal({
         onClick={(e) => e.stopPropagation()}
         style={{ maxWidth: '100vw', width: '1900px', maxHeight: '95vh', overflowY: 'auto', overflowX: 'hidden' }}
       >
-        {/* 헤더 */}
-        <header>
-          <h3>🔺 피라미드 성장</h3>
-          <small>개성으로 스킬포인트를 얻고, 에토스/파토스를 해금하세요</small>
-        </header>
+        {/* 헤더 + 상태 요약 - 스크롤 시 상단 고정 */}
+        <div style={{
+          position: 'sticky',
+          top: 0,
+          zIndex: 100,
+          background: COLORS.bg.secondary,
+          paddingBottom: SPACING.md,
+          marginBottom: SPACING.md,
+        }}>
+          <header style={{ textAlign: 'center' }}>
+            <h3>🔺 피라미드 성장</h3>
+            <small>개성으로 스킬포인트를 얻고, 에토스/파토스를 해금하세요</small>
+          </header>
 
-        {/* 상태 요약 */}
-        <StatusSummary
-          playerTraits={playerTraits}
-          growth={growth}
-          pendingSelection={pendingNodeSelection}
-        />
+          {/* 상태 요약 */}
+          <StatusSummary
+            playerTraits={playerTraits}
+            growth={growth}
+            pendingSelection={pendingNodeSelection}
+          />
+        </div>
 
         {/* 피라미드 뷰 - 중앙 정렬 wrapper */}
         <div style={{ paddingLeft: '20px' }}>
@@ -125,10 +134,9 @@ const StatusSummary = memo(function StatusSummary({
       padding: '10px',
       background: COLORS.bg.primary,
       borderRadius: '6px',
-      marginBottom: SPACING.lg,
       fontSize: '13px',
     }}>
-      <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', justifyContent: 'center' }}>
         <span>개성: <strong style={{ color: '#fde68a' }}>{playerTraits.length}개</strong></span>
         <span>피라미드 Lv: <strong style={{ color: COLORS.secondary }}>{growth.pyramidLevel}</strong></span>
         <span>스킬포인트: <strong style={{ color: COLORS.primary }}>{growth.skillPoints}P</strong></span>
