@@ -1,0 +1,188 @@
+{
+  "version": "2.0.0",
+  "lastUpdated": "2026-01-01",
+  "syncedFrom": "battleData.ts",
+  "totalGroups": 19,
+  "groups": {
+    "ghoul_single": {
+      "id": "ghoul_single",
+      "name": "구울x1",
+      "tier": 1,
+      "enemies": [
+        "ghoul"
+      ]
+    },
+    "ghoul_duo": {
+      "id": "ghoul_duo",
+      "name": "구울x2",
+      "tier": 1,
+      "enemies": [
+        "ghoul",
+        "ghoul"
+      ]
+    },
+    "marauder_trio": {
+      "id": "marauder_trio",
+      "name": "약탈자x3",
+      "tier": 1,
+      "enemies": [
+        "marauder",
+        "marauder",
+        "marauder"
+      ]
+    },
+    "deserter_solo": {
+      "id": "deserter_solo",
+      "name": "탈영병x1",
+      "tier": 2,
+      "enemies": [
+        "deserter"
+      ]
+    },
+    "ghoul_trio": {
+      "id": "ghoul_trio",
+      "name": "구울x3",
+      "tier": 2,
+      "enemies": [
+        "ghoul",
+        "ghoul",
+        "ghoul"
+      ]
+    },
+    "marauder_gang": {
+      "id": "marauder_gang",
+      "name": "약탈자x4",
+      "tier": 2,
+      "enemies": [
+        "marauder",
+        "marauder",
+        "marauder",
+        "marauder"
+      ]
+    },
+    "slaughterer_solo": {
+      "id": "slaughterer_solo",
+      "name": "살육자x1",
+      "tier": 3,
+      "enemies": [
+        "slaughterer"
+      ],
+      "isBoss": true
+    },
+    "wildrat_swarm": {
+      "id": "wildrat_swarm",
+      "name": "들쥐 떼",
+      "tier": 1,
+      "enemies": [
+        "wildrat",
+        "wildrat",
+        "wildrat",
+        "wildrat"
+      ]
+    },
+    "polluted_single": {
+      "id": "polluted_single",
+      "name": "오염체x1",
+      "tier": 1,
+      "enemies": [
+        "polluted"
+      ]
+    },
+    "berserker_solo": {
+      "id": "berserker_solo",
+      "name": "폭주자x1",
+      "tier": 1,
+      "enemies": [
+        "berserker"
+      ]
+    },
+    "wildrat_horde": {
+      "id": "wildrat_horde",
+      "name": "들쥐 대군",
+      "tier": 1,
+      "enemies": [
+        "wildrat",
+        "wildrat",
+        "wildrat",
+        "wildrat",
+        "wildrat",
+        "wildrat"
+      ]
+    },
+    "polluted_duo": {
+      "id": "polluted_duo",
+      "name": "오염체x2",
+      "tier": 1,
+      "enemies": [
+        "polluted",
+        "polluted"
+      ]
+    },
+    "hunter_solo": {
+      "id": "hunter_solo",
+      "name": "현상금 사냥꾼",
+      "tier": 2,
+      "enemies": [
+        "hunter"
+      ]
+    },
+    "mixed_patrol": {
+      "id": "mixed_patrol",
+      "name": "순찰대",
+      "tier": 2,
+      "enemies": [
+        "deserter",
+        "marauder",
+        "marauder"
+      ]
+    },
+    "berserker_duo": {
+      "id": "berserker_duo",
+      "name": "폭주자x2",
+      "tier": 2,
+      "enemies": [
+        "berserker",
+        "berserker"
+      ]
+    },
+    "hunter_duo": {
+      "id": "hunter_duo",
+      "name": "사냥꾼 콤비",
+      "tier": 2,
+      "enemies": [
+        "hunter",
+        "hunter"
+      ]
+    },
+    "ambush_squad": {
+      "id": "ambush_squad",
+      "name": "매복조",
+      "tier": 2,
+      "enemies": [
+        "hunter",
+        "deserter",
+        "deserter"
+      ]
+    },
+    "captain_solo": {
+      "id": "captain_solo",
+      "name": "탈영병 대장",
+      "tier": 3,
+      "enemies": [
+        "captain"
+      ],
+      "isBoss": true
+    },
+    "captain_escort": {
+      "id": "captain_escort",
+      "name": "탈영병 대장 + 호위",
+      "tier": 3,
+      "enemies": [
+        "captain",
+        "deserter",
+        "deserter"
+      ],
+      "isBoss": true
+    }
+  }
+}

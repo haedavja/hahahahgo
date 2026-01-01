@@ -23,6 +23,7 @@ import { syncAllCards, syncAllTraits } from '../data/game-data-sync';
 import { createEnemyAI, getPatternForEnemy, type EnemyAI, type EnemyDecision } from '../ai/enemy-patterns';
 import {
   addToken,
+  getTokenStacks,
   calculateAttackModifiers,
   calculateDefenseModifiers,
   calculateDamageTakenModifiers,
@@ -34,6 +35,19 @@ import {
 import { getRelicSystemV2 } from './relic-system-v2';
 import { TraitSynergyProcessor, type TraitContext, type TraitSynergyResult } from './trait-synergy-processor';
 import { detectPokerCombo, ETHER_BY_RARITY, type EtherGainResult, type CardRarity } from './combo-ether-system';
+import {
+  activateGameAnomaly,
+  deactivateGameAnomaly,
+  isEtherBlocked,
+  getEnergyReduction,
+  getVulnerabilityPercent,
+  getDefenseBackfireDamage,
+  getSpeedReduction,
+  getDrawReduction,
+  getChainIsolationLevel,
+  getTraitSilenceLevel,
+  clearGameAnomalies,
+} from './anomaly-system';
 import { getLogger } from './logger';
 
 const log = getLogger('MultiEnemyBattleEngine');
@@ -238,6 +252,15 @@ export class MultiEnemyBattleEngine {
     this.enhancedCards = {};
     this.buildEnhancedCardCache();
 
+    // 이변 시스템 초기화
+    clearGameAnomalies();
+    if (anomalyId && this.config.enableAnomalies) {
+      const activated = activateGameAnomaly(anomalyId);
+      if (activated) {
+        log.info(`Anomaly activated: ${anomalyId}`);
+      }
+    }
+
     // 적 AI 초기화
     this.initializeEnemyAIs(enemies);
 
@@ -348,18 +371,25 @@ export class MultiEnemyBattleEngine {
         enemy.block = 0;
       }
     }
-    state.player.energy = state.player.maxEnergy;
+
+    // 이변 효과: 에너지 감소
+    const energyReduction = this.config.enableAnomalies ? getEnergyReduction() : 0;
+    state.player.energy = Math.max(1, state.player.maxEnergy - energyReduction);
     state.timeline = [];
     state.cardsPlayedThisTurn = [];
     state.chainActive = false;
     state.chainLength = 0;
 
     // 에테르 폭주 체크 (턴 시작 시)
+    // 이변 효과: 에테르 차단 시 폭주 불가
     state.etherOverdriveActive = false;
-    if ((state.player.ether || 0) >= 100) {
+    const etherBlocked = this.config.enableAnomalies && isEtherBlocked();
+    if (!etherBlocked && (state.player.ether || 0) >= 100) {
       state.etherOverdriveActive = true;
       state.player.ether = (state.player.ether || 0) - 100;
       state.battleLog.push(`⚡ 에테르 폭주 발동! (이번 턴 피해량 2배)`);
+    } else if (etherBlocked && (state.player.ether || 0) >= 100) {
+      state.battleLog.push(`⛔ 에테르 차단 이변 - 폭주 불가!`);
     }
 
     // 화상 피해 처리
@@ -398,7 +428,10 @@ export class MultiEnemyBattleEngine {
     // 핸드 버리기 및 드로우
     state.player.discard.push(...state.player.hand);
     state.player.hand = [];
-    this.drawCards(state.player, DEFAULT_HAND_SIZE);
+    // 이변 효과: 드로우 감소
+    const drawReduction = this.config.enableAnomalies ? getDrawReduction() : 0;
+    const drawCount = Math.max(1, DEFAULT_HAND_SIZE - drawReduction);
+    this.drawCards(state.player, drawCount);
 
     // 토큰 턴 종료 처리
     state.player.tokens = processTurnEnd(state.player.tokens);
@@ -665,11 +698,19 @@ export class MultiEnemyBattleEngine {
     const speedMod = calculateSpeedModifier(tokens);
     position += speedMod;
 
+    // 이변 효과: 속도 감소
+    const speedReduction = this.config.enableAnomalies ? getSpeedReduction() : 0;
+    position += speedReduction;
+
     if (card.traits) {
-      for (const trait of card.traits) {
-        if (trait === 'swift') position -= 2;
-        if (trait === 'slow') position += 3;
-        if (trait === 'last') position = this.config.maxSpeed;
+      // 이변 효과: 특성 침묵 - 특성 효과 무시
+      const traitSilence = this.config.enableAnomalies ? getTraitSilenceLevel() : 0;
+      if (traitSilence === 0) {
+        for (const trait of card.traits) {
+          if (trait === 'swift') position -= 2;
+          if (trait === 'slow') position += 3;
+          if (trait === 'last') position = this.config.maxSpeed;
+        }
       }
     }
 
@@ -771,10 +812,18 @@ export class MultiEnemyBattleEngine {
     );
 
     // 연계 상태 업데이트
-    if (card.traits?.includes('chain')) {
-      state.chainActive = true;
-      state.chainLength++;
-    } else if (!card.traits?.includes('followup') && !card.traits?.includes('finisher')) {
+    // 이변 효과: 연계 고립 - 연계 시스템 비활성화
+    const chainIsolation = this.config.enableAnomalies ? getChainIsolationLevel() : 0;
+    if (chainIsolation === 0) {
+      if (card.traits?.includes('chain')) {
+        state.chainActive = true;
+        state.chainLength++;
+      } else if (!card.traits?.includes('followup') && !card.traits?.includes('finisher')) {
+        state.chainActive = false;
+        state.chainLength = 0;
+      }
+    } else {
+      // 연계 고립 시 항상 비활성화
       state.chainActive = false;
       state.chainLength = 0;
     }
@@ -807,9 +856,15 @@ export class MultiEnemyBattleEngine {
           }
 
           // 취약 체크
-          const vulnerable = this.getTokenStacks(enemy.tokens, 'vulnerable');
+          const vulnerable = getTokenStacks(enemy.tokens || {}, 'vulnerable');
           if (vulnerable > 0) {
             damage = Math.floor(damage * 1.5);
+          }
+
+          // 이변 효과: 추가 취약성 (VULNERABILITY)
+          const anomalyVulnerable = this.config.enableAnomalies ? getVulnerabilityPercent() : 0;
+          if (anomalyVulnerable > 0) {
+            damage = Math.floor(damage * (1 + anomalyVulnerable / 100));
           }
 
           // 방어력 처리
@@ -845,6 +900,13 @@ export class MultiEnemyBattleEngine {
 
       state.player.block += block;
       state.battleLog.push(`  🛡️ ${card.name}: 방어 +${block}`);
+
+      // 이변 효과: 방어 카드 자해 (DEFENSE_BACKFIRE)
+      const backfireDamage = this.config.enableAnomalies ? getDefenseBackfireDamage() : 0;
+      if (backfireDamage > 0) {
+        state.player.hp -= backfireDamage;
+        state.battleLog.push(`  💥 이변 자해: ${backfireDamage} 피해`);
+      }
     }
 
     // 시너지 토큰 적용
@@ -884,9 +946,108 @@ export class MultiEnemyBattleEngine {
       }
     }
 
+    // 카드 특수 효과 처리 (창조 등)
+    this.processCardSpecial(state, card, targets);
+
     // 시너지 로그 (verbose 모드)
     if (this.config.verbose && synergyResult.synergies.length > 0) {
       state.battleLog.push(`  ✨ 시너지: ${synergyResult.synergies.join(', ')}`);
+    }
+  }
+
+  /**
+   * 카드 특수 효과 처리
+   */
+  private processCardSpecial(
+    state: MultiEnemyBattleState,
+    card: GameCard,
+    targets: number[]
+  ): void {
+    if (!card.special) return;
+
+    const special = Array.isArray(card.special) ? card.special : [card.special];
+
+    for (const effect of special) {
+      switch (effect) {
+        case 'createAttackOnHit':
+          // 피해 성공 시 공격 카드 창조 (최대 2장)
+          if (targets.length > 0 && card.damage && card.damage > 0) {
+            const attackCards = ['strike', 'shoot'];
+            const createdCard = attackCards[Math.floor(Math.random() * attackCards.length)];
+            state.player.hand.push(createdCard);
+            if (this.config.verbose) {
+              state.battleLog.push(`  🃏 창조: ${createdCard} 카드 획득`);
+            }
+          }
+          break;
+
+        case 'breach':
+          // 3장 중 1장 선택하여 타임라인에 추가 (시뮬레이터에서는 랜덤 선택)
+          const breachCards = ['strike', 'shoot', 'quarte'];
+          const selectedCard = breachCards[Math.floor(Math.random() * breachCards.length)];
+          const breachCardData = this.cards[selectedCard];
+          if (breachCardData) {
+            const position = (breachCardData.speedCost || 5) + (card.breachSpOffset || 3);
+            state.timeline.push({
+              cardId: selectedCard,
+              owner: 'player',
+              position: Math.min(position, this.config.maxSpeed),
+              crossed: false,
+              executed: false,
+              enemyIndex: -1,
+            });
+            if (this.config.verbose) {
+              state.battleLog.push(`  🃏 브리치: ${breachCardData.name} 타임라인 추가`);
+            }
+          }
+          break;
+
+        case 'createFencingCards3':
+          // 펜싱 카드 3장 창조
+          const fencingCards = ['marche', 'lunge', 'feint', 'thrust', 'beat'];
+          for (let i = 0; i < 3; i++) {
+            const randomCard = fencingCards[Math.floor(Math.random() * fencingCards.length)];
+            state.player.hand.push(randomCard);
+          }
+          if (this.config.verbose) {
+            state.battleLog.push(`  🃏 창조: 펜싱 카드 3장 획득`);
+          }
+          break;
+
+        case 'pushEnemyTimeline':
+        case 'pushLastEnemyCard':
+          // 넉백: 적 카드 위치 밀어내기
+          if (card.pushAmount && targets.length > 0) {
+            for (const tc of state.timeline) {
+              if (tc.owner === 'enemy' && !tc.executed) {
+                tc.position = Math.min(tc.position + card.pushAmount, this.config.maxSpeed);
+              }
+            }
+            if (this.config.verbose) {
+              state.battleLog.push(`  ⬇️ 넉백: 적 카드 +${card.pushAmount}`);
+            }
+          }
+          break;
+
+        case 'advanceTimeline':
+          // 앞당김: 플레이어 카드 위치 앞당기기
+          if (card.advanceAmount) {
+            for (const tc of state.timeline) {
+              if (tc.owner === 'player' && !tc.executed) {
+                tc.position = Math.max(1, tc.position - card.advanceAmount);
+              }
+            }
+          }
+          break;
+
+        case 'aoeAttack':
+          // AOE 공격은 이미 determineTargets에서 처리됨
+          break;
+
+        case 'growingDefense':
+          // 타임라인 위치에 따른 방어력 증가 (이미 계산됨)
+          break;
+      }
     }
   }
 
@@ -940,7 +1101,7 @@ export class MultiEnemyBattleEngine {
     // 공격 처리
     if (card.damage && card.damage > 0) {
       const hits = card.hits || 1;
-      const strength = this.getTokenStacks(enemy.tokens, 'strength');
+      const strength = getTokenStacks(enemy.tokens || {}, 'strength');
       const baseDamage = card.damage + strength;
 
       for (let hit = 0; hit < hits; hit++) {
@@ -949,7 +1110,7 @@ export class MultiEnemyBattleEngine {
         let damage = baseDamage;
 
         // 취약 체크
-        const vulnerable = this.getTokenStacks(state.player.tokens, 'vulnerable');
+        const vulnerable = getTokenStacks(state.player.tokens || {}, 'vulnerable');
         if (vulnerable > 0) {
           damage = Math.floor(damage * 1.5);
         }
@@ -987,15 +1148,6 @@ export class MultiEnemyBattleEngine {
         }
       }
     }
-  }
-
-  /**
-   * 토큰 스택 수 가져오기
-   */
-  private getTokenStacks(tokens: TokenState[] | undefined, tokenId: string): number {
-    if (!tokens || !Array.isArray(tokens)) return 0;
-    const token = tokens.find(t => t.id === tokenId);
-    return token?.stacks || 0;
   }
 
   /**

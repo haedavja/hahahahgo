@@ -1,186 +1,189 @@
 {
-  "version": "1.2.0",
+  "version": "2.0.0",
   "lastUpdated": "2026-01-01",
-  "description": "실제 게임 데이터(battleData.ts)와 동기화됨",
-  "tiers": {
-    "1": ["ghoul", "marauder", "wildrat", "slurthim", "berserker", "polluted"],
-    "2": ["deserter", "hunter"],
-    "3": ["slaughterer", "captain"]
-  },
+  "syncedFrom": "battleData.ts",
+  "totalEnemies": 10,
   "enemies": {
     "ghoul": {
       "id": "ghoul",
       "name": "구울",
-      "tier": 1,
       "hp": 40,
+      "maxHp": 40,
       "ether": 100,
-      "speed": 10,
       "maxSpeed": 10,
+      "deck": [
+        "ghoul_attack",
+        "ghoul_attack",
+        "ghoul_block",
+        "ghoul_block"
+      ],
       "cardsPerTurn": 2,
-      "deck": ["ghoul_attack", "ghoul_attack", "ghoul_block", "ghoul_block"],
-      "passive": null,
-      "pattern": "aggressive",
-      "description": "약함, 초반적. 가끔 때로 등장."
+      "tier": 1
     },
     "marauder": {
       "id": "marauder",
       "name": "약탈자",
-      "tier": 1,
       "hp": 20,
+      "maxHp": 20,
       "ether": 80,
-      "speed": 8,
       "maxSpeed": 8,
+      "deck": [
+        "marauder_attack",
+        "marauder_block"
+      ],
       "cardsPerTurn": 1,
-      "deck": ["marauder_attack", "marauder_block"],
-      "passive": null,
-      "pattern": "balanced",
-      "description": "평범한 시민이었던 약탈자"
-    },
-    "wildrat": {
-      "id": "wildrat",
-      "name": "들쥐",
-      "tier": 1,
-      "hp": 12,
-      "ether": 40,
-      "speed": 6,
-      "maxSpeed": 6,
-      "cardsPerTurn": 2,
-      "deck": ["wildrat_bite", "wildrat_bite", "wildrat_swarm", "wildrat_flee"],
-      "passive": {
-        "type": "swarm",
-        "effect": "떼로 공격하여 다수의 약한 타격"
-      },
-      "pattern": "aggressive",
-      "description": "빠르고 약한 적. 떼로 나타나면 성가시다."
-    },
-    "slurthim": {
-      "id": "slurthim",
-      "name": "슬러심",
-      "tier": 1,
-      "hp": 60,
-      "ether": 150,
-      "speed": 12,
-      "maxSpeed": 12,
-      "cardsPerTurn": 1,
-      "deck": ["slurthim_burn", "slurthim_vulnerable", "slurthim_dull"],
-      "passive": {
-        "type": "corrosive",
-        "effect": "다양한 상태이상 부여"
-      },
-      "pattern": "debuffer",
-      "description": "슬라임 비슷한 유독성 폐기물로 만들어진 흉물"
-    },
-    "berserker": {
-      "id": "berserker",
-      "name": "폭주자",
-      "tier": 1,
-      "hp": 55,
-      "ether": 120,
-      "speed": 12,
-      "maxSpeed": 12,
-      "cardsPerTurn": 2,
-      "deck": ["berserker_slam", "berserker_rage", "berserker_charge", "berserker_roar"],
-      "passive": {
-        "type": "enrage",
-        "effect": "매턴 힘 1 증가",
-        "strengthPerTurn": 1
-      },
-      "pattern": "berserk",
-      "description": "정신이 붕괴한 생존자. 이성 없이 덤벼든다."
-    },
-    "polluted": {
-      "id": "polluted",
-      "name": "오염체",
-      "tier": 1,
-      "hp": 35,
-      "ether": 100,
-      "speed": 10,
-      "maxSpeed": 10,
-      "cardsPerTurn": 1,
-      "deck": ["polluted_spit", "polluted_spit", "polluted_cloud", "polluted_explode"],
-      "passive": {
-        "type": "toxic",
-        "effect": "독 피해 부여"
-      },
-      "pattern": "tactical",
-      "description": "방사능에 오염된 괴생명체. 독을 뿌리며 최후엔 자폭한다."
+      "tier": 1
     },
     "deserter": {
       "id": "deserter",
       "name": "탈영병",
-      "tier": 2,
       "hp": 70,
+      "maxHp": 70,
       "ether": 200,
-      "speed": 15,
       "maxSpeed": 15,
+      "deck": [
+        "deserter_attack",
+        "deserter_block",
+        "deserter_double",
+        "deserter_offense",
+        "deserter_fortify"
+      ],
       "cardsPerTurn": 3,
-      "deck": ["deserter_attack", "deserter_block", "deserter_double", "deserter_offense", "deserter_fortify"],
-      "passive": {
-        "type": "veteran",
-        "effect": "전투 시작 시 장막, 매턴 체력 4 회복",
+      "tier": 2,
+      "passives": {
         "veilAtStart": true,
         "healPerTurn": 4
-      },
-      "pattern": "balanced",
-      "description": "한때 보편국에 충성했던 병사"
-    },
-    "hunter": {
-      "id": "hunter",
-      "name": "현상금 사냥꾼",
-      "tier": 2,
-      "hp": 85,
-      "ether": 180,
-      "speed": 14,
-      "maxSpeed": 14,
-      "cardsPerTurn": 2,
-      "deck": ["hunter_shoot", "hunter_shoot", "hunter_trap", "hunter_aim", "hunter_execute"],
-      "passive": {
-        "type": "precision",
-        "effect": "전투 시작 시 치명타율 +5%",
-        "critBoostAtStart": 5
-      },
-      "pattern": "tactical",
-      "description": "숙련된 사냥꾼. 함정을 설치하고 치명적인 사격을 가한다."
+      }
     },
     "slaughterer": {
       "id": "slaughterer",
       "name": "살육자",
-      "tier": 3,
       "hp": 150,
+      "maxHp": 150,
       "ether": 300,
-      "speed": 25,
       "maxSpeed": 25,
+      "deck": [
+        "slaughterer_heavy",
+        "slaughterer_blur_block",
+        "slaughterer_quick",
+        "slaughterer_rest"
+      ],
       "cardsPerTurn": 2,
-      "deck": ["slaughterer_heavy", "slaughterer_blur_block", "slaughterer_quick", "slaughterer_rest"],
-      "passive": {
-        "type": "executioner",
-        "effect": "매턴 힘 1 증가",
-        "strengthPerTurn": 1
-      },
-      "pattern": "aggressive",
+      "tier": 3,
       "isBoss": true,
-      "description": "혼자 다니는 준보스급 적"
+      "passives": {
+        "strengthPerTurn": 1
+      }
+    },
+    "slurthim": {
+      "id": "slurthim",
+      "name": "슬러심",
+      "hp": 60,
+      "maxHp": 60,
+      "ether": 150,
+      "maxSpeed": 12,
+      "deck": [
+        "slurthim_burn",
+        "slurthim_vulnerable",
+        "slurthim_dull"
+      ],
+      "cardsPerTurn": 1,
+      "tier": 1
+    },
+    "wildrat": {
+      "id": "wildrat",
+      "name": "들쥐",
+      "hp": 12,
+      "maxHp": 12,
+      "ether": 40,
+      "maxSpeed": 6,
+      "deck": [
+        "wildrat_bite",
+        "wildrat_bite",
+        "wildrat_swarm",
+        "wildrat_flee"
+      ],
+      "cardsPerTurn": 2,
+      "tier": 1
+    },
+    "berserker": {
+      "id": "berserker",
+      "name": "폭주자",
+      "hp": 55,
+      "maxHp": 55,
+      "ether": 120,
+      "maxSpeed": 12,
+      "deck": [
+        "berserker_slam",
+        "berserker_rage",
+        "berserker_charge",
+        "berserker_roar"
+      ],
+      "cardsPerTurn": 2,
+      "tier": 1,
+      "passives": {
+        "strengthPerTurn": 1
+      }
+    },
+    "polluted": {
+      "id": "polluted",
+      "name": "오염체",
+      "hp": 35,
+      "maxHp": 35,
+      "ether": 100,
+      "maxSpeed": 10,
+      "deck": [
+        "polluted_spit",
+        "polluted_spit",
+        "polluted_cloud",
+        "polluted_explode"
+      ],
+      "cardsPerTurn": 1,
+      "tier": 1
+    },
+    "hunter": {
+      "id": "hunter",
+      "name": "현상금 사냥꾼",
+      "hp": 85,
+      "maxHp": 85,
+      "ether": 180,
+      "maxSpeed": 14,
+      "deck": [
+        "hunter_shoot",
+        "hunter_shoot",
+        "hunter_trap",
+        "hunter_aim",
+        "hunter_execute"
+      ],
+      "cardsPerTurn": 2,
+      "tier": 2,
+      "passives": {
+        "critBoostAtStart": 5
+      }
     },
     "captain": {
       "id": "captain",
       "name": "탈영병 대장",
-      "tier": 3,
       "hp": 180,
+      "maxHp": 180,
       "ether": 350,
-      "speed": 18,
       "maxSpeed": 18,
+      "deck": [
+        "captain_slash",
+        "captain_slash",
+        "captain_command",
+        "captain_rally",
+        "captain_execution",
+        "captain_fortify"
+      ],
       "cardsPerTurn": 3,
-      "deck": ["captain_slash", "captain_slash", "captain_command", "captain_rally", "captain_execution", "captain_fortify"],
-      "passive": {
-        "type": "command",
-        "effect": "전투 시작 시 장막, 매턴 체력 5 회복, 50% HP에서 탈영병 소환",
+      "tier": 3,
+      "isBoss": true,
+      "passives": {
         "veilAtStart": true,
         "healPerTurn": 5,
         "summonOnHalfHp": true
-      },
-      "pattern": "tactical",
-      "isBoss": true,
-      "description": "탈영병들을 이끄는 전직 장교"
+      }
     }
   }
 }
