@@ -1,140 +1,62 @@
 /**
  * @file cards.ts
  * @description 카드 라이브러리 정의
+ *
+ * 이 파일은 battleData.ts의 카드 데이터를 레거시 호환용으로 재export합니다.
+ * 새로운 코드에서는 battleData.ts의 CARDS를 직접 사용하세요.
  */
 
 import type { Card } from '../types';
+import { CARDS, DEFAULT_STARTING_DECK } from '../components/battle/battleData';
 
-/** 카드 라이브러리 */
-export const CARD_LIBRARY: Record<string, Card> = {
-  quick_slash: {
-    id: "quick_slash",
-    name: "퀵 슬래시",
-    type: "attack",
-    tags: ["quick", "melee"],
-    speedCost: 3,
-    actionCost: 2,
-    priority: "quick",
-    damage: 5,
-    description: "빠르게 베어 전진합니다.",
-  },
-  guard: {
-    id: "guard",
-    name: "가드",
-    type: "defense",
-    tags: ["shield"],
-    speedCost: 6,
-    actionCost: 1,
-    priority: "normal",
-    block: 8,
-    description: "방패를 들어 방어합니다.",
-  },
-  heavy_strike: {
-    id: "heavy_strike",
-    name: "헤비 스트라이크",
-    type: "attack",
-    tags: ["slow", "melee"],
-    speedCost: 10,
-    actionCost: 2,
-    priority: "slow",
-    damage: 12,
-    description: "느리지만 강력한 일격.",
-  },
-  dash: {
-    id: "dash",
-    name: "대시",
-    type: "move",
-    tags: ["mobility", "quick"],
-    speedCost: 2,
-    actionCost: 1,
-    priority: "quick",
-    description: "한 칸 이동하며 다음 공격을 준비.",
-  },
-  counter_stance: {
-    id: "counter_stance",
-    name: "카운터 스탠스",
-    type: "reaction",
-    tags: ["counter"],
-    speedCost: 4,
-    actionCost: 1,
-    priority: "instant",
-    description: "다음 피격 시 반격합니다.",
-  },
-  charge: {
-    id: "charge",
-    name: "차지",
-    type: "attack",
-    tags: ["movement", "slow"],
-    speedCost: 8,
-    actionCost: 3,
-    priority: "normal",
-    damage: 9,
-    description: "전진하며 돌격합니다.",
-  },
-  sweep: {
-    id: "sweep",
-    name: "휘둘러 베기",
-    type: "attack",
-    tags: ["aoe"],
-    speedCost: 7,
-    actionCost: 2,
-    priority: "normal",
-    damage: 7,
-    description: "부채꼴 범위를 공격합니다.",
-  },
-  reinforce: {
-    id: "reinforce",
-    name: "재정비",
-    type: "support",
-    tags: ["buff"],
-    speedCost: 6,
-    actionCost: 1,
-    priority: "normal",
-    description: "차기 턴 속도를 1 감소시킵니다.",
-  },
-  venom_shot: {
-    id: "venom_shot",
-    name: "베넘 샷",
-    type: "attack",
-    tags: ["ranged"],
-    speedCost: 5,
-    actionCost: 2,
-    priority: "quick",
-    damage: 6,
-    description: "중독을 부여하는 사격.",
-  },
-  bone_crush: {
-    id: "bone_crush",
-    name: "본 크러시",
-    type: "attack",
-    tags: ["slow"],
-    speedCost: 12,
-    actionCost: 3,
-    priority: "slow",
-    damage: 16,
-    description: "아주 느리지만 최대 피해.",
-  },
-};
+// battleData.ts의 카드 배열을 Record 형식으로 변환
+function buildCardLibrary(): Record<string, Card> {
+  const library: Record<string, Card> = {};
 
-export const PLAYER_STARTER_DECK = [
-  "quick_slash",
-  "quick_slash",
-  "guard",
-  "guard",
-  "heavy_strike",
-  "dash",
-  "counter_stance",
-  "charge",
-  "sweep",
-  "reinforce",
-  "venom_shot",
-];
+  for (const card of CARDS) {
+    library[card.id] = {
+      id: card.id,
+      name: card.name,
+      type: card.type as Card['type'],
+      tags: card.traits || [],
+      speedCost: card.speedCost,
+      actionCost: card.actionCost,
+      priority: 'normal',
+      damage: card.damage,
+      block: card.block,
+      description: card.description,
+    };
+  }
 
+  return library;
+}
+
+/** 카드 라이브러리 (battleData.ts 기반) */
+export const CARD_LIBRARY: Record<string, Card> = buildCardLibrary();
+
+/** 플레이어 시작 덱 (battleData.ts 기반) */
+export const PLAYER_STARTER_DECK = DEFAULT_STARTING_DECK;
+
+/** 적 덱 (battleData.ts의 ENEMY_CARDS 사용) */
 export const ENEMY_DECKS = {
-  // 새 몬스터 카드 ID 사용
-  battle: ["ghoul_attack", "ghoul_block", "marauder_attack", "marauder_block"],
-  elite: ["deserter_attack", "deserter_block", "deserter_double", "deserter_offense"],
-  boss: ["slaughterer_heavy", "slaughterer_blur_block", "slaughterer_quick", "slaughterer_rest"],
-  dungeon: ["ghoul_attack", "marauder_attack", "slurthim_burn", "slurthim_vulnerable"],
+  // 구울 덱
+  ghoul: ["ghoul_attack", "ghoul_attack", "ghoul_block", "ghoul_block"],
+  // 약탈자 덱
+  marauder: ["marauder_attack", "marauder_block"],
+  // 탈영병 덱
+  deserter: ["deserter_attack", "deserter_block", "deserter_double", "deserter_offense"],
+  // 살육자 덱
+  slaughterer: ["slaughterer_heavy", "slaughterer_blur_block", "slaughterer_quick", "slaughterer_rest"],
+  // 1막 신규 - 들쥐
+  wildrat: ["wildrat_bite", "wildrat_bite", "wildrat_swarm", "wildrat_flee"],
+  // 1막 신규 - 폭주자
+  berserker: ["berserker_slam", "berserker_rage", "berserker_charge", "berserker_roar"],
+  // 1막 신규 - 오염체
+  polluted: ["polluted_spit", "polluted_spit", "polluted_cloud", "polluted_explode"],
+  // 1막 신규 - 현상금 사냥꾼
+  hunter: ["hunter_shoot", "hunter_shoot", "hunter_trap", "hunter_aim", "hunter_execute"],
+  // 1막 보스 - 탈영병 대장
+  captain: ["captain_slash", "captain_slash", "captain_command", "captain_rally", "captain_execution", "captain_fortify"],
+  // 기본 (폴백)
   default: ["ghoul_attack", "ghoul_block", "marauder_attack"],
 };

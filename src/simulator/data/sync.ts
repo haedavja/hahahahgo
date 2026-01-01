@@ -256,20 +256,32 @@ export function syncPresets(): Record<string, { id: string; name: string; descri
     aggressive: {
       id: 'aggressive',
       name: '공격 덱',
-      description: '공격 위주 덱',
-      cards: ['quick_slash', 'quick_slash', 'heavy_strike', 'heavy_strike', 'charge', 'sweep', 'bone_crush', 'dash'],
+      description: '공격 위주 덱 - 검격/사격 혼합',
+      cards: ['shoot', 'shoot', 'strike', 'strike', 'lunge', 'fleche', 'beat', 'feint'],
     },
     defensive: {
       id: 'defensive',
       name: '방어 덱',
-      description: '방어 위주 덱',
-      cards: ['guard', 'guard', 'guard', 'counter_stance', 'reinforce', 'quick_slash', 'quick_slash', 'dash'],
+      description: '방어 위주 덱 - 수비와 반격',
+      cards: ['marche', 'marche', 'octave', 'quarte', 'deflect', 'defensive_stance', 'reload', 'septime'],
     },
     balanced: {
       id: 'balanced',
       name: '밸런스 덱',
-      description: '균형잡힌 덱',
-      cards: ['quick_slash', 'quick_slash', 'guard', 'guard', 'heavy_strike', 'counter_stance', 'charge', 'reinforce'],
+      description: '균형잡힌 덱 - 공격과 방어',
+      cards: ['shoot', 'shoot', 'strike', 'strike', 'marche', 'octave', 'lunge', 'reload'],
+    },
+    gunslinger: {
+      id: 'gunslinger',
+      name: '총잡이 덱',
+      description: '총기 위주 덱 - 연사와 특수탄',
+      cards: ['shoot', 'shoot', 'quick_shot', 'aimed_shot', 'fan_the_hammer', 'reload', 'ap_load', 'incendiary_load'],
+    },
+    fencer: {
+      id: 'fencer',
+      name: '펜서 덱',
+      description: '검격 위주 덱 - 콤보와 연계',
+      cards: ['strike', 'strike', 'thrust', 'feint', 'binding', 'beat', 'lunge', 'deflect'],
     },
   };
 }
