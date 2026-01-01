@@ -24,6 +24,20 @@ interface TierRowProps {
   pendingSelection: typeof initialGrowthState.pendingNodeSelection;
 }
 
+// 티어별 그리드 템플릿 계산
+const getGridTemplate = (tier: number, nodeCount: number): string => {
+  // 헤더(100px) + 노드(200px × nodeCount)
+  return `100px repeat(${nodeCount}, 200px)`;
+};
+
+// 티어별 왼쪽 오프셋
+const getTierOffset = (tier: number): string => {
+  if (tier === 4) return '120px';
+  if (tier === 5) return '240px';
+  if (tier === 6) return '360px';
+  return '0';
+};
+
 export const TierRow = memo(function TierRow({
   tier,
   label,
@@ -44,14 +58,13 @@ export const TierRow = memo(function TierRow({
       marginBottom: '80px', // 단계별 높이 간격 2배
       position: 'relative',
     }}>
-      {/* 티어 헤더와 노드를 같은 줄에 배치 */}
+      {/* CSS Grid로 고정 레이아웃 - 리플로우 방지 */}
       <div style={{
-        display: 'flex',
-        flexWrap: 'wrap',
+        display: 'grid',
+        gridTemplateColumns: getGridTemplate(tier, nodes.length),
         gap: SPACING.md,
-        justifyContent: 'flex-start',
-        alignItems: 'flex-start',
-        paddingLeft: tier === 4 ? '120px' : tier === 5 ? '240px' : tier === 6 ? '360px' : 0,
+        alignItems: 'stretch', // 모든 셀 높이 동일화
+        marginLeft: getTierOffset(tier),
       }}>
         {/* 티어 헤더 */}
         <TierHeader
@@ -108,6 +121,7 @@ const TierHeader = memo(function TierHeader({
       fontSize: FONT_SIZE.md,
       color: isLocked ? COLORS.text.muted : color,
       fontWeight: 'bold',
+      alignSelf: 'start', // Grid stretch 무시 - 헤더 크기 유지
     }}>
       {isLocked ? '🔒 ' : ''}{label}
     </div>
@@ -190,9 +204,9 @@ const NodeCard = memo(function NodeCard({
       style={{
       position: 'relative',
       zIndex: 10,
-      width: nodeWidth,
-      flex: `0 0 ${nodeWidth}`,
+      // Grid가 크기 제어하므로 width/flex 속성 불필요
       padding: SPACING.md,
+      boxSizing: 'border-box',
       background: getOpaqueBackground(),
       border: isPending
         ? `2px solid ${COLORS.primary}`
@@ -200,6 +214,7 @@ const NodeCard = memo(function NodeCard({
           ? `1px solid ${colors.border}`
           : '1px solid #334155', // 더 어두운 테두리
       borderRadius: BORDER_RADIUS.lg,
+      minHeight: '180px', // 카드 최소 높이 고정 - 레이아웃 안정화
     }}>
       {/* 콘텐츠 wrapper - 배경은 불투명, 콘텐츠만 흐리게 */}
       <div style={{ opacity: isUnlocked || isPending ? 1 : 0.7 }}>
