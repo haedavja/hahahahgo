@@ -1,5 +1,5 @@
 import { test, expect, Page } from '@playwright/test';
-import { resetGameState, enterBattle, TIMEOUTS, testLogger, getStatusEffects, quickAutoBattle } from './utils/test-helpers';
+import { resetGameState, enterBattle, getHP, TIMEOUTS, testLogger, getStatusEffects, quickAutoBattle } from './utils/test-helpers';
 import { createAssertions, GameAssertions } from './utils/assertions';
 import { MOCK_STATUS_EFFECTS } from './fixtures/game-states';
 
@@ -29,31 +29,7 @@ test.describe('상태이상 시스템', () => {
     assertions = createAssertions(page);
   });
 
-  /**
-   * HP 값 가져오기
-   */
-  async function getHP(page: Page, target: 'player' | 'enemy'): Promise<{ current: number; max: number }> {
-    const selector = target === 'player'
-      ? '[data-testid="player-hp"]'
-      : '[data-testid="enemy-hp"]';
-
-    const element = page.locator(selector);
-    if (await element.isVisible({ timeout: 1000 }).catch(() => false)) {
-      const current = parseInt(await element.getAttribute('data-hp-current') || '0');
-      const max = parseInt(await element.getAttribute('data-hp-max') || '0');
-
-      if (current > 0 || max > 0) {
-        return { current, max };
-      }
-
-      const text = await element.textContent() || '';
-      const match = text.match(/(\d+)\s*\/\s*(\d+)/);
-      if (match) {
-        return { current: parseInt(match[1]), max: parseInt(match[2]) };
-      }
-    }
-    return { current: 0, max: 0 };
-  }
+  // getHP는 중앙 헬퍼(test-helpers.ts) 사용
 
   test.describe('상태이상 UI 표시', () => {
     test('상태이상 아이콘이 표시됨', async ({ page }) => {

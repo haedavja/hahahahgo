@@ -1,5 +1,5 @@
 import { test, expect, Page } from '@playwright/test';
-import { resetGameState, enterBattle, TIMEOUTS, testLogger, getHitCount, waitForCardEffect } from './utils/test-helpers';
+import { resetGameState, enterBattle, getHP, TIMEOUTS, testLogger, getHitCount, waitForCardEffect } from './utils/test-helpers';
 import { createAssertions } from './utils/assertions';
 
 /**
@@ -20,31 +20,7 @@ test.describe('특수 카드 효과', () => {
     await resetGameState(page);
   });
 
-  /**
-   * HP 값 가져오기
-   */
-  async function getHP(page: Page, target: 'player' | 'enemy'): Promise<{ current: number; max: number }> {
-    const selector = target === 'player'
-      ? '[data-testid="player-hp"]'
-      : '[data-testid="enemy-hp"]';
-
-    const element = page.locator(selector);
-    if (await element.isVisible({ timeout: 1000 }).catch(() => false)) {
-      const current = parseInt(await element.getAttribute('data-hp-current') || '0');
-      const max = parseInt(await element.getAttribute('data-hp-max') || '0');
-
-      if (current > 0 || max > 0) {
-        return { current, max };
-      }
-
-      const text = await element.textContent() || '';
-      const match = text.match(/(\d+)\s*\/\s*(\d+)/);
-      if (match) {
-        return { current: parseInt(match[1]), max: parseInt(match[2]) };
-      }
-    }
-    return { current: 0, max: 0 };
-  }
+  // getHP는 중앙 헬퍼(test-helpers.ts) 사용
 
   /**
    * 특정 효과를 가진 카드 찾기

@@ -1,5 +1,5 @@
 import { test, expect, Page } from '@playwright/test';
-import { resetGameState, enterBattle, TIMEOUTS, testLogger } from './utils/test-helpers';
+import { resetGameState, enterBattle, getHP, getEther, getComboName, TIMEOUTS, testLogger } from './utils/test-helpers';
 
 /**
  * 게임 로직 검증 E2E 테스트
@@ -45,48 +45,7 @@ test.describe('게임 로직 검증', () => {
     return cardInfos;
   }
 
-  /**
-   * 현재 표시된 조합 이름 가져오기
-   */
-  async function getCurrentCombo(page: Page): Promise<string | null> {
-    const comboDisplay = page.locator('[data-testid="combo-display"], .combo-name, .poker-combo');
-    if (await comboDisplay.isVisible({ timeout: 1000 }).catch(() => false)) {
-      return await comboDisplay.textContent();
-    }
-    return null;
-  }
-
-  /**
-   * HP 값 추출
-   */
-  async function getHP(page: Page, target: 'player' | 'enemy'): Promise<{ current: number; max: number }> {
-    const selector = target === 'player'
-      ? '[data-testid="player-hp"], .player-hp'
-      : '[data-testid="enemy-hp"], .enemy-hp';
-
-    const hpElement = page.locator(selector);
-    if (await hpElement.isVisible({ timeout: 1000 }).catch(() => false)) {
-      const current = parseInt(await hpElement.getAttribute('data-hp-current') || '0');
-      const max = parseInt(await hpElement.getAttribute('data-hp-max') || '0');
-      return { current, max };
-    }
-    return { current: 0, max: 0 };
-  }
-
-  /**
-   * 에테르 값 추출
-   */
-  async function getEther(page: Page, target: 'player' | 'enemy'): Promise<number> {
-    const selector = target === 'player'
-      ? '[data-testid="player-ether"], .player-ether'
-      : '[data-testid="enemy-ether"], .enemy-ether';
-
-    const etherElement = page.locator(selector);
-    if (await etherElement.isVisible({ timeout: 1000 }).catch(() => false)) {
-      return parseInt(await etherElement.getAttribute('data-ether-value') || '0');
-    }
-    return 0;
-  }
+  // HP, Ether, ComboName은 중앙 헬퍼(test-helpers.ts) 사용
 
   test.describe('포커 조합 감지', () => {
     test('같은 actionCost 2장 선택 시 페어 감지', async ({ page }) => {
@@ -111,7 +70,7 @@ test.describe('게임 로직 검증', () => {
           await page.locator(`[data-testid="hand-card-${indices[0]}"]`).click();
           await page.locator(`[data-testid="hand-card-${indices[1]}"]`).click();
 
-          const combo = await getCurrentCombo(page);
+          const combo = await getComboName(page);
           testLogger.info(`ActionCost ${cost} 페어 선택, 감지된 조합: ${combo}`);
 
           if (combo?.includes('페어')) {
@@ -148,7 +107,7 @@ test.describe('게임 로직 검증', () => {
             await page.locator(`[data-testid="hand-card-${indices[i]}"]`).click();
           }
 
-          const combo = await getCurrentCombo(page);
+          const combo = await getComboName(page);
           testLogger.info(`ActionCost ${cost} 트리플 선택, 감지된 조합: ${combo}`);
 
           if (combo?.includes('트리플')) {
@@ -185,7 +144,7 @@ test.describe('게임 로직 검증', () => {
             await page.locator(`[data-testid="hand-card-${indices[i]}"]`).click();
           }
 
-          const combo = await getCurrentCombo(page);
+          const combo = await getComboName(page);
           testLogger.info(`${type} 플러쉬 선택, 감지된 조합: ${combo}`);
 
           if (combo?.includes('플러쉬')) {
@@ -211,7 +170,7 @@ test.describe('게임 로직 검증', () => {
         // 첫 번째 카드만 선택
         await page.locator(`[data-testid="hand-card-${cards[0].index}"]`).click();
 
-        const combo = await getCurrentCombo(page);
+        const combo = await getComboName(page);
         testLogger.info(`단일 카드 선택, 감지된 조합: ${combo}`);
 
         // 하이카드이거나 조합 표시 없음
