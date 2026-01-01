@@ -1,8 +1,9 @@
 import { test, expect, Page } from '@playwright/test';
-import { resetGameState, waitForMap, selectMapNode, waitForUIStable, TIMEOUTS, testLogger } from './utils/test-helpers';
+import { resetGameState, enterBattle, getHPSafe, getEther, getComboName, TIMEOUTS, testLogger, waitForTurnProgress } from './utils/test-helpers';
 
 /**
  * 게임 로직 검증 E2E 테스트
+ * 개선된 enterBattle() 사용 - 맵 탐색 방식으로 전투 진입
  *
  * ## 테스트 목적
  * - 포커 조합이 올바르게 감지되는지 검증
@@ -18,21 +19,6 @@ test.describe('게임 로직 검증', () => {
     await page.goto('/');
     await resetGameState(page);
   });
-
-  /**
-   * 전투 진입 헬퍼
-   */
-  async function enterBattle(page: Page): Promise<boolean> {
-    await waitForMap(page);
-    const battleClicked = await selectMapNode(page, 'battle');
-
-    if (battleClicked) {
-      await page.waitForSelector('[data-testid="battle-screen"]', { timeout: 5000 }).catch(() => {});
-      await waitForUIStable(page);
-      return true;
-    }
-    return false;
-  }
 
   /**
    * 핸드의 카드 정보 추출
@@ -59,48 +45,7 @@ test.describe('게임 로직 검증', () => {
     return cardInfos;
   }
 
-  /**
-   * 현재 표시된 조합 이름 가져오기
-   */
-  async function getCurrentCombo(page: Page): Promise<string | null> {
-    const comboDisplay = page.locator('[data-testid="combo-display"], .combo-name, .poker-combo');
-    if (await comboDisplay.isVisible({ timeout: 1000 }).catch(() => false)) {
-      return await comboDisplay.textContent();
-    }
-    return null;
-  }
-
-  /**
-   * HP 값 추출
-   */
-  async function getHP(page: Page, target: 'player' | 'enemy'): Promise<{ current: number; max: number }> {
-    const selector = target === 'player'
-      ? '[data-testid="player-hp"], .player-hp'
-      : '[data-testid="enemy-hp"], .enemy-hp';
-
-    const hpElement = page.locator(selector);
-    if (await hpElement.isVisible({ timeout: 1000 }).catch(() => false)) {
-      const current = parseInt(await hpElement.getAttribute('data-hp-current') || '0');
-      const max = parseInt(await hpElement.getAttribute('data-hp-max') || '0');
-      return { current, max };
-    }
-    return { current: 0, max: 0 };
-  }
-
-  /**
-   * 에테르 값 추출
-   */
-  async function getEther(page: Page, target: 'player' | 'enemy'): Promise<number> {
-    const selector = target === 'player'
-      ? '[data-testid="player-ether"], .player-ether'
-      : '[data-testid="enemy-ether"], .enemy-ether';
-
-    const etherElement = page.locator(selector);
-    if (await etherElement.isVisible({ timeout: 1000 }).catch(() => false)) {
-      return parseInt(await etherElement.getAttribute('data-ether-value') || '0');
-    }
-    return 0;
-  }
+  // HP, Ether, ComboName은 중앙 헬퍼(test-helpers.ts) 사용
 
   test.describe('포커 조합 감지', () => {
     test('같은 actionCost 2장 선택 시 페어 감지', async ({ page }) => {
@@ -125,7 +70,7 @@ test.describe('게임 로직 검증', () => {
           await page.locator(`[data-testid="hand-card-${indices[0]}"]`).click();
           await page.locator(`[data-testid="hand-card-${indices[1]}"]`).click();
 
-          const combo = await getCurrentCombo(page);
+          const combo = await getComboName(page);
           testLogger.info(`ActionCost ${cost} 페어 선택, 감지된 조합: ${combo}`);
 
           if (combo?.includes('페어')) {
@@ -162,7 +107,7 @@ test.describe('게임 로직 검증', () => {
             await page.locator(`[data-testid="hand-card-${indices[i]}"]`).click();
           }
 
-          const combo = await getCurrentCombo(page);
+          const combo = await getComboName(page);
           testLogger.info(`ActionCost ${cost} 트리플 선택, 감지된 조합: ${combo}`);
 
           if (combo?.includes('트리플')) {
@@ -199,7 +144,7 @@ test.describe('게임 로직 검증', () => {
             await page.locator(`[data-testid="hand-card-${indices[i]}"]`).click();
           }
 
-          const combo = await getCurrentCombo(page);
+          const combo = await getComboName(page);
           testLogger.info(`${type} 플러쉬 선택, 감지된 조합: ${combo}`);
 
           if (combo?.includes('플러쉬')) {
@@ -225,7 +170,7 @@ test.describe('게임 로직 검증', () => {
         // 첫 번째 카드만 선택
         await page.locator(`[data-testid="hand-card-${cards[0].index}"]`).click();
 
-        const combo = await getCurrentCombo(page);
+        const combo = await getComboName(page);
         testLogger.info(`단일 카드 선택, 감지된 조합: ${combo}`);
 
         // 하이카드이거나 조합 표시 없음
@@ -239,8 +184,8 @@ test.describe('게임 로직 검증', () => {
       const entered = await enterBattle(page);
       test.skip(!entered, '전투 진입 실패');
 
-      // 초기 적 HP 기록
-      const initialEnemyHP = await getHP(page, 'enemy');
+      // 초기 적 HP 기록 (안전한 버전 사용)
+      const initialEnemyHP = await getHPSafe(page, 'enemy');
       testLogger.info('초기 적 HP', initialEnemyHP);
 
       // 공격 카드 찾기
@@ -255,11 +200,11 @@ test.describe('게임 로직 검증', () => {
         if (await submitBtn.isEnabled({ timeout: 1000 }).catch(() => false)) {
           await submitBtn.click();
 
-          // 턴 진행 대기
-          await page.waitForTimeout(2000);
+          // 턴 진행 대기 (상태 기반)
+          await waitForTurnProgress(page);
 
           // 적 HP 확인
-          const afterHP = await getHP(page, 'enemy');
+          const afterHP = await getHPSafe(page, 'enemy');
           testLogger.info('공격 후 적 HP', afterHP);
 
           // HP가 감소했거나 전투 종료 상태
@@ -279,8 +224,8 @@ test.describe('게임 로직 검증', () => {
       const entered = await enterBattle(page);
       test.skip(!entered, '전투 진입 실패');
 
-      // 초기 플레이어 HP 기록
-      const initialPlayerHP = await getHP(page, 'player');
+      // 초기 플레이어 HP 기록 (안전한 버전 사용)
+      const initialPlayerHP = await getHPSafe(page, 'player');
       testLogger.info('초기 플레이어 HP', initialPlayerHP);
 
       // 방어 카드 찾기
@@ -295,14 +240,14 @@ test.describe('게임 로직 검증', () => {
         if (await submitBtn.isEnabled({ timeout: 1000 }).catch(() => false)) {
           await submitBtn.click();
 
-          // 턴 진행 대기
-          await page.waitForTimeout(2000);
+          // 턴 진행 대기 (상태 기반)
+          await waitForTurnProgress(page);
 
           // 방패 표시 확인 또는 HP 유지 확인
           const shieldIndicator = page.locator('[data-testid="shield-indicator"], .shield, .block');
           const hasShield = await shieldIndicator.isVisible({ timeout: 500 }).catch(() => false);
 
-          const afterHP = await getHP(page, 'player');
+          const afterHP = await getHPSafe(page, 'player');
           testLogger.info('방어 후 플레이어 HP', afterHP);
 
           // 방패가 있거나 HP가 크게 감소하지 않음

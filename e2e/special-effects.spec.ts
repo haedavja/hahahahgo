@@ -1,9 +1,10 @@
 import { test, expect, Page } from '@playwright/test';
-import { resetGameState, waitForMap, selectMapNode, waitForUIStable, TIMEOUTS, testLogger, getHitCount, waitForCardEffect } from './utils/test-helpers';
+import { resetGameState, enterBattle, getHPSafe, TIMEOUTS, testLogger, getHitCount, waitForCardEffect, waitForTurnProgress } from './utils/test-helpers';
 import { createAssertions } from './utils/assertions';
 
 /**
  * 특수 카드 효과 E2E 테스트
+ * 개선된 enterBattle() 사용 - 맵 탐색 방식으로 전투 진입
  *
  * ## 테스트 대상
  * 1. 다중 히트 (Multi-Hit)
@@ -19,46 +20,7 @@ test.describe('특수 카드 효과', () => {
     await resetGameState(page);
   });
 
-  /**
-   * 전투 진입 헬퍼
-   */
-  async function enterBattle(page: Page): Promise<boolean> {
-    await waitForMap(page);
-    const battleClicked = await selectMapNode(page, 'battle');
-
-    if (battleClicked) {
-      await page.waitForSelector('[data-testid="battle-screen"]', { timeout: 5000 }).catch(() => {});
-      await waitForUIStable(page);
-      return true;
-    }
-    return false;
-  }
-
-  /**
-   * HP 값 가져오기
-   */
-  async function getHP(page: Page, target: 'player' | 'enemy'): Promise<{ current: number; max: number }> {
-    const selector = target === 'player'
-      ? '[data-testid="player-hp"]'
-      : '[data-testid="enemy-hp"]';
-
-    const element = page.locator(selector);
-    if (await element.isVisible({ timeout: 1000 }).catch(() => false)) {
-      const current = parseInt(await element.getAttribute('data-hp-current') || '0');
-      const max = parseInt(await element.getAttribute('data-hp-max') || '0');
-
-      if (current > 0 || max > 0) {
-        return { current, max };
-      }
-
-      const text = await element.textContent() || '';
-      const match = text.match(/(\d+)\s*\/\s*(\d+)/);
-      if (match) {
-        return { current: parseInt(match[1]), max: parseInt(match[2]) };
-      }
-    }
-    return { current: 0, max: 0 };
-  }
+  // getHP는 중앙 헬퍼(test-helpers.ts) 사용
 
   /**
    * 특정 효과를 가진 카드 찾기
@@ -93,7 +55,7 @@ test.describe('특수 카드 효과', () => {
       const multiHitCard = await findCardWithEffect(page, 'multi');
 
       if (multiHitCard.found) {
-        const initialEnemyHP = await getHP(page, 'enemy');
+        const initialEnemyHP = await getHPSafe(page, 'enemy');
         testLogger.info('초기 적 HP', initialEnemyHP);
 
         // 카드 사용
@@ -104,15 +66,12 @@ test.describe('특수 카드 효과', () => {
         if (await submitBtn.isEnabled({ timeout: 1000 }).catch(() => false)) {
           await submitBtn.click();
 
-          // 히트 카운터 확인
-          await page.waitForTimeout(500);
+          // 턴 진행 및 히트 카운터 확인 (상태 기반)
+          await waitForTurnProgress(page);
           const hitCount = await getHitCount(page);
           testLogger.info('히트 카운트', hitCount);
 
-          // 타임라인 진행 후 피해 확인
-          await page.waitForTimeout(2000);
-
-          const afterHP = await getHP(page, 'enemy');
+          const afterHP = await getHPSafe(page, 'enemy');
           const totalDamage = initialEnemyHP.current - afterHP.current;
           testLogger.info('총 피해', totalDamage);
 
@@ -255,7 +214,7 @@ test.describe('특수 카드 효과', () => {
           const submitBtn = page.locator('[data-testid="submit-cards-btn"]');
           if (await submitBtn.isEnabled({ timeout: 1000 }).catch(() => false)) {
             await submitBtn.click();
-            await page.waitForTimeout(1500);
+            await waitForTurnProgress(page);
 
             // 연계 카드 사용 (다음 턴)
             const chainCardLocator = page.locator(`[data-testid="hand-card-${chainCard.index}"]`);
@@ -365,7 +324,7 @@ test.describe('특수 카드 효과', () => {
         const submitBtn = page.locator('[data-testid="submit-cards-btn"]');
         if (await submitBtn.isEnabled({ timeout: 1000 }).catch(() => false)) {
           await submitBtn.click();
-          await page.waitForTimeout(2000);
+          await waitForTurnProgress(page);
 
           // 반격 상태 표시 확인
           const counterStatus = page.locator(
@@ -391,13 +350,13 @@ test.describe('특수 카드 효과', () => {
       const counterStatus = page.locator('[data-status-type="counter"]');
 
       if (await counterStatus.isVisible({ timeout: 1000 }).catch(() => false)) {
-        const initialEnemyHP = await getHP(page, 'enemy');
+        const initialEnemyHP = await getHPSafe(page, 'enemy');
 
-        // 적 턴 대기 (피격 발생)
-        await page.waitForTimeout(3000);
+        // 적 턴 대기 (피격 발생) - 상태 기반
+        await waitForTurnProgress(page);
 
         // 반격으로 적 HP 감소 확인
-        const afterEnemyHP = await getHP(page, 'enemy');
+        const afterEnemyHP = await getHPSafe(page, 'enemy');
         const counterDamage = initialEnemyHP.current - afterEnemyHP.current;
 
         if (counterDamage > 0) {
@@ -417,8 +376,8 @@ test.describe('특수 카드 효과', () => {
       const lifestealCard = await findCardWithEffect(page, 'lifesteal');
 
       if (lifestealCard.found) {
-        const initialPlayerHP = await getHP(page, 'player');
-        const initialEnemyHP = await getHP(page, 'enemy');
+        const initialPlayerHP = await getHPSafe(page, 'player');
+        const initialEnemyHP = await getHPSafe(page, 'enemy');
 
         testLogger.info('초기 상태', { player: initialPlayerHP, enemy: initialEnemyHP });
 
@@ -429,10 +388,10 @@ test.describe('특수 카드 효과', () => {
         const submitBtn = page.locator('[data-testid="submit-cards-btn"]');
         if (await submitBtn.isEnabled({ timeout: 1000 }).catch(() => false)) {
           await submitBtn.click();
-          await page.waitForTimeout(2000);
+          await waitForTurnProgress(page);
 
-          const afterPlayerHP = await getHP(page, 'player');
-          const afterEnemyHP = await getHP(page, 'enemy');
+          const afterPlayerHP = await getHPSafe(page, 'player');
+          const afterEnemyHP = await getHPSafe(page, 'enemy');
 
           const damageDealt = initialEnemyHP.current - afterEnemyHP.current;
           const hpRecovered = afterPlayerHP.current - initialPlayerHP.current;
@@ -454,7 +413,7 @@ test.describe('특수 카드 효과', () => {
       test.skip(!entered, '전투 진입 실패');
 
       // 현재 HP가 최대 HP인 경우 확인
-      const hp = await getHP(page, 'player');
+      const hp = await getHPSafe(page, 'player');
 
       if (hp.current === hp.max) {
         // 흡혈 카드 사용
@@ -467,9 +426,9 @@ test.describe('특수 카드 효과', () => {
           const submitBtn = page.locator('[data-testid="submit-cards-btn"]');
           if (await submitBtn.isEnabled({ timeout: 1000 }).catch(() => false)) {
             await submitBtn.click();
-            await page.waitForTimeout(2000);
+            await waitForTurnProgress(page);
 
-            const afterHP = await getHP(page, 'player');
+            const afterHP = await getHPSafe(page, 'player');
             testLogger.info('흡혈 후 HP', afterHP);
 
             // 최대 HP 초과하지 않음

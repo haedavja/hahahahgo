@@ -1,8 +1,9 @@
 import { test, expect, Page } from '@playwright/test';
-import { resetGameState, waitForMap, selectMapNode, waitForUIStable, TIMEOUTS, testLogger } from './utils/test-helpers';
+import { resetGameState, enterBattle, TIMEOUTS, testLogger } from './utils/test-helpers';
 
 /**
  * 이변(Anomaly) 시스템 E2E 테스트
+ * 개선된 enterBattle() 사용 - 맵 탐색 방식으로 전투 진입
  *
  * ## 이변 시스템 개요
  * - 맵 위험도에 따라 발동
@@ -24,21 +25,6 @@ test.describe('이변 시스템', () => {
     await page.goto('/');
     await resetGameState(page);
   });
-
-  /**
-   * 전투 진입 헬퍼
-   */
-  async function enterBattle(page: Page): Promise<boolean> {
-    await waitForMap(page);
-    const battleClicked = await selectMapNode(page, 'battle');
-
-    if (battleClicked) {
-      await page.waitForSelector('[data-testid="battle-screen"]', { timeout: 5000 }).catch(() => {});
-      await waitForUIStable(page);
-      return true;
-    }
-    return false;
-  }
 
   /**
    * 현재 활성 이변 목록 가져오기

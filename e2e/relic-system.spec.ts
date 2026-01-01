@@ -1,8 +1,9 @@
 import { test, expect, Page } from '@playwright/test';
-import { resetGameState, waitForMap, selectMapNode, waitForUIStable, TIMEOUTS, testLogger } from './utils/test-helpers';
+import { resetGameState, enterBattle, selectMapNode, waitForUIStable, TIMEOUTS, testLogger } from './utils/test-helpers';
 
 /**
  * 상징(Relic) 시스템 E2E 테스트
+ * 개선된 enterBattle() 사용 - 맵 탐색 방식으로 전투 진입
  *
  * ## 상징 시스템 개요
  * - 게임 방향성을 결정짓는 영구 아이템
@@ -22,25 +23,9 @@ test.describe('상징 시스템', () => {
   });
 
   /**
-   * 전투 진입 헬퍼
-   */
-  async function enterBattle(page: Page): Promise<boolean> {
-    await waitForMap(page);
-    const battleClicked = await selectMapNode(page, 'battle');
-
-    if (battleClicked) {
-      await page.waitForSelector('[data-testid="battle-screen"]', { timeout: 5000 }).catch(() => {});
-      await waitForUIStable(page);
-      return true;
-    }
-    return false;
-  }
-
-  /**
    * 상점 진입 헬퍼
    */
   async function enterShop(page: Page): Promise<boolean> {
-    await waitForMap(page);
     const shopClicked = await selectMapNode(page, 'shop');
 
     if (shopClicked) {
