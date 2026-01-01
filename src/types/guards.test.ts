@@ -27,6 +27,16 @@ import {
   getSpeedCost,
   getLeisurePosition,
   getStrainOffset,
+  // TokenEntity 가드
+  isTokenEntity,
+  asTokenEntity,
+  getTokens,
+  getHp,
+  getBlock,
+  getStrength,
+  getEnergy,
+  getEtherPts,
+  updateTokens,
 } from './guards';
 
 describe('기본 타입 가드', () => {
@@ -331,6 +341,111 @@ describe('유틸리티 가드', () => {
 
     it('없으면 0', () => {
       expect(getStrainOffset({})).toBe(0);
+    });
+  });
+});
+
+describe('TokenEntity 가드', () => {
+
+  const validTokenState = { usage: [], turn: [], permanent: [] };
+  const validEntity = {
+    tokens: validTokenState,
+    hp: 100,
+    maxHp: 100,
+    block: 5,
+    strength: 2,
+    energy: 6,
+    etherPts: 50,
+  };
+
+  describe('isTokenEntity', () => {
+    it('유효한 TokenEntity는 true', () => {
+      expect(isTokenEntity(validEntity)).toBe(true);
+    });
+
+    it('tokens 없어도 true (선택적 필드)', () => {
+      expect(isTokenEntity({ hp: 50 })).toBe(true);
+    });
+
+    it('null/undefined는 false', () => {
+      expect(isTokenEntity(null)).toBe(false);
+      expect(isTokenEntity(undefined)).toBe(false);
+    });
+
+    it('잘못된 tokens 형식은 false', () => {
+      expect(isTokenEntity({ tokens: 'invalid' })).toBe(false);
+      expect(isTokenEntity({ tokens: { usage: 'wrong' } })).toBe(false);
+    });
+  });
+
+  describe('asTokenEntity', () => {
+    it('유효한 객체를 TokenEntity로 변환', () => {
+      const result = asTokenEntity(validEntity);
+      expect(result.hp).toBe(100);
+      expect(result.strength).toBe(2);
+      expect(result.tokens).toEqual(validTokenState);
+    });
+
+    it('null이면 기본 TokenEntity 반환', () => {
+      const result = asTokenEntity(null);
+      expect(result.tokens).toEqual({ usage: [], turn: [], permanent: [] });
+    });
+
+    it('tokens 없으면 빈 tokens 생성', () => {
+      const result = asTokenEntity({ hp: 50 });
+      expect(result.tokens).toEqual({ usage: [], turn: [], permanent: [] });
+      expect(result.hp).toBe(50);
+    });
+  });
+
+  describe('getTokens', () => {
+    it('tokens 반환', () => {
+      expect(getTokens(validEntity)).toEqual(validTokenState);
+    });
+
+    it('없으면 빈 TokenState 반환', () => {
+      expect(getTokens({})).toEqual({ usage: [], turn: [], permanent: [] });
+      expect(getTokens(null)).toEqual({ usage: [], turn: [], permanent: [] });
+    });
+  });
+
+  describe('엔티티 속성 접근', () => {
+    it('getHp', () => {
+      expect(getHp(validEntity)).toBe(100);
+      expect(getHp({})).toBe(0);
+    });
+
+    it('getBlock', () => {
+      expect(getBlock(validEntity)).toBe(5);
+      expect(getBlock({})).toBe(0);
+    });
+
+    it('getStrength', () => {
+      expect(getStrength(validEntity)).toBe(2);
+      expect(getStrength({})).toBe(0);
+    });
+
+    it('getEnergy', () => {
+      expect(getEnergy(validEntity)).toBe(6);
+      expect(getEnergy({})).toBe(0);
+    });
+
+    it('getEtherPts', () => {
+      expect(getEtherPts(validEntity)).toBe(50);
+      expect(getEtherPts({})).toBe(0);
+    });
+  });
+
+  describe('updateTokens', () => {
+    it('tokens만 업데이트', () => {
+      const newTokens = {
+        usage: [{ id: 'test', stacks: 1 }],
+        turn: [],
+        permanent: [],
+      };
+      const result = updateTokens(validEntity, newTokens);
+      expect(result.tokens).toEqual(newTokens);
+      expect(result.hp).toBe(100);
     });
   });
 });

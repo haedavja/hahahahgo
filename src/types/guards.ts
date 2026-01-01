@@ -11,6 +11,7 @@ import type {
   TokenState,
   TokenInstance,
   Resources,
+  TokenEntity,
 } from './core';
 
 import type {
@@ -218,4 +219,95 @@ export function getStrainOffset(card: unknown): number {
   if (!isObject(card)) return 0;
   const offset = card.strainOffset;
   return isNumber(offset) ? offset : 0;
+}
+
+// ==================== TokenEntity 타입 가드 ====================
+
+/** TokenEntity 가드 - tokens 필드가 있는 엔티티 */
+export function isTokenEntity(value: unknown): value is TokenEntity {
+  if (!isObject(value)) return false;
+  // TokenEntity는 최소한 tokens 필드를 가져야 함 (또는 undefined일 수 있음)
+  const tokens = value.tokens;
+  if (tokens === undefined) return true; // tokens 없어도 TokenEntity 가능
+  return isTokenState(tokens);
+}
+
+/** 객체를 TokenEntity로 안전하게 변환 (기본값 포함) */
+export function asTokenEntity(value: unknown): TokenEntity {
+  if (!isObject(value)) {
+    return { tokens: createEmptyTokenState() };
+  }
+
+  const result: TokenEntity = {};
+
+  // tokens
+  if (isTokenState(value.tokens)) {
+    result.tokens = value.tokens;
+  } else {
+    result.tokens = createEmptyTokenState();
+  }
+
+  // 선택적 숫자 필드들
+  if (isNumber(value.strength)) result.strength = value.strength;
+  if (isNumber(value.agility)) result.agility = value.agility;
+  if (isNumber(value.insight)) result.insight = value.insight;
+  if (isNumber(value.maxHp)) result.maxHp = value.maxHp;
+  if (isNumber(value.hp)) result.hp = value.hp;
+  if (isNumber(value.block)) result.block = value.block;
+  if (isNumber(value.counter)) result.counter = value.counter;
+  if (isNumber(value.energy)) result.energy = value.energy;
+  if (isNumber(value.maxEnergy)) result.maxEnergy = value.maxEnergy;
+  if (isNumber(value.etherPts)) result.etherPts = value.etherPts;
+
+  return result;
+}
+
+/** TokenEntity에서 tokens 안전 접근 */
+export function getTokens(entity: unknown): TokenState {
+  if (!isObject(entity)) return createEmptyTokenState();
+  const tokens = entity.tokens;
+  return isTokenState(tokens) ? tokens : createEmptyTokenState();
+}
+
+/** hp 안전 접근 */
+export function getHp(entity: unknown, defaultValue = 0): number {
+  return getNumber(entity, 'hp', defaultValue);
+}
+
+/** block 안전 접근 */
+export function getBlock(entity: unknown, defaultValue = 0): number {
+  return getNumber(entity, 'block', defaultValue);
+}
+
+/** strength 안전 접근 */
+export function getStrength(entity: unknown, defaultValue = 0): number {
+  return getNumber(entity, 'strength', defaultValue);
+}
+
+/** energy 안전 접근 */
+export function getEnergy(entity: unknown, defaultValue = 0): number {
+  return getNumber(entity, 'energy', defaultValue);
+}
+
+/** etherPts 안전 접근 */
+export function getEtherPts(entity: unknown, defaultValue = 0): number {
+  return getNumber(entity, 'etherPts', defaultValue);
+}
+
+// ==================== 안전한 상태 업데이트 ====================
+
+/** 엔티티 상태 안전하게 병합 */
+export function mergeEntityState<T extends Record<string, unknown>>(
+  current: T,
+  updates: Partial<T>
+): T {
+  return { ...current, ...updates };
+}
+
+/** 토큰 상태 업데이트 */
+export function updateTokens(
+  entity: TokenEntity,
+  newTokens: TokenState
+): TokenEntity {
+  return { ...entity, tokens: newTokens };
 }
