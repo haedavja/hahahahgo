@@ -247,6 +247,7 @@ const PyramidView = memo(function PyramidView({
       <IdentitySection
         pyramidLevel={pyramidLevel}
         selectedIdentities={growth.identities}
+        growth={growth}
         onSelectIdentity={onSelectIdentity}
       />
 

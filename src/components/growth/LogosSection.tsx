@@ -28,13 +28,14 @@ export const LogosSection = memo(function LogosSection({
 
   return (
     <div style={{ marginBottom: '40px' }}>
-      {/* 티어 헤더와 카드를 같은 줄에 배치 */}
+      {/* 티어 헤더와 카드를 같은 줄에 배치 - 피라미드 형태 */}
       <div style={{
         display: 'flex',
         flexWrap: 'wrap',
         gap: SPACING.md,
-        justifyContent: 'center',
+        justifyContent: 'flex-start',
         alignItems: 'flex-start',
+        paddingLeft: '600px', // 피라미드 형태 (7단계 480px + 120px)
       }}>
         {/* 로고스 카드들 */}
         <LogosCard
@@ -102,8 +103,8 @@ const LogosCard = memo(function LogosCard({
 
   return (
     <div style={{
-      flex: 1,
-      minWidth: '150px',
+      width: '200px',
+      flex: '0 0 200px',
       padding: SPACING.md,
       background: locked ? 'rgba(71, 85, 105, 0.3)' : 'rgba(30, 41, 59, 0.5)',
       border: locked ? '1px dashed #6b7280' : '1px solid rgba(251, 191, 36, 0.3)',
