@@ -648,7 +648,7 @@ export class MultiEnemyBattleEngine {
   }
 
   /**
-   * 적 카드 기본 선택 (간단한 휴리스틱 적용)
+   * 적 카드 기본 선택 (휴리스틱 및 조합/교차 고려)
    */
   private selectEnemyCardsBasic(enemy: EnemyState): GameCard[] {
     const available: GameCard[] = [];
@@ -659,8 +659,20 @@ export class MultiEnemyBattleEngine {
 
     if (available.length === 0) return [];
 
-    // HP 비율에 따른 간단한 전략
+    // HP 비율에 따른 전략
     const hpRatio = enemy.hp / enemy.maxHp;
+
+    // 타입/특성 카운터 (조합 평가용)
+    const typeCount = new Map<string, number>();
+    const traitCount = new Map<string, number>();
+    for (const card of available) {
+      typeCount.set(card.type || 'general', (typeCount.get(card.type || 'general') || 0) + 1);
+      if (card.traits) {
+        for (const trait of card.traits) {
+          traitCount.set(trait, (traitCount.get(trait) || 0) + 1);
+        }
+      }
+    }
 
     // 점수 기반 정렬
     const scored = available.map(card => {
@@ -668,24 +680,55 @@ export class MultiEnemyBattleEngine {
       const damage = (card.damage || 0) * (card.hits || 1);
       const block = card.block || 0;
 
+      // 1. HP 기반 기본 점수
       if (hpRatio < 0.3) {
         // HP 낮음: 방어 우선
-        score = block * 2 + damage;
+        score = block * 2.5 + damage * 0.8;
       } else if (hpRatio > 0.7) {
         // HP 높음: 공격 우선
-        score = damage * 2 + block;
+        score = damage * 2.5 + block * 0.5;
       } else {
         // 균형
-        score = damage * 1.2 + block * 1.2;
+        score = damage * 1.5 + block * 1.2;
       }
 
-      // 특수 효과 보너스
+      // 2. 교차 보너스 카드 우선 (+15점)
+      if (card.crossBonus) {
+        score += 15;
+        // 공격 배율 교차는 더 가치있음
+        if (card.crossBonus.type === 'damage_mult') {
+          score += 5;
+        }
+      }
+
+      // 3. 조합 가능성 보너스 (같은 타입 많으면 우선)
+      const sameTypeCount = typeCount.get(card.type || 'general') || 0;
+      if (sameTypeCount >= 3) {
+        score += sameTypeCount * 2; // 플러쉬 가능성
+      }
+
+      // 4. 특성 시너지 보너스
+      if (card.traits) {
+        for (const trait of card.traits) {
+          const count = traitCount.get(trait) || 0;
+          if (count >= 2) {
+            score += count * 1.5; // 같은 특성 시너지
+          }
+        }
+      }
+
+      // 5. 특수 효과 보너스
       if (card.appliedTokens && card.appliedTokens.length > 0) {
-        score += 5;
+        score += 8;
       }
 
-      // 빠른 카드 선호
-      score += (10 - (card.speedCost || 5)) * 0.5;
+      // 6. 빠른 카드 선호 (교차 기회 증가)
+      score += (10 - (card.speedCost || 5)) * 0.8;
+
+      // 7. 희귀도 보너스
+      if (card.rarity === 'rare') score += 3;
+      if (card.rarity === 'epic') score += 5;
+      if (card.rarity === 'legendary') score += 8;
 
       return { card, score };
     });
