@@ -562,6 +562,15 @@ const SPECIAL_EFFECTS: Record<string, SpecialEffectHandler> = {
     };
   },
 
+  fanTheHammer: () => {
+    // 5회 연속 사격 후 탄걸림 (탄걸림은 appliedTokens로 처리됨)
+    return {
+      success: true,
+      effects: ['해머 난사: 5회 연속 사격'],
+      stateChanges: {},
+    };
+  },
+
   manipulation: (state, _card, actor) => {
     // 탄걸림이면 장전, 아니면 사격
     const isJammed = actor === 'player'

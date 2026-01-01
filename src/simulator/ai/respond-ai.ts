@@ -115,7 +115,7 @@ export class RespondAI {
       }
     }
 
-    // 교차 기회 탐색
+    // 교차 기회 탐색 (현재 교차 + 잠재적 교차 위치)
     const crossOpportunities: TimelineAnalysis['crossOpportunities'] = [];
     const playerPositions = new Map<number, TimelineCard>();
 
@@ -123,12 +123,35 @@ export class RespondAI {
       playerPositions.set(tc.position, tc);
     }
 
+    // 1. 현재 교차 위치 탐색
     for (const tc of enemyCards) {
       if (playerPositions.has(tc.position)) {
         const playerCard = playerPositions.get(tc.position)!;
         crossOpportunities.push({
           position: tc.position,
           playerCard,
+          enemyCard: tc,
+        });
+      }
+    }
+
+    // 2. 잠재적 교차 기회 (적 카드 위치에 대응 카드 배치 가능)
+    // 적 카드가 있고 플레이어 카드가 없는 위치 = 교차 가능 위치
+    const potentialCrossPositions: number[] = [];
+    for (const tc of enemyCards) {
+      if (!playerPositions.has(tc.position)) {
+        potentialCrossPositions.push(tc.position);
+      }
+    }
+
+    // 교차 보너스가 있는 적 카드 위치를 우선 대상으로 추가
+    for (const tc of enemyCards) {
+      const card = this.cards[tc.cardId];
+      if (card?.crossBonus && !playerPositions.has(tc.position)) {
+        // 더미 플레이어 카드로 잠재적 교차 기회 추가
+        crossOpportunities.push({
+          position: tc.position,
+          playerCard: { cardId: '', owner: 'player', position: tc.position } as TimelineCard,
           enemyCard: tc,
         });
       }
@@ -242,15 +265,35 @@ export class RespondAI {
       }
     }
 
-    // 교차 기회 활용 (추가 카드)
+    // 교차 기회 활용 (교차 보너스 카드 우선)
     if (this.config.prioritizeCross && analysis.crossOpportunities.length > 0) {
-      for (const card of reactionCards) {
-        if (card.crossBonus && !selectedCards.includes(card.id)) {
-          selectedCards.push(card.id);
-          totalDamageDealt += card.damage || 0;
-          totalBlockGained += card.block || 0;
-          break;
-        }
+      // 교차 보너스 카드들을 점수순으로 정렬
+      const crossBonusCards = reactionCards
+        .filter(card => card.crossBonus && !selectedCards.includes(card.id))
+        .map(card => {
+          let score = 0;
+          // 공격 배율 교차 우선 (damage_mult)
+          if (card.crossBonus?.type === 'damage_mult') {
+            score += 20 + ((card.crossBonus.value || 1.5) - 1) * 20;
+          }
+          // 방어 배율 교차
+          if (card.crossBonus?.type === 'block_mult') {
+            score += 15 + ((card.crossBonus.value || 1.5) - 1) * 15;
+          }
+          // 기본 피해/방어력
+          score += (card.damage || 0) + (card.block || 0) * 0.5;
+          return { card, score };
+        })
+        .sort((a, b) => b.score - a.score);
+
+      // 상위 2개까지 선택
+      for (let i = 0; i < Math.min(2, crossBonusCards.length); i++) {
+        const { card } = crossBonusCards[i];
+        selectedCards.push(card.id);
+        // 교차 보너스 적용 예상값
+        const multiplier = card.crossBonus?.value || 1.5;
+        totalDamageDealt += Math.floor((card.damage || 0) * multiplier);
+        totalBlockGained += Math.floor((card.block || 0) * (card.crossBonus?.type === 'block_mult' ? multiplier : 1));
       }
     }
 

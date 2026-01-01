@@ -305,12 +305,33 @@ function createComboResult(name: string, bonusKeys: Set<number> | null): ComboRe
 
 /** 특성 시너지 보너스 정의 */
 const TRAIT_SYNERGY_BONUSES: Record<string, { threshold: number; bonus: number; name: string }> = {
-  // 같은 특성 2개 이상 시 보너스
+  // 기본 시너지 (2개 이상)
   swift: { threshold: 2, bonus: 0.3, name: '신속 시너지' },
   chain: { threshold: 2, bonus: 0.5, name: '연계 시너지' },
   strongbone: { threshold: 2, bonus: 0.4, name: '강골 시너지' },
   repeat: { threshold: 2, bonus: 0.4, name: '반복 시너지' },
   mastery: { threshold: 2, bonus: 0.6, name: '숙련 시너지' },
+
+  // 전투 특성 시너지
+  striking: { threshold: 2, bonus: 0.3, name: '타격 시너지' },
+  counterattack: { threshold: 2, bonus: 0.4, name: '반격 시너지' },
+  piercing: { threshold: 2, bonus: 0.35, name: '관통 시너지' },
+  calm: { threshold: 2, bonus: 0.2, name: '침착 시너지' },
+
+  // 협동 특성 (특별 보너스 - 50% 추가 획득)
+  cooperation: { threshold: 2, bonus: 0.5, name: '협동 시너지' },
+
+  // 성장 특성
+  training: { threshold: 2, bonus: 0.3, name: '단련 시너지' },
+  growth: { threshold: 2, bonus: 0.4, name: '성장 시너지' },
+
+  // 방어 특성
+  parry: { threshold: 2, bonus: 0.35, name: '패링 시너지' },
+  block: { threshold: 2, bonus: 0.25, name: '방어 시너지' },
+
+  // 기타 특성
+  quick: { threshold: 2, bonus: 0.25, name: '속공 시너지' },
+  heavy: { threshold: 2, bonus: 0.45, name: '중량 시너지' },
 };
 
 /**

@@ -413,6 +413,152 @@ export class RelicSystemV2 {
     return results;
   }
 
+  // ==================== 추가 트리거 ====================
+
+  /**
+   * 공격 시 효과
+   */
+  processAttack(player: PlayerState, enemy: EnemyState, damage: number): RelicEffectResult[] {
+    const results: RelicEffectResult[] = [];
+    const definitions = getRelicDefinitions();
+
+    for (const relicId of this.activeRelics) {
+      const relic = definitions[relicId];
+      if (!relic) continue;
+
+      const result: RelicEffectResult = {
+        relicId,
+        relicName: relic.name,
+        effects: {},
+      };
+
+      // 쿠나이: 3회 공격마다 민첩성 +1
+      if (relicId === 'kunai' && this.attacksThisTurn > 0 && this.attacksThisTurn % 3 === 0) {
+        result.effects.tokenToPlayer = { id: 'agility', stacks: 1 };
+        result.effects.message = '쿠나이: 민첩성 +1';
+      }
+
+      // 편지칼: 3회 스킬마다 4피해
+      if (relicId === 'letter_opener' && this.skillsThisTurn > 0 && this.skillsThisTurn % 3 === 0) {
+        result.effects.damage = 4;
+        result.effects.message = '편지칼: 4 피해';
+      }
+
+      if (Object.keys(result.effects).length > 0) {
+        results.push(result);
+      }
+    }
+
+    return results;
+  }
+
+  /**
+   * 회복 시 효과
+   */
+  processHeal(player: PlayerState, healAmount: number): RelicEffectResult[] {
+    const results: RelicEffectResult[] = [];
+    const definitions = getRelicDefinitions();
+
+    for (const relicId of this.activeRelics) {
+      const relic = definitions[relicId];
+      if (!relic) continue;
+
+      const result: RelicEffectResult = {
+        relicId,
+        relicName: relic.name,
+        effects: {},
+      };
+
+      // 마고의 피: 회복량 50% 증가
+      if (relicId === 'blood_of_mago') {
+        const bonusHeal = Math.floor(healAmount * 0.5);
+        result.effects.heal = bonusHeal;
+        result.effects.message = `마고의 피: 추가 회복 +${bonusHeal}`;
+      }
+
+      if (Object.keys(result.effects).length > 0) {
+        results.push(result);
+      }
+    }
+
+    return results;
+  }
+
+  /**
+   * 콤보 발동 시 효과
+   */
+  processCombo(player: PlayerState, comboName: string, etherGained: number): RelicEffectResult[] {
+    const results: RelicEffectResult[] = [];
+    const definitions = getRelicDefinitions();
+
+    for (const relicId of this.activeRelics) {
+      const relic = definitions[relicId];
+      if (!relic) continue;
+
+      const result: RelicEffectResult = {
+        relicId,
+        relicName: relic.name,
+        effects: {},
+      };
+
+      // 에테르 결정: 콤보 시 에테르 보너스
+      if (relicId === 'ether_crystal') {
+        const bonus = Math.floor(etherGained * 0.2);
+        result.effects.etherBonus = bonus;
+        result.effects.message = `에테르 결정: 추가 에테르 +${bonus}`;
+      }
+
+      // 풀하우스 전용 보너스 상징이 있다면 여기에 추가
+      if (relicId === 'poker_chip' && comboName === '풀하우스') {
+        result.effects.etherBonus = 10;
+        result.effects.message = '포커칩: 풀하우스 보너스 +10 에테르';
+      }
+
+      if (Object.keys(result.effects).length > 0) {
+        results.push(result);
+      }
+    }
+
+    return results;
+  }
+
+  /**
+   * 적 처치 시 효과
+   */
+  processKill(player: PlayerState, enemyId: string): RelicEffectResult[] {
+    const results: RelicEffectResult[] = [];
+    const definitions = getRelicDefinitions();
+
+    for (const relicId of this.activeRelics) {
+      const relic = definitions[relicId];
+      if (!relic) continue;
+
+      const result: RelicEffectResult = {
+        relicId,
+        relicName: relic.name,
+        effects: {},
+      };
+
+      // 해골: 처치 시 체력 5 회복
+      if (relicId === 'skull' || relicId === 'gremlin_horn') {
+        result.effects.heal = 5;
+        result.effects.message = '적 처치: 체력 +5';
+      }
+
+      // 그렘린 뿔: 처치 시 에너지 +1
+      if (relicId === 'gremlin_horn') {
+        result.effects.energy = 1;
+        result.effects.message = '그렘린 뿔: 에너지 +1';
+      }
+
+      if (Object.keys(result.effects).length > 0) {
+        results.push(result);
+      }
+    }
+
+    return results;
+  }
+
   // ==================== 에테르 계산 ====================
 
   /**
