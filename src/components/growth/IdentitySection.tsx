@@ -22,16 +22,12 @@ export const IdentitySection = memo(function IdentitySection({
 
   return (
     <div style={{ marginBottom: SPACING.xxl }}>
-      {/* 티어 헤더와 카드를 같은 줄에 배치 */}
+      {/* 티어 헤더 */}
       <div style={{
         display: 'flex',
-        flexWrap: 'wrap',
-        gap: SPACING.md,
-        justifyContent: 'flex-start',
-        alignItems: 'flex-start',
-        paddingLeft: '480px', // 7단계: 6단계(360px) + 120px
+        justifyContent: 'center',
+        marginBottom: SPACING.sm,
       }}>
-        {/* 7단계 자아 헤더 */}
         <div style={{
           display: 'inline-block',
           padding: `${SPACING.sm} ${SPACING.md}`,
@@ -44,8 +40,14 @@ export const IdentitySection = memo(function IdentitySection({
         }}>
           {!canAccess && '🔒 '}7단계 자아
         </div>
+      </div>
 
-        {/* 자아 카드들 */}
+      {/* 자아 카드들 - 6단계 노드들 사이에 배치되도록 간격 조정 */}
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        gap: '200px', // 검잡이와 총잡이 사이 간격 (6단계 노드 사이에 맞춤)
+      }}>
         {(['swordsman', 'gunslinger'] as const).map(id => (
           <IdentityCard
             key={id}
