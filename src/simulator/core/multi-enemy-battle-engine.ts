@@ -71,6 +71,8 @@ export interface MultiEnemyBattleState {
   totalEtherGained: number;
   /** 콤보 통계 */
   comboStats: Record<string, number>;
+  /** 에테르 폭주 활성화 (이번 턴 피해량 2배) */
+  etherOverdriveActive: boolean;
 }
 
 /** 타겟팅 모드 */
@@ -266,6 +268,7 @@ export class MultiEnemyBattleEngine {
       chainLength: 0,
       totalEtherGained: 0,
       comboStats: {},
+      etherOverdriveActive: false,
     };
 
     // 덱 셔플
@@ -351,6 +354,14 @@ export class MultiEnemyBattleEngine {
     state.chainActive = false;
     state.chainLength = 0;
 
+    // 에테르 폭주 체크 (턴 시작 시)
+    state.etherOverdriveActive = false;
+    if ((state.player.ether || 0) >= 100) {
+      state.etherOverdriveActive = true;
+      state.player.ether = (state.player.ether || 0) - 100;
+      state.battleLog.push(`⚡ 에테르 폭주 발동! (이번 턴 피해량 2배)`);
+    }
+
     // 화상 피해 처리
     const burnResult = processBurn(state.player.tokens);
     if (burnResult.damage > 0) {
@@ -426,19 +437,9 @@ export class MultiEnemyBattleEngine {
       state.battleLog.push(`  🔮 ${combo.name}: 에테르 +${etherGain} (x${combo.multiplier})`);
     }
 
-    // 에테르 버스트 체크 (100 이상)
-    if (state.player.ether >= 100) {
-      state.battleLog.push(`  ⚡ 에테르 버스트! (${state.player.ether})`);
-      // 버스트 효과: 모든 적에게 10 피해
-      for (const enemy of state.enemies) {
-        if (enemy.hp > 0) {
-          const burstDamage = 10;
-          enemy.hp -= burstDamage;
-          state.playerDamageDealt += burstDamage;
-          state.battleLog.push(`  ⚡ ${enemy.name}에게 버스트 피해 ${burstDamage}`);
-        }
-      }
-      state.player.ether = 0;
+    // 에테르 100 이상이면 다음 턴 시작 시 폭주 발동 예고
+    if ((state.player.ether || 0) >= 100 && this.config.verbose) {
+      state.battleLog.push(`  ⚡ 에테르 충전 완료! (다음 턴 폭주 발동 예정)`);
     }
   }
 
@@ -785,6 +786,11 @@ export class MultiEnemyBattleEngine {
 
       // 특성 피해 배율 적용
       baseDamage = Math.floor(baseDamage * synergyResult.damageMultiplier);
+
+      // 에테르 폭주: 턴 피해량 2배
+      if (state.etherOverdriveActive) {
+        baseDamage = baseDamage * 2;
+      }
 
       for (const targetIdx of targets) {
         const enemy = state.enemies[targetIdx];
