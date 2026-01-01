@@ -1,5 +1,5 @@
-import { test, expect } from '@playwright/test';
-import { resetGameState } from './utils/test-helpers';
+import { test, expect, Page } from '@playwright/test';
+import { resetGameState, waitForMap, selectMapNode, waitForUIStable } from './utils/test-helpers';
 
 /**
  * 전투 시스템 E2E 테스트
@@ -13,20 +13,17 @@ test.describe('전투 시스템', () => {
   /**
    * 전투 화면으로 진입하는 헬퍼
    */
-  async function enterBattle(page: any) {
-    // 맵 화면 대기
-    await page.waitForSelector('.map-container, [data-testid="map-container"]', {
-      timeout: 15000,
-    }).catch(() => page.click('button:has-text("시작")'));
+  async function enterBattle(page: Page) {
+    // 맵 화면 대기 (중앙 헬퍼 사용)
+    await waitForMap(page);
 
-    // 전투 노드 클릭
-    const battleNode = page.locator(
-      '[data-node-type="combat"], [data-node-type="battle"], .node-battle, .node-combat'
-    ).first();
+    // 전투 노드 클릭 (중앙 헬퍼 사용)
+    const battleClicked = await selectMapNode(page, 'battle');
 
-    if (await battleNode.isVisible()) {
-      await battleNode.click();
-      await page.waitForTimeout(500);
+    if (battleClicked) {
+      // 전투 화면이 로드될 때까지 대기 (상태 기반)
+      await page.waitForSelector('[data-testid="battle-screen"]', { timeout: 5000 }).catch(() => {});
+      await waitForUIStable(page);
     }
   }
 
@@ -96,8 +93,15 @@ test.describe('전투 시스템', () => {
 
       if (await submitBtn.isVisible()) {
         await submitBtn.click();
-        // 턴이 진행되었는지 확인 (타임라인 변화)
-        await page.waitForTimeout(500);
+        // 턴이 진행되었는지 확인 (상태 기반 대기)
+        await page.waitForFunction(
+          () => {
+            const phaseEl = document.querySelector('[data-testid="battle-phase"]');
+            return phaseEl?.getAttribute('data-phase') !== 'select';
+          },
+          { timeout: 3000 }
+        ).catch(() => {});
+        await waitForUIStable(page);
       }
     }
   });
@@ -140,21 +144,15 @@ test.describe('전투 진행', () => {
     await page.goto('/');
     await resetGameState(page);
 
-    // 맵 화면 대기
-    await page.waitForSelector('.map-container, [data-testid="map-container"]', {
-      timeout: 15000,
-    }).catch(() => page.click('button:has-text("시작")'));
+    // 맵 화면 대기 (중앙 헬퍼 사용)
+    await waitForMap(page);
 
-    // 전투 노드 클릭
-    const battleNode = page.locator('[data-node-type="combat"], .node-battle').first();
+    // 전투 노드 클릭 (중앙 헬퍼 사용)
+    const battleClicked = await selectMapNode(page, 'battle');
 
-    if (await battleNode.isVisible()) {
-      await battleNode.click();
-
+    if (battleClicked) {
       // 전투 화면 대기
-      await page.waitForSelector('.battle-screen, [data-testid="battle-screen"]', {
-        timeout: 5000,
-      }).catch(() => null);
+      await page.waitForSelector('[data-testid="battle-screen"]', { timeout: 5000 }).catch(() => {});
 
       // 자동 전투 진행 (최대 10턴)
       for (let turn = 0; turn < 10; turn++) {
@@ -164,18 +162,30 @@ test.describe('전투 진행', () => {
           break;
         }
 
+        // 전투 화면이 없으면 종료
+        if (!(await page.locator('[data-testid="battle-screen"]').isVisible({ timeout: 100 }).catch(() => false))) {
+          break;
+        }
+
         // 카드 선택 및 제출
-        const cards = page.locator('[data-testid="hand-card"], .hand-card');
+        const cards = page.locator('[data-testid^="hand-card-"]');
         if ((await cards.count()) > 0) {
-          await cards.first().click().catch(() => null);
+          await cards.first().click().catch(() => {});
         }
 
-        const submitBtn = page.locator('[data-testid="submit-cards-btn"], .submit-btn, button:has-text("확인")');
-        if (await submitBtn.isVisible()) {
-          await submitBtn.click().catch(() => null);
+        const submitBtn = page.locator('[data-testid="submit-cards-btn"]');
+        if (await submitBtn.isEnabled({ timeout: 500 }).catch(() => false)) {
+          await submitBtn.click().catch(() => {});
+          // 단계 변화 대기 (상태 기반)
+          await page.waitForFunction(
+            () => {
+              const phaseEl = document.querySelector('[data-testid="battle-phase"]');
+              const result = document.querySelector('[data-testid="battle-result"]');
+              return phaseEl?.getAttribute('data-phase') !== 'select' || result;
+            },
+            { timeout: 3000 }
+          ).catch(() => {});
         }
-
-        await page.waitForTimeout(300);
       }
     }
   });

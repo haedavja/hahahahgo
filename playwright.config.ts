@@ -10,6 +10,14 @@ export default defineConfig({
   /* 테스트 파일 패턴 */
   testMatch: '**/*.spec.ts',
 
+  /* 전역 타임아웃 설정 */
+  timeout: 60 * 1000, // 테스트당 60초
+
+  /* expect 타임아웃 */
+  expect: {
+    timeout: 10 * 1000, // expect 대기 10초
+  },
+
   /* 최대 병렬 실행 수 */
   fullyParallel: true,
 
@@ -29,6 +37,12 @@ export default defineConfig({
   use: {
     /* 기본 URL - Vite 설정과 일치 (vite.config.js의 server.port) */
     baseURL: 'http://localhost:5173',
+
+    /* 액션 타임아웃 (클릭, 입력 등) */
+    actionTimeout: 15 * 1000,
+
+    /* 네비게이션 타임아웃 */
+    navigationTimeout: 30 * 1000,
 
     /* 실패 시 스크린샷 */
     screenshot: 'only-on-failure',

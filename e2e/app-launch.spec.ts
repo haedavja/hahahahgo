@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { waitForUIStable } from './utils/test-helpers';
 
 /**
  * 앱 기본 로드 테스트
@@ -36,7 +37,10 @@ test.describe('앱 시작', () => {
     });
 
     await page.goto('/');
-    await page.waitForTimeout(2000);
+
+    // 앱 로드 및 초기화 완료 대기 (상태 기반)
+    await page.waitForSelector('#root > *', { timeout: 10000 });
+    await waitForUIStable(page, { timeout: 3000 });
 
     // 치명적인 React 에러 필터링
     const criticalErrors = errors.filter(
