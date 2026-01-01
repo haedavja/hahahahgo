@@ -3,15 +3,7 @@
  * @description 포커 콤보 감지 및 에테르 계산 시스템
  *
  * ## 포커 콤보 시스템
- * 카드의 actionCost를 포커 숫자처럼 취급하여 조합 판정:
- * - 파이브카드: 같은 actionCost 5장 (5x)
- * - 포카드: 같은 actionCost 4장 (4x)
- * - 풀하우스: 트리플 + 페어 (3.75x)
- * - 플러쉬: 같은 타입 4장+ (3.5x)
- * - 트리플: 같은 actionCost 3장 (3x)
- * - 투페어: 페어 2개 (2.5x)
- * - 페어: 같은 actionCost 2장 (2x)
- * - 하이카드: 조합 없음 (1x)
+ * 공유 라이브러리 (/lib/comboDetection.ts)를 기반으로 확장합니다.
  *
  * ## 에테르 시스템
  * - 기본 획득량: 카드 희귀도별 (common: 10, rare: 25, special: 100, legendary: 500)
@@ -22,21 +14,27 @@
  */
 
 import type { GameCard, GameBattleState, PlayerState } from './game-types';
+import {
+  detectPokerCombo as detectPokerComboBase,
+  detectPokerComboDetailed,
+  getComboMultiplier,
+  COMBO_MULTIPLIERS,
+  COMBO_INFO,
+  COMBO_PRIORITIES,
+  type ComboCard as BaseComboCard,
+  type ComboResult as BaseComboResult,
+  type ComboCalculation,
+  type CardRarity,
+} from '../../lib/comboDetection';
 
 // ==================== 타입 정의 ====================
 
-export interface ComboCard {
-  id: string;
-  actionCost: number;
-  type: string;
-  traits?: string[];
-  isGhost?: boolean;
-  rarity?: CardRarity;
+export interface ComboCard extends BaseComboCard {
   /** 카드 카테고리: fencing, gun, special */
   category?: string;
 }
 
-export type CardRarity = 'common' | 'rare' | 'special' | 'legendary';
+export type { CardRarity, ComboCalculation };
 
 export interface ComboResult {
   name: string;
@@ -57,31 +55,8 @@ export interface EtherGainResult {
   breakdown: string[];
 }
 
-// ==================== 상수 ====================
-
-/** 조합별 에테르 배율 */
-export const COMBO_MULTIPLIERS: Record<string, number> = {
-  '하이카드': 1,
-  '페어': 2,
-  '투페어': 2.5,
-  '트리플': 3,
-  '플러쉬': 3.5,
-  '풀하우스': 3.75,
-  '포카드': 4,
-  '파이브카드': 5,
-};
-
-/** 조합 정보 */
-export const COMBO_INFO: Record<string, { rank: number; description: string }> = {
-  '하이카드': { rank: 0, description: '조합 없음' },
-  '페어': { rank: 1, description: '같은 actionCost 2장' },
-  '투페어': { rank: 2, description: '페어 2개' },
-  '트리플': { rank: 3, description: '같은 actionCost 3장' },
-  '플러쉬': { rank: 4, description: '같은 타입 4장+' },
-  '풀하우스': { rank: 5, description: '트리플 + 페어' },
-  '포카드': { rank: 6, description: '같은 actionCost 4장' },
-  '파이브카드': { rank: 7, description: '같은 actionCost 5장' },
-};
+// Re-export shared constants
+export { COMBO_MULTIPLIERS, COMBO_INFO, COMBO_PRIORITIES };
 
 /** 희귀도별 에테르 획득량 */
 export const ETHER_BY_RARITY: Record<CardRarity, number> = {

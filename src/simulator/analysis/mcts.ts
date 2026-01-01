@@ -127,7 +127,40 @@ export class MCTSEngine {
       state.player.hand.sort().join(','),
     ].join('|');
 
+    this.stateHashCache.set(state, hash);
     return hash;
+  }
+
+  /**
+   * 빠른 상태 복제 (JSON보다 효율적)
+   */
+  private cloneState(state: GameState): GameState {
+    return {
+      player: {
+        hp: state.player.hp,
+        maxHp: state.player.maxHp,
+        block: state.player.block,
+        energy: state.player.energy,
+        strength: state.player.strength,
+        dexterity: state.player.dexterity,
+        hand: [...state.player.hand],
+        deck: [...state.player.deck],
+        discard: [...state.player.discard],
+        exhaust: [...state.player.exhaust],
+        tokens: { ...state.player.tokens },
+        relics: state.player.relics ? [...state.player.relics] : [],
+      },
+      enemy: {
+        id: state.enemy.id,
+        hp: state.enemy.hp,
+        maxHp: state.enemy.maxHp,
+        block: state.enemy.block,
+        strength: state.enemy.strength,
+        tokens: { ...state.enemy.tokens },
+      },
+      turn: state.turn,
+      phase: state.phase,
+    };
   }
 
   /**
@@ -649,7 +682,7 @@ export class MCTSPlayer {
     const card = cards[action];
     if (!card) return state;
 
-    const newState = JSON.parse(JSON.stringify(state));
+    const newState = this.cloneState(state);
 
     newState.player.energy -= card.cost;
 
@@ -682,7 +715,7 @@ export class MCTSPlayer {
     const enemy = enemies[state.enemy.id];
     if (!enemy) return state;
 
-    const newState = JSON.parse(JSON.stringify(state));
+    const newState = this.cloneState(state);
 
     // 적 턴
     const cardsToPlay = enemy.deck.slice(0, enemy.cardsPerTurn);
