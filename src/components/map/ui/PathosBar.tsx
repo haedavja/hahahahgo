@@ -6,7 +6,6 @@
 import { memo, useState, useCallback, useMemo } from 'react';
 import type { CSSProperties } from 'react';
 import { useGameStore } from '../../../state/gameStore';
-import { useShallow } from 'zustand/shallow';
 import { PATHOS, type Pathos } from '../../../data/growth/pathosData';
 
 // =====================
@@ -43,11 +42,13 @@ const TYPE_ICONS: Record<string, string> = {
   common: '✨',
 };
 
+// 빈 배열 상수 - 안정적인 참조 유지
+const EMPTY_ARRAY: string[] = [];
+
 export const PathosBar = memo(function PathosBar() {
-  const { equippedPathos } = useGameStore(
-    useShallow((state) => ({
-      equippedPathos: state.growth?.equippedPathos || [],
-    }))
+  // 단순 셀렉터 사용 - 배열 자체가 변경될 때만 리렌더
+  const equippedPathos = useGameStore(
+    (state) => state.growth?.equippedPathos ?? EMPTY_ARRAY
   );
 
   const [hoveredPathos, setHoveredPathos] = useState<string | null>(null);
