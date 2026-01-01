@@ -147,7 +147,7 @@ const IdentityCard = memo(function IdentityCard({
         width: '200px',
         flex: '0 0 200px',
         padding: SPACING.md,
-        background: isSelected ? COLORS.tier.identity.bg : 'rgba(71, 85, 105, 0.3)',
+        background: isSelected ? COLORS.tier.identity.bg : '#1e293b', // 불투명 배경
         border: isSelected
           ? `2px solid ${COLORS.tier.identity.border}`
           : '1px solid #475569',

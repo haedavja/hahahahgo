@@ -127,7 +127,7 @@ const LogosCard = memo(function LogosCard({
         width: '200px',
         flex: '0 0 200px',
         padding: SPACING.md,
-        background: locked ? 'rgba(71, 85, 105, 0.3)' : 'rgba(30, 41, 59, 0.5)',
+        background: locked ? '#1e293b' : '#1a2f2a', // 불투명 배경
         border: locked ? '1px dashed #6b7280' : '1px solid rgba(251, 191, 36, 0.3)',
         borderRadius: BORDER_RADIUS.lg,
         opacity: locked ? 0.5 : 1, // 잠금 상태에서 희미하게 표시
