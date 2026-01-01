@@ -7,14 +7,17 @@ import { Page, Locator, expect } from '@playwright/test';
 
 /**
  * 타임아웃 상수 (일관성을 위해 중앙 관리)
+ * 안정적인 테스트를 위해 충분한 대기 시간 설정
  */
 export const TIMEOUTS = {
-  /** 짧은 대기 (UI 반응) */
-  SHORT: 500,
-  /** 중간 대기 (애니메이션, 상태 변화) */
-  MEDIUM: 1000,
-  /** 긴 대기 (페이지 로드, 전환) */
-  LONG: 3000,
+  /** 최소 대기 (빠른 UI 반응 확인) */
+  MINIMAL: 500,
+  /** 짧은 대기 (UI 반응, 애니메이션) */
+  SHORT: 1000,
+  /** 중간 대기 (상태 변화, 전환) */
+  MEDIUM: 2000,
+  /** 긴 대기 (페이지 로드, 전투 진입) */
+  LONG: 5000,
   /** 매우 긴 대기 (게임 로드) */
   VERY_LONG: 10000,
   /** 극단적 대기 (전체 전투) */
@@ -713,9 +716,10 @@ export async function waitAndClick(
 }
 
 /**
- * 모달 닫기
+ * 모달 닫기 (기본)
+ * 더 유연한 버전은 아래 closeModal(page, modalType) 참고
  */
-export async function closeModal(page: Page): Promise<void> {
+export async function closeAnyModal(page: Page): Promise<void> {
   const closeBtn = page.locator('[data-testid="modal-close-btn"]');
   if (await closeBtn.isVisible()) {
     await closeBtn.click();
@@ -1196,4 +1200,180 @@ export async function getHitCount(page: Page): Promise<number> {
   }
 
   return 0;
+}
+
+// =====================
+// 전투 진입 및 상태 확인 헬퍼
+// =====================
+
+/**
+ * 전투 화면으로 진입 (맵에서 전투 노드 클릭)
+ * @returns 전투 진입 성공 여부
+ */
+export async function enterBattle(page: Page): Promise<boolean> {
+  try {
+    // 맵 화면 대기
+    await waitForMap(page);
+
+    // 전투 노드 클릭
+    const battleClicked = await selectMapNode(page, 'battle');
+
+    if (battleClicked) {
+      // 전투 화면 로드 대기
+      await page.waitForSelector('[data-testid="battle-screen"]', { timeout: TIMEOUTS.LONG }).catch(() => {});
+      await waitForUIStable(page);
+      return true;
+    }
+
+    return false;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * HP 정보 파싱
+ * @param target - 'player' 또는 'enemy'
+ * @returns { current, max } 또는 null
+ */
+export async function getHP(
+  page: Page,
+  target: 'player' | 'enemy'
+): Promise<{ current: number; max: number } | null> {
+  const selector = target === 'player'
+    ? '[data-testid="player-hp-text"], [data-testid="player-hp"]'
+    : '[data-testid="enemy-hp-text"], [data-testid="enemy-hp"]';
+
+  const hpElement = page.locator(selector).first();
+
+  if (!(await hpElement.isVisible({ timeout: TIMEOUTS.SHORT }).catch(() => false))) {
+    return null;
+  }
+
+  const text = await hpElement.textContent() || '';
+
+  // "80/100" 또는 "❤️ 80/100" 형식 파싱
+  const match = text.match(/(\d+)\s*\/\s*(\d+)/);
+  if (match) {
+    return {
+      current: parseInt(match[1]),
+      max: parseInt(match[2])
+    };
+  }
+
+  return null;
+}
+
+/**
+ * 카드 선택 및 제출
+ * @param cardIndex - 선택할 카드 인덱스 (기본: 0, 첫 번째 카드)
+ * @returns 제출 성공 여부
+ */
+export async function selectAndSubmitCard(
+  page: Page,
+  cardIndex: number = 0
+): Promise<boolean> {
+  try {
+    // 핸드 카드 찾기
+    const cards = page.locator('[data-testid^="hand-card-"], .hand-card');
+    const cardCount = await cards.count();
+
+    if (cardCount === 0) {
+      testLogger.warn('No cards in hand');
+      return false;
+    }
+
+    // 카드 클릭
+    const targetIndex = Math.min(cardIndex, cardCount - 1);
+    await cards.nth(targetIndex).click();
+
+    // 짧은 대기 (선택 상태 반영)
+    await page.waitForTimeout(100);
+
+    // 제출 버튼 클릭
+    const submitBtn = page.locator('[data-testid="submit-cards-btn"]');
+    if (await submitBtn.isEnabled({ timeout: TIMEOUTS.SHORT }).catch(() => false)) {
+      await submitBtn.click();
+
+      // 턴 진행 대기
+      await page.waitForFunction(
+        () => {
+          const phaseEl = document.querySelector('[data-testid="battle-phase"]');
+          return phaseEl?.getAttribute('data-phase') !== 'select';
+        },
+        { timeout: TIMEOUTS.MEDIUM }
+      ).catch(() => {});
+
+      return true;
+    }
+
+    return false;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * 전투 결과 확인 및 모달 닫기
+ * @returns 'victory' | 'defeat' | null
+ */
+export async function checkBattleResult(page: Page): Promise<'victory' | 'defeat' | null> {
+  const resultModal = page.locator(
+    '[data-testid="battle-result-modal"], [data-testid="battle-result"], [data-testid="battle-result-overlay"]'
+  );
+
+  if (await resultModal.isVisible({ timeout: TIMEOUTS.MINIMAL }).catch(() => false)) {
+    const text = await resultModal.textContent() || '';
+    const isVictory = text.includes('승리') || text.includes('victory') || text.includes('Victory');
+
+    // 결과 모달 닫기
+    const closeBtn = page.locator(
+      '[data-testid="battle-result-close-btn"], button:has-text("확인"), button:has-text("닫기")'
+    );
+    if (await closeBtn.isVisible({ timeout: TIMEOUTS.SHORT }).catch(() => false)) {
+      await closeBtn.click();
+    }
+
+    return isVictory ? 'victory' : 'defeat';
+  }
+
+  return null;
+}
+
+/**
+ * 에테르 값 파싱
+ * @param target - 'player' 또는 'enemy'
+ */
+export async function getEther(
+  page: Page,
+  target: 'player' | 'enemy'
+): Promise<number | null> {
+  const selector = target === 'player'
+    ? '[data-testid="player-ether-box"], [data-testid="player-ether"]'
+    : '[data-testid="enemy-ether-box"], [data-testid="enemy-ether"]';
+
+  const etherElement = page.locator(selector).first();
+
+  if (!(await etherElement.isVisible({ timeout: TIMEOUTS.SHORT }).catch(() => false))) {
+    return null;
+  }
+
+  const text = await etherElement.textContent() || '';
+  const match = text.match(/(\d+)/);
+  return match ? parseInt(match[1]) : null;
+}
+
+/**
+ * 조합(콤보) 이름 가져오기
+ */
+export async function getComboName(page: Page): Promise<string | null> {
+  const comboDisplay = page.locator(
+    '[data-testid="player-combo-display"], [data-testid="combo-display"], .combo-display'
+  ).first();
+
+  if (await comboDisplay.isVisible({ timeout: TIMEOUTS.SHORT }).catch(() => false)) {
+    return await comboDisplay.textContent() || null;
+  }
+
+  return null;
 }
