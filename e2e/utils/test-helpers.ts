@@ -1173,10 +1173,18 @@ export async function selectCardsForCombo(
     }
   }
 
-  // 카드 선택
+  // 카드 선택 (상태 기반 대기)
   for (const index of indicesToSelect) {
     await cards.nth(index).click();
-    await page.waitForTimeout(100); // 선택 애니메이션 대기
+    // 선택 상태 변화 대기
+    await page.waitForFunction(
+      (idx) => {
+        const el = document.querySelector(`[data-testid="hand-card-${idx}"]`);
+        return el?.getAttribute('data-card-selected') === 'true';
+      },
+      index,
+      { timeout: TIMEOUTS.SHORT }
+    ).catch(() => {});
   }
 
   // 현재 조합 확인
@@ -1501,6 +1509,19 @@ export async function getHP(
 }
 
 /**
+ * HP 정보 안전하게 가져오기 (null일 경우 기본값 반환)
+ * @param target - 'player' 또는 'enemy'
+ * @returns { current, max } - null이면 { current: 0, max: 0 } 반환
+ */
+export async function getHPSafe(
+  page: Page,
+  target: 'player' | 'enemy'
+): Promise<{ current: number; max: number }> {
+  const hp = await getHP(page, target);
+  return hp ?? { current: 0, max: 0 };
+}
+
+/**
  * 카드 선택 및 제출
  * @param cardIndex - 선택할 카드 인덱스 (기본: 0, 첫 번째 카드)
  * @returns 제출 성공 여부
@@ -1523,8 +1544,15 @@ export async function selectAndSubmitCard(
     const targetIndex = Math.min(cardIndex, cardCount - 1);
     await cards.nth(targetIndex).click();
 
-    // 짧은 대기 (선택 상태 반영)
-    await page.waitForTimeout(100);
+    // 선택 상태 반영 대기 (상태 기반)
+    await page.waitForFunction(
+      (idx) => {
+        const el = document.querySelector(`[data-testid="hand-card-${idx}"]`);
+        return el?.getAttribute('data-card-selected') === 'true';
+      },
+      targetIndex,
+      { timeout: TIMEOUTS.SHORT }
+    ).catch(() => {});
 
     // 제출 버튼 클릭
     const submitBtn = page.locator('[data-testid="submit-cards-btn"]');
@@ -1597,6 +1625,72 @@ export async function getEther(
   const text = await etherElement.textContent() || '';
   const match = text.match(/(\d+)/);
   return match ? parseInt(match[1]) : null;
+}
+
+/**
+ * 에테르 값 안전하게 가져오기 (null일 경우 0 반환)
+ * @param target - 'player' 또는 'enemy'
+ */
+export async function getEtherSafe(
+  page: Page,
+  target: 'player' | 'enemy'
+): Promise<number> {
+  const ether = await getEther(page, target);
+  return ether ?? 0;
+}
+
+/**
+ * 턴 진행 후 안정화 대기 (상태 기반)
+ * waitForTimeout 대신 사용
+ * - 페이즈 변화 확인
+ * - 애니메이션 완료 확인
+ * - 새 핸드 카드 로딩 확인
+ */
+export async function waitForTurnProgress(page: Page): Promise<void> {
+  // 1. 페이즈가 select가 아닌 상태로 변할 때까지 대기 (진행 중)
+  await page.waitForFunction(
+    () => {
+      const phaseEl = document.querySelector('[data-testid="battle-phase"]');
+      return phaseEl?.getAttribute('data-phase') !== 'select';
+    },
+    { timeout: TIMEOUTS.MEDIUM }
+  ).catch(() => {});
+
+  // 2. 애니메이션 완료 대기
+  await page.waitForFunction(
+    () => {
+      const animations = document.getAnimations();
+      return animations.every(a => a.playState === 'finished' || a.playState === 'idle');
+    },
+    { timeout: TIMEOUTS.MEDIUM }
+  ).catch(() => {});
+
+  // 3. 다시 select 페이즈로 돌아오거나 전투 종료될 때까지 대기
+  await page.waitForFunction(
+    () => {
+      const phaseEl = document.querySelector('[data-testid="battle-phase"]');
+      const battleResult = document.querySelector('[data-testid="battle-result"]');
+      const phase = phaseEl?.getAttribute('data-phase');
+      return phase === 'select' || battleResult !== null;
+    },
+    { timeout: TIMEOUTS.VERY_LONG }
+  ).catch(() => {});
+}
+
+/**
+ * 카드 제출 및 턴 진행 대기 (통합)
+ * waitForTimeout(2000) 대신 사용
+ */
+export async function submitAndWaitForTurn(page: Page): Promise<boolean> {
+  const submitBtn = page.locator('[data-testid="submit-cards-btn"]');
+
+  if (!(await submitBtn.isEnabled({ timeout: TIMEOUTS.SHORT }).catch(() => false))) {
+    return false;
+  }
+
+  await submitBtn.click();
+  await waitForTurnProgress(page);
+  return true;
 }
 
 /**

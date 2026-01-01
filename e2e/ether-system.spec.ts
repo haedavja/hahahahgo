@@ -1,5 +1,5 @@
 import { test, expect, Page } from '@playwright/test';
-import { resetGameState, enterBattle, TIMEOUTS, testLogger } from './utils/test-helpers';
+import { resetGameState, enterBattle, TIMEOUTS, testLogger, waitForTurnProgress } from './utils/test-helpers';
 
 /**
  * 에테르 시스템 E2E 테스트
@@ -176,8 +176,8 @@ test.describe('에테르 시스템', () => {
         if (await submitBtn.isEnabled({ timeout: 1000 }).catch(() => false)) {
           await submitBtn.click();
 
-          // 턴 진행 대기
-          await page.waitForTimeout(2000);
+          // 턴 진행 대기 (상태 기반)
+          await waitForTurnProgress(page);
 
           // 에테르 확인
           const afterEther = await getEtherValue(page, 'player');
@@ -300,7 +300,7 @@ test.describe('에테르 시스템', () => {
             const beforeEther = await getEtherValue(page, 'player');
             await submitBtn.click();
 
-            await page.waitForTimeout(2000);
+            await waitForTurnProgress(page);
 
             const afterEther = await getEtherValue(page, 'player');
             testLogger.info(`턴 ${turn + 1}: 에테르 ${beforeEther} -> ${afterEther}`);
@@ -342,7 +342,7 @@ test.describe('에테르 시스템', () => {
           const submitBtn = page.locator('[data-testid="submit-cards-btn"]');
           if (await submitBtn.isEnabled({ timeout: 500 }).catch(() => false)) {
             await submitBtn.click();
-            await page.waitForTimeout(2000);
+            await waitForTurnProgress(page);
 
             const afterEther = await getEtherValue(page, 'player');
             const gain = afterEther - beforeEther;

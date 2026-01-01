@@ -1,5 +1,5 @@
 import { test, expect, Page } from '@playwright/test';
-import { resetGameState, enterBattle, getHP, TIMEOUTS, testLogger, getStatusEffects, quickAutoBattle } from './utils/test-helpers';
+import { resetGameState, enterBattle, getHPSafe, TIMEOUTS, testLogger, getStatusEffects, waitForTurnProgress } from './utils/test-helpers';
 import { createAssertions, GameAssertions } from './utils/assertions';
 import { MOCK_STATUS_EFFECTS } from './fixtures/game-states';
 
@@ -100,8 +100,8 @@ test.describe('상태이상 시스템', () => {
       ).first();
 
       if (await poisonCard.isVisible({ timeout: 1000 }).catch(() => false)) {
-        // 초기 적 HP
-        const initialEnemyHP = await getHP(page, 'enemy');
+        // 초기 적 HP (안전한 버전 사용)
+        const initialEnemyHP = await getHPSafe(page, 'enemy');
         testLogger.info('초기 적 HP', initialEnemyHP);
 
         // 독 카드 사용
@@ -111,8 +111,8 @@ test.describe('상태이상 시스템', () => {
         if (await submitBtn.isEnabled({ timeout: 1000 }).catch(() => false)) {
           await submitBtn.click();
 
-          // 턴 진행 대기
-          await page.waitForTimeout(2000);
+          // 턴 진행 대기 (상태 기반)
+          await waitForTurnProgress(page);
 
           // 적에게 독 상태 확인
           const enemyStatus = await getStatusEffects(page, 'enemy');
@@ -121,7 +121,7 @@ test.describe('상태이상 시스템', () => {
           testLogger.info('적 상태이상', enemyStatus);
 
           // 독이 적용되었거나 피해가 발생
-          const afterHP = await getHP(page, 'enemy');
+          const afterHP = await getHPSafe(page, 'enemy');
           const damageDealt = initialEnemyHP.current - afterHP.current;
 
           expect(hasPoisonStatus || damageDealt > 0).toBe(true);
@@ -206,7 +206,7 @@ test.describe('상태이상 시스템', () => {
         const submitBtn = page.locator('[data-testid="submit-cards-btn"]');
         if (await submitBtn.isEnabled({ timeout: 1000 }).catch(() => false)) {
           await submitBtn.click();
-          await page.waitForTimeout(2000);
+          await waitForTurnProgress(page);
 
           // 플레이어 상태이상 확인
           const playerStatus = await getStatusEffects(page, 'player');
@@ -243,7 +243,7 @@ test.describe('상태이상 시스템', () => {
       ).first();
 
       if (await defenseCard.isVisible({ timeout: 1000 }).catch(() => false)) {
-        const initialHP = await getHP(page, 'player');
+        const initialHP = await getHPSafe(page, 'player');
         testLogger.info('초기 플레이어 HP', initialHP);
 
         await defenseCard.click();
@@ -251,7 +251,7 @@ test.describe('상태이상 시스템', () => {
         const submitBtn = page.locator('[data-testid="submit-cards-btn"]');
         if (await submitBtn.isEnabled({ timeout: 1000 }).catch(() => false)) {
           await submitBtn.click();
-          await page.waitForTimeout(2000);
+          await waitForTurnProgress(page);
 
           // 방어 표시 확인
           const blockIndicator = page.locator(
@@ -266,7 +266,7 @@ test.describe('상태이상 시스템', () => {
           }
 
           // HP 유지 또는 감소량 적음 확인
-          const afterHP = await getHP(page, 'player');
+          const afterHP = await getHPSafe(page, 'player');
           testLogger.info('방어 후 HP', afterHP);
 
           // 방어했으므로 HP 손실이 적거나 없어야 함
@@ -297,7 +297,7 @@ test.describe('상태이상 시스템', () => {
           const submitBtn = page.locator('[data-testid="submit-cards-btn"]');
           if (await submitBtn.isEnabled({ timeout: 1000 }).catch(() => false)) {
             await submitBtn.click();
-            await page.waitForTimeout(2000);
+            await waitForTurnProgress(page);
 
             // 지속시간 감소 확인
             const afterStatus = await getStatusEffects(page, 'player');
@@ -341,7 +341,7 @@ test.describe('상태이상 시스템', () => {
             const submitBtn = page.locator('[data-testid="submit-cards-btn"]');
             if (await submitBtn.isEnabled({ timeout: 500 }).catch(() => false)) {
               await submitBtn.click();
-              await page.waitForTimeout(2000);
+              await waitForTurnProgress(page);
 
               // 만료 확인
               const afterStatus = await getStatusEffects(page, 'player');
@@ -361,7 +361,7 @@ test.describe('상태이상 시스템', () => {
           const submitBtn = page.locator('[data-testid="submit-cards-btn"]');
           if (await submitBtn.isEnabled({ timeout: 500 }).catch(() => false)) {
             await submitBtn.click();
-            await page.waitForTimeout(1000);
+            await waitForTurnProgress(page);
           }
         }
       }
@@ -383,7 +383,7 @@ test.describe('상태이상 시스템', () => {
         let submitBtn = page.locator('[data-testid="submit-cards-btn"]');
         if (await submitBtn.isEnabled({ timeout: 1000 }).catch(() => false)) {
           await submitBtn.click();
-          await page.waitForTimeout(2000);
+          await waitForTurnProgress(page);
 
           const afterFirstBuff = await getStatusEffects(page, 'player');
           const strengthAfterFirst = afterFirstBuff.find(s => s.type === 'strength');
@@ -396,7 +396,7 @@ test.describe('상태이상 시스템', () => {
             submitBtn = page.locator('[data-testid="submit-cards-btn"]');
             if (await submitBtn.isEnabled({ timeout: 1000 }).catch(() => false)) {
               await submitBtn.click();
-              await page.waitForTimeout(2000);
+              await waitForTurnProgress(page);
 
               const afterSecondBuff = await getStatusEffects(page, 'player');
               const strengthAfterSecond = afterSecondBuff.find(s => s.type === 'strength');

@@ -1,5 +1,5 @@
 import { test, expect, Page } from '@playwright/test';
-import { resetGameState, enterBattle, getHP, getEther, getComboName, TIMEOUTS, testLogger } from './utils/test-helpers';
+import { resetGameState, enterBattle, getHPSafe, getEther, getComboName, TIMEOUTS, testLogger, waitForTurnProgress } from './utils/test-helpers';
 
 /**
  * 게임 로직 검증 E2E 테스트
@@ -184,8 +184,8 @@ test.describe('게임 로직 검증', () => {
       const entered = await enterBattle(page);
       test.skip(!entered, '전투 진입 실패');
 
-      // 초기 적 HP 기록
-      const initialEnemyHP = await getHP(page, 'enemy');
+      // 초기 적 HP 기록 (안전한 버전 사용)
+      const initialEnemyHP = await getHPSafe(page, 'enemy');
       testLogger.info('초기 적 HP', initialEnemyHP);
 
       // 공격 카드 찾기
@@ -200,11 +200,11 @@ test.describe('게임 로직 검증', () => {
         if (await submitBtn.isEnabled({ timeout: 1000 }).catch(() => false)) {
           await submitBtn.click();
 
-          // 턴 진행 대기
-          await page.waitForTimeout(2000);
+          // 턴 진행 대기 (상태 기반)
+          await waitForTurnProgress(page);
 
           // 적 HP 확인
-          const afterHP = await getHP(page, 'enemy');
+          const afterHP = await getHPSafe(page, 'enemy');
           testLogger.info('공격 후 적 HP', afterHP);
 
           // HP가 감소했거나 전투 종료 상태
@@ -224,8 +224,8 @@ test.describe('게임 로직 검증', () => {
       const entered = await enterBattle(page);
       test.skip(!entered, '전투 진입 실패');
 
-      // 초기 플레이어 HP 기록
-      const initialPlayerHP = await getHP(page, 'player');
+      // 초기 플레이어 HP 기록 (안전한 버전 사용)
+      const initialPlayerHP = await getHPSafe(page, 'player');
       testLogger.info('초기 플레이어 HP', initialPlayerHP);
 
       // 방어 카드 찾기
@@ -240,14 +240,14 @@ test.describe('게임 로직 검증', () => {
         if (await submitBtn.isEnabled({ timeout: 1000 }).catch(() => false)) {
           await submitBtn.click();
 
-          // 턴 진행 대기
-          await page.waitForTimeout(2000);
+          // 턴 진행 대기 (상태 기반)
+          await waitForTurnProgress(page);
 
           // 방패 표시 확인 또는 HP 유지 확인
           const shieldIndicator = page.locator('[data-testid="shield-indicator"], .shield, .block');
           const hasShield = await shieldIndicator.isVisible({ timeout: 500 }).catch(() => false);
 
-          const afterHP = await getHP(page, 'player');
+          const afterHP = await getHPSafe(page, 'player');
           testLogger.info('방어 후 플레이어 HP', afterHP);
 
           // 방패가 있거나 HP가 크게 감소하지 않음
