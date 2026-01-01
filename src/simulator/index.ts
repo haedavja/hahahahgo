@@ -136,6 +136,62 @@ export {
   type BalanceCheckConfig,
 } from './ci/balance-check';
 
+// ==================== A/B Test Automation ====================
+export {
+  ABTestAutomation,
+  createABTestAutomation,
+  runABTestCLI,
+  type CardChange,
+  type ABAutoTestResult,
+  type ImpactAssessment,
+  type AutoTestConfig,
+} from './ci/ab-test-automation';
+
+// ==================== Skill Level AI ====================
+export {
+  SkillLevelAI,
+  createSkillLevelAI,
+  getSkillLevelConfig,
+  getAllSkillLevels,
+  type SkillLevel,
+  type SkillLevelConfig,
+  type CardDecision,
+  type SkillLevelStats,
+} from './ai/skill-level-ai';
+
+// ==================== Unified Battle Engine ====================
+export {
+  UnifiedBattleEngine,
+  getUnifiedBattleEngine,
+  createUnifiedBattleEngine,
+  type UnifiedBattleConfig,
+  type UnifiedBattleResult,
+  type BatchBattleConfig,
+  type BatchBattleResult,
+} from './core/unified-battle-engine';
+
+// ==================== Battle Log Validation ====================
+export {
+  BattleLogValidator,
+  BattleLogCollector,
+  createBattleLogValidator,
+  validateBattleLogs,
+  type GameBattleLog,
+  type TurnAction,
+  type ValidationResult,
+  type BatchValidationResult,
+} from './validation/battle-log-validator';
+
+// ==================== MCTS Worker Pool ====================
+export {
+  MCTSWorkerPool,
+  getMCTSWorkerPool,
+  terminateMCTSWorkerPool,
+  type MCTSWorkerTask,
+  type MCTSWorkerResult,
+  type PoolConfig,
+} from './parallel/mcts-worker-pool';
+
 // ==================== Battle Engine ====================
 export {
   BattleEngine,
