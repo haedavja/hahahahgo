@@ -35,7 +35,7 @@ export const LogosSection = memo(function LogosSection({
         gap: SPACING.md,
         justifyContent: 'flex-start',
         alignItems: 'flex-start',
-        paddingLeft: '480px', // 7단계와 동일
+        paddingLeft: '120px', // 피라미드 왼쪽으로 크게 이동
       }}>
         {/* 8단계 로고스 헤더 */}
         <div style={{
