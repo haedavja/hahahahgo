@@ -528,7 +528,16 @@ export async function selectMapNode(page: Page, nodeType: string): Promise<boole
   }
 
   if (await node.isVisible({ timeout: 2000 }).catch(() => false)) {
-    await node.click();
+    // 요소를 뷰포트로 스크롤
+    await node.scrollIntoViewIfNeeded().catch(() => {});
+
+    // 클릭 시도 (실패하면 force click)
+    try {
+      await node.click({ timeout: 3000 });
+    } catch {
+      await node.click({ force: true }).catch(() => {});
+    }
+
     // 노드 클릭 후 상태 변화 대기 (전투 화면 또는 모달)
     await page.waitForFunction(
       () => {
@@ -1207,22 +1216,48 @@ export async function getHitCount(page: Page): Promise<number> {
 // =====================
 
 /**
- * 전투 화면으로 진입 (맵에서 전투 노드 클릭)
+ * 전투 화면으로 진입 (여러 방법 시도)
+ * 1. Test Mixed Battle 버튼 (가장 안정적)
+ * 2. 맵에서 전투 노드 클릭
  * @returns 전투 진입 성공 여부
  */
 export async function enterBattle(page: Page): Promise<boolean> {
   try {
-    // 맵 화면 대기
-    await waitForMap(page);
+    // 이미 전투 화면이면 성공
+    if (await page.locator('[data-testid="battle-screen"]').isVisible({ timeout: 500 }).catch(() => false)) {
+      return true;
+    }
 
-    // 전투 노드 클릭
+    // 방법 1: Test Mixed Battle 버튼 (개발용, 가장 안정적)
+    const testBattleBtn = page.locator('button:has-text("Test Mixed Battle")');
+    if (await testBattleBtn.isVisible({ timeout: TIMEOUTS.SHORT }).catch(() => false)) {
+      await testBattleBtn.click();
+      await page.waitForSelector('[data-testid="battle-screen"]', { timeout: TIMEOUTS.LONG });
+      await waitForUIStable(page);
+      return true;
+    }
+
+    // 방법 2: 맵에서 전투 노드 클릭
+    await waitForMap(page);
     const battleClicked = await selectMapNode(page, 'battle');
 
     if (battleClicked) {
-      // 전투 화면 로드 대기
       await page.waitForSelector('[data-testid="battle-screen"]', { timeout: TIMEOUTS.LONG }).catch(() => {});
       await waitForUIStable(page);
-      return true;
+
+      // 전투 화면 로드 확인
+      if (await page.locator('[data-testid="battle-screen"]').isVisible({ timeout: 500 }).catch(() => false)) {
+        return true;
+      }
+    }
+
+    // 방법 3: 아무 선택 가능한 노드 클릭 (elite, boss 등)
+    const anyBattleNode = await selectMapNode(page, 'any');
+    if (anyBattleNode) {
+      await page.waitForSelector('[data-testid="battle-screen"]', { timeout: TIMEOUTS.LONG }).catch(() => {});
+      if (await page.locator('[data-testid="battle-screen"]').isVisible({ timeout: 500 }).catch(() => false)) {
+        return true;
+      }
     }
 
     return false;
