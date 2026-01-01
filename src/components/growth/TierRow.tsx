@@ -54,7 +54,7 @@ export const TierRow = memo(function TierRow({
         margin: '0 auto',
       }}>
         {/* 티어 헤더 - 전체 너비 차지하여 노드와 정렬 */}
-        <div style={{ width: '100%', display: 'flex', justifyContent: 'flex-start', marginBottom: `-${SPACING.sm}` }}>
+        <div style={{ width: '100%', display: 'flex', justifyContent: 'flex-start', marginBottom: `-${SPACING.md}` }}>
           <TierHeader
             label={label}
             isLocked={isLocked}
