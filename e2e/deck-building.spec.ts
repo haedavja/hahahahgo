@@ -1,5 +1,5 @@
 import { test, expect, Page } from '@playwright/test';
-import { resetGameState, waitForMap, selectMapNode, waitForUIStable, TIMEOUTS, testLogger } from './utils/test-helpers';
+import { resetGameState, waitForMap, selectMapNode, waitForUIStable, waitForTurnProgress, TIMEOUTS, testLogger } from './utils/test-helpers';
 
 /**
  * 덱 빌딩 흐름 E2E 테스트
@@ -47,7 +47,7 @@ test.describe('덱 빌딩 흐름', () => {
         const submitBtn = page.locator('[data-testid="submit-cards-btn"]');
         if (await submitBtn.isEnabled({ timeout: 500 }).catch(() => false)) {
           await submitBtn.click();
-          await page.waitForTimeout(1500);
+          await waitForTurnProgress(page);
         }
       }
     }
@@ -67,7 +67,7 @@ test.describe('덱 빌딩 흐름', () => {
     const deckBtn = page.locator('[data-testid="view-deck-btn"], .deck-btn, button:has-text("덱")');
     if (await deckBtn.isVisible({ timeout: 1000 }).catch(() => false)) {
       await deckBtn.click();
-      await page.waitForTimeout(500);
+      await waitForUIStable(page);
     }
 
     const deckCards = page.locator('[data-testid^="deck-card-"], .deck-card');
@@ -135,7 +135,7 @@ test.describe('덱 빌딩 흐름', () => {
           await confirmBtn.click();
         }
 
-        await page.waitForTimeout(1000);
+        await waitForUIStable(page);
 
         // 덱 카드 수 다시 확인
         const newDeck = await getDeckCards(page);
@@ -158,7 +158,7 @@ test.describe('덱 빌딩 흐름', () => {
         await skipBtn.click();
 
         // 보상 화면이 닫히는지 확인
-        await page.waitForTimeout(500);
+        await waitForUIStable(page);
         const rewardModal = page.locator('[data-testid="reward-modal"]');
         const isClosed = !(await rewardModal.isVisible({ timeout: 500 }).catch(() => false));
 
@@ -201,7 +201,7 @@ test.describe('덱 빌딩 흐름', () => {
             await confirmBtn.click();
           }
 
-          await page.waitForTimeout(500);
+          await waitForUIStable(page);
 
           // 상점 나가기
           const exitBtn = page.locator('[data-testid="shop-exit-btn"]');
@@ -249,7 +249,7 @@ test.describe('덱 빌딩 흐름', () => {
             await confirmBtn.click();
           }
 
-          await page.waitForTimeout(500);
+          await waitForUIStable(page);
 
           // 덱 확인
           const newDeck = await getDeckCards(page);
@@ -292,7 +292,7 @@ test.describe('덱 빌딩 흐름', () => {
             const cardNameBefore = await upgradableCard.getAttribute('data-card-name');
             await upgradableCard.click();
 
-            await page.waitForTimeout(500);
+            await waitForUIStable(page);
 
             testLogger.info('카드 강화됨', cardNameBefore);
           }
@@ -346,7 +346,7 @@ test.describe('덱 빌딩 흐름', () => {
       const deckBtn = page.locator('[data-testid="view-deck-btn"], .deck-btn');
       if (await deckBtn.isVisible({ timeout: 1000 }).catch(() => false)) {
         await deckBtn.click();
-        await page.waitForTimeout(500);
+        await waitForUIStable(page);
 
         // 첫 번째 카드 클릭
         const firstCard = page.locator('[data-testid^="deck-card-"]').first();
@@ -373,7 +373,7 @@ test.describe('덱 빌딩 흐름', () => {
       const deckBtn = page.locator('[data-testid="view-deck-btn"]');
       if (await deckBtn.isVisible({ timeout: 1000 }).catch(() => false)) {
         await deckBtn.click();
-        await page.waitForTimeout(500);
+        await waitForUIStable(page);
 
         // 필터 버튼 확인
         const filterBtn = page.locator('[data-testid="deck-filter"], .filter-btn');

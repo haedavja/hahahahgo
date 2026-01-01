@@ -1,5 +1,5 @@
 import { test, expect, Page } from '@playwright/test';
-import { resetGameState, enterBattle, TIMEOUTS, testLogger } from './utils/test-helpers';
+import { resetGameState, enterBattle, selectMapNode, waitForMap, waitForUIStable, waitForTurnProgress, TIMEOUTS, testLogger } from './utils/test-helpers';
 
 /**
  * 이변(Anomaly) 시스템 E2E 테스트
@@ -152,7 +152,7 @@ test.describe('이변 시스템', () => {
           const submitBtn = page.locator('[data-testid="submit-cards-btn"]');
           if (await submitBtn.isEnabled({ timeout: 1000 }).catch(() => false)) {
             await submitBtn.click();
-            await page.waitForTimeout(2000);
+            await waitForTurnProgress(page);
 
             // 에테르가 증가하지 않아야 함
             const afterEther = parseInt(await etherDisplay.getAttribute('data-ether-value') || '0');
@@ -340,7 +340,7 @@ test.describe('이변 시스템', () => {
             const submitBtn = page.locator('[data-testid="submit-cards-btn"]');
             if (await submitBtn.isEnabled({ timeout: 500 }).catch(() => false)) {
               await submitBtn.click();
-              await page.waitForTimeout(1500);
+              await waitForTurnProgress(page);
             }
           }
 
@@ -379,7 +379,7 @@ test.describe('이변 시스템', () => {
           const submitBtn = page.locator('[data-testid="submit-cards-btn"]');
           if (await submitBtn.isEnabled({ timeout: 500 }).catch(() => false)) {
             await submitBtn.click();
-            await page.waitForTimeout(1500);
+            await waitForTurnProgress(page);
           }
         }
       }
