@@ -41,7 +41,7 @@ export const TraitEthosSection = memo(function TraitEthosSection({
         display: 'grid',
         gridTemplateColumns: '100px repeat(6, 200px)', // 헤더 + 6개 카드 고정
         gap: SPACING.md,
-        alignItems: 'start',
+        alignItems: 'stretch', // 모든 셀 높이 동일화 - 레이아웃 안정화
         marginLeft: '-10px', // 2단계와 수직 정렬
       }}>
         {/* 티어 헤더 */}
@@ -111,21 +111,24 @@ const EthosCard = memo(function EthosCard({
       background: isUnlocked ? '#1a2f1f' : '#1e293b', // 불투명 배경
       border: isUnlocked ? `1px solid ${colors.border}` : '1px solid #475569',
       borderRadius: BORDER_RADIUS.lg,
-      // transition 제거 - 레이아웃 안정성 우선
+      minHeight: '90px', // 카드 최소 높이 고정 - 레이아웃 안정화
     }}>
       {/* 에토스 이름 - 레이아웃 안정화 */}
       <div style={{
         textAlign: 'center',
         marginBottom: SPACING.sm,
+        height: '18px', // 고정 높이 - 체크마크 유무에 관계없이 동일
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
       }}>
-        {/* 해금 체크마크 - 이름 옆에 표시 */}
-        {isUnlocked && (
-          <span style={{
-            color: COLORS.success,
-            fontSize: FONT_SIZE.lg,
-            marginRight: '4px',
-          }}>✓</span>
-        )}
+        {/* 해금 체크마크 - 공간 항상 예약 */}
+        <span style={{
+          color: COLORS.success,
+          fontSize: FONT_SIZE.lg,
+          marginRight: '4px',
+          visibility: isUnlocked ? 'visible' : 'hidden',
+        }}>✓</span>
         <span style={{
           fontWeight: 'bold',
           fontSize: FONT_SIZE.lg,
@@ -144,17 +147,17 @@ const EthosCard = memo(function EthosCard({
         </span>
       </div>
 
-      {/* 개성 조건 - 미해금 시에만 표시 */}
-      {!hasTrait && (
-        <div style={{
-          fontSize: FONT_SIZE.sm,
-          color: COLORS.text.muted,
-          marginBottom: SPACING.xs,
-          textAlign: 'center',
-        }}>
-          개성 필요
-        </div>
-      )}
+      {/* 개성 조건 - 공간 항상 예약 (visibility로 제어) */}
+      <div style={{
+        fontSize: FONT_SIZE.sm,
+        color: COLORS.text.muted,
+        marginBottom: SPACING.xs,
+        textAlign: 'center',
+        height: '14px', // 고정 높이
+        visibility: hasTrait ? 'hidden' : 'visible',
+      }}>
+        개성 필요
+      </div>
 
       {/* 설명 */}
       <div style={{

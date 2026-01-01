@@ -210,6 +210,7 @@ const StatusSummary = memo(function StatusSummary({
       background: COLORS.bg.primary,
       borderRadius: '6px',
       fontSize: '13px',
+      minHeight: '60px', // 고정 최소 높이 - 보너스 섹션 추가 시 레이아웃 시프트 방지
     }}>
       {/* 3열 레이아웃: 파토스(왼쪽) | 상태(중앙) | 에토스(오른쪽) */}
       <div style={{ display: 'flex', gap: SPACING.md, alignItems: 'flex-start' }}>
