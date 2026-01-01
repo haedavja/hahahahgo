@@ -26,29 +26,28 @@ describe('speedQueue', () => {
     });
 
     it('유효한 카드 ID를 카드 객체로 변환해야 함', () => {
-      const result = inflateCards(['quick_slash', 'guard']);
+      const result = inflateCards(['shoot', 'marche']);
 
       expect(result).toHaveLength(2);
-      expect(result[0].id).toBe('quick_slash');
-      expect(result[0].name).toBe('퀵 슬래시');
-      expect(result[1].id).toBe('guard');
+      expect(result[0].id).toBe('shoot');
+      expect(result[0].name).toBe('사격');
+      expect(result[1].id).toBe('marche');
     });
 
     it('존재하지 않는 카드 ID는 필터링되어야 함', () => {
-      const result = inflateCards(['quick_slash', 'nonexistent', 'guard']);
+      const result = inflateCards(['shoot', 'nonexistent', 'marche']);
 
       expect(result).toHaveLength(2);
-      expect(result[0].id).toBe('quick_slash');
-      expect(result[1].id).toBe('guard');
+      expect(result[0].id).toBe('shoot');
+      expect(result[1].id).toBe('marche');
     });
 
     it('priorityWeight가 추가되어야 함', () => {
-      const result = inflateCards(['quick_slash', 'heavy_strike']);
+      const result = inflateCards(['shoot', 'lunge']);
 
-      // quick_slash는 priority: "quick" → weight 2
-      expect(result[0].priorityWeight).toBe(2);
-      // heavy_strike는 priority: "slow" → weight 0
-      expect(result[1].priorityWeight).toBe(0);
+      // 모든 카드는 priority: "normal" → weight 1
+      expect(result[0].priorityWeight).toBe(1);
+      expect(result[1].priorityWeight).toBe(1);
     });
   });
 
@@ -153,11 +152,11 @@ describe('speedQueue', () => {
 
   describe('cardsFromIds', () => {
     it('inflateCards와 동일하게 동작해야 함', () => {
-      const result = cardsFromIds(['quick_slash', 'guard']);
+      const result = cardsFromIds(['shoot', 'marche']);
 
       expect(result).toHaveLength(2);
-      expect(result[0].id).toBe('quick_slash');
-      expect(result[1].id).toBe('guard');
+      expect(result[0].id).toBe('shoot');
+      expect(result[1].id).toBe('marche');
     });
 
     it('빈 배열/undefined에 대해 빈 배열을 반환해야 함', () => {

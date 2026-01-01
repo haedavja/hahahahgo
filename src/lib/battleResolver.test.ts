@@ -42,7 +42,7 @@ describe('battleResolver', () => {
     describe('공격 처리', () => {
       it('플레이어 공격이 적 HP를 감소시켜야 함', () => {
         const timeline: TimelineEntry[] = [
-          { order: 1, actor: 'player', cardId: 'quick_slash', speedCost: 3 },
+          { order: 1, actor: 'player', cardId: 'shoot', speedCost: 3 },
         ];
         const stats: BattleStats = {
           player: { hp: 50, block: 0 },
@@ -51,14 +51,14 @@ describe('battleResolver', () => {
 
         const result = simulateBattle(timeline, stats);
 
-        expect(result.finalState.enemy.hp).toBe(35); // 40 - 5 (quick_slash damage)
+        expect(result.finalState.enemy.hp).toBe(35); // 40 - 5 (shoot damage)
         expect(result.log).toHaveLength(1);
         expect(result.log[0].detail?.type).toBe('attack');
       });
 
       it('적 공격이 플레이어 HP를 감소시켜야 함', () => {
         const timeline: TimelineEntry[] = [
-          { order: 1, actor: 'enemy', cardId: 'heavy_strike', speedCost: 10 },
+          { order: 1, actor: 'enemy', cardId: 'strike', speedCost: 8 },
         ];
         const stats: BattleStats = {
           player: { hp: 50, block: 0 },
@@ -67,12 +67,12 @@ describe('battleResolver', () => {
 
         const result = simulateBattle(timeline, stats);
 
-        expect(result.finalState.player.hp).toBe(38); // 50 - 12 (heavy_strike damage)
+        expect(result.finalState.player.hp).toBe(35); // 50 - 15 (strike damage)
       });
 
       it('방어력이 피해를 흡수해야 함', () => {
         const timeline: TimelineEntry[] = [
-          { order: 1, actor: 'player', cardId: 'quick_slash', speedCost: 3 },
+          { order: 1, actor: 'player', cardId: 'shoot', speedCost: 3 },
         ];
         const stats: BattleStats = {
           player: { hp: 50, block: 0 },
@@ -87,7 +87,7 @@ describe('battleResolver', () => {
 
       it('방어력보다 높은 피해는 HP를 감소시켜야 함', () => {
         const timeline: TimelineEntry[] = [
-          { order: 1, actor: 'player', cardId: 'heavy_strike', speedCost: 10 },
+          { order: 1, actor: 'player', cardId: 'strike', speedCost: 8 },
         ];
         const stats: BattleStats = {
           player: { hp: 50, block: 0 },
@@ -96,14 +96,14 @@ describe('battleResolver', () => {
 
         const result = simulateBattle(timeline, stats);
 
-        expect(result.finalState.enemy.hp).toBe(33); // 40 - (12 - 5)
+        expect(result.finalState.enemy.hp).toBe(30); // 40 - (15 - 5)
         expect(result.finalState.enemy.block).toBe(0);
       });
 
       it('연속 공격이 누적되어야 함', () => {
         const timeline: TimelineEntry[] = [
-          { order: 1, actor: 'player', cardId: 'quick_slash', speedCost: 3 },
-          { order: 2, actor: 'player', cardId: 'quick_slash', speedCost: 6 },
+          { order: 1, actor: 'player', cardId: 'shoot', speedCost: 3 },
+          { order: 2, actor: 'player', cardId: 'shoot', speedCost: 6 },
         ];
         const stats: BattleStats = {
           player: { hp: 50, block: 0 },
@@ -120,7 +120,7 @@ describe('battleResolver', () => {
     describe('방어 처리', () => {
       it('방어 카드가 방어력을 추가해야 함', () => {
         const timeline: TimelineEntry[] = [
-          { order: 1, actor: 'player', cardId: 'guard', speedCost: 6 },
+          { order: 1, actor: 'player', cardId: 'marche', speedCost: 6 },
         ];
         const stats: BattleStats = {
           player: { hp: 50, block: 0 },
@@ -129,14 +129,14 @@ describe('battleResolver', () => {
 
         const result = simulateBattle(timeline, stats);
 
-        expect(result.finalState.player.block).toBe(8);
+        expect(result.finalState.player.block).toBe(5); // marche block: 5
         expect(result.log[0].detail?.type).toBe('block');
       });
 
       it('연속 방어가 누적되어야 함', () => {
         const timeline: TimelineEntry[] = [
-          { order: 1, actor: 'player', cardId: 'guard', speedCost: 6 },
-          { order: 2, actor: 'player', cardId: 'guard', speedCost: 12 },
+          { order: 1, actor: 'player', cardId: 'marche', speedCost: 6 },
+          { order: 2, actor: 'player', cardId: 'marche', speedCost: 12 },
         ];
         const stats: BattleStats = {
           player: { hp: 50, block: 5 },
@@ -145,44 +145,44 @@ describe('battleResolver', () => {
 
         const result = simulateBattle(timeline, stats);
 
-        expect(result.finalState.player.block).toBe(21); // 5 + 8 + 8
+        expect(result.finalState.player.block).toBe(15); // 5 + 5 + 5
       });
     });
 
     describe('승패 판정', () => {
       it('적 HP가 0이면 플레이어 승리', () => {
         const timeline: TimelineEntry[] = [
-          { order: 1, actor: 'player', cardId: 'heavy_strike', speedCost: 10 },
+          { order: 1, actor: 'player', cardId: 'lunge', speedCost: 12 },
         ];
         const stats: BattleStats = {
           player: { hp: 50, block: 0 },
-          enemy: { hp: 10, block: 0 },
+          enemy: { hp: 20, block: 0 },
         };
 
         const result = simulateBattle(timeline, stats);
 
         expect(result.winner).toBe('player');
-        expect(result.finalState.enemy.hp).toBe(0);
+        expect(result.finalState.enemy.hp).toBe(0); // lunge damage 20
       });
 
       it('플레이어 HP가 0이면 적 승리', () => {
         const timeline: TimelineEntry[] = [
-          { order: 1, actor: 'enemy', cardId: 'heavy_strike', speedCost: 10 },
+          { order: 1, actor: 'enemy', cardId: 'lunge', speedCost: 12 },
         ];
         const stats: BattleStats = {
-          player: { hp: 10, block: 0 },
+          player: { hp: 20, block: 0 },
           enemy: { hp: 40, block: 0 },
         };
 
         const result = simulateBattle(timeline, stats);
 
         expect(result.winner).toBe('enemy');
-        expect(result.finalState.player.hp).toBe(0);
+        expect(result.finalState.player.hp).toBe(0); // lunge damage 20
       });
 
       it('양쪽 다 생존하면 HP가 높은 쪽이 승리', () => {
         const timeline: TimelineEntry[] = [
-          { order: 1, actor: 'player', cardId: 'quick_slash', speedCost: 3 },
+          { order: 1, actor: 'player', cardId: 'shoot', speedCost: 3 },
         ];
         const stats: BattleStats = {
           player: { hp: 30, block: 0 },
@@ -198,7 +198,7 @@ describe('battleResolver', () => {
 
       it('HP가 같으면 플레이어 승리', () => {
         const timeline: TimelineEntry[] = [
-          { order: 1, actor: 'player', cardId: 'quick_slash', speedCost: 3 },
+          { order: 1, actor: 'player', cardId: 'shoot', speedCost: 3 },
         ];
         const stats: BattleStats = {
           player: { hp: 35, block: 0 },
@@ -214,13 +214,13 @@ describe('battleResolver', () => {
 
       it('HP가 0이 되면 나머지 카드 실행 중단', () => {
         const timeline: TimelineEntry[] = [
-          { order: 1, actor: 'player', cardId: 'heavy_strike', speedCost: 10 },
-          { order: 2, actor: 'player', cardId: 'quick_slash', speedCost: 13 },
-          { order: 3, actor: 'enemy', cardId: 'heavy_strike', speedCost: 10 },
+          { order: 1, actor: 'player', cardId: 'lunge', speedCost: 12 },
+          { order: 2, actor: 'player', cardId: 'shoot', speedCost: 15 },
+          { order: 3, actor: 'enemy', cardId: 'lunge', speedCost: 12 },
         ];
         const stats: BattleStats = {
           player: { hp: 50, block: 0 },
-          enemy: { hp: 10, block: 0 },
+          enemy: { hp: 20, block: 0 },
         };
 
         const result = simulateBattle(timeline, stats);
@@ -235,20 +235,20 @@ describe('battleResolver', () => {
     describe('로그 기록', () => {
       it('로그에 카드 정보가 기록되어야 함', () => {
         const timeline: TimelineEntry[] = [
-          { order: 1, actor: 'player', cardId: 'quick_slash', speedCost: 3 },
+          { order: 1, actor: 'player', cardId: 'shoot', speedCost: 3 },
         ];
 
         const result = simulateBattle(timeline);
 
-        expect(result.log[0].cardId).toBe('quick_slash');
-        expect(result.log[0].name).toBe('퀵 슬래시');
+        expect(result.log[0].cardId).toBe('shoot');
+        expect(result.log[0].name).toBe('사격');
         expect(result.log[0].actor).toBe('player');
         expect(result.log[0].speedCost).toBe(3);
       });
 
       it('공격 로그에 피해 정보가 있어야 함', () => {
         const timeline: TimelineEntry[] = [
-          { order: 1, actor: 'player', cardId: 'quick_slash', speedCost: 3 },
+          { order: 1, actor: 'player', cardId: 'shoot', speedCost: 3 },
         ];
         const stats: BattleStats = {
           player: { hp: 50, block: 0 },
@@ -268,15 +268,15 @@ describe('battleResolver', () => {
 
       it('방어 로그에 방어량 정보가 있어야 함', () => {
         const timeline: TimelineEntry[] = [
-          { order: 1, actor: 'player', cardId: 'guard', speedCost: 6 },
+          { order: 1, actor: 'player', cardId: 'marche', speedCost: 6 },
         ];
 
         const result = simulateBattle(timeline);
 
         expect(result.log[0].detail).toEqual({
           type: 'block',
-          block: 8,
-          actorBlock: 8,
+          block: 5,
+          actorBlock: 5,
         });
       });
     });
@@ -285,20 +285,20 @@ describe('battleResolver', () => {
       it('존재하지 않는 카드는 무시해야 함', () => {
         const timeline: TimelineEntry[] = [
           { order: 1, actor: 'player', cardId: 'nonexistent_card', speedCost: 5 },
-          { order: 2, actor: 'player', cardId: 'quick_slash', speedCost: 8 },
+          { order: 2, actor: 'player', cardId: 'shoot', speedCost: 8 },
         ];
 
         const result = simulateBattle(timeline);
 
         expect(result.log).toHaveLength(1);
-        expect(result.log[0].cardId).toBe('quick_slash');
+        expect(result.log[0].cardId).toBe('shoot');
       });
     });
 
     describe('지원 카드', () => {
       it('피해/방어 없는 카드는 지원 타입으로 처리', () => {
         const timeline: TimelineEntry[] = [
-          { order: 1, actor: 'player', cardId: 'dash', speedCost: 2 },
+          { order: 1, actor: 'player', cardId: 'shout', speedCost: 1 },
         ];
 
         const result = simulateBattle(timeline);
@@ -310,9 +310,9 @@ describe('battleResolver', () => {
     describe('복합 시나리오', () => {
       it('공격과 방어가 교차하는 전투', () => {
         const timeline: TimelineEntry[] = [
-          { order: 1, actor: 'player', cardId: 'guard', speedCost: 6 },
-          { order: 2, actor: 'enemy', cardId: 'heavy_strike', speedCost: 10 },
-          { order: 3, actor: 'player', cardId: 'heavy_strike', speedCost: 16 },
+          { order: 1, actor: 'player', cardId: 'octave', speedCost: 8 },
+          { order: 2, actor: 'enemy', cardId: 'strike', speedCost: 10 },
+          { order: 3, actor: 'player', cardId: 'strike', speedCost: 18 },
         ];
         const stats: BattleStats = {
           player: { hp: 50, block: 0 },
@@ -321,11 +321,11 @@ describe('battleResolver', () => {
 
         const result = simulateBattle(timeline, stats);
 
-        // 플레이어: 가드로 8 방어, 적 12 공격 받음 -> 방어 0, HP 50-4=46
-        // 적: 플레이어 12 공격 받음 -> HP 40-12=28
-        expect(result.finalState.player.hp).toBe(46);
+        // 플레이어: 옥타브로 12 방어, 적 15 공격 받음 -> 방어 0, HP 50-3=47
+        // 적: 플레이어 15 공격 받음 -> HP 40-15=25
+        expect(result.finalState.player.hp).toBe(47);
         expect(result.finalState.player.block).toBe(0);
-        expect(result.finalState.enemy.hp).toBe(28);
+        expect(result.finalState.enemy.hp).toBe(25);
       });
     });
   });

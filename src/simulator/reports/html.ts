@@ -12,6 +12,7 @@ import type {
   BalanceAnalysis,
   BattleResult,
 } from '../core/types';
+import { getCard, getToken, syncAllCards } from '../data/game-data-sync';
 
 // ==================== 리포트 생성기 ====================
 
@@ -420,22 +421,43 @@ export class HtmlReportGenerator {
   private renderCardEfficiencyTable(summary: SimulationSummary): string {
     const cards = Object.entries(summary.cardEfficiency)
       .sort((a, b) => b[1].uses - a[1].uses)
-      .slice(0, 10);
+      .slice(0, 15);
 
     if (cards.length === 0) return '';
 
-    const rows = cards.map(([cardId, stats]) => `
-      <tr>
-        <td><strong>${cardId}</strong></td>
-        <td>${stats.uses}</td>
-        <td>${stats.avgDamage.toFixed(1)}</td>
-        <td>
-          <span class="badge ${stats.avgDamage > 10 ? 'success' : stats.avgDamage > 5 ? 'warning' : 'info'}">
-            ${stats.avgDamage > 10 ? '높음' : stats.avgDamage > 5 ? '보통' : '낮음'}
-          </span>
-        </td>
-      </tr>
-    `).join('');
+    const rows = cards.map(([cardId, stats]) => {
+      const cardData = getCard(cardId);
+      const cardName = cardData?.name || cardId;
+      const cardDesc = cardData?.description || '';
+
+      // 카드 효과 요약 생성
+      let effectSummary = '';
+      if (cardData) {
+        const effects: string[] = [];
+        if (cardData.damage) effects.push(`피해 ${cardData.damage}${cardData.hits && cardData.hits > 1 ? `×${cardData.hits}` : ''}`);
+        if (cardData.block) effects.push(`방어 ${cardData.block}`);
+        if (cardData.speedCost) effects.push(`속도 ${cardData.speedCost}`);
+        effectSummary = effects.join(' · ');
+      }
+
+      return `
+        <tr>
+          <td>
+            <strong>${cardName}</strong>
+            <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 4px;">
+              ${effectSummary}
+            </div>
+          </td>
+          <td>${stats.uses}</td>
+          <td>${stats.avgDamage.toFixed(1)}</td>
+          <td>
+            <span class="badge ${stats.avgDamage > 10 ? 'success' : stats.avgDamage > 5 ? 'warning' : 'info'}">
+              ${stats.avgDamage > 10 ? '높음' : stats.avgDamage > 5 ? '보통' : '낮음'}
+            </span>
+          </td>
+        </tr>
+      `;
+    }).join('');
 
     return `
       <div class="section">
@@ -639,16 +661,33 @@ ${JSON.stringify(result, null, 2)}
       .filter(a => a.suggestedChanges.length > 0)
       .slice(0, 20)
       .map(a => {
-        const changes = a.suggestedChanges.map(c =>
-          `${c.stat}: ${c.currentValue} → ${c.suggestedValue}`
-        ).join(', ');
+        const cardData = getCard(a.cardId);
+        const cardName = cardData?.name || a.cardId;
+
+        // 변경 내용 한국어화
+        const changes = a.suggestedChanges.map(c => {
+          const statName = this.translateStatName(c.stat);
+          return `${statName}: ${c.currentValue} → ${c.suggestedValue}`;
+        }).join(', ');
 
         const impactClass = Math.abs(a.expectedWinRateChange) > 5 ? 'danger' :
           Math.abs(a.expectedWinRateChange) > 2 ? 'warning' : 'info';
 
+        // 카드 효과 요약
+        let effectSummary = '';
+        if (cardData) {
+          const effects: string[] = [];
+          if (cardData.damage) effects.push(`피해 ${cardData.damage}`);
+          if (cardData.block) effects.push(`방어 ${cardData.block}`);
+          effectSummary = effects.length > 0 ? ` (${effects.join(', ')})` : '';
+        }
+
         return `
           <tr>
-            <td><strong>${a.cardId}</strong></td>
+            <td>
+              <strong>${cardName}</strong>
+              <span style="font-size: 0.75rem; color: var(--text-secondary);">${effectSummary}</span>
+            </td>
             <td>${changes || '-'}</td>
             <td><span class="badge ${impactClass}">${a.expectedWinRateChange > 0 ? '+' : ''}${a.expectedWinRateChange.toFixed(1)}%</span></td>
           </tr>
@@ -670,6 +709,18 @@ ${JSON.stringify(result, null, 2)}
         </table>
       </div>
     `;
+  }
+
+  private translateStatName(stat: string): string {
+    const translations: Record<string, string> = {
+      damage: '피해량',
+      block: '방어력',
+      speedCost: '속도',
+      actionCost: '행동력',
+      hits: '타격 횟수',
+      description: '설명',
+    };
+    return translations[stat] || stat;
   }
 
   private renderBalanceRecommendations(analyses: BalanceAnalysis[]): string {

@@ -351,7 +351,7 @@ describe('drawCharacterBuildHand', () => {
     expect(Array.isArray(hand)).toBe(true);
     if (hand.length > 0) {
       expect(hand[0]).toHaveProperty('id');
-      expect(hand[0]).toHaveProperty('cardId');
+      expect(hand[0]).toHaveProperty('name');
     }
   });
 

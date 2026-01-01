@@ -1,6 +1,8 @@
 /**
  * @file cards.test.ts
  * @description 카드 라이브러리 데이터 검증 테스트
+ *
+ * battleData.ts 기반 카드 구조를 검증합니다.
  */
 
 import { describe, it, expect } from 'vitest';
@@ -40,18 +42,19 @@ describe('cards', () => {
         });
     });
 
-    it('방어 카드는 block 필드를 가진다', () => {
+    it('방어/일반 카드는 block 필드를 가진다 (0 허용)', () => {
+      // 'general' 타입 카드 중 block 필드가 있는 카드 검증
       Object.values(CARD_LIBRARY)
-        .filter(card => card.type === 'defense')
+        .filter(card => card.type === 'general' && card.block !== undefined)
         .forEach(card => {
-          expect(card.block).toBeDefined();
           expect(typeof card.block).toBe('number');
-          expect(card.block).toBeGreaterThan(0);
+          expect(card.block).toBeGreaterThanOrEqual(0);
         });
     });
 
     it('카드 타입이 유효하다', () => {
-      const validTypes = ['attack', 'defense', 'move', 'reaction', 'support'];
+      // battleData.ts는 'general' 타입을 방어/유틸리티 카드에 사용
+      const validTypes = ['attack', 'defense', 'general', 'move', 'reaction', 'support', 'skill'];
       Object.values(CARD_LIBRARY).forEach(card => {
         expect(validTypes).toContain(card.type);
       });
@@ -70,9 +73,10 @@ describe('cards', () => {
       });
     });
 
-    it('행동 비용이 양수다', () => {
+    it('행동 비용이 0 이상이다', () => {
+      // 전술장전(reload) 같은 카드는 actionCost: 0
       Object.values(CARD_LIBRARY).forEach(card => {
-        expect(card.actionCost).toBeGreaterThan(0);
+        expect(card.actionCost).toBeGreaterThanOrEqual(0);
       });
     });
 
@@ -101,11 +105,13 @@ describe('cards', () => {
       expect(hasAttack).toBe(true);
     });
 
-    it('시작 덱에 방어 카드가 포함되어 있다', () => {
-      const hasDefense = PLAYER_STARTER_DECK.some(
-        cardId => CARD_LIBRARY[cardId]?.type === 'defense'
-      );
-      expect(hasDefense).toBe(true);
+    it('시작 덱에 방어/일반 카드가 포함되어 있다', () => {
+      // battleData.ts의 시작 덱은 'general' 타입 카드(quarte, octave 등)를 사용
+      const hasDefenseOrGeneral = PLAYER_STARTER_DECK.some(cardId => {
+        const card = CARD_LIBRARY[cardId];
+        return card?.type === 'defense' || card?.type === 'general';
+      });
+      expect(hasDefenseOrGeneral).toBe(true);
     });
   });
 
@@ -115,12 +121,21 @@ describe('cards', () => {
       expect(Object.keys(ENEMY_DECKS).length).toBeGreaterThan(0);
     });
 
-    it('모든 적 덱 유형이 존재한다', () => {
-      expect(ENEMY_DECKS.battle).toBeDefined();
-      expect(ENEMY_DECKS.elite).toBeDefined();
-      expect(ENEMY_DECKS.boss).toBeDefined();
-      expect(ENEMY_DECKS.dungeon).toBeDefined();
+    it('주요 적 덱 유형이 존재한다', () => {
+      // 실제 적 종류별 덱
+      expect(ENEMY_DECKS.ghoul).toBeDefined();
+      expect(ENEMY_DECKS.marauder).toBeDefined();
+      expect(ENEMY_DECKS.deserter).toBeDefined();
+      expect(ENEMY_DECKS.slaughterer).toBeDefined();
       expect(ENEMY_DECKS.default).toBeDefined();
+    });
+
+    it('1막 신규 적 덱이 존재한다', () => {
+      expect(ENEMY_DECKS.wildrat).toBeDefined();
+      expect(ENEMY_DECKS.berserker).toBeDefined();
+      expect(ENEMY_DECKS.polluted).toBeDefined();
+      expect(ENEMY_DECKS.hunter).toBeDefined();
+      expect(ENEMY_DECKS.captain).toBeDefined();
     });
 
     it('모든 적 덱이 비어있지 않다', () => {
