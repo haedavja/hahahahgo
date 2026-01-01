@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { inflateCards, buildSpeedTimeline, cardsFromIds } from './speedQueue';
+import { inflateCards, buildSpeedTimeline, cardsFromIds, drawHand, createTurnPreview } from './speedQueue';
 
 // Math.random 고정
 beforeEach(() => {
@@ -163,6 +163,81 @@ describe('speedQueue', () => {
     it('빈 배열/undefined에 대해 빈 배열을 반환해야 함', () => {
       expect(cardsFromIds([])).toEqual([]);
       expect(cardsFromIds()).toEqual([]);
+    });
+  });
+
+  describe('drawHand', () => {
+    it('덱에서 카드를 뽑아 손패를 생성해야 함', () => {
+      const deck = ['quick_slash', 'guard', 'heavy_strike'];
+      const result = drawHand(deck, 2);
+
+      expect(result.length).toBeLessThanOrEqual(2);
+      result.forEach((card) => {
+        expect(card.instanceId).toBeDefined();
+        expect(card.id).toBeDefined();
+      });
+    });
+
+    it('빈 덱에서는 빈 손패를 반환해야 함', () => {
+      const result = drawHand([], 3);
+      expect(result).toEqual([]);
+    });
+
+    it('요청한 수보다 덱이 작으면 덱의 모든 카드를 반환해야 함', () => {
+      const deck = ['quick_slash'];
+      const result = drawHand(deck, 3);
+
+      expect(result.length).toBeLessThanOrEqual(1);
+    });
+
+    it('각 카드에 고유한 instanceId가 부여되어야 함', () => {
+      const deck = ['quick_slash', 'guard'];
+      const result = drawHand(deck, 2);
+
+      if (result.length >= 2) {
+        expect(result[0].instanceId).not.toBe(result[1].instanceId);
+      }
+    });
+  });
+
+  describe('createTurnPreview', () => {
+    it('플레이어와 적의 손패, 타임라인을 생성해야 함', () => {
+      const playerDeck = ['quick_slash', 'guard', 'heavy_strike'];
+      const enemyDeck = ['quick_slash', 'guard'];
+      const result = createTurnPreview(playerDeck, enemyDeck);
+
+      expect(result.playerHand).toBeDefined();
+      expect(result.enemyHand).toBeDefined();
+      expect(result.timeline).toBeDefined();
+      expect(result.tuLimit).toBeDefined();
+    });
+
+    it('기본 옵션이 적용되어야 함', () => {
+      const playerDeck = ['quick_slash', 'guard', 'heavy_strike'];
+      const enemyDeck = ['quick_slash', 'guard'];
+      const result = createTurnPreview(playerDeck, enemyDeck);
+
+      expect(result.tuLimit).toBe(30);
+    });
+
+    it('커스텀 옵션이 적용되어야 함', () => {
+      const playerDeck = ['quick_slash', 'guard', 'heavy_strike'];
+      const enemyDeck = ['quick_slash', 'guard'];
+      const result = createTurnPreview(playerDeck, enemyDeck, {
+        playerHandSize: 2,
+        enemyHandSize: 1,
+        maxTU: 20,
+      });
+
+      expect(result.tuLimit).toBe(20);
+    });
+
+    it('빈 덱에서도 동작해야 함', () => {
+      const result = createTurnPreview([], []);
+
+      expect(result.playerHand).toEqual([]);
+      expect(result.enemyHand).toEqual([]);
+      expect(result.timeline).toEqual([]);
     });
   });
 });

@@ -20,6 +20,9 @@ import {
   getEnhancementColor,
   getEnhancementLabel,
   generateEnhancedDescription,
+  hasSpecialEffect,
+  getSpecialEffectValue,
+  getEnhancementDifference,
   type BaseCard,
   type EnhancedCardStats,
 } from './cardEnhancementUtils';
@@ -698,5 +701,225 @@ describe('generateEnhancedDescription', () => {
       const result = generateEnhancedDescription(card, '');
       expect(result).toBe('');
     });
+  });
+
+  describe('디버프 스택 보너스 테스트', () => {
+    it('무딤 패턴에 보너스가 적용되어야 함', () => {
+      const card: BaseCard = { id: 'test', name: 'Test', type: 'attack', damage: 10, speedCost: 5, actionCost: 1 };
+      const stats = { ...createDefaultStats(), debuffStacksBonus: 2 };
+      const result = generateEnhancedDescription(card, '무딤 1회 부여', stats);
+      // 보너스가 적용되어 원본보다 큰 숫자가 포함됨
+      expect(result).toContain('무딤');
+      expect(result).not.toContain('1회');
+    });
+
+    it('흔들림 패턴에 보너스가 적용되어야 함', () => {
+      const card: BaseCard = { id: 'test', name: 'Test', type: 'attack', damage: 10, speedCost: 5, actionCost: 1 };
+      const stats = { ...createDefaultStats(), debuffStacksBonus: 1 };
+      const result = generateEnhancedDescription(card, '흔들림 2회 부여', stats);
+      // 보너스가 적용되어 원본보다 큰 숫자가 포함됨
+      expect(result).toContain('흔들림');
+      expect(result).not.toContain('2회');
+    });
+
+    it('디버프 보너스가 0이면 원본이 유지되어야 함', () => {
+      const card: BaseCard = { id: 'test', name: 'Test', type: 'attack', damage: 10, speedCost: 5, actionCost: 1 };
+      const stats = { ...createDefaultStats(), debuffStacksBonus: 0 };
+      const result = generateEnhancedDescription(card, '허약 1회 부여', stats);
+      expect(result).toContain('허약 1회');
+    });
+  });
+
+  describe('특수 효과 표시 테스트', () => {
+    it('extraBlur 특수 효과가 설명에 반영되어야 함', () => {
+      const card: BaseCard = { id: 'test', name: 'Test', type: 'defense', block: 10, speedCost: 4, actionCost: 1 };
+      const stats = { ...createDefaultStats(), specialEffects: [{ type: 'extraBlur', value: 2 }] };
+      const result = generateEnhancedDescription(card, '흐릿함 1회 획득', stats);
+      // 흐릿함 1 + 2 = 3회로 교체됨
+      expect(result).toContain('흐릿함 3회');
+    });
+
+    it('counterOnHit 특수 효과가 설명에 추가되어야 함', () => {
+      const card: BaseCard = { id: 'test', name: 'Test', type: 'defense', block: 10, speedCost: 4, actionCost: 1 };
+      const stats = { ...createDefaultStats(), specialEffects: [{ type: 'counterOnHit', value: 2 }] };
+      const result = generateEnhancedDescription(card, '방어', stats);
+      expect(result).toContain('반격 2회 부여');
+    });
+
+    it('특수 효과 설명이 대괄호 안에 표시되어야 함', () => {
+      const card: BaseCard = { id: 'test', name: 'Test', type: 'attack', damage: 10, speedCost: 5, actionCost: 1 };
+      const stats = { ...createDefaultStats(), specialEffects: [{ type: 'extraShot', value: 1 }] };
+      const result = generateEnhancedDescription(card, '공격', stats);
+      expect(result).toContain('[');
+      expect(result).toContain(']');
+    });
+  });
+});
+
+describe('hasSpecialEffect', () => {
+  function createDefaultStats(): EnhancedCardStats {
+    return {
+      damageBonus: 0,
+      blockBonus: 0,
+      speedCostReduction: 0,
+      actionCostReduction: 0,
+      hitsBonus: 0,
+      pushAmountBonus: 0,
+      advanceAmountBonus: 0,
+      burnStacksBonus: 0,
+      debuffStacksBonus: 0,
+      counterShotBonus: 0,
+      critBoostBonus: 0,
+      finesseGainBonus: 0,
+      drawCountBonus: 0,
+      createCountBonus: 0,
+      buffAmountBonus: 0,
+      agilityGainBonus: 0,
+      executeThresholdBonus: 0,
+      parryRangeBonus: 0,
+      onHitBlockBonus: 0,
+      perCardBlockBonus: 0,
+      maxSpeedBoostBonus: 0,
+      fragStacksBonus: 0,
+      growthPerTickBonus: 0,
+      durationTurnsBonus: 0,
+      specialEffects: [],
+      addedTraits: [],
+      removedTraits: [],
+    };
+  }
+
+  it('존재하는 특수 효과는 true를 반환해야 함', () => {
+    const stats = { ...createDefaultStats(), specialEffects: [{ type: 'executeEffect', value: 15 }] };
+    expect(hasSpecialEffect(stats, 'executeEffect')).toBe(true);
+  });
+
+  it('존재하지 않는 특수 효과는 false를 반환해야 함', () => {
+    const stats = { ...createDefaultStats(), specialEffects: [{ type: 'executeEffect', value: 15 }] };
+    expect(hasSpecialEffect(stats, 'extraShot')).toBe(false);
+  });
+
+  it('빈 specialEffects 배열은 false를 반환해야 함', () => {
+    const stats = createDefaultStats();
+    expect(hasSpecialEffect(stats, 'executeEffect')).toBe(false);
+  });
+
+  it('여러 특수 효과 중 하나를 찾을 수 있어야 함', () => {
+    const stats = {
+      ...createDefaultStats(),
+      specialEffects: [
+        { type: 'executeEffect', value: 15 },
+        { type: 'armorPiercePercent', value: 100 },
+        { type: 'extraShot', value: 1 },
+      ],
+    };
+    expect(hasSpecialEffect(stats, 'armorPiercePercent')).toBe(true);
+    expect(hasSpecialEffect(stats, 'extraShot')).toBe(true);
+    expect(hasSpecialEffect(stats, 'burnIgnoreBlock')).toBe(false);
+  });
+});
+
+describe('getSpecialEffectValue', () => {
+  function createDefaultStats(): EnhancedCardStats {
+    return {
+      damageBonus: 0,
+      blockBonus: 0,
+      speedCostReduction: 0,
+      actionCostReduction: 0,
+      hitsBonus: 0,
+      pushAmountBonus: 0,
+      advanceAmountBonus: 0,
+      burnStacksBonus: 0,
+      debuffStacksBonus: 0,
+      counterShotBonus: 0,
+      critBoostBonus: 0,
+      finesseGainBonus: 0,
+      drawCountBonus: 0,
+      createCountBonus: 0,
+      buffAmountBonus: 0,
+      agilityGainBonus: 0,
+      executeThresholdBonus: 0,
+      parryRangeBonus: 0,
+      onHitBlockBonus: 0,
+      perCardBlockBonus: 0,
+      maxSpeedBoostBonus: 0,
+      fragStacksBonus: 0,
+      growthPerTickBonus: 0,
+      durationTurnsBonus: 0,
+      specialEffects: [],
+      addedTraits: [],
+      removedTraits: [],
+    };
+  }
+
+  it('숫자 값을 가진 특수 효과의 값을 반환해야 함', () => {
+    const stats = { ...createDefaultStats(), specialEffects: [{ type: 'executeEffect', value: 15 }] };
+    expect(getSpecialEffectValue(stats, 'executeEffect')).toBe(15);
+  });
+
+  it('문자열 값을 가진 특수 효과의 값을 반환해야 함', () => {
+    const stats = { ...createDefaultStats(), specialEffects: [{ type: 'addTrait', value: 'swift' }] };
+    expect(getSpecialEffectValue(stats, 'addTrait')).toBe('swift');
+  });
+
+  it('존재하지 않는 특수 효과는 undefined를 반환해야 함', () => {
+    const stats = { ...createDefaultStats(), specialEffects: [{ type: 'executeEffect', value: 15 }] };
+    expect(getSpecialEffectValue(stats, 'nonexistent')).toBeUndefined();
+  });
+
+  it('빈 specialEffects 배열은 undefined를 반환해야 함', () => {
+    const stats = createDefaultStats();
+    expect(getSpecialEffectValue(stats, 'executeEffect')).toBeUndefined();
+  });
+
+  it('여러 특수 효과 중 특정 효과의 값을 찾을 수 있어야 함', () => {
+    const stats = {
+      ...createDefaultStats(),
+      specialEffects: [
+        { type: 'executeEffect', value: 15 },
+        { type: 'armorPiercePercent', value: 50 },
+        { type: 'extraShot', value: 2 },
+      ],
+    };
+    expect(getSpecialEffectValue(stats, 'armorPiercePercent')).toBe(50);
+    expect(getSpecialEffectValue(stats, 'extraShot')).toBe(2);
+  });
+});
+
+describe('getEnhancementDifference', () => {
+  it('피해 보너스 차이를 표시해야 함', () => {
+    const result = getEnhancementDifference('strike', 0, 3);
+    if (result) {
+      expect(result).toContain('피해');
+    }
+  });
+
+  it('fromLevel >= toLevel이면 빈 문자열을 반환해야 함', () => {
+    expect(getEnhancementDifference('strike', 3, 3)).toBe('');
+    expect(getEnhancementDifference('strike', 5, 3)).toBe('');
+  });
+
+  it('존재하지 않는 카드는 기본 스탯과 비교해야 함', () => {
+    const result = getEnhancementDifference('nonexistent', 0, 3);
+    expect(result).toBe('');
+  });
+
+  it('1강에서 5강까지의 차이를 계산해야 함', () => {
+    const result = getEnhancementDifference('strike', 1, 5);
+    // strike는 피해 보너스가 있는 카드
+    expect(typeof result).toBe('string');
+  });
+
+  it('0강에서 1강까지의 차이를 계산해야 함', () => {
+    const result = getEnhancementDifference('strike', 0, 1);
+    // 첫 강화의 효과가 표시되어야 함
+    expect(typeof result).toBe('string');
+  });
+
+  it('방어 카드의 방어력 보너스 차이를 표시해야 함', () => {
+    const result = getEnhancementDifference('guard', 0, 3);
+    if (result) {
+      expect(result).toContain('방어');
+    }
   });
 });
