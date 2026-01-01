@@ -42,7 +42,11 @@ export const TierRow = memo(function TierRow({
   const isLocked = pyramidLevel < tier;
 
   return (
-    <div style={{ marginBottom: SPACING.xl, opacity: isLocked ? 0.5 : 1 }}>
+    <div style={{
+      marginBottom: SPACING.xl,
+      position: 'relative',
+      zIndex: 1,
+    }}>
       {/* 티어 헤더 */}
       <TierHeader
         label={label}
