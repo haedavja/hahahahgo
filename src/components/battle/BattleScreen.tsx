@@ -206,7 +206,8 @@ const buildBattlePayload = (
   const startingMaxSpeed = 30 + (playerMaxSpeedBonus || 0);
 
   const totalEnemyEther = enemyUnits.reduce((sum, u) => sum + (u.ether || u.individualEther * u.count || 100), 0);
-  const totalEnemyMaxSpeed = enemyUnits.reduce((sum, u) => sum + (u.speed || 10), 0);
+  // 다중 유닛: 각 유닛의 속도 × 유닛 수 (4마리 쥐 = 6 × 4 = 24)
+  const totalEnemyMaxSpeed = enemyUnits.reduce((sum, u) => sum + (u.speed || 10) * (u.count || 1), 0);
 
   return {
     player: {
