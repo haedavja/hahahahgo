@@ -30,24 +30,24 @@ export const UnlockedSummary = memo(function UnlockedSummary({
       borderTop: '1px solid #475569',
       paddingTop: SPACING.xl,
     }}>
-      {/* 헤더 */}
+      {/* 헤더 - 노드 스타일 박스 */}
       <div
         style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          padding: SPACING.md,
-          background: 'rgba(30, 41, 59, 0.5)',
+          display: 'inline-block',
+          padding: `${SPACING.sm} ${SPACING.md}`,
+          background: 'rgba(30, 41, 59, 0.8)',
+          border: `1px solid ${COLORS.text.secondary}`,
           borderRadius: BORDER_RADIUS.lg,
+          marginBottom: SPACING.lg,
         }}
       >
-        <span style={{ color: COLORS.text.primary, fontWeight: 'bold' }}>
+        <span style={{ color: COLORS.text.primary, fontWeight: 'bold', fontSize: FONT_SIZE.md }}>
           해금 현황: 에토스 {unlockedEthos.length}개 / 파토스 {unlockedPathos.length}개
         </span>
       </div>
 
-      {/* 상세 내용 */}
-      <div style={{ marginTop: SPACING.lg, paddingLeft: SPACING.md, paddingRight: SPACING.md }}>
+      {/* 상세 내용 - 노드와 같은 세로축 정렬 */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: SPACING.md, justifyContent: 'center' }}>
         {/* 에토스 목록 */}
         {unlockedEthos.length > 0 && (
           <EthosList ethosList={unlockedEthos} />
@@ -75,26 +75,36 @@ interface EthosListProps {
 
 const EthosList = memo(function EthosList({ ethosList }: EthosListProps) {
   return (
-    <div style={{ marginBottom: SPACING.lg }}>
+    <div style={{
+      width: '200px',
+      flex: '0 0 200px',
+      padding: SPACING.md,
+      background: '#1a2433',
+      border: `1px solid ${COLORS.success}`,
+      borderRadius: BORDER_RADIUS.lg,
+    }}>
       <div style={{
-        fontSize: FONT_SIZE.lg,
+        fontSize: FONT_SIZE.md,
         color: COLORS.success,
         marginBottom: SPACING.sm,
+        fontWeight: 'bold',
+        textAlign: 'center',
       }}>
         에토스 (패시브)
       </div>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: SPACING.sm }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: SPACING.xs }}>
         {ethosList.map(ethos => (
           <span
             key={ethos.id}
             title={ethos.description}
             style={{
-              padding: `${SPACING.sm} ${SPACING.md}`,
+              padding: `${SPACING.xs} ${SPACING.sm}`,
               background: 'rgba(134, 239, 172, 0.15)',
               border: '1px solid rgba(134, 239, 172, 0.3)',
-              borderRadius: BORDER_RADIUS.md,
-              fontSize: FONT_SIZE.md,
+              borderRadius: BORDER_RADIUS.sm,
+              fontSize: FONT_SIZE.sm,
               color: COLORS.success,
+              textAlign: 'center',
             }}
           >
             {ethos.name}
@@ -128,15 +138,24 @@ const PathosList = memo(function PathosList({
   };
 
   return (
-    <div>
+    <div style={{
+      width: '200px',
+      flex: '0 0 200px',
+      padding: SPACING.md,
+      background: '#1f2a2a',
+      border: `1px solid ${COLORS.tier[2].border}`,
+      borderRadius: BORDER_RADIUS.lg,
+    }}>
       <div style={{
-        fontSize: FONT_SIZE.lg,
+        fontSize: FONT_SIZE.md,
         color: COLORS.tier[2].text,
         marginBottom: SPACING.sm,
+        fontWeight: 'bold',
+        textAlign: 'center',
       }}>
-        파토스 (액티브) - 장착: {equippedPathos.length}/{MAX_EQUIPPED_PATHOS}
+        파토스 ({equippedPathos.length}/{MAX_EQUIPPED_PATHOS})
       </div>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: SPACING.sm }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: SPACING.xs }}>
         {pathosList.map(pathos => {
           const isEquipped = equippedPathos.includes(pathos.id);
           return (
@@ -145,17 +164,18 @@ const PathosList = memo(function PathosList({
               title={pathos.description}
               onClick={() => handleToggleEquip(pathos.id, isEquipped)}
               style={{
-                padding: `${SPACING.sm} ${SPACING.md}`,
+                padding: `${SPACING.xs} ${SPACING.sm}`,
                 background: isEquipped
                   ? 'rgba(244, 114, 182, 0.3)'
                   : 'rgba(244, 114, 182, 0.1)',
                 border: isEquipped
                   ? `2px solid ${COLORS.tier[2].border}`
                   : `1px solid rgba(244, 114, 182, 0.3)`,
-                borderRadius: BORDER_RADIUS.md,
-                fontSize: FONT_SIZE.md,
+                borderRadius: BORDER_RADIUS.sm,
+                fontSize: FONT_SIZE.sm,
                 color: COLORS.tier[2].text,
                 cursor: 'pointer',
+                textAlign: 'center',
               }}
             >
               {isEquipped && '✓ '}{pathos.name}

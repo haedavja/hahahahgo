@@ -41,7 +41,7 @@ export const TierRow = memo(function TierRow({
 
   return (
     <div style={{
-      marginBottom: SPACING.xl,
+      marginBottom: SPACING.xxl,
       position: 'relative',
     }}>
       {/* 티어 헤더 */}
@@ -98,9 +98,14 @@ const TierHeader = memo(function TierHeader({
 }: TierHeaderProps) {
   return (
     <div style={{
-      fontSize: FONT_SIZE.lg,
+      display: 'inline-block',
+      padding: `${SPACING.sm} ${SPACING.md}`,
+      background: isLocked ? '#141a22' : 'rgba(30, 41, 59, 0.8)',
+      border: `1px solid ${isLocked ? '#334155' : color}`,
+      borderRadius: BORDER_RADIUS.lg,
+      marginBottom: SPACING.lg,
+      fontSize: FONT_SIZE.md,
       color: isLocked ? COLORS.text.muted : color,
-      marginBottom: SPACING.md,
       fontWeight: 'bold',
     }}>
       {isLocked ? '🔒 ' : ''}{label}
