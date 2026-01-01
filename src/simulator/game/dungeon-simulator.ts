@@ -430,16 +430,18 @@ export class DungeonSimulator {
           rewards: battleResult.won ? battleResult.rewards : {},
         };
       } else {
-        // 간단한 전투 시뮬레이션
+        // 간단한 전투 시뮬레이션 (개선된 공식)
         const difficulty = obj.difficulty || 1;
-        const playerPower = player.strength + player.agility + player.deck.length;
-        const winChance = Math.min(0.9, 0.5 + (playerPower - difficulty * 10) * 0.05);
+        // 던전 전투는 일반 전투보다 쉬움 (75% 기본 승률)
+        const baseWinChance = 0.75 - (difficulty - 1) * 0.05;
+        const relicBonus = player.relics.length * 0.03;
+        const winChance = Math.min(0.9, Math.max(0.3, baseWinChance + relicBonus));
         const won = Math.random() < winChance;
 
         if (!won) {
-          player.hp -= 10 + difficulty * 5;
+          player.hp -= 10 + difficulty * 3;
         } else {
-          player.hp -= Math.floor(Math.random() * (5 + difficulty * 2));
+          player.hp -= Math.floor(Math.random() * (3 + difficulty));
         }
 
         return {

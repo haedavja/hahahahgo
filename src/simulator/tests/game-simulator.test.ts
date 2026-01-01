@@ -311,7 +311,7 @@ describe('RunSimulator', () => {
     expect(player.hp).toBe(80);
     expect(player.maxHp).toBe(80);
     expect(player.gold).toBe(100);
-    expect(player.deck.length).toBe(5);
+    expect(player.deck.length).toBe(10); // 게임과 동일한 시작 덱 (10장)
   });
 });
 

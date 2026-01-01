@@ -75,6 +75,11 @@ import {
   getFencingDamageBonus,
   getGunDamageBonus,
 } from './card-effects';
+import {
+  getEnhancedCard,
+  calculateEnhancedStats,
+  type EnhancedCardStats,
+} from '../../lib/cardEnhancementUtils';
 import { CardCreationSystem } from './card-creation';
 import {
   processEnemyBattleStartPassives,
@@ -147,6 +152,10 @@ export class TimelineBattleEngine {
   private respondAI: RespondAI;
   private cardCreation: CardCreationSystem;
   private events: BattleEvent[] = [];
+  /** 현재 전투의 강화된 카드 캐시 */
+  private enhancedCards: Record<string, GameCard> = {};
+  /** 현재 전투의 카드 강화 레벨 */
+  private cardEnhancements: Record<string, number> = {};
 
   constructor(config: Partial<BattleEngineConfig> = {}) {
     this.config = { ...DEFAULT_CONFIG, ...config };
@@ -157,18 +166,60 @@ export class TimelineBattleEngine {
     this.cardCreation = new CardCreationSystem(this.cards);
   }
 
+  // ==================== 카드 강화 시스템 ====================
+
+  /**
+   * 강화된 카드 캐시 생성
+   */
+  private buildEnhancedCardCache(): void {
+    for (const [cardId, level] of Object.entries(this.cardEnhancements)) {
+      if (level > 0 && this.cards[cardId]) {
+        const baseCard = this.cards[cardId];
+        const enhanced = getEnhancedCard(baseCard, level);
+        this.enhancedCards[cardId] = enhanced as GameCard;
+      }
+    }
+  }
+
+  /**
+   * 카드 조회 (강화 적용)
+   * @param cardId 카드 ID
+   * @returns 강화가 적용된 카드 또는 기본 카드
+   */
+  private getCard(cardId: string): GameCard | undefined {
+    // 강화된 카드가 있으면 반환
+    if (this.enhancedCards[cardId]) {
+      return this.enhancedCards[cardId];
+    }
+    // 기본 카드 반환
+    return this.cards[cardId];
+  }
+
   // ==================== 메인 전투 실행 ====================
 
   /**
    * 전투 실행
+   * @param playerDeck 플레이어 덱
+   * @param playerRelics 플레이어 상징
+   * @param enemy 적 상태
+   * @param anomalyId 이변 ID
+   * @param cardEnhancements 카드 강화 레벨 (카드ID -> 강화레벨)
    */
   runBattle(
     playerDeck: string[],
     playerRelics: string[],
     enemy: EnemyState,
-    anomalyId?: string
+    anomalyId?: string,
+    cardEnhancements?: Record<string, number>
   ): BattleResult {
     this.events = [];
+
+    // 카드 강화 초기화
+    this.cardEnhancements = cardEnhancements || {};
+    this.enhancedCards = {};
+
+    // 강화된 카드 캐시 생성
+    this.buildEnhancedCardCache();
 
     // 플레이어 초기화
     const player = this.initializePlayer(playerDeck, playerRelics);
@@ -324,7 +375,7 @@ export class TimelineBattleEngine {
     // 타임라인 반복 처리 (르 송쥬 뒤 비에야르)
     if (state.player.repeatTimelineCards && state.player.repeatTimelineCards.length > 0) {
       for (const cardId of state.player.repeatTimelineCards) {
-        const card = this.cards[cardId];
+        const card = this.getCard(cardId);
         if (card) {
           const position = this.calculateCardPosition(card, state.player.tokens);
           state.timeline.push({
@@ -363,7 +414,7 @@ export class TimelineBattleEngine {
     if (this.config.enableCombos && !etherBlockedByAnomaly) {
       const playedCards = state.timeline
         .filter(tc => tc.owner === 'player' && tc.executed)
-        .map(tc => this.cards[tc.cardId])
+        .map(tc => this.getCard(tc.cardId))
         .filter((c): c is GameCard => c !== undefined);
 
       if (playedCards.length > 0) {
@@ -439,9 +490,9 @@ export class TimelineBattleEngine {
       state.battleLog.push(`📊 타임라인 분석: 예상 피해 ${analysis.expectedDamage}, 위험도 ${analysis.riskScore}%`);
     }
 
-    // 플레이어 대응 결정
+    // 플레이어 대응 결정 (강화된 카드 적용)
     const playerHand = state.player.hand
-      .map(id => this.cards[id])
+      .map(id => this.getCard(id))
       .filter((c): c is GameCard => c !== undefined);
 
     const reactionCards = playerHand.filter(card =>
@@ -471,7 +522,7 @@ export class TimelineBattleEngine {
 
   private applyPlayerResponse(state: GameBattleState, decision: ResponseDecision): void {
     for (const cardId of decision.responseCards) {
-      const card = this.cards[cardId];
+      const card = this.getCard(cardId);
       if (!card) continue;
 
       // 핸드에서 카드 제거 → 버린 카드 더미로 이동
@@ -525,7 +576,7 @@ export class TimelineBattleEngine {
     state.timeline.sort((a, b) => a.position - b.position);
   }
 
-  // ==================== 카드 선택 ====================
+  // ==================== 카드 선택 (개선된 AI) ====================
 
   private selectPlayerCards(state: GameBattleState): GameCard[] {
     const selected: GameCard[] = [];
@@ -533,27 +584,296 @@ export class TimelineBattleEngine {
     let cardsSelected = 0;
     const maxCards = DEFAULT_MAX_SUBMIT_CARDS;
 
-    // 간단한 그리디 선택: 에너지 내에서 가장 효율적인 카드 선택
-    const sortedHand = [...state.player.hand]
-      .map(id => this.cards[id])
-      .filter((c): c is GameCard => c !== undefined)
-      .sort((a, b) => {
-        // 피해 효율로 정렬
-        const effA = (a.damage || 0) / (a.actionCost || 1);
-        const effB = (b.damage || 0) / (b.actionCost || 1);
-        return effB - effA;
-      });
+    // 핸드 카드 변환 (강화된 카드 적용)
+    const handCards = state.player.hand
+      .map(id => this.getCard(id))
+      .filter((c): c is GameCard => c !== undefined);
 
-    for (const card of sortedHand) {
+    if (handCards.length === 0) return selected;
+
+    // 상황 분석
+    const playerHpRatio = state.player.hp / state.player.maxHp;
+    const enemyHpRatio = state.enemy.hp / state.enemy.maxHp;
+    const isInDanger = playerHpRatio < 0.35;
+    const canKillEnemy = this.estimateDamageOutput(handCards, state) >= state.enemy.hp;
+    const needsDefense = isInDanger && !canKillEnemy;
+
+    // 포커 조합 분석 (카드 값 기준)
+    const comboAnalysis = this.analyzePokerCombos(handCards);
+
+    // 카드 점수 계산
+    const scoredCards = handCards.map(card => {
+      let score = 0;
+
+      // 1. 기본 효율 점수 (피해 + 방어)
+      const hits = card.hits || 1;
+      const totalDamage = (card.damage || 0) * hits;
+      const totalBlock = card.block || 0;
+
+      // 2. 상황별 점수 조정
+      if (needsDefense) {
+        // 위험 상황: 방어 우선
+        score += totalBlock * 3;
+        score += totalDamage * 0.5;
+
+        // 힐 효과 있는 카드 높은 점수
+        if (card.tags?.includes('heal') || card.effects?.some((e: any) => e.type === 'heal')) {
+          score += 50;
+        }
+      } else if (canKillEnemy) {
+        // 킬 가능: 공격 우선
+        score += totalDamage * 2;
+        score += totalBlock * 0.3;
+      } else {
+        // 일반 상황: 균형
+        score += totalDamage * 1.2;
+        score += totalBlock * 0.8;
+      }
+
+      // 3. 속도 점수 (빠른 카드 선호)
+      const speedCost = card.speedCost || 5;
+      score += (10 - Math.min(10, speedCost)) * 2; // 빠를수록 높은 점수
+
+      // 4. 버프/디버프 카드 점수
+      if (card.effects && Array.isArray(card.effects)) {
+        for (const effect of card.effects) {
+          // 적에게 취약 부여
+          if (effect.token === 'vulnerable' || effect.token === 'weak') {
+            score += 15;
+          }
+          // 자신에게 힘 부여
+          if (effect.token === 'strength' && effect.target === 'self') {
+            score += 20;
+          }
+        }
+      }
+
+      // 5. 포커 조합 보너스 (같은 값의 카드)
+      const cardValue = this.getCardValue(card);
+      if (cardValue) {
+        const sameValueCount = comboAnalysis.valueCount[cardValue] || 0;
+        if (sameValueCount >= 2) {
+          score += (sameValueCount - 1) * 15; // 페어, 트리플 등 보너스
+        }
+        // 스트레이트 가능성
+        if (comboAnalysis.straightPossible && comboAnalysis.straightCards.includes(card.id)) {
+          score += 20;
+        }
+      }
+
+      // 6. 특수 효과 점수
+      if (card.type === 'attack') {
+        // 관통 (방어력 무시)
+        if (card.tags?.includes('pierce') || card.ignoreBlock) {
+          score += 15;
+        }
+        // 다중 히트
+        if (hits > 1) {
+          score += hits * 5;
+        }
+      }
+
+      // 7. 특성 시너지 점수
+      if (card.traits && card.traits.length > 0) {
+        // 연계(chain) 특성: 후속(followup) 카드가 핸드에 있으면 보너스
+        if (card.traits.includes('chain')) {
+          const hasFollowup = handCards.some(c =>
+            c.traits?.includes('followup') || c.traits?.includes('finisher')
+          );
+          if (hasFollowup) {
+            score += 25; // 연계-후속 시너지
+          }
+        }
+
+        // 후속(followup) 특성: 연계(chain) 카드가 핸드에 있으면 보너스
+        if (card.traits.includes('followup') || card.traits.includes('finisher')) {
+          const hasChain = handCards.some(c => c.traits?.includes('chain'));
+          if (hasChain) {
+            score += 20; // 후속-연계 시너지
+          }
+          // 이미 연계 준비 상태면 더 높은 점수
+          if (hasToken(state.player.tokens, 'chain_ready')) {
+            score += 30; // 연계 발동 보장
+          }
+        }
+
+        // 협동(cooperation) 특성: 같은 actionCost 카드가 많으면 보너스
+        if (card.traits.includes('cooperation')) {
+          const sameActionCost = handCards.filter(c =>
+            c.actionCost === card.actionCost && c.id !== card.id
+          ).length;
+          score += sameActionCost * 10; // 같은 비용 카드 많으면 콤보 가능성
+        }
+
+        // 강골(strongbone), 파괴자(destroyer) 등 공격 증폭 특성
+        if (card.traits.includes('strongbone')) {
+          score += 15; // 25% 증폭
+        }
+        if (card.traits.includes('destroyer')) {
+          score += 20; // 50% 증폭
+        }
+        if (card.traits.includes('slaughter')) {
+          score += 25; // 75% 증폭
+        }
+        if (card.traits.includes('pinnacle')) {
+          score += 35; // 2.5배 증폭
+        }
+
+        // 신속함(swift) - 빠른 공격
+        if (card.traits.includes('swift')) {
+          score += 10;
+        }
+
+        // 단련(training) - 힘 축적
+        if (card.traits.includes('training')) {
+          score += 12;
+        }
+      }
+
+      // 8. 에너지 효율 (코스트 대비 효과)
+      const cost = card.actionCost || 1;
+      if (cost > 0) {
+        score = score / Math.sqrt(cost); // 코스트가 높을수록 효율 감소
+      }
+
+      return { card, score, cost };
+    });
+
+    // 점수순 정렬
+    scoredCards.sort((a, b) => b.score - a.score);
+
+    // 에너지 내에서 최적 조합 선택
+    for (const { card, cost } of scoredCards) {
       if (cardsSelected >= maxCards) break;
-      if (card.actionCost <= energyLeft) {
+      if (cost <= energyLeft) {
         selected.push(card);
-        energyLeft -= card.actionCost;
+        energyLeft -= cost;
         cardsSelected++;
       }
     }
 
+    // 최소 1장은 선택 (에너지가 충분하다면)
+    if (selected.length === 0 && handCards.length > 0) {
+      // 가장 저렴한 카드 선택
+      const cheapest = handCards
+        .filter(c => (c.actionCost || 1) <= state.player.energy)
+        .sort((a, b) => (a.actionCost || 1) - (b.actionCost || 1))[0];
+      if (cheapest) {
+        selected.push(cheapest);
+      }
+    }
+
     return selected;
+  }
+
+  /**
+   * 예상 피해량 계산
+   */
+  private estimateDamageOutput(cards: GameCard[], state: GameBattleState): number {
+    let totalDamage = 0;
+    let energy = state.player.energy;
+
+    const attackCards = cards
+      .filter(c => c.damage && c.damage > 0)
+      .sort((a, b) => ((b.damage || 0) * (b.hits || 1)) - ((a.damage || 0) * (a.hits || 1)));
+
+    for (const card of attackCards) {
+      const cost = card.actionCost || 1;
+      if (cost <= energy) {
+        const hits = card.hits || 1;
+        const damage = (card.damage || 0) * hits;
+        // 힘 보정
+        totalDamage += damage + (state.player.strength || 0) * hits;
+        energy -= cost;
+      }
+    }
+
+    return totalDamage;
+  }
+
+  /**
+   * 포커 조합 분석
+   */
+  private analyzePokerCombos(cards: GameCard[]): {
+    valueCount: Record<string, number>;
+    suitCount: Record<string, number>;
+    straightPossible: boolean;
+    straightCards: string[];
+  } {
+    const valueCount: Record<string, number> = {};
+    const suitCount: Record<string, number> = {};
+    const values: number[] = [];
+
+    for (const card of cards) {
+      const cardValue = this.getCardValue(card);
+      if (cardValue) {
+        valueCount[cardValue] = (valueCount[cardValue] || 0) + 1;
+        values.push(parseInt(cardValue) || this.cardValueToNumber(cardValue));
+      }
+
+      const suit = card.suit || 'none';
+      suitCount[suit] = (suitCount[suit] || 0) + 1;
+    }
+
+    // 스트레이트 가능성 체크
+    values.sort((a, b) => a - b);
+    let straightPossible = false;
+    const straightCards: string[] = [];
+
+    if (values.length >= 3) {
+      for (let i = 0; i < values.length - 2; i++) {
+        if (values[i + 1] === values[i] + 1 && values[i + 2] === values[i] + 2) {
+          straightPossible = true;
+          // 해당하는 카드 ID 찾기
+          for (const card of cards) {
+            const v = parseInt(this.getCardValue(card) || '') || this.cardValueToNumber(this.getCardValue(card) || '');
+            if (v >= values[i] && v <= values[i] + 2) {
+              straightCards.push(card.id);
+            }
+          }
+          break;
+        }
+      }
+    }
+
+    return { valueCount, suitCount, straightPossible, straightCards };
+  }
+
+  /**
+   * 카드의 포커 값 가져오기
+   */
+  private getCardValue(card: GameCard): string | null {
+    // 카드의 value 속성이 있으면 사용
+    if ((card as any).value) {
+      return String((card as any).value);
+    }
+
+    // 카드 이름에서 값 추출 (예: "Strike 5" → "5")
+    const match = card.name.match(/(\d+|[JQKA])$/);
+    if (match) {
+      return match[1];
+    }
+
+    // 카드 ID에서 값 추출
+    const idMatch = card.id.match(/_(\d+|[jqka])$/i);
+    if (idMatch) {
+      return idMatch[1].toUpperCase();
+    }
+
+    return null;
+  }
+
+  /**
+   * 카드 값을 숫자로 변환 (스트레이트 계산용)
+   */
+  private cardValueToNumber(value: string): number {
+    switch (value.toUpperCase()) {
+      case 'A': return 14;
+      case 'K': return 13;
+      case 'Q': return 12;
+      case 'J': return 11;
+      default: return parseInt(value) || 0;
+    }
   }
 
   private selectEnemyCards(state: GameBattleState): GameCard[] {
@@ -835,7 +1155,10 @@ export class TimelineBattleEngine {
       if (state.player.hp <= 0 || state.enemy.hp <= 0) break;
       if (timelineCard.executed) continue;
 
-      const card = this.cards[timelineCard.cardId];
+      // 플레이어 카드는 강화 적용, 적 카드는 기본 카드 사용
+      const card = timelineCard.owner === 'player'
+        ? this.getCard(timelineCard.cardId)
+        : this.cards[timelineCard.cardId];
       if (!card) continue;
 
       timelineCard.executed = true;
@@ -1227,7 +1550,7 @@ export class TimelineBattleEngine {
       const critText = isCrit ? ' 💥치명타!' : '';
       const blockText = blocked > 0 ? ` (${blocked} 방어)` : '';
       state.battleLog.push(
-        `  ${attacker === 'player' ? '플레이어' : '적'}: ${card.name}${hits > 1 ? ` (${hit + 1}/${hits})` : ''} → ${actualDamage} 피해${blockText}${critText}`
+        `  ${attacker === 'player' ? '플레이어' : '적'}: ${card.name}${totalHits > 1 ? ` (${hit + 1}/${totalHits})` : ''} → ${actualDamage} 피해${blockText}${critText}`
       );
 
       // 토큰 소모

@@ -181,57 +181,89 @@ export class RespondAI {
       expectedOutcome: { damagePrevented: 0, damageDealt: 0, blockGained: 0 },
     };
 
-    // 대응 카드 필터링 (reaction 타입만)
+    // 대응 카드 필터링 (reaction 타입, 반격 특성, 즉발 카드)
     const reactionCards = availableCards.filter(card =>
       card.type === 'reaction' ||
+      card.priority === 'instant' ||
       card.traits?.includes('counter') ||
-      card.traits?.includes('counterShot')
+      card.traits?.includes('counterShot') ||
+      card.parryRange // 패링 카드 포함
     );
 
     if (reactionCards.length === 0) {
       return { ...noResponse, reason: '대응 카드 없음' };
     }
 
-    // 랜덤 확률 체크
-    if (Math.random() > this.config.respondChance) {
+    // 위험도에 따른 대응 확률 조정
+    // 위험도가 높을수록 대응 확률 증가
+    const adjustedRespondChance = Math.min(1, this.config.respondChance + (analysis.riskScore / 200));
+    if (Math.random() > adjustedRespondChance) {
       return { ...noResponse, reason: '대응 생략 (확률)' };
     }
 
-    // 위험도 기반 결정
-    const riskThreshold = (1 - this.config.riskTolerance) * 50;
-    if (analysis.riskScore < riskThreshold) {
+    // 위험도 기반 결정 (HP 비율에 따라 임계값 조정)
+    const hpRatio = state.player.hp / state.player.maxHp;
+    const riskThreshold = hpRatio > 0.7
+      ? (1 - this.config.riskTolerance) * 50  // HP 높으면 기본 임계값
+      : (1 - this.config.riskTolerance) * 30; // HP 낮으면 낮은 임계값 (더 적극적 대응)
+
+    if (analysis.riskScore < riskThreshold && analysis.dangerousCards.length === 0) {
       return { ...noResponse, reason: `위험도 낮음 (${analysis.riskScore}%)` };
     }
 
-    // 최적의 대응 카드 선택
+    // 최적의 대응 카드 매핑
+    const responseMap = this.mapResponseCards(reactionCards, analysis.dangerousCards, state);
+
     const selectedCards: string[] = [];
     let totalDamagePrevented = 0;
     let totalDamageDealt = 0;
     let totalBlockGained = 0;
 
-    // 위험 카드에 대응
-    for (const dangerCard of analysis.dangerousCards) {
-      const enemyCard = this.cards[dangerCard.cardId];
-      if (!enemyCard) continue;
-
-      // 반격 카드 찾기
-      const counterCard = this.findBestCounter(reactionCards, enemyCard, dangerCard.position);
-      if (counterCard && !selectedCards.includes(counterCard.id)) {
+    // 매핑된 대응 카드 수집
+    for (const [enemyCardId, counterCard] of responseMap) {
+      if (!selectedCards.includes(counterCard.id)) {
         selectedCards.push(counterCard.id);
-        totalDamagePrevented += (enemyCard.damage || 0) * 0.5; // 대략적 예방
-        totalDamageDealt += counterCard.damage || 0;
-        totalBlockGained += counterCard.block || 0;
+
+        const enemyCard = this.cards[enemyCardId];
+        const enemyDamage = (enemyCard?.damage || 0) * (enemyCard?.hits || 1);
+
+        // 예상 결과 계산
+        if (counterCard.block) {
+          totalDamagePrevented += Math.min(counterCard.block, enemyDamage);
+          totalBlockGained += counterCard.block;
+        }
+        if (counterCard.parryRange) {
+          // 패링 성공 시 피해 완전 차단
+          totalDamagePrevented += enemyDamage;
+        }
+        if (counterCard.damage) {
+          totalDamageDealt += counterCard.damage * (counterCard.hits || 1);
+        }
       }
     }
 
-    // 교차 기회 활용
+    // 교차 기회 활용 (추가 카드)
     if (this.config.prioritizeCross && analysis.crossOpportunities.length > 0) {
-      // 교차 효과가 있는 카드 우선
       for (const card of reactionCards) {
         if (card.crossBonus && !selectedCards.includes(card.id)) {
           selectedCards.push(card.id);
+          totalDamageDealt += card.damage || 0;
+          totalBlockGained += card.block || 0;
           break;
         }
+      }
+    }
+
+    // HP가 매우 낮을 때 (20% 이하) 방어 카드 추가
+    if (hpRatio < 0.2 && selectedCards.length < reactionCards.length) {
+      const defenseCards = reactionCards
+        .filter(c => c.block && c.block > 0 && !selectedCards.includes(c.id))
+        .sort((a, b) => (b.block || 0) - (a.block || 0));
+
+      if (defenseCards.length > 0) {
+        const bestDefense = defenseCards[0];
+        selectedCards.push(bestDefense.id);
+        totalBlockGained += bestDefense.block || 0;
       }
     }
 
@@ -261,39 +293,79 @@ export class RespondAI {
     enemyCard: GameCard,
     enemyPosition: number
   ): GameCard | null {
-    // 같은 위치에 배치할 수 있는 카드 우선
     let bestCard: GameCard | null = null;
     let bestScore = -Infinity;
+
+    const enemyDamage = (enemyCard.damage || 0) * (enemyCard.hits || 1);
 
     for (const card of reactionCards) {
       let score = 0;
 
-      // 피해량
+      // 1. 피해량 (높을수록 좋음)
       if (card.damage) {
         score += card.damage * 2;
       }
 
-      // 방어력
+      // 2. 방어력 (적 피해량에 비례하여 가치 상승)
       if (card.block) {
-        score += card.block;
+        const blockValue = Math.min(card.block, enemyDamage); // 실제로 막을 수 있는 양
+        score += blockValue * 1.5;
       }
 
-      // 속도 매칭 (교차 가능)
+      // 3. 패링 효과 체크 (parryRange 내 적 카드면 높은 점수)
+      if (card.parryRange) {
+        const cardPosition = card.speedCost || 5;
+        const parryMin = cardPosition - card.parryRange;
+        const parryMax = cardPosition + card.parryRange;
+        if (enemyPosition >= parryMin && enemyPosition <= parryMax) {
+          score += 30; // 패링 성공 가능하면 높은 점수
+        }
+      }
+
+      // 4. 속도 매칭 (교차 가능)
       if (card.speedCost === enemyPosition) {
-        score += 20; // 교차 보너스
+        score += 25; // 교차 보너스
+      } else if (Math.abs((card.speedCost || 5) - enemyPosition) <= 2) {
+        score += 10; // 근접 배치 보너스
       }
 
-      // 반격 특성
+      // 5. 반격/대응사격 특성
       if (card.traits?.includes('counter')) {
-        score += 15;
+        score += 20;
       }
       if (card.traits?.includes('counterShot')) {
+        score += 18;
+      }
+
+      // 6. 회피/흐릿함 토큰 부여 (피해 회피 가치)
+      if (card.appliedTokens) {
+        for (const token of card.appliedTokens) {
+          if (token.target === 'player' || token.target === 'self') {
+            if (token.id === 'blur' || token.id === 'evasion') {
+              score += (token.stacks || 1) * 15;
+            }
+            if (token.id === 'agility') {
+              score += (token.stacks || 1) * 10;
+            }
+          }
+        }
+      }
+
+      // 7. 즉발 카드 우선 (먼저 발동)
+      if (card.priority === 'instant') {
         score += 15;
       }
 
-      // 코스트 효율
-      const costEfficiency = (card.damage || 0 + card.block || 0) / Math.max(card.actionCost, 1);
-      score += costEfficiency * 5;
+      // 8. 코스트 효율
+      const totalValue = (card.damage || 0) + (card.block || 0);
+      const costEfficiency = totalValue / Math.max(card.actionCost, 1);
+      score += costEfficiency * 3;
+
+      // 9. 적 공격이 치명적일 때 (HP 30% 이상 피해) 방어 카드 가치 상승
+      // (이 정보는 state에서 가져와야 하지만, 여기서는 enemyDamage로 대체)
+      if (enemyDamage >= 15 && card.block && card.block >= 5) {
+        score += 10;
+      }
 
       if (score > bestScore) {
         bestScore = score;
@@ -302,6 +374,43 @@ export class RespondAI {
     }
 
     return bestCard;
+  }
+
+  /**
+   * 위험 카드별 최적 대응 매핑
+   */
+  private mapResponseCards(
+    reactionCards: GameCard[],
+    dangerousCards: TimelineCard[],
+    state: GameBattleState
+  ): Map<string, GameCard> {
+    const responseMap = new Map<string, GameCard>();
+    const usedCards = new Set<string>();
+
+    // 위험도 순으로 정렬 (높은 피해 카드 우선)
+    const sortedDanger = [...dangerousCards].sort((a, b) => {
+      const cardA = this.cards[a.cardId];
+      const cardB = this.cards[b.cardId];
+      const damageA = (cardA?.damage || 0) * (cardA?.hits || 1);
+      const damageB = (cardB?.damage || 0) * (cardB?.hits || 1);
+      return damageB - damageA;
+    });
+
+    for (const dangerCard of sortedDanger) {
+      const enemyCard = this.cards[dangerCard.cardId];
+      if (!enemyCard) continue;
+
+      // 아직 사용되지 않은 카드 중 최적 대응 찾기
+      const availableCards = reactionCards.filter(c => !usedCards.has(c.id));
+      const bestCounter = this.findBestCounter(availableCards, enemyCard, dangerCard.position);
+
+      if (bestCounter) {
+        responseMap.set(dangerCard.cardId, bestCounter);
+        usedCards.add(bestCounter.id);
+      }
+    }
+
+    return responseMap;
   }
 
   // ==================== 적 AI 대응 ====================

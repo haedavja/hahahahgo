@@ -17,9 +17,80 @@ import { ShopSimulator, ShopInventory, ShopResult, ShopSimulationConfig } from '
 import { RestSimulator, RestResult, RestNodeConfig } from './rest-simulator';
 import { DungeonSimulator, DungeonState, DungeonExplorationResult, DungeonSimulationConfig } from './dungeon-simulator';
 import { TimelineBattleEngine } from '../core/timeline-battle-engine';
-import type { BattleResult, EnemyState } from '../core/game-types';
+import type { BattleResult, EnemyState, TokenState } from '../core/game-types';
+import type { Card } from '../../types';
+import type { Item, ItemEffect } from '../../data/items';
+
+// 적 정의 타입 (battleData.ts에서 가져옴)
+interface EnemyDefinition {
+  id: string;
+  name: string;
+  hp: number;
+  ether?: number;
+  speed?: number;
+  maxSpeed: number;
+  deck: string[];
+  cardsPerTurn: number;
+  emoji?: string;
+  tier: number;
+  description?: string;
+  isBoss?: boolean;
+  passives?: {
+    veilAtStart?: boolean;
+    healPerTurn?: number;
+    strengthPerTurn?: number;
+    critBoostAtStart?: number;
+    summonOnHalfHp?: boolean;
+  };
+}
+
+// 적 그룹 정의 타입 (다중 적 전투용)
+interface EnemyGroup {
+  id: string;
+  name: string;
+  tier: number;
+  nodeRange?: [number, number];
+  enemies: string[];
+  isBoss?: boolean;
+}
 
 const log = getLogger('RunSimulator');
+
+// 카드 타입 분류 (전략별 선택용)
+type CardCategory = 'attack' | 'defense' | 'utility';
+
+function categorizeCard(card: Card): CardCategory {
+  if (card.type === 'attack') return 'attack';
+  if (card.type === 'defense' || card.type === 'reaction') return 'defense';
+  return 'utility';
+}
+
+// 시작 덱 (게임과 동일 - battleData.ts의 DEFAULT_STARTING_DECK)
+const DEFAULT_STARTING_DECK = [
+  'shoot', 'shoot',           // 사격 2장
+  'strike', 'strike', 'strike', // 타격 3장
+  'reload',                   // 장전 1장
+  'quarte',                   // 꺄르트 1장
+  'octave',                   // 옥타브 1장
+  'breach',                   // 브리치 1장
+  'deflect'                   // 빠라드 1장
+];
+
+// 카드 획득 풀 (전투 보상용 - battleData.ts의 CARDS에서 발췌)
+const COMBAT_REWARD_CARDS = [
+  // 펜싱 카드
+  'marche', 'lunge', 'fleche', 'flank', 'thrust', 'beat', 'feint',
+  'defensive_stance', 'disrupt', 'redoublement', 'binding',
+  // 사격 카드
+  'shoot', 'aimed_shot', 'quick_shot', 'fan_the_hammer',
+  // 기본 카드
+  'strike', 'deflect', 'quarte', 'octave', 'breach'
+];
+
+// 상징 풀 (엘리트/보스 보상용)
+const REWARD_RELICS = [
+  'etherCrystal', 'etherGem', 'longCoat', 'sturdyArmor'
+];
 
 // ==================== 타입 정의 ====================
 
@@ -37,6 +108,8 @@ export interface PlayerRunState {
   deck: string[];
   relics: string[];
   items: string[];
+  /** 강화된 카드 목록 (카드 ID 배열) */
+  upgradedCards: string[];
 }
 
 export interface RunConfig {
@@ -120,6 +193,11 @@ export class RunSimulator {
   private restSimulator: RestSimulator;
   private dungeonSimulator: DungeonSimulator;
   private battleEngine: TimelineBattleEngine;
+  private cardLibrary: Record<string, Card> = {};
+  private enemyLibrary: EnemyDefinition[] = [];
+  private enemyGroupLibrary: EnemyGroup[] = [];
+  private itemLibrary: Record<string, Item> = {};
+  private useBattleEngine: boolean = true; // 실제 전투 엔진 사용 여부
 
   constructor() {
     this.mapSimulator = new MapSimulator();
@@ -140,15 +218,31 @@ export class RunSimulator {
       const { NEW_EVENT_LIBRARY } = await import('../../data/newEvents');
       this.eventSimulator.loadEvents(NEW_EVENT_LIBRARY as any);
 
-      // 카드 데이터 로드
-      const { CARDS } = await import('../../data/cards');
-      this.shopSimulator.loadCardData(CARDS as any);
+      // 카드 데이터 로드 (CARD_LIBRARY 사용)
+      const { CARD_LIBRARY } = await import('../../data/cards');
+      this.shopSimulator.loadCardData(CARD_LIBRARY as any);
+      this.cardLibrary = CARD_LIBRARY as Record<string, Card>;
 
       // 상징 데이터 로드
       const { RELICS } = await import('../../data/relics');
       this.shopSimulator.loadRelicData(RELICS as any);
 
-      log.info('Game data loaded successfully');
+      // 적 데이터 로드
+      const { ENEMIES, ENEMY_GROUPS } = await import('../../components/battle/battleData');
+      this.enemyLibrary = ENEMIES as EnemyDefinition[];
+      this.enemyGroupLibrary = ENEMY_GROUPS as EnemyGroup[];
+
+      // 아이템 데이터 로드
+      const { ITEMS } = await import('../../data/items');
+      this.itemLibrary = ITEMS as Record<string, Item>;
+
+      log.info('Game data loaded successfully', {
+        events: Object.keys(NEW_EVENT_LIBRARY).length,
+        cards: Object.keys(CARD_LIBRARY).length,
+        enemies: this.enemyLibrary.length,
+        enemyGroups: this.enemyGroupLibrary.length,
+        items: Object.keys(this.itemLibrary).length
+      });
     } catch (error) {
       log.warn('Failed to load some game data', { error });
     }
@@ -244,10 +338,21 @@ export class RunSimulator {
       // 다음 노드 선택
       currentNode.cleared = true;
       const nextNodeId = this.selectNextNode(map, currentNode, config.strategy);
-      if (!nextNodeId) break;
+      if (!nextNodeId) {
+        // 다음 노드가 없으면 경로 막힘으로 처리
+        if (!result.success && !result.deathCause) {
+          result.deathCause = '경로 막힘';
+        }
+        break;
+      }
 
       currentNodeId = nextNodeId;
       result.totalTurns++;
+    }
+
+    // HP가 0 이하이면 사망 처리
+    if (player.hp <= 0 && !result.deathCause) {
+      result.deathCause = '체력 소진';
     }
 
     result.finalPlayerState = player;
@@ -307,7 +412,108 @@ export class RunSimulator {
   }
 
   /**
-   * 전투 노드 처리
+   * 적 그룹 선택 (노드 기반, 다중 적 지원)
+   */
+  private selectEnemyGroup(nodeType: MapNodeType, layer: number): EnemyState[] {
+    // 기본 적 (라이브러리가 없을 때)
+    const defaultEnemy = (): EnemyState => ({
+      id: 'ghoul',
+      name: '구울',
+      hp: 40,
+      maxHp: 40,
+      block: 0,
+      tokens: {},
+      maxSpeed: 10,
+      deck: ['ghoul_attack', 'ghoul_attack', 'ghoul_block', 'ghoul_block'],
+      cardsPerTurn: 2,
+      passives: {},
+    });
+
+    if (this.enemyLibrary.length === 0) {
+      return [defaultEnemy()];
+    }
+
+    // 보스/엘리트는 단일 적
+    if (nodeType === 'boss') {
+      const bosses = this.enemyLibrary.filter(e => e.isBoss === true);
+      if (bosses.length > 0) {
+        const boss = bosses[Math.floor(Math.random() * bosses.length)];
+        return [this.convertToEnemyState(boss)];
+      }
+      return [defaultEnemy()];
+    }
+
+    if (nodeType === 'elite') {
+      const elites = this.enemyLibrary.filter(e => e.tier === 2 && !e.isBoss);
+      if (elites.length > 0) {
+        const elite = elites[Math.floor(Math.random() * elites.length)];
+        return [this.convertToEnemyState(elite)];
+      }
+      return [defaultEnemy()];
+    }
+
+    // 일반 전투: 적 그룹 사용 (노드 범위 기반)
+    if (this.enemyGroupLibrary.length > 0) {
+      const validGroups = this.enemyGroupLibrary.filter(g => {
+        if (!g.nodeRange || g.isBoss) return false;
+        const [min, max] = g.nodeRange;
+        return layer >= min && layer <= max && g.tier === 1;
+      });
+
+      if (validGroups.length > 0) {
+        const selectedGroup = validGroups[Math.floor(Math.random() * validGroups.length)];
+        const enemies: EnemyState[] = [];
+
+        for (const enemyId of selectedGroup.enemies) {
+          const enemyDef = this.enemyLibrary.find(e => e.id === enemyId);
+          if (enemyDef) {
+            enemies.push(this.convertToEnemyState(enemyDef));
+          }
+        }
+
+        if (enemies.length > 0) {
+          return enemies;
+        }
+      }
+    }
+
+    // 폴백: 단일 적 선택
+    const tier1Enemies = this.enemyLibrary.filter(e => e.tier === 1 && !e.isBoss);
+    if (tier1Enemies.length > 0) {
+      const enemy = tier1Enemies[Math.floor(Math.random() * tier1Enemies.length)];
+      return [this.convertToEnemyState(enemy)];
+    }
+
+    return [defaultEnemy()];
+  }
+
+  /**
+   * EnemyDefinition을 EnemyState로 변환
+   */
+  private convertToEnemyState(def: EnemyDefinition): EnemyState {
+    return {
+      id: def.id,
+      name: def.name,
+      hp: def.hp,
+      maxHp: def.hp,
+      block: 0,
+      tokens: {},
+      maxSpeed: def.maxSpeed,
+      deck: [...def.deck],
+      cardsPerTurn: def.cardsPerTurn,
+      passives: def.passives || {},
+    };
+  }
+
+  /**
+   * 단일 적 선택 (하위 호환성)
+   */
+  private selectEnemy(nodeType: MapNodeType, layer: number): EnemyState {
+    return this.selectEnemyGroup(nodeType, layer)[0];
+  }
+
+  /**
+   * 전투 노드 처리 (TimelineBattleEngine 통합, 다중 적 지원)
    */
   private processCombatNode(
     node: MapNode,
@@ -319,66 +525,221 @@ export class RunSimulator {
     const isElite = node.type === 'elite';
     const isBoss = node.type === 'boss';
 
-    // 적 생성 (간단한 시뮬레이션)
-    const enemyHp = Math.floor(50 + difficulty * 20 + (isElite ? 30 : 0) + (isBoss ? 100 : 0));
-    const enemy: EnemyState = {
-      id: `enemy_${node.id}`,
-      name: isBoss ? 'Boss' : isElite ? 'Elite' : 'Enemy',
-      hp: enemyHp,
-      maxHp: enemyHp,
-      block: 0,
-      ether: 0,
-      tokens: {
-        offensive: 0, defensive: 0, vulnerable: 0, weak: 0,
-        strength: 0, dexterity: 0, focus: 0, regeneration: 0, poison: 0, burn: 0
-      },
-      deck: ['enemy_attack', 'enemy_defend'],
-      cardsPerTurn: isElite || isBoss ? 3 : 2,
-      passives: {},
-    };
+    // 적 그룹 선택 (다중 적 지원)
+    const enemies = this.selectEnemyGroup(node.type, node.layer);
 
-    // 전투 시뮬레이션 (간소화)
-    const playerPower = player.deck.length * 5 + player.strength * 10 + player.relics.length * 20;
-    const enemyPower = enemyHp + difficulty * 10;
-    const winChance = Math.min(0.95, Math.max(0.1, 0.5 + (playerPower - enemyPower) * 0.01));
+    // 난이도에 따른 적 강화
+    if (difficulty > 1) {
+      const hpMultiplier = 1 + (difficulty - 1) * 0.15; // 난이도당 15% HP 증가
+      for (const enemy of enemies) {
+        enemy.hp = Math.floor(enemy.hp * hpMultiplier);
+        enemy.maxHp = enemy.hp;
+      }
+    }
 
-    const won = Math.random() < winChance;
+    // 전투 전 아이템 사용 (위기 상황에서)
+    this.useItemsBeforeBattle(player, config.strategy, isElite || isBoss);
 
-    if (won) {
+    let totalBattleResult: BattleResult | null = null;
+    let wonAllBattles = true;
+    const enemyNames: string[] = [];
+
+    // 다중 적 순차 전투 (현재 엔진은 1:1 전투만 지원)
+    for (const enemy of enemies) {
+      if (player.hp <= 0) {
+        wonAllBattles = false;
+        break;
+      }
+
+      let battleResult: BattleResult;
+
+      // 카드 강화 정보 생성
+      const cardEnhancements = this.buildCardEnhancements(player.upgradedCards);
+
+      // 실제 전투 엔진 사용 (적 데이터가 있을 때)
+      if (this.useBattleEngine && this.enemyLibrary.length > 0) {
+        battleResult = this.battleEngine.runBattle(
+          player.deck,
+          player.relics,
+          enemy,
+          undefined, // 이변 ID (추후 확장)
+          cardEnhancements // 카드 강화 레벨 전달
+        );
+      } else {
+        // 폴백: 확률 기반 시뮬레이션
+        battleResult = this.simulateCombatFallback(player, enemy, isElite, isBoss, difficulty);
+      }
+
+      enemyNames.push(enemy.name);
+
+      if (battleResult.winner === 'player') {
+        // 전투 승리 - 피해 적용 후 다음 적과 전투
+        player.hp = Math.max(1, battleResult.playerFinalHp);
+        totalBattleResult = battleResult;
+      } else {
+        // 전투 패배
+        wonAllBattles = false;
+        player.hp = 0;
+        totalBattleResult = battleResult;
+        break;
+      }
+    }
+
+    const displayName = enemies.length > 1
+      ? `${enemyNames[0]} 외 ${enemies.length - 1}명`
+      : enemyNames[0] || '적';
+
+    if (wonAllBattles && totalBattleResult) {
       result.success = true;
-      result.details = `전투 승리 (난이도 ${difficulty})`;
+      result.details = `전투 승리 vs ${displayName} (${totalBattleResult.turns}턴)`;
 
-      // 보상
-      const goldReward = Math.floor(15 + difficulty * 10 + (isElite ? 20 : 0) + (isBoss ? 50 : 0));
+      // 보상 (적 수에 비례)
+      const baseGold = 15 + difficulty * 10 + (isElite ? 20 : 0) + (isBoss ? 50 : 0);
+      const goldReward = Math.floor(baseGold * (1 + (enemies.length - 1) * 0.3));
       player.gold += goldReward;
 
-      // 카드 획득 기회
-      if (Math.random() < 0.7) {
-        const newCard = `card_${Date.now()}`;
-        player.deck.push(newCard);
-        result.cardsGained.push(newCard);
+      // 카드 보상: 3장 중 1장 선택 (게임과 동일)
+      if (player.deck.length < 20) {
+        const selectedCard = this.selectCardReward(player, config.strategy);
+        if (selectedCard) {
+          player.deck.push(selectedCard);
+          result.cardsGained.push(selectedCard);
+        }
       }
 
       // 엘리트/보스 상징 획득
       if ((isElite || isBoss) && Math.random() < 0.5) {
-        const newRelic = `relic_${Date.now()}`;
-        player.relics.push(newRelic);
-        result.relicsGained.push(newRelic);
+        const availableRelics = REWARD_RELICS.filter(relicId => !player.relics.includes(relicId));
+        if (availableRelics.length > 0) {
+          const newRelic = availableRelics[Math.floor(Math.random() * availableRelics.length)];
+          player.relics.push(newRelic);
+          result.relicsGained.push(newRelic);
+        }
       }
-
-      // 피해 (승리해도 약간)
-      const damageReceived = Math.floor(Math.random() * (5 + difficulty * 3));
-      player.hp -= damageReceived;
     } else {
       result.success = false;
-      result.details = `전투 패배 (난이도 ${difficulty})`;
+      result.details = `전투 패배 vs ${displayName} (${totalBattleResult?.turns || 0}턴)`;
+      player.hp = 0;
+    }
+  }
 
-      // 패배 시 큰 피해
-      const damageReceived = Math.floor(20 + difficulty * 10);
-      player.hp -= damageReceived;
+  /**
+   * 카드 강화 정보를 Record<string, number>로 변환
+   * @param upgradedCards 강화된 카드 ID 배열
+   * @returns 카드ID -> 강화레벨 맵
+   */
+  private buildCardEnhancements(upgradedCards: string[]): Record<string, number> {
+    const enhancements: Record<string, number> = {};
+    for (const cardId of upgradedCards) {
+      // 각 강화마다 레벨 1씩 증가 (최대 5)
+      enhancements[cardId] = Math.min(5, (enhancements[cardId] || 0) + 1);
+    }
+    return enhancements;
+  }
+
+  /**
+   * 전투 전 아이템 사용
+   */
+  private useItemsBeforeBattle(
+    player: PlayerRunState,
+    strategy: RunStrategy,
+    isDifficultBattle: boolean
+  ): void {
+    if (player.items.length === 0) return;
+
+    // HP가 40% 이하이거나 어려운 전투일 때 아이템 사용 고려
+    const hpRatio = player.hp / player.maxHp;
+    const shouldUseItems = hpRatio < 0.4 || isDifficultBattle;
+
+    if (!shouldUseItems) return;
+
+    // 사용할 아이템 선택
+    const itemsToUse: string[] = [];
+
+    for (const itemId of player.items) {
+      const item = this.itemLibrary[itemId];
+      if (!item) continue;
+
+      // 힐 아이템: HP가 낮을 때 사용
+      if (item.effect.type === 'healPercent' && hpRatio < 0.5) {
+        itemsToUse.push(itemId);
+        // 힐 적용
+        const healAmount = Math.floor(player.maxHp * (item.effect.value / 100));
+        player.hp = Math.min(player.maxHp, player.hp + healAmount);
+      }
+
+      // 방어 아이템: 어려운 전투 전 사용
+      if (item.effect.type === 'defense' && isDifficultBattle) {
+        itemsToUse.push(itemId);
+        // 방어 효과는 전투 엔진에서 처리 (여기서는 아이템 소모만)
+      }
+
+      // 공격 강화: 어려운 전투 전 사용
+      if (item.effect.type === 'grantTokens' && isDifficultBattle) {
+        itemsToUse.push(itemId);
+      }
+
+      // 최대 2개 아이템 사용
+      if (itemsToUse.length >= 2) break;
     }
 
-    player.hp = Math.max(0, player.hp);
+    // 사용한 아이템 제거
+    for (const usedItem of itemsToUse) {
+      const idx = player.items.indexOf(usedItem);
+      if (idx !== -1) {
+        player.items.splice(idx, 1);
+      }
+    }
+  }
+
+  /**
+   * 폴백: 확률 기반 전투 시뮬레이션 (전투 엔진을 사용할 수 없을 때)
+   */
+  private simulateCombatFallback(
+    player: PlayerRunState,
+    enemy: EnemyState,
+    isElite: boolean,
+    isBoss: boolean,
+    difficulty: number
+  ): BattleResult {
+    // 기본 승률
+    let baseWinRate = isBoss ? 0.50 : isElite ? 0.65 : 0.80;
+
+    // 난이도 보정
+    baseWinRate -= (difficulty - 1) * 0.05;
+
+    // 덱/상징 보정
+    const deckSize = player.deck.length;
+    if (deckSize >= 7 && deckSize <= 15) baseWinRate += 0.05;
+    else if (deckSize > 25) baseWinRate -= 0.1;
+
+    baseWinRate += player.relics.length * 0.03;
+
+    // 최종 승률 제한
+    const winChance = Math.min(0.90, Math.max(0.10, baseWinRate));
+    const won = Math.random() < winChance;
+
+    const turns = Math.floor(3 + Math.random() * 5);
+    const damageReceived = won
+      ? Math.floor(Math.random() * (10 + difficulty * 3))
+      : player.hp;
+
+    return {
+      winner: won ? 'player' : 'enemy',
+      turns,
+      playerDamageDealt: enemy.maxHp - (won ? 0 : Math.floor(enemy.maxHp * Math.random())),
+      enemyDamageDealt: damageReceived,
+      playerFinalHp: Math.max(0, player.hp - damageReceived),
+      enemyFinalHp: won ? 0 : Math.floor(enemy.maxHp * Math.random()),
+      etherGained: won ? Math.floor(20 + Math.random() * 30) : 0,
+      goldChange: 0,
+      battleLog: [],
+      events: [],
+      cardUsage: {},
+      comboStats: {},
+      tokenStats: {},
+      timeline: [],
+    };
   }
 
   /**
@@ -440,6 +801,14 @@ export class RunSimulator {
   ): void {
     const inventory = this.shopSimulator.generateShopInventory('shop');
 
+    // 전략 기반 카드 필터링
+    const filteredCards = this.filterShopCards(inventory.cards, player, config.strategy);
+
+    const filteredInventory = {
+      ...inventory,
+      cards: filteredCards,
+    };
+
     const shopConfig: ShopSimulationConfig = {
       player: {
         gold: player.gold,
@@ -451,9 +820,10 @@ export class RunSimulator {
       },
       strategy: config.strategy === 'aggressive' ? 'value' : 'survival',
       reserveGold: 30,
+      maxPurchases: 2, // 한 번의 상점 방문에서 최대 2개 구매 (더 제한적으로)
     };
 
-    const shopResult = this.shopSimulator.simulateShopVisit(inventory, shopConfig);
+    const shopResult = this.shopSimulator.simulateShopVisit(filteredInventory, shopConfig);
 
     player.gold = shopResult.remainingGold;
     player.deck = shopResult.finalPlayerState.deck;
@@ -468,7 +838,69 @@ export class RunSimulator {
   }
 
   /**
-   * 휴식 노드 처리
+   * 전략에 따른 상점 카드 필터링
+   */
+  private filterShopCards(
+    cards: import('./shop-simulator').ShopItem[],
+    player: PlayerRunState,
+    strategy: RunStrategy
+  ): import('./shop-simulator').ShopItem[] {
+    // 덱 크기가 18장 이상이면 카드 구매 안 함
+    if (player.deck.length >= 18) return [];
+
+    // 덱 균형 분석
+    const attackCount = player.deck.filter(cardId => {
+      const card = this.cardLibrary[cardId];
+      return card && card.type === 'attack';
+    }).length;
+    const defenseCount = player.deck.filter(cardId => {
+      const card = this.cardLibrary[cardId];
+      return card && (card.type === 'defense' || card.type === 'reaction');
+    }).length;
+    const attackRatio = attackCount / player.deck.length;
+
+    // 전략별 필터링
+    return cards.filter(shopItem => {
+      const card = this.cardLibrary[shopItem.id];
+      if (!card) return Math.random() < 0.3; // 카드 정보 없으면 30% 확률
+
+      const category = categorizeCard(card);
+
+      switch (strategy) {
+        case 'aggressive':
+          // 공격 카드 선호, 방어 카드 50% 스킵
+          if (category === 'defense') return Math.random() < 0.5;
+          return true;
+
+        case 'defensive':
+          // 방어 카드 선호, 공격 카드 50% 스킵
+          if (category === 'attack') return Math.random() < 0.5;
+          return true;
+
+        case 'balanced':
+          // 덱 균형 고려: 공격 비율이 높으면 방어 카드, 낮으면 공격 카드
+          if (attackRatio > 0.6 && category === 'attack') return Math.random() < 0.3;
+          if (attackRatio < 0.4 && category === 'defense') return Math.random() < 0.3;
+          return Math.random() < 0.7; // 기본 70% 확률
+
+        case 'speedrun':
+          // 빠른 카드만 구매
+          if (card.speedCost && card.speedCost > 5) return false;
+          return Math.random() < 0.5;
+
+        case 'treasure_hunter':
+          // 유틸리티 카드 선호
+          if (category === 'utility') return true;
+          return Math.random() < 0.4;
+
+        default:
+          return Math.random() < 0.5;
+      }
+    });
+  }
+
+  /**
+   * 휴식 노드 처리 (카드 강화 추적 포함)
    */
   private processRestNode(
     node: MapNode,
@@ -476,35 +908,123 @@ export class RunSimulator {
     config: RunConfig,
     result: NodeResult
   ): void {
-    const restConfig: RestNodeConfig = {
-      healAmount: 0.3,
-      canUpgrade: true,
-      canRemove: true,
-      canSmith: false,
-      canMeditate: false,
-      canScout: false,
-    };
+    const hpRatio = player.hp / player.maxHp;
 
-    const restResult = this.restSimulator.simulateRest({
-      player: {
-        hp: player.hp,
-        maxHp: player.maxHp,
-        deck: player.deck,
-        relics: player.relics,
-        gold: player.gold,
-        strength: player.strength,
-        agility: player.agility,
-        insight: player.insight,
-      },
-      nodeConfig: restConfig,
-      strategy: config.strategy === 'aggressive' ? 'upgrade_priority' : 'heal_priority',
-    });
+    // 전략에 따른 휴식 행동 결정
+    let action: 'heal' | 'upgrade' | 'remove' = 'heal';
 
-    player.hp = restResult.finalPlayerState.hp;
-    player.deck = restResult.finalPlayerState.deck;
+    if (hpRatio > 0.7) {
+      // HP가 충분하면 강화 우선
+      action = 'upgrade';
+    } else if (hpRatio < 0.4) {
+      // HP가 낮으면 무조건 힐
+      action = 'heal';
+    } else {
+      // 중간 상태: 전략에 따라 결정
+      switch (config.strategy) {
+        case 'aggressive':
+        case 'speedrun':
+          action = 'upgrade';
+          break;
+        case 'defensive':
+        case 'balanced':
+        default:
+          action = 'heal';
+          break;
+      }
+    }
+
+    if (action === 'heal') {
+      // 힐: 최대 HP의 30% 회복
+      const healAmount = Math.floor(player.maxHp * 0.3);
+      player.hp = Math.min(player.maxHp, player.hp + healAmount);
+      result.details = `휴식: ${healAmount} HP 회복`;
+    } else if (action === 'upgrade') {
+      // 강화: 아직 강화되지 않은 카드 중 하나 선택
+      const upgradableCards = player.deck.filter(cardId =>
+        !player.upgradedCards.includes(cardId) &&
+        this.isUpgradableCard(cardId)
+      );
+
+      if (upgradableCards.length > 0) {
+        // 전략에 따라 강화할 카드 선택
+        const cardToUpgrade = this.selectCardToUpgrade(upgradableCards, config.strategy);
+        if (cardToUpgrade) {
+          player.upgradedCards.push(cardToUpgrade);
+          result.details = `휴식: ${cardToUpgrade} 카드 강화`;
+        } else {
+          // 강화할 카드가 없으면 힐
+          const healAmount = Math.floor(player.maxHp * 0.3);
+          player.hp = Math.min(player.maxHp, player.hp + healAmount);
+          result.details = `휴식: ${healAmount} HP 회복 (강화 가능 카드 없음)`;
+        }
+      } else {
+        // 모든 카드가 이미 강화됨 - 힐로 대체
+        const healAmount = Math.floor(player.maxHp * 0.3);
+        player.hp = Math.min(player.maxHp, player.hp + healAmount);
+        result.details = `휴식: ${healAmount} HP 회복 (모든 카드 강화됨)`;
+      }
+    }
 
     result.success = true;
-    result.details = restResult.reason;
+  }
+
+  /**
+   * 카드가 강화 가능한지 확인
+   */
+  private isUpgradableCard(cardId: string): boolean {
+    const card = this.cardLibrary[cardId];
+    if (!card) return false;
+
+    // 기본 카드들은 강화 가능
+    const upgradableCards = [
+      'strike', 'shoot', 'defend', 'deflect', 'quarte', 'octave',
+      'marche', 'lunge', 'fleche', 'thrust', 'breach', 'reload'
+    ];
+
+    return upgradableCards.includes(cardId) || card.type === 'attack' || card.type === 'defense';
+  }
+
+  /**
+   * 강화할 카드 선택 (전략 기반)
+   */
+  private selectCardToUpgrade(cards: string[], strategy: RunStrategy): string | null {
+    if (cards.length === 0) return null;
+
+    // 카드 점수 계산
+    const scoredCards = cards.map(cardId => {
+      const card = this.cardLibrary[cardId];
+      let score = 50;
+
+      if (!card) return { cardId, score };
+
+      const category = categorizeCard(card);
+
+      switch (strategy) {
+        case 'aggressive':
+          if (category === 'attack') score += 30;
+          if (card.damage && card.damage >= 8) score += 20;
+          break;
+        case 'defensive':
+          if (category === 'defense') score += 30;
+          if (card.block && card.block >= 5) score += 20;
+          break;
+        case 'speedrun':
+          if (card.speedCost && card.speedCost < 4) score += 30;
+          break;
+        case 'balanced':
+        default:
+          // 공격/방어 균형
+          if (category === 'attack') score += 15;
+          if (category === 'defense') score += 15;
+          break;
+      }
+
+      return { cardId, score };
+    });
+
+    scoredCards.sort((a, b) => b.score - a.score);
+    return scoredCards[0]?.cardId || null;
   }
 
   /**
@@ -552,16 +1072,172 @@ export class RunSimulator {
   }
 
   /**
+   * 카드 보상 선택 (게임과 동일: 3장 중 1장 선택 또는 스킵)
+   * @param player 플레이어 상태
+   * @param strategy 선택 전략
+   * @returns 선택된 카드 ID 또는 null (스킵)
+   */
+  private selectCardReward(
+    player: PlayerRunState,
+    strategy: RunStrategy
+  ): string | null {
+    // 획득 가능한 카드 필터링 (덱에 2장 미만)
+    const availableCards = COMBAT_REWARD_CARDS.filter(cardId => {
+      const count = player.deck.filter(c => c === cardId).length;
+      return count < 2;
+    });
+
+    if (availableCards.length === 0) return null;
+
+    // 3장의 카드 제시 (중복 없이)
+    const cardChoices: string[] = [];
+    const shuffled = [...availableCards].sort(() => Math.random() - 0.5);
+    for (let i = 0; i < Math.min(3, shuffled.length); i++) {
+      cardChoices.push(shuffled[i]);
+    }
+
+    if (cardChoices.length === 0) return null;
+
+    // 스킵 여부 결정
+    if (this.shouldSkipCardReward(cardChoices, player, strategy)) {
+      return null;
+    }
+
+    // 전략에 따라 최적의 카드 선택
+    return this.selectBestCard(cardChoices, strategy);
+  }
+
+  /**
+   * 전투 보상 카드 스킵 여부 결정
+   */
+  private shouldSkipCardReward(
+    cardChoices: string[],
+    player: PlayerRunState,
+    strategy: RunStrategy
+  ): boolean {
+    const deckSize = player.deck.length;
+
+    // 덱이 15장 이상이면 스킵 확률 증가
+    if (deckSize >= 15) {
+      const skipChance = (deckSize - 14) * 0.15; // 15장: 15%, 16장: 30%, ...
+      if (Math.random() < skipChance) return true;
+    }
+
+    // 제시된 카드 품질 평가
+    const hasGoodCard = cardChoices.some(cardId => {
+      const card = this.cardLibrary[cardId];
+      if (!card) return false;
+
+      const category = categorizeCard(card);
+
+      switch (strategy) {
+        case 'aggressive':
+          return category === 'attack' && card.damage && card.damage > 6;
+        case 'defensive':
+          return category === 'defense' && card.block && card.block > 4;
+        case 'speedrun':
+          return card.speedCost !== undefined && card.speedCost < 4;
+        default:
+          return true; // balanced, treasure_hunter는 대부분 수락
+      }
+    });
+
+    // 좋은 카드가 없으면 40% 확률로 스킵
+    if (!hasGoodCard && Math.random() < 0.4) return true;
+
+    return false;
+  }
+
+  /**
+   * 전략에 따른 최적 카드 선택
+   */
+  private selectBestCard(cardChoices: string[], strategy: RunStrategy): string {
+    // 카드 라이브러리가 없으면 랜덤 선택
+    if (Object.keys(this.cardLibrary).length === 0) {
+      return cardChoices[Math.floor(Math.random() * cardChoices.length)];
+    }
+
+    // 각 카드에 점수 부여
+    const scoredCards = cardChoices.map(cardId => {
+      const card = this.cardLibrary[cardId];
+      let score = 50; // 기본 점수
+
+      if (!card) return { cardId, score };
+
+      const category = categorizeCard(card);
+
+      // 전략별 점수 조정
+      switch (strategy) {
+        case 'aggressive':
+          // 공격 카드 선호
+          if (category === 'attack') score += 30;
+          if (card.damage && card.damage > 8) score += 15; // 높은 데미지
+          if (card.speedCost && card.speedCost < 5) score += 10; // 빠른 카드
+          break;
+
+        case 'defensive':
+          // 방어 카드 선호
+          if (category === 'defense') score += 30;
+          if (card.block && card.block > 5) score += 15; // 높은 방어력
+          break;
+
+        case 'balanced':
+          // 균형 잡힌 선택
+          if (category === 'attack') score += 15;
+          if (category === 'defense') score += 15;
+          if (category === 'utility') score += 10;
+          break;
+
+        case 'speedrun':
+          // 빠른 카드 선호
+          if (card.speedCost && card.speedCost < 4) score += 30;
+          if (card.priority === 'quick' || card.priority === 'instant') score += 20;
+          break;
+
+        case 'treasure_hunter':
+          // 유틸리티 및 특수 효과 선호
+          if (category === 'utility') score += 20;
+          if (card.tags?.includes('buff') || card.tags?.includes('debuff')) score += 15;
+          break;
+      }
+
+      // 랜덤 요소 추가 (10%)
+      score += Math.random() * 10;
+
+      return { cardId, score };
+    });
+
+    // 가장 높은 점수의 카드 선택
+    scoredCards.sort((a, b) => b.score - a.score);
+    return scoredCards[0].cardId;
+  }
+
+  /**
    * 다음 노드 선택
+   * 레이어 기반 진행: 현재 레이어보다 높은 레이어의 노드로만 이동
    */
   private selectNextNode(
     map: MapState,
     currentNode: MapNode,
     strategy: RunStrategy
   ): string | null {
-    const availableNodes = currentNode.connections
+    // 연결된 노드 중 다음 레이어 노드만 선택 (레이어 기반 진행)
+    const nextLayerNodes = currentNode.connections
       .map(id => map.nodes.find(n => n.id === id))
-      .filter((n): n is MapNode => n !== undefined && !n.cleared);
+      .filter((n): n is MapNode => n !== undefined && n.layer > currentNode.layer);
+
+    // 다음 레이어에 노드가 없으면 같은 레이어에서 아직 방문하지 않은 노드 시도
+    let availableNodes = nextLayerNodes.length > 0 ? nextLayerNodes :
+      currentNode.connections
+        .map(id => map.nodes.find(n => n.id === id))
+        .filter((n): n is MapNode => n !== undefined && !n.cleared);
+
+    if (availableNodes.length === 0) {
+      // 마지막 시도: 맵에서 현재보다 높은 레이어의 아무 노드
+      availableNodes = map.nodes.filter(n =>
+        n.layer > currentNode.layer && !n.cleared
+      );
+    }
 
     if (availableNodes.length === 0) return null;
 
@@ -588,16 +1264,15 @@ export class RunSimulator {
 
       case 'speedrun':
         // 가장 빠른 경로 (보스 방향)
-        const bossDistance = (nodeId: string): number => {
-          const node = map.nodes.find(n => n.id === nodeId);
-          return node ? map.nodes.length - node.layer : 999;
-        };
-        availableNodes.sort((a, b) => bossDistance(a.id) - bossDistance(b.id));
+        availableNodes.sort((a, b) => b.layer - a.layer);
         return availableNodes[0]?.id || null;
     }
 
-    // 기본: 랜덤
-    return availableNodes[Math.floor(Math.random() * availableNodes.length)].id;
+    // 기본: 가장 높은 레이어 우선, 그 다음 랜덤
+    availableNodes.sort((a, b) => b.layer - a.layer);
+    const highestLayer = availableNodes[0].layer;
+    const topLayerNodes = availableNodes.filter(n => n.layer === highestLayer);
+    return topLayerNodes[Math.floor(Math.random() * topLayerNodes.length)].id;
   }
 
   // ==================== 통계 ====================
@@ -688,8 +1363,9 @@ export function createDefaultPlayer(): PlayerRunState {
     strength: 1,
     agility: 1,
     insight: 1,
-    deck: ['strike', 'strike', 'strike', 'defend', 'defend'],
+    deck: [...DEFAULT_STARTING_DECK], // 게임과 동일한 시작 덱 (10장)
     relics: [],
     items: [],
+    upgradedCards: [], // 강화된 카드 목록
   };
 }
