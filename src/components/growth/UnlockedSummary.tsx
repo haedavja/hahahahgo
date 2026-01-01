@@ -30,24 +30,25 @@ export const UnlockedSummary = memo(function UnlockedSummary({
       borderTop: '1px solid #475569',
       paddingTop: SPACING.xl,
     }}>
-      {/* 헤더 - 노드 스타일 박스 */}
-      <div
-        style={{
-          display: 'inline-block',
-          padding: `${SPACING.sm} ${SPACING.md}`,
-          background: 'rgba(30, 41, 59, 0.8)',
-          border: `1px solid ${COLORS.text.secondary}`,
-          borderRadius: BORDER_RADIUS.lg,
-          marginBottom: SPACING.lg,
-        }}
-      >
-        <span style={{ color: COLORS.text.primary, fontWeight: 'bold', fontSize: FONT_SIZE.md }}>
-          해금 현황: 에토스 {unlockedEthos.length}개 / 파토스 {unlockedPathos.length}개
-        </span>
-      </div>
-
-      {/* 상세 내용 - 노드와 같은 세로축 정렬 */}
+      {/* 노드와 같은 정렬 영역 */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: SPACING.md, justifyContent: 'center' }}>
+        {/* 헤더 - 노드와 같은 정렬 */}
+        <div style={{ width: '100%', display: 'flex', justifyContent: 'flex-start' }}>
+          <div
+            style={{
+              display: 'inline-block',
+              padding: `${SPACING.sm} ${SPACING.md}`,
+              background: 'rgba(30, 41, 59, 0.8)',
+              border: `1px solid ${COLORS.text.secondary}`,
+              borderRadius: BORDER_RADIUS.lg,
+            }}
+          >
+            <span style={{ color: COLORS.text.primary, fontWeight: 'bold', fontSize: FONT_SIZE.md }}>
+              해금 현황: 에토스 {unlockedEthos.length}개 / 파토스 {unlockedPathos.length}개
+            </span>
+          </div>
+        </div>
+
         {/* 에토스 목록 */}
         {unlockedEthos.length > 0 && (
           <EthosList ethosList={unlockedEthos} />
