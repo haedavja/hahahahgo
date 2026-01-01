@@ -47,6 +47,7 @@ export const LogosSection = memo(function LogosSection({
           fontSize: FONT_SIZE.md,
           color: maxUnlockableLevel > 0 ? COLORS.primary : COLORS.text.muted,
           fontWeight: 'bold',
+          textAlign: 'center', // 헤더 텍스트 중앙 정렬
           alignSelf: 'start', // Grid stretch 무시 - 헤더 크기 유지
         }}>
           {maxUnlockableLevel === 0 && '🔒 '}8단계 로고스

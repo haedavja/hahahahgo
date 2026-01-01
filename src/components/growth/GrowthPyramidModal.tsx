@@ -229,7 +229,12 @@ const StatusSummary = memo(function StatusSummary({
                 marginBottom: SPACING.xs,
                 fontWeight: 'bold',
               }}>
-                파토스 (액티브) {unlockedPathos.length}개 [{growth.equippedPathos.length}/{MAX_EQUIPPED_PATHOS}]
+                <span
+                  title="파토스: 전투에서 장착하여 사용하는 액티브 능력입니다. 최대 3개까지 장착할 수 있습니다."
+                  style={{ cursor: 'help', borderBottom: '1px dashed currentColor' }}
+                >
+                  파토스 (액티브)
+                </span> {unlockedPathos.length}개 [{growth.equippedPathos.length}/{MAX_EQUIPPED_PATHOS}]
               </div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
                 {unlockedPathos.map(pathos => {
@@ -315,7 +320,12 @@ const StatusSummary = memo(function StatusSummary({
                 fontWeight: 'bold',
                 textAlign: 'right',
               }}>
-                에토스 (패시브) {displayEthos.length}개
+                <span
+                  title="에토스: 해금 시 자동으로 적용되는 패시브 능력입니다. 전투에서 항상 효과가 발동됩니다."
+                  style={{ cursor: 'help', borderBottom: '1px dashed currentColor' }}
+                >
+                  에토스 (패시브)
+                </span> {displayEthos.length}개
               </div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', justifyContent: 'flex-end' }}>
                 {displayEthos.map(ethos => (

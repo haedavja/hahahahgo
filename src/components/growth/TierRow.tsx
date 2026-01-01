@@ -121,6 +121,7 @@ const TierHeader = memo(function TierHeader({
       fontSize: FONT_SIZE.md,
       color: isLocked ? COLORS.text.muted : color,
       fontWeight: 'bold',
+      textAlign: 'center', // 헤더 텍스트 중앙 정렬
       alignSelf: 'start', // Grid stretch 무시 - 헤더 크기 유지
     }}>
       {isLocked ? '🔒 ' : ''}{label}

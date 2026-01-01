@@ -79,6 +79,7 @@ export const IdentitySection = memo(function IdentitySection({
           fontSize: FONT_SIZE.md,
           color: (canAccessSwordsman || canAccessGunslinger) ? COLORS.tier.identity.text : COLORS.text.muted,
           fontWeight: 'bold',
+          textAlign: 'center', // 헤더 텍스트 중앙 정렬
           alignSelf: 'start', // Grid stretch 무시 - 헤더 크기 유지
         }}>
           {!(canAccessSwordsman || canAccessGunslinger) && '🔒 '}7단계 자아
