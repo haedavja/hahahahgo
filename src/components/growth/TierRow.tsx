@@ -48,7 +48,6 @@ export const TierRow = memo(function TierRow({
     <div style={{
       marginBottom: SPACING.xl,
       position: 'relative',
-      zIndex: 1,
     }}>
       {/* 티어 헤더 */}
       <TierHeader
@@ -219,7 +218,7 @@ const NodeCard = memo(function NodeCard({
       data-node-id={node.id}
       style={{
       position: 'relative',
-      zIndex: 1,
+      zIndex: 10,
       width: nodeWidth,
       flex: `0 0 ${nodeWidth}`,
       padding: SPACING.md,
