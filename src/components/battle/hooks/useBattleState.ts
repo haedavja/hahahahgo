@@ -16,7 +16,9 @@ import type {
   BattleEvent,
   PostCombatOptions,
   DeflationInfo,
-  OrderItem
+  OrderItem,
+  HoveredCard,
+  HoveredEnemyAction
 } from '../../../types';
 import type { FullBattleState, NextTurnEffects, PlayerState, EnemyState, EnemyUnitState } from '../reducer/battleReducerState';
 import type { BattleAction, BattlePhase, SortType, EtherCalcPhase } from '../reducer/battleReducerActions';
@@ -165,13 +167,13 @@ export interface BattleActions {
   setTimelineIndicatorVisible: (visible: boolean) => void;
 
   // 카드 툴팁
-  setHoveredCard: (card: unknown) => void;
+  setHoveredCard: (card: HoveredCard | null) => void;
   setTooltipVisible: (visible: boolean) => void;
   setPreviewDamage: (damage: PreviewDamage) => void;
   setPerUnitPreviewDamage: (damage: Record<number, PreviewDamage>) => void;
   setShowPtsTooltip: (show: boolean) => void;
   setShowBarTooltip: (show: boolean) => void;
-  setHoveredEnemyAction: (action: unknown) => void;
+  setHoveredEnemyAction: (action: HoveredEnemyAction | null) => void;
 
   // 통찰 시스템
   setInsightBadge: (badge: InsightBadge) => void;
@@ -390,7 +392,7 @@ export function useBattleState(initialStateOverrides: InitialStateOverrides = {}
     setResolvedPlayerCards: (count: number) => dispatch({ type: ACTIONS.SET_RESOLVED_PLAYER_CARDS, payload: count }),
 
     // === 카드 툴팁 ===
-    setHoveredCard: (card: unknown) => dispatch({ type: ACTIONS.SET_HOVERED_CARD, payload: card as any }),
+    setHoveredCard: (card: HoveredCard | null) => dispatch({ type: ACTIONS.SET_HOVERED_CARD, payload: card }),
     setTooltipVisible: (visible: boolean) => dispatch({ type: ACTIONS.SET_TOOLTIP_VISIBLE, payload: visible }),
     setPreviewDamage: (damage: PreviewDamage) => dispatch({ type: ACTIONS.SET_PREVIEW_DAMAGE, payload: damage }),
     setPerUnitPreviewDamage: (damage: Record<number, PreviewDamage>) => dispatch({ type: ACTIONS.SET_PER_UNIT_PREVIEW_DAMAGE, payload: damage }),
@@ -404,7 +406,7 @@ export function useBattleState(initialStateOverrides: InitialStateOverrides = {}
     setShowInsightTooltip: (show: boolean) => dispatch({ type: ACTIONS.SET_SHOW_INSIGHT_TOOLTIP, payload: show }),
 
     // === 적 행동 툴팁 ===
-    setHoveredEnemyAction: (action: unknown) => dispatch({ type: ACTIONS.SET_HOVERED_ENEMY_ACTION, payload: action as any }),
+    setHoveredEnemyAction: (action: HoveredEnemyAction | null) => dispatch({ type: ACTIONS.SET_HOVERED_ENEMY_ACTION, payload: action }),
 
     // === 카드 파괴 애니메이션 ===
     setDestroyingEnemyCards: (indices: number[]) => dispatch({ type: ACTIONS.SET_DESTROYING_ENEMY_CARDS, payload: indices }),

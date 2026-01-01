@@ -19,7 +19,8 @@ import type {
   HandPlayer as Player,
   HandEnemy as Enemy,
   HandAction as Action,
-  Card
+  Card,
+  TokenEntity
 } from '../../../types';
 
 /**
@@ -111,7 +112,7 @@ export const HandArea: FC<HandAreaProps> = memo(({
   // 날 세우기 보너스
   const fencingBonus = useMemo(() => {
     if (!player) return 0;
-    return getTokenStacks(player as any, 'sharpened_blade');
+    return getTokenStacks(player as TokenEntity, 'sharpened_blade');
   }, [player]);
 
   // phase 체크 조건

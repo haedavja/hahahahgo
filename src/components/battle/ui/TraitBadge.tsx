@@ -9,6 +9,15 @@ import { FC, memo, useMemo } from 'react';
 import type { CSSProperties } from 'react';
 import { TRAITS } from '../battleData';
 
+/** 특성 정의 타입 */
+interface TraitDef {
+  id: string;
+  name: string;
+  type: 'positive' | 'negative';
+  weight: number;
+  description: string;
+}
+
 // =====================
 // 스타일 상수
 // =====================
@@ -48,7 +57,7 @@ interface TraitBadgeProps {
  */
 export const TraitBadge: FC<TraitBadgeProps> = memo(({ traitId }) => {
   const { trait, style } = useMemo(() => {
-    const t = (TRAITS as any)[traitId];
+    const t = (TRAITS as Record<string, TraitDef>)[traitId];
     if (!t) return { trait: null, style: NEGATIVE_STYLE };
     return {
       trait: t,
