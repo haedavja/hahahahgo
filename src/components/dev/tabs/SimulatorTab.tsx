@@ -33,6 +33,17 @@ function getEventName(id: string): string {
   return NEW_EVENT_LIBRARY[id]?.title || id;
 }
 
+// 카드 효과 요약 문자열 생성
+function getCardEffectStr(id: string): string {
+  const card = CARDS.find(c => c.id === id);
+  if (!card) return '-';
+  const effects: string[] = [];
+  if (card.damage) effects.push(`피해 ${card.damage}${card.hits && card.hits > 1 ? `×${card.hits}` : ''}`);
+  if (card.block) effects.push(`방어 ${card.block}`);
+  if (card.speedCost) effects.push(`속도 ${card.speedCost}`);
+  return effects.join(', ') || '-';
+}
+
 // 스타일 상수
 const STYLES = {
   sectionHeader: { marginTop: 0, color: '#fbbf24', fontSize: '1.125rem' } as CSSProperties,
@@ -370,7 +381,7 @@ export const SimulatorTab = memo(function SimulatorTab() {
                 </p>
                 <div style={STYLES.scrollBox}>
                   <table style={STYLES.table}>
-                    <thead><tr><th style={STYLES.th}>카드</th><th style={STYLES.th}>제시</th><th style={STYLES.th}>선택</th><th style={STYLES.th}>스킵</th><th style={STYLES.th}>픽률</th><th style={STYLES.th}>픽률 바</th></tr></thead>
+                    <thead><tr><th style={STYLES.th}>카드</th><th style={STYLES.th}>효과</th><th style={STYLES.th}>제시</th><th style={STYLES.th}>선택</th><th style={STYLES.th}>스킵</th><th style={STYLES.th}>픽률</th><th style={STYLES.th}>픽률 바</th></tr></thead>
                     <tbody>
                       {Object.entries(stats.cardPickStats.timesOffered || {})
                         .sort((a, b) => (stats.cardPickStats.pickRate[b[0]] || 0) - (stats.cardPickStats.pickRate[a[0]] || 0))
@@ -381,6 +392,7 @@ export const SimulatorTab = memo(function SimulatorTab() {
                           return (
                             <tr key={id}>
                               <td style={STYLES.td}>{getCardName(id)}</td>
+                              <td style={{...STYLES.td, fontSize: '0.75rem', color: '#94a3b8'}}>{getCardEffectStr(id)}</td>
                               <td style={STYLES.td}>{offered as number}회</td>
                               <td style={STYLES.td}>{picked}회</td>
                               <td style={STYLES.td}>{skipped}회</td>
@@ -410,7 +422,7 @@ export const SimulatorTab = memo(function SimulatorTab() {
                 </p>
                 <div style={STYLES.scrollBox}>
                   <table style={STYLES.table}>
-                    <thead><tr><th style={STYLES.th}>카드</th><th style={STYLES.th}>등장 런</th><th style={STYLES.th}>보유시 승률</th><th style={STYLES.th}>미보유시 승률</th><th style={STYLES.th}>기여도</th></tr></thead>
+                    <thead><tr><th style={STYLES.th}>카드</th><th style={STYLES.th}>효과</th><th style={STYLES.th}>등장</th><th style={STYLES.th}>보유시</th><th style={STYLES.th}>미보유시</th><th style={STYLES.th}>기여도</th></tr></thead>
                     <tbody>
                       {Object.entries(stats.cardContributionStats.contribution || {})
                         .filter(([id]) => (stats.cardContributionStats.runsWithCard[id] || 0) >= 2)
@@ -423,6 +435,7 @@ export const SimulatorTab = memo(function SimulatorTab() {
                           return (
                             <tr key={id}>
                               <td style={STYLES.td}>{getCardName(id)}</td>
+                              <td style={{...STYLES.td, fontSize: '0.75rem', color: '#94a3b8'}}>{getCardEffectStr(id)}</td>
                               <td style={STYLES.td}>{runsWithCard}회</td>
                               <td style={{...STYLES.td, color: '#22c55e'}}>{(winRateWith * 100).toFixed(1)}%</td>
                               <td style={{...STYLES.td, color: '#94a3b8'}}>{(winRateWithout * 100).toFixed(1)}%</td>
@@ -447,7 +460,7 @@ export const SimulatorTab = memo(function SimulatorTab() {
                 </p>
                 <div style={STYLES.scrollBox}>
                   <table style={STYLES.table}>
-                    <thead><tr><th style={STYLES.th}>카드 조합</th><th style={STYLES.th}>함께 등장</th><th style={STYLES.th}>승률</th><th style={STYLES.th}>승률 바</th></tr></thead>
+                    <thead><tr><th style={STYLES.th}>카드 조합</th><th style={STYLES.th}>효과</th><th style={STYLES.th}>등장</th><th style={STYLES.th}>승률</th><th style={STYLES.th}>승률 바</th></tr></thead>
                     <tbody>
                       {(stats.cardSynergyStats.topSynergies || []).map((synergy: { pair: string; frequency: number; winRate: number }, i: number) => {
                         const [card1, card2] = synergy.pair.split('+');
@@ -457,6 +470,10 @@ export const SimulatorTab = memo(function SimulatorTab() {
                               <span style={{ color: '#fbbf24' }}>{getCardName(card1)}</span>
                               <span style={{ color: '#64748b', margin: '0 4px' }}>+</span>
                               <span style={{ color: '#fbbf24' }}>{getCardName(card2)}</span>
+                            </td>
+                            <td style={{...STYLES.td, fontSize: '0.7rem', color: '#94a3b8'}}>
+                              <div>{getCardEffectStr(card1)}</div>
+                              <div>{getCardEffectStr(card2)}</div>
                             </td>
                             <td style={STYLES.td}>{synergy.frequency}회</td>
                             <td style={{...STYLES.td, color: synergy.winRate > 0.6 ? '#22c55e' : synergy.winRate > 0.4 ? '#fbbf24' : '#ef4444'}}>
