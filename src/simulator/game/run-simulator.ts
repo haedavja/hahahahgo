@@ -10,15 +10,17 @@
  * - 밸런스 테스트
  */
 
-import { getLogger } from '../core/logger';
+import { getLogger, setLogLevel, LogLevel } from '../core/logger';
 import { MapSimulator, MapState, MapNode, MapNodeType, MapSimulationConfig as MapConfig } from './map-simulator';
 import { EventSimulator, EventSimulationConfig, EventOutcome } from './event-simulator';
 import { ShopSimulator, ShopInventory, ShopResult, ShopSimulationConfig } from './shop-simulator';
 import { RestSimulator, RestResult, RestNodeConfig } from './rest-simulator';
 import { DungeonSimulator, DungeonState, DungeonExplorationResult, DungeonSimulationConfig } from './dungeon-simulator';
 import { TimelineBattleEngine } from '../core/timeline-battle-engine';
+import { EnhancedBattleProcessor, type EnhancedBattleResult } from '../core/enhanced-battle-processor';
 import { GrowthSystem, createGrowthSystem, applyGrowthBonuses, type GrowthState, type GrowthBonuses } from '../core/growth-system';
-import type { BattleResult, EnemyState, TokenState } from '../core/game-types';
+import { createComboOptimizer, type ComboOptimizer } from '../ai/combo-optimizer';
+import type { BattleResult, EnemyState, TokenState, GameCard } from '../core/game-types';
 import type { Card } from '../../types';
 import type { Item, ItemEffect } from '../../data/items';
 
@@ -198,21 +200,33 @@ export class RunSimulator {
   private restSimulator: RestSimulator;
   private dungeonSimulator: DungeonSimulator;
   private battleEngine: TimelineBattleEngine;
+  private enhancedBattleProcessor: EnhancedBattleProcessor;
+  private comboOptimizer: ComboOptimizer | null = null;
   private cardLibrary: Record<string, Card> = {};
+  private gameCardLibrary: Record<string, GameCard> = {};
   private enemyLibrary: EnemyDefinition[] = [];
   private enemyGroupLibrary: EnemyGroup[] = [];
   private itemLibrary: Record<string, Item> = {};
   private useBattleEngine: boolean = true; // 실제 전투 엔진 사용 여부
+  private useEnhancedBattle: boolean = true; // 향상된 전투 시스템 사용
 
-  constructor() {
+  constructor(options?: { verbose?: boolean; useEnhancedBattle?: boolean }) {
     this.mapSimulator = new MapSimulator();
     this.eventSimulator = new EventSimulator({});
     this.shopSimulator = new ShopSimulator();
     this.restSimulator = new RestSimulator();
     this.dungeonSimulator = new DungeonSimulator();
-    this.battleEngine = new TimelineBattleEngine({ verbose: false });
+    this.battleEngine = new TimelineBattleEngine({ verbose: options?.verbose ?? false });
+    this.enhancedBattleProcessor = new EnhancedBattleProcessor({
+      verbose: options?.verbose ?? false,
+      useMultiEnemy: true,
+      useChainSystem: true,
+      useEnhancedTokens: true,
+      useComboOptimizer: true,
+    });
+    this.useEnhancedBattle = options?.useEnhancedBattle ?? true;
 
-    log.info('RunSimulator initialized');
+    log.info('RunSimulator initialized with enhanced battle system');
   }
 
   // ==================== 데이터 로드 ====================
@@ -227,6 +241,16 @@ export class RunSimulator {
       const { CARD_LIBRARY } = await import('../../data/cards');
       this.shopSimulator.loadCardData(CARD_LIBRARY as any);
       this.cardLibrary = CARD_LIBRARY as Record<string, Card>;
+      this.gameCardLibrary = CARD_LIBRARY as unknown as Record<string, GameCard>;
+
+      // 향상된 전투 처리기에 카드 라이브러리 설정
+      this.enhancedBattleProcessor.setCardLibrary(this.gameCardLibrary);
+
+      // 콤보 최적화기 생성
+      this.comboOptimizer = createComboOptimizer(this.gameCardLibrary, {
+        comboWeight: 0.4,
+        combatWeight: 0.6,
+      });
 
       // 상징 데이터 로드
       const { RELICS } = await import('../../data/relics');
@@ -558,48 +582,69 @@ export class RunSimulator {
     // 전투 전 아이템 사용 (위기 상황에서)
     this.useItemsBeforeBattle(player, config.strategy, isElite || isBoss);
 
-    let totalBattleResult: BattleResult | null = null;
+    let totalBattleResult: BattleResult | EnhancedBattleResult | null = null;
     let wonAllBattles = true;
-    const enemyNames: string[] = [];
+    const enemyNames: string[] = enemies.map(e => e.name);
 
-    // 다중 적 순차 전투 (현재 엔진은 1:1 전투만 지원)
-    for (const enemy of enemies) {
-      if (player.hp <= 0) {
-        wonAllBattles = false;
-        break;
-      }
+    // 카드 강화 정보 생성
+    const cardEnhancements = this.buildCardEnhancements(player.upgradedCards);
 
-      let battleResult: BattleResult;
+    // 다중 적 전투 (향상된 전투 시스템 사용)
+    if (this.useEnhancedBattle && enemies.length > 1) {
+      // EnhancedBattleProcessor로 다중 적 동시 전투
+      const enhancedResult = this.enhancedBattleProcessor.runMultiEnemyBattle(
+        player.deck,
+        player.relics,
+        enemies,
+        undefined,
+        cardEnhancements
+      );
 
-      // 카드 강화 정보 생성
-      const cardEnhancements = this.buildCardEnhancements(player.upgradedCards);
+      totalBattleResult = enhancedResult;
+      wonAllBattles = enhancedResult.winner === 'player';
 
-      // 실제 전투 엔진 사용 (적 데이터가 있을 때)
-      if (this.useBattleEngine && this.enemyLibrary.length > 0) {
-        battleResult = this.battleEngine.runBattle(
-          player.deck,
-          player.relics,
-          enemy,
-          undefined, // 이변 ID (추후 확장)
-          cardEnhancements // 카드 강화 레벨 전달
-        );
+      if (wonAllBattles) {
+        player.hp = Math.max(1, enhancedResult.playerFinalHp);
       } else {
-        // 폴백: 확률 기반 시뮬레이션
-        battleResult = this.simulateCombatFallback(player, enemy, isElite, isBoss, difficulty);
-      }
-
-      enemyNames.push(enemy.name);
-
-      if (battleResult.winner === 'player') {
-        // 전투 승리 - 피해 적용 후 다음 적과 전투
-        player.hp = Math.max(1, battleResult.playerFinalHp);
-        totalBattleResult = battleResult;
-      } else {
-        // 전투 패배
-        wonAllBattles = false;
         player.hp = 0;
-        totalBattleResult = battleResult;
-        break;
+      }
+
+      log.debug(`다중 적 전투 완료: 연계 ${enhancedResult.chainsCompleted}회, 최대 연계 ${enhancedResult.maxChainLength}단`);
+    } else {
+      // 단일 적 또는 기존 방식 전투
+      for (const enemy of enemies) {
+        if (player.hp <= 0) {
+          wonAllBattles = false;
+          break;
+        }
+
+        let battleResult: BattleResult;
+
+        // 실제 전투 엔진 사용 (적 데이터가 있을 때)
+        if (this.useBattleEngine && this.enemyLibrary.length > 0) {
+          battleResult = this.battleEngine.runBattle(
+            player.deck,
+            player.relics,
+            enemy,
+            undefined, // 이변 ID (추후 확장)
+            cardEnhancements // 카드 강화 레벨 전달
+          );
+        } else {
+          // 폴백: 확률 기반 시뮬레이션
+          battleResult = this.simulateCombatFallback(player, enemy, isElite, isBoss, difficulty);
+        }
+
+        if (battleResult.winner === 'player') {
+          // 전투 승리 - 피해 적용 후 다음 적과 전투
+          player.hp = Math.max(1, battleResult.playerFinalHp);
+          totalBattleResult = battleResult;
+        } else {
+          // 전투 패배
+          wonAllBattles = false;
+          player.hp = 0;
+          totalBattleResult = battleResult;
+          break;
+        }
       }
     }
 
@@ -1167,12 +1212,23 @@ export class RunSimulator {
   }
 
   /**
-   * 전략에 따른 최적 카드 선택
+   * 전략에 따른 최적 카드 선택 (콤보 최적화기 통합)
    */
   private selectBestCard(cardChoices: string[], strategy: RunStrategy): string {
     // 카드 라이브러리가 없으면 랜덤 선택
     if (Object.keys(this.cardLibrary).length === 0) {
       return cardChoices[Math.floor(Math.random() * cardChoices.length)];
+    }
+
+    // 콤보 최적화기가 있으면 사용
+    if (this.comboOptimizer && cardChoices.length >= 2) {
+      const result = this.comboOptimizer.selectOptimalCards(cardChoices, 1, {
+        hpRatio: 1.0, // 보상 선택 시 HP 고려 안 함
+        enemyThreat: 0,
+      });
+      if (result.selectedCards.length > 0) {
+        return result.selectedCards[0];
+      }
     }
 
     // 각 카드에 점수 부여
@@ -1183,6 +1239,13 @@ export class RunSimulator {
       if (!card) return { cardId, score };
 
       const category = categorizeCard(card);
+
+      // 연계/후속/마무리 특성 보너스
+      if (card.traits) {
+        if (card.traits.includes('chain')) score += 15;
+        if (card.traits.includes('followup')) score += 12;
+        if (card.traits.includes('finisher')) score += 20;
+      }
 
       // 전략별 점수 조정
       switch (strategy) {
@@ -1435,8 +1498,32 @@ export class RunSimulator {
 
 // ==================== 헬퍼 함수 ====================
 
-export async function createRunSimulator(): Promise<RunSimulator> {
-  const simulator = new RunSimulator();
+export interface RunSimulatorOptions {
+  /** 상세 로그 출력 */
+  verbose?: boolean;
+  /** 향상된 전투 시스템 사용 */
+  useEnhancedBattle?: boolean;
+  /** 로그 레벨 설정 (성능 최적화) */
+  logLevel?: 'debug' | 'info' | 'warn' | 'error' | 'silent';
+}
+
+export async function createRunSimulator(options?: RunSimulatorOptions): Promise<RunSimulator> {
+  // 로그 레벨 설정 (성능 최적화)
+  if (options?.logLevel) {
+    const levelMap: Record<string, LogLevel> = {
+      debug: LogLevel.DEBUG,
+      info: LogLevel.INFO,
+      warn: LogLevel.WARN,
+      error: LogLevel.ERROR,
+      silent: LogLevel.SILENT,
+    };
+    setLogLevel(levelMap[options.logLevel] ?? LogLevel.INFO);
+  }
+
+  const simulator = new RunSimulator({
+    verbose: options?.verbose,
+    useEnhancedBattle: options?.useEnhancedBattle ?? true,
+  });
   await simulator.loadGameData();
   return simulator;
 }
