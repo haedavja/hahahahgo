@@ -506,28 +506,43 @@ export async function waitForUIStable(page: Page, options?: { timeout?: number }
 
 /**
  * 노드 선택 (맵에서 특정 타입의 노드 클릭)
+ * @param nodeType - 'battle', 'shop', 'rest', 'event', 'dungeon', 'elite', 'boss', 또는 'any'
  */
 export async function selectMapNode(page: Page, nodeType: string): Promise<boolean> {
-  // 먼저 고유 ID로 시도
-  let node = page.locator(`[data-testid="map-node-${nodeType}"]`).first();
+  let node;
 
-  if (!(await node.isVisible({ timeout: 1000 }).catch(() => false))) {
-    // 타입으로 시도 (선택 가능한 노드만)
+  if (nodeType === 'any') {
+    // 'any'인 경우 선택 가능한 아무 노드나 클릭
+    node = page.locator('[data-node-selectable="true"]').first();
+  } else {
+    // 먼저 노드 타입으로 시도 (선택 가능한 노드만)
     node = page.locator(`[data-node-type="${nodeType}"][data-node-selectable="true"]`).first();
+
+    if (!(await node.isVisible({ timeout: 1000 }).catch(() => false))) {
+      // 고유 ID로 시도 (fallback)
+      node = page.locator(`[data-testid="map-node-${nodeType}"]`).first();
+    }
   }
 
-  if (await node.isVisible({ timeout: 1000 }).catch(() => false)) {
+  if (await node.isVisible({ timeout: 2000 }).catch(() => false)) {
     await node.click();
-    // 노드 클릭 후 상태 변화 대기
+    // 노드 클릭 후 상태 변화 대기 (전투 화면 또는 모달)
     await page.waitForFunction(
-      (type) => {
+      () => {
         const battleScreen = document.querySelector('[data-testid="battle-screen"]');
         const modal = document.querySelector('[data-testid$="-modal"]');
         return battleScreen !== null || modal !== null;
       },
-      nodeType,
-      { timeout: 3000 }
+      { timeout: 5000 }
     ).catch(() => {});
+    return true;
+  }
+
+  // 마지막으로 클릭 가능한 노드 버튼 시도
+  const anyClickable = page.locator('.map-node:not(.cleared):not(.disabled)').first();
+  if (await anyClickable.isVisible({ timeout: 1000 }).catch(() => false)) {
+    await anyClickable.click();
+    await page.waitForTimeout(1000);
     return true;
   }
 

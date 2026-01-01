@@ -41,11 +41,11 @@ test.describe('전투 시스템', () => {
       await expect(handArea).toBeVisible();
 
       // 타임라인 영역
-      const timeline = page.locator('[data-testid="timeline"], .timeline, .timeline-display');
+      const timeline = page.locator('[data-testid="timeline-container"], [data-testid="timeline-panel"], .timeline, .timeline-display');
       await expect(timeline).toBeVisible();
 
-      // 적 정보
-      const enemyInfo = page.locator('[data-testid="enemy-info"], .enemy-info, .enemy-display');
+      // 적 정보 (HP 바 또는 에테르 박스)
+      const enemyInfo = page.locator('[data-testid="enemy-hp-bar-container"], [data-testid="enemy-ether-box"], .enemy-info, .enemy-display');
       await expect(enemyInfo).toBeVisible();
     }
   });
@@ -56,8 +56,8 @@ test.describe('전투 시스템', () => {
     const battleScreen = page.locator('.battle-screen, [data-testid="battle-screen"]');
 
     if (await battleScreen.isVisible()) {
-      // 카드 요소 찾기
-      const cards = page.locator('[data-testid="hand-card"], .hand-card, .card-in-hand');
+      // 카드 요소 찾기 (인덱스 포함 셀렉터)
+      const cards = page.locator('[data-testid^="hand-card-"], .hand-card, .card-in-hand');
       const cardCount = await cards.count();
 
       if (cardCount > 0) {
@@ -80,8 +80,8 @@ test.describe('전투 시스템', () => {
     const battleScreen = page.locator('.battle-screen, [data-testid="battle-screen"]');
 
     if (await battleScreen.isVisible()) {
-      // 카드 선택
-      const cards = page.locator('[data-testid="hand-card"], .hand-card');
+      // 카드 선택 (인덱스 포함 셀렉터)
+      const cards = page.locator('[data-testid^="hand-card-"], .hand-card');
       if ((await cards.count()) > 0) {
         await cards.first().click();
       }
@@ -114,7 +114,7 @@ test.describe('전투 시스템', () => {
     if (await battleScreen.isVisible()) {
       // 적 HP 바 또는 텍스트
       const enemyHp = page.locator(
-        '[data-testid="enemy-hp"], .enemy-hp, .enemy-health, .hp-bar-enemy'
+        '[data-testid="enemy-hp-text"], [data-testid="enemy-hp-area"], [data-testid="enemy-hp-bar-container"], .enemy-hp, .enemy-health'
       );
 
       await expect(enemyHp).toBeVisible();
@@ -127,9 +127,9 @@ test.describe('전투 시스템', () => {
     const battleScreen = page.locator('.battle-screen, [data-testid="battle-screen"]');
 
     if (await battleScreen.isVisible()) {
-      // 에테르 디스플레이
+      // 에테르 디스플레이 (플레이어 또는 적 에테르 박스)
       const etherDisplay = page.locator(
-        '[data-testid="ether-display"], .ether-display, .ether-pts, [class*="ether"]'
+        '[data-testid="player-ether-box"], [data-testid="enemy-ether-box"], .ether-display, .ether-pts, [class*="ether"]'
       );
 
       // 에테르 시스템이 있으면 표시되어야 함
