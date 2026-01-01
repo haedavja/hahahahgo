@@ -312,6 +312,66 @@ export interface AIStrategyStats {
   comboTypeUsage: Record<string, number>;
 }
 
+/** 카드 픽률 통계 (Slay the Spire 스타일) */
+export interface CardPickStats {
+  /** 카드별 제시 횟수 */
+  timesOffered: Record<string, number>;
+  /** 카드별 선택 횟수 */
+  timesPicked: Record<string, number>;
+  /** 카드별 픽률 (선택/제시) */
+  pickRate: Record<string, number>;
+  /** 카드별 스킵 횟수 */
+  timesSkipped: Record<string, number>;
+}
+
+/** 카드 기여도 통계 */
+export interface CardContributionStats {
+  /** 카드별: 해당 카드가 덱에 있을 때 승률 */
+  winRateWithCard: Record<string, number>;
+  /** 카드별: 해당 카드가 덱에 없을 때 승률 */
+  winRateWithoutCard: Record<string, number>;
+  /** 카드별: 기여도 (있을 때 - 없을 때) */
+  contribution: Record<string, number>;
+  /** 카드별: 등장 런 횟수 */
+  runsWithCard: Record<string, number>;
+}
+
+/** 카드 시너지 통계 */
+export interface CardSynergyStats {
+  /** 함께 픽된 카드 쌍별 횟수 */
+  cardPairFrequency: Record<string, number>;
+  /** 카드 쌍별 승률 */
+  cardPairWinRate: Record<string, number>;
+  /** TOP 시너지 조합 */
+  topSynergies: { pair: string; frequency: number; winRate: number }[];
+}
+
+/** 기록 통계 (Hades/Balatro 스타일) */
+export interface RecordStats {
+  /** 최장 연승 기록 */
+  longestWinStreak: number;
+  /** 현재 연승 */
+  currentWinStreak: number;
+  /** 무피해 전투 횟수 */
+  flawlessVictories: number;
+  /** 단일 턴 최대 피해 */
+  maxSingleTurnDamage: number;
+  /** 단일 턴 최대 피해 기록 상세 */
+  maxDamageRecord: { cardId: string; damage: number; monster: string } | null;
+  /** 가장 빠른 런 클리어 (전투 횟수) */
+  fastestClear: number;
+  /** 가장 빠른 런 상세 */
+  fastestClearRecord: { battlesWon: number; deckSize: number; strategy: string } | null;
+  /** 가장 큰 덱으로 클리어 */
+  largestDeckClear: number;
+  /** 가장 작은 덱으로 클리어 */
+  smallestDeckClear: number;
+  /** 최다 골드 보유 (런 종료 시) */
+  maxGoldHeld: number;
+  /** 보스 무피해 클리어 횟수 */
+  bossFlawlessCount: number;
+}
+
 /** 전체 상세 통계 */
 export interface DetailedStats {
   /** 수집 시작 시간 */
@@ -344,6 +404,14 @@ export interface DetailedStats {
   eventChoiceStats: Map<string, EventChoiceStats>;
   /** AI 전략 통계 */
   aiStrategyStats: AIStrategyStats;
+  /** 카드 픽률 통계 */
+  cardPickStats: CardPickStats;
+  /** 카드 기여도 통계 */
+  cardContributionStats: CardContributionStats;
+  /** 카드 시너지 통계 */
+  cardSynergyStats: CardSynergyStats;
+  /** 기록 통계 */
+  recordStats: RecordStats;
 }
 
 // ==================== 통계 수집기 ====================
@@ -433,6 +501,31 @@ export class StatsCollector {
   private cardSelectionReasons: Record<string, number> = {};
   private synergyTriggers: Record<string, number> = {};
   private comboTypeUsage: Record<string, number> = {};
+
+  // 카드 픽률 통계 (Slay the Spire 스타일)
+  private cardsOffered: Record<string, number> = {};
+  private cardsPicked: Record<string, number> = {};
+  private cardsSkipped: Record<string, number> = {};
+
+  // 카드 기여도 통계
+  private deckCompositions: { deck: string[]; success: boolean }[] = [];
+
+  // 카드 시너지 통계
+  private cardPairCounts: Record<string, number> = {};
+  private cardPairWins: Record<string, number> = {};
+
+  // 기록 통계
+  private currentWinStreak = 0;
+  private longestWinStreak = 0;
+  private flawlessVictories = 0;
+  private maxSingleTurnDamage = 0;
+  private maxDamageRecord: { cardId: string; damage: number; monster: string } | null = null;
+  private fastestClear = Infinity;
+  private fastestClearRecord: { battlesWon: number; deckSize: number; strategy: string } | null = null;
+  private largestDeckClear = 0;
+  private smallestDeckClear = Infinity;
+  private maxGoldHeld = 0;
+  private bossFlawlessCount = 0;
 
   private startTime: Date = new Date();
   private cardLibrary: Record<string, { name: string; type: string; special?: string[] }> = {};
@@ -1003,6 +1096,114 @@ export class StatsCollector {
     this.comboTypeUsage[comboType] = (this.comboTypeUsage[comboType] || 0) + 1;
   }
 
+  // ==================== 새 통계 기록 메서드 ====================
+
+  /** 카드 제시 기록 (픽률 통계용) */
+  recordCardOffered(cardIds: string[]) {
+    for (const cardId of cardIds) {
+      this.cardsOffered[cardId] = (this.cardsOffered[cardId] || 0) + 1;
+    }
+  }
+
+  /** 카드 선택 기록 (픽률 통계용) */
+  recordCardPicked(cardId: string, offeredCards: string[]) {
+    this.cardsPicked[cardId] = (this.cardsPicked[cardId] || 0) + 1;
+    // 선택되지 않은 카드들은 스킵으로 기록
+    for (const offered of offeredCards) {
+      if (offered !== cardId) {
+        this.cardsSkipped[offered] = (this.cardsSkipped[offered] || 0) + 1;
+      }
+    }
+  }
+
+  /** 카드 선택 스킵 기록 (모든 제시 카드 거절) */
+  recordCardPickSkipped(offeredCards: string[]) {
+    for (const cardId of offeredCards) {
+      this.cardsSkipped[cardId] = (this.cardsSkipped[cardId] || 0) + 1;
+    }
+  }
+
+  /** 덱 구성 기록 (기여도 통계용) */
+  recordDeckComposition(deck: string[], success: boolean) {
+    this.deckCompositions.push({ deck: [...deck], success });
+
+    // 카드 쌍 통계 업데이트
+    const uniqueCards = [...new Set(deck)];
+    for (let i = 0; i < uniqueCards.length; i++) {
+      for (let j = i + 1; j < uniqueCards.length; j++) {
+        const pair = [uniqueCards[i], uniqueCards[j]].sort().join('+');
+        this.cardPairCounts[pair] = (this.cardPairCounts[pair] || 0) + 1;
+        if (success) {
+          this.cardPairWins[pair] = (this.cardPairWins[pair] || 0) + 1;
+        }
+      }
+    }
+  }
+
+  /** 단일 턴 피해 기록 (최고 기록용) */
+  recordTurnDamage(damage: number, cardId: string, monsterName: string) {
+    if (damage > this.maxSingleTurnDamage) {
+      this.maxSingleTurnDamage = damage;
+      this.maxDamageRecord = { cardId, damage, monster: monsterName };
+    }
+  }
+
+  /** 무피해 전투 승리 기록 */
+  recordFlawlessVictory(isBoss: boolean = false) {
+    this.flawlessVictories++;
+    if (isBoss) {
+      this.bossFlawlessCount++;
+    }
+  }
+
+  /** 런 완료 기록 (기록 통계용) - recordRun 확장 */
+  recordRunComplete(data: {
+    success: boolean;
+    battlesWon: number;
+    deckSize: number;
+    strategy?: string;
+    gold: number;
+    deck?: string[];
+  }) {
+    // 연승 기록
+    if (data.success) {
+      this.currentWinStreak++;
+      if (this.currentWinStreak > this.longestWinStreak) {
+        this.longestWinStreak = this.currentWinStreak;
+      }
+
+      // 빠른 클리어 기록
+      if (data.battlesWon < this.fastestClear) {
+        this.fastestClear = data.battlesWon;
+        this.fastestClearRecord = {
+          battlesWon: data.battlesWon,
+          deckSize: data.deckSize,
+          strategy: data.strategy || 'unknown'
+        };
+      }
+
+      // 덱 크기 기록
+      if (data.deckSize > this.largestDeckClear) {
+        this.largestDeckClear = data.deckSize;
+      }
+      if (data.deckSize < this.smallestDeckClear) {
+        this.smallestDeckClear = data.deckSize;
+      }
+    } else {
+      this.currentWinStreak = 0;
+    }
+
+    // 최다 골드 기록
+    if (data.gold > this.maxGoldHeld) {
+      this.maxGoldHeld = data.gold;
+    }
+
+    // 덱 구성 기록 (기여도 분석용)
+    if (data.deck) {
+      this.recordDeckComposition(data.deck, data.success);
+    }
+  }
+
   /** 통계 수집 완료 및 결과 반환 */
   finalize(): DetailedStats {
     const runStats = this.calculateRunStats();
@@ -1013,6 +1214,10 @@ export class StatsCollector {
     const shopServiceStats = this.calculateShopServiceStats();
     const itemUsageStats = this.calculateItemUsageStats();
     const aiStrategyStats = this.calculateAIStrategyStats();
+    const cardPickStats = this.calculateCardPickStats();
+    const cardContributionStats = this.calculateCardContributionStats();
+    const cardSynergyStats = this.calculateCardSynergyStats();
+    const recordStats = this.calculateRecordStats();
 
     return {
       startTime: this.startTime,
@@ -1030,6 +1235,10 @@ export class StatsCollector {
       itemUsageStats,
       eventChoiceStats: this.eventChoiceStats,
       aiStrategyStats,
+      cardPickStats,
+      cardContributionStats,
+      cardSynergyStats,
+      recordStats,
     };
   }
 
@@ -1063,6 +1272,109 @@ export class StatsCollector {
       cardSelectionReasons: this.cardSelectionReasons,
       synergyTriggers: this.synergyTriggers,
       comboTypeUsage: this.comboTypeUsage,
+    };
+  }
+
+  /** 카드 픽률 통계 계산 */
+  private calculateCardPickStats(): CardPickStats {
+    const pickRate: Record<string, number> = {};
+
+    for (const cardId of Object.keys(this.cardsOffered)) {
+      const offered = this.cardsOffered[cardId] || 0;
+      const picked = this.cardsPicked[cardId] || 0;
+      pickRate[cardId] = offered > 0 ? picked / offered : 0;
+    }
+
+    return {
+      timesOffered: { ...this.cardsOffered },
+      timesPicked: { ...this.cardsPicked },
+      pickRate,
+      timesSkipped: { ...this.cardsSkipped },
+    };
+  }
+
+  /** 카드 기여도 통계 계산 */
+  private calculateCardContributionStats(): CardContributionStats {
+    const allCards = new Set<string>();
+    for (const { deck } of this.deckCompositions) {
+      for (const card of deck) {
+        allCards.add(card);
+      }
+    }
+
+    const winRateWithCard: Record<string, number> = {};
+    const winRateWithoutCard: Record<string, number> = {};
+    const contribution: Record<string, number> = {};
+    const runsWithCard: Record<string, number> = {};
+
+    for (const cardId of allCards) {
+      const runsWithThisCard = this.deckCompositions.filter(d => d.deck.includes(cardId));
+      const runsWithoutThisCard = this.deckCompositions.filter(d => !d.deck.includes(cardId));
+
+      runsWithCard[cardId] = runsWithThisCard.length;
+
+      const winsWithCard = runsWithThisCard.filter(d => d.success).length;
+      const winsWithoutCard = runsWithoutThisCard.filter(d => d.success).length;
+
+      winRateWithCard[cardId] = runsWithThisCard.length > 0
+        ? winsWithCard / runsWithThisCard.length
+        : 0;
+      winRateWithoutCard[cardId] = runsWithoutThisCard.length > 0
+        ? winsWithoutCard / runsWithoutThisCard.length
+        : 0;
+      contribution[cardId] = winRateWithCard[cardId] - winRateWithoutCard[cardId];
+    }
+
+    return {
+      winRateWithCard,
+      winRateWithoutCard,
+      contribution,
+      runsWithCard,
+    };
+  }
+
+  /** 카드 시너지 통계 계산 */
+  private calculateCardSynergyStats(): CardSynergyStats {
+    const cardPairWinRate: Record<string, number> = {};
+
+    for (const pair of Object.keys(this.cardPairCounts)) {
+      const count = this.cardPairCounts[pair] || 0;
+      const wins = this.cardPairWins[pair] || 0;
+      cardPairWinRate[pair] = count > 0 ? wins / count : 0;
+    }
+
+    // TOP 시너지 조합 (빈도 3 이상, 승률 높은 순)
+    const topSynergies = Object.entries(this.cardPairCounts)
+      .filter(([, count]) => count >= 3)
+      .map(([pair, frequency]) => ({
+        pair,
+        frequency,
+        winRate: cardPairWinRate[pair] || 0,
+      }))
+      .sort((a, b) => b.winRate - a.winRate || b.frequency - a.frequency)
+      .slice(0, 20);
+
+    return {
+      cardPairFrequency: { ...this.cardPairCounts },
+      cardPairWinRate,
+      topSynergies,
+    };
+  }
+
+  /** 기록 통계 계산 */
+  private calculateRecordStats(): RecordStats {
+    return {
+      longestWinStreak: this.longestWinStreak,
+      currentWinStreak: this.currentWinStreak,
+      flawlessVictories: this.flawlessVictories,
+      maxSingleTurnDamage: this.maxSingleTurnDamage,
+      maxDamageRecord: this.maxDamageRecord,
+      fastestClear: this.fastestClear === Infinity ? 0 : this.fastestClear,
+      fastestClearRecord: this.fastestClearRecord,
+      largestDeckClear: this.largestDeckClear,
+      smallestDeckClear: this.smallestDeckClear === Infinity ? 0 : this.smallestDeckClear,
+      maxGoldHeld: this.maxGoldHeld,
+      bossFlawlessCount: this.bossFlawlessCount,
     };
   }
 
@@ -1265,6 +1577,27 @@ export class StatsCollector {
     this.cardSelectionReasons = {};
     this.synergyTriggers = {};
     this.comboTypeUsage = {};
+    // 카드 픽률 통계 초기화
+    this.cardsOffered = {};
+    this.cardsPicked = {};
+    this.cardsSkipped = {};
+    // 카드 기여도 통계 초기화
+    this.deckCompositions = [];
+    // 카드 시너지 통계 초기화
+    this.cardPairCounts = {};
+    this.cardPairWins = {};
+    // 기록 통계 초기화
+    this.currentWinStreak = 0;
+    this.longestWinStreak = 0;
+    this.flawlessVictories = 0;
+    this.maxSingleTurnDamage = 0;
+    this.maxDamageRecord = null;
+    this.fastestClear = Infinity;
+    this.fastestClearRecord = null;
+    this.largestDeckClear = 0;
+    this.smallestDeckClear = Infinity;
+    this.maxGoldHeld = 0;
+    this.bossFlawlessCount = 0;
     this.startTime = new Date();
   }
 }
