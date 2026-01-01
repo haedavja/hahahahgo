@@ -152,7 +152,7 @@ const IdentityCard = memo(function IdentityCard({
           ? `2px solid ${COLORS.tier.identity.border}`
           : '1px solid #475569',
         borderRadius: BORDER_RADIUS.xl,
-        opacity: canAccess ? 1 : 0, // 잠금 상태에서 노드 숨김 (연결선은 표시)
+        opacity: canAccess ? 1 : 0.5, // 잠금 상태에서 희미하게 표시
         cursor: canSelect ? 'pointer' : 'default',
         transition: 'all 0.2s',
         textAlign: 'center',

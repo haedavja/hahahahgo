@@ -130,7 +130,7 @@ const LogosCard = memo(function LogosCard({
         background: locked ? 'rgba(71, 85, 105, 0.3)' : 'rgba(30, 41, 59, 0.5)',
         border: locked ? '1px dashed #6b7280' : '1px solid rgba(251, 191, 36, 0.3)',
         borderRadius: BORDER_RADIUS.lg,
-        opacity: locked ? 0 : 1, // 잠금 상태에서 노드 숨김 (연결선은 표시)
+        opacity: locked ? 0.5 : 1, // 잠금 상태에서 희미하게 표시
       }}
     >
       {/* 헤더 */}
