@@ -219,7 +219,7 @@ body {
 }
 .hp-fill {
   position: absolute;
-  left: 1px;
+  left: 6px;
   right: 7px;
   bottom: 1px;
   border-radius: 24px;

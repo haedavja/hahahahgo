@@ -33,23 +33,6 @@ import {
 // 스타일 상수
 // =====================
 
-const TEST_BUTTON_CONTAINER_STYLE: CSSProperties = {
-  position: 'absolute',
-  top: 120,
-  left: 20,
-  zIndex: 9999
-};
-
-const TEST_BUTTON_STYLE: CSSProperties = {
-  padding: '8px 12px',
-  background: '#ef4444',
-  color: 'white',
-  borderRadius: '6px',
-  fontWeight: 'bold',
-  boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
-  cursor: 'pointer'
-};
-
 const MAP_VIEW_STYLE: CSSProperties = {
   marginLeft: '400px'
 };
@@ -402,23 +385,6 @@ function MapDemoComponent() {
             {item.icon} {item.label}
           </span>
         ))}
-      </div>
-
-      <div style={TEST_BUTTON_CONTAINER_STYLE}>
-        <button
-          onClick={() => {
-            useGameStore.setState({
-              activeBattle: {
-                nodeId: "test-mixed",
-                kind: "battle",
-                label: "Mixed Mob"
-              }
-            });
-          }}
-          style={TEST_BUTTON_STYLE}
-        >
-          ⚔️ Test Mixed Battle
-        </button>
       </div>
 
       <div className="main-layout">
