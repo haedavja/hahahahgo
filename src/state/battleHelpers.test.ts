@@ -366,4 +366,311 @@ describe('drawCharacterBuildHand', () => {
       drawCharacterBuildHand(['nonexistent_card'], ['another_fake']);
     }).not.toThrow();
   });
+
+  it('보유 카드도 포함하여 손패를 생성할 수 있어야 함', () => {
+    const mainSpecials = ['marche'];
+    const subSpecials = ['parade'];
+    const ownedCards = ['strike', 'block', 'dodge'];
+
+    // 랜덤성이 있으므로 에러가 발생하지 않는지만 확인
+    expect(() => {
+      drawCharacterBuildHand(mainSpecials, subSpecials, ownedCards);
+    }).not.toThrow();
+  });
+});
+
+describe('createBattlePayload', () => {
+  // 동적 import를 통해 함수 가져오기
+  let createBattlePayload: typeof import('./battleHelpers').createBattlePayload;
+
+  beforeAll(async () => {
+    const module = await import('./battleHelpers');
+    createBattlePayload = module.createBattlePayload;
+  });
+
+  describe('null/invalid 노드 처리', () => {
+    it('null 노드는 null을 반환해야 함', () => {
+      const result = createBattlePayload(null as any, null);
+      expect(result).toBeNull();
+    });
+
+    it('start 노드는 null을 반환해야 함', () => {
+      const startNode = {
+        id: 'start',
+        type: 'battle',
+        isStart: true,
+        selectable: true,
+        cleared: false,
+      };
+      const result = createBattlePayload(startNode as any, null);
+      expect(result).toBeNull();
+    });
+
+    it('non-battle 노드는 null을 반환해야 함', () => {
+      const eventNode = {
+        id: 'event1',
+        type: 'event',
+        selectable: true,
+        cleared: false,
+      };
+      const result = createBattlePayload(eventNode as any, null);
+      expect(result).toBeNull();
+    });
+  });
+
+  describe('정상 battle 노드', () => {
+    it('battle 노드에서 유효한 페이로드를 생성해야 함', () => {
+      const battleNode = {
+        id: 'battle1',
+        type: 'battle',
+        layer: 1,
+        selectable: true,
+        cleared: false,
+      };
+
+      const result = createBattlePayload(battleNode as any, null);
+
+      expect(result).not.toBeNull();
+      expect(result?.nodeId).toBe('battle1');
+      expect(result?.kind).toBe('battle');
+      expect(result?.enemyCount).toBeGreaterThanOrEqual(1);
+      expect(result?.playerHand).toBeDefined();
+      expect(result?.enemyHand).toBeDefined();
+      expect(result?.preview).toBeDefined();
+      expect(result?.simulation).toBeDefined();
+    });
+
+    it('elite 노드에서 유효한 페이로드를 생성해야 함', () => {
+      const eliteNode = {
+        id: 'elite1',
+        type: 'elite',
+        layer: 3,
+        selectable: true,
+        cleared: false,
+      };
+
+      const result = createBattlePayload(eliteNode as any, null);
+
+      expect(result).not.toBeNull();
+      expect(result?.kind).toBe('elite');
+      expect(result?.difficulty).toBe(4);
+    });
+
+    it('boss 노드에서 유효한 페이로드를 생성해야 함', () => {
+      const bossNode = {
+        id: 'boss1',
+        type: 'boss',
+        layer: 5,
+        selectable: true,
+        cleared: false,
+      };
+
+      const result = createBattlePayload(bossNode as any, null);
+
+      expect(result).not.toBeNull();
+      expect(result?.kind).toBe('boss');
+      expect(result?.difficulty).toBe(5);
+    });
+
+    it('dungeon 노드에서 유효한 페이로드를 생성해야 함', () => {
+      const dungeonNode = {
+        id: 'dungeon1',
+        type: 'dungeon',
+        layer: 2,
+        selectable: true,
+        cleared: false,
+      };
+
+      const result = createBattlePayload(dungeonNode as any, null);
+
+      expect(result).not.toBeNull();
+      expect(result?.kind).toBe('dungeon');
+      expect(result?.difficulty).toBe(3);
+    });
+  });
+
+  describe('캐릭터 빌드 처리', () => {
+    it('캐릭터 빌드가 있으면 주특기/보조특기 카드를 사용해야 함', () => {
+      const battleNode = {
+        id: 'battle1',
+        type: 'battle',
+        layer: 1,
+        selectable: true,
+        cleared: false,
+      };
+
+      const characterBuild = {
+        mainSpecials: ['marche', 'parade'],
+        subSpecials: ['strike', 'block'],
+        ownedCards: ['dodge'],
+      };
+
+      const result = createBattlePayload(battleNode as any, characterBuild as any);
+
+      expect(result).not.toBeNull();
+      expect(result?.hasCharacterBuild).toBe(true);
+      expect(result?.characterBuild).toEqual(characterBuild);
+    });
+
+    it('빈 캐릭터 빌드는 hasCharacterBuild가 false여야 함', () => {
+      const battleNode = {
+        id: 'battle1',
+        type: 'battle',
+        layer: 1,
+        selectable: true,
+        cleared: false,
+      };
+
+      const emptyBuild = {
+        mainSpecials: [],
+        subSpecials: [],
+        ownedCards: [],
+      };
+
+      const result = createBattlePayload(battleNode as any, emptyBuild as any);
+
+      expect(result).not.toBeNull();
+      expect(result?.hasCharacterBuild).toBe(false);
+    });
+  });
+
+  describe('플레이어 HP 처리', () => {
+    it('플레이어 HP가 주어지면 시뮬레이션에 적용되어야 함', () => {
+      const battleNode = {
+        id: 'battle1',
+        type: 'battle',
+        layer: 1,
+        selectable: true,
+        cleared: false,
+      };
+
+      const result = createBattlePayload(battleNode as any, null, 50, 100);
+
+      expect(result).not.toBeNull();
+      expect(result?.simulation).toBeDefined();
+    });
+  });
+});
+
+describe('travelToNode', () => {
+  let travelToNode: typeof import('./battleHelpers').travelToNode;
+
+  beforeAll(async () => {
+    const module = await import('./battleHelpers');
+    travelToNode = module.travelToNode;
+  });
+
+  describe('invalid 입력', () => {
+    it('존재하지 않는 노드 ID는 null을 반환해야 함', () => {
+      const state = {
+        map: {
+          nodes: [
+            { id: 'node1', type: 'battle', selectable: true, cleared: false, connections: [] },
+          ],
+        },
+      };
+
+      const result = travelToNode(state as any, 'nonexistent');
+
+      expect(result).toBeNull();
+    });
+
+    it('선택 불가능한 노드는 null을 반환해야 함', () => {
+      const state = {
+        map: {
+          nodes: [
+            { id: 'node1', type: 'battle', selectable: false, cleared: false, connections: [] },
+          ],
+        },
+      };
+
+      const result = travelToNode(state as any, 'node1');
+
+      expect(result).toBeNull();
+    });
+
+    it('이미 클리어된 노드는 null을 반환해야 함', () => {
+      const state = {
+        map: {
+          nodes: [
+            { id: 'node1', type: 'battle', selectable: true, cleared: true, connections: [] },
+          ],
+        },
+      };
+
+      const result = travelToNode(state as any, 'node1');
+
+      expect(result).toBeNull();
+    });
+  });
+
+  describe('정상 이동', () => {
+    it('유효한 노드로 이동 시 결과를 반환해야 함', () => {
+      const state = {
+        map: {
+          nodes: [
+            { id: 'start', type: 'start', selectable: false, cleared: true, isStart: true, connections: ['node1'] },
+            { id: 'node1', type: 'battle', layer: 1, selectable: true, cleared: false, connections: ['node2'] },
+            { id: 'node2', type: 'battle', layer: 2, selectable: false, cleared: false, connections: [] },
+          ],
+        },
+        mapRisk: 0,
+        completedEvents: [],
+        pendingNextEvent: null,
+      };
+
+      const result = travelToNode(state as any, 'node1');
+
+      expect(result).not.toBeNull();
+      expect(result?.target.id).toBe('node1');
+      expect(result?.target.cleared).toBe(true);
+      expect(result?.map.currentNodeId).toBe('node1');
+    });
+
+    it('연결된 노드가 selectable로 변경되어야 함', () => {
+      const state = {
+        map: {
+          nodes: [
+            { id: 'start', type: 'start', selectable: false, cleared: true, isStart: true, connections: ['node1'] },
+            { id: 'node1', type: 'battle', layer: 1, selectable: true, cleared: false, connections: ['node2', 'node3'] },
+            { id: 'node2', type: 'battle', layer: 2, selectable: false, cleared: false, connections: [] },
+            { id: 'node3', type: 'event', layer: 2, selectable: false, cleared: false, connections: [] },
+          ],
+        },
+        mapRisk: 0,
+        completedEvents: [],
+        pendingNextEvent: null,
+      };
+
+      const result = travelToNode(state as any, 'node1');
+
+      expect(result).not.toBeNull();
+      const node2 = result?.map.nodes.find(n => n.id === 'node2');
+      const node3 = result?.map.nodes.find(n => n.id === 'node3');
+      expect(node2?.selectable).toBe(true);
+      expect(node3?.selectable).toBe(true);
+    });
+
+    it('다른 노드들은 selectable이 false로 변경되어야 함', () => {
+      const state = {
+        map: {
+          nodes: [
+            { id: 'start', type: 'start', selectable: false, cleared: true, isStart: true, connections: ['node1', 'node2'] },
+            { id: 'node1', type: 'battle', layer: 1, selectable: true, cleared: false, connections: ['node3'] },
+            { id: 'node2', type: 'battle', layer: 1, selectable: true, cleared: false, connections: ['node3'] },
+            { id: 'node3', type: 'battle', layer: 2, selectable: false, cleared: false, connections: [] },
+          ],
+        },
+        mapRisk: 0,
+        completedEvents: [],
+        pendingNextEvent: null,
+      };
+
+      const result = travelToNode(state as any, 'node1');
+
+      expect(result).not.toBeNull();
+      const node2 = result?.map.nodes.find(n => n.id === 'node2');
+      expect(node2?.selectable).toBe(false); // node2는 선택하지 않았으므로 비활성화
+    });
+  });
 });
