@@ -1567,20 +1567,25 @@ export class TimelineBattleEngine {
     const baseHits = card.hits || 1;
     const totalHits = baseHits + (options.extraHits || 0);
 
+    // 공격 수정자는 첫 타격 전에 한 번만 계산 (멀티히트 전체에 동일 적용)
+    // 게임과 동일: applyTokenEffectsToCard가 루프 전에 호출됨
+    const attackMods = calculateAttackModifiers(attackerState.tokens);
+    const baseFencingBonus = getFencingDamageBonus(attackerState.tokens, card);
+    const baseGunBonus = getGunDamageBonus(attackerState.tokens, card);
+
     for (let hit = 0; hit < totalHits; hit++) {
       if (defenderState.hp <= 0) break;
 
-      // 공격 수정자 계산
-      const attackMods = calculateAttackModifiers(attackerState.tokens);
+      // 방어 수정자는 매 타격마다 계산 (회피 등 소모 가능)
       const defenseMods = calculateDefenseModifiers(defenderState.tokens);
       const damageTakenMods = calculateDamageTakenModifiers(defenderState.tokens);
 
-      // 기본 피해 계산
+      // 기본 피해 계산 (미리 계산된 보너스 사용)
       let damage = card.damage || 0;
 
-      // 검격/총기 카드 보너스
-      damage += getFencingDamageBonus(attackerState.tokens, card);
-      damage += getGunDamageBonus(attackerState.tokens, card);
+      // 검격/총기 카드 보너스 (루프 전에 계산됨)
+      damage += baseFencingBonus;
+      damage += baseGunBonus;
 
       // 힘 보너스
       damage += attackMods.damageBonus;
@@ -1774,11 +1779,19 @@ export class TimelineBattleEngine {
       );
 
       // 토큰 소모
+      // 공격 토큰은 첫 타격에만 소모 (멀티히트 시 한 번만)
+      // 피해 수신 토큰은 매 타격마다 소모 (회피 등)
+      if (hit === 0) {
+        if (attacker === 'player') {
+          state.player.tokens = consumeAttackTokens(state.player.tokens);
+        } else {
+          state.enemy.tokens = consumeAttackTokens(state.enemy.tokens);
+        }
+      }
+      // 피해 수신 토큰은 매 타격마다 체크
       if (attacker === 'player') {
-        state.player.tokens = consumeAttackTokens(state.player.tokens);
         state.enemy.tokens = consumeDamageTakenTokens(state.enemy.tokens);
       } else {
-        state.enemy.tokens = consumeAttackTokens(state.enemy.tokens);
         state.player.tokens = consumeDamageTakenTokens(state.player.tokens);
       }
 
