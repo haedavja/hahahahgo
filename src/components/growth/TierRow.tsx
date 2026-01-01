@@ -3,7 +3,7 @@
  * @description 피라미드 티어 행 컴포넌트 (에토스/파토스 노드)
  */
 
-import { memo } from 'react';
+import { memo, useState, useCallback } from 'react';
 import type { EthosNode } from '../../data/growth/ethosData';
 import type { PathosNode } from '../../data/growth/pathosData';
 import type { Ethos } from '../../data/growth/ethosData';
@@ -23,6 +23,7 @@ interface TierRowProps {
   onUnlockNode: (nodeId: string, type: 'ethos' | 'pathos') => void;
   onSelectChoice: (choiceId: string) => void;
   pendingSelection: typeof initialGrowthState.pendingNodeSelection;
+  defaultCollapsed?: boolean;
 }
 
 export const TierRow = memo(function TierRow({
@@ -37,6 +38,7 @@ export const TierRow = memo(function TierRow({
   onUnlockNode,
   onSelectChoice,
   pendingSelection,
+  defaultCollapsed,
 }: TierRowProps) {
   const colors = COLORS.tier[tier as TierNumber];
   const isLocked = pyramidLevel < tier;
@@ -44,48 +46,70 @@ export const TierRow = memo(function TierRow({
   // 이 티어에서 해금된 노드 수 계산
   const unlockedCount = nodes.filter(node => growth.unlockedNodes.includes(node.id)).length;
 
+  // 접기/펼치기 상태 (잠긴 티어는 기본 접힘)
+  const [isCollapsed, setIsCollapsed] = useState(
+    defaultCollapsed !== undefined ? defaultCollapsed : isLocked
+  );
+
+  const toggleCollapse = useCallback(() => {
+    setIsCollapsed(prev => !prev);
+  }, []);
+
+  // 현재 티어에 해금 가능한 노드가 있는지 확인
+  const hasUnlockableNode = nodes.some(node => {
+    if (growth.unlockedNodes.includes(node.id)) return false;
+    const status = getNodeUnlockStatus(node.id, growth);
+    return status.canUnlock && skillPoints >= 1 && !pendingSelection;
+  });
+
   return (
     <div style={{
       marginBottom: SPACING.xl,
       position: 'relative',
       zIndex: 1,
     }}>
-      {/* 티어 헤더 */}
+      {/* 티어 헤더 (클릭으로 토글) */}
       <TierHeader
         label={label}
         requirement={requirement}
         isLocked={isLocked}
+        isCollapsed={isCollapsed}
         unlockedCount={unlockedCount}
         totalCount={nodes.length}
         color={colors.text}
+        hasUnlockable={hasUnlockableNode}
+        onToggle={toggleCollapse}
       />
 
-      {/* 노드 그리드 */}
-      <div style={{
-        display: 'flex',
-        flexWrap: 'wrap',
-        gap: SPACING.md,
-        justifyContent: 'center',
-        maxWidth: tier <= 3 ? '100%' : tier === 4 ? '90%' : '80%',
-        margin: '0 auto',
-      }}>
-        {nodes.map(node => (
-          <NodeCard
-            key={node.id}
-            node={node}
-            type={type}
-            growth={growth}
-            skillPoints={skillPoints}
-            isLocked={isLocked}
-            isPending={pendingSelection?.nodeId === node.id}
-            hasPendingSelection={pendingSelection !== null}
-            colors={colors}
-            nodeCount={nodes.length}
-            onUnlockNode={onUnlockNode}
-            onSelectChoice={onSelectChoice}
-          />
-        ))}
-      </div>
+      {/* 노드 그리드 (접혔으면 숨김) */}
+      {!isCollapsed && (
+        <div style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: SPACING.md,
+          justifyContent: 'center',
+          maxWidth: tier <= 3 ? '100%' : tier === 4 ? '90%' : '80%',
+          margin: '0 auto',
+          animation: 'fadeIn 0.2s ease-out',
+        }}>
+          {nodes.map(node => (
+            <NodeCard
+              key={node.id}
+              node={node}
+              type={type}
+              growth={growth}
+              skillPoints={skillPoints}
+              isLocked={isLocked}
+              isPending={pendingSelection?.nodeId === node.id}
+              hasPendingSelection={pendingSelection !== null}
+              colors={colors}
+              nodeCount={nodes.length}
+              onUnlockNode={onUnlockNode}
+              onSelectChoice={onSelectChoice}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 });
@@ -97,29 +121,69 @@ interface TierHeaderProps {
   label: string;
   requirement: string;
   isLocked: boolean;
+  isCollapsed: boolean;
   unlockedCount: number;
   totalCount: number;
   color: string;
+  hasUnlockable: boolean;
+  onToggle: () => void;
 }
 
 const TierHeader = memo(function TierHeader({
   label,
   requirement,
   isLocked,
+  isCollapsed,
   unlockedCount,
   totalCount,
   color,
+  hasUnlockable,
+  onToggle,
 }: TierHeaderProps) {
   return (
-    <div style={{
-      fontSize: FONT_SIZE.md,
-      color: isLocked ? COLORS.text.muted : color,
-      marginBottom: SPACING.sm,
-      display: 'flex',
-      alignItems: 'center',
-      gap: SPACING.sm,
-    }}>
+    <div
+      onClick={onToggle}
+      style={{
+        fontSize: FONT_SIZE.md,
+        color: isLocked ? COLORS.text.muted : color,
+        marginBottom: SPACING.sm,
+        display: 'flex',
+        alignItems: 'center',
+        gap: SPACING.sm,
+        cursor: 'pointer',
+        padding: `${SPACING.xs} ${SPACING.sm}`,
+        borderRadius: BORDER_RADIUS.md,
+        background: isCollapsed ? 'rgba(30, 41, 59, 0.5)' : 'transparent',
+        transition: 'background 0.15s',
+      }}
+    >
+      {/* 접기/펼치기 아이콘 */}
+      <span style={{
+        fontSize: FONT_SIZE.sm,
+        color: COLORS.text.muted,
+        transition: 'transform 0.2s',
+        transform: isCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)',
+        display: 'inline-block',
+      }}>
+        ▼
+      </span>
+
       <span style={{ fontWeight: 'bold' }}>{label}</span>
+
+      {/* 해금 가능 표시 */}
+      {hasUnlockable && (
+        <span style={{
+          fontSize: FONT_SIZE.xs,
+          padding: `1px ${SPACING.sm}`,
+          background: 'rgba(251, 191, 36, 0.2)',
+          borderRadius: BORDER_RADIUS.sm,
+          color: COLORS.primary,
+          animation: 'pulse 2s infinite',
+        }}>
+          ⚡ 해금 가능
+        </span>
+      )}
+
       {/* 해금 진행 상태 */}
       {unlockedCount > 0 && (
         <span style={{
@@ -132,6 +196,7 @@ const TierHeader = memo(function TierHeader({
           {unlockedCount}/{totalCount} 해금
         </span>
       )}
+
       {/* 접근 조건 */}
       <span style={{
         fontSize: FONT_SIZE.xs,
@@ -142,7 +207,19 @@ const TierHeader = memo(function TierHeader({
       }}>
         {isLocked ? '🔒 ' : ''}{requirement}
       </span>
+
       <span style={{ fontSize: FONT_SIZE.xs, color: COLORS.text.muted }}>검⚔ vs 총🔫</span>
+
+      {/* 접힌 상태 힌트 */}
+      {isCollapsed && (
+        <span style={{
+          fontSize: FONT_SIZE.xs,
+          color: COLORS.text.muted,
+          marginLeft: 'auto',
+        }}>
+          클릭해서 펼치기
+        </span>
+      )}
     </div>
   );
 });

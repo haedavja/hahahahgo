@@ -3,7 +3,7 @@
  * @description 1단계 에토스 섹션 (개성 기반 자동 해금)
  */
 
-import { memo } from 'react';
+import { memo, useState, useCallback } from 'react';
 import type { Ethos } from '../../data/growth/ethosData';
 import type { initialGrowthState } from '../../state/slices/growthSlice';
 import { COLORS, SPACING, FONT_SIZE, BORDER_RADIUS } from '../../styles/theme';
@@ -31,22 +31,65 @@ export const TraitEthosSection = memo(function TraitEthosSection({
 }: TraitEthosSectionProps) {
   const colors = COLORS.tier[1];
 
+  // 접기/펼치기 상태 (1단계는 기본 펼침)
+  const [isCollapsed, setIsCollapsed] = useState(false);
+
+  const toggleCollapse = useCallback(() => {
+    setIsCollapsed(prev => !prev);
+  }, []);
+
+  // 해금된 에토스 수
+  const unlockedCount = tier1Items.filter(e => growth.unlockedEthos.includes(e.id)).length;
+
   return (
     <div style={{
       marginBottom: SPACING.xl,
       position: 'relative',
       zIndex: 1,
     }}>
-      {/* 티어 헤더 */}
-      <div style={{
-        fontSize: FONT_SIZE.md,
-        color: colors.text,
-        marginBottom: SPACING.sm,
-        display: 'flex',
-        alignItems: 'center',
-        gap: SPACING.sm,
-      }}>
+      {/* 티어 헤더 (클릭으로 토글) */}
+      <div
+        onClick={toggleCollapse}
+        style={{
+          fontSize: FONT_SIZE.md,
+          color: colors.text,
+          marginBottom: SPACING.sm,
+          display: 'flex',
+          alignItems: 'center',
+          gap: SPACING.sm,
+          cursor: 'pointer',
+          padding: `${SPACING.xs} ${SPACING.sm}`,
+          borderRadius: BORDER_RADIUS.md,
+          background: isCollapsed ? 'rgba(30, 41, 59, 0.5)' : 'transparent',
+          transition: 'background 0.15s',
+        }}
+      >
+        {/* 접기/펼치기 아이콘 */}
+        <span style={{
+          fontSize: FONT_SIZE.sm,
+          color: COLORS.text.muted,
+          transition: 'transform 0.2s',
+          transform: isCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)',
+          display: 'inline-block',
+        }}>
+          ▼
+        </span>
+
         <span style={{ fontWeight: 'bold' }}>1단계 에토스</span>
+
+        {/* 해금 진행 상태 */}
+        {unlockedCount > 0 && (
+          <span style={{
+            fontSize: FONT_SIZE.xs,
+            padding: `1px ${SPACING.sm}`,
+            background: 'rgba(134, 239, 172, 0.2)',
+            borderRadius: BORDER_RADIUS.sm,
+            color: COLORS.success,
+          }}>
+            {unlockedCount}/{tier1Items.length} 해금
+          </span>
+        )}
+
         <span style={{
           fontSize: FONT_SIZE.xs,
           padding: `1px ${SPACING.sm}`,
@@ -56,25 +99,39 @@ export const TraitEthosSection = memo(function TraitEthosSection({
         }}>
           ✓ 개성 보유 시 자동 해금
         </span>
+
+        {/* 접힌 상태 힌트 */}
+        {isCollapsed && (
+          <span style={{
+            fontSize: FONT_SIZE.xs,
+            color: COLORS.text.muted,
+            marginLeft: 'auto',
+          }}>
+            클릭해서 펼치기
+          </span>
+        )}
       </div>
 
-      {/* 에토스 그리드 */}
-      <div style={{
-        display: 'flex',
-        flexWrap: 'wrap',
-        gap: SPACING.md,
-        justifyContent: 'center',
-      }}>
-        {tier1Items.map(ethos => (
-          <EthosCard
-            key={ethos.id}
-            ethos={ethos}
-            playerTraits={playerTraits}
-            isUnlocked={growth.unlockedEthos.includes(ethos.id)}
-            colors={colors}
-          />
-        ))}
-      </div>
+      {/* 에토스 그리드 (접혔으면 숨김) */}
+      {!isCollapsed && (
+        <div style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: SPACING.md,
+          justifyContent: 'center',
+          animation: 'fadeIn 0.2s ease-out',
+        }}>
+          {tier1Items.map(ethos => (
+            <EthosCard
+              key={ethos.id}
+              ethos={ethos}
+              playerTraits={playerTraits}
+              isUnlocked={growth.unlockedEthos.includes(ethos.id)}
+              colors={colors}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 });
