@@ -163,8 +163,8 @@ const NodeCard = memo(function NodeCard({
   const choices = getNodeChoices(node.id, type);
   const [choice1, choice2] = choices || [null, null];
 
-  // 1~3단계는 TraitEthosSection과 동일한 200px 사용 (수직 정렬)
-  const nodeWidth = tier <= 3 ? '200px' : nodeCount <= 4 ? '220px' : nodeCount <= 5 ? '200px' : '180px';
+  // 모든 노드 동일 크기
+  const nodeWidth = '200px';
 
   // 불투명 배경색 (연결선이 카드 뒤로 숨겨지도록)
   const getOpaqueBackground = () => {
