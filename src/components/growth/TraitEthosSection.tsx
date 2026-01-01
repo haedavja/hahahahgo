@@ -56,6 +56,7 @@ export const TraitEthosSection = memo(function TraitEthosSection({
           color: colors.text,
           fontWeight: 'bold',
           textAlign: 'center',
+          alignSelf: 'start', // Grid stretch 무시 - 헤더 크기 유지
         }}>
           1단계 개성
         </div>
