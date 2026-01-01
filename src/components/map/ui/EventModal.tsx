@@ -58,22 +58,22 @@ export const EventModal = memo(function EventModal({
   }, [chooseEvent]);
 
   return (
-    <div className="event-modal-overlay">
-      <div className="event-modal">
-        <header>
+    <div className="event-modal-overlay" data-testid="event-modal-overlay">
+      <div className="event-modal" data-testid="event-modal">
+        <header data-testid="event-modal-header">
           <h3>{activeEvent.definition?.title ?? "미확인 사건"}</h3>
         </header>
         <p style={DESCRIPTION_STYLE}>{displayText}</p>
 
         {!activeEvent.resolved && (
-          <div className="event-choices">
+          <div className="event-choices" data-testid="event-choices">
             {currentChoices.map((choice) => {
               const affordable = canAfford(resources as unknown as Record<string, number>, choice.cost as Record<string, number> || {});
               const hasRequiredStats = meetsStatRequirement(choice.statRequirement);
               const canSelect = affordable && hasRequiredStats;
 
               return (
-                <div key={choice.id} className="choice-card">
+                <div key={choice.id} className="choice-card" data-testid={`event-choice-${choice.id}`}>
                   <strong>{choice.label}</strong>
                   {choice.cost && Object.keys(choice.cost).length > 0 && (
                     <small style={affordable ? undefined : INSUFFICIENT_STYLE}>
@@ -90,7 +90,7 @@ export const EventModal = memo(function EventModal({
                       {!hasRequiredStats && " (부족)"}
                     </small>
                   )}
-                  <button type="button" disabled={!canSelect} onClick={() => handleChooseEvent(choice.id)}>
+                  <button type="button" disabled={!canSelect} onClick={() => handleChooseEvent(choice.id)} data-testid={`event-choice-btn-${choice.id}`}>
                     선택
                   </button>
                 </div>
@@ -100,14 +100,14 @@ export const EventModal = memo(function EventModal({
         )}
 
         {activeEvent.resolved && outcome && (
-          <div className="event-result">
+          <div className="event-result" data-testid="event-result">
             {outcome.cost && Object.keys(outcome.cost).length > 0 && (
               <p>소모: {formatApplied(Object.fromEntries(Object.entries(outcome.cost).map(([k, v]) => [k, -v])))}</p>
             )}
             {outcome.rewards && Object.keys(outcome.rewards).length > 0 && (
               <p>획득: {formatApplied(outcome.rewards as Record<string, unknown>)}</p>
             )}
-            <button type="button" className="close-btn" onClick={closeEvent}>
+            <button type="button" className="close-btn" onClick={closeEvent} data-testid="event-close-btn">
               확인
             </button>
           </div>

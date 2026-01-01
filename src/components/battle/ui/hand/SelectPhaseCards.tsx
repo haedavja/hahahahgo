@@ -64,7 +64,7 @@ export const SelectPhaseCards: FC<SelectPhaseCardsProps> = memo(function SelectP
   }, [selected]);
 
   return (
-    <div className="hand-cards">
+    <div className="hand-cards" data-testid="hand-cards">
       {hand.map((c, idx) => {
         const Icon = c.icon || (c.type === 'attack' ? Sword : Shield);
         const usageCount = player?.comboUsageCount?.[c.id] || 0;
@@ -83,6 +83,9 @@ export const SelectPhaseCards: FC<SelectPhaseCardsProps> = memo(function SelectP
         return (
           <div
             key={c.id + idx}
+            data-testid={`hand-card-${idx}`}
+            data-card-id={c.id}
+            data-card-selected={sel ? 'true' : 'false'}
             onClick={() => !disabled && toggle(enhancedCard)}
             onMouseEnter={(e: MouseEvent<HTMLDivElement>) => {
               const cardEl = e.currentTarget.querySelector('.game-card-large');

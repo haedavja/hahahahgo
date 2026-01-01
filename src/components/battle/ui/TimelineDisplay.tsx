@@ -233,15 +233,15 @@ export const TimelineDisplay: FC<TimelineDisplayProps> = memo(({
       </div>
 
       {/* Timeline 컨테이너 */}
-      <div style={TIMELINE_CONTAINER_STYLE}>
-        <div className="panel-enhanced timeline-panel" style={TIMELINE_PANEL_STYLE}>
-          <div className="timeline-body" style={TIMELINE_BODY_STYLE}>
+      <div style={TIMELINE_CONTAINER_STYLE} data-testid="timeline-container">
+        <div className="panel-enhanced timeline-panel" style={TIMELINE_PANEL_STYLE} data-testid="timeline-panel">
+          <div className="timeline-body" style={TIMELINE_BODY_STYLE} data-testid="timeline-body">
             {/* 진행 인디케이터 (시곗바늘) */}
             {battle.phase === 'resolve' && (
               <div className="timeline-progress-indicator" style={progressIndicatorStyle} />
             )}
 
-            <div className="timeline-lanes" style={TIMELINE_LANES_STYLE}>
+            <div className="timeline-lanes" style={TIMELINE_LANES_STYLE} data-testid="timeline-lanes">
               {/* 통찰 오버레이 */}
               {insightAnimLevel === 1 && (
                 <div className="insight-overlay insight-glitch" aria-hidden="true" />
@@ -266,6 +266,7 @@ export const TimelineDisplay: FC<TimelineDisplayProps> = memo(({
               <div
                 ref={playerLaneRef}
                 className="timeline-lane player-lane"
+                data-testid="player-timeline-lane"
                 style={playerLaneStyle}
                 onMouseMove={handleMouseMove}
                 onMouseUp={handleDragEnd}
@@ -356,7 +357,7 @@ export const TimelineDisplay: FC<TimelineDisplayProps> = memo(({
               </div>
 
               {/* 적 레인 */}
-              <div className="timeline-lane enemy-lane" style={enemyLaneStyle}>
+              <div className="timeline-lane enemy-lane" style={enemyLaneStyle} data-testid="enemy-timeline-lane">
                 {!hideEnemyTimeline && (
                   <>
                     {Array.from({ length: enemyMax + 1 }, (_, i) => (

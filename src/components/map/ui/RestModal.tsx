@@ -115,45 +115,45 @@ export function RestModal({
   }), [cardGrowthUsed]);
 
   return (
-    <div className="event-modal-overlay" onClick={closeRest}>
-      <div className="event-modal" onClick={handleStopPropagation}>
-        <header>
+    <div className="event-modal-overlay" onClick={closeRest} data-testid="rest-modal-overlay">
+      <div className="event-modal" onClick={handleStopPropagation} data-testid="rest-modal">
+        <header data-testid="rest-modal-header">
           <h3>휴식 · 각성</h3>
           <small>기억 100 소모 시 각성, 체력 회복 또는 카드 성장 선택</small>
         </header>
         <p>기억 보유량: {memoryValue} / 100 · 체력 {playerHp}/{maxHp}</p>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "10px", marginTop: "12px" }}>
-          <div className="choice-card">
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "10px", marginTop: "12px" }} data-testid="rest-choices">
+          <div className="choice-card" data-testid="rest-choice-warrior">
             <strong>전사</strong>
             <div style={{ display: "flex", gap: "8px", marginTop: "8px" }}>
-              <button className="btn" disabled={!canAwaken} onClick={handleAwakenBrave}>용맹(+힘1)</button>
-              <button className="btn" disabled={!canAwaken} onClick={handleAwakenSturdy}>굳건(+체력10)</button>
+              <button className="btn" disabled={!canAwaken} onClick={handleAwakenBrave} data-testid="rest-btn-brave">용맹(+힘1)</button>
+              <button className="btn" disabled={!canAwaken} onClick={handleAwakenSturdy} data-testid="rest-btn-sturdy">굳건(+체력10)</button>
             </div>
           </div>
-          <div className="choice-card">
+          <div className="choice-card" data-testid="rest-choice-sage">
             <strong>현자</strong>
             <div style={{ display: "flex", gap: "8px", marginTop: "8px" }}>
-              <button className="btn" disabled={!canAwaken} onClick={handleAwakenCold}>냉철(+통찰1)</button>
-              <button className="btn" disabled={!canAwaken} onClick={handleAwakenThorough}>철저(+보조슬롯1)</button>
+              <button className="btn" disabled={!canAwaken} onClick={handleAwakenCold} data-testid="rest-btn-cold">냉철(+통찰1)</button>
+              <button className="btn" disabled={!canAwaken} onClick={handleAwakenThorough} data-testid="rest-btn-thorough">철저(+보조슬롯1)</button>
             </div>
           </div>
-          <div className="choice-card">
+          <div className="choice-card" data-testid="rest-choice-hero">
             <strong>영웅</strong>
             <div style={{ display: "flex", gap: "8px", marginTop: "8px" }}>
-              <button className="btn" disabled={!canAwaken} onClick={handleAwakenPassionate}>열정(+속도5)</button>
-              <button className="btn" disabled={!canAwaken} onClick={handleAwakenLively}>활력(+행동력1)</button>
+              <button className="btn" disabled={!canAwaken} onClick={handleAwakenPassionate} data-testid="rest-btn-passionate">열정(+속도5)</button>
+              <button className="btn" disabled={!canAwaken} onClick={handleAwakenLively} data-testid="rest-btn-lively">활력(+행동력1)</button>
             </div>
           </div>
-          <div className="choice-card">
+          <div className="choice-card" data-testid="rest-choice-faith">
             <strong>신앙</strong>
             <div style={{ marginTop: "8px" }}>
-              <button className="btn" disabled={!canAwaken} onClick={handleAwakenRandom}>랜덤 개성</button>
+              <button className="btn" disabled={!canAwaken} onClick={handleAwakenRandom} data-testid="rest-btn-random">랜덤 개성</button>
             </div>
           </div>
-          <div className="choice-card">
+          <div className="choice-card" data-testid="rest-choice-rest">
             <strong>휴식</strong>
             <div style={{ marginTop: "8px", display: "flex", flexDirection: "column", gap: "8px" }}>
-              <button className="btn" onClick={handleHeal}>
+              <button className="btn" onClick={handleHeal} data-testid="rest-btn-heal">
                 체력 회복 (+30% 최대체력)
               </button>
               <button
@@ -161,12 +161,13 @@ export function RestModal({
                 onClick={handleOpenCardGrowth}
                 disabled={cardGrowthUsed}
                 style={cardGrowthBtnStyle}
+                data-testid="rest-btn-card-growth"
               >
                 {cardGrowthUsed ? '✓ 카드 승급 완료' : '🎴 카드 승급 (강화/특화)'}
               </button>
             </div>
           </div>
-          <div className="choice-card">
+          <div className="choice-card" data-testid="rest-choice-growth">
             <strong>성장 시스템</strong>
             <div style={{ marginTop: "8px" }}>
               <p style={{ fontSize: "12px", color: "#888", marginBottom: "8px" }}>
@@ -179,6 +180,7 @@ export function RestModal({
                   background: 'linear-gradient(135deg, rgba(251, 191, 36, 0.2), rgba(244, 114, 182, 0.2))',
                   border: '1px solid rgba(251, 191, 36, 0.4)',
                 }}
+                data-testid="rest-btn-pyramid"
               >
                 피라미드 성장
               </button>
@@ -187,7 +189,7 @@ export function RestModal({
         </div>
 
         <div style={{ display: "flex", gap: "10px", marginTop: "12px" }}>
-          <button className="btn" onClick={() => closeRest()}>닫기</button>
+          <button className="btn" onClick={() => closeRest()} data-testid="rest-close-btn">닫기</button>
         </div>
       </div>
 
