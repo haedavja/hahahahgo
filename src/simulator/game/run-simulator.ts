@@ -20,6 +20,8 @@ import { TimelineBattleEngine } from '../core/timeline-battle-engine';
 import { EnhancedBattleProcessor, type EnhancedBattleResult } from '../core/enhanced-battle-processor';
 import { GrowthSystem, createGrowthSystem, applyGrowthBonuses, type GrowthState, type GrowthBonuses } from '../core/growth-system';
 import { createComboOptimizer, type ComboOptimizer } from '../ai/combo-optimizer';
+import { DeckBuildingAI, mapRunStrategyToDeckStrategy } from '../ai/deck-building-ai';
+import { SeededRandom, initGlobalRandom, getGlobalRandom, resetGlobalRandom, getCurrentSeed } from '../core/seeded-random';
 import { StatsCollector } from '../analysis/detailed-stats';
 import type { BattleResult, EnemyState, TokenState, GameCard } from '../core/game-types';
 import type { Card } from '../../types';
@@ -207,6 +209,7 @@ export class RunSimulator {
   private battleEngine: TimelineBattleEngine;
   private enhancedBattleProcessor: EnhancedBattleProcessor;
   private comboOptimizer: ComboOptimizer | null = null;
+  private deckBuildingAI: DeckBuildingAI | null = null;
   private cardLibrary: Record<string, Card> = {};
   private gameCardLibrary: Record<string, GameCard> = {};
   private enemyLibrary: EnemyDefinition[] = [];
@@ -215,8 +218,12 @@ export class RunSimulator {
   private useBattleEngine: boolean = true; // 실제 전투 엔진 사용 여부
   private useEnhancedBattle: boolean = true; // 향상된 전투 시스템 사용
   private statsCollector: StatsCollector | null = null; // 상세 통계 수집기
+  private random: SeededRandom; // 시드 기반 난수 생성기
 
-  constructor(options?: { verbose?: boolean; useEnhancedBattle?: boolean }) {
+  constructor(options?: { verbose?: boolean; useEnhancedBattle?: boolean; seed?: number }) {
+    // 시드 기반 난수 생성기 초기화
+    this.random = new SeededRandom(options?.seed);
+
     this.mapSimulator = new MapSimulator();
     this.eventSimulator = new EventSimulator({});
     this.shopSimulator = new ShopSimulator();
@@ -232,7 +239,21 @@ export class RunSimulator {
     });
     this.useEnhancedBattle = options?.useEnhancedBattle ?? true;
 
-    log.info('RunSimulator initialized with enhanced battle system');
+    log.info('RunSimulator initialized', { seed: this.random.getSeed() });
+  }
+
+  /**
+   * 현재 시드 반환
+   */
+  getSeed(): number {
+    return this.random.getSeed();
+  }
+
+  /**
+   * 시드 리셋
+   */
+  resetSeed(seed?: number): void {
+    this.random.reset(seed);
   }
 
   /**
@@ -261,6 +282,7 @@ export class RunSimulator {
       // 카드 데이터 로드 (CARD_LIBRARY 사용)
       const { CARD_LIBRARY } = await import('../../data/cards');
       this.shopSimulator.loadCardData(CARD_LIBRARY as any);
+      this.shopSimulator.loadFullCardLibrary(CARD_LIBRARY as Record<string, Card>);
       this.cardLibrary = CARD_LIBRARY as Record<string, Card>;
       this.gameCardLibrary = CARD_LIBRARY as unknown as Record<string, GameCard>;
 
@@ -272,6 +294,9 @@ export class RunSimulator {
         comboWeight: 0.4,
         combatWeight: 0.6,
       });
+
+      // 덱 빌딩 AI 생성
+      this.deckBuildingAI = new DeckBuildingAI(this.cardLibrary, 'balanced');
 
       // 상징 데이터 로드
       const { RELICS } = await import('../../data/relics');
@@ -1051,13 +1076,15 @@ export class RunSimulator {
         gold: player.gold,
         hp: player.hp,
         maxHp: player.maxHp,
-        deck: player.deck,
-        relics: player.relics,
-        items: player.items,
+        deck: [...player.deck],
+        relics: [...player.relics],
+        items: [...player.items],
+        upgradedCards: [...player.upgradedCards],
       },
       strategy: config.strategy === 'aggressive' ? 'value' : 'survival',
       reserveGold: 30,
-      maxPurchases: 2, // 한 번의 상점 방문에서 최대 2개 구매 (더 제한적으로)
+      maxPurchases: 3, // 한 번의 상점 방문에서 최대 3개 구매
+      runStrategy: config.strategy, // 덱 빌딩 AI용 전략
     };
 
     const shopResult = this.shopSimulator.simulateShopVisit(filteredInventory, shopConfig);
@@ -1067,6 +1094,10 @@ export class RunSimulator {
     player.relics = shopResult.finalPlayerState.relics;
     player.items = shopResult.finalPlayerState.items;
     player.hp = shopResult.finalPlayerState.hp;
+    // 강화된 카드 동기화
+    if (shopResult.finalPlayerState.upgradedCards) {
+      player.upgradedCards = shopResult.finalPlayerState.upgradedCards;
+    }
 
     result.success = true;
     result.cardsGained = shopResult.purchases.filter(p => p.type === 'card').map(p => p.id);
