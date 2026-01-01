@@ -64,6 +64,9 @@ export interface GameCard {
   // 강화 관련
   enhancementLevel?: number;
   specializations?: string[];
+  // 포커 조합 관련
+  suit?: string;
+  value?: string | number;
 }
 
 // ==================== 토큰 타입 ====================

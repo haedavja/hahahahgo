@@ -6,11 +6,11 @@
  * 이 파일은 하위 호환성을 위해 유지됩니다.
  */
 
-import type { ComboCard, ComboCalculation } from '../../../types';
 import {
   detectPokerCombo as detectPokerComboShared,
   applyPokerBonus as applyPokerBonusShared,
-  type ComboCalculation as SharedComboCalculation,
+  type ComboCard,
+  type ComboCalculation,
 } from '../../../lib/comboDetection';
 
 /**
@@ -18,7 +18,7 @@ import {
  */
 export function detectPokerCombo(cards: ComboCard[]): ComboCalculation | null {
   // 공유 라이브러리로 위임
-  const result = detectPokerComboShared(cards as any);
+  const result = detectPokerComboShared(cards);
   if (!result) return null;
 
   return {
@@ -31,7 +31,7 @@ export function detectPokerCombo(cards: ComboCard[]): ComboCalculation | null {
  * 포커 조합 보너스 적용
  */
 export function applyPokerBonus(cards: ComboCard[], combo: ComboCalculation | null): ComboCard[] {
-  return applyPokerBonusShared(cards as any, combo as SharedComboCalculation | null) as ComboCard[];
+  return applyPokerBonusShared(cards, combo);
 }
 
 // Re-export types for backwards compatibility

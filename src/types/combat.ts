@@ -12,8 +12,10 @@ import type {
   TokenEffectPayload,
   TokenEntity,
   Relic,
-  LogFunction
+  LogFunction,
+  PassiveStats
 } from './core';
+import type { RelicTriggeredRefs, RelicTrigger } from './ui';
 
 // ==================== 전투 기본 타입 ====================
 
@@ -582,6 +584,24 @@ export interface FinishTurnResult {
   shouldReturn: boolean;
 }
 
+/** 카드 실행 액션 인터페이스 */
+export interface ExecuteCardActions {
+  setPlayer: (player: PlayerCombatData) => void;
+  setEnemy: (enemy: EnemyCombatData) => void;
+  setQueue: (queue: BattleAction[]) => void;
+  setActionEvents: (events: Record<number, BattleEvent[]>) => void;
+  setTurnEtherAccumulated: (value: number) => void;
+  setEtherPulse: (value: boolean) => void;
+  setResolvedPlayerCards: (value: number) => void;
+  setRelicActivated: (id: string | null) => void;
+  setEnemyTurnEtherAccumulated: (value: number) => void;
+  // 애니메이션 관련
+  setEnemyHit: (hit: boolean) => void;
+  setPlayerHit: (hit: boolean) => void;
+  setPlayerBlockAnim: (anim: boolean) => void;
+  setEnemyBlockAnim: (anim: boolean) => void;
+}
+
 /** 카드 실행 핵심 로직 파라미터 */
 export interface ExecuteCardActionCoreParams {
   action: BattleAction;
@@ -599,15 +619,24 @@ export interface ExecuteCardActionCoreParams {
   playerTimeline: Card[];
   relics: Relic[];
   safeInitialPlayer: PlayerCombatData;
-  triggeredRefs: { current: Set<string> };
-  calculatePassiveEffects: (...args: unknown[]) => unknown;
-  collectTriggeredRelics: (...args: unknown[]) => unknown;
-  playRelicActivationSequence: (...args: unknown[]) => void;
-  flashRelic: (relicId: string) => void;
+  triggeredRefs: RelicTriggeredRefs;
+  calculatePassiveEffects: (relicIds: string[]) => PassiveStats;
+  collectTriggeredRelics: (params: {
+    orderedRelicList: string[];
+    resolvedPlayerCards: number;
+    playerTimeline: Card[];
+    triggeredRefs: RelicTriggeredRefs;
+  }) => RelicTrigger[];
+  playRelicActivationSequence: (
+    triggered: RelicTrigger[],
+    flashRelic: (id: string, tone?: number, duration?: number) => void,
+    setRelicActivated: (id: string | null) => void
+  ) => void;
+  flashRelic: (relicId: string, tone?: number, duration?: number) => void;
   addLog: (msg: string) => void;
   playHitSound?: () => void;
   playBlockSound?: () => void;
-  actions: Record<string, (...args: unknown[]) => void>;
+  actions: ExecuteCardActions;
   consumeNextCardEffects?: () => void;
 }
 

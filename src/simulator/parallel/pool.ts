@@ -268,7 +268,7 @@ export class WorkerPool extends EventEmitter {
     };
   }
 
-  private calculateSummary(results: BattleResult[]): SimulationSummary {
+  public calculateSummary(results: BattleResult[]): SimulationSummary {
     const wins = results.filter((r) => r.winner === 'player').length;
     const losses = results.filter((r) => r.winner === 'enemy').length;
     const draws = results.filter((r) => r.winner === 'draw').length;
@@ -396,7 +396,7 @@ export function runQuickSimulation(
   }
 
   const pool = new WorkerPool();
-  const summary = (pool as any).calculateSummary(results);
+  const summary = pool.calculateSummary(results);
 
   return {
     config,

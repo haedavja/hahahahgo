@@ -21,7 +21,10 @@ import type {
   Combatant,
   BattleAction,
   HandAction,
-  SimActionEvent
+  SimActionEvent,
+  SpecialCard,
+  SpecialActor,
+  SpecialQueueItem
 } from '../../../types';
 import { hasTrait, markCrossedCards } from '../utils/battleUtils';
 
@@ -190,13 +193,13 @@ export function executeCardActionCore(params: ExecuteCardActionCoreParams): Exec
   // 스턴 효과 처리
   const stunResult = processStunEffect({
     action: action as StunAction,
-    queue: (battleRef.current?.queue ?? []) as any[],
+    queue: (battleRef.current?.queue ?? []) as BattleAction[],
     currentQIndex: battleRef.current?.qIndex ?? 0,
     addLog
   });
   if (stunResult.updatedQueue) {
-    const markedStunQueue = markCrossedCards(stunResult.updatedQueue as any);
-    actions.setQueue(markedStunQueue as any);
+    const markedStunQueue = markCrossedCards(stunResult.updatedQueue);
+    actions.setQueue(markedStunQueue);
   }
 
   // 액션 적용
@@ -234,10 +237,10 @@ export function executeCardActionCore(params: ExecuteCardActionCoreParams): Exec
   // 타임라인 조작 효과 처리
   const currentActor = action.actor === 'player' ? P : E;
   const timelineResult = processTimelineSpecials({
-    card: action.card as any,
-    actor: currentActor as any,
+    card: action.card as SpecialCard,
+    actor: currentActor as SpecialActor,
     actorName: action.actor as 'player' | 'enemy',
-    queue: (battleRef.current?.queue ?? []) as any[],
+    queue: (battleRef.current?.queue ?? []) as SpecialQueueItem[],
     currentIndex: battleRef.current?.qIndex ?? 0,
     damageDealt: actionResult.dealt || 0
   });
@@ -350,20 +353,20 @@ export function executeCardActionCore(params: ExecuteCardActionCoreParams): Exec
       resolvedPlayerCards: resolvedPlayerCards.length,
       playerTimeline,
       relics,
-      triggeredRefs: triggeredRefs as any,
-      calculatePassiveEffects: calcPassive as any,
-      getCardEtherGain: getCardEtherGain as any,
-      collectTriggeredRelics: collectTriggeredRelics as any,
-      playRelicActivationSequence: playRelicActivationSequence as any,
+      triggeredRefs,
+      calculatePassiveEffects: calcPassive,
+      getCardEtherGain,
+      collectTriggeredRelics,
+      playRelicActivationSequence,
       flashRelic,
-      actions: actions as any
+      actions
     });
   } else if (action.actor === 'enemy') {
     processEnemyEtherAccumulation({
       card: action.card,
       enemyTurnEtherAccumulated,
-      getCardEtherGain: getCardEtherGain as any,
-      actions: actions as any
+      getCardEtherGain,
+      actions
     });
 
     // 집요한 타격 효과 처리
@@ -410,11 +413,11 @@ export function executeCardActionCore(params: ExecuteCardActionCoreParams): Exec
 
   // 이벤트 애니메이션
   processActionEventAnimations({
-    actionEvents: actionEvents as any[],
-    action: action as any,
+    actionEvents: actionEvents as SimActionEvent[],
+    action: action as HandAction,
     playHitSound: playHitSound ?? (() => {}),
     playBlockSound: playBlockSound ?? (() => {}),
-    actions: actions as any
+    actions
   });
 
   // 파토스 다음 카드 효과 소모 (플레이어 카드 실행 후)

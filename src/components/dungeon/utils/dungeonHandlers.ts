@@ -61,6 +61,9 @@ interface HandlerContext {
   setDungeonData?: (data: MazeRoom[] | MazeData) => void;
 }
 
+// Export types for external use
+export type { HandlerContext, DungeonActions as DungeonHandlerActions, MazeRoom };
+
 // ========== 이벤트 핸들러 ==========
 export const OBJECT_HANDLERS = {
   chest: (obj: DungeonHandlerObject, context: HandlerContext) => {

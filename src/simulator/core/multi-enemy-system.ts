@@ -612,6 +612,6 @@ export function toSingleEnemyState(state: MultiEnemyState): EnemyState {
     cardsPerTurn: mainUnit?.cardsPerTurn || 2,
     emoji: mainUnit?.emoji,
     passives: mainUnit?.passives,
-    units: state.units as any,
+    units: state.units,
   };
 }

@@ -170,7 +170,7 @@ export function detectPokerCombo(cards: (GameCard | ComboCard)[]): ComboResult {
     traits: c.traits,
     isGhost: (c as ComboCard).isGhost,
     rarity: (c as ComboCard).rarity,
-    category: (c as any).category || inferCategory(c),
+    category: (c as ComboCard).category || inferCategory(c),
   }));
 
   const { validCards, freq, typeCount, categoryCount, traitCount } = analyzeCards(comboCards);

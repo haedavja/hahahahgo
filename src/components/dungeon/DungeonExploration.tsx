@@ -156,7 +156,7 @@ const CHARACTER_OVERLAY_STYLE: CSSProperties = {
 import { CONFIG, OBJECT_TYPES } from "./utils/dungeonConfig";
 import type { GameStore } from "../../state/slices/types";
 import { generateMaze } from "./utils/mazeGenerator";
-import { OBJECT_HANDLERS } from "./utils/dungeonHandlers";
+import { OBJECT_HANDLERS, type HandlerContext, type MazeRoom } from "./utils/dungeonHandlers";
 import { renderDungeonScene } from "./utils/renderDungeon";
 import { RewardModal, DungeonSummaryModal, CrossroadModal } from "./ui/DungeonModals";
 
@@ -365,14 +365,14 @@ function DungeonExplorationComponent() {
           handler(obj as DungeonObject, {
             applyEtherDelta,
             addResources,
-            actions: actions as any,
+            actions: actions as HandlerContext['actions'],
             startBattle,
             segmentIndex: 0,
             preBattleState,
             playerX,
             currentRoomKey,
-            grid: grid as any,
-            setDungeonData: (data) => setDungeonData(data as any),
+            grid: grid as Record<string, MazeRoom>,
+            setDungeonData: (data) => setDungeonData(data as RenderMazeData),
           });
         }
         return;
@@ -569,7 +569,7 @@ function DungeonExplorationComponent() {
            segment?.isDeadEnd ? '⚠️ 막다른 방' : '📍 미로'}
         </div>
         <div style={COORD_TEXT_STYLE}>
-          좌표: ({(segment as any)?.x}, {(segment as any)?.y})
+          좌표: ({currentRoomKey})
         </div>
         <div style={CONTROLS_TEXT_STYLE}>
           W: 상호작용/이동 | A/D: 좌우 | C: 캐릭터

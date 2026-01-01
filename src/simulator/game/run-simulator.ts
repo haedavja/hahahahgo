@@ -1782,7 +1782,7 @@ export class RunSimulator {
     runsPerStrategy: number = 100
   ): Promise<Record<RunStrategy, RunStatistics>> {
     const strategies: RunStrategy[] = ['aggressive', 'defensive', 'balanced', 'speedrun', 'treasure_hunter'];
-    const results: Record<RunStrategy, RunStatistics> = {} as any;
+    const results = {} as Record<RunStrategy, RunStatistics>;
 
     for (const strategy of strategies) {
       results[strategy] = this.simulateMultipleRuns(

@@ -741,7 +741,7 @@ export class TimelineBattleEngine {
             return this.getCardValue(other) === this.getCardValue(card);
           }
           if (cb.condition === 'sameSuit') {
-            return (other as any).suit === (card as any).suit;
+            return other.suit === card.suit;
           }
           if (cb.condition === 'sameCategory') {
             return other.cardCategory === card.cardCategory;
@@ -767,7 +767,7 @@ export class TimelineBattleEngine {
             return this.getCardValue(card) === this.getCardValue(crossCard);
           }
           if (cb.condition === 'sameSuit') {
-            return (card as any).suit === (crossCard as any).suit;
+            return card.suit === crossCard.suit;
           }
           if (cb.condition === 'sameCategory') {
             return card.cardCategory === crossCard.cardCategory;
@@ -906,7 +906,7 @@ export class TimelineBattleEngine {
             return this.getCardValue(other) === this.getCardValue(card);
           }
           if (cb.condition === 'sameSuit') {
-            return (other as any).suit === (card as any).suit;
+            return other.suit === card.suit;
           }
           if (cb.condition === 'sameCategory') {
             return other.cardCategory === card.cardCategory;
@@ -1014,8 +1014,8 @@ export class TimelineBattleEngine {
    */
   private getCardValue(card: GameCard): string | null {
     // 카드의 value 속성이 있으면 사용
-    if ((card as any).value) {
-      return String((card as any).value);
+    if (card.value) {
+      return String(card.value);
     }
 
     // 카드 이름에서 값 추출 (예: "Strike 5" → "5")

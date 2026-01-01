@@ -774,7 +774,7 @@ export async function benchmarkAITypes(
     }
   }
 
-  const summary: Record<AIType, { winRate: number; avgTurns: number; avgDamage: number }> = {} as any;
+  const summary = {} as Record<AIType, { winRate: number; avgTurns: number; avgDamage: number }>;
 
   for (const type of aiTypes) {
     summary[type] = {

@@ -15,7 +15,7 @@ export const MAP_LAYERS = 11;
 export const V_SPACING = 220;
 
 // 노드 아이콘 매핑
-export const ICON_MAP = {
+export const ICON_MAP: Record<string, string> = {
   battle: "⚔️",
   elite: "⛧",
   shop: "🛒",
@@ -61,7 +61,7 @@ export const STAT_LABELS = {
 };
 
 // 패치 버전 태그
-export const PATCH_VERSION_TAG = "01-02 08:12";
+export const PATCH_VERSION_TAG = "01-02 08:33";
 
 // 유틸리티 함수들
 export const describeAmount = (value: number | { min: number; max: number } | null | undefined) => {

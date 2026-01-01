@@ -295,7 +295,7 @@ export class UnifiedBattleEngine {
     anomalyId?: string
   ): Record<SkillLevel, BatchBattleResult> {
     const levels: SkillLevel[] = ['beginner', 'intermediate', 'advanced', 'optimal'];
-    const results: Record<SkillLevel, BatchBattleResult> = {} as any;
+    const results = {} as Record<SkillLevel, BatchBattleResult>;
 
     for (const level of levels) {
       results[level] = this.runBatchSimulation(

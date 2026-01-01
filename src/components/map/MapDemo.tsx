@@ -422,7 +422,7 @@ function MapDemoComponent() {
                   }}
                   onClick={() => handleNodeClick(node)}
                 >
-                  {!node.isStart && <span className="icon">{(ICON_MAP as any)[node.type] ?? "?"}</span>}
+                  {!node.isStart && <span className="icon">{ICON_MAP[node.type] ?? "?"}</span>}
                   <span>{node.isStart ? "START" : node.type === "event" ? "?" : node.displayLabel}</span>
                   {node.cleared && <strong>CLEAR</strong>}
                 </button>

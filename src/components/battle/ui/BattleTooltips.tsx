@@ -12,6 +12,7 @@ import { TRAITS } from '../battleData';
 import { applyTraitModifiers } from '../utils/battleUtils';
 import { TOKENS, TOKEN_CATEGORIES } from '../../../data/tokens';
 import { getEnhancementColor, getEnhancementLabel } from '../../../lib/cardEnhancementUtils';
+import type { Card as FullCard } from '../../../types';
 import type {
   HoveredEnemyAction,
   InsightReveal,
@@ -284,7 +285,7 @@ export const BattleTooltips: FC<BattleTooltipsProps> = memo(({
           })()}
           {(() => {
             const baseCard = CARDS.find(c => c.id === hoveredCard.card.id);
-            const enhancedCard = applyTraitModifiers((baseCard || hoveredCard.card) as any, { usageCount: 0, isInCombo: false });
+            const enhancedCard = applyTraitModifiers((baseCard || hoveredCard.card) as FullCard, { usageCount: 0, isInCombo: false });
             const parts: string[] = [];
             if (baseCard?.damage && enhancedCard.damage && enhancedCard.damage !== baseCard.damage) {
               const mult = (enhancedCard.damage / baseCard.damage).toFixed(2);
