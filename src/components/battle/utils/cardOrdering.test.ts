@@ -147,5 +147,124 @@ describe('cardOrdering', () => {
       expect(result[0].finalSpeed).toBe(7);
       expect(result[1].finalSpeed).toBe(5);
     });
+
+    describe('여유 특성', () => {
+      it('leisurePosition이 있으면 해당 값을 속도로 사용해야 함', () => {
+        const playerCards = [
+          { speedCost: 8, traits: ['leisure'], leisurePosition: 12 }
+        ] as any[];
+
+        const result = createFixedOrder(playerCards, [], 0);
+
+        // leisurePosition 12를 사용
+        expect(result[0].sp).toBe(12);
+        expect(result[0].finalSpeed).toBe(12);
+      });
+
+      it('leisurePosition이 없으면 기본 속도를 사용해야 함', () => {
+        const playerCards = [
+          { speedCost: 8, traits: ['leisure'] }
+        ] as any[];
+
+        const result = createFixedOrder(playerCards, [], 0);
+
+        expect(result[0].sp).toBe(8);
+      });
+
+      it('cardGrowth에서 leisure 특성을 확인해야 함', () => {
+        const playerCards = [
+          { id: 'card1', speedCost: 8, leisurePosition: 14 }
+        ] as any[];
+        const cardGrowth = {
+          card1: { traits: ['leisure'] }
+        };
+
+        const result = createFixedOrder(playerCards, [], 0, undefined, cardGrowth);
+
+        expect(result[0].sp).toBe(14);
+      });
+    });
+
+    describe('무리 특성', () => {
+      it('strainOffset이 있으면 속도에서 차감해야 함', () => {
+        const playerCards = [
+          { speedCost: 10, traits: ['strain'], strainOffset: 3 }
+        ] as any[];
+
+        const result = createFixedOrder(playerCards, [], 0);
+
+        // 10 - 3 = 7
+        expect(result[0].sp).toBe(7);
+        expect(result[0].finalSpeed).toBe(7);
+      });
+
+      it('strainOffset이 없으면 기본 속도를 사용해야 함', () => {
+        const playerCards = [
+          { speedCost: 10, traits: ['strain'] }
+        ] as any[];
+
+        const result = createFixedOrder(playerCards, [], 0);
+
+        expect(result[0].sp).toBe(10);
+      });
+
+      it('최소 속도는 1이어야 함', () => {
+        const playerCards = [
+          { speedCost: 2, traits: ['strain'], strainOffset: 3 }
+        ] as any[];
+
+        const result = createFixedOrder(playerCards, [], 0);
+
+        // 2 - 3 = -1 → 1로 클램프
+        expect(result[0].sp).toBe(1);
+        expect(result[0].finalSpeed).toBe(1);
+      });
+
+      it('cardGrowth에서 strain 특성을 확인해야 함', () => {
+        const playerCards = [
+          { id: 'card1', speedCost: 10, strainOffset: 2 }
+        ] as any[];
+        const cardGrowth = {
+          card1: { traits: ['strain'] }
+        };
+
+        const result = createFixedOrder(playerCards, [], 0, undefined, cardGrowth);
+
+        expect(result[0].sp).toBe(8);
+      });
+    });
+
+    describe('last 특성', () => {
+      it('last 특성이 있는 카드는 플레이어 카드 중 마지막에 배치되어야 함', () => {
+        const playerCards = [
+          { speedCost: 5, traits: ['last'] },
+          { speedCost: 3 },
+          { speedCost: 4 }
+        ] as any[];
+
+        const result = createFixedOrder(playerCards, [], 0);
+
+        // last 특성 카드가 마지막에 배치되어야 함
+        expect(result[0].card.speedCost).toBe(3);
+        expect(result[1].card.speedCost).toBe(4);
+        expect(result[2].card.speedCost).toBe(5);
+        expect(result[2].card.traits).toContain('last');
+      });
+
+      it('여러 last 카드의 순서가 유지되어야 함', () => {
+        const playerCards = [
+          { speedCost: 5, traits: ['last'] },
+          { speedCost: 3 },
+          { speedCost: 6, traits: ['last'] }
+        ] as any[];
+
+        const result = createFixedOrder(playerCards, [], 0);
+
+        // 일반 카드 먼저, last 카드들은 마지막에
+        expect(result[0].card.speedCost).toBe(3);
+        expect(result[1].card.speedCost).toBe(5);
+        expect(result[2].card.speedCost).toBe(6);
+      });
+    });
   });
 });
