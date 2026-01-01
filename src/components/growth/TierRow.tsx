@@ -41,9 +41,6 @@ export const TierRow = memo(function TierRow({
   const colors = COLORS.tier[tier as TierNumber];
   const isLocked = pyramidLevel < tier;
 
-  // 이 티어에서 해금된 노드 수 계산
-  const unlockedCount = nodes.filter(node => growth.unlockedNodes.includes(node.id)).length;
-
   return (
     <div style={{
       marginBottom: SPACING.xl,
@@ -54,8 +51,6 @@ export const TierRow = memo(function TierRow({
         label={label}
         requirement={requirement}
         isLocked={isLocked}
-        unlockedCount={unlockedCount}
-        totalCount={nodes.length}
         color={colors.text}
       />
 
@@ -97,8 +92,6 @@ interface TierHeaderProps {
   label: string;
   requirement: string;
   isLocked: boolean;
-  unlockedCount: number;
-  totalCount: number;
   color: string;
 }
 
@@ -106,8 +99,6 @@ const TierHeader = memo(function TierHeader({
   label,
   requirement,
   isLocked,
-  unlockedCount,
-  totalCount,
   color,
 }: TierHeaderProps) {
   return (
@@ -120,18 +111,6 @@ const TierHeader = memo(function TierHeader({
       gap: SPACING.md,
     }}>
       <span style={{ fontWeight: 'bold' }}>{label}</span>
-      {/* 해금 진행 상태 */}
-      {unlockedCount > 0 && (
-        <span style={{
-          fontSize: FONT_SIZE.sm,
-          padding: `2px ${SPACING.md}`,
-          background: 'rgba(134, 239, 172, 0.2)',
-          borderRadius: BORDER_RADIUS.sm,
-          color: COLORS.success,
-        }}>
-          {unlockedCount}/{totalCount} 해금
-        </span>
-      )}
       {/* 접근 조건 */}
       <span style={{
         fontSize: FONT_SIZE.sm,
@@ -142,7 +121,6 @@ const TierHeader = memo(function TierHeader({
       }}>
         {isLocked ? '🔒 ' : ''}{requirement}
       </span>
-      <span style={{ fontSize: FONT_SIZE.sm, color: COLORS.text.muted }}>검⚔ vs 총🔫</span>
     </div>
   );
 });
