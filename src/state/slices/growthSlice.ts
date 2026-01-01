@@ -117,6 +117,9 @@ export interface GrowthSliceActions {
 
   // 성장 상태 초기화
   resetGrowth: () => void;
+
+  // [DEV] 모든 성장 해금
+  devUnlockAllGrowth: () => void;
 }
 
 export type GrowthActionsSlice = GrowthSliceActions;
@@ -440,6 +443,37 @@ export const createGrowthActions: SliceCreator = (set, get) => ({
       ...state,
       growth: initialGrowthState,
     })),
+
+  devUnlockAllGrowth: () =>
+    set((state) => {
+      const allEthosIds = Object.keys(ETHOS);
+      const allPathosIds = Object.keys(PATHOS);
+      const allNodeIds = [
+        ...Object.keys(ETHOS_NODES),
+        ...Object.keys(PATHOS_NODES),
+      ];
+
+      const growth: GrowthState = {
+        pyramidLevel: 7,
+        skillPoints: 99,
+        traitCounts: {
+          brave: 3, sturdy: 3, cold: 3, thorough: 3, passionate: 3, lively: 3,
+        },
+        unlockedNodes: allNodeIds,
+        unlockedEthos: allEthosIds,
+        unlockedPathos: allPathosIds,
+        pendingNodeSelection: null,
+        identities: ['swordsman', 'gunslinger'],
+        logosLevels: {
+          common: 3,
+          gunkata: 3,
+          battleWaltz: 3,
+        },
+        equippedPathos: [],
+      };
+
+      return { ...state, growth };
+    }),
 });
 
 // 하위 호환성

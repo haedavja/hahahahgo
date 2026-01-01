@@ -182,7 +182,7 @@ export function RestModal({
                 }}
                 data-testid="rest-btn-pyramid"
               >
-                피라미드 성장
+                성장
               </button>
             </div>
           </div>
@@ -208,7 +208,7 @@ export function RestModal({
         </Suspense>
       )}
 
-      {/* 피라미드 성장 모달 */}
+      {/* 성장 모달 */}
       {showPyramidModal && (
         <Suspense fallback={null}>
           <GrowthPyramidModal

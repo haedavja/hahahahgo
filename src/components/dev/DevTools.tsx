@@ -163,6 +163,7 @@ export const DevTools = memo(function DevTools({ isOpen, onClose, showAllCards, 
     cardGrowth,
     enhanceCard,
     specializeCard,
+    devUnlockAllGrowth,
   } = store;
 
   // Hook은 조건문 앞에 있어야 함 (Rules of Hooks)
@@ -221,6 +222,7 @@ export const DevTools = memo(function DevTools({ isOpen, onClose, showAllCards, 
             devOpenRest={devOpenRest}
             awakenAtRest={awakenAtRest}
             closeRest={closeRest}
+            devUnlockAllGrowth={devUnlockAllGrowth}
           />
         )}
         {activeTab === 'map' && (

@@ -106,7 +106,7 @@ export const GrowthPyramidModal = memo(function GrowthPyramidModal({
           </button>
 
           <header style={{ textAlign: 'center', marginTop: 0 }}>
-            <h3 style={{ marginTop: 0 }}>🔺 피라미드 성장</h3>
+            <h3 style={{ marginTop: 0 }}>🔺 성장</h3>
             <small>개성으로 스킬포인트를 얻고, 에토스/파토스를 해금하세요</small>
           </header>
 

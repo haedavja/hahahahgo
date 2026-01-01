@@ -56,7 +56,7 @@ export const TraitEthosSection = memo(function TraitEthosSection({
           color: colors.text,
           fontWeight: 'bold',
         }}>
-          1단계 에토스
+          1단계 개성
         </div>
 
         {/* 에토스 카드들 */}

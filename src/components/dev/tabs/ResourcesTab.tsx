@@ -35,9 +35,10 @@ interface ResourcesTabProps {
   devOpenRest: () => void;
   awakenAtRest: (trait: string) => void;
   closeRest: () => void;
+  devUnlockAllGrowth: () => void;
 }
 
-export const ResourcesTab = memo(function ResourcesTab({ resources, setResources, devOpenRest, awakenAtRest, closeRest }: ResourcesTabProps) {
+export const ResourcesTab = memo(function ResourcesTab({ resources, setResources, devOpenRest, awakenAtRest, closeRest, devUnlockAllGrowth }: ResourcesTabProps) {
   const [inputs, setInputs] = useState<Resources>(resources);
 
   // 핸들러 메모이제이션
@@ -139,6 +140,20 @@ export const ResourcesTab = memo(function ResourcesTab({ resources, setResources
           <button className="btn" onClick={handleAwakenPassionate}>열정(+속도)</button>
           <button className="btn" onClick={handleAwakenLively}>활력(+행동력)</button>
           <button className="btn" onClick={handleAwakenRandom}>랜덤</button>
+        </div>
+      </div>
+
+      {/* 성장 해금 (DEV) */}
+      <div style={{ marginTop: '20px' }}>
+        <h4 style={{ color: '#cbd5e1', fontSize: '0.875rem', marginBottom: '6px' }}>성장 시스템:</h4>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+          <button
+            className="btn"
+            onClick={devUnlockAllGrowth}
+            style={{ background: 'rgba(134, 239, 172, 0.2)', border: '1px solid #86efac' }}
+          >
+            🔓 모든 성장 해금
+          </button>
         </div>
       </div>
     </div>
