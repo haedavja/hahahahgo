@@ -263,22 +263,43 @@ const SPECIAL_EFFECTS: Record<string, SpecialEffectHandler> = {
     const range = card.parryRange || 5;
     const pushAmount = card.parryPushAmount || 3;
     const targetOwner = actor === 'player' ? 'enemy' : 'player';
+    const parryPosition = timelineCard.position;
 
-    let pushed = false;
-    for (const tc of state.timeline) {
-      if (tc.owner === targetOwner && !tc.executed) {
-        const distance = Math.abs(tc.position - timelineCard.position);
-        if (distance <= range) {
+    // 패리 범위: 패리 카드 위치 ~ 패리 카드 위치 + range (단방향)
+    const minPos = parryPosition;
+    const maxPos = parryPosition + range;
+
+    // 범위 내 첫 번째 적 공격 카드 찾기 (게임처럼 한 번만 발동)
+    const targetCards = state.timeline
+      .filter(tc => {
+        if (tc.owner !== targetOwner || tc.executed) return false;
+        // 범위 체크: centerSp < enemySp <= maxSp
+        if (tc.position <= minPos || tc.position > maxPos) return false;
+        return true;
+      })
+      .sort((a, b) => a.position - b.position); // 가장 가까운 카드 우선
+
+    // 첫 번째 적 카드가 있으면 모든 적 카드를 밀어냄 (패리 트리거 효과)
+    if (targetCards.length > 0) {
+      let pushedCount = 0;
+      for (const tc of state.timeline) {
+        if (tc.owner === targetOwner && !tc.executed) {
           tc.position = Math.min(30, tc.position + pushAmount);
-          pushed = true;
+          pushedCount++;
         }
       }
+
+      return {
+        success: true,
+        effects: [`패리: 적 카드 ${pushedCount}장 ${pushAmount} 밀기`],
+        stateChanges: { timelinePush: pushAmount },
+      };
     }
 
     return {
-      success: pushed,
-      effects: pushed ? [`패리: 범위 내 적 카드 ${pushAmount} 밀기`] : [],
-      stateChanges: { timelinePush: pushed ? pushAmount : 0 },
+      success: false,
+      effects: ['패리: 범위 내 적 카드 없음'],
+      stateChanges: {},
     };
   },
 
@@ -649,20 +670,22 @@ const SPECIAL_EFFECTS: Record<string, SpecialEffectHandler> = {
   },
 
   recallCard: (state, _card, actor) => {
-    // 마지막 사용 카드 회수 - 버린 카드에서 랜덤 1장 회수
-    if (actor === 'player' && state.player.discard.length > 0) {
-      const idx = Math.floor(Math.random() * state.player.discard.length);
-      const recalled = state.player.discard.splice(idx, 1)[0];
-      state.player.hand.push(recalled);
+    // 함성: 대기 카드(deck)에서 1장을 손패(hand)로 가져옴
+    const target = actor === 'player' ? state.player : state.enemy;
+    if (target.deck.length > 0) {
+      // 랜덤 1장 선택 (실제 게임에서는 플레이어가 선택하지만, 시뮬레이터에서는 랜덤)
+      const idx = Math.floor(Math.random() * target.deck.length);
+      const recalled = target.deck.splice(idx, 1)[0];
+      target.hand.push(recalled);
       return {
         success: true,
-        effects: [`카드 회수: ${recalled}`],
+        effects: [`함성: ${recalled} 손패로 회수`],
         stateChanges: {},
       };
     }
     return {
       success: false,
-      effects: [],
+      effects: ['함성: 대기 카드 없음'],
       stateChanges: {},
     };
   },

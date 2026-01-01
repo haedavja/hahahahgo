@@ -1151,25 +1151,51 @@ export class TimelineBattleEngine {
             break;
           case 'leisure':
             // 여유 특성: 카드 속도의 1~2배 범위 내 최적 위치 선택 (AI)
-            // 적 카드와 교차할 수 있는 위치를 우선
+            // 교차 보너스가 있거나 적 공격 카드와 교차할 수 있는 위치를 우선
             const cardBaseSp = card.speedCost || 5;
             const leisureMin = cardBaseSp;
             const leisureMax = cardBaseSp * 2;
             const leisureDefault = Math.floor((leisureMin + leisureMax) / 2);
 
             if (state && state.timeline.length > 0) {
-              const enemyPositions = state.timeline
+              // 카드에 교차 보너스가 있는지 확인
+              const hasCrossBonus = !!card.crossBonus;
+
+              // 적 카드 정보 수집 (공격 카드 위치 우선)
+              const enemyCards = state.timeline
                 .filter(tc => tc.owner === 'enemy')
-                .map(tc => tc.position);
+                .map(tc => {
+                  const enemyCard = this.cards[tc.cardId];
+                  return {
+                    position: tc.position,
+                    isAttack: enemyCard?.type === 'attack' && (enemyCard?.damage || 0) > 0,
+                  };
+                });
+
               // 교차 가능한 위치 찾기 (카드 속도 ~ 2배 범위)
               let bestPos = leisureDefault;
+              let foundCross = false;
+
               for (let p = leisureMin; p <= leisureMax; p++) {
-                if (enemyPositions.includes(p)) {
-                  bestPos = p;
-                  break;
+                const enemyAtPos = enemyCards.find(e => e.position === p);
+                if (enemyAtPos) {
+                  // 교차 보너스가 있으면 무조건 교차
+                  if (hasCrossBonus) {
+                    bestPos = p;
+                    foundCross = true;
+                    break;
+                  }
+                  // 적 공격 카드와 교차하면 선공 효과
+                  if (enemyAtPos.isAttack) {
+                    bestPos = p;
+                    foundCross = true;
+                    break;
+                  }
                 }
               }
-              position = bestPos;
+
+              // 교차할 이유가 없으면 기본 위치 사용
+              position = foundCross ? bestPos : leisureDefault;
             } else {
               position = leisureDefault;
             }
@@ -1196,15 +1222,26 @@ export class TimelineBattleEngine {
 
   /**
    * 무리(strain) 특성 AI 결정: 행동력을 사용해 속도를 앞당길지 결정
+   * 개선: 교차 보너스가 있거나 적 공격 카드와 교차할 때만 앞당김
    */
   private applyStrainTrait(card: GameCard, basePosition: number, state: GameBattleState): number {
     if (!card.traits?.includes('strain')) return basePosition;
     if (state.player.energy < 1) return basePosition;
 
-    // 적 카드 위치 분석
-    const enemyPositions = state.timeline
+    // 카드에 교차 보너스가 있는지 확인
+    const hasCrossBonus = !!card.crossBonus;
+
+    // 적 카드 정보 수집
+    const enemyCards = state.timeline
       .filter(tc => tc.owner === 'enemy')
-      .map(tc => tc.position);
+      .map(tc => {
+        const enemyCard = this.cards[tc.cardId];
+        return {
+          position: tc.position,
+          isAttack: enemyCard?.type === 'attack' && (enemyCard?.damage || 0) > 0,
+          damage: enemyCard?.damage || 0,
+        };
+      });
 
     // 최대 3까지 앞당김 가능
     const maxAdvance = Math.min(3, state.player.energy);
@@ -1212,18 +1249,29 @@ export class TimelineBattleEngine {
     // 교차 가능한 위치 찾기
     for (let advance = 1; advance <= maxAdvance; advance++) {
       const newPos = basePosition - advance;
-      if (newPos >= 1 && enemyPositions.includes(newPos)) {
-        // 교차할 수 있으면 행동력 소모하고 앞당김
-        state.player.energy -= 1;
-        state.battleLog.push(`  ⚡ 무리: 속도 ${advance} 앞당김 (행동력 -1)`);
-        return newPos;
+      if (newPos < 1) continue;
+
+      const enemyAtPos = enemyCards.find(e => e.position === newPos);
+      if (enemyAtPos) {
+        // 교차 보너스가 있으면 무조건 앞당김
+        if (hasCrossBonus) {
+          state.player.energy -= 1;
+          state.battleLog.push(`  ⚡ 무리: 교차 보너스 활용을 위해 속도 ${advance} 앞당김 (행동력 -1)`);
+          return newPos;
+        }
+        // 적 공격 카드와 교차하면 선공 효과
+        if (enemyAtPos.isAttack) {
+          state.player.energy -= 1;
+          state.battleLog.push(`  ⚡ 무리: 적 공격 선취를 위해 속도 ${advance} 앞당김 (행동력 -1)`);
+          return newPos;
+        }
       }
     }
 
-    // 교차 불가능하면 공격 카드일 때만 1 앞당김
-    if (card.type === 'attack' && state.player.energy >= 1) {
+    // 교차 불가능해도, 공격 카드이고 적 체력이 낮으면 1 앞당김 (마무리 시도)
+    if (card.type === 'attack' && state.player.energy >= 1 && state.enemy.hp <= 30) {
       state.player.energy -= 1;
-      state.battleLog.push(`  ⚡ 무리: 속도 1 앞당김 (행동력 -1)`);
+      state.battleLog.push(`  ⚡ 무리: 마무리를 위해 속도 1 앞당김 (행동력 -1)`);
       return basePosition - 1;
     }
 
