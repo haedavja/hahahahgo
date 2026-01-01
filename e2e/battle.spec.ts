@@ -1,31 +1,21 @@
-import { test, expect, Page } from '@playwright/test';
-import { resetGameState, waitForMap, selectMapNode, waitForUIStable } from './utils/test-helpers';
+import { test, expect } from '@playwright/test';
+import {
+  resetGameState,
+  waitForUIStable,
+  enterBattle,
+  getSelectableNodeTypes,
+  quickAutoBattle
+} from './utils/test-helpers';
 
 /**
  * 전투 시스템 E2E 테스트
+ * 개선된 enterBattle() 헬퍼 사용 - 맵 탐색 방식으로 전투 노드까지 진행
  */
 test.describe('전투 시스템', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
     await resetGameState(page);
   });
-
-  /**
-   * 전투 화면으로 진입하는 헬퍼
-   */
-  async function enterBattle(page: Page) {
-    // 맵 화면 대기 (중앙 헬퍼 사용)
-    await waitForMap(page);
-
-    // 전투 노드 클릭 (중앙 헬퍼 사용)
-    const battleClicked = await selectMapNode(page, 'battle');
-
-    if (battleClicked) {
-      // 전투 화면이 로드될 때까지 대기 (상태 기반)
-      await page.waitForSelector('[data-testid="battle-screen"]', { timeout: 5000 }).catch(() => {});
-      await waitForUIStable(page);
-    }
-  }
 
   test('전투 UI 요소가 표시됨', async ({ page }) => {
     await enterBattle(page);
@@ -144,49 +134,21 @@ test.describe('전투 진행', () => {
     await page.goto('/');
     await resetGameState(page);
 
-    // 맵 화면 대기 (중앙 헬퍼 사용)
-    await waitForMap(page);
+    // 개선된 enterBattle() 사용 - 맵 탐색으로 전투 진입
+    const battleEntered = await enterBattle(page);
 
-    // 전투 노드 클릭 (중앙 헬퍼 사용)
-    const battleClicked = await selectMapNode(page, 'battle');
-
-    if (battleClicked) {
-      // 전투 화면 대기
-      await page.waitForSelector('[data-testid="battle-screen"]', { timeout: 5000 }).catch(() => {});
-
-      // 자동 전투 진행 (최대 10턴)
-      for (let turn = 0; turn < 10; turn++) {
-        // 전투 종료 확인
-        const result = page.locator('[data-testid="battle-result"], .battle-result, .victory, .defeat');
-        if (await result.isVisible()) {
-          break;
-        }
-
-        // 전투 화면이 없으면 종료
-        if (!(await page.locator('[data-testid="battle-screen"]').isVisible({ timeout: 100 }).catch(() => false))) {
-          break;
-        }
-
-        // 카드 선택 및 제출
-        const cards = page.locator('[data-testid^="hand-card-"]');
-        if ((await cards.count()) > 0) {
-          await cards.first().click().catch(() => {});
-        }
-
-        const submitBtn = page.locator('[data-testid="submit-cards-btn"]');
-        if (await submitBtn.isEnabled({ timeout: 500 }).catch(() => false)) {
-          await submitBtn.click().catch(() => {});
-          // 단계 변화 대기 (상태 기반)
-          await page.waitForFunction(
-            () => {
-              const phaseEl = document.querySelector('[data-testid="battle-phase"]');
-              const result = document.querySelector('[data-testid="battle-result"]');
-              return phaseEl?.getAttribute('data-phase') !== 'select' || result;
-            },
-            { timeout: 3000 }
-          ).catch(() => {});
-        }
+    if (battleEntered) {
+      // 전투 화면 확인
+      const battleScreen = page.locator('[data-testid="battle-screen"]');
+      if (await battleScreen.isVisible({ timeout: 1000 }).catch(() => false)) {
+        // quickAutoBattle 헬퍼로 자동 전투 진행
+        const result = await quickAutoBattle(page, 15);
+        console.log('Battle result:', result);
       }
+    } else {
+      // 전투 진입 실패 - 선택 가능한 노드 정보 로깅
+      const availableTypes = await getSelectableNodeTypes(page);
+      console.log('Failed to enter battle. Available node types:', availableTypes);
     }
   });
 });

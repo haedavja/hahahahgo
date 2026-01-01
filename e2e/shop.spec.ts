@@ -30,12 +30,10 @@ test.describe('상점 시스템', () => {
   test('상점 UI가 표시됨', async ({ page }) => {
     await enterShop(page);
 
-    // 상점 모달 또는 화면
-    const shopScreen = page.locator(
-      '[data-testid="shop-modal"], .shop-modal, .shop-screen, [class*="shop"]'
-    );
+    // 상점 모달 (구체적인 셀렉터 사용)
+    const shopScreen = page.locator('[data-testid="shop-modal"]').first();
 
-    if (await shopScreen.isVisible()) {
+    if (await shopScreen.isVisible({ timeout: 2000 }).catch(() => false)) {
       // 상점 아이템 목록
       const items = page.locator('[data-testid="shop-item"], .shop-item');
       const itemCount = await items.count();
@@ -47,9 +45,9 @@ test.describe('상점 시스템', () => {
   test('상점 아이템에 가격이 표시됨', async ({ page }) => {
     await enterShop(page);
 
-    const shopScreen = page.locator('.shop-modal, [data-testid="shop-modal"]');
+    const shopScreen = page.locator('[data-testid="shop-modal"]').first();
 
-    if (await shopScreen.isVisible()) {
+    if (await shopScreen.isVisible({ timeout: 2000 }).catch(() => false)) {
       // 가격 표시 확인
       const prices = page.locator('.item-price, [data-testid="item-price"], [class*="price"]');
       const priceCount = await prices.count();
@@ -65,9 +63,9 @@ test.describe('상점 시스템', () => {
   test('골드가 부족하면 구매 불가', async ({ page }) => {
     await enterShop(page);
 
-    const shopScreen = page.locator('.shop-modal, [data-testid="shop-modal"]');
+    const shopScreen = page.locator('[data-testid="shop-modal"]').first();
 
-    if (await shopScreen.isVisible()) {
+    if (await shopScreen.isVisible({ timeout: 2000 }).catch(() => false)) {
       // 비싼 아이템 찾기 (구매 불가능한 것)
       const disabledItem = page.locator(
         '.shop-item.disabled, [data-testid="shop-item"][disabled], .cannot-afford'
@@ -82,9 +80,9 @@ test.describe('상점 시스템', () => {
   test('상점 서비스(제거/강화)가 표시됨', async ({ page }) => {
     await enterShop(page);
 
-    const shopScreen = page.locator('.shop-modal, [data-testid="shop-modal"]');
+    const shopScreen = page.locator('[data-testid="shop-modal"]').first();
 
-    if (await shopScreen.isVisible()) {
+    if (await shopScreen.isVisible({ timeout: 2000 }).catch(() => false)) {
       // 서비스 섹션 (카드 제거, 강화 등)
       const services = page.locator(
         '[data-testid="shop-services"], .shop-services, .service-section, button:has-text("제거"), button:has-text("강화")'
@@ -98,9 +96,9 @@ test.describe('상점 시스템', () => {
   test('상점 나가기가 가능함', async ({ page }) => {
     await enterShop(page);
 
-    const shopScreen = page.locator('.shop-modal, [data-testid="shop-modal"]');
+    const shopScreen = page.locator('[data-testid="shop-modal"]').first();
 
-    if (await shopScreen.isVisible()) {
+    if (await shopScreen.isVisible({ timeout: 2000 }).catch(() => false)) {
       // 닫기/나가기 버튼
       const closeBtn = page.locator(
         '[data-testid="exit-shop-btn"], button:has-text("나가기"), button:has-text("닫기"), .close-btn, .modal-close'
