@@ -139,18 +139,9 @@ export const PyramidConnections = memo(function PyramidConnections({
     };
   }, [measurePositions, unlockedNodes, identities]);
 
-  // 자아-로고스 연결선 표시 여부 (잠금 시 숨김)
-  const shouldShowIdentityLogosLine = (from: string, to: string) => {
-    if (from.startsWith('identity-') && to.startsWith('logos-')) {
-      const identityId = from.replace('identity-', '');
-      return identities.includes(identityId);
-    }
-    return true;
-  };
-
   // 연결선 색상 결정
   const getLineColor = (from: string, to: string, tier: number) => {
-    // 자아-로고스 연결선 (선택된 자아만 표시)
+    // 자아-로고스 연결선
     if (from.startsWith('identity-') && to.startsWith('logos-')) {
       return COLORS.tier.identity?.text || COLORS.primary;
     }
@@ -172,7 +163,7 @@ export const PyramidConnections = memo(function PyramidConnections({
 
   // 연결선 두께 결정
   const getLineWidth = (from: string, to: string) => {
-    // 자아-로고스 연결선 (선택된 자아만 표시되므로 항상 굵게)
+    // 자아-로고스 연결선
     if (from.startsWith('identity-') && to.startsWith('logos-')) {
       return 3;
     }
@@ -209,9 +200,6 @@ export const PyramidConnections = memo(function PyramidConnections({
         const toPos = positions[to];
 
         if (!fromPos || !toPos) return null;
-
-        // 자아-로고스 연결선: 잠금 상태에서 숨김
-        if (!shouldShowIdentityLogosLine(from, to)) return null;
 
         const color = getLineColor(from, to, tier);
         const width = getLineWidth(from, to);

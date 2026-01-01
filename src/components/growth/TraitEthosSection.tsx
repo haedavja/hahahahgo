@@ -126,7 +126,7 @@ const EthosCard = memo(function EthosCard({
         }}>✓</span>
       )}
 
-      {/* 에토스 이름 */}
+      {/* 에토스 이름 - 레이아웃 안정화 */}
       <div style={{
         textAlign: 'center',
         marginBottom: SPACING.sm,
@@ -138,21 +138,26 @@ const EthosCard = memo(function EthosCard({
         }}>
           {ethos.name}
         </span>
-        {traitCount > 1 && (
-          <span style={{ fontSize: FONT_SIZE.md, color: COLORS.primary, marginLeft: '4px' }}>
-            x{traitCount}
-          </span>
-        )}
+        {/* x{count} 뱃지: 2개 이상일 때만 표시, 공간은 항상 예약 */}
+        <span style={{
+          fontSize: FONT_SIZE.md,
+          color: COLORS.primary,
+          marginLeft: '4px',
+          visibility: traitCount > 1 ? 'visible' : 'hidden',
+        }}>
+          x{traitCount > 1 ? traitCount : 2}
+        </span>
       </div>
 
-      {/* 개성 조건 */}
+      {/* 개성 조건 - 레이아웃 안정화: 공간 고정 */}
       <div style={{
         fontSize: FONT_SIZE.sm,
         color: hasTrait ? '#fde68a' : COLORS.text.muted,
         marginBottom: SPACING.xs,
         textAlign: 'center',
       }}>
-        {matchingTrait || '?'}{hasTrait ? '' : ' 필요'}
+        {matchingTrait || '?'}
+        <span style={{ visibility: hasTrait ? 'hidden' : 'visible' }}> 필요</span>
       </div>
 
       {/* 설명 */}
