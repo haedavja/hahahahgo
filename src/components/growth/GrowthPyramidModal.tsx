@@ -12,7 +12,7 @@
  * 정점: 자아 (검사/총잡이) + 로고스
  */
 
-import { memo } from 'react';
+import { memo, useRef } from 'react';
 import { useGameStore } from '../../state/gameStore';
 import { useShallow } from 'zustand/shallow';
 import { ETHOS_NODES, BASE_ETHOS } from '../../data/growth/ethosData';
@@ -26,6 +26,7 @@ import { IdentitySection } from './IdentitySection';
 import { TierRow } from './TierRow';
 import { TraitEthosSection } from './TraitEthosSection';
 import { UnlockedSummary } from './UnlockedSummary';
+import { PyramidConnections } from './PyramidConnections';
 
 interface GrowthPyramidModalProps {
   isOpen: boolean;
@@ -176,6 +177,8 @@ const PyramidView = memo(function PyramidView({
   onEquipPathos,
   onUnlockLogos,
 }: PyramidViewProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+
   // 티어별 노드 분류
   const tier6Nodes = Object.values(PATHOS_NODES).filter(n => n.tier === 6);
   const tier5Nodes = Object.values(ETHOS_NODES).filter(n => n.tier === 5);
@@ -185,7 +188,12 @@ const PyramidView = memo(function PyramidView({
   const tier1Items = Object.values(BASE_ETHOS);
 
   return (
-    <div>
+    <div ref={containerRef} style={{ position: 'relative' }}>
+      {/* 노드 연결선 SVG */}
+      <PyramidConnections
+        containerRef={containerRef}
+        unlockedNodes={growth.unlockedNodes}
+      />
       {/* 로고스 (정점 위) */}
       <LogosSection
         pyramidLevel={pyramidLevel}

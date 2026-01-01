@@ -100,7 +100,9 @@ const EthosCard = memo(function EthosCard({
   const hasTrait = traitCount > 0;
 
   return (
-    <div style={{
+    <div
+      data-node-id={ethos.id}
+      style={{
       width: '180px',
       flex: '0 0 180px',
       padding: SPACING.md,

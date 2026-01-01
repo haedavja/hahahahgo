@@ -168,7 +168,9 @@ const NodeCard = memo(function NodeCard({
   const nodeWidth = nodeCount <= 4 ? '220px' : nodeCount <= 5 ? '200px' : '180px';
 
   return (
-    <div style={{
+    <div
+      data-node-id={node.id}
+      style={{
       width: nodeWidth,
       flex: `0 0 ${nodeWidth}`,
       padding: SPACING.md,
