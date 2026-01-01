@@ -6,6 +6,100 @@ import { Page, Locator, expect } from '@playwright/test';
  */
 
 /**
+ * 타임아웃 상수 (일관성을 위해 중앙 관리)
+ */
+export const TIMEOUTS = {
+  /** 짧은 대기 (UI 반응) */
+  SHORT: 500,
+  /** 중간 대기 (애니메이션, 상태 변화) */
+  MEDIUM: 1000,
+  /** 긴 대기 (페이지 로드, 전환) */
+  LONG: 3000,
+  /** 매우 긴 대기 (게임 로드) */
+  VERY_LONG: 10000,
+  /** 극단적 대기 (전체 전투) */
+  EXTREME: 30000,
+} as const;
+
+/**
+ * 테스트 로거 - 디버깅용 로그 출력
+ */
+export const testLogger = {
+  info: (message: string, data?: unknown) => {
+    console.log(`[INFO] ${message}`, data !== undefined ? data : '');
+  },
+  warn: (message: string, data?: unknown) => {
+    console.warn(`[WARN] ${message}`, data !== undefined ? data : '');
+  },
+  error: (message: string, error?: unknown) => {
+    console.error(`[ERROR] ${message}`, error !== undefined ? error : '');
+  },
+  debug: (message: string, data?: unknown) => {
+    if (process.env.DEBUG) {
+      console.log(`[DEBUG] ${message}`, data !== undefined ? data : '');
+    }
+  },
+};
+
+/**
+ * 안전한 가시성 확인 (로깅 포함)
+ */
+export async function safeIsVisible(
+  locator: Locator,
+  options?: { timeout?: number; context?: string }
+): Promise<boolean> {
+  const timeout = options?.timeout ?? TIMEOUTS.MEDIUM;
+  const context = options?.context ?? 'element';
+
+  try {
+    const visible = await locator.isVisible({ timeout });
+    testLogger.debug(`${context} visibility: ${visible}`);
+    return visible;
+  } catch (error) {
+    testLogger.debug(`${context} visibility check failed`, error);
+    return false;
+  }
+}
+
+/**
+ * 필수 요소 대기 (없으면 에러)
+ */
+export async function waitForRequired(
+  page: Page,
+  selector: string,
+  options?: { timeout?: number; message?: string }
+): Promise<Locator> {
+  const timeout = options?.timeout ?? TIMEOUTS.LONG;
+  const message = options?.message ?? `Required element not found: ${selector}`;
+
+  try {
+    await page.waitForSelector(selector, { state: 'visible', timeout });
+    return page.locator(selector);
+  } catch (error) {
+    testLogger.error(message, { selector, error });
+    throw new Error(message);
+  }
+}
+
+/**
+ * 테스트 전제조건 확인 - 조건 불만족 시 skip
+ */
+export async function checkPrecondition(
+  locator: Locator,
+  description: string
+): Promise<{ met: boolean; skip: () => void }> {
+  const met = await safeIsVisible(locator, { context: description });
+  return {
+    met,
+    skip: () => {
+      if (!met) {
+        testLogger.warn(`Precondition not met: ${description}`);
+      }
+    },
+  };
+}
+
+/**
  * 게임이 완전히 로드될 때까지 대기
  */
 export async function waitForGameLoad(page: Page): Promise<void> {
@@ -490,12 +584,19 @@ export async function quickAutoBattle(page: Page, maxTurns: number = 20): Promis
       if (cardCount > 0) {
         // 첫 번째 카드 선택
         await handCards.first().click().catch(() => {});
-        await page.waitForTimeout(100); // 짧은 대기
+        // 카드 선택 상태 변화 대기 (상태 기반)
+        await page.waitForFunction(
+          () => {
+            const card = document.querySelector('[data-testid^="hand-card-"]');
+            return card?.getAttribute('data-card-selected') === 'true';
+          },
+          { timeout: TIMEOUTS.SHORT }
+        ).catch(() => {});
       }
 
       // 제출 버튼 클릭
       const submitBtn = page.locator('[data-testid="submit-cards-btn"]');
-      if (await submitBtn.isEnabled({ timeout: 500 }).catch(() => false)) {
+      if (await submitBtn.isEnabled({ timeout: TIMEOUTS.SHORT }).catch(() => false)) {
         await submitBtn.click().catch(() => {});
         // 단계 변화 대기
         await page.waitForFunction(
@@ -503,26 +604,26 @@ export async function quickAutoBattle(page: Page, maxTurns: number = 20): Promis
             const el = document.querySelector('[data-testid="battle-phase"]');
             return el?.getAttribute('data-phase') !== 'select';
           },
-          { timeout: 3000 }
+          { timeout: TIMEOUTS.LONG }
         ).catch(() => {});
       }
     } else if (phase === 'respond') {
       // 대응 단계: 진행 버튼 클릭
       const proceedBtn = page.locator('button:has-text("진행 시작"), button:has-text("▶️ 진행")');
-      if (await proceedBtn.isVisible({ timeout: 500 }).catch(() => false)) {
+      if (await proceedBtn.isVisible({ timeout: TIMEOUTS.SHORT }).catch(() => false)) {
         await proceedBtn.click().catch(() => {});
         await page.waitForFunction(
           () => {
             const el = document.querySelector('[data-testid="battle-phase"]');
             return el?.getAttribute('data-phase') === 'resolve';
           },
-          { timeout: 3000 }
+          { timeout: TIMEOUTS.LONG }
         ).catch(() => {});
       }
     } else if (phase === 'resolve') {
       // 진행 단계: 자동 진행 또는 턴 종료
       const turnEndBtn = page.locator('button:has-text("턴 종료"), button:has-text("전투 종료")');
-      if (await turnEndBtn.isVisible({ timeout: 500 }).catch(() => false)) {
+      if (await turnEndBtn.isVisible({ timeout: TIMEOUTS.SHORT }).catch(() => false)) {
         await turnEndBtn.click().catch(() => {});
         // 다음 턴 또는 전투 종료 대기
         await page.waitForFunction(
@@ -532,20 +633,34 @@ export async function quickAutoBattle(page: Page, maxTurns: number = 20): Promis
             const result = document.querySelector('[data-testid="battle-result"]');
             return phaseEl?.getAttribute('data-phase') === 'select' || !battleScreen || result;
           },
-          { timeout: 5000 }
+          { timeout: TIMEOUTS.VERY_LONG }
         ).catch(() => {});
       } else {
         // 자동 진행 버튼 클릭
         const autoBtn = page.locator('button:has-text("▶️ 진행")');
-        if (await autoBtn.isVisible({ timeout: 300 }).catch(() => false)) {
+        if (await autoBtn.isVisible({ timeout: TIMEOUTS.SHORT }).catch(() => false)) {
           await autoBtn.click().catch(() => {});
         }
-        // 타임라인 진행 대기
-        await page.waitForTimeout(500);
+        // 타임라인 진행 상태 변화 대기 (상태 기반)
+        await page.waitForFunction(
+          () => {
+            // 타임라인 업데이트 또는 전투 종료 확인
+            const phaseEl = document.querySelector('[data-testid="battle-phase"]');
+            const result = document.querySelector('[data-testid="battle-result"]');
+            return phaseEl?.getAttribute('data-phase') === 'select' || result !== null;
+          },
+          { timeout: TIMEOUTS.SHORT }
+        ).catch(() => {});
       }
     } else {
-      // 단계를 알 수 없는 경우 대기
-      await page.waitForTimeout(300);
+      // 단계를 알 수 없는 경우: UI 안정화 대기 (상태 기반)
+      await page.waitForFunction(
+        () => {
+          const animations = document.getAnimations();
+          return animations.every(a => a.playState === 'finished' || a.playState === 'idle');
+        },
+        { timeout: TIMEOUTS.SHORT }
+      ).catch(() => {});
     }
 
     // 턴 후 전투 종료 재확인
