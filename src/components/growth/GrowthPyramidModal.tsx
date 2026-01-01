@@ -73,7 +73,7 @@ export const GrowthPyramidModal = memo(function GrowthPyramidModal({
           position: 'sticky',
           top: 0,
           zIndex: 100,
-          background: COLORS.bg.secondary,
+          background: '#1e293b',
           paddingBottom: SPACING.md,
           marginBottom: SPACING.md,
         }}>
