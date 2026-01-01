@@ -285,6 +285,7 @@ export class RunSimulator {
       // 아이템 데이터 로드
       const { ITEMS } = await import('../../data/items');
       this.itemLibrary = ITEMS as Record<string, Item>;
+      this.shopSimulator.loadItemData(ITEMS as any);
 
       log.info('Game data loaded successfully', {
         events: Object.keys(NEW_EVENT_LIBRARY).length,

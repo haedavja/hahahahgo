@@ -494,7 +494,7 @@ export class StatsCollector {
       stats.usesInLosses += uses;
     }
 
-    // 이벤트에서 피해량/방어량 추출
+    // 이벤트에서 피해량/방어량/특수효과 추출
     for (const event of events) {
       if (event.cardId === cardId) {
         if (event.type === 'damage_dealt' && event.actor === 'player') {
@@ -505,6 +505,10 @@ export class StatsCollector {
         }
         if (event.type === 'cross_triggered') {
           stats.crossTriggers++;
+        }
+        if (event.type === 'special_triggered') {
+          const effectName = event.data?.effectName as string || 'unknown';
+          stats.specialTriggers[effectName] = (stats.specialTriggers[effectName] || 0) + 1;
         }
       }
     }

@@ -17,6 +17,7 @@ import type {
   TimelineCard,
   BattleResult,
   TokenState,
+  BattleEvent,
 } from './game-types';
 import { TimelineBattleEngine, DEFAULT_MAX_SPEED, DEFAULT_PLAYER_ENERGY, DEFAULT_MAX_SUBMIT_CARDS, DEFAULT_HAND_SIZE } from './timeline-battle-engine';
 import { syncAllCards, syncAllTraits } from '../data/game-data-sync';
@@ -95,6 +96,8 @@ export interface MultiEnemyBattleState {
   etherOverdriveActive: boolean;
   /** 개별 적에게 준 피해량 (적 인덱스 -> 피해량) */
   damageDealtToEnemies: Record<number, number>;
+  /** 전투 이벤트 기록 (통계용) */
+  battleEvents: BattleEvent[];
 }
 
 /** 타겟팅 모드 */
@@ -301,6 +304,7 @@ export class MultiEnemyBattleEngine {
       comboStats: {},
       etherOverdriveActive: false,
       damageDealtToEnemies: {},
+      battleEvents: [],
     };
 
     // 덱 셔플
@@ -896,6 +900,16 @@ export class MultiEnemyBattleEngine {
     // 카드 플레이 기록 (에테르/콤보용)
     state.cardsPlayedThisTurn.push(card);
 
+    // 교차 이벤트 기록 (통계용)
+    if (tc.crossed) {
+      state.battleEvents.push({
+        type: 'cross_triggered',
+        turn: state.turn,
+        actor: 'player',
+        cardId: card.id,
+      });
+    }
+
     // 타겟 결정
     const targets = this.determineTargets(state, card);
 
@@ -998,6 +1012,17 @@ export class MultiEnemyBattleEngine {
           // 개별 적 피해량 추적
           state.damageDealtToEnemies[targetIdx] = (state.damageDealtToEnemies[targetIdx] || 0) + actualDamage;
 
+          // 피해 이벤트 기록 (통계용)
+          if (actualDamage > 0) {
+            state.battleEvents.push({
+              type: 'damage_dealt',
+              turn: state.turn,
+              actor: 'player',
+              cardId: card.id,
+              value: actualDamage,
+            });
+          }
+
           // 이변 효과: Mirror Dimension - 피해 반사
           if (this.config.enableAnomalies && actualDamage > 0) {
             const reflectedDamage = getMirrorReflectionDamage(actualDamage);
@@ -1032,6 +1057,15 @@ export class MultiEnemyBattleEngine {
 
       state.player.block += block;
       state.battleLog.push(`  🛡️ ${card.name}: 방어 +${block}`);
+
+      // 방어 이벤트 기록 (통계용)
+      state.battleEvents.push({
+        type: 'block_gained',
+        turn: state.turn,
+        actor: 'player',
+        cardId: card.id,
+        value: block,
+      });
 
       // 이변 효과: 방어 카드 자해 (DEFENSE_BACKFIRE)
       const backfireDamage = this.config.enableAnomalies ? getDefenseBackfireDamage() : 0;
@@ -1100,6 +1134,17 @@ export class MultiEnemyBattleEngine {
     const special = Array.isArray(card.special) ? card.special : [card.special];
 
     for (const effect of special) {
+      // 특수효과 발동 이벤트 생성
+      const logSpecialTrigger = (effectName: string) => {
+        state.battleEvents.push({
+          type: 'special_triggered',
+          turn: state.turn,
+          actor: 'player',
+          cardId: card.id,
+          data: { effectName },
+        });
+      };
+
       switch (effect) {
         case 'createAttackOnHit':
           // 피해 성공 시 공격 카드 창조 (최대 2장)
@@ -1107,6 +1152,7 @@ export class MultiEnemyBattleEngine {
             const attackCards = ['strike', 'shoot'];
             const createdCard = attackCards[Math.floor(Math.random() * attackCards.length)];
             state.player.hand.push(createdCard);
+            logSpecialTrigger('createAttackOnHit');
             if (this.config.verbose) {
               state.battleLog.push(`  🃏 창조: ${createdCard} 카드 획득`);
             }
@@ -1128,6 +1174,7 @@ export class MultiEnemyBattleEngine {
               executed: false,
               enemyIndex: -1,
             });
+            logSpecialTrigger('breach');
             if (this.config.verbose) {
               state.battleLog.push(`  🃏 브리치: ${breachCardData.name} 타임라인 추가`);
             }
@@ -1141,6 +1188,7 @@ export class MultiEnemyBattleEngine {
             const randomCard = fencingCards[Math.floor(Math.random() * fencingCards.length)];
             state.player.hand.push(randomCard);
           }
+          logSpecialTrigger('createFencingCards3');
           if (this.config.verbose) {
             state.battleLog.push(`  🃏 창조: 펜싱 카드 3장 획득`);
           }
@@ -1155,6 +1203,7 @@ export class MultiEnemyBattleEngine {
                 tc.position = Math.min(tc.position + card.pushAmount, this.config.maxSpeed);
               }
             }
+            logSpecialTrigger('pushEnemyTimeline');
             if (this.config.verbose) {
               state.battleLog.push(`  ⬇️ 넉백: 적 카드 +${card.pushAmount}`);
             }
@@ -1169,15 +1218,18 @@ export class MultiEnemyBattleEngine {
                 tc.position = Math.max(1, tc.position - card.advanceAmount);
               }
             }
+            logSpecialTrigger('advanceTimeline');
           }
           break;
 
         case 'aoeAttack':
           // AOE 공격은 이미 determineTargets에서 처리됨
+          logSpecialTrigger('aoeAttack');
           break;
 
         case 'growingDefense':
           // 타임라인 위치에 따른 방어력 증가 (이미 계산됨)
+          logSpecialTrigger('growingDefense');
           break;
       }
     }
@@ -1387,7 +1439,7 @@ export class MultiEnemyBattleEngine {
       etherGained: state.totalEtherGained,
       goldChange: 0,
       battleLog: state.battleLog,
-      events: [],
+      events: state.battleEvents,
       cardUsage: state.cardUsage,
       comboStats: state.comboStats,
       tokenStats: {},
