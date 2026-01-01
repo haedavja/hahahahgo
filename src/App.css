@@ -223,6 +223,7 @@ body {
   right: 7px;
   bottom: 1px;
   border-radius: 24px;
+  background: linear-gradient(90deg, #dc2626 0%, #ef4444 50%, #f87171 100%);
   transition: background-color 0.3s ease, height 0.3s ease;
 }
 .hp-remaining {
