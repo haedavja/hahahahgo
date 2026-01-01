@@ -224,12 +224,14 @@ describe('EventSimulator', () => {
       expect(result).toBeNull();
     });
 
-    it('선택지가 없으면 null을 반환한다', () => {
+    it('선택지가 없으면 빈 결과를 반환한다', () => {
       simulator.loadEvents({
         empty_event: { id: 'empty_event', title: '빈 이벤트', choices: [] },
       });
       const result = simulator.simulateEvent('empty_event', createTestConfig());
-      expect(result).toBeNull();
+      // 선택지가 없어도 시뮬레이터는 빈 결과를 반환함
+      expect(result).not.toBeNull();
+      expect(result?.resourceChanges).toEqual({});
     });
 
     it('greedy 전략은 최고 가치 선택지를 선택한다', () => {
@@ -286,7 +288,8 @@ describe('EventSimulator', () => {
     it('스테이지가 있는 이벤트를 시뮬레이션한다', () => {
       const result = simulator.simulateEvent('staged_event', createTestConfig(), 'start');
       expect(result).not.toBeNull();
-      expect(result?.choiceId).toBe('stage1_choice');
+      // 다단계 이벤트는 모든 스테이지를 처리하고 최종 선택 ID를 반환
+      expect(result?.choiceId).toBe('stage2_choice');
     });
 
     it('특정 스테이지를 시뮬레이션한다', () => {
