@@ -233,10 +233,11 @@ const NodeCard = memo(function NodeCard({
           ? `1px solid ${colors.border}`
           : '1px solid #334155', // 더 어두운 테두리
       borderRadius: BORDER_RADIUS.lg,
-      // opacity 제거 - 불투명 배경으로 연결선 가림
     }}>
-      {/* 노드 헤더 */}
-      <div style={{
+      {/* 콘텐츠 wrapper - 배경은 불투명, 콘텐츠만 흐리게 */}
+      <div style={{ opacity: isUnlocked || isPending ? 1 : 0.7 }}>
+        {/* 노드 헤더 */}
+        <div style={{
         textAlign: 'center',
         marginBottom: SPACING.sm,
       }}>
@@ -315,6 +316,7 @@ const NodeCard = memo(function NodeCard({
           />
         </div>
       )}
+      </div>
     </div>
   );
 });
