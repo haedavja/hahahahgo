@@ -32,8 +32,8 @@ export const UnlockedSummary = memo(function UnlockedSummary({
     }}>
       {/* 노드와 같은 정렬 영역 */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: SPACING.md, justifyContent: 'center' }}>
-        {/* 헤더 - 노드와 같은 정렬 */}
-        <div style={{ width: '100%', display: 'flex', justifyContent: 'flex-start' }}>
+        {/* 헤더 - 중앙 정렬 */}
+        <div style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
           <div
             style={{
               display: 'inline-block',
