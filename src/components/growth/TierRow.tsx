@@ -104,7 +104,6 @@ const TierHeader = memo(function TierHeader({
       background: isLocked ? '#141a22' : 'rgba(30, 41, 59, 0.8)',
       border: `1px solid ${isLocked ? '#334155' : color}`,
       borderRadius: BORDER_RADIUS.lg,
-      marginBottom: SPACING.lg,
       fontSize: FONT_SIZE.md,
       color: isLocked ? COLORS.text.muted : color,
       fontWeight: 'bold',
