@@ -279,7 +279,7 @@ export class EnhancedBattleProcessor {
     let combosAchieved = 0;
     let totalPlayerDamage = 0;
     let totalEnemyDamage = 0;
-    let playerHp = 80;
+    let playerHp = 100;
     const battleLog: string[] = [];
 
     for (let i = 0; i < enemies.length; i++) {

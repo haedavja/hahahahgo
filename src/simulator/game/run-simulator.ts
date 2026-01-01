@@ -1537,8 +1537,8 @@ export async function createRunSimulator(options?: RunSimulatorOptions): Promise
  */
 export function createDefaultPlayer(): PlayerRunState {
   return {
-    hp: 80,
-    maxHp: 80,
+    hp: 100,
+    maxHp: 100,
     gold: 100,
     intel: 0,
     material: 0,

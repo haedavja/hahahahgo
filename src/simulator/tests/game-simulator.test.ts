@@ -308,8 +308,8 @@ describe('RunSimulator', () => {
   it('기본 플레이어를 생성할 수 있다', () => {
     const player = createDefaultPlayer();
 
-    expect(player.hp).toBe(80);
-    expect(player.maxHp).toBe(80);
+    expect(player.hp).toBe(100);
+    expect(player.maxHp).toBe(100);
     expect(player.gold).toBe(100);
     expect(player.deck.length).toBe(10); // 게임과 동일한 시작 덱 (10장)
   });
