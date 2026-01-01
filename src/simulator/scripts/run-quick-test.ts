@@ -28,7 +28,7 @@ async function main() {
 
   for (const strategy of strategies) {
     const stats = simulator.simulateMultipleRuns(20, { strategy });
-    console.log('[' + strategy + '] 승률: ' + (stats.successRate * 100).toFixed(0) + '% | 평균 HP: ' + stats.averageFinalHp.toFixed(0));
+    console.log('[' + strategy + '] 승률: ' + (stats.successRate * 100).toFixed(0) + '% | 평균 레이어: ' + stats.avgFinalLayer.toFixed(1));
   }
 
   // 난이도별 테스트
