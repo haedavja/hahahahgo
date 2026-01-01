@@ -17,6 +17,7 @@ import { fileURLToPath } from 'url';
 import type { SimulationConfig, BattleResult } from '../core/types';
 import { syncCards, syncEnemies, syncRelics } from '../data/sync';
 import { BattleSimulator } from '../parallel/worker';
+import { ENEMY_PATTERNS } from '../../data/enemyPatterns';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -87,11 +88,17 @@ export class BenchmarkRunner {
     this.enemyData = syncEnemies();
     this.relicData = syncRelics();
 
-    // 실제 전투 엔진 초기화
+    // 실제 전투 엔진 초기화 (패턴 데이터 포함)
     this.simulator = new BattleSimulator({
       cardData: this.cardData as Record<string, { id: string; name: string; attack?: number; defense?: number; cost: number; speedCost?: number; actionCost?: number; priority?: string; traits?: string[]; tags?: string[]; effects?: Record<string, unknown> }>,
       enemyData: this.enemyData as Record<string, { id: string; name: string; hp: number; tier: number; deck: string[]; cardsPerTurn: number }>,
       relicData: this.relicData as Record<string, { id: string; name: string; effect: Record<string, unknown> }>,
+      patternData: ENEMY_PATTERNS as Record<string, {
+        type: 'cycle' | 'phase' | 'random';
+        pattern?: string[];
+        phases?: Array<{ hpThreshold: number; pattern: string[]; description: string }>;
+        specialActions?: Record<string, { mode: string; useCard?: string; damage?: number; heal?: number; ignoreBlock?: boolean }>;
+      }>,
     });
   }
 
