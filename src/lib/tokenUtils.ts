@@ -193,7 +193,7 @@ export function addToken(
 export function setTokenStacks(
   entity: TokenEntity,
   tokenId: string,
-  tokenType: string,
+  tokenType: TokenType,
   newStacks: number
 ): TokenModificationResult {
   const tokens = { ...entity.tokens } as TokenState;
@@ -229,7 +229,7 @@ export function setTokenStacks(
 export function removeToken(
   entity: TokenEntity | null | undefined,
   tokenId: string,
-  tokenType: string,
+  tokenType: TokenType,
   stacks: number = 1
 ): TokenModificationResult {
   if (!entity) {
