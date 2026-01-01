@@ -243,10 +243,16 @@ export class TimelineBattleEngine {
       activateGameAnomaly(anomalyId, anomalyLevel);
     }
 
-    // 전투 상태 초기화
+    // 전투 상태 초기화 (적 상태 필드 보장)
     const state: GameBattleState = {
       player,
-      enemy: { ...enemy },
+      enemy: {
+        ...enemy,
+        tokens: enemy.tokens || {},
+        block: enemy.block || 0,
+        maxHp: enemy.maxHp || enemy.hp,
+        maxSpeed: enemy.maxSpeed || DEFAULT_MAX_SPEED,
+      },
       turn: 0,
       phase: 'select',
       timeline: [],

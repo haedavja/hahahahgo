@@ -1,10 +1,10 @@
 {
-  "version": "1.0.0",
+  "version": "1.1.0",
   "lastUpdated": "2025-12-31",
   "tiers": {
-    "1": ["ghoul", "hunter", "berserker", "deserter", "scavenger"],
-    "2": ["slaughterer", "captain", "alchemist", "marauder", "shaman"],
-    "3": ["overlord", "warlord", "archon", "nemesis", "titan"]
+    "1": ["ghoul", "marauder", "wildrat", "deserter", "polluted"],
+    "2": ["slaughterer", "berserker", "hunter", "slurthim"],
+    "3": ["captain"]
   },
   "enemies": {
     "ghoul": {
@@ -13,63 +13,63 @@
       "tier": 1,
       "hp": 35,
       "cardsPerTurn": 2,
-      "deck": ["slash", "slash", "defend", "bash"],
+      "deck": ["ghoul_attack", "ghoul_attack", "ghoul_attack", "ghoul_block"],
       "passive": null,
       "pattern": "aggressive",
       "description": "기본적인 근접 공격형 적"
     },
-    "hunter": {
-      "id": "hunter",
-      "name": "사냥꾼",
+    "marauder": {
+      "id": "marauder",
+      "name": "약탈자",
       "tier": 1,
       "hp": 30,
       "cardsPerTurn": 2,
-      "deck": ["quickSlash", "quickSlash", "pistolShot", "defend"],
-      "passive": {
-        "type": "ranged",
-        "effect": "첫 공격이 원거리"
-      },
+      "deck": ["marauder_attack", "marauder_attack", "marauder_block"],
+      "passive": null,
       "pattern": "balanced",
-      "description": "원거리와 근접 혼합 공격"
+      "description": "빠른 공격형 적"
     },
-    "berserker": {
-      "id": "berserker",
-      "name": "광전사",
+    "wildrat": {
+      "id": "wildrat",
+      "name": "야생 쥐",
       "tier": 1,
-      "hp": 40,
+      "hp": 15,
       "cardsPerTurn": 3,
-      "deck": ["slash", "slash", "slash", "rage", "heavyBlow"],
+      "deck": ["wildrat_bite", "wildrat_bite", "wildrat_swarm", "wildrat_flee"],
       "passive": {
-        "type": "enrage",
-        "effect": "체력 50% 이하시 힘 +2"
+        "type": "swarm",
+        "effect": "떼로 공격하여 다수의 약한 타격"
       },
       "pattern": "aggressive",
-      "description": "공격적인 근접 전투형"
+      "description": "빠르고 약한 떼공격 적"
     },
     "deserter": {
       "id": "deserter",
       "name": "탈영병",
       "tier": 1,
-      "hp": 28,
+      "hp": 40,
       "cardsPerTurn": 2,
-      "deck": ["pistolShot", "defend", "retreat", "quickSlash"],
-      "passive": null,
-      "pattern": "defensive",
-      "description": "도망치면서 원거리 공격"
-    },
-    "scavenger": {
-      "id": "scavenger",
-      "name": "청소부",
-      "tier": 1,
-      "hp": 32,
-      "cardsPerTurn": 2,
-      "deck": ["slash", "defend", "defend", "heal"],
+      "deck": ["deserter_attack", "deserter_block", "deserter_double", "deserter_offense", "deserter_fortify"],
       "passive": {
-        "type": "scavenge",
-        "effect": "턴마다 1 체력 회복"
+        "type": "veteran",
+        "effect": "다양한 전투 기술 보유"
       },
-      "pattern": "defensive",
-      "description": "회복 능력을 가진 적"
+      "pattern": "balanced",
+      "description": "균형 잡힌 전투 스타일"
+    },
+    "polluted": {
+      "id": "polluted",
+      "name": "오염체",
+      "tier": 1,
+      "hp": 25,
+      "cardsPerTurn": 2,
+      "deck": ["polluted_spit", "polluted_cloud", "polluted_explode"],
+      "passive": {
+        "type": "toxic",
+        "effect": "독 피해 부여"
+      },
+      "pattern": "tactical",
+      "description": "디버프 특화 적"
     },
     "slaughterer": {
       "id": "slaughterer",
@@ -77,139 +77,69 @@
       "tier": 2,
       "hp": 55,
       "cardsPerTurn": 2,
-      "deck": ["heavyBlow", "heavyBlow", "bash", "execute", "defend"],
+      "deck": ["slaughterer_heavy", "slaughterer_quick", "slaughterer_blur_block", "slaughterer_rest"],
       "passive": {
-        "type": "slaughter",
-        "effect": "적 처치 시 힘 +1"
+        "type": "executioner",
+        "effect": "강력한 처형 공격"
       },
       "pattern": "aggressive",
       "description": "강력한 한방 공격형"
     },
-    "captain": {
-      "id": "captain",
-      "name": "대장",
+    "berserker": {
+      "id": "berserker",
+      "name": "광전사",
       "tier": 2,
       "hp": 50,
       "cardsPerTurn": 2,
-      "deck": ["rifleShot", "shieldBash", "defend", "rage", "charge"],
+      "deck": ["berserker_slam", "berserker_charge", "berserker_rage", "berserker_roar"],
       "passive": {
-        "type": "command",
-        "effect": "턴 시작 시 방어 +2"
+        "type": "enrage",
+        "effect": "체력이 낮을수록 강해짐"
       },
-      "pattern": "balanced",
-      "description": "균형 잡힌 지휘관형"
+      "pattern": "berserk",
+      "description": "공격에 특화된 광전사"
     },
-    "alchemist": {
-      "id": "alchemist",
-      "name": "연금술사",
+    "hunter": {
+      "id": "hunter",
+      "name": "사냥꾼",
       "tier": 2,
       "hp": 40,
       "cardsPerTurn": 2,
-      "deck": ["heal", "heal", "bash", "rage", "ironWall"],
+      "deck": ["hunter_shoot", "hunter_trap", "hunter_aim", "hunter_execute"],
       "passive": {
-        "type": "alchemy",
-        "effect": "회복 효과 50% 증가"
+        "type": "precision",
+        "effect": "조준 후 강력한 사격"
       },
-      "pattern": "defensive",
-      "description": "회복과 버프 특화"
+      "pattern": "tactical",
+      "description": "원거리 저격 특화"
     },
-    "marauder": {
-      "id": "marauder",
-      "name": "약탈자",
-      "tier": 2,
-      "hp": 48,
-      "cardsPerTurn": 3,
-      "deck": ["combo", "combo", "dualWield", "quickSlash", "evasion"],
-      "passive": {
-        "type": "pillage",
-        "effect": "연속 공격 시 피해 +1"
-      },
-      "pattern": "aggressive",
-      "description": "연속 공격 특화"
-    },
-    "shaman": {
-      "id": "shaman",
-      "name": "주술사",
+    "slurthim": {
+      "id": "slurthim",
+      "name": "슬러딤",
       "tier": 2,
       "hp": 45,
       "cardsPerTurn": 2,
-      "deck": ["bash", "bash", "heal", "rage", "counterAttack"],
+      "deck": ["slurthim_burn", "slurthim_vulnerable", "slurthim_dull"],
       "passive": {
-        "type": "curse",
-        "effect": "공격 시 취약 1 부여"
+        "type": "corrosive",
+        "effect": "다양한 상태이상 부여"
       },
-      "pattern": "balanced",
-      "description": "디버프 특화 마법형"
+      "pattern": "debuffer",
+      "description": "디버프 전문가"
     },
-    "overlord": {
-      "id": "overlord",
-      "name": "대군주",
+    "captain": {
+      "id": "captain",
+      "name": "대장",
       "tier": 3,
       "hp": 80,
       "cardsPerTurn": 3,
-      "deck": ["heavyBlow", "heavyBlow", "execute", "ironWall", "rage", "charge"],
+      "deck": ["captain_slash", "captain_command", "captain_rally", "captain_execution", "captain_fortify"],
       "passive": {
-        "type": "domination",
-        "effect": "턴마다 힘 +1"
+        "type": "command",
+        "effect": "지휘력으로 강화됨"
       },
-      "pattern": "aggressive",
-      "description": "점점 강해지는 보스"
-    },
-    "warlord": {
-      "id": "warlord",
-      "name": "전쟁군주",
-      "tier": 3,
-      "hp": 75,
-      "cardsPerTurn": 3,
-      "deck": ["whirlwind", "dualWield", "shieldBash", "rage", "counterAttack", "charge"],
-      "passive": {
-        "type": "warcry",
-        "effect": "전투 시작 시 힘 +3"
-      },
-      "pattern": "aggressive",
-      "description": "광역 공격 특화 보스"
-    },
-    "archon": {
-      "id": "archon",
-      "name": "집정관",
-      "tier": 3,
-      "hp": 70,
-      "cardsPerTurn": 2,
-      "deck": ["rifleShot", "rifleShot", "ironWall", "heal", "execute", "retreat"],
-      "passive": {
-        "type": "authority",
-        "effect": "방어 효과 50% 증가"
-      },
-      "pattern": "defensive",
-      "description": "방어와 원거리 보스"
-    },
-    "nemesis": {
-      "id": "nemesis",
-      "name": "숙적",
-      "tier": 3,
-      "hp": 65,
-      "cardsPerTurn": 3,
-      "deck": ["combo", "combo", "dualWield", "execute", "evasion", "counterAttack"],
-      "passive": {
-        "type": "rivalry",
-        "effect": "플레이어 공격 복사"
-      },
-      "pattern": "balanced",
-      "description": "플레이어를 모방하는 보스"
-    },
-    "titan": {
-      "id": "titan",
-      "name": "타이탄",
-      "tier": 3,
-      "hp": 100,
-      "cardsPerTurn": 2,
-      "deck": ["heavyBlow", "heavyBlow", "heavyBlow", "ironWall", "ironWall", "rage"],
-      "passive": {
-        "type": "colossus",
-        "effect": "받는 피해 25% 감소"
-      },
-      "pattern": "defensive",
-      "description": "거대한 체력의 탱커 보스"
+      "pattern": "tactical",
+      "description": "균형 잡힌 지휘관형 보스"
     }
   }
 }

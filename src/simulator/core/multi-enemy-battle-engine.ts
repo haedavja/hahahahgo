@@ -32,6 +32,8 @@ import {
   checkImmunity,
 } from './token-system';
 import { getRelicSystemV2 } from './relic-system-v2';
+import { TraitSynergyProcessor, type TraitContext, type TraitSynergyResult } from './trait-synergy-processor';
+import { detectPokerCombo, ETHER_BY_RARITY, type EtherGainResult, type CardRarity } from './combo-ether-system';
 import { getLogger } from './logger';
 
 const log = getLogger('MultiEnemyBattleEngine');
@@ -59,6 +61,16 @@ export interface MultiEnemyBattleState {
   targetingMode: TargetingMode;
   /** 현재 선택된 공격 대상 적 인덱스 */
   currentTargetIndex: number;
+  /** 이번 턴에 플레이한 카드들 */
+  cardsPlayedThisTurn: GameCard[];
+  /** 연계 활성화 상태 */
+  chainActive: boolean;
+  /** 연계 길이 */
+  chainLength: number;
+  /** 총 에테르 획득량 */
+  totalEtherGained: number;
+  /** 콤보 통계 */
+  comboStats: Record<string, number>;
 }
 
 /** 타겟팅 모드 */
@@ -110,9 +122,12 @@ export class MultiEnemyBattleEngine {
   private traits: Record<string, any>;
   private config: MultiEnemyBattleConfig;
   private relicSystem = getRelicSystemV2();
+  private traitProcessor = new TraitSynergyProcessor();
   private enemyAIs: Map<number, EnemyAI> = new Map();
   private enhancedCards: Record<string, GameCard> = {};
   private cardEnhancements: Record<string, number> = {};
+  /** 카드 폴백 캐시 (누락된 카드 대체) */
+  private fallbackCards: Record<string, GameCard> = {};
 
   constructor(config: Partial<MultiEnemyBattleConfig> = {}) {
     this.config = { ...DEFAULT_CONFIG, ...config };
@@ -138,10 +153,69 @@ export class MultiEnemyBattleEngine {
   }
 
   /**
-   * 카드 조회 (강화 적용)
+   * 카드 조회 (강화 적용 + 폴백)
    */
   private getCard(cardId: string): GameCard | undefined {
-    return this.enhancedCards[cardId] || this.cards[cardId];
+    // 강화된 카드 우선
+    if (this.enhancedCards[cardId]) {
+      return this.enhancedCards[cardId];
+    }
+    // 기본 카드
+    if (this.cards[cardId]) {
+      return this.cards[cardId];
+    }
+    // 폴백 카드 (누락된 카드 대체)
+    if (this.fallbackCards[cardId]) {
+      return this.fallbackCards[cardId];
+    }
+    // 폴백 카드 생성
+    const fallback = this.createFallbackCard(cardId);
+    if (fallback) {
+      this.fallbackCards[cardId] = fallback;
+      return fallback;
+    }
+    return undefined;
+  }
+
+  /**
+   * 누락된 카드에 대한 폴백 카드 생성
+   */
+  private createFallbackCard(cardId: string): GameCard | undefined {
+    // 일반적인 적 공격 카드 패턴
+    if (cardId.includes('attack') || cardId.includes('slash') || cardId.includes('bite')) {
+      return {
+        id: cardId,
+        name: cardId,
+        type: 'attack',
+        damage: 5,
+        speedCost: 4,
+        actionCost: 1,
+        description: '기본 공격',
+      };
+    }
+    // 방어 카드 패턴
+    if (cardId.includes('block') || cardId.includes('defend') || cardId.includes('shield')) {
+      return {
+        id: cardId,
+        name: cardId,
+        type: 'general',
+        block: 5,
+        speedCost: 3,
+        actionCost: 1,
+        description: '기본 방어',
+      };
+    }
+    // 기타: 약한 공격으로 기본값
+    log.warn(`Fallback card created for missing card: ${cardId}`);
+    return {
+      id: cardId,
+      name: cardId,
+      type: 'attack',
+      damage: 3,
+      speedCost: 3,
+      actionCost: 1,
+      description: '알 수 없는 카드',
+    };
   }
 
   /**
@@ -175,7 +249,12 @@ export class MultiEnemyBattleEngine {
     // 전투 상태 초기화
     const state: MultiEnemyBattleState = {
       player,
-      enemies: enemies.map(e => ({ ...e })),
+      enemies: enemies.map(e => ({
+        ...e,
+        tokens: e.tokens || {},
+        block: e.block || 0,
+        maxSpeed: e.maxSpeed || DEFAULT_MAX_SPEED,
+      })),
       turn: 0,
       phase: 'select',
       timeline: [],
@@ -186,6 +265,11 @@ export class MultiEnemyBattleEngine {
       cardUsage: {},
       targetingMode: this.config.defaultTargetingMode,
       currentTargetIndex: 0,
+      cardsPlayedThisTurn: [],
+      chainActive: false,
+      chainLength: 0,
+      totalEtherGained: 0,
+      comboStats: {},
     };
 
     // 덱 셔플
@@ -243,9 +327,12 @@ export class MultiEnemyBattleEngine {
       deck: [...deck],
       hand: [],
       discard: [],
-      tokens: [],
+      tokens: {},
       strength: 0,
       agility: 0,
+      gold: 0,
+      maxSpeed: DEFAULT_MAX_SPEED,
+      relics: [],
     };
   }
 
@@ -264,6 +351,9 @@ export class MultiEnemyBattleEngine {
     }
     state.player.energy = state.player.maxEnergy;
     state.timeline = [];
+    state.cardsPlayedThisTurn = [];
+    state.chainActive = false;
+    state.chainLength = 0;
 
     // 화상 피해 처리
     const burnResult = processBurn(state.player.tokens);
@@ -295,6 +385,9 @@ export class MultiEnemyBattleEngine {
     // 5단계: 턴 종료
     state.phase = 'end';
 
+    // 에테르/콤보 처리
+    this.processEndOfTurnEther(state);
+
     // 핸드 버리기 및 드로우
     state.player.discard.push(...state.player.hand);
     state.player.hand = [];
@@ -307,6 +400,70 @@ export class MultiEnemyBattleEngine {
         enemy.tokens = processTurnEnd(enemy.tokens);
       }
     }
+  }
+
+  /**
+   * 턴 종료 시 에테르/콤보 처리
+   */
+  private processEndOfTurnEther(state: MultiEnemyBattleState): void {
+    if (state.cardsPlayedThisTurn.length === 0) return;
+
+    // 포커 콤보 감지
+    const combo = detectPokerCombo(state.cardsPlayedThisTurn);
+
+    // 콤보 통계 업데이트
+    state.comboStats[combo.name] = (state.comboStats[combo.name] || 0) + 1;
+
+    // 에테르 계산
+    let baseEther = 0;
+    for (const card of state.cardsPlayedThisTurn) {
+      const rarity = this.getCardRarity(card);
+      baseEther += ETHER_BY_RARITY[rarity];
+    }
+
+    // 콤보 배율 적용
+    const etherGain = Math.floor(baseEther * combo.multiplier);
+    state.player.ether = (state.player.ether || 0) + etherGain;
+    state.totalEtherGained += etherGain;
+
+    if (etherGain > 0 && this.config.verbose) {
+      state.battleLog.push(`  🔮 ${combo.name}: 에테르 +${etherGain} (x${combo.multiplier})`);
+    }
+
+    // 에테르 버스트 체크 (100 이상)
+    if (state.player.ether >= 100) {
+      state.battleLog.push(`  ⚡ 에테르 버스트! (${state.player.ether})`);
+      // 버스트 효과: 모든 적에게 10 피해
+      for (const enemy of state.enemies) {
+        if (enemy.hp > 0) {
+          const burstDamage = 10;
+          enemy.hp -= burstDamage;
+          state.playerDamageDealt += burstDamage;
+          state.battleLog.push(`  ⚡ ${enemy.name}에게 버스트 피해 ${burstDamage}`);
+        }
+      }
+      state.player.ether = 0;
+    }
+  }
+
+  /**
+   * 카드 희귀도 추정
+   */
+  private getCardRarity(card: GameCard): CardRarity {
+    // 특성 기반 희귀도 추정
+    if (card.traits) {
+      const weightSum = card.traits.reduce((sum, trait) => {
+        if (['pinnacle', 'slaughter'].includes(trait)) return sum + 5;
+        if (['destroyer', 'stun'].includes(trait)) return sum + 3;
+        if (['swift', 'strongbone', 'chain'].includes(trait)) return sum + 1;
+        return sum;
+      }, 0);
+
+      if (weightSum >= 5) return 'legendary';
+      if (weightSum >= 3) return 'special';
+      if (weightSum >= 1) return 'rare';
+    }
+    return 'common';
   }
 
   /**
@@ -585,6 +742,9 @@ export class MultiEnemyBattleEngine {
     // 카드 사용 통계
     state.cardUsage[card.id] = (state.cardUsage[card.id] || 0) + 1;
 
+    // 카드 플레이 기록 (에테르/콤보용)
+    state.cardsPlayedThisTurn.push(card);
+
     // 타겟 결정
     const targets = this.determineTargets(state, card);
 
@@ -593,10 +753,42 @@ export class MultiEnemyBattleEngine {
       return;
     }
 
+    // 특성 시너지 계산
+    const traitContext: TraitContext = {
+      cardsPlayedThisTurn: state.cardsPlayedThisTurn,
+      chainActive: state.chainActive,
+      chainLength: state.chainLength,
+      crossed: tc.crossed,
+      comboRank: 0,
+      hpRatio: state.player.hp / state.player.maxHp,
+      enemyHpRatio: targets.length > 0
+        ? state.enemies[targets[0]].hp / state.enemies[targets[0]].maxHp
+        : 1,
+    };
+
+    const synergyResult = this.traitProcessor.processTraitSynergies(
+      card,
+      { player: state.player, enemy: state.enemies[targets[0]] } as any,
+      'player',
+      traitContext
+    );
+
+    // 연계 상태 업데이트
+    if (card.traits?.includes('chain')) {
+      state.chainActive = true;
+      state.chainLength++;
+    } else if (!card.traits?.includes('followup') && !card.traits?.includes('finisher')) {
+      state.chainActive = false;
+      state.chainLength = 0;
+    }
+
     // 공격 처리
     if (card.damage && card.damage > 0) {
-      const hits = card.hits || 1;
-      const baseDamage = card.damage + (state.player.strength || 0);
+      const hits = (card.hits || 1) + synergyResult.extraHits;
+      let baseDamage = card.damage + (state.player.strength || 0) + synergyResult.bonusDamage;
+
+      // 특성 피해 배율 적용
+      baseDamage = Math.floor(baseDamage * synergyResult.damageMultiplier);
 
       for (const targetIdx of targets) {
         const enemy = state.enemies[targetIdx];
@@ -610,6 +802,12 @@ export class MultiEnemyBattleEngine {
           // 교차 보너스
           if (tc.crossed && card.crossBonus?.type === 'damage_mult') {
             damage = Math.floor(damage * (card.crossBonus.value || 1.5));
+          }
+
+          // 취약 체크
+          const vulnerable = this.getTokenStacks(enemy.tokens, 'vulnerable');
+          if (vulnerable > 0) {
+            damage = Math.floor(damage * 1.5);
           }
 
           // 방어력 처리
@@ -634,7 +832,10 @@ export class MultiEnemyBattleEngine {
 
     // 방어 처리
     if (card.block && card.block > 0) {
-      let block = card.block + (state.player.agility || 0);
+      let block = card.block + (state.player.agility || 0) + synergyResult.bonusBlock;
+
+      // 특성 방어력 배율 적용
+      block = Math.floor(block * synergyResult.blockMultiplier);
 
       if (tc.crossed && card.crossBonus?.type === 'block_mult') {
         block = Math.floor(block * (card.crossBonus.value || 1.5));
@@ -642,6 +843,23 @@ export class MultiEnemyBattleEngine {
 
       state.player.block += block;
       state.battleLog.push(`  🛡️ ${card.name}: 방어 +${block}`);
+    }
+
+    // 시너지 토큰 적용
+    for (const tokenApply of synergyResult.appliedTokens) {
+      if (tokenApply.target === 'self') {
+        state.player.tokens = addToken(state.player.tokens, tokenApply.id, tokenApply.stacks);
+      } else {
+        for (const targetIdx of targets) {
+          const enemy = state.enemies[targetIdx];
+          if (enemy && enemy.hp > 0) {
+            const check = checkImmunity(enemy.tokens, tokenApply.id);
+            if (!check.blocked) {
+              enemy.tokens = addToken(enemy.tokens, tokenApply.id, tokenApply.stacks);
+            }
+          }
+        }
+      }
     }
 
     // 토큰 적용
@@ -662,6 +880,11 @@ export class MultiEnemyBattleEngine {
           }
         }
       }
+    }
+
+    // 시너지 로그 (verbose 모드)
+    if (this.config.verbose && synergyResult.synergies.length > 0) {
+      state.battleLog.push(`  ✨ 시너지: ${synergyResult.synergies.join(', ')}`);
     }
   }
 
@@ -802,6 +1025,15 @@ export class MultiEnemyBattleEngine {
     state.battleLog.push(`승자: ${winner === 'player' ? '플레이어' : '적'}`);
     state.battleLog.push(`플레이어 HP: ${state.player.hp}/${state.player.maxHp}`);
     state.battleLog.push(`처치한 적: ${enemiesKilled}/${state.enemies.length}`);
+    if (state.totalEtherGained > 0) {
+      state.battleLog.push(`총 에테르 획득: ${state.totalEtherGained}`);
+    }
+    if (Object.keys(state.comboStats).length > 0) {
+      const comboSummary = Object.entries(state.comboStats)
+        .map(([name, count]) => `${name}(${count})`)
+        .join(', ');
+      state.battleLog.push(`콤보: ${comboSummary}`);
+    }
 
     return {
       winner,
@@ -810,12 +1042,12 @@ export class MultiEnemyBattleEngine {
       enemyDamageDealt: state.totalEnemyDamageDealt,
       playerFinalHp: Math.max(0, state.player.hp),
       enemyFinalHp: state.enemies.reduce((sum, e) => sum + Math.max(0, e.hp), 0),
-      etherGained: 0,
+      etherGained: state.totalEtherGained,
       goldChange: 0,
       battleLog: state.battleLog,
       events: [],
       cardUsage: state.cardUsage,
-      comboStats: {},
+      comboStats: state.comboStats,
       tokenStats: {},
       timeline: state.timeline,
       enemiesKilled,
