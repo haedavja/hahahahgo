@@ -313,8 +313,8 @@ export class MultiEnemyBattleEngine {
    */
   private initializePlayer(deck: string[], relics: string[]): PlayerState {
     return {
-      hp: 80,
-      maxHp: 80,
+      hp: 100,
+      maxHp: 100,
       block: 0,
       energy: DEFAULT_PLAYER_ENERGY,
       maxEnergy: DEFAULT_PLAYER_ENERGY,
