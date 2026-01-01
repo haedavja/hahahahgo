@@ -3,8 +3,35 @@
  * 시뮬레이터 탭 - 게임 내에서 런 시뮬레이션 실행 및 상세 통계 확인
  */
 
-import { useState, useCallback, memo } from 'react';
+import { useState, useCallback, memo, useMemo } from 'react';
 import type { CSSProperties } from 'react';
+import { RELICS } from '../../../data/relics';
+import { ITEMS } from '../../../data/items';
+import { CARDS, ENEMIES } from '../../battle/battleData';
+import { NEW_EVENT_LIBRARY } from '../../../data/newEvents';
+
+// 한글 이름 조회 헬퍼 함수들
+function getRelicName(id: string): string {
+  return RELICS[id]?.name || id;
+}
+
+function getItemName(id: string): string {
+  return ITEMS[id]?.name || id;
+}
+
+function getCardName(id: string): string {
+  const card = CARDS.find(c => c.id === id);
+  return card?.name || id;
+}
+
+function getMonsterName(id: string): string {
+  const enemy = ENEMIES.find(e => e.id === id);
+  return enemy?.name || id;
+}
+
+function getEventName(id: string): string {
+  return NEW_EVENT_LIBRARY[id]?.title || id;
+}
 
 // 스타일 상수
 const STYLES = {
@@ -176,7 +203,7 @@ export const SimulatorTab = memo(function SimulatorTab() {
                     <thead><tr><th style={STYLES.th}>상징</th><th style={STYLES.th}>횟수</th></tr></thead>
                     <tbody>
                       {Object.entries(stats.shopStats.relicsPurchased || {}).map(([id, count]) => (
-                        <tr key={id}><td style={STYLES.td}>{id}</td><td style={STYLES.td}>{count as number}회</td></tr>
+                        <tr key={id}><td style={STYLES.td}>{getRelicName(id)}</td><td style={STYLES.td}>{count as number}회</td></tr>
                       ))}
                     </tbody>
                   </table>
@@ -188,7 +215,7 @@ export const SimulatorTab = memo(function SimulatorTab() {
                     <thead><tr><th style={STYLES.th}>아이템</th><th style={STYLES.th}>횟수</th></tr></thead>
                     <tbody>
                       {Object.entries(stats.shopStats.itemsPurchased || {}).map(([id, count]) => (
-                        <tr key={id}><td style={STYLES.td}>{id}</td><td style={STYLES.td}>{count as number}회</td></tr>
+                        <tr key={id}><td style={STYLES.td}>{getItemName(id)}</td><td style={STYLES.td}>{count as number}회</td></tr>
                       ))}
                     </tbody>
                   </table>
@@ -199,9 +226,11 @@ export const SimulatorTab = memo(function SimulatorTab() {
                   <table style={STYLES.table}>
                     <thead><tr><th style={STYLES.th}>아이템</th><th style={STYLES.th}>타입</th><th style={STYLES.th}>가격</th><th style={STYLES.th}>이유</th></tr></thead>
                     <tbody>
-                      {(stats.shopStats.purchaseRecords || []).map((rec: { itemName: string; type: string; price: number; reason: string }, i: number) => (
-                        <tr key={i}><td style={STYLES.td}>{rec.itemName}</td><td style={STYLES.td}>{rec.type}</td><td style={STYLES.td}>{rec.price}G</td><td style={STYLES.td}>{rec.reason}</td></tr>
-                      ))}
+                      {(stats.shopStats.purchaseRecords || []).map((rec: { itemName: string; type: string; price: number; reason: string }, i: number) => {
+                        const displayName = rec.type === 'relic' ? getRelicName(rec.itemName) : rec.type === 'item' ? getItemName(rec.itemName) : getCardName(rec.itemName);
+                        const typeLabel = rec.type === 'card' ? '카드' : rec.type === 'relic' ? '상징' : '아이템';
+                        return <tr key={i}><td style={STYLES.td}>{displayName}</td><td style={STYLES.td}>{typeLabel}</td><td style={STYLES.td}>{rec.price}G</td><td style={STYLES.td}>{rec.reason}</td></tr>;
+                      })}
                     </tbody>
                   </table>
                 </div>
@@ -219,8 +248,8 @@ export const SimulatorTab = memo(function SimulatorTab() {
                   <div style={STYLES.statItem}><div style={STYLES.statLabel}>평균 받은 피해</div><div style={STYLES.statValue}>{(stats.dungeonStats.avgDamageTaken ?? 0).toFixed(1)}</div></div>
                 </div>
                 <div style={{ marginTop: '12px', fontSize: '0.875rem', color: '#cbd5e1' }}>
-                  <div>획득 카드: {stats.dungeonStats.rewards?.cards?.length ?? 0}장 - [{(stats.dungeonStats.rewards?.cards ?? []).join(', ')}]</div>
-                  <div>획득 상징: {stats.dungeonStats.rewards?.relics?.length ?? 0}개 - [{(stats.dungeonStats.rewards?.relics ?? []).join(', ')}]</div>
+                  <div>획득 카드: {stats.dungeonStats.rewards?.cards?.length ?? 0}장 - [{(stats.dungeonStats.rewards?.cards ?? []).map((id: string) => getCardName(id)).join(', ')}]</div>
+                  <div>획득 상징: {stats.dungeonStats.rewards?.relics?.length ?? 0}개 - [{(stats.dungeonStats.rewards?.relics ?? []).map((id: string) => getRelicName(id)).join(', ')}]</div>
                 </div>
               </>
             )}
@@ -234,7 +263,7 @@ export const SimulatorTab = memo(function SimulatorTab() {
                     <thead><tr><th style={STYLES.th}>이벤트</th><th style={STYLES.th}>발생</th><th style={STYLES.th}>성공</th><th style={STYLES.th}>골드</th><th style={STYLES.th}>재료</th></tr></thead>
                     <tbody>
                       {Array.from(stats.eventStats.entries()).sort((a: [string, { occurrences: number }], b: [string, { occurrences: number }]) => b[1].occurrences - a[1].occurrences).map(([id, e]: [string, { occurrences: number; successes: number; totalGoldChange?: number; totalMaterialChange?: number }]) => (
-                        <tr key={id}><td style={STYLES.td}>{id}</td><td style={STYLES.td}>{e.occurrences}회</td><td style={STYLES.td}>{e.successes}회</td><td style={STYLES.td}>{e.totalGoldChange ?? 0}</td><td style={STYLES.td}>{e.totalMaterialChange ?? 0}</td></tr>
+                        <tr key={id}><td style={STYLES.td}>{getEventName(id)}</td><td style={STYLES.td}>{e.occurrences}회</td><td style={STYLES.td}>{e.successes}회</td><td style={STYLES.td}>{e.totalGoldChange ?? 0}</td><td style={STYLES.td}>{e.totalMaterialChange ?? 0}</td></tr>
                       ))}
                     </tbody>
                   </table>
@@ -244,7 +273,7 @@ export const SimulatorTab = memo(function SimulatorTab() {
                 <div style={STYLES.scrollBox}>
                   {Array.from(stats.eventChoiceStats.entries()).map(([eventId, choiceStats]: [string, { occurrences?: number; timesSkipped?: number; choiceOutcomes?: Record<string, { timesChosen?: number; avgHpChange?: number; avgGoldChange?: number; successRate?: number }> }]) => (
                     <div key={eventId} style={{ marginBottom: '12px', padding: '8px', background: '#1e293b', borderRadius: '6px' }}>
-                      <div style={{ fontWeight: 'bold', color: '#fbbf24' }}>{eventId}: 발생 {choiceStats.occurrences ?? 0}회, 스킵 {choiceStats.timesSkipped ?? 0}회</div>
+                      <div style={{ fontWeight: 'bold', color: '#fbbf24' }}>{getEventName(eventId)}: 발생 {choiceStats.occurrences ?? 0}회, 스킵 {choiceStats.timesSkipped ?? 0}회</div>
                       {choiceStats.choiceOutcomes && Object.entries(choiceStats.choiceOutcomes).map(([choiceId, outcome]) => (
                         <div key={choiceId} style={{ marginLeft: '12px', fontSize: '0.8rem', color: '#94a3b8' }}>
                           선택 "{choiceId}": {outcome.timesChosen ?? 0}회, HP {(outcome.avgHpChange ?? 0).toFixed(1)}, 골드 {(outcome.avgGoldChange ?? 0).toFixed(0)}, 성공률 {((outcome.successRate ?? 0) * 100).toFixed(0)}%
@@ -266,7 +295,7 @@ export const SimulatorTab = memo(function SimulatorTab() {
                     <thead><tr><th style={STYLES.th}>아이템</th><th style={STYLES.th}>획득</th></tr></thead>
                     <tbody>
                       {Object.entries(stats.itemUsageStats.itemsAcquired || {}).map(([id, count]) => (
-                        <tr key={id}><td style={STYLES.td}>{id}</td><td style={STYLES.td}>{count as number}개</td></tr>
+                        <tr key={id}><td style={STYLES.td}>{getItemName(id)}</td><td style={STYLES.td}>{count as number}개</td></tr>
                       ))}
                     </tbody>
                   </table>
@@ -278,7 +307,7 @@ export const SimulatorTab = memo(function SimulatorTab() {
                     <thead><tr><th style={STYLES.th}>아이템</th><th style={STYLES.th}>사용</th><th style={STYLES.th}>HP회복</th><th style={STYLES.th}>피해</th><th style={STYLES.th}>특수효과</th></tr></thead>
                     <tbody>
                       {Object.entries(stats.itemUsageStats.itemEffects || {}).map(([id, eff]: [string, { timesUsed: number; totalHpHealed: number; totalDamage: number; specialEffects: Record<string, number> }]) => (
-                        <tr key={id}><td style={STYLES.td}>{id}</td><td style={STYLES.td}>{eff.timesUsed}회</td><td style={STYLES.td}>{eff.totalHpHealed}</td><td style={STYLES.td}>{eff.totalDamage}</td><td style={STYLES.td}>{JSON.stringify(eff.specialEffects)}</td></tr>
+                        <tr key={id}><td style={STYLES.td}>{getItemName(id)}</td><td style={STYLES.td}>{eff.timesUsed}회</td><td style={STYLES.td}>{eff.totalHpHealed}</td><td style={STYLES.td}>{eff.totalDamage}</td><td style={STYLES.td}>{JSON.stringify(eff.specialEffects)}</td></tr>
                       ))}
                     </tbody>
                   </table>
@@ -295,7 +324,7 @@ export const SimulatorTab = memo(function SimulatorTab() {
                     <thead><tr><th style={STYLES.th}>몬스터</th><th style={STYLES.th}>조우</th><th style={STYLES.th}>승리</th><th style={STYLES.th}>패배</th><th style={STYLES.th}>승률</th><th style={STYLES.th}>평균턴</th></tr></thead>
                     <tbody>
                       {Array.from(stats.monsterStats.entries()).sort((a: [string, { battles: number }], b: [string, { battles: number }]) => b[1].battles - a[1].battles).map(([id, m]: [string, { battles: number; wins: number; losses: number; avgTurns?: number }]) => (
-                        <tr key={id}><td style={STYLES.td}>{id}</td><td style={STYLES.td}>{m.battles}회</td><td style={STYLES.td}>{m.wins}회</td><td style={STYLES.td}>{m.losses}회</td><td style={STYLES.td}>{m.battles > 0 ? ((m.wins / m.battles) * 100).toFixed(0) : 0}%</td><td style={STYLES.td}>{(m.avgTurns ?? 0).toFixed(1)}</td></tr>
+                        <tr key={id}><td style={STYLES.td}>{getMonsterName(id)}</td><td style={STYLES.td}>{m.battles}회</td><td style={STYLES.td}>{m.wins}회</td><td style={STYLES.td}>{m.losses}회</td><td style={STYLES.td}>{m.battles > 0 ? ((m.wins / m.battles) * 100).toFixed(0) : 0}%</td><td style={STYLES.td}>{(m.avgTurns ?? 0).toFixed(1)}</td></tr>
                       ))}
                     </tbody>
                   </table>
@@ -309,11 +338,19 @@ export const SimulatorTab = memo(function SimulatorTab() {
                 <h4 style={{ margin: '0 0 12px 0', color: '#3b82f6' }}>🃏 카드 사용 통계</h4>
                 <div style={STYLES.scrollBox}>
                   <table style={STYLES.table}>
-                    <thead><tr><th style={STYLES.th}>카드</th><th style={STYLES.th}>사용</th><th style={STYLES.th}>승리시</th><th style={STYLES.th}>패배시</th><th style={STYLES.th}>피해</th><th style={STYLES.th}>방어</th><th style={STYLES.th}>교차</th></tr></thead>
+                    <thead><tr><th style={STYLES.th}>카드</th><th style={STYLES.th}>효과</th><th style={STYLES.th}>사용</th><th style={STYLES.th}>승리시</th><th style={STYLES.th}>패배시</th><th style={STYLES.th}>피해</th><th style={STYLES.th}>방어</th><th style={STYLES.th}>교차</th></tr></thead>
                     <tbody>
-                      {Array.from(stats.cardStats.entries()).sort((a: [string, { totalUses: number }], b: [string, { totalUses: number }]) => b[1].totalUses - a[1].totalUses).map(([id, c]: [string, { totalUses: number; usesInWins: number; usesInLosses: number; totalDamage: number; totalBlock: number; crossTriggers: number }]) => (
-                        <tr key={id}><td style={STYLES.td}>{id}</td><td style={STYLES.td}>{c.totalUses}회</td><td style={STYLES.td}>{c.usesInWins}회</td><td style={STYLES.td}>{c.usesInLosses}회</td><td style={STYLES.td}>{c.totalDamage}</td><td style={STYLES.td}>{c.totalBlock}</td><td style={STYLES.td}>{c.crossTriggers}회</td></tr>
-                      ))}
+                      {Array.from(stats.cardStats.entries()).sort((a: [string, { totalUses: number }], b: [string, { totalUses: number }]) => b[1].totalUses - a[1].totalUses).map(([id, c]: [string, { totalUses: number; usesInWins: number; usesInLosses: number; totalDamage: number; totalBlock: number; crossTriggers: number }]) => {
+                        const card = CARDS.find(cd => cd.id === id);
+                        const effects: string[] = [];
+                        if (card?.damage) effects.push(`피해 ${card.damage}${card.hits && card.hits > 1 ? `×${card.hits}` : ''}`);
+                        if (card?.block) effects.push(`방어 ${card.block}`);
+                        if (card?.speedCost) effects.push(`속도 ${card.speedCost}`);
+                        const effectStr = effects.join(', ') || '-';
+                        return (
+                          <tr key={id}><td style={STYLES.td}>{getCardName(id)}</td><td style={{...STYLES.td, fontSize: '0.75rem', color: '#94a3b8'}}>{effectStr}</td><td style={STYLES.td}>{c.totalUses}회</td><td style={STYLES.td}>{c.usesInWins}회</td><td style={STYLES.td}>{c.usesInLosses}회</td><td style={STYLES.td}>{c.totalDamage}</td><td style={STYLES.td}>{c.totalBlock}</td><td style={STYLES.td}>{c.crossTriggers}회</td></tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
