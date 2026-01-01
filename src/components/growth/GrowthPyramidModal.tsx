@@ -193,7 +193,7 @@ const StatusSummary = memo(function StatusSummary({
                 marginBottom: SPACING.xs,
                 fontWeight: 'bold',
               }}>
-                파토스 (액티브) {growth.equippedPathos.length}/{MAX_EQUIPPED_PATHOS}
+                파토스 (액티브) {unlockedPathos.length}개 [{growth.equippedPathos.length}/{MAX_EQUIPPED_PATHOS}]
               </div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
                 {unlockedPathos.map(pathos => {
@@ -226,10 +226,7 @@ const StatusSummary = memo(function StatusSummary({
         <div style={{ flex: 1, textAlign: 'center' }}>
           <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap', justifyContent: 'center' }}>
             <span>개성: <strong style={{ color: '#fde68a' }}>{playerTraits.length}개</strong></span>
-            <span>Lv: <strong style={{ color: COLORS.secondary }}>{growth.pyramidLevel}</strong></span>
             <span>SP: <strong style={{ color: COLORS.primary }}>{growth.skillPoints}P</strong></span>
-            <span>에토스: <strong style={{ color: COLORS.success }}>{growth.unlockedEthos.length}개</strong></span>
-            <span>파토스: <strong style={{ color: COLORS.tier[2].text }}>{growth.unlockedPathos.length}개</strong></span>
           </div>
           {pendingSelection && (
             <div style={{
@@ -261,7 +258,7 @@ const StatusSummary = memo(function StatusSummary({
                 fontWeight: 'bold',
                 textAlign: 'right',
               }}>
-                에토스 (패시브)
+                에토스 (패시브) {displayEthos.length}개
               </div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', justifyContent: 'flex-end' }}>
                 {displayEthos.map(ethos => (
