@@ -13,5 +13,6 @@ export {
   ItemsTab,
   EventTab,
   CardsTab,
-  SimulatorTab
+  SimulatorTab,
+  BalanceTab
 } from './tabs';
