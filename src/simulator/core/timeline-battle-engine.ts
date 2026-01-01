@@ -622,7 +622,7 @@ export class TimelineBattleEngine {
     state.timeline.sort((a, b) => a.position - b.position);
   }
 
-  // ==================== 카드 선택 (개선된 AI) ====================
+  // ==================== 카드 선택 (개선된 AI - v2) ====================
 
   private selectPlayerCards(state: GameBattleState): GameCard[] {
     const selected: GameCard[] = [];
@@ -641,11 +641,21 @@ export class TimelineBattleEngine {
     const playerHpRatio = state.player.hp / state.player.maxHp;
     const enemyHpRatio = state.enemy.hp / state.enemy.maxHp;
     const isInDanger = playerHpRatio < 0.35;
+    const isBossFight = state.enemy.isBoss === true;
+    const isLowEnemyHp = enemyHpRatio < 0.25;
     const canKillEnemy = this.estimateDamageOutput(handCards, state) >= state.enemy.hp;
     const needsDefense = isInDanger && !canKillEnemy;
 
+    // 에테르 상태 분석
+    const currentEther = state.player.ether || 0;
+    const nearBurst = currentEther >= 80;  // 에테르 버스트 가까움
+    const canBurst = currentEther >= 100;
+
     // 포커 조합 분석 (카드 값 기준)
     const comboAnalysis = this.analyzePokerCombos(handCards);
+
+    // 크로스 보너스 분석
+    const crossBonusCards = handCards.filter(c => c.crossBonus);
 
     // 카드 점수 계산
     const scoredCards = handCards.map(card => {
@@ -656,130 +666,199 @@ export class TimelineBattleEngine {
       const totalDamage = (card.damage || 0) * hits;
       const totalBlock = card.block || 0;
 
-      // 2. 상황별 점수 조정
-      if (needsDefense) {
-        // 위험 상황: 방어 우선
-        score += totalBlock * 3;
-        score += totalDamage * 0.5;
-
-        // 힐 효과 있는 카드 높은 점수
-        if (card.tags?.includes('heal') || card.effects?.some((e: any) => e.type === 'heal')) {
-          score += 50;
+      // 2. 보스전 특화 전략
+      if (isBossFight) {
+        // 보스전에서는 공격 가중치 증가
+        if (canKillEnemy || isLowEnemyHp) {
+          // 마무리 가능: 공격 최우선
+          score += totalDamage * 3;
+          score += totalBlock * 0.2;
+        } else if (needsDefense) {
+          // 위험하지만 방어도 필요
+          score += totalBlock * 2;
+          score += totalDamage * 1.0;
+        } else {
+          // 보스전 일반 상황: 공격 우선
+          score += totalDamage * 1.8;
+          score += totalBlock * 0.6;
         }
-      } else if (canKillEnemy) {
-        // 킬 가능: 공격 우선
-        score += totalDamage * 2;
-        score += totalBlock * 0.3;
+
+        // 보스전에서 다단히트 카드 높은 가치
+        if (hits > 1) {
+          score += hits * 10;
+        }
+
+        // 보스전에서 debuff 카드 가치 상승
+        if (card.appliedTokens) {
+          for (const [token, value] of Object.entries(card.appliedTokens)) {
+            if (token === 'vulnerable' || token === 'weak' || token === 'burn') {
+              score += (value as number) * 10;
+            }
+          }
+        }
       } else {
-        // 일반 상황: 균형
-        score += totalDamage * 1.2;
-        score += totalBlock * 0.8;
+        // 일반전 기존 로직
+        if (needsDefense) {
+          score += totalBlock * 3;
+          score += totalDamage * 0.5;
+          if (card.tags?.includes('heal') || card.effects?.some((e: any) => e.type === 'heal')) {
+            score += 50;
+          }
+        } else if (canKillEnemy) {
+          score += totalDamage * 2;
+          score += totalBlock * 0.3;
+        } else {
+          score += totalDamage * 1.2;
+          score += totalBlock * 0.8;
+        }
       }
 
-      // 3. 속도 점수 (빠른 카드 선호)
-      const speedCost = card.speedCost || 5;
-      score += (10 - Math.min(10, speedCost)) * 2; // 빠를수록 높은 점수
+      // 3. 크로스 보너스 점수 (매우 중요)
+      if (card.crossBonus) {
+        const cb = card.crossBonus;
+        // 현재 핸드에 크로스 조건을 충족하는 카드가 있는지 확인
+        const hasCrossPartner = handCards.some(other => {
+          if (other.id === card.id) return false;
+          // 조건 확인: 숫자/문양/카테고리 일치
+          if (cb.condition === 'sameNumber') {
+            return this.getCardValue(other) === this.getCardValue(card);
+          }
+          if (cb.condition === 'sameSuit') {
+            return (other as any).suit === (card as any).suit;
+          }
+          if (cb.condition === 'sameCategory') {
+            return other.cardCategory === card.cardCategory;
+          }
+          return false;
+        });
 
-      // 4. 버프/디버프 카드 점수
+        if (hasCrossPartner) {
+          // 크로스 보너스 발동 가능! 높은 점수
+          const bonusDamage = cb.damage || 0;
+          const bonusBlock = cb.block || 0;
+          score += (bonusDamage + bonusBlock) * 2;
+          score += 30; // 크로스 시너지 기본 보너스
+        }
+      }
+
+      // 크로스 파트너인 경우에도 점수 추가
+      for (const crossCard of crossBonusCards) {
+        if (crossCard.id === card.id) continue;
+        const cb = crossCard.crossBonus!;
+        const isPartner = (() => {
+          if (cb.condition === 'sameNumber') {
+            return this.getCardValue(card) === this.getCardValue(crossCard);
+          }
+          if (cb.condition === 'sameSuit') {
+            return (card as any).suit === (crossCard as any).suit;
+          }
+          if (cb.condition === 'sameCategory') {
+            return card.cardCategory === crossCard.cardCategory;
+          }
+          return false;
+        })();
+        if (isPartner) {
+          score += 25; // 크로스 파트너 보너스
+        }
+      }
+
+      // 4. 에테르/버스트 전략
+      if (nearBurst || canBurst) {
+        // 에테르 버스트 가까우면 에테르 소비 카드 우선
+        if (card.tags?.includes('ether') || card.special === 'etherBurst') {
+          score += 40;
+        }
+      } else {
+        // 에테르 축적을 위한 포커 조합 보너스 강화
+        const cardValue = this.getCardValue(card);
+        if (cardValue) {
+          const sameValueCount = comboAnalysis.valueCount[cardValue] || 0;
+          if (sameValueCount >= 2) {
+            score += (sameValueCount - 1) * 25; // 페어, 트리플 보너스 강화
+          }
+          if (comboAnalysis.straightPossible && comboAnalysis.straightCards.includes(card.id)) {
+            score += 30;
+          }
+        }
+      }
+
+      // 5. 속도 점수 (빠른 카드 선호)
+      const speedCost = card.speedCost || 5;
+      if (isBossFight) {
+        // 보스전에서 속도 더 중요
+        score += (12 - Math.min(12, speedCost)) * 3;
+      } else {
+        score += (10 - Math.min(10, speedCost)) * 2;
+      }
+
+      // 6. 버프/디버프 카드 점수
       if (card.effects && Array.isArray(card.effects)) {
         for (const effect of card.effects) {
-          // 적에게 취약 부여
           if (effect.token === 'vulnerable' || effect.token === 'weak') {
-            score += 15;
+            score += isBossFight ? 25 : 15;
           }
-          // 자신에게 힘 부여
           if (effect.token === 'strength' && effect.target === 'self') {
-            score += 20;
+            score += isBossFight ? 30 : 20;
           }
         }
       }
 
-      // 5. 포커 조합 보너스 (같은 값의 카드)
-      const cardValue = this.getCardValue(card);
-      if (cardValue) {
-        const sameValueCount = comboAnalysis.valueCount[cardValue] || 0;
-        if (sameValueCount >= 2) {
-          score += (sameValueCount - 1) * 15; // 페어, 트리플 등 보너스
-        }
-        // 스트레이트 가능성
-        if (comboAnalysis.straightPossible && comboAnalysis.straightCards.includes(card.id)) {
-          score += 20;
-        }
-      }
-
-      // 6. 특수 효과 점수
+      // 7. 특수 효과 점수
       if (card.type === 'attack') {
-        // 관통 (방어력 무시)
         if (card.tags?.includes('pierce') || card.ignoreBlock) {
-          score += 15;
+          score += isBossFight ? 25 : 15;
         }
-        // 다중 히트
         if (hits > 1) {
           score += hits * 5;
         }
       }
 
-      // 7. 특성 시너지 점수
+      // 8. 특성 시너지 점수
       if (card.traits && card.traits.length > 0) {
-        // 연계(chain) 특성: 후속(followup) 카드가 핸드에 있으면 보너스
+        // 연계(chain) 특성
         if (card.traits.includes('chain')) {
           const hasFollowup = handCards.some(c =>
             c.traits?.includes('followup') || c.traits?.includes('finisher')
           );
           if (hasFollowup) {
-            score += 25; // 연계-후속 시너지
+            score += isBossFight ? 35 : 25;
           }
         }
 
-        // 후속(followup) 특성: 연계(chain) 카드가 핸드에 있으면 보너스
+        // 후속(followup) 특성
         if (card.traits.includes('followup') || card.traits.includes('finisher')) {
           const hasChain = handCards.some(c => c.traits?.includes('chain'));
           if (hasChain) {
-            score += 20; // 후속-연계 시너지
+            score += isBossFight ? 30 : 20;
           }
-          // 이미 연계 준비 상태면 더 높은 점수
           if (hasToken(state.player.tokens, 'chain_ready')) {
-            score += 30; // 연계 발동 보장
+            score += 40;
           }
         }
 
-        // 협동(cooperation) 특성: 같은 actionCost 카드가 많으면 보너스
+        // 협동(cooperation) 특성
         if (card.traits.includes('cooperation')) {
           const sameActionCost = handCards.filter(c =>
             c.actionCost === card.actionCost && c.id !== card.id
           ).length;
-          score += sameActionCost * 10; // 같은 비용 카드 많으면 콤보 가능성
+          score += sameActionCost * 12;
         }
 
-        // 강골(strongbone), 파괴자(destroyer) 등 공격 증폭 특성
-        if (card.traits.includes('strongbone')) {
-          score += 15; // 25% 증폭
-        }
-        if (card.traits.includes('destroyer')) {
-          score += 20; // 50% 증폭
-        }
-        if (card.traits.includes('slaughter')) {
-          score += 25; // 75% 증폭
-        }
-        if (card.traits.includes('pinnacle')) {
-          score += 35; // 2.5배 증폭
-        }
-
-        // 신속함(swift) - 빠른 공격
-        if (card.traits.includes('swift')) {
-          score += 10;
-        }
-
-        // 단련(training) - 힘 축적
-        if (card.traits.includes('training')) {
-          score += 12;
-        }
+        // 공격 증폭 특성
+        if (card.traits.includes('strongbone')) score += 15;
+        if (card.traits.includes('destroyer')) score += 20;
+        if (card.traits.includes('slaughter')) score += 30;
+        if (card.traits.includes('pinnacle')) score += 45;
+        if (card.traits.includes('swift')) score += 12;
+        if (card.traits.includes('training')) score += 15;
       }
 
-      // 8. 에너지 효율 (코스트 대비 효과)
+      // 9. 에너지 효율 (코스트 대비 효과)
       const cost = card.actionCost || 1;
       if (cost > 0) {
-        score = score / Math.sqrt(cost); // 코스트가 높을수록 효율 감소
+        // 보스전에서는 효율보다 원판 효과 우선
+        const efficiencyPenalty = isBossFight ? Math.pow(cost, 0.3) : Math.sqrt(cost);
+        score = score / efficiencyPenalty;
       }
 
       return { card, score, cost };
@@ -788,19 +867,47 @@ export class TimelineBattleEngine {
     // 점수순 정렬
     scoredCards.sort((a, b) => b.score - a.score);
 
-    // 에너지 내에서 최적 조합 선택
+    // 크로스 보너스 최적화: 쌍으로 선택
+    const selectedIds = new Set<string>();
     for (const { card, cost } of scoredCards) {
       if (cardsSelected >= maxCards) break;
-      if (cost <= energyLeft) {
-        selected.push(card);
-        energyLeft -= cost;
-        cardsSelected++;
+      if (cost > energyLeft) continue;
+      if (selectedIds.has(card.id)) continue;
+
+      selected.push(card);
+      selectedIds.add(card.id);
+      energyLeft -= cost;
+      cardsSelected++;
+
+      // 크로스 파트너가 있으면 함께 선택 시도
+      if (card.crossBonus) {
+        const cb = card.crossBonus;
+        const partner = scoredCards.find(({ card: other }) => {
+          if (selectedIds.has(other.id)) return false;
+          if ((other.actionCost || 1) > energyLeft) return false;
+          if (cb.condition === 'sameNumber') {
+            return this.getCardValue(other) === this.getCardValue(card);
+          }
+          if (cb.condition === 'sameSuit') {
+            return (other as any).suit === (card as any).suit;
+          }
+          if (cb.condition === 'sameCategory') {
+            return other.cardCategory === card.cardCategory;
+          }
+          return false;
+        });
+
+        if (partner && cardsSelected < maxCards) {
+          selected.push(partner.card);
+          selectedIds.add(partner.card.id);
+          energyLeft -= partner.cost;
+          cardsSelected++;
+        }
       }
     }
 
     // 최소 1장은 선택 (에너지가 충분하다면)
     if (selected.length === 0 && handCards.length > 0) {
-      // 가장 저렴한 카드 선택
       const cheapest = handCards
         .filter(c => (c.actionCost || 1) <= state.player.energy)
         .sort((a, b) => (a.actionCost || 1) - (b.actionCost || 1))[0];
