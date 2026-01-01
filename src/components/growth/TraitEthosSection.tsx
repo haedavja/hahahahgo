@@ -115,17 +115,21 @@ const EthosCard = memo(function EthosCard({
       borderRadius: BORDER_RADIUS.lg,
       transition: 'background 0.2s, border-color 0.2s', // 부드러운 전환
     }}>
-      {/* 에토스 이름 */}
+      {/* 에토스 이름 - 고정 레이아웃 */}
       <div style={{
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         gap: SPACING.sm,
         marginBottom: SPACING.sm,
+        minHeight: '24px', // 고정 높이로 레이아웃 안정화
       }}>
-        {isUnlocked && (
-          <span style={{ color: COLORS.success, fontSize: FONT_SIZE.md }}>✓</span>
-        )}
+        <span style={{
+          color: COLORS.success,
+          fontSize: FONT_SIZE.md,
+          visibility: isUnlocked ? 'visible' : 'hidden', // 공간 예약
+          width: '16px',
+        }}>✓</span>
         <span style={{
           fontWeight: 'bold',
           fontSize: FONT_SIZE.lg,
@@ -133,23 +137,25 @@ const EthosCard = memo(function EthosCard({
         }}>
           {ethos.name}
         </span>
-        {traitCount > 1 && (
-          <span style={{ fontSize: FONT_SIZE.md, color: COLORS.primary }}>
-            x{traitCount}
-          </span>
-        )}
+        <span style={{
+          fontSize: FONT_SIZE.md,
+          color: COLORS.primary,
+          visibility: traitCount > 1 ? 'visible' : 'hidden', // 공간 예약
+          width: '32px',
+        }}>
+          x{traitCount}
+        </span>
       </div>
 
-      {/* 개성 조건 */}
+      {/* 개성 조건 - 고정 높이 */}
       <div style={{
         fontSize: FONT_SIZE.sm,
         color: hasTrait ? '#fde68a' : COLORS.text.muted,
         marginBottom: SPACING.xs,
         textAlign: 'center',
+        minHeight: '20px', // 고정 높이
       }}>
-        {hasTrait
-          ? `✓ ${matchingTrait}${traitCount > 1 ? ` x${traitCount}` : ''}`
-          : `${matchingTrait || '?'} 필요`}
+        {hasTrait ? '✓ ' : ''}{matchingTrait || '?'}{hasTrait ? '' : ' 필요'}
       </div>
 
       {/* 설명 */}
