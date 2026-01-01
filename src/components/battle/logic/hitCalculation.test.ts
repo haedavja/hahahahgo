@@ -4,8 +4,8 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { applyCounter, applyRainDefense } from './hitCalculation';
-import type { Combatant, BattleContext } from '../../../types';
+import { applyCounter, applyRainDefense, applyCounterShot, calculateSingleHit } from './hitCalculation';
+import type { Combatant, BattleContext, Card } from '../../../types';
 
 // Mock battleData
 vi.mock('../battleData', () => ({
@@ -220,6 +220,136 @@ describe('hitCalculation', () => {
       expect(result.events.length).toBe(1);
       expect(result.logs.length).toBe(1);
       expect(result.logs[0]).toContain('비의 눈물');
+    });
+  });
+
+  describe('applyCounterShot', () => {
+    it('shoot 카드로 대응사격 피해를 적용한다', () => {
+      const defender = createMockCombatant({ hp: 100 });
+      const attacker = createMockCombatant({ hp: 50 });
+
+      const result = applyCounterShot(defender, attacker, 'player');
+
+      expect(result.attacker.hp).toBe(42); // 50 - 8 (shoot damage)
+      expect(result.damage).toBe(8);
+    });
+
+    it('이벤트와 로그를 반환한다', () => {
+      const defender = createMockCombatant();
+      const attacker = createMockCombatant({ hp: 50 });
+
+      const result = applyCounterShot(defender, attacker, 'player');
+
+      expect(result.events.length).toBeGreaterThan(0);
+      expect(result.logs.length).toBeGreaterThan(0);
+      expect(result.logs[0]).toContain('대응사격');
+    });
+
+    it('적 대응사격도 처리한다', () => {
+      const defender = createMockCombatant();
+      const attacker = createMockCombatant({ hp: 50 });
+      const context: BattleContext = { enemyDisplayName: '고블린' };
+
+      const result = applyCounterShot(defender, attacker, 'enemy', context);
+
+      expect(result.logs[0]).toContain('고블린');
+    });
+  });
+
+  describe('calculateSingleHit', () => {
+    const createMockCard = (overrides: Partial<Card> = {}): Card => ({
+      id: 'test-attack',
+      name: '테스트 공격',
+      type: 'attack',
+      damage: 10,
+      sp: 5,
+      ...overrides,
+    } as Card);
+
+    it('기본 공격 피해를 계산한다', () => {
+      const attacker = createMockCombatant();
+      const defender = createMockCombatant({ hp: 100, block: 0 });
+      const card = createMockCard({ damage: 10 });
+
+      const result = calculateSingleHit(attacker, defender, card, 'player');
+
+      expect(result.damage).toBe(10);
+      expect(result.defender.hp).toBe(90);
+    });
+
+    it('방어력이 있는 대상에게 피해를 적용한다', () => {
+      const attacker = createMockCombatant();
+      const defender = createMockCombatant({ hp: 100, block: 5 });
+      const card = createMockCard({ damage: 10 });
+
+      const result = calculateSingleHit(attacker, defender, card, 'player');
+
+      // 피해가 정상적으로 계산됨
+      expect(result.damage).toBe(10);
+      expect(result.defender).toBeDefined();
+    });
+
+    it('힘 보너스가 피해에 추가된다', () => {
+      const attacker = createMockCombatant({ strength: 3 });
+      const defender = createMockCombatant({ hp: 100, block: 0 });
+      const card = createMockCard({ damage: 10 });
+
+      const result = calculateSingleHit(attacker, defender, card, 'player');
+
+      expect(result.damage).toBe(13); // 10 + 3
+      expect(result.defender.hp).toBe(87); // 100 - 13
+    });
+
+    it('유령 카드도 피해를 입힌다', () => {
+      const attacker = createMockCombatant();
+      const defender = createMockCombatant({ hp: 100, block: 0 });
+      const card = createMockCard({ damage: 10, isGhost: true });
+
+      const result = calculateSingleHit(attacker, defender, card, 'player');
+
+      expect(result.damage).toBe(10);
+      expect(result.defender.hp).toBe(90);
+    });
+
+    it('적 공격도 처리한다', () => {
+      const attacker = createMockCombatant();
+      const defender = createMockCombatant({ hp: 100, block: 0 });
+      const card = createMockCard({ damage: 10 });
+      const context: BattleContext = { enemyDisplayName: '고블린' };
+
+      const result = calculateSingleHit(attacker, defender, card, 'enemy', context);
+
+      expect(result.damage).toBe(10);
+      expect(result.logs.length).toBeGreaterThan(0);
+    });
+
+    it('preProcessedResult가 제공되면 해당 값을 사용한다', () => {
+      const attacker = createMockCombatant();
+      const defender = createMockCombatant({ hp: 100, block: 0 });
+      const card = createMockCard({ damage: 10 });
+      const modifiedCard = createMockCard({ damage: 15 });
+      const preProcessedResult = {
+        modifiedCard,
+        attacker,
+        defender,
+        events: [],
+        logs: [],
+      };
+
+      const result = calculateSingleHit(attacker, defender, card, 'player', {}, false, preProcessedResult);
+
+      expect(result.damage).toBe(15); // preProcessed 카드의 damage
+    });
+
+    it('크리티컬 플래그가 전달되면 피해를 증가시킨다', () => {
+      const attacker = createMockCombatant();
+      const defender = createMockCombatant({ hp: 100, block: 0 });
+      const card = createMockCard({ damage: 10 });
+
+      const result = calculateSingleHit(attacker, defender, card, 'player', {}, true);
+
+      // 크리티컬 시 applyCriticalDamage 호출됨 (mock에서 2배 설정)
+      expect(result.damage).toBe(20);
     });
   });
 });
