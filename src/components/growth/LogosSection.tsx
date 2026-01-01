@@ -42,7 +42,7 @@ export const LogosSection = memo(function LogosSection({
           position: 'relative',
           zIndex: 10,
           padding: `${SPACING.sm} ${SPACING.md}`,
-          background: maxUnlockableLevel > 0 ? 'rgba(30, 41, 59, 0.8)' : '#141a22',
+          background: maxUnlockableLevel > 0 ? '#1e293b' : '#141a22', // 불투명 배경
           border: `1px solid ${maxUnlockableLevel > 0 ? COLORS.primary : '#334155'}`,
           borderRadius: BORDER_RADIUS.lg,
           fontSize: FONT_SIZE.md,

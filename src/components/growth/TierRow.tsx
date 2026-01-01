@@ -102,7 +102,7 @@ const TierHeader = memo(function TierHeader({
       position: 'relative',
       zIndex: 10,
       padding: `${SPACING.sm} ${SPACING.md}`,
-      background: isLocked ? '#141a22' : 'rgba(30, 41, 59, 0.8)',
+      background: isLocked ? '#141a22' : '#1e293b', // 불투명 배경
       border: `1px solid ${isLocked ? '#334155' : color}`,
       borderRadius: BORDER_RADIUS.lg,
       fontSize: FONT_SIZE.md,

@@ -74,7 +74,7 @@ export const IdentitySection = memo(function IdentitySection({
           position: 'relative',
           zIndex: 10,
           padding: `${SPACING.sm} ${SPACING.md}`,
-          background: (canAccessSwordsman || canAccessGunslinger) ? 'rgba(30, 41, 59, 0.8)' : '#141a22',
+          background: (canAccessSwordsman || canAccessGunslinger) ? '#1e293b' : '#141a22', // 불투명 배경
           border: `1px solid ${(canAccessSwordsman || canAccessGunslinger) ? COLORS.tier.identity.text : '#334155'}`,
           borderRadius: BORDER_RADIUS.lg,
           fontSize: FONT_SIZE.md,
@@ -150,7 +150,7 @@ const IdentityCard = memo(function IdentityCard({
         width: '200px',
         flex: '0 0 200px',
         padding: SPACING.md,
-        background: isSelected ? COLORS.tier.identity.bg : '#1e293b', // 불투명 배경
+        background: isSelected ? '#2a1f2f' : '#1e293b', // 불투명 배경 (반투명 COLORS 대신 solid hex)
         border: isSelected
           ? `2px solid ${COLORS.tier.identity.border}`
           : '1px solid #475569',
