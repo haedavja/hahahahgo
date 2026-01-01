@@ -188,7 +188,12 @@ const PyramidView = memo(function PyramidView({
   const tier1Items = Object.values(BASE_ETHOS);
 
   return (
-    <div ref={containerRef} style={{ position: 'relative' }}>
+    <div ref={containerRef} style={{
+      position: 'relative',
+      transform: 'scale(1.25)',
+      transformOrigin: 'top center',
+      marginBottom: '25%', // scale로 인한 여백 보정
+    }}>
       {/* 노드 연결선 SVG */}
       <PyramidConnections
         containerRef={containerRef}
