@@ -150,7 +150,7 @@ const EthosCard = memo(function EthosCard({
 
       {/* 개성 조건 - 공간 항상 예약 (visibility로 제어) */}
       <div style={{
-        fontSize: FONT_SIZE.sm,
+        fontSize: '12px', // FONT_SIZE.sm (10px)의 20% 확대
         color: COLORS.text.muted,
         marginBottom: SPACING.xs,
         textAlign: 'center',
@@ -162,7 +162,7 @@ const EthosCard = memo(function EthosCard({
 
       {/* 설명 */}
       <div style={{
-        fontSize: FONT_SIZE.sm,
+        fontSize: '12px', // FONT_SIZE.sm (10px)의 20% 확대
         color: isUnlocked ? COLORS.text.secondary : COLORS.text.disabled,
         lineHeight: '1.4',
         textAlign: 'center',

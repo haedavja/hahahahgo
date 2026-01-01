@@ -257,7 +257,7 @@ const LogosLevelItem = memo(function LogosLevelItem({
       )}
       <div style={{
         color: isUnlocked ? COLORS.text.secondary : locked ? '#94a3b8' : COLORS.text.muted,
-        fontSize: FONT_SIZE.sm,
+        fontSize: '12px', // FONT_SIZE.sm (10px)의 20% 확대
         marginTop: SPACING.xs,
       }}>
         {level.effect.description}
