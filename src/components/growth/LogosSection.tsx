@@ -28,14 +28,13 @@ export const LogosSection = memo(function LogosSection({
 
   return (
     <div style={{ marginBottom: '80px' }}>
-      {/* 티어 헤더와 카드를 같은 줄에 배치 - 피라미드 형태 */}
+      {/* CSS Grid로 고정 레이아웃 - 피라미드 형태 */}
       <div style={{
-        display: 'flex',
-        flexWrap: 'wrap',
+        display: 'grid',
+        gridTemplateColumns: '100px repeat(3, 200px)', // 헤더 + 3개 카드 고정
         gap: SPACING.md,
-        justifyContent: 'flex-start',
-        alignItems: 'flex-start',
-        paddingLeft: '380px', // 공용 로고스가 자아 중앙에 오도록 배치
+        alignItems: 'stretch', // 모든 셀 높이 동일화
+        marginLeft: '380px', // 공용 로고스가 자아 중앙에 오도록 배치
       }}>
         {/* 8단계 로고스 헤더 */}
         <div style={{
@@ -48,6 +47,7 @@ export const LogosSection = memo(function LogosSection({
           fontSize: FONT_SIZE.md,
           color: maxUnlockableLevel > 0 ? COLORS.primary : COLORS.text.muted,
           fontWeight: 'bold',
+          alignSelf: 'start', // Grid stretch 무시 - 헤더 크기 유지
         }}>
           {maxUnlockableLevel === 0 && '🔒 '}8단계 로고스
         </div>
@@ -127,13 +127,13 @@ const LogosCard = memo(function LogosCard({
       style={{
         position: 'relative',
         zIndex: 10, // 연결선 위에 표시
-        width: '200px',
-        flex: '0 0 200px',
+        // Grid가 크기 제어하므로 width/flex 속성 불필요
         padding: SPACING.md,
+        boxSizing: 'border-box',
         background: locked ? '#141a22' : '#1a2f2a', // 1~6단계와 동일 (잠금: #141a22)
         border: locked ? '1px dashed #6b7280' : '1px solid rgba(251, 191, 36, 0.3)',
         borderRadius: BORDER_RADIUS.lg,
-        // opacity 제거 - 배경은 불투명 유지
+        minHeight: '220px', // 카드 최소 높이 고정 - 레이아웃 안정화
       }}
     >
       {/* 콘텐츠 wrapper - 1~6단계와 동일하게 콘텐츠만 opacity 적용 */}
