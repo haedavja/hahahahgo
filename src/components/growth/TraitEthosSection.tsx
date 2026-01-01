@@ -41,7 +41,7 @@ export const TraitEthosSection = memo(function TraitEthosSection({
         display: 'flex',
         flexWrap: 'wrap',
         gap: SPACING.md,
-        justifyContent: 'center',
+        justifyContent: 'flex-start',
         alignItems: 'flex-start',
       }}>
         {/* 티어 헤더 */}

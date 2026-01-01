@@ -49,10 +49,8 @@ export const TierRow = memo(function TierRow({
         display: 'flex',
         flexWrap: 'wrap',
         gap: SPACING.md,
-        justifyContent: 'center',
+        justifyContent: 'flex-start',
         alignItems: 'flex-start',
-        maxWidth: tier <= 3 ? '100%' : tier === 4 ? '90%' : '80%',
-        margin: '0 auto',
       }}>
         {/* 티어 헤더 */}
         <TierHeader
