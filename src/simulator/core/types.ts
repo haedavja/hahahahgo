@@ -58,7 +58,13 @@ export interface SimulationConfig {
   enemyIds: string[];
   playerDeck: string[];
   playerRelics?: string[];
+  playerStats?: {
+    hp?: number;
+    maxHp?: number;
+    energy?: number;
+  };
   anomalyId?: string;
+  anomalyLevel?: number;
   verbose?: boolean;
 }
 
