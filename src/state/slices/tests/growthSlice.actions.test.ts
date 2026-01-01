@@ -129,8 +129,8 @@ describe('growthSlice actions', () => {
       const { actions, getState } = createActionsWithMockStore(initialState);
       actions.updatePyramidLevel();
 
-      // 레벨 1 → 3: 2포인트 획득
-      expect(getState().growth.skillPoints).toBe(2);
+      // 개성 3개 = 스킬포인트 3개 (새로 획득한 개성 수만큼)
+      expect(getState().growth.skillPoints).toBe(3);
     });
 
     it('개성 이름에 해당하는 에토스를 자동 해금한다', () => {
@@ -143,13 +143,18 @@ describe('growthSlice actions', () => {
       expect(getState().growth.unlockedEthos).toContain('bravery');
     });
 
-    it('레벨이 오르지 않으면 스킬포인트를 획득하지 않는다', () => {
-      const initialState = createMockState({ pyramidLevel: 3, skillPoints: 5 });
+    it('이미 추적된 개성은 스킬포인트를 추가 획득하지 않는다', () => {
+      const initialState = createMockState({
+        pyramidLevel: 3,
+        skillPoints: 5,
+        traitCounts: { bravery: 1, steadfast: 1, composure: 1 },
+      });
       (initialState as any).playerTraits = ['용맹함', '굳건함', '냉철함'];
 
       const { actions, getState } = createActionsWithMockStore(initialState);
       actions.updatePyramidLevel();
 
+      // 이미 추적된 개성이므로 스킬포인트 추가 없음
       expect(getState().growth.skillPoints).toBe(5);
     });
   });
@@ -260,7 +265,12 @@ describe('growthSlice actions', () => {
 
   describe('unlockNode', () => {
     it('에토스 노드를 해금하고 선택 대기 상태로 전환한다', () => {
-      const initialState = createMockState({ pyramidLevel: 3, skillPoints: 2 });
+      // 'advance'는 실제 노드 (tier 3 에토스). bravery 2회 필요
+      const initialState = createMockState({
+        pyramidLevel: 3,
+        skillPoints: 2,
+        traitCounts: { bravery: 2 },
+      });
       const { actions, getState } = createActionsWithMockStore(initialState);
 
       actions.unlockNode('advance', 'ethos');

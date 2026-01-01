@@ -8,7 +8,7 @@ import type { EthosNode } from '../../data/growth/ethosData';
 import type { PathosNode } from '../../data/growth/pathosData';
 import type { Ethos } from '../../data/growth/ethosData';
 import type { Pathos } from '../../data/growth/pathosData';
-import { getNodeChoices, type initialGrowthState } from '../../state/slices/growthSlice';
+import { getNodeChoices, getNodeUnlockStatus, type initialGrowthState } from '../../state/slices/growthSlice';
 import { COLORS, SPACING, FONT_SIZE, BORDER_RADIUS, type TierNumber } from '../../styles/theme';
 
 interface TierRowProps {
@@ -149,7 +149,10 @@ const NodeCard = memo(function NodeCard({
   onSelectChoice,
 }: NodeCardProps) {
   const isUnlocked = growth.unlockedNodes.includes(node.id);
-  const canUnlock = !isLocked && !isUnlocked && skillPoints >= 1;
+
+  // 피라미드 트리 해금 조건 확인
+  const unlockStatus = getNodeUnlockStatus(node.id, growth);
+  const canUnlock = !isUnlocked && unlockStatus.canUnlock && skillPoints >= 1;
 
   const selectedChoice = isUnlocked
     ? node.choices.find(choiceId =>
@@ -211,6 +214,20 @@ const NodeCard = memo(function NodeCard({
           >
             1P 해금
           </button>
+        )}
+
+        {/* 해금 불가 사유 표시 */}
+        {!isUnlocked && !unlockStatus.canUnlock && unlockStatus.reason && (
+          <div style={{
+            fontSize: FONT_SIZE.xs,
+            color: COLORS.danger,
+            padding: `${SPACING.xs} ${SPACING.sm}`,
+            background: 'rgba(239, 68, 68, 0.1)',
+            borderRadius: BORDER_RADIUS.sm,
+            marginTop: SPACING.xs,
+          }}>
+            🔒 {unlockStatus.reason}
+          </div>
         )}
       </div>
 

@@ -18,12 +18,21 @@ import { ETHOS, ETHOS_NODES, BASE_ETHOS, type Ethos, type EthosNode } from '../.
 import { PATHOS, PATHOS_NODES, TIER2_PATHOS, MAX_EQUIPPED_PATHOS, type Pathos, type PathosNode } from '../../data/growth/pathosData';
 import { getLogosLevelFromPyramid } from '../../data/growth/logosData';
 import { IDENTITY_REQUIRED_PYRAMID_LEVEL, type IdentityType } from '../../data/growth/identityData';
+import {
+  TRAIT_NAME_TO_ID,
+  getAutoUnlockNodes,
+  canUnlockNode,
+  type TraitId,
+} from '../../data/growth/pyramidTreeData';
 
 // 성장 상태 타입
 export interface GrowthState {
   // 피라미드 진행
   pyramidLevel: number;              // 현재 피라미드 레벨
   skillPoints: number;               // 사용 가능한 스킬포인트
+
+  // 개성 획득 횟수 (피라미드 트리 해금용)
+  traitCounts: Record<string, number>;  // { bravery: 2, steadfast: 1, ... }
 
   // 해금된 항목
   unlockedEthos: string[];           // 해금된 에토스 ID 목록
@@ -54,6 +63,7 @@ export interface GrowthState {
 export const initialGrowthState: GrowthState = {
   pyramidLevel: 0,
   skillPoints: 0,
+  traitCounts: {},
   unlockedEthos: [],
   unlockedPathos: [],
   unlockedNodes: [],
@@ -113,16 +123,6 @@ export type GrowthActionsSlice = GrowthSliceActions;
 
 type SliceCreator = StateCreator<GameStore, [], [], GrowthActionsSlice>;
 
-// 개성 이름 → 1단계 에토스 ID 매핑
-const TRAIT_TO_ETHOS: Record<string, string> = {
-  '용맹함': 'bravery',
-  '굳건함': 'steadfast',
-  '냉철함': 'composure',
-  '철저함': 'thorough',
-  '열정적': 'passion',
-  '활력적': 'vitality',
-};
-
 export const createGrowthActions: SliceCreator = (set, get) => ({
   updatePyramidLevel: () =>
     set((state) => {
@@ -131,28 +131,57 @@ export const createGrowthActions: SliceCreator = (set, get) => ({
       const newLevel = getPyramidLevelFromTraits(traitCount);
       const currentLevel = state.growth?.pyramidLevel || 0;
 
-      // 새 레벨 달성
+      // 성장 상태 복사
       const growth = { ...(state.growth || initialGrowthState) };
+      growth.traitCounts = { ...growth.traitCounts };
+      growth.unlockedNodes = [...growth.unlockedNodes];
+      growth.unlockedEthos = [...growth.unlockedEthos];
 
-      // 개성에 해당하는 1단계 에토스 자동 해금
-      traits.forEach(trait => {
-        const ethosId = TRAIT_TO_ETHOS[trait];
-        if (ethosId && !growth.unlockedEthos.includes(ethosId)) {
-          growth.unlockedEthos = [...growth.unlockedEthos, ethosId];
+      // 개성 횟수 계산 (이름 → ID 변환)
+      const newTraitCounts: Record<string, number> = {};
+      traits.forEach(traitName => {
+        const traitId = TRAIT_NAME_TO_ID[traitName];
+        if (traitId) {
+          newTraitCounts[traitId] = (newTraitCounts[traitId] || 0) + 1;
         }
       });
 
-      if (newLevel <= currentLevel) {
-        // 레벨업은 아니지만 에토스 해금이 있을 수 있음
-        return { ...state, growth };
+      // 개성 횟수 비교하여 새로 획득한 개성 확인
+      const traitIds = Object.keys(newTraitCounts) as TraitId[];
+      let skillPointsToAdd = 0;
+
+      traitIds.forEach(traitId => {
+        const oldCount = growth.traitCounts[traitId] || 0;
+        const newCount = newTraitCounts[traitId];
+
+        // 새로 획득한 횟수만큼 스킬포인트 추가
+        if (newCount > oldCount) {
+          skillPointsToAdd += (newCount - oldCount);
+
+          // 자동 해금 노드 처리 (1단계 에토스)
+          const autoUnlockNodes = getAutoUnlockNodes(traitId, newCount, growth.unlockedNodes);
+          autoUnlockNodes.forEach(nodeId => {
+            if (!growth.unlockedNodes.includes(nodeId)) {
+              growth.unlockedNodes.push(nodeId);
+            }
+            // 1단계 에토스 자동 해금 (노드 ID = 에토스 ID)
+            if (!growth.unlockedEthos.includes(nodeId)) {
+              growth.unlockedEthos.push(nodeId);
+            }
+          });
+        }
+      });
+
+      // 개성 횟수 업데이트
+      growth.traitCounts = newTraitCounts;
+
+      // 피라미드 레벨 업데이트
+      if (newLevel > currentLevel) {
+        growth.pyramidLevel = newLevel;
       }
 
-      growth.pyramidLevel = newLevel;
-
-      // 레벨업 시 스킬포인트 획득 (레벨당 1포인트)
-      growth.skillPoints += (newLevel - currentLevel);
-
-      // 로고스는 스킬포인트로 직접 해금 (자동 해금 제거)
+      // 스킬포인트 추가
+      growth.skillPoints += skillPointsToAdd;
 
       return { ...state, growth };
     }),
@@ -209,7 +238,15 @@ export const createGrowthActions: SliceCreator = (set, get) => ({
       if (!node) return state;
       if (growth.unlockedNodes.includes(nodeId)) return state;
       if (growth.skillPoints < 1) return state;
-      if (growth.pyramidLevel < node.tier) return state;
+
+      // 피라미드 트리 해금 조건 확인
+      const unlockCheck = canUnlockNode(nodeId, growth.traitCounts || {}, growth.unlockedNodes);
+      // 알려지지 않은 노드는 피라미드 레벨 기반 체크로 폴백 (테스트 호환성)
+      if (unlockCheck.reason === '알 수 없는 노드') {
+        if (growth.pyramidLevel < node.tier) return state;
+      } else if (!unlockCheck.canUnlock) {
+        return state;
+      }
 
       // 노드 해금 및 선택 대기 상태로
       growth.unlockedNodes = [...growth.unlockedNodes, nodeId];
@@ -428,18 +465,28 @@ export function getAvailableBasePathos(state: GrowthState): Pathos[] {
 
 // 해금 가능한 에토스 노드 (3, 5단계)
 export function getAvailableEthosNodes(state: GrowthState): EthosNode[] {
-  return Object.values(ETHOS_NODES).filter(node =>
-    node.tier <= state.pyramidLevel &&
-    !state.unlockedNodes.includes(node.id)
-  );
+  return Object.values(ETHOS_NODES).filter(node => {
+    if (state.unlockedNodes.includes(node.id)) return false;
+    const unlockCheck = canUnlockNode(node.id, state.traitCounts || {}, state.unlockedNodes);
+    // 알려지지 않은 노드는 피라미드 레벨 기반 체크로 폴백 (테스트 호환성)
+    if (unlockCheck.reason === '알 수 없는 노드') {
+      return node.tier <= state.pyramidLevel;
+    }
+    return unlockCheck.canUnlock;
+  });
 }
 
-// 해금 가능한 파토스 노드 (4단계)
+// 해금 가능한 파토스 노드 (2, 4, 6단계)
 export function getAvailablePathosNodes(state: GrowthState): PathosNode[] {
-  return Object.values(PATHOS_NODES).filter(node =>
-    node.tier <= state.pyramidLevel &&
-    !state.unlockedNodes.includes(node.id)
-  );
+  return Object.values(PATHOS_NODES).filter(node => {
+    if (state.unlockedNodes.includes(node.id)) return false;
+    const unlockCheck = canUnlockNode(node.id, state.traitCounts || {}, state.unlockedNodes);
+    // 알려지지 않은 노드는 피라미드 레벨 기반 체크로 폴백 (테스트 호환성)
+    if (unlockCheck.reason === '알 수 없는 노드') {
+      return node.tier <= state.pyramidLevel;
+    }
+    return unlockCheck.canUnlock;
+  });
 }
 
 // 노드의 선택지 조회
@@ -510,4 +557,25 @@ export function getUnlockedEthos(state: GrowthState): Ethos[] {
 // 해금된 파토스 목록 조회
 export function getUnlockedPathos(state: GrowthState): Pathos[] {
   return state.unlockedPathos.map(id => PATHOS[id]).filter(Boolean);
+}
+
+// 노드 해금 가능 여부 및 사유 조회
+export function getNodeUnlockStatus(
+  nodeId: string,
+  state: GrowthState
+): { canUnlock: boolean; reason?: string } {
+  if (state.unlockedNodes.includes(nodeId)) {
+    return { canUnlock: false, reason: '이미 해금됨' };
+  }
+  const result = canUnlockNode(nodeId, state.traitCounts || {}, state.unlockedNodes);
+  // 알려지지 않은 노드는 피라미드 레벨 기반 체크로 폴백
+  if (result.reason === '알 수 없는 노드') {
+    const nodes = { ...ETHOS_NODES, ...PATHOS_NODES };
+    const node = nodes[nodeId];
+    if (node && node.tier <= state.pyramidLevel) {
+      return { canUnlock: true };
+    }
+    return { canUnlock: false, reason: `피라미드 레벨 ${node?.tier || '?'} 필요` };
+  }
+  return result;
 }
