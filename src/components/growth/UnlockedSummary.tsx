@@ -47,7 +47,7 @@ export const UnlockedSummary = memo(function UnlockedSummary({
       </div>
 
       {/* 상세 내용 */}
-      <div style={{ marginTop: SPACING.lg }}>
+      <div style={{ marginTop: SPACING.lg, paddingLeft: SPACING.md, paddingRight: SPACING.md }}>
         {/* 에토스 목록 */}
         {unlockedEthos.length > 0 && (
           <EthosList ethosList={unlockedEthos} />

@@ -33,6 +33,9 @@ export const LogosSection = memo(function LogosSection({
       border: '1px solid rgba(251, 191, 36, 0.2)',
       borderRadius: BORDER_RADIUS.xl,
       marginBottom: SPACING.xl,
+      maxWidth: '900px',
+      margin: '0 auto',
+      marginBottom: SPACING.xl,
     }}>
       <div style={{
         fontSize: FONT_SIZE.lg,

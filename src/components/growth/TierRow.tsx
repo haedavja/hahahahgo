@@ -111,19 +111,19 @@ const TierHeader = memo(function TierHeader({
 }: TierHeaderProps) {
   return (
     <div style={{
-      fontSize: FONT_SIZE.md,
+      fontSize: FONT_SIZE.lg,
       color: isLocked ? COLORS.text.muted : color,
-      marginBottom: SPACING.sm,
+      marginBottom: SPACING.md,
       display: 'flex',
       alignItems: 'center',
-      gap: SPACING.sm,
+      gap: SPACING.md,
     }}>
       <span style={{ fontWeight: 'bold' }}>{label}</span>
       {/* 해금 진행 상태 */}
       {unlockedCount > 0 && (
         <span style={{
-          fontSize: FONT_SIZE.xs,
-          padding: `1px ${SPACING.sm}`,
+          fontSize: FONT_SIZE.sm,
+          padding: `2px ${SPACING.md}`,
           background: 'rgba(134, 239, 172, 0.2)',
           borderRadius: BORDER_RADIUS.sm,
           color: COLORS.success,
@@ -133,15 +133,15 @@ const TierHeader = memo(function TierHeader({
       )}
       {/* 접근 조건 */}
       <span style={{
-        fontSize: FONT_SIZE.xs,
-        padding: `1px ${SPACING.sm}`,
+        fontSize: FONT_SIZE.sm,
+        padding: `2px ${SPACING.md}`,
         background: isLocked ? 'rgba(239, 68, 68, 0.2)' : 'rgba(71, 85, 105, 0.3)',
         borderRadius: BORDER_RADIUS.sm,
         color: isLocked ? COLORS.danger : COLORS.text.secondary,
       }}>
         {isLocked ? '🔒 ' : ''}{requirement}
       </span>
-      <span style={{ fontSize: FONT_SIZE.xs, color: COLORS.text.muted }}>검⚔ vs 총🔫</span>
+      <span style={{ fontSize: FONT_SIZE.sm, color: COLORS.text.muted }}>검⚔ vs 총🔫</span>
     </div>
   );
 });
