@@ -36,25 +36,29 @@ export const TraitEthosSection = memo(function TraitEthosSection({
       marginBottom: SPACING.xl,
       position: 'relative',
     }}>
-      {/* 티어 헤더 */}
-      <div style={{
-        fontSize: FONT_SIZE.md,
-        color: colors.text,
-        marginBottom: SPACING.sm,
-        display: 'flex',
-        alignItems: 'center',
-        gap: SPACING.sm,
-      }}>
-        <span style={{ fontWeight: 'bold' }}>1단계 에토스</span>
-      </div>
-
-      {/* 에토스 그리드 */}
+      {/* 티어 헤더와 에토스를 같은 줄에 배치 */}
       <div style={{
         display: 'flex',
         flexWrap: 'wrap',
         gap: SPACING.md,
         justifyContent: 'center',
+        alignItems: 'flex-start',
       }}>
+        {/* 티어 헤더 */}
+        <div style={{
+          display: 'inline-block',
+          padding: `${SPACING.sm} ${SPACING.md}`,
+          background: 'rgba(30, 41, 59, 0.8)',
+          border: `1px solid ${colors.text}`,
+          borderRadius: BORDER_RADIUS.lg,
+          fontSize: FONT_SIZE.md,
+          color: colors.text,
+          fontWeight: 'bold',
+        }}>
+          1단계 에토스
+        </div>
+
+        {/* 에토스 카드들 */}
         {tier1Items.map(ethos => (
           <EthosCard
             key={ethos.id}
