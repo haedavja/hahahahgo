@@ -147,5 +147,145 @@ describe('defenseLogic', () => {
       expect(result.dealt).toBe(0);
       expect(result.taken).toBe(0);
     });
+
+    describe('pathosTurnEffects', () => {
+      it('onCrossBlock 효과가 교차 시 추가 방어력을 적용한다', async () => {
+        const actor = createMockActor({ block: 0 });
+        const card = createMockCard({ block: 5 });
+        const context: BattleContext = {
+          currentSp: 10,
+          queue: [
+            { actor: 'player', sp: 10, cardId: 'test', speedCost: 5 },
+            { actor: 'enemy', sp: 10, cardId: 'enemy-card', speedCost: 5 },
+          ],
+          currentQIndex: 0,
+          pathosTurnEffects: { onCrossBlock: 3 },
+        };
+
+        const result = applyDefense(actor, card, 'player', context);
+
+        // 기본 5 + 교차 보너스 3 = 8
+        expect(result.actor.block).toBe(8);
+        expect(result.log).toContain('교차 방어');
+      });
+
+      it('onSwordBlock 효과가 검격 방어 시 추가 방어력을 적용한다', async () => {
+        const { isSwordCard } = await import('../../../lib/ethosEffects');
+        vi.mocked(isSwordCard).mockReturnValue(true);
+
+        const actor = createMockActor({ block: 0 });
+        const card = createMockCard({ block: 5 });
+        const context: BattleContext = {
+          pathosTurnEffects: { onSwordBlock: 4 },
+        };
+
+        const result = applyDefense(actor, card, 'player', context);
+
+        // 기본 5 + 검격 방어 보너스 4 = 9
+        expect(result.actor.block).toBe(9);
+        expect(result.log).toContain('검격 방어');
+      });
+    });
+
+    describe('logos 효과', () => {
+      it('검격 방어 시 로고스 토큰을 획득한다', async () => {
+        const { isSwordCard } = await import('../../../lib/ethosEffects');
+        const { getCombatTokens } = await import('../../../lib/logosEffects');
+        vi.mocked(isSwordCard).mockReturnValue(true);
+        vi.mocked(getCombatTokens).mockReturnValue({ onDefense: '수세', onAttack: '' });
+
+        const actor = createMockActor({ block: 0 });
+        const card = createMockCard({ block: 5 });
+
+        const result = applyDefense(actor, card, 'player');
+
+        expect(result.log).toContain('수세 획득');
+      });
+    });
+
+    describe('교차 특성 (cross trait)', () => {
+      it('교차 특성이 있고 교차 시 방어력 배수를 적용한다', () => {
+        const actor = createMockActor({ block: 0 });
+        const card = createMockCard({
+          block: 5,
+          traits: ['cross'],
+          crossBonus: { type: 'block_mult', value: 2 },
+        });
+        const context: BattleContext = {
+          currentSp: 10,
+          queue: [
+            { actor: 'player', sp: 10, cardId: 'test', speedCost: 5 },
+            { actor: 'enemy', sp: 10.5, cardId: 'enemy-card', speedCost: 5 },
+          ],
+          currentQIndex: 0,
+        };
+
+        const result = applyDefense(actor, card, 'player', context);
+
+        // 기본 5 * 2배 = 10
+        expect(result.actor.block).toBe(10);
+        expect(result.log).toContain('교차');
+      });
+    });
+
+    describe('특수 효과 (special)', () => {
+      it('hologram 효과가 최대 체력만큼 방어력을 부여한다', async () => {
+        const { hasSpecial } = await import('../utils/cardSpecialEffects');
+        vi.mocked(hasSpecial).mockImplementation((card, type) => type === 'hologram');
+
+        const actor = createMockActor({ block: 0, maxHp: 50 });
+        const card = createMockCard({ block: 5 });
+
+        const result = applyDefense(actor, card, 'player');
+
+        expect(result.actor.block).toBe(50);
+      });
+
+      it('heal5 효과가 체력을 5 회복한다', async () => {
+        const { hasSpecial } = await import('../utils/cardSpecialEffects');
+        vi.mocked(hasSpecial).mockImplementation((card, type) => type === 'heal5');
+
+        const actor = createMockActor({ hp: 80, maxHp: 100, block: 0 });
+        const card = createMockCard({ block: 5 });
+
+        const result = applyDefense(actor, card, 'player');
+
+        expect(result.actor.hp).toBe(85);
+        expect(result.log).toContain('+5 HP');
+      });
+
+      it('heal5 효과가 최대 체력을 초과하지 않는다', async () => {
+        const { hasSpecial } = await import('../utils/cardSpecialEffects');
+        vi.mocked(hasSpecial).mockImplementation((card, type) => type === 'heal5');
+
+        const actor = createMockActor({ hp: 98, maxHp: 100, block: 0 });
+        const card = createMockCard({ block: 5 });
+
+        const result = applyDefense(actor, card, 'player');
+
+        expect(result.actor.hp).toBe(100);
+        expect(result.log).toContain('+2 HP');
+      });
+    });
+
+    describe('유령 카드 및 토큰', () => {
+      it('유령 카드는 토큰을 소모하지 않는다', () => {
+        const actor = createMockActor({ block: 0, tokens: { '수세': 1 } });
+        const card = createMockCard({ block: 5, isGhost: true });
+
+        const result = applyDefense(actor, card, 'player');
+
+        expect(result.actor.tokens).toEqual({ '수세': 1 });
+      });
+
+      it('ignoreStatus가 true면 토큰 효과를 적용하지 않는다', () => {
+        const actor = createMockActor({ block: 0 });
+        const card = createMockCard({ block: 5, ignoreStatus: true });
+
+        const result = applyDefense(actor, card, 'player');
+
+        expect(result.actor.block).toBe(5);
+      });
+    });
   });
 });
