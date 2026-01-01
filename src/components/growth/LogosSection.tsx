@@ -39,7 +39,8 @@ export const LogosSection = memo(function LogosSection({
       }}>
         {/* 8단계 로고스 헤더 */}
         <div style={{
-          display: 'inline-block',
+          position: 'relative',
+          zIndex: 10,
           padding: `${SPACING.sm} ${SPACING.md}`,
           background: maxUnlockableLevel > 0 ? 'rgba(30, 41, 59, 0.8)' : '#141a22',
           border: `1px solid ${maxUnlockableLevel > 0 ? COLORS.primary : '#334155'}`,
@@ -124,6 +125,8 @@ const LogosCard = memo(function LogosCard({
     <div
       data-node-id={nodeId}
       style={{
+        position: 'relative',
+        zIndex: 10, // 연결선 위에 표시
         width: '200px',
         flex: '0 0 200px',
         padding: SPACING.md,

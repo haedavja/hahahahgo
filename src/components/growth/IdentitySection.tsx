@@ -71,7 +71,8 @@ export const IdentitySection = memo(function IdentitySection({
       }}>
         {/* 7단계 자아 헤더 */}
         <div style={{
-          display: 'inline-block',
+          position: 'relative',
+          zIndex: 10,
           padding: `${SPACING.sm} ${SPACING.md}`,
           background: (canAccessSwordsman || canAccessGunslinger) ? 'rgba(30, 41, 59, 0.8)' : '#141a22',
           border: `1px solid ${(canAccessSwordsman || canAccessGunslinger) ? COLORS.tier.identity.text : '#334155'}`,
@@ -144,6 +145,8 @@ const IdentityCard = memo(function IdentityCard({
       data-node-id={`identity-${identityId}`}
       onClick={() => canSelect && onSelect(identityId)}
       style={{
+        position: 'relative',
+        zIndex: 10, // 연결선 위에 표시
         width: '200px',
         flex: '0 0 200px',
         padding: SPACING.md,
@@ -154,7 +157,6 @@ const IdentityCard = memo(function IdentityCard({
         borderRadius: BORDER_RADIUS.xl,
         opacity: canAccess ? 1 : 0.5, // 잠금 상태에서 희미하게 표시
         cursor: canSelect ? 'pointer' : 'default',
-        transition: 'all 0.2s',
         textAlign: 'center',
       }}
     >

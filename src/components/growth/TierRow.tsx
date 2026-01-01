@@ -99,7 +99,8 @@ const TierHeader = memo(function TierHeader({
 }: TierHeaderProps) {
   return (
     <div style={{
-      display: 'inline-block',
+      position: 'relative',
+      zIndex: 10,
       padding: `${SPACING.sm} ${SPACING.md}`,
       background: isLocked ? '#141a22' : 'rgba(30, 41, 59, 0.8)',
       border: `1px solid ${isLocked ? '#334155' : color}`,

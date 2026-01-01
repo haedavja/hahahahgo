@@ -46,6 +46,8 @@ export const TraitEthosSection = memo(function TraitEthosSection({
       }}>
         {/* 티어 헤더 */}
         <div style={{
+          position: 'relative',
+          zIndex: 10,
           padding: `${SPACING.sm} ${SPACING.md}`,
           background: 'rgba(30, 41, 59, 0.8)',
           border: `1px solid ${colors.text}`,
