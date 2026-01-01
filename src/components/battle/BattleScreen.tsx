@@ -327,7 +327,7 @@ export const BattleScreen: FC = memo(function BattleScreen() {
 
   return (
     <BattleErrorBoundary>
-      <div className="battle-fullscreen">
+      <div className="battle-fullscreen" data-testid="battle-screen">
         <BattleApp
           initialPlayer={payload.player}
           initialEnemy={payload.enemy}

@@ -313,25 +313,25 @@ export const ShopModal = memo(function ShopModal({ merchantType = 'shop', onClos
   const handleContainerClick = useCallback((e: React.MouseEvent) => e.stopPropagation(), []);
 
   return (
-    <div style={OVERLAY_STYLE} onClick={onClose}>
-      <div onClick={handleContainerClick} style={MODAL_CONTAINER_STYLE}>
+    <div style={OVERLAY_STYLE} onClick={onClose} data-testid="shop-modal-overlay">
+      <div onClick={handleContainerClick} style={MODAL_CONTAINER_STYLE} data-testid="shop-modal">
         {/* 헤더 */}
-        <div style={HEADER_STYLE}>
+        <div style={HEADER_STYLE} data-testid="shop-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <span style={{ fontSize: '2rem' }}>{merchant.emoji}</span>
             <div>
-              <h2 style={{ fontSize: '1.5rem', margin: 0, color: '#fbbf24' }}>{merchant.name}</h2>
+              <h2 style={{ fontSize: '1.5rem', margin: 0, color: '#fbbf24' }} data-testid="shop-merchant-name">{merchant.name}</h2>
               <p style={{ fontSize: '0.875rem', margin: '4px 0 0', color: '#94a3b8', fontStyle: 'italic' }}>
                 "{merchant.greeting}"
               </p>
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <div style={GOLD_DISPLAY_STYLE}>
+            <div style={GOLD_DISPLAY_STYLE} data-testid="shop-gold-display">
               <span style={{ fontSize: '1.25rem' }}>💰</span>
-              <span style={{ fontSize: '1.25rem', fontWeight: 700, color: '#fbbf24' }}>{gold}G</span>
+              <span style={{ fontSize: '1.25rem', fontWeight: 700, color: '#fbbf24' }} data-testid="shop-gold-amount">{gold}G</span>
             </div>
-            <button onClick={onClose} style={EXIT_BUTTON_STYLE}>
+            <button onClick={onClose} style={EXIT_BUTTON_STYLE} data-testid="shop-exit-btn">
               나가기
             </button>
           </div>
@@ -354,9 +354,10 @@ export const ShopModal = memo(function ShopModal({ merchantType = 'shop', onClos
         )}
 
         {/* 탭 */}
-        <div style={TABS_CONTAINER_STYLE}>
+        <div style={TABS_CONTAINER_STYLE} data-testid="shop-tabs">
           <button
             onClick={() => setActiveTab('buy')}
+            data-testid="shop-tab-buy"
             style={{
               flex: 1,
               padding: '12px',
@@ -374,6 +375,7 @@ export const ShopModal = memo(function ShopModal({ merchantType = 'shop', onClos
           {merchant.canSell && (
             <button
               onClick={() => setActiveTab('sell')}
+              data-testid="shop-tab-sell"
               style={{
                 flex: 1,
                 padding: '12px',
@@ -392,6 +394,7 @@ export const ShopModal = memo(function ShopModal({ merchantType = 'shop', onClos
           {merchant.hasServices && (
             <button
               onClick={() => setActiveTab('service')}
+              data-testid="shop-tab-service"
               style={{
                 flex: 1,
                 padding: '12px',
@@ -410,7 +413,7 @@ export const ShopModal = memo(function ShopModal({ merchantType = 'shop', onClos
         </div>
 
         {/* 콘텐츠 */}
-        <div style={CONTENT_STYLE}>
+        <div style={CONTENT_STYLE} data-testid="shop-content">
           {activeTab === 'buy' && (
             <BuyTab
               inventory={inventory}

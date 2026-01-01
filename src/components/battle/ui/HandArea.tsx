@@ -99,11 +99,11 @@ export const HandArea: FC<HandAreaProps> = memo(({
   }
 
   return (
-    <div className="hand-area">
+    <div className="hand-area" data-testid="hand-area">
       {/* 패배 플래그 */}
       <div className="hand-flags">
         {player && player.hp <= 0 && (
-          <div className="hand-flag defeat">{String.fromCodePoint(0x1F480)} 패배...</div>
+          <div className="hand-flag defeat" data-testid="defeat-flag">{String.fromCodePoint(0x1F480)} 패배...</div>
         )}
       </div>
 
