@@ -1035,11 +1035,21 @@ export class RunSimulator {
       const removeServices = services.filter(s => s.id === 'removeCard');
       const upgradeServices = services.filter(s => s.id === 'upgradeCard');
 
+      // 구매 기록 변환 (이유 포함)
+      const purchaseRecords = (shopResult.purchaseDecisions || []).map(d => ({
+        itemId: d.item.id,
+        itemName: d.item.name,
+        type: d.item.type as 'card' | 'relic' | 'item',
+        price: d.item.price,
+        reason: d.reason,
+      }));
+
       this.statsCollector.recordShopVisit({
         goldSpent: shopResult.totalSpent,
         cardsPurchased: result.cardsGained,
         relicsPurchased: result.relicsGained,
         itemsPurchased,
+        purchaseRecords,
         cardsRemoved: removeServices.length,
         cardsUpgraded: upgradeServices.length,
       });

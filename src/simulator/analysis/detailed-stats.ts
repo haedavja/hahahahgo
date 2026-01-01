@@ -151,6 +151,15 @@ export interface GrowthStats {
 }
 
 /** 상점 이용 통계 */
+/** 구매 결정 기록 */
+export interface PurchaseRecord {
+  itemId: string;
+  itemName: string;
+  type: 'card' | 'relic' | 'item';
+  price: number;
+  reason: string;
+}
+
 export interface ShopStats {
   /** 총 방문 횟수 */
   totalVisits: number;
@@ -164,6 +173,8 @@ export interface ShopStats {
   relicsPurchased: Record<string, number>;
   /** 구매한 아이템 */
   itemsPurchased: Record<string, number>;
+  /** 구매 기록 (이유 포함) */
+  purchaseRecords: PurchaseRecord[];
   /** 카드 제거 횟수 */
   cardsRemoved: number;
   /** 카드 승급 횟수 */
@@ -351,6 +362,7 @@ export class StatsCollector {
   private shopCardsPurchased: Record<string, number> = {};
   private shopRelicsPurchased: Record<string, number> = {};
   private shopItemsPurchased: Record<string, number> = {};
+  private shopPurchaseRecords: PurchaseRecord[] = [];
   private shopCardsRemoved = 0;
   private shopCardsUpgraded = 0;
 
@@ -669,6 +681,7 @@ export class StatsCollector {
     cardsPurchased?: string[];
     relicsPurchased?: string[];
     itemsPurchased?: string[];
+    purchaseRecords?: PurchaseRecord[];
     cardsRemoved?: number;
     cardsUpgraded?: number;
   }) {
@@ -689,6 +702,9 @@ export class StatsCollector {
       for (const itemId of data.itemsPurchased) {
         this.shopItemsPurchased[itemId] = (this.shopItemsPurchased[itemId] || 0) + 1;
       }
+    }
+    if (data.purchaseRecords) {
+      this.shopPurchaseRecords.push(...data.purchaseRecords);
     }
     if (data.cardsRemoved) this.shopCardsRemoved += data.cardsRemoved;
     if (data.cardsUpgraded) this.shopCardsUpgraded += data.cardsUpgraded;
@@ -997,6 +1013,7 @@ export class StatsCollector {
       cardsPurchased: this.shopCardsPurchased,
       relicsPurchased: this.shopRelicsPurchased,
       itemsPurchased: this.shopItemsPurchased,
+      purchaseRecords: this.shopPurchaseRecords,
       cardsRemoved: this.shopCardsRemoved,
       cardsUpgraded: this.shopCardsUpgraded,
     };
@@ -1434,6 +1451,72 @@ export class StatsReporter {
       lines.push('【 구매한 상징 】');
       for (const [relicId, count] of Object.entries(ss.relicsPurchased)) {
         lines.push(`  ${relicId}: ${count}회`);
+      }
+    }
+
+    // 구매 이유 통계
+    if (ss.purchaseRecords && ss.purchaseRecords.length > 0) {
+      lines.push('');
+      lines.push('【 구매 결정 이유 분석 】');
+
+      // 이유별 그룹핑
+      const reasonCounts: Record<string, { count: number; items: string[]; totalCost: number }> = {};
+      for (const record of ss.purchaseRecords) {
+        if (!reasonCounts[record.reason]) {
+          reasonCounts[record.reason] = { count: 0, items: [], totalCost: 0 };
+        }
+        reasonCounts[record.reason].count++;
+        reasonCounts[record.reason].items.push(record.itemName);
+        reasonCounts[record.reason].totalCost += record.price;
+      }
+
+      const sortedReasons = Object.entries(reasonCounts)
+        .sort((a, b) => b[1].count - a[1].count);
+
+      lines.push('┌──────────────────────────────────┬─────┬─────────┬──────────────────────┐');
+      lines.push('│ 구매 이유                        │ 횟수│ 총비용  │ 주요 아이템          │');
+      lines.push('├──────────────────────────────────┼─────┼─────────┼──────────────────────┤');
+
+      for (const [reason, data] of sortedReasons.slice(0, 15)) {
+        const reasonStr = reason.substring(0, 32).padEnd(32);
+        const countStr = String(data.count).padStart(3);
+        const costStr = `${data.totalCost}G`.padStart(7);
+        // 가장 많이 구매한 아이템
+        const itemCounts: Record<string, number> = {};
+        for (const item of data.items) {
+          itemCounts[item] = (itemCounts[item] || 0) + 1;
+        }
+        const topItem = Object.entries(itemCounts)
+          .sort((a, b) => b[1] - a[1])[0];
+        const topItemStr = topItem ? `${topItem[0]}(${topItem[1]})`.substring(0, 20) : '-';
+        lines.push(`│ ${reasonStr} │ ${countStr} │${costStr} │ ${topItemStr.padEnd(20)} │`);
+      }
+      lines.push('└──────────────────────────────────┴─────┴─────────┴──────────────────────┘');
+
+      // 타입별 구매 이유 세부 분석
+      lines.push('');
+      lines.push('【 타입별 구매 상세 (최근 20건) 】');
+
+      const recentRecords = ss.purchaseRecords.slice(-20);
+      const byType: Record<string, typeof recentRecords> = {
+        card: [],
+        relic: [],
+        item: [],
+      };
+      for (const record of recentRecords) {
+        byType[record.type]?.push(record);
+      }
+
+      for (const [type, records] of Object.entries(byType)) {
+        if (records.length === 0) continue;
+        const typeLabel = type === 'card' ? '카드' : type === 'relic' ? '상징' : '아이템';
+        lines.push(`  [${typeLabel}]`);
+        for (const record of records.slice(0, 5)) {
+          lines.push(`    ${record.itemName.padEnd(12)} ${record.price}G | ${record.reason}`);
+        }
+        if (records.length > 5) {
+          lines.push(`    ... 외 ${records.length - 5}건`);
+        }
       }
     }
 

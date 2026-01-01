@@ -65,6 +65,8 @@ export interface ShopSimulationConfig {
 export interface ShopResult {
   merchantType: MerchantType;
   purchases: ShopItem[];
+  /** 구매 결정 (이유 포함) */
+  purchaseDecisions: PurchaseDecision[];
   totalSpent: number;
   remainingGold: number;
   servicesUsed: ShopItem[];
@@ -329,6 +331,7 @@ export class ShopSimulator {
     const maxPurchases = config.maxPurchases || 10;
 
     const purchases: ShopItem[] = [];
+    const purchaseDecisions: PurchaseDecision[] = [];
     const servicesUsed: ShopItem[] = [];
     const skippedItems: ShopItem[] = [];
     let totalSpent = 0;
@@ -368,6 +371,7 @@ export class ShopSimulator {
         }
 
         purchases.push(decision.item);
+        purchaseDecisions.push(decision); // 구매 결정 (이유 포함) 저장
         totalSpent += decision.item.price;
         decision.item.sold = true;
 
@@ -403,6 +407,7 @@ export class ShopSimulator {
     return {
       merchantType: inventory.merchantType,
       purchases,
+      purchaseDecisions,
       totalSpent,
       remainingGold: player.gold,
       servicesUsed,
