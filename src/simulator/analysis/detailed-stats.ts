@@ -182,6 +182,76 @@ export interface DungeonStats {
   avgDamageTaken: number;
 }
 
+/** 상점 서비스 상세 통계 */
+export interface ShopServiceStats {
+  /** 치료 서비스 이용 */
+  healingUsed: number;
+  /** 치료로 회복한 총 HP */
+  totalHpHealed: number;
+  /** 치료 비용 총합 */
+  healingCost: number;
+  /** 카드 제거 비용 총합 */
+  removalCost: number;
+  /** 제거한 카드 목록 */
+  removedCards: Record<string, number>;
+  /** 카드 승급 비용 총합 */
+  upgradeCost: number;
+  /** 승급한 카드 목록 */
+  upgradedCards: Record<string, number>;
+  /** 새로고침 사용 횟수 */
+  refreshUsed: number;
+  /** 새로고침 비용 총합 */
+  refreshCost: number;
+}
+
+/** 아이템 활용 통계 */
+export interface ItemUsageStats {
+  /** 아이템별 획득 횟수 */
+  itemsAcquired: Record<string, number>;
+  /** 아이템별 사용 횟수 */
+  itemsUsed: Record<string, number>;
+  /** 아이템별 효과 (HP 회복, 피해 등) */
+  itemEffects: Record<string, {
+    timesUsed: number;
+    totalHpHealed: number;
+    totalDamage: number;
+    totalGoldGained: number;
+    specialEffects: Record<string, number>;
+  }>;
+  /** 사용하지 않고 버린 아이템 */
+  itemsDiscarded: Record<string, number>;
+  /** 전투 중 사용 vs 전투 외 사용 */
+  usageContext: {
+    inBattle: Record<string, number>;
+    outOfBattle: Record<string, number>;
+  };
+}
+
+/** 이벤트 선택 상세 통계 */
+export interface EventChoiceStats {
+  eventId: string;
+  eventName: string;
+  /** 총 발생 횟수 */
+  occurrences: number;
+  /** 선택지별 선택 횟수 */
+  choicesMade: Record<string, number>;
+  /** 선택지별 결과 */
+  choiceOutcomes: Record<string, {
+    timesChosen: number;
+    avgHpChange: number;
+    avgGoldChange: number;
+    cardsGained: string[];
+    relicsGained: string[];
+    successRate: number;
+  }>;
+  /** 패스한 횟수 */
+  timesSkipped: number;
+  /** 패스 이유 분포 */
+  skipReasons: Record<string, number>;
+  /** 이벤트 후 전투 승률 */
+  postEventWinRate: number;
+}
+
 /** 전투 상세 기록 */
 export interface BattleRecord {
   battleId: string;
@@ -225,6 +295,12 @@ export interface DetailedStats {
   shopStats: ShopStats;
   /** 던전 통계 */
   dungeonStats: DungeonStats;
+  /** 상점 서비스 상세 통계 */
+  shopServiceStats: ShopServiceStats;
+  /** 아이템 활용 통계 */
+  itemUsageStats: ItemUsageStats;
+  /** 이벤트 선택 상세 통계 */
+  eventChoiceStats: Map<string, EventChoiceStats>;
 }
 
 // ==================== 통계 수집기 ====================
@@ -275,6 +351,34 @@ export class StatsCollector {
   private dungeonRewards = { gold: 0, cards: [] as string[], relics: [] as string[] };
   private dungeonTotalTurns = 0;
   private dungeonTotalDamage = 0;
+
+  // 상점 서비스 상세 통계
+  private shopHealingUsed = 0;
+  private shopTotalHpHealed = 0;
+  private shopHealingCost = 0;
+  private shopRemovalCost = 0;
+  private shopRemovedCards: Record<string, number> = {};
+  private shopUpgradeCost = 0;
+  private shopUpgradedCards: Record<string, number> = {};
+  private shopRefreshUsed = 0;
+  private shopRefreshCost = 0;
+
+  // 아이템 활용 통계
+  private itemsAcquired: Record<string, number> = {};
+  private itemsUsed: Record<string, number> = {};
+  private itemEffects: Record<string, {
+    timesUsed: number;
+    totalHpHealed: number;
+    totalDamage: number;
+    totalGoldGained: number;
+    specialEffects: Record<string, number>;
+  }> = {};
+  private itemsDiscarded: Record<string, number> = {};
+  private itemUsageInBattle: Record<string, number> = {};
+  private itemUsageOutOfBattle: Record<string, number> = {};
+
+  // 이벤트 선택 상세 통계
+  private eventChoiceStats: Map<string, EventChoiceStats> = new Map();
 
   private startTime: Date = new Date();
   private cardLibrary: Record<string, { name: string; type: string; special?: string[] }> = {};
@@ -597,6 +701,176 @@ export class StatsCollector {
     this.logosActivations[effectName] = (this.logosActivations[effectName] || 0) + 1;
   }
 
+  /** 상점 서비스 이용 기록 */
+  recordShopService(data: {
+    type: 'heal' | 'remove' | 'upgrade' | 'refresh';
+    cost: number;
+    cardId?: string;
+    hpHealed?: number;
+  }) {
+    switch (data.type) {
+      case 'heal':
+        this.shopHealingUsed++;
+        this.shopHealingCost += data.cost;
+        if (data.hpHealed) this.shopTotalHpHealed += data.hpHealed;
+        break;
+      case 'remove':
+        this.shopRemovalCost += data.cost;
+        if (data.cardId) {
+          this.shopRemovedCards[data.cardId] = (this.shopRemovedCards[data.cardId] || 0) + 1;
+        }
+        break;
+      case 'upgrade':
+        this.shopUpgradeCost += data.cost;
+        if (data.cardId) {
+          this.shopUpgradedCards[data.cardId] = (this.shopUpgradedCards[data.cardId] || 0) + 1;
+        }
+        break;
+      case 'refresh':
+        this.shopRefreshUsed++;
+        this.shopRefreshCost += data.cost;
+        break;
+    }
+  }
+
+  /** 아이템 획득 기록 */
+  recordItemAcquired(itemId: string, itemName?: string) {
+    this.itemsAcquired[itemId] = (this.itemsAcquired[itemId] || 0) + 1;
+    // 아이템 효과 초기화
+    if (!this.itemEffects[itemId]) {
+      this.itemEffects[itemId] = {
+        timesUsed: 0,
+        totalHpHealed: 0,
+        totalDamage: 0,
+        totalGoldGained: 0,
+        specialEffects: {},
+      };
+    }
+  }
+
+  /** 아이템 사용 기록 */
+  recordItemUsed(data: {
+    itemId: string;
+    inBattle: boolean;
+    hpHealed?: number;
+    damage?: number;
+    goldGained?: number;
+    specialEffect?: string;
+  }) {
+    const { itemId, inBattle, hpHealed, damage, goldGained, specialEffect } = data;
+
+    this.itemsUsed[itemId] = (this.itemsUsed[itemId] || 0) + 1;
+
+    if (inBattle) {
+      this.itemUsageInBattle[itemId] = (this.itemUsageInBattle[itemId] || 0) + 1;
+    } else {
+      this.itemUsageOutOfBattle[itemId] = (this.itemUsageOutOfBattle[itemId] || 0) + 1;
+    }
+
+    // 효과 기록
+    if (!this.itemEffects[itemId]) {
+      this.itemEffects[itemId] = {
+        timesUsed: 0,
+        totalHpHealed: 0,
+        totalDamage: 0,
+        totalGoldGained: 0,
+        specialEffects: {},
+      };
+    }
+    this.itemEffects[itemId].timesUsed++;
+    if (hpHealed) this.itemEffects[itemId].totalHpHealed += hpHealed;
+    if (damage) this.itemEffects[itemId].totalDamage += damage;
+    if (goldGained) this.itemEffects[itemId].totalGoldGained += goldGained;
+    if (specialEffect) {
+      this.itemEffects[itemId].specialEffects[specialEffect] =
+        (this.itemEffects[itemId].specialEffects[specialEffect] || 0) + 1;
+    }
+  }
+
+  /** 아이템 버림 기록 */
+  recordItemDiscarded(itemId: string) {
+    this.itemsDiscarded[itemId] = (this.itemsDiscarded[itemId] || 0) + 1;
+  }
+
+  /** 이벤트 선택 상세 기록 */
+  recordEventChoice(data: {
+    eventId: string;
+    eventName: string;
+    choiceId: string;
+    choiceName: string;
+    success: boolean;
+    hpChange: number;
+    goldChange: number;
+    cardsGained?: string[];
+    relicsGained?: string[];
+  }) {
+    const { eventId, eventName, choiceId, success, hpChange, goldChange, cardsGained = [], relicsGained = [] } = data;
+
+    if (!this.eventChoiceStats.has(eventId)) {
+      this.eventChoiceStats.set(eventId, {
+        eventId,
+        eventName,
+        occurrences: 0,
+        choicesMade: {},
+        choiceOutcomes: {},
+        timesSkipped: 0,
+        skipReasons: {},
+        postEventWinRate: 0,
+      });
+    }
+
+    const stats = this.eventChoiceStats.get(eventId)!;
+    stats.occurrences++;
+    stats.choicesMade[choiceId] = (stats.choicesMade[choiceId] || 0) + 1;
+
+    // 선택지 결과 업데이트
+    if (!stats.choiceOutcomes[choiceId]) {
+      stats.choiceOutcomes[choiceId] = {
+        timesChosen: 0,
+        avgHpChange: 0,
+        avgGoldChange: 0,
+        cardsGained: [],
+        relicsGained: [],
+        successRate: 0,
+      };
+    }
+    const outcome = stats.choiceOutcomes[choiceId];
+    const prevCount = outcome.timesChosen;
+    outcome.timesChosen++;
+    outcome.avgHpChange = (outcome.avgHpChange * prevCount + hpChange) / outcome.timesChosen;
+    outcome.avgGoldChange = (outcome.avgGoldChange * prevCount + goldChange) / outcome.timesChosen;
+    outcome.cardsGained.push(...cardsGained);
+    outcome.relicsGained.push(...relicsGained);
+    outcome.successRate = (outcome.successRate * prevCount + (success ? 1 : 0)) / outcome.timesChosen;
+  }
+
+  /** 이벤트 패스 기록 */
+  recordEventSkipped(data: {
+    eventId: string;
+    eventName: string;
+    reason: string;
+  }) {
+    const { eventId, eventName, reason } = data;
+
+    if (!this.eventChoiceStats.has(eventId)) {
+      this.eventChoiceStats.set(eventId, {
+        eventId,
+        eventName,
+        occurrences: 0,
+        choicesMade: {},
+        choiceOutcomes: {},
+        timesSkipped: 0,
+        skipReasons: {},
+        postEventWinRate: 0,
+      });
+    }
+
+    const stats = this.eventChoiceStats.get(eventId)!;
+    stats.occurrences++;
+    stats.timesSkipped++;
+    stats.skipReasons[reason] = (stats.skipReasons[reason] || 0) + 1;
+  }
+
   /** 통계 수집 완료 및 결과 반환 */
   finalize(): DetailedStats {
     const runStats = this.calculateRunStats();
@@ -604,6 +878,8 @@ export class StatsCollector {
     const growthStats = this.calculateGrowthStats();
     const shopStats = this.calculateShopStats();
     const dungeonStats = this.calculateDungeonStats();
+    const shopServiceStats = this.calculateShopServiceStats();
+    const itemUsageStats = this.calculateItemUsageStats();
 
     return {
       startTime: this.startTime,
@@ -617,6 +893,38 @@ export class StatsCollector {
       growthStats,
       shopStats,
       dungeonStats,
+      shopServiceStats,
+      itemUsageStats,
+      eventChoiceStats: this.eventChoiceStats,
+    };
+  }
+
+  /** 상점 서비스 상세 통계 계산 */
+  private calculateShopServiceStats(): ShopServiceStats {
+    return {
+      healingUsed: this.shopHealingUsed,
+      totalHpHealed: this.shopTotalHpHealed,
+      healingCost: this.shopHealingCost,
+      removalCost: this.shopRemovalCost,
+      removedCards: this.shopRemovedCards,
+      upgradeCost: this.shopUpgradeCost,
+      upgradedCards: this.shopUpgradedCards,
+      refreshUsed: this.shopRefreshUsed,
+      refreshCost: this.shopRefreshCost,
+    };
+  }
+
+  /** 아이템 활용 통계 계산 */
+  private calculateItemUsageStats(): ItemUsageStats {
+    return {
+      itemsAcquired: this.itemsAcquired,
+      itemsUsed: this.itemsUsed,
+      itemEffects: this.itemEffects,
+      itemsDiscarded: this.itemsDiscarded,
+      usageContext: {
+        inBattle: this.itemUsageInBattle,
+        outOfBattle: this.itemUsageOutOfBattle,
+      },
     };
   }
 
@@ -761,6 +1069,25 @@ export class StatsCollector {
     this.dungeonRewards = { gold: 0, cards: [], relics: [] };
     this.dungeonTotalTurns = 0;
     this.dungeonTotalDamage = 0;
+    // 상점 서비스 상세 통계 초기화
+    this.shopHealingUsed = 0;
+    this.shopTotalHpHealed = 0;
+    this.shopHealingCost = 0;
+    this.shopRemovalCost = 0;
+    this.shopRemovedCards = {};
+    this.shopUpgradeCost = 0;
+    this.shopUpgradedCards = {};
+    this.shopRefreshUsed = 0;
+    this.shopRefreshCost = 0;
+    // 아이템 활용 통계 초기화
+    this.itemsAcquired = {};
+    this.itemsUsed = {};
+    this.itemEffects = {};
+    this.itemsDiscarded = {};
+    this.itemUsageInBattle = {};
+    this.itemUsageOutOfBattle = {};
+    // 이벤트 선택 상세 통계 초기화
+    this.eventChoiceStats.clear();
     this.startTime = new Date();
   }
 }
@@ -1172,6 +1499,207 @@ export class StatsReporter {
     return lines.join('\n');
   }
 
+  /** 상점 서비스 상세 리포트 생성 */
+  generateShopServiceReport(): string {
+    const lines: string[] = [];
+    const ss = this.stats.shopServiceStats;
+
+    lines.push('');
+    lines.push('╔══════════════════════════════════════════════════════════════════════════╗');
+    lines.push('║                        상점 서비스 상세 통계                              ║');
+    lines.push('╚══════════════════════════════════════════════════════════════════════════╝');
+    lines.push('');
+
+    lines.push('【 서비스 이용 요약 】');
+    lines.push(`  치료 이용: ${ss.healingUsed}회`);
+    lines.push(`  치료로 회복한 HP: ${ss.totalHpHealed}`);
+    lines.push(`  치료 비용 총합: ${ss.healingCost}G`);
+    lines.push('');
+    lines.push(`  카드 제거 비용 총합: ${ss.removalCost}G`);
+    lines.push(`  카드 승급 비용 총합: ${ss.upgradeCost}G`);
+    lines.push(`  새로고침: ${ss.refreshUsed}회 (총 ${ss.refreshCost}G)`);
+
+    if (Object.keys(ss.removedCards).length > 0) {
+      lines.push('');
+      lines.push('【 제거한 카드 TOP 10 】');
+      const sorted = Object.entries(ss.removedCards)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 10);
+      for (const [cardId, count] of sorted) {
+        lines.push(`  ${cardId.padEnd(20)}: ${count}회`);
+      }
+    }
+
+    if (Object.keys(ss.upgradedCards).length > 0) {
+      lines.push('');
+      lines.push('【 상점에서 승급한 카드 TOP 10 】');
+      const sorted = Object.entries(ss.upgradedCards)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 10);
+      for (const [cardId, count] of sorted) {
+        lines.push(`  ${cardId.padEnd(20)}: ${count}회`);
+      }
+    }
+
+    return lines.join('\n');
+  }
+
+  /** 아이템 활용 리포트 생성 */
+  generateItemReport(): string {
+    const lines: string[] = [];
+    const is = this.stats.itemUsageStats;
+
+    lines.push('');
+    lines.push('╔══════════════════════════════════════════════════════════════════════════╗');
+    lines.push('║                           아이템 활용 통계                                ║');
+    lines.push('╚══════════════════════════════════════════════════════════════════════════╝');
+    lines.push('');
+
+    const totalAcquired = Object.values(is.itemsAcquired).reduce((a, b) => a + b, 0);
+    const totalUsed = Object.values(is.itemsUsed).reduce((a, b) => a + b, 0);
+    const totalDiscarded = Object.values(is.itemsDiscarded).reduce((a, b) => a + b, 0);
+
+    lines.push('【 아이템 요약 】');
+    lines.push(`  총 획득: ${totalAcquired}개`);
+    lines.push(`  총 사용: ${totalUsed}개`);
+    lines.push(`  사용률: ${totalAcquired > 0 ? ((totalUsed / totalAcquired) * 100).toFixed(1) : 0}%`);
+    lines.push(`  버림: ${totalDiscarded}개`);
+
+    if (Object.keys(is.itemsAcquired).length > 0) {
+      lines.push('');
+      lines.push('【 획득한 아이템 TOP 10 】');
+      const sorted = Object.entries(is.itemsAcquired)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 10);
+      for (const [itemId, count] of sorted) {
+        const used = is.itemsUsed[itemId] || 0;
+        const usageRate = ((used / count) * 100).toFixed(0);
+        lines.push(`  ${itemId.padEnd(15)}: ${String(count).padStart(3)}개 획득, ${String(used).padStart(3)}개 사용 (${usageRate}%)`);
+      }
+    }
+
+    if (Object.keys(is.itemsUsed).length > 0) {
+      lines.push('');
+      lines.push('【 아이템별 사용 효과 】');
+      const sorted = Object.entries(is.itemEffects)
+        .filter(([_, eff]) => eff.timesUsed > 0)
+        .sort((a, b) => b[1].timesUsed - a[1].timesUsed)
+        .slice(0, 10);
+      for (const [itemId, eff] of sorted) {
+        lines.push(`  ${itemId}:`);
+        lines.push(`    사용 ${eff.timesUsed}회 | HP회복: ${eff.totalHpHealed} | 피해: ${eff.totalDamage} | 골드: ${eff.totalGoldGained}`);
+        if (Object.keys(eff.specialEffects).length > 0) {
+          const effects = Object.entries(eff.specialEffects).map(([k, v]) => `${k}:${v}`).join(', ');
+          lines.push(`    특수효과: ${effects}`);
+        }
+      }
+    }
+
+    // 전투 중/외 사용 비교
+    const inBattle = Object.values(is.usageContext.inBattle).reduce((a, b) => a + b, 0);
+    const outBattle = Object.values(is.usageContext.outOfBattle).reduce((a, b) => a + b, 0);
+    if (inBattle > 0 || outBattle > 0) {
+      lines.push('');
+      lines.push('【 사용 상황 】');
+      lines.push(`  전투 중 사용: ${inBattle}회`);
+      lines.push(`  전투 외 사용: ${outBattle}회`);
+    }
+
+    if (Object.keys(is.itemsDiscarded).length > 0) {
+      lines.push('');
+      lines.push('【 버린 아이템 】');
+      for (const [itemId, count] of Object.entries(is.itemsDiscarded)) {
+        lines.push(`  ${itemId}: ${count}개`);
+      }
+    }
+
+    return lines.join('\n');
+  }
+
+  /** 이벤트 선택 상세 리포트 생성 */
+  generateEventChoiceReport(): string {
+    const lines: string[] = [];
+
+    lines.push('');
+    lines.push('╔══════════════════════════════════════════════════════════════════════════╗');
+    lines.push('║                        이벤트 선택 상세 통계                              ║');
+    lines.push('╚══════════════════════════════════════════════════════════════════════════╝');
+    lines.push('');
+
+    const events = Array.from(this.stats.eventChoiceStats.values())
+      .sort((a, b) => b.occurrences - a.occurrences);
+
+    if (events.length === 0) {
+      lines.push('  이벤트 선택 기록 없음');
+      return lines.join('\n');
+    }
+
+    // 전체 통계
+    const totalEvents = events.reduce((sum, e) => sum + e.occurrences, 0);
+    const totalSkipped = events.reduce((sum, e) => sum + e.timesSkipped, 0);
+    lines.push('【 전체 요약 】');
+    lines.push(`  이벤트 발생: ${totalEvents}회`);
+    lines.push(`  패스: ${totalSkipped}회 (${((totalSkipped / totalEvents) * 100).toFixed(1)}%)`);
+
+    // 이벤트별 상세
+    lines.push('');
+    lines.push('【 이벤트별 선택 상세 】');
+    for (const ev of events.slice(0, 10)) {
+      lines.push('');
+      lines.push(`▶ ${ev.eventName} (${ev.occurrences}회)`);
+
+      // 선택지 분포
+      if (Object.keys(ev.choicesMade).length > 0) {
+        lines.push('  선택 분포:');
+        const sorted = Object.entries(ev.choicesMade)
+          .sort((a, b) => b[1] - a[1]);
+        for (const [choiceId, count] of sorted) {
+          const outcome = ev.choiceOutcomes[choiceId];
+          const rate = ((count / ev.occurrences) * 100).toFixed(0);
+          let desc = `    ${choiceId}: ${count}회 (${rate}%)`;
+          if (outcome) {
+            const hpStr = outcome.avgHpChange >= 0 ? `+${outcome.avgHpChange.toFixed(1)}` : outcome.avgHpChange.toFixed(1);
+            const goldStr = outcome.avgGoldChange >= 0 ? `+${outcome.avgGoldChange.toFixed(0)}` : outcome.avgGoldChange.toFixed(0);
+            desc += ` | HP: ${hpStr}, 골드: ${goldStr}, 성공률: ${(outcome.successRate * 100).toFixed(0)}%`;
+          }
+          lines.push(desc);
+        }
+      }
+
+      // 패스 이유
+      if (ev.timesSkipped > 0 && Object.keys(ev.skipReasons).length > 0) {
+        lines.push(`  패스 ${ev.timesSkipped}회 - 이유:`);
+        const sorted = Object.entries(ev.skipReasons)
+          .sort((a, b) => b[1] - a[1]);
+        for (const [reason, count] of sorted) {
+          lines.push(`    ${reason}: ${count}회`);
+        }
+      }
+    }
+
+    // 가장 많이 패스한 이벤트
+    const mostSkipped = events
+      .filter(e => e.timesSkipped > 0)
+      .sort((a, b) => b.timesSkipped - a.timesSkipped)
+      .slice(0, 5);
+
+    if (mostSkipped.length > 0) {
+      lines.push('');
+      lines.push('【 가장 많이 패스한 이벤트 TOP 5 】');
+      for (const ev of mostSkipped) {
+        const rate = ((ev.timesSkipped / ev.occurrences) * 100).toFixed(0);
+        lines.push(`  ${ev.eventName}: ${ev.timesSkipped}회 패스 (${rate}%)`);
+        const topReason = Object.entries(ev.skipReasons)
+          .sort((a, b) => b[1] - a[1])[0];
+        if (topReason) {
+          lines.push(`    주요 이유: ${topReason[0]} (${topReason[1]}회)`);
+        }
+      }
+    }
+
+    return lines.join('\n');
+  }
+
   /** 전체 리포트 생성 */
   generateFullReport(): string {
     const parts: string[] = [];
@@ -1181,8 +1709,11 @@ export class StatsReporter {
     parts.push(this.generateUpgradeReport());
     parts.push(this.generateGrowthReport());
     parts.push(this.generateShopReport());
+    parts.push(this.generateShopServiceReport());
     parts.push(this.generateDungeonReport());
     parts.push(this.generateEventReport());
+    parts.push(this.generateItemReport());
+    parts.push(this.generateEventChoiceReport());
     return parts.join('\n');
   }
 
@@ -1198,7 +1729,10 @@ export class StatsReporter {
       upgradeStats: this.stats.upgradeStats,
       growthStats: this.stats.growthStats,
       shopStats: this.stats.shopStats,
+      shopServiceStats: this.stats.shopServiceStats,
       dungeonStats: this.stats.dungeonStats,
+      itemUsageStats: this.stats.itemUsageStats,
+      eventChoiceStats: Object.fromEntries(this.stats.eventChoiceStats),
       battleRecords: this.stats.battleRecords,
     };
     return JSON.stringify(exportData, null, 2);
