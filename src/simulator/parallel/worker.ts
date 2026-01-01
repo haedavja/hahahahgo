@@ -257,7 +257,15 @@ class BattleSimulator {
 
   constructor(data: WorkerData) {
     this.cards = data.cardData;
-    this.enemies = data.enemyData;
+    // enemyData의 maxHp를 hp로 변환 (syncEnemies()는 maxHp를 반환하지만 BattleSimulator는 hp를 기대)
+    this.enemies = {};
+    for (const [id, enemy] of Object.entries(data.enemyData)) {
+      const enemyWithHp = enemy as unknown as { maxHp?: number; hp?: number };
+      this.enemies[id] = {
+        ...enemy,
+        hp: enemyWithHp.hp ?? enemyWithHp.maxHp ?? 50,
+      } as EnemyData;
+    }
     this.relics = data.relicData;
     this.patterns = data.patternData || {};
   }
