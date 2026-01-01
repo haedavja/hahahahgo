@@ -14,7 +14,6 @@ import { COLORS, SPACING, FONT_SIZE, BORDER_RADIUS, type TierNumber } from '../.
 interface TierRowProps {
   tier: number;
   label: string;
-  requirement: string;
   nodes: (EthosNode | PathosNode)[];
   type: 'ethos' | 'pathos';
   growth: typeof initialGrowthState;
@@ -28,7 +27,6 @@ interface TierRowProps {
 export const TierRow = memo(function TierRow({
   tier,
   label,
-  requirement,
   nodes,
   type,
   growth,
@@ -49,7 +47,6 @@ export const TierRow = memo(function TierRow({
       {/* 티어 헤더 */}
       <TierHeader
         label={label}
-        requirement={requirement}
         isLocked={isLocked}
         color={colors.text}
       />
@@ -90,14 +87,12 @@ export const TierRow = memo(function TierRow({
 // ========================================
 interface TierHeaderProps {
   label: string;
-  requirement: string;
   isLocked: boolean;
   color: string;
 }
 
 const TierHeader = memo(function TierHeader({
   label,
-  requirement,
   isLocked,
   color,
 }: TierHeaderProps) {
@@ -106,21 +101,9 @@ const TierHeader = memo(function TierHeader({
       fontSize: FONT_SIZE.lg,
       color: isLocked ? COLORS.text.muted : color,
       marginBottom: SPACING.md,
-      display: 'flex',
-      alignItems: 'center',
-      gap: SPACING.md,
+      fontWeight: 'bold',
     }}>
-      <span style={{ fontWeight: 'bold' }}>{label}</span>
-      {/* 접근 조건 */}
-      <span style={{
-        fontSize: FONT_SIZE.sm,
-        padding: `2px ${SPACING.md}`,
-        background: isLocked ? 'rgba(239, 68, 68, 0.2)' : 'rgba(71, 85, 105, 0.3)',
-        borderRadius: BORDER_RADIUS.sm,
-        color: isLocked ? COLORS.danger : COLORS.text.secondary,
-      }}>
-        {isLocked ? '🔒 ' : ''}{requirement}
-      </span>
+      {isLocked ? '🔒 ' : ''}{label}
     </div>
   );
 });
