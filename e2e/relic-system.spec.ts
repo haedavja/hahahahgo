@@ -1,5 +1,5 @@
 import { test, expect, Page } from '@playwright/test';
-import { resetGameState, enterBattle, selectMapNode, waitForUIStable, TIMEOUTS, testLogger } from './utils/test-helpers';
+import { resetGameState, enterBattle, selectMapNode, waitForMap, waitForUIStable, waitForTurnProgress, TIMEOUTS, testLogger } from './utils/test-helpers';
 
 /**
  * 상징(Relic) 시스템 E2E 테스트
@@ -159,7 +159,7 @@ test.describe('상징 시스템', () => {
           await submitBtn.click();
 
           // 다음 턴 시작 대기
-          await page.waitForTimeout(2000);
+          await waitForTurnProgress(page);
 
           // 턴 시작 효과 확인
           const turnStartEffect = page.locator(
@@ -245,7 +245,7 @@ test.describe('상징 시스템', () => {
             await confirmBtn.click();
           }
 
-          await page.waitForTimeout(500);
+          await waitForUIStable(page);
 
           // 골드 감소 확인
           const afterGold = parseInt(await goldDisplay.getAttribute('data-gold-value') || '0');
@@ -281,7 +281,7 @@ test.describe('상징 시스템', () => {
           await confirmBtn.click();
         }
 
-        await page.waitForTimeout(500);
+        await waitForUIStable(page);
 
         // 보유 상징 다시 확인
         const relicsAfter = await getRelics(page);
@@ -386,7 +386,7 @@ test.describe('상징 시스템', () => {
           const submitBtn = page.locator('[data-testid="submit-cards-btn"]');
           if (await submitBtn.isEnabled({ timeout: 500 }).catch(() => false)) {
             await submitBtn.click();
-            await page.waitForTimeout(1500);
+            await waitForTurnProgress(page);
           }
         }
       }

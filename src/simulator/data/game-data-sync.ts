@@ -19,19 +19,53 @@ import type {
 
 // ==================== 실제 게임 데이터 임포트 ====================
 
-// 실제 게임 카드 데이터
 import { CARDS as BATTLE_CARDS, ENEMY_CARDS, ENEMIES, TRAITS as BATTLE_TRAITS } from '../../components/battle/battleData';
 import { CARD_LIBRARY } from '../../data/cards';
 import { TOKENS as GAME_TOKENS, TOKEN_TYPES, TOKEN_CATEGORIES } from '../../data/tokens';
 import { RELICS as GAME_RELICS } from '../../data/relics';
 import { ANOMALY_TYPES, ALL_ANOMALIES, type Anomaly, type AnomalyEffect } from '../../data/anomalies';
 
+// ==================== 이변 타입 ====================
+
+export interface SimulatorAnomaly {
+  id: string;
+  name: string;
+  emoji: string;
+  color: string;
+  description: string;
+  effectType: string;
+  getEffect: (level: number) => AnomalyEffect;
+}
+
+// ==================== 데이터 캐시 ====================
+
+let cachedCards: Record<string, GameCard> | null = null;
+let cachedTokens: Record<string, GameToken> | null = null;
+let cachedRelics: Record<string, GameRelic> | null = null;
+let cachedTraits: Record<string, GameTrait> | null = null;
+let cachedEnemies: Record<string, GameEnemy> | null = null;
+let cachedAnomalies: Record<string, SimulatorAnomaly> | null = null;
+
+/**
+ * 캐시 초기화 - 게임 데이터가 변경되었을 때 호출
+ */
+export function clearDataCache(): void {
+  cachedCards = null;
+  cachedTokens = null;
+  cachedRelics = null;
+  cachedTraits = null;
+  cachedEnemies = null;
+  cachedAnomalies = null;
+}
+
 // ==================== 카드 동기화 ====================
 
 /**
- * 모든 게임 카드를 시뮬레이터 형식으로 변환
+ * 모든 게임 카드를 시뮬레이터 형식으로 변환 (캐싱됨)
  */
-export function syncAllCards(): Record<string, GameCard> {
+export function syncAllCards(forceReload = false): Record<string, GameCard> {
+  if (cachedCards && !forceReload) return cachedCards;
+
   const cards: Record<string, GameCard> = {};
 
   // battleData.ts의 CARDS 배열 변환
@@ -103,7 +137,8 @@ export function syncAllCards(): Record<string, GameCard> {
     }
   }
 
-  return cards;
+  cachedCards = cards;
+  return cachedCards;
 }
 
 /**
@@ -135,9 +170,11 @@ export function getCardStats(): { total: number; byType: Record<string, number>;
 // ==================== 토큰 동기화 ====================
 
 /**
- * 모든 게임 토큰을 시뮬레이터 형식으로 변환
+ * 모든 게임 토큰을 시뮬레이터 형식으로 변환 (캐싱됨)
  */
-export function syncAllTokens(): Record<string, GameToken> {
+export function syncAllTokens(forceReload = false): Record<string, GameToken> {
+  if (cachedTokens && !forceReload) return cachedTokens;
+
   const tokens: Record<string, GameToken> = {};
 
   for (const [id, token] of Object.entries(GAME_TOKENS)) {
@@ -153,7 +190,8 @@ export function syncAllTokens(): Record<string, GameToken> {
     };
   }
 
-  return tokens;
+  cachedTokens = tokens;
+  return cachedTokens;
 }
 
 /**
@@ -191,9 +229,11 @@ export function getTokenStats(): { total: number; byCategory: Record<string, num
 // ==================== 상징 동기화 ====================
 
 /**
- * 모든 게임 상징을 시뮬레이터 형식으로 변환
+ * 모든 게임 상징을 시뮬레이터 형식으로 변환 (캐싱됨)
  */
-export function syncAllRelics(): Record<string, GameRelic> {
+export function syncAllRelics(forceReload = false): Record<string, GameRelic> {
+  if (cachedRelics && !forceReload) return cachedRelics;
+
   const relics: Record<string, GameRelic> = {};
 
   for (const [id, relic] of Object.entries(GAME_RELICS)) {
@@ -209,7 +249,8 @@ export function syncAllRelics(): Record<string, GameRelic> {
     };
   }
 
-  return relics;
+  cachedRelics = relics;
+  return cachedRelics;
 }
 
 /**
@@ -245,9 +286,11 @@ export function getRelicStats(): { total: number; byRarity: Record<string, numbe
 // ==================== 특성 동기화 ====================
 
 /**
- * 모든 게임 특성을 시뮬레이터 형식으로 변환
+ * 모든 게임 특성을 시뮬레이터 형식으로 변환 (캐싱됨)
  */
-export function syncAllTraits(): Record<string, GameTrait> {
+export function syncAllTraits(forceReload = false): Record<string, GameTrait> {
+  if (cachedTraits && !forceReload) return cachedTraits;
+
   const traits: Record<string, GameTrait> = {};
 
   for (const [id, trait] of Object.entries(BATTLE_TRAITS)) {
@@ -261,7 +304,8 @@ export function syncAllTraits(): Record<string, GameTrait> {
     };
   }
 
-  return traits;
+  cachedTraits = traits;
+  return cachedTraits;
 }
 
 /**
@@ -291,9 +335,15 @@ export function getTraitStats(): { total: number; positive: number; negative: nu
 // ==================== 적 동기화 ====================
 
 /**
- * 모든 게임 적을 시뮬레이터 형식으로 변환
+ * 모든 게임 적을 시뮬레이터 형식으로 변환 (캐싱됨)
+ * 주의: 각 호출에서 새로운 객체를 반환하도록 깊은 복사 수행
  */
-export function syncAllEnemies(): Record<string, GameEnemy> {
+export function syncAllEnemies(forceReload = false): Record<string, GameEnemy> {
+  if (cachedEnemies && !forceReload) {
+    // 적 데이터는 상태가 변할 수 있으므로 깊은 복사 반환
+    return JSON.parse(JSON.stringify(cachedEnemies));
+  }
+
   const enemies: Record<string, GameEnemy> = {};
 
   for (const enemy of ENEMIES) {
@@ -318,7 +368,8 @@ export function syncAllEnemies(): Record<string, GameEnemy> {
     };
   }
 
-  return enemies;
+  cachedEnemies = enemies;
+  return JSON.parse(JSON.stringify(cachedEnemies));
 }
 
 /**
@@ -416,20 +467,14 @@ export function getGameDataStats(): {
 
 // ==================== 이변 동기화 ====================
 
-export interface SimulatorAnomaly {
-  id: string;
-  name: string;
-  emoji: string;
-  color: string;
-  description: string;
-  effectType: string;
-  getEffect: (level: number) => AnomalyEffect;
-}
+// SimulatorAnomaly 인터페이스는 파일 상단에서 정의됨
 
 /**
- * 모든 게임 이변을 시뮬레이터 형식으로 변환
+ * 모든 게임 이변을 시뮬레이터 형식으로 변환 (캐싱됨)
  */
-export function syncAllAnomalies(): Record<string, SimulatorAnomaly> {
+export function syncAllAnomalies(forceReload = false): Record<string, SimulatorAnomaly> {
+  if (cachedAnomalies && !forceReload) return cachedAnomalies;
+
   const anomalies: Record<string, SimulatorAnomaly> = {};
 
   for (const anomaly of ALL_ANOMALIES) {
@@ -444,7 +489,8 @@ export function syncAllAnomalies(): Record<string, SimulatorAnomaly> {
     };
   }
 
-  return anomalies;
+  cachedAnomalies = anomalies;
+  return cachedAnomalies;
 }
 
 /**

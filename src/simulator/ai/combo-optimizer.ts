@@ -66,8 +66,8 @@ export interface ComboOptimizerConfig {
 // ==================== 기본 설정 ====================
 
 const DEFAULT_CONFIG: ComboOptimizerConfig = {
-  comboWeight: 0.4,
-  combatWeight: 0.6,
+  comboWeight: 0.55,  // 콤보(포커 조합)가 게임 핵심 메커니즘이므로 가중치 상향
+  combatWeight: 0.45,
   minComboRank: 1, // 페어 이상
   needEther: true,
   preferAttack: true,

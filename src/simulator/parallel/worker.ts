@@ -1,6 +1,12 @@
 /**
  * @file worker.ts
  * @description Worker thread for parallel battle simulation
+ *
+ * 주요 기능:
+ * - 실제 전투 엔진 시뮬레이션
+ * - 이변(Anomaly) 시스템 적용
+ * - 적 패턴(cycle/phase) 시스템
+ * - 포커 콤보 + 특성 연계 AI
  */
 
 import { parentPort, workerData } from 'worker_threads';
@@ -11,6 +17,34 @@ interface WorkerData {
   cardData: Record<string, CardData>;
   enemyData: Record<string, EnemyData>;
   relicData: Record<string, RelicData>;
+  anomalyData?: Record<string, AnomalyData>;
+  patternData?: Record<string, EnemyPatternData>;
+}
+
+// 이변 데이터
+interface AnomalyData {
+  id: string;
+  name: string;
+  effectType: string;
+  getEffect: (level: number) => { type: string; value?: number; description: string };
+}
+
+// 적 패턴 데이터
+interface EnemyPatternData {
+  type: 'cycle' | 'phase' | 'random';
+  pattern?: string[];
+  phases?: Array<{
+    hpThreshold: number;
+    pattern: string[];
+    description: string;
+  }>;
+  specialActions?: Record<string, {
+    mode: string;
+    useCard?: string;
+    damage?: number;
+    heal?: number;
+    ignoreBlock?: boolean;
+  }>;
 }
 
 interface CardData {
@@ -195,6 +229,15 @@ interface EnemyData {
   deck: string[];
   cardsPerTurn: number;
   passive?: Record<string, unknown>;
+  isBoss?: boolean;
+}
+
+// 활성 이변 상태
+interface ActiveAnomaly {
+  id: string;
+  level: number;
+  effectType: string;
+  value?: number;
 }
 
 interface RelicData {
@@ -209,16 +252,177 @@ class BattleSimulator {
   private cards: Record<string, CardData>;
   private enemies: Record<string, EnemyData>;
   private relics: Record<string, RelicData>;
+  private patterns: Record<string, EnemyPatternData>;
+  private activeAnomalies: ActiveAnomaly[] = [];
 
   constructor(data: WorkerData) {
     this.cards = data.cardData;
     this.enemies = data.enemyData;
     this.relics = data.relicData;
+    this.patterns = data.patternData || {};
+  }
+
+  // ==================== 이변 시스템 ====================
+
+  private activateAnomaly(anomalyId: string, level: number = 1): void {
+    // 간단한 이변 효과 정의 (실제 게임 데이터와 동기화)
+    const anomalyEffects: Record<string, { effectType: string; getValue: (lv: number) => number }> = {
+      'deflation_curse': { effectType: 'ETHER_BAN', getValue: () => 1 },
+      'energy_drain': { effectType: 'ENERGY_REDUCTION', getValue: (lv) => lv * -1 },
+      'time_distortion': { effectType: 'SPEED_REDUCTION', getValue: (lv) => lv * -3 },
+      'vulnerability': { effectType: 'VULNERABILITY', getValue: (lv) => lv * 10 },
+      'value_down': { effectType: 'VALUE_DOWN', getValue: (lv) => lv * -10 },
+      'backflow': { effectType: 'DEFENSE_BACKFIRE', getValue: (lv) => lv * 2 },
+      'blood_moon': { effectType: 'DAMAGE_BOOST', getValue: () => 25 },
+      'elite_surge': { effectType: 'ENEMY_BOOST', getValue: () => 50 },
+    };
+
+    const effect = anomalyEffects[anomalyId];
+    if (effect) {
+      this.activeAnomalies.push({
+        id: anomalyId,
+        level,
+        effectType: effect.effectType,
+        value: effect.getValue(level),
+      });
+    }
+  }
+
+  private getAnomalyEffect(effectType: string): number {
+    let total = 0;
+    for (const anomaly of this.activeAnomalies) {
+      if (anomaly.effectType === effectType && anomaly.value !== undefined) {
+        total += anomaly.value;
+      }
+    }
+    return total;
+  }
+
+  private hasAnomalyType(effectType: string): boolean {
+    return this.activeAnomalies.some(a => a.effectType === effectType);
+  }
+
+  private applyAnomalyDamageModifier(damage: number, isPlayerAttacking: boolean): number {
+    let modified = damage;
+
+    // 취약 효과 (VULNERABILITY) - 플레이어가 받는 피해 증가
+    if (!isPlayerAttacking) {
+      const vulnerabilityPercent = this.getAnomalyEffect('VULNERABILITY');
+      if (vulnerabilityPercent > 0) {
+        modified = Math.floor(modified * (1 + vulnerabilityPercent / 100));
+      }
+    }
+
+    // 피의 달 (DAMAGE_BOOST) - 모든 피해 증가
+    const damageBoost = this.getAnomalyEffect('DAMAGE_BOOST');
+    if (damageBoost > 0) {
+      modified = Math.floor(modified * (1 + damageBoost / 100));
+    }
+
+    return modified;
+  }
+
+  private applyAnomalyDefenseBackfire(player: CombatantState): void {
+    const backfireDamage = this.getAnomalyEffect('DEFENSE_BACKFIRE');
+    if (backfireDamage > 0) {
+      player.hp -= backfireDamage;
+    }
+  }
+
+  // ==================== 적 패턴 시스템 ====================
+
+  private getPatternAction(enemyId: string, turn: number, currentHp: number, maxHp: number): string | null {
+    const pattern = this.patterns[enemyId];
+    if (!pattern) return null;
+
+    if (pattern.type === 'cycle' && pattern.pattern) {
+      const index = (turn - 1) % pattern.pattern.length;
+      return pattern.pattern[index];
+    }
+
+    if (pattern.type === 'phase' && pattern.phases) {
+      const hpPercent = maxHp > 0 ? (currentHp / maxHp) * 100 : 100;
+      // HP 비율에 맞는 페이즈 찾기
+      const phase = [...pattern.phases]
+        .sort((a, b) => a.hpThreshold - b.hpThreshold)
+        .find(p => hpPercent <= p.hpThreshold);
+
+      if (phase) {
+        const index = (turn - 1) % phase.pattern.length;
+        return phase.pattern[index];
+      }
+    }
+
+    return null;
+  }
+
+  private selectEnemyCardsFromPattern(
+    enemyState: CombatantState & { id: string; deck: string[]; cardsPerTurn: number },
+    turn: number
+  ): string[] {
+    const action = this.getPatternAction(enemyState.id, turn, enemyState.hp, enemyState.maxHp);
+
+    if (!action) {
+      // 패턴 없으면 기본 동작
+      return enemyState.deck.slice(0, enemyState.cardsPerTurn);
+    }
+
+    const pattern = this.patterns[enemyState.id];
+
+    // 특수 행동 체크
+    if (pattern?.specialActions?.[action]) {
+      const special = pattern.specialActions[action];
+      if (special.useCard && this.cards[special.useCard]) {
+        return [special.useCard];
+      }
+    }
+
+    // 패턴 행동에 따른 카드 선택
+    const attackCards = enemyState.deck.filter(id => this.cards[id]?.attack);
+    const defenseCards = enemyState.deck.filter(id => this.cards[id]?.defense);
+
+    switch (action) {
+      case 'attack':
+      case 'big_attack':
+      case 'rage':
+        return attackCards.length > 0 ? [attackCards[0]] : enemyState.deck.slice(0, 1);
+      case 'defense':
+      case 'charging':
+      case 'rest':
+        return defenseCards.length > 0 ? [defenseCards[0]] : enemyState.deck.slice(0, 1);
+      case 'buff':
+        // 버프 카드나 방어 선택
+        return defenseCards.length > 0 ? [defenseCards[0]] : enemyState.deck.slice(0, 1);
+      default:
+        return enemyState.deck.slice(0, enemyState.cardsPerTurn);
+    }
   }
 
   simulateBattle(config: SimulationConfig): BattleResult {
     const enemyId = config.enemyIds[0] || 'ghoul';
     const enemy = this.enemies[enemyId] || this.getDefaultEnemy(enemyId);
+
+    // 이변 초기화
+    this.activeAnomalies = [];
+    if (config.anomalyId) {
+      const anomalyLevel = config.anomalyLevel || 1;
+      // anomalyId가 쉼표로 구분된 여러 이변일 수 있음
+      const anomalyIds = config.anomalyId.split(',').map(s => s.trim());
+      for (const id of anomalyIds) {
+        this.activateAnomaly(id, anomalyLevel);
+      }
+    }
+
+    // 적 HP 부스트 (elite_surge 등)
+    let enemyHpMultiplier = 1;
+    const enemyBoost = this.getAnomalyEffect('ENEMY_BOOST');
+    if (enemyBoost > 0) {
+      enemyHpMultiplier = 1 + enemyBoost / 100;
+    }
+
+    // 에너지 감소 효과
+    const energyReduction = this.getAnomalyEffect('ENERGY_REDUCTION');
+    const playerMaxEnergy = Math.max(1, 3 + energyReduction);
 
     // 플레이어 초기화
     const player: CombatantState = {
@@ -231,16 +435,17 @@ class BattleSimulator {
       deck: [...config.playerDeck],
       hand: [],
       discard: [],
-      energy: config.playerStats?.energy || 3,
-      maxEnergy: 3,
+      energy: config.playerStats?.energy || playerMaxEnergy,
+      maxEnergy: playerMaxEnergy,
       relics: config.playerRelics || [],
       cardsPlayedThisTurn: [],
     };
 
-    // 적 초기화
+    // 적 초기화 (이변 부스트 적용)
+    const boostedHp = Math.floor(enemy.hp * enemyHpMultiplier);
     const enemyState: CombatantState & { id: string; name: string; cardsPerTurn: number } = {
-      hp: enemy.hp,
-      maxHp: enemy.hp,
+      hp: boostedHp,
+      maxHp: boostedHp,
       block: 0,
       strength: 0,
       etherPts: 0,
@@ -347,6 +552,9 @@ class BattleSimulator {
             damage = Math.floor(damage * 1.5);
           }
 
+          // 이변 피해 수정 적용
+          damage = this.applyAnomalyDamageModifier(damage, true);
+
           // 피해 적용
           const actualDamage = this.applyDamage(enemyState, damage);
           playerDamageDealt += actualDamage;
@@ -377,6 +585,9 @@ class BattleSimulator {
 
           player.block += block;
           battleLog.push(`플레이어가 ${card.name}으로 ${block} 방어`);
+
+          // 이변: 방어 시 자해 (backflow)
+          this.applyAnomalyDefenseBackfire(player);
         }
 
         // 카드 효과 처리
@@ -393,8 +604,8 @@ class BattleSimulator {
       // 적 생존 체크
       if (enemyState.hp <= 0) break;
 
-      // 적 턴
-      const enemyCards = enemyState.deck.slice(0, enemyState.cardsPerTurn);
+      // 적 턴 - 패턴 기반 카드 선택
+      const enemyCards = this.selectEnemyCardsFromPattern(enemyState, turn);
       for (const cardId of enemyCards) {
         const card = this.cards[cardId];
         if (!card) continue;
@@ -411,6 +622,9 @@ class BattleSimulator {
           if (player.tokens['vulnerable']) {
             damage = Math.floor(damage * 1.5);
           }
+
+          // 이변 피해 수정 적용 (적 공격 → 플레이어 취약)
+          damage = this.applyAnomalyDamageModifier(damage, false);
 
           const actualDamage = this.applyDamage(player, damage);
           enemyDamageDealt += actualDamage;
@@ -689,11 +903,41 @@ class BattleSimulator {
       scoreA += (cardA?.attack || 0) * 1.5 + (cardA?.defense || 0);
       scoreB += (cardB?.attack || 0) * 1.5 + (cardB?.defense || 0);
 
-      // 콤보 가능성 체크
+      // 콤보 가능성 체크 (가중치 상향 - 핵심 메커니즘)
       const comboA = this.checkPotentialCombo([...player.cardsPlayedThisTurn, a]);
       const comboB = this.checkPotentialCombo([...player.cardsPlayedThisTurn, b]);
-      if (comboA) scoreA += 10;
-      if (comboB) scoreB += 10;
+      if (comboA) scoreA += 25;  // 10 → 25
+      if (comboB) scoreB += 25;
+
+      // 연계 특성 보너스
+      if (cardA?.traits?.includes('chain')) scoreA += 15;
+      if (cardB?.traits?.includes('chain')) scoreB += 15;
+      if (cardA?.traits?.includes('followup')) scoreA += 12;
+      if (cardB?.traits?.includes('followup')) scoreB += 12;
+      if (cardA?.traits?.includes('finisher')) scoreA += 18;
+      if (cardB?.traits?.includes('finisher')) scoreB += 18;
+
+      // 같은 actionCost 카드 선호 (포커 콤보용)
+      const sameActionCostA = playable.filter(c =>
+        this.cards[c]?.actionCost === cardA?.actionCost
+      ).length;
+      const sameActionCostB = playable.filter(c =>
+        this.cards[c]?.actionCost === cardB?.actionCost
+      ).length;
+      if (sameActionCostA >= 2) scoreA += sameActionCostA * 5;
+      if (sameActionCostB >= 2) scoreB += sameActionCostB * 5;
+
+      // 포커 콤보 랭크 보너스
+      const pokerA = this.getPokerComboRank([...player.cardsPlayedThisTurn, a]);
+      const pokerB = this.getPokerComboRank([...player.cardsPlayedThisTurn, b]);
+      scoreA += pokerA.bonus;
+      scoreB += pokerB.bonus;
+
+      // 연계 특성 콤보 보너스
+      const chainA = this.checkTraitChain([...player.cardsPlayedThisTurn, a]);
+      const chainB = this.checkTraitChain([...player.cardsPlayedThisTurn, b]);
+      scoreA += chainA.bonus;
+      scoreB += chainB.bonus;
 
       return scoreB - scoreA;
     });
@@ -701,6 +945,96 @@ class BattleSimulator {
 
   private checkPotentialCombo(cardsPlayed: string[]): boolean {
     return this.checkCombo(cardsPlayed) !== null;
+  }
+
+  // ==================== 포커 콤보 시스템 ====================
+
+  /**
+   * 카드 조합의 포커 랭크 계산
+   * actionCost를 기준으로 포커 조합 판정
+   */
+  private getPokerComboRank(cardIds: string[]): { rank: number; name: string; bonus: number } {
+    if (cardIds.length < 2) {
+      return { rank: 0, name: 'none', bonus: 0 };
+    }
+
+    const actionCosts = cardIds
+      .map(id => this.cards[id]?.actionCost || 0)
+      .filter(cost => cost > 0);
+
+    if (actionCosts.length < 2) {
+      return { rank: 0, name: 'none', bonus: 0 };
+    }
+
+    // actionCost 빈도 계산
+    const costCounts = new Map<number, number>();
+    for (const cost of actionCosts) {
+      costCounts.set(cost, (costCounts.get(cost) || 0) + 1);
+    }
+
+    const counts = Array.from(costCounts.values()).sort((a, b) => b - a);
+
+    // 포커 랭크 판정
+    // 5장: Five of a Kind (같은 actionCost 5장)
+    if (counts[0] >= 5) {
+      return { rank: 10, name: 'five_of_kind', bonus: 100 };
+    }
+    // 4장: Four of a Kind
+    if (counts[0] >= 4) {
+      return { rank: 8, name: 'four_of_kind', bonus: 60 };
+    }
+    // 풀하우스 (3+2)
+    if (counts[0] >= 3 && counts[1] >= 2) {
+      return { rank: 7, name: 'full_house', bonus: 50 };
+    }
+    // 트리플
+    if (counts[0] >= 3) {
+      return { rank: 4, name: 'three_of_kind', bonus: 30 };
+    }
+    // 투페어 (2+2)
+    if (counts[0] >= 2 && counts[1] >= 2) {
+      return { rank: 3, name: 'two_pair', bonus: 20 };
+    }
+    // 원페어
+    if (counts[0] >= 2) {
+      return { rank: 2, name: 'pair', bonus: 10 };
+    }
+
+    return { rank: 0, name: 'none', bonus: 0 };
+  }
+
+  /**
+   * 연계 콤보 체크 (chain → followup → finisher)
+   */
+  private checkTraitChain(cardsPlayed: string[]): { complete: boolean; bonus: number } {
+    if (cardsPlayed.length < 2) {
+      return { complete: false, bonus: 0 };
+    }
+
+    let hasChain = false;
+    let hasFollowup = false;
+    let hasFinisher = false;
+
+    for (const cardId of cardsPlayed) {
+      const card = this.cards[cardId];
+      if (card?.traits?.includes('chain')) hasChain = true;
+      if (card?.traits?.includes('followup')) hasFollowup = true;
+      if (card?.traits?.includes('finisher')) hasFinisher = true;
+    }
+
+    // 완전한 연계 콤보
+    if (hasChain && hasFollowup && hasFinisher) {
+      return { complete: true, bonus: 50 };
+    }
+    // 부분 연계
+    if (hasChain && hasFollowup) {
+      return { complete: false, bonus: 25 };
+    }
+    if (hasChain || hasFollowup) {
+      return { complete: false, bonus: 10 };
+    }
+
+    return { complete: false, bonus: 0 };
   }
 
   // ==================== 유틸리티 ====================

@@ -382,7 +382,7 @@ export class Logger {
 class LoggerManager {
   private loggers: Map<string, Logger> = new Map();
   private transports: LogTransport[] = [];
-  private globalLevel: LogLevel = LogLevel.DEBUG;
+  private globalLevel: LogLevel = LogLevel.WARN;
   private memoryTransport?: MemoryTransport;
 
   constructor() {

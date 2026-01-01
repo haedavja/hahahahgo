@@ -253,23 +253,23 @@ export class AdvancedBattleAI {
     let score = 0;
 
     for (const trait of card.traits) {
-      // 연계 특성
+      // 연계 특성 (콤보 시스템 핵심 - 점수 상향)
       if (trait === 'chain') {
-        score += 15; // 연계 시작
+        score += 20; // 연계 시작 - 콤보 트리거
       }
       if (trait === 'followup') {
         // 타임라인에 연계 카드가 있으면 보너스
         const hasChainInTimeline = context.timeline.some(tc =>
           tc.card?.traits?.includes('chain')
         );
-        score += hasChainInTimeline ? 25 : 10;
+        score += hasChainInTimeline ? 35 : 12;
       }
       if (trait === 'finisher') {
         // 타임라인에 후속 카드가 있으면 보너스
         const hasFollowupInTimeline = context.timeline.some(tc =>
           tc.card?.traits?.includes('followup') || tc.card?.traits?.includes('chain')
         );
-        score += hasFollowupInTimeline ? 35 : 15;
+        score += hasFollowupInTimeline ? 50 : 18;
       }
 
       // 카운터/반응 특성
@@ -424,7 +424,11 @@ export class AdvancedBattleAI {
 
         case 'combo':
           if (card.traits?.some(t => ['chain', 'followup', 'finisher'].includes(t))) {
-            multiplier *= 1.5;
+            multiplier *= 1.8;  // 콤보 모드에서 연계 특성 더욱 강조
+          }
+          // 같은 actionCost 카드가 있으면 포커 조합 보너스
+          if (card.actionCost !== undefined) {
+            multiplier *= 1.15;
           }
           break;
 

@@ -3,7 +3,7 @@
  * @description 시뮬레이터 성능 벤치마크 도구
  *
  * 기능:
- * - 시뮬레이션 속도 측정
+ * - 시뮬레이션 속도 측정 (실제 전투 엔진 사용)
  * - Worker 풀 효율성 분석
  * - 메모리 사용량 추적
  * - 병렬 처리 성능 비교
@@ -15,7 +15,8 @@ import { Worker } from 'worker_threads';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import type { SimulationConfig, BattleResult } from '../core/types';
-import { syncCards, syncEnemies } from '../data/sync';
+import { syncCards, syncEnemies, syncRelics } from '../data/sync';
+import { BattleSimulator } from '../parallel/worker';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -78,10 +79,20 @@ export interface SystemInfo {
 export class BenchmarkRunner {
   private cardData: Record<string, unknown>;
   private enemyData: Record<string, unknown>;
+  private relicData: Record<string, unknown>;
+  private simulator: BattleSimulator;
 
   constructor() {
     this.cardData = syncCards();
     this.enemyData = syncEnemies();
+    this.relicData = syncRelics();
+
+    // 실제 전투 엔진 초기화
+    this.simulator = new BattleSimulator({
+      cardData: this.cardData as Record<string, { id: string; name: string; attack?: number; defense?: number; cost: number; speedCost?: number; actionCost?: number; priority?: string; traits?: string[]; tags?: string[]; effects?: Record<string, unknown> }>,
+      enemyData: this.enemyData as Record<string, { id: string; name: string; hp: number; tier: number; deck: string[]; cardsPerTurn: number }>,
+      relicData: this.relicData as Record<string, { id: string; name: string; effect: Record<string, unknown> }>,
+    });
   }
 
   // ==================== 메인 벤치마크 ====================
@@ -137,11 +148,12 @@ export class BenchmarkRunner {
     let wins = 0;
     let losses = 0;
 
-    // 간단한 동기 시뮬레이션 (실제 Worker 사용 시 교체)
+    // 실제 전투 엔진을 사용한 시뮬레이션
     for (let i = 0; i < config.battles; i++) {
       const result = this.simulateBattle(config);
       if (result.winner === 'player') wins++;
-      else losses++;
+      else if (result.winner === 'enemy') losses++;
+      // draw는 승/패 모두 아님
     }
 
     const endTime = performance.now();
@@ -162,31 +174,26 @@ export class BenchmarkRunner {
     };
   }
 
-  // ==================== 간단한 전투 시뮬레이션 ====================
+  // ==================== 실제 전투 시뮬레이션 ====================
 
-  private simulateBattle(config: BenchmarkConfig): { winner: 'player' | 'enemy' | 'draw' } {
+  private simulateBattle(config: BenchmarkConfig): BattleResult {
     const enemyId = config.enemies[Math.floor(Math.random() * config.enemies.length)];
-    const enemy = this.enemyData[enemyId] as { hp?: number } | undefined;
 
-    let playerHp = 100;
-    let enemyHp = enemy?.hp || 50;
+    // 실제 전투 엔진 사용
+    const simConfig: SimulationConfig = {
+      battles: 1,
+      maxTurns: 30,
+      playerDeck: config.deck,
+      enemyIds: [enemyId],
+      playerStats: {
+        hp: 100,
+        maxHp: 100,
+        energy: 3,
+      },
+      playerRelics: [],
+    };
 
-    // 간단한 전투 루프
-    for (let turn = 0; turn < 30 && playerHp > 0 && enemyHp > 0; turn++) {
-      // 플레이어 공격
-      const playerDamage = 5 + Math.floor(Math.random() * 10);
-      enemyHp -= playerDamage;
-
-      if (enemyHp <= 0) break;
-
-      // 적 공격
-      const enemyDamage = 3 + Math.floor(Math.random() * 8);
-      playerHp -= enemyDamage;
-    }
-
-    if (enemyHp <= 0 && playerHp > 0) return { winner: 'player' };
-    if (playerHp <= 0 && enemyHp > 0) return { winner: 'enemy' };
-    return { winner: playerHp >= enemyHp ? 'player' : 'enemy' };
+    return this.simulator.simulateBattle(simConfig);
   }
 
   // ==================== 비교 벤치마크 ====================
