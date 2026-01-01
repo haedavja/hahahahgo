@@ -42,7 +42,7 @@ export const TraitEthosSection = memo(function TraitEthosSection({
         gridTemplateColumns: '100px repeat(6, 200px)', // 헤더 + 6개 카드 고정
         gap: SPACING.md,
         alignItems: 'stretch', // 모든 셀 높이 동일화 - 레이아웃 안정화
-        marginLeft: '7px', // 2단계와 수직 정렬
+        marginLeft: '4px', // 2단계와 수직 정렬
       }}>
         {/* 티어 헤더 */}
         <div style={{
