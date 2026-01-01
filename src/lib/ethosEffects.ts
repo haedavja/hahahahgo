@@ -70,9 +70,9 @@ export function processEthosAtBattleStart(
 }
 
 /**
- * 에토스 효과 적용
+ * 에토스 효과 적용 (테스트 가능하도록 export)
  */
-function applyEthosEffect(
+export function applyEthosEffect(
   ethos: Ethos,
   player: Combatant
 ): { updatedPlayer: Combatant; tokensToAdd: Array<{ id: string; stacks: number }>; logs: string[] } {

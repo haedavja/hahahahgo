@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { inflateCards, buildSpeedTimeline, cardsFromIds, drawHand, createTurnPreview } from './speedQueue';
+import { inflateCards, buildSpeedTimeline, cardsFromIds, drawHand, createTurnPreview, randomPick, attachInstanceId, toAction } from './speedQueue';
 
 // Math.random 고정
 beforeEach(() => {
@@ -197,6 +197,108 @@ describe('speedQueue', () => {
       if (result.length >= 2) {
         expect(result[0].instanceId).not.toBe(result[1].instanceId);
       }
+    });
+  });
+
+  describe('randomPick', () => {
+    it('빈 배열은 빈 배열을 반환해야 함', () => {
+      expect(randomPick([], 3)).toEqual([]);
+    });
+
+    it('null/undefined는 빈 배열을 반환해야 함', () => {
+      expect(randomPick(null as any, 3)).toEqual([]);
+      expect(randomPick(undefined as any, 3)).toEqual([]);
+    });
+
+    it('요청한 개수만큼 요소를 반환해야 함', () => {
+      const list = [1, 2, 3, 4, 5];
+      const result = randomPick(list, 3);
+      expect(result).toHaveLength(3);
+    });
+
+    it('배열 크기보다 많이 요청하면 배열 전체를 반환해야 함', () => {
+      const list = [1, 2];
+      const result = randomPick(list, 5);
+      expect(result).toHaveLength(2);
+    });
+
+    it('원본 배열을 변경하지 않아야 함', () => {
+      const list = [1, 2, 3];
+      randomPick(list, 2);
+      expect(list).toEqual([1, 2, 3]);
+    });
+  });
+
+  describe('attachInstanceId', () => {
+    it('빈 배열은 빈 배열을 반환해야 함', () => {
+      expect(attachInstanceId([])).toEqual([]);
+    });
+
+    it('각 카드에 instanceId가 추가되어야 함', () => {
+      const cards = [
+        { id: 'card1', name: 'Card 1' } as any,
+        { id: 'card2', name: 'Card 2' } as any,
+      ];
+      const result = attachInstanceId(cards);
+
+      expect(result[0].instanceId).toBeDefined();
+      expect(result[1].instanceId).toBeDefined();
+      expect(result[0].instanceId).toContain('card1-');
+      expect(result[1].instanceId).toContain('card2-');
+    });
+
+    it('원본 카드 속성이 보존되어야 함', () => {
+      const cards = [{ id: 'test', name: 'Test', damage: 5 } as any];
+      const result = attachInstanceId(cards);
+
+      expect(result[0].id).toBe('test');
+      expect(result[0].name).toBe('Test');
+      expect(result[0].damage).toBe(5);
+    });
+  });
+
+  describe('toAction', () => {
+    it('플레이어 카드를 액션으로 변환해야 함', () => {
+      const card = {
+        id: 'slash',
+        name: 'Slash',
+        speedCost: 3,
+        priorityWeight: 2,
+        priority: 'quick' as const,
+        actionCost: 1,
+        tags: ['melee'],
+      } as any;
+
+      const result = toAction('player', card);
+
+      expect(result.actor).toBe('player');
+      expect(result.cardId).toBe('slash');
+      expect(result.name).toBe('Slash');
+      expect(result.speedCost).toBe(3);
+      expect(result.priorityWeight).toBe(2);
+      expect(result.priority).toBe('quick');
+      expect(result.actionCost).toBe(1);
+      expect(result.tags).toEqual(['melee']);
+      expect(result.roll).toBeDefined();
+    });
+
+    it('적 카드를 액션으로 변환해야 함', () => {
+      const card = { id: 'attack', name: 'Attack' } as any;
+      const result = toAction('enemy', card);
+
+      expect(result.actor).toBe('enemy');
+      expect(result.cardId).toBe('attack');
+    });
+
+    it('누락된 값에 기본값이 적용되어야 함', () => {
+      const card = { id: 'test', name: 'Test' } as any;
+      const result = toAction('player', card);
+
+      expect(result.speedCost).toBe(5);
+      expect(result.priorityWeight).toBe(1);
+      expect(result.priority).toBe('normal');
+      expect(result.actionCost).toBe(1);
+      expect(result.tags).toEqual([]);
     });
   });
 

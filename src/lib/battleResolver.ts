@@ -28,15 +28,18 @@ const DEFAULT_STATS: BattleStats = {
   enemy: { hp: 40, block: 0 },
 };
 
-const clamp = (value: number, min: number, max: number): number =>
+/** 값을 min~max 범위로 제한 (테스트 가능하도록 export) */
+export const clamp = (value: number, min: number, max: number): number =>
   Math.min(max, Math.max(min, value));
 
-const cloneState = (stats: BattleStats = DEFAULT_STATS): BattleStats => ({
+/** 전투 상태 복제 (테스트 가능하도록 export) */
+export const cloneState = (stats: BattleStats = DEFAULT_STATS): BattleStats => ({
   player: { hp: stats.player?.hp ?? 50, block: stats.player?.block ?? 0 },
   enemy: { hp: stats.enemy?.hp ?? 40, block: stats.enemy?.block ?? 0 },
 });
 
-const applyAttack = (
+/** 공격 적용 (테스트 가능하도록 export) */
+export const applyAttack = (
   _attacker: ActorStats,
   defender: ActorStats,
   card: Card
@@ -49,13 +52,15 @@ const applyAttack = (
   return { blocked, hpDamage };
 };
 
-const applyBlock = (actor: ActorStats, card: Card): BlockResult => {
+/** 방어 적용 (테스트 가능하도록 export) */
+export const applyBlock = (actor: ActorStats, card: Card): BlockResult => {
   const block = card.block ?? 0;
   actor.block = (actor.block ?? 0) + block;
   return { block };
 };
 
-const applySupport = (
+/** 지원 카드 적용 (테스트 가능하도록 export) */
+export const applySupport = (
   _actor: ActorStats,
   card: Card,
   status: BattleStatus

@@ -32,7 +32,8 @@ const PRIORITY_WEIGHT: Record<string, number> = {
   slow: 0,
 };
 
-const randomPick = <T>(list: T[], count: number): T[] => {
+/** 배열에서 랜덤하게 요소 선택 (테스트 가능하도록 export) */
+export const randomPick = <T>(list: T[], count: number): T[] => {
   if (!Array.isArray(list) || list.length === 0) return [];
   const pool = [...list];
   const picks: T[] = [];
@@ -54,7 +55,8 @@ export const inflateCards = (ids: string[] = []): InflatedCard[] =>
       priorityWeight: PRIORITY_WEIGHT[card.priority ?? 'normal'] ?? 1,
     }));
 
-const attachInstanceId = (cards: InflatedCard[]): HandCard[] =>
+/** 카드에 인스턴스 ID 부여 (테스트 가능하도록 export) */
+export const attachInstanceId = (cards: InflatedCard[]): HandCard[] =>
   cards.map((card) => ({
     ...card,
     instanceId: `${card.id}-${handCounter + 1}`,
@@ -67,7 +69,8 @@ export const drawHand = (deck: string[], count: number): HandCard[] => {
   return hand;
 };
 
-const toAction = (actor: 'player' | 'enemy', card: InflatedCard): TimelineAction => ({
+/** 카드를 타임라인 액션으로 변환 (테스트 가능하도록 export) */
+export const toAction = (actor: 'player' | 'enemy', card: InflatedCard): TimelineAction => ({
   actor,
   cardId: card.id,
   name: card.name,

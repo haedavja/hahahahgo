@@ -17,6 +17,7 @@ import {
   getSymbolDamageBonus,
   isGunCard,
   isSwordCard,
+  applyEthosEffect,
 } from './ethosEffects';
 import type { GrowthState } from '../state/slices/growthSlice';
 import { initialGrowthState } from '../state/slices/growthSlice';
@@ -337,6 +338,101 @@ describe('ethosEffects', () => {
         const gunCard = { cardCategory: 'gun' } as Card;
         expect(isSwordCard(gunCard)).toBe(false);
       });
+    });
+  });
+
+  describe('applyEthosEffect', () => {
+    it('addToken 액션은 토큰을 추가한다', () => {
+      const ethos = {
+        id: 'flame',
+        name: '불꽃',
+        effect: {
+          trigger: 'gunCrit',
+          action: 'addToken',
+          token: 'burn',
+          value: 2,
+        },
+      } as any;
+      const player = { hp: 100, tokens: [] } as any;
+
+      const result = applyEthosEffect(ethos, player);
+
+      expect(result.tokensToAdd).toHaveLength(1);
+      expect(result.tokensToAdd[0]).toEqual({ id: 'burn', stacks: 2 });
+      expect(result.logs).toHaveLength(1);
+      expect(result.logs[0]).toContain('불꽃');
+    });
+
+    it('shoot 액션은 발동 준비 로그를 남긴다', () => {
+      const ethos = {
+        id: 'gap',
+        name: '틈새',
+        effect: {
+          trigger: 'evadeSuccess',
+          action: 'shoot',
+          value: 1,
+        },
+      } as any;
+      const player = { hp: 100 } as any;
+
+      const result = applyEthosEffect(ethos, player);
+
+      expect(result.logs).toHaveLength(1);
+      expect(result.logs[0]).toContain('발동 준비');
+    });
+
+    it('damageBonus 액션은 로그 없이 처리', () => {
+      const ethos = {
+        id: 'swordExpert',
+        name: '검예',
+        effect: {
+          trigger: 'swordAttack',
+          action: 'damageBonus',
+          source: 'finesse',
+        },
+      } as any;
+      const player = { hp: 100 } as any;
+
+      const result = applyEthosEffect(ethos, player);
+
+      expect(result.logs).toHaveLength(0);
+      expect(result.tokensToAdd).toHaveLength(0);
+    });
+
+    it('알 수 없는 액션은 무시', () => {
+      const ethos = {
+        id: 'unknown',
+        name: '미지',
+        effect: {
+          trigger: 'test',
+          action: 'unknownAction',
+        },
+      } as any;
+      const player = { hp: 100 } as any;
+
+      const result = applyEthosEffect(ethos, player);
+
+      expect(result.logs).toHaveLength(0);
+      expect(result.tokensToAdd).toHaveLength(0);
+    });
+
+    it('플레이어 상태가 업데이트된다', () => {
+      const ethos = {
+        id: 'test',
+        name: '테스트',
+        effect: {
+          trigger: 'battleStart',
+          action: 'addToken',
+          token: 'strength',
+          value: 1,
+        },
+      } as any;
+      const player = { hp: 100, block: 5 } as any;
+
+      const result = applyEthosEffect(ethos, player);
+
+      expect(result.updatedPlayer.hp).toBe(100);
+      expect(result.updatedPlayer.block).toBe(5);
     });
   });
 });

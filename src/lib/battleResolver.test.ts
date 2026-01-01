@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { simulateBattle, pickOutcome } from './battleResolver';
+import { simulateBattle, pickOutcome, clamp, cloneState, applyAttack, applyBlock, applySupport } from './battleResolver';
 import type {
   ResolverTimelineEntry as TimelineEntry,
   ResolverBattleStats as BattleStats,
@@ -371,6 +371,188 @@ describe('battleResolver', () => {
 
       expect(pickOutcome(simulation)).toBe('victory');
       expect(pickOutcome(simulation, 'custom')).toBe('custom');
+    });
+  });
+
+  describe('clamp', () => {
+    it('값이 범위 내이면 그대로 반환', () => {
+      expect(clamp(5, 0, 10)).toBe(5);
+    });
+
+    it('값이 min보다 작으면 min 반환', () => {
+      expect(clamp(-5, 0, 10)).toBe(0);
+    });
+
+    it('값이 max보다 크면 max 반환', () => {
+      expect(clamp(15, 0, 10)).toBe(10);
+    });
+
+    it('경계값 처리', () => {
+      expect(clamp(0, 0, 10)).toBe(0);
+      expect(clamp(10, 0, 10)).toBe(10);
+    });
+  });
+
+  describe('cloneState', () => {
+    it('기본값으로 상태 생성', () => {
+      const state = cloneState();
+      expect(state.player.hp).toBe(50);
+      expect(state.player.block).toBe(0);
+      expect(state.enemy.hp).toBe(40);
+      expect(state.enemy.block).toBe(0);
+    });
+
+    it('커스텀 상태 복제', () => {
+      const original = {
+        player: { hp: 100, block: 20 },
+        enemy: { hp: 80, block: 15 },
+      };
+      const cloned = cloneState(original);
+
+      expect(cloned.player.hp).toBe(100);
+      expect(cloned.player.block).toBe(20);
+      expect(cloned.enemy.hp).toBe(80);
+      expect(cloned.enemy.block).toBe(15);
+    });
+
+    it('원본과 독립적이어야 함', () => {
+      const original = {
+        player: { hp: 50, block: 10 },
+        enemy: { hp: 40, block: 5 },
+      };
+      const cloned = cloneState(original);
+      cloned.player.hp = 0;
+
+      expect(original.player.hp).toBe(50);
+    });
+
+    it('부분 데이터에 기본값 적용', () => {
+      const partial = {
+        player: { hp: 30 },
+        enemy: {},
+      } as any;
+      const state = cloneState(partial);
+
+      expect(state.player.hp).toBe(30);
+      expect(state.player.block).toBe(0);
+      expect(state.enemy.hp).toBe(40);
+    });
+  });
+
+  describe('applyAttack', () => {
+    it('방어력 없는 대상에게 피해 적용', () => {
+      const attacker = { hp: 50, block: 0 };
+      const defender = { hp: 40, block: 0 };
+      const card = { damage: 10 } as any;
+
+      const result = applyAttack(attacker, defender, card);
+
+      expect(result.blocked).toBe(0);
+      expect(result.hpDamage).toBe(10);
+      expect(defender.hp).toBe(30);
+    });
+
+    it('방어력이 피해를 흡수', () => {
+      const attacker = { hp: 50, block: 0 };
+      const defender = { hp: 40, block: 15 };
+      const card = { damage: 10 } as any;
+
+      const result = applyAttack(attacker, defender, card);
+
+      expect(result.blocked).toBe(10);
+      expect(result.hpDamage).toBe(0);
+      expect(defender.hp).toBe(40);
+      expect(defender.block).toBe(5);
+    });
+
+    it('방어력보다 높은 피해는 HP 감소', () => {
+      const attacker = { hp: 50, block: 0 };
+      const defender = { hp: 40, block: 5 };
+      const card = { damage: 10 } as any;
+
+      const result = applyAttack(attacker, defender, card);
+
+      expect(result.blocked).toBe(5);
+      expect(result.hpDamage).toBe(5);
+      expect(defender.hp).toBe(35);
+      expect(defender.block).toBe(0);
+    });
+
+    it('피해 없는 카드는 0 피해', () => {
+      const attacker = { hp: 50, block: 0 };
+      const defender = { hp: 40, block: 0 };
+      const card = {} as any;
+
+      const result = applyAttack(attacker, defender, card);
+
+      expect(result.blocked).toBe(0);
+      expect(result.hpDamage).toBe(0);
+      expect(defender.hp).toBe(40);
+    });
+  });
+
+  describe('applyBlock', () => {
+    it('방어력 추가', () => {
+      const actor = { hp: 50, block: 0 };
+      const card = { block: 8 } as any;
+
+      const result = applyBlock(actor, card);
+
+      expect(result.block).toBe(8);
+      expect(actor.block).toBe(8);
+    });
+
+    it('기존 방어력에 누적', () => {
+      const actor = { hp: 50, block: 5 };
+      const card = { block: 10 } as any;
+
+      const result = applyBlock(actor, card);
+
+      expect(result.block).toBe(10);
+      expect(actor.block).toBe(15);
+    });
+
+    it('방어력 없는 카드는 0 추가', () => {
+      const actor = { hp: 50, block: 3 };
+      const card = {} as any;
+
+      const result = applyBlock(actor, card);
+
+      expect(result.block).toBe(0);
+      expect(actor.block).toBe(3);
+    });
+  });
+
+  describe('applySupport', () => {
+    it('buff 태그가 있으면 버프 적용', () => {
+      const actor = { hp: 50, block: 0 };
+      const card = { id: 'power_up', tags: ['buff'] } as any;
+      const status: Record<string, boolean> = {};
+
+      const result = applySupport(actor, card, status);
+
+      expect(result).toEqual({ buff: 'power_up' });
+      expect(status['power_up_buff']).toBe(true);
+    });
+
+    it('buff 태그가 없으면 null 반환', () => {
+      const actor = { hp: 50, block: 0 };
+      const card = { id: 'skill', tags: ['utility'] } as any;
+      const status: Record<string, boolean> = {};
+
+      const result = applySupport(actor, card, status);
+
+      expect(result).toBeNull();
+    });
+
+    it('tags가 없는 카드는 null 반환', () => {
+      const actor = { hp: 50, block: 0 };
+      const card = { id: 'test' } as any;
+      const status: Record<string, boolean> = {};
+
+      const result = applySupport(actor, card, status);
+
+      expect(result).toBeNull();
     });
   });
 });
