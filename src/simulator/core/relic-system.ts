@@ -2,12 +2,33 @@
  * @file relic-system.ts
  * @description 상징(Relic) 시스템 - 패시브 효과, 트리거 기반 능력
  *
- * @deprecated 이 파일은 V1 상징 시스템입니다. 새로운 코드에서는 relic-system-v2.ts를 사용하세요.
- * battle-engine.ts에서만 사용 중이며, 추후 마이그레이션 예정입니다.
+ * @deprecated ===== V1 상징 시스템 (DEPRECATED) =====
+ *
+ * 이 파일은 레거시 코드입니다. 새로운 코드에서는 반드시 V2를 사용하세요:
+ *
+ * ```typescript
+ * // 올바른 방법 (V2)
+ * import { getRelicSystemV2, RelicSystemV2 } from './relic-system-v2';
+ *
+ * // 잘못된 방법 (V1 - 사용 금지)
+ * import { getRelicSystem, RelicSystem } from './relic-system';
+ * ```
+ *
+ * V1 vs V2 주요 차이점:
+ * - V1: 12개의 하드코딩된 상징만 지원
+ * - V2: src/data/relics.ts의 45개 이상 상징 지원
+ * - V2: 게임 데이터와 자동 동기화
+ * - V2: 더 나은 캐싱 및 성능
+ *
+ * 현재 사용처: 테스트 파일 (relic-system.test.ts)에서만 사용
+ * 모든 배틀 엔진은 V2로 마이그레이션 완료됨
  */
 
 import type { SimPlayerState, SimEnemyState, BattleResult, TokenState } from './types';
 import { getLogger } from './logger';
+
+// V2 시스템 re-export (신규 코드에서 V2 사용 권장)
+export { getRelicSystemV2, RelicSystemV2 } from './relic-system-v2';
 
 const log = getLogger('RelicSystem');
 

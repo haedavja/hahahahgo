@@ -1,6 +1,16 @@
 /**
  * @file relic-system.test.ts
  * @description 상징(Relic) 시스템 테스트
+ *
+ * @deprecated ===== V1 상징 시스템 테스트 (LEGACY) =====
+ *
+ * 이 테스트 파일은 레거시 V1 상징 시스템을 테스트합니다.
+ * V2 상징 시스템 테스트는 systems.test.ts에 포함되어 있습니다.
+ *
+ * V2 시스템은 src/data/relics.ts의 실제 게임 데이터를 사용하므로
+ * 더 정확한 테스트가 가능합니다.
+ *
+ * 신규 상징 관련 테스트는 V2 시스템 기반으로 작성하세요.
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
