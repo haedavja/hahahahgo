@@ -585,8 +585,8 @@ describe('enemy-patterns', () => {
       expect(getPatternForEnemy('unknown_enemy')).toBe('balanced');
     });
 
-    it('hunter는 balanced', () => {
-      expect(getPatternForEnemy('hunter')).toBe('balanced');
+    it('hunter는 tactical', () => {
+      expect(getPatternForEnemy('hunter')).toBe('tactical');
     });
 
     it('warlord는 berserk', () => {
