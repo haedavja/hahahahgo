@@ -3,12 +3,13 @@
  * 시뮬레이터 탭 - 게임 내에서 런 시뮬레이션 실행 및 상세 통계 확인
  */
 
-import { useState, useCallback, memo, useMemo } from 'react';
+import { useState, useCallback, memo } from 'react';
 import type { CSSProperties } from 'react';
 import { RELICS } from '../../../data/relics';
 import { ITEMS } from '../../../data/items';
 import { CARDS, ENEMIES } from '../../battle/battleData';
 import { NEW_EVENT_LIBRARY } from '../../../data/newEvents';
+import type { DetailedStats } from '../../../simulator/analysis/detailed-stats';
 
 // 한글 이름 조회 헬퍼 함수들
 function getRelicName(id: string): string {
@@ -68,9 +69,6 @@ const STYLES = {
 } as const;
 
 type StatTab = 'run' | 'shop' | 'dungeon' | 'event' | 'item' | 'monster' | 'card' | 'pickrate' | 'contribution' | 'synergy' | 'records';
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type DetailedStats = any; // finalize()의 반환 타입
 
 export const SimulatorTab = memo(function SimulatorTab() {
   const [runCount, setRunCount] = useState(10);
