@@ -35,7 +35,6 @@ export const TraitEthosSection = memo(function TraitEthosSection({
     <div style={{
       marginBottom: SPACING.xl,
       position: 'relative',
-      zIndex: 10,
     }}>
       {/* 티어 헤더 */}
       <div style={{

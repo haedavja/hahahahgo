@@ -48,7 +48,6 @@ export const TierRow = memo(function TierRow({
     <div style={{
       marginBottom: SPACING.xl,
       position: 'relative',
-      zIndex: 10,
     }}>
       {/* 티어 헤더 */}
       <TierHeader
