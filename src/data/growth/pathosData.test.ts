@@ -7,6 +7,7 @@ import { describe, it, expect } from 'vitest';
 import {
   TIER2_PATHOS,
   TIER4_PATHOS,
+  TIER6_PATHOS,
   PATHOS,
   PATHOS_NODES,
   getPathosForLevel,
@@ -90,22 +91,56 @@ describe('pathosData', () => {
     });
   });
 
-  describe('PATHOS (통합)', () => {
-    it('22개의 파토스가 통합되어 있다', () => {
-      expect(Object.keys(PATHOS).length).toBe(22);
+  describe('TIER6_PATHOS', () => {
+    it('6개의 6단계 파토스가 정의되어 있다', () => {
+      expect(Object.keys(TIER6_PATHOS).length).toBe(6);
     });
 
-    it('2단계와 4단계 파토스가 모두 포함', () => {
+    it('모든 6단계 파토스는 pyramidLevel 6', () => {
+      for (const pathos of Object.values(TIER6_PATHOS)) {
+        expect(pathos.pyramidLevel).toBe(6);
+      }
+    });
+
+    it('검과 총 타입으로 구분된다', () => {
+      const swordPathos = Object.values(TIER6_PATHOS).filter(p => p.type === 'sword');
+      const gunPathos = Object.values(TIER6_PATHOS).filter(p => p.type === 'gun');
+
+      expect(swordPathos.length).toBe(3);
+      expect(gunPathos.length).toBe(3);
+    });
+
+    it('trance 파토스', () => {
+      expect(TIER6_PATHOS.trance.name).toBe('무아지경');
+      expect(TIER6_PATHOS.trance.type).toBe('sword');
+      expect(TIER6_PATHOS.trance.nodeId).toBe('ultimate');
+    });
+
+    it('barricade 파토스', () => {
+      expect(TIER6_PATHOS.barricade.name).toBe('탄막');
+      expect(TIER6_PATHOS.barricade.type).toBe('gun');
+      expect(TIER6_PATHOS.barricade.cooldown).toBe(5);
+    });
+  });
+
+  describe('PATHOS (통합)', () => {
+    it('28개의 파토스가 통합되어 있다', () => {
+      expect(Object.keys(PATHOS).length).toBe(28);
+    });
+
+    it('2단계, 4단계, 6단계 파토스가 모두 포함', () => {
       expect(PATHOS.cross).toBeDefined();
       expect(PATHOS.armorPiercing).toBeDefined();
       expect(PATHOS.wayOfSword).toBeDefined();
       expect(PATHOS.wanted).toBeDefined();
+      expect(PATHOS.trance).toBeDefined();
+      expect(PATHOS.barricade).toBeDefined();
     });
   });
 
   describe('PATHOS_NODES', () => {
-    it('11개의 노드가 정의되어 있다', () => {
-      expect(Object.keys(PATHOS_NODES).length).toBe(11);
+    it('14개의 노드가 정의되어 있다', () => {
+      expect(Object.keys(PATHOS_NODES).length).toBe(14);
     });
 
     it('각 노드에 필수 속성이 있다', () => {
@@ -127,6 +162,11 @@ describe('pathosData', () => {
     it('5개의 4단계 노드가 있다', () => {
       const tier4Nodes = Object.values(PATHOS_NODES).filter(n => n.tier === 4);
       expect(tier4Nodes.length).toBe(5);
+    });
+
+    it('3개의 6단계 노드가 있다', () => {
+      const tier6Nodes = Object.values(PATHOS_NODES).filter(n => n.tier === 6);
+      expect(tier6Nodes.length).toBe(3);
     });
 
     it('pierce 노드', () => {
@@ -154,27 +194,32 @@ describe('pathosData', () => {
       expect(result.every(p => p.pyramidLevel <= 2)).toBe(true);
     });
 
-    it('레벨 4이면 모든 파토스 반환', () => {
+    it('레벨 4이면 2단계와 4단계 파토스 반환', () => {
       const result = getPathosForLevel(4);
       expect(result.length).toBe(22);
     });
 
+    it('레벨 6이면 모든 파토스 반환', () => {
+      const result = getPathosForLevel(6);
+      expect(result.length).toBe(28);
+    });
+
     it('타입 필터링 - sword', () => {
-      const result = getPathosForLevel(4, 'sword');
+      const result = getPathosForLevel(6, 'sword');
       expect(result.every(p => p.type === 'sword')).toBe(true);
-      expect(result.length).toBe(11);
+      expect(result.length).toBe(14);
     });
 
     it('타입 필터링 - gun', () => {
-      const result = getPathosForLevel(4, 'gun');
+      const result = getPathosForLevel(6, 'gun');
       expect(result.every(p => p.type === 'gun')).toBe(true);
-      expect(result.length).toBe(11);
+      expect(result.length).toBe(14);
     });
 
     it('레벨이 높아도 더 많이 반환되지 않음', () => {
-      const level4 = getPathosForLevel(4);
+      const level6 = getPathosForLevel(6);
       const level10 = getPathosForLevel(10);
-      expect(level4.length).toBe(level10.length);
+      expect(level6.length).toBe(level10.length);
     });
   });
 
@@ -221,6 +266,12 @@ describe('pathosData', () => {
       const result = getPathosNodesForTier(4);
       expect(result.length).toBe(5);
       expect(result.every(n => n.tier === 4)).toBe(true);
+    });
+
+    it('6단계 노드 3개 반환', () => {
+      const result = getPathosNodesForTier(6);
+      expect(result.length).toBe(3);
+      expect(result.every(n => n.tier === 6)).toBe(true);
     });
 
     it('존재하지 않는 단계는 빈 배열', () => {
@@ -272,6 +323,26 @@ describe('pathosData', () => {
     it('chainBonus 효과', () => {
       expect(PATHOS.swordDance.effect.action).toBe('chainBonus');
       expect(PATHOS.swordDance.effect.percent).toBe(50);
+    });
+
+    it('noFineseCost 효과 (6단계)', () => {
+      expect(PATHOS.trance.effect.action).toBe('noFineseCost');
+      expect(PATHOS.trance.effect.percent).toBe(50);
+    });
+
+    it('noAmmoCost 효과 (6단계)', () => {
+      expect(PATHOS.barricade.effect.action).toBe('noAmmoCost');
+      expect(PATHOS.barricade.effect.duration).toBe('turn');
+    });
+
+    it('guaranteeCross 효과 (6단계)', () => {
+      expect(PATHOS.swordKing.effect.action).toBe('guaranteeCross');
+      expect(PATHOS.swordKing.effect.value).toBe(2);
+    });
+
+    it('guaranteeCrit 효과 (6단계)', () => {
+      expect(PATHOS.sniperKing.effect.action).toBe('guaranteeCrit');
+      expect(PATHOS.sniperKing.effect.value).toBe(2);
     });
   });
 });

@@ -282,6 +282,77 @@ export const TIER4_PATHOS: Record<string, Pathos> = {
 };
 
 // ========================================
+// 6단계 - 상위 파토스 선택지
+// ========================================
+export const TIER6_PATHOS: Record<string, Pathos> = {
+  // 극한 노드
+  trance: {
+    id: 'trance',
+    name: '무아지경',
+    type: 'sword',
+    description: '이번 턴 기교 소모 없음, 모든 검술 특성 효과 +50%.',
+    effect: { action: 'noFineseCost', percent: 50, duration: 'turn' },
+    cooldown: 5,
+    pyramidLevel: 6,
+    nodeId: 'ultimate',
+  },
+  barricade: {
+    id: 'barricade',
+    name: '탄막',
+    type: 'gun',
+    description: '이번 턴 탄환 소모 없음 (룰렛은 정상 작동).',
+    effect: { action: 'noAmmoCost', duration: 'turn' },
+    cooldown: 5,
+    pyramidLevel: 6,
+    nodeId: 'ultimate',
+  },
+
+  // 초월 노드
+  swordKing: {
+    id: 'swordKing',
+    name: '검왕',
+    type: 'sword',
+    description: '다음 2회 검격이 모두 교차 판정.',
+    effect: { action: 'guaranteeCross', value: 2, duration: 'stacks' },
+    cooldown: 4,
+    pyramidLevel: 6,
+    nodeId: 'transcend',
+  },
+  sniperKing: {
+    id: 'sniperKing',
+    name: '저격왕',
+    type: 'gun',
+    description: '다음 2회 총격이 모두 치명타.',
+    effect: { action: 'guaranteeCrit', value: 2, duration: 'stacks' },
+    cooldown: 4,
+    pyramidLevel: 6,
+    nodeId: 'transcend',
+  },
+
+  // 융합 노드
+  swordAura: {
+    id: 'swordAura',
+    name: '검기탄',
+    type: 'sword',
+    description: '다음 검격이 사거리 무한 + 회피 무시.',
+    effect: { action: 'rangedSword', duration: 'next' },
+    cooldown: 5,
+    pyramidLevel: 6,
+    nodeId: 'fusion',
+  },
+  bulletBlade: {
+    id: 'bulletBlade',
+    name: '탄검',
+    type: 'gun',
+    description: '다음 총격이 방어력 100% 관통 + 연계 트리거.',
+    effect: { action: 'piercingChain', duration: 'next' },
+    cooldown: 5,
+    pyramidLevel: 6,
+    nodeId: 'fusion',
+  },
+};
+
+// ========================================
 // 파토스 노드 정의
 // ========================================
 export const PATHOS_NODES: Record<string, PathosNode> = {
@@ -365,12 +436,36 @@ export const PATHOS_NODES: Record<string, PathosNode> = {
     choices: ['creativity', 'logicGun'],
     description: '창조 강화',
   },
+
+  // 6단계 노드
+  ultimate: {
+    id: 'ultimate',
+    name: '극한',
+    tier: 6,
+    choices: ['trance', 'barricade'],
+    description: '자원 소모 없는 공격',
+  },
+  transcend: {
+    id: 'transcend',
+    name: '초월',
+    tier: 6,
+    choices: ['swordKing', 'sniperKing'],
+    description: '확정 교차/치명타',
+  },
+  fusion: {
+    id: 'fusion',
+    name: '융합',
+    tier: 6,
+    choices: ['swordAura', 'bulletBlade'],
+    description: '검/총 크로스오버',
+  },
 };
 
 // 전체 파토스 (모든 티어 통합)
 export const PATHOS: Record<string, Pathos> = {
   ...TIER2_PATHOS,
   ...TIER4_PATHOS,
+  ...TIER6_PATHOS,
 };
 
 // 피라미드 레벨별 해금 가능 파토스 조회
