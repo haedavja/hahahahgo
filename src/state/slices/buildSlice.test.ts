@@ -224,4 +224,124 @@ describe('buildSlice', () => {
       expect(growth.traits).toEqual([]);
     });
   });
+
+  describe('specializeCard 상극 처리', () => {
+    it('여유를 추가하면 기존 무리가 제거된다', () => {
+      store.getState().specializeCard('strike', ['strain']);
+      expect(store.getState().getCardGrowth('strike').traits).toContain('strain');
+
+      store.getState().specializeCard('strike', ['leisure']);
+      const traits = store.getState().getCardGrowth('strike').traits;
+      expect(traits).toContain('leisure');
+      expect(traits).not.toContain('strain');
+    });
+
+    it('무리를 추가하면 기존 여유가 제거된다', () => {
+      store.getState().specializeCard('strike', ['leisure']);
+      expect(store.getState().getCardGrowth('strike').traits).toContain('leisure');
+
+      store.getState().specializeCard('strike', ['strain']);
+      const traits = store.getState().getCardGrowth('strike').traits;
+      expect(traits).toContain('strain');
+      expect(traits).not.toContain('leisure');
+    });
+
+    it('중복 특성은 추가되지 않는다', () => {
+      store.getState().specializeCard('strike', ['swift']);
+      store.getState().specializeCard('strike', ['swift', 'strongbone']);
+      const traits = store.getState().getCardGrowth('strike').traits;
+      expect(traits.filter(t => t === 'swift').length).toBe(1);
+      expect(traits).toContain('strongbone');
+    });
+
+    it('빈 특성 배열은 무시된다', () => {
+      store.getState().specializeCard('strike', []);
+      expect(store.getState().cardGrowth).toEqual({});
+    });
+
+    it('null cardId는 무시된다', () => {
+      store.getState().specializeCard(null as any, ['swift']);
+      expect(store.getState().cardGrowth).toEqual({});
+    });
+
+    it('전설 등급 카드는 특화할 수 없다', () => {
+      for (let i = 0; i < 5; i++) {
+        store.getState().enhanceCard('strike');
+      }
+      const beforeTraits = store.getState().getCardGrowth('strike').traits;
+      store.getState().specializeCard('strike', ['swift']);
+      expect(store.getState().getCardGrowth('strike').traits).toEqual(beforeTraits);
+    });
+  });
+
+  describe('enhanceCard 엣지 케이스', () => {
+    it('null cardId는 무시된다', () => {
+      store.getState().enhanceCard(null as any);
+      expect(store.getState().cardGrowth).toEqual({});
+    });
+  });
+
+  describe('upgradeCardRarity 엣지 케이스', () => {
+    it('null cardId는 무시된다', () => {
+      store.getState().upgradeCardRarity(null as any);
+      expect(store.getState().cardUpgrades).toEqual({});
+    });
+  });
+
+  describe('addStoredTrait', () => {
+    it('특성을 저장한다', () => {
+      store.setState({ ...store.getState(), storedTraits: [] });
+      store.getState().addStoredTrait('swift');
+      expect(store.getState().storedTraits).toContain('swift');
+    });
+
+    it('중복 특성은 추가되지 않는다', () => {
+      store.setState({ ...store.getState(), storedTraits: [] });
+      store.getState().addStoredTrait('swift');
+      store.getState().addStoredTrait('swift');
+      expect(store.getState().storedTraits?.filter(t => t === 'swift').length).toBe(1);
+    });
+
+    it('null traitId는 무시된다', () => {
+      store.setState({ ...store.getState(), storedTraits: [] });
+      store.getState().addStoredTrait(null as any);
+      expect(store.getState().storedTraits).toEqual([]);
+    });
+  });
+
+  describe('removeStoredTrait', () => {
+    it('저장된 특성을 제거한다', () => {
+      store.setState({ ...store.getState(), storedTraits: ['swift', 'strongbone'] });
+      store.getState().removeStoredTrait('swift');
+      expect(store.getState().storedTraits).not.toContain('swift');
+      expect(store.getState().storedTraits).toContain('strongbone');
+    });
+
+    it('null traitId는 무시된다', () => {
+      store.setState({ ...store.getState(), storedTraits: ['swift'] });
+      store.getState().removeStoredTrait(null as any);
+      expect(store.getState().storedTraits).toContain('swift');
+    });
+  });
+
+  describe('useStoredTrait', () => {
+    it('저장된 특성을 사용하고 제거한다', () => {
+      store.setState({ ...store.getState(), storedTraits: ['swift', 'strongbone'] });
+      store.getState().useStoredTrait('swift');
+      expect(store.getState().storedTraits).not.toContain('swift');
+      expect(store.getState().storedTraits).toContain('strongbone');
+    });
+
+    it('저장되지 않은 특성은 무시된다', () => {
+      store.setState({ ...store.getState(), storedTraits: ['swift'] });
+      store.getState().useStoredTrait('nonexistent');
+      expect(store.getState().storedTraits).toContain('swift');
+    });
+
+    it('null traitId는 무시된다', () => {
+      store.setState({ ...store.getState(), storedTraits: ['swift'] });
+      store.getState().useStoredTrait(null as any);
+      expect(store.getState().storedTraits).toContain('swift');
+    });
+  });
 });

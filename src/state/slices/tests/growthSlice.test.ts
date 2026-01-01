@@ -4,8 +4,10 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { create } from 'zustand';
 import {
   initialGrowthState,
+  createGrowthActions,
   getAvailableBaseEthos,
   getAvailableBasePathos,
   getAvailableEthosNodes,
@@ -17,6 +19,7 @@ import {
   getUnlockedEthos,
   getUnlockedPathos,
   type GrowthState,
+  type GrowthActionsSlice,
 } from '../growthSlice';
 
 // 데이터 모킹
@@ -405,6 +408,555 @@ describe('growthSlice', () => {
 
       expect(state.pendingNodeSelection?.nodeId).toBe('ethos_node_1');
       expect(state.pendingNodeSelection?.type).toBe('ethos');
+    });
+  });
+
+  // ========================================
+  // 액션 테스트
+  // ========================================
+
+  describe('createGrowthActions', () => {
+    // 테스트용 스토어 타입
+    type TestStore = {
+      growth: GrowthState | null;
+      playerTraits: string[];
+    } & GrowthActionsSlice;
+
+    // 테스트용 스토어 생성
+    const createTestStore = (initialState: Partial<TestStore> = {}) =>
+      create<TestStore>((set, get, api) => ({
+        growth: initialGrowthState,
+        playerTraits: [],
+        ...initialState,
+        ...createGrowthActions(set as never, get as never, api as never),
+      }));
+
+    describe('updatePyramidLevel', () => {
+      it('개성 수에 따라 피라미드 레벨을 업데이트한다', () => {
+        const store = createTestStore({ playerTraits: ['용맹함', '굳건함'] });
+
+        store.getState().updatePyramidLevel();
+
+        expect(store.getState().growth?.pyramidLevel).toBe(2);
+      });
+
+      it('개성에 해당하는 에토스를 자동 해금한다', () => {
+        const store = createTestStore({ playerTraits: ['용맹함'] });
+
+        store.getState().updatePyramidLevel();
+
+        expect(store.getState().growth?.unlockedEthos).toContain('bravery');
+      });
+
+      it('레벨업 시 스킬포인트를 획득한다', () => {
+        const store = createTestStore({ playerTraits: ['용맹함', '굳건함', '냉철함'] });
+
+        store.getState().updatePyramidLevel();
+
+        expect(store.getState().growth?.skillPoints).toBe(3);
+      });
+
+      it('레벨이 낮아지지 않는다', () => {
+        const store = createTestStore({
+          growth: { ...initialGrowthState, pyramidLevel: 5, skillPoints: 5 },
+          playerTraits: ['용맹함'],
+        });
+
+        store.getState().updatePyramidLevel();
+
+        expect(store.getState().growth?.pyramidLevel).toBe(5);
+      });
+    });
+
+    describe('addSkillPoints', () => {
+      it('스킬포인트를 추가한다', () => {
+        const store = createTestStore();
+
+        store.getState().addSkillPoints(3);
+
+        expect(store.getState().growth?.skillPoints).toBe(3);
+      });
+
+      it('누적으로 스킬포인트가 추가된다', () => {
+        const store = createTestStore({
+          growth: { ...initialGrowthState, skillPoints: 2 },
+        });
+
+        store.getState().addSkillPoints(5);
+
+        expect(store.getState().growth?.skillPoints).toBe(7);
+      });
+    });
+
+    describe('selectBaseEthos', () => {
+      it('기초 에토스를 해금한다', () => {
+        const store = createTestStore({
+          growth: { ...initialGrowthState, pyramidLevel: 1 },
+        });
+
+        store.getState().selectBaseEthos('bravery');
+
+        expect(store.getState().growth?.unlockedEthos).toContain('bravery');
+      });
+
+      it('피라미드 레벨이 1 미만이면 해금하지 않는다', () => {
+        const store = createTestStore({
+          growth: { ...initialGrowthState, pyramidLevel: 0 },
+        });
+
+        store.getState().selectBaseEthos('bravery');
+
+        expect(store.getState().growth?.unlockedEthos).not.toContain('bravery');
+      });
+
+      it('이미 해금된 에토스는 중복 추가하지 않는다', () => {
+        const store = createTestStore({
+          growth: { ...initialGrowthState, pyramidLevel: 1, unlockedEthos: ['bravery'] },
+        });
+
+        store.getState().selectBaseEthos('bravery');
+
+        expect(store.getState().growth?.unlockedEthos.filter(e => e === 'bravery').length).toBe(1);
+      });
+
+      it('존재하지 않는 에토스는 해금하지 않는다', () => {
+        const store = createTestStore({
+          growth: { ...initialGrowthState, pyramidLevel: 1 },
+        });
+
+        store.getState().selectBaseEthos('invalid_ethos');
+
+        expect(store.getState().growth?.unlockedEthos).toEqual([]);
+      });
+    });
+
+    describe('selectBasePathos', () => {
+      it('기본 파토스를 해금한다', () => {
+        const store = createTestStore({
+          growth: { ...initialGrowthState, pyramidLevel: 2, skillPoints: 1 },
+        });
+
+        store.getState().selectBasePathos('quick_draw');
+
+        expect(store.getState().growth?.unlockedPathos).toContain('quick_draw');
+      });
+
+      it('스킬포인트를 소모한다', () => {
+        const store = createTestStore({
+          growth: { ...initialGrowthState, pyramidLevel: 2, skillPoints: 3 },
+        });
+
+        store.getState().selectBasePathos('quick_draw');
+
+        expect(store.getState().growth?.skillPoints).toBe(2);
+      });
+
+      it('스킬포인트가 없으면 해금하지 않는다', () => {
+        const store = createTestStore({
+          growth: { ...initialGrowthState, pyramidLevel: 2, skillPoints: 0 },
+        });
+
+        store.getState().selectBasePathos('quick_draw');
+
+        expect(store.getState().growth?.unlockedPathos).not.toContain('quick_draw');
+      });
+
+      it('피라미드 레벨이 2 미만이면 해금하지 않는다', () => {
+        const store = createTestStore({
+          growth: { ...initialGrowthState, pyramidLevel: 1, skillPoints: 1 },
+        });
+
+        store.getState().selectBasePathos('quick_draw');
+
+        expect(store.getState().growth?.unlockedPathos).not.toContain('quick_draw');
+      });
+    });
+
+    describe('unlockNode', () => {
+      it('노드를 해금하고 선택 대기 상태로 전환한다', () => {
+        const store = createTestStore({
+          growth: { ...initialGrowthState, pyramidLevel: 3, skillPoints: 1 },
+        });
+
+        store.getState().unlockNode('ethos_node_1', 'ethos');
+
+        expect(store.getState().growth?.unlockedNodes).toContain('ethos_node_1');
+        expect(store.getState().growth?.pendingNodeSelection).toEqual({
+          nodeId: 'ethos_node_1',
+          type: 'ethos',
+        });
+      });
+
+      it('스킬포인트를 소모한다', () => {
+        const store = createTestStore({
+          growth: { ...initialGrowthState, pyramidLevel: 3, skillPoints: 2 },
+        });
+
+        store.getState().unlockNode('ethos_node_1', 'ethos');
+
+        expect(store.getState().growth?.skillPoints).toBe(1);
+      });
+
+      it('피라미드 레벨이 노드 티어보다 낮으면 해금하지 않는다', () => {
+        const store = createTestStore({
+          growth: { ...initialGrowthState, pyramidLevel: 2, skillPoints: 1 },
+        });
+
+        store.getState().unlockNode('ethos_node_1', 'ethos'); // tier: 3
+
+        expect(store.getState().growth?.unlockedNodes).not.toContain('ethos_node_1');
+      });
+
+      it('스킬포인트가 없으면 해금하지 않는다', () => {
+        const store = createTestStore({
+          growth: { ...initialGrowthState, pyramidLevel: 3, skillPoints: 0 },
+        });
+
+        store.getState().unlockNode('ethos_node_1', 'ethos');
+
+        expect(store.getState().growth?.unlockedNodes).toEqual([]);
+      });
+
+      it('파토스 노드도 해금할 수 있다', () => {
+        const store = createTestStore({
+          growth: { ...initialGrowthState, pyramidLevel: 4, skillPoints: 1 },
+        });
+
+        store.getState().unlockNode('pathos_node_1', 'pathos');
+
+        expect(store.getState().growth?.unlockedNodes).toContain('pathos_node_1');
+        expect(store.getState().growth?.pendingNodeSelection?.type).toBe('pathos');
+      });
+    });
+
+    describe('selectNodeChoice', () => {
+      it('대기 중인 에토스 노드의 선택지를 해금한다', () => {
+        const store = createTestStore({
+          growth: {
+            ...initialGrowthState,
+            pyramidLevel: 3,
+            unlockedNodes: ['ethos_node_1'],
+            pendingNodeSelection: { nodeId: 'ethos_node_1', type: 'ethos' },
+          },
+        });
+
+        store.getState().selectNodeChoice('flame');
+
+        expect(store.getState().growth?.unlockedEthos).toContain('flame');
+        expect(store.getState().growth?.pendingNodeSelection).toBeNull();
+      });
+
+      it('대기 중인 파토스 노드의 선택지를 해금한다', () => {
+        const store = createTestStore({
+          growth: {
+            ...initialGrowthState,
+            pyramidLevel: 4,
+            unlockedNodes: ['pathos_node_1'],
+            pendingNodeSelection: { nodeId: 'pathos_node_1', type: 'pathos' },
+          },
+        });
+
+        store.getState().selectNodeChoice('iron_bullet');
+
+        expect(store.getState().growth?.unlockedPathos).toContain('iron_bullet');
+        expect(store.getState().growth?.pendingNodeSelection).toBeNull();
+      });
+
+      it('대기 중인 노드가 없으면 아무것도 하지 않는다', () => {
+        const store = createTestStore({
+          growth: { ...initialGrowthState, pendingNodeSelection: null },
+        });
+
+        store.getState().selectNodeChoice('flame');
+
+        expect(store.getState().growth?.unlockedEthos).toEqual([]);
+      });
+
+      it('노드에 속하지 않는 선택지는 무시한다', () => {
+        const store = createTestStore({
+          growth: {
+            ...initialGrowthState,
+            pendingNodeSelection: { nodeId: 'ethos_node_1', type: 'ethos' },
+          },
+        });
+
+        store.getState().selectNodeChoice('shadow'); // ethos_node_2의 선택지
+
+        expect(store.getState().growth?.unlockedEthos).not.toContain('shadow');
+      });
+    });
+
+    describe('selectIdentity', () => {
+      it('자아를 선택한다', () => {
+        const store = createTestStore({
+          growth: { ...initialGrowthState, pyramidLevel: 6 },
+        });
+
+        store.getState().selectIdentity('swordsman');
+
+        expect(store.getState().growth?.identities).toContain('swordsman');
+      });
+
+      it('피라미드 레벨이 6 미만이면 선택하지 않는다', () => {
+        const store = createTestStore({
+          growth: { ...initialGrowthState, pyramidLevel: 5 },
+        });
+
+        store.getState().selectIdentity('swordsman');
+
+        expect(store.getState().growth?.identities).not.toContain('swordsman');
+      });
+
+      it('이미 선택한 자아는 중복 추가하지 않는다', () => {
+        const store = createTestStore({
+          growth: { ...initialGrowthState, pyramidLevel: 6, identities: ['swordsman'] },
+        });
+
+        store.getState().selectIdentity('swordsman');
+
+        expect(store.getState().growth?.identities.filter(i => i === 'swordsman').length).toBe(1);
+      });
+
+      it('하이브리드 자아를 추가할 수 있다', () => {
+        const store = createTestStore({
+          growth: { ...initialGrowthState, pyramidLevel: 6, identities: ['swordsman'] },
+        });
+
+        store.getState().selectIdentity('gunslinger');
+
+        expect(store.getState().growth?.identities).toContain('swordsman');
+        expect(store.getState().growth?.identities).toContain('gunslinger');
+      });
+    });
+
+    describe('unlockLogos', () => {
+      it('공용 로고스 레벨을 증가시킨다', () => {
+        const store = createTestStore({
+          growth: {
+            ...initialGrowthState,
+            pyramidLevel: 6,
+            skillPoints: 1,
+            identities: ['swordsman'],
+          },
+        });
+
+        store.getState().unlockLogos('common');
+
+        expect(store.getState().growth?.logosLevels.common).toBe(1);
+        expect(store.getState().growth?.skillPoints).toBe(0);
+      });
+
+      it('스킬포인트가 없으면 해금하지 않는다', () => {
+        const store = createTestStore({
+          growth: {
+            ...initialGrowthState,
+            pyramidLevel: 6,
+            skillPoints: 0,
+            identities: ['swordsman'],
+          },
+        });
+
+        store.getState().unlockLogos('common');
+
+        expect(store.getState().growth?.logosLevels.common).toBe(0);
+      });
+
+      it('자아가 없으면 공용 로고스를 해금하지 않는다', () => {
+        const store = createTestStore({
+          growth: { ...initialGrowthState, pyramidLevel: 6, skillPoints: 1 },
+        });
+
+        store.getState().unlockLogos('common');
+
+        expect(store.getState().growth?.logosLevels.common).toBe(0);
+      });
+
+      it('검잡이 자아가 없으면 battleWaltz를 해금하지 않는다', () => {
+        const store = createTestStore({
+          growth: {
+            ...initialGrowthState,
+            pyramidLevel: 6,
+            skillPoints: 1,
+            identities: ['gunslinger'],
+          },
+        });
+
+        store.getState().unlockLogos('battleWaltz');
+
+        expect(store.getState().growth?.logosLevels.battleWaltz).toBe(0);
+      });
+
+      it('총잡이 자아가 없으면 gunkata를 해금하지 않는다', () => {
+        const store = createTestStore({
+          growth: {
+            ...initialGrowthState,
+            pyramidLevel: 6,
+            skillPoints: 1,
+            identities: ['swordsman'],
+          },
+        });
+
+        store.getState().unlockLogos('gunkata');
+
+        expect(store.getState().growth?.logosLevels.gunkata).toBe(0);
+      });
+
+      it('최대 레벨(3)을 초과하지 않는다', () => {
+        const store = createTestStore({
+          growth: {
+            ...initialGrowthState,
+            pyramidLevel: 8,
+            skillPoints: 5,
+            identities: ['swordsman'],
+            logosLevels: { common: 3, gunkata: 0, battleWaltz: 0 },
+          },
+        });
+
+        store.getState().unlockLogos('common');
+
+        expect(store.getState().growth?.logosLevels.common).toBe(3);
+        expect(store.getState().growth?.skillPoints).toBe(5); // 소모되지 않음
+      });
+    });
+
+    describe('equipPathos', () => {
+      it('파토스를 장착한다', () => {
+        const store = createTestStore({
+          growth: { ...initialGrowthState, unlockedPathos: ['quick_draw', 'reload'] },
+        });
+
+        store.getState().equipPathos(['quick_draw', 'reload']);
+
+        expect(store.getState().growth?.equippedPathos).toContain('quick_draw');
+        expect(store.getState().growth?.equippedPathos).toContain('reload');
+      });
+
+      it('해금되지 않은 파토스는 장착하지 않는다', () => {
+        const store = createTestStore({
+          growth: { ...initialGrowthState, unlockedPathos: ['quick_draw'] },
+        });
+
+        store.getState().equipPathos(['quick_draw', 'invalid_pathos']);
+
+        expect(store.getState().growth?.equippedPathos).toContain('quick_draw');
+        expect(store.getState().growth?.equippedPathos).not.toContain('invalid_pathos');
+      });
+
+      it('최대 3개까지만 장착한다', () => {
+        const store = createTestStore({
+          growth: { ...initialGrowthState, unlockedPathos: ['a', 'b', 'c', 'd'] },
+        });
+
+        store.getState().equipPathos(['a', 'b', 'c', 'd']);
+
+        expect(store.getState().growth?.equippedPathos.length).toBeLessThanOrEqual(3);
+      });
+    });
+
+    describe('usePathos', () => {
+      it('장착된 파토스를 사용할 수 있다', () => {
+        const store = createTestStore({
+          growth: {
+            ...initialGrowthState,
+            unlockedPathos: ['quick_draw'],
+            equippedPathos: ['quick_draw'],
+          },
+        });
+
+        // usePathos는 현재 사용 가능 여부만 체크
+        store.getState().usePathos('quick_draw');
+
+        // 상태 변경 없이 통과해야 함 (쿨다운 관리는 전투 시스템에서)
+        expect(store.getState().growth?.equippedPathos).toContain('quick_draw');
+      });
+
+      it('장착되지 않은 파토스는 무시한다', () => {
+        const store = createTestStore({
+          growth: {
+            ...initialGrowthState,
+            unlockedPathos: ['quick_draw'],
+            equippedPathos: [],
+          },
+        });
+
+        // 아무 동작도 하지 않음
+        store.getState().usePathos('quick_draw');
+
+        expect(store.getState().growth).toBeDefined();
+      });
+    });
+
+    describe('resetGrowth', () => {
+      it('성장 상태를 초기화한다', () => {
+        const store = createTestStore({
+          growth: {
+            ...initialGrowthState,
+            pyramidLevel: 5,
+            skillPoints: 10,
+            unlockedEthos: ['bravery', 'steadfast'],
+            unlockedPathos: ['quick_draw'],
+            identities: ['swordsman'],
+          },
+        });
+
+        store.getState().resetGrowth();
+
+        expect(store.getState().growth).toEqual(initialGrowthState);
+      });
+    });
+
+    describe('selectEthos (기존 호환성)', () => {
+      it('기초 에토스가 아니면 상태를 유지한다', () => {
+        const store = createTestStore({
+          growth: { ...initialGrowthState, pyramidLevel: 1 },
+        });
+
+        store.getState().selectEthos('invalid_ethos');
+
+        // 존재하지 않는 에토스는 무시
+        expect(store.getState().growth?.unlockedEthos).toEqual([]);
+      });
+
+      it('노드 선택 대기 상태에서 선택지가 아닌 에토스는 무시한다', () => {
+        const store = createTestStore({
+          growth: {
+            ...initialGrowthState,
+            pyramidLevel: 3,
+            pendingNodeSelection: { nodeId: 'ethos_node_1', type: 'ethos' },
+          },
+        });
+
+        store.getState().selectEthos('shadow'); // 다른 노드의 선택지
+
+        expect(store.getState().growth?.unlockedEthos).not.toContain('shadow');
+      });
+    });
+
+    describe('selectPathos (기존 호환성)', () => {
+      it('기본 파토스가 아니면 상태를 유지한다', () => {
+        const store = createTestStore({
+          growth: { ...initialGrowthState, pyramidLevel: 2, skillPoints: 1 },
+        });
+
+        store.getState().selectPathos('invalid_pathos');
+
+        // 존재하지 않는 파토스는 무시
+        expect(store.getState().growth?.unlockedPathos).toEqual([]);
+      });
+
+      it('노드 선택 대기 상태에서 선택지가 아닌 파토스는 무시한다', () => {
+        const store = createTestStore({
+          growth: {
+            ...initialGrowthState,
+            pyramidLevel: 4,
+            pendingNodeSelection: { nodeId: 'pathos_node_1', type: 'pathos' },
+          },
+        });
+
+        store.getState().selectPathos('other_pathos'); // 다른 노드의 선택지
+
+        expect(store.getState().growth?.unlockedPathos).not.toContain('other_pathos');
+      });
     });
   });
 });
