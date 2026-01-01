@@ -156,7 +156,7 @@ export const PyramidConnections = memo(function PyramidConnections({
         width: containerSize.width || '100%',
         height: containerSize.height || '100%',
         pointerEvents: 'none',
-        zIndex: 1,
+        zIndex: 0,
         overflow: 'visible',
       }}
     >
