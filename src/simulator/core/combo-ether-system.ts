@@ -268,21 +268,35 @@ export function detectPokerCombo(cards: (GameCard | ComboCard)[]): ComboResult {
  * 카드 ID에서 카테고리 추론
  */
 function inferCategory(card: GameCard | ComboCard): string {
+  // 1. 명시적인 cardCategory가 있으면 사용
+  if ('cardCategory' in card && card.cardCategory) {
+    return card.cardCategory;
+  }
+
+  // 2. category 필드 확인
+  if (card.category) {
+    return card.category;
+  }
+
+  // 3. ID 기반 추론 (폴백)
   const id = card.id.toLowerCase();
   // 펜싱 카드 판별
   if (id.includes('thrust') || id.includes('slash') || id.includes('parry') ||
       id.includes('riposte') || id.includes('fleche') || id.includes('lunge') ||
-      id.includes('quarte') || id.includes('sixte') || id.includes('fencing')) {
+      id.includes('quarte') || id.includes('sixte') || id.includes('fencing') ||
+      id.includes('feint') || id.includes('balestra') || id.includes('appel')) {
     return 'fencing';
   }
   // 총기 카드 판별
   if (id.includes('shoot') || id.includes('reload') || id.includes('bullet') ||
       id.includes('gun') || id.includes('revolver') || id.includes('roulette') ||
-      id.includes('snipe') || id.includes('spray')) {
+      id.includes('snipe') || id.includes('spray') || id.includes('quickdraw') ||
+      id.includes('chamber') || id.includes('cylinder')) {
     return 'gun';
   }
   // 특수 카드
-  if (id.includes('special') || id.includes('hologram') || id.includes('recall')) {
+  if (id.includes('special') || id.includes('hologram') || id.includes('recall') ||
+      id.includes('ether') || id.includes('burst')) {
     return 'special';
   }
   return 'general';

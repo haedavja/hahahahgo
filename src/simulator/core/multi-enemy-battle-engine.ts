@@ -93,6 +93,8 @@ export interface MultiEnemyBattleState {
   comboStats: Record<string, number>;
   /** 에테르 폭주 활성화 (이번 턴 피해량 2배) */
   etherOverdriveActive: boolean;
+  /** 개별 적에게 준 피해량 (적 인덱스 -> 피해량) */
+  damageDealtToEnemies: Record<number, number>;
 }
 
 /** 타겟팅 모드 */
@@ -298,6 +300,7 @@ export class MultiEnemyBattleEngine {
       totalEtherGained: 0,
       comboStats: {},
       etherOverdriveActive: false,
+      damageDealtToEnemies: {},
     };
 
     // 덱 셔플
@@ -992,6 +995,8 @@ export class MultiEnemyBattleEngine {
           enemy.hp -= actualDamage;
 
           state.playerDamageDealt += actualDamage;
+          // 개별 적 피해량 추적
+          state.damageDealtToEnemies[targetIdx] = (state.damageDealtToEnemies[targetIdx] || 0) + actualDamage;
 
           // 이변 효과: Mirror Dimension - 피해 반사
           if (this.config.enableAnomalies && actualDamage > 0) {
@@ -1354,7 +1359,7 @@ export class MultiEnemyBattleEngine {
     const enemyDetails = state.enemies.map((e, i) => ({
       name: e.name,
       finalHp: Math.max(0, e.hp),
-      damageDealt: 0, // TODO: 개별 적 피해량 추적
+      damageDealt: state.damageDealtToEnemies[i] || 0,
       damageReceived: e.maxHp - Math.max(0, e.hp),
     }));
 
