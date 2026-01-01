@@ -767,7 +767,8 @@ export class MultiEnemyBattleEngine {
   /**
    * 토큰 스택 수 가져오기
    */
-  private getTokenStacks(tokens: TokenState[], tokenId: string): number {
+  private getTokenStacks(tokens: TokenState[] | undefined, tokenId: string): number {
+    if (!tokens || !Array.isArray(tokens)) return 0;
     const token = tokens.find(t => t.id === tokenId);
     return token?.stacks || 0;
   }
