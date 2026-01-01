@@ -363,6 +363,7 @@ export interface GrowthSliceState {
   growth: {
     pyramidLevel: number;
     skillPoints: number;
+    traitCounts: Record<string, number>;
     unlockedEthos: string[];
     unlockedPathos: string[];
     unlockedNodes: string[];
