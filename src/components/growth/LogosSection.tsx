@@ -35,7 +35,7 @@ export const LogosSection = memo(function LogosSection({
         gap: SPACING.md,
         justifyContent: 'flex-start',
         alignItems: 'flex-start',
-        paddingLeft: '320px', // 공용 로고스가 자아 중앙에 오도록 배치
+        paddingLeft: '380px', // 공용 로고스가 자아 중앙에 오도록 배치
       }}>
         {/* 8단계 로고스 헤더 */}
         <div style={{
@@ -130,6 +130,7 @@ const LogosCard = memo(function LogosCard({
         background: locked ? 'rgba(71, 85, 105, 0.3)' : 'rgba(30, 41, 59, 0.5)',
         border: locked ? '1px dashed #6b7280' : '1px solid rgba(251, 191, 36, 0.3)',
         borderRadius: BORDER_RADIUS.lg,
+        opacity: locked ? 0 : 1, // 잠금 상태에서 노드 숨김 (연결선은 표시)
       }}
     >
       {/* 헤더 */}

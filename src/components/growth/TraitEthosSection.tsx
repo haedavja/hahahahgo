@@ -105,11 +105,15 @@ const EthosCard = memo(function EthosCard({
       position: 'relative',
       zIndex: 10,
       width: '200px',
+      minWidth: '200px',
+      maxWidth: '200px',
       flex: '0 0 200px',
       padding: SPACING.md,
+      boxSizing: 'border-box',
       background: isUnlocked ? '#1a2f1f' : '#1e293b', // 불투명 배경
       border: isUnlocked ? `1px solid ${colors.border}` : '1px solid #475569',
       borderRadius: BORDER_RADIUS.lg,
+      transition: 'background 0.2s, border-color 0.2s', // 부드러운 전환
     }}>
       {/* 에토스 이름 */}
       <div style={{
