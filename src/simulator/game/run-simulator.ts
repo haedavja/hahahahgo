@@ -462,6 +462,16 @@ export class RunSimulator {
         growthLevel: player.growth?.level || 0,
         eventsCompleted: result.eventsCompleted,
       });
+
+      // 기록 통계 (연승, 빠른 클리어, 덱 구성) 기록
+      this.statsCollector.recordRunComplete({
+        success: result.success,
+        battlesWon: result.battlesWon,
+        deckSize: player.deck.length,
+        strategy: config.strategy,
+        gold: result.totalGoldEarned,
+        deck: player.deck,
+      });
     }
 
     return result;
@@ -750,6 +760,27 @@ export class RunSimulator {
           // 전투 승리 - 피해 적용 후 다음 적과 전투
           player.hp = Math.max(1, battleResult.playerFinalHp);
           totalBattleResult = battleResult;
+
+          // 무피해 전투 승리 기록
+          if (this.statsCollector && battleResult.enemyDamageDealt === 0) {
+            this.statsCollector.recordFlawlessVictory(isBoss);
+          }
+
+          // 최고 피해 기록 (턴당 최대 피해 근사)
+          if (this.statsCollector && battleResult.playerDamageDealt > 0) {
+            const avgDamagePerTurn = battleResult.turns > 0
+              ? battleResult.playerDamageDealt / battleResult.turns
+              : battleResult.playerDamageDealt;
+            // 턴당 평균 피해의 2배를 최대 턴 피해로 근사
+            const estimatedMaxTurnDamage = Math.floor(avgDamagePerTurn * 2);
+            if (estimatedMaxTurnDamage > 0) {
+              this.statsCollector.recordTurnDamage(
+                estimatedMaxTurnDamage,
+                'combo', // 여러 카드 조합
+                enemy.name || 'unknown'
+              );
+            }
+          }
         } else {
           // 전투 패배
           wonAllBattles = false;
@@ -1489,13 +1520,29 @@ export class RunSimulator {
 
     if (cardChoices.length === 0) return null;
 
+    // 픽률 통계: 카드 제시 기록
+    if (this.statsCollector) {
+      this.statsCollector.recordCardOffered(cardChoices);
+    }
+
     // 스킵 여부 결정
     if (this.shouldSkipCardReward(cardChoices, player, strategy)) {
+      // 픽률 통계: 스킵 기록
+      if (this.statsCollector) {
+        this.statsCollector.recordCardPickSkipped(cardChoices);
+      }
       return null;
     }
 
     // 전략에 따라 최적의 카드 선택
-    return this.selectBestCard(cardChoices, strategy);
+    const selectedCard = this.selectBestCard(cardChoices, strategy);
+
+    // 픽률 통계: 선택 기록
+    if (this.statsCollector) {
+      this.statsCollector.recordCardPicked(selectedCard, cardChoices);
+    }
+
+    return selectedCard;
   }
 
   /**
