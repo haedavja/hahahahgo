@@ -98,6 +98,15 @@ import {
   type EtherGainResult,
   type BurstResult,
 } from './combo-ether-system';
+import {
+  createEnemyAI,
+  getPatternForEnemy,
+  getPatternModifierByHp,
+  selectBossCards,
+  getBossPhase,
+  checkBossSpecialActions,
+  BOSS_PATTERNS,
+} from '../ai/enemy-patterns';
 
 const log = getLogger('TimelineBattleEngine');
 
@@ -1039,8 +1048,6 @@ export class TimelineBattleEngine {
 
     // 보스 페이즈 시스템 사용 (보스인 경우)
     if (state.enemy.isBoss && state.enemy.id) {
-      const { selectBossCards, getBossCardsPerTurn, checkBossSpecialActions, getBossPhase, BOSS_PATTERNS } = require('../ai/enemy-patterns');
-
       // 보스 패턴이 정의되어 있는 경우
       if (BOSS_PATTERNS[state.enemy.id]) {
         const hpRatio = state.enemy.hp / state.enemy.maxHp;
@@ -1103,8 +1110,6 @@ export class TimelineBattleEngine {
     const playerHpRatio = state.player.hp / state.player.maxHp;
 
     // EnemyAI 클래스 사용 (개선된 AI)
-    const { createEnemyAI, getPatternForEnemy, getPatternModifierByHp } = require('../ai/enemy-patterns');
-
     // 기본 패턴 결정
     let pattern = getPatternForEnemy(state.enemy.id || 'unknown');
 
