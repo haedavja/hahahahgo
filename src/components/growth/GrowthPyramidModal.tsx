@@ -19,6 +19,7 @@ import { ETHOS_NODES, BASE_ETHOS } from '../../data/growth/ethosData';
 import { PATHOS_NODES, MAX_EQUIPPED_PATHOS } from '../../data/growth/pathosData';
 import { initialGrowthState, getUnlockedEthos, getUnlockedPathos } from '../../state/slices/growthSlice';
 import { COLORS, SPACING, FONT_SIZE, BORDER_RADIUS } from '../../styles/theme';
+import { TRAIT_NAME_TO_ID, PERSONALITY_TRAITS } from '../../data/reflections';
 
 // 분리된 컴포넌트들
 import { LogosSection } from './LogosSection';
@@ -149,6 +150,39 @@ interface StatusSummaryProps {
   onEquipPathos: (ids: string[]) => void;
 }
 
+// 개성 보너스 계산 헬퍼 함수
+function calculateTraitBonuses(playerTraits: string[]): { label: string; value: number }[] {
+  const bonuses: Record<string, number> = {};
+
+  playerTraits.forEach(traitName => {
+    const traitId = TRAIT_NAME_TO_ID[traitName];
+    const trait = traitId ? PERSONALITY_TRAITS[traitId as keyof typeof PERSONALITY_TRAITS] : null;
+    if (trait?.statBonus) {
+      Object.entries(trait.statBonus).forEach(([stat, val]) => {
+        bonuses[stat] = (bonuses[stat] || 0) + (val as number);
+      });
+    }
+  });
+
+  // 한국어 레이블로 변환
+  const labelMap: Record<string, string> = {
+    playerStrength: '힘',
+    maxHp: '최대HP',
+    playerHp: '',  // maxHp와 중복이라 표시 안함
+    playerInsight: '통찰',
+    extraSubSpecialSlots: '보조슬롯',
+    playerMaxSpeedBonus: '속도',
+    playerEnergyBonus: '행동력',
+  };
+
+  return Object.entries(bonuses)
+    .filter(([stat]) => labelMap[stat] !== '')  // 빈 레이블은 제외
+    .map(([stat, value]) => ({
+      label: labelMap[stat] || stat,
+      value,
+    }));
+}
+
 const StatusSummary = memo(function StatusSummary({
   playerTraits,
   growth,
@@ -157,6 +191,7 @@ const StatusSummary = memo(function StatusSummary({
 }: StatusSummaryProps) {
   const unlockedEthos = getUnlockedEthos(growth);
   const unlockedPathos = getUnlockedPathos(growth);
+  const traitBonuses = calculateTraitBonuses(playerTraits);
 
   // 1단계 기본 에토스 제외 (용맹함, 굳건함, 냉철함, 철저함, 활력적, 열정적)
   const displayEthos = unlockedEthos.filter(ethos => ethos.pyramidLevel !== 1);
@@ -222,12 +257,33 @@ const StatusSummary = memo(function StatusSummary({
           )}
         </div>
 
-        {/* 중앙: 상태 정보 */}
+        {/* 중앙: 상태 정보 + 개성 보너스 */}
         <div style={{ flex: 1, textAlign: 'center' }}>
           <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap', justifyContent: 'center' }}>
             <span>개성: <strong style={{ color: '#fde68a' }}>{playerTraits.length}개</strong></span>
             <span>SP: <strong style={{ color: COLORS.primary }}>{growth.skillPoints}P</strong></span>
           </div>
+
+          {/* 개성 보너스 표시 */}
+          {traitBonuses.length > 0 && (
+            <div style={{
+              marginTop: SPACING.sm,
+              padding: `${SPACING.xs} ${SPACING.sm}`,
+              background: 'rgba(253, 230, 138, 0.1)',
+              border: '1px solid rgba(253, 230, 138, 0.3)',
+              borderRadius: BORDER_RADIUS.md,
+              display: 'inline-flex',
+              gap: SPACING.md,
+            }}>
+              <span style={{ color: '#fde68a', fontSize: FONT_SIZE.sm }}>보너스:</span>
+              {traitBonuses.map(({ label, value }) => (
+                <span key={label} style={{ color: '#fde68a', fontSize: FONT_SIZE.sm }}>
+                  {label} <strong>+{value}</strong>
+                </span>
+              ))}
+            </div>
+          )}
+
           {pendingSelection && (
             <div style={{
               marginTop: SPACING.sm,
