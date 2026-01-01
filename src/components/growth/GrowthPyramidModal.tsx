@@ -82,7 +82,7 @@ export const GrowthPyramidModal = memo(function GrowthPyramidModal({
         />
 
         {/* 피라미드 뷰 - 중앙 정렬 wrapper */}
-        <div style={{ paddingLeft: '80px' }}>
+        <div style={{ paddingLeft: '40px' }}>
           <PyramidView
             pyramidLevel={pyramidLevel}
             skillPoints={skillPoints}
