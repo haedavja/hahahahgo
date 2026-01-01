@@ -226,11 +226,10 @@ const NodeCard = memo(function NodeCard({
         <div style={{
           fontWeight: 'bold',
           color: isUnlocked ? colors.text : COLORS.text.muted,
-          fontSize: FONT_SIZE.lg,
+          fontSize: '14px', // FONT_SIZE.lg (12px)의 15% 확대
           marginBottom: SPACING.xs,
         }}>
-          {isUnlocked && '✓ '}{node.name}
-          {selectedChoice && <span style={{ color: COLORS.success, marginLeft: SPACING.xs }}>✓</span>}
+          {node.name}
         </div>
 
         {canUnlock && (
@@ -381,9 +380,9 @@ const ChoiceBadge = memo(function ChoiceBadge({
           [ 선택 ]
         </div>
       )}
-      {/* 둘째 줄 */}
+      {/* 둘째 줄 - 설명 */}
       <div style={{
-        fontSize: FONT_SIZE.sm,
+        fontSize: '12px', // FONT_SIZE.sm (10px)의 15% 확대 (~11.5px → 12px)
         color: isAlternative ? COLORS.text.disabled : COLORS.text.secondary,
         lineHeight: '1.4',
       }}>
