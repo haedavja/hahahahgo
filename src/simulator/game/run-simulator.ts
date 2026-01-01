@@ -910,24 +910,49 @@ export class RunSimulator {
       // 자원 변경 적용
       const goldChange = eventResult.resourceChanges.gold || 0;
       const hpChange = eventResult.resourceChanges.hp || 0;
+      const intelChange = eventResult.resourceChanges.intel || 0;
+      const insightChange = eventResult.resourceChanges.insight || 0;
+      const materialChange = eventResult.resourceChanges.material || 0;
+      const graceChange = eventResult.resourceChanges.grace || 0;
+
       player.gold += goldChange;
-      player.intel += eventResult.resourceChanges.intel || 0;
-      player.material += eventResult.resourceChanges.material || 0;
+      player.intel += intelChange;
+      player.material += materialChange;
+      player.insight += insightChange;
       if (hpChange !== 0) {
         player.hp = Math.min(player.maxHp, Math.max(0, player.hp + hpChange));
       }
 
+      // 카드 획득 적용
+      const cardsGained = eventResult.cardsGained || [];
+      for (const cardId of cardsGained) {
+        if (cardId && cardId !== 'curse' && cardId !== 'blessing') {
+          player.deck.push(cardId);
+          result.cardsGained.push(cardId);
+        }
+      }
+
+      // 상징 획득 적용
+      const relicsGained = eventResult.relicsGained || [];
+      for (const relicId of relicsGained) {
+        if (relicId && !player.relics.includes(relicId)) {
+          player.relics.push(relicId);
+          result.relicsGained.push(relicId);
+        }
+      }
+
       // 통계 기록
       if (this.statsCollector) {
-        // 이벤트 기본 기록
+        // 이벤트 기본 기록 (모든 자원 변화 포함)
         this.statsCollector.recordEvent(
           randomEvent.id,
           randomEvent.title || randomEvent.id,
           eventResult.success,
           hpChange,
           goldChange,
-          eventResult.cardsGained || [],
-          eventResult.relicsGained || []
+          cardsGained,
+          relicsGained,
+          eventResult.resourceChanges // 모든 자원 변화 전달
         );
 
         // 이벤트 선택 상세 기록
@@ -935,12 +960,12 @@ export class RunSimulator {
           eventId: randomEvent.id,
           eventName: randomEvent.title || randomEvent.id,
           choiceId: eventResult.choiceId || 'choice_1',
-          choiceName: eventResult.choiceName || '선택',
+          choiceName: eventResult.choiceName || eventResult.choiceLabel || '선택',
           success: eventResult.success,
           hpChange,
           goldChange,
-          cardsGained: eventResult.cardsGained || [],
-          relicsGained: eventResult.relicsGained || [],
+          cardsGained,
+          relicsGained,
         });
       }
     } else {

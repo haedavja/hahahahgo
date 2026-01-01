@@ -84,6 +84,16 @@ export interface EventStats {
   totalHpChange: number;
   /** 골드 변화 총합 */
   totalGoldChange: number;
+  /** 정보(intel) 변화 총합 */
+  totalIntelChange: number;
+  /** 원자재(material) 변화 총합 */
+  totalMaterialChange: number;
+  /** 통찰(insight) 변화 총합 */
+  totalInsightChange: number;
+  /** 은총(grace) 변화 총합 */
+  totalGraceChange: number;
+  /** 전리품(loot) 변화 총합 */
+  totalLootChange: number;
   /** 획득한 카드 */
   cardsGained: string[];
   /** 획득한 상징 */
@@ -562,7 +572,8 @@ export class StatsCollector {
     hpChange: number,
     goldChange: number,
     cardsGained: string[] = [],
-    relicsGained: string[] = []
+    relicsGained: string[] = [],
+    resourceChanges?: Record<string, number>
   ) {
     if (!this.eventStats.has(eventId)) {
       this.eventStats.set(eventId, {
@@ -573,6 +584,11 @@ export class StatsCollector {
         successRate: 0,
         totalHpChange: 0,
         totalGoldChange: 0,
+        totalIntelChange: 0,
+        totalMaterialChange: 0,
+        totalInsightChange: 0,
+        totalGraceChange: 0,
+        totalLootChange: 0,
         cardsGained: [],
         relicsGained: [],
       });
@@ -584,6 +600,16 @@ export class StatsCollector {
     stats.successRate = stats.successes / stats.occurrences;
     stats.totalHpChange += hpChange;
     stats.totalGoldChange += goldChange;
+
+    // 추가 자원 변화 기록
+    if (resourceChanges) {
+      stats.totalIntelChange += resourceChanges.intel || 0;
+      stats.totalMaterialChange += resourceChanges.material || 0;
+      stats.totalInsightChange += resourceChanges.insight || 0;
+      stats.totalGraceChange += resourceChanges.grace || 0;
+      stats.totalLootChange += resourceChanges.loot || 0;
+    }
+
     stats.cardsGained.push(...cardsGained);
     stats.relicsGained.push(...relicsGained);
   }
@@ -1467,33 +1493,49 @@ export class StatsReporter {
     }
 
     lines.push('【 이벤트 발생 빈도 TOP 15 】');
-    lines.push('┌────────────────────────┬───────┬────────┬─────────┬─────────┐');
-    lines.push('│ 이벤트                 │ 횟수  │ 성공률 │ HP변화  │ 골드    │');
-    lines.push('├────────────────────────┼───────┼────────┼─────────┼─────────┤');
+    lines.push('┌──────────────────────┬─────┬──────┬───────────────────────────────────────┐');
+    lines.push('│ 이벤트               │ 횟수│ 성공 │ 자원 변화                             │');
+    lines.push('├──────────────────────┼─────┼──────┼───────────────────────────────────────┤');
 
     for (const ev of events.slice(0, 15)) {
-      const name = ev.eventName.substring(0, 22).padEnd(22);
-      const count = String(ev.occurrences).padStart(5);
+      const name = ev.eventName.substring(0, 20).padEnd(20);
+      const count = String(ev.occurrences).padStart(3);
       const rate = (ev.successRate * 100).toFixed(0) + '%';
-      const hp = (ev.totalHpChange >= 0 ? '+' : '') + ev.totalHpChange;
-      const gold = (ev.totalGoldChange >= 0 ? '+' : '') + ev.totalGoldChange;
-      lines.push(`│ ${name} │${count} │ ${rate.padStart(5)} │ ${hp.padStart(7)} │ ${gold.padStart(7)} │`);
-    }
-    lines.push('└────────────────────────┴───────┴────────┴─────────┴─────────┘');
 
-    // 이벤트에서 획득한 보상
+      // 자원 변화 문자열 생성
+      const changes: string[] = [];
+      if (ev.totalHpChange !== 0) changes.push(`HP${ev.totalHpChange >= 0 ? '+' : ''}${ev.totalHpChange}`);
+      if (ev.totalGoldChange !== 0) changes.push(`금${ev.totalGoldChange >= 0 ? '+' : ''}${ev.totalGoldChange}`);
+      if (ev.totalIntelChange !== 0) changes.push(`정보${ev.totalIntelChange >= 0 ? '+' : ''}${ev.totalIntelChange}`);
+      if (ev.totalMaterialChange !== 0) changes.push(`재료${ev.totalMaterialChange >= 0 ? '+' : ''}${ev.totalMaterialChange}`);
+      if (ev.totalInsightChange !== 0) changes.push(`통찰${ev.totalInsightChange >= 0 ? '+' : ''}${ev.totalInsightChange}`);
+      if (ev.totalGraceChange !== 0) changes.push(`은총${ev.totalGraceChange >= 0 ? '+' : ''}${ev.totalGraceChange}`);
+      if (ev.totalLootChange !== 0) changes.push(`전리품${ev.totalLootChange >= 0 ? '+' : ''}${ev.totalLootChange}`);
+
+      const resourceStr = changes.length > 0 ? changes.join(', ') : '-';
+      lines.push(`│ ${name} │ ${count} │${rate.padStart(5)} │ ${resourceStr.substring(0, 37).padEnd(37)} │`);
+    }
+    lines.push('└──────────────────────┴─────┴──────┴───────────────────────────────────────┘');
+
+    // 이벤트에서 획득한 보상 총계
     const allCards = events.flatMap(e => e.cardsGained);
     const allRelics = events.flatMap(e => e.relicsGained);
+    const totalIntel = events.reduce((sum, e) => sum + e.totalIntelChange, 0);
+    const totalMaterial = events.reduce((sum, e) => sum + e.totalMaterialChange, 0);
+    const totalGold = events.reduce((sum, e) => sum + e.totalGoldChange, 0);
+    const totalInsight = events.reduce((sum, e) => sum + e.totalInsightChange, 0);
 
-    if (allCards.length > 0 || allRelics.length > 0) {
-      lines.push('');
-      lines.push('【 이벤트 보상 총계 】');
-      if (allCards.length > 0) {
-        lines.push(`  획득 카드: ${allCards.length}장`);
-      }
-      if (allRelics.length > 0) {
-        lines.push(`  획득 상징: ${allRelics.length}개`);
-      }
+    lines.push('');
+    lines.push('【 이벤트 보상 총계 】');
+    lines.push(`  골드: ${totalGold >= 0 ? '+' : ''}${totalGold}G`);
+    lines.push(`  정보: ${totalIntel >= 0 ? '+' : ''}${totalIntel}`);
+    lines.push(`  원자재: ${totalMaterial >= 0 ? '+' : ''}${totalMaterial}`);
+    lines.push(`  통찰: ${totalInsight >= 0 ? '+' : ''}${totalInsight}`);
+    if (allCards.length > 0) {
+      lines.push(`  획득 카드: ${allCards.length}장`);
+    }
+    if (allRelics.length > 0) {
+      lines.push(`  획득 상징: ${allRelics.length}개`);
     }
 
     return lines.join('\n');
