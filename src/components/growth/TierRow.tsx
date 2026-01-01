@@ -183,37 +183,34 @@ const NodeCard = memo(function NodeCard({
     }}>
       {/* 노드 헤더 */}
       <div style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
+        textAlign: 'center',
         marginBottom: SPACING.sm,
       }}>
-        <span style={{
+        <div style={{
           fontWeight: 'bold',
           color: isUnlocked ? colors.text : COLORS.text.primary,
-          fontSize: FONT_SIZE.md,
+          fontSize: FONT_SIZE.lg,
+          marginBottom: SPACING.xs,
         }}>
           {isUnlocked && '✓ '}{node.name}
-        </span>
+          {selectedChoice && <span style={{ color: COLORS.success, marginLeft: SPACING.xs }}>✓</span>}
+        </div>
 
         {canUnlock && (
           <button
             onClick={() => onUnlockNode(node.id, type)}
             style={{
-              padding: `${SPACING.xs} 5px`,
+              padding: `${SPACING.xs} ${SPACING.md}`,
               background: 'rgba(96, 165, 250, 0.2)',
               border: `1px solid ${COLORS.secondary}`,
               borderRadius: BORDER_RADIUS.md,
               color: COLORS.secondary,
-              fontSize: FONT_SIZE.xs,
+              fontSize: FONT_SIZE.sm,
               cursor: 'pointer',
             }}
           >
-            1P
+            1P 해금
           </button>
-        )}
-        {selectedChoice && (
-          <span style={{ fontSize: FONT_SIZE.xs, color: COLORS.success }}>✓</span>
         )}
       </div>
 
@@ -288,31 +285,41 @@ const ChoiceBadge = memo(function ChoiceBadge({
         if (canSelect) onSelect();
       }}
       style={{
-        padding: `5px ${SPACING.md}`,
+        padding: `${SPACING.sm} ${SPACING.md}`,
         background: getBackground(),
         border: getBorder(),
         borderRadius: BORDER_RADIUS.md,
         opacity: isAlternative ? 0.4 : 1,
         cursor: canSelect ? 'pointer' : 'default',
         transition: 'all 0.15s',
+        textAlign: 'center',
       }}
     >
-      {/* 첫째 줄 */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: SPACING.sm, marginBottom: SPACING.xs }}>
-        <span style={{ fontSize: FONT_SIZE.md, color: typeColor }}>{typeEmoji}</span>
-        {isSelected && <span style={{ color: COLORS.success, fontSize: FONT_SIZE.sm }}>✓</span>}
-        <span style={{ fontWeight: 'bold', fontSize: FONT_SIZE.md, color: getNameColor() }}>
+      {/* 첫째 줄 - 능력 이름 중앙 배치 */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: SPACING.sm,
+        marginBottom: SPACING.xs,
+      }}>
+        <span style={{ fontSize: FONT_SIZE.lg, color: typeColor }}>{typeEmoji}</span>
+        {isSelected && <span style={{ color: COLORS.success, fontSize: FONT_SIZE.md }}>✓</span>}
+        <span style={{ fontWeight: 'bold', fontSize: FONT_SIZE.lg, color: getNameColor() }}>
           {choice.name}
         </span>
-        {canSelect && (
-          <span style={{ fontSize: FONT_SIZE.xs, color: COLORS.primary, marginLeft: 'auto' }}>선택</span>
-        )}
       </div>
+      {/* 선택 버튼 */}
+      {canSelect && (
+        <div style={{ fontSize: FONT_SIZE.sm, color: COLORS.primary, marginBottom: SPACING.xs }}>
+          [ 선택 ]
+        </div>
+      )}
       {/* 둘째 줄 */}
       <div style={{
-        fontSize: FONT_SIZE.xs,
+        fontSize: FONT_SIZE.sm,
         color: isAlternative ? COLORS.text.disabled : COLORS.text.secondary,
-        lineHeight: '1.3',
+        lineHeight: '1.4',
       }}>
         {choice.description}
       </div>
