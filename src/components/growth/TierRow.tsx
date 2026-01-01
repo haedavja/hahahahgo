@@ -48,7 +48,6 @@ export const TierRow = memo(function TierRow({
     <div style={{
       marginBottom: SPACING.xl,
       position: 'relative',
-      paddingLeft: SPACING.lg, // scale로 인한 좌측 잘림 보정
     }}>
       {/* 티어 헤더 */}
       <TierHeader

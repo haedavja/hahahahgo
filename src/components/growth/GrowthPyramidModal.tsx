@@ -193,6 +193,7 @@ const PyramidView = memo(function PyramidView({
       transform: 'scale(1.2)',
       transformOrigin: 'top center',
       marginBottom: '20%', // scale로 인한 여백 보정
+      paddingLeft: '60px', // scale 확대 시 좌측 잘림 보정
     }}>
       {/* 노드 연결선 SVG */}
       <PyramidConnections
