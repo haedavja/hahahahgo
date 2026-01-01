@@ -80,6 +80,7 @@ export const TierRow = memo(function TierRow({
             hasPendingSelection={pendingSelection !== null}
             colors={colors}
             nodeCount={nodes.length}
+            tier={tier}
             onUnlockNode={onUnlockNode}
             onSelectChoice={onSelectChoice}
           />
@@ -159,6 +160,7 @@ interface NodeCardProps {
   hasPendingSelection: boolean;
   colors: { bg: string; border: string; text: string };
   nodeCount: number;
+  tier: number;
   onUnlockNode: (nodeId: string, type: 'ethos' | 'pathos') => void;
   onSelectChoice: (choiceId: string) => void;
 }
@@ -173,6 +175,7 @@ const NodeCard = memo(function NodeCard({
   hasPendingSelection,
   colors,
   nodeCount,
+  tier,
   onUnlockNode,
   onSelectChoice,
 }: NodeCardProps) {
@@ -194,7 +197,8 @@ const NodeCard = memo(function NodeCard({
   const choices = getNodeChoices(node.id, type);
   const [choice1, choice2] = choices || [null, null];
 
-  const nodeWidth = nodeCount <= 4 ? '220px' : nodeCount <= 5 ? '200px' : '180px';
+  // 1~3단계는 TraitEthosSection과 동일한 200px 사용 (수직 정렬)
+  const nodeWidth = tier <= 3 ? '200px' : nodeCount <= 4 ? '220px' : nodeCount <= 5 ? '200px' : '180px';
 
   // 불투명 배경색 (연결선이 카드 뒤로 숨겨지도록)
   const getOpaqueBackground = () => {
