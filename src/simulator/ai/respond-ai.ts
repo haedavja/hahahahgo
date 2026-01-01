@@ -53,6 +53,10 @@ export interface RespondAIConfig {
   respondChance: number;
   /** 교차 우선 여부 */
   prioritizeCross: boolean;
+  /** 보스전 여부 */
+  isBossFight: boolean;
+  /** 플레이어 전략 */
+  strategy: 'aggressive' | 'balanced' | 'defensive';
 }
 
 const DEFAULT_CONFIG: RespondAIConfig = {
@@ -60,6 +64,8 @@ const DEFAULT_CONFIG: RespondAIConfig = {
   riskTolerance: 0.5,
   respondChance: 0.7,
   prioritizeCross: true,
+  isBossFight: false,
+  strategy: 'balanced',
 };
 
 // ==================== 대응 단계 AI ====================
@@ -310,6 +316,37 @@ export class RespondAI {
       }
     }
 
+    // 보스전 특화 대응 전략
+    if (this.config.isBossFight) {
+      // 보스전에서는 더 적극적으로 대응
+      const bossResponseCards = this.selectBossFightResponses(
+        reactionCards,
+        analysis,
+        selectedCards,
+        state
+      );
+
+      for (const card of bossResponseCards) {
+        if (!selectedCards.includes(card.id)) {
+          selectedCards.push(card.id);
+          totalDamageDealt += (card.damage || 0) * (card.hits || 1);
+          totalBlockGained += card.block || 0;
+        }
+      }
+    }
+
+    // 전략별 추가 대응
+    if (this.config.strategy === 'defensive' && hpRatio < 0.5) {
+      // 방어 전략 + 체력 낮으면 추가 방어
+      const additionalDefense = reactionCards
+        .filter(c => c.block && c.block >= 5 && !selectedCards.includes(c.id))
+        .slice(0, 1);
+      for (const card of additionalDefense) {
+        selectedCards.push(card.id);
+        totalBlockGained += card.block || 0;
+      }
+    }
+
     if (selectedCards.length === 0) {
       return { ...noResponse, reason: '적합한 대응 없음' };
     }
@@ -324,6 +361,88 @@ export class RespondAI {
         blockGained: totalBlockGained,
       },
     };
+  }
+
+  /**
+   * 보스전 특화 대응 카드 선택
+   */
+  private selectBossFightResponses(
+    reactionCards: GameCard[],
+    analysis: TimelineAnalysis,
+    alreadySelected: string[],
+    state: GameBattleState
+  ): GameCard[] {
+    const selected: GameCard[] = [];
+    const hpRatio = state.player.hp / state.player.maxHp;
+
+    // 1. 고피해 적 카드에 우선 대응
+    for (const dangerCard of analysis.dangerousCards) {
+      const enemyCard = this.cards[dangerCard.cardId];
+      if (!enemyCard) continue;
+
+      const enemyDamage = (enemyCard.damage || 0) * (enemyCard.hits || 1);
+
+      // 피해가 현재 HP의 30% 이상이면 반드시 대응
+      if (enemyDamage >= state.player.hp * 0.3) {
+        const counter = reactionCards.find(c =>
+          !alreadySelected.includes(c.id) &&
+          !selected.some(s => s.id === c.id) &&
+          (c.block && c.block >= enemyDamage * 0.5 || c.parryRange)
+        );
+        if (counter) {
+          selected.push(counter);
+        }
+      }
+    }
+
+    // 2. 보스 멀티히트 공격 대응 (blur/evasion 부여 카드)
+    const multiHitEnemies = analysis.dangerousCards.filter(tc => {
+      const card = this.cards[tc.cardId];
+      return card && (card.hits || 1) > 1;
+    });
+
+    if (multiHitEnemies.length > 0) {
+      const evasionCard = reactionCards.find(c =>
+        !alreadySelected.includes(c.id) &&
+        !selected.some(s => s.id === c.id) &&
+        c.appliedTokens?.some(t =>
+          (t.target === 'self' || t.target === 'player') &&
+          (t.id === 'blur' || t.id === 'evasion' || t.id === 'agility')
+        )
+      );
+      if (evasionCard) {
+        selected.push(evasionCard);
+      }
+    }
+
+    // 3. HP 낮을 때 최대 방어
+    if (hpRatio < 0.35) {
+      const bestDefense = reactionCards
+        .filter(c =>
+          !alreadySelected.includes(c.id) &&
+          !selected.some(s => s.id === c.id) &&
+          c.block && c.block > 0
+        )
+        .sort((a, b) => (b.block || 0) - (a.block || 0))[0];
+
+      if (bestDefense) {
+        selected.push(bestDefense);
+      }
+    }
+
+    // 4. 반격 기회 활용 (보스 공격이 많을 때)
+    if (analysis.dangerousCards.length >= 2) {
+      const counterCard = reactionCards.find(c =>
+        !alreadySelected.includes(c.id) &&
+        !selected.some(s => s.id === c.id) &&
+        (c.traits?.includes('counter') || c.traits?.includes('counterShot'))
+      );
+      if (counterCard) {
+        selected.push(counterCard);
+      }
+    }
+
+    return selected;
   }
 
   // ==================== 헬퍼 함수 ====================

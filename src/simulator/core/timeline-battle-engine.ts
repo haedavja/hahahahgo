@@ -1031,6 +1031,44 @@ export class TimelineBattleEngine {
 
   private selectEnemyCards(state: GameBattleState): GameCard[] {
     const selected: GameCard[] = [];
+
+    // 보스 페이즈 시스템 사용 (보스인 경우)
+    if (state.enemy.isBoss && state.enemy.id) {
+      const { selectBossCards, getBossCardsPerTurn, checkBossSpecialActions, BOSS_PATTERNS } = require('../ai/enemy-patterns');
+
+      // 보스 패턴이 정의되어 있는 경우
+      if (BOSS_PATTERNS[state.enemy.id]) {
+        const hpRatio = state.enemy.hp / state.enemy.maxHp;
+        const playerHpRatio = state.player.hp / state.player.maxHp;
+
+        // 보스 특수 행동 체크
+        const specialActions = checkBossSpecialActions(state.enemy.id, {
+          hpRatio,
+          turn: state.turn,
+          playerHpRatio,
+          phaseChanged: false, // TODO: 페이즈 변경 감지
+        });
+
+        // 특수 행동 로그
+        for (const action of specialActions) {
+          log.info(`보스 특수 행동: ${action.name} - ${action.effect.description}`);
+          state.battleLog.push(`⚡ ${action.name}: ${action.effect.description}`);
+        }
+
+        // 보스 AI 카드 선택
+        const decision = selectBossCards(
+          state.enemy.id,
+          state.enemy,
+          state.player,
+          this.cards,
+          state.turn
+        );
+
+        return decision.selectedCards;
+      }
+    }
+
+    // 일반 적 AI 로직
     const cardsToPlay = state.enemy.cardsPerTurn;
 
     // 가용 카드 목록 생성
@@ -1050,70 +1088,20 @@ export class TimelineBattleEngine {
     const enemyHpRatio = state.enemy.hp / state.enemy.maxHp;
     const playerHpRatio = state.player.hp / state.player.maxHp;
 
-    // 카드 점수 계산
-    const scoredCards = availableCards.map(card => {
-      let score = 0;
+    // EnemyAI 클래스 사용 (개선된 AI)
+    const { createEnemyAI, getPatternForEnemy, getPatternModifierByHp } = require('../ai/enemy-patterns');
 
-      // 공격 카드 점수
-      if (card.damage && card.damage > 0) {
-        const hits = card.hits || 1;
-        const totalDamage = card.damage * hits;
+    // 기본 패턴 결정
+    let pattern = getPatternForEnemy(state.enemy.id || 'unknown');
 
-        // 플레이어 체력이 낮으면 공격 우선
-        if (playerHpRatio < 0.3) {
-          score += totalDamage * 2;
-        } else {
-          score += totalDamage;
-        }
+    // HP에 따른 패턴 조정
+    pattern = getPatternModifierByHp(pattern, enemyHpRatio);
 
-        // 플레이어 방어력이 낮으면 공격 효과적
-        if (state.player.block < totalDamage) {
-          score += 10;
-        }
-      }
+    // AI 생성 및 카드 선택
+    const ai = createEnemyAI(this.cards, pattern);
+    const decision = ai.selectCards(state.enemy, state.player, state.enemy.deck, cardsToPlay);
 
-      // 방어 카드 점수
-      if (card.block && card.block > 0) {
-        // 적 체력이 낮으면 방어 우선
-        if (enemyHpRatio < 0.4) {
-          score += card.block * 1.5;
-        } else {
-          score += card.block * 0.5;
-        }
-      }
-
-      // 토큰 부여 카드 보너스
-      if (card.appliedTokens && card.appliedTokens.length > 0) {
-        score += 5;
-      }
-
-      // 특수 효과 카드 보너스
-      if (card.special) {
-        score += 8;
-      }
-
-      // 속도가 빠른 카드 약간 선호
-      const speed = card.speedCost || 5;
-      score += (15 - speed) * 0.5;
-
-      return { card, score };
-    });
-
-    // 점수순 정렬 후 상위 카드 선택
-    scoredCards.sort((a, b) => b.score - a.score);
-
-    // 다양성을 위해 약간의 랜덤성 추가
-    for (let i = 0; i < Math.min(cardsToPlay, scoredCards.length); i++) {
-      // 30% 확률로 차순위 카드 선택 (다양성)
-      if (i > 0 && Math.random() < 0.3 && scoredCards.length > i + 1) {
-        const temp = scoredCards[i];
-        scoredCards[i] = scoredCards[i + 1];
-        scoredCards[i + 1] = temp;
-      }
-      selected.push(scoredCards[i].card);
-    }
-
-    return selected;
+    return decision.selectedCards;
   }
 
   // ==================== 타임라인 배치 ====================

@@ -641,6 +641,348 @@ export function getCardPriorityForPattern(pattern: EnemyPattern): {
   }
 }
 
+// ==================== 보스 고유 패턴 시스템 ====================
+
+/**
+ * 보스 페이즈 타입
+ */
+export type BossPhase = 'phase1' | 'phase2' | 'phase3' | 'enrage';
+
+/**
+ * 보스 고유 행동 패턴
+ */
+export interface BossPattern {
+  id: string;
+  name: string;
+  basePattern: EnemyPattern;
+  /** 페이즈별 패턴 변화 */
+  phases: {
+    phase1: { hpThreshold: number; pattern: EnemyPattern; cardsPerTurn: number };
+    phase2: { hpThreshold: number; pattern: EnemyPattern; cardsPerTurn: number };
+    phase3?: { hpThreshold: number; pattern: EnemyPattern; cardsPerTurn: number };
+    enrage?: { hpThreshold: number; pattern: EnemyPattern; cardsPerTurn: number };
+  };
+  /** 특수 행동 */
+  specialActions: BossSpecialAction[];
+  /** 턴 기반 패턴 (n턴마다 특정 행동) */
+  turnPatterns?: { interval: number; action: string }[];
+}
+
+/**
+ * 보스 특수 행동
+ */
+export interface BossSpecialAction {
+  id: string;
+  name: string;
+  trigger: 'onHpThreshold' | 'onTurn' | 'onPlayerAction' | 'onPhaseChange';
+  condition?: { hpPercent?: number; turn?: number; playerAction?: string };
+  effect: {
+    type: 'buff' | 'debuff' | 'summon' | 'heal' | 'aoe' | 'special';
+    value?: number;
+    target?: 'self' | 'player' | 'all';
+    description: string;
+  };
+}
+
+/**
+ * 보스 패턴 정의
+ */
+export const BOSS_PATTERNS: Record<string, BossPattern> = {
+  slaughterer: {
+    id: 'slaughterer',
+    name: '학살자',
+    basePattern: 'berserk',
+    phases: {
+      phase1: { hpThreshold: 1.0, pattern: 'aggressive', cardsPerTurn: 2 },
+      phase2: { hpThreshold: 0.6, pattern: 'berserk', cardsPerTurn: 3 },
+      phase3: { hpThreshold: 0.3, pattern: 'berserk', cardsPerTurn: 3 },
+      enrage: { hpThreshold: 0.15, pattern: 'berserk', cardsPerTurn: 4 },
+    },
+    specialActions: [
+      {
+        id: 'blood_rage',
+        name: '피의 광기',
+        trigger: 'onHpThreshold',
+        condition: { hpPercent: 50 },
+        effect: {
+          type: 'buff',
+          value: 3,
+          target: 'self',
+          description: '힘 +3, 이후 턴마다 힘 +1 추가',
+        },
+      },
+      {
+        id: 'massacre',
+        name: '대학살',
+        trigger: 'onHpThreshold',
+        condition: { hpPercent: 25 },
+        effect: {
+          type: 'aoe',
+          value: 20,
+          target: 'player',
+          description: '전체 피해 20 + 출혈 3',
+        },
+      },
+    ],
+    turnPatterns: [
+      { interval: 3, action: 'heavy_attack' }, // 3턴마다 강공격
+    ],
+  },
+
+  captain: {
+    id: 'captain',
+    name: '탈영병 대장',
+    basePattern: 'tactical',
+    phases: {
+      phase1: { hpThreshold: 1.0, pattern: 'tactical', cardsPerTurn: 2 },
+      phase2: { hpThreshold: 0.5, pattern: 'defensive', cardsPerTurn: 3 },
+      phase3: { hpThreshold: 0.25, pattern: 'aggressive', cardsPerTurn: 4 },
+    },
+    specialActions: [
+      {
+        id: 'summon_guards',
+        name: '호위병 소환',
+        trigger: 'onHpThreshold',
+        condition: { hpPercent: 50 },
+        effect: {
+          type: 'summon',
+          value: 2,
+          target: 'self',
+          description: '탈영병 2명 소환',
+        },
+      },
+      {
+        id: 'rally',
+        name: '독려',
+        trigger: 'onTurn',
+        condition: { turn: 4 },
+        effect: {
+          type: 'buff',
+          value: 2,
+          target: 'all',
+          description: '모든 아군 힘/방어 +2',
+        },
+      },
+      {
+        id: 'execution',
+        name: '처형',
+        trigger: 'onPlayerAction',
+        condition: { playerAction: 'low_hp' },
+        effect: {
+          type: 'special',
+          value: 999,
+          target: 'player',
+          description: 'HP 20% 이하 시 처형 시도 (관통 50)',
+        },
+      },
+    ],
+    turnPatterns: [
+      { interval: 2, action: 'command' }, // 2턴마다 지휘
+      { interval: 5, action: 'fortify' }, // 5턴마다 강화
+    ],
+  },
+
+  hunter: {
+    id: 'hunter',
+    name: '현상금 사냥꾼',
+    basePattern: 'assassin',
+    phases: {
+      phase1: { hpThreshold: 1.0, pattern: 'tactical', cardsPerTurn: 2 },
+      phase2: { hpThreshold: 0.4, pattern: 'assassin', cardsPerTurn: 3 },
+    },
+    specialActions: [
+      {
+        id: 'set_trap',
+        name: '함정 설치',
+        trigger: 'onTurn',
+        condition: { turn: 1 },
+        effect: {
+          type: 'special',
+          target: 'player',
+          description: '첫 턴 함정 설치 (이동 시 피해)',
+        },
+      },
+      {
+        id: 'aimed_shot',
+        name: '조준 사격',
+        trigger: 'onTurn',
+        condition: { turn: 3 },
+        effect: {
+          type: 'special',
+          value: 30,
+          target: 'player',
+          description: '3턴마다 조준 후 고피해 사격',
+        },
+      },
+    ],
+    turnPatterns: [
+      { interval: 3, action: 'aimed_shot' },
+    ],
+  },
+};
+
+/**
+ * 보스 현재 페이즈 계산
+ */
+export function getBossPhase(bossId: string, hpRatio: number): BossPhase {
+  const pattern = BOSS_PATTERNS[bossId];
+  if (!pattern) return 'phase1';
+
+  if (pattern.phases.enrage && hpRatio <= pattern.phases.enrage.hpThreshold) {
+    return 'enrage';
+  }
+  if (pattern.phases.phase3 && hpRatio <= pattern.phases.phase3.hpThreshold) {
+    return 'phase3';
+  }
+  if (hpRatio <= pattern.phases.phase2.hpThreshold) {
+    return 'phase2';
+  }
+  return 'phase1';
+}
+
+/**
+ * 보스 페이즈에 따른 패턴 가져오기
+ */
+export function getBossPatternForPhase(bossId: string, hpRatio: number): EnemyPattern {
+  const pattern = BOSS_PATTERNS[bossId];
+  if (!pattern) return 'balanced';
+
+  const phase = getBossPhase(bossId, hpRatio);
+  switch (phase) {
+    case 'enrage':
+      return pattern.phases.enrage?.pattern || 'berserk';
+    case 'phase3':
+      return pattern.phases.phase3?.pattern || pattern.phases.phase2.pattern;
+    case 'phase2':
+      return pattern.phases.phase2.pattern;
+    default:
+      return pattern.phases.phase1.pattern;
+  }
+}
+
+/**
+ * 보스 턴별 추가 카드 수
+ */
+export function getBossCardsPerTurn(bossId: string, hpRatio: number): number {
+  const pattern = BOSS_PATTERNS[bossId];
+  if (!pattern) return 2;
+
+  const phase = getBossPhase(bossId, hpRatio);
+  switch (phase) {
+    case 'enrage':
+      return pattern.phases.enrage?.cardsPerTurn || 4;
+    case 'phase3':
+      return pattern.phases.phase3?.cardsPerTurn || 3;
+    case 'phase2':
+      return pattern.phases.phase2.cardsPerTurn;
+    default:
+      return pattern.phases.phase1.cardsPerTurn;
+  }
+}
+
+/**
+ * 보스 특수 행동 체크
+ */
+export function checkBossSpecialActions(
+  bossId: string,
+  context: {
+    hpRatio: number;
+    turn: number;
+    playerHpRatio: number;
+    phaseChanged: boolean;
+  }
+): BossSpecialAction[] {
+  const pattern = BOSS_PATTERNS[bossId];
+  if (!pattern) return [];
+
+  const triggered: BossSpecialAction[] = [];
+
+  for (const action of pattern.specialActions) {
+    let shouldTrigger = false;
+
+    switch (action.trigger) {
+      case 'onHpThreshold':
+        if (action.condition?.hpPercent) {
+          const threshold = action.condition.hpPercent / 100;
+          // 처음으로 임계값 이하가 되었을 때만 발동
+          shouldTrigger = context.hpRatio <= threshold;
+        }
+        break;
+
+      case 'onTurn':
+        if (action.condition?.turn) {
+          shouldTrigger = context.turn === action.condition.turn ||
+            (context.turn > 0 && context.turn % action.condition.turn === 0);
+        }
+        break;
+
+      case 'onPlayerAction':
+        if (action.condition?.playerAction === 'low_hp') {
+          shouldTrigger = context.playerHpRatio <= 0.2;
+        }
+        break;
+
+      case 'onPhaseChange':
+        shouldTrigger = context.phaseChanged;
+        break;
+    }
+
+    if (shouldTrigger) {
+      triggered.push(action);
+    }
+  }
+
+  return triggered;
+}
+
+/**
+ * 보스 턴 패턴 체크
+ */
+export function getBossTurnAction(bossId: string, turn: number): string | null {
+  const pattern = BOSS_PATTERNS[bossId];
+  if (!pattern?.turnPatterns) return null;
+
+  for (const turnPattern of pattern.turnPatterns) {
+    if (turn > 0 && turn % turnPattern.interval === 0) {
+      return turnPattern.action;
+    }
+  }
+  return null;
+}
+
+/**
+ * 보스 AI 강화된 카드 선택
+ */
+export function selectBossCards(
+  bossId: string,
+  enemy: EnemyState,
+  player: PlayerState,
+  cards: Record<string, GameCard>,
+  turn: number
+): EnemyDecision {
+  const hpRatio = enemy.hp / enemy.maxHp;
+  const pattern = getBossPatternForPhase(bossId, hpRatio);
+  const cardsToPlay = getBossCardsPerTurn(bossId, hpRatio);
+
+  // 보스 AI 생성
+  const ai = new EnemyAI(cards, pattern);
+
+  // 기본 카드 선택
+  const decision = ai.selectCards(enemy, player, enemy.deck, cardsToPlay);
+
+  // 턴 패턴 체크
+  const turnAction = getBossTurnAction(bossId, turn);
+  if (turnAction) {
+    decision.reasoning.push(`턴 패턴: ${turnAction}`);
+  }
+
+  // 페이즈 정보 추가
+  const phase = getBossPhase(bossId, hpRatio);
+  decision.reasoning.unshift(`보스 페이즈: ${phase} (HP ${(hpRatio * 100).toFixed(0)}%)`);
+
+  return decision;
+}
+
 /**
  * 적 체력 비율에 따른 패턴 변화 추천
  */
