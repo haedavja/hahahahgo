@@ -3,12 +3,13 @@
  * 시뮬레이터 탭 - 게임 내에서 런 시뮬레이션 실행 및 상세 통계 확인
  */
 
-import { useState, useCallback, memo, useMemo } from 'react';
+import { useState, useCallback, memo } from 'react';
 import type { CSSProperties } from 'react';
 import { RELICS } from '../../../data/relics';
 import { ITEMS } from '../../../data/items';
 import { CARDS, ENEMIES } from '../../battle/battleData';
 import { NEW_EVENT_LIBRARY } from '../../../data/newEvents';
+import type { DetailedStats } from '../../../simulator/analysis/detailed-stats';
 
 // 한글 이름 조회 헬퍼 함수들
 function getRelicName(id: string): string {
@@ -31,6 +32,17 @@ function getMonsterName(id: string): string {
 
 function getEventName(id: string): string {
   return NEW_EVENT_LIBRARY[id]?.title || id;
+}
+
+// 카드 효과 요약 문자열 생성
+function getCardEffectStr(id: string): string {
+  const card = CARDS.find(c => c.id === id);
+  if (!card) return '-';
+  const effects: string[] = [];
+  if (card.damage) effects.push(`피해 ${card.damage}${card.hits && card.hits > 1 ? `×${card.hits}` : ''}`);
+  if (card.block) effects.push(`방어 ${card.block}`);
+  if (card.speedCost) effects.push(`속도 ${card.speedCost}`);
+  return effects.join(', ') || '-';
 }
 
 // 스타일 상수
@@ -57,9 +69,6 @@ const STYLES = {
 } as const;
 
 type StatTab = 'run' | 'shop' | 'dungeon' | 'event' | 'item' | 'monster' | 'card' | 'pickrate' | 'contribution' | 'synergy' | 'records';
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type DetailedStats = any; // finalize()의 반환 타입
 
 export const SimulatorTab = memo(function SimulatorTab() {
   const [runCount, setRunCount] = useState(10);
@@ -344,17 +353,9 @@ export const SimulatorTab = memo(function SimulatorTab() {
                   <table style={STYLES.table}>
                     <thead><tr><th style={STYLES.th}>카드</th><th style={STYLES.th}>효과</th><th style={STYLES.th}>사용</th><th style={STYLES.th}>승리시</th><th style={STYLES.th}>패배시</th><th style={STYLES.th}>피해</th><th style={STYLES.th}>방어</th><th style={STYLES.th}>교차</th></tr></thead>
                     <tbody>
-                      {Array.from(stats.cardStats.entries()).sort((a: [string, { totalUses: number }], b: [string, { totalUses: number }]) => b[1].totalUses - a[1].totalUses).map(([id, c]: [string, { totalUses: number; usesInWins: number; usesInLosses: number; totalDamage: number; totalBlock: number; crossTriggers: number }]) => {
-                        const card = CARDS.find(cd => cd.id === id);
-                        const effects: string[] = [];
-                        if (card?.damage) effects.push(`피해 ${card.damage}${card.hits && card.hits > 1 ? `×${card.hits}` : ''}`);
-                        if (card?.block) effects.push(`방어 ${card.block}`);
-                        if (card?.speedCost) effects.push(`속도 ${card.speedCost}`);
-                        const effectStr = effects.join(', ') || '-';
-                        return (
-                          <tr key={id}><td style={STYLES.td}>{getCardName(id)}</td><td style={{...STYLES.td, fontSize: '0.75rem', color: '#94a3b8'}}>{effectStr}</td><td style={STYLES.td}>{c.totalUses}회</td><td style={STYLES.td}>{c.usesInWins}회</td><td style={STYLES.td}>{c.usesInLosses}회</td><td style={STYLES.td}>{c.totalDamage}</td><td style={STYLES.td}>{c.totalBlock}</td><td style={STYLES.td}>{c.crossTriggers}회</td></tr>
-                        );
-                      })}
+                      {Array.from(stats.cardStats.entries()).sort((a: [string, { totalUses: number }], b: [string, { totalUses: number }]) => b[1].totalUses - a[1].totalUses).map(([id, c]: [string, { totalUses: number; usesInWins: number; usesInLosses: number; totalDamage: number; totalBlock: number; crossTriggers: number }]) => (
+                        <tr key={id}><td style={STYLES.td}>{getCardName(id)}</td><td style={{...STYLES.td, fontSize: '0.75rem', color: '#94a3b8'}}>{getCardEffectStr(id)}</td><td style={STYLES.td}>{c.totalUses}회</td><td style={STYLES.td}>{c.usesInWins}회</td><td style={STYLES.td}>{c.usesInLosses}회</td><td style={STYLES.td}>{c.totalDamage}</td><td style={STYLES.td}>{c.totalBlock}</td><td style={STYLES.td}>{c.crossTriggers}회</td></tr>
+                      ))}
                     </tbody>
                   </table>
                 </div>
@@ -370,7 +371,7 @@ export const SimulatorTab = memo(function SimulatorTab() {
                 </p>
                 <div style={STYLES.scrollBox}>
                   <table style={STYLES.table}>
-                    <thead><tr><th style={STYLES.th}>카드</th><th style={STYLES.th}>제시</th><th style={STYLES.th}>선택</th><th style={STYLES.th}>스킵</th><th style={STYLES.th}>픽률</th><th style={STYLES.th}>픽률 바</th></tr></thead>
+                    <thead><tr><th style={STYLES.th}>카드</th><th style={STYLES.th}>효과</th><th style={STYLES.th}>제시</th><th style={STYLES.th}>선택</th><th style={STYLES.th}>스킵</th><th style={STYLES.th}>픽률</th><th style={STYLES.th}>픽률 바</th></tr></thead>
                     <tbody>
                       {Object.entries(stats.cardPickStats.timesOffered || {})
                         .sort((a, b) => (stats.cardPickStats.pickRate[b[0]] || 0) - (stats.cardPickStats.pickRate[a[0]] || 0))
@@ -381,6 +382,7 @@ export const SimulatorTab = memo(function SimulatorTab() {
                           return (
                             <tr key={id}>
                               <td style={STYLES.td}>{getCardName(id)}</td>
+                              <td style={{...STYLES.td, fontSize: '0.75rem', color: '#94a3b8'}}>{getCardEffectStr(id)}</td>
                               <td style={STYLES.td}>{offered as number}회</td>
                               <td style={STYLES.td}>{picked}회</td>
                               <td style={STYLES.td}>{skipped}회</td>
@@ -410,7 +412,7 @@ export const SimulatorTab = memo(function SimulatorTab() {
                 </p>
                 <div style={STYLES.scrollBox}>
                   <table style={STYLES.table}>
-                    <thead><tr><th style={STYLES.th}>카드</th><th style={STYLES.th}>등장 런</th><th style={STYLES.th}>보유시 승률</th><th style={STYLES.th}>미보유시 승률</th><th style={STYLES.th}>기여도</th></tr></thead>
+                    <thead><tr><th style={STYLES.th}>카드</th><th style={STYLES.th}>효과</th><th style={STYLES.th}>등장</th><th style={STYLES.th}>보유시</th><th style={STYLES.th}>미보유시</th><th style={STYLES.th}>기여도</th></tr></thead>
                     <tbody>
                       {Object.entries(stats.cardContributionStats.contribution || {})
                         .filter(([id]) => (stats.cardContributionStats.runsWithCard[id] || 0) >= 2)
@@ -423,6 +425,7 @@ export const SimulatorTab = memo(function SimulatorTab() {
                           return (
                             <tr key={id}>
                               <td style={STYLES.td}>{getCardName(id)}</td>
+                              <td style={{...STYLES.td, fontSize: '0.75rem', color: '#94a3b8'}}>{getCardEffectStr(id)}</td>
                               <td style={STYLES.td}>{runsWithCard}회</td>
                               <td style={{...STYLES.td, color: '#22c55e'}}>{(winRateWith * 100).toFixed(1)}%</td>
                               <td style={{...STYLES.td, color: '#94a3b8'}}>{(winRateWithout * 100).toFixed(1)}%</td>
@@ -447,7 +450,7 @@ export const SimulatorTab = memo(function SimulatorTab() {
                 </p>
                 <div style={STYLES.scrollBox}>
                   <table style={STYLES.table}>
-                    <thead><tr><th style={STYLES.th}>카드 조합</th><th style={STYLES.th}>함께 등장</th><th style={STYLES.th}>승률</th><th style={STYLES.th}>승률 바</th></tr></thead>
+                    <thead><tr><th style={STYLES.th}>카드 조합</th><th style={STYLES.th}>효과</th><th style={STYLES.th}>등장</th><th style={STYLES.th}>승률</th><th style={STYLES.th}>승률 바</th></tr></thead>
                     <tbody>
                       {(stats.cardSynergyStats.topSynergies || []).map((synergy: { pair: string; frequency: number; winRate: number }, i: number) => {
                         const [card1, card2] = synergy.pair.split('+');
@@ -457,6 +460,10 @@ export const SimulatorTab = memo(function SimulatorTab() {
                               <span style={{ color: '#fbbf24' }}>{getCardName(card1)}</span>
                               <span style={{ color: '#64748b', margin: '0 4px' }}>+</span>
                               <span style={{ color: '#fbbf24' }}>{getCardName(card2)}</span>
+                            </td>
+                            <td style={{...STYLES.td, fontSize: '0.7rem', color: '#94a3b8'}}>
+                              <div>{getCardEffectStr(card1)}</div>
+                              <div>{getCardEffectStr(card2)}</div>
                             </td>
                             <td style={STYLES.td}>{synergy.frequency}회</td>
                             <td style={{...STYLES.td, color: synergy.winRate > 0.6 ? '#22c55e' : synergy.winRate > 0.4 ? '#fbbf24' : '#ef4444'}}>
