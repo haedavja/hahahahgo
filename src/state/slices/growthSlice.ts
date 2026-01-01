@@ -262,10 +262,29 @@ export const createGrowthActions: SliceCreator = (set, get) => ({
       // 이미 선택한 자아인지 체크
       if (growth.identities.includes(identity)) return state;
 
+      // 첫 자아 선택 여부
+      const isFirstIdentity = growth.identities.length === 0;
+
       // 자아 추가 (하이브리드 가능)
       growth.identities = [...growth.identities, identity];
 
-      // 로고스는 스킬포인트로 직접 해금 (자동 해금 제거)
+      // 자아 선택 시 해당 로고스 Lv1 무료 해금
+      growth.logosLevels = { ...growth.logosLevels };
+
+      // 첫 자아 선택 시 공용 로고스 Lv1 무료 해금
+      if (isFirstIdentity && growth.logosLevels.common < 1) {
+        growth.logosLevels.common = 1;
+      }
+
+      // 검사 선택 시 배틀 왈츠 Lv1 무료 해금
+      if (identity === 'swordsman' && growth.logosLevels.battleWaltz < 1) {
+        growth.logosLevels.battleWaltz = 1;
+      }
+
+      // 총잡이 선택 시 건카타 Lv1 무료 해금
+      if (identity === 'gunslinger' && growth.logosLevels.gunkata < 1) {
+        growth.logosLevels.gunkata = 1;
+      }
 
       return { ...state, growth };
     }),

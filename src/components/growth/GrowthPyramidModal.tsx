@@ -4,10 +4,11 @@
  *
  * 구조:
  * 1단계: 기초 에토스 (6개)
- * 2단계: 기본 파토스 (5개)
+ * 2단계: 기본 파토스 (6개, 각 2선택지)
  * 3단계: 에토스 노드 (6개, 각 2선택지)
  * 4단계: 파토스 노드 (5개, 각 2선택지)
  * 5단계: 상위 에토스 노드 (4개, 각 2선택지)
+ * 6단계: 상위 파토스 노드 (3개, 각 2선택지)
  * 정점: 자아 (검사/총잡이) + 로고스
  */
 
@@ -176,6 +177,7 @@ const PyramidView = memo(function PyramidView({
   onUnlockLogos,
 }: PyramidViewProps) {
   // 티어별 노드 분류
+  const tier6Nodes = Object.values(PATHOS_NODES).filter(n => n.tier === 6);
   const tier5Nodes = Object.values(ETHOS_NODES).filter(n => n.tier === 5);
   const tier4Nodes = Object.values(PATHOS_NODES).filter(n => n.tier === 4);
   const tier3Nodes = Object.values(ETHOS_NODES).filter(n => n.tier === 3);
@@ -197,6 +199,21 @@ const PyramidView = memo(function PyramidView({
         pyramidLevel={pyramidLevel}
         selectedIdentities={growth.identities}
         onSelectIdentity={onSelectIdentity}
+      />
+
+      {/* 6단계 - 상위 파토스 */}
+      <TierRow
+        tier={6}
+        label="6단계 파토스"
+        requirement="개성 6개 (Lv6) + 1P"
+        nodes={tier6Nodes}
+        type="pathos"
+        growth={growth}
+        skillPoints={skillPoints}
+        pyramidLevel={pyramidLevel}
+        onUnlockNode={onUnlockNode}
+        onSelectChoice={onSelectChoice}
+        pendingSelection={pendingSelection}
       />
 
       {/* 5단계 - 상위 에토스 */}
