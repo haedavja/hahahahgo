@@ -51,6 +51,7 @@ async function run() {
   console.log('\n==================== 상점 통계 ====================');
   console.log(`방문: ${s.shopStats.totalVisits}회`);
   console.log(`총 지출: ${s.shopStats.totalSpent}G`);
+  console.log(`평균 지출: ${(s.shopStats.avgSpentPerVisit ?? 0).toFixed(0)}G/회`);
   console.log(`카드 제거: ${s.shopStats.cardsRemoved}회`);
   console.log(`카드 승급: ${s.shopStats.cardsUpgraded}회`);
   console.log('\n구매한 카드:');
