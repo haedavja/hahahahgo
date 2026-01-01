@@ -1,5 +1,5 @@
-import { test, expect } from '@playwright/test';
-import { resetGameState } from './utils/test-helpers';
+import { test, expect, Page } from '@playwright/test';
+import { resetGameState, waitForMap, selectMapNode, waitForUIStable } from './utils/test-helpers';
 
 /**
  * 상점 시스템 E2E 테스트
@@ -13,20 +13,17 @@ test.describe('상점 시스템', () => {
   /**
    * 상점 화면으로 진입하는 헬퍼
    */
-  async function enterShop(page: any) {
-    // 맵 화면 대기
-    await page.waitForSelector('.map-container, [data-testid="map-container"]', {
-      timeout: 15000,
-    }).catch(() => page.click('button:has-text("시작")'));
+  async function enterShop(page: Page) {
+    // 맵 화면 대기 (중앙 헬퍼 사용)
+    await waitForMap(page);
 
-    // 상점 노드 클릭
-    const shopNode = page.locator(
-      '[data-node-type="shop"], .node-shop, [data-testid="shop-node"]'
-    ).first();
+    // 상점 노드 클릭 (중앙 헬퍼 사용)
+    const shopClicked = await selectMapNode(page, 'shop');
 
-    if (await shopNode.isVisible()) {
-      await shopNode.click();
-      await page.waitForTimeout(500);
+    if (shopClicked) {
+      // 상점 모달이 열릴 때까지 대기 (상태 기반)
+      await page.waitForSelector('[data-testid="shop-modal"]', { timeout: 3000 }).catch(() => {});
+      await waitForUIStable(page);
     }
   }
 
@@ -124,10 +121,8 @@ test.describe('상점 구매', () => {
     await page.goto('/');
     await resetGameState(page);
 
-    // 맵 화면 대기
-    await page.waitForSelector('.map-container, [data-testid="map-container"]', {
-      timeout: 15000,
-    }).catch(() => page.click('button:has-text("시작")'));
+    // 맵 화면 대기 (중앙 헬퍼 사용)
+    await waitForMap(page);
 
     // 현재 골드 확인
     const goldDisplay = page.locator('[data-testid="player-gold"], .player-gold');
@@ -139,11 +134,11 @@ test.describe('상점 구매', () => {
       initialGold = match ? parseInt(match[1]) : 0;
     }
 
-    // 상점 진입
-    const shopNode = page.locator('[data-node-type="shop"], .node-shop').first();
+    // 상점 진입 (중앙 헬퍼 사용)
+    const shopClicked = await selectMapNode(page, 'shop');
 
-    if (await shopNode.isVisible() && initialGold > 0) {
-      await shopNode.click();
+    if (shopClicked && initialGold > 0) {
+      await page.waitForSelector('[data-testid="shop-modal"]', { timeout: 3000 }).catch(() => {});
 
       // 구매 가능한 아이템 클릭
       const affordableItem = page.locator(
@@ -161,8 +156,8 @@ test.describe('상점 구매', () => {
         if (await buyBtn.isVisible()) {
           await buyBtn.click();
 
-          // 골드가 차감되었는지 확인 (상점 닫은 후)
-          await page.waitForTimeout(500);
+          // 골드 차감 대기 (상태 기반)
+          await waitForUIStable(page);
         }
       }
     }
