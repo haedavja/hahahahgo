@@ -51,11 +51,13 @@ interface NodePosition {
 interface PyramidConnectionsProps {
   containerRef: React.RefObject<HTMLDivElement | null>;
   unlockedNodes: string[];
+  scale?: number; // 컨테이너 scale 값 (좌표 보정용)
 }
 
 export const PyramidConnections = memo(function PyramidConnections({
   containerRef,
   unlockedNodes,
+  scale = 1,
 }: PyramidConnectionsProps) {
   const [positions, setPositions] = useState<Record<string, NodePosition>>({});
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
@@ -88,18 +90,19 @@ export const PyramidConnections = memo(function PyramidConnections({
       const element = container.querySelector(`[data-node-id="${nodeId}"]`);
       if (element) {
         const rect = element.getBoundingClientRect();
-        // 컨테이너 기준 상대 좌표 계산
+        // 컨테이너 기준 상대 좌표 계산 (scale 보정 적용)
+        // getBoundingClientRect()는 scale된 좌표를 반환하므로 역보정 필요
         newPositions[nodeId] = {
-          x: rect.left - containerRect.left + rect.width / 2,
-          y: rect.top - containerRect.top + rect.height / 2,
-          width: rect.width,
-          height: rect.height,
+          x: (rect.left - containerRect.left + rect.width / 2) / scale,
+          y: (rect.top - containerRect.top + rect.height / 2) / scale,
+          width: rect.width / scale,
+          height: rect.height / scale,
         };
       }
     });
 
     setPositions(newPositions);
-  }, [containerRef]);
+  }, [containerRef, scale]);
 
   // 위치 측정 (초기 + 리사이즈 + 노드 변경)
   useEffect(() => {

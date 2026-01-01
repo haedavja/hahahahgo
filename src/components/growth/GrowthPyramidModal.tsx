@@ -95,8 +95,8 @@ export const GrowthPyramidModal = memo(function GrowthPyramidModal({
           onUnlockLogos={unlockLogos}
         />
 
-        {/* 닫기 버튼 */}
-        <div style={{ display: 'flex', gap: '10px', marginTop: SPACING.xl }}>
+        {/* 닫기 버튼 - 하단 중앙 */}
+        <div style={{ display: 'flex', justifyContent: 'center', marginTop: SPACING.xl }}>
           <button className="btn" onClick={onClose}>닫기</button>
         </div>
       </div>
@@ -198,6 +198,7 @@ const PyramidView = memo(function PyramidView({
       <PyramidConnections
         containerRef={containerRef}
         unlockedNodes={growth.unlockedNodes}
+        scale={1.2}
       />
       {/* 로고스 (정점 위) */}
       <LogosSection
