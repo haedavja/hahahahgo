@@ -41,13 +41,22 @@ export const TierRow = memo(function TierRow({
   const colors = COLORS.tier[tier as TierNumber];
   const isLocked = pyramidLevel < tier;
 
+  // 이 티어에서 해금된 노드 수 계산
+  const unlockedCount = nodes.filter(node => growth.unlockedNodes.includes(node.id)).length;
+
   return (
-    <div style={{ marginBottom: SPACING.xl, opacity: isLocked ? 0.5 : 1 }}>
+    <div style={{
+      marginBottom: SPACING.xl,
+      position: 'relative',
+      zIndex: 1,
+    }}>
       {/* 티어 헤더 */}
       <TierHeader
         label={label}
         requirement={requirement}
         isLocked={isLocked}
+        unlockedCount={unlockedCount}
+        totalCount={nodes.length}
         color={colors.text}
       />
 
@@ -69,6 +78,7 @@ export const TierRow = memo(function TierRow({
             skillPoints={skillPoints}
             isLocked={isLocked}
             isPending={pendingSelection?.nodeId === node.id}
+            hasPendingSelection={pendingSelection !== null}
             colors={colors}
             nodeCount={nodes.length}
             onUnlockNode={onUnlockNode}
@@ -87,6 +97,8 @@ interface TierHeaderProps {
   label: string;
   requirement: string;
   isLocked: boolean;
+  unlockedCount: number;
+  totalCount: number;
   color: string;
 }
 
@@ -94,18 +106,33 @@ const TierHeader = memo(function TierHeader({
   label,
   requirement,
   isLocked,
+  unlockedCount,
+  totalCount,
   color,
 }: TierHeaderProps) {
   return (
     <div style={{
       fontSize: FONT_SIZE.md,
-      color,
+      color: isLocked ? COLORS.text.muted : color,
       marginBottom: SPACING.sm,
       display: 'flex',
       alignItems: 'center',
       gap: SPACING.sm,
     }}>
       <span style={{ fontWeight: 'bold' }}>{label}</span>
+      {/* 해금 진행 상태 */}
+      {unlockedCount > 0 && (
+        <span style={{
+          fontSize: FONT_SIZE.xs,
+          padding: `1px ${SPACING.sm}`,
+          background: 'rgba(134, 239, 172, 0.2)',
+          borderRadius: BORDER_RADIUS.sm,
+          color: COLORS.success,
+        }}>
+          {unlockedCount}/{totalCount} 해금
+        </span>
+      )}
+      {/* 접근 조건 */}
       <span style={{
         fontSize: FONT_SIZE.xs,
         padding: `1px ${SPACING.sm}`,
@@ -113,7 +140,7 @@ const TierHeader = memo(function TierHeader({
         borderRadius: BORDER_RADIUS.sm,
         color: isLocked ? COLORS.danger : COLORS.text.secondary,
       }}>
-        {isLocked ? '🔒 ' : '✓ '}{requirement}
+        {isLocked ? '🔒 ' : ''}{requirement}
       </span>
       <span style={{ fontSize: FONT_SIZE.xs, color: COLORS.text.muted }}>검⚔ vs 총🔫</span>
     </div>
@@ -130,6 +157,7 @@ interface NodeCardProps {
   skillPoints: number;
   isLocked: boolean;
   isPending: boolean;
+  hasPendingSelection: boolean;
   colors: { bg: string; border: string; text: string };
   nodeCount: number;
   onUnlockNode: (nodeId: string, type: 'ethos' | 'pathos') => void;
@@ -143,6 +171,7 @@ const NodeCard = memo(function NodeCard({
   skillPoints,
   isLocked,
   isPending,
+  hasPendingSelection,
   colors,
   nodeCount,
   onUnlockNode,
@@ -152,7 +181,8 @@ const NodeCard = memo(function NodeCard({
 
   // 피라미드 트리 해금 조건 확인
   const unlockStatus = getNodeUnlockStatus(node.id, growth);
-  const canUnlock = !isUnlocked && unlockStatus.canUnlock && skillPoints >= 1;
+  // 선택 대기 중인 노드가 있으면 해금 불가
+  const canUnlock = !isUnlocked && unlockStatus.canUnlock && skillPoints >= 1 && !hasPendingSelection;
 
   const selectedChoice = isUnlocked
     ? node.choices.find(choiceId =>
@@ -231,6 +261,20 @@ const NodeCard = memo(function NodeCard({
           >
             1P 해금
           </button>
+        )}
+
+        {/* 선택 대기 중 메시지 */}
+        {!isUnlocked && unlockStatus.canUnlock && hasPendingSelection && (
+          <div style={{
+            fontSize: FONT_SIZE.xs,
+            color: COLORS.primary,
+            padding: `${SPACING.xs} ${SPACING.sm}`,
+            background: 'rgba(251, 191, 36, 0.1)',
+            borderRadius: BORDER_RADIUS.sm,
+            marginTop: SPACING.xs,
+          }}>
+            ⏳ 선택 완료 후 해금 가능
+          </div>
         )}
 
         {/* 해금 불가 사유 표시 */}

@@ -239,6 +239,9 @@ export const createGrowthActions: SliceCreator = (set, get) => ({
       if (growth.unlockedNodes.includes(nodeId)) return state;
       if (growth.skillPoints < 1) return state;
 
+      // 선택 대기 중인 노드가 있으면 해금 불가
+      if (growth.pendingNodeSelection) return state;
+
       // 피라미드 트리 해금 조건 확인
       const unlockCheck = canUnlockNode(nodeId, growth.traitCounts || {}, growth.unlockedNodes);
       // 알려지지 않은 노드는 피라미드 레벨 기반 체크로 폴백 (테스트 호환성)

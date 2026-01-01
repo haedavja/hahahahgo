@@ -32,7 +32,11 @@ export const TraitEthosSection = memo(function TraitEthosSection({
   const colors = COLORS.tier[1];
 
   return (
-    <div style={{ marginBottom: SPACING.xl }}>
+    <div style={{
+      marginBottom: SPACING.xl,
+      position: 'relative',
+      zIndex: 1,
+    }}>
       {/* 티어 헤더 */}
       <div style={{
         fontSize: FONT_SIZE.md,
