@@ -63,7 +63,7 @@ export const PathosBar = memo(function PathosBar() {
 
   // 파토스 아이템 스타일
   const getItemStyle = useCallback((isHovered: boolean): CSSProperties => ({
-    fontSize: '1.2rem',
+    fontSize: '12px',
     padding: '4px 8px',
     display: 'flex',
     alignItems: 'center',
@@ -76,7 +76,6 @@ export const PathosBar = memo(function PathosBar() {
     borderRadius: '6px',
     color: '#f472b6',
     fontWeight: 'bold',
-    fontSize: '12px',
   }), []);
 
   // 툴팁 스타일

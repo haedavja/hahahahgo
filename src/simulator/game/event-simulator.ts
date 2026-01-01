@@ -20,6 +20,7 @@ export interface EventChoice {
   label: string;
   cost?: Record<string, number>;
   rewards?: Record<string, number>;
+  penalties?: Record<string, number>;
   statRequirement?: { [stat: string]: number };
   nextStage?: string;
   nextEvent?: string;
@@ -343,7 +344,7 @@ export class EventSimulator {
     }
 
     // 패널티 적용 (penalties 필드)
-    const penalties = (choice as any).penalties;
+    const penalties = choice.penalties;
     if (penalties) {
       for (const [resource, amount] of Object.entries(penalties)) {
         if (resource === 'card') continue; // 저주 카드 등 별도 처리
