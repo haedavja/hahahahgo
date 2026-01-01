@@ -1,6 +1,9 @@
 /**
  * @file relic-system.ts
  * @description 상징(Relic) 시스템 - 패시브 효과, 트리거 기반 능력
+ *
+ * @deprecated 이 파일은 V1 상징 시스템입니다. 새로운 코드에서는 relic-system-v2.ts를 사용하세요.
+ * battle-engine.ts에서만 사용 중이며, 추후 마이그레이션 예정입니다.
  */
 
 import type { SimPlayerState, SimEnemyState, BattleResult, TokenState } from './types';

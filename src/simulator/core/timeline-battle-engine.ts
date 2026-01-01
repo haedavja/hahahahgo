@@ -46,11 +46,13 @@ import {
   checkRevive,
   calculateEnergyModifier,
   calculateSpeedModifier,
+  enforceMinFinesse,
 } from './token-system';
 import { getRelicSystemV2, RelicSystemV2 } from './relic-system-v2';
 import {
   getAnomalySystem,
   activateGameAnomaly,
+  activateMultipleGameAnomalies,
   clearGameAnomalies,
   isEtherBlocked,
   getEnergyReduction,
@@ -64,6 +66,8 @@ import {
   getChainIsolationLevel,
   getTraitSilenceLevel,
   getFinesseBlockLevel,
+  getActiveAnomalyDetailedSummary,
+  getActiveAnomalyCount,
 } from './anomaly-system';
 import { getLogger } from './logger';
 import { RespondAI, type ResponseDecision, type TimelineAnalysis } from '../ai/respond-ai';
@@ -94,6 +98,15 @@ import {
   type EtherGainResult,
   type BurstResult,
 } from './combo-ether-system';
+import {
+  createEnemyAI,
+  getPatternForEnemy,
+  getPatternModifierByHp,
+  selectBossCards,
+  getBossPhase,
+  checkBossSpecialActions,
+  BOSS_PATTERNS,
+} from '../ai/enemy-patterns';
 
 const log = getLogger('TimelineBattleEngine');
 
@@ -156,6 +169,8 @@ export class TimelineBattleEngine {
   private enhancedCards: Record<string, GameCard> = {};
   /** 현재 전투의 카드 강화 레벨 */
   private cardEnhancements: Record<string, number> = {};
+  /** 보스 페이즈 변경 추적용 */
+  private lastBossPhase: string | null = null;
 
   constructor(config: Partial<BattleEngineConfig> = {}) {
     this.config = { ...DEFAULT_CONFIG, ...config };
@@ -202,17 +217,20 @@ export class TimelineBattleEngine {
    * @param playerDeck 플레이어 덱
    * @param playerRelics 플레이어 상징
    * @param enemy 적 상태
-   * @param anomalyId 이변 ID
+   * @param anomalyId 이변 ID 또는 다중 이변 설정 (보스 전투용)
    * @param cardEnhancements 카드 강화 레벨 (카드ID -> 강화레벨)
    */
   runBattle(
     playerDeck: string[],
     playerRelics: string[],
     enemy: EnemyState,
-    anomalyId?: string,
+    anomalyId?: string | { id: string; level?: number }[],
     cardEnhancements?: Record<string, number>
   ): BattleResult {
     this.events = [];
+
+    // 보스 페이즈 추적 초기화
+    this.lastBossPhase = null;
 
     // 카드 강화 초기화
     this.cardEnhancements = cardEnhancements || {};
@@ -231,16 +249,36 @@ export class TimelineBattleEngine {
     }
 
     // 이변 초기화 (기존 시뮬레이터 이변)
+    // mapRisk 0-4 → anomalyLevel 1-5
+    const baseAnomalyLevel = Math.min(5, Math.max(1, Math.floor(this.config.mapRisk) + 1));
+    let primaryAnomalyId: string | undefined;
+
     if (this.config.enableAnomalies && anomalyId) {
       const anomalySystem = getAnomalySystem();
       anomalySystem.clear();
-      anomalySystem.activateAnomaly(anomalyId);
-
-      // 게임 데이터 이변 활성화 (mapRisk 기반 레벨 계산)
       clearGameAnomalies();
-      // mapRisk 0-4 → anomalyLevel 1-5
-      const anomalyLevel = Math.min(5, Math.max(1, Math.floor(this.config.mapRisk) + 1));
-      activateGameAnomaly(anomalyId, anomalyLevel);
+
+      if (typeof anomalyId === 'string') {
+        // 단일 이변 (일반 전투)
+        primaryAnomalyId = anomalyId;
+        anomalySystem.activateAnomaly(anomalyId);
+        activateGameAnomaly(anomalyId, baseAnomalyLevel);
+      } else if (Array.isArray(anomalyId)) {
+        // 다중 이변 (보스 전투)
+        const anomalyConfigs = anomalyId.map(a => ({
+          id: a.id,
+          level: a.level ?? baseAnomalyLevel
+        }));
+
+        // 첫 번째 이변을 기본 시뮬레이터 이변으로 설정
+        if (anomalyConfigs.length > 0) {
+          primaryAnomalyId = anomalyConfigs[0].id;
+          anomalySystem.activateAnomaly(anomalyConfigs[0].id);
+        }
+
+        // 게임 데이터 이변 다중 활성화
+        activateMultipleGameAnomalies(anomalyConfigs);
+      }
     }
 
     // 전투 상태 초기화 (적 상태 필드 보장)
@@ -256,7 +294,7 @@ export class TimelineBattleEngine {
       turn: 0,
       phase: 'select',
       timeline: [],
-      anomalyId,
+      anomalyId: primaryAnomalyId,
       battleLog: [],
       playerDamageDealt: 0,
       enemyDamageDealt: 0,
@@ -264,6 +302,17 @@ export class TimelineBattleEngine {
       tokenUsage: {},
       comboUsageCount: {},
     };
+
+    // 이변 효과 요약 로깅 (전투 시작 시)
+    if (this.config.enableAnomalies) {
+      const anomalyCount = getActiveAnomalyCount();
+      if (anomalyCount > 0) {
+        const anomalySummary = getActiveAnomalyDetailedSummary();
+        for (const line of anomalySummary) {
+          state.battleLog.push(line);
+        }
+      }
+    }
 
     // 전투 시작 트리거
     this.emitEvent('battle_start', 0, { playerHp: player.hp, enemyHp: enemy.hp });
@@ -388,6 +437,7 @@ export class TimelineBattleEngine {
             cardId: card.id,
             owner: 'player',
             position,
+            sp: position,  // 게임과 호환되는 sp 필드
             crossed: false,
             executed: false,
           });
@@ -477,6 +527,11 @@ export class TimelineBattleEngine {
     state.player.tokens = processTurnEnd(state.player.tokens);
     state.enemy.tokens = processTurnEnd(state.enemy.tokens);
 
+    // 배틀왈츠 Lv1: 기교 최소 1 유지
+    if (state.growthBonuses?.logosEffects?.minFinesse) {
+      state.player.tokens = enforceMinFinesse(state.player.tokens, 1);
+    }
+
     // 턴 종료 상징 트리거
     if (this.config.enableRelics) {
       const turnEndEffects = this.relicSystem.processTurnEnd(state.player, state.enemy, state.turn);
@@ -547,6 +602,7 @@ export class TimelineBattleEngine {
         cardId: card.id,
         owner: 'player',
         position,
+        sp: position,  // 게임과 호환되는 sp 필드
         crossed: false,
         executed: false,
       });
@@ -572,6 +628,7 @@ export class TimelineBattleEngine {
         cardId: card.id,
         owner: 'enemy',
         position,
+        sp: position,  // 게임과 호환되는 sp 필드
         crossed: false,
         executed: false,
       });
@@ -582,7 +639,7 @@ export class TimelineBattleEngine {
     state.timeline.sort((a, b) => a.position - b.position);
   }
 
-  // ==================== 카드 선택 (개선된 AI) ====================
+  // ==================== 카드 선택 (개선된 AI - v2) ====================
 
   private selectPlayerCards(state: GameBattleState): GameCard[] {
     const selected: GameCard[] = [];
@@ -601,11 +658,21 @@ export class TimelineBattleEngine {
     const playerHpRatio = state.player.hp / state.player.maxHp;
     const enemyHpRatio = state.enemy.hp / state.enemy.maxHp;
     const isInDanger = playerHpRatio < 0.35;
+    const isBossFight = state.enemy.isBoss === true;
+    const isLowEnemyHp = enemyHpRatio < 0.25;
     const canKillEnemy = this.estimateDamageOutput(handCards, state) >= state.enemy.hp;
     const needsDefense = isInDanger && !canKillEnemy;
 
+    // 에테르 상태 분석
+    const currentEther = state.player.ether || 0;
+    const nearBurst = currentEther >= 80;  // 에테르 버스트 가까움
+    const canBurst = currentEther >= 100;
+
     // 포커 조합 분석 (카드 값 기준)
     const comboAnalysis = this.analyzePokerCombos(handCards);
+
+    // 크로스 보너스 분석
+    const crossBonusCards = handCards.filter(c => c.crossBonus);
 
     // 카드 점수 계산
     const scoredCards = handCards.map(card => {
@@ -616,130 +683,199 @@ export class TimelineBattleEngine {
       const totalDamage = (card.damage || 0) * hits;
       const totalBlock = card.block || 0;
 
-      // 2. 상황별 점수 조정
-      if (needsDefense) {
-        // 위험 상황: 방어 우선
-        score += totalBlock * 3;
-        score += totalDamage * 0.5;
-
-        // 힐 효과 있는 카드 높은 점수
-        if (card.tags?.includes('heal') || card.effects?.some((e: any) => e.type === 'heal')) {
-          score += 50;
+      // 2. 보스전 특화 전략
+      if (isBossFight) {
+        // 보스전에서는 공격 가중치 증가
+        if (canKillEnemy || isLowEnemyHp) {
+          // 마무리 가능: 공격 최우선
+          score += totalDamage * 3;
+          score += totalBlock * 0.2;
+        } else if (needsDefense) {
+          // 위험하지만 방어도 필요
+          score += totalBlock * 2;
+          score += totalDamage * 1.0;
+        } else {
+          // 보스전 일반 상황: 공격 우선
+          score += totalDamage * 1.8;
+          score += totalBlock * 0.6;
         }
-      } else if (canKillEnemy) {
-        // 킬 가능: 공격 우선
-        score += totalDamage * 2;
-        score += totalBlock * 0.3;
+
+        // 보스전에서 다단히트 카드 높은 가치
+        if (hits > 1) {
+          score += hits * 10;
+        }
+
+        // 보스전에서 debuff 카드 가치 상승
+        if (card.appliedTokens) {
+          for (const [token, value] of Object.entries(card.appliedTokens)) {
+            if (token === 'vulnerable' || token === 'weak' || token === 'burn') {
+              score += (value as number) * 10;
+            }
+          }
+        }
       } else {
-        // 일반 상황: 균형
-        score += totalDamage * 1.2;
-        score += totalBlock * 0.8;
+        // 일반전 기존 로직
+        if (needsDefense) {
+          score += totalBlock * 3;
+          score += totalDamage * 0.5;
+          if (card.tags?.includes('heal') || card.effects?.some((e: any) => e.type === 'heal')) {
+            score += 50;
+          }
+        } else if (canKillEnemy) {
+          score += totalDamage * 2;
+          score += totalBlock * 0.3;
+        } else {
+          score += totalDamage * 1.2;
+          score += totalBlock * 0.8;
+        }
       }
 
-      // 3. 속도 점수 (빠른 카드 선호)
-      const speedCost = card.speedCost || 5;
-      score += (10 - Math.min(10, speedCost)) * 2; // 빠를수록 높은 점수
+      // 3. 크로스 보너스 점수 (매우 중요)
+      if (card.crossBonus) {
+        const cb = card.crossBonus;
+        // 현재 핸드에 크로스 조건을 충족하는 카드가 있는지 확인
+        const hasCrossPartner = handCards.some(other => {
+          if (other.id === card.id) return false;
+          // 조건 확인: 숫자/문양/카테고리 일치
+          if (cb.condition === 'sameNumber') {
+            return this.getCardValue(other) === this.getCardValue(card);
+          }
+          if (cb.condition === 'sameSuit') {
+            return (other as any).suit === (card as any).suit;
+          }
+          if (cb.condition === 'sameCategory') {
+            return other.cardCategory === card.cardCategory;
+          }
+          return false;
+        });
 
-      // 4. 버프/디버프 카드 점수
+        if (hasCrossPartner) {
+          // 크로스 보너스 발동 가능! 높은 점수
+          const bonusDamage = cb.damage || 0;
+          const bonusBlock = cb.block || 0;
+          score += (bonusDamage + bonusBlock) * 2;
+          score += 30; // 크로스 시너지 기본 보너스
+        }
+      }
+
+      // 크로스 파트너인 경우에도 점수 추가
+      for (const crossCard of crossBonusCards) {
+        if (crossCard.id === card.id) continue;
+        const cb = crossCard.crossBonus!;
+        const isPartner = (() => {
+          if (cb.condition === 'sameNumber') {
+            return this.getCardValue(card) === this.getCardValue(crossCard);
+          }
+          if (cb.condition === 'sameSuit') {
+            return (card as any).suit === (crossCard as any).suit;
+          }
+          if (cb.condition === 'sameCategory') {
+            return card.cardCategory === crossCard.cardCategory;
+          }
+          return false;
+        })();
+        if (isPartner) {
+          score += 25; // 크로스 파트너 보너스
+        }
+      }
+
+      // 4. 에테르/버스트 전략
+      if (nearBurst || canBurst) {
+        // 에테르 버스트 가까우면 에테르 소비 카드 우선
+        if (card.tags?.includes('ether') || card.special === 'etherBurst') {
+          score += 40;
+        }
+      } else {
+        // 에테르 축적을 위한 포커 조합 보너스 강화
+        const cardValue = this.getCardValue(card);
+        if (cardValue) {
+          const sameValueCount = comboAnalysis.valueCount[cardValue] || 0;
+          if (sameValueCount >= 2) {
+            score += (sameValueCount - 1) * 25; // 페어, 트리플 보너스 강화
+          }
+          if (comboAnalysis.straightPossible && comboAnalysis.straightCards.includes(card.id)) {
+            score += 30;
+          }
+        }
+      }
+
+      // 5. 속도 점수 (빠른 카드 선호)
+      const speedCost = card.speedCost || 5;
+      if (isBossFight) {
+        // 보스전에서 속도 더 중요
+        score += (12 - Math.min(12, speedCost)) * 3;
+      } else {
+        score += (10 - Math.min(10, speedCost)) * 2;
+      }
+
+      // 6. 버프/디버프 카드 점수
       if (card.effects && Array.isArray(card.effects)) {
         for (const effect of card.effects) {
-          // 적에게 취약 부여
           if (effect.token === 'vulnerable' || effect.token === 'weak') {
-            score += 15;
+            score += isBossFight ? 25 : 15;
           }
-          // 자신에게 힘 부여
           if (effect.token === 'strength' && effect.target === 'self') {
-            score += 20;
+            score += isBossFight ? 30 : 20;
           }
         }
       }
 
-      // 5. 포커 조합 보너스 (같은 값의 카드)
-      const cardValue = this.getCardValue(card);
-      if (cardValue) {
-        const sameValueCount = comboAnalysis.valueCount[cardValue] || 0;
-        if (sameValueCount >= 2) {
-          score += (sameValueCount - 1) * 15; // 페어, 트리플 등 보너스
-        }
-        // 스트레이트 가능성
-        if (comboAnalysis.straightPossible && comboAnalysis.straightCards.includes(card.id)) {
-          score += 20;
-        }
-      }
-
-      // 6. 특수 효과 점수
+      // 7. 특수 효과 점수
       if (card.type === 'attack') {
-        // 관통 (방어력 무시)
         if (card.tags?.includes('pierce') || card.ignoreBlock) {
-          score += 15;
+          score += isBossFight ? 25 : 15;
         }
-        // 다중 히트
         if (hits > 1) {
           score += hits * 5;
         }
       }
 
-      // 7. 특성 시너지 점수
+      // 8. 특성 시너지 점수
       if (card.traits && card.traits.length > 0) {
-        // 연계(chain) 특성: 후속(followup) 카드가 핸드에 있으면 보너스
+        // 연계(chain) 특성
         if (card.traits.includes('chain')) {
           const hasFollowup = handCards.some(c =>
             c.traits?.includes('followup') || c.traits?.includes('finisher')
           );
           if (hasFollowup) {
-            score += 25; // 연계-후속 시너지
+            score += isBossFight ? 35 : 25;
           }
         }
 
-        // 후속(followup) 특성: 연계(chain) 카드가 핸드에 있으면 보너스
+        // 후속(followup) 특성
         if (card.traits.includes('followup') || card.traits.includes('finisher')) {
           const hasChain = handCards.some(c => c.traits?.includes('chain'));
           if (hasChain) {
-            score += 20; // 후속-연계 시너지
+            score += isBossFight ? 30 : 20;
           }
-          // 이미 연계 준비 상태면 더 높은 점수
           if (hasToken(state.player.tokens, 'chain_ready')) {
-            score += 30; // 연계 발동 보장
+            score += 40;
           }
         }
 
-        // 협동(cooperation) 특성: 같은 actionCost 카드가 많으면 보너스
+        // 협동(cooperation) 특성
         if (card.traits.includes('cooperation')) {
           const sameActionCost = handCards.filter(c =>
             c.actionCost === card.actionCost && c.id !== card.id
           ).length;
-          score += sameActionCost * 10; // 같은 비용 카드 많으면 콤보 가능성
+          score += sameActionCost * 12;
         }
 
-        // 강골(strongbone), 파괴자(destroyer) 등 공격 증폭 특성
-        if (card.traits.includes('strongbone')) {
-          score += 15; // 25% 증폭
-        }
-        if (card.traits.includes('destroyer')) {
-          score += 20; // 50% 증폭
-        }
-        if (card.traits.includes('slaughter')) {
-          score += 25; // 75% 증폭
-        }
-        if (card.traits.includes('pinnacle')) {
-          score += 35; // 2.5배 증폭
-        }
-
-        // 신속함(swift) - 빠른 공격
-        if (card.traits.includes('swift')) {
-          score += 10;
-        }
-
-        // 단련(training) - 힘 축적
-        if (card.traits.includes('training')) {
-          score += 12;
-        }
+        // 공격 증폭 특성
+        if (card.traits.includes('strongbone')) score += 15;
+        if (card.traits.includes('destroyer')) score += 20;
+        if (card.traits.includes('slaughter')) score += 30;
+        if (card.traits.includes('pinnacle')) score += 45;
+        if (card.traits.includes('swift')) score += 12;
+        if (card.traits.includes('training')) score += 15;
       }
 
-      // 8. 에너지 효율 (코스트 대비 효과)
+      // 9. 에너지 효율 (코스트 대비 효과)
       const cost = card.actionCost || 1;
       if (cost > 0) {
-        score = score / Math.sqrt(cost); // 코스트가 높을수록 효율 감소
+        // 보스전에서는 효율보다 원판 효과 우선
+        const efficiencyPenalty = isBossFight ? Math.pow(cost, 0.3) : Math.sqrt(cost);
+        score = score / efficiencyPenalty;
       }
 
       return { card, score, cost };
@@ -748,19 +884,47 @@ export class TimelineBattleEngine {
     // 점수순 정렬
     scoredCards.sort((a, b) => b.score - a.score);
 
-    // 에너지 내에서 최적 조합 선택
+    // 크로스 보너스 최적화: 쌍으로 선택
+    const selectedIds = new Set<string>();
     for (const { card, cost } of scoredCards) {
       if (cardsSelected >= maxCards) break;
-      if (cost <= energyLeft) {
-        selected.push(card);
-        energyLeft -= cost;
-        cardsSelected++;
+      if (cost > energyLeft) continue;
+      if (selectedIds.has(card.id)) continue;
+
+      selected.push(card);
+      selectedIds.add(card.id);
+      energyLeft -= cost;
+      cardsSelected++;
+
+      // 크로스 파트너가 있으면 함께 선택 시도
+      if (card.crossBonus) {
+        const cb = card.crossBonus;
+        const partner = scoredCards.find(({ card: other }) => {
+          if (selectedIds.has(other.id)) return false;
+          if ((other.actionCost || 1) > energyLeft) return false;
+          if (cb.condition === 'sameNumber') {
+            return this.getCardValue(other) === this.getCardValue(card);
+          }
+          if (cb.condition === 'sameSuit') {
+            return (other as any).suit === (card as any).suit;
+          }
+          if (cb.condition === 'sameCategory') {
+            return other.cardCategory === card.cardCategory;
+          }
+          return false;
+        });
+
+        if (partner && cardsSelected < maxCards) {
+          selected.push(partner.card);
+          selectedIds.add(partner.card.id);
+          energyLeft -= partner.cost;
+          cardsSelected++;
+        }
       }
     }
 
     // 최소 1장은 선택 (에너지가 충분하다면)
     if (selected.length === 0 && handCards.length > 0) {
-      // 가장 저렴한 카드 선택
       const cheapest = handCards
         .filter(c => (c.actionCost || 1) <= state.player.energy)
         .sort((a, b) => (a.actionCost || 1) - (b.actionCost || 1))[0];
@@ -884,6 +1048,51 @@ export class TimelineBattleEngine {
 
   private selectEnemyCards(state: GameBattleState): GameCard[] {
     const selected: GameCard[] = [];
+
+    // 보스 페이즈 시스템 사용 (보스인 경우)
+    if (state.enemy.isBoss && state.enemy.id) {
+      // 보스 패턴이 정의되어 있는 경우
+      if (BOSS_PATTERNS[state.enemy.id]) {
+        const hpRatio = state.enemy.hp / state.enemy.maxHp;
+        const playerHpRatio = state.player.hp / state.player.maxHp;
+
+        // 페이즈 변경 감지
+        const currentPhase = getBossPhase(state.enemy.id, hpRatio);
+        const phaseChanged = this.lastBossPhase !== null && this.lastBossPhase !== currentPhase;
+        if (phaseChanged) {
+          log.info(`보스 페이즈 변경: ${this.lastBossPhase} → ${currentPhase}`);
+          state.battleLog.push(`⚠️ 보스 페이즈 변경: ${currentPhase}`);
+        }
+        this.lastBossPhase = currentPhase;
+
+        // 보스 특수 행동 체크
+        const specialActions = checkBossSpecialActions(state.enemy.id, {
+          hpRatio,
+          turn: state.turn,
+          playerHpRatio,
+          phaseChanged,
+        });
+
+        // 특수 행동 로그
+        for (const action of specialActions) {
+          log.info(`보스 특수 행동: ${action.name} - ${action.effect.description}`);
+          state.battleLog.push(`⚡ ${action.name}: ${action.effect.description}`);
+        }
+
+        // 보스 AI 카드 선택
+        const decision = selectBossCards(
+          state.enemy.id,
+          state.enemy,
+          state.player,
+          this.cards,
+          state.turn
+        );
+
+        return decision.selectedCards;
+      }
+    }
+
+    // 일반 적 AI 로직
     const cardsToPlay = state.enemy.cardsPerTurn;
 
     // 가용 카드 목록 생성
@@ -903,70 +1112,18 @@ export class TimelineBattleEngine {
     const enemyHpRatio = state.enemy.hp / state.enemy.maxHp;
     const playerHpRatio = state.player.hp / state.player.maxHp;
 
-    // 카드 점수 계산
-    const scoredCards = availableCards.map(card => {
-      let score = 0;
+    // EnemyAI 클래스 사용 (개선된 AI)
+    // 기본 패턴 결정
+    let pattern = getPatternForEnemy(state.enemy.id || 'unknown');
 
-      // 공격 카드 점수
-      if (card.damage && card.damage > 0) {
-        const hits = card.hits || 1;
-        const totalDamage = card.damage * hits;
+    // HP에 따른 패턴 조정
+    pattern = getPatternModifierByHp(pattern, enemyHpRatio);
 
-        // 플레이어 체력이 낮으면 공격 우선
-        if (playerHpRatio < 0.3) {
-          score += totalDamage * 2;
-        } else {
-          score += totalDamage;
-        }
+    // AI 생성 및 카드 선택
+    const ai = createEnemyAI(this.cards, pattern);
+    const decision = ai.selectCards(state.enemy, state.player, state.enemy.deck, cardsToPlay);
 
-        // 플레이어 방어력이 낮으면 공격 효과적
-        if (state.player.block < totalDamage) {
-          score += 10;
-        }
-      }
-
-      // 방어 카드 점수
-      if (card.block && card.block > 0) {
-        // 적 체력이 낮으면 방어 우선
-        if (enemyHpRatio < 0.4) {
-          score += card.block * 1.5;
-        } else {
-          score += card.block * 0.5;
-        }
-      }
-
-      // 토큰 부여 카드 보너스
-      if (card.appliedTokens && card.appliedTokens.length > 0) {
-        score += 5;
-      }
-
-      // 특수 효과 카드 보너스
-      if (card.special) {
-        score += 8;
-      }
-
-      // 속도가 빠른 카드 약간 선호
-      const speed = card.speedCost || 5;
-      score += (15 - speed) * 0.5;
-
-      return { card, score };
-    });
-
-    // 점수순 정렬 후 상위 카드 선택
-    scoredCards.sort((a, b) => b.score - a.score);
-
-    // 다양성을 위해 약간의 랜덤성 추가
-    for (let i = 0; i < Math.min(cardsToPlay, scoredCards.length); i++) {
-      // 30% 확률로 차순위 카드 선택 (다양성)
-      if (i > 0 && Math.random() < 0.3 && scoredCards.length > i + 1) {
-        const temp = scoredCards[i];
-        scoredCards[i] = scoredCards[i + 1];
-        scoredCards[i + 1] = temp;
-      }
-      selected.push(scoredCards[i].card);
-    }
-
-    return selected;
+    return decision.selectedCards;
   }
 
   // ==================== 타임라인 배치 ====================
@@ -994,25 +1151,51 @@ export class TimelineBattleEngine {
             break;
           case 'leisure':
             // 여유 특성: 카드 속도의 1~2배 범위 내 최적 위치 선택 (AI)
-            // 적 카드와 교차할 수 있는 위치를 우선
+            // 교차 보너스가 있거나 적 공격 카드와 교차할 수 있는 위치를 우선
             const cardBaseSp = card.speedCost || 5;
             const leisureMin = cardBaseSp;
             const leisureMax = cardBaseSp * 2;
             const leisureDefault = Math.floor((leisureMin + leisureMax) / 2);
 
             if (state && state.timeline.length > 0) {
-              const enemyPositions = state.timeline
+              // 카드에 교차 보너스가 있는지 확인
+              const hasCrossBonus = !!card.crossBonus;
+
+              // 적 카드 정보 수집 (공격 카드 위치 우선)
+              const enemyCards = state.timeline
                 .filter(tc => tc.owner === 'enemy')
-                .map(tc => tc.position);
+                .map(tc => {
+                  const enemyCard = this.cards[tc.cardId];
+                  return {
+                    position: tc.position,
+                    isAttack: enemyCard?.type === 'attack' && (enemyCard?.damage || 0) > 0,
+                  };
+                });
+
               // 교차 가능한 위치 찾기 (카드 속도 ~ 2배 범위)
               let bestPos = leisureDefault;
+              let foundCross = false;
+
               for (let p = leisureMin; p <= leisureMax; p++) {
-                if (enemyPositions.includes(p)) {
-                  bestPos = p;
-                  break;
+                const enemyAtPos = enemyCards.find(e => e.position === p);
+                if (enemyAtPos) {
+                  // 교차 보너스가 있으면 무조건 교차
+                  if (hasCrossBonus) {
+                    bestPos = p;
+                    foundCross = true;
+                    break;
+                  }
+                  // 적 공격 카드와 교차하면 선공 효과
+                  if (enemyAtPos.isAttack) {
+                    bestPos = p;
+                    foundCross = true;
+                    break;
+                  }
                 }
               }
-              position = bestPos;
+
+              // 교차할 이유가 없으면 기본 위치 사용
+              position = foundCross ? bestPos : leisureDefault;
             } else {
               position = leisureDefault;
             }
@@ -1039,15 +1222,26 @@ export class TimelineBattleEngine {
 
   /**
    * 무리(strain) 특성 AI 결정: 행동력을 사용해 속도를 앞당길지 결정
+   * 개선: 교차 보너스가 있거나 적 공격 카드와 교차할 때만 앞당김
    */
   private applyStrainTrait(card: GameCard, basePosition: number, state: GameBattleState): number {
     if (!card.traits?.includes('strain')) return basePosition;
     if (state.player.energy < 1) return basePosition;
 
-    // 적 카드 위치 분석
-    const enemyPositions = state.timeline
+    // 카드에 교차 보너스가 있는지 확인
+    const hasCrossBonus = !!card.crossBonus;
+
+    // 적 카드 정보 수집
+    const enemyCards = state.timeline
       .filter(tc => tc.owner === 'enemy')
-      .map(tc => tc.position);
+      .map(tc => {
+        const enemyCard = this.cards[tc.cardId];
+        return {
+          position: tc.position,
+          isAttack: enemyCard?.type === 'attack' && (enemyCard?.damage || 0) > 0,
+          damage: enemyCard?.damage || 0,
+        };
+      });
 
     // 최대 3까지 앞당김 가능
     const maxAdvance = Math.min(3, state.player.energy);
@@ -1055,18 +1249,29 @@ export class TimelineBattleEngine {
     // 교차 가능한 위치 찾기
     for (let advance = 1; advance <= maxAdvance; advance++) {
       const newPos = basePosition - advance;
-      if (newPos >= 1 && enemyPositions.includes(newPos)) {
-        // 교차할 수 있으면 행동력 소모하고 앞당김
-        state.player.energy -= 1;
-        state.battleLog.push(`  ⚡ 무리: 속도 ${advance} 앞당김 (행동력 -1)`);
-        return newPos;
+      if (newPos < 1) continue;
+
+      const enemyAtPos = enemyCards.find(e => e.position === newPos);
+      if (enemyAtPos) {
+        // 교차 보너스가 있으면 무조건 앞당김
+        if (hasCrossBonus) {
+          state.player.energy -= 1;
+          state.battleLog.push(`  ⚡ 무리: 교차 보너스 활용을 위해 속도 ${advance} 앞당김 (행동력 -1)`);
+          return newPos;
+        }
+        // 적 공격 카드와 교차하면 선공 효과
+        if (enemyAtPos.isAttack) {
+          state.player.energy -= 1;
+          state.battleLog.push(`  ⚡ 무리: 적 공격 선취를 위해 속도 ${advance} 앞당김 (행동력 -1)`);
+          return newPos;
+        }
       }
     }
 
-    // 교차 불가능하면 공격 카드일 때만 1 앞당김
-    if (card.type === 'attack' && state.player.energy >= 1) {
+    // 교차 불가능해도, 공격 카드이고 적 체력이 낮으면 1 앞당김 (마무리 시도)
+    if (card.type === 'attack' && state.player.energy >= 1 && state.enemy.hp <= 30) {
       state.player.energy -= 1;
-      state.battleLog.push(`  ⚡ 무리: 속도 1 앞당김 (행동력 -1)`);
+      state.battleLog.push(`  ⚡ 무리: 마무리를 위해 속도 1 앞당김 (행동력 -1)`);
       return basePosition - 1;
     }
 
@@ -1093,6 +1298,7 @@ export class TimelineBattleEngine {
         cardId: card.id,
         owner: 'enemy',
         position,
+        sp: position,  // 게임과 호환되는 sp 필드
         crossed: false,
         executed: false,
       });
@@ -1109,6 +1315,7 @@ export class TimelineBattleEngine {
         cardId: card.id,
         owner: 'player',
         position,
+        sp: position,  // 게임과 호환되는 sp 필드
         crossed: false,
         executed: false,
       });
@@ -1129,25 +1336,48 @@ export class TimelineBattleEngine {
   }
 
   private checkCrossings(state: GameBattleState): void {
-    const playerPositions = new Set<number>();
-    const enemyPositions = new Set<number>();
+    // SP별 플레이어/적 존재 여부 추적 (게임 로직과 동일)
+    const spFlags = new Map<number, { hasPlayer: boolean; hasEnemy: boolean }>();
 
     for (const card of state.timeline) {
-      if (card.owner === 'player') {
-        playerPositions.add(card.position);
-      } else {
-        enemyPositions.add(card.position);
+      // sp 필드 우선 사용, 없으면 position 사용
+      const sp = Math.floor(card.sp ?? card.position);
+      let flags = spFlags.get(sp);
+      if (!flags) {
+        flags = { hasPlayer: false, hasEnemy: false };
+        spFlags.set(sp, flags);
       }
+      if (card.owner === 'player') flags.hasPlayer = true;
+      else flags.hasEnemy = true;
     }
 
-    // 같은 위치에 있는 카드들은 교차
+    // 교차 범위 확장 (로고스 효과)
+    const crossRangeBonus = state.growthBonuses?.crossRangeBonus || 0;
+
+    // 특정 SP에서 교차 가능한지 확인 (게임과 동일한 로직)
+    const isCrossedAtSp = (sp: number, owner: 'player' | 'enemy'): boolean => {
+      const oppositeFlag = owner === 'player' ? 'hasEnemy' : 'hasPlayer';
+
+      // 같은 SP에서 교차
+      const flagsAtSp = spFlags.get(sp);
+      if (flagsAtSp?.[oppositeFlag]) return true;
+
+      // 확장 범위: ±crossRangeBonus (로고스 효과)
+      if (crossRangeBonus > 0) {
+        for (let offset = 1; offset <= crossRangeBonus; offset++) {
+          if (spFlags.get(sp - offset)?.[oppositeFlag]) return true;
+          if (spFlags.get(sp + offset)?.[oppositeFlag]) return true;
+        }
+      }
+
+      return false;
+    };
+
+    // 교차 여부 마킹 (한 번 교차된 카드는 유지 - 게임과 동일)
     for (const card of state.timeline) {
-      if (card.owner === 'player' && enemyPositions.has(card.position)) {
-        card.crossed = true;
-      }
-      if (card.owner === 'enemy' && playerPositions.has(card.position)) {
-        card.crossed = true;
-      }
+      if (card.crossed) continue;  // 이미 교차된 카드는 유지
+      const sp = Math.floor(card.sp ?? card.position);
+      card.crossed = isCrossedAtSp(sp, card.owner);
     }
   }
 
@@ -1242,6 +1472,18 @@ export class TimelineBattleEngine {
     if (card.block && card.block > 0) {
       const blockMult = crossResult.blockMultiplier || 1;
       this.processBlock(state, 'player', card, traitMods, timelineCard, blockMult);
+
+      // 배틀왈츠 Lv3: 검격 방어시 수세 획득
+      if (state.growthBonuses?.logosEffects?.combatTokens && card.cardCategory === 'fencing') {
+        state.player.tokens = addToken(state.player.tokens, 'guard', 1);
+        state.battleLog.push(`  🛡️ 배틀왈츠: 수세 +1`);
+      }
+    }
+
+    // 배틀왈츠 Lv3: 검격 공격시 흐릿함 획득
+    if (state.growthBonuses?.logosEffects?.combatTokens && card.cardCategory === 'fencing' && card.damage && card.damage > 0) {
+      state.player.tokens = addToken(state.player.tokens, 'blur', 1);
+      state.battleLog.push(`  ✨ 배틀왈츠: 흐릿함 +1`);
     }
 
     // 교차 보너스 추가 방어력
@@ -1373,20 +1615,25 @@ export class TimelineBattleEngine {
     const baseHits = card.hits || 1;
     const totalHits = baseHits + (options.extraHits || 0);
 
+    // 공격 수정자는 첫 타격 전에 한 번만 계산 (멀티히트 전체에 동일 적용)
+    // 게임과 동일: applyTokenEffectsToCard가 루프 전에 호출됨
+    const attackMods = calculateAttackModifiers(attackerState.tokens);
+    const baseFencingBonus = getFencingDamageBonus(attackerState.tokens, card);
+    const baseGunBonus = getGunDamageBonus(attackerState.tokens, card);
+
     for (let hit = 0; hit < totalHits; hit++) {
       if (defenderState.hp <= 0) break;
 
-      // 공격 수정자 계산
-      const attackMods = calculateAttackModifiers(attackerState.tokens);
+      // 방어 수정자는 매 타격마다 계산 (회피 등 소모 가능)
       const defenseMods = calculateDefenseModifiers(defenderState.tokens);
       const damageTakenMods = calculateDamageTakenModifiers(defenderState.tokens);
 
-      // 기본 피해 계산
+      // 기본 피해 계산 (미리 계산된 보너스 사용)
       let damage = card.damage || 0;
 
-      // 검격/총기 카드 보너스
-      damage += getFencingDamageBonus(attackerState.tokens, card);
-      damage += getGunDamageBonus(attackerState.tokens, card);
+      // 검격/총기 카드 보너스 (루프 전에 계산됨)
+      damage += baseFencingBonus;
+      damage += baseGunBonus;
 
       // 힘 보너스
       damage += attackMods.damageBonus;
@@ -1499,6 +1746,15 @@ export class TimelineBattleEngine {
           actualDamage = damage - blocked;
           defenderState.block -= blocked;
         }
+
+        // 배틀왈츠 Lv2: 검격이 방어력에 50% 추가피해
+        const armorPen = state.growthBonuses?.logosEffects?.armorPenetration || 0;
+        if (armorPen > 0 && blocked > 0 && attacker === 'player' && card.cardCategory === 'fencing') {
+          const bonusDamage = Math.floor(blocked * (armorPen / 100));
+          defenderState.hp -= bonusDamage;
+          state.playerDamageDealt = (state.playerDamageDealt || 0) + bonusDamage;
+          state.battleLog.push(`  ⚔️ 배틀왈츠: 관통 ${bonusDamage} 추가피해`);
+        }
       }
 
       // 치명타시 장전(critLoad) 특성
@@ -1543,6 +1799,17 @@ export class TimelineBattleEngine {
           }
           state.battleLog.push(`  🌧️ 비의 눈물: 방어 +7, 앞당김 ${advancedCount}장`);
         }
+
+        // 건카타 Lv1: 방어로 막을 때 총격
+        if (blocked > 0 && state.growthBonuses?.logosEffects?.blockToShoot) {
+          const gunkataShootDamage = 4; // 건카타 사격 피해
+          const enemyBlocked = Math.min(state.enemy.block, gunkataShootDamage);
+          const enemyActualDamage = gunkataShootDamage - enemyBlocked;
+          state.enemy.block -= enemyBlocked;
+          state.enemy.hp -= enemyActualDamage;
+          state.playerDamageDealt = (state.playerDamageDealt || 0) + enemyActualDamage;
+          state.battleLog.push(`  🔫 건카타: 반격 사격 ${enemyActualDamage} 피해`);
+        }
       }
 
       // 흡혈 처리
@@ -1560,11 +1827,19 @@ export class TimelineBattleEngine {
       );
 
       // 토큰 소모
+      // 공격 토큰은 첫 타격에만 소모 (멀티히트 시 한 번만)
+      // 피해 수신 토큰은 매 타격마다 소모 (회피 등)
+      if (hit === 0) {
+        if (attacker === 'player') {
+          state.player.tokens = consumeAttackTokens(state.player.tokens);
+        } else {
+          state.enemy.tokens = consumeAttackTokens(state.enemy.tokens);
+        }
+      }
+      // 피해 수신 토큰은 매 타격마다 체크
       if (attacker === 'player') {
-        state.player.tokens = consumeAttackTokens(state.player.tokens);
         state.enemy.tokens = consumeDamageTakenTokens(state.enemy.tokens);
       } else {
-        state.enemy.tokens = consumeAttackTokens(state.enemy.tokens);
         state.player.tokens = consumeDamageTakenTokens(state.player.tokens);
       }
 
@@ -1586,8 +1861,9 @@ export class TimelineBattleEngine {
           defenderState.tokens = counterShotResult.newDefenderTokens;
           state.battleLog.push(`  🔫 대응사격: ${counterShotResult.damage} 피해`);
 
-          // 룰렛 체크
-          const rouletteResult = checkRoulette(defenderState.tokens);
+          // 룰렛 체크 (건카타 Lv2: 탄걸림 확률 감소)
+          const reduceJam = attacker === 'enemy' && !!state.growthBonuses?.logosEffects?.reduceJamChance;
+          const rouletteResult = checkRoulette(defenderState.tokens, reduceJam);
           if (rouletteResult.jammed) {
             defenderState.tokens = rouletteResult.newTokens;
             state.battleLog.push(`  ⚠️ 탄걸림 발생!`);
@@ -1770,38 +2046,55 @@ export class TimelineBattleEngine {
           break;
 
         case 'chain':
-          // 연계: 다음 카드 앞당김
+          // 연계: 다음 카드 앞당김 (속도 -3)
           // 이변: 고립 - 연계 효과 무효화 (레벨 1 이상 또는 레벨 3 이상)
           const chainIsolation = this.config.enableAnomalies ? getChainIsolationLevel() : 0;
           if (chainIsolation >= 1 && chainIsolation !== 2) {
             // 레벨 1 = 연계만 무효, 레벨 2 = 후속만 무효, 레벨 3+ = 둘 다 무효
             break; // 연계 효과 무시
           }
+          // 연계 토큰 부여 (다음 후속/마무리 카드에 전달)
+          const chainStacks = getTokenStacks(actorState.tokens, 'chain_ready');
           actorState.tokens = addToken(actorState.tokens, 'chain_ready', 1);
-          mods.effects.push('연계 준비');
+          // 연계 중첩 시 추가 속도 보너스 (연계 길이 추적)
+          actorState.tokens = addToken(actorState.tokens, 'chain_length', 1);
+          mods.speedBonus -= card.chainSpeedReduction || 3;  // 다음 카드 속도 감소 효과
+          mods.effects.push(`연계 준비 (속도 -${card.chainSpeedReduction || 3})`);
           break;
 
         case 'followup':
-          // 후속: 연계되면 50% 증폭
+          // 후속: 연계되면 50% 증폭 + 연계 길이 보너스
           // 이변: 고립 - 후속 효과 무효화 (레벨 2 이상)
           const followupIsolation = this.config.enableAnomalies ? getChainIsolationLevel() : 0;
           if (followupIsolation >= 2) {
             break; // 후속 효과 무시
           }
           if (hasToken(actorState.tokens, 'chain_ready')) {
-            mods.damageMultiplier *= 1.5;
-            mods.blockMultiplier *= 1.5;
-            actorState.tokens = removeToken(actorState.tokens, 'chain_ready', 1);
-            mods.effects.push('후속 발동');
+            // 연계 길이에 따른 추가 보너스
+            const chainLength = getTokenStacks(actorState.tokens, 'chain_length') || 1;
+            const chainBonus = Math.min(chainLength * 0.1, 0.5);  // 최대 50% 추가
+            mods.damageMultiplier *= (1.5 + chainBonus);
+            mods.blockMultiplier *= (1.5 + chainBonus);
+            // 연계 속도 보너스 (후속 카드 앞당김)
+            mods.speedBonus -= 2;
+            // 연계 토큰 소모하지 않고 유지 (연속 후속 가능)
+            // 연계 길이 증가
+            actorState.tokens = addToken(actorState.tokens, 'chain_length', 1);
+            mods.effects.push(`후속 발동 (x${(1.5 + chainBonus).toFixed(1)}, 연계 ${chainLength + 1}단)`);
           }
           break;
 
         case 'finisher':
-          // 마무리: 연계되면 50% 피해 증가
+          // 마무리: 연계되면 50% + 연계 길이 보너스, 연계 종료
           if (hasToken(actorState.tokens, 'chain_ready')) {
-            mods.damageMultiplier *= 1.5;
-            actorState.tokens = removeToken(actorState.tokens, 'chain_ready', 1);
-            mods.effects.push('마무리 발동');
+            const chainLength = getTokenStacks(actorState.tokens, 'chain_length') || 1;
+            // 연계 길이에 비례한 보너스 (최대 2배)
+            const finisherMultiplier = Math.min(1.5 + chainLength * 0.25, 2.5);
+            mods.damageMultiplier *= finisherMultiplier;
+            // 연계 토큰 모두 소모 (연계 종료)
+            actorState.tokens = removeToken(actorState.tokens, 'chain_ready', 999);
+            actorState.tokens = removeToken(actorState.tokens, 'chain_length', 999);
+            mods.effects.push(`마무리 발동 (x${finisherMultiplier.toFixed(1)}, 연계 ${chainLength + 1}단 완료)`);
           }
           break;
 

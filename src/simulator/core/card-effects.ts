@@ -152,24 +152,24 @@ const SPECIAL_EFFECTS: Record<string, SpecialEffectHandler> = {
   // ==================== 총기 효과 ====================
 
   causeJam: (state, _card, actor) => {
-    const tokens = actor === 'player'
-      ? (state.player.tokens = addToken(state.player.tokens, 'gun_jam', 1))
-      : (state.enemy.tokens = addToken(state.enemy.tokens, 'gun_jam', 1));
+    const target = actor === 'player' ? state.player : state.enemy;
+    target.tokens = addToken(target.tokens, 'gun_jam', 1);
+    const tokenKey = actor === 'player' ? 'playerTokens' : 'enemyTokens';
     return {
       success: true,
       effects: ['탄걸림 발생'],
-      stateChanges: { playerTokens: [{ id: 'gun_jam', stacks: 1 }] },
+      stateChanges: { [tokenKey]: [{ id: 'gun_jam', stacks: 1 }] },
     };
   },
 
   emptyAfterUse: (state, _card, actor) => {
-    const tokens = actor === 'player'
-      ? (state.player.tokens = addToken(state.player.tokens, 'gun_jam', 1))
-      : (state.enemy.tokens = addToken(state.enemy.tokens, 'gun_jam', 1));
+    const target = actor === 'player' ? state.player : state.enemy;
+    target.tokens = addToken(target.tokens, 'gun_jam', 1);
+    const tokenKey = actor === 'player' ? 'playerTokens' : 'enemyTokens';
     return {
       success: true,
       effects: ['사용 후 탄걸림'],
-      stateChanges: { playerTokens: [{ id: 'gun_jam', stacks: 1 }] },
+      stateChanges: { [tokenKey]: [{ id: 'gun_jam', stacks: 1 }] },
     };
   },
 
@@ -193,10 +193,9 @@ const SPECIAL_EFFECTS: Record<string, SpecialEffectHandler> = {
 
   reloadSpray: (state, _card, actor) => {
     // 장전 후 난사 - 장전 효과 먼저
-    if (actor === 'player') {
-      state.player.tokens = removeToken(state.player.tokens, 'gun_jam', 99);
-      state.player.tokens = removeToken(state.player.tokens, 'roulette', 99);
-    }
+    const target = actor === 'player' ? state.player : state.enemy;
+    target.tokens = removeToken(target.tokens, 'gun_jam', 99);
+    target.tokens = removeToken(target.tokens, 'roulette', 99);
     return {
       success: true,
       effects: ['장전 후 난사'],
@@ -206,11 +205,12 @@ const SPECIAL_EFFECTS: Record<string, SpecialEffectHandler> = {
 
   autoReload: (state, _card, actor) => {
     // 손패에 장전카드 있으면 자동 장전
+    const target = actor === 'player' ? state.player : state.enemy;
     const hand = actor === 'player' ? state.player.hand : state.enemy.deck;
     const hasReload = hand.some(id => id.includes('reload') || id.includes('load'));
-    if (hasReload && actor === 'player') {
-      state.player.tokens = removeToken(state.player.tokens, 'gun_jam', 99);
-      state.player.tokens = removeToken(state.player.tokens, 'roulette', 99);
+    if (hasReload) {
+      target.tokens = removeToken(target.tokens, 'gun_jam', 99);
+      target.tokens = removeToken(target.tokens, 'roulette', 99);
     }
     return {
       success: hasReload,
@@ -235,25 +235,25 @@ const SPECIAL_EFFECTS: Record<string, SpecialEffectHandler> = {
   },
 
   fullHeal: (state, _card, actor) => {
-    if (actor === 'player') {
-      state.player.hp = state.player.maxHp;
-    }
+    const target = actor === 'player' ? state.player : state.enemy;
+    target.hp = target.maxHp;
+    const healKey = actor === 'player' ? 'playerHeal' : 'enemyHeal';
     return {
       success: true,
       effects: ['체력 최대 회복'],
-      stateChanges: { playerHeal: state.player.maxHp },
+      stateChanges: { [healKey]: target.maxHp },
     };
   },
 
   mentalFocus: (state, _card, actor) => {
     // 다음 턴 최대속도 증가, 카드 추가 사용
-    if (actor === 'player') {
-      state.player.tokens = addToken(state.player.tokens, 'mental_focus', 1);
-    }
+    const target = actor === 'player' ? state.player : state.enemy;
+    target.tokens = addToken(target.tokens, 'mental_focus', 1);
+    const tokenKey = actor === 'player' ? 'playerTokens' : 'enemyTokens';
     return {
       success: true,
       effects: ['다음 턴 최대속도 +8, 카드 +2'],
-      stateChanges: { playerTokens: [{ id: 'mental_focus', stacks: 1 }] },
+      stateChanges: { [tokenKey]: [{ id: 'mental_focus', stacks: 1 }] },
     };
   },
 
@@ -263,22 +263,43 @@ const SPECIAL_EFFECTS: Record<string, SpecialEffectHandler> = {
     const range = card.parryRange || 5;
     const pushAmount = card.parryPushAmount || 3;
     const targetOwner = actor === 'player' ? 'enemy' : 'player';
+    const parryPosition = timelineCard.position;
 
-    let pushed = false;
-    for (const tc of state.timeline) {
-      if (tc.owner === targetOwner && !tc.executed) {
-        const distance = Math.abs(tc.position - timelineCard.position);
-        if (distance <= range) {
+    // 패리 범위: 패리 카드 위치 ~ 패리 카드 위치 + range (단방향)
+    const minPos = parryPosition;
+    const maxPos = parryPosition + range;
+
+    // 범위 내 첫 번째 적 공격 카드 찾기 (게임처럼 한 번만 발동)
+    const targetCards = state.timeline
+      .filter(tc => {
+        if (tc.owner !== targetOwner || tc.executed) return false;
+        // 범위 체크: centerSp < enemySp <= maxSp
+        if (tc.position <= minPos || tc.position > maxPos) return false;
+        return true;
+      })
+      .sort((a, b) => a.position - b.position); // 가장 가까운 카드 우선
+
+    // 첫 번째 적 카드가 있으면 모든 적 카드를 밀어냄 (패리 트리거 효과)
+    if (targetCards.length > 0) {
+      let pushedCount = 0;
+      for (const tc of state.timeline) {
+        if (tc.owner === targetOwner && !tc.executed) {
           tc.position = Math.min(30, tc.position + pushAmount);
-          pushed = true;
+          pushedCount++;
         }
       }
+
+      return {
+        success: true,
+        effects: [`패리: 적 카드 ${pushedCount}장 ${pushAmount} 밀기`],
+        stateChanges: { timelinePush: pushAmount },
+      };
     }
 
     return {
-      success: pushed,
-      effects: pushed ? [`패리: 범위 내 적 카드 ${pushAmount} 밀기`] : [],
-      stateChanges: { timelinePush: pushed ? pushAmount : 0 },
+      success: false,
+      effects: ['패리: 범위 내 적 카드 없음'],
+      stateChanges: {},
     };
   },
 
@@ -351,28 +372,25 @@ const SPECIAL_EFFECTS: Record<string, SpecialEffectHandler> = {
 
   hologram: (state, _card, actor) => {
     // 최대 체력만큼 방어력
-    if (actor === 'player') {
-      state.player.block += state.player.maxHp;
-      state.player.tokens = addToken(state.player.tokens, 'vigilance', 1);
-    }
+    const target = actor === 'player' ? state.player : state.enemy;
+    target.block += target.maxHp;
+    target.tokens = addToken(target.tokens, 'vigilance', 1);
+    const blockKey = actor === 'player' ? 'playerBlock' : 'enemyBlock';
     return {
       success: true,
-      effects: [`최대 체력(${state.player.maxHp})만큼 방어력 획득`],
-      stateChanges: { playerBlock: state.player.maxHp },
+      effects: [`최대 체력(${target.maxHp})만큼 방어력 획득`],
+      stateChanges: { [blockKey]: target.maxHp },
     };
   },
 
   tempeteDechainee: (state, _card, actor) => {
     // 기교 스택만큼 추가 타격
-    const finesseStacks = actor === 'player'
-      ? getTokenStacks(state.player.tokens, 'finesse')
-      : getTokenStacks(state.enemy.tokens, 'finesse');
+    const target = actor === 'player' ? state.player : state.enemy;
+    const finesseStacks = getTokenStacks(target.tokens, 'finesse');
     const extraHits = finesseStacks * 3;
 
     // 기교 모두 소모
-    if (actor === 'player') {
-      state.player.tokens = removeToken(state.player.tokens, 'finesse', finesseStacks);
-    }
+    target.tokens = removeToken(target.tokens, 'finesse', finesseStacks);
 
     return {
       success: true,
@@ -385,10 +403,9 @@ const SPECIAL_EFFECTS: Record<string, SpecialEffectHandler> = {
 
   repeatTimeline: (state, _card, actor) => {
     // 내 타임라인 반복 (르 송쥬 뒤 비에야르)
-    if (actor === 'player') {
-      state.player.repeatTimelineNext = true;
-      state.player.blockPerCardExecution = 5;
-    }
+    const target = actor === 'player' ? state.player : state.enemy;
+    target.repeatTimelineNext = true;
+    target.blockPerCardExecution = 5;
     return {
       success: true,
       effects: ['다음 턴 타임라인 반복, 카드당 방어 5'],
@@ -562,6 +579,15 @@ const SPECIAL_EFFECTS: Record<string, SpecialEffectHandler> = {
     };
   },
 
+  fanTheHammer: () => {
+    // 5회 연속 사격 후 탄걸림 (탄걸림은 appliedTokens로 처리됨)
+    return {
+      success: true,
+      effects: ['해머 난사: 5회 연속 사격'],
+      stateChanges: {},
+    };
+  },
+
   manipulation: (state, _card, actor) => {
     // 탄걸림이면 장전, 아니면 사격
     const isJammed = actor === 'player'
@@ -585,13 +611,15 @@ const SPECIAL_EFFECTS: Record<string, SpecialEffectHandler> = {
     };
   },
 
-  sharpenBlade: (state) => {
+  sharpenBlade: (state, _card, actor) => {
     // 모든 검격 카드 공격력 +3 (전투 중 버프)
-    state.player.tokens = addToken(state.player.tokens, 'sharpened', 1);
+    const target = actor === 'player' ? state.player : state.enemy;
+    target.tokens = addToken(target.tokens, 'sharpened', 1);
+    const tokenKey = actor === 'player' ? 'playerTokens' : 'enemyTokens';
     return {
       success: true,
       effects: ['모든 검격 카드 공격력 +3'],
-      stateChanges: { playerTokens: [{ id: 'sharpened', stacks: 1 }] },
+      stateChanges: { [tokenKey]: [{ id: 'sharpened', stacks: 1 }] },
     };
   },
 
@@ -619,8 +647,9 @@ const SPECIAL_EFFECTS: Record<string, SpecialEffectHandler> = {
 
   breach: (state, card, actor) => {
     // 방어력 부여는 여기서 처리
-    if (card.block && actor === 'player') {
-      state.player.block += card.block;
+    const target = actor === 'player' ? state.player : state.enemy;
+    if (card.block) {
+      target.block += card.block;
     }
     return {
       success: true,
@@ -630,10 +659,9 @@ const SPECIAL_EFFECTS: Record<string, SpecialEffectHandler> = {
   },
 
   executionSquad: (state, _card, actor) => {
-    if (actor === 'player') {
-      state.player.tokens = removeToken(state.player.tokens, 'gun_jam', 99);
-      state.player.tokens = addToken(state.player.tokens, 'jam_immunity', 1);
-    }
+    const target = actor === 'player' ? state.player : state.enemy;
+    target.tokens = removeToken(target.tokens, 'gun_jam', 99);
+    target.tokens = addToken(target.tokens, 'jam_immunity', 1);
     return {
       success: true,
       effects: ['장전 + 탄걸림 면역 + 총격 창조'],
@@ -642,20 +670,22 @@ const SPECIAL_EFFECTS: Record<string, SpecialEffectHandler> = {
   },
 
   recallCard: (state, _card, actor) => {
-    // 마지막 사용 카드 회수 - 버린 카드에서 랜덤 1장 회수
-    if (actor === 'player' && state.player.discard.length > 0) {
-      const idx = Math.floor(Math.random() * state.player.discard.length);
-      const recalled = state.player.discard.splice(idx, 1)[0];
-      state.player.hand.push(recalled);
+    // 함성: 대기 카드(deck)에서 1장을 손패(hand)로 가져옴
+    const target = actor === 'player' ? state.player : state.enemy;
+    if (target.deck.length > 0) {
+      // 랜덤 1장 선택 (실제 게임에서는 플레이어가 선택하지만, 시뮬레이터에서는 랜덤)
+      const idx = Math.floor(Math.random() * target.deck.length);
+      const recalled = target.deck.splice(idx, 1)[0];
+      target.hand.push(recalled);
       return {
         success: true,
-        effects: [`카드 회수: ${recalled}`],
+        effects: [`함성: ${recalled} 손패로 회수`],
         stateChanges: {},
       };
     }
     return {
       success: false,
-      effects: [],
+      effects: ['함성: 대기 카드 없음'],
       stateChanges: {},
     };
   },

@@ -210,7 +210,10 @@ export interface GameEnemy {
 export interface TimelineCard {
   cardId: string;
   owner: 'player' | 'enemy';
+  /** 타임라인 위치 (레거시 - sp와 동일) */
   position: number;
+  /** 스피드 포인트 - 게임과 동일한 필드명 */
+  sp?: number;
   crossed?: boolean;
   executed?: boolean;
 }
@@ -305,6 +308,20 @@ export interface GameBattleState {
   comboUsageCount?: Record<string, number>;   // 콤보별 사용 횟수 (디플레이션용)
   currentComboKeys?: Set<number>;             // 현재 턴 콤보에 포함된 actionCost 값들
   currentComboRank?: number;                  // 현재 턴 콤보 등급 (0=하이카드)
+  // 성장 시스템 보너스
+  growthBonuses?: {
+    crossRangeBonus?: number;
+    logosEffects?: {
+      expandCrossRange?: boolean;
+      blockToShoot?: boolean;
+      reduceJamChance?: boolean;
+      gunCritBonus?: number;
+      gunCritReload?: boolean;
+      minFinesse?: boolean;
+      armorPenetration?: number;
+      combatTokens?: boolean;
+    };
+  };
 }
 
 // ==================== 타임라인 시스템 ====================

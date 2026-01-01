@@ -132,34 +132,57 @@ export interface DamageTakenModifiers {
 
 /**
  * 공격 수정자 계산
+ * 우선순위: 1) 양수/음수 배율 중 가장 강한 것만 적용, 2) 고정 보너스 누적
  */
 export function calculateAttackModifiers(tokens: TokenState): DamageModifiers {
-  const definitions = getTokenDefinitions();
   let attackMultiplier = 1;
   let damageBonus = 0;
   let critBoost = 0;
   let ignoreBlock = false;
   let lifesteal = 0;
 
-  // 공세 (offense) - 50% 공격력 증가
-  if (hasToken(tokens, 'offense')) {
-    attackMultiplier *= 1.5;
-  }
+  // === 양수 배율 효과 (가장 높은 것만 적용) ===
+  // 영구 효과: offense(1.5) < offensePlus(2.0)
+  // 턴 효과: attack(1.5) < attackPlus(2.0)
+  let permanentBoost = 1;
+  let turnBoost = 1;
 
-  // 공세+ (offensePlus) - 100% 공격력 증가
   if (hasToken(tokens, 'offensePlus')) {
-    attackMultiplier *= 2.0;
+    permanentBoost = 2.0;  // 공세+가 있으면 공세 무시
+  } else if (hasToken(tokens, 'offense')) {
+    permanentBoost = 1.5;
   }
 
-  // 공격 (attack) - 턴 동안 50% 공격력 증가
-  if (hasToken(tokens, 'attack')) {
-    attackMultiplier *= 1.5;
-  }
-
-  // 공격+ (attackPlus) - 턴 동안 100% 공격력 증가
   if (hasToken(tokens, 'attackPlus')) {
-    attackMultiplier *= 2.0;
+    turnBoost = 2.0;  // 공격+가 있으면 공격 무시
+  } else if (hasToken(tokens, 'attack')) {
+    turnBoost = 1.5;
   }
+
+  // 양수 배율 합산 (가산 방식: (permanentBoost-1) + (turnBoost-1) + 1)
+  const positiveBonus = (permanentBoost - 1) + (turnBoost - 1);
+
+  // === 음수 배율 효과 (가장 낮은 것만 적용) ===
+  let permanentDebuff = 1;
+  let turnDebuff = 1;
+
+  if (hasToken(tokens, 'dullPlus')) {
+    permanentDebuff = 0.25;  // 무딤+가 있으면 무딤 무시
+  } else if (hasToken(tokens, 'dull')) {
+    permanentDebuff = 0.5;
+  }
+
+  if (hasToken(tokens, 'dullnessPlus')) {
+    turnDebuff = 0.25;  // 부러짐+가 있으면 부러짐 무시
+  } else if (hasToken(tokens, 'dullness')) {
+    turnDebuff = 0.5;
+  }
+
+  // 음수 배율은 가장 나쁜 것만 적용
+  const negativeMultiplier = Math.min(permanentDebuff, turnDebuff);
+
+  // 최종 배율: (1 + 양수보너스) × 음수배율
+  attackMultiplier = (1 + positiveBonus) * negativeMultiplier;
 
   // 힘 (strength) - 스택당 공격력 1 증가
   const strengthStacks = getTokenStacks(tokens, 'strength');
@@ -167,30 +190,10 @@ export function calculateAttackModifiers(tokens: TokenState): DamageModifiers {
     damageBonus += strengthStacks;
   }
 
-  // 날 세우기 (sharpened_blade) - 검격 카드 보너스 (카드 타입 체크 필요)
+  // 날 세우기 (sharpened_blade) - 검격 카드 보너스
   const sharpenedStacks = getTokenStacks(tokens, 'sharpened_blade');
   if (sharpenedStacks > 0) {
     damageBonus += sharpenedStacks;
-  }
-
-  // 무딤 (dull) - 50% 공격력 감소
-  if (hasToken(tokens, 'dull')) {
-    attackMultiplier *= 0.5;
-  }
-
-  // 무딤+ (dullPlus) - 75% 공격력 감소
-  if (hasToken(tokens, 'dullPlus')) {
-    attackMultiplier *= 0.25;
-  }
-
-  // 부러짐 (dullness) - 턴 동안 50% 공격력 감소
-  if (hasToken(tokens, 'dullness')) {
-    attackMultiplier *= 0.5;
-  }
-
-  // 부러짐+ (dullnessPlus) - 턴 동안 75% 공격력 감소
-  if (hasToken(tokens, 'dullnessPlus')) {
-    attackMultiplier *= 0.25;
   }
 
   // 집중 (crit_boost) - 치명타 확률 5% 증가
@@ -219,56 +222,58 @@ export function calculateAttackModifiers(tokens: TokenState): DamageModifiers {
 
 /**
  * 방어 수정자 계산
+ * 우선순위: 1) 양수/음수 배율 중 가장 강한 것만 적용, 2) 고정 보너스 누적
  */
 export function calculateDefenseModifiers(tokens: TokenState): DefenseModifiers {
   let defenseMultiplier = 1;
   let defenseBonus = 0;
   let dodgeChance = 0;
 
-  // 수세 (guard) - 50% 방어력 증가
-  if (hasToken(tokens, 'guard')) {
-    defenseMultiplier *= 1.5;
-  }
+  // === 양수 배율 효과 (가장 높은 것만 적용) ===
+  let permanentBoost = 1;
+  let turnBoost = 1;
 
-  // 수세+ (guardPlus) - 100% 방어력 증가
   if (hasToken(tokens, 'guardPlus')) {
-    defenseMultiplier *= 2.0;
+    permanentBoost = 2.0;  // 수세+가 있으면 수세 무시
+  } else if (hasToken(tokens, 'guard')) {
+    permanentBoost = 1.5;
   }
 
-  // 방어 (defense) - 턴 동안 50% 방어력 증가
-  if (hasToken(tokens, 'defense')) {
-    defenseMultiplier *= 1.5;
-  }
-
-  // 방어+ (defensePlus) - 턴 동안 100% 방어력 증가
   if (hasToken(tokens, 'defensePlus')) {
-    defenseMultiplier *= 2.0;
+    turnBoost = 2.0;  // 방어+가 있으면 방어 무시
+  } else if (hasToken(tokens, 'defense')) {
+    turnBoost = 1.5;
   }
+
+  // 양수 배율 합산
+  const positiveBonus = (permanentBoost - 1) + (turnBoost - 1);
+
+  // === 음수 배율 효과 (가장 낮은 것만 적용) ===
+  let permanentDebuff = 1;
+  let turnDebuff = 1;
+
+  if (hasToken(tokens, 'shakenPlus')) {
+    permanentDebuff = 0;  // 흔들림+는 완전 무효화
+  } else if (hasToken(tokens, 'shaken')) {
+    permanentDebuff = 0.5;
+  }
+
+  if (hasToken(tokens, 'exposedPlus')) {
+    turnDebuff = 0;
+  } else if (hasToken(tokens, 'exposed')) {
+    turnDebuff = 0.5;
+  }
+
+  // 음수 배율은 가장 나쁜 것만 적용
+  const negativeMultiplier = Math.min(permanentDebuff, turnDebuff);
+
+  // 최종 배율
+  defenseMultiplier = (1 + positiveBonus) * negativeMultiplier;
 
   // 힘 (strength) - 스택당 방어력 1 증가
   const strengthStacks = getTokenStacks(tokens, 'strength');
   if (strengthStacks > 0) {
     defenseBonus += strengthStacks;
-  }
-
-  // 흔들림 (shaken) - 50% 방어력 감소
-  if (hasToken(tokens, 'shaken')) {
-    defenseMultiplier *= 0.5;
-  }
-
-  // 흔들림+ (shakenPlus) - 100% 방어력 감소
-  if (hasToken(tokens, 'shakenPlus')) {
-    defenseMultiplier *= 0;
-  }
-
-  // 무방비 (exposed) - 턴 동안 50% 방어력 감소
-  if (hasToken(tokens, 'exposed')) {
-    defenseMultiplier *= 0.5;
-  }
-
-  // 무방비+ (exposedPlus) - 턴 동안 100% 방어력 감소
-  if (hasToken(tokens, 'exposedPlus')) {
-    defenseMultiplier *= 0;
   }
 
   // 흐릿함 (blur) - 50% 회피
@@ -681,8 +686,13 @@ export function processCounterShot(
 
 /**
  * 룰렛 탄걸림 체크
+ * @param tokens 현재 토큰 상태
+ * @param reduceJamChance 건카타 Lv2 효과: true이면 확률 5%→3%로 감소
  */
-export function checkRoulette(tokens: TokenState): { jammed: boolean; newTokens: TokenState } {
+export function checkRoulette(
+  tokens: TokenState,
+  reduceJamChance: boolean = false
+): { jammed: boolean; newTokens: TokenState } {
   const rouletteStacks = getTokenStacks(tokens, 'roulette');
   if (rouletteStacks === 0) {
     return { jammed: false, newTokens: tokens };
@@ -693,11 +703,13 @@ export function checkRoulette(tokens: TokenState): { jammed: boolean; newTokens:
     return { jammed: false, newTokens: tokens };
   }
 
-  const jamChance = rouletteStacks * 0.05; // 스택당 5%
+  // 건카타 Lv2: 탄걸림 확률 감소 (5% → 3%)
+  const jamPerStack = reduceJamChance ? 0.03 : 0.05;
+  const jamChance = rouletteStacks * jamPerStack;
   const jammed = Math.random() < jamChance;
 
   if (jammed) {
-    log.info('탄걸림 발생', { rouletteStacks, jamChance });
+    log.info('탄걸림 발생', { rouletteStacks, jamChance, reduced: reduceJamChance });
     let newTokens = clearToken(tokens, 'roulette');
     newTokens = addToken(newTokens, 'gun_jam', 1);
     return { jammed: true, newTokens };
@@ -833,4 +845,16 @@ export function summarizeTokens(tokens: TokenState): TokenSummary {
   }
 
   return summary;
+}
+
+/**
+ * 최소 기교 유지 (배틀왈츠 Lv1)
+ * 기교가 minValue 미만이면 minValue로 설정
+ */
+export function enforceMinFinesse(tokens: TokenState, minValue: number = 1): TokenState {
+  const currentFinesse = getTokenStacks(tokens, 'finesse');
+  if (currentFinesse < minValue) {
+    return addToken(tokens, 'finesse', minValue - currentFinesse);
+  }
+  return tokens;
 }

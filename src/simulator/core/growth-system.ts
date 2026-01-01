@@ -65,8 +65,44 @@ export interface GrowthBonuses {
   chainDamageBonus: number;
   /** 교차 범위 확장 */
   crossRangeBonus: number;
+  /** 에테르 획득량 고정 보너스 */
+  etherGainBonus: number;
+  /** 에테르 획득량 배율 보너스 (0.1 = 10%) */
+  etherGainMultiplier: number;
+  /** 시작 에테르 */
+  startingEther: number;
+  /** 로고스 효과 */
+  logosEffects: LogosEffects;
   /** 특수 효과 목록 */
   specialEffects: string[];
+}
+
+/** 로고스 효과 상세 */
+export interface LogosEffects {
+  // 공용 로고스
+  /** 교차 범위 확장 (±1) */
+  expandCrossRange: boolean;
+  /** 보조특기 슬롯 추가 */
+  extraSubSlots: number;
+  /** 주특기 슬롯 추가 */
+  extraMainSlots: number;
+
+  // 건카타 로고스
+  /** 방어로 막을 때 총격 */
+  blockToShoot: boolean;
+  /** 탄걸림 확률 감소 (5% → 3%) */
+  reduceJamChance: boolean;
+  /** 총격 치명타 보너스 및 치명타시 장전 */
+  gunCritBonus: number;
+  gunCritReload: boolean;
+
+  // 배틀왈츠 로고스
+  /** 기교 최소 1 유지 */
+  minFinesse: boolean;
+  /** 검격 방어력에 50% 추가피해 */
+  armorPenetration: number;
+  /** 공격시 흐릿함, 방어시 수세 */
+  combatTokens: boolean;
 }
 
 export interface GrowthSelectionOption {
@@ -277,6 +313,21 @@ export class GrowthSystem {
       ammoBonus: 0,
       chainDamageBonus: 0,
       crossRangeBonus: 0,
+      etherGainBonus: 0,
+      etherGainMultiplier: 0,
+      startingEther: 0,
+      logosEffects: {
+        expandCrossRange: false,
+        extraSubSlots: 0,
+        extraMainSlots: 0,
+        blockToShoot: false,
+        reduceJamChance: false,
+        gunCritBonus: 0,
+        gunCritReload: false,
+        minFinesse: false,
+        armorPenetration: 0,
+        combatTokens: false,
+      },
       specialEffects: [],
     };
 
@@ -318,6 +369,15 @@ export class GrowthSystem {
             if (effect.token === 'focus') bonuses.startingFocus += effect.value || 0;
           }
           break;
+        case 'etherBonus':
+          bonuses.etherGainBonus += effect.value || 0;
+          break;
+        case 'etherMultiplier':
+          bonuses.etherGainMultiplier += effect.percent || 0;
+          break;
+        case 'startingEther':
+          bonuses.startingEther += effect.value || 0;
+          break;
         default:
           // 특수 효과로 저장
           bonuses.specialEffects.push(`${ethos.name}: ${ethos.description}`);
@@ -332,16 +392,61 @@ export class GrowthSystem {
     }
 
     // 로고스 효과 적용
-    if (this.state.logosLevels.common >= 1) {
+    const commonLevel = this.state.logosLevels.common;
+    const gunkataLevel = this.state.logosLevels.gunkata;
+    const battleWaltzLevel = this.state.logosLevels.battleWaltz;
+
+    // 공용 로고스
+    if (commonLevel >= 1) {
       bonuses.crossRangeBonus += 1;
+      bonuses.logosEffects.expandCrossRange = true;
+      bonuses.specialEffects.push('공용 Lv1: 교차 범위 ±1 확장');
     }
-    if (this.state.logosLevels.gunkata >= 1) {
-      bonuses.specialEffects.push('건카타: 방어로 막을 때 총격');
+    if (commonLevel >= 2) {
+      bonuses.logosEffects.extraSubSlots = 2;
+      bonuses.specialEffects.push('공용 Lv2: 보조특기 슬롯 +2');
     }
-    if (this.state.logosLevels.battleWaltz >= 1) {
+    if (commonLevel >= 3) {
+      bonuses.logosEffects.extraMainSlots = 1;
+      bonuses.specialEffects.push('공용 Lv3: 주특기 슬롯 +1');
+    }
+    bonuses.etherGainMultiplier += commonLevel * 0.05;
+
+    // 건카타 로고스
+    if (gunkataLevel >= 1) {
+      bonuses.logosEffects.blockToShoot = true;
+      bonuses.specialEffects.push('건카타 Lv1: 방어로 막을 때 총격');
+    }
+    if (gunkataLevel >= 2) {
+      bonuses.logosEffects.reduceJamChance = true;
+      bonuses.specialEffects.push('건카타 Lv2: 탄걸림 확률 5%→3%');
+    }
+    if (gunkataLevel >= 3) {
+      bonuses.logosEffects.gunCritBonus = 3;
+      bonuses.logosEffects.gunCritReload = true;
+      bonuses.critBonus += 3;
+      bonuses.specialEffects.push('건카타 Lv3: 총격 치명타 +3%, 치명타시 장전');
+    }
+    bonuses.startingEther += gunkataLevel * 10;
+
+    // 배틀왈츠 로고스
+    if (battleWaltzLevel >= 1) {
+      bonuses.logosEffects.minFinesse = true;
       bonuses.startingFinesse += 1;
-      bonuses.specialEffects.push('배틀왈츠: 기교 1 이하 유지');
+      bonuses.specialEffects.push('배틀왈츠 Lv1: 기교 최소 1 유지');
     }
+    if (battleWaltzLevel >= 2) {
+      bonuses.logosEffects.armorPenetration = 50;
+      bonuses.specialEffects.push('배틀왈츠 Lv2: 검격 방어력에 50% 추가피해');
+    }
+    if (battleWaltzLevel >= 3) {
+      bonuses.logosEffects.combatTokens = true;
+      bonuses.specialEffects.push('배틀왈츠 Lv3: 공격시 흐릿함, 방어시 수세');
+    }
+    bonuses.etherGainBonus += battleWaltzLevel * 3;
+
+    // 피라미드 레벨에 따른 기본 에테르 보너스
+    bonuses.etherGainMultiplier += this.state.pyramidLevel * 0.02;
 
     return bonuses;
   }
@@ -539,7 +644,7 @@ export function createGrowthSystem(initialState?: Partial<GrowthState>): GrowthS
  * 성장 보너스를 전투 상태에 적용
  */
 export function applyGrowthBonuses(
-  playerState: { hp: number; maxHp: number; tokens?: Record<string, number> },
+  playerState: { hp: number; maxHp: number; tokens?: Record<string, number>; ether?: number },
   bonuses: GrowthBonuses
 ): void {
   // 최대 HP 보너스
@@ -553,5 +658,10 @@ export function applyGrowthBonuses(
   }
   if (bonuses.startingFocus > 0) {
     playerState.tokens['focus'] = (playerState.tokens['focus'] || 0) + bonuses.startingFocus;
+  }
+
+  // 시작 에테르
+  if (bonuses.startingEther > 0) {
+    playerState.ether = (playerState.ether || 0) + bonuses.startingEther;
   }
 }

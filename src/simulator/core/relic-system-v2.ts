@@ -112,6 +112,10 @@ export class RelicSystemV2 {
     etherMultiplier: number;
     comboMultiplierPerCard: number;
     negativeTraitMultiplier: number;
+    positiveTraitMultiplier: number;
+    speed: number;
+    rewindCount: number;
+    extraCardPlay: number;
   } {
     const result = {
       maxEnergy: 0,
@@ -126,6 +130,10 @@ export class RelicSystemV2 {
       etherMultiplier: 1,
       comboMultiplierPerCard: 0,
       negativeTraitMultiplier: 0,
+      positiveTraitMultiplier: 0,
+      speed: 0,
+      rewindCount: 0,
+      extraCardPlay: 0,
     };
 
     const definitions = getRelicDefinitions();
@@ -134,20 +142,25 @@ export class RelicSystemV2 {
       const relic = definitions[relicId];
       if (!relic || relic.effects.type !== 'PASSIVE') continue;
 
-      const effects = relic.effects;
+      const effects = relic.effects as Record<string, unknown>;
 
-      if (effects.maxEnergy) result.maxEnergy += effects.maxEnergy;
-      if (effects.maxHp) result.maxHp += effects.maxHp;
-      if (effects.strength) result.strength += effects.strength;
-      if (effects.agility) result.agility += effects.agility;
-      if (effects.maxSpeed) result.maxSpeed += effects.maxSpeed;
-      if (effects.maxSubmitCards) result.maxSubmitCards += effects.maxSubmitCards;
-      if (effects.subSpecialSlots) result.subSpecialSlots += effects.subSpecialSlots;
-      if (effects.mainSpecialSlots) result.mainSpecialSlots += effects.mainSpecialSlots;
-      if (effects.cardDrawBonus) result.cardDrawBonus += effects.cardDrawBonus;
-      if (effects.etherMultiplier) result.etherMultiplier *= effects.etherMultiplier;
-      if (effects.comboMultiplierPerCard) result.comboMultiplierPerCard += effects.comboMultiplierPerCard;
-      if (effects.negativeTraitMultiplier) result.negativeTraitMultiplier += effects.negativeTraitMultiplier;
+      if (effects.maxEnergy) result.maxEnergy += effects.maxEnergy as number;
+      if (effects.maxHp) result.maxHp += effects.maxHp as number;
+      if (effects.strength) result.strength += effects.strength as number;
+      if (effects.agility) result.agility += effects.agility as number;
+      if (effects.maxSpeed) result.maxSpeed += effects.maxSpeed as number;
+      if (effects.maxSubmitCards) result.maxSubmitCards += effects.maxSubmitCards as number;
+      if (effects.subSpecialSlots) result.subSpecialSlots += effects.subSpecialSlots as number;
+      if (effects.mainSpecialSlots) result.mainSpecialSlots += effects.mainSpecialSlots as number;
+      if (effects.cardDrawBonus) result.cardDrawBonus += effects.cardDrawBonus as number;
+      if (effects.etherMultiplier) result.etherMultiplier *= effects.etherMultiplier as number;
+      if (effects.comboMultiplierPerCard) result.comboMultiplierPerCard += effects.comboMultiplierPerCard as number;
+      if (effects.negativeTraitMultiplier) result.negativeTraitMultiplier += effects.negativeTraitMultiplier as number;
+      // 새로 추가된 패시브 효과
+      if (effects.positiveTraitMultiplier) result.positiveTraitMultiplier += effects.positiveTraitMultiplier as number;
+      if (effects.speed) result.speed += effects.speed as number;
+      if (effects.rewindCount) result.rewindCount += effects.rewindCount as number;
+      if (effects.extraCardPlay) result.extraCardPlay += effects.extraCardPlay as number;
     }
 
     return result;
@@ -413,12 +426,213 @@ export class RelicSystemV2 {
     return results;
   }
 
+  // ==================== 추가 트리거 ====================
+
+  /**
+   * 공격 시 효과
+   */
+  processAttack(player: PlayerState, enemy: EnemyState, damage: number): RelicEffectResult[] {
+    const results: RelicEffectResult[] = [];
+    const definitions = getRelicDefinitions();
+
+    for (const relicId of this.activeRelics) {
+      const relic = definitions[relicId];
+      if (!relic) continue;
+
+      const result: RelicEffectResult = {
+        relicId,
+        relicName: relic.name,
+        effects: {},
+      };
+
+      // 쿠나이: 3회 공격마다 민첩성 +1
+      if (relicId === 'kunai' && this.attacksThisTurn > 0 && this.attacksThisTurn % 3 === 0) {
+        result.effects.tokenToPlayer = { id: 'agility', stacks: 1 };
+        result.effects.message = '쿠나이: 민첩성 +1';
+      }
+
+      // 편지칼: 3회 스킬마다 4피해
+      if (relicId === 'letter_opener' && this.skillsThisTurn > 0 && this.skillsThisTurn % 3 === 0) {
+        result.effects.damage = 4;
+        result.effects.message = '편지칼: 4 피해';
+      }
+
+      if (Object.keys(result.effects).length > 0) {
+        results.push(result);
+      }
+    }
+
+    return results;
+  }
+
+  /**
+   * 회복 시 효과
+   */
+  processHeal(player: PlayerState, healAmount: number): RelicEffectResult[] {
+    const results: RelicEffectResult[] = [];
+    const definitions = getRelicDefinitions();
+
+    for (const relicId of this.activeRelics) {
+      const relic = definitions[relicId];
+      if (!relic) continue;
+
+      const result: RelicEffectResult = {
+        relicId,
+        relicName: relic.name,
+        effects: {},
+      };
+
+      // 마고의 피: 회복량 50% 증가
+      if (relicId === 'blood_of_mago') {
+        const bonusHeal = Math.floor(healAmount * 0.5);
+        result.effects.heal = bonusHeal;
+        result.effects.message = `마고의 피: 추가 회복 +${bonusHeal}`;
+      }
+
+      if (Object.keys(result.effects).length > 0) {
+        results.push(result);
+      }
+    }
+
+    return results;
+  }
+
+  /**
+   * 콤보 발동 시 효과
+   * @param comboRank 콤보 등급 (1=하이카드, 2=원페어, 3=투페어, 4=트리플, 5=스트레이트, 6=풀하우스, 7=포카드, 8=파이브카드)
+   */
+  processCombo(player: PlayerState, comboName: string, etherGained: number, comboRank: number = 0): RelicEffectResult[] {
+    const results: RelicEffectResult[] = [];
+    const definitions = getRelicDefinitions();
+
+    for (const relicId of this.activeRelics) {
+      const relic = definitions[relicId];
+      if (!relic) continue;
+
+      const result: RelicEffectResult = {
+        relicId,
+        relicName: relic.name,
+        effects: {},
+      };
+
+      // 에테르 결정: 콤보 시 에테르 보너스
+      if (relicId === 'ether_crystal') {
+        const bonus = Math.floor(etherGained * 0.2);
+        result.effects.etherBonus = bonus;
+        result.effects.message = `에테르 결정: 추가 에테르 +${bonus}`;
+      }
+
+      // 풀하우스 전용 보너스 상징이 있다면 여기에 추가
+      if (relicId === 'poker_chip' && comboName === '풀하우스') {
+        result.effects.etherBonus = 10;
+        result.effects.message = '포커칩: 풀하우스 보너스 +10 에테르';
+      }
+
+      // 목장갑: 투페어 이상이면 공세+ 획득
+      if (relicId === 'neckGlove' && comboRank >= 3) {
+        result.effects.tokenToPlayer = { id: 'offensePlus', stacks: 1 };
+        result.effects.message = '목장갑: 공세+ 1회 획득';
+      }
+
+      // 총알: 하이카드일 때 5배수 추가
+      if (relicId === 'bullet' && comboRank === 1) {
+        result.effects.etherBonus = 5;
+        result.effects.message = '총알: 하이카드 보너스 +5 배수';
+      }
+
+      if (Object.keys(result.effects).length > 0) {
+        results.push(result);
+      }
+    }
+
+    return results;
+  }
+
+  /**
+   * 토큰 획득 시 효과 (불발탄 등)
+   */
+  processTokenGain(player: PlayerState, tokenId: string, isPositive: boolean): RelicEffectResult[] {
+    const results: RelicEffectResult[] = [];
+    const definitions = getRelicDefinitions();
+
+    for (const relicId of this.activeRelics) {
+      const relic = definitions[relicId];
+      if (!relic) continue;
+
+      const effects = relic.effects as Record<string, unknown>;
+      if (effects.type !== 'ON_TOKEN_GAIN') continue;
+
+      const result: RelicEffectResult = {
+        relicId,
+        relicName: relic.name,
+        effects: {},
+      };
+
+      // 불발탄: 긍정 토큰이면 회복, 부정 토큰이면 피해
+      if (relicId === 'dud') {
+        if (isPositive && effects.healOnPositive) {
+          result.effects.heal = effects.healOnPositive as number;
+          result.effects.message = `불발탄: 체력 +${effects.healOnPositive}`;
+        } else if (!isPositive && effects.damageOnNegative) {
+          result.effects.damage = effects.damageOnNegative as number;
+          result.effects.message = `불발탄: 체력 -${effects.damageOnNegative}`;
+        }
+      }
+
+      if (Object.keys(result.effects).length > 0) {
+        results.push(result);
+      }
+    }
+
+    return results;
+  }
+
+  /**
+   * 적 처치 시 효과
+   */
+  processKill(player: PlayerState, enemyId: string): RelicEffectResult[] {
+    const results: RelicEffectResult[] = [];
+    const definitions = getRelicDefinitions();
+
+    for (const relicId of this.activeRelics) {
+      const relic = definitions[relicId];
+      if (!relic) continue;
+
+      const result: RelicEffectResult = {
+        relicId,
+        relicName: relic.name,
+        effects: {},
+      };
+
+      // 해골: 처치 시 체력 5 회복
+      if (relicId === 'skull' || relicId === 'gremlin_horn') {
+        result.effects.heal = 5;
+        result.effects.message = '적 처치: 체력 +5';
+      }
+
+      // 그렘린 뿔: 처치 시 에너지 +1
+      if (relicId === 'gremlin_horn') {
+        result.effects.energy = 1;
+        result.effects.message = '그렘린 뿔: 에너지 +1';
+      }
+
+      if (Object.keys(result.effects).length > 0) {
+        results.push(result);
+      }
+    }
+
+    return results;
+  }
+
   // ==================== 에테르 계산 ====================
 
   /**
    * 에테르 배율 계산
+   * @param cardsPlayed 사용된 카드 수
+   * @param negativeTraits 부정 특성 수 (비웃는 가면용)
+   * @param positiveTraits 긍정 특성 수 (축하의 화환용)
    */
-  calculateEtherMultiplier(cardsPlayed: number, negativeTraits: number = 0): number {
+  calculateEtherMultiplier(cardsPlayed: number, negativeTraits: number = 0, positiveTraits: number = 0): number {
     let multiplier = 1;
     const passives = this.getPassiveEffects();
 
@@ -435,13 +649,24 @@ export class RelicSystemV2 {
       multiplier += negativeTraits * passives.negativeTraitMultiplier;
     }
 
+    // 긍정 특성당 배율 (축하의 화환)
+    if (passives.positiveTraitMultiplier > 0 && positiveTraits > 0) {
+      multiplier += positiveTraits * passives.positiveTraitMultiplier;
+    }
+
     // 악마의 주사위: 5장 내면 5배
     const definitions = getRelicDefinitions();
     if (this.activeRelics.has('devilDice') && cardsPlayed >= 5) {
       const relic = definitions['devilDice'];
-      if (relic && relic.effects.etherFiveCardBonus) {
-        multiplier *= relic.effects.etherFiveCardBonus;
+      if (relic && (relic.effects as Record<string, unknown>).etherFiveCardBonus) {
+        multiplier *= (relic.effects as Record<string, unknown>).etherFiveCardBonus as number;
       }
+    }
+
+    // 참고서: 카드 수에 비례한 배율 (n장 = 1.n배)
+    if (this.activeRelics.has('referenceBook') && cardsPlayed > 0) {
+      const cardMultiplier = 1 + (cardsPlayed * 0.1);
+      multiplier *= cardMultiplier;
     }
 
     return multiplier;

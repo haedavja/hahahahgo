@@ -71,6 +71,11 @@ export interface ActiveAnomaly {
 
 // ==================== 이변 데이터 ====================
 
+/**
+ * @deprecated 시뮬레이터 전용 이변 정의입니다.
+ * 실제 게임과 동기화하려면 syncAllAnomalies()를 사용하세요.
+ * 이 상수는 AnomalySystem 클래스의 레거시 지원을 위해 유지됩니다.
+ */
 export const ANOMALY_DEFINITIONS: Record<string, AnomalyDefinition> = {
   // Combat Anomalies
   time_dilation: {
@@ -1092,4 +1097,108 @@ export function getEliteSurgeMultipliers(): { hp: number; damage: number } {
     return { hp: 1.5, damage: 1.25 };
   }
   return { hp: 1, damage: 1 };
+}
+
+// ==================== 다중 이변 지원 (보스 전투) ====================
+
+/**
+ * 다중 게임 이변 활성화 (보스 전투용)
+ * @param anomalyConfigs 이변 ID와 레벨 배열
+ */
+export function activateMultipleGameAnomalies(
+  anomalyConfigs: { id: string; level: number }[]
+): { success: string[]; failed: string[] } {
+  const anomalies = syncAllAnomalies();
+  const success: string[] = [];
+  const failed: string[] = [];
+
+  for (const config of anomalyConfigs) {
+    const anomaly = anomalies[config.id];
+    if (anomaly) {
+      activeGameAnomalies.set(config.id, { anomaly, level: config.level });
+      success.push(config.id);
+      log.info(`Game anomaly activated: ${anomaly.name} (Lv.${config.level})`);
+    } else {
+      failed.push(config.id);
+      log.warn(`Unknown game anomaly: ${config.id}`);
+    }
+  }
+
+  return { success, failed };
+}
+
+/**
+ * 활성 이변 효과 상세 요약 (전투 시작 로깅용)
+ */
+export function getActiveAnomalyDetailedSummary(): string[] {
+  const summary: string[] = [];
+  const activeAnomalies = getActiveGameAnomalies();
+
+  if (activeAnomalies.length === 0) {
+    return summary;
+  }
+
+  summary.push(`⚠️ 이변 ${activeAnomalies.length}개 활성화:`);
+
+  for (const active of activeAnomalies) {
+    const effect = active.anomaly.getEffect(active.level);
+    const emoji = active.anomaly.emoji || '⚠️';
+    summary.push(`  ${emoji} ${active.anomaly.name} Lv.${active.level}: ${effect.description}`);
+  }
+
+  // 복합 효과 상호작용 경고
+  const effectTypes = activeAnomalies.map(a => a.anomaly.effectType);
+
+  // 위험한 조합 감지
+  if (effectTypes.includes('ETHER_BAN') && effectTypes.includes('VULNERABILITY')) {
+    summary.push(`  💀 위험: 에테르 금지 + 취약 (복합 페널티)`);
+  }
+  if (effectTypes.includes('CHAIN_ISOLATION') && effectTypes.includes('TRAIT_SILENCE')) {
+    summary.push(`  💀 위험: 고립 + 침묵 (시너지 차단)`);
+  }
+  if (effectTypes.includes('SPEED_INSTABILITY') && effectTypes.includes('SPEED_REDUCTION')) {
+    summary.push(`  ⚡ 복합: 속도 불안정 + 속도 감소`);
+  }
+  if (effectTypes.includes('ENERGY_REDUCTION') && effectTypes.includes('DRAW_REDUCTION')) {
+    summary.push(`  ⚡ 복합: 행동력 + 드로우 감소`);
+  }
+
+  return summary;
+}
+
+/**
+ * 특정 이변 효과 타입이 활성화되어 있는지 확인
+ */
+export function hasActiveAnomalyType(effectType: string): boolean {
+  for (const active of activeGameAnomalies.values()) {
+    if (active.anomaly.effectType === effectType) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * 활성 이변 개수
+ */
+export function getActiveAnomalyCount(): number {
+  return activeGameAnomalies.size;
+}
+
+/**
+ * 누적 이변 효과 계산 (동일 타입 누적)
+ */
+export function getCumulativeAnomalyEffect(effectType: string): { totalValue: number; maxLevel: number } {
+  let totalValue = 0;
+  let maxLevel = 0;
+
+  for (const active of activeGameAnomalies.values()) {
+    const effect = active.anomaly.getEffect(active.level);
+    if (effect.type === effectType) {
+      totalValue += effect.value || 0;
+      maxLevel = Math.max(maxLevel, active.level);
+    }
+  }
+
+  return { totalValue, maxLevel };
 }

@@ -302,6 +302,47 @@ export const CARDS = [
     cardCategory: "gun"
   },
   {
+    id: "aimed_shot",
+    name: "조준 사격",
+    type: "attack",
+    damage: 8,
+    speedCost: 5,
+    actionCost: 1,
+    iconKey: "flame",
+    description: "공격력 8. 교차 시 치명타.",
+    traits: [],
+    cardCategory: "gun",
+    crossBonus: { type: "damage_mult", value: 2.0 }
+  },
+  {
+    id: "quick_shot",
+    name: "속사",
+    type: "attack",
+    damage: 4,
+    hits: 2,
+    speedCost: 2,
+    actionCost: 1,
+    iconKey: "flame",
+    description: "공격력 4를 2회 발사. 빠른 연사.",
+    traits: [],
+    cardCategory: "gun"
+  },
+  {
+    id: "fan_the_hammer",
+    name: "해머 난사",
+    type: "attack",
+    damage: 3,
+    hits: 5,
+    speedCost: 6,
+    actionCost: 2,
+    iconKey: "flame",
+    description: "공격력 3을 5회 발사. 사용 후 탄걸림.",
+    traits: [],
+    cardCategory: "gun",
+    special: "fanTheHammer",
+    appliedTokens: [{ id: "jamming", stacks: 1, target: "self" }]
+  },
+  {
     id: "gyrus_roulette",
     name: "가이러스 룰렛",
     type: "attack",

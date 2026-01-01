@@ -92,6 +92,16 @@ export class TrendAnalyzer {
     );
   }
 
+  /**
+   * 트렌드 히스토리 초기화 (테스트용)
+   */
+  clearHistory(): void {
+    this.trendHistory = [];
+    if (existsSync(this.dataPath)) {
+      writeFileSync(this.dataPath, JSON.stringify({ history: [], lastUpdated: Date.now() }), 'utf-8');
+    }
+  }
+
   // ==================== 데이터 기록 ====================
 
   recordDataPoint(summary: SimulationSummary, metadata?: {

@@ -23,6 +23,7 @@ import { syncAllCards, syncAllTraits } from '../data/game-data-sync';
 import { createEnemyAI, getPatternForEnemy, type EnemyAI, type EnemyDecision } from '../ai/enemy-patterns';
 import {
   addToken,
+  hasToken,
   getTokenStacks,
   calculateAttackModifiers,
   calculateDefenseModifiers,
@@ -92,6 +93,8 @@ export interface MultiEnemyBattleState {
   comboStats: Record<string, number>;
   /** 에테르 폭주 활성화 (이번 턴 피해량 2배) */
   etherOverdriveActive: boolean;
+  /** 개별 적에게 준 피해량 (적 인덱스 -> 피해량) */
+  damageDealtToEnemies: Record<number, number>;
 }
 
 /** 타겟팅 모드 */
@@ -297,6 +300,7 @@ export class MultiEnemyBattleEngine {
       totalEtherGained: 0,
       comboStats: {},
       etherOverdriveActive: false,
+      damageDealtToEnemies: {},
     };
 
     // 덱 셔플
@@ -648,7 +652,7 @@ export class MultiEnemyBattleEngine {
   }
 
   /**
-   * 적 카드 기본 선택 (간단한 휴리스틱 적용)
+   * 적 카드 기본 선택 (휴리스틱 및 조합/교차 고려)
    */
   private selectEnemyCardsBasic(enemy: EnemyState): GameCard[] {
     const available: GameCard[] = [];
@@ -659,8 +663,20 @@ export class MultiEnemyBattleEngine {
 
     if (available.length === 0) return [];
 
-    // HP 비율에 따른 간단한 전략
+    // HP 비율에 따른 전략
     const hpRatio = enemy.hp / enemy.maxHp;
+
+    // 타입/특성 카운터 (조합 평가용)
+    const typeCount = new Map<string, number>();
+    const traitCount = new Map<string, number>();
+    for (const card of available) {
+      typeCount.set(card.type || 'general', (typeCount.get(card.type || 'general') || 0) + 1);
+      if (card.traits) {
+        for (const trait of card.traits) {
+          traitCount.set(trait, (traitCount.get(trait) || 0) + 1);
+        }
+      }
+    }
 
     // 점수 기반 정렬
     const scored = available.map(card => {
@@ -668,24 +684,55 @@ export class MultiEnemyBattleEngine {
       const damage = (card.damage || 0) * (card.hits || 1);
       const block = card.block || 0;
 
+      // 1. HP 기반 기본 점수
       if (hpRatio < 0.3) {
         // HP 낮음: 방어 우선
-        score = block * 2 + damage;
+        score = block * 2.5 + damage * 0.8;
       } else if (hpRatio > 0.7) {
         // HP 높음: 공격 우선
-        score = damage * 2 + block;
+        score = damage * 2.5 + block * 0.5;
       } else {
         // 균형
-        score = damage * 1.2 + block * 1.2;
+        score = damage * 1.5 + block * 1.2;
       }
 
-      // 특수 효과 보너스
+      // 2. 교차 보너스 카드 우선 (+15점)
+      if (card.crossBonus) {
+        score += 15;
+        // 공격 배율 교차는 더 가치있음
+        if (card.crossBonus.type === 'damage_mult') {
+          score += 5;
+        }
+      }
+
+      // 3. 조합 가능성 보너스 (같은 타입 많으면 우선)
+      const sameTypeCount = typeCount.get(card.type || 'general') || 0;
+      if (sameTypeCount >= 3) {
+        score += sameTypeCount * 2; // 플러쉬 가능성
+      }
+
+      // 4. 특성 시너지 보너스
+      if (card.traits) {
+        for (const trait of card.traits) {
+          const count = traitCount.get(trait) || 0;
+          if (count >= 2) {
+            score += count * 1.5; // 같은 특성 시너지
+          }
+        }
+      }
+
+      // 5. 특수 효과 보너스
       if (card.appliedTokens && card.appliedTokens.length > 0) {
-        score += 5;
+        score += 8;
       }
 
-      // 빠른 카드 선호
-      score += (10 - (card.speedCost || 5)) * 0.5;
+      // 6. 빠른 카드 선호 (교차 기회 증가)
+      score += (10 - (card.speedCost || 5)) * 0.8;
+
+      // 7. 희귀도 보너스
+      if (card.rarity === 'rare') score += 3;
+      if (card.rarity === 'epic') score += 5;
+      if (card.rarity === 'legendary') score += 8;
 
       return { card, score };
     });
@@ -948,6 +995,8 @@ export class MultiEnemyBattleEngine {
           enemy.hp -= actualDamage;
 
           state.playerDamageDealt += actualDamage;
+          // 개별 적 피해량 추적
+          state.damageDealtToEnemies[targetIdx] = (state.damageDealtToEnemies[targetIdx] || 0) + actualDamage;
 
           // 이변 효과: Mirror Dimension - 피해 반사
           if (this.config.enableAnomalies && actualDamage > 0) {
@@ -1135,11 +1184,11 @@ export class MultiEnemyBattleEngine {
   }
 
   /**
-   * 타겟 결정
+   * 타겟 결정 (스마트 타겟팅 포함)
    */
   private determineTargets(state: MultiEnemyBattleState, card: GameCard): number[] {
     const aliveEnemies = state.enemies
-      .map((e, i) => ({ index: i, hp: e.hp }))
+      .map((e, i) => ({ index: i, enemy: e, hp: e.hp, maxHp: e.maxHp }))
       .filter(e => e.hp > 0);
 
     if (aliveEnemies.length === 0) return [];
@@ -1163,15 +1212,71 @@ export class MultiEnemyBattleEngine {
       case 'highest_hp':
         return [aliveEnemies.reduce((max, curr) => curr.hp > max.hp ? curr : max).index];
 
+      case 'smart':
+        // 스마트 타겟팅: 최적의 대상 선택
+        return [this.selectSmartTarget(state, card, aliveEnemies)];
+
       case 'single':
       default:
-        // 현재 선택된 타겟, 없으면 첫 번째 생존 적
+        // 현재 선택된 타겟, 없으면 스마트 타겟팅
         if (state.currentTargetIndex < state.enemies.length &&
             state.enemies[state.currentTargetIndex].hp > 0) {
           return [state.currentTargetIndex];
         }
-        return [aliveEnemies[0].index];
+        return [this.selectSmartTarget(state, card, aliveEnemies)];
     }
+  }
+
+  /**
+   * 스마트 타겟 선택 (우선순위 기반)
+   */
+  private selectSmartTarget(
+    state: MultiEnemyBattleState,
+    card: GameCard,
+    aliveEnemies: { index: number; enemy: EnemyState; hp: number; maxHp: number }[]
+  ): number {
+    if (aliveEnemies.length === 1) return aliveEnemies[0].index;
+
+    const cardDamage = (card.damage || 0) * (card.hits || 1);
+
+    // 점수 기반 타겟 선택
+    const scored = aliveEnemies.map(({ index, enemy, hp, maxHp }) => {
+      let score = 0;
+
+      // 1. 처치 가능 우선 (+100점)
+      if (cardDamage >= hp) {
+        score += 100;
+      }
+
+      // 2. 취약 상태 우선 (+30점)
+      if (hasToken(enemy.tokens || {}, 'vulnerable')) {
+        score += 30;
+      }
+
+      // 3. 높은 위협도 우선 (타임라인에 공격 카드가 많은 적)
+      const enemyAttackCards = state.timeline.filter(
+        tc => tc.owner === 'enemy' && tc.enemyIndex === index
+      );
+      const threatScore = enemyAttackCards.reduce((sum, tc) => {
+        const c = this.cards[tc.cardId];
+        return sum + (c?.damage || 0) * (c?.hits || 1);
+      }, 0);
+      score += Math.min(threatScore / 5, 20); // 최대 +20점
+
+      // 4. 낮은 HP 비율 우선 (마무리 가능성)
+      const hpRatio = hp / maxHp;
+      score += (1 - hpRatio) * 15;
+
+      // 5. 디버프 효과 카드는 높은 HP 적 우선
+      if (card.appliedTokens?.some(t => ['vulnerable', 'weak', 'fragile'].includes(t.id))) {
+        score += (hpRatio) * 10;
+      }
+
+      return { index, score };
+    });
+
+    scored.sort((a, b) => b.score - a.score);
+    return scored[0].index;
   }
 
   /**
@@ -1254,7 +1359,7 @@ export class MultiEnemyBattleEngine {
     const enemyDetails = state.enemies.map((e, i) => ({
       name: e.name,
       finalHp: Math.max(0, e.hp),
-      damageDealt: 0, // TODO: 개별 적 피해량 추적
+      damageDealt: state.damageDealtToEnemies[i] || 0,
       damageReceived: e.maxHp - Math.max(0, e.hp),
     }));
 

@@ -53,6 +53,10 @@ export interface RespondAIConfig {
   respondChance: number;
   /** 교차 우선 여부 */
   prioritizeCross: boolean;
+  /** 보스전 여부 */
+  isBossFight: boolean;
+  /** 플레이어 전략 */
+  strategy: 'aggressive' | 'balanced' | 'defensive';
 }
 
 const DEFAULT_CONFIG: RespondAIConfig = {
@@ -60,6 +64,8 @@ const DEFAULT_CONFIG: RespondAIConfig = {
   riskTolerance: 0.5,
   respondChance: 0.7,
   prioritizeCross: true,
+  isBossFight: false,
+  strategy: 'balanced',
 };
 
 // ==================== 대응 단계 AI ====================
@@ -76,12 +82,39 @@ export class RespondAI {
   // ==================== 타임라인 분석 ====================
 
   /**
+   * 통찰 레벨에 따라 볼 수 있는 적 카드 수 반환
+   * | 레벨 | 이름 | 대응단계 가시성 |
+   * |------|------|-----------------|
+   * | -3   | 망각 | 0장 (타임라인 불가) |
+   * | -2   | 미련 | 0장 (진행단계만 제한) |
+   * | -1   | 우둔 | 0장 (대응단계 제한) |
+   * |  0   | 평온 | 3장 |
+   * | +1   | 예측 | 4장 |
+   * | +2   | 독심 | 전체 |
+   * | +3   | 혜안 | 전체 + 상세정보 |
+   */
+  private getVisibleEnemyCardCount(insight: number): number {
+    if (insight <= -1) return 0;  // 대응단계에서 적 타임라인 확인 불가
+    if (insight === 0) return 3;  // 기본 3장
+    if (insight === 1) return 4;  // 예측 4장
+    return Infinity;              // 독심/혜안: 전체
+  }
+
+  /**
    * 타임라인 분석
    * @param state 현재 전투 상태
    * @returns 분석 결과
    */
   analyzeTimeline(state: GameBattleState): TimelineAnalysis {
-    const enemyCards = state.timeline.filter(tc => tc.owner === 'enemy');
+    const insight = state.player.insight ?? 0;
+    const visibleCount = this.getVisibleEnemyCardCount(insight);
+
+    // 통찰 레벨에 따른 적 카드 가시성 제한
+    const allEnemyCards = state.timeline.filter(tc => tc.owner === 'enemy');
+    const enemyCards = visibleCount === Infinity
+      ? allEnemyCards
+      : allEnemyCards.slice(0, visibleCount);
+
     const playerCards = state.timeline.filter(tc => tc.owner === 'player');
 
     // 예상 피해 계산
@@ -115,7 +148,7 @@ export class RespondAI {
       }
     }
 
-    // 교차 기회 탐색
+    // 교차 기회 탐색 (현재 교차 + 잠재적 교차 위치)
     const crossOpportunities: TimelineAnalysis['crossOpportunities'] = [];
     const playerPositions = new Map<number, TimelineCard>();
 
@@ -123,12 +156,35 @@ export class RespondAI {
       playerPositions.set(tc.position, tc);
     }
 
+    // 1. 현재 교차 위치 탐색
     for (const tc of enemyCards) {
       if (playerPositions.has(tc.position)) {
         const playerCard = playerPositions.get(tc.position)!;
         crossOpportunities.push({
           position: tc.position,
           playerCard,
+          enemyCard: tc,
+        });
+      }
+    }
+
+    // 2. 잠재적 교차 기회 (적 카드 위치에 대응 카드 배치 가능)
+    // 적 카드가 있고 플레이어 카드가 없는 위치 = 교차 가능 위치
+    const potentialCrossPositions: number[] = [];
+    for (const tc of enemyCards) {
+      if (!playerPositions.has(tc.position)) {
+        potentialCrossPositions.push(tc.position);
+      }
+    }
+
+    // 교차 보너스가 있는 적 카드 위치를 우선 대상으로 추가
+    for (const tc of enemyCards) {
+      const card = this.cards[tc.cardId];
+      if (card?.crossBonus && !playerPositions.has(tc.position)) {
+        // 더미 플레이어 카드로 잠재적 교차 기회 추가
+        crossOpportunities.push({
+          position: tc.position,
+          playerCard: { cardId: '', owner: 'player', position: tc.position } as TimelineCard,
           enemyCard: tc,
         });
       }
@@ -242,15 +298,35 @@ export class RespondAI {
       }
     }
 
-    // 교차 기회 활용 (추가 카드)
+    // 교차 기회 활용 (교차 보너스 카드 우선)
     if (this.config.prioritizeCross && analysis.crossOpportunities.length > 0) {
-      for (const card of reactionCards) {
-        if (card.crossBonus && !selectedCards.includes(card.id)) {
-          selectedCards.push(card.id);
-          totalDamageDealt += card.damage || 0;
-          totalBlockGained += card.block || 0;
-          break;
-        }
+      // 교차 보너스 카드들을 점수순으로 정렬
+      const crossBonusCards = reactionCards
+        .filter(card => card.crossBonus && !selectedCards.includes(card.id))
+        .map(card => {
+          let score = 0;
+          // 공격 배율 교차 우선 (damage_mult)
+          if (card.crossBonus?.type === 'damage_mult') {
+            score += 20 + ((card.crossBonus.value || 1.5) - 1) * 20;
+          }
+          // 방어 배율 교차
+          if (card.crossBonus?.type === 'block_mult') {
+            score += 15 + ((card.crossBonus.value || 1.5) - 1) * 15;
+          }
+          // 기본 피해/방어력
+          score += (card.damage || 0) + (card.block || 0) * 0.5;
+          return { card, score };
+        })
+        .sort((a, b) => b.score - a.score);
+
+      // 상위 2개까지 선택
+      for (let i = 0; i < Math.min(2, crossBonusCards.length); i++) {
+        const { card } = crossBonusCards[i];
+        selectedCards.push(card.id);
+        // 교차 보너스 적용 예상값
+        const multiplier = card.crossBonus?.value || 1.5;
+        totalDamageDealt += Math.floor((card.damage || 0) * multiplier);
+        totalBlockGained += Math.floor((card.block || 0) * (card.crossBonus?.type === 'block_mult' ? multiplier : 1));
       }
     }
 
@@ -264,6 +340,37 @@ export class RespondAI {
         const bestDefense = defenseCards[0];
         selectedCards.push(bestDefense.id);
         totalBlockGained += bestDefense.block || 0;
+      }
+    }
+
+    // 보스전 특화 대응 전략
+    if (this.config.isBossFight) {
+      // 보스전에서는 더 적극적으로 대응
+      const bossResponseCards = this.selectBossFightResponses(
+        reactionCards,
+        analysis,
+        selectedCards,
+        state
+      );
+
+      for (const card of bossResponseCards) {
+        if (!selectedCards.includes(card.id)) {
+          selectedCards.push(card.id);
+          totalDamageDealt += (card.damage || 0) * (card.hits || 1);
+          totalBlockGained += card.block || 0;
+        }
+      }
+    }
+
+    // 전략별 추가 대응
+    if (this.config.strategy === 'defensive' && hpRatio < 0.5) {
+      // 방어 전략 + 체력 낮으면 추가 방어
+      const additionalDefense = reactionCards
+        .filter(c => c.block && c.block >= 5 && !selectedCards.includes(c.id))
+        .slice(0, 1);
+      for (const card of additionalDefense) {
+        selectedCards.push(card.id);
+        totalBlockGained += card.block || 0;
       }
     }
 
@@ -281,6 +388,88 @@ export class RespondAI {
         blockGained: totalBlockGained,
       },
     };
+  }
+
+  /**
+   * 보스전 특화 대응 카드 선택
+   */
+  private selectBossFightResponses(
+    reactionCards: GameCard[],
+    analysis: TimelineAnalysis,
+    alreadySelected: string[],
+    state: GameBattleState
+  ): GameCard[] {
+    const selected: GameCard[] = [];
+    const hpRatio = state.player.hp / state.player.maxHp;
+
+    // 1. 고피해 적 카드에 우선 대응
+    for (const dangerCard of analysis.dangerousCards) {
+      const enemyCard = this.cards[dangerCard.cardId];
+      if (!enemyCard) continue;
+
+      const enemyDamage = (enemyCard.damage || 0) * (enemyCard.hits || 1);
+
+      // 피해가 현재 HP의 30% 이상이면 반드시 대응
+      if (enemyDamage >= state.player.hp * 0.3) {
+        const counter = reactionCards.find(c =>
+          !alreadySelected.includes(c.id) &&
+          !selected.some(s => s.id === c.id) &&
+          (c.block && c.block >= enemyDamage * 0.5 || c.parryRange)
+        );
+        if (counter) {
+          selected.push(counter);
+        }
+      }
+    }
+
+    // 2. 보스 멀티히트 공격 대응 (blur/evasion 부여 카드)
+    const multiHitEnemies = analysis.dangerousCards.filter(tc => {
+      const card = this.cards[tc.cardId];
+      return card && (card.hits || 1) > 1;
+    });
+
+    if (multiHitEnemies.length > 0) {
+      const evasionCard = reactionCards.find(c =>
+        !alreadySelected.includes(c.id) &&
+        !selected.some(s => s.id === c.id) &&
+        c.appliedTokens?.some(t =>
+          (t.target === 'self' || t.target === 'player') &&
+          (t.id === 'blur' || t.id === 'evasion' || t.id === 'agility')
+        )
+      );
+      if (evasionCard) {
+        selected.push(evasionCard);
+      }
+    }
+
+    // 3. HP 낮을 때 최대 방어
+    if (hpRatio < 0.35) {
+      const bestDefense = reactionCards
+        .filter(c =>
+          !alreadySelected.includes(c.id) &&
+          !selected.some(s => s.id === c.id) &&
+          c.block && c.block > 0
+        )
+        .sort((a, b) => (b.block || 0) - (a.block || 0))[0];
+
+      if (bestDefense) {
+        selected.push(bestDefense);
+      }
+    }
+
+    // 4. 반격 기회 활용 (보스 공격이 많을 때)
+    if (analysis.dangerousCards.length >= 2) {
+      const counterCard = reactionCards.find(c =>
+        !alreadySelected.includes(c.id) &&
+        !selected.some(s => s.id === c.id) &&
+        (c.traits?.includes('counter') || c.traits?.includes('counterShot'))
+      );
+      if (counterCard) {
+        selected.push(counterCard);
+      }
+    }
+
+    return selected;
   }
 
   // ==================== 헬퍼 함수 ====================

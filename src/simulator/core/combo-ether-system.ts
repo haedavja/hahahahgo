@@ -32,6 +32,8 @@ export interface ComboCard {
   traits?: string[];
   isGhost?: boolean;
   rarity?: CardRarity;
+  /** 카드 카테고리: fencing, gun, special */
+  category?: string;
 }
 
 export type CardRarity = 'common' | 'rare' | 'special' | 'legendary';
@@ -48,6 +50,7 @@ export interface EtherGainResult {
   baseGain: number;
   comboMultiplier: number;
   actionCostBonus: number;
+  traitSynergyBonus: number;
   deflationMultiplier: number;
   finalGain: number;
   comboName: string;
@@ -130,16 +133,20 @@ function getCardRarity(card: ComboCard): CardRarity {
 // ==================== 포커 콤보 감지 ====================
 
 /**
- * 카드 배열을 분석하여 유효 카드, 빈도, 타입 정보 추출
+ * 카드 배열을 분석하여 유효 카드, 빈도, 타입/카테고리 정보 추출
  */
 function analyzeCards(cards: ComboCard[]): {
   validCards: ComboCard[];
   freq: Map<number, number>;
   typeCount: Map<string, number>;
+  categoryCount: Map<string, number>;
+  traitCount: Map<string, number>;
 } {
   const validCards: ComboCard[] = [];
   const freq = new Map<number, number>();
   const typeCount = new Map<string, number>();
+  const categoryCount = new Map<string, number>();
+  const traitCount = new Map<string, number>();
 
   for (const card of cards) {
     // 소외 특성과 유령 카드는 조합에서 제외
@@ -154,9 +161,20 @@ function analyzeCards(cards: ComboCard[]): {
     // 타입별 집계 (플러쉬 판정용)
     const type = card.type || 'general';
     typeCount.set(type, (typeCount.get(type) || 0) + 1);
+
+    // 카테고리별 집계 (fencing/gun/special 플러쉬)
+    const category = card.category || 'general';
+    categoryCount.set(category, (categoryCount.get(category) || 0) + 1);
+
+    // 특성별 집계 (시너지 보너스용)
+    if (card.traits) {
+      for (const trait of card.traits) {
+        traitCount.set(trait, (traitCount.get(trait) || 0) + 1);
+      }
+    }
   }
 
-  return { validCards, freq, typeCount };
+  return { validCards, freq, typeCount, categoryCount, traitCount };
 }
 
 /**
@@ -177,9 +195,10 @@ export function detectPokerCombo(cards: (GameCard | ComboCard)[]): ComboResult {
     traits: c.traits,
     isGhost: (c as ComboCard).isGhost,
     rarity: (c as ComboCard).rarity,
+    category: (c as any).category || inferCategory(c),
   }));
 
-  const { validCards, freq, typeCount } = analyzeCards(comboCards);
+  const { validCards, freq, typeCount, categoryCount, traitCount } = analyzeCards(comboCards);
 
   // 유효 카드가 없으면 하이카드
   if (validCards.length === 0) {
@@ -200,10 +219,20 @@ export function detectPokerCombo(cards: (GameCard | ComboCard)[]): ComboResult {
   const hasTwoPairs = counts[0] >= 2 && counts[1] >= 2;
   const hasFullHouse = counts[0] >= 3 && counts[1] >= 2;
 
-  // 플러쉬 판정: 같은 타입(attack 또는 defense/general) 4장 이상
+  // 플러쉬 판정 개선: 타입 또는 카테고리 기준
+  // 1. 타입 기반: 같은 타입(attack 또는 defense/general) 4장 이상
   const attackCount = typeCount.get('attack') || 0;
   const defenseCount = (typeCount.get('general') || 0) + (typeCount.get('defense') || 0);
-  const isFlush = attackCount >= 4 || defenseCount >= 4;
+  const isTypeFlush = attackCount >= 4 || defenseCount >= 4;
+
+  // 2. 카테고리 기반: 같은 카테고리(fencing/gun/special) 4장 이상
+  const fencingCount = categoryCount.get('fencing') || 0;
+  const gunCount = categoryCount.get('gun') || 0;
+  const specialCount = categoryCount.get('special') || 0;
+  const isCategoryFlush = fencingCount >= 4 || gunCount >= 4 || specialCount >= 4;
+
+  // 둘 중 하나라도 만족하면 플러쉬
+  const isFlush = isTypeFlush || isCategoryFlush;
 
   // 보너스 키 계산 헬퍼
   const getKeysByCount = (n: number): Set<number> => {
@@ -236,6 +265,44 @@ export function detectPokerCombo(cards: (GameCard | ComboCard)[]): ComboResult {
 }
 
 /**
+ * 카드 ID에서 카테고리 추론
+ */
+function inferCategory(card: GameCard | ComboCard): string {
+  // 1. 명시적인 cardCategory가 있으면 사용
+  if ('cardCategory' in card && card.cardCategory) {
+    return card.cardCategory;
+  }
+
+  // 2. category 필드 확인
+  if (card.category) {
+    return card.category;
+  }
+
+  // 3. ID 기반 추론 (폴백)
+  const id = card.id.toLowerCase();
+  // 펜싱 카드 판별
+  if (id.includes('thrust') || id.includes('slash') || id.includes('parry') ||
+      id.includes('riposte') || id.includes('fleche') || id.includes('lunge') ||
+      id.includes('quarte') || id.includes('sixte') || id.includes('fencing') ||
+      id.includes('feint') || id.includes('balestra') || id.includes('appel')) {
+    return 'fencing';
+  }
+  // 총기 카드 판별
+  if (id.includes('shoot') || id.includes('reload') || id.includes('bullet') ||
+      id.includes('gun') || id.includes('revolver') || id.includes('roulette') ||
+      id.includes('snipe') || id.includes('spray') || id.includes('quickdraw') ||
+      id.includes('chamber') || id.includes('cylinder')) {
+    return 'gun';
+  }
+  // 특수 카드
+  if (id.includes('special') || id.includes('hologram') || id.includes('recall') ||
+      id.includes('ether') || id.includes('burst')) {
+    return 'special';
+  }
+  return 'general';
+}
+
+/**
  * ComboResult 생성 헬퍼
  */
 function createComboResult(name: string, bonusKeys: Set<number> | null): ComboResult {
@@ -249,6 +316,67 @@ function createComboResult(name: string, bonusKeys: Set<number> | null): ComboRe
 }
 
 // ==================== 에테르 계산 ====================
+
+/** 특성 시너지 보너스 정의 */
+const TRAIT_SYNERGY_BONUSES: Record<string, { threshold: number; bonus: number; name: string }> = {
+  // 기본 시너지 (2개 이상)
+  swift: { threshold: 2, bonus: 0.3, name: '신속 시너지' },
+  chain: { threshold: 2, bonus: 0.5, name: '연계 시너지' },
+  strongbone: { threshold: 2, bonus: 0.4, name: '강골 시너지' },
+  repeat: { threshold: 2, bonus: 0.4, name: '반복 시너지' },
+  mastery: { threshold: 2, bonus: 0.6, name: '숙련 시너지' },
+
+  // 전투 특성 시너지
+  striking: { threshold: 2, bonus: 0.3, name: '타격 시너지' },
+  counterattack: { threshold: 2, bonus: 0.4, name: '반격 시너지' },
+  piercing: { threshold: 2, bonus: 0.35, name: '관통 시너지' },
+  calm: { threshold: 2, bonus: 0.2, name: '침착 시너지' },
+
+  // 협동 특성 (특별 보너스 - 50% 추가 획득)
+  cooperation: { threshold: 2, bonus: 0.5, name: '협동 시너지' },
+
+  // 성장 특성
+  training: { threshold: 2, bonus: 0.3, name: '단련 시너지' },
+  growth: { threshold: 2, bonus: 0.4, name: '성장 시너지' },
+
+  // 방어 특성
+  parry: { threshold: 2, bonus: 0.35, name: '패링 시너지' },
+  block: { threshold: 2, bonus: 0.25, name: '방어 시너지' },
+
+  // 기타 특성
+  quick: { threshold: 2, bonus: 0.25, name: '속공 시너지' },
+  heavy: { threshold: 2, bonus: 0.45, name: '중량 시너지' },
+};
+
+/**
+ * 특성 시너지 보너스 계산
+ */
+export function calculateTraitSynergyBonus(cards: ComboCard[]): { bonus: number; synergies: string[] } {
+  const traitCount = new Map<string, number>();
+  const synergies: string[] = [];
+  let totalBonus = 0;
+
+  // 특성 집계
+  for (const card of cards) {
+    if (card.isGhost || hasOutcastTrait(card)) continue;
+    if (card.traits) {
+      for (const trait of card.traits) {
+        traitCount.set(trait, (traitCount.get(trait) || 0) + 1);
+      }
+    }
+  }
+
+  // 시너지 보너스 계산
+  for (const [trait, count] of traitCount) {
+    const synergy = TRAIT_SYNERGY_BONUSES[trait];
+    if (synergy && count >= synergy.threshold) {
+      totalBonus += synergy.bonus;
+      synergies.push(`${synergy.name} (+${synergy.bonus}x)`);
+    }
+  }
+
+  return { bonus: totalBonus, synergies };
+}
 
 /**
  * 고비용 카드 보너스 계산
@@ -294,10 +422,18 @@ export function getCardBaseEther(card: ComboCard): number {
 /**
  * 카드 배열의 총 에테르 계산
  */
+export interface GrowthEtherBonus {
+  /** 고정 에테르 보너스 */
+  etherGainBonus: number;
+  /** 에테르 배율 보너스 (0.1 = 10%) */
+  etherGainMultiplier: number;
+}
+
 export function calculateTotalEther(
   cards: (GameCard | ComboCard)[],
   comboUsageCount: Record<string, number> = {},
-  etherBlocked: boolean = false
+  etherBlocked: boolean = false,
+  growthBonus?: GrowthEtherBonus
 ): EtherGainResult {
   const breakdown: string[] = [];
 
@@ -308,6 +444,7 @@ export function calculateTotalEther(
       baseGain: 0,
       comboMultiplier: 0,
       actionCostBonus: 0,
+      traitSynergyBonus: 0,
       deflationMultiplier: 0,
       finalGain: 0,
       comboName: '없음',
@@ -334,6 +471,7 @@ export function calculateTotalEther(
       baseGain: 0,
       comboMultiplier: 1,
       actionCostBonus: 0,
+      traitSynergyBonus: 0,
       deflationMultiplier: 1,
       finalGain: 0,
       comboName: '없음',
@@ -363,16 +501,38 @@ export function calculateTotalEther(
     breakdown.push(`디플레이션: ×${deflationMultiplier.toFixed(2)} (${deflation.usageCount}회 사용)`);
   }
 
-  // 5. 최종 계산
-  // 공식: 기본값 × (조합배율 + 액션코스트보너스) × 디플레이션
+  // 5. 특성 시너지 보너스 (현재 게임에 미구현 - 참고용으로 계산만 유지)
+  const traitSynergy = calculateTraitSynergyBonus(validCards);
+  const traitSynergyBonus = traitSynergy.bonus;
+  // 특성 시너지는 현재 게임에 구현되지 않음 - 로그에서 제외
+  // if (traitSynergyBonus > 0) {
+  //   breakdown.push(`특성 시너지: +${traitSynergyBonus.toFixed(1)}x (${traitSynergy.synergies.join(', ')})`);
+  // }
+
+  // 6. 성장 시스템 보너스 적용 (extraMultiplier 역할)
+  let growthFixedBonus = 0;
+  let growthMultiplier = 1;
+  if (growthBonus) {
+    growthFixedBonus = growthBonus.etherGainBonus || 0;
+    growthMultiplier = 1 + (growthBonus.etherGainMultiplier || 0);
+    if (growthFixedBonus > 0 || growthBonus.etherGainMultiplier > 0) {
+      breakdown.push(`성장 보너스: +${growthFixedBonus} (×${growthMultiplier.toFixed(2)})`);
+    }
+  }
+
+  // 7. 최종 계산 - 게임 공식과 일치
+  // 게임 공식: (카드별 기본값 합계) × (조합 배율 + 액션코스트 보너스) × 디플레이션
+  // (특성 시너지는 게임에 미구현이므로 제외)
   const totalMultiplier = (comboMultiplier + actionCostBonus) * deflationMultiplier;
-  const finalGain = Math.round(baseGain * totalMultiplier);
+  const baseResult = baseGain * totalMultiplier;
+  const finalGain = Math.round((baseResult + growthFixedBonus) * growthMultiplier);
   breakdown.push(`최종 획득: ${finalGain}`);
 
   return {
     baseGain,
     comboMultiplier,
     actionCostBonus,
+    traitSynergyBonus,
     deflationMultiplier,
     finalGain,
     comboName: combo.name,
