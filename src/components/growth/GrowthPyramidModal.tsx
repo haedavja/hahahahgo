@@ -87,6 +87,25 @@ export const GrowthPyramidModal = memo(function GrowthPyramidModal({
           paddingBottom: SPACING.md,
           marginBottom: SPACING.md,
         }}>
+          {/* 닫기 버튼 - 오른쪽 상단 */}
+          <button
+            onClick={onClose}
+            style={{
+              position: 'absolute',
+              top: SPACING.sm,
+              right: SPACING.md,
+              background: 'transparent',
+              border: 'none',
+              color: COLORS.text.secondary,
+              fontSize: '24px',
+              cursor: 'pointer',
+              padding: SPACING.xs,
+              lineHeight: 1,
+            }}
+          >
+            ✕
+          </button>
+
           <header style={{ textAlign: 'center', marginTop: 0 }}>
             <h3 style={{ marginTop: 0 }}>🔺 피라미드 성장</h3>
             <small>개성으로 스킬포인트를 얻고, 에토스/파토스를 해금하세요</small>
@@ -116,10 +135,6 @@ export const GrowthPyramidModal = memo(function GrowthPyramidModal({
           />
         </div>
 
-        {/* 닫기 버튼 - 하단 중앙 */}
-        <div style={{ display: 'flex', justifyContent: 'center', marginTop: SPACING.xl }}>
-          <button className="btn" onClick={onClose}>닫기</button>
-        </div>
       </div>
     </div>
   );
