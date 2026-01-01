@@ -41,6 +41,9 @@
  * - GitHub Actions 연동
  */
 
+// ==================== Shared Types (Game/Simulator 공유) ====================
+export * from '../lib/types';
+
 // ==================== Core Types ====================
 export * from './core/types';
 export * from './core/game-types';
@@ -333,6 +336,42 @@ export {
   type BurstResult,
   type ComboType,
 } from './core/combo-ether-system';
+
+// ==================== Hand Trait Processor ====================
+export {
+  collectNextTurnEffects,
+  applyNextTurnEffects,
+  generateNextHand,
+  processRepeatTrait,
+  processEscapeTrait,
+  processWarmupTrait,
+  processOblivionTrait,
+  processRuinTrait,
+  processExhaustTrait,
+  HAND_TRAITS,
+  type NextTurnEffects as HandNextTurnEffects,
+  type HandGenerationResult,
+  type HandGenerationConfig,
+} from './core/hand-trait-processor';
+
+// ==================== Insight System ====================
+export {
+  calculateInsightLevel,
+  getInsightLevelInfo,
+  getInsightReveal,
+  calculateTotalShroud,
+  calculateVeilCount,
+  calculateVeilInsightReduction,
+  getSimulatorInsightInfo,
+  filterVisibleEnemyCards,
+  getInsightLevelName,
+  INSIGHT_LEVELS,
+  type InsightLevelName,
+  type InsightLevel as InsightLevelInfo,
+  type InsightReveal as InsightRevealInfo,
+  type InsightCalculationParams,
+  type EnemyUnit as InsightEnemyUnit,
+} from './core/insight-system';
 
 // ==================== Respond AI ====================
 export {
