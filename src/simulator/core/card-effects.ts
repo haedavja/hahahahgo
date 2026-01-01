@@ -13,7 +13,7 @@ import type {
   TimelineCard,
   TokenState,
 } from './game-types';
-import { addToken, removeToken, hasToken, getTokenStacks } from './token-system';
+import { addToken, removeToken, hasToken, getTokenStacks, exhaustCard, type ExhaustState } from './token-system';
 
 // ==================== 특수 효과 결과 ====================
 
@@ -41,6 +41,8 @@ export interface SpecialEffectResult {
     creationEffect?: string;
     /** 소환된 유닛 ID 목록 */
     summoned?: string[];
+    /** 카드 소진 (덱에서 영구 제거) */
+    exhaustCard?: boolean;
   };
 }
 
@@ -400,6 +402,49 @@ const SPECIAL_EFFECTS: Record<string, SpecialEffectHandler> = {
       success: true,
       effects: ['카드당 방어력 5'],
       stateChanges: { playerBlock: 5 },
+    };
+  },
+
+  // ==================== 소진(Exhaust) 효과 ====================
+
+  exhaust: () => {
+    // 카드 소진 - 전투에서 영구 제거
+    return {
+      success: true,
+      effects: ['카드 소진'],
+      stateChanges: { exhaustCard: true },
+    };
+  },
+
+  exhaustOnUse: () => {
+    // 사용 후 소진
+    return {
+      success: true,
+      effects: ['사용 후 소진'],
+      stateChanges: { exhaustCard: true },
+    };
+  },
+
+  exhaustRandomCard: (state, _card, actor) => {
+    // 손패에서 랜덤 카드 1장 소진
+    if (actor === 'player' && state.player.hand.length > 0) {
+      const randomIndex = Math.floor(Math.random() * state.player.hand.length);
+      const exhaustedCardId = state.player.hand[randomIndex];
+      return {
+        success: true,
+        effects: [`랜덤 카드 소진: ${exhaustedCardId}`],
+        stateChanges: { exhaustCard: true },
+      };
+    }
+    return { success: false, effects: [], stateChanges: {} };
+  },
+
+  exhaustAndDraw: (state, _card, actor) => {
+    // 손패 1장 소진하고 2장 드로우 (Grinder 효과)
+    return {
+      success: true,
+      effects: ['카드 소진 후 2장 드로우'],
+      stateChanges: { exhaustCard: true },
     };
   },
 

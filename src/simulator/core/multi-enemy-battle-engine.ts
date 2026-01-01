@@ -47,6 +47,11 @@ import {
   getChainIsolationLevel,
   getTraitSilenceLevel,
   clearGameAnomalies,
+  getMirrorReflectionDamage,
+  getBloodMoonDamageMultiplier,
+  getBloodMoonHealMultiplier,
+  getToxicMistDamage,
+  getRegenerationFieldHeal,
 } from './anomaly-system';
 import { getLogger } from './logger';
 
@@ -401,6 +406,20 @@ export class MultiEnemyBattleEngine {
 
     if (state.player.hp <= 0) return;
 
+    // 이변 효과: Regeneration Field - 턴 시작 재생
+    if (this.config.enableAnomalies) {
+      const regenHeal = getRegenerationFieldHeal();
+      if (regenHeal > 0) {
+        state.player.hp = Math.min(state.player.maxHp, state.player.hp + regenHeal);
+        for (const enemy of state.enemies) {
+          if (enemy.hp > 0) {
+            enemy.hp = Math.min(enemy.maxHp, enemy.hp + regenHeal);
+          }
+        }
+        state.battleLog.push(`💚 재생 필드: 모두 ${regenHeal} 회복`);
+      }
+    }
+
     // 최적 타겟 선택
     state.currentTargetIndex = this.selectOptimalTarget(state);
 
@@ -432,6 +451,20 @@ export class MultiEnemyBattleEngine {
     const drawReduction = this.config.enableAnomalies ? getDrawReduction() : 0;
     const drawCount = Math.max(1, DEFAULT_HAND_SIZE - drawReduction);
     this.drawCards(state.player, drawCount);
+
+    // 이변 효과: Toxic Mist - 턴 종료 독 피해
+    if (this.config.enableAnomalies) {
+      const toxicDamage = getToxicMistDamage();
+      if (toxicDamage > 0) {
+        state.player.hp -= toxicDamage;
+        for (const enemy of state.enemies) {
+          if (enemy.hp > 0) {
+            enemy.hp -= toxicDamage;
+          }
+        }
+        state.battleLog.push(`☠️ 독 안개: 모두 ${toxicDamage} 피해`);
+      }
+    }
 
     // 토큰 턴 종료 처리
     state.player.tokens = processTurnEnd(state.player.tokens);
@@ -615,7 +648,7 @@ export class MultiEnemyBattleEngine {
   }
 
   /**
-   * 적 카드 기본 선택 (랜덤)
+   * 적 카드 기본 선택 (간단한 휴리스틱 적용)
    */
   private selectEnemyCardsBasic(enemy: EnemyState): GameCard[] {
     const available: GameCard[] = [];
@@ -624,8 +657,41 @@ export class MultiEnemyBattleEngine {
       if (card) available.push(card);
     }
 
-    this.shuffle(available);
-    return available.slice(0, enemy.cardsPerTurn);
+    if (available.length === 0) return [];
+
+    // HP 비율에 따른 간단한 전략
+    const hpRatio = enemy.hp / enemy.maxHp;
+
+    // 점수 기반 정렬
+    const scored = available.map(card => {
+      let score = 0;
+      const damage = (card.damage || 0) * (card.hits || 1);
+      const block = card.block || 0;
+
+      if (hpRatio < 0.3) {
+        // HP 낮음: 방어 우선
+        score = block * 2 + damage;
+      } else if (hpRatio > 0.7) {
+        // HP 높음: 공격 우선
+        score = damage * 2 + block;
+      } else {
+        // 균형
+        score = damage * 1.2 + block * 1.2;
+      }
+
+      // 특수 효과 보너스
+      if (card.appliedTokens && card.appliedTokens.length > 0) {
+        score += 5;
+      }
+
+      // 빠른 카드 선호
+      score += (10 - (card.speedCost || 5)) * 0.5;
+
+      return { card, score };
+    });
+
+    scored.sort((a, b) => b.score - a.score);
+    return scored.slice(0, enemy.cardsPerTurn).map(s => s.card);
   }
 
   /**
@@ -867,6 +933,14 @@ export class MultiEnemyBattleEngine {
             damage = Math.floor(damage * (1 + anomalyVulnerable / 100));
           }
 
+          // 이변 효과: Blood Moon - 피해 +25%
+          if (this.config.enableAnomalies) {
+            const bloodMoonMult = getBloodMoonDamageMultiplier();
+            if (bloodMoonMult !== 1) {
+              damage = Math.floor(damage * bloodMoonMult);
+            }
+          }
+
           // 방어력 처리
           const blocked = Math.min(enemy.block, damage);
           const actualDamage = damage - blocked;
@@ -874,6 +948,15 @@ export class MultiEnemyBattleEngine {
           enemy.hp -= actualDamage;
 
           state.playerDamageDealt += actualDamage;
+
+          // 이변 효과: Mirror Dimension - 피해 반사
+          if (this.config.enableAnomalies && actualDamage > 0) {
+            const reflectedDamage = getMirrorReflectionDamage(actualDamage);
+            if (reflectedDamage > 0) {
+              state.player.hp -= reflectedDamage;
+              state.battleLog.push(`  🪞 거울 반사: ${reflectedDamage} 피해`);
+            }
+          }
 
           if (this.config.verbose || targets.length > 1) {
             state.battleLog.push(`  ⚔️ ${card.name} → ${enemy.name}: ${actualDamage} 피해${blocked > 0 ? ` (${blocked} 방어)` : ''}`);

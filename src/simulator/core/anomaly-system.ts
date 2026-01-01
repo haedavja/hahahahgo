@@ -1026,3 +1026,70 @@ export function getGameAnomalyEffectsSummary(): GameAnomalyResult[] {
 
   return results;
 }
+
+/**
+ * Mirror Dimension 효과 - 피해 반사 계산
+ * @param damage 원래 피해량
+ * @returns 공격자에게 반사될 피해량
+ */
+export function getMirrorReflectionDamage(damage: number): number {
+  const system = getAnomalySystem();
+  if (system.isActive('mirror_dimension')) {
+    const reflected = Math.floor(damage * 0.5);
+    log.debug(`Mirror reflection: ${damage} -> ${reflected}`);
+    return reflected;
+  }
+  return 0;
+}
+
+/**
+ * Blood Moon 효과 - 피해/회복 수정
+ */
+export function getBloodMoonDamageMultiplier(): number {
+  const system = getAnomalySystem();
+  if (system.isActive('blood_moon')) {
+    return 1.25;
+  }
+  return 1;
+}
+
+export function getBloodMoonHealMultiplier(): number {
+  const system = getAnomalySystem();
+  if (system.isActive('blood_moon')) {
+    return 0.5;
+  }
+  return 1;
+}
+
+/**
+ * Toxic Mist 효과 - 턴 종료 독 피해
+ */
+export function getToxicMistDamage(): number {
+  const system = getAnomalySystem();
+  if (system.isActive('toxic_mist')) {
+    return 3;
+  }
+  return 0;
+}
+
+/**
+ * Regeneration Field 효과 - 턴 시작 재생
+ */
+export function getRegenerationFieldHeal(): number {
+  const system = getAnomalySystem();
+  if (system.isActive('regeneration_field')) {
+    return 5;
+  }
+  return 0;
+}
+
+/**
+ * Elite Surge 효과 - 적 강화
+ */
+export function getEliteSurgeMultipliers(): { hp: number; damage: number } {
+  const system = getAnomalySystem();
+  if (system.isActive('elite_surge')) {
+    return { hp: 1.5, damage: 1.25 };
+  }
+  return { hp: 1, damage: 1 };
+}

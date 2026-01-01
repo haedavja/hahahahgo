@@ -454,6 +454,185 @@ export function processTurnEnd(tokens: TokenState): TokenState {
   return clearTokensByType(tokens, 'turn');
 }
 
+// ==================== Exhaust (소진) 시스템 ====================
+
+/**
+ * 카드 소진 상태 관리
+ */
+export interface ExhaustState {
+  exhaustedCards: Set<string>;
+  exhaustPile: string[];
+}
+
+/**
+ * 카드 소진 처리
+ * @returns 소진 후 새로운 덱 (소진된 카드 제거됨)
+ */
+export function exhaustCard(
+  deck: string[],
+  cardId: string,
+  exhaustState: ExhaustState
+): { newDeck: string[]; exhausted: boolean } {
+  const cardIndex = deck.indexOf(cardId);
+  if (cardIndex === -1) {
+    return { newDeck: deck, exhausted: false };
+  }
+
+  const newDeck = [...deck];
+  newDeck.splice(cardIndex, 1);
+  exhaustState.exhaustedCards.add(cardId);
+  exhaustState.exhaustPile.push(cardId);
+
+  log.debug('카드 소진', { cardId, remaining: newDeck.length });
+
+  return { newDeck, exhausted: true };
+}
+
+/**
+ * 소진된 카드 회수 (특수 효과용)
+ */
+export function recoverExhausted(
+  exhaustState: ExhaustState,
+  count: number = 1
+): string[] {
+  const recovered: string[] = [];
+  for (let i = 0; i < count && exhaustState.exhaustPile.length > 0; i++) {
+    const card = exhaustState.exhaustPile.pop();
+    if (card) {
+      exhaustState.exhaustedCards.delete(card);
+      recovered.push(card);
+    }
+  }
+  return recovered;
+}
+
+/**
+ * 전투 종료 시 소진 상태 초기화
+ */
+export function resetExhaustState(): ExhaustState {
+  return {
+    exhaustedCards: new Set(),
+    exhaustPile: [],
+  };
+}
+
+// ==================== 토큰 충돌/변환 규칙 ====================
+
+/** 상충하는 토큰 쌍 정의 */
+const TOKEN_CONFLICTS: Record<string, string> = {
+  // 공격 관련
+  offense: 'dull',
+  offensePlus: 'dullPlus',
+  attack: 'dullness',
+  attackPlus: 'dullnessPlus',
+  // 방어 관련
+  guard: 'shaken',
+  guardPlus: 'shakenPlus',
+  defense: 'exposed',
+  defensePlus: 'exposedPlus',
+  // 상태이상 관련
+  strength: 'weakness',
+  agility: 'slowness',
+  immunity: 'vulnerable',
+  // 역방향
+  dull: 'offense',
+  dullPlus: 'offensePlus',
+  dullness: 'attack',
+  dullnessPlus: 'attackPlus',
+  shaken: 'guard',
+  shakenPlus: 'guardPlus',
+  exposed: 'defense',
+  exposedPlus: 'defensePlus',
+  weakness: 'strength',
+  slowness: 'agility',
+  vulnerable: 'immunity',
+};
+
+/** 토큰 스택 상한 */
+const TOKEN_STACK_LIMITS: Record<string, number> = {
+  strength: 99,
+  agility: 10,
+  burn: 10,
+  poison: 20,
+  counter: 5,
+  counterShot: 10,
+  roulette: 20,
+  finesse: 10,
+};
+
+/**
+ * 충돌하는 토큰 처리 (상충 토큰 상쇄)
+ */
+export function resolveTokenConflict(
+  tokens: TokenState,
+  newTokenId: string,
+  newStacks: number
+): TokenState {
+  const conflictingTokenId = TOKEN_CONFLICTS[newTokenId];
+  if (!conflictingTokenId) {
+    return addTokenWithLimit(tokens, newTokenId, newStacks);
+  }
+
+  const existingConflictStacks = getTokenStacks(tokens, conflictingTokenId);
+  if (existingConflictStacks === 0) {
+    return addTokenWithLimit(tokens, newTokenId, newStacks);
+  }
+
+  let newTokens = { ...tokens };
+  if (newStacks > existingConflictStacks) {
+    newTokens = clearToken(newTokens, conflictingTokenId);
+    newTokens = addTokenWithLimit(newTokens, newTokenId, newStacks - existingConflictStacks);
+    log.debug('토큰 충돌 해소', { removed: conflictingTokenId, added: newTokenId });
+  } else if (newStacks < existingConflictStacks) {
+    newTokens = removeToken(newTokens, conflictingTokenId, newStacks);
+    log.debug('토큰 충돌 해소', { reduced: conflictingTokenId, by: newStacks });
+  } else {
+    newTokens = clearToken(newTokens, conflictingTokenId);
+    log.debug('토큰 충돌 해소', { bothRemoved: [newTokenId, conflictingTokenId] });
+  }
+
+  return newTokens;
+}
+
+/**
+ * 스택 상한 적용하여 토큰 추가
+ */
+export function addTokenWithLimit(tokens: TokenState, tokenId: string, stacks: number = 1): TokenState {
+  const limit = TOKEN_STACK_LIMITS[tokenId] || 99;
+  const currentStacks = getTokenStacks(tokens, tokenId);
+  const newStacks = Math.min(currentStacks + stacks, limit);
+  const actualAdd = newStacks - currentStacks;
+
+  if (actualAdd <= 0) {
+    return tokens;
+  }
+
+  return addToken(tokens, tokenId, actualAdd);
+}
+
+/**
+ * 토큰 변환 (A → B)
+ */
+export function convertToken(
+  tokens: TokenState,
+  fromTokenId: string,
+  toTokenId: string,
+  ratio: number = 1
+): TokenState {
+  const fromStacks = getTokenStacks(tokens, fromTokenId);
+  if (fromStacks === 0) {
+    return tokens;
+  }
+
+  const toStacks = Math.floor(fromStacks * ratio);
+  let newTokens = clearToken(tokens, fromTokenId);
+  newTokens = addTokenWithLimit(newTokens, toTokenId, toStacks);
+
+  log.debug('토큰 변환', { from: fromTokenId, to: toTokenId, stacks: toStacks });
+
+  return newTokens;
+}
+
 // ==================== 특수 토큰 처리 ====================
 
 /**
