@@ -27,6 +27,7 @@ import { IdentitySection } from './IdentitySection';
 import { TierRow } from './TierRow';
 import { TraitEthosSection } from './TraitEthosSection';
 import { PyramidConnections } from './PyramidConnections';
+import { LOGOS, type LogosType } from '../../data/growth/logosData';
 
 interface GrowthPyramidModalProps {
   isOpen: boolean;
@@ -289,6 +290,42 @@ const StatusSummary = memo(function StatusSummary({
               ))}
             </div>
           )}
+
+          {/* 획득한 로고스 표시 */}
+          {(() => {
+            const acquiredLogos = (Object.entries(growth.logosLevels) as [LogosType, number][])
+              .filter(([, level]) => level > 0)
+              .map(([type, level]) => ({
+                name: LOGOS[type].name,
+                level,
+                levelName: LOGOS[type].levels[level - 1]?.name || '',
+              }));
+            if (acquiredLogos.length === 0) return null;
+            return (
+              <div style={{
+                marginTop: SPACING.sm,
+                padding: `${SPACING.xs} ${SPACING.sm}`,
+                background: 'rgba(251, 191, 36, 0.1)',
+                border: '1px solid rgba(251, 191, 36, 0.3)',
+                borderRadius: BORDER_RADIUS.md,
+                display: 'inline-flex',
+                gap: SPACING.md,
+                flexWrap: 'wrap',
+                justifyContent: 'center',
+              }}>
+                <span style={{ color: COLORS.primary, fontSize: '13px' }}>로고스:</span>
+                {acquiredLogos.map(({ name, level, levelName }) => (
+                  <span
+                    key={name}
+                    title={levelName}
+                    style={{ color: COLORS.primary, fontSize: '13px', cursor: 'help' }}
+                  >
+                    {name} <strong>Lv{level}</strong>
+                  </span>
+                ))}
+              </div>
+            );
+          })()}
 
           {pendingSelection && (
             <div style={{
