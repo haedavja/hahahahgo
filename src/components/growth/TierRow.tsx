@@ -64,7 +64,7 @@ export const TierRow = memo(function TierRow({
         justifyContent: 'center',
         maxWidth: tier <= 3 ? '100%' : tier === 4 ? '90%' : '80%',
         margin: '0 auto',
-        marginTop: '-8px',
+        marginTop: '-30px',
       }}>
         {nodes.map(node => (
           <NodeCard
