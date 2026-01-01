@@ -59,7 +59,7 @@ export const IdentitySection = memo(function IdentitySection({
   const canAccessGunslinger = gunCount >= REQUIRED_TYPE_COUNT;
 
   return (
-    <div style={{ marginBottom: '40px' }}>
+    <div style={{ marginBottom: '80px' }}>
       {/* 티어 헤더와 자아 카드를 같은 줄에 배치 - 피라미드 형태 */}
       <div style={{
         display: 'flex',
@@ -141,6 +141,7 @@ const IdentityCard = memo(function IdentityCard({
 }: IdentityCardProps) {
   return (
     <div
+      data-node-id={`identity-${identityId}`}
       onClick={() => canSelect && onSelect(identityId)}
       style={{
         width: '200px',

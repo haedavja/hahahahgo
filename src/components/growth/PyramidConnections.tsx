@@ -39,6 +39,16 @@ function generateConnections(): Connection[] {
   return connections;
 }
 
+// 자아 → 로고스 연결 정의
+const IDENTITY_LOGOS_CONNECTIONS: Connection[] = [
+  // 검사 → 전투왈츠, 공통
+  { from: 'identity-swordsman', to: 'logos-battleWaltz', tier: 8 },
+  { from: 'identity-swordsman', to: 'logos-common', tier: 8 },
+  // 총잡이 → 건카타, 공통
+  { from: 'identity-gunslinger', to: 'logos-gunkata', tier: 8 },
+  { from: 'identity-gunslinger', to: 'logos-common', tier: 8 },
+];
+
 const ALL_CONNECTIONS = generateConnections();
 
 interface NodePosition {
@@ -51,12 +61,14 @@ interface NodePosition {
 interface PyramidConnectionsProps {
   containerRef: React.RefObject<HTMLDivElement | null>;
   unlockedNodes: string[];
+  identities?: string[]; // 선택된 자아
   scale?: number; // 컨테이너 scale 값 (좌표 보정용)
 }
 
 export const PyramidConnections = memo(function PyramidConnections({
   containerRef,
   unlockedNodes,
+  identities = [],
   scale = 1,
 }: PyramidConnectionsProps) {
   const [positions, setPositions] = useState<Record<string, NodePosition>>({});
@@ -76,7 +88,7 @@ export const PyramidConnections = memo(function PyramidConnections({
 
     const newPositions: Record<string, NodePosition> = {};
 
-    // 모든 노드 ID 수집
+    // 모든 노드 ID 수집 (기존 티어 + 자아 + 로고스)
     const allNodeIds = [
       ...NODE_ORDER.tier1,
       ...NODE_ORDER.tier2,
@@ -84,6 +96,13 @@ export const PyramidConnections = memo(function PyramidConnections({
       ...NODE_ORDER.tier4,
       ...NODE_ORDER.tier5,
       ...NODE_ORDER.tier6,
+      // 7단계 자아
+      'identity-swordsman',
+      'identity-gunslinger',
+      // 8단계 로고스
+      'logos-battleWaltz',
+      'logos-common',
+      'logos-gunkata',
     ];
 
     allNodeIds.forEach((nodeId) => {
@@ -118,10 +137,21 @@ export const PyramidConnections = memo(function PyramidConnections({
       clearTimeout(timer2);
       window.removeEventListener('resize', measurePositions);
     };
-  }, [measurePositions, unlockedNodes]);
+  }, [measurePositions, unlockedNodes, identities]);
 
   // 연결선 색상 결정
   const getLineColor = (from: string, to: string, tier: number) => {
+    // 자아-로고스 연결선
+    if (from.startsWith('identity-') && to.startsWith('logos-')) {
+      const identityId = from.replace('identity-', '');
+      const hasIdentity = identities.includes(identityId);
+
+      if (hasIdentity) {
+        return COLORS.tier.identity?.text || COLORS.primary;
+      }
+      return 'rgba(100, 116, 139, 0.4)';
+    }
+
     const fromUnlocked = unlockedNodes.includes(from);
     const toUnlocked = unlockedNodes.includes(to);
 
@@ -139,6 +169,13 @@ export const PyramidConnections = memo(function PyramidConnections({
 
   // 연결선 두께 결정
   const getLineWidth = (from: string, to: string) => {
+    // 자아-로고스 연결선
+    if (from.startsWith('identity-') && to.startsWith('logos-')) {
+      const identityId = from.replace('identity-', '');
+      const hasIdentity = identities.includes(identityId);
+      return hasIdentity ? 3 : 1.5;
+    }
+
     const fromUnlocked = unlockedNodes.includes(from);
     const toUnlocked = unlockedNodes.includes(to);
 
@@ -149,6 +186,9 @@ export const PyramidConnections = memo(function PyramidConnections({
 
   // 위치가 측정되지 않았으면 빈 SVG 렌더링 (크기 확보용)
   const hasPositions = Object.keys(positions).length > 0;
+
+  // 모든 연결선 (기존 + 자아-로고스)
+  const allConnections = [...ALL_CONNECTIONS, ...IDENTITY_LOGOS_CONNECTIONS];
 
   return (
     <svg
@@ -163,7 +203,7 @@ export const PyramidConnections = memo(function PyramidConnections({
         overflow: 'visible',
       }}
     >
-      {hasPositions && ALL_CONNECTIONS.map(({ from, to, tier }) => {
+      {hasPositions && allConnections.map(({ from, to, tier }) => {
         const fromPos = positions[from];
         const toPos = positions[to];
 

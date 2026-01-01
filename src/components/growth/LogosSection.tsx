@@ -27,7 +27,7 @@ export const LogosSection = memo(function LogosSection({
   const hasAnyIdentity = growth.identities.length > 0;
 
   return (
-    <div style={{ marginBottom: '40px' }}>
+    <div style={{ marginBottom: '80px' }}>
       {/* 티어 헤더와 카드를 같은 줄에 배치 - 피라미드 형태 */}
       <div style={{
         display: 'flex',
@@ -35,12 +35,27 @@ export const LogosSection = memo(function LogosSection({
         gap: SPACING.md,
         justifyContent: 'flex-start',
         alignItems: 'flex-start',
-        paddingLeft: '600px', // 피라미드 형태 (7단계 480px + 120px)
+        paddingLeft: '480px', // 7단계와 동일
       }}>
+        {/* 8단계 로고스 헤더 */}
+        <div style={{
+          display: 'inline-block',
+          padding: `${SPACING.sm} ${SPACING.md}`,
+          background: maxUnlockableLevel > 0 ? 'rgba(30, 41, 59, 0.8)' : '#141a22',
+          border: `1px solid ${maxUnlockableLevel > 0 ? COLORS.primary : '#334155'}`,
+          borderRadius: BORDER_RADIUS.lg,
+          fontSize: FONT_SIZE.md,
+          color: maxUnlockableLevel > 0 ? COLORS.primary : COLORS.text.muted,
+          fontWeight: 'bold',
+        }}>
+          {maxUnlockableLevel === 0 && '🔒 '}8단계 로고스
+        </div>
+
         {/* 로고스 카드들 */}
         <LogosCard
           logos={LOGOS.battleWaltz}
           logosType="battleWaltz"
+          nodeId="logos-battleWaltz"
           currentLevel={growth.logosLevels.battleWaltz}
           maxUnlockableLevel={maxUnlockableLevel}
           skillPoints={skillPoints}
@@ -52,6 +67,7 @@ export const LogosSection = memo(function LogosSection({
         <LogosCard
           logos={LOGOS.common}
           logosType="common"
+          nodeId="logos-common"
           currentLevel={growth.logosLevels.common}
           maxUnlockableLevel={maxUnlockableLevel}
           skillPoints={skillPoints}
@@ -63,6 +79,7 @@ export const LogosSection = memo(function LogosSection({
         <LogosCard
           logos={LOGOS.gunkata}
           logosType="gunkata"
+          nodeId="logos-gunkata"
           currentLevel={growth.logosLevels.gunkata}
           maxUnlockableLevel={maxUnlockableLevel}
           skillPoints={skillPoints}
@@ -81,6 +98,7 @@ export const LogosSection = memo(function LogosSection({
 interface LogosCardProps {
   logos: typeof LOGOS.common;
   logosType: LogosType;
+  nodeId: string;
   currentLevel: number;
   maxUnlockableLevel: number;
   skillPoints: number;
@@ -92,6 +110,7 @@ interface LogosCardProps {
 const LogosCard = memo(function LogosCard({
   logos,
   logosType,
+  nodeId,
   currentLevel,
   maxUnlockableLevel,
   skillPoints,
@@ -102,14 +121,17 @@ const LogosCard = memo(function LogosCard({
   const canUnlockNext = !locked && currentLevel < maxUnlockableLevel && skillPoints >= 1;
 
   return (
-    <div style={{
-      width: '200px',
-      flex: '0 0 200px',
-      padding: SPACING.md,
-      background: locked ? 'rgba(71, 85, 105, 0.3)' : 'rgba(30, 41, 59, 0.5)',
-      border: locked ? '1px dashed #6b7280' : '1px solid rgba(251, 191, 36, 0.3)',
-      borderRadius: BORDER_RADIUS.lg,
-    }}>
+    <div
+      data-node-id={nodeId}
+      style={{
+        width: '200px',
+        flex: '0 0 200px',
+        padding: SPACING.md,
+        background: locked ? 'rgba(71, 85, 105, 0.3)' : 'rgba(30, 41, 59, 0.5)',
+        border: locked ? '1px dashed #6b7280' : '1px solid rgba(251, 191, 36, 0.3)',
+        borderRadius: BORDER_RADIUS.lg,
+      }}
+    >
       {/* 헤더 */}
       <div style={{
         fontWeight: 'bold',
