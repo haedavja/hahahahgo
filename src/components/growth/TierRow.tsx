@@ -44,28 +44,24 @@ export const TierRow = memo(function TierRow({
       marginBottom: SPACING.xxl,
       position: 'relative',
     }}>
-      {/* 티어 헤더 - 그리드 밖에서 직접 배치 */}
-      <div style={{
-        maxWidth: tier <= 3 ? '100%' : tier === 4 ? '90%' : '80%',
-        margin: '0 auto',
-      }}>
-        <TierHeader
-          label={label}
-          isLocked={isLocked}
-          color={colors.text}
-        />
-      </div>
-
-      {/* 노드 그리드 */}
+      {/* 티어 헤더와 노드를 같은 줄에 배치 */}
       <div style={{
         display: 'flex',
         flexWrap: 'wrap',
         gap: SPACING.md,
         justifyContent: 'center',
+        alignItems: 'flex-start',
         maxWidth: tier <= 3 ? '100%' : tier === 4 ? '90%' : '80%',
         margin: '0 auto',
-        marginTop: '-30px',
       }}>
+        {/* 티어 헤더 */}
+        <TierHeader
+          label={label}
+          isLocked={isLocked}
+          color={colors.text}
+        />
+
+        {/* 노드들 */}
         {nodes.map(node => (
           <NodeCard
             key={node.id}
