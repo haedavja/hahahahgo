@@ -17,6 +17,7 @@ import { ShopSimulator, ShopInventory, ShopResult, ShopSimulationConfig } from '
 import { RestSimulator, RestResult, RestNodeConfig } from './rest-simulator';
 import { DungeonSimulator, DungeonState, DungeonExplorationResult, DungeonSimulationConfig } from './dungeon-simulator';
 import { TimelineBattleEngine } from '../core/timeline-battle-engine';
+import { GrowthSystem, createGrowthSystem, applyGrowthBonuses, type GrowthState, type GrowthBonuses } from '../core/growth-system';
 import type { BattleResult, EnemyState, TokenState } from '../core/game-types';
 import type { Card } from '../../types';
 import type { Item, ItemEffect } from '../../data/items';
@@ -110,6 +111,10 @@ export interface PlayerRunState {
   items: string[];
   /** 강화된 카드 목록 (카드 ID 배열) */
   upgradedCards: string[];
+  /** 피라미드 성장 상태 */
+  growth?: GrowthState;
+  /** 개성 목록 */
+  traits?: string[];
 }
 
 export interface RunConfig {
@@ -256,6 +261,19 @@ export class RunSimulator {
   simulateRun(config: RunConfig): RunResult {
     const player = { ...config.initialPlayer };
     const map = this.mapSimulator.generateMap({ layers: config.mapLayers || 11 });
+
+    // 피라미드 성장 시스템 초기화
+    const growthSystem = createGrowthSystem(player.growth);
+
+    // 초기 개성 설정 (전략에 따라)
+    this.initializeTraits(growthSystem, config.strategy);
+
+    // 성장 보너스 적용
+    const growthBonuses = growthSystem.calculateBonuses();
+    this.applyGrowthBonusesToPlayer(player, growthBonuses);
+
+    // 성장 상태 저장
+    player.growth = growthSystem.getState();
 
     const result: RunResult = {
       success: false,
@@ -1338,6 +1356,81 @@ export class RunSimulator {
 
     return results;
   }
+
+  // ==================== 성장 시스템 통합 ====================
+
+  /**
+   * 전략에 따른 초기 개성 설정
+   */
+  private initializeTraits(growthSystem: GrowthSystem, strategy: RunStrategy): void {
+    // 전략별 초기 개성 2개 부여 (피라미드 레벨 1 시작)
+    const traitsByStrategy: Record<RunStrategy, string[]> = {
+      aggressive: ['용맹함', '열정적'],
+      defensive: ['굳건함', '철저함'],
+      balanced: ['용맹함', '굳건함'],
+      speedrun: ['활력적', '냉철함'],
+      treasure_hunter: ['냉철함', '철저함'],
+    };
+
+    const traits = traitsByStrategy[strategy] || ['용맹함', '굳건함'];
+    for (const trait of traits) {
+      growthSystem.addTrait(trait);
+    }
+
+    // 자동 성장 (전략에 맞게)
+    growthSystem.autoGrow(strategy);
+  }
+
+  /**
+   * 성장 보너스를 플레이어에게 적용
+   */
+  private applyGrowthBonusesToPlayer(player: PlayerRunState, bonuses: GrowthBonuses): void {
+    // 최대 HP 보너스
+    player.maxHp += bonuses.maxHpBonus;
+    player.hp = Math.min(player.hp + bonuses.maxHpBonus, player.maxHp);
+
+    // 스탯 보너스
+    player.strength += bonuses.attackBonus;
+
+    // 개성 목록 저장
+    if (!player.traits) {
+      player.traits = [];
+    }
+  }
+
+  /**
+   * 전투 승리 후 개성 획득 체크
+   */
+  private checkTraitGain(
+    player: PlayerRunState,
+    growthSystem: GrowthSystem,
+    nodeType: MapNodeType
+  ): string | null {
+    // 엘리트/보스 전투 후 30% 확률로 개성 획득
+    if ((nodeType === 'elite' || nodeType === 'boss') && Math.random() < 0.3) {
+      const availableTraits = ['용맹함', '굳건함', '냉철함', '철저함', '열정적', '활력적']
+        .filter(t => !growthSystem.getState().traits.includes(t));
+
+      if (availableTraits.length > 0) {
+        const newTrait = availableTraits[Math.floor(Math.random() * availableTraits.length)];
+        growthSystem.addTrait(newTrait);
+
+        // 성장 상태 업데이트
+        player.growth = growthSystem.getState();
+
+        // 새 보너스 적용
+        const newBonuses = growthSystem.calculateBonuses();
+        this.applyGrowthBonusesToPlayer(player, {
+          ...newBonuses,
+          maxHpBonus: 0, // 이미 적용된 보너스는 제외
+          attackBonus: 0,
+        });
+
+        return newTrait;
+      }
+    }
+    return null;
+  }
 }
 
 // ==================== 헬퍼 함수 ====================
@@ -1367,5 +1460,7 @@ export function createDefaultPlayer(): PlayerRunState {
     relics: [],
     items: [],
     upgradedCards: [], // 강화된 카드 목록
+    growth: undefined, // 피라미드 성장 상태 (시뮬레이션 중 초기화)
+    traits: [], // 개성 목록
   };
 }
