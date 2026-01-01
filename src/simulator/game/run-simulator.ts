@@ -132,6 +132,10 @@ export interface RunConfig {
   seed?: number;
   /** 상세 로그 */
   verbose?: boolean;
+  /** 활성화된 이변 ID */
+  anomalyId?: string;
+  /** 맵 위험도 (이변 레벨 계산용, 0-4) */
+  mapRisk?: number;
 }
 
 export type RunStrategy = 'aggressive' | 'defensive' | 'balanced' | 'speedrun' | 'treasure_hunter';
@@ -596,7 +600,7 @@ export class RunSimulator {
         player.deck,
         player.relics,
         enemies,
-        undefined,
+        config.anomalyId, // 이변 ID 전달
         cardEnhancements
       );
 
@@ -626,7 +630,7 @@ export class RunSimulator {
             player.deck,
             player.relics,
             enemy,
-            undefined, // 이변 ID (추후 확장)
+            config.anomalyId, // 이변 ID 전달
             cardEnhancements // 카드 강화 레벨 전달
           );
         } else {

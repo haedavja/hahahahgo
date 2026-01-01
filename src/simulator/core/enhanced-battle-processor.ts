@@ -51,6 +51,12 @@ import {
   type TokenEffectResult,
 } from './token-effects-processor';
 import { createComboOptimizer, hasComboOpportunity, type ComboOptimizer } from '../ai/combo-optimizer';
+import {
+  MultiEnemyBattleEngine,
+  runSharedTimelineBattle,
+  type MultiEnemyBattleResult,
+  type TargetingMode,
+} from './multi-enemy-battle-engine';
 import { getLogger } from './logger';
 
 const log = getLogger('EnhancedBattleProcessor');
@@ -68,6 +74,12 @@ export interface EnhancedBattleConfig {
   useEnhancedTokens?: boolean;
   /** AI 콤보 최적화 사용 */
   useComboOptimizer?: boolean;
+  /** 적 AI 패턴 사용 */
+  useEnemyPatterns?: boolean;
+  /** 공유 타임라인 사용 (다중 적 동시 전투) */
+  useSharedTimeline?: boolean;
+  /** 기본 타겟팅 모드 */
+  defaultTargetingMode?: TargetingMode;
 }
 
 export interface EnhancedBattleResult extends BattleResult {
@@ -87,6 +99,7 @@ export interface EnhancedBattleResult extends BattleResult {
 
 export class EnhancedBattleProcessor {
   private baseEngine: TimelineBattleEngine;
+  private multiEnemyEngine: MultiEnemyBattleEngine;
   private cardLibrary: Record<string, GameCard> = {};
   private config: EnhancedBattleConfig;
   private comboOptimizer: ComboOptimizer | null = null;
@@ -98,10 +111,18 @@ export class EnhancedBattleProcessor {
       useChainSystem: true,
       useEnhancedTokens: true,
       useComboOptimizer: true,
+      useEnemyPatterns: true,
+      useSharedTimeline: true,
+      defaultTargetingMode: 'lowest_hp',
       ...config,
     };
 
     this.baseEngine = new TimelineBattleEngine({ verbose: this.config.verbose });
+    this.multiEnemyEngine = new MultiEnemyBattleEngine({
+      verbose: this.config.verbose,
+      useEnemyPatterns: this.config.useEnemyPatterns,
+      defaultTargetingMode: this.config.defaultTargetingMode,
+    });
   }
 
   /**
@@ -148,7 +169,7 @@ export class EnhancedBattleProcessor {
   }
 
   /**
-   * 다중 적 전투 (새로운 시스템)
+   * 다중 적 전투 (새로운 시스템 - 공유 타임라인)
    */
   runMultiEnemyBattle(
     playerDeck: string[],
@@ -157,42 +178,122 @@ export class EnhancedBattleProcessor {
     anomalyId?: string,
     cardEnhancements?: Record<string, number>
   ): EnhancedBattleResult {
+    // 단일 적이면 기존 방식 사용
     if (!this.config.useMultiEnemy || enemies.length <= 1) {
       return this.runBattle(playerDeck, playerRelics, enemies[0], anomalyId, cardEnhancements);
     }
 
-    // 다중 적 상태 초기화
+    // 공유 타임라인 시스템 사용
+    if (this.config.useSharedTimeline) {
+      return this.runSharedTimelineBattle(playerDeck, playerRelics, enemies, anomalyId, cardEnhancements);
+    }
+
+    // 순차 전투 (레거시 - 각 적과 개별 전투)
+    return this.runSequentialBattle(playerDeck, playerRelics, enemies, anomalyId, cardEnhancements);
+  }
+
+  /**
+   * 공유 타임라인 다중 적 전투 (모든 적이 동시에 전투)
+   */
+  private runSharedTimelineBattle(
+    playerDeck: string[],
+    playerRelics: string[],
+    enemies: EnemyState[],
+    anomalyId?: string,
+    cardEnhancements?: Record<string, number>
+  ): EnhancedBattleResult {
+    // 다중 적 전투 엔진 사용
+    const multiResult = this.multiEnemyEngine.runMultiEnemyBattle(
+      playerDeck,
+      playerRelics,
+      enemies,
+      anomalyId,
+      cardEnhancements
+    );
+
+    // 연계 시스템 분석
+    let chainsCompleted = 0;
+    let maxChainLength = 0;
+    let currentChainLength = 0;
+
+    if (this.config.useChainSystem) {
+      let chainState = createChainState();
+
+      for (const cardId of Object.keys(multiResult.cardUsage)) {
+        const card = this.cardLibrary[cardId];
+        if (!card) continue;
+
+        if (hasChainTrait(card)) {
+          chainState = startChain(chainState, card);
+          currentChainLength = 1;
+        } else if (chainState.isChaining) {
+          if (hasFollowupTrait(card)) {
+            currentChainLength++;
+            maxChainLength = Math.max(maxChainLength, currentChainLength);
+          } else if (hasFinisherTrait(card)) {
+            currentChainLength++;
+            maxChainLength = Math.max(maxChainLength, currentChainLength);
+            chainsCompleted++;
+            chainState = createChainState();
+            currentChainLength = 0;
+          } else {
+            chainState = createChainState();
+            currentChainLength = 0;
+          }
+        }
+      }
+    }
+
+    // 토큰 효과 발동 횟수 추정
+    const tokenEffectsTriggered = multiResult.battleLog.filter(
+      log => log.includes('토큰') || log.includes('반격') || log.includes('대응사격')
+    ).length;
+
+    // 콤보 횟수 추정
+    const combosAchieved = Math.floor(multiResult.etherGained / 20);
+
+    return {
+      ...multiResult,
+      chainsCompleted,
+      maxChainLength,
+      tokenEffectsTriggered,
+      combosAchieved,
+    };
+  }
+
+  /**
+   * 순차 다중 적 전투 (레거시)
+   */
+  private runSequentialBattle(
+    playerDeck: string[],
+    playerRelics: string[],
+    enemies: EnemyState[],
+    anomalyId?: string,
+    cardEnhancements?: Record<string, number>
+  ): EnhancedBattleResult {
     const multiEnemyState = createMultiEnemyState(enemies);
 
-    // 통계 초기화
     let chainsCompleted = 0;
     let maxChainLength = 0;
     let tokenEffectsTriggered = 0;
     let combosAchieved = 0;
     let totalPlayerDamage = 0;
     let totalEnemyDamage = 0;
-
-    // 순차 전투 (각 적과 개별 전투)
-    let playerHp = 80; // 기본 HP, 실제로는 전달받아야 함
-    let currentDeck = [...playerDeck];
-    let currentRelics = [...playerRelics];
+    let playerHp = 80;
     const battleLog: string[] = [];
 
     for (let i = 0; i < enemies.length; i++) {
       const enemy = enemies[i];
-
       if (multiEnemyState.units[i].isDead) continue;
 
-      // 개별 전투 실행
       const result = this.runBattleWithChains(
-        currentDeck,
-        currentRelics,
+        playerDeck,
+        playerRelics,
         enemy,
         anomalyId,
         cardEnhancements
       );
 
-      // 통계 누적
       chainsCompleted += result.chainsCompleted;
       maxChainLength = Math.max(maxChainLength, result.maxChainLength);
       tokenEffectsTriggered += result.tokenEffectsTriggered;
@@ -206,7 +307,6 @@ export class EnhancedBattleProcessor {
         playerHp = result.playerFinalHp;
         multiEnemyState.units[i].isDead = true;
       } else {
-        // 패배
         return {
           winner: 'enemy',
           turns: result.turns,
@@ -231,10 +331,9 @@ export class EnhancedBattleProcessor {
       }
     }
 
-    // 모든 적 처치 성공
     return {
       winner: 'player',
-      turns: enemies.length * 3, // 추정치
+      turns: enemies.length * 3,
       playerDamageDealt: totalPlayerDamage,
       enemyDamageDealt: totalEnemyDamage,
       playerFinalHp: playerHp,

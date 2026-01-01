@@ -303,6 +303,48 @@ export {
   type CrossBonusResult,
 } from './core/card-effects';
 
+// ==================== Multi-Enemy Battle Engine ====================
+export {
+  MultiEnemyBattleEngine,
+  createMultiEnemyBattleEngine,
+  runSharedTimelineBattle,
+  type MultiEnemyTimelineCard,
+  type MultiEnemyBattleState,
+  type MultiEnemyBattleResult,
+  type MultiEnemyBattleConfig,
+  type TargetingMode,
+} from './core/multi-enemy-battle-engine';
+
+// ==================== Enhanced Battle Processor ====================
+export {
+  EnhancedBattleProcessor,
+  createEnhancedBattleProcessor,
+  runMultiEnemyBattle,
+  type EnhancedBattleConfig,
+  type EnhancedBattleResult,
+} from './core/enhanced-battle-processor';
+
+// ==================== Enemy AI Patterns ====================
+export {
+  EnemyAI,
+  createEnemyAI,
+  getPatternForEnemy,
+  type EnemyPattern,
+  type PatternConfig,
+  type CardScore,
+  type EnemyDecision,
+} from './ai/enemy-patterns';
+
+// ==================== Trait Synergy Processor ====================
+export {
+  TraitSynergyProcessor,
+  createTraitSynergyProcessor,
+  calculateTraitSynergies,
+  calculateDeckSynergy,
+  type TraitSynergyResult,
+  type TraitContext,
+} from './core/trait-synergy-processor';
+
 // ==================== Card Synergy Analysis ====================
 export {
   SynergyAnalyzer,
