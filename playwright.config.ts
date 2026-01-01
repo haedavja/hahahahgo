@@ -27,8 +27,8 @@ export default defineConfig({
 
   /* 공유 설정 */
   use: {
-    /* 기본 URL */
-    baseURL: 'http://localhost:5173',
+    /* 기본 URL - Vite 설정과 일치 (vite.config.js의 server.port) */
+    baseURL: 'http://localhost:80',
 
     /* 실패 시 스크린샷 */
     screenshot: 'only-on-failure',
@@ -64,8 +64,8 @@ export default defineConfig({
   /* 로컬 개발 서버 설정 */
   webServer: {
     command: 'npm run dev',
-    url: 'http://localhost:5173',
-    reuseExistingServer: !process.env.CI,
+    url: 'http://localhost:80',
+    reuseExistingServer: true, // 이미 실행 중인 서버 재사용
     timeout: 120 * 1000,
   },
 });
