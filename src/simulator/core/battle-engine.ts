@@ -21,7 +21,7 @@ import type {
   GameState,
   TimelineCard,
 } from './types';
-import { RelicSystem, getRelicSystem, type RelicEffectResult } from './relic-system';
+import { RelicSystemV2, getRelicSystemV2, type RelicEffectResult } from './relic-system-v2';
 import { AnomalySystem, getAnomalySystem } from './anomaly-system';
 import { getLogger } from './logger';
 
@@ -312,7 +312,7 @@ export class BattleEngine {
   private cards: Map<string, CardDefinition> = new Map();
   private options: Required<BattleEngineOptions>;
   private replayLog: BattleEvent[] = [];
-  private relicSystem: RelicSystem;
+  private relicSystem: RelicSystemV2;
   private anomalySystem: AnomalySystem;
   private log = getLogger('BattleEngine');
 
@@ -332,7 +332,7 @@ export class BattleEngine {
       enableAnomalies: options.enableAnomalies ?? true,
     };
 
-    this.relicSystem = getRelicSystem();
+    this.relicSystem = getRelicSystemV2();
     this.anomalySystem = getAnomalySystem();
   }
 
@@ -348,14 +348,24 @@ export class BattleEngine {
     let playerDamageDealt = 0;
     let enemyDamageDealt = 0;
 
-    // 상징 초기화
+    // 상징 초기화 (V2)
     if (this.options.enableRelics && player.relics.length > 0) {
       this.relicSystem.initializeRelics(player.relics);
-      const passiveEffects = this.relicSystem.getPassiveEffects(player.relics);
-      if (passiveEffects.energyGain) {
-        player.maxEnergy += passiveEffects.energyGain;
-        player.energy += passiveEffects.energyGain;
-        this.log.debug('Relic passive energy bonus', { bonus: passiveEffects.energyGain });
+      const passiveEffects = this.relicSystem.getPassiveEffects();
+      if (passiveEffects.maxEnergy > 0) {
+        player.maxEnergy += passiveEffects.maxEnergy;
+        player.energy += passiveEffects.maxEnergy;
+        this.log.debug('Relic passive energy bonus', { bonus: passiveEffects.maxEnergy });
+      }
+      if (passiveEffects.strength > 0) {
+        player.tokens = addToken(player.tokens, 'strength', passiveEffects.strength);
+      }
+      if (passiveEffects.agility > 0) {
+        player.tokens = addToken(player.tokens, 'dexterity', passiveEffects.agility);
+      }
+      if (passiveEffects.maxHp > 0) {
+        player.maxHp += passiveEffects.maxHp;
+        player.hp += passiveEffects.maxHp;
       }
     }
 
@@ -384,10 +394,12 @@ export class BattleEngine {
 
     this.logEvent({ type: 'battle_start', turn: 0, data: { playerHp: player.hp, enemyHp: enemy.hp } });
 
-    // 전투 시작 상징 트리거
+    // 전투 시작 상징 트리거 (V2)
     if (this.options.enableRelics) {
-      const results = this.relicSystem.processTrigger('battle_start', player, enemy, 0);
-      this.applyRelicResults(results, player, enemy, battleLog);
+      const playerState = this.toPlayerState(player);
+      const enemyState = this.toEnemyState(enemy);
+      const results = this.relicSystem.processCombatStart(playerState, enemyState);
+      this.applyRelicResultsV2(results, player, enemy, battleLog);
     }
 
     while (turn < maxTurns && player.hp > 0 && enemy.hp > 0) {
@@ -406,10 +418,12 @@ export class BattleEngine {
         player.energy = this.anomalySystem.modifyEnergy(player.energy, gameState);
       }
 
-      // 턴 시작 상징 트리거
+      // 턴 시작 상징 트리거 (V2)
       if (this.options.enableRelics) {
-        const results = this.relicSystem.processTrigger('turn_start', player, enemy, turn);
-        this.applyRelicResults(results, player, enemy, battleLog);
+        const playerState = this.toPlayerState(player);
+        const enemyState = this.toEnemyState(enemy);
+        const results = this.relicSystem.processTurnStart(playerState, enemyState, turn);
+        this.applyRelicResultsV2(results, player, enemy, battleLog);
       }
 
       // 이변 턴 시작 효과
@@ -479,10 +493,12 @@ export class BattleEngine {
       this.tickTokens(player);
       this.tickTokens(enemy);
 
-      // 턴 종료 상징 트리거
+      // 턴 종료 상징 트리거 (V2)
       if (this.options.enableRelics) {
-        const results = this.relicSystem.processTrigger('turn_end', player, enemy, turn);
-        this.applyRelicResults(results, player, enemy, battleLog);
+        const playerState = this.toPlayerState(player);
+        const enemyState = this.toEnemyState(enemy);
+        const results = this.relicSystem.processTurnEnd(playerState, enemyState, turn);
+        this.applyRelicResultsV2(results, player, enemy, battleLog);
       }
 
       // 이변 턴 종료 처리
@@ -505,14 +521,21 @@ export class BattleEngine {
       winner = player.hp > enemy.hp ? 'player' : 'enemy';
     }
 
-    // 전투 종료 상징 트리거
+    // 전투 종료 상징 트리거 (V2)
     if (this.options.enableRelics && winner === 'player') {
-      const results = this.relicSystem.processTrigger('battle_end', player, enemy, turn);
+      const playerState = this.toPlayerState(player);
+      const enemyState = this.toEnemyState(enemy);
+      const results = this.relicSystem.processCombatEnd(playerState, enemyState);
       // 전투 후 회복 등
       for (const result of results) {
-        if (result.heal) {
-          player.hp = Math.min(player.maxHp, player.hp + result.heal);
-          battleLog.push(`🎁 전투 후 회복: ${result.heal}`);
+        if (result.effects.heal) {
+          player.hp = Math.min(player.maxHp, player.hp + result.effects.heal);
+          battleLog.push(`🎁 전투 후 회복: ${result.effects.heal}`);
+        }
+        if (result.effects.maxHp) {
+          player.maxHp += result.effects.maxHp;
+          player.hp += result.effects.maxHp;
+          battleLog.push(`🎁 최대 체력 +${result.effects.maxHp}`);
         }
       }
     }
@@ -564,16 +587,24 @@ export class BattleEngine {
     if (card.damage) {
       const hits = card.hits || 1;
 
-      // 공격 시 상징 트리거 (플레이어가 공격할 때만)
+      // 공격 시 상징 트리거 (플레이어가 공격할 때만, V2)
       if (isPlayer && this.options.enableRelics) {
-        const attackResults = this.relicSystem.processTrigger(
-          'on_attack',
-          attacker as SimPlayerState,
-          defender as SimEnemyState,
-          0,
-          { cardType: card.type }
-        );
-        this.applyRelicResults(attackResults, attacker as SimPlayerState, defender as SimEnemyState, log);
+        const playerState = this.toPlayerState(attacker as SimPlayerState);
+        const enemyState = this.toEnemyState(defender as SimEnemyState);
+        const attackResults = this.relicSystem.processAttack(playerState, enemyState, card.damage);
+        this.applyRelicResultsV2(attackResults, attacker as SimPlayerState, defender as SimEnemyState, log);
+        // 카드 타입별 추적
+        if (card.type === 'attack') {
+          const kunaiFeedback = this.relicSystem.trackAttack();
+          if (kunaiFeedback) {
+            this.applyRelicResultsV2([kunaiFeedback], attacker as SimPlayerState, defender as SimEnemyState, log);
+          }
+        } else if (card.type === 'skill') {
+          const letterOpenerFeedback = this.relicSystem.trackSkill(enemyState);
+          if (letterOpenerFeedback) {
+            this.applyRelicResultsV2([letterOpenerFeedback], attacker as SimPlayerState, defender as SimEnemyState, log);
+          }
+        }
       }
 
       for (let i = 0; i < hits; i++) {
@@ -601,16 +632,12 @@ export class BattleEngine {
         defender.hp -= result.actualDamage;
         damageDealt += result.actualDamage;
 
-        // 피해 받을 시 상징 트리거 (플레이어가 피해를 받을 때만)
+        // 피해 받을 시 상징 트리거 (플레이어가 피해를 받을 때만, V2)
         if (!isPlayer && this.options.enableRelics && result.actualDamage > 0) {
-          const damageResults = this.relicSystem.processTrigger(
-            'on_take_damage',
-            defender as SimPlayerState,
-            attacker as SimEnemyState,
-            0,
-            { damage: result.actualDamage }
-          );
-          this.applyRelicResults(damageResults, defender as SimPlayerState, attacker as SimEnemyState, log);
+          const playerState = this.toPlayerState(defender as SimPlayerState);
+          const enemyState = this.toEnemyState(attacker as SimEnemyState);
+          const damageResults = this.relicSystem.processDamageTaken(playerState, enemyState, result.actualDamage);
+          this.applyRelicResultsV2(damageResults, defender as SimPlayerState, attacker as SimEnemyState, log);
         }
 
         // 흡수 회복
@@ -667,16 +694,17 @@ export class BattleEngine {
       attacker.block += block;
       log.push(`${prefix}: ${card.name} → ${block} 방어`);
 
-      // 블록 생성 시 상징 트리거
+      // 카드 사용 시 상징 트리거 (V2 - 블록 생성 카드도 포함)
       if (isPlayer && this.options.enableRelics) {
-        const blockResults = this.relicSystem.processTrigger(
-          'on_block',
-          attacker as SimPlayerState,
-          defender as SimEnemyState,
-          0,
-          { block }
-        );
-        this.applyRelicResults(blockResults, attacker as SimPlayerState, defender as SimEnemyState, log);
+        const playerState = this.toPlayerState(attacker as SimPlayerState);
+        const enemyState = this.toEnemyState(defender as SimEnemyState);
+        const cardPlayedResults = this.relicSystem.processCardPlayed(playerState, enemyState, card.id);
+        this.applyRelicResultsV2(cardPlayedResults, attacker as SimPlayerState, defender as SimEnemyState, log);
+        // Ornamental Fan 체크 (3장 카드 사용 시 방어력 보너스)
+        const ornamentalFanResult = this.relicSystem.checkOrnamentalFan();
+        if (ornamentalFanResult) {
+          this.applyRelicResultsV2([ornamentalFanResult], attacker as SimPlayerState, defender as SimEnemyState, log);
+        }
       }
     }
 
@@ -1023,71 +1051,122 @@ export class BattleEngine {
     return [...this.replayLog];
   }
 
-  // ==================== 상징 결과 적용 ====================
+  // ==================== 상징 결과 적용 (V2) ====================
 
-  private applyRelicResults(
+  private applyRelicResultsV2(
     results: RelicEffectResult[],
     player: SimPlayerState,
     enemy: SimEnemyState,
     log: string[]
   ): void {
     for (const result of results) {
+      const effects = result.effects;
+      const relicName = result.relicName;
+
       // 카드 드로우
-      if (result.draw && result.draw > 0) {
-        this.drawCards(player, result.draw);
-        log.push(`  🎴 상징 효과: ${result.draw}장 드로우`);
+      if (effects.draw && effects.draw > 0) {
+        this.drawCards(player, effects.draw);
+        log.push(`  🎴 ${relicName}: ${effects.draw}장 드로우`);
       }
 
       // 에너지 획득
-      if (result.energyGain && result.energyGain > 0) {
-        player.energy += result.energyGain;
-        log.push(`  ⚡ 상징 효과: 에너지 +${result.energyGain}`);
+      if (effects.energy && effects.energy > 0) {
+        player.energy += effects.energy;
+        log.push(`  ⚡ ${relicName}: 에너지 +${effects.energy}`);
+      }
+
+      // 최대 에너지 증가
+      if (effects.maxEnergy && effects.maxEnergy > 0) {
+        player.maxEnergy += effects.maxEnergy;
+        player.energy += effects.maxEnergy;
+        log.push(`  ⚡ ${relicName}: 최대 에너지 +${effects.maxEnergy}`);
       }
 
       // 피해 가하기
-      if (result.dealDamage && result.dealDamage > 0) {
-        const actualDamage = Math.max(0, result.dealDamage - enemy.block);
-        enemy.block = Math.max(0, enemy.block - result.dealDamage);
+      if (effects.damage && effects.damage > 0) {
+        const actualDamage = Math.max(0, effects.damage - enemy.block);
+        enemy.block = Math.max(0, enemy.block - effects.damage);
         enemy.hp -= actualDamage;
-        log.push(`  💥 상징 효과: ${actualDamage} 피해`);
+        log.push(`  💥 ${relicName}: ${actualDamage} 피해`);
       }
 
       // 회복
-      if (result.heal && result.heal > 0) {
-        player.hp = Math.min(player.maxHp, player.hp + result.heal);
-        log.push(`  💚 상징 효과: ${result.heal} 회복`);
+      if (effects.heal && effects.heal > 0) {
+        player.hp = Math.min(player.maxHp, player.hp + effects.heal);
+        log.push(`  💚 ${relicName}: ${effects.heal} 회복`);
       }
 
       // 방어력 획득
-      if (result.blockGain && result.blockGain > 0) {
-        player.block += result.blockGain;
-        log.push(`  🛡️ 상징 효과: 방어력 +${result.blockGain}`);
+      if (effects.block && effects.block > 0) {
+        player.block += effects.block;
+        log.push(`  🛡️ ${relicName}: 방어력 +${effects.block}`);
       }
 
-      // 토큰 부여
-      if (result.tokenGrant) {
-        for (const { tokenId, stacks, target } of result.tokenGrant) {
-          if (target === 'player') {
-            player.tokens = addToken(player.tokens, tokenId, stacks);
-            log.push(`  ✨ 상징 효과: ${tokenId} +${stacks}`);
-          } else {
-            enemy.tokens = addToken(enemy.tokens, tokenId, stacks);
-            log.push(`  ✨ 상징 효과: 적에게 ${tokenId} +${stacks}`);
-          }
-        }
+      // 최대 체력 증가
+      if (effects.maxHp && effects.maxHp > 0) {
+        player.maxHp += effects.maxHp;
+        player.hp += effects.maxHp;
+        log.push(`  ❤️ ${relicName}: 최대 체력 +${effects.maxHp}`);
       }
 
-      // 힘/민첩 영구 보너스
-      if (result.strengthBonus) {
-        player.tokens = addToken(player.tokens, 'strength', result.strengthBonus);
-        log.push(`  💪 상징 효과: 힘 +${result.strengthBonus}`);
+      // 힘 증가
+      if (effects.strength && effects.strength > 0) {
+        player.tokens = addToken(player.tokens, 'strength', effects.strength);
+        log.push(`  💪 ${relicName}: 힘 +${effects.strength}`);
       }
 
-      if (result.dexterityBonus) {
-        player.tokens = addToken(player.tokens, 'dexterity', result.dexterityBonus);
-        log.push(`  🏃 상징 효과: 민첩 +${result.dexterityBonus}`);
+      // 민첩 증가
+      if (effects.agility && effects.agility > 0) {
+        player.tokens = addToken(player.tokens, 'dexterity', effects.agility);
+        log.push(`  🏃 ${relicName}: 민첩 +${effects.agility}`);
+      }
+
+      // 플레이어에게 토큰 부여
+      if (effects.tokenToPlayer) {
+        player.tokens = addToken(player.tokens, effects.tokenToPlayer.id, effects.tokenToPlayer.stacks);
+        log.push(`  ✨ ${relicName}: ${effects.tokenToPlayer.id} +${effects.tokenToPlayer.stacks}`);
+      }
+
+      // 적에게 토큰 부여
+      if (effects.tokenToEnemy) {
+        enemy.tokens = addToken(enemy.tokens, effects.tokenToEnemy.id, effects.tokenToEnemy.stacks);
+        log.push(`  ✨ ${relicName}: 적에게 ${effects.tokenToEnemy.id} +${effects.tokenToEnemy.stacks}`);
+      }
+
+      // 메시지 출력
+      if (effects.message) {
+        log.push(`  ✨ ${effects.message}`);
       }
     }
+  }
+
+  // ==================== 상태 변환 헬퍼 ====================
+
+  private toPlayerState(sim: SimPlayerState): import('./game-types').PlayerState {
+    return {
+      hp: sim.hp,
+      maxHp: sim.maxHp,
+      block: sim.block,
+      energy: sim.energy,
+      maxEnergy: sim.maxEnergy,
+      etherPts: sim.etherPts,
+      tokens: { ...sim.tokens },
+      strength: sim.strength || 0,
+      insight: 0,
+    };
+  }
+
+  private toEnemyState(sim: SimEnemyState): import('./game-types').EnemyState {
+    return {
+      id: sim.id,
+      name: sim.name,
+      hp: sim.hp,
+      maxHp: sim.maxHp,
+      block: sim.block,
+      etherPts: sim.etherPts,
+      tokens: { ...sim.tokens },
+      strength: sim.strength || 0,
+    };
   }
 
   // ==================== 게임 상태 생성 ====================
