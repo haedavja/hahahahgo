@@ -103,10 +103,12 @@ const EthosCard = memo(function EthosCard({
     <div
       data-node-id={ethos.id}
       style={{
+      position: 'relative',
+      zIndex: 2,
       width: '180px',
       flex: '0 0 180px',
       padding: SPACING.md,
-      background: isUnlocked ? colors.bg : 'rgba(71, 85, 105, 0.1)',
+      background: isUnlocked ? '#1a2f1f' : '#1e293b', // 불투명 배경
       border: isUnlocked ? `1px solid ${colors.border}` : '1px solid #475569',
       borderRadius: BORDER_RADIUS.lg,
     }}>

@@ -167,18 +167,33 @@ const NodeCard = memo(function NodeCard({
 
   const nodeWidth = nodeCount <= 4 ? '220px' : nodeCount <= 5 ? '200px' : '180px';
 
+  // 불투명 배경색 (연결선이 카드 뒤로 숨겨지도록)
+  const getOpaqueBackground = () => {
+    if (isPending) return '#2d2a1f'; // 노란 톤의 어두운 배경
+    if (isUnlocked) {
+      // 티어별 불투명 배경
+      const opaqueColors: Record<number, string> = {
+        2: '#1f2a2a', // 핑크 톤
+        3: '#1a2433', // 파랑 톤
+        4: '#2a2419', // 주황 톤
+        5: '#231f33', // 보라 톤
+        6: '#2a1a1a', // 빨강 톤
+      };
+      return opaqueColors[node.tier] || '#1e293b';
+    }
+    return '#1e293b'; // 기본 슬레이트 배경
+  };
+
   return (
     <div
       data-node-id={node.id}
       style={{
+      position: 'relative',
+      zIndex: 2,
       width: nodeWidth,
       flex: `0 0 ${nodeWidth}`,
       padding: SPACING.md,
-      background: isPending
-        ? 'rgba(251, 191, 36, 0.15)'
-        : isUnlocked
-          ? colors.bg
-          : 'rgba(71, 85, 105, 0.1)',
+      background: getOpaqueBackground(),
       border: isPending
         ? `2px solid ${COLORS.primary}`
         : isUnlocked
