@@ -1029,13 +1029,19 @@ export class RunSimulator {
 
     // 통계 기록
     if (this.statsCollector) {
+      // servicesUsed에서 서비스 유형별로 파싱
+      const services = shopResult.servicesUsed || [];
+      const healServices = services.filter(s => s.id === 'healSmall' || s.id === 'healFull');
+      const removeServices = services.filter(s => s.id === 'removeCard');
+      const upgradeServices = services.filter(s => s.id === 'upgradeCard');
+
       this.statsCollector.recordShopVisit({
         goldSpent: shopResult.totalSpent,
         cardsPurchased: result.cardsGained,
         relicsPurchased: result.relicsGained,
         itemsPurchased,
-        cardsRemoved: shopResult.cardsRemoved || 0,
-        cardsUpgraded: shopResult.cardsUpgraded || 0,
+        cardsRemoved: removeServices.length,
+        cardsUpgraded: upgradeServices.length,
       });
 
       // 아이템 획득 기록
@@ -1044,30 +1050,31 @@ export class RunSimulator {
       }
 
       // 상점 서비스 상세 기록
-      if (shopResult.healingUsed) {
+      for (const healService of healServices) {
+        const hpHealed = healService.id === 'healFull'
+          ? player.maxHp - shopConfig.player.hp
+          : Math.min(30, player.maxHp - shopConfig.player.hp);
         this.statsCollector.recordShopService({
           type: 'heal',
-          cost: shopResult.healingCost || 50,
-          hpHealed: shopResult.hpHealed || 0,
+          cost: healService.price,
+          hpHealed,
         });
       }
-      if (shopResult.cardsRemoved) {
-        for (const cardId of shopResult.removedCardIds || []) {
-          this.statsCollector.recordShopService({
-            type: 'remove',
-            cost: 75,
-            cardId,
-          });
-        }
+
+      for (const removeService of removeServices) {
+        this.statsCollector.recordShopService({
+          type: 'remove',
+          cost: removeService.price,
+          cardId: removeService.name || 'unknown',
+        });
       }
-      if (shopResult.cardsUpgraded) {
-        for (const cardId of shopResult.upgradedCardIds || []) {
-          this.statsCollector.recordShopService({
-            type: 'upgrade',
-            cost: 75,
-            cardId,
-          });
-        }
+
+      for (const upgradeService of upgradeServices) {
+        this.statsCollector.recordShopService({
+          type: 'upgrade',
+          cost: upgradeService.price,
+          cardId: upgradeService.name || 'unknown',
+        });
       }
     }
   }

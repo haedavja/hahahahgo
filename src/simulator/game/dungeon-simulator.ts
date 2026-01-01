@@ -101,6 +101,10 @@ export interface DungeonExplorationResult {
   finalPlayerState: DungeonPlayerState;
   exitReached: boolean;
   path: string[];
+  /** 획득한 카드 ID 목록 */
+  cardsGained: string[];
+  /** 획득한 상징 ID 목록 */
+  relicsGained: string[];
 }
 
 export interface DungeonAnalysis {
@@ -347,6 +351,8 @@ export class DungeonSimulator {
       finalPlayerState: player,
       exitReached: false,
       path: [state.currentNodeId],
+      cardsGained: [],
+      relicsGained: [],
     };
 
     let turn = 0;
