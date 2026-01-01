@@ -158,6 +158,9 @@ const StatusSummary = memo(function StatusSummary({
   const unlockedEthos = getUnlockedEthos(growth);
   const unlockedPathos = getUnlockedPathos(growth);
 
+  // 1단계 기본 에토스 제외 (용맹함, 굳건함, 냉철함, 철저함, 활력적, 열정적)
+  const displayEthos = unlockedEthos.filter(ethos => ethos.pyramidLevel !== 1);
+
   const handleToggleEquip = (pathosId: string, isEquipped: boolean) => {
     if (isEquipped) {
       onEquipPathos(growth.equippedPathos.filter(id => id !== pathosId));
@@ -185,7 +188,7 @@ const StatusSummary = memo(function StatusSummary({
               borderRadius: BORDER_RADIUS.md,
             }}>
               <div style={{
-                fontSize: FONT_SIZE.sm,
+                fontSize: '17px', // 40% 확대 (12px → 17px)
                 color: COLORS.tier[2].text,
                 marginBottom: SPACING.xs,
                 fontWeight: 'bold',
@@ -205,7 +208,7 @@ const StatusSummary = memo(function StatusSummary({
                         background: isEquipped ? 'rgba(244, 114, 182, 0.3)' : 'rgba(244, 114, 182, 0.1)',
                         border: isEquipped ? `2px solid ${COLORS.tier[2].border}` : '1px solid rgba(244, 114, 182, 0.3)',
                         borderRadius: BORDER_RADIUS.sm,
-                        fontSize: FONT_SIZE.xs,
+                        fontSize: '14px', // 40% 확대 (10px → 14px)
                         color: COLORS.tier[2].text,
                         cursor: 'pointer',
                       }}
@@ -242,9 +245,9 @@ const StatusSummary = memo(function StatusSummary({
           )}
         </div>
 
-        {/* 오른쪽: 에토스 (패시브) */}
+        {/* 오른쪽: 에토스 (패시브) - 1단계 기본 에토스 제외 */}
         <div style={{ flex: 1, minWidth: '200px' }}>
-          {unlockedEthos.length > 0 && (
+          {displayEthos.length > 0 && (
             <div style={{
               padding: SPACING.sm,
               background: '#1a2433',
@@ -252,7 +255,7 @@ const StatusSummary = memo(function StatusSummary({
               borderRadius: BORDER_RADIUS.md,
             }}>
               <div style={{
-                fontSize: FONT_SIZE.sm,
+                fontSize: '17px', // 40% 확대 (12px → 17px)
                 color: COLORS.success,
                 marginBottom: SPACING.xs,
                 fontWeight: 'bold',
@@ -261,7 +264,7 @@ const StatusSummary = memo(function StatusSummary({
                 에토스 (패시브)
               </div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', justifyContent: 'flex-end' }}>
-                {unlockedEthos.map(ethos => (
+                {displayEthos.map(ethos => (
                   <span
                     key={ethos.id}
                     title={ethos.description}
@@ -270,7 +273,7 @@ const StatusSummary = memo(function StatusSummary({
                       background: 'rgba(134, 239, 172, 0.15)',
                       border: '1px solid rgba(134, 239, 172, 0.3)',
                       borderRadius: BORDER_RADIUS.sm,
-                      fontSize: FONT_SIZE.xs,
+                      fontSize: '14px', // 40% 확대 (10px → 14px)
                       color: COLORS.success,
                     }}
                   >
