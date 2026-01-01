@@ -267,6 +267,7 @@ class BattleSimulator {
   private activateAnomaly(anomalyId: string, level: number = 1): void {
     // 간단한 이변 효과 정의 (실제 게임 데이터와 동기화)
     const anomalyEffects: Record<string, { effectType: string; getValue: (lv: number) => number }> = {
+      // 기본 이변
       'deflation_curse': { effectType: 'ETHER_BAN', getValue: () => 1 },
       'energy_drain': { effectType: 'ENERGY_REDUCTION', getValue: (lv) => lv * -1 },
       'time_distortion': { effectType: 'SPEED_REDUCTION', getValue: (lv) => lv * -3 },
@@ -275,6 +276,18 @@ class BattleSimulator {
       'backflow': { effectType: 'DEFENSE_BACKFIRE', getValue: (lv) => lv * 2 },
       'blood_moon': { effectType: 'DAMAGE_BOOST', getValue: () => 25 },
       'elite_surge': { effectType: 'ENEMY_BOOST', getValue: () => 50 },
+
+      // 추가 이변 (silence, isolation, madness 등)
+      'silence': { effectType: 'TRAIT_SILENCE', getValue: (lv) => lv },
+      'isolation': { effectType: 'CHAIN_ISOLATION', getValue: (lv) => lv },
+      'madness': { effectType: 'FINESSE_BLOCK', getValue: (lv) => lv >= 3 ? 0 : 25 },
+      'cognitive_fog': { effectType: 'INSIGHT_REDUCTION', getValue: (lv) => lv * -1 },
+      'draw_interference': { effectType: 'DRAW_REDUCTION', getValue: (lv) => lv * -10 },
+      'instability': { effectType: 'SPEED_INSTABILITY', getValue: (lv) => lv },
+
+      // 환경 이변
+      'toxic_mist': { effectType: 'TOXIC_MIST', getValue: () => 3 },
+      'regeneration_field': { effectType: 'REGEN_FIELD', getValue: () => 5 },
     };
 
     const effect = anomalyEffects[anomalyId];
@@ -326,6 +339,64 @@ class BattleSimulator {
     const backfireDamage = this.getAnomalyEffect('DEFENSE_BACKFIRE');
     if (backfireDamage > 0) {
       player.hp -= backfireDamage;
+    }
+  }
+
+  /**
+   * 특성 침묵 체크 - 특정 레벨 이상의 특성이 비활성화
+   */
+  private isTraitSilenced(traitRarity: 'common' | 'rare' | 'epic' | 'legendary'): boolean {
+    const silenceLevel = this.getAnomalyEffect('TRAIT_SILENCE');
+    if (silenceLevel <= 0) return false;
+
+    const rarityLevels: Record<string, number> = {
+      'common': 1,
+      'rare': 2,
+      'epic': 3,
+      'legendary': 4,
+    };
+
+    return silenceLevel >= rarityLevels[traitRarity];
+  }
+
+  /**
+   * 연계 고립 체크 - chain/followup 효과 비활성화
+   */
+  private isChainIsolated(): boolean {
+    return this.getAnomalyEffect('CHAIN_ISOLATION') > 0;
+  }
+
+  /**
+   * 드로우 수정 - 드로우 감소 이변 적용
+   */
+  private getModifiedDrawCount(baseCount: number): number {
+    const drawReduction = this.getAnomalyEffect('DRAW_REDUCTION');
+    if (drawReduction < 0) {
+      // drawReduction은 -10%, -20% 등의 퍼센트 감소
+      const reduction = Math.floor(baseCount * Math.abs(drawReduction) / 100);
+      return Math.max(1, baseCount - reduction);
+    }
+    return baseCount;
+  }
+
+  /**
+   * 턴 종료 환경 효과 적용
+   */
+  private applyEnvironmentEffects(player: CombatantState, enemy: CombatantState, log: string[]): void {
+    // 독 안개 - 모두에게 피해
+    const toxicDamage = this.getAnomalyEffect('TOXIC_MIST');
+    if (toxicDamage > 0) {
+      player.hp -= toxicDamage;
+      enemy.hp -= toxicDamage;
+      log.push(`☠️ 독 안개: 모두 ${toxicDamage} 피해`);
+    }
+
+    // 재생 필드 - 모두 회복
+    const regenAmount = this.getAnomalyEffect('REGEN_FIELD');
+    if (regenAmount > 0) {
+      player.hp = Math.min(player.maxHp, player.hp + regenAmount);
+      enemy.hp = Math.min(enemy.maxHp, enemy.hp + regenAmount);
+      log.push(`💚 재생 필드: 모두 ${regenAmount} 회복`);
     }
   }
 
@@ -480,8 +551,9 @@ class BattleSimulator {
       // 턴 시작 토큰 처리 (공격/방어 토큰 등)
       this.processTurnStartTokens(player, battleLog);
 
-      // 카드 드로우
-      this.drawCards(player, 5);
+      // 카드 드로우 (드로우 감소 이변 적용)
+      const drawCount = this.getModifiedDrawCount(5);
+      this.drawCards(player, drawCount);
 
       // 플레이어 턴: AI 카드 선택
       const playableCards = player.hand.filter(cardId => {
@@ -650,6 +722,9 @@ class BattleSimulator {
       // 턴 종료 처리
       this.processTurnEndTokens(player, battleLog, '플레이어');
       this.processTurnEndTokens(enemyState, battleLog, enemyState.name);
+
+      // 환경 이변 효과 적용
+      this.applyEnvironmentEffects(player, enemyState, battleLog);
 
       // 흐릿함(blur) 체크 - 있으면 블록 유지
       if (!player.tokens['blur']) {
@@ -909,13 +984,15 @@ class BattleSimulator {
       if (comboA) scoreA += 25;  // 10 → 25
       if (comboB) scoreB += 25;
 
-      // 연계 특성 보너스
-      if (cardA?.traits?.includes('chain')) scoreA += 15;
-      if (cardB?.traits?.includes('chain')) scoreB += 15;
-      if (cardA?.traits?.includes('followup')) scoreA += 12;
-      if (cardB?.traits?.includes('followup')) scoreB += 12;
-      if (cardA?.traits?.includes('finisher')) scoreA += 18;
-      if (cardB?.traits?.includes('finisher')) scoreB += 18;
+      // 연계 특성 보너스 (연계 고립 시 비활성화)
+      if (!this.isChainIsolated()) {
+        if (cardA?.traits?.includes('chain')) scoreA += 15;
+        if (cardB?.traits?.includes('chain')) scoreB += 15;
+        if (cardA?.traits?.includes('followup')) scoreA += 12;
+        if (cardB?.traits?.includes('followup')) scoreB += 12;
+        if (cardA?.traits?.includes('finisher')) scoreA += 18;
+        if (cardB?.traits?.includes('finisher')) scoreB += 18;
+      }
 
       // 같은 actionCost 카드 선호 (포커 콤보용)
       const sameActionCostA = playable.filter(c =>
@@ -1005,8 +1082,14 @@ class BattleSimulator {
 
   /**
    * 연계 콤보 체크 (chain → followup → finisher)
+   * 연계 고립 이변이 활성화되면 보너스 없음
    */
   private checkTraitChain(cardsPlayed: string[]): { complete: boolean; bonus: number } {
+    // 연계 고립 시 콤보 비활성화
+    if (this.isChainIsolated()) {
+      return { complete: false, bonus: 0 };
+    }
+
     if (cardsPlayed.length < 2) {
       return { complete: false, bonus: 0 };
     }

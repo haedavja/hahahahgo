@@ -82,6 +82,8 @@ export class MCTSEngine {
   private cards: Record<string, CardData>;
   private enemies: Record<string, EnemyData>;
   private stats: MCTSStats;
+  private transpositionTable: Map<string, { visits: number; value: number }>;
+  private stateHashCache: WeakMap<GameState, string>;
 
   constructor(options: Partial<MCTSOptions> = {}) {
     this.options = {
@@ -104,6 +106,65 @@ export class MCTSEngine {
     this.cards = safeSync(() => loadCards(), {}, 'DATA_CARD_NOT_FOUND');
     this.enemies = safeSync(() => loadEnemies(), {}, 'DATA_ENEMY_NOT_FOUND');
     this.stats = { iterations: 0, avgDepth: 0, bestValue: 0 };
+    this.transpositionTable = new Map();
+    this.stateHashCache = new WeakMap();
+  }
+
+  /**
+   * 상태 해시 계산 (트랜스포지션 테이블용)
+   */
+  private getStateHash(state: GameState): string {
+    const cached = this.stateHashCache.get(state);
+    if (cached) return cached;
+
+    const hash = [
+      state.player.hp,
+      state.player.block,
+      state.player.energy,
+      state.enemy.hp,
+      state.enemy.block,
+      state.turn,
+      state.player.hand.sort().join(','),
+    ].join('|');
+
+    return hash;
+  }
+
+  /**
+   * 트랜스포지션 테이블 조회
+   */
+  private lookupTransposition(state: GameState): { visits: number; value: number } | null {
+    const hash = this.getStateHash(state);
+    return this.transpositionTable.get(hash) || null;
+  }
+
+  /**
+   * 트랜스포지션 테이블 업데이트
+   */
+  private updateTransposition(state: GameState, visits: number, value: number): void {
+    const hash = this.getStateHash(state);
+    const existing = this.transpositionTable.get(hash);
+
+    if (!existing || visits > existing.visits) {
+      this.transpositionTable.set(hash, { visits, value });
+    }
+
+    // 메모리 관리: 테이블 크기 제한
+    if (this.transpositionTable.size > 10000) {
+      const entries = Array.from(this.transpositionTable.entries());
+      entries.sort((a, b) => a[1].visits - b[1].visits);
+      for (let i = 0; i < 5000; i++) {
+        this.transpositionTable.delete(entries[i][0]);
+      }
+    }
+  }
+
+  /**
+   * 탐색 초기화 (새 탐색 시작 전)
+   */
+  clearCache(): void {
+    this.transpositionTable.clear();
+    this.stateHashCache = new WeakMap();
   }
 
   // ==================== 메인 탐색 ====================
@@ -391,7 +452,38 @@ export class MCTSEngine {
   // ==================== 유틸리티 ====================
 
   private cloneState(state: GameState): GameState {
-    return JSON.parse(JSON.stringify(state));
+    // 최적화된 깊은 복사 (JSON.parse/stringify보다 빠름)
+    return {
+      player: {
+        hp: state.player.hp,
+        maxHp: state.player.maxHp,
+        block: state.player.block,
+        strength: state.player.strength,
+        etherPts: state.player.etherPts,
+        tokens: { ...state.player.tokens },
+        deck: [...state.player.deck],
+        hand: [...state.player.hand],
+        discard: [...state.player.discard],
+        energy: state.player.energy,
+        maxEnergy: state.player.maxEnergy,
+        relics: [...state.player.relics],
+      },
+      enemy: {
+        hp: state.enemy.hp,
+        maxHp: state.enemy.maxHp,
+        block: state.enemy.block,
+        strength: state.enemy.strength,
+        etherPts: state.enemy.etherPts,
+        tokens: { ...state.enemy.tokens },
+        id: state.enemy.id,
+        name: state.enemy.name,
+        deck: [...state.enemy.deck],
+        cardsPerTurn: state.enemy.cardsPerTurn,
+      },
+      turn: state.turn,
+      phase: state.phase,
+      timeline: state.timeline.map(t => ({ ...t })),
+    };
   }
 
   private shuffle<T>(array: T[]): void {
