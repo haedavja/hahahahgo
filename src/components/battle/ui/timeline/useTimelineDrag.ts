@@ -186,8 +186,10 @@ export function useLeisureRanges({
       const offset = spOffsets[idx] * 28;
 
       if (hasLeisure) {
-        // 카드의 원래 속도 (speedCost 필드 사용)
-        const cardBaseSp = (a.card as { speedCost?: number }).speedCost ?? 4;
+        // 카드의 원래 속도 (민첩 적용 전 originalSpeedCost 우선 사용)
+        const cardBaseSp = (a.card as { originalSpeedCost?: number; speedCost?: number }).originalSpeedCost
+          ?? (a.card as { speedCost?: number }).speedCost
+          ?? 4;
         // 범위: [원래 속도] ~ [원래 속도 × 2]
         const minSp = accumulatedSp + cardBaseSp;
         const maxSp = accumulatedSp + (cardBaseSp * 2);
