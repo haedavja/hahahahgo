@@ -160,6 +160,8 @@ export class TimelineBattleEngine {
   private enhancedCards: Record<string, GameCard> = {};
   /** 현재 전투의 카드 강화 레벨 */
   private cardEnhancements: Record<string, number> = {};
+  /** 보스 페이즈 변경 추적용 */
+  private lastBossPhase: string | null = null;
 
   constructor(config: Partial<BattleEngineConfig> = {}) {
     this.config = { ...DEFAULT_CONFIG, ...config };
@@ -217,6 +219,9 @@ export class TimelineBattleEngine {
     cardEnhancements?: Record<string, number>
   ): BattleResult {
     this.events = [];
+
+    // 보스 페이즈 추적 초기화
+    this.lastBossPhase = null;
 
     // 카드 강화 초기화
     this.cardEnhancements = cardEnhancements || {};
@@ -1034,19 +1039,28 @@ export class TimelineBattleEngine {
 
     // 보스 페이즈 시스템 사용 (보스인 경우)
     if (state.enemy.isBoss && state.enemy.id) {
-      const { selectBossCards, getBossCardsPerTurn, checkBossSpecialActions, BOSS_PATTERNS } = require('../ai/enemy-patterns');
+      const { selectBossCards, getBossCardsPerTurn, checkBossSpecialActions, getBossPhase, BOSS_PATTERNS } = require('../ai/enemy-patterns');
 
       // 보스 패턴이 정의되어 있는 경우
       if (BOSS_PATTERNS[state.enemy.id]) {
         const hpRatio = state.enemy.hp / state.enemy.maxHp;
         const playerHpRatio = state.player.hp / state.player.maxHp;
 
+        // 페이즈 변경 감지
+        const currentPhase = getBossPhase(state.enemy.id, hpRatio);
+        const phaseChanged = this.lastBossPhase !== null && this.lastBossPhase !== currentPhase;
+        if (phaseChanged) {
+          log.info(`보스 페이즈 변경: ${this.lastBossPhase} → ${currentPhase}`);
+          state.battleLog.push(`⚠️ 보스 페이즈 변경: ${currentPhase}`);
+        }
+        this.lastBossPhase = currentPhase;
+
         // 보스 특수 행동 체크
         const specialActions = checkBossSpecialActions(state.enemy.id, {
           hpRatio,
           turn: state.turn,
           playerHpRatio,
-          phaseChanged: false, // TODO: 페이즈 변경 감지
+          phaseChanged,
         });
 
         // 특수 행동 로그
