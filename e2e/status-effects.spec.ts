@@ -1,10 +1,11 @@
 import { test, expect, Page } from '@playwright/test';
-import { resetGameState, waitForMap, selectMapNode, waitForUIStable, TIMEOUTS, testLogger, getStatusEffects, quickAutoBattle } from './utils/test-helpers';
+import { resetGameState, enterBattle, TIMEOUTS, testLogger, getStatusEffects, quickAutoBattle } from './utils/test-helpers';
 import { createAssertions, GameAssertions } from './utils/assertions';
 import { MOCK_STATUS_EFFECTS } from './fixtures/game-states';
 
 /**
  * 상태이상/버프/디버프 E2E 테스트
+ * 개선된 enterBattle() 사용 - 맵 탐색 방식으로 전투 진입
  *
  * ## 상태이상 시스템 개요
  * - 독(Poison): 턴 종료 시 피해
@@ -27,21 +28,6 @@ test.describe('상태이상 시스템', () => {
     await resetGameState(page);
     assertions = createAssertions(page);
   });
-
-  /**
-   * 전투 진입 헬퍼
-   */
-  async function enterBattle(page: Page): Promise<boolean> {
-    await waitForMap(page);
-    const battleClicked = await selectMapNode(page, 'battle');
-
-    if (battleClicked) {
-      await page.waitForSelector('[data-testid="battle-screen"]', { timeout: 5000 }).catch(() => {});
-      await waitForUIStable(page);
-      return true;
-    }
-    return false;
-  }
 
   /**
    * HP 값 가져오기

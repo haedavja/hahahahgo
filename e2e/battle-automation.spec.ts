@@ -1,16 +1,10 @@
-import { test, expect, Page } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 import {
   resetGameState,
-  clickMapNode,
-  waitForBattle,
+  enterBattle,
   selectCard,
-  isCardSelected,
   submitCards,
-  waitForBattleEnd,
-  getBattleResult,
-  autoPlayBattle,
   quickAutoBattle,
-  getPlayerHp,
   waitForUIStable,
   TIMEOUTS,
   testLogger,
@@ -20,6 +14,7 @@ import {
 /**
  * 전투 자동화 E2E 테스트
  * 카드 선택, 제출, 전투 진행 검증
+ * 개선된 enterBattle() 사용 - 맵 탐색 방식으로 전투 진입
  */
 
 test.describe('전투 자동화 테스트', () => {
@@ -27,49 +22,6 @@ test.describe('전투 자동화 테스트', () => {
     await page.goto('/');
     await resetGameState(page);
   });
-
-  /**
-   * 전투 화면 진입 (개선: 로깅 추가, 명확한 상태 확인)
-   */
-  async function enterBattle(page: Page): Promise<boolean> {
-    // 테스트 전투 버튼 시도
-    const testBattleBtn = page.locator('button:has-text("Test Mixed Battle")');
-    if (await safeIsVisible(testBattleBtn, { timeout: TIMEOUTS.LONG, context: 'Test Battle Button' })) {
-      await testBattleBtn.click();
-      try {
-        await page.waitForSelector('[data-testid="battle-screen"]', { timeout: TIMEOUTS.VERY_LONG });
-        testLogger.info('Battle screen entered via test button');
-        return true;
-      } catch {
-        testLogger.warn('Battle screen not loaded after test button click');
-      }
-    }
-
-    // 맵에서 전투 노드 시도
-    try {
-      await page.waitForSelector('[data-testid="map-container"]', { timeout: TIMEOUTS.VERY_LONG });
-    } catch {
-      const startBtn = page.locator('button:has-text("시작"), button:has-text("Start")');
-      if (await safeIsVisible(startBtn, { context: 'Start Button' })) {
-        await startBtn.click();
-        testLogger.info('Clicked start button');
-      }
-    }
-
-    const battleClicked = await clickMapNode(page, 'battle');
-    if (battleClicked) {
-      try {
-        await page.waitForSelector('[data-testid="battle-screen"]', { timeout: TIMEOUTS.VERY_LONG });
-        testLogger.info('Battle screen entered via map node');
-        return true;
-      } catch {
-        testLogger.warn('Battle screen not loaded after node click');
-      }
-    }
-
-    testLogger.warn('Failed to enter battle');
-    return false;
-  }
 
   test('전투 화면 UI 요소 확인', async ({ page }) => {
     const entered = await enterBattle(page);
@@ -296,13 +248,9 @@ test.describe('전투 결과 테스트', () => {
   });
 
   test('전투 완료 후 결과 모달', async ({ page }) => {
-    // 테스트 전투 진입
-    const testBattleBtn = page.locator('button:has-text("Test Mixed Battle")');
-    const btnVisible = await safeIsVisible(testBattleBtn, { timeout: TIMEOUTS.VERY_LONG, context: 'Test Battle Button' });
-    test.skip(!btnVisible, '테스트 전투 버튼이 없음');
-
-    await testBattleBtn.click();
-    await page.waitForSelector('[data-testid="battle-screen"]', { timeout: TIMEOUTS.VERY_LONG });
+    // 개선된 enterBattle 사용
+    const entered = await enterBattle(page);
+    test.skip(!entered, '전투 진입 실패');
 
     const battleScreen = page.locator('[data-testid="battle-screen"]');
     await expect(battleScreen).toBeVisible();
@@ -335,12 +283,8 @@ test.describe('전투 페이즈 테스트', () => {
   });
 
   test('선택 페이즈 확인', async ({ page }) => {
-    const testBattleBtn = page.locator('button:has-text("Test Mixed Battle")');
-    const btnVisible = await safeIsVisible(testBattleBtn, { timeout: TIMEOUTS.VERY_LONG, context: 'Test Battle Button' });
-    test.skip(!btnVisible, '테스트 전투 버튼이 없음');
-
-    await testBattleBtn.click();
-    await page.waitForSelector('[data-testid="battle-screen"]', { timeout: TIMEOUTS.VERY_LONG });
+    const entered = await enterBattle(page);
+    test.skip(!entered, '전투 진입 실패');
 
     const battleScreen = page.locator('[data-testid="battle-screen"]');
     await expect(battleScreen).toBeVisible();
@@ -357,12 +301,8 @@ test.describe('전투 페이즈 테스트', () => {
   });
 
   test('진행 페이즈 전환', async ({ page }) => {
-    const testBattleBtn = page.locator('button:has-text("Test Mixed Battle")');
-    const btnVisible = await safeIsVisible(testBattleBtn, { timeout: TIMEOUTS.VERY_LONG, context: 'Test Battle Button' });
-    test.skip(!btnVisible, '테스트 전투 버튼이 없음');
-
-    await testBattleBtn.click();
-    await page.waitForSelector('[data-testid="battle-screen"]', { timeout: TIMEOUTS.VERY_LONG });
+    const entered = await enterBattle(page);
+    test.skip(!entered, '전투 진입 실패');
 
     const battleScreen = page.locator('[data-testid="battle-screen"]');
     await expect(battleScreen).toBeVisible();

@@ -1,9 +1,10 @@
 import { test, expect, Page } from '@playwright/test';
-import { resetGameState, waitForMap, selectMapNode, waitForUIStable, TIMEOUTS, testLogger, getHitCount, waitForCardEffect } from './utils/test-helpers';
+import { resetGameState, enterBattle, TIMEOUTS, testLogger, getHitCount, waitForCardEffect } from './utils/test-helpers';
 import { createAssertions } from './utils/assertions';
 
 /**
  * 특수 카드 효과 E2E 테스트
+ * 개선된 enterBattle() 사용 - 맵 탐색 방식으로 전투 진입
  *
  * ## 테스트 대상
  * 1. 다중 히트 (Multi-Hit)
@@ -18,21 +19,6 @@ test.describe('특수 카드 효과', () => {
     await page.goto('/');
     await resetGameState(page);
   });
-
-  /**
-   * 전투 진입 헬퍼
-   */
-  async function enterBattle(page: Page): Promise<boolean> {
-    await waitForMap(page);
-    const battleClicked = await selectMapNode(page, 'battle');
-
-    if (battleClicked) {
-      await page.waitForSelector('[data-testid="battle-screen"]', { timeout: 5000 }).catch(() => {});
-      await waitForUIStable(page);
-      return true;
-    }
-    return false;
-  }
 
   /**
    * HP 값 가져오기

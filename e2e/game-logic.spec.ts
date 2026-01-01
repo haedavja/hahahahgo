@@ -1,8 +1,9 @@
 import { test, expect, Page } from '@playwright/test';
-import { resetGameState, waitForMap, selectMapNode, waitForUIStable, TIMEOUTS, testLogger } from './utils/test-helpers';
+import { resetGameState, enterBattle, TIMEOUTS, testLogger } from './utils/test-helpers';
 
 /**
  * 게임 로직 검증 E2E 테스트
+ * 개선된 enterBattle() 사용 - 맵 탐색 방식으로 전투 진입
  *
  * ## 테스트 목적
  * - 포커 조합이 올바르게 감지되는지 검증
@@ -18,21 +19,6 @@ test.describe('게임 로직 검증', () => {
     await page.goto('/');
     await resetGameState(page);
   });
-
-  /**
-   * 전투 진입 헬퍼
-   */
-  async function enterBattle(page: Page): Promise<boolean> {
-    await waitForMap(page);
-    const battleClicked = await selectMapNode(page, 'battle');
-
-    if (battleClicked) {
-      await page.waitForSelector('[data-testid="battle-screen"]', { timeout: 5000 }).catch(() => {});
-      await waitForUIStable(page);
-      return true;
-    }
-    return false;
-  }
 
   /**
    * 핸드의 카드 정보 추출
