@@ -147,15 +147,17 @@ const EthosCard = memo(function EthosCard({
         </span>
       </div>
 
-      {/* 개성 조건 - 해금 상태 표시 */}
-      <div style={{
-        fontSize: FONT_SIZE.sm,
-        color: hasTrait ? '#fde68a' : COLORS.text.muted,
-        marginBottom: SPACING.xs,
-        textAlign: 'center',
-      }}>
-        {hasTrait ? '해금됨' : '개성 필요'}
-      </div>
+      {/* 개성 조건 - 미해금 시에만 표시 */}
+      {!hasTrait && (
+        <div style={{
+          fontSize: FONT_SIZE.sm,
+          color: COLORS.text.muted,
+          marginBottom: SPACING.xs,
+          textAlign: 'center',
+        }}>
+          개성 필요
+        </div>
+      )}
 
       {/* 설명 */}
       <div style={{

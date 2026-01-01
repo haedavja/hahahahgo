@@ -275,9 +275,9 @@ const StatusSummary = memo(function StatusSummary({
               display: 'inline-flex',
               gap: SPACING.md,
             }}>
-              <span style={{ color: '#fde68a', fontSize: FONT_SIZE.sm }}>보너스:</span>
+              <span style={{ color: '#fde68a', fontSize: '13px' }}>보너스:</span>
               {traitBonuses.map(({ label, value }) => (
-                <span key={label} style={{ color: '#fde68a', fontSize: FONT_SIZE.sm }}>
+                <span key={label} style={{ color: '#fde68a', fontSize: '13px' }}>
                   {label} <strong>+{value}</strong>
                 </span>
               ))}
