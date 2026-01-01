@@ -31,10 +31,10 @@ async function run() {
   console.log(`성공: ${s.runStats.successfulRuns ?? 0}회`);
   console.log(`실패: ${s.runStats.failedRuns ?? 0}회`);
   console.log(`성공률: ${((s.runStats.successRate ?? 0) * 100).toFixed(1)}%`);
-  console.log(`평균 도달 층: ${(s.runStats.avgFinalLayer ?? 0).toFixed(1)}`);
+  console.log(`평균 도달 층: ${(s.runStats.avgLayerReached ?? 0).toFixed(1)}`);
   console.log(`평균 전투 승리: ${(s.runStats.avgBattlesWon ?? 0).toFixed(1)}`);
   console.log(`평균 골드 획득: ${(s.runStats.avgGoldEarned ?? 0).toFixed(0)}`);
-  console.log(`평균 덱 크기: ${(s.runStats.avgCardsInDeck ?? 0).toFixed(1)}`);
+  console.log(`평균 덱 크기: ${(s.runStats.avgFinalDeckSize ?? 0).toFixed(1)}`);
 
   console.log('\n==================== 카드 사용 통계 ====================');
   const cardArr = Array.from(s.cardStats.entries()).sort((a, b) => b[1].totalUses - a[1].totalUses);

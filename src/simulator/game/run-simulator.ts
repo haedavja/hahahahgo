@@ -596,6 +596,52 @@ export class RunSimulator {
   }
 
   /**
+   * 던전 전투용 적 생성 (난이도 기반)
+   */
+  private createDungeonEnemy(difficulty: number): EnemyState {
+    // 던전에서 등장할 수 있는 적 목록 (난이도별)
+    const dungeonEnemies: { minDiff: number; enemies: string[] }[] = [
+      { minDiff: 1, enemies: ['ghoul', 'skeleton', 'bandit'] },
+      { minDiff: 2, enemies: ['skeleton', 'bandit', 'slime'] },
+      { minDiff: 3, enemies: ['bandit', 'cultist', 'undead_soldier'] },
+    ];
+
+    // 난이도에 맞는 적 풀 선택
+    const pool = dungeonEnemies
+      .filter(p => difficulty >= p.minDiff)
+      .flatMap(p => p.enemies);
+    const selectedId = pool.length > 0
+      ? pool[Math.floor(Math.random() * pool.length)]
+      : 'ghoul';
+
+    // 적 라이브러리에서 찾기
+    const enemyDef = this.enemyLibrary.find(e => e.id === selectedId);
+    if (enemyDef) {
+      const enemy = this.convertToEnemyState(enemyDef);
+      // 난이도에 따른 HP 조정 (던전 몬스터는 약간 약함)
+      const hpMultiplier = 0.8 + (difficulty - 1) * 0.1;
+      enemy.hp = Math.floor(enemy.hp * hpMultiplier);
+      enemy.maxHp = enemy.hp;
+      return enemy;
+    }
+
+    // 기본 던전 적 (폴백)
+    const baseHp = 25 + difficulty * 10;
+    return {
+      id: 'dungeon_mob',
+      name: '던전 몬스터',
+      hp: baseHp,
+      maxHp: baseHp,
+      block: 0,
+      tokens: {},
+      maxSpeed: 8,
+      deck: ['ghoul_attack', 'ghoul_attack', 'ghoul_block'],
+      cardsPerTurn: 1 + Math.floor(difficulty / 2),
+      passives: {},
+    };
+  }
+
+  /**
    * 전투 노드 처리 (TimelineBattleEngine 통합, 다중 적 지원)
    */
   private processCombatNode(
@@ -1294,22 +1340,66 @@ export class RunSimulator {
       difficulty: node.difficulty || 1,
     });
 
-    const dungeonConfig: DungeonSimulationConfig = {
-      player: {
-        hp: player.hp,
-        maxHp: player.maxHp,
-        gold: player.gold,
-        intel: player.intel,
-        material: player.material,
-        loot: player.loot,
-        strength: player.strength,
-        agility: player.agility,
-        insight: player.insight,
-        items: player.items,
-        deck: player.deck,
-        relics: player.relics,
+    // 던전 플레이어 상태 (참조 복사하여 실시간 반영)
+    const dungeonPlayer = {
+      hp: player.hp,
+      maxHp: player.maxHp,
+      gold: player.gold,
+      intel: player.intel,
+      material: player.material,
+      loot: player.loot,
+      strength: player.strength,
+      agility: player.agility,
+      insight: player.insight,
+      items: [...player.items],
+      deck: [...player.deck],
+      relics: [...player.relics],
+    };
+
+    // 실제 전투 엔진을 사용하는 battleSimulator 생성
+    const battleSimulator = {
+      simulateBattle: (dungeonPlayerState: typeof dungeonPlayer, difficulty: number) => {
+        // 던전 적 생성
+        const enemy = this.createDungeonEnemy(difficulty);
+
+        // 카드 강화 정보
+        const cardEnhancements = this.buildCardEnhancements(player.upgradedCards);
+
+        // 실제 전투 엔진 사용
+        const battleResult = this.battleEngine.runBattle(
+          dungeonPlayerState.deck,
+          dungeonPlayerState.relics,
+          enemy,
+          config.anomalyId,
+          cardEnhancements
+        );
+
+        const won = battleResult.winner === 'player';
+        const hpLost = battleResult.enemyDamageDealt;
+
+        // 통계 기록 (던전 전투도 기록)
+        if (this.statsCollector) {
+          this.statsCollector.recordBattle(battleResult, {
+            id: enemy.id,
+            name: enemy.name,
+            tier: 1,
+            isBoss: false,
+            isElite: false,
+          });
+        }
+
+        return {
+          won,
+          hpLost,
+          rewards: won ? { gold: 20 + difficulty * 10, loot: 1 } : {},
+        };
       },
+    };
+
+    const dungeonConfig: DungeonSimulationConfig = {
+      player: dungeonPlayer,
       strategy: config.strategy === 'speedrun' ? 'speedrun' : 'explore_all',
+      battleSimulator, // 실제 전투 엔진 연결
     };
 
     const dungeonResult = this.dungeonSimulator.simulateDungeonExploration(dungeon, dungeonConfig);
