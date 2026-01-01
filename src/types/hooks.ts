@@ -7,8 +7,65 @@
  */
 
 import type { MutableRefObject } from 'react';
-import type { Card } from './core';
+import type { Card, TokenState, TokenEntity } from './core';
 import type { HandCard } from './systems';
+
+// ========== 배틀 엔티티 타입 ==========
+
+/**
+ * 전투 엔티티 상태 (플레이어/적 공통)
+ * TokenEntity를 확장하여 전투에 필요한 추가 필드 포함
+ */
+export interface BattleEntityState extends TokenEntity {
+  hp: number;
+  maxHp: number;
+  block: number;
+  tokens: TokenState;
+  // 선택적 전투 필드
+  strength?: number;
+  agility?: number;
+  insight?: number;
+  energy?: number;
+  maxEnergy?: number;
+  etherPts?: number;
+  counter?: number;
+  maxSpeed?: number;
+  vulnMult?: number;
+  vulnTurns?: number;
+  etherOverflow?: number;
+  etherOverdriveActive?: boolean;
+  def?: boolean;
+  comboUsageCount?: Record<string, number>;
+  etherMultiplier?: number;
+  etherBan?: boolean;
+  // 페널티 (플레이어)
+  energyPenalty?: number;
+  speedPenalty?: number;
+  drawPenalty?: number;
+  insightPenalty?: number;
+  // 적 전용 필드
+  units?: Array<BattleUnitState>;
+  shroud?: number;
+  name?: string;
+  emoji?: string;
+  tier?: number;
+  isBoss?: boolean;
+  // 확장 허용
+  [key: string]: unknown;
+}
+
+/** 전투 유닛 상태 (다중 유닛 적용) */
+export interface BattleUnitState {
+  unitId: number;
+  hp: number;
+  maxHp: number;
+  block?: number;
+  tokens?: TokenState;
+  name?: string;
+  emoji?: string;
+  isDead?: boolean;
+  [key: string]: unknown;
+}
 
 // ========== 공통 타입 ==========
 
@@ -20,12 +77,26 @@ export type PlaySoundFn = (frequency: number, duration: number) => void;
 
 /** 배틀 Ref (유연한 타입) */
 export interface BattleRefValue {
-  player?: unknown;
-  enemy?: unknown;
-  queue?: unknown[];
+  player?: BattleEntityState | null;
+  enemy?: BattleEntityState | null;
+  queue?: Array<{ actor: 'player' | 'enemy'; card: Card; [key: string]: unknown }>;
   qIndex?: number;
-  nextTurnEffects?: unknown;
+  nextTurnEffects?: NextTurnEffects;
   frozenOrder?: number;
+  pathosTurnEffects?: Record<string, unknown>;
+  pathosNextCardEffects?: Record<string, unknown>;
+  [key: string]: unknown;
+}
+
+/** 다음 턴 효과 */
+export interface NextTurnEffects {
+  guaranteedCards?: Card[];
+  bonusEnergy?: number;
+  energyPenalty?: number;
+  etherBlocked?: boolean;
+  mainSpecialOnly?: boolean;
+  subSpecialBoost?: number;
+  extraCardPlay?: number;
   [key: string]: unknown;
 }
 
@@ -121,15 +192,15 @@ export interface UseComboSystemParams {
 /** useDamagePreview 파라미터 */
 export interface UseDamagePreviewParams {
   battlePhase: string;
-  player: unknown;
-  enemy: unknown;
+  player: BattleEntityState | null;
+  enemy: BattleEntityState | null;
   fixedOrder: unknown[] | null;
   playerTimeline: unknown[];
   willOverdrive: boolean;
-  enemyPlan: { mode: string | null; actions: unknown[] };
-  targetUnit: unknown;
+  enemyPlan: { mode: string | null; actions: Card[] };
+  targetUnit: BattleUnitState | null;
   hasMultipleUnits: boolean;
-  enemyUnits: Array<{ hp: number; maxHp: number; block?: number; unitId: number; [key: string]: unknown }>;
+  enemyUnits: BattleUnitState[];
   selectedTargetUnit: number;
   actions: {
     setPreviewDamage: (damage: { value: number; lethal: boolean; overkill: boolean }) => void;
@@ -153,17 +224,25 @@ export interface UseInsightSystemParams {
   playerInsight: number;
   playerInsightPenalty: number;
   enemyShroud: number;
-  enemyUnits: unknown[];
+  enemyUnits: BattleUnitState[];
   enemyPlanActions: Card[];
   battlePhase: string;
   devDulledLevel: number | null;
   actions: {
-    setInsightBadge: (badge: unknown) => void;
+    setInsightBadge: (badge: InsightBadge) => void;
     setInsightAnimLevel: (level: number) => void;
     setInsightAnimPulseKey: (fn: (k: number) => number) => void;
-    setHoveredEnemyAction: (action: unknown) => void;
+    setHoveredEnemyAction: (action: Card | null) => void;
     [key: string]: unknown;
   };
+}
+
+/** 통찰 뱃지 */
+export interface InsightBadge {
+  level: number;
+  dir: 'up' | 'down';
+  show: boolean;
+  key: number;
 }
 
 /** useMultiTargetSelection 파라미터 */
@@ -205,26 +284,32 @@ export interface UseBattleTimelinesParams {
   selected: Card[];
 }
 
+/** 디플레이션 정보 */
+export interface DeflationInfo {
+  multiplier: number;
+  usageCount: number;
+}
+
 /** useEtherAnimation 파라미터 */
 export interface UseEtherAnimationParams {
   selected: Card[];
   battleSelected: Card[];
   finalComboMultiplier: number | null;
   displayEtherMultiplierRef: MutableRefObject<number>;
-  player: unknown;
-  enemy: unknown;
+  player: BattleEntityState | null;
+  enemy: BattleEntityState | null;
   enemyPlan: { actions: Card[] };
   enemyTurnEtherAccumulated: number;
   battleRef: BattleRefType;
   playSound: PlaySoundFn;
   actions: {
-    setCurrentDeflation: (deflation: unknown) => void;
-    setEnemyCurrentDeflation: (deflation: unknown) => void;
+    setCurrentDeflation: (deflation: DeflationInfo | null) => void;
+    setEnemyCurrentDeflation: (deflation: DeflationInfo | null) => void;
     setEtherCalcPhase: (phase: string) => void;
     setEnemyEtherCalcPhase: (phase: string) => void;
     setEtherFinalValue: (value: number) => void;
     setEnemyEtherFinalValue: (value: number) => void;
-    setPlayer: (player: unknown) => void;
+    setPlayer: (player: BattleEntityState) => void;
     [key: string]: unknown;
   };
 }
