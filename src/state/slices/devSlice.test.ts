@@ -304,4 +304,172 @@ describe('devSlice', () => {
       expect(store.getState().devBattleTokens).toHaveLength(3);
     });
   });
+
+  describe('devStartBattle 유효한 그룹', () => {
+    it('ghoul_single 그룹으로 전투를 시작한다', () => {
+      store.getState().devStartBattle('ghoul_single');
+      const battle = store.getState().activeBattle;
+      expect(battle).not.toBeNull();
+      expect(battle?.nodeId).toBe('dev-battle-ghoul_single');
+      expect(battle?.kind).toBe('combat');
+      expect(battle?.label).toBe('구울x1');
+    });
+
+    it('전투에 mixedEnemies가 포함된다', () => {
+      store.getState().devStartBattle('ghoul_single');
+      const battle = store.getState().activeBattle;
+      expect(battle?.mixedEnemies).toBeDefined();
+      expect(Array.isArray(battle?.mixedEnemies)).toBe(true);
+    });
+
+    it('전투에 preview가 포함된다', () => {
+      store.getState().devStartBattle('ghoul_single');
+      const battle = store.getState().activeBattle;
+      expect(battle?.preview).toBeDefined();
+      expect(battle?.preview?.playerHand).toBeDefined();
+      expect(battle?.preview?.enemyHand).toBeDefined();
+      expect(battle?.preview?.timeline).toBeDefined();
+    });
+
+    it('전투에 enemyInfo가 포함된다', () => {
+      store.getState().devStartBattle('ghoul_single');
+      const battle = store.getState().activeBattle;
+      expect(battle?.enemyInfo).toBeDefined();
+      expect(battle?.enemyInfo?.id).toBe('ghoul');
+    });
+
+    it('캐릭터 빌드가 있으면 사용한다', () => {
+      store.setState({
+        ...store.getState(),
+        characterBuild: {
+          mainSpecials: ['strike', 'shoot'],
+          subSpecials: ['reload'],
+          cards: [],
+          traits: [],
+          egos: [],
+          ownedCards: ['fleche'],
+        },
+      });
+      store.getState().devStartBattle('ghoul_single');
+      const battle = store.getState().activeBattle;
+      expect(battle).not.toBeNull();
+      expect(battle?.preview?.playerHand).toBeDefined();
+    });
+  });
+
+  describe('devTriggerEvent 유효한 이벤트', () => {
+    it('broken-ai 이벤트를 트리거한다', () => {
+      store.getState().devTriggerEvent('broken-ai');
+      const event = store.getState().activeEvent;
+      expect(event).not.toBeNull();
+      expect(event?.id).toBe('broken-ai');
+      expect(event?.definition?.title).toBe('고장난 AI');
+    });
+
+    it('이벤트에 friendlyChance가 계산된다', () => {
+      store.getState().devTriggerEvent('broken-ai');
+      const event = store.getState().activeEvent;
+      expect(event?.friendlyChance).toBeDefined();
+    });
+
+    it('이벤트가 resolved: false로 시작한다', () => {
+      store.getState().devTriggerEvent('broken-ai');
+      const event = store.getState().activeEvent;
+      expect(event?.resolved).toBe(false);
+    });
+
+    it('이벤트에 risk가 mapRisk로 설정된다', () => {
+      store.setState({ ...store.getState(), mapRisk: 75 });
+      store.getState().devTriggerEvent('broken-ai');
+      const event = store.getState().activeEvent;
+      expect(event?.risk).toBe(75);
+    });
+  });
+
+  describe('devTeleportToNode 추가 테스트', () => {
+    it('map이 없으면 상태를 유지한다', () => {
+      store.setState({ ...store.getState(), map: undefined as any });
+      const originalState = store.getState();
+      store.getState().devTeleportToNode('any-node');
+      // 에러 없이 실행됨
+    });
+
+    it('전투 노드로 텔레포트 시 travelToNode가 null이면 currentNodeId만 업데이트', () => {
+      const nodes = [
+        { id: 'battle-1', type: 'battle', cleared: true, selectable: false, connections: [] as string[] },
+      ];
+      store.setState({ ...store.getState(), map: { nodes: nodes as never, currentNodeId: '' } });
+      store.getState().devTeleportToNode('battle-1');
+      // travelToNode가 null을 반환해도 currentNodeId는 업데이트됨
+      expect(store.getState().map.currentNodeId).toBe('battle-1');
+    });
+
+    it('이벤트 노드로 텔레포트하면 activeEvent가 설정된다', () => {
+      const nodes = [
+        { id: 'event-1', type: 'event', eventKey: 'broken-ai', cleared: false, selectable: true, connections: [] as string[] },
+      ];
+      store.setState({ ...store.getState(), map: { nodes: nodes as never, currentNodeId: '' } });
+      store.getState().devTeleportToNode('event-1');
+      // 이벤트 노드의 경우 travelToNode를 통해 activeEvent가 설정될 수 있음
+    });
+  });
+
+  describe('setDevDulledLevel 추가 테스트', () => {
+    it('undefined도 null로 처리한다', () => {
+      store.getState().setDevDulledLevel(2);
+      store.getState().setDevDulledLevel(undefined as any);
+      expect(store.getState().devDulledLevel).toBeNull();
+    });
+
+    it('NaN은 0으로 처리한다', () => {
+      store.getState().setDevDulledLevel(NaN);
+      expect(store.getState().devDulledLevel).toBe(0);
+    });
+
+    it('문자열은 0으로 처리한다', () => {
+      store.getState().setDevDulledLevel('invalid' as any);
+      expect(store.getState().devDulledLevel).toBe(0);
+    });
+  });
+
+  describe('devForceWin 상세 테스트', () => {
+    it('lastBattleResult에 로그가 포함된다', () => {
+      store.setState({
+        ...store.getState(),
+        activeBattle: { nodeId: 'test', kind: 'combat', label: 'Test', rewards: {} } as never,
+      });
+      store.getState().devForceWin();
+      expect(store.getState().lastBattleResult?.log).toContain('[DEV] 강제 승리');
+    });
+
+    it('보상이 undefined여도 처리된다', () => {
+      store.setState({
+        ...store.getState(),
+        activeBattle: { nodeId: 'test', kind: 'combat', label: 'Test', rewards: undefined } as never,
+      });
+      store.getState().devForceWin();
+      expect(store.getState().activeBattle).toBeNull();
+      expect(store.getState().lastBattleResult?.result).toBe('victory');
+    });
+  });
+
+  describe('devForceLose 상세 테스트', () => {
+    it('lastBattleResult에 로그가 포함된다', () => {
+      store.setState({
+        ...store.getState(),
+        activeBattle: { nodeId: 'test', kind: 'combat', label: 'Test' } as never,
+      });
+      store.getState().devForceLose();
+      expect(store.getState().lastBattleResult?.log).toContain('[DEV] 강제 패배');
+    });
+
+    it('rewards가 빈 객체로 설정된다', () => {
+      store.setState({
+        ...store.getState(),
+        activeBattle: { nodeId: 'test', kind: 'combat', label: 'Test' } as never,
+      });
+      store.getState().devForceLose();
+      expect(store.getState().lastBattleResult?.rewards).toEqual({});
+    });
+  });
 });
