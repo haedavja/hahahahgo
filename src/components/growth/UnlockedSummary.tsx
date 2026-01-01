@@ -3,7 +3,7 @@
  * @description 해금된 에토스/파토스 요약 섹션
  */
 
-import { useState, memo } from 'react';
+import { memo } from 'react';
 import { MAX_EQUIPPED_PATHOS } from '../../data/growth/pathosData';
 import { getUnlockedEthos, getUnlockedPathos, type initialGrowthState } from '../../state/slices/growthSlice';
 import { COLORS, SPACING, FONT_SIZE, BORDER_RADIUS } from '../../styles/theme';
@@ -17,7 +17,6 @@ export const UnlockedSummary = memo(function UnlockedSummary({
   growth,
   onEquipPathos,
 }: UnlockedSummaryProps) {
-  const [showDetails, setShowDetails] = useState(false);
   const unlockedEthos = getUnlockedEthos(growth);
   const unlockedPathos = getUnlockedPathos(growth);
 
@@ -31,14 +30,12 @@ export const UnlockedSummary = memo(function UnlockedSummary({
       borderTop: '1px solid #475569',
       paddingTop: SPACING.xl,
     }}>
-      {/* 토글 헤더 */}
+      {/* 헤더 */}
       <div
-        onClick={() => setShowDetails(!showDetails)}
         style={{
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          cursor: 'pointer',
           padding: SPACING.md,
           background: 'rgba(30, 41, 59, 0.5)',
           borderRadius: BORDER_RADIUS.lg,
@@ -47,29 +44,24 @@ export const UnlockedSummary = memo(function UnlockedSummary({
         <span style={{ color: COLORS.text.primary, fontWeight: 'bold' }}>
           해금 현황: 에토스 {unlockedEthos.length}개 / 파토스 {unlockedPathos.length}개
         </span>
-        <span style={{ color: COLORS.text.secondary }}>
-          {showDetails ? '▲ 접기' : '▼ 펼치기'}
-        </span>
       </div>
 
       {/* 상세 내용 */}
-      {showDetails && (
-        <div style={{ marginTop: SPACING.lg }}>
-          {/* 에토스 목록 */}
-          {unlockedEthos.length > 0 && (
-            <EthosList ethosList={unlockedEthos} />
-          )}
+      <div style={{ marginTop: SPACING.lg }}>
+        {/* 에토스 목록 */}
+        {unlockedEthos.length > 0 && (
+          <EthosList ethosList={unlockedEthos} />
+        )}
 
-          {/* 파토스 목록 */}
-          {unlockedPathos.length > 0 && (
-            <PathosList
-              pathosList={unlockedPathos}
-              equippedPathos={growth.equippedPathos}
-              onEquipPathos={onEquipPathos}
-            />
-          )}
-        </div>
-      )}
+        {/* 파토스 목록 */}
+        {unlockedPathos.length > 0 && (
+          <PathosList
+            pathosList={unlockedPathos}
+            equippedPathos={growth.equippedPathos}
+            onEquipPathos={onEquipPathos}
+          />
+        )}
+      </div>
     </div>
   );
 });
