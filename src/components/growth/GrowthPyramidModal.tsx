@@ -12,7 +12,7 @@
  * 정점: 자아 (검사/총잡이) + 로고스
  */
 
-import { memo, useRef } from 'react';
+import { memo, useRef, useEffect } from 'react';
 import { useGameStore } from '../../state/gameStore';
 import { useShallow } from 'zustand/shallow';
 import { ETHOS_NODES, BASE_ETHOS } from '../../data/growth/ethosData';
@@ -56,6 +56,16 @@ export const GrowthPyramidModal = memo(function GrowthPyramidModal({
       unlockLogos: state.unlockLogos,
     }))
   );
+
+  // 성장 모달이 열렸을 때 아이템 슬롯 숨기기
+  useEffect(() => {
+    if (isOpen) {
+      document.body.classList.add('growth-modal-open');
+    }
+    return () => {
+      document.body.classList.remove('growth-modal-open');
+    };
+  }, [isOpen]);
 
   if (!isOpen) return null;
 

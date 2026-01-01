@@ -771,3 +771,8 @@ body {
     transform: scale(1);
   }
 }
+
+/* 성장 모달이 열렸을 때 아이템 슬롯 숨기기 */
+body.growth-modal-open .item-slots {
+  display: none !important;
+}
