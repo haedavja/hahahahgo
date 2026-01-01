@@ -124,59 +124,35 @@ export function RestModal({
         </header>
         <p>기억 보유량: {memoryValue} / 100 · 체력 {playerHp}/{maxHp}</p>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "10px", marginTop: "12px" }} data-testid="rest-choices">
-          {/* 각성 - 압축형 */}
+          {/* 각성 */}
           <div className="choice-card" data-testid="rest-choice-awaken">
             <strong>각성</strong>
             <div style={{ marginTop: "8px" }}>
-              {!showAwakenOptions ? (
-                <button
-                  className="btn"
-                  onClick={() => setShowAwakenOptions(true)}
-                  disabled={!canAwaken}
-                  style={{
-                    background: canAwaken ? 'linear-gradient(135deg, rgba(251, 191, 36, 0.2), rgba(134, 239, 172, 0.2))' : undefined,
-                    border: canAwaken ? '1px solid rgba(251, 191, 36, 0.4)' : undefined,
-                  }}
-                  data-testid="rest-btn-awaken-expand"
-                >
-                  {canAwaken ? '✨ 각성 선택 (기억 100)' : '🔒 기억 부족'}
-                </button>
-              ) : (
-                <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                  {/* 전사 */}
-                  <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
-                    <span style={{ fontSize: "11px", color: "#f87171", minWidth: "32px" }}>전사</span>
-                    <button className="btn" style={{ flex: 1, fontSize: "11px", padding: "4px 8px" }} onClick={handleAwakenBrave} data-testid="rest-btn-brave">용맹(+힘1)</button>
-                    <button className="btn" style={{ flex: 1, fontSize: "11px", padding: "4px 8px" }} onClick={handleAwakenSturdy} data-testid="rest-btn-sturdy">굳건(+체력10)</button>
-                  </div>
-                  {/* 현자 */}
-                  <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
-                    <span style={{ fontSize: "11px", color: "#60a5fa", minWidth: "32px" }}>현자</span>
-                    <button className="btn" style={{ flex: 1, fontSize: "11px", padding: "4px 8px" }} onClick={handleAwakenCold} data-testid="rest-btn-cold">냉철(+통찰1)</button>
-                    <button className="btn" style={{ flex: 1, fontSize: "11px", padding: "4px 8px" }} onClick={handleAwakenThorough} data-testid="rest-btn-thorough">철저(+보조슬롯1)</button>
-                  </div>
-                  {/* 영웅 */}
-                  <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
-                    <span style={{ fontSize: "11px", color: "#fbbf24", minWidth: "32px" }}>영웅</span>
-                    <button className="btn" style={{ flex: 1, fontSize: "11px", padding: "4px 8px" }} onClick={handleAwakenPassionate} data-testid="rest-btn-passionate">열정(+속도5)</button>
-                    <button className="btn" style={{ flex: 1, fontSize: "11px", padding: "4px 8px" }} onClick={handleAwakenLively} data-testid="rest-btn-lively">활력(+행동력1)</button>
-                  </div>
-                  {/* 신앙 + 접기 */}
-                  <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
-                    <span style={{ fontSize: "11px", color: "#a78bfa", minWidth: "32px" }}>신앙</span>
-                    <button className="btn" style={{ flex: 1, fontSize: "11px", padding: "4px 8px" }} onClick={handleAwakenRandom} data-testid="rest-btn-random">랜덤 개성</button>
-                    <button className="btn" style={{ fontSize: "11px", padding: "4px 8px", opacity: 0.7 }} onClick={() => setShowAwakenOptions(false)}>접기</button>
-                  </div>
-                </div>
-              )}
+              <button
+                className="btn"
+                onClick={() => setShowAwakenOptions(true)}
+                disabled={!canAwaken}
+                style={{
+                  background: canAwaken ? 'linear-gradient(135deg, rgba(251, 191, 36, 0.2), rgba(134, 239, 172, 0.2))' : undefined,
+                  border: canAwaken ? '1px solid rgba(251, 191, 36, 0.4)' : undefined,
+                }}
+                data-testid="rest-btn-awaken-expand"
+              >
+                {canAwaken ? '✨ 각성 선택 (기억 100)' : '🔒 기억 부족'}
+              </button>
             </div>
           </div>
           <div className="choice-card" data-testid="rest-choice-rest">
             <strong>휴식</strong>
-            <div style={{ marginTop: "8px", display: "flex", flexDirection: "column", gap: "8px" }}>
+            <div style={{ marginTop: "8px" }}>
               <button className="btn" onClick={handleHeal} data-testid="rest-btn-heal">
                 체력 회복 (+30% 최대체력)
               </button>
+            </div>
+          </div>
+          <div className="choice-card" data-testid="rest-choice-card-upgrade">
+            <strong>카드 승급</strong>
+            <div style={{ marginTop: "8px" }}>
               <button
                 className="btn"
                 onClick={handleOpenCardGrowth}
@@ -184,7 +160,7 @@ export function RestModal({
                 style={cardGrowthBtnStyle}
                 data-testid="rest-btn-card-growth"
               >
-                {cardGrowthUsed ? '✓ 카드 승급 완료' : '🎴 카드 승급 (강화/특화)'}
+                {cardGrowthUsed ? '✓ 승급 완료' : '🎴 강화/특화'}
               </button>
             </div>
           </div>
@@ -237,6 +213,101 @@ export function RestModal({
             onClose={() => setShowPyramidModal(false)}
           />
         </Suspense>
+      )}
+
+      {/* 각성 선택 모달 */}
+      {showAwakenOptions && (
+        <div
+          className="event-modal-overlay"
+          onClick={() => setShowAwakenOptions(false)}
+          style={{ zIndex: 1001 }}
+        >
+          <div
+            className="event-modal"
+            onClick={handleStopPropagation}
+            style={{ maxWidth: '500px' }}
+          >
+            <header>
+              <h3>✨ 각성 선택</h3>
+              <small>기억 100을 소모하여 개성을 획득합니다</small>
+            </header>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px', marginTop: '16px' }}>
+              {/* 전사 */}
+              <div style={{
+                padding: '12px',
+                background: 'rgba(248, 113, 113, 0.1)',
+                border: '1px solid rgba(248, 113, 113, 0.3)',
+                borderRadius: '8px',
+              }}>
+                <div style={{ fontWeight: 'bold', color: '#f87171', marginBottom: '8px', fontSize: '14px' }}>⚔️ 전사</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <button className="btn" onClick={handleAwakenBrave} data-testid="rest-btn-brave" style={{ fontSize: '13px' }}>
+                    용맹 <span style={{ color: '#86efac' }}>+힘 1</span>
+                  </button>
+                  <button className="btn" onClick={handleAwakenSturdy} data-testid="rest-btn-sturdy" style={{ fontSize: '13px' }}>
+                    굳건 <span style={{ color: '#86efac' }}>+체력 10</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* 현자 */}
+              <div style={{
+                padding: '12px',
+                background: 'rgba(96, 165, 250, 0.1)',
+                border: '1px solid rgba(96, 165, 250, 0.3)',
+                borderRadius: '8px',
+              }}>
+                <div style={{ fontWeight: 'bold', color: '#60a5fa', marginBottom: '8px', fontSize: '14px' }}>📖 현자</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <button className="btn" onClick={handleAwakenCold} data-testid="rest-btn-cold" style={{ fontSize: '13px' }}>
+                    냉철 <span style={{ color: '#86efac' }}>+통찰 1</span>
+                  </button>
+                  <button className="btn" onClick={handleAwakenThorough} data-testid="rest-btn-thorough" style={{ fontSize: '13px' }}>
+                    철저 <span style={{ color: '#86efac' }}>+보조슬롯 1</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* 영웅 */}
+              <div style={{
+                padding: '12px',
+                background: 'rgba(251, 191, 36, 0.1)',
+                border: '1px solid rgba(251, 191, 36, 0.3)',
+                borderRadius: '8px',
+              }}>
+                <div style={{ fontWeight: 'bold', color: '#fbbf24', marginBottom: '8px', fontSize: '14px' }}>🦸 영웅</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <button className="btn" onClick={handleAwakenPassionate} data-testid="rest-btn-passionate" style={{ fontSize: '13px' }}>
+                    열정 <span style={{ color: '#86efac' }}>+속도 5</span>
+                  </button>
+                  <button className="btn" onClick={handleAwakenLively} data-testid="rest-btn-lively" style={{ fontSize: '13px' }}>
+                    활력 <span style={{ color: '#86efac' }}>+행동력 1</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* 신앙 */}
+              <div style={{
+                padding: '12px',
+                background: 'rgba(167, 139, 250, 0.1)',
+                border: '1px solid rgba(167, 139, 250, 0.3)',
+                borderRadius: '8px',
+              }}>
+                <div style={{ fontWeight: 'bold', color: '#a78bfa', marginBottom: '8px', fontSize: '14px' }}>🙏 신앙</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <button className="btn" onClick={handleAwakenRandom} data-testid="rest-btn-random" style={{ fontSize: '13px' }}>
+                    랜덤 개성 <span style={{ color: '#fbbf24' }}>???</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'center' }}>
+              <button className="btn" onClick={() => setShowAwakenOptions(false)}>닫기</button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
