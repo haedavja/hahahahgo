@@ -689,11 +689,29 @@ class BattleSimulator {
       scoreA += (cardA?.attack || 0) * 1.5 + (cardA?.defense || 0);
       scoreB += (cardB?.attack || 0) * 1.5 + (cardB?.defense || 0);
 
-      // 콤보 가능성 체크
+      // 콤보 가능성 체크 (가중치 상향 - 핵심 메커니즘)
       const comboA = this.checkPotentialCombo([...player.cardsPlayedThisTurn, a]);
       const comboB = this.checkPotentialCombo([...player.cardsPlayedThisTurn, b]);
-      if (comboA) scoreA += 10;
-      if (comboB) scoreB += 10;
+      if (comboA) scoreA += 25;  // 10 → 25
+      if (comboB) scoreB += 25;
+
+      // 연계 특성 보너스
+      if (cardA?.traits?.includes('chain')) scoreA += 15;
+      if (cardB?.traits?.includes('chain')) scoreB += 15;
+      if (cardA?.traits?.includes('followup')) scoreA += 12;
+      if (cardB?.traits?.includes('followup')) scoreB += 12;
+      if (cardA?.traits?.includes('finisher')) scoreA += 18;
+      if (cardB?.traits?.includes('finisher')) scoreB += 18;
+
+      // 같은 actionCost 카드 선호 (포커 콤보용)
+      const sameActionCostA = playable.filter(c =>
+        this.cards[c]?.actionCost === cardA?.actionCost
+      ).length;
+      const sameActionCostB = playable.filter(c =>
+        this.cards[c]?.actionCost === cardB?.actionCost
+      ).length;
+      if (sameActionCostA >= 2) scoreA += sameActionCostA * 5;
+      if (sameActionCostB >= 2) scoreB += sameActionCostB * 5;
 
       return scoreB - scoreA;
     });
