@@ -253,14 +253,14 @@ export const PlayerHpBar: FC<PlayerHpBarProps> = memo(({
   }), [player.etherOverflow]);
 
   return (
-    <div style={CONTAINER_STYLE}>
+    <div style={CONTAINER_STYLE} data-testid="player-hp-bar-container">
       <div style={INNER_STYLE}>
-        <div style={HP_AREA_STYLE}>
+        <div style={HP_AREA_STYLE} data-testid="player-hp-area">
           <div style={HP_ROW_STYLE}>
-            <div className={`character-display ${playerOverdriveFlash ? 'overdrive-burst' : ''}`} style={CHARACTER_STYLE}>🧙‍♂️</div>
+            <div className={`character-display ${playerOverdriveFlash ? 'overdrive-burst' : ''}`} style={CHARACTER_STYLE} data-testid="player-character-display">🧙‍♂️</div>
             <div></div>
             <div style={{ position: 'relative' }}>
-              <div className={playerHit ? 'hit-animation' : ''} style={HP_TEXT_STYLE}>
+              <div className={playerHit ? 'hit-animation' : ''} style={HP_TEXT_STYLE} data-testid="player-hp-text">
                 ❤️ {player.hp}/{player.maxHp}
                 {player.block > 0 && <span className={playerBlockAnim ? 'block-animation' : ''} style={{ color: '#60a5fa', marginLeft: '8px' }}>🛡️{player.block}</span>}
               </div>

@@ -419,8 +419,8 @@ function MapDemoComponent() {
       </div>
 
       <div className="main-layout">
-        <div className="map-container">
-          <div className="map-view" ref={mapViewRef} style={MAP_VIEW_STYLE}>
+        <div className="map-container" data-testid="map-container">
+          <div className="map-view" data-testid="map-view" ref={mapViewRef} style={MAP_VIEW_STYLE}>
             <section className="map" style={{ minHeight: mapHeight, width: MAP_WIDTH, margin: "0 auto", padding: "40px 0 60px" }}>
               <svg className="edge-layer" width={MAP_WIDTH} height={MAP_LAYERS * V_SPACING + 200}>
                 {edges.map((edge: { from: MapNode; to: MapNode } | null) => {
@@ -434,6 +434,8 @@ function MapDemoComponent() {
                 <button
                   key={node.id}
                   data-node-id={node.id}
+                  data-node-type={node.type}
+                  data-testid={`map-node-${node.type}`}
                   type="button"
                   className={[
                     "node",
@@ -464,12 +466,12 @@ function MapDemoComponent() {
         <EtherBar pts={aetherValue} label="AETHER" />
       </div>
 
-      <div className="hp-column">
+      <div className="hp-column" data-testid="map-hp-column">
         <div className="hp-title">HP</div>
-        <div className="hp-bar">
+        <div className="hp-bar" data-testid="map-hp-bar">
           <div className="hp-fill" style={{ height: `${hpRatio * 100}%`, backgroundColor: hpColor }} />
         </div>
-        <div className="hp-remaining">
+        <div className="hp-remaining" data-testid="player-hp">
           <div>{playerHp}/{maxHp}</div>
         </div>
       </div>
@@ -526,12 +528,12 @@ function MapDemoComponent() {
         )}
       </div>
 
-      <div className="resources-display">
-        <div style={RESOURCE_GOLD_STYLE}>금: {resources.gold}</div>
-        <div style={RESOURCE_INTEL_STYLE}>정보: {resources.intel}</div>
-        <div style={RESOURCE_LOOT_STYLE}>전리품: {resources.loot}</div>
-        <div style={RESOURCE_MATERIAL_STYLE}>원자재: {resources.material}</div>
-        <div style={{ color: canAwaken ? "#fb7185" : "#cbd5e1", fontSize: "13px", fontWeight: 700 }}>
+      <div className="resources-display" data-testid="resources-display">
+        <div style={RESOURCE_GOLD_STYLE} data-testid="player-gold">금: {resources.gold}</div>
+        <div style={RESOURCE_INTEL_STYLE} data-testid="player-intel">정보: {resources.intel}</div>
+        <div style={RESOURCE_LOOT_STYLE} data-testid="player-loot">전리품: {resources.loot}</div>
+        <div style={RESOURCE_MATERIAL_STYLE} data-testid="player-material">원자재: {resources.material}</div>
+        <div style={{ color: canAwaken ? "#fb7185" : "#cbd5e1", fontSize: "13px", fontWeight: 700 }} data-testid="player-memory">
           기억: {memoryValue}{canAwaken ? " · 각성 가능" : ""}
         </div>
       </div>
@@ -574,8 +576,8 @@ function MapDemoComponent() {
       )}
 
       {activeDungeon && !activeDungeon.confirmed && (
-        <div className="event-modal-overlay">
-          <div className="event-modal">
+        <div className="event-modal-overlay" data-testid="dungeon-modal-overlay">
+          <div className="event-modal" data-testid="dungeon-modal">
             <header>
               <h3>⚠️ 던전 진입</h3>
             </header>
@@ -589,6 +591,7 @@ function MapDemoComponent() {
                 type="button"
                 onClick={confirmDungeon}
                 style={DUNGEON_CONFIRM_BUTTON_STYLE}
+                data-testid="dungeon-confirm-btn"
               >
                 진입한다
               </button>
@@ -596,6 +599,7 @@ function MapDemoComponent() {
                 type="button"
                 onClick={bypassDungeon}
                 style={DUNGEON_BYPASS_BUTTON_STYLE}
+                data-testid="dungeon-bypass-btn"
               >
                 지나친다
               </button>
@@ -613,14 +617,14 @@ function MapDemoComponent() {
       )}
 
       {lastBattleResult && !lastBattleResult.nodeId.startsWith('dungeon-') && (
-        <div className="battle-modal-overlay">
-          <div className="battle-modal result">
+        <div className="battle-modal-overlay" data-testid="battle-result-overlay">
+          <div className="battle-modal result" data-testid="battle-result-modal">
             <h3>전투 결과</h3>
             <p>
               {lastBattleResult.label} / {lastBattleResult.kind.toUpperCase()}
             </p>
-            <strong>{lastBattleResult.result === "victory" ? "승리" : "패배"}</strong>
-            <p>보상: {formatApplied(lastBattleResult.rewards)}</p>
+            <strong data-testid="battle-result">{lastBattleResult.result === "victory" ? "승리" : "패배"}</strong>
+            <p data-testid="battle-rewards">보상: {formatApplied(lastBattleResult.rewards)}</p>
             {lastBattleResult.log?.length ? (
               <div className="timeline-preview">
                 <strong>로그</strong>
@@ -631,7 +635,7 @@ function MapDemoComponent() {
                 </ul>
               </div>
             ) : null}
-            <button type="button" className="close-btn" onClick={clearBattleResult}>
+            <button type="button" className="close-btn" onClick={clearBattleResult} data-testid="battle-result-close-btn">
               확인
             </button>
           </div>

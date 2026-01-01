@@ -304,13 +304,13 @@ export const EnemyHpBar: FC<EnemyHpBarProps> = memo(({
   }, [dulledLevel, enemyEtherValue, enemy?.etherCapacity]);
 
   return (
-    <div style={CONTAINER_STYLE}>
+    <div style={CONTAINER_STYLE} data-testid="enemy-hp-bar-container">
       <div style={INNER_CONTAINER_STYLE}>
-        <div style={HP_AREA_STYLE}>
+        <div style={HP_AREA_STYLE} data-testid="enemy-hp-area">
           <div style={HP_COLUMN_STYLE}>
             <div style={HP_BAR_WRAPPER_STYLE}>
               {/* HP/방어력 텍스트 */}
-              <div className={enemyHit ? 'hit-animation' : ''} style={hpTextStyle}>
+              <div className={enemyHit ? 'hit-animation' : ''} style={hpTextStyle} data-testid="enemy-hp-text">
                 {showDamage && (
                   <span className={`${previewDamage.lethal ? 'lethal' : ''} ${previewDamage.overkill ? 'overkill' : ''}`} style={{ color: '#fbbf24' }}>
                     🗡️-{previewDamage.value}{previewDamage.lethal && (previewDamage.overkill ? '☠️' : '💀')}
