@@ -19,12 +19,12 @@ function generateConnections(): Connection[] {
   const connections: Connection[] = [];
 
   // Tier 1 → Tier 2 (개성 → 파토스)
-  Object.entries(TRAIT_NODE_PATH).forEach(([traitId, path]) => {
+  Object.entries(TRAIT_NODE_PATH).forEach(([, path]) => {
     connections.push({ from: path.tier1, to: path.tier2, tier: 2 });
   });
 
   // Tier 2 → Tier 3 (파토스 → 에토스)
-  Object.entries(TRAIT_NODE_PATH).forEach(([traitId, path]) => {
+  Object.entries(TRAIT_NODE_PATH).forEach(([, path]) => {
     connections.push({ from: path.tier2, to: path.tier3, tier: 3 });
   });
 
@@ -66,7 +66,6 @@ export const PyramidConnections = memo(function PyramidConnections({
 
     const container = containerRef.current;
     const containerRect = container.getBoundingClientRect();
-    const scrollTop = container.scrollTop;
 
     setContainerSize({
       width: container.scrollWidth,
@@ -89,9 +88,10 @@ export const PyramidConnections = memo(function PyramidConnections({
       const element = container.querySelector(`[data-node-id="${nodeId}"]`);
       if (element) {
         const rect = element.getBoundingClientRect();
+        // 컨테이너 기준 상대 좌표 계산
         newPositions[nodeId] = {
           x: rect.left - containerRect.left + rect.width / 2,
-          y: rect.top - containerRect.top + scrollTop + rect.height / 2,
+          y: rect.top - containerRect.top + rect.height / 2,
           width: rect.width,
           height: rect.height,
         };
@@ -101,30 +101,21 @@ export const PyramidConnections = memo(function PyramidConnections({
     setPositions(newPositions);
   }, [containerRef]);
 
-  // 위치 측정 (초기 + 리사이즈)
+  // 위치 측정 (초기 + 리사이즈 + 노드 변경)
   useEffect(() => {
-    // 초기 측정 (약간 딜레이로 렌더링 완료 후)
-    const timer = setTimeout(measurePositions, 100);
+    // 초기 측정 (렌더링 완료 후)
+    const timer = setTimeout(measurePositions, 200);
+    const timer2 = setTimeout(measurePositions, 500); // 추가 측정
 
     // 리사이즈 시 재측정
     window.addEventListener('resize', measurePositions);
 
-    // MutationObserver로 DOM 변화 감지
-    const observer = new MutationObserver(measurePositions);
-    if (containerRef.current) {
-      observer.observe(containerRef.current, {
-        childList: true,
-        subtree: true,
-        attributes: true,
-      });
-    }
-
     return () => {
       clearTimeout(timer);
+      clearTimeout(timer2);
       window.removeEventListener('resize', measurePositions);
-      observer.disconnect();
     };
-  }, [measurePositions, containerRef]);
+  }, [measurePositions, unlockedNodes]);
 
   // 연결선 색상 결정
   const getLineColor = (from: string, to: string, tier: number) => {
@@ -136,10 +127,10 @@ export const PyramidConnections = memo(function PyramidConnections({
       return COLORS.tier[tier as keyof typeof COLORS.tier]?.text || COLORS.success;
     } else if (fromUnlocked) {
       // 출발점만 해금됨 - 진행 가능 표시
-      return 'rgba(251, 191, 36, 0.6)'; // 노란색 (진행 가능)
+      return 'rgba(251, 191, 36, 0.7)';
     } else {
       // 둘 다 잠김
-      return 'rgba(71, 85, 105, 0.3)'; // 어두운 회색
+      return 'rgba(100, 116, 139, 0.4)';
     }
   };
 
@@ -149,13 +140,12 @@ export const PyramidConnections = memo(function PyramidConnections({
     const toUnlocked = unlockedNodes.includes(to);
 
     if (fromUnlocked && toUnlocked) return 3;
-    if (fromUnlocked) return 2;
-    return 1;
+    if (fromUnlocked) return 2.5;
+    return 1.5;
   };
 
-  if (Object.keys(positions).length === 0) {
-    return null;
-  }
+  // 위치가 측정되지 않았으면 빈 SVG 렌더링 (크기 확보용)
+  const hasPositions = Object.keys(positions).length > 0;
 
   return (
     <svg
@@ -166,18 +156,11 @@ export const PyramidConnections = memo(function PyramidConnections({
         width: containerSize.width || '100%',
         height: containerSize.height || '100%',
         pointerEvents: 'none',
-        zIndex: 0,
+        zIndex: 1,
+        overflow: 'visible',
       }}
     >
-      <defs>
-        {/* 그라데이션 정의 (진행 가능 경로) */}
-        <linearGradient id="progressGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-          <stop offset="0%" stopColor="rgba(251, 191, 36, 0.8)" />
-          <stop offset="100%" stopColor="rgba(251, 191, 36, 0.3)" />
-        </linearGradient>
-      </defs>
-
-      {ALL_CONNECTIONS.map(({ from, to, tier }) => {
+      {hasPositions && ALL_CONNECTIONS.map(({ from, to, tier }) => {
         const fromPos = positions[from];
         const toPos = positions[to];
 
@@ -186,24 +169,35 @@ export const PyramidConnections = memo(function PyramidConnections({
         const color = getLineColor(from, to, tier);
         const width = getLineWidth(from, to);
 
-        // 곡선 경로 계산 (베지어 곡선)
-        const midY = (fromPos.y + toPos.y) / 2;
-        const controlOffset = Math.abs(toPos.y - fromPos.y) * 0.3;
+        // 직선 또는 부드러운 곡선
+        // 피라미드 구조상 위쪽(y가 작은)이 to, 아래쪽이 from
+        const dy = toPos.y - fromPos.y;
+        const dx = toPos.x - fromPos.x;
 
-        const path = `M ${fromPos.x} ${fromPos.y}
-                      C ${fromPos.x} ${fromPos.y - controlOffset},
-                        ${toPos.x} ${toPos.y + controlOffset},
-                        ${toPos.x} ${toPos.y}`;
+        // 수직에 가까우면 직선, 아니면 곡선
+        const isVertical = Math.abs(dx) < 30;
+
+        let pathD: string;
+        if (isVertical) {
+          // 직선
+          pathD = `M ${fromPos.x} ${fromPos.y} L ${toPos.x} ${toPos.y}`;
+        } else {
+          // 베지어 곡선 (S자 형태)
+          const midY = (fromPos.y + toPos.y) / 2;
+          pathD = `M ${fromPos.x} ${fromPos.y}
+                   C ${fromPos.x} ${midY},
+                     ${toPos.x} ${midY},
+                     ${toPos.x} ${toPos.y}`;
+        }
 
         return (
           <path
             key={`${from}-${to}`}
-            d={path}
+            d={pathD}
             fill="none"
             stroke={color}
             strokeWidth={width}
             strokeLinecap="round"
-            opacity={0.8}
           />
         );
       })}
