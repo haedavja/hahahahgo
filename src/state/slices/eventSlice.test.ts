@@ -3,10 +3,48 @@
  * @description 이벤트 슬라이스 테스트
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { create } from 'zustand';
 import { createEventActions, type EventActionsSlice } from './eventSlice';
 import type { EventSliceState } from './types';
+
+// 모킹
+vi.mock('../../data/newEvents', () => ({
+  NEW_EVENT_LIBRARY: {
+    next_event_1: { id: 'next_event_1', choices: [] },
+  },
+}));
+
+vi.mock('../../components/battle/battleData', () => ({
+  CARDS: [
+    { id: 'card1', name: 'Card 1' },
+    { id: 'card2', name: 'Card 2' },
+    { id: 'card3', name: 'Card 3' },
+  ],
+}));
+
+vi.mock('../gameStoreHelpers', () => ({
+  canAfford: vi.fn((resources, cost) => {
+    if (!cost) return true;
+    if (cost.gold && resources.gold < cost.gold) return false;
+    if (cost.etherPts && (resources.etherPts ?? 0) < cost.etherPts) return false;
+    return true;
+  }),
+  payCost: vi.fn((cost, resources) => {
+    const next = { ...resources };
+    if (cost.gold) next.gold -= cost.gold;
+    if (cost.etherPts) next.etherPts = (next.etherPts ?? 0) - cost.etherPts;
+    return next;
+  }),
+  grantRewards: vi.fn((rewards, resources) => {
+    const next = { ...resources };
+    if (rewards.gold) next.gold += rewards.gold;
+    if (rewards.intel) next.intel += rewards.intel;
+    return { next, applied: rewards };
+  }),
+  resolveAmount: vi.fn((amount) => amount),
+  extractResourceDelta: vi.fn((rewards) => rewards),
+}));
 
 // 테스트용 초기 상태
 const createInitialState = (): EventSliceState & {
@@ -298,6 +336,266 @@ describe('eventSlice', () => {
       });
       store.getState().chooseEvent('sacrifice');
       expect(store.getState().playerHp).toBeGreaterThanOrEqual(1);
+    });
+
+    it('HP 퍼센트 비용이 정상 적용된다', () => {
+      store.setState({
+        ...store.getState(),
+        playerHp: 100,
+        maxHp: 100,
+        activeEvent: {
+          id: 'test',
+          definition: {
+            id: 'test',
+            choices: [{
+              id: 'sacrifice',
+              label: 'Sacrifice',
+              cost: { hpPercent: 20 }
+            }]
+          },
+          currentStage: null,
+          resolved: false,
+          outcome: null,
+        },
+      });
+      store.getState().chooseEvent('sacrifice');
+      expect(store.getState().playerHp).toBe(80);
+    });
+  });
+
+  describe('invokePrayer 성공 케이스', () => {
+    it('에테르가 충분하면 기도가 성공한다', () => {
+      store.setState({
+        ...store.getState(),
+        activeEvent: {
+          id: 'test',
+          definition: { id: 'test', choices: [] },
+          currentStage: null,
+          resolved: false,
+          outcome: null,
+        },
+        resources: { ...store.getState().resources, etherPts: 100 },
+      });
+      store.getState().invokePrayer(50);
+      expect(store.getState().activeEvent?.resolved).toBe(true);
+    });
+
+    it('기도 후 에테르가 감소한다', () => {
+      store.setState({
+        ...store.getState(),
+        activeEvent: {
+          id: 'test',
+          definition: { id: 'test', choices: [] },
+          currentStage: null,
+          resolved: false,
+          outcome: null,
+        },
+        resources: { ...store.getState().resources, etherPts: 100 },
+      });
+      store.getState().invokePrayer(50);
+      expect(store.getState().resources.etherPts).toBe(50);
+    });
+
+    it('기도 후 intel이 증가한다', () => {
+      const initialIntel = store.getState().resources.intel;
+      store.setState({
+        ...store.getState(),
+        activeEvent: {
+          id: 'test',
+          definition: { id: 'test', choices: [] },
+          currentStage: null,
+          resolved: false,
+          outcome: null,
+        },
+        resources: { ...store.getState().resources, etherPts: 100 },
+      });
+      store.getState().invokePrayer(50);
+      expect(store.getState().resources.intel).toBeGreaterThan(initialIntel);
+    });
+
+    it('이미 해결된 이벤트에서는 기도가 실패한다', () => {
+      store.setState({
+        ...store.getState(),
+        activeEvent: {
+          id: 'test',
+          definition: { id: 'test', choices: [] },
+          currentStage: null,
+          resolved: true,
+          outcome: null,
+        },
+        resources: { ...store.getState().resources, etherPts: 100 },
+      });
+      const originalState = store.getState();
+      store.getState().invokePrayer(50);
+      expect(store.getState()).toBe(originalState);
+    });
+  });
+
+  describe('스테이지 네비게이션', () => {
+    it('nextStage가 있으면 스테이지가 변경된다', () => {
+      store.setState({
+        ...store.getState(),
+        activeEvent: {
+          id: 'test',
+          definition: {
+            id: 'test',
+            choices: [{ id: 'choice1', label: 'Go to stage2', nextStage: 'stage2' }],
+            stages: {
+              stage2: { choices: [{ id: 'choice2', label: 'End' }] },
+            },
+          },
+          currentStage: null,
+          resolved: false,
+          outcome: null,
+        },
+      });
+      store.getState().chooseEvent('choice1');
+      expect(store.getState().activeEvent?.currentStage).toBe('stage2');
+    });
+  });
+
+  describe('상점 열기', () => {
+    it('openShop이 있으면 activeShop이 설정된다', () => {
+      store.setState({
+        ...store.getState(),
+        activeEvent: {
+          id: 'test',
+          definition: {
+            id: 'test',
+            choices: [{ id: 'choice1', label: 'Open Shop', openShop: 'merchant' }],
+          },
+          currentStage: null,
+          resolved: false,
+          outcome: null,
+        },
+      });
+      store.getState().chooseEvent('choice1');
+      expect(store.getState().activeShop).toEqual({ merchantType: 'merchant' });
+    });
+  });
+
+  describe('보상 처리', () => {
+    it('골드 보상이 정상 지급된다', () => {
+      const initialGold = store.getState().resources.gold;
+      store.setState({
+        ...store.getState(),
+        activeEvent: {
+          id: 'test',
+          definition: {
+            id: 'test',
+            choices: [{ id: 'choice1', label: 'Get gold', rewards: { gold: 50 } }],
+          },
+          currentStage: null,
+          resolved: false,
+          outcome: null,
+        },
+      });
+      store.getState().chooseEvent('choice1');
+      expect(store.getState().resources.gold).toBe(initialGold + 50);
+    });
+
+    it('카드 보상(문자열)이 정상 지급된다', () => {
+      store.setState({
+        ...store.getState(),
+        characterBuild: { ownedCards: [] },
+        activeEvent: {
+          id: 'test',
+          definition: {
+            id: 'test',
+            choices: [{ id: 'choice1', label: 'Get card', rewards: { card: 'special_card' } }],
+          },
+          currentStage: null,
+          resolved: false,
+          outcome: null,
+        },
+      });
+      store.getState().chooseEvent('choice1');
+      expect(store.getState().characterBuild.ownedCards).toContain('special_card');
+    });
+  });
+
+  describe('다음 이벤트 설정', () => {
+    it('nextEvent가 라이브러리에 있으면 pendingNextEvent가 설정된다', () => {
+      store.setState({
+        ...store.getState(),
+        activeEvent: {
+          id: 'test',
+          definition: {
+            id: 'test',
+            choices: [{ id: 'choice1', label: 'Continue', nextEvent: 'next_event_1' }],
+          },
+          currentStage: null,
+          resolved: false,
+          outcome: null,
+        },
+      });
+      store.getState().chooseEvent('choice1');
+      expect(store.getState().pendingNextEvent).toBe('next_event_1');
+    });
+  });
+
+  describe('선택지 찾기 실패', () => {
+    it('존재하지 않는 선택지는 무시한다', () => {
+      store.setState({
+        ...store.getState(),
+        activeEvent: {
+          id: 'test',
+          definition: {
+            id: 'test',
+            choices: [{ id: 'choice1', label: 'Option 1' }],
+          },
+          currentStage: null,
+          resolved: false,
+          outcome: null,
+        },
+      });
+      const originalState = store.getState();
+      store.getState().chooseEvent('non_existent_choice');
+      expect(store.getState()).toBe(originalState);
+    });
+
+    it('비용을 지불할 수 없으면 선택이 실패한다', () => {
+      store.setState({
+        ...store.getState(),
+        resources: { ...store.getState().resources, gold: 0 },
+        activeEvent: {
+          id: 'test',
+          definition: {
+            id: 'test',
+            choices: [{ id: 'choice1', label: 'Expensive', cost: { gold: 100 } }],
+          },
+          currentStage: null,
+          resolved: false,
+          outcome: null,
+        },
+      });
+      const originalState = store.getState();
+      store.getState().chooseEvent('choice1');
+      expect(store.getState()).toBe(originalState);
+    });
+  });
+
+  describe('스테이지 기반 선택지', () => {
+    it('현재 스테이지의 선택지를 사용한다', () => {
+      store.setState({
+        ...store.getState(),
+        activeEvent: {
+          id: 'test',
+          definition: {
+            id: 'test',
+            choices: [{ id: 'root_choice', label: 'Root' }],
+            stages: {
+              stage1: { choices: [{ id: 'stage1_choice', label: 'Stage 1 Choice' }] },
+            },
+          },
+          currentStage: 'stage1',
+          resolved: false,
+          outcome: null,
+        },
+      });
+      // stage1_choice를 선택하면 성공해야 함
+      store.getState().chooseEvent('stage1_choice');
+      expect(store.getState().activeEvent?.resolved).toBe(true);
     });
   });
 });
