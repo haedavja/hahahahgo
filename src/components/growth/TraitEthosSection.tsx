@@ -39,10 +39,10 @@ export const TraitEthosSection = memo(function TraitEthosSection({
       {/* CSS Grid로 고정 레이아웃 - 리플로우 방지 */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: '120px repeat(6, 200px)', // 헤더 + 6개 카드 고정
+        gridTemplateColumns: '100px repeat(6, 200px)', // 헤더 + 6개 카드 고정
         gap: SPACING.md,
         alignItems: 'start',
-        paddingLeft: '0px', // 2단계와 수직 정렬
+        marginLeft: '-20px', // 2단계와 수직 정렬
       }}>
         {/* 티어 헤더 */}
         <div style={{
