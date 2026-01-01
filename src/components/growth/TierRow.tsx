@@ -26,8 +26,8 @@ interface TierRowProps {
 
 // 티어별 그리드 템플릿 계산
 const getGridTemplate = (tier: number, nodeCount: number): string => {
-  // 헤더(100px) + 노드(200px × nodeCount)
-  return `100px repeat(${nodeCount}, 200px)`;
+  // 헤더(110px, 10% 확대) + 노드(200px × nodeCount)
+  return `110px repeat(${nodeCount}, 200px)`;
 };
 
 // 티어별 왼쪽 오프셋
@@ -267,7 +267,7 @@ const NodeCard = memo(function NodeCard({
         {/* 해금 불가 사유 표시 */}
         {!isUnlocked && !unlockStatus.canUnlock && unlockStatus.reason && (
           <div style={{
-            fontSize: FONT_SIZE.xs,
+            fontSize: '11px', // FONT_SIZE.xs (9px)의 20% 확대
             color: COLORS.danger,
             padding: `${SPACING.xs} ${SPACING.sm}`,
             background: 'rgba(239, 68, 68, 0.1)',

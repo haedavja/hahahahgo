@@ -31,7 +31,7 @@ export const LogosSection = memo(function LogosSection({
       {/* CSS Grid로 고정 레이아웃 - 피라미드 형태 */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: '100px repeat(3, 200px)', // 헤더 + 3개 카드 고정
+        gridTemplateColumns: '110px repeat(3, 200px)', // 헤더(10% 확대) + 3개 카드 고정
         gap: SPACING.md,
         alignItems: 'stretch', // 모든 셀 높이 동일화
         marginLeft: '362px', // 공용 로고스가 자아 중앙에 오도록 배치

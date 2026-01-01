@@ -60,14 +60,13 @@ export const IdentitySection = memo(function IdentitySection({
 
   return (
     <div style={{ marginBottom: '80px' }}>
-      {/* 티어 헤더와 자아 카드를 같은 줄에 배치 - 피라미드 형태 */}
+      {/* CSS Grid로 고정 레이아웃 - 피라미드 형태 */}
       <div style={{
-        display: 'flex',
-        flexWrap: 'wrap',
+        display: 'grid',
+        gridTemplateColumns: '110px repeat(2, 200px)', // 헤더(10% 확대) + 2개 카드 고정
         gap: SPACING.md,
-        justifyContent: 'flex-start',
-        alignItems: 'flex-start',
-        paddingLeft: '480px', // 피라미드 형태 유지 (6단계 360px + 120px)
+        alignItems: 'stretch', // 모든 셀 높이 동일화
+        marginLeft: '480px', // 피라미드 형태 유지 (6단계 360px + 120px)
       }}>
         {/* 7단계 자아 헤더 */}
         <div style={{
@@ -80,6 +79,7 @@ export const IdentitySection = memo(function IdentitySection({
           fontSize: FONT_SIZE.md,
           color: (canAccessSwordsman || canAccessGunslinger) ? COLORS.tier.identity.text : COLORS.text.muted,
           fontWeight: 'bold',
+          alignSelf: 'start', // Grid stretch 무시 - 헤더 크기 유지
         }}>
           {!(canAccessSwordsman || canAccessGunslinger) && '🔒 '}7단계 자아
         </div>
@@ -147,15 +147,15 @@ const IdentityCard = memo(function IdentityCard({
       style={{
         position: 'relative',
         zIndex: 10, // 연결선 위에 표시
-        width: '200px',
-        flex: '0 0 200px',
+        // Grid가 크기 제어하므로 width/flex 속성 불필요
         padding: SPACING.md,
+        boxSizing: 'border-box',
         background: isSelected ? '#2a1f2f' : (canAccess ? '#1e293b' : '#141a22'), // 1~6단계와 동일
         border: isSelected
           ? `2px solid ${COLORS.tier.identity.border}`
           : '1px solid #475569',
         borderRadius: BORDER_RADIUS.xl,
-        // opacity 제거 - 배경은 불투명 유지, 콘텐츠만 흐리게
+        minHeight: '120px', // 카드 최소 높이 고정 - 레이아웃 안정화
         cursor: canSelect ? 'pointer' : 'default',
         textAlign: 'center',
       }}
@@ -171,14 +171,30 @@ const IdentityCard = memo(function IdentityCard({
         {identity.name}
       </div>
 
-      {/* 해금 조건 표시 */}
-      <div style={{
-        fontSize: FONT_SIZE.sm,
-        color: canAccess ? COLORS.success : COLORS.text.muted,
-        marginTop: SPACING.xs,
-      }}>
-        {typeName} {typeCount}/{requiredCount}
-      </div>
+      {/* 해금 불가 사유 표시 - 다른 노드와 동일한 형태 */}
+      {!canAccess && (
+        <div style={{
+          fontSize: '11px', // FONT_SIZE.xs (9px)의 20% 확대
+          color: COLORS.danger,
+          padding: `${SPACING.xs} ${SPACING.sm}`,
+          background: 'rgba(239, 68, 68, 0.1)',
+          borderRadius: BORDER_RADIUS.sm,
+          marginTop: SPACING.sm,
+        }}>
+          🔒 {typeName} {typeCount}/{requiredCount} 필요
+        </div>
+      )}
+
+      {/* 해금 조건 충족 시 진행도 표시 */}
+      {canAccess && !isSelected && (
+        <div style={{
+          fontSize: FONT_SIZE.sm,
+          color: COLORS.success,
+          marginTop: SPACING.xs,
+        }}>
+          ✓ {typeName} {typeCount}/{requiredCount}
+        </div>
+      )}
 
       {isSelected && (
         <div style={{ fontSize: FONT_SIZE.sm, color: COLORS.success, marginTop: SPACING.xs }}>
