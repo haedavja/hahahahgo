@@ -501,14 +501,15 @@ export function calculateTotalEther(
     breakdown.push(`디플레이션: ×${deflationMultiplier.toFixed(2)} (${deflation.usageCount}회 사용)`);
   }
 
-  // 5. 특성 시너지 보너스
+  // 5. 특성 시너지 보너스 (현재 게임에 미구현 - 참고용으로 계산만 유지)
   const traitSynergy = calculateTraitSynergyBonus(validCards);
   const traitSynergyBonus = traitSynergy.bonus;
-  if (traitSynergyBonus > 0) {
-    breakdown.push(`특성 시너지: +${traitSynergyBonus.toFixed(1)}x (${traitSynergy.synergies.join(', ')})`);
-  }
+  // 특성 시너지는 현재 게임에 구현되지 않음 - 로그에서 제외
+  // if (traitSynergyBonus > 0) {
+  //   breakdown.push(`특성 시너지: +${traitSynergyBonus.toFixed(1)}x (${traitSynergy.synergies.join(', ')})`);
+  // }
 
-  // 6. 성장 시스템 보너스 적용
+  // 6. 성장 시스템 보너스 적용 (extraMultiplier 역할)
   let growthFixedBonus = 0;
   let growthMultiplier = 1;
   if (growthBonus) {
@@ -519,9 +520,10 @@ export function calculateTotalEther(
     }
   }
 
-  // 7. 최종 계산
-  // 공식: (기본값 × (조합배율 + 액션코스트보너스 + 특성시너지) × 디플레이션 + 고정보너스) × 성장배율
-  const totalMultiplier = (comboMultiplier + actionCostBonus + traitSynergyBonus) * deflationMultiplier;
+  // 7. 최종 계산 - 게임 공식과 일치
+  // 게임 공식: (카드별 기본값 합계) × (조합 배율 + 액션코스트 보너스) × 디플레이션
+  // (특성 시너지는 게임에 미구현이므로 제외)
+  const totalMultiplier = (comboMultiplier + actionCostBonus) * deflationMultiplier;
   const baseResult = baseGain * totalMultiplier;
   const finalGain = Math.round((baseResult + growthFixedBonus) * growthMultiplier);
   breakdown.push(`최종 획득: ${finalGain}`);

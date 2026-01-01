@@ -210,7 +210,10 @@ export interface GameEnemy {
 export interface TimelineCard {
   cardId: string;
   owner: 'player' | 'enemy';
+  /** 타임라인 위치 (레거시 - sp와 동일) */
   position: number;
+  /** 스피드 포인트 - 게임과 동일한 필드명 */
+  sp?: number;
   crossed?: boolean;
   executed?: boolean;
 }

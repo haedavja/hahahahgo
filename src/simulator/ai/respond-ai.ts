@@ -82,12 +82,39 @@ export class RespondAI {
   // ==================== 타임라인 분석 ====================
 
   /**
+   * 통찰 레벨에 따라 볼 수 있는 적 카드 수 반환
+   * | 레벨 | 이름 | 대응단계 가시성 |
+   * |------|------|-----------------|
+   * | -3   | 망각 | 0장 (타임라인 불가) |
+   * | -2   | 미련 | 0장 (진행단계만 제한) |
+   * | -1   | 우둔 | 0장 (대응단계 제한) |
+   * |  0   | 평온 | 3장 |
+   * | +1   | 예측 | 4장 |
+   * | +2   | 독심 | 전체 |
+   * | +3   | 혜안 | 전체 + 상세정보 |
+   */
+  private getVisibleEnemyCardCount(insight: number): number {
+    if (insight <= -1) return 0;  // 대응단계에서 적 타임라인 확인 불가
+    if (insight === 0) return 3;  // 기본 3장
+    if (insight === 1) return 4;  // 예측 4장
+    return Infinity;              // 독심/혜안: 전체
+  }
+
+  /**
    * 타임라인 분석
    * @param state 현재 전투 상태
    * @returns 분석 결과
    */
   analyzeTimeline(state: GameBattleState): TimelineAnalysis {
-    const enemyCards = state.timeline.filter(tc => tc.owner === 'enemy');
+    const insight = state.player.insight ?? 0;
+    const visibleCount = this.getVisibleEnemyCardCount(insight);
+
+    // 통찰 레벨에 따른 적 카드 가시성 제한
+    const allEnemyCards = state.timeline.filter(tc => tc.owner === 'enemy');
+    const enemyCards = visibleCount === Infinity
+      ? allEnemyCards
+      : allEnemyCards.slice(0, visibleCount);
+
     const playerCards = state.timeline.filter(tc => tc.owner === 'player');
 
     // 예상 피해 계산

@@ -437,6 +437,7 @@ export class TimelineBattleEngine {
             cardId: card.id,
             owner: 'player',
             position,
+            sp: position,  // 게임과 호환되는 sp 필드
             crossed: false,
             executed: false,
           });
@@ -601,6 +602,7 @@ export class TimelineBattleEngine {
         cardId: card.id,
         owner: 'player',
         position,
+        sp: position,  // 게임과 호환되는 sp 필드
         crossed: false,
         executed: false,
       });
@@ -626,6 +628,7 @@ export class TimelineBattleEngine {
         cardId: card.id,
         owner: 'enemy',
         position,
+        sp: position,  // 게임과 호환되는 sp 필드
         crossed: false,
         executed: false,
       });
@@ -1247,6 +1250,7 @@ export class TimelineBattleEngine {
         cardId: card.id,
         owner: 'enemy',
         position,
+        sp: position,  // 게임과 호환되는 sp 필드
         crossed: false,
         executed: false,
       });
@@ -1263,6 +1267,7 @@ export class TimelineBattleEngine {
         cardId: card.id,
         owner: 'player',
         position,
+        sp: position,  // 게임과 호환되는 sp 필드
         crossed: false,
         executed: false,
       });
@@ -1283,48 +1288,48 @@ export class TimelineBattleEngine {
   }
 
   private checkCrossings(state: GameBattleState): void {
-    const playerPositions = new Set<number>();
-    const enemyPositions = new Set<number>();
+    // SP별 플레이어/적 존재 여부 추적 (게임 로직과 동일)
+    const spFlags = new Map<number, { hasPlayer: boolean; hasEnemy: boolean }>();
 
     for (const card of state.timeline) {
-      if (card.owner === 'player') {
-        playerPositions.add(card.position);
-      } else {
-        enemyPositions.add(card.position);
+      // sp 필드 우선 사용, 없으면 position 사용
+      const sp = Math.floor(card.sp ?? card.position);
+      let flags = spFlags.get(sp);
+      if (!flags) {
+        flags = { hasPlayer: false, hasEnemy: false };
+        spFlags.set(sp, flags);
       }
+      if (card.owner === 'player') flags.hasPlayer = true;
+      else flags.hasEnemy = true;
     }
 
     // 교차 범위 확장 (로고스 효과)
     const crossRangeBonus = state.growthBonuses?.crossRangeBonus || 0;
 
-    // 같은 위치 또는 확장 범위 내에 있는 카드들은 교차
+    // 특정 SP에서 교차 가능한지 확인 (게임과 동일한 로직)
+    const isCrossedAtSp = (sp: number, owner: 'player' | 'enemy'): boolean => {
+      const oppositeFlag = owner === 'player' ? 'hasEnemy' : 'hasPlayer';
+
+      // 같은 SP에서 교차
+      const flagsAtSp = spFlags.get(sp);
+      if (flagsAtSp?.[oppositeFlag]) return true;
+
+      // 확장 범위: ±crossRangeBonus (로고스 효과)
+      if (crossRangeBonus > 0) {
+        for (let offset = 1; offset <= crossRangeBonus; offset++) {
+          if (spFlags.get(sp - offset)?.[oppositeFlag]) return true;
+          if (spFlags.get(sp + offset)?.[oppositeFlag]) return true;
+        }
+      }
+
+      return false;
+    };
+
+    // 교차 여부 마킹 (한 번 교차된 카드는 유지 - 게임과 동일)
     for (const card of state.timeline) {
-      if (card.owner === 'player') {
-        // 기본: 같은 위치
-        let isCrossed = enemyPositions.has(card.position);
-        // 확장 범위: ±crossRangeBonus
-        if (!isCrossed && crossRangeBonus > 0) {
-          for (let offset = 1; offset <= crossRangeBonus; offset++) {
-            if (enemyPositions.has(card.position + offset) || enemyPositions.has(card.position - offset)) {
-              isCrossed = true;
-              break;
-            }
-          }
-        }
-        card.crossed = isCrossed;
-      }
-      if (card.owner === 'enemy') {
-        let isCrossed = playerPositions.has(card.position);
-        if (!isCrossed && crossRangeBonus > 0) {
-          for (let offset = 1; offset <= crossRangeBonus; offset++) {
-            if (playerPositions.has(card.position + offset) || playerPositions.has(card.position - offset)) {
-              isCrossed = true;
-              break;
-            }
-          }
-        }
-        card.crossed = isCrossed;
-      }
+      if (card.crossed) continue;  // 이미 교차된 카드는 유지
+      const sp = Math.floor(card.sp ?? card.position);
+      card.crossed = isCrossedAtSp(sp, card.owner);
     }
   }
 
@@ -1980,38 +1985,55 @@ export class TimelineBattleEngine {
           break;
 
         case 'chain':
-          // 연계: 다음 카드 앞당김
+          // 연계: 다음 카드 앞당김 (속도 -3)
           // 이변: 고립 - 연계 효과 무효화 (레벨 1 이상 또는 레벨 3 이상)
           const chainIsolation = this.config.enableAnomalies ? getChainIsolationLevel() : 0;
           if (chainIsolation >= 1 && chainIsolation !== 2) {
             // 레벨 1 = 연계만 무효, 레벨 2 = 후속만 무효, 레벨 3+ = 둘 다 무효
             break; // 연계 효과 무시
           }
+          // 연계 토큰 부여 (다음 후속/마무리 카드에 전달)
+          const chainStacks = getTokenStacks(actorState.tokens, 'chain_ready');
           actorState.tokens = addToken(actorState.tokens, 'chain_ready', 1);
-          mods.effects.push('연계 준비');
+          // 연계 중첩 시 추가 속도 보너스 (연계 길이 추적)
+          actorState.tokens = addToken(actorState.tokens, 'chain_length', 1);
+          mods.speedBonus -= card.chainSpeedReduction || 3;  // 다음 카드 속도 감소 효과
+          mods.effects.push(`연계 준비 (속도 -${card.chainSpeedReduction || 3})`);
           break;
 
         case 'followup':
-          // 후속: 연계되면 50% 증폭
+          // 후속: 연계되면 50% 증폭 + 연계 길이 보너스
           // 이변: 고립 - 후속 효과 무효화 (레벨 2 이상)
           const followupIsolation = this.config.enableAnomalies ? getChainIsolationLevel() : 0;
           if (followupIsolation >= 2) {
             break; // 후속 효과 무시
           }
           if (hasToken(actorState.tokens, 'chain_ready')) {
-            mods.damageMultiplier *= 1.5;
-            mods.blockMultiplier *= 1.5;
-            actorState.tokens = removeToken(actorState.tokens, 'chain_ready', 1);
-            mods.effects.push('후속 발동');
+            // 연계 길이에 따른 추가 보너스
+            const chainLength = getTokenStacks(actorState.tokens, 'chain_length') || 1;
+            const chainBonus = Math.min(chainLength * 0.1, 0.5);  // 최대 50% 추가
+            mods.damageMultiplier *= (1.5 + chainBonus);
+            mods.blockMultiplier *= (1.5 + chainBonus);
+            // 연계 속도 보너스 (후속 카드 앞당김)
+            mods.speedBonus -= 2;
+            // 연계 토큰 소모하지 않고 유지 (연속 후속 가능)
+            // 연계 길이 증가
+            actorState.tokens = addToken(actorState.tokens, 'chain_length', 1);
+            mods.effects.push(`후속 발동 (x${(1.5 + chainBonus).toFixed(1)}, 연계 ${chainLength + 1}단)`);
           }
           break;
 
         case 'finisher':
-          // 마무리: 연계되면 50% 피해 증가
+          // 마무리: 연계되면 50% + 연계 길이 보너스, 연계 종료
           if (hasToken(actorState.tokens, 'chain_ready')) {
-            mods.damageMultiplier *= 1.5;
-            actorState.tokens = removeToken(actorState.tokens, 'chain_ready', 1);
-            mods.effects.push('마무리 발동');
+            const chainLength = getTokenStacks(actorState.tokens, 'chain_length') || 1;
+            // 연계 길이에 비례한 보너스 (최대 2배)
+            const finisherMultiplier = Math.min(1.5 + chainLength * 0.25, 2.5);
+            mods.damageMultiplier *= finisherMultiplier;
+            // 연계 토큰 모두 소모 (연계 종료)
+            actorState.tokens = removeToken(actorState.tokens, 'chain_ready', 999);
+            actorState.tokens = removeToken(actorState.tokens, 'chain_length', 999);
+            mods.effects.push(`마무리 발동 (x${finisherMultiplier.toFixed(1)}, 연계 ${chainLength + 1}단 완료)`);
           }
           break;
 

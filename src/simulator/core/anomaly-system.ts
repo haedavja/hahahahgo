@@ -71,6 +71,11 @@ export interface ActiveAnomaly {
 
 // ==================== 이변 데이터 ====================
 
+/**
+ * @deprecated 시뮬레이터 전용 이변 정의입니다.
+ * 실제 게임과 동기화하려면 syncAllAnomalies()를 사용하세요.
+ * 이 상수는 AnomalySystem 클래스의 레거시 지원을 위해 유지됩니다.
+ */
 export const ANOMALY_DEFINITIONS: Record<string, AnomalyDefinition> = {
   // Combat Anomalies
   time_dilation: {
