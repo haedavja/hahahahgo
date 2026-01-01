@@ -34,7 +34,7 @@ export const LogosSection = memo(function LogosSection({
         gridTemplateColumns: '100px repeat(3, 200px)', // 헤더 + 3개 카드 고정
         gap: SPACING.md,
         alignItems: 'stretch', // 모든 셀 높이 동일화
-        marginLeft: '370px', // 공용 로고스가 자아 중앙에 오도록 배치
+        marginLeft: '362px', // 공용 로고스가 자아 중앙에 오도록 배치
       }}>
         {/* 8단계 로고스 헤더 */}
         <div style={{
