@@ -27,7 +27,7 @@ export const LogosSection = memo(function LogosSection({
   const hasAnyIdentity = growth.identities.length > 0;
 
   return (
-    <div style={{ marginBottom: SPACING.xxl }}>
+    <div style={{ marginBottom: '40px' }}>
       {/* 티어 헤더와 카드를 같은 줄에 배치 */}
       <div style={{
         display: 'flex',

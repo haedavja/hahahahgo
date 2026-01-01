@@ -33,7 +33,7 @@ export const TraitEthosSection = memo(function TraitEthosSection({
 
   return (
     <div style={{
-      marginBottom: SPACING.xl,
+      marginBottom: '40px', // 높이 간격 2배
       position: 'relative',
     }}>
       {/* 티어 헤더와 에토스를 같은 줄에 배치 */}

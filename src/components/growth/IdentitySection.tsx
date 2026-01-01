@@ -21,7 +21,7 @@ export const IdentitySection = memo(function IdentitySection({
   const canAccess = pyramidLevel >= 5;
 
   return (
-    <div style={{ marginBottom: SPACING.xxl }}>
+    <div style={{ marginBottom: '40px' }}>
       {/* 티어 헤더 */}
       <div style={{
         display: 'flex',

@@ -41,7 +41,7 @@ export const TierRow = memo(function TierRow({
 
   return (
     <div style={{
-      marginBottom: SPACING.xxl,
+      marginBottom: '40px', // SPACING.xxl * 2
       position: 'relative',
     }}>
       {/* 티어 헤더와 노드를 같은 줄에 배치 */}
