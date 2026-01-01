@@ -292,6 +292,26 @@ export interface BattleRecord {
   combosTriggered: Record<string, number>;
 }
 
+/** AI 전략 통계 */
+export interface AIStrategyStats {
+  /** 전략별 사용 횟수 */
+  strategyUsage: Record<string, number>;
+  /** 전략별 승률 */
+  strategyWinRate: Record<string, number>;
+  /** 전략별 평균 턴 수 */
+  strategyAvgTurns: Record<string, number>;
+  /** 전략별 평균 피해량 */
+  strategyAvgDamage: Record<string, number>;
+  /** 상황별 전략 선택 분포 (HP 비율 구간별) */
+  strategyByHpRatio: Record<string, Record<string, number>>;
+  /** 카드 선택 이유 통계 */
+  cardSelectionReasons: Record<string, number>;
+  /** 시너지 발동 통계 */
+  synergyTriggers: Record<string, number>;
+  /** 콤보 타입별 발동 횟수 */
+  comboTypeUsage: Record<string, number>;
+}
+
 /** 전체 상세 통계 */
 export interface DetailedStats {
   /** 수집 시작 시간 */
@@ -322,6 +342,8 @@ export interface DetailedStats {
   itemUsageStats: ItemUsageStats;
   /** 이벤트 선택 상세 통계 */
   eventChoiceStats: Map<string, EventChoiceStats>;
+  /** AI 전략 통계 */
+  aiStrategyStats: AIStrategyStats;
 }
 
 // ==================== 통계 수집기 ====================
@@ -401,6 +423,16 @@ export class StatsCollector {
 
   // 이벤트 선택 상세 통계
   private eventChoiceStats: Map<string, EventChoiceStats> = new Map();
+
+  // AI 전략 통계
+  private aiStrategyUsage: Record<string, number> = {};
+  private aiStrategyWins: Record<string, number> = {};
+  private aiStrategyTurns: Record<string, number[]> = {};
+  private aiStrategyDamage: Record<string, number[]> = {};
+  private aiStrategyByHpRatio: Record<string, Record<string, number>> = {};
+  private cardSelectionReasons: Record<string, number> = {};
+  private synergyTriggers: Record<string, number> = {};
+  private comboTypeUsage: Record<string, number> = {};
 
   private startTime: Date = new Date();
   private cardLibrary: Record<string, { name: string; type: string; special?: string[] }> = {};
@@ -917,6 +949,60 @@ export class StatsCollector {
     stats.skipReasons[reason] = (stats.skipReasons[reason] || 0) + 1;
   }
 
+  /** AI 전략 결정 기록 */
+  recordAIStrategy(data: {
+    strategy: string;
+    win: boolean;
+    turns: number;
+    damageDealt: number;
+    playerHpRatio: number;
+  }) {
+    const { strategy, win, turns, damageDealt, playerHpRatio } = data;
+
+    // 사용 횟수
+    this.aiStrategyUsage[strategy] = (this.aiStrategyUsage[strategy] || 0) + 1;
+
+    // 승리 횟수
+    if (win) {
+      this.aiStrategyWins[strategy] = (this.aiStrategyWins[strategy] || 0) + 1;
+    }
+
+    // 턴 기록
+    if (!this.aiStrategyTurns[strategy]) {
+      this.aiStrategyTurns[strategy] = [];
+    }
+    this.aiStrategyTurns[strategy].push(turns);
+
+    // 피해량 기록
+    if (!this.aiStrategyDamage[strategy]) {
+      this.aiStrategyDamage[strategy] = [];
+    }
+    this.aiStrategyDamage[strategy].push(damageDealt);
+
+    // HP 비율별 전략 선택
+    const hpBracket = playerHpRatio < 0.3 ? 'low' : playerHpRatio < 0.6 ? 'medium' : 'high';
+    if (!this.aiStrategyByHpRatio[hpBracket]) {
+      this.aiStrategyByHpRatio[hpBracket] = {};
+    }
+    this.aiStrategyByHpRatio[hpBracket][strategy] =
+      (this.aiStrategyByHpRatio[hpBracket][strategy] || 0) + 1;
+  }
+
+  /** 카드 선택 이유 기록 */
+  recordCardSelectionReason(reason: string) {
+    this.cardSelectionReasons[reason] = (this.cardSelectionReasons[reason] || 0) + 1;
+  }
+
+  /** 시너지 발동 기록 */
+  recordSynergyTrigger(synergyType: string) {
+    this.synergyTriggers[synergyType] = (this.synergyTriggers[synergyType] || 0) + 1;
+  }
+
+  /** 콤보 타입 발동 기록 */
+  recordComboType(comboType: string) {
+    this.comboTypeUsage[comboType] = (this.comboTypeUsage[comboType] || 0) + 1;
+  }
+
   /** 통계 수집 완료 및 결과 반환 */
   finalize(): DetailedStats {
     const runStats = this.calculateRunStats();
@@ -926,6 +1012,7 @@ export class StatsCollector {
     const dungeonStats = this.calculateDungeonStats();
     const shopServiceStats = this.calculateShopServiceStats();
     const itemUsageStats = this.calculateItemUsageStats();
+    const aiStrategyStats = this.calculateAIStrategyStats();
 
     return {
       startTime: this.startTime,
@@ -942,6 +1029,40 @@ export class StatsCollector {
       shopServiceStats,
       itemUsageStats,
       eventChoiceStats: this.eventChoiceStats,
+      aiStrategyStats,
+    };
+  }
+
+  /** AI 전략 통계 계산 */
+  private calculateAIStrategyStats(): AIStrategyStats {
+    const strategyWinRate: Record<string, number> = {};
+    const strategyAvgTurns: Record<string, number> = {};
+    const strategyAvgDamage: Record<string, number> = {};
+
+    for (const [strategy, usage] of Object.entries(this.aiStrategyUsage)) {
+      const wins = this.aiStrategyWins[strategy] || 0;
+      strategyWinRate[strategy] = usage > 0 ? wins / usage : 0;
+
+      const turns = this.aiStrategyTurns[strategy] || [];
+      strategyAvgTurns[strategy] = turns.length > 0
+        ? turns.reduce((a, b) => a + b, 0) / turns.length
+        : 0;
+
+      const damages = this.aiStrategyDamage[strategy] || [];
+      strategyAvgDamage[strategy] = damages.length > 0
+        ? damages.reduce((a, b) => a + b, 0) / damages.length
+        : 0;
+    }
+
+    return {
+      strategyUsage: this.aiStrategyUsage,
+      strategyWinRate,
+      strategyAvgTurns,
+      strategyAvgDamage,
+      strategyByHpRatio: this.aiStrategyByHpRatio,
+      cardSelectionReasons: this.cardSelectionReasons,
+      synergyTriggers: this.synergyTriggers,
+      comboTypeUsage: this.comboTypeUsage,
     };
   }
 
@@ -1135,6 +1256,15 @@ export class StatsCollector {
     this.itemUsageOutOfBattle = {};
     // 이벤트 선택 상세 통계 초기화
     this.eventChoiceStats.clear();
+    // AI 전략 통계 초기화
+    this.aiStrategyUsage = {};
+    this.aiStrategyWins = {};
+    this.aiStrategyTurns = {};
+    this.aiStrategyDamage = {};
+    this.aiStrategyByHpRatio = {};
+    this.cardSelectionReasons = {};
+    this.synergyTriggers = {};
+    this.comboTypeUsage = {};
     this.startTime = new Date();
   }
 }
@@ -1829,6 +1959,105 @@ export class StatsReporter {
     return lines.join('\n');
   }
 
+  /** AI 전략 리포트 생성 */
+  generateAIStrategyReport(): string {
+    const lines: string[] = [];
+    const as = this.stats.aiStrategyStats;
+
+    lines.push('');
+    lines.push('╔══════════════════════════════════════════════════════════════════════════╗');
+    lines.push('║                           AI 전략 통계                                    ║');
+    lines.push('╚══════════════════════════════════════════════════════════════════════════╝');
+    lines.push('');
+
+    // 전략별 요약
+    if (Object.keys(as.strategyUsage).length > 0) {
+      lines.push('【 전략별 성과 】');
+      lines.push('┌──────────────────┬─────────┬────────┬──────────┬───────────────────────┐');
+      lines.push('│ 전략             │ 사용    │ 승률   │ 평균턴   │ 평균 피해량           │');
+      lines.push('├──────────────────┼─────────┼────────┼──────────┼───────────────────────┤');
+
+      const sortedStrategies = Object.entries(as.strategyUsage)
+        .sort((a, b) => b[1] - a[1]);
+
+      for (const [strategy, usage] of sortedStrategies) {
+        const name = strategy.padEnd(16);
+        const usageStr = String(usage).padStart(7);
+        const winRate = ((as.strategyWinRate[strategy] || 0) * 100).toFixed(1) + '%';
+        const avgTurns = (as.strategyAvgTurns[strategy] || 0).toFixed(1);
+        const avgDamage = (as.strategyAvgDamage[strategy] || 0).toFixed(0);
+        lines.push(`│ ${name} │${usageStr} │ ${winRate.padStart(5)} │ ${avgTurns.padStart(8)} │ ${avgDamage.padStart(21)} │`);
+      }
+      lines.push('└──────────────────┴─────────┴────────┴──────────┴───────────────────────┘');
+    }
+
+    // HP 비율별 전략 선택
+    if (Object.keys(as.strategyByHpRatio).length > 0) {
+      lines.push('');
+      lines.push('【 HP 상태별 전략 선택 분포 】');
+
+      for (const [hpBracket, strategies] of Object.entries(as.strategyByHpRatio)) {
+        const bracketLabel = hpBracket === 'low' ? '위험 (0-30%)' :
+                            hpBracket === 'medium' ? '주의 (30-60%)' : '안전 (60%+)';
+        lines.push(`  [${bracketLabel}]`);
+
+        const total = Object.values(strategies).reduce((a, b) => a + b, 0);
+        const sorted = Object.entries(strategies).sort((a, b) => b[1] - a[1]);
+
+        for (const [strategy, count] of sorted) {
+          const percent = ((count / total) * 100).toFixed(1);
+          const bar = '█'.repeat(Math.floor((count / total) * 20));
+          lines.push(`    ${strategy.padEnd(12)}: ${bar} ${percent}%`);
+        }
+      }
+    }
+
+    // 카드 선택 이유
+    if (Object.keys(as.cardSelectionReasons).length > 0) {
+      lines.push('');
+      lines.push('【 카드 선택 이유 TOP 10 】');
+
+      const sortedReasons = Object.entries(as.cardSelectionReasons)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 10);
+
+      const maxCount = sortedReasons[0]?.[1] || 1;
+      for (const [reason, count] of sortedReasons) {
+        const barLen = Math.floor((count / maxCount) * 25);
+        const bar = '█'.repeat(barLen);
+        lines.push(`  ${reason.substring(0, 25).padEnd(25)}: ${String(count).padStart(5)} ${bar}`);
+      }
+    }
+
+    // 시너지 발동
+    if (Object.keys(as.synergyTriggers).length > 0) {
+      lines.push('');
+      lines.push('【 시너지 발동 통계 】');
+
+      const sorted = Object.entries(as.synergyTriggers)
+        .sort((a, b) => b[1] - a[1]);
+
+      for (const [synergy, count] of sorted) {
+        lines.push(`  ${synergy}: ${count}회`);
+      }
+    }
+
+    // 콤보 타입
+    if (Object.keys(as.comboTypeUsage).length > 0) {
+      lines.push('');
+      lines.push('【 콤보 타입별 발동 】');
+
+      const sorted = Object.entries(as.comboTypeUsage)
+        .sort((a, b) => b[1] - a[1]);
+
+      for (const [comboType, count] of sorted) {
+        lines.push(`  ${comboType}: ${count}회`);
+      }
+    }
+
+    return lines.join('\n');
+  }
+
   /** 전체 리포트 생성 */
   generateFullReport(): string {
     const parts: string[] = [];
@@ -1843,6 +2072,7 @@ export class StatsReporter {
     parts.push(this.generateEventReport());
     parts.push(this.generateItemReport());
     parts.push(this.generateEventChoiceReport());
+    parts.push(this.generateAIStrategyReport());
     return parts.join('\n');
   }
 
@@ -1862,6 +2092,7 @@ export class StatsReporter {
       dungeonStats: this.stats.dungeonStats,
       itemUsageStats: this.stats.itemUsageStats,
       eventChoiceStats: Object.fromEntries(this.stats.eventChoiceStats),
+      aiStrategyStats: this.stats.aiStrategyStats,
       battleRecords: this.stats.battleRecords,
     };
     return JSON.stringify(exportData, null, 2);

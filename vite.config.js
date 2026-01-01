@@ -55,6 +55,8 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.js'],
+    // E2E 테스트(Playwright)는 vitest에서 제외
+    exclude: ['e2e/**', 'node_modules/**', '**/dist/**'],
     mockReset: true,
     restoreMocks: true,
     clearMocks: true,

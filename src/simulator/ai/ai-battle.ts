@@ -6,6 +6,8 @@
 import type { GameState, SimPlayerState, SimEnemyState, BattleResult } from '../core/types';
 import { MCTSEngine, MCTSPlayer, type MCTSOptions, type MCTSResult } from '../analysis/mcts';
 import { BattleEngine, createPlayerState, createEnemyState, type CardDefinition } from '../core/battle-engine';
+import { AdvancedBattleAI, type BattleContext, type CardSelectionResult } from './advanced-battle-ai';
+import type { GameCard, TokenState } from '../core/game-types';
 import { loadCards, loadEnemies } from '../data/loader';
 import { getLogger } from '../core/logger';
 import { createError, safeAsync } from '../core/error-handling';
@@ -14,7 +16,7 @@ const log = getLogger('AIBattle');
 
 // ==================== AI 타입 정의 ====================
 
-export type AIType = 'mcts' | 'greedy' | 'random' | 'defensive' | 'aggressive';
+export type AIType = 'mcts' | 'greedy' | 'random' | 'defensive' | 'aggressive' | 'advanced';
 
 export interface AIConfig {
   type: AIType;
@@ -161,7 +163,74 @@ class AggressiveAI implements AIStrategy {
   }
 }
 
-function createAIStrategy(type: AIType): AIStrategy {
+/**
+ * 고급 AI - AdvancedBattleAI를 래핑
+ * 타임라인, 특성, 상황별 전략을 고려한 카드 선택
+ */
+class AdvancedAIWrapper implements AIStrategy {
+  private advancedAI: AdvancedBattleAI;
+  private cardLibrary: Record<string, CardDefinition>;
+
+  constructor(cardLibrary: Record<string, CardDefinition>) {
+    // CardDefinition을 GameCard 형태로 변환
+    const gameCardLibrary: Record<string, GameCard> = {};
+    for (const [id, card] of Object.entries(cardLibrary)) {
+      gameCardLibrary[id] = {
+        id: card.id,
+        name: card.name,
+        type: card.type as 'attack' | 'defense' | 'skill' | 'reaction',
+        speedCost: 3, // 기본값
+        energyCost: card.cost,
+        damage: card.damage,
+        block: card.block,
+        hits: card.hits,
+        traits: card.traits,
+      };
+    }
+    this.advancedAI = new AdvancedBattleAI(gameCardLibrary, false);
+    this.cardLibrary = cardLibrary;
+  }
+
+  selectCards(state: GameState, cards: CardDefinition[]): CardDefinition[] {
+    // BattleContext 생성
+    const context: BattleContext = {
+      playerHp: state.player.hp,
+      playerMaxHp: state.player.maxHp,
+      playerBlock: state.player.block,
+      playerTokens: (state.player.tokens || {}) as TokenState,
+      enemyHp: state.enemy.hp,
+      enemyMaxHp: state.enemy.maxHp,
+      enemyBlock: state.enemy.block,
+      enemyTokens: (state.enemy.tokens || {}) as TokenState,
+      turn: state.turn || 1,
+      timeline: state.timeline || [],
+      playerEnergy: state.player.energy,
+    };
+
+    // 핸드 카드 ID 목록
+    const handIds = cards.map(c => c.id);
+
+    // 고급 AI로 카드 선택
+    const result: CardSelectionResult = this.advancedAI.selectCards(handIds, context, 3);
+
+    // 선택된 카드를 CardDefinition으로 변환
+    const selectedCards: CardDefinition[] = [];
+    for (const evaluation of result.selectedCards) {
+      const card = this.cardLibrary[evaluation.cardId];
+      if (card) {
+        selectedCards.push(card);
+      }
+    }
+
+    return selectedCards;
+  }
+}
+
+// 고급 AI 인스턴스 캐시 (카드 라이브러리가 같으면 재사용)
+let cachedAdvancedAI: AdvancedAIWrapper | null = null;
+let cachedCardLibrary: Record<string, CardDefinition> | null = null;
+
+function createAIStrategy(type: AIType, cardLibrary?: Record<string, CardDefinition>): AIStrategy {
   switch (type) {
     case 'greedy':
       return new GreedyAI();
@@ -171,6 +240,19 @@ function createAIStrategy(type: AIType): AIStrategy {
       return new DefensiveAI();
     case 'aggressive':
       return new AggressiveAI();
+    case 'advanced':
+      if (cardLibrary) {
+        // 카드 라이브러리가 같으면 캐시된 인스턴스 재사용
+        if (cachedAdvancedAI && cachedCardLibrary === cardLibrary) {
+          return cachedAdvancedAI;
+        }
+        cachedCardLibrary = cardLibrary;
+        cachedAdvancedAI = new AdvancedAIWrapper(cardLibrary);
+        return cachedAdvancedAI;
+      }
+      // 카드 라이브러리 없으면 Greedy로 폴백
+      log.warn('Advanced AI requested without card library, falling back to Greedy');
+      return new GreedyAI();
     default:
       return new GreedyAI();
   }
@@ -227,11 +309,11 @@ export class AIBattleEngine {
     // AI 전략 또는 MCTS 엔진 생성
     const ai1 = config.player1.type === 'mcts'
       ? new MCTSEngine(config.player1.mctsOptions)
-      : createAIStrategy(config.player1.type);
+      : createAIStrategy(config.player1.type, this.cards);
 
     const ai2 = config.player2.type === 'mcts'
       ? new MCTSEngine(config.player2.mctsOptions)
-      : createAIStrategy(config.player2.type);
+      : createAIStrategy(config.player2.type, this.cards);
 
     const turnHistory: TurnRecord[] = [];
     let turn = 0;
@@ -667,7 +749,7 @@ export async function benchmarkAITypes(
   deck: string[],
   iterations: number = 10
 ): Promise<Record<AIType, { winRate: number; avgTurns: number; avgDamage: number }>> {
-  const aiTypes: AIType[] = ['greedy', 'random', 'defensive', 'aggressive'];
+  const aiTypes: AIType[] = ['greedy', 'random', 'defensive', 'aggressive', 'advanced'];
   const results: Record<string, { wins: number; totalTurns: number; totalDamage: number }> = {};
 
   for (const type of aiTypes) {

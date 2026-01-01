@@ -10,6 +10,8 @@
  */
 
 import { getLogger } from '../core/logger';
+import { DeckBuildingAI, mapRunStrategyToDeckStrategy, type DeckStrategy } from '../ai/deck-building-ai';
+import type { Card } from '../../types';
 
 const log = getLogger('ShopSimulator');
 
@@ -47,6 +49,8 @@ export interface PlayerShopState {
   deck: string[];
   relics: string[];
   items: string[];
+  /** 강화된 카드 목록 */
+  upgradedCards?: string[];
 }
 
 export interface PurchaseDecision {
@@ -60,6 +64,8 @@ export interface ShopSimulationConfig {
   strategy: 'value' | 'synergy' | 'survival' | 'random';
   maxPurchases?: number;
   reserveGold?: number;
+  /** 런 전략 (덱 빌딩 AI용) */
+  runStrategy?: string;
 }
 
 export interface ShopResult {
@@ -131,9 +137,22 @@ export class ShopSimulator {
   private cardData: Record<string, { id: string; rarity: CardRarity; value?: number }> = {};
   private relicData: Record<string, { id: string; rarity: RelicRarity; value?: number }> = {};
   private itemData: Record<string, { id: string; tier: ItemTier; value?: number }> = {};
+  /** 전체 카드 라이브러리 (덱 빌딩 AI용) */
+  private cardLibrary: Record<string, Card> = {};
+  /** 덱 빌딩 AI */
+  private deckBuildingAI: DeckBuildingAI | null = null;
 
   constructor() {
     log.info('ShopSimulator initialized');
+  }
+
+  /**
+   * 전체 카드 라이브러리 로드 (덱 빌딩 AI용)
+   */
+  loadFullCardLibrary(cards: Record<string, Card>): void {
+    this.cardLibrary = cards;
+    this.deckBuildingAI = new DeckBuildingAI(cards, 'balanced');
+    log.info('Full card library loaded for DeckBuildingAI');
   }
 
   // ==================== 데이터 로드 ====================
@@ -416,16 +435,21 @@ export class ShopSimulator {
       }
     }
 
-    // 서비스 사용 결정
+    // 서비스 사용 결정 (스마트 로직)
     if (inventory.services.length > 0) {
-      const serviceDecisions = this.decideServices(inventory.services, player, availableGold - totalSpent);
+      const serviceDecisions = this.decideServices(
+        inventory.services,
+        player,
+        availableGold - totalSpent,
+        config.runStrategy
+      );
       for (const service of serviceDecisions) {
         if ((availableGold - totalSpent) >= service.price) {
           servicesUsed.push(service);
           totalSpent += service.price;
 
-          // 서비스 효과 적용
-          this.applyServiceEffect(service.id as ServiceId, player);
+          // 서비스 효과 적용 (스마트 로직)
+          this.applyServiceEffect(service.id as ServiceId, player, config.runStrategy);
         }
       }
     }
@@ -575,32 +599,89 @@ export class ShopSimulator {
   }
 
   /**
-   * 서비스 사용 결정
+   * 서비스 사용 결정 (스마트 로직)
    */
   private decideServices(
     services: ShopItem[],
     player: PlayerShopState,
-    availableGold: number
+    availableGold: number,
+    runStrategy?: string
   ): ShopItem[] {
     const selected: ShopItem[] = [];
+    let remainingGold = availableGold;
 
-    // 체력이 50% 미만이면 힐 우선
-    if (player.hp < player.maxHp * 0.5) {
+    // 덱 빌딩 AI 전략 설정
+    if (this.deckBuildingAI && runStrategy) {
+      const deckStrategy = mapRunStrategyToDeckStrategy(runStrategy);
+      this.deckBuildingAI.setStrategy(deckStrategy);
+    }
+
+    // 1. 체력이 낮으면 힐 우선
+    const hpRatio = player.hp / player.maxHp;
+    if (hpRatio < 0.5) {
       const healFull = services.find(s => s.id === 'healFull');
       const healSmall = services.find(s => s.id === 'healSmall');
 
-      if (healFull && availableGold >= healFull.price && player.hp < player.maxHp * 0.3) {
+      if (healFull && remainingGold >= healFull.price && hpRatio < 0.3) {
         selected.push(healFull);
-      } else if (healSmall && availableGold >= healSmall.price) {
+        remainingGold -= healFull.price;
+      } else if (healSmall && remainingGold >= healSmall.price) {
         selected.push(healSmall);
+        remainingGold -= healSmall.price;
       }
     }
 
-    // 덱이 너무 크면 카드 제거 고려
-    if (player.deck.length > 20) {
-      const removeCard = services.find(s => s.id === 'removeCard');
-      if (removeCard && availableGold >= removeCard.price) {
+    // 2. 카드 제거 결정 (덱 빌딩 AI 사용)
+    const removeCard = services.find(s => s.id === 'removeCard');
+    if (removeCard && remainingGold >= removeCard.price) {
+      let shouldRemove = false;
+
+      if (this.deckBuildingAI) {
+        // AI 기반 제거 결정
+        const analysis = this.deckBuildingAI.analyzeDeck(player.deck);
+        const removalPriority = this.deckBuildingAI.getRemovalPriority(player.deck);
+
+        // 약한 카드가 있고 덱 효율이 낮으면 제거
+        if (removalPriority.length > 0 && removalPriority[0].priority >= 40) {
+          shouldRemove = true;
+        }
+        // 덱이 14장 이상이고 효율이 70 미만이면 제거
+        if (player.deck.length >= 14 && analysis.efficiencyScore < 70) {
+          shouldRemove = true;
+        }
+      } else {
+        // 폴백: 덱이 15장 이상이면 제거
+        shouldRemove = player.deck.length >= 15;
+      }
+
+      if (shouldRemove) {
         selected.push(removeCard);
+        remainingGold -= removeCard.price;
+      }
+    }
+
+    // 3. 카드 강화 결정 (덱 빌딩 AI 사용)
+    const upgradeCard = services.find(s => s.id === 'upgradeCard');
+    if (upgradeCard && remainingGold >= upgradeCard.price) {
+      let shouldUpgrade = false;
+
+      if (this.deckBuildingAI) {
+        const upgradedCards = player.upgradedCards || [];
+        const upgradePriority = this.deckBuildingAI.getUpgradePriority(player.deck, upgradedCards);
+
+        // 강화 우선순위가 높은 카드가 있으면 강화
+        if (upgradePriority.length > 0 && upgradePriority[0].priority >= 30) {
+          shouldUpgrade = true;
+        }
+      } else {
+        // 폴백: 덱이 10장 이상이고 강화된 카드가 3개 미만이면 강화
+        const upgradedCount = (player.upgradedCards || []).length;
+        shouldUpgrade = player.deck.length >= 10 && upgradedCount < 3;
+      }
+
+      if (shouldUpgrade) {
+        selected.push(upgradeCard);
+        remainingGold -= upgradeCard.price;
       }
     }
 
@@ -608,30 +689,100 @@ export class ShopSimulator {
   }
 
   /**
-   * 서비스 효과 적용
+   * 서비스 효과 적용 (스마트 로직)
    */
-  private applyServiceEffect(serviceId: ServiceId, player: PlayerShopState): void {
+  private applyServiceEffect(serviceId: ServiceId, player: PlayerShopState, runStrategy?: string): { cardRemoved?: string; cardUpgraded?: string } {
+    const result: { cardRemoved?: string; cardUpgraded?: string } = {};
+
+    // 덱 빌딩 AI 전략 설정
+    if (this.deckBuildingAI && runStrategy) {
+      const deckStrategy = mapRunStrategyToDeckStrategy(runStrategy);
+      this.deckBuildingAI.setStrategy(deckStrategy);
+    }
+
     switch (serviceId) {
       case 'healSmall':
         player.hp = Math.min(player.maxHp, player.hp + Math.floor(player.maxHp * 0.25));
         break;
+
       case 'healFull':
         player.hp = player.maxHp;
         break;
+
       case 'removeCard':
-        // 랜덤 카드 제거 (시뮬레이션용)
+        // 스마트 카드 제거 (덱 빌딩 AI 사용)
         if (player.deck.length > 0) {
-          const randomIndex = Math.floor(Math.random() * player.deck.length);
-          player.deck.splice(randomIndex, 1);
+          let cardToRemove: string | null = null;
+
+          if (this.deckBuildingAI) {
+            const removalPriority = this.deckBuildingAI.getRemovalPriority(player.deck);
+            if (removalPriority.length > 0) {
+              cardToRemove = removalPriority[0].cardId;
+              log.debug(`Smart card removal: ${cardToRemove} (${removalPriority[0].reason})`);
+            }
+          }
+
+          // 폴백: 기본 카드 중 랜덤 선택
+          if (!cardToRemove) {
+            const basicCards = player.deck.filter(c =>
+              ['strike', 'shoot', 'deflect'].includes(c)
+            );
+            if (basicCards.length > 0) {
+              cardToRemove = basicCards[Math.floor(Math.random() * basicCards.length)];
+            } else {
+              // 아무 카드나 선택
+              cardToRemove = player.deck[Math.floor(Math.random() * player.deck.length)];
+            }
+          }
+
+          if (cardToRemove) {
+            const idx = player.deck.indexOf(cardToRemove);
+            if (idx !== -1) {
+              player.deck.splice(idx, 1);
+              result.cardRemoved = cardToRemove;
+            }
+          }
         }
         break;
+
       case 'upgradeCard':
-        // 업그레이드는 현재 미구현
+        // 스마트 카드 강화 (덱 빌딩 AI 사용)
+        if (player.deck.length > 0) {
+          const upgradedCards = player.upgradedCards || [];
+          let cardToUpgrade: string | null = null;
+
+          if (this.deckBuildingAI) {
+            const upgradePriority = this.deckBuildingAI.getUpgradePriority(player.deck, upgradedCards);
+            if (upgradePriority.length > 0) {
+              cardToUpgrade = upgradePriority[0].cardId;
+              log.debug(`Smart card upgrade: ${cardToUpgrade} (${upgradePriority[0].reason})`);
+            }
+          }
+
+          // 폴백: 아직 강화되지 않은 카드 중 랜덤 선택
+          if (!cardToUpgrade) {
+            const upgradable = player.deck.filter(c => !upgradedCards.includes(c));
+            if (upgradable.length > 0) {
+              cardToUpgrade = upgradable[Math.floor(Math.random() * upgradable.length)];
+            }
+          }
+
+          if (cardToUpgrade && !upgradedCards.includes(cardToUpgrade)) {
+            if (!player.upgradedCards) {
+              player.upgradedCards = [];
+            }
+            player.upgradedCards.push(cardToUpgrade);
+            result.cardUpgraded = cardToUpgrade;
+          }
+        }
         break;
+
       case 'reroll':
-        // 리롤은 인벤토리 재생성 필요
+        // 리롤은 인벤토리 재생성 필요 (호출자가 처리)
         break;
     }
+
+    return result;
   }
 
   // ==================== 분석 ====================
@@ -715,6 +866,8 @@ export async function createShopSimulator(): Promise<ShopSimulator> {
     // 카드 데이터 로드 (CARD_LIBRARY 사용)
     const { CARD_LIBRARY } = await import('../../data/cards');
     simulator.loadCardData(CARD_LIBRARY as Record<string, { id: string; rarity?: string }>);
+    // 전체 카드 라이브러리 로드 (덱 빌딩 AI용)
+    simulator.loadFullCardLibrary(CARD_LIBRARY as Record<string, Card>);
 
     // 상징 데이터 로드
     const { RELICS } = await import('../../data/relics');
