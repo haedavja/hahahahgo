@@ -332,6 +332,14 @@ export interface EnemyState extends CombatantState {
   speed?: number;
   /** 보스 여부 */
   isBoss?: boolean;
+  /** 이모지 */
+  emoji?: string;
+  /** 타임라인 반복 (호환) */
+  repeatTimelineNext?: boolean;
+  /** 카드당 방어 (호환) */
+  blockPerCardExecution?: number;
+  /** 손패 (적 AI용) */
+  hand?: string[];
 }
 
 export interface GameBattleState {
@@ -435,6 +443,9 @@ export interface BattleResult {
   comboStats: Record<string, number>;
   tokenStats: Record<string, number>;
   timeline: TimelineCard[];
+  victory?: boolean;
+  battleId?: string;
+  enemyId?: string;
 }
 
 export interface SimulationSummary {
