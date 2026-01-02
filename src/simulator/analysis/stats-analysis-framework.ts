@@ -2422,6 +2422,140 @@ export function generateAnalysisGuidelines(stats: DetailedStats): string {
   lines.push('3. **재미 > 밸런스**: 숫자보다 플레이 경험 우선');
   lines.push('4. **버프 우선 정책**: 너프보다 약한 것 강화');
   lines.push('');
+
+  // ==================== 영향력 분석 섹션 ====================
+  lines.push('---');
+  lines.push('');
+  lines.push('## 📈 영향력 분석 (WHY 분석)');
+  lines.push('');
+
+  // 이벤트 영향력 분석
+  const eventImpact = analyzeEventImpact(stats);
+  if (eventImpact.eventImpacts.size > 0) {
+    lines.push('### 🎭 이벤트 영향력');
+    lines.push('');
+
+    if (eventImpact.mostBeneficialEvents.length > 0) {
+      lines.push('#### 가장 이로운 이벤트');
+      eventImpact.mostBeneficialEvents.slice(0, 3).forEach(e => {
+        lines.push(`- **${e.eventName}**: 승률 영향 +${(e.netImpact * 100).toFixed(1)}%p (권장: ${e.recommendation === 'always_do' ? '항상 진행' : e.recommendation === 'avoid' ? '피하기' : '상황에 따라'})`);
+        if (e.optimalChoice) {
+          lines.push(`  - 최적 선택: ${e.optimalChoice}`);
+        }
+      });
+      lines.push('');
+    }
+
+    if (eventImpact.mostDetrimentalEvents.length > 0) {
+      lines.push('#### 주의해야 할 이벤트');
+      eventImpact.mostDetrimentalEvents.slice(0, 3).forEach(e => {
+        lines.push(`- **${e.eventName}**: 승률 영향 ${(e.netImpact * 100).toFixed(1)}%p (권장: ${e.recommendation === 'avoid' ? '피하기' : e.recommendation === 'skip' ? '스킵' : '주의'})`);
+      });
+      lines.push('');
+    }
+
+    if (eventImpact.overallEventInfluence.mostFatalChoice) {
+      const fatal = eventImpact.overallEventInfluence.mostFatalChoice;
+      lines.push(`> ⚠️ 가장 치명적인 선택: ${fatal.eventId}의 "${fatal.choiceId}" (사망률 ${(fatal.deathRate * 100).toFixed(0)}%)`);
+      lines.push('');
+    }
+  }
+
+  // 상징 시너지 분석
+  const relicSynergy = analyzeRelicSynergyImpact(stats);
+  if (relicSynergy.coreRelics.length > 0 || relicSynergy.topSynergies.length > 0) {
+    lines.push('### 💎 상징 시너지 분석');
+    lines.push('');
+
+    if (relicSynergy.coreRelics.length > 0) {
+      lines.push('#### 핵심 상징 (있으면 승률 급상승)');
+      relicSynergy.coreRelics.slice(0, 5).forEach(r => {
+        const buildDefining = r.isBuildDefining ? ' [빌드 정의]' : '';
+        lines.push(`- **${r.relicName}**: +${(r.coreScore * 100).toFixed(1)}%p (보유 ${(r.winRateWith * 100).toFixed(0)}% vs 미보유 ${(r.winRateWithout * 100).toFixed(0)}%)${buildDefining}`);
+      });
+      lines.push('');
+    }
+
+    if (relicSynergy.topSynergies.length > 0) {
+      lines.push('#### TOP 시너지 조합');
+      relicSynergy.topSynergies.slice(0, 5).forEach(s => {
+        lines.push(`- **${s.relicNames.join(' + ')}**: +${(s.winRateBoost * 100).toFixed(1)}%p`);
+      });
+      lines.push('');
+    }
+
+    if (relicSynergy.antiSynergies.length > 0) {
+      lines.push('#### ⚠️ 안티시너지 (함께 사용 주의)');
+      relicSynergy.antiSynergies.slice(0, 3).forEach(s => {
+        lines.push(`- ${s.relicNames.join(' + ')}: ${(s.winRateBoost * 100).toFixed(1)}%p`);
+      });
+      lines.push('');
+    }
+  }
+
+  // AI 성장 결정 분석
+  const growthDecision = analyzeGrowthDecisions(stats);
+  if (growthDecision.optimalPaths.length > 0 || growthDecision.contextualPatterns.length > 0) {
+    lines.push('### 📊 AI 성장 결정 분석');
+    lines.push('');
+
+    if (growthDecision.optimalPaths.length > 0) {
+      lines.push('#### 최적 성장 경로');
+      growthDecision.optimalPaths.slice(0, 3).forEach((p, i) => {
+        lines.push(`${i + 1}. **${p.pathName}** (승률 ${(p.winRate * 100).toFixed(1)}%)`);
+        if (p.recommendedFor.length > 0) {
+          lines.push(`   - 권장: ${p.recommendedFor.join(', ')}`);
+        }
+      });
+      lines.push('');
+    }
+
+    if (growthDecision.decisionAccuracy.commonMistakes.length > 0) {
+      lines.push('#### 자주 발생하는 실수');
+      growthDecision.decisionAccuracy.commonMistakes.slice(0, 3).forEach(m => {
+        lines.push(`- ${m.situationDescription}`);
+        lines.push(`  → 최적 선택: ${m.optimalStat} (승률 +${(m.winRateLoss * 100).toFixed(1)}%p)`);
+      });
+      lines.push('');
+    }
+  }
+
+  // 카드 선택 이유 분석
+  const cardSelection = analyzeCardSelectionReasoning(stats);
+  if (cardSelection.optimalPickGuide.length > 0 || cardSelection.selectionAccuracy.commonMistakes.length > 0) {
+    lines.push('### 🃏 카드 선택 분석');
+    lines.push('');
+
+    if (cardSelection.skipReasonAnalysis.shouldHaveSkipped.length > 0) {
+      lines.push('#### 과대평가된 카드 (스킵 권장)');
+      cardSelection.skipReasonAnalysis.shouldHaveSkipped.slice(0, 3).forEach(s => {
+        lines.push(`- **${s.cardId}**: 선택 시 승률 ${(s.winRateLoss * 100).toFixed(1)}%p 하락`);
+      });
+      lines.push('');
+    }
+
+    if (cardSelection.skipReasonAnalysis.shouldNotHaveSkipped.length > 0) {
+      lines.push('#### 과소평가된 카드 (픽 권장)');
+      cardSelection.skipReasonAnalysis.shouldNotHaveSkipped.slice(0, 3).forEach(s => {
+        lines.push(`- **${s.cardId}**: 스킵 시 승률 ${(s.winRateLoss * 100).toFixed(1)}%p 손실`);
+      });
+      lines.push('');
+    }
+
+    if (cardSelection.optimalPickGuide.length > 0) {
+      const guide = cardSelection.optimalPickGuide[0];
+      if (guide.recommendedPicks.length > 0) {
+        lines.push('#### 일반 상황 추천 픽');
+        guide.recommendedPicks.slice(0, 5).forEach(p => {
+          lines.push(`- ${p.cardId}: ${p.reason}`);
+        });
+        lines.push('');
+      }
+    }
+  }
+
+  lines.push('---');
+  lines.push('');
   lines.push('### 업계 참고 (하하하GO 맞춤 적용)');
   lines.push('- Riot: 동적 임계값 사용 (단, PvP 50% 목표 → 난이도별 목표로 조정)');
   lines.push('- Supercell: 4분면 분석 사용 (단, AI 픽률 편향 고려)');
