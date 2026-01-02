@@ -44,8 +44,8 @@ export type BattleState = SimpleBattleState & {
 export interface Combatant extends TokenEntity {
   hp: number;
   maxHp: number;
-  block: number;
-  tokens: TokenState;
+  block?: number;
+  tokens?: TokenState;
   vulnMult?: number;
   vulnTurns?: number;
   etherOverflow?: number;

@@ -330,14 +330,14 @@ export interface EnemyPassives {
 
 export interface EnemyUnit {
   unitId: number;
-  id: string;
-  name: string;
+  id?: string;
+  name?: string;
   hp: number;
   maxHp: number;
-  block: number;
-  tokens: TokenState;
-  deck: string[];
-  cardsPerTurn: number;
+  block?: number;
+  tokens?: TokenState;
+  deck?: string[];
+  cardsPerTurn?: number;
   emoji?: string;
   passives?: EnemyPassives;
   hasSummoned?: boolean;
