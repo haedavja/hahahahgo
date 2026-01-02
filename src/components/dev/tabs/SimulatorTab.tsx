@@ -105,20 +105,108 @@ function formatSingleStrategyStats(stats: DetailedStats, strategyLabel: string):
     lines.push('');
   }
 
-  // ==================== 5. 상징 통계 ====================
+  // ==================== 5. 상징 통계 (상세) ====================
   if (stats.relicStats && stats.relicStats.size > 0) {
-    const topRelics = Array.from(stats.relicStats.entries())
+    const allRelics = Array.from(stats.relicStats.entries());
+    const totalRuns = stats.runStats.totalRuns || 1;
+
+    lines.push('### 5. 상징 통계 (상세)');
+    lines.push('');
+
+    // 5.1 상징 기여도 (상위 10개)
+    const topContribRelics = allRelics
       .filter(([, s]) => s.timesAcquired >= 2)
       .sort((a, b) => b[1].contribution - a[1].contribution)
-      .slice(0, 5);
+      .slice(0, 10);
 
-    if (topRelics.length > 0) {
-      lines.push('### 5. 상징 기여도 (상위 5개)');
-      lines.push('| 상징 | 획득 | 기여도 |');
-      lines.push('|------|------|--------|');
-      topRelics.forEach(([, s]) => {
+    if (topContribRelics.length > 0) {
+      lines.push('#### 5.1 상징 기여도 (상위 10개)');
+      lines.push('| 상징 | 획득 | 획득률 | 보유승률 | 미보유승률 | 기여도 |');
+      lines.push('|------|------|--------|----------|------------|--------|');
+      topContribRelics.forEach(([, s]) => {
+        const acquireRate = s.timesAcquired / totalRuns;
         const sign = s.contribution > 0 ? '+' : '';
-        lines.push(`| ${getRelicNameLocal(s.relicId)} | ${s.timesAcquired} | ${sign}${pct(s.contribution)} |`);
+        lines.push(`| ${getRelicNameLocal(s.relicId)} | ${s.timesAcquired} | ${pct(acquireRate)} | ${pct(s.winRateWith)} | ${pct(s.winRateWithout)} | ${sign}${pct(s.contribution)} |`);
+      });
+      lines.push('');
+    }
+
+    // 5.2 상징 획득 출처 분석
+    const sourceStats: Record<string, number> = {};
+    allRelics.forEach(([, s]) => {
+      Object.entries(s.acquiredFrom || {}).forEach(([source, count]) => {
+        sourceStats[source] = (sourceStats[source] || 0) + count;
+      });
+    });
+    if (Object.keys(sourceStats).length > 0) {
+      const sourceLabels: Record<string, string> = {
+        battle: '전투', shop: '상점', event: '이벤트',
+        dungeon: '던전', boss: '보스', starting: '시작',
+      };
+      lines.push('#### 5.2 상징 획득 출처');
+      Object.entries(sourceStats)
+        .sort((a, b) => b[1] - a[1])
+        .forEach(([source, count]) => {
+          lines.push(`- ${sourceLabels[source] || source}: ${count}회`);
+        });
+      lines.push('');
+    }
+
+    // 5.3 상징 효과 발동 (발동 횟수 있는 것만)
+    const activeRelics = allRelics
+      .filter(([, s]) => s.effectTriggers > 0)
+      .sort((a, b) => b[1].effectTriggers - a[1].effectTriggers)
+      .slice(0, 10);
+    if (activeRelics.length > 0) {
+      lines.push('#### 5.3 상징 효과 발동 (상위 10개)');
+      lines.push('| 상징 | 발동횟수 | 평균효과 | 평균도달층 |');
+      lines.push('|------|----------|----------|------------|');
+      activeRelics.forEach(([, s]) => {
+        lines.push(`| ${getRelicNameLocal(s.relicId)} | ${s.effectTriggers}회 | ${s.avgEffectValue.toFixed(1)} | ${s.avgFloorReachedWith.toFixed(1)} |`);
+      });
+      lines.push('');
+    }
+
+    // 5.4 상징 시너지 (자주 함께 획득되는 상징)
+    const synergyPairs: { relic1: string; relic2: string; count: number }[] = [];
+    allRelics.forEach(([, s]) => {
+      if (s.commonPairs && s.commonPairs.length > 0) {
+        s.commonPairs.forEach(pair => {
+          // 중복 방지: 알파벳 순서로 정렬
+          const [first, second] = [s.relicId, pair.relicId].sort();
+          const existing = synergyPairs.find(p => p.relic1 === first && p.relic2 === second);
+          if (!existing) {
+            synergyPairs.push({ relic1: first, relic2: second, count: pair.frequency });
+          }
+        });
+      }
+    });
+    if (synergyPairs.length > 0) {
+      lines.push('#### 5.4 상징 시너지 (자주 함께 획득)');
+      lines.push('| 상징 1 | 상징 2 | 함께 획득 |');
+      lines.push('|--------|--------|-----------|');
+      synergyPairs
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 10)
+        .forEach(pair => {
+          lines.push(`| ${getRelicNameLocal(pair.relic1)} | ${getRelicNameLocal(pair.relic2)} | ${pair.count}회 |`);
+        });
+      lines.push('');
+    }
+
+    // 5.5 평균 획득 층 (빠른 획득 상징)
+    const earlyRelics = allRelics
+      .filter(([, s]) => s.timesAcquired >= 3 && s.avgAcquireFloor > 0)
+      .sort((a, b) => a[1].avgAcquireFloor - b[1].avgAcquireFloor)
+      .slice(0, 10);
+    if (earlyRelics.length > 0) {
+      lines.push('#### 5.5 평균 획득 층 (빠른 획득 순)');
+      lines.push('| 상징 | 평균획득층 | 획득횟수 | 도달층기여 |');
+      lines.push('|------|------------|----------|------------|');
+      earlyRelics.forEach(([, s]) => {
+        const floorContrib = s.avgFloorReachedWith - (stats.runStats.avgLayerReached || 0);
+        const sign = floorContrib > 0 ? '+' : '';
+        lines.push(`| ${getRelicNameLocal(s.relicId)} | ${s.avgAcquireFloor.toFixed(1)} | ${s.timesAcquired} | ${sign}${floorContrib.toFixed(1)} |`);
       });
       lines.push('');
     }
