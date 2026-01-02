@@ -355,9 +355,10 @@ export interface BattleContext {
 /** 배틀 액션 (큐 아이템) */
 export interface BattleAction {
   actor: 'player' | 'enemy';
-  card?: Card;
+  card: Card;
   sp?: number;
   idx?: number;
+  originalIndex?: number;
   originalSpeed?: number;
   finalSpeed?: number;
   hasCrossed?: boolean;

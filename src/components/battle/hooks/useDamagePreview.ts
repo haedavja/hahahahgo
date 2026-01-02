@@ -120,7 +120,7 @@ export function useDamagePreview({
             value: damage,
             effectiveDamage,
             lethal: effectiveDamage >= unit.hp,
-            overkill: effectiveDamage >= unit.maxHp,
+            overkill: effectiveDamage >= (unit.maxHp ?? unit.hp),
           };
         }
       }

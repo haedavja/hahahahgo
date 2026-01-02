@@ -314,10 +314,11 @@ export function applyRegenerationEffect(
     return { actor, healed: 0, log: null };
   }
 
-  const healed = Math.min(actor.regeneration, actor.maxHp - actor.hp);
+  const effectiveMaxHp = actor.maxHp ?? actor.hp;
+  const healed = Math.min(actor.regeneration, effectiveMaxHp - actor.hp);
   const updatedActor: StatusEffectTarget = {
     ...actor,
-    hp: Math.min(actor.maxHp, actor.hp + healed)
+    hp: Math.min(effectiveMaxHp, actor.hp + healed)
   };
 
   const log = `${actorName === 'player' ? '플레이어' : '몬스터'} • 재생 ${healed} (체력 ${actor.hp} -> ${updatedActor.hp})`;

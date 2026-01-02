@@ -13,7 +13,7 @@ import { useCallback } from 'react';
 import type { MutableRefObject, Dispatch, SetStateAction } from 'react';
 import { detectPokerCombo } from '../utils/comboDetection';
 import { clearTurnTokens, getTokenStacks, removeToken, setTokenStacks } from '../../../lib/tokenUtils';
-import { gainGrace, createInitialGraceState } from '../../../data/monsterEther';
+import { gainGrace, createInitialGraceState, type MonsterGraceState } from '../../../data/monsterEther';
 import { processCardTraitEffects } from '../utils/cardTraitEffects';
 import { applyTurnEndEffects, calculatePassiveEffects } from '../../../lib/relicEffects';
 import { playTurnEndRelicAnimations, applyTurnEndRelicEffectsToNextTurn } from '../utils/turnEndRelicEffectsProcessing';
@@ -283,7 +283,10 @@ export function useResolveExecution({
     }
 
     // 현재 은총 상태 가져오기
-    const currentGrace = latestEnemy.grace || createInitialGraceState((enemy as unknown as { availablePrayers?: string[] }).availablePrayers as never);
+    const rawGrace = latestEnemy.grace;
+    const currentGrace: MonsterGraceState = (rawGrace && typeof rawGrace === 'object' && 'gracePts' in rawGrace)
+      ? rawGrace as MonsterGraceState
+      : createInitialGraceState((enemy as unknown as { availablePrayers?: string[] }).availablePrayers as never);
 
     const { nextPlayerPts, nextEnemyPts, enemyGraceGain, updatedGraceState } = processEtherTransfer({
       playerAppliedEther: effectivePlayerAppliedEther,
@@ -303,7 +306,11 @@ export function useResolveExecution({
     });
 
     // 은총 상태 업데이트 (보호막 소모 + 은총 획득)
-    let newGrace = updatedGraceState || currentGrace;
+    // updatedGraceState가 유효한 MonsterGraceState인지 확인
+    const validUpdatedGrace = (updatedGraceState && typeof updatedGraceState === 'object' && 'gracePts' in updatedGraceState)
+      ? updatedGraceState as MonsterGraceState
+      : null;
+    let newGrace: MonsterGraceState = validUpdatedGrace || currentGrace;
     if (enemyGraceGain > 0) {
       newGrace = gainGrace(newGrace, enemyGraceGain);
     }

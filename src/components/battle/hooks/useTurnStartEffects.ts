@@ -35,7 +35,7 @@ import {
   processAutoPrayers,
   createInitialGraceState
 } from '../../../data/monsterEther';
-import type { PrayerType } from '../../../data/monsterEther';
+import type { PrayerType, MonsterGraceState } from '../../../data/monsterEther';
 import type {
   Combatant,
   EnemyPlan,
@@ -96,7 +96,7 @@ export function useTurnStartEffects({
   turnNumber: number;
   baseMaxEnergy: number;
   orderedRelicList: string[];
-  playerEgos: string[];
+  playerEgos: unknown[];
   playerTraits: string[];
   enemyCount: number;
   battleRef: MutableRefObject<BattleRefValue | null>;
@@ -183,13 +183,14 @@ export function useTurnStartEffects({
 
     // 방어력과 체력 회복 적용 (성찰 회복 효과 포함)
     const reflectionHealedHp = reflectionResult.updatedPlayer.hp || player.hp;
+    const effectiveMaxHp = player.maxHp ?? player.hp;
     // fullHeal 효과: 체력 최대 회복
     let newHp: number;
     if (nextTurnEffects.fullHeal) {
-      newHp = player.maxHp;
-      addLog(`💖 결투: 체력 최대 회복! (${reflectionHealedHp} → ${player.maxHp})`);
+      newHp = effectiveMaxHp;
+      addLog(`💖 결투: 체력 최대 회복! (${reflectionHealedHp} → ${effectiveMaxHp})`);
     } else {
-      newHp = Math.min(player.maxHp, reflectionHealedHp + turnStartRelicEffects.heal);
+      newHp = Math.min(effectiveMaxHp, reflectionHealedHp + turnStartRelicEffects.heal);
     }
     const newBlock = (player.block || 0) + turnStartRelicEffects.block;
     // 방어력이 있으면 def도 true로 설정 (경계 토큰으로 유지된 방어력 포함)
@@ -274,9 +275,11 @@ export function useTurnStartEffects({
           anyVeil = true;
         }
         // 첫 턴: 치명타 보너스 부여
-        if (unitPassives.critBoostAtStart) {
-          const critBoost = unitPassives.critBoostAtStart as number;
-          updatedUnits[i] = { ...updatedUnits[i], critBonus: (updatedUnits[i].critBonus || 0) + critBoost };
+        if (unitPassives.critBoostAtStart && typeof unitPassives.critBoostAtStart === 'number') {
+          const critBoost = unitPassives.critBoostAtStart;
+          const rawCritBonus = updatedUnits[i].critBonus;
+          const currentCritBonus: number = typeof rawCritBonus === 'number' ? rawCritBonus : 0;
+          updatedUnits[i] = { ...updatedUnits[i], critBonus: currentCritBonus + critBoost };
           addLog(`🎯 ${unit.name}: 치명타율 +${critBoost}%`);
           anyCritBoost = true;
         }
@@ -294,9 +297,10 @@ export function useTurnStartEffects({
       }
 
       // 레거시 호환: 전체 enemy에 critBoostAtStart가 있는 경우 (유닛이 없는 경우)
-      const critBoostAtStart = enemyPassives.critBoostAtStart as number | undefined;
+      const critBoostAtStart = typeof enemyPassives.critBoostAtStart === 'number' ? enemyPassives.critBoostAtStart : undefined;
       if (critBoostAtStart && units.length === 0) {
-        updatedEnemy = { ...updatedEnemy, critBonus: (updatedEnemy.critBonus || 0) + critBoostAtStart };
+        const currentEnemyCritBonus = typeof updatedEnemy.critBonus === 'number' ? updatedEnemy.critBonus : 0;
+        updatedEnemy = { ...updatedEnemy, critBonus: currentEnemyCritBonus + critBoostAtStart };
         addLog(`🎯 ${enemy.name}: 치명타율 +${critBoostAtStart}%`);
       }
     }
@@ -323,9 +327,11 @@ export function useTurnStartEffects({
 
     // === 몬스터 기원 시스템 처리 ===
     // 은총 상태 턴 시작 업데이트 (가호 턴 감소, 사용 기록 초기화)
-    const currentGrace = updatedEnemy.grace || createInitialGraceState(
-      (enemy.availablePrayers as PrayerType[] | undefined)
-    );
+    const rawGrace = updatedEnemy.grace;
+    // gracePts가 있는지 체크하여 유효한 MonsterGraceState인지 확인
+    const currentGrace = (rawGrace && typeof rawGrace === 'object' && 'gracePts' in rawGrace)
+      ? rawGrace as MonsterGraceState
+      : createInitialGraceState((enemy.availablePrayers as PrayerType[] | undefined));
     let newGrace = updateGraceOnTurnStart(currentGrace);
 
     // 기원 자동 발동 (AI 결정)

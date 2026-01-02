@@ -225,7 +225,7 @@ export interface UseInsightSystemParams {
   battlePhase: string;
   devDulledLevel: number | null;
   actions: {
-    setInsightBadge: (badge: InsightBadge) => void;
+    setInsightBadge: (badge: InsightBadge | ((prev: InsightBadge) => InsightBadge)) => void;
     setInsightAnimLevel: (level: number) => void;
     setInsightAnimPulseKey: (fn: (k: number) => number) => void;
     setHoveredEnemyAction: (action: Card | null) => void;

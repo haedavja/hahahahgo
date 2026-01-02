@@ -20,7 +20,7 @@ import { playTurnEndRelicAnimations, applyTurnEndRelicEffectsToNextTurn } from '
 import { startEnemyEtherAnimation } from '../utils/enemyEtherAnimation';
 import { processEtherTransfer } from '../utils/etherTransferProcessing';
 import { processVictoryDefeatTransition } from '../utils/victoryDefeatTransition';
-import { gainGrace, createInitialGraceState } from '../../../data/monsterEther';
+import { gainGrace, createInitialGraceState, type MonsterGraceState } from '../../../data/monsterEther';
 import { applyTurnEndEffects } from '../../../lib/relicEffects';
 
 /**
@@ -141,7 +141,10 @@ export function finishTurnCore(params: FinishTurnCoreParams): FinishTurnResult {
   }
 
   // 현재 은총 상태 가져오기
-  const currentGrace = enemy.grace || createInitialGraceState((enemy as unknown as { availablePrayers?: string[] }).availablePrayers as never);
+  const rawGrace = enemy.grace;
+  const currentGrace: MonsterGraceState = (rawGrace && typeof rawGrace === 'object' && 'gracePts' in rawGrace)
+    ? rawGrace as MonsterGraceState
+    : createInitialGraceState((enemy as unknown as { availablePrayers?: string[] }).availablePrayers as never);
 
   const { nextPlayerPts, nextEnemyPts, enemyGraceGain, updatedGraceState } = processEtherTransfer({
     playerAppliedEther: effectivePlayerAppliedEther,
@@ -157,7 +160,10 @@ export function finishTurnCore(params: FinishTurnCoreParams): FinishTurnResult {
   });
 
   // 은총 상태 업데이트 (보호막 소모 + 은총 획득)
-  let newGrace = updatedGraceState || currentGrace;
+  const validUpdatedGrace = (updatedGraceState && typeof updatedGraceState === 'object' && 'gracePts' in updatedGraceState)
+    ? updatedGraceState as MonsterGraceState
+    : null;
+  let newGrace: MonsterGraceState = validUpdatedGrace || currentGrace;
   if (enemyGraceGain > 0) {
     newGrace = gainGrace(newGrace, enemyGraceGain);
   }

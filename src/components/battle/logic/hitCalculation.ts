@@ -365,7 +365,7 @@ export function calculateSingleHit(
   const ignoreBlock = shouldIgnoreBlock(modifiedCard);
 
   if (!ignoreBlock && updatedDefender.def && (updatedDefender.block || 0) > 0) {
-    const beforeBlock = updatedDefender.block;
+    const beforeBlock = updatedDefender.block ?? 0;
     const effectiveDmg = dmg * crushMultiplier;
 
     if (effectiveDmg < beforeBlock) {
@@ -429,10 +429,10 @@ export function calculateSingleHit(
         }
       }
     } else {
-      const blocked = beforeBlock;
+      const blocked = beforeBlock ?? 0;
       const remained = Math.max(0, effectiveDmg - blocked);
       updatedDefender.block = 0;
-      blockDestroyed = blocked;
+      blockDestroyed = blocked ?? 0;
 
       // 취약 배율: 토큰 효과 + 이변 효과
       const tokenVuln = (updatedDefender.vulnMult && updatedDefender.vulnMult > 1) ? updatedDefender.vulnMult : 1;

@@ -41,7 +41,7 @@ export function useTimeline(queue: unknown[] = [], currentIndex = 0, options: Ti
 
   const [progress, setProgress] = useState(0);
   const [isPlaying, setIsPlaying] = useState(auto);
-  const intervalRef = useRef<number | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // 현재 카드 정보
   const currentCard = queue[currentIndex] || null;
@@ -155,7 +155,7 @@ export function useTimelineIndicator(visible = true, progress = 0) {
  */
 export function useCardExecution(executingCardIndex = null, duration = 500) {
   const [isExecuting, setIsExecuting] = useState(false);
-  const timeoutRef = useRef<number | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (executingCardIndex !== null) {

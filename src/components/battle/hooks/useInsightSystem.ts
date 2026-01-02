@@ -94,7 +94,7 @@ export function useInsightSystem({
     });
     playInsightSound(curr > 0 ? Math.min(curr, 3) : 1);
     insightBadgeTimerRef.current = setTimeout(() => {
-      actions.setInsightBadge((b: { level: number; dir: string; show: boolean; key: number }) => ({ ...b, show: false }));
+      actions.setInsightBadge((b) => ({ ...b, show: false }));
     }, 1400);
   }, [playerInsight, actions]);
 

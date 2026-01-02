@@ -146,6 +146,7 @@ export interface BattleResult {
   result: 'victory' | 'defeat';
   playerEther?: number;
   deltaEther?: number;
-  playerHp: number;
-  playerMaxHp: number;
+  playerHp?: number;
+  playerMaxHp?: number;
+  [key: string]: unknown;
 }

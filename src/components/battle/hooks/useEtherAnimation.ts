@@ -107,10 +107,10 @@ export function useEtherAnimation({
       // 에테르 증폭 배율이 적용되었으면 상태에서 제거 (배율 갱신 시점)
       if (etherAmplifierMult > 1) {
         const currentPlayer = battleRef.current?.player || player;
-        const updatedPlayer = { ...(currentPlayer as object), etherMultiplier: 1 };
-        actions.setPlayer(updatedPlayer);
+        const updatedPlayer = { ...currentPlayer, etherMultiplier: 1 } as typeof currentPlayer;
+        actions.setPlayer(updatedPlayer as never);
         if (battleRef.current) {
-          battleRef.current.player = updatedPlayer;
+          battleRef.current.player = updatedPlayer as never;
         }
       }
       playSound(800, 100);

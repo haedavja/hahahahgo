@@ -18,6 +18,7 @@ import type {
   Combatant,
   EnemyUnit,
   BattleEvent,
+  BattleAction,
   SpecialActor
 } from './combat';
 
@@ -289,6 +290,7 @@ export interface DeflationResult {
   gain: number;
   multiplier: number;
   usageCount: number;
+  [key: string]: unknown;
 }
 
 /** 콤보 에테르 획득 결과 */
@@ -566,10 +568,9 @@ export interface StunAction {
 }
 
 /**
- * 기절 처리용 큐 아이템 - OrderItem과 동일 (하위 호환용 별칭)
- * @deprecated OrderItem을 직접 사용하세요.
+ * 기절 처리용 큐 아이템 - BattleAction과 호환
  */
-export type StunQueueItem = OrderItem;
+export type StunQueueItem = BattleAction;
 
 /** 기절 이벤트 */
 export interface StunEvent {
@@ -581,14 +582,14 @@ export interface StunEvent {
 
 /** 기절 처리 결과 */
 export interface StunProcessingResult {
-  updatedQueue: StunQueueItem[];
+  updatedQueue: BattleAction[];
   stunEvent: StunEvent | null;
 }
 
 /** 기절 처리 파라미터 */
 export interface StunProcessingParams {
   action: StunAction;
-  queue: StunQueueItem[];
+  queue: BattleAction[];
   currentQIndex: number;
   addLog: LogFunction;
 }
@@ -769,8 +770,8 @@ export type OrderingEnemyAction = Card;
 /** 순서 항목 */
 export interface OrderItem {
   actor: 'player' | 'enemy';
-  card: OrderingCardInfo | OrderingEnemyAction;
-  originalIndex: number;
+  card: OrderingCardInfo | OrderingEnemyAction | Card;
+  originalIndex?: number;
   sp?: number;
   finalSpeed?: number;
   [key: string]: unknown;
@@ -784,6 +785,7 @@ export interface CombatQueueItem {
   idx: number;
   originalSpeed: number;
   finalSpeed: number;
+  [key: string]: unknown;
 }
 
 // ==================== 상징 효과 시스템 ====================

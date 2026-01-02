@@ -113,7 +113,7 @@ export function useRenderComputations(params: UseRenderComputationsParams): Rend
     // 필요 토큰 체크 (기교 등)
     if (c.requiredTokens && Array.isArray(c.requiredTokens)) {
       for (const req of c.requiredTokens) {
-        const currentStacks = getTokenStacks(player, req.id);
+        const currentStacks = getTokenStacks(player as Parameters<typeof getTokenStacks>[0], req.id);
         if (currentStacks < (req.stacks || 1)) {
           return true;  // 토큰 부족
         }
@@ -139,7 +139,7 @@ export function useRenderComputations(params: UseRenderComputationsParams): Rend
   // 오버드라이브 관련 계산
   const enemyWillOverdrivePlan = useMemo(() =>
     shouldEnemyOverdrive(
-      enemyPlan.mode,
+      enemyPlan.mode as string | null,
       enemyPlan.actions as unknown as import("../../../types").AICard[],
       Number(enemy?.etherPts),
       turnNumber
@@ -154,7 +154,7 @@ export function useRenderComputations(params: UseRenderComputationsParams): Rend
     [battle.phase, insightVisible, insightLevelSelect]
   );
 
-  const enemyOverdriveVisible = canRevealOverdrive && (enemyWillOverdrivePlan || enemy?.etherOverdriveActive);
+  const enemyOverdriveVisible = !!(canRevealOverdrive && (enemyWillOverdrivePlan || enemy?.etherOverdriveActive));
   const enemyOverdriveLabel = enemy?.etherOverdriveActive ? '기원 발동' : '기원 예정';
 
   // 에테르 델타 계산

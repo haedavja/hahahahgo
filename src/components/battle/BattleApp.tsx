@@ -1168,7 +1168,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     });
     const targetUnitIdForAttack = attackTargetResult.targetUnitIdForAttack;
     if (targetUnitIdForAttack !== null) {
-      E.block = attackTargetResult.modifiedEnemyState.block;
+      E.block = attackTargetResult.modifiedEnemyState.block ?? 0;
       E.def = attackTargetResult.modifiedEnemyState.def ?? false;
       tempState.enemy = E;
     }
@@ -1183,7 +1183,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     });
     const sourceUnitIdForDefense = defenseSourceResult.sourceUnitIdForDefense;
     if (sourceUnitIdForDefense !== null) {
-      E.block = defenseSourceResult.modifiedEnemyState.block;
+      E.block = defenseSourceResult.modifiedEnemyState.block ?? 0;
       E.def = defenseSourceResult.modifiedEnemyState.def ?? false;
       tempState.enemy = E;
     }
@@ -1345,7 +1345,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     });
     if (attackBlockUpdateResult.updated) {
       E.units = attackBlockUpdateResult.modifiedEnemyState.units;
-      E.block = attackBlockUpdateResult.modifiedEnemyState.block;
+      E.block = attackBlockUpdateResult.modifiedEnemyState.block ?? 0;
       E.def = attackBlockUpdateResult.modifiedEnemyState.def ?? false;
       if (battleRef.current) {
         battleRef.current = { ...battleRef.current, enemy: E };
@@ -1362,7 +1362,7 @@ function Game({ initialPlayer, initialEnemy, playerEther = 0, onBattleResult, li
     });
     if (defenseBlockResult.updated) {
       E.units = defenseBlockResult.modifiedEnemyState.units;
-      E.block = defenseBlockResult.modifiedEnemyState.block;
+      E.block = defenseBlockResult.modifiedEnemyState.block ?? 0;
       E.def = defenseBlockResult.modifiedEnemyState.def ?? false;
       if (battleRef.current) {
         battleRef.current = { ...battleRef.current, enemy: E };
