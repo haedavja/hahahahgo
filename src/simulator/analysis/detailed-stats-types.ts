@@ -132,8 +132,14 @@ export interface CardUpgradeStats {
 
 /** 성장 시스템 통계 */
 export interface GrowthStats {
-  /** 스탯별 투자 횟수 */
+  /** 개성(trait) 투자 횟수 */
   statInvestments: Record<string, number>;
+  /** 에토스 투자 횟수 */
+  ethosInvestments: Record<string, number>;
+  /** 파토스 투자 횟수 */
+  pathosInvestments: Record<string, number>;
+  /** 로고스 투자 횟수 */
+  logosInvestments: Record<string, number>;
   /** 총 투자 횟수 */
   totalInvestments: number;
   /** 런당 평균 투자 */

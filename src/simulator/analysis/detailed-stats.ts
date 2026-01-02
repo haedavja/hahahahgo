@@ -100,6 +100,9 @@ export class StatsCollector {
 
   // 성장 시스템 통계
   private statInvestments: Record<string, number> = {};
+  private ethosInvestments: Record<string, number> = {};
+  private pathosInvestments: Record<string, number> = {};
+  private logosInvestments: Record<string, number> = {};
   private logosActivations: Record<string, number> = {};
   private growthLevels: number[] = [];
   // 성장 경로 추적
@@ -535,10 +538,25 @@ export class StatsCollector {
   }
 
   /** 성장 시스템 투자 기록 */
-  recordGrowthInvestment(stat: string, amount: number = 1) {
-    this.statInvestments[stat] = (this.statInvestments[stat] || 0) + amount;
-    // 성장 경로에 추가
-    this.currentGrowthPath.push(stat);
+  recordGrowthInvestment(id: string, type: 'trait' | 'ethos' | 'pathos' | 'logos' = 'trait', amount: number = 1) {
+    // 타입별 투자 기록
+    switch (type) {
+      case 'ethos':
+        this.ethosInvestments[id] = (this.ethosInvestments[id] || 0) + amount;
+        break;
+      case 'pathos':
+        this.pathosInvestments[id] = (this.pathosInvestments[id] || 0) + amount;
+        break;
+      case 'logos':
+        this.logosInvestments[id] = (this.logosInvestments[id] || 0) + amount;
+        break;
+      default:
+        // trait (개성)
+        this.statInvestments[id] = (this.statInvestments[id] || 0) + amount;
+        break;
+    }
+    // 성장 경로에 추가 (타입 포함)
+    this.currentGrowthPath.push(`${type}:${id}`);
   }
 
   /** 로고스 효과 활성화 기록 */
@@ -1237,7 +1255,11 @@ export class StatsCollector {
   /** 성장 시스템 통계 계산 */
   private calculateGrowthStats(): GrowthStats {
     const totalRuns = this.runResults.length || 1;
-    const totalInvestments = Object.values(this.statInvestments).reduce((a, b) => a + b, 0);
+    const traitTotal = Object.values(this.statInvestments).reduce((a, b) => a + b, 0);
+    const ethosTotal = Object.values(this.ethosInvestments).reduce((a, b) => a + b, 0);
+    const pathosTotal = Object.values(this.pathosInvestments).reduce((a, b) => a + b, 0);
+    const logosTotal = Object.values(this.logosInvestments).reduce((a, b) => a + b, 0);
+    const totalInvestments = traitTotal + ethosTotal + pathosTotal + logosTotal;
 
     const levelDistribution: Record<number, number> = {};
     for (const level of this.growthLevels) {
@@ -1307,6 +1329,9 @@ export class StatsCollector {
 
     return {
       statInvestments: this.statInvestments,
+      ethosInvestments: this.ethosInvestments,
+      pathosInvestments: this.pathosInvestments,
+      logosInvestments: this.logosInvestments,
       totalInvestments,
       avgInvestmentsPerRun: totalInvestments / totalRuns,
       logosActivations: this.logosActivations,
@@ -1410,6 +1435,9 @@ export class StatsCollector {
     this.upgradesInWinningRuns = 0;
     this.upgradesInLosingRuns = 0;
     this.statInvestments = {};
+    this.ethosInvestments = {};
+    this.pathosInvestments = {};
+    this.logosInvestments = {};
     this.logosActivations = {};
     this.growthLevels = [];
     this.growthPaths = [];

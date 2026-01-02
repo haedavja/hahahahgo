@@ -1827,18 +1827,18 @@ export class RunSimulator {
     const traits = traitsByStrategy[strategy] || ['용맹함', '굳건함'];
     for (const trait of traits) {
       growthSystem.addTrait(trait);
-      // 성장 투자 기록
+      // 성장 투자 기록 (개성)
       if (this.statsCollector) {
-        this.statsCollector.recordGrowthInvestment(trait);
+        this.statsCollector.recordGrowthInvestment(trait, 'trait');
       }
     }
 
     // 자동 성장 (전략에 맞게)
     const selections = growthSystem.autoGrow(strategy);
-    // 자동 성장 선택 기록
+    // 자동 성장 선택 기록 (에토스/파토스/로고스)
     if (this.statsCollector && selections) {
       for (const selection of selections) {
-        this.statsCollector.recordGrowthInvestment(selection.id);
+        this.statsCollector.recordGrowthInvestment(selection.id, selection.type);
       }
     }
   }
@@ -1878,9 +1878,9 @@ export class RunSimulator {
         const newTrait = rng.pick(availableTraits);
         growthSystem.addTrait(newTrait);
 
-        // 성장 투자 기록
+        // 성장 투자 기록 (개성)
         if (this.statsCollector) {
-          this.statsCollector.recordGrowthInvestment(newTrait);
+          this.statsCollector.recordGrowthInvestment(newTrait, 'trait');
         }
 
         // 성장 상태 업데이트

@@ -231,12 +231,45 @@ function formatStatsForAI(stats: DetailedStats, config: { runCount: number; diff
     lines.push(`- 총 투자: ${stats.growthStats.totalInvestments}회`);
     lines.push(`- 런당 평균: ${num(stats.growthStats.avgInvestmentsPerRun)}회`);
 
-    // 스탯별 투자
-    const statEntries = Object.entries(stats.growthStats.statInvestments || {});
-    if (statEntries.length > 0) {
-      lines.push('### 스탯별 투자');
-      statEntries.sort((a, b) => b[1] - a[1]).forEach(([stat, count]) => {
+    // 개성(trait) 투자
+    const traitEntries = Object.entries(stats.growthStats.statInvestments || {});
+    if (traitEntries.length > 0) {
+      lines.push('### 개성 투자');
+      traitEntries.sort((a, b) => b[1] - a[1]).forEach(([stat, count]) => {
         lines.push(`- ${stat}: ${count}회`);
+      });
+    }
+
+    // 에토스 투자
+    const ethosEntries = Object.entries(stats.growthStats.ethosInvestments || {});
+    if (ethosEntries.length > 0) {
+      lines.push('### 에토스 투자');
+      lines.push('| 에토스 | 횟수 |');
+      lines.push('|--------|------|');
+      ethosEntries.sort((a, b) => b[1] - a[1]).forEach(([ethos, count]) => {
+        lines.push(`| ${ethos} | ${count} |`);
+      });
+    }
+
+    // 파토스 투자
+    const pathosEntries = Object.entries(stats.growthStats.pathosInvestments || {});
+    if (pathosEntries.length > 0) {
+      lines.push('### 파토스 투자');
+      lines.push('| 파토스 | 횟수 |');
+      lines.push('|--------|------|');
+      pathosEntries.sort((a, b) => b[1] - a[1]).forEach(([pathos, count]) => {
+        lines.push(`| ${pathos} | ${count} |`);
+      });
+    }
+
+    // 로고스 투자
+    const logosInvEntries = Object.entries(stats.growthStats.logosInvestments || {});
+    if (logosInvEntries.length > 0) {
+      lines.push('### 로고스 해금');
+      lines.push('| 로고스 | 횟수 |');
+      lines.push('|--------|------|');
+      logosInvEntries.sort((a, b) => b[1] - a[1]).forEach(([logos, count]) => {
+        lines.push(`| ${logos} | ${count} |`);
       });
     }
 
@@ -273,11 +306,11 @@ function formatStatsForAI(stats: DetailedStats, config: { runCount: number; diff
       });
     }
 
-    // 로고스 효과
-    const logosEntries = Object.entries(stats.growthStats.logosActivations || {});
-    if (logosEntries.length > 0) {
+    // 로고스 효과 발동
+    const logosActEntries = Object.entries(stats.growthStats.logosActivations || {});
+    if (logosActEntries.length > 0) {
       lines.push('### 로고스 효과 발동');
-      logosEntries.sort((a, b) => b[1] - a[1]).forEach(([effect, count]) => {
+      logosActEntries.sort((a, b) => b[1] - a[1]).forEach(([effect, count]) => {
         lines.push(`- ${effect}: ${count}회`);
       });
     }
