@@ -64,6 +64,7 @@ const DAMAGE_MULTIPLIER_TRAITS: Record<string, number> = {
   destroyer: 1.5,      // 파괴자: 50% 증폭
   slaughter: 1.75,     // 살육: 75% 증폭
   pinnacle: 2.5,       // 절정: 150% 증폭
+  weakbone: 0.8,       // 약골: 20% 감소
 };
 
 /** 방어력 증폭 특성 */
@@ -71,6 +72,8 @@ const BLOCK_MULTIPLIER_TRAITS: Record<string, number> = {
   fortress: 1.25,      // 요새: 25% 증폭
   bastion: 1.5,        // 보루: 50% 증폭
   ironwall: 2.0,       // 철벽: 100% 증폭
+  strongbone: 1.25,    // 강골: 25% 증폭 (방어에도 적용)
+  weakbone: 0.8,       // 약골: 20% 감소 (방어에도 적용)
 };
 
 /** 속도 수정 특성 */
@@ -291,6 +294,82 @@ export class TraitSynergyProcessor {
         // 튼튼함: 방어력 +5
         result.bonusBlock += 5;
         result.synergies.push('튼튼함: 방어력 +5');
+        break;
+
+      case 'crush':
+        // 분쇄: 상대 방어력에 2배 피해
+        result.appliedTokens.push({ id: 'crush', stacks: 1, target: 'self' });
+        result.synergies.push('분쇄: 상대 방어력에 2배 피해');
+        break;
+
+      case 'mastery':
+        // 숙련: 사용할 때마다 속도 -2 (최소 1)
+        result.speedModifier -= 2;
+        result.synergies.push('숙련: 속도 -2');
+        break;
+
+      case 'knockback':
+        // 넉백: 상대 타임라인 3 뒤로 밀기
+        result.appliedTokens.push({ id: 'knockback', stacks: 3, target: 'enemy' });
+        result.synergies.push('넉백: 상대 타임라인 +3');
+        break;
+
+      case 'advance':
+        // 앞당김: 내 타임라인 3 앞당김
+        result.speedModifier -= 3;
+        result.synergies.push('앞당김: 타임라인 -3');
+        break;
+
+      case 'stun':
+        // 기절: 타임라인 5범위내 상대 카드 파괴
+        result.appliedTokens.push({ id: 'stun', stacks: 5, target: 'enemy' });
+        result.synergies.push('기절: 5범위내 적 카드 파괴');
+        break;
+
+      case 'outcast':
+        // 소외: 조합 제외, 행동력 -1
+        result.synergies.push('소외: 콤보 보너스 제외');
+        break;
+
+      case 'boredom':
+        // 싫증: 사용시마다 속도 +2
+        result.speedModifier += 2;
+        result.synergies.push('싫증: 속도 +2');
+        break;
+
+      case 'vanish':
+        // 소멸: 사용 후 게임에서 제거
+        result.appliedTokens.push({ id: 'vanish', stacks: 1, target: 'self' });
+        result.synergies.push('소멸: 사용 후 제거됨');
+        break;
+
+      case 'last':
+        // 마지막: 타임라인 마지막에 발동
+        result.speedModifier = 999; // 최후에 발동
+        result.synergies.push('마지막: 타임라인 최후에 발동');
+        break;
+
+      case 'robber':
+        // 날강도: 사용시 10골드 소실
+        result.appliedTokens.push({ id: 'robber', stacks: 10, target: 'self' });
+        result.synergies.push('날강도: 10골드 소실');
+        break;
+
+      case 'general':
+        // 장군: 다음턴 부특기 등장률 25% 증가
+        result.appliedTokens.push({ id: 'general', stacks: 25, target: 'self' });
+        result.synergies.push('장군: 다음턴 부특기 등장률 +25%');
+        break;
+
+      case 'leisure':
+        // 여유: 배치 유연성 (시뮬레이션에서는 속도 범위 확장으로 처리)
+        result.synergies.push('여유: 유연한 배치');
+        break;
+
+      case 'strain':
+        // 무리: 행동력으로 속도 앞당김 (시뮬레이션에서는 속도 -1 보너스로 간략화)
+        result.speedModifier -= 1;
+        result.synergies.push('무리: 행동력으로 가속 가능');
         break;
     }
   }
